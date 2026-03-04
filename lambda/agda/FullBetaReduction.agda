@@ -2,6 +2,8 @@ module FullBetaReduction where
 
 open import Agda.Builtin.Nat using (Nat)
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Agda.Builtin.Sigma using (Σ; _,_)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Lambda
 
 ------------------------------------------------------------------------
@@ -28,7 +30,24 @@ data Step : Term → Term → Set where
   beta-lam : ∀ {n w} → Step (app (lam n) w) (single-subst n w)
 
 ------------------------------------------------------------------------
--- 3. Multi-step reduction
+-- 3. Progress
+------------------------------------------------------------------------
+
+progress : (m : Term) → (Normal m) ⊎ (Σ Term (λ n → Step m n))
+progress (var i) = inj₁ (norm-neu neu-var)
+progress (lam n) with progress n
+... | inj₁ hn = inj₁ (norm-lam hn)
+... | inj₂ (n' , s) = inj₂ (lam n' , xi-lam s)
+progress (app l r) with progress l
+... | inj₂ (l' , sl) = inj₂ (app l' r , xi-app1 sl)
+... | inj₁ hl with progress r
+...   | inj₂ (r' , sr) = inj₂ (app l r' , xi-app2 sr)
+...   | inj₁ hr with hl
+...     | norm-neu hneu = inj₁ (norm-neu (neu-app hneu hr))
+...     | norm-lam {n} hn = inj₂ (single-subst n r , beta-lam)
+
+------------------------------------------------------------------------
+-- 4. Multi-step reduction
 ------------------------------------------------------------------------
 
 data MultiStep : Term → Term → Set where
@@ -53,3 +72,4 @@ app-cong l2l' m2m' = multi-trans (appL-cong l2l') (appR-cong m2m')
 lam-cong : ∀ {n n'} → MultiStep n n' → MultiStep (lam n) (lam n')
 lam-cong (ms-refl _) = ms-refl _
 lam-cong (ms-step _ r rs) = ms-step _ (xi-lam r) (lam-cong rs)
+

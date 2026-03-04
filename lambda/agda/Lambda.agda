@@ -4,12 +4,6 @@ open import Agda.Builtin.Nat using (Nat; zero; suc)
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Sigma using (Σ; _,_)
 
-infixr 4 _⊎_
-
-data _⊎_ (A B : Set) : Set where
-  inj1 : A → A ⊎ B
-  inj2 : B → A ⊎ B
-
 ------------------------------------------------------------------------
 -- 1. Syntax
 ------------------------------------------------------------------------

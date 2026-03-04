@@ -6,4 +6,4 @@ package «lambda» where
 
 @[default_target]
 lean_lib «Lambda» where
-  roots := #[`Lambda, `FullBetaReduction, `CBNReduction, `Subst, `Progress, `CBNBigStep]
+  roots := #[`Lambda, `FullBetaReduction, `CBNReduction, `Subst, `CBNBigStep]

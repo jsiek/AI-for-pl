@@ -1,0 +1,9 @@
+{"plugins": [],
+ "package": "lambda",
+ "options": {},
+ "name": "Subst",
+ "isModule": false,
+ "importArts":
+ {"Lambda":
+  ["/Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/Lambda.olean"]},
+ "dynlibs": []}

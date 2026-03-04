@@ -1,8 +1,8 @@
 {"synthetic": false,
  "schemaVersion": "2025-09-10",
  "outputs":
- {"o": ["8aa0e1634daf4e5a.olean"],
-  "i": "14c8cc19572b5235.ilean",
+ {"o": ["0600877e2b6c9c11.olean"],
+  "i": "66b5c26c00c96326.ilean",
   "c": "1ea61b5df5280804.c"},
  "log":
  [{"message":
@@ -14,7 +14,7 @@
      [["stlc/Stlc:extraDep", [["@stlc:extraDep", "00000000000006bb"]]],
       ["imports",
        [["STLC transitive imports (legacy)", "00000000000006bb"],
-        ["STLC:importAllArts", "2d7f809371cd23e5"]]]]],
+        ["STLC:importAllArts", "737a3f488e3c7198"]]]]],
     ["libs",
      [["import dynlibs", "00000000000006bb"],
       ["package external libraries", "00000000000006bb"],
@@ -22,7 +22,7 @@
       ["module plugins", "00000000000006bb"]]]]],
   ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
    "a96bc04a2e5e9630"],
-  ["/Users/jsiek/AI-for-pl/STLC/Subst.lean", "e0e83ef2e300e456"],
+  ["/Users/jsiek/AI-for-pl/STLC/Subst.lean", "578862576dfb85c6"],
   ["options", "00000000000006bb"],
   ["Module.leanArgs: #[]", "00000000000006bb"]],
- "depHash": "209ba8ede96fa7f6"}
+ "depHash": "ae2433940a5653b0"}

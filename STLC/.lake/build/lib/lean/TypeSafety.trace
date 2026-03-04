@@ -1,8 +1,8 @@
 {"synthetic": false,
  "schemaVersion": "2025-09-10",
  "outputs":
- {"o": ["8589fc3fbbbdfea7.olean"],
-  "i": "262742b6569c10a4.ilean",
+ {"o": ["c3875e135347d909.olean"],
+  "i": "f3f936ff450ce2c2.ilean",
   "c": "c27ab499f232377c.c"},
  "log":
  [{"message":
@@ -14,7 +14,7 @@
      [["stlc/Stlc:extraDep", [["@stlc:extraDep", "00000000000006bb"]]],
       ["imports",
        [["STLC transitive imports (legacy)", "00000000000006bb"],
-        ["STLC:importAllArts", "2d7f809371cd23e5"]]]]],
+        ["STLC:importAllArts", "737a3f488e3c7198"]]]]],
     ["libs",
      [["import dynlibs", "00000000000006bb"],
       ["package external libraries", "00000000000006bb"],
@@ -22,7 +22,7 @@
       ["module plugins", "00000000000006bb"]]]]],
   ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
    "a96bc04a2e5e9630"],
-  ["/Users/jsiek/AI-for-pl/STLC/TypeSafety.lean", "47db42172d5cdd7c"],
+  ["/Users/jsiek/AI-for-pl/STLC/TypeSafety.lean", "151b15726176da03"],
   ["options", "00000000000006bb"],
   ["Module.leanArgs: #[]", "00000000000006bb"]],
- "depHash": "3233b3630062cef4"}
+ "depHash": "5115494da20fbeab"}

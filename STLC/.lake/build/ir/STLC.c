@@ -20,7 +20,6 @@ static lean_object* lp_stlc_STLC_term___u21d2___00__closed__3;
 static lean_object* lp_stlc_STLC_exts___closed__0;
 LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______unexpand__STLC__Ty__fn__1___boxed(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Ty_ctorElim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_suc_elim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_exts___lam__0(lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasTypeVar_Z_elim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Value_ctorIdx(lean_object*, lean_object*);
@@ -31,8 +30,6 @@ static lean_object* lp_stlc_STLC_term___u2014_u2192___00__closed__6;
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_t__lam_elim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasTypeVar_ctorElim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Value_v__lam_elim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_case_elim(lean_object*, lean_object*, lean_object*, lean_object*);
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_app_elim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u21d2____1___closed__16;
 static lean_object* lp_stlc_STLC_term___u2014_u2192___00__closed__0;
 static lean_object* lp_stlc_STLC_termBegin___00__closed__2;
@@ -40,11 +37,8 @@ static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u220e
 LEAN_EXPORT lean_object* lp_stlc_STLC_Ty_ctorElim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_MultiStep_ctorIdx(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_term___u21d2__;
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_ctorIdx(lean_object*);
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_ctorElim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_t__var_elim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u2014_u2192_u27e8___u27e9___00__closed__8;
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_zero_elim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_xi__case_elim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_MultiStep_ctorIdx___redArg___boxed(lean_object*);
 static lean_object* lp_stlc_STLC_term___u2014_u2192_u27e8___u27e9___00__closed__2;
@@ -55,12 +49,12 @@ LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_t__var_elim___boxed(lean_object*, 
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u220e__1___closed__8;
 LEAN_EXPORT lean_object* lp_stlc_STLC_MultiStep_refl_elim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_MultiStep_ctorElim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_case_elim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u21d2____1___closed__10;
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u21d2____1___closed__6;
 lean_object* l_Lean_replaceRef(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasTypeVar_S_elim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u2192_u27e8___u27e9____1___closed__7;
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_var_elim(lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Ty_fn_elim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u21d2____1___closed__13;
 LEAN_EXPORT lean_object* lp_stlc_STLC_Ty_nat_elim(lean_object*, lean_object*, lean_object*, lean_object*);
@@ -76,9 +70,9 @@ LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_t__app_elim___boxed(lean_object*, 
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_ctorElim___redArg(lean_object*, lean_object*);
 lean_object* l_Lean_Syntax_node5(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u220e___closed__3;
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_suc_elim(lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_00_u03b2__zero_elim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 uint8_t l_Lean_Syntax_isOfKind(lean_object*, lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_app_elim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u2192____1___closed__6;
 LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______unexpand__STLC__MultiStep__step__1(lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u2014_u2192_u27e8___u27e9___00__closed__4;
@@ -92,6 +86,7 @@ LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______unexpand__STLC__Step__1__
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u21a0____1___closed__7;
 LEAN_EXPORT lean_object* lp_stlc_STLC_Value_ctorElim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u21a0____1___closed__5;
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_lam_elim(lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_multi__trans(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* l_Lean_Name_mkStr3(lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u21d2____1___closed__8;
@@ -108,7 +103,7 @@ LEAN_EXPORT lean_object* lp_stlc_STLC_MultiStep_refl_elim___boxed(lean_object*, 
 LEAN_EXPORT lean_object* lp_stlc_STLC_Value_ctorIdx___redArg___boxed(lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______unexpand__STLC__Step__1(lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u220e__1___closed__1;
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_ctorElim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_suc_elim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u220e___closed__2;
 lean_object* l_Lean_SourceInfo_fromRef(lean_object*, uint8_t);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u21a0____1___closed__2;
@@ -132,16 +127,19 @@ static lean_object* lp_stlc_STLC_exts___closed__1;
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasTypeVar_ctorIdx(lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u21d2___00__closed__4;
 static lean_object* lp_stlc_STLC_term___u21d2___00__closed__5;
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_var_elim(lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_termBegin___00__closed__4;
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_t__case_elim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_t__app_elim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u2192____1___closed__2;
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_ctorIdx___boxed(lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_multi__trans___redArg___boxed(lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u220e__1___closed__2;
 LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__termBegin____1___boxed(lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u2014_u2192_u27e8___u27e9___00__closed__5;
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u21d2____1___closed__7;
 static lean_object* lp_stlc_STLC_termBegin___00__closed__5;
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_ctorElim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_exts(lean_object*, lean_object*);
 lean_object* l_Lean_Syntax_node3(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_ctorIdx___redArg(lean_object*);
@@ -150,11 +148,10 @@ LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______unexpand__STLC__MultiStep
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_00_u03b2__suc_elim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasTypeVar_Z_elim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_xi__case_elim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_ctorElim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_00_u03b2__lam_elim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_xi__app1_elim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u2192____1___closed__0;
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_var_elim___redArg(lean_object*, lean_object*);
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_case_elim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u21a0____1___closed__1;
 LEAN_EXPORT lean_object* lp_stlc_STLC_single__subst(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasTypeVar_ctorElim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
@@ -162,6 +159,7 @@ lean_object* l_Lean_addMacroScope(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Value_ctorElim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_00_u03b2__suc_elim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_xi__app2_elim___redArg(lean_object*, lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_zero_elim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u2014_u2192___00__closed__4;
 LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______unexpand__STLC__MultiStep__refl__1___boxed(lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u2192____1___closed__1;
@@ -196,14 +194,13 @@ LEAN_EXPORT lean_object* lp_stlc_STLC_ext___boxed(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u2014_u21a0___00__closed__2;
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasTypeVar_ctorIdx___redArg___boxed(lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__termBegin____1___redArg(lean_object*, lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_var_elim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Ty_nat_elim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_termBegin___00__closed__3;
 LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u2192____1(lean_object*, lean_object*, lean_object*);
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_lam_elim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Ty_ctorIdx(lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u21d2____1(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Value_v__suc_elim___redArg(lean_object*, lean_object*);
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_ctorElim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_MultiStep_ctorElim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u2014_u21a0___00__closed__3;
 static lean_object* lp_stlc_STLC_instBEqTy___closed__0;
@@ -211,6 +208,7 @@ static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u220e
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_00_u03b2__suc_elim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u220e__1___closed__3;
 uint8_t lean_nat_dec_eq(lean_object*, lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_ctorElim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_term___u2014_u21a0__;
 LEAN_EXPORT lean_object* lp_stlc_STLC_term___u2014_u2192_u27e8___u27e9__;
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_00_u03b2__zero_elim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
@@ -219,19 +217,18 @@ LEAN_EXPORT lean_object* lp_stlc_STLC_MultiStep_step_elim___boxed(lean_object*, 
 LEAN_EXPORT lean_object* lp_stlc_STLC_Value_v__zero_elim___redArg(lean_object*, lean_object*);
 lean_object* l_Lean_Name_mkStr2(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_termBegin___00__closed__0;
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_lam_elim(lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u2014_u2192_u27e8___u27e9___00__closed__0;
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasTypeVar_ctorIdx___redArg(lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_ctorIdx___redArg___boxed(lean_object*);
 LEAN_EXPORT uint8_t lp_stlc_STLC_instBEqTy_beq(lean_object*, lean_object*);
 lean_object* l_Lean_Syntax_node1(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Value_ctorElim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_lam_elim___redArg(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u21d2____1___closed__2;
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_ctorElim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u2014_u2192___00__closed__3;
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_xi__app2_elim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u21a0____1___closed__0;
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_ctorIdx___boxed(lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_single__subst___lam__0(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Value_ctorIdx___redArg(lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_ctorIdx___boxed(lean_object*, lean_object*, lean_object*);
@@ -243,10 +240,12 @@ LEAN_EXPORT lean_object* lp_stlc_STLC_Value_v__zero_elim(lean_object*, lean_obje
 LEAN_EXPORT lean_object* lp_stlc_STLC_term___u2014_u2192__;
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u220e__1___closed__4;
 LEAN_EXPORT lean_object* lp_stlc_STLC_MultiStep_step_elim___redArg(lean_object*, lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_ctorIdx(lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_t__zero_elim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u2192_u27e8___u27e9____1___closed__4;
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_00_u03b2__zero_elim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_ctorIdx___redArg___boxed(lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_suc_elim(lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u21d2____1___closed__3;
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u21a0____1___closed__4;
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u21d2____1___closed__12;
@@ -264,10 +263,10 @@ LEAN_EXPORT lean_object* lp_stlc_STLC_Ty_ctorIdx___boxed(lean_object*);
 lean_object* l_Lean_Name_mkStr1(lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u21a0____1___closed__3;
 lean_object* l_Lean_Name_mkStr4(lean_object*, lean_object*, lean_object*, lean_object*);
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_app_elim(lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u21d2___00__closed__0;
 LEAN_EXPORT lean_object* lp_stlc_STLC_Step_ctorIdx___redArg(lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u21d2____1___closed__0;
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_zero_elim(lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_multi__trans___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC_term___u2014_u2192_u27e8___u27e9___00__closed__6;
 static lean_object* lp_stlc_STLC_termBegin___00__closed__1;
@@ -280,7 +279,6 @@ static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_ctorIdx___boxed(lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______unexpand__STLC__Ty__fn__1___closed__0;
 lean_object* lean_nat_add(lean_object*, lean_object*);
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_zero_elim(lean_object*, lean_object*, lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u220e__1___closed__7;
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u220e__1___closed__5;
 LEAN_EXPORT lean_object* lp_stlc_STLC_term___u220e;
@@ -289,6 +287,7 @@ LEAN_EXPORT lean_object* lp_stlc_STLC_ext(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_rename(lean_object*, lean_object*);
 static lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__term___u2014_u2192_u27e8___u27e9____1___closed__2;
 LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______macroRules__STLC__termBegin____1(lean_object*, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_app_elim(lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______unexpand__STLC__Ty__fn__1(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_MultiStep_ctorElim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_MultiStep_refl_elim(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
@@ -296,6 +295,7 @@ static lean_object* lp_stlc_STLC_term___u2014_u21a0___00__closed__4;
 static lean_object* lp_stlc_STLC_term___u2014_u2192_u27e8___u27e9___00__closed__1;
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_t__zero_elim___redArg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC___aux__STLC______unexpand__STLC__MultiStep__1(lean_object*, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_case_elim(lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_HasType_t__lam_elim___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* lp_stlc_STLC_Ty_ctorIdx(lean_object* x_1) {
 _start:
@@ -923,7 +923,7 @@ lean_dec(x_2);
 return x_4;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_ctorIdx(lean_object* x_1) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_ctorIdx(lean_object* x_1) {
 _start:
 {
 switch (lean_obj_tag(x_1)) {
@@ -966,16 +966,16 @@ return x_7;
 }
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_ctorIdx___boxed(lean_object* x_1) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_ctorIdx___boxed(lean_object* x_1) {
 _start:
 {
 lean_object* x_2; 
-x_2 = lp_stlc_STLC_Raw_ctorIdx(x_1);
+x_2 = lp_stlc_STLC_Term_ctorIdx(x_1);
 lean_dec(x_1);
 return x_2;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_ctorElim___redArg(lean_object* x_1, lean_object* x_2) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_ctorElim___redArg(lean_object* x_1, lean_object* x_2) {
 _start:
 {
 switch (lean_obj_tag(x_1)) {
@@ -1030,116 +1030,116 @@ return x_14;
 }
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_ctorElim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4, lean_object* x_5) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_ctorElim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4, lean_object* x_5) {
 _start:
 {
 lean_object* x_6; 
-x_6 = lp_stlc_STLC_Raw_ctorElim___redArg(x_3, x_5);
+x_6 = lp_stlc_STLC_Term_ctorElim___redArg(x_3, x_5);
 return x_6;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_ctorElim___boxed(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4, lean_object* x_5) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_ctorElim___boxed(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4, lean_object* x_5) {
 _start:
 {
 lean_object* x_6; 
-x_6 = lp_stlc_STLC_Raw_ctorElim(x_1, x_2, x_3, x_4, x_5);
+x_6 = lp_stlc_STLC_Term_ctorElim(x_1, x_2, x_3, x_4, x_5);
 lean_dec(x_2);
 return x_6;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_var_elim___redArg(lean_object* x_1, lean_object* x_2) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_var_elim___redArg(lean_object* x_1, lean_object* x_2) {
 _start:
 {
 lean_object* x_3; 
-x_3 = lp_stlc_STLC_Raw_ctorElim___redArg(x_1, x_2);
+x_3 = lp_stlc_STLC_Term_ctorElim___redArg(x_1, x_2);
 return x_3;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_var_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_var_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
 _start:
 {
 lean_object* x_5; 
-x_5 = lp_stlc_STLC_Raw_ctorElim___redArg(x_2, x_4);
+x_5 = lp_stlc_STLC_Term_ctorElim___redArg(x_2, x_4);
 return x_5;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_lam_elim___redArg(lean_object* x_1, lean_object* x_2) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_lam_elim___redArg(lean_object* x_1, lean_object* x_2) {
 _start:
 {
 lean_object* x_3; 
-x_3 = lp_stlc_STLC_Raw_ctorElim___redArg(x_1, x_2);
+x_3 = lp_stlc_STLC_Term_ctorElim___redArg(x_1, x_2);
 return x_3;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_lam_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_lam_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
 _start:
 {
 lean_object* x_5; 
-x_5 = lp_stlc_STLC_Raw_ctorElim___redArg(x_2, x_4);
+x_5 = lp_stlc_STLC_Term_ctorElim___redArg(x_2, x_4);
 return x_5;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_app_elim___redArg(lean_object* x_1, lean_object* x_2) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_app_elim___redArg(lean_object* x_1, lean_object* x_2) {
 _start:
 {
 lean_object* x_3; 
-x_3 = lp_stlc_STLC_Raw_ctorElim___redArg(x_1, x_2);
+x_3 = lp_stlc_STLC_Term_ctorElim___redArg(x_1, x_2);
 return x_3;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_app_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_app_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
 _start:
 {
 lean_object* x_5; 
-x_5 = lp_stlc_STLC_Raw_ctorElim___redArg(x_2, x_4);
+x_5 = lp_stlc_STLC_Term_ctorElim___redArg(x_2, x_4);
 return x_5;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_zero_elim___redArg(lean_object* x_1, lean_object* x_2) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_zero_elim___redArg(lean_object* x_1, lean_object* x_2) {
 _start:
 {
 lean_object* x_3; 
-x_3 = lp_stlc_STLC_Raw_ctorElim___redArg(x_1, x_2);
+x_3 = lp_stlc_STLC_Term_ctorElim___redArg(x_1, x_2);
 return x_3;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_zero_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_zero_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
 _start:
 {
 lean_object* x_5; 
-x_5 = lp_stlc_STLC_Raw_ctorElim___redArg(x_2, x_4);
+x_5 = lp_stlc_STLC_Term_ctorElim___redArg(x_2, x_4);
 return x_5;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_suc_elim___redArg(lean_object* x_1, lean_object* x_2) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_suc_elim___redArg(lean_object* x_1, lean_object* x_2) {
 _start:
 {
 lean_object* x_3; 
-x_3 = lp_stlc_STLC_Raw_ctorElim___redArg(x_1, x_2);
+x_3 = lp_stlc_STLC_Term_ctorElim___redArg(x_1, x_2);
 return x_3;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_suc_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_suc_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
 _start:
 {
 lean_object* x_5; 
-x_5 = lp_stlc_STLC_Raw_ctorElim___redArg(x_2, x_4);
+x_5 = lp_stlc_STLC_Term_ctorElim___redArg(x_2, x_4);
 return x_5;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_case_elim___redArg(lean_object* x_1, lean_object* x_2) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_case_elim___redArg(lean_object* x_1, lean_object* x_2) {
 _start:
 {
 lean_object* x_3; 
-x_3 = lp_stlc_STLC_Raw_ctorElim___redArg(x_1, x_2);
+x_3 = lp_stlc_STLC_Term_ctorElim___redArg(x_1, x_2);
 return x_3;
 }
 }
-LEAN_EXPORT lean_object* lp_stlc_STLC_Raw_case_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
+LEAN_EXPORT lean_object* lp_stlc_STLC_Term_case_elim(lean_object* x_1, lean_object* x_2, lean_object* x_3, lean_object* x_4) {
 _start:
 {
 lean_object* x_5; 
-x_5 = lp_stlc_STLC_Raw_ctorElim___redArg(x_2, x_4);
+x_5 = lp_stlc_STLC_Term_ctorElim___redArg(x_2, x_4);
 return x_5;
 }
 }

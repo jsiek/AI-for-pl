@@ -1,8 +1,8 @@
 {"synthetic": false,
  "schemaVersion": "2025-09-10",
  "outputs":
- {"o": ["346ab0ac69f5d2b6.olean"],
-  "i": "33ca71c07e74a621.ilean",
+ {"o": ["8bd66412b9878e35.olean"],
+  "i": "df0d8c97de2d7dc8.ilean",
   "c": "385eade1e6cf92bd.c"},
  "log":
  [{"message":
@@ -23,9 +23,9 @@
      [["stlc/Stlc:extraDep", [["@stlc:extraDep", "00000000000006bb"]]],
       ["imports",
        [["STLC transitive imports (legacy)", "00000000000006bb"],
-        ["STLC:importAllArts", "2d7f809371cd23e5"],
-        ["Subst transitive imports (legacy)", "bad293dd4028bd4d"],
-        ["Subst:importAllArts", "0d0ce53df4bf15fe"]]]]],
+        ["STLC:importAllArts", "737a3f488e3c7198"],
+        ["Subst transitive imports (legacy)", "ba338f75ff0ef406"],
+        ["Subst:importAllArts", "8ec6f45adb17dd3b"]]]]],
     ["libs",
      [["import dynlibs", "00000000000006bb"],
       ["package external libraries", "00000000000006bb"],
@@ -33,7 +33,7 @@
       ["module plugins", "00000000000006bb"]]]]],
   ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
    "a96bc04a2e5e9630"],
-  ["/Users/jsiek/AI-for-pl/STLC/Termination.lean", "5ff54d7d65b74ace"],
+  ["/Users/jsiek/AI-for-pl/STLC/Termination.lean", "685b6800f7380eeb"],
   ["options", "00000000000006bb"],
   ["Module.leanArgs: #[]", "00000000000006bb"]],
- "depHash": "553853f84d57a31a"}
+ "depHash": "5ed4720e46a36b3c"}

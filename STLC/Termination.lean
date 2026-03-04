@@ -10,25 +10,25 @@ open Subst
 -- 8. TERMINATION VIA LOGICAL RELATIONS
 -------------------------------------------------------------------------------
 
-inductive VNat : Raw → Type where
+inductive VNat : Term → Type where
   | zero : VNat .zero
-  | suc {V : Raw} : VNat V → VNat (.suc V)
+  | suc {V : Term} : VNat V → VNat (.suc V)
 
-def 𝒱 : Ty → Raw → Type
+def 𝒱 : Ty → Term → Type
   | .nat, M => VNat M
-  | .fn A B, .lam _ N => ∀ (V : Raw), 𝒱 A V →
-      Σ (V' : Raw), (MultiStep (single_subst N V) V') × (Value V') × (𝒱 B V')
+  | .fn A B, .lam _ N => ∀ (V : Term), 𝒱 A V →
+      Σ (V' : Term), (MultiStep (single_subst N V) V') × (Value V') × (𝒱 B V')
   | .fn _ _, _ => Empty
 
-def ℰ (A : Ty) (M : Raw) : Type :=
-  Σ (V : Raw), (M —↠ V) × (Value V) × (𝒱 A V)
+def ℰ (A : Ty) (M : Term) : Type :=
+  Σ (V : Term), (M —↠ V) × (Value V) × (𝒱 A V)
 
-def VNat_to_Value : ∀ {M : Raw}, VNat M → Value M
+def VNat_to_Value : ∀ {M : Term}, VNat M → Value M
   | _, .zero  => .v_zero
   | _, .suc v => .v_suc (VNat_to_Value v)
 
 /-- A well-behaved value is indeed a value. -/
-noncomputable def 𝒱_to_Value {A : Ty} {M : Raw} (wtv : 𝒱 A M) : Value M := by
+noncomputable def 𝒱_to_Value {A : Ty} {M : Term} (wtv : 𝒱 A M) : Value M := by
   cases A with
   | nat =>
     -- When A is `.nat`, `wtv` definitionally evaluates to `VNat M`.
@@ -47,7 +47,7 @@ noncomputable def 𝒱_to_Value {A : Ty} {M : Raw} (wtv : 𝒱 A M) : Value M :=
     | case L M' N => exact nomatch wtv
 
 /-- A well-behaved value is a well-behaved term. -/
-noncomputable def 𝒱_to_ℰ {A : Ty} {M : Raw} (wtv : 𝒱 A M) : ℰ A M :=
+noncomputable def 𝒱_to_ℰ {A : Ty} {M : Term} (wtv : 𝒱 A M) : ℰ A M :=
   -- We construct the Sigma type. 
   -- Make sure you use `wtv` here and not `wt` to avoid the "Unknown identifier" error!
   ⟨M, .refl M, 𝒱_to_Value wtv, wtv⟩
@@ -55,7 +55,7 @@ noncomputable def 𝒱_to_ℰ {A : Ty} {M : Raw} (wtv : 𝒱 A M) : ℰ A M :=
 /-- Compatibility lemma about reduction for application.
     If L reduces to L', L' is a value, and M reduces to M',
     then L M reduces to L' M'. -/
-def app_compat {L L' M M' : Raw} 
+def app_compat {L L' M M' : Term} 
   (hL : MultiStep L L') (vL' : Value L') (hM : MultiStep M M') : 
   MultiStep (.app L M) (.app L' M') :=
   match hL with
@@ -74,14 +74,14 @@ def app_compat {L L' M M' : Raw}
       .step _ (.xi_app1 s) (app_compat ms_next vL' hM)
 
 /-- Compatibility lemma: if M reduces to M', then (suc M) reduces to (suc M') -/
-def suc_compat {M M' : Raw} : MultiStep M M' → MultiStep (.suc M) (.suc M')
+def suc_compat {M M' : Term} : MultiStep M M' → MultiStep (.suc M) (.suc M')
   | .refl _ => .refl _
   | .step _ s ms_next => 
       -- Step the outer `suc` using `xi_suc`, then recurse on the rest of the sequence
       .step _ (.xi_suc s) (suc_compat ms_next)
 
 /-- Compatibility lemma: if L reduces to L', then (case L M N) reduces to (case L' M N) -/
-def case_compat {L L' M N : Raw} : MultiStep L L' → MultiStep (.case L M N) (.case L' M N)
+def case_compat {L L' M N : Term} : MultiStep L L' → MultiStep (.case L M N) (.case L' M N)
   | .refl _ => .refl _
   | .step _ s ms_next => 
       -- Step the discriminant of the `case` using `xi_case`, then recurse
@@ -89,12 +89,12 @@ def case_compat {L L' M N : Raw} : MultiStep L L' → MultiStep (.case L M N) (.
 
 /-- A substitution σ is well-behaved for a context Γ if it maps 
     every variable in Γ to a well-behaved value of the correct type. -/
-def SubstWellBehaved (Γ : Context) (σ : Nat → Raw) : Type :=
+def SubstWellBehaved (Γ : Context) (σ : Nat → Term) : Type :=
   ∀ {x C}, HasTypeVar Γ x C → 𝒱 C (σ x)
 
 /-- Extending a well-behaved substitution with a well-behaved value 
     produces a new well-behaved substitution for the extended context. -/
-def extend_sub {Γ : Context} {σ : Nat → Raw} {A : Ty} {V : Raw}
+def extend_sub {Γ : Context} {σ : Nat → Term} {A : Ty} {V : Term}
   (wtv : 𝒱 A V) (hσ : SubstWellBehaved Γ σ) :
   SubstWellBehaved (A :: Γ) (fun i => match i with | 0 => V | j+1 => σ j) := by
   intro x C hVar
@@ -107,7 +107,7 @@ def extend_sub {Γ : Context} {σ : Nat → Raw} {A : Ty} {V : Raw}
     If a term is well-typed, and we substitute it with well-behaved values,
     the resulting term is well-behaved (and therefore terminates).
 -/
-noncomputable def fundamental_property {Γ : Context} {M : Raw} {A : Ty} {σ : Nat → Raw}
+noncomputable def fundamental_property {Γ : Context} {M : Term} {A : Ty} {σ : Nat → Term}
   (hM : HasType Γ M A) (hσ : SubstWellBehaved Γ σ) : ℰ A (subst σ M) :=
   match hM with
   | .t_var hV => 

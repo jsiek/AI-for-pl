@@ -8,7 +8,7 @@ open STLC
 -- 5. STRUCTURAL LEMMAS
 -------------------------------------------------------------------------------
 
-def typing_rename {Γ Δ : Context} {ρ : Nat → Nat} {M : Raw} {A : Ty}
+def typing_rename {Γ Δ : Context} {ρ : Nat → Nat} {M : Term} {A : Ty}
   (hρ : ∀ {i B}, HasTypeVar Γ i B → HasTypeVar Δ (ρ i) B)
   (hM : HasType Γ M A) : HasType Δ (rename ρ M) A :=
   match hM with
@@ -31,7 +31,7 @@ def typing_rename {Γ Δ : Context} {ρ : Nat → Nat} {M : Raw} {A : Ty}
           | .S hV' => .S (hρ hV')
       .t_case (typing_rename hρ hL) (typing_rename hρ hM) (typing_rename hρ' hN)
 
-def typing_subst {Γ Δ : Context} {σ : Nat → Raw} {M : Raw} {A : Ty}
+def typing_subst {Γ Δ : Context} {σ : Nat → Term} {M : Term} {A : Ty}
   (hσ : ∀ {i B}, HasTypeVar Γ i B → HasType Δ (σ i) B)
   (hM : HasType Γ M A) : HasType Δ (subst σ M) A :=
   match hM with
@@ -59,7 +59,7 @@ def typing_subst {Γ Δ : Context} {σ : Nat → Raw} {M : Raw} {A : Ty}
                 (fun hVar => .S (hσ v |> fun _ => hVar)) (hσ v)
       .t_case (typing_subst hσ hL) (typing_subst hσ hM) (typing_subst hσ' hN)
 
-def typing_single_subst {Γ : Context} {A B : Ty} {N M : Raw}
+def typing_single_subst {Γ : Context} {A B : Ty} {N M : Term}
   (hN : HasType (B :: Γ) N A) (hM : HasType Γ M B) :
   HasType Γ (single_subst N M) A := by
   -- Define the mapping: 0 goes to M, and j+1 shifts down to j
@@ -84,7 +84,7 @@ def typing_single_subst {Γ : Context} {A B : Ty} {N M : Raw}
 -- 6. PROGRESS & PRESERVATION
 -------------------------------------------------------------------------------
 
-def preservation {M N : Raw} {A : Ty}
+def preservation {M N : Term} {A : Ty}
   (hT : HasType [] M A) (hS : M —→ N) : HasType [] N A :=
   match hS with
   | .β_lam hV =>
@@ -109,11 +109,11 @@ def preservation {M N : Raw} {A : Ty}
       match hT with
       | .t_case hL hM hN => .t_case (preservation hL s) hM hN
 
-inductive ProgressResult (M : Raw) where
+inductive ProgressResult (M : Term) where
   | step : ∀ {N}, (M —→ N) → ProgressResult M
   | done : Value M → ProgressResult M
 
-def progress {Γ : Context} {M : Raw} {A : Ty} (h : HasType Γ M A) :
+def progress {Γ : Context} {M : Term} {A : Ty} (h : HasType Γ M A) :
   Γ = [] → ProgressResult M := fun hEmpty =>
   match Γ, M, A, h with
   | _, .var i, _, .t_var hV => by subst hEmpty; nomatch hV
@@ -133,7 +133,7 @@ def progress {Γ : Context} {M : Raw} {A : Ty} (h : HasType Γ M A) :
           | .zero, .v_zero => .step .β_zero
           | .suc _, .v_suc v => .step (.β_suc v)
 
-def progress_top {M : Raw} {A : Ty} (h : HasType [] M A) : ProgressResult M :=
+def progress_top {M : Term} {A : Ty} (h : HasType [] M A) : ProgressResult M :=
   progress h rfl
 
 end TypeSafety

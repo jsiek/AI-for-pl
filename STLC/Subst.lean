@@ -9,7 +9,7 @@ open STLC
 -------------------------------------------------------------------------------
 
 abbrev Ren := Nat → Nat
-abbrev Sub := Nat → Raw
+abbrev Sub := Nat → Term
 
 /-- Substitution sequencing (σ ⨟ τ): Applying τ to the result of σ -/
 def seq (σ₁ : Sub) (σ₂ : Sub) : Sub :=
@@ -18,7 +18,7 @@ def seq (σ₁ : Sub) (σ₂ : Sub) : Sub :=
 infixr:50 " ⨟ " => seq
 
 /-- Substitution for single term at index 1: N 〔 M 〕 -/
-def subst_one_at_one (N : Raw) (M : Raw) : Raw :=
+def subst_one_at_one (N : Term) (M : Term) : Term :=
   subst (exts (fun i => match i with | 0 => M | j+1 => .var j)) N
 
 -------------------------------------------------------------------------------
@@ -35,7 +35,7 @@ theorem ext_comp (ρ₁ ρ₂ : Ren) :
   | succ n => rfl
 
 /-- rename ρ₂ (rename ρ₁ M) ≡ rename (ρ₂ ∘ ρ₁) M -/
-theorem rename_rename_commute (ρ₁ ρ₂ : Ren) (M : Raw) :
+theorem rename_rename_commute (ρ₁ ρ₂ : Ren) (M : Term) :
   rename ρ₂ (rename ρ₁ M) = rename (fun i => ρ₂ (ρ₁ i)) M := by
   induction M generalizing ρ₁ ρ₂ with
   | var i => 
@@ -78,7 +78,7 @@ theorem exts_ext_comp (ρ : Ren) (τ : Sub) :
     rfl
 
 /-- Renaming followed by substitution is equivalent to a composed substitution. -/
-theorem rename_subst_commute (ρ : Ren) (τ : Sub) (M : Raw) :
+theorem rename_subst_commute (ρ : Ren) (τ : Sub) (M : Term) :
   subst τ (rename ρ M) = subst (fun i => τ (ρ i)) M := by
   induction M generalizing ρ τ with
   | var i => 
@@ -116,7 +116,7 @@ theorem ext_exts_comp (ρ : Ren) (τ : Sub) :
     rfl
 
 /-- Helper 2: Renaming a substitution is equivalent to substituting with renamed terms. -/
-theorem rename_subst (ρ : Ren) (τ : Sub) (M : Raw) :
+theorem rename_subst (ρ : Ren) (τ : Sub) (M : Term) :
   rename ρ (subst τ M) = subst (fun i => rename ρ (τ i)) M := by
   induction M generalizing ρ τ with
   | var i => rfl
@@ -148,7 +148,7 @@ theorem exts_seq (σ τ : Sub) :
     rfl
 
 /-- Main Theorem: Double substitution is equivalent to substituting a composed mapping. -/
-theorem sub_sub (σ τ : Sub) (M : Raw) :
+theorem sub_sub (σ τ : Sub) (M : Term) :
   subst τ (subst σ M) = subst (σ ⨟ τ) M := by
   induction M generalizing σ τ with
   | var i => 
@@ -169,12 +169,12 @@ theorem sub_sub (σ τ : Sub) (M : Raw) :
     rw [ihL, ihM, ihN, exts_seq]
 
 /-- Helper: Substitution with the variable constructor is the identity. -/
-theorem subst_id (M : Raw) : subst Raw.var M = M := by
+theorem subst_id (M : Term) : subst Term.var M = M := by
   induction M with
   | var i => rfl
   | lam A N ih =>
     simp only [subst]
-    have h_exts : exts Raw.var = Raw.var := by
+    have h_exts : exts Term.var = Term.var := by
       funext i; cases i <;> rfl
     rw [h_exts, ih]
   | app L R ihL ihR =>
@@ -186,12 +186,12 @@ theorem subst_id (M : Raw) : subst Raw.var M = M := by
     rw [ih]
   | case L M N ihL ihM ihN =>
     simp only [subst]
-    have h_exts : exts Raw.var = Raw.var := by
+    have h_exts : exts Term.var = Term.var := by
       funext i; cases i <;> rfl
     rw [h_exts, ihL, ihM, ihN]
 
 /-- The main substitution lemma: M[N][L] = M[L][N[L]] -/
-theorem substitution {M N L : Raw} :
+theorem substitution {M N L : Term} :
   single_subst (single_subst M N) L =
     single_subst (subst_one_at_one M L) (single_subst N L) := by
   -- Unfold the custom substitution definitions into raw `subst` applications
@@ -216,7 +216,7 @@ theorem substitution {M N L : Raw} :
       -- The LHS evaluates cleanly to `L`.
       -- The RHS evaluates to `subst τ (rename Nat.succ L)`.
       -- We use `change` to bypass brittle unfolding tactics and let the kernel verify it.
-      change L = subst (fun x => match x with | 0 => single_subst N L | y+1 => Raw.var y) (rename Nat.succ L)
+      change L = subst (fun x => match x with | 0 => single_subst N L | y+1 => Term.var y) (rename Nat.succ L)
       
       -- Flip the equation to match the commutation lemma
       symm
@@ -224,8 +224,8 @@ theorem substitution {M N L : Raw} :
       -- Commute the renaming and substitution on the RHS
       rw [rename_subst_commute]
       
-      -- After commutation, the mapped function evaluates exactly to `Raw.var`.
-      change subst Raw.var L = L
+      -- After commutation, the mapped function evaluates exactly to `Term.var`.
+      change subst Term.var L = L
       
       -- Apply our identity helper lemma backwards
       exact subst_id L
@@ -234,7 +234,7 @@ theorem substitution {M N L : Raw} :
       rfl
 
 /-- Substituting into an extended substitution is equivalent to a single mapping. -/
-theorem exts_sub_cons {σ : Sub} {N : Raw} {V : Raw} :
+theorem exts_sub_cons {σ : Sub} {N : Term} {V : Term} :
   single_subst (subst (exts σ) N) V =
     subst (fun i => match i with | 0 => V | j+1 => σ j) N := by
   -- Unfold the definition of single_subst
@@ -258,8 +258,8 @@ theorem exts_sub_cons {σ : Sub} {N : Raw} {V : Raw} :
     -- Commute the rename and subst operations
     rw [rename_subst_commute]
     
-    -- The composed mapping function strictly evaluates to `Raw.var`
-    change subst Raw.var (σ j) = σ j
+    -- The composed mapping function strictly evaluates to `Term.var`
+    change subst Term.var (σ j) = σ j
     
     -- Close the goal with our identity lemma
     exact subst_id (σ j)

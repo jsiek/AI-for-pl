@@ -12,13 +12,13 @@ inductive Ty where
 
 infixr:70 " ⇒ " => Ty.fn
 
-inductive Raw where
-  | var  : Nat → Raw
-  | lam  : Ty → Raw → Raw
-  | app  : Raw → Raw → Raw
-  | zero : Raw
-  | suc  : Raw → Raw
-  | case : Raw → Raw → Raw → Raw
+inductive Term where
+  | var  : Nat → Term
+  | lam  : Ty → Term → Term
+  | app  : Term → Term → Term
+  | zero : Term
+  | suc  : Term → Term
+  | case : Term → Term → Term → Term
   -- leave out mu because we want to prove termination
 
 -------------------------------------------------------------------------------
@@ -26,13 +26,13 @@ inductive Raw where
 -------------------------------------------------------------------------------
 
 abbrev Rename := Nat → Nat
-abbrev Subst := Nat → Raw
+abbrev Subst := Nat → Term
 
 def ext (ρ : Nat → Nat) : Nat → Nat
   | 0     => 0
   | i + 1 => (ρ i) + 1
 
-def rename (ρ : Nat → Nat) : Raw → Raw
+def rename (ρ : Nat → Nat) : Term → Term
   | .var i      => .var (ρ i)
   | .lam A N    => .lam A (rename (ext ρ) N)
   | .app L M    => .app (rename ρ L) (rename ρ M)
@@ -40,11 +40,11 @@ def rename (ρ : Nat → Nat) : Raw → Raw
   | .suc M      => .suc (rename ρ M)
   | .case L M N => .case (rename ρ L) (rename ρ M) (rename (ext ρ) N)
 
-def exts (σ : Nat → Raw) : Nat → Raw
+def exts (σ : Nat → Term) : Nat → Term
   | 0     => .var 0
   | i + 1 => rename (Nat.succ) (σ i)
 
-def subst (σ : Nat → Raw) : Raw → Raw
+def subst (σ : Nat → Term) : Term → Term
   | .var i      => σ i
   | .lam A N    => .lam A (subst (exts σ) N)
   | .app L M    => .app (subst σ L) (subst σ M)
@@ -52,8 +52,8 @@ def subst (σ : Nat → Raw) : Raw → Raw
   | .suc M      => .suc (subst σ M)
   | .case L M N => .case (subst σ L) (subst σ M) (subst (exts σ) N)
 
-def single_subst (N : Raw) (M : Raw) : Raw :=
-  let σ : Nat → Raw
+def single_subst (N : Term) (M : Term) : Term :=
+  let σ : Nat → Term
     | 0     => M
     | i + 1 => .var i
   subst σ N
@@ -68,7 +68,7 @@ inductive HasTypeVar : Context → Nat → Ty → Type where
   | Z : ∀ {Γ A}, HasTypeVar (A :: Γ) 0 A
   | S : ∀ {Γ A B i}, HasTypeVar Γ i A → HasTypeVar (B :: Γ) (i + 1) A
 
-inductive HasType : Context → Raw → Ty → Type where
+inductive HasType : Context → Term → Ty → Type where
   | t_var : ∀ {Γ i A},
       HasTypeVar Γ i A → HasType Γ (.var i) A
   | t_lam : ∀ {Γ A B N},
@@ -89,12 +89,12 @@ inductive HasType : Context → Raw → Ty → Type where
 -- 4. VALUES & REDUCTION
 -------------------------------------------------------------------------------
 
-inductive Value : Raw → Type where
+inductive Value : Term → Type where
   | v_lam  : ∀ {A N}, Value (.lam A N)
   | v_zero : Value .zero
   | v_suc  : ∀ {V}, Value V → Value (.suc V)
 
-inductive Step : Raw → Raw → Type where
+inductive Step : Term → Term → Type where
   | xi_app1 : ∀ {L L' M}, Step L L' → Step (.app L M) (.app L' M)
   | xi_app2 : ∀ {V M M'}, Value V → Step M M' → Step (.app V M) (.app V M')
   | β_lam   : ∀ {A N W}, Value W → Step (.app (.lam A N) W) (single_subst N W)
@@ -111,9 +111,9 @@ infix:20 " —→ " => Step
 -------------------------------------------------------------------------------
 
 /-- Multi-step reduction (reflexive-transitive closure of Step) -/
-inductive MultiStep : Raw → Raw → Type where
-  | refl (M : Raw) : MultiStep M M
-  | step (L : Raw) {M N : Raw} : Step L M → MultiStep M N → MultiStep L N
+inductive MultiStep : Term → Term → Type where
+  | refl (M : Term) : MultiStep M M
+  | step (L : Term) {M N : Term} : Step L M → MultiStep M N → MultiStep L N
 
 infix:20 " —↠ " => MultiStep
 
@@ -127,7 +127,7 @@ notation:2 L " —→⟨ " s " ⟩ " ms => MultiStep.step L s ms
 notation:1 "begin " ms => ms
 
 /-- Transitivity of multi-step reduction -/
-def multi_trans {M N L : Raw} : (M —↠ N) → (N —↠ L) → (M —↠ L)
+def multi_trans {M N L : Term} : (M —↠ N) → (N —↠ L) → (M —↠ L)
   | .refl _, ms2 => ms2
   | .step _ s ms1', ms2 => .step _ s (multi_trans ms1' ms2)
 

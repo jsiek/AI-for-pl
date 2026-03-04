@@ -1,0 +1,28 @@
+{"synthetic": false,
+ "schemaVersion": "2025-09-10",
+ "outputs":
+ {"o": ["8aa0e1634daf4e5a.olean"],
+  "i": "14c8cc19572b5235.ilean",
+  "c": "1ea61b5df5280804.c"},
+ "log":
+ [{"message":
+   ".> LEAN_PATH=/Users/jsiek/AI-for-pl/STLC/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /Users/jsiek/AI-for-pl/STLC/Subst.lean -o /Users/jsiek/AI-for-pl/STLC/.lake/build/lib/lean/Subst.olean -i /Users/jsiek/AI-for-pl/STLC/.lake/build/lib/lean/Subst.ilean -c /Users/jsiek/AI-for-pl/STLC/.lake/build/ir/Subst.c --setup /Users/jsiek/AI-for-pl/STLC/.lake/build/ir/Subst.setup.json --json",
+   "level": "trace"}],
+ "inputs":
+ [["Subst:deps",
+   [["deps",
+     [["stlc/Stlc:extraDep", [["@stlc:extraDep", "00000000000006bb"]]],
+      ["imports",
+       [["STLC transitive imports (legacy)", "00000000000006bb"],
+        ["STLC:importAllArts", "2d7f809371cd23e5"]]]]],
+    ["libs",
+     [["import dynlibs", "00000000000006bb"],
+      ["package external libraries", "00000000000006bb"],
+      ["module dynlibs", "00000000000006bb"],
+      ["module plugins", "00000000000006bb"]]]]],
+  ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
+   "a96bc04a2e5e9630"],
+  ["/Users/jsiek/AI-for-pl/STLC/Subst.lean", "e0e83ef2e300e456"],
+  ["options", "00000000000006bb"],
+  ["Module.leanArgs: #[]", "00000000000006bb"]],
+ "depHash": "209ba8ede96fa7f6"}

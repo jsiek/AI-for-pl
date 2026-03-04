@@ -1,0 +1,28 @@
+{"synthetic": false,
+ "schemaVersion": "2025-09-10",
+ "outputs":
+ {"o": ["156a42b6e7f2df1c.olean"],
+  "i": "072b2c83d6e5b428.ilean",
+  "c": "1071c7a3803518f5.c"},
+ "log":
+ [{"message":
+   ".> LEAN_PATH=/Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /Users/jsiek/AI-for-pl/lambda/lean/CBNReduction.lean -o /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/CBNReduction.olean -i /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/CBNReduction.ilean -c /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/ir/CBNReduction.c --setup /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/ir/CBNReduction.setup.json --json",
+   "level": "trace"}],
+ "inputs":
+ [["CBNReduction:deps",
+   [["deps",
+     [["lambda/Lambda:extraDep", [["@lambda:extraDep", "00000000000006bb"]]],
+      ["imports",
+       [["Lambda transitive imports (legacy)", "00000000000006bb"],
+        ["Lambda:importAllArts", "de46598e72d86279"]]]]],
+    ["libs",
+     [["import dynlibs", "00000000000006bb"],
+      ["package external libraries", "00000000000006bb"],
+      ["module dynlibs", "00000000000006bb"],
+      ["module plugins", "00000000000006bb"]]]]],
+  ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
+   "a96bc04a2e5e9630"],
+  ["/Users/jsiek/AI-for-pl/lambda/lean/CBNReduction.lean", "cb6cdd5605326eb3"],
+  ["options", "00000000000006bb"],
+  ["Module.leanArgs: #[]", "00000000000006bb"]],
+ "depHash": "6d67b506c42487a9"}

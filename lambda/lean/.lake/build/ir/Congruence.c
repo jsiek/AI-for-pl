@@ -1,6 +1,6 @@
 // Lean compiler output
 // Module: Congruence
-// Imports: public import Init public import Lambda
+// Imports: public import Init public import FullBetaReduction
 #include <lean/lean.h>
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -381,7 +381,7 @@ return x_28;
 }
 }
 lean_object* initialize_Init(uint8_t builtin);
-lean_object* initialize_lambda_Lambda(uint8_t builtin);
+lean_object* initialize_lambda_FullBetaReduction(uint8_t builtin);
 static bool _G_initialized = false;
 LEAN_EXPORT lean_object* initialize_lambda_Congruence(uint8_t builtin) {
 lean_object * res;
@@ -390,7 +390,7 @@ _G_initialized = true;
 res = initialize_Init(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
-res = initialize_lambda_Lambda(builtin);
+res = initialize_lambda_FullBetaReduction(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 return lean_io_result_mk_ok(lean_box(0));

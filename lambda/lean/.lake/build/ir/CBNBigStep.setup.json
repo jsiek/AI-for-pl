@@ -1,0 +1,11 @@
+{"plugins": [],
+ "package": "lambda",
+ "options": {},
+ "name": "CBNBigStep",
+ "isModule": false,
+ "importArts":
+ {"Lambda":
+  ["/Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/Lambda.olean"],
+  "CBNReduction":
+  ["/Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/CBNReduction.olean"]},
+ "dynlibs": []}

@@ -1,9 +1,9 @@
 {"synthetic": false,
  "schemaVersion": "2025-09-10",
  "outputs":
- {"o": ["52119809f5947167.olean"],
-  "i": "162ba3e71e3872f5.ilean",
-  "c": "dcb9d287f5628c7f.c"},
+ {"o": ["36fec0980dd450bf.olean"],
+  "i": "c0503b8714cf3ac1.ilean",
+  "c": "58f017b7884b25eb.c"},
  "log":
  [{"message":
    ".> LEAN_PATH=/Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /Users/jsiek/AI-for-pl/lambda/lean/Progress.lean -o /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/Progress.olean -i /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/Progress.ilean -c /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/ir/Progress.c --setup /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/ir/Progress.setup.json --json",
@@ -13,8 +13,8 @@
    [["deps",
      [["lambda/Lambda:extraDep", [["@lambda:extraDep", "00000000000006bb"]]],
       ["imports",
-       [["Lambda transitive imports (legacy)", "00000000000006bb"],
-        ["Lambda:importAllArts", "66bd5d7dc4744aa8"]]]]],
+       [["FullBetaReduction transitive imports (legacy)", "05fb857adee3cbb3"],
+        ["FullBetaReduction:importAllArts", "5af633d88c7b2f9c"]]]]],
     ["libs",
      [["import dynlibs", "00000000000006bb"],
       ["package external libraries", "00000000000006bb"],
@@ -22,7 +22,7 @@
       ["module plugins", "00000000000006bb"]]]]],
   ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
    "a96bc04a2e5e9630"],
-  ["/Users/jsiek/AI-for-pl/lambda/lean/Progress.lean", "3df6833487b8dbdb"],
+  ["/Users/jsiek/AI-for-pl/lambda/lean/Progress.lean", "0731f79095da7d00"],
   ["options", "00000000000006bb"],
   ["Module.leanArgs: #[]", "00000000000006bb"]],
- "depHash": "be39941d01d732c2"}
+ "depHash": "3d320fdb0d8cdacd"}

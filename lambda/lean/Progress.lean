@@ -1,4 +1,4 @@
-import Lambda
+import FullBetaReduction
 
 namespace Progress
 

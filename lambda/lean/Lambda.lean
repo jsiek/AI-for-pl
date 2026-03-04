@@ -41,49 +41,11 @@ def single_subst (N : Term) (M : Term) : Term :=
   subst σ N
 
 -------------------------------------------------------------------------------
--- 3. NEUTRAL & NORMAL TERMS
+-- 3. VALUES
 -------------------------------------------------------------------------------
 
-mutual
-
-inductive Neutral : Term → Type where
-  | var : ∀ {i}, Neutral (.var i)
-  | app : ∀ {L M}, Neutral L → Normal M → Neutral (.app L M)
-
-inductive Normal : Term → Type where
-  | neu : ∀ {M}, Neutral M → Normal M
-  | lam : ∀ {N}, Normal N → Normal (.lam N)
-
-end
-
--------------------------------------------------------------------------------
--- 4. REDUCTION
--------------------------------------------------------------------------------
-
-inductive Step : Term → Term → Type where
-  | xi_lam : ∀ {N N'}, Step N N' → Step (.lam N) (.lam N')
-  | xi_app1 : ∀ {L L' M}, Step L L' → Step (.app L M) (.app L' M)
-  | xi_app2 : ∀ {L M M'}, Step M M' → Step (.app L M) (.app L M')
-  | β_lam : ∀ {N W}, Step (.app (.lam N) W) (single_subst N W)
-
-infix:20 " —→ " => Step
-
--------------------------------------------------------------------------------
--- 5. MULTI-STEP REDUCTION
--------------------------------------------------------------------------------
-
-inductive MultiStep : Term → Term → Type where
-  | refl (M : Term) : MultiStep M M
-  | step (L : Term) {M N : Term} : Step L M → MultiStep M N → MultiStep L N
-
-infix:20 " —↠ " => MultiStep
-
-postfix:max " ∎" => MultiStep.refl
-notation:2 L " —→⟨ " s " ⟩ " ms => MultiStep.step L s ms
-notation:1 "begin " ms => ms
-
-def multi_trans {M N L : Term} : (M —↠ N) → (N —↠ L) → (M —↠ L)
-  | .refl _, ms2 => ms2
-  | .step _ s ms1', ms2 => .step _ s (multi_trans ms1' ms2)
+inductive Value : Term → Type where
+  | var : ∀ {i}, Value (.var i)
+  | lam : ∀ {N}, Value (.lam N)
 
 end Lambda

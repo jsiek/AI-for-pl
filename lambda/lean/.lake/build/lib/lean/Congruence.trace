@@ -1,9 +1,9 @@
 {"synthetic": false,
  "schemaVersion": "2025-09-10",
  "outputs":
- {"o": ["6994ea4bcfd747ac.olean"],
-  "i": "cadb0782277473ce.ilean",
-  "c": "a1b3e42044aee9fe.c"},
+ {"o": ["2d1729840d3c7069.olean"],
+  "i": "74b5e4360ea3ea41.ilean",
+  "c": "3d78ea66cb897641.c"},
  "log":
  [{"message":
    ".> LEAN_PATH=/Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /Users/jsiek/AI-for-pl/lambda/lean/Congruence.lean -o /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/Congruence.olean -i /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/Congruence.ilean -c /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/ir/Congruence.c --setup /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/ir/Congruence.setup.json --json",
@@ -13,8 +13,8 @@
    [["deps",
      [["lambda/Lambda:extraDep", [["@lambda:extraDep", "00000000000006bb"]]],
       ["imports",
-       [["Lambda transitive imports (legacy)", "00000000000006bb"],
-        ["Lambda:importAllArts", "66bd5d7dc4744aa8"]]]]],
+       [["FullBetaReduction transitive imports (legacy)", "05fb857adee3cbb3"],
+        ["FullBetaReduction:importAllArts", "45afb3f8e6ff9c94"]]]]],
     ["libs",
      [["import dynlibs", "00000000000006bb"],
       ["package external libraries", "00000000000006bb"],
@@ -22,7 +22,7 @@
       ["module plugins", "00000000000006bb"]]]]],
   ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
    "a96bc04a2e5e9630"],
-  ["/Users/jsiek/AI-for-pl/lambda/lean/Congruence.lean", "3fdfa4f81ba6ab56"],
+  ["/Users/jsiek/AI-for-pl/lambda/lean/Congruence.lean", "b468635f01298d7e"],
   ["options", "00000000000006bb"],
   ["Module.leanArgs: #[]", "00000000000006bb"]],
- "depHash": "7e9071bc6d2425f0"}
+ "depHash": "cf5e0da954ff3eaa"}

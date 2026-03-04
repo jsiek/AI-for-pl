@@ -1,7 +1,7 @@
 {"synthetic": false,
  "schemaVersion": "2025-09-10",
  "outputs":
- {"o": ["36db4fe54df6dece.olean"],
+ {"o": ["8ae5f1e62ceee28b.olean"],
   "i": "fe2d146dcb32edeb.ilean",
   "c": "95c2b889fc0ce784.c"},
  "log":
@@ -14,7 +14,7 @@
      [["lambda/Lambda:extraDep", [["@lambda:extraDep", "00000000000006bb"]]],
       ["imports",
        [["Lambda transitive imports (legacy)", "00000000000006bb"],
-        ["Lambda:importAllArts", "66bd5d7dc4744aa8"]]]]],
+        ["Lambda:importAllArts", "de46598e72d86279"]]]]],
     ["libs",
      [["import dynlibs", "00000000000006bb"],
       ["package external libraries", "00000000000006bb"],
@@ -25,4 +25,4 @@
   ["/Users/jsiek/AI-for-pl/lambda/lean/Subst.lean", "2cf6578400dcd02e"],
   ["options", "00000000000006bb"],
   ["Module.leanArgs: #[]", "00000000000006bb"]],
- "depHash": "d28505d0d9b455cf"}
+ "depHash": "1e111ea776ee3aaa"}

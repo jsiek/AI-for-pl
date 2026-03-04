@@ -1,9 +1,9 @@
 {"synthetic": false,
  "schemaVersion": "2025-09-10",
  "outputs":
- {"o": ["fcd72746bf280c65.olean"],
-  "i": "54d0e53923e05ec0.ilean",
-  "c": "84c771a375a393ec.c"},
+ {"o": ["d4c59c76f2089d93.olean"],
+  "i": "824b6f749ad1c31a.ilean",
+  "c": "2b1c199e113e3953.c"},
  "log":
  [{"message":
    ".> LEAN_PATH=/Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /Users/jsiek/AI-for-pl/lambda/lean/Lambda.lean -o /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/Lambda.olean -i /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/Lambda.ilean -c /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/ir/Lambda.c --setup /Users/jsiek/AI-for-pl/lambda/lean/.lake/build/ir/Lambda.setup.json --json",
@@ -20,7 +20,7 @@
       ["module plugins", "00000000000006bb"]]]]],
   ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
    "a96bc04a2e5e9630"],
-  ["/Users/jsiek/AI-for-pl/lambda/lean/Lambda.lean", "37536d4ccc5b9b6f"],
+  ["/Users/jsiek/AI-for-pl/lambda/lean/Lambda.lean", "5c8e5c87e4b2125b"],
   ["options", "00000000000006bb"],
   ["Module.leanArgs: #[]", "00000000000006bb"]],
- "depHash": "e448c77164146ff2"}
+ "depHash": "93fef4ba11708b87"}

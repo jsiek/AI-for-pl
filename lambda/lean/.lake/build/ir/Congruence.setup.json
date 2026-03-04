@@ -5,5 +5,7 @@
  "isModule": false,
  "importArts":
  {"Lambda":
-  ["/Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/Lambda.olean"]},
+  ["/Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/Lambda.olean"],
+  "FullBetaReduction":
+  ["/Users/jsiek/AI-for-pl/lambda/lean/.lake/build/lib/lean/FullBetaReduction.olean"]},
  "dynlibs": []}

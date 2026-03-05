@@ -11,41 +11,105 @@ infix 20 _⇓_
 
 data _⇓_ : Term → Term → Set where
   ev-var : ∀ {i} → (′ i) ⇓ (′ i)
-  ev-lam : ∀ {n} → (ƛ n) ⇓ (ƛ n)
-  ev-app : ∀ {l m n v} → l ⇓ (ƛ n) → (single-subst n m) ⇓ v → (l · m) ⇓ v
+  ev-lam : ∀ {N} → (ƛ N) ⇓ (ƛ N)
+  ev-app : ∀ {L M N V} → L ⇓ (ƛ N) → (N [ M ]) ⇓ V → (L · M) ⇓ V
 
-eval-to-multistep : ∀ {m n} → m ⇓ n → m —↠ n
-eval-to-multistep ev-var = cbn-refl _
-eval-to-multistep ev-lam = cbn-refl _
-eval-to-multistep (ev-app {l} {m} {n} {v} hl hbody) =
-  cbn-multi-trans hsL (cbn-multi-trans hsBeta (eval-to-multistep hbody))
-  where
-    hsL : (l · m) —↠ ((ƛ n) · m)
-    hsL = cbn-appL-cong (eval-to-multistep hl)
+eval-to-multistep : ∀ {M N}
+  → M ⇓ N
+    -------
+  → M —↠ N
+eval-to-multistep {M = ′ I} ev-var =
+  let goal : (′ I) —↠ (′ I)
+      goal = (′ I) ∎
+  in goal
+eval-to-multistep {M = ƛ N} ev-lam =
+  let goal : (ƛ N) —↠ (ƛ N)
+      goal = (ƛ N) ∎
+  in goal
+eval-to-multistep (ev-app {L} {M} {N} {V} HL HBODY) =
+  let hL : L ⇓ (ƛ N)
+      hL = HL
 
-    hsBeta : ((ƛ n) · m) —↠ (single-subst n m)
-    hsBeta = cbn-step _ cbn-beta-lam (cbn-refl _)
+      hBody : (N [ M ]) ⇓ V
+      hBody = HBODY
+  in
+    (L · M)
+      —↠⟨ cbn-appL-cong (eval-to-multistep hL) ⟩
+    ((ƛ N) · M)
+      —→⟨ cbn-beta-lam ⟩
+    N [ M ]
+      —↠⟨ eval-to-multistep hBody ⟩
+    V ∎
 
-cbn-step-bigstep-value : ∀ {m n v} → m —→ n → n ⇓ v → Value v → m ⇓ v
-cbn-step-bigstep-value (cbn-xi-app1 s) (ev-app hl hbody) _ =
-  ev-app (cbn-step-bigstep-value s hl v-lam) hbody
-cbn-step-bigstep-value cbn-beta-lam hev _ = ev-app ev-lam hev
+cbn-step-bigstep-value : ∀ {M N V}
+  → M —→ N
+  → N ⇓ V
+  → Value V
+    -------
+  → M ⇓ V
+cbn-step-bigstep-value {V = V} (cbn-xi-app1 {L} {L'} {M} S) (ev-app {N = N} HL HBODY) HVAL =
+  let hStep : L —→ L'
+      hStep = S
 
-eval-value : ∀ {m v} → m ⇓ v → Value v
+      hFun : L' ⇓ (ƛ N)
+      hFun = HL
+
+      hBody : (N [ M ]) ⇓ V
+      hBody = HBODY
+
+      hVal : Value V
+      hVal = HVAL
+
+      hRec : L ⇓ (ƛ N)
+      hRec = cbn-step-bigstep-value hStep hFun v-lam
+
+      goal : (L · M) ⇓ V
+      goal = ev-app hRec hBody
+  in goal
+cbn-step-bigstep-value {V = V} (cbn-beta-lam {N = NB} {W = W}) HEV HVAL =
+  let hEval : (NB [ W ]) ⇓ V
+      hEval = HEV
+
+      hVal : Value V
+      hVal = HVAL
+
+      goal : ((ƛ NB) · W) ⇓ V
+      goal = ev-app ev-lam hEval
+  in goal
+
+eval-value : ∀ {M V} → M ⇓ V → Value V
 eval-value ev-var = v-var
 eval-value ev-lam = v-lam
-eval-value (ev-app _ hbody) = eval-value hbody
+eval-value (ev-app _ HBODY) = eval-value HBODY
 
-value-eval : ∀ {v} → Value v → v ⇓ v
+value-eval : ∀ {V} → Value V → V ⇓ V
 value-eval v-var = ev-var
 value-eval v-lam = ev-lam
 
-cbn-multistep-bigstep : ∀ {m n v} → m —↠ n → n ⇓ v → m ⇓ v
-cbn-multistep-bigstep (cbn-refl _) hev = hev
-cbn-multistep-bigstep (cbn-step _ s ms) hev =
-  cbn-step-bigstep-value s hmid (eval-value hmid)
-  where
-    hmid = cbn-multistep-bigstep ms hev
+cbn-multistep-bigstep : ∀ {M N V} → M —↠ N → N ⇓ V → M ⇓ V
+cbn-multistep-bigstep {M = M} {V = V} (cbn-refl _) HEV =
+  let goal : M ⇓ V
+      goal = HEV
+  in goal
+cbn-multistep-bigstep {V = V} (cbn-step M {M = M'} S MS) HEV =
+  let hmid : M' ⇓ V
+      hmid = cbn-multistep-bigstep MS HEV
 
-cbn-multistep-to-value-bigstep : ∀ {m v} → m —↠ v → Value v → m ⇓ v
-cbn-multistep-to-value-bigstep hsteps hval = cbn-multistep-bigstep hsteps (value-eval hval)
+      goal : M ⇓ V
+      goal = cbn-step-bigstep-value S hmid (eval-value hmid)
+  in goal
+
+cbn-multistep-to-value-bigstep : ∀ {M V} → M —↠ V → Value V → M ⇓ V
+cbn-multistep-to-value-bigstep {M = M} {V = V} HSTEPS HVAL =
+  let hSteps : M —↠ V
+      hSteps = HSTEPS
+
+      hVal : Value V
+      hVal = HVAL
+
+      hEvalV : V ⇓ V
+      hEvalV = value-eval hVal
+
+      goal : M ⇓ V
+      goal = cbn-multistep-bigstep hSteps hEvalV
+  in goal

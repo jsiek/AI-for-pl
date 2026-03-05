@@ -23,11 +23,17 @@ mutual
 -- 2. Full-beta reduction
 ------------------------------------------------------------------------
 
+infix  2 _—→_
+infix  2 _—↠_
+
 data Step : Term → Term → Set where
-  xi-lam  : ∀ {n n'} → Step n n' → Step (ƛ n) (ƛ n')
-  xi-app1 : ∀ {l l' m} → Step l l' → Step (l · m) (l' · m)
-  xi-app2 : ∀ {l m m'} → Step m m' → Step (l · m) (l · m')
-  beta-lam : ∀ {n w} → Step ((ƛ n) · w) (single-subst n w)
+  xi-lam  : ∀ {N N'} → Step N N' → Step (ƛ N) (ƛ N')
+  xi-app1 : ∀ {L L' M} → Step L L' → Step (L · M) (L' · M)
+  xi-app2 : ∀ {L M M'} → Step M M' → Step (L · M) (L · M')
+  beta-lam : ∀ {N W} → Step ((ƛ N) · W) (N [ W ])
+
+_—→_ : Term → Term → Set
+L —→ L' = Step L L'
 
 ------------------------------------------------------------------------
 -- 3. Progress
@@ -44,31 +50,68 @@ progress (l · r) with progress l
 ...   | inj₂ (r' , sr) = inj₂ (l · r' , xi-app2 sr)
 ...   | inj₁ hr with hl
 ...     | norm-neu hneu = inj₁ (norm-neu (neu-app hneu hr))
-...     | norm-lam {n} hn = inj₂ (single-subst n r , beta-lam)
+...     | norm-lam {n} hn = inj₂ (n [ r ] , beta-lam)
 
 ------------------------------------------------------------------------
 -- 4. Multi-step reduction
 ------------------------------------------------------------------------
 
 data MultiStep : Term → Term → Set where
-  ms-refl : ∀ (m : Term) → MultiStep m m
-  ms-step : ∀ (l : Term) {m n : Term} → Step l m → MultiStep m n → MultiStep l n
+  ms-refl : ∀ (M : Term) → MultiStep M M
+  ms-step : ∀ (L : Term) {M N : Term} → Step L M → MultiStep M N → MultiStep L N
 
-multi-trans : ∀ {m n l} → MultiStep m n → MultiStep n l → MultiStep m l
-multi-trans (ms-refl _) ms2 = ms2
-multi-trans (ms-step _ s ms1') ms2 = ms-step _ s (multi-trans ms1' ms2)
+_—↠_ : Term → Term → Set
+L —↠ L' = MultiStep L L'
 
-appL-cong : ∀ {l l' m} → MultiStep l l' → MultiStep (l · m) (l' · m)
-appL-cong (ms-refl _) = ms-refl _
-appL-cong (ms-step _ r rs) = ms-step _ (xi-app1 r) (appL-cong rs)
+infix 3 _∎
+pattern _∎ M = ms-refl M
 
-appR-cong : ∀ {l m m'} → MultiStep m m' → MultiStep (l · m) (l · m')
-appR-cong (ms-refl _) = ms-refl _
-appR-cong (ms-step _ r rs) = ms-step _ (xi-app2 r) (appR-cong rs)
+infixr 2 _—→⟨_⟩_
+pattern _—→⟨_⟩_ L L—→M M—↠N = ms-step L L—→M M—↠N
 
-app-cong : ∀ {l l' m m'} → MultiStep l l' → MultiStep m m' → MultiStep (l · m) (l' · m')
-app-cong l2l' m2m' = multi-trans (appL-cong l2l') (appR-cong m2m')
+multi-trans : ∀ {M N L} → M —↠ N → N —↠ L → M —↠ L
+multi-trans (ms-refl _) MS2 = MS2
+multi-trans (ms-step M S MS1') MS2 = ms-step M S (multi-trans MS1' MS2)
 
-lam-cong : ∀ {n n'} → MultiStep n n' → MultiStep (ƛ n) (ƛ n')
-lam-cong (ms-refl _) = ms-refl _
-lam-cong (ms-step _ r rs) = ms-step _ (xi-lam r) (lam-cong rs)
+infixr 2 _—↠⟨_⟩_
+_—↠⟨_⟩_ : ∀ (L : Term) {M N : Term}
+    → L —↠ M
+    → M —↠ N
+      ---------
+    → L —↠ N
+L —↠⟨ L—↠M ⟩ M—↠N = multi-trans L—↠M M—↠N
+
+appL-cong : ∀ {L L' M} → L —↠ L' → (L · M) —↠ (L' · M)
+appL-cong {M = M} (ms-refl L) = (L · M) ∎
+appL-cong {M = M} (ms-step L {M = L1} {N = L2} R RS) =
+  (L · M)
+    —→⟨ xi-app1 R ⟩
+  (L1 · M)
+    —↠⟨ appL-cong RS ⟩
+  (L2 · M) ∎
+
+appR-cong : ∀ {L M M'} → M —↠ M' → (L · M) —↠ (L · M')
+appR-cong {L = L} (ms-refl M) = (L · M) ∎
+appR-cong {L = L} (ms-step M {M = M1} {N = M2} R RS) =
+  (L · M)
+    —→⟨ xi-app2 R ⟩
+  (L · M1)
+    —↠⟨ appR-cong RS ⟩
+  (L · M2) ∎
+
+app-cong : ∀ {L L' M M'} → L —↠ L' → M —↠ M' → (L · M) —↠ (L' · M')
+app-cong {L = L} {L' = L'} {M = M} {M' = M'} L—↠L' M—↠M' =
+  (L · M)
+    —↠⟨ appL-cong L—↠L' ⟩
+  (L' · M)
+    —↠⟨ appR-cong M—↠M' ⟩
+  (L' · M') ∎
+
+lam-cong : ∀ {N N'} → N —↠ N' → (ƛ N) —↠ (ƛ N')
+lam-cong (ms-refl N) = (ƛ N) ∎
+lam-cong (ms-step N {M = N1} {N = N2} R RS) =
+  (ƛ N)
+    —→⟨ xi-lam R ⟩
+  (ƛ N1)
+    —↠⟨ lam-cong RS ⟩
+  (ƛ N2) ∎

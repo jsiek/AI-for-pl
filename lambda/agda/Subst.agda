@@ -22,7 +22,7 @@ subst-one-at-one : Term → Term → Term
 subst-one-at-one n m = subst (exts (single-env m)) n
 
 single-subst-def : (n m : Term) →
-  single-subst n m ≡ subst (single-env m) n
+  n [ m ] ≡ subst (single-env m) n
 single-subst-def n m = refl
 
 subst-one-at-one-def : (n m : Term) →
@@ -135,12 +135,12 @@ subst-id (ƛ n) = trans (cong ƛ_ (subst-cong exts-var n)) (cong ƛ_ (subst-id n
 subst-id (l · m) = cong₂ _·_ (subst-id l) (subst-id m)
 
 substitution : {m n l : Term} →
-  single-subst (single-subst m n) l ≡
-  single-subst (subst-one-at-one m l) (single-subst n l)
+  (m [ n ]) [ l ] ≡
+  (subst-one-at-one m l) [ (n [ l ]) ]
 substitution {m} {n} {l} =
   trans
     (trans
-      (cong (λ t → single-subst t l) (single-subst-def m n))
+      (cong (λ t → t [ l ]) (single-subst-def m n))
       (trans
         (single-subst-def (subst sigma m) l)
         (sub-sub sigma tau m)))
@@ -150,9 +150,9 @@ substitution {m} {n} {l} =
         (sym (sub-sub (exts tau) phi m))
         (sym
           (trans
-            (cong (λ t → single-subst t (single-subst n l)) (subst-one-at-one-def m l))
+            (cong (λ t → t [ (n [ l ]) ]) (subst-one-at-one-def m l))
             (trans
-              (cong (λ t → single-subst (subst (exts tau) m) t) (single-subst-def n l))
+              (cong (λ t → (subst (exts tau) m) [ t ]) (single-subst-def n l))
               (single-subst-def (subst (exts tau) m) (subst tau n)))))))
   where
     sigma : Sub
@@ -175,7 +175,7 @@ substitution {m} {n} {l} =
     env-eq (suc (suc k)) = refl
 
 exts-sub-cons : {sigma : Sub} {n v : Term} →
-  single-subst (subst (exts sigma) n) v ≡
+  (subst (exts sigma) n) [ v ] ≡
   subst (cons-sub v sigma) n
 exts-sub-cons {sigma} {n} {v} =
   trans

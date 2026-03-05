@@ -49,8 +49,9 @@ single-env : Term → Subst
 single-env m zero = m
 single-env m (suc i) = ′ i
 
-single-subst : Term → Term → Term
-single-subst n m = subst (single-env m) n
+infix  8 _[_]
+_[_] : Term → Term → Term
+N [ M ] = subst (single-env M) N
 
 ------------------------------------------------------------------------
 -- 3. Values

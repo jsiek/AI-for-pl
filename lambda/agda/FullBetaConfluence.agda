@@ -120,7 +120,7 @@ data _⇛*_ : Term → Term → Set where
     → L ⇛* N
 
 ------------------------------------------------------------------------
--- Parallel Multi-Reduction is Equivalent to Multi-Step REduction
+-- Parallel multi-reduction is equivalent to arrow-star reduction
 -- M ⇛* N  iff  M —↠ N
 ------------------------------------------------------------------------
 

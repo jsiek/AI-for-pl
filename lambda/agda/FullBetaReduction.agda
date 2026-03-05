@@ -27,21 +27,18 @@ mutual
 infix  2 _—→_
 infix  2 _—↠_
 
-data Step : Term → Term → Set where
-  xi-lam  : ∀ {N N'} → Step N N' → Step (ƛ N) (ƛ N')
-  xi-app1 : ∀ {L L' M} → Step L L' → Step (L · M) (L' · M)
-  xi-app2 : ∀ {L M M'} → Step M M' → Step (L · M) (L · M')
-  beta-lam : ∀ {N M} → Step ((ƛ N) · M) (N [ M ])
-
-_—→_ : Term → Term → Set
-L —→ L' = Step L L'
+data _—→_ : Term → Term → Set where
+  xi-lam  : ∀ {N N'} → N —→ N' → (ƛ N) —→ (ƛ N')
+  xi-app1 : ∀ {L L' M} → L —→ L' → (L · M) —→ (L' · M)
+  xi-app2 : ∀ {L M M'} → M —→ M' → (L · M) —→ (L · M')
+  beta-lam : ∀ {N M} → ((ƛ N) · M) —→ (N [ M ])
 
 ------------------------------------------------------------------------
 -- Normal and Neutral terms are not reducible
 ------------------------------------------------------------------------
 
-NeutralIsNotReducible : (M : Term) → (Neutral M) → ¬ (Σ Term (λ N → Step M N))
-NormalIsNotReducible : (M : Term) → (Normal M) → ¬ (Σ Term (λ N → Step M N))
+NeutralIsNotReducible : (M : Term) → (Neutral M) → ¬ (Σ Term (λ N → M —→ N))
+NormalIsNotReducible : (M : Term) → (Normal M) → ¬ (Σ Term (λ N → M —→ N))
 
 NormalIsNotReducible (′ x) n = λ ()
 NormalIsNotReducible (ƛ M) (norm-lam n) = λ { (N , xi-lam r) → let IH = NormalIsNotReducible M n in IH (_ , r)}
@@ -62,7 +59,7 @@ NeutralIsNotReducible (L · M) (neu-app l m) (N , xi-app2 M→M') =
 -- Progress
 ------------------------------------------------------------------------
 
-progress : (m : Term) → (Normal m) ⊎ (Σ Term (λ n → Step m n))
+progress : (m : Term) → (Normal m) ⊎ (Σ Term (λ n → m —→ n))
 progress (′ i) = inj₁ (norm-neu neu-var)
 progress (ƛ n) with progress n
 ... | inj₁ hn = inj₁ (norm-lam hn)
@@ -79,12 +76,9 @@ progress (l · r) with progress l
 -- Multi-step reduction
 ------------------------------------------------------------------------
 
-data MultiStep : Term → Term → Set where
-  ms-refl : ∀ (M : Term) → MultiStep M M
-  ms-step : ∀ (L : Term) {M N : Term} → Step L M → MultiStep M N → MultiStep L N
-
-_—↠_ : Term → Term → Set
-L —↠ L' = MultiStep L L'
+data _—↠_ : Term → Term → Set where
+  ms-refl : ∀ (M : Term) → M —↠ M
+  ms-step : ∀ (L : Term) {M N : Term} → L —→ M → M —↠ N → L —↠ N
 
 infix 3 _∎
 pattern _∎ M = ms-refl M

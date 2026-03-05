@@ -8,7 +8,7 @@ open import Relation.Nullary using (¬_)
 open import Lambda
 
 ------------------------------------------------------------------------
--- 1. Neutral and normal terms
+-- Neutral and normal terms
 ------------------------------------------------------------------------
 
 mutual
@@ -21,7 +21,7 @@ mutual
     norm-lam : ∀ {N} → Normal N → Normal (ƛ N)
 
 ------------------------------------------------------------------------
--- 2. Full-beta reduction
+-- Full-beta reduction
 ------------------------------------------------------------------------
 
 infix  2 _—→_
@@ -37,21 +37,8 @@ _—→_ : Term → Term → Set
 L —→ L' = Step L L'
 
 ------------------------------------------------------------------------
--- 3. Progress
+-- Normal and Neutral terms are not reducible
 ------------------------------------------------------------------------
-
-progress : (m : Term) → (Normal m) ⊎ (Σ Term (λ n → Step m n))
-progress (′ i) = inj₁ (norm-neu neu-var)
-progress (ƛ n) with progress n
-... | inj₁ hn = inj₁ (norm-lam hn)
-... | inj₂ (n' , s) = inj₂ (ƛ n' , xi-lam s)
-progress (l · r) with progress l
-... | inj₂ (l' , sl) = inj₂ (l' · r , xi-app1 sl)
-... | inj₁ hl with progress r
-...   | inj₂ (r' , sr) = inj₂ (l · r' , xi-app2 sr)
-...   | inj₁ hr with hl
-...     | norm-neu hneu = inj₁ (norm-neu (neu-app hneu hr))
-...     | norm-lam {n} hn = inj₂ (n [ r ] , beta-lam)
 
 NeutralIsNotReducible : (M : Term) → (Neutral M) → ¬ (Σ Term (λ N → Step M N))
 NormalIsNotReducible : (M : Term) → (Normal M) → ¬ (Σ Term (λ N → Step M N))
@@ -72,7 +59,24 @@ NeutralIsNotReducible (L · M) (neu-app l m) (N , xi-app2 M→M') =
   NormalIsNotReducible M m (_ , M→M')
 
 ------------------------------------------------------------------------
--- 4. Multi-step reduction
+-- Progress
+------------------------------------------------------------------------
+
+progress : (m : Term) → (Normal m) ⊎ (Σ Term (λ n → Step m n))
+progress (′ i) = inj₁ (norm-neu neu-var)
+progress (ƛ n) with progress n
+... | inj₁ hn = inj₁ (norm-lam hn)
+... | inj₂ (n' , s) = inj₂ (ƛ n' , xi-lam s)
+progress (l · r) with progress l
+... | inj₂ (l' , sl) = inj₂ (l' · r , xi-app1 sl)
+... | inj₁ hl with progress r
+...   | inj₂ (r' , sr) = inj₂ (l · r' , xi-app2 sr)
+...   | inj₁ hr with hl
+...     | norm-neu hneu = inj₁ (norm-neu (neu-app hneu hr))
+...     | norm-lam {n} hn = inj₂ (n [ r ] , beta-lam)
+
+------------------------------------------------------------------------
+-- Multi-step reduction
 ------------------------------------------------------------------------
 
 data MultiStep : Term → Term → Set where

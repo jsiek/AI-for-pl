@@ -1,10 +1,20 @@
 module FullBetaConfluence where
 
 ------------------------------------------------------------------------
--- Proof roadmap (PLFA-style, full beta)
+-- Proof roadmap
 --
--- Goal: (Confluence)
+-- Goal: (Confluence of full beta reduction)
 --   If M —↠ N and M —↠ P then ∃ Q, N —↠ Q and P —↠ Q.
+--
+--                   M
+--                  / \
+--              —↠ /   \ —↠
+--                /     \
+--               N       P
+--                \     /
+--            —↠   \   /   —↠
+--                  \ /
+--                   Q
 --
 -- Strategy:
 --   1) Define parallel reduction (_⇛_) and its reflexive-transitive

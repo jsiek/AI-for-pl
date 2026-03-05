@@ -11,7 +11,7 @@ infix  2 _—↠_
 
 data _—→_ : Term → Term → Set where
   cbn-xi-app1 : ∀ {L L' M} → L —→ L' → (L · M) —→ (L' · M)
-  cbn-beta-lam : ∀ {N W} → ((ƛ N) · W) —→ (N [ W ])
+  cbn-beta-lam : ∀ {N M} → ((ƛ N) · M) —→ (N [ M ])
 
 data _—↠_ : Term → Term → Set where
   cbn-refl : ∀ (M : Term) → M —↠ M
@@ -39,7 +39,9 @@ _—↠⟨_⟩_ : ∀ (L : Term) {M N : Term}
     → L —↠ N
 L —↠⟨ L—↠M ⟩ M—↠N = cbn-multi-trans L—↠M M—↠N
 
-cbn-appL-cong : ∀ {L L' M} → L —↠ L' → (L · M) —↠ (L' · M)
+cbn-appL-cong : ∀ {L L' M}
+  → L —↠ L'
+  → (L · M) —↠ (L' · M)
 cbn-appL-cong {M = M} (cbn-refl L) = (L · M) ∎
 cbn-appL-cong {M = M} (cbn-step L {M = L1} {N = L2} R RS) =
   (L · M) —→⟨ cbn-xi-app1 R ⟩ cbn-appL-cong RS

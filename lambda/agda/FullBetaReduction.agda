@@ -4,6 +4,7 @@ open import Agda.Builtin.Nat using (Nat)
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Sigma using (Σ; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import Relation.Nullary using (¬_)
 open import Lambda
 
 ------------------------------------------------------------------------
@@ -12,12 +13,12 @@ open import Lambda
 
 mutual
   data Neutral : Term → Set where
-    neu-var : ∀ {i} → Neutral (′ i)
+    neu-var : ∀ {x} → Neutral (′ x)
     neu-app : ∀ {l m} → Neutral l → Normal m → Neutral (l · m)
 
   data Normal : Term → Set where
     norm-neu : ∀ {m} → Neutral m → Normal m
-    norm-lam : ∀ {n} → Normal n → Normal (ƛ n)
+    norm-lam : ∀ {N} → Normal N → Normal (ƛ N)
 
 ------------------------------------------------------------------------
 -- 2. Full-beta reduction
@@ -30,7 +31,7 @@ data Step : Term → Term → Set where
   xi-lam  : ∀ {N N'} → Step N N' → Step (ƛ N) (ƛ N')
   xi-app1 : ∀ {L L' M} → Step L L' → Step (L · M) (L' · M)
   xi-app2 : ∀ {L M M'} → Step M M' → Step (L · M) (L · M')
-  beta-lam : ∀ {N W} → Step ((ƛ N) · W) (N [ W ])
+  beta-lam : ∀ {N M} → Step ((ƛ N) · M) (N [ M ])
 
 _—→_ : Term → Term → Set
 L —→ L' = Step L L'
@@ -51,6 +52,24 @@ progress (l · r) with progress l
 ...   | inj₁ hr with hl
 ...     | norm-neu hneu = inj₁ (norm-neu (neu-app hneu hr))
 ...     | norm-lam {n} hn = inj₂ (n [ r ] , beta-lam)
+
+NeutralIsNotReducible : (M : Term) → (Neutral M) → ¬ (Σ Term (λ N → Step M N))
+NormalIsNotReducible : (M : Term) → (Normal M) → ¬ (Σ Term (λ N → Step M N))
+
+NormalIsNotReducible (′ x) n = λ ()
+NormalIsNotReducible (ƛ M) (norm-lam n) = λ { (N , xi-lam r) → let IH = NormalIsNotReducible M n in IH (_ , r)}
+NormalIsNotReducible (L · M) (norm-neu (neu-app l m)) (N , xi-app1 L→N) =
+  let IH1 = NeutralIsNotReducible L l in
+  IH1 (_ , L→N)  
+NormalIsNotReducible (L · M) (norm-neu (neu-app l m)) (N , xi-app2 M→N) =
+  let IH2 = NormalIsNotReducible M m in
+  IH2 (_ , M→N)
+
+NeutralIsNotReducible (′ x) neu-var = λ ()
+NeutralIsNotReducible (L · M) (neu-app l m) (N , xi-app1 L→L') =
+  NeutralIsNotReducible L l (_ , L→L')
+NeutralIsNotReducible (L · M) (neu-app l m) (N , xi-app2 M→M') =
+  NormalIsNotReducible M m (_ , M→M')
 
 ------------------------------------------------------------------------
 -- 4. Multi-step reduction

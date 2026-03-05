@@ -1,8 +1,8 @@
 {"plugins": [],
  "package": "stlc",
  "options": {},
- "name": "TypeSafety",
+ "name": "Subst",
  "isModule": false,
  "importArts":
- {"STLC": ["/Users/jsiek/AI-for-pl/STLC/.lake/build/lib/lean/STLC.olean"]},
+ {"STLC": ["/Users/jsiek/AI-for-pl/STLC/lean/.lake/build/lib/lean/STLC.olean"]},
  "dynlibs": []}

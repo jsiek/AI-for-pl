@@ -1,15 +1,15 @@
 {"synthetic": false,
  "schemaVersion": "2025-09-10",
  "outputs":
- {"o": ["c3875e135347d909.olean"],
-  "i": "f3f936ff450ce2c2.ilean",
-  "c": "c27ab499f232377c.c"},
+ {"o": ["0600877e2b6c9c11.olean"],
+  "i": "66b5c26c00c96326.ilean",
+  "c": "1ea61b5df5280804.c"},
  "log":
  [{"message":
-   ".> LEAN_PATH=/Users/jsiek/AI-for-pl/STLC/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /Users/jsiek/AI-for-pl/STLC/TypeSafety.lean -o /Users/jsiek/AI-for-pl/STLC/.lake/build/lib/lean/TypeSafety.olean -i /Users/jsiek/AI-for-pl/STLC/.lake/build/lib/lean/TypeSafety.ilean -c /Users/jsiek/AI-for-pl/STLC/.lake/build/ir/TypeSafety.c --setup /Users/jsiek/AI-for-pl/STLC/.lake/build/ir/TypeSafety.setup.json --json",
+   ".> LEAN_PATH=/Users/jsiek/AI-for-pl/STLC/lean/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /Users/jsiek/AI-for-pl/STLC/lean/Subst.lean -o /Users/jsiek/AI-for-pl/STLC/lean/.lake/build/lib/lean/Subst.olean -i /Users/jsiek/AI-for-pl/STLC/lean/.lake/build/lib/lean/Subst.ilean -c /Users/jsiek/AI-for-pl/STLC/lean/.lake/build/ir/Subst.c --setup /Users/jsiek/AI-for-pl/STLC/lean/.lake/build/ir/Subst.setup.json --json",
    "level": "trace"}],
  "inputs":
- [["TypeSafety:deps",
+ [["Subst:deps",
    [["deps",
      [["stlc/Stlc:extraDep", [["@stlc:extraDep", "00000000000006bb"]]],
       ["imports",
@@ -22,7 +22,7 @@
       ["module plugins", "00000000000006bb"]]]]],
   ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
    "a96bc04a2e5e9630"],
-  ["/Users/jsiek/AI-for-pl/STLC/TypeSafety.lean", "151b15726176da03"],
+  ["/Users/jsiek/AI-for-pl/STLC/lean/Subst.lean", "578862576dfb85c6"],
   ["options", "00000000000006bb"],
   ["Module.leanArgs: #[]", "00000000000006bb"]],
- "depHash": "5115494da20fbeab"}
+ "depHash": "ae2433940a5653b0"}

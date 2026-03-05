@@ -6,7 +6,7 @@
   "c": "385eade1e6cf92bd.c"},
  "log":
  [{"message":
-   ".> LEAN_PATH=/Users/jsiek/AI-for-pl/STLC/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /Users/jsiek/AI-for-pl/STLC/Termination.lean -o /Users/jsiek/AI-for-pl/STLC/.lake/build/lib/lean/Termination.olean -i /Users/jsiek/AI-for-pl/STLC/.lake/build/lib/lean/Termination.ilean -c /Users/jsiek/AI-for-pl/STLC/.lake/build/ir/Termination.c --setup /Users/jsiek/AI-for-pl/STLC/.lake/build/ir/Termination.setup.json --json",
+   ".> LEAN_PATH=/Users/jsiek/AI-for-pl/STLC/lean/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /Users/jsiek/AI-for-pl/STLC/lean/Termination.lean -o /Users/jsiek/AI-for-pl/STLC/lean/.lake/build/lib/lean/Termination.olean -i /Users/jsiek/AI-for-pl/STLC/lean/.lake/build/lib/lean/Termination.ilean -c /Users/jsiek/AI-for-pl/STLC/lean/.lake/build/ir/Termination.c --setup /Users/jsiek/AI-for-pl/STLC/lean/.lake/build/ir/Termination.setup.json --json",
    "level": "trace"},
   {"message":
    "Termination.lean:136:11: unused variable `T`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
@@ -33,7 +33,7 @@
       ["module plugins", "00000000000006bb"]]]]],
   ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
    "a96bc04a2e5e9630"],
-  ["/Users/jsiek/AI-for-pl/STLC/Termination.lean", "685b6800f7380eeb"],
+  ["/Users/jsiek/AI-for-pl/STLC/lean/Termination.lean", "685b6800f7380eeb"],
   ["options", "00000000000006bb"],
   ["Module.leanArgs: #[]", "00000000000006bb"]],
  "depHash": "5ed4720e46a36b3c"}

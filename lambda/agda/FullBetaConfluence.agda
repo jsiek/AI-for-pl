@@ -262,25 +262,6 @@ _⁺ : Term → Term
 ((ƛ N) · M) ⁺ = N ⁺ [ M ⁺ ]
 (L · M) ⁺ = L ⁺ · M ⁺
 
-M0 : Term
-M0 = (ƛ (′ zero)) · (′ zero)
-
-M0⇛M0 : M0 ⇛ M0
-M0⇛M0 = par-app (par-lam par-var) par-var
-
-M0⁺≡var0 : M0 ⁺ ≡ ′ zero
-M0⁺≡var0 = refl
-
-app≢var : ∀ {L M I} → (L · M) ≡ ′ I → ⊥
-app≢var ()
-
-M0≢M0⁺ : ¬ (M0 ≡ M0 ⁺)
-M0≢M0⁺ eq = app≢var (trans eq M0⁺≡var0)
-
-counterexample-par-not-plus :
-  Σ[ N ∈ Term ] (M0 ⇛ N) × ¬ (N ≡ M0 ⁺)
-counterexample-par-not-plus = M0 , M0⇛M0 , M0≢M0⁺
-
 par-triangle : ∀ {M N : Term}
   → M ⇛ N
   → N ⇛ M ⁺

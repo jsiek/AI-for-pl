@@ -8,10 +8,14 @@ open import Agda.Builtin.Sigma using (Σ; _,_)
 -- 1. Syntax
 ------------------------------------------------------------------------
 
+infix  6 ƛ_
+infix  6 ′_
+infixl 7 _·_
+
 data Term : Set where
-  var : Nat → Term
-  lam : Term → Term
-  app : Term → Term → Term
+  ′_ : Nat → Term
+  ƛ_ : Term → Term
+  _·_ : Term → Term → Term
 
 ------------------------------------------------------------------------
 -- 2. Renaming and parallel substitution
@@ -24,26 +28,26 @@ Subst : Set
 Subst = Nat → Term
 
 ext : Rename → Rename
-ext rho zero = zero
-ext rho (suc i) = suc (rho i)
+ext ρ zero = zero
+ext ρ (suc i) = suc (ρ i)
 
 rename : Rename → Term → Term
-rename rho (var i) = var (rho i)
-rename rho (lam n) = lam (rename (ext rho) n)
-rename rho (app l m) = app (rename rho l) (rename rho m)
+rename ρ (′ i) = ′ (ρ i)
+rename ρ (ƛ n) = ƛ (rename (ext ρ) n)
+rename ρ (l · m) = rename ρ l · rename ρ m
 
 exts : Subst → Subst
-exts sigma zero = var zero
-exts sigma (suc i) = rename suc (sigma i)
+exts σ zero = ′ zero
+exts σ (suc i) = rename suc (σ i)
 
 subst : Subst → Term → Term
-subst sigma (var i) = sigma i
-subst sigma (lam n) = lam (subst (exts sigma) n)
-subst sigma (app l m) = app (subst sigma l) (subst sigma m)
+subst σ (′ i) = σ i
+subst σ (ƛ n) = ƛ (subst (exts σ) n)
+subst σ (l · m) = subst σ l · subst σ m
 
 single-env : Term → Subst
 single-env m zero = m
-single-env m (suc i) = var i
+single-env m (suc i) = ′ i
 
 single-subst : Term → Term → Term
 single-subst n m = subst (single-env m) n
@@ -53,5 +57,5 @@ single-subst n m = subst (single-env m) n
 ------------------------------------------------------------------------
 
 data Value : Term → Set where
-  v-var : ∀ {i} → Value (var i)
-  v-lam : ∀ {n} → Value (lam n)
+  v-var : ∀ {i} → Value (′ i)
+  v-lam : ∀ {n} → Value (ƛ n)

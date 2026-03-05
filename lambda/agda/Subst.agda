@@ -35,23 +35,23 @@ subst-one-at-one-def n m = refl
 
 rename-cong : ∀ {rho rho' : Ren} → ((i : Nat) → rho i ≡ rho' i) → (m : Term) →
   rename rho m ≡ rename rho' m
-rename-cong {rho} {rho'} h (var i) = cong var (h i)
-rename-cong {rho} {rho'} h (lam n) = cong lam (rename-cong h-ext n)
+rename-cong {rho} {rho'} h (′ i) = cong ′_ (h i)
+rename-cong {rho} {rho'} h (ƛ n) = cong ƛ_ (rename-cong h-ext n)
   where
     h-ext : (i : Nat) → ext rho i ≡ ext rho' i
     h-ext zero = refl
     h-ext (suc i) = cong suc (h i)
-rename-cong {rho} {rho'} h (app l m) = cong₂ app (rename-cong h l) (rename-cong h m)
+rename-cong {rho} {rho'} h (l · m) = cong₂ _·_ (rename-cong h l) (rename-cong h m)
 
 subst-cong : ∀ {sigma tau : Sub} → ((i : Nat) → sigma i ≡ tau i) → (m : Term) →
   subst sigma m ≡ subst tau m
-subst-cong {sigma} {tau} h (var i) = h i
-subst-cong {sigma} {tau} h (lam n) = cong lam (subst-cong h-ext n)
+subst-cong {sigma} {tau} h (′ i) = h i
+subst-cong {sigma} {tau} h (ƛ n) = cong ƛ_ (subst-cong h-ext n)
   where
     h-ext : (i : Nat) → exts sigma i ≡ exts tau i
     h-ext zero = refl
     h-ext (suc i) = cong (rename suc) (h i)
-subst-cong {sigma} {tau} h (app l m) = cong₂ app (subst-cong h l) (subst-cong h m)
+subst-cong {sigma} {tau} h (l · m) = cong₂ _·_ (subst-cong h l) (subst-cong h m)
 
 ------------------------------------------------------------------------
 -- Converted substitution theorems
@@ -64,13 +64,13 @@ ext-comp rho1 rho2 (suc i) = refl
 
 rename-rename-commute : (rho1 rho2 : Ren) → (m : Term) →
   rename rho2 (rename rho1 m) ≡ rename (λ i → rho2 (rho1 i)) m
-rename-rename-commute rho1 rho2 (var i) = refl
-rename-rename-commute rho1 rho2 (lam n) =
+rename-rename-commute rho1 rho2 (′ i) = refl
+rename-rename-commute rho1 rho2 (ƛ n) =
   trans
-    (cong lam (rename-rename-commute (ext rho1) (ext rho2) n))
-    (cong lam (rename-cong (ext-comp rho1 rho2) n))
-rename-rename-commute rho1 rho2 (app l m) =
-  cong₂ app (rename-rename-commute rho1 rho2 l) (rename-rename-commute rho1 rho2 m)
+    (cong ƛ_ (rename-rename-commute (ext rho1) (ext rho2) n))
+    (cong ƛ_ (rename-cong (ext-comp rho1 rho2) n))
+rename-rename-commute rho1 rho2 (l · m) =
+  cong₂ _·_ (rename-rename-commute rho1 rho2 l) (rename-rename-commute rho1 rho2 m)
 
 exts-ext-comp : (rho : Ren) → (tau : Sub) →
   ((i : Nat) → exts tau (ext rho i) ≡ exts (λ j → tau (rho j)) i)
@@ -79,13 +79,13 @@ exts-ext-comp rho tau (suc i) = refl
 
 rename-subst-commute : (rho : Ren) → (tau : Sub) → (m : Term) →
   subst tau (rename rho m) ≡ subst (λ i → tau (rho i)) m
-rename-subst-commute rho tau (var i) = refl
-rename-subst-commute rho tau (lam n) =
+rename-subst-commute rho tau (′ i) = refl
+rename-subst-commute rho tau (ƛ n) =
   trans
-    (cong lam (rename-subst-commute (ext rho) (exts tau) n))
-    (cong lam (subst-cong (exts-ext-comp rho tau) n))
-rename-subst-commute rho tau (app l m) =
-  cong₂ app (rename-subst-commute rho tau l) (rename-subst-commute rho tau m)
+    (cong ƛ_ (rename-subst-commute (ext rho) (exts tau) n))
+    (cong ƛ_ (subst-cong (exts-ext-comp rho tau) n))
+rename-subst-commute rho tau (l · m) =
+  cong₂ _·_ (rename-subst-commute rho tau l) (rename-subst-commute rho tau m)
 
 ext-exts-comp : (rho : Ren) → (tau : Sub) →
   ((i : Nat) → rename (ext rho) (exts tau i) ≡ exts (λ j → rename rho (tau j)) i)
@@ -99,13 +99,13 @@ ext-exts-comp rho tau (suc j) =
 
 rename-subst : (rho : Ren) → (tau : Sub) → (m : Term) →
   rename rho (subst tau m) ≡ subst (λ i → rename rho (tau i)) m
-rename-subst rho tau (var i) = refl
-rename-subst rho tau (lam n) =
+rename-subst rho tau (′ i) = refl
+rename-subst rho tau (ƛ n) =
   trans
-    (cong lam (rename-subst (ext rho) (exts tau) n))
-    (cong lam (subst-cong (ext-exts-comp rho tau) n))
-rename-subst rho tau (app l m) =
-  cong₂ app (rename-subst rho tau l) (rename-subst rho tau m)
+    (cong ƛ_ (rename-subst (ext rho) (exts tau) n))
+    (cong ƛ_ (subst-cong (ext-exts-comp rho tau) n))
+rename-subst rho tau (l · m) =
+  cong₂ _·_ (rename-subst rho tau l) (rename-subst rho tau m)
 
 exts-seq : (sigma tau : Sub) →
   ((i : Nat) → seq (exts sigma) (exts tau) i ≡ exts (seq sigma tau) i)
@@ -117,22 +117,22 @@ exts-seq sigma tau (suc j) =
 
 sub-sub : (sigma tau : Sub) → (m : Term) →
   subst tau (subst sigma m) ≡ subst (seq sigma tau) m
-sub-sub sigma tau (var i) = refl
-sub-sub sigma tau (lam n) =
+sub-sub sigma tau (′ i) = refl
+sub-sub sigma tau (ƛ n) =
   trans
-    (cong lam (sub-sub (exts sigma) (exts tau) n))
-    (cong lam (subst-cong (exts-seq sigma tau) n))
-sub-sub sigma tau (app l m) =
-  cong₂ app (sub-sub sigma tau l) (sub-sub sigma tau m)
+    (cong ƛ_ (sub-sub (exts sigma) (exts tau) n))
+    (cong ƛ_ (subst-cong (exts-seq sigma tau) n))
+sub-sub sigma tau (l · m) =
+  cong₂ _·_ (sub-sub sigma tau l) (sub-sub sigma tau m)
 
-subst-id : (m : Term) → subst var m ≡ m
-subst-id (var i) = refl
-subst-id (lam n) = trans (cong lam (subst-cong exts-var n)) (cong lam (subst-id n))
+subst-id : (m : Term) → subst ′_ m ≡ m
+subst-id (′ i) = refl
+subst-id (ƛ n) = trans (cong ƛ_ (subst-cong exts-var n)) (cong ƛ_ (subst-id n))
   where
-    exts-var : (i : Nat) → exts var i ≡ var i
+    exts-var : (i : Nat) → exts ′_ i ≡ ′ i
     exts-var zero = refl
     exts-var (suc i) = refl
-subst-id (app l m) = cong₂ app (subst-id l) (subst-id m)
+subst-id (l · m) = cong₂ _·_ (subst-id l) (subst-id m)
 
 substitution : {m n l : Term} →
   single-subst (single-subst m n) l ≡

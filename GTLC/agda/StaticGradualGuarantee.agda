@@ -1,63 +1,25 @@
 module StaticGradualGuarantee where
 
-open import GTLC
 open import Data.Product using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂; _,_)
 open import Agda.Builtin.List using (_∷_)
 open import Agda.Builtin.Nat using (Nat; zero; suc)
+open import Types
+open import Contexts
+open import GTLC
 
-_⊑ᵉ_ : Ctx → Ctx → Set
-Γ ⊑ᵉ Γ′ = ∀ x A → Γ ∋ x ⦂ A → ∃[ A′ ] (Γ′ ∋ x ⦂ A′) × (A′ ⊑ A)
+_⊑ˢ_ : Ctx → Ctx → Set
+Γ ⊑ˢ Γ′ = ∀ x A → Γ ∋ x ⦂ A → ∃[ A′ ] (Γ′ ∋ x ⦂ A′) × (A′ ⊑ A)
 
-extend-⊑ᵉ : ∀ {Γ Γ′ A A′} → A′ ⊑ A → Γ ⊑ᵉ Γ′ → (A ∷ Γ) ⊑ᵉ (A′ ∷ Γ′)
-extend-⊑ᵉ {A′ = A₀} A′⊑A Γ⊑Γ′ zero A Z = A₀ , Z , A′⊑A
-extend-⊑ᵉ A′⊑A Γ⊑Γ′ (suc x) B (S ∋x) =
+extend-⊑ˢ : ∀ {Γ Γ′ A A′} → A′ ⊑ A → Γ ⊑ˢ Γ′ → (A ∷ Γ) ⊑ˢ (A′ ∷ Γ′)
+extend-⊑ˢ {A′ = A₀} A′⊑A Γ⊑Γ′ zero A Z = A₀ , Z , A′⊑A
+extend-⊑ˢ A′⊑A Γ⊑Γ′ (suc x) B (S ∋x) =
   (Γ⊑Γ′ x B ∋x .proj₁) , S (Γ⊑Γ′ x B ∋x .proj₂ .proj₁) , (Γ⊑Γ′ x B ∋x .proj₂ .proj₂)
-
-mutual
-  ⊑-to-~ : ∀ {A B} → A ⊑ B → A ~ B
-  ⊑-to-~ ⊑-ℕ = ~-ℕ
-  ⊑-to-~ {B = ℕ} ⊑-★ = ★~ℕ
-  ⊑-to-~ {B = ★} ⊑-★ = ~-★
-  ⊑-to-~ {B = A ⇒ B} ⊑-★ = ★~⇒ (~-from-⊑ (⊑-★ {A = A})) (⊑-to-~ (⊑-★ {A = B}))
-  ⊑-to-~ (⊑-⇒ A⊑C B⊑D) = ~-⇒ (~-from-⊑ A⊑C) (⊑-to-~ B⊑D)
-
-  ~-from-⊑ : ∀ {A B} → A ⊑ B → B ~ A
-  ~-from-⊑ ⊑-ℕ = ~-ℕ
-  ~-from-⊑ {B = ℕ} ⊑-★ = ℕ~★
-  ~-from-⊑ {B = ★} ⊑-★ = ~-★
-  ~-from-⊑ {B = A ⇒ B} ⊑-★ = ⇒~★ (⊑-to-~ (⊑-★ {A = A})) (~-from-⊑ (⊑-★ {A = B}))
-  ~-from-⊑ (⊑-⇒ A⊑C B⊑D) = ~-⇒ (⊑-to-~ A⊑C) (~-from-⊑ B⊑D)
-
-mutual
-  prec-left : ∀ {X A B} → X ⊑ A → A ~ B → X ~ B
-  prec-left ⊑-★ A~B = ★~-ty _
-  prec-left ⊑-ℕ A~B = A~B
-  prec-left (⊑-⇒ X⊑A₁ X₂⊑A₂) (⇒~★ ★~A₁ A₂~★) =
-    ⇒~★ (★~-ty _) (prec-left X₂⊑A₂ A₂~★)
-  prec-left (⊑-⇒ X⊑A₁ X₂⊑A₂) (~-⇒ B₁~A₁ A₂~B₂) =
-    ~-⇒ (prec-right B₁~A₁ X⊑A₁) (prec-left X₂⊑A₂ A₂~B₂)
-
-  prec-right : ∀ {A B Y} → A ~ B → Y ⊑ B → A ~ Y
-  prec-right A~B ⊑-★ = ~★-ty _
-  prec-right A~B ⊑-ℕ = A~B
-  prec-right (★~⇒ B₁~★ ★~B₂) (⊑-⇒ Y⊑B₁ Y₂⊑B₂) =
-    ★~⇒ (prec-left Y⊑B₁ B₁~★) (prec-right ★~B₂ Y₂⊑B₂)
-  prec-right (~-⇒ B₁~A₁ A₂~B₂) (⊑-⇒ Y⊑B₁ Y₂⊑B₂) =
-    ~-⇒ (prec-left Y⊑B₁ B₁~A₁) (prec-right A₂~B₂ Y₂⊑B₂)
-
-app-consistency
-  : ∀ {A B A′ B′ }
-  → A′ ⊑ A
-  → A ~ B
-  → B′ ⊑ B
-  → A′ ~ B′
-app-consistency A′⊑A A~B B′⊑B = prec-left A′⊑A (prec-right A~B B′⊑B)
 
 static-gradual-guarantee
   : ∀ {Γ Γ′ M M′ A}
   → Γ ⊢ M ⦂ A
   → M′ ⊑ᵀ M
-  → Γ ⊑ᵉ Γ′
+  → Γ ⊑ˢ Γ′
   → ∃[ A′ ] (Γ′ ⊢ M′ ⦂ A′) × (A′ ⊑ A)
 static-gradual-guarantee (⊢` {x = x} ∋x) ⊑` Γ⊑Γ′
   with Γ⊑Γ′ x _ ∋x
@@ -70,7 +32,7 @@ static-gradual-guarantee ⊢$ ⊑$ Γ⊑Γ′ =
 static-gradual-guarantee (⊢ƛ {A = A} {N = N} {B = B} N⦂B)
                             (⊑ƛ {A = A′} A′⊑A N′⊑N)
                             Γ⊑Γ′
-  with static-gradual-guarantee N⦂B N′⊑N (extend-⊑ᵉ A′⊑A Γ⊑Γ′)
+  with static-gradual-guarantee N⦂B N′⊑N (extend-⊑ˢ A′⊑A Γ⊑Γ′)
 ... | B′ , N′⦂B′ , B′⊑B =
   (A′ ⇒ B′) , ⊢ƛ N′⦂B′ , ⊑-⇒ A′⊑A B′⊑B
 

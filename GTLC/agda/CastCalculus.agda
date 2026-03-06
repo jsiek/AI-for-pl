@@ -3,27 +3,15 @@ module CastCalculus where
 open import Agda.Builtin.Nat using (Nat; zero; suc)
 open import Agda.Builtin.List using (List; []; _∷_)
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Product using (Σ-syntax; ∃-syntax; _×_; _,_)
+open import Data.Product using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Binary.PropositionalEquality using (_≢_)
-open import Relation.Nullary using (Dec; yes; no)
-open import GTLC using (Ty; ℕ; ★; _⇒_; _⊑_; Var)
-open import Coercions using
-  ( Coercion
-  ; idᶜ
-  ; _!
-  ; _`?
-  ; _↦_
-  ; _⨟_
-  ; _⊑ᶜ_
-  ; ⊢_⦂_⇨_
-  ; ⊢idᶜ
-  ; ⊢!
-  ; ⊢?
-  ; ⊢↦
-  ; ⊢⨟
-  )
+open import Relation.Nullary using (Dec; yes; no; ¬_)
+open import Types
+open import Contexts
+open import GTLC
+open import Coercions
 
 data Termᶜ : Set where
   `_      : Var → Termᶜ
@@ -33,20 +21,11 @@ data Termᶜ : Set where
   cast_[_] : Termᶜ → Coercion → Termᶜ
   blame   : Termᶜ
 
-Ctxᶜ : Set
-Ctxᶜ = List Ty
-
-infix 4 _∋ᶜ_⦂_
-
-data _∋ᶜ_⦂_ : Ctxᶜ → Var → Ty → Set where
-  Z : ∀ {Γ A} → (A ∷ Γ) ∋ᶜ zero ⦂ A
-  S : ∀ {Γ A B x} → Γ ∋ᶜ x ⦂ A → (B ∷ Γ) ∋ᶜ suc x ⦂ A
-
 infix 4 _⊢ᶜ_⦂_
 
-data _⊢ᶜ_⦂_ : Ctxᶜ → Termᶜ → Ty → Set where
+data _⊢ᶜ_⦂_ : Ctx → Termᶜ → Ty → Set where
   ⊢` : ∀ {Γ x A}
-    → Γ ∋ᶜ x ⦂ A
+    → Γ ∋ x ⦂ A
     → Γ ⊢ᶜ ` x ⦂ A
 
   ⊢$ : ∀ {Γ n}
@@ -69,43 +48,100 @@ data _⊢ᶜ_⦂_ : Ctxᶜ → Termᶜ → Ty → Set where
   ⊢blame : ∀ {Γ A}
     → Γ ⊢ᶜ blame ⦂ A
 
-infix 4 _⊑ᶜᵀ_
+infix 4 _⊢_⦂_⊑ᶜᵀ_⦂_
 
-data _⊑ᶜᵀ_ : Termᶜ → Termᶜ → Set where
-  ⊑` : ∀ {x}
-    → ` x ⊑ᶜᵀ ` x
+data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Termᶜ → Ty → Termᶜ → Ty → Set where
+  ⊑` : ∀ {A₁ A₂ x}
+    → Γ₁ ∋ x ⦂ A₁
+    → Γ₂ ∋ x ⦂ A₂
+    → ρ ⊢ ` x ⦂ A₁ ⊑ᶜᵀ ` x ⦂ A₂
 
   ⊑$ : ∀ {n}
-    → $ n ⊑ᶜᵀ $ n
+    → ρ ⊢ $ n ⦂ ℕ ⊑ᶜᵀ $ n ⦂ ℕ
 
-  ⊑ƛ : ∀ {A B N M}
-    → A ⊑ B
-    → N ⊑ᶜᵀ M
-    → ƛ A ⇒ N ⊑ᶜᵀ ƛ B ⇒ M
+  ⊑ƛ : ∀ {A A′ B B′ N M}
+    → (A⊑A′ : A ⊑ A′)
+    → (extend-⊑ᵉ A⊑A′ ρ) ⊢ N ⦂ B ⊑ᶜᵀ M ⦂ B′
+    → ρ ⊢ ƛ A ⇒ N ⦂ (A ⇒ B) ⊑ᶜᵀ ƛ A′ ⇒ M ⦂ (A′ ⇒ B′)
 
-  ⊑· : ∀ {L L′ M M′}
-    → L ⊑ᶜᵀ L′
-    → M ⊑ᶜᵀ M′
-    → L · M ⊑ᶜᵀ L′ · M′
+  ⊑· : ∀ {A A′ B B′ L L′ M M′}
+    → ρ ⊢ L ⦂ (A ⇒ B) ⊑ᶜᵀ L′ ⦂ (A′ ⇒ B′)
+    → ρ ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+    → ρ ⊢ L · M ⦂ B ⊑ᶜᵀ L′ · M′ ⦂ B′
 
-  ⊑cast : ∀ {M M′ c c′}
-    → M ⊑ᶜᵀ M′
+  ⊑cast : ∀ {A A′ B B′ M M′ c c′}
+    → ρ ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
     → c ⊑ᶜ c′
-    → cast M [ c ] ⊑ᶜᵀ cast M′ [ c′ ]
+    → ⊢ c ⦂ A ⇨ B
+    → ⊢ c′ ⦂ A′ ⇨ B′
+    → ρ ⊢ cast M [ c ] ⦂ B ⊑ᶜᵀ cast M′ [ c′ ] ⦂ B′
 
-  ⊑castL : ∀ {M M′ c}
-    → M ⊑ᶜᵀ M′
-    → cast M [ c ] ⊑ᶜᵀ M′
+  ⊑castL : ∀ {A A′ B M M′ c}
+    → ρ ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+    → ⊢ c ⦂ A ⇨ B
+    → c ⊑ᶜ idᶜ A′
+    → ρ ⊢ cast M [ c ] ⦂ B ⊑ᶜᵀ M′ ⦂ A′
 
-  ⊑castR : ∀ {M M′ c}
-    → M ⊑ᶜᵀ M′
-    → M ⊑ᶜᵀ cast M′ [ c ]
+  ⊑castR : ∀ {A A′ B′ M M′ c′}
+    → ρ ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+    → ⊢ c′ ⦂ A′ ⇨ B′
+    → idᶜ A ⊑ᶜ c′
+    → ρ ⊢ M ⦂ A ⊑ᶜᵀ cast M′ [ c′ ] ⦂ B′
 
-  ⊑cast* : ∀ {M M′ c c′}
-    → M ⊑ᶜᵀ M′
-    → cast M [ c ] ⊑ᶜᵀ cast M′ [ c′ ]
+  ⊑blameR : ∀ {A₁ A₂ M}
+    → Γ₁ ⊢ᶜ M ⦂ A₁
+    → A₁ ⊑ A₂
+    → ρ ⊢ M ⦂ A₁ ⊑ᶜᵀ blame ⦂ A₂
 
-  ⊑blame : blame ⊑ᶜᵀ blame
+∋-unique : ∀ {Γ x A B} → Γ ∋ x ⦂ A → Γ ∋ x ⦂ B → A ≡ B
+∋-unique Z Z = refl
+∋-unique (S ∋x) (S ∋x′) = ∋-unique ∋x ∋x′
+
+⊑ᶜᵀ-left-typed
+  : ∀ {Γ₁ Γ₂} {ρ : Γ₁ ⊑ᵉ Γ₂} {A₁ A₂ M M′}
+  → ρ ⊢ M ⦂ A₁ ⊑ᶜᵀ M′ ⦂ A₂
+  → Γ₁ ⊢ᶜ M ⦂ A₁
+⊑ᶜᵀ-left-typed (⊑` ∋x _) = ⊢` ∋x
+⊑ᶜᵀ-left-typed ⊑$ = ⊢$
+⊑ᶜᵀ-left-typed {ρ = ρ} {A₁ = A ⇒ B} {A₂ = A′ ⇒ B′} (⊑ƛ A⊑A′ N⊑M) =
+  ⊢ƛ (⊑ᶜᵀ-left-typed {ρ = extend-⊑ᵉ A⊑A′ ρ} N⊑M)
+⊑ᶜᵀ-left-typed (⊑· L⊑L′ M⊑M′) = ⊢· (⊑ᶜᵀ-left-typed L⊑L′) (⊑ᶜᵀ-left-typed M⊑M′)
+⊑ᶜᵀ-left-typed (⊑cast M⊑M′ _ cwt _) = ⊢cast (⊑ᶜᵀ-left-typed M⊑M′) cwt
+⊑ᶜᵀ-left-typed (⊑castL M⊑M′ cwt _) = ⊢cast (⊑ᶜᵀ-left-typed M⊑M′) cwt
+⊑ᶜᵀ-left-typed (⊑castR M⊑M′ _ _) = ⊑ᶜᵀ-left-typed M⊑M′
+⊑ᶜᵀ-left-typed (⊑blameR M⦂A₁ _) = M⦂A₁
+
+⊑ᶜᵀ-right-typed
+  : ∀ {Γ₁ Γ₂} {ρ : Γ₁ ⊑ᵉ Γ₂} {A₁ A₂ M M′}
+  → ρ ⊢ M ⦂ A₁ ⊑ᶜᵀ M′ ⦂ A₂
+  → Γ₂ ⊢ᶜ M′ ⦂ A₂
+⊑ᶜᵀ-right-typed (⊑` _ ∋x) = ⊢` ∋x
+⊑ᶜᵀ-right-typed ⊑$ = ⊢$
+⊑ᶜᵀ-right-typed {ρ = ρ} {A₁ = A ⇒ B} {A₂ = A′ ⇒ B′} (⊑ƛ A⊑A′ N⊑M) =
+  ⊢ƛ (⊑ᶜᵀ-right-typed {ρ = extend-⊑ᵉ A⊑A′ ρ} N⊑M)
+⊑ᶜᵀ-right-typed (⊑· L⊑L′ M⊑M′) = ⊢· (⊑ᶜᵀ-right-typed L⊑L′) (⊑ᶜᵀ-right-typed M⊑M′)
+⊑ᶜᵀ-right-typed (⊑cast M⊑M′ _ _ c′wt) = ⊢cast (⊑ᶜᵀ-right-typed M⊑M′) c′wt
+⊑ᶜᵀ-right-typed (⊑castL M⊑M′ _ _) = ⊑ᶜᵀ-right-typed M⊑M′
+⊑ᶜᵀ-right-typed (⊑castR M⊑M′ c′wt _) = ⊢cast (⊑ᶜᵀ-right-typed M⊑M′) c′wt
+⊑ᶜᵀ-right-typed (⊑blameR M⦂A₁ A₁⊑A₂) = ⊢blame
+
+⊑ᶜᵀ-type-precision
+  : ∀ {Γ₁ Γ₂} {ρ : Γ₁ ⊑ᵉ Γ₂} {A₁ A₂ M M′}
+  → ρ ⊢ M ⦂ A₁ ⊑ᶜᵀ M′ ⦂ A₂
+  → A₁ ⊑ A₂
+⊑ᶜᵀ-type-precision {ρ = ρ} (⊑` {x = x} ∋x ∋x′) = ρ x _ _ ∋x ∋x′
+⊑ᶜᵀ-type-precision ⊑$ = ⊑-ℕ
+⊑ᶜᵀ-type-precision {ρ = ρ} {A₁ = A ⇒ B} {A₂ = A′ ⇒ B′} (⊑ƛ A⊑A′ N⊑M) =
+  ⊑-⇒ A⊑A′ (⊑ᶜᵀ-type-precision {ρ = extend-⊑ᵉ A⊑A′ ρ} N⊑M)
+⊑ᶜᵀ-type-precision (⊑· L⊑L′ M⊑M′) with ⊑ᶜᵀ-type-precision L⊑L′
+... | ⊑-⇒ _ B⊑B′ = B⊑B′
+⊑ᶜᵀ-type-precision (⊑cast M⊑M′ c⊑c′ cwt c′wt) with ⊑ᶜ→⊑ c′wt cwt c⊑c′
+... | _ , B⊑B′ = B⊑B′
+⊑ᶜᵀ-type-precision (⊑castL _ cwt c⊑id) with ⊑ᶜ→⊑ ⊢idᶜ cwt c⊑id
+... | _ , B⊑A′ = B⊑A′
+⊑ᶜᵀ-type-precision (⊑castR _ c′wt id⊑c′) with ⊑ᶜ→⊑ c′wt ⊢idᶜ id⊑c′
+... | _ , A⊑B′ = A⊑B′
+⊑ᶜᵀ-type-precision (⊑blameR _ A₁⊑A₂) = A₁⊑A₂
 
 data Valueᶜ : Termᶜ → Set where
   V-$ : ∀ {n} → Valueᶜ ($ n)
@@ -123,15 +159,52 @@ plug (□· M) L = L · M
 plug (V ·□ vV) M = V · M
 plug (cast□[ c ]) M = cast M [ c ]
 
-postulate
-  substᶜ : Termᶜ → Termᶜ → Termᶜ
+Renameᶜ : Set
+Renameᶜ = Var → Var
+
+Substᶜ : Set
+Substᶜ = Var → Termᶜ
+
+extᶜ : Renameᶜ → Renameᶜ
+extᶜ ρ zero = zero
+extᶜ ρ (suc x) = suc (ρ x)
+
+renameᶜ : Renameᶜ → Termᶜ → Termᶜ
+renameᶜ ρ (` x) = ` (ρ x)
+renameᶜ ρ ($ n) = $ n
+renameᶜ ρ (ƛ A ⇒ N) = ƛ A ⇒ renameᶜ (extᶜ ρ) N
+renameᶜ ρ (L · M) = renameᶜ ρ L · renameᶜ ρ M
+renameᶜ ρ (cast M [ c ]) = cast (renameᶜ ρ M) [ c ]
+renameᶜ ρ blame = blame
+
+extsᶜ : Substᶜ → Substᶜ
+extsᶜ σ zero = ` zero
+extsᶜ σ (suc x) = renameᶜ suc (σ x)
+
+subst-allᶜ : Substᶜ → Termᶜ → Termᶜ
+subst-allᶜ σ (` x) = σ x
+subst-allᶜ σ ($ n) = $ n
+subst-allᶜ σ (ƛ A ⇒ N) = ƛ A ⇒ subst-allᶜ (extsᶜ σ) N
+subst-allᶜ σ (L · M) = subst-allᶜ σ L · subst-allᶜ σ M
+subst-allᶜ σ (cast M [ c ]) = cast (subst-allᶜ σ M) [ c ]
+subst-allᶜ σ blame = blame
+
+singleEnvᶜ : Termᶜ → Substᶜ
+singleEnvᶜ M zero = M
+singleEnvᶜ M (suc x) = ` x
+
+substᶜ : Termᶜ → Termᶜ → Termᶜ
+substᶜ N M = subst-allᶜ (singleEnvᶜ M) N
 
 infix 4 _—→ᶜ_
+infix 4 _—↠ᶜ_
 
 data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
-  ξ : ∀ {F M M′}
-    → M —→ᶜ M′
-    → plug F M —→ᶜ plug F M′
+  ξξ : ∀ {F M N M′ N′}
+    → M′ ≡ plug F M
+    → N′ ≡ plug F N
+    → M —→ᶜ N
+    → M′ —→ᶜ N′
 
   β-ƛ : ∀ {A N V}
     → Valueᶜ V
@@ -159,16 +232,53 @@ data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
     → G ≢ H
     → cast (cast V [ G ! ]) [ H `? ] —→ᶜ blame
 
-  ξ-blame : ∀ {F}
-    → plug F blame —→ᶜ blame
+  ξξ-blame : ∀ {F M′}
+    → M′ ≡ plug F blame
+    → M′ —→ᶜ blame
+
+pattern ξ {F} M—→N = ξξ {F = F} refl refl M—→N
+pattern ξ-blame {F} = ξξ-blame {F = F} refl
+
+postulate
+  value-irreducible : ∀ {V N} → Valueᶜ V → V —→ᶜ N → ⊥
+
+data _—↠ᶜ_ : Termᶜ → Termᶜ → Set where
+  ms-refl : ∀ (M : Termᶜ)
+    → M —↠ᶜ M
+
+  ms-step : ∀ (L : Termᶜ) {M N : Termᶜ}
+    → L —→ᶜ M
+    → M —↠ᶜ N
+    → L —↠ᶜ N
+
+infix 3 _∎ᶜ
+pattern _∎ᶜ M = ms-refl M
+
+infixr 2 _—→ᶜ⟨_⟩_
+pattern _—→ᶜ⟨_⟩_ L L—→M M—↠N = ms-step L L—→M M—↠N
+
+_++ᶜ_ : ∀ {L M N} → L —↠ᶜ M → M —↠ᶜ N → L —↠ᶜ N
+_++ᶜ_ {L = L} (L ∎ᶜ) M—↠N = M—↠N
+_++ᶜ_ {L = L} (L —→ᶜ⟨ L—→M ⟩ M—↠N) N—↠P =
+  L —→ᶜ⟨ L—→M ⟩ (M—↠N ++ᶜ N—↠P)
+
+ξ* : ∀ {F M N}
+  → M —↠ᶜ N
+  → plug F M —↠ᶜ plug F N
+ξ* {F = F} (M ∎ᶜ) = plug F M ∎ᶜ
+ξ* {F = F} (M —→ᶜ⟨ M—→N ⟩ N—↠P) =
+  plug F M —→ᶜ⟨ ξ M—→N ⟩ ξ* N—↠P
+
+Convergesᶜ : Termᶜ → Set
+Convergesᶜ M = ∃[ W ] ((M —↠ᶜ W) × (Valueᶜ W ⊎ (W ≡ blame)))
+
+Divergesᶜ : Termᶜ → Set
+Divergesᶜ M = ¬ Convergesᶜ M
 
 data Progressᶜ (M : Termᶜ) : Set where
   done  : Valueᶜ M → Progressᶜ M
   step  : ∀ {N} → M —→ᶜ N → Progressᶜ M
   crash : M ≡ blame → Progressᶜ M
-
-¬-∋ᶜ[] : ∀ {x A} → [] ∋ᶜ x ⦂ A → ⊥
-¬-∋ᶜ[] ()
 
 _≟Ty_ : (A B : Ty) → Dec (A ≡ B)
 ℕ ≟Ty ℕ = yes refl
@@ -206,7 +316,7 @@ canonical-⇒ (V-cast↦ {V = W} {c = c} {d = d} vW) pf with pf
 ... | ⊢↦ _ _ = inj₂ (W , c , d , (vW , refl))
 
 progressᶜ : ∀ {M A} → [] ⊢ᶜ M ⦂ A → Progressᶜ M
-progressᶜ (⊢` ∋x) = ⊥-elim (¬-∋ᶜ[] ∋x)
+progressᶜ (⊢` ())
 progressᶜ ⊢$ = done V-$
 progressᶜ (⊢ƛ M⦂A) = done V-ƛ
 progressᶜ (⊢· {L = L} {M = M} L⦂A⇒B M⦂A) with progressᶜ L⦂A⇒B

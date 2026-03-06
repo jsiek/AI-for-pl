@@ -4,25 +4,9 @@ open import Data.Product using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂; _
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Nullary using (¬_)
 
-open import GTLC using
-  ( Ty
-  ; ℕ
-  ; ★
-  ; _⇒_
-  ; _~_
-  ; _⊑_
-  ; ⊑-ℕ
-  ; ⊑-★
-  ; ⊑-⇒
-  ; ⊑-refl
-  ; ~-ℕ
-  ; ~-★
-  ; ★~ℕ
-  ; ℕ~★
-  ; ★~⇒
-  ; ⇒~★
-  ; ~-⇒
-  )
+open import Types
+open import Contexts
+open import GTLC 
 
 infixr 7 _⨟_
 infixr 6 _↦_

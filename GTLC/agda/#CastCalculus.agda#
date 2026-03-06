@@ -1,0 +1,124 @@
+module CastCalculus where
+
+open import Agda.Builtin.Nat using (Nat; zero; suc)
+open import Agda.Builtin.List using (List; _∷_)
+open import GTLC using (Ty; ℕ; _⇒_; _⊑_; Var)
+open import Coercions using (Coercion; idᶜ; _↦_; _⨟_; _⊑ᶜ_; ⊢_⦂_⇨_)
+
+data Termᶜ : Set where
+  `_      : Var → Termᶜ
+  $_      : Nat → Termᶜ
+  ƛ_⇒_    : Ty → Termᶜ → Termᶜ
+  _·_     : Termᶜ → Termᶜ → Termᶜ
+  cast_[_] : Termᶜ → Coercion → Termᶜ
+⊥ᶜ
+Ctxᶜ : Set
+Ctxᶜ = List Ty
+
+infix 4 _∋ᶜ_⦂_
+
+data _∋ᶜ_⦂_ : Ctxᶜ → Var → Ty → Set where
+  Z : ∀ {Γ A} → (A ∷ Γ) ∋ᶜ zero ⦂ A
+  S : ∀ {Γ A B x} → Γ ∋ᶜ x ⦂ A → (B ∷ Γ) ∋ᶜ suc x ⦂ A
+
+infix 4 _⊢ᶜ_⦂_
+
+data _⊢ᶜ_⦂_ : Ctxᶜ → Termᶜ → Ty → Set where
+  ⊢` : ∀ {Γ x A}
+    → Γ ∋ᶜ x ⦂ A
+    → Γ ⊢ᶜ ` x ⦂ A
+
+  ⊢$ : ∀ {Γ n}
+    → Γ ⊢ᶜ $ n ⦂ ℕ
+
+  ⊢ƛ : ∀ {Γ A N B}
+    → (A ∷ Γ) ⊢ᶜ N ⦂ B
+    → Γ ⊢ᶜ ƛ A ⇒ N ⦂ (A ⇒ B)
+
+  ⊢· : ∀ {Γ L M A B}
+    → Γ ⊢ᶜ L ⦂ (A ⇒ B)
+    → Γ ⊢ᶜ M ⦂ A
+    → Γ ⊢ᶜ L · M ⦂ B
+
+  ⊢cast : ∀ {Γ M c A B}
+    → Γ ⊢ᶜ M ⦂ A
+    → ⊢ c ⦂ A ⇨ B
+    → Γ ⊢ᶜ cast M [ c ] ⦂ B
+
+infix 4 _⊑ᶜᵀ_
+
+data _⊑ᶜᵀ_ : Termᶜ → Termᶜ → Set where
+  ⊑` : ∀ {x}
+    → ` x ⊑ᶜᵀ ` x
+
+  ⊑$ : ∀ {n}
+    → $ n ⊑ᶜᵀ $ n
+
+  ⊑ƛ : ∀ {A B N M}
+    → A ⊑ B
+    → N ⊑ᶜᵀ M
+    → ƛ A ⇒ N ⊑ᶜᵀ ƛ B ⇒ M
+
+  ⊑· : ∀ {L L′ M M′}
+    → L ⊑ᶜᵀ L′
+    → M ⊑ᶜᵀ M′
+    → L · M ⊑ᶜᵀ L′ · M′
+
+  ⊑cast : ∀ {M M′ c c′}
+    → M ⊑ᶜᵀ M′
+    → c ⊑ᶜ c′
+    → cast M [ c ] ⊑ᶜᵀ cast M′ [ c′ ]
+
+  ⊑castL : ∀ {M M′ c}
+    → M ⊑ᶜᵀ M′
+    → cast M [ c ] ⊑ᶜᵀ M′
+
+  ⊑castR : ∀ {M M′ c}
+    → M ⊑ᶜᵀ M′
+    → M ⊑ᶜᵀ cast M′ [ c ]
+
+  ⊑cast* : ∀ {M M′ c c′}
+    → M ⊑ᶜᵀ M′
+    → cast M [ c ] ⊑ᶜᵀ cast M′ [ c′ ]
+
+data Valueᶜ : Termᶜ → Set where
+  V-$ : ∀ {n} → Valueᶜ ($ n)
+  V-ƛ : ∀ {A N} → Valueᶜ (ƛ A ⇒ N)
+
+postulate
+  substᶜ : Termᶜ → Termᶜ → Termᶜ
+
+infix 4 _—→ᶜ_
+
+data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
+  ξ-·₁ : ∀ {L L′ M}
+    → L —→ᶜ L′
+    → L · M —→ᶜ L′ · M
+
+  ξ-·₂ : ∀ {V M M′}
+    → Valueᶜ V
+    → M —→ᶜ M′
+    → V · M —→ᶜ V · M′
+
+  β-ƛ : ∀ {A N V}
+    → Valueᶜ V
+    → (ƛ A ⇒ N) · V —→ᶜ substᶜ N V
+
+  ξ-cast : ∀ {M M′ c}
+    → M —→ᶜ M′
+    → cast M [ c ] —→ᶜ cast M′ [ c ]
+
+  β-id : ∀ {A V}
+    → Valueᶜ V
+    → cast V [ idᶜ A ] —→ᶜ V
+
+  β-seq : ∀ {V c d}
+    → Valueᶜ V
+    → cast V [ c ⨟ d ] —→ᶜ cast (cast V [ c ]) [ d ]
+
+  β-↦ : ∀ {V W c d}
+    → Valueᶜ V
+    → Valueᶜ W
+    → cast V [ c ↦ d ] · W —→ᶜ cast (V · cast W [ c ]) [ d ]
+
+  -- missing rules for inj/proj and blame

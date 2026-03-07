@@ -19,10 +19,27 @@ data Termᶜ : Set where
   ƛ_⇒_    : Ty → Termᶜ → Termᶜ
   _·_     : Termᶜ → Termᶜ → Termᶜ
   cast_[_] : Termᶜ → Coercion → Termᶜ
+  inj_[_]! : Termᶜ → Ty → Termᶜ
   blame   : Termᶜ
 
-infix 4 _⊢ᶜ_⦂_
+data Valueᶜ : Termᶜ → Set where
+  V-$ : ∀ {n} → Valueᶜ ($ n)
+  V-ƛ : ∀ {A N} → Valueᶜ (ƛ A ⇒ N)
+  V-! : ∀ {V G} → Valueᶜ V → Valueᶜ (inj V [ G ]!)
+  V-cast↦ : ∀ {V c d} → Valueᶜ V → Valueᶜ (cast V [ c ↦ d ])
 
+data Frameᶜ : Set where
+  □·_     : Termᶜ → Frameᶜ
+  _·□_    : (V : Termᶜ) → Valueᶜ V → Frameᶜ
+  cast□[_] : Coercion → Frameᶜ
+
+plug : Frameᶜ → Termᶜ → Termᶜ
+plug (□· M) L = L · M
+plug (V ·□ vV) M = V · M
+plug (cast□[ c ]) M = cast M [ c ]
+
+
+infix 4 _⊢ᶜ_⦂_
 data _⊢ᶜ_⦂_ : Ctx → Termᶜ → Ty → Set where
   ⊢` : ∀ {Γ x A}
     → Γ ∋ x ⦂ A
@@ -45,9 +62,18 @@ data _⊢ᶜ_⦂_ : Ctx → Termᶜ → Ty → Set where
     → ⊢ c ⦂ A ⇨ B
     → Γ ⊢ᶜ cast M [ c ] ⦂ B
 
+  ⊢! : ∀ {Γ M G}
+    → Γ ⊢ᶜ M ⦂ G
+    → Ground G
+    → Valueᶜ M
+    → Γ ⊢ᶜ inj M [ G ]! ⦂ ★
+
   ⊢blame : ∀ {Γ A}
     → Γ ⊢ᶜ blame ⦂ A
 
+---------------------------------------------------------------
+-- Term Precision 
+---------------------------------------------------------------
 infix 4 _⊢_⦂_⊑ᶜᵀ_⦂_
 
 data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Termᶜ → Ty → Termᶜ → Ty → Set where
@@ -88,6 +114,20 @@ data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Ter
     → idᶜ A ⊑ᶜ c′
     → ρ ⊢ M ⦂ A ⊑ᶜᵀ cast M′ [ c′ ] ⦂ B′
 
+  ⊑inj : ∀ {G M M′}
+    → ρ ⊢ M ⦂ G ⊑ᶜᵀ M′ ⦂ G
+    → Valueᶜ M
+    → Valueᶜ M′
+    → Ground G
+    → ρ ⊢ inj M [ G ]! ⦂ ★ ⊑ᶜᵀ inj M′ [ G ]! ⦂ ★
+
+  ⊑injL : ∀ {G A′ M M′}
+    → ρ ⊢ M ⦂ G ⊑ᶜᵀ M′ ⦂ A′
+    → Valueᶜ M
+    → Ground G
+    → Valueᶜ M′
+    → ρ ⊢ inj M [ G ]! ⦂ ★ ⊑ᶜᵀ M′ ⦂ A′
+
   ⊑blameR : ∀ {A₁ A₂ M}
     → Γ₁ ⊢ᶜ M ⦂ A₁
     → A₁ ⊑ A₂
@@ -110,6 +150,9 @@ data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Ter
 ⊑ᶜᵀ-left-typed (⊑castL M⊑M′ cwt _) = ⊢cast (⊑ᶜᵀ-left-typed M⊑M′) cwt
 ⊑ᶜᵀ-left-typed (⊑castR M⊑M′ _ _) = ⊑ᶜᵀ-left-typed M⊑M′
 ⊑ᶜᵀ-left-typed (⊑blameR M⦂A₁ _) = M⦂A₁
+⊑ᶜᵀ-left-typed (⊑inj M⊑M′ vM vM′ g) = ⊢! (⊑ᶜᵀ-left-typed M⊑M′) g vM
+⊑ᶜᵀ-left-typed (⊑injL M⊑M′ vM g VM′) = ⊢! (⊑ᶜᵀ-left-typed M⊑M′) g vM
+
 
 ⊑ᶜᵀ-right-typed
   : ∀ {Γ₁ Γ₂} {ρ : Γ₁ ⊑ᵉ Γ₂} {A₁ A₂ M M′}
@@ -124,6 +167,8 @@ data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Ter
 ⊑ᶜᵀ-right-typed (⊑castL M⊑M′ _ _) = ⊑ᶜᵀ-right-typed M⊑M′
 ⊑ᶜᵀ-right-typed (⊑castR M⊑M′ c′wt _) = ⊢cast (⊑ᶜᵀ-right-typed M⊑M′) c′wt
 ⊑ᶜᵀ-right-typed (⊑blameR M⦂A₁ A₁⊑A₂) = ⊢blame
+⊑ᶜᵀ-right-typed (⊑inj M⊑M′ vM vM′ g) = ⊢! (⊑ᶜᵀ-right-typed M⊑M′) g vM′
+⊑ᶜᵀ-right-typed (⊑injL M⊑M′ vM g vM′) = ⊑ᶜᵀ-right-typed M⊑M′
 
 ⊑ᶜᵀ-type-precision
   : ∀ {Γ₁ Γ₂} {ρ : Γ₁ ⊑ᵉ Γ₂} {A₁ A₂ M M′}
@@ -142,22 +187,8 @@ data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Ter
 ⊑ᶜᵀ-type-precision (⊑castR _ c′wt id⊑c′) with ⊑ᶜ→⊑ c′wt ⊢idᶜ id⊑c′
 ... | _ , A⊑B′ = A⊑B′
 ⊑ᶜᵀ-type-precision (⊑blameR _ A₁⊑A₂) = A₁⊑A₂
-
-data Valueᶜ : Termᶜ → Set where
-  V-$ : ∀ {n} → Valueᶜ ($ n)
-  V-ƛ : ∀ {A N} → Valueᶜ (ƛ A ⇒ N)
-  V-cast! : ∀ {V G} → Valueᶜ V → Valueᶜ (cast V [ G ! ])
-  V-cast↦ : ∀ {V c d} → Valueᶜ V → Valueᶜ (cast V [ c ↦ d ])
-
-data Frameᶜ : Set where
-  □·_     : Termᶜ → Frameᶜ
-  _·□_    : (V : Termᶜ) → Valueᶜ V → Frameᶜ
-  cast□[_] : Coercion → Frameᶜ
-
-plug : Frameᶜ → Termᶜ → Termᶜ
-plug (□· M) L = L · M
-plug (V ·□ vV) M = V · M
-plug (cast□[ c ]) M = cast M [ c ]
+⊑ᶜᵀ-type-precision (⊑inj M⊑M′ vM vM′ g) = ⊑-★
+⊑ᶜᵀ-type-precision (⊑injL M⊑M′ vM g vM′) = ⊑-★
 
 Renameᶜ : Set
 Renameᶜ = Var → Var
@@ -175,26 +206,28 @@ renameᶜ ρ ($ n) = $ n
 renameᶜ ρ (ƛ A ⇒ N) = ƛ A ⇒ renameᶜ (extᶜ ρ) N
 renameᶜ ρ (L · M) = renameᶜ ρ L · renameᶜ ρ M
 renameᶜ ρ (cast M [ c ]) = cast (renameᶜ ρ M) [ c ]
+renameᶜ ρ (inj M [ G ]!) = inj (renameᶜ ρ M) [ G ]!
 renameᶜ ρ blame = blame
 
 extsᶜ : Substᶜ → Substᶜ
 extsᶜ σ zero = ` zero
 extsᶜ σ (suc x) = renameᶜ suc (σ x)
 
-subst-allᶜ : Substᶜ → Termᶜ → Termᶜ
-subst-allᶜ σ (` x) = σ x
-subst-allᶜ σ ($ n) = $ n
-subst-allᶜ σ (ƛ A ⇒ N) = ƛ A ⇒ subst-allᶜ (extsᶜ σ) N
-subst-allᶜ σ (L · M) = subst-allᶜ σ L · subst-allᶜ σ M
-subst-allᶜ σ (cast M [ c ]) = cast (subst-allᶜ σ M) [ c ]
-subst-allᶜ σ blame = blame
+substᶜ : Substᶜ → Termᶜ → Termᶜ
+substᶜ σ (` x) = σ x
+substᶜ σ ($ n) = $ n
+substᶜ σ (ƛ A ⇒ N) = ƛ A ⇒ substᶜ (extsᶜ σ) N
+substᶜ σ (L · M) = substᶜ σ L · substᶜ σ M
+substᶜ σ (cast M [ c ]) = cast (substᶜ σ M) [ c ]
+substᶜ σ (inj M [ G ]!) = inj (substᶜ σ M) [ G ]!
+substᶜ σ blame = blame
 
 singleEnvᶜ : Termᶜ → Substᶜ
 singleEnvᶜ M zero = M
 singleEnvᶜ M (suc x) = ` x
 
-substᶜ : Termᶜ → Termᶜ → Termᶜ
-substᶜ N M = subst-allᶜ (singleEnvᶜ M) N
+_[_]ᶜ : Termᶜ → Termᶜ → Termᶜ
+N [ M ]ᶜ = substᶜ (singleEnvᶜ M) N
 
 infix 4 _—→ᶜ_
 infix 4 _—↠ᶜ_
@@ -208,7 +241,7 @@ data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
 
   β-ƛ : ∀ {A N V}
     → Valueᶜ V
-    → (ƛ A ⇒ N) · V —→ᶜ substᶜ N V
+    → (ƛ A ⇒ N) · V —→ᶜ N [ V ]ᶜ
 
   β-id : ∀ {A V}
     → Valueᶜ V
@@ -225,22 +258,26 @@ data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
 
   β-proj-inj-ok : ∀ {V G}
     → Valueᶜ V
-    → cast (cast V [ G ! ]) [ G `? ] —→ᶜ V
+    → cast (inj V [ G ]!) [ G `? ] —→ᶜ V
 
   β-proj-inj-bad : ∀ {V G H}
     → Valueᶜ V
     → G ≢ H
-    → cast (cast V [ G ! ]) [ H `? ] —→ᶜ blame
+    → cast (inj V [ G ]!) [ H `? ] —→ᶜ blame
+
+  β-inj : ∀{V}{G} → cast V [ G ! ] —→ᶜ inj V [ G ]!
 
   ξξ-blame : ∀ {F M′}
     → M′ ≡ plug F blame
     → M′ —→ᶜ blame
 
-pattern ξ {F} M—→N = ξξ {F = F} refl refl M—→N
-pattern ξ-blame {F} = ξξ-blame {F = F} refl
+pattern ξ F M—→N = ξξ {F = F} refl refl M—→N
+pattern ξ-blame F = ξξ-blame {F = F} refl
 
 postulate
   value-irreducible : ∀ {V N} → Valueᶜ V → V —→ᶜ N → ⊥
+  var-irreducible : ∀ {x N} → ` x —→ᶜ N → ⊥
+  blame-irreducible : ∀ {N} → blame —→ᶜ N → ⊥
 
 data _—↠ᶜ_ : Termᶜ → Termᶜ → Set where
   ms-refl : ∀ (M : Termᶜ)
@@ -262,12 +299,20 @@ _++ᶜ_ {L = L} (L ∎ᶜ) M—↠N = M—↠N
 _++ᶜ_ {L = L} (L —→ᶜ⟨ L—→M ⟩ M—↠N) N—↠P =
   L —→ᶜ⟨ L—→M ⟩ (M—↠N ++ᶜ N—↠P)
 
-ξ* : ∀ {F M N}
+infixr 2 _—↠ᶜ⟨_⟩_
+_—↠ᶜ⟨_⟩_ : ∀ (L : Termᶜ) {M N : Termᶜ}
+    → L —↠ᶜ M
+    → M —↠ᶜ N
+      ---------
+    → L —↠ᶜ N
+L —↠ᶜ⟨ L—↠M ⟩ M—↠N = L—↠M ++ᶜ M—↠N
+
+ξ* : ∀ F {M N}
   → M —↠ᶜ N
   → plug F M —↠ᶜ plug F N
-ξ* {F = F} (M ∎ᶜ) = plug F M ∎ᶜ
-ξ* {F = F} (M —→ᶜ⟨ M—→N ⟩ N—↠P) =
-  plug F M —→ᶜ⟨ ξ M—→N ⟩ ξ* N—↠P
+ξ* F (M ∎ᶜ) = plug F M ∎ᶜ
+ξ* F (M —→ᶜ⟨ M—→N ⟩ N—↠P) =
+  plug F M —→ᶜ⟨ ξ F M—→N ⟩ ξ* F N—↠P
 
 Convergesᶜ : Termᶜ → Set
 Convergesᶜ M = ∃[ W ] ((M —↠ᶜ W) × (Valueᶜ W ⊎ (W ≡ blame)))
@@ -294,12 +339,13 @@ _≟Ty_ : (A B : Ty) → Dec (A ≡ B)
 ... | no A≢C | _ = no (λ { refl → A≢C refl })
 ... | _ | no B≢D = no (λ { refl → B≢D refl })
 
-canonical-★-inj : ∀ {V} → Valueᶜ V → [] ⊢ᶜ V ⦂ ★ → ∃[ G ] ∃[ W ] (Valueᶜ W × (V ≡ cast W [ G ! ]))
+canonical-★-inj : ∀ {V}
+  → Valueᶜ V
+  → [] ⊢ᶜ V ⦂ ★
+  → ∃[ G ] ∃[ W ] (Valueᶜ W × (V ≡ inj W [ G ]!))
 canonical-★-inj V-$ ()
 canonical-★-inj V-ƛ ()
-canonical-★-inj (V-cast! {V = W} {G = G} vW) pf with pf
-... | ⊢cast _ cwt with cwt
-... | ⊢! _ = G , W , (vW , refl)
+canonical-★-inj (V-! {V = W} vW) (⊢! pf x x₁) = _ , W , vW , refl
 canonical-★-inj (V-cast↦ vV) (⊢cast _ ())
 
 canonical-⇒
@@ -310,7 +356,6 @@ canonical-⇒
     ⊎ (∃[ W ] ∃[ c ] ∃[ d ] (Valueᶜ W × (V ≡ cast W [ c ↦ d ])))
 canonical-⇒ V-$ ()
 canonical-⇒ (V-ƛ {N = N}) (⊢ƛ {A = A} N⦂B) = inj₁ (N , refl)
-canonical-⇒ (V-cast! vW) (⊢cast _ ())
 canonical-⇒ (V-cast↦ {V = W} {c = c} {d = d} vW) pf with pf
 ... | ⊢cast _ cwt with cwt
 ... | ⊢↦ _ _ = inj₂ (W , c , d , (vW , refl))
@@ -320,20 +365,20 @@ progressᶜ (⊢` ())
 progressᶜ ⊢$ = done V-$
 progressᶜ (⊢ƛ M⦂A) = done V-ƛ
 progressᶜ (⊢· {L = L} {M = M} L⦂A⇒B M⦂A) with progressᶜ L⦂A⇒B
-... | step L→L′ = step (ξ {F = □· M} L→L′)
-... | crash refl = step (ξ-blame {F = □· M})
+... | step L→L′ = step (ξ (□· M) L→L′)
+... | crash refl = step (ξ-blame (□· M))
 ... | done vL with progressᶜ M⦂A
-... | step M→M′ = step (ξ {F = (L ·□ vL)} M→M′)
-... | crash refl = step (ξ-blame {F = (L ·□ vL)})
+... | step M→M′ = step (ξ (L ·□ vL) M→M′)
+... | crash refl = step (ξ-blame (L ·□ vL))
 ... | done vM with canonical-⇒ vL L⦂A⇒B
 ... | inj₁ (N , refl) = step (β-ƛ vM)
 ... | inj₂ (W , c , d , (vW , refl)) = step (β-↦ vW vM)
 progressᶜ (⊢cast {c = c} M⦂A c⦂A⇨B) with progressᶜ M⦂A
-... | step M→M′ = step (ξ {F = cast□[ c ]} M→M′)
-... | crash refl = step ξ-blame
+... | step M→M′ = step (ξ (cast□[ c ]) M→M′)
+... | crash refl = step (ξ-blame cast□[ c ])
 ... | done vM with c⦂A⇨B
 ... | ⊢idᶜ = step (β-id vM)
-... | ⊢! g = done (V-cast! vM)
+... | ⊢! g = step β-inj
 ... | ⊢↦ cwt dwt = done (V-cast↦ vM)
 ... | ⊢⨟ cwt dwt = step (β-seq vM)
 ... | ⊢? {G = G} g with canonical-★-inj vM M⦂A
@@ -341,3 +386,5 @@ progressᶜ (⊢cast {c = c} M⦂A c⦂A⇨B) with progressᶜ M⦂A
 ... | yes refl = step (β-proj-inj-ok vW)
 ... | no H≢G = step (β-proj-inj-bad vW H≢G)
 progressᶜ ⊢blame = crash refl
+progressᶜ (⊢! M⦂ g vM) = done (V-! vM)
+

@@ -398,6 +398,46 @@ catchup vV′ (⊑injL M⊑M′ vM g vM′) =
 catchup () (⊑blameR M⦂A₁ A₁⊑A₂)
 
 --------------------------------------------------------------------------------
+
+⊑castR-id-inversion : ∀{A A′}{M M′}
+  → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ cast M′ [ idᶜ A′ ] ⦂ A′
+  → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+⊑castR-id-inversion (⊑cast M⊑M′ c≤ c⦂ ⊢idᶜ) = ⊑castL M⊑M′ c⦂ c≤
+⊑castR-id-inversion (⊑castL M⊑M′ c⦂ c≤id) = ⊑castL (⊑castR-id-inversion M⊑M′) c⦂ c≤id
+⊑castR-id-inversion (⊑castR M⊑M′ ⊢idᶜ id⊑c′) = M⊑M′
+
+--------------------------------------------------------------------------------
+
+cast-⊑⨟ : ∀{V V′}{A A′ B B′ C′}{d c′ d′}
+   → []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′
+   → Valueᶜ V
+   → Valueᶜ V′
+   → d ⊑ᶜ c′ ⨟ d′
+   → ⊢ d ⦂ A ⇨ B
+   → ⊢ c′ ⦂ A′ ⇨ B′
+   → ⊢ d′ ⦂ B′ ⇨ C′
+   → ∃[ N₂ ] cast V [ d ] —↠ᶜ N₂ × []⊑[] ⊢ N₂ ⦂ B ⊑ᶜᵀ cast cast V′ [ c′ ] [ d′ ] ⦂ C′
+cast-⊑⨟{V} V≤V′ vV vV′ (⊑idL⨟ d≤c′⨟d′ d≤c′⨟d′₁) ⊢idᶜ c′⦂ d′⦂ =
+  cast V [ idᶜ _ ] , (_ ∎ᶜ) , ⊑castR (⊑cast V≤V′ d≤c′⨟d′ ⊢idᶜ c′⦂) d′⦂ d≤c′⨟d′₁
+cast-⊑⨟ {V} {V′} {cd} {c′} {d′} V≤V′ vV vV′ (⊑⨟ {c′ = c} {d′ = d} d≤c′⨟d′ d≤c′⨟d′₁) (⊢⨟ d⦂ d⦂₁) c′⦂ d′⦂ =
+  cast cast V [ c ] [ d ]
+  , (cast V [ c ⨟ d ] —→ᶜ⟨ β-seq vV ⟩ cast (cast V [ c ]) [ d ] ∎ᶜ )
+  , ⊑cast (⊑cast V≤V′ d≤c′⨟d′ d⦂ c′⦂) d≤c′⨟d′₁ d⦂₁ d′⦂
+cast-⊑⨟ {V} V≤V′ vV vV′ (⊑drop? {c′ = d} d≤c′⨟d′) (⊢⨟ (⊢? x) d⦂₁) c′⦂ d′⦂
+    with ⊑ᶜ→⊑ (⊢⨟ c′⦂ d′⦂) d⦂₁ d≤c′⨟d′
+... | aa , bb
+    with cast-left V≤V′ vV vV′ (⊢? x) (⊑idR atom-? (⊢? x) ⊑-★ aa)
+... | V₂ , →V₂ , V₂≤ , vV₂
+    with cast-⊑⨟ V₂≤ vV₂ vV′ d≤c′⨟d′ d⦂₁ c′⦂ d′⦂
+... | N₂ , →N₂ , N₂≤ =
+     let red = cast V [ ((★ ⇒ ★) `?) ⨟ d ] —→ᶜ⟨ β-seq vV ⟩
+               cast (cast V [ (★ ⇒ ★) `? ]) [ d ] —↠ᶜ⟨ ξ* _ →V₂ ⟩
+               cast V₂ [ d ] —↠ᶜ⟨ →N₂ ⟩
+               N₂ ∎ᶜ in
+     N₂ , red , N₂≤
+cast-⊑⨟ V≤V′ vV vV′ (⊑drop! d≤c′⨟d′) (⊢⨟ d⦂ d⦂₁) c′⦂ d′⦂ = {!!}
+
+--------------------------------------------------------------------------------
 -- Simulation of Beta Reduction
 --
 -- (V · W) ⊑ (λ N′) · W′
@@ -448,7 +488,7 @@ sim : ∀ {M M′ N′ A A′}
   → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
   → M′ —→ᶜ N′
   → ∃[ N ] ((M —↠ᶜ N) × ([]⊑[] ⊢ N ⦂ A ⊑ᶜᵀ N′ ⦂ A′))
-sim M⊑M′ (ξξ refl refl M→N) = {!!}
+sim M⊑M′ (ξξ {F = F} refl refl M→N) = {!!}
 sim (⊑·{A}{A′}{B}{B′}{L}{L′}{M}{M′} L⊑L′ M⊑M′) (β-ƛ vM′)
     with catchup V-ƛ L⊑L′
 ... | V , vV , L→V , V⊑λN
@@ -465,15 +505,44 @@ sim (⊑·{A}{A′}{B}{B′}{L}{L′}{M}{M′} L⊑L′ M⊑M′) (β-ƛ vM′)
                  N              
               ∎ᶜ in
       N , LM→N , N⊑N′W′
-sim (⊑castL M′⊑M x x₁) (β-ƛ v) = {!!}
+sim (⊑castL{M = M}{c = c} M⊑M′ x x₁) (β-ƛ{N = N′}{V = V′} v)
+    with sim M⊑M′ (β-ƛ v)
+... | N , M→N , N⊑N′[V′] =
+  cast N [ c ]
+  , (cast M [ c ]
+        —↠ᶜ⟨ ξ* cast□[ c ] M→N ⟩
+     cast N [ c ] ∎ᶜ)
+  , ⊑castL N⊑N′[V′] x x₁
 sim (⊑injL x x₃ x₄ ()) (β-ƛ x₂)
-sim M′⊑M (β-id x) = {!!}
-sim M′⊑M (β-seq x) = {!!}
-sim M′⊑M (β-↦ x x₁) = {!!}
-sim M′⊑M (β-proj-inj-ok x) = {!!}
-sim M′⊑M (β-proj-inj-bad x x₁) = {!!}
-sim M′⊑M (ξξ-blame x) = {!!}
-sim x β-inj = {!!}
+sim (⊑cast{M = M}{c = c} M⊑M′ c≤ c⦂ ⊢idᶜ) (β-id vN′) =
+  cast M [ c ] , (_ ∎ᶜ) , ⊑castL M⊑M′ c⦂ c≤
+sim (⊑castL{M = M}{c = c} M⊑M′ x x₁) (β-id vN′)
+    with ⊑ᶜᵀ-right-typed M⊑M′
+... | ⊢cast M′⦂ ⊢idᶜ = 
+    cast M [ c ] , (_ ∎ᶜ) , ⊑castL (⊑castR-id-inversion M⊑M′) x x₁
+sim (⊑castR{M = M} M⊑M′ ⊢idᶜ x₁) (β-id vN′) = M , (M ∎ᶜ) , M⊑M′
+-- Case
+--sim M′⊑M (β-seq vV) = {!!}
+sim (⊑cast {M = M} {V′} {c = c} {c′ ⨟ d′} M⊑V′ c≤c′⨟d′ c⦂ (⊢⨟ c′⦂ d′⦂)) (β-seq vV′)
+    with catchup vV′ M⊑V′
+... | V , vV , M→V , V⊑V′ 
+    with ⊑ᶜ→⊑ (⊢⨟ c′⦂ d′⦂) c⦂ c≤c′⨟d′
+... | aa , B⊑B′ 
+    with cast-⊑⨟ V⊑V′ vV vV′ c≤c′⨟d′ c⦂ c′⦂ d′⦂
+... | N₂ , →N₂ , N₂≤ =
+    let red = cast M [ c ] —↠ᶜ⟨ ξ* _ M→V ⟩
+              cast V [ c ] —↠ᶜ⟨ →N₂ ⟩
+              N₂ ∎ᶜ in
+    N₂ , red , N₂≤
+sim {M′ = cast V′ [ c′ ⨟ d′ ]} (⊑castL{M = M} M⊑V′cd c⦂ c≤id) (β-seq vV′) =
+
+  {!!}
+sim (⊑castR M⊑M′ x x₁) (β-seq vV) = {!!}
+sim M⊑M′ (β-↦ x x₁) = {!!}
+sim M⊑M′ (β-proj-inj-ok x) = {!!}
+sim M⊑M′ (β-proj-inj-bad x x₁) = {!!}
+sim M⊑M′ (ξξ-blame x) = {!!}
+sim M⊑M′ β-inj = {!!}
 
 postulate
   sim-back
@@ -508,8 +577,8 @@ gg
   → M —↠ᶜ V
   → Valueᶜ V
   → ∃[ V′ ] ((Valueᶜ V′) × (M′ —↠ᶜ V′) × ([]⊑[] ⊢ V′ ⦂ A′ ⊑ᶜᵀ V ⦂ A))
-gg M′⊑M M—↠V vV
-  with sim* M′⊑M M—↠V
+gg M⊑M′ M—↠V vV
+  with sim* M⊑M′ M—↠V
 ... | N′ , M′—↠N′ , N′⊑V
   with catchup vV N′⊑V
 ... | V′ , vV′ , N′—↠V′ , V′⊑V =
@@ -517,14 +586,14 @@ gg M′⊑M M—↠V vV
 
 gg-diverge-cp
   : ∀ {M M′ A A′}
-  → []⊑[] ⊢ M′ ⦂ A′ ⊑ᶜᵀ M ⦂ A
-  → ¬ Convergesᶜ M
+  → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
   → ¬ Convergesᶜ M′
-gg-diverge-cp M′⊑M ¬M⇓ M′⇓ = ¬M⇓ (sim-back-converges M′⊑M M′⇓)
+  → ¬ Convergesᶜ M
+gg-diverge-cp M⊑M′ ¬M′⇓ M⇓ = ¬M′⇓ (sim-back-converges M⊑M′ M⇓)
 
 gg-diverge
   : ∀ {M M′ A A′}
-  → []⊑[] ⊢ M′ ⦂ A′ ⊑ᶜᵀ M ⦂ A
-  → Divergesᶜ M
+  → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
   → Divergesᶜ M′
-gg-diverge M′⊑M M⇑ = gg-diverge-cp M′⊑M M⇑
+  → Divergesᶜ M
+gg-diverge M⊑M′ M′⇑ = gg-diverge-cp M⊑M′ M′⇑

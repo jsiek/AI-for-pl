@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 module DynamicGradualGuarantee where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -498,6 +497,7 @@ cast-left-?-val {V} {V′} {A′ = A′} {c = d ⨟ (★ ⇒ ★) !}
   , ⊑castL N≤ (⊢! G-⇒)
       (⊑idR atom-! (⊢! G-⇒) (⊑ᶜᵀ-type-precision N≤) ⊑-★)
 
+--------------------------------------------------------------------------------
 -- Catchup
 --
 -- If N ⊑ V′
@@ -1055,35 +1055,25 @@ sim (⊑injL M⊑M′ vM g ()) (β-inj vV′)
 
 --------------------------------------------------------------------------------
 -- Multi-step Simulation
+--------------------------------------------------------------------------------
 
 sim* : ∀ {M M′ N′ A A′}
   → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
   → M′ —↠ᶜ N′
   → ∃[ N ] ((M —↠ᶜ N) × ([]⊑[] ⊢ N ⦂ A ⊑ᶜᵀ N′ ⦂ A′))
-sim* M≤M′ M′→N′ = {!!}
+sim* {M = M} M≤M′ (M′ ∎ᶜ) = M , (M ∎ᶜ) , M≤M′
+sim* {M = M} M≤M′ (M′ —→ᶜ⟨ M′→N₁ ⟩ N₁→N′)
+    with sim M≤M′ M′→N₁
+... | N₁ , M→N₁ , N₁≤N₁′
+    with sim* N₁≤N₁′ N₁→N′
+... | N , N₁→N , N≤N′ =
+    N
+    , (M→N₁ ++ᶜ N₁→N)
+    , N≤N′
 
 --------------------------------------------------------------------------------
-
-postulate
-  sim-back
-    : ∀ {M M′ N A A′}
-    → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
-    → M —→ᶜ N
-    → ∃[ N′ ] ((M′ —↠ᶜ N′) × ([]⊑[] ⊢ N ⦂ A ⊑ᶜᵀ N′ ⦂ A′))
-
-  sim-back*
-    : ∀ {M M′ N A A′}
-    → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
-    → M —↠ᶜ N
-    → ∃[ N′ ] ∃[ N₂ ] ∃[ B ] ∃[ B′ ] ((M′ —↠ᶜ N′) × (N —↠ᶜ N₂)
-          × ([]⊑[] ⊢ N₂ ⦂ B ⊑ᶜᵀ N′ ⦂ B′))
-
-  sim-back-converges
-    : ∀ {M M′ A A′}
-    → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
-    → Convergesᶜ M
-    → Convergesᶜ M′
-
+-- Dynamic Gradual Guarantee (when M terminates)
+--------------------------------------------------------------------------------
 
 gg
   : ∀ {M M′ V A A′}
@@ -1097,6 +1087,490 @@ gg M⊑M′ M—↠V vV
   with catchup vV N′⊑V
 ... | V′ , vV′ , N′—↠V′ , V′⊑V =
   V′ , vV′ , (M′—↠N′ ++ᶜ N′—↠V′) , V′⊑V
+
+--------------------------------------------------------------------------------
+-- Lemmas for Backward Simulation
+--------------------------------------------------------------------------------
+
+sim*-value-right
+  : ∀ {V M′ N A A′}
+  → Valueᶜ V
+  → []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+  → M′ —↠ᶜ N
+  → []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ N ⦂ A′
+sim*-value-right vV V⊑M′ M′—↠N
+    with sim* V⊑M′ M′—↠N
+... | N₁ , V—↠N₁ , N₁⊑N
+    with value-—↠ᶜ-refl vV V—↠N₁
+... | refl = N₁⊑N
+
+blame-right-catchup
+  : ∀ {M′ A A′}
+  → []⊑[] ⊢ blame ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+  → M′ —↠ᶜ blame
+blame-right-catchup (⊑blameR M⦂A A⊑A′) = blame ∎ᶜ
+blame-right-catchup (⊑castR {M′ = M′} {c′ = c′} blame⊑M′ c′⦂ id≤c′)
+    with blame-right-catchup blame⊑M′
+... | M′—↠blame =
+    cast M′ [ c′ ]
+      —↠ᶜ⟨ ξ* (cast□[ c′ ]) M′—↠blame ⟩
+    cast blame [ c′ ]
+      —→ᶜ⟨ ξ-blame (cast□[ c′ ]) ⟩
+    blame
+    ∎ᶜ
+
+cast-value-catchup
+  : ∀ {V A B c}
+  → Valueᶜ V
+  → [] ⊢ᶜ V ⦂ A
+  → ⊢ c ⦂ A ⇨ B
+  → ∃[ N ] ((cast V [ c ] —↠ᶜ N) × ((Valueᶜ N ⊎ (N ≡ blame)) × ([] ⊢ᶜ N ⦂ B)))
+cast-value-catchup {V = V} vV V⦂ ⊢idᶜ =
+  V
+  , (cast V [ idᶜ _ ]
+       —→ᶜ⟨ β-id vV ⟩
+     V
+     ∎ᶜ)
+  , (inj₁ vV , V⦂)
+cast-value-catchup {V = V} vV V⦂ (⊢! g) =
+  inj V [ _ ]!
+  , (cast V [ _ ! ]
+       —→ᶜ⟨ β-inj vV ⟩
+     inj V [ _ ]!
+     ∎ᶜ)
+  , (inj₁ (V-! vV) , ⊢! V⦂ g vV)
+cast-value-catchup {V = V} vV V⦂ (⊢? {G = G} g)
+    with canonical-★-inj vV V⦂
+... | H , W , vW , refl
+    with H ≟Ty G | V⦂
+... | yes refl | ⊢! W⦂ gW vW′ =
+  W
+  , (cast (inj W [ G ]!) [ G `? ]
+       —→ᶜ⟨ β-proj-inj-ok vW ⟩
+     W
+     ∎ᶜ)
+  , (inj₁ vW , W⦂)
+... | no H≢G | ⊢! W⦂ gW vW′ =
+  blame
+  , (cast (inj W [ H ]!) [ G `? ]
+       —→ᶜ⟨ β-proj-inj-bad vW H≢G ⟩
+     blame
+     ∎ᶜ)
+  , (inj₂ refl , ⊢blame)
+cast-value-catchup {V = V} vV V⦂ (⊢↦ c⦂ d⦂) =
+  cast V [ _ ↦ _ ]
+  , (cast V [ _ ↦ _ ] ∎ᶜ)
+  , (inj₁ (V-cast↦ vV) , ⊢cast V⦂ (⊢↦ c⦂ d⦂))
+cast-value-catchup {V = V} vV V⦂ (⊢⨟ {c = c} {d = d} c⦂ d⦂)
+    with cast-value-catchup vV V⦂ c⦂
+... | N₁ , V-c—↠N₁ , (inj₂ N₁≡blame , N₁⦂) rewrite N₁≡blame =
+  blame
+  , (cast V [ c ⨟ d ]
+       —→ᶜ⟨ β-seq vV ⟩
+     cast (cast V [ c ]) [ d ]
+       —↠ᶜ⟨ ξ* (cast□[ d ]) V-c—↠N₁ ⟩
+     cast blame [ d ]
+       —→ᶜ⟨ ξ-blame (cast□[ d ]) ⟩
+     blame
+     ∎ᶜ)
+  , (inj₂ refl , ⊢blame)
+... | N₁ , V-c—↠N₁ , (inj₁ vN₁ , N₁⦂)
+    with cast-value-catchup vN₁ N₁⦂ d⦂
+... | N₂ , N₁-d—↠N₂ , (N₂vb , N₂⦂) =
+  N₂
+  , (cast V [ c ⨟ d ]
+       —→ᶜ⟨ β-seq vV ⟩
+     cast (cast V [ c ]) [ d ]
+       —↠ᶜ⟨ ξ* (cast□[ d ]) V-c—↠N₁ ⟩
+     cast N₁ [ d ]
+       —↠ᶜ⟨ N₁-d—↠N₂ ⟩
+     N₂
+     ∎ᶜ)
+  , (N₂vb , N₂⦂)
+
+value-right-catchup
+  : ∀ {V M′ A A′}
+  → Valueᶜ V
+  → []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+  → ∃[ N ] ((M′ —↠ᶜ N)
+       × ((Valueᶜ N × ([]⊑[] ⊢ V ⦂ A ⊑ᶜᵀ N ⦂ A′)) ⊎ (N ≡ blame)))
+value-right-catchup vV (⊑` _ ()) 
+value-right-catchup vV ⊑$ = $ _ , ($ _ ∎ᶜ) , inj₁ (V-$ , ⊑$)
+value-right-catchup vV (⊑ƛ A⊑A′ N⊑M) =
+  ƛ _ ⇒ _ , (ƛ _ ⇒ _ ∎ᶜ) , inj₁ (V-ƛ , ⊑ƛ A⊑A′ N⊑M)
+value-right-catchup () (⊑· L⊑L′ M⊑M′)
+value-right-catchup (V-cast↦ vM) (⊑cast {M = M} {M′ = M′} {c = c} {c′ = c′} M⊑M′ c≤c′ c⦂ c′⦂)
+    with value-right-catchup vM M⊑M′
+... | W′ , M′—↠W′ , inj₂ refl =
+  blame
+  , (cast M′ [ c′ ]
+       —↠ᶜ⟨ ξ* (cast□[ c′ ]) M′—↠W′ ⟩
+     cast blame [ c′ ]
+       —→ᶜ⟨ ξ-blame (cast□[ c′ ]) ⟩
+     blame
+     ∎ᶜ)
+  , inj₂ refl
+... | W′ , M′—↠W′ , inj₁ (vW′ , M⊑W′)
+    with cast-value-catchup vW′ (⊑ᶜᵀ-right-typed M⊑W′) c′⦂
+... | N , castW′-c′—↠N , (inj₁ vN , N⦂) =
+  N
+  , (cast M′ [ c′ ]
+       —↠ᶜ⟨ ξ* (cast□[ c′ ]) M′—↠W′ ⟩
+     cast W′ [ c′ ]
+       —↠ᶜ⟨ castW′-c′—↠N ⟩
+     N
+     ∎ᶜ)
+  , inj₁ (vN , sim*-value-right (V-cast↦ vM) (⊑cast M⊑W′ c≤c′ c⦂ c′⦂) castW′-c′—↠N)
+... | N , castW′-c′—↠N , (inj₂ refl , N⦂) =
+  blame
+  , (cast M′ [ c′ ]
+       —↠ᶜ⟨ ξ* (cast□[ c′ ]) M′—↠W′ ⟩
+     cast W′ [ c′ ]
+       —↠ᶜ⟨ castW′-c′—↠N ⟩
+     blame
+     ∎ᶜ)
+  , inj₂ refl
+value-right-catchup (V-cast↦ vM) (⊑castL {M = M} {M′ = M′} {c = c} M⊑M′ c⦂ c≤id)
+    with value-right-catchup vM M⊑M′
+... | W′ , M′—↠W′ , inj₁ (vW′ , M⊑W′) =
+  W′
+  , M′—↠W′
+  , inj₁ (vW′ , sim*-value-right (V-cast↦ vM) (⊑castL M⊑M′ c⦂ c≤id) M′—↠W′)
+... | W′ , M′—↠W′ , inj₂ refl =
+  blame
+  , M′—↠W′
+  , inj₂ refl
+value-right-catchup vV (⊑castR {M′ = M′} {c′ = c′} M⊑M′ c′⦂ id≤c′)
+    with value-right-catchup vV M⊑M′
+... | W′ , M′—↠W′ , inj₂ refl =
+  blame
+  , (cast M′ [ c′ ]
+       —↠ᶜ⟨ ξ* (cast□[ c′ ]) M′—↠W′ ⟩
+     cast blame [ c′ ]
+       —→ᶜ⟨ ξ-blame (cast□[ c′ ]) ⟩
+     blame
+     ∎ᶜ)
+  , inj₂ refl
+... | W′ , M′—↠W′ , inj₁ (vW′ , V⊑W′)
+    with cast-value-catchup vW′ (⊑ᶜᵀ-right-typed V⊑W′) c′⦂
+... | N , castW′-c′—↠N , (inj₁ vN , N⦂) =
+  N
+  , (cast M′ [ c′ ]
+       —↠ᶜ⟨ ξ* (cast□[ c′ ]) M′—↠W′ ⟩
+     cast W′ [ c′ ]
+       —↠ᶜ⟨ castW′-c′—↠N ⟩
+     N
+     ∎ᶜ)
+  , inj₁ (vN , sim*-value-right vV (⊑castR V⊑W′ c′⦂ id≤c′) castW′-c′—↠N)
+... | N , castW′-c′—↠N , (inj₂ refl , N⦂) =
+  blame
+  , (cast M′ [ c′ ]
+       —↠ᶜ⟨ ξ* (cast□[ c′ ]) M′—↠W′ ⟩
+     cast W′ [ c′ ]
+       —↠ᶜ⟨ castW′-c′—↠N ⟩
+     blame
+     ∎ᶜ)
+  , inj₂ refl
+value-right-catchup vV (⊑inj M⊑M′ vM vM′ g) =
+  inj _ [ _ ]! , (inj _ [ _ ]! ∎ᶜ) , inj₁ (V-! vM′ , ⊑inj M⊑M′ vM vM′ g)
+value-right-catchup vV (⊑injL M⊑M′ vM g vM′) =
+  _ , (_ ∎ᶜ) , inj₁ (vM′ , ⊑injL M⊑M′ vM g vM′)
+value-right-catchup vV (⊑blameR M⦂A A⊑A′) = blame , (blame ∎ᶜ) , inj₂ refl
+
+--------------------------------------------------------------------------------
+-- Backward Simulation
+--------------------------------------------------------------------------------
+
+sim-back : ∀ {M M′ N A A′}
+  → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+  → M —→ᶜ N
+  → ∃[ N′ ] ((M′ —↠ᶜ N′) × ([]⊑[] ⊢ N ⦂ A ⊑ᶜᵀ N′ ⦂ A′))
+
+-- Case ξξ
+
+sim-back (⊑castR {M = M} {M′ = M′} {c′ = c′} M⊑M′ c′⦂ id≤c′)
+         (ξξ {F = F} refl refl M→N)
+    with sim-back M⊑M′ (ξξ {F = F} refl refl M→N)
+... | N′ , M′—↠N′ , N⊑N′ =
+  cast N′ [ c′ ]
+  , ξ* (cast□[ c′ ]) M′—↠N′
+  , ⊑castR N⊑N′ c′⦂ id≤c′
+
+sim-back (⊑castL {M = M} {M′ = M′} {c = c} M⊑M′ c⦂ c≤id)
+         (ξξ {F = cast□[ .c ]} refl refl M→N)
+    with sim-back M⊑M′ M→N
+... | N′ , M′—↠N′ , N⊑N′ =
+  N′
+  , M′—↠N′
+  , ⊑castL N⊑N′ c⦂ c≤id
+
+sim-back (⊑· {L = L} {L′ = L′} {M = M} {M′ = M′} L⊑L′ M⊑M′)
+         (ξξ {F = □· .M} refl refl L→N)
+    with sim-back L⊑L′ L→N
+... | N′ , L′—↠N′ , N⊑N′ =
+  N′ · M′
+  , ξ* (□· M′) L′—↠N′
+  , ⊑· N⊑N′ M⊑M′
+
+sim-back (⊑· {L = V} {L′ = L′} {M = M} {M′ = M′} V⊑L′ M⊑M′)
+         (ξξ {F = .V ·□ vV} refl refl M→N)
+    with value-right-catchup vV V⊑L′ | sim-back M⊑M′ M→N
+... | W′ , L′—↠W′ , inj₁ (vW′ , V⊑W′) | N′ , M′—↠N′ , N⊑N′ =
+  W′ · N′
+  , (L′ · M′
+       —↠ᶜ⟨ ξ* (□· M′) L′—↠W′ ⟩
+     W′ · M′
+       —↠ᶜ⟨ ξ* (W′ ·□ vW′) M′—↠N′ ⟩
+     W′ · N′
+     ∎ᶜ)
+  , ⊑· V⊑W′ N⊑N′
+... | W′ , L′—↠W′ , inj₂ refl | N′ , M′—↠N′ , N⊑N′
+    with ⊑ᶜᵀ-type-precision V⊑L′
+... | ⊑-⇒ A⊑A′ B⊑B′ =
+  blame
+  , (L′ · M′
+       —↠ᶜ⟨ ξ* (□· M′) L′—↠W′ ⟩
+     blame · M′
+       —→ᶜ⟨ ξ-blame (□· M′) ⟩
+     blame
+     ∎ᶜ)
+  , ⊑blameR
+      (⊢· (⊑ᶜᵀ-left-typed V⊑L′) (⊑ᶜᵀ-left-typed N⊑N′))
+      B⊑B′
+
+sim-back (⊑cast {M = M} {M′ = M′} {c = c} {c′ = c′} M⊑M′ c≤c′ c⦂ c′⦂)
+         (ξξ {F = cast□[ .c ]} refl refl M→N)
+    with sim-back M⊑M′ M→N
+... | N′ , M′—↠N′ , N⊑N′ =
+  cast N′ [ c′ ]
+  , ξ* (cast□[ c′ ]) M′—↠N′
+  , ⊑cast N⊑N′ c≤c′ c⦂ c′⦂
+
+-- Case ξξ-blame
+
+sim-back (⊑castR {M = M} {M′ = M′} {c′ = c′} M⊑M′ c′⦂ id≤c′)
+         (ξξ-blame {F = F} refl)
+    with sim-back M⊑M′ (ξξ-blame {F = F} refl)
+... | N′ , M′—↠N′ , blame⊑N′ =
+  cast N′ [ c′ ]
+  , ξ* (cast□[ c′ ]) M′—↠N′
+  , ⊑castR blame⊑N′ c′⦂ id≤c′
+
+sim-back (⊑castL {M = blame} {M′ = M′} {c = c} blame⊑M′ c⦂ c≤id)
+         (ξξ-blame {F = cast□[ .c ]} refl)
+    with blame-right-catchup blame⊑M′
+... | M′—↠blame =
+  blame
+  , M′—↠blame
+  , ⊑blameR ⊢blame (⊑ᶜᵀ-type-precision (⊑castL blame⊑M′ c⦂ c≤id))
+
+sim-back (⊑· {L = blame} {L′ = L′} {M = M} {M′ = M′} blame⊑L′ M⊑M′)
+         (ξξ-blame {F = □· .M} refl)
+    with blame-right-catchup blame⊑L′
+... | L′—↠blame
+    with ⊑ᶜᵀ-type-precision blame⊑L′
+... | ⊑-⇒ A⊑A′ B⊑B′ =
+  blame
+  , (L′ · M′
+       —↠ᶜ⟨ ξ* (□· M′) L′—↠blame ⟩
+     blame · M′
+       —→ᶜ⟨ ξ-blame (□· M′) ⟩
+     blame
+     ∎ᶜ)
+  , ⊑blameR ⊢blame B⊑B′
+
+sim-back (⊑· {L = V} {L′ = L′} {M = blame} {M′ = M′} V⊑L′ blame⊑M′)
+         (ξξ-blame {F = .V ·□ vV} refl)
+    with value-right-catchup vV V⊑L′ | ⊑ᶜᵀ-type-precision V⊑L′
+... | W′ , L′—↠W′ , inj₂ refl | ⊑-⇒ A⊑A′ B⊑B′ =
+  blame
+  , (L′ · M′
+       —↠ᶜ⟨ ξ* (□· M′) L′—↠W′ ⟩
+     blame · M′
+       —→ᶜ⟨ ξ-blame (□· M′) ⟩
+     blame
+     ∎ᶜ)
+  , ⊑blameR ⊢blame B⊑B′
+... | W′ , L′—↠W′ , inj₁ (vW′ , V⊑W′) | ⊑-⇒ A⊑A′ B⊑B′
+    with blame-right-catchup blame⊑M′
+... | M′—↠blame =
+  blame
+  , (L′ · M′
+       —↠ᶜ⟨ ξ* (□· M′) L′—↠W′ ⟩
+     W′ · M′
+       —↠ᶜ⟨ ξ* (W′ ·□ vW′) M′—↠blame ⟩
+     W′ · blame
+       —→ᶜ⟨ ξ-blame (W′ ·□ vW′) ⟩
+     blame
+     ∎ᶜ)
+  , ⊑blameR ⊢blame B⊑B′
+
+sim-back (⊑cast {M = blame} {M′ = M′} {c = c} {c′ = c′} blame⊑M′ c≤c′ c⦂ c′⦂)
+         (ξξ-blame {F = cast□[ .c ]} refl)
+    with blame-right-catchup blame⊑M′
+... | M′—↠blame =
+  blame
+  , (cast M′ [ c′ ]
+       —↠ᶜ⟨ ξ* (cast□[ c′ ]) M′—↠blame ⟩
+     cast blame [ c′ ]
+       —→ᶜ⟨ ξ-blame (cast□[ c′ ]) ⟩
+     blame
+     ∎ᶜ)
+  , ⊑blameR ⊢blame (⊑ᶜᵀ-type-precision (⊑cast blame⊑M′ c≤c′ c⦂ c′⦂))
+
+sim-back (⊑blameR M⦂A A⊑A′) (ξξ-blame x) =
+  blame
+  , (blame ∎ᶜ)
+  , ⊑blameR ⊢blame A⊑A′
+
+sim-back (⊑` x ()) (ξξ-blame x₁)
+sim-back ⊑$ (ξξ-blame x) = ⊥-elim (value-irreducible V-$ (ξξ-blame x))
+sim-back (⊑ƛ A⊑A′ N⊑M) (ξξ-blame x) = ⊥-elim (value-irreducible V-ƛ (ξξ-blame x))
+sim-back (⊑inj M⊑M′ vM vM′ g) (ξξ-blame x) =
+  ⊥-elim (value-irreducible (V-! vM) (ξξ-blame x))
+sim-back (⊑injL M⊑M′ vM g vM′) (ξξ-blame x) =
+  ⊥-elim (value-irreducible (V-! vM) (ξξ-blame x))
+
+-- Case β-ƛ
+
+sim-back (⊑castR {M = M} {M′ = M′} {c′ = c′} M⊑M′ c′⦂ id≤c′)
+         (β-ƛ vV)
+    with sim-back M⊑M′ (β-ƛ vV)
+... | N′ , M′—↠N′ , N[V]⊑N′ =
+  cast N′ [ c′ ]
+  , ξ* (cast□[ c′ ]) M′—↠N′
+  , ⊑castR N[V]⊑N′ c′⦂ id≤c′
+
+-- Case β-id
+
+sim-back (⊑cast {M = V} {M′ = M′} {c = c} {c′ = c′} V⊑M′ c≤c′ ⊢idᶜ c′⦂)
+         (β-id vV)
+    with value-right-catchup vV V⊑M′
+... | W′ , M′—↠W′ , inj₂ refl =
+  blame
+  , (cast M′ [ c′ ]
+       —↠ᶜ⟨ ξ* (cast□[ c′ ]) M′—↠W′ ⟩
+     cast blame [ c′ ]
+       —→ᶜ⟨ ξ-blame (cast□[ c′ ]) ⟩
+     blame
+     ∎ᶜ)
+  , sim*-value-right
+      vV
+      (⊑castR V⊑M′ c′⦂ c≤c′)
+      (cast M′ [ c′ ]
+         —↠ᶜ⟨ ξ* (cast□[ c′ ]) M′—↠W′ ⟩
+       cast blame [ c′ ]
+         —→ᶜ⟨ ξ-blame (cast□[ c′ ]) ⟩
+       blame
+       ∎ᶜ)
+... | W′ , M′—↠W′ , inj₁ (vW′ , V⊑W′)
+    with cast-value-catchup vW′ (⊑ᶜᵀ-right-typed V⊑W′) c′⦂
+... | N′ , castW′-c′—↠N′ , N′vb =
+  N′
+  , (cast M′ [ c′ ]
+       —↠ᶜ⟨ ξ* (cast□[ c′ ]) M′—↠W′ ⟩
+     cast W′ [ c′ ]
+       —↠ᶜ⟨ castW′-c′—↠N′ ⟩
+     N′
+     ∎ᶜ)
+  , sim*-value-right vV (⊑castR V⊑W′ c′⦂ c≤c′) castW′-c′—↠N′
+
+sim-back (⊑castL {M = V} {M′ = M′} {c = c} V⊑M′ ⊢idᶜ c≤id)
+         (β-id vV)
+    with value-right-catchup vV V⊑M′
+... | N′ , M′—↠N′ , N′vb =
+  N′
+  , M′—↠N′
+  , sim*-value-right vV V⊑M′ M′—↠N′
+
+sim-back (⊑castR {M = M} {M′ = M′} {c′ = c′} M⊑M′ c′⦂ id≤c′)
+         (β-id vV)
+    with sim-back M⊑M′ (β-id vV)
+... | N′ , M′—↠N′ , V⊑N′ =
+  cast N′ [ c′ ]
+  , ξ* (cast□[ c′ ]) M′—↠N′
+  , ⊑castR V⊑N′ c′⦂ id≤c′
+
+-- Case β-inj
+
+sim-back (⊑castL {M = V} {M′ = M′} {c = G !} V⊑M′ (⊢! g) c≤id)
+         (β-inj vV)
+    with value-right-catchup vV V⊑M′ | ⊑ᶜ→⊑ ⊢idᶜ (⊢! g) c≤id
+... | N′ , M′—↠N′ , inj₁ (vN′ , V⊑N′) | G⊑A′ , ★⊑A′ =
+  N′
+  , M′—↠N′
+  , ⊑injL V⊑N′ vV g vN′
+... | N′ , M′—↠N′ , inj₂ refl | G⊑A′ , ★⊑A′ =
+  blame
+  , M′—↠N′
+  , ⊑blameR (⊢! (⊑ᶜᵀ-left-typed V⊑M′) g vV) ★⊑A′
+
+sim-back (⊑castR {M = M} {M′ = M′} {c′ = c′} M⊑M′ c′⦂ id≤c′)
+         (β-inj vV)
+    with sim-back M⊑M′ (β-inj vV)
+... | N′ , M′—↠N′ , injV⊑N′ =
+  cast N′ [ c′ ]
+  , ξ* (cast□[ c′ ]) M′—↠N′
+  , ⊑castR injV⊑N′ c′⦂ id≤c′
+
+-- Case β-seq
+
+sim-back (⊑castR {M = M} {M′ = M′} {c′ = c′} M⊑M′ c′⦂ id≤c′)
+         (β-seq vV)
+    with sim-back M⊑M′ (β-seq vV)
+... | N′ , M′—↠N′ , VV-cd⊑N′ =
+  cast N′ [ c′ ]
+  , ξ* (cast□[ c′ ]) M′—↠N′
+  , ⊑castR VV-cd⊑N′ c′⦂ id≤c′
+
+-- Case β-↦
+
+sim-back (⊑castR {M = M} {M′ = M′} {c′ = c′} M⊑M′ c′⦂ id≤c′)
+         (β-↦ vV vW)
+    with sim-back M⊑M′ (β-↦ vV vW)
+... | N′ , M′—↠N′ , V↦W⊑N′ =
+  cast N′ [ c′ ]
+  , ξ* (cast□[ c′ ]) M′—↠N′
+  , ⊑castR V↦W⊑N′ c′⦂ id≤c′
+
+-- Case β-proj-inj-ok
+
+sim-back (⊑castR {M = M} {M′ = M′} {c′ = c′} M⊑M′ c′⦂ id≤c′)
+         (β-proj-inj-ok vV)
+    with sim-back M⊑M′ (β-proj-inj-ok vV)
+... | N′ , M′—↠N′ , V⊑N′ =
+  cast N′ [ c′ ]
+  , ξ* (cast□[ c′ ]) M′—↠N′
+  , ⊑castR V⊑N′ c′⦂ id≤c′
+
+-- Case β-proj-inj-bad
+
+sim-back (⊑castR {M = M} {M′ = M′} {c′ = c′} M⊑M′ c′⦂ id≤c′)
+         (β-proj-inj-bad vV G≢H)
+    with sim-back M⊑M′ (β-proj-inj-bad vV G≢H)
+... | N′ , M′—↠N′ , blame⊑N′ =
+  cast N′ [ c′ ]
+  , ξ* (cast□[ c′ ]) M′—↠N′
+  , ⊑castR blame⊑N′ c′⦂ id≤c′
+
+-- Remaining top-level cases
+
+sim-back M≤M′ N→N = {!!}
+
+postulate
+  sim-back*
+    : ∀ {M M′ N A A′}
+    → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+    → M —↠ᶜ N
+    → ∃[ N′ ] ∃[ N₂ ] ∃[ B ] ∃[ B′ ] ((M′ —↠ᶜ N′) × (N —↠ᶜ N₂)
+          × ([]⊑[] ⊢ N₂ ⦂ B ⊑ᶜᵀ N′ ⦂ B′))
+
+  sim-back-converges
+    : ∀ {M M′ A A′}
+    → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+    → Convergesᶜ M
+    → Convergesᶜ M′
+
 
 gg-diverge-cp
   : ∀ {M M′ A A′}

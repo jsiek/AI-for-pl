@@ -265,7 +265,9 @@ data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
     → G ≢ H
     → cast (inj V [ G ]!) [ H `? ] —→ᶜ blame
 
-  β-inj : ∀{V}{G} → cast V [ G ! ] —→ᶜ inj V [ G ]!
+  β-inj : ∀{V}{G}
+    → Valueᶜ V
+    → cast V [ G ! ] —→ᶜ inj V [ G ]!
 
   ξξ-blame : ∀ {F M′}
     → M′ ≡ plug F blame
@@ -378,7 +380,7 @@ progressᶜ (⊢cast {c = c} M⦂A c⦂A⇨B) with progressᶜ M⦂A
 ... | crash refl = step (ξ-blame cast□[ c ])
 ... | done vM with c⦂A⇨B
 ... | ⊢idᶜ = step (β-id vM)
-... | ⊢! g = step β-inj
+... | ⊢! g = step (β-inj vM)
 ... | ⊢↦ cwt dwt = done (V-cast↦ vM)
 ... | ⊢⨟ cwt dwt = step (β-seq vM)
 ... | ⊢? {G = G} g with canonical-★-inj vM M⦂A
@@ -387,4 +389,3 @@ progressᶜ (⊢cast {c = c} M⦂A c⦂A⇨B) with progressᶜ M⦂A
 ... | no H≢G = step (β-proj-inj-bad vW H≢G)
 progressᶜ ⊢blame = crash refl
 progressᶜ (⊢! M⦂ g vM) = done (V-! vM)
-

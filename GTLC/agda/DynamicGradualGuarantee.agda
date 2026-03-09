@@ -823,7 +823,60 @@ sim : ∀ {M M′ N′ A A′}
   → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
   → M′ —→ᶜ N′
   → ∃[ N ] ((M —↠ᶜ N) × ([]⊑[] ⊢ N ⦂ A ⊑ᶜᵀ N′ ⦂ A′))
-sim M⊑M′ (ξξ {F = F} refl refl M→N) = {!!}
+sim (⊑castL {M = M} {c = c} M⊑M′ c⦂ c≤id) (ξξ {F = F} refl refl M→N)
+    with sim M⊑M′ (ξξ {F = F} refl refl M→N)
+... | N , M→N₁ , N⊑N′ =
+    cast N [ c ]
+    , (cast M [ c ]
+         —↠ᶜ⟨ ξ* (cast□[ c ]) M→N₁ ⟩
+       cast N [ c ]
+       ∎ᶜ)
+    , ⊑castL N⊑N′ c⦂ c≤id
+sim (⊑· {L = L} {L′ = L′} {M = M} {M′ = M′} L⊑L′ M⊑M′)
+    (ξξ {F = □· .M′} refl refl L′→N′)
+    with sim L⊑L′ L′→N′
+... | N , L→N , N⊑N′ =
+    N · M
+    , ξ* (□· M) L→N
+    , ⊑· N⊑N′ M⊑M′
+sim (⊑· {L = L} {L′ = V′} {M = M} {M′ = M′} L⊑V′ M⊑M′)
+    (ξξ {F = .V′ ·□ vV′} refl refl M′→N′)
+    with catchup vV′ L⊑V′
+... | V , vV , L→V , V⊑V′
+    with sim M⊑M′ M′→N′
+... | N , M→N , N⊑N′ =
+    V · N
+    , (L · M
+         —↠ᶜ⟨ ξ* (□· M) L→V ⟩
+       V · M
+         —↠ᶜ⟨ ξ* (V ·□ vV) M→N ⟩
+       V · N
+       ∎ᶜ)
+    , ⊑· V⊑V′ N⊑N′
+sim (⊑cast {M = M} {M′ = M′} {c = c} {c′ = c′} M⊑M′ c≤c′ c⦂ c′⦂)
+    (ξξ {F = cast□[ .c′ ]} refl refl M′→N′)
+    with sim M⊑M′ M′→N′
+... | N , M→N , N⊑N′ =
+    cast N [ c ]
+    , (cast M [ c ]
+         —↠ᶜ⟨ ξ* (cast□[ c ]) M→N ⟩
+       cast N [ c ]
+       ∎ᶜ)
+    , ⊑cast N⊑N′ c≤c′ c⦂ c′⦂
+sim (⊑castR {M = M} {M′ = M′} M⊑M′ c′⦂ id≤c′)
+    (ξξ {F = cast□[ _ ]} refl refl M′→N′)
+    with sim M⊑M′ M′→N′
+... | N , M→N , N⊑N′ =
+    N
+    , M→N
+    , ⊑castR N⊑N′ c′⦂ id≤c′
+sim ⊑$ (ξξ x x₁ x₂) = ⊥-elim (value-irreducible V-$ (ξξ x x₁ x₂))
+sim (⊑ƛ A⊑A′ N⊑M) (ξξ x x₁ x₂) = ⊥-elim (value-irreducible V-ƛ (ξξ x x₁ x₂))
+sim (⊑inj M⊑M′ vM vM′ g) (ξξ x x₁ x₂) =
+    ⊥-elim (value-irreducible (V-! vM′) (ξξ x x₁ x₂))
+sim (⊑injL M⊑M′ vM g vM′) (ξξ x x₁ x₂) =
+    ⊥-elim (value-irreducible vM′ (ξξ x x₁ x₂))
+sim (⊑blameR M⦂A₁ A₁⊑A₂) (ξξ x x₁ x₂) = ⊥-elim (blame-irreducible (ξξ x x₁ x₂))
 
 -- Case β-ƛ
 

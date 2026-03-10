@@ -331,6 +331,10 @@ L —↠ᶜ⟨ L—↠M ⟩ M—↠N = L—↠M ++ᶜ M—↠N
 Convergesᶜ : Termᶜ → Set
 Convergesᶜ M = ∃[ W ] ((M —↠ᶜ W) × (Valueᶜ W ⊎ (W ≡ blame)))
 
+data Result : Termᶜ → Set where
+  r-val : (V : Termᶜ) → Valueᶜ V → Result V
+  r-blame : Result blame
+
 Divergesᶜ : Termᶜ → Set
 Divergesᶜ M = ¬ Convergesᶜ M
 

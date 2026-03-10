@@ -25,7 +25,7 @@ open import GTLC renaming
 open import Coercions using
   ( coerce
   ; coerce-wt
-  ; coerce-⊑ᶜ
+  ; coerce-monotonic
   ; idᶜ
   ; _⊑ᶜ_
   ; ⊑idR
@@ -96,19 +96,19 @@ compile-preserves-precision ρ
     (compile-preserves-precision ρ L′⊑L)
     (⊑cast
       (compile-preserves-precision ρ M′⊑M)
-      (coerce-⊑ᶜ (⊑ᵀ-type-precisionᴳ M′⊑M) Aarg~A (⇒-dom-⊑ A′⇒B′⊑A⇒B) A′arg~A′)
+      (coerce-monotonic (⊑ᵀ-type-precisionᴳ M′⊑M) Aarg~A (⇒-dom-⊑ A′⇒B′⊑A⇒B) A′arg~A′)
       (coerce-wt A′arg~A′)
       (coerce-wt Aarg~A))
 compile-preserves-precision ρ (⊑·★ᴳ {A = A′} {A′ = A} L′⊑L M′⊑M) =
   ⊑·
     (⊑cast
       (compile-preserves-precision ρ L′⊑L)
-      (coerce-⊑ᶜ (⊑ᵀ-type-precisionᴳ L′⊑L) (★~-ty (★ ⇒ ★)) ⊑-refl (★~-ty (★ ⇒ ★)))
+      (coerce-monotonic (⊑ᵀ-type-precisionᴳ L′⊑L) (★~-ty (★ ⇒ ★)) ⊑-refl (★~-ty (★ ⇒ ★)))
       (coerce-wt (★~-ty (★ ⇒ ★)))
       (coerce-wt (★~-ty (★ ⇒ ★))))
     (⊑cast
       (compile-preserves-precision ρ M′⊑M)
-      (coerce-⊑ᶜ (⊑ᵀ-type-precisionᴳ M′⊑M) (~★-ty A) ⊑-★ (~★-ty A′))
+      (coerce-monotonic (⊑ᵀ-type-precisionᴳ M′⊑M) (~★-ty A) ⊑-★ (~★-ty A′))
       (coerce-wt (~★-ty A′))
       (coerce-wt (~★-ty A)))
 compile-preserves-precision ρ
@@ -120,7 +120,7 @@ compile-preserves-precision ρ
       coerce-★⇒★-⊑id)
     (⊑cast
       (compile-preserves-precision ρ M′⊑M)
-      (coerce-⊑ᶜ (⊑ᵀ-type-precisionᴳ M′⊑M) Aarg~A ⊑-★ (~★-ty A′))
+      (coerce-monotonic (⊑ᵀ-type-precisionᴳ M′⊑M) Aarg~A ⊑-★ (~★-ty A′))
       (coerce-wt (~★-ty A′))
       (coerce-wt Aarg~A))
 

@@ -410,22 +410,22 @@ progressᶜ (⊢! M⦂ g vM) = done (V-! vM)
 -- Proof of Preservation
 --------------------------------------------------------------------------------
 
-Renᶜ-typed : Renameᶜ → Ctx → Ctx → Set
-Renᶜ-typed ρ Γ Γ′ = ∀ {x A} → Γ ∋ x ⦂ A → Γ′ ∋ ρ x ⦂ A
+_⦂_⇒ʳ_ : Renameᶜ → Ctx → Ctx → Set
+ρ ⦂ Γ ⇒ʳ Γ′ = ∀ {x A} → Γ ∋ x ⦂ A → Γ′ ∋ ρ x ⦂ A
 
-Substᶜ-typed : Substᶜ → Ctx → Ctx → Set
-Substᶜ-typed σ Γ Γ′ = ∀ {x A} → Γ ∋ x ⦂ A → Γ′ ⊢ᶜ σ x ⦂ A
+_⦂_⇒ˢ_ : Substᶜ → Ctx → Ctx → Set
+σ ⦂ Γ ⇒ˢ Γ′ = ∀ {x A} → Γ ∋ x ⦂ A → Γ′ ⊢ᶜ σ x ⦂ A
 
 ext-renᶜ-typed
   : ∀ {Γ Γ′ A ρ}
-  → Renᶜ-typed ρ Γ Γ′
-  → Renᶜ-typed (extᶜ ρ) (A ∷ Γ) (A ∷ Γ′)
+  → ρ ⦂ Γ ⇒ʳ Γ′
+  → extᶜ ρ ⦂ (A ∷ Γ) ⇒ʳ (A ∷ Γ′)
 ext-renᶜ-typed ρ-typed Z = Z
 ext-renᶜ-typed ρ-typed (S ∋x) = S (ρ-typed ∋x)
 
 renameᶜ-preserve
   : ∀ {Γ Γ′ M A ρ}
-  → Renᶜ-typed ρ Γ Γ′
+  → ρ ⦂ Γ ⇒ʳ Γ′
   → Γ ⊢ᶜ M ⦂ A
   → Γ′ ⊢ᶜ renameᶜ ρ M ⦂ A
 renameᶜ-preserve ρ-typed (⊢` ∋x) = ⊢` (ρ-typed ∋x)
@@ -446,20 +446,29 @@ renameᶜ-preserve ρ-typed (⊢! M⦂ g vM) =
   helper (V-cast↦ vV) = V-cast↦ (helper vV)
 renameᶜ-preserve ρ-typed ⊢blame = ⊢blame
 
-wk-renᶜ-typed : ∀ {Γ A} → Renᶜ-typed suc Γ (A ∷ Γ)
+wk-renᶜ-typed : ∀ {Γ A} → suc ⦂ Γ ⇒ʳ (A ∷ Γ)
 wk-renᶜ-typed ∋x = S ∋x
 
 ext-substᶜ-typed
   : ∀ {Γ Γ′ A σ}
-  → Substᶜ-typed σ Γ Γ′
-  → Substᶜ-typed (extsᶜ σ) (A ∷ Γ) (A ∷ Γ′)
+  → σ ⦂ Γ ⇒ˢ Γ′
+  → extsᶜ σ ⦂ (A ∷ Γ) ⇒ˢ (A ∷ Γ′)
 ext-substᶜ-typed σ-typed Z = ⊢` Z
 ext-substᶜ-typed σ-typed (S ∋x) =
   renameᶜ-preserve wk-renᶜ-typed (σ-typed ∋x)
 
+substᶜ-preserve-value
+  : ∀ {σ V}
+  → Valueᶜ V
+  → Valueᶜ (substᶜ σ V)
+substᶜ-preserve-value V-$ = V-$
+substᶜ-preserve-value V-ƛ = V-ƛ
+substᶜ-preserve-value (V-! vV) = V-! (substᶜ-preserve-value vV)
+substᶜ-preserve-value (V-cast↦ vV) = V-cast↦ (substᶜ-preserve-value vV)
+
 substᶜ-preserve
   : ∀ {Γ Γ′ M A σ}
-  → Substᶜ-typed σ Γ Γ′
+  → σ ⦂ Γ ⇒ˢ Γ′
   → Γ ⊢ᶜ M ⦂ A
   → Γ′ ⊢ᶜ substᶜ σ M ⦂ A
 substᶜ-preserve σ-typed (⊢` ∋x) = σ-typed ∋x
@@ -471,19 +480,13 @@ substᶜ-preserve σ-typed (⊢· L⦂ M⦂) =
 substᶜ-preserve σ-typed (⊢cast M⦂ c⦂) =
   ⊢cast (substᶜ-preserve σ-typed M⦂) c⦂
 substᶜ-preserve σ-typed (⊢! M⦂ g vM) =
-  ⊢! (substᶜ-preserve σ-typed M⦂) g (helper vM)
-  where
-  helper : ∀ {V} → Valueᶜ V → Valueᶜ (substᶜ _ V)
-  helper V-$ = V-$
-  helper V-ƛ = V-ƛ
-  helper (V-! vV) = V-! (helper vV)
-  helper (V-cast↦ vV) = V-cast↦ (helper vV)
+  ⊢! (substᶜ-preserve σ-typed M⦂) g (substᶜ-preserve-value vM)
 substᶜ-preserve σ-typed ⊢blame = ⊢blame
 
 single-substᶜ-typed
   : ∀ {A V}
   → [] ⊢ᶜ V ⦂ A
-  → Substᶜ-typed (singleEnvᶜ V) (A ∷ []) []
+  → singleEnvᶜ V ⦂ (A ∷ []) ⇒ˢ []
 single-substᶜ-typed V⦂ Z = V⦂
 single-substᶜ-typed V⦂ (S ())
 
@@ -541,4 +544,3 @@ preserveᶜ*
 preserveᶜ* M⦂ (M ∎ᶜ) = M⦂
 preserveᶜ* M⦂ (M —→ᶜ⟨ M→N ⟩ N—↠P) =
   preserveᶜ* (preserveᶜ M⦂ M→N) N—↠P
-

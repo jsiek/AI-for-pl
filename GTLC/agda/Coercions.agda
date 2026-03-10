@@ -21,9 +21,6 @@ data Coercion : Set where
   _↦_  : Coercion → Coercion → Coercion
   _⨟_  : Coercion → Coercion → Coercion
 
-data Seq : Coercion → Set where
-  seq : ∀ {c d} → Seq (c ⨟ d)
-
 data Atomic : Coercion → Set where
   atom-idᶜ : ∀ {A} → Atomic (idᶜ A)
   atom-! : ∀ {G} → Atomic (G !)
@@ -109,63 +106,63 @@ data _⊑ᶜ_ : Coercion → Coercion → Set where
 ⊑id★ (⊢↦ cwt dwt) = ⊑idL↦★ (⊑id★ cwt) (⊑id★ dwt)
 ⊑id★ (⊢⨟ cwt dwt) = ⊑idL⨟ (⊑id★ cwt) (⊑id★ dwt)
 
-coerce-⊑ᶜ
+coerce-monotonic
   : ∀ {A A′ B B′}
   → A′ ⊑ A
   → (c : A ~ B)
   → B′ ⊑ B
   → (d : A′ ~ B′)
   → coerce d ⊑ᶜ coerce c
-coerce-⊑ᶜ A′⊑A ~-ℕ B′⊑B ~-ℕ = ⊑idᶜ ⊑-ℕ
-coerce-⊑ᶜ A′⊑A ~-ℕ B′⊑B ~-★ = ⊑idᶜ ⊑-★
-coerce-⊑ᶜ A′⊑A ~-ℕ B′⊑B ★~ℕ = ⊑idR atom-? (⊢? G-ℕ) A′⊑A ⊑-refl
-coerce-⊑ᶜ A′⊑A ~-ℕ B′⊑B ℕ~★ = ⊑idR atom-! (⊢! G-ℕ) A′⊑A ⊑-★
-coerce-⊑ᶜ A′⊑A ~-★ B′⊑B ~-★ = ⊑idᶜ ⊑-★
-coerce-⊑ᶜ A′⊑A ★~ℕ B′⊑B ~-★ = ⊑idL atom-? (⊢? G-ℕ) A′⊑A ⊑-★
-coerce-⊑ᶜ A′⊑A ★~ℕ B′⊑B ★~ℕ = ⊑? ⊑-refl
-coerce-⊑ᶜ A′⊑A ℕ~★ B′⊑B ~-★ = ⊑idL atom-! (⊢! G-ℕ) A′⊑A ⊑-★
-coerce-⊑ᶜ A′⊑A ℕ~★ B′⊑B ℕ~★ = ⊑! ⊑-refl
-coerce-⊑ᶜ A′⊑A (★~⇒ c₁ c₂) B′⊑B ~-★ =
+coerce-monotonic A′⊑A ~-ℕ B′⊑B ~-ℕ = ⊑idᶜ ⊑-ℕ
+coerce-monotonic A′⊑A ~-ℕ B′⊑B ~-★ = ⊑idᶜ ⊑-★
+coerce-monotonic A′⊑A ~-ℕ B′⊑B ★~ℕ = ⊑idR atom-? (⊢? G-ℕ) A′⊑A ⊑-refl
+coerce-monotonic A′⊑A ~-ℕ B′⊑B ℕ~★ = ⊑idR atom-! (⊢! G-ℕ) A′⊑A ⊑-★
+coerce-monotonic A′⊑A ~-★ B′⊑B ~-★ = ⊑idᶜ ⊑-★
+coerce-monotonic A′⊑A ★~ℕ B′⊑B ~-★ = ⊑idL atom-? (⊢? G-ℕ) A′⊑A ⊑-★
+coerce-monotonic A′⊑A ★~ℕ B′⊑B ★~ℕ = ⊑? ⊑-refl
+coerce-monotonic A′⊑A ℕ~★ B′⊑B ~-★ = ⊑idL atom-! (⊢! G-ℕ) A′⊑A ⊑-★
+coerce-monotonic A′⊑A ℕ~★ B′⊑B ℕ~★ = ⊑! ⊑-refl
+coerce-monotonic A′⊑A (★~⇒ c₁ c₂) B′⊑B ~-★ =
   ⊑idL⨟ (⊑idL atom-? (⊢? G-⇒) A′⊑A ⊑-★)
         (⊑idL↦★
           (⊑id★ (coerce-wt c₁))
           (⊑id★ (coerce-wt c₂)))
-coerce-⊑ᶜ A′⊑A (★~⇒ c₁ c₂) (⊑-⇒ B′₁⊑B₁ B′₂⊑B₂) (★~⇒ d₁ d₂) =
+coerce-monotonic A′⊑A (★~⇒ c₁ c₂) (⊑-⇒ B′₁⊑B₁ B′₂⊑B₂) (★~⇒ d₁ d₂) =
   ⊑⨟
     (⊑? ⊑-refl)
     (⊑↦
-      (coerce-⊑ᶜ B′₁⊑B₁ c₁ ⊑-★ d₁)
-      (coerce-⊑ᶜ ⊑-★ c₂ B′₂⊑B₂ d₂))
-coerce-⊑ᶜ A′⊑A (⇒~★ c₁ c₂) B′⊑B ~-★ =
+      (coerce-monotonic B′₁⊑B₁ c₁ ⊑-★ d₁)
+      (coerce-monotonic ⊑-★ c₂ B′₂⊑B₂ d₂))
+coerce-monotonic A′⊑A (⇒~★ c₁ c₂) B′⊑B ~-★ =
   ⊑idL⨟
         (⊑idL↦★
           (⊑id★ (coerce-wt c₁))
           (⊑id★ (coerce-wt c₂)))
         (⊑idL atom-! (⊢! G-⇒) ⊑-★ ⊑-★)
-coerce-⊑ᶜ (⊑-⇒ A′₁⊑A₁ A′₂⊑A₂) (⇒~★ c₁ c₂) B′⊑B (⇒~★ d₁ d₂) =
+coerce-monotonic (⊑-⇒ A′₁⊑A₁ A′₂⊑A₂) (⇒~★ c₁ c₂) B′⊑B (⇒~★ d₁ d₂) =
   ⊑⨟
     (⊑↦
-      (coerce-⊑ᶜ ⊑-★ c₁ A′₁⊑A₁ d₁)
-      (coerce-⊑ᶜ A′₂⊑A₂ c₂ ⊑-★ d₂))
+      (coerce-monotonic ⊑-★ c₁ A′₁⊑A₁ d₁)
+      (coerce-monotonic A′₂⊑A₂ c₂ ⊑-★ d₂))
     (⊑! ⊑-refl)
-coerce-⊑ᶜ A′⊑A (~-⇒ c₁ c₂) B′⊑B ~-★ =
+coerce-monotonic A′⊑A (~-⇒ c₁ c₂) B′⊑B ~-★ =
   ⊑idL↦★
     (⊑id★ (coerce-wt c₁))
     (⊑id★ (coerce-wt c₂))
-coerce-⊑ᶜ A′⊑A (~-⇒ c₁ c₂) (⊑-⇒ B′₁⊑B₁ B′₂⊑B₂) (★~⇒ d₁ d₂) =
+coerce-monotonic A′⊑A (~-⇒ c₁ c₂) (⊑-⇒ B′₁⊑B₁ B′₂⊑B₂) (★~⇒ d₁ d₂) =
   ⊑drop?
     (⊑↦
-      (coerce-⊑ᶜ B′₁⊑B₁ c₁ ⊑-★ d₁)
-      (coerce-⊑ᶜ ⊑-★ c₂ B′₂⊑B₂ d₂))
-coerce-⊑ᶜ (⊑-⇒ A′₁⊑A₁ A′₂⊑A₂) (~-⇒ c₁ c₂) B′⊑B (⇒~★ d₁ d₂) =
+      (coerce-monotonic B′₁⊑B₁ c₁ ⊑-★ d₁)
+      (coerce-monotonic ⊑-★ c₂ B′₂⊑B₂ d₂))
+coerce-monotonic (⊑-⇒ A′₁⊑A₁ A′₂⊑A₂) (~-⇒ c₁ c₂) B′⊑B (⇒~★ d₁ d₂) =
   ⊑drop!
     (⊑↦
-      (coerce-⊑ᶜ ⊑-★ c₁ A′₁⊑A₁ d₁)
-      (coerce-⊑ᶜ A′₂⊑A₂ c₂ ⊑-★ d₂))
-coerce-⊑ᶜ (⊑-⇒ A′₁⊑A₁ A′₂⊑A₂) (~-⇒ c₁ c₂) (⊑-⇒ B′₁⊑B₁ B′₂⊑B₂) (~-⇒ d₁ d₂) =
+      (coerce-monotonic ⊑-★ c₁ A′₁⊑A₁ d₁)
+      (coerce-monotonic A′₂⊑A₂ c₂ ⊑-★ d₂))
+coerce-monotonic (⊑-⇒ A′₁⊑A₁ A′₂⊑A₂) (~-⇒ c₁ c₂) (⊑-⇒ B′₁⊑B₁ B′₂⊑B₂) (~-⇒ d₁ d₂) =
   ⊑↦
-    (coerce-⊑ᶜ B′₁⊑B₁ c₁ A′₁⊑A₁ d₁)
-    (coerce-⊑ᶜ A′₂⊑A₂ c₂ B′₂⊑B₂ d₂)
+    (coerce-monotonic B′₁⊑B₁ c₁ A′₁⊑A₁ d₁)
+    (coerce-monotonic A′₂⊑A₂ c₂ B′₂⊑B₂ d₂)
 
 coercion-type-unique : ∀ {c A B C D}
   → ⊢ c ⦂ A ⇨ B

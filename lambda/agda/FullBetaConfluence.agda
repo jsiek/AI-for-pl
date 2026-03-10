@@ -107,10 +107,17 @@ infixr 2 _⇛⟨_⟩_
 infix  3 _■
 
 data _⇛_ : Term → Term → Set where
-  par-var  : ∀ {x} → (′ x) ⇛ (′ x)
-  par-lam  : ∀ {N N'} → N ⇛ N' → (ƛ N) ⇛ (ƛ N')
-  par-app  : ∀ {L L' M M'} → L ⇛ L' → M ⇛ M' → (L · M) ⇛ (L' · M')
-  par-beta : ∀ {N N' M M'} → N ⇛ N' → M ⇛ M' → ((ƛ N) · M) ⇛ (N' [ M' ])
+  par-var  : ∀ {x}
+    → (′ x) ⇛ (′ x)
+  par-lam  : ∀ {N N'}
+    → N ⇛ N'
+    → (ƛ N) ⇛ (ƛ N')
+  par-app  : ∀ {L L' M M'}
+    → L ⇛ L'
+    → M ⇛ M'
+    → (L · M) ⇛ (L' · M')
+  par-beta : ∀ {N N' M M'}
+    → N ⇛ N' → M ⇛ M' → ((ƛ N) · M) ⇛ (N' [ M' ])
 
 data _⇛*_ : Term → Term → Set where
   _■ : (M : Term) → M ⇛* M
@@ -230,11 +237,26 @@ subst-par {M = ′ i} s par-var = s i
 subst-par {σ = σ} {τ = τ} {M = ƛ N} s (par-lam p) =
   par-lam (subst-par {σ = exts σ} {τ = exts τ} (par-subst-exts s) p)
 subst-par s (par-app p₁ p₂) = par-app (subst-par s p₁) (subst-par s p₂)
+subst-par {σ = σ} {τ = τ} s (par-beta{N}{N′}{M}{M′} p₁ p₂)
+  rewrite subst-[] {σ = τ} {N = N′} {M = M′} =
+  let IH1 : subst (exts σ) N ⇛ subst (exts τ) N′
+      IH1 = subst-par{σ = exts σ} (par-subst-exts s) p₁ in
+  let IH2 : subst σ M ⇛ subst τ M′
+      IH2 = subst-par s p₂ in
+  let result = par-beta IH1 IH2 in
+  result
+  -- subst (exts σ) N ⇛ _N'_506
+  -- subst σ M ⇛ _M'_508
+
+  -- Goal: (ƛ subst (exts σ) N) · subst σ M ⇛ subst τ (N′ [ M′ ])
+
+{-  
 subst-par {σ = σ} {τ = τ} (s) (par-beta {N' = N′} {M' = M′} p₁ p₂)
   rewrite subst-[] {σ = τ} {N = N′} {M = M′} =
   par-beta
     (subst-par {σ = exts σ} {τ = exts τ} (par-subst-exts s) p₁)
     (subst-par {σ = σ} {τ = τ} s p₂)
+-}
 
 par-subst-zero : ∀ {M M′ : Term}
   → M ⇛ M′
@@ -318,7 +340,9 @@ par-triangle (par-app {L = L · L₁} {L' = L′} {M = M} {M' = M′} p1 p2) =
   Σ[ Q ∈ Term ] (N ⇛ Q) × (P ⇛ Q)
 ⇛-diamond {M} M⇛N M⇛P = (M ⁺) , par-triangle M⇛N , par-triangle M⇛P
 
-strip : ∀ {L M N} → L ⇛ M → L ⇛* N →
+strip : ∀ {L M N}
+  → L ⇛ M
+  → L ⇛* N →
   Σ[ Q ∈ Term ] (M ⇛* Q) × (N ⇛* Q)
 strip {L} {M} {N} L⇛M (L' ■) =
   let M⇛*M : M ⇛* M
@@ -349,8 +373,10 @@ pars-confluent {N = N} {P = P} (M ■) M⇛*P =
       goal : Σ[ Q ∈ Term ] (M ⇛* Q) × (P ⇛* Q)
       goal = P , M⇛*P , P⇛*P
   in goal
-pars-confluent {N = N} {P = P} (M ⇛⟨ M⇛M1 ⟩ M1⇛*N) M⇛*P with strip M⇛M1 M⇛*P
-... | R , M1⇛*R , P⇛*R with pars-confluent M1⇛*N M1⇛*R
+pars-confluent {N = N} {P = P} (M ⇛⟨ M⇛M1 ⟩ M1⇛*N) M⇛*P
+    with strip M⇛M1 M⇛*P
+... | R , M1⇛*R , P⇛*R
+    with pars-confluent M1⇛*N M1⇛*R
 ... | Q , N⇛*Q , R⇛*Q =
   let P⇛*Q : P ⇛* Q
       P⇛*Q = ⇛*-trans P⇛*R R⇛*Q

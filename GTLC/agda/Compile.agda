@@ -1,7 +1,9 @@
 module Compile where
 
+open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst)
 open import Types
 open import Contexts
+open import Data.List using ([])
 open import GTLC renaming
   ( _⊢_⦂_ to _⊢ᴳ_⦂_
   ; _⊢_⦂_⊑ᵀ_⦂_ to _⊢ᴳ_⦂_⊑ᴳᵀ_⦂_
@@ -121,3 +123,21 @@ compile-preserves-precision ρ
       (coerce-⊑ᶜ (⊑ᵀ-type-precisionᴳ M′⊑M) Aarg~A ⊑-★ (~★-ty A′))
       (coerce-wt (~★-ty A′))
       (coerce-wt Aarg~A))
+
+compile-precision
+  : ∀ {M M′ A A′}
+  → (M≤M′ : M ⊑ᵀ M′)
+  → (M⦂A : [] ⊢ᴳ M ⦂ A)
+  → (M′⦂A′ : [] ⊢ᴳ M′ ⦂ A′)
+  → []⊑[] ⊢ compile M⦂A ⦂ A ⊑ᶜᵀ compile M′⦂A′ ⦂ A′
+compile-precision {A = A} {A′ = A′} M≤M′ M⦂A M′⦂A′ =
+  subst
+    (λ T₁ → []⊑[] ⊢ compile T₁ ⦂ A ⊑ᶜᵀ compile M′⦂A′ ⦂ A′)
+    (tp-left-id {ρ = []⊑[]} M⦂A M′⦂A′ M≤M′)
+    (subst
+      (λ T₂ → []⊑[] ⊢ compile (⊑ᵀ-left-typedᴳ d) ⦂ A ⊑ᶜᵀ compile T₂ ⦂ A′)
+      (tp-right-id {ρ = []⊑[]} M⦂A M′⦂A′ M≤M′)
+      (compile-preserves-precision []⊑[] d))
+  where
+  d = term-precision-⊑ᵀ M⦂A M′⦂A′ M≤M′
+

@@ -1,5 +1,6 @@
 module Contexts where
 
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Nat using (Nat; zero; suc)
 open import Agda.Builtin.List using (List; []; _∷_)
 open import Types
@@ -23,4 +24,11 @@ extend-⊑ᵉ : ∀ {Γ Γ′ A A′} → A ⊑ A′ → Γ ⊑ᵉ Γ′ → (A 
 extend-⊑ᵉ {A = A} {A′ = A′} A⊑A′ Γ⊑Γ′ zero .A .A′ Z Z = A⊑A′
 extend-⊑ᵉ A⊑A′ Γ⊑Γ′ (suc x) B B′ (S ∋x) (S ∋x′) =
   Γ⊑Γ′ x B B′ ∋x ∋x′
+
+∋-unique : ∀ {Γ x A B} → Γ ∋ x ⦂ A → Γ ∋ x ⦂ B → A ≡ B
+∋-unique Z Z = refl
+∋-unique (S ∋x) (S ∋x′) = ∋-unique ∋x ∋x′
+
+[]⊑[] : [] ⊑ᵉ []
+[]⊑[] x A A′ ()
 

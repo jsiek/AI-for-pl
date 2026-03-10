@@ -137,10 +137,6 @@ data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Ter
     → A₁ ⊑ A₂
     → ρ ⊢ M ⦂ A₁ ⊑ᶜᵀ blame ⦂ A₂
 
-∋-unique : ∀ {Γ x A B} → Γ ∋ x ⦂ A → Γ ∋ x ⦂ B → A ≡ B
-∋-unique Z Z = refl
-∋-unique (S ∋x) (S ∋x′) = ∋-unique ∋x ∋x′
-
 ⊑ᶜᵀ-left-typed
   : ∀ {Γ₁ Γ₂} {ρ : Γ₁ ⊑ᵉ Γ₂} {A₁ A₂ M M′}
   → ρ ⊢ M ⦂ A₁ ⊑ᶜᵀ M′ ⦂ A₂
@@ -536,3 +532,13 @@ mutual
     ⊢· V⦂ (preserveᶜ M⦂ M→N)
   frame-preserveᶜ {F = cast□[ c ]} (⊢cast M⦂ c⦂) M→N =
     ⊢cast (preserveᶜ M⦂ M→N) c⦂
+
+preserveᶜ*
+  : ∀ {M N A}
+  → [] ⊢ᶜ M ⦂ A
+  → M —↠ᶜ N
+  → [] ⊢ᶜ N ⦂ A
+preserveᶜ* M⦂ (M ∎ᶜ) = M⦂
+preserveᶜ* M⦂ (M —→ᶜ⟨ M→N ⟩ N—↠P) =
+  preserveᶜ* (preserveᶜ M⦂ M→N) N—↠P
+

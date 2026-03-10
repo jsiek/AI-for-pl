@@ -1,7 +1,9 @@
 module GTLC where
 
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Nat using (Nat; zero; suc)
 open import Agda.Builtin.List using (List; []; _∷_)
+open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst)
 open import Types
 open import Contexts
 
@@ -184,3 +186,101 @@ term-precision-⊑ᵀ
   (⊑· L⊑L′ M⊑M′) =
   ⊑·★ (term-precision-⊑ᵀ L⦂★ L′⦂★ L⊑L′)
       (term-precision-⊑ᵀ M⦂A M′⦂A′ M⊑M′)
+
+typing-unique
+  : ∀ {Γ M A B}
+  → Γ ⊢ M ⦂ A
+  → Γ ⊢ M ⦂ B
+  → A ≡ B
+typing-unique (⊢` ∋x) (⊢` ∋x′) = ∋-unique ∋x ∋x′
+typing-unique ⊢$ ⊢$ = refl
+typing-unique (⊢ƛ N⦂A) (⊢ƛ N⦂B)
+    with typing-unique N⦂A N⦂B
+... | refl = refl
+typing-unique (⊢· L⦂A⇒B M⦂A′ A′~A) (⊢· L⦂C⇒D M⦂C′ C′~C)
+    with typing-unique L⦂A⇒B L⦂C⇒D
+... | refl = refl
+typing-unique (⊢· L⦂A⇒B M⦂A′ A′~A) (⊢·★ L⦂★ M⦂A)
+    with typing-unique L⦂A⇒B L⦂★
+... | ()
+typing-unique (⊢·★ L⦂★ M⦂A) (⊢· L⦂A⇒B M⦂A′ A′~A)
+    with typing-unique L⦂★ L⦂A⇒B
+... | ()
+typing-unique (⊢·★ L⦂★ M⦂A) (⊢·★ L⦂★₁ M⦂B) = refl
+
+
+tp-left-id
+  : ∀ {Γ Γ′} {ρ : Γ ⊑ᵉ Γ′} {M M′ A A′}
+  → (M⦂A : Γ ⊢ M ⦂ A)
+  → (M′⦂A′ : Γ′ ⊢ M′ ⦂ A′)
+  → (M≤M′ : M ⊑ᵀ M′)
+  → ⊑ᵀ-left-typed (term-precision-⊑ᵀ {ρ = ρ} M⦂A M′⦂A′ M≤M′) ≡ M⦂A
+tp-left-id (⊢` ∋x) (⊢` ∋x′) ⊑` = refl
+tp-left-id ⊢$ ⊢$ ⊑$ = refl
+tp-left-id (⊢ƛ N⦂B) (⊢ƛ M⦂B′) (⊑ƛ A⊑A′ N⊑M) =
+  cong ⊢ƛ (tp-left-id N⦂B M⦂B′ N⊑M)
+tp-left-id
+  (⊢· L⦂A⇒B M⦂Aarg Aarg~A)
+  (⊢· L′⦂A′⇒B′ M′⦂A′arg A′arg~A′)
+  (⊑· L⊑L′ M⊑M′)
+  = cong₂ (λ L⦂ M⦂ → ⊢· L⦂ M⦂ Aarg~A)
+      (tp-left-id L⦂A⇒B L′⦂A′⇒B′ L⊑L′)
+      (tp-left-id M⦂Aarg M′⦂A′arg M⊑M′)
+tp-left-id
+  (⊢·★ L⦂★ M⦂A)
+  (⊢· L′⦂A′⇒B′ M′⦂A′arg A′arg~A′)
+  (⊑· L⊑L′ M⊑M′)
+  = cong₂ ⊢·★
+      (tp-left-id L⦂★ L′⦂A′⇒B′ L⊑L′)
+      (tp-left-id M⦂A M′⦂A′arg M⊑M′)
+tp-left-id
+  (⊢·★ L⦂★ M⦂A)
+  (⊢·★ L′⦂★ M′⦂A′)
+  (⊑· L⊑L′ M⊑M′)
+  = cong₂ ⊢·★
+      (tp-left-id L⦂★ L′⦂★ L⊑L′)
+      (tp-left-id M⦂A M′⦂A′ M⊑M′)
+tp-left-id {ρ = ρ}
+  (⊢· L⦂A⇒B M⦂Aarg Aarg~A)
+  (⊢·★ L′⦂★ M′⦂A′)
+  (⊑· L⊑L′ M⊑M′)
+    with ⊑ᵀ-type-precision (term-precision-⊑ᵀ {ρ = ρ} L⦂A⇒B L′⦂★ L⊑L′)
+... | ()
+
+tp-right-id
+  : ∀ {Γ Γ′} {ρ : Γ ⊑ᵉ Γ′} {M M′ A A′}
+  → (M⦂A : Γ ⊢ M ⦂ A)
+  → (M′⦂A′ : Γ′ ⊢ M′ ⦂ A′)
+  → (M≤M′ : M ⊑ᵀ M′)
+  → ⊑ᵀ-right-typed (term-precision-⊑ᵀ {ρ = ρ} M⦂A M′⦂A′ M≤M′) ≡ M′⦂A′
+tp-right-id (⊢` ∋x) (⊢` ∋x′) ⊑` = refl
+tp-right-id ⊢$ ⊢$ ⊑$ = refl
+tp-right-id (⊢ƛ N⦂B) (⊢ƛ M⦂B′) (⊑ƛ A⊑A′ N⊑M) =
+  cong ⊢ƛ (tp-right-id N⦂B M⦂B′ N⊑M)
+tp-right-id
+  (⊢· L⦂A⇒B M⦂Aarg Aarg~A)
+  (⊢· L′⦂A′⇒B′ M′⦂A′arg A′arg~A′)
+  (⊑· L⊑L′ M⊑M′)
+  = cong₂ (λ L⦂ M⦂ → ⊢· L⦂ M⦂ A′arg~A′)
+      (tp-right-id L⦂A⇒B L′⦂A′⇒B′ L⊑L′)
+      (tp-right-id M⦂Aarg M′⦂A′arg M⊑M′)
+tp-right-id
+  (⊢·★ L⦂★ M⦂A)
+  (⊢· L′⦂A′⇒B′ M′⦂A′arg A′arg~A′)
+  (⊑· L⊑L′ M⊑M′)
+  = cong₂ (λ L⦂ M⦂ → ⊢· L⦂ M⦂ A′arg~A′)
+      (tp-right-id L⦂★ L′⦂A′⇒B′ L⊑L′)
+      (tp-right-id M⦂A M′⦂A′arg M⊑M′)
+tp-right-id
+  (⊢·★ L⦂★ M⦂A)
+  (⊢·★ L′⦂★ M′⦂A′)
+  (⊑· L⊑L′ M⊑M′)
+  = cong₂ ⊢·★
+      (tp-right-id L⦂★ L′⦂★ L⊑L′)
+      (tp-right-id M⦂A M′⦂A′ M⊑M′)
+tp-right-id {ρ = ρ}
+  (⊢· L⦂A⇒B M⦂Aarg Aarg~A)
+  (⊢·★ L′⦂★ M′⦂A′)
+  (⊑· L⊑L′ M⊑M′)
+    with ⊑ᵀ-type-precision (term-precision-⊑ᵀ {ρ = ρ} L⦂A⇒B L′⦂★ L⊑L′)
+... | ()

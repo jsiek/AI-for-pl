@@ -372,6 +372,11 @@ blame-—↠ᶜ-value-impossible vV (blame ∎ᶜ) = value-not-blame vV
 blame-—↠ᶜ-value-impossible vV (blame —→ᶜ⟨ blame→N ⟩ N—↠V) =
   ⊥-elim (blame-irreducible blame→N)
 
+blame-—↠ᶜ-refl : ∀ {N} → blame —↠ᶜ N → N ≡ blame
+blame-—↠ᶜ-refl (blame ∎ᶜ) = refl
+blame-—↠ᶜ-refl (blame —→ᶜ⟨ blame→N ⟩ N—↠N′) =
+  ⊥-elim (blame-irreducible blame→N)
+
 cast-!-step-inv
   : ∀ {V G N}
   → Valueᶜ V
@@ -1084,12 +1089,35 @@ sim-back* {M = L} L⊑L′ (L —→ᶜ⟨ L→M ⟩ M—↠N)
     , N—↠N₂
     , N₂⊑N′)
 
-postulate
-  sim-back-converges
-    : ∀ {M M′ A A′}
-    → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
-    → Convergesᶜ M
-    → Convergesᶜ M′
+sim-back-converges
+  : ∀ {M M′ A A′}
+  → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+  → Convergesᶜ M
+  → Convergesᶜ M′
+sim-back-converges M⊑M′ (W , M—↠W , inj₁ vW)
+    with sim-back* M⊑M′ M—↠W
+... | N′ , N₂ , B , B′ , M′—↠N′ , W—↠N₂ , N₂⊑N′
+    with value-—↠ᶜ-refl vW W—↠N₂
+... | refl
+    with value-right-catchup vW N₂⊑N′
+... | W′ , N′—↠W′ , inj₁ (vW′ , W⊑W′) =
+  W′
+  , (M′—↠N′ ++ᶜ N′—↠W′)
+  , inj₁ vW′
+... | W′ , N′—↠W′ , inj₂ refl =
+  blame
+  , (M′—↠N′ ++ᶜ N′—↠W′)
+  , inj₂ refl
+sim-back-converges M⊑M′ (W , M—↠W , inj₂ W≡blame)
+    rewrite W≡blame
+    with sim-back* M⊑M′ M—↠W
+... | N′ , N₂ , B , B′ , M′—↠N′ , blame—↠N₂ , N₂⊑N′
+    rewrite blame-—↠ᶜ-refl blame—↠N₂
+    with blame-right-catchup N₂⊑N′
+... | N′—↠blame =
+  blame
+  , (M′—↠N′ ++ᶜ N′—↠blame)
+  , inj₂ refl
 
 
 gg-diverge-cp

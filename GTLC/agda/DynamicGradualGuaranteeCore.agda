@@ -1,7 +1,8 @@
 module DynamicGradualGuaranteeCore where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Agda.Builtin.List using ([])
+open import Agda.Builtin.List using ([]; _∷_)
+open import Agda.Builtin.Nat using (zero; suc)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (Σ-syntax; ∃-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -142,20 +143,162 @@ star-to-inj V≤V′ vV vV′ G-⇒
   with coercion-type-unique c⦂ ⊢idᶜ
 ... | refl , refl = ⊑blameR M⦂ A⊑A′
 
-
-
-
 --------------------------------------------------------------------------------
 -- Substitution Preserves Precision
 --------------------------------------------------------------------------------
 
-postulate
-  []ᶜ-⊑
-    : ∀ {N N′ V V′ A A′ B B′}
-    → (A⊑A′ : A ⊑ A′)
-    → (extend-⊑ᵉ A⊑A′ []⊑[]) ⊢ N ⦂ B ⊑ᶜᵀ N′ ⦂ B′
-    → []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′
-    → []⊑[] ⊢ N [ V ]ᶜ ⦂ B ⊑ᶜᵀ N′ [ V′ ]ᶜ ⦂ B′
+renameᶜ-value : ∀ {ρ V} → Valueᶜ V → Valueᶜ (renameᶜ ρ V)
+renameᶜ-value V-$ = V-$
+renameᶜ-value V-ƛ = V-ƛ
+renameᶜ-value (V-! vV) = V-! (renameᶜ-value vV)
+renameᶜ-value (V-cast↦ vV) = V-cast↦ (renameᶜ-value vV)
+
+substᶜ-value : ∀ {σ V} → Valueᶜ V → Valueᶜ (substᶜ σ V)
+substᶜ-value V-$ = V-$
+substᶜ-value V-ƛ = V-ƛ
+substᶜ-value (V-! vV) = V-! (substᶜ-value vV)
+substᶜ-value (V-cast↦ vV) = V-cast↦ (substᶜ-value vV)
+
+Substᶜ-⊑
+  : Ctx
+  → Ctx
+  → ∀ {Δ Δ′}
+  → (ρ′ : Δ ⊑ᵉ Δ′)
+  → Substᶜ
+  → Substᶜ
+  → Set
+Substᶜ-⊑ Γ Γ′ ρ′ σ σ′ =
+  ∀ {x A A′}
+  → Γ ∋ x ⦂ A
+  → Γ′ ∋ x ⦂ A′
+  → ρ′ ⊢ σ x ⦂ A ⊑ᶜᵀ σ′ x ⦂ A′
+
+wk-⊑
+  : ∀ {Γ₁ Γ₂ Δ₁ Δ₂ A A′ M M′}
+  → (r : Renameᶜ)
+  → Renᶜ-typed r Γ₁ Δ₁
+  → Renᶜ-typed r Γ₂ Δ₂
+  → (ρ′ : Δ₁ ⊑ᵉ Δ₂)
+  → {ρ : Γ₁ ⊑ᵉ Γ₂}
+  → ρ ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+  → ρ′ ⊢ renameᶜ r M ⦂ A ⊑ᶜᵀ renameᶜ r M′ ⦂ A′
+wk-⊑ r r-typed r′-typed ρ′ (⊑` ∋x ∋x′) = ⊑` (r-typed ∋x) (r′-typed ∋x′)
+wk-⊑ r r-typed r′-typed ρ′ ⊑$ = ⊑$
+wk-⊑ r r-typed r′-typed ρ′ (⊑ƛ A⊑A′ N⊑M) =
+  ⊑ƛ A⊑A′
+    (wk-⊑ (extᶜ r)
+      (ext-renᶜ-typed r-typed)
+      (ext-renᶜ-typed r′-typed)
+      (extend-⊑ᵉ A⊑A′ ρ′)
+      N⊑M)
+wk-⊑ r r-typed r′-typed ρ′ (⊑· L⊑L′ M⊑M′) =
+  ⊑· (wk-⊑ r r-typed r′-typed ρ′ L⊑L′) (wk-⊑ r r-typed r′-typed ρ′ M⊑M′)
+wk-⊑ r r-typed r′-typed ρ′ (⊑cast M⊑M′ c⊑c′ cwt c′wt) =
+  ⊑cast (wk-⊑ r r-typed r′-typed ρ′ M⊑M′) c⊑c′ cwt c′wt
+wk-⊑ r r-typed r′-typed ρ′ (⊑castL M⊑M′ cwt c⊑id) =
+  ⊑castL (wk-⊑ r r-typed r′-typed ρ′ M⊑M′) cwt c⊑id
+wk-⊑ r r-typed r′-typed ρ′ (⊑castR M⊑M′ c′wt id⊑c′) =
+  ⊑castR (wk-⊑ r r-typed r′-typed ρ′ M⊑M′) c′wt id⊑c′
+wk-⊑ r r-typed r′-typed ρ′ (⊑inj M⊑M′ vM vM′ g) =
+  ⊑inj
+    (wk-⊑ r r-typed r′-typed ρ′ M⊑M′)
+    (renameᶜ-value vM)
+    (renameᶜ-value vM′)
+    g
+wk-⊑ r r-typed r′-typed ρ′ (⊑injL M⊑M′ vM g vM′) =
+  ⊑injL
+    (wk-⊑ r r-typed r′-typed ρ′ M⊑M′)
+    (renameᶜ-value vM)
+    g
+    (renameᶜ-value vM′)
+wk-⊑ r r-typed r′-typed ρ′ (⊑blameR M⦂A A⊑A′) =
+  ⊑blameR (renameᶜ-preserve r-typed M⦂A) A⊑A′
+
+wk-suc-⊑
+  : ∀ {Γ Γ′ A A′ B B′ M M′}
+  → (B⊑B′ : B ⊑ B′)
+  → (ρ : Γ ⊑ᵉ Γ′)
+  → ρ ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+  → (extend-⊑ᵉ B⊑B′ ρ) ⊢ renameᶜ suc M ⦂ A ⊑ᶜᵀ renameᶜ suc M′ ⦂ A′
+wk-suc-⊑ B⊑B′ ρ M⊑M′ =
+  wk-⊑ suc wk-renᶜ-typed wk-renᶜ-typed (extend-⊑ᵉ B⊑B′ ρ) M⊑M′
+
+ext-substᶜ-⊑
+  : ∀ {Γ Γ′ Δ Δ′ A A′ σ σ′}
+  → (ρ′ : Δ ⊑ᵉ Δ′)
+  → (A⊑A′ : A ⊑ A′)
+  → Substᶜ-⊑ Γ Γ′ ρ′ σ σ′
+  → Substᶜ-⊑ (A ∷ Γ) (A′ ∷ Γ′) (extend-⊑ᵉ A⊑A′ ρ′) (extsᶜ σ) (extsᶜ σ′)
+ext-substᶜ-⊑ ρ′ A⊑A′ σ⊑σ′ {x = zero} Z Z = ⊑` Z Z
+ext-substᶜ-⊑ ρ′ A⊑A′ σ⊑σ′ {x = suc x} (S ∋x) (S ∋x′) =
+  wk-suc-⊑ A⊑A′ ρ′ (σ⊑σ′ ∋x ∋x′)
+
+substᶜ-⊑
+  : ∀ {Γ Γ′ Δ Δ′ M M′ A A′ σ σ′}
+  → (ρ : Γ ⊑ᵉ Γ′)
+  → (ρ′ : Δ ⊑ᵉ Δ′)
+  → Substᶜ-typed σ Γ Δ
+  → Substᶜ-typed σ′ Γ′ Δ′
+  → Substᶜ-⊑ Γ Γ′ ρ′ σ σ′
+  → ρ ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+  → ρ′ ⊢ substᶜ σ M ⦂ A ⊑ᶜᵀ substᶜ σ′ M′ ⦂ A′
+substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ (⊑` ∋x ∋x′) = σ⊑σ′ ∋x ∋x′
+substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ ⊑$ = ⊑$
+substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ (⊑ƛ A⊑A′ N⊑M) =
+  ⊑ƛ A⊑A′
+    (substᶜ-⊑
+      (extend-⊑ᵉ A⊑A′ ρ)
+      (extend-⊑ᵉ A⊑A′ ρ′)
+      (ext-substᶜ-typed σ-typed)
+      (ext-substᶜ-typed σ′-typed)
+      (ext-substᶜ-⊑ ρ′ A⊑A′ σ⊑σ′)
+      N⊑M)
+substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ (⊑· L⊑L′ M⊑M′) =
+  ⊑· (substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ L⊑L′)
+     (substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ M⊑M′)
+substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ (⊑cast M⊑M′ c⊑c′ cwt c′wt) =
+  ⊑cast (substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ M⊑M′) c⊑c′ cwt c′wt
+substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ (⊑castL M⊑M′ cwt c⊑id) =
+  ⊑castL (substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ M⊑M′) cwt c⊑id
+substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ (⊑castR M⊑M′ c′wt id⊑c′) =
+  ⊑castR (substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ M⊑M′) c′wt id⊑c′
+substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ (⊑inj M⊑M′ vM vM′ g) =
+  ⊑inj
+    (substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ M⊑M′)
+    (substᶜ-value vM)
+    (substᶜ-value vM′)
+    g
+substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ (⊑injL M⊑M′ vM g vM′) =
+  ⊑injL
+    (substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ M⊑M′)
+    (substᶜ-value vM)
+    g
+    (substᶜ-value vM′)
+substᶜ-⊑ ρ ρ′ σ-typed σ′-typed σ⊑σ′ (⊑blameR M⦂A A⊑A′) =
+  ⊑blameR (substᶜ-preserve σ-typed M⦂A) A⊑A′
+
+single-substᶜ-⊑
+  : ∀ {A A′ V V′}
+  → (A⊑A′ : A ⊑ A′)
+  → []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′
+  → Substᶜ-⊑ (A ∷ []) (A′ ∷ []) []⊑[] (singleEnvᶜ V) (singleEnvᶜ V′)
+single-substᶜ-⊑ A⊑A′ V⊑V′ Z Z = V⊑V′
+single-substᶜ-⊑ A⊑A′ V⊑V′ (S ()) ∋x′
+
+[]ᶜ-⊑
+  : ∀ {N N′ V V′ A A′ B B′}
+  → (A⊑A′ : A ⊑ A′)
+  → (extend-⊑ᵉ A⊑A′ []⊑[]) ⊢ N ⦂ B ⊑ᶜᵀ N′ ⦂ B′
+  → []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′
+  → []⊑[] ⊢ N [ V ]ᶜ ⦂ B ⊑ᶜᵀ N′ [ V′ ]ᶜ ⦂ B′
+[]ᶜ-⊑ A⊑A′ N⊑N′ V⊑V′ =
+  substᶜ-⊑
+    (extend-⊑ᵉ A⊑A′ []⊑[])
+    []⊑[]
+    (single-substᶜ-typed (⊑ᶜᵀ-left-typed V⊑V′))
+    (single-substᶜ-typed (⊑ᶜᵀ-right-typed V⊑V′))
+    (single-substᶜ-⊑ A⊑A′ V⊑V′)
+    N⊑N′
 
 --------------------------------------------------------------------------------
 -- Cast Left of id

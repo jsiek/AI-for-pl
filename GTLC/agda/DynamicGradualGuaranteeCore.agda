@@ -173,7 +173,7 @@ Substᶜ-⊑ Γ Γ′ ρ′ σ σ′ =
   → Γ′ ∋ x ⦂ A′
   → ρ′ ⊢ σ x ⦂ A ⊑ᶜᵀ σ′ x ⦂ A′
 
-wk-⊑
+renameᶜ-⊑
   : ∀ {Γ₁ Γ₂ Δ₁ Δ₂ A A′ M M′}
   → (r : Renameᶜ)
   → Renᶜ-typed r Γ₁ Δ₁
@@ -182,36 +182,36 @@ wk-⊑
   → {ρ : Γ₁ ⊑ᵉ Γ₂}
   → ρ ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
   → ρ′ ⊢ renameᶜ r M ⦂ A ⊑ᶜᵀ renameᶜ r M′ ⦂ A′
-wk-⊑ r r-typed r′-typed ρ′ (⊑` ∋x ∋x′) = ⊑` (r-typed ∋x) (r′-typed ∋x′)
-wk-⊑ r r-typed r′-typed ρ′ ⊑$ = ⊑$
-wk-⊑ r r-typed r′-typed ρ′ (⊑ƛ A⊑A′ N⊑M) =
+renameᶜ-⊑ r r-typed r′-typed ρ′ (⊑` ∋x ∋x′) = ⊑` (r-typed ∋x) (r′-typed ∋x′)
+renameᶜ-⊑ r r-typed r′-typed ρ′ ⊑$ = ⊑$
+renameᶜ-⊑ r r-typed r′-typed ρ′ (⊑ƛ A⊑A′ N⊑M) =
   ⊑ƛ A⊑A′
-    (wk-⊑ (extᶜ r)
+    (renameᶜ-⊑ (extᶜ r)
       (ext-renᶜ-typed r-typed)
       (ext-renᶜ-typed r′-typed)
       (extend-⊑ᵉ A⊑A′ ρ′)
       N⊑M)
-wk-⊑ r r-typed r′-typed ρ′ (⊑· L⊑L′ M⊑M′) =
-  ⊑· (wk-⊑ r r-typed r′-typed ρ′ L⊑L′) (wk-⊑ r r-typed r′-typed ρ′ M⊑M′)
-wk-⊑ r r-typed r′-typed ρ′ (⊑cast M⊑M′ c⊑c′ cwt c′wt) =
-  ⊑cast (wk-⊑ r r-typed r′-typed ρ′ M⊑M′) c⊑c′ cwt c′wt
-wk-⊑ r r-typed r′-typed ρ′ (⊑castL M⊑M′ cwt c⊑id) =
-  ⊑castL (wk-⊑ r r-typed r′-typed ρ′ M⊑M′) cwt c⊑id
-wk-⊑ r r-typed r′-typed ρ′ (⊑castR M⊑M′ c′wt id⊑c′) =
-  ⊑castR (wk-⊑ r r-typed r′-typed ρ′ M⊑M′) c′wt id⊑c′
-wk-⊑ r r-typed r′-typed ρ′ (⊑inj M⊑M′ vM vM′ g) =
+renameᶜ-⊑ r r-typed r′-typed ρ′ (⊑· L⊑L′ M⊑M′) =
+  ⊑· (renameᶜ-⊑ r r-typed r′-typed ρ′ L⊑L′) (renameᶜ-⊑ r r-typed r′-typed ρ′ M⊑M′)
+renameᶜ-⊑ r r-typed r′-typed ρ′ (⊑cast M⊑M′ c⊑c′ cwt c′wt) =
+  ⊑cast (renameᶜ-⊑ r r-typed r′-typed ρ′ M⊑M′) c⊑c′ cwt c′wt
+renameᶜ-⊑ r r-typed r′-typed ρ′ (⊑castL M⊑M′ cwt c⊑id) =
+  ⊑castL (renameᶜ-⊑ r r-typed r′-typed ρ′ M⊑M′) cwt c⊑id
+renameᶜ-⊑ r r-typed r′-typed ρ′ (⊑castR M⊑M′ c′wt id⊑c′) =
+  ⊑castR (renameᶜ-⊑ r r-typed r′-typed ρ′ M⊑M′) c′wt id⊑c′
+renameᶜ-⊑ r r-typed r′-typed ρ′ (⊑inj M⊑M′ vM vM′ g) =
   ⊑inj
-    (wk-⊑ r r-typed r′-typed ρ′ M⊑M′)
+    (renameᶜ-⊑ r r-typed r′-typed ρ′ M⊑M′)
     (renameᶜ-value vM)
     (renameᶜ-value vM′)
     g
-wk-⊑ r r-typed r′-typed ρ′ (⊑injL M⊑M′ vM g vM′) =
+renameᶜ-⊑ r r-typed r′-typed ρ′ (⊑injL M⊑M′ vM g vM′) =
   ⊑injL
-    (wk-⊑ r r-typed r′-typed ρ′ M⊑M′)
+    (renameᶜ-⊑ r r-typed r′-typed ρ′ M⊑M′)
     (renameᶜ-value vM)
     g
     (renameᶜ-value vM′)
-wk-⊑ r r-typed r′-typed ρ′ (⊑blameR M⦂A A⊑A′) =
+renameᶜ-⊑ r r-typed r′-typed ρ′ (⊑blameR M⦂A A⊑A′) =
   ⊑blameR (renameᶜ-preserve r-typed M⦂A) A⊑A′
 
 wk-suc-⊑
@@ -221,7 +221,7 @@ wk-suc-⊑
   → ρ ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
   → (extend-⊑ᵉ B⊑B′ ρ) ⊢ renameᶜ suc M ⦂ A ⊑ᶜᵀ renameᶜ suc M′ ⦂ A′
 wk-suc-⊑ B⊑B′ ρ M⊑M′ =
-  wk-⊑ suc wk-renᶜ-typed wk-renᶜ-typed (extend-⊑ᵉ B⊑B′ ρ) M⊑M′
+  renameᶜ-⊑ suc wk-renᶜ-typed wk-renᶜ-typed (extend-⊑ᵉ B⊑B′ ρ) M⊑M′
 
 ext-substᶜ-⊑
   : ∀ {Γ Γ′ Δ Δ′ A A′ σ σ′}

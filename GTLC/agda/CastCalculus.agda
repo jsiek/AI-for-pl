@@ -39,6 +39,10 @@ plug (V ·□ vV) M = V · M
 plug (cast□[ c ]) M = cast M [ c ]
 
 
+--------------------------------------------------------------------------------
+-- Type System
+--------------------------------------------------------------------------------
+
 infix 4 _⊢ᶜ_⦂_
 data _⊢ᶜ_⦂_ : Ctx → Termᶜ → Ty → Set where
   ⊢` : ∀ {Γ x A}
@@ -190,6 +194,10 @@ data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Ter
 ⊑ᶜᵀ-type-precision (⊑inj M⊑M′ vM vM′ g) = ⊑-★
 ⊑ᶜᵀ-type-precision (⊑injL M⊑M′ vM g vM′) = ⊑-★
 
+--------------------------------------------------------------------------------
+-- Substitution
+--------------------------------------------------------------------------------
+
 Renameᶜ : Set
 Renameᶜ = Var → Var
 
@@ -228,6 +236,10 @@ singleEnvᶜ M (suc x) = ` x
 
 _[_]ᶜ : Termᶜ → Termᶜ → Termᶜ
 N [ M ]ᶜ = substᶜ (singleEnvᶜ M) N
+
+--------------------------------------------------------------------------------
+-- Reduction
+--------------------------------------------------------------------------------
 
 infix 4 _—→ᶜ_
 infix 4 _—↠ᶜ_
@@ -322,6 +334,10 @@ Convergesᶜ M = ∃[ W ] ((M —↠ᶜ W) × (Valueᶜ W ⊎ (W ≡ blame)))
 Divergesᶜ : Termᶜ → Set
 Divergesᶜ M = ¬ Convergesᶜ M
 
+--------------------------------------------------------------------------------
+-- Proof of Progress
+--------------------------------------------------------------------------------
+
 data Progressᶜ (M : Termᶜ) : Set where
   done  : Valueᶜ M → Progressᶜ M
   step  : ∀ {N} → M —→ᶜ N → Progressᶜ M
@@ -389,3 +405,130 @@ progressᶜ (⊢cast {c = c} M⦂A c⦂A⇨B) with progressᶜ M⦂A
 ... | no H≢G = step (β-proj-inj-bad vW H≢G)
 progressᶜ ⊢blame = crash refl
 progressᶜ (⊢! M⦂ g vM) = done (V-! vM)
+
+--------------------------------------------------------------------------------
+-- Proof of Preservation
+--------------------------------------------------------------------------------
+
+Renᶜ-typed : Renameᶜ → Ctx → Ctx → Set
+Renᶜ-typed ρ Γ Γ′ = ∀ {x A} → Γ ∋ x ⦂ A → Γ′ ∋ ρ x ⦂ A
+
+Substᶜ-typed : Substᶜ → Ctx → Ctx → Set
+Substᶜ-typed σ Γ Γ′ = ∀ {x A} → Γ ∋ x ⦂ A → Γ′ ⊢ᶜ σ x ⦂ A
+
+ext-renᶜ-typed
+  : ∀ {Γ Γ′ A ρ}
+  → Renᶜ-typed ρ Γ Γ′
+  → Renᶜ-typed (extᶜ ρ) (A ∷ Γ) (A ∷ Γ′)
+ext-renᶜ-typed ρ-typed Z = Z
+ext-renᶜ-typed ρ-typed (S ∋x) = S (ρ-typed ∋x)
+
+renameᶜ-preserve
+  : ∀ {Γ Γ′ M A ρ}
+  → Renᶜ-typed ρ Γ Γ′
+  → Γ ⊢ᶜ M ⦂ A
+  → Γ′ ⊢ᶜ renameᶜ ρ M ⦂ A
+renameᶜ-preserve ρ-typed (⊢` ∋x) = ⊢` (ρ-typed ∋x)
+renameᶜ-preserve ρ-typed ⊢$ = ⊢$
+renameᶜ-preserve ρ-typed (⊢ƛ N⦂B) =
+  ⊢ƛ (renameᶜ-preserve (ext-renᶜ-typed ρ-typed) N⦂B)
+renameᶜ-preserve ρ-typed (⊢· L⦂ M⦂) =
+  ⊢· (renameᶜ-preserve ρ-typed L⦂) (renameᶜ-preserve ρ-typed M⦂)
+renameᶜ-preserve ρ-typed (⊢cast M⦂ c⦂) =
+  ⊢cast (renameᶜ-preserve ρ-typed M⦂) c⦂
+renameᶜ-preserve ρ-typed (⊢! M⦂ g vM) =
+  ⊢! (renameᶜ-preserve ρ-typed M⦂) g (helper vM)
+  where
+  helper : ∀ {V} → Valueᶜ V → Valueᶜ (renameᶜ _ V)
+  helper V-$ = V-$
+  helper V-ƛ = V-ƛ
+  helper (V-! vV) = V-! (helper vV)
+  helper (V-cast↦ vV) = V-cast↦ (helper vV)
+renameᶜ-preserve ρ-typed ⊢blame = ⊢blame
+
+wk-renᶜ-typed : ∀ {Γ A} → Renᶜ-typed suc Γ (A ∷ Γ)
+wk-renᶜ-typed ∋x = S ∋x
+
+ext-substᶜ-typed
+  : ∀ {Γ Γ′ A σ}
+  → Substᶜ-typed σ Γ Γ′
+  → Substᶜ-typed (extsᶜ σ) (A ∷ Γ) (A ∷ Γ′)
+ext-substᶜ-typed σ-typed Z = ⊢` Z
+ext-substᶜ-typed σ-typed (S ∋x) =
+  renameᶜ-preserve wk-renᶜ-typed (σ-typed ∋x)
+
+substᶜ-preserve
+  : ∀ {Γ Γ′ M A σ}
+  → Substᶜ-typed σ Γ Γ′
+  → Γ ⊢ᶜ M ⦂ A
+  → Γ′ ⊢ᶜ substᶜ σ M ⦂ A
+substᶜ-preserve σ-typed (⊢` ∋x) = σ-typed ∋x
+substᶜ-preserve σ-typed ⊢$ = ⊢$
+substᶜ-preserve σ-typed (⊢ƛ N⦂B) =
+  ⊢ƛ (substᶜ-preserve (ext-substᶜ-typed σ-typed) N⦂B)
+substᶜ-preserve σ-typed (⊢· L⦂ M⦂) =
+  ⊢· (substᶜ-preserve σ-typed L⦂) (substᶜ-preserve σ-typed M⦂)
+substᶜ-preserve σ-typed (⊢cast M⦂ c⦂) =
+  ⊢cast (substᶜ-preserve σ-typed M⦂) c⦂
+substᶜ-preserve σ-typed (⊢! M⦂ g vM) =
+  ⊢! (substᶜ-preserve σ-typed M⦂) g (helper vM)
+  where
+  helper : ∀ {V} → Valueᶜ V → Valueᶜ (substᶜ _ V)
+  helper V-$ = V-$
+  helper V-ƛ = V-ƛ
+  helper (V-! vV) = V-! (helper vV)
+  helper (V-cast↦ vV) = V-cast↦ (helper vV)
+substᶜ-preserve σ-typed ⊢blame = ⊢blame
+
+single-substᶜ-typed
+  : ∀ {A V}
+  → [] ⊢ᶜ V ⦂ A
+  → Substᶜ-typed (singleEnvᶜ V) (A ∷ []) []
+single-substᶜ-typed V⦂ Z = V⦂
+single-substᶜ-typed V⦂ (S ())
+
+substᶜ-preserve-single
+  : ∀ {A B N V}
+  → (A ∷ []) ⊢ᶜ N ⦂ B
+  → [] ⊢ᶜ V ⦂ A
+  → [] ⊢ᶜ N [ V ]ᶜ ⦂ B
+substᶜ-preserve-single N⦂ V⦂ = substᶜ-preserve (single-substᶜ-typed V⦂) N⦂
+
+frame-blameᶜ
+  : ∀ {F A}
+  → [] ⊢ᶜ plug F blame ⦂ A
+  → [] ⊢ᶜ blame ⦂ A
+frame-blameᶜ {F = □· M} (⊢· L⦂ M⦂) = ⊢blame
+frame-blameᶜ {F = V ·□ vV} (⊢· V⦂ M⦂) = ⊢blame
+frame-blameᶜ {F = cast□[ c ]} (⊢cast M⦂ c⦂) = ⊢blame
+
+mutual
+  preserveᶜ : ∀ {M N A}
+      → [] ⊢ᶜ M ⦂ A
+      → M —→ᶜ N
+      → [] ⊢ᶜ N ⦂ A
+  preserveᶜ M⦂A (ξξ {F = F} refl refl M→N) =
+    frame-preserveᶜ {F = F} M⦂A M→N
+  preserveᶜ (⊢· (⊢ƛ N⦂B) V⦂A) (β-ƛ vV) =
+    substᶜ-preserve-single N⦂B V⦂A
+  preserveᶜ (⊢cast V⦂A ⊢idᶜ) (β-id vV) = V⦂A
+  preserveᶜ (⊢cast V⦂A (⊢⨟ c⦂ d⦂)) (β-seq vV) =
+    ⊢cast (⊢cast V⦂A c⦂) d⦂
+  preserveᶜ (⊢· (⊢cast V⦂ (⊢↦ c⦂ d⦂)) W⦂) (β-↦ vV vW) =
+    ⊢cast (⊢· V⦂ (⊢cast W⦂ c⦂)) d⦂
+  preserveᶜ (⊢cast (⊢! V⦂ g vV′) (⊢? x)) (β-proj-inj-ok vV) = V⦂
+  preserveᶜ M⦂A (β-proj-inj-bad vV G≢H) = ⊢blame
+  preserveᶜ (⊢cast V⦂ (⊢! g)) (β-inj vV) = ⊢! V⦂ g vV
+  preserveᶜ M⦂A (ξξ-blame {F = F} refl) = frame-blameᶜ {F = F} M⦂A
+
+  frame-preserveᶜ
+    : ∀ {F M N A}
+    → [] ⊢ᶜ plug F M ⦂ A
+    → M —→ᶜ N
+    → [] ⊢ᶜ plug F N ⦂ A
+  frame-preserveᶜ {F = □· M₁} (⊢· M⦂ M₁⦂) M→N =
+    ⊢· (preserveᶜ M⦂ M→N) M₁⦂
+  frame-preserveᶜ {F = V ·□ vV} (⊢· V⦂ M⦂) M→N =
+    ⊢· V⦂ (preserveᶜ M⦂ M→N)
+  frame-preserveᶜ {F = cast□[ c ]} (⊢cast M⦂ c⦂) M→N =
+    ⊢cast (preserveᶜ M⦂ M→N) c⦂

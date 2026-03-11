@@ -1,9 +1,16 @@
 module Types where
 
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; _≢_)
+open import Data.Empty using (⊥; ⊥-elim)
+
 data Ty : Set where
   ℕ   : Ty
   ★   : Ty
   _⇒_ : Ty → Ty → Ty
+
+data Ground : Ty → Set where
+  G-ℕ : Ground ℕ
+  G-⇒ : Ground (★ ⇒ ★)
 
 ------------------------------------------------------------
 -- Type Consistency
@@ -85,3 +92,28 @@ app-consistency
   → A′ ~ B′
 app-consistency A′⊑A A~B B′⊑B = prec-left A′⊑A (prec-right A~B B′⊑B)
 
+ground-upper-unique
+  : ∀ {G H A}
+  → Ground G
+  → Ground H
+  → G ⊑ A
+  → H ⊑ A
+  → G ≡ H
+ground-upper-unique G-ℕ G-ℕ ⊑-ℕ ⊑-ℕ = refl
+ground-upper-unique G-ℕ G-⇒ ⊑-ℕ ()
+ground-upper-unique G-⇒ G-ℕ (⊑-⇒ _ _) ()
+ground-upper-unique G-⇒ G-⇒ (⊑-⇒ _ _) (⊑-⇒ _ _) = refl
+
+ground-not-⊑★ : ∀ {G} → Ground G → G ⊑ ★ → ⊥
+ground-not-⊑★ G-ℕ ()
+ground-not-⊑★ G-⇒ ()
+
+ℕ-⊑-inv : ∀ {A} → ℕ ⊑ A → A ≡ ℕ
+ℕ-⊑-inv ⊑-ℕ = refl
+
+less-ground-not-★ : ∀ {G A}
+  → Ground G
+  → G ⊑ A
+  → A ≢ ★
+less-ground-not-★ G-ℕ () refl
+less-ground-not-★ G-⇒ () refl

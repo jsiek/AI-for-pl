@@ -36,7 +36,6 @@ open import Coercions using
   ; ⊢idᶜ
   ; ⊢?
   ; ⊢↦
-  ; G-⇒
   )
 open import CastCalculus
 
@@ -140,4 +139,3 @@ compile-precision {A = A} {A′ = A′} M≤M′ M⦂A M′⦂A′ =
       (compile-preserves-precision []⊑[] d))
   where
   d = term-precision-⊑ᵀ M⦂A M′⦂A′ M≤M′
-

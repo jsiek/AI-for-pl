@@ -10,10 +10,6 @@ open import GTLC
 infixr 7 _⨟_
 infixr 6 _↦_
 
-data Ground : Ty → Set where
-  G-ℕ : Ground ℕ
-  G-⇒ : Ground (★ ⇒ ★)
-
 data Coercion : Set where
   idᶜ  : Ty → Coercion
   _!   : Ty → Coercion

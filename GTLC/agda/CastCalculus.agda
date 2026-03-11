@@ -19,14 +19,20 @@ data Termᶜ : Set where
   ƛ_⇒_    : Ty → Termᶜ → Termᶜ
   _·_     : Termᶜ → Termᶜ → Termᶜ
   cast_[_] : Termᶜ → Coercion → Termᶜ
-  inj_[_]! : Termᶜ → Ty → Termᶜ
   blame   : Termᶜ
+
+inj : Termᶜ → Ty → Termᶜ
+inj M G = cast M [ G ! ]
+
+syntax inj M G = inj M [ G ]!
 
 data Valueᶜ : Termᶜ → Set where
   V-$ : ∀ {n} → Valueᶜ ($ n)
   V-ƛ : ∀ {A N} → Valueᶜ (ƛ A ⇒ N)
-  V-! : ∀ {V G} → Valueᶜ V → Valueᶜ (inj V [ G ]!)
+  V-cast! : ∀ {V G} → Valueᶜ V → Valueᶜ (cast V [ G ! ])
   V-cast↦ : ∀ {V c d} → Valueᶜ V → Valueᶜ (cast V [ c ↦ d ])
+
+pattern V-! v = V-cast! v
 
 data Frameᶜ : Set where
   □·_     : Termᶜ → Frameᶜ
@@ -65,12 +71,6 @@ data _⊢ᶜ_⦂_ : Ctx → Termᶜ → Ty → Set where
     → Γ ⊢ᶜ M ⦂ A
     → ⊢ c ⦂ A ⇨ B
     → Γ ⊢ᶜ cast M [ c ] ⦂ B
-
-  ⊢! : ∀ {Γ M G}
-    → Γ ⊢ᶜ M ⦂ G
-    → Ground G
-    → Valueᶜ M
-    → Γ ⊢ᶜ inj M [ G ]! ⦂ ★
 
   ⊢blame : ∀ {Γ A}
     → Γ ⊢ᶜ blame ⦂ A
@@ -118,20 +118,6 @@ data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Ter
     → idᶜ A ⊑ᶜ c′
     → ρ ⊢ M ⦂ A ⊑ᶜᵀ cast M′ [ c′ ] ⦂ B′
 
-  ⊑inj : ∀ {G M M′}
-    → ρ ⊢ M ⦂ G ⊑ᶜᵀ M′ ⦂ G
-    → Valueᶜ M
-    → Valueᶜ M′
-    → Ground G
-    → ρ ⊢ inj M [ G ]! ⦂ ★ ⊑ᶜᵀ inj M′ [ G ]! ⦂ ★
-
-  ⊑injL : ∀ {G A′ M M′}
-    → ρ ⊢ M ⦂ G ⊑ᶜᵀ M′ ⦂ A′
-    → Valueᶜ M
-    → Ground G
-    → Valueᶜ M′
-    → ρ ⊢ inj M [ G ]! ⦂ ★ ⊑ᶜᵀ M′ ⦂ A′
-
   ⊑blameR : ∀ {A₁ A₂ M}
     → Γ₁ ⊢ᶜ M ⦂ A₁
     → A₁ ⊑ A₂
@@ -150,8 +136,6 @@ data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Ter
 ⊑ᶜᵀ-left-typed (⊑castL M⊑M′ cwt _) = ⊢cast (⊑ᶜᵀ-left-typed M⊑M′) cwt
 ⊑ᶜᵀ-left-typed (⊑castR M⊑M′ _ _) = ⊑ᶜᵀ-left-typed M⊑M′
 ⊑ᶜᵀ-left-typed (⊑blameR M⦂A₁ _) = M⦂A₁
-⊑ᶜᵀ-left-typed (⊑inj M⊑M′ vM vM′ g) = ⊢! (⊑ᶜᵀ-left-typed M⊑M′) g vM
-⊑ᶜᵀ-left-typed (⊑injL M⊑M′ vM g VM′) = ⊢! (⊑ᶜᵀ-left-typed M⊑M′) g vM
 
 
 ⊑ᶜᵀ-right-typed
@@ -167,8 +151,6 @@ data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Ter
 ⊑ᶜᵀ-right-typed (⊑castL M⊑M′ _ _) = ⊑ᶜᵀ-right-typed M⊑M′
 ⊑ᶜᵀ-right-typed (⊑castR M⊑M′ c′wt _) = ⊢cast (⊑ᶜᵀ-right-typed M⊑M′) c′wt
 ⊑ᶜᵀ-right-typed (⊑blameR M⦂A₁ A₁⊑A₂) = ⊢blame
-⊑ᶜᵀ-right-typed (⊑inj M⊑M′ vM vM′ g) = ⊢! (⊑ᶜᵀ-right-typed M⊑M′) g vM′
-⊑ᶜᵀ-right-typed (⊑injL M⊑M′ vM g vM′) = ⊑ᶜᵀ-right-typed M⊑M′
 
 ⊑ᶜᵀ-type-precision
   : ∀ {Γ₁ Γ₂} {ρ : Γ₁ ⊑ᵉ Γ₂} {A₁ A₂ M M′}
@@ -187,8 +169,6 @@ data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Ter
 ⊑ᶜᵀ-type-precision (⊑castR _ c′wt id⊑c′) with ⊑ᶜ→⊑ c′wt ⊢idᶜ id⊑c′
 ... | _ , A⊑B′ = A⊑B′
 ⊑ᶜᵀ-type-precision (⊑blameR _ A₁⊑A₂) = A₁⊑A₂
-⊑ᶜᵀ-type-precision (⊑inj M⊑M′ vM vM′ g) = ⊑-★
-⊑ᶜᵀ-type-precision (⊑injL M⊑M′ vM g vM′) = ⊑-★
 
 --------------------------------------------------------------------------------
 -- Substitution
@@ -210,7 +190,6 @@ renameᶜ ρ ($ n) = $ n
 renameᶜ ρ (ƛ A ⇒ N) = ƛ A ⇒ renameᶜ (extᶜ ρ) N
 renameᶜ ρ (L · M) = renameᶜ ρ L · renameᶜ ρ M
 renameᶜ ρ (cast M [ c ]) = cast (renameᶜ ρ M) [ c ]
-renameᶜ ρ (inj M [ G ]!) = inj (renameᶜ ρ M) [ G ]!
 renameᶜ ρ blame = blame
 
 extsᶜ : Substᶜ → Substᶜ
@@ -223,7 +202,6 @@ substᶜ σ ($ n) = $ n
 substᶜ σ (ƛ A ⇒ N) = ƛ A ⇒ substᶜ (extsᶜ σ) N
 substᶜ σ (L · M) = substᶜ σ L · substᶜ σ M
 substᶜ σ (cast M [ c ]) = cast (substᶜ σ M) [ c ]
-substᶜ σ (inj M [ G ]!) = inj (substᶜ σ M) [ G ]!
 substᶜ σ blame = blame
 
 singleEnvᶜ : Termᶜ → Substᶜ
@@ -266,16 +244,12 @@ data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
 
   β-proj-inj-ok : ∀ {V G}
     → Valueᶜ V
-    → cast (inj V [ G ]!) [ G `? ] —→ᶜ V
+    → cast (cast V [ G ! ]) [ G `? ] —→ᶜ V
 
   β-proj-inj-bad : ∀ {V G H}
     → Valueᶜ V
     → G ≢ H
-    → cast (inj V [ G ]!) [ H `? ] —→ᶜ blame
-
-  β-inj : ∀{V}{G}
-    → Valueᶜ V
-    → cast V [ G ! ] —→ᶜ inj V [ G ]!
+    → cast (cast V [ G ! ]) [ H `? ] —→ᶜ blame
 
   ξξ-blame : ∀ {F M′}
     → M′ ≡ plug F blame
@@ -360,10 +334,10 @@ _≟Ty_ : (A B : Ty) → Dec (A ≡ B)
 canonical-★-inj : ∀ {V}
   → Valueᶜ V
   → [] ⊢ᶜ V ⦂ ★
-  → ∃[ G ] ∃[ W ] (Valueᶜ W × (V ≡ inj W [ G ]!))
+  → ∃[ G ] ∃[ W ] (Valueᶜ W × (V ≡ cast W [ G ! ]))
 canonical-★-inj V-$ ()
 canonical-★-inj V-ƛ ()
-canonical-★-inj (V-! {V = W} vW) (⊢! pf x x₁) = _ , W , vW , refl
+canonical-★-inj (V-cast! {V = W} {G = G} vW) (⊢cast _ (⊢! _)) = G , W , vW , refl
 canonical-★-inj (V-cast↦ vV) (⊢cast _ ())
 
 canonical-⇒
@@ -374,6 +348,7 @@ canonical-⇒
     ⊎ (∃[ W ] ∃[ c ] ∃[ d ] (Valueᶜ W × (V ≡ cast W [ c ↦ d ])))
 canonical-⇒ V-$ ()
 canonical-⇒ (V-ƛ {N = N}) (⊢ƛ {A = A} N⦂B) = inj₁ (N , refl)
+canonical-⇒ (V-cast! vW) (⊢cast _ ())
 canonical-⇒ (V-cast↦ {V = W} {c = c} {d = d} vW) pf with pf
 ... | ⊢cast _ cwt with cwt
 ... | ⊢↦ _ _ = inj₂ (W , c , d , (vW , refl))
@@ -396,7 +371,7 @@ progressᶜ (⊢cast {c = c} M⦂A c⦂A⇨B) with progressᶜ M⦂A
 ... | crash refl = step (ξ-blame cast□[ c ])
 ... | done vM with c⦂A⇨B
 ... | ⊢idᶜ = step (β-id vM)
-... | ⊢! g = step (β-inj vM)
+... | ⊢! g = done (V-cast! vM)
 ... | ⊢↦ cwt dwt = done (V-cast↦ vM)
 ... | ⊢⨟ cwt dwt = step (β-seq vM)
 ... | ⊢? {G = G} g with canonical-★-inj vM M⦂A
@@ -404,7 +379,6 @@ progressᶜ (⊢cast {c = c} M⦂A c⦂A⇨B) with progressᶜ M⦂A
 ... | yes refl = step (β-proj-inj-ok vW)
 ... | no H≢G = step (β-proj-inj-bad vW H≢G)
 progressᶜ ⊢blame = crash refl
-progressᶜ (⊢! M⦂ g vM) = done (V-! vM)
 
 --------------------------------------------------------------------------------
 -- Proof of Preservation
@@ -436,14 +410,6 @@ renameᶜ-preserve ρ-typed (⊢· L⦂ M⦂) =
   ⊢· (renameᶜ-preserve ρ-typed L⦂) (renameᶜ-preserve ρ-typed M⦂)
 renameᶜ-preserve ρ-typed (⊢cast M⦂ c⦂) =
   ⊢cast (renameᶜ-preserve ρ-typed M⦂) c⦂
-renameᶜ-preserve ρ-typed (⊢! M⦂ g vM) =
-  ⊢! (renameᶜ-preserve ρ-typed M⦂) g (helper vM)
-  where
-  helper : ∀ {V} → Valueᶜ V → Valueᶜ (renameᶜ _ V)
-  helper V-$ = V-$
-  helper V-ƛ = V-ƛ
-  helper (V-! vV) = V-! (helper vV)
-  helper (V-cast↦ vV) = V-cast↦ (helper vV)
 renameᶜ-preserve ρ-typed ⊢blame = ⊢blame
 
 wk-renᶜ-typed : ∀ {Γ A} → suc ⦂ Γ ⇒ʳ (A ∷ Γ)
@@ -463,7 +429,7 @@ substᶜ-preserve-value
   → Valueᶜ (substᶜ σ V)
 substᶜ-preserve-value V-$ = V-$
 substᶜ-preserve-value V-ƛ = V-ƛ
-substᶜ-preserve-value (V-! vV) = V-! (substᶜ-preserve-value vV)
+substᶜ-preserve-value (V-cast! vV) = V-cast! (substᶜ-preserve-value vV)
 substᶜ-preserve-value (V-cast↦ vV) = V-cast↦ (substᶜ-preserve-value vV)
 
 substᶜ-preserve
@@ -479,8 +445,6 @@ substᶜ-preserve σ-typed (⊢· L⦂ M⦂) =
   ⊢· (substᶜ-preserve σ-typed L⦂) (substᶜ-preserve σ-typed M⦂)
 substᶜ-preserve σ-typed (⊢cast M⦂ c⦂) =
   ⊢cast (substᶜ-preserve σ-typed M⦂) c⦂
-substᶜ-preserve σ-typed (⊢! M⦂ g vM) =
-  ⊢! (substᶜ-preserve σ-typed M⦂) g (substᶜ-preserve-value vM)
 substᶜ-preserve σ-typed ⊢blame = ⊢blame
 
 single-substᶜ-typed
@@ -519,9 +483,8 @@ mutual
     ⊢cast (⊢cast V⦂A c⦂) d⦂
   preserveᶜ (⊢· (⊢cast V⦂ (⊢↦ c⦂ d⦂)) W⦂) (β-↦ vV vW) =
     ⊢cast (⊢· V⦂ (⊢cast W⦂ c⦂)) d⦂
-  preserveᶜ (⊢cast (⊢! V⦂ g vV′) (⊢? x)) (β-proj-inj-ok vV) = V⦂
+  preserveᶜ (⊢cast (⊢cast V⦂ (⊢! g)) (⊢? x)) (β-proj-inj-ok vV) = V⦂
   preserveᶜ M⦂A (β-proj-inj-bad vV G≢H) = ⊢blame
-  preserveᶜ (⊢cast V⦂ (⊢! g)) (β-inj vV) = ⊢! V⦂ g vV
   preserveᶜ M⦂A (ξξ-blame {F = F} refl) = frame-blameᶜ {F = F} M⦂A
 
   frame-preserveᶜ

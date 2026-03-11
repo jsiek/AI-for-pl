@@ -806,13 +806,13 @@ sim-beta
       let prec : []⊑[] ⊢ cast U [ c₁ ↦ d₁ ] · W ⦂ B ⊑ᶜᵀ (ƛ A′₂ ⇒ N′) · W′ ⦂ B′
           prec = ⊑· (⊑castL V⊑λN′ (⊢↦ cwt₁ dwt₁) c⊑id) W⊑W′ in
       let red = cast U [ c₁ ↦ d₁ ] · W
-                —→ᶜ⟨ β-↦ vU vW ⟩
-              cast (U · cast W [ c₁ ]) [ d₁ ]
-                —↠ᶜ⟨ ξ* (cast□[ d₁ ]) (ξ* (U ·□ vU) W-c₁—↠W₁) ⟩
-              cast (U · W₁) [ d₁ ]
-                —↠ᶜ⟨ ξ* (cast□[ d₁ ]) UW₁—↠N ⟩
-              cast N [ d₁ ]
-              ∎ᶜ in
+                     —→ᶜ⟨ β-↦ vU vW ⟩
+                cast (U · cast W [ c₁ ]) [ d₁ ]
+                     —↠ᶜ⟨ ξ* (cast□[ d₁ ]) (ξ* (U ·□ vU) W-c₁—↠W₁) ⟩
+                cast (U · W₁) [ d₁ ]
+                     —↠ᶜ⟨ ξ* (cast□[ d₁ ]) UW₁—↠N ⟩
+                cast N [ d₁ ]
+                ∎ᶜ in
       let prec′ : []⊑[] ⊢ cast N [ d₁ ] ⦂ B ⊑ᶜᵀ N′ [ W′ ]ᶜ ⦂ B′
           prec′ = ⊑castL N⊑N′[W′] dwt₁ d₁⊑id in
       cast N [ d₁ ] , red , prec′

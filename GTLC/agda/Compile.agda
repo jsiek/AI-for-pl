@@ -19,7 +19,8 @@ compile (G.⊢ƛ {A = A} N⦂B) = ƛ A ⇒ compile N⦂B
 compile (G.⊢· L⦂A⇒B M⦂A′ A′~A) =
   compile L⦂A⇒B · cast compile M⦂A′ [ coerce A′~A ]
 compile (G.⊢·★ {A = A} L⦂★ M⦂A) =
-  cast compile L⦂★ [ coerce (★~-ty (★ ⇒ ★)) ] · cast compile M⦂A [ coerce (~★-ty A) ]
+  cast compile L⦂★ [ coerce (★~-ty (★ ⇒ ★)) ]
+    · cast compile M⦂A [ coerce (~★-ty A) ]
 
 compile-preserves : ∀ {Γ M A} (d : Γ G.⊢ M ⦂ A) → Γ ⊢ᶜ compile d ⦂ A
 compile-preserves (G.⊢` ∋x) = ⊢` (compile-∋ ∋x)

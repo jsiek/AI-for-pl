@@ -92,10 +92,8 @@ substᵗ-preserves-WfTy (wf`∀ hA) hσ =
 -- Renaming type variables in typing derivations
 ------------------------------------------------------------------------
 
-map-renameᵗ-⤊ :
-  (ρ : Renameᵗ) (Γ : Ctx) →
-  map (renameᵗ (extᵗ ρ)) (⤊ Γ) ≡
-  ⤊ (map (renameᵗ ρ) Γ)
+map-renameᵗ-⤊ : (ρ : Renameᵗ) (Γ : Ctx) →
+  map (renameᵗ (extᵗ ρ)) (⤊ Γ) ≡ ⤊ (map (renameᵗ ρ) Γ)
 map-renameᵗ-⤊ ρ [] = refl
 map-renameᵗ-⤊ ρ (A ∷ Γ) =
   cong₂ _∷_
@@ -106,16 +104,10 @@ map-renameᵗ-⤊ ρ (A ∷ Γ) =
         (sym (rename-rename-commute ρ suc A))))
     (map-renameᵗ-⤊ ρ Γ)
 
-typing-renameᵀ :
-  {Δ Δ' : TyCtx} {Γ : Ctx} {M : Term} {A : Ty} {ρ : Renameᵗ} →
+typing-renameᵀ : {Δ Δ' : TyCtx} {Γ : Ctx} {M : Term} {A : Ty} {ρ : Renameᵗ} →
   TyRenameWf Δ Δ' ρ →
   Δ ⊢ Γ ⊢ M ⦂ A →
   Δ' ⊢ map (renameᵗ ρ) Γ ⊢ renameᵀ ρ M ⦂ renameᵗ ρ A
-
-rename-[]ᵗ-commute :
-  (ρ : Renameᵗ) (A B : Ty) →
-  renameᵗ ρ (A [ B ]ᵗ) ≡
-  (renameᵗ (extᵗ ρ) A) [ renameᵗ ρ B ]ᵗ
 typing-renameᵀ hρ (⊢` h) =
   ⊢` (lookup-map-renameᵗ h)
 typing-renameᵀ hρ (⊢ƛ hA hN) =
@@ -153,10 +145,8 @@ typing-renameᵀ {Γ = Γ} {ρ = ρ} hρ (⊢·[] {M = M} {A = A} {B = B} hM hB)
 -- Substituting type variables in typing derivations
 ------------------------------------------------------------------------
 
-map-substᵗ-⤊ :
-  (σ : Substᵗ) (Γ : Ctx) →
-  map (substᵗ (extsᵗ σ)) (⤊ Γ) ≡
-  ⤊ (map (substᵗ σ) Γ)
+map-substᵗ-⤊ : (σ : Substᵗ) (Γ : Ctx) →
+  map (substᵗ (extsᵗ σ)) (⤊ Γ) ≡ ⤊ (map (substᵗ σ) Γ)
 map-substᵗ-⤊ σ [] = refl
 map-substᵗ-⤊ σ (A ∷ Γ) =
   cong₂ _∷_
@@ -165,40 +155,7 @@ map-substᵗ-⤊ σ (A ∷ Γ) =
       (sym (rename-subst suc σ A)))
     (map-substᵗ-⤊ σ Γ)
 
-rename-[]ᵗ-commute ρ A B =
-  trans
-    (trans
-      (cong (renameᵗ ρ) (single-subst-def A B))
-      (rename-subst ρ (singleTyEnv B) A))
-    (trans
-      (subst-cong env-eq A)
-      (sym (rename-subst-commute (extᵗ ρ) (singleTyEnv (renameᵗ ρ B)) A)))
-  where
-    env-eq : (i : ℕ) →
-      (λ j → renameᵗ ρ (singleTyEnv B j)) i ≡
-      (λ j → singleTyEnv (renameᵗ ρ B) (extᵗ ρ j)) i
-    env-eq zero = refl
-    env-eq (suc i) = refl
-
-subst-[]ᵗ-commute :
-  (σ : Substᵗ) (A B : Ty) →
-  substᵗ σ (A [ B ]ᵗ) ≡
-  (substᵗ (extsᵗ σ) A) [ substᵗ σ B ]ᵗ
-subst-[]ᵗ-commute σ A B =
-  trans
-    (cong (λ T → substᵗ σ T) (single-subst-def A B))
-    (trans
-      (sub-sub (singleTyEnv B) σ A)
-      (trans
-        (subst-cong env-eq A)
-        (sym (exts-sub-cons {sigma = σ} {a = A} {v = substᵗ σ B}))))
-  where
-    env-eq : (i : ℕ) → ((singleTyEnv B) ⨟ᵗ σ) i ≡ cons-sub (substᵗ σ B) σ i
-    env-eq zero = refl
-    env-eq (suc i) = refl
-
-typing-substᵀ :
-  {Δ Δ' : TyCtx} {Γ : Ctx} {M : Term} {A : Ty} {σ : Substᵗ} →
+typing-substᵀ : {Δ Δ' : TyCtx} {Γ : Ctx} {M : Term} {A : Ty} {σ : Substᵗ} →
   TySubstWf Δ Δ' σ →
   Δ ⊢ Γ ⊢ M ⦂ A →
   Δ' ⊢ map (substᵗ σ) Γ ⊢ substᵀ σ M ⦂ substᵗ σ A
@@ -235,23 +192,20 @@ typing-substᵀ {Γ = Γ} {σ = σ} hσ (⊢·[] {M = M} {A = A} {B = B} hM hB) 
       (typing-substᵀ hσ hM)
       (substᵗ-preserves-WfTy hB hσ))
 
-singleTySubstWf :
-  {Δ : TyCtx} {B : Ty} →
+singleTySubstWf : {Δ : TyCtx} {B : Ty} →
   WfTy Δ B →
   TySubstWf (suc Δ) Δ (singleTyEnv B)
 singleTySubstWf hB {zero} z<s = hB
 singleTySubstWf hB {suc X} (s<s x<Δ) = wfVar x<Δ
 
-substᵗ-renameᵗ-cancel :
-  (C B : Ty) →
+substᵗ-renameᵗ-cancel : (C B : Ty) →
   substᵗ (singleTyEnv B) (renameᵗ suc C) ≡ C
 substᵗ-renameᵗ-cancel C B =
   trans
     (rename-subst-commute suc (singleTyEnv B) C)
     (subst-id C)
 
-singleTySubst-⤊-cancel :
-  (Γ : Ctx) (B : Ty) →
+singleTySubst-⤊-cancel : (Γ : Ctx) (B : Ty) →
   map (substᵗ (singleTyEnv B)) (⤊ Γ) ≡ Γ
 singleTySubst-⤊-cancel [] B = refl
 singleTySubst-⤊-cancel (C ∷ Γ) B =
@@ -259,8 +213,7 @@ singleTySubst-⤊-cancel (C ∷ Γ) B =
     (substᵗ-renameᵗ-cancel C B)
     (singleTySubst-⤊-cancel Γ B)
 
-typing-single-substᵀ :
-  {Δ : TyCtx} {Γ : Ctx} {M : Term} {A B : Ty} →
+typing-single-substᵀ : {Δ : TyCtx} {Γ : Ctx} {M : Term} {A B : Ty} →
   (suc Δ) ⊢ (⤊ Γ) ⊢ M ⦂ A →
   WfTy Δ B →
   Δ ⊢ Γ ⊢ M [ B ]ᵀ ⦂ A [ B ]ᵗ
@@ -280,15 +233,13 @@ RenameWf Γ Γ' ρ = ∀ {x A} → Γ ∋ x ⦂ A → Γ' ∋ ρ x ⦂ A
 SubstWf : TyCtx → Ctx → Ctx → Subst → Set
 SubstWf Δ Γ Γ' σ = ∀ {x A} → Γ ∋ x ⦂ A → Δ ⊢ Γ' ⊢ σ x ⦂ A
 
-RenameWf-ext :
-  {Γ Γ' : Ctx} {B : Ty} {ρ : Rename} →
+RenameWf-ext : {Γ Γ' : Ctx} {B : Ty} {ρ : Rename} →
   RenameWf Γ Γ' ρ →
   RenameWf (B ∷ Γ) (B ∷ Γ') (ext ρ)
 RenameWf-ext hρ Z = Z
 RenameWf-ext hρ (S h) = S (hρ h)
 
-typing-rename :
-  {Δ : TyCtx} {Γ Γ' : Ctx} {M : Term} {A : Ty} {ρ : Rename} →
+typing-rename : {Δ : TyCtx} {Γ Γ' : Ctx} {M : Term} {A : Ty} {ρ : Rename} →
   RenameWf Γ Γ' ρ →
   Δ ⊢ Γ ⊢ M ⦂ A →
   Δ ⊢ Γ' ⊢ rename ρ M ⦂ A
@@ -314,30 +265,26 @@ typing-rename {Γ = Γ} {Γ' = Γ'} {ρ = ρ} hρ (⊢Λ hN) =
 typing-rename hρ (⊢·[] hM hB) =
   ⊢·[] (typing-rename hρ hM) hB
 
-rename-shift :
-  {Δ : TyCtx} {Γ : Ctx} {M : Term} {A B : Ty} →
+rename-shift : {Δ : TyCtx} {Γ : Ctx} {M : Term} {A B : Ty} →
   Δ ⊢ Γ ⊢ M ⦂ A →
   Δ ⊢ (B ∷ Γ) ⊢ rename suc M ⦂ A
 rename-shift hM =
   typing-rename (λ {x} {A} h → S h) hM
 
-SubstWf-exts :
-  {Δ : TyCtx} {Γ Γ' : Ctx} {B : Ty} {σ : Subst} →
+SubstWf-exts : {Δ : TyCtx} {Γ Γ' : Ctx} {B : Ty} {σ : Subst} →
   SubstWf Δ Γ Γ' σ →
   SubstWf Δ (B ∷ Γ) (B ∷ Γ') (exts σ)
 SubstWf-exts hσ Z = ⊢` Z
 SubstWf-exts hσ (S h) = rename-shift (hσ h)
 
-SubstWf-⇑ :
-  {Δ : TyCtx} {Γ Γ' : Ctx} {σ : Subst} →
+SubstWf-⇑ : {Δ : TyCtx} {Γ Γ' : Ctx} {σ : Subst} →
   SubstWf Δ Γ Γ' σ →
   SubstWf (suc Δ) (⤊ Γ) (⤊ Γ') (⇑ σ)
 SubstWf-⇑ hσ h with lookup-map-inv h
 ... | A , (hA , eq)
   rewrite eq = typing-renameᵀ (λ {i} i<Δ → s<s i<Δ) (hσ hA)
 
-typing-subst :
-  {Δ : TyCtx} {Γ Γ' : Ctx} {M : Term} {A : Ty} {σ : Subst} →
+typing-subst : {Δ : TyCtx} {Γ Γ' : Ctx} {M : Term} {A : Ty} {σ : Subst} →
   SubstWf Δ Γ Γ' σ →
   Δ ⊢ Γ ⊢ M ⦂ A →
   Δ ⊢ Γ' ⊢ subst σ M ⦂ A
@@ -358,15 +305,13 @@ typing-subst hσ (⊢Λ hN) =
 typing-subst hσ (⊢·[] hM hB) =
   ⊢·[] (typing-subst hσ hM) hB
 
-singleSubstWf :
-  {Δ : TyCtx} {Γ : Ctx} {A : Ty} {V : Term} →
+singleSubstWf : {Δ : TyCtx} {Γ : Ctx} {A : Ty} {V : Term} →
   Δ ⊢ Γ ⊢ V ⦂ A →
   SubstWf Δ (A ∷ Γ) Γ (singleEnv V)
 singleSubstWf hV Z = hV
 singleSubstWf hV (S h) = ⊢` h
 
-typing-single-subst :
-  {Δ : TyCtx} {Γ : Ctx} {N V : Term} {A B : Ty} →
+typing-single-subst : {Δ : TyCtx} {Γ : Ctx} {N V : Term} {A B : Ty} →
   Δ ⊢ (A ∷ Γ) ⊢ N ⦂ B →
   Δ ⊢ Γ ⊢ V ⦂ A →
   Δ ⊢ Γ ⊢ N [ V ] ⦂ B
@@ -377,8 +322,7 @@ typing-single-subst hN hV =
 -- Preservation
 ------------------------------------------------------------------------
 
-preservation :
-  {Δ : TyCtx} {Γ : Ctx} {M N : Term} {A : Ty} →
+preservation : {Δ : TyCtx} {Γ : Ctx} {M N : Term} {A : Ty} →
   Δ ⊢ Γ ⊢ M ⦂ A →
   M —→ N →
   Δ ⊢ Γ ⊢ N ⦂ A
@@ -400,8 +344,7 @@ preservation (⊢·[] (⊢Λ hN) hB) β-Λ =
 preservation (⊢·[] hM hB) (ξ-·[] s) =
   ⊢·[] (preservation hM s) hB
 
-multi-preservation :
-  {Δ : TyCtx} {Γ : Ctx} {M N : Term} {A : Ty} →
+multi-preservation : {Δ : TyCtx} {Γ : Ctx} {M N : Term} {A : Ty} →
   Δ ⊢ Γ ⊢ M ⦂ A →
   M —↠ N →
   Δ ⊢ Γ ⊢ N ⦂ A

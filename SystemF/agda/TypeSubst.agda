@@ -200,3 +200,36 @@ exts-sub-cons {sigma} {a} {v} =
         (trans
           (subst-cong (λ i → refl) (sigma j))
           (subst-id (sigma j)))
+
+rename-[]ᵗ-commute : (ρ : Renameᵗ) (A B : Ty) →
+  renameᵗ ρ (A [ B ]ᵗ) ≡ (renameᵗ (extᵗ ρ) A) [ renameᵗ ρ B ]ᵗ
+rename-[]ᵗ-commute ρ A B =
+  trans
+    (trans
+      (cong (renameᵗ ρ) (single-subst-def A B))
+      (rename-subst ρ (singleTyEnv B) A))
+    (trans
+      (subst-cong env-eq A)
+      (sym (rename-subst-commute (extᵗ ρ) (singleTyEnv (renameᵗ ρ B)) A)))
+  where
+    env-eq : (i : ℕ) →
+      (λ j → renameᵗ ρ (singleTyEnv B j)) i ≡
+      (λ j → singleTyEnv (renameᵗ ρ B) (extᵗ ρ j)) i
+    env-eq zero = refl
+    env-eq (suc i) = refl
+  
+subst-[]ᵗ-commute : (σ : Substᵗ) (A B : Ty) →
+  substᵗ σ (A [ B ]ᵗ) ≡ (substᵗ (extsᵗ σ) A) [ substᵗ σ B ]ᵗ
+subst-[]ᵗ-commute σ A B =
+  trans
+    (cong (λ T → substᵗ σ T) (single-subst-def A B))
+    (trans
+      (sub-sub (singleTyEnv B) σ A)
+      (trans
+        (subst-cong env-eq A)
+        (sym (exts-sub-cons {sigma = σ} {a = A} {v = substᵗ σ B}))))
+  where
+    env-eq : (i : ℕ) → ((singleTyEnv B) ⨟ᵗ σ) i ≡ cons-sub (substᵗ σ B) σ i
+    env-eq zero = refl
+    env-eq (suc i) = refl
+

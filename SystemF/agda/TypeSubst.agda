@@ -3,7 +3,7 @@ module TypeSubst where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans)
 open import Data.Nat using (ℕ; zero; suc)
-open import SystemF
+open import Types
 
 infixr 50 _⨟ᵗ_
 _⨟ᵗ_ : Substᵗ → Substᵗ → Substᵗ

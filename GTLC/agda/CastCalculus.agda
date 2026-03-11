@@ -251,10 +251,85 @@ data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
 pattern ξ F M—→N = ξξ {F = F} refl refl M—→N
 pattern ξ-blame F = ξξ-blame {F = F} refl
 
-postulate
+value-not-blameᶜ : ∀ {V} → Valueᶜ V → V ≡ blame → ⊥
+value-not-blameᶜ V-$ ()
+value-not-blameᶜ V-ƛ ()
+value-not-blameᶜ (V-cast! vV) ()
+value-not-blameᶜ (V-cast↦ vV) ()
+
+mutual
+  ξ-value-impossible : ∀ {V F M N}
+    → Valueᶜ V
+    → V ≡ plug F M
+    → M —→ᶜ N
+    → ⊥
+  ξ-value-impossible {F = □· _} V-$ ()
+  ξ-value-impossible {F = _ ·□ _} V-$ ()
+  ξ-value-impossible {F = cast□[ _ ]} V-$ ()
+  ξ-value-impossible {F = □· _} V-ƛ ()
+  ξ-value-impossible {F = _ ·□ _} V-ƛ ()
+  ξ-value-impossible {F = cast□[ _ ]} V-ƛ ()
+  ξ-value-impossible {F = □· _} (V-cast! vV) ()
+  ξ-value-impossible {F = _ ·□ _} (V-cast! vV) ()
+  ξ-value-impossible {F = cast□[ _ ]} (V-cast! vV) refl M→N =
+    value-irreducible vV M→N
+  ξ-value-impossible {F = □· _} (V-cast↦ vV) ()
+  ξ-value-impossible {F = _ ·□ _} (V-cast↦ vV) ()
+  ξ-value-impossible {F = cast□[ _ ]} (V-cast↦ vV) refl M→N =
+    value-irreducible vV M→N
+
+  ξ-blame-value-impossible : ∀ {V F}
+    → Valueᶜ V
+    → V ≡ plug F blame
+    → ⊥
+  ξ-blame-value-impossible {F = □· _} V-$ ()
+  ξ-blame-value-impossible {F = _ ·□ _} V-$ ()
+  ξ-blame-value-impossible {F = cast□[ _ ]} V-$ ()
+  ξ-blame-value-impossible {F = □· _} V-ƛ ()
+  ξ-blame-value-impossible {F = _ ·□ _} V-ƛ ()
+  ξ-blame-value-impossible {F = cast□[ _ ]} V-ƛ ()
+  ξ-blame-value-impossible {F = □· _} (V-cast! vV) ()
+  ξ-blame-value-impossible {F = _ ·□ _} (V-cast! vV) ()
+  ξ-blame-value-impossible {F = cast□[ _ ]} (V-cast! vV) refl =
+    value-not-blameᶜ vV refl
+  ξ-blame-value-impossible {F = □· _} (V-cast↦ vV) ()
+  ξ-blame-value-impossible {F = _ ·□ _} (V-cast↦ vV) ()
+  ξ-blame-value-impossible {F = cast□[ _ ]} (V-cast↦ vV) refl =
+    value-not-blameᶜ vV refl
+
   value-irreducible : ∀ {V N} → Valueᶜ V → V —→ᶜ N → ⊥
-  var-irreducible : ∀ {x N} → ` x —→ᶜ N → ⊥
-  blame-irreducible : ∀ {N} → blame —→ᶜ N → ⊥
+  value-irreducible vV (ξξ V≡plugV N≡plugN M→N) =
+    ξ-value-impossible vV V≡plugV M→N
+  value-irreducible vV (ξξ-blame V≡blame) =
+    ξ-blame-value-impossible vV V≡blame
+
+var-irreducible : ∀ {x N} → ` x —→ᶜ N → ⊥
+var-irreducible (ξξ {F = □· _} eq _ _) with eq
+... | ()
+var-irreducible (ξξ {F = _ ·□ _} eq _ _) with eq
+... | ()
+var-irreducible (ξξ {F = cast□[ _ ]} eq _ _) with eq
+... | ()
+var-irreducible (ξξ-blame {F = □· _} eq) with eq
+... | ()
+var-irreducible (ξξ-blame {F = _ ·□ _} eq) with eq
+... | ()
+var-irreducible (ξξ-blame {F = cast□[ _ ]} eq) with eq
+... | ()
+
+blame-irreducible : ∀ {N} → blame —→ᶜ N → ⊥
+blame-irreducible (ξξ {F = □· _} eq _ _) with eq
+... | ()
+blame-irreducible (ξξ {F = _ ·□ _} eq _ _) with eq
+... | ()
+blame-irreducible (ξξ {F = cast□[ _ ]} eq _ _) with eq
+... | ()
+blame-irreducible (ξξ-blame {F = □· _} eq) with eq
+... | ()
+blame-irreducible (ξξ-blame {F = _ ·□ _} eq) with eq
+... | ()
+blame-irreducible (ξξ-blame {F = cast□[ _ ]} eq) with eq
+... | ()
 
 data _—↠ᶜ_ : Termᶜ → Termᶜ → Set where
   ms-refl : ∀ (M : Termᶜ)

@@ -23,7 +23,7 @@ open import DynamicGradualGuaranteeCore public
 
 inj-left-typed
   : ∀{V M′ G A′}
-  → []⊑[] ⊢ inj V [ G ]! ⦂ ★ ⊑ᶜᵀ M′ ⦂ A′
+  → []⊑[] ⊢ cast V [ G ! ] ⦂ ★ ⊑ᶜᵀ M′ ⦂ A′
   → [] ⊢ᶜ V ⦂ G
 inj-left-typed injV⊑M′
   with ⊑ᶜᵀ-left-typed injV⊑M′
@@ -69,21 +69,21 @@ cast-value-catchup {V = V} vV V⦂ ⊢idᶜ =
 cast-value-catchup {V = V} vV V⦂ (⊢! g) =
   cast V [ _ ! ]
   , (cast V [ _ ! ] ∎ᶜ)
-  , (inj₁ (V-! vV) , ⊢cast V⦂ (⊢! g))
+  , (inj₁ (V-cast! vV) , ⊢cast V⦂ (⊢! g))
 cast-value-catchup {V = V} vV V⦂ (⊢? {G = G} g)
     with canonical-★-inj vV V⦂
 ... | H , W , vW , refl
     with H ≟Ty G | V⦂
 ... | yes refl | ⊢cast W⦂ (⊢! gW) =
   W
-  , (cast (inj W [ G ]!) [ G `? ]
+  , (cast (cast W [ G ! ]) [ G `? ]
        —→ᶜ⟨ β-proj-inj-ok vW ⟩
      W
      ∎ᶜ)
   , (inj₁ vW , W⦂)
 ... | no H≢G | ⊢cast W⦂ (⊢! gW) =
   blame
-  , (cast (inj W [ H ]!) [ G `? ]
+  , (cast (cast W [ H ! ]) [ G `? ]
        —→ᶜ⟨ β-proj-inj-bad vW H≢G ⟩
      blame
      ∎ᶜ)
@@ -400,7 +400,7 @@ sim-back-beta-cast
      ∎ᶜ)
   , ⊑castR VW⊑N₂ d′⦂ d≤d′
 
-cast-proj-not-value : ∀ {V G H} → Valueᶜ (cast (inj V [ G ]!) [ H `? ]) → ⊥
+cast-proj-not-value : ∀ {V G H} → Valueᶜ (cast (cast V [ G ! ]) [ H `? ]) → ⊥
 cast-proj-not-value ()
 
 blame-—↠ᶜ-value-impossible : ∀ {V} → Valueᶜ V → blame —↠ᶜ V → ⊥
@@ -424,10 +424,10 @@ cast-!-step-inv vV (ξξ-blame {F = cast□[ _ ! ]} refl) =
 
 cast-proj-ok-step-inv : ∀ {V G N}
   → Valueᶜ V
-  → cast (inj V [ G ]!) [ G `? ] —→ᶜ N
+  → cast (cast V [ G ! ]) [ G `? ] —→ᶜ N
   → N ≡ V
 cast-proj-ok-step-inv vV (ξξ {F = cast□[ _ `? ]} refl refl injV→N) =
-  ⊥-elim (value-irreducible (V-! vV) injV→N)
+  ⊥-elim (value-irreducible (V-cast! vV) injV→N)
 cast-proj-ok-step-inv vV (β-proj-inj-ok vV′) = refl
 cast-proj-ok-step-inv vV (β-proj-inj-bad vV′ G≢G) = ⊥-elim (G≢G refl)
 cast-proj-ok-step-inv vV (ξξ-blame {F = cast□[ _ `? ]} ())
@@ -435,10 +435,10 @@ cast-proj-ok-step-inv vV (ξξ-blame {F = cast□[ _ `? ]} ())
 cast-proj-bad-step-inv : ∀ {V G H N}
   → Valueᶜ V
   → (G ≡ H → ⊥)
-  → cast (inj V [ G ]!) [ H `? ] —→ᶜ N
+  → cast (cast V [ G ! ]) [ H `? ] —→ᶜ N
   → N ≡ blame
 cast-proj-bad-step-inv vV G≢H (ξξ {F = cast□[ _ `? ]} refl refl injV→N) =
-  ⊥-elim (value-irreducible (V-! vV) injV→N)
+  ⊥-elim (value-irreducible (V-cast! vV) injV→N)
 cast-proj-bad-step-inv vV G≢H (β-proj-inj-ok vV′) = ⊥-elim (G≢H refl)
 cast-proj-bad-step-inv vV G≢H (β-proj-inj-bad vV′ G≢H′) = refl
 cast-proj-bad-step-inv vV G≢H (ξξ-blame {F = cast□[ _ `? ]} ())
@@ -842,7 +842,7 @@ sim-back (⊑· {L′ = L′} {M′ = M′} L⊑L′ M⊑M′) (β-↦ vV vW)
 
 sim-back (⊑castL {M = cast V [ ℕ ! ]} {M′ = M′} {c = ℕ `?} injV⊑M′ (⊢? G-ℕ) c≤id)
          (β-proj-inj-ok {V = V} {G = ℕ} vV)
-    with value-right-catchup (V-! vV) injV⊑M′ | ⊑ᶜ→⊑ ⊢idᶜ (⊢? G-ℕ) c≤id
+    with value-right-catchup (V-cast! vV) injV⊑M′ | ⊑ᶜ→⊑ ⊢idᶜ (⊢? G-ℕ) c≤id
 ... | N′ , M′—↠N′ , inj₂ refl | ★⊑A′ , ⊑-ℕ =
   blame
   , M′—↠N′
@@ -857,7 +857,7 @@ sim-back (⊑castL {M = cast V [ ℕ ! ]} {M′ = M′} {c = ℕ `?} injV⊑M′
 sim-back
   (⊑castL {M = cast V [ (★ ⇒ ★) ! ]} {M′ = M′} {c = (★ ⇒ ★) `?} injV⊑M′ (⊢? G-⇒) c≤id)
   (β-proj-inj-ok {V = V} {G = ★ ⇒ ★} vV)
-    with value-right-catchup (V-! vV) injV⊑M′ | ⊑ᶜ→⊑ ⊢idᶜ (⊢? G-⇒) c≤id
+    with value-right-catchup (V-cast! vV) injV⊑M′ | ⊑ᶜ→⊑ ⊢idᶜ (⊢? G-⇒) c≤id
 ... | N′ , M′—↠N′ , inj₂ refl | ★⊑A′ , ⊑-⇒ A⊑A′ B⊑B′ =
   blame
   , M′—↠N′
@@ -881,7 +881,7 @@ sim-back
   (⊑cast {M = cast V [ G ! ]} {M′ = M′} {c = G `?} {c′ = c′}
     injV⊑M′ c≤c′ (⊢? g) c′⦂)
   (β-proj-inj-ok {V = V} {G = G} vV)
-    with value-right-catchup (V-! vV) injV⊑M′
+    with value-right-catchup (V-cast! vV) injV⊑M′
 ... | W′ , M′—↠W′ , inj₂ refl =
   blame
   , (cast M′ [ c′ ]
@@ -930,7 +930,7 @@ sim-back
 
 sim-back (⊑castL {M = cast V [ G ! ]} {M′ = M′} {c = ℕ `?} injV⊑M′ (⊢? G-ℕ) c≤id)
          (β-proj-inj-bad {V = V} {G = G} {H = ℕ} vV G≢ℕ)
-    with value-right-catchup (V-! vV) injV⊑M′ | ⊑ᶜ→⊑ ⊢idᶜ (⊢? G-ℕ) c≤id
+    with value-right-catchup (V-cast! vV) injV⊑M′ | ⊑ᶜ→⊑ ⊢idᶜ (⊢? G-ℕ) c≤id
 ... | N′ , M′—↠N′ , inj₂ refl | ★⊑A′ , ℕ⊑A′ =
   blame
   , M′—↠N′
@@ -945,7 +945,7 @@ sim-back (⊑castL {M = cast V [ G ! ]} {M′ = M′} {c = ℕ `?} injV⊑M′ (
 sim-back
   (⊑castL {M = cast V [ G ! ]} {M′ = M′} {c = (★ ⇒ ★) `?} injV⊑M′ (⊢? G-⇒) c≤id)
   (β-proj-inj-bad {V = V} {G = G} {H = ★ ⇒ ★} vV G≢⇒)
-    with value-right-catchup (V-! vV) injV⊑M′ | ⊑ᶜ→⊑ ⊢idᶜ (⊢? G-⇒) c≤id
+    with value-right-catchup (V-cast! vV) injV⊑M′ | ⊑ᶜ→⊑ ⊢idᶜ (⊢? G-⇒) c≤id
 ... | N′ , M′—↠N′ , inj₂ refl | ★⊑A′ , ⇒⊑A′ =
   blame
   , M′—↠N′
@@ -968,7 +968,7 @@ sim-back
   (⊑cast {M = cast V [ G ! ]} {M′ = M′} {c = H `?} {c′ = c′}
     injV⊑M′ c≤c′ (⊢? gH) c′⦂)
   (β-proj-inj-bad {V = V} {G = G} {H = H} vV G≢H)
-    with value-right-catchup (V-! vV) injV⊑M′
+    with value-right-catchup (V-cast! vV) injV⊑M′
 ... | W′ , M′—↠W′ , inj₂ refl =
   blame
   , (cast M′ [ c′ ]

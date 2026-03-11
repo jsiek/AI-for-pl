@@ -21,18 +21,11 @@ data Termᶜ : Set where
   cast_[_] : Termᶜ → Coercion → Termᶜ
   blame   : Termᶜ
 
-inj : Termᶜ → Ty → Termᶜ
-inj M G = cast M [ G ! ]
-
-syntax inj M G = inj M [ G ]!
-
 data Valueᶜ : Termᶜ → Set where
   V-$ : ∀ {n} → Valueᶜ ($ n)
   V-ƛ : ∀ {A N} → Valueᶜ (ƛ A ⇒ N)
   V-cast! : ∀ {V G} → Valueᶜ V → Valueᶜ (cast V [ G ! ])
   V-cast↦ : ∀ {V c d} → Valueᶜ V → Valueᶜ (cast V [ c ↦ d ])
-
-pattern V-! v = V-cast! v
 
 data Frameᶜ : Set where
   □·_     : Termᶜ → Frameᶜ

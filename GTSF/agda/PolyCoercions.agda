@@ -63,6 +63,9 @@ renameᵗ ρ (`U u)    = `U u
 renameᵗ ρ (A ⇒ B)   = renameᵗ ρ A ⇒ renameᵗ ρ B
 renameᵗ ρ (`∀ A)    = `∀ (renameᵗ (extᵗ ρ) A)
 
+renameΣ : Renameᵗ → Store → Store
+renameΣ ρ Σ = map (renameᵗ ρ) Σ
+
 extsᵗ : Substᵗ → Substᵗ
 extsᵗ σ zero    = ` zero
 extsᵗ σ (suc i) = renameᵗ suc (σ i)
@@ -76,6 +79,9 @@ substᵗ σ `★       = `★
 substᵗ σ (`U u)   = `U u
 substᵗ σ (A ⇒ B)  = substᵗ σ A ⇒ substᵗ σ B
 substᵗ σ (`∀ A)   = `∀ (substᵗ (extsᵗ σ) A)
+
+substΣ : Substᵗ → Store → Store
+substΣ σ Σ = map (substᵗ σ) Σ
 
 singleTyEnv : Ty → Substᵗ
 singleTyEnv B zero    = B
@@ -111,7 +117,7 @@ data WfTy : TyCtx → Store → Ty → Set where
   wf★    : ∀ {Δ Σ} → WfTy Δ Σ `★
   wfU    : ∀ {Δ Σ U A} → Σ ∋ᵁ U ⦂ A → WfTy Δ Σ (`U U)
   wf⇒    : ∀ {Δ Σ A B} → WfTy Δ Σ A → WfTy Δ Σ B → WfTy Δ Σ (A ⇒ B)
-  wf∀    : ∀ {Δ Σ A} → WfTy (suc Δ) Σ A → WfTy Δ Σ (`∀ A)
+  wf∀    : ∀ {Δ Σ A} → WfTy (suc Δ) (renameΣ suc Σ) A → WfTy Δ Σ (`∀ A)
 
 data NonDyn : Ty → Set where
   ndVar  : ∀ {X} → NonDyn (` X)
@@ -212,7 +218,7 @@ data _∣_⊢_⦂_⇨_ (Σ : Store) (Δ : TyCtx) : Coercion → Ty → Ty → Se
     → Σ ∣ Δ ⊢ U ⁺ ⦂ `U U ⇨ A
 
   ⊢∀ᶜ : ∀ {A B c}
-    → Σ ∣ suc Δ ⊢ c ⦂ A ⇨ B
+    → renameΣ suc Σ ∣ suc Δ ⊢ c ⦂ A ⇨ B
     → Σ ∣ Δ ⊢ ∀ᶜ c ⦂ `∀ A ⇨ `∀ B
 
   ⊢⊥ : ∀ {p A B}

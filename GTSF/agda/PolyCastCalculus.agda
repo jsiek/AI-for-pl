@@ -65,7 +65,7 @@ data _∣_⊢_⊢_⦂_ (Σ : Store) (Δ : TyCtx) : Ctx → Term → Ty → Set w
     → Σ ∣ Δ ⊢ Γ ⊢ (L · M) ⦂ B
 
   ⊢Λ : ∀ {Γ M A}
-    → Σ ∣ suc Δ ⊢ ⤊ Γ ⊢ M ⦂ A
+    → renameΣ suc Σ ∣ suc Δ ⊢ ⤊ Γ ⊢ M ⦂ A
     → Σ ∣ Δ ⊢ Γ ⊢ (Λ M ⦂ A) ⦂ (`∀ A)
 
   ⊢·[] : ∀ {Γ M A B}

@@ -18,6 +18,9 @@ data Termᶜ : Set where
   $_      : Nat → Termᶜ
   ƛ_⇒_    : Ty → Termᶜ → Termᶜ
   _·_     : Termᶜ → Termᶜ → Termᶜ
+--  ⟨_,_⟩
+--  fst_
+--  snd_
   cast_[_] : Termᶜ → Coercion → Termᶜ
   blame   : Termᶜ
 
@@ -26,6 +29,8 @@ data Valueᶜ : Termᶜ → Set where
   V-ƛ : ∀ {A N} → Valueᶜ (ƛ A ⇒ N)
   V-cast! : ∀ {V G} → Valueᶜ V → Valueᶜ (cast V [ G ! ])
   V-cast↦ : ∀ {V c d} → Valueᶜ V → Valueᶜ (cast V [ c ↦ d ])
+  -- ⟨ V , W ⟩
+  --- Value V → Value (cast V [ c × d ])   (inert/lazy)
 
 data Frameᶜ : Set where
   □·_     : Termᶜ → Frameᶜ
@@ -235,6 +240,12 @@ data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
     → Valueᶜ W
     → cast V [ c ↦ d ] · W —→ᶜ cast (V · cast W [ c ]) [ d ]
 
+  -- fst ⟨ V , W ⟩ —→ᶜ V
+  -- snd ⟨ V , W ⟩ —→ᶜ W
+
+  --  cast ⟨ V , W ⟩ [ c × d ]
+  --        —→ᶜ ⟨ cast V [ c ] , cast W [ d ] ⟩
+  
   β-proj-inj-ok : ∀ {V G}
     → Valueᶜ V
     → cast (cast V [ G ! ]) [ G `? ] —→ᶜ V

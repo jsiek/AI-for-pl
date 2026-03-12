@@ -150,6 +150,20 @@ sub-sub sigma tau (`∀ a) =
     (cong `∀ (sub-sub (extsᵗ sigma) (extsᵗ tau) a))
     (cong `∀ (subst-cong (exts-seq sigma tau) a))
 
+rename-id : (A : Ty) → renameᵗ (λ x → x) A ≡ A
+rename-id (` i) = refl
+rename-id `ℕ = refl
+rename-id `Bool = refl
+rename-id `Str = refl
+rename-id `★ = refl
+rename-id (`U u) = refl
+rename-id (a ⇒ b) = cong₂ _⇒_ (rename-id a) (rename-id b)
+rename-id (`∀ a) = trans (cong `∀ (rename-cong ext-id a)) (cong `∀ (rename-id a))
+  where
+    ext-id : (i : ℕ) → extᵗ (λ x → x) i ≡ i
+    ext-id zero = refl
+    ext-id (suc i) = refl
+
 subst-id : (a : Ty) → substᵗ `_ a ≡ a
 subst-id (` i) = refl
 subst-id `ℕ = refl
@@ -260,4 +274,3 @@ subst-[]ᵗ-commute σ A B =
     env-eq : (i : ℕ) → ((singleTyEnv B) ⨟ᵗ σ) i ≡ cons-sub (substᵗ σ B) σ i
     env-eq zero = refl
     env-eq (suc i) = refl
-

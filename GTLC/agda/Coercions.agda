@@ -12,10 +12,11 @@ infixr 6 _↦_
 
 data Coercion : Set where
   idᶜ  : Ty → Coercion
-  _!   : Ty → Coercion
-  _`?  : Ty → Coercion
+  _!   : Ty → Coercion -- injection (tagging)
+  _`?  : Ty → Coercion -- projection (tag checking)
   _↦_  : Coercion → Coercion → Coercion
   _⨟_  : Coercion → Coercion → Coercion
+  _×_ : Coercion → Coercion → Coercion
 
 data Atomic : Coercion → Set where
   atom-idᶜ : ∀ {A} → Atomic (idᶜ A)
@@ -53,6 +54,7 @@ coerce ★~ℕ = ℕ `?
 coerce ℕ~★ = ℕ !
 coerce (★~⇒ c d) = (★ ⇒ ★) `? ⨟ (coerce c ↦ coerce d)
 coerce (⇒~★ c d) = (coerce c ↦ coerce d) ⨟ ((★ ⇒ ★) !)
+  --              A ⇒ B               ★ ⇒ ★            ★
 coerce (~-⇒ c d) = coerce c ↦ coerce d
 
 coerce-wt : ∀ {A B} (p : A ~ B) → ⊢ coerce p ⦂ A ⇨ B

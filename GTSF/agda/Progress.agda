@@ -180,6 +180,34 @@ reveal-progress : ∀ {S M U}
 reveal-progress {U = U} vM M⦂ with canonical-U vM M⦂
 ... | W , (vW , eq) rewrite eq = step (β-remove vW)
 
+closed-type-classify : ∀ {S B}
+  → WfTy zero S B
+  → (B ≡ `★) ⊎ NonDyn B
+closed-type-classify (wfVar ())
+closed-type-classify wfℕ = inj₂ ndℕ
+closed-type-classify wfBool = inj₂ ndBool
+closed-type-classify wfStr = inj₂ ndStr
+closed-type-classify wf★ = inj₁ refl
+closed-type-classify (wfU hU) = inj₂ ndU
+closed-type-classify (wf⇒ hA hB) = inj₂ nd⇒
+closed-type-classify (wf∀ hA) = inj₂ nd∀
+
+tyapp-progress-lam : ∀ {S N A₀ B}
+  → WfTy zero S B
+  → Progress S ((Λ N ⦂ A₀) ·[ B ])
+tyapp-progress-lam hB with closed-type-classify hB
+... | inj₁ refl = step β-ty★-plain
+... | inj₂ ndB = step (β-ty-plain ndB)
+
+tyapp-progress-wrapped : ∀ {S W c A B}
+  → Value W
+  → S ∣ zero ⊢ [] ⊢ (W ⟨ ∀ᶜ c ⟩) ⦂ `∀ A
+  → WfTy zero S B
+  → Progress S ((W ⟨ ∀ᶜ c ⟩) ·[ B ])
+tyapp-progress-wrapped vW (⊢⟨⟩ hW (⊢∀ᶜ cwt)) hB with closed-type-classify hB
+... | inj₁ refl = step (β-ty-wrap★ vW)
+... | inj₂ ndB = step (β-ty-wrap ndB vW (⊢∀ᶜ cwt))
+
 ------------------------------------------------------------------------
 -- Progress
 ------------------------------------------------------------------------
@@ -205,8 +233,8 @@ progress wfΣ (⊢·[] {M = M} {B = B} M⦂ hB) with progress wfΣ M⦂
 ... | step M→M′ = step (ξ (□·[ B ]) M→M′)
 ... | crash refl = step (ξ-blame (□·[ B ]))
 ... | done vM with canonical-∀ vM M⦂
-...   | inj₁ (N , (A₀ , refl)) = {!!}
-...   | inj₂ (W , (c , (vW , refl))) = {!!}
+...   | inj₁ (N , (A₀ , refl)) = tyapp-progress-lam hB
+...   | inj₂ (W , (c , (vW , refl))) = tyapp-progress-wrapped vW M⦂ hB
 progress wfΣ (⊢⟨⟩ {M = M} {c = c} M⦂ c⦂) with progress wfΣ M⦂
 ... | step M→M′ = step (ξ (□⟨ c ⟩) M→M′)
 ... | crash refl = step (ξ-blame (□⟨ c ⟩))

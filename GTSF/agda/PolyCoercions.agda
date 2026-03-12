@@ -119,8 +119,8 @@ data NonDyn : Ty → Set where
   ndBool : NonDyn `Bool
   ndStr  : NonDyn `Str
   ndU    : ∀ {U} → NonDyn (`U U)
-  nd⇒    : ∀ {A B} → NonDyn A → NonDyn B → NonDyn (A ⇒ B)
-  nd∀    : ∀ {A} → NonDyn A → NonDyn (`∀ A)
+  nd⇒    : ∀ {A B} → NonDyn (A ⇒ B)
+  nd∀    : ∀ {A} → NonDyn (`∀ A)
 
 data WfStore : TyCtx → Store → Set where
   wfΣ∅  : ∀ {Δ} → WfStore Δ []
@@ -220,4 +220,3 @@ data _∣_⊢_⦂_⇨_ (Σ : Store) (Δ : TyCtx) : Coercion → Ty → Ty → Se
     → WfTy Δ Σ A
     → WfTy Δ Σ B
     → Σ ∣ Δ ⊢ (⊥ᶜ p ⦂ A ⇨ B) ⦂ A ⇨ B
-

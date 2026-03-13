@@ -1,5 +1,7 @@
 module PolyCastCalculus where
 
+-- This is the λC_mp of Igarashi, Ozaki, Sekiyama, and Tanabe (PLDI 2024).
+
 open import Data.List using (List; []; _∷_; _++_; length)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (_≟_)
@@ -9,9 +11,9 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; _≢_)
 
 open import PolyCoercions
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Terms and term typing (Fig. 1 and Fig. 2 + standard rules)
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 data Const : Set where
   nat  : ℕ → Const
@@ -110,23 +112,6 @@ exts : Subst → Subst
 exts σ zero    = # zero
 exts σ (suc i) = rename suc (σ i)
 
-subst : Subst → Term → Term
-subst σ ($k k)      = $k k
-subst σ (# i)       = σ i
-subst σ (ƛ A ⇒ N)   = ƛ A ⇒ subst (exts σ) N
-subst σ (L · M)     = subst σ L · subst σ M
-subst σ (Λ N ⦂ A)   = Λ subst σ N ⦂ A
-subst σ (M ·[ A ])  = subst σ M ·[ A ]
-subst σ (M ⟨ c ⟩)   = subst σ M ⟨ c ⟩
-subst σ (blame p)   = blame p
-
-singleEnv : Term → Subst
-singleEnv M zero    = M
-singleEnv M (suc i) = # i
-
-_[_]ᴹ : Term → Term → Term
-N [ M ]ᴹ = subst (singleEnv M) N
-
 injᶜ : Ty → Coercion
 injᶜ `★ = idᶜ `★
 injᶜ A  = A !
@@ -166,6 +151,26 @@ renameᵀ ρ (Λ N ⦂ A)   = Λ renameᵀ (extᵗ ρ) N ⦂ renameᵗ (extᵗ �
 renameᵀ ρ (M ·[ A ])  = renameᵀ ρ M ·[ renameᵗ ρ A ]
 renameᵀ ρ (M ⟨ c ⟩)   = renameᵀ ρ M ⟨ renameᶜᵗ ρ c ⟩
 renameᵀ ρ (blame p)   = blame p
+
+⇑ : Subst → Subst
+⇑ σ i = renameᵀ suc (σ i)
+
+subst : Subst → Term → Term
+subst σ ($k k)      = $k k
+subst σ (# i)       = σ i
+subst σ (ƛ A ⇒ N)   = ƛ A ⇒ subst (exts σ) N
+subst σ (L · M)     = subst σ L · subst σ M
+subst σ (Λ N ⦂ A)   = Λ subst (⇑ σ) N ⦂ A
+subst σ (M ·[ A ])  = subst σ M ·[ A ]
+subst σ (M ⟨ c ⟩)   = subst σ M ⟨ c ⟩
+subst σ (blame p)   = blame p
+
+singleEnv : Term → Subst
+singleEnv M zero    = M
+singleEnv M (suc i) = # i
+
+_[_]ᴹ : Term → Term → Term
+N [ M ]ᴹ = subst (singleEnv M) N
 
 substᵀ : Substᵗ → Term → Term
 substᵀ σ ($k k)      = $k k
@@ -291,9 +296,6 @@ data _—→_ : Config → Config → Set where
     → Value V
     → (Σ ⊲ (V ⟨ ⊥ᶜ p ⦂ A ⇨ B ⟩)) —→ (Σ ⊲ blame p)
 
-  β-ty★ : ∀ {Σ M A₀ c}
-    → (Σ ⊲ (((Λ M ⦂ A₀) ⟨ ∀ᶜ c ⟩) ·[ `★ ])) —→ (Σ ⊲ ((M ⟨ c ⟩) [ `★ ]ᵀ))
-
   β-ty★-plain : ∀ {Σ M A₀}
     → (Σ ⊲ ((Λ M ⦂ A₀) ·[ `★ ])) —→ (Σ ⊲ (M [ `★ ]ᵀ))
 
@@ -302,13 +304,6 @@ data _—→_ : Config → Config → Set where
     → (Σ ⊲ ((V ⟨ ∀ᶜ c ⟩) ·[ `★ ]))
       —→
       (Σ ⊲ ((V ·[ `★ ]) ⟨ substᶜᵗ (singleTyEnv `★) c ⟩))
-
-  β-ty : ∀ {Σ M A₀ Aₙ c B}
-    → NonDyn B
-    → Σ ∣ zero ⊢ ∀ᶜ c ⦂ `∀ A₀ ⇨ `∀ Aₙ
-    → (Σ ⊲ (((Λ M ⦂ A₀) ⟨ ∀ᶜ c ⟩) ·[ B ]))
-      —→
-      (extendStore Σ B ⊲ (((M ⟨ c ⟩) [ `U (fresh Σ) ]ᵀ) ⟨ coerce⁺ (fresh Σ) (Aₙ [ `U (fresh Σ) ]ᵗ) ⟩))
 
   β-ty-plain : ∀ {Σ M A₀ B}
     → NonDyn B

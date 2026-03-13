@@ -63,6 +63,15 @@ lookupᵁ-map-substᵗ :
 lookupᵁ-map-substᵗ Zᵁ = Zᵁ
 lookupᵁ-map-substᵗ (Sᵁ h) = Sᵁ (lookupᵁ-map-substᵗ h)
 
+lookupᵁ-map-inv :
+  {stores : Store} {U : Name} {B : Ty} {f : Ty → Ty} →
+  map f stores ∋ᵁ U ⦂ B →
+  Σ Ty (λ A → (stores ∋ᵁ U ⦂ A) × (B ≡ f A))
+lookupᵁ-map-inv {stores = A ∷ stores} {U = zero} Zᵁ = A , (Zᵁ , refl)
+lookupᵁ-map-inv {stores = A ∷ stores} {U = suc U} (Sᵁ h)
+  with lookupᵁ-map-inv h
+... | A' , (hA' , eq) = A' , (Sᵁ hA' , eq)
+
 map-renameΣ-suc : (ρ : Renameᵗ) (Σ : Store) →
   renameΣ (extᵗ ρ) (renameΣ suc Σ) ≡ renameΣ suc (renameΣ ρ Σ)
 map-renameΣ-suc ρ [] = refl
@@ -772,26 +781,49 @@ RenameWf-ext : {Γ Γ' : Ctx} {B : Ty} {ρ : Rename} →
 RenameWf-ext hρ Z = Z
 RenameWf-ext hρ (S h) = S (hρ h)
 
-postulate
-  typing-rename : {Σ : Store} {Δ : TyCtx} {Γ Γ' : Ctx} {M : Term} {A : Ty} {ρ : Rename} →
-    RenameWf Γ Γ' ρ →
-    Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
-    Σ ∣ Δ ⊢ Γ' ⊢ rename ρ M ⦂ A
+typing-rename : {Σ : Store} {Δ : TyCtx} {Γ Γ' : Ctx} {M : Term} {A : Ty} {ρ : Rename} →
+  WfCtx Δ Σ Γ' →
+  RenameWf Γ Γ' ρ →
+  Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
+  Σ ∣ Δ ⊢ Γ' ⊢ rename ρ M ⦂ A
+typing-rename hΓ' hρ (⊢const hΣ hΓ) = ⊢const hΣ hΓ'
+typing-rename hΓ' hρ (⊢# h) = ⊢# (hρ h)
+typing-rename hΓ' hρ (⊢ƛ hA hN) =
+  ⊢ƛ hA (typing-rename (wfΓ∷ hΓ' hA) (RenameWf-ext hρ) hN)
+typing-rename hΓ' hρ (⊢· hL hM) =
+  ⊢· (typing-rename hΓ' hρ hL) (typing-rename hΓ' hρ hM)
+typing-rename {Σ = Σ} {Δ = Δ} {Γ = Γ} {Γ' = Γ'} {ρ = ρ} hΓ' hρ (⊢Λ hN) =
+  ⊢Λ (typing-rename hΓ'↑ hρ' hN)
+  where
+    hΓ'↑ : WfCtx (suc Δ) (renameΣ suc Σ) (⤊ Γ')
+    hΓ'↑ = renameᵗ-preserves-WfCtx hΓ' (λ {i} i<Δ → s<s i<Δ)
+
+    hρ' : RenameWf (⤊ Γ) (⤊ Γ') ρ
+    hρ' h with lookup-map-inv h
+    ... | A , (hA , eq)
+      rewrite eq = lookup-map-renameᵗ (hρ hA)
+typing-rename hΓ' hρ (⊢·[] hM hB) =
+  ⊢·[] (typing-rename hΓ' hρ hM) hB
+typing-rename hΓ' hρ (⊢⟨⟩ hM cwt) =
+  ⊢⟨⟩ (typing-rename hΓ' hρ hM) cwt
+typing-rename hΓ' hρ (⊢blame hA) =
+  ⊢blame hA
 
 rename-shift : {Σ : Store} {Δ : TyCtx} {Γ : Ctx} {M : Term} {A B : Ty} →
+  WfTy Δ Σ B →
+  WfCtx Δ Σ Γ →
   Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
   Σ ∣ Δ ⊢ (B ∷ Γ) ⊢ rename suc M ⦂ A
-rename-shift hM =
-  typing-rename (λ {x} {A} h → S h) hM
+rename-shift hB hΓ hM =
+  typing-rename (wfΓ∷ hΓ hB) (λ {x} {A} h → S h) hM
 
 SubstWf-exts : {Σ : Store} {Δ : TyCtx} {Γ Γ' : Ctx} {B : Ty} {σ : Subst} →
+  WfTy Δ Σ B →
+  WfCtx Δ Σ Γ' →
   SubstWf Σ Δ Γ Γ' σ →
   SubstWf Σ Δ (B ∷ Γ) (B ∷ Γ') (exts σ)
-SubstWf-exts hσ Z = ⊢# Z
-SubstWf-exts hσ (S h) = rename-shift (hσ h)
-
-⇑ : Subst → Subst
-⇑ σ i = renameᵀ suc (σ i)
+SubstWf-exts hB hΓ' hσ Z = ⊢# Z
+SubstWf-exts hB hΓ' hσ (S h) = rename-shift hB hΓ' (hσ h)
 
 SubstWf-⇑ : {Σ : Store} {Δ : TyCtx} {Γ Γ' : Ctx} {σ : Subst} →
   SubstWf Σ Δ Γ Γ' σ →
@@ -800,11 +832,29 @@ SubstWf-⇑ hσ h with lookup-map-inv h
 ... | A , (hA , eq)
   rewrite eq = typing-renameᵀ (λ {i} i<Δ → s<s i<Δ) (hσ hA)
 
-postulate
-  typing-subst : {Σ : Store} {Δ : TyCtx} {Γ Γ' : Ctx} {M : Term} {A : Ty} {σ : Subst} →
-    SubstWf Σ Δ Γ Γ' σ →
-    Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
-    Σ ∣ Δ ⊢ Γ' ⊢ subst σ M ⦂ A
+typing-subst : {Σ : Store} {Δ : TyCtx} {Γ Γ' : Ctx} {M : Term} {A : Ty} {σ : Subst} →
+  WfCtx Δ Σ Γ' →
+  SubstWf Σ Δ Γ Γ' σ →
+  Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
+  Σ ∣ Δ ⊢ Γ' ⊢ subst σ M ⦂ A
+typing-subst hΓ' hσ (⊢const hΣ hΓ) = ⊢const hΣ hΓ'
+typing-subst hΓ' hσ (⊢# h) = hσ h
+typing-subst hΓ' hσ (⊢ƛ hA hN) =
+  ⊢ƛ hA (typing-subst (wfΓ∷ hΓ' hA) (SubstWf-exts hA hΓ' hσ) hN)
+typing-subst hΓ' hσ (⊢· hL hM) =
+  ⊢· (typing-subst hΓ' hσ hL) (typing-subst hΓ' hσ hM)
+typing-subst {Σ = Σ} {Δ = Δ} {Γ' = Γ'} hΓ' hσ (⊢Λ hN) =
+  ⊢Λ
+    (typing-subst hΓ'↑ (SubstWf-⇑ hσ) hN)
+  where
+    hΓ'↑ : WfCtx (suc Δ) (renameΣ suc Σ) (⤊ Γ')
+    hΓ'↑ = renameᵗ-preserves-WfCtx hΓ' (λ {i} i<Δ → s<s i<Δ)
+typing-subst hΓ' hσ (⊢·[] hM hB) =
+  ⊢·[] (typing-subst hΓ' hσ hM) hB
+typing-subst hΓ' hσ (⊢⟨⟩ hM cwt) =
+  ⊢⟨⟩ (typing-subst hΓ' hσ hM) cwt
+typing-subst hΓ' hσ (⊢blame hA) =
+  ⊢blame hA
 
 singleSubstWf : {Σ : Store} {Δ : TyCtx} {Γ : Ctx} {A : Ty} {V : Term} →
   Σ ∣ Δ ⊢ Γ ⊢ V ⦂ A →
@@ -813,11 +863,12 @@ singleSubstWf hV Z = hV
 singleSubstWf hV (S h) = ⊢# h
 
 typing-single-subst : {Σ : Store} {Δ : TyCtx} {Γ : Ctx} {N V : Term} {A B : Ty} →
+  WfCtx Δ Σ Γ →
   Σ ∣ Δ ⊢ (A ∷ Γ) ⊢ N ⦂ B →
   Σ ∣ Δ ⊢ Γ ⊢ V ⦂ A →
   Σ ∣ Δ ⊢ Γ ⊢ N [ V ]ᴹ ⦂ B
-typing-single-subst hN hV =
-  typing-subst (singleSubstWf hV) hN
+typing-single-subst hΓ hN hV =
+  typing-subst hΓ (singleSubstWf hV) hN
 
 ------------------------------------------------------------------------
 -- Term substitution preserves typing (closed-world variant)
@@ -853,6 +904,148 @@ postulate
           ⟨ coerce⁺ (fresh Σ) (Aₙ [ `U (fresh Σ) ]ᵗ) ⟩) ⦂ A
 
 ------------------------------------------------------------------------
+-- Transporting typing along store extensions
+------------------------------------------------------------------------
+
+record StoreRel (Δ : TyCtx) (Σ Σ′ : Store) : Set where
+  field
+    wf-target : WfStore Δ Σ′
+    preserve-lookup : ∀ {U A} → Σ ∋ᵁ U ⦂ A → Σ′ ∋ᵁ U ⦂ A
+
+StoreExt : Store → Store → Set
+StoreExt = StoreRel zero
+
+rename-store-rel :
+  {Δ Δ' : TyCtx} {Σ Σ′ : Store} {ρ : Renameᵗ} →
+  TyRenameWf Δ Δ' ρ →
+  StoreRel Δ Σ Σ′ →
+  StoreRel Δ' (renameΣ ρ Σ) (renameΣ ρ Σ′)
+rename-store-rel hρ rel .StoreRel.wf-target =
+  renameᵗ-preserves-WfStore hρ (StoreRel.wf-target rel)
+rename-store-rel hρ rel .StoreRel.preserve-lookup {U} {B} h
+  with lookupᵁ-map-inv h
+... | A , (hA , eq) =
+  Eq.subst
+    (λ T → renameΣ _ _ ∋ᵁ U ⦂ T)
+    (sym eq)
+    (lookupᵁ-map-renameᵗ (StoreRel.preserve-lookup rel hA))
+
+mutual
+  store-rel-preserves-WfTy :
+    {Δ : TyCtx} {Σ Σ′ : Store} {A : Ty} →
+    StoreRel Δ Σ Σ′ →
+    WfTy Δ Σ A →
+    WfTy Δ Σ′ A
+  store-rel-preserves-WfTy rel (wfVar x<Δ) = wfVar x<Δ
+  store-rel-preserves-WfTy rel wfℕ = wfℕ
+  store-rel-preserves-WfTy rel wfBool = wfBool
+  store-rel-preserves-WfTy rel wfStr = wfStr
+  store-rel-preserves-WfTy rel wf★ = wf★
+  store-rel-preserves-WfTy rel (wfU hU) =
+    wfU (StoreRel.preserve-lookup rel hU)
+  store-rel-preserves-WfTy rel (wf⇒ hA hB) =
+    wf⇒
+      (store-rel-preserves-WfTy rel hA)
+      (store-rel-preserves-WfTy rel hB)
+  store-rel-preserves-WfTy {Δ = Δ} rel (wf∀ hA) =
+    wf∀
+      (store-rel-preserves-WfTy
+        (rename-store-rel (λ {i} i<Δ → s<s i<Δ) rel)
+        hA)
+
+  store-rel-preserves-WfCtx :
+    {Δ : TyCtx} {Σ Σ′ : Store} {Γ : Ctx} →
+    StoreRel Δ Σ Σ′ →
+    WfCtx Δ Σ Γ →
+    WfCtx Δ Σ′ Γ
+  store-rel-preserves-WfCtx rel wfΓ∅ = wfΓ∅
+  store-rel-preserves-WfCtx rel (wfΓ∷ hΓ hA) =
+    wfΓ∷
+      (store-rel-preserves-WfCtx rel hΓ)
+      (store-rel-preserves-WfTy rel hA)
+
+  store-rel-preserves-coercion :
+    {Δ : TyCtx} {Σ Σ′ : Store} {c : Coercion} {A B : Ty} →
+    StoreRel Δ Σ Σ′ →
+    Σ ∣ Δ ⊢ c ⦂ A ⇨ B →
+    Σ′ ∣ Δ ⊢ c ⦂ A ⇨ B
+  store-rel-preserves-coercion rel (⊢idᶜ hΣ hA) =
+    ⊢idᶜ
+      (StoreRel.wf-target rel)
+      (store-rel-preserves-WfTy rel hA)
+  store-rel-preserves-coercion rel (⊢! hΣ hG gG) =
+    ⊢!
+      (StoreRel.wf-target rel)
+      (store-rel-preserves-WfTy rel hG)
+      gG
+  store-rel-preserves-coercion rel (⊢? hΣ hG gG) =
+    ⊢?
+      (StoreRel.wf-target rel)
+      (store-rel-preserves-WfTy rel hG)
+      gG
+  store-rel-preserves-coercion rel (⊢↦ cwt dwt) =
+    ⊢↦
+      (store-rel-preserves-coercion rel cwt)
+      (store-rel-preserves-coercion rel dwt)
+  store-rel-preserves-coercion rel (⊢⨟ cwt dwt) =
+    ⊢⨟
+      (store-rel-preserves-coercion rel cwt)
+      (store-rel-preserves-coercion rel dwt)
+  store-rel-preserves-coercion rel (⊢conceal hΣ hU) =
+    ⊢conceal
+      (StoreRel.wf-target rel)
+      (StoreRel.preserve-lookup rel hU)
+  store-rel-preserves-coercion rel (⊢reveal hΣ hU) =
+    ⊢reveal
+      (StoreRel.wf-target rel)
+      (StoreRel.preserve-lookup rel hU)
+  store-rel-preserves-coercion {Δ = Δ} rel (⊢∀ᶜ cwt) =
+    ⊢∀ᶜ
+      (store-rel-preserves-coercion
+        (rename-store-rel (λ {i} i<Δ → s<s i<Δ) rel)
+        cwt)
+  store-rel-preserves-coercion rel (⊢⊥ hΣ hA hB) =
+    ⊢⊥
+      (StoreRel.wf-target rel)
+      (store-rel-preserves-WfTy rel hA)
+      (store-rel-preserves-WfTy rel hB)
+
+  store-rel-preserves-typing :
+    {Δ : TyCtx} {Σ Σ′ : Store} {Γ : Ctx} {M : Term} {A : Ty} →
+    StoreRel Δ Σ Σ′ →
+    Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
+    Σ′ ∣ Δ ⊢ Γ ⊢ M ⦂ A
+  store-rel-preserves-typing rel (⊢const hΣ hΓ) =
+    ⊢const
+      (StoreRel.wf-target rel)
+      (store-rel-preserves-WfCtx rel hΓ)
+  store-rel-preserves-typing rel (⊢# h) =
+    ⊢# h
+  store-rel-preserves-typing rel (⊢ƛ hA hM) =
+    ⊢ƛ
+      (store-rel-preserves-WfTy rel hA)
+      (store-rel-preserves-typing rel hM)
+  store-rel-preserves-typing rel (⊢· hL hM) =
+    ⊢·
+      (store-rel-preserves-typing rel hL)
+      (store-rel-preserves-typing rel hM)
+  store-rel-preserves-typing {Δ = Δ} rel (⊢Λ hM) =
+    ⊢Λ
+      (store-rel-preserves-typing
+        (rename-store-rel (λ {i} i<Δ → s<s i<Δ) rel)
+        hM)
+  store-rel-preserves-typing rel (⊢·[] hM hB) =
+    ⊢·[]
+      (store-rel-preserves-typing rel hM)
+      (store-rel-preserves-WfTy rel hB)
+  store-rel-preserves-typing rel (⊢⟨⟩ hM cwt) =
+    ⊢⟨⟩
+      (store-rel-preserves-typing rel hM)
+      (store-rel-preserves-coercion rel cwt)
+  store-rel-preserves-typing rel (⊢blame hA) =
+    ⊢blame (store-rel-preserves-WfTy rel hA)
+
+------------------------------------------------------------------------
 -- Blame under frames
 ------------------------------------------------------------------------
 
@@ -874,39 +1067,54 @@ frame-blame h = ⊢blame (typing-wfty h)
 
 mutual
   preservation : ∀ {Σ Σ′ M N A}
+    → StoreExt Σ Σ′
     → Σ ∣ zero ⊢ [] ⊢ M ⦂ A
     → (Σ ⊲ M) —→ (Σ′ ⊲ N)
     → Σ′ ∣ zero ⊢ [] ⊢ N ⦂ A
-  preservation M⦂ (ξξ {F = F} refl refl M→N) =
-    frame-preservation {F = F} M⦂ M→N
-  preservation M⦂ β-δ with impossible-βδ M⦂
+  preservation hΣ′ M⦂ (ξξ {F = F} refl refl M→N) =
+    frame-preservation {F = F} hΣ′ M⦂ M→N
+  preservation hΣ′ M⦂ β-δ with impossible-βδ M⦂
   ... | ()
-  preservation (⊢· {A = A} (⊢ƛ {A = A} hA hN) hV) (β-ƛ vV) =
-    typing-single-subst hN hV
-  preservation (⊢⟨⟩ hV (⊢idᶜ _ _)) (β-id vV) = hV
-  preservation (⊢· (⊢⟨⟩ hV (⊢↦ cwt dwt)) hW) (β-↦ vV vW) =
+  preservation hΣ′ (⊢· {A = A} (⊢ƛ {A = A} hA hN) hV) (β-ƛ vV) =
+    typing-single-subst wfΓ∅ hN hV
+  preservation hΣ′ (⊢⟨⟩ hV (⊢idᶜ _ _)) (β-id vV) = hV
+  preservation hΣ′ (⊢· (⊢⟨⟩ hV (⊢↦ cwt dwt)) hW) (β-↦ vV vW) =
     ⊢⟨⟩ (⊢· hV (⊢⟨⟩ hW cwt)) dwt
-  preservation (⊢⟨⟩ (⊢⟨⟩ hV (⊢! _ _ _)) (⊢? _ _ _)) (β-proj-inj-ok vV) = hV
-  preservation (⊢⟨⟩ (⊢⟨⟩ hV (⊢! _ _ _)) (⊢? _ hG _)) (β-proj-inj-bad vV G≢H) =
+  preservation hΣ′ (⊢⟨⟩ (⊢⟨⟩ hV (⊢! _ _ _)) (⊢? _ _ _)) (β-proj-inj-ok vV) = hV
+  preservation hΣ′ (⊢⟨⟩ (⊢⟨⟩ hV (⊢! _ _ _)) (⊢? _ hG _)) (β-proj-inj-bad vV G≢H) =
     ⊢blame hG
-  preservation (⊢⟨⟩ (⊢⟨⟩ hV (⊢conceal _ hU₁)) (⊢reveal _ hU₂)) (β-remove vV)
+  preservation hΣ′ (⊢⟨⟩ (⊢⟨⟩ hV (⊢conceal _ hU₁)) (⊢reveal _ hU₂)) (β-remove vV)
     with ∋ᵁ-unique hU₁ hU₂
   ... | refl = hV
-  preservation (⊢⟨⟩ hV (⊢⨟ cwt dwt)) (β-seq vV) =
+  preservation hΣ′ (⊢⟨⟩ hV (⊢⨟ cwt dwt)) (β-seq vV) =
     ⊢⟨⟩ (⊢⟨⟩ hV cwt) dwt
-  preservation (⊢⟨⟩ hV (⊢⊥ _ _ hB)) (β-fail vV) =
+  preservation hΣ′ (⊢⟨⟩ hV (⊢⊥ _ _ hB)) (β-fail vV) =
     ⊢blame hB
-  preservation M⦂ β-ty★-plain = preserve-β-ty★-plain M⦂
-  preservation M⦂ (β-ty-wrap★ vV) = preserve-β-ty-wrap★ vV M⦂
-  preservation (⊢·[] (⊢⟨⟩ (⊢Λ hM) (⊢∀ᶜ cwt)) hB) β-ty★ = {!!}
-  preservation M⦂ (β-ty-plain ndB) = preserve-β-ty-plain ndB M⦂
-  preservation M⦂ (β-ty-wrap ndB vV cwt) = preserve-β-ty-wrap ndB vV cwt M⦂
-  preservation (⊢·[] (⊢⟨⟩ (⊢Λ hM) (⊢∀ᶜ cwt)) hB) (β-ty ndB cwt0) = {!!}
-  preservation M⦂ (ξξ-blame {F = F} refl) =
+  preservation hΣ′ M⦂ β-ty★-plain = preserve-β-ty★-plain M⦂
+  preservation hΣ′ M⦂ (β-ty-wrap★ vV) = preserve-β-ty-wrap★ vV M⦂
+  preservation hΣ′ M⦂ (β-ty-plain ndB) = preserve-β-ty-plain ndB M⦂
+  preservation hΣ′ M⦂ (β-ty-wrap ndB vV cwt) = preserve-β-ty-wrap ndB vV cwt M⦂
+  preservation hΣ′ M⦂ (ξξ-blame {F = F} refl) =
     frame-blame {F = F} M⦂
 
   frame-preservation : ∀ {F Σ Σ′ M N A}
+    → StoreExt Σ Σ′
     → Σ ∣ zero ⊢ [] ⊢ plug F M ⦂ A
     → (Σ ⊲ M) —→ (Σ′ ⊲ N)
     → Σ′ ∣ zero ⊢ [] ⊢ plug F N ⦂ A
-  frame-preservation M⦂ M→N = {!!}
+  frame-preservation {F = □· L} hΣ′ (⊢· hM hL) M→N =
+    ⊢·
+      (preservation hΣ′ hM M→N)
+      (store-rel-preserves-typing hΣ′ hL)
+  frame-preservation {F = V ·□ vV} hΣ′ (⊢· hV hM) M→N =
+    ⊢·
+      (store-rel-preserves-typing hΣ′ hV)
+      (preservation hΣ′ hM M→N)
+  frame-preservation {F = □·[ B ]} hΣ′ (⊢·[] hM hB) M→N =
+    ⊢·[]
+      (preservation hΣ′ hM M→N)
+      (store-rel-preserves-WfTy hΣ′ hB)
+  frame-preservation {F = □⟨ c ⟩} hΣ′ (⊢⟨⟩ hM cwt) M→N =
+    ⊢⟨⟩
+      (preservation hΣ′ hM M→N)
+      (store-rel-preserves-coercion hΣ′ cwt)

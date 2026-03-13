@@ -109,8 +109,10 @@ canonical-★-inj : ∀ {S V}
   → Value V
   → S ∣ zero ⊢ [] ⊢ V ⦂ `★
   → Σ Ty (λ G → Σ Term (λ W → Value W × (V ≡ (W ⟨ G ! ⟩))))
-canonical-★-inj (vU (v-const {k = nat n})) ()
-canonical-★-inj (vU (v-const {k = bool b})) ()
+canonical-★-inj (vU (v-const {p = base B-Nat})) (⊢const _ _ ())
+canonical-★-inj (vU (v-const {p = base B-Bool})) (⊢const _ _ ())
+canonical-★-inj (vU (v-const {p = B-Nat ⇒ p})) (⊢const _ _ ())
+canonical-★-inj (vU (v-const {p = B-Bool ⇒ p})) (⊢const _ _ ())
 canonical-★-inj (vU v-ƛ) ()
 canonical-★-inj (vU v-Λ) ()
 canonical-★-inj (v-⁻ vV) (⊢⟨⟩ _ ())
@@ -119,19 +121,51 @@ canonical-★-inj (v-! {V = W} {G = G} vW) (⊢⟨⟩ hW (⊢! _ _ _)) =
 canonical-★-inj (v-↦ vV) (⊢⟨⟩ _ ())
 canonical-★-inj (v-∀ᶜ vV) (⊢⟨⟩ _ ())
 
+canonical-base : ∀ {S V b}
+  → Value V
+  → S ∣ zero ⊢ [] ⊢ V ⦂ typeof-base b
+  → Σ (base-rep b) (λ k → V ≡ ($ (base b) k))
+canonical-base {b = B-Nat} (vU (v-const {p = base B-Nat} {k = k})) (⊢const _ _ refl) =
+  k , refl
+canonical-base {b = B-Nat} (vU (v-const {p = base B-Bool})) (⊢const _ _ ())
+canonical-base {b = B-Nat} (vU (v-const {p = B-Nat ⇒ p})) (⊢const _ _ ())
+canonical-base {b = B-Nat} (vU (v-const {p = B-Bool ⇒ p})) (⊢const _ _ ())
+canonical-base {b = B-Nat} (vU v-ƛ) ()
+canonical-base {b = B-Nat} (vU v-Λ) ()
+canonical-base {b = B-Nat} (v-⁻ vV) (⊢⟨⟩ _ ())
+canonical-base {b = B-Nat} (v-! vV) (⊢⟨⟩ _ ())
+canonical-base {b = B-Nat} (v-↦ vV) (⊢⟨⟩ _ ())
+canonical-base {b = B-Nat} (v-∀ᶜ vV) (⊢⟨⟩ _ ())
+canonical-base {b = B-Bool} (vU (v-const {p = base B-Nat})) (⊢const _ _ ())
+canonical-base {b = B-Bool} (vU (v-const {p = base B-Bool} {k = k})) (⊢const _ _ refl) =
+  k , refl
+canonical-base {b = B-Bool} (vU (v-const {p = B-Nat ⇒ p})) (⊢const _ _ ())
+canonical-base {b = B-Bool} (vU (v-const {p = B-Bool ⇒ p})) (⊢const _ _ ())
+canonical-base {b = B-Bool} (vU v-ƛ) ()
+canonical-base {b = B-Bool} (vU v-Λ) ()
+canonical-base {b = B-Bool} (v-⁻ vV) (⊢⟨⟩ _ ())
+canonical-base {b = B-Bool} (v-! vV) (⊢⟨⟩ _ ())
+canonical-base {b = B-Bool} (v-↦ vV) (⊢⟨⟩ _ ())
+canonical-base {b = B-Bool} (v-∀ᶜ vV) (⊢⟨⟩ _ ())
+
 canonical-⇒ : ∀ {S V A B}
   → Value V
   → S ∣ zero ⊢ [] ⊢ V ⦂ (A ⇒ B)
-  → (Σ Ty (λ C → Σ Term (λ N → V ≡ (ƛ C ⇒ N))))
-    ⊎ (Σ Term (λ W → Σ Coercion (λ c → Σ Coercion (λ d → Value W × (V ≡ (W ⟨ c ↦ d ⟩))))))
-canonical-⇒ (vU (v-const {k = nat n})) ()
-canonical-⇒ (vU (v-const {k = bool b})) ()
-canonical-⇒ (vU (v-ƛ {A = C} {M = N})) (⊢ƛ _ _) = inj₁ (C , (N , refl))
+  → (Σ Base (λ b → Σ Prim (λ p → Σ (A ≡ typeof-base b) (λ _ → Σ (rep (b ⇒ p)) (λ f → V ≡ ($ (b ⇒ p) f))))))
+    ⊎ ((Σ Ty (λ C → Σ Term (λ N → V ≡ (ƛ C ⇒ N))))
+    ⊎ (Σ Term (λ W → Σ Coercion (λ c → Σ Coercion (λ d → Value W × (V ≡ (W ⟨ c ↦ d ⟩)))))))
+canonical-⇒ (vU (v-const {p = base B-Nat})) (⊢const _ _ ())
+canonical-⇒ (vU (v-const {p = base B-Bool})) (⊢const _ _ ())
+canonical-⇒ (vU (v-const {p = B-Nat ⇒ p} {k = f})) (⊢const _ _ refl) =
+  inj₁ (B-Nat , (p , (refl , (f , refl))))
+canonical-⇒ (vU (v-const {p = B-Bool ⇒ p} {k = f})) (⊢const _ _ refl) =
+  inj₁ (B-Bool , (p , (refl , (f , refl))))
+canonical-⇒ (vU (v-ƛ {A = C} {M = N})) (⊢ƛ _ _) = inj₂ (inj₁ (C , (N , refl)))
 canonical-⇒ (vU v-Λ) ()
 canonical-⇒ (v-⁻ vV) (⊢⟨⟩ _ ())
 canonical-⇒ (v-! vV) (⊢⟨⟩ _ ())
 canonical-⇒ (v-↦ {V = W} {c = c} {d = d} vW) (⊢⟨⟩ hW (⊢↦ _ _)) =
-  inj₂ (W , (c , (d , (vW , refl))))
+  inj₂ (inj₂ (W , (c , (d , (vW , refl)))))
 canonical-⇒ (v-∀ᶜ vV) (⊢⟨⟩ _ ())
 
 canonical-∀ : ∀ {S V A}
@@ -139,8 +173,10 @@ canonical-∀ : ∀ {S V A}
   → S ∣ zero ⊢ [] ⊢ V ⦂ `∀ A
   → (Σ Term (λ N → Σ Ty (λ A₀ → V ≡ (Λ N ⦂ A₀))))
     ⊎ (Σ Term (λ W → Σ Coercion (λ c → Value W × (V ≡ (W ⟨ ∀ᶜ c ⟩)))))
-canonical-∀ (vU (v-const {k = nat n})) ()
-canonical-∀ (vU (v-const {k = bool b})) ()
+canonical-∀ (vU (v-const {p = base B-Nat})) (⊢const _ _ ())
+canonical-∀ (vU (v-const {p = base B-Bool})) (⊢const _ _ ())
+canonical-∀ (vU (v-const {p = B-Nat ⇒ p})) (⊢const _ _ ())
+canonical-∀ (vU (v-const {p = B-Bool ⇒ p})) (⊢const _ _ ())
 canonical-∀ (vU v-ƛ) ()
 canonical-∀ (vU (v-Λ {M = N} {A = A₀})) (⊢Λ _) = inj₁ (N , (A₀ , refl))
 canonical-∀ (v-⁻ vV) (⊢⟨⟩ _ ())
@@ -153,8 +189,10 @@ canonical-U : ∀ {S V U}
   → Value V
   → S ∣ zero ⊢ [] ⊢ V ⦂ `U U
   → Σ Term (λ W → Value W × (V ≡ (W ⟨ U ⁻ ⟩)))
-canonical-U (vU (v-const {k = nat n})) ()
-canonical-U (vU (v-const {k = bool b})) ()
+canonical-U (vU (v-const {p = base B-Nat})) (⊢const _ _ ())
+canonical-U (vU (v-const {p = base B-Bool})) (⊢const _ _ ())
+canonical-U (vU (v-const {p = B-Nat ⇒ p})) (⊢const _ _ ())
+canonical-U (vU (v-const {p = B-Bool ⇒ p})) (⊢const _ _ ())
 canonical-U (vU v-ƛ) ()
 canonical-U (vU v-Λ) ()
 canonical-U (v-⁻ {V = W} {U = U} vW) (⊢⟨⟩ hW (⊢conceal _ _)) =
@@ -212,11 +250,24 @@ tyapp-progress-wrapped vW (⊢⟨⟩ hW (⊢∀ᶜ cwt)) hB with closed-type-cla
 -- Progress
 ------------------------------------------------------------------------
 
+app-progress : ∀ {S L M A B}
+  → Value L
+  → Value M
+  → S ∣ zero ⊢ [] ⊢ L ⦂ (A ⇒ B)
+  → S ∣ zero ⊢ [] ⊢ M ⦂ A
+  → Progress S (L · M)
+app-progress vL vM L⦂ M⦂ with canonical-⇒ vL L⦂
+... | inj₁ (b , (p , (refl , (f , refl)))) with canonical-base {b = b} vM M⦂
+...   | k , refl = step δ
+app-progress vL vM L⦂ M⦂ | inj₂ (inj₁ (_ , (_ , refl))) = step (β-ƛ vM)
+app-progress vL vM L⦂ M⦂ | inj₂ (inj₂ (W , (c , (d , (vW , refl))))) =
+  step (β-↦ vW vM)
+
 progress : ∀ {S M A}
   → WfStore S
   → S ∣ zero ⊢ [] ⊢ M ⦂ A
   → Progress S M
-progress wfΣ (⊢const _ _) = done (vU v-const)
+progress wfΣ (⊢const _ _ _) = done (vU v-const)
 progress wfΣ (⊢# ())
 progress wfΣ (⊢ƛ _ _) = done (vU v-ƛ)
 progress wfΣ (⊢· {L = L} {M = M} L⦂ M⦂) with progress wfΣ L⦂
@@ -225,9 +276,7 @@ progress wfΣ (⊢· {L = L} {M = M} L⦂ M⦂) with progress wfΣ L⦂
 ... | done vL with progress wfΣ M⦂
 ...   | step M→M′ = step (ξ (L ·□ vL) M→M′)
 ...   | crash refl = step (ξ-blame (L ·□ vL))
-...   | done vM with canonical-⇒ vL L⦂
-...     | inj₁ (_ , (_ , refl)) = step (β-ƛ vM)
-...     | inj₂ (W , (c , (d , (vW , refl)))) = step (β-↦ vW vM)
+...   | done vM = app-progress vL vM L⦂ M⦂
 progress wfΣ (⊢Λ _) = done (vU v-Λ)
 progress wfΣ (⊢·[] {M = M} {B = B} M⦂ hB) with progress wfΣ M⦂
 ... | step M→M′ = step (ξ (□·[ B ]) M→M′)

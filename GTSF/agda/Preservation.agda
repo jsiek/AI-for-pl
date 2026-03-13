@@ -8,9 +8,10 @@ open import Data.Nat using (zero; suc)
 open import Data.Nat.Base using (_<_; z<s; s<s)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (_×_; _,_; proj₁; proj₂)
-
+open import Data.Sum using (inj₁; inj₂)
 open import PolyCoercions
 open import PolyCastCalculus
+open import Progress using (canonical-base)
 open import TypeSubst
 
 ------------------------------------------------------------------------
@@ -343,15 +344,29 @@ renameᵗ-preserves-WfCtx (wfΓ∷ hΓ hA) hρ =
     (renameᵗ-preserves-WfCtx hΓ hρ)
     (renameᵗ-preserves-WfTy hA hρ)
 
-renameᵗ-ty-const : {ρ : Renameᵗ} {k : Const} →
-  renameᵗ ρ (ty k) ≡ ty k
-renameᵗ-ty-const {k = nat n} = refl
-renameᵗ-ty-const {k = bool b} = refl
+renameᵗ-typeof-const : {ρ : Renameᵗ} {p : Prim} →
+  renameᵗ ρ (typeof p) ≡ typeof p
+renameᵗ-typeof-base : {ρ : Renameᵗ} (b : Base) →
+  renameᵗ ρ (typeof-base b) ≡ typeof-base b
+renameᵗ-typeof-base B-Nat = refl
+renameᵗ-typeof-base B-Bool = refl
 
-substᵗ-ty-const : {σ : Substᵗ} {k : Const} →
-  substᵗ σ (ty k) ≡ ty k
-substᵗ-ty-const {k = nat n} = refl
-substᵗ-ty-const {k = bool b} = refl
+renameᵗ-typeof-const {p = base B-Nat} = refl
+renameᵗ-typeof-const {p = base B-Bool} = refl
+renameᵗ-typeof-const {p = B ⇒ p} =
+  cong₂ _⇒_ (renameᵗ-typeof-base B) (renameᵗ-typeof-const{p = p})
+
+substᵗ-typeof-const : {σ : Substᵗ} {p : Prim} →
+  substᵗ σ (typeof p) ≡ typeof p
+substᵗ-typeof-base : {σ : Substᵗ} (b : Base) →
+  substᵗ σ (typeof-base b) ≡ typeof-base b
+substᵗ-typeof-base B-Nat = refl
+substᵗ-typeof-base B-Bool = refl
+
+substᵗ-typeof-const {p = base B-Nat} = refl
+substᵗ-typeof-const {p = base B-Bool} = refl
+substᵗ-typeof-const {p = B ⇒ p} =
+  cong₂ _⇒_ (substᵗ-typeof-base B) (substᵗ-typeof-const{p = p})
 
 renameᶜᵗ-preserves-typing :
   {Σ : Store} {Δ Δ' : TyCtx} {c : Coercion} {A B : Ty} {ρ : Renameᵗ} →
@@ -409,13 +424,11 @@ typing-renameᵀ :
   TyRenameWf Δ Δ' ρ →
   Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
   renameΣ ρ Σ ∣ Δ' ⊢ map (renameᵗ ρ) Γ ⊢ renameᵀ ρ M ⦂ renameᵗ ρ A
-typing-renameᵀ {Σ = Σ} {Δ' = Δ'} {Γ = Γ} {ρ = ρ} hρ (⊢const {k = k} hΣ hΓ) =
-  Eq.subst
-    (λ T → renameΣ ρ Σ ∣ Δ' ⊢ map (renameᵗ ρ) Γ ⊢ $k k ⦂ T)
-    (sym (renameᵗ-ty-const {ρ = ρ} {k = k}))
-    (⊢const
-      (renameᵗ-preserves-WfStore hΣ)
-      (renameᵗ-preserves-WfCtx hΓ hρ))
+typing-renameᵀ {Σ = Σ} {Δ' = Δ'} {Γ = Γ} {ρ = ρ} hρ (⊢const {p = p} {A = A} {k = k} hΣ hΓ eqA) =
+  ⊢const
+    (renameᵗ-preserves-WfStore hΣ)
+    (renameᵗ-preserves-WfCtx hΓ hρ)
+    (trans (cong (renameᵗ ρ) eqA) (renameᵗ-typeof-const {ρ = ρ} {p = p}))
 typing-renameᵀ hρ (⊢# h) =
   ⊢# (lookup-map-renameᵗ h)
 typing-renameᵀ hρ (⊢ƛ hA hN) =
@@ -682,13 +695,11 @@ typing-substᵀ :
   TySubstWfᶜ Δ Δ' Σ σ →
   Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
   substΣ σ Σ ∣ Δ' ⊢ map (substᵗ σ) Γ ⊢ substᵀ σ M ⦂ substᵗ σ A
-typing-substᵀ {Σ = Σ} {Δ' = Δ'} {Γ = Γ} {σ = σ} hσ (⊢const {k = k} hΣ hΓ) =
-  Eq.subst
-    (λ T → substΣ σ Σ ∣ Δ' ⊢ map (substᵗ σ) Γ ⊢ $k k ⦂ T)
-    (sym (substᵗ-ty-const {σ = σ} {k = k}))
-    (⊢const
-      (substᵗ-preserves-WfStore hΣ)
-      (substᵗ-preserves-WfCtx hΓ (proj₁ hσ)))
+typing-substᵀ {Σ = Σ} {Δ' = Δ'} {Γ = Γ} {σ = σ} hσ (⊢const {p = p} {A = A} {k = k} hΣ hΓ eqA) =
+  ⊢const
+    (substᵗ-preserves-WfStore hΣ)
+    (substᵗ-preserves-WfCtx hΓ (proj₁ hσ))
+    (trans (cong (substᵗ σ) eqA) (substᵗ-typeof-const {σ = σ} {p = p}))
 typing-substᵀ hσ (⊢# h) =
   ⊢# (lookup-map-substᵗ h)
 typing-substᵀ hσ (⊢ƛ hA hN) =
@@ -795,7 +806,7 @@ typing-rename : {Σ : Store} {Δ : TyCtx} {Γ Γ' : Ctx} {M : Term} {A : Ty} {ρ
   RenameWf Γ Γ' ρ →
   Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
   Σ ∣ Δ ⊢ Γ' ⊢ rename ρ M ⦂ A
-typing-rename hΓ' hρ (⊢const hΣ hΓ) = ⊢const hΣ hΓ'
+typing-rename hΓ' hρ (⊢const hΣ hΓ eqA) = ⊢const hΣ hΓ' eqA
 typing-rename hΓ' hρ (⊢# h) = ⊢# (hρ h)
 typing-rename hΓ' hρ (⊢ƛ hA hN) =
   ⊢ƛ hA (typing-rename (wfΓ∷ hΓ' hA) (RenameWf-ext hρ) hN)
@@ -846,7 +857,7 @@ typing-subst : {Σ : Store} {Δ : TyCtx} {Γ Γ' : Ctx} {M : Term} {A : Ty} {σ 
   SubstWf Σ Δ Γ Γ' σ →
   Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
   Σ ∣ Δ ⊢ Γ' ⊢ subst σ M ⦂ A
-typing-subst hΓ' hσ (⊢const hΣ hΓ) = ⊢const hΣ hΓ'
+typing-subst hΓ' hσ (⊢const hΣ hΓ eqA) = ⊢const hΣ hΓ' eqA
 typing-subst hΓ' hσ (⊢# h) = hσ h
 typing-subst hΓ' hσ (⊢ƛ hA hN) =
   ⊢ƛ hA (typing-subst (wfΓ∷ hΓ' hA) (SubstWf-exts hA hΓ' hσ) hN)
@@ -884,10 +895,6 @@ typing-single-subst hΓ hN hV =
 ------------------------------------------------------------------------
 
 postulate
-  impossible-βδ : ∀ {Σ A k₁ k₂}
-    → Σ ∣ zero ⊢ [] ⊢ ($k k₁ · $k k₂) ⦂ A
-    → ⊥
-
   preserve-β-ty★-plain : ∀ {Σ M A A₀}
     → Σ ∣ zero ⊢ [] ⊢ ((Λ M ⦂ A₀) ·[ `★ ]) ⦂ A
     → Σ ∣ zero ⊢ [] ⊢ (M [ `★ ]ᵀ) ⦂ A
@@ -1023,10 +1030,11 @@ mutual
     StoreRel Σ Σ′ →
     Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
     Σ′ ∣ Δ ⊢ Γ ⊢ M ⦂ A
-  store-rel-preserves-typing rel (⊢const hΣ hΓ) =
+  store-rel-preserves-typing rel (⊢const hΣ hΓ eqA) =
     ⊢const
       (StoreRel.wf-target rel)
       (store-rel-preserves-WfCtx rel hΓ)
+      eqA
   store-rel-preserves-typing rel (⊢# h) =
     ⊢# h
   store-rel-preserves-typing rel (⊢ƛ hA hM) =
@@ -1081,8 +1089,8 @@ mutual
     → Σ′ ∣ zero ⊢ [] ⊢ N ⦂ A
   preservation hΣ′ M⦂ (ξξ {F = F} refl refl M→N) =
     frame-preservation {F = F} hΣ′ M⦂ M→N
-  preservation hΣ′ M⦂ β-δ with impossible-βδ M⦂
-  ... | ()
+  preservation hΣ′ (⊢· (⊢const x x₁ refl) (⊢const x₂ x₃ refl)) δ =
+    ⊢const (hΣ′ .StoreRel.wf-target) wfΓ∅ refl
   preservation hΣ′ (⊢· {A = A} (⊢ƛ {A = A} hA hN) hV) (β-ƛ vV) =
     typing-single-subst wfΓ∅ hN hV
   preservation hΣ′ (⊢⟨⟩ hV (⊢idᶜ _ _)) (β-id vV) = hV
@@ -1102,8 +1110,7 @@ mutual
   preservation hΣ′ M⦂ (β-ty-wrap★ vV) = preserve-β-ty-wrap★ vV M⦂
   preservation hΣ′ M⦂ (β-ty-plain ndB) = preserve-β-ty-plain ndB M⦂
   preservation hΣ′ M⦂ (β-ty-wrap ndB vV cwt) = preserve-β-ty-wrap ndB vV cwt M⦂
-  preservation hΣ′ M⦂ (ξξ-blame {F = F} refl) =
-    frame-blame {F = F} M⦂
+  preservation hΣ′ M⦂ (ξξ-blame {F = F} refl) = frame-blame {F = F} M⦂
 
   frame-preservation : ∀ {F Σ Σ′ M N A}
     → StoreExt Σ Σ′

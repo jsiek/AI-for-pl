@@ -1226,7 +1226,9 @@ mutual
       hΣ↑ : WfStore (renameΣ suc (extendStore Σ B))
       hΣ↑ = StoreRel.wf-target (rename-store-rel hΣ′)
 
-      hρᵘ : TyRenameᵘWf (suc zero) zero (renameΣ suc (extendStore Σ B)) (singleᵘ (fresh Σ))
+      hρᵘ :
+        TyRenameᵘWf (suc zero) zero (renameΣ suc (extendStore Σ B))
+          (singleᵘ (fresh Σ))
       hρᵘ {zero} z<s =
         wfU (lookupᵁ-map-renameᵗ (lookupᵁ-fresh-extend {Σ = Σ} {B = B}))
       hρᵘ {suc X} (s<s ())
@@ -1234,48 +1236,28 @@ mutual
       hM[]↑ :
         renameΣ suc (extendStore Σ B) ∣ zero ⊢ [] ⊢
         M [ fresh Σ ]ᵀ ⦂ A₀ [ fresh Σ ]ᵘ
-      hM[]↑ =
-        typing-single-renameᵀ
-          {Σ = renameΣ suc (extendStore Σ B)}
-          {Δ = zero}
-          {Γ = []}
-          {M = M}
-          {A = A₀}
-          {U = fresh Σ}
-          hM↑
-          hΣ↑
-          wfΓ∅
-          hρᵘ
+      hM[]↑ = typing-single-renameᵀ
+                {Σ = renameΣ suc (extendStore Σ B)} {Δ = zero} {Γ = []}
+                {M = M} {A = A₀} {U = fresh Σ}
+                hM↑ hΣ↑ wfΓ∅ hρᵘ
 
       hM[] :
         extendStore Σ B ∣ zero ⊢ [] ⊢
         M [ fresh Σ ]ᵀ ⦂ A₀ [ fresh Σ ]ᵘ
-      hM[] =
-        store-rel-preserves-typing
-          (store-rel-renameΣ-suc-id (StoreRel.wf-target hΣ′))
-          hM[]↑
+      hM[] = store-rel-preserves-typing
+               (store-rel-renameΣ-suc-id (StoreRel.wf-target hΣ′)) hM[]↑
 
       hA₀src : WfTy (suc zero) (renameΣ suc Σ) A₀
-      hA₀src =
-        typing-wfty
-          (storeWfAt-shift hΣ)
-          wfΓ∅
-          hM
+      hA₀src = typing-wfty (storeWfAt-shift hΣ) wfΓ∅ hM
 
       hA₀tgt : WfTy (suc zero) (renameΣ suc (extendStore Σ B)) A₀
-      hA₀tgt =
-        store-rel-preserves-WfTy
-          (rename-store-rel hΣ′)
-          hA₀src
+      hA₀tgt = store-rel-preserves-WfTy (rename-store-rel hΣ′) hA₀src
 
       noA₀ : NoName (fresh Σ) A₀
-      noA₀ =
-        Eq.subst
-          (λ U → NoName U A₀)
-          (fresh-renameΣ-suc Σ)
-          (no-name-from-wfty
-            (lookupᵁ-fresh-impossible {Σ = renameΣ suc Σ})
-            hA₀src)
+      noA₀ = Eq.subst (λ U → NoName U A₀) (fresh-renameΣ-suc Σ)
+               (no-name-from-wfty
+                 (lookupᵁ-fresh-impossible {Σ = renameΣ suc Σ})
+                 hA₀src)
 
       cwt :
         extendStore Σ B ∣ zero ⊢
@@ -1294,7 +1276,9 @@ mutual
       hΣ↑ : WfStore (renameΣ suc (extendStore Σ B))
       hΣ↑ = StoreRel.wf-target (rename-store-rel hΣ′)
 
-      hρᵘ : TyRenameᵘWf (suc zero) zero (renameΣ suc (extendStore Σ B)) (singleᵘ (fresh Σ))
+      hρᵘ :
+        TyRenameᵘWf (suc zero) zero (renameΣ suc (extendStore Σ B))
+          (singleᵘ (fresh Σ))
       hρᵘ {zero} z<s =
         wfU (lookupᵁ-map-renameᵗ (lookupᵁ-fresh-extend {Σ = Σ} {B = B}))
       hρᵘ {suc X} (s<s ())
@@ -1310,19 +1294,18 @@ mutual
       ... | hA₀ , hAₙ = hAₙ
 
       hA₀tgt : WfTy (suc zero) (renameΣ suc (extendStore Σ B)) A₀
-      hA₀tgt = store-rel-preserves-WfTy (rename-store-rel hΣ′) hA₀src
+      hA₀tgt =
+        store-rel-preserves-WfTy (rename-store-rel hΣ′) hA₀src
 
       hAₙtgt : WfTy (suc zero) (renameΣ suc (extendStore Σ B)) Aₙ
-      hAₙtgt = store-rel-preserves-WfTy (rename-store-rel hΣ′) hAₙsrc
+      hAₙtgt =
+        store-rel-preserves-WfTy (rename-store-rel hΣ′) hAₙsrc
 
       noAₙ : NoName (fresh Σ) Aₙ
-      noAₙ =
-        Eq.subst
-          (λ U → NoName U Aₙ)
-          (fresh-renameΣ-suc Σ)
-          (no-name-from-wfty
-            (lookupᵁ-fresh-impossible {Σ = renameΣ suc Σ})
-            hAₙsrc)
+      noAₙ = Eq.subst (λ U → NoName U Aₙ) (fresh-renameΣ-suc Σ)
+               (no-name-from-wfty
+                 (lookupᵁ-fresh-impossible {Σ = renameΣ suc Σ})
+                 hAₙsrc)
 
       hVUᵗ :
         extendStore Σ B ∣ zero ⊢ [] ⊢
@@ -1332,11 +1315,9 @@ mutual
       hVU :
         extendStore Σ B ∣ zero ⊢ [] ⊢
         (V ·[ `U (fresh Σ) ]) ⦂ A₀ [ fresh Σ ]ᵘ
-      hVU =
-        Eq.subst
-          (λ T → extendStore Σ B ∣ zero ⊢ [] ⊢ (V ·[ `U (fresh Σ) ]) ⦂ T)
-          (subst-singleU-eq-renameᵘ (fresh Σ) hA₀tgt)
-          hVUᵗ
+      hVU = Eq.subst
+              (λ T → extendStore Σ B ∣ zero ⊢ [] ⊢ (V ·[ `U (fresh Σ) ]) ⦂ T)
+              (subst-singleU-eq-renameᵘ (fresh Σ) hA₀tgt) hVUᵗ
 
       cwt↑ :
         renameΣ suc (extendStore Σ B) ∣ suc zero ⊢ c ⦂ A₀ ⇨ Aₙ
@@ -1352,10 +1333,8 @@ mutual
         extendStore Σ B ∣ zero ⊢
         renameᶜᵘ (singleᵘ (fresh Σ)) c
         ⦂ A₀ [ fresh Σ ]ᵘ ⇨ Aₙ [ fresh Σ ]ᵘ
-      cwtᵘ =
-        store-rel-preserves-coercion
-          (store-rel-renameΣ-suc-id (StoreRel.wf-target hΣ′))
-          cwtᵘ↑
+      cwtᵘ = store-rel-preserves-coercion
+               (store-rel-renameΣ-suc-id (StoreRel.wf-target hΣ′)) cwtᵘ↑
 
       hInner :
         extendStore Σ B ∣ zero ⊢ [] ⊢

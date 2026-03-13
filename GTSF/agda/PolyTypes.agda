@@ -1,6 +1,7 @@
 module PolyTypes where
 
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; sym; cong; cong₂; subst)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; _<_; zero; suc)
 open import Data.Bool using (Bool)
@@ -170,6 +171,167 @@ data Ground : Ty → Set where
   G-∀★   : Ground (`∀ `★)
   G-var  : ∀ {X} → Ground (` X)
   G-U    : ∀ {U} → Ground (`U U)
+
+------------------------------------------------------------------------
+-- Types without X variables
+------------------------------------------------------------------------
+
+data NoX : Ty → Set where
+  NoX-ℕ    : NoX `ℕ
+  NoX-Bool : NoX `Bool
+  NoX-Str  : NoX `Str
+  NoX-★    : NoX `★
+  NoX-U    : ∀ {U} → NoX (`U U)
+  NoX-⇒    : ∀ {A B} → NoX A → NoX B → NoX (A ⇒ B)
+  NoX-∀    : ∀ {A} → NoX A → NoX (`∀ A)
+
+NoX-renameᵘ :
+  ∀ {d ρ A} →
+  NoX A →
+  NoX (renameᵘ d ρ A)
+NoX-renameᵘ NoX-ℕ = NoX-ℕ
+NoX-renameᵘ NoX-Bool = NoX-Bool
+NoX-renameᵘ NoX-Str = NoX-Str
+NoX-renameᵘ NoX-★ = NoX-★
+NoX-renameᵘ NoX-U = NoX-U
+NoX-renameᵘ (NoX-⇒ nxA nxB) =
+  NoX-⇒ (NoX-renameᵘ nxA) (NoX-renameᵘ nxB)
+NoX-renameᵘ (NoX-∀ nxA) = NoX-∀ (NoX-renameᵘ nxA)
+
+NoX-[]ᵘ :
+  ∀ {A U} →
+  NoX A →
+  NoX (A [ U ]ᵘ)
+NoX-[]ᵘ = NoX-renameᵘ
+
+NoX-renameᵘ-id :
+  ∀ {d ρ A} →
+  NoX A →
+  renameᵘ d ρ A ≡ A
+NoX-renameᵘ-id NoX-ℕ = refl
+NoX-renameᵘ-id NoX-Bool = refl
+NoX-renameᵘ-id NoX-Str = refl
+NoX-renameᵘ-id NoX-★ = refl
+NoX-renameᵘ-id NoX-U = refl
+NoX-renameᵘ-id (NoX-⇒ nxA nxB) =
+  cong₂ _⇒_ (NoX-renameᵘ-id nxA) (NoX-renameᵘ-id nxB)
+NoX-renameᵘ-id (NoX-∀ nxA) =
+  cong `∀ (NoX-renameᵘ-id nxA)
+
+------------------------------------------------------------------------
+-- Type consistency
+------------------------------------------------------------------------
+
+infix 4 _~_
+
+data _~_ : Ty → Ty → Set where
+  ~-X    : ∀ {X} → ` X ~ ` X
+  ~-ℕ    : `ℕ ~ `ℕ
+  ~-Bool : `Bool ~ `Bool
+  ~-Str  : `Str ~ `Str
+  ~-★    : `★ ~ `★
+  ~-U    : ∀ {U} → `U U ~ `U U
+
+  ★~ℕ    : `★ ~ `ℕ
+  ℕ~★    : `ℕ ~ `★
+  ★~Bool : `★ ~ `Bool
+  Bool~★ : `Bool ~ `★
+  ★~Str  : `★ ~ `Str
+  Str~★  : `Str ~ `★
+  ★~U    : ∀ {U} → `★ ~ `U U
+  U~★    : ∀ {U} → `U U ~ `★
+
+  ★~⇒ : ∀ {A B}
+    → A ~ `★
+    → `★ ~ B
+    → `★ ~ (A ⇒ B)
+
+  ⇒~★ : ∀ {A B}
+    → `★ ~ A
+    → B ~ `★
+    → (A ⇒ B) ~ `★
+
+  ★~∀ : ∀ {A}
+    → `★ ~ A [ 0 ]ᵘ
+    → `★ ~ `∀ A
+
+  ∀~★ : ∀ {A}
+    → A [ 0 ]ᵘ ~ `★
+    → `∀ A ~ `★
+
+  ~-⇒ : ∀ {A B C D}
+    → C ~ A
+    → B ~ D
+    → (A ⇒ B) ~ (C ⇒ D)
+
+  ~-∀ : ∀ {A B}
+    → A ~ B
+    → `∀ A ~ `∀ B
+
+~-sym : ∀ {A B}
+  → A ~ B
+  → B ~ A
+~-sym ~-X = ~-X
+~-sym ~-ℕ = ~-ℕ
+~-sym ~-Bool = ~-Bool
+~-sym ~-Str = ~-Str
+~-sym ~-★ = ~-★
+~-sym ~-U = ~-U
+~-sym ★~ℕ = ℕ~★
+~-sym ℕ~★ = ★~ℕ
+~-sym ★~Bool = Bool~★
+~-sym Bool~★ = ★~Bool
+~-sym ★~Str = Str~★
+~-sym Str~★ = ★~Str
+~-sym ★~U = U~★
+~-sym U~★ = ★~U
+~-sym (★~⇒ A~★ ★~B) = ⇒~★ (~-sym A~★) (~-sym ★~B)
+~-sym (⇒~★ ★~A B~★) = ★~⇒ (~-sym ★~A) (~-sym B~★)
+~-sym (★~∀ ★~A) = ∀~★ (~-sym ★~A)
+~-sym (∀~★ A~★) = ★~∀ (~-sym A~★)
+~-sym (~-⇒ C~A B~D) = ~-⇒ (~-sym C~A) (~-sym B~D)
+~-sym (~-∀ A~B) = ~-∀ (~-sym A~B)
+
+~-refl : ∀ {A} → A ~ A
+~-refl {A = ` X} = ~-X
+~-refl {A = `ℕ} = ~-ℕ
+~-refl {A = `Bool} = ~-Bool
+~-refl {A = `Str} = ~-Str
+~-refl {A = `★} = ~-★
+~-refl {A = `U U} = ~-U
+~-refl {A = A ⇒ B} = ~-⇒ ~-refl ~-refl
+~-refl {A = `∀ A} = ~-∀ ~-refl
+
+mutual
+  ★~-ty : ∀ A → NoX A → `★ ~ A
+  ★~-ty (` X) ()
+  ★~-ty `ℕ NoX-ℕ = ★~ℕ
+  ★~-ty `Bool NoX-Bool = ★~Bool
+  ★~-ty `Str NoX-Str = ★~Str
+  ★~-ty `★ NoX-★ = ~-★
+  ★~-ty (`U U) NoX-U = ★~U
+  ★~-ty (A ⇒ B) (NoX-⇒ nxA nxB) = ★~⇒ (~★-ty A nxA) (★~-ty B nxB)
+  ★~-ty (`∀ A) (NoX-∀ nxA) =
+    ★~∀
+      (subst
+        (λ T → `★ ~ T)
+        (sym (NoX-renameᵘ-id {d = 0} {ρ = singleᵘ 0} nxA))
+        (★~-ty A nxA))
+
+  ~★-ty : ∀ A → NoX A → A ~ `★
+  ~★-ty (` X) ()
+  ~★-ty `ℕ NoX-ℕ = ℕ~★
+  ~★-ty `Bool NoX-Bool = Bool~★
+  ~★-ty `Str NoX-Str = Str~★
+  ~★-ty `★ NoX-★ = ~-★
+  ~★-ty (`U U) NoX-U = U~★
+  ~★-ty (A ⇒ B) (NoX-⇒ nxA nxB) = ⇒~★ (★~-ty A nxA) (~★-ty B nxB)
+  ~★-ty (`∀ A) (NoX-∀ nxA) =
+    ∀~★
+      (subst
+        (λ T → T ~ `★)
+        (sym (NoX-renameᵘ-id {d = 0} {ρ = singleᵘ 0} nxA))
+        (~★-ty A nxA))
 
 IsVar→Ground : ∀ {A}
   → IsVar A

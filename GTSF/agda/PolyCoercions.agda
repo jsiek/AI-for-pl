@@ -73,3 +73,25 @@ data _∣_⊢_⦂_⇨_ (Σ : Store) (Δ : TyCtx) : Coercion → Ty → Ty → Se
     → WfTy Δ Σ A
     → WfTy Δ Σ B
     → Σ ∣ Δ ⊢ (⊥ᶜ p ⦂ A ⇨ B) ⦂ A ⇨ B
+
+coerce : Label → ∀ {A B} → A ~ B → Coercion
+coerce p (~-X {X = X}) = idᶜ (` X)
+coerce p ~-ℕ = idᶜ `ℕ
+coerce p ~-Bool = idᶜ `Bool
+coerce p ~-Str = idᶜ `Str
+coerce p ~-★ = idᶜ `★
+coerce p (~-U {U = U}) = idᶜ (`U U)
+coerce p ★~ℕ = `ℕ `? p
+coerce p ℕ~★ = `ℕ !
+coerce p ★~Bool = `Bool `? p
+coerce p Bool~★ = `Bool !
+coerce p ★~Str = `Str `? p
+coerce p Str~★ = `Str !
+coerce p (★~U {U = U}) = (`U U) `? p
+coerce p (U~★ {U = U}) = (`U U) !
+coerce p (★~⇒ c d) = ((`★ ⇒ `★) `? p) ⨟ (coerce p c ↦ coerce p d)
+coerce p (⇒~★ c d) = (coerce p c ↦ coerce p d) ⨟ ((`★ ⇒ `★) !)
+coerce p (★~∀ c) = ((`∀ `★) `? p) ⨟ (∀ᶜ (coerce p c))
+coerce p (∀~★ c) = (∀ᶜ (coerce p c)) ⨟ ((`∀ `★) !)
+coerce p (~-⇒ c d) = coerce p c ↦ coerce p d
+coerce p (~-∀ c) = ∀ᶜ (coerce p c)

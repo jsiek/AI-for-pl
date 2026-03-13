@@ -5,10 +5,13 @@ open import Agda.Builtin.Sigma using (Σ; _,_)
 open import Relation.Binary.PropositionalEquality as Eq using (cong; cong₂; sym; trans)
 open import Data.List using (_∷_; []; map)
 open import Data.Nat using (ℕ; zero; suc; _≤_; z≤n; s≤s)
+open import Data.Nat.Properties using (_≟_)
 open import Data.Nat.Base using (_<_; z<s; s<s)
 open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Unit using (⊤; tt)
 open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import Data.Sum using (inj₁; inj₂)
+open import Relation.Nullary.Decidable as Dec using (yes; no)
 open import PolyCoercions
 open import PolyCastCalculus
 open import Progress using (canonical-base)
@@ -129,6 +132,35 @@ coercion-wfty hΣ (⊢∀ᶜ cwt)
   with coercion-wfty (storeWfAt-shift hΣ) cwt
 ... | hA , hB = wf∀ hA , wf∀ hB
 coercion-wfty hΣ (⊢⊥ hA hB) = hA , hB
+
+coercion-typing-unique :
+  {Σ : Store} {Δ : TyCtx} {c : Coercion} {A B A′ B′ : Ty} →
+  Σ ∣ Δ ⊢ c ⦂ A ⇨ B →
+  Σ ∣ Δ ⊢ c ⦂ A′ ⇨ B′ →
+  A ≡ A′ × B ≡ B′
+coercion-typing-unique (⊢idᶜ hA) (⊢idᶜ hA′) = refl , refl
+coercion-typing-unique (⊢! hG gG) (⊢! hG′ gG′) = refl , refl
+coercion-typing-unique (⊢? hG gG) (⊢? hG′ gG′) = refl , refl
+coercion-typing-unique (⊢↦ cwt dwt) (⊢↦ cwt′ dwt′)
+  with coercion-typing-unique cwt cwt′
+     | coercion-typing-unique dwt dwt′
+... | eqA′ , eqA | eqB , eqB′ =
+  cong₂ _⇒_ eqA eqB , cong₂ _⇒_ eqA′ eqB′
+coercion-typing-unique (⊢⨟ cwt dwt) (⊢⨟ cwt′ dwt′)
+  with coercion-typing-unique cwt cwt′
+     | coercion-typing-unique dwt dwt′
+... | eqA , eqB | eqB′ , eqC =
+  eqA , eqC
+coercion-typing-unique (⊢conceal hU) (⊢conceal hU′)
+  with ∋ᵁ-unique hU hU′
+... | refl = refl , refl
+coercion-typing-unique (⊢reveal hU) (⊢reveal hU′)
+  with ∋ᵁ-unique hU hU′
+... | refl = refl , refl
+coercion-typing-unique (⊢∀ᶜ cwt) (⊢∀ᶜ cwt′)
+  with coercion-typing-unique cwt cwt′
+... | eqA , eqB = cong `∀ eqA , cong `∀ eqB
+coercion-typing-unique (⊢⊥ hA hB) (⊢⊥ hA′ hB′) = refl , refl
 
 typeof-base-wfty : {Δ : TyCtx} {Σ : Store} (b : Base) →
   WfTy Δ Σ (typeof-base b)
@@ -677,22 +709,115 @@ typing-single-subst : {Σ : Store} {Δ : TyCtx} {Γ : Ctx} {N V : Term} {A B : T
 typing-single-subst hΓ hN hV =
   typing-subst hΓ (singleSubstWf hV) hN
 
+subst-cong-wf :
+  {Δ : TyCtx} {Σ : Store} {A : Ty} {σ τ : Substᵗ} →
+  (∀ {X} → X < Δ → σ X ≡ τ X) →
+  WfTy Δ Σ A →
+  substᵗ σ A ≡ substᵗ τ A
+subst-cong-wf hσ (wfVar x<Δ) = hσ x<Δ
+subst-cong-wf hσ wfℕ = refl
+subst-cong-wf hσ wfBool = refl
+subst-cong-wf hσ wfStr = refl
+subst-cong-wf hσ wf★ = refl
+subst-cong-wf hσ (wfU hU) = refl
+subst-cong-wf hσ (wf⇒ hA hB) =
+  cong₂ _⇒_ (subst-cong-wf hσ hA) (subst-cong-wf hσ hB)
+subst-cong-wf {Δ = Δ} {σ = σ} {τ = τ} hσ (wf∀ hA) =
+  cong `∀ (subst-cong-wf hσ-ext hA)
+  where
+    hσ-ext : ∀ {X} → X < suc Δ → extsᵗ σ X ≡ extsᵗ τ X
+    hσ-ext {zero} z<s = refl
+    hσ-ext {suc X} (s<s x<Δ) = cong (renameᵗ suc) (hσ x<Δ)
+
+subst-singleU-eq-renameᵘ :
+  {Σ : Store} {A : Ty} (U : Name) →
+  WfTy (suc zero) Σ A →
+  A [ `U U ]ᵗ ≡ A [ U ]ᵘ
+subst-singleU-eq-renameᵘ {A = A} U hA =
+  trans
+    (subst-cong-wf hσ hA)
+    (sym (renameᵘ-as-subst 0 (singleᵘ U) A))
+  where
+    hσ : ∀ {X} → X < suc zero → singleTyEnv (`U U) X ≡ uSubᵘ (singleᵘ U) X
+    hσ {zero} z<s = refl
+    hσ {suc X} (s<s ())
+
+lookupᵁ-extend :
+  {Σ : Store} {U : Name} {A B : Ty} →
+  Σ ∋ᵁ U ⦂ A →
+  extendStore Σ B ∋ᵁ U ⦂ A
+lookupᵁ-extend Zᵁ = Zᵁ
+lookupᵁ-extend (Sᵁ hU) = Sᵁ (lookupᵁ-extend hU)
+
+lookupᵁ-fresh-extend :
+  {Σ : Store} {B : Ty} →
+  extendStore Σ B ∋ᵁ fresh Σ ⦂ B
+lookupᵁ-fresh-extend {Σ = []} {B = B} = Zᵁ
+lookupᵁ-fresh-extend {Σ = A ∷ Σ} {B = B} =
+  Sᵁ (lookupᵁ-fresh-extend {Σ = Σ} {B = B})
+
+renameᵗ-id-on-wf :
+  {Δ : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
+  (∀ {X} → X < Δ → ρ X ≡ X) →
+  WfTy Δ Σ A →
+  renameᵗ ρ A ≡ A
+renameᵗ-id-on-wf hρ (wfVar x<Δ) = cong `_ (hρ x<Δ)
+renameᵗ-id-on-wf hρ wfℕ = refl
+renameᵗ-id-on-wf hρ wfBool = refl
+renameᵗ-id-on-wf hρ wfStr = refl
+renameᵗ-id-on-wf hρ wf★ = refl
+renameᵗ-id-on-wf hρ (wfU hU) = refl
+renameᵗ-id-on-wf hρ (wf⇒ hA hB) =
+  cong₂ _⇒_ (renameᵗ-id-on-wf hρ hA) (renameᵗ-id-on-wf hρ hB)
+renameᵗ-id-on-wf {Δ = Δ} {ρ = ρ} hρ (wf∀ hA) =
+  cong `∀ (renameᵗ-id-on-wf hρ-ext hA)
+  where
+    hρ-ext : ∀ {X} → X < suc Δ → extᵗ ρ X ≡ X
+    hρ-ext {zero} z<s = refl
+    hρ-ext {suc X} (s<s x<Δ) = cong suc (hρ x<Δ)
+
+renameᵗ-suc-id-closed :
+  {Σ : Store} {A : Ty} →
+  WfTy 0 Σ A →
+  renameᵗ suc A ≡ A
+renameᵗ-suc-id-closed hA = renameᵗ-id-on-wf (λ ()) hA
+
 ------------------------------------------------------------------------
 -- Transporting typing along store extensions
 ------------------------------------------------------------------------
 
 record StoreRel (Σ Σ′ : Store) : Set where
   field
+    wf-source : WfStore Σ
     wf-target : WfStore Σ′
     preserve-lookup : ∀ {U A} → Σ ∋ᵁ U ⦂ A → Σ′ ∋ᵁ U ⦂ A
 
 StoreExt : Store → Store → Set
 StoreExt = StoreRel
 
+store-rel-renameΣ-suc-id :
+  {Σ : Store} →
+  WfStore Σ →
+  StoreRel (renameΣ suc Σ) Σ
+store-rel-renameΣ-suc-id {Σ = Σ} wfΣ .StoreRel.wf-source =
+  rename-suc-WfStore-top wfΣ
+store-rel-renameΣ-suc-id {Σ = Σ} wfΣ .StoreRel.wf-target = wfΣ
+store-rel-renameΣ-suc-id {Σ = Σ} wfΣ .StoreRel.preserve-lookup {U} {B} h
+  with lookupᵁ-map-inv h
+... | A , (hA , eq)
+  with lookupᵁ-wfty0 wfΣ hA
+... | wfAt0 hA0 =
+  Eq.subst
+    (λ T → Σ ∋ᵁ U ⦂ T)
+    (sym (trans eq (renameᵗ-suc-id-closed hA0)))
+    hA
+
 rename-store-rel :
   {Σ Σ′ : Store} {ρ : Renameᵗ} →
   StoreRel Σ Σ′ →
   StoreRel (renameΣ ρ Σ) (renameΣ ρ Σ′)
+rename-store-rel rel .StoreRel.wf-source =
+  renameᵗ-preserves-WfStore (StoreRel.wf-source rel)
 rename-store-rel rel .StoreRel.wf-target =
   renameᵗ-preserves-WfStore (StoreRel.wf-target rel)
 rename-store-rel rel .StoreRel.preserve-lookup {U} {B} h
@@ -827,53 +952,444 @@ frame-blame hΣ h = ⊢blame (typing-wfty hΣ wfΓ∅ h)
 -- Preservation
 ------------------------------------------------------------------------
 
+singleTyEnvᵈ : ℕ → Ty → Substᵗ
+singleTyEnvᵈ zero B = singleTyEnv B
+singleTyEnvᵈ (suc d) B = extsᵗ (singleTyEnvᵈ d B)
+
+lookupᵁ-map-renameᵗ-id :
+  {Σ : Store} {U : Name} {B : Ty} →
+  WfStore Σ →
+  Σ ∋ᵁ U ⦂ B →
+  renameΣ suc Σ ∋ᵁ U ⦂ B
+lookupᵁ-map-renameᵗ-id {Σ = Σ} {U = U} {B = B} hΣ hU
+  with lookupᵁ-wfty0 hΣ hU
+... | wfAt0 hB0 =
+  Eq.subst
+    (λ T → renameΣ suc Σ ∋ᵁ U ⦂ T)
+    (renameᵗ-suc-id-closed hB0)
+    (lookupᵁ-map-renameᵗ hU)
+
+no-lookup-rename-suc :
+  {Σ : Store} {U : Name} →
+  (∀ {A} → Σ ∋ᵁ U ⦂ A → ⊥) →
+  (∀ {A} → renameΣ suc Σ ∋ᵁ U ⦂ A → ⊥)
+no-lookup-rename-suc noU h
+  with lookupᵁ-map-inv h
+... | A , (hA , eq) = noU hA
+
+lookupᵁ-fresh-impossible :
+  {Σ : Store} {A : Ty} →
+  Σ ∋ᵁ fresh Σ ⦂ A →
+  ⊥
+lookupᵁ-fresh-impossible {Σ = []} ()
+lookupᵁ-fresh-impossible {Σ = B ∷ Σ} (Sᵁ h) =
+  lookupᵁ-fresh-impossible {Σ = Σ} h
+
+fresh-renameΣ-suc :
+  (Σ : Store) →
+  fresh (renameΣ suc Σ) ≡ fresh Σ
+fresh-renameΣ-suc [] = refl
+fresh-renameΣ-suc (A ∷ Σ) =
+  cong suc (fresh-renameΣ-suc Σ)
+
+NoName : Name → Ty → Set
+NoName U (` X) = ⊤
+NoName U `ℕ = ⊤
+NoName U `Bool = ⊤
+NoName U `Str = ⊤
+NoName U `★ = ⊤
+NoName U (`U V) = U ≡ V → ⊥
+NoName U (A ⇒ B) = NoName U A × NoName U B
+NoName U (`∀ A) = NoName U A
+
+no-name-from-wfty :
+  {Σ : Store} {Δ : TyCtx} {U : Name} {A : Ty} →
+  (∀ {T} → Σ ∋ᵁ U ⦂ T → ⊥) →
+  WfTy Δ Σ A →
+  NoName U A
+no-name-from-wfty noU (wfVar x<Δ) = tt
+no-name-from-wfty noU wfℕ = tt
+no-name-from-wfty noU wfBool = tt
+no-name-from-wfty noU wfStr = tt
+no-name-from-wfty noU wf★ = tt
+no-name-from-wfty {U = U} noU (wfU {U = V} hV)
+  with U ≟ V
+... | yes refl = ⊥-elim (noU hV)
+... | no U≢V = U≢V
+no-name-from-wfty noU (wf⇒ hA hB) =
+  no-name-from-wfty noU hA , no-name-from-wfty noU hB
+no-name-from-wfty {U = U} noU (wf∀ hA) =
+  no-name-from-wfty (no-lookup-rename-suc noU) hA
+
+mutual
+  coerce⁺-top-var :
+    (U : Name) →
+    coerce⁺ U (renameᵘ 0 (singleᵘ U) (` zero)) ≡ U ⁺
+  coerce⁺-top-var U with U ≟ U
+  ... | yes _ = refl
+  ... | no U≢U = ⊥-elim (U≢U refl)
+
+  coerce⁻-top-var :
+    (U : Name) →
+    coerce⁻ U (renameᵘ 0 (singleᵘ U) (` zero)) ≡ U ⁻
+  coerce⁻-top-var U with U ≟ U
+  ... | yes _ = refl
+  ... | no U≢U = ⊥-elim (U≢U refl)
+
+  coerce⁺-renameᵗ-commute :
+    {U : Name} {ρ : Renameᵗ} →
+    (A : Ty) →
+    coerce⁺ U (renameᵗ ρ A) ≡ renameᶜᵗ ρ (coerce⁺ U A)
+  coerce⁺-renameᵗ-commute {U} {ρ} (` X) = refl
+  coerce⁺-renameᵗ-commute {U} {ρ} `ℕ = refl
+  coerce⁺-renameᵗ-commute {U} {ρ} `Bool = refl
+  coerce⁺-renameᵗ-commute {U} {ρ} `Str = refl
+  coerce⁺-renameᵗ-commute {U} {ρ} `★ = refl
+  coerce⁺-renameᵗ-commute {U = u} {ρ = ρ} (`U V) with u ≟ V
+  ... | yes p = refl
+  ... | no p = refl
+  coerce⁺-renameᵗ-commute {U} {ρ} (A ⇒ B) =
+    cong₂ _↦_
+      (coerce⁻-renameᵗ-commute A)
+      (coerce⁺-renameᵗ-commute B)
+  coerce⁺-renameᵗ-commute {U} {ρ} (`∀ A) =
+    cong ∀ᶜ_ (coerce⁺-renameᵗ-commute {ρ = extᵗ ρ} A)
+
+  coerce⁻-renameᵗ-commute :
+    {U : Name} {ρ : Renameᵗ} →
+    (A : Ty) →
+    coerce⁻ U (renameᵗ ρ A) ≡ renameᶜᵗ ρ (coerce⁻ U A)
+  coerce⁻-renameᵗ-commute {U} {ρ} (` X) = refl
+  coerce⁻-renameᵗ-commute {U} {ρ} `ℕ = refl
+  coerce⁻-renameᵗ-commute {U} {ρ} `Bool = refl
+  coerce⁻-renameᵗ-commute {U} {ρ} `Str = refl
+  coerce⁻-renameᵗ-commute {U} {ρ} `★ = refl
+  coerce⁻-renameᵗ-commute {U = u} {ρ = ρ} (`U V) with u ≟ V
+  ... | yes p = refl
+  ... | no p = refl
+  coerce⁻-renameᵗ-commute {U} {ρ} (A ⇒ B) =
+    cong₂ _↦_
+      (coerce⁺-renameᵗ-commute A)
+      (coerce⁻-renameᵗ-commute B)
+  coerce⁻-renameᵗ-commute {U} {ρ} (`∀ A) =
+    cong ∀ᶜ_ (coerce⁻-renameᵗ-commute {ρ = extᵗ ρ} A)
+
+mutual
+  coerce⁺-β-plain-typingᵈ :
+    ∀ {Σ : Store} {U : Name} {B A : Ty} →
+    (d : ℕ) →
+    WfStore Σ →
+    Σ ∋ᵁ U ⦂ B →
+    WfTy (suc d) (renameΣ suc Σ) A →
+    NoName U A →
+    Σ ∣ d ⊢
+      coerce⁺ U (renameᵘ d (singleᵘ U) A)
+      ⦂ renameᵘ d (singleᵘ U) A ⇨ substᵗ (singleTyEnvᵈ d B) A
+  coerce⁺-β-plain-typingᵈ {U = U} zero hΣ hU (wfVar z<s) noX
+    rewrite coerce⁺-top-var U =
+    ⊢reveal hU
+  coerce⁺-β-plain-typingᵈ (suc d) hΣ hU (wfVar z<s) noX =
+    ⊢idᶜ (wfVar z<s)
+  coerce⁺-β-plain-typingᵈ {Σ = Σ} {U = U} {B = B} (suc d) hΣ hU (wfVar {X = suc X} (s<s x<)) noX =
+    Eq.subst
+      (λ C → Σ ∣ suc d ⊢ C ⦂ renameᵘ (suc d) (singleᵘ U) (` suc X) ⇨ substᵗ (singleTyEnvᵈ (suc d) B) (` suc X))
+      (sym (coerce⁺-renameᵗ-commute {U = U} {ρ = suc} (renameᵘ d (singleᵘ U) (` X))))
+      (store-rel-preserves-coercion
+        (store-rel-renameΣ-suc-id hΣ)
+        (renameᶜᵗ-preserves-typing
+          (λ {i} i<d → s<s i<d)
+          (coerce⁺-β-plain-typingᵈ d hΣ hU (wfVar x<) tt)))
+  coerce⁺-β-plain-typingᵈ d hΣ hU wfℕ noX = ⊢idᶜ wfℕ
+  coerce⁺-β-plain-typingᵈ d hΣ hU wfBool noX = ⊢idᶜ wfBool
+  coerce⁺-β-plain-typingᵈ d hΣ hU wfStr noX = ⊢idᶜ wfStr
+  coerce⁺-β-plain-typingᵈ d hΣ hU wf★ noX = ⊢idᶜ wf★
+  coerce⁺-β-plain-typingᵈ {Σ = Σ} {U = U} {B = B} d hΣ hU (wfU {U = V} hV↑) noUV
+    with U ≟ V
+  ... | yes refl = ⊥-elim (noUV refl)
+  ... | no _ with lookupᵁ-map-inv hV↑
+  ... | A , (hV , eq) = ⊢idᶜ (wfU hV)
+  coerce⁺-β-plain-typingᵈ d hΣ hU (wf⇒ hA hB) (noA , noB) =
+    ⊢↦
+      (coerce⁻-β-plain-typingᵈ d hΣ hU hA noA)
+      (coerce⁺-β-plain-typingᵈ d hΣ hU hB noB)
+  coerce⁺-β-plain-typingᵈ {Σ = Σ} {U = U} {B = B} d hΣ hU (wf∀ hA) noA =
+    ⊢∀ᶜ
+      (coerce⁺-β-plain-typingᵈ
+        (suc d)
+        (rename-suc-WfStore-top hΣ)
+        (lookupᵁ-map-renameᵗ-id hΣ hU)
+        hA
+        noA)
+
+  coerce⁻-β-plain-typingᵈ :
+    ∀ {Σ : Store} {U : Name} {B A : Ty} →
+    (d : ℕ) →
+    WfStore Σ →
+    Σ ∋ᵁ U ⦂ B →
+    WfTy (suc d) (renameΣ suc Σ) A →
+    NoName U A →
+    Σ ∣ d ⊢
+      coerce⁻ U (renameᵘ d (singleᵘ U) A)
+      ⦂ substᵗ (singleTyEnvᵈ d B) A ⇨ renameᵘ d (singleᵘ U) A
+  coerce⁻-β-plain-typingᵈ {U = U} zero hΣ hU (wfVar z<s) noX
+    rewrite coerce⁻-top-var U =
+    ⊢conceal hU
+  coerce⁻-β-plain-typingᵈ (suc d) hΣ hU (wfVar z<s) noX =
+    ⊢idᶜ (wfVar z<s)
+  coerce⁻-β-plain-typingᵈ {Σ = Σ} {U = U} {B = B} (suc d) hΣ hU (wfVar {X = suc X} (s<s x<)) noX =
+    Eq.subst
+      (λ C → Σ ∣ suc d ⊢ C ⦂ substᵗ (singleTyEnvᵈ (suc d) B) (` suc X) ⇨ renameᵘ (suc d) (singleᵘ U) (` suc X))
+      (sym (coerce⁻-renameᵗ-commute {U = U} {ρ = suc} (renameᵘ d (singleᵘ U) (` X))))
+      (store-rel-preserves-coercion
+        (store-rel-renameΣ-suc-id hΣ)
+        (renameᶜᵗ-preserves-typing
+          (λ {i} i<d → s<s i<d)
+          (coerce⁻-β-plain-typingᵈ d hΣ hU (wfVar x<) tt)))
+  coerce⁻-β-plain-typingᵈ d hΣ hU wfℕ noX = ⊢idᶜ wfℕ
+  coerce⁻-β-plain-typingᵈ d hΣ hU wfBool noX = ⊢idᶜ wfBool
+  coerce⁻-β-plain-typingᵈ d hΣ hU wfStr noX = ⊢idᶜ wfStr
+  coerce⁻-β-plain-typingᵈ d hΣ hU wf★ noX = ⊢idᶜ wf★
+  coerce⁻-β-plain-typingᵈ {Σ = Σ} {U = U} {B = B} d hΣ hU (wfU {U = V} hV↑) noUV
+    with U ≟ V
+  ... | yes refl = ⊥-elim (noUV refl)
+  ... | no _ with lookupᵁ-map-inv hV↑
+  ... | A , (hV , eq) = ⊢idᶜ (wfU hV)
+  coerce⁻-β-plain-typingᵈ d hΣ hU (wf⇒ hA hB) (noA , noB) =
+    ⊢↦
+      (coerce⁺-β-plain-typingᵈ d hΣ hU hA noA)
+      (coerce⁻-β-plain-typingᵈ d hΣ hU hB noB)
+  coerce⁻-β-plain-typingᵈ {Σ = Σ} {U = U} {B = B} d hΣ hU (wf∀ hA) noA =
+    ⊢∀ᶜ
+      (coerce⁻-β-plain-typingᵈ
+        (suc d)
+        (rename-suc-WfStore-top hΣ)
+        (lookupᵁ-map-renameᵗ-id hΣ hU)
+        hA
+        noA)
+
+coerce⁺-β-plain-typing :
+  ∀ {Σ : Store} {B A₀ : Ty} →
+  WfStore (extendStore Σ B) →
+  WfTy (suc zero) (renameΣ suc (extendStore Σ B)) A₀ →
+  NoName (fresh Σ) A₀ →
+  extendStore Σ B ∣ zero ⊢
+    coerce⁺ (fresh Σ) (renameᵘ 0 (singleᵘ (fresh Σ)) A₀)
+    ⦂ renameᵘ 0 (singleᵘ (fresh Σ)) A₀ ⇨ substᵗ (singleTyEnv B) A₀
+coerce⁺-β-plain-typing {Σ = Σ} {B = B} {A₀ = A₀} hΣext hA₀ noA₀ =
+  coerce⁺-β-plain-typingᵈ 0 hΣext (lookupᵁ-fresh-extend {Σ = Σ} {B = B}) hA₀ noA₀
+
+coerce⁻-β-plain-typing :
+  ∀ {Σ : Store} {B A₀ : Ty} →
+  WfStore (extendStore Σ B) →
+  WfTy (suc zero) (renameΣ suc (extendStore Σ B)) A₀ →
+  NoName (fresh Σ) A₀ →
+  extendStore Σ B ∣ zero ⊢
+    coerce⁻ (fresh Σ) (renameᵘ 0 (singleᵘ (fresh Σ)) A₀)
+    ⦂ substᵗ (singleTyEnv B) A₀ ⇨ renameᵘ 0 (singleᵘ (fresh Σ)) A₀
+coerce⁻-β-plain-typing {Σ = Σ} {B = B} {A₀ = A₀} hΣext hA₀ noA₀ =
+  coerce⁻-β-plain-typingᵈ 0 hΣext (lookupᵁ-fresh-extend {Σ = Σ} {B = B}) hA₀ noA₀
+
 mutual
   preservation : ∀ {Σ Σ′ M N A}
+    → StoreWfAt zero Σ
     → StoreExt Σ Σ′
     → Σ ∣ zero ⊢ [] ⊢ M ⦂ A
     → (Σ ⊲ M) —→ (Σ′ ⊲ N)
     → Σ′ ∣ zero ⊢ [] ⊢ N ⦂ A
-  preservation hΣ′ M⦂ (ξξ {F = F} refl refl M→N) =
-    frame-preservation {F = F} hΣ′ M⦂ M→N
-  preservation hΣ′ (⊢· (⊢const x x₁ refl) (⊢const x₂ x₃ refl)) δ =
+  preservation hΣ hΣ′ M⦂ (ξξ {F = F} refl refl M→N) =
+    frame-preservation {F = F} hΣ hΣ′ M⦂ M→N
+  preservation hΣ hΣ′ (⊢· (⊢const x x₁ refl) (⊢const x₂ x₃ refl)) δ =
     ⊢const (hΣ′ .StoreRel.wf-target) wfΓ∅ refl
-  preservation hΣ′ (⊢· {A = A} (⊢ƛ {A = A} hA hN) hV) (β-ƛ vV) =
+  preservation hΣ hΣ′ (⊢· {A = A} (⊢ƛ {A = A} hA hN) hV) (β-ƛ vV) =
     typing-single-subst wfΓ∅ hN hV
-  preservation hΣ′ (⊢⟨⟩ hV (⊢idᶜ _)) (β-id vV) = hV
-  preservation hΣ′ (⊢· (⊢⟨⟩ hV (⊢↦ cwt dwt)) hW) (β-↦ vV vW) =
+  preservation hΣ hΣ′ (⊢⟨⟩ hV (⊢idᶜ _)) (β-id vV) = hV
+  preservation hΣ hΣ′ (⊢· (⊢⟨⟩ hV (⊢↦ cwt dwt)) hW) (β-↦ vV vW) =
     ⊢⟨⟩ (⊢· hV (⊢⟨⟩ hW cwt)) dwt
-  preservation hΣ′ (⊢⟨⟩ (⊢⟨⟩ hV (⊢! _ _)) (⊢? _ _)) (β-proj-inj-ok vV) = hV
-  preservation hΣ′ (⊢⟨⟩ (⊢⟨⟩ hV (⊢! _ _)) (⊢? hG _)) (β-proj-inj-bad vV G≢H) =
+  preservation hΣ hΣ′ (⊢⟨⟩ (⊢⟨⟩ hV (⊢! _ _)) (⊢? _ _)) (β-proj-inj-ok vV) = hV
+  preservation hΣ hΣ′ (⊢⟨⟩ (⊢⟨⟩ hV (⊢! _ _)) (⊢? hG _)) (β-proj-inj-bad vV G≢H) =
     ⊢blame hG
-  preservation hΣ′ (⊢⟨⟩ (⊢⟨⟩ hV (⊢conceal hU₁)) (⊢reveal hU₂)) (β-remove vV)
+  preservation hΣ hΣ′ (⊢⟨⟩ (⊢⟨⟩ hV (⊢conceal hU₁)) (⊢reveal hU₂)) (β-remove vV)
     with ∋ᵁ-unique hU₁ hU₂
   ... | refl = hV
-  preservation hΣ′ (⊢⟨⟩ hV (⊢⨟ cwt dwt)) (β-seq vV) =
+  preservation hΣ hΣ′ (⊢⟨⟩ hV (⊢⨟ cwt dwt)) (β-seq vV) =
     ⊢⟨⟩ (⊢⟨⟩ hV cwt) dwt
-  preservation hΣ′ (⊢⟨⟩ hV (⊢⊥ _ hB)) (β-fail vV) =
+  preservation hΣ hΣ′ (⊢⟨⟩ hV (⊢⊥ _ hB)) (β-fail vV) =
     ⊢blame hB
-  preservation hΣ′ M⦂ β-ty-plain = {!!}
-  preservation hΣ′ M⦂ (β-ty-wrap vV cwt) = {!!}
-  preservation hΣ′ M⦂ (ξξ-blame {F = F} refl) = frame-blame {F = F} {!!} M⦂
+  preservation {Σ = Σ} hΣ hΣ′
+    (⊢·[] {M = (Λ M ⦂ A₀)} {A = A₀} {B = B} (⊢Λ {M = M} {A = A₀} hM) hB)
+    β-ty-plain =
+    ⊢⟨⟩ hM[] cwt
+    where
+      hM↑ : renameΣ suc (extendStore Σ B) ∣ suc zero ⊢ [] ⊢ M ⦂ A₀
+      hM↑ = store-rel-preserves-typing (rename-store-rel hΣ′) hM
+
+      hΣ↑ : WfStore (renameΣ suc (extendStore Σ B))
+      hΣ↑ = StoreRel.wf-target (rename-store-rel hΣ′)
+
+      hρᵘ : TyRenameᵘWf (suc zero) zero (renameΣ suc (extendStore Σ B)) (singleᵘ (fresh Σ))
+      hρᵘ {zero} z<s =
+        wfU (lookupᵁ-map-renameᵗ (lookupᵁ-fresh-extend {Σ = Σ} {B = B}))
+      hρᵘ {suc X} (s<s ())
+
+      hM[]↑ :
+        renameΣ suc (extendStore Σ B) ∣ zero ⊢ [] ⊢
+        M [ fresh Σ ]ᵀ ⦂ A₀ [ fresh Σ ]ᵘ
+      hM[]↑ =
+        typing-single-renameᵀ
+          {Σ = renameΣ suc (extendStore Σ B)}
+          {Δ = zero}
+          {Γ = []}
+          {M = M}
+          {A = A₀}
+          {U = fresh Σ}
+          hM↑
+          hΣ↑
+          wfΓ∅
+          hρᵘ
+
+      hM[] :
+        extendStore Σ B ∣ zero ⊢ [] ⊢
+        M [ fresh Σ ]ᵀ ⦂ A₀ [ fresh Σ ]ᵘ
+      hM[] =
+        store-rel-preserves-typing
+          (store-rel-renameΣ-suc-id (StoreRel.wf-target hΣ′))
+          hM[]↑
+
+      hA₀src : WfTy (suc zero) (renameΣ suc Σ) A₀
+      hA₀src =
+        typing-wfty
+          (storeWfAt-shift hΣ)
+          wfΓ∅
+          hM
+
+      hA₀tgt : WfTy (suc zero) (renameΣ suc (extendStore Σ B)) A₀
+      hA₀tgt =
+        store-rel-preserves-WfTy
+          (rename-store-rel hΣ′)
+          hA₀src
+
+      noA₀ : NoName (fresh Σ) A₀
+      noA₀ =
+        Eq.subst
+          (λ U → NoName U A₀)
+          (fresh-renameΣ-suc Σ)
+          (no-name-from-wfty
+            (lookupᵁ-fresh-impossible {Σ = renameΣ suc Σ})
+            hA₀src)
+
+      cwt :
+        extendStore Σ B ∣ zero ⊢
+        coerce⁺ (fresh Σ) (A₀ [ fresh Σ ]ᵘ)
+        ⦂ A₀ [ fresh Σ ]ᵘ ⇨ A₀ [ B ]ᵗ
+      cwt = coerce⁺-β-plain-typing (StoreRel.wf-target hΣ′) hA₀tgt noA₀
+  preservation {Σ = Σ} hΣ hΣ′
+    (⊢·[] {M = (V ⟨ ∀ᶜ c ⟩)} {A = Aₙ} {B = B}
+      (⊢⟨⟩ {A = `∀ A₀} {B = `∀ Aₙ} hV (⊢∀ᶜ {A = A₀} {B = Aₙ} {c = c} cwt₀))
+      hB)
+    (β-ty-wrap vV cwt)
+    with coercion-typing-unique (⊢∀ᶜ {A = A₀} {B = Aₙ} {c = c} cwt₀) cwt
+  ... | refl , refl =
+    ⊢⟨⟩ hInner cwt+
+    where
+      hΣ↑ : WfStore (renameΣ suc (extendStore Σ B))
+      hΣ↑ = StoreRel.wf-target (rename-store-rel hΣ′)
+
+      hρᵘ : TyRenameᵘWf (suc zero) zero (renameΣ suc (extendStore Σ B)) (singleᵘ (fresh Σ))
+      hρᵘ {zero} z<s =
+        wfU (lookupᵁ-map-renameᵗ (lookupᵁ-fresh-extend {Σ = Σ} {B = B}))
+      hρᵘ {suc X} (s<s ())
+
+      hV′ : extendStore Σ B ∣ zero ⊢ [] ⊢ V ⦂ `∀ A₀
+      hV′ = store-rel-preserves-typing hΣ′ hV
+
+      hA₀src : WfTy (suc zero) (renameΣ suc Σ) A₀
+      hAₙsrc : WfTy (suc zero) (renameΣ suc Σ) Aₙ
+      hA₀src with coercion-wfty (storeWfAt-shift hΣ) cwt₀
+      ... | hA₀ , hAₙ = hA₀
+      hAₙsrc with coercion-wfty (storeWfAt-shift hΣ) cwt₀
+      ... | hA₀ , hAₙ = hAₙ
+
+      hA₀tgt : WfTy (suc zero) (renameΣ suc (extendStore Σ B)) A₀
+      hA₀tgt = store-rel-preserves-WfTy (rename-store-rel hΣ′) hA₀src
+
+      hAₙtgt : WfTy (suc zero) (renameΣ suc (extendStore Σ B)) Aₙ
+      hAₙtgt = store-rel-preserves-WfTy (rename-store-rel hΣ′) hAₙsrc
+
+      noAₙ : NoName (fresh Σ) Aₙ
+      noAₙ =
+        Eq.subst
+          (λ U → NoName U Aₙ)
+          (fresh-renameΣ-suc Σ)
+          (no-name-from-wfty
+            (lookupᵁ-fresh-impossible {Σ = renameΣ suc Σ})
+            hAₙsrc)
+
+      hVUᵗ :
+        extendStore Σ B ∣ zero ⊢ [] ⊢
+        (V ·[ `U (fresh Σ) ]) ⦂ A₀ [ `U (fresh Σ) ]ᵗ
+      hVUᵗ = ⊢·[] hV′ (wfU (lookupᵁ-fresh-extend {Σ = Σ} {B = B}))
+
+      hVU :
+        extendStore Σ B ∣ zero ⊢ [] ⊢
+        (V ·[ `U (fresh Σ) ]) ⦂ A₀ [ fresh Σ ]ᵘ
+      hVU =
+        Eq.subst
+          (λ T → extendStore Σ B ∣ zero ⊢ [] ⊢ (V ·[ `U (fresh Σ) ]) ⦂ T)
+          (subst-singleU-eq-renameᵘ (fresh Σ) hA₀tgt)
+          hVUᵗ
+
+      cwt↑ :
+        renameΣ suc (extendStore Σ B) ∣ suc zero ⊢ c ⦂ A₀ ⇨ Aₙ
+      cwt↑ = store-rel-preserves-coercion (rename-store-rel hΣ′) cwt₀
+
+      cwtᵘ↑ :
+        renameΣ suc (extendStore Σ B) ∣ zero ⊢
+        renameᶜᵘ (singleᵘ (fresh Σ)) c
+        ⦂ A₀ [ fresh Σ ]ᵘ ⇨ Aₙ [ fresh Σ ]ᵘ
+      cwtᵘ↑ = renameᶜᵘ-preserves-typing hΣ↑ hρᵘ cwt↑
+
+      cwtᵘ :
+        extendStore Σ B ∣ zero ⊢
+        renameᶜᵘ (singleᵘ (fresh Σ)) c
+        ⦂ A₀ [ fresh Σ ]ᵘ ⇨ Aₙ [ fresh Σ ]ᵘ
+      cwtᵘ =
+        store-rel-preserves-coercion
+          (store-rel-renameΣ-suc-id (StoreRel.wf-target hΣ′))
+          cwtᵘ↑
+
+      hInner :
+        extendStore Σ B ∣ zero ⊢ [] ⊢
+        ((V ·[ `U (fresh Σ) ]) ⟨ renameᶜᵘ (singleᵘ (fresh Σ)) c ⟩)
+        ⦂ Aₙ [ fresh Σ ]ᵘ
+      hInner = ⊢⟨⟩ hVU cwtᵘ
+
+      cwt+ :
+        extendStore Σ B ∣ zero ⊢
+        coerce⁺ (fresh Σ) (Aₙ [ fresh Σ ]ᵘ)
+        ⦂ Aₙ [ fresh Σ ]ᵘ ⇨ Aₙ [ B ]ᵗ
+      cwt+ = coerce⁺-β-plain-typing (StoreRel.wf-target hΣ′) hAₙtgt noAₙ
+  preservation hΣ hΣ′ M⦂ (ξξ-blame {F = F} refl) =
+    frame-blame {F = F} hΣ M⦂
 
   frame-preservation : ∀ {F Σ Σ′ M N A}
+    → StoreWfAt zero Σ
     → StoreExt Σ Σ′
     → Σ ∣ zero ⊢ [] ⊢ plug F M ⦂ A
     → (Σ ⊲ M) —→ (Σ′ ⊲ N)
     → Σ′ ∣ zero ⊢ [] ⊢ plug F N ⦂ A
-  frame-preservation {F = □· L} hΣ′ (⊢· hM hL) M→N =
+  frame-preservation {F = □· L} hΣ hΣ′ (⊢· hM hL) M→N =
     ⊢·
-      (preservation hΣ′ hM M→N)
+      (preservation hΣ hΣ′ hM M→N)
       (store-rel-preserves-typing hΣ′ hL)
-  frame-preservation {F = V ·□ vV} hΣ′ (⊢· hV hM) M→N =
+  frame-preservation {F = V ·□ vV} hΣ hΣ′ (⊢· hV hM) M→N =
     ⊢·
       (store-rel-preserves-typing hΣ′ hV)
-      (preservation hΣ′ hM M→N)
-  frame-preservation {F = □·[ B ]} hΣ′ (⊢·[] hM hB) M→N =
+      (preservation hΣ hΣ′ hM M→N)
+  frame-preservation {F = □·[ B ]} hΣ hΣ′ (⊢·[] hM hB) M→N =
     ⊢·[]
-      (preservation hΣ′ hM M→N)
+      (preservation hΣ hΣ′ hM M→N)
       (store-rel-preserves-WfTy hΣ′ hB)
-  frame-preservation {F = □⟨ c ⟩} hΣ′ (⊢⟨⟩ hM cwt) M→N =
+  frame-preservation {F = □⟨ c ⟩} hΣ hΣ′ (⊢⟨⟩ hM cwt) M→N =
     ⊢⟨⟩
-      (preservation hΣ′ hM M→N)
+      (preservation hΣ hΣ′ hM M→N)
       (store-rel-preserves-coercion hΣ′ cwt)

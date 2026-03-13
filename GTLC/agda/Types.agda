@@ -83,6 +83,12 @@ data _⊑_ : Ty → Ty → Set where
 ⊑-refl {A = ★} = ⊑-★
 ⊑-refl {A = A ⇒ B} = ⊑-⇒ ⊑-refl ⊑-refl
 
+⊑-trans : ∀ {A B C} → A ⊑ B → B ⊑ C → A ⊑ C
+⊑-trans ⊑-★ B⊑C = ⊑-★
+⊑-trans ⊑-ℕ ⊑-ℕ = ⊑-ℕ
+⊑-trans (⊑-⇒ A⊑B B⊑D) (⊑-⇒ B⊑C D⊑E) =
+  ⊑-⇒ (⊑-trans A⊑B B⊑C) (⊑-trans B⊑D D⊑E)
+
 mutual
   prec-left : ∀ {X A B} → X ⊑ A → A ~ B → X ~ B
   prec-left ⊑-★ A~B = ★~-ty _

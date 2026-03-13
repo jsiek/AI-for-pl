@@ -144,16 +144,19 @@ renameᶜᵗ ρ (∀ᶜ c)             = ∀ᶜ (renameᶜᵗ (extᵗ ρ) c)
 renameᶜᵗ ρ (c ⨟ d)            = renameᶜᵗ ρ c ⨟ renameᶜᵗ ρ d
 renameᶜᵗ ρ (⊥ᶜ p ⦂ A ⇨ B)     = ⊥ᶜ p ⦂ renameᵗ ρ A ⇨ renameᵗ ρ B
 
-substᶜᵗ : Substᵗ → Coercion → Coercion
-substᶜᵗ σ (idᶜ A)            = idᶜ (substᵗ σ A)
-substᶜᵗ σ (G !)              = injᶜ (substᵗ σ G)
-substᶜᵗ σ (G `? p)           = projᶜ (substᵗ σ G) p
-substᶜᵗ σ (U ⁻)              = U ⁻
-substᶜᵗ σ (U ⁺)              = U ⁺
-substᶜᵗ σ (c ↦ d)            = substᶜᵗ σ c ↦ substᶜᵗ σ d
-substᶜᵗ σ (∀ᶜ c)             = ∀ᶜ (substᶜᵗ (extsᵗ σ) c)
-substᶜᵗ σ (c ⨟ d)            = substᶜᵗ σ c ⨟ substᶜᵗ σ d
-substᶜᵗ σ (⊥ᶜ p ⦂ A ⇨ B)     = ⊥ᶜ p ⦂ substᵗ σ A ⇨ substᵗ σ B
+renameᶜᵘ-at : ℕ → Renameᵗ → Coercion → Coercion
+renameᶜᵘ-at d ρ (idᶜ A)        = idᶜ (renameᵘ d ρ A)
+renameᶜᵘ-at d ρ (G !)          = renameᵘ d ρ G !
+renameᶜᵘ-at d ρ (G `? p)       = renameᵘ d ρ G `? p
+renameᶜᵘ-at d ρ (U ⁻)          = U ⁻
+renameᶜᵘ-at d ρ (U ⁺)          = U ⁺
+renameᶜᵘ-at d ρ (c ↦ d')       = renameᶜᵘ-at d ρ c ↦ renameᶜᵘ-at d ρ d'
+renameᶜᵘ-at d ρ (∀ᶜ c)         = ∀ᶜ (renameᶜᵘ-at (suc d) ρ c)
+renameᶜᵘ-at d ρ (c ⨟ d')       = renameᶜᵘ-at d ρ c ⨟ renameᶜᵘ-at d ρ d'
+renameᶜᵘ-at d ρ (⊥ᶜ p ⦂ A ⇨ B) = ⊥ᶜ p ⦂ renameᵘ d ρ A ⇨ renameᵘ d ρ B
+
+renameᶜᵘ : Renameᵗ → Coercion → Coercion
+renameᶜᵘ ρ c = renameᶜᵘ-at 0 ρ c
 
 renameᵀ : Renameᵗ → Term → Term
 renameᵀ ρ ($ p k)     = $ p k
@@ -185,18 +188,21 @@ singleEnv M (suc i) = # i
 _[_]ᴹ : Term → Term → Term
 N [ M ]ᴹ = subst (singleEnv M) N
 
-substᵀ : Substᵗ → Term → Term
-substᵀ σ ($ p k)     = $ p k
-substᵀ σ (# i)       = # i
-substᵀ σ (ƛ A ⇒ N)   = ƛ substᵗ σ A ⇒ substᵀ σ N
-substᵀ σ (L · M)     = substᵀ σ L · substᵀ σ M
-substᵀ σ (Λ N ⦂ A)   = Λ substᵀ (extsᵗ σ) N ⦂ substᵗ (extsᵗ σ) A
-substᵀ σ (M ·[ A ])  = substᵀ σ M ·[ substᵗ σ A ]
-substᵀ σ (M ⟨ c ⟩)   = substᵀ σ M ⟨ substᶜᵗ σ c ⟩
-substᵀ σ (blame p)   = blame p
+renameᵀᵘ-at : ℕ → Renameᵗ → Term → Term
+renameᵀᵘ-at d ρ ($ p k)     = $ p k
+renameᵀᵘ-at d ρ (# i)       = # i
+renameᵀᵘ-at d ρ (ƛ A ⇒ N)   = ƛ renameᵘ d ρ A ⇒ renameᵀᵘ-at d ρ N
+renameᵀᵘ-at d ρ (L · M)     = renameᵀᵘ-at d ρ L · renameᵀᵘ-at d ρ M
+renameᵀᵘ-at d ρ (Λ N ⦂ A)   = Λ renameᵀᵘ-at (suc d) ρ N ⦂ renameᵘ (suc d) ρ A
+renameᵀᵘ-at d ρ (M ·[ A ])  = renameᵀᵘ-at d ρ M ·[ renameᵘ d ρ A ]
+renameᵀᵘ-at d ρ (M ⟨ c ⟩)   = renameᵀᵘ-at d ρ M ⟨ renameᶜᵘ-at d ρ c ⟩
+renameᵀᵘ-at d ρ (blame p)   = blame p
 
-_[_]ᵀ : Term → Ty → Term
-N [ A ]ᵀ = substᵀ (singleTyEnv A) N
+renameᵀᵘ : Renameᵗ → Term → Term
+renameᵀᵘ ρ N = renameᵀᵘ-at 0 ρ N
+
+_[_]ᵀ : Term → Name → Term
+N [ U ]ᵀ = renameᵀᵘ (singleᵘ U) N
 
 ------------------------------------------------------------------------
 -- Values and frames
@@ -309,29 +315,18 @@ data _—→_ : Config → Config → Set where
     → Value V
     → (Σ ⊲ (V ⟨ ⊥ᶜ p ⦂ A ⇨ B ⟩)) —→ (Σ ⊲ blame p)
 
-  β-ty★-plain : ∀ {Σ M A₀}
-    → (Σ ⊲ ((Λ M ⦂ A₀) ·[ `★ ])) —→ (Σ ⊲ (M [ `★ ]ᵀ))
-
-  β-ty-wrap★ : ∀ {Σ V c}
-    → Value V
-    → (Σ ⊲ ((V ⟨ ∀ᶜ c ⟩) ·[ `★ ]))
-      —→
-      (Σ ⊲ ((V ·[ `★ ]) ⟨ substᶜᵗ (singleTyEnv `★) c ⟩))
-
   β-ty-plain : ∀ {Σ M A₀ B}
-    → NonDyn B
     → (Σ ⊲ ((Λ M ⦂ A₀) ·[ B ]))
       —→
-      (extendStore Σ B ⊲ ((M [ `U (fresh Σ) ]ᵀ) ⟨ coerce⁺ (fresh Σ) (A₀ [ `U (fresh Σ) ]ᵗ) ⟩))
+      (extendStore Σ B ⊲ ((M [ fresh Σ ]ᵀ) ⟨ coerce⁺ (fresh Σ) (A₀ [ fresh Σ ]ᵘ) ⟩))
 
   β-ty-wrap : ∀ {Σ V A₀ Aₙ c B}
-    → NonDyn B
     → Value V
     → Σ ∣ zero ⊢ ∀ᶜ c ⦂ `∀ A₀ ⇨ `∀ Aₙ
     → (Σ ⊲ ((V ⟨ ∀ᶜ c ⟩) ·[ B ]))
       —→
-      (extendStore Σ B ⊲ (((V ·[ `U (fresh Σ) ]) ⟨ substᶜᵗ (singleTyEnv (`U (fresh Σ))) c ⟩)
-                          ⟨ coerce⁺ (fresh Σ) (Aₙ [ `U (fresh Σ) ]ᵗ) ⟩))
+      (extendStore Σ B ⊲ (((V ·[ `U (fresh Σ) ]) ⟨ renameᶜᵘ (singleᵘ (fresh Σ)) c ⟩)
+                          ⟨ coerce⁺ (fresh Σ) (Aₙ [ fresh Σ ]ᵘ) ⟩))
 
   ξξ : ∀ {Σ Σ′ F M N M′ N′}
     → M′ ≡ plug F M

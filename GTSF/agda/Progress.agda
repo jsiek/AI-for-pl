@@ -116,7 +116,7 @@ canonical-★-inj (vU (v-const {p = B-Bool ⇒ p})) (⊢const _ _ ())
 canonical-★-inj (vU v-ƛ) ()
 canonical-★-inj (vU v-Λ) ()
 canonical-★-inj (v-⁻ vV) (⊢⟨⟩ _ ())
-canonical-★-inj (v-! {V = W} {G = G} vW) (⊢⟨⟩ hW (⊢! _ _ _)) =
+canonical-★-inj (v-! {V = W} {G = G} vW) (⊢⟨⟩ hW (⊢! _ _)) =
   G , (W , (vW , refl))
 canonical-★-inj (v-↦ vV) (⊢⟨⟩ _ ())
 canonical-★-inj (v-∀ᶜ vV) (⊢⟨⟩ _ ())
@@ -195,7 +195,7 @@ canonical-U (vU (v-const {p = B-Nat ⇒ p})) (⊢const _ _ ())
 canonical-U (vU (v-const {p = B-Bool ⇒ p})) (⊢const _ _ ())
 canonical-U (vU v-ƛ) ()
 canonical-U (vU v-Λ) ()
-canonical-U (v-⁻ {V = W} {U = U} vW) (⊢⟨⟩ hW (⊢conceal _ _)) =
+canonical-U (v-⁻ {V = W} {U = U} vW) (⊢⟨⟩ hW (⊢conceal _)) =
   W , (vW , refl)
 canonical-U (v-! vV) (⊢⟨⟩ _ ())
 canonical-U (v-↦ vV) (⊢⟨⟩ _ ())
@@ -217,34 +217,6 @@ reveal-progress : ∀ {S M U}
   → Progress S (M ⟨ U ⁺ ⟩)
 reveal-progress {U = U} vM M⦂ with canonical-U vM M⦂
 ... | W , (vW , eq) rewrite eq = step (β-remove vW)
-
-closed-type-classify : ∀ {S B}
-  → WfTy zero S B
-  → (B ≡ `★) ⊎ NonDyn B
-closed-type-classify (wfVar ())
-closed-type-classify wfℕ = inj₂ ndℕ
-closed-type-classify wfBool = inj₂ ndBool
-closed-type-classify wfStr = inj₂ ndStr
-closed-type-classify wf★ = inj₁ refl
-closed-type-classify (wfU hU) = inj₂ ndU
-closed-type-classify (wf⇒ hA hB) = inj₂ nd⇒
-closed-type-classify (wf∀ hA) = inj₂ nd∀
-
-tyapp-progress-lam : ∀ {S N A₀ B}
-  → WfTy zero S B
-  → Progress S ((Λ N ⦂ A₀) ·[ B ])
-tyapp-progress-lam hB with closed-type-classify hB
-... | inj₁ refl = step β-ty★-plain
-... | inj₂ ndB = step (β-ty-plain ndB)
-
-tyapp-progress-wrapped : ∀ {S W c A B}
-  → Value W
-  → S ∣ zero ⊢ [] ⊢ (W ⟨ ∀ᶜ c ⟩) ⦂ `∀ A
-  → WfTy zero S B
-  → Progress S ((W ⟨ ∀ᶜ c ⟩) ·[ B ])
-tyapp-progress-wrapped vW (⊢⟨⟩ hW (⊢∀ᶜ cwt)) hB with closed-type-classify hB
-... | inj₁ refl = step (β-ty-wrap★ vW)
-... | inj₂ ndB = step (β-ty-wrap ndB vW (⊢∀ᶜ cwt))
 
 ------------------------------------------------------------------------
 -- Progress
@@ -281,20 +253,23 @@ progress wfΣ (⊢Λ _) = done (vU v-Λ)
 progress wfΣ (⊢·[] {M = M} {B = B} M⦂ hB) with progress wfΣ M⦂
 ... | step M→M′ = step (ξ (□·[ B ]) M→M′)
 ... | crash refl = step (ξ-blame (□·[ B ]))
-... | done vM with canonical-∀ vM M⦂
-...   | inj₁ (N , (A₀ , refl)) = tyapp-progress-lam hB
-...   | inj₂ (W , (c , (vW , refl))) = tyapp-progress-wrapped vW M⦂ hB
+... | done vM
+    with canonical-∀ vM M⦂
+...   | inj₁ (N , (A₀ , refl)) = step β-ty-plain
+...   | inj₂ (W , (c , (vW , refl)))
+      with M⦂
+... | ⊢⟨⟩ wtW (⊢∀ᶜ c⦂) = step (β-ty-wrap vW (⊢∀ᶜ c⦂))
 progress wfΣ (⊢⟨⟩ {M = M} {c = c} M⦂ c⦂) with progress wfΣ M⦂
 ... | step M→M′ = step (ξ (□⟨ c ⟩) M→M′)
 ... | crash refl = step (ξ-blame (□⟨ c ⟩))
 ... | done vM with c⦂
-...   | ⊢idᶜ _ _ = step (β-id vM)
-...   | ⊢! _ _ _ = done (v-! vM)
-...   | ⊢? {G = G} {p = p} _ _ _ = proj-progress vM M⦂
+...   | ⊢idᶜ _ = step (β-id vM)
+...   | ⊢! _ _ = done (v-! vM)
+...   | ⊢? {G = G} {p = p} _ _ = proj-progress vM M⦂
 ...   | ⊢↦ _ _ = done (v-↦ vM)
 ...   | ⊢⨟ _ _ = step (β-seq vM)
-...   | ⊢conceal _ _ = done (v-⁻ vM)
-...   | ⊢reveal {U = U} _ _ = reveal-progress vM M⦂
+...   | ⊢conceal _ = done (v-⁻ vM)
+...   | ⊢reveal {U = U} _ = reveal-progress vM M⦂
 ...   | ⊢∀ᶜ _ = done (v-∀ᶜ vM)
-...   | ⊢⊥ _ _ _ = step (β-fail vM)
+...   | ⊢⊥ _ _ = step (β-fail vM)
 progress wfΣ (⊢blame _) = crash refl

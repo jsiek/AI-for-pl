@@ -1,8 +1,15 @@
 module TypeSubst where
 
+open import Data.List using (List; []; _∷_; map)
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans)
-open import Data.Nat using (ℕ; zero; suc)
+open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans; subst)
+open import Data.Nat using (ℕ; zero; suc; _≤_; z≤n; s≤s)
+open import Agda.Builtin.Sigma using (Σ; _,_)
+open import Data.Nat.Base using (_<_; z<s; s<s)
+open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Product using (_×_; _,_; proj₁; proj₂)
+open import Data.Sum using (inj₁; inj₂)
+
 open import PolyCoercions
 
 infixr 50 _⨟ᵗ_
@@ -42,6 +49,34 @@ rename-cong {rho} {rho'} h (`∀ a) = cong `∀ (rename-cong h-ext a)
     h-ext : (i : ℕ) → extᵗ rho i ≡ extᵗ rho' i
     h-ext zero = refl
     h-ext (suc i) = cong suc (h i)
+
+renameᵘ-cong-var :
+  ∀ {rho rho' : Renameᵗ} →
+  (d : ℕ) →
+  ((i : ℕ) → rho i ≡ rho' i) →
+  (i : ℕ) →
+  renameᵘ d rho (` i) ≡ renameᵘ d rho' (` i)
+renameᵘ-cong-var {rho} {rho'} zero h i = cong `U_ (h i)
+renameᵘ-cong-var {rho} {rho'} (suc d) h zero = refl
+renameᵘ-cong-var {rho} {rho'} (suc d) h (suc i) =
+  cong (renameᵗ suc) (renameᵘ-cong-var d h i)
+
+renameᵘ-cong :
+  ∀ {rho rho' : Renameᵗ} →
+  (d : ℕ) →
+  ((i : ℕ) → rho i ≡ rho' i) →
+  (a : Ty) →
+  renameᵘ d rho a ≡ renameᵘ d rho' a
+renameᵘ-cong {rho} {rho'} d h (` i) = renameᵘ-cong-var d h i
+renameᵘ-cong {rho} {rho'} d h `ℕ = refl
+renameᵘ-cong {rho} {rho'} d h `Bool = refl
+renameᵘ-cong {rho} {rho'} d h `Str = refl
+renameᵘ-cong {rho} {rho'} d h `★ = refl
+renameᵘ-cong {rho} {rho'} d h (`U u) = refl
+renameᵘ-cong {rho} {rho'} d h (a ⇒ b) =
+  cong₂ _⇒_ (renameᵘ-cong d h a) (renameᵘ-cong d h b)
+renameᵘ-cong {rho} {rho'} d h (`∀ a) =
+  cong `∀ (renameᵘ-cong (suc d) h a)
 
 subst-cong : ∀ {sigma tau : Substᵗ} → ((i : ℕ) → sigma i ≡ tau i) → (a : Ty) →
   substᵗ sigma a ≡ substᵗ tau a
@@ -86,6 +121,40 @@ exts-ext-comp : (rho : Renameᵗ) → (tau : Substᵗ) →
   ((i : ℕ) → extsᵗ tau (extᵗ rho i) ≡ extsᵗ (λ j → tau (rho j)) i)
 exts-ext-comp rho tau zero = refl
 exts-ext-comp rho tau (suc i) = refl
+
+extnᵗ : ℕ → Renameᵗ → Renameᵗ
+extnᵗ zero rho = rho
+extnᵗ (suc d) rho = extᵗ (extnᵗ d rho)
+
+rename-renameᵘ-commute-var :
+  (d : ℕ) →
+  (rho : Renameᵗ) →
+  (tau : Renameᵗ) →
+  (i : ℕ) →
+  renameᵘ d tau (` (extnᵗ d rho i)) ≡
+  renameᵘ d (λ j → tau (rho j)) (` i)
+rename-renameᵘ-commute-var zero rho tau i = refl
+rename-renameᵘ-commute-var (suc d) rho tau zero = refl
+rename-renameᵘ-commute-var (suc d) rho tau (suc i) =
+  cong (renameᵗ suc) (rename-renameᵘ-commute-var d rho tau i)
+
+rename-renameᵘ-commuteᵈ : (d : ℕ) → (rho : Renameᵗ) → (tau : Renameᵗ) → (a : Ty) →
+  renameᵘ d tau (renameᵗ (extnᵗ d rho) a) ≡ renameᵘ d (λ i → tau (rho i)) a
+rename-renameᵘ-commuteᵈ d rho tau (` i) = rename-renameᵘ-commute-var d rho tau i
+rename-renameᵘ-commuteᵈ d rho tau `ℕ = refl
+rename-renameᵘ-commuteᵈ d rho tau `Bool = refl
+rename-renameᵘ-commuteᵈ d rho tau `Str = refl
+rename-renameᵘ-commuteᵈ d rho tau `★ = refl
+rename-renameᵘ-commuteᵈ d rho tau (`U u) = refl
+rename-renameᵘ-commuteᵈ d rho tau (a ⇒ b) =
+  cong₂ _⇒_ (rename-renameᵘ-commuteᵈ d rho tau a) (rename-renameᵘ-commuteᵈ d rho tau b)
+rename-renameᵘ-commuteᵈ d rho tau (`∀ a) =
+  cong `∀ (rename-renameᵘ-commuteᵈ (suc d) rho tau a)
+
+rename-renameᵘ-commute : (rho : Renameᵗ) → (tau : Renameᵗ) → (a : Ty) →
+  renameᵘ 0 tau (renameᵗ rho a) ≡ renameᵘ 0 (λ i → tau (rho i)) a
+rename-renameᵘ-commute rho tau a =
+  rename-renameᵘ-commuteᵈ 0 rho tau a
 
 rename-subst-commute : (rho : Renameᵗ) → (tau : Substᵗ) → (a : Ty) →
   substᵗ tau (renameᵗ rho a) ≡ substᵗ (λ i → tau (rho i)) a
@@ -163,6 +232,76 @@ rename-id (`∀ a) = trans (cong `∀ (rename-cong ext-id a)) (cong `∀ (rename
     ext-id : (i : ℕ) → extᵗ (λ x → x) i ≡ i
     ext-id zero = refl
     ext-id (suc i) = refl
+
+renameᵘ-id-var :
+  (ρ : Renameᵗ) →
+  (Δ : TyCtx) →
+  (i : ℕ) →
+  i < Δ →
+  renameᵘ Δ ρ (` i) ≡ ` i
+renameᵘ-id-var ρ zero i ()
+renameᵘ-id-var ρ (suc Δ) zero z<s = refl
+renameᵘ-id-var ρ (suc Δ) (suc i) (s<s i<Δ) =
+  cong (renameᵗ suc) (renameᵘ-id-var ρ Δ i i<Δ)
+
+renameᵘ-id-Δ : ∀{Δ Σ} (ρ : Renameᵗ) (A : Ty) → WfTy Δ Σ A → renameᵘ Δ ρ A ≡ A
+renameᵘ-id-Δ ρ (` X) (wfVar x<Δ) = renameᵘ-id-var ρ _ X x<Δ
+renameᵘ-id-Δ ρ `ℕ wfℕ = refl
+renameᵘ-id-Δ ρ `Bool wfBool = refl
+renameᵘ-id-Δ ρ `Str wfStr = refl
+renameᵘ-id-Δ ρ `★ wf★ = refl
+renameᵘ-id-Δ ρ (`U U) (wfU hU) = refl
+renameᵘ-id-Δ ρ (A ⇒ B) (wf⇒ hA hB) =
+  cong₂ _⇒_ (renameᵘ-id-Δ ρ A hA) (renameᵘ-id-Δ ρ B hB)
+renameᵘ-id-Δ ρ (`∀ A) (wf∀ hA) =
+  cong `∀ (renameᵘ-id-Δ ρ A hA)
+
+renameᵘ-id : ∀{Σ} (A : Ty) → WfTy 0 Σ A → renameᵘ 0 (λ x → x) A ≡ A
+renameᵘ-id A hA = renameᵘ-id-Δ (λ x → x) A hA
+
+lt-weaken :
+  {i Δ d : ℕ} →
+  i < Δ →
+  Δ ≤ d →
+  i < d
+lt-weaken {i = zero} {Δ = suc Δ} {d = suc d} z<s (s≤s Δ≤d) = z<s
+lt-weaken {i = suc i} {Δ = suc Δ} {d = suc d} (s<s i<Δ) (s≤s Δ≤d) =
+  s<s (lt-weaken {i = i} {Δ = Δ} {d = d} i<Δ Δ≤d)
+
+renameᵘ-id-var-at :
+  {ρ : Renameᵗ} →
+  (d i : ℕ) →
+  i < d →
+  renameᵘ d ρ (` i) ≡ ` i
+renameᵘ-id-var-at zero i ()
+renameᵘ-id-var-at (suc d) zero z<s = refl
+renameᵘ-id-var-at (suc d) (suc i) (s<s i<d) =
+  cong (renameᵗ suc) (renameᵘ-id-var-at d i i<d)
+
+renameᵘ-id-at :
+  {Δ : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
+  (d : ℕ) →
+  Δ ≤ d →
+  WfTy Δ Σ A →
+  renameᵘ d ρ A ≡ A
+renameᵘ-id-at d Δ≤d (wfVar {X = X} x<Δ) =
+  renameᵘ-id-var-at d X (lt-weaken x<Δ Δ≤d)
+renameᵘ-id-at d Δ≤d wfℕ = refl
+renameᵘ-id-at d Δ≤d wfBool = refl
+renameᵘ-id-at d Δ≤d wfStr = refl
+renameᵘ-id-at d Δ≤d wf★ = refl
+renameᵘ-id-at d Δ≤d (wfU hU) = refl
+renameᵘ-id-at d Δ≤d (wf⇒ hA hB) =
+  cong₂ _⇒_ (renameᵘ-id-at d Δ≤d hA) (renameᵘ-id-at d Δ≤d hB)
+renameᵘ-id-at d Δ≤d (wf∀ hA) =
+  cong `∀ (renameᵘ-id-at (suc d) (s≤s Δ≤d) hA)
+
+renameᵘ-id-closed :
+  {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
+  (d : ℕ) →
+  WfTy 0 Σ A →
+  renameᵘ d ρ A ≡ A
+renameᵘ-id-closed d hA = renameᵘ-id-at d z≤n hA
 
 subst-id : (a : Ty) → substᵗ `_ a ≡ a
 subst-id (` i) = refl
@@ -274,3 +413,231 @@ subst-[]ᵗ-commute σ A B =
     env-eq : (i : ℕ) → ((singleTyEnv B) ⨟ᵗ σ) i ≡ cons-sub (substᵗ σ B) σ i
     env-eq zero = refl
     env-eq (suc i) = refl
+
+
+------------------------------------------------------------------------
+-- Context lookup under list maps
+------------------------------------------------------------------------
+
+lookup-map-renameᵗ :
+  {Γ : Ctx} {x : Var} {A : Ty} {ρ : Renameᵗ} →
+  Γ ∋ x ⦂ A →
+  map (renameᵗ ρ) Γ ∋ x ⦂ renameᵗ ρ A
+lookup-map-renameᵗ Z = Z
+lookup-map-renameᵗ (S h) = S (lookup-map-renameᵗ h)
+
+lookup-map-substᵗ :
+  {Γ : Ctx} {x : Var} {A : Ty} {σ : Substᵗ} →
+  Γ ∋ x ⦂ A →
+  map (substᵗ σ) Γ ∋ x ⦂ substᵗ σ A
+lookup-map-substᵗ Z = Z
+lookup-map-substᵗ (S h) = S (lookup-map-substᵗ h)
+
+lookup-map-inv :
+  {Γ : Ctx} {x : Var} {B : Ty} {f : Ty → Ty} →
+  map f Γ ∋ x ⦂ B →
+  Σ Ty (λ A → (Γ ∋ x ⦂ A) × (B ≡ f A))
+lookup-map-inv {Γ = A ∷ Γ} {x = zero} Z = A , (Z , refl)
+lookup-map-inv {Γ = A ∷ Γ} {x = suc x} (S h)
+  with lookup-map-inv h
+... | A' , (hA' , eq) = A' , (S hA' , eq)
+
+lookupᵁ-map-renameᵗ :
+  {Σ : Store} {U : Name} {A : Ty} {ρ : Renameᵗ} →
+  Σ ∋ᵁ U ⦂ A →
+  renameΣ ρ Σ ∋ᵁ U ⦂ renameᵗ ρ A
+lookupᵁ-map-renameᵗ Zᵁ = Zᵁ
+lookupᵁ-map-renameᵗ (Sᵁ h) = Sᵁ (lookupᵁ-map-renameᵗ h)
+
+lookupᵁ-map-inv :
+  {stores : Store} {U : Name} {B : Ty} {f : Ty → Ty} →
+  map f stores ∋ᵁ U ⦂ B →
+  Σ Ty (λ A → (stores ∋ᵁ U ⦂ A) × (B ≡ f A))
+lookupᵁ-map-inv {stores = A ∷ stores} {U = zero} Zᵁ = A , (Zᵁ , refl)
+lookupᵁ-map-inv {stores = A ∷ stores} {U = suc U} (Sᵁ h)
+  with lookupᵁ-map-inv h
+... | A' , (hA' , eq) = A' , (Sᵁ hA' , eq)
+
+map-renameΣ-suc : (ρ : Renameᵗ) (Σ : Store) →
+  renameΣ (extᵗ ρ) (renameΣ suc Σ) ≡ renameΣ suc (renameΣ ρ Σ)
+map-renameΣ-suc ρ [] = refl
+map-renameΣ-suc ρ (A ∷ Σ) =
+  cong₂ _∷_
+    (trans
+      (rename-rename-commute suc (extᵗ ρ) A)
+      (trans
+        (rename-cong (λ i → refl) A)
+        (sym (rename-rename-commute ρ suc A))))
+    (map-renameΣ-suc ρ Σ)
+
+------------------------------------------------------------------------
+-- Well-formed renamings/substitutions on types, replacing X variables
+------------------------------------------------------------------------
+
+TyRenameWf : TyCtx → TyCtx → Renameᵗ → Set
+TyRenameWf Δ Δ' ρ = ∀ {X} → X < Δ → ρ X < Δ'
+
+TySubstWf : TyCtx → TyCtx → Store → Substᵗ → Set
+TySubstWf Δ Δ' Σ σ = ∀ {X} → X < Δ → WfTy Δ' Σ (σ X)
+
+TyRenameWf-ext :
+  {Δ Δ' : TyCtx} {ρ : Renameᵗ} →
+  TyRenameWf Δ Δ' ρ →
+  TyRenameWf (suc Δ) (suc Δ') (extᵗ ρ)
+TyRenameWf-ext hρ {zero} z<s = z<s
+TyRenameWf-ext hρ {suc X} (s<s x<Δ) = s<s (hρ {X} x<Δ)
+
+TyRenameWf-zero :
+  {ρ : Renameᵗ} →
+  TyRenameWf zero zero ρ
+TyRenameWf-zero ()
+
+renameᵗ-preserves-WfTy :
+  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
+  WfTy Δ Σ A →
+  TyRenameWf Δ Δ' ρ →
+  WfTy Δ' (renameΣ ρ Σ) (renameᵗ ρ A)
+renameᵗ-preserves-WfTy (wfVar x<Δ) hρ = wfVar (hρ x<Δ)
+renameᵗ-preserves-WfTy wfℕ hρ = wfℕ
+renameᵗ-preserves-WfTy wfBool hρ = wfBool
+renameᵗ-preserves-WfTy wfStr hρ = wfStr
+renameᵗ-preserves-WfTy wf★ hρ = wf★
+renameᵗ-preserves-WfTy (wfU hU) hρ = wfU (lookupᵁ-map-renameᵗ hU)
+renameᵗ-preserves-WfTy (wf⇒ hA hB) hρ =
+  wf⇒ (renameᵗ-preserves-WfTy hA hρ) (renameᵗ-preserves-WfTy hB hρ)
+renameᵗ-preserves-WfTy {Δ' = Δ'} {Σ = Σ} {ρ = ρ} (wf∀ {A = A} hA) hρ =
+  let IH = renameᵗ-preserves-WfTy {ρ = extᵗ ρ} hA (TyRenameWf-ext hρ) in
+  wf∀
+    (subst
+      (λ S → WfTy (suc Δ') S (renameᵗ (extᵗ ρ) A))
+      (map-renameΣ-suc ρ Σ)
+      IH)
+
+TySubstWf-exts :
+  {Δ Δ' : TyCtx} {Σ : Store} {σ : Substᵗ} →
+  TySubstWf Δ Δ' Σ σ →
+  TySubstWf (suc Δ) (suc Δ') (renameΣ suc Σ) (extsᵗ σ)
+TySubstWf-exts hσ {zero} z<s = wfVar (Data.Nat.s≤s Data.Nat.z≤n)
+TySubstWf-exts {Δ' = Δ'} {Σ = Σ} {σ = σ} hσ {suc X} (s<s x<Δ) =
+  renameᵗ-preserves-WfTy (hσ {X} x<Δ) (λ {X = X₁} → Data.Nat.s≤s)
+
+substᵗ-preserves-WfTy :
+  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {σ : Substᵗ} →
+  WfTy Δ Σ A →
+  TySubstWf Δ Δ' Σ σ →
+  WfTy Δ' Σ (substᵗ σ A)
+substᵗ-preserves-WfTy (wfVar x<Δ) hσ = hσ x<Δ
+substᵗ-preserves-WfTy wfℕ hσ = wfℕ
+substᵗ-preserves-WfTy wfBool hσ = wfBool
+substᵗ-preserves-WfTy wfStr hσ = wfStr
+substᵗ-preserves-WfTy wf★ hσ = wf★
+substᵗ-preserves-WfTy (wfU hU) hσ = wfU hU
+substᵗ-preserves-WfTy (wf⇒ hA hB) hσ =
+  wf⇒ (substᵗ-preserves-WfTy hA hσ) (substᵗ-preserves-WfTy hB hσ)
+substᵗ-preserves-WfTy {Δ' = Δ'} {Σ = Σ} {σ = σ} (wf∀ {A = A} hA) hσ =
+  wf∀ (substᵗ-preserves-WfTy hA (TySubstWf-exts hσ))
+
+uSubᵘ : Renameᵗ → Substᵗ
+uSubᵘ ρ i = `U (ρ i)
+
+uSubᵘ↑ : ℕ → Renameᵗ → Substᵗ
+uSubᵘ↑ zero ρ = uSubᵘ ρ
+uSubᵘ↑ (suc d) ρ = extsᵗ (uSubᵘ↑ d ρ)
+
+renameᵘ-as-subst-var :
+  (d : ℕ) →
+  (ρ : Renameᵗ) →
+  (i : ℕ) →
+  renameᵘ d ρ (` i) ≡ uSubᵘ↑ d ρ i
+renameᵘ-as-subst-var zero ρ i = refl
+renameᵘ-as-subst-var (suc d) ρ zero = refl
+renameᵘ-as-subst-var (suc d) ρ (suc i) =
+  cong (renameᵗ suc) (renameᵘ-as-subst-var d ρ i)
+
+renameᵘ-as-subst :
+  (d : ℕ) →
+  (ρ : Renameᵗ) →
+  (A : Ty) →
+  renameᵘ d ρ A ≡ substᵗ (uSubᵘ↑ d ρ) A
+renameᵘ-as-subst d ρ (` i) = renameᵘ-as-subst-var d ρ i
+renameᵘ-as-subst d ρ `ℕ = refl
+renameᵘ-as-subst d ρ `Bool = refl
+renameᵘ-as-subst d ρ `Str = refl
+renameᵘ-as-subst d ρ `★ = refl
+renameᵘ-as-subst d ρ (`U u) = refl
+renameᵘ-as-subst d ρ (A ⇒ B) =
+  cong₂ _⇒_ (renameᵘ-as-subst d ρ A) (renameᵘ-as-subst d ρ B)
+renameᵘ-as-subst d ρ (`∀ A) =
+  cong `∀ (renameᵘ-as-subst (suc d) ρ A)
+
+TyRenameᵘWf : TyCtx → TyCtx → Store → Renameᵗ → Set
+TyRenameᵘWf Δ Δ' Σ ρ = TySubstWf Δ Δ' Σ (uSubᵘ ρ)
+
+renameᵘ-preserves-WfTyᵈ :
+  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
+  (d : ℕ) →
+  WfTy Δ Σ A →
+  TySubstWf Δ Δ' Σ (uSubᵘ↑ d ρ) →
+  WfTy Δ' Σ (renameᵘ d ρ A)
+renameᵘ-preserves-WfTyᵈ {Δ' = Δ'} {Σ = Σ} {A = A} {ρ = ρ} d hA hσ =
+  subst
+    (λ T → WfTy Δ' Σ T)
+    (sym (renameᵘ-as-subst d ρ A))
+    (substᵗ-preserves-WfTy hA hσ)
+
+renameᵘ-preserves-WfTy :
+  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
+  WfTy Δ Σ A →
+  TyRenameᵘWf Δ Δ' Σ ρ →
+  WfTy Δ' Σ (renameᵘ 0 ρ A)
+renameᵘ-preserves-WfTy hA hρ = renameᵘ-preserves-WfTyᵈ 0 hA hρ
+
+singleTySubstWf : {Δ : TyCtx} {Σ : Store} {B : Ty} →
+  WfTy Δ Σ B →
+  TySubstWf (suc Δ) Δ Σ (singleTyEnv B)
+singleTySubstWf {Δ = Δ} {Σ = Σ} {B = B} hB {zero} X<sΔ = hB
+singleTySubstWf {Δ = Δ} {Σ = Σ} {B = B} hB {suc X} (Data.Nat.s≤s X<sΔ) = wfVar X<sΔ
+
+renameᵗ-preserves-Ground :
+  {G : Ty} {ρ : Renameᵗ} →
+  Ground G →
+  Ground (renameᵗ ρ G)
+renameᵗ-preserves-Ground G-ℕ = G-ℕ
+renameᵗ-preserves-Ground G-Bool = G-Bool
+renameᵗ-preserves-Ground G-Str = G-Str
+renameᵗ-preserves-Ground G-⇒★ = G-⇒★
+renameᵗ-preserves-Ground G-∀★ = G-∀★
+renameᵗ-preserves-Ground G-var = G-var
+renameᵗ-preserves-Ground G-U = G-U
+
+renameᵘ-preserves-Ground-var :
+  {ρ : Renameᵗ} →
+  (d : ℕ) →
+  (X : Var) →
+  Ground (renameᵘ d ρ (` X))
+renameᵘ-preserves-Ground-var {ρ} zero X = G-U
+renameᵘ-preserves-Ground-var {ρ} (suc d) zero = G-var
+renameᵘ-preserves-Ground-var {ρ} (suc d) (suc X) =
+  renameᵗ-preserves-Ground (renameᵘ-preserves-Ground-var {ρ} d X)
+
+renameᵘ-preserves-Ground :
+  {ρ : Renameᵗ} →
+  (d : ℕ) →
+  {G : Ty} →
+  Ground G →
+  Ground (renameᵘ d ρ G)
+renameᵘ-preserves-Ground d G-ℕ = G-ℕ
+renameᵘ-preserves-Ground d G-Bool = G-Bool
+renameᵘ-preserves-Ground d G-Str = G-Str
+renameᵘ-preserves-Ground d G-⇒★ = G-⇒★
+renameᵘ-preserves-Ground d G-∀★ = G-∀★
+renameᵘ-preserves-Ground {ρ} d {` X} G-var =
+  renameᵘ-preserves-Ground-var {ρ} d X
+renameᵘ-preserves-Ground d G-U = G-U
+
+renameᵗ-preserves-IsVar :
+  {A : Ty} {ρ : Renameᵗ} →
+  IsVar A →
+  IsVar (renameᵗ ρ A)
+renameᵗ-preserves-IsVar X-var = X-var
+renameᵗ-preserves-IsVar U-var = U-var

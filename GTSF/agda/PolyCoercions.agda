@@ -128,13 +128,13 @@ data NonDyn : Ty → Set where
   nd⇒    : ∀ {A B} → NonDyn (A ⇒ B)
   nd∀    : ∀ {A} → NonDyn (`∀ A)
 
-data WfStore : TyCtx → Store → Set where
-  wfΣ∅  : ∀ {Δ} → WfStore Δ []
-  wfΣ∷  : ∀ {Δ Σ A}
-    → WfStore Δ Σ
+data WfStore : Store → Set where
+  wfΣ∅  : WfStore []
+  wfΣ∷  : ∀ {Σ A}
+    → WfStore Σ
     → NonDyn A
-    → WfTy Δ Σ A
-    → WfStore Δ (A ∷ Σ)
+    → WfTy zero Σ A
+    → WfStore (A ∷ Σ)
 
 data WfCtx : TyCtx → Store → Ctx → Set where
   wfΓ∅  : ∀ {Δ Σ} → WfCtx Δ Σ []
@@ -181,18 +181,18 @@ infix 4 _∣_⊢_⦂_⇨_
 
 data _∣_⊢_⦂_⇨_ (Σ : Store) (Δ : TyCtx) : Coercion → Ty → Ty → Set where
   ⊢idᶜ : ∀ {A}
-    → WfStore Δ Σ
+    → WfStore Σ
     → WfTy Δ Σ A
     → Σ ∣ Δ ⊢ idᶜ A ⦂ A ⇨ A
 
   ⊢! : ∀ {G}
-    → WfStore Δ Σ
+    → WfStore Σ
     → WfTy Δ Σ G
     → Ground G
     → Σ ∣ Δ ⊢ G ! ⦂ G ⇨ `★
 
   ⊢? : ∀ {G p}
-    → WfStore Δ Σ
+    → WfStore Σ
     → WfTy Δ Σ G
     → Ground G
     → Σ ∣ Δ ⊢ G `? p ⦂ `★ ⇨ G
@@ -208,12 +208,12 @@ data _∣_⊢_⦂_⇨_ (Σ : Store) (Δ : TyCtx) : Coercion → Ty → Ty → Se
     → Σ ∣ Δ ⊢ c ⨟ d ⦂ A ⇨ C
 
   ⊢conceal : ∀ {U A}
-    → WfStore Δ Σ
+    → WfStore Σ
     → Σ ∋ᵁ U ⦂ A
     → Σ ∣ Δ ⊢ U ⁻ ⦂ A ⇨ `U U
 
   ⊢reveal : ∀ {U A}
-    → WfStore Δ Σ
+    → WfStore Σ
     → Σ ∋ᵁ U ⦂ A
     → Σ ∣ Δ ⊢ U ⁺ ⦂ `U U ⇨ A
 
@@ -222,7 +222,7 @@ data _∣_⊢_⦂_⇨_ (Σ : Store) (Δ : TyCtx) : Coercion → Ty → Ty → Se
     → Σ ∣ Δ ⊢ ∀ᶜ c ⦂ `∀ A ⇨ `∀ B
 
   ⊢⊥ : ∀ {p A B}
-    → WfStore Δ Σ
+    → WfStore Σ
     → WfTy Δ Σ A
     → WfTy Δ Σ B
     → Σ ∣ Δ ⊢ (⊥ᶜ p ⦂ A ⇨ B) ⦂ A ⇨ B

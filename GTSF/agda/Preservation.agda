@@ -165,6 +165,11 @@ TyRenameWf-ext :
 TyRenameWf-ext hρ {zero} z<s = z<s
 TyRenameWf-ext hρ {suc X} (s<s x<Δ) = s<s (hρ {X} x<Δ)
 
+TyRenameWf-zero :
+  {ρ : Renameᵗ} →
+  TyRenameWf zero zero ρ
+TyRenameWf-zero ()
+
 renameᵗ-preserves-WfTy :
   {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
   WfTy Δ Σ A →
@@ -262,6 +267,11 @@ TySubstWf-exts {Δ' = Δ'} {Σ = Σ} {σ = σ} hσ {suc X} (s<s x<Δ) =
   (renameᵗ-preserves-NonDyn (proj₁ (proj₂ hσX)) ,
    renameᵗ-preserves-NoU (proj₂ (proj₂ hσX)))
 
+TySubstWf-zero :
+  {Σ : Store} {σ : Substᵗ} →
+  TySubstWf zero zero Σ σ
+TySubstWf-zero ()
+
 TySubstWfᶜ-exts :
   {Δ Δ' : TyCtx} {Σ : Store} {σ : Substᵗ} →
   TySubstWfᶜ Δ Δ' Σ σ →
@@ -312,14 +322,15 @@ map-renameᵗ-⤊ ρ (A ∷ Γ) =
         (sym (rename-rename-commute ρ suc A))))
     (map-renameᵗ-⤊ ρ Γ)
 
-renameᵗ-preserves-WfStore : {Δ Δ' : TyCtx} {Σ : Store} {ρ : Renameᵗ} →
-  TyRenameWf Δ Δ' ρ →
-  WfStore Δ Σ →
-  WfStore Δ' (renameΣ ρ Σ)
-renameᵗ-preserves-WfStore wfρ wfΣ∅ = wfΣ∅
-renameᵗ-preserves-WfStore wfρ (wfΣ∷ wfΣ ndA wfA) =
-  let xx = renameᵗ-preserves-WfTy wfA wfρ in 
-  wfΣ∷ (renameᵗ-preserves-WfStore wfρ wfΣ) (renameᵗ-preserves-NonDyn ndA) xx
+renameᵗ-preserves-WfStore : {Σ : Store} {ρ : Renameᵗ} →
+  WfStore Σ →
+  WfStore (renameΣ ρ Σ)
+renameᵗ-preserves-WfStore wfΣ∅ = wfΣ∅
+renameᵗ-preserves-WfStore {ρ = ρ} (wfΣ∷ wfΣ ndA wfA) =
+  wfΣ∷
+    (renameᵗ-preserves-WfStore wfΣ)
+    (renameᵗ-preserves-NonDyn ndA)
+    (renameᵗ-preserves-WfTy wfA (TyRenameWf-zero {ρ = ρ}))
 
 renameᵗ-preserves-WfCtx :
   {Δ Δ' : TyCtx} {Σ : Store} {Γ : Ctx} {ρ : Renameᵗ} →
@@ -349,16 +360,16 @@ renameᶜᵗ-preserves-typing :
   renameΣ ρ Σ ∣ Δ' ⊢ renameᶜᵗ ρ c ⦂ renameᵗ ρ A ⇨ renameᵗ ρ B
 renameᶜᵗ-preserves-typing hρ (⊢idᶜ hΣ hA) =
   ⊢idᶜ
-    (renameᵗ-preserves-WfStore hρ hΣ)
+    (renameᵗ-preserves-WfStore hΣ)
     (renameᵗ-preserves-WfTy hA hρ)
 renameᶜᵗ-preserves-typing hρ (⊢! hΣ hG gG) =
   ⊢!
-    (renameᵗ-preserves-WfStore hρ hΣ)
+    (renameᵗ-preserves-WfStore hΣ)
     (renameᵗ-preserves-WfTy hG hρ)
     (renameᵗ-preserves-Ground gG)
 renameᶜᵗ-preserves-typing hρ (⊢? hΣ hG gG) =
   ⊢?
-    (renameᵗ-preserves-WfStore hρ hΣ)
+    (renameᵗ-preserves-WfStore hΣ)
     (renameᵗ-preserves-WfTy hG hρ)
     (renameᵗ-preserves-Ground gG)
 renameᶜᵗ-preserves-typing hρ (⊢↦ cwt dwt) =
@@ -371,11 +382,11 @@ renameᶜᵗ-preserves-typing hρ (⊢⨟ cwt dwt) =
     (renameᶜᵗ-preserves-typing hρ dwt)
 renameᶜᵗ-preserves-typing hρ (⊢conceal hΣ hU) =
   ⊢conceal
-    (renameᵗ-preserves-WfStore hρ hΣ)
+    (renameᵗ-preserves-WfStore hΣ)
     (lookupᵁ-map-renameᵗ hU)
 renameᶜᵗ-preserves-typing hρ (⊢reveal hΣ hU) =
   ⊢reveal
-    (renameᵗ-preserves-WfStore hρ hΣ)
+    (renameᵗ-preserves-WfStore hΣ)
     (lookupᵁ-map-renameᵗ hU)
 renameᶜᵗ-preserves-typing {Σ = Σ} {Δ' = Δ'} {ρ = ρ} hρ (⊢∀ᶜ {A = A} {B = B} {c = c} cwt) =
   ⊢∀ᶜ
@@ -389,7 +400,7 @@ renameᶜᵗ-preserves-typing {Σ = Σ} {Δ' = Δ'} {ρ = ρ} hρ (⊢∀ᶜ {A 
         cwt))
 renameᶜᵗ-preserves-typing hρ (⊢⊥ hΣ hA hB) =
   ⊢⊥
-    (renameᵗ-preserves-WfStore hρ hΣ)
+    (renameᵗ-preserves-WfStore hΣ)
     (renameᵗ-preserves-WfTy hA hρ)
     (renameᵗ-preserves-WfTy hB hρ)
 
@@ -403,7 +414,7 @@ typing-renameᵀ {Σ = Σ} {Δ' = Δ'} {Γ = Γ} {ρ = ρ} hρ (⊢const {k = k}
     (λ T → renameΣ ρ Σ ∣ Δ' ⊢ map (renameᵗ ρ) Γ ⊢ $k k ⦂ T)
     (sym (renameᵗ-ty-const {ρ = ρ} {k = k}))
     (⊢const
-      (renameᵗ-preserves-WfStore hρ hΣ)
+      (renameᵗ-preserves-WfStore hΣ)
       (renameᵗ-preserves-WfCtx hΓ hρ))
 typing-renameᵀ hρ (⊢# h) =
   ⊢# (lookup-map-renameᵗ h)
@@ -497,22 +508,20 @@ TySubstWf-tail {Σ = Σ} {A = A} {σ = σ} hσ {X} x<Δ =
   (proj₁ (proj₂ hσX) , proj₂ (proj₂ hσX))
 
 substᵗ-preserves-WfStore :
-  {Δ Δ' : TyCtx} {Σ : Store} {σ : Substᵗ} →
-  TySubstWf Δ Δ' Σ σ →
-  WfStore Δ Σ →
-  WfStore Δ' (substΣ σ Σ)
-substᵗ-preserves-WfStore hσ wfΣ∅ = wfΣ∅
-substᵗ-preserves-WfStore {Σ = A ∷ Σ} hσ (wfΣ∷ {A = A} wfΣ ndA wfA) =
-  let hσ' = TySubstWf-tail {A = A} hσ in
+  {Σ : Store} {σ : Substᵗ} →
+  WfStore Σ →
+  WfStore (substΣ σ Σ)
+substᵗ-preserves-WfStore wfΣ∅ = wfΣ∅
+substᵗ-preserves-WfStore {Σ = A ∷ Σ} {σ = σ} (wfΣ∷ {A = A} wfΣ ndA wfA) =
   wfΣ∷
-    (substᵗ-preserves-WfStore hσ' wfΣ)
-    (substᵗ-preserves-NonDyn wfA ndA hσ')
-    (substᵗ-preserves-WfTy wfA hσ')
+    (substᵗ-preserves-WfStore wfΣ)
+    (substᵗ-preserves-NonDyn wfA ndA TySubstWf-zero)
+    (substᵗ-preserves-WfTy wfA TySubstWf-zero)
 
 substᵗ-preserves-⊢! :
   {Σ : Store} {Δ Δ' : TyCtx} {G : Ty} {σ : Substᵗ} →
   TySubstWfᶜ Δ Δ' Σ σ →
-  WfStore Δ Σ →
+  WfStore Σ →
   WfTy Δ Σ G →
   Ground G →
   substΣ σ Σ ∣ Δ' ⊢ injᶜ (substᵗ σ G) ⦂ substᵗ σ G ⇨ `★
@@ -521,55 +530,55 @@ substᵗ-preserves-⊢! {G = ` X} hσ hΣ (wfVar {X = X} x<Δ) G-var
 ... | u★v-isVar Y eq
   = cast-injᶜ-typing eq
       (⊢!
-        (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+        (substᵗ-preserves-WfStore hΣ)
         (cast-WfTy eq (proj₁ (proj₁ hσ {X = X} x<Δ)))
         G-var)
 ... | u★v-is★ eq
   = cast-injᶜ-typing eq
       (⊢idᶜ
-        (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+        (substᵗ-preserves-WfStore hΣ)
         (cast-WfTy eq (proj₁ (proj₁ hσ {X = X} x<Δ))))
 ... | u★v-isU U eq
   = cast-injᶜ-typing eq
       (⊢!
-        (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+        (substᵗ-preserves-WfStore hΣ)
         (cast-WfTy eq (proj₁ (proj₁ hσ {X = X} x<Δ)))
         G-U)
 substᵗ-preserves-⊢! hσ hΣ hG G-ℕ =
   ⊢!
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-ℕ
 substᵗ-preserves-⊢! hσ hΣ hG G-Bool =
   ⊢!
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-Bool
 substᵗ-preserves-⊢! hσ hΣ hG G-Str =
   ⊢!
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-Str
 substᵗ-preserves-⊢! hσ hΣ hG G-⇒★ =
   ⊢!
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-⇒★
 substᵗ-preserves-⊢! hσ hΣ hG G-∀★ =
   ⊢!
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-∀★
 substᵗ-preserves-⊢! hσ hΣ hG G-U =
   ⊢!
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-U
 
 substᵗ-preserves-⊢? :
   {Σ : Store} {Δ Δ' : TyCtx} {G : Ty} {p : Label} {σ : Substᵗ} →
   TySubstWfᶜ Δ Δ' Σ σ →
-  WfStore Δ Σ →
+  WfStore Σ →
   WfTy Δ Σ G →
   Ground G →
   substΣ σ Σ ∣ Δ' ⊢ projᶜ (substᵗ σ G) p ⦂ `★ ⇨ substᵗ σ G
@@ -578,48 +587,48 @@ substᵗ-preserves-⊢? {G = ` X} {p = p} hσ hΣ (wfVar {X = X} x<Δ) G-var
 ... | u★v-isVar Y eq
   = cast-projᶜ-typing eq
       (⊢?
-        (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+        (substᵗ-preserves-WfStore hΣ)
         (cast-WfTy eq (proj₁ (proj₁ hσ {X = X} x<Δ)))
         G-var)
 ... | u★v-is★ eq
   = cast-projᶜ-typing eq
       (⊢idᶜ
-        (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+        (substᵗ-preserves-WfStore hΣ)
         (cast-WfTy eq (proj₁ (proj₁ hσ {X = X} x<Δ))))
 ... | u★v-isU U eq
   = cast-projᶜ-typing eq
       (⊢?
-        (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+        (substᵗ-preserves-WfStore hΣ)
         (cast-WfTy eq (proj₁ (proj₁ hσ {X = X} x<Δ)))
         G-U)
 substᵗ-preserves-⊢? hσ hΣ hG G-ℕ =
   ⊢?
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-ℕ
 substᵗ-preserves-⊢? hσ hΣ hG G-Bool =
   ⊢?
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-Bool
 substᵗ-preserves-⊢? hσ hΣ hG G-Str =
   ⊢?
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-Str
 substᵗ-preserves-⊢? hσ hΣ hG G-⇒★ =
   ⊢?
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-⇒★
 substᵗ-preserves-⊢? hσ hΣ hG G-∀★ =
   ⊢?
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-∀★
 substᵗ-preserves-⊢? hσ hΣ hG G-U =
   ⊢?
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hG (proj₁ hσ))
     G-U
 
@@ -630,7 +639,7 @@ substᶜᵗ-preserves-typing :
   substΣ σ Σ ∣ Δ' ⊢ substᶜᵗ σ c ⦂ substᵗ σ A ⇨ substᵗ σ B
 substᶜᵗ-preserves-typing hσ (⊢idᶜ hΣ hA) =
   ⊢idᶜ
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hA (proj₁ hσ))
 substᶜᵗ-preserves-typing hσ (⊢! hΣ hG gG) =
   substᵗ-preserves-⊢! hσ hΣ hG gG
@@ -646,11 +655,11 @@ substᶜᵗ-preserves-typing hσ (⊢⨟ cwt dwt) =
     (substᶜᵗ-preserves-typing hσ dwt)
 substᶜᵗ-preserves-typing hσ (⊢conceal hΣ hU) =
   ⊢conceal
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (lookupᵁ-map-substᵗ hU)
 substᶜᵗ-preserves-typing hσ (⊢reveal hΣ hU) =
   ⊢reveal
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (lookupᵁ-map-substᵗ hU)
 substᶜᵗ-preserves-typing {Σ = Σ} {Δ' = Δ'} {σ = σ} hσ (⊢∀ᶜ {A = A} {B = B} {c = c} cwt) =
   ⊢∀ᶜ
@@ -664,7 +673,7 @@ substᶜᵗ-preserves-typing {Σ = Σ} {Δ' = Δ'} {σ = σ} hσ (⊢∀ᶜ {A =
         cwt))
 substᶜᵗ-preserves-typing hσ (⊢⊥ hΣ hA hB) =
   ⊢⊥
-    (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+    (substᵗ-preserves-WfStore hΣ)
     (substᵗ-preserves-WfTy hA (proj₁ hσ))
     (substᵗ-preserves-WfTy hB (proj₁ hσ))
 
@@ -678,7 +687,7 @@ typing-substᵀ {Σ = Σ} {Δ' = Δ'} {Γ = Γ} {σ = σ} hσ (⊢const {k = k} 
     (λ T → substΣ σ Σ ∣ Δ' ⊢ map (substᵗ σ) Γ ⊢ $k k ⦂ T)
     (sym (substᵗ-ty-const {σ = σ} {k = k}))
     (⊢const
-      (substᵗ-preserves-WfStore (proj₁ hσ) hΣ)
+      (substᵗ-preserves-WfStore hΣ)
       (substᵗ-preserves-WfCtx hΓ (proj₁ hσ)))
 typing-substᵀ hσ (⊢# h) =
   ⊢# (lookup-map-substᵗ h)
@@ -907,22 +916,21 @@ postulate
 -- Transporting typing along store extensions
 ------------------------------------------------------------------------
 
-record StoreRel (Δ : TyCtx) (Σ Σ′ : Store) : Set where
+record StoreRel (Σ Σ′ : Store) : Set where
   field
-    wf-target : WfStore Δ Σ′
+    wf-target : WfStore Σ′
     preserve-lookup : ∀ {U A} → Σ ∋ᵁ U ⦂ A → Σ′ ∋ᵁ U ⦂ A
 
 StoreExt : Store → Store → Set
-StoreExt = StoreRel zero
+StoreExt = StoreRel
 
 rename-store-rel :
-  {Δ Δ' : TyCtx} {Σ Σ′ : Store} {ρ : Renameᵗ} →
-  TyRenameWf Δ Δ' ρ →
-  StoreRel Δ Σ Σ′ →
-  StoreRel Δ' (renameΣ ρ Σ) (renameΣ ρ Σ′)
-rename-store-rel hρ rel .StoreRel.wf-target =
-  renameᵗ-preserves-WfStore hρ (StoreRel.wf-target rel)
-rename-store-rel hρ rel .StoreRel.preserve-lookup {U} {B} h
+  {Σ Σ′ : Store} {ρ : Renameᵗ} →
+  StoreRel Σ Σ′ →
+  StoreRel (renameΣ ρ Σ) (renameΣ ρ Σ′)
+rename-store-rel rel .StoreRel.wf-target =
+  renameᵗ-preserves-WfStore (StoreRel.wf-target rel)
+rename-store-rel rel .StoreRel.preserve-lookup {U} {B} h
   with lookupᵁ-map-inv h
 ... | A , (hA , eq) =
   Eq.subst
@@ -933,7 +941,7 @@ rename-store-rel hρ rel .StoreRel.preserve-lookup {U} {B} h
 mutual
   store-rel-preserves-WfTy :
     {Δ : TyCtx} {Σ Σ′ : Store} {A : Ty} →
-    StoreRel Δ Σ Σ′ →
+    StoreRel Σ Σ′ →
     WfTy Δ Σ A →
     WfTy Δ Σ′ A
   store-rel-preserves-WfTy rel (wfVar x<Δ) = wfVar x<Δ
@@ -950,12 +958,12 @@ mutual
   store-rel-preserves-WfTy {Δ = Δ} rel (wf∀ hA) =
     wf∀
       (store-rel-preserves-WfTy
-        (rename-store-rel (λ {i} i<Δ → s<s i<Δ) rel)
+        (rename-store-rel rel)
         hA)
 
   store-rel-preserves-WfCtx :
     {Δ : TyCtx} {Σ Σ′ : Store} {Γ : Ctx} →
-    StoreRel Δ Σ Σ′ →
+    StoreRel Σ Σ′ →
     WfCtx Δ Σ Γ →
     WfCtx Δ Σ′ Γ
   store-rel-preserves-WfCtx rel wfΓ∅ = wfΓ∅
@@ -966,7 +974,7 @@ mutual
 
   store-rel-preserves-coercion :
     {Δ : TyCtx} {Σ Σ′ : Store} {c : Coercion} {A B : Ty} →
-    StoreRel Δ Σ Σ′ →
+    StoreRel Σ Σ′ →
     Σ ∣ Δ ⊢ c ⦂ A ⇨ B →
     Σ′ ∣ Δ ⊢ c ⦂ A ⇨ B
   store-rel-preserves-coercion rel (⊢idᶜ hΣ hA) =
@@ -1002,7 +1010,7 @@ mutual
   store-rel-preserves-coercion {Δ = Δ} rel (⊢∀ᶜ cwt) =
     ⊢∀ᶜ
       (store-rel-preserves-coercion
-        (rename-store-rel (λ {i} i<Δ → s<s i<Δ) rel)
+        (rename-store-rel rel)
         cwt)
   store-rel-preserves-coercion rel (⊢⊥ hΣ hA hB) =
     ⊢⊥
@@ -1012,7 +1020,7 @@ mutual
 
   store-rel-preserves-typing :
     {Δ : TyCtx} {Σ Σ′ : Store} {Γ : Ctx} {M : Term} {A : Ty} →
-    StoreRel Δ Σ Σ′ →
+    StoreRel Σ Σ′ →
     Σ ∣ Δ ⊢ Γ ⊢ M ⦂ A →
     Σ′ ∣ Δ ⊢ Γ ⊢ M ⦂ A
   store-rel-preserves-typing rel (⊢const hΣ hΓ) =
@@ -1032,7 +1040,7 @@ mutual
   store-rel-preserves-typing {Δ = Δ} rel (⊢Λ hM) =
     ⊢Λ
       (store-rel-preserves-typing
-        (rename-store-rel (λ {i} i<Δ → s<s i<Δ) rel)
+        (rename-store-rel rel)
         hM)
   store-rel-preserves-typing rel (⊢·[] hM hB) =
     ⊢·[]

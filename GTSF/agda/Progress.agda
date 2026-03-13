@@ -213,7 +213,7 @@ tyapp-progress-wrapped vW (⊢⟨⟩ hW (⊢∀ᶜ cwt)) hB with closed-type-cla
 ------------------------------------------------------------------------
 
 progress : ∀ {S M A}
-  → WfStore zero S
+  → WfStore S
   → S ∣ zero ⊢ [] ⊢ M ⦂ A
   → Progress S M
 progress wfΣ (⊢const _ _) = done (vU v-const)

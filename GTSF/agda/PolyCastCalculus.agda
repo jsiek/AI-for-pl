@@ -48,7 +48,7 @@ infix 4 _∣_⊢_⊢_⦂_
 
 data _∣_⊢_⊢_⦂_ (Σ : Store) (Δ : TyCtx) : Ctx → Term → Ty → Set where
   ⊢const : ∀ {Γ k}
-    → WfStore Δ Σ
+    → WfStore Σ
     → WfCtx Δ Σ Γ
     → Σ ∣ Δ ⊢ Γ ⊢ $k k ⦂ ty k
 

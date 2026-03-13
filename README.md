@@ -1,11 +1,13 @@
 # AI-for-pl
 
-experiments in using AI (Codex 5.3) to do PL metatheory
+experiments in using AI (GPT-5.3-Codex) to do PL metatheory
 
-STLC
+STLC - Simply Typed Lambda Calculus
 
-lambda
+lambda - Untyped lambda calculus
 
-GTLC
+GTLC - Gradually Typed Lambda Calculus
 
-System F
+System F - Polymorphic Lambda Calculus
+
+GTSF - Gradually Typed System F

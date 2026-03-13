@@ -15,17 +15,29 @@ open import PolyCoercions
 -- Terms and term typing (Fig. 1 and Fig. 2 + standard rules)
 --------------------------------------------------------------------------------
 
-data Const : Set where
-  nat  : ℕ → Const
-  bool : Bool → Const
+data Base : Set where
+  B-Nat  : Base
+  B-Bool : Base
 
--- Primitive operator semantics used by (R_Delta_C).
-postulate
-  δ : Const → Const → Const
+data Prim : Set where
+  base : Base → Prim
+  _⇒_  : Base → Prim → Prim
 
-ty : Const → Ty
-ty (nat n)  = `ℕ
-ty (bool b) = `Bool
+base-rep : Base → Set
+base-rep B-Nat  = ℕ
+base-rep B-Bool = Bool
+
+rep : Prim → Set
+rep (base b) = base-rep b
+rep (b ⇒ p)  = base-rep b → rep p
+
+typeof-base : Base → Ty
+typeof-base B-Nat  = `ℕ
+typeof-base B-Bool = `Bool
+
+typeof : Prim → Ty
+typeof (base b) = typeof-base b
+typeof (b ⇒ p)  = typeof-base b ⇒ typeof p
 
 infix  9 #_
 infix  8 _⟨_⟩
@@ -35,7 +47,7 @@ infix  6 ƛ_⇒_
 infix  6 Λ_⦂_
 
 data Term : Set where
-  $k_   : Const → Term
+  $      : (p : Prim) → rep p → Term
   #_    : Var → Term
   ƛ_⇒_  : Ty → Term → Term
   _·_   : Term → Term → Term
@@ -47,10 +59,10 @@ data Term : Set where
 infix 4 _∣_⊢_⊢_⦂_
 
 data _∣_⊢_⊢_⦂_ (Σ : Store) (Δ : TyCtx) : Ctx → Term → Ty → Set where
-  ⊢const : ∀ {Γ k}
+  ⊢const : ∀ {Γ p} {k : rep p}
     → WfStore Δ Σ
     → WfCtx Δ Σ Γ
-    → Σ ∣ Δ ⊢ Γ ⊢ $k k ⦂ ty k
+    → Σ ∣ Δ ⊢ Γ ⊢ $ p k ⦂ typeof p
 
   ⊢# : ∀ {Γ x A}
     → Γ ∋ x ⦂ A
@@ -99,7 +111,7 @@ ext ρ zero    = zero
 ext ρ (suc i) = suc (ρ i)
 
 rename : Rename → Term → Term
-rename ρ ($k k)       = $k k
+rename ρ ($ p k)      = $ p k
 rename ρ (# i)        = # (ρ i)
 rename ρ (ƛ A ⇒ N)    = ƛ A ⇒ rename (ext ρ) N
 rename ρ (L · M)      = rename ρ L · rename ρ M
@@ -143,7 +155,7 @@ substᶜᵗ σ (c ⨟ d)            = substᶜᵗ σ c ⨟ substᶜᵗ σ d
 substᶜᵗ σ (⊥ᶜ p ⦂ A ⇨ B)     = ⊥ᶜ p ⦂ substᵗ σ A ⇨ substᵗ σ B
 
 renameᵀ : Renameᵗ → Term → Term
-renameᵀ ρ ($k k)      = $k k
+renameᵀ ρ ($ p k)     = $ p k
 renameᵀ ρ (# i)       = # i
 renameᵀ ρ (ƛ A ⇒ N)   = ƛ renameᵗ ρ A ⇒ renameᵀ ρ N
 renameᵀ ρ (L · M)     = renameᵀ ρ L · renameᵀ ρ M
@@ -156,7 +168,7 @@ renameᵀ ρ (blame p)   = blame p
 ⇑ σ i = renameᵀ suc (σ i)
 
 subst : Subst → Term → Term
-subst σ ($k k)      = $k k
+subst σ ($ p k)      = $ p k
 subst σ (# i)       = σ i
 subst σ (ƛ A ⇒ N)   = ƛ A ⇒ subst (exts σ) N
 subst σ (L · M)     = subst σ L · subst σ M
@@ -173,7 +185,7 @@ _[_]ᴹ : Term → Term → Term
 N [ M ]ᴹ = subst (singleEnv M) N
 
 substᵀ : Substᵗ → Term → Term
-substᵀ σ ($k k)      = $k k
+substᵀ σ ($ p k)     = $ p k
 substᵀ σ (# i)       = # i
 substᵀ σ (ƛ A ⇒ N)   = ƛ substᵗ σ A ⇒ substᵀ σ N
 substᵀ σ (L · M)     = substᵀ σ L · substᵀ σ M
@@ -190,7 +202,7 @@ N [ A ]ᵀ = substᵀ (singleTyEnv A) N
 ------------------------------------------------------------------------
 
 data UncoercedValue : Term → Set where
-  v-const : ∀ {k} → UncoercedValue ($k k)
+  v-const : ∀ {p} {k : rep p} → UncoercedValue ($ p k)
   v-ƛ     : ∀ {A M} → UncoercedValue (ƛ A ⇒ M)
   v-Λ     : ∀ {M A} → UncoercedValue (Λ M ⦂ A)
 
@@ -259,8 +271,8 @@ data Config : Set where
 infix 4 _—→_
 
 data _—→_ : Config → Config → Set where
-  β-δ : ∀ {Σ k₁ k₂}
-    → (Σ ⊲ ($k k₁ · $k k₂)) —→ (Σ ⊲ $k (δ k₁ k₂))
+  δ : ∀ {Σ b p} {f : rep (b ⇒ p)} {k : rep (base b)}
+    → (Σ ⊲ (($ (b ⇒ p) f) · ($ (base b) k))) —→ (Σ ⊲ ($ p (f k)))
 
   β-ƛ : ∀ {Σ A M V}
     → Value V

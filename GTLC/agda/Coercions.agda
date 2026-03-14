@@ -16,7 +16,6 @@ data Coercion : Set where
   _`?  : Ty → Coercion -- projection (tag checking)
   _↦_  : Coercion → Coercion → Coercion
   _⨟_  : Coercion → Coercion → Coercion
-  ⊥ᶜ_⇨_ : Ty → Ty → Coercion
 
 data Atomic : Coercion → Set where
   atom-idᶜ : ∀ {A} → Atomic (idᶜ A)
@@ -46,9 +45,6 @@ data ⊢_⦂_⇨_ : Coercion → Ty → Ty → Set where
     → ⊢ c ⦂ A ⇨ B
     → ⊢ d ⦂ B ⇨ C
     → ⊢ c ⨟ d ⦂ A ⇨ C
-
-  ⊢⊥ : ∀ {A B}
-    → ⊢ (⊥ᶜ A ⇨ B) ⦂ A ⇨ B
 
 coerce : ∀ {A B} → A ~ B → Coercion
 coerce ~-ℕ = idᶜ ℕ
@@ -109,19 +105,12 @@ data _⊑ᶜ_ : Coercion → Coercion → Set where
     → c′ ⊑ᶜ c
     → (c′ ⨟ ((★ ⇒ ★) !)) ⊑ᶜ c
 
-  ⊑⊥ : ∀{c}{A}{B}{A′}{B′}
-    → ⊢ c ⦂ A′ ⇨ B′
-    → A′ ⊑ A
-    → B′ ⊑ B
-    → c ⊑ᶜ ⊥ᶜ A ⇨ B
-
 ⊑ᶜ-reflexive : ∀ {c} → c ⊑ᶜ c
 ⊑ᶜ-reflexive {c = idᶜ A} = ⊑idᶜ ⊑-refl
 ⊑ᶜ-reflexive {c = A !} = ⊑! ⊑-refl
 ⊑ᶜ-reflexive {c = A `?} = ⊑? ⊑-refl
 ⊑ᶜ-reflexive {c = c ↦ d} = ⊑↦ ⊑ᶜ-reflexive ⊑ᶜ-reflexive
 ⊑ᶜ-reflexive {c = c ⨟ d} = ⊑⨟ ⊑ᶜ-reflexive ⊑ᶜ-reflexive
-⊑ᶜ-reflexive {c = ⊥ᶜ A ⇨ B} = ⊑⊥ ⊢⊥ ⊑-refl ⊑-refl
 
 ⊑id★ : ∀ {c A B} → ⊢ c ⦂ A ⇨ B → idᶜ ★ ⊑ᶜ c
 ⊑id★ ⊢idᶜ = ⊑idᶜ ⊑-★
@@ -129,7 +118,6 @@ data _⊑ᶜ_ : Coercion → Coercion → Set where
 ⊑id★ (⊢? g) = ⊑idL atom-? (⊢? g) ⊑-★ ⊑-★
 ⊑id★ (⊢↦ cwt dwt) = ⊑idL↦★ (⊑id★ cwt) (⊑id★ dwt)
 ⊑id★ (⊢⨟ cwt dwt) = ⊑idL⨟ (⊑id★ cwt) (⊑id★ dwt)
-⊑id★ (⊢⊥{A}{B}) = ⊑⊥ ⊢idᶜ ⊑-★ ⊑-★
 
 coerce-monotonic
   : ∀ {A A′ B B′}
@@ -203,7 +191,6 @@ coercion-type-unique (⊢↦ c₁ d₁) (⊢↦ c₂ d₂)
 coercion-type-unique (⊢⨟ c₁ d₁) (⊢⨟ c₂ d₂)
   with coercion-type-unique c₁ c₂ | coercion-type-unique d₁ d₂
 ... | refl , refl | refl , refl = refl , refl
-coercion-type-unique ⊢⊥ ⊢⊥ = refl , refl
 
 ⊑ᶜ→⊑ : ∀ {c c′ A B A′ B′ }
     → ⊢ c ⦂ A ⇨ B → ⊢ c′ ⦂ A′ ⇨ B′
@@ -239,9 +226,6 @@ coercion-type-unique ⊢⊥ ⊢⊥ = refl , refl
 ⊑ᶜ→⊑ (⊢⨟ cwt dwt) (⊢⨟ c′wt d′wt) (⊑⨟ c′⊑c d′⊑d)
   with ⊑ᶜ→⊑ cwt c′wt c′⊑c | ⊑ᶜ→⊑ dwt d′wt d′⊑d
 ... | A′⊑A , _ | _ , C′⊑C = A′⊑A , C′⊑C
-⊑ᶜ→⊑ ⊢⊥ c′wt (⊑⊥ c′wt′ A′⊑A B′⊑B)
-  with coercion-type-unique c′wt c′wt′
-... | refl , refl = A′⊑A , B′⊑B
 ⊑ᶜ→⊑ ⊢c (⊢⨟ (⊢? G-⇒) c′wt) (⊑drop? c′⊑c)
   with ⊑ᶜ→⊑ ⊢c c′wt c′⊑c
 ... | _ , B′⊑B = ⊑-★ , B′⊑B
@@ -254,93 +238,3 @@ coercion-type-unique ⊢⊥ ⊢⊥ = refl , refl
   → c ⊑ᶜ idᶜ A × d ⊑ᶜ idᶜ B
 ⊑idR↦-inv (⊑idR↦ c≤id d≤id) = c≤id , d≤id
 
-----------------------------------------------------------------
--- Coercion Reduction
-----------------------------------------------------------------
-
-infix 4 _—→ᶜᶜ_
-infix 3 _∎ᶜᶜ
-infixr 2 _—→ᶜᶜ⟨_⟩_
-infix 2 _—↠ᶜᶜ_
-
-data _—→ᶜᶜ_ : Coercion → Coercion → Set where
-  β-proj-inj-okᶜ : ∀ {G}
-    → (G ! ⨟ G `?) —→ᶜᶜ idᶜ G
-
-  β-proj-inj-badᶜ : ∀ {G H}
-    → G ≢ H
-    → (G ! ⨟ H `?) —→ᶜᶜ (⊥ᶜ G ⇨ H)
-
-  β-idLᶜ : ∀ {A d}
-    → (idᶜ A ⨟ d) —→ᶜᶜ d
-
-  β-idRᶜ : ∀ {B c}
-    → (c ⨟ idᶜ B) —→ᶜᶜ c
-
-  β-assocLᶜ : ∀ {c₁ c₂ c₃}
-    → (c₁ ⨟ (c₂ ⨟ c₃)) —→ᶜᶜ ((c₁ ⨟ c₂) ⨟ c₃)
-
-  β-assocRᶜ : ∀ {c₁ c₂ c₃}
-    → ((c₁ ⨟ c₂) ⨟ c₃) —→ᶜᶜ (c₁ ⨟ (c₂ ⨟ c₃))
-
-  β-↦ᶜ : ∀ {c d c′ d′}
-    → ((c ↦ d) ⨟ (c′ ↦ d′)) —→ᶜᶜ ((c′ ⨟ c) ↦ (d ⨟ d′))
-
-  ξ-⨟₁ᶜ : ∀ {c c′ d}
-    → c —→ᶜᶜ c′
-    → (c ⨟ d) —→ᶜᶜ (c′ ⨟ d)
-
-  ξ-⨟₂ᶜ : ∀ {c d d′}
-    → d —→ᶜᶜ d′
-    → (c ⨟ d) —→ᶜᶜ (c ⨟ d′)
-
-  ξ-↦₁ᶜ : ∀ {c c′ d}
-    → c —→ᶜᶜ c′
-    → (c ↦ d) —→ᶜᶜ (c′ ↦ d)
-
-  ξ-↦₂ᶜ : ∀ {c d d′}
-    → d —→ᶜᶜ d′
-    → (c ↦ d) —→ᶜᶜ (c ↦ d′)
-
-data _—↠ᶜᶜ_ : Coercion → Coercion → Set where
-  _∎ᶜᶜ : (c : Coercion) → c —↠ᶜᶜ c
-  _—→ᶜᶜ⟨_⟩_ : (l : Coercion) {m n : Coercion}
-    → l —→ᶜᶜ m
-    → m —↠ᶜᶜ n
-    → l —↠ᶜᶜ n
-
-multi-transᶜᶜ : {c d e : Coercion}
-  → c —↠ᶜᶜ d
-  → d —↠ᶜᶜ e
-  → c —↠ᶜᶜ e
-multi-transᶜᶜ (_ ∎ᶜᶜ) ms2 = ms2
-multi-transᶜᶜ (_ —→ᶜᶜ⟨ s ⟩ ms1′) ms2 =
-  _ —→ᶜᶜ⟨ s ⟩ (multi-transᶜᶜ ms1′ ms2)
-
-infixr 2 _—↠ᶜᶜ⟨_⟩_
-_—↠ᶜᶜ⟨_⟩_ : ∀ (l : Coercion) {m n : Coercion}
-  → l —↠ᶜᶜ m
-  → m —↠ᶜᶜ n
-  → l —↠ᶜᶜ n
-l —↠ᶜᶜ⟨ l—↠m ⟩ m—↠n = multi-transᶜᶜ l—↠m m—↠n
-
-preserve-—→ᶜᶜ : ∀ {c c′ A B}
-  → ⊢ c ⦂ A ⇨ B
-  → c —→ᶜᶜ c′
-  → ⊢ c′ ⦂ A ⇨ B
-preserve-—→ᶜᶜ (⊢⨟ (⊢! g) (⊢? g′)) β-proj-inj-okᶜ = ⊢idᶜ
-preserve-—→ᶜᶜ (⊢⨟ (⊢! g) (⊢? g′)) (β-proj-inj-badᶜ G≢H) = ⊢⊥
-preserve-—→ᶜᶜ (⊢⨟ ⊢idᶜ dwt) β-idLᶜ = dwt
-preserve-—→ᶜᶜ (⊢⨟ cwt ⊢idᶜ) β-idRᶜ = cwt
-preserve-—→ᶜᶜ (⊢⨟ cwt (⊢⨟ dwt ewt)) β-assocLᶜ = ⊢⨟ (⊢⨟ cwt dwt) ewt
-preserve-—→ᶜᶜ (⊢⨟ (⊢⨟ cwt dwt) ewt) β-assocRᶜ = ⊢⨟ cwt (⊢⨟ dwt ewt)
-preserve-—→ᶜᶜ (⊢⨟ (⊢↦ cwt dwt) (⊢↦ c′wt d′wt)) β-↦ᶜ =
-  ⊢↦ (⊢⨟ c′wt cwt) (⊢⨟ dwt d′wt)
-preserve-—→ᶜᶜ (⊢⨟ cwt dwt) (ξ-⨟₁ᶜ c→c′) =
-  ⊢⨟ (preserve-—→ᶜᶜ cwt c→c′) dwt
-preserve-—→ᶜᶜ (⊢⨟ cwt dwt) (ξ-⨟₂ᶜ d→d′) =
-  ⊢⨟ cwt (preserve-—→ᶜᶜ dwt d→d′)
-preserve-—→ᶜᶜ (⊢↦ cwt dwt) (ξ-↦₁ᶜ c→c′) =
-  ⊢↦ (preserve-—→ᶜᶜ cwt c→c′) dwt
-preserve-—→ᶜᶜ (⊢↦ cwt dwt) (ξ-↦₂ᶜ d→d′) =
-  ⊢↦ cwt (preserve-—→ᶜᶜ dwt d→d′)

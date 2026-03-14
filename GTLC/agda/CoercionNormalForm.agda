@@ -770,3 +770,257 @@ normalizeᶜ cwt
   with normalize cwt
 ... | s , c↠s =
   ⌊ s ⌋ˢ , c↠s , erase-normal s
+
+mutual
+  coerceⁿ : ∀ {A B} → A ~ B → A ⇨ⁿ B
+  coerceⁱ-⇒ : ∀ {A B C D} → C ~ A → B ~ D → (A ⇒ B) ⇨ⁱ (C ⇒ D)
+  coerceⁱ-★ : ∀ {A B} → ★ ~ A → B ~ ★ → (A ⇒ B) ⇨ⁱ ★
+  coerceᵍ : ∀ {A B C D} → C ~ A → B ~ D → (A ⇒ B) ⇨ᵍ (C ⇒ D)
+
+  coerceⁿ ~-ℕ = idⁿ ℕ
+  coerceⁿ ~-★ = idⁿ ★
+  coerceⁿ ★~ℕ = ℕ ?ⁿ G-ℕ
+  coerceⁿ ℕ~★ = ′ (ℕ !ⁿ G-ℕ)
+  coerceⁿ (★~⇒ c d) = (★ ⇒ ★) ?ⁿ G-⇒ ⨾ coerceⁱ-⇒ c d
+  coerceⁿ (⇒~★ c d) = ′ (coerceⁱ-★ c d)
+  coerceⁿ (~-⇒ c d) = ′ (coerceⁱ-⇒ c d)
+
+  coerceⁱ-⇒ c d = ＇ (coerceᵍ c d)
+  coerceⁱ-★ c d = ‹ (★ ⇒ ★) › (coerceᵍ c d) ⨾ G-⇒ !ⁿ
+
+  coerceᵍ c d = coerceⁿ c ↣ coerceⁿ d
+
+
+infix 4 _⊑ⁿ_
+infix 4 _⊑ⁱ_
+infix 4 _⊑ᵍ_
+
+mutual
+  data _⊑ⁿ_ : ∀ {A B A′ B′} → (A ⇨ⁿ B) → (A′ ⇨ⁿ B′) → Set where
+    -- congruence rules
+    ⊑idⁿ : ∀ {A A′}
+      → A ⊑ A′
+      → idⁿ A ⊑ⁿ idⁿ A′
+
+    ⊑?ⁿ : ∀ {G} {g g′ : Ground G}
+      → (G ?ⁿ g) ⊑ⁿ (G ?ⁿ g′)
+
+    ⊑?ⁿ⨾ : ∀ {G B B′} {g g′ : Ground G}
+             {i : G ⇨ⁱ B} {j : G ⇨ⁱ B′}
+      → i ⊑ⁱ j
+      → (G ?ⁿ g ⨾ i) ⊑ⁿ (G ?ⁿ g′ ⨾ j)
+
+    ⊑?ⁿ⨾! : ∀ {G} {g g′ : Ground G}
+      → (G ?ⁿ g ⨾!) ⊑ⁿ (G ?ⁿ g′ ⨾!)
+
+    ⊑?ⁿ⨾ᵍ⨾! : ∀ {G} {g g′ : Ground G}
+                 {h k : G ⇨ᵍ G}
+      → h ⊑ᵍ k
+      → (G ?ⁿ g ⨾ h ⨾!) ⊑ⁿ (G ?ⁿ g′ ⨾ k ⨾!)
+
+    ⊑′ : ∀ {A B A′ B′} {i : A ⇨ⁱ B} {j : A′ ⇨ⁱ B′}
+      → i ⊑ⁱ j
+      → (′ i) ⊑ⁿ (′ j)
+
+    ⊑drop?ⁿ : ∀ {G A B B′} {g : Ground G}
+                {i : G ⇨ⁱ B} {j : A ⇨ⁱ B′}
+      → i ⊑ⁱ j
+      → (G ?ⁿ g ⨾ i) ⊑ⁿ (′ j)
+
+    -- identity rules
+    ⊑idLⁿ : ∀ {A A′ B} {s : A′ ⇨ⁿ B}
+      → A ⊑ A′
+      → A ⊑ B
+      → idⁿ A ⊑ⁿ s
+
+    ⊑idRⁿ : ∀ {A B B′} {s : A ⇨ⁿ B}
+      → A ⊑ B′
+      → B ⊑ B′
+      → s ⊑ⁿ idⁿ B′
+
+    -- error on the right
+    ⊑errⁿ : ∀ {A B} {s : A ⇨ⁿ B}
+      → s ⊑ⁿ (′ (⊥ⁿ A ⇨ B))
+
+  data _⊑ⁱ_ : ∀ {A B A′ B′} → (A ⇨ⁱ B) → (A′ ⇨ⁱ B′) → Set where
+    -- congruence rules
+    ⊑!ⁿ : ∀ {G} {g g′ : Ground G}
+      → (G !ⁿ g) ⊑ⁱ (G !ⁿ g′)
+
+    ⊑‹›!ⁿ : ∀ {A A′ G} {g g′ : Ground G}
+              {h : A ⇨ᵍ G} {k : A′ ⇨ᵍ G}
+      → h ⊑ᵍ k
+      → (‹ G › h ⨾ g !ⁿ) ⊑ⁱ (‹ G › k ⨾ g′ !ⁿ)
+
+    ⊑＇ : ∀ {A B A′ B′} {g : A ⇨ᵍ B} {h : A′ ⇨ᵍ B′}
+      → g ⊑ᵍ h
+      → (＇ g) ⊑ⁱ (＇ h)
+
+    -- drop rule
+    ⊑drop!ⁱ : ∀ {A A′ B G} {g : Ground G}
+                {h : A ⇨ᵍ G} {k : A′ ⇨ᵍ B}
+      → h ⊑ᵍ k
+      → (‹ G › h ⨾ g !ⁿ) ⊑ⁱ (＇ k)
+
+    -- error on the right
+    ⊑⊥ⁱ : ∀ {A B A′ B′}{i : A ⇨ⁱ B}
+      → A ⊑ A′
+      → B ⊑ B′
+      → i ⊑ⁱ (⊥ⁿ A′ ⇨ B′)
+
+  data _⊑ᵍ_ : ∀ {A B A′ B′} → (A ⇨ᵍ B) → (A′ ⇨ᵍ B′) → Set where
+    ⊑↣ : ∀ {A B C D A′ B′ C′ D′}
+           {c : C ⇨ⁿ A} {d : B ⇨ⁿ D}
+           {c′ : C′ ⇨ⁿ A′} {d′ : B′ ⇨ⁿ D′}
+      → c ⊑ⁿ c′
+      → d ⊑ⁿ d′
+      → (c ↣ d) ⊑ᵍ (c′ ↣ d′)
+
+mutual
+  ⊑ⁿ-reflexive : ∀ {A}{B}{c : A ⇨ⁿ B} → c ⊑ⁿ c
+  ⊑ⁱ-reflexive : ∀ {A}{B}{c : A ⇨ⁱ B} → c ⊑ⁱ c
+  ⊑ᵍ-reflexive : ∀ {A}{B}{c : A ⇨ᵍ B} → c ⊑ᵍ c
+
+  ⊑ⁿ-reflexive {c = idⁿ A} = ⊑idⁿ ⊑-refl
+  ⊑ⁿ-reflexive {c = G ?ⁿ g} = ⊑?ⁿ
+  ⊑ⁿ-reflexive {c = G ?ⁿ g ⨾ i} = ⊑?ⁿ⨾ ⊑ⁱ-reflexive
+  ⊑ⁿ-reflexive {c = G ?ⁿ g ⨾!} = ⊑?ⁿ⨾!
+  ⊑ⁿ-reflexive {c = G ?ⁿ g ⨾ h ⨾!} = ⊑?ⁿ⨾ᵍ⨾! ⊑ᵍ-reflexive
+  ⊑ⁿ-reflexive {c = ′ i} = ⊑′ ⊑ⁱ-reflexive
+
+  ⊑ⁱ-reflexive {c = G !ⁿ g} = ⊑!ⁿ
+  ⊑ⁱ-reflexive {c = ‹ G › h ⨾ g !ⁿ} = ⊑‹›!ⁿ ⊑ᵍ-reflexive
+  ⊑ⁱ-reflexive {c = ＇ g} = ⊑＇ ⊑ᵍ-reflexive
+  ⊑ⁱ-reflexive {c = ⊥ⁿ A ⇨ B} = ⊑⊥ⁱ ⊑-refl ⊑-refl
+
+  ⊑ᵍ-reflexive {c = c ↣ d} = ⊑↣ ⊑ⁿ-reflexive ⊑ⁿ-reflexive
+
+mutual
+  ⊑ⁿ→⊑ : ∀ {A B A′ B′}
+      → (s : A ⇨ⁿ B) → (t : A′ ⇨ⁿ B′)
+      → s ⊑ⁿ t
+        ---------------
+      → A ⊑ A′ × B ⊑ B′
+
+  ⊑ⁱ→⊑ : ∀ {A B A′ B′}
+      → (i : A ⇨ⁱ B) → (j : A′ ⇨ⁱ B′)
+      → i ⊑ⁱ j
+        ---------------
+      → A ⊑ A′ × B ⊑ B′
+
+  ⊑ᵍ→⊑ : ∀ {A B A′ B′}
+      → (g : A ⇨ᵍ B) → (h : A′ ⇨ᵍ B′)
+      → g ⊑ᵍ h
+        ---------------
+      → A ⊑ A′ × B ⊑ B′
+
+  ⊑ⁿ→⊑ _ _ (⊑idⁿ A⊑A′) = A⊑A′ , A⊑A′
+  ⊑ⁿ→⊑ _ _ ⊑?ⁿ = ⊑-★ , ⊑-refl
+  ⊑ⁿ→⊑ _ _ (⊑?ⁿ⨾ i⊑j)
+    with ⊑ⁱ→⊑ _ _ i⊑j
+  ... | _ , B⊑B′ = ⊑-★ , B⊑B′
+  ⊑ⁿ→⊑ _ _ ⊑?ⁿ⨾! = ⊑-★ , ⊑-★
+  ⊑ⁿ→⊑ _ _ (⊑?ⁿ⨾ᵍ⨾! h⊑k) = ⊑-★ , ⊑-★
+  ⊑ⁿ→⊑ _ _ (⊑′ i⊑j) = ⊑ⁱ→⊑ _ _ i⊑j
+  ⊑ⁿ→⊑ _ _ (⊑drop?ⁿ i⊑j)
+    with ⊑ⁱ→⊑ _ _ i⊑j
+  ... | _ , B⊑B′ = ⊑-★ , B⊑B′
+  ⊑ⁿ→⊑ _ _ (⊑idLⁿ A⊑A′ A⊑B) = A⊑A′ , A⊑B
+  ⊑ⁿ→⊑ _ _ (⊑idRⁿ A⊑B′ B⊑B′) = A⊑B′ , B⊑B′
+  ⊑ⁿ→⊑ _ _ ⊑errⁿ = ⊑-refl , ⊑-refl
+
+  ⊑ⁱ→⊑ _ _ ⊑!ⁿ = ⊑-refl , ⊑-★
+  ⊑ⁱ→⊑ _ _ (⊑‹›!ⁿ h⊑k)
+    with ⊑ᵍ→⊑ _ _ h⊑k
+  ... | A⊑A′ , _ = A⊑A′ , ⊑-★
+  ⊑ⁱ→⊑ _ _ (⊑＇ g⊑h) = ⊑ᵍ→⊑ _ _ g⊑h
+  ⊑ⁱ→⊑ _ _ (⊑drop!ⁱ h⊑k)
+    with ⊑ᵍ→⊑ _ _ h⊑k
+  ... | A⊑A′ , _ = A⊑A′ , ⊑-★
+  ⊑ⁱ→⊑ _ _ (⊑⊥ⁱ A⊑A′ B⊑B′) = A⊑A′ , B⊑B′
+
+  ⊑ᵍ→⊑ _ _ (⊑↣ c⊑c′ d⊑d′)
+    with ⊑ⁿ→⊑ _ _ c⊑c′ | ⊑ⁿ→⊑ _ _ d⊑d′
+  ... | C⊑C′ , A⊑A′ | B⊑B′ , D⊑D′ =
+    ⊑-⇒ A⊑A′ B⊑B′ , ⊑-⇒ C⊑C′ D⊑D′
+
+mutual
+  coerceⁿ-monotonic : ∀ {A A′ B B′}
+    → A′ ⊑ A
+    → (c : A ~ B)
+    → B′ ⊑ B
+    → (d : A′ ~ B′)
+    → coerceⁿ d ⊑ⁿ coerceⁿ c
+
+  coerceⁱ-⇒-monotonic
+    : ∀ {A A′ B B′ C C′ D D′}
+    → C′ ⊑ C
+    → (c : C ~ A)
+    → A′ ⊑ A
+    → (c′ : C′ ~ A′)
+    → B′ ⊑ B
+    → (d : B ~ D)
+    → D′ ⊑ D
+    → (d′ : B′ ~ D′)
+    → coerceⁱ-⇒ c′ d′ ⊑ⁱ coerceⁱ-⇒ c d
+
+  coerceⁱ-★-monotonic
+    : ∀ {A A′ B B′}
+    → A′ ⊑ A
+    → (c : ★ ~ A)
+    → B′ ⊑ B
+    → (d : B ~ ★)
+    → (c′ : ★ ~ A′)
+    → (d′ : B′ ~ ★)
+    → coerceⁱ-★ c′ d′ ⊑ⁱ coerceⁱ-★ c d
+
+  coerceᵍ-monotonic
+    : ∀ {A A′ B B′ C C′ D D′}
+    → C′ ⊑ C
+    → (c : C ~ A)
+    → A′ ⊑ A
+    → (c′ : C′ ~ A′)
+    → B′ ⊑ B
+    → (d : B ~ D)
+    → D′ ⊑ D
+    → (d′ : B′ ~ D′)
+    → coerceᵍ c′ d′ ⊑ᵍ coerceᵍ c d
+
+  coerceⁿ-monotonic A′⊑A ~-ℕ B′⊑B ~-ℕ = ⊑idⁿ ⊑-ℕ
+  coerceⁿ-monotonic A′⊑A ~-ℕ B′⊑B ~-★ = ⊑idⁿ ⊑-★
+  coerceⁿ-monotonic A′⊑A ~-ℕ B′⊑B ★~ℕ = ⊑idRⁿ A′⊑A ⊑-refl
+  coerceⁿ-monotonic A′⊑A ~-ℕ B′⊑B ℕ~★ = ⊑idRⁿ A′⊑A B′⊑B
+  coerceⁿ-monotonic A′⊑A ~-★ B′⊑B ~-★ = ⊑idⁿ ⊑-★
+  coerceⁿ-monotonic A′⊑A ★~ℕ B′⊑B ~-★ = ⊑idLⁿ A′⊑A ⊑-★
+  coerceⁿ-monotonic A′⊑A ★~ℕ B′⊑B ★~ℕ = ⊑?ⁿ
+  coerceⁿ-monotonic A′⊑A ℕ~★ B′⊑B ~-★ = ⊑idLⁿ A′⊑A ⊑-★
+  coerceⁿ-monotonic A′⊑A ℕ~★ B′⊑B ℕ~★ = ⊑′ ⊑!ⁿ
+  coerceⁿ-monotonic A′⊑A (★~⇒ c₁ c₂) B′⊑B ~-★ = ⊑idLⁿ A′⊑A ⊑-★
+  coerceⁿ-monotonic A′⊑A (★~⇒ c₁ c₂) (⊑-⇒ B′₁⊑B₁ B′₂⊑B₂) (★~⇒ d₁ d₂) =
+    ⊑?ⁿ⨾ (coerceⁱ-⇒-monotonic B′₁⊑B₁ c₁ ⊑-★ d₁ ⊑-★ c₂ B′₂⊑B₂ d₂)
+  coerceⁿ-monotonic A′⊑A (⇒~★ c₁ c₂) B′⊑B ~-★ = ⊑idLⁿ A′⊑A ⊑-★
+  coerceⁿ-monotonic (⊑-⇒ A′₁⊑A₁ A′₂⊑A₂) (⇒~★ c₁ c₂) B′⊑B (⇒~★ d₁ d₂) =
+    ⊑′ (coerceⁱ-★-monotonic A′₁⊑A₁ c₁ A′₂⊑A₂ c₂ d₁ d₂)
+  coerceⁿ-monotonic A′⊑A (~-⇒ c₁ c₂) B′⊑B ~-★ = ⊑idLⁿ A′⊑A ⊑-★
+  coerceⁿ-monotonic A′⊑A (~-⇒ c₁ c₂) (⊑-⇒ B′₁⊑B₁ B′₂⊑B₂) (★~⇒ d₁ d₂) =
+    ⊑drop?ⁿ (coerceⁱ-⇒-monotonic B′₁⊑B₁ c₁ ⊑-★ d₁ ⊑-★ c₂ B′₂⊑B₂ d₂)
+  coerceⁿ-monotonic (⊑-⇒ A′₁⊑A₁ A′₂⊑A₂) (~-⇒ c₁ c₂) B′⊑B (⇒~★ d₁ d₂) =
+    ⊑′ (⊑drop!ⁱ (coerceᵍ-monotonic ⊑-★ c₁ A′₁⊑A₁ d₁ A′₂⊑A₂ c₂ ⊑-★ d₂))
+  coerceⁿ-monotonic (⊑-⇒ A′₁⊑A₁ A′₂⊑A₂) (~-⇒ c₁ c₂) (⊑-⇒ B′₁⊑B₁ B′₂⊑B₂) (~-⇒ d₁ d₂) =
+    ⊑′ (coerceⁱ-⇒-monotonic B′₁⊑B₁ c₁ A′₁⊑A₁ d₁ A′₂⊑A₂ c₂ B′₂⊑B₂ d₂)
+
+  coerceⁱ-⇒-monotonic C′⊑C c A′⊑A c′ B′⊑B d D′⊑D d′ =
+    ⊑＇ (coerceᵍ-monotonic C′⊑C c A′⊑A c′ B′⊑B d D′⊑D d′)
+
+  coerceⁱ-★-monotonic A′⊑A c B′⊑B d c′ d′ =
+    ⊑‹›!ⁿ (coerceᵍ-monotonic ⊑-★ c A′⊑A c′ B′⊑B d ⊑-★ d′)
+
+  coerceᵍ-monotonic C′⊑C c A′⊑A c′ B′⊑B d D′⊑D d′ =
+    ⊑↣
+      (coerceⁿ-monotonic C′⊑C c A′⊑A c′)
+      (coerceⁿ-monotonic B′⊑B d D′⊑D d′)
+
+postulate
+  error-most-precise : ∀{A B}
+    → (c : A ⇨ⁿ B)
+    → c ⊑ⁿ ′ (⊥ⁿ A ⇨ B)

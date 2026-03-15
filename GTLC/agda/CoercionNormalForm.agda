@@ -13,8 +13,11 @@ infix 5 _g⨟i_
 infix 5 _g⨟g_
 infix 4 _⇨ⁿ_ _⇨ⁱ_ _⇨ᵍ_
 infix 7 _?ⁿ_ _!ⁿ_
-infix 6 _?ⁿ_⨾_ _?ⁿ_⨾! _?ⁿ_⨾_⨾! ‹_›_⨾_!ⁿ
+infix 6 _?ⁿ_⨾_ ‹_›_⨾_!ⁿ
 
+--------------------------------------------------------------------------------
+-- Normal form
+--------------------------------------------------------------------------------
 mutual
   data _⇨ⁿ_ : Ty → Ty → Set
   data _⇨ⁱ_ : Ty → Ty → Set
@@ -30,13 +33,6 @@ mutual
       → Ground G
       → G ⇨ⁱ B
       → ★ ⇨ⁿ B
-    _?ⁿ_⨾! : ∀ (G : Ty)
-      → Ground G
-      → ★ ⇨ⁿ ★
-    _?ⁿ_⨾_⨾! : ∀ (G : Ty)
-      → Ground G
-      → G ⇨ᵍ G
-      → ★ ⇨ⁿ ★
     ′_ : ∀ {A B}
       → A ⇨ⁱ B
       → A ⇨ⁿ B
@@ -75,8 +71,6 @@ mutual
   ⌊ idⁿ A ⌋ˢ = idᶜ A
   ⌊ G ?ⁿ _ ⌋ˢ = G `?
   ⌊ G ?ⁿ _ ⨾ i ⌋ˢ = G `? ⨟ ⌊ i ⌋ⁱ
-  ⌊ G ?ⁿ _ ⨾! ⌋ˢ = G `? ⨟ G !
-  ⌊ G ?ⁿ _ ⨾ g ⨾! ⌋ˢ = (G `? ⨟ ⌊ g ⌋ᵍ) ⨟ G !
   ⌊ ′ i ⌋ˢ = ⌊ i ⌋ⁱ
 
   ⌊ G !ⁿ _ ⌋ⁱ = G !
@@ -97,8 +91,6 @@ mutual
   wtS (idⁿ A) = ⊢idᶜ
   wtS (G ?ⁿ g) = ⊢? g
   wtS (G ?ⁿ g ⨾ i) = ⊢⨟ (⊢? g) (wtI i)
-  wtS (G ?ⁿ g ⨾!) = ⊢⨟ (⊢? g) (⊢! g)
-  wtS (G ?ⁿ g ⨾ h ⨾!) = ⊢⨟ (⊢⨟ (⊢? g) (wtG h)) (⊢! g)
   wtS (′ i) = wtI i
 
   wtI (G !ⁿ g) = ⊢! g
@@ -107,6 +99,16 @@ mutual
   wtI (⊥ⁿ A ⇨ B) = ⊢⊥
 
   wtG (c ↣ d) = ⊢↦ (wtS c) (wtS d)
+
+★⇨ⁱ-is-⊥ : ∀ {C} (i : ★ ⇨ⁱ C) → i ≡ ⊥ⁿ ★ ⇨ C
+★⇨ⁱ-is-⊥ (★ !ⁿ ())
+★⇨ⁱ-is-⊥ (‹ _ › () ⨾ _ !ⁿ)
+★⇨ⁱ-is-⊥ (＇ ())
+★⇨ⁱ-is-⊥ (⊥ⁿ ★ ⇨ C) = refl
+
+--------------------------------------------------------------------------------
+-- Strong normalization
+--------------------------------------------------------------------------------
 
 mutual
   normalize-seq : ∀ {A B C}
@@ -164,52 +166,6 @@ mutual
       —→ᶜᶜ⟨ β-assocRᶜ ⟩
       ((G `?) ⨟ (⌊ i ⌋ⁱ ⨟ ⌊ t ⌋ˢ))
       —↠ᶜᶜ⟨ multi-ξ-⨟₂ᶜᶜ i⨟t↠id ⟩
-      ((G `?) ⨟ idᶜ G)
-      —→ᶜᶜ⟨ β-idRᶜ ⟩
-      (G `?)
-      ∎ᶜᶜ)
-
-  normalize-seq (G ?ⁿ g ⨾ h ⨾!) t
-    with (‹ G › h ⨾ g !ⁿ) i⨟s t
-  ... | inj₁ (j , h!⨟t↠j) =
-    G ?ⁿ g ⨾ j
-    , (((((G `?) ⨟ ⌊ h ⌋ᵍ) ⨟ (G !)) ⨟ ⌊ t ⌋ˢ)
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ β-assocRᶜ ⟩
-      ((G `?) ⨟ (⌊ h ⌋ᵍ ⨟ (G !))) ⨟ ⌊ t ⌋ˢ
-      —→ᶜᶜ⟨ β-assocRᶜ ⟩
-      (G `?) ⨟ ((⌊ h ⌋ᵍ ⨟ (G !)) ⨟ ⌊ t ⌋ˢ)
-      —↠ᶜᶜ⟨ multi-ξ-⨟₂ᶜᶜ h!⨟t↠j ⟩
-      (G `?) ⨟ ⌊ j ⌋ⁱ
-      ∎ᶜᶜ)
-  ... | inj₂ (refl , h!⨟t↠id) =
-    G ?ⁿ g
-    , (((((G `?) ⨟ ⌊ h ⌋ᵍ) ⨟ (G !)) ⨟ ⌊ t ⌋ˢ)
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ β-assocRᶜ ⟩
-      ((G `?) ⨟ (⌊ h ⌋ᵍ ⨟ (G !))) ⨟ ⌊ t ⌋ˢ
-      —→ᶜᶜ⟨ β-assocRᶜ ⟩
-      (G `?) ⨟ ((⌊ h ⌋ᵍ ⨟ (G !)) ⨟ ⌊ t ⌋ˢ)
-      —↠ᶜᶜ⟨ multi-ξ-⨟₂ᶜᶜ h!⨟t↠id ⟩
-      ((G `?) ⨟ idᶜ G)
-      —→ᶜᶜ⟨ β-idRᶜ ⟩
-      (G `?)
-      ∎ᶜᶜ)
-
-  normalize-seq (G ?ⁿ g ⨾!) t
-    with (G !ⁿ g) i⨟s t
-  ... | inj₁ (j , !⨟t↠j) =
-    G ?ⁿ g ⨾ j
-    , ((((G `?) ⨟ (G !)) ⨟ ⌊ t ⌋ˢ)
-      —→ᶜᶜ⟨ β-assocRᶜ ⟩
-      ((G `?) ⨟ ((G !) ⨟ ⌊ t ⌋ˢ))
-      —↠ᶜᶜ⟨ multi-ξ-⨟₂ᶜᶜ !⨟t↠j ⟩
-      ((G `?) ⨟ ⌊ j ⌋ⁱ)
-      ∎ᶜᶜ)
-  ... | inj₂ (refl , !⨟t↠id) =
-    G ?ⁿ g
-    , ((((G `?) ⨟ (G !)) ⨟ ⌊ t ⌋ˢ)
-      —→ᶜᶜ⟨ β-assocRᶜ ⟩
-      ((G `?) ⨟ ((G !) ⨟ ⌊ t ⌋ˢ))
-      —↠ᶜᶜ⟨ multi-ξ-⨟₂ᶜᶜ !⨟t↠id ⟩
       ((G `?) ⨟ idᶜ G)
       —→ᶜᶜ⟨ β-idRᶜ ⟩
       (G `?)
@@ -308,95 +264,6 @@ mutual
       (⊥ᶜ G ⇨ C)
       ∎ᶜᶜ)))
 
-  _i⨟s_ (ℕ !ⁿ G-ℕ) (ℕ ?ⁿ G-ℕ ⨾!) =
-    inj₁ (ℕ !ⁿ G-ℕ
-    , (((ℕ !) ⨟ ((ℕ `?) ⨟ (ℕ !))
-      —→ᶜᶜ⟨ β-assocLᶜ ⟩
-      (((ℕ !) ⨟ (ℕ `?)) ⨟ (ℕ !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ β-proj-inj-okᶜ ⟩
-      ((idᶜ ℕ) ⨟ (ℕ !))
-      —→ᶜᶜ⟨ β-idLᶜ ⟩
-      (ℕ !)
-      ∎ᶜᶜ)))
-
-  _i⨟s_ ((★ ⇒ ★) !ⁿ G-⇒) ((★ ⇒ ★) ?ⁿ G-⇒ ⨾!) =
-    inj₁ ((★ ⇒ ★) !ⁿ G-⇒
-    , ((((★ ⇒ ★) !) ⨟ (((★ ⇒ ★) `?) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ β-assocLᶜ ⟩
-      ((((★ ⇒ ★) !) ⨟ ((★ ⇒ ★) `?)) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ β-proj-inj-okᶜ ⟩
-      ((idᶜ (★ ⇒ ★)) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ β-idLᶜ ⟩
-      ((★ ⇒ ★) !)
-      ∎ᶜᶜ)))
-
-  _i⨟s_ {A = A} (ℕ !ⁿ G-ℕ) ((★ ⇒ ★) ?ⁿ G-⇒ ⨾!) =
-    inj₁ (⊥ⁿ A ⇨ ★
-    , ((((ℕ !) ⨟ (((★ ⇒ ★) `?) ⨟ ((★ ⇒ ★) !)))
-      —→ᶜᶜ⟨ β-assocLᶜ ⟩
-      (((ℕ !) ⨟ ((★ ⇒ ★) `?)) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ (β-proj-inj-badᶜ (λ ())) ⟩
-      ((⊥ᶜ ℕ ⇨ (★ ⇒ ★)) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ β-⊥Lᶜ (⊢! G-⇒) ⟩
-      (⊥ᶜ ℕ ⇨ ★)
-      ∎ᶜᶜ)))
-
-  _i⨟s_ {A = A} ((★ ⇒ ★) !ⁿ G-⇒) (ℕ ?ⁿ G-ℕ ⨾!) =
-    inj₁ (⊥ⁿ A ⇨ ★
-    , (((((★ ⇒ ★) !) ⨟ ((ℕ `?) ⨟ (ℕ !)))
-      —→ᶜᶜ⟨ β-assocLᶜ ⟩
-      ((((★ ⇒ ★) !) ⨟ (ℕ `?)) ⨟ (ℕ !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ (β-proj-inj-badᶜ (λ ())) ⟩
-      ((⊥ᶜ (★ ⇒ ★) ⇨ ℕ) ⨟ (ℕ !))
-      —→ᶜᶜ⟨ β-⊥Lᶜ (⊢! G-ℕ) ⟩
-      (⊥ᶜ (★ ⇒ ★) ⇨ ★)
-      ∎ᶜᶜ)))
-
-  _i⨟s_ (ℕ !ⁿ G-ℕ) (ℕ ?ⁿ G-ℕ ⨾ () ⨾!)
-
-  _i⨟s_ ((★ ⇒ ★) !ⁿ G-⇒) ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ k ⨾!) =
-    inj₁ (‹ (★ ⇒ ★) › k ⨾ G-⇒ !ⁿ
-    , (((((★ ⇒ ★) !) ⨟ ((((★ ⇒ ★) `?) ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !)))
-      —→ᶜᶜ⟨ β-assocLᶜ ⟩
-      ((((★ ⇒ ★) !) ⨟ (((★ ⇒ ★) `?) ⨟ ⌊ k ⌋ᵍ)) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ β-assocLᶜ ⟩
-      (((((★ ⇒ ★) !) ⨟ ((★ ⇒ ★) `?)) ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ (ξ-⨟₁ᶜ β-proj-inj-okᶜ) ⟩
-      (((idᶜ (★ ⇒ ★)) ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ β-idLᶜ ⟩
-      (⌊ k ⌋ᵍ ⨟ ((★ ⇒ ★) !))
-      ∎ᶜᶜ)))
-
-  _i⨟s_ {A = A} (ℕ !ⁿ G-ℕ) ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ k ⨾!) =
-    inj₁ (⊥ⁿ A ⇨ ★
-    , ((((ℕ !) ⨟ ((((★ ⇒ ★) `?) ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !)))
-      —→ᶜᶜ⟨ β-assocLᶜ ⟩
-      (((ℕ !) ⨟ (((★ ⇒ ★) `?) ⨟ ⌊ k ⌋ᵍ)) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ β-assocLᶜ ⟩
-      ((((ℕ !) ⨟ ((★ ⇒ ★) `?)) ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ (ξ-⨟₁ᶜ (β-proj-inj-badᶜ (λ ()))) ⟩
-      (((⊥ᶜ ℕ ⇨ (★ ⇒ ★)) ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ (β-⊥Lᶜ (wtG k)) ⟩
-      ((⊥ᶜ ℕ ⇨ (★ ⇒ ★)) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ β-⊥Lᶜ (⊢! G-⇒) ⟩
-      (⊥ᶜ ℕ ⇨ ★)
-      ∎ᶜᶜ)))
-
-  _i⨟s_ {A = A} ((★ ⇒ ★) !ⁿ G-⇒) (ℕ ?ⁿ G-ℕ ⨾ k ⨾!) =
-    inj₁ (⊥ⁿ A ⇨ ★
-    , (((((★ ⇒ ★) !) ⨟ (((ℕ `?) ⨟ ⌊ k ⌋ᵍ) ⨟ (ℕ !)))
-      —→ᶜᶜ⟨ β-assocLᶜ ⟩
-      ((((★ ⇒ ★) !) ⨟ ((ℕ `?) ⨟ ⌊ k ⌋ᵍ)) ⨟ (ℕ !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ β-assocLᶜ ⟩
-      (((((★ ⇒ ★) !) ⨟ (ℕ `?)) ⨟ ⌊ k ⌋ᵍ) ⨟ (ℕ !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ (ξ-⨟₁ᶜ (β-proj-inj-badᶜ (λ ()))) ⟩
-      (((⊥ᶜ (★ ⇒ ★) ⇨ ℕ) ⨟ ⌊ k ⌋ᵍ) ⨟ (ℕ !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ (β-⊥Lᶜ (wtG k)) ⟩
-      ((⊥ᶜ (★ ⇒ ★) ⇨ ℕ) ⨟ (ℕ !))
-      —→ᶜᶜ⟨ β-⊥Lᶜ (⊢! G-ℕ) ⟩
-      (⊥ᶜ (★ ⇒ ★) ⇨ ★)
-      ∎ᶜᶜ)))
-
   _i⨟s_ (‹ G › g ⨾ gnd !ⁿ) (idⁿ ★) =
     inj₁ (‹ G › g ⨾ gnd !ⁿ
     , (((⌊ g ⌋ᵍ ⨟ (G !)) ⨟ (idᶜ ★))
@@ -482,84 +349,6 @@ mutual
       —→ᶜᶜ⟨ β-↦⊥ᶜ (wtS c) (wtS d) ⟩
       (⊥ᶜ (A₁ ⇒ B₁) ⇨ C)
       ∎ᶜᶜ))
-
-  _i⨟s_ (‹ (★ ⇒ ★) › g ⨾ G-⇒ !ⁿ) ((★ ⇒ ★) ?ⁿ G-⇒ ⨾!) =
-    inj₁ (‹ (★ ⇒ ★) › g ⨾ G-⇒ !ⁿ
-    , ((((⌊ g ⌋ᵍ ⨟ ((★ ⇒ ★) !)) ⨟ (((★ ⇒ ★) `?) ⨟ ((★ ⇒ ★) !)))
-      —→ᶜᶜ⟨ β-assocRᶜ ⟩
-      (⌊ g ⌋ᵍ ⨟ (((★ ⇒ ★) !) ⨟ (((★ ⇒ ★) `?) ⨟ ((★ ⇒ ★) !))))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ β-assocLᶜ ⟩
-      (⌊ g ⌋ᵍ ⨟ ((((★ ⇒ ★) !) ⨟ ((★ ⇒ ★) `?)) ⨟ ((★ ⇒ ★) !)))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ (ξ-⨟₁ᶜ β-proj-inj-okᶜ) ⟩
-      (⌊ g ⌋ᵍ ⨟ ((idᶜ (★ ⇒ ★)) ⨟ ((★ ⇒ ★) !)))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ β-idLᶜ ⟩
-      (⌊ g ⌋ᵍ ⨟ ((★ ⇒ ★) !))
-      ∎ᶜᶜ)))
-
-  _i⨟s_ (‹ (★ ⇒ ★) › g ⨾ G-⇒ !ⁿ) (ℕ ?ⁿ G-ℕ ⨾!)
-    with g g⨟i (⊥ⁿ (★ ⇒ ★) ⇨ ★)
-  ... | j , g⨟⊥↠j =
-    inj₁ (j
-    , ((((⌊ g ⌋ᵍ ⨟ ((★ ⇒ ★) !)) ⨟ ((ℕ `?) ⨟ (ℕ !)))
-      —→ᶜᶜ⟨ β-assocRᶜ ⟩
-      (⌊ g ⌋ᵍ ⨟ (((★ ⇒ ★) !) ⨟ ((ℕ `?) ⨟ (ℕ !))))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ β-assocLᶜ ⟩
-      (⌊ g ⌋ᵍ ⨟ ((((★ ⇒ ★) !) ⨟ (ℕ `?)) ⨟ (ℕ !)))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ (ξ-⨟₁ᶜ (β-proj-inj-badᶜ (λ ()))) ⟩
-      (⌊ g ⌋ᵍ ⨟ ((⊥ᶜ (★ ⇒ ★) ⇨ ℕ) ⨟ (ℕ !)))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ (β-⊥Lᶜ (⊢! G-ℕ)) ⟩
-      (⌊ g ⌋ᵍ ⨟ (⊥ᶜ (★ ⇒ ★) ⇨ ★))
-      —↠ᶜᶜ⟨ g⨟⊥↠j ⟩
-      ⌊ j ⌋ⁱ
-      ∎ᶜᶜ)))
-
-  _i⨟s_ (‹ ℕ › () ⨾ G-ℕ !ⁿ) (ℕ ?ⁿ G-ℕ ⨾ k ⨾!)
-
-  _i⨟s_ (‹ (★ ⇒ ★) › g ⨾ G-⇒ !ⁿ) ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ k ⨾!)
-    with g g⨟g k
-  ... | m , g⨟k↠m =
-    inj₁ (‹ (★ ⇒ ★) › m ⨾ G-⇒ !ⁿ
-    , ((((⌊ g ⌋ᵍ ⨟ ((★ ⇒ ★) !)) ⨟ ((((★ ⇒ ★) `?) ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !)))
-      —→ᶜᶜ⟨ β-assocRᶜ ⟩
-      (⌊ g ⌋ᵍ ⨟ (((★ ⇒ ★) !) ⨟ ((((★ ⇒ ★) `?) ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !))))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ β-assocLᶜ ⟩
-      (⌊ g ⌋ᵍ ⨟ ((((★ ⇒ ★) !) ⨟ (((★ ⇒ ★) `?) ⨟ ⌊ k ⌋ᵍ)) ⨟ ((★ ⇒ ★) !)))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ (ξ-⨟₁ᶜ β-assocLᶜ) ⟩
-      (⌊ g ⌋ᵍ ⨟ (((((★ ⇒ ★) !) ⨟ ((★ ⇒ ★) `?)) ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !)))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ (ξ-⨟₁ᶜ (ξ-⨟₁ᶜ β-proj-inj-okᶜ)) ⟩
-      (⌊ g ⌋ᵍ ⨟ (((idᶜ (★ ⇒ ★)) ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !)))
-      —→ᶜᶜ⟨ β-assocLᶜ ⟩
-      ((⌊ g ⌋ᵍ ⨟ ((idᶜ (★ ⇒ ★)) ⨟ ⌊ k ⌋ᵍ)) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ β-assocLᶜ ⟩
-      (((⌊ g ⌋ᵍ ⨟ idᶜ (★ ⇒ ★)) ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !))
-      —→ᶜᶜ⟨ ξ-⨟₁ᶜ (ξ-⨟₁ᶜ β-idRᶜ) ⟩
-      ((⌊ g ⌋ᵍ ⨟ ⌊ k ⌋ᵍ) ⨟ ((★ ⇒ ★) !))
-      —↠ᶜᶜ⟨ multi-ξ-⨟₁ᶜᶜ g⨟k↠m ⟩
-      (⌊ m ⌋ᵍ ⨟ ((★ ⇒ ★) !))
-      ∎ᶜᶜ)))
-
-  _i⨟s_ (‹ ℕ › () ⨾ G-ℕ !ⁿ) ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ k ⨾!)
-
-  _i⨟s_ (‹ (★ ⇒ ★) › g ⨾ G-⇒ !ⁿ) (ℕ ?ⁿ G-ℕ ⨾ k ⨾!)
-    with g g⨟i (⊥ⁿ (★ ⇒ ★) ⇨ ★)
-  ... | j , g⨟⊥↠j =
-    inj₁ (j
-    , ((((⌊ g ⌋ᵍ ⨟ ((★ ⇒ ★) !)) ⨟ (((ℕ `?) ⨟ ⌊ k ⌋ᵍ) ⨟ (ℕ !)))
-      —→ᶜᶜ⟨ β-assocRᶜ ⟩
-      (⌊ g ⌋ᵍ ⨟ (((★ ⇒ ★) !) ⨟ (((ℕ `?) ⨟ ⌊ k ⌋ᵍ) ⨟ (ℕ !))))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ β-assocLᶜ ⟩
-      (⌊ g ⌋ᵍ ⨟ ((((★ ⇒ ★) !) ⨟ ((ℕ `?) ⨟ ⌊ k ⌋ᵍ)) ⨟ (ℕ !)))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ (ξ-⨟₁ᶜ β-assocLᶜ) ⟩
-      (⌊ g ⌋ᵍ ⨟ (((((★ ⇒ ★) !) ⨟ (ℕ `?)) ⨟ ⌊ k ⌋ᵍ) ⨟ (ℕ !)))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ (ξ-⨟₁ᶜ (ξ-⨟₁ᶜ (β-proj-inj-badᶜ (λ ())))) ⟩
-      (⌊ g ⌋ᵍ ⨟ (((⊥ᶜ (★ ⇒ ★) ⇨ ℕ) ⨟ ⌊ k ⌋ᵍ) ⨟ (ℕ !)))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ (ξ-⨟₁ᶜ (β-⊥Lᶜ (wtG k))) ⟩
-      (⌊ g ⌋ᵍ ⨟ ((⊥ᶜ (★ ⇒ ★) ⇨ ℕ) ⨟ (ℕ !)))
-      —→ᶜᶜ⟨ ξ-⨟₂ᶜ (β-⊥Lᶜ (⊢! G-ℕ)) ⟩
-      (⌊ g ⌋ᵍ ⨟ (⊥ᶜ (★ ⇒ ★) ⇨ ★))
-      —↠ᶜᶜ⟨ g⨟⊥↠j ⟩
-      ⌊ j ⌋ⁱ
-      ∎ᶜᶜ)))
 
   _i⨟s_ {B = B} (＇ g) (idⁿ B) =
     inj₁ (＇ g
@@ -672,18 +461,9 @@ normalize-seq-?ⁿ⨾-proj {i = i} {t = t}
 
 normalize-seq-?ⁿ⨾!-proj
   : ∀ {G C} {g : Ground G} {t : ★ ⇨ⁿ C}
-  → proj₁ (normalize-seq (G ?ⁿ g ⨾!) t) ≡ ?ⁿ⨾ⁿ g (i⨟sⁿ (G !ⁿ g) t)
+  → proj₁ (normalize-seq (G ?ⁿ g ⨾ (G !ⁿ g)) t) ≡ ?ⁿ⨾ⁿ g (i⨟sⁿ (G !ⁿ g) t)
 normalize-seq-?ⁿ⨾!-proj {g = g} {t = t}
   with ( _ !ⁿ g) i⨟s t
-... | inj₁ _ = refl
-... | inj₂ (refl , _) = refl
-
-normalize-seq-?ⁿ⨾ᵍ⨾!-proj
-  : ∀ {G C} {g : Ground G} {h : G ⇨ᵍ G} {t : ★ ⇨ⁿ C}
-  → proj₁ (normalize-seq (G ?ⁿ g ⨾ h ⨾!) t)
-    ≡ ?ⁿ⨾ⁿ g (i⨟sⁿ (‹ G › h ⨾ g !ⁿ) t)
-normalize-seq-?ⁿ⨾ᵍ⨾!-proj {g = g} {h = h} {t = t}
-  with (‹ _ › h ⨾ g !ⁿ) i⨟s t
 ... | inj₁ _ = refl
 ... | inj₂ (refl , _) = refl
 
@@ -722,11 +502,15 @@ normalize {c = c ⨟ d} (⊢⨟ c⦂ d⦂)
 normalize {A = A} {B = B} ⊢⊥ =
   ′ (⊥ⁿ A ⇨ B) , ((⊥ᶜ A ⇨ B) ∎ᶜᶜ)
 
+--------------------------------------------------------------------------------
+-- Convert from Normalᶜ to A ⇨ⁿ B
+--------------------------------------------------------------------------------
+
 inverse-erase
   : ∀ {c A B}
   → ⊢ c ⦂ A ⇨ B
   → Normalᶜ c
-  → ∃[ s ] (⌊ s ⌋ˢ ≡ c)
+  → Σ[ s ∈ A ⇨ⁿ B ] (⌊ s ⌋ˢ ≡ c)
 
 inverse-erase {c = idᶜ A} ⊢idᶜ nf-id =
   idⁿ A , refl
@@ -779,14 +563,6 @@ inverse-erase {c = (★ ⇒ ★) `? ⨟ ((c₁ ↦ c₂) ⨟ ((★ ⇒ ★) !))}
   (★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ (★ ⇒ ★) › (s₁ ↣ s₂) ⨾ G-⇒ !ⁿ)
   , cong (λ x → (★ ⇒ ★) `? ⨟ (x ⨟ ((★ ⇒ ★) !))) (cong₂ _↦_ eq₁ eq₂)
 
-inverse-erase {c = ((★ ⇒ ★) `? ⨟ (c₁ ↦ c₂)) ⨟ ((★ ⇒ ★) !)}
-  (⊢⨟ (⊢⨟ (⊢? G-⇒) (⊢↦ cwt dwt)) (⊢! G-⇒))
-  (nf-?↦!ˡ G-⇒ n₁ n₂)
-  with inverse-erase cwt n₁ | inverse-erase dwt n₂
-... | s₁ , eq₁ | s₂ , eq₂ =
-  (★ ⇒ ★) ?ⁿ G-⇒ ⨾ (s₁ ↣ s₂) ⨾!
-  , cong (λ x → ((★ ⇒ ★) `? ⨟ x) ⨟ ((★ ⇒ ★) !)) (cong₂ _↦_ eq₁ eq₂)
-
 inverse-erase {c = (G `?) ⨟ (⊥ᶜ A ⇨ B)}
   (⊢⨟ (⊢? g) ⊢⊥) (nf-?⊥ _) =
   G ?ⁿ g ⨾ (⊥ⁿ G ⇨ B) , refl
@@ -821,10 +597,7 @@ mutual
   erase-normal ((★ ⇒ ★) ?ⁿ g ⨾ (＇ (c ↣ d))) =
     nf-?↦ g (erase-normal c) (erase-normal d)
   erase-normal (G ?ⁿ g ⨾ (⊥ⁿ _ ⇨ _)) = nf-?⊥ g
-  erase-normal (G ?ⁿ g ⨾!) = nf-?! g
-  erase-normal (ℕ ?ⁿ g ⨾ () ⨾!)
-  erase-normal ((★ ⇒ ★) ?ⁿ g ⨾ (c ↣ d) ⨾!) =
-    nf-?↦!ˡ g (erase-normal c) (erase-normal d)
+  erase-normal (G ?ⁿ g ⨾ (G !ⁿ _)) = nf-?! g
   erase-normal (′ i) = erase-normalⁱ i
 
   erase-normalⁱ (G !ⁿ g) = nf-! g
@@ -907,7 +680,7 @@ mutual
       → idⁿ ★ ⊑ⁿ (′ (‹ ★ ⇒ ★ › (c ↣ d) ⨾ G-⇒ !ⁿ))
 
     id-⊑-?-! : ∀ {G} {g : Ground G}
-      → idⁿ ★ ⊑ⁿ (G ?ⁿ g ⨾!)
+      → idⁿ ★ ⊑ⁿ (G ?ⁿ g ⨾ (G !ⁿ g))
 
     id-⊑-?-↣ : ∀ {A}{B}{c : A ⇨ⁿ ★}{d : ★ ⇨ⁿ B}
       → idⁿ ★ ⊑ⁿ c
@@ -917,7 +690,7 @@ mutual
     id-⊑-?-↣-! : ∀ {c d : ★ ⇨ⁿ ★}
       → idⁿ ★ ⊑ⁿ c
       → idⁿ ★ ⊑ⁿ d
-      → idⁿ ★ ⊑ⁿ ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (c ↣ d) ⨾!)
+      → idⁿ ★ ⊑ⁿ ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ ★ ⇒ ★ › (c ↣ d) ⨾ G-⇒ !ⁿ))
 
     id-⊑-?-⊥ : idⁿ ★ ⊑ⁿ ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ ⊥ⁿ (★ ⇒ ★) ⇨ ★)
 
@@ -963,49 +736,54 @@ mutual
     ?-↣-!-⊑-? : ∀ {c d : ★ ⇨ⁿ ★}
       → c ⊑ⁿ idⁿ ★
       → d ⊑ⁿ idⁿ ★
-      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (c ↣ d) ⨾!) ⊑ⁿ (★ ⇒ ★) ?ⁿ G-⇒
+      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ ★ ⇒ ★ › (c ↣ d) ⨾ G-⇒ !ⁿ)) ⊑ⁿ (★ ⇒ ★) ?ⁿ G-⇒
 
     ?-↣-!-⊑-! : ∀ {c d : ★ ⇨ⁿ ★}
       → c ⊑ⁿ idⁿ ★
       → d ⊑ⁿ idⁿ ★
-      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (c ↣ d) ⨾!) ⊑ⁿ ′ ((★ ⇒ ★) !ⁿ G-⇒)
+      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ ★ ⇒ ★ › (c ↣ d) ⨾ G-⇒ !ⁿ)) ⊑ⁿ ′ ((★ ⇒ ★) !ⁿ G-⇒)
 
     ?-↣-!-⊑-↣ : ∀ {c d c′ d′ : ★ ⇨ⁿ ★}
       → c ⊑ⁿ c′
       → d ⊑ⁿ d′
-      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (c ↣ d) ⨾!) ⊑ⁿ ′ ＇ (c′ ↣ d′)
+      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ ★ ⇒ ★ › (c ↣ d) ⨾ G-⇒ !ⁿ)) ⊑ⁿ ′ ＇ (c′ ↣ d′)
       
     ?-↣-!-⊑-?-↣ : ∀ {c d c′ d′ : ★ ⇨ⁿ ★}
       → c ⊑ⁿ c′
       → d ⊑ⁿ d′
-      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (c ↣ d) ⨾!) ⊑ⁿ ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (＇ (c′ ↣ d′)))
+      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ ★ ⇒ ★ › (c ↣ d) ⨾ G-⇒ !ⁿ)) ⊑ⁿ ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (＇ (c′ ↣ d′)))
 
     ?-↣-!-⊑-↣-! : ∀ {c d c′ d′ : ★ ⇨ⁿ ★}
       → c ⊑ⁿ c′
       → d ⊑ⁿ d′
-      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (c ↣ d) ⨾!) ⊑ⁿ (′ (‹ ★ ⇒ ★ › (c′ ↣ d′) ⨾ G-⇒ !ⁿ))
+      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ ★ ⇒ ★ › (c ↣ d) ⨾ G-⇒ !ⁿ)) ⊑ⁿ (′ (‹ ★ ⇒ ★ › (c′ ↣ d′) ⨾ G-⇒ !ⁿ))
+
+    ?-↣-!-⊑-?-! : ∀ {c d : ★ ⇨ⁿ ★}
+      → c ⊑ⁿ idⁿ ★
+      → d ⊑ⁿ idⁿ ★
+      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ ★ ⇒ ★ › (c ↣ d) ⨾ G-⇒ !ⁿ)) ⊑ⁿ ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (★ ⇒ ★) !ⁿ G-⇒)
 
     ?-↣-!-⊑-?-↣-! : ∀ {c d c′ d′ : ★ ⇨ⁿ ★}
       → c ⊑ⁿ c′
       → d ⊑ⁿ d′
-      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (c ↣ d) ⨾!) ⊑ⁿ ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (c′ ↣ d′) ⨾!)
+      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ ★ ⇒ ★ › (c ↣ d) ⨾ G-⇒ !ⁿ)) ⊑ⁿ ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ ★ ⇒ ★ › (c′ ↣ d′) ⨾ G-⇒ !ⁿ))
 
     ?-↣-!-⊑-?-⊥ : ∀ {c d : ★ ⇨ⁿ ★}
-      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (c ↣ d) ⨾!) ⊑ⁿ ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ ⊥ⁿ (★ ⇒ ★) ⇨ ★)
+      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ ★ ⇒ ★ › (c ↣ d) ⨾ G-⇒ !ⁿ)) ⊑ⁿ ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ ⊥ⁿ (★ ⇒ ★) ⇨ ★)
 
     ?-↣-!-⊑-id : ∀ {A B} {c d : ★ ⇨ⁿ ★}
       → c ⊑ⁿ idⁿ A
       → d ⊑ⁿ idⁿ B
-      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (c ↣ d) ⨾!) ⊑ⁿ idⁿ (A ⇒ B)
+      → ((★ ⇒ ★) ?ⁿ G-⇒ ⨾ (‹ ★ ⇒ ★ › (c ↣ d) ⨾ G-⇒ !ⁿ)) ⊑ⁿ idⁿ (A ⇒ B)
 
     -- (G ? ; G !) ⊑ ...
     
     ?-!-⊑-?-! : ∀ {G} {g g′ : Ground G}
-      → (G ?ⁿ g ⨾!) ⊑ⁿ (G ?ⁿ g′ ⨾!)
+      → (G ?ⁿ g ⨾ (G !ⁿ g)) ⊑ⁿ (G ?ⁿ g′ ⨾ (G !ⁿ g′))
 
     ?-!-⊑-id : ∀ {A G} {g : Ground G}
       → G ⊑ A
-      → (G ?ⁿ g ⨾!) ⊑ⁿ idⁿ A
+      → (G ?ⁿ g ⨾ (G !ⁿ g)) ⊑ⁿ idⁿ A
       
     -- (G !) ⊑ ...
     
@@ -1038,6 +816,11 @@ mutual
     i-⊑-j : ∀ {A B A′ B′} {i : A ⇨ⁱ B} {j : A′ ⇨ⁱ B′}
       → i ⊑ⁱ j
       → (′ i) ⊑ⁿ (′ j)
+
+    i-⊑-?-⊥ : ∀ {A C G C′} {i : A ⇨ⁱ C} {g : Ground G}
+      → A ⊑ ★
+      → C ⊑ C′
+      → (′ i) ⊑ⁿ (G ?ⁿ g ⨾ (⊥ⁿ G ⇨ C′))
 
     -- (c → d) ⊑ ...
     ↣-⊑-id : ∀{A B C D A′ B′}{c : C ⇨ⁿ A}{d : B ⇨ⁿ D}
@@ -1089,10 +872,6 @@ mutual
   ⊑ⁿ-reflexive {c = idⁿ A} = id-⊑-id ⊑-refl
   ⊑ⁿ-reflexive {c = G ?ⁿ g} = ?-⊑-?
   ⊑ⁿ-reflexive {c = G ?ⁿ g ⨾ i} = ?-i-⊑-?-j ⊑ⁱ-reflexive
-  ⊑ⁿ-reflexive {c = G ?ⁿ g ⨾!} = ?-!-⊑-?-!
-  ⊑ⁿ-reflexive {c = ℕ ?ⁿ g ⨾ () ⨾!}
-  ⊑ⁿ-reflexive {c = (★ ⇒ ★) ?ⁿ G-⇒ ⨾ c ↣ d ⨾!} =
-    ?-↣-!-⊑-?-↣-! ⊑ⁿ-reflexive ⊑ⁿ-reflexive
   ⊑ⁿ-reflexive {c = ′ i} = i-⊑-j ⊑ⁱ-reflexive
 
   ⊑ⁱ-reflexive {c = G !ⁿ g} = !-⊑-!
@@ -1147,6 +926,7 @@ mutual
   ⊑ⁿ→⊑ _ _ (?-↣-!-⊑-↣ _ _) = ⊑-★ , ⊑-★
   ⊑ⁿ→⊑ _ _ (?-↣-!-⊑-?-↣ _ _) = ⊑-refl , ⊑-★
   ⊑ⁿ→⊑ _ _ (?-↣-!-⊑-↣-! _ _) = ⊑-★ , ⊑-refl
+  ⊑ⁿ→⊑ _ _ (?-↣-!-⊑-?-! _ _) = ⊑-refl , ⊑-refl
   ⊑ⁿ→⊑ _ _ (?-↣-!-⊑-?-↣-! _ _) = ⊑-refl , ⊑-refl
   ⊑ⁿ→⊑ _ _ ?-↣-!-⊑-?-⊥ = ⊑-refl , ⊑-refl
   ⊑ⁿ→⊑ _ _ (?-↣-!-⊑-id _ _) = ⊑-★ , ⊑-★
@@ -1160,6 +940,7 @@ mutual
     with ⊑ⁿ→⊑ _ _ c⊑id★ | ⊑ⁿ→⊑ _ _ d⊑id★
   ... | _ , A⊑★ | B⊑★ , _ = ⊑-⇒ A⊑★ B⊑★ , ⊑-refl
   ⊑ⁿ→⊑ _ _ (i-⊑-j i⊑j) = ⊑ⁱ→⊑ _ _ i⊑j
+  ⊑ⁿ→⊑ _ _ (i-⊑-?-⊥ A⊑★ C⊑C′) = A⊑★ , C⊑C′
   ⊑ⁿ→⊑ _ _ (↣-⊑-id c⊑id d⊑id)
     with ⊑ⁿ→⊑ _ _ c⊑id | ⊑ⁿ→⊑ _ _ d⊑id
   ... | C⊑A′ , A⊑A′ | B⊑B′ , D⊑B′ =
@@ -1276,3 +1057,114 @@ mutual
     ↣-⊑-↣
       (coerceⁿ-monotonic C′⊑C c A′⊑A c′)
       (coerceⁿ-monotonic B′⊑B d D′⊑D d′)
+
+normalize-seq-monotonic
+  : ∀ {A B C A′ B′ C′}
+  → (s : A ⇨ⁿ B)
+  → (s′ : A′ ⇨ⁿ B′)
+  → (t : B ⇨ⁿ C)
+  → (t′ : B′ ⇨ⁿ C′)
+  → s ⊑ⁿ s′
+  → t ⊑ⁿ t′
+  → proj₁ (normalize-seq s t) ⊑ⁿ proj₁ (normalize-seq s′ t′)
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ with s⊑s′
+... | id-⊑-id A⊑A′ = t⊑t′
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | (id-⊑-?{G}{g})
+    with t⊑t′
+... | id-⊑-id x = s⊑s′
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | (id-⊑-? {G} {g}) | id-⊑-! {g = g′}
+  rewrite ground-irrelevant g g′ = id-⊑-?-!
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | (id-⊑-? {G = ★ ⇒ ★} {g = G-⇒}) | id-⊑-↣ t⊑t′₁ t⊑t′₂ =
+  id-⊑-?-↣ t⊑t′₁ t⊑t′₂
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | (id-⊑-? {G = ★ ⇒ ★} {g = G-⇒}) | id-⊑-↣-! t⊑t′₁ t⊑t′₂ =
+  id-⊑-?-↣-! t⊑t′₁ t⊑t′₂
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | (id-⊑-? {G = ★ ⇒ ★} {g = G-⇒}) | ?-⊑-↣ =
+  ?-⊑-?-i (⊑-⇒ ⊑-★ ⊑-★)
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | (id-⊑-? {G} {g}) | ?-⊑-id = ?-⊑-?
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′
+  | (id-⊑-? {G = ℕ} {g = g})
+  | ?-i-⊑-j {G = ℕ} {g = g′} x
+  rewrite ground-irrelevant g′ g
+  = ?-i-⊑-?-j x
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′
+  | (id-⊑-? {G = ℕ} {g = g})
+  | ?-i-⊑-j {G = ★ ⇒ ★} {i = i} {j = j} x
+  with ⊑ⁱ→⊑ i j x
+... | (() , _)
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′
+  | (id-⊑-? {G = ★ ⇒ ★} {g = g})
+  | ?-i-⊑-j {G = ℕ} {i = i} {j = j} x
+  with ⊑ⁱ→⊑ i j x
+... | (() , _)
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′
+  | (id-⊑-? {G = ★ ⇒ ★} {g = g})
+  | ?-i-⊑-j {G = ★ ⇒ ★} {g = g′} x
+  rewrite ground-irrelevant g′ g
+  = ?-i-⊑-?-j x
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′
+  | (id-⊑-? {G} {g})
+  | ?-i-⊑-id {G = G₁} {g = g₁} G₁⊑G x₁ t⊑t′₁
+  with ground-⊑-equal g₁ g G₁⊑G
+... | refl = ?-i-⊑-? x₁ t⊑t′₁
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′
+  | (id-⊑-? {G = ★ ⇒ ★} {g = G-⇒})
+  | ?-↣-!-⊑-! t⊑t′₁ t⊑t′₂ =
+  ?-↣-!-⊑-?-! t⊑t′₁ t⊑t′₂
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′
+  | (id-⊑-? {G = ★ ⇒ ★} {g = G-⇒})
+  | ?-↣-!-⊑-↣ t⊑t′₁ t⊑t′₂ =
+  ?-↣-!-⊑-?-↣ t⊑t′₁ t⊑t′₂
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′
+  | (id-⊑-? {G = ★ ⇒ ★} {g = G-⇒})
+  | ?-↣-!-⊑-↣-! t⊑t′₁ t⊑t′₂ =
+  ?-↣-!-⊑-?-↣-! t⊑t′₁ t⊑t′₂
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′
+  | (id-⊑-? {G = ★ ⇒ ★} {g = G-⇒})
+  | ?-↣-!-⊑-id t⊑t′₁ t⊑t′₂ =
+  ?-↣-!-⊑-? t⊑t′₁ t⊑t′₂
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′
+  | (id-⊑-? {G} {g})
+  | ?-!-⊑-id {G = G₁} {g = g₁} x
+  with ground-⊑-equal g₁ g x
+... | refl = ?-i-⊑-? ⊑-★ (!-⊑-id x)
+normalize-seq-monotonic .(idⁿ ★) .(_ ?ⁿ _) (′ i) t′ s⊑s′ t⊑t′
+  | id-⊑-? {_} {_}
+  | i-⊑-j (i-⊑-⊥ⁱ x x₁)
+  with ★⇨ⁱ-is-⊥ i
+... | refl = i-⊑-?-⊥ ⊑-refl x₁
+
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | id-⊑-! = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | id-⊑-↣ c⊑ d⊑ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | id-⊑-↣-! c⊑ d⊑ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | id-⊑-?-! = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | id-⊑-?-↣ c⊑ d⊑ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | id-⊑-?-↣-! c⊑ d⊑ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | id-⊑-?-⊥ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-⊑-? = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-⊑-?-i G⊑B = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-⊑-↣ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-⊑-id = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-i-⊑-? B⊑G i⊑idG = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-i-⊑-?-j i⊑j = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-i-⊑-j i⊑j = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-i-⊑-id G⊑A B⊑A i⊑idA = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-↣-!-⊑-? c⊑id★ d⊑id★ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-↣-!-⊑-! c⊑id★ d⊑id★ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-↣-!-⊑-↣ c⊑c′ d⊑d′ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-↣-!-⊑-?-↣ c⊑c′ d⊑d′ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-↣-!-⊑-↣-! c⊑c′ d⊑d′ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-↣-!-⊑-?-! c⊑id★ d⊑id★ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-↣-!-⊑-?-↣-! c⊑c′ d⊑d′ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-↣-!-⊑-?-⊥ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-↣-!-⊑-id c⊑idA d⊑idB = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-!-⊑-?-! = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ?-!-⊑-id G⊑A = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | !-⊑-id G⊑A = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | !-⊑-↣ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | !-⊑-↣-! = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ↣-!-⊑-id A⊑C B⊑D c⊑idC d⊑idD = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ↣-!-⊑-! c⊑id★ d⊑id★ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | i-⊑-j i⊑j = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | i-⊑-?-⊥ A⊑★ C⊑C′ = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | ↣-⊑-id c⊑idA d⊑idB = {!!}
+normalize-seq-monotonic s s′ t t′ s⊑s′ t⊑t′ | s-⊑-⊥ = {!!}

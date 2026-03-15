@@ -245,12 +245,6 @@ data Normalᶜ : Coercion → Set where
     → Normalᶜ d
     → Normalᶜ (G `? ⨟ ((c ↦ d) ⨟ (G !)))
 
-  nf-?↦!ˡ : ∀ {G c d}
-    → Ground G
-    → Normalᶜ c
-    → Normalᶜ d
-    → Normalᶜ ((G `? ⨟ (c ↦ d)) ⨟ (G !))
-
   nf-?⊥ : ∀ {G A B}
     → Ground G
     → Normalᶜ (G `? ⨟ (⊥ᶜ A ⇨ B))

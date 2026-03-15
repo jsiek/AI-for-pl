@@ -12,7 +12,10 @@ data Ty : Set where
 data Ground : Ty → Set where
   G-ℕ : Ground ℕ
   G-⇒ : Ground (★ ⇒ ★)
---  G-× :  Ground (★ × ★)
+
+ground-irrelevant : ∀ {G} → (g g′ : Ground G) → g ≡ g′
+ground-irrelevant G-ℕ G-ℕ = refl
+ground-irrelevant G-⇒ G-⇒ = refl
 
 ------------------------------------------------------------
 -- Type Consistency
@@ -125,6 +128,13 @@ ground-upper-unique G-ℕ G-ℕ ⊑-ℕ ⊑-ℕ = refl
 ground-upper-unique G-ℕ G-⇒ ⊑-ℕ ()
 ground-upper-unique G-⇒ G-ℕ (⊑-⇒ _ _) ()
 ground-upper-unique G-⇒ G-⇒ (⊑-⇒ _ _) (⊑-⇒ _ _) = refl
+
+ground-⊑-equal : ∀ {G H}
+  → Ground G
+  → Ground H
+  → G ⊑ H
+  → G ≡ H
+ground-⊑-equal g h G⊑H = ground-upper-unique g h G⊑H ⊑-refl
 
 ground-not-⊑★ : ∀ {G} → Ground G → G ⊑ ★ → ⊥
 ground-not-⊑★ G-ℕ ()

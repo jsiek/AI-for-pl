@@ -182,13 +182,13 @@ id★⊑coerce {l = l} (★~∀ c) ★⊑A ★⊑B =
       (id★⊑coerce {Σ = renameΣ suc _} {Δ = suc _} {l = l}
         c
         ⊑-refl
-        ?))
+        {!!}))
 id★⊑coerce {l = l} (∀~★ c) ★⊑A ★⊑B =
   ⊑idL⨟
     (⊑idL∀★
       (id★⊑coerce {Σ = renameΣ suc _} {Δ = suc _} {l = l}
         c
-        ?
+        {!!}
         ⊑-refl))
     (⊑idL! (⊑-★ (NoX-∀ NoX-★)) ⊑-refl)
 id★⊑coerce {l = l} (~-⇒ c d) ★⊑A ★⊑B =
@@ -269,7 +269,7 @@ coerce-monotonic {l = l} (★~∀ c) (★~∀ d) A≤A′ (⊑-∀ B≤B′) =
   ⊑⨟
     (⊑? ⊑-refl)
     (⊑∀ᶜ (coerce-monotonic {Σ = renameΣ suc _} {Δ = suc _} {l = l}
-      c d ⊑-refl ?))
+      c d ⊑-refl {!!}))
 coerce-monotonic {l = l} (★~∀ c) (~-∀ d) A≤A′ (⊑-∀ B≤B′) =
   ⊑drop?∀
     (⊑∀ᶜ (coerce-monotonic {Σ = renameΣ suc _} {Δ = suc _} {l = l}
@@ -278,7 +278,7 @@ coerce-monotonic {l = l} (★~∀ c) (~-∀ d) A≤A′ (⊑-∀ B≤B′) =
 coerce-monotonic {l = l} (∀~★ c) (∀~★ d) (⊑-∀ A≤A′) B≤B′ =
   ⊑⨟
     (⊑∀ᶜ (coerce-monotonic {Σ = renameΣ suc _} {Δ = suc _} {l = l}
-      c d ? ⊑-refl))
+      c d {!!} ⊑-refl))
     (⊑! ⊑-refl)
 coerce-monotonic {l = l} (∀~★ c) (~-∀ d) (⊑-∀ A≤A′) B≤B′ =
   ⊑drop!∀

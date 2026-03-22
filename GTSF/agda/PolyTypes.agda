@@ -336,6 +336,21 @@ data VarOrUᵈ (d : ℕ) : Ty → Set where
   VarOrU-U : ∀ {U} → VarOrUᵈ d (`U U)
   VarOrU-X : ∀ {X} → X < d → VarOrUᵈ d (` X)
 
+data VarOrU : Ty → Set where
+  VU-U : ∀ {U} → VarOrU (`U U)
+  VU-X : ∀ {X} → VarOrU (` X)
+
+substᵘ-var-shape :
+  ∀ d U X →
+  VarOrU (substᵘ d U (` X))
+substᵘ-var-shape zero U zero = VU-U
+substᵘ-var-shape zero U (suc X) = VU-X
+substᵘ-var-shape (suc d) U zero = VU-X
+substᵘ-var-shape (suc d) U (suc X)
+  with substᵘ d U (` X) | substᵘ-var-shape d U X
+... | `U u | VU-U = VU-U
+... | ` y  | VU-X = VU-X
+
 inst-var-shape :
   ∀ {n U X} →
   X < suc n →
@@ -369,6 +384,38 @@ NoXᵈ-inst NoX-★ = NoX-★
 NoXᵈ-inst NoX-U = NoX-U
 NoXᵈ-inst (NoX-⇒ nxA nxB) = NoX-⇒ (NoXᵈ-inst nxA) (NoXᵈ-inst nxB)
 NoXᵈ-inst {n = n} (NoX-∀ nxA) = NoX-∀ (NoXᵈ-inst {n = suc n} nxA)
+
+NoXᵈ-close-var :
+  ∀ n U X →
+  NoXᵈ n (substᵘ n U (` X)) →
+  X < suc n
+NoXᵈ-close-var zero U zero NoX-U = s≤s z≤n
+NoXᵈ-close-var zero U (suc X) (NoX-X ())
+NoXᵈ-close-var (suc n) U zero (NoX-X p) = s≤s z≤n
+NoXᵈ-close-var (suc n) U (suc X) nx
+  with substᵘ n U (` X) in eq | substᵘ-var-shape n U X
+... | `U u | VU-U =
+  s≤s (NoXᵈ-close-var n U X (subst (NoXᵈ n) (sym eq) NoX-U))
+... | ` y  | VU-X
+  with nx
+... | NoX-X (s≤s p) =
+  s≤s (NoXᵈ-close-var n U X (subst (NoXᵈ n) (sym eq) (NoX-X p)))
+
+NoXᵈ-close :
+  ∀ {n U A} →
+  NoXᵈ n (substᵘ n U A) →
+  NoXᵈ (suc n) A
+NoXᵈ-close {n = n} {U = U} {A = ` X} nx =
+  NoX-X (NoXᵈ-close-var n U X nx)
+NoXᵈ-close {A = `ℕ} NoX-ℕ = NoX-ℕ
+NoXᵈ-close {A = `Bool} NoX-Bool = NoX-Bool
+NoXᵈ-close {A = `Str} NoX-Str = NoX-Str
+NoXᵈ-close {A = `★} NoX-★ = NoX-★
+NoXᵈ-close {A = `U U} NoX-U = NoX-U
+NoXᵈ-close {A = A ⇒ B} (NoX-⇒ nxA nxB) =
+  NoX-⇒ (NoXᵈ-close {A = A} nxA) (NoXᵈ-close {A = B} nxB)
+NoXᵈ-close {n = n} {U = U} {A = `∀ A} (NoX-∀ nxA) =
+  NoX-∀ (NoXᵈ-close {n = suc n} {U = U} {A = A} nxA)
 
 NoX-openᵘ :
   ∀ {A U} →
@@ -493,11 +540,6 @@ mutual
     ∀~★
       (~★-ty (A [ 0 ]ᵘ) (NoX-openᵘ nxA))
 
-postulate
-  []ᵘ-preserves-NoX : ∀ A
-    → NoXᵈ 1 A
-    → NoXᵈ 0 (A [ 0 ]ᵘ)
-
 WfTy→NoXᵈ :
   ∀ {Δ Σ A} →
   WfTy Δ Σ A →
@@ -511,19 +553,36 @@ WfTy→NoXᵈ (wfU hU) = NoX-U
 WfTy→NoXᵈ (wf⇒ hA hB) = NoX-⇒ (WfTy→NoXᵈ hA) (WfTy→NoXᵈ hB)
 WfTy→NoXᵈ (wf∀ hA) = NoX-∀ (WfTy→NoXᵈ hA)
 
-★~-NoX :
-  ∀ {Σ A} →
-  WfTy zero Σ A →
-  `★ ~ A →
-  NoX A
-★~-NoX hA ★~A = WfTy→NoXᵈ hA
+mutual
+  ★~-NoX :
+    ∀ {A} →
+    `★ ~ A →
+    NoX A
+  ★~-NoX ~-★ = NoX-★
+  ★~-NoX ★~ℕ = NoX-ℕ
+  ★~-NoX ★~Bool = NoX-Bool
+  ★~-NoX ★~Str = NoX-Str
+  ★~-NoX ★~U = NoX-U
+  ★~-NoX (★~⇒ A~★ ★~B) = NoX-⇒ (~★-NoX A~★) (★~-NoX ★~B)
+  ★~-NoX (★~∀ {A} ★~A[0]) =
+    NoX-∀
+      (NoXᵈ-close {n = zero} {U = zero} {A = A}
+        (subst NoX ([]ᵘ-as-substᵘ A 0) (★~-NoX ★~A[0])))
 
-~★-NoX :
-  ∀ {Σ A} →
-  WfTy zero Σ A →
-  A ~ `★ →
-  NoX A
-~★-NoX hA A~★ = ★~-NoX hA (~-sym A~★)
+  ~★-NoX :
+    ∀ {A} →
+    A ~ `★ →
+    NoX A
+  ~★-NoX ~-★ = NoX-★
+  ~★-NoX ℕ~★ = NoX-ℕ
+  ~★-NoX Bool~★ = NoX-Bool
+  ~★-NoX Str~★ = NoX-Str
+  ~★-NoX U~★ = NoX-U
+  ~★-NoX (⇒~★ ★~A B~★) = NoX-⇒ (★~-NoX ★~A) (~★-NoX B~★)
+  ~★-NoX (∀~★ {A} A[0]~★) =
+    NoX-∀
+      (NoXᵈ-close {n = zero} {U = zero} {A = A}
+        (subst NoX ([]ᵘ-as-substᵘ A 0) (~★-NoX A[0]~★)))
 
 IsVar→Ground : ∀ {A}
   → IsVar A
@@ -642,55 +701,52 @@ mkLub :
   Lub A B C
 mkLub A⊑C B⊑C least = A⊑C , (B⊑C , least)
 
-postulate
-  consistency→lub-under∀ :
-    ∀ {A B} →
-    A ~ B →
-    NoXᵈ 1 A →
-    NoXᵈ 1 B →
-    Σ Ty (Lub A B)
-
 mutual
   consistency→lub :
-    ∀ {A B} → A ~ B → NoX A → NoX B → Σ Ty (Lub A B)
-  consistency→lub ~-X (NoX-X ()) _
-  consistency→lub ~-ℕ NoX-ℕ NoX-ℕ =
+    ∀ {A B} → A ~ B → Σ Ty (Lub A B)
+  consistency→lub {A = ` X} ~-X =
+    ` X , mkLub ⊑-X ⊑-X (λ A⊑D B⊑D → A⊑D)
+  consistency→lub ~-ℕ =
     `ℕ , mkLub ⊑-ℕ ⊑-ℕ (λ A⊑D B⊑D → A⊑D)
-  consistency→lub ~-Bool NoX-Bool NoX-Bool =
+  consistency→lub ~-Bool =
     `Bool , mkLub ⊑-Bool ⊑-Bool (λ A⊑D B⊑D → A⊑D)
-  consistency→lub ~-Str NoX-Str NoX-Str =
+  consistency→lub ~-Str =
     `Str , mkLub ⊑-Str ⊑-Str (λ A⊑D B⊑D → A⊑D)
-  consistency→lub ~-★ NoX-★ NoX-★ =
+  consistency→lub ~-★ =
     `★ , mkLub (⊑-★ NoX-★) (⊑-★ NoX-★) (λ A⊑D B⊑D → A⊑D)
-  consistency→lub ~-U NoX-U NoX-U =
+  consistency→lub ~-U =
     `U _ , mkLub ⊑-U ⊑-U (λ A⊑D B⊑D → A⊑D)
-  consistency→lub ★~ℕ NoX-★ NoX-ℕ =
+  consistency→lub ★~ℕ =
     `ℕ , mkLub (⊑-★ NoX-ℕ) ⊑-ℕ (λ A⊑D B⊑D → B⊑D)
-  consistency→lub ℕ~★ NoX-ℕ NoX-★ =
+  consistency→lub ℕ~★ =
     `ℕ , mkLub ⊑-ℕ (⊑-★ NoX-ℕ) (λ A⊑D B⊑D → A⊑D)
-  consistency→lub ★~Bool NoX-★ NoX-Bool =
+  consistency→lub ★~Bool =
     `Bool , mkLub (⊑-★ NoX-Bool) ⊑-Bool (λ A⊑D B⊑D → B⊑D)
-  consistency→lub Bool~★ NoX-Bool NoX-★ =
+  consistency→lub Bool~★ =
     `Bool , mkLub ⊑-Bool (⊑-★ NoX-Bool) (λ A⊑D B⊑D → A⊑D)
-  consistency→lub ★~Str NoX-★ NoX-Str =
+  consistency→lub ★~Str =
     `Str , mkLub (⊑-★ NoX-Str) ⊑-Str (λ A⊑D B⊑D → B⊑D)
-  consistency→lub Str~★ NoX-Str NoX-★ =
+  consistency→lub Str~★ =
     `Str , mkLub ⊑-Str (⊑-★ NoX-Str) (λ A⊑D B⊑D → A⊑D)
-  consistency→lub ★~U NoX-★ NoX-U =
+  consistency→lub ★~U =
     `U _ , mkLub (⊑-★ NoX-U) ⊑-U (λ A⊑D B⊑D → B⊑D)
-  consistency→lub U~★ NoX-U NoX-★ =
+  consistency→lub U~★ =
     `U _ , mkLub ⊑-U (⊑-★ NoX-U) (λ A⊑D B⊑D → A⊑D)
-  consistency→lub (★~⇒ A~★ ★~B) NoX-★ (NoX-⇒ nxA nxB) =
+  consistency→lub (★~⇒ A~★ ★~B)
+    with ★~-NoX (★~⇒ A~★ ★~B)
+  ... | NoX-⇒ nxA nxB =
     (_ ⇒ _) ,
     mkLub (⊑-★ (NoX-⇒ nxA nxB)) (⊑-⇒ ⊑-refl ⊑-refl)
       (λ A⊑D B⊑D → B⊑D)
-  consistency→lub (⇒~★ ★~A B~★) (NoX-⇒ nxA nxB) NoX-★ =
+  consistency→lub (⇒~★ ★~A B~★)
+    with ~★-NoX (⇒~★ ★~A B~★)
+  ... | NoX-⇒ nxA nxB =
     (_ ⇒ _) ,
     mkLub (⊑-⇒ ⊑-refl ⊑-refl) (⊑-★ (NoX-⇒ nxA nxB))
       (λ A⊑D B⊑D → A⊑D)
-  consistency→lub {A = A₁ ⇒ B₁} {B = C₁ ⇒ D₁} (~-⇒ C~A B~D) (NoX-⇒ nxA nxB) (NoX-⇒ nxC nxD)
-    with consistency→lub C~A nxC nxA
-       | consistency→lub B~D nxB nxD
+  consistency→lub {A = A₁ ⇒ B₁} {B = C₁ ⇒ D₁} (~-⇒ C~A B~D)
+    with consistency→lub C~A
+       | consistency→lub B~D
   ... | Jdom , (C⊑Jdom , (A⊑Jdom , leastDom))
       | Jcod , (B⊑Jcod , (D⊑Jcod , leastCod)) =
     (Jdom ⇒ Jcod) ,
@@ -703,17 +759,21 @@ mutual
         (Jdom ⇒ Jcod) ⊑ X
       least (⊑-⇒ A⊑X B⊑X) (⊑-⇒ C⊑X D⊑X) =
         ⊑-⇒ (leastDom C⊑X A⊑X) (leastCod B⊑X D⊑X)
-  consistency→lub {A = `∀ A₀} {B = `∀ B₀} (~-∀ A~B) (NoX-∀ nxA) (NoX-∀ nxB)
-    with consistency→lub-under∀ A~B nxA nxB
+  consistency→lub {A = `∀ A₀} {B = `∀ B₀} (~-∀ A~B)
+    with consistency→lub A~B
   ... | J , (A⊑J , (B⊑J , leastBody)) =
     `∀ J , mkLub (⊑-∀ A⊑J) (⊑-∀ B⊑J) least
     where
       least : ∀ {X} → `∀ A₀ ⊑ X → `∀ B₀ ⊑ X → `∀ J ⊑ X
       least (⊑-∀ A⊑X) (⊑-∀ B⊑X) =
         ⊑-∀ (leastBody A⊑X B⊑X)
-  consistency→lub (★~∀ ★~A) NoX-★ (NoX-∀ nxA) = `∀ _ ,
+  consistency→lub (★~∀ ★~A)
+    with ★~-NoX (★~∀ ★~A)
+  ... | NoX-∀ nxA = `∀ _ ,
     mkLub (⊑-★ (NoX-∀ nxA)) (⊑-∀ ⊑-refl) (λ A⊑D B⊑D → B⊑D)
-  consistency→lub (∀~★ A~★) (NoX-∀ nxA) NoX-★ = `∀ _ ,
+  consistency→lub (∀~★ A~★)
+    with ~★-NoX (∀~★ A~★)
+  ... | NoX-∀ nxA = `∀ _ ,
     mkLub (⊑-∀ ⊑-refl) (⊑-★ (NoX-∀ nxA)) (λ A⊑D B⊑D → A⊑D)
 
 lub→consistency : ∀ {A B} → Σ Ty (Lub A B) → A ~ B
@@ -722,23 +782,19 @@ lub→consistency (_ , (A⊑C , (B⊑C , least))) =
 
 consistency-iff-lub :
   ∀ {A B} →
-  NoX A →
-  NoX B →
   (A ~ B → Σ Ty (Lub A B)) ×
   (Σ Ty (Lub A B) → A ~ B)
-consistency-iff-lub nxA nxB =
-  (λ A~B → consistency→lub A~B nxA nxB) , lub→consistency
+consistency-iff-lub =
+  (λ A~B → consistency→lub A~B) , lub→consistency
 
 app-consistency :
   ∀ {A B A′ B′} →
   A′ ⊑ A →
   A ~ B →
   B′ ⊑ B →
-  NoX A →
-  NoX B →
   A′ ~ B′
-app-consistency A′⊑A A~B B′⊑B nxA nxB
-  with consistency→lub A~B nxA nxB
+app-consistency A′⊑A A~B B′⊑B
+  with consistency→lub A~B
 ... | C , (A⊑C , (B⊑C , least)) =
   upper-bounds-consistent (⊑-trans A′⊑A A⊑C) (⊑-trans B′⊑B B⊑C)
 
@@ -746,19 +802,15 @@ prec-left :
   ∀ {X A B} →
   X ⊑ A →
   A ~ B →
-  NoX A →
-  NoX B →
   X ~ B
-prec-left X⊑A A~B nxA nxB = app-consistency X⊑A A~B ⊑-refl nxA nxB
+prec-left X⊑A A~B = app-consistency X⊑A A~B ⊑-refl
 
 prec-right :
   ∀ {A B Y} →
   A ~ B →
   Y ⊑ B →
-  NoX A →
-  NoX B →
   A ~ Y
-prec-right A~B Y⊑B nxA nxB = app-consistency ⊑-refl A~B Y⊑B nxA nxB
+prec-right A~B Y⊑B = app-consistency ⊑-refl A~B Y⊑B
 
 ground-consistency-unique :
   ∀ {G H} →

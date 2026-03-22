@@ -2,6 +2,8 @@ module Types where
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; _≢_)
 open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Product using (_×_; _,_; Σ)
+open import Relation.Nullary using (Dec; yes; no; ¬_)
 
 data Ty : Set where
   ℕ   : Ty
@@ -16,6 +18,20 @@ data Ground : Ty → Set where
 ground-irrelevant : ∀ {G} → (g g′ : Ground G) → g ≡ g′
 ground-irrelevant G-ℕ G-ℕ = refl
 ground-irrelevant G-⇒ G-⇒ = refl
+
+_≟Ty_ : (A B : Ty) → Dec (A ≡ B)
+ℕ ≟Ty ℕ = yes refl
+ℕ ≟Ty ★ = no (λ ())
+ℕ ≟Ty (B ⇒ C) = no (λ ())
+★ ≟Ty ℕ = no (λ ())
+★ ≟Ty ★ = yes refl
+★ ≟Ty (B ⇒ C) = no (λ ())
+(A ⇒ B) ≟Ty ℕ = no (λ ())
+(A ⇒ B) ≟Ty ★ = no (λ ())
+(A ⇒ B) ≟Ty (C ⇒ D) with A ≟Ty C | B ≟Ty D
+... | yes refl | yes refl = yes refl
+... | no A≢C | _ = no (λ { refl → A≢C refl })
+... | _ | no B≢D = no (λ { refl → B≢D refl })
 
 ------------------------------------------------------------
 -- Type Consistency
@@ -91,6 +107,69 @@ data _⊑_ : Ty → Ty → Set where
 ⊑-trans ⊑-ℕ ⊑-ℕ = ⊑-ℕ
 ⊑-trans (⊑-⇒ A⊑B B⊑D) (⊑-⇒ B⊑C D⊑E) =
   ⊑-⇒ (⊑-trans A⊑B B⊑C) (⊑-trans B⊑D D⊑E)
+
+upper-bounds-consistent : ∀ {A B C} → A ⊑ C → B ⊑ C → A ~ B
+upper-bounds-consistent (⊑-★ {A}) pB = ★~-ty _
+upper-bounds-consistent ⊑-ℕ ⊑-ℕ = ~-ℕ
+upper-bounds-consistent ⊑-ℕ ⊑-★ = ℕ~★
+upper-bounds-consistent (⊑-⇒ A⊑C B⊑D) ⊑-★ = ~★-ty _
+upper-bounds-consistent (⊑-⇒ A⊑C B⊑D) (⊑-⇒ A′⊑C B′⊑D) =
+  ~-⇒
+    (upper-bounds-consistent A′⊑C A⊑C)
+    (upper-bounds-consistent B⊑D B′⊑D)
+
+Lub : Ty → Ty → Ty → Set
+Lub A B C =
+  (A ⊑ C) × ((B ⊑ C) × (∀ {D} → A ⊑ D → B ⊑ D → C ⊑ D))
+
+mkLub :
+  ∀ {A B C} →
+  A ⊑ C →
+  B ⊑ C →
+  (∀ {D} → A ⊑ D → B ⊑ D → C ⊑ D) →
+  Lub A B C
+mkLub A⊑C B⊑C least = A⊑C , (B⊑C , least)
+
+consistency→lub : ∀ {A B} → A ~ B → Σ Ty (Lub A B)
+consistency→lub ~-ℕ =
+  ℕ , mkLub ⊑-ℕ ⊑-ℕ (λ A⊑D B⊑D → A⊑D)
+consistency→lub ~-★ =
+  ★ , mkLub ⊑-★ ⊑-★ (λ A⊑D B⊑D → A⊑D)
+consistency→lub ★~ℕ =
+  ℕ , mkLub ⊑-★ ⊑-ℕ (λ A⊑D B⊑D → B⊑D)
+consistency→lub ℕ~★ =
+  ℕ , mkLub ⊑-ℕ ⊑-★ (λ A⊑D B⊑D → A⊑D)
+consistency→lub {B = A ⇒ B} (★~⇒ A~★ ★~B) =
+  (A ⇒ B) ,
+  mkLub ⊑-★ (⊑-⇒ ⊑-refl ⊑-refl) (λ A⊑D B⊑D → B⊑D)
+consistency→lub {A = A ⇒ B} (⇒~★ ★~A B~★) =
+  (A ⇒ B) ,
+  mkLub (⊑-⇒ ⊑-refl ⊑-refl) ⊑-★ (λ A⊑D B⊑D → A⊑D)
+consistency→lub {A = A₁ ⇒ B₁} {B = C₁ ⇒ D₁} (~-⇒ C~A B~D)
+  with consistency→lub C~A
+     | consistency→lub B~D
+... | Jdom , (C⊑Jdom , (A⊑Jdom , leastDom))
+    | Jcod , (B⊑Jcod , (D⊑Jcod , leastCod)) =
+  (Jdom ⇒ Jcod) ,
+  mkLub (⊑-⇒ A⊑Jdom B⊑Jcod) (⊑-⇒ C⊑Jdom D⊑Jcod) least
+  where
+    least :
+      ∀ {X} →
+      (A₁ ⇒ B₁) ⊑ X →
+      (C₁ ⇒ D₁) ⊑ X →
+      (Jdom ⇒ Jcod) ⊑ X
+    least (⊑-⇒ A⊑X B⊑X) (⊑-⇒ C⊑X D⊑X) =
+      ⊑-⇒ (leastDom C⊑X A⊑X) (leastCod B⊑X D⊑X)
+
+lub→consistency : ∀ {A B} → Σ Ty (Lub A B) → A ~ B
+lub→consistency (_ , (A⊑C , (B⊑C , least))) =
+  upper-bounds-consistent A⊑C B⊑C
+
+consistency-iff-lub :
+  ∀ {A B} →
+  (A ~ B → Σ Ty (Lub A B)) ×
+  (Σ Ty (Lub A B) → A ~ B)
+consistency-iff-lub = consistency→lub , lub→consistency
 
 mutual
   prec-left : ∀ {X A B} → X ⊑ A → A ~ B → X ~ B

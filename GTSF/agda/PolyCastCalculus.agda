@@ -1,6 +1,7 @@
 module PolyCastCalculus where
 
--- This is the λC_mp of Igarashi, Ozaki, Sekiyama, and Tanabe (PLDI 2024).
+-- This is a simplification of the λC_mp of Igarashi, Ozaki, Sekiyama, and Tanabe (PLDI 2024),
+-- call it λC∀, in that it is fully parametric.
 
 open import Data.List using (List; []; _∷_; _++_; length)
 open import Data.Nat using (ℕ; zero; suc)
@@ -125,39 +126,6 @@ exts : Subst → Subst
 exts σ zero    = # zero
 exts σ (suc i) = rename suc (σ i)
 
-injᶜ : Ty → Coercion
-injᶜ `★ = idᶜ `★
-injᶜ A  = A !
-
-projᶜ : Ty → Label → Coercion
-projᶜ `★ p = idᶜ `★
-projᶜ A  p = A `? p
-
-renameᶜᵗ : Renameᵗ → Coercion → Coercion
-renameᶜᵗ ρ (idᶜ A)            = idᶜ (renameᵗ ρ A)
-renameᶜᵗ ρ (G !)              = renameᵗ ρ G !
-renameᶜᵗ ρ (G `? p)           = renameᵗ ρ G `? p
-renameᶜᵗ ρ (U ⁻)              = U ⁻
-renameᶜᵗ ρ (U ⁺)              = U ⁺
-renameᶜᵗ ρ (c ↦ d)            = renameᶜᵗ ρ c ↦ renameᶜᵗ ρ d
-renameᶜᵗ ρ (∀ᶜ c)             = ∀ᶜ (renameᶜᵗ (extᵗ ρ) c)
-renameᶜᵗ ρ (c ⨟ d)            = renameᶜᵗ ρ c ⨟ renameᶜᵗ ρ d
-renameᶜᵗ ρ (⊥ᶜ p ⦂ A ⇨ B)     = ⊥ᶜ p ⦂ renameᵗ ρ A ⇨ renameᵗ ρ B
-
-renameᶜᵘ-at : ℕ → Renameᵗ → Coercion → Coercion
-renameᶜᵘ-at d ρ (idᶜ A)        = idᶜ (renameᵘ d ρ A)
-renameᶜᵘ-at d ρ (G !)          = renameᵘ d ρ G !
-renameᶜᵘ-at d ρ (G `? p)       = renameᵘ d ρ G `? p
-renameᶜᵘ-at d ρ (U ⁻)          = U ⁻
-renameᶜᵘ-at d ρ (U ⁺)          = U ⁺
-renameᶜᵘ-at d ρ (c ↦ d')       = renameᶜᵘ-at d ρ c ↦ renameᶜᵘ-at d ρ d'
-renameᶜᵘ-at d ρ (∀ᶜ c)         = ∀ᶜ (renameᶜᵘ-at (suc d) ρ c)
-renameᶜᵘ-at d ρ (c ⨟ d')       = renameᶜᵘ-at d ρ c ⨟ renameᶜᵘ-at d ρ d'
-renameᶜᵘ-at d ρ (⊥ᶜ p ⦂ A ⇨ B) = ⊥ᶜ p ⦂ renameᵘ d ρ A ⇨ renameᵘ d ρ B
-
-renameᶜᵘ : Renameᵗ → Coercion → Coercion
-renameᶜᵘ ρ c = renameᶜᵘ-at 0 ρ c
-
 renameᵀ : Renameᵗ → Term → Term
 renameᵀ ρ ($ p k)     = $ p k
 renameᵀ ρ (# i)       = # i
@@ -167,6 +135,16 @@ renameᵀ ρ (Λ N ⦂ A)   = Λ renameᵀ (extᵗ ρ) N ⦂ renameᵗ (extᵗ �
 renameᵀ ρ (M ·[ A ])  = renameᵀ ρ M ·[ renameᵗ ρ A ]
 renameᵀ ρ (M ⟨ c ⟩)   = renameᵀ ρ M ⟨ renameᶜᵗ ρ c ⟩
 renameᵀ ρ (blame p)   = blame p
+
+substᵀ : Substᵗ → Term → Term
+substᵀ σ ($ p k)     = $ p k
+substᵀ σ (# i)       = # i
+substᵀ σ (ƛ A ⇒ N)   = ƛ substᵗ σ A ⇒ substᵀ σ N
+substᵀ σ (L · M)     = substᵀ σ L · substᵀ σ M
+substᵀ σ (Λ N ⦂ A)   = Λ substᵀ (extsᵗ σ) N ⦂ substᵗ (extsᵗ σ) A
+substᵀ σ (M ·[ A ])  = substᵀ σ M ·[ substᵗ σ A ]
+substᵀ σ (M ⟨ c ⟩)   = substᵀ σ M ⟨ substᶜᵗ σ c ⟩
+substᵀ σ (blame p)   = blame p
 
 ⇑ : Subst → Subst
 ⇑ σ i = renameᵀ suc (σ i)
@@ -188,21 +166,8 @@ singleEnv M (suc i) = # i
 _[_]ᴹ : Term → Term → Term
 N [ M ]ᴹ = subst (singleEnv M) N
 
-renameᵀᵘ-at : ℕ → Renameᵗ → Term → Term
-renameᵀᵘ-at d ρ ($ p k)     = $ p k
-renameᵀᵘ-at d ρ (# i)       = # i
-renameᵀᵘ-at d ρ (ƛ A ⇒ N)   = ƛ renameᵘ d ρ A ⇒ renameᵀᵘ-at d ρ N
-renameᵀᵘ-at d ρ (L · M)     = renameᵀᵘ-at d ρ L · renameᵀᵘ-at d ρ M
-renameᵀᵘ-at d ρ (Λ N ⦂ A)   = Λ renameᵀᵘ-at (suc d) ρ N ⦂ renameᵘ (suc d) ρ A
-renameᵀᵘ-at d ρ (M ·[ A ])  = renameᵀᵘ-at d ρ M ·[ renameᵘ d ρ A ]
-renameᵀᵘ-at d ρ (M ⟨ c ⟩)   = renameᵀᵘ-at d ρ M ⟨ renameᶜᵘ-at d ρ c ⟩
-renameᵀᵘ-at d ρ (blame p)   = blame p
-
-renameᵀᵘ : Renameᵗ → Term → Term
-renameᵀᵘ ρ N = renameᵀᵘ-at 0 ρ N
-
 _[_]ᵀ : Term → Name → Term
-N [ U ]ᵀ = renameᵀᵘ (singleᵘ U) N
+N [ U ]ᵀ = substᵀ (singleTyEnv (`U U)) N
 
 ------------------------------------------------------------------------
 -- Values and frames
@@ -325,7 +290,7 @@ data _—→_ : Config → Config → Set where
     → Σ ∣ zero ⊢ ∀ᶜ c ⦂ `∀ A₀ ⇨ `∀ Aₙ
     → (Σ ⊲ ((V ⟨ ∀ᶜ c ⟩) ·[ B ]))
       —→
-      (extendStore Σ B ⊲ (((V ·[ `U (fresh Σ) ]) ⟨ renameᶜᵘ (singleᵘ (fresh Σ)) c ⟩)
+      (extendStore Σ B ⊲ (((V ·[ `U (fresh Σ) ]) ⟨ substᶜᵘ (fresh Σ) c ⟩)
                           ⟨ coerce⁺ (fresh Σ) (Aₙ [ fresh Σ ]ᵘ) ⟩))
 
   ξξ : ∀ {Σ Σ′ F M N M′ N′}

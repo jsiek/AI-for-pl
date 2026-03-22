@@ -396,20 +396,6 @@ data Progressᶜ (M : Termᶜ) : Set where
   step  : ∀ {N} → M —→ᶜ N → Progressᶜ M
   crash : M ≡ blame → Progressᶜ M
 
-_≟Ty_ : (A B : Ty) → Dec (A ≡ B)
-ℕ ≟Ty ℕ = yes refl
-ℕ ≟Ty ★ = no (λ ())
-ℕ ≟Ty (B ⇒ C) = no (λ ())
-★ ≟Ty ℕ = no (λ ())
-★ ≟Ty ★ = yes refl
-★ ≟Ty (B ⇒ C) = no (λ ())
-(A ⇒ B) ≟Ty ℕ = no (λ ())
-(A ⇒ B) ≟Ty ★ = no (λ ())
-(A ⇒ B) ≟Ty (C ⇒ D) with A ≟Ty C | B ≟Ty D
-... | yes refl | yes refl = yes refl
-... | no A≢C | _ = no (λ { refl → A≢C refl })
-... | _ | no B≢D = no (λ { refl → B≢D refl })
-
 canonical-★-inj : ∀ {V}
   → Valueᶜ V
   → [] ⊢ᶜ V ⦂ ★

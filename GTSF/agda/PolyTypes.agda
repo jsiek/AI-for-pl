@@ -3,7 +3,8 @@ module PolyTypes where
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; cong₂; subst)
 open import Data.List using (List; []; _∷_; map)
-open import Data.Nat using (ℕ; _<_; zero; suc)
+open import Data.Nat using (ℕ; _<_; _≤_; z≤n; s≤s; zero; suc)
+open import Data.Nat.Properties using (m≤n⇒m≤1+n)
 open import Data.Bool using (Bool)
 open import Data.Product using (_×_; _,_; Σ)
 
@@ -93,28 +94,63 @@ A [ B ]ᵗ = substᵗ (singleTyEnv B) A
 ⤊ : Ctx → Ctx
 ⤊ Γ = map (renameᵗ suc) Γ
 
--- Replace free X's with U's.
--- The first argument tracks how many type variables are bound.
-renameᵘ : ℕ → Renameᵗ → Ty → Ty
-renameᵘ d ρ (` i) with d
-... | zero = `U (ρ i)
-... | suc d' with i
-... | zero = ` zero
-... | suc j = renameᵗ suc (renameᵘ d' ρ (` j))
-renameᵘ d ρ `ℕ              = `ℕ
-renameᵘ d ρ `Bool           = `Bool
-renameᵘ d ρ `Str            = `Str
-renameᵘ d ρ `★              = `★
-renameᵘ d ρ (`U u)          = `U u
-renameᵘ d ρ (A ⇒ B)         = renameᵘ d ρ A ⇒ renameᵘ d ρ B
-renameᵘ d ρ (`∀ A)          = `∀ (renameᵘ (suc d) ρ A)
+-- Substitute `U U` for the X at de Bruijn index d (standard
+-- capture-avoiding substitution behavior for surrounding indices).
+substᵘ-var : ℕ → Name → Var → Ty
+substᵘ-var d U i with d | i
+... | zero  | zero  = `U U
+... | zero  | suc i = ` i
+... | suc d | zero  = ` zero
+... | suc d | suc i = renameᵗ suc (substᵘ-var d U i)
+
+substᵘ : ℕ → Name → Ty → Ty
+substᵘ d U (` i)            = substᵘ-var d U i
+substᵘ d U `ℕ              = `ℕ
+substᵘ d U `Bool           = `Bool
+substᵘ d U `Str            = `Str
+substᵘ d U `★              = `★
+substᵘ d U (`U u)          = `U u
+substᵘ d U (A ⇒ B)         = substᵘ d U A ⇒ substᵘ d U B
+substᵘ d U (`∀ A)          = `∀ (substᵘ (suc d) U A)
 
 singleᵘ : Name → Renameᵗ
 singleᵘ U zero    = U
 singleᵘ U (suc i) = i
 
 _[_]ᵘ : Ty → Name → Ty
-A [ U ]ᵘ = renameᵘ 0 (singleᵘ U) A
+A [ U ]ᵘ = A [ `U U ]ᵗ
+
+substEnvᵘ : ℕ → Name → Substᵗ
+substEnvᵘ zero U = singleTyEnv (`U U)
+substEnvᵘ (suc d) U = extsᵗ (substEnvᵘ d U)
+
+substEnvᵘ-var :
+  ∀ d U X →
+  substEnvᵘ d U X ≡ substᵘ-var d U X
+substEnvᵘ-var zero U zero = refl
+substEnvᵘ-var zero U (suc X) = refl
+substEnvᵘ-var (suc d) U zero = refl
+substEnvᵘ-var (suc d) U (suc X) =
+  cong (renameᵗ suc) (substEnvᵘ-var d U X)
+
+substᵘ-as-substᵗ :
+  ∀ d U A →
+  substᵘ d U A ≡ substᵗ (substEnvᵘ d U) A
+substᵘ-as-substᵗ d U (` X) = sym (substEnvᵘ-var d U X)
+substᵘ-as-substᵗ d U `ℕ = refl
+substᵘ-as-substᵗ d U `Bool = refl
+substᵘ-as-substᵗ d U `Str = refl
+substᵘ-as-substᵗ d U `★ = refl
+substᵘ-as-substᵗ d U (`U u) = refl
+substᵘ-as-substᵗ d U (A ⇒ B) =
+  cong₂ _⇒_ (substᵘ-as-substᵗ d U A) (substᵘ-as-substᵗ d U B)
+substᵘ-as-substᵗ d U (`∀ A) =
+  cong `∀ (substᵘ-as-substᵗ (suc d) U A)
+
+[]ᵘ-as-substᵘ :
+  ∀ A U →
+  A [ U ]ᵘ ≡ substᵘ 0 U A
+[]ᵘ-as-substᵘ A U = sym (substᵘ-as-substᵗ zero U A)
 
 ------------------------------------------------------------------------
 -- Well-formedness and lookup
@@ -182,47 +218,170 @@ data Ground : Ty → Set where
 -- Types without X variables
 ------------------------------------------------------------------------
 
-data NoX : Ty → Set where
-  NoX-ℕ    : NoX `ℕ
-  NoX-Bool : NoX `Bool
-  NoX-Str  : NoX `Str
-  NoX-★    : NoX `★
-  NoX-U    : ∀ {U} → NoX (`U U)
-  NoX-⇒    : ∀ {A B} → NoX A → NoX B → NoX (A ⇒ B)
-  NoX-∀    : ∀ {A} → NoX A → NoX (`∀ A)
+data NoXᵈ : ℕ → Ty → Set where
+  NoX-X    : ∀ {d X} → X < d → NoXᵈ d (` X)
+  NoX-ℕ    : ∀ {d} → NoXᵈ d `ℕ
+  NoX-Bool : ∀ {d} → NoXᵈ d `Bool
+  NoX-Str  : ∀ {d} → NoXᵈ d `Str
+  NoX-★    : ∀ {d} → NoXᵈ d `★
+  NoX-U    : ∀ {d U} → NoXᵈ d (`U U)
+  NoX-⇒    : ∀ {d A B} → NoXᵈ d A → NoXᵈ d B → NoXᵈ d (A ⇒ B)
+  NoX-∀    : ∀ {d A} → NoXᵈ (suc d) A → NoXᵈ d (`∀ A)
 
-NoX-renameᵘ :
-  ∀ {d ρ A} →
+NoX : Ty → Set
+NoX A = NoXᵈ zero A
+
+NoXᵈ-suc :
+  ∀ {d A} →
+  NoXᵈ d A →
+  NoXᵈ (suc d) A
+NoXᵈ-suc (NoX-X p) = NoX-X (m≤n⇒m≤1+n p)
+NoXᵈ-suc NoX-ℕ = NoX-ℕ
+NoXᵈ-suc NoX-Bool = NoX-Bool
+NoXᵈ-suc NoX-Str = NoX-Str
+NoXᵈ-suc NoX-★ = NoX-★
+NoXᵈ-suc NoX-U = NoX-U
+NoXᵈ-suc (NoX-⇒ nxA nxB) = NoX-⇒ (NoXᵈ-suc nxA) (NoXᵈ-suc nxB)
+NoXᵈ-suc (NoX-∀ nxA) = NoX-∀ (NoXᵈ-suc nxA)
+
+NoXᵈ-raise :
+  ∀ {d A} →
   NoX A →
-  NoX (renameᵘ d ρ A)
-NoX-renameᵘ NoX-ℕ = NoX-ℕ
-NoX-renameᵘ NoX-Bool = NoX-Bool
-NoX-renameᵘ NoX-Str = NoX-Str
-NoX-renameᵘ NoX-★ = NoX-★
-NoX-renameᵘ NoX-U = NoX-U
-NoX-renameᵘ (NoX-⇒ nxA nxB) =
-  NoX-⇒ (NoX-renameᵘ nxA) (NoX-renameᵘ nxB)
-NoX-renameᵘ (NoX-∀ nxA) = NoX-∀ (NoX-renameᵘ nxA)
+  NoXᵈ d A
+NoXᵈ-raise {d = zero} nxA = nxA
+NoXᵈ-raise {d = suc d} nxA = NoXᵈ-suc (NoXᵈ-raise {d = d} nxA)
+
+Fixes : ℕ → Renameᵗ → Set
+Fixes d ρ = ∀ {X} → X < d → ρ X ≡ X
+
+Fixes-0 : ∀ {ρ} → Fixes 0 ρ
+Fixes-0 ()
+
+Fixes-ext : ∀ {d ρ} → Fixes d ρ → Fixes (suc d) (extᵗ ρ)
+Fixes-ext fix {zero} p = refl
+Fixes-ext fix {suc X} (s≤s p) = cong suc (fix p)
+
+NoXᵈ-renameᵗ-id :
+  ∀ {d ρ A} →
+  Fixes d ρ →
+  NoXᵈ d A →
+  renameᵗ ρ A ≡ A
+NoXᵈ-renameᵗ-id fix (NoX-X p) = cong (λ Y → ` Y) (fix p)
+NoXᵈ-renameᵗ-id fix NoX-ℕ = refl
+NoXᵈ-renameᵗ-id fix NoX-Bool = refl
+NoXᵈ-renameᵗ-id fix NoX-Str = refl
+NoXᵈ-renameᵗ-id fix NoX-★ = refl
+NoXᵈ-renameᵗ-id fix NoX-U = refl
+NoXᵈ-renameᵗ-id fix (NoX-⇒ nxA nxB) =
+  cong₂ _⇒_ (NoXᵈ-renameᵗ-id fix nxA) (NoXᵈ-renameᵗ-id fix nxB)
+NoXᵈ-renameᵗ-id fix (NoX-∀ nxA) =
+  cong `∀ (NoXᵈ-renameᵗ-id (Fixes-ext fix) nxA)
+
+NoXᵈ-renameᵗ :
+  ∀ {d ρ A} →
+  Fixes d ρ →
+  NoXᵈ d A →
+  NoXᵈ d (renameᵗ ρ A)
+NoXᵈ-renameᵗ fix nxA =
+  subst (NoXᵈ _) (sym (NoXᵈ-renameᵗ-id fix nxA)) nxA
+
+NoX-renameᵗ :
+  ∀ {ρ A} →
+  NoX A →
+  NoX (renameᵗ ρ A)
+NoX-renameᵗ {ρ = ρ} = NoXᵈ-renameᵗ {ρ = ρ} (Fixes-0 {ρ = ρ})
+
+NoX-renameᵗ-id :
+  ∀ {ρ A} →
+  NoX A →
+  renameᵗ ρ A ≡ A
+NoX-renameᵗ-id {ρ = ρ} = NoXᵈ-renameᵗ-id {ρ = ρ} (Fixes-0 {ρ = ρ})
+
+NoX-X-substᵘ-id :
+  ∀ {n d U X} →
+  X < n →
+  n ≤ d →
+  substᵘ d U (` X) ≡ ` X
+NoX-X-substᵘ-id {n = zero} ()
+NoX-X-substᵘ-id {n = suc n} {d = zero} p ()
+NoX-X-substᵘ-id {d = suc d} {X = zero} p le = refl
+NoX-X-substᵘ-id {n = suc n} {d = suc d} {X = suc X} (s≤s p) (s≤s le) =
+  cong (renameᵗ suc) (NoX-X-substᵘ-id {n = n} {d = d} {X = X} p le)
+
+NoXᵈ-substᵘ-id :
+  ∀ {n d U A} →
+  n ≤ d →
+  NoXᵈ n A →
+  substᵘ d U A ≡ A
+NoXᵈ-substᵘ-id le (NoX-X p) = NoX-X-substᵘ-id p le
+NoXᵈ-substᵘ-id le NoX-ℕ = refl
+NoXᵈ-substᵘ-id le NoX-Bool = refl
+NoXᵈ-substᵘ-id le NoX-Str = refl
+NoXᵈ-substᵘ-id le NoX-★ = refl
+NoXᵈ-substᵘ-id le NoX-U = refl
+NoXᵈ-substᵘ-id le (NoX-⇒ nxA nxB) =
+  cong₂ _⇒_ (NoXᵈ-substᵘ-id le nxA) (NoXᵈ-substᵘ-id le nxB)
+NoXᵈ-substᵘ-id le (NoX-∀ nxA) =
+  cong `∀ (NoXᵈ-substᵘ-id (s≤s le) nxA)
+
+NoXᵈ-substᵘ :
+  ∀ {n d U A} →
+  n ≤ d →
+  NoXᵈ n A →
+  NoXᵈ n (substᵘ d U A)
+NoXᵈ-substᵘ le nxA =
+  subst (NoXᵈ _) (sym (NoXᵈ-substᵘ-id le nxA)) nxA
+
+data VarOrUᵈ (d : ℕ) : Ty → Set where
+  VarOrU-U : ∀ {U} → VarOrUᵈ d (`U U)
+  VarOrU-X : ∀ {X} → X < d → VarOrUᵈ d (` X)
+
+inst-var-shape :
+  ∀ {n U X} →
+  X < suc n →
+  VarOrUᵈ n (substᵘ n U (` X))
+inst-var-shape {n = zero} {X = zero} p = VarOrU-U
+inst-var-shape {n = zero} {X = suc X} (s≤s ())
+inst-var-shape {n = suc n} {X = zero} p = VarOrU-X (s≤s z≤n)
+inst-var-shape {n = suc n} {U = U} {X = suc X} (s≤s p)
+  with substᵘ n U (` X) | inst-var-shape {n = n} {U = U} {X = X} p
+... | `U u | VarOrU-U = VarOrU-U
+... | ` y  | VarOrU-X q = VarOrU-X (s≤s q)
+
+NoXᵈ-inst-var :
+  ∀ {n U X} →
+  X < suc n →
+  NoXᵈ n (substᵘ n U (` X))
+NoXᵈ-inst-var {n = n} {U = U} {X = X} p
+  with substᵘ n U (` X) | inst-var-shape {n = n} {U = U} {X = X} p
+... | `U u | VarOrU-U = NoX-U
+... | ` y  | VarOrU-X q = NoX-X q
+
+NoXᵈ-inst :
+  ∀ {n A U} →
+  NoXᵈ (suc n) A →
+  NoXᵈ n (substᵘ n U A)
+NoXᵈ-inst (NoX-X p) = NoXᵈ-inst-var p
+NoXᵈ-inst NoX-ℕ = NoX-ℕ
+NoXᵈ-inst NoX-Bool = NoX-Bool
+NoXᵈ-inst NoX-Str = NoX-Str
+NoXᵈ-inst NoX-★ = NoX-★
+NoXᵈ-inst NoX-U = NoX-U
+NoXᵈ-inst (NoX-⇒ nxA nxB) = NoX-⇒ (NoXᵈ-inst nxA) (NoXᵈ-inst nxB)
+NoXᵈ-inst {n = n} (NoX-∀ nxA) = NoX-∀ (NoXᵈ-inst {n = suc n} nxA)
+
+NoX-openᵘ :
+  ∀ {A U} →
+  NoXᵈ 1 A →
+  NoX (A [ U ]ᵘ)
+NoX-openᵘ {A} {U} nxA =
+  subst NoX (sym ([]ᵘ-as-substᵘ A U)) (NoXᵈ-inst {n = zero} {U = U} nxA)
 
 NoX-[]ᵘ :
   ∀ {A U} →
   NoX A →
   NoX (A [ U ]ᵘ)
-NoX-[]ᵘ = NoX-renameᵘ
-
-NoX-renameᵘ-id :
-  ∀ {d ρ A} →
-  NoX A →
-  renameᵘ d ρ A ≡ A
-NoX-renameᵘ-id NoX-ℕ = refl
-NoX-renameᵘ-id NoX-Bool = refl
-NoX-renameᵘ-id NoX-Str = refl
-NoX-renameᵘ-id NoX-★ = refl
-NoX-renameᵘ-id NoX-U = refl
-NoX-renameᵘ-id (NoX-⇒ nxA nxB) =
-  cong₂ _⇒_ (NoX-renameᵘ-id nxA) (NoX-renameᵘ-id nxB)
-NoX-renameᵘ-id (NoX-∀ nxA) =
-  cong `∀ (NoX-renameᵘ-id nxA)
+NoX-[]ᵘ {A} {U} nxA = NoX-openᵘ {A = A} {U = U} (NoXᵈ-suc nxA)
 
 ------------------------------------------------------------------------
 -- Type consistency
@@ -308,9 +467,10 @@ data _~_ : Ty → Ty → Set where
 ~-refl {A = A ⇒ B} = ~-⇒ ~-refl ~-refl
 ~-refl {A = `∀ A} = ~-∀ ~-refl
 
+{-# TERMINATING #-}
 mutual
   ★~-ty : ∀ A → NoX A → `★ ~ A
-  ★~-ty (` X) ()
+  ★~-ty (` X) (NoX-X ())
   ★~-ty `ℕ NoX-ℕ = ★~ℕ
   ★~-ty `Bool NoX-Bool = ★~Bool
   ★~-ty `Str NoX-Str = ★~Str
@@ -319,13 +479,10 @@ mutual
   ★~-ty (A ⇒ B) (NoX-⇒ nxA nxB) = ★~⇒ (~★-ty A nxA) (★~-ty B nxB)
   ★~-ty (`∀ A) (NoX-∀ nxA) =
     ★~∀
-      (subst
-        (λ T → `★ ~ T)
-        (sym (NoX-renameᵘ-id {d = 0} {ρ = singleᵘ 0} nxA))
-        (★~-ty A nxA))
+      (★~-ty (A [ 0 ]ᵘ) (NoX-openᵘ nxA))
 
   ~★-ty : ∀ A → NoX A → A ~ `★
-  ~★-ty (` X) ()
+  ~★-ty (` X) (NoX-X ())
   ~★-ty `ℕ NoX-ℕ = ℕ~★
   ~★-ty `Bool NoX-Bool = Bool~★
   ~★-ty `Str NoX-Str = Str~★
@@ -334,10 +491,39 @@ mutual
   ~★-ty (A ⇒ B) (NoX-⇒ nxA nxB) = ⇒~★ (★~-ty A nxA) (~★-ty B nxB)
   ~★-ty (`∀ A) (NoX-∀ nxA) =
     ∀~★
-      (subst
-        (λ T → T ~ `★)
-        (sym (NoX-renameᵘ-id {d = 0} {ρ = singleᵘ 0} nxA))
-        (~★-ty A nxA))
+      (~★-ty (A [ 0 ]ᵘ) (NoX-openᵘ nxA))
+
+postulate
+  []ᵘ-preserves-NoX : ∀ A
+    → NoXᵈ 1 A
+    → NoXᵈ 0 (A [ 0 ]ᵘ)
+
+WfTy→NoXᵈ :
+  ∀ {Δ Σ A} →
+  WfTy Δ Σ A →
+  NoXᵈ Δ A
+WfTy→NoXᵈ (wfVar x<Δ) = NoX-X x<Δ
+WfTy→NoXᵈ wfℕ = NoX-ℕ
+WfTy→NoXᵈ wfBool = NoX-Bool
+WfTy→NoXᵈ wfStr = NoX-Str
+WfTy→NoXᵈ wf★ = NoX-★
+WfTy→NoXᵈ (wfU hU) = NoX-U
+WfTy→NoXᵈ (wf⇒ hA hB) = NoX-⇒ (WfTy→NoXᵈ hA) (WfTy→NoXᵈ hB)
+WfTy→NoXᵈ (wf∀ hA) = NoX-∀ (WfTy→NoXᵈ hA)
+
+★~-NoX :
+  ∀ {Σ A} →
+  WfTy zero Σ A →
+  `★ ~ A →
+  NoX A
+★~-NoX hA ★~A = WfTy→NoXᵈ hA
+
+~★-NoX :
+  ∀ {Σ A} →
+  WfTy zero Σ A →
+  A ~ `★ →
+  NoX A
+~★-NoX hA A~★ = ★~-NoX hA (~-sym A~★)
 
 IsVar→Ground : ∀ {A}
   → IsVar A
@@ -378,27 +564,35 @@ data _⊑_ : Ty → Ty → Set where
 ⊑-refl {A = A ⇒ B} = ⊑-⇒ ⊑-refl ⊑-refl
 ⊑-refl {A = `∀ A} = ⊑-∀ ⊑-refl
 
+⊑-NoX-leftᵈ : ∀ {d A B} → A ⊑ B → NoXᵈ d B → NoXᵈ d A
+⊑-NoX-leftᵈ ⊑-X (NoX-X p) = NoX-X p
+⊑-NoX-leftᵈ ⊑-ℕ NoX-ℕ = NoX-ℕ
+⊑-NoX-leftᵈ ⊑-Bool NoX-Bool = NoX-Bool
+⊑-NoX-leftᵈ ⊑-Str NoX-Str = NoX-Str
+⊑-NoX-leftᵈ ⊑-U NoX-U = NoX-U
+⊑-NoX-leftᵈ (⊑-★ nxB) nxB' = NoX-★
+⊑-NoX-leftᵈ (⊑-⇒ A⊑C B⊑D) (NoX-⇒ nxC nxD) =
+  NoX-⇒ (⊑-NoX-leftᵈ A⊑C nxC) (⊑-NoX-leftᵈ B⊑D nxD)
+⊑-NoX-leftᵈ {d = d} (⊑-∀ A⊑B) (NoX-∀ nxB) =
+  NoX-∀ (⊑-NoX-leftᵈ {d = suc d} A⊑B nxB)
+
+⊑-NoX-rightᵈ : ∀ {d A B} → NoXᵈ d A → A ⊑ B → NoXᵈ d B
+⊑-NoX-rightᵈ (NoX-X p) ⊑-X = NoX-X p
+⊑-NoX-rightᵈ NoX-ℕ ⊑-ℕ = NoX-ℕ
+⊑-NoX-rightᵈ NoX-Bool ⊑-Bool = NoX-Bool
+⊑-NoX-rightᵈ NoX-Str ⊑-Str = NoX-Str
+⊑-NoX-rightᵈ {d = d} NoX-★ (⊑-★ nxB) = NoXᵈ-raise {d = d} nxB
+⊑-NoX-rightᵈ NoX-U ⊑-U = NoX-U
+⊑-NoX-rightᵈ (NoX-⇒ nxA nxB) (⊑-⇒ A⊑C B⊑D) =
+  NoX-⇒ (⊑-NoX-rightᵈ nxA A⊑C) (⊑-NoX-rightᵈ nxB B⊑D)
+⊑-NoX-rightᵈ {d = d} (NoX-∀ nxA) (⊑-∀ A⊑B) =
+  NoX-∀ (⊑-NoX-rightᵈ {d = suc d} nxA A⊑B)
+
 ⊑-NoX-left : ∀ {A B} → A ⊑ B → NoX B → NoX A
-⊑-NoX-left ⊑-X ()
-⊑-NoX-left ⊑-ℕ NoX-ℕ = NoX-ℕ
-⊑-NoX-left ⊑-Bool NoX-Bool = NoX-Bool
-⊑-NoX-left ⊑-Str NoX-Str = NoX-Str
-⊑-NoX-left ⊑-U NoX-U = NoX-U
-⊑-NoX-left (⊑-★ nxB) nxB' = NoX-★
-⊑-NoX-left (⊑-⇒ A⊑C B⊑D) (NoX-⇒ nxC nxD) =
-  NoX-⇒ (⊑-NoX-left A⊑C nxC) (⊑-NoX-left B⊑D nxD)
-⊑-NoX-left (⊑-∀ A⊑B) (NoX-∀ nxB) =
-  NoX-∀ (⊑-NoX-left A⊑B nxB)
+⊑-NoX-left = ⊑-NoX-leftᵈ
 
 ⊑-NoX-right : ∀ {A B} → NoX A → A ⊑ B → NoX B
-⊑-NoX-right NoX-ℕ ⊑-ℕ = NoX-ℕ
-⊑-NoX-right NoX-Bool ⊑-Bool = NoX-Bool
-⊑-NoX-right NoX-Str ⊑-Str = NoX-Str
-⊑-NoX-right NoX-★ (⊑-★ nxB) = nxB
-⊑-NoX-right NoX-U ⊑-U = NoX-U
-⊑-NoX-right (NoX-⇒ nxA nxB) (⊑-⇒ A⊑C B⊑D) =
-  NoX-⇒ (⊑-NoX-right nxA A⊑C) (⊑-NoX-right nxB B⊑D)
-⊑-NoX-right (NoX-∀ nxA) (⊑-∀ A⊑B) = NoX-∀ (⊑-NoX-right nxA A⊑B)
+⊑-NoX-right = ⊑-NoX-rightᵈ
 
 ⊑-trans : ∀ {A B C} → A ⊑ B → B ⊑ C → A ⊑ C
 ⊑-trans ⊑-X ⊑-X = ⊑-X
@@ -448,10 +642,18 @@ mkLub :
   Lub A B C
 mkLub A⊑C B⊑C least = A⊑C , (B⊑C , least)
 
+postulate
+  consistency→lub-under∀ :
+    ∀ {A B} →
+    A ~ B →
+    NoXᵈ 1 A →
+    NoXᵈ 1 B →
+    Σ Ty (Lub A B)
+
 mutual
   consistency→lub :
     ∀ {A B} → A ~ B → NoX A → NoX B → Σ Ty (Lub A B)
-  consistency→lub ~-X () _
+  consistency→lub ~-X (NoX-X ()) _
   consistency→lub ~-ℕ NoX-ℕ NoX-ℕ =
     `ℕ , mkLub ⊑-ℕ ⊑-ℕ (λ A⊑D B⊑D → A⊑D)
   consistency→lub ~-Bool NoX-Bool NoX-Bool =
@@ -502,7 +704,7 @@ mutual
       least (⊑-⇒ A⊑X B⊑X) (⊑-⇒ C⊑X D⊑X) =
         ⊑-⇒ (leastDom C⊑X A⊑X) (leastCod B⊑X D⊑X)
   consistency→lub {A = `∀ A₀} {B = `∀ B₀} (~-∀ A~B) (NoX-∀ nxA) (NoX-∀ nxB)
-    with consistency→lub A~B nxA nxB
+    with consistency→lub-under∀ A~B nxA nxB
   ... | J , (A⊑J , (B⊑J , leastBody)) =
     `∀ J , mkLub (⊑-∀ A⊑J) (⊑-∀ B⊑J) least
     where

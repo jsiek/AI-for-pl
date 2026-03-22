@@ -664,6 +664,21 @@ data _⊑_ : Ty → Ty → Set where
   ⊑-⇒ (⊑-trans A⊑B B⊑C) (⊑-trans B⊑D D⊑E)
 ⊑-trans (⊑-∀ A⊑B) (⊑-∀ B⊑C) = ⊑-∀ (⊑-trans A⊑B B⊑C)
 
+★⊑→NoX : ∀ {A} → `★ ⊑ A → NoX A
+★⊑→NoX p = ⊑-NoX-right NoX-★ p
+
+★⊑⇒-dom : ∀ {A B} → `★ ⊑ (A ⇒ B) → `★ ⊑ A
+★⊑⇒-dom ★⊑A⇒B with ★⊑→NoX ★⊑A⇒B
+... | NoX-⇒ nxA nxB = ⊑-★ nxA
+
+★⊑⇒-cod : ∀ {A B} → `★ ⊑ (A ⇒ B) → `★ ⊑ B
+★⊑⇒-cod ★⊑A⇒B with ★⊑→NoX ★⊑A⇒B
+... | NoX-⇒ nxA nxB = ⊑-★ nxB
+
+★⊑∀-open : ∀ {A U} → `★ ⊑ (`∀ A) → `★ ⊑ (A [ U ]ᵘ)
+★⊑∀-open {A} {U} ★⊑∀A with ★⊑→NoX ★⊑∀A
+... | NoX-∀ nxA = ⊑-★ (NoX-openᵘ {A = A} {U = U} nxA)
+
 upper-bounds-consistent : ∀ {A B C} → A ⊑ C → B ⊑ C → A ~ B
 upper-bounds-consistent ⊑-X ⊑-X = ~-X
 upper-bounds-consistent ⊑-ℕ ⊑-ℕ = ~-ℕ
@@ -812,6 +827,211 @@ prec-right :
   A ~ Y
 prec-right A~B Y⊑B = app-consistency ⊑-refl A~B Y⊑B
 
+------------------------------------------------------------------------
+-- Renaming and substitution preserves precision 
+------------------------------------------------------------------------
+
+⊑-renameᵗ : ∀ {ρ A B} → A ⊑ B → renameᵗ ρ A ⊑ renameᵗ ρ B
+⊑-renameᵗ ⊑-X = ⊑-X
+⊑-renameᵗ ⊑-ℕ = ⊑-ℕ
+⊑-renameᵗ ⊑-Bool = ⊑-Bool
+⊑-renameᵗ ⊑-Str = ⊑-Str
+⊑-renameᵗ ⊑-U = ⊑-U
+⊑-renameᵗ (⊑-★ nxB) = ⊑-★ (NoX-renameᵗ nxB)
+⊑-renameᵗ (⊑-⇒ A⊑C B⊑D) = ⊑-⇒ (⊑-renameᵗ A⊑C) (⊑-renameᵗ B⊑D)
+⊑-renameᵗ {ρ = ρ} (⊑-∀ A⊑B) = ⊑-∀ (⊑-renameᵗ {ρ = extᵗ ρ} A⊑B)
+
+⊑-substᵘ : ∀ {d U A B} → A ⊑ B → substᵘ d U A ⊑ substᵘ d U B
+⊑-substᵘ {d = d} {U = U} {A = ` X} ⊑-X
+  with substᵘ d U (` X) | substᵘ-var-shape d U X
+... | `U u | VU-U = ⊑-U
+... | ` y  | VU-X = ⊑-X
+⊑-substᵘ ⊑-ℕ = ⊑-ℕ
+⊑-substᵘ ⊑-Bool = ⊑-Bool
+⊑-substᵘ ⊑-Str = ⊑-Str
+⊑-substᵘ ⊑-U = ⊑-U
+⊑-substᵘ {d = d} {U = U} (⊑-★ nxB) = ⊑-★ (NoXᵈ-substᵘ {d = d} {U = U} z≤n nxB)
+⊑-substᵘ (⊑-⇒ A⊑C B⊑D) = ⊑-⇒ (⊑-substᵘ A⊑C) (⊑-substᵘ B⊑D)
+⊑-substᵘ {d = d} {U = U} (⊑-∀ A⊑B) =
+  ⊑-∀ (⊑-substᵘ {d = suc d} {U = U} A⊑B)
+
+⊑-[]ᵘ : ∀ {A B U} → A ⊑ B → A [ U ]ᵘ ⊑ B [ U ]ᵘ
+⊑-[]ᵘ {A = A} {B = B} {U = U} A⊑B
+  rewrite []ᵘ-as-substᵘ A U | []ᵘ-as-substᵘ B U
+  = ⊑-substᵘ {d = zero} {U = U} A⊑B
+
+------------------------------------------------------------------------
+-- Alternative precision with specialized `★`-left rules
+------------------------------------------------------------------------
+
+infix 4 _⊑′_
+
+data _⊑′_ : Ty → Ty → Set where
+  ⊑′-X : ∀ {X} → ` X ⊑′ ` X
+  ⊑′-ℕ : `ℕ ⊑′ `ℕ
+  ⊑′-Bool : `Bool ⊑′ `Bool
+  ⊑′-Str : `Str ⊑′ `Str
+  ⊑′-★ : `★ ⊑′ `★
+  ⊑′-U : ∀ {U} → `U U ⊑′ `U U
+  ★⊑′ℕ : `★ ⊑′ `ℕ
+  ★⊑′Bool : `★ ⊑′ `Bool
+  ★⊑′Str : `★ ⊑′ `Str
+  ★⊑′U : ∀ {U} → `★ ⊑′ `U U
+  ★⊑′⇒ : ∀ {A B} → `★ ⊑′ A → `★ ⊑′ B → `★ ⊑′ (A ⇒ B)
+  ★⊑′∀ : ∀ {A} → `★ ⊑′ (A [ 0 ]ᵘ) → `★ ⊑′ `∀ A
+  ⊑′-⇒ : ∀ {A B C D} → A ⊑′ C → B ⊑′ D → (A ⇒ B) ⊑′ (C ⇒ D)
+  ⊑′-∀ : ∀ {A B} → A ⊑′ B → `∀ A ⊑′ `∀ B
+
+{-# TERMINATING #-}
+NoX→★⊑′ : ∀ {A} → NoX A → `★ ⊑′ A
+NoX→★⊑′ (NoX-X ())
+NoX→★⊑′ NoX-ℕ = ★⊑′ℕ
+NoX→★⊑′ NoX-Bool = ★⊑′Bool
+NoX→★⊑′ NoX-Str = ★⊑′Str
+NoX→★⊑′ NoX-★ = ⊑′-★
+NoX→★⊑′ NoX-U = ★⊑′U
+NoX→★⊑′ (NoX-⇒ nxA nxB) = ★⊑′⇒ (NoX→★⊑′ nxA) (NoX→★⊑′ nxB)
+NoX→★⊑′ (NoX-∀ nxA) = ★⊑′∀ (NoX→★⊑′ (NoX-openᵘ nxA))
+
+★⊑′→NoX : ∀ {A} → `★ ⊑′ A → NoX A
+★⊑′→NoX ⊑′-★ = NoX-★
+★⊑′→NoX ★⊑′ℕ = NoX-ℕ
+★⊑′→NoX ★⊑′Bool = NoX-Bool
+★⊑′→NoX ★⊑′Str = NoX-Str
+★⊑′→NoX ★⊑′U = NoX-U
+★⊑′→NoX (★⊑′⇒ ★⊑′A ★⊑′B) =
+  NoX-⇒ (★⊑′→NoX ★⊑′A) (★⊑′→NoX ★⊑′B)
+★⊑′→NoX {A = `∀ A} (★⊑′∀ ★⊑′A[0]) =
+  NoX-∀
+    (NoXᵈ-close {n = zero} {U = zero} {A = A}
+      (subst NoX ([]ᵘ-as-substᵘ A 0) (★⊑′→NoX ★⊑′A[0])))
+
+⊑→⊑′ : ∀ {A B} → A ⊑ B → A ⊑′ B
+⊑→⊑′ ⊑-X = ⊑′-X
+⊑→⊑′ ⊑-ℕ = ⊑′-ℕ
+⊑→⊑′ ⊑-Bool = ⊑′-Bool
+⊑→⊑′ ⊑-Str = ⊑′-Str
+⊑→⊑′ ⊑-U = ⊑′-U
+⊑→⊑′ (⊑-★ nxA) = NoX→★⊑′ nxA
+⊑→⊑′ (⊑-⇒ A⊑C B⊑D) = ⊑′-⇒ (⊑→⊑′ A⊑C) (⊑→⊑′ B⊑D)
+⊑→⊑′ (⊑-∀ A⊑B) = ⊑′-∀ (⊑→⊑′ A⊑B)
+
+⊑′→⊑ : ∀ {A B} → A ⊑′ B → A ⊑ B
+⊑′→⊑ ⊑′-X = ⊑-X
+⊑′→⊑ ⊑′-ℕ = ⊑-ℕ
+⊑′→⊑ ⊑′-Bool = ⊑-Bool
+⊑′→⊑ ⊑′-Str = ⊑-Str
+⊑′→⊑ p@⊑′-★ = ⊑-★ (★⊑′→NoX p)
+⊑′→⊑ ⊑′-U = ⊑-U
+⊑′→⊑ p@★⊑′ℕ = ⊑-★ (★⊑′→NoX p)
+⊑′→⊑ p@★⊑′Bool = ⊑-★ (★⊑′→NoX p)
+⊑′→⊑ p@★⊑′Str = ⊑-★ (★⊑′→NoX p)
+⊑′→⊑ p@★⊑′U = ⊑-★ (★⊑′→NoX p)
+⊑′→⊑ p@(★⊑′⇒ ★⊑′A ★⊑′B) = ⊑-★ (★⊑′→NoX p)
+⊑′→⊑ p@(★⊑′∀ ★⊑′A[0]) = ⊑-★ (★⊑′→NoX p)
+⊑′→⊑ (⊑′-⇒ A⊑′C B⊑′D) = ⊑-⇒ (⊑′→⊑ A⊑′C) (⊑′→⊑ B⊑′D)
+⊑′→⊑ (⊑′-∀ A⊑′B) = ⊑-∀ (⊑′→⊑ A⊑′B)
+
+⊑′-renameᵗ : ∀ {ρ A B} → A ⊑′ B → renameᵗ ρ A ⊑′ renameᵗ ρ B
+⊑′-renameᵗ A⊑′B = ⊑→⊑′ (⊑-renameᵗ (⊑′→⊑ A⊑′B))
+
+⊑′-substᵘ : ∀ {d U A B} → A ⊑′ B → substᵘ d U A ⊑′ substᵘ d U B
+⊑′-substᵘ A⊑′B = ⊑→⊑′ (⊑-substᵘ (⊑′→⊑ A⊑′B))
+
+★⊑′⇒-dom : ∀ {A B} → `★ ⊑′ (A ⇒ B) → `★ ⊑′ A
+★⊑′⇒-dom ★⊑′A⇒B with ★⊑′→NoX ★⊑′A⇒B
+... | NoX-⇒ nxA nxB = NoX→★⊑′ nxA
+
+★⊑′⇒-cod : ∀ {A B} → `★ ⊑′ (A ⇒ B) → `★ ⊑′ B
+★⊑′⇒-cod ★⊑′A⇒B with ★⊑′→NoX ★⊑′A⇒B
+... | NoX-⇒ nxA nxB = NoX→★⊑′ nxB
+
+★⊑′∀-open : ∀ {A U} → `★ ⊑′ (`∀ A) → `★ ⊑′ (A [ U ]ᵘ)
+★⊑′∀-open {A} {U} ★⊑′∀A with ★⊑′→NoX ★⊑′∀A
+... | NoX-∀ nxA = NoX→★⊑′ (NoX-openᵘ {A = A} {U = U} nxA)
+
+⊑′-refl : ∀ {A} → A ⊑′ A
+⊑′-refl = ⊑→⊑′ ⊑-refl
+
+⊑′-NoX-leftᵈ : ∀ {d A B} → A ⊑′ B → NoXᵈ d B → NoXᵈ d A
+⊑′-NoX-leftᵈ A⊑′B nxB = ⊑-NoX-leftᵈ (⊑′→⊑ A⊑′B) nxB
+
+⊑′-NoX-rightᵈ : ∀ {d A B} → NoXᵈ d A → A ⊑′ B → NoXᵈ d B
+⊑′-NoX-rightᵈ nxA A⊑′B = ⊑-NoX-rightᵈ nxA (⊑′→⊑ A⊑′B)
+
+⊑′-NoX-left : ∀ {A B} → A ⊑′ B → NoX B → NoX A
+⊑′-NoX-left = ⊑′-NoX-leftᵈ
+
+⊑′-NoX-right : ∀ {A B} → NoX A → A ⊑′ B → NoX B
+⊑′-NoX-right = ⊑′-NoX-rightᵈ
+
+⊑′-trans : ∀ {A B C} → A ⊑′ B → B ⊑′ C → A ⊑′ C
+⊑′-trans A⊑′B B⊑′C = ⊑→⊑′ (⊑-trans (⊑′→⊑ A⊑′B) (⊑′→⊑ B⊑′C))
+
+upper-bounds-consistent′ : ∀ {A B C} → A ⊑′ C → B ⊑′ C → A ~ B
+upper-bounds-consistent′ A⊑′C B⊑′C =
+  upper-bounds-consistent (⊑′→⊑ A⊑′C) (⊑′→⊑ B⊑′C)
+
+Lub′ : Ty → Ty → Ty → Set
+Lub′ A B C =
+  (A ⊑′ C) × ((B ⊑′ C) × (∀ {D} → A ⊑′ D → B ⊑′ D → C ⊑′ D))
+
+mkLub′ :
+  ∀ {A B C} →
+  A ⊑′ C →
+  B ⊑′ C →
+  (∀ {D} → A ⊑′ D → B ⊑′ D → C ⊑′ D) →
+  Lub′ A B C
+mkLub′ A⊑′C B⊑′C least = A⊑′C , (B⊑′C , least)
+
+consistency→lub′ :
+  ∀ {A B} → A ~ B → Σ Ty (Lub′ A B)
+consistency→lub′ A~B
+  with consistency→lub A~B
+... | C , (A⊑C , (B⊑C , least)) =
+  C , mkLub′
+    (⊑→⊑′ A⊑C)
+    (⊑→⊑′ B⊑C)
+    (λ A⊑′D B⊑′D → ⊑→⊑′ (least (⊑′→⊑ A⊑′D) (⊑′→⊑ B⊑′D)))
+
+lub′→consistency : ∀ {A B} → Σ Ty (Lub′ A B) → A ~ B
+lub′→consistency (_ , (A⊑′C , (B⊑′C , least))) =
+  upper-bounds-consistent′ A⊑′C B⊑′C
+
+consistency-iff-lub′ :
+  ∀ {A B} →
+  (A ~ B → Σ Ty (Lub′ A B)) ×
+  (Σ Ty (Lub′ A B) → A ~ B)
+consistency-iff-lub′ =
+  (λ A~B → consistency→lub′ A~B) , lub′→consistency
+
+app-consistency′ :
+  ∀ {A B A′ B′} →
+  A′ ⊑′ A →
+  A ~ B →
+  B′ ⊑′ B →
+  A′ ~ B′
+app-consistency′ A′⊑′A A~B B′⊑′B
+  with consistency→lub′ A~B
+... | C , (A⊑′C , (B⊑′C , least)) =
+  upper-bounds-consistent′
+    (⊑′-trans A′⊑′A A⊑′C)
+    (⊑′-trans B′⊑′B B⊑′C)
+
+prec-left′ :
+  ∀ {X A B} →
+  X ⊑′ A →
+  A ~ B →
+  X ~ B
+prec-left′ X⊑′A A~B = app-consistency′ X⊑′A A~B ⊑′-refl
+
+prec-right′ :
+  ∀ {A B Y} →
+  A ~ B →
+  Y ⊑′ B →
+  A ~ Y
+prec-right′ A~B Y⊑′B = app-consistency′ ⊑′-refl A~B Y⊑′B
+
 ground-consistency-unique :
   ∀ {G H} →
   Ground G →
@@ -877,3 +1097,4 @@ ground-upper-unique :
   G ≡ H
 ground-upper-unique gG gH G⊑A H⊑A =
   ground-consistency-unique gG gH (upper-bounds-consistent G⊑A H⊑A)
+

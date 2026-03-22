@@ -4,8 +4,9 @@ open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; _<_; zero; suc)
 open import Data.Bool using (Bool)
 open import Data.Product using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂; _,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
+open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl)
 open import PolyTypes public
+open import TypeSubst
 
 ------------------------------------------------------------------------
 -- Coercions (Fig. 1)
@@ -155,3 +156,106 @@ substᶜᵗ σ (⊥ᶜ p ⦂ A ⇨ B)     = ⊥ᶜ p ⦂ substᵗ σ A ⇨ subst
 
 substᶜᵘ : Name → Coercion → Coercion
 substᶜᵘ U c = substᶜᵗ (singleTyEnv (`U U)) c
+
+------------------------------------------------------------------------
+-- Coercion renaming and substitution preserves types
+------------------------------------------------------------------------
+
+renameᶜᵗ-preserves-typing :
+  {Σ : Store} {Δ Δ' : TyCtx} {c : Coercion} {A B : Ty} {ρ : Renameᵗ} →
+  TyRenameWf Δ Δ' ρ →
+  Σ ∣ Δ ⊢ c ⦂ A ⇨ B →
+  renameΣ ρ Σ ∣ Δ' ⊢ renameᶜᵗ ρ c ⦂ renameᵗ ρ A ⇨ renameᵗ ρ B
+renameᶜᵗ-preserves-typing hρ (⊢idᶜ hA) =
+  ⊢idᶜ
+    (renameᵗ-preserves-WfTy hA hρ)
+renameᶜᵗ-preserves-typing hρ (⊢! hG gG) =
+  ⊢!
+    (renameᵗ-preserves-WfTy hG hρ)
+    (renameᵗ-preserves-Ground gG)
+renameᶜᵗ-preserves-typing hρ (⊢? hG gG) =
+  ⊢?
+    (renameᵗ-preserves-WfTy hG hρ)
+    (renameᵗ-preserves-Ground gG)
+renameᶜᵗ-preserves-typing hρ (⊢↦ cwt dwt) =
+  ⊢↦
+    (renameᶜᵗ-preserves-typing hρ cwt)
+    (renameᶜᵗ-preserves-typing hρ dwt)
+renameᶜᵗ-preserves-typing hρ (⊢⨟ cwt dwt) =
+  ⊢⨟
+    (renameᶜᵗ-preserves-typing hρ cwt)
+    (renameᶜᵗ-preserves-typing hρ dwt)
+renameᶜᵗ-preserves-typing hρ (⊢conceal hU) =
+  ⊢conceal
+    (lookupᵁ-map-renameᵗ hU)
+renameᶜᵗ-preserves-typing hρ (⊢reveal hU) =
+  ⊢reveal
+    (lookupᵁ-map-renameᵗ hU)
+renameᶜᵗ-preserves-typing {Σ = Σ} {Δ' = Δ'} {ρ = ρ} hρ (⊢∀ᶜ {A = A} {B = B} {c = c} cwt) =
+  ⊢∀ᶜ
+    (Eq.subst
+      (λ S → S ∣ suc Δ' ⊢ renameᶜᵗ (extᵗ ρ) c ⦂ renameᵗ (extᵗ ρ) A ⇨ renameᵗ (extᵗ ρ) B)
+      (map-renameΣ-suc ρ Σ)
+      (renameᶜᵗ-preserves-typing
+        {Σ = renameΣ suc Σ}
+        {ρ = extᵗ ρ}
+        (TyRenameWf-ext hρ)
+        cwt))
+renameᶜᵗ-preserves-typing hρ (⊢⊥ hA hB) =
+  ⊢⊥
+    (renameᵗ-preserves-WfTy hA hρ)
+    (renameᵗ-preserves-WfTy hB hρ)
+
+substᶜᵗ-preserves-typing :
+  {Σ : Store} {Δ Δ' : TyCtx} {c : Coercion} {A B : Ty} {σ : Substᵗ} →
+  WfStore Σ →
+  TySubstWf Δ Δ' Σ σ →
+  TySubstIsVar σ →
+  Σ ∣ Δ ⊢ c ⦂ A ⇨ B →
+  Σ ∣ Δ' ⊢ substᶜᵗ σ c ⦂ substᵗ σ A ⇨ substᵗ σ B
+substᶜᵗ-preserves-typing wfΣ hσ hσv (⊢idᶜ hA) =
+  ⊢idᶜ
+    (substᵗ-preserves-WfTy hA hσ)
+substᶜᵗ-preserves-typing wfΣ hσ hσv (⊢! hG gG) =
+  ⊢!
+    (substᵗ-preserves-WfTy hG hσ)
+    (substᵗ-preserves-Ground gG hσv)
+substᶜᵗ-preserves-typing wfΣ hσ hσv (⊢? hG gG) =
+  ⊢?
+    (substᵗ-preserves-WfTy hG hσ)
+    (substᵗ-preserves-Ground gG hσv)
+substᶜᵗ-preserves-typing wfΣ hσ hσv (⊢↦ cwt dwt) =
+  ⊢↦
+    (substᶜᵗ-preserves-typing wfΣ hσ hσv cwt)
+    (substᶜᵗ-preserves-typing wfΣ hσ hσv dwt)
+substᶜᵗ-preserves-typing wfΣ hσ hσv (⊢⨟ cwt dwt) =
+  ⊢⨟
+    (substᶜᵗ-preserves-typing wfΣ hσ hσv cwt)
+    (substᶜᵗ-preserves-typing wfΣ hσ hσv dwt)
+substᶜᵗ-preserves-typing {σ = σ} wfΣ hσ hσv (⊢conceal {U = U} {A = A} hU)
+  with lookupᵁ-wfty0 wfΣ hU
+... | wfAt0 hA0 =
+  Eq.subst
+    (λ T → _ ∣ _ ⊢ U ⁻ ⦂ T ⇨ `U U)
+    (Eq.sym (substᵗ-id-closed {σ = σ} hA0))
+    (⊢conceal hU)
+substᶜᵗ-preserves-typing {σ = σ} wfΣ hσ hσv (⊢reveal {U = U} {A = A} hU)
+  with lookupᵁ-wfty0 wfΣ hU
+... | wfAt0 hA0 =
+  Eq.subst
+    (λ T → _ ∣ _ ⊢ U ⁺ ⦂ `U U ⇨ T)
+    (Eq.sym (substᵗ-id-closed {σ = σ} hA0))
+    (⊢reveal hU)
+substᶜᵗ-preserves-typing {Σ = Σ} {Δ = Δ} {Δ' = Δ'} {σ = σ} wfΣ hσ hσv
+  (⊢∀ᶜ {A = A} {B = B} {c = c} cwt) =
+  ⊢∀ᶜ
+    (substᶜᵗ-preserves-typing
+      {σ = extsᵗ σ}
+      (rename-suc-WfStore-top wfΣ)
+      (TySubstWf-exts hσ)
+      (λ {X} → TySubstIsVar-exts {σ = σ} hσv {X})
+      cwt)
+substᶜᵗ-preserves-typing wfΣ hσ hσv (⊢⊥ hA hB) =
+  ⊢⊥
+    (substᵗ-preserves-WfTy hA hσ)
+    (substᵗ-preserves-WfTy hB hσ)

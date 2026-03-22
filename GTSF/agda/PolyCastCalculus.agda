@@ -11,6 +11,7 @@ open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; _≢_)
 
 open import PolyCoercions
+open import TypeSubst
 
 --------------------------------------------------------------------------------
 -- Terms and term typing (Fig. 1 and Fig. 2 + standard rules)
@@ -225,12 +226,6 @@ mutual
   ... | no _        = idᶜ (`U V)
   coerce⁻ U (A ⇒ B) = coerce⁺ U A ↦ coerce⁻ U B
   coerce⁻ U (`∀ A)  = ∀ᶜ (coerce⁻ U A)
-
-fresh : Store → Name
-fresh Σ = length Σ
-
-extendStore : Store → Ty → Store
-extendStore Σ B = Σ ++ (B ∷ [])
 
 ------------------------------------------------------------------------
 -- Reduction (Fig. 3), with frames replacing evaluation contexts

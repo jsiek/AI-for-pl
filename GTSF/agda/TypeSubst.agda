@@ -1,8 +1,8 @@
 module TypeSubst where
 
-open import Data.List using (List; []; _∷_; map)
+open import Data.List using (List; []; _∷_; map; _++_; length)
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans; subst)
+open import Relation.Binary.PropositionalEquality as Eq using (cong; cong₂; sym; trans; subst)
 open import Data.Nat using (ℕ; zero; suc; _≤_; z≤n; s≤s)
 open import Agda.Builtin.Sigma using (Σ; _,_)
 open import Data.Nat.Base using (_<_; z<s; s<s)
@@ -10,7 +10,7 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import Data.Sum using (inj₁; inj₂)
 
-open import PolyCoercions
+open import PolyTypes
 
 infixr 50 _⨟ᵗ_
 _⨟ᵗ_ : Substᵗ → Substᵗ → Substᵗ
@@ -476,3 +476,274 @@ substᵗ-preserves-Ground G-∀★ hσ = G-∀★
 substᵗ-preserves-Ground {σ = σ} (G-var {X}) hσ =
   IsVar→Ground (hσ {X})
 substᵗ-preserves-Ground G-U hσ = G-U
+
+lookup-wfty :
+  {Δ : TyCtx} {Σ : Store} {Γ : Ctx} {x : Var} {A : Ty} →
+  WfCtx Δ Σ Γ →
+  Γ ∋ x ⦂ A →
+  WfTy Δ Σ A
+lookup-wfty (wfΓ∷ hΓ hA) Z = hA
+lookup-wfty (wfΓ∷ hΓ hA) (S h) = lookup-wfty hΓ h
+
+wfty-weaken :
+  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} →
+  WfTy Δ Σ A →
+  Δ ≤ Δ' →
+  WfTy Δ' Σ A
+wfty-weaken (wfVar x<Δ) Δ≤Δ' = wfVar (lt-weaken x<Δ Δ≤Δ')
+wfty-weaken wfℕ Δ≤Δ' = wfℕ
+wfty-weaken wfBool Δ≤Δ' = wfBool
+wfty-weaken wfStr Δ≤Δ' = wfStr
+wfty-weaken wf★ Δ≤Δ' = wf★
+wfty-weaken (wfU hU) Δ≤Δ' = wfU hU
+wfty-weaken (wf⇒ hA hB) Δ≤Δ' =
+  wf⇒ (wfty-weaken hA Δ≤Δ') (wfty-weaken hB Δ≤Δ')
+wfty-weaken (wf∀ hA) Δ≤Δ' =
+  wf∀ (wfty-weaken hA (s≤s Δ≤Δ'))
+
+StoreWfAt : TyCtx → Store → Set
+StoreWfAt Δ Σ = ∀ {U A} → Σ ∋ᵁ U ⦂ A → WfTy Δ Σ A
+
+storeWfAt-shift :
+  {Δ : TyCtx} {Σ : Store} →
+  StoreWfAt Δ Σ →
+  StoreWfAt (suc Δ) (renameΣ suc Σ)
+storeWfAt-shift {Δ = Δ} {Σ = Σ} hΣ {U} {A'} hU'
+  with lookupᵁ-map-inv hU'
+... | A , (hU , eq) =
+  Eq.subst
+    (λ T → WfTy (suc Δ) (renameΣ suc Σ) T)
+    (sym eq)
+    (renameᵗ-preserves-WfTy (hΣ hU) (λ {i} i<Δ → s<s i<Δ))
+
+wfty-store-shift :
+  {Δ : TyCtx} {Σ : Store} {A : Ty} →
+  WfTy Δ Σ A →
+  WfTy Δ (renameΣ suc Σ) A
+wfty-store-shift (wfVar x<Δ) = wfVar x<Δ
+wfty-store-shift wfℕ = wfℕ
+wfty-store-shift wfBool = wfBool
+wfty-store-shift wfStr = wfStr
+wfty-store-shift wf★ = wf★
+wfty-store-shift (wfU hU) = wfU (lookupᵁ-map-renameᵗ hU)
+wfty-store-shift (wf⇒ hA hB) =
+  wf⇒ (wfty-store-shift hA) (wfty-store-shift hB)
+wfty-store-shift (wf∀ hA) =
+  wf∀ (wfty-store-shift hA)
+
+wfty-store-unshift :
+  {Δ : TyCtx} {Σ : Store} {A : Ty} →
+  WfTy Δ (renameΣ suc Σ) A →
+  WfTy Δ Σ A
+wfty-store-unshift (wfVar x<Δ) = wfVar x<Δ
+wfty-store-unshift wfℕ = wfℕ
+wfty-store-unshift wfBool = wfBool
+wfty-store-unshift wfStr = wfStr
+wfty-store-unshift wf★ = wf★
+wfty-store-unshift (wfU hU)
+  with lookupᵁ-map-inv hU
+... | A′ , (hA′ , eq) = wfU hA′
+wfty-store-unshift (wf⇒ hA hB) =
+  wf⇒ (wfty-store-unshift hA) (wfty-store-unshift hB)
+wfty-store-unshift (wf∀ hA) =
+  wf∀ (wfty-store-unshift hA)
+
+rename-suc-WfStore-top :
+  {Σ : Store} →
+  WfStore Σ →
+  WfStore (renameΣ suc Σ)
+rename-suc-WfStore-top wfΣ∅ = wfΣ∅
+rename-suc-WfStore-top {Σ = A ∷ Σ} (wfΣ∷ wfΣ wfA) =
+  wfΣ∷
+    (rename-suc-WfStore-top wfΣ)
+    (renameᵗ-preserves-WfTy wfA (TyRenameWf-zero {ρ = suc}))
+
+wfctx-shift :
+  {Δ : TyCtx} {Σ : Store} {Γ : Ctx} →
+  WfCtx Δ Σ Γ →
+  WfCtx (suc Δ) (renameΣ suc Σ) (⤊ Γ)
+wfctx-shift wfΓ∅ = wfΓ∅
+wfctx-shift (wfΓ∷ hΓ hA) =
+  wfΓ∷
+    (wfctx-shift hΓ)
+    (renameᵗ-preserves-WfTy hA (λ {i} i<Δ → s<s i<Δ))
+
+
+map-renameᵗ-⤊ : (ρ : Renameᵗ) (Γ : Ctx) →
+  map (renameᵗ (extᵗ ρ)) (⤊ Γ) ≡ ⤊ (map (renameᵗ ρ) Γ)
+map-renameᵗ-⤊ ρ [] = refl
+map-renameᵗ-⤊ ρ (A ∷ Γ) =
+  cong₂ _∷_
+    (trans
+      (rename-rename-commute suc (extᵗ ρ) A)
+      (trans
+        (rename-cong (λ i → refl) A)
+        (sym (rename-rename-commute ρ suc A))))
+    (map-renameᵗ-⤊ ρ Γ)
+
+renameᵗ-preserves-WfStore : {Σ : Store} {ρ : Renameᵗ} →
+  WfStore Σ →
+  WfStore (renameΣ ρ Σ)
+renameᵗ-preserves-WfStore wfΣ∅ = wfΣ∅
+renameᵗ-preserves-WfStore {ρ = ρ} (wfΣ∷ wfΣ wfA) =
+  wfΣ∷
+    (renameᵗ-preserves-WfStore wfΣ)
+    (renameᵗ-preserves-WfTy wfA (TyRenameWf-zero {ρ = ρ}))
+
+renameᵗ-preserves-WfCtx :
+  {Δ Δ' : TyCtx} {Σ : Store} {Γ : Ctx} {ρ : Renameᵗ} →
+  WfCtx Δ Σ Γ →
+  TyRenameWf Δ Δ' ρ →
+  WfCtx Δ' (renameΣ ρ Σ) (map (renameᵗ ρ) Γ)
+renameᵗ-preserves-WfCtx wfΓ∅ hρ = wfΓ∅
+renameᵗ-preserves-WfCtx (wfΓ∷ hΓ hA) hρ =
+  wfΓ∷
+    (renameᵗ-preserves-WfCtx hΓ hρ)
+    (renameᵗ-preserves-WfTy hA hρ)
+
+substᵗ-suc-renameᵗ-suc :
+  (σ : Substᵗ) →
+  (A : Ty) →
+  substᵗ (extsᵗ σ) (renameᵗ suc A) ≡
+  renameᵗ suc (substᵗ σ A)
+substᵗ-suc-renameᵗ-suc σ A =
+  trans
+    (rename-subst-commute suc (extsᵗ σ) A)
+    (sym (rename-subst suc σ A))
+
+map-substᵗ-⤊ :
+  (σ : Substᵗ) →
+  (Γ : Ctx) →
+  map (substᵗ (extsᵗ σ)) (⤊ Γ) ≡ ⤊ (map (substᵗ σ) Γ)
+map-substᵗ-⤊ σ [] = refl
+map-substᵗ-⤊ σ (A ∷ Γ) =
+  cong₂ _∷_
+    (substᵗ-suc-renameᵗ-suc σ A)
+    (map-substᵗ-⤊ σ Γ)
+
+substᵗ-preserves-WfCtx :
+  {Δ Δ' : TyCtx} {Σ : Store} {Γ : Ctx} {σ : Substᵗ} →
+  WfCtx Δ Σ Γ →
+  TySubstWf Δ Δ' Σ σ →
+  WfCtx Δ' Σ (map (substᵗ σ) Γ)
+substᵗ-preserves-WfCtx wfΓ∅ hσ = wfΓ∅
+substᵗ-preserves-WfCtx (wfΓ∷ hΓ hA) hσ =
+  wfΓ∷
+    (substᵗ-preserves-WfCtx hΓ hσ)
+    (substᵗ-preserves-WfTy hA hσ)
+
+substᵗ-id-on-wf :
+  {Δ : TyCtx} {Σ : Store} {A : Ty} {σ : Substᵗ} →
+  (∀ {X} → X < Δ → σ X ≡ ` X) →
+  WfTy Δ Σ A →
+  substᵗ σ A ≡ A
+substᵗ-id-on-wf hσ (wfVar x<Δ) = hσ x<Δ
+substᵗ-id-on-wf hσ wfℕ = refl
+substᵗ-id-on-wf hσ wfBool = refl
+substᵗ-id-on-wf hσ wfStr = refl
+substᵗ-id-on-wf hσ wf★ = refl
+substᵗ-id-on-wf hσ (wfU hU) = refl
+substᵗ-id-on-wf hσ (wf⇒ hA hB) =
+  cong₂ _⇒_ (substᵗ-id-on-wf hσ hA) (substᵗ-id-on-wf hσ hB)
+substᵗ-id-on-wf {Δ = Δ} {σ = σ} hσ (wf∀ hA) =
+  cong `∀ (substᵗ-id-on-wf hσ-ext hA)
+  where
+    hσ-ext : ∀ {X} → X < suc Δ → extsᵗ σ X ≡ ` X
+    hσ-ext {zero} z<s = refl
+    hσ-ext {suc X} (s<s x<Δ) =
+      cong (renameᵗ suc) (hσ x<Δ)
+
+substᵗ-id-closed :
+  {Σ : Store} {A : Ty} {σ : Substᵗ} →
+  WfTy zero Σ A →
+  substᵗ σ A ≡ A
+substᵗ-id-closed hA = substᵗ-id-on-wf (λ ()) hA
+
+data WfAt0 (A : Ty) : Set where
+  wfAt0 : ∀ {stores : Store} → WfTy 0 stores A → WfAt0 A
+
+lookupᵁ-wfty0 :
+  {stores : Store} {U : Name} {A : Ty} →
+  WfStore stores →
+  stores ∋ᵁ U ⦂ A →
+  WfAt0 A
+lookupᵁ-wfty0 wfΣ∅ ()
+lookupᵁ-wfty0 {stores = A ∷ stores} (wfΣ∷ wfΣ wfA) Zᵁ = wfAt0 wfA
+lookupᵁ-wfty0 {stores = B ∷ stores} (wfΣ∷ wfΣ wfB) (Sᵁ hU) =
+  lookupᵁ-wfty0 wfΣ hU
+
+rename-suc-WfStore :
+  {stores : Store} →
+  WfStore stores →
+  WfStore (renameΣ suc stores)
+rename-suc-WfStore wfΣ∅ = wfΣ∅
+rename-suc-WfStore {stores = A ∷ stores} (wfΣ∷ wfΣ wfA) =
+  wfΣ∷
+    (rename-suc-WfStore wfΣ)
+    (renameᵗ-preserves-WfTy wfA (TyRenameWf-zero {ρ = suc}))
+
+subst-cong-wf :
+  {Δ : TyCtx} {Σ : Store} {A : Ty} {σ τ : Substᵗ} →
+  (∀ {X} → X < Δ → σ X ≡ τ X) →
+  WfTy Δ Σ A →
+  substᵗ σ A ≡ substᵗ τ A
+subst-cong-wf hσ (wfVar x<Δ) = hσ x<Δ
+subst-cong-wf hσ wfℕ = refl
+subst-cong-wf hσ wfBool = refl
+subst-cong-wf hσ wfStr = refl
+subst-cong-wf hσ wf★ = refl
+subst-cong-wf hσ (wfU hU) = refl
+subst-cong-wf hσ (wf⇒ hA hB) =
+  cong₂ _⇒_ (subst-cong-wf hσ hA) (subst-cong-wf hσ hB)
+subst-cong-wf {Δ = Δ} {σ = σ} {τ = τ} hσ (wf∀ hA) =
+  cong `∀ (subst-cong-wf hσ-ext hA)
+  where
+    hσ-ext : ∀ {X} → X < suc Δ → extsᵗ σ X ≡ extsᵗ τ X
+    hσ-ext {zero} z<s = refl
+    hσ-ext {suc X} (s<s x<Δ) = cong (renameᵗ suc) (hσ x<Δ)
+
+extendStore : Store → Ty → Store
+extendStore Σ B = Σ ++ (B ∷ [])
+
+lookupᵁ-extend :
+  {Σ : Store} {U : Name} {A B : Ty} →
+  Σ ∋ᵁ U ⦂ A →
+  extendStore Σ B ∋ᵁ U ⦂ A
+lookupᵁ-extend Zᵁ = Zᵁ
+lookupᵁ-extend (Sᵁ hU) = Sᵁ (lookupᵁ-extend hU)
+
+fresh : Store → Name
+fresh Σ = length Σ
+
+lookupᵁ-fresh-extend :
+  {Σ : Store} {B : Ty} →
+  extendStore Σ B ∋ᵁ fresh Σ ⦂ B
+lookupᵁ-fresh-extend {Σ = []} {B = B} = Zᵁ
+lookupᵁ-fresh-extend {Σ = A ∷ Σ} {B = B} =
+  Sᵁ (lookupᵁ-fresh-extend {Σ = Σ} {B = B})
+
+renameᵗ-id-on-wf :
+  {Δ : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
+  (∀ {X} → X < Δ → ρ X ≡ X) →
+  WfTy Δ Σ A →
+  renameᵗ ρ A ≡ A
+renameᵗ-id-on-wf hρ (wfVar x<Δ) = cong `_ (hρ x<Δ)
+renameᵗ-id-on-wf hρ wfℕ = refl
+renameᵗ-id-on-wf hρ wfBool = refl
+renameᵗ-id-on-wf hρ wfStr = refl
+renameᵗ-id-on-wf hρ wf★ = refl
+renameᵗ-id-on-wf hρ (wfU hU) = refl
+renameᵗ-id-on-wf hρ (wf⇒ hA hB) =
+  cong₂ _⇒_ (renameᵗ-id-on-wf hρ hA) (renameᵗ-id-on-wf hρ hB)
+renameᵗ-id-on-wf {Δ = Δ} {ρ = ρ} hρ (wf∀ hA) =
+  cong `∀ (renameᵗ-id-on-wf hρ-ext hA)
+  where
+    hρ-ext : ∀ {X} → X < suc Δ → extᵗ ρ X ≡ X
+    hρ-ext {zero} z<s = refl
+    hρ-ext {suc X} (s<s x<Δ) = cong suc (hρ x<Δ)
+
+renameᵗ-suc-id-closed :
+  {Σ : Store} {A : Ty} →
+  WfTy 0 Σ A →
+  renameᵗ suc A ≡ A
+renameᵗ-suc-id-closed hA = renameᵗ-id-on-wf (λ ()) hA

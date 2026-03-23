@@ -11,7 +11,7 @@ data Term : Set where
   `_    : Var → Term
   $_    : Nat → Term
   ƛ_⇒_  : Ty → Term → Term
-  _·_   : Term → Term → Term
+  _·_   : {ℓ : Nat} → Term → Term → Term
 
 infix 4 _⊢_⦂_
 
@@ -30,18 +30,18 @@ data _⊢_⦂_ : Ctx → Term → Ty → Set where
       -----------------------
     → Γ ⊢ ƛ A ⇒ N ⦂ (A ⇒ B)
 
-  ⊢· : ∀ {Γ L M A A′ B}
+  ⊢· : ∀ {Γ L M A A′ B ℓ}
     → Γ ⊢ L ⦂ (A ⇒ B)
     → Γ ⊢ M ⦂ A′ 
     → A′ ~ A
       ----------------
-    → Γ ⊢ L · M ⦂ B
+    → Γ ⊢ (_·_ {ℓ = ℓ} L M) ⦂ B
 
-  ⊢·★ : ∀ {Γ L M A}
+  ⊢·★ : ∀ {Γ L M A ℓ}
     → Γ ⊢ L ⦂ ★
     → Γ ⊢ M ⦂ A
       ----------------
-    → Γ ⊢ L · M ⦂ ★
+    → Γ ⊢ (_·_ {ℓ = ℓ} L M) ⦂ ★
 
 infix 4 _⊑ᵀ_
 
@@ -57,10 +57,10 @@ data _⊑ᵀ_ : Term → Term → Set where
     → N ⊑ᵀ M
     → ƛ A ⇒ N ⊑ᵀ ƛ A′ ⇒ M
 
-  ⊑· : ∀ {L L′ M M′}
+  ⊑· : ∀ {ℓ L L′ M M′}
     → L ⊑ᵀ L′
     → M ⊑ᵀ M′
-    → L · M ⊑ᵀ L′ · M′
+    → (_·_ {ℓ = ℓ} L M) ⊑ᵀ (_·_ {ℓ = ℓ} L′ M′)
 
 infix 4 _⊢_⦂_⊑ᵀ_⦂_
 data _⊢_⦂_⊑ᵀ_⦂_ {Γ Γ′ : Ctx} (ρ : Γ ⊑ᵉ Γ′) : Term → Ty → Term → Ty → Set where
@@ -77,23 +77,23 @@ data _⊢_⦂_⊑ᵀ_⦂_ {Γ Γ′ : Ctx} (ρ : Γ ⊑ᵉ Γ′) : Term → Ty 
     → (extend-⊑ᵉ A⊑A′ ρ) ⊢ N ⦂ B ⊑ᵀ M ⦂ B′
     → ρ ⊢ ƛ A ⇒ N ⦂ (A ⇒ B) ⊑ᵀ ƛ A′ ⇒ M ⦂ (A′ ⇒ B′)
 
-  ⊑· : ∀ {A A′ Aarg A′arg B B′ L L′ M M′}
+  ⊑· : ∀ {A A′ Aarg A′arg B B′ L L′ M M′ ℓ}
     → ρ ⊢ L ⦂ (A ⇒ B) ⊑ᵀ L′ ⦂ (A′ ⇒ B′)
     → ρ ⊢ M ⦂ Aarg ⊑ᵀ M′ ⦂ A′arg
     → Aarg ~ A
     → A′arg ~ A′
-    → ρ ⊢ L · M ⦂ B ⊑ᵀ L′ · M′ ⦂ B′
+    → ρ ⊢ (_·_ {ℓ = ℓ} L M) ⦂ B ⊑ᵀ (_·_ {ℓ = ℓ} L′ M′) ⦂ B′
 
-  ⊑·★ : ∀ {A A′ L L′ M M′}
+  ⊑·★ : ∀ {A A′ L L′ M M′ ℓ}
     → ρ ⊢ L ⦂ ★ ⊑ᵀ L′ ⦂ ★
     → ρ ⊢ M ⦂ A ⊑ᵀ M′ ⦂ A′
-    → ρ ⊢ L · M ⦂ ★ ⊑ᵀ L′ · M′ ⦂ ★
+    → ρ ⊢ (_·_ {ℓ = ℓ} L M) ⦂ ★ ⊑ᵀ (_·_ {ℓ = ℓ} L′ M′) ⦂ ★
 
-  ⊑·★L : ∀ {A A′ A′arg B′ L L′ M M′}
+  ⊑·★L : ∀ {A A′ A′arg B′ L L′ M M′ ℓ}
     → ρ ⊢ L ⦂ ★ ⊑ᵀ L′ ⦂ (A′ ⇒ B′)
     → ρ ⊢ M ⦂ A ⊑ᵀ M′ ⦂ A′arg
     → A′arg ~ A′
-    → ρ ⊢ L · M ⦂ ★ ⊑ᵀ L′ · M′ ⦂ B′
+    → ρ ⊢ (_·_ {ℓ = ℓ} L M) ⦂ ★ ⊑ᵀ (_·_ {ℓ = ℓ} L′ M′) ⦂ B′
 
 mutual
   ⊑-to-~ : ∀ {A B} → A ⊑ B → A ~ B

@@ -1,7 +1,10 @@
 module PolyCastCalculus where
 
--- This is a simplification of the λC_mp of Igarashi, Ozaki, Sekiyama, and Tanabe (PLDI 2024),
--- call it λC∀, in that it is fully parametric.
+-- This is a variant of λC∀ of Ozaki, Sekiyama, and Igarashi (Scheme
+-- 2021) that uses type names in addition to type variables, so in
+-- that respect is is like λC_mp of Igarashi, Ozaki, Sekiyama, and
+-- Tanabe (PLDI 2024).  However, this variant is fully parametric like
+-- λC∀ and not space efficient.
 
 open import Data.List using (List; []; _∷_; _++_; length)
 open import Data.Nat using (ℕ; zero; suc)

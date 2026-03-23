@@ -4,7 +4,7 @@ open import Data.Product using (Σ-syntax; ∃-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality using (_≢_)
 
 open import Types
-open import Coercions
+open import CoercionReduction
 
 infix 4 _≈ᶜ_
 
@@ -32,12 +32,12 @@ data _≈ᶜ_ : Coercion → Coercion → Set where
     → (c₁ ⨟ d₁) ≈ᶜ (c₂ ⨟ d₂)
 
   -- Rules mirroring one-step reduction rules.
-  ≈-β-proj-inj-ok : ∀ {G}
-    → (G ! ⨟ G `?) ≈ᶜ idᶜ G
+  ≈-β-proj-inj-ok : ∀ {G ℓ}
+    → (G ! ⨟ ((_`? {ℓ = ℓ}) G)) ≈ᶜ idᶜ G
 
-  ≈-β-proj-inj-bad : ∀ {G H}
+  ≈-β-proj-inj-bad : ∀ {G H ℓ}
     → G ≢ H
-    → (G ! ⨟ H `?) ≈ᶜ (⊥ᶜ G ⇨ H)
+    → (G ! ⨟ ((_`? {ℓ = ℓ}) H)) ≈ᶜ (⊥ᶜ G ⇨ H)
 
   ≈-β-idL : ∀ {A d}
     → (idᶜ A ⨟ d) ≈ᶜ d

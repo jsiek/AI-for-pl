@@ -296,6 +296,85 @@ subst-[]ᵗ-commute σ A B =
     env-eq zero = refl
     env-eq (suc i) = refl
 
+------------------------------------------------------------------------
+-- Consistency preserved by substitution
+------------------------------------------------------------------------
+
+~-substᵗ : ∀ {σ A B} → A ~ B → substᵗ σ A ~ substᵗ σ B
+~-substᵗ ~-X = ~-refl
+~-substᵗ ~-ℕ = ~-ℕ
+~-substᵗ ~-Bool = ~-Bool
+~-substᵗ ~-Str = ~-Str
+~-substᵗ ~-★ = ~-★
+~-substᵗ ~-U = ~-U
+~-substᵗ ★~ℕ = ★~ℕ
+~-substᵗ ℕ~★ = ℕ~★
+~-substᵗ ★~Bool = ★~Bool
+~-substᵗ Bool~★ = Bool~★
+~-substᵗ ★~Str = ★~Str
+~-substᵗ Str~★ = Str~★
+~-substᵗ ★~U = ★~U
+~-substᵗ U~★ = U~★
+~-substᵗ (★~⇒ A~★ ★~B) =
+  ★~⇒ (~-substᵗ A~★) (~-substᵗ ★~B)
+~-substᵗ (⇒~★ ★~A B~★) =
+  ⇒~★ (~-substᵗ ★~A) (~-substᵗ B~★)
+~-substᵗ {σ = σ} {B = `∀ A} (★~∀ ★~A[0])
+  = ★~∀
+    (Eq.subst
+      (λ T → `★ ~ T)
+      (subst-[]ᵗ-commute σ A (`U zero))
+      (~-substᵗ {σ = σ} ★~A[0]))
+~-substᵗ {σ = σ} {A = `∀ A} (∀~★ A[0]~★)
+  = ∀~★
+    (Eq.subst
+      (λ T → T ~ `★)
+      (subst-[]ᵗ-commute σ A (`U zero))
+      (~-substᵗ {σ = σ} A[0]~★))
+~-substᵗ (~-⇒ C~A B~D) =
+  ~-⇒ (~-substᵗ C~A) (~-substᵗ B~D)
+~-substᵗ {σ = σ} (~-∀ A~B) =
+  ~-∀ (~-substᵗ {σ = extsᵗ σ} A~B)
+
+~-substᵘ : ∀ {d U A B} → A ~ B → substᵘ d U A ~ substᵘ d U B
+~-substᵘ {d = d} {U = U} {A = A} {B = B} A~B
+  rewrite substᵘ-as-substᵗ d U A | substᵘ-as-substᵗ d U B
+  = ~-substᵗ {σ = substEnvᵘ d U} A~B
+
+~-[]ᵘ : ∀ {A B U} → A ~ B → A [ U ]ᵘ ~ B [ U ]ᵘ
+~-[]ᵘ {U = U} (~-X {X = zero}) = ~-U
+~-[]ᵘ {U = U} (~-X {X = suc X}) = ~-X
+~-[]ᵘ ~-ℕ = ~-ℕ
+~-[]ᵘ ~-Bool = ~-Bool
+~-[]ᵘ ~-Str = ~-Str
+~-[]ᵘ ~-★ = ~-★
+~-[]ᵘ ~-U = ~-U
+~-[]ᵘ ★~ℕ = ★~ℕ
+~-[]ᵘ ℕ~★ = ℕ~★
+~-[]ᵘ ★~Bool = ★~Bool
+~-[]ᵘ Bool~★ = Bool~★
+~-[]ᵘ ★~Str = ★~Str
+~-[]ᵘ Str~★ = Str~★
+~-[]ᵘ ★~U = ★~U
+~-[]ᵘ U~★ = U~★
+~-[]ᵘ (★~⇒ c d) = ★~⇒ (~-[]ᵘ c) (~-[]ᵘ d)
+~-[]ᵘ (⇒~★ c d) = ⇒~★ (~-[]ᵘ c) (~-[]ᵘ d)
+~-[]ᵘ {A = `★} {B = `∀ A} {U = U} (★~∀ c) =
+  ★~∀
+    (Eq.subst
+      (λ T → `★ ~ T)
+      (subst-[]ᵗ-commute (singleTyEnv (`U U)) A (`U zero))
+      (~-substᵗ {σ = singleTyEnv (`U U)} c))
+~-[]ᵘ {A = `∀ A} {B = `★} {U = U} (∀~★ c) =
+  ∀~★
+    (Eq.subst
+      (λ T → T ~ `★)
+      (subst-[]ᵗ-commute (singleTyEnv (`U U)) A (`U zero))
+      (~-substᵗ {σ = singleTyEnv (`U U)} c))
+~-[]ᵘ (~-⇒ c d) = ~-⇒ (~-[]ᵘ c) (~-[]ᵘ d)
+~-[]ᵘ {U = U} (~-∀ c) =
+  ~-∀ (~-substᵗ {σ = extsᵗ (singleTyEnv (`U U))} c)
+
 
 ------------------------------------------------------------------------
 -- Context lookup under list maps

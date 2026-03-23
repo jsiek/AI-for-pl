@@ -1,5 +1,6 @@
 module CoercionReduction where
 
+open import Agda.Builtin.Nat using (Nat)
 open import Data.Product using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂; _,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
@@ -14,7 +15,7 @@ infixr 6 _↦_
 data Coercion : Set where
   idᶜ  : Ty → Coercion
   _!   : Ty → Coercion -- injection (tagging)
-  _`?  : Ty → Coercion -- projection (tag checking)
+  _`?  : {ℓ : Nat} → Ty → Coercion -- projection (tag checking)
   _↦_  : Coercion → Coercion → Coercion
   _⨟_  : Coercion → Coercion → Coercion
   ⊥ᶜ_⇨_ : Ty → Ty → Coercion
@@ -22,7 +23,7 @@ data Coercion : Set where
 data Atomic : Coercion → Set where
   atom-idᶜ : ∀ {A} → Atomic (idᶜ A)
   atom-! : ∀ {G} → Atomic (G !)
-  atom-? : ∀ {G} → Atomic (G `?)
+  atom-? : ∀ {G ℓ} → Atomic ((_`? {ℓ = ℓ}) G)
 
 infix 4 ⊢_⦂_⇨_
 
@@ -34,9 +35,9 @@ data ⊢_⦂_⇨_ : Coercion → Ty → Ty → Set where
     → Ground G
     → ⊢ G ! ⦂ G ⇨ ★
 
-  ⊢? : ∀ {G}
+  ⊢? : ∀ {G ℓ}
     → Ground G
-    → ⊢ G `? ⦂ ★ ⇨ G
+    → ⊢ ((_`? {ℓ = ℓ}) G) ⦂ ★ ⇨ G
 
   ⊢↦ : ∀ {A B C D c d}
     → ⊢ c ⦂ C ⇨ A
@@ -51,26 +52,26 @@ data ⊢_⦂_⇨_ : Coercion → Ty → Ty → Set where
   ⊢⊥ : ∀ {A B}
     → ⊢ (⊥ᶜ A ⇨ B) ⦂ A ⇨ B
 
-coerce : ∀ {A B} → A ~ B → Coercion
-coerce ~-ℕ = idᶜ ℕ
-coerce ~-★ = idᶜ ★
-coerce ★~ℕ = ℕ `?
-coerce ℕ~★ = ℕ !
-coerce (★~⇒ c d) = (★ ⇒ ★) `? ⨟ (coerce c ↦ coerce d)
-coerce (⇒~★ c d) = (coerce c ↦ coerce d) ⨟ ((★ ⇒ ★) !)
+coerce : ∀ {A B} → Nat → A ~ B → Coercion
+coerce ℓ ~-ℕ = idᶜ ℕ
+coerce ℓ ~-★ = idᶜ ★
+coerce ℓ ★~ℕ = (_`? {ℓ = ℓ}) ℕ
+coerce ℓ ℕ~★ = ℕ !
+coerce ℓ (★~⇒ c d) = ((_`? {ℓ = ℓ}) (★ ⇒ ★)) ⨟ (coerce ℓ c ↦ coerce ℓ d)
+coerce ℓ (⇒~★ c d) = (coerce ℓ c ↦ coerce ℓ d) ⨟ ((★ ⇒ ★) !)
   --              A ⇒ B               ★ ⇒ ★            ★
-coerce (~-⇒ c d) = coerce c ↦ coerce d
+coerce ℓ (~-⇒ c d) = coerce ℓ c ↦ coerce ℓ d
 
-coerce-wt : ∀ {A B} (p : A ~ B) → ⊢ coerce p ⦂ A ⇨ B
-coerce-wt ~-ℕ = ⊢idᶜ
-coerce-wt ~-★ = ⊢idᶜ
-coerce-wt ★~ℕ = ⊢? G-ℕ
-coerce-wt ℕ~★ = ⊢! G-ℕ
-coerce-wt (★~⇒ c d) =
-  ⊢⨟ (⊢? G-⇒) (⊢↦ (coerce-wt c) (coerce-wt d))
-coerce-wt (⇒~★ c d) =
-  ⊢⨟ (⊢↦ (coerce-wt c) (coerce-wt d)) (⊢! G-⇒)
-coerce-wt (~-⇒ c d) = ⊢↦ (coerce-wt c) (coerce-wt d)
+coerce-wt : ∀ {A B} (ℓ : Nat) (p : A ~ B) → ⊢ coerce ℓ p ⦂ A ⇨ B
+coerce-wt ℓ ~-ℕ = ⊢idᶜ
+coerce-wt ℓ ~-★ = ⊢idᶜ
+coerce-wt ℓ ★~ℕ = ⊢? G-ℕ
+coerce-wt ℓ ℕ~★ = ⊢! G-ℕ
+coerce-wt ℓ (★~⇒ c d) =
+  ⊢⨟ (⊢? G-⇒) (⊢↦ (coerce-wt ℓ c) (coerce-wt ℓ d))
+coerce-wt ℓ (⇒~★ c d) =
+  ⊢⨟ (⊢↦ (coerce-wt ℓ c) (coerce-wt ℓ d)) (⊢! G-⇒)
+coerce-wt ℓ (~-⇒ c d) = ⊢↦ (coerce-wt ℓ c) (coerce-wt ℓ d)
 
 
 coercion-type-unique : ∀ {c A B C D}
@@ -99,12 +100,12 @@ infixr 2 _—→ᶜᶜ⟨_⟩_
 infix 2 _—↠ᶜᶜ_
 
 data _—→ᶜᶜ_ : Coercion → Coercion → Set where
-  β-proj-inj-okᶜ : ∀ {G}
-    → (G ! ⨟ G `?) —→ᶜᶜ idᶜ G
+  β-proj-inj-okᶜ : ∀ {G ℓ}
+    → (G ! ⨟ ((_`? {ℓ = ℓ}) G)) —→ᶜᶜ idᶜ G
 
-  β-proj-inj-badᶜ : ∀ {G H}
+  β-proj-inj-badᶜ : ∀ {G H ℓ}
     → G ≢ H
-    → (G ! ⨟ H `?) —→ᶜᶜ (⊥ᶜ G ⇨ H)
+    → (G ! ⨟ ((_`? {ℓ = ℓ}) H)) —→ᶜᶜ (⊥ᶜ G ⇨ H)
 
   β-idLᶜ : ∀ {A d}
     → (idᶜ A ⨟ d) —→ᶜᶜ d
@@ -212,26 +213,26 @@ data Normalᶜ : Coercion → Set where
 
   nf-? : ∀ {G}
     → Ground G
-    → Normalᶜ (G `?)
+    → ∀ {ℓ} → Normalᶜ ((_`? {ℓ = ℓ}) G)
 
   nf-! : ∀ {G}
     → Ground G
     → Normalᶜ (G !)
 
-  nf-?! : ∀ {G}
+  nf-?! : ∀ {G ℓ}
     → Ground G
-    → Normalᶜ ((G `?) ⨟ (G !))
+    → Normalᶜ (((_`? {ℓ = ℓ}) G) ⨟ (G !))
 
   nf-↦ : ∀ {c d}
     → Normalᶜ c
     → Normalᶜ d
     → Normalᶜ (c ↦ d)
 
-  nf-?↦ : ∀ {G c d}
+  nf-?↦ : ∀ {G c d ℓ}
     → Ground G
     → Normalᶜ c
     → Normalᶜ d
-    → Normalᶜ (G `? ⨟ (c ↦ d))
+    → Normalᶜ (((_`? {ℓ = ℓ}) G) ⨟ (c ↦ d))
 
   nf-↦! : ∀ {c d G}
     → Normalᶜ c
@@ -239,15 +240,15 @@ data Normalᶜ : Coercion → Set where
     → Ground G
     → Normalᶜ ((c ↦ d) ⨟ (G !))
 
-  nf-?↦! : ∀ {G c d}
+  nf-?↦! : ∀ {G c d ℓ}
     → Ground G
     → Normalᶜ c
     → Normalᶜ d
-    → Normalᶜ (G `? ⨟ ((c ↦ d) ⨟ (G !)))
+    → Normalᶜ (((_`? {ℓ = ℓ}) G) ⨟ ((c ↦ d) ⨟ (G !)))
 
-  nf-?⊥ : ∀ {G A B}
+  nf-?⊥ : ∀ {G A B ℓ}
     → Ground G
-    → Normalᶜ (G `? ⨟ (⊥ᶜ A ⇨ B))
+    → Normalᶜ (((_`? {ℓ = ℓ}) G) ⨟ (⊥ᶜ A ⇨ B))
 
   nf-⊥ : ∀ {A B}
     → Normalᶜ (⊥ᶜ A ⇨ B)

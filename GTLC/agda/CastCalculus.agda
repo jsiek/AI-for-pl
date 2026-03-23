@@ -18,19 +18,14 @@ data Termᶜ : Set where
   $_      : Nat → Termᶜ
   ƛ_⇒_    : Ty → Termᶜ → Termᶜ
   _·_     : Termᶜ → Termᶜ → Termᶜ
---  ⟨_,_⟩
---  fst_
---  snd_
   cast_[_] : Termᶜ → Coercion → Termᶜ
-  blame   : Termᶜ
+  blame   : {ℓ : Nat} → Termᶜ
 
 data Valueᶜ : Termᶜ → Set where
   V-$ : ∀ {n} → Valueᶜ ($ n)
   V-ƛ : ∀ {A N} → Valueᶜ (ƛ A ⇒ N)
   V-cast! : ∀ {V G} → Valueᶜ V → Valueᶜ (cast V [ G ! ])
   V-cast↦ : ∀ {V c d} → Valueᶜ V → Valueᶜ (cast V [ c ↦ d ])
-  -- ⟨ V , W ⟩
-  --- Value V → Value (cast V [ c × d ])   (inert/lazy)
 
 data Frameᶜ : Set where
   □·_     : Termᶜ → Frameᶜ
@@ -70,8 +65,8 @@ data _⊢ᶜ_⦂_ : Ctx → Termᶜ → Ty → Set where
     → ⊢ c ⦂ A ⇨ B
     → Γ ⊢ᶜ cast M [ c ] ⦂ B
 
-  ⊢blame : ∀ {Γ A}
-    → Γ ⊢ᶜ blame ⦂ A
+  ⊢blame : ∀ {Γ A ℓ}
+    → Γ ⊢ᶜ blame {ℓ = ℓ} ⦂ A
 
 ---------------------------------------------------------------
 -- Term Precision 
@@ -116,10 +111,10 @@ data _⊢_⦂_⊑ᶜᵀ_⦂_ {Γ₁ Γ₂ : Ctx} (ρ : Γ₁ ⊑ᵉ Γ₂) : Ter
     → idᶜ A ⊑ᶜ c′
     → ρ ⊢ M ⦂ A ⊑ᶜᵀ cast M′ [ c′ ] ⦂ B′
 
-  ⊑blameR : ∀ {A₁ A₂ M}
+  ⊑blameR : ∀ {A₁ A₂ M ℓ}
     → Γ₁ ⊢ᶜ M ⦂ A₁
     → A₁ ⊑ A₂
-    → ρ ⊢ M ⦂ A₁ ⊑ᶜᵀ blame ⦂ A₂
+    → ρ ⊢ M ⦂ A₁ ⊑ᶜᵀ blame {ℓ = ℓ} ⦂ A₂
 
 ⊑ᶜᵀ-left-typed
   : ∀ {Γ₁ Γ₂} {ρ : Γ₁ ⊑ᵉ Γ₂} {A₁ A₂ M M′}
@@ -188,7 +183,7 @@ renameᶜ ρ ($ n) = $ n
 renameᶜ ρ (ƛ A ⇒ N) = ƛ A ⇒ renameᶜ (extᶜ ρ) N
 renameᶜ ρ (L · M) = renameᶜ ρ L · renameᶜ ρ M
 renameᶜ ρ (cast M [ c ]) = cast (renameᶜ ρ M) [ c ]
-renameᶜ ρ blame = blame
+renameᶜ ρ (blame {ℓ = ℓ}) = blame {ℓ = ℓ}
 
 extsᶜ : Substᶜ → Substᶜ
 extsᶜ σ zero = ` zero
@@ -200,7 +195,7 @@ substᶜ σ ($ n) = $ n
 substᶜ σ (ƛ A ⇒ N) = ƛ A ⇒ substᶜ (extsᶜ σ) N
 substᶜ σ (L · M) = substᶜ σ L · substᶜ σ M
 substᶜ σ (cast M [ c ]) = cast (substᶜ σ M) [ c ]
-substᶜ σ blame = blame
+substᶜ σ (blame {ℓ = ℓ}) = blame {ℓ = ℓ}
 
 singleEnvᶜ : Termᶜ → Substᶜ
 singleEnvᶜ M zero = M
@@ -246,23 +241,23 @@ data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
   --  cast ⟨ V , W ⟩ [ c × d ]
   --        —→ᶜ ⟨ cast V [ c ] , cast W [ d ] ⟩
   
-  β-proj-inj-ok : ∀ {V G}
+  β-proj-inj-ok : ∀ {V G ℓ}
     → Valueᶜ V
-    → cast (cast V [ G ! ]) [ G `? ] —→ᶜ V
+    → cast (cast V [ G ! ]) [ (_`? {ℓ = ℓ}) G ] —→ᶜ V
 
-  β-proj-inj-bad : ∀ {V G H}
+  β-proj-inj-bad : ∀ {V G H ℓ}
     → Valueᶜ V
     → G ≢ H
-    → cast (cast V [ G ! ]) [ H `? ] —→ᶜ blame
+    → cast (cast V [ G ! ]) [ (_`? {ℓ = ℓ}) H ] —→ᶜ blame {ℓ = ℓ}
 
-  ξξ-blame : ∀ {F M′}
-    → M′ ≡ plug F blame
-    → M′ —→ᶜ blame
+  ξξ-blame : ∀ {F M′ ℓ}
+    → M′ ≡ plug F (blame {ℓ = ℓ})
+    → M′ —→ᶜ blame {ℓ = ℓ}
 
 pattern ξ F M—→N = ξξ {F = F} refl refl M—→N
 pattern ξ-blame F = ξξ-blame {F = F} refl
 
-value-not-blameᶜ : ∀ {V} → Valueᶜ V → V ≡ blame → ⊥
+value-not-blameᶜ : ∀ {V ℓ} → Valueᶜ V → V ≡ blame {ℓ = ℓ} → ⊥
 value-not-blameᶜ V-$ ()
 value-not-blameᶜ V-ƛ ()
 value-not-blameᶜ (V-cast! vV) ()
@@ -291,7 +286,7 @@ mutual
 
   ξ-blame-value-impossible : ∀ {V F}
     → Valueᶜ V
-    → V ≡ plug F blame
+    → ∀ {ℓ} → V ≡ plug F (blame {ℓ = ℓ})
     → ⊥
   ξ-blame-value-impossible {F = □· _} V-$ ()
   ξ-blame-value-impossible {F = _ ·□ _} V-$ ()
@@ -328,7 +323,7 @@ var-irreducible (ξξ-blame {F = _ ·□ _} eq) with eq
 var-irreducible (ξξ-blame {F = cast□[ _ ]} eq) with eq
 ... | ()
 
-blame-irreducible : ∀ {N} → blame —→ᶜ N → ⊥
+blame-irreducible : ∀ {N ℓ} → blame {ℓ = ℓ} —→ᶜ N → ⊥
 blame-irreducible (ξξ {F = □· _} eq _ _) with eq
 ... | ()
 blame-irreducible (ξξ {F = _ ·□ _} eq _ _) with eq
@@ -377,12 +372,15 @@ L —↠ᶜ⟨ L—↠M ⟩ M—↠N = L—↠M ++ᶜ M—↠N
 ξ* F (M —→ᶜ⟨ M—→N ⟩ N—↠P) =
   plug F M —→ᶜ⟨ ξ F M—→N ⟩ ξ* F N—↠P
 
+Blameᶜ : Termᶜ → Set
+Blameᶜ M = ∃[ ℓ ] (M ≡ blame {ℓ = ℓ})
+
 Convergesᶜ : Termᶜ → Set
-Convergesᶜ M = ∃[ W ] ((M —↠ᶜ W) × (Valueᶜ W ⊎ (W ≡ blame)))
+Convergesᶜ M = ∃[ W ] ((M —↠ᶜ W) × (Valueᶜ W ⊎ Blameᶜ W))
 
 data Result : Termᶜ → Set where
   r-val : (V : Termᶜ) → Valueᶜ V → Result V
-  r-blame : Result blame
+  r-blame : ∀ {ℓ} → Result (blame {ℓ = ℓ})
 
 Divergesᶜ : Termᶜ → Set
 Divergesᶜ M = ¬ Convergesᶜ M
@@ -394,7 +392,7 @@ Divergesᶜ M = ¬ Convergesᶜ M
 data Progressᶜ (M : Termᶜ) : Set where
   done  : Valueᶜ M → Progressᶜ M
   step  : ∀ {N} → M —→ᶜ N → Progressᶜ M
-  crash : M ≡ blame → Progressᶜ M
+  crash : ∀ {ℓ} → M ≡ blame {ℓ = ℓ} → Progressᶜ M
 
 canonical-★-inj : ∀ {V}
   → Valueᶜ V
@@ -439,10 +437,10 @@ progressᶜ (⊢cast {c = c} M⦂A c⦂A⇨B) with progressᶜ M⦂A
 ... | ⊢! g = done (V-cast! vM)
 ... | ⊢↦ cwt dwt = done (V-cast↦ vM)
 ... | ⊢⨟ cwt dwt = step (β-seq vM)
-... | ⊢? {G = G} g with canonical-★-inj vM M⦂A
+... | ⊢? {G = G} {ℓ = ℓ} g with canonical-★-inj vM M⦂A
 ... | H , W , (vW , refl) with H ≟Ty G
 ... | yes refl = step (β-proj-inj-ok vW)
-... | no H≢G = step (β-proj-inj-bad vW H≢G)
+... | no H≢G = step (β-proj-inj-bad {ℓ = ℓ} vW H≢G)
 progressᶜ ⊢blame = crash refl
 
 --------------------------------------------------------------------------------
@@ -527,9 +525,9 @@ substᶜ-preserve-single
 substᶜ-preserve-single N⦂ V⦂ = substᶜ-preserve (single-substᶜ-typed V⦂) N⦂
 
 frame-blameᶜ
-  : ∀ {F A}
-  → [] ⊢ᶜ plug F blame ⦂ A
-  → [] ⊢ᶜ blame ⦂ A
+  : ∀ {F A ℓ}
+  → [] ⊢ᶜ plug F (blame {ℓ = ℓ}) ⦂ A
+  → [] ⊢ᶜ blame {ℓ = ℓ} ⦂ A
 frame-blameᶜ {F = □· M} (⊢· L⦂ M⦂) = ⊢blame
 frame-blameᶜ {F = V ·□ vV} (⊢· V⦂ M⦂) = ⊢blame
 frame-blameᶜ {F = cast□[ c ]} (⊢cast M⦂ c⦂) = ⊢blame

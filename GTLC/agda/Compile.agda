@@ -16,30 +16,30 @@ compile : ∀ {Γ M A} → Γ G.⊢ M ⦂ A → Termᶜ
 compile (G.⊢` {x = x} _) = ` x
 compile (G.⊢$ {n = n}) = $ n
 compile (G.⊢ƛ {A = A} N⦂B) = ƛ A ⇒ compile N⦂B
-compile (G.⊢· L⦂A⇒B M⦂A′ A′~A) =
-  compile L⦂A⇒B · cast compile M⦂A′ [ coerce A′~A ]
-compile (G.⊢·★ {A = A} L⦂★ M⦂A) =
-  cast compile L⦂★ [ coerce (★~-ty (★ ⇒ ★)) ]
-    · cast compile M⦂A [ coerce (~★-ty A) ]
+compile (G.⊢· {ℓ = ℓ} L⦂A⇒B M⦂A′ A′~A) =
+  compile L⦂A⇒B · cast compile M⦂A′ [ coerce ℓ A′~A ]
+compile (G.⊢·★ {A = A} {ℓ = ℓ} L⦂★ M⦂A) =
+  cast compile L⦂★ [ coerce ℓ (★~-ty (★ ⇒ ★)) ]
+    · cast compile M⦂A [ coerce ℓ (~★-ty A) ]
 
 compile-preserves : ∀ {Γ M A} (d : Γ G.⊢ M ⦂ A) → Γ ⊢ᶜ compile d ⦂ A
 compile-preserves (G.⊢` ∋x) = ⊢` (compile-∋ ∋x)
 compile-preserves (G.⊢$ {n = n}) = ⊢$
 compile-preserves (G.⊢ƛ {A = A} N⦂B) = ⊢ƛ (compile-preserves N⦂B)
-compile-preserves (G.⊢· L⦂A⇒B M⦂A′ A′~A) =
+compile-preserves (G.⊢· {ℓ = ℓ} L⦂A⇒B M⦂A′ A′~A) =
   ⊢·
     (compile-preserves L⦂A⇒B)
-    (⊢cast (compile-preserves M⦂A′) (coerce-wt A′~A))
-compile-preserves (G.⊢·★ {A = A} L⦂★ M⦂A) =
+    (⊢cast (compile-preserves M⦂A′) (coerce-wt ℓ A′~A))
+compile-preserves (G.⊢·★ {A = A} {ℓ = ℓ} L⦂★ M⦂A) =
   ⊢·
-    (⊢cast (compile-preserves L⦂★) (coerce-wt (★~-ty (★ ⇒ ★))))
-    (⊢cast (compile-preserves M⦂A) (coerce-wt (~★-ty A)))
+    (⊢cast (compile-preserves L⦂★) (coerce-wt ℓ (★~-ty (★ ⇒ ★))))
+    (⊢cast (compile-preserves M⦂A) (coerce-wt ℓ (~★-ty A)))
 
 ⇒-dom-⊑ : ∀ {A A′ B B′} → (A ⇒ B) ⊑ (A′ ⇒ B′) → A ⊑ A′
 ⇒-dom-⊑ (⊑-⇒ A⊑A′ _) = A⊑A′
 
-coerce-★⇒★-⊑id : ∀ {A B} → coerce (★~-ty (★ ⇒ ★)) ⊑ᶜ idᶜ (A ⇒ B)
-coerce-★⇒★-⊑id {A} {B} =
+coerce-★⇒★-⊑id : ∀ {A B ℓ} → coerce ℓ (★~-ty (★ ⇒ ★)) ⊑ᶜ idᶜ (A ⇒ B)
+coerce-★⇒★-⊑id {A} {B} {ℓ = ℓ} =
   ⊑idR⨟
     (⊑idR atom-? (⊢? G-⇒) ⊑-★ (⊑-⇒ ⊑-★ ⊑-★))
     (⊑idR↦
@@ -57,7 +57,7 @@ compile-preserves-precision ρ G.⊑$ = ⊑$
 compile-preserves-precision ρ (G.⊑ƛ A′⊑A N′⊑N) =
   ⊑ƛ A′⊑A (compile-preserves-precision (extend-⊑ᵉ A′⊑A ρ) N′⊑N)
 compile-preserves-precision ρ
-  (G.⊑· {A = A′} {A′ = A} {Aarg = A′arg} {A′arg = Aarg}
+  (G.⊑· {A = A′} {A′ = A} {Aarg = A′arg} {A′arg = Aarg} {ℓ = ℓ}
         L′⊑L M′⊑M A′arg~A′ Aarg~A)
   with G.⊑ᵀ-type-precision L′⊑L
 ... | A′⇒B′⊑A⇒B =
@@ -65,33 +65,33 @@ compile-preserves-precision ρ
     (compile-preserves-precision ρ L′⊑L)
     (⊑cast
       (compile-preserves-precision ρ M′⊑M)
-      (coerce-monotonic (G.⊑ᵀ-type-precision M′⊑M) Aarg~A (⇒-dom-⊑ A′⇒B′⊑A⇒B) A′arg~A′)
-      (coerce-wt A′arg~A′)
-      (coerce-wt Aarg~A))
-compile-preserves-precision ρ (G.⊑·★ {A = A′} {A′ = A} L′⊑L M′⊑M) =
+      (coerce-monotonic ℓ (G.⊑ᵀ-type-precision M′⊑M) Aarg~A (⇒-dom-⊑ A′⇒B′⊑A⇒B) A′arg~A′)
+      (coerce-wt ℓ A′arg~A′)
+      (coerce-wt ℓ Aarg~A))
+compile-preserves-precision ρ (G.⊑·★ {A = A′} {A′ = A} {ℓ = ℓ} L′⊑L M′⊑M) =
   ⊑·
     (⊑cast
       (compile-preserves-precision ρ L′⊑L)
-      (coerce-monotonic (G.⊑ᵀ-type-precision L′⊑L) (★~-ty (★ ⇒ ★)) ⊑-refl (★~-ty (★ ⇒ ★)))
-      (coerce-wt (★~-ty (★ ⇒ ★)))
-      (coerce-wt (★~-ty (★ ⇒ ★))))
+      (coerce-monotonic ℓ (G.⊑ᵀ-type-precision L′⊑L) (★~-ty (★ ⇒ ★)) ⊑-refl (★~-ty (★ ⇒ ★)))
+      (coerce-wt ℓ (★~-ty (★ ⇒ ★)))
+      (coerce-wt ℓ (★~-ty (★ ⇒ ★))))
     (⊑cast
       (compile-preserves-precision ρ M′⊑M)
-      (coerce-monotonic (G.⊑ᵀ-type-precision M′⊑M) (~★-ty A) ⊑-★ (~★-ty A′))
-      (coerce-wt (~★-ty A′))
-      (coerce-wt (~★-ty A)))
+      (coerce-monotonic ℓ (G.⊑ᵀ-type-precision M′⊑M) (~★-ty A) ⊑-★ (~★-ty A′))
+      (coerce-wt ℓ (~★-ty A′))
+      (coerce-wt ℓ (~★-ty A)))
 compile-preserves-precision ρ
-  (G.⊑·★L {A = A′} {A′ = A} {A′arg = Aarg} L′⊑L M′⊑M Aarg~A) =
+  (G.⊑·★L {A = A′} {A′ = A} {A′arg = Aarg} {ℓ = ℓ} L′⊑L M′⊑M Aarg~A) =
   ⊑·
     (⊑castL
       (compile-preserves-precision ρ L′⊑L)
-      (coerce-wt (★~-ty (★ ⇒ ★)))
+      (coerce-wt ℓ (★~-ty (★ ⇒ ★)))
       coerce-★⇒★-⊑id)
     (⊑cast
       (compile-preserves-precision ρ M′⊑M)
-      (coerce-monotonic (G.⊑ᵀ-type-precision M′⊑M) Aarg~A ⊑-★ (~★-ty A′))
-      (coerce-wt (~★-ty A′))
-      (coerce-wt Aarg~A))
+      (coerce-monotonic ℓ (G.⊑ᵀ-type-precision M′⊑M) Aarg~A ⊑-★ (~★-ty A′))
+      (coerce-wt ℓ (~★-ty A′))
+      (coerce-wt ℓ Aarg~A))
 
 compile-precision
   : ∀ {M M′ A A′}

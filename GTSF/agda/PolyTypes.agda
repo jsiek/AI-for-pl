@@ -938,6 +938,11 @@ NoX→★⊑′ (NoX-∀ nxA) = ★⊑′∀ (NoX→★⊑′ (NoX-openᵘ nxA))
 ⊑′-substᵘ : ∀ {d U A B} → A ⊑′ B → substᵘ d U A ⊑′ substᵘ d U B
 ⊑′-substᵘ A⊑′B = ⊑→⊑′ (⊑-substᵘ (⊑′→⊑ A⊑′B))
 
+⊑′-[]ᵘ : ∀ {A B U} → A ⊑′ B → A [ U ]ᵘ ⊑′ B [ U ]ᵘ
+⊑′-[]ᵘ {A = A} {B = B} {U = U} A⊑′B
+  rewrite []ᵘ-as-substᵘ A U | []ᵘ-as-substᵘ B U
+  = ⊑′-substᵘ {d = zero} {U = U} A⊑′B
+
 ★⊑′⇒-dom : ∀ {A B} → `★ ⊑′ (A ⇒ B) → `★ ⊑′ A
 ★⊑′⇒-dom ★⊑′A⇒B with ★⊑′→NoX ★⊑′A⇒B
 ... | NoX-⇒ nxA nxB = NoX→★⊑′ nxA
@@ -1097,4 +1102,3 @@ ground-upper-unique :
   G ≡ H
 ground-upper-unique gG gH G⊑A H⊑A =
   ground-consistency-unique gG gH (upper-bounds-consistent G⊑A H⊑A)
-

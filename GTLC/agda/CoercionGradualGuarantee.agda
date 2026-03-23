@@ -6,7 +6,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types
 open import Contexts
-open import Coercions
+open import CoercionReduction
 
 ------------------------------------------------------------------------
 -- Coercion simulation

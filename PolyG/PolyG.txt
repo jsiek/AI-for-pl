@@ -1,0 +1,2530 @@
+Graduality and Parametricity:
+Together Again for the First Time
+MAX S. NEW, Northeastern University, USA
+DUSTIN JAMNER, Northeastern University, USA
+AMAL AHMED, Northeastern University, USA
+Parametric polymorphism and gradual typing have proven to be a difficult combination, with no language
+yet produced that satisfies the fundamental theorems of each: parametricity and graduality. Notably, Toro,
+Labrada, and Tanter (POPL 2019) conjecture that for any gradual extension of System F that uses dynamic
+type generation, graduality and parametricity are łsimply incompatiblež. However, we argue that it is not
+graduality and parametricity that are incompatible per se, but instead that combining the syntax of System F
+with dynamic type generation as in previous work necessitates type-directed computation, which we show
+has been a common source of graduality and parametricity violations in previous work.
+We then show that by modifying the syntax of universal and existential types to make the type name
+generation explicit, we remove the need for type-directed computation, and get a language that satisfies both
+graduality and parametricity theorems. The language has a simple runtime semantics, which can be explained
+by translation to a statically typed language where the dynamic type is interpreted as a dynamically extensible
+sum type. Far from being in conflict, we show that the parametricity theorem follows as a direct corollary of a
+relational interpretation of the graduality property.
+CCS Concepts: · Theory of computation → Type structures.
+Additional Key Words and Phrases: gradual typing, graduality, polymorphism, parametricity, logical relation
+ACM Reference Format:
+Max S. New, Dustin Jamner, and Amal Ahmed. 2020. Graduality and Parametricity: Together Again for the First
+Time. Proc. ACM Program. Lang. 4, POPL, Article 46 (January 2020), 32 pages. https://doi.org/10.1145/3371114
+
+1 INTRODUCTION
+Gradually typed languages support freely mixing statically typed and dynamically code within
+a single language and enable a transition from dynamic to static typing [Siek and Taha 2006;
+Tobin-Hochstadt and Felleisen 2006, 2008]. They allow for stable, typed libraries to be used by
+ephemeral dynamically typed scripts with no manual programming overhead, streamlining a
+commonplace pattern in systems software. Furthermore, when some of these dynamically typed
+scripts inevitably become feature-rich software, static types can be gradually added to help with
+optimization, refactoring, type-based IDEs and documentation.
+Gradually typed languages in the tradition of Siek and Taha [2006] are based on the presence of
+a dynamic type, written ?, which is the type of dynamically typed code and is treated specially by
+the type checker. For instance, if 𝑓 is a statically typed function with type I → BÐwhere I and B
+represent integer and boolean types, respectivelyÐand 𝑥 is a dynamically typed input, then the
+Authors’ addresses: Max S. New, Khoury College of Computer Sciences, Northeastern University, USA, maxnew@ccs.neu.edu;
+Dustin Jamner, Khoury College of Computer Sciences, Northeastern University, USA, jamner.d@husky.neu.edu; Amal
+Ahmed, Khoury College of Computer Sciences, Northeastern University, USA, amal@ccs.neu.edu.
+Permission to make digital or hard copies of part or all of this work for personal or classroom use is granted without fee
+provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and
+the full citation on the first page. Copyrights for third-party components of this work must be honored. For all other uses,
+This
+work
+under a Creative Commons Attribution 4.0 International License.
+contact
+theis licensed
+owner/author(s).
+© 2020 Copyright held by the owner/author(s).
+2475-1421/2020/1-ART46
+https://doi.org/10.1145/3371114
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46
+
+46:2
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+application 𝑓 𝑥 is allowed by the static type checker because it is łplausiblež that 𝑥 will actually
+satisfy the type I at runtime. But note here that since 𝑓 has type I → B, it was written with
+the expectation that it should only be applied to integers and may, for instance, use arithmetic
+operations on its argument. In a sound gradually typed language, this type information should be
+reliable: the programmer and compiler should be able to refactor or optimize the function 𝑓 based on
+its type, which says it will only be used on values of type I. In order to ensure that this expectation is
+met at runtime, the application 𝑓 𝑥 is elaborated to a core language called a cast calculus where a cast
+is inserted and the application becomes 𝑓 (⟨I ⇐ ?⟩𝑥). If at runtime 𝑥 is a value that is incompatible
+with the type I, such as a function value, then the cast will error and signal that the input failed
+to meet the function’s type. While this means that the gradual language admits runtime errors, it
+ensures the soundness of the type for programmer reasoning and compiler optimization.
+When designing the semantics of a gradual language, we must consider not just how programs
+run, but how their behavior changes throughout the development process. Specifically, a gradual
+language should ensure a smooth transition from dynamic to static typing, which is formalized
+in two properties called the static and dynamic gradual guarantee [Siek et al. 2015]. The static
+gradual guarantee states that making types more precise in a program makes it less likely that
+the program type-checks. Our focus in this paper is on the dynamic gradual guarantee, also called
+graduality [New and Ahmed 2018]. The graduality theorem provides a formalization for the intuition
+that making types more precise should not impact the partial correctness of the program itself.
+Specifically, it says that if the types in a program are made more precise, then either the more
+precise program errors, or exhibits the same behavior as before. This means that a programmer
+can add types to a portion of their program and know that the program as a whole still operates
+the same way, unless a new dynamic error is raised, in which case there is a flaw either in the code
+or in the new annotation that was introduced.
+Languages can fail to satisfy the graduality theorem for a variety of reasons but a common
+culprit is type-directed computation. Whenever a form in a gradual language has behavior that is
+defined by inspection of the type of an argument, rather than by its behavior, there is a potential for
+a graduality violation, because the computation must be ensured to be monotone in the type. For
+instance, the Grace language supports a construct the designers call łstructural type testsž. That
+is, it includes a form 𝑀 is 𝐴 that checks if 𝑀 has type 𝐴 at runtime. Boyland [2014] show that
+care must be taken in designing the semantics of this construct if 𝐴 is allowed to be an arbitrary
+type. For instance, it might seem reasonable to say that (𝜆𝑥 : ?.𝑥) is I → I should run to false
+because the function has type ? → ?. However, if we increase the precision of the types by changing
+the annotation, we get (𝜆𝑥 : I.𝑥) is I → I which should clearly evaluate to true, violating the
+graduality principle. In such a system, we can’t think of types as just properties whose precision
+can be tuned up or down: we also need to understand how changing the type might influence our
+use of type tests at runtime.
+Gradual typing researchers have designed languages that support reasoning principles enabled
+by a variety of advanced static featuresÐsuch as objects [Siek and Taha 2007; Takikawa et al.
+2012], refinement types [Lehmann and Tanter 2017], union and intersection types [Castagna
+and Lanvin 2017], typestates [Wolff et al. 2011], effect tracking [Bañados Schwerter et al. 2014],
+subtyping [Garcia et al. 2016], ownership [Sergey and Clarke 2012], session types [Igarashi et al.
+2017b], and secure information flow [Disney and Flanagan 2011; Fennell and Thiemann 2013; Toro
+et al. 2018]. As these typing features become more complicated, the behavior of casts can become
+sophisticated as well, and the graduality principle is a way of ensuring that these sophisticated
+mechanisms stay within programmer expectations.
+
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+1.1
+
+46:3
+
+Polymorphism and Runtime Sealing
+
+Parametric polymorphism, in the form of universal and existential types, allows for abstraction
+over types within a program. Universal types, written ∀𝑋 .𝐴, allow for the definition of functions
+that can be used at many different types. Dually, existential types provide a simple model of a
+module system. A value of type ∃𝑋 .𝐴 can be thought of as a module that exports a newly defined
+type 𝑋 and then a value 𝐴 that may include 𝑋 that gives the interface to the type. Languages with
+parametric polymorphism provide very strong reasoning principles regarding data abstraction,
+formalized by the relational parametricity theorem [Reynolds 1983].
+The relational parametricity theorem captures the idea that an abstract type is truly opaque to its
+users: for instance, a consumer of a value of existential type ∃𝑋 .𝐴 can only interact with 𝑋 values
+using the capabilities provided by the interface type 𝐴. This allows programmers to use existential
+types to model abstract data types [Mitchell and Plotkin 1985]. For instance, the existential type
+∃𝑋 .𝑋 × (𝑋 → 𝑋 ) × (𝑋 → I) represents the type of an abstract functional counter. The 𝑋 represents
+the state, the first component of the tuple is the initial state, the second component is an increment
+function, and the final component reads out an observable integer value from the state. One obvious
+example implementation would use I for 𝑋 , 0 as the initial state, addition by 1 as the increment,
+and the identity function as the read-out. In a language with proper data abstraction, we should be
+able to guarantee that with this implementation, the read-out function should only ever produce
+positive numbers, because even though the type I allows for negative numbers, the interface only
+enables the construction of positive numbers. This pattern of reasoning naturally generalizes to
+sophisticated data structure invariants such as balanced trees, sorted lists, etc.
+Polymorphic languages can fail to satisfy the parametricity theorem for a variety of reasons but
+one common culprit is type-directed computation on abstract types. For instance in Java, values of
+a generic type 𝑇 can be cast to an arbitrary object type. If the type 𝑇 happens to be instantiated
+with the same type as the cast, then all information about the value will be revealed, and data
+abstraction is entirely lost. The problem is that the behavior of this runtime type-cast is directed by
+the type of the input: at runtime the input must carry some information indicating its type so that
+this cast can be performed. A similar problem arises when naïvely combining gradual typing with
+polymorphism, as we will see in ğ2.
+While parametric polymorphism ensures data abstraction by means of a static type discipline,
+dynamic sealing provides a means of ensuring data abstraction even in a dynamically typed language.
+To protect abstract data from exposure, a fresh łkeyž is generated and implementation code must
+łsealž any abstract values before sending them to untrusted parties, łunsealingž them when they
+are passed into the exposed interface. For instance, we can ensure data abstraction for an untyped
+abstract functional counter by generating a fresh key 𝜎, and producing a tuple where the first
+component is a 0 sealed with 𝜎, and the increment and read-out function unseal their inputs and
+the increment function seals its output appropriately. If this is the only way the seal 𝜎 is used in
+the program, then the abstraction is ensured. While the programmer receives less support from the
+static type checker, this runtime sealing mechanism gives much of the same abstraction benefits.
+One ongoing research area has been to satisfactorily combine the static typing discipline of
+parametric polymorphism with the runtime mechanism of dynamic sealing in a gradually typed
+language [Ahmed et al. 2011, 2017; Igarashi et al. 2017a; Ina and Igarashi 2011; Toro et al. 2019; Xie
+et al. 2018]. However, no such language design so far proposed has satisfied both of the desired
+fundamental theorems: graduality for gradual typing and relational parametricity for parametric
+polymorphism. Recent work by Toro et al. [2019] claims to prove that graduality and parametricity
+are inherently incompatible, which backed by analogous difficulties for secure information flow
+[Toro et al. 2018] has led to the impression that the graduality property is incompatible with
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:4
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+parametric reasoning. This would be the wrong conclusion to draw, for the following two reasons.
+First, the claimed proof has a narrow applicability. It is based on the definition of their logical
+relation, which we show in ğ2.3 does not capture a standard notion of parametricity. Second, and
+more significantly, we should be careful not to conclude that graduality and parametricity are
+incompatible properties, and that language designs must choose one. In this paper, we reframe the
+problem: both are desirable, and should be demanded of any gradual or parametric language. The
+failure of graduality and parametricity in previous work can be interpreted not as an indictment
+of these properties, but rather points us to reconsider the combination of System F’s syntax with
+runtime semantics based on dynamic sealing. In this paper, we will show that graduality and
+parametricity are not in conflict per se, by showing that by modifying System F’s syntax to make
+the sealing visible, both properties are achieved. Far from being in opposition to each other, both
+graduality and parametricity can be proven using a single logical relation theorem (ğ6).
+1.2
+
+Overview
+
+We summarize the contributions of this work as follows
+• We identify type-directed computation as the common cause of graduality and parametricity
+violations in previous work on gradual polymorphism.
+• We show that certain polymorphic programs in Toro et al. [2019]’s language GSF exhibit
+non-parametric behavior.
+• We present a new surface language PolyG𝜈 that supports a novel form of universal and
+existential types where the creation of fresh types is exposed in a controlled way. The
+semantics of PolyG𝜈 is similar to previous gradual parametric languages, but the explicit
+type creation and sealing eliminates the need for type-directed computation.
+• We elaborate PolyG𝜈 into an explicit cast calculus PolyC𝜈 . We then give a translation from
+PolyC𝜈 into a typed target language, CBPVOSum , essentially call-by-push-value with polymorphism and an extensible sum type.
+• We develop a novel logical relation that proves both graduality and parametricity for PolyG𝜈 .
+Thus, we show that parametricity and graduality are compatible, and we strengthen the
+connection alluded to by New and Ahmed [2018] that graduality and parametricity are
+analogous properties.
+Complete typing rules, definitions, and proofs are in the technical appendix [New et al. 2020].
+2 GRADUALITY AND PARAMETRICITY, FRIENDS OR ENEMIES?
+Next, we review the issues in constructing a polymorphic gradual language that satisfies parametricity and graduality that have arisen in previous work. We see in each case that the common obstacle
+to parametricity and graduality is the presence of type-directed computation. This motivates our
+own language design, which obviates the need for type-directed computation by making dynamic
+sealing explicit in code.
+2.1
+
+łNaïvež Attempt
+
+Before considering any dynamic sealing mechanisms, let’s see why the most obvious combination
+of polymorphism with gradual typing produces a language that does not maintain data abstraction.
+Consider a polymorphic function of type ∀𝑋 .𝑋 → B. In a language satisfying relational parametricity, we know that the function must treat its input as having abstract type 𝑋 and so this input cannot
+have any influence on what value is returned. However, in a gradually typed language, any value
+can be cast using type ascriptions, such as in the function Λ𝑋 .𝜆𝑥 : 𝑋 .(𝑥 :: ?) :: B. Here :: represents
+a type ascription. In a gradually typed language, a term 𝑀 of type 𝐴 can be ascribed a type 𝐵 if it
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+46:5
+
+is łplausiblež that an 𝐴 is a 𝐵. This is typically formalized using a type consistency relation ∼ or
+more generally consistent subtyping relation <
+∼, but in either case, it is always plausible that an 𝐴
+is a ? and vice-versa, so in effect a value of any type can be cast to any other by taking a detour
+through the dynamic type. These ascriptions would then be elaborated to casts producing the term
+Λ𝑋 .𝜆𝑥 : 𝑋 .⟨B ⇐ ?⟩⟨? ⇐ 𝑋 ⟩𝑥 If this function is applied to any value that is not compatible with
+B, then the function will error, but if passed a boolean, the natural substitution-based semantics
+would result in the value being completely revealed:
+(Λ𝑋 .𝜆𝑥 : 𝑋 .⟨B ⇐ ?⟩⟨? ⇐ 𝑋 ⟩𝑥) [B]true ↦→∗ ⟨B ⇐ ?⟩⟨? ⇐ B⟩true ↦→∗ true
+
+The root-cause of this parametricity violation is that we allow casts like ⟨? ⇐ 𝑋 ⟩ whose behavior
+depends on how 𝑋 is instantiated. To construct a gradual language with strong data abstraction we
+must somehow avoid the dependency of ⟨? ⇐ 𝑋 ⟩ on 𝑋 . One option, is to ban casts like ⟨? ⇐ 𝑋 ⟩
+altogether. Syntactically, this means changing the notion of plausibility to say that ascribing a
+term of type 𝑋 with the dynamic type ? is not allowed. This is possible using the system presented
+by Igarashi et al. [2017a] if you only allow Λs that use the łstaticž label. This is compatible with
+parametricity and graduality, but is somewhat against the spirit of gradual typing, where typically
+all programs could be written as dynamically typed programs, and dynamically typed functions can
+be used on values of any type. An alternative is to use dynamic sealing to allow casts like ⟨? ⇐ 𝑋 ⟩,
+but ensure that their behavior does not depend on how 𝑋 is instantiated.
+2.2 Type-directed Sealing
+In sealing-based gradual parametric languages like 𝜆𝐵[Ahmed et al. 2011, 2017], we ensure that
+casts of abstract type do not depend on their instantiation by adding a layer of indirection. Instead
+of the usual 𝛽 rule for polymorphic functions
+(Λ𝑋 .𝑀) [𝐴] ↦→ 𝑀 [𝐴/𝑋 ],
+
+in 𝜆𝐵, we dynamically generate a fresh type 𝛼 and pass that in for 𝑋 . This first of all means the
+runtime state must include a store of fresh types, written Σ. When reducing a type application, we
+generate a fresh type 𝛼 and instantiate the function with this new type
+Σ; (Λ𝑋 .𝑀) [𝐴] ↦→ Σ, 𝛼 := 𝐴; 𝑀 [𝛼/𝑋 ]
+
+In this case, we interpret 𝛼 as being a new tag on the dynamic type that tags values of type 𝐴 but
+is different from all previously used tags. The casts involving 𝛼 are treated like a new base type,
+incompatible with all existing types. However, if we look at the resulting term, it is not well-typed:
+if the polymorphic function has type ∀𝑋 .𝐵, then 𝑀 [𝛼/𝑋 ] has type 𝐵 [𝛼/𝑋 ], but the context of this
+term expects it to be of type 𝐵 [𝐴/𝑋 ]. To paper over this difference, 𝜆𝐵 wraps the substitution with
+a type-directed coercion, distinct from casts, that mediates between the two types:
++𝛼
+
+Σ; (Λ𝑋 .𝑀) [𝐴] ↦→ Σ, 𝛼 := 𝐴; 𝑀 [𝛼/𝑋 ] : 𝐵 [𝛼/𝑋 ] ==⇒ 𝐵 [𝐴/𝑋 ]
++𝛼
+
+This type-directed coercion 𝑀 [𝛼/𝑋 ] : 𝐵 [𝛼/𝑋 ] ==⇒ 𝐵 [𝐴/𝑋 ] is the part of the system that performs
+the actual sealing and unsealing, and is defined by recursion on the type 𝐵. The +𝛼 indicates that
+we are unsealing values in positive positions and sealing at negative positions. For instance if
+𝐵 = 𝑋 × B, and 𝑋 = B, then on a pair (seal𝛼 true, false) the coercion will unseal the sealed
+boolean on the left and leave the boolean on the right alone. If 𝐵 is of function type, the definition
+will involve the dual coercion using −𝛼, which seals at positive positions. So for instance applying
+the polymorphic identity function will reduce as follows
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:6
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
++𝛼
+
+Σ; (Λ𝑋 .𝜆𝑥 : 𝑋 .𝑥) [B]true
+
+↦→ Σ, 𝛼 := B; (𝜆𝑥 : 𝛼 .𝑥 : 𝛼 → 𝛼 ==⇒ B → B)true
+−𝛼
+
++𝛼
+
+↦→ Σ, 𝛼 := B; (𝜆𝑥 : 𝛼 .𝑥)(true : 𝑋 ==⇒ 𝛼) : 𝛼 ==⇒ 𝑋
++𝛼
+
+↦→ Σ, 𝛼 := B; seal𝛼 true : 𝛼 ==⇒ 𝑋
+
++𝛼
+
+↦→ Σ, 𝛼 := B; (𝜆𝑥 : 𝛼 .𝑥)(seal𝛼 true) : 𝛼 ==⇒ 𝑋
+↦→ true
+
+While this achieves the goal of maintaining data abstraction, it unfortunately violates graduality,
+as first pointed out by Igarashi et al. [2017a]. The reason is that the coercion is a type-directed
+computation, this time directed by the type ∀𝑋 .𝐵 of the polymorphic function, whose behavior
+−𝛼
+observably differs at type 𝑋 from its behavior at type ?. Specifically, a coercion 𝑀 : 𝑋 ==⇒ 𝛼 results in
+−𝛼
+sealing the result of 𝑀, whereas if 𝑋 is replaced by dynamic, then 𝑀 : ? ==⇒ 𝛼 is an identity function.
+An explicit counter-example is given by modifying the identity function to include an explicit
+annotation. The term 𝑀1 = (Λ𝑋 .𝜆𝑥 : 𝑋 .𝑥 :: 𝑋 ) [B]true reduces by generating a seal 𝛼, sealing
+the input true with 𝛼, then unsealing it, finally producing true. On the other hand, if the type of
+the input were dynamic rather than 𝑋 , we would get a term 𝑀2 = (Λ𝑋 .𝜆𝑥 : ?.(𝑥 :: 𝑋 )) [B]true.
+In this case, the input is not sealed by the implementation, and the ascription of 𝑋 results in a
+failed cast since B is incompatible with 𝛼. The only difference between the two terms is a type
+annotation, meaning that 𝑀1 ⊑ 𝑀2 in the term precision ordering (𝑀1 is more precise than 𝑀2 ),
+and so the graduality theorem states that if 𝑀1 does not error, it should behave the same as 𝑀2 , but
+in this case 𝑀2 errors while 𝑀1 does not. The problem here is that the type of the polymorphic
+function determines whether to seal or unseal the inputs and outputs, but graduality says that the
+behavior of the dynamic type must align with both abstract types 𝑋 (indicating sealing/unsealing)
+and concrete types like B (indicating no sealing/unsealing). These demands are contradictory since
+dynamic code would have to simultaneously be opaque until unsealing and available to interact
+with. So we see that the attempt to remove the type-directed casts which break parametricity by
+using dynamic sealing led to the need for a type-directed coercion which breaks graduality.
+2.3
+
+To Seal, or not to Seal
+
+The language GSF was introduced by Toro et al. [2019] to address several criticisms of the type
+system and semantics of 𝜆𝐵. We agree with the criticisms of the type system and so we will focus
+on the semantic differences. GSF by design has the same violation of graduality as 𝜆𝐵, but has
+different behavior when using casts.
+One motivating example for GSF is what happens when casting the polymorphic identity function
+to have a dynamically typed output: (((Λ𝑋 .𝜆𝑥 : 𝑋 .𝑥) :: ∀𝑋 .𝑋 → ?) [I]1) + 2. In 𝜆𝐵, the input 1 is
+sealed as dictated by the type, but the dynamically typed output is not unsealed when it is returned
+from the function, resulting in an error when we try to add it. Ahmed et al. [2011] argue that it
+should be a free theorem that the behavior of a function of type ∀𝑋 .𝑋 → ? should be independent
+of its argument: it always errors, diverges or it always returns the same dynamic value, based on
+the intuition that the dynamic type ? does not syntactically contain the free variable 𝑋 , and that
+this free theorem holds in System F. This reasoning is suspect since at runtime, the dynamic type
+does include a case for the freshly allocated type 𝑋 , so intuitively we should consider ? to include
+𝑋 (and any other abstract types in scope).
+Toro et al. [2019] argue on the other hand that intuitively the identity function was written
+with the intention of having a sealed input that is returned and then unsealed, and so casting
+the program to be more dynamic should result in the same behavior and so the program should
+succeed. The function application runs to the equivalent of ⟨? ⇐ I⟩1 which is then cast to I and
+added to 2, resulting in the number 3. The mechanism for achieving this semantics is a system of
+runtime evidence, based on the Abstracting Gradual Typing (AGT) framework [Garcia et al. 2016].
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+46:7
+
+An intuition for the behavior is that the sealing is still type-directed, but rather than being directed
+by the static type of the function being instantiated, it is based on the most precise type that the
+function has had. So here because the function was originally of type ∀𝑋 .𝑋 → 𝑋 , the sealing
+behavior is given by that type.
+However, while we agree that the analysis in Ahmed et al. [2011] is incomplete, the behavior in
+GSF is inherently non-parametric, because the polymorphic program produces values with different
+dynamic type tags based on what the input type is. As a user of this function, we should be able
+to replace the instantiating type I with B and give any boolean input and get related behavior at
+the type ?, but in the program (((Λ𝑋 .𝜆𝑥 : 𝑋 .𝑥) :: ∀𝑋 .𝑋 → ?) [B]true) + 2 the function application
+reduces to ⟨? ⇐ B⟩true which errors when cast to I. Intuitively, this behavior is not parametric
+because the first program places an I tag on its input, and the second places a B tag on its input.
+The non-parametricity is clearer if we look at a program of type ∀𝑋 .? → B and consider the
+following function, a constant function with abstract input type cast to have dynamic input:
+const = (Λ𝑋 .𝜆𝑥 : 𝑋 .true) :: ∀𝑋 .? → B
+
+𝑋 now has no effect on static typing, so both const[I]3 and const[B] are well-typed. However,
+since the sealing behavior is actually determined by the type ∀𝑋 .𝑋 → B, the program will try to
+seal its input after downcasting it to whatever type 𝑋 is instantiated at. So the first program casts
+⟨I ⇐ ?⟩⟨? ⇐ I⟩3, which succeeds and returns true, while the second program performs the cast
+⟨B ⇐ ?⟩⟨? ⇐ I⟩3 which fails. In effect, we have implemented a polymorphic function that for
+any type 𝑋 , is a recognizer of dynamically typed values for that type, returning true if the input
+matches 𝑋 and erroring otherwise. Any implementation of this behavior would clearly require
+passing of some syntactic representation of types at runtime.
+Formally, the GSF language does not satisfy the following defining principle of relational parametricity, as found in standard axiomatizations of parametricity such as Dunphy [2002]; Ma and
+Reynolds [1991]; Plotkin and Abadi [1993]. In a parametric language, the user of a term 𝑀 of a
+polymorphic function type ∀𝑋 .𝐴 → 𝐵 should be guaranteed that 𝑀 will behave uniformly when
+instantiated multiple times. Specifically, a programmer should be able to instantiate 𝑀 with two
+different types 𝐵 1, 𝐵 2 and choose any relation 𝑅 ∈ 𝑅𝑒𝑙 [𝐵 1, 𝐵 2 ] (where the notion of relation depends
+on the type of effects present), and be ensured that if they supply related inputs to the functions, they
+will get related outputs. Formally, for a Kripke-style relation, the following principle should hold:
+𝑀 : ∀𝑋 .𝐴 → 𝐵
+
+𝑅 ∈ Rel[𝐵 1, 𝐵 2 ]
+
+(𝑤, 𝑉1, 𝑉2 ) ∈ VJ𝐴K𝜌 [𝑋 ↦→ 𝑅]
+
+(𝑤, 𝑀 [𝐵 1 ]𝑉1, 𝑀 [𝐵 2 ]𝑉2 ) ∈ EJ𝐵K𝜌 [𝑋 ↦→ 𝑅]
+
+Here 𝑤 is a łworldž that gives the invariants in the store and 𝜌 is the relational interpretation of free
+variables. VJ·K and EJ·K are value and expression relations formalizing an approximation ordering
+on values and expressions respectively, and 𝑋 ↦→ 𝑅 means that the relational interpretation of 𝑋 is
+given by 𝑅.
+Toro et al. [2019] use an unusual logical relation for their language based on a similar relation in
+Ahmed et al. [2017], so there is no direct analogue of the relational mapping 𝑋 ↦→ 𝑅. Instead, the
+application extends the world with the association of 𝛼 to 𝑅 and the interpretation sends 𝑋 to 𝛼.
+However, we can show that this parametricity principle is violated by any 𝜌 we pick for the term
+const above, using the definition of EJ·K given in [Toro et al. 2019]1 . Instantiating the lemma would
+give us that (𝑤, const[I]3, const[B]3) ∈ EJBK𝜌 since (𝑤, 3, 3) ∈ VJ?K𝜌 for any 𝜌. The definition
+of EJBK𝜌 then says (again for any 𝜌) that it should be the case that since const[I]3 runs to a value,
+it should also be the case that const[B]3 runs to a value as well, but in actuality it errors, and so
+this parametricity principle must be false.
+1 they use slightly different notation, but we use notation that matches the logical relation we present later
+
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:8
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+How can the above parametricity principle be false when Toro et al. [2019] prove a parametricity
+theorem for GSF? We have not found a flaw in their proof, but rather a mismatch between their
+theorem statement and the expected meaning of parametricity. The definition of VJ∀𝑋 .𝐴K in Toro
+et al. [2019] is not the usual interpretation, but rather is an adaptation of a non-standard definition
+used in Ahmed et al. [2017]. Neither of their definitions imply the above principle, so we argue
+that neither paper provides a satisfying proof of parametricity. With GSF, we see that the above
+behavior violates some expected parametric reasoning, using the definition of VJ?K given in Toro
+et al. [2019]. With 𝜆𝐵, we know of no counterexample to the above principle, and we conjecture
+that it would satisfy a more standard formulation of parametricity.
+It is worth noting that the presence of effectsÐsuch as nontermination, mutable state, control
+effectsÐrequires different formulations of the logical relation that defines parametricity. However,
+those logical relations capture parametricity in that they always formalize uniformity of behavior
+across different type instantiations. For instance, for a language that supports nontermination,
+the logical relation for parametricity ensures that two different instantiations have the same
+termination behavior: either both diverge, or they both terminate with related values. Because of
+this, the presence of effects usually leads to weaker free theoremsÐin pure System F all inhabitants
+of ∀𝑋 .𝑋 → 𝑋 are equivalent to the identity function, but in System F with non-termination,
+every inhabitant is either the identity or always errors. Though the free theorems are weaker,
+parametricity still ensures uniformity of behavior. As our counterexample above (const[I]3 vs.
+const[B]3) illustrates, GSF is non-parametric since it does not ensure uniform behavior. However,
+since the difference in behavior was between error and termination, it is possible that GSF satisfies a
+property that could be called łpartial parametricityž (or parametricity modulo errors) that weakens
+the notion of uniformity of behavior: either one side errors or we get related behaviors. However,
+it is not clear to us how to formulate the logical relation for the dynamic type to prove this. We
+show how this weakened reasoning in the presence of ? compares to reasoning in our language
+PolyG𝜈 in ğ6.4.
+Our counter-example crucially uses the dynamic type, and we conjecture that when the dynamic
+type does not appear under a quantifier, that the usual parametric reasoning should hold in GSF.
+This would mean that in GSF once polymorphic functions become łfully staticž, they support
+parametric reasoning, but we argue that it should be the goal of gradual typing to support typebased reasoning even in the presence of dynamic typing, since migration from dynamic to static is
+a gradual process, possibly taking a long time or never being fully completed.
+2.4 Resolution: Explicit Sealing
+Summarizing the above examples, we see that
+(1) The naïve semantics leads to type-directed casts at abstract types, violating parametricity.
+(2) 𝜆𝐵’s type-directed sealing violates graduality because of the ambiguity of whether or not the
+dynamic type indicates sealing/unsealing or not.
+(3) GSF’s variant of type-directed sealing based on the most precise type violates graduality and
+parametricity because the polymorphic function gets to determine which dynamically typed
+values are sealed (i.e. abstract) and which are not.
+We see that in each case, the use of a type-directed computational step leads to a violation of
+graduality or parametricity. The GSF semantics makes the type-directed sealing of 𝜆𝐵 more flexible
+by using the runtime evidence attached to the polymorphic function rather than the type at the
+instantiation point, but unfortunately this makes it impossible for the continuation to reason about
+which dynamically typed values it passes will be treated as abstract or concrete. This analysis
+motivates our own language design PolyG𝜈 , where
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+46:9
+
+(1) We depart from the syntax of System F.
+(2) Sealing/unsealing of values is explicit and programmable, rather than implicit and typedirected.
+(3) The party that instantiates an abstract type is the party that determines which values are
+sealed and unsealed. For existential types, this is the package (i.e., the module) and dually for
+universal types it is the continuation of the instantiation.
+The dynamic semantics of PolyG𝜈 are similar to 𝜆𝐵 without the type-directed coercions, removing
+the obstacle to proving the graduality theorem. By allowing user-programmable sealing and
+unsealing, more complicated forms of sealing and unsealing are possible: for instance, we can seal
+every prime number element of a list, which would require a very rich type system to express
+using type-directed sealing! We conjecture that the language is strictly more expressive than 𝜆𝐵
+in the sense of Felleisen [1990]: 𝜆𝐵 should be translatable into PolyG𝜈 in a way that simulates its
+operational semantics. Because the sealing is performed by the instantiating party rather than the
+abstracting party, the expressivity of PolyG𝜈 is incomparable to GSF.
+3
+
+PolyG𝜈 : A GRADUAL LANGUAGE WITH POLYMORPHISM AND SEALING
+
+Next, we present a our gradual language, PolyG𝜈 , that supports a variant of existential and universal
+quantification while satisfying parametricity and graduality. The language has some unusual
+features, so we start with an extended example to illustrate what programs look like, and then in
+ğ 3.2 introduce the formal syntax and typing rules.
+3.1 PolyG𝜈 Informally
+Let’s consider an example of existential types, since they are simpler than universal types in PolyG𝜈 .
+In a typed, non-gradual language, we can define an abstract łflipperž type, FLIP = ∃𝑋 .𝑋 × (𝑋 →
+𝑋 ) × (𝑋 → B). The first element is the initial state, the second is a łtogglež function and the last
+element reads out the value as a concrete boolean.
+Then we could create an instance of this abstract flipper using booleans as the carrier type
+𝑋 and negation as the toggle function pack(B, (true, (NOT, ID))) as FLIP. Note that we must
+explicitly mark the existential package with a type annotation, because otherwise we wouldn’t
+be able to tell which occurrences of B should be hidden and which should be exposed. With
+different type annotations, the same package could be given types ∃𝑋 .B × (B → B) × (B → B) or
+∃𝑋 .𝑋 × (𝑋 → 𝑋 ) × (𝑋 → 𝑋 ).
+The PolyG𝜈 language existential type works differently in a few ways. We write ∃𝜈 rather than ∃
+to emphasize that we are only quantifying over fresh types, and not arbitrary types. The equivalent
+of the above existential package would be written as
+pack𝜈 (𝑋  B, (seal𝑋 true, ((𝜆𝑥 : 𝑋 .seal𝑋 (NOT(unseal𝑋 𝑥))), (𝜆𝑥 : 𝑋 .unseal𝑋 𝑥))) : FLIP
+
+The first thing to notice is that rather than just providing a type B to instantiate the existential, we
+write a declaration 𝑋  B. The 𝑋 here is a binding position and the body of the package is typed
+under the assumption that 𝑋  B. Then, rather than substituting B for 𝑋 when typing the body of
+the package, the type checker checks that the body has type 𝑋 × ((𝑋 → 𝑋 ) × (𝑋 → B)) under the
+assumption that 𝑋  B:
+𝑋  B ⊢ (seal𝑋 true, ((𝜆𝑥 : 𝑋 .seal𝑋 (NOT(unseal𝑋 𝑥))), (𝜆𝑥 : 𝑋 .unseal𝑋 𝑥))) : 𝑋 × ((𝑋 → 𝑋 ) × (𝑋 → B))
+
+Crucially, 𝑋  B is a weaker assumption than 𝑋 = B. In particular, there are no implicit casts
+from 𝑋 to B or vice-versa, but the programmer can explicitly łsealž B values to be 𝑋 using the
+form seal𝑋 𝑀, which is only well-typed under the assumption that 𝑋  𝐴 for some 𝐴 consistent
+with B. We also get a corresponding unseal form unseal𝑋 𝑀, and the runtime semantics in ğ 4.4
+defines these to be a bijection. At runtime, 𝑋 will be a freshly generated type with its own tag on
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:10
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+the dynamic type. An interesting side-effect of making the difference between 𝑋 and B explicit in
+the term is that existential packages do not require type annotations to resolve any ambiguities.
+For instance, unlike in the typed case, the gradual package above could not be ascribed the type
+∃𝜈 𝑋 .B × ((B → B) × (B → B)) because the functions explicitly take 𝑋 values, and not B values.
+The corresponding elimination form for ∃𝜈 is a standard unpack: unpack (𝑋, 𝑥) = 𝑀; 𝑁 , where
+the continuation for the unpack is typed with just 𝑋 and 𝑥 added to the context, it doesn’t know
+that 𝑋  𝐴 for any particular 𝐴. We call this ordinary type variable assumption an abstract type
+variable, whereas the new assumption 𝑋  𝐴 is a known type variable which acts more like a type
+definition than an abstract type. At runtime, when an existential is unpacked, a fresh type 𝑋 is
+created that is isomorphic to 𝐴 but whose behavior with respect to casts is different.
+While explicit sealing and unsealing might seem burdensome to the programmer, note that this
+is directly analogous to a common pattern in Haskell, where modules are used in combination with
+newtype to create a datatype that at runtime is represented in the same way as an existing type, but
+for type-checking purposes is considered distinct. We give an analogous Haskell module as follows:
+module Flipper(State, start, toggle, toBool) where
+newtype State = Seal { unseal :: Bool }
+start :: State
+start = Seal True
+inc :: State -> State
+inc s = Seal (not (unseal s)
+toBool :: State -> Bool
+toBool = unseal
+
+Then a different module that imports Flipper is analogous to an unpack, as its only interface to
+the State type is through the functions provided.
+We also add universal quantification to the language, using the duality between universals and
+existentials as a guide. Again we write the type differently, as ∀𝜈 𝑋 .𝐴. In an ordinary polymorphic
+language, we would write the type of the identity function as ∀𝑋 .𝑋 → 𝑋 and implement it using
+a Λ form: Λ𝑋 .𝜆𝑥 : 𝑋 .𝑥. The elimination form passes in a type for 𝑋 . For instance applying the
+identity function to a boolean would be written as ID [B] true. And a free theorem tells us that
+this term must either diverge, error, or return true.
+The introduction form Λ is dual to the unpack form, and correspondingly looks the same as the
+ordinary Λ, for example in the identity function ID𝜈 = Λ𝜈 𝑋 .𝜆𝑥 : 𝑋 .𝑥 : ∀𝜈 𝑋 .𝑋 → 𝑋 . The body of the
+Λ𝜈 is typed with an abstract type variable 𝑋 in scope. The elimination form of type application is
+dual to the pack form, and so similarly introduces a known type variable assumption. Instantiating
+the identity function as above would be written as unseal𝑋 (ID𝜈 {𝑋  B}(seal𝑋 true)) : B. which
+introduces a known type variable 𝑋  B into the context. Rather than the resulting type being
+B → B, it is 𝑋 → 𝑋 with the assumption 𝑋  B. Then the argument to the function must be
+explicitly sealed as an 𝑋 to be passed to the function. The output of the function is also of type 𝑋
+and so must be explicitly unsealed to get a boolean out. However, there is something quite unusual
+about this term: the 𝑋  B binding site is not binding 𝑋 in a subterm of the application, but rather
+into the context: the argument is sealed, and the continuation is performing an unseal! These
+bindings in ∀𝜈 instantiations follow this łinside-outž structure and complicate the typing rules:
+every term in the language łexportsž known type variable bindings that go outwards in addition to
+the other typing assumptions coming inwards from the context. While unusual, they are intuitively
+justified by the duality with existentials: we can think of the continuation for an instantiation of a
+∀𝜈 as being analogous to the body of the existential package.
+To get an understanding of how PolyG𝜈 compares to 𝜆𝐵 and GSF and why it avoids their violation
+of graduality, let’s consider how we might write the examples from the previous section. In PolyG𝜈 ,
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+types
+Ground types
+terms
+
+𝐴
+𝐺
+𝑀
+
+environment
+
+Γ
+
+::=
+::=
+::=
+|
+|
+|
+::=
+
+46:11
+
+? | 𝑋 | B | 𝐴 × 𝐴 | 𝐴 → 𝐴 | ∃𝜈 𝑋 .𝐴 | ∀𝜈 𝑋 .𝐴
+𝑋 | B | ? × ? | ? → ? | ∃𝜈 𝑋 .? | ∀𝜈 𝑋 .?
+𝑥 | 𝑀 :: 𝐴 | seal𝑋 𝑀 | unseal𝑋 𝑀 | is(𝐺)? 𝑀 | true | false
+if 𝑀 then 𝑀 else 𝑀 | (𝑀, 𝑀) | let (𝑥, 𝑥) = 𝑀; 𝑀
+𝑀 𝑀 | 𝜆𝑥 : 𝐴.𝑀 | pack𝜈 (𝑋  𝐴, 𝑀) | unpack (𝑋, 𝑥) = 𝑀; 𝑁
+Λ𝜈 𝑋 .𝑀 | 𝑀 {𝑋  𝐴} | let 𝑥 = 𝑀; 𝑀
+· | Γ, 𝑥 : 𝐴 | Γ, 𝑋 | Γ, 𝑋  𝐴
+Fig. 1. PolyG𝜈 Syntax
+
+if we apply a function of type ∀𝑋 .𝑋 → 𝑋 , we have to mark explicitly that the input is sealed, and
+furthermore if we want to use the output as a boolean, we must unseal the output:
+unseal𝑋 ((Λ𝑋 .𝜆𝑥 : 𝑋 .𝑥 :: 𝑋 ){𝑋  B}(seal𝑋 true)) ↦→∗ true
+
+Then if we change the type of the input from 𝑋 to ? the explicit sealing and unsealing remain,
+so even though the input is dynamically typed it will still be a sealed boolean, and the program
+exhibits the same behavior:
+unseal𝑋 ((Λ𝑋 .𝜆𝑥 : ?.𝑥 :: 𝑋 ){𝑋  B}(seal𝑋 true)) ↦→∗ true
+
+If we remove the seal of the input, then the cast to 𝑋 in the function will fail, giving us the behavior
+of 𝜆𝐵/GSF:
+unseal𝑋 ((Λ𝑋 .𝜆𝑥 : ?.𝑥 :: 𝑋 ){𝑋  B}true) ↦→∗ ℧
+but crucially this involved changing the term, not just the type, so the graduality theorem does not
+tell us that the programs should have related behavior.
+Next, let’s consider the parametricity violation from GSF. When we instantiate the constant
+function, we need to decide if the argument is sealed or not. We get the behavior of GSF when we
+instantiate with I and seal the input 3:
+const{𝑋  I}seal𝑋 3 ↦→∗ true
+
+However, if we try to write the analogous program with B: instead of I const{𝑋  B}seal𝑋 3 then
+the program is not well typed because 𝑋  B and 3 has type I which is not compatible. We can
+replicate the outcome of the GSF program by not sealing the 3:
+const{𝑋  B}3 ↦→∗ ℧
+
+But this is not a parametricity violation because the 3 here will be embedded at the dynamic type
+with the I tag, whereas above the 3 was tagged with the 𝑋 tag, which is not related.
+3.2 PolyG𝜈 Formal Syntax and Semantics
+Figure 1 presents the syntax of the surface language types, terms and environments. Most of the
+language is a typical gradual functional language, using ? as the dynamic type, and including type
+ascription 𝑀 :: 𝐴. The unusual aspects of the language are the seal𝑋 𝑀 and unseal𝑋 𝑀 forms and
+the łfreshž existential ∃𝜈 𝑋 .𝐴 and universal ∀𝜈 𝑋 .𝐴. Note also the non-standard environments Γ,
+which include ordinary typing assumptions 𝑥 : 𝐴, abstract type variable assumptions 𝑋 and known
+type variable assumptions 𝑋  𝐴. For simplicity, we assume freshness of all type variable bindings,
+i.e. when we write Γ, 𝑋 or Γ, 𝑋  𝐴 that 𝑋 does not occur in Γ.
+The typing rules are presented in Figure 2. On a first pass, we suggest ignoring all shaded parts of
+the rules, which only concern the inside-out scoping needed for the ∀𝜈 𝑋 .𝐴 forms and would not be
+necessary if this type was removed. We follow the usual formulation of gradual surface languages
+in the style of [Siek and Taha 2006]: type checking is strict when checking compatibility of different
+connectives, but lax when the dynamic type is involved. The first 𝑀 :: 𝐵 form is type-ascription,
+which is well formed when the types are consistent with each other, written 𝐴 ∼ 𝐵. We define this
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:12
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+Γ ⊢ 𝑀 : 𝐴; Γ𝑜
+
+𝐴∼𝐵
+
+Γ ⊢ 𝑥 : 𝐴; ·
+
+Γ ⊢ (𝑀 :: 𝐵) : 𝐵; Γ𝑜
+Γ ⊢ 𝑀 : 𝐵; Γ𝑜
+
+Γ ⊢ 𝑀 : 𝐴; Γ𝑀
+
+𝑥 :𝐴∈Γ
+
+𝑋  𝐴 ∈ Γ, Γ𝑜
+
+Γ ⊢ let 𝑥 = 𝑀; 𝑁 : 𝐵; Γ𝑀 , Γ𝑁
+Γ ⊢ 𝑀 : 𝐵; Γ𝑜
+
+𝐵 ∼𝐴
+
+Γ ⊢ seal𝑋 𝑀 : 𝑋 ; Γ𝑜
+Γ ⊢ 𝑀 : 𝐴; Γ𝑜
+
+Γ, Γ𝑀 , 𝑥 : 𝐴 ⊢ 𝑁 : 𝐵; Γ𝑁
+
+𝑋  𝐴 ∈ Γ, Γ𝑜
+
+𝐵 ∼𝑋
+
+Γ ⊢ unseal𝑋 𝑀 : 𝐴; Γ𝑜
+
+Γ, Γ𝑜 ⊢ 𝐺
+
+Γ ⊢ true : B; ·
+
+Γ ⊢ is(𝐺)? 𝑀 : B; Γ𝑜
+
+Γ ⊢ 𝑀 : 𝐴; Γ𝑀
+Γ, Γ𝑀 ⊢ 𝑁𝑡 : 𝐵𝑡 ; Γ𝑡
+
+Γ ⊢ false : B; ·
+
+𝐴∼B
+Γ, Γ𝑀 ⊢ 𝑁 𝑓 : 𝐵 𝑓 ; Γ𝑓
+
+Γ ⊢ if 𝑀 then 𝑁𝑡 else 𝑁 𝑓 : 𝐵𝑡 ⊓ 𝐵 𝑓 ; Γ𝑀 , Γ𝑡 ∩ Γ𝑓
+Γ ⊢ 𝑀1 : 𝐴1 ; Γ1
+
+Γ ⊢ 𝑀 : 𝐴; Γ𝑀
+
+Γ, Γ1 ⊢ 𝑀2 : 𝐴2 ; Γ2
+
+Γ ⊢ (𝑀1, 𝑀2 ) : 𝐴1 × 𝐴2 ; Γ1, Γ2
+Γ⊢𝐴
+
+Γ, Γ𝑀 , 𝑥 : 𝜋1 (𝐴), 𝑦 : 𝜋2 (𝐴) ⊢ 𝑁 : 𝐵; Γ𝑁
+
+Γ ⊢ let (𝑥, 𝑦) = 𝑀; 𝑁 : 𝐵; Γ𝑀 , Γ𝑁
+Γ, Γ𝑀 ⊢ 𝑁 : 𝐵; Γ𝑁
+
+Γ ⊢ 𝑀 : 𝐴; Γ𝑀
+
+Γ, 𝑥 : 𝐴 ⊢ 𝑀 : 𝐵; Γ𝑜
+
+Γ ⊢ 𝜆𝑥 : 𝐴.𝑀 : 𝐴 → 𝐵; ·
+
+dom(𝐴) ∼ 𝐵
+
+Γ ⊢ 𝑀 𝑁 : cod(𝐴); Γ𝑀 , Γ𝑁
+Γ ⊢ 𝑀 : 𝐴; Γ𝑀
+𝜈
+
+Γ, Γ𝑀 , 𝑋, 𝑥 : un∃ (𝐴) ⊢ 𝑁 : 𝐵; Γ𝑁
+
+Γ, 𝑋  𝐴 ⊢ 𝑀 : 𝐵; Γ𝑜
+𝜈
+
+𝜈
+
+Γ ⊢ pack (𝑋  𝐴, 𝑀) : ∃ 𝑋 .𝐵; ·
+
+Γ ⊢ unpack (𝑋, 𝑥) = 𝑀; 𝑁 : 𝐵; Γ𝑀 , Γ𝑁 |𝑋
+
+Γ, 𝑋 ⊢ 𝑀 : 𝐴; Γ𝑜
+𝜈
+
+Γ ⊢ 𝑀 : 𝐴; Γ𝑀
+
+𝜈
+
+𝐴𝑖 ∼ 𝐵𝑖
+
+𝐴𝑜 ∼ 𝐵𝑜
+
+𝐴𝑖 → 𝐴𝑜 ∼ 𝐵𝑖 → 𝐵𝑜
+dom(𝐴 → 𝐵)
+dom(?)
+cod(𝐴 → 𝐵)
+cod(?)
+𝜋𝑖 (𝐴1 × 𝐴2 )
+𝜋𝑖 (?)
+un∀𝜈 (∀𝜈 𝑋 .𝐴)
+un∀𝜈 (?)
+
+Γ ⊢ 𝑀 {𝑋  𝐵} : un∀ (𝐴); Γ𝑀 , 𝑋  𝐵
+𝐴∼?
+
+𝐴1 ∼ 𝐵 1
+
+B∼B
+𝐴2 ∼ 𝐵 2
+
+𝐴1 × 𝐴2 ∼ 𝐵 1 × 𝐵 2
+=
+=
+=
+=
+=
+=
+=
+=
+
+Γ, Γ𝑀 ⊢ 𝐵
+𝜈
+
+Γ ⊢ Λ 𝑋 .𝑀 : ∀ 𝑋 .𝐴; ·
+?∼𝐴
+
+Γ, Γ𝑀 , Γ𝑁 |𝑋 ⊢ 𝐵
+
+𝐴
+?
+𝐵
+?
+𝐴𝑖
+?
+𝐴
+?
+
+𝑋 ∼𝑋
+𝐴∼𝐵
+
+𝐴∼𝐵
+𝜈
+
+𝜈
+
+𝜈
+
+∀ 𝑋 .𝐴 ∼ ∀𝜈 𝑋 .𝐵
+
+∃ 𝑋 .𝐴 ∼ ∃ 𝑋 .𝐵
+un∃𝜈 (∃𝜈 𝑋 .𝐴)
+un∃𝜈 (?)
+
+=
+=
+
+𝐴
+?
+
+·|Γ′ = ·
+(𝑋  𝐴, Γ)|Γ′ = 𝑋  𝐴, (Γ|Γ′ ) (FV(𝐴) ∩ Γ ′ = ∅)
+(𝑋  𝐴, Γ)|Γ′ = Γ|Γ′,𝑋
+
+(FV(𝐴) ∩ Γ ′ ≠ ∅)
+
+Fig. 2. PolyG𝜈 Type System
+
+in the standard way in as being the least congruence relation including equality and rules making ?
+consistent with every type.
+We include variable and let-binding rules, which are standard other than the shaded parts. Next,
+we include sealing seal𝑋 𝑀 and unsealing unseal𝑋 𝑀 forms. The sealing and unsealing forms are
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+46:13
+
+valid when the assumption 𝑋  𝐴 is in the environment and give the programmer access to an
+explicit bijection between the types 𝑋 and 𝐴. It is crucial for graduality to hold that this bijection is
+explicit and not implicit, because the behavior of casts involving 𝑋 and 𝐴 are very different. To
+show that it has no adverse effect on the calculus, we also include a form is(𝐺)? 𝑀 that checks at
+runtime whether 𝑀 returns a value that is compatible with the ground type 𝐺. 𝑀 can have any
+type in this case because it is always a safe operation, but the result is either trivially true or false
+unless 𝑀 has type ?.
+Next, we have booleans, whose values are true and false, and whose elimination form is an
+if-statement. The if-statement checks that the scrutinee has a type compatible with B, and as in
+previous work uses gradual meet 𝐵𝑡 ⊓ 𝐵 𝑓 for the output type [Garcia and Cimini 2015]. Gradual
+meet is only partially defined, since this ensures that if the two sides have different (non-?) head
+connectives then type checking errors, in keeping with the philosophy of strict checking when
+precise types are used.
+Next, we have pairs and functions, which are fairly standard. We use pattern-matching as the
+elimination form for pairs. To reduce the number of rules, we present the elimination forms in the
+style of Garcia and Cimini [2015], using partial functions 𝜋𝑖 , dom, cod and later un∀𝜈 , un∃𝜈 to extract
+the subformula from a type łup to ?ž. For the correct type this extracts the actual subformula, but for
+? is defined to be ? and for other connectives is undefined. We define these at the bottom of the figure,
+where uncovered cases are undefined. Next, we have existentials, which are as described in ğ3.1.
+Finally, we consider the shaded components of the judgment. The full form of the judgment is
+Γ ⊢ 𝑀 : 𝐴; Γ𝑜 where Γ𝑜 is the list of bindings that are generated by 𝑀 and exported outward. Note that
+the type 𝐴 of 𝑀 can use variables in Γ𝑜 as well as variables in Γ. Also, while we write these as Γ𝑜 , Γ𝑀 ,
+etc., they only contain sequences of known type variables, and never any abstract type variables
+or typing assumptions 𝑥 : 𝐴. These bindings are generated in the ∀𝜈 elimination rule, where the
+instantiation 𝑀 {𝑋  𝐵} adds 𝑋  𝐵 to the output context. Rules that produce delayed thunksÐthe
+function, existential and universal introduction rulesÐhave bodies that generate bindings, but these
+are not exported because these bindings will only be generated at the point where the thunk is
+forced to evaluate. The rest of the rules work similarly to an effect system: for instance in the
+function application rule 𝑀 𝑁 the bindings generated in 𝑀 are bound in 𝑁 , and the application
+produces all of the bindings they generate, and similarly for product introduction. In the unpack
+form, care must be taken to make sure that the 𝑋 from the unpack is not leaked in the output
+Γ𝑁 , in addition to making sure the output type 𝐵 does not mention 𝑋 . Any known type variables
+that mention 𝑋 are removed from the output context, using the restriction form ΓΓ′ defined at the
+bottom of Figure 2. Finally, in the if form, each branch might export different known type variables,
+so the if statement as a whole only exports the intersection of the two branches, since these are the
+only ones guaranteed to be generated.
+
+↞
+
+↢
+
+4 PolyC𝜈 : CAST CALCULUS
+As is standard in gradual languages, rather than giving the surface language an operational semantics
+directly, we define a cast calculus that makes explicit the casts that perform the dynamic type
+checking in gradual programs. We present the cast calculus syntax in Figure 3. The cast calculus
+syntax is almost the same as the surface syntax, though the typing is quite different. First, the type
+ascription form is removed, and several forms are added to replace it. Based on the analysis in
+[New and Ahmed 2018], we add two cast forms: an upcast ⟨𝐴 ⊑ ⟩ 𝑀 and a downcast ⟨𝐴 ⊑ ⟩ 𝑀,
+whereas most prior work includes a single cast form ⟨𝐴 ⇐ 𝐵⟩. The 𝐴 ⊑ used in the upcast and
+downcast forms here is a proof that 𝐴𝑙 ⊑ 𝐴𝑟 for some types 𝐴𝑙 , 𝐴𝑟 , i.e., that 𝐴𝑙 is a more precise
+(less dynamic) type than 𝐴𝑟 . This type precision definition is key to formalizing the graduality
+property, but previous work has shown that it is useful for formalizing the semantics of casts as
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:14
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+𝐸
+
+↞
+
+Evaluation Context
+
+↢
+
+↞
+
+𝑀, 𝑁
+
+↞
+
+expressions
+
+↞
+
+𝑉
+
+𝜎 | 𝑋
+𝜎
+𝛼 | B | ? × ? | ? → ? | ∃𝜈 𝑋 .? | ∀𝜈 𝑋 .?
+? | tag𝐺 (𝐴 ⊑ ) | 𝛼 | B | 𝐴 ⊑ × 𝐴 ⊑ | 𝐴 ⊑ → 𝐵 ⊑
+∃𝜈 𝑋 .𝐴 ⊑ | ∀𝜈 𝑋 .𝐴 ⊑
+seal𝛼 𝑉 | true | false | 𝑥 | (𝑉 , 𝑉 ) | 𝜆(𝑥 : 𝐴).𝑀
+Λ𝜈 𝑋 .𝑀 | inj𝐺 𝑉 | ⟨𝐴1⊑ → 𝐴2⊑ ⟩ 𝑀 | ⟨𝐴1⊑ → 𝐴2⊑ ⟩ 𝑀
+⟨∀𝜈 𝑋 .𝐴 ⊑ ⟩ 𝑀 | ⟨∀𝜈 𝑋 .𝐴 ⊑ ⟩ 𝑀 | pack𝜈 (𝑋  𝐴 ′, [𝐴 ⊑ ↕], 𝑀)
+(𝑀 :: 𝐴)
+℧ | ⟨𝐴 ⊑ ⟩ 𝑀 | ⟨𝐴 ⊑ ⟩ 𝑀 | hide 𝑋  𝐴; 𝑀 | inj𝐺 𝑀
+pack𝜈 (𝑋  𝐴 ′, [𝐴 ⊑ ↕, ...], 𝑀) | seal𝜎 𝑀 | unseal𝜎 𝑀
+[] | (𝐸, 𝑀) | (𝑉 , 𝐸) | 𝐸 [𝐴] | 𝐸 𝑀 | 𝑉 𝐸 | inj𝐺 𝐸
+if 𝐸 then 𝑀 else 𝑀 | let (𝑥, 𝑦) = 𝐸; 𝑀 | ⟨𝐴 ⊑ ⟩ 𝐸
+unpack (𝑋, 𝑥) = 𝐸; 𝑀 | seal𝛼 𝐸 | unseal𝛼 𝐸 | ⟨𝐴 ⊑ ⟩ 𝐸
+↢
+
+values
+
+::=
++ ::=
+::=
+::=
+|
+::=
+|
+|
+− ::=
++ ::=
+|
+::=
+|
+|
+
+↢
+
+𝛼
+𝐴, 𝐵
+𝐺
+𝐴 ⊑, 𝐵 ⊑
+
+↢
+
+type names
+types
+ground types
+precision derivations
+
+Fig. 3. PolyC𝜈 Syntax
+Γ ⊢ 𝐴⊑ : 𝐴 ⊑ 𝐺
+⊑
+
+Γ ⊢ tag𝐺 (𝐴 ) : 𝐴 ⊑ ?
+
+Γ⊢?:?⊑?
+
+Γ ⊢ 𝐴1⊑ : 𝐴𝑙1 ⊑ 𝐴𝑟 1
+
+Γ ⊢ 𝐴2⊑ : 𝐴𝑙2 ⊑ 𝐴𝑟 2
+⊑
+⊑
+Γ ⊢ 𝐴1 × 𝐴2 : 𝐴𝑙1 × 𝐴𝑙2 ⊑ 𝐴𝑟 1 × 𝐴𝑟 2
+
+𝑋 ∈Γ
+
+Γ⊢B:B⊑B
+
+Γ⊢𝑋 :𝑋 ⊑𝑋
+
+Γ ⊢ 𝐴 ⊑ : 𝐴𝑙 ⊑ 𝐴𝑟
+⊑
+
+Γ ⊢ 𝐵 ⊑ : 𝐵𝑙 ⊑ 𝐵𝑟
+
+⊑
+
+Γ ⊢ 𝐴 → 𝐵 : 𝐴𝑙 → 𝐵𝑙 ⊑ 𝐴𝑟 → 𝐵𝑟
+
+Γ, 𝑋 ⊢ 𝐴 ⊑ : 𝐴𝑙 ⊑ 𝐴𝑟
+
+Γ, 𝑋 ⊢ 𝐴 ⊑ : 𝐴𝑙 ⊑ 𝐴𝑟
+
+Γ ⊢ ∃𝜈 𝑋 .𝐴 ⊑ : ∃𝜈 𝑋 .𝐴𝑙 ⊑ ∃𝜈 𝑋 .𝐴𝑟
+
+Γ ⊢ ∀𝜈 𝑋 .𝐴 ⊑ : ∀𝜈 𝑋 .𝐴𝑙 ⊑ ∀𝜈 𝑋 .𝐴𝑟
+
+Fig. 4. PolyC𝜈 Type Precision
+
+well. We emphasize the structure of these proofs because the central semantic constructions of
+this work: the operational semantics of casts, the translation of casts into functions and finally our
+graduality logical relation are all naturally defined by recursion on these derivations.
+4.1 PolyC𝜈 Type Precision
+We present the definition of type precision in Figure 4. The judgment Γ ⊢ 𝐴 ⊑ : 𝐴𝑙 ⊑ 𝐴𝑟 is read as
+łusing the variables in Γž, 𝐴 ⊑ proves that 𝐴𝑙 is more precise/less dynamic than 𝐴𝑟 . If you ignore the
+precision derivations, our definition of type precision is a simple extension of the usual notion: type
+variables are only related to the dynamic type and themselves, and similarly for ∀ and ∃. Since we
+have quantifiers and type variables, we include a context Γ of known and abstract type variables.
+Crucially, even under the assumption that 𝑋  𝐴, 𝑋 and 𝐴 are unrelated precision-wise unless 𝐴
+is ?. As before, 𝑋 ∈ Γ ranges over both known and abstract type variables. It is easy to see that
+precision reflexive and transitive, and that ? is the greatest element. Finally, ? is the least precise
+type, meaning for any type 𝐴 there is a derivation that 𝐴 ⊑ ?. The precision notation is a natural
+extension of the syntax of types: with base types ?, B serving as the proof of reflexivity at the type
+and constructors ×, →, etc. serving as syntax for congruence proofs. It is important to note that
+while we give a syntax for derivations, there is at most one derivation 𝐴 ⊑ that proves any given
+𝐴𝑙 ⊑ 𝐴𝑟 . We prove these and several more lemmas about type precision in the appendix [New et al.
+2020].
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+𝑥 :𝐴∈Γ
+
+46:15
+
+Γ ⊢ 𝐴 ⊑ : 𝐴𝑙 ⊑ 𝐴𝑟
+
+Γ ⊢ 𝑀 : 𝐴𝑙 ; Γ𝑀
+
+Γ ⊢ ⟨𝐴 ⊑ ⟩ 𝑀 : 𝐴𝑟 ; Γ𝑀
+
+Γ ⊢ ⟨𝐴 ⊑ ⟩ 𝑀 : 𝐴𝑙 ; Γ𝑀
+
+Γ ⊢ 𝑀 : 𝐴; Γ𝑀
+
+↞
+
+↢
+
+Γ ⊢ 𝑥 : 𝐴; ·
+
+Γ ⊢ 𝑀 : 𝐴; Γ𝑜
+
+Γ, Γ𝑀 , 𝑥 : 𝐴 ⊢ 𝑁 : 𝐵; Γ𝑁
+
+Γ ⊢ let 𝑥 = 𝑀; 𝑁 : 𝐵; Γ𝑀 , Γ𝑁
+Γ ⊢ 𝑀 : 𝑋 ; Γ𝑜
+
+Γ ⊢ unseal𝑋 𝑀 : 𝐴; Γ𝑜
+Γ ⊢ 𝑀 : B; Γ𝑀
+
+Γ ⊢𝐺
+
+Γ ⊢ is(𝐺)? 𝑀 : B; Γ𝑜
+
+Γ, Γ𝑀 ⊢ 𝑁𝑡 : 𝐵; Γ𝑁
+
+Γ, Γ𝑀 ⊢ 𝑁 𝑓 : 𝐵; Γ𝑁
+
+Γ ⊢ true : B; ·
+
+Γ ⊢ false : B; ·
+
+Γ ⊢ 𝑀1 : 𝐴1 ; Γ1
+
+Γ, Γ1 ⊢ 𝑀2 : 𝐴2 ; Γ2
+
+Γ ⊢ if 𝑀 then 𝑁𝑡 else 𝑁 𝑓 : 𝐵; Γ𝑀 , Γ𝑁
+Γ ⊢ 𝑀 : 𝐴1 × 𝐴2 ; Γ𝑀
+
+Γ ⊢ (𝑀1, 𝑀2 ) : 𝐴1 × 𝐴2 ; Γ1, Γ2
+
+Γ, Γ𝑀 , 𝑥 : 𝐴1, 𝑦 : 𝐴2 ⊢ 𝑁 : 𝐵; Γ𝑁
+
+Γ⊢𝐴
+
+Γ ⊢ let (𝑥, 𝑦) = 𝑀; 𝑁 : 𝐵; Γ𝑀 , Γ𝑁
+Γ ⊢ 𝑀 : 𝐴 → 𝐵; Γ𝑀
+
+Γ, 𝑥 : 𝐴 ⊢ 𝑀 : 𝐵; ·
+
+Γ ⊢ 𝜆𝑥 : 𝐴.𝑀 : 𝐴 → 𝐵; ·
+
+Γ, Γ𝑀 ⊢ 𝑁 : 𝐴; Γ𝑁
+
+Γ, 𝑋  𝐴 ⊢ 𝑀 : 𝐵; ·
+Γ ⊢ pack𝜈 (𝑋  𝐴, 𝑀) : ∃𝜈 𝑋 .𝐵; ·
+
+Γ ⊢ 𝑀 𝑁 : 𝐵; Γ𝑀 , Γ𝑁
+Γ ⊢ 𝑀 : ∃𝜈 𝑋 .𝐴; Γ𝑀
+
+𝑋  𝐴 ∈ Γ, Γ𝑜
+
+Γ ⊢ seal𝑋 𝑀 : 𝑋 ; Γ𝑜
+
+Γ ⊢ 𝑀 : ?; Γ𝑜
+
+𝑋  𝐴 ∈ Γ, Γ𝑜
+
+Γ ⊢ 𝐴 ⊑ : 𝐴𝑙 ⊑ 𝐴𝑟
+
+Γ ⊢ 𝑀 : 𝐴𝑟 ; Γ𝑀
+
+Γ, Γ𝑀 , 𝑋, 𝑥 : 𝐴 ⊢ 𝑁 : 𝐵; Γ𝑁
+
+Γ, Γ𝑀 ⊢ Γ𝑁
+
+Γ, Γ𝑀 , Γ𝑁 ⊢ 𝐵
+
+Γ ⊢ unpack (𝑋, 𝑥) = 𝑀; 𝑁 : 𝐵; Γ𝑀 , Γ𝑁
+Γ, 𝑋 ⊢ 𝑀 : 𝐴; ·
+Γ ⊢ Λ𝜈 𝑋 .𝑀 : ∀𝜈 𝑋 .𝐴; ·
+
+Γ ⊢ 𝑀 : ∀𝜈 𝑋 .𝐴; Γ𝑀
+
+Γ, Γ𝑀 ⊢ 𝐵
+
+Γ ⊢ 𝑀 {𝑋  𝐵} : 𝐴; Γ𝑀 , 𝑋  𝐵
+
+′
+Γ ⊢ 𝑀 : Γ𝑀 , 𝑋  𝐴, Γ𝑀
+
+′
+Γ, Γ𝑀 ⊢ Γ𝑀
+
+′
+Γ ⊢ hide 𝑋  𝐴; 𝑀; Γ𝑀 , Γ𝑀
+
+Fig. 5. PolyC𝜈 Typing
+
+4.2
+
+PolyC𝜈 Type System
+
+The static type system for the cast calculus is given Figure 5. The cast calculus type system differs
+from the surface language in that all type checking is strict and precise. This manifests in two
+ways. First, the dynamic type is not considered implicitly compatible with other types. Instead,
+in the translation from PolyG𝜈 to PolyC𝜈 , we insert casts wherever consistency is used in the
+judgment. Second, in the if rule, the branches must have the same type, and an upcast is inserted
+in the translation to make the two align. Finally, the outward scoping of known type variables is
+handled more explicitly. We add a new form hide 𝑋  𝐴; 𝑀 that delimits the scope of 𝑋  𝐴 from
+going further outward, enforced by the side condition that Γ, Γ𝑀 ⊢ Γ𝑀′ . Then in rules that include
+delayed computations, i.e., values of function, existential and universal type, whereas in the surface
+language the delayed term could produce any names, now in PolyC𝜈 , they must all be manually
+hidden. Similarly in the branches of an if statement, the two sides must have the same generated
+names, and hides must be used in the elaboration to make them align.
+
+{
+
+4.3 Elaboration from PolyG𝜈 to PolyC𝜈
+We define the elaboration of PolyG𝜈 into the cast calculus PolyC𝜈 in Figure 6. Following [New
+and Ahmed 2018], an ascription is interpreted as a cast up to ? followed by a cast down to the
+ascribed type. Most of the elaboration is standard, with elimination forms being directly translated
+to the corresponding PolyC𝜈 form if the head connective is correct, and inserting a downcast if the
+elimination position has type ?. We formalize this using the metafunction 𝐺 𝑀 defined towards
+the bottom of the figure. For the if case, in PolyC𝜈 the two branches of the if have to have the same
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:16
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+(𝑀 :: 𝐵) + = ⟨𝐵? ⊑ ⟩ ⟨𝐴? ⊑ ⟩ 𝑀 +
+↞
+
+↢
+
+(where 𝑀 : 𝐴, 𝐴? ⊑ : 𝐴 ⊑ ?, 𝐵? ⊑ : 𝐵 ⊑ ?)
+
++
+
+𝑥 =𝑥
+(let 𝑥 = 𝑀; 𝑁 ) + = let 𝑥 = 𝑀 + ; 𝑁 +
+(seal𝑋 𝑀) + = seal𝑋 (𝑀 :: 𝐴) +
++
+
+{
+
++
+
+⊑
+
+(unseal𝑋 𝑀) = unseal𝑋 (𝑋
+
+(where 𝑋  𝐴)
+
+𝑀)
+↢
+
+(where 𝑀 : 𝐴, 𝐴? ⊑ : 𝐴 ⊑ ?)
+
+(is(𝐺)? 𝑀) = is(𝐺)? (⟨𝐴? ⟩ 𝑀)
+𝑏+ = 𝑏
+
+(𝑏 ∈ {true, false})
+𝑀 then (⟨𝐵𝑡⊑ ⟩
+else (⟨𝐵 𝑓⊑ ⟩
+
+hide Γ𝑡 ⊆ Γ𝑡 ∩ Γ𝑓 ; 𝑁𝑡+ )
+hide Γ𝑓 ⊆ Γ𝑡 ∩ Γ𝑓 ; 𝑁 𝑓+ )
+
+↞↞
+
+{
+
++
+
+(if 𝑀 then 𝑁𝑡 else 𝑁 𝑓 ) = if B
+
+(where Γ ⊢ if 𝑀 then 𝑁𝑡 else 𝑁 𝑓 : 𝐵𝑡 ⊓ 𝐵 𝑓 ; Γ𝑀 , Γ𝑡 ∩ Γ𝑓 )
+(and 𝐵𝑡⊑ : 𝐵𝑡 ⊓ 𝐵 𝑓 ⊑ 𝐵𝑡 , 𝐵 𝑓⊑ : 𝐵𝑡 ⊓ 𝐵 𝑓 ⊑ 𝐵 𝑓 )
+(𝑀1, 𝑀2 ) + = (𝑀1+, 𝑀2+ )
+{
+
+(let (𝑥, 𝑦) = 𝑀; 𝑁 ) + = let (𝑥, 𝑦) = ? × ?
+
+𝑀; 𝑁 +
+
+(𝜆𝑥 : 𝐴.𝑀) + = 𝜆𝑥 : 𝐴.hide Γ𝑜 ⊆ Γ𝑜 ; 𝑀 +
+{
+
+(𝑀 𝑁 ) + = (? → ?
++
+
+𝜈
+
+(where Γ, 𝑥 : 𝐴 ⊢ 𝑀 : 𝐵; Γ𝑜 )
+
+𝑀) (𝑁 :: dom(𝐴)) +
+
+(where 𝑀 : 𝐴)
++
+
+𝜈
+
+(pack (𝑋  𝐴, 𝑀)) = pack (𝑋  𝐴, hide Γ𝑜 ⊆ Γ𝑜 ; 𝑀 )
+𝜈
+
+{
+
++
+
+(unpack (𝑋, 𝑥) = 𝑀; 𝑁 ) = unpack (𝑋, 𝑥) = ∃ 𝑋 .?
+
+𝑀; hide Γ𝑁 |𝑋 ⊆ Γ𝑁 ; 𝑁 +
+
+Λ𝜈 𝑋 .𝑀 + = Λ𝜈 𝑋 .hide Γ𝑜 ⊆ Γ𝑜 ; 𝑀 +
+{
+
+𝑀 {𝑋  𝐵}+ = (∀𝜈 𝑋 .?
+𝐺
+
+𝑀 = ⟨tag𝐺 (𝐺)⟩ 𝑀 +
+𝑀 =𝑀
+
+(where 𝑀 : 𝐴; Γ𝑜 )
+
+𝑀){𝑋  𝐵}
+↞
+
+{ {
+
+𝐺
+
+(where 𝑀 : 𝐵; Γ𝑜 )
+
++
+
+hide Γ𝑠 ⊆ (Γ𝑏 , 𝑋  𝐴); 𝑀 = hide Γ𝑠 ⊆ Γ𝑏 ; hide 𝑋  𝐴; 𝑀
+
+(when 𝑀 : ?)
+(otherwise)
+(𝑋 ∉ Γ𝑠 )
+
+hide (Γ𝑠 , 𝑋  𝐴) ⊆ (Γ𝑏 , 𝑋  𝐴); 𝑀 = hide Γ𝑠 ⊆ Γ𝑏 ; 𝑀
+hide · ⊆ ·; 𝑀 = 𝑀
+Fig. 6. Elaborating PolyG𝜈 to PolyC𝜈
+
+output type and export the same names, so we downcast each branch, but also we hide any names
+not generated by both sides, using the metafunction hide Γ ⊆ Γ ′; 𝑀, defined at the bottom of the
+figure, which hides all names present in Γ ′ that are not in Γ. Finally, in the values that are thunks
+(pack, 𝜆 and Λ), the bodies of the thunks must not generate names in PolyC𝜈 , so we hide names
+there as well.
+4.4 PolyC𝜈 Dynamic Semantics
+The dynamic semantics of PolyC𝜈 , presented in Figure 7, extends traditional cast semantics with
+appropriate rules for our name-generating universals and existentials. The runtime state is a pair
+of a term 𝑀 and a case store Σ. A case store Σ represents the set of cases allocated so far in the
+program. Formally, a store Σ is just a pair of a number Σ.𝑛 and a function Σ.𝑓 : [𝑛] → Ty where Ty
+is the set of all types and [𝑛] = {𝑚 ∈ N | 𝑚 < 𝑛} is from some prefix of natural numbers to types.
+All rules take configurations Σ ⊲ 𝑀 to configurations Σ ′ ⊲ 𝑀 ′. When the step does not change the
+store, we write 𝑀 ↦→ 𝑀 ′ for brevity.
+The first rule states that all non-trivial evaluation contexts propagate errors. Next, unsealing
+a seal gets out the underlying value, and is(𝐺)? 𝑉 literally checks if the tag of 𝑉 is 𝐺. The hide
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+↞
+
+↞↞
+
+℧ where 𝐸 ≠ []
+𝐸 [𝑉 ]
+𝐸 [true]
+𝐸 [false] where 𝐺 ≠ 𝐻
+Σ, 𝜎 : 𝐴 ⊲ 𝐸 [𝑀 [𝜎/𝑋 ]]
+
+
+let 𝑥 = ⟨𝐴 ⊑ [𝜎/𝑋 ]⟩↕ 𝑀 [𝜎/𝑋 ];
+Σ, 𝜎 : 𝐴 ′ ⊲ 𝐸
+𝑁 [𝜎/𝑋 ]
+𝐸 [pack𝜈 (𝑋  𝐴 ′, [], 𝑀)]
+𝐸 [𝑀 [𝜎/𝑋 ]]
+𝐸 [𝑉 ] where 𝐴 ⊑ ∈ {B, 𝜎, ?}
+𝐸 [(⟨𝐴1⊑ ⟩↕ 𝑉1, ⟨𝐴2⊑ ⟩↕ 𝑉2 )]
+𝐸 [⟨𝐴2⊑ ⟩↕ (𝑉1 ⟨𝐴1⊑ ⟩↕− 𝑉2 )]
+𝐸 [pack𝜈 (𝑋  𝐴 ′, [𝐴 ⊑ ↕, 𝐴 ′⊑ ↕′, ...], 𝑀)]
+𝐸 [⟨𝐴 ⊑ [𝜎/𝑋 ]⟩↕ (𝑉 {𝜎  𝐴})]
+𝐸 [inj𝐺 ⟨𝐴 ⊑ ⟩ 𝑉 ]
+𝐸 [⟨𝐴 ⊑ ⟩ 𝑉 ]
+℧ where 𝐻 ≠ 𝐺
+↢
+
+↢
+
+𝐸 [℧]
+↦→
+𝐸 [unseal𝜎 (seal𝜎 𝑉 )]
+↦→
+𝐸 [is(𝐺)? (inj𝐺 𝑉 )]
+↦→
+𝐸 [is(𝐺)? (inj𝐻 𝑉 )]
+↦→
+Σ ⊲ 𝐸 [hide 𝑋  𝐴; 𝑀]
+↦→
+
+
+unpack (𝑋, 𝑥) = pack𝜈 (𝑋  𝐴 ′, [𝐴 ⊑ ↕], 𝑀);
+Σ⊲𝐸
+↦→
+𝑁
+𝐸 [pack𝜈 (𝑋  𝐴, 𝑀)]
+↦→
+𝐸 [(Λ𝜈 𝑋 .𝑀){𝜎  𝐴}]
+↦→
+𝐸 [⟨𝐴 ⊑ ⟩↕ 𝑉 ]
+↦→
+↦→
+𝐸 [⟨𝐴1⊑ × 𝐴2⊑ ⟩↕ (𝑉1, 𝑉2 )]
+𝐸 [(⟨𝐴1⊑ → 𝐴2⊑ ⟩↕ 𝑉1 ) 𝑉2 ]
+↦→
+𝐸 [⟨∃𝜈 𝑋 .𝐴 ⊑ ⟩↕ pack𝜈 (𝑋  𝐴 ′, [𝐴 ′⊑ ↕′, ...], 𝑀)]
+↦→
+𝐸 [(⟨∀𝜈 𝑋 .𝐴 ⊑ ⟩↕ 𝑉 ){𝜎  𝐴}]
+↦→
+𝐸 [⟨tag𝐺 (𝐴 ⊑ )⟩ 𝑉 ]
+↦→
+𝐸 [⟨tag𝐺 (𝐴 ⊑ )⟩ inj𝐺 𝑉 ]
+↦→
+𝐸 [⟨tag𝐺 (𝐴 ⊑ )⟩ inj𝐻 𝑉 ]
+↦→
+
+46:17
+
+Fig. 7. PolyC𝜈 Operational Semantics (fragment)
+
+↞
+
+↞
+
+↢
+
+↢
+
+↞
+
+↢
+
+form generates a fresh seal 𝜎 : 𝐴 and substitutes it into the continuation. The pack form steps to an
+intermediate state used for building up a stack of casts that will be used again in the existential cast
+rule. The unpack rule generates a fresh seal for the 𝑋  𝐴 and then applies all of the accumulated
+casts to the body of the pack. Here we use ↕ to indicate one of and . For ∀𝜈 instantiation, we do
+not need to generate the seal, because it must have already been generated by a hide form further
+up the term, so the rule is just a substitution. As is typical for a cast calculus, the remaining types
+have ordinary call-by-value 𝛽 reduction and so we elide them.
+The remaining rules give the behavior of casts. Other than the use of type precision derivations,
+the behavior of our casts is mostly standard: identity casts for B, 𝜎 and ? are just the identity, and
+the product cast proceeds structurally. Function casts are values, and when applied to a value, the
+cast is performed on the output and the oppositely oriented case on the input. We use ↕− to indicate
+−
+the opposite arrow, so = and − = to cut down the number of rules. Next, the ∀𝜈 casts are
+also values that reduce when the instantiating type is supplied. As with existentials, the freshly
+generated type 𝜎 is substituted for 𝑋 in the precision derivation guiding the cast. Finally, the upcast
+case for tag𝐺 (𝐴 ⊑ ) simply injects the result of upcasting with 𝐴 ⊑ into the dynamic type using the
+tag 𝐺. For the downcast case, the opposite is done if the input has the right tag, and otherwise a
+dynamic type error is raised.
+In the appendix, we extend the typing to runtime terms which are typed with respect to a
+case-store and prove a standard type safety theorem for the language that terms either take a step
+or are values or errors [New et al. 2020].
+5 TYPED INTERPRETATION OF THE CAST CALCULUS
+In the previous section we developed a cast calculus with an operational semantics defining the
+behavior of the name generation and gradual type casts. However, this ad hoc design addition of
+new type connectives and inside-out scoping of ∀𝜈 -instantiations make the cast calculus less than
+ideal for proving meta-theoretic properties of the system.
+Instead of directly proving metatheoretic properties of the cast calculus, we give a contract
+translation of the cast calculus into a statically typed core language, translating the gradual type
+casts to ordinary terms in the typed language that raise errors. The key benefit of the typed
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:18
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+value types
+computation types
+values
+
+𝐴
+𝐵
+𝑉
+
+computations
+
+𝑀
+
+stacks
+value typing context
+type variable context
+
+𝑆
+Γ
+Δ
+
+::=
+::=
+::=
+|
+::=
+|
+|
+|
+::=
+::=
+::=
+
+𝑋 | Case 𝐴 | OSum | 𝐴 × 𝐴 | B | ∃𝑋 .𝐴 | 𝑈 𝐵
+𝐴 → 𝐵 | ∀𝑋 .𝐵 | 𝐹𝐴
+𝜎 | inj𝑉 𝑉 | pack(𝐴, 𝑉 ) as ∃𝑋 .𝐴 | 𝑥 | (𝑉 , 𝑉 )
+true | false | thunk 𝑀
+℧ | force 𝑉 | ret 𝑉 | 𝑥 ← 𝑀; 𝑁 | 𝑀 𝑉 | 𝜆𝑥 : 𝐴.𝑀
+newcase𝐴 𝑥; 𝑀 | match 𝑉 with 𝑉 {inj 𝑥 .𝑀 | 𝑁 }
+unpack (𝑋, 𝑥) = 𝑉 ; 𝑀 | let (𝑥, 𝑥) = 𝑉 ; 𝑀 | Λ𝑋 .𝑀 | 𝑀 [𝐴]
+if 𝑉 then 𝑀 else 𝑀
+• | 𝑆 𝑉 | 𝑆 [𝐴] | 𝑥 ← 𝑆; 𝑀
+· | Γ, 𝑥 : 𝐴
+· | Δ, 𝑋
+Fig. 8. CBPVOSum Syntax
+
+language is that it does not have built-in notions of fresh existential and universal quantification.
+Instead, the type translation decomposes these features into the combination of ordinary existential
+and universal quantification combined with a somewhat well-studied programming feature: a
+dynamically extensible łopenž sum type we call OSum. Finally, it gives a static type interpretation
+of the dynamic type: rather than being a finitary sum of a few statically fixed cases, the dynamic
+type is implemented as the open sum type which includes those types allocated at runtime.
+5.1
+
+Typed Metalanguage
+
+We present the syntax of our typed language CBPVOSum in Figure 8, an extension of Levy’s Call-bypush-value calculus [Levy 2003], which we use as a convenient metalanguage to extend with features
+of interest. Call-by-push-value (CBPV) is a typed calculus with highly explicit evaluation order,
+providing similar benefits to continuation-passing style and A-normal form [Sabry and Felleisen
+1992]. The main distinguishing features of CBPV are that values 𝑉 and effectful computations
+𝑀 are distinct syntactic categories, with distinct types: value types 𝐴 and computation types 𝐵.
+The two łshiftž types 𝑈 and 𝐹 mediate between the two worlds. A value of type 𝑈 𝐵 is a first-class
+łthUnkž of a computation of type 𝐵 that can be forced, behaving as a 𝐵. A computation of type 𝐹𝐴
+is a computation that can perform effects and return a value of type 𝐴, and whose elimination form
+is a monad-like bind. Notably while sums and (strict) tuples are value types, function types 𝐴 → 𝐵
+are computations since a function interacts with its environment by receiving an argument. We
+include existentials as value type and universals as computation types, that in each case quantify
+over value types because we are using it as the target of a translation from a call-by-value language.
+We furthermore extend CBPV with two new value types: OSum and Case 𝐴, which add an open
+sum type similar to the extensible exception types in ML, but with an expression-oriented interface
+more suitable to a core calculus. The open sum type OSum is initially empty, but can have new
+cases allocated at runtime. A value of Case 𝐴 is a first class representative of a case of OSum. The
+introduction form inj𝑉𝑐 𝑉 for OSum uses a case 𝑉𝑐 : Case 𝐴 to inject a value 𝑉 : 𝐴 into OSum.
+The elimination form match 𝑉𝑜 with 𝑉𝑐 {inj 𝑥 .𝑀 | 𝑁 } for OSum is to use a 𝑉𝑐 : Case 𝐴 to do a
+pattern match on a value 𝑉𝑜 : OSum. Since OSum is an open sum type, it is unknown what cases 𝑉𝑜
+might use, so the pattern-match has two branches: the one inj 𝑥 .𝑀 binds the underlying value to
+𝑥 : 𝐴 and proceeds as 𝑀 and the other is a catch-all case 𝑁 in case 𝑉𝑜 was not constructed using
+𝑉𝑐 . Finally, there is a form newcase𝐴 𝑥; 𝑀 that allocates a fresh Case 𝐴, binds it to 𝑥 and proceeds
+as 𝑀. In addition to the similarity to ML exception types, they are also similar to the dynamically
+typed sealing mechanism introduced in Sumii and Pierce [2004].
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+46:19
+
+Δ; Γ ⊢ 𝑉𝑐 : Case 𝐴
+Δ; Γ, 𝑥 : 𝐴, Γ ′ ⊢ 𝑥 : 𝐴
+
+Δ; Γ ⊢ ℧ : 𝐵
+Δ; Γ ⊢ 𝑉 : OSum
+
+Δ; Γ ⊢ 𝑉𝑐 : Case 𝐴
+
+Δ; Γ ⊢ 𝑉 : 𝐴
+
+Δ; Γ ⊢ inj𝑉𝑐 𝑉 : OSum
+Δ; Γ, 𝑥 : 𝐴 ⊢ 𝑀 : 𝐵
+
+Δ; Γ ⊢ 𝑁 : 𝐵
+
+Δ; Γ ⊢ match 𝑉 with 𝑉𝑐 {inj 𝑥 .𝑀 | 𝑁 } : 𝐵
+Δ⊢𝐴
+
+Δ; Γ, 𝑥 : Case 𝐴 ⊢ 𝑀 : 𝐵
+
+Δ; Γ ⊢ pack(𝐴 ′, 𝑉 ) as ∃𝑋 .𝐴 : ∃𝑋 .𝐴
+
+Δ; Γ ⊢ newcase𝐴 𝑥; 𝑀 : 𝐵
+Δ; Γ ⊢ 𝑉 : ∃𝑋 .𝐴
+
+Δ⊢𝐵
+
+Δ, 𝑋 ; Γ, 𝑥 : 𝐴 ⊢ 𝑀 : 𝐵
+
+Δ; Γ ⊢ unpack (𝑋, 𝑥) = 𝑉 ; 𝑀 : 𝐵
+Δ, 𝑋 ; Γ ⊢ 𝑀 : 𝐵
+Δ; Γ ⊢ Λ𝑋 .𝑀 : ∀𝑋 .𝐵
+
+Δ; Γ ⊢ 𝑀 : ∀𝑋 .𝐵
+
+Δ; Γ ⊢ 𝑉 : 𝐴[𝐴 ′ /𝑋 ]
+
+Δ⊢𝐴
+
+Δ; Γ ⊢ 𝑀 [𝐴] : 𝐵 [𝐴/𝑋 ]
+
+Δ; Γ ⊢ 𝑀 : 𝐵
+
+Δ; Γ ⊢ 𝑉 : 𝑈 𝐵
+
+Δ; Γ ⊢ thunk 𝑀 : 𝑈 𝐵
+
+Δ; Γ ⊢ force 𝑉 : 𝐵
+
+Δ; Γ ⊢ 𝑉 : 𝐴
+
+Δ; Γ ⊢ 𝑀 : 𝐹𝐴
+
+Δ; Γ ⊢ ret 𝑉 : 𝐹𝐴
+
+Δ; Γ ⊢ 𝑁 : 𝐵
+
+Δ; Γ ⊢ 𝑥 ← 𝑀; 𝑁 : 𝐵
+
+Fig. 9. CBPVOSum Type System (fragment)
+
+5.2
+
+Static and Dynamic Semantics
+
+We show a fragment of the typing rules for CBPVOSum in Figure 9. There are two judgments
+corresponding to the two syntactic categories of terms: Δ; Γ ⊢ 𝑉 : 𝐴 for typing a value and
+Δ; Γ ⊢ 𝑀 : 𝐴 for typing a computation. Δ is the environment of type variables and Γ is the
+environment for term variables. Unlike in PolyG𝜈 and PolyC𝜈 , these are completely standard, and
+there is no concept of a known type variable.
+First, an error ℧ is a computation and can be given any type. Variables are standard and the
+OSum/Case forms are as described above. Existentials are a value form and are standard as in
+CBPV using ordinary substitution in the pack form. In all of the value type elimination rules, the
+discriminee is restricted to be a value. A computation 𝑀 : 𝐵 can be thunked to form a value thunk 𝑀 :
+𝑈 𝐵, which can be forced to run as a computation. Like the existentials, the universal quantification
+type is standard, using substitution in the elimination form. Finally, the introduction form for 𝐹𝐴
+returns a value 𝑉 : 𝐴, and the elimination form is a bind, similar to a monadic semantics of effects,
+except that the continuation can have any computation type 𝐵, rather than restricted to 𝐹𝐴.
+A representative fragment of the operational semantics is given in Figure 10, the full semantics
+are in the appendix [New et al. 2020]. 𝑆 represents a stack, the CBPV analogue of an evaluation
+context, defined in Figure 8. Here Σ is like the Σ in PolyC𝜈 , but maps to value types. The semantics
+is standard, other than the fact that we assign a count to each step of either 0 or 1. The only steps
+that count for 1 are those that introduce non-termination to the language, which is used later as a
+technical device in our logical relation in ğ6.
+5.3 Translation
+Next, we present the łcontract translationž of PolyC𝜈 into CBPVOSum . This translation can be
+thought of as an alternate semantics to the operational semantics for PolyC𝜈 , but with a tight
+correspondence given in ğ5.4. Since CBPVOSum is a typed language that uses ordinary features like
+functions, quantification and an open sum type, this gives a simple explanation of the semantics of
+PolyC𝜈 in terms of fairly standard language features.
+In the left side of Figure 11, we present the type translation from PolyC𝜈 to CBPVOSum . Since
+PolyC𝜈 is a call-by-value language, types are translated to CBPVOSum value types. Booleans and
+pairs are translated directly, and the function type is given the standard CBPV translation for
+call-by-value functions, 𝑈 (J𝐴K → 𝐹 J𝐵K): a call-by-value function is a thunked computation of
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:20
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+𝑆 [℧] ↦→0 ℧
+Σ ⊲ 𝑆 [newcase𝐴 𝑥; 𝑀] ↦→0 Σ, 𝜎 : 𝐴 ⊲ 𝑆 [𝑀 [𝜎/𝑥]]
+𝑆 [match inj𝜎 𝑉 with 𝜎 {inj 𝑥 .𝑀 | 𝑁 }] ↦→1 𝑆 [𝑀 [𝑉 /𝑥]]
+𝑆 [match inj𝜎1 𝑉 with 𝜎2 {inj 𝑥 .𝑀 | 𝑁 }] ↦→1 𝑆 [𝑁 ]
+
+(where 𝜎1 ≠ 𝜎2 )
+
+0
+
+𝑆 [force (thunk 𝑀)] ↦→ 𝑆 [𝑀]
+𝑆 [unpack (𝑋, 𝑥) = pack(𝐴, 𝑉 ); 𝑀] ↦→0 𝑆 [𝑀 [𝐴/𝑋, 𝑉 /𝑥]]
+𝑆 [(Λ𝑋 .𝑀) [𝐴]] ↦→0 𝑆 [𝑀 [𝐴/𝑋 ]]
+𝑆 [𝑥 ← ret 𝑉 ; 𝑁 ] ↦→0 𝑆 [𝑁 [𝑉 /𝑥]]
+Fig. 10. CBPVOSum Operational Semantics (fragment)
+JΣ; Γ ⊢ ?K = OSum
+JΣ; Γ ⊢ 𝑋 K = 𝑋
+
+(where 𝑋 ∈ Γ)
+
+JΣ; Γ ⊢ 𝑋 K = J𝐴K
+
+(where 𝑋  𝐴 ∈ Γ)
+
+JΣ; Γ ⊢ 𝜎K = J𝐴K
+
+(where 𝜎 : 𝐴 ∈ Σ)
+
+JΣ; Γ ⊢ BK = B
+JΣ; Γ ⊢ 𝐴 → 𝐵K = 𝑈 (JΣ; Γ ⊢ 𝐴K → 𝐹 JΣ; Γ ⊢ 𝐵K)
+JΣ; Γ ⊢ 𝐴1 × 𝐴2 K = JΣ; Γ ⊢ 𝐴1 K × JΣ; Γ ⊢ 𝐴2 K
+
+JΣ ⊢ ·K = ·; ·
+JΣ ⊢ Γ, 𝑥 : 𝐴K = Δ ′ ; Γ ′, 𝑥 : JΣ; Γ ⊢ 𝐴K
+(where JΣ ⊢ ΓK = Δ ′ ; Γ ′ )
+JΣ ⊢ Γ, 𝑋 K = Δ ′, 𝑋 ; Γ ′, 𝑐 𝑋 : Case 𝑋
+(where JΣ ⊢ ΓK = Δ ′ ; Γ ′ )
+JΣ ⊢ Γ, 𝑋  𝐴K = Δ ′ ; Γ ′, 𝑐 𝑋 : Case JΣ; Γ ⊢ 𝐴K
+(where JΣ ⊢ ΓK = Δ ′ ; Γ ′ )
+
+JΣ; Γ ⊢ ∃𝜈 𝑋 .𝐴K = ∃𝑋 .𝑈 (Case 𝑋 → 𝐹 JΣ; Γ, 𝑋 ⊢ 𝐴K)
+JΣ; Γ ⊢ ∀𝜈 𝑋 .𝐴K = 𝑈 (∀𝑋 .Case 𝑋 → 𝐹 JΣ; Γ, 𝑋 ⊢ 𝐴K)
+Fig. 11. PolyC𝜈 type and environment translation
+
+a function that takes an J𝐴K as input and may return a J𝐵K as output. The dynamic type ? is
+interpreted as the open sum type. The meaning of a type variable depends on the context: if it
+is an abstract type variable, it is translated to a type variable, but if it is a known type variable
+𝑋  𝐴, it is translated to J𝐴K! That is, at runtime, values of a known type variable 𝑋 are just values
+of the type isomorphic to 𝑋 , and as we will see later, sealing and unsealing are no-ops. Similarly,
+a runtime type tag 𝜎 is translated to the type that the corresponding case maps to. These are
+inductively well-defined because Σ stays constant in the type translation and Γ only adds abstract
+type variables.
+The final two cases are the most revealing. First the fresh universal quantifier, ∀𝜈 𝑋 .𝐴, translates
+to not just a thunk of a universally quantified computation, but also takes in a Case 𝑋 as input. The
+body of a Λ will then use that Case 𝑋 in order to interpret casts involving 𝑋 . This is precisely why
+parametricity is more complex for our source language: if it were translated to just 𝑈 (∀𝑋 .𝐹 J𝐴K),
+then parametricity would follow directly by parametricity for CBPVOSum , but the Case 𝑋 represents
+additional information that the function is being passed that potentially provides information about
+the type 𝑋 . It is only because code translated from PolyC𝜈 always generates a fresh case that this
+extra input is benign. The fresh existential ∃𝜈 𝑋 .𝐴 is translated to a real existential of a thunk that
+expects a Case 𝑋 and returns a J𝐴K. Note that while the quantification is the dual of the ∀𝜈 case,
+both of them receive a Case 𝑋 from the environment, which is freshly generated.
+Next, while PolyG𝜈 and PolyC𝜈 have a single environment Γ that includes type variables and
+term variables, in CBPVOSum , these are separated into a type variable environment Δ and a term
+variable environment Γ. For this reason in the right side of Figure11 we define the translation of an
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+J𝑀K𝑝
+
+Γ𝑝
+
+newcaseJBK 𝑐 Bool ;
+newcaseJ?→?K 𝑐 Fun ;
+newcaseJ?×?K 𝑐 Times ;
+newcaseJ ∃𝜈 𝑋 .?K 𝑐 Ex ;
+newcaseJ ∀𝜈 𝑋 .?K 𝑐 All ;
+J𝑀K
+
+=
+
+=
+
+46:21
+
+case(B)
+case(𝐴 → 𝐵)
+case(𝐴 × 𝐵)
+case(∃𝜈 𝑋 .𝐴)
+case(∀𝜈 𝑋 .𝐴)
+case(𝑋 )
+case(𝜎)
+
+=
+=
+=
+=
+=
+=
+=
+
+𝑐 Bool
+𝑐 Fun
+𝑐 Times
+𝑐 Ex
+𝑐 All
+𝑐𝑋
+𝜎
+
+Bool  B, Fun  ? → ?, Times  ? × ?, Ex  ∃𝜈 𝑋 .?, All  ∀𝜈 𝑋 .?
+Fig. 12. Ground type tag management
+
+environment Γ to be a pair of environments in CBPVOSum . The term variable 𝑥 : 𝐴 is just translated
+to a variable 𝑥 : J𝐴K, but the type variables are more interesting. An abstract type variable 𝑋 is
+translated to a pair of a type variable 𝑋 but also an associated term variable 𝑐 𝑋 : Case 𝑋 , which
+represents the case of the dynamic type that will be instantiated with a freshly generated case. On
+the other hand, since known type variables 𝑋  𝐴 are translated to J𝐴K, we do not extend Δ with a
+new variable, but still produce a variable 𝑐 𝑋 : J𝐴K as with an unknown type variable. Finally, the
+empty context · is translated to a pair of empty contexts.
+To translate a whole program, written JΣ; · ⊢ 𝑀K𝑝 , we insert a preamble that generates the cases
+of the open sum type for each ground type. In Figure 12, we show our whole-program translation
+which inserts a preamble to generate a case of the OSum type for each ground type. This allows
+us to assume the existence of these cases in the rest of the translation. These can be conveniently
+modeled as a sequence of łglobalž definitions of some known type variables, which we write as
+Γ𝑝 . We also define a function case(·) from types to their corresponding case value, which is a case
+variable for all types except those generated at runtime 𝜎.
+Next, we consider the term translation, which is defined with the below type preservation
+Theorem 5.1 in mind. First, all PolyC𝜈 terms of type 𝐴 are translated to CBPVOSum computations, with
+type 𝐹 J𝐴K, which is standard for translating CBV to CBPV. Also, note that the output environment
+of fresh type names in a term is just translated as an extension to the input environment, the
+difference is irrelevant in the translated code, because the names themselves are actually generated
+in the translation of the hide form. Finally, we include the preamble context Γ𝑝 to the front of the
+terms to account for the fact that all terms can use the cases generated in the preamble.
+Theorem 5.1. If Γ1 ⊢ 𝑀 : 𝐴, Γ2 then Δ; Γ ⊢ J𝑀K : 𝐹 JΣ; Γ1, Γ2 ⊢ 𝐴K where JΓ𝑝 , Γ1, Γ2 K = Δ; Γ.
+We show most of the term translation in Figure 13. To reduce the context clutter in the translations,
+we elide the contexts Σ, Γ in the definition of the semantics. While they are technically needed
+to translate type annotations, they do not affect the operational semantics and so can be safely
+ignored. We put the bool, pair, and our pack-cast intermediate form cases in the appendix [New
+et al. 2020].
+Variables translate to a return of the variable, let is translated bind, and errors are translated
+to errors. Since the type translation maps known type variables to their bound types, the target
+language seal and unseal disappear in the translation. Injection into the dynamic type translates
+to injection into the open sum type and ground type checks in PolyC𝜈 are implemented using
+pattern matching on OSum in CBPVOSum . Next, the hide form is translated to a newcase form.
+Next, we cover the cases involving thunks. As a warmup, the functions follow the usual CBV
+translation into CBPV: a CBV 𝜆 is translated to a thunk of a CBPV 𝜆, and the application translation
+makes the evaluation order explicit and forces the function with an input. We translate existential
+packages in the cast calculus to CBPVOSum packages containing functions from a case of the open
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:22
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+J𝑥K
+Jlet 𝑥 = 𝑀; 𝑁 K
+J℧𝐴 K
+Jseal𝑋 𝑀K
+Junseal𝑋 𝑀K
+Jinj𝐺 𝑀K
+Jis(𝐺)? 𝑀K
+Jhide 𝑋  𝐴; 𝑀K
+J⟨𝐴 ⊑ ⟩↕ 𝑀K
+J𝜆(𝑥 : 𝐴).𝑀K
+J𝑀 𝑁 K
+Jpack𝜈 (𝑋  𝐴, 𝑀)K
+Junpack (𝑋, 𝑥) = 𝑀; 𝑁 K
+JΛ𝜈 𝑋 .𝑀K
+J𝑀 {𝑋  𝐴}K
+
+=
+=
+
+↞
+
+• (when 𝐺 = ?, 𝛼, or B)
+𝑟 ← J𝐴 ⊑ K [•]; ret injcase(𝐺) 𝑟
+𝑥 ← •; match 𝑥 with case(𝐺){inj 𝑦.J𝐴 ⊑ K [ret 𝑦] | ℧}
+𝑥 ← •; let (𝑥 1, 𝑥 2 ) = 𝑥; 𝑥 1′ ← J𝐴1⊑ K↕ [ret 𝑥 1 ]; 𝑥 2′ ← J𝐴2⊑ K↕ [ret 𝑥 2 ]; ret (𝑥 1′ , 𝑥 2′ )
+𝑥 ← •; ret thunk (𝜆𝑦 : 𝐴 ′ .𝑎 ← J𝐴1⊑ K↕− [ret 𝑦]; J𝐴2⊑ K↕ [force 𝑥 𝑎])
+where 𝐴1⊑ : 𝐴1𝑙 ⊑ 𝐴1𝑟 and if ↕=↢ , 𝐴 ′ = 𝐴1𝑟 , else 𝐴 ′ = 𝐴1𝑙
+𝑥 ← •; ret thunk (Λ𝑋 .𝜆𝑐 𝑋 : Case 𝑋 .J𝐴 ⊑ K↕ [force 𝑥 [𝑋 ] 𝑐 𝑋 ])
+𝑥 ← •; unpack (𝑌, 𝑓 ) = 𝑥; ret pack(𝑌, thunk (𝜆𝑐 𝑋 : Case 𝑌 .J𝐴 ⊑ K↕ [(force 𝑓 ) 𝑐 𝑋 ]))
+↞
+
+J∀𝜈 𝑋 .𝐴 ⊑ K↕
+J∃𝜈 𝑋 .𝐴 ⊑ K↕
+
+ret 𝑥
+𝑥 ← J𝑀K; J𝑁 K
+℧
+J𝑀K
+J𝑀K
+𝑟 ← J𝑀K; ret injcase(𝐺) 𝑟
+𝑟 ← J𝑀K; match 𝑟 with case(𝐺){inj 𝑦.ret true | ret false}
+newcaseJ𝐴K 𝑐 𝑋 ; J𝑀K
+J𝐴 ⊑ K↕ [J𝑀K]
+ret thunk 𝜆(𝑥 : J𝐴K).J𝑀K
+𝑓 ← J𝑀K; 𝑎 ← J𝑁 K; (force 𝑓 ) 𝑎
+ret pack(𝐴, thunk (𝜆𝑐 𝑋 : Case 𝐴.J𝑀K))
+𝑟 ← J𝑀K; unpack (𝑋, 𝑓 ) = 𝑟 ; newcase𝑋 𝑐 𝑋 ; 𝑥 ← (force 𝑓 ) 𝑐 𝑋 ; J𝑁 K
+ret (thunk (Λ𝑋 .𝜆(𝑐 𝑋 : Case 𝑋 ).J𝑀K))
+𝑓 ← J𝑀K; (force 𝑓 ) [𝐴] 𝑐 𝑋
+
+↢
+
+=
+=
+=
+=
+=
+
+↢
+
+J𝐺K↕
+Jtag𝐺 (𝐴 ⊑ )K
+Jtag𝐺 (𝐴 ⊑ )K
+J𝐴1⊑ × 𝐴2⊑ K↕
+J𝐴1⊑ → 𝐴2⊑ K↕
+
+=
+=
+=
+=
+=
+=
+=
+=
+=
+=
+=
+=
+=
+=
+=
+
+Fig. 13. PolyC𝜈 term translation (fragment)
+
+sum type to the body of the package. In PolyC𝜈 we delay execution of pack bodies, so the translation
+inserts a thunk to make the order of execution explicit. Since pack bodies translate to functions,
+the translation of an unpack must provide a case of the open sum type to the package it unwraps.
+Type abstractions (Λ𝜈 ), like packs, wrap their bodies in functions that, on instantiation, expect a
+case of the open sum type matching the instantiating type. Since hide generates the requisite type
+name, it translates to a newcase. A type application then simply plugs its given type and the tag
+associated with its type variable into the supplied type abstraction.
+Next, we define the implementation of casts as łcontractsž, i.e., ordinary functions in the
+CBPVOSum . Reflexive casts at atomic types, ?, 𝛼, and B, translate away. Structural casts at composite
+types, pair types, function types, universals, and existentials, push casts for their sub-parts into
+terms of each type. Function and product casts are entirely standard, noting that we use 𝑟 (𝐴 ⊑ ) = 𝐴𝑟 .
+Universal casts delay until type application and then cast the output. Existential casts push their
+subcasts into whatever package they are given.
+5.4
+
+Simulation
+
+In ğ6, we establish graduality and parametricity theorems for PolyG𝜈 /PolyC𝜈 by analysis of the
+semantics of terms translated into CBPVOSum . But since we take the operational semantics of
+PolyC𝜈 as definitional, we need to bridge the gap between the operational semantics in CBPVOSum
+and PolyC𝜈 by proving the following adequacy theorem that says that the final behavior of terms
+in PolyC𝜈 is the same as the behavior of their translations:
+Theorem 5.2 (Adeqacy). If · ⊢ 𝑀 : 𝐴; ·, then 𝑀 ⇑ if and only if J𝑀K𝑝 ⇑ and 𝑀 ⇓ 𝑉 if and only if
+J𝑀K𝑝 ⇓ 𝑉 ′ and 𝑀 ⇓ ℧ if and only if J𝑀K𝑝 ⇓ ℧.
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+Γ ⊑ ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴 ⊑ ; Γ ⊑′
+
+46:23
+
+Γ ⊑ , Γ ⊑′ ⊢ 𝐵 ⊑ : 𝐵𝑙 ⊑ 𝐵𝑟
+
+Γ ⊑ ⊢ (𝑀𝑙 :: 𝐵𝑙 ) ⊑ (𝑀𝑟 :: 𝐵𝑟 ) : 𝐵 ⊑ ; Γ ⊑′
+Γ ⊑ ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴 ⊑ ; Γ𝑀⊑
+
+Γ ⊑ , 𝑋 ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴 ⊑ ; Γ𝑜⊑
+Γ ⊑ ⊢ Λ𝜈 𝑋 .𝑀𝑙 ⊑ Λ𝜈 𝑋 .𝑀𝑟 : ∀𝜈 𝑋 .𝐴 ⊑ ; ·
+
+Γ ⊑ ⊢ 𝐵 ⊑ : 𝐵𝑙 ⊑ 𝐵𝑟
+
+Γ ⊑ ⊢ 𝑀𝑙 {𝑋  𝐵𝑙 } ⊑ 𝑀𝑟 {𝑋  𝐵𝑟 } : un∀𝜈 (𝐴 ⊑ ); Γ𝑀⊑ , 𝑋  𝐵 ⊑
+Fig. 14. PolyG𝜈 Term Precision (fragment)
+
+The proof of the theorem follows by a forward simulation argument given in the appendix,
+adapting a similar CBPV simulation given by Levy [2003], and proves that the 𝑉 and 𝑉 ′ in the
+adequacy proof are in the simulation relation [New et al. 2020].
+6 GRADUALITY AND PARAMETRICITY
+In this section we prove the central metatheoretic results of the paper: that our surface language
+satisfies both graduality and parametricity theorems. Each of these is considered a technical
+challenge to prove: parametricity is typically proven by a logical relation and graduality is proven
+either by a simulation argument [Siek et al. 2015] or a logical relation [New and Ahmed 2018; New
+et al. 2019], so in the worst case this would require two highly technical developments. However,
+we show that this is not necessary: the logical relations proof for graduality is general enough that
+the parametricity theorem is a corollary of the reflexivity of the logical relation. This substantiates
+the analogy between parametricity and graduality originally proposed in [New and Ahmed 2018].
+The key to sharing this work is that we give a novel relational interpretation of type precision
+derivations. That is, our logical relation is indexed not by types, but by type precision derivations.
+For any derivation 𝐴 ⊑ : 𝐴𝑙 ⊑ 𝐴𝑟 , we define a relation VJ𝐴 ⊑ K between values of 𝐴𝑙 and 𝐴𝑟 . By
+taking the reflexivity case 𝐴 : 𝐴 ⊑ 𝐴, we recover the parametricity logical relation. Previous logical
+relations proofs of graduality defined a logical relation indexed by types, and used casts to define a
+second relation based on type precision judgments, but the direct relational approach simplifies the
+proofs and immediately applies to parametricity as well.
+6.1
+
+Term Precision
+
+To state the graduality theorem, we begin by formalizing the syntactic term precision relation. The
+intuition behind a precision relation 𝑀 ⊑ 𝑀 ′ is that 𝑀 ′ is a (somewhat) dynamically typed term
+and we have changed some of its type annotations to be more precise, producing 𝑀. This is one of
+the main intended use cases for a gradual language: hardening the types of programs over time.
+Restated in a less directed way, a term 𝑀 is (syntactically) more precise than 𝑀 ′ when the types
+and annotations in 𝑀 are more precise than 𝑀 ′ and otherwise the terms have the same structure.
+We formalize this as a judgment Γ ⊑ ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴 ⊑ ; Γ ⊑′, where Γ ⊑ , Γ ⊑′ ⊢ 𝐴 ⊑ : 𝐴𝑙 ⊑ 𝐴𝑟 is a type
+precision derivation and Γ ⊑ : Γ𝑙 ⊑ Γ𝑟 and Γ ⊑′ : Γ𝑙′ ⊑ Γ𝑟′ are precision contexts and Γ𝑙 ⊢ 𝑀𝑙 : 𝐴𝑙 ; Γ𝑙′
+and Γ𝑟 ⊢ 𝑀𝑟 : 𝐴𝑟 ; Γ𝑟′. A precision context Γ ⊑ is like a precision derivation between two contexts:
+everywhere a type would be in an ordinary context, a precision derivation is used instead.
+We show term precision rules for annotations and ∀𝜈 introduction and elimination for the
+surface language in Figure 14, with full rules in the appendix [New et al. 2020]. The rules are
+all completely structural: just check that the two terms have the same term constructor and
+all of the corresponding arguments of the rule are ⊑. As exhibited by the ∀𝜈 elimination rule,
+the metafunctions dom, cod, un∀𝜈 , un∃𝜈 are extended in the obvious way to work on precision
+derivations. We define a similar notion of term precision for PolyC𝜈 . Again we show the rules for
+casts and ∀𝜈 in Figure 15, the full definition is in the appendix [New et al. 2020]. The main difference
+is that, following [New et al. 2019], we include four rules involving casts: two for downcasts and
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:24
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+Γ ⊑ ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐵𝐶 ⊑ ; Γ ⊑′
+Γ ⊑ , Γ ⊑′ ⊢ 𝐴𝐶 ⊑ : 𝐴 ⊑ 𝐶
+Γ, Γ′ ⊢ 𝐴𝐵 ⊑ : 𝐴 ⊑ 𝐵
+Γ ⊑ , Γ ⊑′ ⊢ 𝐵𝐶 ⊑ : 𝐵 ⊑ 𝐶
+
+Γ ⊑ ⊢ ⟨𝐴𝐵 ⊑ ⟩ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐵𝐶 ⊑ ; Γ ⊑′
+
+Γ ⊑ ⊢ ⟨𝐴𝐵 ⊑ ⟩ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴𝐶 ⊑ ; Γ ⊑′
+
+Γ ⊑ ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴𝐵 ⊑ ; Γ ⊑′
+Γ ⊑ , Γ ⊑′ ⊢ 𝐴𝐶 ⊑ : 𝐴 ⊑ 𝐶
+Γ, Γ′ ⊢ 𝐵𝐶 ⊑ : 𝐵 ⊑ 𝐶
+Γ ⊑ , Γ ⊑′ ⊢ 𝐴𝐵 ⊑ : 𝐴 ⊑ 𝐵
+
+Γ ⊑ ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴𝐶 ⊑ ; Γ ⊑′
+Γ ⊑ , Γ ⊑′ ⊢ 𝐴𝐶 ⊑ : 𝐴 ⊑ 𝐶
+Γ, Γ′ ⊢ 𝐵𝐶 ⊑ : 𝐵 ⊑ 𝐶
+Γ ⊑ , Γ ⊑′ ⊢ 𝐴𝐵 ⊑ : 𝐴 ⊑ 𝐵
+
+Γ ⊑ ⊢ 𝑀𝑙 ⊑ ⟨𝐵𝐶 ⊑ ⟩ 𝑀𝑟 : 𝐴𝐶 ⊑ ; Γ ⊑′
+
+Γ ⊑ ⊢ 𝑀𝑙 ⊑ ⟨𝐵𝐶 ⊑ ⟩ 𝑀𝑟 : 𝐴𝐵 ⊑ ; Γ ⊑′
+
+↞
+
+↢
+
+Γ ⊑ ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴𝐶 ⊑ ; Γ ⊑′
+Γ ⊑ , Γ ⊑′ ⊢ 𝐴𝐶 ⊑ : 𝐴 ⊑ 𝐶
+Γ, Γ′ ⊢ 𝐴𝐵 ⊑ : 𝐴 ⊑ 𝐵
+Γ ⊑ , Γ ⊑′ ⊢ 𝐵𝐶 ⊑ : 𝐵 ⊑ 𝐶
+
+⊑
+
+↞
+
+↢
+
+Γ ⊑ ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : ∀𝜈 𝑋 .𝐴⊑ ; Γ ⊑′
+
+Γ ⊑ , 𝑋 ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴⊑ ; ·
+
+Γ ⊑ ⊢ 𝐵 ⊑ : 𝐵𝑙 ⊑ 𝐵𝑟
+⊑
+
+⊑′
+
+Γ ⊢ 𝑀𝑙 {𝑋  𝐵𝑙 } ⊑ 𝑀𝑟 {𝑋  𝐵𝑟 } : 𝐴 ; Γ , 𝑋  𝐵
+
+⊑
+
+⊑
+
+Γ ⊢ Λ 𝑋 .𝑀𝑙 ⊑ Λ𝜈 𝑋 .𝑀𝑟 : ∀𝜈 𝑋 .𝐴⊑ ; ·
+𝜈
+
+Fig. 15. PolyC𝜈 Term Precision (fragment)
+
+two for upcasts. We can summarize all four by saying that if 𝑀𝑙 ⊑ 𝑀𝑟 , then adding a cast to either
+𝑀𝑙 or 𝑀𝑟 still maintains that the left side is more precise than the right, as long as the type on the
+left is more precise than the right. Semantically, these are the most important term precision rules,
+as they bridge the worlds of type and term precision.
+Then the key lemma is that the elaboration process from PolyG𝜈 to PolyC𝜈 preserves term
+precision. The proof, presented in the appendix, follows by induction on term precision proofs
+[New et al. 2020].
+Lemma 6.1. If Γ ⊑ ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴 ⊑ ; Γ ⊑′ in the surface language, then Γ ⊑ ⊢ 𝑀𝑙+ ⊑ 𝑀𝑟+ : 𝐴 ⊑ ; Γ ⊑′
+6.2
+
+Graduality Theorem
+
+The graduality theorem states that if a term 𝑀 is syntactically more precise than a term 𝑀 ′, then 𝑀
+semantically refines the behavior of 𝑀 ′: it may error, but otherwise it has the same behavior as 𝑀 ′:
+if it diverges so does 𝑀 ′ and if it terminates at 𝑉 , 𝑀 ′ terminates with some 𝑉 ′ as well. If we think
+of 𝑀 as the result of hardening the types of 𝑀 ′, then this shows that hardening types semantically
+only increases the burden of runtime type checking and doesn’t otherwise interfere with program
+behavior. We call this operational graduality, as we will consider some related notions later.
+Theorem 6.2 (Operational Graduality). If · ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴 ⊑ ; ·, then either 𝑀𝑙+ ⇓ ℧ or both
+terms diverge 𝑀𝑙+, 𝑀𝑟+ ⇑ or both terms terminate successfully 𝑀𝑙+ ⇓ 𝑉𝑙 and 𝑀𝑟+ ⇓ 𝑉𝑟 .
+6.3
+
+Logical Relation
+
+The basic idea of the logical relations proof to proving graduality is to interpret a term precision
+judgment Γ ⊑ ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴 ⊑ ; Γ𝑜⊑ in a relational manner. That is, to every type precision derivation
+𝐴 ⊑ : 𝐴𝑙 ⊑ 𝐴𝑟 , we associate a relation VJ𝐴 ⊑ K between closed values of types 𝐴𝑙 and 𝐴𝑟 . Then we
+define a semantic version of the term precision judgment Γ ⊑ ⊨ 𝑀𝑙 ⊑ 𝑀𝑟 ∈ 𝐴 ⊑ ; Γ𝑜⊑ which says that
+given inputs satisfying the relations in Γ ⊑ , Γ𝑜⊑ , then either 𝑀𝑙 will error, both sides diverge, or 𝑀𝑙
+and 𝑀𝑟 will terminate with values in the relation VJ𝐴 ⊑ K. We define this relation over CBPVOSum
+translations of PolyC𝜈 terms, rather than PolyC𝜈 terms because the operational semantics is simpler.
+More precisely, we use the now well established technique of Kripke, step-indexed logical
+relations [Ahmed et al. 2009]. Because the language includes allocation of fresh type names at
+runtime, the set of values that should be in the relation grows as the store increases. This is modeled
+Kripke structure, which indexes the relation by a łpossible worldž that attaches invariants to the
+allocated cases. Because our language includes diverging programs (due to the open sum type), we
+need to use a step-indexed relation that decrements when pattern matching on OSum, and łtimes
+outž when the step index hits 0. Finally, following [New and Ahmed 2018; New et al. 2019], to
+model graduality we need to associate two relations to each type precision derivation: one which
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+Atom𝑛 [𝐴𝑙 , 𝐴𝑟 ]
+CAtom𝑛 [𝐴𝑙 , 𝐴𝑟 ]
+Rel𝑛 [𝐴𝑙 , 𝐴𝑟 ]
+World𝑛
+Interp𝑛 [Σ𝑙 , Σ𝑟 ]
+
+=
+=
+=
+=
+=
+
+𝑤′ ⊐ 𝑤.
+𝑤′ ⊒ 𝑤
+Σ′ ⊒ Σ
+𝜂′ ⊒ 𝜂
+⊲𝑅
+Rel𝜔 [𝐴𝑙 , 𝐴𝑟 ]
+⌊𝜂⌋𝑛
+⌊𝑅⌋𝑛
+𝜂 ⊨ (𝜎𝑙 , 𝜎𝑟 , 𝑅)
+
+=
+=
+=
+=
+=
+=
+=
+=
+=
+
+46:25
+
+{(𝑤, 𝑉𝑙 , 𝑉𝑟 ) | 𝑤 ∈ World𝑛 ∧ (𝑤 .Σ𝑙 | · ⊢ 𝑉𝑙 : 𝐴𝑙 ) ∧ (𝑤 .Σ𝑟 | · ⊢ 𝑉𝑟 : 𝐴𝑟 )}
+{(𝑤, 𝑉𝑙 , 𝑉𝑟 ) | 𝑤 ∈ World𝑛 ∧ 𝑤 .Σ𝑙 | · ⊢ 𝑀𝑙 : 𝐹𝐴𝑙 ∧ 𝑤 .Σ𝑟 | · ⊢ 𝑀𝑟 : 𝐹𝐴𝑟 }
+{𝑅 ⊆ Atom𝑛 [𝐴𝑙 , 𝐴𝑟 ] | ∀(𝑤, 𝑉𝑙 , 𝑉𝑟 ) ∈ 𝑅, 𝑤 ′ ⊒ 𝑤 .(𝑤 ′, 𝑉𝑙 , 𝑉𝑟 ) ∈ 𝑅}
+{( 𝑗, Σ𝑙 , Σ𝑟 , 𝜂) | 𝑗 < 𝑛 ∧ 𝜂 ∈ Interp 𝑗 [Σ𝑙 , Σ𝑟 ]}
+{(𝑠𝑖𝑧𝑒, 𝑓 , 𝜌) | 𝑠𝑖𝑧𝑒 ∈ N ∧ 𝑓 ∈ [𝑠𝑖𝑧𝑒] → ([Σ𝑙 .𝑠𝑖𝑧𝑒] × [Σ2 .𝑠𝑖𝑧𝑒])
+∧𝜌 : (𝑖 < 𝑠𝑖𝑧𝑒) → 𝑅𝑒𝑙𝑛 [Σ𝑙 (𝑓 (𝑖)); Σ𝑟 (𝑓 (𝑖))]
+∧∀𝑖 < 𝑗 < 𝑠𝑖𝑧𝑒.𝑓 (𝑖)𝑙 ≠ 𝑓 ( 𝑗)𝑙 ∧ 𝑓 (𝑖)𝑟 ≠ 𝑓 ( 𝑗)𝑟 }
+(𝑤 ′ ⊒ 𝑤) ∧ 𝑤 ′ .𝑗 > 𝑤 .𝑗
+𝑤 ′ .𝑗 ≤ 𝑤 .𝑗 ∧ 𝑤 ′ .Σ𝑙 ⊒ 𝑤 .Σ𝑙 ∧ 𝑤 ′ .Σ𝑟 ⊒ 𝑤 .Σ𝑟 ∧ 𝑤 ′ .𝜂 ⊒ ⌊𝑤 .𝜂⌋𝑤 ′ .𝑗
+Σ ′ .𝑠𝑖𝑧𝑒 ≥ Σ.𝑠𝑖𝑧𝑒 ∧ ∀𝑖 < Σ.𝑠𝑖𝑧𝑒. Σ ′ (𝑖) = Σ(𝑖)
+𝜂 ′ .𝑠𝑖𝑧𝑒 ≥ 𝜂 ∧ ∀𝑖 < 𝜂.𝑠𝑖𝑧𝑒. 𝜂 ′ .𝑓 (𝑖) = 𝜂.𝑓 (𝑖) ∧ 𝜂 ′ .𝜌 (𝑖) = 𝜂.𝜌 (𝑖)
+{(𝑤, 𝑉𝑙 , 𝑉𝑟 ) | ∀𝑤 ′ ⊐ 𝑤 .(𝑤 ′, 𝑉𝑙 , 𝑉𝑟 ) ∈ 𝑅}
+Ð
+{𝑅 ⊆ 𝑛 ∈N Atom𝑛 [𝐴𝑙 , 𝐴𝑟 ] | ∀𝑛 ∈ N. ⌊𝑅⌋𝑛 ∈ Rel𝑛 [𝐴𝑙 , 𝐴𝑟 ]}
+(𝜂.𝑠𝑖𝑧𝑒, 𝜂.𝑓 , 𝜆𝑖.⌊𝜌 (𝑖)⌋𝑛 )
+{(𝑤, 𝑉𝑙 , 𝑉𝑟 ) | 𝑤 .𝑗 < 𝑛 ∧ (𝑤, 𝑉𝑙 , 𝑉𝑟 ) ∈ 𝑅}
+∃𝑖 < 𝜂.𝑠𝑖𝑧𝑒. 𝜂.𝑓 (𝑖) = (𝜎𝑙 , 𝜎𝑟 ) ∧ 𝜂.𝜌 (𝑖) = 𝑅}
+Fig. 16. Logical Relation Auxiliary Definitions
+
+times out when the left hand hand term runs out of steps, but allows the right hand side to take
+any number of steps and vice-versa one that times out when the right runs out of steps.
+Figure 16 includes preliminary definitions we need for the logical relation. First, Atom𝑛 [𝐴𝑙 , 𝐴𝑟 ]
+and CAtom𝑛 [𝐴𝑙 , 𝐴𝑟 ] define the world-term-term triples that the relations are defined over. A
+relation 𝑅 ∈ Rel𝑛 [𝐴𝑙 , 𝐴𝑟 ] at stage 𝑛 consists of triples of a world, and a value of type 𝐴𝑙 and
+a value of type 𝐴𝑟 (ignore the 𝑛 for now) such that it is monotone in the world. The world
+𝑤 ∈ World𝑛 contains the number of steps remaining 𝑤 .𝑗, the current state of each side 𝑤 .Σ𝑙 , 𝑤 .Σ𝑟 ,
+and finally an interpretation of how the cases in the two stores are related 𝑤 .𝜂. An interpretation
+𝜂 ∈ Interp𝑛 [Σ𝑙 , Σ𝑟 ] consists of a cardinality 𝜂.𝑠𝑖𝑧𝑒 which says how many cases are related and a
+function 𝜂.𝑓 which says which cases are related, i.e., for each 𝑖 ∈ 𝜂.𝑠𝑖𝑧𝑒 it gives a pair of cases, one
+valid in the left hand store and one in the right. Finally, 𝜂.𝜌 gives a relation between the types
+of these two cases. The final side-condition says this association is a partial bijection: a case on
+one side is associated to at most one case on the other side. Staging the relations and worlds is
+necessary due to a circularity here: a relation is (contravariantly) dependent on the current world,
+which contains relations. A relation in Rel𝑛 is indexed by a World𝑛 , but a World𝑛 contains relations
+in Rel𝑤.𝑗 , and 𝑤 .𝑗 < 𝑛. In particular, World0 = ∅, so the definition is well-founded.
+The next portion of the figure contains the definition of world extension 𝑤 ′ ⊒ 𝑤 2 , representing
+the idea that 𝑤 ′ is a possible łfuturež of 𝑤: the step index 𝑗 is smaller and the states of the two
+sides have increased the number of allocated cases, but the old invariants are still there. We define
+strict extension 𝑤 ′ ⊐ 𝑤 to mean extension where the step has gotten strictly smaller. This allows
+us to define the later relation ⊲𝑅 which is used to break circular definitions in the logical relation.
+Next, we define our notion of non-indexed relation Rel𝜔 , which is what we quantify over in the
+interpretation of ∀𝜈 , ∃𝜈 . Then we define the restriction of interpretations and relations to a stage
+𝑛. An infinitary relation can be łclampedž to any stage 𝑛 using ⌊𝑅⌋𝑛 . Finally, we define when two
+cases are related in an interpretation as 𝜂 ⊨ (𝜎𝑙 , 𝜎𝑟 , 𝑅).
+The top of Figure 17 contains the definition of the logical relation on values and computations,
+except for the standard cases for booleans, products and functions, which are included in the
+appendix [New et al. 2020]. First, we write ∼ as a metavariable that ranges over two symbols: ≺
+which indicates that we are counting steps on the left side, and ≻ which indicates we are counting
+2 there is a clash of notation between precision ⊑ and world extension ⊒ but it should be clear which is meant at any time.
+
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:26
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+steps on the right side. We then define the value relation V𝑛∼ J𝐴 ⊑ K𝛾𝛿 ∈ Rel𝑛 [𝛿𝑙 (𝐴𝑙 ), 𝛿𝑟 (𝐴𝑟 )]. Here 𝛾
+maps the free term variables to pairs of values and 𝛿 maps free type variables to triples of two types
+and a relation between them. First, the definition for type variables looks up the relation in the
+relational substitution 𝛿. Next, two values in ? are related when they are both injections into OSum,
+and the łpayloadsž of the injections are later related in the relation 𝑅 which the world associates
+to the corresponding cases. The ⊲ is used because we count pattern matching on OSum as a step.
+This also crucially lines up with the fact that pattern matching on the open sum type is the only
+reduction that consumes a step in our operational semantics. Note that this is a generalization
+of the logical relation definition for a recursive sum type, where each injection corresponds to a
+case of the sum. Here since the sum type is open, we must look in the world to see what cases are
+allocated. Next, the tag𝐺 (𝐴 ⊑ ) case relates values on the left at some type 𝐴𝑙 and values on the right
+of type ?. The definition states that the dynamically typed value must be an injection using the tag
+given by 𝐺, and that the payload of that injection must be related to 𝑉𝑙 with the relation given by
+𝐴 ⊑ . This case splits into two because we are pattern matching on a value of the open sum type, and
+so in the ≻ case we must decrement because we are consuming a step on the right, whereas in the
+≺ case we do not decrement because we are only counting steps on the left. In the ∀𝜈 𝑋 .𝐵 ⊑ case,
+two values are related when in any future world, and any relation 𝑅 ∈ Rel𝜔 [𝐴𝑙 , 𝐴𝑟 ], and any pair
+of cases 𝜎𝑙 , 𝜎𝑟 that have ⌊𝑅⌋𝑤′ .𝑗 as their associated relation, if the values are instantiated with 𝐴𝑙 , 𝜎𝑙
+and 𝐴𝑟 , 𝜎𝑟 respectively, then they behave as related computations. The intuition is that values of
+type ∀𝜈 𝑋 .𝐵 are parameterized by a type 𝐴 and a tag for that type 𝜎, but the relational interpretation
+of the two must be the same. This is the key to proving the seal𝑋 and unseal𝑋 cases of graduality.
+The fresh existential is dual in the choice of relation, but the same in its treatment of the case 𝜎.
+Next, we define the relation on expressions. The two expression relations, E ≺ J𝐴 ⊑ K and E ≻ J𝐴 ⊑ K
+capture the semantic idea behind graduality: either the left expression raises an error, or the
+two programs have the same behavior: diverge or return related values in V ∼ J𝐴 ⊑ K. However, to
+account for step-indexing, each is an approximation to this notion where E ≺ J𝐴 ⊑ K times out if the
+left side consumes all of the available steps 𝑤 .𝑗 (where (Σ, 𝑀) ↦→ 𝑗 is shorthand for saying it steps
+to something in 𝑗 steps), and E ≻ J𝐴 ⊑ K times out if the right side consumes all of the available steps.
+relation is that when We define the infinitary version of the relations V ∼ J𝐴 ⊑ K and E ∼ J𝐴 ⊑ K a the
+union of all of the level 𝑛 approximations.
+Next, we give the relational interpretation of environments. The interpretation of the empty
+environment are empty substitutions with a valid world 𝑤. Extending with a value variable 𝑥 : 𝐴 ⊑
+means extending 𝛾 with a pair of values related by V ∼ J𝐴 ⊑ K. For an abstract type variable 𝑋 , first 𝛿
+is extended with a pair of types and a relation between them. Then, 𝛾 must also be extended with a
+pair of cases encoding how these types are injected into the dynamic type. Crucially, just as with
+the ∀𝜈 , ∃𝜈 value relations, these cases must be associated by 𝑤 to the 𝑤 .𝑗 approximation of the
+same relation with which we extend 𝛿. The interpretation of the known type variables 𝑋  𝐴 ⊑ has
+the same basic structure, the key difference is that rather than using an arbitrary, 𝛿 is extended
+with the value relation V ∼ J𝐴 ⊑ K.
+With all of that preparation finished, we finally define the semantic interpretation of the graduality
+judgment Γ ⊑ ⊨ 𝑀𝑙 ⊑ 𝑀𝑟 ∈ 𝐴 ⊑ ; Γ ⊑′ in the bottom of Figure 17. First, it says that both 𝑀𝑙 ⊑≺ 𝑀𝑟 and
+𝑀𝑙 ⊑≻ 𝑀𝑟 hold, where we define ⊑∼ to mean that for any valid instantiation of the environments
+(including the preamble Γ𝑝 ), we get related computations. We can then define the łlogicalž Graduality
+theorem, that syntactic term precision implies semantic term precision, briefly, ⊢ implies ⊨.
+Theorem 6.3 (Logical Graduality). If Γ ⊑ ⊢ 𝑀𝑙 ⊑ 𝑀𝑟 : 𝐴 ⊑ ; Γ ⊑′, then Γ ⊑ ⊨ 𝑀𝑙 ⊑ 𝑀𝑟 ∈ 𝐴 ⊑ ; Γ ⊑′
+The proof is by induction on the term precision derivation. Each case is proven as a separate
+lemma in the appendix [New et al. 2020]. The cases of ∀𝜈 , ∃𝜈 , sealing and unsealing follow because
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+V𝑛∼ J𝑋 K𝛾𝛿
+V𝑛∼ J?K𝛾𝛿
+V𝑛≺ Jtag𝐺 (𝐴 ⊑ )K𝛾𝛿
+V𝑛≻ Jtag𝐺 (𝐴 ⊑ )K𝛾𝛿
+V𝑛∼ J∀𝜈 𝑋 .𝐵 ⊑ K𝛾𝛿
+
+=
+=
+=
+=
+=
+
+V𝑛∼ J∃𝜈 𝑋 .𝐵 ⊑ K𝛾𝛿
+
+=
+
+E𝑛≺ J𝐴 ⊑ K𝛾𝛿
+
+=
+
+E𝑛≻ J𝐴 ⊑ K𝛾𝛿
+
+=
+
+46:27
+
+⌊𝛿 (𝑋 )⌋𝑛
+{(𝑤, inj𝜎𝑙 𝑉𝑙 , inj𝜎𝑟 𝑉𝑟 ) ∈ Atom𝑛 [?]𝛿 | 𝑤 .𝜂 ⊨ (𝜎𝑙 , 𝜎𝑟 , 𝑅) ∧ (𝑤, 𝑉𝑙 , 𝑉𝑟 ) ∈ ⊲𝑅}
+{(𝑤, 𝑉𝑙 , inj𝛾𝑟 (case(𝐺)) 𝑉𝑟 ) ∈ Atom𝑛 [tag𝐺 (𝐴 ⊑ )]𝛿 | (𝑤, 𝑉𝑙 , 𝑉𝑟 ) ∈ V𝑛≺ J𝐴 ⊑ K𝛾𝛿 }
+{(𝑤, 𝑉𝑙 , inj𝛾𝑟 (case(𝐺)) 𝑉𝑟 ) ∈ Atom𝑛 [tag𝐺 (𝐴 ⊑ )]𝛿 | (𝑤, 𝑉𝑙 , 𝑉𝑟 ) ∈ (⊲V ≻ J𝐴 ⊑ K𝛾𝛿)}
+{(𝑤, 𝑉𝑙 , 𝑉𝑟 ) ∈ Atom𝑛 [∀𝜈 𝑋 .𝐴 ⊑ ]𝛿 |
+∀𝑅 ∈ Rel𝜔 [𝐴𝑙 , 𝐴𝑟 ].∀𝑤 ′ ⊒ 𝑤 .∀𝜎𝑙 , 𝜎𝑟 .𝑤 ′ .𝜂 ⊨ (𝜎𝑙 , 𝜎𝑟 , ⌊𝑅⌋𝑤 ′ .𝑗 ) =⇒
+(𝑤 ′, force 𝑉𝑙 [𝐴𝑙 ] 𝜎𝑙 , force 𝑉𝑟 [𝐴𝑟 ] 𝜎𝑟 ) ∈ E𝑛∼ J𝐵 ⊑ K𝛾 ′𝛿 ′
+(where 𝛾 ′ = 𝛾, 𝑐 𝑋 ↦→ (𝜎𝑙 , 𝜎𝑟 ), and 𝛿 ′ = 𝛿, 𝑋 ↦→ (𝐴𝑙 , 𝐴𝑟 , 𝑅))}
+{(𝑤, pack (𝐴𝑙 , 𝑉𝑙 ), pack (𝐴𝑟 , 𝑉𝑟 )) ∈ Atom𝑛 [∃𝜈 𝑋 .𝐵 ⊑ ]𝛿 |
+∃𝑅 ∈ Rel𝜔 [𝐴𝑙 , 𝐴𝑟 ].∀𝑤 ′ ⊒ 𝑤 .∀𝜎𝑙 , 𝜎𝑟 .𝑤 ′ .𝜂 ⊨ (𝜎𝑙 , 𝜎𝑟 , ⌊𝑅⌋𝑤 ′ .𝑗 ) =⇒
+(force 𝑉𝑙 𝜎𝑙 , force 𝑉𝑟 𝜎𝑟 ) ∈ E𝑛∼ J𝐵 ⊑ K𝛾 ′𝛿 ′
+(where 𝛾 ′ = 𝛾, 𝑐 𝑋 ↦→ (𝜎𝑙 , 𝜎𝑟 ), and 𝛿 ′ = 𝛿, 𝑋 ↦→ (𝐴𝑙 , 𝐴𝑟 , 𝑅))}
+{(𝑤, 𝑀𝑙 , 𝑀𝑟 ) ∈ CAtom𝑛 [𝐴 ⊑ ]𝛿 | (𝑤 .Σ𝑙 , 𝑀𝑙 ) ↦→𝑤.𝑗 ∨((𝑤 .Σ𝑙 , 𝑀𝑙 ) ↦→<𝑤.𝑗 (Σ𝑙′, ℧))
+∨(∃𝑤 ′ ⊒ 𝑤 .(𝑤 ′, 𝑉𝑙 , 𝑉𝑟 ) ∈ V𝑛≺ J𝐴 ⊑ K𝛾𝛿.
+′
+(𝑤 .Σ𝑙 , 𝑀𝑙 ) ↦→𝑤 .𝑗−𝑤.𝑗 (𝑤 ′ .Σ𝑙 , ret 𝑉𝑙 ) ∧ (𝑤 .Σ𝑟 , 𝑀𝑟 ) ↦→∗ (𝑤 ′ .Σ𝑟 , ret 𝑉𝑟 ))}
+{(𝑤, 𝑀𝑙 , 𝑀𝑟 ) ∈ CAtom𝑛 [𝐴 ⊑ ]𝛿 | (𝑤 .Σ𝑟 , 𝑀𝑟 ) ↦→𝑤.𝑗 ∨((𝑤 .Σ𝑙 , 𝑀𝑙 ) ↦→∗ (Σ𝑙′, ℧))
+∨∃𝑤 ′ ⊒ 𝑤 .(𝑤 ′, 𝑉𝑙 , 𝑉𝑟 ) ∈ V𝑛≺ J𝐴 ⊑ K𝛾𝛿.
+′
+(𝑤 .Σ𝑙 , 𝑀𝑙 ) ↦→∗ (𝑤 ′ .Σ𝑙 , ret 𝑉𝑙 ) ∧ (𝑤 .Σ𝑟 , 𝑀𝑟 ) ↦→𝑤 .𝑗−𝑤.𝑗 (𝑤 ′ .Σ𝑟 , ret 𝑉𝑟 )}
+
+V ∼ J𝐴 ⊑ K𝛾𝛿 =
+
+Ø
+
+V𝑛∼ J𝐴 ⊑ K𝛾𝛿
+
+𝑛 ∈N
+
+G ∼ J·K
+∼
+⊑
+G JΓ , 𝑥 : 𝐴 ⊑ K
+G ∼ JΓ ⊑ , 𝑋 K
+
+=
+=
+=
+
+G ∼ JΓ ⊑ , 𝑋  𝐴 ⊑ K
+
+=
+
+E ∼ J𝐴 ⊑ K𝛾𝛿 =
+
+Ø
+
+E𝑛∼ J𝐴 ⊑ K𝛾𝛿
+
+𝑛 ∈N
+
+{(𝑤, ∅, ∅) | ∃𝑛.𝑤 ∈ World𝑛 }
+{(𝑤, (𝛾, 𝑥 ↦→ (𝑉𝑙 , 𝑉𝑟 )), 𝛿) | (𝑤, 𝛾, 𝛿) ∈ G ∼ JΓ ⊑ K ∧ (𝑤, 𝑉𝑙 , 𝑉𝑟 ) ∈ V ∼ J𝐴 ⊑ K𝛾𝛿 }
+{(𝑤, (𝛾, 𝑐 𝑋 ↦→ (𝜎𝑙 , 𝜎𝑟 )), 𝛿, 𝑋 ↦→ (𝐴𝑙 , 𝐴𝑟 , 𝑅)) | (𝑤, 𝛾, 𝛿) ∈ G ∼ JΓ ⊑ K
+∧𝑅 ∈ Rel𝜔 [𝐴𝑙 , 𝐴𝑟 ] ∧ (𝜎𝑙 , 𝜎𝑟 , ⌊𝑅⌋𝑤.𝑗 ) ∈ 𝑤 }
+{(𝑤, (𝛾, 𝑐 𝑋 ↦→ (𝜎𝑙 , 𝜎𝑟 )), 𝛿, 𝑋 ↦→ (𝐴𝑙 , 𝐴𝑟 , V ∼ J𝐴 ⊑ K𝛾𝛿)) | (𝑤, 𝛾, 𝛿) ∈ G ∼ JΓ ⊑ K
+∼ J𝐴 ⊑ K𝛾𝛿)}
+𝑤 ⊨ (𝜎𝑙 , 𝜎𝑟 , V𝑤.𝑗
+
+Γ ⊑ ⊨ 𝑀𝑙 ⊑ 𝑀𝑟 ∈ 𝐴 ⊑ ; Γ ⊑′
+Γ ⊑ ⊨ 𝑀𝑙 ⊑∼ 𝑀𝑟 ∈ 𝐴 ⊑ ; Γ ⊑′
+
+=
+=
+
+Γ ⊑ ⊨ 𝑀𝑙 ⊑≺ 𝑀𝑟 ∈ 𝐴 ⊑ ; Γ ⊑′ ∧ Γ ⊑ ⊨ 𝑀𝑙 ⊑≻ 𝑀𝑟 ∈ 𝐴 ⊑ ; Γ ⊑′
+∀(𝑤, 𝛾, 𝛿) ∈ G ∼ JΓ𝑝 , Γ ⊑ , Γ ⊑′ K.
+(𝑤, J𝑀𝑙 K[𝛾𝑙 ] [𝛿𝑙 ], J𝑀𝑟 K[𝛾𝑙 ] [𝛿𝑙 ]) ∈ E ∼ J𝐴 ⊑ K𝛾𝛿
+
+Fig. 17. Graduality/Parametricity Logical Relation (fragment)
+
+the treatment of type variables between the value and environment relations is the same. In the
+hide case, the world is extended with V ∼ J𝐴 ⊑ K as the relation between new cases. The cast cases
+are the most involved, following by two lemmas proven by induction over precision derivations:
+one for when the cast is on the left, and the other when the cast is on the right.
+Finally, we prove the operational graduality theorem as a corollary of the logical graduality
+Theorem 6.3 and the adequacy Theorem 5.2. By constructing a suitable starting world 𝑤 𝑝𝑟𝑒 that
+allocates the globally known tags, we ensure the operational graduality property holds for the code
+translated to CBPVOSum , and then the simulation theorem implies the analogous property holds
+for the PolyC𝜈 operational semantics.
+6.4
+
+Parametricity and Free Theorems
+
+Our relational approach to proving the graduality theorem is not only elegant, it also makes the
+theorem more general, and in particular it subsumes the parametricity theorem that we want for
+the language, because we already assign arbitrary relations to abstract type variables. Then the
+parametricity theorem is just the reflexivity case of the graduality theorem.
+Theorem 6.4 (Parametricity). If Γ ⊢ 𝑀 : 𝐴; Γ ′, then Γ ⊨ 𝑀 + ⊑ 𝑀 + : 𝐴; Γ ′.
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:28
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+𝑀 : ∀𝜈 𝑋 .𝑋 → 𝑋
+
+𝑉𝐴 : 𝐴
+
+𝑉𝐵 : 𝐵
+
+𝜆_ : ?.unseal𝑋 (𝑀 {𝑋  𝐴 } (seal𝑋 𝑉𝐴 )) ≈ctx 𝜆_ : ?.let 𝑦 = 𝑀 {𝑋  𝐵 }𝑉𝐵 ; 𝑉𝐴
+𝑀 : ∀𝜈 𝑋 .∀𝜈 𝑌 .(𝑋 × 𝑌 ) → (𝑌 × 𝑋 )
+
+𝑉𝐴 : 𝐴
+
+𝑉𝐵 : 𝐵
+
+𝜆_ : ?.let (𝑦, 𝑥) = (𝑀 {𝑋  𝐴 } {𝑌  𝐵 } (seal𝑋 𝑉𝐴 , seal𝑌 𝑉𝐵 )); (unseal𝑋 𝑥, unseal𝑌 𝑦)
+≈ctx 𝜆_ : ?.let (𝑦, 𝑥) = (𝑀 {𝑋  𝐵 } {𝑌  𝐴 } (seal𝑋 𝑉𝐵 , seal𝑌 𝑉𝐴 )); (unseal𝑌 𝑦, unseal𝑋 𝑥)
+NOT = 𝜆𝑏 : B.if 𝑏 then false else true
+WRAPNOT = 𝜆𝑥 : 𝑋 .seal𝑋 (NOT(unseal𝑋 𝑥))
+≈
+
+ctx
+
+pack𝜈 (𝑋  B, (seal𝑋 true, (WRAPNOT, 𝜆𝑥 : 𝑋 .unseal𝑋 𝑥)))
+pack𝜈 (𝑋  B, (seal𝑋 false, (WRAPNOT, 𝜆𝑥 : 𝑋 .NOT (unseal𝑋 𝑥))))
+
+Fig. 18. Free Theorems without ?
+
+To demonstrate that this really is a parametricity theorem, we show that from this theorem
+we can prove łfree theoremsž that are true in polymorphic languages. These free theorems are
+naturally stated in terms of contextual equivalence, the gold standard for operational equivalence of
+programs, which we define as both programs diverging, erroring, or terminating successfully when
+plugged into an arbitrary context. The appendix contains a formal definition [New et al. 2020].
+To use our logical relation to prove contextual equivalence, we need the following lemma, which
+says that semantic term precision both ways is sound for PolyG𝜈 contextual equivalence.
+Lemma 6.5. If Γ ⊨ 𝑀𝑙 ⊑ 𝑀2 ∈ 𝐴; Γ𝑀 and Γ ⊨ 𝑀2 ⊑ 𝑀1 ∈ 𝐴; Γ𝑀 , then Γ ⊨ 𝑀𝑙 ≈ctx 𝑀2 ∈ 𝐴; Γ𝑀 .
+We now substantiate that this is a parametricity theorem by proving a few contextual equivalence
+results. First we present adaptations of some standard free theorems from typed languages in
+Figure 18. The first equivalence shows that the behavior of any term with the łidentity function
+typež ∀𝜈 𝑋 .𝑋 → 𝑋 must be independent of the input it is given. We place a 𝜆 on each side to
+delimit the scope of the 𝑋 outward. Without the 𝑋 (or a similar thunking feature like ∀𝜈 or ∃𝜈 ),
+the two programs would not have the same (effect) typing. In a more realistic language, this
+corresponds to wrapping each side in a module boundary. The next result shows that a function
+∀𝜈 𝑋 .∀𝜈 𝑌 .(𝑋 × 𝑌 ) → (𝑌 × 𝑋 ), if it terminates, must flip the values of the pair, and furthermore
+whether it terminates, diverges or errors does not depend on the input values. Finally, we give an
+example using existential types. That shows that an abstract łflipperž which uses true for on and
+false for off in its internal state is equivalent to one using false and true, respectively as long as
+they return the same value in their łreadoutž function.
+Next, to give a flavor of what kind of relational reasoning is possible in the presence of the
+dynamic type, we consider what free theorems are derivable for functions of type ∀𝑋 .? → 𝑋 .
+A good intuition for this type is that the only possible outputs of the function are sealed values
+that are contained within the dynamically typed input. It is difficult to summarize this in a single
+statement, so instead we give the following three examples:
+Theorem 6.6 (∀𝜈 𝑋 .? → 𝑋 Free Theorems). Let · ⊢ 𝑀 : ∀𝜈 𝑋 .? → 𝑋
+(1) For any · ⊢ 𝑉 : ?, then 𝜆_ : ?.unseal𝑋 (𝑀 {𝑋  𝐴} 𝑉 )) true either diverges or errors.
+(2) For any · ⊢ 𝑉 : 𝐴 and · ⊢ 𝑉 ′ : 𝐵,
+𝜆_ : ?.unseal𝑋 (𝑀 {𝑋  𝐴} (seal𝑋 𝑉 )) ≈ctx 𝜆_ : ?.let 𝑦 = (unseal𝑋 (𝑀 {𝑋  𝐵} (seal𝑋 𝑉 ′ ))); 𝑉
+
+(3) For any · ⊢ 𝑉 : 𝐴, · ⊢ 𝑉 ′ : 𝐵, · ⊢ 𝑉𝑑 : ?,
+𝜆_ : ?.unseal𝑋 (𝑀 {𝑋  𝐴} (seal𝑋 𝑉 , 𝑉𝑑 )) ≈ctx 𝜆_ : ?.let 𝑦 = (unseal𝑋 (𝑀 {𝑋  𝐵} (seal𝑋 𝑉 ′, 𝑉𝑑 ))); 𝑉
+
+The first example passes in a value 𝑉 that does not use the seal 𝑋 , so we know that the function
+cannot possibly return a value of type 𝑋 . The second example mimics the identity function’s free
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+46:29
+
+theorem. It passes in a sealed value 𝑉 and the equivalence shows that 𝑉 ′’s effects do not depend
+on what 𝑉 was sealed and the only value that 𝑉 ′ can return is the one that was passed in. The
+third example illustrates that there are complicated ways in which sealed values might be passed
+as a part of a dynamically typed value, but the principle remains the same: since there is only one
+sealed value that’s part of the larger dynamically typed value, it is the only possible return value,
+and the effects cannot depend on its actual value. The proof of the first case uses the relational
+interpretation that 𝑋 is empty. The latter two use the interpretation that 𝑋 includes a single value.
+Compare this reasoning to what is available in GSF, where the polymorphic function determines
+which inputs are sealed and which are not, rather than the caller. Because of this, Toro et al. [2019]
+only prove łcheapž theorems involving ? where the polymorphic function is known to be a literal
+Λ function and not a casted function. As an example, for arbitrary 𝑀 : ∀𝑋 .? → 𝑋 , consider the
+application 𝑀 [B] (true, false). The continuation of this call has no way of knowing if neither,
+one or both booleans are members of the abstract type 𝑋 . The following examples of possible terms
+for 𝑀 illustrate these three cases:
+(1) 𝑀1 = (Λ𝑋 .𝜆𝑥 : B × B.if or 𝑥 then ℧ else Ω) :: ∀𝑋 .? → 𝑋
+(2) 𝑀2 = (Λ𝑋 .𝜆𝑥 : 𝑋 × B.if snd 𝑥 then fst 𝑥 else Ω) :: ∀𝑋 .? → 𝑋
+(3) 𝑀3 = (Λ𝑋 .𝜆𝑥 : 𝑋 × 𝑋 .snd 𝑥) :: ∀𝑋 .? → 𝑋
+If 𝑀 = 𝑀1 , both booleans are concrete so 𝑋 is empty, but from the inputs the function can determine
+whether to diverge or error. If 𝑀 = 𝑀2 , the first boolean is abstract and the second is concrete, so
+only the first can inhabit 𝑋 , but the second can be used to determine whether to return a value or
+not. Finally if 𝑀 = 𝑀3 , both booleans are abstract so the function cannot inspect them, but either
+can be returned. It is unclear what reasoning the continuation has here: it must anticipate every
+possible way in which the function might decide which values to seal, and so has to consider every
+dynamically typed value of the instantiating type as possibly abstract and possibly concrete.
+7 DISCUSSION AND RELATED WORK
+Dynamically typed PolyG𝜈 and Design Alternatives. Most gradually typed languages are based
+on adding types to an existing dynamically typed language, with the static types capturing some
+feature already existing in the dynamic language that can be migrated to use static typing. PolyG𝜈
+was designed as a proof-of-concept standalone gradual language, so it might not be clear what
+dynamic typing features it supports migration of. In particular, since all sealing is explicit, PolyG𝜈
+does not model migration from programming without seals entirely to programming with them, so
+its types are relevant to languages that include some kind of nominal data type generation.
+The fresh existential types correspond to a particular mode of use of a module system that
+supports creation of nominal types. The package itself corresponds to a module with a fresh type
+declaration. Then sealing corresponds to the constructor of the fresh datatype, and unsealing to
+pattern matching against it. For example, in Racket structs can be used to make fresh nominal
+types and units provide first-class modules. It would be interesting future work to see if our logical
+relation can usefully be adapted to Typed Racket’s typed units [Tobin-Hochstadt et al. [n. d.]].
+Our fresh polymorphic types are more exotic than the fresh existentials, and don’t clearly correspond to any existing programming features, but they model abstraction over nominal datatypes
+where the datatype is guaranteed to be freshly generated. One issue with adding this feature to a
+realistic language is that the outward scoping of type variables may be undesirable, so it is useful to
+consider alternative designs that achieve the same abstraction principles. One possible design would
+be to force an ANF-like [Sabry and Felleisen 1992] restriction on instantiations of polymorphic
+functions, where all instantiations have to be of the form let 𝑀 {𝑋  𝐴} = 𝑓 ; 𝑁 , where 𝑋  𝐴 is
+bound in 𝑁 . This makes the scope of the 𝑋 explicit: it is only bound in 𝑁 . Our translation could
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:30
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+easily be modified to accommodate this feature, we chose instead to consider the outward scoping
+since it makes it easier to compare to programming in the style of System F.
+Our use of abstract and known type variables was directly inspired by Neis et al. [2009], who
+present a language with a fresh type creation mechanism which they show enables parametric
+reasoning though the language overall does not satisfy a traditional parametricity theorem. This
+suggests an alternative language design, where ∀ and ∃ behave normally and we add a newtype
+facility, analogous to that feature of Haskell, where newtype allocates a new case of the open sum
+type for each type it creates. Such a language would not have known type variables or PolyG𝜈 ’s
+inside-out scoping of type instantiation, but it would also not be parametric by default. Instead,
+programmers could manually create fresh types and know that they are abstract to other modules.
+Since sealing is explicit in PolyG𝜈 , it does not provide a drop-in replacement for System F,
+and so the additional syntactic overhead of sealing and unsealing can be quite heavy, especially
+when using higher-order combinators. For instance a higher-order function composition combinator has type ∀𝜈 𝑋 .∀𝜈 𝑌 .∀𝜈 𝑍 .(𝑌 → 𝑍 ) → (𝑋 → 𝑌 ) → 𝑋 → 𝑍 and the System F composition
+compose[I] [B] [B] not (> 0) would in PolyG𝜈 be written
+𝜆𝑛 : I. unseal𝑍 (compose{𝑋  I}{𝑌  B}{𝑍  B}(𝜆𝑦 : 𝑌 .seal𝑍 (not (unseal𝑌 𝑦)))
+(𝜆𝑥 : 𝑋 .seal𝑌 (> 0 (unseal𝑋 𝑥)))
+seal𝑋 𝑛)
+
+This syntactic overhead can be mitigated via generic wrapping functions using dynamic typing:
+wrap seal𝑋 unseal𝑍 (compose{𝑋  I}{𝑌  B}{𝑍  B}(wrap unseal𝑌 seal𝑍 not)
+(wrap unseal𝑋 seal𝑌 (> 0))
+
+But the syntactic overhead cannot be completely removed or done entirely with static typing.
+Tag Checking. Siek et al. [2015] claim that graduality demands that tag-checking functions like
+our is(B)? form must error when applied to sealed values, and used this as a criticism of the
+design of Typed Racket. However, in our language, is(B)? will simply return false, which
+matches Typed Racket’s behavior. This is desirable if we are adding types to an existing dynamic
+language, because typically a runtime tag check should be a safe operation in a dynamically typed
+language. Explicit sealing avoids this graduality issue, an advantage over previous work.
+Logical Relations. Our use of explicit sealing eliminates much of the complexity of prior logical
+relations [Ahmed et al. 2017; Toro et al. 2019]. To accommodate dynamic conversion and evidence
+insertion, those relations adopted complex value relations for universal types that in turn restricted
+the ways in which they could treat type variables. Additionally, we are the first to give a logical
+relation for fresh existential types, and it is not clear how to adapt the non-standard relation for
+universals to existentials [Ahmed et al. 2017; Toro et al. 2019].
+Next, while we argue that our logical relation more fully captures parametricity than previous
+work on gradual polymorphism, this is not a fully formal claim. To formalize it, in future work we
+could show that PolyG𝜈 is a model of an effectful variant of an axiomatic parametricity formulation
+such as Dunphy [2002]; Ma and Reynolds [1991]; Plotkin and Abadi [1993].
+ACKNOWLEDGMENTS
+We thank the anonymous reviewers for their in-depth comments. We also thank Matthias Felleisen
+for explaining the importance that tag checks be total operations. This material is based on research
+supported by the National Science Foundation under grants CCF-1910522, CCF-1816837, and CCF1453796. Any opinions, findings, and conclusions or recommendations expressed in this material
+are those of the authors and do not necessarily reflect the views of the National Science Foundation.
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+Graduality and Parametricity: Together Again for the First Time
+
+46:31
+
+REFERENCES
+Amal Ahmed, Derek Dreyer, and Andreas Rossberg. 2009. State-Dependent Representation Independence. In ACM Symposium
+on Principles of Programming Languages (POPL), Savannah, Georgia.
+Amal Ahmed, Robert Bruce Findler, Jeremy Siek, and Philip Wadler. 2011. Blame for All. In ACM Symposium on Principles of
+Programming Languages (POPL), Austin, Texas. 201ś214.
+Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler. 2017. Theorems for Free for Free: Parametricity, With and
+Without Types. In International Conference on Functional Programming (ICFP), Oxford, United Kingdom.
+Felipe Bañados Schwerter, Ronald Garcia, and Éric Tanter. 2014. A Theory of Gradual Effect Systems. In Proceedings of the
+19th ACM SIGPLAN International Conference on Functional Programming (ICFP ’14). 283ś295.
+John Boyland. 2014. The Problem of Structural Type Tests in a Gradually-Typed Language. In 21st Workshop on Foundations
+of Object-Oriented Languages.
+Giuseppe Castagna and Victor Lanvin. 2017. Gradual Typing with Union and Intersection Types. Proc. ACM Program. Lang.
+1, ICFP, Article 41 (Aug. 2017), 28 pages. https://doi.org/10.1145/3110285
+Tim Disney and Cormac Flanagan. 2011. Gradual Information Flow Typing. In Workshop on Script-to-Program Evolution
+(STOP).
+Brian Patrick Dunphy. 2002. Parametricity As a Notion of Uniformity in Reflexive Graphs. Ph.D. Dissertation. Champaign, IL,
+USA. Advisor(s) Reddy, Uday.
+Matthias Felleisen. 1990. On the expressive power of programming languages. ESOP’90 (1990).
+Luminous Fennell and Peter Thiemann. 2013. Gradual Security Typing with References. In CSF. IEEE Computer Society,
+224ś239.
+Ronald Garcia and Matteo Cimini. 2015. Principal Type Schemes for Gradual Programs (POPL ’15).
+Ronald Garcia, Alison M. Clark, and Éric Tanter. 2016. Abstracting Gradual Typing. In ACM Symposium on Principles of
+Programming Languages (POPL).
+Atsushi Igarashi, Peter Thiemann, Vasco Vasconcelos, and Philip Wadler. 2017b. Gradual Session Types. In International
+Conference on Functional Programming (ICFP).
+Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi. 2017a. On Polymorphic Gradual Typing. In International Conference on
+Functional Programming (ICFP), Oxford, United Kingdom.
+Lintaro Ina and Atsushi Igarashi. 2011. Gradual typing for generics. In Proceedings of the 2011 ACM international conference
+on Object oriented programming systems languages and applications (OOPSLA ’11).
+Nico Lehmann and Éric Tanter. 2017. Gradual Refinement Types. In ACM Symposium on Principles of Programming Languages
+(POPL).
+Paul Blain Levy. 2003. Call-By-Push-Value: A Functional/Imperative Synthesis. Springer.
+QingMing Ma and John C. Reynolds. 1991. Types, Abstractions, and Parametric Polymorphism, Part 2. In Mathematical
+Foundations of Programming Semantics, 7th International Conference, Pittsburgh, PA, USA.
+John C. Mitchell and Gordon D. Plotkin. 1985. Abstract types have existential type. In ACM Symposium on Principles of
+Programming Languages (POPL), New Orleans, Louisiana.
+Georg Neis, Derek Dreyer, and Andreas Rossberg. 2009. Non-Parametric Parametricity. In International Conference on
+Functional Programming (ICFP). 135ś148.
+Max S. New and Amal Ahmed. 2018. Graduality from Embedding-Projection Pairs. In International Conference on Functional
+Programming (ICFP), St. Louis, Missouri.
+Max S. New, Dustin Jamner, and Amal Ahmed. 2020. Technical Appendix to Graduality and Parametricity: Together Again
+for the First Time. http://www.ccs.neu.edu/home/amal/papers/gradparam-tr.pdf
+Max S. New, Daniel R. Licata, and Amal Ahmed. 2019. Gradual Type Theory (POPL ’19).
+Gordon Plotkin and Martín Abadi. 1993. A logic for parametric polymorphism. Typed Lambda Calculi and Applications
+(1993), 361ś375.
+John C. Reynolds. 1983. Types, Abstraction and Parametric Polymorphism. In Information Processing 83, Proceedings of the
+IFIP 9th World Computer Congress, Paris, France.
+Amr Sabry and Matthias Felleisen. 1992. Reasoning about Programs in Continuation-Passing Style. In Conf. on LISP and
+functional programming, LFP ’92.
+Ilya Sergey and Dave Clarke. 2012. Gradual Ownership Types. In ESOP (Lecture Notes in Computer Science), Vol. 7211.
+Springer, 579ś599.
+Jeremy Siek, Micahel Vitousek, Matteo Cimini, and John Tang Boyland. 2015. Refined Criteria for Gradual Typing. In 1st
+Summit on Advances in Programming Languages.
+Jeremy G. Siek and Walid Taha. 2006. Gradual Typing for Functional Languages. In Scheme and Functional Programming
+Workshop (Scheme). 81ś92.
+Jeremy G. Siek and Walid Taha. 2007. Gradual Typing for Objects. In European Conference on Object-Oriented Programming
+(ECOOP).
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+46:32
+
+Max S. New, Dustin Jamner, and Amal Ahmed
+
+Eijiro Sumii and Benjamin C. Pierce. 2004. A Bisimulation for Dynamic Sealing. In ACM Symposium on Principles of
+Programming Languages (POPL), Venice, Italy.
+Asumu Takikawa, T. Stephen Strickland, Christos Dimoulas, Sam Tobin-Hochstadt, and Matthias Felleisen. 2012. Gradual
+typing for first-class classes (ACM Symposium on Object Oriented Programming: Systems, Languages, and Applications
+(OOPSLA)).
+Sam Tobin-Hochstadt and Matthias Felleisen. 2006. Interlanguage Migration: From Scripts to Programs. In Dynamic
+Languages Symposium (DLS). 964ś974.
+Sam Tobin-Hochstadt and Matthias Felleisen. 2008. The Design and Implementation of Typed Scheme. In ACM Symposium
+on Principles of Programming Languages (POPL), San Francisco, California.
+Sam Tobin-Hochstadt, Vincent St-Amour, Eric Dobson, and Asumu Takikawa. [n. d.]. Typed Racket Reference. https:
+//docs.racket-lang.org/ts-reference/Typed_Units.html Accessed: 2019-10-30.
+Matías Toro, Ronald Garcia, and Éric Tanter. 2018. Type-Driven Gradual Security with References. ACM Transactions on
+Programming Languages and Systems 40, 4 (Dec. 2018). http://doi.acm.org/10.1145/3229061
+Matías Toro, Elizabeth Labrada, and Éric Tanter. 2019. Gradual Parametricity, Revisited. Proc. ACM Program. Lang. 3, POPL,
+Article 17 (Jan. 2019), 30 pages. https://doi.org/10.1145/3290330
+Roger Wolff, Ronald Garcia, Éric Tanter, and Jonathan Aldrich. 2011. Gradual Typestate. In Proceedings of the 25th European
+Conference on Object-oriented Programming (ECOOP’11).
+Ningning Xie, Xuan Bi, and Bruno C. d. S. Oliveira. 2018. Consistent Subtyping for All. In Programming Languages and
+Systems, Amal Ahmed (Ed.). Springer International Publishing, Cham, 3ś30.
+
+Proc. ACM Program. Lang., Vol. 4, No. POPL, Article 46. Publication date: January 2020.
+
+

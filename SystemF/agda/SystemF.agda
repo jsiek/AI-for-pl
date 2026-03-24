@@ -25,7 +25,8 @@ data Term : Set where
   Λ_ : Term → Term
   _·[_] : Term → Ty → Term
 
--- Parallel substitution (2): Types into Terms
+------------------------------------------------------------------------
+-- Parallel substitution: Types into Terms
 ------------------------------------------------------------------------
 
 renameᵀ : Renameᵗ → Term → Term
@@ -54,7 +55,7 @@ _[_]ᵀ : Term → Ty → Term
 N [ A ]ᵀ = substᵀ (singleTyEnv A) N
 
 ------------------------------------------------------------------------
--- Parallel substitution (3): Terms into Terms
+-- Parallel substitution: Terms into Terms
 ------------------------------------------------------------------------
 
 Rename : Set

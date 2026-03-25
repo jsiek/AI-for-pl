@@ -20,10 +20,18 @@ open import TypeSubst using
   ; map-renameᵗ-renameˢ
   ; rename-subst
   ; rename-subst-commute
+  ; rename-[]ᵗ-commute
   ; renameˢ-[]ᵗ-commute
   ; renameˢ-commute-suc
   ; singleSealEnv-suc-cancel
   ; singleSealEnv-source-eq
+  ; lookupˢ-map-inv
+  ; lookupˢ-map-renameᵗ
+  ; map-renameStore-suc
+  ; TyRenameWf
+  ; TyRenameWf-ext
+  ; renameᵗ-preserves-WfTy
+  ; renameᵗ-preserves-WfTy↑
   ; subst-cong
   ; single-subst-def
   ; _⨟ᵗ_
@@ -51,21 +59,6 @@ StoreWfAt Δ Σ = ∀ {α A} → Σ ∋ˢ α ⦂ A → WfTy Δ Σ A
 
 WfStore : Store → Set
 WfStore Σ = StoreWfAt zero Σ
-
-lookupˢ-map-inv :
-  {stores : Store} {α : Seal} {B : Ty} {ρ : Renameᵗ} →
-  renameStoreᵗ ρ stores ∋ˢ α ⦂ B →
-  Σ Ty (λ A → (stores ∋ˢ α ⦂ A) × (B ≡ renameᵗ ρ A))
-lookupˢ-map-inv {stores = A₀ ∷ stores} {α = zero} Zˢ = A₀ , (Zˢ , refl)
-lookupˢ-map-inv {stores = _ ∷ stores} {α = suc α} (Sˢ h) with lookupˢ-map-inv h
-... | A , (hA , eq) = A , (Sˢ hA , eq)
-
-lookupˢ-map-renameᵗ :
-  {Σ : Store} {α : Seal} {A : Ty} {ρ : Renameᵗ} →
-  Σ ∋ˢ α ⦂ A →
-  renameStoreᵗ ρ Σ ∋ˢ α ⦂ renameᵗ ρ A
-lookupˢ-map-renameᵗ Zˢ = Zˢ
-lookupˢ-map-renameᵗ (Sˢ h) = Sˢ (lookupˢ-map-renameᵗ h)
 
 postulate
   typing-singleSealEnv-fresh :
@@ -176,19 +169,6 @@ seal-step-preserve
   rewrite lookupˢ-functional hα hα' =
     ⊢cast-up (⊢cast-down hV hp) hq
 
-map-renameStore-suc : (ρ : Renameᵗ) (Σ : Store) →
-  renameStoreᵗ (extᵗ ρ) (renameStoreᵗ suc Σ) ≡
-  renameStoreᵗ suc (renameStoreᵗ ρ Σ)
-map-renameStore-suc ρ [] = refl
-map-renameStore-suc ρ (A ∷ Σ) =
-  cong₂ _∷_
-    (trans
-      (rename-rename-commute suc (extᵗ ρ) A)
-      (trans
-        (rename-cong (λ i → refl) A)
-        (sym (rename-rename-commute ρ suc A))))
-    (map-renameStore-suc ρ Σ)
-
 map-renameᵗ-⤊ : (ρ : Renameᵗ) (Γ : Ctx) →
   map (renameᵗ (extᵗ ρ)) (⤊ Γ) ≡ ⤊ (map (renameᵗ ρ) Γ)
 map-renameᵗ-⤊ ρ [] = refl
@@ -200,23 +180,6 @@ map-renameᵗ-⤊ ρ (A ∷ Γ) =
         (rename-cong (λ i → refl) A)
         (sym (rename-rename-commute ρ suc A))))
     (map-renameᵗ-⤊ ρ Γ)
-
-rename-[]ᵗ-commute : (ρ : Renameᵗ) (A B : Ty) →
-  renameᵗ ρ (A [ B ]ᵗ) ≡ (renameᵗ (extᵗ ρ) A) [ renameᵗ ρ B ]ᵗ
-rename-[]ᵗ-commute ρ A B =
-  trans
-    (trans
-      (cong (renameᵗ ρ) (single-subst-def A B))
-      (rename-subst ρ (singleTyEnv B) A))
-    (trans
-      (subst-cong env-eq A)
-      (sym (rename-subst-commute (extᵗ ρ) (singleTyEnv (renameᵗ ρ B)) A)))
-  where
-    env-eq : (i : Var) →
-      (λ j → renameᵗ ρ (singleTyEnv B j)) i ≡
-      (λ j → singleTyEnv (renameᵗ ρ B) (extᵗ ρ j)) i
-    env-eq zero = refl
-    env-eq (suc i) = refl
 
 cons-sub : Ty → Substᵗ → Substᵗ
 cons-sub v σ zero = v
@@ -501,52 +464,6 @@ SubstWf-exts :
 SubstWf-exts hσ Z = ⊢` Z
 SubstWf-exts hσ (S h) = rename-shift (hσ h)
 
-TyRenameWf : TyCtx → TyCtx → Renameᵗ → Set
-TyRenameWf Δ Δ' ρ = ∀ {X} → X < Δ → ρ X < Δ'
-
-TyRenameWf-ext :
-  {Δ Δ' : TyCtx} {ρ : Renameᵗ} →
-  TyRenameWf Δ Δ' ρ →
-  TyRenameWf (suc Δ) (suc Δ') (extᵗ ρ)
-TyRenameWf-ext hρ {zero} z<s = z<s
-TyRenameWf-ext hρ {suc X} (s<s x<Δ) = s<s (hρ {X} x<Δ)
-
-renameᵗ-preserves-WfTy :
-  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
-  WfTy Δ Σ A →
-  TyRenameWf Δ Δ' ρ →
-  WfTy Δ' (renameStoreᵗ ρ Σ) (renameᵗ ρ A)
-renameᵗ-preserves-WfTy (wfX x<Δ) hρ = wfX (hρ x<Δ)
-renameᵗ-preserves-WfTy wfι hρ = wfι
-renameᵗ-preserves-WfTy wf★ hρ = wf★
-renameᵗ-preserves-WfTy (wfα h) hρ = wfα (lookupˢ-map-renameᵗ h)
-renameᵗ-preserves-WfTy (wf⇒ hA hB) hρ =
-  wf⇒ (renameᵗ-preserves-WfTy hA hρ) (renameᵗ-preserves-WfTy hB hρ)
-renameᵗ-preserves-WfTy {Δ' = Δ'} {Σ = Σ} {ρ = ρ} (wf∀ {A = A} hA) hρ =
-  wf∀
-    (Eq.subst
-      (λ S → WfTy (suc Δ') S (renameᵗ (extᵗ ρ) A))
-      (map-renameStore-suc ρ Σ)
-      (renameᵗ-preserves-WfTy hA (TyRenameWf-ext hρ)))
-
-renameᵗ-preserves-WfTy↑ :
-  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
-  WfTy (suc Δ) Σ A →
-  TyRenameWf Δ Δ' ρ →
-  WfTy (suc Δ') (renameStoreᵗ ρ Σ) (renameᵗ (extᵗ ρ) A)
-renameᵗ-preserves-WfTy↑ (wfX x<) hρ = wfX (TyRenameWf-ext hρ x<)
-renameᵗ-preserves-WfTy↑ wfι hρ = wfι
-renameᵗ-preserves-WfTy↑ wf★ hρ = wf★
-renameᵗ-preserves-WfTy↑ (wfα h) hρ = wfα (lookupˢ-map-renameᵗ h)
-renameᵗ-preserves-WfTy↑ (wf⇒ hA hB) hρ =
-  wf⇒ (renameᵗ-preserves-WfTy↑ hA hρ) (renameᵗ-preserves-WfTy↑ hB hρ)
-renameᵗ-preserves-WfTy↑ {Δ' = Δ'} {Σ = Σ} {ρ = ρ} (wf∀ {A = A} hA) hρ =
-  wf∀
-    (Eq.subst
-      (λ S → WfTy (suc (suc Δ')) S (renameᵗ (extᵗ (extᵗ ρ)) A))
-      (map-renameStore-suc ρ Σ)
-      (renameᵗ-preserves-WfTy↑ hA (TyRenameWf-ext hρ)))
-
 nu-down-preserve :
   ∀ {Δ Σ α p A B C} →
   Δ ∣ (`★ ∷ Σ) ⊢ᵖ p ⦂ ((renameˢ suc A) [ ｀ zero ]ᵗ) ⊑ renameˢ suc B →
@@ -564,7 +481,14 @@ nu-down-preserve {Δ = Δ} {Σ = Σ} {α = α} {p = p} {A = A} {B = B} hp hβ =
   where
     postulate
       open-lookup :
-        ∀ {α' C} → (`★ ∷ Σ) ∋ˢ α' ⦂ C → Σ ∋ˢ singleSealEnv α α' ⦂ C
+        ∀ {α' C} →
+        (`★ ∷ Σ) ∋ˢ α' ⦂ C →
+        Σ ∋ˢ singleSealEnv α α' ⦂ renameˢ (singleSealEnv α) C
+
+      lift-ext-renaming :
+        ∀ {ρ : Renameˢ} {Σ₀ Σ₁ : Store} →
+        LookupRenameˢ ρ Σ₀ Σ₁ →
+        LookupRenameˢ (extˢ ρ) (`★ ∷ Σ₀) (`★ ∷ Σ₁)
 
     renameˢ-inst-eq :
       (ρ : Renameˢ) (A : Ty) →
@@ -620,13 +544,6 @@ nu-down-preserve {Δ = Δ} {Σ = Σ} {α = α} {p = p} {A = A} {B = B} hp hβ =
     sealToTag-id★-no x y neq | yes eq = ⊥-elim (neq eq)
     sealToTag-id★-no x y neq | no _ = refl
 
-    postulate
-      renameImpˢ-preserves-typing :
-        {Δ' : TyCtx} {ρ : Renameˢ} {Σ₀ Σ₁ : Store} {p : Imp} {A B : Ty} →
-        (∀ {α C} → Σ₀ ∋ˢ α ⦂ C → Σ₁ ∋ˢ ρ α ⦂ C) →
-        Δ' ∣ Σ₀ ⊢ᵖ p ⦂ A ⊑ B →
-        Δ' ∣ Σ₁ ⊢ᵖ renameImpˢ ρ p ⦂ renameˢ ρ A ⊑ renameˢ ρ B
-
     mutual
       sealToTag-preserves-cimp :
         {Δ' : TyCtx} {Σ : Store} {g : CImp} {A B : Ty} {α : Seal} →
@@ -680,11 +597,12 @@ nu-down-preserve {Δ = Δ} {Σ = Σ} {α = α} {p = p} {A = A} {B = B} hp hβ =
 
     open-preserve-imp :
       {Δ' : TyCtx} {ρ : Renameˢ} {Σ₀ Σ₁ : Store} {p : Imp} {A B : Ty} {α : Seal} →
-      (∀ {α' C} → Σ₀ ∋ˢ α' ⦂ C → Σ₁ ∋ˢ ρ α' ⦂ C) →
+      LookupRenameˢ ρ Σ₀ Σ₁ →
       Δ' ∣ Σ₀ ⊢ᵖ p ⦂ A ⊑ B →
       Δ' ∣ Σ₁ ⊢ᵖ sealToTag α (renameImpˢ ρ p) ⦂ renameˢ ρ A ⊑ renameˢ ρ B
     open-preserve-imp hlookup hp =
-      sealToTag-preserves-imp (renameImpˢ-preserves-typing hlookup hp)
+      sealToTag-preserves-imp
+        (renameImpˢ-preserves-typing lift-ext-renaming hlookup hp)
 
     source-eq :
       renameˢ (singleSealEnv α) (((renameˢ suc A) [ ｀ zero ]ᵗ)) ≡ A [ ｀ α ]ᵗ
@@ -698,95 +616,6 @@ renameᵗ-constTy :
   {ρ : Renameᵗ} {κ : Const} →
   renameᵗ ρ (constTy κ) ≡ constTy κ
 renameᵗ-constTy {κ = κℕ n} = refl
-
-mutual
-  renameCImpᵗ-preserves-typing :
-    {Δ Δ' : TyCtx} {Σ : Store} {g : CImp} {A B : Ty} {ρ : Renameᵗ} →
-    TyRenameWf Δ Δ' ρ →
-    Δ ∣ Σ ⊢ᶜ g ⦂ A ⊑ B →
-    Δ' ∣ renameStoreᵗ ρ Σ ⊢ᶜ renameCImpᵗ ρ g ⦂ renameᵗ ρ A ⊑ renameᵗ ρ B
-  renameCImpᵗ-preserves-typing hρ (⊢idα hα) =
-    ⊢idα (lookupˢ-map-renameᵗ hα)
-  renameCImpᵗ-preserves-typing hρ (⊢idX x<Δ) =
-    ⊢idX (hρ x<Δ)
-  renameCImpᵗ-preserves-typing hρ ⊢idι = ⊢idι
-  renameCImpᵗ-preserves-typing hρ (⊢→ᵖ hp hq) =
-    ⊢→ᵖ
-      (renameImpᵗ-preserves-typing hρ hp)
-      (renameImpᵗ-preserves-typing hρ hq)
-  renameCImpᵗ-preserves-typing
-    {Δ = Δ} {Δ' = Δ'} {Σ = Σ} {ρ = ρ}
-    hρ (⊢∀ᵖ hp) =
-    ⊢∀ᵖ (lift hp)
-    where
-      lift :
-        {p : Imp} {A B : Ty} →
-        (suc Δ) ∣ (renameStoreᵗ suc Σ) ⊢ᵖ p ⦂ A ⊑ B →
-        (suc Δ') ∣ (renameStoreᵗ suc (renameStoreᵗ ρ Σ)) ⊢ᵖ
-          renameImpᵗ (extᵗ ρ) p ⦂
-          renameᵗ (extᵗ ρ) A ⊑ renameᵗ (extᵗ ρ) B
-      lift hp =
-        Eq.subst
-          (λ S → (suc Δ') ∣ S ⊢ᵖ renameImpᵗ (extᵗ ρ) _ ⦂ _ ⊑ _)
-          (map-renameStore-suc ρ Σ)
-          (renameImpᵗ-preserves-typing (TyRenameWf-ext hρ) hp)
-
-  renameImpᵗ-preserves-typing :
-    {Δ Δ' : TyCtx} {Σ : Store} {p : Imp} {A B : Ty} {ρ : Renameᵗ} →
-    TyRenameWf Δ Δ' ρ →
-    Δ ∣ Σ ⊢ᵖ p ⦂ A ⊑ B →
-    Δ' ∣ renameStoreᵗ ρ Σ ⊢ᵖ renameImpᵗ ρ p ⦂ renameᵗ ρ A ⊑ renameᵗ ρ B
-  renameImpᵗ-preserves-typing hρ (⊢⌈⌉ hg) =
-    ⊢⌈⌉ (renameCImpᵗ-preserves-typing hρ hg)
-  renameImpᵗ-preserves-typing hρ ⊢id★ = ⊢id★
-  renameImpᵗ-preserves-typing {Δ' = Δ'} {Σ = Σ} {ρ = ρ}
-    hρ (⊢tag {g = g} {G = G} {A = A} hg) =
-    ⊢tag
-      (Eq.subst
-        (λ T → Δ' ∣ renameStoreᵗ ρ Σ ⊢ᶜ renameCImpᵗ ρ g ⦂ renameᵗ ρ A ⊑ T)
-        (rename-groundTy {ρ = ρ} {G = G})
-        (renameCImpᵗ-preserves-typing hρ hg))
-  renameImpᵗ-preserves-typing hρ (⊢seal hα hp) =
-    ⊢seal
-      (lookupˢ-map-renameᵗ hα)
-      (renameImpᵗ-preserves-typing hρ hp)
-  renameImpᵗ-preserves-typing
-    {Δ = Δ} {Δ' = Δ'} {Σ = Σ} {ρ = ρ}
-    hρ (⊢ν {A = A} hp hA hB) =
-    ⊢ν
-      (lift {A = A} hp)
-      (renameᵗ-preserves-WfTy↑ hA hρ)
-      (renameᵗ-preserves-WfTy hB hρ)
-    where
-      lift :
-        {p : Imp} {A B : Ty} →
-        Δ ∣ (`★ ∷ Σ) ⊢ᵖ p ⦂ ((renameˢ suc A) [ ｀ zero ]ᵗ) ⊑ (renameˢ suc B) →
-        Δ' ∣ (`★ ∷ renameStoreᵗ ρ Σ) ⊢ᵖ renameImpᵗ ρ p ⦂
-        ((renameˢ suc (renameᵗ (extᵗ ρ) A)) [ ｀ zero ]ᵗ) ⊑
-        (renameˢ suc (renameᵗ ρ B))
-      lift {p = p} {A = A} {B = B} hp =
-        Eq.subst
-          (λ T → Δ' ∣ (`★ ∷ renameStoreᵗ ρ Σ) ⊢ᵖ
-                   renameImpᵗ ρ p ⦂ T ⊑ renameˢ suc (renameᵗ ρ B))
-          left-eq
-          (Eq.subst
-            (λ T → Δ' ∣ (`★ ∷ renameStoreᵗ ρ Σ) ⊢ᵖ
-                     renameImpᵗ ρ p ⦂ renameᵗ ρ ((renameˢ suc A) [ ｀ zero ]ᵗ) ⊑ T)
-            right-eq
-            (renameImpᵗ-preserves-typing hρ hp))
-        where
-          left-eq :
-            renameᵗ ρ ((renameˢ suc A) [ ｀ zero ]ᵗ) ≡
-            (renameˢ suc (renameᵗ (extᵗ ρ) A)) [ ｀ zero ]ᵗ
-          left-eq =
-            trans
-              (rename-[]ᵗ-commute ρ (renameˢ suc A) (｀ zero))
-              (cong (λ T → T [ ｀ zero ]ᵗ)
-                    (renameᵗ-renameˢ {ρ = extᵗ ρ} {ϱ = suc} {A = A}))
-
-          right-eq :
-            renameᵗ ρ (renameˢ suc B) ≡ renameˢ suc (renameᵗ ρ B)
-          right-eq = renameᵗ-renameˢ {ρ = ρ} {ϱ = suc} {A = B}
 
 typing-renameᵀ :
   {Δ Δ' : TyCtx} {Σ : Store} {Γ : Ctx} {M : Term} {A : Ty} {ρ : Renameᵗ} →

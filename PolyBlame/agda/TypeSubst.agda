@@ -1,11 +1,12 @@
 module TypeSubst where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans)
+open import Agda.Builtin.Sigma using (Σ; _,_)
+open import Relation.Binary.PropositionalEquality as Eq using (cong; cong₂; sym; trans)
 open import Data.List using ([]; _∷_; map)
 open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat.Base using (_<_; z<s; s<s)
 open import Types
-open import TypeImprecision
 
 infixr 50 _⨟ᵗ_
 _⨟ᵗ_ : Substᵗ → Substᵗ → Substᵗ
@@ -122,6 +123,84 @@ map-renameᵗ-renameˢ {ρ = ρ} {ϱ = ϱ} (A ∷ Γ) =
     (sym (renameᵗ-renameˢ {ρ = ρ} {ϱ = ϱ} {A = A}))
     (map-renameᵗ-renameˢ {ρ = ρ} {ϱ = ϱ} Γ)
 
+------------------------------------------------------------------------
+-- Store lookup and renaming preservation for well-formed types
+------------------------------------------------------------------------
+
+lookupˢ-map-inv :
+  {stores : Store} {α : Seal} {B : Ty} {ρ : Renameᵗ} →
+  renameStoreᵗ ρ stores ∋ˢ α ⦂ B →
+  Σ Ty (λ A → Σ (stores ∋ˢ α ⦂ A) (λ _ → B ≡ renameᵗ ρ A))
+lookupˢ-map-inv {stores = A₀ ∷ stores} {α = zero} Zˢ = A₀ , (Zˢ , refl)
+lookupˢ-map-inv {stores = _ ∷ stores} {α = suc α} (Sˢ h) with lookupˢ-map-inv h
+... | A , (hA , eq) = A , (Sˢ hA , eq)
+
+lookupˢ-map-renameᵗ :
+  {Σ : Store} {α : Seal} {A : Ty} {ρ : Renameᵗ} →
+  Σ ∋ˢ α ⦂ A →
+  renameStoreᵗ ρ Σ ∋ˢ α ⦂ renameᵗ ρ A
+lookupˢ-map-renameᵗ Zˢ = Zˢ
+lookupˢ-map-renameᵗ (Sˢ h) = Sˢ (lookupˢ-map-renameᵗ h)
+
+map-renameStore-suc : (ρ : Renameᵗ) (Σ : Store) →
+  renameStoreᵗ (extᵗ ρ) (renameStoreᵗ suc Σ) ≡
+  renameStoreᵗ suc (renameStoreᵗ ρ Σ)
+map-renameStore-suc ρ [] = refl
+map-renameStore-suc ρ (A ∷ Σ) =
+  cong₂ _∷_
+    (trans
+      (rename-rename-commute suc (extᵗ ρ) A)
+      (trans
+        (rename-cong (λ X → refl) A)
+        (sym (rename-rename-commute ρ suc A))))
+    (map-renameStore-suc ρ Σ)
+
+TyRenameWf : TyCtx → TyCtx → Renameᵗ → Set
+TyRenameWf Δ Δ' ρ = ∀ {X} → X < Δ → ρ X < Δ'
+
+TyRenameWf-ext :
+  {Δ Δ' : TyCtx} {ρ : Renameᵗ} →
+  TyRenameWf Δ Δ' ρ →
+  TyRenameWf (suc Δ) (suc Δ') (extᵗ ρ)
+TyRenameWf-ext hρ {zero} z<s = z<s
+TyRenameWf-ext hρ {suc X} (s<s x<Δ) = s<s (hρ {X} x<Δ)
+
+renameᵗ-preserves-WfTy :
+  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
+  WfTy Δ Σ A →
+  TyRenameWf Δ Δ' ρ →
+  WfTy Δ' (renameStoreᵗ ρ Σ) (renameᵗ ρ A)
+renameᵗ-preserves-WfTy (wfX x<Δ) hρ = wfX (hρ x<Δ)
+renameᵗ-preserves-WfTy wfι hρ = wfι
+renameᵗ-preserves-WfTy wf★ hρ = wf★
+renameᵗ-preserves-WfTy (wfα h) hρ = wfα (lookupˢ-map-renameᵗ h)
+renameᵗ-preserves-WfTy (wf⇒ hA hB) hρ =
+  wf⇒ (renameᵗ-preserves-WfTy hA hρ) (renameᵗ-preserves-WfTy hB hρ)
+renameᵗ-preserves-WfTy {Δ' = Δ'} {Σ = Σ} {ρ = ρ} (wf∀ {A = A} hA) hρ =
+  wf∀
+    (Eq.subst
+      (λ S → WfTy (suc Δ') S (renameᵗ (extᵗ ρ) A))
+      (map-renameStore-suc ρ Σ)
+      (renameᵗ-preserves-WfTy hA (TyRenameWf-ext hρ)))
+
+renameᵗ-preserves-WfTy↑ :
+  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
+  WfTy (suc Δ) Σ A →
+  TyRenameWf Δ Δ' ρ →
+  WfTy (suc Δ') (renameStoreᵗ ρ Σ) (renameᵗ (extᵗ ρ) A)
+renameᵗ-preserves-WfTy↑ (wfX x<) hρ = wfX (TyRenameWf-ext hρ x<)
+renameᵗ-preserves-WfTy↑ wfι hρ = wfι
+renameᵗ-preserves-WfTy↑ wf★ hρ = wf★
+renameᵗ-preserves-WfTy↑ (wfα h) hρ = wfα (lookupˢ-map-renameᵗ h)
+renameᵗ-preserves-WfTy↑ (wf⇒ hA hB) hρ =
+  wf⇒ (renameᵗ-preserves-WfTy↑ hA hρ) (renameᵗ-preserves-WfTy↑ hB hρ)
+renameᵗ-preserves-WfTy↑ {Δ' = Δ'} {Σ = Σ} {ρ = ρ} (wf∀ {A = A} hA) hρ =
+  wf∀
+    (Eq.subst
+      (λ S → WfTy (suc (suc Δ')) S (renameᵗ (extᵗ (extᵗ ρ)) A))
+      (map-renameStore-suc ρ Σ)
+      (renameᵗ-preserves-WfTy↑ hA (TyRenameWf-ext hρ)))
+
 exts-ext-comp : (ρ : Renameᵗ) → (τ : Substᵗ) →
   ((X : ℕ) → extsᵗ τ (extᵗ ρ X) ≡ extsᵗ (λ X' → τ (ρ X')) X)
 exts-ext-comp ρ τ zero    = refl
@@ -162,6 +241,23 @@ rename-subst ρ τ (`∀ A)   =
   trans
     (cong `∀ (rename-subst (extᵗ ρ) (extsᵗ τ) A))
     (cong `∀ (subst-cong (ext-exts-comp ρ τ) A))
+
+rename-[]ᵗ-commute : (ρ : Renameᵗ) (A B : Ty) →
+  renameᵗ ρ (A [ B ]ᵗ) ≡ (renameᵗ (extᵗ ρ) A) [ renameᵗ ρ B ]ᵗ
+rename-[]ᵗ-commute ρ A B =
+  trans
+    (trans
+      (cong (renameᵗ ρ) (single-subst-def A B))
+      (rename-subst ρ (singleTyEnv B) A))
+    (trans
+      (subst-cong env-eq A)
+      (sym (rename-subst-commute (extᵗ ρ) (singleTyEnv (renameᵗ ρ B)) A)))
+  where
+    env-eq : (i : Var) →
+      (λ j → renameᵗ ρ (singleTyEnv B j)) i ≡
+      (λ j → singleTyEnv (renameᵗ ρ B) (extᵗ ρ j)) i
+    env-eq zero = refl
+    env-eq (suc i) = refl
 
 renameˢ-substᵗ-commute :
   (ρ : Renameˢ) (σ : Substᵗ) (A : Ty) →

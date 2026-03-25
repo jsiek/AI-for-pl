@@ -346,39 +346,147 @@ meetRight-right {m = m-forall m} rewrite meetRight-right {m = m} = refl
 -- Elaboration support
 ------------------------------------------------------------------------
 
-postulate
-  source-wf :
-    {Δ : TyEnv} {Γ : Ctx} {M : GTerm} {A : Ty} →
-    Δ ⊢g Γ ⊢ M ⦂ A →
-    WfTy (tySize Δ) A
+asProd-left-wf :
+  {n : TyCtx} {A A₁ A₂ : Ty} →
+  AsProd A A₁ A₂ →
+  WfTy n A →
+  WfTy n A₁
+asProd-left-wf as-prod (wf-prod hA₁ hA₂) = hA₁
+asProd-left-wf as-prod-dyn hA = wf-dyn
 
-  knownMember-wf :
-    {Δ : TyEnv} {i : Var} {A : Ty} →
-    KnownMember Δ i A →
-    WfTy (tySize Δ) A
+asProd-right-wf :
+  {n : TyCtx} {A A₁ A₂ : Ty} →
+  AsProd A A₁ A₂ →
+  WfTy n A →
+  WfTy n A₂
+asProd-right-wf as-prod (wf-prod hA₁ hA₂) = hA₂
+asProd-right-wf as-prod-dyn hA = wf-dyn
 
-  knownMember-name-wf :
-    {Δ : TyEnv} {i : Var} {A : Ty} →
-    KnownMember Δ i A →
-    WfTy (tySize Δ) (nameTy (tvar i))
+asExists-wf :
+  {n : TyCtx} {A A' : Ty} →
+  AsExists A A' →
+  WfTy n A →
+  WfTy (suc n) A'
+asExists-wf as-exists (wf-exists hA) = hA
+asExists-wf as-exists-dyn hA = wf-dyn
 
-  wf-meet-left :
-    {n : ℕ} {A B C : Ty} {m : Meet A B C} →
-    WfTy n C →
-    WfTy n A →
-    WfPrec n (meetLeftPrec m)
+asFun-cod-wf :
+  {n : TyCtx} {A A₁ A₂ : Ty} →
+  AsFun A A₁ A₂ →
+  WfTy n A →
+  WfTy n A₂
+asFun-cod-wf as-fun (wf-arr hA₁ hA₂) = hA₂
+asFun-cod-wf as-fun-dyn hA = wf-dyn
 
-  wf-meet-right :
-    {n : ℕ} {A B C : Ty} {m : Meet A B C} →
-    WfTy n C →
-    WfTy n B →
-    WfPrec n (meetRightPrec m)
+wf-meet :
+  {n : TyCtx} {A B C : Ty} →
+  Meet A B C →
+  WfTy n A →
+  WfTy n B →
+  WfTy n C
+wf-meet m-dynL wfA wfB = wfB
+wf-meet m-dynR wfA wfB = wfA
+wf-meet m-name wfA wfB = wfA
+wf-meet m-bool wfA wfB = wfA
+wf-meet (m-prod m₁ m₂) (wf-prod hA₁ hA₂) (wf-prod hB₁ hB₂) =
+  wf-prod (wf-meet m₁ hA₁ hB₁) (wf-meet m₂ hA₂ hB₂)
+wf-meet (m-arr m₁ m₂) (wf-arr hA₁ hA₂) (wf-arr hB₁ hB₂) =
+  wf-arr (wf-meet m₁ hA₁ hB₁) (wf-meet m₂ hA₂ hB₂)
+wf-meet (m-exists m) (wf-exists hA) (wf-exists hB) =
+  wf-exists (wf-meet m hA hB)
+wf-meet (m-forall m) (wf-forall hA) (wf-forall hB) =
+  wf-forall (wf-meet m hA hB)
 
-  unpack-typing :
-    {Δ : TyEnv} {Γ : Ctx} {M N : Term} {A C : Ty} →
-    Δ ⊢ Γ ⊢ M ⦂ Exists A →
-    (absTy ∷ Δ) ⊢ (A ∷ ⤊ Γ) ⊢ N ⦂ renameᵗ suc C →
-    Δ ⊢ Γ ⊢ unpack M N ⦂ C
+source-wf :
+  {Δ : TyEnv} {Γ : Ctx} {M : GTerm} {A : Ty} →
+  WfTyEnv Δ →
+  WfCtx (tySize Δ) Γ →
+  Δ ⊢g Γ ⊢ M ⦂ A →
+  WfTy (tySize Δ) A
+source-wf wfΔ wfΓ (⊢gvar h) = lookup-wf wfΓ h
+source-wf wfΔ wfΓ ⊢gtrue = wf-bool
+source-wf wfΔ wfΓ ⊢gfalse = wf-bool
+source-wf wfΔ wfΓ (⊢glet hM hN) =
+  source-wf wfΔ (wfΓ∷ wfΓ (source-wf wfΔ wfΓ hM)) hN
+source-wf wfΔ wfΓ (⊢gasc hM A∼B wfB) = wfB
+source-wf wfΔ wfΓ (⊢gseal hX hM B∼A) = knownMember-name-wf hX
+source-wf wfΔ wfΓ (⊢gunseal hX hM B∼X) = knownMember-wf wfΔ hX
+source-wf wfΔ wfΓ (⊢gis hG hM) = wf-bool
+source-wf wfΔ wfΓ (⊢gif hL A∼B hM hN m) =
+  wf-meet m (source-wf wfΔ wfΓ hM) (source-wf wfΔ wfΓ hN)
+source-wf wfΔ wfΓ (⊢gpair hM hN) =
+  wf-prod (source-wf wfΔ wfΓ hM) (source-wf wfΔ wfΓ hN)
+source-wf wfΔ wfΓ (⊢gletpair hM shp hN) =
+  source-wf
+    wfΔ
+    (wfΓ∷
+      (wfΓ∷ wfΓ (asProd-right-wf shp (source-wf wfΔ wfΓ hM)))
+      (asProd-left-wf shp (source-wf wfΔ wfΓ hM)))
+    hN
+source-wf wfΔ wfΓ (⊢glam hA hM) =
+  wf-arr hA (source-wf wfΔ (wfΓ∷ wfΓ hA) hM)
+source-wf wfΔ wfΓ (⊢gapp hM shp hN B∼A wfA₁) =
+  asFun-cod-wf shp (source-wf wfΔ wfΓ hM)
+source-wf wfΔ wfΓ (⊢gpack hA hM) =
+  wf-exists (source-wf (wfΔ-known hA wfΔ) (wfCtx-lift wfΓ) hM)
+source-wf {A = C} wfΔ wfΓ (⊢gunpack {A' = A'} hM shp hN)
+  with source-wf (wfΔ-absTy wfΔ) (wfΓ∷ (wfCtx-lift wfΓ) (asExists-wf shp (source-wf wfΔ wfΓ hM))) hN
+... | hC↑ =
+      wfty-conv
+        (substᵗ-renameᵗ-cancel C TDyn)
+        (substᵗ-preserves-WfTy hC↑ (singleTySubstWf wf-dyn))
+source-wf wfΔ wfΓ (⊢gtlam hM) =
+  wf-forall (source-wf (wfΔ-absTy wfΔ) (wfCtx-lift wfΓ) hM)
+source-wf {Δ = Δ} wfΔ wfΓ (⊢gtapp {A' = A'} hM as-forall hB) =
+  substᵗ-preserves-WfTy hA' (singleTySubstWf (knownMember-name-wf hB))
+  where
+    hA' : WfTy (suc (tySize Δ)) A'
+    hA' with source-wf wfΔ wfΓ hM
+    ... | wf-forall h = h
+source-wf wfΔ wfΓ (⊢gtapp hM as-forall-dyn hB) = wf-dyn
+
+wf-meet-left :
+  {n : ℕ} {A B C : Ty} {m : Meet A B C} →
+  WfTy n C →
+  WfTy n A →
+  WfPrec n (meetLeftPrec m)
+wf-meet-left {m = m-dynL} wfC wfA = wf-dynPrec wfC
+wf-meet-left {m = m-dynR} wfC wfA = wf-idPrec wfA
+wf-meet-left {m = m-name} wfC wfA = wf-idPrec wfA
+wf-meet-left {m = m-bool} wfC wfA = wf-idPrec wfA
+wf-meet-left {m = m-prod m₁ m₂} (wf-prod wfC₁ wfC₂) (wf-prod wfA₁ wfA₂) =
+  wf-pprod (wf-meet-left {m = m₁} wfC₁ wfA₁) (wf-meet-left {m = m₂} wfC₂ wfA₂)
+wf-meet-left {m = m-arr m₁ m₂} (wf-arr wfC₁ wfC₂) (wf-arr wfA₁ wfA₂) =
+  wf-parr (wf-meet-left {m = m₁} wfC₁ wfA₁) (wf-meet-left {m = m₂} wfC₂ wfA₂)
+wf-meet-left {m = m-exists m} (wf-exists wfC) (wf-exists wfA) =
+  wf-pexists (wf-meet-left {m = m} wfC wfA)
+wf-meet-left {m = m-forall m} (wf-forall wfC) (wf-forall wfA) =
+  wf-pforall (wf-meet-left {m = m} wfC wfA)
+
+wf-meet-right :
+  {n : ℕ} {A B C : Ty} {m : Meet A B C} →
+  WfTy n C →
+  WfTy n B →
+  WfPrec n (meetRightPrec m)
+wf-meet-right {m = m-dynL} wfC wfB = wf-idPrec wfB
+wf-meet-right {m = m-dynR} wfC wfB = wf-dynPrec wfC
+wf-meet-right {m = m-name} wfC wfB = wf-idPrec wfB
+wf-meet-right {m = m-bool} wfC wfB = wf-idPrec wfB
+wf-meet-right {m = m-prod m₁ m₂} (wf-prod wfC₁ wfC₂) (wf-prod wfB₁ wfB₂) =
+  wf-pprod (wf-meet-right {m = m₁} wfC₁ wfB₁) (wf-meet-right {m = m₂} wfC₂ wfB₂)
+wf-meet-right {m = m-arr m₁ m₂} (wf-arr wfC₁ wfC₂) (wf-arr wfB₁ wfB₂) =
+  wf-parr (wf-meet-right {m = m₁} wfC₁ wfB₁) (wf-meet-right {m = m₂} wfC₂ wfB₂)
+wf-meet-right {m = m-exists m} (wf-exists wfC) (wf-exists wfB) =
+  wf-pexists (wf-meet-right {m = m} wfC wfB)
+wf-meet-right {m = m-forall m} (wf-forall wfC) (wf-forall wfB) =
+  wf-pforall (wf-meet-right {m = m} wfC wfB)
+
+unpack-typing :
+  {Δ : TyEnv} {Γ : Ctx} {M N : Term} {A C : Ty} →
+  Δ ⊢ Γ ⊢ M ⦂ Exists A →
+  (absTy ∷ Δ) ⊢ (A ∷ ⤊ Γ) ⊢ N ⦂ renameᵗ suc C →
+  Δ ⊢ Γ ⊢ unpack M N ⦂ C
+unpack-typing {A = A} hM hN = ⊢unpack {A = A} {B = A} hM hN
 
 ty-conv :
   {Δ : TyEnv} {Γ : Ctx} {M : Term} {A B : Ty} →
@@ -509,49 +617,63 @@ elab {M = gtapp M i B} (⊢gtapp hM shp hB) = tapp (asForallTerm shp (elab hM)) 
 
 elab-pres :
   {Δ : TyEnv} {Γ : Ctx} {M : GTerm} {A : Ty} →
+  WfTyEnv Δ →
+  WfCtx (tySize Δ) Γ →
   (h : Δ ⊢g Γ ⊢ M ⦂ A) →
   Δ ⊢ Γ ⊢ elab h ⦂ A
-elab-pres (⊢gvar h) = ⊢var h
-elab-pres ⊢gtrue = ⊢true
-elab-pres ⊢gfalse = ⊢false
-elab-pres (⊢glet hM hN) = ⊢let (elab-pres hM) (elab-pres hN)
-elab-pres h@(⊢gasc {A = A} {B = B} hM A∼B wfB) =
-  ascribe-pres (source-wf hM) wfB (elab-pres hM)
-elab-pres (⊢gseal {i = i} {A = A} {B = B} hX hM B∼A) =
-  ⊢seal hX (ascribe-pres (source-wf hM) (knownMember-wf hX) (elab-pres hM))
-elab-pres (⊢gunseal {i = i} {B = B} hX hM B∼X) =
-  ⊢unseal hX (ascribe-pres (source-wf hM) (knownMember-name-wf hX) (elab-pres hM))
-elab-pres (⊢gis hG hM) =
-  ⊢is hG (toDyn-pres (source-wf hM) (elab-pres hM))
-elab-pres h@(⊢gif hL A∼B hM hN m) =
+elab-pres wfΔ wfΓ (⊢gvar h) = ⊢var h
+elab-pres wfΔ wfΓ ⊢gtrue = ⊢true
+elab-pres wfΔ wfΓ ⊢gfalse = ⊢false
+elab-pres wfΔ wfΓ (⊢glet hM hN) =
+  ⊢let
+    (elab-pres wfΔ wfΓ hM)
+    (elab-pres wfΔ (wfΓ∷ wfΓ (source-wf wfΔ wfΓ hM)) hN)
+elab-pres wfΔ wfΓ h@(⊢gasc {A = A} {B = B} hM A∼B wfB) =
+  ascribe-pres (source-wf wfΔ wfΓ hM) wfB (elab-pres wfΔ wfΓ hM)
+elab-pres wfΔ wfΓ (⊢gseal {i = i} {A = A} {B = B} hX hM B∼A) =
+  ⊢seal hX (ascribe-pres (source-wf wfΔ wfΓ hM) (knownMember-wf wfΔ hX) (elab-pres wfΔ wfΓ hM))
+elab-pres wfΔ wfΓ (⊢gunseal {i = i} {B = B} hX hM B∼X) =
+  ⊢unseal hX (ascribe-pres (source-wf wfΔ wfΓ hM) (knownMember-name-wf hX) (elab-pres wfΔ wfΓ hM))
+elab-pres wfΔ wfΓ (⊢gis hG hM) =
+  ⊢is hG (toDyn-pres (source-wf wfΔ wfΓ hM) (elab-pres wfΔ wfΓ hM))
+elab-pres wfΔ wfΓ h@(⊢gif hL A∼B hM hN m) =
   ⊢if
-    (ascribe-pres (source-wf hL) wf-bool (elab-pres hL))
+    (ascribe-pres (source-wf wfΔ wfΓ hL) wf-bool (elab-pres wfΔ wfΓ hL))
     (ty-conv (meetLeft-left {m = m})
-      (⊢cast-down (wf-meet-left {m = m} (source-wf h) (source-wf hM))
-        (ty-conv (symm (meetLeft-right {m = m})) (elab-pres hM))))
+      (⊢cast-down (wf-meet-left {m = m} (source-wf wfΔ wfΓ h) (source-wf wfΔ wfΓ hM))
+        (ty-conv (symm (meetLeft-right {m = m})) (elab-pres wfΔ wfΓ hM))))
     (ty-conv (meetRight-left {m = m})
-      (⊢cast-down (wf-meet-right {m = m} (source-wf h) (source-wf hN))
-        (ty-conv (symm (meetRight-right {m = m})) (elab-pres hN))))
-elab-pres (⊢gpair hM hN) = ⊢pair (elab-pres hM) (elab-pres hN)
-elab-pres (⊢gletpair hM shp hN) = ⊢letpair (asProd-pres shp (elab-pres hM)) (elab-pres hN)
-elab-pres (⊢glam hA hM) = ⊢lam hA (elab-pres hM)
-elab-pres (⊢gapp {B = B} hM shp hN B∼A wfA) =
-  ⊢app (asFun-pres shp (elab-pres hM))
-       (ascribe-pres (source-wf hN) wfA (elab-pres hN))
-elab-pres (⊢gpack hA hM) = ⊢pack hA (elab-pres hM)
-elab-pres (⊢gunpack {A = Exists A'} {A' = A'} {C = C} hM as-exists hN) =
+      (⊢cast-down (wf-meet-right {m = m} (source-wf wfΔ wfΓ h) (source-wf wfΔ wfΓ hN))
+        (ty-conv (symm (meetRight-right {m = m})) (elab-pres wfΔ wfΓ hN))))
+elab-pres wfΔ wfΓ (⊢gpair hM hN) = ⊢pair (elab-pres wfΔ wfΓ hM) (elab-pres wfΔ wfΓ hN)
+elab-pres wfΔ wfΓ (⊢gletpair hM shp hN) =
+  ⊢letpair
+    (asProd-pres shp (elab-pres wfΔ wfΓ hM))
+    (elab-pres
+      wfΔ
+      (wfΓ∷ (wfΓ∷ wfΓ (asProd-right-wf shp (source-wf wfΔ wfΓ hM)))
+            (asProd-left-wf shp (source-wf wfΔ wfΓ hM)))
+      hN)
+elab-pres wfΔ wfΓ (⊢glam hA hM) = ⊢lam hA (elab-pres wfΔ (wfΓ∷ wfΓ hA) hM)
+elab-pres wfΔ wfΓ (⊢gapp {B = B} hM shp hN B∼A wfA) =
+  ⊢app (asFun-pres shp (elab-pres wfΔ wfΓ hM))
+       (ascribe-pres (source-wf wfΔ wfΓ hN) wfA (elab-pres wfΔ wfΓ hN))
+elab-pres wfΔ wfΓ (⊢gpack hA hM) = ⊢pack hA (elab-pres (wfΔ-known hA wfΔ) (wfCtx-lift wfΓ) hM)
+elab-pres wfΔ wfΓ (⊢gunpack {A = Exists A'} {A' = A'} {C = C} hM as-exists hN) =
   unpack-typing {A = A'} {C = C}
-    (elab-pres hM)
-    (elab-pres hN)
-elab-pres (⊢gunpack {A = TDyn} {A' = TDyn} {C = C} hM as-exists-dyn hN) =
+    (elab-pres wfΔ wfΓ hM)
+    (elab-pres (wfΔ-absTy wfΔ) (wfΓ∷ (wfCtx-lift wfΓ) (asExists-wf as-exists (source-wf wfΔ wfΓ hM))) hN)
+elab-pres wfΔ wfΓ (⊢gunpack {A = TDyn} {A' = TDyn} {C = C} hM as-exists-dyn hN) =
   unpack-typing {A = TDyn} {C = C}
-    (fromDyn-pres (wf-exists wf-dyn) (elab-pres hM))
-    (elab-pres hN)
-elab-pres (⊢gtlam hM) = ⊢tlam (elab-pres hM)
-elab-pres (⊢gtapp hM shp hB) = ⊢tapp (asForall-pres shp (elab-pres hM)) hB
+    (fromDyn-pres (wf-exists wf-dyn) (elab-pres wfΔ wfΓ hM))
+    (elab-pres (wfΔ-absTy wfΔ) (wfΓ∷ (wfCtx-lift wfΓ) (asExists-wf as-exists-dyn (source-wf wfΔ wfΓ hM))) hN)
+elab-pres wfΔ wfΓ (⊢gtlam hM) = ⊢tlam (elab-pres (wfΔ-absTy wfΔ) (wfCtx-lift wfΓ) hM)
+elab-pres wfΔ wfΓ (⊢gtapp hM shp hB) = ⊢tapp (asForall-pres shp (elab-pres wfΔ wfΓ hM)) hB
 
 elab-type-preserving :
   {Δ : TyEnv} {Γ : Ctx} {M : GTerm} {A : Ty} →
+  WfTyEnv Δ →
+  WfCtx (tySize Δ) Γ →
   (h : Δ ⊢g Γ ⊢ M ⦂ A) →
   Δ ⊢ Γ ⊢ elab h ⦂ A
 elab-type-preserving = elab-pres

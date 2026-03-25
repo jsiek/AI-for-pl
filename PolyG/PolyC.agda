@@ -3,6 +3,7 @@ module PolyC where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using (List; []; _∷_; _++_; length)
 open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat.Base using (z<s; s<s)
 open import Data.Unit using (⊤; tt)
 open import Relation.Nullary using (¬_)
 
@@ -213,6 +214,16 @@ tySize : TyEnv → ℕ
 tySize []            = zero
 tySize (_ ∷ Δ)       = suc (tySize Δ)
 
+data WfTyEnv : TyEnv → Set where
+  wfΔ[] : WfTyEnv []
+  wfΔ-absTy : {Δ : TyEnv} →
+              WfTyEnv Δ →
+              WfTyEnv (absTy ∷ Δ)
+  wfΔ-known : {Δ : TyEnv} {A : Ty} →
+              WfTy (tySize Δ) A →
+              WfTyEnv Δ →
+              WfTyEnv (known A ∷ Δ)
+
 infix 4 _∋_⦂_
 
 data _∋_⦂_ : Ctx → Var → Ty → Set where
@@ -238,6 +249,43 @@ data KnownMember : TyEnv → Var → Ty → Set where
   ks-known : {Δ : TyEnv} {i : Var} {A B : Ty} →
              KnownMember Δ i A →
              KnownMember (known B ∷ Δ) (suc i) (renameᵗ suc A)
+
+lookup-wf :
+  {n : TyCtx} {Γ : Ctx} {x : Var} {A : Ty} →
+  WfCtx n Γ →
+  Γ ∋ x ⦂ A →
+  WfTy n A
+lookup-wf (wfΓ∷ hΓ hA) Z = hA
+lookup-wf (wfΓ∷ hΓ hA) (S h) = lookup-wf hΓ h
+
+knownMember-wf :
+  {Δ : TyEnv} {i : Var} {A : Ty} →
+  WfTyEnv Δ →
+  KnownMember Δ i A →
+  WfTy (tySize Δ) A
+knownMember-wf (wfΔ-known hA wfΔ) kz = wfTy-weaken hA
+knownMember-wf (wfΔ-absTy wfΔ) (ks-absTy h) =
+  renameᵗ-preserves-WfTy
+    (knownMember-wf wfΔ h)
+    (λ {X} x<Δ → s<s x<Δ)
+knownMember-wf (wfΔ-known hB wfΔ) (ks-known h) =
+  renameᵗ-preserves-WfTy
+    (knownMember-wf wfΔ h)
+    (λ {X} x<Δ → s<s x<Δ)
+
+knownMember-name :
+  {Δ : TyEnv} {i : Var} {A : Ty} →
+  KnownMember Δ i A →
+  WfName (tySize Δ) (tvar i)
+knownMember-name kz = z<s
+knownMember-name (ks-absTy h) = s<s (knownMember-name h)
+knownMember-name (ks-known h) = s<s (knownMember-name h)
+
+knownMember-name-wf :
+  {Δ : TyEnv} {i : Var} {A : Ty} →
+  KnownMember Δ i A →
+  WfTy (tySize Δ) (nameTy (tvar i))
+knownMember-name-wf h = wf-name (knownMember-name h)
 
 ------------------------------------------------------------------------
 -- Static typing

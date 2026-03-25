@@ -1,5 +1,12 @@
 # PolyG Development Notes
 
+## Agda `with` style (from 2026-03-24)
+
+For `with` clauses, if there are two or more cases, use explicit
+function-name case clauses rather than `...` shorthand. 
+This will avoid problems that arise with nested `with` clauses.
+
+
 ## Agda recursive function termination / `with` style (from 2026-03-24)
 
 Agda termination checking was previously tripped by helper functions

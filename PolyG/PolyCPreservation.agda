@@ -1,7 +1,9 @@
 module PolyCPreservation where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using (List; []; _∷_)
+open import Agda.Builtin.Sigma using (Σ; _,_)
+open import Relation.Binary.PropositionalEquality using (cong)
+open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product renaming (_×_ to _×ᵖ_) using (_,_; proj₁; proj₂)
 
@@ -55,6 +57,31 @@ ext-trans :
 ext-trans ext ext-refl = ext
 ext-trans ext (ext-snoc ext') = ext-snoc (ext-trans ext ext')
 
+lookup-unique :
+  {Σ : Store} {s : Seal} {A B : Ty} →
+  Σ ∋σ s ⦂ A →
+  Σ ∋σ s ⦂ B →
+  A ≡ B
+lookup-unique Zσ Zσ = refl
+lookup-unique (Sσ hA) (Sσ hB) = lookup-unique hA hB
+
+StoreUnique : Store → Set
+StoreUnique Σ = ∀ {s : Seal} {A B : Ty} → Σ ∋σ s ⦂ A → Σ ∋σ s ⦂ B → A ≡ B
+
+storeUnique-snoc :
+  {Σ : Store} {A : Ty} →
+  StoreUnique Σ →
+  StoreUnique (Σ ∷ʳ A)
+storeUnique-snoc su hA hB = lookup-unique hA hB
+
+storeUnique-ext :
+  {Σ Σ' : Store} →
+  StoreExt Σ Σ' →
+  StoreUnique Σ →
+  StoreUnique Σ'
+storeUnique-ext ext-refl su = su
+storeUnique-ext (ext-snoc ext) su = storeUnique-snoc (storeUnique-ext ext su)
+
 ------------------------------------------------------------------------
 -- Runtime name typing and typing judgment
 ------------------------------------------------------------------------
@@ -74,6 +101,25 @@ nameTy-ext :
   NameTy Δ Σ' α A
 nameTy-ext ext (nt-var h) = nt-var h
 nameTy-ext ext (nt-seal h) = nt-seal (lookup-ext ext h)
+
+knownMember-unique :
+  {Δ : TyEnv} {i : Var} {A B : Ty} →
+  KnownMember Δ i A →
+  KnownMember Δ i B →
+  A ≡ B
+knownMember-unique kz kz = refl
+knownMember-unique (ks-absTy hA) (ks-absTy hB) =
+  cong (renameᵗ suc) (knownMember-unique hA hB)
+knownMember-unique (ks-known hA) (ks-known hB) =
+  cong (renameᵗ suc) (knownMember-unique hA hB)
+
+nameTy-unique :
+  {Δ : TyEnv} {Σ : Store} {α : TyName} {A B : Ty} →
+  NameTy Δ Σ α A →
+  NameTy Δ Σ α B →
+  A ≡ B
+nameTy-unique (nt-var hA) (nt-var hB) = knownMember-unique hA hB
+nameTy-unique (nt-seal hA) (nt-seal hB) = lookup-unique hA hB
 
 infix 4 _∣_⊢_⊢_⦂ʳ_
 
@@ -276,29 +322,243 @@ wf-left (wf-pexists hp) = wf-exists (wf-left hp)
 wf-left (wf-pforall hp) = wf-forall (wf-left hp)
 
 ------------------------------------------------------------------------
--- Postulated substitution/inversion lemmas (used in β-cases)
+-- Context lookup under list maps
+------------------------------------------------------------------------
+
+lookup-map-renameᵗ :
+  {Γ : Ctx} {x : Var} {A : Ty} {ρ : Renameᵗ} →
+  Γ ∋ x ⦂ A →
+  map (renameᵗ ρ) Γ ∋ x ⦂ renameᵗ ρ A
+lookup-map-renameᵗ Z = Z
+lookup-map-renameᵗ (S h) = S (lookup-map-renameᵗ h)
+
+lookup-map-inv :
+  {Γ : Ctx} {x : Var} {B : Ty} {f : Ty → Ty} →
+  map f Γ ∋ x ⦂ B →
+  Σ Ty (λ A → (Γ ∋ x ⦂ A) ×ᵖ (B ≡ f A))
+lookup-map-inv {Γ = A ∷ Γ} {x = zero} Z = A , (Z , refl)
+lookup-map-inv {Γ = A ∷ Γ} {x = suc x} (S h) with lookup-map-inv h
+... | A' , (hA' , eq) = A' , (S hA' , eq)
+
+------------------------------------------------------------------------
+-- Renaming/substitution preserve runtime typing
+------------------------------------------------------------------------
+
+RenameWf : Ctx → Ctx → Rename → Set
+RenameWf Γ Γ' ρ = ∀ {x A} → Γ ∋ x ⦂ A → Γ' ∋ ρ x ⦂ A
+
+SubstWf : TyEnv → Store → Ctx → Ctx → Subst → Set
+SubstWf Δ Σ Γ Γ' σ = ∀ {x A} → Γ ∋ x ⦂ A → Δ ∣ Σ ⊢ Γ' ⊢ σ x ⦂ʳ A
+
+RenameWf-ext :
+  {Γ Γ' : Ctx} {B : Ty} {ρ : Rename} →
+  RenameWf Γ Γ' ρ →
+  RenameWf (B ∷ Γ) (B ∷ Γ') (ext ρ)
+RenameWf-ext hρ Z = Z
+RenameWf-ext hρ (S h) = S (hρ h)
+
+RenameWf-ext2 :
+  {Γ Γ' : Ctx} {A B : Ty} {ρ : Rename} →
+  RenameWf Γ Γ' ρ →
+  RenameWf (A ∷ B ∷ Γ) (A ∷ B ∷ Γ') (ext (ext ρ))
+RenameWf-ext2 hρ = RenameWf-ext (RenameWf-ext hρ)
+
+RenameWf-liftTy :
+  {Γ Γ' : Ctx} {ρ : Rename} →
+  RenameWf Γ Γ' ρ →
+  RenameWf (⤊ Γ) (⤊ Γ') ρ
+RenameWf-liftTy hρ h with lookup-map-inv h
+... | A , (hA , eq)
+  rewrite eq = lookup-map-renameᵗ (hρ hA)
+
+typing-rename :
+  {Δ : TyEnv} {Σ : Store} {Γ Γ' : Ctx} {M : Term} {A : Ty} {ρ : Rename} →
+  RenameWf Γ Γ' ρ →
+  Δ ∣ Σ ⊢ Γ ⊢ M ⦂ʳ A →
+  Δ ∣ Σ ⊢ Γ' ⊢ rename ρ M ⦂ʳ A
+typing-rename hρ (⊢ʳvar h) = ⊢ʳvar (hρ h)
+typing-rename hρ (⊢ʳerr hA) = ⊢ʳerr hA
+typing-rename hρ ⊢ʳtrue = ⊢ʳtrue
+typing-rename hρ ⊢ʳfalse = ⊢ʳfalse
+typing-rename hρ (⊢ʳlet hM hN) =
+  ⊢ʳlet
+    (typing-rename hρ hM)
+    (typing-rename (RenameWf-ext hρ) hN)
+typing-rename hρ (⊢ʳseal nα hM) =
+  ⊢ʳseal nα (typing-rename hρ hM)
+typing-rename hρ (⊢ʳunseal nα hM) =
+  ⊢ʳunseal nα (typing-rename hρ hM)
+typing-rename hρ (⊢ʳis hG hM) =
+  ⊢ʳis hG (typing-rename hρ hM)
+typing-rename hρ (⊢ʳif hL hM hN) =
+  ⊢ʳif
+    (typing-rename hρ hL)
+    (typing-rename hρ hM)
+    (typing-rename hρ hN)
+typing-rename hρ (⊢ʳpair hM hN) =
+  ⊢ʳpair
+    (typing-rename hρ hM)
+    (typing-rename hρ hN)
+typing-rename hρ (⊢ʳletpair hM hN) =
+  ⊢ʳletpair
+    (typing-rename hρ hM)
+    (typing-rename (RenameWf-ext2 hρ) hN)
+typing-rename hρ (⊢ʳlam hA hM) =
+  ⊢ʳlam hA (typing-rename (RenameWf-ext hρ) hM)
+typing-rename hρ (⊢ʳapp hM hN) =
+  ⊢ʳapp
+    (typing-rename hρ hM)
+    (typing-rename hρ hN)
+typing-rename hρ (⊢ʳpack hA hM) =
+  ⊢ʳpack hA (typing-rename (RenameWf-liftTy hρ) hM)
+typing-rename hρ (⊢ʳunpack hM hN) =
+  ⊢ʳunpack
+    (typing-rename hρ hM)
+    (typing-rename (RenameWf-ext (RenameWf-liftTy hρ)) hN)
+typing-rename hρ (⊢ʳtlam hM) =
+  ⊢ʳtlam (typing-rename (RenameWf-liftTy hρ) hM)
+typing-rename hρ (⊢ʳtapp hM nα) =
+  ⊢ʳtapp (typing-rename hρ hM) nα
+typing-rename hρ (⊢ʳhide hA hM) =
+  ⊢ʳhide hA (typing-rename (RenameWf-liftTy hρ) hM)
+typing-rename hρ (⊢ʳinj hG hM) =
+  ⊢ʳinj hG (typing-rename hρ hM)
+typing-rename hρ (⊢ʳcast-up hp hM) =
+  ⊢ʳcast-up hp (typing-rename hρ hM)
+typing-rename hρ (⊢ʳcast-down hp hM) =
+  ⊢ʳcast-down hp (typing-rename hρ hM)
+
+rename-shift :
+  {Δ : TyEnv} {Σ : Store} {Γ : Ctx} {M : Term} {A B : Ty} →
+  Δ ∣ Σ ⊢ Γ ⊢ M ⦂ʳ A →
+  Δ ∣ Σ ⊢ (B ∷ Γ) ⊢ rename suc M ⦂ʳ A
+rename-shift hM =
+  typing-rename (λ {x} {A} h → S h) hM
+
+SubstWf-exts :
+  {Δ : TyEnv} {Σ : Store} {Γ Γ' : Ctx} {B : Ty} {σ : Subst} →
+  SubstWf Δ Σ Γ Γ' σ →
+  SubstWf Δ Σ (B ∷ Γ) (B ∷ Γ') (exts σ)
+SubstWf-exts hσ Z = ⊢ʳvar Z
+SubstWf-exts hσ (S h) = rename-shift (hσ h)
+
+SubstWf-exts-exts :
+  {Δ : TyEnv} {Σ : Store} {Γ Γ' : Ctx} {A B : Ty} {σ : Subst} →
+  SubstWf Δ Σ Γ Γ' σ →
+  SubstWf Δ Σ (A ∷ B ∷ Γ) (A ∷ B ∷ Γ') (exts (exts σ))
+SubstWf-exts-exts hσ Z = ⊢ʳvar Z
+SubstWf-exts-exts hσ (S Z) = ⊢ʳvar (S Z)
+SubstWf-exts-exts hσ (S (S h)) = rename-shift (rename-shift (hσ h))
+
+postulate
+  typing-renameᵀ :
+    {Δ : TyEnv} {Σ : Store} {Γ : Ctx} {M : Term} {A : Ty} {I : TyInfo} →
+    Δ ∣ Σ ⊢ Γ ⊢ M ⦂ʳ A →
+    (I ∷ Δ) ∣ Σ ⊢ ⤊ Γ ⊢ renameᵀ suc M ⦂ʳ renameᵗ suc A
+
+SubstWf-⇑ :
+  {Δ : TyEnv} {Σ : Store} {Γ Γ' : Ctx} {I : TyInfo} {σ : Subst} →
+  SubstWf Δ Σ Γ Γ' σ →
+  SubstWf (I ∷ Δ) Σ (⤊ Γ) (⤊ Γ') (⇑ σ)
+SubstWf-⇑ {I = I} hσ h with lookup-map-inv h
+... | A , (hA , eq)
+  rewrite eq = typing-renameᵀ {I = I} (hσ hA)
+
+typing-subst :
+  {Δ : TyEnv} {Σ : Store} {Γ Γ' : Ctx} {M : Term} {A : Ty} {σ : Subst} →
+  SubstWf Δ Σ Γ Γ' σ →
+  Δ ∣ Σ ⊢ Γ ⊢ M ⦂ʳ A →
+  Δ ∣ Σ ⊢ Γ' ⊢ subst σ M ⦂ʳ A
+typing-subst hσ (⊢ʳvar h) = hσ h
+typing-subst hσ (⊢ʳerr hA) = ⊢ʳerr hA
+typing-subst hσ ⊢ʳtrue = ⊢ʳtrue
+typing-subst hσ ⊢ʳfalse = ⊢ʳfalse
+typing-subst hσ (⊢ʳlet hM hN) =
+  ⊢ʳlet
+    (typing-subst hσ hM)
+    (typing-subst (SubstWf-exts hσ) hN)
+typing-subst hσ (⊢ʳseal nα hM) =
+  ⊢ʳseal nα (typing-subst hσ hM)
+typing-subst hσ (⊢ʳunseal nα hM) =
+  ⊢ʳunseal nα (typing-subst hσ hM)
+typing-subst hσ (⊢ʳis hG hM) =
+  ⊢ʳis hG (typing-subst hσ hM)
+typing-subst hσ (⊢ʳif hL hM hN) =
+  ⊢ʳif
+    (typing-subst hσ hL)
+    (typing-subst hσ hM)
+    (typing-subst hσ hN)
+typing-subst hσ (⊢ʳpair hM hN) =
+  ⊢ʳpair
+    (typing-subst hσ hM)
+    (typing-subst hσ hN)
+typing-subst hσ (⊢ʳletpair hM hN) =
+  ⊢ʳletpair
+    (typing-subst hσ hM)
+    (typing-subst (SubstWf-exts-exts hσ) hN)
+typing-subst hσ (⊢ʳlam hA hM) =
+  ⊢ʳlam hA (typing-subst (SubstWf-exts hσ) hM)
+typing-subst hσ (⊢ʳapp hM hN) =
+  ⊢ʳapp
+    (typing-subst hσ hM)
+    (typing-subst hσ hN)
+typing-subst hσ (⊢ʳpack hA hM) =
+  ⊢ʳpack hA (typing-subst (SubstWf-⇑ hσ) hM)
+typing-subst hσ (⊢ʳunpack hM hN) =
+  ⊢ʳunpack
+    (typing-subst hσ hM)
+    (typing-subst (SubstWf-exts (SubstWf-⇑ hσ)) hN)
+typing-subst hσ (⊢ʳtlam hM) =
+  ⊢ʳtlam (typing-subst (SubstWf-⇑ hσ) hM)
+typing-subst hσ (⊢ʳtapp hM nα) =
+  ⊢ʳtapp (typing-subst hσ hM) nα
+typing-subst hσ (⊢ʳhide hA hM) =
+  ⊢ʳhide hA (typing-subst (SubstWf-⇑ hσ) hM)
+typing-subst hσ (⊢ʳinj hG hM) =
+  ⊢ʳinj hG (typing-subst hσ hM)
+typing-subst hσ (⊢ʳcast-up hp hM) =
+  ⊢ʳcast-up hp (typing-subst hσ hM)
+typing-subst hσ (⊢ʳcast-down hp hM) =
+  ⊢ʳcast-down hp (typing-subst hσ hM)
+
+singleSubstWf :
+  {Δ : TyEnv} {Σ : Store} {Γ : Ctx} {A : Ty} {V : Term} →
+  Δ ∣ Σ ⊢ Γ ⊢ V ⦂ʳ A →
+  SubstWf Δ Σ (A ∷ Γ) Γ (singleEnv V)
+singleSubstWf hV Z = hV
+singleSubstWf hV (S h) = ⊢ʳvar h
+
+pairSubstWf :
+  {Δ : TyEnv} {Σ : Store} {Γ : Ctx} {A B : Ty} {V W : Term} →
+  Δ ∣ Σ ⊢ Γ ⊢ V ⦂ʳ A →
+  Δ ∣ Σ ⊢ Γ ⊢ W ⦂ʳ B →
+  SubstWf Δ Σ (A ∷ B ∷ Γ) Γ (pairEnv V W)
+pairSubstWf hV hW Z = hV
+pairSubstWf hV hW (S Z) = hW
+pairSubstWf hV hW (S (S h)) = ⊢ʳvar h
+
+subst-preservation :
+  {Δ : TyEnv} {Σ : Store} {Γ : Ctx} {A B : Ty} {N V : Term} →
+  Δ ∣ Σ ⊢ (A ∷ Γ) ⊢ N ⦂ʳ B →
+  Δ ∣ Σ ⊢ Γ ⊢ V ⦂ʳ A →
+  Δ ∣ Σ ⊢ Γ ⊢ N [ V ] ⦂ʳ B
+subst-preservation hN hV =
+  typing-subst (singleSubstWf hV) hN
+
+subst2-preservation :
+  {Δ : TyEnv} {Σ : Store} {Γ : Ctx} {A B C : Ty} {N V W : Term} →
+  Δ ∣ Σ ⊢ (A ∷ B ∷ Γ) ⊢ N ⦂ʳ C →
+  Δ ∣ Σ ⊢ Γ ⊢ V ⦂ʳ A →
+  Δ ∣ Σ ⊢ Γ ⊢ W ⦂ʳ B →
+  Δ ∣ Σ ⊢ Γ ⊢ N [ V ][ W ] ⦂ʳ C
+subst2-preservation hN hV hW =
+  typing-subst (pairSubstWf hV hW) hN
+
+------------------------------------------------------------------------
+-- Postulated inversion/typing lemmas (used in β-cases)
 ------------------------------------------------------------------------
 
 postulate
-  nameTy-unique :
-    {Δ : TyEnv} {Σ : Store} {α : TyName} {A B : Ty} →
-    NameTy Δ Σ α A →
-    NameTy Δ Σ α B →
-    A ≡ B
-
-  subst-preservation :
-    {Δ : TyEnv} {Σ : Store} {Γ : Ctx} {A B : Ty} {N V : Term} →
-    Δ ∣ Σ ⊢ (A ∷ Γ) ⊢ N ⦂ʳ B →
-    Δ ∣ Σ ⊢ Γ ⊢ V ⦂ʳ A →
-    Δ ∣ Σ ⊢ Γ ⊢ N [ V ] ⦂ʳ B
-
-  subst2-preservation :
-    {Δ : TyEnv} {Σ : Store} {Γ : Ctx} {A B C : Ty} {N V W : Term} →
-    Δ ∣ Σ ⊢ (A ∷ B ∷ Γ) ⊢ N ⦂ʳ C →
-    Δ ∣ Σ ⊢ Γ ⊢ V ⦂ʳ A →
-    Δ ∣ Σ ⊢ Γ ⊢ W ⦂ʳ B →
-    Δ ∣ Σ ⊢ Γ ⊢ N [ V ][ W ] ⦂ʳ C
-
   substT-preservation-known :
     {Δ : TyEnv} {Σ : Store} {Γ : Ctx} {A B : Ty} {M : Term} {α : TyName} →
     NameTy Δ Σ α A →
@@ -438,51 +698,64 @@ redex-preservation (⊢ʳcast-down hp hV) (β-cast-tag-down-no vV G≢H) =
 
 mutual
 
-  frame-preservation :
+  frame-preservation-core :
     {Δ : TyEnv} {Σ Σ' : Store} {A : Ty} {F : Frame} {M N : Term} →
     Δ ∣ Σ ⊢ [] ⊢ plug F M ⦂ʳ A →
     Σ ⊢ M ↦ Σ' ⊢ N →
     StoreExt Σ Σ' ×ᵖ (Δ ∣ Σ' ⊢ [] ⊢ plug F N ⦂ʳ A)
-  frame-preservation {F = let□ N₀} (⊢ʳlet hM hN) s with preservation hM s
+  frame-preservation-core {F = let□ N₀} (⊢ʳlet hM hN) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳlet hM' (store-weaken ext hN)
-  frame-preservation {F = seal□ α} (⊢ʳseal nα hM) s with preservation hM s
+  frame-preservation-core {F = seal□ α} (⊢ʳseal nα hM) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳseal (nameTy-ext ext nα) hM'
-  frame-preservation {F = unseal□ α} (⊢ʳunseal nα hM) s with preservation hM s
+  frame-preservation-core {F = unseal□ α} (⊢ʳunseal nα hM) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳunseal (nameTy-ext ext nα) hM'
-  frame-preservation {F = is□ G} (⊢ʳis hG hM) s with preservation hM s
+  frame-preservation-core {F = is□ G} (⊢ʳis hG hM) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳis hG hM'
-  frame-preservation {F = if□ N₁ N₂} (⊢ʳif hM hN₁ hN₂) s with preservation hM s
+  frame-preservation-core {F = if□ N₁ N₂} (⊢ʳif hM hN₁ hN₂) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳif hM' (store-weaken ext hN₁) (store-weaken ext hN₂)
-  frame-preservation {F = pairL□ N₀} (⊢ʳpair hM hN) s with preservation hM s
+  frame-preservation-core {F = pairL□ N₀} (⊢ʳpair hM hN) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳpair hM' (store-weaken ext hN)
-  frame-preservation {F = pairR□ V} (⊢ʳpair hV hM) s with preservation hM s
+  frame-preservation-core {F = pairR□ V} (⊢ʳpair hV hM) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳpair (store-weaken ext hV) hM'
-  frame-preservation {F = letpair□ N₀} (⊢ʳletpair hM hN) s with preservation hM s
+  frame-preservation-core {F = letpair□ N₀} (⊢ʳletpair hM hN) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳletpair hM' (store-weaken ext hN)
-  frame-preservation {F = appL□ N₀} (⊢ʳapp hM hN) s with preservation hM s
+  frame-preservation-core {F = appL□ N₀} (⊢ʳapp hM hN) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳapp hM' (store-weaken ext hN)
-  frame-preservation {F = appR□ V} (⊢ʳapp hV hM) s with preservation hM s
+  frame-preservation-core {F = appR□ V} (⊢ʳapp hV hM) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳapp (store-weaken ext hV) hM'
-  frame-preservation {F = unpack□ N₀} (⊢ʳunpack hM hN) s with preservation hM s
+  frame-preservation-core {F = unpack□ N₀} (⊢ʳunpack hM hN) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳunpack hM' (store-weaken ext hN)
-  frame-preservation {F = tapp□ α B} (⊢ʳtapp hM nα) s with preservation hM s
+  frame-preservation-core {F = tapp□ α B} (⊢ʳtapp hM nα) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳtapp hM' (nameTy-ext ext nα)
-  frame-preservation {F = inj□ G} (⊢ʳinj hG hM) s with preservation hM s
+  frame-preservation-core {F = inj□ G} (⊢ʳinj hG hM) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳinj hG hM'
-  frame-preservation {F = cast□ up p} (⊢ʳcast-up hp hM) s with preservation hM s
+  frame-preservation-core {F = cast□ up p} (⊢ʳcast-up hp hM) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳcast-up hp hM'
-  frame-preservation {F = cast□ down p} (⊢ʳcast-down hp hM) s with preservation hM s
+  frame-preservation-core {F = cast□ down p} (⊢ʳcast-down hp hM) s with preservation-core hM s
   ... | ext , hM' = ext , ⊢ʳcast-down hp hM'
 
   ------------------------------------------------------------------------
   -- Preservation
   ------------------------------------------------------------------------
 
-  preservation :
+  preservation-core :
     {Δ : TyEnv} {Σ Σ' : Store} {M N : Term} {A : Ty} →
     Δ ∣ Σ ⊢ [] ⊢ M ⦂ʳ A →
     Σ ⊢ M ↦ Σ' ⊢ N →
     StoreExt Σ Σ' ×ᵖ (Δ ∣ Σ' ⊢ [] ⊢ N ⦂ʳ A)
-  preservation hM (β r) = redex-preservation hM r
-  preservation hM (ξξ refl refl s) = frame-preservation hM s
-  preservation hM (ξξ-err refl) = ext-refl , ⊢ʳerr (closed-wfty hM)
+  preservation-core hM (β r) = redex-preservation hM r
+  preservation-core hM (ξξ refl refl s) = frame-preservation-core hM s
+  preservation-core hM (ξξ-err refl) = ext-refl , ⊢ʳerr (closed-wfty hM)
+
+------------------------------------------------------------------------
+-- Preservation with store-uniqueness invariant
+------------------------------------------------------------------------
+
+preservation :
+  {Δ : TyEnv} {Σ Σ' : Store} {M N : Term} {A : Ty} →
+  StoreUnique Σ →
+  Δ ∣ Σ ⊢ [] ⊢ M ⦂ʳ A →
+  Σ ⊢ M ↦ Σ' ⊢ N →
+  StoreUnique Σ' ×ᵖ (StoreExt Σ Σ' ×ᵖ (Δ ∣ Σ' ⊢ [] ⊢ N ⦂ʳ A))
+preservation su hM s with preservation-core hM s
+... | ext , hN = storeUnique-ext ext su , (ext , hN)

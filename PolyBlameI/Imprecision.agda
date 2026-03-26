@@ -8,6 +8,7 @@ open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (cong; subst)
 
 open import Types
+open import TypeSubst
 
 ------------------------------------------------------------------------
 -- Intrinsic imprecision

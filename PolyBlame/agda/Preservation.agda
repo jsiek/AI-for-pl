@@ -13,338 +13,13 @@ open import Data.Unit using (⊤; tt)
 open import Relation.Nullary using (Dec; yes; no)
 
 open import PolyBlame
-open import TypeSubst using
-  ( rename-cong
-  ; rename-rename-commute
-  ; renameᵗ-renameˢ
-  ; map-renameᵗ-renameˢ
-  ; rename-subst
-  ; rename-subst-commute
-  ; rename-[]ᵗ-commute
-  ; renameˢ-[]ᵗ-commute
-  ; renameˢ-commute-suc
-  ; singleSealEnv-suc-cancel
-  ; singleSealEnv-source-eq
-  ; lookupˢ-map-inv
-  ; lookupˢ-map-renameᵗ
-  ; map-renameStore-suc
-  ; TyRenameWf
-  ; TyRenameWf-ext
-  ; renameᵗ-preserves-WfTy
-  ; renameᵗ-preserves-WfTy↑
-  ; subst-cong
-  ; single-subst-def
-  ; _⨟ᵗ_
-  ; sub-sub
-  ; subst-id
-  )
+open import Ctx
+open import Store public
+open import TypeSubst 
 
 ------------------------------------------------------------------------
--- Helper lemmas used by preservation
+-- Term renaming and substitution infrastructure
 ------------------------------------------------------------------------
-
-StoreUnique : Store → Set
-StoreUnique [] = ⊤
-StoreUnique (_ ∷ Σ) = StoreUnique Σ
-
-storeUnique-extend :
-  ∀ {Σ A} →
-  StoreUnique Σ →
-  StoreUnique (extendStore Σ A)
-storeUnique-extend {Σ = []} hΣ = tt
-storeUnique-extend {Σ = _ ∷ Σ} hΣ = storeUnique-extend {Σ = Σ} hΣ
-
-StoreWfAt : TyCtx → Store → Set
-StoreWfAt Δ Σ = ∀ {α A} → Σ ∋ˢ α ⦂ A → WfTy Δ Σ A
-
-WfStore : Store → Set
-WfStore Σ = StoreWfAt zero Σ
-
-postulate
-  typing-singleSealEnv-fresh :
-    ∀ {Δ Σ Γ A B N} →
-    Δ ∣ (A ∷ Σ) ⊢ ⤊ˢ Γ ⊢ N ⦂ renameˢ suc B →
-    Δ ∣ extendStore Σ A ⊢ Γ ⊢ renameˢᵀ (singleSealEnv (fresh Σ)) N ⦂ B
-
-  nu-up-body-preserve :
-    ∀ {Σ V p A B} →
-    0 ∣ Σ ⊢ [] ⊢ V ⦂ `∀ A →
-    0 ∣ (`★ ∷ Σ) ⊢ᵖ p ⦂ ((renameˢ suc A) [ ｀ zero ]ᵗ) ⊑ renameˢ suc B →
-    0 ∣ (`★ ∷ Σ) ⊢ [] ⊢
-      (((renameˢᵀ suc V) ·α zero) at up ((renameImpˢ suc p) [ zero ]ᴾα)) ⦂ renameˢ suc B
-
-renameStoreᵗ-suc-extendStore :
-  (Σ : Store) (A : Ty) →
-  renameStoreᵗ suc (extendStore Σ A) ≡
-  extendStore (renameStoreᵗ suc Σ) (renameᵗ suc A)
-renameStoreᵗ-suc-extendStore [] A = refl
-renameStoreᵗ-suc-extendStore (B ∷ Σ) A =
-  cong₂ _∷_ refl (renameStoreᵗ-suc-extendStore Σ A)
-
-wfty-store-extend-end :
-  {Δ : TyCtx} {Σ : Store} {A B : Ty} →
-  WfTy Δ Σ A →
-  WfTy Δ (extendStore Σ B) A
-wfty-store-extend-end (wfX x<Δ) = wfX x<Δ
-wfty-store-extend-end wfι = wfι
-wfty-store-extend-end wf★ = wf★
-wfty-store-extend-end (wfα h) = wfα (lookupˢ-extend h)
-wfty-store-extend-end (wf⇒ hA hB) =
-  wf⇒ (wfty-store-extend-end hA) (wfty-store-extend-end hB)
-wfty-store-extend-end {Δ = Δ} {Σ = Σ} {B = B}
-  (wf∀ {A = A} hA) =
-  wf∀
-    (Eq.subst
-      (λ S → WfTy (suc Δ) S A)
-      (sym (renameStoreᵗ-suc-extendStore Σ B))
-      (wfty-store-extend-end
-        {Δ = suc Δ}
-        {Σ = renameStoreᵗ suc Σ}
-        {B = renameᵗ suc B}
-        hA))
-
-lookupˢ-extend-inv :
-  {Σ : Store} {A : Ty} {α : Seal} {B : Ty} →
-  extendStore Σ A ∋ˢ α ⦂ B →
-  (Σ ∋ˢ α ⦂ B) ⊎ (α ≡ fresh Σ × B ≡ A)
-lookupˢ-extend-inv {Σ = []} {A = A} Zˢ =
-  inj₂ (refl , refl)
-lookupˢ-extend-inv {Σ = C ∷ Σ} {A = A} Zˢ =
-  inj₁ Zˢ
-lookupˢ-extend-inv {Σ = C ∷ Σ} {A = A} (Sˢ h) with lookupˢ-extend-inv {Σ = Σ} {A = A} h
-... | inj₁ h' = inj₁ (Sˢ h')
-... | inj₂ (eqa , eqB) = inj₂ (cong suc eqa , eqB)
-
-storeWfAt-extend-end :
-  {Δ : TyCtx} {Σ : Store} {A : Ty} →
-  StoreWfAt Δ Σ →
-  WfTy Δ Σ A →
-  StoreWfAt Δ (extendStore Σ A)
-storeWfAt-extend-end {Σ = Σ} {A = A} hΣ hA h with lookupˢ-extend-inv {Σ = Σ} {A = A} h
-... | inj₁ h' = wfty-store-extend-end (hΣ h')
-... | inj₂ (eqa , eqB) rewrite eqa | eqB = wfty-store-extend-end hA
-
-------------------------------------------------------------------------
--- Term substitution infrastructure
-------------------------------------------------------------------------
-
-lookup-map-renameᵗ :
-  {Γ : Ctx} {x : Var} {A : Ty} {ρ : Renameᵗ} →
-  Γ ∋ x ⦂ A →
-  map (renameᵗ ρ) Γ ∋ x ⦂ renameᵗ ρ A
-lookup-map-renameᵗ Z = Z
-lookup-map-renameᵗ (S h) = S (lookup-map-renameᵗ h)
-
-lookup-map-renameˢ :
-  {Γ : Ctx} {x : Var} {A : Ty} {ρ : Renameˢ} →
-  Γ ∋ x ⦂ A →
-  map (renameˢ ρ) Γ ∋ x ⦂ renameˢ ρ A
-lookup-map-renameˢ Z = Z
-lookup-map-renameˢ (S h) = S (lookup-map-renameˢ h)
-
-lookup-map-inv :
-  {Γ : Ctx} {x : Var} {B : Ty} {f : Ty → Ty} →
-  map f Γ ∋ x ⦂ B →
-  Σ Ty (λ A → (Γ ∋ x ⦂ A) × (B ≡ f A))
-lookup-map-inv {Γ = A ∷ Γ} {x = zero} Z = A , (Z , refl)
-lookup-map-inv {Γ = A ∷ Γ} {x = suc x} (S h) with lookup-map-inv h
-... | A' , (hA' , eq) = A' , (S hA' , eq)
-
-lookupˢ-functional :
-  {Σ : Store} {α : Seal} {A B : Ty} →
-  Σ ∋ˢ α ⦂ A →
-  Σ ∋ˢ α ⦂ B →
-  A ≡ B
-lookupˢ-functional Zˢ Zˢ = refl
-lookupˢ-functional (Sˢ hA) (Sˢ hB) = lookupˢ-functional hA hB
-
-seal-step-preserve :
-  ∀ {Δ Σ A V α p q} →
-  Δ ∣ Σ ⊢ [] ⊢ ((V at down (sealImp α p)) at up (sealImp α q)) ⦂ A →
-  Δ ∣ Σ ⊢ [] ⊢ ((V at down p) at up q) ⦂ A
-seal-step-preserve
-  (⊢cast-up
-    (⊢cast-down hV (⊢seal hα hp))
-    (⊢seal hα' hq))
-  rewrite lookupˢ-functional hα hα' =
-    ⊢cast-up (⊢cast-down hV hp) hq
-
-map-renameᵗ-⤊ : (ρ : Renameᵗ) (Γ : Ctx) →
-  map (renameᵗ (extᵗ ρ)) (⤊ Γ) ≡ ⤊ (map (renameᵗ ρ) Γ)
-map-renameᵗ-⤊ ρ [] = refl
-map-renameᵗ-⤊ ρ (A ∷ Γ) =
-  cong₂ _∷_
-    (trans
-      (rename-rename-commute suc (extᵗ ρ) A)
-      (trans
-        (rename-cong (λ i → refl) A)
-        (sym (rename-rename-commute ρ suc A))))
-    (map-renameᵗ-⤊ ρ Γ)
-
-cons-sub : Ty → Substᵗ → Substᵗ
-cons-sub v σ zero = v
-cons-sub v σ (suc i) = σ i
-
-exts-sub-cons :
-  {σ : Substᵗ} {A v : Ty} →
-  (substᵗ (extsᵗ σ) A) [ v ]ᵗ ≡ substᵗ (cons-sub v σ) A
-exts-sub-cons {σ} {A} {v} =
-  trans
-    (single-subst-def (substᵗ (extsᵗ σ) A) v)
-    (trans
-      (sub-sub (extsᵗ σ) phi A)
-      (subst-cong env-eq A))
-  where
-    phi : Substᵗ
-    phi = singleTyEnv v
-
-    psi : Substᵗ
-    psi = cons-sub v σ
-
-    env-eq : (i : Var) → ((extsᵗ σ) ⨟ᵗ phi) i ≡ psi i
-    env-eq zero = refl
-    env-eq (suc j) =
-      trans
-        (rename-subst-commute suc phi (σ j))
-        (trans
-          (subst-cong (λ i → refl) (σ j))
-          (subst-id (σ j)))
-
-subst-[]ᵗ-commute : (σ : Substᵗ) (A B : Ty) →
-  substᵗ σ (A [ B ]ᵗ) ≡ (substᵗ (extsᵗ σ) A) [ substᵗ σ B ]ᵗ
-subst-[]ᵗ-commute σ A B =
-  trans
-    (cong (λ T → substᵗ σ T) (single-subst-def A B))
-    (trans
-      (sub-sub (singleTyEnv B) σ A)
-      (trans
-        (subst-cong env-eq A)
-        (sym (exts-sub-cons {σ = σ} {A = A} {v = substᵗ σ B}))))
-  where
-    env-eq : (i : Var) → ((singleTyEnv B) ⨟ᵗ σ) i ≡ cons-sub (substᵗ σ B) σ i
-    env-eq zero = refl
-    env-eq (suc i) = refl
-
-substᵗ-suc-renameᵗ-suc :
-  (σ : Substᵗ) →
-  (A : Ty) →
-  substᵗ (extsᵗ σ) (renameᵗ suc A) ≡
-  renameᵗ suc (substᵗ σ A)
-substᵗ-suc-renameᵗ-suc σ A =
-  trans
-    (rename-subst-commute suc (extsᵗ σ) A)
-    (sym (rename-subst suc σ A))
-
-map-substᵗ-⤊ :
-  (σ : Substᵗ) →
-  (Γ : Ctx) →
-  map (substᵗ (extsᵗ σ)) (⤊ Γ) ≡ ⤊ (map (substᵗ σ) Γ)
-map-substᵗ-⤊ σ [] = refl
-map-substᵗ-⤊ σ (A ∷ Γ) =
-  cong₂ _∷_
-    (substᵗ-suc-renameᵗ-suc σ A)
-    (map-substᵗ-⤊ σ Γ)
-
-lookup-map-substᵗ :
-  {Γ : Ctx} {x : Var} {A : Ty} {σ : Substᵗ} →
-  Γ ∋ x ⦂ A →
-  map (substᵗ σ) Γ ∋ x ⦂ substᵗ σ A
-lookup-map-substᵗ Z = Z
-lookup-map-substᵗ (S h) = S (lookup-map-substᵗ h)
-
-substStoreᵗ : Substᵗ → Store → Store
-substStoreᵗ σ [] = []
-substStoreᵗ σ (A ∷ Σ) = substᵗ σ A ∷ substStoreᵗ σ Σ
-
-lookupˢ-map-substᵗ :
-  {Σ : Store} {α : Seal} {A : Ty} {σ : Substᵗ} →
-  Σ ∋ˢ α ⦂ A →
-  substStoreᵗ σ Σ ∋ˢ α ⦂ substᵗ σ A
-lookupˢ-map-substᵗ Zˢ = Zˢ
-lookupˢ-map-substᵗ (Sˢ h) = Sˢ (lookupˢ-map-substᵗ h)
-
-map-substStore-suc :
-  (σ : Substᵗ) →
-  (Σ : Store) →
-  substStoreᵗ (extsᵗ σ) (renameStoreᵗ suc Σ) ≡
-  renameStoreᵗ suc (substStoreᵗ σ Σ)
-map-substStore-suc σ [] = refl
-map-substStore-suc σ (A ∷ Σ) =
-  cong₂ _∷_
-    (substᵗ-suc-renameᵗ-suc σ A)
-    (map-substStore-suc σ Σ)
-
-substᵗ-renameᵗ-suc-cancel :
-  (A B : Ty) →
-  substᵗ (singleTyEnv B) (renameᵗ suc A) ≡ A
-substᵗ-renameᵗ-suc-cancel A B =
-  trans
-    (rename-subst-commute suc (singleTyEnv B) A)
-    (subst-id A)
-
-substStore-single-suc-cancel :
-  (Σ : Store) →
-  (B : Ty) →
-  substStoreᵗ (singleTyEnv B) (renameStoreᵗ suc Σ) ≡ Σ
-substStore-single-suc-cancel [] B = refl
-substStore-single-suc-cancel (A ∷ Σ) B =
-  cong₂ _∷_
-    (substᵗ-renameᵗ-suc-cancel A B)
-    (substStore-single-suc-cancel Σ B)
-
-wfty-store-substᵗ :
-  {Δ : TyCtx} {Σ : Store} {A : Ty} {σ : Substᵗ} →
-  WfTy Δ Σ A →
-  WfTy Δ (substStoreᵗ σ Σ) A
-wfty-store-substᵗ (wfX x<Δ) = wfX x<Δ
-wfty-store-substᵗ wfι = wfι
-wfty-store-substᵗ wf★ = wf★
-wfty-store-substᵗ (wfα h) = wfα (lookupˢ-map-substᵗ h)
-wfty-store-substᵗ (wf⇒ hA hB) =
-  wf⇒ (wfty-store-substᵗ hA) (wfty-store-substᵗ hB)
-wfty-store-substᵗ {Δ = Δ} {Σ = Σ} {σ = σ} (wf∀ {A = A} hA) =
-  wf∀
-    (Eq.subst
-      (λ S → WfTy (suc Δ) S A)
-      (map-substStore-suc σ Σ)
-      (wfty-store-substᵗ {σ = extsᵗ σ} hA))
-
-wfty-store-shift :
-  {Δ : TyCtx} {Σ : Store} {A : Ty} →
-  WfTy Δ Σ A →
-  WfTy Δ (renameStoreᵗ suc Σ) A
-wfty-store-shift (wfX x<Δ) = wfX x<Δ
-wfty-store-shift wfι = wfι
-wfty-store-shift wf★ = wf★
-wfty-store-shift (wfα h) = wfα (lookupˢ-map-renameᵗ h)
-wfty-store-shift (wf⇒ hA hB) =
-  wf⇒ (wfty-store-shift hA) (wfty-store-shift hB)
-wfty-store-shift (wf∀ hA) =
-  wf∀ (wfty-store-shift hA)
-
-wfty-store-unshift :
-  {Δ : TyCtx} {Σ : Store} {A : Ty} →
-  WfTy Δ (renameStoreᵗ suc Σ) A →
-  WfTy Δ Σ A
-wfty-store-unshift (wfX x<Δ) = wfX x<Δ
-wfty-store-unshift wfι = wfι
-wfty-store-unshift wf★ = wf★
-wfty-store-unshift (wfα h) with lookupˢ-map-inv h
-... | A' , (hA' , eq) = wfα hA'
-wfty-store-unshift (wf⇒ hA hB) =
-  wf⇒ (wfty-store-unshift hA) (wfty-store-unshift hB)
-wfty-store-unshift (wf∀ hA) =
-  wf∀ (wfty-store-unshift hA)
-
-RenameWf : Ctx → Ctx → Rename → Set
-RenameWf Γ Γ' ρ = ∀ {x A} → Γ ∋ x ⦂ A → Γ' ∋ ρ x ⦂ A
-
-RenameWf-ext :
-  {Γ Γ' : Ctx} {B : Ty} {ρ : Rename} →
-  RenameWf Γ Γ' ρ →
-  RenameWf (B ∷ Γ) (B ∷ Γ') (ext ρ)
-RenameWf-ext hρ Z = Z
-RenameWf-ext hρ (S h) = S (hρ h)
 
 rename-renameˢᵀ :
   {ρ : Rename} {ϱ : Renameˢ} {M : Term} →
@@ -454,6 +129,142 @@ rename-shift :
   Δ ∣ Σ ⊢ (B ∷ Γ) ⊢ rename suc M ⦂ A
 rename-shift hM = typing-rename (λ h → S h) hM
 
+renameˢ-constTy :
+  {ρ : Renameˢ} {κ : Const} →
+  renameˢ ρ (constTy κ) ≡ constTy κ
+renameˢ-constTy {κ = κℕ n} = refl
+
+postulate
+  lookupRenameˢ-lift-star :
+    ∀ {ρ : Renameˢ} {Σ₀ Σ₁ : Store} →
+    LookupRenameˢ ρ Σ₀ Σ₁ →
+    LookupRenameˢ (extˢ ρ) (`★ ∷ Σ₀) (`★ ∷ Σ₁)
+
+  lookupRenameˢ-lift-cons-shift :
+    ∀ {ρ : Renameˢ} {Σ₀ Σ₁ : Store} {C : Ty} →
+    LookupRenameˢ ρ Σ₀ Σ₁ →
+    LookupRenameˢ (extˢ ρ)
+      (C ∷ ⟰ˢ Σ₀)
+      (renameˢ ρ C ∷ ⟰ˢ Σ₁)
+
+typing-renameˢᵀ :
+  {Δ : TyCtx} {ρ : Renameˢ} {Σ₀ Σ₁ : Store}
+  {Γ : Ctx} {M : Term} {A : Ty} →
+  LookupRenameˢ ρ Σ₀ Σ₁ →
+  Δ ∣ Σ₀ ⊢ Γ ⊢ M ⦂ A →
+  Δ ∣ Σ₁ ⊢ map (renameˢ ρ) Γ ⊢ renameˢᵀ ρ M ⦂ renameˢ ρ A
+typing-renameˢᵀ hρ (⊢` h) =
+  ⊢` (lookup-map-renameˢ h)
+typing-renameˢᵀ hρ (⊢ƛ hA hN) =
+  ⊢ƛ
+    (renameˢ-preserves-WfTy lookupRenameˢ-lift-star hρ hA)
+    (typing-renameˢᵀ hρ hN)
+typing-renameˢᵀ hρ (⊢· hL hM) =
+  ⊢·
+    (typing-renameˢᵀ hρ hL)
+    (typing-renameˢᵀ hρ hM)
+typing-renameˢᵀ
+               {Δ = Δ} {ρ = ρ} {Σ₁ = Σ₁} {Γ = Γ}
+               hρ (⊢Λ hN) =
+  ⊢Λ
+    (Eq.subst
+      (λ Ψ → (suc Δ) ∣ renameStoreᵗ suc Σ₁ ⊢ Ψ ⊢
+               renameˢᵀ ρ _ ⦂ renameˢ ρ _)
+      (map-renameᵗ-renameˢ {ρ = suc} {ϱ = ρ} Γ)
+      (typing-renameˢᵀ
+        (lookupRenameˢ-suc hρ)
+        hN))
+typing-renameˢᵀ
+               {ρ = ρ} {Σ₁ = Σ₁} {Γ = Γ}
+               hρ (⊢·α {L = L} {A = A} {α = α} hL hα) =
+  Eq.subst
+    (λ T → _ ∣ Σ₁ ⊢ map (renameˢ ρ) Γ ⊢ renameˢᵀ ρ L ·α (ρ α) ⦂ T)
+    (sym (renameˢ-[]ᵗ-commute ρ A α))
+    (⊢·α
+      (typing-renameˢᵀ hρ hL)
+      (hρ hα))
+typing-renameˢᵀ
+               {Δ = Δ} {ρ = ρ} {Σ₁ = Σ₁} {Γ = Γ}
+               hρ (⊢ν {A = A} {B = B} {N = N} hA hN hB) =
+  ⊢ν
+    (renameˢ-preserves-WfTy lookupRenameˢ-lift-star hρ hA)
+    (Eq.subst
+      (λ T → Δ ∣ (renameˢ ρ A ∷ ⟰ˢ Σ₁) ⊢ ⤊ˢ (map (renameˢ ρ) Γ) ⊢
+               renameˢᵀ (extˢ ρ) N ⦂ T)
+      (renameˢ-commute-suc ρ B)
+      (Eq.subst
+        (λ Ψ → Δ ∣ (renameˢ ρ A ∷ ⟰ˢ Σ₁) ⊢ Ψ ⊢
+                 renameˢᵀ (extˢ ρ) N ⦂ renameˢ (extˢ ρ) (⇑ˢ B))
+        (map-renameˢ-commute-suc ρ Γ)
+        (typing-renameˢᵀ
+          (lookupRenameˢ-lift-cons-shift hρ)
+          hN)))
+    (renameˢ-preserves-WfTy lookupRenameˢ-lift-star hρ hB)
+typing-renameˢᵀ hρ ⊢$ =
+  Eq.subst
+    (λ T → _ ∣ _ ⊢ _ ⊢ _ ⦂ T)
+    (sym renameˢ-constTy)
+    ⊢$
+typing-renameˢᵀ hρ (⊢⊕ hM hN) =
+  ⊢⊕
+    (typing-renameˢᵀ hρ hM)
+    (typing-renameˢᵀ hρ hN)
+typing-renameˢᵀ hρ (⊢cast-up hM hp) =
+  ⊢cast-up
+    (typing-renameˢᵀ hρ hM)
+    (renameImpˢ-preserves-typing lookupRenameˢ-lift-star hρ hp)
+typing-renameˢᵀ hρ (⊢cast-down hM hp) =
+  ⊢cast-down
+    (typing-renameˢᵀ hρ hM)
+    (renameImpˢ-preserves-typing lookupRenameˢ-lift-star hρ hp)
+typing-renameˢᵀ hρ (⊢blame hA) =
+  ⊢blame (renameˢ-preserves-WfTy lookupRenameˢ-lift-star hρ hA)
+
+typing-singleSealEnv-fresh :
+  ∀ {Δ Σ Γ A B N} →
+  Δ ∣ (A ∷ ⟰ˢ Σ) ⊢ ⤊ˢ Γ ⊢ N ⦂ ⇑ˢ B →
+  Δ ∣ extendStore Σ A ⊢ Γ ⊢ renameˢᵀ (singleSealEnv (fresh Σ)) N ⦂ B
+typing-singleSealEnv-fresh {Δ} {Σ} {Γ} {A} {B} {N} hN =
+  Eq.subst
+    (λ Ψ → Δ ∣ extendStore Σ A ⊢ Ψ ⊢ renameˢᵀ (singleSealEnv (fresh Σ)) N ⦂ B)
+    (map-singleSealEnv-suc-cancel (fresh Σ) Γ)
+    (Eq.subst
+      (λ T → Δ ∣ extendStore Σ A ⊢
+               map (renameˢ (singleSealEnv (fresh Σ))) (⤊ˢ Γ) ⊢
+               renameˢᵀ (singleSealEnv (fresh Σ)) N ⦂ T)
+      (singleSealEnv-suc-cancel (fresh Σ) B)
+      (typing-renameˢᵀ single-fresh-lookup hN))
+  where
+    postulate
+      single-fresh-lookup :
+        LookupRenameˢ (singleSealEnv (fresh Σ))
+          (A ∷ ⟰ˢ Σ)
+          (extendStore Σ A)
+
+nu-up-body-preserve :
+  ∀ {Σ V p A B} →
+  0 ∣ Σ ⊢ [] ⊢ V ⦂ `∀ A →
+  0 ∣ (`★ ∷ ⟰ˢ Σ) ⊢ᵖ p ⦂ ((⇑ˢ A) [ ｀ zero ]ᵗ) ⊑ ⇑ˢ B →
+  0 ∣ (`★ ∷ ⟰ˢ Σ) ⊢ [] ⊢
+    (((renameˢᵀ suc V) ·α zero) at up ((renameImpˢ suc p) [ zero ]ᴾα)) ⦂ ⇑ˢ B
+nu-up-body-preserve {Σ} {V} {p} {A} {B} hV hp =
+  ⊢cast-up
+    (⊢·α hV↑ Zˢ)
+    hImp
+  where
+    postulate
+      suc-lookup :
+        LookupRenameˢ suc Σ (`★ ∷ ⟰ˢ Σ)
+
+      hImp :
+        0 ∣ (`★ ∷ ⟰ˢ Σ) ⊢ᵖ ((renameImpˢ suc p) [ zero ]ᴾα) ⦂
+          ((⇑ˢ A) [ ｀ zero ]ᵗ) ⊑ ⇑ˢ B
+
+    hV↑ :
+      0 ∣ (`★ ∷ ⟰ˢ Σ) ⊢ [] ⊢ renameˢᵀ suc V ⦂ `∀ (⇑ˢ A)
+    hV↑ =
+      typing-renameˢᵀ suc-lookup hV
+
 SubstWf : TyCtx → Store → Ctx → Ctx → Subst → Set
 SubstWf Δ Σ Γ Γ' σ = ∀ {x A} → Γ ∋ x ⦂ A → Δ ∣ Σ ⊢ Γ' ⊢ σ x ⦂ A
 
@@ -466,7 +277,7 @@ SubstWf-exts hσ (S h) = rename-shift (hσ h)
 
 nu-down-preserve :
   ∀ {Δ Σ α p A B C} →
-  Δ ∣ (`★ ∷ Σ) ⊢ᵖ p ⦂ ((renameˢ suc A) [ ｀ zero ]ᵗ) ⊑ renameˢ suc B →
+  Δ ∣ (`★ ∷ ⟰ˢ Σ) ⊢ᵖ p ⦂ ((⇑ˢ A) [ ｀ zero ]ᵗ) ⊑ ⇑ˢ B →
   Σ ∋ˢ α ⦂ C →
   Δ ∣ Σ ⊢ᵖ sealToTag α (openImpˢ α p) ⦂ A [ ｀ α ]ᵗ ⊑ B
 nu-down-preserve {Δ = Δ} {Σ = Σ} {α = α} {p = p} {A = A} {B = B} hp hβ =
@@ -475,14 +286,14 @@ nu-down-preserve {Δ = Δ} {Σ = Σ} {α = α} {p = p} {A = A} {B = B} hp hβ =
     source-eq
     (Eq.subst
       (λ T → Δ ∣ Σ ⊢ᵖ sealToTag α (openImpˢ α p) ⦂
-         renameˢ (singleSealEnv α) (((renameˢ suc A) [ ｀ zero ]ᵗ)) ⊑ T)
+         renameˢ (singleSealEnv α) (((⇑ˢ A) [ ｀ zero ]ᵗ)) ⊑ T)
       target-eq
       (open-preserve-imp open-lookup hp))
   where
     postulate
       open-lookup :
         ∀ {α' C} →
-        (`★ ∷ Σ) ∋ˢ α' ⦂ C →
+        (`★ ∷ ⟰ˢ Σ) ∋ˢ α' ⦂ C →
         Σ ∋ˢ singleSealEnv α α' ⦂ renameˢ (singleSealEnv α) C
 
       lift-ext-renaming :
@@ -492,36 +303,17 @@ nu-down-preserve {Δ = Δ} {Σ = Σ} {α = α} {p = p} {A = A} {B = B} hp hβ =
 
     renameˢ-inst-eq :
       (ρ : Renameˢ) (A : Ty) →
-      renameˢ (extˢ ρ) (((renameˢ suc A) [ ｀ zero ]ᵗ)) ≡
-      ((renameˢ suc (renameˢ ρ A)) [ ｀ zero ]ᵗ)
+      renameˢ (extˢ ρ) (((⇑ˢ A) [ ｀ zero ]ᵗ)) ≡
+      ((⇑ˢ (renameˢ ρ A)) [ ｀ zero ]ᵗ)
     renameˢ-inst-eq ρ A =
       trans
-        (renameˢ-[]ᵗ-commute (extˢ ρ) (renameˢ suc A) zero)
+        (renameˢ-[]ᵗ-commute (extˢ ρ) (⇑ˢ A) zero)
         (cong (λ T → T [ ｀ zero ]ᵗ) (renameˢ-commute-suc ρ A))
 
     renameˢ-target-eq :
       (ρ : Renameˢ) (B : Ty) →
-      renameˢ (extˢ ρ) (renameˢ suc B) ≡ renameˢ suc (renameˢ ρ B)
+      renameˢ (extˢ ρ) (⇑ˢ B) ≡ ⇑ˢ (renameˢ ρ B)
     renameˢ-target-eq = renameˢ-commute-suc
-
-    lift-lookup-suc :
-      {ρ : Renameˢ} {Σ₀ Σ₁ : Store} →
-      (∀ {α C} → Σ₀ ∋ˢ α ⦂ C → Σ₁ ∋ˢ ρ α ⦂ C) →
-      ∀ {α C} → renameStoreᵗ suc Σ₀ ∋ˢ α ⦂ C →
-                 renameStoreᵗ suc Σ₁ ∋ˢ ρ α ⦂ C
-    lift-lookup-suc {ρ = ρ} hlookup h with lookupˢ-map-inv h
-    ... | A , (hA , eq) =
-      Eq.subst
-        (λ T → renameStoreᵗ suc _ ∋ˢ ρ _ ⦂ T)
-        (sym eq)
-        (lookupˢ-map-renameᵗ (hlookup hA))
-
-    lift-lookup-ext :
-      {ρ : Renameˢ} {Σ₀ Σ₁ : Store} →
-      (∀ {α C} → Σ₀ ∋ˢ α ⦂ C → Σ₁ ∋ˢ ρ α ⦂ C) →
-      ∀ {α C} → (`★ ∷ Σ₀) ∋ˢ α ⦂ C → (`★ ∷ Σ₁) ∋ˢ extˢ ρ α ⦂ C
-    lift-lookup-ext hlookup Zˢ = Zˢ
-    lift-lookup-ext hlookup (Sˢ h) = Sˢ (hlookup h)
 
     sealToTag-self-id★ :
       (α : Seal) →
@@ -605,11 +397,11 @@ nu-down-preserve {Δ = Δ} {Σ = Σ} {α = α} {p = p} {A = A} {B = B} hp hβ =
         (renameImpˢ-preserves-typing lift-ext-renaming hlookup hp)
 
     source-eq :
-      renameˢ (singleSealEnv α) (((renameˢ suc A) [ ｀ zero ]ᵗ)) ≡ A [ ｀ α ]ᵗ
+      renameˢ (singleSealEnv α) (((⇑ˢ A) [ ｀ zero ]ᵗ)) ≡ A [ ｀ α ]ᵗ
     source-eq = singleSealEnv-source-eq α A
 
     target-eq :
-      renameˢ (singleSealEnv α) (renameˢ suc B) ≡ B
+      renameˢ (singleSealEnv α) (⇑ˢ B) ≡ B
     target-eq = singleSealEnv-suc-cancel α B
 
 renameᵗ-constTy :
@@ -673,23 +465,37 @@ typing-renameᵀ {Δ = Δ} {Δ' = Δ'} {Σ = Σ} {Γ = Γ} {ρ = ρ}
     (lift hN)
     (renameᵗ-preserves-WfTy hB hρ)
   where
+    store-renameᵗ-renameˢ :
+      (Σ₀ : Store) →
+      renameStoreᵗ ρ (⟰ˢ Σ₀) ≡
+      ⟰ˢ (renameStoreᵗ ρ Σ₀)
+    store-renameᵗ-renameˢ [] = refl
+    store-renameᵗ-renameˢ (C ∷ Σ₀) =
+      cong₂ _∷_
+        (renameᵗ-renameˢ {ρ = ρ} {ϱ = suc} {A = C})
+        (store-renameᵗ-renameˢ Σ₀)
+
     lift :
       {N : Term} {A B : Ty} →
-      Δ ∣ (A ∷ Σ) ⊢ ⤊ˢ Γ ⊢ N ⦂ renameˢ suc B →
-      Δ' ∣ (renameᵗ ρ A ∷ renameStoreᵗ ρ Σ) ⊢
+      Δ ∣ (A ∷ ⟰ˢ Σ) ⊢ ⤊ˢ Γ ⊢ N ⦂ ⇑ˢ B →
+      Δ' ∣ (renameᵗ ρ A ∷ ⟰ˢ (renameStoreᵗ ρ Σ)) ⊢
       ⤊ˢ (map (renameᵗ ρ) Γ) ⊢
-      renameᵀ ρ N ⦂ renameˢ suc (renameᵗ ρ B)
+      renameᵀ ρ N ⦂ ⇑ˢ (renameᵗ ρ B)
     lift {N = N} {A = A} {B = B} hN =
       Eq.subst
-        (λ Ψ → Δ' ∣ (renameᵗ ρ A ∷ renameStoreᵗ ρ Σ) ⊢ Ψ ⊢
-                 renameᵀ ρ N ⦂ renameˢ suc (renameᵗ ρ B))
-        (sym (map-renameᵗ-renameˢ {ρ = ρ} {ϱ = suc} Γ))
+        (λ S → Δ' ∣ (renameᵗ ρ A ∷ S) ⊢ ⤊ˢ (map (renameᵗ ρ) Γ) ⊢
+                 renameᵀ ρ N ⦂ ⇑ˢ (renameᵗ ρ B))
+        (store-renameᵗ-renameˢ Σ)
         (Eq.subst
-          (λ T → Δ' ∣ (renameᵗ ρ A ∷ renameStoreᵗ ρ Σ) ⊢
-                   map (renameᵗ ρ) (⤊ˢ Γ) ⊢
-                   renameᵀ ρ N ⦂ T)
-          (renameᵗ-renameˢ {ρ = ρ} {ϱ = suc} {A = B})
-          (typing-renameᵀ hρ hN))
+          (λ Ψ → Δ' ∣ (renameᵗ ρ A ∷ renameStoreᵗ ρ (⟰ˢ Σ)) ⊢ Ψ ⊢
+                   renameᵀ ρ N ⦂ ⇑ˢ (renameᵗ ρ B))
+          (sym (map-renameᵗ-renameˢ {ρ = ρ} {ϱ = suc} Γ))
+          (Eq.subst
+            (λ T → Δ' ∣ (renameᵗ ρ A ∷ renameStoreᵗ ρ (⟰ˢ Σ)) ⊢
+                     map (renameᵗ ρ) (⤊ˢ Γ) ⊢
+                     renameᵀ ρ N ⦂ T)
+            (renameᵗ-renameˢ {ρ = ρ} {ϱ = suc} {A = B})
+            (typing-renameᵀ hρ hN)))
 typing-renameᵀ hρ ⊢$ =
   Eq.subst
     (λ T → _ ∣ _ ⊢ _ ⊢ _ ⦂ T)
@@ -708,17 +514,11 @@ typing-renameᵀ hρ (⊢cast-down hM hp) =
 typing-renameᵀ hρ (⊢blame hA) =
   ⊢blame (renameᵗ-preserves-WfTy hA hρ)
 
-suc-rename-wf : {Δ : TyCtx} → TyRenameWf Δ (suc Δ) suc
-suc-rename-wf x<Δ = s<s x<Δ
-
 typing-renameᵀ-suc :
   {Δ : TyCtx} {Σ : Store} {Γ : Ctx} {M : Term} {A : Ty} →
   Δ ∣ Σ ⊢ Γ ⊢ M ⦂ A →
   (suc Δ) ∣ (renameStoreᵗ suc Σ) ⊢ (⤊ Γ) ⊢ renameᵀ suc M ⦂ renameᵗ suc A
 typing-renameᵀ-suc h = typing-renameᵀ suc-rename-wf h
-
-TySubstWf : TyCtx → TyCtx → Store → Substᵗ → Set
-TySubstWf Δ Δ' Σ σ = ∀ {X} → X < Δ → WfTy Δ' Σ (σ X)
 
 data IsVar : Ty → Set where
   X-var : ∀ {X} → IsVar (＇ X)
@@ -728,14 +528,6 @@ data IsVar : Ty → Set where
 TySubstIsVar : Substᵗ → Set
 TySubstIsVar σ = ∀ {X} → IsVar (σ X)
 
-TySubstWf-exts :
-  {Δ Δ' : TyCtx} {Σ : Store} {σ : Substᵗ} →
-  TySubstWf Δ Δ' Σ σ →
-  TySubstWf (suc Δ) (suc Δ') (renameStoreᵗ suc Σ) (extsᵗ σ)
-TySubstWf-exts hσ {zero} z<s = wfX z<s
-TySubstWf-exts hσ {suc X} (s<s x<Δ) =
-  renameᵗ-preserves-WfTy (hσ x<Δ) suc-rename-wf
-
 renameᵗ-preserves-IsVar :
   {A : Ty} {ρ : Renameᵗ} →
   IsVar A →
@@ -743,6 +535,14 @@ renameᵗ-preserves-IsVar :
 renameᵗ-preserves-IsVar X-var = X-var
 renameᵗ-preserves-IsVar α-var = α-var
 renameᵗ-preserves-IsVar ι-var = ι-var
+
+renameˢ-preserves-IsVar :
+  {A : Ty} {ρ : Renameˢ} →
+  IsVar A →
+  IsVar (renameˢ ρ A)
+renameˢ-preserves-IsVar X-var = X-var
+renameˢ-preserves-IsVar α-var = α-var
+renameˢ-preserves-IsVar ι-var = ι-var
 
 TySubstIsVar-exts :
   {σ : Substᵗ} →
@@ -761,13 +561,6 @@ atomize-var-preserves-typing {A = ＇ X} (wfX x<Δ) X-var = ⊢idX x<Δ
 atomize-var-preserves-typing {A = ｀ a} (wfα hα) α-var = ⊢idα hα
 atomize-var-preserves-typing {A = ‵ b} wfι ι-var = ⊢idι
 
-postulate
-  storeWfAt-extend :
-    {Δ : TyCtx} {Σ : Store} {A : Ty} →
-    StoreWfAt Δ Σ →
-    WfTy Δ Σ A →
-    StoreWfAt Δ (A ∷ Σ)
-
 TySubstWf-exts-same :
   {Δ Δ' : TyCtx} {Σ : Store} {σ : Substᵗ} →
   TySubstWf Δ Δ' Σ σ →
@@ -777,264 +570,13 @@ TySubstWf-exts-same hσ {suc X} (s<s x<Δ) =
   wfty-store-unshift
     (renameᵗ-preserves-WfTy (hσ x<Δ) suc-rename-wf)
 
-substᵗ-preserves-WfTy :
-  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {σ : Substᵗ} →
-  WfTy Δ Σ A →
-  TySubstWf Δ Δ' Σ σ →
-  WfTy Δ' Σ (substᵗ σ A)
-substᵗ-preserves-WfTy (wfX x<Δ) hσ = hσ x<Δ
-substᵗ-preserves-WfTy wfι hσ = wfι
-substᵗ-preserves-WfTy wf★ hσ = wf★
-substᵗ-preserves-WfTy (wfα h) hσ = wfα h
-substᵗ-preserves-WfTy (wf⇒ hA hB) hσ =
-  wf⇒ (substᵗ-preserves-WfTy hA hσ) (substᵗ-preserves-WfTy hB hσ)
-substᵗ-preserves-WfTy (wf∀ hA) hσ =
-  wf∀ (substᵗ-preserves-WfTy hA (TySubstWf-exts hσ))
-
-substᵗ-preserves-WfTy-store :
-  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {σ : Substᵗ} →
-  WfTy Δ Σ A →
-  TySubstWf Δ Δ' Σ σ →
-  WfTy Δ' (substStoreᵗ σ Σ) (substᵗ σ A)
-substᵗ-preserves-WfTy-store (wfX x<Δ) hσ =
-  wfty-store-substᵗ (hσ x<Δ)
-substᵗ-preserves-WfTy-store wfι hσ = wfι
-substᵗ-preserves-WfTy-store wf★ hσ = wf★
-substᵗ-preserves-WfTy-store (wfα h) hσ = wfα (lookupˢ-map-substᵗ h)
-substᵗ-preserves-WfTy-store (wf⇒ hA hB) hσ =
-  wf⇒
-    (substᵗ-preserves-WfTy-store hA hσ)
-    (substᵗ-preserves-WfTy-store hB hσ)
-substᵗ-preserves-WfTy-store {Δ' = Δ'} {Σ = Σ} {σ = σ}
-  (wf∀ {A = A} hA) hσ =
-  wf∀
-    (Eq.subst
-      (λ S → WfTy (suc Δ') S (substᵗ (extsᵗ σ) A))
-      (map-substStore-suc σ Σ)
-      (substᵗ-preserves-WfTy-store hA (TySubstWf-exts hσ)))
-
-substᵗ-id-on-wf :
-  {Δ : TyCtx} {Σ : Store} {A : Ty} {σ : Substᵗ} →
-  (∀ {X} → X < Δ → σ X ≡ ＇ X) →
-  WfTy Δ Σ A →
-  substᵗ σ A ≡ A
-substᵗ-id-on-wf hσ (wfX x<Δ) = hσ x<Δ
-substᵗ-id-on-wf hσ wfι = refl
-substᵗ-id-on-wf hσ wf★ = refl
-substᵗ-id-on-wf hσ (wfα h) = refl
-substᵗ-id-on-wf hσ (wf⇒ hA hB) =
-  cong₂ _⇒_ (substᵗ-id-on-wf hσ hA) (substᵗ-id-on-wf hσ hB)
-substᵗ-id-on-wf {σ = σ} hσ (wf∀ hA) =
-  cong `∀ (substᵗ-id-on-wf hσ-ext hA)
-  where
-    hσ-ext : ∀ {X} → X < suc _ → extsᵗ σ X ≡ ＇ X
-    hσ-ext {zero} z<s = refl
-    hσ-ext {suc X} (s<s x<Δ)
-      rewrite hσ x<Δ = refl
-
-substᵗ-id-closed :
-  {Σ : Store} {A : Ty} {σ : Substᵗ} →
-  WfTy zero Σ A →
-  substᵗ σ A ≡ A
-substᵗ-id-closed hA =
-  substᵗ-id-on-wf (λ ()) hA
-
-substStore-id-in :
-  {Σ₀ Σ : Store} {σ : Substᵗ} →
-  (∀ {a A} → Σ ∋ˢ a ⦂ A → WfTy zero Σ₀ A) →
-  substStoreᵗ σ Σ ≡ Σ
-substStore-id-in {Σ = []} hΣ = refl
-substStore-id-in {Σ₀ = Σ₀} {Σ = A ∷ Σ} {σ = σ} hΣ =
-  cong₂ _∷_
-    (substᵗ-id-closed (hΣ Zˢ))
-    (substStore-id-in hΣ-tail)
-  where
-    hΣ-tail : ∀ {a A} → Σ ∋ˢ a ⦂ A → WfTy zero Σ₀ A
-    hΣ-tail h = hΣ (Sˢ h)
-
-substStore-id-closed :
-  {Σ : Store} {σ : Substᵗ} →
-  WfStore Σ →
-  substStoreᵗ σ Σ ≡ Σ
-substStore-id-closed hΣ = substStore-id-in hΣ
-
-renameᵗ-id-on-wf :
-  {Δ : TyCtx} {Σ : Store} {A : Ty} {ρ : Renameᵗ} →
-  (∀ {X} → X < Δ → ρ X ≡ X) →
-  WfTy Δ Σ A →
-  renameᵗ ρ A ≡ A
-renameᵗ-id-on-wf hρ (wfX x<Δ) = cong (λ j → ＇ j) (hρ x<Δ)
-renameᵗ-id-on-wf hρ wfι = refl
-renameᵗ-id-on-wf hρ wf★ = refl
-renameᵗ-id-on-wf hρ (wfα h) = refl
-renameᵗ-id-on-wf hρ (wf⇒ hA hB) =
-  cong₂ _⇒_ (renameᵗ-id-on-wf hρ hA) (renameᵗ-id-on-wf hρ hB)
-renameᵗ-id-on-wf {Δ = Δ} {ρ = ρ} hρ (wf∀ hA) =
-  cong `∀ (renameᵗ-id-on-wf hρ-ext hA)
-  where
-    hρ-ext : ∀ {X} → X < suc Δ → extᵗ ρ X ≡ X
-    hρ-ext {zero} z<s = refl
-    hρ-ext {suc X} (s<s x<Δ) =
-      cong suc (hρ x<Δ)
-
-renameStore-suc-id-in :
-  {Σ₀ Σ : Store} →
-  (∀ {a A} → Σ ∋ˢ a ⦂ A → WfTy zero Σ₀ A) →
-  renameStoreᵗ suc Σ ≡ Σ
-renameStore-suc-id-in {Σ = []} hΣ = refl
-renameStore-suc-id-in {Σ₀ = Σ₀} {Σ = A ∷ Σ} hΣ =
-  cong₂ _∷_
-    (renameᵗ-id-on-wf (λ ()) (hΣ Zˢ))
-    (renameStore-suc-id-in hΣ-tail)
-  where
-    hΣ-tail : ∀ {a A} → Σ ∋ˢ a ⦂ A → WfTy zero Σ₀ A
-    hΣ-tail h = hΣ (Sˢ h)
-
-renameStore-suc-id :
-  {Σ : Store} →
-  WfStore Σ →
-  renameStoreᵗ suc Σ ≡ Σ
-renameStore-suc-id hΣ = renameStore-suc-id-in hΣ
-
-lookupˢ-wfty0 :
-  {Σ : Store} {α : Seal} {A : Ty} →
-  WfStore Σ →
-  Σ ∋ˢ α ⦂ A →
-  WfTy zero Σ A
-lookupˢ-wfty0 hΣ h = hΣ h
-
-suc-rename-wf0 : TyRenameWf zero zero suc
-suc-rename-wf0 ()
-
-wfStore-rename-suc :
-  {Σ : Store} →
-  WfStore Σ →
-  WfStore (renameStoreᵗ suc Σ)
-wfStore-rename-suc {Σ = Σ} hΣ h with lookupˢ-map-inv h
-... | A , (hA , eq) =
-  Eq.subst
-    (λ T → WfTy zero (renameStoreᵗ suc Σ) T)
-    (sym eq)
-    (renameᵗ-preserves-WfTy (hΣ hA) suc-rename-wf0)
-
-wfStore-extend-★ :
-  {Σ : Store} →
-  WfStore Σ →
-  WfStore (`★ ∷ Σ)
-wfStore-extend-★ hΣ =
-  storeWfAt-extend hΣ wf★
-
-------------------------------------------------------------------------
--- Transporting typing along store relations
-------------------------------------------------------------------------
-
-record StoreRel (Σ Σ′ : Store) : Set where
-  field
-    wf-source : WfStore Σ
-    wf-target : WfStore Σ′
-    preserve-lookup : ∀ {a A} → Σ ∋ˢ a ⦂ A → Σ′ ∋ˢ a ⦂ A
-
-StoreExt : Store → Store → Set
-StoreExt = StoreRel
-
-store-rel-refl :
-  {Σ : Store} →
-  WfStore Σ →
-  StoreRel Σ Σ
-store-rel-refl hΣ .StoreRel.wf-source = hΣ
-store-rel-refl hΣ .StoreRel.wf-target = hΣ
-store-rel-refl hΣ .StoreRel.preserve-lookup h = h
-
-store-rel-trans :
-  {Σ Σ′ Σ″ : Store} →
-  StoreRel Σ Σ′ →
-  StoreRel Σ′ Σ″ →
-  StoreRel Σ Σ″
-store-rel-trans rel₁ rel₂ .StoreRel.wf-source = StoreRel.wf-source rel₁
-store-rel-trans rel₁ rel₂ .StoreRel.wf-target = StoreRel.wf-target rel₂
-store-rel-trans rel₁ rel₂ .StoreRel.preserve-lookup h =
-  StoreRel.preserve-lookup rel₂ (StoreRel.preserve-lookup rel₁ h)
-
-store-rel-extend-end :
-  {Σ : Store} {A : Ty} →
-  WfStore Σ →
-  WfTy zero Σ A →
-  StoreRel Σ (extendStore Σ A)
-store-rel-extend-end {Σ = Σ} {A = A} hΣ hA .StoreRel.wf-source = hΣ
-store-rel-extend-end {Σ = Σ} {A = A} hΣ hA .StoreRel.wf-target =
-  storeWfAt-extend-end hΣ hA
-store-rel-extend-end {Σ = Σ} {A = A} hΣ hA .StoreRel.preserve-lookup h =
-  lookupˢ-extend h
-
-renameᵗ-preserves-WfStore :
-  {Σ : Store} {ρ : Renameᵗ} →
-  WfStore Σ →
-  WfStore (renameStoreᵗ ρ Σ)
-renameᵗ-preserves-WfStore {Σ = Σ} {ρ = ρ} hΣ h with lookupˢ-map-inv h
-... | A , (hA , eq) =
-  Eq.subst
-    (λ T → WfTy zero (renameStoreᵗ ρ Σ) T)
-    (sym eq)
-    (renameᵗ-preserves-WfTy (hΣ hA) (λ ()))
-
-store-rel-renameStore-suc-id :
-  {Σ : Store} →
-  WfStore Σ →
-  StoreRel (renameStoreᵗ suc Σ) Σ
-store-rel-renameStore-suc-id {Σ = Σ} wfΣ .StoreRel.wf-source =
-  wfStore-rename-suc wfΣ
-store-rel-renameStore-suc-id {Σ = Σ} wfΣ .StoreRel.wf-target = wfΣ
-store-rel-renameStore-suc-id {Σ = Σ} wfΣ .StoreRel.preserve-lookup {a} {B} h
-  with lookupˢ-map-inv h
-... | A , (hA , eq) =
-  Eq.subst
-    (λ T → Σ ∋ˢ a ⦂ T)
-    (sym (trans eq (renameᵗ-id-on-wf (λ ()) (wfΣ hA))))
-    hA
-
-rename-store-rel :
-  {Σ Σ′ : Store} {ρ : Renameᵗ} →
-  StoreRel Σ Σ′ →
-  StoreRel (renameStoreᵗ ρ Σ) (renameStoreᵗ ρ Σ′)
-rename-store-rel {ρ = ρ} rel .StoreRel.wf-source =
-  renameᵗ-preserves-WfStore (StoreRel.wf-source rel)
-rename-store-rel {ρ = ρ} rel .StoreRel.wf-target =
-  renameᵗ-preserves-WfStore (StoreRel.wf-target rel)
-rename-store-rel {ρ = ρ} rel .StoreRel.preserve-lookup {a} {B} h
-  with lookupˢ-map-inv h
-... | A , (hA , eq) =
-  Eq.subst
-    (λ T → renameStoreᵗ ρ _ ∋ˢ a ⦂ T)
-    (sym eq)
-    (lookupˢ-map-renameᵗ (StoreRel.preserve-lookup rel hA))
-
-store-rel-preserves-WfTy :
-  {Δ : TyCtx} {Σ Σ′ : Store} {A : Ty} →
-  StoreRel Σ Σ′ →
-  WfTy Δ Σ A →
-  WfTy Δ Σ′ A
-store-rel-preserves-WfTy rel (wfX x<Δ) = wfX x<Δ
-store-rel-preserves-WfTy rel wfι = wfι
-store-rel-preserves-WfTy rel wf★ = wf★
-store-rel-preserves-WfTy rel (wfα hα) =
-  wfα (StoreRel.preserve-lookup rel hα)
-store-rel-preserves-WfTy rel (wf⇒ hA hB) =
-  wf⇒
-    (store-rel-preserves-WfTy rel hA)
-    (store-rel-preserves-WfTy rel hB)
-store-rel-preserves-WfTy rel (wf∀ hA) =
-  wf∀
-    (store-rel-preserves-WfTy
-      (rename-store-rel rel)
-      hA)
-
 postulate
   imp-substᵗ-preserves-typing-wf-ν :
     {Δ Δ' : TyCtx} {Σ : Store} {p : Imp} {A B : Ty} {σ : Substᵗ} →
     WfStore Σ →
     TySubstWf Δ Δ' Σ σ →
     TySubstIsVar σ →
-    Δ ∣ (`★ ∷ Σ) ⊢ᵖ p ⦂ ((renameˢ suc A) [ ｀ zero ]ᵗ) ⊑ renameˢ suc B →
+    Δ ∣ (`★ ∷ ⟰ˢ Σ) ⊢ᵖ p ⦂ ((⇑ˢ A) [ ｀ zero ]ᵗ) ⊑ ⇑ˢ B →
     WfTy (suc Δ) Σ A →
     WfTy Δ Σ B →
     Δ' ∣ Σ ⊢ᵖ substImpᵗ σ (nuImp p) ⦂ substᵗ σ (`∀ A) ⊑ substᵗ σ B
@@ -1043,7 +585,7 @@ postulate
     {Δ Δ' : TyCtx} {Σ : Store} {p : Imp} {A B : Ty} {σ : Substᵗ} →
     TySubstWf Δ Δ' Σ σ →
     TySubstIsVar σ →
-    Δ ∣ (`★ ∷ Σ) ⊢ᵖ p ⦂ ((renameˢ suc A) [ ｀ zero ]ᵗ) ⊑ renameˢ suc B →
+    Δ ∣ (`★ ∷ ⟰ˢ Σ) ⊢ᵖ p ⦂ ((⇑ˢ A) [ ｀ zero ]ᵗ) ⊑ ⇑ˢ B →
     WfTy (suc Δ) Σ A →
     WfTy Δ Σ B →
     Δ' ∣ substStoreᵗ σ Σ ⊢ᵖ substImpᵗ σ (nuImp p) ⦂ substᵗ σ (`∀ A) ⊑ substᵗ σ B
@@ -1054,7 +596,7 @@ postulate
     TySubstWf Δ Δ' Σ σ →
     TySubstIsVar σ →
     WfTy Δ Σ A →
-    Δ ∣ (A ∷ Σ) ⊢ ⤊ˢ Γ ⊢ N ⦂ renameˢ suc B →
+    Δ ∣ (A ∷ ⟰ˢ Σ) ⊢ ⤊ˢ Γ ⊢ N ⦂ ⇑ˢ B →
     WfTy Δ Σ B →
     Δ' ∣ substStoreᵗ σ Σ ⊢ map (substᵗ σ) Γ ⊢ substᵀ σ (ν:= A ∙ N) ⦂ substᵗ σ B
 
@@ -1277,9 +819,10 @@ postulate
     TySubstWf Δ Δ' Σ σ →
     TySubstIsVar σ →
     WfTy Δ Σ A →
-    Δ ∣ (A ∷ Σ) ⊢ ⤊ˢ Γ ⊢ N ⦂ renameˢ suc B →
+    Δ ∣ (A ∷ ⟰ˢ Σ) ⊢ ⤊ˢ Γ ⊢ N ⦂ ⇑ˢ B →
     WfTy Δ Σ B →
-    Δ' ∣ Σ ⊢ map (substᵗ σ) Γ ⊢ ν:= substᵗ σ A ∙ substᵀ σ N ⦂ substᵗ σ B
+    Δ' ∣ Σ ⊢ map (substᵗ σ) Γ ⊢
+      ν:= substᵗ σ A ∙ substᵀ (liftSealSubstᵗ σ) N ⦂ substᵗ σ B
 
 typing-substᵀ-wf :
   {Δ Δ' : TyCtx} {Σ : Store} {Γ : Ctx} {M : Term} {A : Ty} {σ : Substᵗ} →
@@ -1381,6 +924,9 @@ singleTyEnv-IsVar-α {α} {suc X} = X-var
 SubstCoherent : Substᵗ → Substᶜ → Set
 SubstCoherent σ τ = ∀ {X} → atomize (σ X) ≡ τ X
 
+liftSealSubstᶜ : Substᶜ → Substᶜ
+liftSealSubstᶜ τ X = renameCImpˢ suc (τ X)
+
 atomize-renameᵗ-suc :
   {A : Ty} →
   IsVar A →
@@ -1388,6 +934,14 @@ atomize-renameᵗ-suc :
 atomize-renameᵗ-suc {A = ＇ X} X-var = refl
 atomize-renameᵗ-suc {A = ｀ a} α-var = refl
 atomize-renameᵗ-suc {A = ‵ b} ι-var = refl
+
+atomize-renameˢ-suc :
+  {A : Ty} →
+  IsVar A →
+  atomize (⇑ˢ A) ≡ renameCImpˢ suc (atomize A)
+atomize-renameˢ-suc {A = ＇ X} X-var = refl
+atomize-renameˢ-suc {A = ｀ a} α-var = refl
+atomize-renameˢ-suc {A = ‵ b} ι-var = refl
 
 SubstCoherent-exts :
   {σ : Substᵗ} {τ : Substᶜ} →
@@ -1399,6 +953,25 @@ SubstCoherent-exts hσv hcoh {suc X} =
   trans
     (atomize-renameᵗ-suc (hσv {X}))
     (cong (renameCImpᵗ suc) (hcoh {X}))
+
+SubstCoherent-liftSeal :
+  {σ : Substᵗ} {τ : Substᶜ} →
+  TySubstIsVar σ →
+  SubstCoherent σ τ →
+  SubstCoherent
+    (liftSealSubstᵗ σ)
+    (liftSealSubstᶜ τ)
+SubstCoherent-liftSeal hσv hcoh {X} =
+  trans
+    (atomize-renameˢ-suc (hσv {X}))
+    (cong (renameCImpˢ suc) (hcoh {X}))
+
+TySubstIsVar-liftSeal :
+  {σ : Substᵗ} →
+  TySubstIsVar σ →
+  TySubstIsVar (liftSealSubstᵗ σ)
+TySubstIsVar-liftSeal hσv {X} =
+  renameˢ-preserves-IsVar (hσv {X})
 
 mutual
   substCImpᵗ-coherent :
@@ -1436,8 +1009,14 @@ mutual
     cong (λ cg → injTag cg G) (substCImpᵗ-coherent hσv hcoh g)
   substImpᵗ-coherent hσv hcoh (sealImp α p) =
     cong (sealImp α) (substImpᵗ-coherent hσv hcoh p)
-  substImpᵗ-coherent hσv hcoh (nuImp p) =
-    cong nuImp (substImpᵗ-coherent hσv hcoh p)
+  substImpᵗ-coherent {σ = σ} {τ = τ} hσv hcoh (nuImp p) =
+    cong nuImp
+      (substImpᵗ-coherent
+        {σ = liftSealSubstᵗ σ}
+        {τ = liftSealSubstᶜ τ}
+        (TySubstIsVar-liftSeal {σ = σ} hσv)
+        (SubstCoherent-liftSeal {σ = σ} {τ = τ} hσv hcoh)
+        p)
 
 singleTy-singleC-coherent :
   {α : Seal} →
@@ -1550,6 +1129,14 @@ cons-lookup :
 cons-lookup hlookup Zˢ = Zˢ
 cons-lookup hlookup (Sˢ h) = Sˢ (hlookup h)
 
+postulate
+  cons-lookup-shiftˢ :
+    {Σ Σ′ : Store} {A : Ty} →
+    (∀ {a B} → Σ ∋ˢ a ⦂ B → Σ′ ∋ˢ a ⦂ B) →
+    (∀ {a B} →
+      (A ∷ ⟰ˢ Σ) ∋ˢ a ⦂ B →
+      (A ∷ ⟰ˢ Σ′) ∋ˢ a ⦂ B)
+
 mutual
   lookup-preserves-WfTy :
     {Δ : TyCtx} {Σ Σ′ : Store} {A : Ty} →
@@ -1602,7 +1189,7 @@ mutual
     ⊢seal (hlookup hα) (lookup-preserves-imp hlookup hp)
   lookup-preserves-imp hlookup (⊢ν hp hA hB) =
     ⊢ν
-      (lookup-preserves-imp (cons-lookup hlookup) hp)
+      (lookup-preserves-imp (cons-lookup-shiftˢ hlookup) hp)
       (lookup-preserves-WfTy hlookup hA)
       (lookup-preserves-WfTy hlookup hB)
 
@@ -1632,7 +1219,7 @@ mutual
   lookup-preserves-typing hlookup (⊢ν hA hN hB) =
     ⊢ν
       (lookup-preserves-WfTy hlookup hA)
-      (lookup-preserves-typing (cons-lookup hlookup) hN)
+      (lookup-preserves-typing (cons-lookup-shiftˢ hlookup) hN)
       (lookup-preserves-WfTy hlookup hB)
   lookup-preserves-typing hlookup ⊢$ = ⊢$
   lookup-preserves-typing hlookup (⊢⊕ hM hN) =
@@ -1742,13 +1329,10 @@ SubstWf-⇑ hσ h with lookup-map-inv h
   rewrite eq = typing-renameᵀ-suc (hσ hA)
 
 postulate
-  typing-subst-ν :
-    {Δ : TyCtx} {Σ : Store} {Γ Γ' : Ctx} {A B : Ty} {N : Term} {σ : Subst} →
+  SubstWf-liftSeal :
+    {Δ : TyCtx} {Σ : Store} {Γ Γ' : Ctx} {B : Ty} {σ : Subst} →
     SubstWf Δ Σ Γ Γ' σ →
-    WfTy Δ Σ A →
-    Δ ∣ (A ∷ Σ) ⊢ ⤊ˢ Γ ⊢ N ⦂ renameˢ suc B →
-    WfTy Δ Σ B →
-    Δ ∣ Σ ⊢ Γ' ⊢ subst σ (ν:= A ∙ N) ⦂ B
+    SubstWf Δ (B ∷ ⟰ˢ Σ) (⤊ˢ Γ) (⤊ˢ Γ') (liftSealSubst σ)
 
 typing-subst :
   {Δ : TyCtx} {Σ : Store} {Γ Γ' : Ctx} {M : Term} {A : Ty} {σ : Subst} →
@@ -1766,7 +1350,8 @@ typing-subst hσ (⊢·α hL hα) =
   ⊢·α (typing-subst hσ hL) hα
 typing-subst {Δ = Δ} {Σ = Σ} {Γ = Γ} {Γ' = Γ'} {σ = σ}
              hσ (⊢ν {A = A} hA hN hB) =
-  typing-subst-ν hσ hA hN hB
+  let IH = typing-subst (SubstWf-liftSeal {B = A} hσ) hN in
+  ⊢ν hA IH hB
 typing-subst hσ ⊢$ = ⊢$
 typing-subst hσ (⊢⊕ hM hN) =
   ⊢⊕ (typing-subst hσ hM) (typing-subst hσ hN)
@@ -1797,6 +1382,21 @@ subst-preserve-[] :
   Δ ∣ Σ ⊢ [] ⊢ V ⦂ A →
   Δ ∣ Σ ⊢ [] ⊢ N [ V ] ⦂ B
 subst-preserve-[] = typing-single-subst
+
+------------------------------------------------------------------------
+-- Helper lemmas used by preservation
+------------------------------------------------------------------------
+
+seal-step-preserve :
+  ∀ {Δ Σ A V α p q} →
+  Δ ∣ Σ ⊢ [] ⊢ ((V at down (sealImp α p)) at up (sealImp α q)) ⦂ A →
+  Δ ∣ Σ ⊢ [] ⊢ ((V at down p) at up q) ⦂ A
+seal-step-preserve
+  (⊢cast-up
+    (⊢cast-down hV (⊢seal hα hp))
+    (⊢seal hα' hq))
+  rewrite lookupˢ-functional hα hα' =
+    ⊢cast-up (⊢cast-down hV hp) hq
 
 id-up-preserve :
   ∀ {Δ Σ V A B p} →

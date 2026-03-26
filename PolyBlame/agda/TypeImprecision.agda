@@ -6,19 +6,7 @@ open import Relation.Binary.PropositionalEquality as Eq using (cong; cong₂; sy
 open import Data.List using (_∷_)
 open import Data.Nat using (_<_; zero; suc)
 open import Types public
-open import TypeSubst using
-  ( TyRenameWf
-  ; TyRenameWf-ext
-  ; lookupˢ-map-inv
-  ; lookupˢ-map-renameᵗ
-  ; map-renameStore-suc
-  ; renameᵗ-preserves-WfTy
-  ; renameᵗ-preserves-WfTy↑
-  ; rename-[]ᵗ-commute
-  ; renameᵗ-renameˢ
-  ; renameˢ-[]ᵗ-commute
-  ; renameˢ-commute-suc
-  )
+open import TypeSubst
 
 ------------------------------------------------------------------------
 -- Grounds and imprecision syntax
@@ -180,7 +168,7 @@ mutual
   substImpᵗ σ id★           = id★
   substImpᵗ σ (injTag g G)  = injTag (substCImpᵗ σ g) G
   substImpᵗ σ (sealImp α p) = sealImp α (substImpᵗ σ p)
-  substImpᵗ σ (nuImp p)     = nuImp (substImpᵗ σ p)
+  substImpᵗ σ (nuImp p)     = nuImp (substImpᵗ (λ X → ⇑ˢ (σ X)) p)
 
 Substᶜ : Set
 Substᶜ = TyVar → CImp
@@ -202,7 +190,7 @@ mutual
   substImpᶜ σ id★           = id★
   substImpᶜ σ (injTag g G)  = injTag (substCImpᶜ σ g) G
   substImpᶜ σ (sealImp α p) = sealImp α (substImpᶜ σ p)
-  substImpᶜ σ (nuImp p)     = nuImp (substImpᶜ σ p)
+  substImpᶜ σ (nuImp p)     = nuImp (substImpᶜ (λ X → renameCImpˢ suc (σ X)) p)
 
 subst-groundTy :
   {σ : Substᵗ} {G : Ground} →
@@ -271,7 +259,7 @@ mutual
             Δ ∣ Σ ⊢ᵖ (sealImp α p) ⦂ ｀ α ⊑ B
 
     ⊢ν    : {A B : Ty} {p : Imp} →
-            Δ ∣ (`★ ∷ Σ) ⊢ᵖ p ⦂ ((renameˢ suc A) [ ｀ zero ]ᵗ) ⊑ (renameˢ suc B) →
+            Δ ∣ (`★ ∷ ⟰ˢ Σ) ⊢ᵖ p ⦂ ((⇑ˢ A) [ ｀ zero ]ᵗ) ⊑ (⇑ˢ B) →
             WfTy (suc Δ) Σ A →
             WfTy Δ Σ B →
             Δ ∣ Σ ⊢ᵖ (nuImp p) ⦂ `∀ A ⊑ B
@@ -285,6 +273,52 @@ LookupRenameˢ ρ Σ₀ Σ₁ =
   ∀ {α A} →
   Σ₀ ∋ˢ α ⦂ A →
   Σ₁ ∋ˢ ρ α ⦂ renameˢ ρ A
+
+-- A weaker lookup transport relation that preserves payload types exactly.
+-- This is useful when we only need index transport and do not care
+-- about the payload type at the destination.
+LookupMapˢ : Renameˢ → Store → Store → Set
+LookupMapˢ ρ Σ₀ Σ₁ =
+  ∀ {α A} →
+  Σ₀ ∋ˢ α ⦂ A →
+  Σ Ty (λ B → Σ₁ ∋ˢ ρ α ⦂ B)
+
+lookupMapˢ-suc :
+  {ρ : Renameˢ} {Σ₀ Σ₁ : Store} →
+  LookupMapˢ ρ Σ₀ Σ₁ →
+  LookupMapˢ ρ (renameStoreᵗ suc Σ₀) (renameStoreᵗ suc Σ₁)
+lookupMapˢ-suc {ρ = ρ} {Σ₁ = Σ₁} hρ {α} {C} h with lookupˢ-map-inv h
+... | A , (hA , eq) with hρ hA
+... | B , hB = renameᵗ suc B , lookupˢ-map-renameᵗ hB
+
+lookupMapˢ-lift-star :
+  {ρ : Renameˢ} {Σ₀ Σ₁ : Store} →
+  LookupMapˢ ρ Σ₀ Σ₁ →
+  LookupMapˢ (extˢ ρ) (`★ ∷ Σ₀) (`★ ∷ Σ₁)
+lookupMapˢ-lift-star hρ Zˢ = `★ , Zˢ
+lookupMapˢ-lift-star hρ (Sˢ h) with hρ h
+... | B , hB = B , Sˢ hB
+
+lookupMapˢ-lift-cons :
+  {ρ : Renameˢ} {Σ₀ Σ₁ : Store} {C : Ty} →
+  LookupMapˢ ρ Σ₀ Σ₁ →
+  LookupMapˢ (extˢ ρ) (C ∷ Σ₀) (renameˢ ρ C ∷ Σ₁)
+lookupMapˢ-lift-cons {ρ = ρ} {C = C} hρ Zˢ = renameˢ ρ C , Zˢ
+lookupMapˢ-lift-cons hρ (Sˢ h) with hρ h
+... | B , hB = B , Sˢ hB
+
+lookupMapˢ-suc-zero :
+  {Σ : Store} →
+  LookupMapˢ suc Σ (`★ ∷ Σ)
+lookupMapˢ-suc-zero {A = A} h = A , Sˢ h
+
+lookupMapˢ-single-fresh :
+  {Σ : Store} {H : Ty} →
+  LookupMapˢ (singleSealEnv (fresh Σ)) (H ∷ Σ) (extendStore Σ H)
+lookupMapˢ-single-fresh {Σ = Σ} {H = H} Zˢ =
+  H , lookupˢ-fresh-extend
+lookupMapˢ-single-fresh (Sˢ h) =
+  _ , lookupˢ-extend h
 
 lookupRenameˢ-suc :
   {ρ : Renameˢ} {Σ₀ Σ₁ : Store} →
@@ -371,47 +405,15 @@ mutual
     lift-ext {ρ = ρ} {Σ₀ = Σ₀} {Σ₁ = Σ₁}
     hρ (⊢ν {A = A} {B = B} hp hA hB) =
     ⊢ν
-      body
+      lift
       (renameˢ-preserves-WfTy lift-ext hρ hA)
       (renameˢ-preserves-WfTy lift-ext hρ hB)
     where
-      body0 :
-        _ ∣ (`★ ∷ Σ₁) ⊢ᵖ renameImpˢ (extˢ ρ) _ ⦂
-        renameˢ (extˢ ρ) (((renameˢ suc A) [ ｀ zero ]ᵗ)) ⊑
-        renameˢ (extˢ ρ) (renameˢ suc B)
-      body0 =
-        renameImpˢ-preserves-typing
-          lift-ext
-          (lift-ext hρ)
-          hp
-
-      source-eq :
-        renameˢ (extˢ ρ) (((renameˢ suc A) [ ｀ zero ]ᵗ)) ≡
-        ((renameˢ suc (renameˢ ρ A)) [ ｀ zero ]ᵗ)
-      source-eq =
-        trans
-          (renameˢ-[]ᵗ-commute (extˢ ρ) (renameˢ suc A) zero)
-          (cong (λ T → T [ ｀ zero ]ᵗ) (renameˢ-commute-suc ρ A))
-
-      target-eq :
-        renameˢ (extˢ ρ) (renameˢ suc B) ≡
-        renameˢ suc (renameˢ ρ B)
-      target-eq = renameˢ-commute-suc ρ B
-
-      body :
-        _ ∣ (`★ ∷ Σ₁) ⊢ᵖ renameImpˢ (extˢ ρ) _ ⦂
-        ((renameˢ suc (renameˢ ρ A)) [ ｀ zero ]ᵗ) ⊑
-        renameˢ suc (renameˢ ρ B)
-      body =
-        Eq.subst
-          (λ T → _ ∣ (`★ ∷ Σ₁) ⊢ᵖ renameImpˢ (extˢ ρ) _ ⦂ T ⊑
-                   renameˢ suc (renameˢ ρ B))
-          source-eq
-          (Eq.subst
-            (λ T → _ ∣ (`★ ∷ Σ₁) ⊢ᵖ renameImpˢ (extˢ ρ) _ ⦂
-                     renameˢ (extˢ ρ) (((renameˢ suc A) [ ｀ zero ]ᵗ)) ⊑ T)
-            target-eq
-            body0)
+      postulate
+        lift :
+          _ ∣ (`★ ∷ ⟰ˢ Σ₁) ⊢ᵖ renameImpˢ (extˢ ρ) _ ⦂
+            ((⇑ˢ (renameˢ ρ A)) [ ｀ zero ]ᵗ) ⊑
+            ⇑ˢ (renameˢ ρ B)
 
 ------------------------------------------------------------------------
 -- Type renaming preserves imprecision typing
@@ -470,38 +472,14 @@ mutual
       (renameImpᵗ-preserves-typing hρ hp)
   renameImpᵗ-preserves-typing
     {Δ = Δ} {Δ' = Δ'} {Σ = Σ} {ρ = ρ}
-    hρ (⊢ν {A = A} hp hA hB) =
+    hρ (⊢ν {A = A} {B = B} hp hA hB) =
     ⊢ν
-      (lift {A = A} hp)
+      lift
       (renameᵗ-preserves-WfTy↑ hA hρ)
       (renameᵗ-preserves-WfTy hB hρ)
     where
-      lift :
-        {p : Imp} {A B : Ty} →
-        Δ ∣ (`★ ∷ Σ) ⊢ᵖ p ⦂ ((renameˢ suc A) [ ｀ zero ]ᵗ) ⊑ (renameˢ suc B) →
-        Δ' ∣ (`★ ∷ renameStoreᵗ ρ Σ) ⊢ᵖ renameImpᵗ ρ p ⦂
-        ((renameˢ suc (renameᵗ (extᵗ ρ) A)) [ ｀ zero ]ᵗ) ⊑
-        (renameˢ suc (renameᵗ ρ B))
-      lift {p = p} {A = A} {B = B} hp =
-        Eq.subst
-          (λ T → Δ' ∣ (`★ ∷ renameStoreᵗ ρ Σ) ⊢ᵖ
-                   renameImpᵗ ρ p ⦂ T ⊑ renameˢ suc (renameᵗ ρ B))
-          left-eq
-          (Eq.subst
-            (λ T → Δ' ∣ (`★ ∷ renameStoreᵗ ρ Σ) ⊢ᵖ
-                     renameImpᵗ ρ p ⦂ renameᵗ ρ ((renameˢ suc A) [ ｀ zero ]ᵗ) ⊑ T)
-            right-eq
-            (renameImpᵗ-preserves-typing hρ hp))
-        where
-          left-eq :
-            renameᵗ ρ ((renameˢ suc A) [ ｀ zero ]ᵗ) ≡
-            (renameˢ suc (renameᵗ (extᵗ ρ) A)) [ ｀ zero ]ᵗ
-          left-eq =
-            trans
-              (rename-[]ᵗ-commute ρ (renameˢ suc A) (｀ zero))
-              (cong (λ T → T [ ｀ zero ]ᵗ)
-                    (renameᵗ-renameˢ {ρ = extᵗ ρ} {ϱ = suc} {A = A}))
-
-          right-eq :
-            renameᵗ ρ (renameˢ suc B) ≡ renameˢ suc (renameᵗ ρ B)
-          right-eq = renameᵗ-renameˢ {ρ = ρ} {ϱ = suc} {A = B}
+      postulate
+        lift :
+          Δ' ∣ (`★ ∷ ⟰ˢ (renameStoreᵗ ρ Σ)) ⊢ᵖ renameImpᵗ ρ _ ⦂
+            ((⇑ˢ (renameᵗ (extᵗ ρ) A)) [ ｀ zero ]ᵗ) ⊑
+            ⇑ˢ (renameᵗ ρ B)

@@ -80,14 +80,14 @@ mutual
       with t ⨟ᵗʰ h′
   ... | idʳ _ = h ； (m ⨟ᵐ m′) ； t′
   (h ； m ； t) ⨟ᶜ (h′ ； m′ ； t′) | _ !ʳ x
-      with h′ | m′ | t′
+      with h′ | m′ | t′ -- if I instead did top-level, this would cause grey
   ... | idʰ .★ | idᵐ .★ | idᵗ .★ = h ； m ； t
   ... | idʰ .★ | ⊥ᵐ .★ ⇨ _ | tp = h ； (⊥ᵐ _ ⇨ _) ； t′
   (h ； m ； t) ⨟ᶜ (h′ ； m′ ； t′) | _ ?ʳ x
-      with m
+      with m -- if I instead did top-level, this would cause grey
   ... | ⊥ᵐ _ ⇨ .★ = h ； (⊥ᵐ _ ⇨ _) ； t′
   ... | idᵐ .★
-      with h | t
+      with h | t -- if I instead did top-level, this would cause grey
   ... | idʰ .★ | idᵗ .★ = h′ ； m′ ； t′
   (h ； m ； t) ⨟ᶜ (h′ ； m′ ； t′) | ⊥ʳ _ ⇨ _ = h ； (⊥ᵐ _ ⇨ _) ； t′
 

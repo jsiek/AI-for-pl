@@ -201,6 +201,34 @@ renameᵗ-preserves-WfTy↑ {Δ' = Δ'} {Σ = Σ} {ρ = ρ} (wf∀ {A = A} hA) h
       (map-renameStore-suc ρ Σ)
       (renameᵗ-preserves-WfTy↑ hA (TyRenameWf-ext hρ)))
 
+suc-rename-wf : {Δ : TyCtx} → TyRenameWf Δ (suc Δ) suc
+suc-rename-wf x<Δ = s<s x<Δ
+
+TySubstWf : TyCtx → TyCtx → Store → Substᵗ → Set
+TySubstWf Δ Δ' Σ σ = ∀ {X} → X < Δ → WfTy Δ' Σ (σ X)
+
+TySubstWf-exts :
+  {Δ Δ' : TyCtx} {Σ : Store} {σ : Substᵗ} →
+  TySubstWf Δ Δ' Σ σ →
+  TySubstWf (suc Δ) (suc Δ') (renameStoreᵗ suc Σ) (extsᵗ σ)
+TySubstWf-exts hσ {zero} z<s = wfX z<s
+TySubstWf-exts hσ {suc X} (s<s x<Δ) =
+  renameᵗ-preserves-WfTy (hσ x<Δ) suc-rename-wf
+
+substᵗ-preserves-WfTy :
+  {Δ Δ' : TyCtx} {Σ : Store} {A : Ty} {σ : Substᵗ} →
+  WfTy Δ Σ A →
+  TySubstWf Δ Δ' Σ σ →
+  WfTy Δ' Σ (substᵗ σ A)
+substᵗ-preserves-WfTy (wfX x<Δ) hσ = hσ x<Δ
+substᵗ-preserves-WfTy wfι hσ = wfι
+substᵗ-preserves-WfTy wf★ hσ = wf★
+substᵗ-preserves-WfTy (wfα h) hσ = wfα h
+substᵗ-preserves-WfTy (wf⇒ hA hB) hσ =
+  wf⇒ (substᵗ-preserves-WfTy hA hσ) (substᵗ-preserves-WfTy hB hσ)
+substᵗ-preserves-WfTy (wf∀ hA) hσ =
+  wf∀ (substᵗ-preserves-WfTy hA (TySubstWf-exts hσ))
+
 exts-ext-comp : (ρ : Renameᵗ) → (τ : Substᵗ) →
   ((X : ℕ) → extsᵗ τ (extᵗ ρ X) ≡ extsᵗ (λ X' → τ (ρ X')) X)
 exts-ext-comp ρ τ zero    = refl
@@ -298,7 +326,7 @@ renameˢ-[]ᵗ-commute ρ A α =
 
 renameˢ-commute-suc :
   (ρ : Renameˢ) (A : Ty) →
-  renameˢ (extˢ ρ) (renameˢ suc A) ≡ renameˢ suc (renameˢ ρ A)
+  renameˢ (extˢ ρ) (⇑ˢ A) ≡ ⇑ˢ (renameˢ ρ A)
 renameˢ-commute-suc ρ A =
   trans
     (renameˢ-rename-commute suc (extˢ ρ) A)
@@ -308,8 +336,8 @@ renameˢ-commute-suc ρ A =
 
 map-renameˢ-commute-suc :
   (ρ : Renameˢ) (Γ : Ctx) →
-  map (renameˢ (extˢ ρ)) (map (renameˢ suc) Γ) ≡
-  map (renameˢ suc) (map (renameˢ ρ) Γ)
+  map (renameˢ (extˢ ρ)) (map (⇑ˢ) Γ) ≡
+  map (⇑ˢ) (map (renameˢ ρ) Γ)
 map-renameˢ-commute-suc ρ [] = refl
 map-renameˢ-commute-suc ρ (A ∷ Γ) =
   cong₂ _∷_
@@ -328,7 +356,7 @@ map-renameˢ-rename-commute ρ₁ ρ₂ (A ∷ Γ) =
 
 singleSealEnv-suc-cancel :
   (α : Seal) (A : Ty) →
-  renameˢ (singleSealEnv α) (renameˢ suc A) ≡ A
+  renameˢ (singleSealEnv α) (⇑ˢ A) ≡ A
 singleSealEnv-suc-cancel α (＇ X) = refl
 singleSealEnv-suc-cancel α (｀ β) = refl
 singleSealEnv-suc-cancel α (‵ ι) = refl
@@ -342,12 +370,12 @@ singleSealEnv-suc-cancel α (`∀ A) =
 
 singleSealEnv-source-eq :
   (α : Seal) (A : Ty) →
-  renameˢ (singleSealEnv α) (((renameˢ suc A) [ ｀ zero ]ᵗ)) ≡ A [ ｀ α ]ᵗ
+  renameˢ (singleSealEnv α) (((⇑ˢ A) [ ｀ zero ]ᵗ)) ≡ A [ ｀ α ]ᵗ
 singleSealEnv-source-eq α A =
   trans
-    (renameˢ-substᵗ-commute (singleSealEnv α) (singleTyEnv (｀ zero)) (renameˢ suc A))
+    (renameˢ-substᵗ-commute (singleSealEnv α) (singleTyEnv (｀ zero)) (⇑ˢ A))
     (trans
-      (subst-cong env-eq (renameˢ (singleSealEnv α) (renameˢ suc A)))
+      (subst-cong env-eq (renameˢ (singleSealEnv α) (⇑ˢ A)))
       (trans
         (cong (substᵗ (singleTyEnv (｀ α)))
               (singleSealEnv-suc-cancel α A))
@@ -390,3 +418,118 @@ subst-id (`∀ A)   = trans (cong `∀ (subst-cong exts-var A)) (cong `∀ (subs
     exts-var : (X : ℕ) → extsᵗ ＇_ X ≡ ＇ X
     exts-var zero    = refl
     exts-var (suc X) = refl
+
+------------------------------------------------------------------------
+-- Type-substitution infrastructure over contexts and stores
+------------------------------------------------------------------------
+
+cons-sub : Ty → Substᵗ → Substᵗ
+cons-sub v σ zero = v
+cons-sub v σ (suc X) = σ X
+
+exts-sub-cons :
+  {σ : Substᵗ} {A v : Ty} →
+  (substᵗ (extsᵗ σ) A) [ v ]ᵗ ≡ substᵗ (cons-sub v σ) A
+exts-sub-cons {σ} {A} {v} =
+  trans
+    (single-subst-def (substᵗ (extsᵗ σ) A) v)
+    (trans
+      (sub-sub (extsᵗ σ) phi A)
+      (subst-cong env-eq A))
+  where
+    phi : Substᵗ
+    phi = singleTyEnv v
+
+    psi : Substᵗ
+    psi = cons-sub v σ
+
+    env-eq : (i : Var) → ((extsᵗ σ) ⨟ᵗ phi) i ≡ psi i
+    env-eq zero = refl
+    env-eq (suc X) =
+      trans
+        (rename-subst-commute suc phi (σ X))
+        (trans
+          (subst-cong (λ i → refl) (σ X))
+          (subst-id (σ X)))
+
+subst-[]ᵗ-commute : (σ : Substᵗ) (A B : Ty) →
+  substᵗ σ (A [ B ]ᵗ) ≡ (substᵗ (extsᵗ σ) A) [ substᵗ σ B ]ᵗ
+subst-[]ᵗ-commute σ A B =
+  trans
+    (cong (λ T → substᵗ σ T) (single-subst-def A B))
+    (trans
+      (sub-sub (singleTyEnv B) σ A)
+      (trans
+        (subst-cong env-eq A)
+        (sym (exts-sub-cons {σ = σ} {A = A} {v = substᵗ σ B}))))
+  where
+    env-eq : (i : Var) → ((singleTyEnv B) ⨟ᵗ σ) i ≡ cons-sub (substᵗ σ B) σ i
+    env-eq zero = refl
+    env-eq (suc i) = refl
+
+substᵗ-suc-renameᵗ-suc :
+  (σ : Substᵗ) →
+  (A : Ty) →
+  substᵗ (extsᵗ σ) (renameᵗ suc A) ≡
+  renameᵗ suc (substᵗ σ A)
+substᵗ-suc-renameᵗ-suc σ A =
+  trans
+    (rename-subst-commute suc (extsᵗ σ) A)
+    (sym (rename-subst suc σ A))
+
+map-substᵗ-⤊ :
+  (σ : Substᵗ) →
+  (Γ : Ctx) →
+  map (substᵗ (extsᵗ σ)) (⤊ Γ) ≡ ⤊ (map (substᵗ σ) Γ)
+map-substᵗ-⤊ σ [] = refl
+map-substᵗ-⤊ σ (A ∷ Γ) =
+  cong₂ _∷_
+    (substᵗ-suc-renameᵗ-suc σ A)
+    (map-substᵗ-⤊ σ Γ)
+
+lookup-map-substᵗ :
+  {Γ : Ctx} {x : Var} {A : Ty} {σ : Substᵗ} →
+  Γ ∋ x ⦂ A →
+  map (substᵗ σ) Γ ∋ x ⦂ substᵗ σ A
+lookup-map-substᵗ Z = Z
+lookup-map-substᵗ (S h) = S (lookup-map-substᵗ h)
+
+substStoreᵗ : Substᵗ → Store → Store
+substStoreᵗ σ [] = []
+substStoreᵗ σ (A ∷ Σ) = substᵗ σ A ∷ substStoreᵗ σ Σ
+
+lookupˢ-map-substᵗ :
+  {Σ : Store} {α : Seal} {A : Ty} {σ : Substᵗ} →
+  Σ ∋ˢ α ⦂ A →
+  substStoreᵗ σ Σ ∋ˢ α ⦂ substᵗ σ A
+lookupˢ-map-substᵗ Zˢ = Zˢ
+lookupˢ-map-substᵗ (Sˢ h) = Sˢ (lookupˢ-map-substᵗ h)
+
+map-substStore-suc :
+  (σ : Substᵗ) →
+  (Σ : Store) →
+  substStoreᵗ (extsᵗ σ) (renameStoreᵗ suc Σ) ≡
+  renameStoreᵗ suc (substStoreᵗ σ Σ)
+map-substStore-suc σ [] = refl
+map-substStore-suc σ (A ∷ Σ) =
+  cong₂ _∷_
+    (substᵗ-suc-renameᵗ-suc σ A)
+    (map-substStore-suc σ Σ)
+
+substᵗ-renameᵗ-suc-cancel :
+  (A B : Ty) →
+  substᵗ (singleTyEnv B) (renameᵗ suc A) ≡ A
+substᵗ-renameᵗ-suc-cancel A B =
+  trans
+    (rename-subst-commute suc (singleTyEnv B) A)
+    (subst-id A)
+
+substStore-single-suc-cancel :
+  (Σ : Store) →
+  (B : Ty) →
+  substStoreᵗ (singleTyEnv B) (renameStoreᵗ suc Σ) ≡ Σ
+substStore-single-suc-cancel [] B = refl
+substStore-single-suc-cancel (A ∷ Σ) B =
+  cong₂ _∷_
+    (substᵗ-renameᵗ-suc-cancel A B)
+    (substStore-single-suc-cancel Σ B)

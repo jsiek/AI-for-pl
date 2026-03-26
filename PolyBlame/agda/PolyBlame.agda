@@ -60,7 +60,11 @@ data Term : Set where
   blame    : Term
 
 ------------------------------------------------------------------------
--- Parallel substitution: types into terms
+-- Parallel substitution: replace free X's with types in terms
+--
+-- Note: we only use this to replace X's with seals, so
+-- the codomain of these substitutions are seals and X's
+-- (because of extsᵗ), so they satisfy IsVar.
 ------------------------------------------------------------------------
 
 renameᵀ : Renameᵗ → Term → Term
@@ -76,13 +80,18 @@ renameᵀ ρ (M at up p)            = renameᵀ ρ M at up (renameImpᵗ ρ p)
 renameᵀ ρ (M at down p)          = renameᵀ ρ M at down (renameImpᵗ ρ p)
 renameᵀ ρ blame              = blame
 
+renameˢᵀ : Renameˢ → Term → Term
+
+liftSealSubstᵗ : Substᵗ → Substᵗ
+liftSealSubstᵗ σ X = ⇑ˢ (σ X)
+
 substᵀ : Substᵗ → Term → Term
 substᵀ σ (` x)              = ` x
 substᵀ σ (ƛ A ⇒ N)          = ƛ (substᵗ σ A) ⇒ (substᵀ σ N)
 substᵀ σ (L · M)            = substᵀ σ L · substᵀ σ M
 substᵀ σ (Λ N)              = Λ (substᵀ (extsᵗ σ) N)
 substᵀ σ (L ·α α)           = substᵀ σ L ·α α
-substᵀ σ (ν:= A ∙ N)        = ν:= substᵗ σ A ∙ substᵀ σ N
+substᵀ σ (ν:= A ∙ N)        = ν:= substᵗ σ A ∙ substᵀ (liftSealSubstᵗ σ) N
 substᵀ σ ($ κ)              = $ κ
 substᵀ σ (M ⊕[ op ] N)      = substᵀ σ M ⊕[ op ] substᵀ σ N
 substᵀ σ (M at up p)             = substᵀ σ M at up (substImpᵗ σ p)
@@ -93,7 +102,7 @@ _[_]ᵀ : Term → Ty → Term
 M [ A ]ᵀ = substᵀ (singleTyEnv A) M
 
 ------------------------------------------------------------------------
--- Parallel substitution: terms into terms
+-- Parallel substitution: replace free x's with terms in terms
 ------------------------------------------------------------------------
 
 Rename : Set
@@ -126,24 +135,33 @@ exts σ (suc x) = rename suc (σ x)
 ⇑ : Subst → Subst
 ⇑ σ x = renameᵀ suc (σ x)
 
+liftSealSubst : Subst → Subst
+liftSealSubst σ x = renameˢᵀ suc (σ x)
+
 subst : Subst → Term → Term
 subst σ (` x)              = σ x
 subst σ (ƛ A ⇒ N)          = ƛ A ⇒ subst (exts σ) N
 subst σ (L · M)            = subst σ L · subst σ M
 subst σ (Λ N)              = Λ (subst (⇑ σ) N)
 subst σ (L ·α α)           = subst σ L ·α α
-subst σ (ν:= A ∙ N)        = ν:= A ∙ subst σ N
+subst σ (ν:= A ∙ N)        = ν:= A ∙ subst (liftSealSubst σ) N
 subst σ ($ κ)              = $ κ
 subst σ (M ⊕[ op ] N)      = subst σ M ⊕[ op ] subst σ N
 subst σ (M at up p)           = subst σ M at up p
 subst σ (M at down p)           = subst σ M at down p
 subst σ blame              = blame
 
+singleEnv : Term → Subst
+singleEnv V zero    = V
+singleEnv V (suc x) = ` x
+
+_[_] : Term → Term → Term
+N [ V ] = subst (singleEnv V) N
+
 ------------------------------------------------------------------------
--- Parallel renaming/opening: seals into terms
+-- Parallel renaming: replace seals (α's) with seals in terms
 ------------------------------------------------------------------------
 
-renameˢᵀ : Renameˢ → Term → Term
 renameˢᵀ ρ (` x)              = ` x
 renameˢᵀ ρ (ƛ A ⇒ N)          = ƛ (renameˢ ρ A) ⇒ (renameˢᵀ ρ N)
 renameˢᵀ ρ (L · M)            = renameˢᵀ ρ L · renameˢᵀ ρ M
@@ -155,13 +173,6 @@ renameˢᵀ ρ (M ⊕[ op ] N)      = renameˢᵀ ρ M ⊕[ op ] renameˢᵀ ρ 
 renameˢᵀ ρ (M at up p)        = renameˢᵀ ρ M at up (renameImpˢ ρ p)
 renameˢᵀ ρ (M at down p)      = renameˢᵀ ρ M at down (renameImpˢ ρ p)
 renameˢᵀ ρ blame              = blame
-
-singleEnv : Term → Subst
-singleEnv V zero    = V
-singleEnv V (suc x) = ` x
-
-_[_] : Term → Term → Term
-N [ V ] = subst (singleEnv V) N
 
 ------------------------------------------------------------------------
 -- Typing: terms
@@ -195,7 +206,7 @@ data _∣_⊢_⊢_⦂_ : TyCtx → Store → Ctx → Term → Ty → Set where
 
   ⊢ν : {Δ : TyCtx} {Σ : Store} {Γ : Ctx} {A B : Ty} {N : Term} →
        WfTy Δ Σ A →
-       Δ ∣ (A ∷ Σ) ⊢ ⤊ˢ Γ ⊢ N ⦂ renameˢ suc B →
+       Δ ∣ (A ∷ ⟰ˢ Σ) ⊢ ⤊ˢ Γ ⊢ N ⦂ ⇑ˢ B →
        WfTy Δ Σ B →
        Δ ∣ Σ ⊢ Γ ⊢ (ν:= A ∙ N) ⦂ B
 
@@ -222,7 +233,7 @@ data _∣_⊢_⊢_⦂_ : TyCtx → Store → Ctx → Term → Ty → Set where
            Δ ∣ Σ ⊢ Γ ⊢ blame ⦂ A
 
 ------------------------------------------------------------------------
--- Values, frames, and reduction
+-- Values and frames
 ------------------------------------------------------------------------
 
 data Value : Term → Set where
@@ -298,6 +309,10 @@ IsId ⌈ idX X ⌉    = ⊤
 IsId ⌈ idι ι ⌉    = ⊤
 IsId _            = ⊥
 
+------------------------------------------------------------------------
+-- Reduction
+------------------------------------------------------------------------
+
 infix 4 _—→_
 data _—→_ : Config → Config → Set where
   β-δ : {Σ : Store} {op : Prim} {κ₁ κ₂ κ₃ : Const} →
@@ -368,6 +383,7 @@ data _—→_ : Config → Config → Set where
            —→
            (Σ ⊲ ((V at down p) at up q))
 
+  -- extendStore appends to the end so that the store is stable under extension
   ξν : {Σ : Store} {A : Ty} {N : Term} →
        (Σ ⊲ (ν:= A ∙ N)) —→ (extendStore Σ A ⊲ renameˢᵀ (singleSealEnv (fresh Σ)) N)
 

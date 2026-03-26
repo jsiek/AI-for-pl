@@ -33,15 +33,16 @@ data δ : Prim → Const → Const → Const → Set where
 ⤊ᵗ : ∀{Δ}{Ψ} → Ctx Δ Ψ → Ctx (suc Δ) Ψ
 ⤊ᵗ Γ = map (renameᵗ Sᵗ) Γ
 
-data Cast : (Δ : TyCtx) (Ψ : SealCtx) (Σ : Store Ψ)
-          → Ty Δ Ψ → Ty Δ Ψ → Set where
-  up_   : ∀{Δ}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
+infix 4 _∣_∣_⊢_↣_
+data _∣_∣_⊢_↣_ (Δ : TyCtx) (Ψ : SealCtx) (Σ : Store Ψ)
+          : Ty Δ Ψ → Ty Δ Ψ → Set where
+  up_   : ∀{A B : Ty Δ Ψ} →
           Δ ∣ Ψ ∣ Σ ⊢ A ⊑ B →
-          Cast Δ Ψ Σ A B
+          Δ ∣ Ψ ∣ Σ ⊢ A ↣ B
 
-  down_ : ∀{Δ}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
+  down_ : ∀{A B : Ty Δ Ψ} →
           Δ ∣ Ψ ∣ Σ ⊢ A ⊑ B →
-          Cast Δ Ψ Σ B A
+          Δ ∣ Ψ ∣ Σ ⊢ B ↣ A
 
 infix  5 ƛ_⇒_
 infix  5 Λ_
@@ -95,7 +96,7 @@ data _∣_∣_∣_⊢_ (Δ : TyCtx) (Ψ : SealCtx) (Σ : Store Ψ) (Γ : Ctx Δ 
 
   _at_      : ∀{A B : Ty Δ Ψ} →
               Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A →
-              Cast Δ Ψ Σ A B →
+              Δ ∣ Ψ ∣ Σ ⊢ A ↣ B →
               Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ B
 
   blame     : ∀{A : Ty Δ Ψ} →

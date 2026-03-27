@@ -6,7 +6,7 @@ open import Data.Empty using (⊥)
 open import Data.List using (List; []; _∷_; _++_; map; length)
 open import Data.Nat using (ℕ; _<_; zero; suc)
 open import Data.Product using (_×_; _,_)
-open import Relation.Binary.PropositionalEquality using (cong; subst)
+open import Relation.Binary.PropositionalEquality using (cong)
 
 ------------------------------------------------------------------------
 -- Variables, contexts, base types
@@ -51,14 +51,6 @@ data Ty : TyCtx → SealCtx → Set where
   _⇒_ : ∀{Δ}{Ψ} → Ty Δ Ψ → Ty Δ Ψ → Ty Δ Ψ
   `∀  : ∀{Δ}{Ψ} → Ty (suc Δ) Ψ → Ty Δ Ψ
 
-data TVar : TyCtx → SealCtx → Set where
-  ＇_ : ∀{Δ}{Ψ} (X : TyVar Δ) → TVar Δ Ψ
-  ｀_ : ∀{Δ}{Ψ} (α : Seal Ψ) → TVar Δ Ψ
-
-tvTy : ∀{Δ}{Ψ} → TVar Δ Ψ → Ty Δ Ψ
-tvTy (＇ X) = ＇ X
-tvTy (｀ α) = ｀ α
-
 data Cross : ∀{Δ}{Ψ} → Ty Δ Ψ → Set where
   ＇_ : ∀{Δ}{Ψ} (X : TyVar Δ) → Cross{Δ}{Ψ} (＇ X)
   ｀_ : ∀{Δ}{Ψ} (α : Seal Ψ) → Cross{Δ}{Ψ} (｀ α)
@@ -91,15 +83,11 @@ Renameᵗ : TyCtx → TyCtx → Set
 Renameᵗ Δ Δ′ = TyVar Δ → TyVar Δ′
 
 Substᵗ : TyCtx → TyCtx → SealCtx → Set
-Substᵗ Δ Δ′ Ψ = TyVar Δ → TVar Δ′ Ψ
+Substᵗ Δ Δ′ Ψ = TyVar Δ → Ty Δ′ Ψ
 
 extᵗ : ∀{Δ}{Δ′} → Renameᵗ Δ Δ′ → Renameᵗ (suc Δ) (suc Δ′)
 extᵗ ρ Zᵗ = Zᵗ
 extᵗ ρ (Sᵗ X) = Sᵗ (ρ X)
-
-renameᵗⱽ : ∀ {Δ}{Δ′}{Ψ} → Renameᵗ Δ Δ′ → TVar Δ Ψ → TVar Δ′ Ψ
-renameᵗⱽ ρ (＇ X) = ＇ (ρ X)
-renameᵗⱽ ρ (｀ α) = ｀ α
 
 renameᵗ : ∀ {Δ}{Δ′}{Ψ} → Renameᵗ Δ Δ′ → Ty Δ Ψ → Ty Δ′ Ψ
 renameᵗ ρ (＇ X) = ＇ (ρ X)
@@ -109,27 +97,24 @@ renameᵗ ρ `★ = `★
 renameᵗ ρ (A ⇒ B) = renameᵗ ρ A ⇒ renameᵗ ρ B
 renameᵗ ρ (`∀ A) = `∀ (renameᵗ (extᵗ ρ) A)
 
-⇑ᵗⱽ : ∀{Δ}{Ψ} → TVar Δ Ψ → TVar (suc Δ) Ψ
-⇑ᵗⱽ = renameᵗⱽ Sᵗ
-
 extsᵗ : ∀ {Δ}{Δ′}{Ψ} → Substᵗ Δ Δ′ Ψ → Substᵗ (suc Δ) (suc Δ′) Ψ
-extsᵗ σ Zᵗ    = ＇ Zᵗ
-extsᵗ σ (Sᵗ X) = renameᵗⱽ Sᵗ (σ X)
+extsᵗ σ Zᵗ = ＇ Zᵗ
+extsᵗ σ (Sᵗ X) = renameᵗ Sᵗ (σ X)
 
 substᵗ : ∀ {Δ}{Δ′}{Ψ} → Substᵗ Δ Δ′ Ψ → Ty Δ Ψ → Ty Δ′ Ψ
-substᵗ σ (＇ X)   = tvTy (σ X)
-substᵗ σ (｀ α)   = ｀ α
-substᵗ σ (‵ ι)   = ‵ ι
-substᵗ σ `★       = `★
-substᵗ σ (A ⇒ B)  = substᵗ σ A ⇒ substᵗ σ B
-substᵗ σ (`∀ A)   = `∀ (substᵗ (extsᵗ σ) A)
+substᵗ σ (＇ X) = σ X
+substᵗ σ (｀ α) = ｀ α
+substᵗ σ (‵ ι) = ‵ ι
+substᵗ σ `★ = `★
+substᵗ σ (A ⇒ B) = substᵗ σ A ⇒ substᵗ σ B
+substᵗ σ (`∀ A) = `∀ (substᵗ (extsᵗ σ) A)
 
-singleTyEnv : ∀ {Δ}{Ψ} → TVar Δ Ψ → Substᵗ (suc Δ) Δ Ψ
+singleTyEnv : ∀ {Δ}{Ψ} → Ty Δ Ψ → Substᵗ (suc Δ) Δ Ψ
 singleTyEnv B Zᵗ    = B
 singleTyEnv B (Sᵗ X) = ＇ X
 
 infixl 8 _[_]ᵗ
-_[_]ᵗ : ∀ {Δ}{Ψ} → Ty (suc Δ) Ψ → TVar Δ Ψ → Ty Δ Ψ
+_[_]ᵗ : ∀ {Δ}{Ψ} → Ty (suc Δ) Ψ → Ty Δ Ψ → Ty Δ Ψ
 A [ B ]ᵗ = substᵗ (singleTyEnv B) A
 
 ------------------------------------------------------------------------
@@ -157,10 +142,6 @@ singleSealEnv : ∀{Ψ} → Seal Ψ → Renameˢ (suc Ψ) Ψ
 singleSealEnv α Zˢ = α
 singleSealEnv α (Sˢ α′) = α′
 
-renameˢⱽ : ∀{Δ}{Ψ}{Ψ′} → Renameˢ Ψ Ψ′ → TVar Δ Ψ → TVar Δ Ψ′
-renameˢⱽ ρ (＇ X)   = ＇ X
-renameˢⱽ ρ (｀ α)   = ｀ (ρ α)
-
 renameˢ : ∀{Δ}{Ψ}{Ψ′} → Renameˢ Ψ Ψ′ → Ty Δ Ψ → Ty Δ Ψ′
 renameˢ ρ (＇ X)   = ＇ X
 renameˢ ρ (｀ α)   = ｀ (ρ α)
@@ -168,9 +149,6 @@ renameˢ ρ (‵ ι)   = ‵ ι
 renameˢ ρ `★       = `★
 renameˢ ρ (A ⇒ B)  = renameˢ ρ A ⇒ renameˢ ρ B
 renameˢ ρ (`∀ A)   = `∀ (renameˢ ρ A)
-
-⇑ˢⱽ : ∀{Δ}{Ψ} → TVar Δ Ψ → TVar Δ (suc Ψ)
-⇑ˢⱽ = renameˢⱽ Sˢ
 
 ⇑ˢ : ∀{Δ}{Ψ} → Ty Δ Ψ → Ty Δ (suc Ψ)
 ⇑ˢ = renameˢ Sˢ

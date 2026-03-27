@@ -3,7 +3,7 @@ module Imprecision where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (suc)
+open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; Σ; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Unit using (⊤; tt)
@@ -177,6 +177,12 @@ SubstFresh-liftˢ {σ = σ} A fr X =
   α ∉domˢ Σ′
 ∉domˢ-⊆ˢ w α∉Σ h = α∉Σ (wkLookupˢ w h)
 
+freshReach-⊆ˢ :
+  ∀{Δ}{Ψ}{Σ Σ′ : Store Ψ}{A : Ty Δ Ψ} →
+  Σ′ ⊆ˢ Σ →
+  FreshReachˢ A Σ Σ′
+freshReach-⊆ˢ w r α∉Σ = ∉domˢ-⊆ˢ w α∉Σ
+
 ∉domⱽ-⊆ˢ :
   ∀{Δ}{Ψ}{Σ Σ′ : Store Ψ} →
   (w : Σ′ ⊆ˢ Σ) →
@@ -193,6 +199,136 @@ SubstFresh-⊆ˢ :
   SubstFreshᵗ Σ′ σ
 SubstFresh-⊆ˢ {σ = σ} w fr X = ∉domⱽ-⊆ˢ w (σ X) (fr X)
 
+SubstAvoidᵗ :
+  ∀{Δ}{Δ′}{Ψ} →
+  Seal Ψ →
+  Substᵗ Δ Δ′ Ψ →
+  Set
+SubstAvoidᵗ α σ = ∀ X → σ X ≡ ｀ α → ⊥
+
+removeSubstˢ :
+  ∀{Δ}{Δ′}{Ψ} →
+  Substᵗ Δ Δ′ Ψ →
+  Store Ψ →
+  Store Ψ
+removeSubstˢ {zero} σ Σ = Σ
+removeSubstˢ {suc Δ} σ Σ with σ Zᵗ
+... | ＇ _ = removeSubstˢ (λ X → σ (Sᵗ X)) Σ
+... | ｀ α = removeSubstˢ (λ X → σ (Sᵗ X)) (removeˢ α Σ)
+
+removeSubstˢ-⊆ˢ :
+  ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ} →
+  (σ : Substᵗ Δ Δ′ Ψ) →
+  removeSubstˢ σ Σ ⊆ˢ Σ
+removeSubstˢ-⊆ˢ {Δ = zero} σ = ⊆ˢ-refl
+removeSubstˢ-⊆ˢ {Δ = suc Δ} {Σ = Σ} σ with σ Zᵗ
+... | ＇ _ = removeSubstˢ-⊆ˢ (λ X → σ (Sᵗ X))
+... | ｀ α =
+  ⊆ˢ-trans
+    (removeSubstˢ-⊆ˢ (λ X → σ (Sᵗ X)))
+    (removeˢ-⊆ˢ α)
+
+removeSubstˢ-exts-suc :
+  ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ} →
+  (σ : Substᵗ Δ Δ′ Ψ) →
+  removeSubstˢ (λ X → renameᵗⱽ Sᵗ (σ X)) Σ ≡ removeSubstˢ σ Σ
+removeSubstˢ-exts-suc {Δ = zero} σ = refl
+removeSubstˢ-exts-suc {Δ = suc Δ} {Σ = Σ} σ with σ Zᵗ
+... | ＇ _ = removeSubstˢ-exts-suc (λ X → σ (Sᵗ X))
+... | ｀ α = removeSubstˢ-exts-suc (λ X → σ (Sᵗ X))
+
+removeSubstˢ-exts :
+  ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ} →
+  (σ : Substᵗ Δ Δ′ Ψ) →
+  removeSubstˢ (extsᵗ σ) Σ ≡ removeSubstˢ σ Σ
+removeSubstˢ-exts {Σ = Σ} σ =
+  trans
+    refl
+    (removeSubstˢ-exts-suc σ)
+
+removeˢ-Sˢ-⟰ˢ :
+  ∀{Ψ}{Σ : Store Ψ}{α : Seal Ψ} →
+  removeˢ (Sˢ α) (⟰ˢ Σ) ≡ ⟰ˢ (removeˢ α Σ)
+removeˢ-Sˢ-⟰ˢ {Σ = []} = refl
+removeˢ-Sˢ-⟰ˢ {Σ = (β , B) ∷ Σ} {α = α}
+  with seal-≟ α β | seal-≟ (Sˢ α) (Sˢ β)
+... | yes eq | yes _ = removeˢ-Sˢ-⟰ˢ {Σ = Σ} {α = α}
+... | yes eq | no neq = ⊥-elim (neq (cong Sˢ eq))
+... | no neq | yes seq = ⊥-elim (neq (Sˢ-injective seq))
+... | no neq | no _ =
+      cong (λ T → (Sˢ β , ⇑ˢ B) ∷ T)
+        (removeˢ-Sˢ-⟰ˢ {Σ = Σ} {α = α})
+
+removeˢ-Sˢ-ν :
+  ∀{Ψ}{Σ : Store Ψ}{α : Seal Ψ}{A : Ty 0 (suc Ψ)} →
+  removeˢ (Sˢ α) ((Zˢ , A) ∷ ⟰ˢ Σ) ≡
+  (Zˢ , A) ∷ ⟰ˢ (removeˢ α Σ)
+removeˢ-Sˢ-ν {Σ = Σ} {α = α} {A = A} =
+  cong (λ T → (Zˢ , A) ∷ T) (removeˢ-Sˢ-⟰ˢ {Σ = Σ} {α = α})
+
+removeSubstˢ-lift :
+  ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A : Ty 0 (suc Ψ)} →
+  (σ : Substᵗ Δ Δ′ Ψ) →
+  removeSubstˢ (liftSubstˢ σ) ((Zˢ , A) ∷ ⟰ˢ Σ) ≡
+  ((Zˢ , A) ∷ ⟰ˢ (removeSubstˢ σ Σ))
+removeSubstˢ-lift {Δ = zero} σ = refl
+removeSubstˢ-lift {Δ = suc Δ} {Σ = Σ} {A = A} σ with σ Zᵗ
+... | ＇ _ = removeSubstˢ-lift (λ X → σ (Sᵗ X))
+... | ｀ α =
+      trans
+        (cong (removeSubstˢ (liftSubstˢ (λ X → σ (Sᵗ X))))
+              (removeˢ-Sˢ-ν {Σ = Σ} {α = α} {A = A}))
+        (removeSubstˢ-lift (λ X → σ (Sᵗ X)))
+
+removeSubstˢ-id :
+  ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ} →
+  (σ : Substᵗ Δ Δ′ Ψ) →
+  (X : TyVar Δ) →
+  (σ X) ∉domⱽ removeSubstˢ σ Σ
+removeSubstˢ-id {Δ = zero} σ ()
+removeSubstˢ-id {Δ = suc Δ} {Σ = Σ} σ Zᵗ with σ Zᵗ
+... | ＇ _ = tt
+... | ｀ α =
+      ∉domˢ-⊆ˢ
+        (removeSubstˢ-⊆ˢ (λ X → σ (Sᵗ X)))
+        (removeˢ-self-∉dom {Σ = Σ} α)
+removeSubstˢ-id {Δ = suc Δ} {Σ = Σ} σ (Sᵗ X) with σ Zᵗ
+... | ＇ _ = removeSubstˢ-id (λ Y → σ (Sᵗ Y)) X
+... | ｀ α = removeSubstˢ-id {Σ = removeˢ α Σ} (λ Y → σ (Sᵗ Y)) X
+
+removeSubstˢ-lookup :
+  ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ}{α : Seal Ψ}{A : Ty 0 Ψ}{σ : Substᵗ Δ Δ′ Ψ} →
+  SubstAvoidᵗ α σ →
+  Σ ∋ˢ α ⦂ A →
+  removeSubstˢ σ Σ ∋ˢ α ⦂ A
+removeSubstˢ-lookup {Δ = zero} avoid h = h
+removeSubstˢ-lookup {Δ = suc Δ} {Σ = Σ} {α = α} {A = A} {σ = σ} avoid h
+  with σ Zᵗ in eqZ
+... | ＇ _ =
+      removeSubstˢ-lookup
+        (λ X eq → avoid (Sᵗ X) eq)
+        h
+... | ｀ β =
+      removeSubstˢ-lookup
+        {Σ = removeˢ β Σ}
+        {σ = λ X → σ (Sᵗ X)}
+        (λ X eq → avoid (Sᵗ X) eq)
+        (removeˢ-lookup-≢ β≢α h)
+  where
+    β≢α : β ≡ α → ⊥
+    β≢α β≡α =
+      avoid Zᵗ (trans eqZ (cong ｀_ β≡α))
+
+substᵗ-∉domᴳ-remove :
+  ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{G : Ty Δ Ψ}
+  (σ : Substᵗ Δ Δ′ Ψ) (g : Ground G) →
+  g ∉domᴳ Σ →
+  substᵗ-ground σ g ∉domᴳ removeSubstˢ σ Σ
+substᵗ-∉domᴳ-remove σ (｀ α) α∉Σ =
+  ∉domˢ-⊆ˢ (removeSubstˢ-⊆ˢ σ) α∉Σ
+substᵗ-∉domᴳ-remove σ (‵ ι) g∉Σ = tt
+substᵗ-∉domᴳ-remove σ ★⇒★ g∉Σ = tt
+
 cong-⊑-≡ :
   ∀ {Δ}{Ψ}{Σ : Store Ψ}{A A′ B B′ : Ty Δ Ψ} →
   A ≡ A′ →
@@ -207,6 +343,13 @@ castΣ⊑ :
   Δ ∣ Ψ ∣ Σ ⊢ A ⊑ B →
   Δ ∣ Ψ ∣ Σ′ ⊢ A ⊑ B
 castΣ⊑ refl p = p
+
+castΣ⊑ᶜ :
+  ∀ {Δ}{Ψ}{Σ Σ′ : Store Ψ}{A B : Ty Δ Ψ} →
+  Σ ≡ Σ′ →
+  Δ ∣ Ψ ∣ Σ ⊢ᶜ A ⊑ B →
+  Δ ∣ Ψ ∣ Σ′ ⊢ᶜ A ⊑ B
+castΣ⊑ᶜ refl p = p
 
 ------------------------------------------------------------------------
 -- Store weakening for imprecision witnesses
@@ -512,6 +655,72 @@ mutual
   renameᵗᵖ ρ (ν_ {A = A} {B = B} p) =
     ν (cong-⊑-≡ (renameᵗ-ν-src ρ A) (renameᵗ-⇑ˢ ρ B) (renameᵗᵖ ρ p))
 
+mutual
+  SubstSealSafeᶜ :
+    ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
+    (σ : Substᵗ Δ Δ′ Ψ) →
+    Δ ∣ Ψ ∣ Σ ⊢ᶜ A ⊑ B →
+    Set
+  SubstSealSafeᶜ σ (idα α α∉Σ) = ⊤
+  SubstSealSafeᶜ σ (idX X) = ⊤
+  SubstSealSafeᶜ σ (idι ι) = ⊤
+  SubstSealSafeᶜ σ (p →ᵖ q) = SubstSealSafeᵖ σ p × SubstSealSafeᵖ σ q
+  SubstSealSafeᶜ σ (∀ᵖ p) = SubstSealSafeᵖ (extsᵗ σ) p
+
+  SubstSealSafeᵖ :
+    ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
+    (σ : Substᵗ Δ Δ′ Ψ) →
+    Δ ∣ Ψ ∣ Σ ⊢ A ⊑ B →
+    Set
+  SubstSealSafeᵖ σ ⌈ g ⌉ = SubstSealSafeᶜ σ g
+  SubstSealSafeᵖ σ id⋆ = ⊤
+  SubstSealSafeᵖ σ (_；tag_ p g) = SubstSealSafeᶜ σ p
+  SubstSealSafeᵖ σ (seal_；_ {α = α} h p) =
+    SubstAvoidᵗ α σ × SubstSealSafeᵖ σ p
+  SubstSealSafeᵖ σ (ν p) = SubstSealSafeᵖ (liftSubstˢ σ) p
+
+mutual
+  substᵗᶜ-remove :
+    ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
+    (σ : Substᵗ Δ Δ′ Ψ) →
+    (p : Δ ∣ Ψ ∣ Σ ⊢ᶜ A ⊑ B) →
+    SubstSealSafeᶜ σ p →
+    Δ′ ∣ Ψ ∣ removeSubstˢ σ Σ ⊢ᶜ substᵗ σ A ⊑ substᵗ σ B
+  substᵗᶜ-remove σ (idα α α∉Σ) safe =
+    idα α (∉domˢ-⊆ˢ (removeSubstˢ-⊆ˢ σ) α∉Σ)
+  substᵗᶜ-remove σ (idX X) safe = idⱽ (σ X) (removeSubstˢ-id σ X)
+  substᵗᶜ-remove σ (idι ι) safe = idι ι
+  substᵗᶜ-remove σ (p →ᵖ q) (safeP , safeQ) =
+    substᵗᵖ-remove σ p safeP →ᵖ substᵗᵖ-remove σ q safeQ
+  substᵗᶜ-remove σ (∀ᵖ p) safe =
+    ∀ᵖ
+      (castΣ⊑ (removeSubstˢ-exts σ)
+        (substᵗᵖ-remove (extsᵗ σ) p safe))
+
+  substᵗᵖ-remove :
+    ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
+    (σ : Substᵗ Δ Δ′ Ψ) →
+    (p : Δ ∣ Ψ ∣ Σ ⊢ A ⊑ B) →
+    SubstSealSafeᵖ σ p →
+    Δ′ ∣ Ψ ∣ removeSubstˢ σ Σ ⊢ substᵗ σ A ⊑ substᵗ σ B
+  substᵗᵖ-remove σ ⌈ g ⌉ safe = ⌈ substᵗᶜ-remove σ g safe ⌉
+  substᵗᵖ-remove σ id⋆ safe = id⋆
+  substᵗᵖ-remove {Δ′ = Δ′} {Ψ = Ψ} {Σ = Σ} {A = A}
+    σ (_；tag_ p G {g∉Σ = G∉Σ}) safe =
+    _；tag_ (substᵗᶜ-remove σ p safe) (substᵗ-ground σ G)
+      {g∉Σ = substᵗ-∉domᴳ-remove σ G G∉Σ}
+  substᵗᵖ-remove {Δ′ = Δ′} {Ψ = Ψ} {Σ = Σ} {B = B}
+    σ (seal_；_ {α = α} {A = A} h p) (avoidα , safeP) =
+    seal (removeSubstˢ-lookup avoidα h) ；
+      subst
+        (λ T → Δ′ ∣ Ψ ∣ removeSubstˢ σ Σ ⊢ T ⊑ substᵗ σ B)
+        (substᵗ-wkTy0 σ A)
+        (substᵗᵖ-remove σ p safeP)
+  substᵗᵖ-remove σ (ν_ {A = A} {B = B} p) safe =
+    ν (cong-⊑-≡ (substᵗ-ν-src σ A) (substᵗ-⇑ˢ σ B)
+         (castΣ⊑ (removeSubstˢ-lift {A = `★} σ)
+           (substᵗᵖ-remove (liftSubstˢ σ) p safe)))
+
 substᵗ-∉domᴳ :
   ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{G : Ty Δ Ψ}
   (σ : Substᵗ Δ Δ′ Ψ) (g : Ground G) →
@@ -613,6 +822,18 @@ RenameSafe-Sˢ :
   ∀{Ψ}{Σ : Store Ψ} →
   RenameSafeˢ (Sˢ {Ψ = Ψ}) Σ
 RenameSafe-Sˢ h eq = Sˢ-injective eq
+
+singleSealEnv-safe-⟰ˢ :
+  ∀{Ψ}{Σ : Store Ψ}{α : Seal Ψ} →
+  α ∉domˢ Σ →
+  RenameSafeˢ (singleSealEnv α) (⟰ˢ Σ)
+singleSealEnv-safe-⟰ˢ {Σ = Σ} {α = α} α∉ {α = γ} {β = Zˢ} h eq =
+  ⊥-elim (Zˢ∉dom-⟰ˢ {Σ = Σ} h)
+singleSealEnv-safe-⟰ˢ {Σ = Σ} {α = α} α∉ {α = γ} {β = Sˢ β} h eq
+  with γ | lookup-Sˢ-⟰ˢ {Σˢ = Σ} {α = β} h
+... | Zˢ | (B , hβ) =
+  ⊥-elim (α∉ (subst (λ δ → Σ ∋ˢ δ ⦂ B) (sym eq) hβ))
+... | Sˢ γ | _ = cong Sˢ eq
 
 renameˢ-∉domᴳ :
   ∀ {Δ}{Ψ}{Ψ′}{Σ : Store Ψ}{G : Ty Δ Ψ}
@@ -723,6 +944,49 @@ replaceᵗ-Z-⇑ˢ-id β (A ⇒ B) =
 replaceᵗ-Z-⇑ˢ-id β (`∀ A) =
   cong `∀ (replaceᵗ-Z-⇑ˢ-id β A)
 
+renameˢ-single-after-replace :
+  ∀{Δ}{Ψ} →
+  (α : Seal Ψ) →
+  (A : Ty Δ (suc Ψ)) →
+  renameˢ (singleSealEnv α) (replaceᵗ Zˢ (Sˢ α) A) ≡
+  renameˢ (singleSealEnv α) A
+renameˢ-single-after-replace α (＇ X) = refl
+renameˢ-single-after-replace α (｀ Zˢ) = refl
+renameˢ-single-after-replace α (｀ (Sˢ β)) = refl
+renameˢ-single-after-replace α (‵ ι) = refl
+renameˢ-single-after-replace α `★ = refl
+renameˢ-single-after-replace α (A ⇒ B) =
+  cong₂ _⇒_
+    (renameˢ-single-after-replace α A)
+    (renameˢ-single-after-replace α B)
+renameˢ-single-after-replace α (`∀ A) =
+  cong `∀ (renameˢ-single-after-replace α A)
+
+replace-on-lookup-⟰ˢ :
+  ∀{Ψ}{Σ : Store Ψ}{α : Seal Ψ}{γ : Seal (suc Ψ)}{A₀ : Ty 0 (suc Ψ)} →
+  ⟰ˢ Σ ∋ˢ γ ⦂ A₀ →
+  replaceᵗ Zˢ (Sˢ α) A₀ ≡ A₀
+replace-on-lookup-⟰ˢ {Σ = []} ()
+replace-on-lookup-⟰ˢ {Σ = (β , B) ∷ Σ} {α = α} (Z∋ˢ γ≡Sβ A₀≡⇑B) =
+  trans
+    (cong (replaceᵗ Zˢ (Sˢ α)) A₀≡⇑B)
+    (trans (replaceᵗ-Z-⇑ˢ-id (Sˢ α) B) (sym A₀≡⇑B))
+replace-on-lookup-⟰ˢ {Σ = (β , B) ∷ Σ} (S∋ˢ h) =
+  replace-on-lookup-⟰ˢ {Σ = Σ} h
+
+same-ν-open-premise :
+  ∀{Ψ}{Σ : Store Ψ}{α : Seal Ψ}{γ : Seal (suc Ψ)}{A₀ : Ty 0 (suc Ψ)} →
+  (γ ≡ Zˢ → ⊥) →
+  ((Zˢ , `★) ∷ ⟰ˢ Σ) ∋ˢ γ ⦂ A₀ →
+  ⟰ˢ Σ ∋ˢ γ ⦂ replaceᵗ Zˢ (Sˢ α) A₀
+same-ν-open-premise neq (Z∋ˢ γ≡Z A₀≡★) with neq γ≡Z
+... | ()
+same-ν-open-premise {Σ = Σ} {α = α} {γ = γ} neq (S∋ˢ h) =
+  subst
+    (λ T → ⟰ˢ Σ ∋ˢ γ ⦂ T)
+    (sym (replace-on-lookup-⟰ˢ {Σ = Σ} {α = α} h))
+    h
+
 replace-S-Z :
   ∀{Ψ} →
   (α β : Seal Ψ) →
@@ -827,6 +1091,51 @@ sameDrop-seal h same α≢ hγ with same α≢ hγ
 ... | inj₁ h′ = inj₁ h′
 ... | inj₂ (γ≡δ , noγ) =
       inj₂ (γ≡δ , λ rA₀ → noγ (reach-seal-payload h rA₀))
+
+same-ν-open-drop-premise :
+  ∀{Ψ}{Σ : Store Ψ}{A : Ty (suc zero) Ψ}
+   {α : Seal Ψ}{C : Ty 0 Ψ} →
+  Uniqueˢ Σ →
+  Σ ∋ˢ α ⦂ C →
+  (Reachˢ Σ (`∀ A) α → ⊥) →
+  SameDropˢ Zˢ (Sˢ α) (Sˢ α)
+            (((⇑ˢ A) [ ｀ Zˢ ]ᵗ))
+            ((Zˢ , `★) ∷ ⟰ˢ Σ)
+            (⟰ˢ (removeˢ α Σ))
+same-ν-open-drop-premise {Σ = Σ} {A = A} {α = α} {C = C} uΣ hα α∉reach
+  {γ = γ} {A₀ = A₀} neq h with h
+... | Z∋ˢ γ≡Z A₀≡★ = ⊥-elim (neq γ≡Z)
+... | S∋ˢ h↑ with γ
+...   | Zˢ = ⊥-elim (lookup-Z-⟰ˢ-⊥ h↑)
+...   | Sˢ β with lookup-Sˢ-⟰ˢ′ h↑
+...     | B , A₀≡⇑B , hβ with seal-≟ α β
+...       | no α≢β =
+            let hβ′ : removeˢ α Σ ∋ˢ β ⦂ B
+                hβ′ = removeˢ-lookup-≢ {Σ = Σ} {α = α} {β = β} α≢β hβ
+                hS′ : ⟰ˢ (removeˢ α Σ) ∋ˢ Sˢ β ⦂ ⇑ˢ B
+                hS′ = renameLookupˢ Sˢ hβ′
+                eqTy : replaceᵗ Zˢ (Sˢ α) A₀ ≡ ⇑ˢ B
+                eqTy = trans
+                         (cong (replaceᵗ Zˢ (Sˢ α)) A₀≡⇑B)
+                         (replaceᵗ-Z-⇑ˢ-id (Sˢ α) B)
+            in
+            inj₁ (subst (λ T → ⟰ˢ (removeˢ α Σ) ∋ˢ Sˢ β ⦂ T) (sym eqTy) hS′)
+...       | yes α≡β =
+            let γ≡δ : Sˢ β ≡ Sˢ α
+                γ≡δ = cong Sˢ (sym α≡β)
+                noSβ :
+                  Reachˢ ((Zˢ , `★) ∷ ⟰ˢ Σ)
+                        (((⇑ˢ A) [ ｀ Zˢ ]ᵗ))
+                        (Sˢ β) → ⊥
+                noSβ rβ =
+                  α∉reach
+                    (subst
+                      (λ s → Reachˢ Σ (`∀ A)
+                                     s)
+                      (sym α≡β)
+                      (reach-ν-src-S rβ))
+            in
+            inj₂ (γ≡δ , noSβ)
 
 sealToTag-same↑ :
   ∀{Δ}{Ψ}{Σ Σ′ : Store Ψ}

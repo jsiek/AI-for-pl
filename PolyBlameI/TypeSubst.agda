@@ -565,6 +565,30 @@ renameˢ-[]ᵗ-commute ρ A B =
     env-eq Zᵗ = refl
     env-eq (Sᵗ X) = refl
 
+renameˢ-single-⇑ˢ-id :
+  ∀{Δ}{Ψ} →
+  (α : Seal Ψ) →
+  (A : Ty Δ Ψ) →
+  renameˢ (singleSealEnv α) (⇑ˢ A) ≡ A
+renameˢ-single-⇑ˢ-id α (＇ X) = refl
+renameˢ-single-⇑ˢ-id α (｀ β) = refl
+renameˢ-single-⇑ˢ-id α (‵ ι) = refl
+renameˢ-single-⇑ˢ-id α `★ = refl
+renameˢ-single-⇑ˢ-id α (A ⇒ B) =
+  cong₂ _⇒_ (renameˢ-single-⇑ˢ-id α A) (renameˢ-single-⇑ˢ-id α B)
+renameˢ-single-⇑ˢ-id α (`∀ A) =
+  cong `∀ (renameˢ-single-⇑ˢ-id α A)
+
+renameˢ-single-open :
+  ∀{Δ}{Ψ} →
+  (α : Seal Ψ) →
+  (A : Ty (suc Δ) Ψ) →
+  renameˢ (singleSealEnv α) (((⇑ˢ A) [ ｀ Zˢ ]ᵗ)) ≡ (A [ ｀ α ]ᵗ)
+renameˢ-single-open α A =
+  trans
+    (renameˢ-[]ᵗ-commute (singleSealEnv α) (⇑ˢ A) (｀ Zˢ))
+    (cong (λ T → T [ ｀ α ]ᵗ) (renameˢ-single-⇑ˢ-id α A))
+
 ------------------------------------------------------------------------
 -- Public API: seal-renaming source and weakening lemmas
 ------------------------------------------------------------------------

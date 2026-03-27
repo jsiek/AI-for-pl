@@ -3,12 +3,13 @@ module Store where
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
 open import Data.Product using (_,_)
-open import Data.Empty using (⊥)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Relation.Nullary using (Dec; yes; no)
 open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; subst; sym; trans)
 open import Types
+open import TypeSubst using (renameˢ-single-⇑ˢ-id)
 open import Data.Product using (Σ; _,_)
 
 ------------------------------------------------------------------------
@@ -112,12 +113,50 @@ removeˢ-⊆ˢ {Σ = (β , B) ∷ Σ} α with seal-≟ α β
 ... | yes _ = drop (removeˢ-⊆ˢ {Σ = Σ} α)
 ... | no _ = keep (removeˢ-⊆ˢ {Σ = Σ} α)
 
+renameStoreˢ-single-⟰ˢ :
+  ∀{Ψ} →
+  (α : Seal Ψ) →
+  (Σ : Store Ψ) →
+  renameStoreˢ (singleSealEnv α) (⟰ˢ Σ) ≡ Σ
+renameStoreˢ-single-⟰ˢ α [] = refl
+renameStoreˢ-single-⟰ˢ α ((β , B) ∷ Σ) =
+  cong₂ _∷_
+    (cong₂ _,_ refl (renameˢ-single-⇑ˢ-id α B))
+    (renameStoreˢ-single-⟰ˢ α Σ)
+
+removeˢ-lookup-≢ :
+  ∀{Ψ}{Σ : Store Ψ}{α β : Seal Ψ}{A : Ty 0 Ψ} →
+  (α ≡ β → ⊥) →
+  Σ ∋ˢ β ⦂ A →
+  removeˢ α Σ ∋ˢ β ⦂ A
+removeˢ-lookup-≢ {Σ = []} α≢β ()
+removeˢ-lookup-≢ {Σ = (δ , D) ∷ Σ} {α = α} {β = β} α≢β h with seal-≟ α δ | h
+... | yes α≡δ | Z∋ˢ β≡δ A≡D =
+      ⊥-elim (α≢β (trans α≡δ (sym β≡δ)))
+... | yes α≡δ | S∋ˢ h′ =
+      removeˢ-lookup-≢ {Σ = Σ} {α = α} {β = β} α≢β h′
+... | no α≢δ | Z∋ˢ β≡δ A≡D =
+      Z∋ˢ β≡δ A≡D
+... | no α≢δ | S∋ˢ h′ =
+      S∋ˢ (removeˢ-lookup-≢ {Σ = Σ} {α = α} {β = β} α≢β h′)
+
 ------------------------------------------------------------------------
 -- Additional store invariant: each seal is unique
 ------------------------------------------------------------------------
 
 _∉domˢ_ : ∀{Ψ} → Seal Ψ → Store Ψ → Set
 _∉domˢ_ {Ψ} α Σ = ∀{A : Ty 0 Ψ} → Σ ∋ˢ α ⦂ A → ⊥
+
+removeˢ-self-∉dom :
+  ∀{Ψ}{Σ : Store Ψ} →
+  (α : Seal Ψ) →
+  α ∉domˢ removeˢ α Σ
+removeˢ-self-∉dom {Σ = []} α ()
+removeˢ-self-∉dom {Σ = (β , B) ∷ Σ} α h with seal-≟ α β
+... | yes _ = removeˢ-self-∉dom {Σ = Σ} α h
+... | no α≢β with h
+...   | Z∋ˢ α≡β _ = α≢β α≡β
+...   | S∋ˢ h′ = removeˢ-self-∉dom {Σ = Σ} α h′
 
 data Uniqueˢ : ∀{Ψ} → Store Ψ → Set where
   uniq[]  : ∀{Ψ} → Uniqueˢ {Ψ} []

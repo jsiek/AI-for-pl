@@ -3,8 +3,8 @@ module PolyBlame where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_; map)
 open import Data.Nat using (ℕ; _+_; suc)
-open import Data.Product using (Σ; _,_)
-open import Data.Unit using (tt)
+open import Data.Product using (_×_; Σ; _,_)
+open import Data.Unit using (⊤; tt)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; sym; trans)
 open import Types
 open import TypeSubst
@@ -55,6 +55,7 @@ infixl 7 _·_
 infixl 7 _·α_[_]
 infix  5 ν:=_∙_
 infixl 6 _⊕[_]_
+infixl 8 _[_]ˣ
 infix  8 _at_[_]
 infix  9 `_
 infix  4 _∣_∣_∣_⊢_
@@ -212,41 +213,105 @@ substᵗ-constTy :
   substᵗ σ (constTy {Δ} κ) ≡ constTy κ
 substᵗ-constTy σ (κℕ n) = refl
 
-substᵗ↣ :
+substᵗ↣-fresh :
   ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
   (σ : Substᵗ Δ Δ′ Ψ) →
   SubstFreshᵗ Σ σ →
   Δ ∣ Ψ ∣ Σ ⊢ A ↣ B →
   Δ′ ∣ Ψ ∣ Σ ⊢ substᵗ σ A ↣ substᵗ σ B
-substᵗ↣ σ freshσ (up p) = up (substᵗᵖ σ freshσ p)
-substᵗ↣ σ freshσ (down p) = down (substᵗᵖ σ freshσ p)
+substᵗ↣-fresh σ freshσ (up p) = up (substᵗᵖ σ freshσ p)
+substᵗ↣-fresh σ freshσ (down p) = down (substᵗᵖ σ freshσ p)
 
-substᵗ-term :
+substᵗ-term-fresh :
   ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
   (σ : Substᵗ Δ Δ′ Ψ) →
   SubstFreshᵗ Σ σ →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A →
   Δ′ ∣ Ψ ∣ Σ ∣ map (substᵗ σ) Γ ⊢ substᵗ σ A
-substᵗ-term σ freshσ (` h) = ` (substLookup σ h)
-substᵗ-term σ freshσ (ƛ A ⇒ M) = ƛ (substᵗ σ A) ⇒ substᵗ-term σ freshσ M
-substᵗ-term σ freshσ (L · M) = substᵗ-term σ freshσ L · substᵗ-term σ freshσ M
-substᵗ-term {Γ = Γ} σ freshσ (Λ_ {A = A} M) =
-  Λ (cast⊢ refl (map-substᵗ-⤊ᵗ σ Γ) refl (substᵗ-term (extsᵗ σ) (SubstFresh-exts freshσ) M))
-substᵗ-term {Σ = Σ} {Γ = Γ} σ freshσ (_·α_[_] {A = A} M α h) =
+substᵗ-term-fresh σ freshσ (` h) = ` (substLookup σ h)
+substᵗ-term-fresh σ freshσ (ƛ A ⇒ M) = ƛ (substᵗ σ A) ⇒ substᵗ-term-fresh σ freshσ M
+substᵗ-term-fresh σ freshσ (L · M) = substᵗ-term-fresh σ freshσ L · substᵗ-term-fresh σ freshσ M
+substᵗ-term-fresh {Γ = Γ} σ freshσ (Λ_ {A = A} M) =
+  Λ (cast⊢ refl (map-substᵗ-⤊ᵗ σ Γ) refl (substᵗ-term-fresh (extsᵗ σ) (SubstFresh-exts freshσ) M))
+substᵗ-term-fresh {Σ = Σ} {Γ = Γ} σ freshσ (_·α_[_] {A = A} M α h) =
   cast⊢ refl refl (sym (substᵗ-[]ᵗ-seal σ A α))
-    (substᵗ-term σ freshσ M ·α α [ h ])
-substᵗ-term {Σ = Σ} {Γ = Γ} σ freshσ (ν:=_∙_ {B = B} A M) =
+    (substᵗ-term-fresh σ freshσ M ·α α [ h ])
+substᵗ-term-fresh {Σ = Σ} {Γ = Γ} σ freshσ (ν:=_∙_ {B = B} A M) =
   ν:= A ∙
     cast⊢
       refl
       (map-substᵗ-⤊ˢ σ Γ)
       (substᵗ-⇑ˢ σ B)
-      (substᵗ-term (liftSubstˢ σ) (SubstFresh-liftˢ (⇑ˢ A) freshσ) M)
-substᵗ-term σ freshσ ($ κ) = cast⊢ refl refl (sym (substᵗ-constTy σ κ)) ($ κ)
-substᵗ-term σ freshσ (L ⊕[ op ] M) = substᵗ-term σ freshσ L ⊕[ op ] substᵗ-term σ freshσ M
-substᵗ-term σ freshσ (M at c [ w ]) =
-  substᵗ-term σ freshσ M at substᵗ↣ σ (SubstFresh-⊆ˢ w freshσ) c [ w ]
-substᵗ-term σ freshσ blame = blame
+      (substᵗ-term-fresh (liftSubstˢ σ) (SubstFresh-liftˢ (⇑ˢ A) freshσ) M)
+substᵗ-term-fresh σ freshσ ($ κ) = cast⊢ refl refl (sym (substᵗ-constTy σ κ)) ($ κ)
+substᵗ-term-fresh σ freshσ (L ⊕[ op ] M) = substᵗ-term-fresh σ freshσ L ⊕[ op ] substᵗ-term-fresh σ freshσ M
+substᵗ-term-fresh σ freshσ (M at c [ w ]) =
+  substᵗ-term-fresh σ freshσ M at substᵗ↣-fresh σ (SubstFresh-⊆ˢ w freshσ) c [ w ]
+substᵗ-term-fresh σ freshσ blame = blame
+
+mutual
+  SubstSealSafe↣ :
+    ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
+    (σ : Substᵗ Δ Δ′ Ψ) →
+    Δ ∣ Ψ ∣ Σ ⊢ A ↣ B →
+    Set
+  SubstSealSafe↣ σ (up p) = SubstSealSafeᵖ σ p
+  SubstSealSafe↣ σ (down p) = SubstSealSafeᵖ σ p
+
+  SubstSealSafe-term :
+    ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
+    (σ : Substᵗ Δ Δ′ Ψ) →
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A →
+    Set
+  SubstSealSafe-term σ (` h) = ⊤
+  SubstSealSafe-term σ (ƛ A ⇒ M) = SubstSealSafe-term σ M
+  SubstSealSafe-term σ (L · M) = SubstSealSafe-term σ L × SubstSealSafe-term σ M
+  SubstSealSafe-term σ (Λ M) = SubstSealSafe-term (extsᵗ σ) M
+  SubstSealSafe-term σ (_·α_[_] M α h) = SubstSealSafe-term σ M
+  SubstSealSafe-term σ (ν:= A ∙ M) = SubstSealSafe-term (liftSubstˢ σ) M
+  SubstSealSafe-term σ ($ κ) = ⊤
+  SubstSealSafe-term σ (L ⊕[ op ] M) = SubstSealSafe-term σ L × SubstSealSafe-term σ M
+  SubstSealSafe-term σ (M at c [ w ]) = SubstSealSafe-term σ M × SubstSealSafe↣ σ c
+  SubstSealSafe-term σ blame = ⊤
+
+substᵗ↣ :
+  ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
+  (σ : Substᵗ Δ Δ′ Ψ) →
+  (c : Δ ∣ Ψ ∣ Σ ⊢ A ↣ B) →
+  SubstSealSafe↣ σ c →
+  Δ′ ∣ Ψ ∣ removeSubstˢ σ Σ ⊢ substᵗ σ A ↣ substᵗ σ B
+substᵗ↣ σ (up p) safe = up (substᵗᵖ-remove σ p safe)
+substᵗ↣ σ (down p) safe = down (substᵗᵖ-remove σ p safe)
+
+substᵗ-term :
+  ∀ {Δ}{Δ′}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
+  (σ : Substᵗ Δ Δ′ Ψ) →
+  (M : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A) →
+  SubstSealSafe-term σ M →
+  Δ′ ∣ Ψ ∣ Σ ∣ map (substᵗ σ) Γ ⊢ substᵗ σ A
+substᵗ-term σ (` h) safe = ` (substLookup σ h)
+substᵗ-term σ (ƛ A ⇒ M) safe =
+  ƛ (substᵗ σ A) ⇒ substᵗ-term σ M safe
+substᵗ-term σ (L · M) (safeL , safeM) =
+  substᵗ-term σ L safeL · substᵗ-term σ M safeM
+substᵗ-term {Γ = Γ} σ (Λ_ {A = A} M) safe =
+  Λ (cast⊢ refl (map-substᵗ-⤊ᵗ σ Γ) refl (substᵗ-term (extsᵗ σ) M safe))
+substᵗ-term {Σ = Σ} {Γ = Γ} σ (_·α_[_] {A = A} M α h) safe =
+  cast⊢ refl refl (sym (substᵗ-[]ᵗ-seal σ A α))
+    (substᵗ-term σ M safe ·α α [ h ])
+substᵗ-term {Σ = Σ} {Γ = Γ} σ (ν:=_∙_ {B = B} A M) safe =
+  ν:= A ∙
+    cast⊢
+      refl
+      (map-substᵗ-⤊ˢ σ Γ)
+      (substᵗ-⇑ˢ σ B)
+      (substᵗ-term (liftSubstˢ σ) M safe)
+substᵗ-term σ ($ κ) safe = cast⊢ refl refl (sym (substᵗ-constTy σ κ)) ($ κ)
+substᵗ-term σ (L ⊕[ op ] M) (safeL , safeM) =
+  substᵗ-term σ L safeL ⊕[ op ] substᵗ-term σ M safeM
+substᵗ-term σ (M at c [ w ]) (safeM , safeC) =
+  substᵗ-term σ M safeM at substᵗ↣ σ c safeC [ ⊆ˢ-trans (removeSubstˢ-⊆ˢ σ) w ]
+substᵗ-term σ blame safe = blame
 
 ------------------------------------------------------------------------
 -- Parallel renaming of term variables in terms
@@ -436,7 +501,7 @@ liftᵗˣ {Γ′ = Γ′} σ h with unmap∋-⤊ᵗ h
     refl
     (map-substᵗ-renSubᵗ Sᵗ Γ′)
     (trans (substᵗ-renSubᵗ Sᵗ B) (sym eq))
-    (substᵗ-term (renSubᵗ Sᵗ) (λ X → tt) (σ h₀))
+    (substᵗ-term-fresh (renSubᵗ Sᵗ) (λ X → tt) (σ h₀))
 
 liftˢˣ :
   ∀{Δ}{Ψ}{Σ : Store Ψ}{Γ Γ′ : Ctx Δ Ψ} (A : Ty 0 Ψ) →
@@ -473,3 +538,17 @@ substˣ-term σ ($ κ) = $ κ
 substˣ-term σ (L ⊕[ op ] M) = substˣ-term σ L ⊕[ op ] substˣ-term σ M
 substˣ-term σ (M at c [ w ]) = substˣ-term σ M at substˣ↣ σ c [ w ]
 substˣ-term σ blame = blame
+
+singleVarEnv :
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{A : Ty Δ Ψ} →
+  Δ ∣ Ψ ∣ Σ ∣ [] ⊢ A →
+  Substˣ Δ Ψ Σ (A ∷ []) []
+singleVarEnv V Z = V
+singleVarEnv V (S ())
+
+_[_]ˣ :
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
+  Δ ∣ Ψ ∣ Σ ∣ (A ∷ []) ⊢ B →
+  Δ ∣ Ψ ∣ Σ ∣ [] ⊢ A →
+  Δ ∣ Ψ ∣ Σ ∣ [] ⊢ B
+N [ V ]ˣ = substˣ-term (singleVarEnv V) N

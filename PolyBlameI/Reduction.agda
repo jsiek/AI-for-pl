@@ -3,7 +3,7 @@ module Reduction where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (zero; suc)
+open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (Σ; _,_)
 open import Data.Sum using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
@@ -37,179 +37,32 @@ Program = Σ SealCtx State
 -- Auxiliary ingredients for the ν and context rules
 ------------------------------------------------------------------------
 
+data Value : ∀{Δ}{Ψ}{Σ : Store Ψ}{A : Ty Δ Ψ} →
+             Δ ∣ Ψ ∣ Σ ∣ [] ⊢ A → Set where
+  vƛ :
+    ∀{Δ}{Ψ}{Σ : Store Ψ}
+     {A : Ty Δ Ψ}{B : Ty Δ Ψ}
+     {N : Δ ∣ Ψ ∣ Σ ∣ (A ∷ []) ⊢ B} →
+    Value (ƛ A ⇒ N)
+
+  vΛ :
+    ∀{Δ}{Ψ}{Σ : Store Ψ}
+     {A : Ty (suc Δ) Ψ}
+     {V : (suc Δ) ∣ Ψ ∣ Σ ∣ [] ⊢ A} →
+    Value V →
+    Value (Λ V)
+
+  vκ :
+    ∀{Δ}{Ψ}{Σ : Store Ψ}{κ : Const} →
+    Value {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {A = constTy {Δ} κ}
+      ($ {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = []} κ)
+
 postulate
-  Value :
-    ∀{Ψ}{Σ : Store Ψ}{A : Ty 0 Ψ} →
-    0 ∣ Ψ ∣ Σ ∣ [] ⊢ A →
-    Set
-
-renameˢ-single-⇑ˢ-id :
-  ∀{Δ}{Ψ} →
-  (α : Seal Ψ) →
-  (A : Ty Δ Ψ) →
-  renameˢ (singleSealEnv α) (⇑ˢ A) ≡ A
-renameˢ-single-⇑ˢ-id α (＇ X) = refl
-renameˢ-single-⇑ˢ-id α (｀ β) = refl
-renameˢ-single-⇑ˢ-id α (‵ ι) = refl
-renameˢ-single-⇑ˢ-id α `★ = refl
-renameˢ-single-⇑ˢ-id α (A ⇒ B) =
-  cong₂ _⇒_ (renameˢ-single-⇑ˢ-id α A) (renameˢ-single-⇑ˢ-id α B)
-renameˢ-single-⇑ˢ-id α (`∀ A) =
-  cong `∀ (renameˢ-single-⇑ˢ-id α A)
-
-renameˢ-single-after-replace :
-  ∀{Δ}{Ψ} →
-  (α : Seal Ψ) →
-  (A : Ty Δ (suc Ψ)) →
-  renameˢ (singleSealEnv α) (replaceᵗ Zˢ (Sˢ α) A) ≡
-  renameˢ (singleSealEnv α) A
-renameˢ-single-after-replace α (＇ X) = refl
-renameˢ-single-after-replace α (｀ Zˢ) = refl
-renameˢ-single-after-replace α (｀ (Sˢ β)) = refl
-renameˢ-single-after-replace α (‵ ι) = refl
-renameˢ-single-after-replace α `★ = refl
-renameˢ-single-after-replace α (A ⇒ B) =
-  cong₂ _⇒_
-    (renameˢ-single-after-replace α A)
-    (renameˢ-single-after-replace α B)
-renameˢ-single-after-replace α (`∀ A) =
-  cong `∀ (renameˢ-single-after-replace α A)
-
-renameˢ-single-open :
-  ∀{Δ}{Ψ} →
-  (α : Seal Ψ) →
-  (A : Ty (suc Δ) Ψ) →
-  renameˢ (singleSealEnv α) (((⇑ˢ A) [ ｀ Zˢ ]ᵗ)) ≡ (A [ ｀ α ]ᵗ)
-renameˢ-single-open α A =
-  trans
-    (renameˢ-[]ᵗ-commute (singleSealEnv α) (⇑ˢ A) (｀ Zˢ))
-    (cong (λ T → T [ ｀ α ]ᵗ) (renameˢ-single-⇑ˢ-id α A))
-
-renameStoreˢ-single-⟰ˢ :
-  ∀{Ψ} →
-  (α : Seal Ψ) →
-  (Σ : Store Ψ) →
-  renameStoreˢ (singleSealEnv α) (⟰ˢ Σ) ≡ Σ
-renameStoreˢ-single-⟰ˢ α [] = refl
-renameStoreˢ-single-⟰ˢ α ((β , B) ∷ Σ) =
-  cong₂ _∷_
-    (cong₂ _,_ refl (renameˢ-single-⇑ˢ-id α B))
-    (renameStoreˢ-single-⟰ˢ α Σ)
-
-replace-on-lookup-⟰ˢ :
-  ∀{Ψ}{Σ : Store Ψ}{α : Seal Ψ}{γ : Seal (suc Ψ)}{A₀ : Ty 0 (suc Ψ)} →
-  ⟰ˢ Σ ∋ˢ γ ⦂ A₀ →
-  replaceᵗ Zˢ (Sˢ α) A₀ ≡ A₀
-replace-on-lookup-⟰ˢ {Σ = []} ()
-replace-on-lookup-⟰ˢ {Σ = (β , B) ∷ Σ} {α = α} (Z∋ˢ γ≡Sβ A₀≡⇑B) =
-  trans
-    (cong (replaceᵗ Zˢ (Sˢ α)) A₀≡⇑B)
-    (trans (replaceᵗ-Z-⇑ˢ-id (Sˢ α) B) (sym A₀≡⇑B))
-replace-on-lookup-⟰ˢ {Σ = (β , B) ∷ Σ} (S∋ˢ h) =
-  replace-on-lookup-⟰ˢ {Σ = Σ} h
-
-same-ν-open-premise :
-  ∀{Ψ}{Σ : Store Ψ}{α : Seal Ψ}{γ : Seal (suc Ψ)}{A₀ : Ty 0 (suc Ψ)} →
-  (γ ≡ Zˢ → ⊥) →
-  ((Zˢ , `★) ∷ ⟰ˢ Σ) ∋ˢ γ ⦂ A₀ →
-  ⟰ˢ Σ ∋ˢ γ ⦂ replaceᵗ Zˢ (Sˢ α) A₀
-same-ν-open-premise neq (Z∋ˢ γ≡Z A₀≡★) with neq γ≡Z
-... | ()
-same-ν-open-premise {Σ = Σ} {α = α} {γ = γ} neq (S∋ˢ h) =
-  subst
-    (λ T → ⟰ˢ Σ ∋ˢ γ ⦂ T)
-    (sym (replace-on-lookup-⟰ˢ {Σ = Σ} {α = α} h))
-    h
-
-removeˢ-self-∉dom :
-  ∀{Ψ}{Σ : Store Ψ} →
-  (α : Seal Ψ) →
-  α ∉domˢ removeˢ α Σ
-removeˢ-self-∉dom {Σ = []} α ()
-removeˢ-self-∉dom {Σ = (β , B) ∷ Σ} α h with seal-≟ α β
-... | yes _ = removeˢ-self-∉dom {Σ = Σ} α h
-... | no α≢β with h
-...   | Z∋ˢ α≡β _ = α≢β α≡β
-...   | S∋ˢ h′ = removeˢ-self-∉dom {Σ = Σ} α h′
-
-freshReach-⊆ˢ :
-  ∀{Δ}{Ψ}{Σ Σ′ : Store Ψ}{A : Ty Δ Ψ} →
-  Σ′ ⊆ˢ Σ →
-  FreshReachˢ A Σ Σ′
-freshReach-⊆ˢ w r α∉Σ = ∉domˢ-⊆ˢ w α∉Σ
-
-singleSealEnv-safe-⟰ˢ :
-  ∀{Ψ}{Σ : Store Ψ}{α : Seal Ψ} →
-  α ∉domˢ Σ →
-  RenameSafeˢ (singleSealEnv α) (⟰ˢ Σ)
-singleSealEnv-safe-⟰ˢ {Σ = Σ} {α = α} α∉ {α = γ} {β = Zˢ} h eq =
-  ⊥-elim (Zˢ∉dom-⟰ˢ {Σ = Σ} h)
-singleSealEnv-safe-⟰ˢ {Σ = Σ} {α = α} α∉ {α = γ} {β = Sˢ β} h eq
-  with γ | lookup-Sˢ-⟰ˢ {Σˢ = Σ} {α = β} h
-... | Zˢ | (B , hβ) =
-  ⊥-elim (α∉ (subst (λ δ → Σ ∋ˢ δ ⦂ B) (sym eq) hβ))
-... | Sˢ γ | _ = cong Sˢ eq
-
-removeˢ-lookup-≢ :
-  ∀{Ψ}{Σ : Store Ψ}{α β : Seal Ψ}{A : Ty 0 Ψ} →
-  (α ≡ β → ⊥) →
-  Σ ∋ˢ β ⦂ A →
-  removeˢ α Σ ∋ˢ β ⦂ A
-removeˢ-lookup-≢ {Σ = []} α≢β ()
-removeˢ-lookup-≢ {Σ = (δ , D) ∷ Σ} {α = α} {β = β} α≢β h with seal-≟ α δ | h
-... | yes α≡δ | Z∋ˢ β≡δ A≡D =
-      ⊥-elim (α≢β (trans α≡δ (sym β≡δ)))
-... | yes α≡δ | S∋ˢ h′ =
-      removeˢ-lookup-≢ {Σ = Σ} {α = α} {β = β} α≢β h′
-... | no α≢δ | Z∋ˢ β≡δ A≡D =
-      Z∋ˢ β≡δ A≡D
-... | no α≢δ | S∋ˢ h′ =
-      S∋ˢ (removeˢ-lookup-≢ {Σ = Σ} {α = α} {β = β} α≢β h′)
-
-same-ν-open-drop-premise :
-  ∀{Ψ}{Σ : Store Ψ}{A : Ty (suc zero) Ψ}
-   {α : Seal Ψ}{C : Ty 0 Ψ} →
-  Uniqueˢ Σ →
-  Σ ∋ˢ α ⦂ C →
-  (Reachˢ Σ (`∀ A) α → ⊥) →
-  SameDropˢ Zˢ (Sˢ α) (Sˢ α)
-            (((⇑ˢ A) [ ｀ Zˢ ]ᵗ))
-            ((Zˢ , `★) ∷ ⟰ˢ Σ)
-            (⟰ˢ (removeˢ α Σ))
-same-ν-open-drop-premise {Σ = Σ} {A = A} {α = α} {C = C} uΣ hα α∉reach
-  {γ = γ} {A₀ = A₀} neq h with h
-... | Z∋ˢ γ≡Z A₀≡★ = ⊥-elim (neq γ≡Z)
-... | S∋ˢ h↑ with γ
-...   | Zˢ = ⊥-elim (lookup-Z-⟰ˢ-⊥ h↑)
-...   | Sˢ β with lookup-Sˢ-⟰ˢ′ h↑
-...     | B , A₀≡⇑B , hβ with seal-≟ α β
-...       | no α≢β =
-            let hβ′ : removeˢ α Σ ∋ˢ β ⦂ B
-                hβ′ = removeˢ-lookup-≢ {Σ = Σ} {α = α} {β = β} α≢β hβ
-                hS′ : ⟰ˢ (removeˢ α Σ) ∋ˢ Sˢ β ⦂ ⇑ˢ B
-                hS′ = renameLookupˢ Sˢ hβ′
-                eqTy : replaceᵗ Zˢ (Sˢ α) A₀ ≡ ⇑ˢ B
-                eqTy = trans
-                         (cong (replaceᵗ Zˢ (Sˢ α)) A₀≡⇑B)
-                         (replaceᵗ-Z-⇑ˢ-id (Sˢ α) B)
-            in
-            inj₁ (subst (λ T → ⟰ˢ (removeˢ α Σ) ∋ˢ Sˢ β ⦂ T) (sym eqTy) hS′)
-...       | yes α≡β =
-            let γ≡δ : Sˢ β ≡ Sˢ α
-                γ≡δ = cong Sˢ (sym α≡β)
-                noSβ :
-                  Reachˢ ((Zˢ , `★) ∷ ⟰ˢ Σ)
-                        (((⇑ˢ A) [ ｀ Zˢ ]ᵗ))
-                        (Sˢ β) → ⊥
-                noSβ rβ =
-                  α∉reach
-                    (subst
-                      (λ s → Reachˢ Σ (`∀ A)
-                                     s)
-                      (sym α≡β)
-                      (reach-ν-src-S rβ))
-            in
-            inj₂ (γ≡δ , noSβ)
+  instᵗ-term :
+    ∀{Ψ}{Σ : Store Ψ}{A : Ty (suc zero) Ψ} →
+    (suc zero) ∣ Ψ ∣ Σ ∣ [] ⊢ A →
+    (α : Seal Ψ) →
+    0 ∣ Ψ ∣ Σ ∣ [] ⊢ (A [ ｀ α ]ᵗ)
 
 sealToTag-open-lower :
   ∀{Ψ}{Σ : Store Ψ}{A : Ty (suc zero) Ψ}{B : Ty 0 Ψ}
@@ -257,35 +110,73 @@ sealToTag-open {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {α = α} {C = C} uΣ h α∉
       (replaceᵗ-Z-⇑ˢ-id (Sˢ α) B)
       p)
 
--- A frame bridges a source world (Ψ, Σ, A) and target world (Ψ′, Σ′, A′).
-postulate
-  Frame :
-    ∀{Ψ}{Ψ′}
-    (Σ : Store Ψ) (Σ′ : Store Ψ′)
-    (A : Ty 0 Ψ) (A′ : Ty 0 Ψ′)
-    (B : Ty 0 Ψ) (B′ : Ty 0 Ψ′) →
-    Set
-
-  plugˡ :
-    ∀{Ψ}{Ψ′}{Σ : Store Ψ}{Σ′ : Store Ψ′}
-     {A : Ty 0 Ψ}{A′ : Ty 0 Ψ′}{B : Ty 0 Ψ}{B′ : Ty 0 Ψ′} →
-    Frame Σ Σ′ A A′ B B′ →
-    0 ∣ Ψ ∣ Σ ∣ [] ⊢ A →
-    0 ∣ Ψ ∣ Σ ∣ [] ⊢ B
-
-  plugʳ :
-    ∀{Ψ}{Ψ′}{Σ : Store Ψ}{Σ′ : Store Ψ′}
-     {A : Ty 0 Ψ}{A′ : Ty 0 Ψ′}{B : Ty 0 Ψ}{B′ : Ty 0 Ψ′} →
-    Frame Σ Σ′ A A′ B B′ →
-    0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ A′ →
-    0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ B′
-
 ------------------------------------------------------------------------
 -- Small-step reduction (initial subset of rules)
 ------------------------------------------------------------------------
 
-infix 4 _—→_
-data _—→_ : ∀{Ψ}{Ψ′} → State Ψ → State Ψ′ → Set where
+idˢ : ∀{Ψ} → Renameˢ Ψ Ψ
+idˢ α = α
+
+renameˢ-id :
+  ∀{Δ}{Ψ}{A : Ty Δ Ψ} →
+  renameˢ idˢ A ≡ A
+renameˢ-id {A = ＇ X} = refl
+renameˢ-id {A = ｀ α} = refl
+renameˢ-id {A = ‵ ι} = refl
+renameˢ-id {A = `★} = refl
+renameˢ-id {A = A ⇒ B} = cong₂ _⇒_ renameˢ-id renameˢ-id
+renameˢ-id {A = `∀ A} = cong `∀ renameˢ-id
+
+renameStoreˢ-id :
+  ∀{Ψ}{Σ : Store Ψ} →
+  renameStoreˢ idˢ Σ ≡ Σ
+renameStoreˢ-id {Σ = []} = refl
+renameStoreˢ-id {Σ = (α , A) ∷ Σ} =
+  cong₂ _∷_
+    (cong₂ _,_ refl renameˢ-id)
+    renameStoreˢ-id
+
+idˢ-⊆ˢ :
+  ∀{Ψ}{Σ : Store Ψ} →
+  renameStoreˢ idˢ Σ ⊆ˢ Σ
+idˢ-⊆ˢ {Σ = Σ} rewrite renameStoreˢ-id {Σ = Σ} = ⊆ˢ-refl
+
+RenameSafe-idˢ :
+  ∀{Ψ}{Σ : Store Ψ} →
+  RenameSafeˢ idˢ Σ
+RenameSafe-idˢ h eq = eq
+
+infix 4 _—→[_]_
+data _—→[_]_ : ∀{Ψ}{Ψ′} → State Ψ → Renameˢ Ψ Ψ′ → State Ψ′ → Set where
+  β-δ :
+    ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {op : Prim}{m n p : ℕ} →
+    δ op (κℕ m) (κℕ n) (κℕ p) →
+    st Σ uΣ (‵ `ℕ) (($ (κℕ m)) ⊕[ op ] ($ (κℕ n)))
+      —→[ idˢ ]
+    st Σ uΣ (‵ `ℕ) ($ (κℕ p))
+
+  β-ƛ :
+    ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {A B : Ty 0 Ψ}
+     {N : 0 ∣ Ψ ∣ Σ ∣ (A ∷ []) ⊢ B}
+     {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A} →
+    Value V →
+    st Σ uΣ B ((ƛ A ⇒ N) · V)
+      —→[ idˢ ]
+    st Σ uΣ B (N [ V ]ˣ)
+
+  β-Λ :
+    ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {A : Ty (suc zero) Ψ}
+     {V : (suc zero) ∣ Ψ ∣ Σ ∣ [] ⊢ A}
+     {α : Seal Ψ}{C : Ty 0 Ψ}
+     {h : Σ ∋ˢ α ⦂ C} →
+    Value V →
+    st Σ uΣ (A [ ｀ α ]ᵗ) ((Λ V) ·α α [ h ])
+      —→[ idˢ ]
+    st Σ uΣ (A [ ｀ α ]ᵗ) (instᵗ-term V α)
+
   β-ν+ :
     ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
      {Aν : Ty (suc zero) Ψ}{B : Ty 0 Ψ}
@@ -293,7 +184,7 @@ data _—→_ : ∀{Ψ}{Ψ′} → State Ψ → State Ψ′ → Set where
      {p : 0 ∣ (suc Ψ) ∣ ((Zˢ , `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ Aν) [ ｀ Zˢ ]ᵗ) ⊑ (⇑ˢ B)} →
     Value V →
     st Σ uΣ B (V at up (ν p) [ ⊆ˢ-refl ])
-      —→
+      —→[ idˢ ]
     st Σ uΣ B
       (ν:= `★ ∙
         (((wkΣ-term (↑ˢ `★) (renameˢ-term Sˢ RenameSafe-Sˢ V)) ·α Zˢ [ Z∋ˢ refl refl ]) at up p [ ⊆ˢ-refl ]))
@@ -308,7 +199,7 @@ data _—→_ : ∀{Ψ}{Ψ′} → State Ψ → State Ψ′ → Set where
      {p : 0 ∣ (suc Ψ) ∣ ((Zˢ , `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ Aν) [ ｀ Zˢ ]ᵗ) ⊑ (⇑ˢ B)} →
     Value V →
     st Σ uΣ (Aν [ ｀ α ]ᵗ) (_·α_[_] {A = Aν} (V at down (ν p) [ ⊆ˢ-refl ]) α h)
-      —→
+      —→[ idˢ ]
     st Σ uΣ (Aν [ ｀ α ]ᵗ)
       (V at down (sealToTag-open {A = Aν} {α = α} uΣ h α∉reach p) [ removeˢ-⊆ˢ α ])
 
@@ -324,7 +215,7 @@ data _—→_ : ∀{Ψ}{Ψ′} → State Ψ → State Ψ′ → Set where
      {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ B} →
     Value V →
     st Σ uΣ C ((V at down (seal h ； p) [ ⊆ˢ-refl ]) at up (seal h′ ； q) [ ⊆ˢ-refl ])
-      —→
+      —→[ idˢ ]
     st Σ uΣ C
       ((V at down
         (subst
@@ -334,43 +225,233 @@ data _—→_ : ∀{Ψ}{Ψ′} → State Ψ → State Ψ′ → Set where
         [ ⊆ˢ-refl ])
       at up q [ ⊆ˢ-refl ])
 
-  ξν :
+  β-ν :
     ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
      {Aσ : Ty 0 Ψ}{B : Ty 0 Ψ}
      {N : 0 ∣ (suc Ψ) ∣ ((Zˢ , ⇑ˢ Aσ) ∷ ⟰ˢ Σ) ∣ [] ⊢ (⇑ˢ B)} →
     st Σ uΣ B (ν:= Aσ ∙ N)
-      —→
+      —→[ Sˢ ]
     st ((Zˢ , ⇑ˢ Aσ) ∷ ⟰ˢ Σ) (unique-ν Aσ uΣ) (⇑ˢ B) N
 
-  ξξ :
-    ∀{Ψ}{Ψ′}
-     {Σ : Store Ψ}{Σ′ : Store Ψ′}
-     {uΣ : Uniqueˢ Σ}{uΣ′ : Uniqueˢ Σ′}
-     {A : Ty 0 Ψ}{A′ : Ty 0 Ψ′}
-     {B : Ty 0 Ψ}{B′ : Ty 0 Ψ′}
+  ξ-·₁ :
+    ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
+     {Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {Σ′ : Store Ψ′}{uΣ′ : Uniqueˢ Σ′}
+     {A B : Ty 0 Ψ}
+     {L : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (A ⇒ B)}
      {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A}
-     {N : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ A′}
-     (F : Frame Σ Σ′ A A′ B B′) →
-    st Σ uΣ A M —→ st Σ′ uΣ′ A′ N →
-    st Σ uΣ B (plugˡ F M) —→ st Σ′ uΣ′ B′ (plugʳ F N)
+     {L′ : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ renameˢ ρ (A ⇒ B)} →
+    (safeρ : RenameSafeˢ ρ Σ) →
+    (wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′) →
+    st Σ uΣ (A ⇒ B) L —→[ ρ ] st Σ′ uΣ′ (renameˢ ρ (A ⇒ B)) L′ →
+    st Σ uΣ B (L · M)
+      —→[ ρ ]
+    st Σ′ uΣ′ (renameˢ ρ B)
+      (L′ · wkΣ-term wρ (renameˢ-term ρ safeρ M))
 
+  ξ-·₂ :
+    ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
+     {Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {Σ′ : Store Ψ′}{uΣ′ : Uniqueˢ Σ′}
+     {A B : Ty 0 Ψ}
+     {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (A ⇒ B)}
+     {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A}
+     {M′ : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ renameˢ ρ A} →
+    Value V →
+    (safeρ : RenameSafeˢ ρ Σ) →
+    (wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′) →
+    st Σ uΣ A M —→[ ρ ] st Σ′ uΣ′ (renameˢ ρ A) M′ →
+    st Σ uΣ B (V · M)
+      —→[ ρ ]
+    st Σ′ uΣ′ (renameˢ ρ B)
+      ((wkΣ-term wρ (renameˢ-term ρ safeρ V)) · M′)
+
+  ξ-·α :
+    ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
+     {Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {Σ′ : Store Ψ′}{uΣ′ : Uniqueˢ Σ′}
+     {A : Ty (suc zero) Ψ}
+     {L : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (`∀ A)}
+     {L′ : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ renameˢ ρ (`∀ A)}
+     {α : Seal Ψ}{C : Ty 0 Ψ}
+     {h : Σ ∋ˢ α ⦂ C} →
+    (safeρ : RenameSafeˢ ρ Σ) →
+    (wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′) →
+    st Σ uΣ (`∀ A) L —→[ ρ ] st Σ′ uΣ′ (renameˢ ρ (`∀ A)) L′ →
+    st Σ uΣ (A [ ｀ α ]ᵗ) (L ·α α [ h ])
+      —→[ ρ ]
+    st Σ′ uΣ′ (renameˢ ρ (A [ ｀ α ]ᵗ))
+      (cast⊢
+        refl
+        refl
+        (sym (renameˢ-[]ᵗ-commute ρ A (｀ α)))
+        (L′ ·α (ρ α) [ wkLookupˢ wρ (renameLookupˢ ρ h) ]))
+
+  ξ-⊕₁ :
+    ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
+     {Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {Σ′ : Store Ψ′}{uΣ′ : Uniqueˢ Σ′}
+     {L M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (‵ `ℕ)}
+     {L′ : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ (‵ `ℕ)}
+     {op : Prim} →
+    (safeρ : RenameSafeˢ ρ Σ) →
+    (wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′) →
+    st Σ uΣ (‵ `ℕ) L —→[ ρ ] st Σ′ uΣ′ (‵ `ℕ) L′ →
+    st Σ uΣ (‵ `ℕ) (L ⊕[ op ] M)
+      —→[ ρ ]
+    st Σ′ uΣ′ (‵ `ℕ)
+      (L′ ⊕[ op ] wkΣ-term wρ (renameˢ-term ρ safeρ M))
+
+  ξ-⊕₂ :
+    ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
+     {Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {Σ′ : Store Ψ′}{uΣ′ : Uniqueˢ Σ′}
+     {V M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (‵ `ℕ)}
+     {M′ : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ (‵ `ℕ)}
+     {op : Prim} →
+    Value V →
+    (safeρ : RenameSafeˢ ρ Σ) →
+    (wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′) →
+    st Σ uΣ (‵ `ℕ) M —→[ ρ ] st Σ′ uΣ′ (‵ `ℕ) M′ →
+    st Σ uΣ (‵ `ℕ) (V ⊕[ op ] M)
+      —→[ ρ ]
+    st Σ′ uΣ′ (‵ `ℕ)
+      ((wkΣ-term wρ (renameˢ-term ρ safeρ V)) ⊕[ op ] M′)
+
+  ξ-at-up :
+    ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
+     {Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {Σ′ : Store Ψ′}{uΣ′ : Uniqueˢ Σ′}
+     {Σc : Store Ψ}
+     {A B : Ty 0 Ψ}
+     {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A}
+     {M′ : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ renameˢ ρ A}
+     {p : 0 ∣ Ψ ∣ Σc ⊢ A ⊑ B}
+     {w : Σc ⊆ˢ Σ} →
+    (safeρ : RenameSafeˢ ρ Σ) →
+    (wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′) →
+    st Σ uΣ A M —→[ ρ ] st Σ′ uΣ′ (renameˢ ρ A) M′ →
+    st Σ uΣ B (M at up p [ w ])
+      —→[ ρ ]
+    st Σ′ uΣ′ (renameˢ ρ B)
+      (M′ at up (renameˢᵖ ρ (RenameSafe-⊆ˢ w safeρ) p)
+        [ ⊆ˢ-trans (renameStoreˢ-⊆ˢ ρ w) wρ ])
+
+  ξ-at-down :
+    ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
+     {Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {Σ′ : Store Ψ′}{uΣ′ : Uniqueˢ Σ′}
+     {Σc : Store Ψ}
+     {A B : Ty 0 Ψ}
+     {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ B}
+     {M′ : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ renameˢ ρ B}
+     {p : 0 ∣ Ψ ∣ Σc ⊢ A ⊑ B}
+     {w : Σc ⊆ˢ Σ} →
+    (safeρ : RenameSafeˢ ρ Σ) →
+    (wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′) →
+    st Σ uΣ B M —→[ ρ ] st Σ′ uΣ′ (renameˢ ρ B) M′ →
+    st Σ uΣ A (M at down p [ w ])
+      —→[ ρ ]
+    st Σ′ uΣ′ (renameˢ ρ A)
+      (M′ at down (renameˢᵖ ρ (RenameSafe-⊆ˢ w safeρ) p)
+        [ ⊆ˢ-trans (renameStoreˢ-⊆ˢ ρ w) wρ ])
+
+  ξ-blame-·₁ :
+    ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {A B : Ty 0 Ψ}
+     {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A} →
+    st Σ uΣ B (blame · M)
+      —→[ idˢ ]
+    st Σ uΣ B blame
+
+  ξ-blame-·₂ :
+    ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {A B : Ty 0 Ψ}
+     {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (A ⇒ B)} →
+    Value V →
+    st Σ uΣ B (V · blame)
+      —→[ idˢ ]
+    st Σ uΣ B blame
+
+  ξ-blame-·α :
+    ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {A : Ty (suc zero) Ψ}
+     {α : Seal Ψ}{C : Ty 0 Ψ}
+     {h : Σ ∋ˢ α ⦂ C} →
+    st Σ uΣ (A [ ｀ α ]ᵗ) ((blame {A = `∀ A}) ·α α [ h ])
+      —→[ idˢ ]
+    st Σ uΣ (A [ ｀ α ]ᵗ) blame
+
+  ξ-blame-⊕₁ :
+    ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (‵ `ℕ)}
+     {op : Prim} →
+    st Σ uΣ (‵ `ℕ) (blame ⊕[ op ] M)
+      —→[ idˢ ]
+    st Σ uΣ (‵ `ℕ) blame
+
+  ξ-blame-⊕₂ :
+    ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (‵ `ℕ)}
+     {op : Prim} →
+    Value V →
+    st Σ uΣ (‵ `ℕ) (V ⊕[ op ] blame)
+      —→[ idˢ ]
+    st Σ uΣ (‵ `ℕ) blame
+
+  ξ-blame-at-up :
+    ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {Σc : Store Ψ}
+     {A B : Ty 0 Ψ}
+     {p : 0 ∣ Ψ ∣ Σc ⊢ A ⊑ B}
+     {w : Σc ⊆ˢ Σ} →
+    st Σ uΣ B (blame at up p [ w ])
+      —→[ idˢ ]
+    st Σ uΣ B blame
+
+  ξ-blame-at-down :
+    ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
+     {Σc : Store Ψ}
+     {A B : Ty 0 Ψ}
+     {p : 0 ∣ Ψ ∣ Σc ⊢ A ⊑ B}
+     {w : Σc ⊆ˢ Σ} →
+    st Σ uΣ A (blame at down p [ w ])
+      —→[ idˢ ]
+    st Σ uΣ A blame
+ 
 ------------------------------------------------------------------------
 -- Every step grows the store monotonically (using ⊆ˢ)
 ------------------------------------------------------------------------
 
 mutual
   store-growth :
-    ∀{Ψ}{S T : State Ψ} →
-    S —→ T →
-    Σˢ S ⊆ˢ Σˢ T
-  store-growth (β-ν+ v) = ⊆ˢ-refl
-  store-growth (β-ν- v) = ⊆ˢ-refl
-  store-growth (β-seal v) = ⊆ˢ-refl
-  store-growth (ξξ F step) = store-growth step
+    ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}{S : State Ψ}{T : State Ψ′} →
+    S —→[ ρ ] T →
+    renameStoreˢ ρ (Σˢ S) ⊆ˢ Σˢ T
+  store-growth (β-δ {Σ = Σ} δκ) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth (β-ƛ {Σ = Σ} v) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth (β-Λ {Σ = Σ} v) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth (β-ν+ {Σ = Σ} v) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth (β-ν- {Σ = Σ} v) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth (β-seal {Σ = Σ} v) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth β-ν = drop (⟰ˢ-⊆ˢ ⊆ˢ-refl)
+  store-growth (ξ-·₁ safeρ wρ redL) = wρ
+  store-growth (ξ-·₂ v safeρ wρ redM) = wρ
+  store-growth (ξ-·α safeρ wρ redL) = wρ
+  store-growth (ξ-⊕₁ safeρ wρ redL) = wρ
+  store-growth (ξ-⊕₂ v safeρ wρ redM) = wρ
+  store-growth (ξ-at-up safeρ wρ redM) = wρ
+  store-growth (ξ-at-down safeρ wρ redM) = wρ
+  store-growth (ξ-blame-·₁ {Σ = Σ}) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth (ξ-blame-·₂ {Σ = Σ} v) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth (ξ-blame-·α {Σ = Σ}) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth (ξ-blame-⊕₁ {Σ = Σ}) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth (ξ-blame-⊕₂ {Σ = Σ} v) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth (ξ-blame-at-up {Σ = Σ}) = idˢ-⊆ˢ {Σ = Σ}
+  store-growth (ξ-blame-at-down {Σ = Σ}) = idˢ-⊆ˢ {Σ = Σ}
 
   store-growth↑ :
     ∀{Ψ}{S : State Ψ}{T : State (suc Ψ)} →
-    S —→ T →
+    S —→[ Sˢ ] T →
     ⟰ˢ (Σˢ S) ⊆ˢ Σˢ T
-  store-growth↑ ξν = drop (⟰ˢ-⊆ˢ ⊆ˢ-refl)
-  store-growth↑ (ξξ F step) = store-growth↑ step
+  store-growth↑ red = store-growth red

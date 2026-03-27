@@ -168,40 +168,40 @@ renameˢ-constTy ρ (κℕ n) = refl
 renameˢ↣ :
   ∀ {Δ}{Ψ}{Ψ′}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
   (ρ : Renameˢ Ψ Ψ′) →
-  RenameFreshˢ ρ →
+  RenameSafeˢ ρ Σ →
   Δ ∣ Ψ ∣ Σ ⊢ A ↣ B →
   Δ ∣ Ψ′ ∣ renameStoreˢ ρ Σ ⊢ renameˢ ρ A ↣ renameˢ ρ B
-renameˢ↣ ρ fresh (up p) = up (renameˢᵖ ρ fresh p)
-renameˢ↣ ρ fresh (down p) = down (renameˢᵖ ρ fresh p)
+renameˢ↣ ρ safe (up p) = up (renameˢᵖ ρ safe p)
+renameˢ↣ ρ safe (down p) = down (renameˢᵖ ρ safe p)
 
 renameˢ-term :
   ∀ {Δ}{Ψ}{Ψ′}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
   (ρ : Renameˢ Ψ Ψ′) →
-  RenameFreshˢ ρ →
+  RenameSafeˢ ρ Σ →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A →
   Δ ∣ Ψ′ ∣ renameStoreˢ ρ Σ ∣ map (renameˢ ρ) Γ ⊢ renameˢ ρ A
-renameˢ-term ρ fresh (` h) = ` (renameLookup ρ h)
-renameˢ-term ρ fresh (ƛ A ⇒ M) = ƛ (renameˢ ρ A) ⇒ renameˢ-term ρ fresh M
-renameˢ-term ρ fresh (L · M) = renameˢ-term ρ fresh L · renameˢ-term ρ fresh M
-renameˢ-term {Γ = Γ} ρ fresh (Λ_ {A = A} M) =
-  Λ (cast⊢ refl (map-renameˢ-⤊ᵗ ρ Γ) refl (renameˢ-term ρ fresh M))
-renameˢ-term {Σ = Σ} {Γ = Γ} ρ fresh (_·α_[_] {A = A} M α h) =
+renameˢ-term ρ safe (` h) = ` (renameLookup ρ h)
+renameˢ-term ρ safe (ƛ A ⇒ M) = ƛ (renameˢ ρ A) ⇒ renameˢ-term ρ safe M
+renameˢ-term ρ safe (L · M) = renameˢ-term ρ safe L · renameˢ-term ρ safe M
+renameˢ-term {Γ = Γ} ρ safe (Λ_ {A = A} M) =
+  Λ (cast⊢ refl (map-renameˢ-⤊ᵗ ρ Γ) refl (renameˢ-term ρ safe M))
+renameˢ-term {Σ = Σ} {Γ = Γ} ρ safe (_·α_[_] {A = A} M α h) =
   subst
     (λ T → _ ∣ _ ∣ renameStoreˢ ρ Σ ∣ map (renameˢ ρ) Γ ⊢ T)
     (sym (renameˢ-[]ᵗ-commute ρ A (｀ α)))
-    (renameˢ-term ρ fresh M ·α (ρ α) [ renameLookupˢ ρ h ])
-renameˢ-term {Σ = Σ} {Γ = Γ} ρ fresh (ν:=_∙_ {B = B} A M) =
+    (renameˢ-term ρ safe M ·α (ρ α) [ renameLookupˢ ρ h ])
+renameˢ-term {Σ = Σ} {Γ = Γ} ρ safe (ν:=_∙_ {B = B} A M) =
   ν:= (renameˢ ρ A) ∙
     cast⊢
       (renameStoreˢ-ν ρ A Σ)
       (map-renameˢ-⤊ˢ ρ Γ)
       (renameˢ-⇑ˢ ρ B)
-      (renameˢ-term (extˢ ρ) (RenameFresh-extˢ fresh) M)
-renameˢ-term ρ fresh ($ κ) = cast⊢ refl refl (sym (renameˢ-constTy ρ κ)) ($ κ)
-renameˢ-term ρ fresh (L ⊕[ op ] M) = renameˢ-term ρ fresh L ⊕[ op ] renameˢ-term ρ fresh M
-renameˢ-term ρ fresh (M at c [ w ]) =
-  renameˢ-term ρ fresh M at renameˢ↣ ρ fresh c [ renameStoreˢ-⊆ˢ ρ w ]
-renameˢ-term ρ fresh blame = blame
+      (renameˢ-term (extˢ ρ) (RenameSafe-extˢ {A = ⇑ˢ A} safe) M)
+renameˢ-term ρ safe ($ κ) = cast⊢ refl refl (sym (renameˢ-constTy ρ κ)) ($ κ)
+renameˢ-term ρ safe (L ⊕[ op ] M) = renameˢ-term ρ safe L ⊕[ op ] renameˢ-term ρ safe M
+renameˢ-term ρ safe (M at c [ w ]) =
+  renameˢ-term ρ safe M at renameˢ↣ ρ (RenameSafe-⊆ˢ w safe) c [ renameStoreˢ-⊆ˢ ρ w ]
+renameˢ-term ρ safe blame = blame
 
 ------------------------------------------------------------------------
 -- Type-variable substitution on terms
@@ -448,7 +448,7 @@ liftˢˣ {Γ′ = Γ′} A σ h with unmap∋-⤊ˢ h
     refl
     refl
     (sym eq)
-    (wkΣ-term (↑ˢ A) (renameˢ-term Sˢ RenameFresh-Sˢ (σ h₀)))
+    (wkΣ-term (↑ˢ A) (renameˢ-term Sˢ RenameSafe-Sˢ (σ h₀)))
 
 substˣ↣ :
   ∀ {Δ}{Ψ}{Σ : Store Ψ}{Σ′ : Store Ψ}{Γ Γ′ : Ctx Δ Ψ}{A B : Ty Δ Ψ} →

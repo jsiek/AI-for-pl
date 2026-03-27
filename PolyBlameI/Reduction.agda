@@ -1,10 +1,11 @@
 module Reduction where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Empty using (⊥)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (Σ; _,_)
+open import Data.Sum using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; subst; sym; trans)
 open import Relation.Nullary using (yes; no)
@@ -137,32 +138,107 @@ freshReach-⊆ˢ :
   FreshReachˢ A Σ Σ′
 freshReach-⊆ˢ w r α∉Σ = ∉domˢ-⊆ˢ w α∉Σ
 
-postulate
-  same-ν-open-drop-premise :
-    ∀{Ψ}{Σ : Store Ψ}{A : Ty (suc zero) Ψ}
-     {α : Seal Ψ}{C : Ty 0 Ψ} →
-    Uniqueˢ Σ →
-    Σ ∋ˢ α ⦂ C →
-    SameDropˢ Zˢ (Sˢ α) (Sˢ α)
-              (((⇑ˢ A) [ ｀ Zˢ ]ᵗ))
-              ((Zˢ , `★) ∷ ⟰ˢ Σ)
-              (⟰ˢ (removeˢ α Σ))
+singleSealEnv-safe-⟰ˢ :
+  ∀{Ψ}{Σ : Store Ψ}{α : Seal Ψ} →
+  α ∉domˢ Σ →
+  RenameSafeˢ (singleSealEnv α) (⟰ˢ Σ)
+singleSealEnv-safe-⟰ˢ {Σ = Σ} {α = α} α∉ {α = γ} {β = Zˢ} h eq =
+  ⊥-elim (Zˢ∉dom-⟰ˢ {Σ = Σ} h)
+singleSealEnv-safe-⟰ˢ {Σ = Σ} {α = α} α∉ {α = γ} {β = Sˢ β} h eq
+  with γ | lookup-Sˢ-⟰ˢ {Σˢ = Σ} {α = β} h
+... | Zˢ | (B , hβ) =
+  ⊥-elim (α∉ (subst (λ δ → Σ ∋ˢ δ ⦂ B) (sym eq) hβ))
+... | Sˢ γ | _ = cong Sˢ eq
 
-  sealToTag-open-lower :
-    ∀{Ψ}{Σ : Store Ψ}{A : Ty (suc zero) Ψ}{B : Ty 0 Ψ}
-     {α : Seal Ψ} →
-    0 ∣ (suc Ψ) ∣ (⟰ˢ (removeˢ α Σ)) ⊢
-      replaceᵗ Zˢ (Sˢ α) (((⇑ˢ A) [ ｀ Zˢ ]ᵗ)) ⊑ ⇑ˢ B →
-    0 ∣ Ψ ∣ removeˢ α Σ ⊢ (A [ ｀ α ]ᵗ) ⊑ B
+removeˢ-lookup-≢ :
+  ∀{Ψ}{Σ : Store Ψ}{α β : Seal Ψ}{A : Ty 0 Ψ} →
+  (α ≡ β → ⊥) →
+  Σ ∋ˢ β ⦂ A →
+  removeˢ α Σ ∋ˢ β ⦂ A
+removeˢ-lookup-≢ {Σ = []} α≢β ()
+removeˢ-lookup-≢ {Σ = (δ , D) ∷ Σ} {α = α} {β = β} α≢β h with seal-≟ α δ | h
+... | yes α≡δ | Z∋ˢ β≡δ A≡D =
+      ⊥-elim (α≢β (trans α≡δ (sym β≡δ)))
+... | yes α≡δ | S∋ˢ h′ =
+      removeˢ-lookup-≢ {Σ = Σ} {α = α} {β = β} α≢β h′
+... | no α≢δ | Z∋ˢ β≡δ A≡D =
+      Z∋ˢ β≡δ A≡D
+... | no α≢δ | S∋ˢ h′ =
+      S∋ˢ (removeˢ-lookup-≢ {Σ = Σ} {α = α} {β = β} α≢β h′)
+
+same-ν-open-drop-premise :
+  ∀{Ψ}{Σ : Store Ψ}{A : Ty (suc zero) Ψ}
+   {α : Seal Ψ}{C : Ty 0 Ψ} →
+  Uniqueˢ Σ →
+  Σ ∋ˢ α ⦂ C →
+  (Reachˢ Σ (`∀ A) α → ⊥) →
+  SameDropˢ Zˢ (Sˢ α) (Sˢ α)
+            (((⇑ˢ A) [ ｀ Zˢ ]ᵗ))
+            ((Zˢ , `★) ∷ ⟰ˢ Σ)
+            (⟰ˢ (removeˢ α Σ))
+same-ν-open-drop-premise {Σ = Σ} {A = A} {α = α} {C = C} uΣ hα α∉reach
+  {γ = γ} {A₀ = A₀} neq h with h
+... | Z∋ˢ γ≡Z A₀≡★ = ⊥-elim (neq γ≡Z)
+... | S∋ˢ h↑ with γ
+...   | Zˢ = ⊥-elim (lookup-Z-⟰ˢ-⊥ h↑)
+...   | Sˢ β with lookup-Sˢ-⟰ˢ′ h↑
+...     | B , A₀≡⇑B , hβ with seal-≟ α β
+...       | no α≢β =
+            let hβ′ : removeˢ α Σ ∋ˢ β ⦂ B
+                hβ′ = removeˢ-lookup-≢ {Σ = Σ} {α = α} {β = β} α≢β hβ
+                hS′ : ⟰ˢ (removeˢ α Σ) ∋ˢ Sˢ β ⦂ ⇑ˢ B
+                hS′ = renameLookupˢ Sˢ hβ′
+                eqTy : replaceᵗ Zˢ (Sˢ α) A₀ ≡ ⇑ˢ B
+                eqTy = trans
+                         (cong (replaceᵗ Zˢ (Sˢ α)) A₀≡⇑B)
+                         (replaceᵗ-Z-⇑ˢ-id (Sˢ α) B)
+            in
+            inj₁ (subst (λ T → ⟰ˢ (removeˢ α Σ) ∋ˢ Sˢ β ⦂ T) (sym eqTy) hS′)
+...       | yes α≡β =
+            let γ≡δ : Sˢ β ≡ Sˢ α
+                γ≡δ = cong Sˢ (sym α≡β)
+                noSβ :
+                  Reachˢ ((Zˢ , `★) ∷ ⟰ˢ Σ)
+                        (((⇑ˢ A) [ ｀ Zˢ ]ᵗ))
+                        (Sˢ β) → ⊥
+                noSβ rβ =
+                  α∉reach
+                    (subst
+                      (λ s → Reachˢ Σ (`∀ A)
+                                     s)
+                      (sym α≡β)
+                      (reach-ν-src-S rβ))
+            in
+            inj₂ (γ≡δ , noSβ)
+
+sealToTag-open-lower :
+  ∀{Ψ}{Σ : Store Ψ}{A : Ty (suc zero) Ψ}{B : Ty 0 Ψ}
+   {α : Seal Ψ} →
+  0 ∣ (suc Ψ) ∣ (⟰ˢ (removeˢ α Σ)) ⊢
+    replaceᵗ Zˢ (Sˢ α) (((⇑ˢ A) [ ｀ Zˢ ]ᵗ)) ⊑ ⇑ˢ B →
+  0 ∣ Ψ ∣ removeˢ α Σ ⊢ (A [ ｀ α ]ᵗ) ⊑ B
+sealToTag-open-lower {Σ = Σ} {A = A} {B = B} {α = α} p =
+  castΣ⊑ (renameStoreˢ-single-⟰ˢ α (removeˢ α Σ))
+    (cong-⊑-≡
+      (trans
+        (renameˢ-single-after-replace α (((⇑ˢ A) [ ｀ Zˢ ]ᵗ)))
+        (renameˢ-single-open α A))
+      (renameˢ-single-⇑ˢ-id α B)
+      (renameˢᵖ
+        (singleSealEnv α)
+        (singleSealEnv-safe-⟰ˢ
+          (removeˢ-self-∉dom {Σ = Σ} α))
+        p))
 
 sealToTag-open :
   ∀{Ψ}{Σ : Store Ψ}{A : Ty (suc zero) Ψ}{B : Ty 0 Ψ}
    {α : Seal Ψ}{C : Ty 0 Ψ} →
   Uniqueˢ Σ →
   Σ ∋ˢ α ⦂ C →
+  (Reachˢ Σ (`∀ A) α → ⊥) →
   0 ∣ (suc Ψ) ∣ ((Zˢ , `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⊑ (⇑ˢ B) →
   0 ∣ Ψ ∣ removeˢ α Σ ⊢ (A [ ｀ α ]ᵗ) ⊑ B
-sealToTag-open {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {α = α} {C = C} uΣ h p =
+sealToTag-open {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {α = α} {C = C} uΣ h α∉reach p =
   sealToTag-open-lower {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {α = α}
     (sealToTag
       {Δ = zero}
@@ -175,7 +251,7 @@ sealToTag-open {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {α = α} {C = C} uΣ h p =
       Zˢ (Sˢ α) (Sˢ α)
       (Z∋ˢ refl refl)
       (Sˢ∉dom-⟰ˢ (removeˢ-self-∉dom {Σ = Σ} α))
-      (same-ν-open-drop-premise {Σ = Σ} {A = A} {α = α} {C = C} uΣ h)
+      (same-ν-open-drop-premise {Σ = Σ} {A = A} {α = α} {C = C} uΣ h α∉reach)
       (sealToTag-u↑ uΣ)
       (freshReach-⊆ˢ (drop (⟰ˢ-⊆ˢ (removeˢ-⊆ˢ α))))
       (replaceᵗ-Z-⇑ˢ-id (Sˢ α) B)
@@ -220,7 +296,7 @@ data _—→_ : ∀{Ψ}{Ψ′} → State Ψ → State Ψ′ → Set where
       —→
     st Σ uΣ B
       (ν:= `★ ∙
-        (((wkΣ-term (↑ˢ `★) (renameˢ-term Sˢ RenameFresh-Sˢ V)) ·α Zˢ [ Z∋ˢ refl refl ]) at up p [ ⊆ˢ-refl ]))
+        (((wkΣ-term (↑ˢ `★) (renameˢ-term Sˢ RenameSafe-Sˢ V)) ·α Zˢ [ Z∋ˢ refl refl ]) at up p [ ⊆ˢ-refl ]))
 
   β-ν- :
     ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}
@@ -228,12 +304,13 @@ data _—→_ : ∀{Ψ}{Ψ′} → State Ψ → State Ψ′ → Set where
      {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ B}
      {α : Seal Ψ}{C : Ty 0 Ψ}
      {h : Σ ∋ˢ α ⦂ C}
+     {α∉reach : Reachˢ Σ (`∀ Aν) α → ⊥}
      {p : 0 ∣ (suc Ψ) ∣ ((Zˢ , `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ Aν) [ ｀ Zˢ ]ᵗ) ⊑ (⇑ˢ B)} →
     Value V →
     st Σ uΣ (Aν [ ｀ α ]ᵗ) (_·α_[_] {A = Aν} (V at down (ν p) [ ⊆ˢ-refl ]) α h)
       —→
     st Σ uΣ (Aν [ ｀ α ]ᵗ)
-      (V at down (sealToTag-open {A = Aν} {α = α} uΣ h p) [ removeˢ-⊆ˢ α ])
+      (V at down (sealToTag-open {A = Aν} {α = α} uΣ h α∉reach p) [ removeˢ-⊆ˢ α ])
 
   β-seal :
     ∀{Ψ}{Σ : Store Ψ}{uΣ : Uniqueˢ Σ}

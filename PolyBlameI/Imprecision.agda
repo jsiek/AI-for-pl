@@ -556,99 +556,113 @@ mutual
     ν (cong-⊑-≡ (substᵗ-ν-src σ A) (substᵗ-⇑ˢ σ B)
          (substᵗᵖ (liftSubstˢ σ) (SubstFresh-liftˢ `★ freshσ) p))
 
-RenameFreshˢ :
+RenameSafeˢ :
   ∀{Ψ}{Ψ′} →
-  Renameˢ Ψ Ψ′ → Set
-RenameFreshˢ ρ =
-  ∀{α β} →
+  (ρ : Renameˢ Ψ Ψ′) →
+  Store Ψ →
+  Set
+RenameSafeˢ ρ Σ =
+  ∀{α β : Seal _}{A : Ty 0 _} →
+  Σ ∋ˢ β ⦂ A →
   ρ α ≡ ρ β →
   α ≡ β
 
 lookup-renameStoreˢ-inv :
   ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}{Σˢ : Store Ψ}{α : Seal Ψ}{A : Ty 0 Ψ′} →
-  RenameFreshˢ ρ →
+  RenameSafeˢ ρ Σˢ →
   renameStoreˢ ρ Σˢ ∋ˢ ρ α ⦂ A →
   Σ (Ty 0 Ψ) (λ B → Σˢ ∋ˢ α ⦂ B)
-lookup-renameStoreˢ-inv {Σˢ = []} fresh ()
-lookup-renameStoreˢ-inv {ρ = ρ} {Σˢ = (β , B) ∷ Σ} {α = α} fresh (Z∋ˢ α≡ρβ A≡ρB) =
-  B , Z∋ˢ (fresh α≡ρβ) refl
-lookup-renameStoreˢ-inv {ρ = ρ} {Σˢ = (β , B) ∷ Σ} fresh (S∋ˢ h)
-  with lookup-renameStoreˢ-inv {ρ = ρ} {Σˢ = Σ} fresh h
+lookup-renameStoreˢ-inv {Σˢ = []} safe ()
+lookup-renameStoreˢ-inv {ρ = ρ} {Σˢ = (β , B) ∷ Σ} {α = α} safe (Z∋ˢ α≡ρβ A≡ρB) =
+  B , Z∋ˢ (safe (Z∋ˢ refl refl) α≡ρβ) refl
+lookup-renameStoreˢ-inv {ρ = ρ} {Σˢ = (β , B) ∷ Σ} safe (S∋ˢ h)
+  with lookup-renameStoreˢ-inv {ρ = ρ} {Σˢ = Σ} (λ hΣ eq → safe (S∋ˢ hΣ) eq) h
 ... | C , hC = C , S∋ˢ hC
 
-renameFresh-∉domˢ :
+renameSafe-∉domˢ :
   ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}{Σ : Store Ψ}{α : Seal Ψ} →
-  RenameFreshˢ ρ →
+  RenameSafeˢ ρ Σ →
   α ∉domˢ Σ →
   ρ α ∉domˢ renameStoreˢ ρ Σ
-renameFresh-∉domˢ {ρ = ρ} fresh α∉ h
-  with lookup-renameStoreˢ-inv {ρ = ρ} fresh h
+renameSafe-∉domˢ {ρ = ρ} safe α∉ h
+  with lookup-renameStoreˢ-inv {ρ = ρ} safe h
 ... | A , hA = α∉ hA
 
-RenameFresh-extˢ :
-  ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′} →
-  RenameFreshˢ ρ →
-  RenameFreshˢ (extˢ ρ)
-RenameFresh-extˢ fresh {α = Zˢ} {β = Zˢ} refl = refl
-RenameFresh-extˢ fresh {α = Zˢ} {β = Sˢ β} ()
-RenameFresh-extˢ fresh {α = Sˢ α} {β = Zˢ} ()
-RenameFresh-extˢ fresh {α = Sˢ α} {β = Sˢ β} eq =
-  cong Sˢ (fresh (Sˢ-injective eq))
+RenameSafe-⊆ˢ :
+  ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}{Σ Σ′ : Store Ψ} →
+  Σ′ ⊆ˢ Σ →
+  RenameSafeˢ ρ Σ →
+  RenameSafeˢ ρ Σ′
+RenameSafe-⊆ˢ w safe h eq = safe (wkLookupˢ w h) eq
 
-RenameFresh-Sˢ :
-  ∀{Ψ} →
-  RenameFreshˢ (Sˢ {Ψ = Ψ})
-RenameFresh-Sˢ = Sˢ-injective
+RenameSafe-extˢ :
+  ∀{Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}{Σ : Store Ψ}{A : Ty 0 (suc Ψ)} →
+  RenameSafeˢ ρ Σ →
+  RenameSafeˢ (extˢ ρ) ((Zˢ , A) ∷ ⟰ˢ Σ)
+RenameSafe-extˢ safe {α = Zˢ} {β = Zˢ} h refl = refl
+RenameSafe-extˢ safe {α = Zˢ} {β = Sˢ β} h ()
+RenameSafe-extˢ safe {α = Sˢ α} {β = Zˢ} h ()
+RenameSafe-extˢ {ρ = ρ} {Σ = Σ} {A = A} safe {α = Sˢ α} {β = Sˢ β} h eq
+  with h
+... | Z∋ˢ () A≡B
+... | S∋ˢ h′
+  with lookup-Sˢ-⟰ˢ h′
+... | C , hβ = cong Sˢ (safe hβ (Sˢ-injective eq))
+
+RenameSafe-Sˢ :
+  ∀{Ψ}{Σ : Store Ψ} →
+  RenameSafeˢ (Sˢ {Ψ = Ψ}) Σ
+RenameSafe-Sˢ h eq = Sˢ-injective eq
 
 renameˢ-∉domᴳ :
   ∀ {Δ}{Ψ}{Ψ′}{Σ : Store Ψ}{G : Ty Δ Ψ}
   (ρ : Renameˢ Ψ Ψ′) →
-  RenameFreshˢ ρ →
+  RenameSafeˢ ρ Σ →
   (g : Ground G) →
   g ∉domᴳ Σ →
   renameˢ-ground ρ g ∉domᴳ renameStoreˢ ρ Σ
-renameˢ-∉domᴳ ρ fresh (｀ α) α∉Σ = renameFresh-∉domˢ fresh α∉Σ
-renameˢ-∉domᴳ ρ fresh (‵ ι) g∉Σ = tt
-renameˢ-∉domᴳ ρ fresh ★⇒★ g∉Σ = tt
+renameˢ-∉domᴳ ρ safe (｀ α) α∉Σ = renameSafe-∉domˢ safe α∉Σ
+renameˢ-∉domᴳ ρ safe (‵ ι) g∉Σ = tt
+renameˢ-∉domᴳ ρ safe ★⇒★ g∉Σ = tt
 
 mutual
   renameˢᶜ :
     ∀ {Δ}{Ψ}{Ψ′}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
     (ρ : Renameˢ Ψ Ψ′) →
-    RenameFreshˢ ρ →
+    RenameSafeˢ ρ Σ →
     Δ ∣ Ψ ∣ Σ ⊢ᶜ A ⊑ B →
     Δ ∣ Ψ′ ∣ renameStoreˢ ρ Σ ⊢ᶜ renameˢ ρ A ⊑ renameˢ ρ B
-  renameˢᶜ ρ fresh (idα α α∉Σ) = idα (ρ α) (renameFresh-∉domˢ fresh α∉Σ)
-  renameˢᶜ ρ fresh (idX X) = idX X
-  renameˢᶜ ρ fresh (idι ι) = idι ι
-  renameˢᶜ ρ fresh (p →ᵖ q) = renameˢᵖ ρ fresh p →ᵖ renameˢᵖ ρ fresh q
-  renameˢᶜ ρ fresh (∀ᵖ p) = ∀ᵖ (renameˢᵖ ρ fresh p)
+  renameˢᶜ ρ safe (idα α α∉Σ) = idα (ρ α) (renameSafe-∉domˢ safe α∉Σ)
+  renameˢᶜ ρ safe (idX X) = idX X
+  renameˢᶜ ρ safe (idι ι) = idι ι
+  renameˢᶜ ρ safe (p →ᵖ q) = renameˢᵖ ρ safe p →ᵖ renameˢᵖ ρ safe q
+  renameˢᶜ ρ safe (∀ᵖ p) = ∀ᵖ (renameˢᵖ ρ safe p)
 
   renameˢᵖ :
     ∀ {Δ}{Ψ}{Ψ′}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
     (ρ : Renameˢ Ψ Ψ′) →
-    RenameFreshˢ ρ →
+    RenameSafeˢ ρ Σ →
     Δ ∣ Ψ ∣ Σ ⊢ A ⊑ B →
     Δ ∣ Ψ′ ∣ renameStoreˢ ρ Σ ⊢ renameˢ ρ A ⊑ renameˢ ρ B
-  renameˢᵖ ρ fresh ⌈ g ⌉ = ⌈ renameˢᶜ ρ fresh g ⌉
-  renameˢᵖ ρ fresh id⋆ = id⋆
-  renameˢᵖ ρ fresh (_；tag_ p g {g∉Σ = g∉Σ}) =
-    _；tag_ (renameˢᶜ ρ fresh p) (renameˢ-ground ρ g)
-      {g∉Σ = renameˢ-∉domᴳ ρ fresh g g∉Σ}
+  renameˢᵖ ρ safe ⌈ g ⌉ = ⌈ renameˢᶜ ρ safe g ⌉
+  renameˢᵖ ρ safe id⋆ = id⋆
+  renameˢᵖ ρ safe (_；tag_ p g {g∉Σ = g∉Σ}) =
+    _；tag_ (renameˢᶜ ρ safe p) (renameˢ-ground ρ g)
+      {g∉Σ = renameˢ-∉domᴳ ρ safe g g∉Σ}
   renameˢᵖ {Δ = Δ} {Ψ = Ψ} {Ψ′ = Ψ′} {Σ = Σ} {B = B}
-    ρ fresh (seal_；_ {A = A} h p) =
+    ρ safe (seal_；_ {A = A} h p) =
     seal (renameLookupˢ ρ h) ；
       subst
         (λ T → Δ ∣ Ψ′ ∣ renameStoreˢ ρ Σ ⊢ T ⊑ renameˢ ρ B)
         (renameˢ-wkTy0 ρ A)
-        (renameˢᵖ ρ fresh p)
+        (renameˢᵖ ρ safe p)
   renameˢᵖ {Δ = Δ} {Ψ = Ψ} {Ψ′ = Ψ′} {Σ = Σ}
-    ρ fresh (ν_ {A = A} {B = B} p) =
+    ρ safe (ν_ {A = A} {B = B} p) =
     ν (castΣ⊑ (renameStoreˢ-↑★ ρ Σ)
          (cong-⊑-≡
            (renameˢ-ν-src ρ A)
            (renameˢ-⇑ˢ ρ B)
-           (renameˢᵖ (extˢ ρ) (RenameFresh-extˢ fresh) p)))
+           (renameˢᵖ (extˢ ρ) (RenameSafe-extˢ {A = `★} safe) p)))
 
 ------------------------------------------------------------------------
 -- sealToTag (intrinsic): rewrite ν-opened seals into tags

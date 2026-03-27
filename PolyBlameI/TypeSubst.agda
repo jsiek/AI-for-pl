@@ -41,6 +41,22 @@ renameLookupˢ :
 renameLookupˢ ρ (Z∋ˢ α≡β A≡B) = Z∋ˢ (cong ρ α≡β) (cong (renameˢ ρ) A≡B)
 renameLookupˢ ρ (S∋ˢ h) = S∋ˢ (renameLookupˢ ρ h)
 
+renameLookup :
+  ∀{Δ}{Ψ}{Ψ′}{Γ : Ctx Δ Ψ}{x : Var}{A : Ty Δ Ψ} →
+  (ρ : Renameˢ Ψ Ψ′) →
+  Γ ∋ x ⦂ A →
+  map (renameˢ ρ) Γ ∋ x ⦂ renameˢ ρ A
+renameLookup ρ Z = Z
+renameLookup ρ (S h) = S (renameLookup ρ h)
+
+substLookup :
+  ∀{Δ}{Δ′}{Ψ}{Γ : Ctx Δ Ψ}{x : Var}{A : Ty Δ Ψ} →
+  (σ : Substᵗ Δ Δ′ Ψ) →
+  Γ ∋ x ⦂ A →
+  map (substᵗ σ) Γ ∋ x ⦂ substᵗ σ A
+substLookup σ Z = Z
+substLookup σ (S h) = S (substLookup σ h)
+
 liftSubstˢ : ∀{Δ}{Δ′}{Ψ} → Substᵗ Δ Δ′ Ψ → Substᵗ Δ Δ′ (suc Ψ)
 liftSubstˢ σ X = ⇑ˢⱽ (σ X)
 
@@ -95,7 +111,7 @@ renameᵗ-⇑ˢ ρ (`∀ A) =
   cong `∀ (renameᵗ-⇑ˢ (extᵗ ρ) A)
 
 ------------------------------------------------------------------------
--- Private helpers: renaming/substitution congruence and composition
+-- Renaming/substitution infrastructure (mostly private)
 ------------------------------------------------------------------------
 private
   rename-cong :
@@ -309,22 +325,36 @@ private
       (trans
         (subst-cong (exts-renSubst {Ψ = Ψ} ρ) A)
         (substᵗ-renSubst (extᵗ ρ) A))
-  
-  renameᵗ-renameˢ :
-    ∀{Δ}{Δ′}{Ψ}{Ψ′}
-    (ρ : Renameᵗ Δ Δ′) (ϱ : Renameˢ Ψ Ψ′) (A : Ty Δ Ψ) →
-    renameᵗ ρ (renameˢ ϱ A) ≡ renameˢ ϱ (renameᵗ ρ A)
-  renameᵗ-renameˢ ρ ϱ (＇ X) = refl
-  renameᵗ-renameˢ ρ ϱ (｀ α) = refl
-  renameᵗ-renameˢ ρ ϱ (‵ ι) = refl
-  renameᵗ-renameˢ ρ ϱ `★ = refl
-  renameᵗ-renameˢ ρ ϱ (A ⇒ B) =
-    cong₂ _⇒_
-      (renameᵗ-renameˢ ρ ϱ A)
-      (renameᵗ-renameˢ ρ ϱ B)
-  renameᵗ-renameˢ ρ ϱ (`∀ A) =
-    cong `∀ (renameᵗ-renameˢ (extᵗ ρ) ϱ A)
-  
+
+------------------------------------------------------------------------
+-- Public API: renaming commutes with seal renaming
+------------------------------------------------------------------------
+renameᵗ-renameˢ :
+  ∀{Δ}{Δ′}{Ψ}{Ψ′}
+  (ρ : Renameᵗ Δ Δ′) (ϱ : Renameˢ Ψ Ψ′) (A : Ty Δ Ψ) →
+  renameᵗ ρ (renameˢ ϱ A) ≡ renameˢ ϱ (renameᵗ ρ A)
+renameᵗ-renameˢ ρ ϱ (＇ X) = refl
+renameᵗ-renameˢ ρ ϱ (｀ α) = refl
+renameᵗ-renameˢ ρ ϱ (‵ ι) = refl
+renameᵗ-renameˢ ρ ϱ `★ = refl
+renameᵗ-renameˢ ρ ϱ (A ⇒ B) =
+  cong₂ _⇒_
+    (renameᵗ-renameˢ ρ ϱ A)
+    (renameᵗ-renameˢ ρ ϱ B)
+renameᵗ-renameˢ ρ ϱ (`∀ A) =
+  cong `∀ (renameᵗ-renameˢ (extᵗ ρ) ϱ A)
+
+map-renameˢ-⤊ᵗ :
+  ∀{Δ}{Ψ}{Ψ′} (ρ : Renameˢ Ψ Ψ′) (Γ : Ctx Δ Ψ) →
+  map (renameˢ ρ) (map (renameᵗ Sᵗ) Γ) ≡
+  map (renameᵗ Sᵗ) (map (renameˢ ρ) Γ)
+map-renameˢ-⤊ᵗ ρ [] = refl
+map-renameˢ-⤊ᵗ ρ (A ∷ Γ) =
+  cong₂ _∷_
+    (sym (renameᵗ-renameˢ Sᵗ ρ A))
+    (map-renameˢ-⤊ᵗ ρ Γ)
+
+private
   rename-[]ᵗ-commute :
     ∀{Δ}{Δ′}{Ψ}
     (ρ : Renameᵗ Δ Δ′) (A : Ty (suc Δ) Ψ) (B : TVar Δ Ψ) →
@@ -399,6 +429,44 @@ substᵗ-⇑ˢ σ (`∀ A) =
       (subst-cong (exts-liftSubstˢ σ) (⇑ˢ A))
       (substᵗ-⇑ˢ (extsᵗ σ) A))
 
+substᵗ-suc-renameᵗ-suc :
+  ∀{Δ}{Δ′}{Ψ}
+  (σ : Substᵗ Δ Δ′ Ψ) (A : Ty Δ Ψ) →
+  substᵗ (extsᵗ σ) (renameᵗ Sᵗ A) ≡
+  renameᵗ Sᵗ (substᵗ σ A)
+substᵗ-suc-renameᵗ-suc σ A =
+  trans
+    (rename-subst-commute Sᵗ (extsᵗ σ) A)
+    (sym (rename-subst Sᵗ σ A))
+
+map-substᵗ-⤊ᵗ :
+  ∀{Δ}{Δ′}{Ψ}
+  (σ : Substᵗ Δ Δ′ Ψ) (Γ : Ctx Δ Ψ) →
+  map (substᵗ (extsᵗ σ)) (map (renameᵗ Sᵗ) Γ) ≡
+  map (renameᵗ Sᵗ) (map (substᵗ σ) Γ)
+map-substᵗ-⤊ᵗ σ [] = refl
+map-substᵗ-⤊ᵗ σ (A ∷ Γ) =
+  cong₂ _∷_
+    (substᵗ-suc-renameᵗ-suc σ A)
+    (map-substᵗ-⤊ᵗ σ Γ)
+
+map-substᵗ-⤊ˢ :
+  ∀{Δ}{Δ′}{Ψ}
+  (σ : Substᵗ Δ Δ′ Ψ) (Γ : Ctx Δ Ψ) →
+  map (substᵗ (liftSubstˢ σ)) (⤊ˢ Γ) ≡
+  ⤊ˢ (map (substᵗ σ) Γ)
+map-substᵗ-⤊ˢ σ [] = refl
+map-substᵗ-⤊ˢ σ (A ∷ Γ) =
+  cong₂ _∷_
+    (substᵗ-⇑ˢ σ A)
+    (map-substᵗ-⤊ˢ σ Γ)
+
+substᵗ-[]ᵗ-seal :
+  ∀{Δ}{Δ′}{Ψ}
+  (σ : Substᵗ Δ Δ′ Ψ) (A : Ty (suc Δ) Ψ) (α : Seal Ψ) →
+  substᵗ σ (A [ ｀ α ]ᵗ) ≡ (substᵗ (extsᵗ σ) A) [ ｀ α ]ᵗ
+substᵗ-[]ᵗ-seal σ A α = subst-[]ᵗ-commute σ A (｀ α)
+
 renameᵗ-wkTy0 :
   ∀ {Δ}{Δ′}{Ψ} (ρ : Renameᵗ Δ Δ′) (A : Ty 0 Ψ) →
   renameᵗ ρ (wkTy0 A) ≡ wkTy0 A
@@ -439,8 +507,18 @@ renameˢ-⇑ˢ ρ (A ⇒ B) =
 renameˢ-⇑ˢ ρ (`∀ A) =
   cong `∀ (renameˢ-⇑ˢ ρ A)
 
+map-renameˢ-⤊ˢ :
+  ∀{Δ}{Ψ}{Ψ′} (ρ : Renameˢ Ψ Ψ′) (Γ : Ctx Δ Ψ) →
+  map (renameˢ (extˢ ρ)) (⤊ˢ Γ) ≡
+  ⤊ˢ (map (renameˢ ρ) Γ)
+map-renameˢ-⤊ˢ ρ [] = refl
+map-renameˢ-⤊ˢ ρ (A ∷ Γ) =
+  cong₂ _∷_
+    (renameˢ-⇑ˢ ρ A)
+    (map-renameˢ-⤊ˢ ρ Γ)
+
 ------------------------------------------------------------------------
--- Private helpers: seal-renaming/substitution commuting
+-- Seal-renaming/substitution commuting (mostly private)
 ------------------------------------------------------------------------
 private
   renameˢ-substᵗ-commute :
@@ -467,22 +545,25 @@ private
         renameˢⱽ ρ (extsᵗ σ X) ≡ extsᵗ (λ X′ → renameˢⱽ ρ (σ X′)) X
       env-eq Zᵗ = refl
       env-eq (Sᵗ X) = sym (renameᵗⱽ-renameˢⱽ Sᵗ ρ (σ X))
-  
-  renameˢ-[]ᵗ-commute :
-    ∀{Δ}{Ψ}{Ψ′}
-    (ρ : Renameˢ Ψ Ψ′) (A : Ty (suc Δ) Ψ) (B : TVar Δ Ψ) →
-    renameˢ ρ (A [ B ]ᵗ) ≡ (renameˢ ρ A) [ renameˢⱽ ρ B ]ᵗ
-  renameˢ-[]ᵗ-commute ρ A B =
-    trans
-      (renameˢ-substᵗ-commute ρ (singleTyEnv B) A)
-      (subst-cong env-eq (renameˢ ρ A))
-    where
-      env-eq :
-        (X : TyVar (suc _)) →
-        (λ X′ → renameˢⱽ ρ (singleTyEnv B X′)) X ≡
-        singleTyEnv (renameˢⱽ ρ B) X
-      env-eq Zᵗ = refl
-      env-eq (Sᵗ X) = refl
+
+------------------------------------------------------------------------
+-- Public API: seal renaming commutes with type opening
+------------------------------------------------------------------------
+renameˢ-[]ᵗ-commute :
+  ∀{Δ}{Ψ}{Ψ′}
+  (ρ : Renameˢ Ψ Ψ′) (A : Ty (suc Δ) Ψ) (B : TVar Δ Ψ) →
+  renameˢ ρ (A [ B ]ᵗ) ≡ (renameˢ ρ A) [ renameˢⱽ ρ B ]ᵗ
+renameˢ-[]ᵗ-commute ρ A B =
+  trans
+    (renameˢ-substᵗ-commute ρ (singleTyEnv B) A)
+    (subst-cong env-eq (renameˢ ρ A))
+  where
+    env-eq :
+      (X : TyVar (suc _)) →
+      (λ X′ → renameˢⱽ ρ (singleTyEnv B X′)) X ≡
+      singleTyEnv (renameˢⱽ ρ B) X
+    env-eq Zᵗ = refl
+    env-eq (Sᵗ X) = refl
 
 ------------------------------------------------------------------------
 -- Public API: seal-renaming source and weakening lemmas
@@ -517,6 +598,21 @@ private
 ------------------------------------------------------------------------
 -- Public API: store source shape and ν substitution source
 ------------------------------------------------------------------------
+renameStoreˢ-⟰ˢ :
+  ∀ {Ψ}{Ψ′} (ρ : Renameˢ Ψ Ψ′) (Σ : Store Ψ) →
+  renameStoreˢ (extˢ ρ) (⟰ˢ Σ) ≡ ⟰ˢ (renameStoreˢ ρ Σ)
+renameStoreˢ-⟰ˢ ρ Σ = renameStoreˢ-suc ρ Σ
+
+renameStoreˢ-ν :
+  ∀{Ψ}{Ψ′}
+  (ρ : Renameˢ Ψ Ψ′) (A : Ty 0 Ψ) (Σ : Store Ψ) →
+  renameStoreˢ (extˢ ρ) ((Zˢ , ⇑ˢ A) ∷ ⟰ˢ Σ) ≡
+  (Zˢ , ⇑ˢ (renameˢ ρ A)) ∷ ⟰ˢ (renameStoreˢ ρ Σ)
+renameStoreˢ-ν ρ A Σ =
+  cong₂ _∷_
+    (cong₂ _,_ refl (renameˢ-⇑ˢ ρ A))
+    (renameStoreˢ-⟰ˢ ρ Σ)
+
 renameStoreˢ-↑★ :
   ∀ {Ψ}{Ψ′} (ρ : Renameˢ Ψ Ψ′) (Σ : Store Ψ) →
   renameStoreˢ (extˢ ρ) ((Zˢ , `★) ∷ ⟰ˢ Σ) ≡

@@ -1,5 +1,13 @@
 module Store where
 
+-- File Charter:
+--   * Store-specific infrastructure and metatheory (`Store`, extension, lookup, ν/⟰).
+--   * Preservation/monotonicity lemmas for store operations.
+--   * No generic type-substitution algebra and no coercion-only results.
+-- Note to self:
+--   * Put new lemmas here when the principal relation is about stores/lookups; if the
+--     proof is mainly about `Ty` substitution or contexts, move it to that module.
+
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
 open import Data.Product using (_,_)

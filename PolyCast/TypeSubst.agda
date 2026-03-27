@@ -1,7 +1,15 @@
 module TypeSubst where
 
+-- File Charter:
+--   * Generic metatheory for type-level renaming/substitution on `Ty`.
+--   * Substitution algebra laws, commutation lemmas, and instantiation lemmas.
+--   * No context-shape lemmas (put those in `Ctx`) and no coercion-specific lemmas.
+-- Note to self:
+--   * Before adding a theorem here, check whether it is really about `Ty` substitution
+--     itself; if it mentions context lookup/store/coercions as primary structure,
+--     place it in that module instead.
+
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; sym; trans)
 
@@ -39,22 +47,6 @@ renameLookupˢ :
 renameLookupˢ ρ (Z∋ˢ α≡β A≡B) =
   Z∋ˢ (cong ρ α≡β) (cong (renameˢ ρ) A≡B)
 renameLookupˢ ρ (S∋ˢ h) = S∋ˢ (renameLookupˢ ρ h)
-
-renameLookup :
-  ∀{Δ}{Ψ}{Ψ′}{Γ : Ctx Δ Ψ}{x : Var}{A : Ty Δ Ψ} →
-  (ρ : Renameˢ Ψ Ψ′) →
-  Γ ∋ x ⦂ A →
-  map (renameˢ ρ) Γ ∋ x ⦂ renameˢ ρ A
-renameLookup ρ Z = Z
-renameLookup ρ (S h) = S (renameLookup ρ h)
-
-substLookup :
-  ∀{Δ}{Δ′}{Ψ}{Γ : Ctx Δ Ψ}{x : Var}{A : Ty Δ Ψ} →
-  (σ : Substᵗ Δ Δ′ Ψ) →
-  Γ ∋ x ⦂ A →
-  map (substᵗ σ) Γ ∋ x ⦂ substᵗ σ A
-substLookup σ Z = Z
-substLookup σ (S h) = S (substLookup σ h)
 
 liftSubstˢ : ∀{Δ}{Δ′}{Ψ} → Substᵗ Δ Δ′ Ψ → Substᵗ Δ Δ′ (suc Ψ)
 liftSubstˢ σ X = ⇑ˢ (σ X)
@@ -280,6 +272,65 @@ renameˢ-substᵗ ρ σ (`∀ A) =
     env-eq Zᵗ = refl
     env-eq (Sᵗ X) = sym (renameᵗ-renameˢ Sᵗ ρ (σ X))
 
+inst★-renameᵗ-suc :
+  ∀{Δ}{Ψ} (A : Ty Δ Ψ) →
+  inst★ (renameᵗ Sᵗ A) ≡ A
+inst★-renameᵗ-suc A =
+  trans
+    (substᵗ-renameᵗ Sᵗ single★ A)
+    (trans
+      (substᵗ-cong (λ X → refl) A)
+      (substᵗ-id A))
+
+renameᵗ-inst★ :
+  ∀{Δ}{Δ′}{Ψ}
+  (ρ : Renameᵗ Δ Δ′) (A : Ty (suc Δ) Ψ) →
+  renameᵗ ρ (inst★ A) ≡ inst★ (renameᵗ (extᵗ ρ) A)
+renameᵗ-inst★ {Ψ = Ψ} ρ A =
+  trans
+    (renameᵗ-substᵗ ρ single★ A)
+    (trans
+      (substᵗ-cong env A)
+      (sym (substᵗ-renameᵗ (extᵗ ρ) single★ A)))
+  where
+    env :
+      (X : TyVar (suc _)) →
+      renameᵗ ρ (single★ {Ψ = Ψ} X) ≡ single★ {Ψ = Ψ} (extᵗ ρ X)
+    env Zᵗ = refl
+    env (Sᵗ X) = refl
+
+substᵗ-inst★ :
+  ∀{Δ}{Δ′}{Ψ}
+  (σ : Substᵗ Δ Δ′ Ψ) (A : Ty (suc Δ) Ψ) →
+  substᵗ σ (inst★ A) ≡ inst★ (substᵗ (extsᵗ σ) A)
+substᵗ-inst★ σ A =
+  trans
+    (substᵗ-substᵗ σ single★ A)
+    (trans
+      (substᵗ-cong env A)
+      (sym (substᵗ-substᵗ single★ (extsᵗ σ) A)))
+  where
+    env :
+      (X : TyVar (suc _)) →
+      substᵗ σ (single★ X) ≡ substᵗ single★ (extsᵗ σ X)
+    env Zᵗ = refl
+    env (Sᵗ X) = sym (inst★-renameᵗ-suc (σ X))
+
+renameˢ-inst★ :
+  ∀{Δ}{Ψ}{Ψ′}
+  (ρ : Renameˢ Ψ Ψ′) (A : Ty (suc Δ) Ψ) →
+  renameˢ ρ (inst★ A) ≡ inst★ (renameˢ ρ A)
+renameˢ-inst★ ρ A =
+  trans
+    (renameˢ-substᵗ ρ single★ A)
+    (substᵗ-cong env (renameˢ ρ A))
+  where
+    env :
+      (X : TyVar (suc _)) →
+      renameˢ ρ (single★ X) ≡ single★ X
+    env Zᵗ = refl
+    env (Sᵗ X) = refl
+
 ------------------------------------------------------------------------
 -- Commuting with seal lifting/opening and contexts
 ------------------------------------------------------------------------
@@ -318,28 +369,6 @@ substᵗ-⇑ˢ σ (`∀ A) =
     (trans
       (substᵗ-cong (exts-liftSubstˢ σ) (⇑ˢ A))
       (substᵗ-⇑ˢ (extsᵗ σ) A))
-
-map-substᵗ-⤊ᵗ :
-  ∀{Δ}{Δ′}{Ψ}
-  (σ : Substᵗ Δ Δ′ Ψ) (Γ : Ctx Δ Ψ) →
-  map (substᵗ (extsᵗ σ)) (map (renameᵗ Sᵗ) Γ) ≡
-  map (renameᵗ Sᵗ) (map (substᵗ σ) Γ)
-map-substᵗ-⤊ᵗ σ [] = refl
-map-substᵗ-⤊ᵗ σ (A ∷ Γ) =
-  cong₂ _∷_
-    (substᵗ-suc-renameᵗ-suc σ A)
-    (map-substᵗ-⤊ᵗ σ Γ)
-
-map-substᵗ-⤊ˢ :
-  ∀{Δ}{Δ′}{Ψ}
-  (σ : Substᵗ Δ Δ′ Ψ) (Γ : Ctx Δ Ψ) →
-  map (substᵗ (liftSubstˢ σ)) (⤊ˢ Γ) ≡
-  ⤊ˢ (map (substᵗ σ) Γ)
-map-substᵗ-⤊ˢ σ [] = refl
-map-substᵗ-⤊ˢ σ (A ∷ Γ) =
-  cong₂ _∷_
-    (substᵗ-⇑ˢ σ A)
-    (map-substᵗ-⤊ˢ σ Γ)
 
 ------------------------------------------------------------------------
 -- Closed-type weakening invariants

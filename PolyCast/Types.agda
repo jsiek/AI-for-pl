@@ -1,5 +1,13 @@
 module Types where
 
+-- File Charter:
+--   * Core syntax and primitive operations for types, contexts, and stores.
+--   * Definitions only (renaming, substitution operators, opening, lookup relations).
+--   * No deep proof engineering or coercion-specific metatheory.
+-- Note to self:
+--   * Put new lemmas/proofs in the most specific module, not here, unless they are
+--     definitional properties of these core operations.
+
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Sigma using (Σ; _,_)
 open import Data.Empty using (⊥)
@@ -108,6 +116,14 @@ substᵗ σ (‵ ι) = ‵ ι
 substᵗ σ `★ = `★
 substᵗ σ (A ⇒ B) = substᵗ σ A ⇒ substᵗ σ B
 substᵗ σ (`∀ A) = `∀ (substᵗ (extsᵗ σ) A)
+
+-- Instantiate top type variable with ★
+single★ : ∀{Δ}{Ψ} → Substᵗ (suc Δ) Δ Ψ
+single★ Zᵗ = `★
+single★ (Sᵗ X) = ＇ X
+
+inst★ : ∀{Δ}{Ψ} → Ty (suc Δ) Ψ → Ty Δ Ψ
+inst★ A = substᵗ single★ A
 
 singleTyEnv : ∀ {Δ}{Ψ} → Ty Δ Ψ → Substᵗ (suc Δ) Δ Ψ
 singleTyEnv B Zᵗ    = B

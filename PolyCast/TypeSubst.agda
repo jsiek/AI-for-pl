@@ -274,10 +274,10 @@ renameˢ-substᵗ ρ σ (`∀ A) =
 
 inst★-renameᵗ-suc :
   ∀{Δ}{Ψ} (A : Ty Δ Ψ) →
-  inst★ (renameᵗ Sᵗ A) ≡ A
+  (renameᵗ Sᵗ A) [ `★ ]ᵗ ≡ A
 inst★-renameᵗ-suc A =
   trans
-    (substᵗ-renameᵗ Sᵗ single★ A)
+    (substᵗ-renameᵗ Sᵗ (singleTyEnv `★) A)
     (trans
       (substᵗ-cong (λ X → refl) A)
       (substᵗ-id A))
@@ -285,49 +285,50 @@ inst★-renameᵗ-suc A =
 renameᵗ-inst★ :
   ∀{Δ}{Δ′}{Ψ}
   (ρ : Renameᵗ Δ Δ′) (A : Ty (suc Δ) Ψ) →
-  renameᵗ ρ (inst★ A) ≡ inst★ (renameᵗ (extᵗ ρ) A)
+  renameᵗ ρ (A [ `★ ]ᵗ) ≡ (renameᵗ (extᵗ ρ) A) [ `★ ]ᵗ
 renameᵗ-inst★ {Ψ = Ψ} ρ A =
   trans
-    (renameᵗ-substᵗ ρ single★ A)
+    (renameᵗ-substᵗ ρ (singleTyEnv `★) A)
     (trans
       (substᵗ-cong env A)
-      (sym (substᵗ-renameᵗ (extᵗ ρ) single★ A)))
+      (sym (substᵗ-renameᵗ (extᵗ ρ) (singleTyEnv `★) A)))
   where
     env :
       (X : TyVar (suc _)) →
-      renameᵗ ρ (single★ {Ψ = Ψ} X) ≡ single★ {Ψ = Ψ} (extᵗ ρ X)
+      renameᵗ ρ (singleTyEnv (`★ {Ψ = Ψ}) X) ≡
+      singleTyEnv (`★ {Ψ = Ψ}) (extᵗ ρ X)
     env Zᵗ = refl
     env (Sᵗ X) = refl
 
 substᵗ-inst★ :
   ∀{Δ}{Δ′}{Ψ}
   (σ : Substᵗ Δ Δ′ Ψ) (A : Ty (suc Δ) Ψ) →
-  substᵗ σ (inst★ A) ≡ inst★ (substᵗ (extsᵗ σ) A)
+  substᵗ σ (A [ `★ ]ᵗ) ≡ (substᵗ (extsᵗ σ) A) [ `★ ]ᵗ
 substᵗ-inst★ σ A =
   trans
-    (substᵗ-substᵗ σ single★ A)
+    (substᵗ-substᵗ σ (singleTyEnv `★) A)
     (trans
       (substᵗ-cong env A)
-      (sym (substᵗ-substᵗ single★ (extsᵗ σ) A)))
+      (sym (substᵗ-substᵗ (singleTyEnv `★) (extsᵗ σ) A)))
   where
     env :
       (X : TyVar (suc _)) →
-      substᵗ σ (single★ X) ≡ substᵗ single★ (extsᵗ σ X)
+      substᵗ σ (singleTyEnv `★ X) ≡ substᵗ (singleTyEnv `★) (extsᵗ σ X)
     env Zᵗ = refl
     env (Sᵗ X) = sym (inst★-renameᵗ-suc (σ X))
 
 renameˢ-inst★ :
   ∀{Δ}{Ψ}{Ψ′}
   (ρ : Renameˢ Ψ Ψ′) (A : Ty (suc Δ) Ψ) →
-  renameˢ ρ (inst★ A) ≡ inst★ (renameˢ ρ A)
+  renameˢ ρ (A [ `★ ]ᵗ) ≡ (renameˢ ρ A) [ `★ ]ᵗ
 renameˢ-inst★ ρ A =
   trans
-    (renameˢ-substᵗ ρ single★ A)
+    (renameˢ-substᵗ ρ (singleTyEnv `★) A)
     (substᵗ-cong env (renameˢ ρ A))
   where
     env :
       (X : TyVar (suc _)) →
-      renameˢ ρ (single★ X) ≡ single★ X
+      renameˢ ρ (singleTyEnv `★ X) ≡ singleTyEnv `★ X
     env Zᵗ = refl
     env (Sᵗ X) = refl
 

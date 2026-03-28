@@ -9,253 +9,308 @@ module Coercions where
 --     theorem is fundamentally about `Ty`, `Ctx`, or `Store`, place it there.
 
 open import Data.Nat using (ℕ; suc)
+open import Data.Empty using (⊥)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl; cong; cong₂; sym; trans) renaming (subst to substEq)
 open import Types
 open import TypeSubst
+open import Store using (Uniqueˢ; lookup-unique)
+
+Label : Set
+Label = ℕ
 
 ------------------------------------------------------------------------
 -- Intrinsically typed polymorphic coercions
+
+-- The representation is canonical with respect to associativity
+-- of coercion sequencing.
 ------------------------------------------------------------------------
 
 infixr 7 _↦_
-infixr 6 _；_
+infixl 6 _；_
+infixr 6 _⨟_
+infix 5 _⊢_⇨_
+infix 5 _⊢_⇨ᵃ_
 
-data Coercion {Δ}{Ψ} (Σ : Store Ψ) : Ty Δ Ψ → Ty Δ Ψ → Set where
-  -- identity
-  id : ∀{A}
-     → Coercion Σ A A
+mutual
+  data _⊢_⇨ᵃ_ {Δ}{Ψ} (Σ : Store Ψ) : Ty Δ Ψ → Ty Δ Ψ → Set where
+    _`?_ : ∀{G}
+      → Ground G
+      → Label
+      → Σ ⊢ `★ ⇨ᵃ G
 
-  -- projection
-  _`?_ : ∀{G}
-       → ℕ
-       → Ground G
-       → Coercion Σ `★ G
+    _! : ∀{G}
+      → Ground G
+      → Σ ⊢ G ⇨ᵃ `★
 
-  -- injection
-  _! : ∀{G}
-     → Ground G
-     → Coercion Σ G `★
+    `⊥ : ∀{A B}
+      → Label
+      → Σ ⊢ A ⇨ᵃ B
 
-  -- error (blame label), with source/target tracked by intrinsic indices
-  ⊥ᶜ : ∀{A B}
-     → ℕ
-     → Coercion Σ A B
+    _⁻ : ∀{α}{A}
+      → Σ ∋ˢ α ⦂ A
+      → Σ ⊢ wkTy0 A ⇨ᵃ ｀ α
 
-  -- seal
-  _⁻ : ∀{α}{A}
-     → Σ ∋ˢ α ⦂ A
-     → Coercion Σ (wkTy0 A) (｀ α)
+    _⁺ : ∀{α}{A}
+      → Σ ∋ˢ α ⦂ A
+      → Σ ⊢ ｀ α ⇨ᵃ wkTy0 A
 
-  -- unseal
-  _⁺ : ∀{α}{A}
-     → Σ ∋ˢ α ⦂ A
-     → Coercion Σ (｀ α) (wkTy0 A)
+    _↦_ : ∀{A A′ B B′}
+      → Σ ⊢ A′ ⇨ A
+      → Σ ⊢ B ⇨ B′
+      → Σ ⊢ (A ⇒ B) ⇨ᵃ (A′ ⇒ B′)
 
-  -- function
-  _↦_ : ∀{A A′ B B′}
-      → Coercion Σ A′ A
-      → Coercion Σ B B′
-      → Coercion Σ (A ⇒ B) (A′ ⇒ B′)
+    ∀ᶜ : ∀{A B : Ty (suc Δ) Ψ}
+      → Σ ⊢ A ⇨ B
+      → Σ ⊢ (`∀ A) ⇨ᵃ (`∀ B)
 
-  -- sequence
-  _；_ : ∀{A B C}
-      → Coercion Σ A B
-      → Coercion Σ B C
-      → Coercion Σ A C
+    𝒢 : ∀{A}
+      → Σ ⊢ (A [ `★ ]ᵗ) ⇨ᵃ (`∀ A)
 
-  -- polymorphic
-  ∀ᶜ_ : ∀{A B}
-      → Coercion {Δ = suc Δ} Σ A B
-      → Coercion {Δ = Δ} Σ (`∀ A) (`∀ B)
+    ℐ : ∀{A}
+      → Σ ⊢ (`∀ A) ⇨ᵃ (A [ `★ ]ᵗ)
 
-  -- generalize
-  𝒢 : ∀{A}
-    → Coercion Σ (inst★ A) (`∀ A)
+  data _⊢_⇨_ {Δ}{Ψ} (Σ : Store Ψ) : Ty Δ Ψ → Ty Δ Ψ → Set where
+    id : ∀{A}
+      → Σ ⊢ A ⇨ A
 
-  -- instantiate
-  ℐ : ∀{A}
-    → Coercion Σ (`∀ A) (inst★ A)
+    _；_ : ∀{A B C}
+      → Σ ⊢ A ⇨ B
+      → Σ ⊢ B ⇨ᵃ C
+      → Σ ⊢ A ⇨ C
 
--- ∀ A ⇒ ⋆ → ⋆ ⇒ ∀ A = id?
+_⨟_ : ∀{Δ}{Ψ}{Σ : Store Ψ}{A B C : Ty Δ Ψ}
+  → Σ ⊢ A ⇨ B
+  → Σ ⊢ B ⇨ C
+  → Σ ⊢ A ⇨ C
+c ⨟ id = c
+c ⨟ (d ； a) = (c ⨟ d) ； a
 
 ------------------------------------------------------------------------
 -- Type-variable renaming and substitution for coercions
 ------------------------------------------------------------------------
 
-renameᶜᵗ :
-  ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B}
-  (ρ : Renameᵗ Δ Δ′) →
-  Coercion {Δ}{Ψ} Σ A B →
-  Coercion {Δ′}{Ψ} Σ (renameᵗ ρ A) (renameᵗ ρ B)
-renameᶜᵗ ρ id = id
-renameᶜᵗ ρ (ℓ `? g) = ℓ `? renameᵗ-ground ρ g
-renameᶜᵗ ρ (g !) = renameᵗ-ground ρ g !
-renameᶜᵗ ρ (⊥ᶜ ℓ) = ⊥ᶜ ℓ
-renameᶜᵗ ρ (_⁻ {A = A₀} h) rewrite renameᵗ-wkTy0 ρ A₀ = h ⁻
-renameᶜᵗ ρ (_⁺ {A = A₀} h) rewrite renameᵗ-wkTy0 ρ A₀ = h ⁺
-renameᶜᵗ ρ (c ↦ d) = renameᶜᵗ ρ c ↦ renameᶜᵗ ρ d
-renameᶜᵗ ρ (c ； d) = renameᶜᵗ ρ c ； renameᶜᵗ ρ d
-renameᶜᵗ ρ (∀ᶜ c) = ∀ᶜ (renameᶜᵗ (extᵗ ρ) c)
-renameᶜᵗ ρ (𝒢 {A = A}) =
-  substEq
-    (λ T → Coercion _ T (`∀ (renameᵗ (extᵗ ρ) A)))
-    (sym (renameᵗ-inst★ ρ A))
-    𝒢
-renameᶜᵗ ρ (ℐ {A = A}) =
-  substEq
-    (λ T → Coercion _ (`∀ (renameᵗ (extᵗ ρ) A)) T)
-    (sym (renameᵗ-inst★ ρ A))
-    ℐ
+mutual
+  renameAtomᶜᵗ :
+    ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B}
+    (ρ : Renameᵗ Δ Δ′) →
+    Σ ⊢ A ⇨ᵃ B →
+    Σ ⊢ renameᵗ ρ A ⇨ᵃ renameᵗ ρ B
+  renameAtomᶜᵗ ρ (g `? ℓ) = renameᵗ-ground ρ g `? ℓ
+  renameAtomᶜᵗ ρ (g !) = renameᵗ-ground ρ g !
+  renameAtomᶜᵗ ρ (`⊥ ℓ) = `⊥ ℓ
+  renameAtomᶜᵗ ρ (_⁻ {A = A₀} h) rewrite renameᵗ-wkTy0 ρ A₀ = h ⁻
+  renameAtomᶜᵗ ρ (_⁺ {A = A₀} h) rewrite renameᵗ-wkTy0 ρ A₀ = h ⁺
+  renameAtomᶜᵗ ρ (c ↦ d) = renameᶜᵗ ρ c ↦ renameᶜᵗ ρ d
+  renameAtomᶜᵗ ρ (∀ᶜ c) = ∀ᶜ (renameᶜᵗ (extᵗ ρ) c)
+  renameAtomᶜᵗ {Σ = Σ} ρ (𝒢 {A = A}) =
+    substEq
+      (λ T → Σ ⊢ T ⇨ᵃ (`∀ (renameᵗ (extᵗ ρ) A)))
+      (sym (renameᵗ-inst★ ρ A))
+      𝒢
+  renameAtomᶜᵗ {Σ = Σ} ρ (ℐ {A = A}) =
+    substEq
+      (λ T → Σ ⊢ (`∀ (renameᵗ (extᵗ ρ) A)) ⇨ᵃ T)
+      (sym (renameᵗ-inst★ ρ A))
+      ℐ
 
-substᶜᵗ :
-  ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B}
-  (σ : Substᵗ Δ Δ′ Ψ) →
-  Coercion {Δ}{Ψ} Σ A B →
-  Coercion {Δ′}{Ψ} Σ (substᵗ σ A) (substᵗ σ B)
-substᶜᵗ σ id = id
-substᶜᵗ σ (ℓ `? g) = ℓ `? substᵗ-ground σ g
-substᶜᵗ σ (g !) = substᵗ-ground σ g !
-substᶜᵗ σ (⊥ᶜ ℓ) = ⊥ᶜ ℓ
-substᶜᵗ σ (_⁻ {A = A₀} h) rewrite substᵗ-wkTy0 σ A₀ = h ⁻
-substᶜᵗ σ (_⁺ {A = A₀} h) rewrite substᵗ-wkTy0 σ A₀ = h ⁺
-substᶜᵗ σ (c ↦ d) = substᶜᵗ σ c ↦ substᶜᵗ σ d
-substᶜᵗ σ (c ； d) = substᶜᵗ σ c ； substᶜᵗ σ d
-substᶜᵗ σ (∀ᶜ c) = ∀ᶜ (substᶜᵗ (extsᵗ σ) c)
-substᶜᵗ σ (𝒢 {A = A}) =
-  substEq
-    (λ T → Coercion _ T (`∀ (substᵗ (extsᵗ σ) A)))
-    (sym (substᵗ-inst★ σ A))
-    𝒢
-substᶜᵗ σ (ℐ {A = A}) =
-  substEq
-    (λ T → Coercion _ (`∀ (substᵗ (extsᵗ σ) A)) T)
-    (sym (substᵗ-inst★ σ A))
-    ℐ
+  renameᶜᵗ :
+    ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B}
+    (ρ : Renameᵗ Δ Δ′) →
+    Σ ⊢ A ⇨ B →
+    Σ ⊢ renameᵗ ρ A ⇨ renameᵗ ρ B
+  renameᶜᵗ ρ id = id
+  renameᶜᵗ ρ (c ； a) = renameᶜᵗ ρ c ； renameAtomᶜᵗ ρ a
+
+mutual
+  substAtomᶜᵗ :
+    ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B}
+    (σ : Substᵗ Δ Δ′ Ψ) →
+    Σ ⊢ A ⇨ᵃ B →
+    Σ ⊢ substᵗ σ A ⇨ᵃ substᵗ σ B
+  substAtomᶜᵗ σ (g `? ℓ) = substᵗ-ground σ g `? ℓ
+  substAtomᶜᵗ σ (g !) = substᵗ-ground σ g !
+  substAtomᶜᵗ σ (`⊥ ℓ) = `⊥ ℓ
+  substAtomᶜᵗ σ (_⁻ {A = A₀} h) rewrite substᵗ-wkTy0 σ A₀ = h ⁻
+  substAtomᶜᵗ σ (_⁺ {A = A₀} h) rewrite substᵗ-wkTy0 σ A₀ = h ⁺
+  substAtomᶜᵗ σ (c ↦ d) = substᶜᵗ σ c ↦ substᶜᵗ σ d
+  substAtomᶜᵗ σ (∀ᶜ c) = ∀ᶜ (substᶜᵗ (extsᵗ σ) c)
+  substAtomᶜᵗ {Σ = Σ} σ (𝒢 {A = A}) =
+    substEq
+      (λ T → Σ ⊢ T ⇨ᵃ (`∀ (substᵗ (extsᵗ σ) A)))
+      (sym (substᵗ-inst★ σ A))
+      𝒢
+  substAtomᶜᵗ {Σ = Σ} σ (ℐ {A = A}) =
+    substEq
+      (λ T → Σ ⊢ (`∀ (substᵗ (extsᵗ σ) A)) ⇨ᵃ T)
+      (sym (substᵗ-inst★ σ A))
+      ℐ
+
+  substᶜᵗ :
+    ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B}
+    (σ : Substᵗ Δ Δ′ Ψ) →
+    Σ ⊢ A ⇨ B →
+    Σ ⊢ substᵗ σ A ⇨ substᵗ σ B
+  substᶜᵗ σ id = id
+  substᶜᵗ σ (c ； a) = substᶜᵗ σ c ； substAtomᶜᵗ σ a
+
+infixl 8 _[_]ᶜᵗ
+_[_]ᶜᵗ :
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{A B : Ty (suc Δ) Ψ}
+  → Σ ⊢ A ⇨ B
+  → (T : Ty Δ Ψ)
+  → Σ ⊢ (A [ T ]ᵗ) ⇨ (B [ T ]ᵗ)
+c [ T ]ᶜᵗ = substᶜᵗ (singleTyEnv T) c
 
 ------------------------------------------------------------------------
 -- Seal renaming for coercions
 ------------------------------------------------------------------------
 
-renameᶜˢ :
-  ∀{Δ}{Ψ}{Ψ′}{Σ : Store Ψ}{A B}
-  (ρ : Renameˢ Ψ Ψ′) →
-  Coercion {Δ}{Ψ} Σ A B →
-  Coercion {Δ}{Ψ′} (renameStoreˢ ρ Σ) (renameˢ ρ A) (renameˢ ρ B)
-renameᶜˢ ρ id = id
-renameᶜˢ ρ (ℓ `? g) = ℓ `? renameˢ-ground ρ g
-renameᶜˢ ρ (g !) = renameˢ-ground ρ g !
-renameᶜˢ ρ (⊥ᶜ ℓ) = ⊥ᶜ ℓ
-renameᶜˢ {Δ = Δ} ρ (_⁻ {A = A₀} h)
-  rewrite renameˢ-wkTy0 {Δ = Δ} ρ A₀ =
-  (renameLookupˢ ρ h) ⁻
-renameᶜˢ {Δ = Δ} ρ (_⁺ {A = A₀} h)
-  rewrite renameˢ-wkTy0 {Δ = Δ} ρ A₀ =
-  (renameLookupˢ ρ h) ⁺
-renameᶜˢ ρ (c ↦ d) = renameᶜˢ ρ c ↦ renameᶜˢ ρ d
-renameᶜˢ ρ (c ； d) = renameᶜˢ ρ c ； renameᶜˢ ρ d
-renameᶜˢ ρ (∀ᶜ c) = ∀ᶜ (renameᶜˢ ρ c)
-renameᶜˢ ρ (𝒢 {A = A}) =
-  substEq
-    (λ T → Coercion _ T (`∀ (renameˢ ρ A)))
-    (sym (renameˢ-inst★ ρ A))
-    𝒢
-renameᶜˢ ρ (ℐ {A = A}) =
-  substEq
-    (λ T → Coercion _ (`∀ (renameˢ ρ A)) T)
-    (sym (renameˢ-inst★ ρ A))
-    ℐ
+mutual
+  renameAtomᶜˢ :
+    ∀{Δ}{Ψ}{Ψ′}{Σ : Store Ψ}{A B : Ty Δ Ψ}
+    (ρ : Renameˢ Ψ Ψ′) →
+    Σ ⊢ A ⇨ᵃ B →
+    renameStoreˢ ρ Σ ⊢ renameˢ ρ A ⇨ᵃ renameˢ ρ B
+  renameAtomᶜˢ ρ (g `? ℓ) = renameˢ-ground ρ g `? ℓ
+  renameAtomᶜˢ ρ (g !) = renameˢ-ground ρ g !
+  renameAtomᶜˢ ρ (`⊥ ℓ) = `⊥ ℓ
+  renameAtomᶜˢ {Σ = Σ} ρ (_⁻ {α = α} {A = A₀} h) =
+    substEq
+      (λ T → renameStoreˢ ρ Σ ⊢ T ⇨ᵃ ｀ (ρ α))
+      (renameᵗ-renameˢ lift0ᵗ ρ A₀)
+      ((renameLookupˢ ρ h) ⁻)
+  renameAtomᶜˢ {Σ = Σ} ρ (_⁺ {α = α} {A = A₀} h) =
+    substEq
+      (λ T → renameStoreˢ ρ Σ ⊢ ｀ (ρ α) ⇨ᵃ T)
+      (renameᵗ-renameˢ lift0ᵗ ρ A₀)
+      ((renameLookupˢ ρ h) ⁺)
+  renameAtomᶜˢ ρ (c ↦ d) = renameᶜˢ ρ c ↦ renameᶜˢ ρ d
+  renameAtomᶜˢ ρ (∀ᶜ c) = ∀ᶜ (renameᶜˢ ρ c)
+  renameAtomᶜˢ {Σ = Σ} ρ (𝒢 {A = A}) =
+    substEq
+      (λ T → renameStoreˢ ρ Σ ⊢ T ⇨ᵃ (`∀ (renameˢ ρ A)))
+      (sym (renameˢ-inst★ ρ A))
+      𝒢
+  renameAtomᶜˢ {Σ = Σ} ρ (ℐ {A = A}) =
+    substEq
+      (λ T → renameStoreˢ ρ Σ ⊢ (`∀ (renameˢ ρ A)) ⇨ᵃ T)
+      (sym (renameˢ-inst★ ρ A))
+      ℐ
+
+  renameᶜˢ :
+    ∀{Δ}{Ψ}{Ψ′}{Σ : Store Ψ}{A B : Ty Δ Ψ}
+    (ρ : Renameˢ Ψ Ψ′) →
+    Σ ⊢ A ⇨ B →
+    renameStoreˢ ρ Σ ⊢ renameˢ ρ A ⇨ renameˢ ρ B
+  renameᶜˢ ρ id = id
+  renameᶜˢ ρ (c ； a) = renameᶜˢ ρ c ； renameAtomᶜˢ ρ a
 
 ------------------------------------------------------------------------
 -- Coercion reduction
 ------------------------------------------------------------------------
 
+infix 4 _︔_—→ᶜ_
 infix 4 _—→ᶜᶜ_
 infix 3 _∎ᶜᶜ
 infixr 2 _—→ᶜᶜ⟨_⟩_
 infix 2 _—↠ᶜᶜ_
 infixr 2 _—↠ᶜᶜ⟨_⟩_
 
-data Error {Δ}{Ψ}{Σ : Store Ψ}
-  : ∀{A B} → Coercion {Δ}{Ψ} Σ A B → Set where
-  err-⊥ : ∀ {A B}{ℓ}
-    → Error (⊥ᶜ {A = A} {B = B} ℓ)
+data HasBlame {Δ}{Ψ}{Σ : Store Ψ}
+  : ∀{A B : Ty Δ Ψ} → Σ ⊢ A ⇨ᵃ B → Set where
+  hb-proj : ∀ {G}{g : Ground G}{ℓ}
+    → HasBlame (g `? ℓ)
+  hb-err : ∀ {A B}{ℓ}
+    → HasBlame (`⊥ {A = A} {B = B} ℓ)
+
+data _︔_—→ᶜ_ {Δ}{Ψ}{Σ : Store Ψ}
+  : ∀{A B C : Ty Δ Ψ}
+  → Σ ⊢ A ⇨ᵃ B
+  → Σ ⊢ B ⇨ᵃ C
+  → Σ ⊢ A ⇨ C
+  → Set where
+  proj-inj-ok : ∀ {G}{g g′ : Ground G}{ℓ}
+    → g ! ︔ g′ `? ℓ —→ᶜ id
+
+  proj-inj-bad : ∀ {G H}{g : Ground G}{h : Ground H}{ℓ}
+    → G ≢ H
+    → g ! ︔ h `? ℓ —→ᶜ (id ； (`⊥ ℓ))
+
+  seal-unseal : ∀ {α}{A B}
+    {h : Σ ∋ˢ α ⦂ A}
+    {h′ : Σ ∋ˢ α ⦂ B}
+    (uΣ : Uniqueˢ Σ)
+    → h ⁻ ︔ h′ ⁺ —→ᶜ
+      (substEq
+        (λ T → Σ ⊢ wkTy0 A ⇨ T)
+        (cong wkTy0 (lookup-unique uΣ h h′))
+        id)
+
+  inst-gen : ∀ {A}
+    → ℐ {A = A} ︔ 𝒢 {A = A} —→ᶜ (id {A = `∀ A})
+
+  ↦-step : ∀ {A A′ A″ B B′ B″}
+    {c : Σ ⊢ A′ ⇨ A}
+    {d : Σ ⊢ B ⇨ B′}
+    {c′ : Σ ⊢ A″ ⇨ A′}
+    {d′ : Σ ⊢ B′ ⇨ B″}
+    → c ↦ d ︔ c′ ↦ d′ —→ᶜ (id ； ((c′ ⨟ c) ↦ (d ⨟ d′)))
+
+  all-dist : ∀ {A B C : Ty (suc Δ) Ψ}
+    {c : Σ ⊢ A ⇨ B}
+    {d : Σ ⊢ B ⇨ C}
+    → ∀ᶜ c ︔ ∀ᶜ d —→ᶜ (id ； (∀ᶜ (c ⨟ d)))
+
+  all-inst : ∀ {A B : Ty (suc Δ) Ψ}
+    {c : Σ ⊢ A ⇨ B}
+    → ∀ᶜ c ︔ ℐ —→ᶜ ((id ； ℐ) ⨟ c [ `★ ]ᶜᵗ)
+
+  gen-all : ∀ {A B : Ty (suc Δ) Ψ}
+    {c : Σ ⊢ A ⇨ B}
+    → 𝒢 ︔ ∀ᶜ c —→ᶜ (c [ `★ ]ᶜᵗ ⨟ (id ； 𝒢))
+
+  ⊥-left : ∀ {A B C}{ℓ}
+    {b : Σ ⊢ B ⇨ᵃ C}
+    → `⊥ {A = A} {B = B} ℓ ︔ b —→ᶜ (id ； (`⊥ {A = A} {B = C} ℓ))
+
+  ⊥-right : ∀ {A B C}{ℓ}
+    {a : Σ ⊢ A ⇨ᵃ B}
+    → ¬ HasBlame a
+    → a ︔ `⊥ {A = B} {B = C} ℓ —→ᶜ (id ； (`⊥ {A = A} {B = C} ℓ))
 
 data _—→ᶜᶜ_ {Δ}{Ψ}{Σ : Store Ψ}
-  : ∀{A B} → Coercion {Δ}{Ψ} Σ A B → Coercion Σ A B → Set where
+  : ∀{A B : Ty Δ Ψ} → Σ ⊢ A ⇨ B → Σ ⊢ A ⇨ B → Set where
   
-  proj-inj-okᶜ : ∀ {G}{g g′ : Ground G}{ℓ}
-    → (g ! ； (ℓ `? g′)) —→ᶜᶜ id
+  β-adjᶜ : ∀ {A B C D}
+    {p : Σ ⊢ A ⇨ B}
+    {a : Σ ⊢ B ⇨ᵃ C}
+    {b : Σ ⊢ C ⇨ᵃ D}
+    {r : Σ ⊢ B ⇨ D}
+    → a ︔ b —→ᶜ r
+    → ((p ； a) ； b) —→ᶜᶜ (p ⨟ r)
 
-  proj-inj-badᶜ : ∀ {G H}{g : Ground G}{h : Ground H}{ℓ}
-    → G ≢ H
-    → (g ! ； (ℓ `? h)) —→ᶜᶜ (⊥ᶜ ℓ)
-
-  idLᶜ : ∀ {A B}{d : Coercion Σ A B}
-    → (id ； d) —→ᶜᶜ d
-
-  idRᶜ : ∀ {A B}{c : Coercion Σ A B}
-    → (c ； id) —→ᶜᶜ c
-
-  ↦ᶜ : ∀ {A A′ A″ B B′ B″}
-    {c : Coercion Σ A′ A}
-    {d : Coercion Σ B B′}
-    {c′ : Coercion Σ A″ A′}
-    {d′ : Coercion Σ B′ B″}
-    → ((c ↦ d) ； (c′ ↦ d′)) —→ᶜᶜ ((c′ ； c) ↦ (d ； d′))
-
-  ∀ᶜ-distᶜ : ∀ {A B C}
-    {c : Coercion {Δ = suc Δ} Σ A B}
-    {d : Coercion {Δ = suc Δ} Σ B C}
-    → ((∀ᶜ c) ； (∀ᶜ d)) —→ᶜᶜ (∀ᶜ (c ； d))
-
-  ⊥Lᶜ : ∀ {A B C}{d : Coercion Σ B C}{ℓ}
-    → ((⊥ᶜ {A = A} {B = B} ℓ) ； d) —→ᶜᶜ (⊥ᶜ {A = A} {B = C} ℓ)
-
-  ⊥Rᶜ : ∀ {A B C}{c : Coercion Σ A B}{ℓ}
-    → ¬ Error c
-    → (c ； (⊥ᶜ {A = B} {B = C} ℓ)) —→ᶜᶜ (⊥ᶜ {A = A} {B = C} ℓ)
-
-  ξ-；₁ᶜ : ∀ {A B C}
-    {c c′ : Coercion Σ A B}
-    {d : Coercion Σ B C}
+  ξ-；ᶜ : ∀ {A B C}
+    {c c′ : Σ ⊢ A ⇨ B}
+    {a : Σ ⊢ B ⇨ᵃ C}
     → c —→ᶜᶜ c′
-    → (c ； d) —→ᶜᶜ (c′ ； d)
+    → (c ； a) —→ᶜᶜ (c′ ； a)
 
-  ξ-；₂ᶜ : ∀ {A B C}
-    {c : Coercion Σ A B}
-    {d d′ : Coercion Σ B C}
-    → d —→ᶜᶜ d′
-    → (c ； d) —→ᶜᶜ (c ； d′)
-
-  ξ-↦₁ᶜ : ∀ {A A′ B B′}
-    {c c′ : Coercion Σ A′ A}
-    {d : Coercion Σ B B′}
-    → c —→ᶜᶜ c′
-    → (c ↦ d) —→ᶜᶜ (c′ ↦ d)
-
-  ξ-↦₂ᶜ : ∀ {A A′ B B′}
-    {c : Coercion Σ A′ A}
-    {d d′ : Coercion Σ B B′}
-    → d —→ᶜᶜ d′
-    → (c ↦ d) —→ᶜᶜ (c ↦ d′)
-
-  ξ-∀ᶜ : ∀ {A B}
-    {c c′ : Coercion {Δ = suc Δ} Σ A B}
-    → c —→ᶜᶜ c′
-    → (∀ᶜ c) —→ᶜᶜ (∀ᶜ c′)
+------------------------------------------------------------------------
+-- Coercion multi-step reduction
+------------------------------------------------------------------------
 
 data _—↠ᶜᶜ_ {Δ}{Ψ}{Σ : Store Ψ}
-  : ∀{A B} → Coercion {Δ}{Ψ} Σ A B → Coercion Σ A B → Set where
-  _∎ᶜᶜ : ∀ {A B} (c : Coercion Σ A B) → c —↠ᶜᶜ c
+  : ∀{A B : Ty Δ Ψ} → Σ ⊢ A ⇨ B → Σ ⊢ A ⇨ B → Set where
+  _∎ᶜᶜ : ∀ {A B : Ty Δ Ψ} (c : Σ ⊢ A ⇨ B) → c —↠ᶜᶜ c
 
-  _—→ᶜᶜ⟨_⟩_ : ∀ {A B} (l : Coercion Σ A B) {m n : Coercion Σ A B}
+  _—→ᶜᶜ⟨_⟩_ : ∀ {A B : Ty Δ Ψ} (l : Σ ⊢ A ⇨ B) {m n : Σ ⊢ A ⇨ B}
     → l —→ᶜᶜ m
     → m —↠ᶜᶜ n
     → l —↠ᶜᶜ n
 
-multi-transᶜᶜ : ∀ {Δ}{Ψ}{Σ : Store Ψ}{A B}
-  {c d e : Coercion {Δ}{Ψ} Σ A B}
+multi-transᶜᶜ : ∀ {Δ}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ}
+  {c d e : Σ ⊢ A ⇨ B}
   → c —↠ᶜᶜ d
   → d —↠ᶜᶜ e
   → c —↠ᶜᶜ e
@@ -263,10 +318,11 @@ multi-transᶜᶜ (_ ∎ᶜᶜ) ms2 = ms2
 multi-transᶜᶜ (_ —→ᶜᶜ⟨ s ⟩ ms1′) ms2 =
   _ —→ᶜᶜ⟨ s ⟩ (multi-transᶜᶜ ms1′ ms2)
 
-_—↠ᶜᶜ⟨_⟩_ : ∀ {Δ}{Ψ}{Σ : Store Ψ}{A B}
-  (l : Coercion {Δ}{Ψ} Σ A B)
-  {m n : Coercion Σ A B}
+_—↠ᶜᶜ⟨_⟩_ : ∀ {Δ}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ}
+  (l : Σ ⊢ A ⇨ B)
+  {m n : Σ ⊢ A ⇨ B}
   → l —↠ᶜᶜ m
   → m —↠ᶜᶜ n
   → l —↠ᶜᶜ n
 l —↠ᶜᶜ⟨ l—↠m ⟩ m—↠n = multi-transᶜᶜ l—↠m m—↠n
+

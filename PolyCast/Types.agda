@@ -117,14 +117,6 @@ substᵗ σ `★ = `★
 substᵗ σ (A ⇒ B) = substᵗ σ A ⇒ substᵗ σ B
 substᵗ σ (`∀ A) = `∀ (substᵗ (extsᵗ σ) A)
 
--- Instantiate top type variable with ★
-single★ : ∀{Δ}{Ψ} → Substᵗ (suc Δ) Δ Ψ
-single★ Zᵗ = `★
-single★ (Sᵗ X) = ＇ X
-
-inst★ : ∀{Δ}{Ψ} → Ty (suc Δ) Ψ → Ty Δ Ψ
-inst★ A = substᵗ single★ A
-
 singleTyEnv : ∀ {Δ}{Ψ} → Ty Δ Ψ → Substᵗ (suc Δ) Δ Ψ
 singleTyEnv B Zᵗ    = B
 singleTyEnv B (Sᵗ X) = ＇ X

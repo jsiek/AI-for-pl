@@ -2,7 +2,7 @@ module Progress where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (ℕ)
+open import Data.Nat using (ℕ; suc)
 open import Data.Product using (Σ; Σ-syntax; _,_)
 
 open import Types
@@ -15,11 +15,13 @@ open import Reduction
 -- Progress witness (for closed terms)
 ------------------------------------------------------------------------
 
-data Progress {A : Ty 0 0} (M : 0 ∣ 0 ∣ ∅ˢ ∣ [] ⊢ A) : Set where
+data Progress
+  {Ψ}{Σ : Store Ψ}{A : Ty 0 Ψ}
+  (M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A) : Set where
   done  : Value M → Progress M
   step  :
     ∀ {Ψ′}{Σ′ : Store Ψ′}
-      {ρ : Renameˢ 0 Ψ′}
+      {ρ : Renameˢ Ψ Ψ′}
       {N : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ renameˢ ρ A} →
     M —→[ ρ ] N →
     Progress M
@@ -47,13 +49,48 @@ data FunView
     FunView V
 
 canonical-⇒ :
-  ∀ {A B : Ty 0 0}
-    {V : 0 ∣ 0 ∣ ∅ˢ ∣ [] ⊢ (A ⇒ B)} →
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}
+    {A B : Ty Δ Ψ}
+    {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (A ⇒ B)} →
   Value V →
   FunView V
 canonical-⇒ V-ƛ = fv-ƛ refl
 canonical-⇒ (V-⟨↦⟩ vW) = fv-↦ vW refl
 canonical-⇒ {V = $ (κℕ n) ()} _
+
+data AllView
+  {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}
+  {A : Ty (suc Δ) Ψ}
+  (V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (`∀ A)) : Set where
+  av-Λ :
+    ∀ {N : (suc Δ) ∣ Ψ ∣ Σ ∣ (⤊ᵗ Γ) ⊢ A} →
+    V ≡ Λ N →
+    AllView V
+
+  av-∀ :
+    ∀ {A′ : Ty (suc Δ) Ψ}
+      {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (`∀ A′)}
+      {c : Σ ⊢ A′ ⇨ A} →
+    Value W →
+    V ≡ (W ⟨ id ； (∀ᶜ c) ⟩) →
+    AllView V
+
+  av-𝒢 :
+    ∀ {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (A [ `★ ]ᵗ)} →
+    Value W →
+    V ≡ (W ⟨ id ； (𝒢 {A = A}) ⟩) →
+    AllView V
+
+canonical-∀ :
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}
+    {A : Ty (suc Δ) Ψ}
+    {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (`∀ A)} →
+  Value V →
+  AllView V
+canonical-∀ V-Λ = av-Λ refl
+canonical-∀ (V-⟨∀⟩ vW) = av-∀ vW refl
+canonical-∀ (V-⟨𝒢⟩ vW) = av-𝒢 vW refl
+canonical-∀ {V = $ (κℕ n) ()} _
 
 data NatView
   {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}
@@ -64,7 +101,8 @@ data NatView
     NatView V
 
 canonical-ℕ :
-  ∀ {V : 0 ∣ 0 ∣ ∅ˢ ∣ [] ⊢ (‵ `ℕ)} →
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}
+    {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (‵ `ℕ)} →
   Value V →
   NatView V
 canonical-ℕ {V = $ (κℕ n) eq} v with eq
@@ -75,8 +113,8 @@ canonical-ℕ {V = $ (κℕ n) eq} v with eq
 ------------------------------------------------------------------------
 
 progress :
-  ∀ {A : Ty 0 0} →
-  (M : 0 ∣ 0 ∣ ∅ˢ ∣ [] ⊢ A) →
+  ∀ {Ψ}{Σ : Store Ψ}{A : Ty 0 Ψ} →
+  (M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A) →
   Progress M
 progress (` ())
 progress (ƛ A ⇒ N) = done V-ƛ
@@ -92,7 +130,15 @@ progress (L · M) with progress L
 ...     | fv-ƛ refl = step (β vM)
 ...     | fv-↦ vW refl = step β-⟨↦⟩
 progress (Λ N) = done V-Λ
-progress ((M ·α α [ () ]) eq)
+progress ((M ·α α [ h ]) eq) with eq
+... | refl with progress M
+...   | step {ρ = ρ} {N = M′} M→M′ =
+          step (ξ-·α (store-growth M→M′) M→M′)
+...   | crash (ℓ , refl) = step (blame-·α {ℓ = ℓ})
+...   | done vM with canonical-∀ vM
+...     | av-Λ refl = step β-Λ
+...     | av-∀ vW refl = step β-⟨∀⟩
+...     | av-𝒢 vW refl = step β-⟨𝒢⟩
 progress (ν:= A ∙ N) = step β-ν
 progress ($ κ eq) with eq
 ... | refl = done V-const

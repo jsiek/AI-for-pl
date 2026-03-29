@@ -50,6 +50,15 @@ n69★ = nat★ 69
 gas : ℕ
 gas = 250
 
+polyIdTy : ∀ {Ψ} → Ty (suc 0) Ψ
+polyIdTy = ＇ Zᵗ ⇒ ＇ Zᵗ
+
+ℐ-id→dyn :
+  ∀ {Ψ}{Σ : Store Ψ} →
+  ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ polyIdTy) [ ｀ Zˢ ]ᵗ) ⇨
+                                 ((⇑ˢ polyIdTy) [ `★ ]ᵗ)
+ℐ-id→dyn = instUnseal★ {A = ⇑ˢ polyIdTy} top★-lookup
+
 isNatValue :
   ∀ {Ψ}{Σ : Store Ψ}{A : Ty 0 Ψ} →
   0 ∣ Ψ ∣ Σ ∣ [] ⊢ A →
@@ -136,7 +145,7 @@ example2-right-test = refl
 
 example3-left : 0 ∣ 0 ∣ [] ∣ [] ⊢ `★
 example3-left =
-  (polyId ⟨ id ； (ℐ {A = ＇ Zᵗ ⇒ ＇ Zᵗ}) ⟩) · c★
+  (polyId ⟨ id ； (ℐ {A = polyIdTy} ℐ-id→dyn) ⟩) · c★
 
 example3-right : 0 ∣ 0 ∣ [] ∣ [] ⊢ `★
 example3-right = idDyn · c★

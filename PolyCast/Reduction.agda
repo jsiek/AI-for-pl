@@ -10,12 +10,12 @@ module Reduction where
 open import Data.Nat using (ℕ; _+_; suc; zero)
 open import Data.List using ([]; _∷_; map)
 open import Data.Product using (_,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; cong; cong₂; subst; sym; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; cong; cong₂; subst; sym; trans; refl)
 open import Types
 open import Store
 open import Coercions
 open import PolyCast
-open import TypeSubst using (renameLookupˢ; renameˢ-inst★)
+open import TypeSubst using (renameLookupˢ; renameˢ-inst★; renameˢ-single-⇑ˢ-id)
 open import TermSubst
 
 ------------------------------------------------------------------------
@@ -68,9 +68,10 @@ data Value : ∀ {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
 
   V-⟨𝒢⟩ :
     ∀{Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A : Ty (suc Δ) Ψ}
+    {g : ⟰ˢ Σ ⊢ ((⇑ˢ A) [ `★ ]ᵗ) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
     {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (A [ `★ ]ᵗ)} →
     Value V →
-    Value (V ⟨ id ； (𝒢 {A = A}) ⟩)
+    Value (V ⟨ id ； (𝒢 {A = A} g) ⟩)
 
 ------------------------------------------------------------------------
 -- One-step reduction
@@ -261,6 +262,33 @@ top★-lookup :
   ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ∋ˢ Zˢ ⦂ `★
 top★-lookup = Z∋ˢ refl refl
 
+open𝒢 :
+  ∀ {Ψ}{Σ : Store Ψ}
+    {A : Ty (suc 0) Ψ} →
+  (g : ⟰ˢ Σ ⊢ ((⇑ˢ A) [ `★ ]ᵗ) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)) →
+  (α : Seal Ψ) →
+  Σ ⊢ (A [ `★ ]ᵗ) ⇨ (A [ ｀ α ]ᵗ)
+open𝒢 {Σ = Σ} {A = A} g α =
+  castᶜ
+    (renameStoreˢ-single-⟰ˢ α Σ)
+    dom-eq
+    cod-eq
+    (renameᶜˢ (singleSealEnv α) g)
+  where
+    dom-eq :
+      renameˢ (singleSealEnv α) ((⇑ˢ A) [ `★ ]ᵗ) ≡ (A [ `★ ]ᵗ)
+    dom-eq =
+      trans
+        (renameˢ-inst★ (singleSealEnv α) (⇑ˢ A))
+        (cong (λ T → T [ `★ ]ᵗ) (renameˢ-single-⇑ˢ-id α A))
+
+    cod-eq :
+      renameˢ (singleSealEnv α) ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ≡ (A [ ｀ α ]ᵗ)
+    cod-eq =
+      trans
+        (renameˢ-[]ᵗ-seal (singleSealEnv α) (⇑ˢ A) Zˢ)
+        (cong (λ T → T [ ｀ α ]ᵗ) (renameˢ-single-⇑ˢ-id α A))
+
 infix 2 _—→[_]_
 data _—→[_]_ :
   ∀ {Ψ}{Ψ′}{Σ : Store Ψ}{Σ′ : Store Ψ′}{A : Ty 0 Ψ} →
@@ -297,12 +325,13 @@ data _—→[_]_ :
   β-⟨𝒢⟩ :
     ∀ {Ψ}{Σ : Store Ψ}
       {A : Ty (suc 0) Ψ}
+      {g : ⟰ˢ Σ ⊢ ((⇑ˢ A) [ `★ ]ᵗ) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (A [ `★ ]ᵗ)}
       {α : Seal Ψ}{C : Ty 0 Ψ}
       {h : Σ ∋ˢ α ⦂ C} →
-    ((V ⟨ id ； (𝒢 {A = A}) ⟩) ·α α [ h ]) refl
+    ((V ⟨ id ； (𝒢 {A = A} g) ⟩) ·α α [ h ]) refl
       —→[ idˢ ]
-    id-step-term (V ⟨ instSeal {A = A} h ⟩)
+    id-step-term (V ⟨ open𝒢 {A = A} g α ⟩)
 
   β-⟨↦⟩ :
     ∀ {Ψ}{Σ : Store Ψ}
@@ -376,8 +405,9 @@ data _—→[_]_ :
   β-ℐ :
     ∀ {Ψ}{Σ : Store Ψ}
       {A : Ty (suc 0) Ψ}
+      {i : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⇨ ((⇑ˢ A) [ `★ ]ᵗ)}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (`∀ A)} →
-    V ⟨ id ； (ℐ {A = A}) ⟩ —→[ idˢ ]
+    V ⟨ id ； (ℐ {A = A} i) ⟩ —→[ idˢ ]
     id-step-term
       (ν:= `★ ∙
         cast⊢
@@ -386,7 +416,7 @@ data _—→[_]_ :
           (sym (renameˢ-inst★ Sˢ A))
           ((((wkΣ-term (drop ⊆ˢ-refl) (renameˢ-term Sˢ V))
               ·α Zˢ [ top★-lookup ]) refl)
-            ⟨ instUnseal★ {A = renameˢ Sˢ A} top★-lookup ⟩))
+            ⟨ i ⟩))
 
   β-⊥ :
     ∀ {Ψ}{Σ : Store Ψ}

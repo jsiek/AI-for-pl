@@ -77,9 +77,10 @@ data AllView
     AllView V
 
   av-𝒢 :
-    ∀ {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (A [ `★ ]ᵗ)} →
+    ∀ {g : ⟰ˢ Σ ⊢ ((⇑ˢ A) [ `★ ]ᵗ) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
+      {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (A [ `★ ]ᵗ)} →
     Value W →
-    V ≡ (W ⟨ id ； (𝒢 {A = A}) ⟩) →
+    V ≡ (W ⟨ id ； (𝒢 {A = A} g) ⟩) →
     AllView V
 
 canonical-∀ :
@@ -233,10 +234,10 @@ progress uΣ (M ⟨ c ⟩) with progress uΣ M
 ...   | id ； (h ⁻) = done (V-⟨⁻⟩ vM)
 ...   | id ； (c₀ ↦ d₀) = done (V-⟨↦⟩ vM)
 ...   | id ； (∀ᶜ c₀) = done (V-⟨∀⟩ vM)
-...   | id ； (𝒢 {A = A}) = done (V-⟨𝒢⟩ vM)
+...   | id ； (𝒢 g₀) = done (V-⟨𝒢⟩ vM)
 ...   | id ； (g `? ℓ) = projGround-progress vM
 ...   | id ； (`⊥ ℓ) = step β-⊥
 ...   | id ； (h ⁺) = unseal-progress uΣ vM
-...   | id ； (ℐ {A = A}) = step β-ℐ
+...   | id ； (ℐ i₀) = step β-ℐ
 ...   | (c₀ ； a₀) ； a = step β-⟨；⟩
 progress uΣ (blame ℓ) = crash (ℓ , refl)

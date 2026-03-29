@@ -162,19 +162,20 @@ projGround-progress {g′ = g′} vM with canonical-★ vM
 ...   | yes refl = step ⟨!⟩⟨?⟩
 ...   | no neq = step (⟨!⟩⟨?⟩-bad neq)
 
-postulate
-  uniqueAny : ∀ {Ψ}{Σ : Store Ψ} → Uniqueˢ Σ
-
 unseal-progress :
   ∀ {Ψ}{Σ : Store Ψ}
     {A : Ty 0 Ψ}
     {α : Seal Ψ}
     {h : Σ ∋ˢ α ⦂ A}
     {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ ｀ α} →
+  Uniqueˢ Σ →
   Value M →
   Progress (M ⟨ id ； (h ⁺) ⟩)
-unseal-progress vM with canonical-｀ vM
-... | sv-⁻ vW refl = step (⟨⁻⟩⟨⁺⟩ uniqueAny)
+unseal-progress {A = `★} {h = h} uΣ vM with canonical-｀ vM
+... | sv-⁻ {A = `★} {h = h′} vW refl = step (⟨⁻⟩⟨⁺⟩-★ {h = h′} {h′ = h})
+... | sv-⁻ {h = h′} vW refl = step (⟨⁻⟩⟨⁺⟩ uΣ)
+unseal-progress {h = h} uΣ vM with canonical-｀ vM
+... | sv-⁻ {h = h′} vW refl = step (⟨⁻⟩⟨⁺⟩ uΣ)
 
 ------------------------------------------------------------------------
 -- Progress (closed terms)
@@ -182,24 +183,25 @@ unseal-progress vM with canonical-｀ vM
 
 progress :
   ∀ {Ψ}{Σ : Store Ψ}{A : Ty 0 Ψ} →
+  Uniqueˢ Σ →
   (M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A) →
   Progress M
-progress (` ())
-progress (ƛ A ⇒ N) = done V-ƛ
-progress (L · M) with progress L
+progress uΣ (` ())
+progress uΣ (ƛ A ⇒ N) = done V-ƛ
+progress uΣ (L · M) with progress uΣ L
 ... | step {ρ = ρ} {N = L′} L→L′ =
       step (ξ-·₁ (store-growth L→L′) L→L′)
 ... | crash (ℓ , refl) = step (blame-·₁ {ℓ = ℓ})
-... | done vL with progress M
+... | done vL with progress uΣ M
 ...   | step {ρ = ρ} {N = M′} M→M′ =
         step (ξ-·₂ vL (store-growth M→M′) M→M′)
 ...   | crash (ℓ , refl) = step (blame-·₂ {ℓ = ℓ} vL)
 ...   | done vM with canonical-⇒ vL
 ...     | fv-ƛ refl = step (β vM)
 ...     | fv-↦ vW refl = step β-⟨↦⟩
-progress (Λ N) = done V-Λ
-progress ((M ·α α [ h ]) eq) with eq
-... | refl with progress M
+progress uΣ (Λ N) = done V-Λ
+progress uΣ ((M ·α α [ h ]) eq) with eq
+... | refl with progress uΣ M
 ...   | step {ρ = ρ} {N = M′} M→M′ =
           step (ξ-·α (store-growth M→M′) M→M′)
 ...   | crash (ℓ , refl) = step (blame-·α {ℓ = ℓ})
@@ -207,21 +209,21 @@ progress ((M ·α α [ h ]) eq) with eq
 ...     | av-Λ refl = step β-Λ
 ...     | av-∀ vW refl = step β-⟨∀⟩
 ...     | av-𝒢 vW refl = step β-⟨𝒢⟩
-progress (ν:= A ∙ N) = step β-ν
-progress ($ κ eq) with eq
+progress uΣ (ν:= A ∙ N) = step β-ν
+progress uΣ ($ κ eq) with eq
 ... | refl = done V-const
-progress (L ⊕[ op ] M) with progress L
+progress uΣ (L ⊕[ op ] M) with progress uΣ L
 ... | step {ρ = ρ} {N = L′} L→L′ =
       step (ξ-⊕₁ (store-growth L→L′) L→L′)
 ... | crash (ℓ , refl) = step (blame-⊕₁ {ℓ = ℓ})
-... | done vL with progress M
+... | done vL with progress uΣ M
 ...   | step {ρ = ρ} {N = M′} M→M′ =
         step (ξ-⊕₂ vL (store-growth M→M′) M→M′)
 ...   | crash (ℓ , refl) = step (blame-⊕₂ {ℓ = ℓ} vL)
 ...   | done vM with canonical-ℕ vL | canonical-ℕ vM
 ...     | nv-const refl | nv-const refl with op
 ...       | addℕ = step δ-⊕
-progress (M ⟨ c ⟩) with progress M
+progress uΣ (M ⟨ c ⟩) with progress uΣ M
 ... | step {ρ = ρ} {N = M′} M→M′ =
       step (ξ-⟨⟩ (store-growth M→M′) M→M′)
 ... | crash (ℓ , refl) = step (blame-⟨⟩ {ℓ = ℓ})
@@ -234,7 +236,7 @@ progress (M ⟨ c ⟩) with progress M
 ...   | id ； (𝒢 {A = A}) = done (V-⟨𝒢⟩ vM)
 ...   | id ； (g `? ℓ) = projGround-progress vM
 ...   | id ； (`⊥ ℓ) = step β-⊥
-...   | id ； (h ⁺) = unseal-progress vM
+...   | id ； (h ⁺) = unseal-progress uΣ vM
 ...   | id ； (ℐ {A = A}) = step β-ℐ
 ...   | (c₀ ； a₀) ； a = step β-⟨；⟩
-progress (blame ℓ) = crash (ℓ , refl)
+progress uΣ (blame ℓ) = crash (ℓ , refl)

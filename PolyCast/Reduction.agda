@@ -15,7 +15,7 @@ open import Types
 open import Store
 open import Coercions
 open import PolyCast
-open import TypeSubst using (renameLookupˢ)
+open import TypeSubst using (renameLookupˢ; renameˢ-inst★)
 open import TermSubst
 
 ------------------------------------------------------------------------
@@ -210,6 +210,57 @@ instSeal {A = A} {α = α} h =
     (instVar⁻ h)
     A
 
+instUnseal :
+  ∀ {Ψ}{Σ : Store Ψ}
+    {A : Ty (suc 0) Ψ}
+    {α : Seal Ψ}{C : Ty 0 Ψ} →
+  Σ ∋ˢ α ⦂ C →
+  Σ ⊢ (A [ ｀ α ]ᵗ) ⇨ (A [ `★ ]ᵗ)
+instUnseal {A = A} {α = α} h =
+  instSubst⁻
+    (singleTyEnv `★)
+    (singleTyEnv (｀ α))
+    (instVar⁺ h)
+    (instVar⁻ h)
+    A
+
+instVar★⁺ :
+  ∀ {Ψ}{Σ : Store Ψ}
+    {α : Seal Ψ} →
+  Σ ∋ˢ α ⦂ `★ →
+  (X : TyVar (suc 0)) →
+  Σ ⊢ singleTyEnv `★ X ⇨ singleTyEnv (｀ α) X
+instVar★⁺ h Zᵗ = id ； (h ⁻)
+instVar★⁺ h (Sᵗ ())
+
+instVar★⁻ :
+  ∀ {Ψ}{Σ : Store Ψ}
+    {α : Seal Ψ} →
+  Σ ∋ˢ α ⦂ `★ →
+  (X : TyVar (suc 0)) →
+  Σ ⊢ singleTyEnv (｀ α) X ⇨ singleTyEnv `★ X
+instVar★⁻ h Zᵗ = id ； (h ⁺)
+instVar★⁻ h (Sᵗ ())
+
+instUnseal★ :
+  ∀ {Ψ}{Σ : Store Ψ}
+    {A : Ty (suc 0) Ψ}
+    {α : Seal Ψ} →
+  Σ ∋ˢ α ⦂ `★ →
+  Σ ⊢ (A [ ｀ α ]ᵗ) ⇨ (A [ `★ ]ᵗ)
+instUnseal★ {A = A} {α = α} h =
+  instSubst⁻
+    (singleTyEnv `★)
+    (singleTyEnv (｀ α))
+    (instVar★⁺ h)
+    (instVar★⁻ h)
+    A
+
+top★-lookup :
+  ∀ {Ψ}{Σ : Store Ψ} →
+  ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ∋ˢ Zˢ ⦂ `★
+top★-lookup = Z∋ˢ refl refl
+
 infix 2 _—→[_]_
 data _—→[_]_ :
   ∀ {Ψ}{Ψ′}{Σ : Store Ψ}{Σ′ : Store Ψ′}{A : Ty 0 Ψ} →
@@ -275,6 +326,15 @@ data _—→[_]_ :
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A} →
     (V ⟨ id ⟩) —→[ idˢ ] id-step-term V
 
+  ⟨⁻⟩⟨⁺⟩-★ :
+    ∀ {Ψ}{Σ : Store Ψ}
+      {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ `★}
+      {α}
+      {h h′ : Σ ∋ˢ α ⦂ `★} →
+    (V ⟨ id ； (h ⁻) ⟩ ⟨ id ； (h′ ⁺) ⟩)
+      —→[ idˢ ]
+    id-step-term V
+
   ⟨⁻⟩⟨⁺⟩ :
     ∀ {Ψ}{Σ : Store Ψ}{A B : Ty 0 Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ wkTy0 A}
@@ -317,7 +377,16 @@ data _—→[_]_ :
     ∀ {Ψ}{Σ : Store Ψ}
       {A : Ty (suc 0) Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (`∀ A)} →
-    V ⟨ id ； (ℐ {A = A}) ⟩ —→[ idˢ ] id-step-term (V ⟨ id ； (ℐ {A = A}) ⟩)
+    V ⟨ id ； (ℐ {A = A}) ⟩ —→[ idˢ ]
+    id-step-term
+      (ν:= `★ ∙
+        cast⊢
+          refl
+          refl
+          (sym (renameˢ-inst★ Sˢ A))
+          ((((wkΣ-term (drop ⊆ˢ-refl) (renameˢ-term Sˢ V))
+              ·α Zˢ [ top★-lookup ]) refl)
+            ⟨ instUnseal★ {A = renameˢ Sˢ A} top★-lookup ⟩))
 
   β-⊥ :
     ∀ {Ψ}{Σ : Store Ψ}
@@ -488,6 +557,7 @@ store-growth (β-⟨𝒢⟩) = idˢ-⊆ˢ
 store-growth (β-⟨↦⟩) = idˢ-⊆ˢ
 store-growth β-ν = drop ⊆ˢ-refl
 store-growth ⟨id⟩ = idˢ-⊆ˢ
+store-growth ⟨⁻⟩⟨⁺⟩-★ = idˢ-⊆ˢ
 store-growth (⟨⁻⟩⟨⁺⟩ uΣ) = idˢ-⊆ˢ
 store-growth ⟨!⟩⟨?⟩ = idˢ-⊆ˢ
 store-growth (⟨!⟩⟨?⟩-bad neq) = idˢ-⊆ˢ
@@ -507,6 +577,42 @@ store-growth blame-·α = idˢ-⊆ˢ
 store-growth blame-⟨⟩ = idˢ-⊆ˢ
 store-growth blame-⊕₁ = idˢ-⊆ˢ
 store-growth (blame-⊕₂ v) = idˢ-⊆ˢ
+
+unique-store-step :
+  ∀ {Ψ}{Ψ′}{Σ : Store Ψ}{Σ′ : Store Ψ′}{A : Ty 0 Ψ}
+    {ρ : Renameˢ Ψ Ψ′}
+    {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A}
+    {M′ : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ renameˢ ρ A} →
+  Uniqueˢ Σ →
+  M —→[ ρ ] M′ →
+  Uniqueˢ Σ′
+unique-store-step uΣ (β v) = uΣ
+unique-store-step uΣ β-Λ = uΣ
+unique-store-step uΣ β-⟨∀⟩ = uΣ
+unique-store-step uΣ β-⟨𝒢⟩ = uΣ
+unique-store-step uΣ β-⟨↦⟩ = uΣ
+unique-store-step uΣ (β-ν {A = A}) = unique-ν A uΣ
+unique-store-step uΣ ⟨id⟩ = uΣ
+unique-store-step uΣ ⟨⁻⟩⟨⁺⟩-★ = uΣ
+unique-store-step uΣ (⟨⁻⟩⟨⁺⟩ uΣ′) = uΣ
+unique-store-step uΣ ⟨!⟩⟨?⟩ = uΣ
+unique-store-step uΣ (⟨!⟩⟨?⟩-bad neq) = uΣ
+unique-store-step uΣ β-⟨；⟩ = uΣ
+unique-store-step uΣ β-ℐ = uΣ
+unique-store-step uΣ β-⊥ = uΣ
+unique-store-step uΣ (ξ-·₁ wρ red) = unique-store-step uΣ red
+unique-store-step uΣ (ξ-·₂ v wρ red) = unique-store-step uΣ red
+unique-store-step uΣ (ξ-·α wρ red) = unique-store-step uΣ red
+unique-store-step uΣ (ξ-⟨⟩ wρ red) = unique-store-step uΣ red
+unique-store-step uΣ (ξ-⊕₁ wρ red) = unique-store-step uΣ red
+unique-store-step uΣ (ξ-⊕₂ v wρ red) = unique-store-step uΣ red
+unique-store-step uΣ δ-⊕ = uΣ
+unique-store-step uΣ blame-·₁ = uΣ
+unique-store-step uΣ (blame-·₂ v) = uΣ
+unique-store-step uΣ blame-·α = uΣ
+unique-store-step uΣ blame-⟨⟩ = uΣ
+unique-store-step uΣ blame-⊕₁ = uΣ
+unique-store-step uΣ (blame-⊕₂ v) = uΣ
 
 ------------------------------------------------------------------------
 -- Multi-step reduction on intrinsic closed terms

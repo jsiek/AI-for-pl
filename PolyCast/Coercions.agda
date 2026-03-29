@@ -16,7 +16,11 @@ open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl; cong; cong₂; sym; trans) renaming (subst to substEq)
 open import Types
 open import TypeSubst
-open import Store using (Uniqueˢ; lookup-unique)
+open import Store using
+  ( _⊆ˢ_; Uniqueˢ; lookup-unique
+  ; wkLookupˢ; ⟰ˢ-⊆ˢ; ν-⊆ˢ
+  ; ⊆ˢ-refl; drop
+  )
 
 Label : Set
 Label = ℕ
@@ -66,13 +70,13 @@ mutual
       → Σ ⊢ A ⇨ B
       → Σ ⊢ (`∀ A) ⇨ᵃ (`∀ B)
 
-    𝒢 : ∀{A : Ty (suc Δ) Ψ}
-      → ⟰ˢ Σ ⊢ ((⇑ˢ A) [ `★ ]ᵗ) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)
-      → Σ ⊢ (A [ `★ ]ᵗ) ⇨ᵃ (`∀ A)
+    𝒢 : ∀{A : Ty (suc Δ) Ψ}{B : Ty Δ Ψ}
+      → ⟰ˢ Σ ⊢ (⇑ˢ B) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)
+      → Σ ⊢ B ⇨ᵃ (`∀ A)
 
-    ℐ : ∀{A : Ty (suc Δ) Ψ}
-      → ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⇨ ((⇑ˢ A) [ `★ ]ᵗ)
-      → Σ ⊢ (`∀ A) ⇨ᵃ (A [ `★ ]ᵗ)
+    ℐ : ∀{A : Ty (suc Δ) Ψ}{B : Ty Δ Ψ}
+      → ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⇨ (⇑ˢ B)
+      → Σ ⊢ (`∀ A) ⇨ᵃ B
 
   data _⊢_⇨_ {Δ}{Ψ} (Σ : Store Ψ) : Ty Δ Ψ → Ty Δ Ψ → Set where
     id : ∀{A}
@@ -211,19 +215,12 @@ mutual
   renameAtomᶜᵗ ρ (_⁺ {A = A₀} h) rewrite renameᵗ-wkTy0 ρ A₀ = h ⁺
   renameAtomᶜᵗ ρ (c ↦ d) = renameᶜᵗ ρ c ↦ renameᶜᵗ ρ d
   renameAtomᶜᵗ ρ (∀ᶜ c) = ∀ᶜ (renameᶜᵗ (extᵗ ρ) c)
-  renameAtomᶜᵗ {Σ = Σ} ρ (𝒢 {A = A} g) =
-    substEq
-      (λ T → Σ ⊢ T ⇨ᵃ (`∀ (renameᵗ (extᵗ ρ) A)))
-      (sym (renameᵗ-inst★ ρ A))
-      (𝒢 g′)
+  renameAtomᶜᵗ {Σ = Σ} ρ (𝒢 {A = A} {B = B} g) = 𝒢 g′
     where
       dom-eq :
-        renameᵗ ρ ((⇑ˢ A) [ `★ ]ᵗ) ≡
-        ((⇑ˢ (renameᵗ (extᵗ ρ) A)) [ `★ ]ᵗ)
-      dom-eq =
-        trans
-          (renameᵗ-inst★ ρ (⇑ˢ A))
-          (cong (λ T → T [ `★ ]ᵗ) (renameᵗ-⇑ˢ (extᵗ ρ) A))
+        renameᵗ ρ (⇑ˢ B) ≡
+        ⇑ˢ (renameᵗ ρ B)
+      dom-eq = renameᵗ-⇑ˢ ρ B
 
       cod-eq :
         renameᵗ ρ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ≡
@@ -234,15 +231,11 @@ mutual
           (cong (λ T → T [ ｀ Zˢ ]ᵗ) (renameᵗ-⇑ˢ (extᵗ ρ) A))
 
       g′ :
-        ⟰ˢ Σ ⊢ ((⇑ˢ (renameᵗ (extᵗ ρ) A)) [ `★ ]ᵗ) ⇨
+        ⟰ˢ Σ ⊢ (⇑ˢ (renameᵗ ρ B)) ⇨
                   ((⇑ˢ (renameᵗ (extᵗ ρ) A)) [ ｀ Zˢ ]ᵗ)
       g′ = castᶜ refl dom-eq cod-eq (renameᶜᵗ ρ g)
 
-  renameAtomᶜᵗ {Σ = Σ} ρ (ℐ {A = A} i) =
-    substEq
-      (λ T → Σ ⊢ (`∀ (renameᵗ (extᵗ ρ) A)) ⇨ᵃ T)
-      (sym (renameᵗ-inst★ ρ A))
-      (ℐ i′)
+  renameAtomᶜᵗ {Σ = Σ} ρ (ℐ {A = A} {B = B} i) = ℐ i′
     where
       dom-eq :
         renameᵗ ρ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ≡
@@ -253,16 +246,13 @@ mutual
           (cong (λ T → T [ ｀ Zˢ ]ᵗ) (renameᵗ-⇑ˢ (extᵗ ρ) A))
 
       cod-eq :
-        renameᵗ ρ ((⇑ˢ A) [ `★ ]ᵗ) ≡
-        ((⇑ˢ (renameᵗ (extᵗ ρ) A)) [ `★ ]ᵗ)
-      cod-eq =
-        trans
-          (renameᵗ-inst★ ρ (⇑ˢ A))
-          (cong (λ T → T [ `★ ]ᵗ) (renameᵗ-⇑ˢ (extᵗ ρ) A))
+        renameᵗ ρ (⇑ˢ B) ≡
+        (⇑ˢ (renameᵗ ρ B))
+      cod-eq = renameᵗ-⇑ˢ ρ B
 
       i′ :
         ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ (renameᵗ (extᵗ ρ) A)) [ ｀ Zˢ ]ᵗ) ⇨
-                                      ((⇑ˢ (renameᵗ (extᵗ ρ) A)) [ `★ ]ᵗ)
+                                      (⇑ˢ (renameᵗ ρ B))
       i′ = castᶜ refl dom-eq cod-eq (renameᶜᵗ ρ i)
 
   renameᶜᵗ :
@@ -286,11 +276,7 @@ mutual
   substAtomᶜᵗ σ (_⁺ {A = A₀} h) rewrite substᵗ-wkTy0 σ A₀ = h ⁺
   substAtomᶜᵗ σ (c ↦ d) = substᶜᵗ σ c ↦ substᶜᵗ σ d
   substAtomᶜᵗ σ (∀ᶜ c) = ∀ᶜ (substᶜᵗ (extsᵗ σ) c)
-  substAtomᶜᵗ {Σ = Σ} σ (𝒢 {A = A} g) =
-    substEq
-      (λ T → Σ ⊢ T ⇨ᵃ (`∀ (substᵗ (extsᵗ σ) A)))
-      (sym (substᵗ-inst★ σ A))
-      (𝒢 g′)
+  substAtomᶜᵗ {Σ = Σ} σ (𝒢 {A = A} {B = B} g) = 𝒢 g′
     where
       liftσ : Substᵗ _ _ (suc _)
       liftσ = liftSubstˢ σ
@@ -304,12 +290,9 @@ mutual
           (substᵗ-⇑ˢ (extsᵗ σ) A)
 
       dom-eq :
-        substᵗ liftσ ((⇑ˢ A) [ `★ ]ᵗ) ≡
-        ((⇑ˢ (substᵗ (extsᵗ σ) A)) [ `★ ]ᵗ)
-      dom-eq =
-        trans
-          (substᵗ-inst★ liftσ (⇑ˢ A))
-          (cong (λ T → T [ `★ ]ᵗ) inner-eq)
+        substᵗ liftσ (⇑ˢ B) ≡
+        (⇑ˢ (substᵗ σ B))
+      dom-eq = substᵗ-⇑ˢ σ B
 
       cod-eq :
         substᵗ liftσ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ≡
@@ -320,15 +303,11 @@ mutual
           (cong (λ T → T [ ｀ Zˢ ]ᵗ) inner-eq)
 
       g′ :
-        ⟰ˢ Σ ⊢ ((⇑ˢ (substᵗ (extsᵗ σ) A)) [ `★ ]ᵗ) ⇨
+        ⟰ˢ Σ ⊢ (⇑ˢ (substᵗ σ B)) ⇨
                   ((⇑ˢ (substᵗ (extsᵗ σ) A)) [ ｀ Zˢ ]ᵗ)
       g′ = castᶜ refl dom-eq cod-eq (substᶜᵗ liftσ g)
 
-  substAtomᶜᵗ {Σ = Σ} σ (ℐ {A = A} i) =
-    substEq
-      (λ T → Σ ⊢ (`∀ (substᵗ (extsᵗ σ) A)) ⇨ᵃ T)
-      (sym (substᵗ-inst★ σ A))
-      (ℐ i′)
+  substAtomᶜᵗ {Σ = Σ} σ (ℐ {A = A} {B = B} i) = ℐ i′
     where
       liftσ : Substᵗ _ _ (suc _)
       liftσ = liftSubstˢ σ
@@ -350,16 +329,13 @@ mutual
           (cong (λ T → T [ ｀ Zˢ ]ᵗ) inner-eq)
 
       cod-eq :
-        substᵗ liftσ ((⇑ˢ A) [ `★ ]ᵗ) ≡
-        ((⇑ˢ (substᵗ (extsᵗ σ) A)) [ `★ ]ᵗ)
-      cod-eq =
-        trans
-          (substᵗ-inst★ liftσ (⇑ˢ A))
-          (cong (λ T → T [ `★ ]ᵗ) inner-eq)
+        substᵗ liftσ (⇑ˢ B) ≡
+        (⇑ˢ (substᵗ σ B))
+      cod-eq = substᵗ-⇑ˢ σ B
 
       i′ :
         ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ (substᵗ (extsᵗ σ) A)) [ ｀ Zˢ ]ᵗ) ⇨
-                                      ((⇑ˢ (substᵗ (extsᵗ σ) A)) [ `★ ]ᵗ)
+                                      (⇑ˢ (substᵗ σ B))
       i′ = castᶜ refl dom-eq cod-eq (substᶜᵗ liftσ i)
 
   substᶜᵗ :
@@ -403,11 +379,7 @@ mutual
       ((renameLookupˢ ρ h) ⁺)
   renameAtomᶜˢ ρ (c ↦ d) = renameᶜˢ ρ c ↦ renameᶜˢ ρ d
   renameAtomᶜˢ ρ (∀ᶜ c) = ∀ᶜ (renameᶜˢ ρ c)
-  renameAtomᶜˢ {Σ = Σ} ρ (𝒢 {A = A} g) =
-    substEq
-      (λ T → renameStoreˢ ρ Σ ⊢ T ⇨ᵃ (`∀ (renameˢ ρ A)))
-      (sym (renameˢ-inst★ ρ A))
-      (𝒢 g′)
+  renameAtomᶜˢ {Σ = Σ} ρ (𝒢 {A = A} {B = B} g) = 𝒢 g′
     where
       Σ-eq :
         renameStoreˢ (extˢ ρ) (⟰ˢ Σ) ≡
@@ -415,12 +387,9 @@ mutual
       Σ-eq = renameStoreˢ-ext-⟰ˢᶜ ρ Σ
 
       dom-eq :
-        renameˢ (extˢ ρ) ((⇑ˢ A) [ `★ ]ᵗ) ≡
-        ((⇑ˢ (renameˢ ρ A)) [ `★ ]ᵗ)
-      dom-eq =
-        trans
-          (renameˢ-inst★ (extˢ ρ) (⇑ˢ A))
-          (cong (λ T → T [ `★ ]ᵗ) (renameˢ-ext-⇑ˢᶜ ρ A))
+        renameˢ (extˢ ρ) (⇑ˢ B) ≡
+        ⇑ˢ (renameˢ ρ B)
+      dom-eq = renameˢ-ext-⇑ˢᶜ ρ B
 
       cod-eq :
         renameˢ (extˢ ρ) ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ≡
@@ -431,15 +400,11 @@ mutual
           (cong (λ T → T [ ｀ Zˢ ]ᵗ) (renameˢ-ext-⇑ˢᶜ ρ A))
 
       g′ :
-        ⟰ˢ (renameStoreˢ ρ Σ) ⊢ ((⇑ˢ (renameˢ ρ A)) [ `★ ]ᵗ) ⇨
+        ⟰ˢ (renameStoreˢ ρ Σ) ⊢ (⇑ˢ (renameˢ ρ B)) ⇨
                                 ((⇑ˢ (renameˢ ρ A)) [ ｀ Zˢ ]ᵗ)
       g′ = castᶜ Σ-eq dom-eq cod-eq (renameᶜˢ (extˢ ρ) g)
 
-  renameAtomᶜˢ {Σ = Σ} ρ (ℐ {A = A} i) =
-    substEq
-      (λ T → renameStoreˢ ρ Σ ⊢ (`∀ (renameˢ ρ A)) ⇨ᵃ T)
-      (sym (renameˢ-inst★ ρ A))
-      (ℐ i′)
+  renameAtomᶜˢ {Σ = Σ} ρ (ℐ {A = A} {B = B} i) = ℐ i′
     where
       Σ-eq :
         renameStoreˢ (extˢ ρ) ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ≡
@@ -458,16 +423,13 @@ mutual
           (cong (λ T → T [ ｀ Zˢ ]ᵗ) (renameˢ-ext-⇑ˢᶜ ρ A))
 
       cod-eq :
-        renameˢ (extˢ ρ) ((⇑ˢ A) [ `★ ]ᵗ) ≡
-        ((⇑ˢ (renameˢ ρ A)) [ `★ ]ᵗ)
-      cod-eq =
-        trans
-          (renameˢ-inst★ (extˢ ρ) (⇑ˢ A))
-          (cong (λ T → T [ `★ ]ᵗ) (renameˢ-ext-⇑ˢᶜ ρ A))
+        renameˢ (extˢ ρ) (⇑ˢ B) ≡
+        (⇑ˢ (renameˢ ρ B))
+      cod-eq = renameˢ-ext-⇑ˢᶜ ρ B
 
       i′ :
         ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ (renameStoreˢ ρ Σ)) ⊢ ((⇑ˢ (renameˢ ρ A)) [ ｀ Zˢ ]ᵗ) ⇨
-                                                       ((⇑ˢ (renameˢ ρ A)) [ `★ ]ᵗ)
+                                                       (⇑ˢ (renameˢ ρ B))
       i′ = castᶜ Σ-eq dom-eq cod-eq (renameᶜˢ (extˢ ρ) i)
 
   renameᶜˢ :
@@ -477,6 +439,46 @@ mutual
     renameStoreˢ ρ Σ ⊢ renameˢ ρ A ⇨ renameˢ ρ B
   renameᶜˢ ρ id = id
   renameᶜˢ ρ (c ； a) = renameᶜˢ ρ c ； renameAtomᶜˢ ρ a
+
+------------------------------------------------------------------------
+-- Store weakening and ν-opened lifting helpers for coercions
+------------------------------------------------------------------------
+
+mutual
+  wkᶜᵃ :
+    ∀ {Δ}{Ψ}{Σ Σ′ : Store Ψ}{A B : Ty Δ Ψ} →
+    Σ ⊆ˢ Σ′ →
+    Σ ⊢ A ⇨ᵃ B →
+    Σ′ ⊢ A ⇨ᵃ B
+  wkᶜᵃ w (g `? ℓ) = g `? ℓ
+  wkᶜᵃ w (g !) = g !
+  wkᶜᵃ w (`⊥ ℓ) = `⊥ ℓ
+  wkᶜᵃ w (h ⁻) = wkLookupˢ w h ⁻
+  wkᶜᵃ w (h ⁺) = wkLookupˢ w h ⁺
+  wkᶜᵃ w (c ↦ d) = wkᶜ w c ↦ wkᶜ w d
+  wkᶜᵃ w (∀ᶜ c) = ∀ᶜ (wkᶜ w c)
+  wkᶜᵃ w (𝒢 g) = 𝒢 (wkᶜ (⟰ˢ-⊆ˢ w) g)
+  wkᶜᵃ w (ℐ i) = ℐ (wkᶜ (ν-⊆ˢ `★ w) i)
+
+  wkᶜ :
+    ∀ {Δ}{Ψ}{Σ Σ′ : Store Ψ}{A B : Ty Δ Ψ} →
+    Σ ⊆ˢ Σ′ →
+    Σ ⊢ A ⇨ B →
+    Σ′ ⊢ A ⇨ B
+  wkᶜ w id = id
+  wkᶜ w (c ； a) = wkᶜ w c ； wkᶜᵃ w a
+
+open-liftᶜ :
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{A B : Ty (suc Δ) Ψ} →
+  Σ ⊢ A ⇨ B →
+  ⟰ˢ Σ ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⇨ ((⇑ˢ B) [ ｀ Zˢ ]ᵗ)
+open-liftᶜ c = (renameᶜˢ Sˢ c) [ ｀ Zˢ ]ᶜᵗ
+
+open-liftᶜ-ν :
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{A B : Ty (suc Δ) Ψ} →
+  Σ ⊢ A ⇨ B →
+  ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⇨ ((⇑ˢ B) [ ｀ Zˢ ]ᵗ)
+open-liftᶜ-ν c = wkᶜ (drop ⊆ˢ-refl) (open-liftᶜ c)
 
 ------------------------------------------------------------------------
 -- Coercion reduction
@@ -531,17 +533,15 @@ data _︔_—→ᶜ_ {Δ}{Ψ}{Σ : Store Ψ}
     {d : Σ ⊢ B ⇨ C}
     → ∀ᶜ c ︔ ∀ᶜ d —→ᶜ (id ； (∀ᶜ (c ⨟ d)))
 
-  all-inst : ∀ {A B : Ty (suc Δ) Ψ}
+  all-inst : ∀ {A B : Ty (suc Δ) Ψ}{C : Ty Δ Ψ}
     {c : Σ ⊢ A ⇨ B}
-    {iA : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⇨ ((⇑ˢ A) [ `★ ]ᵗ)}
-    {iB : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ B) [ ｀ Zˢ ]ᵗ) ⇨ ((⇑ˢ B) [ `★ ]ᵗ)}
-    → ∀ᶜ c ︔ ℐ iB —→ᶜ ((id ； ℐ iA) ⨟ c [ `★ ]ᶜᵗ)
+    {iB : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ B) [ ｀ Zˢ ]ᵗ) ⇨ (⇑ˢ C)}
+    → ∀ᶜ c ︔ ℐ iB —→ᶜ (id ； (ℐ ((open-liftᶜ-ν c) ⨟ iB)))
 
-  gen-all : ∀ {A B : Ty (suc Δ) Ψ}
+  gen-all : ∀ {A B : Ty (suc Δ) Ψ}{C : Ty Δ Ψ}
     {c : Σ ⊢ A ⇨ B}
-    {gA : ⟰ˢ Σ ⊢ ((⇑ˢ A) [ `★ ]ᵗ) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
-    {gB : ⟰ˢ Σ ⊢ ((⇑ˢ B) [ `★ ]ᵗ) ⇨ ((⇑ˢ B) [ ｀ Zˢ ]ᵗ)}
-    → 𝒢 gA ︔ ∀ᶜ c —→ᶜ (c [ `★ ]ᶜᵗ ⨟ (id ； 𝒢 gB))
+    {gA : ⟰ˢ Σ ⊢ (⇑ˢ C) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
+    → 𝒢 gA ︔ ∀ᶜ c —→ᶜ (id ； (𝒢 (gA ⨟ (open-liftᶜ c))))
 
   ⊥-left : ∀ {A B C}{ℓ}
     {b : Σ ⊢ B ⇨ᵃ C}

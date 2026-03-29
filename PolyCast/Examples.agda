@@ -56,7 +56,7 @@ polyIdTy = ＇ Zᵗ ⇒ ＇ Zᵗ
 ℐ-id→dyn :
   ∀ {Ψ}{Σ : Store Ψ} →
   ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ polyIdTy) [ ｀ Zˢ ]ᵗ) ⇨
-                                 ((⇑ˢ polyIdTy) [ `★ ]ᵗ)
+                                 (⇑ˢ (`★ ⇒ `★))
 ℐ-id→dyn = instUnseal★ {A = ⇑ˢ polyIdTy} top★-lookup
 
 isNatValue :
@@ -145,7 +145,7 @@ example2-right-test = refl
 
 example3-left : 0 ∣ 0 ∣ [] ∣ [] ⊢ `★
 example3-left =
-  (polyId ⟨ id ； (ℐ {A = polyIdTy} ℐ-id→dyn) ⟩) · c★
+  (polyId ⟨ id ； (ℐ {A = polyIdTy} {B = (`★ ⇒ `★)} ℐ-id→dyn) ⟩) · c★
 
 example3-right : 0 ∣ 0 ∣ [] ∣ [] ⊢ `★
 example3-right = idDyn · c★

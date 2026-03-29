@@ -77,8 +77,9 @@ data AllView
     AllView V
 
   av-𝒢 :
-    ∀ {g : ⟰ˢ Σ ⊢ ((⇑ˢ A) [ `★ ]ᵗ) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
-      {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (A [ `★ ]ᵗ)} →
+    ∀ {B : Ty Δ Ψ}
+      {g : ⟰ˢ Σ ⊢ (⇑ˢ B) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
+      {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ B} →
     Value W →
     V ≡ (W ⟨ id ； (𝒢 {A = A} g) ⟩) →
     AllView V

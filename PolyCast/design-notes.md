@@ -113,8 +113,6 @@ THE DEVELOPMENT
 
     h ⁻ ︔ h′ ⁺              —→ᶜ id               (modulo lookup-unique transport)
 
-    ℐ i ︔ 𝒢 g               —→ᶜ id
-
     (c ↦ d) ︔ (c′ ↦ d′)     —→ᶜ id ； ((c′ ⨟ c) ↦ (d ⨟ d′))
 
     (∀ᶜ c) ︔ (∀ᶜ d)         —→ᶜ id ； (∀ᶜ (c ⨟ d))
@@ -190,29 +188,29 @@ THE DEVELOPMENT
 
     ((Λ V) ·α α [ h ])                    —→[idˢ]  V[｀ α]
 
-    ((V ⟨ id ； (∀ᶜ c) ⟩) ·α α [ h ])      —→[idˢ]  (V ·α α [ h ]) ⟨ c[｀ α] ⟩
+    ((V ⟨ (∀ᶜ c) ⟩) ·α α [ h ])      —→[idˢ]  (V ·α α [ h ]) ⟨ c[｀ α] ⟩
 
-    ((V ⟨ id ； (𝒢 g) ⟩) ·α α [ h ])       —→[idˢ]  V ⟨ open𝒢 g α ⟩
+    ((V ⟨ (𝒢 g) ⟩) ·α α [ h ])       —→[idˢ]  V ⟨ open𝒢 g α ⟩
 
-    ((V ⟨ id ； (c ↦ d) ⟩) · W)            —→[idˢ]  (V · (W ⟨ c ⟩)) ⟨ d ⟩
+    ((V ⟨ (c ↦ d) ⟩) · W)            —→[idˢ]  (V · (W ⟨ c ⟩)) ⟨ d ⟩
 
     (ν:= A ∙ N)                           —→[Sˢ]   N
 
-    (V ⟨ id ； (ℐ i) ⟩)                    —→[idˢ]  ν:= ★ ∙ (((wkΣ (renameˢ Sˢ V)) ·α Zˢ [top★]) ⟨ i ⟩)
+    (V ⟨ (ℐ i) ⟩)                    —→[idˢ]  ν:= ★ ∙ (((wkΣ (renameˢ Sˢ V)) ·α Zˢ [top★]) ⟨ i ⟩)
 
     Primitive and cast-normalization rules:
 
     V ⟨ id ⟩                              —→[idˢ]  V
 
-    (V ⟨ id ； (h ⁻) ⟩ ⟨ id ； (h′ ⁺) ⟩)   —→[idˢ]  V          (with type transport)
+    (V ⟨ (h ⁻) ⟩ ⟨ (h′ ⁺) ⟩)   —→[idˢ]  V          (with type transport)
 
-    (V ⟨ id ； (g !) ⟩ ⟨ id ； (g `? ℓ) ⟩) —→[idˢ]  V
+    (V ⟨ (g !) ⟩ ⟨ (g `? ℓ) ⟩) —→[idˢ]  V
 
-    (V ⟨ id ； (g !) ⟩ ⟨ id ； (h `? ℓ) ⟩) —→[idˢ]  blame ℓ    when G ≢ H
+    (V ⟨ (g !) ⟩ ⟨ (h `? ℓ) ⟩) —→[idˢ]  blame ℓ    when G ≢ H
 
-    V ⟨ (c ； a) ； b ⟩                    —→[idˢ]  (V ⟨ c ； a ⟩) ⟨ id ； b ⟩
+    V ⟨ (c ； a) ； b ⟩                    —→[idˢ]  (V ⟨ c ； a ⟩) ⟨ b ⟩
 
-    V ⟨ id ； (`⊥ ℓ) ⟩                     —→[idˢ]  blame ℓ
+    V ⟨ (`⊥ ℓ) ⟩                     —→[idˢ]  blame ℓ
 
     (($ m) ⊕[addℕ] ($ n))                —→[idˢ]  $ (m+n)
 

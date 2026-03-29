@@ -4,6 +4,7 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; suc)
 open import Data.Product using (Σ; Σ-syntax; _,_)
+open import Relation.Nullary using (Dec; yes; no)
 
 open import Types
 open import Store
@@ -108,6 +109,73 @@ canonical-ℕ :
 canonical-ℕ {V = $ (κℕ n) eq} v with eq
 ... | refl = nv-const refl
 
+data StarView
+  {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}
+  (V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ `★) : Set where
+  sv-! :
+    ∀ {G : Ty Δ Ψ}
+      {g : Ground G}
+      {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ G} →
+    Value W →
+    V ≡ (W ⟨ id ； (g !) ⟩) →
+    StarView V
+
+canonical-★ :
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}
+    {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ `★} →
+  Value V →
+  StarView V
+canonical-★ (V-⟨!⟩ vW) = sv-! vW refl
+canonical-★ {V = $ (κℕ n) ()} _
+
+data SealView
+  {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}
+  {α : Seal Ψ}
+  (V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ｀ α) : Set where
+  sv-⁻ :
+    ∀ {A : Ty 0 Ψ}
+      {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ wkTy0 A}
+      {h : Σ ∋ˢ α ⦂ A} →
+    Value W →
+    V ≡ (W ⟨ id ； (h ⁻) ⟩) →
+    SealView V
+
+canonical-｀ :
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}
+    {α : Seal Ψ}
+    {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ｀ α} →
+  Value V →
+  SealView V
+canonical-｀ (V-⟨⁻⟩ vW) = sv-⁻ vW refl
+canonical-｀ {V = $ (κℕ n) ()} _
+
+projGround-progress :
+  ∀ {Ψ}{Σ : Store Ψ}
+    {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ `★}
+    {G : Ty 0 Ψ}
+    {g′ : Ground G}
+    {ℓ : Label} →
+  Value M →
+  Progress (M ⟨ id ； (g′ `? ℓ) ⟩)
+projGround-progress {g′ = g′} vM with canonical-★ vM
+... | sv-! {g = g} vW refl with g ≟Ground g′
+...   | yes refl = step ⟨!⟩⟨?⟩
+...   | no neq = step (⟨!⟩⟨?⟩-bad neq)
+
+postulate
+  uniqueAny : ∀ {Ψ}{Σ : Store Ψ} → Uniqueˢ Σ
+
+unseal-progress :
+  ∀ {Ψ}{Σ : Store Ψ}
+    {A : Ty 0 Ψ}
+    {α : Seal Ψ}
+    {h : Σ ∋ˢ α ⦂ A}
+    {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ ｀ α} →
+  Value M →
+  Progress (M ⟨ id ； (h ⁺) ⟩)
+unseal-progress vM with canonical-｀ vM
+... | sv-⁻ vW refl = step (⟨⁻⟩⟨⁺⟩ uniqueAny)
+
 ------------------------------------------------------------------------
 -- Progress (closed terms)
 ------------------------------------------------------------------------
@@ -159,5 +227,14 @@ progress (M ⟨ c ⟩) with progress M
 ... | crash (ℓ , refl) = step (blame-⟨⟩ {ℓ = ℓ})
 ... | done vM with c
 ...   | id = step ⟨id⟩
-...   | c₀ ； a = step β-⟨；⟩
+...   | id ； (g !) = done (V-⟨!⟩ vM)
+...   | id ； (h ⁻) = done (V-⟨⁻⟩ vM)
+...   | id ； (c₀ ↦ d₀) = done (V-⟨↦⟩ vM)
+...   | id ； (∀ᶜ c₀) = done (V-⟨∀⟩ vM)
+...   | id ； (𝒢 {A = A}) = done (V-⟨𝒢⟩ vM)
+...   | id ； (g `? ℓ) = projGround-progress vM
+...   | id ； (`⊥ ℓ) = step β-⊥
+...   | id ； (h ⁺) = unseal-progress vM
+...   | id ； (ℐ {A = A}) = step β-ℐ
+...   | (c₀ ； a₀) ； a = step β-⟨；⟩
 progress (blame ℓ) = crash (ℓ , refl)

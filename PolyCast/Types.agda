@@ -14,6 +14,7 @@ open import Data.Empty using (⊥)
 open import Data.List using (List; []; _∷_; _++_; map; length)
 open import Data.Nat using (ℕ; _<_; zero; suc)
 open import Data.Product using (_×_; _,_)
+open import Relation.Nullary using (Dec; yes; no)
 open import Relation.Binary.PropositionalEquality using (cong)
 
 ------------------------------------------------------------------------
@@ -70,6 +71,44 @@ data Ground : ∀{Δ}{Ψ} → Ty Δ Ψ → Set where
   ｀_ : ∀{Δ}{Ψ} (α : Seal Ψ) → Ground{Δ}{Ψ} (｀ α)
   ‵_ : ∀{Δ}{Ψ} → (ι : Base) → Ground{Δ}{Ψ} (‵ ι)
   ★⇒★ : ∀{Δ}{Ψ} → Ground{Δ}{Ψ} (`★ ⇒ `★)
+
+infix 4 _≟Base_
+_≟Base_ : (ι ι′ : Base) → Dec (ι ≡ ι′)
+`ℕ ≟Base `ℕ = yes refl
+`ℕ ≟Base `𝔹 = no (λ ())
+`𝔹 ≟Base `ℕ = no (λ ())
+`𝔹 ≟Base `𝔹 = yes refl
+
+seal-≟ :
+  ∀{Ψ} →
+  (α β : Seal Ψ) →
+  Dec (α ≡ β)
+seal-≟ Zˢ Zˢ = yes refl
+seal-≟ Zˢ (Sˢ β) = no (λ ())
+seal-≟ (Sˢ α) Zˢ = no (λ ())
+seal-≟ (Sˢ α) (Sˢ β) with seal-≟ α β
+... | yes eq = yes (cong Sˢ eq)
+... | no neq = no (λ { refl → neq refl })
+
+infix 4 _≟Ground_
+_≟Ground_ :
+  ∀{Δ}{Ψ}{G H : Ty Δ Ψ} →
+  Ground G →
+  Ground H →
+  Dec (G ≡ H)
+(｀ α) ≟Ground (｀ β) with seal-≟ α β
+... | yes eq = yes (cong ｀_ eq)
+... | no neq = no (λ { refl → neq refl })
+(｀ α) ≟Ground (‵ ι) = no (λ ())
+(｀ α) ≟Ground ★⇒★ = no (λ ())
+(‵ ι) ≟Ground (｀ α) = no (λ ())
+(‵ ι) ≟Ground (‵ ι′) with ι ≟Base ι′
+... | yes eq = yes (cong ‵_ eq)
+... | no neq = no (λ { refl → neq refl })
+(‵ ι) ≟Ground ★⇒★ = no (λ ())
+★⇒★ ≟Ground (｀ α) = no (λ ())
+★⇒★ ≟Ground (‵ ι) = no (λ ())
+★⇒★ ≟Ground ★⇒★ = yes refl
 
 Ctx : TyCtx → SealCtx → Set
 Ctx Δ Ψ = List (Ty Δ Ψ)

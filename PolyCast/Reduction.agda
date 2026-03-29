@@ -306,11 +306,26 @@ data _—→[_]_ :
 
   β-⟨；⟩ :
     ∀ {Ψ}{Σ : Store Ψ}
-      {A B C : Ty 0 Ψ}
+      {A B C D : Ty 0 Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A}
       {c : Σ ⊢ A ⇨ B}
-      {d : Σ ⊢ B ⇨ᵃ C} →
-    V ⟨ c ； d ⟩ —→[ idˢ ] id-step-term ((V ⟨ c ⟩) ⟨ id ； d ⟩)
+      {d : Σ ⊢ B ⇨ᵃ C}
+      {e : Σ ⊢ C ⇨ᵃ D} →
+    V ⟨ (c ； d) ； e ⟩ —→[ idˢ ] id-step-term ((V ⟨ c ； d ⟩) ⟨ id ； e ⟩)
+
+  β-ℐ :
+    ∀ {Ψ}{Σ : Store Ψ}
+      {A : Ty (suc 0) Ψ}
+      {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (`∀ A)} →
+    V ⟨ id ； (ℐ {A = A}) ⟩ —→[ idˢ ] id-step-term (V ⟨ id ； (ℐ {A = A}) ⟩)
+
+  β-⊥ :
+    ∀ {Ψ}{Σ : Store Ψ}
+      {A B : Ty 0 Ψ}
+      {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A}
+      {ℓ : Label} →
+    V ⟨ id ； (`⊥ {A = A} {B = B} ℓ) ⟩ —→[ idˢ ]
+    id-step-term {Σ = Σ} {Γ = []} {A = B} (blame {A = B} ℓ)
 
   ξ-·₁ :
     ∀ {Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
@@ -477,6 +492,8 @@ store-growth (⟨⁻⟩⟨⁺⟩ uΣ) = idˢ-⊆ˢ
 store-growth ⟨!⟩⟨?⟩ = idˢ-⊆ˢ
 store-growth (⟨!⟩⟨?⟩-bad neq) = idˢ-⊆ˢ
 store-growth β-⟨；⟩ = idˢ-⊆ˢ
+store-growth β-ℐ = idˢ-⊆ˢ
+store-growth β-⊥ = idˢ-⊆ˢ
 store-growth (ξ-·₁ wρ red) = wρ
 store-growth (ξ-·₂ v wρ red) = wρ
 store-growth (ξ-·α wρ red) = wρ

@@ -91,17 +91,6 @@ wkLookupˢ (drop w) h = S∋ˢ (wkLookupˢ w h)
 -- Removing a seal from a store
 ------------------------------------------------------------------------
 
-seal-≟ :
-  ∀{Ψ} →
-  (α β : Seal Ψ) →
-  Dec (α ≡ β)
-seal-≟ Zˢ Zˢ = yes refl
-seal-≟ Zˢ (Sˢ β) = no (λ ())
-seal-≟ (Sˢ α) Zˢ = no (λ ())
-seal-≟ (Sˢ α) (Sˢ β) with seal-≟ α β
-... | yes eq = yes (cong Sˢ eq)
-... | no neq = no (λ { refl → neq refl })
-
 removeˢ :
   ∀{Ψ} →
   Seal Ψ →

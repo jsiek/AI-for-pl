@@ -137,6 +137,20 @@ id-step-term {Γ = Γ} {A = A} M =
     (sym renameˢ-id)
     M
 
+id-step :
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A →
+  Δ ∣ Ψ ∣ Σ ∣ map (renameˢ idˢ) Γ ⊢ renameˢ idˢ A
+id-step = id-step-term
+
+infixr 8 _▹_
+_▹_ :
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A B : Ty Δ Ψ} →
+  A ≡ B →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ B
+_▹_ A≡B = cast⊢ refl refl A≡B
+
 dir-src-∀ :
   ∀ {Ψ} (d : Direction) (A B : Ty (suc 0) Ψ) →
   dir-src d (`∀ A) (`∀ B) ≡ `∀ (dir-src d A B)
@@ -339,29 +353,14 @@ data _—→[_]_ :
       {p : Σ ⊢ A ⊑ B}
       {α : Seal Ψ}{C : Ty 0 Ψ}
       {h : Σ ∋ˢ α ⦂ C} →
-    ((cast⊢
-        refl
-        refl
-        (dir-tgt-∀ d A B)
-        (V at[ d ]  (〔 (∀ᵖ p) 〕))
+    (((dir-tgt-∀ d A B ▹ (V at[ d ]  (〔 (∀ᵖ p) 〕)))
       ·α α [ h ]) refl)
       —→[ idˢ ]
-    id-step-term
-      (cast⊢
-        refl
-        refl
-        (dir-tgt-[]ᵗ d A B α)
-        ((cast⊢
-          refl
-          refl
-          (sym (dir-src-[]ᵗ d A B α))
-          ((cast⊢
-            refl
-            refl
-            (dir-src-∀ d A B)
-            V
-            ·α α [ h ]) refl))
-         at[ d ]  (p [ ｀ α ]ᵖᵗ)))
+    id-step
+      ((dir-tgt-[]ᵗ d A B α ▹
+        ((sym (dir-src-[]ᵗ d A B α) ▹
+          (((dir-src-∀ d A B ▹ V) ·α α [ h ]) refl))
+         at[ d ]  (p [ ｀ α ]ᵖᵗ))))
 
   β-at-down-ν :
     ∀ {Ψ}{Σ : Store Ψ}
@@ -386,28 +385,12 @@ data _—→[_]_ :
       {W : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (dir-tgt d A C)}
       {p : Σ ⊢ C ⊑ A}
       {q : Σ ⊢ B ⊑ D} →
-    (cast⊢
-      refl
-      refl
-      (dir-tgt-⇒ d A B C D)
-      (V at[ d ]  (〔 (p ↦ q) 〕))) · W
+    (dir-tgt-⇒ d A B C D ▹ (V at[ d ]  (〔 (p ↦ q) 〕))) · W
       —→[ idˢ ]
-    id-step-term
-      (((cast⊢
-          refl
-          refl
-          (dir-src-⇒ d A B C D)
-          V)
-        · (cast⊢
-            refl
-            refl
-            (dir-tgt-src-swap d C A)
-            ((cast⊢
-              refl
-              refl
-              (dir-tgt-src-swap d A C)
-              W)
-             at[ d ]  p)))
+    id-step
+      (((dir-src-⇒ d A B C D ▹ V)
+        · (dir-tgt-src-swap d C A ▹
+            ((dir-tgt-src-swap d A C ▹ W) at[ d ]  p)))
       at[ d ]  q)
 
   β-ν :

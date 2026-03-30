@@ -3,11 +3,10 @@ implemented, ordered by importance. Mark the task with an "x" inside
 the brackets when the task is complete and move it to the bottom of
 the file.
 
-[ ] The reduction rules (e.g. β-at-∀, β-at-↦) are getting verbose
-  because of multiple uses of transport lemmas like cast⊢ and
-  id-step-term.  Can you find a way to make these rules more concise
-  perhaps by refactoring to make fewer applications of transport
-  lemmas?
+[ ] Change the constructor 
+    M ·α α [ eq ] 
+    to 
+    M • α [ eq ] 
 
 [ ] Check whether some of the up/down Value constructors are easy to unify
   by parameterizing over the direction, similar to the reduction rules.
@@ -18,3 +17,9 @@ the file.
    to
    〔 p ↦ q 〕
 
+
+[x] The reduction rules (e.g. β-at-∀, β-at-↦) are getting verbose
+  because of multiple uses of transport lemmas like cast⊢ and
+  id-step-term.  Can you find a way to make these rules more concise
+  perhaps by refactoring to make fewer applications of transport
+  lemmas?

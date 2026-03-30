@@ -205,7 +205,7 @@ liftˢˣ {Σ = Σ} A σ h with unmap∋-⤊ˢ h
     refl
     refl
     (sym eq)
-    (wkΣ-term (↑ˢ A) (renameˢ-term Sˢ (σ h₀)))
+    (wkΣ-term (↑ˢ A) (⇑ˢᵐ (σ h₀)))
 
 extˣ :
   ∀{Δ}{Ψ}{Σ : Store Ψ}{Γ Γ′ : Ctx Δ Ψ}{A : Ty Δ Ψ} →

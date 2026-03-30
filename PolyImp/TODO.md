@@ -3,16 +3,9 @@ implemented, ordered by importance. Mark the task with an "x" inside
 the brackets when the task is complete and checked (see below), 
 then move it to the bottom of the file.
 
-[x] The reduction rules (e.g. β-at-∀, β-at-↦) are getting verbose
-  because of multiple uses of transport lemmas like cast⊢ and
-  id-step-term.  Can you find a way to make these rules more concise
-  perhaps by refactoring to make fewer applications of transport
-  lemmas?
+## TODO items
 
-[x] Change the constructor 
-    M ·α α [ eq ] 
-    to 
-    M • α [ eq ] 
+[ ] Change the name of the imprecision constructor ν_ to νᵖ_.
 
 ## Agda check
 
@@ -41,3 +34,15 @@ Result:
    (〔 (p ↦ q) 〕)
    to
    〔 p ↦ q 〕
+
+[x] The reduction rules (e.g. β-at-∀, β-at-↦) are getting verbose
+  because of multiple uses of transport lemmas like cast⊢ and
+  id-step-term.  Can you find a way to make these rules more concise
+  perhaps by refactoring to make fewer applications of transport
+  lemmas?
+
+[x] Change the constructor 
+    M ·α α [ eq ] 
+    to 
+    M • α [ eq ] 
+

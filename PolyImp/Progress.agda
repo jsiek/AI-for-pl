@@ -96,10 +96,10 @@ data AllView
 
   av-down-ν :
     ∀ {B : Ty Δ Ψ}
-      {i : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⊑ (⇑ˢ B)}
+      {p : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⊑ (⇑ˢ B)}
       {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ B} →
     Value W →
-    V ≡ (W at[ down ]  〔 ν i 〕) →
+    V ≡ (W at[ down ]  〔 ν p 〕) →
     AllView V
 
 canonical-∀ :
@@ -258,7 +258,7 @@ progress uΣ (M at[ up ] p) with progress uΣ M
 ...   | 〔 seal h 〕 = unseal-progress uΣ vM
 ...   | 〔 p ↦ q 〕 = done (V-at-up-↦ vM)
 ...   | 〔 ∀ᵖ p 〕 = done (V-at-up-∀ vM)
-...   | 〔 ν i 〕 = step β-at-up-ν
+...   | 〔 ν p 〕 = step β-at-up-ν
 ...   | (p ； a) ； b = step β-at-up-；
 progress uΣ (M at[ down ] p) with progress uΣ M
 ... | step {ρ = ρ} {N = M′} M→M′ =
@@ -271,6 +271,6 @@ progress uΣ (M at[ down ] p) with progress uΣ M
 ...   | 〔 seal h 〕 = done (V-at-down-seal vM)
 ...   | 〔 p ↦ q 〕 = done (V-at-down-↦ vM)
 ...   | 〔 ∀ᵖ p 〕 = done (V-at-down-∀ vM)
-...   | 〔 ν i 〕 = done (V-at-down-ν vM)
+...   | 〔 ν p 〕 = done (V-at-down-ν vM)
 ...   | (p ； a) ； b = step β-at-down-；
 progress uΣ (blame ℓ) = crash (ℓ , refl)

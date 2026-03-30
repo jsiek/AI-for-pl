@@ -418,3 +418,10 @@ renameˢ-term ρ (L ⊕[ op ] M) = renameˢ-term ρ L ⊕[ op ] renameˢ-term ρ
 renameˢ-term ρ (M at[ up ] p) = renameˢ-term ρ M at[ up ] renameᵖˢ ρ p
 renameˢ-term ρ (M at[ down ] p) = renameˢ-term ρ M at[ down ] renameᵖˢ ρ p
 renameˢ-term ρ (blame ℓ) = blame ℓ
+
+infix 8 ⇑ˢᵐ_
+⇑ˢᵐ_ :
+  ∀ {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A →
+  Δ ∣ (suc Ψ) ∣ (⟰ˢ Σ) ∣ (⤊ˢ Γ) ⊢ (⇑ˢ A)
+⇑ˢᵐ M = renameˢ-term Sˢ M

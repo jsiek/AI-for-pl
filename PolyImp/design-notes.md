@@ -4,8 +4,8 @@ THE DEVELOPMENT
 
 ## Syntax
 
-    Seals                 α
-    Type variables        X
+    Seals                 α         (de Bruijn index)
+    Type variables        X         (de Bruijn index)
     Base types            ι          ::=  ℕ | 𝔹
     Types                 A,B,C      ::=  X | α | ι | ★ | A ⇒ B | ∀X.A
     Ground types          G,H        ::=  α | ι | ★⇒★
@@ -15,7 +15,7 @@ THE DEVELOPMENT
                                         | seal h
                                         | p ↦ q
                                         | ∀ᵖ p
-                                        | ν i
+                                        | ν p
 
     Imprecision           p,q        ::=  id | p ； a
 
@@ -26,6 +26,7 @@ THE DEVELOPMENT
     Store                 Σ          ::=  · | (α : A₀) ∷ Σ
     Term ctx              Γ          ::=  · | A ∷ Γ
 
+    Term variables        x          (de Bruijn index)
     Terms                 L,M,N      ::=  x
                                         | ƛ A ⇒ N
                                         | L · M
@@ -46,7 +47,7 @@ THE DEVELOPMENT
                                         | V at[ - ] 〔 p ↦ q 〕
                                         | V at[ + ] 〔 ∀ᵖ p 〕
                                         | V at[ - ] 〔 ∀ᵖ p 〕
-                                        | V at[ - ] 〔 ν i 〕
+                                        | V at[ - ] 〔 ν p 〕
 
     Notes.
       1. h is a store lookup proof: Σ ∋ˢ α ⦂ A.
@@ -62,6 +63,8 @@ THE DEVELOPMENT
       6. Correspondence with Agda:
            this note writes directions as `+` and `-`,
            while the Agda development uses constructors `up` and `down`.
+      7. Term seal-shift notation:
+           ⇑ˢᵐ M abbreviates renameˢ-term Sˢ M.
 
 
 ## Imprecision Typing
@@ -89,9 +92,9 @@ THE DEVELOPMENT
     -----------------------------
     Σ ⊢ ∀ᵖ p : (∀X.A) ⊑ᵃ (∀X.B)
 
-    ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ⊢ i : ((⇑ˢ A) [ Zˢ ]) ⊑ (⇑ˢ B)
+    ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ⊢ p : ((⇑ˢ A) [ Zˢ ]) ⊑ (⇑ˢ B)
     ----------------------------------------------------------------
-    Σ ⊢ ν i : (∀X.A) ⊑ᵃ B
+    Σ ⊢ ν p : (∀X.A) ⊑ᵃ B
 
     -----------------------------
     Σ ⊢ id : A ⊑ A
@@ -160,54 +163,58 @@ THE DEVELOPMENT
 
     One-step reduction is typed and store-aware:
 
-      M —→[ ρ ] N
+      Σ ⊢ M —[ ρ ]→ Σ′ ⊢ N
 
     where result type/store are renamed by ρ.
-    Most steps use ρ = idˢ; ν-opening uses ρ = Sˢ.
+    Most rules use ρ = idˢ and keep the store unchanged (Σ′ = Σ).
+    The ν-unpack step is the main store-changing rule:
+
+      Σ ⊢ (ν:= A ∙ N) —[ Sˢ ]→ ((Zˢ , ⇑ˢ A) ∷ ⟰ˢ Σ) ⊢ N
 
     β-rules:
 
-    (ƛ A ⇒ N) · V                                —→[idˢ]  N[V]
+    Σ ⊢ (ƛ A ⇒ N) · V                            —[idˢ]→  Σ ⊢ N[V]
 
-    ((Λ V) • α [ h ])                            —→[idˢ]  V[α]
+    Σ ⊢ ((Λ V) • α [ h ])                        —[idˢ]→  Σ ⊢ V[α]
 
-    (((V at[ d ] 〔 ∀ᵖ p 〕) • α [ h ]))          —→[idˢ]  ((V • α [ h ]) at[ d ] (p [ α ]))
+    Σ ⊢ (((V at[ d ] 〔 ∀ᵖ p 〕) • α [ h ]))      —[idˢ]→  Σ ⊢ ((V • α [ h ]) at[ d ] (p [ α ]))
 
-    ((V at[ d ] 〔 p ↦ q 〕) · W)                 —→[idˢ]  ((V · (W at[ d ] p)) at[ d ] q)
+    Σ ⊢ ((V at[ d ] 〔 p ↦ q 〕) · W)             —[idˢ]→  Σ ⊢ ((V · (W at[ d ] p)) at[ d ] q)
 
-    (ν:= A ∙ N)                                  —→[Sˢ]   N
+    Σ ⊢ ((V at[ - ] 〔 ν p 〕) • α [ h ])         —[idˢ]→  Σ ⊢ (V at[ - ] (openν p α))
 
-    ((V at[ - ] 〔 ν i 〕) • α [ h ])             —→[idˢ]  V at[ - ] (openν i α)
-
-    (V at[ + ] 〔 ν i 〕)                         —→[idˢ]  ν:= ★ ∙ ((((wkΣ (renameˢ Sˢ V)) • Zˢ [top★]) at[ + ] i))
+    Σ ⊢ (V at[ + ] 〔 ν p 〕)                     —[idˢ]→  Σ ⊢ (ν:= ★ ∙ ((((wkΣ (⇑ˢᵐ V)) • Zˢ [top★]) at[ + ] p)))
 
     Cast/primitive normalization:
 
-    (V at[ d ] id)                               —→[idˢ]  V
+    Σ ⊢ (V at[ d ] id)                           —[idˢ]→  Σ ⊢ V
 
-    ((V at[ - ] 〔 seal h 〕) at[ + ] 〔 seal h′ 〕)
-                                                 —→[idˢ]  V
+    Σ ⊢ ((V at[ - ] 〔 seal h 〕) at[ + ] 〔 seal h′ 〕)
+                                                 —[idˢ]→  Σ ⊢ V
                                                  (with store-uniqueness transport)
 
-    ((V at[ + ] 〔 tag g ℓ 〕) at[ - ] 〔 tag g′ ℓ′ 〕)
-                                                 —→[idˢ]  V          when G ≡ G′
+    Σ ⊢ ((V at[ + ] 〔 tag g ℓ 〕) at[ - ] 〔 tag g′ ℓ′ 〕)
+                                                 —[idˢ]→  Σ ⊢ V          when G ≡ G′
 
-    ((V at[ + ] 〔 tag g ℓ 〕) at[ - ] 〔 tag h ℓ′ 〕)
-                                                 —→[idˢ]  blame ℓ′   when G ≢ H
+    Σ ⊢ ((V at[ + ] 〔 tag g ℓ 〕) at[ - ] 〔 tag h ℓ′ 〕)
+                                                 —[idˢ]→  Σ ⊢ blame ℓ′   when G ≢ H
 
-    V at[ d ] 〔 ⊥ ℓ 〕                           —→[idˢ]  blame ℓ
+    Σ ⊢ (V at[ d ] 〔 ⊥ ℓ 〕)                     —[idˢ]→  Σ ⊢ blame ℓ
 
-    V at[ + ] ((p ； a) ； b)                     —→[idˢ]  (V at[ + ] (p ； a)) at[ + ] 〔 b 〕
+    Σ ⊢ (V at[ + ] ((p ； a) ； b))               —[idˢ]→  Σ ⊢ ((V at[ + ] (p ； a)) at[ + ] 〔 b 〕)
 
-    V at[ - ] ((p ； a) ； b)                     —→[idˢ]  (V at[ - ] 〔 b 〕) at[ - ] (p ； a)
+    Σ ⊢ (V at[ - ] ((p ； a) ； b))               —[idˢ]→  Σ ⊢ ((V at[ - ] 〔 b 〕) at[ - ] (p ； a))
 
-    (($ m) ⊕[addℕ] ($ n))                        —→[idˢ]  $ (m+n)
+    Σ ⊢ (($ m) ⊕[addℕ] ($ n))                    —[idˢ]→  Σ ⊢ ($ (m+n))
 
     Congruence rules:
-      ξ-·₁, ξ-·₂, ξ-·α, ξ-at-+, ξ-at--, ξ-⊕₁, ξ-⊕₂
+      premises have shape `Σ ⊢ M —[ ρ ]→ Σ′ ⊢ M′` together with
+      `wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′`, and produce steps into store `Σ′`.
+      Rule names: ξ-·₁, ξ-·₂, ξ-·α, ξ-at-+, ξ-at--, ξ-⊕₁, ξ-⊕₂
       (Agda names: ξ-at-up and ξ-at-down)
 
     Blame propagation:
+      all are id-steps and preserve store `Σ`:
       blame-·₁, blame-·₂, blame-·α, blame-at, blame-⊕₁, blame-⊕₂
 
 
@@ -215,5 +222,5 @@ THE DEVELOPMENT
 
     Reflexive-transitive closure:
 
-      M —↠ M
-      M —→[ ρ ] N and N —↠ P imply M —↠ P
+      Σ ⊢ M —↠ Σ ⊢ M
+      Σ ⊢ M —[ ρ ]→ Σ′ ⊢ N and Σ′ ⊢ N —↠ Σ″ ⊢ P imply Σ ⊢ M —↠ Σ″ ⊢ P

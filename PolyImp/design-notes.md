@@ -11,7 +11,6 @@ A polymorphic cast calculus that uses imprecision to express casts.
     Ground types          G,H        ::=  α | ι | ★⇒★
 
     Atomic imprecision    a,b        ::=  tag G ℓ
-                                        | ⊥ ℓ
                                         | seal α
                                         | p ↦ q
                                         | ∀ᵖ p
@@ -69,9 +68,6 @@ A polymorphic cast calculus that uses imprecision to express casts.
 
     --------------------
     Σ ⊢ tag G ℓ : G ⊑ᵃ ★
-
-    ----------------
-    Σ ⊢ ⊥ ℓ : A ⊑ᵃ B
 
     Σ ∋ˢ α ⦂ A₀
     ---------------------
@@ -180,8 +176,6 @@ A polymorphic cast calculus that uses imprecision to express casts.
 
     Σ ⊢ (V @+ 〔 tag G ℓ 〕) @- 〔 tag H ℓ′ 〕
                                                  —[idˢ]→  Σ ⊢ blame ℓ′   when G ≢ H
-
-    Σ ⊢ V @± 〔 ⊥ ℓ 〕                            —[idˢ]→  Σ ⊢ blame ℓ
 
     Σ ⊢ V @+ (p ； a) ； b                       —[idˢ]→  Σ ⊢ V @+ (p ； a) @+ 〔 b 〕
 

@@ -36,7 +36,7 @@ and the cast  `_⊢_↣_`.
 3. Port over the the renaming and substitution operations on coercions (from Coercions.agda) to imprecision.
    You do not need to port over coercion reduction, as we do not need imprecision reduction.
    This should be straightforward because imprecision is a subset of coercion.
-4. Port over the term definitions, renaming, and substitution from PolyCast.agda over to PolyImp.agda,
+4. Port over the term definitions, renaming, and substitution from PolyCast.agda over to create PolyImp.agda,
    replacing the term cast constructor `_⟨_⟩` with cast through `_at_` with two parameters, the subterm
    and the cast  `_⊢_↣_`.
 5. Stop and report what was implemented and what blockers were encountered if any.
@@ -51,6 +51,12 @@ and the cast  `_⊢_↣_`.
   - Kept this step scoped to syntax/composition (`id`, `_；_`, `_⨟_`) and transport helper (`castᵖ`), deferring renaming/substitution to step 3.
 - Step 2 complete:
   - Added a coercion→imprecision constructor correspondence in Development Notes.
+- Step 3 complete:
+  - Ported coercion renaming/substitution operations into `Imprecision.agda` for imprecision witnesses:
+    - Type-variable renaming/substitution: `renameAtomᵖᵗ`, `renameᵖᵗ`, `substAtomᵖᵗ`, `substᵖᵗ`, `_[_]ᵖᵗ`.
+    - Seal renaming: `renameAtomᵖˢ`, `renameᵖˢ`.
+  - Adapted all cases to the imprecision constructor set (`tag`, `` `⊥ ``, `seal`, `_↦_`, `∀ᵖ`, `ν_`), with no projection/generalization cases.
+  - Kept the port scoped to renaming/substitution only; no coercion/imprecision reduction relation was added.
 
 
 ## Agda check

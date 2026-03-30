@@ -1,6 +1,6 @@
 # AI-for-pl
 
-experiments in using AI (GPT-5.3-Codex) to do PL metatheory
+Experiments in using AI (GPT-5.3-Codex) to do PL metatheory
 
 STLC - Simply Typed Lambda Calculus
 
@@ -12,12 +12,44 @@ System F - Polymorphic Lambda Calculus
 
 GTSF - Gradually Typed System F
 
-PolyCast - A polymorphic cast calculus with intrinsically typed
-coercions that include coercions to and from universal types, that is,
-generalization and instantiation.
+PolyCast - A polymorphic cast calculus that is intrinsically typed and
+uses coercions to express casts between types. Coercions to cast to
+and from universal types, that is, generalization and instantiation.
 
+PolyImp - A polymorphic cast calculus that is intrinsically typed and
+uses imprecision to express casts between types.  Imprecision allows
+casts to and from universal types, that is, generalization and
+instantiation.
+
+PolyBlameI - A failed attempt at a polymorphic cast calculus that uses
+imprecision. This design is not type safe because type substitution
+does not preserve imprecision typing.
+
+# Work in Progress
+
+I am currently working on PolyImp.
 
 # Agda Development Notes
+
+## Use "constructor form indices" for data type constructors (from 2-26-03-30)
+
+In Agda, constructor form indices are indices of an indexed data type
+that are expressed using only data constructors (like zero, suc, [],
+or _∷_) and variables, rather than defined functions (like addition
+_+_ or maximum max). Adhering to this form is crucial because Agda's
+built-in unification algorithm has difficulty solving equality
+problems involving user-defined functions that do not immediately
+reduce to a constructor-based form.
+
+To resolve "cannot unify" or "I'm not sure if there should be a case"
+errors caused by complex indices, you should refactor your data types
+and proofs.  Avoid Functions in Indices: If a type has a function call
+in its index, for example, max n m ≤ u, the unifier will struggle to
+match max n m with other terms (e.g., n + k).  Use Equality Proofs
+Internally: Instead of an index f(x), use an explicit equality proof
+within the data type's definition to relate the function's result to
+the expected value. The type could become something like D : A → Set
+where a constructor takes an argument of type f x ≡ y.
 
 ## Agda `with` style (from 2026-03-24)
 

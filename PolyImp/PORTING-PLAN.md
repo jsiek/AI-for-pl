@@ -1,5 +1,7 @@
 # PolyImp Port Plan (PolyCast style + Imprecision)
 
+This task has been completed.
+
 ## Goal
 Port the PolyCast development shape into `PolyImp`, but completely replace coercions with imprecision.
 
@@ -39,8 +41,17 @@ and the cast  `_⊢_↣_`.
 4. Port over the term definitions, renaming, and substitution from PolyCast.agda over to create PolyImp.agda,
    replacing the term cast constructor `_⟨_⟩` with cast through `_at_` with two parameters, the subterm
    and the cast  `_⊢_↣_`.
-5. Stop and report what was implemented and what blockers were encountered if any.
-   After that we'll formulate a plan for porting the rest of PolyCast.
+5. Port the file from PolyCast/TermSubst.agda to a new file PolyImp/TermSubst.agda, using the
+   correspondence below to adapt each reduction rule involving coercions to up/down imprecision.
+6. Port the file from PolyCast/Reduction.agda to a new file PolyImp/Reduction.agda, using the
+   correspondence below to adapt each reduction rule involving coercions to up/down imprecision.
+7. Port the file from PolyCast/Progress.agda to a new file PolyImp/Progress.agda, updating to replace
+   any coercion-related things with imprecision.
+8. Port the file from PolyCast/Eval.agda to a new file PolyImp/Eval.agda, updating to replace
+   any coercion-related things with imprecision.
+9. Port the file from PolyCast/Examples.agda to a new file PolyImp/Examples.agda, updating to replace
+   any coercion-related things with imprecision using the
+   correspondence below to adapt coercions to up/down imprecision.
 
 ## Implemented
 - Step 1 complete:
@@ -57,6 +68,36 @@ and the cast  `_⊢_↣_`.
     - Seal renaming: `renameAtomᵖˢ`, `renameᵖˢ`.
   - Adapted all cases to the imprecision constructor set (`tag`, `` `⊥ ``, `seal`, `_↦_`, `∀ᵖ`, `ν_`), with no projection/generalization cases.
   - Kept the port scoped to renaming/substitution only; no coercion/imprecision reduction relation was added.
+- Step 4 complete:
+  - Added `PolyImp.agda` by porting term syntax and term renaming/substitution from `PolyCast/PolyCast.agda`.
+  - Replaced term cast constructor `_⟨_⟩` with `_at_`, using cast judgment `_∣_∣_⊢_↣_`.
+  - Added cast constructors `up_` and `down_`, each carrying an imprecision witness (`_⊢_⊑_`), matching the PolyImp design constraints.
+  - Ported cast renaming/substitution transport (`renameᵗ↣`, `substᵗ↣`, `renameˢ↣`) and updated term traversals (`renameᵗ-term`, `substᵗ-term`, `renameˢ-term`) to use imprecision operations (`renameᵖᵗ`, `substᵖᵗ`, `renameᵖˢ`).
+- Step 5 complete:
+  - Added `TermSubst.agda` by porting `PolyCast/TermSubst.agda` into PolyImp style.
+  - Replaced coercion weakening with imprecision/cast weakening:
+    - `wkΣᶜᵃ`/`wkΣᶜ` ↦ `wkΣᵖᵃ`/`wkΣᵖ`.
+    - Added `wkΣ↣` for up/down casts.
+  - Updated all term cases from `_⟨_⟩` to `_at_` and removed coercion imports.
+- Step 6 complete:
+  - Added `Reduction.agda` by porting dynamic semantics from `PolyCast/Reduction.agda` to PolyImp.
+  - Replaced coercion-based value/reduction forms with up/down imprecision forms:
+    - Value constructors for `tag`, `seal`, `↦`, `∀ᵖ`, and `ν` through `up`/`down`.
+    - Cast reduction rules for `id`, `⊥`, composition (`_；_`), and compatibility (`ξ-at`).
+    - Adapted function/polymorphic cast β-rules to up/down forms (`β-at-up-↦`, `β-at-down-↦`, `β-at-up-∀`, `β-at-down-∀`, `β-at-up-ν`, `β-at-down-ν`).
+  - Kept multi-step reduction and store-growth/uniqueness lemmas in PolyCast structure.
+- Step 7 complete:
+  - Added `Progress.agda` by porting `PolyCast/Progress.agda`.
+  - Reworked canonical forms and progress analysis for up/down casts:
+    - Function, polymorphic, star, and seal canonical views now use PolyImp value constructors.
+    - Cast progress case now branches on `up`/`down` and imprecision constructors instead of coercions.
+- Step 8 complete:
+  - Added `Eval.agda` by porting `PolyCast/Eval.agda` with PolyImp imports.
+  - Fuel-bounded evaluator remains unchanged in structure, now driving PolyImp reduction/progress.
+- Step 9 complete:
+  - Added `Examples.agda` by porting `PolyCast/Examples.agda` to PolyImp cast forms.
+  - Replaced coercion casts with `_at_` + `up/down` over `tag`/`id`.
+  - Kept the example suite shape and test style; adapted the old `ℐ`-specific example to a PolyImp-valid equivalent.
 
 
 ## Agda check
@@ -68,6 +109,13 @@ Result:
 
 ## Difficulties and postulates
 
+- In `Reduction.agda`, opening a down-`ν` cast at term-level type application required a bridge from
+  `((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ)`-indexed witness to a `Σ`-indexed witness:
+  `Σ ⊢ (A [ ｀ α ]ᵗ) ⊑ B`.
+- This is now resolved without postulates:
+  - `openν` is implemented constructively in `Reduction.agda` via:
+    - seal-renaming with `singleSealEnv` (PolyCast-style opening step), and
+    - a structural strengthening pass that removes exactly the extra `★` store entry while preserving typing.
 
 
 ## Development Notes

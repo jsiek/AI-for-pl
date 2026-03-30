@@ -68,6 +68,9 @@ _⨟_ : ∀{Δ}{Ψ}{Σ : Store Ψ}{A B C : Ty Δ Ψ}
 p ⨟ id = p
 p ⨟ (q ； a) = (p ⨟ q) ； a
 
+infix 8 〔_〕
+pattern 〔_〕 p = id ； p
+
 castᵖ :
   ∀ {Δ}{Ψ}{Σ Σ′ : Store Ψ}
     {A A′ B B′ : Ty Δ Ψ} →

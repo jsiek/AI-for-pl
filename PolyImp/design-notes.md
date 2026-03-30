@@ -7,12 +7,12 @@ THE DEVELOPMENT
     Seals                 α         (de Bruijn index)
     Type variables        X         (de Bruijn index)
     Base types            ι          ::=  ℕ | 𝔹
-    Types                 A,B,C      ::=  X | α | ι | ★ | A ⇒ B | ∀X.A
+    Types                 A,B,C      ::=  X | α | ι | ★ | A ⇒ B | ∀A
     Ground types          G,H        ::=  α | ι | ★⇒★
 
-    Atomic imprecision    a,b        ::=  tag g ℓ
+    Atomic imprecision    a,b        ::=  tag G ℓ
                                         | ⊥ ℓ
-                                        | seal h
+                                        | seal α
                                         | p ↦ q
                                         | ∀ᵖ p
                                         | ν p
@@ -31,7 +31,7 @@ THE DEVELOPMENT
                                         | ƛ A ⇒ N
                                         | L · M
                                         | Λ N
-                                        | (L • α [ h ]) eq
+                                        | L • α
                                         | ν:= A ∙ N
                                         | $ κ
                                         | L ⊕[ op ] M
@@ -41,31 +41,23 @@ THE DEVELOPMENT
     Values                V,W        ::=  ƛ A ⇒ N
                                         | Λ N
                                         | $ κ
-                                        | V at[ + ] 〔 tag g ℓ 〕
-                                        | V at[ - ] 〔 seal h 〕
-                                        | V at[ + ] 〔 p ↦ q 〕
-                                        | V at[ - ] 〔 p ↦ q 〕
-                                        | V at[ + ] 〔 ∀ᵖ p 〕
-                                        | V at[ - ] 〔 ∀ᵖ p 〕
+                                        | V at[ + ] 〔 tag G ℓ 〕
+                                        | V at[ - ] 〔 seal α 〕
+                                        | V at[ ± ] 〔 p ↦ q 〕
+                                        | V at[ ± ] 〔 ∀ᵖ p 〕
                                         | V at[ - ] 〔 ν p 〕
 
     Notes.
-      1. h is a store lookup proof: Σ ∋ˢ α ⦂ A.
-      2. (L • α [ h ]) eq is type application; eq aligns result type
-         with A [ α ].
-      3. 〔 a 〕 is notation for id ； a.
-      4. A₀ denotes a closed representation type stored under a seal
+      * 〔 a 〕 is notation for id ； a.
+      * A₀ denotes a closed representation type stored under a seal
          binding (i.e., store entries have shape (α : A₀) with no free
          type variables).
-      5. Cast direction is encoded by:
+      * Cast direction is encoded by:
            dir-src + A B   = A         dir-tgt + A B   = B
            dir-src - A B   = B         dir-tgt - A B   = A
-      6. Correspondence with Agda:
+      * Correspondence with Agda:
            this note writes directions as `+` and `-`,
            while the Agda development uses constructors `up` and `down`.
-      7. Term seal-shift notation:
-           ⇑ˢᵐ M abbreviates renameˢ-term Sˢ M.
-
 
 ## Imprecision Typing
 
@@ -73,16 +65,15 @@ THE DEVELOPMENT
       Σ ⊢ A ⊑ᵃ B      (atomic imprecision)
       Σ ⊢ A ⊑ B       (general imprecision)
 
-    Σ ⊢ gnd : Ground G
-    -----------------------------
-    Σ ⊢ tag gnd ℓ : G ⊑ᵃ ★
+    --------------------
+    Σ ⊢ tag G ℓ : G ⊑ᵃ ★
 
-    -----------------------------
+    ----------------
     Σ ⊢ ⊥ ℓ : A ⊑ᵃ B
 
-    h : Σ ∋ˢ α ⦂ A₀
+    Σ ∋ˢ α ⦂ A₀
     -----------------------------
-    Σ ⊢ seal h : α ⊑ᵃ wkTy0 A₀
+    Σ ⊢ seal α : α ⊑ᵃ wkTy0 A₀
 
     Σ ⊢ p : A′ ⊑ A     Σ ⊢ q : B ⊑ B′
     ------------------------------------
@@ -90,11 +81,11 @@ THE DEVELOPMENT
 
     Σ ⊢ p : A ⊑ B
     -----------------------------
-    Σ ⊢ ∀ᵖ p : (∀X.A) ⊑ᵃ (∀X.B)
+    Σ ⊢ ∀ᵖ p : (∀A) ⊑ᵃ (∀B)
 
     ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ⊢ p : ((⇑ˢ A) [ Zˢ ]) ⊑ (⇑ˢ B)
     ----------------------------------------------------------------
-    Σ ⊢ ν p : (∀X.A) ⊑ᵃ B
+    Σ ⊢ ν p : (∀A) ⊑ᵃ B
 
     -----------------------------
     Σ ⊢ id : A ⊑ A
@@ -102,12 +93,6 @@ THE DEVELOPMENT
     Σ ⊢ p : A ⊑ B      Σ ⊢ a : B ⊑ᵃ C
     ------------------------------------
     Σ ⊢ p ； a : A ⊑ C
-
-    Design point.
-      Unlike PolyCast, PolyImp has no separate coercion reduction relation.
-      Runtime cast behavior is expressed directly by term reduction rules on
-      at[ + / - ].
-
 
 ## Term Typing
 
@@ -134,11 +119,11 @@ THE DEVELOPMENT
 
     (suc Δ) ∣ Ψ ∣ Σ ∣ (⤊ᵗ Γ) ⊢ N : A
     -------------------------------------
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ Λ N : ∀X.A
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ Λ N : ∀A
 
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ L : ∀X.A      h : Σ ∋ˢ α ⦂ C
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ L : ∀A      Σ ∋ˢ α ⦂ C
     ----------------------------------------------------------
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (L • α [ h ]) refl : (A [ α ])
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (L • α) : (A [ α ])
 
     Δ ∣ (suc Ψ) ∣ ((Zˢ , ⇑ˢ A₀) ∷ ⟰ˢ Σ) ∣ (⤊ˢ Γ) ⊢ ⇑ˢ B
     ----------------------------------------------------------------
@@ -169,43 +154,42 @@ THE DEVELOPMENT
     Most rules use ρ = idˢ and keep the store unchanged (Σ′ = Σ).
     The ν-unpack step is the main store-changing rule:
 
-      Σ ⊢ (ν:= A ∙ N) —[ Sˢ ]→ ((Zˢ , ⇑ˢ A) ∷ ⟰ˢ Σ) ⊢ N
+    Σ ⊢ (ν:= A ∙ N)                              —[ Sˢ ]→ ((Zˢ , ⇑ˢ A) ∷ ⟰ˢ Σ) ⊢ N
 
     β-rules:
 
     Σ ⊢ (ƛ A ⇒ N) · V                            —[idˢ]→  Σ ⊢ N[V]
 
-    Σ ⊢ ((Λ V) • α [ h ])                        —[idˢ]→  Σ ⊢ V[α]
+    Σ ⊢ (Λ V) • α                                —[idˢ]→  Σ ⊢ V[α]
 
-    Σ ⊢ (((V at[ d ] 〔 ∀ᵖ p 〕) • α [ h ]))      —[idˢ]→  Σ ⊢ ((V • α [ h ]) at[ d ] (p [ α ]))
+    Σ ⊢ (V at[ d ] 〔 ∀ᵖ p 〕) • α                —[idˢ]→  Σ ⊢ (V • α) at[ d ] p[α]
 
-    Σ ⊢ ((V at[ d ] 〔 p ↦ q 〕) · W)             —[idˢ]→  Σ ⊢ ((V · (W at[ d ] p)) at[ d ] q)
+    Σ ⊢ (V at[ d ] 〔 p ↦ q 〕) · W               —[idˢ]→  Σ ⊢ (V · (W at[ d ] p)) at[ d ] q
 
-    Σ ⊢ ((V at[ - ] 〔 ν p 〕) • α [ h ])         —[idˢ]→  Σ ⊢ (V at[ - ] (openν p α))
+    Σ ⊢ (V at[ - ] 〔 ν p 〕) • α                 —[idˢ]→  Σ ⊢ V at[ - ] p[α]
 
-    Σ ⊢ (V at[ + ] 〔 ν p 〕)                     —[idˢ]→  Σ ⊢ (ν:= ★ ∙ ((((wkΣ (⇑ˢᵐ V)) • Zˢ [top★]) at[ + ] p)))
+    Σ ⊢ V at[ + ] 〔 ν p 〕                       —[idˢ]→  Σ ⊢ ν:= ★ ∙ (⇑ˢ V) • Zˢ at[ + ] p
 
     Cast/primitive normalization:
 
-    Σ ⊢ (V at[ d ] id)                           —[idˢ]→  Σ ⊢ V
+    Σ ⊢ V at[ d ] id                             —[idˢ]→  Σ ⊢ V
 
-    Σ ⊢ ((V at[ - ] 〔 seal h 〕) at[ + ] 〔 seal h′ 〕)
+    Σ ⊢ (V at[ - ] 〔 seal α 〕) at[ + ] 〔 seal α 〕
                                                  —[idˢ]→  Σ ⊢ V
-                                                 (with store-uniqueness transport)
 
-    Σ ⊢ ((V at[ + ] 〔 tag g ℓ 〕) at[ - ] 〔 tag g′ ℓ′ 〕)
-                                                 —[idˢ]→  Σ ⊢ V          when G ≡ G′
+    Σ ⊢ (V at[ + ] 〔 tag G ℓ 〕) at[ - ] 〔 tag G ℓ′ 〕
+                                                 —[idˢ]→  Σ ⊢ V
 
-    Σ ⊢ ((V at[ + ] 〔 tag g ℓ 〕) at[ - ] 〔 tag h ℓ′ 〕)
+    Σ ⊢ (V at[ + ] 〔 tag G ℓ 〕) at[ - ] 〔 tag H ℓ′ 〕
                                                  —[idˢ]→  Σ ⊢ blame ℓ′   when G ≢ H
 
-    Σ ⊢ (V at[ d ] 〔 ⊥ ℓ 〕)                     —[idˢ]→  Σ ⊢ blame ℓ
+    Σ ⊢ V at[ d ] 〔 ⊥ ℓ 〕                       —[idˢ]→  Σ ⊢ blame ℓ
 
-    Σ ⊢ (V at[ + ] ((p ； a) ； b))               —[idˢ]→  Σ ⊢ ((V at[ + ] (p ； a)) at[ + ] 〔 b 〕)
+    Σ ⊢ V at[ + ] ((p ； a) ； b)                —[idˢ]→  Σ ⊢ (V at[ + ] (p ； a)) at[ + ] 〔 b 〕
 
-    Σ ⊢ (V at[ - ] ((p ； a) ； b))               —[idˢ]→  Σ ⊢ ((V at[ - ] 〔 b 〕) at[ - ] (p ； a))
+    Σ ⊢ V at[ - ] ((p ； a) ； b)                —[idˢ]→  Σ ⊢ ((V at[ - ] 〔 b 〕) at[ - ] (p ； a))
 
-    Σ ⊢ (($ m) ⊕[addℕ] ($ n))                    —[idˢ]→  Σ ⊢ ($ (m+n))
+    Σ ⊢ ($ m) ⊕[addℕ] ($ n)                     —[idˢ]→  Σ ⊢ ($ (m+n))
 
     Congruence rules:
       premises have shape `Σ ⊢ M —[ ρ ]→ Σ′ ⊢ M′` together with

@@ -71,7 +71,7 @@ mutual
       → Σ ⊢ (`∀ A) ⇨ᵃ (`∀ B)
 
     𝒢 : ∀{A : Ty (suc Δ) Ψ}{B : Ty Δ Ψ}
-      → ⟰ˢ Σ ⊢ (⇑ˢ B) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)
+      → ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ (⇑ˢ B) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)
       → Σ ⊢ B ⇨ᵃ (`∀ A)
 
     ℐ : ∀{A : Ty (suc Δ) Ψ}{B : Ty Δ Ψ}
@@ -234,8 +234,8 @@ mutual
           (cong (λ T → T [ ｀ Zˢ ]ᵗ) (renameᵗ-⇑ˢ (extᵗ ρ) A))
 
       g′ :
-        ⟰ˢ Σ ⊢ (⇑ˢ (renameᵗ ρ B)) ⇨
-                  ((⇑ˢ (renameᵗ (extᵗ ρ) A)) [ ｀ Zˢ ]ᵗ)
+        ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ (⇑ˢ (renameᵗ ρ B)) ⇨
+                                      ((⇑ˢ (renameᵗ (extᵗ ρ) A)) [ ｀ Zˢ ]ᵗ)
       g′ = castᶜ refl dom-eq cod-eq (renameᶜᵗ ρ g)
 
   renameAtomᶜᵗ {Σ = Σ} ρ (ℐ {A = A} {B = B} i) = ℐ i′
@@ -306,8 +306,8 @@ mutual
           (cong (λ T → T [ ｀ Zˢ ]ᵗ) inner-eq)
 
       g′ :
-        ⟰ˢ Σ ⊢ (⇑ˢ (substᵗ σ B)) ⇨
-                  ((⇑ˢ (substᵗ (extsᵗ σ) A)) [ ｀ Zˢ ]ᵗ)
+        ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ (⇑ˢ (substᵗ σ B)) ⇨
+                                      ((⇑ˢ (substᵗ (extsᵗ σ) A)) [ ｀ Zˢ ]ᵗ)
       g′ = castᶜ refl dom-eq cod-eq (substᶜᵗ liftσ g)
 
   substAtomᶜᵗ {Σ = Σ} σ (ℐ {A = A} {B = B} i) = ℐ i′
@@ -385,9 +385,12 @@ mutual
   renameAtomᶜˢ {Σ = Σ} ρ (𝒢 {A = A} {B = B} g) = 𝒢 g′
     where
       Σ-eq :
-        renameStoreˢ (extˢ ρ) (⟰ˢ Σ) ≡
-        ⟰ˢ (renameStoreˢ ρ Σ)
-      Σ-eq = renameStoreˢ-ext-⟰ˢᶜ ρ Σ
+        renameStoreˢ (extˢ ρ) ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ≡
+        ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ (renameStoreˢ ρ Σ))
+      Σ-eq =
+        cong₂ _∷_
+          (cong₂ _,_ refl (renameˢ-ext-⇑ˢᶜ ρ `★))
+          (renameStoreˢ-ext-⟰ˢᶜ ρ Σ)
 
       dom-eq :
         renameˢ (extˢ ρ) (⇑ˢ B) ≡
@@ -403,8 +406,8 @@ mutual
           (cong (λ T → T [ ｀ Zˢ ]ᵗ) (renameˢ-ext-⇑ˢᶜ ρ A))
 
       g′ :
-        ⟰ˢ (renameStoreˢ ρ Σ) ⊢ (⇑ˢ (renameˢ ρ B)) ⇨
-                                ((⇑ˢ (renameˢ ρ A)) [ ｀ Zˢ ]ᵗ)
+        ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ (renameStoreˢ ρ Σ)) ⊢ (⇑ˢ (renameˢ ρ B)) ⇨
+                                                       ((⇑ˢ (renameˢ ρ A)) [ ｀ Zˢ ]ᵗ)
       g′ = castᶜ Σ-eq dom-eq cod-eq (renameᶜˢ (extˢ ρ) g)
 
   renameAtomᶜˢ {Σ = Σ} ρ (ℐ {A = A} {B = B} i) = ℐ i′
@@ -460,7 +463,7 @@ mutual
   wkᶜᵃ w (h ⁺) = wkLookupˢ w h ⁺
   wkᶜᵃ w (c ↦ d) = wkᶜ w c ↦ wkᶜ w d
   wkᶜᵃ w (∀ᶜ c) = ∀ᶜ (wkᶜ w c)
-  wkᶜᵃ w (𝒢 g) = 𝒢 (wkᶜ (⟰ˢ-⊆ˢ w) g)
+  wkᶜᵃ w (𝒢 g) = 𝒢 (wkᶜ (ν-⊆ˢ `★ w) g)
   wkᶜᵃ w (ℐ i) = ℐ (wkᶜ (ν-⊆ˢ `★ w) i)
 
   wkᶜ :
@@ -543,8 +546,8 @@ data _︔_—→ᶜ_ {Δ}{Ψ}{Σ : Store Ψ}
 
   gen-all : ∀ {A B : Ty (suc Δ) Ψ}{C : Ty Δ Ψ}
     {c : Σ ⊢ A ⇨ B}
-    {gA : ⟰ˢ Σ ⊢ (⇑ˢ C) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
-    → 𝒢 gA ︔ ∀ᶜ c —→ᶜ (id ； (𝒢 (gA ⨟ (open-liftᶜ c))))
+    {gA : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ (⇑ˢ C) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
+    → 𝒢 gA ︔ ∀ᶜ c —→ᶜ (id ； (𝒢 (gA ⨟ (open-liftᶜ-ν c))))
 
   ⊥-left : ∀ {A B C}{ℓ}
     {b : Σ ⊢ B ⇨ᵃ C}

@@ -15,7 +15,7 @@ open import Types
 open import Store
 open import Coercions
 open import PolyCast
-open import TypeSubst using (renameLookupˢ; renameˢ-single-⇑ˢ-id)
+open import TypeSubst using (renameLookupˢ)
 open import TermSubst
 
 ------------------------------------------------------------------------
@@ -68,7 +68,7 @@ data Value : ∀ {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
 
   V-⟨𝒢⟩ :
     ∀{Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A : Ty (suc Δ) Ψ}{B : Ty Δ Ψ}
-    {g : ⟰ˢ Σ ⊢ (⇑ˢ B) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
+    {g : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ (⇑ˢ B) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
     {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ B} →
     Value V →
     Value (V ⟨ id ； (𝒢 {A = A} g) ⟩)
@@ -266,26 +266,26 @@ open𝒢 :
   ∀ {Ψ}{Σ : Store Ψ}
     {A : Ty (suc 0) Ψ}
     {B : Ty 0 Ψ} →
-  (g : ⟰ˢ Σ ⊢ (⇑ˢ B) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)) →
+  (g : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ (⇑ˢ B) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)) →
   (α : Seal Ψ) →
-  Σ ⊢ B ⇨ (A [ ｀ α ]ᵗ)
-open𝒢 {Σ = Σ} {A = A} {B = B} g α =
-  castᶜ
-    (renameStoreˢ-single-⟰ˢ α Σ)
-    dom-eq
-    cod-eq
-    (renameᶜˢ (singleSealEnv α) g)
+  ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ (⇑ˢ B) ⇨ ((⇑ˢ A) [ ｀ (Sˢ α) ]ᵗ)
+open𝒢 {A = A} g α = g ⨟ swap
   where
-    dom-eq :
-      renameˢ (singleSealEnv α) (⇑ˢ B) ≡ B
-    dom-eq = renameˢ-single-⇑ˢ-id α B
+    up :
+      (X : TyVar (suc 0)) →
+      ((Zˢ , ⇑ˢ `★) ∷ _) ⊢ singleTyEnv (｀ Zˢ) X ⇨ singleTyEnv (｀ (Sˢ α)) X
+    up Zᵗ = (id ； ((｀ Zˢ) !)) ； ((｀ (Sˢ α)) `? zero)
+    up (Sᵗ ())
 
-    cod-eq :
-      renameˢ (singleSealEnv α) ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ≡ (A [ ｀ α ]ᵗ)
-    cod-eq =
-      trans
-        (renameˢ-[]ᵗ-seal (singleSealEnv α) (⇑ˢ A) Zˢ)
-        (cong (λ T → T [ ｀ α ]ᵗ) (renameˢ-single-⇑ˢ-id α A))
+    down :
+      (X : TyVar (suc 0)) →
+      ((Zˢ , ⇑ˢ `★) ∷ _) ⊢ singleTyEnv (｀ (Sˢ α)) X ⇨ singleTyEnv (｀ Zˢ) X
+    down Zᵗ = (id ； ((｀ (Sˢ α)) !)) ； ((｀ Zˢ) `? zero)
+    down (Sᵗ ())
+
+    swap :
+      ((Zˢ , ⇑ˢ `★) ∷ _) ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⇨ ((⇑ˢ A) [ ｀ (Sˢ α) ]ᵗ)
+    swap = instSubst⁺ (singleTyEnv (｀ Zˢ)) (singleTyEnv (｀ (Sˢ α))) up down (⇑ˢ A)
 
 infix 2 _—→[_]_
 data _—→[_]_ :
@@ -324,13 +324,17 @@ data _—→[_]_ :
     ∀ {Ψ}{Σ : Store Ψ}
       {A : Ty (suc 0) Ψ}
       {B : Ty 0 Ψ}
-      {g : ⟰ˢ Σ ⊢ (⇑ˢ B) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
+      {g : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ (⇑ˢ B) ⇨ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ B}
       {α : Seal Ψ}{C : Ty 0 Ψ}
       {h : Σ ∋ˢ α ⦂ C} →
     ((V ⟨ id ； (𝒢 {A = A} g) ⟩) ·α α [ h ]) refl
-      —→[ idˢ ]
-    id-step-term (V ⟨ open𝒢 {A = A} g α ⟩)
+      —→[ Sˢ ]
+    cast⊢
+      refl
+      refl
+      (sym (renameˢ-[]ᵗ-seal Sˢ A α))
+      ((wkΣ-term (drop ⊆ˢ-refl) (renameˢ-term Sˢ V)) ⟨ open𝒢 {A = A} g α ⟩)
 
   β-⟨↦⟩ :
     ∀ {Ψ}{Σ : Store Ψ}
@@ -579,7 +583,7 @@ store-growth :
 store-growth (β v) = idˢ-⊆ˢ
 store-growth (β-Λ) = idˢ-⊆ˢ
 store-growth (β-⟨∀⟩) = idˢ-⊆ˢ
-store-growth (β-⟨𝒢⟩) = idˢ-⊆ˢ
+store-growth (β-⟨𝒢⟩) = drop ⊆ˢ-refl
 store-growth (β-⟨↦⟩) = idˢ-⊆ˢ
 store-growth β-ν = drop ⊆ˢ-refl
 store-growth ⟨id⟩ = idˢ-⊆ˢ
@@ -615,7 +619,7 @@ unique-store-step :
 unique-store-step uΣ (β v) = uΣ
 unique-store-step uΣ β-Λ = uΣ
 unique-store-step uΣ β-⟨∀⟩ = uΣ
-unique-store-step uΣ β-⟨𝒢⟩ = uΣ
+unique-store-step uΣ β-⟨𝒢⟩ = unique-ν `★ uΣ
 unique-store-step uΣ β-⟨↦⟩ = uΣ
 unique-store-step uΣ (β-ν {A = A}) = unique-ν A uΣ
 unique-store-step uΣ ⟨id⟩ = uΣ

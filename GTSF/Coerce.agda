@@ -21,3 +21,6 @@ coerce l (α~A h) = 〔 h ⁺ 〕
 coerce l (↦~↦ c d) = 〔 coerce l c ↦ coerce l d 〕
 coerce l (∀~∀ c) = 〔 ∀ᶜ (coerce l c) 〕
 coerce l (∀~ c) = 〔 ℐ (coerce l c) 〕
+coerce l (~∀ c) = 〔 `⊥ l 〕
+-- We want the following, but there is a typing mismatch with 𝒢 regarding the Σ
+--coerce l (~∀ c) = 〔 𝒢 (coerce l c) 〕

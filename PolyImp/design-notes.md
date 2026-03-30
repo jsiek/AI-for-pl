@@ -1,5 +1,5 @@
 ========================================================================
-THE DEVELOPMENT
+A polymorphic cast calculus that uses imprecision to express casts.
 ========================================================================
 
 ## Syntax

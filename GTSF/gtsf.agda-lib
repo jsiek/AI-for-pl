@@ -1,0 +1,3 @@
+name: poly-cast
+depend: standard-library poly-cast
+include: .

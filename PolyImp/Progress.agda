@@ -254,7 +254,6 @@ progress uΣ (M at[ up ] p) with progress uΣ M
 ... | done vM with p
 ...   | id = step (at-id up)
 ...   | 〔 tag g ℓ 〕 = done (V-at-up-tag vM)
-...   | 〔 `⊥ ℓ 〕 = step (β-at-⊥ up)
 ...   | 〔 seal h 〕 = unseal-progress uΣ vM
 ...   | 〔 p ↦ q 〕 = done (V-at-up-↦ vM)
 ...   | 〔 ∀ᵖ p 〕 = done (V-at-up-∀ vM)
@@ -267,7 +266,6 @@ progress uΣ (M at[ down ] p) with progress uΣ M
 ... | done vM with p
 ...   | id = step (at-id down)
 ...   | 〔 tag g ℓ 〕 = projGround-progress vM
-...   | 〔 `⊥ ℓ 〕 = step (β-at-⊥ down)
 ...   | 〔 seal h 〕 = done (V-at-down-seal vM)
 ...   | 〔 p ↦ q 〕 = done (V-at-down-↦ vM)
 ...   | 〔 ∀ᵖ p 〕 = done (V-at-down-∀ vM)

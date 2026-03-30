@@ -31,10 +31,6 @@ mutual
       → Label
       → Σ ⊢ G ⊑ᵃ `★
 
-    `⊥ : ∀{A B}
-      → Label
-      → Σ ⊢ A ⊑ᵃ B
-
     seal : ∀{α}{A}
       → Σ ∋ˢ α ⦂ A
       → Σ ⊢ ｀ α ⊑ᵃ wkTy0 A
@@ -226,7 +222,6 @@ mutual
     Σ ⊢ A ⊑ᵃ B →
     Σ ⊢ renameᵗ ρ A ⊑ᵃ renameᵗ ρ B
   renameAtomᵖᵗ ρ (tag g ℓ) = tag (renameᵗ-ground ρ g) ℓ
-  renameAtomᵖᵗ ρ (`⊥ ℓ) = `⊥ ℓ
   renameAtomᵖᵗ ρ (seal {A = A₀} h)
     rewrite renameᵗ-wkTy0 ρ A₀ = seal h
   renameAtomᵖᵗ ρ (p ↦ q) = renameᵖᵗ ρ p ↦ renameᵖᵗ ρ q
@@ -263,7 +258,6 @@ mutual
     Σ ⊢ A ⊑ᵃ B →
     Σ ⊢ substᵗ σ A ⊑ᵃ substᵗ σ B
   substAtomᵖᵗ σ (tag g ℓ) = tag (substᵗ-ground σ g) ℓ
-  substAtomᵖᵗ σ (`⊥ ℓ) = `⊥ ℓ
   substAtomᵖᵗ σ (seal {A = A₀} h)
     rewrite substᵗ-wkTy0 σ A₀ = seal h
   substAtomᵖᵗ σ (p ↦ q) = substᵖᵗ σ p ↦ substᵖᵗ σ q
@@ -315,7 +309,6 @@ mutual
     Σ ⊢ A ⊑ᵃ B →
     renameStoreˢ ρ Σ ⊢ renameˢ ρ A ⊑ᵃ renameˢ ρ B
   renameAtomᵖˢ ρ (tag g ℓ) = tag (renameˢ-ground ρ g) ℓ
-  renameAtomᵖˢ ρ (`⊥ ℓ) = `⊥ ℓ
   renameAtomᵖˢ {Σ = Σ} ρ (seal {α = α} {A = A₀} h) =
     substEq
       (λ T → renameStoreˢ ρ Σ ⊢ ｀ (ρ α) ⊑ᵃ T)

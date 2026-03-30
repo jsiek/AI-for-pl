@@ -113,7 +113,6 @@ mutual
     Σ ⊢ A ⊑ᵃ B →
     Σ′ ⊢ A ⊑ᵃ B
   wkΣᵖᵃ w (tag g ℓ) = tag g ℓ
-  wkΣᵖᵃ w (`⊥ ℓ) = `⊥ ℓ
   wkΣᵖᵃ w (seal h) = seal (wkLookupˢ w h)
   wkΣᵖᵃ w (p ↦ q) = wkΣᵖ w p ↦ wkΣᵖ w q
   wkΣᵖᵃ w (∀ᵖ p) = ∀ᵖ (wkΣᵖ w p)

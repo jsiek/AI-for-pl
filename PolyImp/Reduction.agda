@@ -260,7 +260,6 @@ mutual
     Σ ⊢ A ⊑ᵃ B →
     removeAtˢ h★ ⊢ A ⊑ B
   drop★-atom h★ (tag g ℓ) = 〔 tag g ℓ 〕
-  drop★-atom h★ (`⊥ ℓ) = 〔 `⊥ ℓ 〕
   drop★-atom {α = α} h★ (seal h) with dropLookup h★ h
   ... | drop-keep h′ = 〔 seal h′ 〕
   ... | drop-hit β≡α B≡★ =
@@ -478,15 +477,6 @@ data _—→[_]_ :
             • Zˢ [ top★-lookup ]) refl)
           at[ up ]  p))
 
-  β-at-⊥ :
-    ∀ {Ψ}{Σ : Store Ψ}
-      (d : Direction)
-      {A B : Ty 0 Ψ}
-      {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ dir-src d A B}
-      {ℓ : Label} →
-    V at[ d ]  〔 `⊥ {A = A} {B = B} ℓ 〕 —→[ idˢ ]
-    id-step-term {Σ = Σ} {Γ = []} {A = dir-tgt d A B} (blame {A = dir-tgt d A B} ℓ)
-
   ξ-·₁ :
     ∀ {Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
       {Σ : Store Ψ}{Σ′ : Store Ψ′}
@@ -668,7 +658,6 @@ store-growth (at-up-tag-at-down-tag-bad neq) = idˢ-⊆ˢ
 store-growth β-at-up-； = idˢ-⊆ˢ
 store-growth β-at-down-； = idˢ-⊆ˢ
 store-growth β-at-up-ν = idˢ-⊆ˢ
-store-growth (β-at-⊥ d) = idˢ-⊆ˢ
 store-growth (ξ-·₁ wρ red) = wρ
 store-growth (ξ-·₂ v wρ red) = wρ
 store-growth (ξ-·α wρ red) = wρ
@@ -706,7 +695,6 @@ unique-store-step uΣ (at-up-tag-at-down-tag-bad neq) = uΣ
 unique-store-step uΣ β-at-up-； = uΣ
 unique-store-step uΣ β-at-down-； = uΣ
 unique-store-step uΣ β-at-up-ν = uΣ
-unique-store-step uΣ (β-at-⊥ d) = uΣ
 unique-store-step uΣ (ξ-·₁ wρ red) = unique-store-step uΣ red
 unique-store-step uΣ (ξ-·₂ v wρ red) = unique-store-step uΣ red
 unique-store-step uΣ (ξ-·α wρ red) = unique-store-step uΣ red

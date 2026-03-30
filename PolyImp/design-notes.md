@@ -55,9 +55,11 @@ A polymorphic cast calculus that uses imprecision to express casts.
       * Cast direction is encoded by:
            dir-src + A B   = A         dir-tgt + A B   = B
            dir-src - A B   = B         dir-tgt - A B   = A
-      * Correspondence with Agda:
+      * Correspondence with the Agda mechanization:
            this note writes directions as `+` and `-`,
            while the Agda development uses constructors `up` and `down`.
+           The Agda development uses "at" instead of "@".
+           The Agda development is intrinsically typed, whereas this note is extrinsic.
 
 ## Imprecision Typing
 
@@ -72,8 +74,8 @@ A polymorphic cast calculus that uses imprecision to express casts.
     Σ ⊢ ⊥ ℓ : A ⊑ᵃ B
 
     Σ ∋ˢ α ⦂ A₀
-    -----------------------------
-    Σ ⊢ seal α : α ⊑ᵃ wkTy0 A₀
+    ---------------------
+    Σ ⊢ seal α : α ⊑ᵃ A₀
 
     Σ ⊢ p : A′ ⊑ A     Σ ⊢ q : B ⊑ B′
     ------------------------------------
@@ -136,9 +138,9 @@ A polymorphic cast calculus that uses imprecision to express casts.
     ----------------------------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ L ⊕[ op ] M : ℕ
 
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : dir-src d A B      Σ ⊢ p : A ⊑ B
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : dir-src ± A B      Σ ⊢ p : A ⊑ B
     ---------------------------------------------------------
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M @± p : dir-tgt d A B
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M @± p : dir-tgt ± A B
 
     -------------------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ blame ℓ : A
@@ -156,8 +158,6 @@ A polymorphic cast calculus that uses imprecision to express casts.
 
     Σ ⊢ (ν:= A ∙ N)                              —[ Sˢ ]→ ((Zˢ , ⇑ˢ A) ∷ ⟰ˢ Σ) ⊢ N
 
-    β-rules:
-
     Σ ⊢ (ƛ A ⇒ N) · V                            —[idˢ]→  Σ ⊢ N[V]
 
     Σ ⊢ (Λ V) • α                                —[idˢ]→  Σ ⊢ V[α]
@@ -169,8 +169,6 @@ A polymorphic cast calculus that uses imprecision to express casts.
     Σ ⊢ (V @- 〔 ν p 〕) • α                     —[idˢ]→  Σ ⊢ V @- p[α]
 
     Σ ⊢ V @+ 〔 ν p 〕                           —[idˢ]→  Σ ⊢ ν:= ★ ∙ (⇑ˢ V) • Zˢ @+ p
-
-    Cast/primitive normalization:
 
     Σ ⊢ V @± id                                  —[idˢ]→  Σ ⊢ V
 
@@ -189,7 +187,7 @@ A polymorphic cast calculus that uses imprecision to express casts.
 
     Σ ⊢ V @- (p ； a) ； b                       —[idˢ]→  Σ ⊢ V @- 〔 b 〕 @- (p ； a)
 
-    Σ ⊢ ($ m) ⊕[addℕ] ($ n)                     —[idˢ]→  Σ ⊢ $ (m+n)
+    Σ ⊢ ($ m) ⊕[op] ($ n)                       —[idˢ]→  Σ ⊢ $ op(m,n)
 
     Congruence rules:
       premises have shape `Σ ⊢ M —[ ρ ]→ Σ′ ⊢ M′` together with

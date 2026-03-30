@@ -87,6 +87,9 @@ mutual
       → Σ ⊢ B ⇨ᵃ C
       → Σ ⊢ A ⇨ C
 
+infix 8 〔_〕
+pattern 〔_〕 p = id ； p
+
 _⨟_ : ∀{Δ}{Ψ}{Σ : Store Ψ}{A B C : Ty Δ Ψ}
   → Σ ⊢ A ⇨ B
   → Σ ⊢ B ⇨ C

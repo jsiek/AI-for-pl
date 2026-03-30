@@ -136,12 +136,12 @@ wkΣ-term w (` h) = ` h
 wkΣ-term w (ƛ A ⇒ M) = ƛ A ⇒ wkΣ-term w M
 wkΣ-term w (L · M) = wkΣ-term w L · wkΣ-term w M
 wkΣ-term w (Λ M) = Λ (wkΣ-term w M)
-wkΣ-term w ((M ·α α [ h ]) eq) =
+wkΣ-term w ((M • α [ h ]) eq) =
   cast⊢
     refl
     refl
     (sym eq)
-    ((wkΣ-term w M ·α α [ wkLookupˢ w h ]) refl)
+    ((wkΣ-term w M • α [ wkLookupˢ w h ]) refl)
 wkΣ-term w (ν:= A ∙ M) = ν:= A ∙ wkΣ-term (ν-⊆ˢ A w) M
 wkΣ-term w ($ κ eq) = $ κ eq
 wkΣ-term w (L ⊕[ op ] M) = wkΣ-term w L ⊕[ op ] wkΣ-term w M
@@ -163,12 +163,12 @@ renameˣ-term ρ (` h) with ρ h
 renameˣ-term ρ (ƛ A ⇒ M) = ƛ A ⇒ renameˣ-term (extʳ ρ) M
 renameˣ-term ρ (L · M) = renameˣ-term ρ L · renameˣ-term ρ M
 renameˣ-term ρ (Λ M) = Λ (renameˣ-term (liftᵗʳ ρ) M)
-renameˣ-term ρ ((M ·α α [ h ]) eq) =
+renameˣ-term ρ ((M • α [ h ]) eq) =
   cast⊢
     refl
     refl
     (sym eq)
-    ((renameˣ-term ρ M ·α α [ h ]) refl)
+    ((renameˣ-term ρ M • α [ h ]) refl)
 renameˣ-term ρ (ν:= A ∙ M) = ν:= A ∙ renameˣ-term (liftˢʳ ρ) M
 renameˣ-term ρ ($ κ eq) = $ κ eq
 renameˣ-term ρ (L ⊕[ op ] M) = renameˣ-term ρ L ⊕[ op ] renameˣ-term ρ M
@@ -223,12 +223,12 @@ substˣ-term σ (` h) = σ h
 substˣ-term σ (ƛ A ⇒ M) = ƛ A ⇒ substˣ-term (extˣ σ) M
 substˣ-term σ (L · M) = substˣ-term σ L · substˣ-term σ M
 substˣ-term σ (Λ M) = Λ (substˣ-term (liftᵗˣ σ) M)
-substˣ-term σ ((M ·α α [ h ]) eq) =
+substˣ-term σ ((M • α [ h ]) eq) =
   cast⊢
     refl
     refl
     (sym eq)
-    ((substˣ-term σ M ·α α [ h ]) refl)
+    ((substˣ-term σ M • α [ h ]) refl)
 substˣ-term σ (ν:= A ∙ M) = ν:= A ∙ substˣ-term (liftˢˣ A σ) M
 substˣ-term σ ($ κ eq) = $ κ eq
 substˣ-term σ (L ⊕[ op ] M) = substˣ-term σ L ⊕[ op ] substˣ-term σ M

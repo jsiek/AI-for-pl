@@ -50,7 +50,7 @@ data δ : Prim → Const → Const → Const → Set where
 infix  5 ƛ_⇒_
 infix  5 Λ_
 infixl 7 _·_
-infixl 7 _·α_[_]
+infixl 7 _•_[_]
 infix  5 ν:=_∙_
 infixl 6 _⊕[_]_
 infix  8 _at[_]_
@@ -87,7 +87,7 @@ data _∣_∣_∣_⊢_ (Δ : TyCtx) (Ψ : SealCtx) (Σ : Store Ψ) (Γ : Ctx Δ 
               (suc Δ) ∣ Ψ ∣ Σ ∣ (⤊ᵗ Γ) ⊢ A →
               Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (`∀ A)
 
-  _·α_[_]   : ∀{A : Ty (suc Δ) Ψ}{B}{C : Ty 0 Ψ} →
+  _•_[_]    : ∀{A : Ty (suc Δ) Ψ}{B}{C : Ty 0 Ψ} →
               Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (`∀ A) →
               (α : Seal Ψ) →
               Σ ∋ˢ α ⦂ C →
@@ -315,14 +315,14 @@ renameᵗ-term ρ (ƛ A ⇒ M) = ƛ renameᵗ ρ A ⇒ renameᵗ-term ρ M
 renameᵗ-term ρ (L · M) = renameᵗ-term ρ L · renameᵗ-term ρ M
 renameᵗ-term {Γ = Γ} ρ (Λ_ {A = A} M) =
   Λ (cast⊢ refl (map-renameᵗ-⤊ᵗ ρ Γ) refl (renameᵗ-term (extᵗ ρ) M))
-renameᵗ-term {Γ = Γ} ρ (_·α_[_] {A = A} {B = B} M α h eq) =
+renameᵗ-term {Γ = Γ} ρ (_•_[_] {A = A} {B = B} M α h eq) =
   cast⊢
     refl
     refl
     (trans
       (sym (renameᵗ-[]ᵗ-seal ρ A α))
       (cong (renameᵗ ρ) (sym eq)))
-    ((renameᵗ-term ρ M ·α α [ h ]) refl)
+    ((renameᵗ-term ρ M • α [ h ]) refl)
 renameᵗ-term {Γ = Γ} ρ (ν:=_∙_ {B = B} A M) =
   ν:= A ∙
     cast⊢
@@ -353,14 +353,14 @@ substᵗ-term σ (ƛ A ⇒ M) = ƛ substᵗ σ A ⇒ substᵗ-term σ M
 substᵗ-term σ (L · M) = substᵗ-term σ L · substᵗ-term σ M
 substᵗ-term {Γ = Γ} σ (Λ_ {A = A} M) =
   Λ (cast⊢ refl (map-substᵗ-⤊ᵗ σ Γ) refl (substᵗ-term (extsᵗ σ) M))
-substᵗ-term {Γ = Γ} σ (_·α_[_] {A = A} {B = B} M α h eq) =
+substᵗ-term {Γ = Γ} σ (_•_[_] {A = A} {B = B} M α h eq) =
   cast⊢
     refl
     refl
     (trans
       (sym (substᵗ-[]ᵗ-seal σ A α))
       (cong (substᵗ σ) (sym eq)))
-    ((substᵗ-term σ M ·α α [ h ]) refl)
+    ((substᵗ-term σ M • α [ h ]) refl)
 substᵗ-term {Γ = Γ} σ (ν:=_∙_ {B = B} A M) =
   ν:= A ∙
     cast⊢
@@ -391,14 +391,14 @@ renameˢ-term ρ (ƛ A ⇒ M) = ƛ renameˢ ρ A ⇒ renameˢ-term ρ M
 renameˢ-term ρ (L · M) = renameˢ-term ρ L · renameˢ-term ρ M
 renameˢ-term {Γ = Γ} ρ (Λ_ {A = A} M) =
   Λ (cast⊢ refl (map-renameˢ-⤊ᵗ ρ Γ) refl (renameˢ-term ρ M))
-renameˢ-term {Σ = Σ} {Γ = Γ} ρ (_·α_[_] {A = A} {B = B} M α h eq) =
+renameˢ-term {Σ = Σ} {Γ = Γ} ρ (_•_[_] {A = A} {B = B} M α h eq) =
   cast⊢
     refl
     refl
     (trans
       (sym (renameˢ-[]ᵗ-seal ρ A α))
       (cong (renameˢ ρ) (sym eq)))
-    ((renameˢ-term ρ M ·α (ρ α) [ renameLookupˢ ρ h ]) refl)
+    ((renameˢ-term ρ M • (ρ α) [ renameLookupˢ ρ h ]) refl)
 renameˢ-term {Σ = Σ} {Γ = Γ} ρ (ν:=_∙_ {B = B} A M) =
   ν:= renameˢ ρ A ∙
     cast⊢

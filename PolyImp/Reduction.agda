@@ -268,7 +268,7 @@ mutual
       refl
       (cong ｀_ (sym β≡α))
       (sym (cong wkTy0 B≡★))
-      (〔 tag (｀ α) zero 〕)
+      〔 tag (｀ α) zero 〕
   drop★-atom h★ (p ↦ q) = 〔 drop★ h★ p ↦ drop★ h★ q 〕
   drop★-atom h★ (∀ᵖ p) = 〔 ∀ᵖ (drop★ h★ p) 〕
   drop★-atom h★ (ν i) =
@@ -343,7 +343,7 @@ data _—→[_]_ :
       {V : (suc 0) ∣ Ψ ∣ Σ ∣ (⤊ᵗ []) ⊢ A}
       {α : Seal Ψ}{C : Ty 0 Ψ}
       {h : Σ ∋ˢ α ⦂ C} →
-    ((Λ V) ·α α [ h ]) refl —→[ idˢ ] id-step-term (V [ ｀ α ]ᵀ)
+    ((Λ V) • α [ h ]) refl —→[ idˢ ] id-step-term (V [ ｀ α ]ᵀ)
 
   β-at-∀ :
     ∀ {Ψ}{Σ : Store Ψ}
@@ -353,13 +353,13 @@ data _—→[_]_ :
       {p : Σ ⊢ A ⊑ B}
       {α : Seal Ψ}{C : Ty 0 Ψ}
       {h : Σ ∋ˢ α ⦂ C} →
-    (((dir-tgt-∀ d A B ▹ (V at[ d ]  (〔 (∀ᵖ p) 〕)))
-      ·α α [ h ]) refl)
+    (((dir-tgt-∀ d A B ▹ (V at[ d ]  〔 ∀ᵖ p 〕))
+      • α [ h ]) refl)
       —→[ idˢ ]
     id-step
       ((dir-tgt-[]ᵗ d A B α ▹
         ((sym (dir-src-[]ᵗ d A B α) ▹
-          (((dir-src-∀ d A B ▹ V) ·α α [ h ]) refl))
+          (((dir-src-∀ d A B ▹ V) • α [ h ]) refl))
          at[ d ]  (p [ ｀ α ]ᵖᵗ))))
 
   β-at-down-ν :
@@ -370,10 +370,10 @@ data _—→[_]_ :
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ B}
       {α : Seal Ψ}{C : Ty 0 Ψ}
       {h : Σ ∋ˢ α ⦂ C} →
-    (_·α_[_]
+    (_•_[_]
       {Δ = 0} {Ψ = Ψ} {Σ = Σ} {Γ = []}
       {A = A} {C = C}
-      (V at[ down ]  (〔 (ν i) 〕)) α h refl)
+      (V at[ down ]  〔 ν i 〕) α h refl)
       —→[ idˢ ]
     id-step-term (V at[ down ]  (openν {A = A} {B = B} i α))
 
@@ -385,7 +385,7 @@ data _—→[_]_ :
       {W : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (dir-tgt d A C)}
       {p : Σ ⊢ C ⊑ A}
       {q : Σ ⊢ B ⊑ D} →
-    (dir-tgt-⇒ d A B C D ▹ (V at[ d ]  (〔 (p ↦ q) 〕))) · W
+    (dir-tgt-⇒ d A B C D ▹ (V at[ d ]  〔 p ↦ q 〕)) · W
       —→[ idˢ ]
     id-step
       (((dir-src-⇒ d A B C D ▹ V)
@@ -411,7 +411,7 @@ data _—→[_]_ :
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ `★}
       {α}
       {h h′ : Σ ∋ˢ α ⦂ `★} →
-    ((V at[ down ]  (〔 (seal h) 〕)) at[ up ]  (〔 seal h′ 〕))
+    ((V at[ down ]  〔 seal h 〕) at[ up ]  〔 seal h′ 〕)
       —→[ idˢ ]
     id-step-term V
 
@@ -422,7 +422,7 @@ data _—→[_]_ :
       {h : Σ ∋ˢ α ⦂ A}
       {h′ : Σ ∋ˢ α ⦂ B}
       (uΣ : Uniqueˢ Σ) →
-    ((V at[ down ]  (〔 (seal h) 〕)) at[ up ]  (〔 seal h′ 〕))
+    ((V at[ down ]  〔 seal h 〕) at[ up ]  〔 seal h′ 〕)
       —→[ idˢ ]
     id-step-term
       (subst
@@ -434,7 +434,7 @@ data _—→[_]_ :
     ∀ {Ψ}{Σ : Store Ψ}{G : Ty 0 Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ G}
       {g g′ : Ground G}{ℓ ℓ′ : Label} →
-    ((V at[ up ]  (〔 (tag g ℓ) 〕)) at[ down ]  (〔 tag g′ ℓ′ 〕))
+    ((V at[ up ]  〔 tag g ℓ 〕) at[ down ]  〔 tag g′ ℓ′ 〕)
       —→[ idˢ ]
     id-step-term V
 
@@ -443,7 +443,7 @@ data _—→[_]_ :
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ G}
       {g : Ground G}{h : Ground H}{ℓ ℓ′ : Label} →
     G ≢ H →
-    ((V at[ up ]  (〔 (tag g ℓ) 〕)) at[ down ]  (〔 tag h ℓ′ 〕))
+    ((V at[ up ]  〔 tag g ℓ 〕) at[ down ]  〔 tag h ℓ′ 〕)
       —→[ idˢ ]
     id-step-term {Σ = Σ} {Γ = []} {A = H} (blame {A = H} ℓ′)
 
@@ -454,7 +454,7 @@ data _—→[_]_ :
       {p : Σ ⊢ A ⊑ B}
       {a : Σ ⊢ B ⊑ᵃ C}
       {b : Σ ⊢ C ⊑ᵃ D} →
-    V at[ up ]  ((p ； a) ； b) —→[ idˢ ] id-step-term ((V at[ up ]  (p ； a)) at[ up ]  (〔 b 〕))
+    V at[ up ]  ((p ； a) ； b) —→[ idˢ ] id-step-term ((V at[ up ]  (p ； a)) at[ up ]  〔 b 〕)
 
   β-at-down-； :
     ∀ {Ψ}{Σ : Store Ψ}
@@ -463,7 +463,7 @@ data _—→[_]_ :
       {p : Σ ⊢ A ⊑ B}
       {a : Σ ⊢ B ⊑ᵃ C}
       {b : Σ ⊢ C ⊑ᵃ D} →
-    V at[ down ]  ((p ； a) ； b) —→[ idˢ ] id-step-term ((V at[ down ]  (〔 b 〕)) at[ down ]  (p ； a))
+    V at[ down ]  ((p ； a) ； b) —→[ idˢ ] id-step-term ((V at[ down ]  〔 b 〕) at[ down ]  (p ； a))
 
   β-at-up-ν :
     ∀ {Ψ}{Σ : Store Ψ}
@@ -471,11 +471,11 @@ data _—→[_]_ :
       {B : Ty 0 Ψ}
       {i : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⊑ (⇑ˢ B)}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (`∀ A)} →
-    V at[ up ]  (〔 (ν i) 〕) —→[ idˢ ]
+    V at[ up ]  〔 ν i 〕 —→[ idˢ ]
     id-step-term
       (ν:= `★ ∙
         ((((wkΣ-term (drop ⊆ˢ-refl) (renameˢ-term Sˢ V))
-            ·α Zˢ [ top★-lookup ]) refl)
+            • Zˢ [ top★-lookup ]) refl)
           at[ up ]  i))
 
   β-at-⊥ :
@@ -484,7 +484,7 @@ data _—→[_]_ :
       {A B : Ty 0 Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ dir-src d A B}
       {ℓ : Label} →
-    V at[ d ]  (〔 (`⊥ {A = A} {B = B} ℓ) 〕) —→[ idˢ ]
+    V at[ d ]  〔 `⊥ {A = A} {B = B} ℓ 〕 —→[ idˢ ]
     id-step-term {Σ = Σ} {Γ = []} {A = dir-tgt d A B} (blame {A = dir-tgt d A B} ℓ)
 
   ξ-·₁ :
@@ -520,13 +520,13 @@ data _—→[_]_ :
       {h : Σ ∋ˢ α ⦂ C} →
     (wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′) →
     M —→[ ρ ] M′ →
-    ((M ·α α [ h ]) refl)
+    ((M • α [ h ]) refl)
       —→[ ρ ]
     cast⊢
       refl
       refl
       (sym (renameˢ-[]ᵗ-seal ρ A α))
-      ((M′ ·α (ρ α) [ wkLookupˢ wρ (renameLookupˢ ρ h) ]) refl)
+      ((M′ • (ρ α) [ wkLookupˢ wρ (renameLookupˢ ρ h) ]) refl)
 
   ξ-at-up :
     ∀ {Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
@@ -601,7 +601,7 @@ data _—→[_]_ :
       {ℓ : Label}
       {α : Seal Ψ}{C : Ty 0 Ψ}
       {h : Σ ∋ˢ α ⦂ C} →
-    (_·α_[_]
+    (_•_[_]
       {Δ = 0} {Ψ = Ψ} {Σ = Σ} {Γ = []}
       {A = A} {C = C}
       (blame {A = `∀ A} ℓ) α h refl)

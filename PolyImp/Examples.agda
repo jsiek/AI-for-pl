@@ -27,7 +27,7 @@ nat : ∀ {Ψ}{Σ : Store Ψ} → ℕ → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (‵ `ℕ)
 nat n = $ (κℕ n) refl
 
 nat★ : ∀ {Ψ}{Σ : Store Ψ} → ℕ → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ `★
-nat★ n = nat n at[ up ]  (〔 tag (‵ `ℕ) 0 〕)
+nat★ n = nat n at[ up ]  〔 tag (‵ `ℕ) 0 〕
 
 c : ∀ {Ψ}{Σ : Store Ψ} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (‵ `ℕ)
 c = nat 7
@@ -103,7 +103,7 @@ evalBlame uΣ fuel M with eval uΣ fuel M
 ------------------------------------------------------------------------
 
 example1-left : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `ℕ)
-example1-left = (idDyn · c★) at[ down ]  (〔 tag (‵ `ℕ) 1 〕)
+example1-left = (idDyn · c★) at[ down ]  〔 tag (‵ `ℕ) 1 〕
 
 example1-right : 0 ∣ 0 ∣ [] ∣ [] ⊢ `★
 example1-right = idDyn · c★
@@ -171,7 +171,7 @@ example5-left = example1-left
 
 example5-right : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `ℕ)
 example5-right =
-  (example1-left at[ up ]  (〔 tag (‵ `ℕ) 5 〕)) at[ down ]  (〔 tag (‵ `ℕ) 5 〕)
+  (example1-left at[ up ]  〔 tag (‵ `ℕ) 5 〕) at[ down ]  〔 tag (‵ `ℕ) 5 〕
 
 example5-left-test : evalNat uniq[] gas example5-left ≡ just 7
 example5-left-test = refl
@@ -188,7 +188,7 @@ example6-left = example1-left
 
 example6-right : 0 ∣ 0 ∣ [] ∣ [] ⊢ `★
 example6-right =
-  (example1-right at[ down ]  (〔 tag (‵ `ℕ) 6 〕)) at[ up ]  (〔 tag (‵ `ℕ) 6 〕)
+  (example1-right at[ down ]  〔 tag (‵ `ℕ) 6 〕) at[ up ]  〔 tag (‵ `ℕ) 6 〕
 
 example6-left-test : evalNat uniq[] gas example6-left ≡ just 7
 example6-left-test = refl
@@ -205,7 +205,7 @@ example7-left = example1-left
 
 example7-right : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `ℕ)
 example7-right =
-  (example5-right at[ up ]  (〔 tag (‵ `ℕ) 7 〕)) at[ down ]  (〔 tag (‵ `ℕ) 7 〕)
+  (example5-right at[ up ]  〔 tag (‵ `ℕ) 7 〕) at[ down ]  〔 tag (‵ `ℕ) 7 〕
 
 example7-left-test : evalNat uniq[] gas example7-left ≡ just 7
 example7-left-test = refl
@@ -237,7 +237,7 @@ Kdyn : ∀ {Ψ}{Σ : Store Ψ} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (`★ ⇒ `★ ⇒
 Kdyn = ƛ `★ ⇒ ƛ `★ ⇒ ` (S Z)
 
 example9-left : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `ℕ)
-example9-left = ((Kdyn · n42★) · n69★) at[ down ]  (〔 tag (‵ `ℕ) 9 〕)
+example9-left = ((Kdyn · n42★) · n69★) at[ down ]  〔 tag (‵ `ℕ) 9 〕
 
 example9-right : 0 ∣ 0 ∣ [] ∣ [] ⊢ `★
 example9-right = (Kdyn · n42★) · n69★
@@ -288,9 +288,9 @@ example11-right-test = refl
 
 example12 : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `ℕ)
 example12 =
-  ((c★ at[ down ]  (〔 tag (‵ `ℕ) 12 〕))
-   at[ up ]  (〔 tag (‵ `ℕ) 12 〕))
-  at[ down ]  (〔 tag (‵ `ℕ) 12 〕)
+  ((c★ at[ down ]  〔 tag (‵ `ℕ) 12 〕)
+   at[ up ]  〔 tag (‵ `ℕ) 12 〕)
+  at[ down ]  〔 tag (‵ `ℕ) 12 〕
 
 example12-test : evalNat uniq[] gas example12 ≡ just 7
 example12-test = refl
@@ -303,15 +303,15 @@ example13-good : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `ℕ)
 example13-good =
   ν:= ‵ `ℕ ∙
     (ν:= ‵ `ℕ ∙
-      (((c★ at[ down ]  (〔 tag (‵ `ℕ) 13 〕))
-        at[ up ]  (〔 tag (‵ `ℕ) 13 〕))
-       at[ down ]  (〔 tag (‵ `ℕ) 13 〕)))
+      (((c★ at[ down ]  〔 tag (‵ `ℕ) 13 〕)
+        at[ up ]  〔 tag (‵ `ℕ) 13 〕)
+       at[ down ]  〔 tag (‵ `ℕ) 13 〕))
 
 example13-mixed : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `𝔹)
 example13-mixed =
   ν:= ‵ `ℕ ∙
     (ν:= ‵ `ℕ ∙
-      (c★ at[ down ]  (〔 tag (‵ `𝔹) 13 〕)))
+      (c★ at[ down ]  〔 tag (‵ `𝔹) 13 〕))
 
 example13-good-test : evalNat uniq[] gas example13-good ≡ just 7
 example13-good-test = refl

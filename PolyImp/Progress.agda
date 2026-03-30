@@ -46,7 +46,7 @@ data FunView
       {p : Σ ⊢ A ⊑ A′}
       {q : Σ ⊢ B′ ⊑ B} →
     Value W →
-    V ≡ (W at[ up ]  (〔 (p ↦ q) 〕)) →
+    V ≡ (W at[ up ]  〔 p ↦ q 〕) →
     FunView V
 
   fv-down-↦ :
@@ -55,7 +55,7 @@ data FunView
       {p : Σ ⊢ A′ ⊑ A}
       {q : Σ ⊢ B ⊑ B′} →
     Value W →
-    V ≡ (W at[ down ]  (〔 (p ↦ q) 〕)) →
+    V ≡ (W at[ down ]  〔 p ↦ q 〕) →
     FunView V
 
 canonical-⇒ :
@@ -83,7 +83,7 @@ data AllView
       {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (`∀ A′)}
       {p : Σ ⊢ A′ ⊑ A} →
     Value W →
-    V ≡ (W at[ up ]  (〔 (∀ᵖ p) 〕)) →
+    V ≡ (W at[ up ]  〔 ∀ᵖ p 〕) →
     AllView V
 
   av-down-∀ :
@@ -91,7 +91,7 @@ data AllView
       {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (`∀ A′)}
       {p : Σ ⊢ A ⊑ A′} →
     Value W →
-    V ≡ (W at[ down ]  (〔 (∀ᵖ p) 〕)) →
+    V ≡ (W at[ down ]  〔 ∀ᵖ p 〕) →
     AllView V
 
   av-down-ν :
@@ -99,7 +99,7 @@ data AllView
       {i : ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⊑ (⇑ˢ B)}
       {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ B} →
     Value W →
-    V ≡ (W at[ down ]  (〔 (ν i) 〕)) →
+    V ≡ (W at[ down ]  〔 ν i 〕) →
     AllView V
 
 canonical-∀ :
@@ -139,7 +139,7 @@ data StarView
       {ℓ : Label}
       {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ G} →
     Value W →
-    V ≡ (W at[ up ]  (〔 (tag g ℓ) 〕)) →
+    V ≡ (W at[ up ]  〔 tag g ℓ 〕) →
     StarView V
 
 canonical-★ :
@@ -159,7 +159,7 @@ data SealView
       {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ wkTy0 A}
       {h : Σ ∋ˢ α ⦂ A} →
     Value W →
-    V ≡ (W at[ down ]  (〔 (seal h) 〕)) →
+    V ≡ (W at[ down ]  〔 seal h 〕) →
     SealView V
 
 canonical-｀ :
@@ -178,7 +178,7 @@ projGround-progress :
     {g′ : Ground G}
     {ℓ : Label} →
   Value M →
-  Progress (M at[ down ]  (〔 tag g′ ℓ 〕))
+  Progress (M at[ down ]  〔 tag g′ ℓ 〕)
 projGround-progress {g′ = g′} vM with canonical-★ vM
 ... | sv-up-tag {g = g} {ℓ = ℓ′} vW refl with g ≟Ground g′
 ...   | yes refl = step at-up-tag-at-down-tag
@@ -192,7 +192,7 @@ unseal-progress :
     {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ ｀ α} →
   Uniqueˢ Σ →
   Value M →
-  Progress (M at[ up ]  (〔 (seal h) 〕))
+  Progress (M at[ up ]  〔 seal h 〕)
 unseal-progress {A = `★} {h = h} uΣ vM with canonical-｀ vM
 ... | sv-down-seal {A = `★} {h = h′} vW refl = step (at-down-seal-at-up-seal-★ {h = h′} {h′ = h})
 ... | sv-down-seal {h = h′} vW refl = step (at-down-seal-at-up-seal uΣ)
@@ -223,7 +223,7 @@ progress uΣ (L · M) with progress uΣ L
 ...     | fv-up-↦ vW refl = step (β-at-↦ up)
 ...     | fv-down-↦ vW refl = step (β-at-↦ down)
 progress uΣ (Λ N) = done V-Λ
-progress uΣ ((M ·α α [ h ]) eq) with eq
+progress uΣ ((M • α [ h ]) eq) with eq
 ... | refl with progress uΣ M
 ...   | step {ρ = ρ} {N = M′} M→M′ =
           step (ξ-·α (store-growth M→M′) M→M′)
@@ -253,12 +253,12 @@ progress uΣ (M at[ up ] p) with progress uΣ M
 ... | crash (ℓ , refl) = step (blame-at {ℓ = ℓ})
 ... | done vM with p
 ...   | id = step (at-id up)
-...   | 〔 (tag g ℓ) 〕 = done (V-at-up-tag vM)
-...   | 〔 (`⊥ ℓ) 〕 = step (β-at-⊥ up)
-...   | 〔 (seal h) 〕 = unseal-progress uΣ vM
-...   | 〔 (p ↦ q) 〕 = done (V-at-up-↦ vM)
-...   | 〔 (∀ᵖ p) 〕 = done (V-at-up-∀ vM)
-...   | 〔 (ν i) 〕 = step β-at-up-ν
+...   | 〔 tag g ℓ 〕 = done (V-at-up-tag vM)
+...   | 〔 `⊥ ℓ 〕 = step (β-at-⊥ up)
+...   | 〔 seal h 〕 = unseal-progress uΣ vM
+...   | 〔 p ↦ q 〕 = done (V-at-up-↦ vM)
+...   | 〔 ∀ᵖ p 〕 = done (V-at-up-∀ vM)
+...   | 〔 ν i 〕 = step β-at-up-ν
 ...   | (p ； a) ； b = step β-at-up-；
 progress uΣ (M at[ down ] p) with progress uΣ M
 ... | step {ρ = ρ} {N = M′} M→M′ =
@@ -266,11 +266,11 @@ progress uΣ (M at[ down ] p) with progress uΣ M
 ... | crash (ℓ , refl) = step (blame-at {ℓ = ℓ})
 ... | done vM with p
 ...   | id = step (at-id down)
-...   | 〔 (tag g ℓ) 〕 = projGround-progress vM
-...   | 〔 (`⊥ ℓ) 〕 = step (β-at-⊥ down)
-...   | 〔 (seal h) 〕 = done (V-at-down-seal vM)
-...   | 〔 (p ↦ q) 〕 = done (V-at-down-↦ vM)
-...   | 〔 (∀ᵖ p) 〕 = done (V-at-down-∀ vM)
-...   | 〔 (ν i) 〕 = done (V-at-down-ν vM)
+...   | 〔 tag g ℓ 〕 = projGround-progress vM
+...   | 〔 `⊥ ℓ 〕 = step (β-at-⊥ down)
+...   | 〔 seal h 〕 = done (V-at-down-seal vM)
+...   | 〔 p ↦ q 〕 = done (V-at-down-↦ vM)
+...   | 〔 ∀ᵖ p 〕 = done (V-at-down-∀ vM)
+...   | 〔 ν i 〕 = done (V-at-down-ν vM)
 ...   | (p ； a) ； b = step β-at-down-；
 progress uΣ (blame ℓ) = crash (ℓ , refl)

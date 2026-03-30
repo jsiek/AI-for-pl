@@ -35,17 +35,17 @@ THE DEVELOPMENT
                                         | ν:= A ∙ N
                                         | $ κ
                                         | L ⊕[ op ] M
-                                        | M at[ d ] p
+                                        | M @± p
                                         | blame ℓ
 
     Values                V,W        ::=  ƛ A ⇒ N
                                         | Λ N
                                         | $ κ
-                                        | V at[ + ] 〔 tag G ℓ 〕
-                                        | V at[ - ] 〔 seal α 〕
-                                        | V at[ ± ] 〔 p ↦ q 〕
-                                        | V at[ ± ] 〔 ∀ᵖ p 〕
-                                        | V at[ - ] 〔 ν p 〕
+                                        | V @+ 〔 tag G ℓ 〕
+                                        | V @- 〔 seal α 〕
+                                        | V @± 〔 p ↦ q 〕
+                                        | V @± 〔 ∀ᵖ p 〕
+                                        | V @- 〔 ν p 〕
 
     Notes.
       * 〔 a 〕 is notation for id ； a.
@@ -83,8 +83,8 @@ THE DEVELOPMENT
     -----------------------------
     Σ ⊢ ∀ᵖ p : (∀A) ⊑ᵃ (∀B)
 
-    ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ⊢ p : ((⇑ˢ A) [ Zˢ ]) ⊑ (⇑ˢ B)
-    ----------------------------------------------------------------
+    (Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ ⊢ p : (⇑ˢ A) [ Zˢ ] ⊑ ⇑ˢ B
+    ------------------------------------------------
     Σ ⊢ ν p : (∀A) ⊑ᵃ B
 
     -----------------------------
@@ -138,7 +138,7 @@ THE DEVELOPMENT
 
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : dir-src d A B      Σ ⊢ p : A ⊑ B
     ---------------------------------------------------------
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M at[ d ] p : dir-tgt d A B
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M @± p : dir-tgt d A B
 
     -------------------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ blame ℓ : A
@@ -162,34 +162,34 @@ THE DEVELOPMENT
 
     Σ ⊢ (Λ V) • α                                —[idˢ]→  Σ ⊢ V[α]
 
-    Σ ⊢ (V at[ d ] 〔 ∀ᵖ p 〕) • α                —[idˢ]→  Σ ⊢ (V • α) at[ d ] p[α]
+    Σ ⊢ (V @± 〔 ∀ᵖ p 〕) • α                     —[idˢ]→  Σ ⊢ (V • α) @± p[α]
 
-    Σ ⊢ (V at[ d ] 〔 p ↦ q 〕) · W               —[idˢ]→  Σ ⊢ (V · (W at[ d ] p)) at[ d ] q
+    Σ ⊢ (V @± 〔 p ↦ q 〕) · W                    —[idˢ]→  Σ ⊢ (V · (W @∓ p)) @± q
 
-    Σ ⊢ (V at[ - ] 〔 ν p 〕) • α                 —[idˢ]→  Σ ⊢ V at[ - ] p[α]
+    Σ ⊢ (V @- 〔 ν p 〕) • α                     —[idˢ]→  Σ ⊢ V @- p[α]
 
-    Σ ⊢ V at[ + ] 〔 ν p 〕                       —[idˢ]→  Σ ⊢ ν:= ★ ∙ (⇑ˢ V) • Zˢ at[ + ] p
+    Σ ⊢ V @+ 〔 ν p 〕                           —[idˢ]→  Σ ⊢ ν:= ★ ∙ (⇑ˢ V) • Zˢ @+ p
 
     Cast/primitive normalization:
 
-    Σ ⊢ V at[ d ] id                             —[idˢ]→  Σ ⊢ V
+    Σ ⊢ V @± id                                  —[idˢ]→  Σ ⊢ V
 
-    Σ ⊢ (V at[ - ] 〔 seal α 〕) at[ + ] 〔 seal α 〕
+    Σ ⊢ (V @- 〔 seal α 〕) @+ 〔 seal α 〕
                                                  —[idˢ]→  Σ ⊢ V
 
-    Σ ⊢ (V at[ + ] 〔 tag G ℓ 〕) at[ - ] 〔 tag G ℓ′ 〕
+    Σ ⊢ (V @+ 〔 tag G ℓ 〕) @- 〔 tag G ℓ′ 〕
                                                  —[idˢ]→  Σ ⊢ V
 
-    Σ ⊢ (V at[ + ] 〔 tag G ℓ 〕) at[ - ] 〔 tag H ℓ′ 〕
+    Σ ⊢ (V @+ 〔 tag G ℓ 〕) @- 〔 tag H ℓ′ 〕
                                                  —[idˢ]→  Σ ⊢ blame ℓ′   when G ≢ H
 
-    Σ ⊢ V at[ d ] 〔 ⊥ ℓ 〕                       —[idˢ]→  Σ ⊢ blame ℓ
+    Σ ⊢ V @± 〔 ⊥ ℓ 〕                            —[idˢ]→  Σ ⊢ blame ℓ
 
-    Σ ⊢ V at[ + ] ((p ； a) ； b)                —[idˢ]→  Σ ⊢ (V at[ + ] (p ； a)) at[ + ] 〔 b 〕
+    Σ ⊢ V @+ (p ； a) ； b                       —[idˢ]→  Σ ⊢ V @+ (p ； a) @+ 〔 b 〕
 
-    Σ ⊢ V at[ - ] ((p ； a) ； b)                —[idˢ]→  Σ ⊢ ((V at[ - ] 〔 b 〕) at[ - ] (p ； a))
+    Σ ⊢ V @- (p ； a) ； b                       —[idˢ]→  Σ ⊢ V @- 〔 b 〕 @- (p ； a)
 
-    Σ ⊢ ($ m) ⊕[addℕ] ($ n)                     —[idˢ]→  Σ ⊢ ($ (m+n))
+    Σ ⊢ ($ m) ⊕[addℕ] ($ n)                     —[idˢ]→  Σ ⊢ $ (m+n)
 
     Congruence rules:
       premises have shape `Σ ⊢ M —[ ρ ]→ Σ′ ⊢ M′` together with

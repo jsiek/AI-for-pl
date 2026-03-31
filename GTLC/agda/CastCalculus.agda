@@ -235,12 +235,6 @@ data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
     → Valueᶜ W
     → cast V [ c ↦ d ] · W —→ᶜ cast (V · cast W [ c ]) [ d ]
 
-  -- fst ⟨ V , W ⟩ —→ᶜ V
-  -- snd ⟨ V , W ⟩ —→ᶜ W
-
-  --  cast ⟨ V , W ⟩ [ c × d ]
-  --        —→ᶜ ⟨ cast V [ c ] , cast W [ d ] ⟩
-  
   β-proj-inj-ok : ∀ {V G ℓ}
     → Valueᶜ V
     → cast (cast V [ G ! ]) [ (_`? {ℓ = ℓ}) G ] —→ᶜ V

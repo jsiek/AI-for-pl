@@ -201,6 +201,34 @@ lookup-Sˢ-⟰ˢ {Σˢ = (β , B) ∷ Σ} (S∋ˢ h)
   with lookup-Sˢ-⟰ˢ {Σˢ = Σ} h
 ... | C , hC = C , S∋ˢ hC
 
+lookup-⟰ˢ-inv :
+  ∀{Ψ}{Σˢ : Store Ψ}{α : Seal (suc Ψ)}{A : Ty 0 (suc Ψ)} →
+  ⟰ˢ Σˢ ∋ˢ α ⦂ A →
+  Σ (Seal Ψ)
+    (λ β →
+      Σ (Ty 0 Ψ)
+        (λ B →
+          Σ (Σˢ ∋ˢ β ⦂ B)
+            (λ _ →
+              Σ (α ≡ Sˢ β)
+                (λ _ → A ≡ ⇑ˢ B))))
+lookup-⟰ˢ-inv {Σˢ = []} ()
+lookup-⟰ˢ-inv {Σˢ = (β , B) ∷ Σ} (Z∋ˢ α≡β A≡B) =
+  β , (B , (Z∋ˢ refl refl , (α≡β , A≡B)))
+lookup-⟰ˢ-inv {Σˢ = (γ , C) ∷ Σ} (S∋ˢ h)
+  with lookup-⟰ˢ-inv {Σˢ = Σ} h
+... | β , (B , (hβ , (α≡β , A≡B))) =
+  β , (B , (S∋ˢ hβ , (α≡β , A≡B)))
+
+lookup-Sˢ-⟰ˢ-eq :
+  ∀{Ψ}{Σˢ : Store Ψ}{α : Seal Ψ}{A : Ty 0 (suc Ψ)} →
+  ⟰ˢ Σˢ ∋ˢ Sˢ α ⦂ A →
+  Σ (Ty 0 Ψ) (λ B → Σ (Σˢ ∋ˢ α ⦂ B) (λ _ → A ≡ ⇑ˢ B))
+lookup-Sˢ-⟰ˢ-eq h
+  with lookup-⟰ˢ-inv h
+... | β , (B , (hβ , (Sα≡Sβ , A≡⇑B))) =
+  B , (subst (λ γ → _ ∋ˢ γ ⦂ B) (sym (Sˢ-injective Sα≡Sβ)) hβ , A≡⇑B)
+
 Sˢ∉dom-⟰ˢ :
   ∀{Ψ}{Σ : Store Ψ}{α : Seal Ψ} →
   α ∉domˢ Σ →

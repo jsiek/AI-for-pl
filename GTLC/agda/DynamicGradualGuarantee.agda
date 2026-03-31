@@ -1076,7 +1076,6 @@ sim-back-converges M⊑M′ (W , M—↠W , inj₂ (_ , W≡blame))
   , (M′—↠N′ ++ᶜ N′—↠blame)
   , inj₂ (ℓ , refl)
 
-
 gg-diverge-cp
   : ∀ {M M′ A A′}
   → []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
@@ -1090,21 +1089,6 @@ gg-diverge
   → Divergesᶜ M′
   → Divergesᶜ M
 gg-diverge M⊑M′ M′⇑ = gg-diverge-cp M⊑M′ M′⇑
-
-_⇓_ : Term → Termᶜ → Set
-M ⇓ V = ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (compile wt —↠ᶜ V × Result V))
-
-Diverges : Term → Set
-Diverges M = ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (Divergesᶜ (compile wt)))
-
-Blames : Term → Set
-Blames M = ∃[ ℓ ] (M ⇓ blame {ℓ = ℓ})
-
-DivergeOrBlameᶜ : Termᶜ → Set
-DivergeOrBlameᶜ M′ = (∀ N′ → M′ —↠ᶜ N′ → Blameᶜ N′ ⊎ ∃[ N″ ] N′ —→ᶜ N″)
-
-DivergeOrBlame : Term → Set
-DivergeOrBlame M = ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (DivergeOrBlameᶜ (compile wt)))
 
 sum→result : ∀ {V} → Valueᶜ V ⊎ Blameᶜ V → Result V
 sum→result (inj₁ vV) = r-val _ vV
@@ -1127,6 +1111,26 @@ left-prec-equiv {V = V} {V′ = V′} {C = C} A≡B V⊑V′ =
   subst (λ T → []⊑[] ⊢ V ⦂ T ⊑ᶜᵀ V′ ⦂ C) A≡B V⊑V′
 
 --------------------------------------------------------------------------------
+-- Definitions used in Dynamic Gradual Guarantee
+--------------------------------------------------------------------------------
+
+_⇓_ : Term → Termᶜ → Set
+M ⇓ V = ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (compile wt —↠ᶜ V × Result V))
+
+Diverges : Term → Set
+Diverges M = ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (Divergesᶜ (compile wt)))
+
+Blames : Term → Set
+Blames M = ∃[ ℓ ] (M ⇓ blame {ℓ = ℓ})
+
+DivergeOrBlameᶜ : Termᶜ → Set
+DivergeOrBlameᶜ M′ = (∀ N′ → M′ —↠ᶜ N′ → Blameᶜ N′ ⊎ ∃[ N″ ] N′ —→ᶜ N″)
+
+DivergeOrBlame : Term → Set
+DivergeOrBlame M = ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (DivergeOrBlameᶜ (compile wt)))
+
+
+--------------------------------------------------------------------------------
 -- Theorem: Dynamic Gradual Guarantee
 --------------------------------------------------------------------------------
 
@@ -1134,12 +1138,28 @@ dynamic-gradual-guarantee : ∀{M M′}{A A′}
   → M ⊑ᵀ M′
   → [] ⊢ M ⦂ A
   → [] ⊢ M′ ⦂ A′
-  → (∀ V′ → Valueᶜ V′ → M′ ⇓ V′ → ∃[ V ] Valueᶜ V × M ⇓ V × []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′)
-    × (Diverges M′ → Diverges M)
-    × (∀ V → Valueᶜ V → M ⇓ V → (∃[ V′ ] Valueᶜ V′ × M′ ⇓ V′ × []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′) ⊎ Blames M′)
-    × (Diverges M → DivergeOrBlame M′)
+    -- Part 1:
+  → (∀ V′ → Valueᶜ V′
+          → M′ ⇓ V′
+            --------------------------------------------------
+          → ∃[ V ] Valueᶜ V × M ⇓ V × []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′)
+    -- Part 2:          
+    × (Diverges M′
+       -----------
+     → Diverges M)
+    -- Part 3:
+    × (∀ V → Valueᶜ V
+           → M ⇓ V
+             --------------------------------------------------------------------
+           → (∃[ V′ ] Valueᶜ V′ × M′ ⇓ V′ × []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′) ⊎ Blames M′)
+    -- Part 4:
+    × (Diverges M
+       -----------------
+     → DivergeOrBlame M′)
+     
 dynamic-gradual-guarantee {M = M} {M′ = M′} {A = A} {A′ = A′} M≤M′ M⦂A M′⦂A′ =
-  (forward , (diverge , (backward , diverge-or-blame)))
+  forward , diverge , backward , diverge-or-blame
+  
   where
   forward : ∀ V′ → Valueᶜ V′ → M′ ⇓ V′
     → ∃[ V ] Valueᶜ V × M ⇓ V × []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′

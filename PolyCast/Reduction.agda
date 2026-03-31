@@ -15,7 +15,7 @@ open import Types
 open import Store
 open import Coercions
 open import PolyCast
-open import TypeSubst using (renameLookupˢ)
+open import TypeSubst using (renameLookupˢ; renameˢ-[]ᵗ-seal)
 open import TermSubst
 
 ------------------------------------------------------------------------

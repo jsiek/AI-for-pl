@@ -1,5 +1,11 @@
 module Consistency where
 
+-- File Charter:
+--   * Definition of the GTSF type-consistency relation `~`.
+--   * Introduce the judgment only; transport/proof lemmas live in
+--     `ConsistencyProperties.agda`.
+--   * No coercion synthesis here.
+
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; suc)

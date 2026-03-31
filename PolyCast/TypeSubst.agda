@@ -272,6 +272,36 @@ renameˢ-substᵗ ρ σ (`∀ A) =
     env-eq Zᵗ = refl
     env-eq (Sᵗ X) = sym (renameᵗ-renameˢ Sᵗ ρ (σ X))
 
+renameˢ-ext-⇑ˢ :
+  ∀{Δ}{Ψ}{Ψ′} →
+  (ρ : Renameˢ Ψ Ψ′) →
+  (A : Ty Δ Ψ) →
+  renameˢ (extˢ ρ) (⇑ˢ A) ≡ ⇑ˢ (renameˢ ρ A)
+renameˢ-ext-⇑ˢ ρ (＇ X) = refl
+renameˢ-ext-⇑ˢ ρ (｀ α) = refl
+renameˢ-ext-⇑ˢ ρ (‵ ι) = refl
+renameˢ-ext-⇑ˢ ρ `★ = refl
+renameˢ-ext-⇑ˢ ρ (A ⇒ B) =
+  cong₂ _⇒_ (renameˢ-ext-⇑ˢ ρ A) (renameˢ-ext-⇑ˢ ρ B)
+renameˢ-ext-⇑ˢ ρ (`∀ A) =
+  cong `∀ (renameˢ-ext-⇑ˢ ρ A)
+
+renameˢ-[]ᵗ-seal :
+  ∀{Δ}{Ψ}{Ψ′}
+  (ρ : Renameˢ Ψ Ψ′) (A : Ty (suc Δ) Ψ) (α : Seal Ψ) →
+  renameˢ ρ (A [ ｀ α ]ᵗ) ≡ (renameˢ ρ A) [ ｀ (ρ α) ]ᵗ
+renameˢ-[]ᵗ-seal ρ A α =
+  trans
+    (renameˢ-substᵗ ρ (singleTyEnv (｀ α)) A)
+    (substᵗ-cong env (renameˢ ρ A))
+  where
+    env :
+      (X : TyVar (suc _)) →
+      renameˢ ρ (singleTyEnv (｀ α) X) ≡
+      singleTyEnv (｀ (ρ α)) X
+    env Zᵗ = refl
+    env (Sᵗ X) = refl
+
 inst★-renameᵗ-suc :
   ∀{Δ}{Ψ} (A : Ty Δ Ψ) →
   (renameᵗ Sᵗ A) [ `★ ]ᵗ ≡ A
@@ -348,13 +378,12 @@ renameᵗ-⇑ˢ ρ (A ⇒ B) =
 renameᵗ-⇑ˢ ρ (`∀ A) =
   cong `∀ (renameᵗ-⇑ˢ (extᵗ ρ) A)
 
-private
-  exts-liftSubstˢ :
-    ∀{Δ}{Δ′}{Ψ}
-    (σ : Substᵗ Δ Δ′ Ψ) (X : TyVar (suc Δ)) →
-    extsᵗ (liftSubstˢ σ) X ≡ liftSubstˢ (extsᵗ σ) X
-  exts-liftSubstˢ σ Zᵗ = refl
-  exts-liftSubstˢ σ (Sᵗ X) = renameᵗ-⇑ˢ Sᵗ (σ X)
+exts-liftSubstˢ :
+  ∀{Δ}{Δ′}{Ψ}
+  (σ : Substᵗ Δ Δ′ Ψ) (X : TyVar (suc Δ)) →
+  extsᵗ (liftSubstˢ σ) X ≡ liftSubstˢ (extsᵗ σ) X
+exts-liftSubstˢ σ Zᵗ = refl
+exts-liftSubstˢ σ (Sᵗ X) = renameᵗ-⇑ˢ Sᵗ (σ X)
 
 substᵗ-⇑ˢ :
   ∀ {Δ}{Δ′}{Ψ} (σ : Substᵗ Δ Δ′ Ψ) (B : Ty Δ Ψ) →

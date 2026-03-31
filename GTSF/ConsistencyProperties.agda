@@ -1,26 +1,38 @@
 module ConsistencyProperties where
 
+-- File Charter:
+--   * GTSF-specific metatheory for consistency and its interaction with stores.
+--   * No generic `Ty` substitution algebra and no standalone precision-transport layer;
+--     reuse `TypeSubst` and `TypePrecisionProperties` for those.
+--   * This is the home for properties that fundamentally combine consistency with GTSF
+--     sealing/store invariants.
+
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Sigma using (_,_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (ℕ; suc)
+open import Data.Nat using (ℕ; _<_; suc; zero)
+open import Data.Nat.Base using (_≤_; z≤n; s≤s)
 open import Relation.Binary.PropositionalEquality as Eq using (sym; subst; trans; cong; cong₂)
 
 open import Types
 open import Consistency
 open import TypePrecision
+open import TypePrecisionProperties
 open import TypeSubst
   using
     ( renameLookupˢ
     ; renameˢ-ground
     ; renameˢ-substᵗ
+    ; renameˢ-ext-⇑ˢ
+    ; renameˢ-[]ᵗ-seal
     ; substᵗ-cong
     ; substᵗ-ground
     ; substᵗ-wkTy0
     ; substᵗ-⇑ˢ
     ; renameᵗ-⇑ˢ
     ; liftSubstˢ
+    ; exts-liftSubstˢ
     )
 open import PolyCast using (substᵗ-[]ᵗ-seal)
 open import Store
@@ -39,16 +51,14 @@ open import Store
 -- No free type variables (de Bruijn-depth aware)
 ------------------------------------------------------------------------
 
-infix 4 _<ᵈ_
-
-data _<ᵈ_ : ∀{Δ} → TyVar Δ → ℕ → Set where
-  Z< : ∀{Δ}{d} → _<ᵈ_ {Δ = suc Δ} Zᵗ (suc d)
-  S< : ∀{Δ}{d}{X : TyVar Δ} → X <ᵈ d → Sᵗ X <ᵈ suc d
+tyVar→ℕ : ∀{Δ} → TyVar Δ → ℕ
+tyVar→ℕ Zᵗ = zero
+tyVar→ℕ (Sᵗ X) = suc (tyVar→ℕ X)
 
 data NoFreeXᵈ : ∀{Δ}{Ψ} → ℕ → Ty Δ Ψ → Set where
   nx-var :
     ∀{Δ}{Ψ}{d}{X : TyVar Δ} →
-    X <ᵈ d →
+    tyVar→ℕ X < d →
     NoFreeXᵈ {Δ = Δ} {Ψ = Ψ} d (＇ X)
 
   nx-seal :
@@ -109,15 +119,21 @@ data SealsAt★ : ∀{Δ}{Ψ} → Store Ψ → Ty Δ Ψ → Set where
     SealsAt★ ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) →
     SealsAt★ {Δ = Δ} {Ψ = Ψ} Σ (`∀ A)
 
-<ᵈ-zero-impossible : ∀{Δ}{X : TyVar Δ} → X <ᵈ 0 → ⊥
-<ᵈ-zero-impossible ()
+≤-raise :
+  ∀{m n} →
+  m ≤ n →
+  m ≤ suc n
+≤-raise z≤n = z≤n
+≤-raise (s≤s p) = s≤s (≤-raise p)
 
-<ᵈ-raise :
+<-zero-impossible : ∀{Δ}{X : TyVar Δ} → tyVar→ℕ X < zero → ⊥
+<-zero-impossible ()
+
+<-raise :
   ∀{Δ}{d}{X : TyVar Δ} →
-  X <ᵈ d →
-  X <ᵈ suc d
-<ᵈ-raise Z< = Z<
-<ᵈ-raise (S< p) = S< (<ᵈ-raise p)
+  tyVar→ℕ X < d →
+  tyVar→ℕ X < suc d
+<-raise = ≤-raise
 
 RenPres :
   ∀{Δ}{Δ′} →
@@ -125,14 +141,14 @@ RenPres :
   ℕ →
   Renameᵗ Δ Δ′ →
   Set
-RenPres d d′ ρ = ∀{X} → X <ᵈ d → ρ X <ᵈ d′
+RenPres d d′ ρ = ∀{X} → tyVar→ℕ X < d → tyVar→ℕ (ρ X) < d′
 
 RenPres-ext :
   ∀{Δ}{Δ′}{d}{d′}{ρ : Renameᵗ Δ Δ′} →
   RenPres d d′ ρ →
   RenPres (suc d) (suc d′) (extᵗ ρ)
-RenPres-ext hρ Z< = Z<
-RenPres-ext hρ (S< p) = S< (hρ p)
+RenPres-ext {ρ = ρ} hρ {X = Zᵗ} p = s≤s z≤n
+RenPres-ext {ρ = ρ} hρ {X = Sᵗ X} (s≤s p) = s≤s (hρ p)
 
 NoFreeXᵈ-rename :
   ∀{Δ}{Δ′}{Ψ}{d}{d′}{ρ : Renameᵗ Δ Δ′}{A : Ty Δ Ψ} →
@@ -153,7 +169,7 @@ NoFreeXᵈ-rename-S :
   NoFreeXᵈ d A →
   NoFreeXᵈ (suc d) (renameᵗ Sᵗ A)
 NoFreeXᵈ-rename-S =
-  NoFreeXᵈ-rename (λ p → S< p)
+  NoFreeXᵈ-rename (λ p → s≤s p)
 
 NoFreeXᵈ-⇑ˢ :
   ∀{Δ}{Ψ}{d}{A : Ty Δ Ψ} →
@@ -173,14 +189,14 @@ SubstOKᵈ :
   ℕ →
   Substᵗ Δ Δ′ Ψ →
   Set
-SubstOKᵈ d σ = ∀{X} → X <ᵈ suc d → NoFreeXᵈ d (σ X)
+SubstOKᵈ d σ = ∀{X} → tyVar→ℕ X < suc d → NoFreeXᵈ d (σ X)
 
 SubstOKᵈ-exts :
   ∀{Δ}{Δ′}{Ψ}{d}{σ : Substᵗ Δ Δ′ Ψ} →
   SubstOKᵈ d σ →
   SubstOKᵈ (suc d) (extsᵗ σ)
-SubstOKᵈ-exts hσ {X = Zᵗ} p = nx-var Z<
-SubstOKᵈ-exts hσ {X = Sᵗ X} (S< p) =
+SubstOKᵈ-exts hσ {X = Zᵗ} p = nx-var (s≤s z≤n)
+SubstOKᵈ-exts hσ {X = Sᵗ X} (s≤s p) =
   NoFreeXᵈ-rename-S (hσ p)
 
 NoFreeXᵈ-substᵗ :
@@ -199,21 +215,21 @@ NoFreeXᵈ-substᵗ (nx-all nxA) hσ =
 
 SubstOKᵈ-single-var :
   ∀{Δ}{Ψ}{d}{V : TyVar Δ} →
-  V <ᵈ d →
+  tyVar→ℕ V < d →
   SubstOKᵈ d (singleTyEnv {Δ = Δ} {Ψ = Ψ} (varTy {Ψ = Ψ} V))
 SubstOKᵈ-single-var v< {X = Zᵗ} p = nx-var v<
-SubstOKᵈ-single-var v< {X = Sᵗ X} (S< p) = nx-var p
+SubstOKᵈ-single-var v< {X = Sᵗ X} (s≤s p) = nx-var p
 
 SubstOKᵈ-single-seal :
   ∀{Δ}{Ψ}{d}{α : Seal Ψ} →
   SubstOKᵈ d (singleTyEnv {Δ = Δ} (｀ α))
 SubstOKᵈ-single-seal {X = Zᵗ} p = nx-seal
-SubstOKᵈ-single-seal {X = Sᵗ X} (S< p) = nx-var p
+SubstOKᵈ-single-seal {X = Sᵗ X} (s≤s p) = nx-var p
 
 NoFreeXᵈ-subst-var :
   ∀{Δ}{Ψ}{d}{A : Ty (suc Δ) Ψ}{X : TyVar Δ} →
   NoFreeXᵈ (suc d) A →
-  X <ᵈ d →
+  tyVar→ℕ X < d →
   NoFreeXᵈ d (A [ ＇ X ]ᵗ)
 NoFreeXᵈ-subst-var {Δ = Δ} {Ψ = Ψ} {d = d} {X = X} nxA x< =
   NoFreeXᵈ-substᵗ {d = d} {σ = singleTyEnv {Δ = Δ} {Ψ = Ψ} (varTy {Ψ = Ψ} X)}
@@ -229,16 +245,16 @@ NoFreeXᵈ-subst-seal {Δ = Δ} {d = d} {α = α} nxA =
     nxA
     SubstOKᵈ-single-seal
 
-<ᵈ-ctx :
+<-ctx :
   ∀{Δ}{X : TyVar Δ} →
-  X <ᵈ Δ
-<ᵈ-ctx {Δ = suc Δ} {X = Zᵗ} = Z<
-<ᵈ-ctx {Δ = suc Δ} {X = Sᵗ X} = S< (<ᵈ-ctx {Δ = Δ} {X = X})
+  tyVar→ℕ X < Δ
+<-ctx {Δ = suc Δ} {X = Zᵗ} = s≤s z≤n
+<-ctx {Δ = suc Δ} {X = Sᵗ X} = s≤s (<-ctx {Δ = Δ} {X = X})
 
 NoFreeXᵈ-ctx :
   ∀{Δ}{Ψ}{A : Ty Δ Ψ} →
   NoFreeXᵈ Δ A
-NoFreeXᵈ-ctx {A = ＇ X} = nx-var <ᵈ-ctx
+NoFreeXᵈ-ctx {A = ＇ X} = nx-var <-ctx
 NoFreeXᵈ-ctx {A = ｀ α} = nx-seal
 NoFreeXᵈ-ctx {A = ‵ ι} = nx-base
 NoFreeXᵈ-ctx {A = `★} = nx-star
@@ -249,8 +265,8 @@ NoFreeXᵈ-ctx {A = `∀ A} =
 
 RenPres-0-lift0 :
   ∀{Δ}{X : TyVar 0} →
-  X <ᵈ 0 →
-  lift0ᵗ {Δ = Δ} X <ᵈ 0
+  tyVar→ℕ X < zero →
+  tyVar→ℕ (lift0ᵗ {Δ = Δ} X) < zero
 RenPres-0-lift0 ()
 
 NoFreeXᵈ-wkTy0 :
@@ -298,224 +314,6 @@ seal-prec-shift {A = A} h =
 ------------------------------------------------------------------------
 -- Precision transport lemmas
 ------------------------------------------------------------------------
-
-renameˢ-ext-⇑ˢ :
-  ∀{Δ}{Ψ}{Ψ′} →
-  (ρ : Renameˢ Ψ Ψ′) →
-  (A : Ty Δ Ψ) →
-  renameˢ (extˢ ρ) (⇑ˢ A) ≡ ⇑ˢ (renameˢ ρ A)
-renameˢ-ext-⇑ˢ ρ (＇ X) = refl
-renameˢ-ext-⇑ˢ ρ (｀ α) = refl
-renameˢ-ext-⇑ˢ ρ (‵ ι) = refl
-renameˢ-ext-⇑ˢ ρ `★ = refl
-renameˢ-ext-⇑ˢ ρ (A ⇒ B) =
-  cong₂ _⇒_ (renameˢ-ext-⇑ˢ ρ A) (renameˢ-ext-⇑ˢ ρ B)
-renameˢ-ext-⇑ˢ ρ (`∀ A) =
-  cong `∀ (renameˢ-ext-⇑ˢ ρ A)
-
-renameStoreˢ-ext-⟰ˢ :
-  ∀{Ψ}{Ψ′} →
-  (ρ : Renameˢ Ψ Ψ′) →
-  (Σ : Store Ψ) →
-  renameStoreˢ (extˢ ρ) (⟰ˢ Σ) ≡ ⟰ˢ (renameStoreˢ ρ Σ)
-renameStoreˢ-ext-⟰ˢ ρ [] = refl
-renameStoreˢ-ext-⟰ˢ ρ ((α , A) ∷ Σ) =
-  cong₂ _∷_
-    (cong₂ _,_ refl (renameˢ-ext-⇑ˢ ρ A))
-    (renameStoreˢ-ext-⟰ˢ ρ Σ)
-
-renameStoreˢ-ext-ν :
-  ∀{Ψ}{Ψ′} →
-  (ρ : Renameˢ Ψ Ψ′) →
-  (Σ : Store Ψ) →
-  renameStoreˢ (extˢ ρ) ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ≡
-  ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ (renameStoreˢ ρ Σ))
-renameStoreˢ-ext-ν ρ Σ =
-  cong₂ _∷_
-    (cong₂ _,_ refl refl)
-    (renameStoreˢ-ext-⟰ˢ ρ Σ)
-
-renameˢ-[]ᵗ-seal :
-  ∀{Δ}{Ψ}{Ψ′}
-  (ρ : Renameˢ Ψ Ψ′) (A : Ty (suc Δ) Ψ) (α : Seal Ψ) →
-  renameˢ ρ (A [ ｀ α ]ᵗ) ≡ (renameˢ ρ A) [ ｀ (ρ α) ]ᵗ
-renameˢ-[]ᵗ-seal ρ A α =
-  trans
-    (renameˢ-substᵗ ρ (singleTyEnv (｀ α)) A)
-    (substᵗ-cong env (renameˢ ρ A))
-  where
-    env :
-      (X : TyVar (suc _)) →
-      renameˢ ρ (singleTyEnv (｀ α) X) ≡
-      singleTyEnv (｀ (ρ α)) X
-    env Zᵗ = refl
-    env (Sᵗ X) = refl
-
-mutual
-  ⊑ᵃ-wkΣ :
-    ∀{Δ}{Ψ}{Σ Σ′ : Store Ψ}{A B : Ty Δ Ψ} →
-    Σ ⊆ˢ Σ′ →
-    Σ ⊢ A ⊑ᵃ B →
-    Σ′ ⊢ A ⊑ᵃ B
-  ⊑ᵃ-wkΣ w (tag g) = tag g
-  ⊑ᵃ-wkΣ w (seal h) = seal (wkLookupˢ w h)
-  ⊑ᵃ-wkΣ w (_↦_ {A = A} {A′ = A′} {B = B} {B′ = B′} p q) =
-    _↦_ {A = A} {A′ = A′} {B = B} {B′ = B′}
-      (⊑-wkΣ w p)
-      (⊑-wkΣ w q)
-  ⊑ᵃ-wkΣ w (∀ᵖ p) = ∀ᵖ (⊑-wkΣ w p)
-  ⊑ᵃ-wkΣ w (ν c) = ν (⊑-wkΣ (ν-⊆ˢ `★ w) c)
-
-  ⊑-wkΣ :
-    ∀{Δ}{Ψ}{Σ Σ′ : Store Ψ}{A B : Ty Δ Ψ} →
-    Σ ⊆ˢ Σ′ →
-    Σ ⊢ A ⊑ B →
-    Σ′ ⊢ A ⊑ B
-  ⊑-wkΣ w id = id
-  ⊑-wkΣ w (p ； a) = (⊑-wkΣ w p) ； (⊑ᵃ-wkΣ w a)
-
-mutual
-  ⊑ᵃ-renameˢ :
-    ∀{Δ}{Ψ}{Ψ′}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
-    (ρ : Renameˢ Ψ Ψ′) →
-    Σ ⊢ A ⊑ᵃ B →
-    renameStoreˢ ρ Σ ⊢ renameˢ ρ A ⊑ᵃ renameˢ ρ B
-  ⊑ᵃ-renameˢ ρ (tag g) = tag (renameˢ-ground ρ g)
-  ⊑ᵃ-renameˢ ρ (seal {α = α} {A = A} h) =
-    Eq.subst
-      (λ T → _ ⊢ T ⊑ᵃ ｀ (ρ α))
-      (Eq.sym (TypeSubst.renameˢ-wkTy0 ρ A))
-      (seal (renameLookupˢ ρ h))
-  ⊑ᵃ-renameˢ ρ (_↦_ {A = A} {A′ = A′} {B = B} {B′ = B′} p q) =
-    _↦_ {A = renameˢ ρ A}
-        {A′ = renameˢ ρ A′}
-        {B = renameˢ ρ B}
-        {B′ = renameˢ ρ B′}
-      (⊑-renameˢ ρ p)
-      (⊑-renameˢ ρ q)
-  ⊑ᵃ-renameˢ ρ (∀ᵖ p) = ∀ᵖ (⊑-renameˢ ρ p)
-  ⊑ᵃ-renameˢ {Σ = Σ} {A = `∀ A} {B = B} ρ (ν c) =
-    ν
-      (Eq.subst
-        (λ Σ′ →
-          Σ′ ⊢
-            ((⇑ˢ (renameˢ ρ A)) [ ｀ Zˢ ]ᵗ) ⊑
-            (⇑ˢ (renameˢ ρ B)))
-        (renameStoreˢ-ext-ν ρ Σ)
-        (Eq.subst
-          (λ T →
-            renameStoreˢ (extˢ ρ) ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢
-              ((⇑ˢ (renameˢ ρ A)) [ ｀ Zˢ ]ᵗ) ⊑
-              T)
-          (renameˢ-ext-⇑ˢ ρ B)
-          (Eq.subst
-            (λ T →
-              renameStoreˢ (extˢ ρ) ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢
-                T ⊑
-                renameˢ (extˢ ρ) (⇑ˢ B))
-            (trans
-              (renameˢ-[]ᵗ-seal (extˢ ρ) (⇑ˢ A) Zˢ)
-              (cong (λ T → T [ ｀ Zˢ ]ᵗ) (renameˢ-ext-⇑ˢ ρ A)))
-            (⊑-renameˢ (extˢ ρ) c))))
-
-  ⊑-renameˢ :
-    ∀{Δ}{Ψ}{Ψ′}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
-    (ρ : Renameˢ Ψ Ψ′) →
-    Σ ⊢ A ⊑ B →
-    renameStoreˢ ρ Σ ⊢ renameˢ ρ A ⊑ renameˢ ρ B
-  ⊑-renameˢ ρ id = id
-  ⊑-renameˢ ρ (p ； a) =
-    (⊑-renameˢ ρ p) ； (⊑ᵃ-renameˢ ρ a)
-
-exts-liftSubstˢ :
-  ∀{Δ}{Δ′}{Ψ}
-  (σ : Substᵗ Δ Δ′ Ψ) (X : TyVar (suc Δ)) →
-  extsᵗ (liftSubstˢ σ) X ≡ liftSubstˢ (extsᵗ σ) X
-exts-liftSubstˢ σ Zᵗ = refl
-exts-liftSubstˢ σ (Sᵗ X) = renameᵗ-⇑ˢ Sᵗ (σ X)
-
-mutual
-  ⊑ᵃ-substᵗ :
-    ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
-    (σ : Substᵗ Δ Δ′ Ψ) →
-    Σ ⊢ A ⊑ᵃ B →
-    Σ ⊢ substᵗ σ A ⊑ᵃ substᵗ σ B
-  ⊑ᵃ-substᵗ σ (tag g) = tag (substᵗ-ground σ g)
-  ⊑ᵃ-substᵗ σ (seal {α = α} {A = A} h) =
-    Eq.subst
-      (λ T → _ ⊢ T ⊑ᵃ ｀ α)
-      (Eq.sym (substᵗ-wkTy0 σ A))
-      (seal h)
-  ⊑ᵃ-substᵗ σ (_↦_ {A = A} {A′ = A′} {B = B} {B′ = B′} p q) =
-    _↦_ {A = substᵗ σ A}
-        {A′ = substᵗ σ A′}
-        {B = substᵗ σ B}
-        {B′ = substᵗ σ B′}
-      (⊑-substᵗ σ p)
-      (⊑-substᵗ σ q)
-  ⊑ᵃ-substᵗ σ (∀ᵖ p) =
-    ∀ᵖ (⊑-substᵗ (extsᵗ σ) p)
-  ⊑ᵃ-substᵗ {Σ = Σ} {A = `∀ A} {B = B} σ (ν c) =
-    ν
-      (Eq.subst
-        (λ T →
-          ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢
-            ((⇑ˢ (substᵗ (extsᵗ σ) A)) [ ｀ Zˢ ]ᵗ) ⊑
-            T)
-        cod-eq
-        (Eq.subst
-          (λ T →
-            ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢
-              T ⊑
-              substᵗ liftσ (⇑ˢ B))
-          dom-eq
-          (⊑-substᵗ liftσ c)))
-    where
-      liftσ : Substᵗ _ _ (suc _)
-      liftσ = liftSubstˢ σ
-
-      inner-eq :
-        substᵗ (extsᵗ liftσ) (⇑ˢ A) ≡
-        ⇑ˢ (substᵗ (extsᵗ σ) A)
-      inner-eq =
-        trans
-          (substᵗ-cong (exts-liftSubstˢ σ) (⇑ˢ A))
-          (substᵗ-⇑ˢ (extsᵗ σ) A)
-
-      dom-eq :
-        substᵗ liftσ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ≡
-        ((⇑ˢ (substᵗ (extsᵗ σ) A)) [ ｀ Zˢ ]ᵗ)
-      dom-eq =
-        trans
-          (substᵗ-[]ᵗ-seal liftσ (⇑ˢ A) Zˢ)
-          (cong (λ T → T [ ｀ Zˢ ]ᵗ) inner-eq)
-
-      cod-eq :
-        substᵗ liftσ (⇑ˢ B) ≡
-        (⇑ˢ (substᵗ σ B))
-      cod-eq = substᵗ-⇑ˢ σ B
-
-  ⊑-substᵗ :
-    ∀{Δ}{Δ′}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
-    (σ : Substᵗ Δ Δ′ Ψ) →
-    Σ ⊢ A ⊑ B →
-    Σ ⊢ substᵗ σ A ⊑ substᵗ σ B
-  ⊑-substᵗ σ id = id
-  ⊑-substᵗ σ (p ； a) = (⊑-substᵗ σ p) ； (⊑ᵃ-substᵗ σ a)
-
-⊑-[]ᵗ-seal :
-  ∀{Δ}{Ψ}{Σ : Store Ψ}{A B : Ty (suc Δ) Ψ}{α : Seal Ψ} →
-  Σ ⊢ A ⊑ B →
-  Σ ⊢ A [ ｀ α ]ᵗ ⊑ B [ ｀ α ]ᵗ
-⊑-[]ᵗ-seal {α = α} p =
-  ⊑-substᵗ (singleTyEnv (｀ α)) p
-
-⊑-shift★ :
-  ∀{Δ}{Ψ}{Σ : Store Ψ}{A B : Ty Δ Ψ} →
-  Σ ⊢ A ⊑ B →
-  ((Zˢ , ⇑ˢ `★) ∷ ⟰ˢ Σ) ⊢ ⇑ˢ A ⊑ ⇑ˢ B
-⊑-shift★ p =
-  ⊑-wkΣ (drop ⊆ˢ-refl) (⊑-renameˢ Sˢ p)
 
 mutual
   ~-wkΣ :
@@ -773,7 +571,7 @@ mutual
     NoFreeXᵈ 0 A →
     SealsAt★ Σ A →
     Σ ⊢ `★ ~ A
-  ★~-closed {A = ＇ X} (nx-var nxX) sX = ⊥-elim (<ᵈ-zero-impossible nxX)
+  ★~-closed {A = ＇ X} (nx-var nxX) sX = ⊥-elim (<-zero-impossible nxX)
   ★~-closed {A = ｀ α} nx-seal (sα hα) = A~α hα refl
   ★~-closed {A = ‵ ι} nx-base s-base = ★~G (‵ ι)
   ★~-closed {A = `★} nx-star s-star = ★~★
@@ -787,7 +585,7 @@ mutual
     NoFreeXᵈ 0 A →
     SealsAt★ Σ A →
     Σ ⊢ A ~ `★
-  ~★-closed {A = ＇ X} (nx-var nxX) sX = ⊥-elim (<ᵈ-zero-impossible nxX)
+  ~★-closed {A = ＇ X} (nx-var nxX) sX = ⊥-elim (<-zero-impossible nxX)
   ~★-closed {A = ｀ α} nx-seal (sα hα) = α~A hα refl
   ~★-closed {A = ‵ ι} nx-base s-base = G~★ (‵ ι)
   ~★-closed {A = `★} nx-star s-star = ★~★
@@ -885,7 +683,7 @@ mutual
     ∀{Δ}{Ψ}{Σ : Store Ψ}{A : Ty Δ Ψ} →
     NoFreeXᵈ 0 A →
     Σ ⊢ `★ ~ A
-  ★~-nofree {A = ＇ X} (nx-var nxX) = ⊥-elim (<ᵈ-zero-impossible nxX)
+  ★~-nofree {A = ＇ X} (nx-var nxX) = ⊥-elim (<-zero-impossible nxX)
   ★~-nofree {A = ｀ α} nx-seal = ★~G (｀ α)
   ★~-nofree {A = ‵ ι} nx-base = ★~G (‵ ι)
   ★~-nofree {A = `★} nx-star = ★~★
@@ -898,7 +696,7 @@ mutual
     ∀{Δ}{Ψ}{Σ : Store Ψ}{A : Ty Δ Ψ} →
     NoFreeXᵈ 0 A →
     Σ ⊢ A ~ `★
-  ~★-nofree {A = ＇ X} (nx-var nxX) = ⊥-elim (<ᵈ-zero-impossible nxX)
+  ~★-nofree {A = ＇ X} (nx-var nxX) = ⊥-elim (<-zero-impossible nxX)
   ~★-nofree {A = ｀ α} nx-seal = G~★ (｀ α)
   ~★-nofree {A = ‵ ι} nx-base = G~★ (‵ ι)
   ~★-nofree {A = `★} nx-star = ★~★

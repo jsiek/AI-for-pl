@@ -1,5 +1,10 @@
 module Progress where
 
+-- File Charter:
+--   * Canonical forms and progress theorem for PolyCast terms.
+--   * This file connects typing, values, and one-step reduction readiness.
+--   * Keep evaluation drivers in `Eval.agda` and reduction relations in `Reduction.agda`.
+
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; suc)

@@ -1,5 +1,10 @@
 module Coerce where
 
+-- File Charter:
+--   * Coercion synthesis from GTSF consistency proofs.
+--   * Binder-context bookkeeping for seal binders and the executable `coerce` procedure.
+--   * Keep the definition and metatheory of consistency itself in the sibling modules.
+
 open import Agda.Builtin.Sigma renaming (Σ to Σ′)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_)

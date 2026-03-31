@@ -1,5 +1,12 @@
 module TypePrecision where
 
+-- File Charter:
+--   * Definition of the type-precision judgments (`⊑ᵃ`, `⊑`) and their composition.
+--   * Introduce the relations only; reusable transport properties belong in
+--     `TypePrecisionProperties.agda`.
+--   * No consistency, coercion synthesis, or store-specific metatheory beyond what the
+--     judgment constructors require.
+
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; suc)

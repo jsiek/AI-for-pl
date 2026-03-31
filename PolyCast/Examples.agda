@@ -1,5 +1,10 @@
 module Examples where
 
+-- File Charter:
+--   * Worked PolyCast examples and small executable proof scripts.
+--   * Keep these examples illustrative and lightweight; core metatheory belongs in the
+--     dedicated modules.
+
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)

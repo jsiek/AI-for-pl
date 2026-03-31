@@ -176,22 +176,6 @@ substᵗ-[]ᵗ-seal σ A α =
     env Zᵗ = refl
     env (Sᵗ X) = sym (open-renᵗ-suc (σ X) (｀ α))
 
-renameˢ-[]ᵗ-seal :
-  ∀{Δ}{Ψ}{Ψ′}
-  (ρ : Renameˢ Ψ Ψ′) (A : Ty (suc Δ) Ψ) (α : Seal Ψ) →
-  renameˢ ρ (A [ ｀ α ]ᵗ) ≡ (renameˢ ρ A) [ ｀ (ρ α) ]ᵗ
-renameˢ-[]ᵗ-seal ρ A α =
-  trans
-    (renameˢ-substᵗ ρ (singleTyEnv (｀ α)) A)
-    (substᵗ-cong env (renameˢ ρ A))
-  where
-    env :
-      (X : TyVar (suc _)) →
-      renameˢ ρ (singleTyEnv (｀ α) X) ≡
-      singleTyEnv (｀ (ρ α)) X
-    env Zᵗ = refl
-    env (Sᵗ X) = refl
-
 map-renameᵗ-⤊ᵗ :
   ∀{Δ}{Δ′}{Ψ}
   (ρ : Renameᵗ Δ Δ′) (Γ : Ctx Δ Ψ) →
@@ -224,19 +208,6 @@ map-renameˢ-⤊ᵗ ρ (A ∷ Γ) =
   cong₂ _∷_
     (renameˢ-renameᵗ Sᵗ ρ A)
     (map-renameˢ-⤊ᵗ ρ Γ)
-
-renameˢ-ext-⇑ˢ :
-  ∀{Δ}{Ψ}{Ψ′}
-  (ρ : Renameˢ Ψ Ψ′) (A : Ty Δ Ψ) →
-  renameˢ (extˢ ρ) (⇑ˢ A) ≡ ⇑ˢ (renameˢ ρ A)
-renameˢ-ext-⇑ˢ ρ (＇ X) = refl
-renameˢ-ext-⇑ˢ ρ (｀ α) = refl
-renameˢ-ext-⇑ˢ ρ (‵ ι) = refl
-renameˢ-ext-⇑ˢ ρ `★ = refl
-renameˢ-ext-⇑ˢ ρ (A ⇒ B) =
-  cong₂ _⇒_ (renameˢ-ext-⇑ˢ ρ A) (renameˢ-ext-⇑ˢ ρ B)
-renameˢ-ext-⇑ˢ ρ (`∀ A) =
-  cong `∀ (renameˢ-ext-⇑ˢ ρ A)
 
 map-renameˢ-⤊ˢ :
   ∀{Δ}{Ψ}{Ψ′}

@@ -23,9 +23,11 @@ coerce l (⇒~★ c d) = 〔 coerce l c ↦ coerce l d 〕 ⨟ 〔 ★⇒★ ! �
 coerce l (A~α h eq)
     with eq
 ... | refl = 〔 h ⁻ 〕
+coerce l (A~α* h c) = coerce l c ⨟ 〔 h ⁻ 〕
 coerce l (α~A h eq)
     with eq
 ... | refl = 〔 h ⁺ 〕
+coerce l (α~A* h c) = 〔 h ⁺ 〕 ⨟ coerce l c
 coerce l (↦~↦ c d) = 〔 coerce l c ↦ coerce l d 〕
 coerce l (∀~∀ c) = 〔 ∀ᶜ (coerce l c) 〕
 coerce l (∀~ c) = 〔 ℐ (coerce l c) 〕

@@ -216,6 +216,16 @@ A polymorphic cast calculus that uses imprecision to express casts.
 
     Σ ⊢ ($ m) ⊕[op] ($ n)                       —[idˢ]→  Σ ⊢ $ op(m,n)
 
+    Representative congruence rules:
+
+    Σ ⊢ L —[ ρ ]→ Σ′ ⊢ L′
+    ----------------------------------------------------------
+    Σ ⊢ L · M —[ ρ ]→ Σ′ ⊢ L′ · renameρ(M)
+
+    Σ ⊢ M —[ ρ ]→ Σ′ ⊢ M′     V is a value
+    ----------------------------------------------------------
+    Σ ⊢ V · M —[ ρ ]→ Σ′ ⊢ renameρ(V) · M′
+
     Congruence rules:
       premises have shape `Σ ⊢ M —[ ρ ]→ Σ′ ⊢ M′` together with
       `wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′`, and produce steps into store `Σ′`.

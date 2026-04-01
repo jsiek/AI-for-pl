@@ -10,7 +10,8 @@ module Ctx where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using (map; []; _∷_)
-open import Relation.Binary.PropositionalEquality using (cong₂)
+open import Data.Nat using (suc)
+open import Relation.Binary.PropositionalEquality using (cong₂; sym)
 
 open import Types
 open import TypeProperties
@@ -27,6 +28,9 @@ open import TypeProperties
 ------------------------------------------------------------------------
 -- Context lookup transport under renaming/substitution
 ------------------------------------------------------------------------
+
+⤊ᵗ : ∀{Δ}{Ψ} → Ctx Δ Ψ → Ctx (suc Δ) Ψ
+⤊ᵗ Γ = map (renameᵗ Sᵗ) Γ
 
 renameLookup :
   ∀{Δ}{Ψ}{Ψ′}{Γ : Ctx Δ Ψ}{x : Var}{A : Ty Δ Ψ} →

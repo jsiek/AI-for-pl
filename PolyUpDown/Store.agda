@@ -176,6 +176,16 @@ renameStoreˢ-ν ρ Σ =
     (cong₂ _,_ refl (renameˢ-ext-⇑ˢ ρ ★))
     (renameStoreˢ-ext-⟰ˢ ρ Σ)
 
+renameStoreˢ-cons-⟰ˢ :
+  ∀ {Δ}{Ψ}{Ψ′}
+  (ρ : Renameˢ Ψ Ψ′) (A : Ty Δ Ψ) (Σ : Store Δ Ψ) →
+  renameStoreˢ (extˢ ρ) ((Zˢ , ⇑ˢ A) ∷ ⟰ˢ Σ) ≡
+  (Zˢ , ⇑ˢ (renameˢ ρ A)) ∷ ⟰ˢ (renameStoreˢ ρ Σ)
+renameStoreˢ-cons-⟰ˢ ρ A Σ =
+  cong₂ _∷_
+    (cong₂ _,_ refl (renameˢ-ext-⇑ˢ ρ A))
+    (renameStoreˢ-ext-⟰ˢ ρ Σ)
+
 substStoreᵗ-ext-⟰ˢ :
   ∀{Δ}{Δ′}{Ψ}
   (σ : Substᵗ Δ Δ′ Ψ) (Σ : Store Δ Ψ) →
@@ -196,6 +206,16 @@ renameStoreᵗ-ν ρ Σ =
     (cong₂ _,_ refl refl)
     (renameStoreᵗ-ext-⟰ˢ ρ Σ)
 
+renameStoreᵗ-cons-⟰ˢ :
+  ∀{Δ}{Δ′}{Ψ}
+  (ρ : Renameᵗ Δ Δ′) (A : Ty Δ Ψ) (Σ : Store Δ Ψ) →
+  renameStoreᵗ ρ ((Zˢ , ⇑ˢ A) ∷ ⟰ˢ Σ) ≡
+  (Zˢ , ⇑ˢ (renameᵗ ρ A)) ∷ ⟰ˢ (renameStoreᵗ ρ Σ)
+renameStoreᵗ-cons-⟰ˢ ρ A Σ =
+  cong₂ _∷_
+    (cong₂ _,_ refl (renameᵗ-⇑ˢ ρ A))
+    (renameStoreᵗ-ext-⟰ˢ ρ Σ)
+
 substStoreᵗ-ν :
   ∀{Δ}{Δ′}{Ψ}
   (σ : Substᵗ Δ Δ′ Ψ) (Σ : Store Δ Ψ) →
@@ -204,6 +224,16 @@ substStoreᵗ-ν :
 substStoreᵗ-ν σ Σ =
   cong₂ _∷_
     (cong₂ _,_ refl refl)
+    (substStoreᵗ-ext-⟰ˢ σ Σ)
+
+substStoreᵗ-cons-⟰ˢ :
+  ∀{Δ}{Δ′}{Ψ}
+  (σ : Substᵗ Δ Δ′ Ψ) (A : Ty Δ Ψ) (Σ : Store Δ Ψ) →
+  substStoreᵗ (liftSubstˢ σ) ((Zˢ , ⇑ˢ A) ∷ ⟰ˢ Σ) ≡
+  (Zˢ , ⇑ˢ (substᵗ σ A)) ∷ ⟰ˢ (substStoreᵗ σ Σ)
+substStoreᵗ-cons-⟰ˢ σ A Σ =
+  cong₂ _∷_
+    (cong₂ _,_ refl (substᵗ-⇑ˢ σ A))
     (substStoreᵗ-ext-⟰ˢ σ Σ)
 
 ------------------------------------------------------------------------

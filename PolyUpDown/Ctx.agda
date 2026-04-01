@@ -13,7 +13,16 @@ open import Data.List using (map; []; _∷_)
 open import Relation.Binary.PropositionalEquality using (cong₂)
 
 open import Types
-open import TypeProperties using (liftSubstˢ; substᵗ-suc-renameᵗ-suc; substᵗ-⇑ˢ)
+open import TypeProperties
+  using
+    ( liftSubstˢ
+    ; substᵗ-suc-renameᵗ-suc
+    ; substᵗ-⇑ˢ
+    ; renameᵗ-suc-comm
+    ; renameᵗ-⇑ˢ
+    ; renameˢ-renameᵗ
+    ; renameˢ-ext-⇑ˢ
+    )
 
 ------------------------------------------------------------------------
 -- Context lookup transport under renaming/substitution
@@ -26,6 +35,14 @@ renameLookup :
   map (renameˢ ρ) Γ ∋ x ⦂ renameˢ ρ A
 renameLookup ρ Z = Z
 renameLookup ρ (S h) = S (renameLookup ρ h)
+
+renameLookupᵗ :
+  ∀{Δ}{Δ′}{Ψ}{Γ : Ctx Δ Ψ}{x : Var}{A : Ty Δ Ψ} →
+  (ρ : Renameᵗ Δ Δ′) →
+  Γ ∋ x ⦂ A →
+  map (renameᵗ ρ) Γ ∋ x ⦂ renameᵗ ρ A
+renameLookupᵗ ρ Z = Z
+renameLookupᵗ ρ (S h) = S (renameLookupᵗ ρ h)
 
 substLookup :
   ∀{Δ}{Δ′}{Ψ}{Γ : Ctx Δ Ψ}{x : Var}{A : Ty Δ Ψ} →
@@ -60,3 +77,47 @@ map-substᵗ-⤊ˢ σ (A ∷ Γ) =
   cong₂ _∷_
     (substᵗ-⇑ˢ σ A)
     (map-substᵗ-⤊ˢ σ Γ)
+
+map-renameᵗ-⤊ᵗ :
+  ∀{Δ}{Δ′}{Ψ}
+  (ρ : Renameᵗ Δ Δ′) (Γ : Ctx Δ Ψ) →
+  map (renameᵗ (extᵗ ρ)) (map (renameᵗ Sᵗ) Γ) ≡
+  map (renameᵗ Sᵗ) (map (renameᵗ ρ) Γ)
+map-renameᵗ-⤊ᵗ ρ [] = refl
+map-renameᵗ-⤊ᵗ ρ (A ∷ Γ) =
+  cong₂ _∷_
+    (sym (renameᵗ-suc-comm ρ A))
+    (map-renameᵗ-⤊ᵗ ρ Γ)
+
+map-renameᵗ-⤊ˢ :
+  ∀{Δ}{Δ′}{Ψ}
+  (ρ : Renameᵗ Δ Δ′) (Γ : Ctx Δ Ψ) →
+  map (renameᵗ ρ) (⤊ˢ Γ) ≡
+  ⤊ˢ (map (renameᵗ ρ) Γ)
+map-renameᵗ-⤊ˢ ρ [] = refl
+map-renameᵗ-⤊ˢ ρ (A ∷ Γ) =
+  cong₂ _∷_
+    (renameᵗ-⇑ˢ ρ A)
+    (map-renameᵗ-⤊ˢ ρ Γ)
+
+map-renameˢ-⤊ᵗ :
+  ∀{Δ}{Ψ}{Ψ′}
+  (ρ : Renameˢ Ψ Ψ′) (Γ : Ctx Δ Ψ) →
+  map (renameˢ ρ) (⤊ᵗ Γ) ≡
+  ⤊ᵗ (map (renameˢ ρ) Γ)
+map-renameˢ-⤊ᵗ ρ [] = refl
+map-renameˢ-⤊ᵗ ρ (A ∷ Γ) =
+  cong₂ _∷_
+    (renameˢ-renameᵗ Sᵗ ρ A)
+    (map-renameˢ-⤊ᵗ ρ Γ)
+
+map-renameˢ-⤊ˢ :
+  ∀{Δ}{Ψ}{Ψ′}
+  (ρ : Renameˢ Ψ Ψ′) (Γ : Ctx Δ Ψ) →
+  map (renameˢ (extˢ ρ)) (⤊ˢ Γ) ≡
+  ⤊ˢ (map (renameˢ ρ) Γ)
+map-renameˢ-⤊ˢ ρ [] = refl
+map-renameˢ-⤊ˢ ρ (A ∷ Γ) =
+  cong₂ _∷_
+    (renameˢ-ext-⇑ˢ ρ A)
+    (map-renameˢ-⤊ˢ ρ Γ)

@@ -36,7 +36,7 @@ mutual
       → Σ ⊢ ｀ α ⊑ᵃ wkTy0 A
 
     _↦_ : ∀{A A′ B B′}
-      → Σ ⊢ A′ ⊑ A
+      → Σ ⊢ A ⊑ A′ -- imprecision is covariant in the arrow domain!
       → Σ ⊢ B ⊑ B′
       → Σ ⊢ (A ⇒ B) ⊑ᵃ (A′ ⇒ B′)
 

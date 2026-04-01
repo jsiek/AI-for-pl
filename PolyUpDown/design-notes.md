@@ -158,19 +158,21 @@ A polymorphic cast calculus that uses imprecision to express casts.
     ----------------------------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ L ⊕[ op ] M : ℕ
 
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A      Σ | every Ψ | every Ψ ⊢ p : A ⊑ B
-    ----------------------------------------------------------------
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A      Σ | every Ψ | none Ψ ⊢ p : A ⊑ B
+    ---------------------------------------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M + p : B
 
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A      Σ | every Ψ | every Ψ ⊢ p : A ⊒ B
-    ----------------------------------------------------------------
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A      Σ | none Ψ | every Ψ ⊢ p : A ⊒ B
+    ---------------------------------------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M - p : B
 
     ----------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ blame ℓ : A
 
     Note: The function (every Ψ) produces a set that includes
-    every seal name in Ψ.  Cast typing uses `every Ψ` for both Φ and Ξ.
+    every seal name in Ψ, while (none Ψ) excludes all of them.
+    Cast typing uses `every/none` for `+` casts and `none/every`
+    for `-` casts, matching the current widening/narrowing `ν` rules.
 
 ## Reduction
 

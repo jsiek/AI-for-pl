@@ -43,7 +43,7 @@ data FunView
   fv-up-↦ :
     ∀ {A′ B′ : Ty Δ Ψ}
       {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (A′ ⇒ B′)}
-      {p : Σ ⊢ A ⊑ A′}
+      {p : Σ ⊢ A′ ⊑ A}
       {q : Σ ⊢ B′ ⊑ B} →
     Value W →
     V ≡ (W at[ up ]  〔 p ↦ q 〕) →
@@ -52,7 +52,7 @@ data FunView
   fv-down-↦ :
     ∀ {A′ B′ : Ty Δ Ψ}
       {W : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (A′ ⇒ B′)}
-      {p : Σ ⊢ A′ ⊑ A}
+      {p : Σ ⊢ A ⊑ A′}
       {q : Σ ⊢ B ⊑ B′} →
     Value W →
     V ≡ (W at[ down ]  〔 p ↦ q 〕) →

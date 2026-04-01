@@ -53,14 +53,14 @@ data Value : ∀ {Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
 
   V-at-up-↦ :
     ∀{Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A B C D : Ty Δ Ψ}
-    {p : Σ ⊢ C ⊑ A}{q : Σ ⊢ B ⊑ D}
+    {p : Σ ⊢ A ⊑ C}{q : Σ ⊢ B ⊑ D}
     {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (A ⇒ B)} →
     Value V →
     Value (V at[ up ] (id ； (p ↦ q)))
 
   V-at-down-↦ :
     ∀{Δ}{Ψ}{Σ : Store Ψ}{Γ : Ctx Δ Ψ}{A B C D : Ty Δ Ψ}
-    {p : Σ ⊢ C ⊑ A}{q : Σ ⊢ B ⊑ D}
+    {p : Σ ⊢ A ⊑ C}{q : Σ ⊢ B ⊑ D}
     {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (C ⇒ D)} →
     Value V →
     Value (V at[ down ] (id ； (p ↦ q)))
@@ -198,6 +198,16 @@ dir-src-tgt-refl :
   dir-src d A A ≡ dir-tgt d A A
 dir-src-tgt-refl up A = refl
 dir-src-tgt-refl down A = refl
+
+case-arg :
+  ∀ {Ψ}{Σ : Store Ψ}
+    (d : Direction)
+    (A C : Ty 0 Ψ) →
+    0 ∣ Ψ ∣ Σ ∣ [] ⊢ dir-tgt d A C →
+    Σ ⊢ A ⊑ C →
+    0 ∣ Ψ ∣ Σ ∣ [] ⊢ dir-src d A C
+case-arg up A C W p = W at[ down ] p
+case-arg down A C W p = W at[ up ] p
 
 top★-lookup :
   ∀ {Ψ}{Σ : Store Ψ} →
@@ -382,14 +392,13 @@ data _—→[_]_ :
       {A B C D : Ty 0 Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (dir-src d (A ⇒ B) (C ⇒ D))}
       {W : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (dir-tgt d A C)}
-      {p : Σ ⊢ C ⊑ A}
+      {p : Σ ⊢ A ⊑ C}
       {q : Σ ⊢ B ⊑ D} →
     (dir-tgt-⇒ d A B C D ▹ (V at[ d ]  〔 p ↦ q 〕)) · W
       —→[ idˢ ]
     id-step
       (((dir-src-⇒ d A B C D ▹ V)
-        · (dir-tgt-src-swap d C A ▹
-            ((dir-tgt-src-swap d A C ▹ W) at[ d ]  p)))
+        · ((case-arg d A C W p)))
       at[ d ]  q)
 
   β-ν :

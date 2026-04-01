@@ -82,6 +82,7 @@ mutual
   (h ； m ； t) ⨟ᶜ (h′ ； m′ ； t′) | _ !ʳ x
       with h′ | m′ | t′ -- if I instead did top-level, this would cause grey
   ... | idʰ .★ | idᵐ .★ | idᵗ .★ = h ； m ； t
+      -- TODO: need to case on m when we add blame labels to get the correct label
   ... | idʰ .★ | ⊥ᵐ .★ ⇨ _ | tp = h ； (⊥ᵐ _ ⇨ _) ； t′
   (h ； m ； t) ⨟ᶜ (h′ ； m′ ； t′) | _ ?ʳ x
       with m -- if I instead did top-level, this would cause grey

@@ -371,6 +371,114 @@ substᵗ-⇑ˢ σ (`∀ A) =
       (substᵗ-cong (exts-liftSubstˢ σ) (⇑ˢ A))
       (substᵗ-⇑ˢ (extsᵗ σ) A))
 
+open-renᵗ-suc :
+  ∀{Δ}{Ψ} →
+  (A : Ty Δ Ψ) →
+  (T : Ty Δ Ψ) →
+  (renameᵗ Sᵗ A) [ T ]ᵗ ≡ A
+open-renᵗ-suc A T =
+  trans
+    (substᵗ-renameᵗ Sᵗ (singleTyEnv T) A)
+    (trans
+      (substᵗ-cong (λ X → refl) A)
+      (substᵗ-id A))
+
+renameᵗ-[]ᵗ-seal :
+  ∀{Δ}{Δ′}{Ψ}
+  (ρ : Renameᵗ Δ Δ′) (A : Ty (suc Δ) Ψ) (α : Seal Ψ) →
+  renameᵗ ρ (A [ ｀ α ]ᵗ) ≡ (renameᵗ (extᵗ ρ) A) [ ｀ α ]ᵗ
+renameᵗ-[]ᵗ-seal ρ A α =
+  trans
+    (renameᵗ-substᵗ ρ (singleTyEnv (｀ α)) A)
+    (trans
+      (substᵗ-cong env A)
+      (sym (substᵗ-renameᵗ (extᵗ ρ) (singleTyEnv (｀ α)) A)))
+  where
+    env :
+      (X : TyVar (suc _)) →
+      renameᵗ ρ (singleTyEnv (｀ α) X) ≡
+      singleTyEnv (｀ α) (extᵗ ρ X)
+    env Zᵗ = refl
+    env (Sᵗ X) = refl
+
+substᵗ-[]ᵗ-seal :
+  ∀{Δ}{Δ′}{Ψ}
+  (σ : Substᵗ Δ Δ′ Ψ) (A : Ty (suc Δ) Ψ) (α : Seal Ψ) →
+  substᵗ σ (A [ ｀ α ]ᵗ) ≡ (substᵗ (extsᵗ σ) A) [ ｀ α ]ᵗ
+substᵗ-[]ᵗ-seal σ A α =
+  trans
+    (substᵗ-substᵗ σ (singleTyEnv (｀ α)) A)
+    (trans
+      (substᵗ-cong env A)
+      (sym (substᵗ-substᵗ (singleTyEnv (｀ α)) (extsᵗ σ) A)))
+  where
+    env :
+      (X : TyVar (suc _)) →
+      substᵗ σ (singleTyEnv (｀ α) X) ≡
+      substᵗ (singleTyEnv (｀ α)) (extsᵗ σ X)
+    env Zᵗ = refl
+    env (Sᵗ X) = sym (open-renᵗ-suc (σ X) (｀ α))
+
+renameˢ-[]ᵗ-seal :
+  ∀{Δ}{Ψ}{Ψ′}
+  (ρ : Renameˢ Ψ Ψ′) (A : Ty (suc Δ) Ψ) (α : Seal Ψ) →
+  renameˢ ρ (A [ ｀ α ]ᵗ) ≡ (renameˢ ρ A) [ ｀ (ρ α) ]ᵗ
+renameˢ-[]ᵗ-seal ρ A α =
+  trans
+    (renameˢ-substᵗ ρ (singleTyEnv (｀ α)) A)
+    (substᵗ-cong env (renameˢ ρ A))
+  where
+    env :
+      (X : TyVar (suc _)) →
+      renameˢ ρ (singleTyEnv (｀ α) X) ≡
+      singleTyEnv (｀ (ρ α)) X
+    env Zᵗ = refl
+    env (Sᵗ X) = refl
+
+renameˢ-ext-⇑ˢ :
+  ∀{Δ}{Ψ}{Ψ′}
+  (ρ : Renameˢ Ψ Ψ′) (A : Ty Δ Ψ) →
+  renameˢ (extˢ ρ) (⇑ˢ A) ≡ ⇑ˢ (renameˢ ρ A)
+renameˢ-ext-⇑ˢ ρ (＇ X) = refl
+renameˢ-ext-⇑ˢ ρ (｀ α) = refl
+renameˢ-ext-⇑ˢ ρ (‵ ι) = refl
+renameˢ-ext-⇑ˢ ρ ★ = refl
+renameˢ-ext-⇑ˢ ρ (A ⇒ B) =
+  cong₂ _⇒_ (renameˢ-ext-⇑ˢ ρ A) (renameˢ-ext-⇑ˢ ρ B)
+renameˢ-ext-⇑ˢ ρ (`∀ A) =
+  cong `∀ (renameˢ-ext-⇑ˢ ρ A)
+
+renameᵗ-ν-src :
+  ∀ {Δ}{Δ′}{Ψ} (ρ : Renameᵗ Δ Δ′) (A : Ty (suc Δ) Ψ) →
+  renameᵗ ρ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ≡
+  (⇑ˢ (renameᵗ (extᵗ ρ) A)) [ ｀ Zˢ ]ᵗ
+renameᵗ-ν-src ρ A =
+  trans
+    (renameᵗ-[]ᵗ-seal ρ (⇑ˢ A) Zˢ)
+    (cong (λ C → C [ ｀ Zˢ ]ᵗ) (renameᵗ-⇑ˢ (extᵗ ρ) A))
+
+substᵗ-ν-src :
+  ∀ {Δ}{Δ′}{Ψ} (σ : Substᵗ Δ Δ′ Ψ) (A : Ty (suc Δ) Ψ) →
+  substᵗ (liftSubstˢ σ) ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ≡
+  (⇑ˢ (substᵗ (extsᵗ σ) A)) [ ｀ Zˢ ]ᵗ
+substᵗ-ν-src σ A =
+  trans
+    (substᵗ-[]ᵗ-seal (liftSubstˢ σ) (⇑ˢ A) Zˢ)
+    (cong
+      (λ C → C [ ｀ Zˢ ]ᵗ)
+      (trans
+        (substᵗ-cong (exts-liftSubstˢ σ) (⇑ˢ A))
+        (substᵗ-⇑ˢ (extsᵗ σ) A)))
+
+renameˢ-ν-src :
+  ∀ {Δ}{Ψ}{Ψ′} (ρ : Renameˢ Ψ Ψ′) (A : Ty (suc Δ) Ψ) →
+  renameˢ (extˢ ρ) ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ≡
+  (⇑ˢ (renameˢ ρ A)) [ ｀ Zˢ ]ᵗ
+renameˢ-ν-src ρ A =
+  trans
+    (renameˢ-[]ᵗ-seal (extˢ ρ) (⇑ˢ A) Zˢ)
+    (cong (λ C → C [ ｀ Zˢ ]ᵗ) (renameˢ-ext-⇑ˢ ρ A))
+
 ------------------------------------------------------------------------
 -- Closed-type weakening invariants
 ------------------------------------------------------------------------

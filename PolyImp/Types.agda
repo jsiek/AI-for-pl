@@ -56,7 +56,7 @@ data Ty : TyCtx → SealCtx → Set where
   ＇_ : ∀{Δ}{Ψ} (X : TyVar Δ) → Ty Δ Ψ
   ｀_ : ∀{Δ}{Ψ} (α : Seal Ψ) → Ty Δ Ψ
   ‵_ : ∀{Δ}{Ψ} → Base → Ty Δ Ψ
-  `★  : ∀{Δ}{Ψ} → Ty Δ Ψ
+  `★  : ∀{Δ}{Ψ} → Ty Δ Ψ -- TODO: change to ★
   _⇒_ : ∀{Δ}{Ψ} → Ty Δ Ψ → Ty Δ Ψ → Ty Δ Ψ
   `∀  : ∀{Δ}{Ψ} → Ty (suc Δ) Ψ → Ty Δ Ψ
 

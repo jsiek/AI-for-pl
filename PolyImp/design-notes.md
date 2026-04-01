@@ -73,7 +73,7 @@ A polymorphic cast calculus that uses imprecision to express casts.
     ---------------------
     Σ ⊢ seal α : α ⊑ᵃ A₀
 
-    Σ ⊢ p : A′ ⊑ A     Σ ⊢ q : B ⊑ B′
+    Σ ⊢ p : A ⊑ A′     Σ ⊢ q : B ⊑ B′
     ------------------------------------
     Σ ⊢ (p ↦ q) : (A ⇒ B) ⊑ᵃ (A′ ⇒ B′)
 

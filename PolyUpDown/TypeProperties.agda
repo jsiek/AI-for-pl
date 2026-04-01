@@ -1,12 +1,12 @@
-module TypeSubst where
+module TypeProperties where
 
 -- File Charter:
---   * Generic metatheory for type-level renaming/substitution on `Ty`.
+--   * Generic metatheory for type-level operations on `Ty` such as renaming/substitution.
 --   * Substitution algebra laws, commutation lemmas, and instantiation lemmas.
 --   * No context-shape lemmas (put those in `Ctx`) and no coercion-specific lemmas.
 -- Note to self:
---   * Before adding a theorem here, check whether it is really about `Ty` substitution
---     itself; if it mentions context lookup/store/coercions as primary structure,
+--   * Before adding a theorem here, check whether it is really about `Ty` itself;
+--     if it mentions context lookup/store/coercions as primary structure,
 --     place it in that module instead.
 
 open import Agda.Builtin.Equality using (_≡_; refl)

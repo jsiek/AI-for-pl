@@ -108,7 +108,7 @@ mutual
       → Σ ∣ Φ ∣ Ξ ⊢ (`∀ A) ⊒ (`∀ B)
 
     ν_ : ∀{A : Ty (suc Δ) Ψ}{B : Ty Δ Ψ}
-      → (Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ ∣ false ∷ Φ ∣ true ∷ Ξ ⊢ (⇑ˢ A) [ ｀ Zˢ ]ᵗ ⊒ ⇑ˢ B
+      → (Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ ∣ false ∷ Φ ∣ true ∷ Ξ ⊢ ⇑ˢ B ⊒ (⇑ˢ A) [ ｀ Zˢ ]ᵗ
       → Σ ∣ Φ ∣ Ξ ⊢ B  ⊒  `∀ A
 
     id : ∀{A}
@@ -258,8 +258,8 @@ mutual
          (renameStoreᵗ-ν ρ Σ)
          refl
          refl
-         (renameᵗ-ν-src ρ A)
          (renameᵗ-⇑ˢ ρ B)
+         (renameᵗ-ν-src ρ A)
          (⊒-renameᵗ ρ p))
   ⊒-renameᵗ ρ id = id
   ⊒-renameᵗ ρ (p ； q) = (⊒-renameᵗ ρ p) ； (⊒-renameᵗ ρ q)
@@ -338,8 +338,8 @@ mutual
         (renameStoreˢ-ν ρ Σ)
         refl
         refl
-        (renameˢ-ν-src ρ A)
         (renameˢ-ext-⇑ˢ ρ B)
+        (renameˢ-ν-src ρ A)
         (⊒-renameˢ
           (extˢ ρ)
           (RenOk-ext-false okΦ)
@@ -392,8 +392,8 @@ mutual
          (substStoreᵗ-ν σ Σ)
          refl
          refl
-         (substᵗ-ν-src σ A)
          (substᵗ-⇑ˢ σ B)
+         (substᵗ-ν-src σ A)
          (⊒-substᵗ (liftSubstˢ σ) p))
   ⊒-substᵗ σ id = id
   ⊒-substᵗ σ (p ； q) = (⊒-substᵗ σ p) ； (⊒-substᵗ σ q)

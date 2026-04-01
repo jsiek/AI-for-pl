@@ -102,7 +102,7 @@ A polymorphic cast calculus that uses imprecision to express casts.
     ----------------------------- (α ∈ Φ)
     Σ | Φ | Ξ ⊢ seal α : A ⊒ α
 
-    Σ, α:=★ | no-α, Φ | Ξ, α ⊢ p : A[α] ⊒ B
+    Σ, α:=★ | no-α, Φ | Ξ, α ⊢ p : B ⊒ A[α]
     ------------------------------------------------
     Σ | Φ | Ξ ⊢ να. p : B ⊒ ∀X.A[X]
 
@@ -158,21 +158,22 @@ A polymorphic cast calculus that uses imprecision to express casts.
     ----------------------------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ L ⊕[ op ] M : ℕ
 
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A      Σ | every Ψ | none Ψ ⊢ p : A ⊑ B
-    ---------------------------------------------------------------
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A      Σ | Φ | Ξ ⊢ p : A ⊑ B
+    ----------------------------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M + p : B
 
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A      Σ | none Ψ | every Ψ ⊢ p : A ⊒ B
-    ---------------------------------------------------------------
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A      Σ | Φ | Ξ ⊢ p : A ⊒ B
+    ----------------------------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M - p : B
 
     ----------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ blame ℓ : A
 
-    Note: The function (every Ψ) produces a set that includes
-    every seal name in Ψ, while (none Ψ) excludes all of them.
-    Cast typing uses `every/none` for `+` casts and `none/every`
-    for `-` casts, matching the current widening/narrowing `ν` rules.
+    Note: The internal language allows casts with arbitrary permission sets
+    Φ and Ξ. The functions (every Ψ) and (none Ψ) are still useful shorthands:
+    (every Ψ) includes every seal name in Ψ, while (none Ψ) excludes all of them.
+    A source-language translation may choose specific policies such as
+    `every/none` or `none/every`, but those are not baked into PolyUpDown terms.
 
 ## Reduction
 

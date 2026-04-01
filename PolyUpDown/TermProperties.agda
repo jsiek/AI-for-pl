@@ -149,11 +149,11 @@ mutual
   wk⊒ w (p ； q) = wk⊒ w p ； wk⊒ w q
 
 wkCast :
-  ∀ {Δ}{Ψ}{Σ Σ′ : Store Δ Ψ}{A B : Ty Δ Ψ} →
+  ∀ {Δ}{Ψ}{Σ Σ′ : Store Δ Ψ}{Φ Ξ : Vec Bool Ψ}{A B : Ty Δ Ψ} →
   (d : Direction) →
   Σ ⊆ˢ Σ′ →
-  Cast d Σ A B →
-  Cast d Σ′ A B
+  Cast d Σ Φ Ξ A B →
+  Cast d Σ′ Φ Ξ A B
 wkCast up w p = wk⊑ w p
 wkCast down w p = wk⊒ w p
 

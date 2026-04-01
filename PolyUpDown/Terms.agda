@@ -4,8 +4,9 @@ module Terms where
 --   * Intrinsically typed term syntax for PolyUpDown.
 --   * Core term constructors and structural actions on terms
 --     (type-variable renaming/substitution and seal renaming).
---   * Terms cast through `_at[_]_`, carrying direction (`up`/`down`)
---     and the corresponding widening/narrowing witnesses directly.
+--   * Terms cast through `_at[_]_`, carrying direction (`up`/`down`),
+--     explicit permission sets, and the corresponding widening/narrowing
+--     witnesses directly.
 -- Note to self:
 --   * Keep reduction and metatheory in separate modules; this file should stay
 --     focused on syntax and structural actions on syntax.
@@ -99,6 +100,12 @@ RenOk-none :
   RenOk ρ (none Ψ) (none Ψ′)
 RenOk-none ρ {α} p = ⊥-elim (none-excluded α p)
 
+RenOk-any-every :
+  ∀{Ψ}{Ψ′}{P : Vec Bool Ψ} →
+  (ρ : Renameˢ Ψ Ψ′) →
+  RenOk ρ P (every Ψ′)
+RenOk-any-every ρ {α} _ = every-member (ρ α)
+
 ------------------------------------------------------------------------
 -- Intrinsic terms
 ------------------------------------------------------------------------
@@ -123,11 +130,13 @@ Cast :
   ∀{Δ}{Ψ} →
   Direction →
   Store Δ Ψ →
+  Vec Bool Ψ →
+  Vec Bool Ψ →
   Ty Δ Ψ →
   Ty Δ Ψ →
   Set
-Cast {Ψ = Ψ} up Σ A B = Σ ∣ every Ψ ∣ none Ψ ⊢ A ⊑ B
-Cast {Ψ = Ψ} down Σ A B = Σ ∣ none Ψ ∣ every Ψ ⊢ A ⊒ B
+Cast up Σ Φ Ξ A B = Σ ∣ Φ ∣ Ξ ⊢ A ⊑ B
+Cast down Σ Φ Ξ A B = Σ ∣ Φ ∣ Ξ ⊢ A ⊒ B
 
 data _∣_∣_∣_⊢_ (Δ : TyCtx) (Ψ : SealCtx) (Σ : Store Δ Ψ) (Γ : Ctx Δ Ψ) : Ty Δ Ψ → Set where
   `_        : ∀{A : Ty Δ Ψ}{x : Var} →
@@ -171,11 +180,11 @@ data _∣_∣_∣_⊢_ (Δ : TyCtx) (Ψ : SealCtx) (Σ : Store Δ Ψ) (Γ : Ctx 
               Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (‵ `ℕ) →
               Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (‵ `ℕ)
 
-  at        : ∀{A B : Ty Δ Ψ} →
+  at        : ∀{A B : Ty Δ Ψ}{Φ Ξ : Vec Bool Ψ} →
               {C D : Ty Δ Ψ} →
               (M : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ C) →
               (d : Direction) →
-              (p : Cast d Σ A B) →
+              (p : Cast d Σ Φ Ξ A B) →
               C ≡ A →
               D ≡ B →
               Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ D
@@ -218,28 +227,28 @@ renameˢ-constTy :
 renameˢ-constTy ρ (κℕ n) = refl
 
 renameCastᵗ :
-  ∀{Δ}{Δ′}{Ψ}{Σ : Store Δ Ψ}{A B}
+  ∀{Δ}{Δ′}{Ψ}{Σ : Store Δ Ψ}{Φ Ξ : Vec Bool Ψ}{A B}
   (d : Direction) (ρ : Renameᵗ Δ Δ′) →
-  Cast d Σ A B →
-  Cast d (renameStoreᵗ ρ Σ) (renameᵗ ρ A) (renameᵗ ρ B)
+  Cast d Σ Φ Ξ A B →
+  Cast d (renameStoreᵗ ρ Σ) Φ Ξ (renameᵗ ρ A) (renameᵗ ρ B)
 renameCastᵗ up ρ p = ⊑-renameᵗ ρ p
 renameCastᵗ down ρ p = ⊒-renameᵗ ρ p
 
 substCastᵗ :
-  ∀{Δ}{Δ′}{Ψ}{Σ : Store Δ Ψ}{A B}
+  ∀{Δ}{Δ′}{Ψ}{Σ : Store Δ Ψ}{Φ Ξ : Vec Bool Ψ}{A B}
   (d : Direction) (σ : Substᵗ Δ Δ′ Ψ) →
-  Cast d Σ A B →
-  Cast d (substStoreᵗ σ Σ) (substᵗ σ A) (substᵗ σ B)
+  Cast d Σ Φ Ξ A B →
+  Cast d (substStoreᵗ σ Σ) Φ Ξ (substᵗ σ A) (substᵗ σ B)
 substCastᵗ up σ p = ⊑-substᵗ σ p
 substCastᵗ down σ p = ⊒-substᵗ σ p
 
 renameCastˢ :
-  ∀{Δ}{Ψ}{Ψ′}{Σ : Store Δ Ψ}{A B}
+  ∀{Δ}{Ψ}{Ψ′}{Σ : Store Δ Ψ}{Φ Ξ : Vec Bool Ψ}{A B}
   (d : Direction) (ρ : Renameˢ Ψ Ψ′) →
-  Cast d Σ A B →
-  Cast d (renameStoreˢ ρ Σ) (renameˢ ρ A) (renameˢ ρ B)
-renameCastˢ up ρ p = ⊑-renameˢ ρ (RenOk-every ρ) (RenOk-none ρ) p
-renameCastˢ down ρ p = ⊒-renameˢ ρ (RenOk-none ρ) (RenOk-every ρ) p
+  Cast d Σ Φ Ξ A B →
+  Cast d (renameStoreˢ ρ Σ) (every Ψ′) (every Ψ′) (renameˢ ρ A) (renameˢ ρ B)
+renameCastˢ up ρ p = ⊑-renameˢ ρ (RenOk-any-every ρ) (RenOk-any-every ρ) p
+renameCastˢ down ρ p = ⊒-renameˢ ρ (RenOk-any-every ρ) (RenOk-any-every ρ) p
 
 renameᵗ-term :
   ∀ {Δ}{Δ′}{Ψ}{Σ : Store Δ Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →

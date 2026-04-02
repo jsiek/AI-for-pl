@@ -1,6 +1,4 @@
-=================================================================
-A gradually typed lambda calculus compiled to a coercion cast calculus
-=================================================================
+# A gradually typed lambda calculus compiled to a coercion cast calculus
 
 ## Syntax
 

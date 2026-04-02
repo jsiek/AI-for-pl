@@ -29,6 +29,10 @@ PolyBlameI - A failed attempt at a polymorphic cast calculus that uses
 imprecision. This design is not type safe because type substitution
 does not preserve imprecision typing.
 
+Local bibliography note: `/Users/jsiek/bib/all.bib` is a large catalogue
+of PL papers that we use as a reference source when porting examples
+and designs into the Agda developments.
+
 # Work in Progress
 
 
@@ -44,6 +48,8 @@ When writing design notes for a calculus or translation:
 - State important relations as explicit definitions, not just by implication from later rules.
   For example, if typing uses consistency, include the full definition of consistency.
 - Include important derived rules as theorem statements when they are used pervasively in the exposition.
+- When presenting formal relations in prose, prefer the actual formal clauses and side conditions over informal labels such as "atomic case" or "identity-like case".
+- Put formal terms, judgments, and propositions in backticks in the prose and headings so they stand out from the surrounding explanation.
 - When giving reduction relations in notes, prefer a clean mathematical presentation with the notation used consistently throughout the document.
 
 ## Informal proofs
@@ -57,10 +63,16 @@ When writing informal proof documents:
   Avoid inference-bar formatting in informal proof notes.
 - If a proof is by cases, use Markdown headings such as `### Case 1. ...` rather than separator lines.
 - Make case headings direct and formula-shaped when possible.
-  For example, write `Case 1. λx. N <= λx. N'` instead of a descriptive sentence.
-- When a case naturally breaks into subcases or stages, prefer one compact proof sketch or one annotated
+  For example, write `Case 1. λx. N ⊑ λx. N'` instead of a descriptive sentence.
+- Phrase case headings according to the relation or judgment that the proof is analyzing.
+  If the induction is on a derivation of `c ⊑ A' ?ℓ`, the case headings should be instances of that relation.
+- When a case naturally breaks into stages, prefer one compact proof sketch or one annotated
   diagram over many tiny fragments, unless the extra splitting is genuinely clarifying.
 - Keep the explanatory text short when a diagram already shows the proof structure.
+- Prefer "show, don't tell": when a prose sentence informally describes the shape of a witness term or a reduction step, 
+  replace it with the explicit term equation and a diagram whenever practical.
+- When inversion gives a more specific term shape, state that shape explicitly.
+  For example, write facts such as `V = cast W [ G ! ]` and continue the proof with `W`.
 
 ## Diagrams
 
@@ -73,14 +85,20 @@ When using ASCII diagrams in informal proofs:
 - Precision should be horizontal.
 - Put the less precise term on the left and the more precise term on the right.
 - Do not use code fences around diagrams unless there is a strong reason; plain ASCII diagrams are preferred.
+  If Markdown rendering requires preservation of alignment, use simple indented code blocks.
 - Align vertical arrows carefully with the source and target terms in the chosen monospaced font.
   In particular, make sure the arrow column agrees with both the top and bottom term on that side.
+- Diagrams should depict reductions of whole terms, not just reductions of subterms pulled out of context.
+  If a lemma is applied to a subterm, keep the surrounding context in the displayed term and say the lemma is used "lifted through" that context.
 - Only place a horizontal precision relation on a row when the proof is actually establishing that relation
   at that point.
 - If a diagram annotates steps, use the annotations for lemma applications or uses of the induction
   hypothesis, not for obvious reduction-rule names.
+- In diagram annotations, cite lemmas directly by name and say what facts they are applied on.
+  Treat induction-hypothesis annotations the same way.
 - If a term persists unchanged down one side of a diagram, keep the vertical arrow continuous and label the
   corresponding segment with `0` steps.
+- If an annotation would collide with the right-hand column, shift the whole right-hand side further right or split the annotation across multiple lines.
 
 
 # Agda Development Notes

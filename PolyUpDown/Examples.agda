@@ -53,6 +53,49 @@ n42★ = nat★ 42
 n69★ : ∀ {Ψ}{Σ : Store 0 Ψ} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ ★
 n69★ = nat★ 69
 
+natId : ∀ {Ψ}{Σ : Store 0 Ψ} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (‵ `ℕ ⇒ ‵ `ℕ)
+natId = ƛ (‵ `ℕ) ⇒ ` Z
+
+idFun★ : ∀ {Ψ}{Σ : Store 0 Ψ} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ ★
+idFun★ = idDyn at[ up ] (tag ★⇒★ tt)
+
+polyApp :
+  ∀ {Ψ}{Σ : Store 0 Ψ} →
+  0 ∣ Ψ ∣ Σ ∣ [] ⊢
+    (`∀ (`∀ (((＇ (Sᵗ Zᵗ)) ⇒ (＇ Zᵗ)) ⇒ ((＇ (Sᵗ Zᵗ)) ⇒ (＇ Zᵗ)))))
+polyApp =
+  Λ
+    (Λ
+      (ƛ ((＇ (Sᵗ Zᵗ)) ⇒ (＇ Zᵗ)) ⇒
+        ƛ (＇ (Sᵗ Zᵗ)) ⇒
+          (` (S Z) · ` Z)))
+
+polyK : ∀ {Ψ}{Σ : Store 0 Ψ} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (`∀ (＇ Zᵗ ⇒ ＇ Zᵗ ⇒ ＇ Zᵗ))
+polyK = Λ (ƛ (＇ Zᵗ) ⇒ ƛ (＇ Zᵗ) ⇒ ` (S Z))
+
+polyBetaId : ∀ {Ψ}{Σ : Store 0 Ψ} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (`∀ (＇ Zᵗ ⇒ ＇ Zᵗ))
+polyBetaId =
+  Λ
+    (ƛ (＇ Zᵗ) ⇒
+      ((ƛ (＇ Zᵗ) ⇒ ` Z) · ` Z))
+
+kDyn-to-nat★nat :
+  ∀ {Ψ}{Σ : Store 0 Ψ} →
+  Label →
+  Σ ∣ every Ψ ∣ every Ψ ⊢ (★ ⇒ ★ ⇒ ★) ⊒ (‵ `ℕ ⇒ ★ ⇒ ‵ `ℕ)
+kDyn-to-nat★nat ℓ = tag (‵ `ℕ) tt ↦ (id ↦ untag (‵ `ℕ) tt ℓ)
+
+kNat-to-nat★nat :
+  ∀ {Ψ}{Σ : Store 0 Ψ} →
+  Label →
+  Σ ∣ every Ψ ∣ every Ψ ⊢ (‵ `ℕ ⇒ ‵ `ℕ ⇒ ‵ `ℕ) ⊑ (‵ `ℕ ⇒ ★ ⇒ ‵ `ℕ)
+kNat-to-nat★nat ℓ = id ↦ (untag (‵ `ℕ) tt ℓ ↦ id)
+
+idDyn-to-∀X-X⇒★ :
+  ∀ {Ψ}{Σ : Store 0 Ψ} →
+  Σ ∣ every Ψ ∣ every Ψ ⊢ (★ ⇒ ★) ⊒ (`∀ (＇ Zᵗ ⇒ ★))
+idDyn-to-∀X-X⇒★ = ν (tag (｀ Zˢ) (every-member Zˢ) ↦ id)
+
 gas : ℕ
 gas = 250
 
@@ -324,3 +367,68 @@ example13-good-test = refl
 
 example13-mixed-test : evalBlame uniq[] gas example13-mixed ≡ just 13
 example13-mixed-test = refl
+
+------------------------------------------------------------------------
+-- Ahmed et al. POPL'11 Section 2
+------------------------------------------------------------------------
+
+sec2-app-dyn : 0 ∣ 0 ∣ [] ∣ [] ⊢ ★
+sec2-app-dyn = ((inst {A = ★} (inst {A = ★} polyApp)) · idDyn) · c★
+
+sec2-app-base : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `ℕ)
+sec2-app-base = ((inst {A = ‵ `ℕ} (inst {A = ‵ `ℕ} polyApp)) · natId) · c
+
+sec2-app-dyn-test : evalNatDyn uniq[] gas sec2-app-dyn ≡ just 7
+sec2-app-dyn-test = refl
+
+sec2-app-base-test : evalNat uniq[] gas sec2-app-base ≡ just 7
+sec2-app-base-test = refl
+
+------------------------------------------------------------------------
+-- Ahmed et al. POPL'11 Section 5
+------------------------------------------------------------------------
+
+sec5-β : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `ℕ)
+sec5-β = inst {A = ‵ `ℕ} polyBetaId · c
+
+sec5-β-test : evalNat uniq[] gas sec5-β ≡ just 7
+sec5-β-test = refl
+
+------------------------------------------------------------------------
+-- Ahmed et al. POPL'11 Section 6
+------------------------------------------------------------------------
+
+sec6-K-dyn : 0 ∣ 0 ∣ [] ∣ [] ⊢ ★
+sec6-K-dyn = ((inst {A = ★} polyK) · n42★) · n69★
+
+sec6-K-base : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `ℕ)
+sec6-K-base = ((inst {A = ‵ `ℕ} polyK) · n42) · n69
+
+sec6-K-lax : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `ℕ)
+sec6-K-lax =
+  ((((inst {A = ★} polyK) at[ down ] kDyn-to-nat★nat 63) · n42) · idFun★)
+
+sec6-K-strict : 0 ∣ 0 ∣ [] ∣ [] ⊢ (‵ `ℕ)
+sec6-K-strict =
+  ((((inst {A = ‵ `ℕ} polyK) at[ up ] kNat-to-nat★nat 64) · n42) · idFun★)
+
+sec6-id-leak : 0 ∣ 0 ∣ [] ∣ [] ⊢ ★
+sec6-id-leak = (inst {A = ‵ `ℕ} (idDyn at[ down ] idDyn-to-∀X-X⇒★)) · n42
+
+sec6-K-dyn-test : evalNatDyn uniq[] gas sec6-K-dyn ≡ just 42
+sec6-K-dyn-test = refl
+
+sec6-K-base-test : evalNat uniq[] gas sec6-K-base ≡ just 42
+sec6-K-base-test = refl
+
+sec6-K-lax-test : evalNat uniq[] gas sec6-K-lax ≡ just 42
+sec6-K-lax-test = refl
+
+sec6-K-strict-test : evalBlame uniq[] gas sec6-K-strict ≡ just 64
+sec6-K-strict-test = refl
+
+-- Unlike the POPL'11 calculus, PolyUpDown currently allows this sealed
+-- result to escape the surrounding `ν:=`, so evaluation reaches a
+-- non-blame result.
+sec6-id-leak-test : evalBlame uniq[] gas sec6-id-leak ≡ nothing
+sec6-id-leak-test = refl

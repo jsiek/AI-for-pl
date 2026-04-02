@@ -38,7 +38,14 @@ open import Ctx
     ( renameLookupᵗ to renameLookupᵗ-ctx )
 open import Store
   using
-    ( substStoreᵗ
+    ( _⊆ˢ_
+    ; ⊆ˢ-refl
+    ; done
+    ; keep
+    ; drop
+    ; wkLookupˢ
+    ; ν-⊆ˢ
+    ; substStoreᵗ
     ; renameStoreᵗ-ext-⟰ᵗ
     ; substStoreᵗ-ext-⟰ᵗ
     ; renameStoreˢ-ext-⟰ᵗ
@@ -194,7 +201,7 @@ data _∣_∣_∣_⊢_ (Δ : TyCtx) (Ψ : SealCtx) (Σ : Store Δ Ψ) (Γ : Ctx 
 pattern _at[_]_ M d p = at M d p refl refl
 
 ------------------------------------------------------------------------
--- Structural actions on terms
+-- Instantiation shorthand
 ------------------------------------------------------------------------
 
 cast⊢ :
@@ -205,6 +212,211 @@ cast⊢ :
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A →
   Δ ∣ Ψ ∣ Σ′ ∣ Γ′ ⊢ A′
 cast⊢ refl refl refl M = M
+
+mutual
+  instSubst⊑ :
+    ∀ {Δ}{Δ′}{Ψ}{Σ : Store Δ′ Ψ} →
+    (σ τ : Substᵗ Δ Δ′ Ψ) →
+    ((X : TyVar Δ) → Σ ∣ every Ψ ∣ every Ψ ⊢ σ X ⊑ τ X) →
+    ((X : TyVar Δ) → Σ ∣ every Ψ ∣ every Ψ ⊢ τ X ⊒ σ X) →
+    (A : Ty Δ Ψ) →
+    Σ ∣ every Ψ ∣ every Ψ ⊢ substᵗ σ A ⊑ substᵗ τ A
+  instSubst⊑ {Ψ = Ψ} {Σ = Σ} =
+    λ σ τ var⊑ var⊒ → go σ τ var⊑ var⊒
+    where
+      go :
+        ∀ {Δ}{Δ′}{Σ′ : Store Δ′ Ψ} →
+        (σ τ : Substᵗ Δ Δ′ Ψ) →
+        ((X : TyVar Δ) → Σ′ ∣ every Ψ ∣ every Ψ ⊢ σ X ⊑ τ X) →
+        ((X : TyVar Δ) → Σ′ ∣ every Ψ ∣ every Ψ ⊢ τ X ⊒ σ X) →
+        (A : Ty Δ Ψ) →
+        Σ′ ∣ every Ψ ∣ every Ψ ⊢ substᵗ σ A ⊑ substᵗ τ A
+      go σ τ var⊑ var⊒ (＇ X) = var⊑ X
+      go σ τ var⊑ var⊒ (｀ α) = id
+      go σ τ var⊑ var⊒ (‵ ι) = id
+      go σ τ var⊑ var⊒ ★ = id
+      go σ τ var⊑ var⊒ (A ⇒ B) = instSubst⊒ σ τ var⊑ var⊒ A ↦ go σ τ var⊑ var⊒ B
+      go {Σ′ = Σ′} σ τ var⊑ var⊒ (`∀ A) = ∀ᵖ (go (extsᵗ σ) (extsᵗ τ) var⊑′ var⊒′ A)
+        where
+          var⊑′ :
+            (X : TyVar (suc _)) →
+            ⟰ᵗ Σ′ ∣ every Ψ ∣ every Ψ ⊢ extsᵗ σ X ⊑ extsᵗ τ X
+          var⊑′ Zᵗ = id
+          var⊑′ (Sᵗ X) = ⊑-renameᵗ Sᵗ (var⊑ X)
+
+          var⊒′ :
+            (X : TyVar (suc _)) →
+            ⟰ᵗ Σ′ ∣ every Ψ ∣ every Ψ ⊢ extsᵗ τ X ⊒ extsᵗ σ X
+          var⊒′ Zᵗ = id
+          var⊒′ (Sᵗ X) = ⊒-renameᵗ Sᵗ (var⊒ X)
+
+  instSubst⊒ :
+    ∀ {Δ}{Δ′}{Ψ}{Σ : Store Δ′ Ψ} →
+    (σ τ : Substᵗ Δ Δ′ Ψ) →
+    ((X : TyVar Δ) → Σ ∣ every Ψ ∣ every Ψ ⊢ σ X ⊑ τ X) →
+    ((X : TyVar Δ) → Σ ∣ every Ψ ∣ every Ψ ⊢ τ X ⊒ σ X) →
+    (A : Ty Δ Ψ) →
+    Σ ∣ every Ψ ∣ every Ψ ⊢ substᵗ τ A ⊒ substᵗ σ A
+  instSubst⊒ {Ψ = Ψ} {Σ = Σ} =
+    λ σ τ var⊑ var⊒ → go σ τ var⊑ var⊒
+    where
+      go :
+        ∀ {Δ}{Δ′}{Σ′ : Store Δ′ Ψ} →
+        (σ τ : Substᵗ Δ Δ′ Ψ) →
+        ((X : TyVar Δ) → Σ′ ∣ every Ψ ∣ every Ψ ⊢ σ X ⊑ τ X) →
+        ((X : TyVar Δ) → Σ′ ∣ every Ψ ∣ every Ψ ⊢ τ X ⊒ σ X) →
+        (A : Ty Δ Ψ) →
+        Σ′ ∣ every Ψ ∣ every Ψ ⊢ substᵗ τ A ⊒ substᵗ σ A
+      go σ τ var⊑ var⊒ (＇ X) = var⊒ X
+      go σ τ var⊑ var⊒ (｀ α) = id
+      go σ τ var⊑ var⊒ (‵ ι) = id
+      go σ τ var⊑ var⊒ ★ = id
+      go σ τ var⊑ var⊒ (A ⇒ B) = instSubst⊑ σ τ var⊑ var⊒ A ↦ go σ τ var⊑ var⊒ B
+      go {Σ′ = Σ′} σ τ var⊑ var⊒ (`∀ A) = ∀ᵖ (go (extsᵗ σ) (extsᵗ τ) var⊑′ var⊒′ A)
+        where
+          var⊑′ :
+            (X : TyVar (suc _)) →
+            ⟰ᵗ Σ′ ∣ every Ψ ∣ every Ψ ⊢ extsᵗ σ X ⊑ extsᵗ τ X
+          var⊑′ Zᵗ = id
+          var⊑′ (Sᵗ X) = ⊑-renameᵗ Sᵗ (var⊑ X)
+
+          var⊒′ :
+            (X : TyVar (suc _)) →
+            ⟰ᵗ Σ′ ∣ every Ψ ∣ every Ψ ⊢ extsᵗ τ X ⊒ extsᵗ σ X
+          var⊒′ Zᵗ = id
+          var⊒′ (Sᵗ X) = ⊒-renameᵗ Sᵗ (var⊒ X)
+
+instVar⊑ :
+  ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}{A : Ty Δ Ψ}{α : Seal Ψ} →
+  (h : Σ ∋ˢ α ⦂ A) →
+  (X : TyVar (suc Δ)) →
+  Σ ∣ every Ψ ∣ every Ψ ⊢ singleTyEnv (｀ α) X ⊑ singleTyEnv A X
+instVar⊑ {α = α} h Zᵗ = unseal h (every-member α)
+instVar⊑ h (Sᵗ X) = id
+
+instVar⊒ :
+  ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}{A : Ty Δ Ψ}{α : Seal Ψ} →
+  (h : Σ ∋ˢ α ⦂ A) →
+  (X : TyVar (suc Δ)) →
+  Σ ∣ every Ψ ∣ every Ψ ⊢ singleTyEnv A X ⊒ singleTyEnv (｀ α) X
+instVar⊒ {α = α} h Zᵗ = seal h (every-member α)
+instVar⊒ h (Sᵗ X) = id
+
+instCast⊑ :
+  ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}{A : Ty Δ Ψ}{B : Ty (suc Δ) Ψ}{α : Seal Ψ} →
+  (h : Σ ∋ˢ α ⦂ A) →
+  Σ ∣ every Ψ ∣ every Ψ ⊢ B [ ｀ α ]ᵗ ⊑ B [ A ]ᵗ
+instCast⊑ {A = A} {B = B} {α = α} h =
+  instSubst⊑
+    (singleTyEnv (｀ α))
+    (singleTyEnv A)
+    (instVar⊑ h)
+    (instVar⊒ h)
+    B
+
+instCast⊒ :
+  ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}{A : Ty Δ Ψ}{B : Ty (suc Δ) Ψ}{α : Seal Ψ} →
+  (h : Σ ∋ˢ α ⦂ A) →
+  Σ ∣ every Ψ ∣ every Ψ ⊢ B [ A ]ᵗ ⊒ B [ ｀ α ]ᵗ
+instCast⊒ {A = A} {B = B} {α = α} h =
+  instSubst⊒
+    (singleTyEnv (｀ α))
+    (singleTyEnv A)
+    (instVar⊑ h)
+    (instVar⊒ h)
+    B
+
+inst-⟰ᵗ-⊆ˢ :
+  ∀ {Δ}{Ψ}{Σ Σ′ : Store Δ Ψ} →
+  Σ ⊆ˢ Σ′ →
+  ⟰ᵗ Σ ⊆ˢ ⟰ᵗ Σ′
+inst-⟰ᵗ-⊆ˢ done = done
+inst-⟰ᵗ-⊆ˢ (keep {α = α} {A = A} w) =
+  keep {α = α} {A = renameᵗ Sᵗ A} (inst-⟰ᵗ-⊆ˢ w)
+inst-⟰ᵗ-⊆ˢ (drop {α = α} {A = A} w) =
+  drop {α = α} {A = renameᵗ Sᵗ A} (inst-⟰ᵗ-⊆ˢ w)
+
+mutual
+  wk⊑′ :
+    ∀ {Δ}{Ψ}{Σ Σ′ : Store Δ Ψ}{Φ Ξ : Vec Bool Ψ}{A B : Ty Δ Ψ} →
+    Σ ⊆ˢ Σ′ →
+    Σ ∣ Φ ∣ Ξ ⊢ A ⊑ B →
+    Σ′ ∣ Φ ∣ Ξ ⊢ A ⊑ B
+  wk⊑′ w (tag g gok) = tag g gok
+  wk⊑′ w (unseal h α∈Φ) = unseal (wkLookupˢ w h) α∈Φ
+  wk⊑′ w (p ↦ q) = wk⊒′ w p ↦ wk⊑′ w q
+  wk⊑′ w (∀ᵖ p) = ∀ᵖ (wk⊑′ (inst-⟰ᵗ-⊆ˢ w) p)
+  wk⊑′ w (ν i) = ν (wk⊑′ (ν-⊆ˢ ★ w) i)
+  wk⊑′ w id = id
+  wk⊑′ w (p ； q) = wk⊑′ w p ； wk⊑′ w q
+
+  wk⊒′ :
+    ∀ {Δ}{Ψ}{Σ Σ′ : Store Δ Ψ}{Φ Ξ : Vec Bool Ψ}{A B : Ty Δ Ψ} →
+    Σ ⊆ˢ Σ′ →
+    Σ ∣ Φ ∣ Ξ ⊢ A ⊒ B →
+    Σ′ ∣ Φ ∣ Ξ ⊢ A ⊒ B
+  wk⊒′ w (untag g gok ℓ) = untag g gok ℓ
+  wk⊒′ w (seal h α∈Φ) = seal (wkLookupˢ w h) α∈Φ
+  wk⊒′ w (p ↦ q) = wk⊑′ w p ↦ wk⊒′ w q
+  wk⊒′ w (∀ᵖ p) = ∀ᵖ (wk⊒′ (inst-⟰ᵗ-⊆ˢ w) p)
+  wk⊒′ w (ν i) = ν (wk⊒′ (ν-⊆ˢ ★ w) i)
+  wk⊒′ w id = id
+  wk⊒′ w (p ； q) = wk⊒′ w p ； wk⊒′ w q
+
+wkCast-every :
+  ∀ {Δ}{Ψ}{Σ Σ′ : Store Δ Ψ}{A B : Ty Δ Ψ} →
+  (d : Direction) →
+  Σ ⊆ˢ Σ′ →
+  Cast d Σ A B →
+  Cast d Σ′ A B
+wkCast-every up w p = wk⊑′ w p
+wkCast-every down w p = wk⊒′ w p
+
+wkΣ-term-every :
+  ∀ {Δ}{Ψ}{Σ Σ′ : Store Δ Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
+  Σ ⊆ˢ Σ′ →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A →
+  Δ ∣ Ψ ∣ Σ′ ∣ Γ ⊢ A
+wkΣ-term-every w (` h) = ` h
+wkΣ-term-every w (ƛ A ⇒ M) = ƛ A ⇒ wkΣ-term-every w M
+wkΣ-term-every w (L · M) = wkΣ-term-every w L · wkΣ-term-every w M
+wkΣ-term-every w (Λ M) = Λ (wkΣ-term-every (inst-⟰ᵗ-⊆ˢ w) M)
+wkΣ-term-every w ((M • α [ h ]) eq) =
+  cast⊢
+    refl
+    refl
+    (sym eq)
+    ((wkΣ-term-every w M • α [ wkLookupˢ w h ]) refl)
+wkΣ-term-every w (ν:= A ∙ M) = ν:= A ∙ wkΣ-term-every (ν-⊆ˢ A w) M
+wkΣ-term-every w ($ κ eq) = $ κ eq
+wkΣ-term-every w (L ⊕[ op ] M) = wkΣ-term-every w L ⊕[ op ] wkΣ-term-every w M
+wkΣ-term-every w (M at[ d ] p) = wkΣ-term-every w M at[ d ] wkCast-every d w p
+wkΣ-term-every w (blame ℓ) = blame ℓ
+
+inst-top-lookup :
+  ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}{A : Ty Δ Ψ} →
+  ((Zˢ , ⇑ˢ A) ∷ ⟰ˢ Σ) ∋ˢ Zˢ ⦂ ⇑ˢ A
+inst-top-lookup = Z∋ˢ refl refl
+
+inst-⇑ˢ :
+  ∀ {Δ}{Ψ} →
+  (A : Ty Δ Ψ) →
+  (B : Ty (suc Δ) Ψ) →
+  (⇑ˢ B) [ ⇑ˢ A ]ᵗ ≡ ⇑ˢ (B [ A ]ᵗ)
+inst-⇑ˢ A B =
+  trans
+    (substᵗ-cong env (⇑ˢ B))
+    (substᵗ-⇑ˢ (singleTyEnv A) B)
+  where
+    env :
+      (X : TyVar (suc _)) →
+      singleTyEnv (⇑ˢ A) X ≡ liftSubstˢ (singleTyEnv A) X
+    env Zᵗ = refl
+    env (Sᵗ X) = refl
+
+------------------------------------------------------------------------
+-- Structural actions on terms
+------------------------------------------------------------------------
 
 renameᵗ-constTy :
   ∀{Δ}{Δ′}{Ψ}
@@ -377,3 +589,18 @@ infix 8 ⇑ˢᵐ_
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A →
   Δ ∣ (suc Ψ) ∣ (⟰ˢ Σ) ∣ (⤊ˢ Γ) ⊢ (⇑ˢ A)
 ⇑ˢᵐ M = renameˢ-term Sˢ M
+
+inst :
+  ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}{Γ : Ctx Δ Ψ}
+    {A : Ty Δ Ψ}{B : Ty (suc Δ) Ψ} →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ `∀ B →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ B [ A ]ᵗ
+inst {Σ = Σ} {Γ = Γ} {A = A} {B = B} L =
+  ν:= A ∙
+    cast⊢
+      refl
+      refl
+      (inst-⇑ˢ A B)
+      ((((wkΣ-term-every (drop ⊆ˢ-refl) (⇑ˢᵐ L))
+          • Zˢ [ inst-top-lookup ]) refl)
+        at[ up ] (instCast⊑ {A = ⇑ˢ A} {B = ⇑ˢ B} inst-top-lookup))

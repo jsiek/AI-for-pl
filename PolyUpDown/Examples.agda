@@ -110,7 +110,8 @@ isNatDynValue :
   ∀ {Ψ}{Σ : Store 0 Ψ}{A : Ty 0 Ψ} →
   0 ∣ Ψ ∣ Σ ∣ [] ⊢ A →
   Maybe ℕ
-isNatDynValue (($ (κℕ n) _) at[ d ] p) = just n
+isNatDynValue (V at[ d ] p) = isNatDynValue V
+isNatDynValue ($ (κℕ n) _) = just n
 isNatDynValue _ = nothing
 
 isBlameValue :
@@ -430,5 +431,5 @@ sec6-K-strict-test = refl
 -- Unlike the POPL'11 calculus, PolyUpDown currently allows this sealed
 -- result to escape the surrounding `ν:=`, so evaluation reaches a
 -- non-blame result.
-sec6-id-leak-test : evalBlame uniq[] gas sec6-id-leak ≡ nothing
+sec6-id-leak-test : evalNatDyn uniq[] gas sec6-id-leak ≡ just 42
 sec6-id-leak-test = refl

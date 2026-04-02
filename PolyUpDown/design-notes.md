@@ -198,7 +198,6 @@ A polymorphic cast calculus that uses imprecision to express casts.
     Σ ⊢ V @+ νβ. p                         →  Σ ⊢ ν β := ★ ∙ ((V • β) @+ p)
 
     Σ ⊢ (V @- νβ. p) • α                   →  Σ ⊢ V @- p[α/β]
-
     Σ ⊢ V @± id                                 →  Σ ⊢ V
 
     Σ ⊢ (V @- seal α) @+ unseal α
@@ -290,12 +289,21 @@ A polymorphic cast calculus that uses imprecision to express casts.
 
       Σ, (β : ★) | no-β, every Ψ | every Ψ, β ⊢ p : B ⊒ A[β/X].
 
+    (Agda form of the same premise:
+      ((Z : ★) :: ⟰Σ) | (false :: every Ψ) | (true :: every Ψ)
+      ⊢ ⇑B ⊒ ((⇑A)[Z/X]).)
+
     Intuitively, `νβ. p` packages a cast that expects to be opened at some
     runtime seal. In the redex `(V @- νβ. p) • α`, that seal is supplied
     immediately by the type application `• α`. Since `α` is already present in
-    the current store, we can instantiate the body cast at that seal. By the
-    usual substitution/instantiation lemma for seal names, replacing the fresh
-    `β` by `α` preserves cast typing, so we obtain
+    the current store, we can instantiate the body cast at that seal. In the
+    Agda mechanization this is the lemma `openν-down-every`. It realizes the
+    paper-level cast `p[α/β]` in two phases:
+      1. remove the top `(β : ★)` lookup from the cast derivation using a
+         constructor-preserving drop lemma (`seal` stays `seal`, `unseal` stays
+         `unseal`, `tag` stays `tag`, and `untag` stays `untag`);
+      2. rename seals with the single-seal environment that maps `β` to `α`.
+    Therefore we obtain
 
       Σ | every Ψ | every Ψ ⊢ p[α/β] : B ⊒ A[α/X].
 

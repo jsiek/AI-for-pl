@@ -269,6 +269,7 @@ removeAtˢ-renameLookupᵗ {Σ = (β , B) ∷ Σ} ρ (S∋ˢ h) =
     (removeAtˢ-renameLookupᵗ ρ h)
 
 mutual
+  -- This looks suspicious, it turns seals into untags! -Jeremy
   drop★⊒ :
     ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}{α : Seal Ψ}
       {Φ Ξ : Vec Bool Ψ}{A B : Ty Δ Ψ} →

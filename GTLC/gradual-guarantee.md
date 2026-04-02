@@ -505,7 +505,7 @@ Proof shape:
 
 ### Case 1. `A' ?ℓ ⊑ A' ?ℓ`
 
-By inversion of `V ⊑ cast V' [ A' ! ]`, choose `W` such that
+By inversion (oversimplified!) of `V ⊑ cast V' [ A' ! ]`, choose `W` such that
 
   `V = cast W [ A' ! ]`
   `W ⊑ V'`
@@ -816,19 +816,18 @@ Diagram:
                   v                                          |
           cast (U · cast W[c1]) [d1]                         |
                   |                                          |
-                  | *    cast-left-id-val on W ⊑ W',        |
+                  | *    cast-left-id-val on W ⊑ W',         |
                   |      lifted through U · □ and [d1]       |
                   v                                          |
           cast (U · W1) [d1]                                 |
                   |                                          |
                   | *    induction hypothesis                |
-                  |      on U ⊑ λx. N' and W1 ⊑ W',        |
+                  |      on U ⊑ λx. N' and W1 ⊑ W',          |
                   |      lifted through [d1]                 |
                   v                                          v
               cast N [d1]                              ⊑   N'[W'/x]
 
-
-The bottom precision step uses the lemma `cast-left-id-val` with `d1 ⊑ id`
+The bottom precision step uses the cast left rule with `d1 ⊑ id`
 and the induction-hypothesis conclusion `N ⊑ N'[W'/x]`.
 
 
@@ -890,14 +889,14 @@ Diagram:
           v                                                v
           cast (U · cast W[c1]) [d1]                  ⊑  cast (V' · cast W'[c']) [d']
           |                                                |
-          | *    cast-left-id-val on W ⊑ W',              |
+          | *    cast-left-id-val on W ⊑ W',               |
           |      lifted through U · □ and [d1]             | 0
           v                                                v
           cast (U · W1) [d1]                          ⊑  cast (V' · cast W'[c']) [d']
           |                                                |
           | *    induction hypothesis                      |
-          |      on U ⊑ cast V' [ c' ↦ d' ]               |
-          |      and W1 ⊑ W', lifted through [d1]         | 0
+          |      on U ⊑ cast V' [ c' ↦ d' ]                |
+          |      and W1 ⊑ W', lifted through [d1]          | 0
           v                                                v
           cast N [d1]                                 ⊑  cast (V' · cast W'[c']) [d']
 
@@ -980,7 +979,7 @@ Diagram:
 
           L · M                                      ⊑  (λx. N') · M'
           |                                              |
-          | *  catchup on L ⊑ λx. N' and M ⊑ M'        | 1
+          | *  catchup on L ⊑ λx. N' and M ⊑ M'         | 1
           v                                              v
           V · W                                          N'[M'/x]
           |
@@ -998,7 +997,7 @@ Diagram:
 
           L · M                                              ⊑  cast V'[c'↦d'] · W'
           |                                                      |
-          | *  catchup on L ⊑ cast V'[c'↦d'] and M ⊑ W'        | 1
+          | *  catchup on L ⊑ cast V'[c'↦d'] and M ⊑ W'         | 1
           v                                                      v
           V · W                                                  cast (V' · cast W'[c']) [d']
           |
@@ -1048,8 +1047,8 @@ Diagram:
 
           cast M[c]                                      ⊑  cast (cast V'[A'!]) [A'?]
           |                                                  |
-          | *  catchup on M ⊑ cast V'[A'!],                 | 1
-          |    lifted through [c]                            |
+          | *  catchup on M ⊑ cast V'[A'!]                   | 1
+          |    and c ⊑ A' ?ℓ, lifted through [c]             |
           v                                                  v
           cast V[c]                                          V'
           |
@@ -1106,7 +1105,7 @@ Diagram:
 
           M                          ⊑  M'
           |                              |
-          | *  sim on M ⊑ M'            | 1
+          | *  sim on M ⊑ M'             | 1
           |    and M' --> N1'            |
           v                              v
           N1                         ⊑  N1'
@@ -1142,7 +1141,7 @@ Diagram:
 
           M'                     ⊑  M
           |                         |
-          | *  sim* on M' ⊑ M      | *
+          | *  sim* on M' ⊑ M       | *
           |    and M -->* V         |
           v                         v
           N'                     ⊑ V
@@ -1396,9 +1395,9 @@ Lemma: `sim-back`
 Diagram:
 
           M      ⊑  M'
-          |          |
-          | 1        | *
-          v          v
+          |         |
+          | 1       | *
+          v         v
           N      ⊑  N'
 
 

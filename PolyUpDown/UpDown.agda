@@ -53,7 +53,6 @@ mutual
     tag : ∀{G}
       → (g : Ground G)
       → ⊢ g ok Ξ
-      → Label
       → Σ ∣ Φ ∣ Ξ ⊢ G ⊑ ★
 
     unseal : ∀{α}{A}
@@ -225,8 +224,8 @@ mutual
     (ρ : Renameᵗ Δ Δ′) →
     Σ ∣ Φ ∣ Ξ ⊢ A ⊑ B →
     renameStoreᵗ ρ Σ ∣ Φ ∣ Ξ ⊢ renameᵗ ρ A ⊑ renameᵗ ρ B
-  ⊑-renameᵗ ρ (tag g g∉Φ ℓ) =
-    tag (renameᵗ-ground ρ g) (renameᵗ-ground-ok ρ g g∉Φ) ℓ
+  ⊑-renameᵗ ρ (tag g g∉Φ) =
+    tag (renameᵗ-ground ρ g) (renameᵗ-ground-ok ρ g g∉Φ)
   ⊑-renameᵗ ρ (unseal h α∈Φ) = unseal (renameLookupᵗ ρ h) α∈Φ
   ⊑-renameᵗ ρ (p ↦ q) = (⊒-renameᵗ ρ p) ↦ (⊑-renameᵗ ρ q)
   ⊑-renameᵗ {Σ = Σ} {Φ = Φ} {Ξ = Ξ} ρ (∀ᵖ p) =
@@ -277,8 +276,8 @@ mutual
     RenOk ρ Ξ Ξ′ →
     Σ ∣ Φ ∣ Ξ ⊢ A ⊑ B →
     renameStoreˢ ρ Σ ∣ Φ′ ∣ Ξ′ ⊢ renameˢ ρ A ⊑ renameˢ ρ B
-  ⊑-renameˢ ρ okΦ okΞ (tag g gokΞ ℓ) =
-    tag (renameˢ-ground ρ g) (renameˢ-ground-ok ρ okΞ g gokΞ) ℓ
+  ⊑-renameˢ ρ okΦ okΞ (tag g gokΞ) =
+    tag (renameˢ-ground ρ g) (renameˢ-ground-ok ρ okΞ g gokΞ)
   ⊑-renameˢ ρ okΦ okΞ (unseal h α∈Φ) =
     unseal (renameLookupˢ ρ h) (okΦ α∈Φ)
   ⊑-renameˢ ρ okΦ okΞ (p ↦ q) =
@@ -359,8 +358,8 @@ mutual
     (σ : Substᵗ Δ Δ′ Ψ) →
     Σ ∣ Φ ∣ Ξ ⊢ A ⊑ B →
     substStoreᵗ σ Σ ∣ Φ ∣ Ξ ⊢ substᵗ σ A ⊑ substᵗ σ B
-  ⊑-substᵗ σ (tag g g∉Φ ℓ) =
-    tag (substᵗ-ground σ g) (substᵗ-ground-ok σ g g∉Φ) ℓ
+  ⊑-substᵗ σ (tag g g∉Φ) =
+    tag (substᵗ-ground σ g) (substᵗ-ground-ok σ g g∉Φ)
   ⊑-substᵗ σ (unseal h α∈Φ) = unseal (substLookupᵗ σ h) α∈Φ
   ⊑-substᵗ σ (p ↦ q) = (⊒-substᵗ σ p) ↦ (⊑-substᵗ σ q)
   ⊑-substᵗ {Σ = Σ} {Φ = Φ} {Ξ = Ξ} σ (∀ᵖ p) =

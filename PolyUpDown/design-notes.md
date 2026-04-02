@@ -45,7 +45,7 @@ A polymorphic cast calculus that uses imprecision to express casts.
     Values                V,W        ::=  ƛ A ⇒ N
                                         | Λ N
                                         | $ κ
-                                        | V @+ 〔 tag G ℓ 〕
+                                        | V @+ 〔 tag G 〕
                                         | V @- 〔 seal α 〕
                                         | V @± 〔 p ↦ q 〕
                                         | V @± 〔 ∀ p 〕
@@ -96,8 +96,8 @@ A polymorphic cast calculus that uses imprecision to express casts.
     ------------------------------------------------------------
     Σ | Φ | Ξ ⊢ (p ↦ q) : (A ⇒ B) ⊒ (A′ ⇒ B′)
 
-    ----------------------------- (if G = α then α ∈ Ξ)
-    Σ | Φ | Ξ ⊢ untag G : ★ ⊒ G
+    ------------------------------ (if G = α then α ∈ Ξ)
+    Σ | Φ | Ξ ⊢ untag G ℓ : ★ ⊒ G
     
     ----------------------------- (α ∈ Φ)
     Σ | Φ | Ξ ⊢ seal α : A ⊒ α
@@ -158,22 +158,23 @@ A polymorphic cast calculus that uses imprecision to express casts.
     ----------------------------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ L ⊕[ op ] M : ℕ
 
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A      Σ | Φ | Ξ ⊢ p : A ⊑ B
-    ----------------------------------------------------
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A
+    Σ | every Ψ | every Ψ ⊢ p : A ⊑ B
+    -----------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M + p : B
 
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A      Σ | Φ | Ξ ⊢ p : A ⊒ B
-    ----------------------------------------------------
+    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M : A
+    Σ | every Ψ | every Ψ ⊢ p : A ⊒ B
+    -----------------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M - p : B
 
     ----------------------------
     Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ blame ℓ : A
 
-    Note: The internal language allows casts with arbitrary permission sets
-    Φ and Ξ. The functions (every Ψ) and (none Ψ) are still useful shorthands:
-    (every Ψ) includes every seal name in Ψ, while (none Ψ) excludes all of them.
-    A source-language translation may choose specific policies such as
-    `every/none` or `none/every`, but those are not baked into PolyUpDown terms.
+    Note: Term-level casts use (every Ψ) for both
+    permission sets in both directions. The function (every Ψ) includes every
+    seal name in Ψ, so the reduction rules can always open polymorphic casts at
+    any visible runtime seal.
 
 ## Reduction
 
@@ -201,14 +202,14 @@ A polymorphic cast calculus that uses imprecision to express casts.
 
     Σ ⊢ V @± id                                  —[idˢ]→  Σ ⊢ V
 
-    Σ ⊢ (V @- 〔 seal α 〕) @+ 〔 seal α 〕
+    Σ ⊢ (V @- 〔 seal α 〕) @+ 〔 unseal α 〕
                                                  —[idˢ]→  Σ ⊢ V
 
-    Σ ⊢ (V @+ 〔 tag G ℓ 〕) @- 〔 tag G ℓ′ 〕
+    Σ ⊢ (V @+ 〔 tag G 〕) @- 〔 untag G ℓ 〕
                                                  —[idˢ]→  Σ ⊢ V
 
-    Σ ⊢ (V @+ 〔 tag G ℓ 〕) @- 〔 tag H ℓ′ 〕
-                                                 —[idˢ]→  Σ ⊢ blame ℓ′   when G ≢ H
+    Σ ⊢ (V @+ 〔 tag G 〕) @- 〔 untag H ℓ 〕
+                                                 —[idˢ]→  Σ ⊢ blame ℓ   when G ≢ H
 
     Σ ⊢ V @+ (p ； a) ； b                       —[idˢ]→  Σ ⊢ V @+ (p ； a) @+ 〔 b 〕
 

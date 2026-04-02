@@ -48,51 +48,57 @@ data Value : ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
 
   V-at-up-tag :
     ∀{Δ}{Ψ}{Σ : Store Δ Ψ}{Γ : Ctx Δ Ψ}{G : Ty Δ Ψ}
-    {g : Ground G}{Φ Ξ : Vec Bool Ψ}{gok : ⊢ g ok Ξ}{ℓ : Label}
+    {g : Ground G}{gok : ⊢ g ok every Ψ}
     {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ G} →
     Value V →
-    Value (V at[ up ] ((id {Φ = Φ} {Ξ = Ξ}) ； tag g gok ℓ))
+    Value (V at[ up ] (tag g gok))
+
+  V-at-down-seal :
+    ∀{Δ}{Ψ}{Σ : Store Δ Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ}{α}
+    {h : Σ ∋ˢ α ⦂ A}
+    {α∈Φ : ⌊ α ⌋ ∈ every Ψ}
+    {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A} →
+    Value V →
+    Value (V at[ down ] (seal h α∈Φ))
 
   V-at-up-↦ :
     ∀{Δ}{Ψ}{Σ : Store Δ Ψ}{Γ : Ctx Δ Ψ}{A A′ B B′ : Ty Δ Ψ}
-    {Φ Ξ : Vec Bool Ψ}
-    {p : Σ ∣ Φ ∣ Ξ ⊢ A′ ⊒ A}
-    {q : Σ ∣ Φ ∣ Ξ ⊢ B ⊑ B′}
+    {p : Σ ∣ every Ψ ∣ every Ψ ⊢ A′ ⊒ A}
+    {q : Σ ∣ every Ψ ∣ every Ψ ⊢ B ⊑ B′}
     {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (A ⇒ B)} →
     Value V →
-    Value (V at[ up ] (id ； (p ↦ q)))
+    Value (V at[ up ] (p ↦ q))
 
   V-at-down-↦ :
     ∀{Δ}{Ψ}{Σ : Store Δ Ψ}{Γ : Ctx Δ Ψ}{A A′ B B′ : Ty Δ Ψ}
-    {Φ Ξ : Vec Bool Ψ}
-    {p : Σ ∣ Φ ∣ Ξ ⊢ A′ ⊑ A}
-    {q : Σ ∣ Φ ∣ Ξ ⊢ B ⊒ B′}
+    {p : Σ ∣ every Ψ ∣ every Ψ ⊢ A′ ⊑ A}
+    {q : Σ ∣ every Ψ ∣ every Ψ ⊢ B ⊒ B′}
     {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (A ⇒ B)} →
     Value V →
-    Value (V at[ down ] (id ； (p ↦ q)))
+    Value (V at[ down ] (p ↦ q))
 
   V-at-up-∀ :
     ∀{Δ}{Ψ}{Σ : Store Δ Ψ}{Γ : Ctx Δ Ψ}
     {A B : Ty (suc Δ) Ψ}
-    {p : ⟰ᵗ Σ ∣ every Ψ ∣ none Ψ ⊢ A ⊑ B}
+    {p : ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ A ⊑ B}
     {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (`∀ A)} →
     Value V →
-    Value (V at[ up ] (id ； (∀ᵖ p)))
+    Value (V at[ up ] (∀ᵖ p))
 
   V-at-down-∀ :
     ∀{Δ}{Ψ}{Σ : Store Δ Ψ}{Γ : Ctx Δ Ψ}
     {A B : Ty (suc Δ) Ψ}
-    {p : ⟰ᵗ Σ ∣ none Ψ ∣ every Ψ ⊢ A ⊒ B}
+    {p : ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ A ⊒ B}
     {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (`∀ A)} →
     Value V →
-    Value (V at[ down ] (id ； (∀ᵖ p)))
+    Value (V at[ down ] (∀ᵖ p))
 
   V-at-down-ν :
     ∀{Δ}{Ψ}{Σ : Store Δ Ψ}{Γ : Ctx Δ Ψ}{A : Ty (suc Δ) Ψ}{B : Ty Δ Ψ}
-    {p : ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ false ∷ none Ψ ∣ true ∷ every Ψ ⊢ ⇑ˢ B ⊒ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
+    {p : ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ false ∷ every Ψ ∣ true ∷ every Ψ ⊢ ⇑ˢ B ⊒ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
     {V : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ B} →
     Value V →
-    Value {A = `∀ A} (V at[ down ] (id ； (ν p)))
+    Value {A = `∀ A} (V at[ down ] (ν p))
 
 ------------------------------------------------------------------------
 -- One-step reduction helpers
@@ -172,6 +178,29 @@ openCast⊒ {Σ = Σ} p α =
     refl
     refl
     (p [ ｀ α ]⊒ᵗ)
+
+RenOk-false-every :
+  ∀ {Ψ} →
+  RenOk idˢ (false ∷ every Ψ) (every (suc Ψ))
+RenOk-false-every {α = Zˢ} ()
+RenOk-false-every {α = Sˢ α} (there p) = there p
+
+upCast-every :
+  ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}
+    {Φ Ξ : Vec Bool Ψ}
+    {A B : Ty Δ Ψ} →
+  RenOk idˢ Φ (every Ψ) →
+  RenOk idˢ Ξ (every Ψ) →
+  Σ ∣ Φ ∣ Ξ ⊢ A ⊑ B →
+  Σ ∣ every Ψ ∣ every Ψ ⊢ A ⊑ B
+upCast-every {Σ = Σ} {A = A} {B = B} okΦ okΞ p =
+  cast⊑
+    (renameStoreˢ-id {Σ = Σ})
+    refl
+    refl
+    renameˢ-id
+    renameˢ-id
+    (⊑-renameˢ idˢ okΦ okΞ p)
 
 top★-lookup :
   ∀ {Δ}{Ψ}{Σ : Store Δ Ψ} →
@@ -285,7 +314,7 @@ mutual
     ⌊ α ⌋ ∈ Ξ →
     Σ ∣ Φ ∣ Ξ ⊢ A ⊑ B →
     removeAtˢ h★ ∣ Φ ∣ Ξ ⊢ A ⊑ B
-  drop★⊑ h★ α∈Ξ (tag g gok ℓ) = tag g gok ℓ
+  drop★⊑ h★ α∈Ξ (tag g gok) = tag g gok
   drop★⊑ {α = α} h★ α∈Ξ (unseal h α∈Φ′) with dropLookup h★ h
   ... | drop-keep h′ = unseal h′ α∈Φ′
   ... | drop-hit β≡α B≡★ =
@@ -295,7 +324,7 @@ mutual
       refl
       (cong ｀_ (sym β≡α))
       (sym B≡★)
-      (tag (｀ α) α∈Ξ zero)
+      (tag (｀ α) α∈Ξ)
   drop★⊑ h★ α∈Ξ (p ↦ q) = drop★⊒ h★ α∈Ξ p ↦ drop★⊑ h★ α∈Ξ q
   drop★⊑ h★ α∈Ξ (∀ᵖ p) =
     ∀ᵖ (cast⊑
@@ -365,15 +394,15 @@ openν-down-every :
   ∀ {Ψ}{Σ : Store 0 Ψ}
     {A : Ty (suc 0) Ψ}
     {B : Ty 0 Ψ}
-    (p : ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ false ∷ none Ψ ∣ true ∷ every Ψ ⊢ ⇑ˢ B ⊒ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)) →
+    (p : ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ false ∷ every Ψ ∣ true ∷ every Ψ ⊢ ⇑ˢ B ⊒ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)) →
   (α : Seal Ψ) →
-  Σ ∣ none Ψ ∣ every Ψ ⊢ B ⊒ (A [ ｀ α ]ᵗ)
+  Σ ∣ every Ψ ∣ every Ψ ⊢ B ⊒ (A [ ｀ α ]ᵗ)
 openν-down-every {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} p α =
   openν-down
     {Δ = 0}
     {Ψ = Ψ}
     {Σ = Σ}
-    {Φ = none Ψ}
+    {Φ = every Ψ}
     {Ξ = every Ψ}
     {A = A}
     {B = B}
@@ -411,10 +440,10 @@ data _—→[_]_ :
     ∀ {Ψ}{Σ : Store 0 Ψ}
       {A B : Ty (suc 0) Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ `∀ A}
-      {p : ⟰ᵗ Σ ∣ every Ψ ∣ none Ψ ⊢ A ⊑ B}
+      {p : ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ A ⊑ B}
       {α : Seal Ψ}{C : Ty 0 Ψ}
       {h : Σ ∋ˢ α ⦂ C} →
-    (((V at[ up ] (id ； ∀ᵖ p)) • α [ h ]) refl)
+    (((V at[ up ] (∀ᵖ p)) • α [ h ]) refl)
       —→[ idˢ ]
     id-step-term ((((V • α [ h ]) refl) at[ up ] openCast⊑ p α))
 
@@ -422,10 +451,10 @@ data _—→[_]_ :
     ∀ {Ψ}{Σ : Store 0 Ψ}
       {A B : Ty (suc 0) Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ `∀ A}
-      {p : ⟰ᵗ Σ ∣ none Ψ ∣ every Ψ ⊢ A ⊒ B}
+      {p : ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ A ⊒ B}
       {α : Seal Ψ}{C : Ty 0 Ψ}
       {h : Σ ∋ˢ α ⦂ C} →
-    (((V at[ down ] (id ； ∀ᵖ p)) • α [ h ]) refl)
+    (((V at[ down ] (∀ᵖ p)) • α [ h ]) refl)
       —→[ idˢ ]
     id-step-term ((((V • α [ h ]) refl) at[ down ] openCast⊒ p α))
 
@@ -433,14 +462,14 @@ data _—→[_]_ :
     ∀ {Ψ}{Σ : Store 0 Ψ}
       {A : Ty (suc 0) Ψ}
       {B : Ty 0 Ψ}
-      {p : ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ false ∷ none Ψ ∣ true ∷ every Ψ ⊢ ⇑ˢ B ⊒ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
+      {p : ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ false ∷ every Ψ ∣ true ∷ every Ψ ⊢ ⇑ˢ B ⊒ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ)}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ B}
       {α : Seal Ψ}{C : Ty 0 Ψ}
       {h : Σ ∋ˢ α ⦂ C} →
     (_•_[_]
       {Δ = 0} {Ψ = Ψ} {Σ = Σ} {Γ = []}
       {A = A} {B = A [ ｀ α ]ᵗ} {C = C}
-      (V at[ down ] (id ； ν p)) α h refl)
+      (V at[ down ] (ν p)) α h refl)
       —→[ idˢ ]
     id-step-term {A = A [ ｀ α ]ᵗ}
       (V at[ down ] openν-down-every {A = A} {B = B} p α)
@@ -448,24 +477,22 @@ data _—→[_]_ :
   β-at-up-↦ :
     ∀ {Ψ}{Σ : Store 0 Ψ}
       {A A′ B B′ : Ty 0 Ψ}
-      {Φ Ξ : Vec Bool Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (A ⇒ B)}
       {W : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A′}
-      {p : Σ ∣ Φ ∣ Ξ ⊢ A′ ⊒ A}
-      {q : Σ ∣ Φ ∣ Ξ ⊢ B ⊑ B′} →
-    (V at[ up ] (id ； (p ↦ q))) · W
+      {p : Σ ∣ every Ψ ∣ every Ψ ⊢ A′ ⊒ A}
+      {q : Σ ∣ every Ψ ∣ every Ψ ⊢ B ⊑ B′} →
+    (V at[ up ] (p ↦ q)) · W
       —→[ idˢ ]
     id-step-term ((V · (W at[ down ] p)) at[ up ] q)
 
   β-at-down-↦ :
     ∀ {Ψ}{Σ : Store 0 Ψ}
       {A A′ B B′ : Ty 0 Ψ}
-      {Φ Ξ : Vec Bool Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (A ⇒ B)}
       {W : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A′}
-      {p : Σ ∣ Φ ∣ Ξ ⊢ A′ ⊑ A}
-      {q : Σ ∣ Φ ∣ Ξ ⊢ B ⊒ B′} →
-    (V at[ down ] (id ； (p ↦ q))) · W
+      {p : Σ ∣ every Ψ ∣ every Ψ ⊢ A′ ⊑ A}
+      {q : Σ ∣ every Ψ ∣ every Ψ ⊢ B ⊒ B′} →
+    (V at[ down ] (p ↦ q)) · W
       —→[ idˢ ]
     id-step-term ((V · (W at[ up ] p)) at[ down ] q)
 
@@ -476,24 +503,42 @@ data _—→[_]_ :
     (ν:= A ∙ N) —→[ Sˢ ] N
 
   at-id-up :
-    ∀ {Ψ}{Σ : Store 0 Ψ}{A : Ty 0 Ψ}{Φ Ξ : Vec Bool Ψ}
+    ∀ {Ψ}{Σ : Store 0 Ψ}{A : Ty 0 Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A} →
-    (V at[ up ] (id {Φ = Φ} {Ξ = Ξ})) —→[ idˢ ] id-step-term V
+    (V at[ up ] id) —→[ idˢ ] id-step-term V
 
   at-id-down :
-    ∀ {Ψ}{Σ : Store 0 Ψ}{A : Ty 0 Ψ}{Φ Ξ : Vec Bool Ψ}
+    ∀ {Ψ}{Σ : Store 0 Ψ}{A : Ty 0 Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A} →
-    (V at[ down ] (id {Φ = Φ} {Ξ = Ξ})) —→[ idˢ ] id-step-term V
+    (V at[ down ] id) —→[ idˢ ] id-step-term V
+
+  at-down-seal-at-up-unseal :
+    ∀ {Ψ}{Σ : Store 0 Ψ}{A B : Ty 0 Ψ}
+      {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A}
+      {α}
+      {h : Σ ∋ˢ α ⦂ A}
+      {h′ : Σ ∋ˢ α ⦂ B}
+      {α∈Φ : ⌊ α ⌋ ∈ every Ψ}
+      {α∈Φ′ : ⌊ α ⌋ ∈ every Ψ}
+    (uΣ : Uniqueˢ Σ) →
+    ((V at[ down ] (seal h α∈Φ))
+      at[ up ] (unseal h′ α∈Φ′))
+      —→[ idˢ ]
+    id-step-term
+      (subst
+        (λ T → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ T)
+        (lookup-unique uΣ h h′)
+        V)
 
   at-up-tag-at-down-untag :
     ∀ {Ψ}{Σ : Store 0 Ψ}{G : Ty 0 Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ G}
       {g g′ : Ground G}
-      {gok : ⊢ g ok none Ψ}
+      {gok : ⊢ g ok every Ψ}
       {gok′ : ⊢ g′ ok every Ψ}
-      {ℓ ℓ′ : Label} →
-    ((V at[ up ] ((id {Φ = none Ψ} {Ξ = none Ψ}) ； tag g gok ℓ))
-      at[ down ] ((id {Φ = none Ψ} {Ξ = every Ψ}) ； untag g′ gok′ ℓ′))
+      {ℓ′ : Label} →
+    ((V at[ up ] (tag g gok))
+      at[ down ] (untag g′ gok′ ℓ′))
     —→[ idˢ ]
     id-step-term V
 
@@ -501,12 +546,12 @@ data _—→[_]_ :
     ∀ {Ψ}{Σ : Store 0 Ψ}{G H : Ty 0 Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ G}
       {g : Ground G}{h : Ground H}
-      {gok : ⊢ g ok none Ψ}
+      {gok : ⊢ g ok every Ψ}
       {hok : ⊢ h ok every Ψ}
-      {ℓ ℓ′ : Label} →
+      {ℓ′ : Label} →
     G ≢ H →
-    ((V at[ up ] ((id {Φ = none Ψ} {Ξ = none Ψ}) ； tag g gok ℓ))
-      at[ down ] ((id {Φ = none Ψ} {Ξ = every Ψ}) ； untag h hok ℓ′))
+    ((V at[ up ] (tag g gok))
+      at[ down ] (untag h hok ℓ′))
     —→[ idˢ ]
     id-step-term {Σ = Σ} {Γ = []} {A = H} (blame {A = H} ℓ′)
 
@@ -514,30 +559,30 @@ data _—→[_]_ :
     ∀ {Ψ}{Σ : Store 0 Ψ}
       {A B C : Ty 0 Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A}
-      {p : Σ ∣ every Ψ ∣ none Ψ ⊢ A ⊑ B}
-      {q : Σ ∣ every Ψ ∣ none Ψ ⊢ B ⊑ C} →
+      {p : Σ ∣ every Ψ ∣ every Ψ ⊢ A ⊑ B}
+      {q : Σ ∣ every Ψ ∣ every Ψ ⊢ B ⊑ C} →
     V at[ up ] (p ； q) —→[ idˢ ] id-step-term ((V at[ up ] p) at[ up ] q)
 
   β-at-down-； :
     ∀ {Ψ}{Σ : Store 0 Ψ}
       {A B C : Ty 0 Ψ}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A}
-      {p : Σ ∣ none Ψ ∣ every Ψ ⊢ A ⊒ B}
-      {q : Σ ∣ none Ψ ∣ every Ψ ⊢ B ⊒ C} →
+      {p : Σ ∣ every Ψ ∣ every Ψ ⊢ A ⊒ B}
+      {q : Σ ∣ every Ψ ∣ every Ψ ⊢ B ⊒ C} →
     V at[ down ] (p ； q) —→[ idˢ ] id-step-term ((V at[ down ] p) at[ down ] q)
 
   β-at-up-ν :
     ∀ {Ψ}{Σ : Store 0 Ψ}
       {A : Ty (suc 0) Ψ}
       {B : Ty 0 Ψ}
-      {p : ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ true ∷ every Ψ ∣ false ∷ none Ψ ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⊑ ⇑ˢ B}
+      {p : ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ true ∷ every Ψ ∣ false ∷ every Ψ ⊢ ((⇑ˢ A) [ ｀ Zˢ ]ᵗ) ⊑ ⇑ˢ B}
       {V : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ (`∀ A)} →
-    V at[ up ] (id ； ν p) —→[ idˢ ]
+    V at[ up ] (ν p) —→[ idˢ ]
     id-step-term
       (ν:= ★ ∙
         ((((wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ V))
             • Zˢ [ top★-lookup ]) refl)
-          at[ up ] p))
+          at[ up ] upCast-every RenOk-id RenOk-false-every p))
 
   ξ-·₁ :
     ∀ {Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
@@ -584,8 +629,7 @@ data _—→[_]_ :
     ∀ {Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
       {Σ : Store 0 Ψ}{Σ′ : Store 0 Ψ′}
       {A B : Ty 0 Ψ}
-      {Φ Ξ : Vec Bool Ψ}
-      {p : Cast up Σ Φ Ξ A B}
+      {p : Cast up Σ A B}
       {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A}
       {M′ : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ renameˢ ρ A} →
     (wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′) →
@@ -596,8 +640,7 @@ data _—→[_]_ :
     ∀ {Ψ}{Ψ′}{ρ : Renameˢ Ψ Ψ′}
       {Σ : Store 0 Ψ}{Σ′ : Store 0 Ψ′}
       {A B : Ty 0 Ψ}
-      {Φ Ξ : Vec Bool Ψ}
-      {p : Cast down Σ Φ Ξ A B}
+      {p : Cast down Σ A B}
       {M : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ A}
       {M′ : 0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ renameˢ ρ A} →
     (wρ : renameStoreˢ ρ Σ ⊆ˢ Σ′) →
@@ -667,8 +710,7 @@ data _—→[_]_ :
     ∀ {Ψ}{Σ : Store 0 Ψ}
       {A B : Ty 0 Ψ}
       {d : Direction}
-      {Φ Ξ : Vec Bool Ψ}
-      {p : Cast d Σ Φ Ξ A B}
+      {p : Cast d Σ A B}
       {ℓ : Label} →
     ((blame {A = A} ℓ) at[ d ] p)
       —→[ idˢ ]
@@ -716,6 +758,7 @@ store-growth β-at-down-↦ = idˢ-⊆ˢ
 store-growth β-ν = drop ⊆ˢ-refl
 store-growth at-id-up = idˢ-⊆ˢ
 store-growth at-id-down = idˢ-⊆ˢ
+store-growth (at-down-seal-at-up-unseal uΣ) = idˢ-⊆ˢ
 store-growth at-up-tag-at-down-untag = idˢ-⊆ˢ
 store-growth (at-up-tag-at-down-untag-bad neq) = idˢ-⊆ˢ
 store-growth β-at-up-； = idˢ-⊆ˢ
@@ -754,6 +797,7 @@ unique-store-step uΣ β-at-down-↦ = uΣ
 unique-store-step uΣ (β-ν {A = A}) = unique-ν A uΣ
 unique-store-step uΣ at-id-up = uΣ
 unique-store-step uΣ at-id-down = uΣ
+unique-store-step uΣ (at-down-seal-at-up-unseal uΣ′) = uΣ
 unique-store-step uΣ at-up-tag-at-down-untag = uΣ
 unique-store-step uΣ (at-up-tag-at-down-untag-bad neq) = uΣ
 unique-store-step uΣ β-at-up-； = uΣ

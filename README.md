@@ -33,6 +33,56 @@ does not preserve imprecision typing.
 
 
 
+# Design Notes and Informal Proof Notes
+
+## Design notes
+
+When writing design notes for a calculus or translation:
+
+- Match the style of nearby design notes when there is an established local style.
+- Prefer named variables and named substitution in expository notes, even when the Agda mechanization uses de Bruijn indices.
+- State important relations as explicit definitions, not just by implication from later rules.
+  For example, if typing uses consistency, include the full definition of consistency.
+- Include important derived rules as theorem statements when they are used pervasively in the exposition.
+- When giving reduction relations in notes, prefer a clean mathematical presentation with the notation used consistently throughout the document.
+
+## Informal proofs
+
+When writing informal proof documents:
+
+- Emphasize reduction sequences and proof shape over long prose explanations.
+- Name the lemmas that justify the important reasoning steps.
+- Do not call out constructor names or minor helper lemmas in the prose.
+- State lemmas and theorem goals in concise formal mathematical prose using `if ... then ...`.
+  Avoid inference-bar formatting in informal proof notes.
+- If a proof is by cases, use Markdown headings such as `### Case 1. ...` rather than separator lines.
+- Make case headings direct and formula-shaped when possible.
+  For example, write `Case 1. λx. N <= λx. N'` instead of a descriptive sentence.
+- When a case naturally breaks into subcases or stages, prefer one compact proof sketch or one annotated
+  diagram over many tiny fragments, unless the extra splitting is genuinely clarifying.
+- Keep the explanatory text short when a diagram already shows the proof structure.
+
+## Diagrams
+
+When using ASCII diagrams in informal proofs:
+
+- Use `Diagram:` as the label, not `Picture:`.
+- Use diagrams only when reduction is part of the theorem or proof step.
+  If a statement does not involve reduction, prefer a textual proof sketch without a diagram.
+- Reduction should be vertical.
+- Precision should be horizontal.
+- Put the less precise term on the left and the more precise term on the right.
+- Do not use code fences around diagrams unless there is a strong reason; plain ASCII diagrams are preferred.
+- Align vertical arrows carefully with the source and target terms in the chosen monospaced font.
+  In particular, make sure the arrow column agrees with both the top and bottom term on that side.
+- Only place a horizontal precision relation on a row when the proof is actually establishing that relation
+  at that point.
+- If a diagram annotates steps, use the annotations for lemma applications or uses of the induction
+  hypothesis, not for obvious reduction-rule names.
+- If a term persists unchanged down one side of a diagram, keep the vertical arrow continuous and label the
+  corresponding segment with `0` steps.
+
+
 # Agda Development Notes
 
 ## Use "constructor form indices" for data type constructors (from 2-26-03-30)

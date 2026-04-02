@@ -10,7 +10,7 @@ module Reduction where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (Bool; true; false)
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin.Subset using (_∈_)
 open import Data.List using (map; []; _∷_)
 open import Data.Nat using (ℕ; _+_; suc; zero)
@@ -269,82 +269,79 @@ removeAtˢ-renameLookupᵗ {Σ = (β , B) ∷ Σ} ρ (S∋ˢ h) =
     (removeAtˢ-renameLookupᵗ ρ h)
 
 mutual
-  -- This looks suspicious, it turns seals into untags! -Jeremy
-  drop★⊒ :
+  drop★⊒-seal-preserving :
     ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}{α : Seal Ψ}
       {Φ Ξ : Vec Bool Ψ}{A B : Ty Δ Ψ} →
     (h★ : Σ ∋ˢ α ⦂ ★) →
-    ⌊ α ⌋ ∈ Ξ →
+    (⌊ α ⌋ ∈ Φ → ⊥) →
     Σ ∣ Φ ∣ Ξ ⊢ A ⊒ B →
     removeAtˢ h★ ∣ Φ ∣ Ξ ⊢ A ⊒ B
-  drop★⊒ h★ α∈Ξ (untag g gok ℓ) = untag g gok ℓ
-  drop★⊒ {α = α} h★ α∈Ξ (seal h α∈Φ) with dropLookup h★ h
+  drop★⊒-seal-preserving h★ α∉Φ (untag g gok ℓ) = untag g gok ℓ
+  drop★⊒-seal-preserving {α = α} h★ α∉Φ (seal h α∈Φ) with dropLookup h★ h
   ... | drop-keep h′ = seal h′ α∈Φ
   ... | drop-hit β≡α B≡★ =
-    cast⊒
-      refl
-      refl
-      refl
-      (sym B≡★)
-      (cong ｀_ (sym β≡α))
-      (untag (｀ α) α∈Ξ zero)
-  drop★⊒ h★ α∈Ξ (p ↦ q) = drop★⊑ h★ α∈Ξ p ↦ drop★⊒ h★ α∈Ξ q
-  drop★⊒ h★ α∈Ξ (∀ᵖ p) =
+    ⊥-elim (α∉Φ (subst (λ γ → ⌊ γ ⌋ ∈ _) β≡α α∈Φ))
+  drop★⊒-seal-preserving h★ α∉Φ (p ↦ q) =
+    drop★⊑-seal-preserving h★ α∉Φ p ↦ drop★⊒-seal-preserving h★ α∉Φ q
+  drop★⊒-seal-preserving h★ α∉Φ (∀ᵖ p) =
     ∀ᵖ (cast⊒
           (removeAtˢ-renameLookupᵗ Sᵗ h★)
           refl
           refl
           refl
           refl
-          (drop★⊒ (renameLookupᵗ Sᵗ h★) α∈Ξ p))
-  drop★⊒ h★ α∈Ξ (ν p) =
+          (drop★⊒-seal-preserving (renameLookupᵗ Sᵗ h★) α∉Φ p))
+  drop★⊒-seal-preserving h★ α∉Φ (ν p) =
     ν (cast⊒
          (removeAtˢ-ν-lift h★)
          refl
          refl
          refl
          refl
-         (drop★⊒ (S∋ˢ (renameLookupˢ Sˢ h★)) (there α∈Ξ) p))
-  drop★⊒ h★ α∈Ξ id = id
-  drop★⊒ h★ α∈Ξ (p ； q) = drop★⊒ h★ α∈Ξ p ； drop★⊒ h★ α∈Ξ q
+         (drop★⊒-seal-preserving
+           (S∋ˢ (renameLookupˢ Sˢ h★))
+           (λ { (there α∈Φ) → α∉Φ α∈Φ })
+           p))
+  drop★⊒-seal-preserving h★ α∉Φ id = id
+  drop★⊒-seal-preserving h★ α∉Φ (p ； q) =
+    drop★⊒-seal-preserving h★ α∉Φ p ； drop★⊒-seal-preserving h★ α∉Φ q
 
-  drop★⊑ :
+  drop★⊑-seal-preserving :
     ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}{α : Seal Ψ}
       {Φ Ξ : Vec Bool Ψ}{A B : Ty Δ Ψ} →
     (h★ : Σ ∋ˢ α ⦂ ★) →
-    ⌊ α ⌋ ∈ Ξ →
+    (⌊ α ⌋ ∈ Φ → ⊥) →
     Σ ∣ Φ ∣ Ξ ⊢ A ⊑ B →
     removeAtˢ h★ ∣ Φ ∣ Ξ ⊢ A ⊑ B
-  drop★⊑ h★ α∈Ξ (tag g gok) = tag g gok
-  drop★⊑ {α = α} h★ α∈Ξ (unseal h α∈Φ′) with dropLookup h★ h
+  drop★⊑-seal-preserving h★ α∉Φ (tag g gok) = tag g gok
+  drop★⊑-seal-preserving {α = α} h★ α∉Φ (unseal h α∈Φ′) with dropLookup h★ h
   ... | drop-keep h′ = unseal h′ α∈Φ′
   ... | drop-hit β≡α B≡★ =
-    cast⊑
-      refl
-      refl
-      refl
-      (cong ｀_ (sym β≡α))
-      (sym B≡★)
-      (tag (｀ α) α∈Ξ)
-  drop★⊑ h★ α∈Ξ (p ↦ q) = drop★⊒ h★ α∈Ξ p ↦ drop★⊑ h★ α∈Ξ q
-  drop★⊑ h★ α∈Ξ (∀ᵖ p) =
+    ⊥-elim (α∉Φ (subst (λ γ → ⌊ γ ⌋ ∈ _) β≡α α∈Φ′))
+  drop★⊑-seal-preserving h★ α∉Φ (p ↦ q) =
+    drop★⊒-seal-preserving h★ α∉Φ p ↦ drop★⊑-seal-preserving h★ α∉Φ q
+  drop★⊑-seal-preserving h★ α∉Φ (∀ᵖ p) =
     ∀ᵖ (cast⊑
           (removeAtˢ-renameLookupᵗ Sᵗ h★)
           refl
           refl
           refl
           refl
-          (drop★⊑ (renameLookupᵗ Sᵗ h★) α∈Ξ p))
-  drop★⊑ h★ α∈Ξ (ν p) =
+          (drop★⊑-seal-preserving (renameLookupᵗ Sᵗ h★) α∉Φ p))
+  drop★⊑-seal-preserving h★ α∉Φ (ν p) =
     ν (cast⊑
          (removeAtˢ-ν-lift h★)
          refl
          refl
          refl
          refl
-         (drop★⊑ (S∋ˢ (renameLookupˢ Sˢ h★)) (there α∈Ξ) p))
-  drop★⊑ h★ α∈Ξ id = id
-  drop★⊑ h★ α∈Ξ (p ； q) = drop★⊑ h★ α∈Ξ p ； drop★⊑ h★ α∈Ξ q
+         (drop★⊑-seal-preserving
+           (S∋ˢ (renameLookupˢ Sˢ h★))
+           (λ { (there α∈Φ) → α∉Φ α∈Φ })
+           p))
+  drop★⊑-seal-preserving h★ α∉Φ id = id
+  drop★⊑-seal-preserving h★ α∉Φ (p ； q) =
+    drop★⊑-seal-preserving h★ α∉Φ p ； drop★⊑-seal-preserving h★ α∉Φ q
 
 openν-down :
   ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}
@@ -356,29 +353,25 @@ openν-down :
   ⌊ α ⌋ ∈ Ξ →
   Σ ∣ Φ ∣ Ξ ⊢ B ⊒ (A [ ｀ α ]ᵗ)
 openν-down {Σ = Σ} {Φ = Φ} {Ξ = Ξ} {A = A} {B = B} p α α∈Ξ =
-  drop★⊒ top★ α∈Ξ
-    (cast⊒
-      Σ-eq
-      refl
-      refl
-      src-eq
-      tgt-eq
-      (⊒-renameˢ
-        (singleSealEnv α)
-        (RenOk-singleSealEnv-false {P = Φ})
-        (RenOk-singleSealEnv-true α∈Ξ)
-        p))
+  cast⊒
+    (renameStoreˢ-single-⟰ˢ α Σ)
+    refl
+    refl
+    src-eq
+    tgt-eq
+    (⊒-renameˢ
+      (singleSealEnv α)
+      (RenOk-singleSealEnv-false {P = Φ})
+      (RenOk-singleSealEnv-true α∈Ξ)
+      (drop★⊒-seal-preserving top★ top∉Φ p))
   where
     top★ :
-      ((α , ★) ∷ Σ) ∋ˢ α ⦂ ★
+      ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∋ˢ Zˢ ⦂ ★
     top★ = Z∋ˢ refl refl
 
-    Σ-eq :
-      renameStoreˢ (singleSealEnv α) ((Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ) ≡ ((α , ★) ∷ Σ)
-    Σ-eq =
-      cong₂ _∷_
-        (cong₂ _,_ refl (renameˢ-single-⇑ˢ-id α ★))
-        (renameStoreˢ-single-⟰ˢ α Σ)
+    top∉Φ :
+      ⌊ Zˢ ⌋ ∈ (false ∷ Φ) → ⊥
+    top∉Φ ()
 
     src-eq :
       renameˢ (singleSealEnv α) (⇑ˢ B) ≡ B

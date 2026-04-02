@@ -191,28 +191,28 @@ A polymorphic cast calculus that uses imprecision to express casts.
 
     Σ ⊢ (ΛX. V) • α                              →  Σ ⊢ V[α/X]
 
-    Σ ⊢ (V @± 〔 ∀X. p 〕) • α                   →  Σ ⊢ (V • α) @± p[α/X]
+    Σ ⊢ (V @± ∀X. p) • α                   →  Σ ⊢ (V • α) @± p[α/X]
 
-    Σ ⊢ (V @± 〔 p ↦ q 〕) · W                   →  Σ ⊢ (V · (W @∓ p)) @± q
+    Σ ⊢ (V @± p ↦ q) · W                   →  Σ ⊢ (V · (W @∓ p)) @± q
 
-    Σ ⊢ V @+ 〔 νβ. p 〕                         →  Σ ⊢ ν β := ★ ∙ ((V • β) @+ p)
+    Σ ⊢ V @+ νβ. p                         →  Σ ⊢ ν β := ★ ∙ ((V • β) @+ p)
 
-    Σ ⊢ (V @- 〔 νβ. p 〕) • α                   →  Σ ⊢ V @- p[α/β]
+    Σ ⊢ (V @- νβ. p) • α                   →  Σ ⊢ V @- p[α/β]
 
     Σ ⊢ V @± id                                 →  Σ ⊢ V
 
-    Σ ⊢ (V @- 〔 seal α 〕) @+ 〔 unseal α 〕
+    Σ ⊢ (V @- seal α) @+ unseal α
                                                  →  Σ ⊢ V
 
-    Σ ⊢ (V @+ 〔 tag G 〕) @- 〔 untag G ℓ 〕
+    Σ ⊢ (V @+ tag G) @- untag G ℓ
                                                  →  Σ ⊢ V
 
-    Σ ⊢ (V @+ 〔 tag G 〕) @- 〔 untag H ℓ 〕
+    Σ ⊢ (V @+ tag G) @- untag H ℓ
                                                  →  Σ ⊢ blame ℓ   when G ≢ H
 
-    Σ ⊢ V @+ (p ； a) ； b                      →  Σ ⊢ V @+ (p ； a) @+ 〔 b 〕
+    Σ ⊢ V @+ (p ； a) ； b                      →  Σ ⊢ V @+ (p ； a) @+ b
 
-    Σ ⊢ V @- (p ； a) ； b                      →  Σ ⊢ V @- 〔 b 〕 @- (p ； a)
+    Σ ⊢ V @- (p ； a) ； b                      →  Σ ⊢ V @- b @- (p ； a)
 
     Σ ⊢ ($ m) ⊕[op] ($ n)                      →  Σ ⊢ $ op(m,n)
 
@@ -252,3 +252,65 @@ A polymorphic cast calculus that uses imprecision to express casts.
 
       Σ ⊢ M —↠ Σ ⊢ M
       Σ ⊢ M → Σ′ ⊢ N and Σ′ ⊢ N —↠ Σ″ ⊢ P imply Σ ⊢ M —↠ Σ″ ⊢ P
+
+## Informal Preservation Proof for the ν-down/inst Rule
+
+    Consider the reduction step
+
+      Σ ⊢ (V @- νβ. p) • α   →   Σ ⊢ V @- p[α/β]
+
+    We want to justify the usual preservation statement:
+    if
+
+      Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (V @- νβ. p) • α : C
+
+    then also
+
+      Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V @- p[α/β] : C.
+
+    By inversion on the typing rule for type application, there is some type A
+    such that
+
+      Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V @- νβ. p : ∀X.A
+
+    and
+
+      Σ contains (α : Aα)
+      C = A[α/X].
+
+    Now invert the typing of the downcast. Then there is some source type B with
+
+      Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V : B
+
+    and
+
+      Σ | every Ψ | every Ψ ⊢ νβ. p : B ⊒ ∀X.A.
+
+    Finally invert the narrowing rule for `νβ. p`. This gives
+
+      Σ, (β : ★) | no-β, every Ψ | every Ψ, β ⊢ p : B ⊒ A[β/X].
+
+    Intuitively, `νβ. p` packages a cast that expects to be opened at some
+    runtime seal. In the redex `(V @- νβ. p) • α`, that seal is supplied
+    immediately by the type application `• α`. Since `α` is already present in
+    the current store, we can instantiate the body cast at that seal. By the
+    usual substitution/instantiation lemma for seal names, replacing the fresh
+    `β` by `α` preserves cast typing, so we obtain
+
+      Σ | every Ψ | every Ψ ⊢ p[α/β] : B ⊒ A[α/X].
+
+    Now reapply the term typing rule for downcasts using the earlier premise
+
+      Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V : B
+
+    to conclude
+
+      Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V @- p[α/β] : A[α/X].
+
+    Since `C = A[α/X]`, the reduct has the same type as the redex, as required.
+
+    So the rule
+
+      Σ ⊢ (V @- νβ. p) • α   →   Σ ⊢ V @- p[α/β]
+
+    is type preserving.

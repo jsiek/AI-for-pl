@@ -1,9 +1,6 @@
-========================================================================
-Dynamic Gradual Guarantee for GTLC, informally
-========================================================================
+# Dynamic Gradual Guarantee for GTLC, informally
 
-Conventions
-========================================================================
+## Conventions
 
 Diagrams use:
 
@@ -28,11 +25,9 @@ This file translates the proof into a readable proof sketch.
   * rule names / constructor names are omitted
 
 
-Precision Relations
-========================================================================
+## Precision Relations
 
-1. Type precision
-------------------------------------------------------------------------
+### 1. Type precision
 
 <pre>
   ★ ⊑ A
@@ -45,8 +40,7 @@ Precision Relations
 </pre>
 
 
-2. Surface-term precision
-------------------------------------------------------------------------
+### 2. Surface-term precision
 
 <pre>
   x ⊑ᵀ x
@@ -63,8 +57,7 @@ Precision Relations
 </pre>
 
 
-3. Coercion precision
-------------------------------------------------------------------------
+### 3. Coercion precision
 
 Coercion precision compares explicit casts after compilation.
 
@@ -78,6 +71,7 @@ Coercion precision compares explicit casts after compilation.
 
 plus the important cases where identity can stand in for less dynamic behavior:
 
+<pre>
   Atomic c
   ⊢ c : B ⇨ C
   A ⊑ B
@@ -96,9 +90,11 @@ plus the important cases where identity can stand in for less dynamic behavior:
   id A <= c      id A <= d
   -------------------------
   id A <= c ; d
+</pre>
 
 and the corresponding cases on the right:
 
+<pre>
   Atomic c
   ⊢ c : B ⇨ C
   B ⊑ A
@@ -113,9 +109,11 @@ and the corresponding cases on the right:
   c <= id A      d <= id A
   -------------------------
   c ; d <= id A
+</pre>
 
 plus the two "drop function tag boundary" cases:
 
+<pre>
   c' <= c
   -------------------------
   ((★⇒★ ?ℓ) ; c') <= c
@@ -123,16 +121,17 @@ plus the two "drop function tag boundary" cases:
   c' <= c
   -------------------------
   (c' ; (★⇒★ !)) <= c
+</pre>
 
 The point of these extra cases is that precision is not just shape-by-shape.
 It also records that a more precise term may avoid some dynamic checks or tags.
 
 
-4. Cast-term precision
-------------------------------------------------------------------------
+### 4. Cast-term precision
 
 This is the precision relation used by simulation.
 
+<pre>
   x <= x
 
   $ n <= $ n
@@ -160,10 +159,10 @@ This is the precision relation used by simulation.
   M : A        A ⊑ A'
   --------------------
   M <= blame
+</pre>
 
 
-5. Compilation preserves precision
-------------------------------------------------------------------------
+### 5. Compilation preserves precision
 
 Lemma: compile-precision
 
@@ -174,11 +173,9 @@ Proof shape:
   induction on the source precision derivation
 
 
-Substitution / beta infrastructure
-========================================================================
+## Substitution / beta infrastructure
 
-6. Precision is preserved by substitution
-------------------------------------------------------------------------
+### 6. Precision is preserved by substitution
 
 Lemma: substᶜ-⊑
 
@@ -189,18 +186,18 @@ Closed corollary used in beta steps:
 
 Lemma: []ᶜ-⊑
 
+<pre>
       body[V/x]   <=   body'[V'/x]
+</pre>
 
 Proof shape:
 
   induction on the precision derivation for the body
 
 
-Cast-moving lemmas used by simulation
-========================================================================
+## Cast-moving lemmas used by simulation
 
-7. Casting on the left against an identity target
-------------------------------------------------------------------------
+### 7. Casting on the left against an identity target
 
 Lemma: cast-left-id-val
 
@@ -339,8 +336,7 @@ Diagram:
 </pre>
 
 
-8. Casting on the left against a function-cast target
-------------------------------------------------------------------------
+### 8. Casting on the left against a function-cast target
 
 Lemma: cast-left-↦-val
 
@@ -431,8 +427,7 @@ Diagram:
 </pre>
 
 
-9. Casting on the left against a sequence target
-------------------------------------------------------------------------
+### 9. Casting on the left against a sequence target
 
 Lemma: cast-left-⨟-val
 
@@ -522,8 +517,7 @@ Diagram:
 </pre>
 
 
-10. Casting on the left against a projection target (Crux!)
-------------------------------------------------------------------------
+### 10. Casting on the left against a projection target (Crux!)
 
 Lemma: cast-left-?-val
 
@@ -604,8 +598,7 @@ Diagram:
 </pre>
 
 
-11. Casting on the left against an injection target
-------------------------------------------------------------------------
+### 11. Casting on the left against an injection target
 
 Lemma: cast-left-!-val
 
@@ -702,11 +695,9 @@ Diagram:
 </pre>
 
 
-Forward simulation core
-========================================================================
+## Forward simulation core
 
-12. Catchup
-------------------------------------------------------------------------
+### 12. Catchup
 
 Lemma: catchup
 
@@ -827,8 +818,7 @@ Diagram:
 This case is impossible because the right side is a value.
 
 
-13. Beta simulation against a lambda
-------------------------------------------------------------------------
+### 13. Beta simulation against a lambda
 
 Lemma: sim-beta
 
@@ -901,8 +891,7 @@ The bottom precision step uses the lemma `cast-left-id-val` with `d1 <= id`
 and the induction-hypothesis conclusion `N <= N'[W'/x]`.
 
 
-14. Beta simulation against a function cast
-------------------------------------------------------------------------
+### 14. Beta simulation against a function cast
 
 Lemma: sim-beta-cast
 
@@ -1007,8 +996,7 @@ The bottom precision step is obtained directly from:
   id <= d'
 
 
-15. One-step forward simulation
-------------------------------------------------------------------------
+### 15. One-step forward simulation
 
 Lemma: sim
 
@@ -1155,8 +1143,7 @@ Diagram:
 </pre>
 
 
-16. Multi-step forward simulation
-------------------------------------------------------------------------
+### 16. Multi-step forward simulation
 
 Lemma: sim*
 
@@ -1203,8 +1190,7 @@ Diagram:
 </pre>
 
 
-17. Termination transfer from right to left
-------------------------------------------------------------------------
+### 17. Termination transfer from right to left
 
 Lemma: gg
 
@@ -1244,11 +1230,9 @@ Diagram:
 Composing the two left-hand sequences gives the result.
 
 
-Backward simulation core
-========================================================================
+## Backward simulation core
 
-18. Values on the left force catchup on the right
-------------------------------------------------------------------------
+### 18. Values on the left force catchup on the right
 
 Lemma: value-right-catchup
 
@@ -1305,8 +1289,7 @@ value or blame, so no extra right reduction is needed.
 Take `N = blame`.
 
 
-19. Beta backward simulation against a lambda
-------------------------------------------------------------------------
+### 19. Beta backward simulation against a lambda
 
 Lemma: sim-back-beta
 
@@ -1400,8 +1383,7 @@ The final horizontal step is obtained by rebuilding the right output cast
 around the induction-hypothesis conclusion.
 
 
-20. Beta backward simulation against a function cast
-------------------------------------------------------------------------
+### 20. Beta backward simulation against a function cast
 
 Lemma: sim-back-beta-cast
 
@@ -1490,8 +1472,7 @@ The final horizontal step is obtained by rebuilding the outer right output cast
 around the induction-hypothesis conclusion.
 
 
-21. One-step backward simulation
-------------------------------------------------------------------------
+### 21. One-step backward simulation
 
 Lemma: sim-back
 
@@ -1674,8 +1655,7 @@ Take `N' = blame`. This also covers the impossible cases where a variable,
 constant, or lambda on the left would have to step.
 
 
-22. Multi-step backward simulation
-------------------------------------------------------------------------
+### 22. Multi-step backward simulation
 
 Lemma: sim-back*
 
@@ -1726,11 +1706,9 @@ Diagram:
 The left residual sequence `N -->* N2` comes from the induction hypothesis.
 
 
-Dynamic Gradual Guarantee
-========================================================================
+## Dynamic Gradual Guarantee
 
-Statement
-------------------------------------------------------------------------
+### Statement
 
 Assume:
 
@@ -1743,9 +1721,8 @@ By compile-precision we get:
   [[M]] <= [[M']]
 
 
-Part 1. If the more precise program produces a value,
-        the less precise program also produces a related value.
-------------------------------------------------------------------------
+### Part 1. If the more precise program produces a value,
+the less precise program also produces a related value.
 
 Wanted:
 
@@ -1768,9 +1745,8 @@ Proof:
   then use gg
 
 
-Part 2. If the more precise program diverges,
-        the less precise program also diverges.
-------------------------------------------------------------------------
+### Part 2. If the more precise program diverges,
+the less precise program also diverges.
 
 Diagram:
 
@@ -1799,9 +1775,8 @@ Proof:
   which is obtained from Part 1 by contraposition
 
 
-Part 3. If the less precise program produces a value,
-        the more precise program either produces a related value or blames.
-------------------------------------------------------------------------
+### Part 3. If the less precise program produces a value,
+the more precise program either produces a related value or blames.
 
 Wanted:
 
@@ -1851,9 +1826,8 @@ Proof:
   then use value-right-catchup
 
 
-Part 4. If the less precise program diverges,
-        the more precise program either diverges or reaches blame.
-------------------------------------------------------------------------
+### Part 4. If the less precise program diverges,
+the more precise program either diverges or reaches blame.
 
 Wanted:
 
@@ -1906,8 +1880,7 @@ Proof:
   then use catchup
 
 
-Whole theorem at a glance
-========================================================================
+## Whole theorem at a glance
 
 Forward value transfer:
 

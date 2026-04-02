@@ -1,4 +1,4 @@
-# Dynamic Gradual Guarantee for GTLC, informally
+# Dynamic Gradual Guarantee for GTLC
 
 ## Conventions
 

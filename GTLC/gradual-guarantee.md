@@ -156,7 +156,7 @@ This is the precision relation used by simulation.
 
 ### 5. Compilation preserves precision
 
-Lemma: compile-precision
+Lemma: `compile-precision`
 
   If `M ⊑ᵀ M'`, then `compile M <= compile M'`.
 
@@ -169,14 +169,14 @@ Proof shape:
 
 ### 6. Precision is preserved by substitution
 
-Lemma: substᶜ-⊑
+Lemma: `substᶜ-⊑`
 
   if related substitutions are plugged into related terms,
   the results stay related.
 
 Closed corollary used in beta steps:
 
-Lemma: []ᶜ-⊑
+Lemma: `[]ᶜ-⊑`
 
           body[V/x]   <=   body'[V'/x]
 
@@ -190,9 +190,10 @@ Proof shape:
 
 ### 7. Casting on the left against an identity target
 
-Lemma: cast-left-id-val
+Lemma: `cast-left-id-val`
 
-  If `V <= V'` and `c <= id`, then `cast V [ c ] -->* V2` and `V2 <= V'`.
+  If `V <= V'` and `c <= id`, 
+  then `cast V [ c ] -->* V2` and `V2 <= V'`.
 
 Diagram:
 
@@ -205,9 +206,9 @@ Diagram:
 
 Proof shape:
 
-  induction on the derivation of c <= id
+  induction on the derivation of `c <= id`
 
-### Case 1. id A0 <= id A'
+### Case 1. `id A0 <= id A'`
 
 The left cast reduces by `β-id`.
 
@@ -220,7 +221,7 @@ Diagram:
              V            <=   V'
 
 
-### Case 2. G ! <= id
+### Case 2. `G ! <= id`
 
 Diagram:
 
@@ -231,12 +232,12 @@ Diagram:
           cast V[G!]   <=   V'
 
 
-### Case 3. G ?ℓ <= id
+### Case 3. `G ?ℓ <= id`
 
 By inversion of `V <= cast V' [ G ! ]`, choose `W` such that
 
-  V = cast W [ G ! ]
-  W <= V'
+  `V = cast W [ G ! ]`
+  `W <= V'`
 
 Diagram:
 
@@ -247,7 +248,7 @@ Diagram:
                     W        <=   V'
 
 
-### Case 4. c1 ↦ d1 <= id
+### Case 4. `c1 ↦ d1 <= id`
 
 Diagram:
 
@@ -258,7 +259,7 @@ Diagram:
           cast V[c1↦d1]   <=   V'
 
 
-### Case 5. c1 ; d1 <= id
+### Case 5. `c1 ; d1 <= id`
 
 Use the induction hypothesis on `c1`, then again on `d1`, and connect the two
 reduction sequences with `cast-seq-lift`.
@@ -279,7 +280,7 @@ Diagram:
                V2         <=   V'
 
 
-### Case 6. (★⇒★ ?ℓ) ; d1 <= id
+### Case 6. `(★⇒★ ?ℓ) ; d1 <= id`
 
 First apply `proj-?-less-ground`, then continue with the induction hypothesis
 on `d1`.
@@ -300,7 +301,7 @@ Diagram:
                   V2            <=   V'
 
 
-### Case 7. d1 ; (★⇒★ !) <= id
+### Case 7. `d1 ; (★⇒★ !) <= id`
 
 Use the induction hypothesis on `d1`, then rebuild the outer injection.
 
@@ -317,10 +318,10 @@ Diagram:
 
 ### 8. Casting on the left against a function-cast target
 
-Lemma: cast-left-↦-val
+Lemma: `cast-left-↦-val`
 
-  If `V <= V'` and `c <= (c1 ↦ c2)`, then
-  `cast V [ c ] -->* V2` and `V2 <= cast V' [ c1 ↦ c2 ]`.
+  If `V <= V'` and `c <= (c1 ↦ c2)`, 
+  then `cast V [ c ] -->* V2` and `V2 <= cast V' [ c1 ↦ c2 ]`.
 
 Diagram:
 
@@ -333,9 +334,9 @@ Diagram:
 
 Proof shape:
 
-  induction on the derivation of c <= (c1 ↦ c2)
+  induction on the derivation of `c <= (c1 ↦ c2)`
 
-### Case 1. d1 ↦ d2 <= c1 ↦ c2
+### Case 1. `d1 ↦ d2 <= c1 ↦ c2`
 
 Both sides already have function casts, so no reduction is needed.
 
@@ -348,7 +349,7 @@ Diagram:
           cast V[d1↦d2]   <=   cast V'[c1↦c2]
 
 
-### Case 2. id A0 <= c1 ↦ c2
+### Case 2. `id A0 <= c1 ↦ c2`
 
 The left cast reduces by `β-id`.
 
@@ -361,7 +362,7 @@ Diagram:
                V           <=   cast V'[c1↦c2]
 
 
-### Case 3. (★⇒★ ?ℓ) ; d <= c1 ↦ c2
+### Case 3. `(★⇒★ ?ℓ) ; d <= c1 ↦ c2`
 
 First apply `proj-?-less-ground`, then continue by induction on `d`.
 
@@ -381,7 +382,7 @@ Diagram:
                   V2           <=   cast V'[c1↦c2]
 
 
-### Case 4. d ; (★⇒★ !) <= c1 ↦ c2
+### Case 4. `d ; (★⇒★ !) <= c1 ↦ c2`
 
 Use the induction hypothesis on `d`, then rebuild the outer injection.
 
@@ -399,10 +400,10 @@ Diagram:
 
 ### 9. Casting on the left against a sequence target
 
-Lemma: cast-left-⨟-val
+Lemma: `cast-left-⨟-val`
 
-  If `V <= V'` and `d <= c' ; d'`, then
-  `cast V [ d ] -->* N2` and `N2 <= cast (cast V' [ c' ]) [ d' ]`.
+  If `V <= V'` and `d <= c' ; d'`, 
+  then `cast V [ d ] -->* N2` and `N2 <= cast (cast V' [ c' ]) [ d' ]`.
 
 Diagram:
 
@@ -415,9 +416,9 @@ Diagram:
 
 Proof shape:
 
-  induction on the derivation of d <= c' ; d'
+  induction on the derivation of `d <= c' ; d'`
 
-### Case 1. d <= c' ; d' directly
+### Case 1. `d <= c' ; d'`
 
 If the precision proof already gives `d <= c' ; d'` without exposing internal
 structure, then we keep the left cast as-is and conclude directly.
@@ -431,7 +432,7 @@ Diagram:
           cast V[d]   <=   cast (cast V'[c']) [d']
 
 
-### Case 2. d1 ; d2 <= c' ; d'
+### Case 2. `d1 ; d2 <= c' ; d'`
 
 Expose the sequence on the left with one reduction step, then apply precision
 componentwise.
@@ -445,7 +446,7 @@ Diagram:
           cast (cast V[d1]) [d2]   <=   cast (cast V'[c']) [d']
 
 
-### Case 3. (★⇒★ ?ℓ) ; d1 <= c' ; d'
+### Case 3. `(★⇒★ ?ℓ) ; d1 <= c' ; d'`
 
 First use `cast-left-id-val` to justify the projection to a function, then use
 the induction hypothesis on `d1`.
@@ -466,7 +467,7 @@ Diagram:
                   N2            <=   cast (cast V'[c']) [d']
 
 
-### Case 4. d1 ; (★⇒★ !) <= c' ; d'
+### Case 4. `d1 ; (★⇒★ !) <= c' ; d'`
 
 Use the induction hypothesis on `d1`, then rebuild the final injection.
 
@@ -484,17 +485,10 @@ Diagram:
 
 ### 10. Casting on the left against a projection target (Crux!)
 
-Lemma: cast-left-?-val
+Lemma: `cast-left-?-val`
 
-  If
-
-    V <= cast V' [ A' ! ]
-    c <= A' ?ℓ
-
-  then
-
-    cast V [ c ]  -->*  N
-    N <= V'
+  If `V <= cast V' [ A' ! ]` and `c <= A' ?ℓ`
+  then `cast V [ c ] -->* N` and `N <= V'`.
 
 Diagram:
 
@@ -507,14 +501,14 @@ Diagram:
 
 Proof shape:
 
-  induction on the derivation of c <= A' ?ℓ
+  induction on the derivation of `c <= A' ?ℓ`
 
-### Case 1. A' ?ℓ <= A' ?ℓ
+### Case 1. `A' ?ℓ <= A' ?ℓ`
 
 By inversion of `V <= cast V' [ A' ! ]`, choose `W` such that
 
-  V = cast W [ A' ! ]
-  W <= V'
+  `V = cast W [ A' ! ]`
+  `W <= V'`
 
 Diagram:
 
@@ -527,12 +521,12 @@ Diagram:
 
 The crucial step uses the dynamic-shape inversion lemmas for injections.
 
-### Case 2. id <= A' ?ℓ
+### Case 2. `id <= A' ?ℓ`
 
 By inversion of `V <= cast V' [ A' ! ]`, choose `W` such that
 
-  V = cast W [ A' ! ]
-  W <= V'
+  `V = cast W [ A' ! ]`
+  `W <= V'`
 
 Diagram:
 
@@ -543,7 +537,7 @@ Diagram:
               cast W[A'!]        <=   V'
 
 
-### Case 3. d ; (★⇒★ !) <= A' ?ℓ
+### Case 3. `d ; (★⇒★ !) <= A' ?ℓ`
 
 Use the induction hypothesis on `d`, then rebuild the final injection.
 
@@ -561,10 +555,10 @@ Diagram:
 
 ### 11. Casting on the left against an injection target
 
-Lemma: cast-left-!-val
+Lemma: `cast-left-!-val`
 
-  If `V <= V'` and `c <= G !`, then
-  `cast V [ c ] -->* N` and `N <= cast V' [ G ! ]`.
+  If `V <= V'` and `c <= G !`, 
+  then `cast V [ c ] -->* N` and `N <= cast V' [ G ! ]`.
 
 Diagram:
 
@@ -577,9 +571,9 @@ Diagram:
 
 Proof shape:
 
-  induction on the derivation of c <= G !
+  induction on the derivation of `c <= G !`
 
-### Case 1. G ! <= G !
+### Case 1. `G ! <= G !`
 
 Diagram:
 
@@ -590,7 +584,7 @@ Diagram:
           cast V[G!]   <=   cast V'[G!]
 
 
-### Case 2. id A0 <= G !
+### Case 2. `id A0 <= G !`
 
 The left cast reduces by `β-id`, and then `star-to-inj` gives the bottom
 precision step.
@@ -604,7 +598,7 @@ Diagram:
              V        <=   cast V'[G!]
 
 
-### Case 3. (★⇒★ ?ℓ) ; d <= ★⇒★ !
+### Case 3. `(★⇒★ ?ℓ) ; d <= ★⇒★ !`
 
 From `(★⇒★ ?ℓ) ; d <= G !` we have `★⇒★ <= G` so `G = ★⇒★`.
 
@@ -635,7 +629,7 @@ Diagram:
                   N                          <=  cast V'[★⇒★!]
 
 
-### Case 4. d ; (★⇒★ !) <= G !
+### Case 4. `d ; (★⇒★ !) <= G !`
 
 Use the induction hypothesis on `d`, then rebuild the final injection.
 
@@ -655,10 +649,10 @@ Diagram:
 
 ### 12. Catchup
 
-Lemma: catchup
+Lemma: `catchup`
 
-  If `N <= V'` and `V'` is a value, then there exists `V` such that
-  `N -->* V`, `V` is a value, and `V <= V'`.
+  If `N <= V'` and `V'` is a value, 
+  then there exists `V` such that `N -->* V`, `V` is a value, and `V <= V'`.
 
 Diagram:
 
@@ -671,12 +665,12 @@ Diagram:
 
 Proof shape:
 
-  induction on the precision derivation N <= V'
+  induction on the precision derivation `N <= V'`
 
 This is the main engine that turns a precision proof whose right side is a
 value into an actual reduction sequence on the left.
 
-### Case 1. N <= V' with V' a base value or lambda
+### Case 1. `N <= V'` with `V'` a base value or lambda
 
 Diagram:
 
@@ -687,7 +681,7 @@ Diagram:
           N    <=    V'
 
 
-### Case 2. N <= cast V1 [ G ! ]
+### Case 2. `N <= cast V1 [ G ! ]`
 
 First recurse on the inner precision proof to reach a value on the left, then
 use `cast-left-!-val`.
@@ -707,7 +701,7 @@ Diagram:
           V2                 <=   cast V1[G!]
 
 
-### Case 3. N <= cast V1 [ c1 ↦ d1 ]
+### Case 3. `N <= cast V1 [ c1 ↦ d1 ]`
 
 Again recurse first to reach a left value, then analyze how the left coercion
 sits below the function cast. The main subcases use either
@@ -729,7 +723,7 @@ Diagram:
           V2                 <=   cast V1[c1↦d1]
 
 
-### Case 4. N <= V' by a left-cast case
+### Case 4. `cast N[c] <= V'`
 
 First recurse on the inner precision proof, then use `cast-left-id-val`.
 
@@ -748,7 +742,7 @@ Diagram:
                V2     <=   V'
 
 
-### Case 5. N <= cast V' [ c' ]
+### Case 5. `N <= cast V' [ c' ]`
 
 Recurse on the inner precision proof. No extra left reduction is needed after
 the recursive call.
@@ -763,14 +757,14 @@ Diagram:
           V    <=   cast V'[c']
 
 
-### Case 6. blame <= V'
+### Case 6. `blame <= V'`
 
 This case is impossible because the right side is a value.
 
 
 ### 13. Beta simulation against a lambda
 
-Lemma: sim-beta
+Lemma: `sim-beta`
 
   If `V <= λx. N'` and `W <= W'`, then there exists `N` such that
   `V · W -->* N` and `N <= N'[W'/x]`.
@@ -786,9 +780,9 @@ Diagram:
 
 Proof shape:
 
-  induction on the precision proof V <= λx. N'
+  induction on the precision proof `V <= λx. N'`
 
-### Case 1. λx. N  <=  λx. N'
+### Case 1. `λx. N <= λx. N'`
 
 So both sides beta-reduce immediately:
 
@@ -807,12 +801,12 @@ body precision `N <= N'` and the argument precision `W <= W'`.
 So this case finishes in one beta step on the left.
 
 
-### Case 2. cast U [ c1 ↦ d1 ]  <=  λx. N'
+### Case 2. `cast U [ c1 ↦ d1 ] <= λx. N'`
 
 Side information:
 
-  c1 <= id
-  d1 <= id
+  `c1 <= id`
+  `d1 <= id`
 
 Diagram:
 
@@ -840,7 +834,7 @@ and the induction-hypothesis conclusion `N <= N'[W'/x]`.
 
 ### 14. Beta simulation against a function cast
 
-Lemma: sim-beta-cast
+Lemma: `sim-beta-cast`
 
   If `V <= cast V' [ c' ↦ d' ]` and `W <= W'`, then there exists `N` such
   that `V · W -->* N` and `N <= cast (V' · cast W' [ c' ]) [ d' ]`.
@@ -856,9 +850,9 @@ Diagram:
 
 Proof shape:
 
-  induction on the precision proof V <= cast V' [ c' ↦ d' ]
+  induction on the precision proof `V <= cast V' [ c' ↦ d' ]`
 
-### Case 1. cast V1 [ c ↦ d ]  <=  cast V' [ c' ↦ d' ]
+### Case 1. `cast V1 [ c ↦ d ] <= cast V' [ c' ↦ d' ]`
 
 Here both sides already have explicit function casts.
 
@@ -873,20 +867,20 @@ Diagram:
 
 The bottom precision step is obtained directly from:
 
-  V1 <= V'
-  W  <= W'
-  c  <= c'
-  d  <= d'
+  `V1 <= V'`
+  `W <= W'`
+  `c <= c'`
+  `d <= d'`
 
 So this case finishes in one beta step on the left.
 
 
-### Case 2. cast U [ c1 ↦ d1 ]  <=  cast V' [ c' ↦ d' ]
+### Case 2. `cast U [ c1 ↦ d1 ] <= cast V' [ c' ↦ d' ]`
 
 Side information:
 
-  c1 <= id
-  d1 <= id
+  `c1 <= id`
+  `d1 <= id`
 
 Diagram:
 
@@ -911,14 +905,14 @@ Diagram:
 The bottom precision step uses `⊑castL` with the side condition `d1 <= id`
 applied to the induction-hypothesis conclusion
 
-  N <= cast (V' · cast W'[c']) [d'].
+  `N <= cast (V' · cast W'[c']) [d']`.
 
 
-### Case 3. V1  <=  cast V' [ c' ↦ d' ]
+### Case 3. `V1 <= cast V' [ c' ↦ d' ]`
 
 Side information:
 
-  id <= c' ↦ d'
+  `id <= c' ↦ d'`
 
 In this case the left side does not need to reduce at all.
 
@@ -933,15 +927,15 @@ Diagram:
 
 The bottom precision step is obtained directly from:
 
-  V1 <= V'
-  W  <= W'
-  id <= c'
-  id <= d'
+  `V1 <= V'`
+  `W <= W'`
+  `id <= c'`
+  `id <= d'`
 
 
 ### 15. One-step forward simulation
 
-Lemma: sim
+Lemma: `sim`
 
   If `M <= M'` and `M' --> N'`, then there exists `N` such that
   `M -->* N` and `N <= N'`.
@@ -1064,7 +1058,7 @@ Diagram:
           N                                              <=  V'
 
 
-### Case 7. The right step reaches blame
+### Case 7. The right step reaches `blame`
 
 Take `N = M`.
 
@@ -1080,7 +1074,7 @@ Diagram:
 
 ### 16. Multi-step forward simulation
 
-Lemma: sim*
+Lemma: `sim*`
 
   If `M <= M'` and `M' -->* N'`, then there exists `N` such that
   `M -->* N` and `N <= N'`.
@@ -1125,7 +1119,7 @@ Diagram:
 
 ### 17. Termination transfer from right to left
 
-Lemma: gg
+Lemma: `gg`
 
   If `M' <= M` and `M -->* V` and `V` is a value, then there exists `V'`
   such that `M' -->* V'`, `V'` is a value, and `V' <= V`.
@@ -1153,7 +1147,7 @@ Diagram:
           v                         v
           N'                     <= V
           |
-          | *  catchup on N'
+          | *  catchup on N' <= V
           v
           V'                     <= V
 
@@ -1165,7 +1159,7 @@ Composing the two left-hand sequences gives the result.
 
 ### 18. Values on the left force catchup on the right
 
-Lemma: value-right-catchup
+Lemma: `value-right-catchup`
 
   If `V` is a value and `V <= M'`, then there exists `N` such that
   `M' -->* N` and either (`N` is a value and `V <= N`) or (`N = blame`).
@@ -1183,11 +1177,11 @@ Proof shape:
 
   induction on the precision derivation `V <= M'`.
 
-### Case 1. V <= M' with M' a base value or a lambda
+### Case 1. `V <= M'` with `M'` a base value or a lambda
 
 Take `N = M'`. No right reduction is needed.
 
-### Case 2. V <= cast M' [ c' ]
+### Case 2. `V <= cast M' [ c' ]`
 
 First apply the induction hypothesis to the inner precision proof, so the right
 side reduces to either a value or blame. If it reaches a value `W'`, apply
@@ -1213,14 +1207,14 @@ When the precision proof is a left-cast case around a casted injection or
 function value, the induction hypothesis already gives the needed right-hand
 value or blame, so no extra right reduction is needed.
 
-### Case 3. V <= blame
+### Case 3. `V <= blame`
 
 Take `N = blame`.
 
 
 ### 19. Beta backward simulation against a lambda
 
-Lemma: sim-back-beta
+Lemma: `sim-back-beta`
 
   If `λx. N <= F'` and `V <= M'`, then there exists `N'` such that
   `F' · M' -->* N'` and `N[V/x] <= N'`.
@@ -1238,7 +1232,7 @@ Proof shape:
 
   induction on the precision proof `λx. N <= F'`.
 
-### Case 1. λx. N  <=  λx. N'
+### Case 1. `λx. N <= λx. N'`
 
 Use the lemma `value-right-catchup` on the argument precision `V <= M'`.
 
@@ -1279,7 +1273,7 @@ Diagram:
           N[V/x]                       <=  blame
 
 
-### Case 2. λx. N  <=  cast F'[c↦d]
+### Case 2. `λx. N <= cast F'[c↦d]`
 
 Use `value-right-catchup` on the argument again. If the right argument reaches
 blame, the whole right application reaches blame. If it reaches a value `W'`,
@@ -1309,7 +1303,7 @@ around the induction-hypothesis conclusion.
 
 ### 20. Beta backward simulation against a function cast
 
-Lemma: sim-back-beta-cast
+Lemma: `sim-back-beta-cast`
 
   If `cast V [ c ↦ d ] <= F'` and `W <= M'`, then there exists `N'` such that
   `F' · M' -->* N'` and `cast (V · cast W [ c ]) [ d ] <= N'`.
@@ -1327,7 +1321,7 @@ Proof shape:
 
   induction on the precision proof `cast V [ c ↦ d ] <= F'`.
 
-### Case 1. cast V[c↦d]  <=  cast V'[c'↦d']
+### Case 1. `cast V[c↦d] <= cast V'[c'↦d']`
 
 Use `value-right-catchup` on the argument precision `W <= M'`. If the right
 argument reaches blame, the right application reaches blame. If it reaches a
@@ -1351,7 +1345,7 @@ Diagram:
 The bottom horizontal step is obtained directly from the function, argument,
 and coercion precision facts.
 
-### Case 2. cast V[c↦d]  <=  F'
+### Case 2. `cast V[c↦d] <= F'`
 
 Here the precision proof is already a left-cast case into `F'`, so no right
 reduction is needed.
@@ -1365,7 +1359,7 @@ Diagram:
           cast (V · cast W[c]) [d]      <=  F' · M'
 
 
-### Case 3. cast V[c↦d]  <=  cast F'[c'↦d']
+### Case 3. `cast V[c↦d] <= cast F'[c'↦d']`
 
 Use `value-right-catchup` on the argument precision. If the right argument
 reaches a value `W'`, apply the induction hypothesis to the smaller function
@@ -1394,7 +1388,7 @@ around the induction-hypothesis conclusion.
 
 ### 21. One-step backward simulation
 
-Lemma: sim-back
+Lemma: `sim-back`
 
   If `M <= M'` and `M --> N`, then there exists `N'` such that
   `M' -->* N'` and `N <= N'`.
@@ -1560,7 +1554,7 @@ Diagram:
                                                                    blame
 
 
-### Case 9. The right side is already below blame
+### Case 9. The right side is already below `blame`
 
 Take `N' = blame`. This also covers the impossible cases where a variable,
 constant, or lambda on the left would have to step.
@@ -1568,7 +1562,7 @@ constant, or lambda on the left would have to step.
 
 ### 22. Multi-step backward simulation
 
-Lemma: sim-back*
+Lemma: `sim-back*`
 
   If `M <= M'` and `M -->* N`, then there exist `N'` and `N2` such that
   `M' -->* N'`, `N -->* N2`, and `N2 <= N'`.
@@ -1621,13 +1615,13 @@ The left residual sequence `N -->* N2` comes from the induction hypothesis.
 
 Assume:
 
-  M ⊑ᵀ M'
-  [] ⊢ M  : A
-  [] ⊢ M' : A'
+  `M ⊑ᵀ M'`
+  `[] ⊢ M : A`
+  `[] ⊢ M' : A'`
 
-By compile-precision we get:
+By `compile-precision` we get:
 
-  [[M]] <= [[M']]
+  `[[M]] <= [[M']]`
 
 
 ### Part 1. If the more precise program produces a value,
@@ -1649,8 +1643,8 @@ Diagram:
 
 Proof:
 
-  use compile-precision
-  then use gg
+  use `compile-precision`
+  then use `gg`
 
 
 ### Part 2. If the more precise program diverges,
@@ -1676,8 +1670,8 @@ Contrapositive diagram:
 
 Proof:
 
-  use compile-precision
-  then use gg-diverge
+  use `compile-precision`
+  then use `gg-diverge`
   which is obtained from Part 1 by contraposition
 
 
@@ -1698,7 +1692,7 @@ Main diagram:
           V         <=  N'
 
 
-Then use value-right-catchup on the bottom line:
+Then use `value-right-catchup` on the bottom line:
 
       N2 = V    <=  N'
                    |
@@ -1725,9 +1719,9 @@ or
 
 Proof:
 
-  use compile-precision
-  then use sim-back*
-  then use value-right-catchup
+  use `compile-precision`
+  then use `sim-back*`
+  then use `value-right-catchup`
 
 
 ### Part 4. If the less precise program diverges,
@@ -1750,7 +1744,7 @@ Diagram at an arbitrary right-hand prefix:
       v
       N         <=  N'
 
-If N' is a value, catchup would give:
+If `N'` is a value, `catchup` would give:
 
       N      <=  N'
       |
@@ -1758,9 +1752,9 @@ If N' is a value, catchup would give:
       v
       V      <=  N'
 
-which would make [[M]] converge, contradiction.
+which would make `[[M]]` converge, contradiction.
 
-So every reachable N' on the right is either:
+So every reachable `N'` on the right is either:
 
   * already blame
   * or can still step
@@ -1778,9 +1772,9 @@ Diagram:
 
 Proof:
 
-  use compile-precision
-  then use sim*
-  then use catchup
+  use `compile-precision`
+  then use `sim*`
+  then use `catchup`
 
 
 ## Whole theorem at a glance

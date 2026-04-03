@@ -129,6 +129,13 @@ For `with` clauses, if there are two or more cases, use explicit
 function-name case clauses rather than `...` shorthand. 
 This will avoid problems that arise with nested `with` clauses.
 
+## Agda `rewrite` + local `where` quirk (from 2026-04-03)
+
+When a clause uses `rewrite` and need to reference new helper
+functions, do not put those helpers in a local `where` block because
+they will not be in scope. Instead define helpers as top-level
+definitions.
+
 ## Agda recursive function termination / `with` style (from 2026-03-24)
 
 Agda termination checking can be tripped by helper functions that took
@@ -143,3 +150,27 @@ Working fix:
 
 This avoids confusing Agda's termination checker and keeps recursive
 functions accepted without `{-# TERMINATING #-}`.
+
+## Substitution and heterogeneous equality playbook (from 2026-04-03)
+
+When a proof gets stuck in "subst hell", use this pattern.
+
+- Isolate transport in one place with heterogeneous equality.
+  For dependent mismatches that differ only by definitional transport,
+  use a single bridge lemma (for example `≅-to-≡` plus
+  `≡-subst-removable`) instead of spreading `subst` casts throughout
+  the recursive proof.
+- Keep a small `Heq` toolbox module for reusable congruence lemmas
+  (`Hcongₙ`-style helpers).
+  This keeps proof scripts readable and avoids re-deriving dependent
+  congruence each time.
+- Keep the main theorem in its direct form whenever possible.
+  Prefer statements like `subst ... M ≡ M` over casted variants.
+  Introduce casts only at boundary lemmas that truly need transport.
+- Normalize indices aggressively with small rewrite lemmas.
+  Prove and reuse identities such as context-substitution identity,
+  extension identity, and type-substitution identity so most branches
+  close by `refl`.
+
+
+

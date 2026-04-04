@@ -17,10 +17,10 @@ open import extrinsic.Terms
 open import extrinsic.Reduction
 
 -- The type of relations on values of type A and B
-Rel : Ty → Ty → Set₃
-Rel A B = (V : Term) → (W : Term) → Value V → Value W → Set₂
+Rel : Ty → Ty → Set₁
+Rel A B = (V : Term) → (W : Term) → Value V → Value W → Set
 
-record RelSub : Set₃ where
+record RelSub : Set₁ where
   field
     ρ₁ : Substᵗ
     ρ₂ : Substᵗ
@@ -42,8 +42,8 @@ _,⟨_,_,_⟩ : (ρ : RelSub) → (A₁ A₂ : Ty) → Rel A₁ A₂ → RelSub
 -- The Logical Relation
 --------------------------------------------------------------------------------
 
-𝒱 : (A : Ty) (ρ : RelSub) (V : Term) (W : Term) → Value V → Value W → Set₃
-ℰ : (A : Ty) (ρ : RelSub) → Term → Term → Set₃
+𝒱 : (A : Ty) (ρ : RelSub) (V : Term) (W : Term) → Value V → Value W → Set₁
+ℰ : (A : Ty) (ρ : RelSub) → Term → Term → Set₁
 
 𝒱 (` α) ρ V W v w = Lift _ (ρR ρ α V W v w)
 𝒱 `ℕ ρ `zero `zero vZero vZero = ⊤
@@ -95,7 +95,7 @@ _,⟨_,_⟩ : (γ : RelEnv) (V : Term) (W : Term) → RelEnv
 -- Logically related contexts
 --------------------------------------------------------------------------------
 
-𝒢 : Ctx → RelSub → RelEnv → Set₃
+𝒢 : Ctx → RelSub → RelEnv → Set₁
 𝒢 [] ρ γ = ⊤
 𝒢 (A ∷ Γ) ρ γ = ℰ A ρ (γ .γ₁ 0) (γ .γ₂ 0) × 𝒢 Γ ρ (⇓γ γ)
 
@@ -103,7 +103,7 @@ _,⟨_,_⟩ : (γ : RelEnv) (V : Term) (W : Term) → RelEnv
 -- Logically related terms
 --------------------------------------------------------------------------------
 
-LogicalRel : (Γ : Ctx) (A : Ty) (M N : Term) → Set₃
+LogicalRel : (Γ : Ctx) (A : Ty) (M N : Term) → Set₁
 LogicalRel Γ A M N = ∀ (ρ : RelSub) (γ : RelEnv)
   → 𝒢 Γ ρ γ
   → ℰ A ρ (subst (γ .γ₁) M) (subst (γ .γ₂) N)
@@ -394,7 +394,7 @@ compat-var Z ρ γ env = proj₁ env
 compat-var (S x) ρ γ env = compat-var x ρ (⇓γ γ) (proj₂ env)
 
 
-data WkRel : Renameᵗ → RelSub → RelSub → Set₃ where
+data WkRel : Renameᵗ → RelSub → RelSub → Set₁ where
   wk-suc :
     ∀ {ρ A₁ A₂} (R : Rel A₁ A₂) →
     WkRel suc ρ (ρ ,⟨ A₁ , A₂ , R ⟩)
@@ -535,7 +535,7 @@ mutual
       , 𝒱-unrename-wk {A = A} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} wk-r 𝒱VW
       ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
 
-record SubstRel (σ : Substᵗ) (ρ : RelSub) (ρ' : RelSub) : Set₃ where
+record SubstRel (σ : Substᵗ) (ρ : RelSub) (ρ' : RelSub) : Set₁ where
   field
     var⇒ : ∀ α {V W} {v : Value V} {w : Value W}
       → 𝒱 (` α) ρ' V W v w
@@ -693,7 +693,7 @@ compat-·[] : ∀ {Γ A B}
 compat-·[] {A = A} {B = B} M M-rel ρ γ env
   with M-rel ρ γ env
 ... | ⟨ .(Λ N₁) , ⟨ .(Λ N₂) , ⟨ vTlam {N = N₁} , ⟨ vTlam {N = N₂} , ⟨ M₁—↠ΛN₁ , ⟨ M₂—↠ΛN₂ , ∀-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-  with ∀-rel (substᵗ (ρ₁ ρ) B) (substᵗ (ρ₂ ρ) B) {!!} -- 𝒱 B ρ, Set₃ != Set₂
+  with ∀-rel (substᵗ (ρ₁ ρ) B) (substᵗ (ρ₂ ρ) B) {!𝒱 B ρ!} -- 𝒱 B ρ, Set₁ != Set
 ... | ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ N₁—↠V , ⟨ N₂—↠W , 𝒱[A]VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
   ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨
     multi-trans left-red N₁—↠V
@@ -701,8 +701,8 @@ compat-·[] {A = A} {B = B} M M-rel ρ γ env
   , 𝒱-subst {A} SR 𝒱[A]VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
   where
   SR : SubstRel (singleTyEnv B) ρ
-       (ρ ,⟨ substᵗ (ρ₁ ρ) B , substᵗ (ρ₂ ρ) B , {!!} ⟩) -- 𝒱 B ρ, Set₃ != Set₂
-  -- Needed here: from rel : Lift _ ⊤, produce 𝒱 B ρ V W v w.
+       (ρ ,⟨ substᵗ (ρ₁ ρ) B , substᵗ (ρ₂ ρ) B , {!𝒱 B ρ!} ⟩) -- 𝒱 B ρ, Set₁ != Set
+  -- Needed here: from rel produce 𝒱 B ρ V W v w.
   -- Blocker: we'd like to instantiate ∀-rel with R = 𝒱 B ρ, but
   -- Rel's codomain is Set₂ while 𝒱 B ρ ... lives in Set₃ (universe mismatch).
   SubstRel.var⇒ SR zero rel = {! rel!} -- rel

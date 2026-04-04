@@ -9,7 +9,7 @@ open import Data.Product using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂)
   renaming (_,_ to ⟨_,_⟩)
 open import Data.Empty.Polymorphic using (⊥)
 open import Data.Unit.Polymorphic using (⊤; tt)
-open import Level using (Level; Lift; lift)
+open import Level using (Level; Lift; lift; lower)
 open import Function using (case_of_)
 
 open import extrinsic.Types
@@ -535,6 +535,140 @@ mutual
       , 𝒱-unrename-wk {A = A} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} wk-r 𝒱VW
       ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
 
+record SubstRel (σ : Substᵗ) (ρ : RelSub) (ρ' : RelSub) : Set₃ where
+  field
+    var⇒ : ∀ α {V W} {v : Value V} {w : Value W}
+      → 𝒱 (` α) ρ' V W v w
+      → 𝒱 (σ α) ρ V W v w
+
+    var⇐ : ∀ α {V W} {v : Value V} {w : Value W}
+      → 𝒱 (σ α) ρ V W v w
+      → 𝒱 (` α) ρ' V W v w
+
+exts-SubstRel : ∀ {σ ρ ρ' A₁ A₂}
+  → (R : Rel A₁ A₂)
+  → SubstRel σ ρ ρ'
+  → SubstRel (extsᵗ σ) (ρ ,⟨ A₁ , A₂ , R ⟩) (ρ' ,⟨ A₁ , A₂ , R ⟩)
+SubstRel.var⇒ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} R sr) zero rel = rel
+SubstRel.var⇒ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} R sr) (suc α) rel =
+  𝒱-rename-wk {A = σ α} {ξ = suc} {ρ = ρ} {ρ' = ρ ,⟨ A₁ , A₂ , R ⟩}
+    (wk-suc {ρ = ρ} {A₁ = A₁} {A₂ = A₂} R)
+    (SubstRel.var⇒ sr α rel)
+
+SubstRel.var⇐ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} R sr) zero rel = rel
+SubstRel.var⇐ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} R sr) (suc α) rel =
+  SubstRel.var⇐ sr α
+    (𝒱-unrename-wk {A = σ α} {ξ = suc} {ρ = ρ} {ρ' = ρ ,⟨ A₁ , A₂ , R ⟩}
+      (wk-suc {ρ = ρ} {A₁ = A₁} {A₂ = A₂} R)
+      rel)
+
+mutual
+  𝒱-subst :
+    ∀ {A σ ρ ρ' V W} {v : Value V} {w : Value W}
+    → SubstRel σ ρ ρ'
+    → 𝒱 A ρ' V W v w
+    → 𝒱 (substᵗ σ A) ρ V W v w
+  𝒱-subst {A = ` α} sr 𝒱VW = SubstRel.var⇒ sr α 𝒱VW
+  𝒱-subst {A = `ℕ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW =
+    𝒱-Nat-irrel {ρ = ρ'} {σ = ρ} {V = V} {W = W} {v = v} {w = w} 𝒱VW
+  𝒱-subst {A = `Bool} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW =
+    𝒱-Bool-irrel {ρ = ρ'} {σ = ρ} {V = V} {W = W} {v = v} {w = w} 𝒱VW
+  𝒱-subst {A = A ⇒ B} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = ƛ N} {W = ƛ M} {v = vLam} {w = vLam} sr 𝒱VW =
+    λ v₁ w₁ arg-rel →
+      ℰ-subst {A = B} {σ = σ} {ρ = ρ} {ρ' = ρ'} sr
+        (𝒱VW v₁ w₁ (𝒱-unsubst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {v = v₁} {w = w₁} sr arg-rel))
+  𝒱-subst {A = A ⇒ B} {v = vLam} {w = vTrue} sr ()
+  𝒱-subst {A = A ⇒ B} {v = vLam} {w = vFalse} sr ()
+  𝒱-subst {A = A ⇒ B} {v = vLam} {w = vZero} sr ()
+  𝒱-subst {A = A ⇒ B} {v = vLam} {w = vSuc w} sr ()
+  𝒱-subst {A = A ⇒ B} {v = vLam} {w = vTlam} sr ()
+  𝒱-subst {A = A ⇒ B} {v = vTrue} sr ()
+  𝒱-subst {A = A ⇒ B} {v = vFalse} sr ()
+  𝒱-subst {A = A ⇒ B} {v = vZero} sr ()
+  𝒱-subst {A = A ⇒ B} {v = vSuc v} sr ()
+  𝒱-subst {A = A ⇒ B} {v = vTlam} sr ()
+  𝒱-subst {A = `∀ A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = Λ N} {W = Λ M} {v = vTlam} {w = vTlam} sr 𝒱VW =
+    λ A₁ A₂ R →
+      ℰ-subst {A = A} {σ = extsᵗ σ}
+        {ρ = ρ ,⟨ A₁ , A₂ , R ⟩}
+        {ρ' = ρ' ,⟨ A₁ , A₂ , R ⟩}
+        (exts-SubstRel R sr)
+        (𝒱VW A₁ A₂ R)
+  𝒱-subst {A = `∀ A} {v = vTlam} {w = vLam} sr ()
+  𝒱-subst {A = `∀ A} {v = vTlam} {w = vTrue} sr ()
+  𝒱-subst {A = `∀ A} {v = vTlam} {w = vFalse} sr ()
+  𝒱-subst {A = `∀ A} {v = vTlam} {w = vZero} sr ()
+  𝒱-subst {A = `∀ A} {v = vTlam} {w = vSuc w} sr ()
+  𝒱-subst {A = `∀ A} {v = vTrue} sr ()
+  𝒱-subst {A = `∀ A} {v = vFalse} sr ()
+  𝒱-subst {A = `∀ A} {v = vZero} sr ()
+  𝒱-subst {A = `∀ A} {v = vSuc v} sr ()
+  𝒱-subst {A = `∀ A} {v = vLam} sr ()
+
+  𝒱-unsubst :
+    ∀ {A σ ρ ρ' V W} {v : Value V} {w : Value W}
+    → SubstRel σ ρ ρ'
+    → 𝒱 (substᵗ σ A) ρ V W v w
+    → 𝒱 A ρ' V W v w
+  𝒱-unsubst {A = ` α} sr 𝒱VW = SubstRel.var⇐ sr α 𝒱VW
+  𝒱-unsubst {A = `ℕ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW =
+    𝒱-Nat-irrel {ρ = ρ} {σ = ρ'} {V = V} {W = W} {v = v} {w = w} 𝒱VW
+  𝒱-unsubst {A = `Bool} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW =
+    𝒱-Bool-irrel {ρ = ρ} {σ = ρ'} {V = V} {W = W} {v = v} {w = w} 𝒱VW
+  𝒱-unsubst {A = A ⇒ B} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = ƛ N} {W = ƛ M} {v = vLam} {w = vLam} sr 𝒱VW =
+    λ v₁ w₁ arg-rel →
+      ℰ-unsubst {A = B} {σ = σ} {ρ = ρ} {ρ' = ρ'} sr
+        (𝒱VW v₁ w₁ (𝒱-subst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {v = v₁} {w = w₁} sr arg-rel))
+  𝒱-unsubst {A = A ⇒ B} {v = vLam} {w = vTrue} sr ()
+  𝒱-unsubst {A = A ⇒ B} {v = vLam} {w = vFalse} sr ()
+  𝒱-unsubst {A = A ⇒ B} {v = vLam} {w = vZero} sr ()
+  𝒱-unsubst {A = A ⇒ B} {v = vLam} {w = vSuc w} sr ()
+  𝒱-unsubst {A = A ⇒ B} {v = vLam} {w = vTlam} sr ()
+  𝒱-unsubst {A = A ⇒ B} {v = vTrue} sr ()
+  𝒱-unsubst {A = A ⇒ B} {v = vFalse} sr ()
+  𝒱-unsubst {A = A ⇒ B} {v = vZero} sr ()
+  𝒱-unsubst {A = A ⇒ B} {v = vSuc v} sr ()
+  𝒱-unsubst {A = A ⇒ B} {v = vTlam} sr ()
+  𝒱-unsubst {A = `∀ A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = Λ N} {W = Λ M} {v = vTlam} {w = vTlam} sr 𝒱VW =
+    λ A₁ A₂ R →
+      ℰ-unsubst {A = A} {σ = extsᵗ σ}
+        {ρ = ρ ,⟨ A₁ , A₂ , R ⟩}
+        {ρ' = ρ' ,⟨ A₁ , A₂ , R ⟩}
+        (exts-SubstRel R sr)
+        (𝒱VW A₁ A₂ R)
+  𝒱-unsubst {A = `∀ A} {v = vTlam} {w = vLam} sr ()
+  𝒱-unsubst {A = `∀ A} {v = vTlam} {w = vTrue} sr ()
+  𝒱-unsubst {A = `∀ A} {v = vTlam} {w = vFalse} sr ()
+  𝒱-unsubst {A = `∀ A} {v = vTlam} {w = vZero} sr ()
+  𝒱-unsubst {A = `∀ A} {v = vTlam} {w = vSuc w} sr ()
+  𝒱-unsubst {A = `∀ A} {v = vTrue} sr ()
+  𝒱-unsubst {A = `∀ A} {v = vFalse} sr ()
+  𝒱-unsubst {A = `∀ A} {v = vZero} sr ()
+  𝒱-unsubst {A = `∀ A} {v = vSuc v} sr ()
+  𝒱-unsubst {A = `∀ A} {v = vLam} sr ()
+
+  ℰ-subst :
+    ∀ {A σ ρ ρ' M N}
+    → SubstRel σ ρ ρ'
+    → ℰ A ρ' M N
+    → ℰ (substᵗ σ A) ρ M N
+  ℰ-subst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} sr
+    ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
+    ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W
+      , 𝒱-subst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW
+      ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
+
+  ℰ-unsubst :
+    ∀ {A σ ρ ρ' M N}
+    → SubstRel σ ρ ρ'
+    → ℰ (substᵗ σ A) ρ M N
+    → ℰ A ρ' M N
+  ℰ-unsubst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} sr
+    ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
+    ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W
+      , 𝒱-unsubst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW
+      ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
+
 ⇑-ℰ : ∀{A A₁ A₂}{ρ}{γ}{R}
   → ℰ A ρ (γ .γ₁ 0) (γ .γ₂ 0)
   → ℰ (renameᵗ suc A) (ρ ,⟨ A₁ , A₂ , R ⟩) (γ .γ₁ 0) (γ .γ₂ 0)
@@ -559,19 +693,23 @@ compat-·[] : ∀ {Γ A B}
 compat-·[] {A = A} {B = B} M M-rel ρ γ env
   with M-rel ρ γ env
 ... | ⟨ .(Λ N₁) , ⟨ .(Λ N₂) , ⟨ vTlam {N = N₁} , ⟨ vTlam {N = N₂} , ⟨ M₁—↠ΛN₁ , ⟨ M₂—↠ΛN₂ , ∀-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-  with ∀-rel (substᵗ (ρ₁ ρ) B) (substᵗ (ρ₂ ρ) B) (λ _ _ _ _ → ⊤)
+  with ∀-rel (substᵗ (ρ₁ ρ) B) (substᵗ (ρ₂ ρ) B) {!!} -- 𝒱 B ρ, Set₃ != Set₂
 ... | ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ N₁—↠V , ⟨ N₂—↠W , 𝒱[A]VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
-  ⟨ V
-  , ⟨ W
-    , ⟨ v
-      , ⟨ w
-        , ⟨ multi-trans left-red N₁—↠V
-          , ⟨ multi-trans right-red N₂—↠W
-            , {! !} ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-  -- 𝒱 A (ρ ,⟨ substᵗ (ρ₁ ρ) B , substᵗ (ρ₂ ρ) B , ... ⟩)
-  -- implies
-  -- 𝒱 (substᵗ (singleTyEnv B) A) ρ V W v w
+  ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨
+    multi-trans left-red N₁—↠V
+  , ⟨ multi-trans right-red N₂—↠W
+  , 𝒱-subst {A} SR 𝒱[A]VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
   where
+  SR : SubstRel (singleTyEnv B) ρ
+       (ρ ,⟨ substᵗ (ρ₁ ρ) B , substᵗ (ρ₂ ρ) B , {!!} ⟩) -- 𝒱 B ρ, Set₃ != Set₂
+  -- Needed here: from rel : Lift _ ⊤, produce 𝒱 B ρ V W v w.
+  -- Blocker: we'd like to instantiate ∀-rel with R = 𝒱 B ρ, but
+  -- Rel's codomain is Set₂ while 𝒱 B ρ ... lives in Set₃ (universe mismatch).
+  SubstRel.var⇒ SR zero rel = {! rel!} -- rel
+  SubstRel.var⇒ SR (suc α) rel = rel
+  SubstRel.var⇐ SR zero rel = {!rel!} -- rel
+  SubstRel.var⇐ SR (suc α) rel = rel
+
   ·[]-↠ : ∀ {L L' : Term}
     → L —↠ L'
     → (L ·[]) —↠ (L' ·[])

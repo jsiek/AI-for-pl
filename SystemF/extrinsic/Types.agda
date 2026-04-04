@@ -77,6 +77,10 @@ _•ᵗ_ : Ty → Substᵗ → Substᵗ
 (A •ᵗ σ) zero      = A
 (A •ᵗ σ) (suc α)  = σ α
 
+substCtx : Substᵗ → Ctx → Ctx
+substCtx σ []       = []
+substCtx σ (A ∷ Γ) = substᵗ σ A ∷ substCtx σ Γ
+
 ------------------------------------------------------------------------
 -- Well-formed types and typed variable lookup
 ------------------------------------------------------------------------

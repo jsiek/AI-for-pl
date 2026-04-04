@@ -91,6 +91,16 @@ exts σ (suc i) = rename suc (σ i)
 ⇑ : Subst → Subst
 ⇑ σ i = renameᵀ suc (σ i)
 
+⇑ᵀ : Subst → Subst
+⇑ᵀ σ i = rename suc (σ i)
+
+id : Subst
+id x = ` x
+
+_•_ : Term → Subst → Subst
+(M • σ) 0       = M
+(M • σ) (suc x) = σ x
+
 subst : Subst → Term → Term
 subst σ (` i)                      = σ i
 subst σ (ƛ N)                      = ƛ (subst (exts σ) N)

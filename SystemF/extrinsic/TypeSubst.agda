@@ -1,9 +1,9 @@
-module TypeSubst where
+module extrinsic.TypeSubst where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans)
 open import Data.Nat using (ℕ; zero; suc)
-open import Types
+open import extrinsic.Types
 
 infixr 50 _⨟ᵗ_
 _⨟ᵗ_ : Substᵗ → Substᵗ → Substᵗ
@@ -32,6 +32,7 @@ rename-cong : ∀ {rho rho' : Renameᵗ} → ((i : ℕ) → rho i ≡ rho' i) �
   renameᵗ rho a ≡ renameᵗ rho' a
 rename-cong {rho} {rho'} h (` i) = cong `_ (h i)
 rename-cong {rho} {rho'} h `ℕ = refl
+rename-cong {rho} {rho'} h `Bool = refl
 rename-cong {rho} {rho'} h (a ⇒ b) = cong₂ _⇒_ (rename-cong h a) (rename-cong h b)
 rename-cong {rho} {rho'} h (`∀ a) = cong `∀ (rename-cong h-ext a)
   where
@@ -43,6 +44,7 @@ subst-cong : ∀ {sigma tau : Substᵗ} → ((i : ℕ) → sigma i ≡ tau i) �
   substᵗ sigma a ≡ substᵗ tau a
 subst-cong {sigma} {tau} h (` i) = h i
 subst-cong {sigma} {tau} h `ℕ = refl
+subst-cong {sigma} {tau} h `Bool = refl
 subst-cong {sigma} {tau} h (a ⇒ b) = cong₂ _⇒_ (subst-cong h a) (subst-cong h b)
 subst-cong {sigma} {tau} h (`∀ a) = cong `∀ (subst-cong h-ext a)
   where
@@ -63,6 +65,7 @@ rename-rename-commute : (rho1 rho2 : Renameᵗ) → (a : Ty) →
   renameᵗ rho2 (renameᵗ rho1 a) ≡ renameᵗ (λ i → rho2 (rho1 i)) a
 rename-rename-commute rho1 rho2 (` i) = refl
 rename-rename-commute rho1 rho2 `ℕ = refl
+rename-rename-commute rho1 rho2 `Bool = refl
 rename-rename-commute rho1 rho2 (a ⇒ b) =
   cong₂ _⇒_ (rename-rename-commute rho1 rho2 a) (rename-rename-commute rho1 rho2 b)
 rename-rename-commute rho1 rho2 (`∀ a) =
@@ -79,6 +82,7 @@ rename-subst-commute : (rho : Renameᵗ) → (tau : Substᵗ) → (a : Ty) →
   substᵗ tau (renameᵗ rho a) ≡ substᵗ (λ i → tau (rho i)) a
 rename-subst-commute rho tau (` i) = refl
 rename-subst-commute rho tau `ℕ = refl
+rename-subst-commute rho tau `Bool = refl
 rename-subst-commute rho tau (a ⇒ b) =
   cong₂ _⇒_ (rename-subst-commute rho tau a) (rename-subst-commute rho tau b)
 rename-subst-commute rho tau (`∀ a) =
@@ -100,6 +104,7 @@ rename-subst : (rho : Renameᵗ) → (tau : Substᵗ) → (a : Ty) →
   renameᵗ rho (substᵗ tau a) ≡ substᵗ (λ i → renameᵗ rho (tau i)) a
 rename-subst rho tau (` i) = refl
 rename-subst rho tau `ℕ = refl
+rename-subst rho tau `Bool = refl
 rename-subst rho tau (a ⇒ b) =
   cong₂ _⇒_ (rename-subst rho tau a) (rename-subst rho tau b)
 rename-subst rho tau (`∀ a) =
@@ -119,6 +124,7 @@ sub-sub : (sigma tau : Substᵗ) → (a : Ty) →
   substᵗ tau (substᵗ sigma a) ≡ substᵗ (sigma ⨟ᵗ tau) a
 sub-sub sigma tau (` i) = refl
 sub-sub sigma tau `ℕ = refl
+sub-sub sigma tau `Bool = refl
 sub-sub sigma tau (a ⇒ b) =
   cong₂ _⇒_ (sub-sub sigma tau a) (sub-sub sigma tau b)
 sub-sub sigma tau (`∀ a) =
@@ -129,6 +135,7 @@ sub-sub sigma tau (`∀ a) =
 subst-id : (a : Ty) → substᵗ `_ a ≡ a
 subst-id (` i) = refl
 subst-id `ℕ = refl
+subst-id `Bool = refl
 subst-id (a ⇒ b) = cong₂ _⇒_ (subst-id a) (subst-id b)
 subst-id (`∀ a) = trans (cong `∀ (subst-cong exts-var a)) (cong `∀ (subst-id a))
   where
@@ -232,4 +239,3 @@ subst-[]ᵗ-commute σ A B =
     env-eq : (i : ℕ) → ((singleTyEnv B) ⨟ᵗ σ) i ≡ cons-sub (substᵗ σ B) σ i
     env-eq zero = refl
     env-eq (suc i) = refl
-

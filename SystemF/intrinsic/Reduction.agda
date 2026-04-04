@@ -1,11 +1,11 @@
-module Reduction where
+module intrinsic.Reduction where
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Function using (case_of_)
 
-open import Types
-open import Ctx
-open import Terms
+open import intrinsic.Types
+open import intrinsic.Ctx
+open import intrinsic.Terms
 
 infix 2 _—→_
 

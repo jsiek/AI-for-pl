@@ -1,8 +1,8 @@
-module SystemF where
+module extrinsic.SystemF where
 
 open import Data.List using (_∷_)
 open import Data.Nat using (suc)
-open import Types public
+open import extrinsic.Types public
 
 ------------------------------------------------------------------------
 -- Terms
@@ -19,9 +19,12 @@ data Term : Set where
   `_ : Var → Term
   ƛ_⇒_ : Ty → Term → Term
   _·_ : Term → Term → Term
+  `true : Term
+  `false : Term
   `zero : Term
   `suc_ : Term → Term
   case_[zero⇒_|suc⇒_] : Term → Term → Term → Term
+  `if_then_else : Term → Term → Term → Term
   Λ_ : Term → Term
   _·[_] : Term → Ty → Term
 
@@ -33,10 +36,14 @@ renameᵀ : Renameᵗ → Term → Term
 renameᵀ ρ (` i)                      = ` i
 renameᵀ ρ (ƛ A ⇒ N)                  = ƛ (renameᵗ ρ A) ⇒ (renameᵀ ρ N)
 renameᵀ ρ (L · M)                    = renameᵀ ρ L · renameᵀ ρ M
+renameᵀ ρ `true                      = `true
+renameᵀ ρ `false                     = `false
 renameᵀ ρ `zero                      = `zero
 renameᵀ ρ (`suc M)                   = `suc (renameᵀ ρ M)
 renameᵀ ρ (case_[zero⇒_|suc⇒_] L M N) =
   case_[zero⇒_|suc⇒_] (renameᵀ ρ L) (renameᵀ ρ M) (renameᵀ ρ N)
+renameᵀ ρ (`if_then_else L M N)      =
+  `if_then_else (renameᵀ ρ L) (renameᵀ ρ M) (renameᵀ ρ N)
 renameᵀ ρ (Λ N)                      = Λ (renameᵀ (extᵗ ρ) N)
 renameᵀ ρ (M ·[ A ])                 = renameᵀ ρ M ·[ renameᵗ ρ A ]
 
@@ -44,10 +51,14 @@ substᵀ : Substᵗ → Term → Term
 substᵀ σ (` i)                      = ` i
 substᵀ σ (ƛ A ⇒ N)                  = ƛ (substᵗ σ A) ⇒ (substᵀ σ N)
 substᵀ σ (L · M)                    = substᵀ σ L · substᵀ σ M
+substᵀ σ `true                      = `true
+substᵀ σ `false                     = `false
 substᵀ σ `zero                      = `zero
 substᵀ σ (`suc M)                   = `suc (substᵀ σ M)
 substᵀ σ (case_[zero⇒_|suc⇒_] L M N) =
   case_[zero⇒_|suc⇒_] (substᵀ σ L) (substᵀ σ M) (substᵀ σ N)
+substᵀ σ (`if_then_else L M N)      =
+  `if_then_else (substᵀ σ L) (substᵀ σ M) (substᵀ σ N)
 substᵀ σ (Λ N)                      = Λ (substᵀ (extsᵗ σ) N)
 substᵀ σ (M ·[ A ])                 = substᵀ σ M ·[ substᵗ σ A ]
 
@@ -72,10 +83,14 @@ rename : Rename → Term → Term
 rename ρ (` i)                      = ` (ρ i)
 rename ρ (ƛ A ⇒ N)                  = ƛ A ⇒ rename (ext ρ) N
 rename ρ (L · M)                    = rename ρ L · rename ρ M
+rename ρ `true                      = `true
+rename ρ `false                     = `false
 rename ρ `zero                      = `zero
 rename ρ (`suc M)                   = `suc (rename ρ M)
 rename ρ (case_[zero⇒_|suc⇒_] L M N) =
   case_[zero⇒_|suc⇒_] (rename ρ L) (rename ρ M) (rename (ext ρ) N)
+rename ρ (`if_then_else L M N)      =
+  `if_then_else (rename ρ L) (rename ρ M) (rename ρ N)
 rename ρ (Λ N)                      = Λ (rename ρ N)
 rename ρ (M ·[ A ])                 = rename ρ M ·[ A ]
 
@@ -90,10 +105,14 @@ subst : Subst → Term → Term
 subst σ (` i)                      = σ i
 subst σ (ƛ A ⇒ N)                  = ƛ A ⇒ subst (exts σ) N
 subst σ (L · M)                    = subst σ L · subst σ M
+subst σ `true                      = `true
+subst σ `false                     = `false
 subst σ `zero                      = `zero
 subst σ (`suc M)                   = `suc (subst σ M)
 subst σ (case_[zero⇒_|suc⇒_] L M N) =
   case_[zero⇒_|suc⇒_] (subst σ L) (subst σ M) (subst (exts σ) N)
+subst σ (`if_then_else L M N)      =
+  `if_then_else (subst σ L) (subst σ M) (subst σ N)
 subst σ (Λ N)                      = Λ (subst (⇑ σ) N)
 subst σ (M ·[ A ])                 = subst σ M ·[ A ]
 
@@ -124,6 +143,12 @@ data _⊢_⊢_⦂_ : TyCtx → Ctx → Term → Ty → Set where
        Δ ⊢ Γ ⊢ M ⦂ A →
        Δ ⊢ Γ ⊢ (L · M) ⦂ B
 
+  ⊢true : {Δ : TyCtx} {Γ : Ctx} →
+          Δ ⊢ Γ ⊢ `true ⦂ `Bool
+
+  ⊢false : {Δ : TyCtx} {Γ : Ctx} →
+           Δ ⊢ Γ ⊢ `false ⦂ `Bool
+
   ⊢zero : {Δ : TyCtx} {Γ : Ctx} →
           Δ ⊢ Γ ⊢ `zero ⦂ `ℕ
 
@@ -136,6 +161,12 @@ data _⊢_⊢_⦂_ : TyCtx → Ctx → Term → Ty → Set where
           Δ ⊢ Γ ⊢ M ⦂ A →
           Δ ⊢ (`ℕ ∷ Γ) ⊢ N ⦂ A →
           Δ ⊢ Γ ⊢ (case_[zero⇒_|suc⇒_] L M N) ⦂ A
+
+  ⊢if : {Δ : TyCtx} {Γ : Ctx} {A : Ty} {L M N : Term} →
+        Δ ⊢ Γ ⊢ L ⦂ `Bool →
+        Δ ⊢ Γ ⊢ M ⦂ A →
+        Δ ⊢ Γ ⊢ N ⦂ A →
+        Δ ⊢ Γ ⊢ (`if_then_else L M N) ⦂ A
 
   ⊢Λ : {Δ : TyCtx} {Γ : Ctx} {N : Term} {A : Ty} →
        (suc Δ) ⊢ (⤊ Γ) ⊢ N ⦂ A →
@@ -152,6 +183,8 @@ data _⊢_⊢_⦂_ : TyCtx → Ctx → Term → Ty → Set where
 
 data Value : Term → Set where
   vLam  : {A : Ty} {N : Term} → Value (ƛ A ⇒ N)
+  vTrue : Value `true
+  vFalse : Value `false
   vZero : Value `zero
   vSuc  : {V : Term} → Value V → Value (`suc V)
   vTlam : {N : Term} → Value (Λ N)
@@ -175,9 +208,19 @@ data _—→_ : Term → Term → Set where
           M —→ M' →
           (`suc M) —→ (`suc M')
 
+  ξ-if : {L L' M N : Term} →
+         L —→ L' →
+         (`if_then_else L M N) —→ (`if_then_else L' M N)
+
   ξ-case : {L L' M N : Term} →
            L —→ L' →
            (case_[zero⇒_|suc⇒_] L M N) —→ (case_[zero⇒_|suc⇒_] L' M N)
+
+  β-true : {M N : Term} →
+           (`if_then_else `true M N) —→ M
+
+  β-false : {M N : Term} →
+            (`if_then_else `false M N) —→ N
 
   β-zero : {M N : Term} →
            (case_[zero⇒_|suc⇒_] `zero M N) —→ M

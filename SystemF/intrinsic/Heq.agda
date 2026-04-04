@@ -1,4 +1,4 @@
-module Heq where
+module intrinsic.Heq where
 
 open import Level using (Level)
 open import Relation.Binary.HeterogeneousEquality as H using (_≅_; refl)

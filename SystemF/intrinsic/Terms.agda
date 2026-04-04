@@ -1,4 +1,4 @@
-module Terms where
+module intrinsic.Terms where
 
 open import Relation.Binary.PropositionalEquality
             using    (_≡_; refl; cong; cong₂; sym; trans)
@@ -6,9 +6,9 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Binary.HeterogeneousEquality as H
             using (_≅_) renaming (cong to congʰ)
 
-open import Types
-open import Ctx
-open import Heq using (Hcong₁; Hcong₂; Hcong₃; Hcong₄; Hcong₅)
+open import intrinsic.Types
+open import intrinsic.Ctx
+open import intrinsic.Heq using (Hcong₁; Hcong₂; Hcong₃; Hcong₄; Hcong₅)
 
 infix  4 _;_⊢_
 infix  9 `_

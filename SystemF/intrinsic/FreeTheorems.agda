@@ -1,6 +1,6 @@
 {-# OPTIONS --rewriting #-}
 
-module FreeTheorems where
+module intrinsic.FreeTheorems where
 
 open import Agda.Builtin.Equality
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
@@ -10,11 +10,11 @@ open import Data.Empty.Polymorphic using (⊥)
 open import Data.Unit.Polymorphic.Base using (⊤; tt)
 open import Level using (Lift; lift; zero)
 
-open import Types
-open import Ctx
-open import Terms
-open import Reduction
-open import Parametricity
+open import intrinsic.Types
+open import intrinsic.Ctx
+open import intrinsic.Terms
+open import intrinsic.Reduction
+open import intrinsic.Parametricity
 
 -- | Free theorem (identity):
 

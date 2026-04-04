@@ -1,4 +1,4 @@
-module Preservation where
+module extrinsic.Preservation where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Relation.Binary.PropositionalEquality as Eq using (cong; cong₂; sym; trans)
@@ -7,8 +7,8 @@ open import Data.Product using (_×_; _,_)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat.Base using (ℕ; zero; suc; _<_; z<s; s<s; s<s⁻¹)
 
-open import SystemF
-open import TypeSubst
+open import extrinsic.SystemF
+open import extrinsic.TypeSubst
 
 ------------------------------------------------------------------------
 -- Context lookup under list maps
@@ -61,6 +61,7 @@ renameᵗ-preserves-WfTy :
   WfTy Δ' (renameᵗ ρ A)
 renameᵗ-preserves-WfTy (wfVar x<Δ) hρ = wfVar (hρ x<Δ)
 renameᵗ-preserves-WfTy wf`ℕ hρ = wf`ℕ
+renameᵗ-preserves-WfTy wf`Bool hρ = wf`Bool
 renameᵗ-preserves-WfTy (wfFn hA hB) hρ =
   wfFn (renameᵗ-preserves-WfTy hA hρ) (renameᵗ-preserves-WfTy hB hρ)
 renameᵗ-preserves-WfTy (wf`∀ hA) hρ =
@@ -83,6 +84,7 @@ substᵗ-preserves-WfTy :
   WfTy Δ' (substᵗ σ A)
 substᵗ-preserves-WfTy (wfVar x<Δ) hσ = hσ x<Δ
 substᵗ-preserves-WfTy wf`ℕ hσ = wf`ℕ
+substᵗ-preserves-WfTy wf`Bool hσ = wf`Bool
 substᵗ-preserves-WfTy (wfFn hA hB) hσ =
   wfFn (substᵗ-preserves-WfTy hA hσ) (substᵗ-preserves-WfTy hB hσ)
 substᵗ-preserves-WfTy (wf`∀ hA) hσ =
@@ -116,8 +118,15 @@ typing-renameᵀ hρ (⊢ƛ hA hN) =
     (typing-renameᵀ hρ hN)
 typing-renameᵀ hρ (⊢· hL hM) =
   ⊢· (typing-renameᵀ hρ hL) (typing-renameᵀ hρ hM)
+typing-renameᵀ hρ ⊢true = ⊢true
+typing-renameᵀ hρ ⊢false = ⊢false
 typing-renameᵀ hρ ⊢zero = ⊢zero
 typing-renameᵀ hρ (⊢suc hM) = ⊢suc (typing-renameᵀ hρ hM)
+typing-renameᵀ hρ (⊢if hL hM hN) =
+  ⊢if
+    (typing-renameᵀ hρ hL)
+    (typing-renameᵀ hρ hM)
+    (typing-renameᵀ hρ hN)
 typing-renameᵀ hρ (⊢case hL hM hN) =
   ⊢case
     (typing-renameᵀ hρ hL)
@@ -167,8 +176,15 @@ typing-substᵀ hσ (⊢ƛ hA hN) =
     (typing-substᵀ hσ hN)
 typing-substᵀ hσ (⊢· hL hM) =
   ⊢· (typing-substᵀ hσ hL) (typing-substᵀ hσ hM)
+typing-substᵀ hσ ⊢true = ⊢true
+typing-substᵀ hσ ⊢false = ⊢false
 typing-substᵀ hσ ⊢zero = ⊢zero
 typing-substᵀ hσ (⊢suc hM) = ⊢suc (typing-substᵀ hσ hM)
+typing-substᵀ hσ (⊢if hL hM hN) =
+  ⊢if
+    (typing-substᵀ hσ hL)
+    (typing-substᵀ hσ hM)
+    (typing-substᵀ hσ hN)
 typing-substᵀ hσ (⊢case hL hM hN) =
   ⊢case
     (typing-substᵀ hσ hL)
@@ -248,8 +264,15 @@ typing-rename hρ (⊢ƛ hA hN) =
   ⊢ƛ hA (typing-rename (RenameWf-ext hρ) hN)
 typing-rename hρ (⊢· hL hM) =
   ⊢· (typing-rename hρ hL) (typing-rename hρ hM)
+typing-rename hρ ⊢true = ⊢true
+typing-rename hρ ⊢false = ⊢false
 typing-rename hρ ⊢zero = ⊢zero
 typing-rename hρ (⊢suc hM) = ⊢suc (typing-rename hρ hM)
+typing-rename hρ (⊢if hL hM hN) =
+  ⊢if
+    (typing-rename hρ hL)
+    (typing-rename hρ hM)
+    (typing-rename hρ hN)
 typing-rename hρ (⊢case hL hM hN) =
   ⊢case
     (typing-rename hρ hL)
@@ -293,8 +316,15 @@ typing-subst hσ (⊢ƛ hA hN) =
   ⊢ƛ hA (typing-subst (SubstWf-exts hσ) hN)
 typing-subst hσ (⊢· hL hM) =
   ⊢· (typing-subst hσ hL) (typing-subst hσ hM)
+typing-subst hσ ⊢true = ⊢true
+typing-subst hσ ⊢false = ⊢false
 typing-subst hσ ⊢zero = ⊢zero
 typing-subst hσ (⊢suc hM) = ⊢suc (typing-subst hσ hM)
+typing-subst hσ (⊢if hL hM hN) =
+  ⊢if
+    (typing-subst hσ hL)
+    (typing-subst hσ hM)
+    (typing-subst hσ hN)
 typing-subst hσ (⊢case hL hM hN) =
   ⊢case
     (typing-subst hσ hL)
@@ -332,6 +362,10 @@ preservation (⊢· hL hM) (ξ-·₁ s) =
   ⊢· (preservation hL s) hM
 preservation (⊢· hL hM) (ξ-·₂ vV s) =
   ⊢· hL (preservation hM s)
+preservation (⊢if hL hM hN) (ξ-if s) =
+  ⊢if (preservation hL s) hM hN
+preservation (⊢if hL hM hN) β-true = hM
+preservation (⊢if hL hM hN) β-false = hN
 preservation (⊢suc hM) (ξ-suc s) =
   ⊢suc (preservation hM s)
 preservation (⊢case hL hM hN) (ξ-case s) =

@@ -1,4 +1,4 @@
-module Parametricity where
+module intrinsic.Parametricity where
 
 open import Relation.Binary.PropositionalEquality
             using    (_≡_; refl; cong; cong₂; sym; trans)
@@ -10,10 +10,10 @@ open import Data.Unit.Polymorphic.Base using (⊤; tt)
 open import Level using (Level; Lift; lift; suc; zero)
 open import Function using (case_of_)
 
-open import Types
-open import Ctx
-open import Terms
-open import Reduction
+open import intrinsic.Types
+open import intrinsic.Ctx
+open import intrinsic.Terms
+open import intrinsic.Reduction
 
 -- The type of relations on values of type A and B
 Rel : ∀ {ℓ Ξ} → Type Ξ → Type Ξ → Set (suc ℓ)

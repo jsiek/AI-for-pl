@@ -1,4 +1,4 @@
-module Types where
+module intrinsic.Types where
 
 open import Relation.Binary.PropositionalEquality
             using    (_≡_; refl; cong; cong₂; sym; trans)
@@ -42,6 +42,9 @@ data Type : TyCtx → Set where
   `Bool  : ∀ {Δ} → Type Δ
   _⇒_   : ∀ {Δ} → Type Δ → Type Δ → Type Δ
   `∀_    : ∀ {Δ} → Type (Δ ,α) → Type Δ
+
+`ℕ : ∀ {Δ} → Type Δ
+`ℕ = `Nat
 
 ------------------------------------
 -- | Substitute types into type | --

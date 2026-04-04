@@ -1,6 +1,6 @@
-module Ctx where
+module intrinsic.Ctx where
 
-open import Types
+open import intrinsic.Types
 
 infixl 5 _,_
 infix  4 _∋_

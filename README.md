@@ -33,6 +33,136 @@ Local bibliography note: `/Users/jsiek/bib/all.bib` is a large catalogue
 of PL papers that we use as a reference source when porting examples
 and designs into the Agda developments.
 
+## Language Definition + Metatheory Checklist (Join over `AI-for-pl`)
+
+This section is a "maximal join" over the language developments in this
+repo (`STLC`, `lambda`, `SystemF`, `GTLC`, `GTSF`, `PolyCast`,
+`PolyUpDown`, `PolyImp`, `PolyG`, `PolyBlameI`): if a component appears
+as a standard part of at least one mature development here, it is listed.
+
+Use this as guidance when creating a new language folder.
+
+### 1) Core language definition (always)
+
+- [ ] `Types` module:
+  type grammar plus well-formedness (`WfTy`) or intrinsic typing indices.
+- [ ] `Terms` / main language module:
+  term grammar, values, and key syntactic forms.
+- [ ] Context and lookup machinery:
+  term contexts, type contexts (if polymorphic), membership judgments.
+- [ ] Static semantics:
+  typing judgment(s), including all introduction/elimination rules.
+- [ ] Dynamic semantics:
+  small-step reduction and/or big-step evaluator, plus an explicit
+  executable `Eval` function/module when appropriate
+  (for example `PolyUpDown/Eval.agda`), with explicit value forms.
+- [ ] Renaming/substitution infrastructure:
+  use parallel renaming and parallel substitution as the primary setup
+  (at term level, and at type level when the language has type binders),
+  then derive single-variable substitution as a special case.
+- [ ] Administrative lemmas:
+  weakening/lookup-map/extensionality-style lemmas needed by preservation.
+- [ ] File charter in every source file:
+  a short top-of-file comment stating the file's purpose, scope,
+  primary exports/theorems, and key dependencies.
+- [ ] Preferred file naming conventions:
+  use `Types`, `Terms`, `TypeSubst`, `TermSubst`,
+  `Reduction`, `Progress`, `Preservation`, `TypeSafety`, `Eval`,
+  `Examples`, `README` for design rationale, and `Design` for 
+  informal definitoin of the language design.
+  Prefer `UpperCamelCase.agda` for module files and stable canonical
+  names over ad-hoc abbreviations.
+
+### 2) Baseline metatheory (default target)
+
+- [ ] Canonical forms lemmas for the main type constructors.
+- [ ] Progress.
+- [ ] Preservation.
+- [ ] Type safety theorem (or `progress + preservation` exported clearly).
+- [ ] Multi-step closure and multi-step preservation (if using small-step).
+- [ ] Substitution theorems:
+  term substitution and, when needed, type substitution commuting lemmas.
+- [ ] Determinism and/or normalization/confluence when part of the design goal
+  (e.g. `Termination`, `CoercionNormalForm`, full-beta confluence work).
+
+### 3) Testing, examples, and executable artifacts
+
+- [ ] `Examples` module with representative well-typed programs.
+- [ ] `Eval`/`Reduction` execution examples:
+  show expected reduction/evaluation outcomes.
+- [ ] Companion evidence for example terms:
+  in `Examples`-style modules, every top-level executable term
+  declaration (`name : Term`) should include both a typing derivation
+  (`name-⊢`) and a reduction/evaluation witness (`name-↠` or evaluator
+  result theorem). For helper/library terms that are not directly
+  runnable to data, include at least one explicitly named fully-applied
+  companion example that is.
+- [ ] Prefer data endpoints for tests:
+  example reductions should finish at `Bool`/`ℕ` constants (or other
+  first-order data values in the language), not higher-order functions.
+  If an example currently stops at a function, extend it with additional
+  applications until it reaches a data constant.
+- [ ] Complete reduction-rule exercise set:
+  maintain a small coverage catalog where the example suite collectively
+  exercises every dynamic semantics rule at least once.
+- [ ] Regression examples for tricky metatheory edges
+  (substitution through binders, casts at polymorphic boundaries, etc.).
+- [ ] Cross-check implementation style if available
+  (e.g. parallel Agda/Lean files as in `STLC` and `lambda`).
+- [ ] Design/notes document capturing intended semantics and proof strategy.
+
+### 4) Polymorphic-language extras (`SystemF`, `Poly*`, `GTSF`)
+
+Add these when the language has universal quantification or type-level binders.
+
+- [ ] Type-level renaming and substitution operators.
+- [ ] Type-substitution lemmas for terms/typing derivations.
+- [ ] Instantiation/generalization metatheory (`Λ`, type application).
+- [ ] Optional but recommended:
+  representation bridges (`intrinsic`/`extrinsic` isomorphism) and
+  relational theorems such as parametricity/free theorems.
+
+### 5) Gradual-typing extras (`GTLC`, `GTSF`, `PolyImp`, `PolyUpDown`, `PolyBlameI`)
+
+These are language-kind-specific and do not apply to fully static calculi.
+
+- [ ] Consistency relation (or equivalent compatibility relation).
+- [ ] Precision/imprecision (or separate widening/narrowing) relation.
+- [ ] Cast/coercion typing and operational semantics.
+- [ ] Static gradual guarantee (typing-level monotonicity wrt precision).
+- [ ] Dynamic gradual guarantee (runtime behavior monotonicity wrt precision).
+- [ ] Proof-supporting properties of consistency/precision
+  (reflexive/transitive-like facts, substitution compatibility, etc.).
+- [ ] If blame is modeled:
+  blame-safety/precision properties and explicit blame behavior examples.
+
+### 6) Cast/coercion-calculus extras (`GTLC`, `PolyCast`, `Poly*`)
+
+Add these when casts are first-class semantic objects.
+
+- [ ] Coercion syntax + typing judgment.
+- [ ] Coercion reduction/equality (if normalized or equated).
+- [ ] Coercion compilation/correctness links (if compiling casts to coercions).
+- [ ] Normal-form and algebraic properties needed by evaluator/metatheory.
+
+### 7) Store/stateful-language extras (`PolyCast`, `PolyImp`, `PolyUpDown`, `PolyBlameI`)
+
+Only needed when evaluation depends on runtime store components.
+
+- [ ] Store syntax/representation and store typing invariants.
+- [ ] Reduction/eval rules that thread store explicitly.
+- [ ] Progress/preservation statements lifted to term+store configurations.
+- [ ] Example executions that exercise heap/cell/cast interactions.
+
+### 8) Suggested "definition of done" for new languages
+
+- [ ] Core definition complete and readable (`Types`, terms, contexts, typing, reduction).
+- [ ] Baseline metatheory complete (`progress`, `preservation`, substitution).
+- [ ] Relevant language-kind-specific subsection above completed.
+- [ ] Examples and evaluator traces added for nontrivial programs.
+- [ ] At least one design note documenting key choices and non-obvious lemmas.
+- [ ] Entire folder type-checks cleanly in Agda (and Lean, if dualized).
+
 # Work in Progress
 
 
@@ -171,6 +301,3 @@ When a proof gets stuck in "subst hell", use this pattern.
   Prove and reuse identities such as context-substitution identity,
   extension identity, and type-substitution identity so most branches
   close by `refl`.
-
-
-

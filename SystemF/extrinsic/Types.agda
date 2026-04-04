@@ -69,6 +69,14 @@ singleTyEnv B (suc i) = ` i
 _[_]ᵗ : Ty → Ty → Ty
 A [ B ]ᵗ = substᵗ (singleTyEnv B) A
 
+idᵗ : Substᵗ
+idᵗ = `_
+
+infixr 6 _•ᵗ_
+_•ᵗ_ : Ty → Substᵗ → Substᵗ
+(A •ᵗ σ) zero      = A
+(A •ᵗ σ) (suc α)  = σ α
+
 ------------------------------------------------------------------------
 -- Well-formed types and typed variable lookup
 ------------------------------------------------------------------------

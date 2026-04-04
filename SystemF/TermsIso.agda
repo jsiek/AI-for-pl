@@ -41,10 +41,10 @@ eraseTerm (IT.`suc_ M) = ET.`suc_ (eraseTerm M)
 eraseTerm (IT.`case-nat L M N) = ET.case_[zero⇒_|suc⇒_] (eraseTerm L) (eraseTerm M) (eraseTerm N)
 eraseTerm (IT.`if_then_else L M N) = ET.`if_then_else (eraseTerm L) (eraseTerm M) (eraseTerm N)
 eraseTerm (IT.` x) = ET.` (eraseTmVar x)
-eraseTerm (IT.ƛ A ˙ N) = ET.ƛ erase A ⇒ eraseTerm N
+eraseTerm (IT.ƛ A ˙ N) = ET.ƛ_ (eraseTerm N)
 eraseTerm (IT._·_ L M) = ET._·_ (eraseTerm L) (eraseTerm M)
 eraseTerm (IT.Λ_ N) = ET.Λ_ (eraseTerm N)
-eraseTerm (IT._∙_ M B) = ET._·[_] (eraseTerm M) (erase B)
+eraseTerm (IT._∙_ M B) = ET._·[] (eraseTerm M)
 
 postulate
   eraseCtx-⇑ᶜ : ∀ {Δ} (Γ : IC.Ctx Δ) → eraseCtx (IC.⇑ᶜ Γ) ≡ E.⤊ (eraseCtx Γ)

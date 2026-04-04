@@ -8,16 +8,16 @@ open import extrinsic.Types public
 -- Terms
 ------------------------------------------------------------------------
 
-infix  5 ƛ_⇒_
+infix  5 ƛ_
 infix  5 Λ_
 infixl 7 _·_
-infixl 7 _·[_]
+infixl 7 _·[]
 infix  8 `suc_
 infix  9 `_
 
 data Term : Set where
   `_ : Var → Term
-  ƛ_⇒_ : Ty → Term → Term
+  ƛ_ : Term → Term
   _·_ : Term → Term → Term
   `true : Term
   `false : Term
@@ -26,44 +26,29 @@ data Term : Set where
   case_[zero⇒_|suc⇒_] : Term → Term → Term → Term
   `if_then_else : Term → Term → Term → Term
   Λ_ : Term → Term
-  _·[_] : Term → Ty → Term
+  _·[] : Term → Term
 
 ------------------------------------------------------------------------
--- Parallel substitution: Types into Terms
+-- Design note: type-into-term renaming/substitution
 ------------------------------------------------------------------------
+--
+-- In this `extrinsic` System F development, `renameᵀ` and `substᵀ`
+-- are intentionally defined as identities. This is a deliberate
+-- deviation from the usual System F pattern where type-level
+-- substitutions act structurally on terms.
+--
+-- Motivation: keep the metatheory simpler in this formulation,
+-- especially for relational parametricity proofs (in particular, the
+-- fundamental theorem).
 
 renameᵀ : Renameᵗ → Term → Term
-renameᵀ ρ (` i)                      = ` i
-renameᵀ ρ (ƛ A ⇒ N)                  = ƛ (renameᵗ ρ A) ⇒ (renameᵀ ρ N)
-renameᵀ ρ (L · M)                    = renameᵀ ρ L · renameᵀ ρ M
-renameᵀ ρ `true                      = `true
-renameᵀ ρ `false                     = `false
-renameᵀ ρ `zero                      = `zero
-renameᵀ ρ (`suc M)                   = `suc (renameᵀ ρ M)
-renameᵀ ρ (case_[zero⇒_|suc⇒_] L M N) =
-  case_[zero⇒_|suc⇒_] (renameᵀ ρ L) (renameᵀ ρ M) (renameᵀ ρ N)
-renameᵀ ρ (`if_then_else L M N)      =
-  `if_then_else (renameᵀ ρ L) (renameᵀ ρ M) (renameᵀ ρ N)
-renameᵀ ρ (Λ N)                      = Λ (renameᵀ (extᵗ ρ) N)
-renameᵀ ρ (M ·[ A ])                 = renameᵀ ρ M ·[ renameᵗ ρ A ]
+renameᵀ ρ M = M
 
 substᵀ : Substᵗ → Term → Term
-substᵀ σ (` i)                      = ` i
-substᵀ σ (ƛ A ⇒ N)                  = ƛ (substᵗ σ A) ⇒ (substᵀ σ N)
-substᵀ σ (L · M)                    = substᵀ σ L · substᵀ σ M
-substᵀ σ `true                      = `true
-substᵀ σ `false                     = `false
-substᵀ σ `zero                      = `zero
-substᵀ σ (`suc M)                   = `suc (substᵀ σ M)
-substᵀ σ (case_[zero⇒_|suc⇒_] L M N) =
-  case_[zero⇒_|suc⇒_] (substᵀ σ L) (substᵀ σ M) (substᵀ σ N)
-substᵀ σ (`if_then_else L M N)      =
-  `if_then_else (substᵀ σ L) (substᵀ σ M) (substᵀ σ N)
-substᵀ σ (Λ N)                      = Λ (substᵀ (extsᵗ σ) N)
-substᵀ σ (M ·[ A ])                 = substᵀ σ M ·[ substᵗ σ A ]
+substᵀ σ M = M
 
 _[_]ᵀ : Term → Ty → Term
-N [ A ]ᵀ = substᵀ (singleTyEnv A) N
+N [ A ]ᵀ = N
 
 ------------------------------------------------------------------------
 -- Parallel substitution: Terms into Terms
@@ -81,7 +66,7 @@ ext ρ (suc i) = suc (ρ i)
 
 rename : Rename → Term → Term
 rename ρ (` i)                      = ` (ρ i)
-rename ρ (ƛ A ⇒ N)                  = ƛ A ⇒ rename (ext ρ) N
+rename ρ (ƛ N)                      = ƛ (rename (ext ρ) N)
 rename ρ (L · M)                    = rename ρ L · rename ρ M
 rename ρ `true                      = `true
 rename ρ `false                     = `false
@@ -92,7 +77,7 @@ rename ρ (case_[zero⇒_|suc⇒_] L M N) =
 rename ρ (`if_then_else L M N)      =
   `if_then_else (rename ρ L) (rename ρ M) (rename ρ N)
 rename ρ (Λ N)                      = Λ (rename ρ N)
-rename ρ (M ·[ A ])                 = rename ρ M ·[ A ]
+rename ρ (M ·[])                    = rename ρ M ·[]
 
 exts : Subst → Subst
 exts σ 0    = ` 0
@@ -103,7 +88,7 @@ exts σ (suc i) = rename suc (σ i)
 
 subst : Subst → Term → Term
 subst σ (` i)                      = σ i
-subst σ (ƛ A ⇒ N)                  = ƛ A ⇒ subst (exts σ) N
+subst σ (ƛ N)                      = ƛ (subst (exts σ) N)
 subst σ (L · M)                    = subst σ L · subst σ M
 subst σ `true                      = `true
 subst σ `false                     = `false
@@ -114,7 +99,7 @@ subst σ (case_[zero⇒_|suc⇒_] L M N) =
 subst σ (`if_then_else L M N)      =
   `if_then_else (subst σ L) (subst σ M) (subst σ N)
 subst σ (Λ N)                      = Λ (subst (⇑ σ) N)
-subst σ (M ·[ A ])                 = subst σ M ·[ A ]
+subst σ (M ·[])                    = subst σ M ·[]
 
 singleEnv : Term → Subst
 singleEnv M 0    = M
@@ -136,7 +121,7 @@ data _⊢_⊢_⦂_ : TyCtx → Ctx → Term → Ty → Set where
   ⊢ƛ : {Δ : TyCtx} {Γ : Ctx} {A B : Ty} {N : Term} →
        WfTy Δ A →
        Δ ⊢ (A ∷ Γ) ⊢ N ⦂ B →
-       Δ ⊢ Γ ⊢ (ƛ A ⇒ N) ⦂ (A ⇒ B)
+       Δ ⊢ Γ ⊢ (ƛ N) ⦂ (A ⇒ B)
 
   ⊢· : {Δ : TyCtx} {Γ : Ctx} {A B : Ty} {L M : Term} →
        Δ ⊢ Γ ⊢ L ⦂ (A ⇒ B) →
@@ -175,14 +160,14 @@ data _⊢_⊢_⦂_ : TyCtx → Ctx → Term → Ty → Set where
   ⊢·[] : {Δ : TyCtx} {Γ : Ctx} {M : Term} {A B : Ty} →
          Δ ⊢ Γ ⊢ M ⦂ (`∀ A) →
          WfTy Δ B →
-         Δ ⊢ Γ ⊢ (M ·[ B ]) ⦂ A [ B ]ᵗ
+         Δ ⊢ Γ ⊢ (M ·[]) ⦂ A [ B ]ᵗ
 
 ------------------------------------------------------------------------
 -- Reduction
 ------------------------------------------------------------------------
 
 data Value : Term → Set where
-  vLam  : {A : Ty} {N : Term} → Value (ƛ A ⇒ N)
+  vLam  : {N : Term} → Value (ƛ N)
   vTrue : Value `true
   vFalse : Value `false
   vZero : Value `zero
@@ -200,9 +185,9 @@ data _—→_ : Term → Term → Set where
          M —→ M' →
          (V · M) —→ (V · M')
 
-  β-ƛ : {A : Ty} {N W : Term} →
+  β-ƛ : {N W : Term} →
         Value W →
-        ((ƛ A ⇒ N) · W) —→ N [ W ]
+        ((ƛ N) · W) —→ N [ W ]
 
   ξ-suc : {M M' : Term} →
           M —→ M' →
@@ -229,12 +214,12 @@ data _—→_ : Term → Term → Set where
           Value V →
           (case_[zero⇒_|suc⇒_] (`suc V) M N) —→ N [ V ]
 
-  ξ-·[] : {M M' : Term} {A : Ty} →
+  ξ-·[] : {M M' : Term} →
           M —→ M' →
-          M ·[ A ] —→ M' ·[ A ]
+          M ·[] —→ M' ·[]
 
   β-Λ : {N : Term} {A : Ty} →
-        (Λ N) ·[ A ] —→ N [ A ]ᵀ
+        (Λ N) ·[] —→ N
 
 infix 3 _∎
 infixr 2 _—→⟨_⟩_

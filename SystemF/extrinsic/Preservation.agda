@@ -144,7 +144,7 @@ typing-renameᵀ {Δ' = Δ'} {ρ = ρ} hρ (⊢Λ {Γ = Γ} {N = N} {A = A} hN) 
         hN))
 typing-renameᵀ {Γ = Γ} {ρ = ρ} hρ (⊢·[] {M = M} {A = A} {B = B} hM hB) =
   Eq.subst
-    (λ T → _ ⊢ map (renameᵗ ρ) Γ ⊢ (renameᵀ ρ M ·[ renameᵗ ρ B ]) ⦂ T)
+    (λ T → _ ⊢ map (renameᵗ ρ) Γ ⊢ (renameᵀ ρ M ·[]) ⦂ T)
     (sym (rename-[]ᵗ-commute ρ A B))
     (⊢·[]
       (typing-renameᵀ hρ hM)
@@ -202,7 +202,7 @@ typing-substᵀ {Δ' = Δ'} {σ = σ} hσ (⊢Λ {Γ = Γ} {N = N} {A = A} hN) =
         hN))
 typing-substᵀ {Γ = Γ} {σ = σ} hσ (⊢·[] {M = M} {A = A} {B = B} hM hB) =
   Eq.subst
-    (λ T → _ ⊢ map (substᵗ σ) Γ ⊢ (substᵀ σ M ·[ substᵗ σ B ]) ⦂ T)
+    (λ T → _ ⊢ map (substᵗ σ) Γ ⊢ (substᵀ σ M ·[]) ⦂ T)
     (sym (subst-[]ᵗ-commute σ A B))
     (⊢·[]
       (typing-substᵀ hσ hM)
@@ -373,7 +373,7 @@ preservation (⊢case hL hM hN) (ξ-case s) =
 preservation (⊢case hL hM hN) β-zero = hM
 preservation (⊢case (⊢suc hV) hM hN) (β-suc vV) =
   typing-single-subst hN hV
-preservation (⊢·[] (⊢Λ hN) hB) β-Λ =
+preservation (⊢·[] (⊢Λ hN) hB) (β-Λ {A = A}) =
   typing-single-substᵀ hN hB
 preservation (⊢·[] hM hB) (ξ-·[] s) =
   ⊢·[] (preservation hM s) hB

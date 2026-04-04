@@ -23,8 +23,8 @@ canonical-⇒ :
   ∀ {Δ : TyCtx} {V : Term} {A B : Ty} →
   Value V →
   Δ ⊢ [] ⊢ V ⦂ (A ⇒ B) →
-  Σ Ty (λ C → Σ Term (λ N → V ≡ (ƛ C ⇒ N)))
-canonical-⇒ vLam (⊢ƛ {A = A} {N = N} hA hN) = A , (N , refl)
+  Σ Term (λ N → V ≡ (ƛ N))
+canonical-⇒ vLam (⊢ƛ {N = N} hA hN) = N , refl
 canonical-⇒ vTrue ()
 canonical-⇒ vFalse ()
 canonical-⇒ vZero ()
@@ -82,7 +82,7 @@ progress (⊢· {L = L} {M = M} hL hM) with progress hL
 ... | done vL with progress hM
 ...   | step sM = step (ξ-·₂ vL sM)
 ...   | done vM with canonical-⇒ vL hL
-...     | C , (N , refl) = step (β-ƛ vM)
+...     | N , refl = step (β-ƛ vM)
 progress ⊢true = done vTrue
 progress ⊢false = done vFalse
 progress ⊢zero = done vZero
@@ -100,7 +100,7 @@ progress (⊢case hL hM hN) with progress hL
 ...   | inj₁ refl = step β-zero
 ...   | inj₂ (V , (refl , vV)) = step (β-suc vV)
 progress (⊢Λ hN) = done vTlam
-progress (⊢·[] {M = M} hM hB) with progress hM
+progress (⊢·[] {M = M} {B = B} hM hB) with progress hM
 ... | step sM = step (ξ-·[] sM)
 ... | done vM with canonical-∀ vM hM
-...   | N , refl = step β-Λ
+...   | N , refl = step (β-Λ {A = B})

@@ -552,12 +552,43 @@ liftRelEnv-related {A ∷ Γ} {A₁ = A₁} {A₂ = A₂} {ρ} {γ} R G =
   , liftRelEnv-related {Γ} {A₁ = A₁} {A₂ = A₂} {ρ = ρ} {γ = ⇓γ γ} R (G .proj₂)
   ⟩
 
+compat-·[] : ∀ {Γ A B}
+  → (M : Term)
+  → LogicalRel Γ (`∀ A) M M
+  → LogicalRel Γ (A [ B ]ᵗ) (M ·[]) (M ·[])
+compat-·[] {A = A} {B = B} M M-rel ρ γ env
+  with M-rel ρ γ env
+... | ⟨ .(Λ N₁) , ⟨ .(Λ N₂) , ⟨ vTlam {N = N₁} , ⟨ vTlam {N = N₂} , ⟨ M₁—↠ΛN₁ , ⟨ M₂—↠ΛN₂ , ∀-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
+  with ∀-rel (substᵗ (ρ₁ ρ) B) (substᵗ (ρ₂ ρ) B) (λ _ _ _ _ → ⊤)
+... | ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ N₁—↠V , ⟨ N₂—↠W , 𝒱[A]VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
+  ⟨ V
+  , ⟨ W
+    , ⟨ v
+      , ⟨ w
+        , ⟨ multi-trans left-red N₁—↠V
+          , ⟨ multi-trans right-red N₂—↠W
+            , {! !} ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
+  -- 𝒱 A (ρ ,⟨ substᵗ (ρ₁ ρ) B , substᵗ (ρ₂ ρ) B , ... ⟩)
+  -- implies
+  -- 𝒱 (substᵗ (singleTyEnv B) A) ρ V W v w
+  where
+  ·[]-↠ : ∀ {L L' : Term}
+    → L —↠ L'
+    → (L ·[]) —↠ (L' ·[])
+  ·[]-↠ (L ∎) = (L ·[]) ∎
+  ·[]-↠ (L₀ —→⟨ s ⟩ L₀↠L') = (L₀ ·[]) —→⟨ ξ-·[] s ⟩ ·[]-↠ L₀↠L'
 
-postulate
-  compat-·[] : ∀ {Γ A B}
-    → (M : Term)
-    → LogicalRel Γ (`∀ A) M M
-    → LogicalRel Γ (A [ B ]ᵗ) (M ·[]) (M ·[])
+  left-red : subst (γ .γ₁) (M ·[]) —↠ N₁
+  left-red =
+    multi-trans
+      (·[]-↠ M₁—↠ΛN₁)
+      (((Λ N₁) ·[]) —→⟨ β-Λ {A = substᵗ (ρ₁ ρ) B} ⟩ (N₁ ∎))
+
+  right-red : subst (γ .γ₂) (M ·[]) —↠ N₂
+  right-red =
+    multi-trans
+      (·[]-↠ M₂—↠ΛN₂)
+      (((Λ N₂) ·[]) —→⟨ β-Λ {A = substᵗ (ρ₂ ρ) B} ⟩ (N₂ ∎))
 
 compat-Λ : ∀ {Γ A}
   → (N : Term)

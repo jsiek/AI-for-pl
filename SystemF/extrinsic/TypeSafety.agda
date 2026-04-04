@@ -3,7 +3,7 @@ module extrinsic.TypeSafety where
 open import Agda.Builtin.Sigma using (Σ; _,_)
 open import Data.List using ([])
 
-open import extrinsic.SystemF
+open import extrinsic.Reduction
 open import extrinsic.Progress using (Progress; progress)
 open import extrinsic.Preservation using (preservation; multi-preservation)
 

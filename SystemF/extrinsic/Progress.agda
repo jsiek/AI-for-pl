@@ -5,7 +5,7 @@ open import Agda.Builtin.Sigma using (Σ; _,_)
 open import Data.List using ([])
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 
-open import extrinsic.SystemF
+open import extrinsic.Reduction
 
 ------------------------------------------------------------------------
 -- Progress witness

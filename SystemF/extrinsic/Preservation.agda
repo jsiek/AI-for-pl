@@ -7,7 +7,7 @@ open import Data.Product using (_×_; _,_)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat.Base using (ℕ; zero; suc; _<_; z<s; s<s; s<s⁻¹)
 
-open import extrinsic.SystemF
+open import extrinsic.Reduction
 open import extrinsic.TypeSubst
 
 ------------------------------------------------------------------------

@@ -18,7 +18,7 @@ open import intrinsic.Terms as IT
 
 open import extrinsic.Types as E
   renaming (`_ to evar; `ℕ to eℕ; `Bool to eBool; _⇒_ to _e⇒_; `∀ to e∀)
-open import extrinsic.SystemF as ET
+open import extrinsic.Reduction as ET
 
 eraseCtx : ∀ {Δ} → IC.Ctx Δ → E.Ctx
 eraseCtx IC.∅ = []

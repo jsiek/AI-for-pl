@@ -11,7 +11,7 @@ open import Data.List using ([])
 open import Data.Maybe using (Maybe; nothing; just)
 open import Data.Product using (Σ; Σ-syntax; _,_)
 
-open import extrinsic.SystemF
+open import extrinsic.Reduction
 open import extrinsic.Progress
 open import extrinsic.Preservation
 

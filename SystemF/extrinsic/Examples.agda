@@ -4,7 +4,7 @@ open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Base using (z<s; s<s)
 open import Data.List using ([]; _∷_)
 
-open import extrinsic.SystemF
+open import extrinsic.Reduction
 
 ------------------------------------------------------------------------
 -- Small reusable typing helpers

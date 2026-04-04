@@ -161,8 +161,26 @@ progress :
   ProgressResult M
 progress h refl = progress-empty h
 
-progress_top :
+progress_top : 
   {M : Term} {A : Ty} ->
   HasType [] M A ->
   ProgressResult M
 progress_top h = progress-empty h
+
+------------------------------------------------------------------------
+-- Compact safety wrapper
+------------------------------------------------------------------------
+
+record Safety (M : Term) (A : Ty) : Set where
+  constructor safety
+  field
+    progress-witness : ProgressResult M
+    preservation-step : ∀ {N : Term} -> M —→ N -> HasType [] N A
+
+open Safety public
+
+typeSafety :
+  {M : Term} {A : Ty} ->
+  HasType [] M A ->
+  Safety M A
+typeSafety hM = safety (progress_top hM) (preservation hM)

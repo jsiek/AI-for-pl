@@ -51,7 +51,7 @@ subst-cong {sigma} {tau} h (`∀ a) = cong `∀ (subst-cong h-ext a)
     h-ext (suc i) = cong (renameᵗ suc) (h i)
 
 ------------------------------------------------------------------------
--- Converted substitution theorems
+-- Substitution theorems
 ------------------------------------------------------------------------
 
 ext-comp : (rho1 rho2 : Renameᵗ) →

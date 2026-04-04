@@ -1,10 +1,4 @@
-{-# OPTIONS --rewriting #-}
-
 module Types where
-
--- Need the following two imports for rewriting
-open import Agda.Builtin.Equality
-open import Agda.Builtin.Equality.Rewrite
 
 open import Relation.Binary.PropositionalEquality
             using    (_≡_; refl; cong; cong₂; sym; trans)
@@ -100,7 +94,6 @@ renameᵗ-comp ρ₁ ρ₂ (`∀ A) = cong `∀_
 ⇑ᵗ : ∀ {Δ} (A : Type Δ) → Type (Δ ,α)
 ⇑ᵗ = renameᵗ S_
 
--- check
 renameᵗ-shift : ∀ {Δ Ξ} (ρ : Δ ⇒ʳ Ξ) A → renameᵗ (extᵗ ρ) (⇑ᵗ A) ≡ ⇑ᵗ (renameᵗ ρ A)
 renameᵗ-shift ρ A =
   trans
@@ -210,7 +203,6 @@ sub-renᵗ ρ σ (`∀ A) = cong `∀_
     (sub-renᵗ (extᵗ ρ) (extsᵗ σ) A)
     (substᵗ-cong A (extᵗ-extsᵗ ρ σ)))
 
--- check
 renameᵗ-[]ᵗ : ∀ {Δ Δ'} (ρ : Δ ⇒ʳ Δ') (A : Type (Δ ,α)) (B : Type Δ)
     → renameᵗ ρ (A [ B ]ᵗ) ≡ (renameᵗ (extᵗ ρ) A) [ renameᵗ ρ B ]ᵗ
 renameᵗ-[]ᵗ ρ A B =

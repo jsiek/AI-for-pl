@@ -1,9 +1,4 @@
-{-# OPTIONS --rewriting #-}
-
 module Reduction where
-
-open import Agda.Builtin.Equality
-open import Agda.Builtin.Equality.Rewrite
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Function using (case_of_)
@@ -37,7 +32,6 @@ data Value : ∀ {Δ} {Γ : Ctx Δ} {A : Type Δ} → Δ ; Γ ⊢ A → Set whe
       ------------------------------------
     → Value (ƛ A ˙ N)
 
-  -- | New rule for System F | --
   V-Λ : ∀ {Δ Γ A} {N : Δ ,α ; ⇑ᶜ Γ ⊢ A}
       ------------------------------------
     → Value (Λ N)

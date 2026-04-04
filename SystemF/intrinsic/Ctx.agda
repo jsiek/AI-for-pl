@@ -1,5 +1,3 @@
-{-# OPTIONS --rewriting #-}
-
 module Ctx where
 
 open import Types

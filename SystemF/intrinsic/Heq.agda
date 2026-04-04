@@ -3,6 +3,28 @@ module Heq where
 open import Level using (Level)
 open import Relation.Binary.HeterogeneousEquality as H using (_≅_; refl)
 
+Hcong₁ :
+  ∀ {a b}
+    {A : Set a}
+    {B : A → Set b}
+    {x y}
+    (f : (x : A) → B x)
+    → x ≅ y
+    → f x ≅ f y
+Hcong₁ f H.refl = H.refl
+
+Hcong₂ :
+  ∀ {a b c}
+    {A : Set a}
+    {B : A → Set b}
+    {C : ∀ x → B x → Set c}
+    {x y u v}
+    (f : (x : A) (y : B x) → C x y)
+    → x ≅ y
+    → u ≅ v
+    → f x u ≅ f y v
+Hcong₂ f H.refl H.refl = H.refl
+
 Hcong₃ :
   ∀ {a b c d}
     {A : Set a}

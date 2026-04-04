@@ -112,5 +112,5 @@ LogicalRel Γ A M N = ∀ (ρ : RelSub) (γ : RelEnv)
   → ℰ A ρ (subst (γ .γ₁) M) (subst (γ .γ₂) N)
 
 postulate
-  fundamental : ∀ {Δ Γ A} (M : Term) → Δ ⊢ Γ ⊢ M ⦂ A → LogicalRel Γ A M M
+  fundamental : ∀ {Δ Γ A M} → Δ ⊢ Γ ⊢ M ⦂ A → LogicalRel Γ A M M
 

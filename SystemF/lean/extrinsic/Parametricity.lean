@@ -4,9 +4,9 @@ namespace Extrinsic
 
 theorem compat_app :
   ∀ {Γ A B} (L M : Term),
-    LogicalRel Γ (.fn A B) L L →
+    LogicalRel Γ (A ⇒ B) L L →
     LogicalRel Γ A M M →
-    LogicalRel Γ B (.app L M) (.app L M)
+    LogicalRel Γ B (L ∙ M) (L ∙ M)
   | Γ, A, B, L, M, Lrel, Mrel => by
       intro ρ γ env
       rcases Lrel ρ γ env with ⟨VL, WL, vL, wL, lSteps, rSteps, hFun⟩
@@ -34,32 +34,32 @@ theorem compat_app :
           hVB⟩
 
 theorem compat_true :
-  ∀ {Γ}, LogicalRel Γ .bool .ttrue .ttrue
+  ∀ {Γ}, LogicalRel Γ 𝔹 ˋtrue ˋtrue
   | Γ => by
       intro ρ γ env
-      exact VRel_to_ERel (A := .bool) (ρ := ρ) (V := .ttrue) (W := .ttrue)
+      exact VRel_to_ERel (A := 𝔹) (ρ := ρ) (V := ˋtrue) (W := ˋtrue)
         .vTrue .vTrue trivial
 
 theorem compat_suc :
   ∀ {Γ} (M : Term),
-    LogicalRel Γ .nat M M →
-    LogicalRel Γ .nat (.suc M) (.suc M)
+    LogicalRel Γ ℕ M M →
+    LogicalRel Γ ℕ (ˋsuc M) (ˋsuc M)
   | Γ, M, Mrel => by
       intro ρ γ env
       rcases Mrel ρ γ env with ⟨V, W, v, w, mSteps, nSteps, hVW⟩
       rcases mSteps with ⟨mSteps⟩
       rcases nSteps with ⟨nSteps⟩
-      exact ⟨.suc V, .suc W, .vSuc v, .vSuc w,
+      exact ⟨ˋsuc V, ˋsuc W, .vSuc v, .vSuc w,
         ⟨suc_multi mSteps⟩,
         ⟨suc_multi nSteps⟩,
         by simpa [VRel, VNatRel] using hVW⟩
 
 theorem compat_case :
   ∀ {Γ A} (L M N : Term),
-    LogicalRel Γ .nat L L →
+    LogicalRel Γ ℕ L L →
     LogicalRel Γ A M M →
-    LogicalRel (.nat :: Γ) A N N →
-    LogicalRel Γ A (.natCase L M N) (.natCase L M N)
+    LogicalRel (ℕ :: Γ) A N N →
+    LogicalRel Γ A (caseₜ L [zero⇒ M |suc⇒ N]) (caseₜ L [zero⇒ M |suc⇒ N])
   | Γ, A, L, M, N, Lrel, Mrel, Nrel => by
       intro ρ γ env
       rcases Lrel ρ γ env with ⟨VL, WL, v, w, lSteps, rSteps, hNat⟩
@@ -88,27 +88,27 @@ theorem compat_case :
           hM⟩
       case vSuc.vSuc =>
         rename_i V vV W wW
-        have hVW : VRel .nat ρ V W vV wW := by
+        have hVW : VRel ℕ ρ V W vV wW := by
           simpa [VRel, VNatRel] using hNat
         rcases Nrel ρ (extendRelEnv γ V W)
-            (extendRelEnv_related (Γ := Γ) (A := .nat) (ρ := ρ) (γ := γ)
+            (extendRelEnv_related (Γ := Γ) (A := ℕ) (ρ := ρ) (γ := γ)
               (V := V) (W := W) env vV wW hVW) with
           ⟨VB, WB, vb, wb, nSteps, nStepsR, hVB⟩
         rcases nSteps with ⟨nSteps⟩
         rcases nStepsR with ⟨nStepsR⟩
         have hBetaL :
-            (.natCase (.suc V) (subst γ.gamma1 M) (subst (exts γ.gamma1) N)) —↠
+            (caseₜ (ˋsuc V) [zero⇒ (subst γ.gamma1 M) |suc⇒ (subst (exts γ.gamma1) N)]) —↠
               subst (V • γ.gamma1) N := by
           have h :
-              (.natCase (.suc V) (subst γ.gamma1 M) (subst (exts γ.gamma1) N)) —↠
+              (caseₜ (ˋsuc V) [zero⇒ (subst γ.gamma1 M) |suc⇒ (subst (exts γ.gamma1) N)]) —↠
                 singleSubst (subst (exts γ.gamma1) N) V :=
             .step _ (.beta_suc vV) (.refl _)
           simpa [exts_sub_cons_tm] using h
         have hBetaR :
-            (.natCase (.suc W) (subst γ.gamma2 M) (subst (exts γ.gamma2) N)) —↠
+            (caseₜ (ˋsuc W) [zero⇒ (subst γ.gamma2 M) |suc⇒ (subst (exts γ.gamma2) N)]) —↠
               subst (W • γ.gamma2) N := by
           have h :
-              (.natCase (.suc W) (subst γ.gamma2 M) (subst (exts γ.gamma2) N)) —↠
+              (caseₜ (ˋsuc W) [zero⇒ (subst γ.gamma2 M) |suc⇒ (subst (exts γ.gamma2) N)]) —↠
                 singleSubst (subst (exts γ.gamma2) N) W :=
             .step _ (.beta_suc wW) (.refl _)
           simpa [exts_sub_cons_tm] using h
@@ -128,19 +128,19 @@ theorem compat_case :
           hVB⟩
 
 theorem compat_zero :
-  ∀ {Γ}, LogicalRel Γ .nat .zero .zero
+  ∀ {Γ}, LogicalRel Γ ℕ ˋzero ˋzero
   | Γ => by
       intro ρ γ env
-      exact VRel_to_ERel (A := .nat) (ρ := ρ) (V := .zero) (W := .zero)
+      exact VRel_to_ERel (A := ℕ) (ρ := ρ) (V := ˋzero) (W := ˋzero)
         .vZero .vZero trivial
 
 theorem compat_lam :
   ∀ {Γ A B} (N : Term),
     LogicalRel (A :: Γ) B N N →
-    LogicalRel Γ (.fn A B) (.lam N) (.lam N)
+    LogicalRel Γ (A ⇒ B) (ƛ N) (ƛ N)
   | Γ, A, B, N, Nrel => by
       intro ρ γ env
-      refine ⟨.lam (subst (exts γ.gamma1) N), .lam (subst (exts γ.gamma2) N),
+      refine ⟨ƛ (subst (exts γ.gamma1) N), ƛ (subst (exts γ.gamma2) N),
         .vLam, .vLam, ⟨.refl _⟩, ⟨.refl _⟩, ?_⟩
       intro V W v w hVW
       rcases Nrel ρ (extendRelEnv γ V W)
@@ -155,18 +155,18 @@ theorem compat_lam :
         hVB⟩
 
 theorem compat_false :
-  ∀ {Γ}, LogicalRel Γ .bool .tfalse .tfalse
+  ∀ {Γ}, LogicalRel Γ 𝔹 ˋfalse ˋfalse
   | Γ => by
       intro ρ γ env
-      exact VRel_to_ERel (A := .bool) (ρ := ρ) (V := .tfalse) (W := .tfalse)
+      exact VRel_to_ERel (A := 𝔹) (ρ := ρ) (V := ˋfalse) (W := ˋfalse)
         .vFalse .vFalse trivial
 
 theorem compat_if :
   ∀ {Γ A} (L M N : Term),
-    LogicalRel Γ .bool L L →
+    LogicalRel Γ 𝔹 L L →
     LogicalRel Γ A M M →
     LogicalRel Γ A N N →
-    LogicalRel Γ A (.ite L M N) (.ite L M N)
+    LogicalRel Γ A (ˋif L then M else N) (ˋif L then M else N)
   | Γ, A, L, M, N, Lrel, Mrel, Nrel => by
       intro ρ γ env
       rcases Lrel ρ γ env with ⟨VL, WL, v, w, lSteps, rSteps, hBool⟩
@@ -205,7 +205,7 @@ theorem compat_if :
 theorem compat_var :
   ∀ {Γ A x},
     HasTypeVar Γ x A →
-    LogicalRel Γ A (.var x) (.var x)
+    LogicalRel Γ A (ˋx) (ˋx)
   | _, _, _, .Z => by
       intro ρ γ env
       simpa [LogicalRel, GRel, subst] using env.1
@@ -216,8 +216,8 @@ theorem compat_var :
 
 theorem compat_tapp :
   ∀ {Γ A B} (M : Term),
-    LogicalRel Γ (.all A) M M →
-    LogicalRel Γ (substOneT A B) (.tapp M) (.tapp M)
+    LogicalRel Γ (∀ₜ A) M M →
+    LogicalRel Γ (A [ B ]ₜ) (M ∙[]) (M ∙[])
   | Γ, A, B, M, Mrel => by
       intro ρ γ env
       rcases Mrel ρ γ env with ⟨V, W, v, w, mSteps, nSteps, hAll⟩
@@ -250,10 +250,10 @@ theorem compat_tapp :
 theorem compat_tlam :
   ∀ {Γ A} (N : Term),
     LogicalRel (liftCtx Γ) A N N →
-    LogicalRel Γ (.all A) (.tlam N) (.tlam N)
+    LogicalRel Γ (∀ₜ A) (Λ N) (Λ N)
   | Γ, A, N, Nrel => by
       intro ρ γ env
-      refine ⟨.tlam (subst (up γ.gamma1) N), .tlam (subst (up γ.gamma2) N),
+      refine ⟨Λ (subst (up γ.gamma1) N), Λ (subst (up γ.gamma2) N),
         .vTlam, .vTlam, ⟨.refl _⟩, ⟨.refl _⟩, ?_⟩
       intro A₁ A₂ R
       have hLift :
@@ -271,7 +271,7 @@ theorem compat_tlam :
 
 theorem fundamental :
   ∀ {Δ Γ A} (M : Term),
-    HasType Δ Γ M A →
+    Δ ⊢ Γ ⊢ M ⦂ A →
     LogicalRel Γ A M M
   | _, _, _, _, .t_var hx =>
       compat_var hx

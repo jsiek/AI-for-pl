@@ -14,7 +14,7 @@ def RenameWf (Γ Γ' : Ctx) (ρ : Rename) : Type :=
   ∀ {x A}, HasTypeVar Γ x A → HasTypeVar Γ' (ρ x) A
 
 def SubstWf (Δ : TyCtx) (Γ Γ' : Ctx) (σ : Subst) : Type :=
-  ∀ {x A}, HasTypeVar Γ x A → HasType Δ Γ' (σ x) A
+  ∀ {x A}, HasTypeVar Γ x A → Δ ⊢ Γ' ⊢ (σ x) ⦂ A
 
 -- Step 1 (from log strategy): context-map commutation lemmas.
 def map_renameT_lift (ρ : RenameT) :
@@ -135,122 +135,122 @@ def substT_preserves_WfTy :
 def typing_renameTT :
   ∀ {Δ Δ' Γ M A ρ},
     TyRenameWf Δ Δ' ρ →
-    HasType Δ Γ M A →
-    HasType Δ' (List.map (renameT ρ) Γ) (renameTT ρ M) (renameT ρ A)
+    Δ ⊢ Γ ⊢ M ⦂ A →
+    Δ' ⊢ (List.map (renameT ρ) Γ) ⊢ (renameTT ρ M) ⦂ (renameT ρ A)
   | _, _, _, _, _, ρ, _, .t_var h => by
-      simpa [renameTT] using HasType.t_var (lookup_map_renameT (ρ := ρ) h)
+      simpa [renameTT] using (.t_var (lookup_map_renameT (ρ := ρ) h))
   | _, _, _, _, _, ρ, hρ, .t_lam hA hN => by
-      refine HasType.t_lam (renameT_preserves_WfTy hA hρ) ?_
+      refine .t_lam (renameT_preserves_WfTy hA hρ) ?_
       simpa [renameTT, renameT] using typing_renameTT (ρ := ρ) hρ hN
   | _, _, _, _, _, ρ, hρ, .t_app hL hM => by
-      simpa [renameTT, renameT] using HasType.t_app (typing_renameTT (ρ := ρ) hρ hL) (typing_renameTT (ρ := ρ) hρ hM)
+      simpa [renameTT, renameT] using (.t_app (typing_renameTT (ρ := ρ) hρ hL) (typing_renameTT (ρ := ρ) hρ hM))
   | _, Δ', Γ, _, _, ρ, _, .t_true => by
-      simpa [renameTT, renameT] using (HasType.t_true : HasType Δ' (List.map (renameT ρ) Γ) .ttrue .bool)
+      simpa [renameTT, renameT] using (.t_true : Δ' ⊢ (List.map (renameT ρ) Γ) ⊢ ˋtrue ⦂ 𝔹)
   | _, Δ', Γ, _, _, ρ, _, .t_false => by
-      simpa [renameTT, renameT] using (HasType.t_false : HasType Δ' (List.map (renameT ρ) Γ) .tfalse .bool)
+      simpa [renameTT, renameT] using (.t_false : Δ' ⊢ (List.map (renameT ρ) Γ) ⊢ ˋfalse ⦂ 𝔹)
   | _, Δ', Γ, _, _, ρ, _, .t_zero => by
-      simpa [renameTT, renameT] using (HasType.t_zero : HasType Δ' (List.map (renameT ρ) Γ) .zero .nat)
+      simpa [renameTT, renameT] using (.t_zero : Δ' ⊢ (List.map (renameT ρ) Γ) ⊢ ˋzero ⦂ ℕ)
   | _, _, _, _, _, ρ, hρ, .t_suc hM => by
-      simpa [renameTT, renameT] using HasType.t_suc (typing_renameTT (ρ := ρ) hρ hM)
+      simpa [renameTT, renameT] using (.t_suc (typing_renameTT (ρ := ρ) hρ hM))
   | _, _, _, _, _, ρ, hρ, .t_case hL hM hN => by
       simpa [renameTT, renameT] using
-        HasType.t_case (typing_renameTT (ρ := ρ) hρ hL) (typing_renameTT (ρ := ρ) hρ hM) (typing_renameTT (ρ := ρ) hρ hN)
+        (.t_case (typing_renameTT (ρ := ρ) hρ hL) (typing_renameTT (ρ := ρ) hρ hM) (typing_renameTT (ρ := ρ) hρ hN))
   | _, _, _, _, _, ρ, hρ, .t_if hL hM hN => by
       simpa [renameTT, renameT] using
-        HasType.t_if (typing_renameTT (ρ := ρ) hρ hL) (typing_renameTT (ρ := ρ) hρ hM) (typing_renameTT (ρ := ρ) hρ hN)
+        (.t_if (typing_renameTT (ρ := ρ) hρ hL) (typing_renameTT (ρ := ρ) hρ hM) (typing_renameTT (ρ := ρ) hρ hN))
   | _, Δ', _, _, _, ρ, hρ, .t_tlam (Γ := Γ) (N := N) (A := A) hN => by
       have hNren :
-          HasType (Δ' + 1) (List.map (renameT (extT ρ)) (liftCtx Γ))
-            (renameTT (extT ρ) N) (renameT (extT ρ) A) :=
+          (Δ' + 1) ⊢ (List.map (renameT (extT ρ)) (liftCtx Γ))
+            ⊢ (renameTT (extT ρ) N) ⦂ (renameT (extT ρ) A) :=
         typing_renameTT (Δ' := Δ' + 1) (ρ := extT ρ) (tyRenameWf_ext hρ) hN
       have hNren' :
-          HasType (Δ' + 1) (liftCtx (List.map (renameT ρ) Γ))
-            (renameTT (extT ρ) N) (renameT (extT ρ) A) := by
+          (Δ' + 1) ⊢ (liftCtx (List.map (renameT ρ) Γ))
+            ⊢ (renameTT (extT ρ) N) ⦂ (renameT (extT ρ) A) := by
         refine Eq.ndrec
           (motive := fun Ψ =>
-            HasType (Δ' + 1) Ψ (renameTT (extT ρ) N) (renameT (extT ρ) A))
+            (Δ' + 1) ⊢ Ψ ⊢ (renameTT (extT ρ) N) ⦂ (renameT (extT ρ) A))
           hNren (map_renameT_lift ρ Γ)
       have hNren'' :
-          HasType (Δ' + 1) (liftCtx (List.map (renameT ρ) Γ))
-            N (renameT (extT ρ) A) := by
+          (Δ' + 1) ⊢ (liftCtx (List.map (renameT ρ) Γ))
+            ⊢ N ⦂ (renameT (extT ρ) A) := by
         simpa [renameTT] using hNren'
-      simpa [renameTT, renameT] using (HasType.t_tlam hNren'')
+      simpa [renameTT, renameT] using (.t_tlam hNren'')
   | _, Δ', _, _, _, ρ, hρ, .t_tapp (Γ := Γ) (M := M) (A := A) (B := B) hM hB => by
       have hM' :
-          HasType Δ' (List.map (renameT ρ) Γ) (renameTT ρ M) (renameT ρ (.all A)) :=
+          Δ' ⊢ (List.map (renameT ρ) Γ) ⊢ (renameTT ρ M) ⦂ (renameT ρ (∀ₜ A)) :=
         typing_renameTT (ρ := ρ) hρ hM
       have hB' : WfTy Δ' (renameT ρ B) :=
         renameT_preserves_WfTy hB hρ
       have hTap :
-          HasType Δ' (List.map (renameT ρ) Γ) (.tapp (renameTT ρ M))
-            (substOneT (renameT (extT ρ) A) (renameT ρ B)) :=
-        HasType.t_tapp hM' hB'
+          Δ' ⊢ (List.map (renameT ρ) Γ) ⊢ ((renameTT ρ M) ∙[])
+            ⦂ (substOneT (renameT (extT ρ) A) (renameT ρ B)) :=
+        .t_tapp hM' hB'
       have hTap' :
-          HasType Δ' (List.map (renameT ρ) Γ) (.tapp (renameTT ρ M))
-            (renameT ρ (substOneT A B)) := by
+          Δ' ⊢ (List.map (renameT ρ) Γ) ⊢ ((renameTT ρ M) ∙[])
+            ⦂ (renameT ρ (substOneT A B)) := by
         exact Eq.ndrec (motive := fun T =>
-            HasType Δ' (List.map (renameT ρ) Γ) (.tapp (renameTT ρ M)) T)
+            Δ' ⊢ (List.map (renameT ρ) Γ) ⊢ ((renameTT ρ M) ∙[]) ⦂ T)
           hTap (rename_substOne_commute ρ A B).symm
       simpa [renameTT] using hTap'
 
 def typing_substTT :
   ∀ {Δ Δ' Γ M A σ},
     TySubstWf Δ Δ' σ →
-    HasType Δ Γ M A →
-    HasType Δ' (List.map (substT σ) Γ) (substTT σ M) (substT σ A)
+    Δ ⊢ Γ ⊢ M ⦂ A →
+    Δ' ⊢ (List.map (substT σ) Γ) ⊢ (substTT σ M) ⦂ (substT σ A)
   | _, _, _, _, _, σ, _, .t_var h => by
-      simpa [substTT] using HasType.t_var (lookup_map_substT (σ := σ) h)
+      simpa [substTT] using (.t_var (lookup_map_substT (σ := σ) h))
   | _, _, _, _, _, σ, hσ, .t_lam hA hN => by
-      refine HasType.t_lam (substT_preserves_WfTy hA hσ) ?_
+      refine .t_lam (substT_preserves_WfTy hA hσ) ?_
       simpa [substTT, substT] using typing_substTT (σ := σ) hσ hN
   | _, _, _, _, _, σ, hσ, .t_app hL hM => by
-      simpa [substTT, substT] using HasType.t_app (typing_substTT (σ := σ) hσ hL) (typing_substTT (σ := σ) hσ hM)
+      simpa [substTT, substT] using (.t_app (typing_substTT (σ := σ) hσ hL) (typing_substTT (σ := σ) hσ hM))
   | _, Δ', Γ, _, _, σ, _, .t_true => by
-      simpa [substTT, substT] using (HasType.t_true : HasType Δ' (List.map (substT σ) Γ) .ttrue .bool)
+      simpa [substTT, substT] using (.t_true : Δ' ⊢ (List.map (substT σ) Γ) ⊢ ˋtrue ⦂ 𝔹)
   | _, Δ', Γ, _, _, σ, _, .t_false => by
-      simpa [substTT, substT] using (HasType.t_false : HasType Δ' (List.map (substT σ) Γ) .tfalse .bool)
+      simpa [substTT, substT] using (.t_false : Δ' ⊢ (List.map (substT σ) Γ) ⊢ ˋfalse ⦂ 𝔹)
   | _, Δ', Γ, _, _, σ, _, .t_zero => by
-      simpa [substTT, substT] using (HasType.t_zero : HasType Δ' (List.map (substT σ) Γ) .zero .nat)
+      simpa [substTT, substT] using (.t_zero : Δ' ⊢ (List.map (substT σ) Γ) ⊢ ˋzero ⦂ ℕ)
   | _, _, _, _, _, σ, hσ, .t_suc hM => by
-      simpa [substTT, substT] using HasType.t_suc (typing_substTT (σ := σ) hσ hM)
+      simpa [substTT, substT] using (.t_suc (typing_substTT (σ := σ) hσ hM))
   | _, _, _, _, _, σ, hσ, .t_case hL hM hN => by
       simpa [substTT, substT] using
-        HasType.t_case (typing_substTT (σ := σ) hσ hL) (typing_substTT (σ := σ) hσ hM) (typing_substTT (σ := σ) hσ hN)
+        (.t_case (typing_substTT (σ := σ) hσ hL) (typing_substTT (σ := σ) hσ hM) (typing_substTT (σ := σ) hσ hN))
   | _, _, _, _, _, σ, hσ, .t_if hL hM hN => by
       simpa [substTT, substT] using
-        HasType.t_if (typing_substTT (σ := σ) hσ hL) (typing_substTT (σ := σ) hσ hM) (typing_substTT (σ := σ) hσ hN)
+        (.t_if (typing_substTT (σ := σ) hσ hL) (typing_substTT (σ := σ) hσ hM) (typing_substTT (σ := σ) hσ hN))
   | _, Δ', _, _, _, σ, hσ, .t_tlam (Γ := Γ) (N := N) (A := A) hN => by
       have hNsub :
-          HasType (Δ' + 1) (List.map (substT (extsT σ)) (liftCtx Γ))
-            (substTT (extsT σ) N) (substT (extsT σ) A) :=
+          (Δ' + 1) ⊢ (List.map (substT (extsT σ)) (liftCtx Γ))
+            ⊢ (substTT (extsT σ) N) ⦂ (substT (extsT σ) A) :=
         typing_substTT (Δ' := Δ' + 1) (σ := extsT σ) (tySubstWf_exts hσ) hN
       have hNsub' :
-          HasType (Δ' + 1) (liftCtx (List.map (substT σ) Γ))
-            (substTT (extsT σ) N) (substT (extsT σ) A) := by
+          (Δ' + 1) ⊢ (liftCtx (List.map (substT σ) Γ))
+            ⊢ (substTT (extsT σ) N) ⦂ (substT (extsT σ) A) := by
         refine Eq.ndrec
           (motive := fun Ψ =>
-            HasType (Δ' + 1) Ψ (substTT (extsT σ) N) (substT (extsT σ) A))
+            (Δ' + 1) ⊢ Ψ ⊢ (substTT (extsT σ) N) ⦂ (substT (extsT σ) A))
           hNsub (map_substT_lift σ Γ)
       have hNsub'' :
-          HasType (Δ' + 1) (liftCtx (List.map (substT σ) Γ))
-            N (substT (extsT σ) A) := by
+          (Δ' + 1) ⊢ (liftCtx (List.map (substT σ) Γ))
+            ⊢ N ⦂ (substT (extsT σ) A) := by
         simpa [substTT] using hNsub'
-      simpa [substTT, substT] using (HasType.t_tlam hNsub'')
+      simpa [substTT, substT] using (.t_tlam hNsub'')
   | _, Δ', _, _, _, σ, hσ, .t_tapp (Γ := Γ) (M := M) (A := A) (B := B) hM hB => by
       have hM' :
-          HasType Δ' (List.map (substT σ) Γ) (substTT σ M) (substT σ (.all A)) :=
+          Δ' ⊢ (List.map (substT σ) Γ) ⊢ (substTT σ M) ⦂ (substT σ (∀ₜ A)) :=
         typing_substTT (σ := σ) hσ hM
       have hB' : WfTy Δ' (substT σ B) :=
         substT_preserves_WfTy hB hσ
       have hTap :
-          HasType Δ' (List.map (substT σ) Γ) (.tapp (substTT σ M))
-            (substOneT (substT (extsT σ) A) (substT σ B)) :=
-        HasType.t_tapp hM' hB'
+          Δ' ⊢ (List.map (substT σ) Γ) ⊢ ((substTT σ M) ∙[])
+            ⦂ (substOneT (substT (extsT σ) A) (substT σ B)) :=
+        .t_tapp hM' hB'
       have hTap' :
-          HasType Δ' (List.map (substT σ) Γ) (.tapp (substTT σ M))
-            (substT σ (substOneT A B)) := by
+          Δ' ⊢ (List.map (substT σ) Γ) ⊢ ((substTT σ M) ∙[])
+            ⦂ (substT σ (substOneT A B)) := by
         exact Eq.ndrec (motive := fun T =>
-            HasType Δ' (List.map (substT σ) Γ) (.tapp (substTT σ M)) T)
+            Δ' ⊢ (List.map (substT σ) Γ) ⊢ ((substTT σ M) ∙[]) ⦂ T)
           hTap (subst_substOne_commute σ A B).symm
       simpa [substTT] using hTap'
 
@@ -270,7 +270,7 @@ def substT_renameT_cancel (C B : Ty) :
     substT (singleTyEnv B) (renameT Nat.succ C)
         = substT (fun i => singleTyEnv B (Nat.succ i)) C := by
             exact rename_subst_commute Nat.succ (singleTyEnv B) C
-    _ = substT Ty.var C := by
+    _ = substT idₜ C := by
           apply subst_cong
           intro i
           rfl
@@ -288,18 +288,18 @@ def singleTySubst_lift_cancel :
 
 def typing_single_substTT :
   ∀ {Δ Γ M A B},
-    HasType (Δ + 1) (liftCtx Γ) M A →
+    (Δ + 1) ⊢ (liftCtx Γ) ⊢ M ⦂ A →
     WfTy Δ B →
-    HasType Δ Γ (substOneTT M B) (substOneT A B)
+    Δ ⊢ Γ ⊢ (substOneTT M B) ⦂ (substOneT A B)
   | Δ, Γ, M, A, B, hM, hB => by
       have hsub :
-          HasType Δ (List.map (substT (singleTyEnv B)) (liftCtx Γ))
-            (substTT (singleTyEnv B) M) (substOneT A B) :=
+          Δ ⊢ (List.map (substT (singleTyEnv B)) (liftCtx Γ))
+            ⊢ (substTT (singleTyEnv B) M) ⦂ (substOneT A B) :=
         typing_substTT (σ := singleTyEnv B) (singleTySubstWf hB) hM
       have hcast :
-          HasType Δ Γ (substTT (singleTyEnv B) M) (substOneT A B) := by
+          Δ ⊢ Γ ⊢ (substTT (singleTyEnv B) M) ⦂ (substOneT A B) := by
         refine Eq.ndrec
-          (motive := fun Ψ => HasType Δ Ψ (substTT (singleTyEnv B) M) (substOneT A B))
+          (motive := fun Ψ => Δ ⊢ Ψ ⊢ (substTT (singleTyEnv B) M) ⦂ (substOneT A B))
           hsub (singleTySubst_lift_cancel Γ B)
       simpa [substOneTT, substTT] using hcast
 
@@ -341,36 +341,36 @@ def renameWf_lift {Γ Γ' ρ} :
 def typing_rename :
   ∀ {Δ Γ Γ' M A ρ},
     RenameWf Γ Γ' ρ →
-    HasType Δ Γ M A →
-    HasType Δ Γ' (rename ρ M) A
+    Δ ⊢ Γ ⊢ M ⦂ A →
+    Δ ⊢ Γ' ⊢ (rename ρ M) ⦂ A
   | _, _, _, _, _, _, hρ, .t_var h =>
       .t_var (hρ h)
   | _, _, _, _, _, _, hρ, .t_lam hA hN => by
-      simpa [rename] using HasType.t_lam hA (typing_rename (renameWf_ext hρ) hN)
+      simpa [rename] using (.t_lam hA (typing_rename (renameWf_ext hρ) hN))
   | _, _, _, _, _, _, hρ, .t_app hL hM => by
-      simpa [rename] using HasType.t_app (typing_rename hρ hL) (typing_rename hρ hM)
+      simpa [rename] using (.t_app (typing_rename hρ hL) (typing_rename hρ hM))
   | _, _, _, _, _, _, _, .t_true => by
-      simpa [rename] using (HasType.t_true : HasType _ _ .ttrue .bool)
+      simpa [rename] using (.t_true : _ ⊢ _ ⊢ ˋtrue ⦂ 𝔹)
   | _, _, _, _, _, _, _, .t_false => by
-      simpa [rename] using (HasType.t_false : HasType _ _ .tfalse .bool)
+      simpa [rename] using (.t_false : _ ⊢ _ ⊢ ˋfalse ⦂ 𝔹)
   | _, _, _, _, _, _, _, .t_zero => by
-      simpa [rename] using (HasType.t_zero : HasType _ _ .zero .nat)
+      simpa [rename] using (.t_zero : _ ⊢ _ ⊢ ˋzero ⦂ ℕ)
   | _, _, _, _, _, _, hρ, .t_suc hM => by
-      simpa [rename] using HasType.t_suc (typing_rename hρ hM)
+      simpa [rename] using (.t_suc (typing_rename hρ hM))
   | _, _, _, _, _, _, hρ, .t_case hL hM hN => by
       simpa [rename] using
-        HasType.t_case (typing_rename hρ hL) (typing_rename hρ hM) (typing_rename (renameWf_ext hρ) hN)
+        (.t_case (typing_rename hρ hL) (typing_rename hρ hM) (typing_rename (renameWf_ext hρ) hN))
   | _, _, _, _, _, _, hρ, .t_if hL hM hN => by
-      simpa [rename] using HasType.t_if (typing_rename hρ hL) (typing_rename hρ hM) (typing_rename hρ hN)
+      simpa [rename] using (.t_if (typing_rename hρ hL) (typing_rename hρ hM) (typing_rename hρ hN))
   | _, _, _, _, _, _, hρ, .t_tlam hN => by
-      simpa [rename] using HasType.t_tlam (typing_rename (renameWf_lift hρ) hN)
+      simpa [rename] using (.t_tlam (typing_rename (renameWf_lift hρ) hN))
   | _, _, _, _, _, _, hρ, .t_tapp hM hB => by
-      simpa [rename] using HasType.t_tapp (typing_rename hρ hM) hB
+      simpa [rename] using (.t_tapp (typing_rename hρ hM) hB)
 
 def typing_rename_shift :
   ∀ {Δ Γ M A B},
-    HasType Δ Γ M A →
-    HasType Δ (B :: Γ) (rename Nat.succ M) A
+    Δ ⊢ Γ ⊢ M ⦂ A →
+    Δ ⊢ (B :: Γ) ⊢ (rename Nat.succ M) ⦂ A
   | Δ, Γ, M, A, B, hM =>
       typing_rename (Δ := Δ) (Γ := Γ) (Γ' := B :: Γ) (M := M) (A := A) (ρ := Nat.succ)
         (fun {_ _} h => HasTypeVar.S h) hM
@@ -381,7 +381,7 @@ def substWf_exts {Δ Γ Γ' B σ} :
   intro hσ x A h
   cases h with
   | Z =>
-      simpa [exts] using (HasType.t_var (HasTypeVar.Z : HasTypeVar (B :: Γ') 0 B))
+      simpa [exts] using (.t_var (HasTypeVar.Z : HasTypeVar (B :: Γ') 0 B))
   | S h' =>
       simpa [exts] using typing_rename_shift (B := B) (hσ h')
 
@@ -394,66 +394,66 @@ def substWf_up {Δ Γ Γ' σ} :
     intro i hi
     exact Nat.succ_lt_succ hi
   have htyped :
-      HasType (Δ + 1) (liftCtx Γ') (renameTT Nat.succ (σ x)) (renameT Nat.succ B) := by
+      (Δ + 1) ⊢ (liftCtx Γ') ⊢ (renameTT Nat.succ (σ x)) ⦂ (renameT Nat.succ B) := by
     simpa [liftCtx] using typing_renameTT (ρ := Nat.succ) hRenWf (hσ hB)
-  have htyped' : HasType (Δ + 1) (liftCtx Γ') (up σ x) (renameT Nat.succ B) := by
+  have htyped' : (Δ + 1) ⊢ (liftCtx Γ') ⊢ (up σ x) ⦂ (renameT Nat.succ B) := by
     simpa [up] using htyped
   exact Eq.ndrec
-    (motive := fun T => HasType (Δ + 1) (liftCtx Γ') (up σ x) T)
+    (motive := fun T => (Δ + 1) ⊢ (liftCtx Γ') ⊢ (up σ x) ⦂ T)
     htyped' hEq.symm
 
 def typing_subst :
   ∀ {Δ Γ Γ' M A σ},
     SubstWf Δ Γ Γ' σ →
-    HasType Δ Γ M A →
-    HasType Δ Γ' (subst σ M) A
+    Δ ⊢ Γ ⊢ M ⦂ A →
+    Δ ⊢ Γ' ⊢ (subst σ M) ⦂ A
   | _, _, _, _, _, _, hσ, .t_var h => by
       simpa [subst] using hσ h
   | _, _, _, _, _, _, hσ, .t_lam hA hN => by
-      simpa [subst] using HasType.t_lam hA (typing_subst (substWf_exts hσ) hN)
+      simpa [subst] using (.t_lam hA (typing_subst (substWf_exts hσ) hN))
   | _, _, _, _, _, _, hσ, .t_app hL hM => by
-      simpa [subst] using HasType.t_app (typing_subst hσ hL) (typing_subst hσ hM)
+      simpa [subst] using (.t_app (typing_subst hσ hL) (typing_subst hσ hM))
   | _, _, _, _, _, _, _, .t_true => by
-      simpa [subst] using (HasType.t_true : HasType _ _ .ttrue .bool)
+      simpa [subst] using (.t_true : _ ⊢ _ ⊢ ˋtrue ⦂ 𝔹)
   | _, _, _, _, _, _, _, .t_false => by
-      simpa [subst] using (HasType.t_false : HasType _ _ .tfalse .bool)
+      simpa [subst] using (.t_false : _ ⊢ _ ⊢ ˋfalse ⦂ 𝔹)
   | _, _, _, _, _, _, _, .t_zero => by
-      simpa [subst] using (HasType.t_zero : HasType _ _ .zero .nat)
+      simpa [subst] using (.t_zero : _ ⊢ _ ⊢ ˋzero ⦂ ℕ)
   | _, _, _, _, _, _, hσ, .t_suc hM => by
-      simpa [subst] using HasType.t_suc (typing_subst hσ hM)
+      simpa [subst] using (.t_suc (typing_subst hσ hM))
   | _, _, _, _, _, _, hσ, .t_case hL hM hN => by
       simpa [subst] using
-        HasType.t_case (typing_subst hσ hL) (typing_subst hσ hM) (typing_subst (substWf_exts hσ) hN)
+        (.t_case (typing_subst hσ hL) (typing_subst hσ hM) (typing_subst (substWf_exts hσ) hN))
   | _, _, _, _, _, _, hσ, .t_if hL hM hN => by
-      simpa [subst] using HasType.t_if (typing_subst hσ hL) (typing_subst hσ hM) (typing_subst hσ hN)
+      simpa [subst] using (.t_if (typing_subst hσ hL) (typing_subst hσ hM) (typing_subst hσ hN))
   | _, _, _, _, _, _, hσ, .t_tlam hN => by
-      simpa [subst] using HasType.t_tlam (typing_subst (substWf_up hσ) hN)
+      simpa [subst] using (.t_tlam (typing_subst (substWf_up hσ) hN))
   | _, _, _, _, _, _, hσ, .t_tapp hM hB => by
-      simpa [subst] using HasType.t_tapp (typing_subst hσ hM) hB
+      simpa [subst] using (.t_tapp (typing_subst hσ hM) hB)
 
 def singleSubstWf {Δ Γ A V} :
-    HasType Δ Γ V A →
+    Δ ⊢ Γ ⊢ V ⦂ A →
     SubstWf Δ (A :: Γ) Γ (singleEnv V) := by
   intro hV x B h
   cases h with
   | Z =>
       simpa [singleEnv] using hV
   | S h' =>
-      simpa [singleEnv] using (HasType.t_var h')
+      simpa [singleEnv] using (.t_var h')
 
 def typing_single_subst :
   ∀ {Δ Γ N V A B},
-    HasType Δ (A :: Γ) N B →
-    HasType Δ Γ V A →
-    HasType Δ Γ (singleSubst N V) B
+    Δ ⊢ (A :: Γ) ⊢ N ⦂ B →
+    Δ ⊢ Γ ⊢ V ⦂ A →
+    Δ ⊢ Γ ⊢ (singleSubst N V) ⦂ B
   | _, _, _, _, _, _, hN, hV => by
       simpa [singleSubst] using typing_subst (singleSubstWf hV) hN
 
 def preservation :
   ∀ {Δ Γ M N A},
-    HasType Δ Γ M A →
+    Δ ⊢ Γ ⊢ M ⦂ A →
     M —→ N →
-    HasType Δ Γ N A
+    Δ ⊢ Γ ⊢ N ⦂ A
   | _, _, _, _, _, .t_app (.t_lam hA hN) hW, .beta_lam _ =>
       typing_single_subst hN hW
   | _, _, _, _, _, .t_app hL hM, .xi_app₁ s =>
@@ -481,9 +481,9 @@ def preservation :
 
 def multi_preservation :
   ∀ {Δ Γ M N A},
-    HasType Δ Γ M A →
+    Δ ⊢ Γ ⊢ M ⦂ A →
     M —↠ N →
-    HasType Δ Γ N A
+    Δ ⊢ Γ ⊢ N ⦂ A
   | _, _, _, _, _, hM, .refl _ =>
       hM
   | _, _, _, _, _, hM, .step _ s ms =>

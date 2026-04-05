@@ -8,7 +8,7 @@ structure EvalResult (M : Term) : Type where
   value : Value term
 
 noncomputable def eval {Δ : TyCtx} {M : Term} {A : Ty} :
-    Nat → HasType Δ [] M A → Option (EvalResult M)
+    Nat → Δ ⊢ [] ⊢ M ⦂ A → Option (EvalResult M)
   | 0, hM =>
       match progress hM with
       | .done v => some ⟨M, .refl M, v⟩

@@ -16,11 +16,28 @@ inductive Term where
   | tapp  : Term → Term
   deriving DecidableEq, Repr
 
-infixl:70 " · " => Term.app
+syntax "ˋ" num : term
+syntax "ˋ" ident : term
+syntax "ˋ(" term ")" : term
+macro_rules
+  | `(ˋ$n:num) => `(Term.var $n)
+  | `(ˋ$x:ident) => `(Term.var $x)
+  | `(ˋ($t:term)) => `(Term.var $t)
 
-def renameTT (ρ : RenameT) (M : Term) : Term := M
-def substTT (σ : SubstT) (M : Term) : Term := M
-def substOneTT (N : Term) (A : Ty) : Term := N
+prefix:75 "ƛ " => Term.lam
+prefix:75 "Λ " => Term.tlam
+infixl:70 " ∙ " => Term.app
+notation:70 M " ∙[]" => Term.tapp M
+notation:max "ˋtrue" => Term.ttrue
+notation:max "ˋfalse" => Term.tfalse
+notation:max "ˋzero" => Term.zero
+prefix:80 "ˋsuc " => Term.suc
+notation:max "caseₜ " L " [zero⇒ " M " |suc⇒ " N "]" => Term.natCase L M N
+notation:max "ˋif " L " then " M " else " N => Term.ite L M N
+
+def renameTT (_ρ : RenameT) (M : Term) : Term := M
+def substTT (_σ : SubstT) (M : Term) : Term := M
+def substOneTT (N : Term) (_A : Ty) : Term := N
 
 abbrev Rename : Type := Var → Var
 abbrev Subst : Type := Var → Term
@@ -30,20 +47,20 @@ def ext (ρ : Rename) : Rename
   | i + 1 => (ρ i) + 1
 
 def rename (ρ : Rename) : Term → Term
-  | .var i => .var (ρ i)
-  | .lam N => .lam (rename (ext ρ) N)
-  | .app L M => .app (rename ρ L) (rename ρ M)
-  | .ttrue => .ttrue
-  | .tfalse => .tfalse
-  | .zero => .zero
-  | .suc M => .suc (rename ρ M)
-  | .natCase L M N => .natCase (rename ρ L) (rename ρ M) (rename (ext ρ) N)
-  | .ite L M N => .ite (rename ρ L) (rename ρ M) (rename ρ N)
-  | .tlam N => .tlam (rename ρ N)
-  | .tapp M => .tapp (rename ρ M)
+  | ˋi => ˋ(ρ i)
+  | ƛ N => ƛ (rename (ext ρ) N)
+  | (L ∙ M) => (rename ρ L) ∙ (rename ρ M)
+  | ˋtrue => ˋtrue
+  | ˋfalse => ˋfalse
+  | ˋzero => ˋzero
+  | ˋsuc M => ˋsuc (rename ρ M)
+  | caseₜ L [zero⇒ M |suc⇒ N] => caseₜ (rename ρ L) [zero⇒ (rename ρ M) |suc⇒ (rename (ext ρ) N)]
+  | ˋif L then M else N => ˋif (rename ρ L) then (rename ρ M) else (rename ρ N)
+  | Λ N => Λ (rename ρ N)
+  | M ∙[] => (rename ρ M) ∙[]
 
 def exts (σ : Subst) : Subst
-  | 0 => .var 0
+  | 0 => ˋ0
   | i + 1 => rename Nat.succ (σ i)
 
 def up (σ : Subst) : Subst :=
@@ -52,7 +69,7 @@ def up (σ : Subst) : Subst :=
 def upT (σ : Subst) : Subst :=
   fun i => rename Nat.succ (σ i)
 
-def id : Subst := Term.var
+def id : Subst := fun i => ˋi
 
 def consSub (M : Term) (σ : Subst) : Subst
   | 0 => M
@@ -61,21 +78,21 @@ def consSub (M : Term) (σ : Subst) : Subst
 infixr:61 " • " => consSub
 
 def subst (σ : Subst) : Term → Term
-  | .var i => σ i
-  | .lam N => .lam (subst (exts σ) N)
-  | .app L M => .app (subst σ L) (subst σ M)
-  | .ttrue => .ttrue
-  | .tfalse => .tfalse
-  | .zero => .zero
-  | .suc M => .suc (subst σ M)
-  | .natCase L M N => .natCase (subst σ L) (subst σ M) (subst (exts σ) N)
-  | .ite L M N => .ite (subst σ L) (subst σ M) (subst σ N)
-  | .tlam N => .tlam (subst (up σ) N)
-  | .tapp M => .tapp (subst σ M)
+  | ˋi => σ i
+  | ƛ N => ƛ (subst (exts σ) N)
+  | (L ∙ M) => (subst σ L) ∙ (subst σ M)
+  | ˋtrue => ˋtrue
+  | ˋfalse => ˋfalse
+  | ˋzero => ˋzero
+  | ˋsuc M => ˋsuc (subst σ M)
+  | caseₜ L [zero⇒ M |suc⇒ N] => caseₜ (subst σ L) [zero⇒ (subst σ M) |suc⇒ (subst (exts σ) N)]
+  | ˋif L then M else N => ˋif (subst σ L) then (subst σ M) else (subst σ N)
+  | Λ N => Λ (subst (up σ) N)
+  | M ∙[] => (subst σ M) ∙[]
 
 def singleEnv (M : Term) : Subst
   | 0 => M
-  | i + 1 => .var i
+  | i + 1 => ˋi
 
 def singleSubst (N M : Term) : Term :=
   subst (singleEnv M) N
@@ -95,35 +112,35 @@ theorem exts_cong {σ τ : Subst} :
 
 theorem rename_cong_tm {ρ ρ' : Rename} :
   (∀ i, ρ i = ρ' i) → ∀ M, rename ρ M = rename ρ' M
-  | h, .var i => by simpa [rename, h i]
-  | h, .lam N => by simpa [rename] using congrArg Term.lam (rename_cong_tm (ext_cong h) N)
-  | h, .app L M => by simp [rename, rename_cong_tm h L, rename_cong_tm h M]
-  | h, .ttrue => rfl
-  | h, .tfalse => rfl
-  | h, .zero => rfl
-  | h, .suc M => by simpa [rename] using congrArg Term.suc (rename_cong_tm h M)
-  | h, .natCase L M N => by
+  | h, ˋi => by simpa [rename, h i]
+  | h, ƛ N => by simpa [rename] using congrArg (fun T => ƛ T) (rename_cong_tm (ext_cong h) N)
+  | h, (L ∙ M) => by simp [rename, rename_cong_tm h L, rename_cong_tm h M]
+  | h, ˋtrue => rfl
+  | h, ˋfalse => rfl
+  | h, ˋzero => rfl
+  | h, ˋsuc M => by simpa [rename] using congrArg (fun T => ˋsuc T) (rename_cong_tm h M)
+  | h, caseₜ L [zero⇒ M |suc⇒ N] => by
       simp [rename, rename_cong_tm h L, rename_cong_tm h M, rename_cong_tm (ext_cong h) N]
-  | h, .ite L M N => by
+  | h, ˋif L then M else N => by
       simp [rename, rename_cong_tm h L, rename_cong_tm h M, rename_cong_tm h N]
-  | h, .tlam N => by simpa [rename] using congrArg Term.tlam (rename_cong_tm h N)
-  | h, .tapp M => by simpa [rename] using congrArg Term.tapp (rename_cong_tm h M)
+  | h, Λ N => by simpa [rename] using congrArg (fun T => Λ T) (rename_cong_tm h N)
+  | h, M ∙[] => by simpa [rename] using congrArg (fun T => T ∙[]) (rename_cong_tm h M)
 
 theorem subst_cong_tm {σ τ : Subst} :
   (∀ i, σ i = τ i) → ∀ M, subst σ M = subst τ M
-  | h, .var i => h i
-  | h, .lam N => by simpa [subst] using congrArg Term.lam (subst_cong_tm (exts_cong h) N)
-  | h, .app L M => by simp [subst, subst_cong_tm h L, subst_cong_tm h M]
-  | h, .ttrue => rfl
-  | h, .tfalse => rfl
-  | h, .zero => rfl
-  | h, .suc M => by simpa [subst] using congrArg Term.suc (subst_cong_tm h M)
-  | h, .natCase L M N => by
+  | h, ˋi => h i
+  | h, ƛ N => by simpa [subst] using congrArg (fun T => ƛ T) (subst_cong_tm (exts_cong h) N)
+  | h, (L ∙ M) => by simp [subst, subst_cong_tm h L, subst_cong_tm h M]
+  | h, ˋtrue => rfl
+  | h, ˋfalse => rfl
+  | h, ˋzero => rfl
+  | h, ˋsuc M => by simpa [subst] using congrArg (fun T => ˋsuc T) (subst_cong_tm h M)
+  | h, caseₜ L [zero⇒ M |suc⇒ N] => by
       simp [subst, subst_cong_tm h L, subst_cong_tm h M, subst_cong_tm (exts_cong h) N]
-  | h, .ite L M N => by
+  | h, ˋif L then M else N => by
       simp [subst, subst_cong_tm h L, subst_cong_tm h M, subst_cong_tm h N]
-  | h, .tlam N => by simpa [subst] using congrArg Term.tlam (subst_cong_tm h N)
-  | h, .tapp M => by simpa [subst] using congrArg Term.tapp (subst_cong_tm h M)
+  | h, Λ N => by simpa [subst] using congrArg (fun T => Λ T) (subst_cong_tm h N)
+  | h, M ∙[] => by simpa [subst] using congrArg (fun T => T ∙[]) (subst_cong_tm h M)
 
 theorem ext_comp_tm (ρ₁ ρ₂ : Rename) :
   (fun i => ext ρ₂ (ext ρ₁ i)) = ext (fun i => ρ₂ (ρ₁ i)) := by
@@ -132,29 +149,29 @@ theorem ext_comp_tm (ρ₁ ρ₂ : Rename) :
 
 theorem rename_comp (ρ₁ ρ₂ : Rename) :
   ∀ M, rename ρ₂ (rename ρ₁ M) = rename (fun i => ρ₂ (ρ₁ i)) M
-  | .var i => rfl
-  | .lam N => by
+  | ˋi => rfl
+  | ƛ N => by
       calc
-        rename ρ₂ (rename ρ₁ (.lam N))
-            = .lam (rename (ext ρ₂) (rename (ext ρ₁) N)) := rfl
-        _ = .lam (rename (fun i => ext ρ₂ (ext ρ₁ i)) N) := by
-              simpa using congrArg Term.lam (rename_comp (ext ρ₁) (ext ρ₂) N)
-        _ = .lam (rename (ext (fun i => ρ₂ (ρ₁ i))) N) := by
-              apply congrArg Term.lam
+        rename ρ₂ (rename ρ₁ (ƛ N))
+            = ƛ (rename (ext ρ₂) (rename (ext ρ₁) N)) := rfl
+        _ = ƛ (rename (fun i => ext ρ₂ (ext ρ₁ i)) N) := by
+              simpa using congrArg (fun T => ƛ T) (rename_comp (ext ρ₁) (ext ρ₂) N)
+        _ = ƛ (rename (ext (fun i => ρ₂ (ρ₁ i))) N) := by
+              apply congrArg (fun T => ƛ T)
               exact rename_cong_tm (fun i => congrFun (ext_comp_tm ρ₁ ρ₂) i) N
-        _ = rename (fun i => ρ₂ (ρ₁ i)) (.lam N) := rfl
-  | .app L M => by simp [rename, rename_comp ρ₁ ρ₂ L, rename_comp ρ₁ ρ₂ M]
-  | .ttrue => rfl
-  | .tfalse => rfl
-  | .zero => rfl
-  | .suc M => by simpa [rename] using congrArg Term.suc (rename_comp ρ₁ ρ₂ M)
-  | .natCase L M N => by
+        _ = rename (fun i => ρ₂ (ρ₁ i)) (ƛ N) := rfl
+  | (L ∙ M) => by simp [rename, rename_comp ρ₁ ρ₂ L, rename_comp ρ₁ ρ₂ M]
+  | ˋtrue => rfl
+  | ˋfalse => rfl
+  | ˋzero => rfl
+  | ˋsuc M => by simpa [rename] using congrArg (fun T => ˋsuc T) (rename_comp ρ₁ ρ₂ M)
+  | caseₜ L [zero⇒ M |suc⇒ N] => by
       simp [rename, rename_comp ρ₁ ρ₂ L, rename_comp ρ₁ ρ₂ M,
         rename_comp (ext ρ₁) (ext ρ₂) N,
         rename_cong_tm (fun i => congrFun (ext_comp_tm ρ₁ ρ₂) i) N]
-  | .ite L M N => by simp [rename, rename_comp ρ₁ ρ₂ L, rename_comp ρ₁ ρ₂ M, rename_comp ρ₁ ρ₂ N]
-  | .tlam N => by simpa [rename] using congrArg Term.tlam (rename_comp ρ₁ ρ₂ N)
-  | .tapp M => by simpa [rename] using congrArg Term.tapp (rename_comp ρ₁ ρ₂ M)
+  | ˋif L then M else N => by simp [rename, rename_comp ρ₁ ρ₂ L, rename_comp ρ₁ ρ₂ M, rename_comp ρ₁ ρ₂ N]
+  | Λ N => by simpa [rename] using congrArg (fun T => Λ T) (rename_comp ρ₁ ρ₂ N)
+  | M ∙[] => by simpa [rename] using congrArg (fun T => T ∙[]) (rename_comp ρ₁ ρ₂ M)
 
 theorem exts_ext (ρ : Rename) (σ : Subst) :
   (fun i => exts σ (ext ρ i)) = exts (fun y => σ (ρ y)) := by
@@ -163,24 +180,24 @@ theorem exts_ext (ρ : Rename) (σ : Subst) :
 
 theorem ren_sub (ρ : Rename) (σ : Subst) :
   ∀ M, subst σ (rename ρ M) = subst (fun x => σ (ρ x)) M
-  | .var i => rfl
-  | .lam N => by
+  | ˋi => rfl
+  | ƛ N => by
       simp [rename, subst, ren_sub (ext ρ) (exts σ) N,
         subst_cong_tm (fun i => congrFun (exts_ext ρ σ) i) N]
-  | .app L M => by simp [rename, subst, ren_sub ρ σ L, ren_sub ρ σ M]
-  | .ttrue => rfl
-  | .tfalse => rfl
-  | .zero => rfl
-  | .suc M => by simpa [rename, subst] using congrArg Term.suc (ren_sub ρ σ M)
-  | .natCase L M N => by
+  | (L ∙ M) => by simp [rename, subst, ren_sub ρ σ L, ren_sub ρ σ M]
+  | ˋtrue => rfl
+  | ˋfalse => rfl
+  | ˋzero => rfl
+  | ˋsuc M => by simpa [rename, subst] using congrArg (fun T => ˋsuc T) (ren_sub ρ σ M)
+  | caseₜ L [zero⇒ M |suc⇒ N] => by
       simp [rename, subst, ren_sub ρ σ L, ren_sub ρ σ M,
         ren_sub (ext ρ) (exts σ) N,
         subst_cong_tm (fun i => congrFun (exts_ext ρ σ) i) N]
-  | .ite L M N => by simp [rename, subst, ren_sub ρ σ L, ren_sub ρ σ M, ren_sub ρ σ N]
-  | .tlam N => by
+  | ˋif L then M else N => by simp [rename, subst, ren_sub ρ σ L, ren_sub ρ σ M, ren_sub ρ σ N]
+  | Λ N => by
       simpa [rename, subst, up, renameTT] using
-        congrArg Term.tlam (ren_sub ρ (up σ) N)
-  | .tapp M => by simpa [rename, subst] using congrArg Term.tapp (ren_sub ρ σ M)
+        congrArg (fun T => Λ T) (ren_sub ρ (up σ) N)
+  | M ∙[] => by simpa [rename, subst] using congrArg (fun T => T ∙[]) (ren_sub ρ σ M)
 
 theorem rename_shift (ρ : Rename) :
   ∀ M, rename (ext ρ) (rename Nat.succ M) = rename Nat.succ (rename ρ M)
@@ -207,23 +224,23 @@ theorem ext_exts (ρ : Rename) (σ : Subst) :
 
 theorem sub_ren (ρ : Rename) (σ : Subst) :
   ∀ M, rename ρ (subst σ M) = subst (fun x => rename ρ (σ x)) M
-  | .var i => rfl
-  | .lam N => by
+  | ˋi => rfl
+  | ƛ N => by
       simp [rename, subst, sub_ren (ext ρ) (exts σ) N,
         subst_cong_tm (fun i => congrFun (ext_exts ρ σ) i) N]
-  | .app L M => by simp [rename, subst, sub_ren ρ σ L, sub_ren ρ σ M]
-  | .ttrue => rfl
-  | .tfalse => rfl
-  | .zero => rfl
-  | .suc M => by simpa [rename, subst] using congrArg Term.suc (sub_ren ρ σ M)
-  | .natCase L M N => by
+  | (L ∙ M) => by simp [rename, subst, sub_ren ρ σ L, sub_ren ρ σ M]
+  | ˋtrue => rfl
+  | ˋfalse => rfl
+  | ˋzero => rfl
+  | ˋsuc M => by simpa [rename, subst] using congrArg (fun T => ˋsuc T) (sub_ren ρ σ M)
+  | caseₜ L [zero⇒ M |suc⇒ N] => by
       simp [rename, subst, sub_ren ρ σ L, sub_ren ρ σ M,
         sub_ren (ext ρ) (exts σ) N,
         subst_cong_tm (fun i => congrFun (ext_exts ρ σ) i) N]
-  | .ite L M N => by simp [rename, subst, sub_ren ρ σ L, sub_ren ρ σ M, sub_ren ρ σ N]
-  | .tlam N => by
-      simpa [rename, subst, up, renameTT] using congrArg Term.tlam (sub_ren ρ (up σ) N)
-  | .tapp M => by simpa [rename, subst] using congrArg Term.tapp (sub_ren ρ σ M)
+  | ˋif L then M else N => by simp [rename, subst, sub_ren ρ σ L, sub_ren ρ σ M, sub_ren ρ σ N]
+  | Λ N => by
+      simpa [rename, subst, up, renameTT] using congrArg (fun T => Λ T) (sub_ren ρ (up σ) N)
+  | M ∙[] => by simpa [rename, subst] using congrArg (fun T => T ∙[]) (sub_ren ρ σ M)
 
 theorem exts_subst (σ τ : Subst) :
   (fun i => subst (exts τ) (exts σ i)) = exts (σ ⨟ τ) := by
@@ -247,21 +264,21 @@ theorem exts_subst (σ τ : Subst) :
 
 theorem sub_sub_tm (σ τ : Subst) :
   ∀ M, subst τ (subst σ M) = subst (σ ⨟ τ) M
-  | .var i => rfl
-  | .lam N => by
+  | ˋi => rfl
+  | ƛ N => by
       simp [subst, sub_sub_tm (exts σ) (exts τ) N,
         subst_cong_tm (fun i => congrFun (exts_subst σ τ) i) N]
-  | .app L M => by simp [subst, sub_sub_tm σ τ L, sub_sub_tm σ τ M]
-  | .ttrue => rfl
-  | .tfalse => rfl
-  | .zero => rfl
-  | .suc M => by simpa [subst] using congrArg Term.suc (sub_sub_tm σ τ M)
-  | .natCase L M N => by
+  | (L ∙ M) => by simp [subst, sub_sub_tm σ τ L, sub_sub_tm σ τ M]
+  | ˋtrue => rfl
+  | ˋfalse => rfl
+  | ˋzero => rfl
+  | ˋsuc M => by simpa [subst] using congrArg (fun T => ˋsuc T) (sub_sub_tm σ τ M)
+  | caseₜ L [zero⇒ M |suc⇒ N] => by
       simp [subst, sub_sub_tm σ τ L, sub_sub_tm σ τ M,
         sub_sub_tm (exts σ) (exts τ) N,
         subst_cong_tm (fun i => congrFun (exts_subst σ τ) i) N]
-  | .ite L M N => by simp [subst, sub_sub_tm σ τ L, sub_sub_tm σ τ M, sub_sub_tm σ τ N]
-  | .tlam N => by
+  | ˋif L then M else N => by simp [subst, sub_sub_tm σ τ L, sub_sub_tm σ τ M, sub_sub_tm σ τ N]
+  | Λ N => by
       have hmain := sub_sub_tm (up σ) (up τ) N
       have hupσ : up σ = σ := by
         funext i
@@ -278,28 +295,28 @@ theorem sub_sub_tm (σ τ : Subst) :
           simp [up, renameTT]
         simpa [h2] using h1
       simpa [henv, subst] using hmain
-  | .tapp M => by simpa [subst] using congrArg Term.tapp (sub_sub_tm σ τ M)
+  | M ∙[] => by simpa [subst] using congrArg (fun T => T ∙[]) (sub_sub_tm σ τ M)
 
 theorem exts_id : ∀ i, exts id i = id i
   | 0 => rfl
   | i + 1 => rfl
 
 theorem sub_id : ∀ M, subst id M = M
-  | .var i => rfl
-  | .lam N => by
-      simpa [subst] using congrArg Term.lam (Eq.trans (subst_cong_tm exts_id N) (sub_id N))
-  | .app L M => by simp [subst, sub_id L, sub_id M]
-  | .ttrue => rfl
-  | .tfalse => rfl
-  | .zero => rfl
-  | .suc M => by simpa [subst] using congrArg Term.suc (sub_id M)
-  | .natCase L M N => by
+  | ˋi => rfl
+  | ƛ N => by
+      simpa [subst] using congrArg (fun T => ƛ T) (Eq.trans (subst_cong_tm exts_id N) (sub_id N))
+  | (L ∙ M) => by simp [subst, sub_id L, sub_id M]
+  | ˋtrue => rfl
+  | ˋfalse => rfl
+  | ˋzero => rfl
+  | ˋsuc M => by simpa [subst] using congrArg (fun T => ˋsuc T) (sub_id M)
+  | caseₜ L [zero⇒ M |suc⇒ N] => by
       simp [subst, sub_id L, sub_id M, Eq.trans (subst_cong_tm exts_id N) (sub_id N)]
-  | .ite L M N => by simp [subst, sub_id L, sub_id M, sub_id N]
-  | .tlam N => by
+  | ˋif L then M else N => by simp [subst, sub_id L, sub_id M, sub_id N]
+  | Λ N => by
       have hN : subst (up id) N = N := by simpa [up, renameTT] using sub_id N
-      simpa [subst] using congrArg Term.tlam hN
-  | .tapp M => by simpa [subst] using congrArg Term.tapp (sub_id M)
+      simpa [subst] using congrArg (fun T => Λ T) hN
+  | M ∙[] => by simpa [subst] using congrArg (fun T => T ∙[]) (sub_id M)
 
 theorem exts_sub_cons_tm (σ : Subst) (N V : Term) :
   singleSubst (subst (exts σ) N) V = subst (V • σ) N := by
@@ -319,7 +336,7 @@ theorem exts_sub_cons_tm (σ : Subst) (N V : Term) :
                     = subst (singleEnv V) (rename Nat.succ (σ x)) := rfl
                 _ = subst (fun y => singleEnv V (Nat.succ y)) (σ x) := by
                       exact ren_sub Nat.succ (singleEnv V) (σ x)
-                _ = subst (fun y => Term.var y) (σ x) := by
+                _ = subst (fun y => ˋy) (σ x) := by
                       apply subst_cong_tm
                       intro y
                       rfl
@@ -329,37 +346,41 @@ theorem exts_sub_cons_tm (σ : Subst) (N V : Term) :
 inductive HasType : TyCtx → Ctx → Term → Ty → Type where
   | t_var {Δ Γ i A} :
       HasTypeVar Γ i A →
-      HasType Δ Γ (.var i) A
+      HasType Δ Γ (ˋi) A
   | t_lam {Δ Γ A B N} :
       WfTy Δ A →
       HasType Δ (A :: Γ) N B →
-      HasType Δ Γ (.lam N) (.fn A B)
+      HasType Δ Γ (ƛ N) (A ⇒ B)
   | t_app {Δ Γ A B L M} :
-      HasType Δ Γ L (.fn A B) →
+      HasType Δ Γ L (A ⇒ B) →
       HasType Δ Γ M A →
-      HasType Δ Γ (.app L M) B
-  | t_true {Δ Γ} : HasType Δ Γ .ttrue .bool
-  | t_false {Δ Γ} : HasType Δ Γ .tfalse .bool
-  | t_zero {Δ Γ} : HasType Δ Γ .zero .nat
+      HasType Δ Γ (L ∙ M) B
+  | t_true {Δ Γ} : HasType Δ Γ ˋtrue 𝔹
+  | t_false {Δ Γ} : HasType Δ Γ ˋfalse 𝔹
+  | t_zero {Δ Γ} : HasType Δ Γ ˋzero ℕ
   | t_suc {Δ Γ M} :
-      HasType Δ Γ M .nat →
-      HasType Δ Γ (.suc M) .nat
+      HasType Δ Γ M ℕ →
+      HasType Δ Γ (ˋsuc M) ℕ
   | t_case {Δ Γ A L M N} :
-      HasType Δ Γ L .nat →
+      HasType Δ Γ L ℕ →
       HasType Δ Γ M A →
-      HasType Δ (.nat :: Γ) N A →
-      HasType Δ Γ (.natCase L M N) A
+      HasType Δ (ℕ :: Γ) N A →
+      HasType Δ Γ (caseₜ L [zero⇒ M |suc⇒ N]) A
   | t_if {Δ Γ A L M N} :
-      HasType Δ Γ L .bool →
+      HasType Δ Γ L 𝔹 →
       HasType Δ Γ M A →
       HasType Δ Γ N A →
-      HasType Δ Γ (.ite L M N) A
+      HasType Δ Γ (ˋif L then M else N) A
   | t_tlam {Δ Γ N A} :
       HasType (Δ + 1) (liftCtx Γ) N A →
-      HasType Δ Γ (.tlam N) (.all A)
+      HasType Δ Γ (Λ N) (∀ₜ A)
   | t_tapp {Δ Γ M A B} :
-      HasType Δ Γ M (.all A) →
+      HasType Δ Γ M (∀ₜ A) →
       WfTy Δ B →
-      HasType Δ Γ (.tapp M) (substOneT A B)
+      HasType Δ Γ (M ∙[]) (A [ B ]ₜ)
+
+syntax:55 term:56 " ⊢ " term:56 " ⊢ " term:56 " ⦂ " term:56 : term
+macro_rules
+  | `($Δ ⊢ $Γ ⊢ $M ⦂ $A) => `(HasType $Δ $Γ $M $A)
 
 end Extrinsic

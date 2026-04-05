@@ -7,18 +7,18 @@ inductive Progress (M : Term) : Type where
   | step : ∀ {N}, M —→ N → Progress M
 
 inductive CanonBool (V : Term) : Type where
-  | isTrue : V = .ttrue → CanonBool V
-  | isFalse : V = .tfalse → CanonBool V
+  | isTrue : V = ˋtrue → CanonBool V
+  | isFalse : V = ˋfalse → CanonBool V
 
 inductive CanonNat (V : Term) : Type where
-  | isZero : V = .zero → CanonNat V
-  | isSuc : (W : Term) → V = .suc W → Value W → CanonNat V
+  | isZero : V = ˋzero → CanonNat V
+  | isSuc : (W : Term) → V = ˋsuc W → Value W → CanonNat V
 
 def canonical_fn :
   ∀ {Δ V A B},
     Value V →
-    HasType Δ [] V (.fn A B) →
-    {N : Term // V = .lam N}
+    Δ ⊢ [] ⊢ V ⦂ (A ⇒ B) →
+    {N : Term // V = ƛ N}
   | _, _, _, _, .vLam, .t_lam _ _ => ⟨_, rfl⟩
   | _, _, _, _, .vTrue, h => by cases h
   | _, _, _, _, .vFalse, h => by cases h
@@ -29,7 +29,7 @@ def canonical_fn :
 def canonical_bool :
   ∀ {Δ V},
     Value V →
-    HasType Δ [] V .bool →
+    Δ ⊢ [] ⊢ V ⦂ 𝔹 →
     CanonBool V
   | _, _, .vLam, h => by cases h
   | _, _, .vTrue, .t_true => .isTrue rfl
@@ -41,7 +41,7 @@ def canonical_bool :
 def canonical_nat :
   ∀ {Δ V},
     Value V →
-    HasType Δ [] V .nat →
+    Δ ⊢ [] ⊢ V ⦂ ℕ →
     CanonNat V
   | _, _, .vLam, h => by cases h
   | _, _, .vTrue, h => by cases h
@@ -53,8 +53,8 @@ def canonical_nat :
 def canonical_all :
   ∀ {Δ V A},
     Value V →
-    HasType Δ [] V (.all A) →
-    {N : Term // V = .tlam N}
+    Δ ⊢ [] ⊢ V ⦂ (∀ₜ A) →
+    {N : Term // V = Λ N}
   | _, _, _, .vLam, h => by cases h
   | _, _, _, .vTrue, h => by cases h
   | _, _, _, .vFalse, h => by cases h
@@ -64,7 +64,7 @@ def canonical_all :
 
 def progress :
   ∀ {Δ M A},
-    HasType Δ [] M A →
+    Δ ⊢ [] ⊢ M ⦂ A →
     Progress M
   | _, _, _, .t_var h => by
       cases h

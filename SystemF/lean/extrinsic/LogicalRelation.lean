@@ -36,10 +36,10 @@ def VBoolRel : {V W : Term} → Value V → Value W → Prop
 
 def VRel :
   (A : Ty) → (ρ : RelSub) → (V W : Term) → Value V → Value W → Prop
-  | .var α, ρ, V, W, v, w => ρ.rhoR α V W v w
-  | .nat, _, _, _, v, w => VNatRel v w
-  | .bool, _, _, _, v, w => VBoolRel v w
-  | .fn A B, ρ, _, _, v, w =>
+  | #α, ρ, V, W, v, w => ρ.rhoR α V W v w
+  | ℕ, _, _, _, v, w => VNatRel v w
+  | 𝔹, _, _, _, v, w => VBoolRel v w
+  | A ⇒ B, ρ, _, _, v, w =>
       match v, w with
       | .vLam (N := N), .vLam (N := M) =>
           ∀ {V' W'} (v' : Value V') (w' : Value W'),
@@ -49,7 +49,7 @@ def VRel :
               Nonempty (singleSubst M W' —↠ WB) ∧
               VRel B ρ VB WB vb wb
       | _, _ => False
-  | .all A, ρ, _, _, v, w =>
+  | ∀ₜ A, ρ, _, _, v, w =>
       match v, w with
       | .vTlam (N := N), .vTlam (N := M) =>
           ∀ (A₁ A₂ : Ty) (R : Rel A₁ A₂),
@@ -150,11 +150,11 @@ theorem VRel_rename_wk :
     WkRel ξ ρ ρ' →
     VRel A ρ V W v w →
     VRel (renameT ξ A) ρ' V W v w
-  | .var α, ξ, ρ, ρ', V, W, v, w, wk, h =>
+  | #α, ξ, ρ, ρ', V, W, v, w, wk, h =>
       wk_rhoR_cast (ξ := ξ) (ρ := ρ) (ρ' := ρ') wk α (show ρ.rhoR α V W v w from h)
-  | .nat, _, _, _, _, _, _, _, _, h => h
-  | .bool, _, _, _, _, _, _, _, _, h => h
-  | .fn A B, ξ, ρ, ρ', V, W, v, w, wk, h => by
+  | ℕ, _, _, _, _, _, _, _, _, h => h
+  | 𝔹, _, _, _, _, _, _, _, _, h => h
+  | A ⇒ B, ξ, ρ, ρ', V, W, v, w, wk, h => by
       cases v <;> cases w <;> simp [VRel, renameT] at h ⊢
       case vLam.vLam =>
         intro V' W' v' w' hArg
@@ -164,7 +164,7 @@ theorem VRel_rename_wk :
         rcases h v' w' hArg0 with ⟨VB, WB, vb, wb, mSteps, nSteps, hVB⟩
         exact ⟨VB, WB, vb, wb, mSteps, nSteps,
           VRel_rename_wk (A := B) (ξ := ξ) (ρ := ρ) (ρ' := ρ') wk hVB⟩
-  | .all A, ξ, ρ, ρ', V, W, v, w, wk, h => by
+  | ∀ₜ A, ξ, ρ, ρ', V, W, v, w, wk, h => by
       cases v <;> cases w <;> simp [VRel, renameT] at h ⊢
       case vTlam.vTlam =>
         intro A₁ A₂ R
@@ -181,11 +181,11 @@ theorem VRel_unrename_wk :
     WkRel ξ ρ ρ' →
     VRel (renameT ξ A) ρ' V W v w →
     VRel A ρ V W v w
-  | .var α, ξ, ρ, ρ', V, W, v, w, wk, h =>
+  | #α, ξ, ρ, ρ', V, W, v, w, wk, h =>
       wk_rhoR_uncast (ξ := ξ) (ρ := ρ) (ρ' := ρ') wk α (show ρ'.rhoR (ξ α) V W v w from h)
-  | .nat, _, _, _, _, _, _, _, _, h => h
-  | .bool, _, _, _, _, _, _, _, _, h => h
-  | .fn A B, ξ, ρ, ρ', V, W, v, w, wk, h => by
+  | ℕ, _, _, _, _, _, _, _, _, h => h
+  | 𝔹, _, _, _, _, _, _, _, _, h => h
+  | A ⇒ B, ξ, ρ, ρ', V, W, v, w, wk, h => by
       cases v <;> cases w <;> simp [VRel, renameT] at h ⊢
       case vLam.vLam =>
         intro V' W' v' w' hArg
@@ -195,7 +195,7 @@ theorem VRel_unrename_wk :
         rcases h v' w' hArg' with ⟨VB, WB, vb, wb, mSteps, nSteps, hVB⟩
         exact ⟨VB, WB, vb, wb, mSteps, nSteps,
           VRel_unrename_wk (A := B) (ξ := ξ) (ρ := ρ) (ρ' := ρ') wk hVB⟩
-  | .all A, ξ, ρ, ρ', V, W, v, w, wk, h => by
+  | ∀ₜ A, ξ, ρ, ρ', V, W, v, w, wk, h => by
       cases v <;> cases w <;> simp [VRel, renameT] at h ⊢
       case vTlam.vTlam =>
         intro A₁ A₂ R
@@ -251,10 +251,10 @@ theorem liftRelEnv_related :
 structure SubstRel (σ : SubstT) (ρ ρ' : RelSub) : Prop where
   varTo :
     ∀ α {V W} {v : Value V} {w : Value W},
-      VRel (.var α) ρ' V W v w → VRel (σ α) ρ V W v w
+      VRel (#α) ρ' V W v w → VRel (σ α) ρ V W v w
   varFrom :
     ∀ α {V W} {v : Value V} {w : Value W},
-      VRel (σ α) ρ V W v w → VRel (.var α) ρ' V W v w
+      VRel (σ α) ρ V W v w → VRel (#α) ρ' V W v w
 
 theorem exts_SubstRel :
   ∀ {σ : SubstT} {ρ ρ' : RelSub} {A₁ A₂ : Ty},
@@ -268,7 +268,7 @@ theorem exts_SubstRel :
         | zero =>
             simpa [VRel, extendRelSub, extsT] using rel
         | succ α =>
-            have rel' : VRel (.var α) ρ' V W v w := by
+            have rel' : VRel (#α) ρ' V W v w := by
               simpa [VRel, extendRelSub] using rel
             have hσ : VRel (σ α) ρ V W v w :=
               sr.varTo α rel'
@@ -289,7 +289,7 @@ theorem exts_SubstRel :
             have hσ : VRel (σ α) ρ V W v w :=
               VRel_unrename_wk (ξ := Nat.succ) (ρ := ρ) (ρ' := extendRelSub ρ A₁ A₂ R)
                 (WkRel.wk_suc R) hShift
-            have rel' : VRel (.var α) ρ' V W v w :=
+            have rel' : VRel (#α) ρ' V W v w :=
               sr.varFrom α hσ
             simpa [VRel, extendRelSub] using rel' }
 
@@ -300,11 +300,11 @@ theorem VRel_subst :
     SubstRel σ ρ ρ' →
     VRel A ρ' V W v w →
     VRel (substT σ A) ρ V W v w
-  | .var α, σ, ρ, ρ', V, W, v, w, sr, h =>
+  | #α, σ, ρ, ρ', V, W, v, w, sr, h =>
       sr.varTo α h
-  | .nat, _, _, _, _, _, _, _, _, h => h
-  | .bool, _, _, _, _, _, _, _, _, h => h
-  | .fn A B, σ, ρ, ρ', V, W, v, w, sr, h => by
+  | ℕ, _, _, _, _, _, _, _, _, h => h
+  | 𝔹, _, _, _, _, _, _, _, _, h => h
+  | A ⇒ B, σ, ρ, ρ', V, W, v, w, sr, h => by
       cases v <;> cases w <;> simp [VRel, substT] at h ⊢
       case vLam.vLam =>
         intro V' W' v' w' hArg
@@ -314,7 +314,7 @@ theorem VRel_subst :
         rcases h v' w' hArg0 with ⟨VB, WB, vb, wb, mSteps, nSteps, hVB⟩
         exact ⟨VB, WB, vb, wb, mSteps, nSteps,
           VRel_subst (A := B) (σ := σ) (ρ := ρ) (ρ' := ρ') sr hVB⟩
-  | .all A, σ, ρ, ρ', V, W, v, w, sr, h => by
+  | ∀ₜ A, σ, ρ, ρ', V, W, v, w, sr, h => by
       cases v <;> cases w <;> simp [VRel, substT] at h ⊢
       case vTlam.vTlam =>
         intro A₁ A₂ R
@@ -331,11 +331,11 @@ theorem VRel_unsubst :
     SubstRel σ ρ ρ' →
     VRel (substT σ A) ρ V W v w →
     VRel A ρ' V W v w
-  | .var α, σ, ρ, ρ', V, W, v, w, sr, h =>
+  | #α, σ, ρ, ρ', V, W, v, w, sr, h =>
       sr.varFrom α h
-  | .nat, _, _, _, _, _, _, _, _, h => h
-  | .bool, _, _, _, _, _, _, _, _, h => h
-  | .fn A B, σ, ρ, ρ', V, W, v, w, sr, h => by
+  | ℕ, _, _, _, _, _, _, _, _, h => h
+  | 𝔹, _, _, _, _, _, _, _, _, h => h
+  | A ⇒ B, σ, ρ, ρ', V, W, v, w, sr, h => by
       cases v <;> cases w <;> simp [VRel, substT] at h ⊢
       case vLam.vLam =>
         intro V' W' v' w' hArg
@@ -345,7 +345,7 @@ theorem VRel_unsubst :
         rcases h v' w' hArg0 with ⟨VB, WB, vb, wb, mSteps, nSteps, hVB⟩
         exact ⟨VB, WB, vb, wb, mSteps, nSteps,
           VRel_unsubst (A := B) (σ := σ) (ρ := ρ) (ρ' := ρ') sr hVB⟩
-  | .all A, σ, ρ, ρ', V, W, v, w, sr, h => by
+  | ∀ₜ A, σ, ρ, ρ', V, W, v, w, sr, h => by
       cases v <;> cases w <;> simp [VRel, substT] at h ⊢
       case vTlam.vTlam =>
         intro A₁ A₂ R

@@ -1,8 +1,13 @@
 {-# OPTIONS --cumulativity --omega-in-omega #-}
 module extrinsic.Parametricity where
 
+-- File Charter:
+--   * Proves compatibility lemmas for the extrinsic logical relation.
+--   * Derives the fundamental theorem of logical relations.
+--   * Relies on `extrinsic.LogicalRelation` for relation definitions and helpers.
+
 -- The --cumulativity and --omega-in-omega flags are needed in the
--- LogicalRelation module imported below. -Jeremy
+-- LogicalRelation module imported below and in the proof of compat-·[]. -Jeremy
 
 open import Relation.Binary.PropositionalEquality
             using    (_≡_; refl; cong; cong₂; sym; trans)
@@ -223,7 +228,7 @@ compat-·[] : ∀ {Γ A B}
 compat-·[] {A = A} {B = B} M M-rel ρ γ env
   with M-rel ρ γ env
 ... | ⟨ .(Λ N₁) , ⟨ .(Λ N₂) , ⟨ vTlam {N = N₁} , ⟨ vTlam {N = N₂} , ⟨ M₁—↠ΛN₁ , ⟨ M₂—↠ΛN₂ , ∀-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-  with ∀-rel (substᵗ (ρ₁ ρ) B) (substᵗ (ρ₂ ρ) B) (𝒱 B ρ)
+  with ∀-rel (substᵗ (ρ₁ ρ) B) (substᵗ (ρ₂ ρ) B) (𝒱 B ρ) -- omega-in-omega needed here
 ... | ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ N₁—↠V , ⟨ N₂—↠W , 𝒱[A]VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
   ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨
     multi-trans left-red N₁—↠V
@@ -231,7 +236,7 @@ compat-·[] {A = A} {B = B} M M-rel ρ γ env
   , 𝒱-subst {A} SR 𝒱[A]VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
   where
   SR : SubstRel (singleTyEnv B) ρ
-       (ρ ,⟨ substᵗ (ρ₁ ρ) B , substᵗ (ρ₂ ρ) B , 𝒱 B ρ ⟩)
+       (ρ ,⟨ substᵗ (ρ₁ ρ) B , substᵗ (ρ₂ ρ) B , 𝒱 B ρ ⟩) -- omega-in-omega needed here
   SubstRel.var⇒ SR zero rel =  rel
   SubstRel.var⇒ SR (suc α) rel = rel
   SubstRel.var⇐ SR zero rel = rel

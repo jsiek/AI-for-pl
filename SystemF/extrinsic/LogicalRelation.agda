@@ -1,6 +1,11 @@
 {-# OPTIONS --cumulativity --omega-in-omega #-}
 module extrinsic.LogicalRelation where
 
+-- File Charter:
+--   * Defines the logical relation for extrinsic System F.
+--   * Includes relation environments and logical-relatedness judgments.
+--   * Proves helper lemmas for renaming/substitution and environment lifting.
+
 open import Data.List using (_∷_; [])
 open import Data.Nat using (zero; suc)
 open import extrinsic.ProductOmega using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂)
@@ -436,6 +441,5 @@ mutual
     ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W
       , 𝒱-unsubst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW
       ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-
 
 

@@ -126,14 +126,14 @@ succFn-↠ = succFnOnZero-↠
 -- TAPL combinators
 ------------------------------------------------------------------------
 
-id : Term
-id = polyId
+identity : Term
+identity = polyId
 
-id-⊢ : 0 ⊢ [] ⊢ id ⦂ `∀ (` 0 ⇒ ` 0)
+id-⊢ : 0 ⊢ [] ⊢ identity ⦂ `∀ (` 0 ⇒ ` 0)
 id-⊢ = polyId-⊢
 
 idBool : Term
-idBool = (id ·[]) · `true
+idBool = (identity ·[]) · `true
 
 idBool-⊢ : 0 ⊢ [] ⊢ idBool ⦂ `Bool
 idBool-⊢ = ⊢· (⊢·[] {A = (` 0 ⇒ ` 0)} {B = `Bool} id-⊢ wfBool) ⊢true
@@ -222,7 +222,7 @@ double-↠ : doubleOnSuccZero —↠ two
 double-↠ = doubleOnSuccZero-↠
 
 selfApp : Term
-selfApp = ((((id ·[]) · id) ·[]) · `true)
+selfApp = ((((identity ·[]) · identity) ·[]) · `true)
 
 wfPolyIdTy : WfTy 0 (`∀ (` 0 ⇒ ` 0))
 wfPolyIdTy = wf`∀ (wfFn wfTy0 wfTy0)
@@ -240,8 +240,8 @@ selfApp-⊢ =
 selfApp-↠ : selfApp —↠ `true
 selfApp-↠ =
   selfApp —→⟨ ξ-·₁ (ξ-·[] (ξ-·₁ (β-Λ {A = `∀ (` 0 ⇒ ` 0)}))) ⟩
-  ((((ƛ (` 0)) · id) ·[]) · `true) —→⟨ ξ-·₁ (ξ-·[] (β-ƛ vTlam)) ⟩
-  ((id ·[]) · `true) —→⟨ ξ-·₁ (β-Λ {A = `Bool}) ⟩
+  ((((ƛ (` 0)) · identity) ·[]) · `true) —→⟨ ξ-·₁ (ξ-·[] (β-ƛ vTlam)) ⟩
+  ((identity ·[]) · `true) —→⟨ ξ-·₁ (β-Λ {A = `Bool}) ⟩
   ((ƛ (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
   `true ∎
 

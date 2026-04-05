@@ -84,3 +84,68 @@ _—↠⟨_⟩_ : ∀ (L : Term) {M N : Term}
       ---------
     → L —↠ N
 L —↠⟨ L—↠M ⟩ M—↠N = multi-trans L—↠M M—↠N
+
+------------------------------------------------------------------------
+-- Multi-step congruence/helpers
+------------------------------------------------------------------------
+
+app-↠ : ∀ {L L' M M' : Term}
+  → L —↠ L'
+  → Value L'
+  → M —↠ M'
+  → (L · M) —↠ (L' · M')
+app-↠ {L = L} {L' = L'} {M = M} {M' = M'} (L' ∎) vL' (M' ∎) =
+  (L' · M') ∎
+app-↠ {L = L} {L' = L'} {M = M} {M' = M'} (L' ∎) vL' (M —→⟨ s ⟩ M↠M') =
+  (L' · M) —→⟨ ξ-·₂ vL' s ⟩ app-↠ (L' ∎) vL' M↠M'
+app-↠ {L = L} {L' = L'} {M = M} {M' = M'} (L —→⟨ s ⟩ L↠L') vL' M↠M' =
+  (L · M) —→⟨ ξ-·₁ s ⟩ app-↠ L↠L' vL' M↠M'
+
+suc-↠ : ∀ {M N : Term}
+  → M —↠ N
+  → (`suc M) —↠ (`suc N)
+suc-↠ (M ∎) = (`suc M) ∎
+suc-↠ (M —→⟨ s ⟩ M↠N) = (`suc M) —→⟨ ξ-suc s ⟩ suc-↠ M↠N
+
+case-↠ : ∀ {L L' M N : Term}
+  → L —↠ L'
+  → case_[zero⇒_|suc⇒_] L M N —↠ case_[zero⇒_|suc⇒_] L' M N
+case-↠ {L = L} {L' = L'} {M = M} {N = N} (L' ∎) =
+  (case_[zero⇒_|suc⇒_] L' M N) ∎
+case-↠ {L = L} {L' = L'} {M = M} {N = N} (L —→⟨ s ⟩ L↠L') =
+  (case_[zero⇒_|suc⇒_] L M N) —→⟨ ξ-case s ⟩ case-↠ L↠L'
+
+if-true-↠ : ∀ {L M N : Term}
+  → L —↠ `true
+  → (`if_then_else L M N) —↠ M
+if-true-↠ {M = M} {N = N} (L ∎) =
+  (`if_then_else `true M N) —→⟨ β-true ⟩ (M ∎)
+if-true-↠ {M = M} {N = N} (L —→⟨ s ⟩ L↠T) =
+  (`if_then_else L M N) —→⟨ ξ-if s ⟩ if-true-↠ {M = M} {N = N} L↠T
+
+if-false-↠ : ∀ {L M N : Term}
+  → L —↠ `false
+  → (`if_then_else L M N) —↠ N
+if-false-↠ {M = M} {N = N} (L ∎) =
+  (`if_then_else `false M N) —→⟨ β-false ⟩ (N ∎)
+if-false-↠ {M = M} {N = N} (L —→⟨ s ⟩ L↠F) =
+  (`if_then_else L M N) —→⟨ ξ-if s ⟩ if-false-↠ {M = M} {N = N} L↠F
+
+·[]-↠ : ∀ {M M' : Term}
+  → M —↠ M'
+  → (M ·[]) —↠ (M' ·[])
+·[]-↠ (M' ∎) = (M' ·[]) ∎
+·[]-↠ (M —→⟨ s ⟩ M↠M') = (M ·[]) —→⟨ ξ-·[] s ⟩ ·[]-↠ M↠M'
+
+β-ƛ-↠ : ∀ {N W : Term}
+  → Value W
+  → ((ƛ N) · W) —↠ N [ W ]
+β-ƛ-↠ {N} {W} vW = ((ƛ N) · W) —→⟨ β-ƛ vW ⟩ ((N [ W ]) ∎)
+
+case-zero-↠ : ∀ {M N : Term}
+  → case_[zero⇒_|suc⇒_] `zero M N —↠ M
+case-zero-↠ {M} {N} = (case_[zero⇒_|suc⇒_] `zero M N) —→⟨ β-zero ⟩ (M ∎)
+
+β-Λ-↠ : ∀ {N : Term} {A : Ty}
+  → (Λ N) ·[] —↠ N
+β-Λ-↠ {N} {A} = ((Λ N) ·[]) —→⟨ β-Λ {A = A} ⟩ (N ∎)

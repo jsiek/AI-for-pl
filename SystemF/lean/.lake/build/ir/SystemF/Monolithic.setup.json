@@ -1,0 +1,7 @@
+{"plugins": [],
+ "package": "systemf",
+ "options": {},
+ "name": "SystemF.Monolithic",
+ "isModule": false,
+ "importArts": {},
+ "dynlibs": []}

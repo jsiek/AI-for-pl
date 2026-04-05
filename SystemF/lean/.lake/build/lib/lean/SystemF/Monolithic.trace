@@ -1,0 +1,27 @@
+{"synthetic": false,
+ "schemaVersion": "2025-09-10",
+ "outputs":
+ {"o": ["1020667f715dc7e8.olean"],
+  "i": "1a457000b64f9187.ilean",
+  "c": "15a23b6527f7aca2.c"},
+ "log":
+ [{"message":
+   ".> LEAN_PATH=/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /Users/jsiek/AI-for-pl/SystemF/lean/SystemF/Monolithic.lean -o /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/SystemF/Monolithic.olean -i /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/SystemF/Monolithic.ilean -c /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/ir/SystemF/Monolithic.c --setup /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/ir/SystemF/Monolithic.setup.json --json",
+   "level": "trace"}],
+ "inputs":
+ [["SystemF.Monolithic:deps",
+   [["deps",
+     [["systemf/SystemF:extraDep", [["@systemf:extraDep", "00000000000006bb"]]],
+      ["imports", "00000000000006bb"]]],
+    ["libs",
+     [["import dynlibs", "00000000000006bb"],
+      ["package external libraries", "00000000000006bb"],
+      ["module dynlibs", "00000000000006bb"],
+      ["module plugins", "00000000000006bb"]]]]],
+  ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
+   "a96bc04a2e5e9630"],
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/SystemF/Monolithic.lean",
+   "5fd7cc92814c082b"],
+  ["options", "00000000000006bb"],
+  ["Module.leanArgs: #[]", "00000000000006bb"]],
+ "depHash": "f4606fba5cea80cc"}

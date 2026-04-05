@@ -1,0 +1,30 @@
+{"synthetic": false,
+ "schemaVersion": "2025-09-10",
+ "outputs":
+ {"o": ["f50c45c56e41b0f8.olean"],
+  "i": "18cef577ae35c9e0.ilean",
+  "c": "6bdf8ff9ef44d4e9.c"},
+ "log":
+ [{"message":
+   ".> LEAN_PATH=/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean -Dlinter.unnecessarySimpa=false -Dlinter.unusedVariables=false /Users/jsiek/AI-for-pl/SystemF/lean/extrinsic/LogicalRelation.lean -o /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/LogicalRelation.olean -i /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/LogicalRelation.ilean -c /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/ir/extrinsic/LogicalRelation.c --setup /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/ir/extrinsic/LogicalRelation.setup.json --json",
+   "level": "trace"}],
+ "inputs":
+ [["extrinsic.LogicalRelation:deps",
+   [["deps",
+     [["systemf/SystemF:extraDep", [["@systemf:extraDep", "00000000000006bb"]]],
+      ["imports",
+       [["extrinsic.Reduction transitive imports (legacy)", "22a516cfff6f2da0"],
+        ["extrinsic.Reduction:importAllArts", "dbe6488285ced517"]]]]],
+    ["libs",
+     [["import dynlibs", "00000000000006bb"],
+      ["package external libraries", "00000000000006bb"],
+      ["module dynlibs", "00000000000006bb"],
+      ["module plugins", "00000000000006bb"]]]]],
+  ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
+   "a96bc04a2e5e9630"],
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/extrinsic/LogicalRelation.lean",
+   "56adb0c0f1e420ed"],
+  ["options", "00000000000006bb"],
+  ["Module.leanArgs: #[-Dlinter.unnecessarySimpa=false, -Dlinter.unusedVariables=false]",
+   "9b9903831819e5ca"]],
+ "depHash": "e56d093703793e77"}

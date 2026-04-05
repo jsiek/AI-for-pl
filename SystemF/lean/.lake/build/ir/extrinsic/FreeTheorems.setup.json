@@ -1,0 +1,19 @@
+{"plugins": [],
+ "package": "systemf",
+ "options": {},
+ "name": "extrinsic.FreeTheorems",
+ "isModule": false,
+ "importArts":
+ {"extrinsic.Types":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Types.olean"],
+  "extrinsic.TypeSubst":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/TypeSubst.olean"],
+  "extrinsic.Terms":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Terms.olean"],
+  "extrinsic.Reduction":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Reduction.olean"],
+  "extrinsic.Parametricity":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Parametricity.olean"],
+  "extrinsic.LogicalRelation":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/LogicalRelation.olean"]},
+ "dynlibs": []}

@@ -1,0 +1,30 @@
+{"synthetic": false,
+ "schemaVersion": "2025-09-10",
+ "outputs":
+ {"o": ["b0f5205488b87bf9.olean"],
+  "i": "d5b9a37543a3ad48.ilean",
+  "c": "e30968ad522d8155.c"},
+ "log":
+ [{"message":
+   ".> LEAN_PATH=/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean /Users/jsiek/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean -Dlinter.unnecessarySimpa=false -Dlinter.unusedVariables=false /Users/jsiek/AI-for-pl/SystemF/lean/extrinsic/Progress.lean -o /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Progress.olean -i /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Progress.ilean -c /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/ir/extrinsic/Progress.c --setup /Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/ir/extrinsic/Progress.setup.json --json",
+   "level": "trace"}],
+ "inputs":
+ [["extrinsic.Progress:deps",
+   [["deps",
+     [["systemf/SystemF:extraDep", [["@systemf:extraDep", "00000000000006bb"]]],
+      ["imports",
+       [["extrinsic.Reduction transitive imports (legacy)", "22a516cfff6f2da0"],
+        ["extrinsic.Reduction:importAllArts", "dbe6488285ced517"]]]]],
+    ["libs",
+     [["import dynlibs", "00000000000006bb"],
+      ["package external libraries", "00000000000006bb"],
+      ["module dynlibs", "00000000000006bb"],
+      ["module plugins", "00000000000006bb"]]]]],
+  ["Lean 4.28.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
+   "a96bc04a2e5e9630"],
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/extrinsic/Progress.lean",
+   "cf90ca247c823961"],
+  ["options", "00000000000006bb"],
+  ["Module.leanArgs: #[-Dlinter.unnecessarySimpa=false, -Dlinter.unusedVariables=false]",
+   "9b9903831819e5ca"]],
+ "depHash": "19c928a9c0830f66"}

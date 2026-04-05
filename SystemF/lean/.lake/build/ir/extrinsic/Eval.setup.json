@@ -1,0 +1,21 @@
+{"plugins": [],
+ "package": "systemf",
+ "options": {},
+ "name": "extrinsic.Eval",
+ "isModule": false,
+ "importArts":
+ {"extrinsic.Types":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Types.olean"],
+  "extrinsic.TypeSubst":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/TypeSubst.olean"],
+  "extrinsic.TypeSafety":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/TypeSafety.olean"],
+  "extrinsic.Terms":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Terms.olean"],
+  "extrinsic.Reduction":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Reduction.olean"],
+  "extrinsic.Progress":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Progress.olean"],
+  "extrinsic.Preservation":
+  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Preservation.olean"]},
+ "dynlibs": []}

@@ -73,9 +73,10 @@ data _—↠_ : Term → Term → Set where
   _∎ : (M : Term) → M —↠ M
   _—→⟨_⟩_ : (L : Term) {M N : Term} → L —→ M → M —↠ N → L —↠ N
 
-multi-trans : {M N L : Term} → M —↠ N → N —↠ L → M —↠ L
-multi-trans (_ ∎) ms2          = ms2
-multi-trans (_ —→⟨ s ⟩ ms1') ms2    = _ —→⟨ s ⟩ (multi-trans ms1' ms2)
+private
+  multi-trans : {M N L : Term} → M —↠ N → N —↠ L → M —↠ L
+  multi-trans (_ ∎) ms2          = ms2
+  multi-trans (_ —→⟨ s ⟩ ms1') ms2    = _ —→⟨ s ⟩ (multi-trans ms1' ms2)
 
 infixr 2 _—↠⟨_⟩_
 _—↠⟨_⟩_ : ∀ (L : Term) {M N : Term}
@@ -119,7 +120,10 @@ if-true-↠ : ∀ {L M N : Term}
   → L —↠ `true
   → (`if_then_else L M N) —↠ M
 if-true-↠ {M = M} {N = N} (L ∎) =
-  (`if_then_else `true M N) —→⟨ β-true ⟩ (M ∎)
+  (`if_then_else `true M N)
+    —→⟨ β-true ⟩
+  M
+  ∎
 if-true-↠ {M = M} {N = N} (L —→⟨ s ⟩ L↠T) =
   (`if_then_else L M N) —→⟨ ξ-if s ⟩ if-true-↠ {M = M} {N = N} L↠T
 
@@ -127,7 +131,10 @@ if-false-↠ : ∀ {L M N : Term}
   → L —↠ `false
   → (`if_then_else L M N) —↠ N
 if-false-↠ {M = M} {N = N} (L ∎) =
-  (`if_then_else `false M N) —→⟨ β-false ⟩ (N ∎)
+  (`if_then_else `false M N)
+    —→⟨ β-false ⟩
+  N
+  ∎
 if-false-↠ {M = M} {N = N} (L —→⟨ s ⟩ L↠F) =
   (`if_then_else L M N) —→⟨ ξ-if s ⟩ if-false-↠ {M = M} {N = N} L↠F
 
@@ -140,12 +147,24 @@ if-false-↠ {M = M} {N = N} (L —→⟨ s ⟩ L↠F) =
 β-ƛ-↠ : ∀ {N W : Term}
   → Value W
   → ((ƛ N) · W) —↠ N [ W ]
-β-ƛ-↠ {N} {W} vW = ((ƛ N) · W) —→⟨ β-ƛ vW ⟩ ((N [ W ]) ∎)
+β-ƛ-↠ {N} {W} vW =
+  ((ƛ N) · W)
+    —→⟨ β-ƛ vW ⟩
+  (N [ W ])
+  ∎
 
 case-zero-↠ : ∀ {M N : Term}
   → case_[zero⇒_|suc⇒_] `zero M N —↠ M
-case-zero-↠ {M} {N} = (case_[zero⇒_|suc⇒_] `zero M N) —→⟨ β-zero ⟩ (M ∎)
+case-zero-↠ {M} {N} =
+  (case_[zero⇒_|suc⇒_] `zero M N)
+    —→⟨ β-zero ⟩
+  M
+  ∎
 
 β-Λ-↠ : ∀ {N : Term} {A : Ty}
   → (Λ N) ·[] —↠ N
-β-Λ-↠ {N} {A} = ((Λ N) ·[]) —→⟨ β-Λ {A = A} ⟩ (N ∎)
+β-Λ-↠ {N} {A} =
+  ((Λ N) ·[])
+    —→⟨ β-Λ {A = A} ⟩
+  N
+  ∎

@@ -1,7 +1,8 @@
 # `SystemF/lean/extrinsic` Design Note
 
-This Lean development tracks the Agda `SystemF/extrinsic` structure, with one
-deliberate design choice: type-into-term transport is identity-on-terms.
+This Lean development tracks the Agda `SystemF/extrinsic` structure
+including the deliberate design choice: type-into-term transport is
+identity-on-terms.
 
 - Lean names (in `Terms.lean`): `renameTT`, `substTT`, `substOneTT`
 - Agda names (in `Terms.agda`): `renameᵀ`, `substᵀ`, `_[_]ᵀ`

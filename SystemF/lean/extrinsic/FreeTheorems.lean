@@ -12,36 +12,36 @@ theorem free_theorem_id :
     Value V →
     Nonempty (((M ∙[]) ∙ V) —↠ V)
   | A, M, V, hM, _, vV => by
-      have hRel : LogicalRel [] (∀ₜ (#0 ⇒ #0)) M M :=
+      have hRel : [] ⊨ M ≈ M ⦂ (∀ₜ (#0 ⇒ #0)) :=
         fundamental M hM
       have hEval :
-          ERel (∀ₜ (#0 ⇒ #0)) emptyRelSub
-            (subst emptyRelEnv.gamma1 M) (subst emptyRelEnv.gamma2 M) :=
-        hRel emptyRelSub emptyRelEnv GRel_empty
+          𝓔 (∀ₜ (#0 ⇒ #0)) emptyRelSub
+            (subst emptyRelEnv.left M) (subst emptyRelEnv.right M) :=
+        hRel emptyRelSub emptyRelEnv 𝒢_empty
       rcases hEval with ⟨_, _, vM, wM, mSteps, _, hAll⟩
       rcases mSteps with ⟨mSteps⟩
-      cases vM <;> cases wM <;> simp [VRel] at hAll
+      cases vM <;> cases wM <;> simp [𝒱] at hAll
       case vTlam.vTlam =>
         rename_i N1 N2
         rcases hAll A A (idR V) with ⟨F1, fSteps1, _, _, vf, wf, hFun⟩
         rcases fSteps1 with ⟨fSteps1⟩
-        cases vf <;> cases wf <;> try (cases (by simpa [VRel] using hFun : False))
+        cases vf <;> cases wf <;> try (cases (by simpa [𝒱] using hFun : False))
         case vLam.vLam =>
           have hArgRel :
-              VRel (#0) (extendRelSub emptyRelSub A A (idR V)) V V vV vV := by
-            simp [VRel, extendRelSub, idR]
+              𝒱 (#0) (extendRelSub emptyRelSub A A (idR V)) V V vV vV := by
+            simp [𝒱, extendRelSub, idR]
           rcases hFun vV vV hArgRel with ⟨R1, appSteps1, R2, _, _, _, hRes⟩
           rcases appSteps1 with ⟨appSteps1⟩
           have hTappSub :=
             multi_trans (tapp_multi mSteps) (multi_trans (beta_tlam_multi (N := _)) fSteps1)
-          have hSub : subst emptyRelEnv.gamma1 M = M := by
+          have hSub : subst emptyRelEnv.left M = M := by
             simpa [emptyRelEnv, id] using sub_id M
           have hApp : (((M ∙[]) ∙ V)) —↠ R1 :=
             multi_trans
               (app_multi (by simpa [hSub] using hTappSub) .vLam (.refl V))
               (multi_trans (beta_lam_multi vV) appSteps1)
           have hId : V = R1 ∧ V = R2 := by
-            simpa [VRel, extendRelSub, idR] using hRes
+            simpa [𝒱, extendRelSub, idR] using hRes
           exact ⟨by simpa [hId.1.symm] using hApp⟩
 
 def neg : Term :=
@@ -56,10 +56,10 @@ def R : Rel 𝔹 ℕ :=
     (V = ˋfalse ∧ W = ˋzero)
 
 theorem neg_flip_related :
-  VRel (#0 ⇒ #0) (extendRelSub emptyRelSub 𝔹 ℕ R) neg flip Value.vLam Value.vLam := by
+  𝒱 (#0 ⇒ #0) (extendRelSub emptyRelSub 𝔹 ℕ R) neg flip Value.vLam Value.vLam := by
   intro V W vV wW hVW
   have hVW' : R V W vV wW := by
-    simpa [VRel, extendRelSub] using hVW
+    simpa [𝒱, extendRelSub] using hVW
   rcases hVW' with hTrueOne | hFalseZero
   case inl =>
     rcases hTrueOne with ⟨hV, hW⟩
@@ -75,8 +75,8 @@ theorem neg_flip_related :
       simpa [singleSubst, singleEnv, subst] using
         (show (caseₜ (ˋsuc ˋzero) [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) —↠ ˋzero from
           .step _ (.beta_suc .vZero) (.refl _))
-    have hR : VRel (#0) (extendRelSub emptyRelSub 𝔹 ℕ R) ˋfalse ˋzero .vFalse .vZero := by
-      simpa [VRel, extendRelSub, R]
+    have hR : 𝒱 (#0) (extendRelSub emptyRelSub 𝔹 ℕ R) ˋfalse ˋzero .vFalse .vZero := by
+      simpa [𝒱, extendRelSub, R]
     exact ⟨ˋfalse, ˋzero, Value.vFalse, Value.vZero, hNeg, hFlip, hR⟩
   case inr =>
     rcases hFalseZero with ⟨hV, hW⟩
@@ -92,8 +92,8 @@ theorem neg_flip_related :
       simpa [singleSubst, singleEnv, subst] using
         (show (caseₜ ˋzero [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) —↠ (ˋsuc ˋzero) from
           .step _ .beta_zero (.refl _))
-    have hR : VRel (#0) (extendRelSub emptyRelSub 𝔹 ℕ R) ˋtrue (ˋsuc ˋzero) .vTrue (.vSuc .vZero) := by
-      simpa [VRel, extendRelSub, R]
+    have hR : 𝒱 (#0) (extendRelSub emptyRelSub 𝔹 ℕ R) ˋtrue (ˋsuc ˋzero) .vTrue (.vSuc .vZero) := by
+      simpa [𝒱, extendRelSub, R]
     exact ⟨ˋtrue, ˋsuc ˋzero, Value.vTrue, (Value.vSuc Value.vZero), hNeg, hFlip, hR⟩
 
 theorem free_theorem_rep :
@@ -105,54 +105,54 @@ theorem free_theorem_rep :
       R V W v w
   | M, hM => by
       have hRel :
-          LogicalRel [] (∀ₜ (#0 ⇒ ((#0 ⇒ #0) ⇒ #0)) ) M M :=
+          [] ⊨ M ≈ M ⦂ (∀ₜ (#0 ⇒ ((#0 ⇒ #0) ⇒ #0)) ) :=
         fundamental M hM
       have hEval :
-          ERel (∀ₜ (#0 ⇒ ((#0 ⇒ #0) ⇒ #0)) ) emptyRelSub
-            (subst emptyRelEnv.gamma1 M) (subst emptyRelEnv.gamma2 M) :=
-        hRel emptyRelSub emptyRelEnv GRel_empty
+          𝓔 (∀ₜ (#0 ⇒ ((#0 ⇒ #0) ⇒ #0)) ) emptyRelSub
+            (subst emptyRelEnv.left M) (subst emptyRelEnv.right M) :=
+        hRel emptyRelSub emptyRelEnv 𝒢_empty
       rcases hEval with ⟨_, _, vM, wM, mSteps, nSteps, hAll⟩
       rcases mSteps with ⟨mSteps⟩
       rcases nSteps with ⟨nSteps⟩
-      cases vM <;> cases wM <;> simp [VRel] at hAll
+      cases vM <;> cases wM <;> simp [𝒱] at hAll
       case vTlam.vTlam =>
         rename_i N1 N2
         rcases hAll 𝔹 ℕ R with ⟨F1, fSteps1, F2, fSteps2, vf, wf, hFun⟩
         rcases fSteps1 with ⟨fSteps1⟩
         rcases fSteps2 with ⟨fSteps2⟩
-        cases vf <;> cases wf <;> try (cases (by simpa [VRel] using hFun : False))
+        cases vf <;> cases wf <;> try (cases (by simpa [𝒱] using hFun : False))
         case vLam.vLam =>
           have hArgRel :
-              VRel (#0) (extendRelSub emptyRelSub 𝔹 ℕ R)
+              𝒱 (#0) (extendRelSub emptyRelSub 𝔹 ℕ R)
                 ˋtrue (ˋsuc ˋzero) .vTrue (.vSuc .vZero) := by
-            simpa [VRel, extendRelSub, R]
+            simpa [𝒱, extendRelSub, R]
           rcases hFun .vTrue (.vSuc .vZero) hArgRel with
             ⟨G1, gSteps1, G2, gSteps2, vg, wg, hFun2⟩
           rcases gSteps1 with ⟨gSteps1⟩
           rcases gSteps2 with ⟨gSteps2⟩
-          cases vg <;> cases wg <;> try (cases (by simpa [VRel] using hFun2 : False))
+          cases vg <;> cases wg <;> try (cases (by simpa [𝒱] using hFun2 : False))
           case vLam.vLam =>
             have hNegFlipArg :
                 ∀ {V' W' : Term} (v' : Value V') (w' : Value W'),
-                  (extendRelSub emptyRelSub 𝔹 ℕ R).rhoR 0 V' W' v' w' →
+                  (extendRelSub emptyRelSub 𝔹 ℕ R).R 0 V' W' v' w' →
                     ∃ VB,
                       Nonempty (singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) V' —↠ VB) ∧
                         ∃ x,
                           Nonempty (singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) W' —↠ x) ∧
-                            ∃ x_1 x_2, (extendRelSub emptyRelSub 𝔹 ℕ R).rhoR 0 VB x x_1 x_2 := by
+                            ∃ x_1 x_2, (extendRelSub emptyRelSub 𝔹 ℕ R).R 0 VB x x_1 x_2 := by
               intro V' W' v' w' hR0
-              have hRelV : VRel (#0) (extendRelSub emptyRelSub 𝔹 ℕ R) V' W' v' w' := by
-                simpa [VRel, extendRelSub] using hR0
+              have hRelV : 𝒱 (#0) (extendRelSub emptyRelSub 𝔹 ℕ R) V' W' v' w' := by
+                simpa [𝒱, extendRelSub] using hR0
               rcases neg_flip_related v' w' hRelV with
                 ⟨VB, WB, vb, wb, hL, hR, hVW⟩
-              exact ⟨VB, hL, WB, hR, vb, wb, by simpa [VRel, extendRelSub] using hVW⟩
+              exact ⟨VB, hL, WB, hR, vb, wb, by simpa [𝒱, extendRelSub] using hVW⟩
             rcases hFun2 (V' := neg) (W' := flip) .vLam .vLam hNegFlipArg with
               ⟨Vres, resSteps1, Wres, resSteps2, vRes, wRes, hRes⟩
             rcases resSteps1 with ⟨resSteps1⟩
             rcases resSteps2 with ⟨resSteps2⟩
-            have hSub1 : subst emptyRelEnv.gamma1 M = M := by
+            have hSub1 : subst emptyRelEnv.left M = M := by
               simpa [emptyRelEnv, id] using sub_id M
-            have hSub2 : subst emptyRelEnv.gamma2 M = M := by
+            have hSub2 : subst emptyRelEnv.right M = M := by
               simpa [emptyRelEnv, id] using sub_id M
             have hAppL1Sub := by
               have hTapp :=
@@ -160,7 +160,7 @@ theorem free_theorem_rep :
               exact multi_trans
                 (app_multi hTapp .vLam (.refl ˋtrue))
                 (multi_trans (beta_lam_multi .vTrue) gSteps1)
-            have hAppL2Sub : ((((subst emptyRelEnv.gamma1 M) ∙[]) ∙ ˋtrue) ∙ neg) —↠ Vres := by
+            have hAppL2Sub : ((((subst emptyRelEnv.left M) ∙[]) ∙ ˋtrue) ∙ neg) —↠ Vres := by
               exact multi_trans
                 (app_multi hAppL1Sub .vLam (.refl neg))
                 (multi_trans (beta_lam_multi .vLam) resSteps1)
@@ -170,7 +170,7 @@ theorem free_theorem_rep :
               exact multi_trans
                 (app_multi hTapp .vLam (.refl (ˋsuc ˋzero)))
                 (multi_trans (beta_lam_multi (.vSuc .vZero)) gSteps2)
-            have hAppR2Sub : ((((subst emptyRelEnv.gamma2 M) ∙[]) ∙ (ˋsuc ˋzero)) ∙ flip) —↠ Wres := by
+            have hAppR2Sub : ((((subst emptyRelEnv.right M) ∙[]) ∙ (ˋsuc ˋzero)) ∙ flip) —↠ Wres := by
               exact multi_trans
                 (app_multi hAppR1Sub .vLam (.refl flip))
                 (multi_trans (beta_lam_multi .vLam) resSteps2)
@@ -179,7 +179,7 @@ theorem free_theorem_rep :
             have hAppR2 : ((((M ∙[]) ∙ (ˋsuc ˋzero)) ∙ flip) —↠ Wres) := by
               simpa [hSub2] using hAppR2Sub
             have hR : R Vres Wres vRes wRes := by
-              simpa [VRel, extendRelSub] using hRes
+              simpa [𝒱, extendRelSub] using hRes
             exact ⟨Vres, Wres, vRes, wRes, ⟨hAppL2⟩, ⟨hAppR2⟩, hR⟩
 
 end Extrinsic

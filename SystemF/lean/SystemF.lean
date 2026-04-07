@@ -10,9 +10,11 @@ import extrinsic.LogicalRelation
 import extrinsic.Parametricity
 import extrinsic.FreeTheorems
 import extrinsic.Examples
+import intrinsic.Intrinsic
+import intrinsic.LogicalRelation
 
 namespace SystemF
 
--- Aggregator for the Lean extrinsic System F port.
+-- Aggregator for the Lean System F ports (extrinsic + intrinsic core).
 
 end SystemF

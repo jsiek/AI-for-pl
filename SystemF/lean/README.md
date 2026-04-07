@@ -2,8 +2,24 @@
 
 This directory contains the Lean port/build setup for the System F development.
 
+The default `lake` build now includes:
+- the full `extrinsic/*` development
+- intrinsic core modules via `intrinsic/Intrinsic.lean`
+- intrinsic logical-relations scaffold via `intrinsic/LogicalRelation.lean`
+
+There is also an intrinsic-only core target:
+- `lake build intrinsic`
+
+There is also an extrinsic-only target:
+- `lake build extrinsic`
+
+`intrinsic/LogicalRelation.lean`, `intrinsic/Parametricity.lean`, and
+`intrinsic/FreeTheorems.lean` are still under active porting and are
+not yet added as default build roots.
+
 ## Note on `ProductOmega`
 
-There is intentionally no `extrinsic/ProductOmega.lean` module in this Lean directory.
-
-In the Agda development, `ProductOmega` is used as a workaround related to predicativity constraints. Lean is impredicative (`Prop`), so that extra module is not needed here.
+There is intentionally no `ProductOmega` module in this Lean
+directory.  In the Agda development, `ProductOmega` is used as a
+workaround related to predicativity constraints. Lean is impredicative
+(`Prop`), so that extra module is not needed here.

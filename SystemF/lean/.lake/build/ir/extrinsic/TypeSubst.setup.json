@@ -1,9 +1,0 @@
-{"plugins": [],
- "package": "systemf",
- "options": {},
- "name": "extrinsic.TypeSubst",
- "isModule": false,
- "importArts":
- {"extrinsic.Types":
-  ["/Users/jsiek/AI-for-pl/SystemF/lean/.lake/build/lib/lean/extrinsic/Types.olean"]},
- "dynlibs": []}

@@ -51,9 +51,12 @@ renameᵗ ρ `Bool    = `Bool
 renameᵗ ρ (A ⇒ B)  = (renameᵗ ρ A) ⇒ (renameᵗ ρ B)
 renameᵗ ρ (`∀ A)  = `∀ (renameᵗ (extᵗ ρ) A)
 
+⇑ᵗ : Ty → Ty
+⇑ᵗ = renameᵗ suc
+
 extsᵗ : Substᵗ → Substᵗ
 extsᵗ σ 0    = ` 0
-extsᵗ σ (suc i) = renameᵗ suc (σ i)
+extsᵗ σ (suc i) = ⇑ᵗ (σ i)
 
 substᵗ : Substᵗ → Ty → Ty
 substᵗ σ (` i)    = σ i
@@ -86,7 +89,7 @@ substCtx σ (A ∷ Γ) = substᵗ σ A ∷ substCtx σ Γ
 ------------------------------------------------------------------------
 
 ⤊ : Ctx → Ctx
-⤊ Γ = map (renameᵗ suc) Γ
+⤊ Γ = map ⇑ᵗ Γ
 
 data WfTy : Var → Ty → Set where
   wfVar  : {Δ : TyCtx}{X : Var} → X < Δ → WfTy Δ (` X)

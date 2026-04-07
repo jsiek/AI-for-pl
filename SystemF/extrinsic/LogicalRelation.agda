@@ -24,19 +24,19 @@ Rel A B = (V : Term) → (W : Term) → Value V → Value W → Setω  -- omega-
 
 record RelSub : Setω where
   field
-    ρ₁ : Substᵗ
-    ρ₂ : Substᵗ
-    ρR : ∀ α → Rel (ρ₁ α) (ρ₂ α)
+    left : Substᵗ
+    right : Substᵗ
+    ρR : ∀ α → Rel (left α) (right α)
 open RelSub public
 
 ∅ρ : RelSub
-(∅ρ .ρ₁) = idᵗ
-(∅ρ .ρ₂) = idᵗ
+(∅ρ .left) = idᵗ
+(∅ρ .right) = idᵗ
 (∅ρ .ρR) = λ α V W x x₁ → ⊥
 
 _,⟨_,_,_⟩ : (ρ : RelSub) → (A₁ A₂ : Ty) → Rel A₁ A₂ → RelSub
-(ρ ,⟨ A₁ , A₂ , R ⟩) .ρ₁        = A₁ •ᵗ ρ₁ ρ
-(ρ ,⟨ A₁ , A₂ , R ⟩) .ρ₂        = A₂ •ᵗ ρ₂ ρ
+(ρ ,⟨ A₁ , A₂ , R ⟩) .left      = A₁ •ᵗ left ρ
+(ρ ,⟨ A₁ , A₂ , R ⟩) .right     = A₂ •ᵗ right ρ
 (ρ ,⟨ A₁ , A₂ , R ⟩) .ρR 0      = R
 (ρ ,⟨ A₁ , A₂ , R ⟩) .ρR (suc α)  = ρR ρ α
 
@@ -76,22 +76,22 @@ _,⟨_,_,_⟩ : (ρ : RelSub) → (A₁ A₂ : Ty) → Rel A₁ A₂ → RelSub
 
 record RelEnv : Set where
   field
-    γ₁ : Subst
-    γ₂ : Subst
+    left : Subst
+    right : Subst
 open RelEnv public
 
 ∅γ : RelEnv
-(∅γ .γ₁) = id
-(∅γ .γ₂) = id
+(∅γ .left) = id
+(∅γ .right) = id
 
 _,⟨_,_⟩ : (γ : RelEnv) (V : Term) (W : Term) → RelEnv
-((γ ,⟨ V , W ⟩) .γ₁) = V • (γ .γ₁)
-((γ ,⟨ V , W ⟩) .γ₂) = W • (γ .γ₂)
+((γ ,⟨ V , W ⟩) .left) = V • (γ .left)
+((γ ,⟨ V , W ⟩) .right) = W • (γ .right)
 
 
 ⇓γ : RelEnv → RelEnv
-(⇓γ γ .γ₁) i = γ₁ γ (suc i)
-(⇓γ γ .γ₂) i = γ₂ γ (suc i)
+(⇓γ γ .left) i = left γ (suc i)
+(⇓γ γ .right) i = right γ (suc i)
 
 --------------------------------------------------------------------------------
 -- Logically related contexts
@@ -99,7 +99,7 @@ _,⟨_,_⟩ : (γ : RelEnv) (V : Term) (W : Term) → RelEnv
 
 𝒢 : Ctx → RelSub → RelEnv → Setω
 𝒢 [] ρ γ = ⊤
-𝒢 (A ∷ Γ) ρ γ = ℰ A ρ (γ .γ₁ 0) (γ .γ₂ 0) × 𝒢 Γ ρ (⇓γ γ)
+𝒢 (A ∷ Γ) ρ γ = ℰ A ρ (γ .left 0) (γ .right 0) × 𝒢 Γ ρ (⇓γ γ)
 
 --------------------------------------------------------------------------------
 -- Logically related terms
@@ -108,7 +108,9 @@ _,⟨_,_⟩ : (γ : RelEnv) (V : Term) (W : Term) → RelEnv
 LogicalRel : (Γ : Ctx) (A : Ty) (M N : Term) → Setω
 LogicalRel Γ A M N = ∀ (ρ : RelSub) (γ : RelEnv)
   → 𝒢 Γ ρ γ
-  → ℰ A ρ (subst (γ .γ₁) M) (subst (γ .γ₂) N)
+  → ℰ A ρ (subst (γ .left) M) (subst (γ .right) N)
+
+syntax LogicalRel Γ A M N = Γ ⊨ M ≈ N ⦂ A
 
 --------------------------------------------------------------------------------
 -- Logically related values are related terms
@@ -122,7 +124,6 @@ LogicalRel Γ A M N = ∀ (ρ : RelSub) (γ : RelEnv)
 𝒱⇒ℰ {V = V} {W = W} v w VW-rel =
   ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ V ∎ , ⟨ W ∎ , VW-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
 
-
 --------------------------------------------------------------------------------
 -- Constructing logically related contexts
 --------------------------------------------------------------------------------
@@ -130,14 +131,19 @@ LogicalRel Γ A M N = ∀ (ρ : RelSub) (γ : RelEnv)
 𝒢-∅ : 𝒢 [] ∅ρ ∅γ
 𝒢-∅ = tt
 
-extendRelEnv-related : ∀ {Γ A} {ρ : RelSub} {γ : RelEnv} {V W : Term}
+𝒢-extend : ∀ {Γ A} {ρ : RelSub} {γ : RelEnv} {V W : Term}
   → (env : 𝒢 Γ ρ γ)
   → (v : Value V)
   → (w : Value W)
   → 𝒱 A ρ V W v w
   → 𝒢 (A ∷ Γ) ρ (γ ,⟨ V , W ⟩)
-extendRelEnv-related {A = A} {ρ = ρ} {V = V} {W = W} env v w VW-rel =
+𝒢-extend {A = A} {ρ = ρ} {V = V} {W = W} env v w VW-rel =
   ⟨ 𝒱⇒ℰ {A = A} {ρ = ρ} {V = V} {W = W} v w VW-rel , env ⟩
+
+--------------------------------------------------------------------------------
+-- Renaming type variables in the logical relation
+--------------------------------------------------------------------------------
+
 data WkRel : Renameᵗ → RelSub → RelSub → Setω where
   wk-suc :
     ∀ {ρ A₁ A₂} (R : Rel A₁ A₂) →
@@ -147,10 +153,6 @@ data WkRel : Renameᵗ → RelSub → RelSub → Setω where
     ∀ {ξ ρ ρ' B₁ B₂} (S : Rel B₁ B₂) →
     WkRel ξ ρ ρ' →
     WkRel (extᵗ ξ) (ρ ,⟨ B₁ , B₂ , S ⟩) (ρ' ,⟨ B₁ , B₂ , S ⟩)
-
---------------------------------------------------------------------------------
--- Renaming type variables in the logical relation
---------------------------------------------------------------------------------
 
 wk-ρR-cast : ∀ {ξ ρ ρ'} → WkRel ξ ρ ρ' → (α : Var)
   → ∀ {V W} {v : Value V} {w : Value W}
@@ -288,9 +290,9 @@ mutual
       , 𝒱-unrename-wk {A = A} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} wk-r 𝒱VW
       ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
 
-⇑-ℰ : ∀{A A₁ A₂}{ρ}{γ}{R}
-  → ℰ A ρ (γ .γ₁ 0) (γ .γ₂ 0)
-  → ℰ (renameᵗ suc A) (ρ ,⟨ A₁ , A₂ , R ⟩) (γ .γ₁ 0) (γ .γ₂ 0)
+⇑-ℰ : ∀{A A₁ A₂}{ρ : RelSub}{γ : RelEnv}{R : Rel A₁ A₂}
+  → ℰ A ρ (γ .left 0) (γ .right 0)
+  → ℰ (renameᵗ suc A) (ρ ,⟨ A₁ , A₂ , R ⟩) (γ .left 0) (γ .right 0)
 ⇑-ℰ {A}{A₁}{A₂}{ρ}{γ}{R} ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ →V , ⟨ →W , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
   ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ →V , ⟨ →W , 𝒱-rename-wk{A} (wk-suc R) 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
 
@@ -441,5 +443,3 @@ mutual
     ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W
       , 𝒱-unsubst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW
       ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-
-

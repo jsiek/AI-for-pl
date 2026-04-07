@@ -4,3 +4,7 @@
 *#
 Scratch.agda
 log/
+
+# Lean/Lake local build state
+.lake/
+SystemF/lean/.lake/

@@ -1,2 +1,3 @@
 name: systemf-agda
+depend: standard-library
 include: .

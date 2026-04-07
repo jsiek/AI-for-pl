@@ -8,7 +8,7 @@ open import Data.List using (List; []; _∷_; map)
 open import Data.Nat.Base using (ℕ; zero; suc; _<_; z<s; s<s; s<s⁻¹)
 
 open import extrinsic.Reduction
-open import extrinsic.TypeSubst
+open import extrinsic.TypeSubst as TS
 
 ------------------------------------------------------------------------
 -- Context lookup under list maps
@@ -102,7 +102,7 @@ map-renameᵗ-⤊ ρ (A ∷ Γ) =
     (trans
       (rename-rename-commute suc (extᵗ ρ) A)
       (trans
-        (rename-cong (λ i → refl) A)
+        (TS.rename-cong (λ i → refl) A)
         (sym (rename-rename-commute ρ suc A))))
     (map-renameᵗ-⤊ ρ Γ)
 
@@ -288,17 +288,17 @@ typing-rename {Γ = Γ} {Γ' = Γ'} {ρ = ρ} hρ (⊢Λ hN) =
 typing-rename hρ (⊢·[] hM hB) =
   ⊢·[] (typing-rename hρ hM) hB
 
-rename-shift : {Δ : TyCtx} {Γ : Ctx} {M : Term} {A B : Ty} →
+typing-rename-shift : {Δ : TyCtx} {Γ : Ctx} {M : Term} {A B : Ty} →
   Δ ⊢ Γ ⊢ M ⦂ A →
   Δ ⊢ (B ∷ Γ) ⊢ rename suc M ⦂ A
-rename-shift hM =
+typing-rename-shift hM =
   typing-rename (λ {x} {A} h → S h) hM
 
 SubstWf-exts : {Δ : TyCtx} {Γ Γ' : Ctx} {B : Ty} {σ : Subst} →
   SubstWf Δ Γ Γ' σ →
   SubstWf Δ (B ∷ Γ) (B ∷ Γ') (exts σ)
 SubstWf-exts hσ Z = ⊢` Z
-SubstWf-exts hσ (S h) = rename-shift (hσ h)
+SubstWf-exts hσ (S h) = typing-rename-shift (hσ h)
 
 SubstWf-⇑ : {Δ : TyCtx} {Γ Γ' : Ctx} {σ : Subst} →
   SubstWf Δ Γ Γ' σ →

@@ -1,4 +1,4 @@
-# `SystemF/extrinsic` design note
+# `SystemF/agda/extrinsic` design note
 
 This development intentionally omits the usual structural action of
 type renaming/substitution on terms: `renameᵀ` and `substᵀ` are

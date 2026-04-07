@@ -1,4 +1,4 @@
-{-# OPTIONS --rewriting #-}
+{-# OPTIONS --rewriting --cumulativity --omega-in-omega #-}
 
 module intrinsic.FreeTheorems where
 

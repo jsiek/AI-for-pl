@@ -12,7 +12,7 @@ open import intrinsic.Ctx as IC
 open import intrinsic.Terms as IT
 open import intrinsic.Reduction as IR
 
-open import extrinsic.Reduction as ET
+open import curry.Reduction as ET
 
 postulate
   erase-β-subst : ∀ {Δ} {Γ : IC.Ctx Δ} {A B : I.Type Δ}

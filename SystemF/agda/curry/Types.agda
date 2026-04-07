@@ -1,4 +1,4 @@
-module extrinsic.Types where
+module curry.Types where
 
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; _<_; zero; suc)

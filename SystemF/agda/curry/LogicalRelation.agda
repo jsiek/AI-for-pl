@@ -1,22 +1,22 @@
 {-# OPTIONS --cumulativity --omega-in-omega #-}
-module extrinsic.LogicalRelation where
+module curry.LogicalRelation where
 
 -- File Charter:
---   * Defines the logical relation for extrinsic System F.
+--   * Defines the logical relation for curry System F.
 --   * Includes relation environments and logical-relatedness judgments.
 --   * Proves helper lemmas for renaming/substitution and environment lifting.
 
 open import Data.List using (_∷_; [])
 open import Data.Nat using (zero; suc)
-open import extrinsic.ProductOmega using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂)
+open import curry.ProductOmega using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂)
   renaming (_,_ to ⟨_,_⟩)
 open import Data.Empty using (⊥)
 open import Data.Unit using (⊤; tt)
 open import Level using (Setω)
 
-open import extrinsic.Types
-open import extrinsic.Terms
-open import extrinsic.Reduction
+open import curry.Types
+open import curry.Terms
+open import curry.Reduction
 
 -- The type of relations on values of type A and B
 Rel : Ty → Ty → Setω

@@ -1,9 +1,9 @@
-module extrinsic.TypeSubst where
+module curry.TypeSubst where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans)
 open import Data.Nat using (ℕ; zero; suc)
-open import extrinsic.Types
+open import curry.Types
 
 infixr 50 _⨟ᵗ_
 _⨟ᵗ_ : Substᵗ → Substᵗ → Substᵗ

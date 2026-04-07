@@ -1,4 +1,4 @@
-module extrinsic.Preservation where
+module curry.Preservation where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Relation.Binary.PropositionalEquality as Eq using (cong; cong₂; sym; trans)
@@ -7,8 +7,8 @@ open import Data.Product using (_×_; _,_)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat.Base using (ℕ; zero; suc; _<_; z<s; s<s; s<s⁻¹)
 
-open import extrinsic.Reduction
-open import extrinsic.TypeSubst as TS
+open import curry.Reduction
+open import curry.TypeSubst as TS
 
 ------------------------------------------------------------------------
 -- Context lookup under list maps

@@ -1,14 +1,14 @@
-module extrinsic.Terms where
+module curry.Terms where
 
 -- File Charter:
---   * Core extrinsic System F syntax and static semantics.
+--   * Core curry System F syntax and static semantics.
 --   * Defines terms, renaming/substitution, and typing.
 --   * Keeps `renameᵀ`/`substᵀ` as identity-on-terms by design.
 
 open import Data.List using (_∷_)
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; sym; trans)
-open import extrinsic.Types public
+open import curry.Types public
 
 ------------------------------------------------------------------------
 -- Terms
@@ -38,7 +38,7 @@ data Term : Set where
 -- Design note: type-into-term renaming/substitution
 ------------------------------------------------------------------------
 --
--- In this `extrinsic` System F development, `renameᵀ` and `substᵀ`
+-- In this `curry` System F development, `renameᵀ` and `substᵀ`
 -- are intentionally defined as identities. This is a deliberate
 -- deviation from the usual System F pattern where type-level
 -- substitutions act structurally on terms.

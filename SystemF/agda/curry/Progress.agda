@@ -1,11 +1,11 @@
-module extrinsic.Progress where
+module curry.Progress where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Sigma using (Σ; _,_)
 open import Data.List using ([])
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 
-open import extrinsic.Reduction
+open import curry.Reduction
 
 ------------------------------------------------------------------------
 -- Progress witness

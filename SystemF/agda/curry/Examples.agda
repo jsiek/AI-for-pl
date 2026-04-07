@@ -1,10 +1,10 @@
-module extrinsic.Examples where
+module curry.Examples where
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Base using (z<s; s<s)
 open import Data.List using ([]; _∷_)
 
-open import extrinsic.Reduction
+open import curry.Reduction
 
 ------------------------------------------------------------------------
 -- Small reusable typing helpers
@@ -1003,6 +1003,6 @@ ex-beta-tlam-↠ =
 ------------------------------------------------------------------------
 
 -- The 12 coverage examples above collectively exercise every reduction
--- rule in `extrinsic.SystemF`:
+-- rule in `curry.SystemF`:
 -- `ξ-·₁`, `ξ-·₂`, `β-ƛ`, `ξ-suc`, `ξ-if`, `ξ-case`, `β-true`,
 -- `β-false`, `β-zero`, `β-suc`, `ξ-·[]`, and `β-Λ`.

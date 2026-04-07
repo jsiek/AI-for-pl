@@ -1,16 +1,16 @@
-# SystemF/agda/extrinsic TODO ("done" checklist)
+# SystemF/agda/curry TODO ("done" checklist)
 
-This checklist defines what "done" means for `SystemF/agda/extrinsic`.
+This checklist defines what "done" means for `SystemF/agda/curry`.
 
 ## Core deliverables
 
-- [x] Add `Eval.agda` with an executable evaluator for extrinsic terms.
+- [x] Add `Eval.agda` with an executable evaluator for curry terms.
 - [x] Add `Examples.agda` with at least 12 representative, well-typed, closed examples.
 - [x] Add explicit evaluation/reduction traces for examples (expected outcomes).
 - [x] Add regression examples for substitution-under-binders and polymorphic instantiation/application.
 - [x] Add `TypeSafety.agda` with a wrapper theorem that packages `progress + preservation`.
 - [x] Keep a design note documenting major deviations and proof strategy.
-  Current note: `SystemF/agda/extrinsic/README.md`.
+  Current note: `SystemF/agda/curry/README.md`.
 
 ## Example sourcing plan
 
@@ -18,7 +18,7 @@ This checklist defines what "done" means for `SystemF/agda/extrinsic`.
   `SystemF/agda/intrinsic/FreeTheorems.agda`,
   `SystemF/agda/intrinsic/Reduction.agda`,
   `SystemF/agda/intrinsic/Terms.agda`,
-  and erase/adapt to extrinsic form when useful.
+  and erase/adapt to curry form when useful.
 - [x] Add examples inspired by TAPL's System F chapter.
 - [x] Add Wadler-style free-theorem examples (identity/representation-independence patterns).
 - [x] Ensure the final 12+ examples are mixed:
@@ -26,7 +26,7 @@ This checklist defines what "done" means for `SystemF/agda/extrinsic`.
 
 ## Complete reduction-rule coverage requirement
 
-Goal: collective examples must exercise every reduction rule in `SystemF/agda/extrinsic/SystemF.agda`.
+Goal: collective examples must exercise every reduction rule in `SystemF/agda/curry/SystemF.agda`.
 
 - [x] `ξ-·₁`
 - [x] `ξ-·₂`

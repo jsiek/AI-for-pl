@@ -1,22 +1,22 @@
 {-# OPTIONS --cumulativity --omega-in-omega #-}
-module extrinsic.FreeTheorems where
+module curry.FreeTheorems where
 
 -- File Charter:
---   * Ports the intrinsic free-theorem statements to the extrinsic setting.
---   * Reuses the extrinsic logical relation to state relation witnesses.
+--   * Ports the intrinsic free-theorem statements to the curry setting.
+--   * Reuses the curry logical relation to state relation witnesses.
 
 open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Data.List using ([])
 open import Data.Empty using (⊥)
 open import Data.Unit using (⊤; tt)
-open import extrinsic.ProductOmega using (Σ-syntax; ∃-syntax; _×_)
+open import curry.ProductOmega using (Σ-syntax; ∃-syntax; _×_)
   renaming (_,_ to ⟨_,_⟩)
 
-open import extrinsic.Types
-open import extrinsic.Terms
-open import extrinsic.Reduction
-open import extrinsic.LogicalRelation
-open import extrinsic.Parametricity
+open import curry.Types
+open import curry.Terms
+open import curry.Reduction
+open import curry.LogicalRelation
+open import curry.Parametricity
 
 --------------------------------------------------------------------------------
 -- Free theorem (identity)

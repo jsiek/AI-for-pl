@@ -1,10 +1,10 @@
 {-# OPTIONS --cumulativity --omega-in-omega #-}
-module extrinsic.Parametricity where
+module curry.Parametricity where
 
 -- File Charter:
---   * Proves compatibility lemmas for the extrinsic logical relation.
+--   * Proves compatibility lemmas for the curry logical relation.
 --   * Derives the fundamental theorem of logical relations.
---   * Relies on `extrinsic.LogicalRelation` for relation definitions and helpers.
+--   * Relies on `curry.LogicalRelation` for relation definitions and helpers.
 
 -- The --cumulativity and --omega-in-omega flags are needed in the
 -- LogicalRelation module imported below and in the proof of compat-·[]. -Jeremy
@@ -14,13 +14,13 @@ open import Relation.Binary.PropositionalEquality
             renaming (subst to substEq)
 open import Data.List using (_∷_; [])
 open import Data.Nat using (ℕ; _<_; zero; suc)
-open import extrinsic.ProductOmega using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂)
+open import curry.ProductOmega using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂)
   renaming (_,_ to ⟨_,_⟩)
 open import Data.Unit using (⊤; tt)
 
-open import extrinsic.Terms
-open import extrinsic.Reduction
-open import extrinsic.LogicalRelation
+open import curry.Terms
+open import curry.Reduction
+open import curry.LogicalRelation
 
 
 --------------------------------------------------------------------------------

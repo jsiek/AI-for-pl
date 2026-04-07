@@ -6,7 +6,7 @@ open import Data.Product using (Σ; _,_)
 
 open import intrinsic.Types as I
   renaming (`_ to ivar; `Nat to iNat; `ℕ to iℕ; `Bool to iBool; _⇒_ to _i⇒_; `∀_ to i∀)
-open import extrinsic.Types as E
+open import curry.Types as E
   renaming (`_ to evar; `ℕ to eℕ; `Bool to eBool; _⇒_ to _e⇒_; `∀ to e∀)
 
 eraseTyCtx : I.TyCtx → E.TyCtx

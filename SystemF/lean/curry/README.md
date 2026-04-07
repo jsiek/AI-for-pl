@@ -1,6 +1,6 @@
 # `SystemF/lean/curry` Design Note
 
-This Lean development tracks the Agda `SystemF/agda/extrinsic` structure
+This Lean development tracks the Agda `SystemF/agda/curry` structure
 including the deliberate design choice: type-into-term transport is
 identity-on-terms.
 

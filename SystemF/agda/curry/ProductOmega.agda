@@ -1,4 +1,4 @@
-module extrinsic.ProductOmega where
+module curry.ProductOmega where
 
 open import Level using (Setω)
 

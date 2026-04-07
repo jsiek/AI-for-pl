@@ -1,7 +1,7 @@
-module extrinsic.Eval where
+module curry.Eval where
 
 -- File Charter:
---   * Fuel-bounded evaluator for closed extrinsic System F terms.
+--   * Fuel-bounded evaluator for closed curry System F terms.
 --   * Produces an explicit reduction sequence using `progress` and
 --     `preservation`.
 --   * Stops once a value is reached or when fuel runs out.
@@ -11,9 +11,9 @@ open import Data.List using ([])
 open import Data.Maybe using (Maybe; nothing; just)
 open import Data.Product using (Σ; Σ-syntax; _,_)
 
-open import extrinsic.Reduction
-open import extrinsic.Progress
-open import extrinsic.Preservation
+open import curry.Reduction
+open import curry.Progress
+open import curry.Preservation
 
 ------------------------------------------------------------------------
 -- Evaluation result

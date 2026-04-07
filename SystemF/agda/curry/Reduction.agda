@@ -1,11 +1,11 @@
-module extrinsic.Reduction where
+module curry.Reduction where
 
 -- File Charter:
---   * Dynamic semantics for extrinsic System F.
+--   * Dynamic semantics for curry System F.
 --   * Defines values, one-step reduction, and multi-step closure.
---   * Re-exports `extrinsic.Terms` for shared syntax/typing.
+--   * Re-exports `curry.Terms` for shared syntax/typing.
 
-open import extrinsic.Terms public
+open import curry.Terms public
 
 ------------------------------------------------------------------------
 -- Reduction

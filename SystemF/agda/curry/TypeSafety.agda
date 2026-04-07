@@ -1,11 +1,11 @@
-module extrinsic.TypeSafety where
+module curry.TypeSafety where
 
 open import Agda.Builtin.Sigma using (Σ; _,_)
 open import Data.List using ([])
 
-open import extrinsic.Reduction
-open import extrinsic.Progress using (Progress; progress)
-open import extrinsic.Preservation using (preservation; multi-preservation)
+open import curry.Reduction
+open import curry.Progress using (Progress; progress)
+open import curry.Preservation using (preservation; multi-preservation)
 
 ------------------------------------------------------------------------
 -- Closed-term type safety wrapper

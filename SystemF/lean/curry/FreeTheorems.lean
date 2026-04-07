@@ -1,6 +1,6 @@
-import extrinsic.Parametricity
+import curry.Parametricity
 
-namespace Extrinsic
+namespace Curry
 
 def idR {A : Ty} (V : Term) : Rel A A :=
   fun V' W' _ _ => V = V' ∧ V = W'
@@ -182,4 +182,4 @@ theorem free_theorem_rep :
               simpa [𝒱, extendRelSub] using hRes
             exact ⟨Vres, Wres, vRes, wRes, ⟨hAppL2⟩, ⟨hAppR2⟩, hR⟩
 
-end Extrinsic
+end Curry

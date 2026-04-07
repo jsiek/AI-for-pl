@@ -1,6 +1,6 @@
-import extrinsic.Terms
+import curry.Terms
 
-namespace Extrinsic
+namespace Curry
 
 inductive Value : Term → Type where
   | vLam {N} : Value (ƛ N)
@@ -137,4 +137,4 @@ def beta_tlam_multi {N : Term} :
 
 end
 
-end Extrinsic
+end Curry

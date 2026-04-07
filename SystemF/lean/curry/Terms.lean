@@ -1,6 +1,6 @@
-import extrinsic.TypeSubst
+import curry.TypeSubst
 
-namespace Extrinsic
+namespace Curry
 
 inductive Term where
   | var   : Var → Term
@@ -383,4 +383,4 @@ syntax:55 term:56 " ⊢ " term:56 " ⊢ " term:56 " ⦂ " term:56 : term
 macro_rules
   | `($Δ ⊢ $Γ ⊢ $M ⦂ $A) => `(HasType $Δ $Γ $M $A)
 
-end Extrinsic
+end Curry

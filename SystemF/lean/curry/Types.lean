@@ -1,4 +1,4 @@
-namespace Extrinsic
+namespace Curry
 
 abbrev Var : Type := Nat
 abbrev TyCtx : Type := Nat
@@ -100,4 +100,4 @@ inductive HasTypeVar : Ctx → Var → Ty → Type where
   | Z {Γ A} : HasTypeVar (A :: Γ) 0 A
   | S {Γ A B x} : HasTypeVar Γ x A → HasTypeVar (B :: Γ) (x + 1) A
 
-end Extrinsic
+end Curry

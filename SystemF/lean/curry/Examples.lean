@@ -1,6 +1,6 @@
-import extrinsic.Preservation
+import curry.Preservation
 
-namespace Extrinsic
+namespace Curry
 
 ------------------------------------------------------------------------
 -- Small reusable typing helpers
@@ -1170,4 +1170,4 @@ def ex_beta_tlam_reduces : ex_beta_tlam —↠ ˋtrue :=
 def «ex_beta_tlam_↠» : ex_beta_tlam —↠ ˋtrue :=
   ex_beta_tlam_reduces
 
-end Extrinsic
+end Curry

@@ -12,18 +12,18 @@ package «systemf» where
 lean_lib «SystemF» where
   roots := #[
     `SystemF,
-    `extrinsic.Types,
-    `extrinsic.TypeSubst,
-    `extrinsic.Terms,
-    `extrinsic.Reduction,
-    `extrinsic.Progress,
-    `extrinsic.Preservation,
-    `extrinsic.TypeSafety,
-    `extrinsic.Eval,
-    `extrinsic.LogicalRelation,
-    `extrinsic.Parametricity,
-    `extrinsic.FreeTheorems,
-    `extrinsic.Examples,
+    `curry.Types,
+    `curry.TypeSubst,
+    `curry.Terms,
+    `curry.Reduction,
+    `curry.Progress,
+    `curry.Preservation,
+    `curry.TypeSafety,
+    `curry.Eval,
+    `curry.LogicalRelation,
+    `curry.Parametricity,
+    `curry.FreeTheorems,
+    `curry.Examples,
     `intrinsic.Types,
     `intrinsic.Ctx,
     `intrinsic.Terms,
@@ -32,25 +32,25 @@ lean_lib «SystemF» where
     `intrinsic.Examples,
   ]
 
--- Intrinsic-only build target (no extrinsic modules).
+-- Intrinsic-only build target (no curry modules).
 lean_lib «intrinsic» where
   roots := #[
     `intrinsic.Intrinsic
   ]
 
--- Extrinsic-only build target (no intrinsic modules).
-lean_lib «extrinsic» where
+-- Curry-only build target (no intrinsic modules).
+lean_lib «curry» where
   roots := #[
-    `extrinsic.Types,
-    `extrinsic.TypeSubst,
-    `extrinsic.Terms,
-    `extrinsic.Reduction,
-    `extrinsic.Progress,
-    `extrinsic.Preservation,
-    `extrinsic.TypeSafety,
-    `extrinsic.Eval,
-    `extrinsic.LogicalRelation,
-    `extrinsic.Parametricity,
-    `extrinsic.FreeTheorems,
-    `extrinsic.Examples
+    `curry.Types,
+    `curry.TypeSubst,
+    `curry.Terms,
+    `curry.Reduction,
+    `curry.Progress,
+    `curry.Preservation,
+    `curry.TypeSafety,
+    `curry.Eval,
+    `curry.LogicalRelation,
+    `curry.Parametricity,
+    `curry.FreeTheorems,
+    `curry.Examples
   ]

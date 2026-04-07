@@ -1,6 +1,6 @@
-import extrinsic.Progress
+import curry.Progress
 
-namespace Extrinsic
+namespace Curry
 
 noncomputable section
 
@@ -491,4 +491,4 @@ def multi_preservation :
 
 end
 
-end Extrinsic
+end Curry

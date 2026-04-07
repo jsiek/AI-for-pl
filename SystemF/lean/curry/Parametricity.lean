@@ -1,6 +1,6 @@
-import extrinsic.LogicalRelation
+import curry.LogicalRelation
 
-namespace Extrinsic
+namespace Curry
 
 theorem compat_app :
   ∀ {Γ A B} (L M : Term),
@@ -296,4 +296,4 @@ theorem fundamental :
   | _, _, _, _, .t_tapp hM _ =>
       compat_tapp _ (fundamental _ hM)
 
-end Extrinsic
+end Curry

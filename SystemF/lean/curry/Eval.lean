@@ -1,6 +1,6 @@
-import extrinsic.TypeSafety
+import curry.TypeSafety
 
-namespace Extrinsic
+namespace Curry
 
 structure EvalResult (M : Term) : Type where
   term : Term
@@ -22,4 +22,4 @@ noncomputable def eval {Δ : TyCtx} {M : Term} {A : Ty} :
           | some r =>
               some ⟨r.term, .step M s r.trace, r.value⟩
 
-end Extrinsic
+end Curry

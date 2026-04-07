@@ -1,6 +1,6 @@
-import extrinsic.Reduction
+import curry.Reduction
 
-namespace Extrinsic
+namespace Curry
 
 inductive Progress (M : Term) : Type where
   | done : Value M → Progress M
@@ -124,4 +124,4 @@ def progress :
           cases hEq
           exact .step .beta_tlam
 
-end Extrinsic
+end Curry

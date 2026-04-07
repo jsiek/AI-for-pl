@@ -1,6 +1,6 @@
-import extrinsic.Preservation
+import curry.Preservation
 
-namespace Extrinsic
+namespace Curry
 
 structure Safety (Δ : TyCtx) (M : Term) (A : Ty) : Type where
   progress_witness : Progress M
@@ -19,4 +19,4 @@ noncomputable def typeSafety_steps {Δ : TyCtx} {M : Term} {A : Ty} :
     PProd (Progress M) (∀ {N : Term}, M —→ N → Δ ⊢ [] ⊢ N ⦂ A)
   | hM => ⟨progress hM, fun s => preservation hM s⟩
 
-end Extrinsic
+end Curry

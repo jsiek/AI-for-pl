@@ -3,15 +3,15 @@
 This directory contains the Lean port/build setup for the System F development.
 
 The default `lake` build now includes:
-- the full `extrinsic/*` development
+- the full `curry/*` development
 - intrinsic core modules via `intrinsic/Intrinsic.lean`
 - intrinsic logical-relations scaffold via `intrinsic/LogicalRelation.lean`
 
 There is also an intrinsic-only core target:
 - `lake build intrinsic`
 
-There is also an extrinsic-only target:
-- `lake build extrinsic`
+There is also a curry-only target:
+- `lake build curry`
 
 `intrinsic/LogicalRelation.lean`, `intrinsic/Parametricity.lean`, and
 `intrinsic/FreeTheorems.lean` are still under active porting and are

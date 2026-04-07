@@ -1,6 +1,6 @@
-import extrinsic.Reduction
+import curry.Reduction
 
-namespace Extrinsic
+namespace Curry
 
 abbrev Rel (A B : Ty) : Type :=
   (V W : Term) → Value V → Value W → Prop
@@ -382,4 +382,4 @@ theorem 𝓔_unsubst :
       rcases h with ⟨V, W, v, w, mSteps, nSteps, rel⟩
       exact ⟨V, W, v, w, mSteps, nSteps, 𝒱_unsubst (A := _) (σ := _) (ρ := _) (ρ' := _) sr rel⟩
 
-end Extrinsic
+end Curry

@@ -1,6 +1,6 @@
-import extrinsic.Types
+import curry.Types
 
-namespace Extrinsic
+namespace Curry
 
 infixr:67 " ⨟ᵗ " => fun (σ₁ : SubstT) (σ₂ : SubstT) i => substT σ₂ (σ₁ i)
 
@@ -172,4 +172,4 @@ theorem substitution {a b c : Ty} :
   dsimp [substOneT, substOneAtOne]
   exact subst_substOne_commute (singleTyEnv c) a b
 
-end Extrinsic
+end Curry

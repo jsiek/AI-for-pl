@@ -1,4 +1,4 @@
-# `SystemF/lean/extrinsic` Design Note
+# `SystemF/lean/curry` Design Note
 
 This Lean development tracks the Agda `SystemF/extrinsic` structure
 including the deliberate design choice: type-into-term transport is

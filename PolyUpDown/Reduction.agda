@@ -30,6 +30,7 @@ open import TermProperties
 -- Values
 ------------------------------------------------------------------------
 
+-- Phil: use a subset of the constructors
 data Value : ∀ {Δ}{Ψ}{Σ : Store Δ Ψ}{Γ : Ctx Δ Ψ}{A : Ty Δ Ψ} →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ A → Set where
   V-ƛ :
@@ -408,6 +409,7 @@ openν-down-every {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} p α =
 -- One-step reduction
 ------------------------------------------------------------------------
 
+-- Phil: factor this into two relations, one that doesn't need ρ
 infix 2 _—→[_]_
 data _—→[_]_ :
   ∀ {Ψ}{Ψ′}{Σ : Store 0 Ψ}{Σ′ : Store 0 Ψ′}{A : Ty 0 Ψ} →

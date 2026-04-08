@@ -142,6 +142,8 @@ Cast :
   Set
 Cast {Ψ = Ψ} up Σ A B = Σ ∣ every Ψ ∣ every Ψ ⊢ A ⊑ B
 Cast {Ψ = Ψ} down Σ A B = Σ ∣ every Ψ ∣ every Ψ ⊢ A ⊒ B
+  -- Phil: instead of every Ψ, do existential quantification
+
 
 data _∣_∣_∣_⊢_ (Δ : TyCtx) (Ψ : SealCtx) (Σ : Store Δ Ψ) (Γ : Ctx Δ Ψ) : Ty Δ Ψ → Set where
   `_        : ∀{A : Ty Δ Ψ}{x : Var} →
@@ -165,7 +167,7 @@ data _∣_∣_∣_⊢_ (Δ : TyCtx) (Ψ : SealCtx) (Σ : Store Δ Ψ) (Γ : Ctx 
   _•_[_]    : ∀{A : Ty (suc Δ) Ψ}{B}{C : Ty Δ Ψ} →
               Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (`∀ A) →
               (α : Seal Ψ) →
-              Σ ∋ˢ α ⦂ C →
+              Σ ∋ˢ α ⦂ C → -- Phil: could remove this with invariant on Ψ and Σ
               B ≡ (A [ ｀ α ]ᵗ) →
               Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ B
 
@@ -185,6 +187,7 @@ data _∣_∣_∣_⊢_ (Δ : TyCtx) (Ψ : SealCtx) (Σ : Store Δ Ψ) (Γ : Ctx 
               Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (‵ `ℕ) →
               Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (‵ `ℕ)
 
+  -- Phil: prefer two rules for up and down
   at        : ∀{A B : Ty Δ Ψ} →
               {C D : Ty Δ Ψ} →
               (M : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ C) →

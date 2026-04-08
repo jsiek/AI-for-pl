@@ -21,7 +21,7 @@ open import Relation.Binary.PropositionalEquality using (cong)
 -- Variables, contexts, base types
 ------------------------------------------------------------------------
 
-Var : Set
+Var : Set -- move to Ctx.agda
 Var = ℕ
 
 TyCtx : Set
@@ -54,15 +54,15 @@ infix  6 `∀
 data Ty : TyCtx → SealCtx → Set where
   ＇_ : ∀{Δ}{Ψ} (X : TyVar Δ) → Ty Δ Ψ
   ｀_ : ∀{Δ}{Ψ} (α : Seal Ψ) → Ty Δ Ψ
-  ‵_ : ∀{Δ}{Ψ} → Base → Ty Δ Ψ
-  ★  : ∀{Δ}{Ψ} → Ty Δ Ψ -- TODO: change to ★
+  ‵_ : ∀{Δ}{Ψ} → Base → Ty Δ Ψ -- change to $
+  ★  : ∀{Δ}{Ψ} → Ty Δ Ψ
   _⇒_ : ∀{Δ}{Ψ} → Ty Δ Ψ → Ty Δ Ψ → Ty Δ Ψ
   `∀  : ∀{Δ}{Ψ} → Ty (suc Δ) Ψ → Ty Δ Ψ
 
 data Cross : ∀{Δ}{Ψ} → Ty Δ Ψ → Set where
   ＇_ : ∀{Δ}{Ψ} (X : TyVar Δ) → Cross{Δ}{Ψ} (＇ X)
   ｀_ : ∀{Δ}{Ψ} (α : Seal Ψ) → Cross{Δ}{Ψ} (｀ α)
-  ‵_ : ∀{Δ}{Ψ} → (ι : Base) → Cross{Δ}{Ψ} (‵ ι)
+  ‵_ : ∀{Δ}{Ψ} → (ι : Base) → Cross{Δ}{Ψ} (‵ ι)  -- change to $
   _⇒_ : ∀{Δ}{Ψ} → (A : Ty Δ Ψ) → (B : Ty Δ Ψ) → Cross (A ⇒ B)
   `∀  : ∀{Δ}{Ψ} → (A : Ty (suc Δ) Ψ) → Cross (`∀ A)
 
@@ -225,6 +225,8 @@ A [ α ]ˢ = renameˢ (singleSealEnv α) A
 -- Lookup term variable in context
 ------------------------------------------------------------------------
 
+-- TODO: move to new file Ctx.agda
+
 infix 4 _∋_⦂_
 
 data _∋_⦂_ : ∀{Δ}{Ψ} → Ctx Δ Ψ → Var → Ty Δ Ψ → Set where
@@ -238,6 +240,8 @@ data _∋_⦂_ : ∀{Δ}{Ψ} → Ctx Δ Ψ → Var → Ty Δ Ψ → Set where
 ------------------------------------------------------------------------
 -- Lookup seal in store
 ------------------------------------------------------------------------
+
+-- TODO: move to new file Store.agda
 
 infix 4 _∋ˢ_⦂_
 data _∋ˢ_⦂_ : ∀{Δ}{Ψ} → Store Δ Ψ → Seal Ψ → Ty Δ Ψ → Set where

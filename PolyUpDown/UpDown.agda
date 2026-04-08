@@ -48,6 +48,13 @@ infix 3 _∣_∣_⊢_⊒_
 ⊢ (‵ ι) ok Ξ = ⊤
 ⊢ ★⇒★ ok Ξ = ⊤
 
+-- Phil: make Label a parameter of narrowing and widening
+-- so you can show an isomorphism between them.
+
+-- Phil: get rid of Ξ, use negation with Φ for tag
+-- Phil: replace Φ with a "set of Seal"
+-- Phil: Define a version of widening that doesn't quantify over the Set's
+--   and instead is existential.
 mutual
   data _∣_∣_⊢_⊑_ {Δ}{Ψ} (Σ : Store Δ Ψ) (Φ Ξ : Vec Bool Ψ) : Ty Δ Ψ → Ty Δ Ψ → Set where
     tag : ∀{G}
@@ -70,7 +77,7 @@ mutual
       → Σ ∣ Φ ∣ Ξ ⊢ `∀ A ⊑ `∀ B
 
     ν_ : ∀{A : Ty (suc Δ) Ψ}{B : Ty Δ Ψ}
-      → (Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ ∣ true ∷ Φ ∣ false ∷ Ξ ⊢ (⇑ˢ A) [ ｀ Zˢ ]ᵗ ⊑ ⇑ˢ B
+      → (Zˢ , ★) ∷ ⟰ˢ Σ ∣ true ∷ Φ ∣ false ∷ Ξ ⊢ (⇑ˢ A) [ ｀ Zˢ ]ᵗ ⊑ ⇑ˢ B
       → Σ ∣ Φ ∣ Ξ ⊢ (`∀ A) ⊑ B
 
     id : ∀{A}
@@ -106,6 +113,7 @@ mutual
       → ⟰ᵗ Σ ∣ Φ ∣ Ξ ⊢ A ⊒ B
       → Σ ∣ Φ ∣ Ξ ⊢ (`∀ A) ⊒ (`∀ B)
 
+    -- add side condition requiring 0 ∈ A
     ν_ : ∀{A : Ty (suc Δ) Ψ}{B : Ty Δ Ψ}
       → (Zˢ , ⇑ˢ ★) ∷ ⟰ˢ Σ ∣ false ∷ Φ ∣ true ∷ Ξ ⊢ ⇑ˢ B ⊒ (⇑ˢ A) [ ｀ Zˢ ]ᵗ
       → Σ ∣ Φ ∣ Ξ ⊢ B  ⊒  `∀ A

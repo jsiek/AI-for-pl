@@ -1,6 +1,6 @@
 # AI-for-pl
 
-Experiments in using AI (GPT-5.3-Codex) to do PL metatheory
+Experiments in using AI (GPT-5.3-Codex) to do PL metatheory in Agda and Lean.
 
 STLC - Simply Typed Lambda Calculus
 
@@ -8,23 +8,25 @@ lambda - Untyped lambda calculus
 
 GTLC - Gradually Typed Lambda Calculus
 
-System F - Polymorphic Lambda Calculus
-  - Lean extrinsic development now includes `SystemF/lean/extrinsic/Ctx.lean`
-    for context lookup/mapping lemmas and context well-formedness helpers.
+System F - Polymorphic Lambda Calculus with proof of type safety and parametricity.
 
+   * extrinsic: standard System F
+   * curry: no type annotations on lambda and type application
+   * intrinsic: standard System F with intrinsic typing (under construction)
+   
 GTSF - Gradually Typed System F
 
-PolyCast - A polymorphic cast calculus that is intrinsically typed and uses
-coercions to express casts between types. Coercions can cast to and from
-universal types, that is, generalization and instantiation.
+PolyCast - A polymorphic cast calculus that uses coercions to express
+casts between types. Coercions can cast to and from universal types,
+that is, generalization and instantiation.
 
 PolyUpDown - A polymorphic cast calculus that splits imprecision into two
 relations, widening and narrowing, and uses them to express casts between types.
 The Agda development proves PolyUpDown type safe.
 
-PolyImp - A polymorphic cast calculus that is intrinsically typed and uses
-imprecision to express casts between types. Imprecision allows casts to and from
-universal types, that is, generalization and instantiation. The Agda development
+PolyImp - A polymorphic cast calculus that uses imprecision to express
+casts between types. Imprecision allows casts to and from universal
+types, that is, generalization and instantiation. The Agda development
 proves PolyImp type safe.
 
 PolyBlameI - A failed attempt at a polymorphic cast calculus that uses

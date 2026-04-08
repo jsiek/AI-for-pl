@@ -1,5 +1,10 @@
 import curry.Progress
 
+-- File Charter:
+--   * Proves preservation for one-step reduction in curry System F.
+--   * Develops renaming/substitution well-formedness infrastructure.
+--   * Lifts preservation to multi-step reduction.
+
 namespace Curry
 
 noncomputable section

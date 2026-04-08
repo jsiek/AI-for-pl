@@ -1,5 +1,9 @@
 import curry.Parametricity
 
+-- File Charter:
+--   * Ports the intrinsic free-theorem statements to the curry setting.
+--   * Reuses the curry logical relation to state relation witnesses.
+
 namespace Curry
 
 def idR {A : Ty} (V : Term) : Rel A A :=

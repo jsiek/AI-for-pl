@@ -2,6 +2,11 @@ import extrinsic.Types
 
 namespace Extrinsic
 
+-- File Charter:
+--   * Type-level renaming/substitution algebra for extrinsic System F types.
+--   * Keeps congruence, composition, identity, and extension lemmas.
+--   * Provides single-type substitution helpers used across the development.
+
 infixr:67 " ⨟ᵗ " => fun (σ₁ : SubstT) (σ₂ : SubstT) i => substT σ₂ (σ₁ i)
 
 def substOneAtOne (A B : Ty) : Ty :=

@@ -2,6 +2,11 @@ import extrinsic.Terms
 
 namespace Extrinsic
 
+-- File Charter:
+--   * Dynamic semantics for extrinsic System F.
+--   * Defines values, one-step reduction, and multi-step closure.
+--   * Re-exports `extrinsic.Terms` for shared syntax and typing.
+
 inductive Value : Term → Type where
   | vLam {A : Ty} {N : Term} : Value (Term.lam A N)
   | vTrue : Value Term.ttrue

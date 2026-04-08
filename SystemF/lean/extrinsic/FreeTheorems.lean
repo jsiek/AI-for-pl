@@ -2,76 +2,12 @@ import extrinsic.Parametricity
 
 namespace Extrinsic
 
+-- File Charter:
+--   * Ports free-theorem statements to the extrinsic System F setting.
+--   * Reuses the extrinsic logical relation to state relation witnesses.
+
 def idR {A : Ty} (V : Term) : Rel A A :=
   fun V' W' _ _ _ _ => V = V' ∧ V = W'
-
-def CtxWf (Δ : TyCtx) (Γ : Ctx) : Type :=
-  ∀ {x A}, HasTypeVar Γ x A → WfTy Δ A
-
-def ctxWf_nil {Δ : TyCtx} : CtxWf Δ [] := by
-  intro x A h
-  cases h
-
-def ctxWf_cons {Δ : TyCtx} {Γ : Ctx} {A : Ty}
-    (hA : WfTy Δ A) (hΓ : CtxWf Δ Γ) : CtxWf Δ (A :: Γ) := by
-  intro x B hx
-  cases hx with
-  | Z =>
-      exact hA
-  | S hx' =>
-      exact hΓ hx'
-
-def ctxWf_lift {Δ : TyCtx} {Γ : Ctx}
-    (hΓ : CtxWf Δ Γ) : CtxWf (Δ + 1) (liftCtx Γ) := by
-  intro x A hx
-  rcases lookup_map_inv (Γ := Γ) (x := x) (B := A) (f := renameT Nat.succ) hx with
-    ⟨B, ⟨hB, hEq⟩⟩
-  have hBwf : WfTy Δ B := hΓ hB
-  have hShift : TyRenameWf Δ (Δ + 1) Nat.succ := by
-    intro i hi
-    exact Nat.succ_lt_succ hi
-  exact Eq.ndrec
-    (motive := fun T => WfTy (Δ + 1) T)
-    (renameT_preserves_WfTy hBwf hShift)
-    hEq.symm
-
-def typing_wf :
-  ∀ {Δ Γ M A}, CtxWf Δ Γ → Δ ⊢ Γ ⊢ M ⦂ A → WfTy Δ A
-  | _, _, _, _, hΓ, .t_var h =>
-      hΓ h
-  | _, _, _, _, hΓ, .t_lam hA hN =>
-      .fn hA (typing_wf (ctxWf_cons hA hΓ) hN)
-  | _, _, _, _, hΓ, .t_app hL hM =>
-      match typing_wf hΓ hL with
-      | .fn _ hB => hB
-  | _, _, _, _, _, .t_true =>
-      .bool
-  | _, _, _, _, _, .t_false =>
-      .bool
-  | _, _, _, _, _, .t_zero =>
-      .nat
-  | _, _, _, _, hΓ, .t_suc hM =>
-      match typing_wf hΓ hM with
-      | .nat => .nat
-  | _, _, _, _, hΓ, .t_case hL hM hN =>
-      typing_wf hΓ hM
-  | _, _, _, _, hΓ, .t_if hL hM hN =>
-      typing_wf hΓ hM
-  | _, _, _, _, hΓ, .t_tlam hN =>
-      .all (typing_wf (ctxWf_lift hΓ) hN)
-  | _, _, _, _, hΓ, .t_tapp hM hB =>
-      match typing_wf hΓ hM with
-      | .all hBody =>
-          have hσ : TySubstWf (_ + 1) _ (singleTyEnv _) := by
-            intro X hX
-            cases X with
-            | zero =>
-                simpa [singleTyEnv] using hB
-            | succ X =>
-                have hX' : X < _ := Nat.lt_of_succ_lt_succ hX
-                simpa [singleTyEnv] using (WfTy.var (Δ := _) (X := X) hX')
-          by
-            simpa [substOneT] using substT_preserves_WfTy hBody hσ
 
 theorem free_theorem_id :
   ∀ {A : Ty} (M V : Term),

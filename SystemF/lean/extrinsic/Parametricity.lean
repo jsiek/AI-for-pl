@@ -3,6 +3,11 @@ import extrinsic.TermSubst
 
 namespace Extrinsic
 
+-- File Charter:
+--   * Proves compatibility lemmas for the extrinsic logical relation.
+--   * Derives the fundamental theorem of logical relations.
+--   * Relies on `extrinsic.LogicalRelation` for relation definitions and helpers.
+
 --------------------------------------------------------------------------------
 -- Compatibility Lemmas
 --------------------------------------------------------------------------------
@@ -38,138 +43,6 @@ def 𝒢_right_SubstWf {Γ ρ γ} (env : 𝒢 Γ ρ γ) :
               exact Classical.choice ((𝓔_typing (A := A₀) (ρ := ρ) (M := γ.left 0) (N := γ.right 0) hHead).2)
           | S h' =>
               simpa [tailRelEnv] using ih hTail h'
-
-theorem substT_id_typed {Δ A σ}
-    (hA : WfTy Δ A)
-    (hσ : ∀ α, α < Δ → σ α = #α) :
-    substT σ A = A := by
-  induction hA generalizing σ with
-  | var hX =>
-      simpa using hσ _ hX
-  | nat =>
-      rfl
-  | bool =>
-      rfl
-  | fn hA hB ihA ihB =>
-      simpa [substT, ihA hσ, ihB hσ]
-  | all hA ih =>
-      have hBody := ih (σ := extsT σ) (by
-        intro α hα
-        cases α with
-        | zero =>
-            rfl
-        | succ α =>
-            have hα' := Nat.lt_of_succ_lt_succ hα
-            simpa [extsT, renameT, hσ α hα'])
-      simpa [substT, hBody]
-
-theorem substTT_id_typed {Δ Γ M A σ}
-    (hM : Δ ⊢ Γ ⊢ M ⦂ A)
-    (hσ : ∀ α, α < Δ → σ α = #α) :
-    substTT σ M = M := by
-  induction hM generalizing σ with
-  | t_var h =>
-      rfl
-  | t_lam hA hN ih =>
-      simpa [substTT, substT_id_typed hA hσ, ih hσ]
-  | t_app hL hM ihL ihM =>
-      simpa [substTT, ihL hσ, ihM hσ]
-  | t_true =>
-      rfl
-  | t_false =>
-      rfl
-  | t_zero =>
-      rfl
-  | t_suc hM ih =>
-      simpa [substTT, ih hσ]
-  | t_case hL hM hN ihL ihM ihN =>
-      simpa [substTT, ihL hσ, ihM hσ, ihN hσ]
-  | t_if hL hM hN ihL ihM ihN =>
-      simpa [substTT, ihL hσ, ihM hσ, ihN hσ]
-  | t_tlam hN ih =>
-      have hNid := ih (σ := extsT σ) (by
-        intro α hα
-        cases α with
-        | zero =>
-            rfl
-        | succ α =>
-            have hα' := Nat.lt_of_succ_lt_succ hα
-            simpa [extsT, renameT, hσ α hα'])
-      simpa [substTT, hNid]
-  | t_tapp hM hB ih =>
-      simpa [substTT, ih hσ, substT_id_typed hB hσ]
-
-theorem substTT_rename_commute (σ : SubstT) (ρ : Rename) :
-    ∀ M, substTT σ (rename ρ M) = rename ρ (substTT σ M)
-  | Term.var i => rfl
-  | Term.lam A N => by
-      simp [substTT, rename, substTT_rename_commute σ (ext ρ) N]
-  | Term.app L M => by
-      simp [substTT, rename, substTT_rename_commute σ ρ L, substTT_rename_commute σ ρ M]
-  | Term.ttrue => rfl
-  | Term.tfalse => rfl
-  | Term.zero => rfl
-  | Term.suc M => by
-      simpa [substTT, rename] using congrArg Term.suc (substTT_rename_commute σ ρ M)
-  | Term.natCase L M N => by
-      simp [substTT, rename,
-        substTT_rename_commute σ ρ L,
-        substTT_rename_commute σ ρ M,
-        substTT_rename_commute σ (ext ρ) N]
-  | Term.ite L M N => by
-      simp [substTT, rename,
-        substTT_rename_commute σ ρ L,
-        substTT_rename_commute σ ρ M,
-        substTT_rename_commute σ ρ N]
-  | Term.tlam N => by
-      simpa [substTT, rename] using congrArg Term.tlam (substTT_rename_commute (extsT σ) ρ N)
-  | Term.tapp M A => by
-      simp [substTT, rename, substTT_rename_commute σ ρ M]
-
-theorem subst_cong_typed {Δ Γ M A σ τ}
-    (hM : Δ ⊢ Γ ⊢ M ⦂ A)
-    (hστ : ∀ {x C}, HasTypeVar Γ x C → σ x = τ x) :
-    subst σ M = subst τ M := by
-  induction hM generalizing σ τ with
-  | t_var h =>
-      simpa [subst] using hστ h
-  | t_lam hA hN ih =>
-      simp [subst, ih (σ := exts σ) (τ := exts τ) (by
-        intro x C hx
-        cases hx with
-        | Z =>
-            rfl
-        | S hx' =>
-            simpa [exts] using congrArg (rename Nat.succ) (hστ hx'))]
-  | t_app hL hM ihL ihM =>
-      simp [subst, ihL hστ, ihM hστ]
-  | t_true =>
-      rfl
-  | t_false =>
-      rfl
-  | t_zero =>
-      rfl
-  | t_suc hM ih =>
-      simpa [subst] using congrArg Term.suc (ih hστ)
-  | t_case hL hM hN ihL ihM ihN =>
-      simp [subst, ihL hστ, ihM hστ,
-        ihN (σ := exts σ) (τ := exts τ) (by
-          intro x C hx
-          cases hx with
-          | Z =>
-              rfl
-          | S hx' =>
-              simpa [exts] using congrArg (rename Nat.succ) (hστ hx'))]
-  | t_if hL hM hN ihL ihM ihN =>
-      simp [subst, ihL hστ, ihM hστ, ihN hστ]
-  | t_tlam hN ih =>
-      simp [subst, ih (σ := up σ) (τ := up τ) (by
-        intro x C hx
-        rcases lookup_map_inv (x := x) (B := C) (f := renameT Nat.succ) hx with
-          ⟨C', ⟨hC', hEq⟩⟩
-        simpa [up] using congrArg (renameTT Nat.succ) (hστ hC'))]
-  | t_tapp hM hB ih =>
-      simp [subst, ih hστ]
 
 theorem compat_app :
   ∀ {Γ A B} (L M : Term),

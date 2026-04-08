@@ -1,5 +1,10 @@
 import curry.TypeSafety
 
+-- File Charter:
+--   * Fuel-bounded evaluator for closed curry System F terms.
+--   * Produces an explicit reduction trace using `progress` and `preservation`.
+--   * Stops once a value is reached or when fuel runs out.
+
 namespace Curry
 
 structure EvalResult (M : Term) : Type where

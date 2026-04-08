@@ -2,6 +2,11 @@ import extrinsic.Reduction
 
 namespace Extrinsic
 
+-- File Charter:
+--   * Progress theorem for well-typed closed extrinsic System F terms.
+--   * Defines canonical-form witnesses for function, boolean, and natural values.
+--   * Powers evaluation and type-safety wrappers.
+
 inductive Progress (M : Term) : Type where
   | done : Value M → Progress M
   | step : ∀ {N}, M —→ N → Progress M

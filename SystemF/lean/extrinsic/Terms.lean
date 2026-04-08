@@ -2,6 +2,12 @@ import extrinsic.TypeSubst
 
 namespace Extrinsic
 
+-- File Charter:
+--   * Core extrinsic System F syntax and static semantics.
+--   * Defines terms, renaming/substitution, and typing.
+--   * Includes all three renaming/substitution actions:
+--       (1) types in types, (2) types in terms, (3) terms in terms.
+
 inductive Term where
   | var   : Var → Term
   | lam   : Extrinsic.Ty → Term → Term

@@ -1,5 +1,10 @@
 import curry.Preservation
 
+-- File Charter:
+--   * Collects reusable typing helpers for closed curry System F examples.
+--   * Encodes source-inspired and TAPL-inspired seed terms.
+--   * Provides typing and reduction witnesses for representative examples.
+
 namespace Curry
 
 ------------------------------------------------------------------------

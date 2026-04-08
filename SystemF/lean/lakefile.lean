@@ -31,6 +31,7 @@ lean_lib «SystemF» where
     `intrinsic.Eval,
     `intrinsic.Examples,
     `extrinsic.Types,
+    `extrinsic.Ctx,
     `extrinsic.TypeSubst,
     `extrinsic.Terms,
     `extrinsic.TypeTermSubst,
@@ -75,6 +76,7 @@ lean_lib «curry» where
 lean_lib «extrinsic» where
   roots := #[
     `extrinsic.Types,
+    `extrinsic.Ctx,
     `extrinsic.TypeSubst,
     `extrinsic.Terms,
     `extrinsic.TypeTermSubst,

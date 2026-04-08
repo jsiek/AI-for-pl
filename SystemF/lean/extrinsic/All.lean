@@ -1,4 +1,5 @@
 import extrinsic.Types
+import extrinsic.Ctx
 import extrinsic.TypeSubst
 import extrinsic.Terms
 import extrinsic.TypeTermSubst
@@ -15,6 +16,8 @@ import extrinsic.FreeTheorems
 
 namespace Extrinsic
 
--- Aggregate driver for the currently ported extrinsic stack.
+-- File Charter:
+--   * Aggregate driver module for the extrinsic System F stack.
+--   * Importing this file should force Lean to check the full extrinsic stack.
 
 end Extrinsic

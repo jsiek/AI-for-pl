@@ -2,6 +2,11 @@ import extrinsic.Preservation
 
 namespace Extrinsic
 
+-- File Charter:
+--   * Closed-term type safety wrapper for extrinsic System F.
+--   * Packages `progress` and `preservation` into a single `Safety` witness.
+--   * Re-exports multi-step preservation utilities for convenient use.
+
 structure Safety (Δ : TyCtx) (M : Term) (A : Ty) : Type where
   progress_witness : Progress M
   preservation_step : ∀ {N : Term}, M —→ N → Δ ⊢ [] ⊢ N ⦂ A

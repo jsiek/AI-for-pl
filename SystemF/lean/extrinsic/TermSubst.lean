@@ -1,6 +1,12 @@
 import extrinsic.TypeTermSubst
+import extrinsic.Ctx
 
 namespace Extrinsic
+
+-- File Charter:
+--   * Term-level renaming/substitution metatheory for `extrinsic.Terms`.
+--   * Keeps congruence, composition, identity, and cons-extension lemmas.
+--   * Provides the substitution/renaming interaction needed by preservation.
 
 theorem ext_cong {ρ ρ' : Rename} :
     (∀ i, ρ i = ρ' i) → ∀ i, ext ρ i = ext ρ' i
@@ -50,6 +56,51 @@ theorem subst_cong_tm {σ τ : Subst} :
   | h, Term.tlam N => by
       simpa [subst] using congrArg Term.tlam (subst_cong_tm (up_cong h) N)
   | h, Term.tapp M A => by simpa [subst] using congrArg (fun T => Term.tapp T A) (subst_cong_tm h M)
+
+theorem subst_cong_typed {Δ Γ M A σ τ}
+    (hM : Δ ⊢ Γ ⊢ M ⦂ A)
+    (hστ : ∀ {x C}, HasTypeVar Γ x C → σ x = τ x) :
+    subst σ M = subst τ M := by
+  induction hM generalizing σ τ with
+  | t_var h =>
+      simpa [subst] using hστ h
+  | t_lam hA hN ih =>
+      simp [subst, ih (σ := exts σ) (τ := exts τ) (by
+        intro x C hx
+        cases hx with
+        | Z =>
+            rfl
+        | S hx' =>
+            simpa [exts] using congrArg (rename Nat.succ) (hστ hx'))]
+  | t_app hL hM ihL ihM =>
+      simp [subst, ihL hστ, ihM hστ]
+  | t_true =>
+      rfl
+  | t_false =>
+      rfl
+  | t_zero =>
+      rfl
+  | t_suc hM ih =>
+      simpa [subst] using congrArg Term.suc (ih hστ)
+  | t_case hL hM hN ihL ihM ihN =>
+      simp [subst, ihL hστ, ihM hστ,
+        ihN (σ := exts σ) (τ := exts τ) (by
+          intro x C hx
+          cases hx with
+          | Z =>
+              rfl
+          | S hx' =>
+              simpa [exts] using congrArg (rename Nat.succ) (hστ hx'))]
+  | t_if hL hM hN ihL ihM ihN =>
+      simp [subst, ihL hστ, ihM hστ, ihN hστ]
+  | t_tlam hN ih =>
+      simp [subst, ih (σ := up σ) (τ := up τ) (by
+        intro x C hx
+        rcases lookup_map_inv (x := x) (B := C) (f := renameT Nat.succ) hx with
+          ⟨C', ⟨hC', hEq⟩⟩
+        simpa [up] using congrArg (renameTT Nat.succ) (hστ hC'))]
+  | t_tapp hM hB ih =>
+      simp [subst, ih hστ]
 
 theorem ext_comp_tm (ρ₁ ρ₂ : Rename) :
     (fun i => ext ρ₂ (ext ρ₁ i)) = ext (fun i => ρ₂ (ρ₁ i)) := by

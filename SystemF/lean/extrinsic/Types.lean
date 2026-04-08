@@ -1,5 +1,10 @@
 namespace Extrinsic
 
+-- File Charter:
+--   * Core type syntax and contexts for extrinsic System F.
+--   * Defines type-variable renaming/substitution operators and notation.
+--   * Includes type well-formedness and context lookup judgments.
+
 abbrev Var : Type := Nat
 abbrev TyCtx : Type := Nat
 

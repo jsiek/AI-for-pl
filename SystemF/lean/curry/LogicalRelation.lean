@@ -1,5 +1,10 @@
 import curry.Reduction
 
+-- File Charter:
+--   * Defines the logical relation for curry System F.
+--   * Includes relation environments and logical-relatedness judgments.
+--   * Proves helper lemmas for renaming/substitution and environment lifting.
+
 namespace Curry
 
 abbrev Rel (A B : Ty) : Type :=

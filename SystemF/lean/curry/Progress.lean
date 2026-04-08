@@ -1,5 +1,10 @@
 import curry.Reduction
 
+-- File Charter:
+--   * Defines progress witnesses for closed well-typed terms.
+--   * Proves canonical forms for arrow, boolean, natural, and universal types.
+--   * Establishes progress from typing derivations.
+
 namespace Curry
 
 inductive Progress (M : Term) : Type where

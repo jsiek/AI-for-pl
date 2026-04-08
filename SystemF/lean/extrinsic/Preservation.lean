@@ -1,6 +1,12 @@
 import extrinsic.Progress
+import extrinsic.Ctx
 
 namespace Extrinsic
+
+-- File Charter:
+--   * Preservation theorems for one-step and multi-step reduction.
+--   * Includes renaming/substitution typing lemmas used by downstream metatheory.
+--   * Uses context-map lookup helpers from `extrinsic.Ctx`.
 
 noncomputable section
 
@@ -64,20 +70,6 @@ def map_substT_lift (σ : SubstT) :
                 simpa [hHead]
         _ = renameT Nat.succ (substT σ A) :: liftCtx (List.map (substT σ) Γ) := by
               simpa [map_substT_lift σ Γ]
-
-def lookup_map_renameT :
-  ∀ {Γ x A ρ},
-    HasTypeVar Γ x A →
-    HasTypeVar (List.map (renameT ρ) Γ) x (renameT ρ A)
-  | _, _, _, _, .Z => .Z
-  | _, _, _, _, .S h => .S (lookup_map_renameT h)
-
-def lookup_map_substT :
-  ∀ {Γ x A σ},
-    HasTypeVar Γ x A →
-    HasTypeVar (List.map (substT σ) Γ) x (substT σ A)
-  | _, _, _, _, .Z => .Z
-  | _, _, _, _, .S h => .S (lookup_map_substT h)
 
 def tyRenameWf_ext {Δ Δ' ρ}
     (hρ : TyRenameWf Δ Δ' ρ) :
@@ -295,17 +287,57 @@ def typing_single_substTT :
           hsub (singleTySubst_lift_cancel Γ B)
       simpa [substOneTT, substTT] using hcast
 
-def lookup_map_inv :
-  ∀ {Γ x B f},
-    HasTypeVar (List.map f Γ) x B →
-    Σ A, { hA : HasTypeVar Γ x A // B = f A }
-  | [], _, _, _, h => by
-      cases h
-  | A :: Γ, 0, _, _, .Z =>
-      ⟨A, ⟨.Z, rfl⟩⟩
-  | A :: Γ, x + 1, B, f, .S h => by
-      rcases lookup_map_inv (Γ := Γ) (x := x) (B := B) (f := f) h with ⟨A', ⟨hA', hEq⟩⟩
-      exact ⟨A', ⟨.S hA', hEq⟩⟩
+def ctxWf_lift {Δ : TyCtx} {Γ : Ctx}
+    (hΓ : CtxWf Δ Γ) : CtxWf (Δ + 1) (liftCtx Γ) := by
+  intro x A hx
+  rcases lookup_map_inv (Γ := Γ) (x := x) (B := A) (f := renameT Nat.succ) hx with
+    ⟨B, ⟨hB, hEq⟩⟩
+  have hBwf : WfTy Δ B := hΓ hB
+  have hShift : TyRenameWf Δ (Δ + 1) Nat.succ := by
+    intro i hi
+    exact Nat.succ_lt_succ hi
+  exact Eq.ndrec
+    (motive := fun T => WfTy (Δ + 1) T)
+    (renameT_preserves_WfTy hBwf hShift)
+    hEq.symm
+
+def typing_wf :
+  ∀ {Δ Γ M A}, CtxWf Δ Γ → Δ ⊢ Γ ⊢ M ⦂ A → WfTy Δ A
+  | _, _, _, _, hΓ, .t_var h =>
+      hΓ h
+  | _, _, _, _, hΓ, .t_lam hA hN =>
+      .fn hA (typing_wf (ctxWf_cons hA hΓ) hN)
+  | _, _, _, _, hΓ, .t_app hL hM =>
+      match typing_wf hΓ hL with
+      | .fn _ hB => hB
+  | _, _, _, _, _, .t_true =>
+      .bool
+  | _, _, _, _, _, .t_false =>
+      .bool
+  | _, _, _, _, _, .t_zero =>
+      .nat
+  | _, _, _, _, hΓ, .t_suc hM =>
+      match typing_wf hΓ hM with
+      | .nat => .nat
+  | _, _, _, _, hΓ, .t_case hL hM hN =>
+      typing_wf hΓ hM
+  | _, _, _, _, hΓ, .t_if hL hM hN =>
+      typing_wf hΓ hM
+  | _, _, _, _, hΓ, .t_tlam hN =>
+      .all (typing_wf (ctxWf_lift hΓ) hN)
+  | _, _, _, _, hΓ, .t_tapp hM hB =>
+      match typing_wf hΓ hM with
+      | .all hBody =>
+          have hσ : TySubstWf (_ + 1) _ (singleTyEnv _) := by
+            intro X hX
+            cases X with
+            | zero =>
+                simpa [singleTyEnv] using hB
+            | succ X =>
+                have hX' : X < _ := Nat.lt_of_succ_lt_succ hX
+                simpa [singleTyEnv] using (WfTy.var (Δ := _) (X := X) hX')
+          by
+            simpa [substOneT] using substT_preserves_WfTy hBody hσ
 
 def renameWf_ext {Γ Γ' B ρ} :
     RenameWf Γ Γ' ρ →

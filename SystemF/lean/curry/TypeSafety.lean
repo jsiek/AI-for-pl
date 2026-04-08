@@ -1,5 +1,10 @@
 import curry.Preservation
 
+-- File Charter:
+--   * Packages progress and preservation into a closed-term safety interface.
+--   * Exposes one-step and multi-step type safety corollaries.
+--   * Keeps type-safety wrappers lightweight over existing proofs.
+
 namespace Curry
 
 structure Safety (Δ : TyCtx) (M : Term) (A : Ty) : Type where

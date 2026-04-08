@@ -1,3 +1,8 @@
+-- File Charter:
+--   * Core type language and contexts for curry System F.
+--   * Defines type renaming/substitution operations and extensions.
+--   * Provides type-level infrastructure consumed by term/metatheory modules.
+
 namespace Curry
 
 abbrev Var : Type := Nat

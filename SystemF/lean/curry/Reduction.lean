@@ -1,5 +1,10 @@
 import curry.Terms
 
+-- File Charter:
+--   * Dynamic semantics for curry System F.
+--   * Defines values, one-step reduction, and multi-step closure.
+--   * Re-exports `curry.Terms` for shared syntax/typing.
+
 namespace Curry
 
 inductive Value : Term → Type where

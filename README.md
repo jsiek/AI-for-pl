@@ -9,6 +9,8 @@ lambda - Untyped lambda calculus
 GTLC - Gradually Typed Lambda Calculus
 
 System F - Polymorphic Lambda Calculus
+  - Lean extrinsic development now includes `SystemF/lean/extrinsic/Ctx.lean`
+    for context lookup/mapping lemmas and context well-formedness helpers.
 
 GTSF - Gradually Typed System F
 

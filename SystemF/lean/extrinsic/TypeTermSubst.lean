@@ -2,6 +2,11 @@ import extrinsic.Terms
 
 namespace Extrinsic
 
+-- File Charter:
+--   * Type-level action on terms (`renameTT` / `substTT`) support lemmas.
+--   * Part of the refactor that moved mixed substitution metatheory out of
+--     `Terms.lean`.
+
 -- Three-argument congruence helper used throughout substitution proofs.
 theorem cong₃ {A B C D : Sort _}
     (f : A → B → C → D)
@@ -174,6 +179,10 @@ theorem rename_substTT_commute (ρ : Rename) (σt : SubstT) :
       simp [rename, substTT, rename_substTT_commute ρ (extsT σt) N]
   | Term.tapp M A => by
       simp [rename, substTT, rename_substTT_commute ρ σt M]
+
+theorem substTT_rename_commute (σt : SubstT) (ρ : Rename) :
+    ∀ M, substTT σt (rename ρ M) = rename ρ (substTT σt M)
+  | M => (rename_substTT_commute ρ σt M).symm
 
 theorem substTT_renameTT_commute (ρt : RenameT) (τ : SubstT) :
     ∀ M, substTT τ (renameTT ρt M) = substTT (fun i => τ (ρt i)) M
@@ -395,5 +404,65 @@ theorem subst_renameTT_commute (σ : Subst) (ρt : RenameT) :
     ∀ M, subst (fun i => renameTT ρt (σ i)) (renameTT ρt M) = renameTT ρt (subst σ M) := by
   intro M
   exact subst_renameTT_commute_gen σ (fun i => renameTT ρt (σ i)) ρt (fun i => rfl) M
+
+theorem substT_id_typed {Δ A σ}
+    (hA : WfTy Δ A)
+    (hσ : ∀ α, α < Δ → σ α = #α) :
+    substT σ A = A := by
+  induction hA generalizing σ with
+  | var hX =>
+      simpa using hσ _ hX
+  | nat =>
+      rfl
+  | bool =>
+      rfl
+  | fn hA hB ihA ihB =>
+      simpa [substT, ihA hσ, ihB hσ]
+  | all hA ih =>
+      have hBody := ih (σ := extsT σ) (by
+        intro α hα
+        cases α with
+        | zero =>
+            rfl
+        | succ α =>
+            have hα' := Nat.lt_of_succ_lt_succ hα
+            simpa [extsT, renameT, hσ α hα'])
+      simpa [substT, hBody]
+
+theorem substTT_id_typed {Δ Γ M A σ}
+    (hM : Δ ⊢ Γ ⊢ M ⦂ A)
+    (hσ : ∀ α, α < Δ → σ α = #α) :
+    substTT σ M = M := by
+  induction hM generalizing σ with
+  | t_var h =>
+      rfl
+  | t_lam hA hN ih =>
+      simpa [substTT, substT_id_typed hA hσ, ih hσ]
+  | t_app hL hM ihL ihM =>
+      simpa [substTT, ihL hσ, ihM hσ]
+  | t_true =>
+      rfl
+  | t_false =>
+      rfl
+  | t_zero =>
+      rfl
+  | t_suc hM ih =>
+      simpa [substTT, ih hσ]
+  | t_case hL hM hN ihL ihM ihN =>
+      simpa [substTT, ihL hσ, ihM hσ, ihN hσ]
+  | t_if hL hM hN ihL ihM ihN =>
+      simpa [substTT, ihL hσ, ihM hσ, ihN hσ]
+  | t_tlam hN ih =>
+      have hNid := ih (σ := extsT σ) (by
+        intro α hα
+        cases α with
+        | zero =>
+            rfl
+        | succ α =>
+            have hα' := Nat.lt_of_succ_lt_succ hα
+            simpa [extsT, renameT, hσ α hα'])
+      simpa [substTT, hNid]
+  | t_tapp hM hB ih =>
+      simpa [substTT, ih hσ, substT_id_typed hB hσ]
 
 end Extrinsic

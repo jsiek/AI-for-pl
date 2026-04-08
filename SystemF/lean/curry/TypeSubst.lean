@@ -1,5 +1,10 @@
 import curry.Types
 
+-- File Charter:
+--   * Type-level substitution composition utilities for curry System F.
+--   * Proves congruence/commutation lemmas for renaming and substitution.
+--   * Provides single-substitution helpers used by metatheory modules.
+
 namespace Curry
 
 infixr:67 " ⨟ᵗ " => fun (σ₁ : SubstT) (σ₂ : SubstT) i => substT σ₂ (σ₁ i)

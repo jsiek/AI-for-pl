@@ -1,5 +1,10 @@
 import curry.TypeSubst
 
+-- File Charter:
+--   * Core curry System F syntax and static semantics.
+--   * Defines terms, renaming/substitution, and typing.
+--   * Keeps `renameTT`/`substTT` as identity-on-terms by design.
+
 namespace Curry
 
 inductive Term where

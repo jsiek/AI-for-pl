@@ -2,6 +2,11 @@ import extrinsic.TypeSafety
 
 namespace Extrinsic
 
+-- File Charter:
+--   * Fuel-bounded evaluator for closed extrinsic System F terms.
+--   * Produces an explicit reduction sequence using `progress` and `preservation`.
+--   * Stops once a value is reached or when fuel runs out.
+
 structure EvalResult (M : Term) : Type where
   term : Term
   trace : M —↠ term

@@ -1,5 +1,10 @@
 import curry.LogicalRelation
 
+-- File Charter:
+--   * Proves compatibility lemmas for the curry logical relation.
+--   * Derives the fundamental theorem of logical relations.
+--   * Relies on `curry.LogicalRelation` for relation definitions and helpers.
+
 namespace Curry
 
 theorem compat_app :

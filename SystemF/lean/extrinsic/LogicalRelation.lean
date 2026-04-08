@@ -2,6 +2,11 @@ import extrinsic.Preservation
 
 namespace Extrinsic
 
+-- File Charter:
+--   * Defines the logical relation for extrinsic System F.
+--   * Includes relation environments and logical-relatedness judgments.
+--   * Proves helper lemmas for renaming/substitution and environment lifting.
+
 abbrev Rel (A B : Ty) : Type :=
   (V W : Term) → Value V → Value W →
   (0 ⊢ [] ⊢ V ⦂ A) → (0 ⊢ [] ⊢ W ⦂ B) → Prop

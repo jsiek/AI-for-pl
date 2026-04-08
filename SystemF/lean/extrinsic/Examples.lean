@@ -2,7 +2,10 @@ import extrinsic.Eval
 
 namespace Extrinsic
 
--- A focused subset of the Agda `extrinsic/Examples.agda` corpus.
+-- File Charter:
+--   * Small reusable typing and evaluation examples for extrinsic System F.
+--   * Exercises canonical seed programs over polymorphism, booleans, and naturals.
+--   * Serves as a lightweight regression harness for derivations and reductions.
 
 def wfBool : WfTy 0 𝔹 := .bool
 

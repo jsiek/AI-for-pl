@@ -161,93 +161,115 @@ theorem neg_flip_related :
     (extendRelSub emptyRelSub 𝔹 ℕ .bool .nat R)
     neg flip Value.vLam Value.vLam
   := by
-    unfold neg flip
-    let ρ : RelSub := extendRelSub emptyRelSub 𝔹 ℕ .bool .nat R
-    simp [𝒱, substT, ρ]
-    refine Exists.intro ?_ ?_
-    · simpa [substT] using
+    have hCore :
+        ∃ (hV : 0 ⊢ [] ⊢ (ƛ[ 𝔹 ] (ˋif ˋ0 then ˋfalse else ˋtrue)) ⦂ (𝔹 ⇒ 𝔹)),
+          ∃ (hW : 0 ⊢ [] ⊢ (ƛ[ ℕ ] (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero])) ⦂ (ℕ ⇒ ℕ)),
+            ∀ {V W} (vV : Value V) (wW : Value W) (hVT : 0 ⊢ [] ⊢ V ⦂ 𝔹) (hWT : 0 ⊢ [] ⊢ W ⦂ ℕ),
+              R V W vV wW hVT hWT →
+                𝓔 (#0)
+                  (extendRelSub emptyRelSub 𝔹 ℕ .bool .nat R)
+                  (singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) V)
+                  (singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) W) := by
+      exact Exists.intro
         (HasType.t_lam (Δ := 0) (Γ := []) (A := 𝔹) (B := 𝔹)
           .bool
           (HasType.t_if
             (HasType.t_var (Δ := 0) (Γ := [𝔹]) (i := 0) (A := 𝔹) HasTypeVar.Z)
             .t_false
             .t_true))
-    · refine Exists.intro ?_ ?_
-      · simpa [substT] using
+        (Exists.intro
           (HasType.t_lam (Δ := 0) (Γ := []) (A := ℕ) (B := ℕ)
             .nat
             (HasType.t_case
               (HasType.t_var (Δ := 0) (Γ := [ℕ]) (i := 0) (A := ℕ) HasTypeVar.Z)
               (HasType.t_suc (HasType.t_zero))
-              (HasType.t_var (Δ := 0) (Γ := [ℕ, ℕ]) (i := 0) (A := ℕ) HasTypeVar.Z)))
-      · intro V W vV wW hVT hWT hRel
-        rcases hRel with hTrueOne | hFalseZero
-        · rcases hTrueOne with ⟨hVeq, hWeq⟩
-          have hL :
-              0 ⊢ [] ⊢ singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) V ⦂ 𝔹 := by
-            cases hVeq
-            simpa [singleSubst, singleEnv, subst] using
-              (HasType.t_if
-                (HasType.t_true)
-                (HasType.t_false)
-                (HasType.t_true))
-          have hR :
-              0 ⊢ [] ⊢ singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) W ⦂ ℕ := by
-            cases hWeq
-            simpa [singleSubst, singleEnv, subst] using
-              (HasType.t_case
-                (HasType.t_suc (HasType.t_zero))
-                (HasType.t_suc (HasType.t_zero))
-                (HasType.t_zero))
-          have redL : Nonempty (singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) V —↠ ˋfalse) := by
-            refine ⟨?_⟩
-            cases hVeq
-            simpa [singleSubst, singleEnv, subst] using
-              (show (ˋif ˋtrue then ˋfalse else ˋtrue) —↠ ˋfalse from
-                .step _ .beta_true (.refl _))
-          have redR : Nonempty (singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) W —↠ ˋzero) := by
-            refine ⟨?_⟩
-            cases hWeq
-            simpa [singleSubst, singleEnv, subst] using
-              (show (caseₜ (ˋsuc ˋzero) [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) —↠ ˋzero from
-                .step _ (.beta_suc .vZero) (.refl _))
-          have hOut :
-              𝒱 (#0) ρ ˋfalse ˋzero .vFalse .vZero := by
-            exact ⟨.t_false, ⟨.t_zero, Or.inr ⟨rfl, rfl⟩⟩⟩
-          exact ⟨hL, hR, ˋfalse, ˋzero, .vFalse, .vZero, redL, redR, hOut⟩
-        · rcases hFalseZero with ⟨hVeq, hWeq⟩
-          have hL :
-              0 ⊢ [] ⊢ singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) V ⦂ 𝔹 := by
-            cases hVeq
-            simpa [singleSubst, singleEnv, subst] using
-              (HasType.t_if
-                (HasType.t_false)
-                (HasType.t_false)
-                (HasType.t_true))
-          have hR :
-              0 ⊢ [] ⊢ singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) W ⦂ ℕ := by
-            cases hWeq
-            simpa [singleSubst, singleEnv, subst] using
-              (HasType.t_case
-                (HasType.t_zero)
-                (HasType.t_suc (HasType.t_zero))
-                (HasType.t_zero))
-          have redL : Nonempty (singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) V —↠ ˋtrue) := by
-            refine ⟨?_⟩
-            cases hVeq
-            simpa [singleSubst, singleEnv, subst] using
-              (show (ˋif ˋfalse then ˋfalse else ˋtrue) —↠ ˋtrue from
-                .step _ .beta_false (.refl _))
-          have redR : Nonempty (singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) W —↠ (ˋsuc ˋzero)) := by
-            refine ⟨?_⟩
-            cases hWeq
-            simpa [singleSubst, singleEnv, subst] using
-              (show (caseₜ ˋzero [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) —↠ (ˋsuc ˋzero) from
-                .step _ .beta_zero (.refl _))
-          have hOut :
-              𝒱 (#0) ρ ˋtrue (ˋsuc ˋzero) .vTrue (.vSuc .vZero) := by
-            exact ⟨.t_true, ⟨.t_suc .t_zero, Or.inl ⟨rfl, rfl⟩⟩⟩
-          exact ⟨hL, hR, ˋtrue, ˋsuc ˋzero, .vTrue, .vSuc .vZero, redL, redR, hOut⟩
+              (HasType.t_zero)))
+          (by
+            intro V W vV wW hVT hWT hRel
+            cases hRel with
+            | inl hTrueOne =>
+              rcases hTrueOne with ⟨rfl, rfl⟩
+              have hL : 0 ⊢ [] ⊢ singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) ˋtrue ⦂ 𝔹 := by
+                simpa [singleSubst, singleEnv, subst] using
+                  (HasType.t_if (A := 𝔹) hVT .t_false .t_true)
+              have hR : 0 ⊢ [] ⊢ singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) (ˋsuc ˋzero) ⦂ ℕ := by
+                simpa [singleSubst, singleEnv, subst] using
+                  (HasType.t_case (A := ℕ) hWT (.t_suc .t_zero) (.t_zero))
+              have redL : Nonempty (singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) ˋtrue —↠ ˋfalse) := by
+                exact ⟨by
+                  simpa [singleSubst, singleEnv, subst] using
+                    (show (ˋif ˋtrue then ˋfalse else ˋtrue) —↠ ˋfalse from
+                      .step _ .beta_true (.refl _))⟩
+              have redR :
+                  Nonempty (singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) (ˋsuc ˋzero) —↠ ˋzero) := by
+                exact ⟨by
+                  simpa [singleSubst, singleEnv, subst] using
+                    (show (caseₜ (ˋsuc ˋzero) [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) —↠ ˋzero from
+                      .step _ (.beta_suc .vZero) (.refl _))⟩
+              have hOut :
+                  𝒱 (#0)
+                    (extendRelSub emptyRelSub 𝔹 ℕ .bool .nat R)
+                    ˋfalse ˋzero .vFalse .vZero := by
+                simpa [𝒱, extendRelSub] using
+                  (show ∃ (hV : 0 ⊢ [] ⊢ ˋfalse ⦂ 𝔹), ∃ (hW : 0 ⊢ [] ⊢ ˋzero ⦂ ℕ),
+                      R ˋfalse ˋzero .vFalse .vZero hV hW from
+                    ⟨.t_false, ⟨.t_zero, Or.inr ⟨rfl, rfl⟩⟩⟩)
+              have hE :
+                  𝓔 (#0)
+                    (extendRelSub emptyRelSub 𝔹 ℕ .bool .nat R)
+                    (singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) ˋtrue)
+                    (singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) (ˋsuc ˋzero)) := by
+                unfold 𝓔
+                exact Exists.intro hL
+                  (Exists.intro hR
+                    (Exists.intro ˋfalse
+                      (Exists.intro ˋzero
+                        (Exists.intro Value.vFalse
+                          (Exists.intro Value.vZero
+                            (And.intro redL (And.intro redR hOut)))))))
+              exact hE
+            | inr hFalseZero =>
+              rcases hFalseZero with ⟨rfl, rfl⟩
+              have hL : 0 ⊢ [] ⊢ singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) ˋfalse ⦂ 𝔹 := by
+                simpa [singleSubst, singleEnv, subst] using
+                  (HasType.t_if (A := 𝔹) hVT .t_false .t_true)
+              have hR : 0 ⊢ [] ⊢ singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) ˋzero ⦂ ℕ := by
+                simpa [singleSubst, singleEnv, subst] using
+                  (HasType.t_case (A := ℕ) hWT (.t_suc .t_zero) (.t_zero))
+              have redL : Nonempty (singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) ˋfalse —↠ ˋtrue) := by
+                exact ⟨by
+                  simpa [singleSubst, singleEnv, subst] using
+                    (show (ˋif ˋfalse then ˋfalse else ˋtrue) —↠ ˋtrue from
+                      .step _ .beta_false (.refl _))⟩
+              have redR :
+                  Nonempty (singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) ˋzero —↠ (ˋsuc ˋzero)) := by
+                exact ⟨by
+                  simpa [singleSubst, singleEnv, subst] using
+                    (show (caseₜ ˋzero [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) —↠ (ˋsuc ˋzero) from
+                      .step _ .beta_zero (.refl _))⟩
+              have hOut :
+                  𝒱 (#0)
+                    (extendRelSub emptyRelSub 𝔹 ℕ .bool .nat R)
+                    ˋtrue (ˋsuc ˋzero) .vTrue (.vSuc .vZero) := by
+                simpa [𝒱, extendRelSub] using
+                  (show ∃ (hV : 0 ⊢ [] ⊢ ˋtrue ⦂ 𝔹), ∃ (hW : 0 ⊢ [] ⊢ (ˋsuc ˋzero) ⦂ ℕ),
+                      R ˋtrue (ˋsuc ˋzero) .vTrue (.vSuc .vZero) hV hW from
+                    ⟨.t_true, ⟨.t_suc .t_zero, Or.inl ⟨rfl, rfl⟩⟩⟩)
+              have hE :
+                  𝓔 (#0)
+                    (extendRelSub emptyRelSub 𝔹 ℕ .bool .nat R)
+                    (singleSubst (ˋif ˋ0 then ˋfalse else ˋtrue) ˋfalse)
+                    (singleSubst (caseₜ ˋ0 [zero⇒ (ˋsuc ˋzero) |suc⇒ ˋzero]) ˋzero) := by
+                unfold 𝓔
+                exact Exists.intro hL
+                  (Exists.intro hR
+                    (Exists.intro ˋtrue
+                      (Exists.intro (ˋsuc ˋzero)
+                        (Exists.intro Value.vTrue
+                          (Exists.intro (Value.vSuc Value.vZero)
+                            (And.intro redL (And.intro redR hOut)))))))
+              exact hE))
+    simpa [neg, flip, 𝒱, substT, extendRelSub] using hCore
 
 theorem free_theorem_rep :
   ∀ (M : Term),

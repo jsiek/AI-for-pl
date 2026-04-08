@@ -1256,6 +1256,42 @@ theorem fundamental :
   | _, _, _, _, .t_tapp hM _ =>
       compat_tapp _ (fundamental _ hM)
 
+theorem closed_terminates :
+  ∀ {A : Ty} {M : Term},
+    0 ⊢ [] ⊢ M ⦂ A →
+    ∃ (V : Term), ∃ (_v : Value V), Nonempty (M —↠ V)
+  | A, M, hM => by
+      have hRel : [] ⊨ M ≈ M ⦂ A :=
+        fundamental M hM
+      have hEval :
+          𝓔 A emptyRelSub
+            (substTT emptyRelSub.left (subst emptyRelEnv.left M))
+            (substTT emptyRelSub.right (subst emptyRelEnv.right M)) :=
+        hRel emptyRelSub emptyRelEnv 𝒢_empty
+      simp only [𝓔] at hEval
+      rcases hEval with ⟨_, _, V, _W, vV, _wW, mSteps, _nSteps, _hVV⟩
+      rcases mSteps with ⟨mSteps⟩
+      have hMSub :
+          substTT emptyRelSub.left (subst emptyRelEnv.left M) = M := by
+        have hSubId : subst emptyRelEnv.left M = M := by
+          simpa [emptyRelEnv] using sub_id M
+        have hTTId :
+            substTT emptyRelSub.left M = M :=
+          substTT_id_typed (hM := hM) (hσ := by
+            intro α hα
+            exact False.elim (Nat.not_lt_zero α hα))
+        calc
+          substTT emptyRelSub.left (subst emptyRelEnv.left M)
+              = substTT emptyRelSub.left M := by
+                  simpa [hSubId]
+          _ = M := hTTId
+      have hStepsM : M —↠ V := by
+        exact Eq.ndrec
+          (motive := fun T => T —↠ V)
+          mSteps
+          hMSub
+      exact ⟨V, vV, ⟨hStepsM⟩⟩
+
 end
 
 end Extrinsic

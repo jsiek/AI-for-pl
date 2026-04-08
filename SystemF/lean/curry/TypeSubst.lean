@@ -177,4 +177,74 @@ theorem substitution {a b c : Ty} :
   dsimp [substOneT, substOneAtOne]
   exact subst_substOne_commute (singleTyEnv c) a b
 
+def map_renameT_lift (ρ : RenameT) :
+  ∀ Γ, List.map (renameT (extT ρ)) (liftCtx Γ) = liftCtx (List.map (renameT ρ) Γ)
+  | [] => rfl
+  | A :: Γ => by
+      change
+        renameT (extT ρ) (renameT Nat.succ A) :: List.map (renameT (extT ρ)) (liftCtx Γ) =
+        renameT Nat.succ (renameT ρ A) :: liftCtx (List.map (renameT ρ) Γ)
+      have hHead :
+          renameT (extT ρ) (renameT Nat.succ A) = renameT Nat.succ (renameT ρ A) := by
+        calc
+          renameT (extT ρ) (renameT Nat.succ A)
+              = renameT (fun i => extT ρ (Nat.succ i)) A := by
+                  exact rename_rename_commute Nat.succ (extT ρ) A
+          _ = renameT (fun i => Nat.succ (ρ i)) A := by rfl
+          _ = renameT Nat.succ (renameT ρ A) := by
+                symm
+                exact rename_rename_commute ρ Nat.succ A
+      calc
+        renameT (extT ρ) (renameT Nat.succ A) :: List.map (renameT (extT ρ)) (liftCtx Γ)
+            = renameT Nat.succ (renameT ρ A) :: List.map (renameT (extT ρ)) (liftCtx Γ) := by
+                simpa [hHead]
+        _ = renameT Nat.succ (renameT ρ A) :: liftCtx (List.map (renameT ρ) Γ) := by
+              simpa [map_renameT_lift ρ Γ]
+
+def map_substT_lift (σ : SubstT) :
+  ∀ Γ, List.map (substT (extsT σ)) (liftCtx Γ) = liftCtx (List.map (substT σ) Γ)
+  | [] => rfl
+  | A :: Γ => by
+      change
+        substT (extsT σ) (renameT Nat.succ A) :: List.map (substT (extsT σ)) (liftCtx Γ) =
+        renameT Nat.succ (substT σ A) :: liftCtx (List.map (substT σ) Γ)
+      have hHead :
+          substT (extsT σ) (renameT Nat.succ A) = renameT Nat.succ (substT σ A) := by
+        calc
+          substT (extsT σ) (renameT Nat.succ A)
+              = substT (fun i => extsT σ (Nat.succ i)) A := by
+                  exact rename_subst_commute Nat.succ (extsT σ) A
+          _ = substT (fun i => renameT Nat.succ (σ i)) A := by rfl
+          _ = renameT Nat.succ (substT σ A) := by
+                symm
+                exact rename_subst Nat.succ σ A
+      calc
+        substT (extsT σ) (renameT Nat.succ A) :: List.map (substT (extsT σ)) (liftCtx Γ)
+            = renameT Nat.succ (substT σ A) :: List.map (substT (extsT σ)) (liftCtx Γ) := by
+                simpa [hHead]
+        _ = renameT Nat.succ (substT σ A) :: liftCtx (List.map (substT σ) Γ) := by
+              simpa [map_substT_lift σ Γ]
+
+def substT_renameT_cancel (C B : Ty) :
+    substT (singleTyEnv B) (renameT Nat.succ C) = C := by
+  calc
+    substT (singleTyEnv B) (renameT Nat.succ C)
+        = substT (fun i => singleTyEnv B (Nat.succ i)) C := by
+            exact rename_subst_commute Nat.succ (singleTyEnv B) C
+    _ = substT idₜ C := by
+          apply subst_cong
+          intro i
+          rfl
+    _ = C := subst_id C
+
+def singleTySubst_lift_cancel :
+    ∀ (Γ : Ctx) (B : Ty),
+      List.map (substT (singleTyEnv B)) (liftCtx Γ) = Γ
+  | [], _ => rfl
+  | C :: Γ, B => by
+      change
+        substT (singleTyEnv B) (renameT Nat.succ C) ::
+          List.map (substT (singleTyEnv B)) (liftCtx Γ) = C :: Γ
+      simpa [substT_renameT_cancel C B] using congrArg (List.cons C) (singleTySubst_lift_cancel Γ B)
+
 end Curry

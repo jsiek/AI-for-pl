@@ -5,6 +5,7 @@ module extrinsic.All where
 -- importing this file should force Agda to check the entire extrinsic stack.
 
 open import extrinsic.Types
+open import extrinsic.Ctx
 open import extrinsic.TypeSubst
 open import extrinsic.Terms
 open import extrinsic.TypeTermSubst

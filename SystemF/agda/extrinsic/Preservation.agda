@@ -8,35 +8,9 @@ open import Data.List using (List; []; _∷_; map)
 open import Data.Nat.Base using (ℕ; zero; suc; _<_; z<s; s<s; s<s⁻¹)
 
 open import extrinsic.Reduction
+open import extrinsic.Ctx
 open import extrinsic.TypeSubst as TS
 open import extrinsic.TypeTermSubst using (cong₃)
-
-------------------------------------------------------------------------
--- Context lookup under list maps
-------------------------------------------------------------------------
-
-lookup-map-renameᵗ :
-  {Γ : Ctx} {x : Var} {A : Ty} {ρ : Renameᵗ} →
-  Γ ∋ x ⦂ A →
-  map (renameᵗ ρ) Γ ∋ x ⦂ renameᵗ ρ A
-lookup-map-renameᵗ Z = Z
-lookup-map-renameᵗ (S h) = S (lookup-map-renameᵗ h)
-
-lookup-map-substᵗ :
-  {Γ : Ctx} {x : Var} {A : Ty} {σ : Substᵗ} →
-  Γ ∋ x ⦂ A →
-  map (substᵗ σ) Γ ∋ x ⦂ substᵗ σ A
-lookup-map-substᵗ Z = Z
-lookup-map-substᵗ (S h) = S (lookup-map-substᵗ h)
-
-lookup-map-inv :
-  {Γ : Ctx} {x : Var} {B : Ty} {f : Ty → Ty} →
-  map f Γ ∋ x ⦂ B →
-  Σ Ty (λ A → (Γ ∋ x ⦂ A) × (B ≡ f A))
-lookup-map-inv {Γ = A ∷ Γ} {x = 0} Z = A , (Z , refl)
-lookup-map-inv {Γ = A ∷ Γ} {x = suc x} (S h)
-  with lookup-map-inv h
-... | A' , (hA' , eq) = A' , (S hA' , eq)
 
 ------------------------------------------------------------------------
 -- Well-formed renamings/substitutions on type variables

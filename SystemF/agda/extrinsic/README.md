@@ -6,7 +6,7 @@ safety and relational parametricity.
 
 ## Module map
 
-- `Types.agda`, `TypeSubst.agda`: type syntax + type substitution algebra
+- `Types.agda`, `Ctx.agda`, `TypeSubst.agda`: type/context syntax + type substitution algebra + context lookup helpers
 - `Terms.agda`: term syntax, core renaming/substitution operators, typing
 - `TypeTermSubst.agda`: type-in-term congruence + mixed commutation support
 - `TermSubst.agda`: term-in-term substitution metatheory

@@ -26,11 +26,12 @@ open import extrinsic.TermSubst using (subst-cong; exts-sub-cons)
 open import extrinsic.TypeTermSubst using
   (cong₃; substᵀ-renameᵀ-commute; substᵀ-subst-commute; substᵀ-substᵀ; singleTyEnv-suc-cancel; singleTyEnv-suc-cancelᵗ; substᵀ-cong
   ; substᵀ-id-typed; substᵗ-id-typed)
+open import extrinsic.Ctx using (lookup-map-inv; lookup-map-substᵗ)
 open import extrinsic.Preservation
   using
     ( SubstWf; TySubstWf; TySubstWf-exts; SubstWf-⇑
     ; typing-subst; typing-substᵀ; typing-rename-shift
-    ; lookup-map-inv; lookup-map-substᵗ; map-substᵗ-⤊)
+    ; map-substᵗ-⤊)
 open import extrinsic.Reduction
 open import extrinsic.LogicalRelation
 

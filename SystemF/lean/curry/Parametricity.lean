@@ -1,4 +1,5 @@
 import curry.LogicalRelation
+import curry.TermSubst
 
 -- File Charter:
 --   * Proves compatibility lemmas for the curry logical relation.

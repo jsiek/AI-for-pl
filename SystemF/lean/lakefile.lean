@@ -13,8 +13,10 @@ lean_lib «SystemF» where
   roots := #[
     `SystemF,
     `curry.Types,
+    `curry.Ctx,
     `curry.TypeSubst,
     `curry.Terms,
+    `curry.TermSubst,
     `curry.Reduction,
     `curry.Progress,
     `curry.Preservation,
@@ -59,8 +61,10 @@ lean_lib «intrinsic» where
 lean_lib «curry» where
   roots := #[
     `curry.Types,
+    `curry.Ctx,
     `curry.TypeSubst,
     `curry.Terms,
+    `curry.TermSubst,
     `curry.Reduction,
     `curry.Progress,
     `curry.Preservation,

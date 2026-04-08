@@ -1,4 +1,5 @@
 import curry.Progress
+import curry.Ctx
 
 -- File Charter:
 --   * Proves preservation for one-step reduction in curry System F.
@@ -20,69 +21,6 @@ def RenameWf (Γ Γ' : Ctx) (ρ : Rename) : Type :=
 
 def SubstWf (Δ : TyCtx) (Γ Γ' : Ctx) (σ : Subst) : Type :=
   ∀ {x A}, HasTypeVar Γ x A → Δ ⊢ Γ' ⊢ (σ x) ⦂ A
-
--- Step 1 (from log strategy): context-map commutation lemmas.
-def map_renameT_lift (ρ : RenameT) :
-  ∀ Γ, List.map (renameT (extT ρ)) (liftCtx Γ) = liftCtx (List.map (renameT ρ) Γ)
-  | [] => rfl
-  | A :: Γ => by
-      change
-        renameT (extT ρ) (renameT Nat.succ A) :: List.map (renameT (extT ρ)) (liftCtx Γ) =
-        renameT Nat.succ (renameT ρ A) :: liftCtx (List.map (renameT ρ) Γ)
-      have hHead :
-          renameT (extT ρ) (renameT Nat.succ A) = renameT Nat.succ (renameT ρ A) := by
-        calc
-          renameT (extT ρ) (renameT Nat.succ A)
-              = renameT (fun i => extT ρ (Nat.succ i)) A := by
-                  exact rename_rename_commute Nat.succ (extT ρ) A
-          _ = renameT (fun i => Nat.succ (ρ i)) A := by rfl
-          _ = renameT Nat.succ (renameT ρ A) := by
-                symm
-                exact rename_rename_commute ρ Nat.succ A
-      calc
-        renameT (extT ρ) (renameT Nat.succ A) :: List.map (renameT (extT ρ)) (liftCtx Γ)
-            = renameT Nat.succ (renameT ρ A) :: List.map (renameT (extT ρ)) (liftCtx Γ) := by
-                simpa [hHead]
-        _ = renameT Nat.succ (renameT ρ A) :: liftCtx (List.map (renameT ρ) Γ) := by
-              simpa [map_renameT_lift ρ Γ]
-
-def map_substT_lift (σ : SubstT) :
-  ∀ Γ, List.map (substT (extsT σ)) (liftCtx Γ) = liftCtx (List.map (substT σ) Γ)
-  | [] => rfl
-  | A :: Γ => by
-      change
-        substT (extsT σ) (renameT Nat.succ A) :: List.map (substT (extsT σ)) (liftCtx Γ) =
-        renameT Nat.succ (substT σ A) :: liftCtx (List.map (substT σ) Γ)
-      have hHead :
-          substT (extsT σ) (renameT Nat.succ A) = renameT Nat.succ (substT σ A) := by
-        calc
-          substT (extsT σ) (renameT Nat.succ A)
-              = substT (fun i => extsT σ (Nat.succ i)) A := by
-                  exact rename_subst_commute Nat.succ (extsT σ) A
-          _ = substT (fun i => renameT Nat.succ (σ i)) A := by rfl
-          _ = renameT Nat.succ (substT σ A) := by
-                symm
-                exact rename_subst Nat.succ σ A
-      calc
-        substT (extsT σ) (renameT Nat.succ A) :: List.map (substT (extsT σ)) (liftCtx Γ)
-            = renameT Nat.succ (substT σ A) :: List.map (substT (extsT σ)) (liftCtx Γ) := by
-                simpa [hHead]
-        _ = renameT Nat.succ (substT σ A) :: liftCtx (List.map (substT σ) Γ) := by
-              simpa [map_substT_lift σ Γ]
-
-def lookup_map_renameT :
-  ∀ {Γ x A ρ},
-    HasTypeVar Γ x A →
-    HasTypeVar (List.map (renameT ρ) Γ) x (renameT ρ A)
-  | _, _, _, _, .Z => .Z
-  | _, _, _, _, .S h => .S (lookup_map_renameT h)
-
-def lookup_map_substT :
-  ∀ {Γ x A σ},
-    HasTypeVar Γ x A →
-    HasTypeVar (List.map (substT σ) Γ) x (substT σ A)
-  | _, _, _, _, .Z => .Z
-  | _, _, _, _, .S h => .S (lookup_map_substT h)
 
 def tyRenameWf_ext {Δ Δ' ρ}
     (hρ : TyRenameWf Δ Δ' ρ) :
@@ -269,28 +207,6 @@ def singleTySubstWf {Δ B} :
   | succ X =>
       exact .var (Nat.lt_of_succ_lt_succ hX)
 
-def substT_renameT_cancel (C B : Ty) :
-    substT (singleTyEnv B) (renameT Nat.succ C) = C := by
-  calc
-    substT (singleTyEnv B) (renameT Nat.succ C)
-        = substT (fun i => singleTyEnv B (Nat.succ i)) C := by
-            exact rename_subst_commute Nat.succ (singleTyEnv B) C
-    _ = substT idₜ C := by
-          apply subst_cong
-          intro i
-          rfl
-    _ = C := subst_id C
-
-def singleTySubst_lift_cancel :
-    ∀ (Γ : Ctx) (B : Ty),
-      List.map (substT (singleTyEnv B)) (liftCtx Γ) = Γ
-  | [], _ => rfl
-  | C :: Γ, B => by
-      change
-        substT (singleTyEnv B) (renameT Nat.succ C) ::
-          List.map (substT (singleTyEnv B)) (liftCtx Γ) = C :: Γ
-      simpa [substT_renameT_cancel C B] using congrArg (List.cons C) (singleTySubst_lift_cancel Γ B)
-
 def typing_single_substTT :
   ∀ {Δ Γ M A B},
     (Δ + 1) ⊢ (liftCtx Γ) ⊢ M ⦂ A →
@@ -307,18 +223,6 @@ def typing_single_substTT :
           (motive := fun Ψ => Δ ⊢ Ψ ⊢ (substTT (singleTyEnv B) M) ⦂ (substOneT A B))
           hsub (singleTySubst_lift_cancel Γ B)
       simpa [substOneTT, substTT] using hcast
-
-def lookup_map_inv :
-  ∀ {Γ x B f},
-    HasTypeVar (List.map f Γ) x B →
-    Σ A, { hA : HasTypeVar Γ x A // B = f A }
-  | [], _, _, _, h => by
-      cases h
-  | A :: Γ, 0, _, _, .Z =>
-      ⟨A, ⟨.Z, rfl⟩⟩
-  | A :: Γ, x + 1, B, f, .S h => by
-      rcases lookup_map_inv (Γ := Γ) (x := x) (B := B) (f := f) h with ⟨A', ⟨hA', hEq⟩⟩
-      exact ⟨A', ⟨.S hA', hEq⟩⟩
 
 def renameWf_ext {Γ Γ' B ρ} :
     RenameWf Γ Γ' ρ →

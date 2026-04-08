@@ -1,6 +1,8 @@
 import curry.Types
+import curry.Ctx
 import curry.TypeSubst
 import curry.Terms
+import curry.TermSubst
 import curry.Reduction
 import curry.Progress
 import curry.Preservation

@@ -30,6 +30,22 @@ lean_lib «SystemF» where
     `intrinsic.Reduction,
     `intrinsic.Eval,
     `intrinsic.Examples,
+    `extrinsic.Types,
+    `extrinsic.TypeSubst,
+    `extrinsic.Terms,
+    `extrinsic.TypeTermSubst,
+    `extrinsic.TermSubst,
+    `extrinsic.Reduction,
+    `extrinsic.Progress,
+    `extrinsic.Preservation,
+    `extrinsic.TypeSafety,
+    `extrinsic.Eval,
+    `extrinsic.Examples,
+    `extrinsic.LogicalRelation,
+    `extrinsic.Parametricity,
+    `extrinsic.FreeTheorems,
+    `extrinsic.SystemF,
+    `extrinsic.All,
   ]
 
 -- Intrinsic-only build target (no curry modules).
@@ -53,4 +69,25 @@ lean_lib «curry» where
     `curry.Parametricity,
     `curry.FreeTheorems,
     `curry.Examples
+  ]
+
+-- Extrinsic-only build target.
+lean_lib «extrinsic» where
+  roots := #[
+    `extrinsic.Types,
+    `extrinsic.TypeSubst,
+    `extrinsic.Terms,
+    `extrinsic.TypeTermSubst,
+    `extrinsic.TermSubst,
+    `extrinsic.Reduction,
+    `extrinsic.Progress,
+    `extrinsic.Preservation,
+    `extrinsic.TypeSafety,
+    `extrinsic.Eval,
+    `extrinsic.Examples,
+    `extrinsic.LogicalRelation,
+    `extrinsic.Parametricity,
+    `extrinsic.FreeTheorems,
+    `extrinsic.SystemF,
+    `extrinsic.All
   ]

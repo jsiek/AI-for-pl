@@ -671,13 +671,17 @@ compat-·[] {A = A} {B = B} M hB M-rel ρ γ env
   , ⟨ right-typed
     , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨
         (substᵀ (left ρ) (subst (γ .left) (M ·[ B ])))
-      —↠⟨ left-red ⟩
+      —↠⟨ ·[]-↠ M₁—↠ΛN₁ ⟩
+        ((Λ N₁) ·[ substᵗ (left ρ) B ])
+      —↠⟨ β-Λ-↠ {A = substᵗ (left ρ) B} ⟩
         N₁ [ substᵗ (left ρ) B ]ᵀ
       —↠⟨ N₁—↠V ⟩
       V
       ∎
     , ⟨ (substᵀ (right ρ) (subst (γ .right) (M ·[ B ])))
-      —↠⟨ right-red ⟩
+      —↠⟨ ·[]-↠ M₂—↠ΛN₂ ⟩
+        ((Λ N₂) ·[ substᵗ (right ρ) B ])
+      —↠⟨ β-Λ-↠ {A = substᵗ (right ρ) B} ⟩
         N₂ [ substᵗ (right ρ) B ]ᵀ
       —↠⟨ N₂—↠W ⟩
         W
@@ -702,24 +706,6 @@ compat-·[] {A = A} {B = B} M hB M-rel ρ γ env
       (sym (subst-[]ᵗ-commute (right ρ) A B))
       (⊢·[] {B = substᵗ (right ρ) B} ⊢M'
         (substᵗ-codom-closed (right ρ) (right-closed ρ) B))
-
-  left-red : substᵀ (left ρ) (subst (γ .left) (M ·[ B ])) —↠ N₁ [ substᵗ (left ρ) B ]ᵀ
-  left-red =
-    (substᵀ (left ρ) (subst (γ .left) (M ·[ B ])))
-    —↠⟨ ·[]-↠ M₁—↠ΛN₁ ⟩
-      ((Λ N₁) ·[ substᵗ (left ρ) B ])
-    —↠⟨ β-Λ-↠ {A = substᵗ (left ρ) B} ⟩
-      N₁ [ substᵗ (left ρ) B ]ᵀ
-    ∎
-
-  right-red : substᵀ (right ρ) (subst (γ .right) (M ·[ B ])) —↠ N₂ [ substᵗ (right ρ) B ]ᵀ
-  right-red =
-    (substᵀ (right ρ) (subst (γ .right) (M ·[ B ])))
-    —↠⟨ ·[]-↠ M₂—↠ΛN₂ ⟩
-      ((Λ N₂) ·[ substᵗ (right ρ) B ])
-    —↠⟨ β-Λ-↠ {A = substᵗ (right ρ) B} ⟩
-      N₂ [ substᵗ (right ρ) B ]ᵀ
-    ∎
 
 compat-Λ : ∀ {Δ Γ A}
   → (N : Term)

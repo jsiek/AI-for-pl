@@ -204,21 +204,6 @@ _,⟨_,_⟩ : (γ : RelEnv) (V : Term) (W : Term) → RelEnv
 -- Logically related terms
 --------------------------------------------------------------------------------
 
-ℰ-close-ρ :
-  ∀ {A : Ty} {ρ : RelSub} {M N : Term}
-  → ℰ A ρ M N
-  → ℰ A ρ (substᵀ (left ρ) M) (substᵀ (right ρ) N)
-ℰ-close-ρ {A = A} {ρ = ρ} {M = M} {N = N}
-  ⟨ ⊢M , ⟨ ⊢N , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
-  ⟨ substEq (λ Tm → zero ∣ [] ⊢ Tm ⦂ substᵗ (left ρ) A)
-      (sym (substᵀ-id-typed (λ ()) ⊢M)) ⊢M
-  , ⟨ substEq (λ Tm → zero ∣ [] ⊢ Tm ⦂ substᵗ (right ρ) A)
-        (sym (substᵀ-id-typed (λ ()) ⊢N)) ⊢N
-    , ⟨ V , ⟨ W , ⟨ v , ⟨ w
-      , ⟨ substEq (λ Tm → Tm —↠ V) (sym (substᵀ-id-typed (λ ()) ⊢M)) M—↠V
-        , ⟨ substEq (λ Tm → Tm —↠ W) (sym (substᵀ-id-typed (λ ()) ⊢N)) N—↠W
-          , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-
 LogicalRel : (Γ : Ctx) (A : Ty) (M N : Term) → Setω
 LogicalRel Γ A M N = ∀ (ρ : RelSub) (γ : RelEnv)
   → 𝒢 Γ ρ γ
@@ -277,6 +262,21 @@ syntax LogicalRel Γ A M N = Γ ⊨ M ≈ N ⦂ A
 --------------------------------------------------------------------------------
 -- Renaming type variables in the logical relation
 --------------------------------------------------------------------------------
+
+ℰ-close-ρ :
+  ∀ {A : Ty} {ρ : RelSub} {M N : Term}
+  → ℰ A ρ M N
+  → ℰ A ρ (substᵀ (left ρ) M) (substᵀ (right ρ) N)
+ℰ-close-ρ {A = A} {ρ = ρ} {M = M} {N = N}
+  ⟨ ⊢M , ⟨ ⊢N , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
+  ⟨ substEq (λ Tm → zero ∣ [] ⊢ Tm ⦂ substᵗ (left ρ) A)
+      (sym (substᵀ-id-typed (λ ()) ⊢M)) ⊢M
+  , ⟨ substEq (λ Tm → zero ∣ [] ⊢ Tm ⦂ substᵗ (right ρ) A)
+        (sym (substᵀ-id-typed (λ ()) ⊢N)) ⊢N
+    , ⟨ V , ⟨ W , ⟨ v , ⟨ w
+      , ⟨ substEq (λ Tm → Tm —↠ V) (sym (substᵀ-id-typed (λ ()) ⊢M)) M—↠V
+        , ⟨ substEq (λ Tm → Tm —↠ W) (sym (substᵀ-id-typed (λ ()) ⊢N)) N—↠W
+          , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
 
 data WkRel : Renameᵗ → RelSub → RelSub → Setω where
   wk-suc :

@@ -4,7 +4,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_)
 
 open import TermsIso
-  using (IntrinsicWT; eraseTerm; toExtrinsic; extrinsicTerm)
+  using (IntrinsicWT; eraseTerm; toCurry; curryTerm)
 open import TypesIso using (erase)
 
 open import intrinsic.Types as I
@@ -67,14 +67,14 @@ erase-—↠ (M IR.∎) = eraseTerm M ET.∎
 erase-—↠ (L IR.—→⟨ L—→M ⟩ M—↠N) =
   eraseTerm L ET.—→⟨ erase-—→ L—→M ⟩ erase-—↠ M—↠N
 
-toExtrinsic-respects-—→ : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
+toCurry-respects-—→ : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
   {m n : IntrinsicWT Γ A}
   → m IR.—→ n
-  → extrinsicTerm (toExtrinsic m) ET.—→ extrinsicTerm (toExtrinsic n)
-toExtrinsic-respects-—→ = erase-—→
+  → curryTerm (toCurry m) ET.—→ curryTerm (toCurry n)
+toCurry-respects-—→ = erase-—→
 
-toExtrinsic-respects-—↠ : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
+toCurry-respects-—↠ : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
   {m n : IntrinsicWT Γ A}
   → m IR.—↠ n
-  → extrinsicTerm (toExtrinsic m) ET.—↠ extrinsicTerm (toExtrinsic n)
-toExtrinsic-respects-—↠ = erase-—↠
+  → curryTerm (toCurry m) ET.—↠ curryTerm (toCurry n)
+toCurry-respects-—↠ = erase-—↠

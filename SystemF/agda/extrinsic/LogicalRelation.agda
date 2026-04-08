@@ -51,14 +51,14 @@ open RelSub public
 _,⟨_,_,_,_,_⟩ : (ρ : RelSub) → (A₁ A₂ : Ty)
   → WfTy zero A₁ → WfTy zero A₂
   → Rel A₁ A₂ → RelSub
-(ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩) .left = A₁ •ᵗ left ρ
-(ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩) .right = A₂ •ᵗ right ρ
-(ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩) .left-closed zero = hA₁
-(ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩) .left-closed (suc α) = left-closed ρ α
-(ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩) .right-closed zero = hA₂
-(ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩) .right-closed (suc α) = right-closed ρ α
-(ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩) .ρR 0 = R
-(ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩) .ρR (suc α) = ρR ρ α
+(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .left = A₁ •ᵗ left ρ
+(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .right = A₂ •ᵗ right ρ
+(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .left-closed zero = wfA₁
+(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .left-closed (suc α) = left-closed ρ α
+(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .right-closed zero = wfA₂
+(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .right-closed (suc α) = right-closed ρ α
+(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .ρR 0 = R
+(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .ρR (suc α) = ρR ρ α
 
 substᵗ-codom-closed :
   ∀ {Δ : TyCtx} (σ : Substᵗ)
@@ -109,10 +109,10 @@ substᵗ-codom-closed {Δ = Δ} σ hσ (`∀ A) =
   Σ[ ⊢V ∈ zero ∣ [] ⊢ (Λ N) ⦂ substᵗ (left ρ) (`∀ A) ]
   Σ[ ⊢W ∈ zero ∣ [] ⊢ (Λ M) ⦂ substᵗ (right ρ) (`∀ A) ]
     (∀ (A₁ A₂ : Ty)
-      → (hA₁ : WfTy zero A₁)
-      → (hA₂ : WfTy zero A₂)
+      → (wfA₁ : WfTy zero A₁)
+      → (wfA₂ : WfTy zero A₂)
       → (R : Rel A₁ A₂)
-      → ℰ A (ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩) (N [ A₁ ]ᵀ) (M [ A₂ ]ᵀ))
+      → ℰ A (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) (N [ A₁ ]ᵀ) (M [ A₂ ]ᵀ))
 𝒱 A ρ N M vN vM = ⊥
 
 ℰ A ρ M N =
@@ -280,8 +280,8 @@ syntax LogicalRel Γ A M N = Γ ⊨ M ≈ N ⦂ A
 
 data WkRel : Renameᵗ → RelSub → RelSub → Setω where
   wk-suc :
-    ∀ {ρ A₁ A₂} (hA₁ : WfTy zero A₁) (hA₂ : WfTy zero A₂) (R : Rel A₁ A₂) →
-    WkRel suc ρ (ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩)
+    ∀ {ρ A₁ A₂} (wfA₁ : WfTy zero A₁) (wfA₂ : WfTy zero A₂) (R : Rel A₁ A₂) →
+    WkRel suc ρ (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩)
 
   wk-ext :
     ∀ {ξ ρ ρ' B₁ B₂}
@@ -393,16 +393,16 @@ mutual
   𝒱-rename-wk {A = `∀ A} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = Λ N} {W = Λ M} {v = vTlam} {w = vTlam} wk-r ⟨ ⊢V , ⟨ ⊢W , ∀-rel ⟩ ⟩ =
     ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ N) ⦂ T) (sym (wk-left-subst wk-r (`∀ A))) ⊢V
     , ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ M) ⦂ T) (sym (wk-right-subst wk-r (`∀ A))) ⊢W
-      , (λ A₁ A₂ hA₁ hA₂ R →
+      , (λ A₁ A₂ wfA₁ wfA₂ R →
       ℰ-rename-wk
         {A = A}
         {ξ = extᵗ ξ}
-        {ρ = ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩}
-        {ρ' = ρ' ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩}
+        {ρ = ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
+        {ρ' = ρ' ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
         (wk-ext
           {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {B₁ = A₁} {B₂ = A₂}
-          hA₁ hA₂ R wk-r)
-        (∀-rel A₁ A₂ hA₁ hA₂ R)
+          wfA₁ wfA₂ R wk-r)
+        (∀-rel A₁ A₂ wfA₁ wfA₂ R)
       ) ⟩ ⟩
   𝒱-rename-wk {A = `∀ A} {v = vTlam} {w = vLam} wk-r ()
   𝒱-rename-wk {A = `∀ A} {v = vTlam} {w = vTrue} wk-r ()
@@ -450,16 +450,16 @@ mutual
   𝒱-unrename-wk {A = `∀ A} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = Λ N} {W = Λ M} {v = vTlam} {w = vTlam} wk-r ⟨ ⊢V , ⟨ ⊢W , ∀-rel ⟩ ⟩ =
     ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ N) ⦂ T) (wk-left-subst wk-r (`∀ A)) ⊢V
     , ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ M) ⦂ T) (wk-right-subst wk-r (`∀ A)) ⊢W
-      , (λ A₁ A₂ hA₁ hA₂ R →
+      , (λ A₁ A₂ wfA₁ wfA₂ R →
       ℰ-unrename-wk
         {A = A}
         {ξ = extᵗ ξ}
-        {ρ = ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩}
-        {ρ' = ρ' ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩}
+        {ρ = ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
+        {ρ' = ρ' ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
         (wk-ext
           {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {B₁ = A₁} {B₂ = A₂}
-          hA₁ hA₂ R wk-r)
-        (∀-rel A₁ A₂ hA₁ hA₂ R)
+          wfA₁ wfA₂ R wk-r)
+        (∀-rel A₁ A₂ wfA₁ wfA₂ R)
       ) ⟩ ⟩
   𝒱-unrename-wk {A = `∀ A} {v = vTlam} {w = vLam} wk-r ()
   𝒱-unrename-wk {A = `∀ A} {v = vTlam} {w = vTrue} wk-r ()
@@ -499,23 +499,23 @@ mutual
         ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
 
 ⇑-ℰ : ∀{A A₁ A₂}{ρ : RelSub}{γ : RelEnv}
-    {hA₁ : WfTy zero A₁}{hA₂ : WfTy zero A₂}{R : Rel A₁ A₂}
+    {wfA₁ : WfTy zero A₁}{wfA₂ : WfTy zero A₂}{R : Rel A₁ A₂}
   → ℰ A ρ (RelEnv.left γ 0) (RelEnv.right γ 0)
-  → ℰ (renameᵗ suc A) (ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩) (RelEnv.left γ 0) (RelEnv.right γ 0)
-⇑-ℰ {A}{A₁}{A₂}{ρ}{γ}{hA₁}{hA₂}{R} rel =
-  ℰ-rename-wk {A = A} {ξ = suc} {ρ = ρ} {ρ' = ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩}
-    (wk-suc hA₁ hA₂ R)
+  → ℰ (renameᵗ suc A) (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) (RelEnv.left γ 0) (RelEnv.right γ 0)
+⇑-ℰ {A}{A₁}{A₂}{ρ}{γ}{wfA₁}{wfA₂}{R} rel =
+  ℰ-rename-wk {A = A} {ξ = suc} {ρ = ρ} {ρ' = ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
+    (wk-suc wfA₁ wfA₂ R)
     rel
 
 liftRelEnv-related : ∀ {Γ A₁ A₂} {ρ : RelSub} {γ : RelEnv}
-    (hA₁ : WfTy zero A₁) (hA₂ : WfTy zero A₂)
+    (wfA₁ : WfTy zero A₁) (wfA₂ : WfTy zero A₂)
     (R : Rel A₁ A₂)
   → 𝒢 Γ ρ γ
-  → 𝒢 (⤊ Γ) (ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩) γ
-liftRelEnv-related {[]} hA₁ hA₂ R G = tt
-liftRelEnv-related {A ∷ Γ} {A₁ = A₁} {A₂ = A₂} {ρ} {γ} hA₁ hA₂ R G =
-  ⟨ ⇑-ℰ {A = A} {A₁ = A₁} {A₂ = A₂} {ρ = ρ} {γ = γ} {hA₁ = hA₁} {hA₂ = hA₂} {R = R} (G .proj₁)
-  , liftRelEnv-related {Γ} {A₁ = A₁} {A₂ = A₂} {ρ = ρ} {γ = ⇓γ γ} hA₁ hA₂ R (G .proj₂)
+  → 𝒢 (⤊ Γ) (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) γ
+liftRelEnv-related {[]} wfA₁ wfA₂ R G = tt
+liftRelEnv-related {A ∷ Γ} {A₁ = A₁} {A₂ = A₂} {ρ} {γ} wfA₁ wfA₂ R G =
+  ⟨ ⇑-ℰ {A = A} {A₁ = A₁} {A₂ = A₂} {ρ = ρ} {γ = γ} {wfA₁ = wfA₁} {wfA₂ = wfA₂} {R = R} (G .proj₁)
+  , liftRelEnv-related {Γ} {A₁ = A₁} {A₂ = A₂} {ρ = ρ} {γ = ⇓γ γ} wfA₁ wfA₂ R (G .proj₂)
   ⟩
 
 --------------------------------------------------------------------------------
@@ -536,35 +536,35 @@ record SubstRel (σ : Substᵗ) (ρ : RelSub) (ρ' : RelSub) : Setω where
       → 𝒱 (` α) ρ' V W v w
 
 exts-SubstRel : ∀ {σ ρ ρ' A₁ A₂}
-  → (hA₁ : WfTy zero A₁) (hA₂ : WfTy zero A₂)
+  → (wfA₁ : WfTy zero A₁) (wfA₂ : WfTy zero A₂)
   → (R : Rel A₁ A₂)
   → SubstRel σ ρ ρ'
   → SubstRel (extsᵗ σ)
-      (ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩)
-      (ρ' ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩)
-SubstRel.left-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} hA₁ hA₂ R sr) zero = refl
-SubstRel.left-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} hA₁ hA₂ R sr) (suc α) =
+      (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩)
+      (ρ' ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩)
+SubstRel.left-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) zero = refl
+SubstRel.left-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) (suc α) =
   trans
     (SubstRel.left-subst-var sr α)
     (sym (TS.rename-subst-commute suc (A₁ •ᵗ left ρ) (σ α)))
 
-SubstRel.right-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} hA₁ hA₂ R sr) zero = refl
-SubstRel.right-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} hA₁ hA₂ R sr) (suc α) =
+SubstRel.right-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) zero = refl
+SubstRel.right-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) (suc α) =
   trans
     (SubstRel.right-subst-var sr α)
     (sym (TS.rename-subst-commute suc (A₂ •ᵗ right ρ) (σ α)))
 
-SubstRel.var⇒ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} hA₁ hA₂ R sr) zero rel = rel
-SubstRel.var⇒ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} hA₁ hA₂ R sr) (suc α) rel =
-  𝒱-rename-wk {A = σ α} {ξ = suc} {ρ = ρ} {ρ' = ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩}
-    (wk-suc {ρ = ρ} {A₁ = A₁} {A₂ = A₂} hA₁ hA₂ R)
+SubstRel.var⇒ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) zero rel = rel
+SubstRel.var⇒ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) (suc α) rel =
+  𝒱-rename-wk {A = σ α} {ξ = suc} {ρ = ρ} {ρ' = ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
+    (wk-suc {ρ = ρ} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R)
     (SubstRel.var⇒ sr α rel)
 
-SubstRel.var⇐ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} hA₁ hA₂ R sr) zero rel = rel
-SubstRel.var⇐ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} hA₁ hA₂ R sr) (suc α) rel =
+SubstRel.var⇐ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) zero rel = rel
+SubstRel.var⇐ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) (suc α) rel =
   SubstRel.var⇐ sr α
-    (𝒱-unrename-wk {A = σ α} {ξ = suc} {ρ = ρ} {ρ' = ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩}
-      (wk-suc {ρ = ρ} {A₁ = A₁} {A₂ = A₂} hA₁ hA₂ R)
+    (𝒱-unrename-wk {A = σ α} {ξ = suc} {ρ = ρ} {ρ' = ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
+      (wk-suc {ρ = ρ} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R)
       rel)
 
 substRel-left-subst : ∀ {σ ρ ρ'} (sr : SubstRel σ ρ ρ') (A : Ty)
@@ -612,12 +612,12 @@ mutual
   𝒱-subst {A = `∀ A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = Λ N} {W = Λ M} {v = vTlam} {w = vTlam} sr ⟨ ⊢V , ⟨ ⊢W , ∀-rel ⟩ ⟩ =
     ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ N) ⦂ T) (substRel-left-subst sr (`∀ A)) ⊢V
     , ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ M) ⦂ T) (substRel-right-subst sr (`∀ A)) ⊢W
-      , (λ A₁ A₂ hA₁ hA₂ R →
+      , (λ A₁ A₂ wfA₁ wfA₂ R →
       ℰ-subst {A = A} {σ = extsᵗ σ}
-        {ρ = ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩}
-        {ρ' = ρ' ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩}
-        (exts-SubstRel hA₁ hA₂ R sr)
-        (∀-rel A₁ A₂ hA₁ hA₂ R)
+        {ρ = ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
+        {ρ' = ρ' ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
+        (exts-SubstRel wfA₁ wfA₂ R sr)
+        (∀-rel A₁ A₂ wfA₁ wfA₂ R)
       ) ⟩ ⟩
   𝒱-subst {A = `∀ A} {v = vTlam} {w = vLam} sr ()
   𝒱-subst {A = `∀ A} {v = vTlam} {w = vTrue} sr ()
@@ -660,12 +660,12 @@ mutual
   𝒱-unsubst {A = `∀ A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = Λ N} {W = Λ M} {v = vTlam} {w = vTlam} sr ⟨ ⊢V , ⟨ ⊢W , ∀-rel ⟩ ⟩ =
     ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ N) ⦂ T) (sym (substRel-left-subst sr (`∀ A))) ⊢V
     , ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ M) ⦂ T) (sym (substRel-right-subst sr (`∀ A))) ⊢W
-      , (λ A₁ A₂ hA₁ hA₂ R →
+      , (λ A₁ A₂ wfA₁ wfA₂ R →
       ℰ-unsubst {A = A} {σ = extsᵗ σ}
-        {ρ = ρ ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩}
-        {ρ' = ρ' ,⟨ A₁ , A₂ , hA₁ , hA₂ , R ⟩}
-        (exts-SubstRel hA₁ hA₂ R sr)
-        (∀-rel A₁ A₂ hA₁ hA₂ R)
+        {ρ = ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
+        {ρ' = ρ' ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
+        (exts-SubstRel wfA₁ wfA₂ R sr)
+        (∀-rel A₁ A₂ wfA₁ wfA₂ R)
       ) ⟩ ⟩
   𝒱-unsubst {A = `∀ A} {v = vTlam} {w = vLam} sr ()
   𝒱-unsubst {A = `∀ A} {v = vTlam} {w = vTrue} sr ()

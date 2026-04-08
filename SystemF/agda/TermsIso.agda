@@ -84,45 +84,45 @@ record _≃_ (A B : Set) : Set where
 IntrinsicWT : ∀ {Δ} → IC.Ctx Δ → I.Type Δ → Set
 IntrinsicWT Γ A = IT._;_⊢_ _ Γ A
 
-ExtrinsicWT : ∀ {Δ} → IC.Ctx Δ → I.Type Δ → Set
-ExtrinsicWT {Δ} Γ A =
+CurryWT : ∀ {Δ} → IC.Ctx Δ → I.Type Δ → Set
+CurryWT {Δ} Γ A =
   Σ ET.Term (λ M → Σ (IT._;_⊢_ Δ Γ A) (λ m → eraseTerm m ≡ M))
 
-toExtrinsic : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
-  → IntrinsicWT Γ A → ExtrinsicWT Γ A
-toExtrinsic m = ⟨ eraseTerm m , ⟨ m , refl ⟩ ⟩
+toCurry : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
+  → IntrinsicWT Γ A → CurryWT Γ A
+toCurry m = ⟨ eraseTerm m , ⟨ m , refl ⟩ ⟩
 
-fromExtrinsic : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
-  → ExtrinsicWT Γ A → IntrinsicWT Γ A
-fromExtrinsic ⟨ M , ⟨ m , eq ⟩ ⟩ = m
+fromCurry : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
+  → CurryWT Γ A → IntrinsicWT Γ A
+fromCurry ⟨ M , ⟨ m , eq ⟩ ⟩ = m
 
-from∘to-Extrinsic : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
+from∘to-Curry : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
   → (m : IntrinsicWT Γ A)
-  → fromExtrinsic (toExtrinsic m) ≡ m
-from∘to-Extrinsic m = refl
+  → fromCurry (toCurry m) ≡ m
+from∘to-Curry m = refl
 
-to∘from-Extrinsic : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
-  → (e : ExtrinsicWT Γ A)
-  → toExtrinsic (fromExtrinsic e) ≡ e
-to∘from-Extrinsic ⟨ .(eraseTerm m) , ⟨ m , refl ⟩ ⟩ = refl
+to∘from-Curry : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
+  → (e : CurryWT Γ A)
+  → toCurry (fromCurry e) ≡ e
+to∘from-Curry ⟨ .(eraseTerm m) , ⟨ m , refl ⟩ ⟩ = refl
 
 termsIso : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
-  → IntrinsicWT Γ A ≃ ExtrinsicWT Γ A
+  → IntrinsicWT Γ A ≃ CurryWT Γ A
 termsIso = record
-  { to = toExtrinsic
-  ; from = fromExtrinsic
-  ; from∘to = from∘to-Extrinsic
-  ; to∘from = to∘from-Extrinsic
+  { to = toCurry
+  ; from = fromCurry
+  ; from∘to = from∘to-Curry
+  ; to∘from = to∘from-Curry
   }
 
-extrinsicTerm : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
-  → ExtrinsicWT {Δ} Γ A → ET.Term
-extrinsicTerm ⟨ M , ⟨ m , eq ⟩ ⟩ = M
+curryTerm : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
+  → CurryWT {Δ} Γ A → ET.Term
+curryTerm ⟨ M , ⟨ m , eq ⟩ ⟩ = M
 
-extrinsicTyping : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
-  → (e : ExtrinsicWT {Δ} Γ A)
-  → ET._⊢_⊢_⦂_ (eraseTyCtx Δ) (eraseCtx Γ) (extrinsicTerm e) (erase A)
-extrinsicTyping {Δ} {Γ} {A} ⟨ M , ⟨ m , eq ⟩ ⟩ =
+curryTyping : ∀ {Δ} {Γ : IC.Ctx Δ} {A : I.Type Δ}
+  → (e : CurryWT {Δ} Γ A)
+  → ET._⊢_⊢_⦂_ (eraseTyCtx Δ) (eraseCtx Γ) (curryTerm e) (erase A)
+curryTyping {Δ} {Γ} {A} ⟨ M , ⟨ m , eq ⟩ ⟩ =
   substEq
     (λ N → ET._⊢_⊢_⦂_ (eraseTyCtx Δ) (eraseCtx Γ) N (erase A))
     eq

@@ -190,6 +190,38 @@ singleTySubstWf hB {zero} z<s = hB
 singleTySubstWf hB {suc X} (s<s x<Δ) = wfVar x<Δ
 
 ------------------------------------------------------------------------
+-- Well-formedness of typing derivations
+------------------------------------------------------------------------
+
+ctxWf-⤊ : ∀ {Δ Γ} → CtxWf Δ Γ → CtxWf (suc Δ) (⤊ Γ)
+ctxWf-⤊ {Δ = Δ} hΓ h with lookup-map-inv h
+... | A , (hA , eq) rewrite eq =
+  renameᵗ-preserves-WfTy (hΓ hA) (λ {i} i<Δ → s<s i<Δ)
+
+typing-wf : ∀ {Δ Γ A} {M : Term}
+  → CtxWf Δ Γ
+  → Δ ∣ Γ ⊢ M ⦂ A
+  → WfTy Δ A
+typing-wf hΓ (⊢` h) = hΓ h
+typing-wf hΓ (⊢ƛ hA hN) = wfFn hA (typing-wf (ctxWf-∷ hA hΓ) hN)
+typing-wf hΓ (⊢· hL hM) with typing-wf hΓ hL
+... | wfFn _ hB = hB
+typing-wf hΓ ⊢true = wf`Bool
+typing-wf hΓ ⊢false = wf`Bool
+typing-wf hΓ ⊢zero = wf`ℕ
+typing-wf hΓ (⊢suc hM) = wf`ℕ
+typing-wf hΓ (⊢case hL hM hN) = typing-wf hΓ hM
+typing-wf hΓ (⊢if hL hM hN) = typing-wf hΓ hM
+typing-wf hΓ (⊢Λ hN) = wf`∀ (typing-wf (ctxWf-⤊ hΓ) hN)
+typing-wf hΓ (⊢·[] hM hB) with typing-wf hΓ hM
+... | wf`∀ hA = substᵗ-preserves-WfTy hA (singleTySubstWf hB)
+
+closed-typing-wf : ∀ {A : Ty} {M : Term}
+  → 0 ∣ [] ⊢ M ⦂ A
+  → WfTy 0 A
+closed-typing-wf = typing-wf ctxWf-[]
+
+------------------------------------------------------------------------
 -- Type-substitution cancellation under shifted contexts
 ------------------------------------------------------------------------
 

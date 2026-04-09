@@ -229,7 +229,9 @@ cong-⊢⦂ :
   Δ ∣ Ψ ∣ Σ′ ∣ Γ′ ⊢ M′ ⦂ A′
 cong-⊢⦂ refl refl refl refl M = M
 
--- Structural actions on terms
+
+------------------------------------------------------------------------
+-- Substitution of terms into terms
 ------------------------------------------------------------------------
 
 renameᵗᵐ : Renameᵗ → Term → Term
@@ -278,6 +280,7 @@ M [ A ]ᵀ = substᵗᵐ (singleTyEnv A) M
 ⇑ˢᵐ : Term → Term
 ⇑ˢᵐ = renameˢᵐ suc
 
+------------------------------------------------------------------------
 -- Instantiation shorthand for coercions over every/every permissions
 ------------------------------------------------------------------------
 

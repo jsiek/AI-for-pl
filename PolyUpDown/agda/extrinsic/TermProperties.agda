@@ -113,7 +113,8 @@ renameˣᵐ ρ (M • α) = renameˣᵐ ρ M • α
 renameˣᵐ ρ (ν:= A ∙ M) = ν:= A ∙ renameˣᵐ ρ M
 renameˣᵐ ρ ($ κ) = $ κ
 renameˣᵐ ρ (L ⊕[ op ] M) = renameˣᵐ ρ L ⊕[ op ] renameˣᵐ ρ M
-renameˣᵐ ρ (at M d c) = at (renameˣᵐ ρ M) d c
+renameˣᵐ ρ (M up p) = renameˣᵐ ρ M up p
+renameˣᵐ ρ (M down p) = renameˣᵐ ρ M down p
 renameˣᵐ ρ (blame ℓ) = blame ℓ
 
 renameˣ-term-wt : ∀ {Δ Ψ}{Σ : Store}{Γ Γ′ : Ctx}{M : Term}{A : Ty} →
@@ -135,8 +136,10 @@ renameˣ-term-wt ρ hρ (⊢ν {A = A} wfA M) =
 renameˣ-term-wt ρ hρ (⊢$ κ) = ⊢$ κ
 renameˣ-term-wt ρ hρ (⊢⊕ L op M) =
   ⊢⊕ (renameˣ-term-wt ρ hρ L) op (renameˣ-term-wt ρ hρ M)
-renameˣ-term-wt ρ hρ (⊢at {d = d} {c = c} M hp) =
-  ⊢at {c = c} (renameˣ-term-wt ρ hρ M) hp
+renameˣ-term-wt ρ hρ (⊢up {p = p} M hp) =
+  ⊢up {p = p} (renameˣ-term-wt ρ hρ M) hp
+renameˣ-term-wt ρ hρ (⊢down {p = p} M hp) =
+  ⊢down {p = p} (renameˣ-term-wt ρ hρ M) hp
 renameˣ-term-wt ρ hρ (⊢blame ℓ) = ⊢blame ℓ
 
 ↑ˢ : ∀ {Σ : Store} → (A : Ty) →
@@ -193,7 +196,8 @@ substˣ-term σ (M • α) = substˣ-term σ M • α
 substˣ-term σ (ν:= A ∙ M) = ν:= A ∙ substˣ-term (↑ˢᵐ σ) M
 substˣ-term σ ($ κ) = $ κ
 substˣ-term σ (L ⊕[ op ] M) = substˣ-term σ L ⊕[ op ] substˣ-term σ M
-substˣ-term σ (at M d c) = at (substˣ-term σ M) d c
+substˣ-term σ (M up p) = substˣ-term σ M up p
+substˣ-term σ (M down p) = substˣ-term σ M down p
 substˣ-term σ (blame ℓ) = blame ℓ
 
 substˣ-term-wt : ∀ {Δ Ψ}{Σ : Store}{Γ Γ′ : Ctx}{M : Term}{A : Ty} →
@@ -215,8 +219,10 @@ substˣ-term-wt σ hσ (⊢ν {A = A} wfA M) =
 substˣ-term-wt σ hσ (⊢$ κ) = ⊢$ κ
 substˣ-term-wt σ hσ (⊢⊕ L op M) =
   ⊢⊕ (substˣ-term-wt σ hσ L) op (substˣ-term-wt σ hσ M)
-substˣ-term-wt σ hσ (⊢at {d = d} {c = c} M hp) =
-  ⊢at {c = c} (substˣ-term-wt σ hσ M) hp
+substˣ-term-wt σ hσ (⊢up {p = p} M hp) =
+  ⊢up {p = p} (substˣ-term-wt σ hσ M) hp
+substˣ-term-wt σ hσ (⊢down {p = p} M hp) =
+  ⊢down {p = p} (substˣ-term-wt σ hσ M) hp
 substˣ-term-wt σ hσ (⊢blame ℓ) = ⊢blame ℓ
 
 ------------------------------------------------------------------------

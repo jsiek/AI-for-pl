@@ -127,16 +127,11 @@ infix  5 ƛ_⇒_
 infix  5 Λ_
 infixl 7 _·_
 infixl 7 _•_
+infixl 7 _up_
+infixl 7 _down_
 infix  5 ν:=_∙_
 infixl 6 _⊕[_]_
 infix  9 `_
-
-data Direction : Set where
-  up down : Direction
-
-data Cast : Direction → Ty → Ty → Set where
-  cast↑ : ∀ {A B} → A ⊑ B → Cast up A B
-  cast↓ : ∀ {A B} → A ⊒ B → Cast down A B
 
 data Term : Set where
   `_      : Var → Term
@@ -147,22 +142,19 @@ data Term : Set where
   ν:=_∙_  : Ty → Term → Term
   $       : Const → Term
   _⊕[_]_  : Term → Prim → Term → Term
-  at      : ∀ {A B} → Term → (d : Direction) → Cast d A B → Term
+  _up_    : Term → Up → Term
+  _down_  : Term → Down → Term
   blame   : Label → Term
 
 ------------------------------------------------------------------------
 -- Well-typed casts and terms
 ------------------------------------------------------------------------
 
-WtCast : (Ψ : SealCtx) (Σ : Store) → ∀ {d A B} → Cast d A B → Set
-WtCast Ψ Σ (cast↑ p) = Σ ∣ every Ψ ∣ every Ψ ⊢↑ p
-WtCast Ψ Σ (cast↓ p) = Σ ∣ every Ψ ∣ every Ψ ⊢↓ p
-
 Wt⊑ : Store → List Bool → List Bool → Ty → Ty → Set
-Wt⊑ Σ Φ Ξ A B = Σ[ p ∈ (A ⊑ B) ] (Σ ∣ Φ ∣ Ξ ⊢↑ p)
+Wt⊑ Σ Φ Ξ A B = Σ[ p ∈ Up ] (Σ ∣ Φ ∣ Ξ ⊢ p ⦂ A ⊑ B)
 
 Wt⊒ : Store → List Bool → List Bool → Ty → Ty → Set
-Wt⊒ Σ Φ Ξ A B = Σ[ p ∈ (A ⊒ B) ] (Σ ∣ Φ ∣ Ξ ⊢↓ p)
+Wt⊒ Σ Φ Ξ A B = Σ[ p ∈ Down ] (Σ ∣ Φ ∣ Ξ ⊢ p ⦂ A ⊒ B)
 
 infix  4 _∣_∣_∣_⊢_⦂_
 
@@ -208,10 +200,15 @@ data _∣_∣_∣_⊢_⦂_
      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ (‵ `ℕ)
      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (L ⊕[ op ] M) ⦂ (‵ `ℕ)
 
-  ⊢at : ∀ {M d A B} {c : Cast d A B}
+  ⊢up : ∀ {M A B} {p : Up}
       → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A
-      → WtCast Ψ Σ c
-      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (at M d c) ⦂ B
+      → Σ ∣ every Ψ ∣ every Ψ ⊢ p ⦂ A ⊑ B
+      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (M up p) ⦂ B
+
+  ⊢down : ∀ {M A B} {p : Down}
+      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A
+      → Σ ∣ every Ψ ∣ every Ψ ⊢ p ⦂ A ⊒ B
+      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (M down p) ⦂ B
 
   ⊢blame : ∀ {A}
       → (ℓ : Label)
@@ -232,33 +229,8 @@ cong-⊢⦂ :
   Δ ∣ Ψ ∣ Σ′ ∣ Γ′ ⊢ M′ ⦂ A′
 cong-⊢⦂ refl refl refl refl M = M
 
+-- Structural actions on terms
 ------------------------------------------------------------------------
--- Structural actions on casts and terms
-------------------------------------------------------------------------
-
-renameCastᵗ :
-  ∀ {d A B} →
-  (ρ : Renameᵗ) →
-  Cast d A B →
-  Cast d (renameᵗ ρ A) (renameᵗ ρ B)
-renameCastᵗ ρ (cast↑ p) = cast↑ (rename⊑ᵗ ρ p)
-renameCastᵗ ρ (cast↓ p) = cast↓ (rename⊒ᵗ ρ p)
-
-substCastᵗ :
-  ∀ {d A B} →
-  (σ : Substᵗ) →
-  Cast d A B →
-  Cast d (substᵗ σ A) (substᵗ σ B)
-substCastᵗ σ (cast↑ p) = cast↑ (subst⊑ᵗ σ p)
-substCastᵗ σ (cast↓ p) = cast↓ (subst⊒ᵗ σ p)
-
-renameCastˢ :
-  ∀ {d A B} →
-  (ρ : Renameˢ) →
-  Cast d A B →
-  Cast d (renameˢ ρ A) (renameˢ ρ B)
-renameCastˢ ρ (cast↑ p) = cast↑ (rename⊑ˢ ρ p)
-renameCastˢ ρ (cast↓ p) = cast↓ (rename⊒ˢ ρ p)
 
 renameᵗᵐ : Renameᵗ → Term → Term
 renameᵗᵐ ρ (` x) = ` x
@@ -269,7 +241,8 @@ renameᵗᵐ ρ (M • α) = renameᵗᵐ ρ M • α
 renameᵗᵐ ρ (ν:= A ∙ M) = ν:= (renameᵗ ρ A) ∙ (renameᵗᵐ ρ M)
 renameᵗᵐ ρ ($ κ) = $ κ
 renameᵗᵐ ρ (L ⊕[ op ] M) = renameᵗᵐ ρ L ⊕[ op ] renameᵗᵐ ρ M
-renameᵗᵐ ρ (at M d c) = at (renameᵗᵐ ρ M) d (renameCastᵗ ρ c)
+renameᵗᵐ ρ (M up p) = renameᵗᵐ ρ M up rename⊑ᵗ ρ p
+renameᵗᵐ ρ (M down p) = renameᵗᵐ ρ M down rename⊒ᵗ ρ p
 renameᵗᵐ ρ (blame ℓ) = blame ℓ
 
 substᵗᵐ : Substᵗ → Term → Term
@@ -281,7 +254,8 @@ substᵗᵐ σ (M • α) = substᵗᵐ σ M • α
 substᵗᵐ σ (ν:= A ∙ M) = ν:= (substᵗ σ A) ∙ (substᵗᵐ (liftSubstˢ σ) M)
 substᵗᵐ σ ($ κ) = $ κ
 substᵗᵐ σ (L ⊕[ op ] M) = substᵗᵐ σ L ⊕[ op ] substᵗᵐ σ M
-substᵗᵐ σ (at M d c) = at (substᵗᵐ σ M) d (substCastᵗ σ c)
+substᵗᵐ σ (M up p) = substᵗᵐ σ M up subst⊑ᵗ σ p
+substᵗᵐ σ (M down p) = substᵗᵐ σ M down subst⊒ᵗ σ p
 substᵗᵐ σ (blame ℓ) = blame ℓ
 
 renameˢᵐ : Renameˢ → Term → Term
@@ -293,71 +267,40 @@ renameˢᵐ ρ (M • α) = renameˢᵐ ρ M • (ρ α)
 renameˢᵐ ρ (ν:= A ∙ M) = ν:= (renameˢ ρ A) ∙ (renameˢᵐ (extˢ ρ) M)
 renameˢᵐ ρ ($ κ) = $ κ
 renameˢᵐ ρ (L ⊕[ op ] M) = renameˢᵐ ρ L ⊕[ op ] renameˢᵐ ρ M
-renameˢᵐ ρ (at M d c) = at (renameˢᵐ ρ M) d (renameCastˢ ρ c)
+renameˢᵐ ρ (M up p) = renameˢᵐ ρ M up rename⊑ˢ ρ p
+renameˢᵐ ρ (M down p) = renameˢᵐ ρ M down rename⊒ˢ ρ p
 renameˢᵐ ρ (blame ℓ) = blame ℓ
 
 infixl 8 _[_]ᵀ
 _[_]ᵀ : Term → Ty → Term
 M [ A ]ᵀ = substᵗᵐ (singleTyEnv A) M
 
-------------------------------------------------------------------------
--- Cast transport lemmas
-------------------------------------------------------------------------
-
-renameCastᵗ-wt :
-  ∀ {Ψ}{Σ : Store}{d A B}{c : Cast d A B} →
-  (ρ : Renameᵗ) →
-  WtCast Ψ Σ c →
-  WtCast Ψ (renameStoreᵗ ρ Σ) (renameCastᵗ ρ c)
-renameCastᵗ-wt {c = cast↑ p} ρ hp = ⊑-renameᵗ ρ hp
-renameCastᵗ-wt {c = cast↓ p} ρ hp = ⊒-renameᵗ ρ hp
-
-substCastᵗ-wt :
-  ∀ {Ψ}{Σ : Store}{d A B}{c : Cast d A B} →
-  (σ : Substᵗ) →
-  WtCast Ψ Σ c →
-  WtCast Ψ (substStoreᵗ σ Σ) (substCastᵗ σ c)
-substCastᵗ-wt {c = cast↑ p} σ hp = ⊑-substᵗ σ hp
-substCastᵗ-wt {c = cast↓ p} σ hp = ⊒-substᵗ σ hp
-
-renameCastˢ-wt :
-  ∀ {Ψ Ψ′}{Σ : Store}{d A B}{c : Cast d A B} →
-  (ρ : Renameˢ) →
-  SealRenameWf Ψ Ψ′ ρ →
-  WtCast Ψ Σ c →
-  WtCast Ψ′ (renameStoreˢ ρ Σ) (renameCastˢ ρ c)
-renameCastˢ-wt {c = cast↑ p} ρ hρ hp =
-  ⊑-renameˢ ρ (RenOk-every hρ) (RenOk-every hρ) hp
-renameCastˢ-wt {c = cast↓ p} ρ hρ hp =
-  ⊒-renameˢ ρ (RenOk-every hρ) (RenOk-every hρ) hp
-
-------------------------------------------------------------------------
 -- Instantiation shorthand for coercions over every/every permissions
 ------------------------------------------------------------------------
 
 instVarExt⊑ :
   (σ τ : Substᵗ) →
-  ((X : TyVar) → σ X ⊑ τ X) →
+  ((X : TyVar) → Up) →
   (X : TyVar) →
-  extsᵗ σ X ⊑ extsᵗ τ X
+  Up
 instVarExt⊑ σ τ var⊑ zero = id
 instVarExt⊑ σ τ var⊑ (suc X) = rename⊑ᵗ suc (var⊑ X)
 
 instVarExt⊒ :
   (σ τ : Substᵗ) →
-  ((X : TyVar) → τ X ⊒ σ X) →
+  ((X : TyVar) → Down) →
   (X : TyVar) →
-  extsᵗ τ X ⊒ extsᵗ σ X
+  Down
 instVarExt⊒ σ τ var⊒ zero = id
 instVarExt⊒ σ τ var⊒ (suc X) = rename⊒ᵗ suc (var⊒ X)
 
 mutual
   substᵗ-⊑ :
     (σ τ : Substᵗ) →
-    ((X : TyVar) → σ X ⊑ τ X) →
-    ((X : TyVar) → τ X ⊒ σ X) →
+    ((X : TyVar) → Up) →
+    ((X : TyVar) → Down) →
     (A : Ty) →
-    substᵗ σ A ⊑ substᵗ τ A
+    Up
   substᵗ-⊑ σ τ var⊑ var⊒ (＇ X) = var⊑ X
   substᵗ-⊑ σ τ var⊑ var⊒ (｀ α) = id
   substᵗ-⊑ σ τ var⊑ var⊒ (‵ ι) = id
@@ -374,10 +317,10 @@ mutual
 
   substᵗ-⊒ :
     (σ τ : Substᵗ) →
-    ((X : TyVar) → σ X ⊑ τ X) →
-    ((X : TyVar) → τ X ⊒ σ X) →
+    ((X : TyVar) → Up) →
+    ((X : TyVar) → Down) →
     (A : Ty) →
-    substᵗ τ A ⊒ substᵗ σ A
+    Down
   substᵗ-⊒ σ τ var⊑ var⊒ (＇ X) = var⊒ X
   substᵗ-⊒ σ τ var⊑ var⊒ (｀ α) = id
   substᵗ-⊒ σ τ var⊑ var⊒ (‵ ι) = id
@@ -396,12 +339,12 @@ mutual
   instSubst⊑-wt :
     ∀ {Ψ}{Σ : Store} →
     (σ τ : Substᵗ) →
-    (var⊑ : (X : TyVar) → σ X ⊑ τ X) →
-    (var⊒ : (X : TyVar) → τ X ⊒ σ X) →
-    ((X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢↑ var⊑ X) →
-    ((X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢↓ var⊒ X) →
+    (var⊑ : (X : TyVar) → Up) →
+    (var⊒ : (X : TyVar) → Down) →
+    ((X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢ var⊑ X ⦂ σ X ⊑ τ X) →
+    ((X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢ var⊒ X ⦂ τ X ⊒ σ X) →
     (A : Ty) →
-    Σ ∣ every Ψ ∣ every Ψ ⊢↑ substᵗ-⊑ σ τ var⊑ var⊒ A
+    Σ ∣ every Ψ ∣ every Ψ ⊢ substᵗ-⊑ σ τ var⊑ var⊒ A ⦂ substᵗ σ A ⊑ substᵗ τ A
   instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (＇ X) = h⊑ X
   instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (｀ α) = wt-id
   instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (‵ ι) = wt-id
@@ -420,24 +363,26 @@ mutual
         h⊑′
         h⊒′
         A)
-    where
-      h⊑′ : (X : TyVar) → ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢↑ instVarExt⊑ σ τ var⊑ X
+      where
+      h⊑′ : (X : TyVar) →
+        ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ instVarExt⊑ σ τ var⊑ X ⦂ extsᵗ σ X ⊑ extsᵗ τ X
       h⊑′ zero = wt-id
-      h⊑′ (suc X) = ⊑-renameᵗ suc (h⊑ X)
+      h⊑′ (suc X) = ⊑-renameᵗ-wt suc (h⊑ X)
 
-      h⊒′ : (X : TyVar) → ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢↓ instVarExt⊒ σ τ var⊒ X
+      h⊒′ : (X : TyVar) →
+        ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ instVarExt⊒ σ τ var⊒ X ⦂ extsᵗ τ X ⊒ extsᵗ σ X
       h⊒′ zero = wt-id
-      h⊒′ (suc X) = ⊒-renameᵗ suc (h⊒ X)
+      h⊒′ (suc X) = ⊒-renameᵗ-wt suc (h⊒ X)
 
   instSubst⊒-wt :
     ∀ {Ψ}{Σ : Store} →
     (σ τ : Substᵗ) →
-    (var⊑ : (X : TyVar) → σ X ⊑ τ X) →
-    (var⊒ : (X : TyVar) → τ X ⊒ σ X) →
-    ((X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢↑ var⊑ X) →
-    ((X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢↓ var⊒ X) →
+    (var⊑ : (X : TyVar) → Up) →
+    (var⊒ : (X : TyVar) → Down) →
+    ((X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢ var⊑ X ⦂ σ X ⊑ τ X) →
+    ((X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢ var⊒ X ⦂ τ X ⊒ σ X) →
     (A : Ty) →
-    Σ ∣ every Ψ ∣ every Ψ ⊢↓ substᵗ-⊒ σ τ var⊑ var⊒ A
+    Σ ∣ every Ψ ∣ every Ψ ⊢ substᵗ-⊒ σ τ var⊑ var⊒ A ⦂ substᵗ τ A ⊒ substᵗ σ A
   instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (＇ X) = h⊒ X
   instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (｀ α) = wt-id
   instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (‵ ι) = wt-id
@@ -456,14 +401,16 @@ mutual
         h⊑′
         h⊒′
         A)
-    where
-      h⊑′ : (X : TyVar) → ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢↑ instVarExt⊑ σ τ var⊑ X
+      where
+      h⊑′ : (X : TyVar) →
+        ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ instVarExt⊑ σ τ var⊑ X ⦂ extsᵗ σ X ⊑ extsᵗ τ X
       h⊑′ zero = wt-id
-      h⊑′ (suc X) = ⊑-renameᵗ suc (h⊑ X)
+      h⊑′ (suc X) = ⊑-renameᵗ-wt suc (h⊑ X)
 
-      h⊒′ : (X : TyVar) → ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢↓ instVarExt⊒ σ τ var⊒ X
+      h⊒′ : (X : TyVar) →
+        ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ instVarExt⊒ σ τ var⊒ X ⦂ extsᵗ τ X ⊒ extsᵗ σ X
       h⊒′ zero = wt-id
-      h⊒′ (suc X) = ⊒-renameᵗ suc (h⊒ X)
+      h⊒′ (suc X) = ⊒-renameᵗ-wt suc (h⊒ X)
 
 instSubst⊒ :
   ∀ {Ψ}{Σ : Store} →
@@ -474,30 +421,30 @@ instSubst⊒ :
   Wt⊒ Σ (every Ψ) (every Ψ) (substᵗ τ A) (substᵗ σ A)
 instSubst⊒ {Ψ = Ψ} {Σ = Σ} σ τ var⊑ var⊒ A = p , hp
   where
-    var⊑r : (X : TyVar) → σ X ⊑ τ X
+    var⊑r : (X : TyVar) → Up
     var⊑r X = proj₁ (var⊑ X)
 
-    var⊒r : (X : TyVar) → τ X ⊒ σ X
+    var⊒r : (X : TyVar) → Down
     var⊒r X = proj₁ (var⊒ X)
 
-    var⊑-wt : (X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢↑ var⊑r X
+    var⊑-wt : (X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢ var⊑r X ⦂ σ X ⊑ τ X
     var⊑-wt X = proj₂ (var⊑ X)
 
-    var⊒-wt : (X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢↓ var⊒r X
+    var⊒-wt : (X : TyVar) → Σ ∣ every Ψ ∣ every Ψ ⊢ var⊒r X ⦂ τ X ⊒ σ X
     var⊒-wt X = proj₂ (var⊒ X)
 
-    p : substᵗ τ A ⊒ substᵗ σ A
+    p : Down
     p = substᵗ-⊒ σ τ var⊑r var⊒r A
 
-    hp : Σ ∣ every Ψ ∣ every Ψ ⊢↓ p
+    hp : Σ ∣ every Ψ ∣ every Ψ ⊢ p ⦂ substᵗ τ A ⊒ substᵗ σ A
     hp = instSubst⊒-wt σ τ var⊑r var⊒r var⊑-wt var⊒-wt A
 
 instVar⊑ :
   (A : Ty) →
   (α : Seal) →
   (X : TyVar) →
-  (singleTyEnv (｀ α) X) ⊑ (singleTyEnv A X)
-instVar⊑ A α zero = unseal
+  Up
+instVar⊑ A α zero = unseal α
 instVar⊑ A α (suc X) = id
 
 instVar⊑-wt :
@@ -505,7 +452,7 @@ instVar⊑-wt :
   (h : Σ ∋ˢ α ⦂ A) →
   (α∈ : α ∈ every Ψ) →
   (X : TyVar) →
-  Σ ∣ every Ψ ∣ every Ψ ⊢↑ instVar⊑ A α X
+  Σ ∣ every Ψ ∣ every Ψ ⊢ instVar⊑ A α X ⦂ singleTyEnv (｀ α) X ⊑ singleTyEnv A X
 instVar⊑-wt h α∈ zero = wt-unseal h α∈
 instVar⊑-wt h α∈ (suc X) = wt-id
 
@@ -513,32 +460,32 @@ instVar⊒ :
   (A : Ty) →
   (α : Seal) →
   (X : TyVar) →
-  (singleTyEnv A X) ⊒ (singleTyEnv (｀ α) X)
-instVar⊒ A α zero = seal
+  Down
+instVar⊒ A α zero = seal α
 instVar⊒ A α (suc X) = id
 
 instVar⊒-wt : ∀ {Ψ}{Σ : Store}{A : Ty}{α : Seal} →
   (h : Σ ∋ˢ α ⦂ A) (α∈ : α ∈ every Ψ) (X : TyVar) →
-  Σ ∣ every Ψ ∣ every Ψ ⊢↓ instVar⊒ A α X
+  Σ ∣ every Ψ ∣ every Ψ ⊢ instVar⊒ A α X ⦂ singleTyEnv A X ⊒ singleTyEnv (｀ α) X
 instVar⊒-wt h α∈ zero = wt-seal h α∈
 instVar⊒-wt h α∈ (suc X) = wt-id
 
 instCast⊑ : ∀ {A : Ty}{B : Ty}{α : Seal} →
-  (B [ ｀ α ]ᵗ) ⊑ (B [ A ]ᵗ)
+  Up
 instCast⊑ {A = A} {B = B} {α = α} =
   substᵗ-⊑ (singleTyEnv (｀ α)) (singleTyEnv A) (instVar⊑ A α) (instVar⊒ A α) B
 
 instCast⊑-wt : ∀ {Ψ}{Σ : Store}{A : Ty}{B : Ty}{α : Seal} →
   (h : Σ ∋ˢ α ⦂ A) →
   α ∈ every Ψ →
-  Σ ∣ every Ψ ∣ every Ψ ⊢↑ instCast⊑ {A = A} {B = B} {α = α}
+  Σ ∣ every Ψ ∣ every Ψ ⊢ instCast⊑ {A = A} {B = B} {α = α} ⦂ (B [ ｀ α ]ᵗ) ⊑ (B [ A ]ᵗ)
 instCast⊑-wt {A = A} {B = B} {α = α} h α∈ =
   instSubst⊑-wt (singleTyEnv (｀ α)) (singleTyEnv A) (instVar⊑ A α)
     (instVar⊒ A α) (instVar⊑-wt h α∈) (instVar⊒-wt h α∈) B
 
 instCast⊒ :
   ∀ {A : Ty}{B : Ty}{α : Seal} →
-  (B [ A ]ᵗ) ⊒ (B [ ｀ α ]ᵗ)
+  Down
 instCast⊒ {A = A} {B = B} {α = α} =
   substᵗ-⊒
     (singleTyEnv (｀ α))
@@ -551,7 +498,7 @@ instCast⊒-wt :
   ∀ {Ψ}{Σ : Store}{A : Ty}{B : Ty}{α : Seal} →
   (h : Σ ∋ˢ α ⦂ A) →
   α ∈ every Ψ →
-  Σ ∣ every Ψ ∣ every Ψ ⊢↓ instCast⊒ {A = A} {B = B} {α = α}
+  Σ ∣ every Ψ ∣ every Ψ ⊢ instCast⊒ {A = A} {B = B} {α = α} ⦂ (B [ A ]ᵗ) ⊒ (B [ ｀ α ]ᵗ)
 instCast⊒-wt {A = A} {B = B} {α = α} h α∈ =
   instSubst⊒-wt (singleTyEnv (｀ α)) (singleTyEnv A) (instVar⊑ A α)
     (instVar⊒ A α) (instVar⊑-wt h α∈) (instVar⊒-wt h α∈) B
@@ -571,10 +518,10 @@ inst-⟰ᵗ-⊆ˢ (drop {α = α} {A = A} w) =
   drop {α = α} {A = renameᵗ suc A} (inst-⟰ᵗ-⊆ˢ w)
 
 mutual
-  wk⊑ : ∀ {Σ Σ′ : Store}{Φ Ξ : List Bool}{A B : Ty}{p : A ⊑ B} →
+  wk⊑ : ∀ {Σ Σ′ : Store}{Φ Ξ : List Bool}{A B : Ty}{p : Up} →
     Σ ⊆ˢ Σ′ →
-    Σ ∣ Φ ∣ Ξ ⊢↑ p →
-    Σ′ ∣ Φ ∣ Ξ ⊢↑ p
+    Σ ∣ Φ ∣ Ξ ⊢ p ⦂ A ⊑ B →
+    Σ′ ∣ Φ ∣ Ξ ⊢ p ⦂ A ⊑ B
   wk⊑ w (wt-tag g gok) = wt-tag g gok
   wk⊑ w (wt-unseal h α∈Φ) = wt-unseal (wkLookupˢ w h) α∈Φ
   wk⊑ w (wt-↦ p q) = wt-↦ (wk⊒ w p) (wk⊑ w q)
@@ -583,10 +530,10 @@ mutual
   wk⊑ w wt-id = wt-id
   wk⊑ w (wt-； p q) = wt-； (wk⊑ w p) (wk⊑ w q)
 
-  wk⊒ : ∀ {Σ Σ′ : Store}{Φ Ξ : List Bool}{A B : Ty}{p : A ⊒ B} →
+  wk⊒ : ∀ {Σ Σ′ : Store}{Φ Ξ : List Bool}{A B : Ty}{p : Down} →
     Σ ⊆ˢ Σ′ →
-    Σ ∣ Φ ∣ Ξ ⊢↓ p →
-    Σ′ ∣ Φ ∣ Ξ ⊢↓ p
+    Σ ∣ Φ ∣ Ξ ⊢ p ⦂ A ⊒ B →
+    Σ′ ∣ Φ ∣ Ξ ⊢ p ⦂ A ⊒ B
   wk⊒ w (wt-untag g gok ℓ) = wt-untag g gok ℓ
   wk⊒ w (wt-seal h α∈Φ) = wt-seal (wkLookupˢ w h) α∈Φ
   wk⊒ w (wt-↦ p q) = wt-↦ (wk⊑ w p) (wk⊒ w q)
@@ -594,13 +541,6 @@ mutual
   wk⊒ w (wt-ν p) = wt-ν (wk⊒ (ν-⊆ˢ ★ w) p)
   wk⊒ w wt-id = wt-id
   wk⊒ w (wt-； p q) = wt-； (wk⊒ w p) (wk⊒ w q)
-
-wkCast : ∀ {Ψ}{Σ Σ′ : Store}{d A B}{c : Cast d A B} →
-  Σ ⊆ˢ Σ′ →
-  WtCast Ψ Σ c →
-  WtCast Ψ Σ′ c
-wkCast {c = cast↑ p} w hp = wk⊑ w hp
-wkCast {c = cast↓ p} w hp = wk⊒ w hp
 
 wkΣ-term : ∀ {Δ Ψ}{Σ Σ′ : Store}{Γ : Ctx}{M : Term}{A : Ty} →
   Σ ⊆ˢ Σ′ →
@@ -614,11 +554,8 @@ wkΣ-term w (⊢• M α∈ h) = ⊢• (wkΣ-term w M) α∈ (wkLookupˢ w h)
 wkΣ-term w (⊢ν {A = A} wfA M) = ⊢ν wfA (wkΣ-term (ν-⊆ˢ A w) M)
 wkΣ-term w (⊢$ κ) = ⊢$ κ
 wkΣ-term w (⊢⊕ L op M) = ⊢⊕ (wkΣ-term w L) op (wkΣ-term w M)
-wkΣ-term
-  {M = .(at M d c)} {A = .B}
-  w
-  (⊢at {M = M} {d = d} {A = A₀} {B = B} {c = c} M⊢ hp) =
-  ⊢at {c = c} (wkΣ-term w M⊢) (wkCast {c = c} w hp)
+wkΣ-term w (⊢up M⊢ hp) = ⊢up (wkΣ-term w M⊢) (wk⊑ w hp)
+wkΣ-term w (⊢down M⊢ hp) = ⊢down (wkΣ-term w M⊢) (wk⊒ w hp)
 wkΣ-term w (⊢blame ℓ) = ⊢blame ℓ
 
 ------------------------------------------------------------------------
@@ -626,7 +563,7 @@ wkΣ-term w (⊢blame ℓ) = ⊢blame ℓ
 ------------------------------------------------------------------------
 
 reveal-⊑ : (A : Ty) (B : Ty) →
-  ((⇑ˢ B) [ ｀ zero ]ᵗ) ⊑ ((⇑ˢ B) [ ⇑ˢ A ]ᵗ)
+  Up
 reveal-⊑ A B =
   substᵗ-⊑
     (singleTyEnv (｀ zero))
@@ -699,13 +636,14 @@ renameᵗ-term ρ hρ (⊢$ κ) =
   cong-⊢⦂ refl refl refl (sym (renameᵗ-constTy ρ κ)) (⊢$ κ)
 renameᵗ-term ρ hρ (⊢⊕ L op M) =
   ⊢⊕ (renameᵗ-term ρ hρ L) op (renameᵗ-term ρ hρ M)
-renameᵗ-term
-  {M = .(at M d c)} {A = .B}
-  ρ hρ
-  (⊢at {M = M} {d = d} {A = A₀} {B = B} {c = c} M⊢ hp) =
-  ⊢at {c = renameCastᵗ ρ c}
+renameᵗ-term ρ hρ (⊢up {p = p} M⊢ hp) =
+  ⊢up {p = rename⊑ᵗ ρ p}
     (renameᵗ-term ρ hρ M⊢)
-    (renameCastᵗ-wt {c = c} ρ hp)
+    (⊑-renameᵗ-wt ρ hp)
+renameᵗ-term ρ hρ (⊢down {p = p} M⊢ hp) =
+  ⊢down {p = rename⊒ᵗ ρ p}
+    (renameᵗ-term ρ hρ M⊢)
+    (⊒-renameᵗ-wt ρ hp)
 renameᵗ-term ρ hρ (⊢blame ℓ) = ⊢blame ℓ
 
 substᵗ-term :
@@ -746,13 +684,14 @@ substᵗ-term σ hσ (⊢$ κ) =
   cong-⊢⦂ refl refl refl (sym (substᵗ-constTy σ κ)) (⊢$ κ)
 substᵗ-term σ hσ (⊢⊕ L op M) =
   ⊢⊕ (substᵗ-term σ hσ L) op (substᵗ-term σ hσ M)
-substᵗ-term
-  {M = .(at M d c)} {A = .B}
-  σ hσ
-  (⊢at {M = M} {d = d} {A = A₀} {B = B} {c = c} M⊢ hp) =
-  ⊢at {c = substCastᵗ σ c}
+substᵗ-term σ hσ (⊢up {p = p} M⊢ hp) =
+  ⊢up {p = subst⊑ᵗ σ p}
     (substᵗ-term σ hσ M⊢)
-    (substCastᵗ-wt {c = c} σ hp)
+    (⊑-substᵗ-wt σ hp)
+substᵗ-term σ hσ (⊢down {p = p} M⊢ hp) =
+  ⊢down {p = subst⊒ᵗ σ p}
+    (substᵗ-term σ hσ M⊢)
+    (⊒-substᵗ-wt σ hp)
 substᵗ-term σ hσ (⊢blame ℓ) = ⊢blame ℓ
 
 renameˢ-term :
@@ -796,13 +735,14 @@ renameˢ-term ρ hρ (⊢$ κ) =
   cong-⊢⦂ refl refl refl (sym (renameˢ-constTy ρ κ)) (⊢$ κ)
 renameˢ-term ρ hρ (⊢⊕ L op M) =
   ⊢⊕ (renameˢ-term ρ hρ L) op (renameˢ-term ρ hρ M)
-renameˢ-term
-  {M = .(at M d c)} {A = .B}
-  ρ hρ
-  (⊢at {M = M} {d = d} {A = A₀} {B = B} {c = c} M⊢ hp) =
-  ⊢at {c = renameCastˢ ρ c}
+renameˢ-term ρ hρ (⊢up {p = p} M⊢ hp) =
+  ⊢up {p = rename⊑ˢ ρ p}
     (renameˢ-term ρ hρ M⊢)
-    (renameCastˢ-wt {c = c} ρ hρ hp)
+    (⊑-renameˢ-wt ρ (RenOk-every hρ) (RenOk-every hρ) hp)
+renameˢ-term ρ hρ (⊢down {p = p} M⊢ hp) =
+  ⊢down {p = rename⊒ˢ ρ p}
+    (renameˢ-term ρ hρ M⊢)
+    (⊒-renameˢ-wt ρ (RenOk-every hρ) (RenOk-every hρ) hp)
 renameˢ-term ρ hρ (⊢blame ℓ) = ⊢blame ℓ
 
 infix 8 ⇑ˢᵐ_
@@ -819,11 +759,11 @@ inst : ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx} {L : Term}{A B : Ty} →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ L ⦂ `∀ B →
   WfTy Δ Ψ A →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢
-    (ν:= A ∙ (at ((renameˢᵐ suc L) • zero) up (cast↑ (reveal-⊑ A B))))
+    (ν:= A ∙ (((renameˢᵐ suc L) • zero) up (reveal-⊑ A B)))
     ⦂ B [ A ]ᵗ
 inst {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} L wfA =
   ⊢ν wfA (cong-⊢⦂ refl refl refl (inst-⇑ˢ A B)
-         (⊢at
+         (⊢up
            (⊢• (wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ L)) here (Z∋ˢ refl refl))
            (instSubst⊑-wt
              (singleTyEnv (｀ zero))

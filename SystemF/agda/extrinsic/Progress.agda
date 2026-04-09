@@ -23,7 +23,7 @@ canonical-⇒ :
   ∀ {Δ : TyCtx} {V : Term} {A B : Ty} →
   Value V →
   Δ ∣ [] ⊢ V ⦂ (A ⇒ B) →
-  Σ Ty (λ A' → Σ Term (λ N → V ≡ (ƛ A' ⇒ N)))
+  Σ Ty (λ A' → Σ Term (λ N → V ≡ (ƛ[ A' ] N)))
 canonical-⇒ vLam (⊢ƛ {A = A} {N = N} hA hN) = A , (N , refl)
 canonical-⇒ vTrue ()
 canonical-⇒ vFalse ()

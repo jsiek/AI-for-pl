@@ -16,7 +16,7 @@ open import extrinsic.TypeSubst as TS using ()
 -- Terms
 ------------------------------------------------------------------------
 
-infix  5 ƛ_⇒_
+infix  5 ƛ[_]_
 infix  5 Λ_
 infixl 7 _·_
 infixl 7 _·[_]
@@ -24,7 +24,7 @@ infix  8 `suc_
 infix  9 `_
 
 -- Design decision:
---   We intentionally follow the standard System F concrete syntax:
+--   We follow the standard System F concrete syntax:
 --   λ-abstractions carry explicit type annotations (`ƛ[ A ] N`) and type
 --   applications carry explicit instantiation types (`M ·[ A ]`).
 --   We use bracketed lambda annotations to avoid parser overlap with
@@ -32,7 +32,7 @@ infix  9 `_
 
 data Term : Set where
   `_ : Var → Term
-  ƛ_⇒_ : Ty → Term → Term
+  ƛ[_]_ : Ty → Term → Term
   _·_ : Term → Term → Term
   `true : Term
   `false : Term
@@ -43,10 +43,6 @@ data Term : Set where
   Λ_ : Term → Term
   _·[_] : Term → Ty → Term
 
-lam : Ty → Term → Term
-lam = ƛ_⇒_
-
-syntax lam A N = ƛ[ A ] N
 
 ------------------------------------------------------------------------
 -- Parallel substitution: Types into Terms
@@ -54,7 +50,7 @@ syntax lam A N = ƛ[ A ] N
 
 renameᵀ : Renameᵗ → Term → Term
 renameᵀ ρ (` i)                      = ` i
-renameᵀ ρ (ƛ A ⇒ N)                  = ƛ (renameᵗ ρ A) ⇒ (renameᵀ ρ N)
+renameᵀ ρ (ƛ[ A ] N)                  = ƛ[ (renameᵗ ρ A) ] (renameᵀ ρ N)
 renameᵀ ρ (L · M)                    = renameᵀ ρ L · renameᵀ ρ M
 renameᵀ ρ `true                      = `true
 renameᵀ ρ `false                     = `false
@@ -69,7 +65,7 @@ renameᵀ ρ (M ·[ A ])                 = renameᵀ ρ M ·[ renameᵗ ρ A ]
 
 substᵀ : Substᵗ → Term → Term
 substᵀ σ (` i)                      = ` i
-substᵀ σ (ƛ A ⇒ N)                  = ƛ (substᵗ σ A) ⇒ (substᵀ σ N)
+substᵀ σ (ƛ[ A ] N)                  = ƛ[ (substᵗ σ A) ] (substᵀ σ N)
 substᵀ σ (L · M)                    = substᵀ σ L · substᵀ σ M
 substᵀ σ `true                      = `true
 substᵀ σ `false                     = `false
@@ -104,7 +100,7 @@ ext ρ (suc i) = suc (ρ i)
 
 rename : Rename → Term → Term
 rename ρ (` i)                      = ` (ρ i)
-rename ρ (ƛ A ⇒ N)                  = ƛ A ⇒ rename (ext ρ) N
+rename ρ (ƛ[ A ] N)                  = ƛ[ A ] rename (ext ρ) N
 rename ρ (L · M)                    = rename ρ L · rename ρ M
 rename ρ `true                      = `true
 rename ρ `false                     = `false
@@ -136,7 +132,7 @@ _•_ : Term → Subst → Subst
 
 subst : Subst → Term → Term
 subst σ (` i)                      = σ i
-subst σ (ƛ A ⇒ N)                  = ƛ A ⇒ subst (exts σ) N
+subst σ (ƛ[ A ] N)                  = ƛ[ A ] subst (exts σ) N
 subst σ (L · M)                    = subst σ L · subst σ M
 subst σ `true                      = `true
 subst σ `false                     = `false
@@ -169,7 +165,7 @@ data _∣_⊢_⦂_ : TyCtx → Ctx → Term → Ty → Set where
   ⊢ƛ : {Δ : TyCtx} {Γ : Ctx} {A B : Ty} {N : Term} →
        WfTy Δ A →
        Δ ∣ (A ∷ Γ) ⊢ N ⦂ B →
-       Δ ∣ Γ ⊢ (ƛ A ⇒ N) ⦂ (A ⇒ B)
+       Δ ∣ Γ ⊢ (ƛ[ A ] N) ⦂ (A ⇒ B)
 
   ⊢· : {Δ : TyCtx} {Γ : Ctx} {A B : Ty} {L M : Term} →
        Δ ∣ Γ ⊢ L ⦂ (A ⇒ B) →

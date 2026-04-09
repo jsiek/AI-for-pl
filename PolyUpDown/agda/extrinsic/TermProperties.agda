@@ -174,7 +174,7 @@ renameˣ-term-wt ρ hρ (⊢blame ℓ) = ⊢blame ℓ
 ↑ˢᵐ-wt A σ hσ {x = x} h with unmap∋-⤊ˢ h
 ... | B , eq , h₀ =
   cong-⊢⦂ refl refl refl (sym eq)
-    (wkΣ-term (↑ˢ A) (⇑ˢᵐ (hσ {x = x} h₀)))
+    (wkΣ-term (↑ˢ A) (⇑ˢᵐ-wt (hσ {x = x} h₀)))
 
 extˣ : Substˣ → Substˣ
 extˣ σ zero = ` zero
@@ -290,4 +290,4 @@ M [ T ]ᵀ = substᵗᵐ (singleTyEnv T) M
     (map-singleTyEnv-⤊ᵗ T Γ)
     refl
     refl
-    (substᵗ-term (singleTyEnv T) (singleTyEnv-Wf T wfT) M⊢)
+    (substᵗ-wt (singleTyEnv T) (singleTyEnv-Wf T wfT) M⊢)

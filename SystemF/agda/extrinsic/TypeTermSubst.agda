@@ -21,13 +21,17 @@ cong₃ f refl refl refl = refl
 
 cong-ƛ : ∀ {A : Ty} {M N : Term}
   → M ≡ N
-  → (ƛ A ⇒ M) ≡ (ƛ A ⇒ N)
-cong-ƛ {A = A} = cong (ƛ A ⇒_)
+  → (ƛ[ A ] M) ≡ (ƛ[ A ] N)
+cong-ƛ {A = A} = cong (ƛ[ A ]_)
 
 cong-·[] : ∀ {A : Ty} {M N : Term}
   → M ≡ N
   → (M ·[ A ]) ≡ (N ·[ A ])
 cong-·[] {A = A} = cong (λ X → X ·[ A ])
+
+------------------------------------------------------------------------
+-- Type renaming/substitution congruence
+------------------------------------------------------------------------
 
 extᵗ-cong : ∀ {ρ ρ' : Renameᵗ}
   → ((i : Var) → ρ i ≡ ρ' i)
@@ -40,7 +44,7 @@ renameᵀ-cong : ∀ {ρ ρ' : Renameᵗ}
   → (M : Term)
   → renameᵀ ρ M ≡ renameᵀ ρ' M
 renameᵀ-cong h (` i) = refl
-renameᵀ-cong h (ƛ A ⇒ N) = cong₂ ƛ_⇒_ (TS.rename-cong h A) (renameᵀ-cong h N)
+renameᵀ-cong h (ƛ[ A ] N) = cong₂ ƛ[_]_ (TS.rename-cong h A) (renameᵀ-cong h N)
 renameᵀ-cong h (L · M) = cong₂ _·_ (renameᵀ-cong h L) (renameᵀ-cong h M)
 renameᵀ-cong h `true = refl
 renameᵀ-cong h `false = refl
@@ -65,7 +69,7 @@ substᵀ-cong : ∀ {σ τ : Substᵗ}
   → (M : Term)
   → substᵀ σ M ≡ substᵀ τ M
 substᵀ-cong h (` i) = refl
-substᵀ-cong h (ƛ A ⇒ N) = cong₂ ƛ_⇒_ (TS.subst-cong h A) (substᵀ-cong h N)
+substᵀ-cong h (ƛ[ A ] N) = cong₂ ƛ[_]_ (TS.subst-cong h A) (substᵀ-cong h N)
 substᵀ-cong h (L · M) = cong₂ _·_ (substᵀ-cong h L) (substᵀ-cong h M)
 substᵀ-cong h `true = refl
 substᵀ-cong h `false = refl
@@ -79,11 +83,134 @@ substᵀ-cong h (Λ N) = cong Λ_ (substᵀ-cong (extsᵗ-cong h) N)
 substᵀ-cong h (M ·[ A ]) =
   cong₂ _·[_] (substᵀ-cong h M) (TS.subst-cong h A)
 
+------------------------------------------------------------------------
+-- Type renamings/substitutions commute
+------------------------------------------------------------------------
+
+renameᵀ-renameᵀ : (ρ₁ ρ₂ : Renameᵗ) (M : Term)
+  → renameᵀ ρ₂ (renameᵀ ρ₁ M) ≡ renameᵀ (λ i → ρ₂ (ρ₁ i)) M
+renameᵀ-renameᵀ ρ₁ ρ₂ (` i) = refl
+renameᵀ-renameᵀ ρ₁ ρ₂ (ƛ[ A ] N) =
+  cong₂ ƛ[_]_ (TS.rename-rename-commute ρ₁ ρ₂ A) (renameᵀ-renameᵀ ρ₁ ρ₂ N)
+renameᵀ-renameᵀ ρ₁ ρ₂ (L · M) =
+  cong₂ _·_ (renameᵀ-renameᵀ ρ₁ ρ₂ L) (renameᵀ-renameᵀ ρ₁ ρ₂ M)
+renameᵀ-renameᵀ ρ₁ ρ₂ `true = refl
+renameᵀ-renameᵀ ρ₁ ρ₂ `false = refl
+renameᵀ-renameᵀ ρ₁ ρ₂ `zero = refl
+renameᵀ-renameᵀ ρ₁ ρ₂ (`suc M) = cong `suc_ (renameᵀ-renameᵀ ρ₁ ρ₂ M)
+renameᵀ-renameᵀ ρ₁ ρ₂ (case_[zero⇒_|suc⇒_] L M N) =
+  cong₃ case_[zero⇒_|suc⇒_]
+    (renameᵀ-renameᵀ ρ₁ ρ₂ L)
+    (renameᵀ-renameᵀ ρ₁ ρ₂ M)
+    (renameᵀ-renameᵀ ρ₁ ρ₂ N)
+renameᵀ-renameᵀ ρ₁ ρ₂ (`if_then_else L M N) =
+  cong₃ `if_then_else
+    (renameᵀ-renameᵀ ρ₁ ρ₂ L)
+    (renameᵀ-renameᵀ ρ₁ ρ₂ M)
+    (renameᵀ-renameᵀ ρ₁ ρ₂ N)
+renameᵀ-renameᵀ ρ₁ ρ₂ (Λ N) =
+  cong Λ_
+    (trans
+      (renameᵀ-renameᵀ (extᵗ ρ₁) (extᵗ ρ₂) N)
+      (renameᵀ-cong (TS.ext-comp ρ₁ ρ₂) N))
+renameᵀ-renameᵀ ρ₁ ρ₂ (M ·[ A ]) =
+  cong₂ _·[_] (renameᵀ-renameᵀ ρ₁ ρ₂ M) (TS.rename-rename-commute ρ₁ ρ₂ A)
+
+renameᵀ-suc-extᵗ : (ρᵗ : Renameᵗ) (M : Term)
+  → renameᵀ suc (renameᵀ ρᵗ M) ≡ renameᵀ (extᵗ ρᵗ) (renameᵀ suc M)
+renameᵀ-suc-extᵗ ρᵗ M =
+  trans
+    (renameᵀ-renameᵀ ρᵗ suc M)
+    (trans
+      (renameᵀ-cong (λ i → refl) M)
+      (sym (renameᵀ-renameᵀ suc (extᵗ ρᵗ) M)))
+
+substᵀ-renameᵀ-commute : (ρᵗ : Renameᵗ) (τ : Substᵗ) (M : Term)
+  → substᵀ τ (renameᵀ ρᵗ M) ≡ substᵀ (λ i → τ (ρᵗ i)) M
+substᵀ-renameᵀ-commute ρᵗ τ (` i) = refl
+substᵀ-renameᵀ-commute ρᵗ τ (ƛ[ A ] N) =
+  cong₂ ƛ[_]_
+    (TS.rename-subst-commute ρᵗ τ A)
+    (substᵀ-renameᵀ-commute ρᵗ τ N)
+substᵀ-renameᵀ-commute ρᵗ τ (L · M) =
+  cong₂ _·_
+    (substᵀ-renameᵀ-commute ρᵗ τ L)
+    (substᵀ-renameᵀ-commute ρᵗ τ M)
+substᵀ-renameᵀ-commute ρᵗ τ `true = refl
+substᵀ-renameᵀ-commute ρᵗ τ `false = refl
+substᵀ-renameᵀ-commute ρᵗ τ `zero = refl
+substᵀ-renameᵀ-commute ρᵗ τ (`suc M) =
+  cong `suc_ (substᵀ-renameᵀ-commute ρᵗ τ M)
+substᵀ-renameᵀ-commute ρᵗ τ (case_[zero⇒_|suc⇒_] L M N) =
+  cong₃ case_[zero⇒_|suc⇒_]
+    (substᵀ-renameᵀ-commute ρᵗ τ L)
+    (substᵀ-renameᵀ-commute ρᵗ τ M)
+    (substᵀ-renameᵀ-commute ρᵗ τ N)
+substᵀ-renameᵀ-commute ρᵗ τ (`if_then_else L M N) =
+  cong₃ `if_then_else
+    (substᵀ-renameᵀ-commute ρᵗ τ L)
+    (substᵀ-renameᵀ-commute ρᵗ τ M)
+    (substᵀ-renameᵀ-commute ρᵗ τ N)
+substᵀ-renameᵀ-commute ρᵗ τ (Λ N) =
+  cong Λ_
+    (trans
+      (substᵀ-renameᵀ-commute (extᵗ ρᵗ) (extsᵗ τ) N)
+      (substᵀ-cong (TS.exts-ext-comp ρᵗ τ) N))
+substᵀ-renameᵀ-commute ρᵗ τ (M ·[ A ]) =
+  cong₂ _·[_]
+    (substᵀ-renameᵀ-commute ρᵗ τ M)
+    (TS.rename-subst-commute ρᵗ τ A)
+
+renameᵀ-substᵀ : (ρᵗ : Renameᵗ) (τ : Substᵗ) (M : Term)
+  → renameᵀ ρᵗ (substᵀ τ M) ≡ substᵀ (λ i → renameᵗ ρᵗ (τ i)) M
+renameᵀ-substᵀ ρᵗ τ (` i) = refl
+renameᵀ-substᵀ ρᵗ τ (ƛ[ A ] N) =
+  cong₂ ƛ[_]_
+    (TS.rename-subst ρᵗ τ A)
+    (renameᵀ-substᵀ ρᵗ τ N)
+renameᵀ-substᵀ ρᵗ τ (L · M) =
+  cong₂ _·_
+    (renameᵀ-substᵀ ρᵗ τ L)
+    (renameᵀ-substᵀ ρᵗ τ M)
+renameᵀ-substᵀ ρᵗ τ `true = refl
+renameᵀ-substᵀ ρᵗ τ `false = refl
+renameᵀ-substᵀ ρᵗ τ `zero = refl
+renameᵀ-substᵀ ρᵗ τ (`suc M) =
+  cong `suc_ (renameᵀ-substᵀ ρᵗ τ M)
+renameᵀ-substᵀ ρᵗ τ (case_[zero⇒_|suc⇒_] L M N) =
+  cong₃ case_[zero⇒_|suc⇒_]
+    (renameᵀ-substᵀ ρᵗ τ L)
+    (renameᵀ-substᵀ ρᵗ τ M)
+    (renameᵀ-substᵀ ρᵗ τ N)
+renameᵀ-substᵀ ρᵗ τ (`if_then_else L M N) =
+  cong₃ `if_then_else
+    (renameᵀ-substᵀ ρᵗ τ L)
+    (renameᵀ-substᵀ ρᵗ τ M)
+    (renameᵀ-substᵀ ρᵗ τ N)
+renameᵀ-substᵀ ρᵗ τ (Λ N) =
+  cong Λ_
+    (trans
+      (renameᵀ-substᵀ (extᵗ ρᵗ) (extsᵗ τ) N)
+      (substᵀ-cong (TS.ext-exts-comp ρᵗ τ) N))
+renameᵀ-substᵀ ρᵗ τ (M ·[ A ]) =
+  cong₂ _·[_]
+    (renameᵀ-substᵀ ρᵗ τ M)
+    (TS.rename-subst ρᵗ τ A)
+
+renameᵀ-suc-extsᵗ : (τ : Substᵗ) (M : Term)
+  → renameᵀ suc (substᵀ τ M) ≡ substᵀ (extsᵗ τ) (renameᵀ suc M)
+renameᵀ-suc-extsᵗ τ M =
+  trans
+    (renameᵀ-substᵀ suc τ M)
+    (trans
+      (substᵀ-cong (λ i → refl) M)
+      (sym (substᵀ-renameᵀ-commute suc (extsᵗ τ) M)))
+
 substᵀ-substᵀ : (τ σ : Substᵗ) (M : Term)
   → substᵀ τ (substᵀ σ M) ≡ substᵀ (λ i → substᵗ τ (σ i)) M
 substᵀ-substᵀ τ σ (` i) = refl
-substᵀ-substᵀ τ σ (ƛ A ⇒ N) =
-  cong₂ ƛ_⇒_
+substᵀ-substᵀ τ σ (ƛ[ A ] N) =
+  cong₂ ƛ[_]_
     (TS.sub-sub σ τ A)
     (substᵀ-substᵀ τ σ N)
 substᵀ-substᵀ τ σ (L · M) =
@@ -120,49 +247,15 @@ substᵀ-substᵀ τ σ (M ·[ A ]) =
     (substᵀ-substᵀ τ σ M)
     (TS.sub-sub σ τ A)
 
-renameᵀ-renameᵀ : (ρ₁ ρ₂ : Renameᵗ) (M : Term)
-  → renameᵀ ρ₂ (renameᵀ ρ₁ M) ≡ renameᵀ (λ i → ρ₂ (ρ₁ i)) M
-renameᵀ-renameᵀ ρ₁ ρ₂ (` i) = refl
-renameᵀ-renameᵀ ρ₁ ρ₂ (ƛ A ⇒ N) =
-  cong₂ ƛ_⇒_ (TS.rename-rename-commute ρ₁ ρ₂ A) (renameᵀ-renameᵀ ρ₁ ρ₂ N)
-renameᵀ-renameᵀ ρ₁ ρ₂ (L · M) =
-  cong₂ _·_ (renameᵀ-renameᵀ ρ₁ ρ₂ L) (renameᵀ-renameᵀ ρ₁ ρ₂ M)
-renameᵀ-renameᵀ ρ₁ ρ₂ `true = refl
-renameᵀ-renameᵀ ρ₁ ρ₂ `false = refl
-renameᵀ-renameᵀ ρ₁ ρ₂ `zero = refl
-renameᵀ-renameᵀ ρ₁ ρ₂ (`suc M) = cong `suc_ (renameᵀ-renameᵀ ρ₁ ρ₂ M)
-renameᵀ-renameᵀ ρ₁ ρ₂ (case_[zero⇒_|suc⇒_] L M N) =
-  cong₃ case_[zero⇒_|suc⇒_]
-    (renameᵀ-renameᵀ ρ₁ ρ₂ L)
-    (renameᵀ-renameᵀ ρ₁ ρ₂ M)
-    (renameᵀ-renameᵀ ρ₁ ρ₂ N)
-renameᵀ-renameᵀ ρ₁ ρ₂ (`if_then_else L M N) =
-  cong₃ `if_then_else
-    (renameᵀ-renameᵀ ρ₁ ρ₂ L)
-    (renameᵀ-renameᵀ ρ₁ ρ₂ M)
-    (renameᵀ-renameᵀ ρ₁ ρ₂ N)
-renameᵀ-renameᵀ ρ₁ ρ₂ (Λ N) =
-  cong Λ_
-    (trans
-      (renameᵀ-renameᵀ (extᵗ ρ₁) (extᵗ ρ₂) N)
-      (renameᵀ-cong (TS.ext-comp ρ₁ ρ₂) N))
-renameᵀ-renameᵀ ρ₁ ρ₂ (M ·[ A ]) =
-  cong₂ _·[_] (renameᵀ-renameᵀ ρ₁ ρ₂ M) (TS.rename-rename-commute ρ₁ ρ₂ A)
-
-renameᵀ-suc-extᵗ : (ρᵗ : Renameᵗ) (M : Term)
-  → renameᵀ suc (renameᵀ ρᵗ M) ≡ renameᵀ (extᵗ ρᵗ) (renameᵀ suc M)
-renameᵀ-suc-extᵗ ρᵗ M =
-  trans
-    (renameᵀ-renameᵀ ρᵗ suc M)
-    (trans
-      (renameᵀ-cong (λ i → refl) M)
-      (sym (renameᵀ-renameᵀ suc (extᵗ ρᵗ) M)))
+------------------------------------------------------------------------
+-- Mixed term and type renamings/substitutions commute
+------------------------------------------------------------------------
 
 rename-renameᵀ-commute : (ρ : Rename) (ρᵗ : Renameᵗ) (M : Term)
   → rename ρ (renameᵀ ρᵗ M) ≡ renameᵀ ρᵗ (rename ρ M)
 rename-renameᵀ-commute ρ ρᵗ (` i) = refl
-rename-renameᵀ-commute ρ ρᵗ (ƛ A ⇒ N) =
-  cong₂ ƛ_⇒_ refl (rename-renameᵀ-commute (ext ρ) ρᵗ N)
+rename-renameᵀ-commute ρ ρᵗ (ƛ[ A ] N) =
+  cong₂ ƛ[_]_ refl (rename-renameᵀ-commute (ext ρ) ρᵗ N)
 rename-renameᵀ-commute ρ ρᵗ (L · M) =
   cong₂ _·_ (rename-renameᵀ-commute ρ ρᵗ L) (rename-renameᵀ-commute ρ ρᵗ M)
 rename-renameᵀ-commute ρ ρᵗ `true = refl
@@ -190,8 +283,8 @@ subst-renameᵀ-commute-gen : (σ τ : Subst) (ρᵗ : Renameᵗ)
   → (M : Term)
   → subst τ (renameᵀ ρᵗ M) ≡ renameᵀ ρᵗ (subst σ M)
 subst-renameᵀ-commute-gen σ τ ρᵗ h (` i) = h i
-subst-renameᵀ-commute-gen σ τ ρᵗ h (ƛ A ⇒ N) =
-  cong₂ ƛ_⇒_ refl
+subst-renameᵀ-commute-gen σ τ ρᵗ h (ƛ[ A ] N) =
+  cong₂ ƛ[_]_ refl
     (subst-renameᵀ-commute-gen (exts σ) (exts τ) ρᵗ (exts-comm h) N)
   where
   exts-comm : ((i : Var) → τ i ≡ renameᵀ ρᵗ (σ i))
@@ -249,8 +342,8 @@ subst-renameᵀ-commute σ ρᵗ M =
 rename-substᵀ-commute : (ρ : Rename) (τ : Substᵗ) (M : Term)
   → rename ρ (substᵀ τ M) ≡ substᵀ τ (rename ρ M)
 rename-substᵀ-commute ρ τ (` i) = refl
-rename-substᵀ-commute ρ τ (ƛ A ⇒ N) =
-  cong₂ ƛ_⇒_ refl (rename-substᵀ-commute (ext ρ) τ N)
+rename-substᵀ-commute ρ τ (ƛ[ A ] N) =
+  cong₂ ƛ[_]_ refl (rename-substᵀ-commute (ext ρ) τ N)
 rename-substᵀ-commute ρ τ (L · M) =
   cong₂ _·_ (rename-substᵀ-commute ρ τ L) (rename-substᵀ-commute ρ τ M)
 rename-substᵀ-commute ρ τ `true = refl
@@ -273,94 +366,13 @@ rename-substᵀ-commute ρ τ (Λ N) =
 rename-substᵀ-commute ρ τ (M ·[ A ]) =
   cong₂ _·[_] (rename-substᵀ-commute ρ τ M) refl
 
-substᵀ-renameᵀ-commute : (ρᵗ : Renameᵗ) (τ : Substᵗ) (M : Term)
-  → substᵀ τ (renameᵀ ρᵗ M) ≡ substᵀ (λ i → τ (ρᵗ i)) M
-substᵀ-renameᵀ-commute ρᵗ τ (` i) = refl
-substᵀ-renameᵀ-commute ρᵗ τ (ƛ A ⇒ N) =
-  cong₂ ƛ_⇒_
-    (TS.rename-subst-commute ρᵗ τ A)
-    (substᵀ-renameᵀ-commute ρᵗ τ N)
-substᵀ-renameᵀ-commute ρᵗ τ (L · M) =
-  cong₂ _·_
-    (substᵀ-renameᵀ-commute ρᵗ τ L)
-    (substᵀ-renameᵀ-commute ρᵗ τ M)
-substᵀ-renameᵀ-commute ρᵗ τ `true = refl
-substᵀ-renameᵀ-commute ρᵗ τ `false = refl
-substᵀ-renameᵀ-commute ρᵗ τ `zero = refl
-substᵀ-renameᵀ-commute ρᵗ τ (`suc M) =
-  cong `suc_ (substᵀ-renameᵀ-commute ρᵗ τ M)
-substᵀ-renameᵀ-commute ρᵗ τ (case_[zero⇒_|suc⇒_] L M N) =
-  cong₃ case_[zero⇒_|suc⇒_]
-    (substᵀ-renameᵀ-commute ρᵗ τ L)
-    (substᵀ-renameᵀ-commute ρᵗ τ M)
-    (substᵀ-renameᵀ-commute ρᵗ τ N)
-substᵀ-renameᵀ-commute ρᵗ τ (`if_then_else L M N) =
-  cong₃ `if_then_else
-    (substᵀ-renameᵀ-commute ρᵗ τ L)
-    (substᵀ-renameᵀ-commute ρᵗ τ M)
-    (substᵀ-renameᵀ-commute ρᵗ τ N)
-substᵀ-renameᵀ-commute ρᵗ τ (Λ N) =
-  cong Λ_
-    (trans
-      (substᵀ-renameᵀ-commute (extᵗ ρᵗ) (extsᵗ τ) N)
-      (substᵀ-cong (TS.exts-ext-comp ρᵗ τ) N))
-substᵀ-renameᵀ-commute ρᵗ τ (M ·[ A ]) =
-  cong₂ _·[_]
-    (substᵀ-renameᵀ-commute ρᵗ τ M)
-    (TS.rename-subst-commute ρᵗ τ A)
-
-renameᵀ-substᵀ : (ρᵗ : Renameᵗ) (τ : Substᵗ) (M : Term)
-  → renameᵀ ρᵗ (substᵀ τ M) ≡ substᵀ (λ i → renameᵗ ρᵗ (τ i)) M
-renameᵀ-substᵀ ρᵗ τ (` i) = refl
-renameᵀ-substᵀ ρᵗ τ (ƛ A ⇒ N) =
-  cong₂ ƛ_⇒_
-    (TS.rename-subst ρᵗ τ A)
-    (renameᵀ-substᵀ ρᵗ τ N)
-renameᵀ-substᵀ ρᵗ τ (L · M) =
-  cong₂ _·_
-    (renameᵀ-substᵀ ρᵗ τ L)
-    (renameᵀ-substᵀ ρᵗ τ M)
-renameᵀ-substᵀ ρᵗ τ `true = refl
-renameᵀ-substᵀ ρᵗ τ `false = refl
-renameᵀ-substᵀ ρᵗ τ `zero = refl
-renameᵀ-substᵀ ρᵗ τ (`suc M) =
-  cong `suc_ (renameᵀ-substᵀ ρᵗ τ M)
-renameᵀ-substᵀ ρᵗ τ (case_[zero⇒_|suc⇒_] L M N) =
-  cong₃ case_[zero⇒_|suc⇒_]
-    (renameᵀ-substᵀ ρᵗ τ L)
-    (renameᵀ-substᵀ ρᵗ τ M)
-    (renameᵀ-substᵀ ρᵗ τ N)
-renameᵀ-substᵀ ρᵗ τ (`if_then_else L M N) =
-  cong₃ `if_then_else
-    (renameᵀ-substᵀ ρᵗ τ L)
-    (renameᵀ-substᵀ ρᵗ τ M)
-    (renameᵀ-substᵀ ρᵗ τ N)
-renameᵀ-substᵀ ρᵗ τ (Λ N) =
-  cong Λ_
-    (trans
-      (renameᵀ-substᵀ (extᵗ ρᵗ) (extsᵗ τ) N)
-      (substᵀ-cong (TS.ext-exts-comp ρᵗ τ) N))
-renameᵀ-substᵀ ρᵗ τ (M ·[ A ]) =
-  cong₂ _·[_]
-    (renameᵀ-substᵀ ρᵗ τ M)
-    (TS.rename-subst ρᵗ τ A)
-
-renameᵀ-suc-extsᵗ : (τ : Substᵗ) (M : Term)
-  → renameᵀ suc (substᵀ τ M) ≡ substᵀ (extsᵗ τ) (renameᵀ suc M)
-renameᵀ-suc-extsᵗ τ M =
-  trans
-    (renameᵀ-substᵀ suc τ M)
-    (trans
-      (substᵀ-cong (λ i → refl) M)
-      (sym (substᵀ-renameᵀ-commute suc (extsᵗ τ) M)))
-
 substᵀ-subst-commute-gen : (τ : Substᵗ) (σ σ' : Subst)
   → ((i : Var) → σ' i ≡ substᵀ τ (σ i))
   → (M : Term)
   → substᵀ τ (subst σ M) ≡ subst σ' (substᵀ τ M)
 substᵀ-subst-commute-gen τ σ σ' h (` i) = sym (h i)
-substᵀ-subst-commute-gen τ σ σ' h (ƛ A ⇒ N) =
-  cong₂ ƛ_⇒_ refl
+substᵀ-subst-commute-gen τ σ σ' h (ƛ[ A ] N) =
+  cong₂ ƛ[_]_ refl
     (substᵀ-subst-commute-gen τ (exts σ) (exts σ') (exts-comm h) N)
   where
   exts-comm : ((i : Var) → σ' i ≡ substᵀ τ (σ i))
@@ -415,14 +427,18 @@ substᵀ-subst-commute : (τ : Substᵗ) (σ : Subst) (M : Term)
 substᵀ-subst-commute τ σ M =
   substᵀ-subst-commute-gen τ σ (λ i → substᵀ τ (σ i)) (λ i → refl) M
 
+------------------------------------------------------------------------
+-- Substitution identity
+------------------------------------------------------------------------
+
 extsᵗ-id : (i : Var) → extsᵗ idᵗ i ≡ idᵗ i
 extsᵗ-id 0 = refl
 extsᵗ-id (suc i) = refl
 
 substᵀ-id : (M : Term) → substᵀ idᵗ M ≡ M
 substᵀ-id (` i) = refl
-substᵀ-id (ƛ A ⇒ N) =
-  cong₂ ƛ_⇒_
+substᵀ-id (ƛ[ A ] N) =
+  cong₂ ƛ[_]_
     (TS.subst-id A)
     (substᵀ-id N)
 substᵀ-id (L · M) = cong₂ _·_ (substᵀ-id L) (substᵀ-id M)
@@ -479,7 +495,7 @@ substᵀ-id-typed :
   substᵀ σ M ≡ M
 substᵀ-id-typed hσ (⊢` h) = refl
 substᵀ-id-typed hσ (⊢ƛ hA hN) =
-  cong₂ ƛ_⇒_
+  cong₂ ƛ[_]_
     (substᵗ-id-typed hσ hA)
     (substᵀ-id-typed hσ hN)
 substᵀ-id-typed hσ (⊢· hL hM) =

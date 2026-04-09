@@ -3,7 +3,7 @@ module curry.Terms where
 -- File Charter:
 --   * Core curry System F syntax and static semantics.
 --   * Defines terms, renaming/substitution, and typing.
---   * Keeps `renameᵀ`/`substᵀ` as identity-on-terms by design.
+--   * Omits type-into-term renaming/substitution operations since they would be identities.
 
 open import Data.List using (_∷_)
 open import Data.Nat using (suc)
@@ -38,23 +38,14 @@ data Term : Set where
 -- Design note: type-into-term renaming/substitution
 ------------------------------------------------------------------------
 --
--- In this `curry` System F development, `renameᵀ` and `substᵀ`
--- are intentionally defined as identities. This is a deliberate
--- deviation from the usual System F pattern where type-level
--- substitutions act structurally on terms.
+-- In this `curry` System F development, type-into-term renaming and
+-- substitution operations are not defined because they would be
+-- identities. This is a deliberate deviation from the usual System F
+-- pattern where type-level substitutions act structurally on terms.
 --
 -- Motivation: keep the metatheory simpler in this formulation,
 -- especially for relational parametricity proofs (in particular, the
 -- fundamental theorem).
-
-renameᵀ : Renameᵗ → Term → Term
-renameᵀ ρ M = M
-
-substᵀ : Substᵗ → Term → Term
-substᵀ σ M = M
-
-_[_]ᵀ : Term → Ty → Term
-N [ A ]ᵀ = N
 
 ------------------------------------------------------------------------
 -- Parallel substitution: Terms into Terms
@@ -90,7 +81,7 @@ exts σ 0    = ` 0
 exts σ (suc i) = rename suc (σ i)
 
 ⇑ : Subst → Subst
-⇑ σ i = renameᵀ suc (σ i)
+⇑ σ i = σ i
 
 ⇑ᵀ : Subst → Subst
 ⇑ᵀ σ i = rename suc (σ i)

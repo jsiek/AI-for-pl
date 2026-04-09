@@ -28,16 +28,16 @@ Rel : Ty → Ty → Setω
 Rel A B =
   (V : Term) → (W : Term) →
   Value V → Value W →
-  (⊢V : zero ∣ [] ⊢ V ⦂ A) →
-  (⊢W : zero ∣ [] ⊢ W ⦂ B) →
+  (⊢V : 0 ∣ [] ⊢ V ⦂ A) →
+  (⊢W : 0 ∣ [] ⊢ W ⦂ B) →
   Setω
 
 record RelSub : Setω where
   field
     left : Substᵗ
     right : Substᵗ
-    left-closed : ∀ α → WfTy zero (left α)
-    right-closed : ∀ α → WfTy zero (right α)
+    left-closed : ∀ α → WfTy 0 (left α)
+    right-closed : ∀ α → WfTy 0 (right α)
     ρR : ∀ α → Rel (left α) (right α)
 open RelSub public
 
@@ -49,13 +49,13 @@ open RelSub public
 (∅ρ .ρR) = λ α V W x x₁ ⊢V ⊢W → ⊥
 
 _,⟨_,_,_,_,_⟩ : (ρ : RelSub) → (A₁ A₂ : Ty)
-  → WfTy zero A₁ → WfTy zero A₂
+  → WfTy 0 A₁ → WfTy 0 A₂
   → Rel A₁ A₂ → RelSub
 (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .left = A₁ •ᵗ left ρ
 (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .right = A₂ •ᵗ right ρ
-(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .left-closed zero = wfA₁
+(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .left-closed 0 = wfA₁
 (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .left-closed (suc α) = left-closed ρ α
-(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .right-closed zero = wfA₂
+(ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .right-closed 0 = wfA₂
 (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .right-closed (suc α) = right-closed ρ α
 (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .ρR 0 = R
 (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) .ρR (suc α) = ρR ρ α
@@ -76,7 +76,7 @@ substᵗ-codom-closed {Δ = Δ} σ hσ (`∀ A) =
     (substᵗ-codom-closed {Δ = suc Δ} (extsᵗ σ) (exts-closed hσ) A)
   where
   exts-closed : (∀ α → WfTy Δ (σ α)) → ∀ α → WfTy (suc Δ) (extsᵗ σ α)
-  exts-closed hσ zero = wfVar z<s
+  exts-closed hσ 0 = wfVar z<s
   exts-closed hσ (suc α) =
     renameᵗ-preserves-WfTy (hσ α) (λ {i} i<Δ → s<s i<Δ)
 
@@ -88,54 +88,54 @@ substᵗ-codom-closed {Δ = Δ} σ hσ (`∀ A) =
 ℰ : (A : Ty) (ρ : RelSub) → Term → Term → Setω
 
 𝒱 (` α) ρ V W v w =
-  Σ[ ⊢V ∈ zero ∣ [] ⊢ V ⦂ left ρ α ]
-  Σ[ ⊢W ∈ zero ∣ [] ⊢ W ⦂ right ρ α ]
+  Σ[ ⊢V ∈ 0 ∣ [] ⊢ V ⦂ left ρ α ]
+  Σ[ ⊢W ∈ 0 ∣ [] ⊢ W ⦂ right ρ α ]
     (ρR ρ α V W v w ⊢V ⊢W)
 𝒱 `ℕ ρ `zero `zero vZero vZero = ⊤
-𝒱 `ℕ ρ `zero (`suc W) vZero (vSuc w) = ⊥
-𝒱 `ℕ ρ (`suc V) `zero (vSuc v) vZero = ⊥
+𝒱 `ℕ ρ `zero (`suc W) v0 (vSuc w) = ⊥
+𝒱 `ℕ ρ (`suc V) `zero (vSuc v) v0 = ⊥
 𝒱 `ℕ ρ (`suc V) (`suc W) (vSuc v) (vSuc w) = 𝒱 `ℕ ρ V W v w
 𝒱 `Bool ρ `true `true vTrue vTrue = ⊤
 𝒱 `Bool ρ `true `false vTrue vFalse = ⊥
 𝒱 `Bool ρ `false `true vFalse vTrue = ⊥
 𝒱 `Bool ρ `false `false vFalse vFalse = ⊤
-𝒱 (A ⇒ B) ρ (ƛ C ⇒ N) (ƛ D ⇒ M) vLam vLam =
-  Σ[ ⊢V ∈ zero ∣ [] ⊢ (ƛ C ⇒ N) ⦂ substᵗ (left ρ) (A ⇒ B) ]
-  Σ[ ⊢W ∈ zero ∣ [] ⊢ (ƛ D ⇒ M) ⦂ substᵗ (right ρ) (A ⇒ B) ]
+𝒱 (A ⇒ B) ρ (ƛ[ C ] N) (ƛ[ D ] M) vLam vLam =
+  Σ[ ⊢V ∈ 0 ∣ [] ⊢ (ƛ[ C ] N) ⦂ substᵗ (left ρ) (A ⇒ B) ]
+  Σ[ ⊢W ∈ 0 ∣ [] ⊢ (ƛ[ D ] M) ⦂ substᵗ (right ρ) (A ⇒ B) ]
     (∀ {V W} (v : Value V) (w : Value W)
       → 𝒱 A ρ V W v w
       → ℰ B ρ (N [ V ]) (M [ W ]))
 𝒱 (`∀ A) ρ (Λ N) (Λ M) vTlam vTlam =
-  Σ[ ⊢V ∈ zero ∣ [] ⊢ (Λ N) ⦂ substᵗ (left ρ) (`∀ A) ]
-  Σ[ ⊢W ∈ zero ∣ [] ⊢ (Λ M) ⦂ substᵗ (right ρ) (`∀ A) ]
+  Σ[ ⊢V ∈ 0 ∣ [] ⊢ (Λ N) ⦂ substᵗ (left ρ) (`∀ A) ]
+  Σ[ ⊢W ∈ 0 ∣ [] ⊢ (Λ M) ⦂ substᵗ (right ρ) (`∀ A) ]
     (∀ (A₁ A₂ : Ty)
-      → (wfA₁ : WfTy zero A₁)
-      → (wfA₂ : WfTy zero A₂)
+      → (wfA₁ : WfTy 0 A₁)
+      → (wfA₂ : WfTy 0 A₂)
       → (R : Rel A₁ A₂)
       → ℰ A (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) (N [ A₁ ]ᵀ) (M [ A₂ ]ᵀ))
 𝒱 A ρ N M vN vM = ⊥
 
 ℰ A ρ M N =
-  Σ[ ⊢M ∈ zero ∣ [] ⊢ M ⦂ substᵗ (left ρ) A ]
-  Σ[ ⊢N ∈ zero ∣ [] ⊢ N ⦂ substᵗ (right ρ) A ]
+  Σ[ ⊢M ∈ 0 ∣ [] ⊢ M ⦂ substᵗ (left ρ) A ]
+  Σ[ ⊢N ∈ 0 ∣ [] ⊢ N ⦂ substᵗ (right ρ) A ]
   ∃[ V ] ∃[ W ] ∃[ v ] ∃[ w ]
     (M —↠ V) × (N —↠ W) × 𝒱 A ρ V W v w
 
 ℰ-typing : ∀ {A ρ M N}
   → ℰ A ρ M N
-  → (zero ∣ [] ⊢ M ⦂ substᵗ (left ρ) A)
-    × (zero ∣ [] ⊢ N ⦂ substᵗ (right ρ) A)
+  → (0 ∣ [] ⊢ M ⦂ substᵗ (left ρ) A)
+    × (0 ∣ [] ⊢ N ⦂ substᵗ (right ρ) A)
 ℰ-typing ⟨ ⊢M , ⟨ ⊢N , _ ⟩ ⟩ = ⟨ ⊢M , ⊢N ⟩
 
 𝒱-typing : ∀ {A ρ V W} {v : Value V} {w : Value W}
   → 𝒱 A ρ V W v w
-  → (zero ∣ [] ⊢ V ⦂ substᵗ (left ρ) A)
-    ×  (zero ∣ [] ⊢ W ⦂ substᵗ (right ρ) A)
+  → (0 ∣ [] ⊢ V ⦂ substᵗ (left ρ) A)
+    ×  (0 ∣ [] ⊢ W ⦂ substᵗ (right ρ) A)
 𝒱-typing {A = ` α} {ρ = ρ} ⟨ ⊢V , ⟨ ⊢W , _ ⟩ ⟩ = ⟨ ⊢V , ⊢W ⟩
-𝒱-typing {A = `ℕ} {V = `zero} {W = `zero} {v = vZero} {w = vZero}
+𝒱-typing {A = `ℕ} {V = `zero} {W = `zero} {v = v0} {w = vZero}
   _ = ⟨ ⊢zero , ⊢zero ⟩
-𝒱-typing {A = `ℕ} {V = `zero} {W = `suc W} {v = vZero} {w = vSuc w} ()
-𝒱-typing {A = `ℕ} {V = `suc V} {W = `zero} {v = vSuc v} {w = vZero} ()
+𝒱-typing {A = `ℕ} {V = `zero} {W = `suc W} {v = v0} {w = vSuc w} ()
+𝒱-typing {A = `ℕ} {V = `suc V} {W = `zero} {v = vSuc v} {w = v0} ()
 𝒱-typing {A = `ℕ} {ρ = ρ} {V = `suc V} {W = `suc W} {v = vSuc v} {w = vSuc w}
   rel with 𝒱-typing {A = `ℕ} {ρ = ρ} {V = V} {W = W} {v = v} {w = w} rel
 ... | ⟨ ⊢V , ⊢W ⟩ = ⟨ ⊢suc ⊢V , ⊢suc ⊢W ⟩
@@ -145,7 +145,7 @@ substᵗ-codom-closed {Δ = Δ} σ hσ (`∀ A) =
 𝒱-typing {A = `Bool} {V = `false} {W = `true} {v = vFalse} {w = vTrue} ()
 𝒱-typing {A = `Bool} {V = `false} {W = `false} {v = vFalse} {w = vFalse}
   _ = ⟨ ⊢false , ⊢false ⟩
-𝒱-typing {A = A ⇒ B} {V = ƛ C ⇒ N} {W = ƛ D ⇒ M} {v = vLam} {w = vLam}
+𝒱-typing {A = A ⇒ B} {V = ƛ[ C ] N} {W = ƛ[ D ] M} {v = vLam} {w = vLam}
   ⟨ ⊢V , ⟨ ⊢W , _ ⟩ ⟩ = ⟨ ⊢V , ⊢W ⟩
 𝒱-typing {A = A ⇒ B} {v = vLam} {w = vTrue} ()
 𝒱-typing {A = A ⇒ B} {v = vLam} {w = vFalse} ()
@@ -269,9 +269,9 @@ syntax LogicalRel Γ A M N = Γ ⊨ M ≈ N ⦂ A
   → ℰ A ρ (substᵀ (left ρ) M) (substᵀ (right ρ) N)
 ℰ-close-ρ {A = A} {ρ = ρ} {M = M} {N = N}
   ⟨ ⊢M , ⟨ ⊢N , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
-  ⟨ substEq (λ Tm → zero ∣ [] ⊢ Tm ⦂ substᵗ (left ρ) A)
+  ⟨ substEq (λ Tm → 0 ∣ [] ⊢ Tm ⦂ substᵗ (left ρ) A)
       (sym (substᵀ-id-typed (λ ()) ⊢M)) ⊢M
-  , ⟨ substEq (λ Tm → zero ∣ [] ⊢ Tm ⦂ substᵗ (right ρ) A)
+  , ⟨ substEq (λ Tm → 0 ∣ [] ⊢ Tm ⦂ substᵗ (right ρ) A)
         (sym (substᵀ-id-typed (λ ()) ⊢N)) ⊢N
     , ⟨ V , ⟨ W , ⟨ v , ⟨ w
       , ⟨ substEq (λ Tm → Tm —↠ V) (sym (substᵀ-id-typed (λ ()) ⊢M)) M—↠V
@@ -280,12 +280,12 @@ syntax LogicalRel Γ A M N = Γ ⊨ M ≈ N ⦂ A
 
 data WkRel : Renameᵗ → RelSub → RelSub → Setω where
   wk-suc :
-    ∀ {ρ A₁ A₂} (wfA₁ : WfTy zero A₁) (wfA₂ : WfTy zero A₂) (R : Rel A₁ A₂) →
+    ∀ {ρ A₁ A₂} (wfA₁ : WfTy 0 A₁) (wfA₂ : WfTy 0 A₂) (R : Rel A₁ A₂) →
     WkRel suc ρ (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩)
 
   wk-ext :
     ∀ {ξ ρ ρ' B₁ B₂}
-      (hB₁ : WfTy zero B₁) (hB₂ : WfTy zero B₂)
+      (hB₁ : WfTy 0 B₁) (hB₂ : WfTy 0 B₂)
       (S : Rel B₁ B₂) →
     WkRel ξ ρ ρ' →
     WkRel (extᵗ ξ)
@@ -298,7 +298,7 @@ wk-left-var :
   → (α : Var)
   → RelSub.left ρ α ≡ᵗ RelSub.left ρ' (ξ α)
 wk-left-var (wk-suc _ _ R) α = refl
-wk-left-var (wk-ext _ _ _ wk-r) zero = refl
+wk-left-var (wk-ext _ _ _ wk-r) 0 = refl
 wk-left-var (wk-ext _ _ _ wk-r) (suc α) = wk-left-var wk-r α
 
 wk-right-var :
@@ -307,7 +307,7 @@ wk-right-var :
   → (α : Var)
   → RelSub.right ρ α ≡ᵗ RelSub.right ρ' (ξ α)
 wk-right-var (wk-suc _ _ R) α = refl
-wk-right-var (wk-ext _ _ _ wk-r) zero = refl
+wk-right-var (wk-ext _ _ _ wk-r) 0 = refl
 wk-right-var (wk-ext _ _ _ wk-r) (suc α) = wk-right-var wk-r α
 
 wk-left-subst : ∀ {ξ ρ ρ'} → WkRel ξ ρ ρ' → (A : Ty)
@@ -325,23 +325,23 @@ wk-right-subst {ξ = ξ} {ρ = ρ} {ρ' = ρ'} wk-r A =
     (TS.subst-cong (λ α → sym (wk-right-var wk-r α)) A)
 
 wk-ρR-cast : ∀ {ξ ρ ρ'} → (wk-r : WkRel ξ ρ ρ') → (α : Var)
-  → ∀ {V W} {v : Value V} {w : Value W} {⊢V : zero ∣ [] ⊢ V ⦂ RelSub.left ρ α} {⊢W : zero ∣ [] ⊢ W ⦂ RelSub.right ρ α}
+  → ∀ {V W} {v : Value V} {w : Value W} {⊢V : 0 ∣ [] ⊢ V ⦂ RelSub.left ρ α} {⊢W : 0 ∣ [] ⊢ W ⦂ RelSub.right ρ α}
   → ρR ρ α V W v w ⊢V ⊢W
   → ρR ρ' (ξ α) V W v w
-      (substEq (λ T → zero ∣ [] ⊢ V ⦂ T) (wk-left-var wk-r α) ⊢V)
-      (substEq (λ T → zero ∣ [] ⊢ W ⦂ T) (wk-right-var wk-r α) ⊢W)
+      (substEq (λ T → 0 ∣ [] ⊢ V ⦂ T) (wk-left-var wk-r α) ⊢V)
+      (substEq (λ T → 0 ∣ [] ⊢ W ⦂ T) (wk-right-var wk-r α) ⊢W)
 wk-ρR-cast (wk-suc _ _ R) α rel = rel
-wk-ρR-cast (wk-ext _ _ _ wk-r) zero rel = rel
+wk-ρR-cast (wk-ext _ _ _ wk-r) 0 rel = rel
 wk-ρR-cast (wk-ext _ _ _ wk-r) (suc α) rel = wk-ρR-cast wk-r α rel
 
 wk-ρR-uncast : ∀ {ξ ρ ρ'} → (wk-r : WkRel ξ ρ ρ') → (α : Var)
-  → ∀ {V W} {v : Value V} {w : Value W} {⊢V : zero ∣ [] ⊢ V ⦂ RelSub.left ρ' (ξ α)} {⊢W : zero ∣ [] ⊢ W ⦂ RelSub.right ρ' (ξ α)}
+  → ∀ {V W} {v : Value V} {w : Value W} {⊢V : 0 ∣ [] ⊢ V ⦂ RelSub.left ρ' (ξ α)} {⊢W : 0 ∣ [] ⊢ W ⦂ RelSub.right ρ' (ξ α)}
   → ρR ρ' (ξ α) V W v w ⊢V ⊢W
   → ρR ρ α V W v w
-      (substEq (λ T → zero ∣ [] ⊢ V ⦂ T) (sym (wk-left-var wk-r α)) ⊢V)
-      (substEq (λ T → zero ∣ [] ⊢ W ⦂ T) (sym (wk-right-var wk-r α)) ⊢W)
+      (substEq (λ T → 0 ∣ [] ⊢ V ⦂ T) (sym (wk-left-var wk-r α)) ⊢V)
+      (substEq (λ T → 0 ∣ [] ⊢ W ⦂ T) (sym (wk-right-var wk-r α)) ⊢W)
 wk-ρR-uncast (wk-suc _ _ R) α rel = rel
-wk-ρR-uncast (wk-ext _ _ _ wk-r) zero rel = rel
+wk-ρR-uncast (wk-ext _ _ _ wk-r) 0 rel = rel
 wk-ρR-uncast (wk-ext _ _ _ wk-r) (suc α) rel = wk-ρR-uncast wk-r α rel
 
 𝒱-Nat-irrel : ∀ {ρ σ V W} {v : Value V} {w : Value W}
@@ -364,17 +364,17 @@ mutual
     → 𝒱 A ρ V W v w
     → 𝒱 (renameᵗ ξ A) ρ' V W v w
   𝒱-rename-wk {A = ` α} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} wk-r ⟨ ⊢V , ⟨ ⊢W , rel ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ V ⦂ T) (wk-left-var wk-r α) ⊢V
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ W ⦂ T) (wk-right-var wk-r α) ⊢W
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ V ⦂ T) (wk-left-var wk-r α) ⊢V
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ W ⦂ T) (wk-right-var wk-r α) ⊢W
       , wk-ρR-cast {ξ = ξ} {ρ = ρ} {ρ' = ρ'} wk-r α {V = V} {W = W} {v = v} {w = w} {⊢V = ⊢V} {⊢W = ⊢W} rel
       ⟩ ⟩
   𝒱-rename-wk {A = `ℕ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} wk-r 𝒱VW =
     𝒱-Nat-irrel {ρ = ρ} {σ = ρ'} {V = V} {W = W} {v = v} {w = w} 𝒱VW
   𝒱-rename-wk {A = `Bool} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} wk-r 𝒱VW =
     𝒱-Bool-irrel {ρ = ρ} {σ = ρ'} {V = V} {W = W} {v = v} {w = w} 𝒱VW
-  𝒱-rename-wk {A = A ⇒ B} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = ƛ C ⇒ N} {W = ƛ D ⇒ M} {v = vLam} {w = vLam} wk-r ⟨ ⊢V , ⟨ ⊢W , f-rel ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ (ƛ C ⇒ N) ⦂ T) (sym (wk-left-subst wk-r (A ⇒ B))) ⊢V
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ (ƛ D ⇒ M) ⦂ T) (sym (wk-right-subst wk-r (A ⇒ B))) ⊢W
+  𝒱-rename-wk {A = A ⇒ B} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = ƛ[ C ] N} {W = ƛ[ D ] M} {v = vLam} {w = vLam} wk-r ⟨ ⊢V , ⟨ ⊢W , f-rel ⟩ ⟩ =
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ (ƛ[ C ] N) ⦂ T) (sym (wk-left-subst wk-r (A ⇒ B))) ⊢V
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ (ƛ[ D ] M) ⦂ T) (sym (wk-right-subst wk-r (A ⇒ B))) ⊢W
       , (λ v₁ w₁ arg-rel' →
       ℰ-rename-wk {A = B} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} wk-r
         (f-rel v₁ w₁
@@ -391,8 +391,8 @@ mutual
   𝒱-rename-wk {A = A ⇒ B} {v = vSuc v} wk-r ()
   𝒱-rename-wk {A = A ⇒ B} {v = vTlam} wk-r ()
   𝒱-rename-wk {A = `∀ A} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = Λ N} {W = Λ M} {v = vTlam} {w = vTlam} wk-r ⟨ ⊢V , ⟨ ⊢W , ∀-rel ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ N) ⦂ T) (sym (wk-left-subst wk-r (`∀ A))) ⊢V
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ M) ⦂ T) (sym (wk-right-subst wk-r (`∀ A))) ⊢W
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ (Λ N) ⦂ T) (sym (wk-left-subst wk-r (`∀ A))) ⊢V
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ (Λ M) ⦂ T) (sym (wk-right-subst wk-r (`∀ A))) ⊢W
       , (λ A₁ A₂ wfA₁ wfA₂ R →
       ℰ-rename-wk
         {A = A}
@@ -421,17 +421,17 @@ mutual
     → 𝒱 (renameᵗ ξ A) ρ' V W v w
     → 𝒱 A ρ V W v w
   𝒱-unrename-wk {A = ` α} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} wk-r ⟨ ⊢V , ⟨ ⊢W , rel ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ V ⦂ T) (sym (wk-left-var wk-r α)) ⊢V
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ W ⦂ T) (sym (wk-right-var wk-r α)) ⊢W
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ V ⦂ T) (sym (wk-left-var wk-r α)) ⊢V
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ W ⦂ T) (sym (wk-right-var wk-r α)) ⊢W
       , wk-ρR-uncast {ξ = ξ} {ρ = ρ} {ρ' = ρ'} wk-r α {V = V} {W = W} {v = v} {w = w} {⊢V = ⊢V} {⊢W = ⊢W} rel
       ⟩ ⟩
   𝒱-unrename-wk {A = `ℕ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} wk-r 𝒱VW =
     𝒱-Nat-irrel {ρ = ρ'} {σ = ρ} {V = V} {W = W} {v = v} {w = w} 𝒱VW
   𝒱-unrename-wk {A = `Bool} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} wk-r 𝒱VW =
     𝒱-Bool-irrel {ρ = ρ'} {σ = ρ} {V = V} {W = W} {v = v} {w = w} 𝒱VW
-  𝒱-unrename-wk {A = A ⇒ B} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = ƛ C ⇒ N} {W = ƛ D ⇒ M} {v = vLam} {w = vLam} wk-r ⟨ ⊢V , ⟨ ⊢W , f-rel ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ (ƛ C ⇒ N) ⦂ T) (wk-left-subst wk-r (A ⇒ B)) ⊢V
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ (ƛ D ⇒ M) ⦂ T) (wk-right-subst wk-r (A ⇒ B)) ⊢W
+  𝒱-unrename-wk {A = A ⇒ B} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = ƛ[ C ] N} {W = ƛ[ D ] M} {v = vLam} {w = vLam} wk-r ⟨ ⊢V , ⟨ ⊢W , f-rel ⟩ ⟩ =
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ (ƛ[ C ] N) ⦂ T) (wk-left-subst wk-r (A ⇒ B)) ⊢V
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ (ƛ[ D ] M) ⦂ T) (wk-right-subst wk-r (A ⇒ B)) ⊢W
       , (λ v₁ w₁ arg-rel →
       ℰ-unrename-wk {A = B} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} wk-r
         (f-rel v₁ w₁
@@ -448,8 +448,8 @@ mutual
   𝒱-unrename-wk {A = A ⇒ B} {v = vSuc v} wk-r ()
   𝒱-unrename-wk {A = A ⇒ B} {v = vTlam} wk-r ()
   𝒱-unrename-wk {A = `∀ A} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = Λ N} {W = Λ M} {v = vTlam} {w = vTlam} wk-r ⟨ ⊢V , ⟨ ⊢W , ∀-rel ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ N) ⦂ T) (wk-left-subst wk-r (`∀ A)) ⊢V
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ M) ⦂ T) (wk-right-subst wk-r (`∀ A)) ⊢W
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ (Λ N) ⦂ T) (wk-left-subst wk-r (`∀ A)) ⊢V
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ (Λ M) ⦂ T) (wk-right-subst wk-r (`∀ A)) ⊢W
       , (λ A₁ A₂ wfA₁ wfA₂ R →
       ℰ-unrename-wk
         {A = A}
@@ -479,8 +479,8 @@ mutual
     → ℰ (renameᵗ ξ A) ρ' M N
   ℰ-rename-wk {A = A} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {M = M} {N = N} wk-r
     ⟨ ⊢M , ⟨ ⊢N , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ M ⦂ T) (sym (wk-left-subst wk-r A)) ⊢M
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ N ⦂ T) (sym (wk-right-subst wk-r A)) ⊢N
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ M ⦂ T) (sym (wk-left-subst wk-r A)) ⊢M
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ N ⦂ T) (sym (wk-right-subst wk-r A)) ⊢N
       , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W
         , 𝒱-rename-wk {A = A} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} wk-r 𝒱VW
         ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
@@ -492,14 +492,14 @@ mutual
     → ℰ A ρ M N
   ℰ-unrename-wk {A = A} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {M = M} {N = N} wk-r
     ⟨ ⊢M , ⟨ ⊢N , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ M ⦂ T) (wk-left-subst wk-r A) ⊢M
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ N ⦂ T) (wk-right-subst wk-r A) ⊢N
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ M ⦂ T) (wk-left-subst wk-r A) ⊢M
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ N ⦂ T) (wk-right-subst wk-r A) ⊢N
       , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W
         , 𝒱-unrename-wk {A = A} {ξ = ξ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} wk-r 𝒱VW
         ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
 
 ⇑-ℰ : ∀{A A₁ A₂}{ρ : RelSub}{γ : RelEnv}
-    {wfA₁ : WfTy zero A₁}{wfA₂ : WfTy zero A₂}{R : Rel A₁ A₂}
+    {wfA₁ : WfTy 0 A₁}{wfA₂ : WfTy 0 A₂}{R : Rel A₁ A₂}
   → ℰ A ρ (RelEnv.left γ 0) (RelEnv.right γ 0)
   → ℰ (renameᵗ suc A) (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) (RelEnv.left γ 0) (RelEnv.right γ 0)
 ⇑-ℰ {A}{A₁}{A₂}{ρ}{γ}{wfA₁}{wfA₂}{R} rel =
@@ -508,7 +508,7 @@ mutual
     rel
 
 liftRelEnv-related : ∀ {Γ A₁ A₂} {ρ : RelSub} {γ : RelEnv}
-    (wfA₁ : WfTy zero A₁) (wfA₂ : WfTy zero A₂)
+    (wfA₁ : WfTy 0 A₁) (wfA₂ : WfTy 0 A₂)
     (R : Rel A₁ A₂)
   → 𝒢 Γ ρ γ
   → 𝒢 (⤊ Γ) (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩) γ
@@ -536,31 +536,31 @@ record SubstRel (σ : Substᵗ) (ρ : RelSub) (ρ' : RelSub) : Setω where
       → 𝒱 (` α) ρ' V W v w
 
 exts-SubstRel : ∀ {σ ρ ρ' A₁ A₂}
-  → (wfA₁ : WfTy zero A₁) (wfA₂ : WfTy zero A₂)
+  → (wfA₁ : WfTy 0 A₁) (wfA₂ : WfTy 0 A₂)
   → (R : Rel A₁ A₂)
   → SubstRel σ ρ ρ'
   → SubstRel (extsᵗ σ)
       (ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩)
       (ρ' ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩)
-SubstRel.left-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) zero = refl
+SubstRel.left-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) 0 = refl
 SubstRel.left-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) (suc α) =
   trans
     (SubstRel.left-subst-var sr α)
     (sym (TS.rename-subst-commute suc (A₁ •ᵗ left ρ) (σ α)))
 
-SubstRel.right-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) zero = refl
+SubstRel.right-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) 0 = refl
 SubstRel.right-subst-var (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) (suc α) =
   trans
     (SubstRel.right-subst-var sr α)
     (sym (TS.rename-subst-commute suc (A₂ •ᵗ right ρ) (σ α)))
 
-SubstRel.var⇒ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) zero rel = rel
+SubstRel.var⇒ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) 0 rel = rel
 SubstRel.var⇒ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) (suc α) rel =
   𝒱-rename-wk {A = σ α} {ξ = suc} {ρ = ρ} {ρ' = ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
     (wk-suc {ρ = ρ} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R)
     (SubstRel.var⇒ sr α rel)
 
-SubstRel.var⇐ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) zero rel = rel
+SubstRel.var⇐ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) 0 rel = rel
 SubstRel.var⇐ (exts-SubstRel {σ = σ} {ρ = ρ} {ρ' = ρ'} {A₁ = A₁} {A₂ = A₂} wfA₁ wfA₂ R sr) (suc α) rel =
   SubstRel.var⇐ sr α
     (𝒱-unrename-wk {A = σ α} {ξ = suc} {ρ = ρ} {ρ' = ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
@@ -592,9 +592,9 @@ mutual
     𝒱-Nat-irrel {ρ = ρ'} {σ = ρ} {V = V} {W = W} {v = v} {w = w} 𝒱VW
   𝒱-subst {A = `Bool} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW =
     𝒱-Bool-irrel {ρ = ρ'} {σ = ρ} {V = V} {W = W} {v = v} {w = w} 𝒱VW
-  𝒱-subst {A = A ⇒ B} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = ƛ C ⇒ N} {W = ƛ D ⇒ M} {v = vLam} {w = vLam} sr ⟨ ⊢V , ⟨ ⊢W , f-rel ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ (ƛ C ⇒ N) ⦂ T) (substRel-left-subst sr (A ⇒ B)) ⊢V
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ (ƛ D ⇒ M) ⦂ T) (substRel-right-subst sr (A ⇒ B)) ⊢W
+  𝒱-subst {A = A ⇒ B} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = ƛ[ C ] N} {W = ƛ[ D ] M} {v = vLam} {w = vLam} sr ⟨ ⊢V , ⟨ ⊢W , f-rel ⟩ ⟩ =
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ (ƛ[ C ] N) ⦂ T) (substRel-left-subst sr (A ⇒ B)) ⊢V
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ (ƛ[ D ] M) ⦂ T) (substRel-right-subst sr (A ⇒ B)) ⊢W
       , (λ v₁ w₁ arg-rel →
       ℰ-subst {A = B} {σ = σ} {ρ = ρ} {ρ' = ρ'} sr
         (f-rel v₁ w₁ (𝒱-unsubst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {v = v₁} {w = w₁} sr arg-rel))
@@ -610,8 +610,8 @@ mutual
   𝒱-subst {A = A ⇒ B} {v = vSuc v} sr ()
   𝒱-subst {A = A ⇒ B} {v = vTlam} sr ()
   𝒱-subst {A = `∀ A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = Λ N} {W = Λ M} {v = vTlam} {w = vTlam} sr ⟨ ⊢V , ⟨ ⊢W , ∀-rel ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ N) ⦂ T) (substRel-left-subst sr (`∀ A)) ⊢V
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ M) ⦂ T) (substRel-right-subst sr (`∀ A)) ⊢W
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ (Λ N) ⦂ T) (substRel-left-subst sr (`∀ A)) ⊢V
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ (Λ M) ⦂ T) (substRel-right-subst sr (`∀ A)) ⊢W
       , (λ A₁ A₂ wfA₁ wfA₂ R →
       ℰ-subst {A = A} {σ = extsᵗ σ}
         {ρ = ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
@@ -640,9 +640,9 @@ mutual
     𝒱-Nat-irrel {ρ = ρ} {σ = ρ'} {V = V} {W = W} {v = v} {w = w} 𝒱VW
   𝒱-unsubst {A = `Bool} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW =
     𝒱-Bool-irrel {ρ = ρ} {σ = ρ'} {V = V} {W = W} {v = v} {w = w} 𝒱VW
-  𝒱-unsubst {A = A ⇒ B} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = ƛ C ⇒ N} {W = ƛ D ⇒ M} {v = vLam} {w = vLam} sr ⟨ ⊢V , ⟨ ⊢W , f-rel ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ (ƛ C ⇒ N) ⦂ T) (sym (substRel-left-subst sr (A ⇒ B))) ⊢V
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ (ƛ D ⇒ M) ⦂ T) (sym (substRel-right-subst sr (A ⇒ B))) ⊢W
+  𝒱-unsubst {A = A ⇒ B} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = ƛ[ C ] N} {W = ƛ[ D ] M} {v = vLam} {w = vLam} sr ⟨ ⊢V , ⟨ ⊢W , f-rel ⟩ ⟩ =
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ (ƛ[ C ] N) ⦂ T) (sym (substRel-left-subst sr (A ⇒ B))) ⊢V
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ (ƛ[ D ] M) ⦂ T) (sym (substRel-right-subst sr (A ⇒ B))) ⊢W
       , (λ v₁ w₁ arg-rel →
       ℰ-unsubst {A = B} {σ = σ} {ρ = ρ} {ρ' = ρ'} sr
         (f-rel v₁ w₁ (𝒱-subst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {v = v₁} {w = w₁} sr arg-rel))
@@ -658,8 +658,8 @@ mutual
   𝒱-unsubst {A = A ⇒ B} {v = vSuc v} sr ()
   𝒱-unsubst {A = A ⇒ B} {v = vTlam} sr ()
   𝒱-unsubst {A = `∀ A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = Λ N} {W = Λ M} {v = vTlam} {w = vTlam} sr ⟨ ⊢V , ⟨ ⊢W , ∀-rel ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ N) ⦂ T) (sym (substRel-left-subst sr (`∀ A))) ⊢V
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ (Λ M) ⦂ T) (sym (substRel-right-subst sr (`∀ A))) ⊢W
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ (Λ N) ⦂ T) (sym (substRel-left-subst sr (`∀ A))) ⊢V
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ (Λ M) ⦂ T) (sym (substRel-right-subst sr (`∀ A))) ⊢W
       , (λ A₁ A₂ wfA₁ wfA₂ R →
       ℰ-unsubst {A = A} {σ = extsᵗ σ}
         {ρ = ρ ,⟨ A₁ , A₂ , wfA₁ , wfA₂ , R ⟩}
@@ -685,8 +685,8 @@ mutual
     → ℰ (substᵗ σ A) ρ M N
   ℰ-subst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {M = M} {N = N} sr
     ⟨ ⊢M , ⟨ ⊢N , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ M ⦂ T) (substRel-left-subst sr A) ⊢M
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ N ⦂ T) (substRel-right-subst sr A) ⊢N
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ M ⦂ T) (substRel-left-subst sr A) ⊢M
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ N ⦂ T) (substRel-right-subst sr A) ⊢N
       , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W
         , 𝒱-subst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW
         ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
@@ -698,8 +698,8 @@ mutual
     → ℰ A ρ' M N
   ℰ-unsubst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {M = M} {N = N} sr
     ⟨ ⊢M , ⟨ ⊢N , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W , 𝒱VW ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
-    ⟨ substEq (λ T → zero ∣ [] ⊢ M ⦂ T) (sym (substRel-left-subst sr A)) ⊢M
-    , ⟨ substEq (λ T → zero ∣ [] ⊢ N ⦂ T) (sym (substRel-right-subst sr A)) ⊢N
+    ⟨ substEq (λ T → 0 ∣ [] ⊢ M ⦂ T) (sym (substRel-left-subst sr A)) ⊢M
+    , ⟨ substEq (λ T → 0 ∣ [] ⊢ N ⦂ T) (sym (substRel-right-subst sr A)) ⊢N
       , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M—↠V , ⟨ N—↠W
         , 𝒱-unsubst {A = A} {σ = σ} {ρ = ρ} {ρ' = ρ'} {V = V} {W = W} {v = v} {w = w} sr 𝒱VW
         ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
@@ -711,13 +711,13 @@ singleTy-SubstRel : ∀ {ρ B}
            , substᵗ-codom-closed (left ρ) (left-closed ρ) B
            , substᵗ-codom-closed (right ρ) (right-closed ρ) B
            , (λ V W v w ⊢V ⊢W → 𝒱 B ρ V W v w) ⟩)
-SubstRel.left-subst-var (singleTy-SubstRel {ρ = ρ} {B = B}) zero = refl
+SubstRel.left-subst-var (singleTy-SubstRel {ρ = ρ} {B = B}) 0 = refl
 SubstRel.left-subst-var (singleTy-SubstRel {ρ = ρ} {B = B}) (suc α) = refl
-SubstRel.right-subst-var (singleTy-SubstRel {ρ = ρ} {B = B}) zero = refl
+SubstRel.right-subst-var (singleTy-SubstRel {ρ = ρ} {B = B}) 0 = refl
 SubstRel.right-subst-var (singleTy-SubstRel {ρ = ρ} {B = B}) (suc α) = refl
-SubstRel.var⇒ (singleTy-SubstRel {ρ = ρ} {B = B}) zero ⟨ ⊢V , ⟨ ⊢W , relB ⟩ ⟩ = relB
+SubstRel.var⇒ (singleTy-SubstRel {ρ = ρ} {B = B}) 0 ⟨ ⊢V , ⟨ ⊢W , relB ⟩ ⟩ = relB
 SubstRel.var⇒ (singleTy-SubstRel {ρ = ρ} {B = B}) (suc α) rel = rel
-SubstRel.var⇐ (singleTy-SubstRel {ρ = ρ} {B = B}) zero {V = V} {W = W} {v = v} {w = w} relB
+SubstRel.var⇐ (singleTy-SubstRel {ρ = ρ} {B = B}) 0 {V = V} {W = W} {v = v} {w = w} relB
   with 𝒱-typing {A = B} {ρ = ρ} {V = V} {W = W} {v = v} {w = w} relB
 ... | ⟨ ⊢V , ⊢W ⟩ = ⟨ ⊢V , ⟨ ⊢W , relB ⟩ ⟩
 SubstRel.var⇐ (singleTy-SubstRel {ρ = ρ} {B = B}) (suc α) rel = rel

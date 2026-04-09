@@ -109,7 +109,7 @@ map-renameᵗ-⤊ ρ (A ∷ Γ) =
 typing-renameᵀ : {Δ Δ' : TyCtx} {Γ : Ctx} {M : Term} {A : Ty} {ρ : Renameᵗ} →
   TyRenameWf Δ Δ' ρ →
   Δ ⊢ Γ ⊢ M ⦂ A →
-  Δ' ⊢ map (renameᵗ ρ) Γ ⊢ renameᵀ ρ M ⦂ renameᵗ ρ A
+  Δ' ⊢ map (renameᵗ ρ) Γ ⊢ M ⦂ renameᵗ ρ A
 typing-renameᵀ hρ (⊢` h) =
   ⊢` (lookup-map-renameᵗ h)
 typing-renameᵀ hρ (⊢ƛ hA hN) =
@@ -135,7 +135,7 @@ typing-renameᵀ hρ (⊢case hL hM hN) =
 typing-renameᵀ {Δ' = Δ'} {ρ = ρ} hρ (⊢Λ {Γ = Γ} {N = N} {A = A} hN) =
   ⊢Λ
     (Eq.subst
-      (λ Ψ → suc Δ' ⊢ Ψ ⊢ renameᵀ (extᵗ ρ) N ⦂ renameᵗ (extᵗ ρ) A)
+      (λ Ψ → suc Δ' ⊢ Ψ ⊢ N ⦂ renameᵗ (extᵗ ρ) A)
       (map-renameᵗ-⤊ ρ Γ)
       (typing-renameᵀ
         {Γ = ⤊ Γ}
@@ -144,7 +144,7 @@ typing-renameᵀ {Δ' = Δ'} {ρ = ρ} hρ (⊢Λ {Γ = Γ} {N = N} {A = A} hN) 
         hN))
 typing-renameᵀ {Γ = Γ} {ρ = ρ} hρ (⊢·[] {M = M} {A = A} {B = B} hM hB) =
   Eq.subst
-    (λ T → _ ⊢ map (renameᵗ ρ) Γ ⊢ (renameᵀ ρ M ·[]) ⦂ T)
+    (λ T → _ ⊢ map (renameᵗ ρ) Γ ⊢ (M ·[]) ⦂ T)
     (sym (rename-[]ᵗ-commute ρ A B))
     (⊢·[]
       (typing-renameᵀ hρ hM)
@@ -167,7 +167,7 @@ map-substᵗ-⤊ σ (A ∷ Γ) =
 typing-substᵀ : {Δ Δ' : TyCtx} {Γ : Ctx} {M : Term} {A : Ty} {σ : Substᵗ} →
   TySubstWf Δ Δ' σ →
   Δ ⊢ Γ ⊢ M ⦂ A →
-  Δ' ⊢ map (substᵗ σ) Γ ⊢ substᵀ σ M ⦂ substᵗ σ A
+  Δ' ⊢ map (substᵗ σ) Γ ⊢ M ⦂ substᵗ σ A
 typing-substᵀ hσ (⊢` h) =
   ⊢` (lookup-map-substᵗ h)
 typing-substᵀ hσ (⊢ƛ hA hN) =
@@ -193,7 +193,7 @@ typing-substᵀ hσ (⊢case hL hM hN) =
 typing-substᵀ {Δ' = Δ'} {σ = σ} hσ (⊢Λ {Γ = Γ} {N = N} {A = A} hN) =
   ⊢Λ
     (Eq.subst
-      (λ Ψ → suc Δ' ⊢ Ψ ⊢ substᵀ (extsᵗ σ) N ⦂ substᵗ (extsᵗ σ) A)
+      (λ Ψ → suc Δ' ⊢ Ψ ⊢ N ⦂ substᵗ (extsᵗ σ) A)
       (map-substᵗ-⤊ σ Γ)
       (typing-substᵀ
         {Γ = ⤊ Γ}
@@ -202,7 +202,7 @@ typing-substᵀ {Δ' = Δ'} {σ = σ} hσ (⊢Λ {Γ = Γ} {N = N} {A = A} hN) =
         hN))
 typing-substᵀ {Γ = Γ} {σ = σ} hσ (⊢·[] {M = M} {A = A} {B = B} hM hB) =
   Eq.subst
-    (λ T → _ ⊢ map (substᵗ σ) Γ ⊢ (substᵀ σ M ·[]) ⦂ T)
+    (λ T → _ ⊢ map (substᵗ σ) Γ ⊢ (M ·[]) ⦂ T)
     (sym (subst-[]ᵗ-commute σ A B))
     (⊢·[]
       (typing-substᵀ hσ hM)
@@ -232,10 +232,10 @@ singleTySubst-⤊-cancel (C ∷ Γ) B =
 typing-single-substᵀ : {Δ : TyCtx} {Γ : Ctx} {M : Term} {A B : Ty} →
   (suc Δ) ⊢ (⤊ Γ) ⊢ M ⦂ A →
   WfTy Δ B →
-  Δ ⊢ Γ ⊢ M [ B ]ᵀ ⦂ A [ B ]ᵗ
+  Δ ⊢ Γ ⊢ M ⦂ A [ B ]ᵗ
 typing-single-substᵀ {Δ} {Γ} {M} {A} {B} hM hB =
   Eq.subst
-    (λ Ψ → Δ ⊢ Ψ ⊢ M [ B ]ᵀ ⦂ A [ B ]ᵗ)
+    (λ Ψ → Δ ⊢ Ψ ⊢ M ⦂ A [ B ]ᵗ)
     (singleTySubst-⤊-cancel Γ B)
     (typing-substᵀ (singleTySubstWf hB) hM)
 

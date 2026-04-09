@@ -7,10 +7,13 @@ module extrinsic.TermSubst where
 
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; cong₂; sym; trans)
+open import Agda.Builtin.Sigma using (snd)
+open import Data.Product as DP using (proj₁; proj₂)
 open import Data.Nat using (suc)
 open import extrinsic.Terms
 open import extrinsic.TypeTermSubst
   using (cong₃; rename-renameᵀ-commute; subst-renameᵀ-commute)
+open import extrinsic.Ctx using (lookup-map-inv)
 
 infixr 50 _⨟_
 _⨟_ : Subst → Subst → Subst
@@ -38,7 +41,7 @@ rename-cong : ∀ {ρ ρ' : Rename}
   → (M : Term)
   → rename ρ M ≡ rename ρ' M
 rename-cong h (` i) = cong `_ (h i)
-rename-cong h (ƛ A ⇒ N) = cong (ƛ A ⇒_) (rename-cong (ext-cong h) N)
+rename-cong h (ƛ[ A ] N) = cong (ƛ[ A ]_) (rename-cong (ext-cong h) N)
 rename-cong h (L · M) = cong₂ _·_ (rename-cong h L) (rename-cong h M)
 rename-cong h `true = refl
 rename-cong h `false = refl
@@ -57,7 +60,7 @@ subst-cong : ∀ {σ τ : Subst}
   → (M : Term)
   → subst σ M ≡ subst τ M
 subst-cong h (` i) = h i
-subst-cong h (ƛ A ⇒ N) = cong (ƛ A ⇒_) (subst-cong (exts-cong h) N)
+subst-cong h (ƛ[ A ] N) = cong (ƛ[ A ]_) (subst-cong (exts-cong h) N)
 subst-cong h (L · M) = cong₂ _·_ (subst-cong h L) (subst-cong h M)
 subst-cong h `true = refl
 subst-cong h `false = refl
@@ -71,6 +74,52 @@ subst-cong h (`if_then_else L M N) =
 subst-cong h (Λ N) = cong Λ_ (subst-cong (⇑-cong h) N)
 subst-cong h (M ·[ A ]) = cong (λ X → X ·[ A ]) (subst-cong h M)
 
+SubstAgree : Ctx → Subst → Subst → Set
+SubstAgree Γ σ τ = ∀ {x : Var} {B : Ty} → Γ ∋ x ⦂ B → σ x ≡ τ x
+
+subst-cong-typed :
+  ∀ {Δ Γ A} {M : Term} {σ τ : Subst}
+  → Δ ∣ Γ ⊢ M ⦂ A
+  → SubstAgree Γ σ τ
+  → subst σ M ≡ subst τ M
+subst-cong-typed (⊢` h) hστ = hστ h
+subst-cong-typed {σ = σ} {τ = τ} (⊢ƛ hA hN) hστ =
+  cong (ƛ[ _ ]_) (subst-cong-typed hN hστ-ext)
+  where
+  hστ-ext : ∀ {x : Var} {B : Ty} → _ ∋ x ⦂ B → exts σ x ≡ exts τ x
+  hστ-ext Z = refl
+  hστ-ext (S h) = cong (rename suc) (hστ h)
+subst-cong-typed (⊢· hL hM) hστ =
+  cong₂ _·_ (subst-cong-typed hL hστ) (subst-cong-typed hM hστ)
+subst-cong-typed ⊢true hστ = refl
+subst-cong-typed ⊢false hστ = refl
+subst-cong-typed ⊢zero hστ = refl
+subst-cong-typed (⊢suc hM) hστ =
+  cong `suc_ (subst-cong-typed hM hστ)
+subst-cong-typed {σ = σ} {τ = τ} (⊢case hL hM hN) hστ =
+  cong₃ case_[zero⇒_|suc⇒_]
+    (subst-cong-typed hL hστ)
+    (subst-cong-typed hM hστ)
+    (subst-cong-typed hN hστ-ext)
+  where
+  hστ-ext : ∀ {x : Var} {B : Ty} → _ ∋ x ⦂ B → exts σ x ≡ exts τ x
+  hστ-ext Z = refl
+  hστ-ext (S h) = cong (rename suc) (hστ h)
+subst-cong-typed (⊢if hL hM hN) hστ =
+  cong₃ `if_then_else
+    (subst-cong-typed hL hστ)
+    (subst-cong-typed hM hστ)
+    (subst-cong-typed hN hστ)
+subst-cong-typed {Γ = Γ} {σ = σ} {τ = τ} (⊢Λ hN) hστ =
+  cong Λ_ (subst-cong-typed hN hστ-⇑)
+  where
+  hστ-⇑ : ∀ {x : Var} {B : Ty} → ⤊ Γ ∋ x ⦂ B → ⇑ σ x ≡ ⇑ τ x
+  hστ-⇑ h with lookup-map-inv h
+  ... | p
+    rewrite DP.proj₂ (snd p) = cong (renameᵀ suc) (hστ (DP.proj₁ (snd p)))
+subst-cong-typed (⊢·[] hM hB) hστ =
+  cong (λ X → X ·[ _ ]) (subst-cong-typed hM hστ)
+
 ext-comp : (ρ₁ ρ₂ : Rename)
   → (i : Var) → ext ρ₂ (ext ρ₁ i) ≡ ext (λ i' → ρ₂ (ρ₁ i')) i
 ext-comp ρ₁ ρ₂ 0 = refl
@@ -79,8 +128,8 @@ ext-comp ρ₁ ρ₂ (suc i) = refl
 rename-comp : (ρ₁ ρ₂ : Rename) (M : Term)
   → rename ρ₂ (rename ρ₁ M) ≡ rename (λ i → ρ₂ (ρ₁ i)) M
 rename-comp ρ₁ ρ₂ (` i) = refl
-rename-comp ρ₁ ρ₂ (ƛ A ⇒ N) =
-  cong (ƛ A ⇒_) (trans
+rename-comp ρ₁ ρ₂ (ƛ[ A ] N) =
+  cong (ƛ[ A ]_) (trans
     (rename-comp (ext ρ₁) (ext ρ₂) N)
     (rename-cong (ext-comp ρ₁ ρ₂) N))
 rename-comp ρ₁ ρ₂ (L · M) =
@@ -108,7 +157,7 @@ exts-ext ρ σ (suc i) = refl
 ren-sub : (ρ : Rename) (σ : Subst) (M : Term)
   → subst σ (rename ρ M) ≡ subst (λ x → σ (ρ x)) M
 ren-sub ρ σ (` i) = refl
-ren-sub ρ σ (ƛ A ⇒ N)
+ren-sub ρ σ (ƛ[ A ] N)
   rewrite ren-sub (ext ρ) (exts σ) N
         | subst-cong (exts-ext ρ σ) N = refl
 ren-sub ρ σ (L · M)
@@ -148,7 +197,7 @@ ext-exts ρ σ (suc x) = rename-shift ρ (σ x)
 sub-ren : (ρ : Rename) (σ : Subst) (M : Term)
   → rename ρ (subst σ M) ≡ subst (λ x → rename ρ (σ x)) M
 sub-ren ρ σ (` i) = refl
-sub-ren ρ σ (ƛ A ⇒ N)
+sub-ren ρ σ (ƛ[ A ] N)
   rewrite sub-ren (ext ρ) (exts σ) N
         | subst-cong (ext-exts ρ σ) N = refl
 sub-ren ρ σ (L · M)
@@ -185,7 +234,7 @@ exts-subst σ τ (suc x) =
 sub-sub : (σ τ : Subst) (M : Term)
   → subst τ (subst σ M) ≡ subst (σ ⨟ τ) M
 sub-sub σ τ (` i) = refl
-sub-sub σ τ (ƛ A ⇒ N)
+sub-sub σ τ (ƛ[ A ] N)
   rewrite sub-sub (exts σ) (exts τ) N
         | subst-cong (exts-subst σ τ) N = refl
 sub-sub σ τ (L · M)
@@ -218,8 +267,8 @@ exts-id (suc i) = refl
 
 sub-id : (M : Term) → subst id M ≡ M
 sub-id (` i) = refl
-sub-id (ƛ A ⇒ N) =
-  cong (ƛ A ⇒_)
+sub-id (ƛ[ A ] N) =
+  cong (ƛ[ A ]_)
     (trans
       (subst-cong exts-id N)
       (sub-id N))
@@ -267,8 +316,8 @@ exts-ren ρ (suc i) = refl
 subst-ren : (ρ : Rename) (M : Term)
   → subst (ren ρ) M ≡ rename ρ M
 subst-ren ρ (` i) = refl
-subst-ren ρ (ƛ A ⇒ N) =
-  cong (ƛ A ⇒_)
+subst-ren ρ (ƛ[ A ] N) =
+  cong (ƛ[ A ]_)
     (trans
       (subst-cong (exts-ren ρ) N)
       (subst-ren (ext ρ) N))

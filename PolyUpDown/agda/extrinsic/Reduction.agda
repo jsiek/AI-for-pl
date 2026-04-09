@@ -130,6 +130,9 @@ data _—→_ : Term → Term → Set where
   β-down-ν : ∀ {p : Down} {V : Term} {α : Seal} →
     ((V down (ν p)) • α) —→ (V down (p [ α ]↓ˢ))
 
+  β-up-ν : ∀ {V : Term} {p : Up} →
+    (V up (ν p)) —→ (ν:= ★ ∙ ((⇑ˢᵐ V • zero) up p))
+
   β-up-↦ : ∀ {V W : Term} {p : Down} {q : Up} →
     ((V up (p ↦ q)) · W) —→ ((V · (W down p)) up q)
 

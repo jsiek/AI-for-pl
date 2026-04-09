@@ -28,7 +28,7 @@ wfTy0⇒Ty0 = wfFn wfTy0 wfTy0
 
 -- Wadler-style identity seed.
 polyId : Term
-polyId = Λ (ƛ (` 0) ⇒ (` 0))
+polyId = Λ (ƛ[ (` 0) ] (` 0))
 
 polyId-⊢ : 0 ∣ [] ⊢ polyId ⦂ `∀ (` 0 ⇒ ` 0)
 polyId-⊢ = ⊢Λ (⊢ƛ wfTy0 (⊢` Z))
@@ -45,7 +45,7 @@ polyIdBool-⊢ =
 polyIdBool-↠ : polyIdBool —↠ `true
 polyIdBool-↠ =
   polyIdBool —→⟨ ξ-·₁ (β-Λ {A = `Bool}) ⟩
-  ((ƛ `Bool ⇒ (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
+  ((ƛ[ `Bool ] (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
   `true ∎
 
 polyId-↠ : polyIdBool —↠ `true
@@ -103,7 +103,7 @@ four-↠ : four —↠ four
 four-↠ = four ∎
 
 succFn : Term
-succFn = ƛ `ℕ ⇒ (`suc (` 0))
+succFn = ƛ[ `ℕ ] (`suc (` 0))
 
 succFn-⊢ : 0 ∣ [] ⊢ succFn ⦂ (`ℕ ⇒ `ℕ)
 succFn-⊢ = ⊢ƛ wfNat (⊢suc (⊢` Z))
@@ -141,14 +141,14 @@ idBool-⊢ = ⊢· (⊢·[] {A = (` 0 ⇒ ` 0)} {B = `Bool} id-⊢ wfBool) ⊢tr
 idBool-↠ : idBool —↠ `true
 idBool-↠ =
   idBool —→⟨ ξ-·₁ (β-Λ {A = `Bool}) ⟩
-  ((ƛ `Bool ⇒ (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
+  ((ƛ[ `Bool ] (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
   `true ∎
 
 id-↠ : idBool —↠ `true
 id-↠ = idBool-↠
 
 taplConst : Term
-taplConst = Λ (Λ (ƛ (` 1) ⇒ (ƛ (` 0) ⇒ (` 1))))
+taplConst = Λ (Λ (ƛ[ (` 1) ] (ƛ[ (` 0) ] (` 1))))
 
 taplConstTy : Ty
 taplConstTy = `∀ (`∀ (` 1 ⇒ ` 0 ⇒ ` 1))
@@ -176,16 +176,16 @@ taplConstApp-⊢ =
 taplConstApp-↠ : taplConstApp —↠ `true
 taplConstApp-↠ =
   taplConstApp —→⟨ ξ-·₁ (ξ-·₁ (ξ-·[] (β-Λ {A = `Bool}))) ⟩
-  ((((Λ (ƛ `Bool ⇒ (ƛ (` 0) ⇒ (` 1))) ) ·[ `ℕ ]) · `true) · `zero) —→⟨ ξ-·₁ (ξ-·₁ (β-Λ {A = `ℕ})) ⟩
-  (((ƛ `Bool ⇒ (ƛ `ℕ ⇒ (` 1))) · `true) · `zero) —→⟨ ξ-·₁ (β-ƛ vTrue) ⟩
-  ((ƛ `ℕ ⇒ `true) · `zero) —→⟨ β-ƛ vZero ⟩
+  ((((Λ (ƛ[ `Bool ] (ƛ[ (` 0) ] (` 1))) ) ·[ `ℕ ]) · `true) · `zero) —→⟨ ξ-·₁ (ξ-·₁ (β-Λ {A = `ℕ})) ⟩
+  (((ƛ[ `Bool ] (ƛ[ `ℕ ] (` 1))) · `true) · `zero) —→⟨ ξ-·₁ (β-ƛ vTrue) ⟩
+  ((ƛ[ `ℕ ] `true) · `zero) —→⟨ β-ƛ vZero ⟩
   `true ∎
 
 taplConst-↠ : taplConstApp —↠ `true
 taplConst-↠ = taplConstApp-↠
 
 double : Term
-double = Λ (ƛ (` 0 ⇒ ` 0) ⇒ (ƛ (` 0) ⇒ (` 1 · (` 1 · ` 0))))
+double = Λ (ƛ[ (` 0 ⇒ ` 0) ] (ƛ[ (` 0) ] (` 1 · (` 1 · ` 0))))
 
 doubleTy : Ty
 doubleTy = `∀ ((` 0 ⇒ ` 0) ⇒ ` 0 ⇒ ` 0)
@@ -212,8 +212,8 @@ doubleOnSuccZero-⊢ =
 doubleOnSuccZero-↠ : doubleOnSuccZero —↠ two
 doubleOnSuccZero-↠ =
   doubleOnSuccZero —→⟨ ξ-·₁ (ξ-·₁ (β-Λ {A = `ℕ})) ⟩
-  (((ƛ (`ℕ ⇒ `ℕ) ⇒ (ƛ `ℕ ⇒ (` 1 · (` 1 · ` 0)))) · succFn) · `zero) —→⟨ ξ-·₁ (β-ƛ vLam) ⟩
-  ((ƛ `ℕ ⇒ (succFn · (succFn · ` 0))) · `zero) —→⟨ β-ƛ vZero ⟩
+  (((ƛ[ (`ℕ ⇒ `ℕ) ] (ƛ[ `ℕ ] (` 1 · (` 1 · ` 0)))) · succFn) · `zero) —→⟨ ξ-·₁ (β-ƛ vLam) ⟩
+  ((ƛ[ `ℕ ] (succFn · (succFn · ` 0))) · `zero) —→⟨ β-ƛ vZero ⟩
   (succFn · (succFn · `zero)) —→⟨ ξ-·₂ vLam (β-ƛ vZero) ⟩
   (succFn · one) —→⟨ β-ƛ (vSuc vZero) ⟩
   two ∎
@@ -240,9 +240,9 @@ selfApp-⊢ =
 selfApp-↠ : selfApp —↠ `true
 selfApp-↠ =
   selfApp —→⟨ ξ-·₁ (ξ-·[] (ξ-·₁ (β-Λ {A = `∀ (` 0 ⇒ ` 0)}))) ⟩
-  ((((ƛ `∀ (` 0 ⇒ ` 0) ⇒ (` 0)) · identity) ·[ `Bool ]) · `true) —→⟨ ξ-·₁ (ξ-·[] (β-ƛ vTlam)) ⟩
+  ((((ƛ[ `∀ (` 0 ⇒ ` 0) ] (` 0)) · identity) ·[ `Bool ]) · `true) —→⟨ ξ-·₁ (ξ-·[] (β-ƛ vTlam)) ⟩
   ((identity ·[ `Bool ]) · `true) —→⟨ ξ-·₁ (β-Λ {A = `Bool}) ⟩
-  ((ƛ `Bool ⇒ (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
+  ((ƛ[ `Bool ] (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
   `true ∎
 
 quadruple : Term
@@ -268,8 +268,8 @@ quadruple-⊢ =
 quadruple-↠ : quadruple —↠ four
 quadruple-↠ =
   quadruple —→⟨ ξ-·₁ (ξ-·₁ (β-Λ {A = `ℕ})) ⟩
-  (((ƛ (`ℕ ⇒ `ℕ) ⇒ (ƛ `ℕ ⇒ (` 1 · (` 1 · ` 0)))) · succFn) · two) —→⟨ ξ-·₁ (β-ƛ vLam) ⟩
-  ((ƛ `ℕ ⇒ (succFn · (succFn · ` 0))) · two) —→⟨ β-ƛ (vSuc (vSuc vZero)) ⟩
+  (((ƛ[ (`ℕ ⇒ `ℕ) ] (ƛ[ `ℕ ] (` 1 · (` 1 · ` 0)))) · succFn) · two) —→⟨ ξ-·₁ (β-ƛ vLam) ⟩
+  ((ƛ[ `ℕ ] (succFn · (succFn · ` 0))) · two) —→⟨ β-ƛ (vSuc (vSuc vZero)) ⟩
   (succFn · (succFn · two)) —→⟨ ξ-·₂ vLam (β-ƛ (vSuc (vSuc vZero))) ⟩
   (succFn · three) —→⟨ β-ƛ (vSuc (vSuc (vSuc vZero))) ⟩
   four ∎
@@ -282,10 +282,10 @@ CBool : Ty
 CBool = `∀ (` 0 ⇒ ` 0 ⇒ ` 0)
 
 tru : Term
-tru = Λ (ƛ (` 0) ⇒ (ƛ (` 0) ⇒ (` 1)))
+tru = Λ (ƛ[ (` 0) ] (ƛ[ (` 0) ] (` 1)))
 
 fls : Term
-fls = Λ (ƛ (` 0) ⇒ (ƛ (` 0) ⇒ (` 0)))
+fls = Λ (ƛ[ (` 0) ] (ƛ[ (` 0) ] (` 0)))
 
 tru-⊢ : 0 ∣ [] ⊢ tru ⦂ CBool
 tru-⊢ = ⊢Λ (⊢ƛ wfTy0 (⊢ƛ wfTy0 (⊢` (S Z))))
@@ -305,8 +305,8 @@ flsBool-⊢ =
 flsBool-↠ : flsBool —↠ `false
 flsBool-↠ =
   flsBool —→⟨ ξ-·₁ (ξ-·₁ (β-Λ {A = `Bool})) ⟩
-  (((ƛ `Bool ⇒ (ƛ `Bool ⇒ (` 0))) · `true) · `false) —→⟨ ξ-·₁ (β-ƛ vTrue) ⟩
-  ((ƛ `Bool ⇒ (` 0)) · `false) —→⟨ β-ƛ vFalse ⟩
+  (((ƛ[ `Bool ] (ƛ[ `Bool ] (` 0))) · `true) · `false) —→⟨ ξ-·₁ (β-ƛ vTrue) ⟩
+  ((ƛ[ `Bool ] (` 0)) · `false) —→⟨ β-ƛ vFalse ⟩
   `false ∎
 
 fls-↠ : flsBool —↠ `false
@@ -324,8 +324,8 @@ truBool-⊢ =
 truBool-↠ : truBool —↠ `true
 truBool-↠ =
   truBool —→⟨ ξ-·₁ (ξ-·₁ (β-Λ {A = `Bool})) ⟩
-  (((ƛ `Bool ⇒ (ƛ `Bool ⇒ (` 1))) · `true) · `false) —→⟨ ξ-·₁ (β-ƛ vTrue) ⟩
-  ((ƛ `Bool ⇒ `true) · `false) —→⟨ β-ƛ vFalse ⟩
+  (((ƛ[ `Bool ] (ƛ[ `Bool ] (` 1))) · `true) · `false) —→⟨ ξ-·₁ (β-ƛ vTrue) ⟩
+  ((ƛ[ `Bool ] `true) · `false) —→⟨ β-ƛ vFalse ⟩
   `true ∎
 
 tru-↠ : truBool —↠ `true
@@ -341,13 +341,13 @@ wfCNat : WfTy 0 CNat
 wfCNat = wf`∀ (wfFn (wfFn wfTy0 wfTy0) (wfFn wfTy0 wfTy0))
 
 c0 : Term
-c0 = Λ (ƛ (` 0 ⇒ ` 0) ⇒ (ƛ (` 0) ⇒ (` 0)))
+c0 = Λ (ƛ[ (` 0 ⇒ ` 0) ] (ƛ[ (` 0) ] (` 0)))
 
 c0-⊢ : 0 ∣ [] ⊢ c0 ⦂ CNat
 c0-⊢ = ⊢Λ (⊢ƛ wfTy0⇒Ty0 (⊢ƛ wfTy0 (⊢` Z)))
 
 c1 : Term
-c1 = Λ (ƛ (` 0 ⇒ ` 0) ⇒ (ƛ (` 0) ⇒ (` 1 · ` 0)))
+c1 = Λ (ƛ[ (` 0 ⇒ ` 0) ] (ƛ[ (` 0) ] (` 1 · ` 0)))
 
 c1-⊢ : 0 ∣ [] ⊢ c1 ⦂ CNat
 c1-⊢ =
@@ -357,7 +357,7 @@ c1-⊢ =
         (⊢· (⊢` (S Z)) (⊢` Z))))
 
 c2 : Term
-c2 = Λ (ƛ (` 0 ⇒ ` 0) ⇒ (ƛ (` 0) ⇒ (` 1 · (` 1 · ` 0))))
+c2 = Λ (ƛ[ (` 0 ⇒ ` 0) ] (ƛ[ (` 0) ] (` 1 · (` 1 · ` 0))))
 
 c2-⊢ : 0 ∣ [] ⊢ c2 ⦂ CNat
 c2-⊢ =
@@ -368,7 +368,7 @@ c2-⊢ =
           (⊢· (⊢` (S Z)) (⊢` Z)))))
 
 csucc : Term
-csucc = ƛ CNat ⇒ (Λ (ƛ (` 0 ⇒ ` 0) ⇒ (ƛ (` 0) ⇒ (` 1 · (((` 2 ·[ ` 0 ]) · ` 1) · ` 0)))))
+csucc = ƛ[ CNat ] (Λ (ƛ[ (` 0 ⇒ ` 0) ] (ƛ[ (` 0) ] (` 1 · (((` 2 ·[ ` 0 ]) · ` 1) · ` 0)))))
 
 csucc-⊢ : 0 ∣ [] ⊢ csucc ⦂ (CNat ⇒ CNat)
 csucc-⊢ =
@@ -387,7 +387,7 @@ csucc-⊢ =
               (⊢` Z))))))
 
 cplus : Term
-cplus = ƛ CNat ⇒ (ƛ CNat ⇒ (Λ (ƛ (` 0 ⇒ ` 0) ⇒ (ƛ (` 0) ⇒ (((` 3 ·[ ` 0 ]) · ` 1) · (((` 2 ·[ ` 0 ]) · ` 1) · ` 0))))))
+cplus = ƛ[ CNat ] (ƛ[ CNat ] (Λ (ƛ[ (` 0 ⇒ ` 0) ] (ƛ[ (` 0) ] (((` 3 ·[ ` 0 ]) · ` 1) · (((` 2 ·[ ` 0 ]) · ` 1) · ` 0))))))
 
 cplus-⊢ : 0 ∣ [] ⊢ cplus ⦂ (CNat ⇒ CNat ⇒ CNat)
 cplus-⊢ =
@@ -411,7 +411,7 @@ cplus-⊢ =
                 (⊢` Z)))))))
 
 cnat2nat : Term
-cnat2nat = ƛ CNat ⇒ (((` 0 ·[ `ℕ ]) · succFn) · `zero)
+cnat2nat = ƛ[ CNat ] (((` 0 ·[ `ℕ ]) · succFn) · `zero)
 
 cnat2nat-⊢ : 0 ∣ [] ⊢ cnat2nat ⦂ (CNat ⇒ `ℕ)
 cnat2nat-⊢ =
@@ -425,7 +425,7 @@ cnat2nat-⊢ =
       ⊢zero)
 
 csuccBool : Term
-csuccBool = (ƛ (CNat ⇒ CNat) ⇒ `true) · csucc
+csuccBool = (ƛ[ (CNat ⇒ CNat) ] `true) · csucc
 
 csuccBool-⊢ : 0 ∣ [] ⊢ csuccBool ⦂ `Bool
 csuccBool-⊢ =
@@ -442,7 +442,7 @@ csucc-↠ : csuccBool —↠ `true
 csucc-↠ = csuccBool-↠
 
 cplusBool : Term
-cplusBool = (ƛ (CNat ⇒ CNat ⇒ CNat) ⇒ `true) · cplus
+cplusBool = (ƛ[ (CNat ⇒ CNat ⇒ CNat) ] `true) · cplus
 
 cplusBool-⊢ : 0 ∣ [] ⊢ cplusBool ⦂ `Bool
 cplusBool-⊢ =
@@ -468,8 +468,8 @@ c0AsNat-↠ : c0AsNat —↠ `zero
 c0AsNat-↠ =
   c0AsNat —→⟨ β-ƛ vTlam ⟩
   (((c0 ·[ `ℕ ]) · succFn) · `zero) —→⟨ ξ-·₁ (ξ-·₁ (β-Λ {A = `ℕ})) ⟩
-  (((ƛ (`ℕ ⇒ `ℕ) ⇒ (ƛ `ℕ ⇒ (` 0))) · succFn) · `zero) —→⟨ ξ-·₁ (β-ƛ vLam) ⟩
-  ((ƛ `ℕ ⇒ (` 0)) · `zero) —→⟨ β-ƛ vZero ⟩
+  (((ƛ[ (`ℕ ⇒ `ℕ) ] (ƛ[ `ℕ ] (` 0))) · succFn) · `zero) —→⟨ ξ-·₁ (β-ƛ vLam) ⟩
+  ((ƛ[ `ℕ ] (` 0)) · `zero) —→⟨ β-ƛ vZero ⟩
   `zero ∎
 
 c0-↠ : c0AsNat —↠ `zero
@@ -485,8 +485,8 @@ c1AsNat-↠ : c1AsNat —↠ one
 c1AsNat-↠ =
   c1AsNat —→⟨ β-ƛ vTlam ⟩
   (((c1 ·[ `ℕ ]) · succFn) · `zero) —→⟨ ξ-·₁ (ξ-·₁ (β-Λ {A = `ℕ})) ⟩
-  (((ƛ (`ℕ ⇒ `ℕ) ⇒ (ƛ `ℕ ⇒ (` 1 · ` 0))) · succFn) · `zero) —→⟨ ξ-·₁ (β-ƛ vLam) ⟩
-  ((ƛ `ℕ ⇒ (succFn · ` 0)) · `zero) —→⟨ β-ƛ vZero ⟩
+  (((ƛ[ (`ℕ ⇒ `ℕ) ] (ƛ[ `ℕ ] (` 1 · ` 0))) · succFn) · `zero) —→⟨ ξ-·₁ (β-ƛ vLam) ⟩
+  ((ƛ[ `ℕ ] (succFn · ` 0)) · `zero) —→⟨ β-ƛ vZero ⟩
   (succFn · `zero) —→⟨ β-ƛ vZero ⟩
   one ∎
 
@@ -503,8 +503,8 @@ c2AsNat-↠ : c2AsNat —↠ two
 c2AsNat-↠ =
   c2AsNat —→⟨ β-ƛ vTlam ⟩
   (((c2 ·[ `ℕ ]) · succFn) · `zero) —→⟨ ξ-·₁ (ξ-·₁ (β-Λ {A = `ℕ})) ⟩
-  (((ƛ (`ℕ ⇒ `ℕ) ⇒ (ƛ `ℕ ⇒ (` 1 · (` 1 · ` 0)))) · succFn) · `zero) —→⟨ ξ-·₁ (β-ƛ vLam) ⟩
-  ((ƛ `ℕ ⇒ (succFn · (succFn · ` 0))) · `zero) —→⟨ β-ƛ vZero ⟩
+  (((ƛ[ (`ℕ ⇒ `ℕ) ] (ƛ[ `ℕ ] (` 1 · (` 1 · ` 0)))) · succFn) · `zero) —→⟨ ξ-·₁ (β-ƛ vLam) ⟩
+  ((ƛ[ `ℕ ] (succFn · (succFn · ` 0))) · `zero) —→⟨ β-ƛ vZero ⟩
   (succFn · (succFn · `zero)) —→⟨ ξ-·₂ vLam (β-ƛ vZero) ⟩
   (succFn · one) —→⟨ β-ƛ (vSuc vZero) ⟩
   two ∎
@@ -601,7 +601,7 @@ wfConsTy : WfTy 0 (`∀ (` 0 ⇒ List (` 0) ⇒ List (` 0)))
 wfConsTy = wf`∀ (wfFn wfTy0 (wfFn wfListTy0 wfListTy0))
 
 consIsNil : Term
-consIsNil = (ƛ (`∀ (` 0 ⇒ List (` 0) ⇒ List (` 0))) ⇒ `false) · cons
+consIsNil = (ƛ[ (`∀ (` 0 ⇒ List (` 0) ⇒ List (` 0))) ] `false) · cons
 
 consIsNil-⊢ : 0 ∣ [] ⊢ consIsNil ⦂ `Bool
 consIsNil-⊢ =
@@ -624,7 +624,7 @@ Pair : Ty → Ty → Ty
 Pair A B = `∀ (((renameᵗ suc A) ⇒ (renameᵗ suc B) ⇒ ` 0) ⇒ ` 0)
 
 pair : Term
-pair = Λ (Λ (ƛ (` 1) ⇒ (ƛ (` 0) ⇒ (Λ (ƛ (` 2 ⇒ ` 1 ⇒ ` 0) ⇒ ((` 0 · ` 2) · ` 1))))))
+pair = Λ (Λ (ƛ[ (` 1) ] (ƛ[ (` 0) ] (Λ (ƛ[ (` 2 ⇒ ` 1 ⇒ ` 0) ] ((` 0 · ` 2) · ` 1))))))
 
 pair-⊢ : 0 ∣ [] ⊢ pair ⦂ `∀ (`∀ (` 1 ⇒ ` 0 ⇒ Pair (` 1) (` 0)))
 pair-⊢ =
@@ -637,7 +637,7 @@ pair-⊢ =
               (⊢· (⊢· (⊢` Z) (⊢` (S (S Z)))) (⊢` (S Z))))))))
 
 fst : Term
-fst = Λ (Λ (ƛ (Pair (` 1) (` 0)) ⇒ ((` 0 ·[ ` 1 ]) · (ƛ (` 1) ⇒ (ƛ (` 0) ⇒ (` 1))))))
+fst = Λ (Λ (ƛ[ (Pair (` 1) (` 0)) ] ((` 0 ·[ ` 1 ]) · (ƛ[ (` 1) ] (ƛ[ (` 0) ] (` 1))))))
 
 fst-⊢ : 0 ∣ [] ⊢ fst ⦂ `∀ (`∀ (Pair (` 1) (` 0) ⇒ ` 1))
 fst-⊢ =
@@ -651,7 +651,7 @@ fst-⊢ =
           (⊢ƛ wfTy1₂ (⊢ƛ wfTy0₂ (⊢` (S Z)))))))
 
 snd : Term
-snd = Λ (Λ (ƛ (Pair (` 1) (` 0)) ⇒ ((` 0 ·[ ` 0 ]) · (ƛ (` 1) ⇒ (ƛ (` 0) ⇒ (` 0))))))
+snd = Λ (Λ (ƛ[ (Pair (` 1) (` 0)) ] ((` 0 ·[ ` 0 ]) · (ƛ[ (` 1) ] (ƛ[ (` 0) ] (` 0))))))
 
 snd-⊢ : 0 ∣ [] ⊢ snd ⦂ `∀ (`∀ (Pair (` 1) (` 0) ⇒ ` 0))
 snd-⊢ =
@@ -677,7 +677,7 @@ wfSndTy : WfTy 0 (`∀ (`∀ (Pair (` 1) (` 0) ⇒ ` 0)))
 wfSndTy = wf`∀ (wf`∀ (wfFn wfPair10₂ wfTy0₂))
 
 pairBool : Term
-pairBool = (ƛ (`∀ (`∀ (` 1 ⇒ ` 0 ⇒ Pair (` 1) (` 0)))) ⇒ `true) · pair
+pairBool = (ƛ[ (`∀ (`∀ (` 1 ⇒ ` 0 ⇒ Pair (` 1) (` 0)))) ] `true) · pair
 
 pairBool-⊢ : 0 ∣ [] ⊢ pairBool ⦂ `Bool
 pairBool-⊢ =
@@ -694,7 +694,7 @@ pair-↠ : pairBool —↠ `true
 pair-↠ = pairBool-↠
 
 fstBool : Term
-fstBool = (ƛ (`∀ (`∀ (Pair (` 1) (` 0) ⇒ ` 1))) ⇒ `true) · fst
+fstBool = (ƛ[ (`∀ (`∀ (Pair (` 1) (` 0) ⇒ ` 1))) ] `true) · fst
 
 fstBool-⊢ : 0 ∣ [] ⊢ fstBool ⦂ `Bool
 fstBool-⊢ =
@@ -711,7 +711,7 @@ fst-↠ : fstBool —↠ `true
 fst-↠ = fstBool-↠
 
 sndBool : Term
-sndBool = (ƛ (`∀ (`∀ (Pair (` 1) (` 0) ⇒ ` 0))) ⇒ `zero) · snd
+sndBool = (ƛ[ (`∀ (`∀ (Pair (` 1) (` 0) ⇒ ` 0))) ] `zero) · snd
 
 sndBool-⊢ : 0 ∣ [] ⊢ sndBool ⦂ `ℕ
 sndBool-⊢ =
@@ -778,7 +778,7 @@ coverage r-beta-tlam = ex-beta-tlam-id
 ------------------------------------------------------------------------
 
 ex-xi-app1 : Term
-ex-xi-app1 = (`if_then_else `true (ƛ `Bool ⇒ (` 0)) (ƛ `Bool ⇒ (` 0))) · `true
+ex-xi-app1 = (`if_then_else `true (ƛ[ `Bool ] (` 0)) (ƛ[ `Bool ] (` 0))) · `true
 
 ex-xi-app1-⊢ : 0 ∣ [] ⊢ ex-xi-app1 ⦂ `Bool
 ex-xi-app1-⊢ =
@@ -791,7 +791,7 @@ ex-xi-app1-⊢ =
 ex-xi-app1-↠ : ex-xi-app1 —↠ `true
 ex-xi-app1-↠ =
   ex-xi-app1 —→⟨ ξ-·₁ β-true ⟩
-  ((ƛ `Bool ⇒ (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
+  ((ƛ[ `Bool ] (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
   `true ∎
 
 ------------------------------------------------------------------------
@@ -799,7 +799,7 @@ ex-xi-app1-↠ =
 ------------------------------------------------------------------------
 
 ex-xi-app2 : Term
-ex-xi-app2 = (ƛ `Bool ⇒ (` 0)) · (`if_then_else `false `true `false)
+ex-xi-app2 = (ƛ[ `Bool ] (` 0)) · (`if_then_else `false `true `false)
 
 ex-xi-app2-⊢ : 0 ∣ [] ⊢ ex-xi-app2 ⦂ `Bool
 ex-xi-app2-⊢ =
@@ -809,7 +809,7 @@ ex-xi-app2-⊢ =
 ex-xi-app2-↠ : ex-xi-app2 —↠ `false
 ex-xi-app2-↠ =
   ex-xi-app2 —→⟨ ξ-·₂ vLam β-false ⟩
-  ((ƛ `Bool ⇒ (` 0)) · `false) —→⟨ β-ƛ vFalse ⟩
+  ((ƛ[ `Bool ] (` 0)) · `false) —→⟨ β-ƛ vFalse ⟩
   `false ∎
 
 ------------------------------------------------------------------------
@@ -817,7 +817,7 @@ ex-xi-app2-↠ =
 ------------------------------------------------------------------------
 
 ex-beta-lam : Term
-ex-beta-lam = (ƛ `Bool ⇒ (` 0)) · `true
+ex-beta-lam = (ƛ[ `Bool ] (` 0)) · `true
 
 ex-beta-lam-⊢ : 0 ∣ [] ⊢ ex-beta-lam ⦂ `Bool
 ex-beta-lam-⊢ =
@@ -972,7 +972,7 @@ ex-xi-tapp-↠ : ex-xi-tapp —↠ `true
 ex-xi-tapp-↠ =
   ex-xi-tapp —→⟨ ξ-·₁ (ξ-·[] β-true) ⟩
   ((polyId ·[ `Bool ]) · `true) —→⟨ ξ-·₁ (β-Λ {A = `Bool}) ⟩
-  ((ƛ `Bool ⇒ (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
+  ((ƛ[ `Bool ] (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
   `true ∎
 
 ------------------------------------------------------------------------
@@ -991,7 +991,7 @@ ex-beta-tlam-⊢ =
 ex-beta-tlam-↠ : ex-beta-tlam —↠ `true
 ex-beta-tlam-↠ =
   ex-beta-tlam —→⟨ ξ-·₁ (β-Λ {A = `Bool}) ⟩
-  ((ƛ `Bool ⇒ (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
+  ((ƛ[ `Bool ] (` 0)) · `true) —→⟨ β-ƛ vTrue ⟩
   `true ∎
 
 ------------------------------------------------------------------------

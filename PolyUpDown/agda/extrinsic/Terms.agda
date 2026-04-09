@@ -275,6 +275,9 @@ infixl 8 _[_]ᵀ
 _[_]ᵀ : Term → Ty → Term
 M [ A ]ᵀ = substᵗᵐ (singleTyEnv A) M
 
+⇑ˢᵐ : Term → Term
+⇑ˢᵐ = renameˢᵐ suc
+
 -- Instantiation shorthand for coercions over every/every permissions
 ------------------------------------------------------------------------
 
@@ -646,32 +649,32 @@ renameᵗ-term ρ hρ (⊢down {p = p} M⊢ hp) =
     (⊒-renameᵗ-wt ρ hp)
 renameᵗ-term ρ hρ (⊢blame ℓ) = ⊢blame ℓ
 
-substᵗ-term :
+substᵗ-wt :
   ∀ {Δ Δ′ Ψ}{Σ : Store}{Γ : Ctx}{M : Term}{A : Ty} →
   (σ : Substᵗ) →
   TySubstWf Δ Δ′ Ψ σ →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
   Δ′ ∣ Ψ ∣ substStoreᵗ σ Σ ∣ map (substᵗ σ) Γ ⊢ substᵗᵐ σ M ⦂ substᵗ σ A
-substᵗ-term σ hσ (⊢` h) = ⊢` (substLookup σ h)
-substᵗ-term σ hσ (⊢ƛ wfA M) =
-  ⊢ƛ (substᵗ-preserves-WfTy wfA hσ) (substᵗ-term σ hσ M)
-substᵗ-term σ hσ (⊢· L M) = ⊢· (substᵗ-term σ hσ L) (substᵗ-term σ hσ M)
-substᵗ-term {Σ = Σ} {Γ = Γ} σ hσ (⊢Λ {A = A} M) =
+substᵗ-wt σ hσ (⊢` h) = ⊢` (substLookup σ h)
+substᵗ-wt σ hσ (⊢ƛ wfA M) =
+  ⊢ƛ (substᵗ-preserves-WfTy wfA hσ) (substᵗ-wt σ hσ M)
+substᵗ-wt σ hσ (⊢· L M) = ⊢· (substᵗ-wt σ hσ L) (substᵗ-wt σ hσ M)
+substᵗ-wt {Σ = Σ} {Γ = Γ} σ hσ (⊢Λ {A = A} M) =
   ⊢Λ
     (cong-⊢⦂
       (substStoreᵗ-ext-⟰ᵗ σ Σ)
       (map-substᵗ-⤊ᵗ σ Γ)
       refl
       refl
-      (substᵗ-term (extsᵗ σ) (TySubstWf-exts hσ) M))
-substᵗ-term σ hσ (⊢• {A = A} {α = α} M α∈ h) =
+      (substᵗ-wt (extsᵗ σ) (TySubstWf-exts hσ) M))
+substᵗ-wt σ hσ (⊢• {A = A} {α = α} M α∈ h) =
   cong-⊢⦂
     refl
     refl
     refl
     (sym (substᵗ-[]ᵗ-seal σ A α))
-    (⊢• (substᵗ-term σ hσ M) α∈ (substLookupᵗ-store σ h))
-substᵗ-term {Σ = Σ} {Γ = Γ} σ hσ (⊢ν {A = A} {B = B} wfA M) =
+    (⊢• (substᵗ-wt σ hσ M) α∈ (substLookupᵗ-store σ h))
+substᵗ-wt {Σ = Σ} {Γ = Γ} σ hσ (⊢ν {A = A} {B = B} wfA M) =
   ⊢ν
     (substᵗ-preserves-WfTy wfA hσ)
     (cong-⊢⦂
@@ -679,50 +682,50 @@ substᵗ-term {Σ = Σ} {Γ = Γ} σ hσ (⊢ν {A = A} {B = B} wfA M) =
       (map-substᵗ-⤊ˢ σ Γ)
       refl
       (substᵗ-⇑ˢ σ B)
-      (substᵗ-term (liftSubstˢ σ) (TySubstWf-liftˢ hσ) M))
-substᵗ-term σ hσ (⊢$ κ) =
+      (substᵗ-wt (liftSubstˢ σ) (TySubstWf-liftˢ hσ) M))
+substᵗ-wt σ hσ (⊢$ κ) =
   cong-⊢⦂ refl refl refl (sym (substᵗ-constTy σ κ)) (⊢$ κ)
-substᵗ-term σ hσ (⊢⊕ L op M) =
-  ⊢⊕ (substᵗ-term σ hσ L) op (substᵗ-term σ hσ M)
-substᵗ-term σ hσ (⊢up {p = p} M⊢ hp) =
+substᵗ-wt σ hσ (⊢⊕ L op M) =
+  ⊢⊕ (substᵗ-wt σ hσ L) op (substᵗ-wt σ hσ M)
+substᵗ-wt σ hσ (⊢up {p = p} M⊢ hp) =
   ⊢up {p = subst⊑ᵗ σ p}
-    (substᵗ-term σ hσ M⊢)
+    (substᵗ-wt σ hσ M⊢)
     (⊑-substᵗ-wt σ hp)
-substᵗ-term σ hσ (⊢down {p = p} M⊢ hp) =
+substᵗ-wt σ hσ (⊢down {p = p} M⊢ hp) =
   ⊢down {p = subst⊒ᵗ σ p}
-    (substᵗ-term σ hσ M⊢)
+    (substᵗ-wt σ hσ M⊢)
     (⊒-substᵗ-wt σ hp)
-substᵗ-term σ hσ (⊢blame ℓ) = ⊢blame ℓ
+substᵗ-wt σ hσ (⊢blame ℓ) = ⊢blame ℓ
 
-renameˢ-term :
+renameˢ-wt :
   ∀ {Δ Ψ Ψ′}{Σ : Store}{Γ : Ctx}{M : Term}{A : Ty} →
   (ρ : Renameˢ) →
   SealRenameWf Ψ Ψ′ ρ →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
   Δ ∣ Ψ′ ∣ renameStoreˢ ρ Σ ∣ map (renameˢ ρ) Γ ⊢ renameˢᵐ ρ M ⦂ renameˢ ρ A
-renameˢ-term ρ hρ (⊢` h) = ⊢` (renameLookup ρ h)
-renameˢ-term ρ hρ (⊢ƛ wfA M) =
-  ⊢ƛ (renameˢ-preserves-WfTy wfA hρ) (renameˢ-term ρ hρ M)
-renameˢ-term ρ hρ (⊢· L M) = ⊢· (renameˢ-term ρ hρ L) (renameˢ-term ρ hρ M)
-renameˢ-term {Σ = Σ} {Γ = Γ} ρ hρ (⊢Λ {A = A} M) =
+renameˢ-wt ρ hρ (⊢` h) = ⊢` (renameLookup ρ h)
+renameˢ-wt ρ hρ (⊢ƛ wfA M) =
+  ⊢ƛ (renameˢ-preserves-WfTy wfA hρ) (renameˢ-wt ρ hρ M)
+renameˢ-wt ρ hρ (⊢· L M) = ⊢· (renameˢ-wt ρ hρ L) (renameˢ-wt ρ hρ M)
+renameˢ-wt {Σ = Σ} {Γ = Γ} ρ hρ (⊢Λ {A = A} M) =
   ⊢Λ
     (cong-⊢⦂
       (renameStoreˢ-ext-⟰ᵗ ρ Σ)
       (map-renameˢ-⤊ᵗ ρ Γ)
       refl
       refl
-      (renameˢ-term ρ hρ M))
-renameˢ-term {Ψ = Ψ} ρ hρ (⊢• {A = A} {α = α} M α∈ h) =
+      (renameˢ-wt ρ hρ M))
+renameˢ-wt {Ψ = Ψ} ρ hρ (⊢• {A = A} {α = α} M α∈ h) =
   cong-⊢⦂
     refl
     refl
     refl
     (sym (renameˢ-[]ᵗ-seal ρ A α))
     (⊢•
-      (renameˢ-term ρ hρ M)
+      (renameˢ-wt ρ hρ M)
       (RenOk-every hρ α∈)
       (renameLookupˢ ρ h))
-renameˢ-term {Σ = Σ} {Γ = Γ} ρ hρ (⊢ν {A = A} {B = B} wfA M) =
+renameˢ-wt {Σ = Σ} {Γ = Γ} ρ hρ (⊢ν {A = A} {B = B} wfA M) =
   ⊢ν
     (renameˢ-preserves-WfTy wfA hρ)
     (cong-⊢⦂
@@ -730,26 +733,25 @@ renameˢ-term {Σ = Σ} {Γ = Γ} ρ hρ (⊢ν {A = A} {B = B} wfA M) =
       (map-renameˢ-⤊ˢ ρ Γ)
       refl
       (renameˢ-ext-⇑ˢ ρ B)
-      (renameˢ-term (extˢ ρ) (SealRenameWf-ext hρ) M))
-renameˢ-term ρ hρ (⊢$ κ) =
+      (renameˢ-wt (extˢ ρ) (SealRenameWf-ext hρ) M))
+renameˢ-wt ρ hρ (⊢$ κ) =
   cong-⊢⦂ refl refl refl (sym (renameˢ-constTy ρ κ)) (⊢$ κ)
-renameˢ-term ρ hρ (⊢⊕ L op M) =
-  ⊢⊕ (renameˢ-term ρ hρ L) op (renameˢ-term ρ hρ M)
-renameˢ-term ρ hρ (⊢up {p = p} M⊢ hp) =
+renameˢ-wt ρ hρ (⊢⊕ L op M) =
+  ⊢⊕ (renameˢ-wt ρ hρ L) op (renameˢ-wt ρ hρ M)
+renameˢ-wt ρ hρ (⊢up {p = p} M⊢ hp) =
   ⊢up {p = rename⊑ˢ ρ p}
-    (renameˢ-term ρ hρ M⊢)
+    (renameˢ-wt ρ hρ M⊢)
     (⊑-renameˢ-wt ρ (RenOk-every hρ) (RenOk-every hρ) hp)
-renameˢ-term ρ hρ (⊢down {p = p} M⊢ hp) =
+renameˢ-wt ρ hρ (⊢down {p = p} M⊢ hp) =
   ⊢down {p = rename⊒ˢ ρ p}
-    (renameˢ-term ρ hρ M⊢)
+    (renameˢ-wt ρ hρ M⊢)
     (⊒-renameˢ-wt ρ (RenOk-every hρ) (RenOk-every hρ) hp)
-renameˢ-term ρ hρ (⊢blame ℓ) = ⊢blame ℓ
+renameˢ-wt ρ hρ (⊢blame ℓ) = ⊢blame ℓ
 
-infix 8 ⇑ˢᵐ_
-⇑ˢᵐ_ : ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{M : Term}{A : Ty} →
+⇑ˢᵐ-wt : ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{M : Term}{A : Ty} →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
-  Δ ∣ (suc Ψ) ∣ (⟰ˢ Σ) ∣ (⤊ˢ Γ) ⊢ renameˢᵐ suc M ⦂ ⇑ˢ A
-⇑ˢᵐ M = renameˢ-term suc SealRenameWf-suc M
+  Δ ∣ (suc Ψ) ∣ (⟰ˢ Σ) ∣ (⤊ˢ Γ) ⊢ ⇑ˢᵐ M ⦂ ⇑ˢ A
+⇑ˢᵐ-wt M = renameˢ-wt suc SealRenameWf-suc M
 
 ------------------------------------------------------------------------
 -- Instantiation helper for terms
@@ -759,12 +761,12 @@ inst : ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx} {L : Term}{A B : Ty} →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ L ⦂ `∀ B →
   WfTy Δ Ψ A →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢
-    (ν:= A ∙ (((renameˢᵐ suc L) • zero) up (reveal-⊑ A B)))
+    (ν:= A ∙ ((⇑ˢᵐ L • zero) up (reveal-⊑ A B)))
     ⦂ B [ A ]ᵗ
 inst {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} L wfA =
   ⊢ν wfA (cong-⊢⦂ refl refl refl (inst-⇑ˢ A B)
          (⊢up
-           (⊢• (wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ L)) here (Z∋ˢ refl refl))
+           (⊢• (wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ-wt L)) here (Z∋ˢ refl refl))
            (instSubst⊑-wt
              (singleTyEnv (｀ zero))
              (singleTyEnv (⇑ˢ A))

@@ -12,7 +12,7 @@ open import extrinsic.Terms public
 ------------------------------------------------------------------------
 
 data Value : Term → Set where
-  vLam  : {A : Ty} {N : Term} → Value (ƛ A ⇒ N)
+  vLam  : {A : Ty} {N : Term} → Value (ƛ[ A ] N)
   vTrue : Value `true
   vFalse : Value `false
   vZero : Value `zero
@@ -32,7 +32,7 @@ data _—→_ : Term → Term → Set where
 
   β-ƛ : {A : Ty} {N W : Term} →
         Value W →
-        ((ƛ A ⇒ N) · W) —→ N [ W ]
+        ((ƛ[ A ] N) · W) —→ N [ W ]
 
   ξ-suc : {M M' : Term} →
           M —→ M' →
@@ -146,9 +146,9 @@ if-false-↠ {M = M} {N = N} (L —→⟨ s ⟩ L↠F) =
 
 β-ƛ-↠ : ∀ {A : Ty} {N W : Term}
   → Value W
-  → ((ƛ A ⇒ N) · W) —↠ N [ W ]
+  → ((ƛ[ A ] N) · W) —↠ N [ W ]
 β-ƛ-↠ {A} {N} {W} vW =
-  ((ƛ A ⇒ N) · W)
+  ((ƛ[ A ] N) · W)
     —→⟨ β-ƛ vW ⟩
   (N [ W ])
   ∎

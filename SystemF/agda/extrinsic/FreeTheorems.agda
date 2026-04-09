@@ -42,7 +42,7 @@ free-theorem-id {A} M X ⊢M ⊢X vX
   with fundamental M ⊢M ∅ρ ∅γ 𝒢-∅
 ... | ⟨ _ , ⟨ _ , ⟨ .(Λ N₁) , ⟨ .(Λ N₂) , ⟨ vTlam {N = N₁} , ⟨ vTlam {N = N₂} , ⟨ M₁—↠ΛN₁ , ⟨ _ , ∀-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
   with (proj₂ (proj₂ ∀-rel)) A A (closed-typing-wf ⊢X) (closed-typing-wf ⊢X) (idR {A = A} X)
-... | ⟨ _ , ⟨ _ , ⟨ .(ƛ _ ⇒ L₁) , ⟨ .(ƛ _ ⇒ L₂) , ⟨ vLam {N = L₁} , ⟨ vLam {N = L₂} , ⟨ N₁—↠ƛL₁ , ⟨ _ , arg-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
+... | ⟨ _ , ⟨ _ , ⟨ .(ƛ[ _ ] L₁) , ⟨ .(ƛ[ _ ] L₂) , ⟨ vLam {N = L₁} , ⟨ vLam {N = L₂} , ⟨ N₁—↠ƛL₁ , ⟨ _ , arg-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
   with (proj₂ (proj₂ arg-rel)) vX vX ⟨ ⊢X , ⟨ ⊢X , ⟨ refl , refl ⟩ ⟩ ⟩
 ... | ⟨ _ , ⟨ _ , res ⟩ ⟩
   with res
@@ -63,20 +63,20 @@ free-theorem-id {A} M X ⊢M ⊢X vX
       N₁ [ A ]ᵀ
     ∎
 
-  M·[]—↠ƛL₁ : (substᵀ (left ∅ρ) (subst id M) ·[ A ]) —↠ (ƛ _ ⇒ L₁)
+  M·[]—↠ƛL₁ : (substᵀ (left ∅ρ) (subst id M) ·[ A ]) —↠ (ƛ[ _ ] L₁)
   M·[]—↠ƛL₁ =
       (substᵀ (left ∅ρ) (subst id M) ·[ A ])
     —↠⟨ M·[]—↠N₁[A] ⟩
       N₁ [ A ]ᵀ
     —↠⟨ N₁—↠ƛL₁ ⟩
-      (ƛ _ ⇒ L₁)
+      (ƛ[ _ ] L₁)
     ∎
 
   M·[]·X—↠L₁X : ((substᵀ (left ∅ρ) (subst id M) ·[ A ]) · X) —↠ (L₁ [ X ])
   M·[]·X—↠L₁X =
       ((substᵀ (left ∅ρ) (subst id M) ·[ A ]) · X)
     —↠⟨ app-↠ M·[]—↠ƛL₁ vLam (X ∎) ⟩
-      ((ƛ _ ⇒ L₁) · X)
+      ((ƛ[ _ ] L₁) · X)
     —↠⟨ β-ƛ-↠ vX ⟩
       (L₁ [ X ])
     ∎
@@ -99,10 +99,10 @@ free-theorem-id {A} M X ⊢M ⊢X vX
 --------------------------------------------------------------------------------
 
 neg : Term
-neg = ƛ `Bool ⇒ (`if_then_else (` 0) `false `true)
+neg = ƛ[ `Bool ] (`if_then_else (` 0) `false `true)
 
 flip : Term
-flip = ƛ `ℕ ⇒ (case_[zero⇒_|suc⇒_] (` 0) (`suc `zero) `zero)
+flip = ƛ[ `ℕ ] (case_[zero⇒_|suc⇒_] (` 0) (`suc `zero) `zero)
 
 -- R = {(true, 1), (false, 0)}
 R : Rel `Bool `ℕ
@@ -194,9 +194,9 @@ free-theorem-rep M ⊢M
   with fundamental M ⊢M ∅ρ ∅γ 𝒢-∅
 ... | ⟨ _ , ⟨ _ , ⟨ .(Λ N₁) , ⟨ .(Λ N₂) , ⟨ vTlam {N = N₁} , ⟨ vTlam {N = N₂} , ⟨ M₁—↠ΛN₁ , ⟨ M₂—↠ΛN₂ , ∀-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
   with (proj₂ (proj₂ ∀-rel)) `Bool `ℕ wf`Bool wf`ℕ R
-... | ⟨ _ , ⟨ _ , ⟨ .(ƛ _ ⇒ L₁) , ⟨ .(ƛ _ ⇒ L₂) , ⟨ vLam {N = L₁} , ⟨ vLam {N = L₂} , ⟨ N₁—↠ƛL₁ , ⟨ N₂—↠ƛL₂ , arg₁-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
+... | ⟨ _ , ⟨ _ , ⟨ .(ƛ[ _ ] L₁) , ⟨ .(ƛ[ _ ] L₂) , ⟨ vLam {N = L₁} , ⟨ vLam {N = L₂} , ⟨ N₁—↠ƛL₁ , ⟨ N₂—↠ƛL₂ , arg₁-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
   with (proj₂ (proj₂ arg₁-rel)) vTrue (vSuc vZero) ⟨ ⊢true , ⟨ ⊢suc ⊢zero , tt ⟩ ⟩
-... | ⟨ _ , ⟨ _ , ⟨ .(ƛ _ ⇒ K₁) , ⟨ .(ƛ _ ⇒ K₂) , ⟨ vLam {N = K₁} , ⟨ vLam {N = K₂} , ⟨ L₁true—↠ƛK₁ , ⟨ L₂suc0—↠ƛK₂ , arg₂-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
+... | ⟨ _ , ⟨ _ , ⟨ .(ƛ[ _ ] K₁) , ⟨ .(ƛ[ _ ] K₂) , ⟨ vLam {N = K₁} , ⟨ vLam {N = K₂} , ⟨ L₁true—↠ƛK₁ , ⟨ L₂suc0—↠ƛK₂ , arg₂-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
   with (proj₂ (proj₂ arg₂-rel)) vLam vLam neg-flip-related
 ... | ⟨ _ , ⟨ _ , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ K₁neg—↠V , ⟨ K₂flip—↠W , VW-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
   ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ left-red , ⟨ right-red , VW-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
@@ -231,29 +231,29 @@ free-theorem-rep M ⊢M
       N₂ [ `ℕ ]ᵀ
     ∎
 
-  M·[]—↠ƛL₁ : (substᵀ (left ∅ρ) (subst id M) ·[ `Bool ]) —↠ (ƛ _ ⇒ L₁)
+  M·[]—↠ƛL₁ : (substᵀ (left ∅ρ) (subst id M) ·[ `Bool ]) —↠ (ƛ[ _ ] L₁)
   M·[]—↠ƛL₁ =
       (substᵀ (left ∅ρ) (subst id M) ·[ `Bool ])
     —↠⟨ M·[]—↠N₁[Bool] ⟩
       N₁ [ `Bool ]ᵀ
     —↠⟨ N₁—↠ƛL₁ ⟩
-      (ƛ _ ⇒ L₁)
+      (ƛ[ _ ] L₁)
     ∎
 
-  M·[]—↠ƛL₂ : (substᵀ (right ∅ρ) (subst id M) ·[ `ℕ ]) —↠ (ƛ _ ⇒ L₂)
+  M·[]—↠ƛL₂ : (substᵀ (right ∅ρ) (subst id M) ·[ `ℕ ]) —↠ (ƛ[ _ ] L₂)
   M·[]—↠ƛL₂ =
       (substᵀ (right ∅ρ) (subst id M) ·[ `ℕ ])
     —↠⟨ M·[]—↠N₂[ℕ] ⟩
       N₂ [ `ℕ ]ᵀ
     —↠⟨ N₂—↠ƛL₂ ⟩
-      (ƛ _ ⇒ L₂)
+      (ƛ[ _ ] L₂)
     ∎
 
   M·[]·true—↠L₁true : ((substᵀ (left ∅ρ) (subst id M) ·[ `Bool ]) · `true) —↠ (L₁ [ `true ])
   M·[]·true—↠L₁true =
       ((substᵀ (left ∅ρ) (subst id M) ·[ `Bool ]) · `true)
     —↠⟨ app-↠ M·[]—↠ƛL₁ vLam (`true ∎) ⟩
-      ((ƛ _ ⇒ L₁) · `true)
+      ((ƛ[ _ ] L₁) · `true)
     —↠⟨ β-ƛ-↠ vTrue ⟩
       (L₁ [ `true ])
     ∎
@@ -262,34 +262,34 @@ free-theorem-rep M ⊢M
   M·[]·suc0—↠L₂suc0 =
       ((substᵀ (right ∅ρ) (subst id M) ·[ `ℕ ]) · (`suc `zero))
     —↠⟨ app-↠ M·[]—↠ƛL₂ vLam ((`suc `zero) ∎) ⟩
-      ((ƛ _ ⇒ L₂) · (`suc `zero))
+      ((ƛ[ _ ] L₂) · (`suc `zero))
     —↠⟨ β-ƛ-↠ (vSuc vZero) ⟩
       (L₂ [ (`suc `zero) ])
     ∎
 
-  M·[]·true—↠ƛK₁ : ((substᵀ (left ∅ρ) (subst id M) ·[ `Bool ]) · `true) —↠ (ƛ _ ⇒ K₁)
+  M·[]·true—↠ƛK₁ : ((substᵀ (left ∅ρ) (subst id M) ·[ `Bool ]) · `true) —↠ (ƛ[ _ ] K₁)
   M·[]·true—↠ƛK₁ =
       ((substᵀ (left ∅ρ) (subst id M) ·[ `Bool ]) · `true)
     —↠⟨ M·[]·true—↠L₁true ⟩
       (L₁ [ `true ])
     —↠⟨ L₁true—↠ƛK₁ ⟩
-      (ƛ _ ⇒ K₁)
+      (ƛ[ _ ] K₁)
     ∎
 
-  M·[]·suc0—↠ƛK₂ : ((substᵀ (right ∅ρ) (subst id M) ·[ `ℕ ]) · (`suc `zero)) —↠ (ƛ _ ⇒ K₂)
+  M·[]·suc0—↠ƛK₂ : ((substᵀ (right ∅ρ) (subst id M) ·[ `ℕ ]) · (`suc `zero)) —↠ (ƛ[ _ ] K₂)
   M·[]·suc0—↠ƛK₂ =
       ((substᵀ (right ∅ρ) (subst id M) ·[ `ℕ ]) · (`suc `zero))
     —↠⟨ M·[]·suc0—↠L₂suc0 ⟩
       (L₂ [ (`suc `zero) ])
     —↠⟨ L₂suc0—↠ƛK₂ ⟩
-      (ƛ _ ⇒ K₂)
+      (ƛ[ _ ] K₂)
     ∎
 
   left-red′ : (((substᵀ (left ∅ρ) (subst id M) ·[ `Bool ]) · `true) · neg) —↠ V
   left-red′ =
       (((substᵀ (left ∅ρ) (subst id M) ·[ `Bool ]) · `true) · neg)
     —↠⟨ app-↠ M·[]·true—↠ƛK₁ vLam (neg ∎) ⟩
-      ((ƛ _ ⇒ K₁) · neg)
+      ((ƛ[ _ ] K₁) · neg)
     —↠⟨ β-ƛ-↠ vLam ⟩
       (K₁ [ neg ])
     —↠⟨ K₁neg—↠V ⟩
@@ -300,7 +300,7 @@ free-theorem-rep M ⊢M
   right-red′ =
       (((substᵀ (right ∅ρ) (subst id M) ·[ `ℕ ]) · (`suc `zero)) · flip)
     —↠⟨ app-↠ M·[]·suc0—↠ƛK₂ vLam (flip ∎) ⟩
-      ((ƛ _ ⇒ K₂) · flip)
+      ((ƛ[ _ ] K₂) · flip)
     —↠⟨ β-ƛ-↠ vLam ⟩
       (K₂ [ flip ])
     —↠⟨ K₂flip—↠W ⟩

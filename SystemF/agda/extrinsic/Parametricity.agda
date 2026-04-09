@@ -9,9 +9,10 @@ module extrinsic.Parametricity where
 -- The --cumulativity and --omega-in-omega flags are needed in the
 -- LogicalRelation module imported below and in the proof of compat-·[]. -Jeremy
 
-open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.PropositionalEquality as Eq
             using    (_≡_; refl; cong; cong₂; sym; trans)
             renaming (subst to substEq)
+module EqR = Eq.≡-Reasoning
 open import Agda.Builtin.Sigma using (fst; snd)
 open import Data.List using (_∷_; []; map)
 open import Data.Product as DP using (proj₁; proj₂)
@@ -22,7 +23,7 @@ open import Data.Unit using (⊤; tt)
 
 open import extrinsic.Terms
 open import extrinsic.TypeSubst using (subst-[]ᵗ-commute)
-open import extrinsic.TermSubst using (subst-cong; exts-sub-cons)
+open import extrinsic.TermSubst using (subst-cong; exts-sub-cons; subst-cong-typed)
 open import extrinsic.TypeTermSubst using
   (cong₃; substᵀ-renameᵀ-commute; substᵀ-subst-commute; substᵀ-substᵀ; singleTyEnv-suc-cancel; singleTyEnv-suc-cancelᵗ; substᵀ-cong
   ; substᵀ-id-typed; substᵗ-id-typed)
@@ -54,56 +55,17 @@ open import extrinsic.LogicalRelation
 TySubstWf-zero : ∀ {σ} → TySubstWf zero zero σ
 TySubstWf-zero ()
 
-SubstAgree : Ctx → Subst → Subst → Set
-SubstAgree Γ σ τ = ∀ {x : Var} {B : Ty} → Γ ∋ x ⦂ B → σ x ≡ τ x
-
-subst-cong-typed :
-  ∀ {Δ Γ A} {M : Term} {σ τ : Subst}
-  → Δ ∣ Γ ⊢ M ⦂ A
-  → SubstAgree Γ σ τ
-  → subst σ M ≡ subst τ M
-subst-cong-typed (⊢` h) hστ = hστ h
-subst-cong-typed {σ = σ} {τ = τ} (⊢ƛ hA hN) hστ =
-  cong (ƛ _ ⇒_) (subst-cong-typed hN hστ-ext)
-  where
-  hστ-ext : ∀ {x : Var} {B : Ty} → _ ∋ x ⦂ B → exts σ x ≡ exts τ x
-  hστ-ext Z = refl
-  hστ-ext (S h) = cong (rename suc) (hστ h)
-subst-cong-typed (⊢· hL hM) hστ =
-  cong₂ _·_ (subst-cong-typed hL hστ) (subst-cong-typed hM hστ)
-subst-cong-typed ⊢true hστ = refl
-subst-cong-typed ⊢false hστ = refl
-subst-cong-typed ⊢zero hστ = refl
-subst-cong-typed (⊢suc hM) hστ =
-  cong `suc_ (subst-cong-typed hM hστ)
-subst-cong-typed {σ = σ} {τ = τ} (⊢case hL hM hN) hστ =
-  cong₃ case_[zero⇒_|suc⇒_]
-    (subst-cong-typed hL hστ)
-    (subst-cong-typed hM hστ)
-    (subst-cong-typed hN hστ-ext)
-  where
-  hστ-ext : ∀ {x : Var} {B : Ty} → _ ∋ x ⦂ B → exts σ x ≡ exts τ x
-  hστ-ext Z = refl
-  hστ-ext (S h) = cong (rename suc) (hστ h)
-subst-cong-typed (⊢if hL hM hN) hστ =
-  cong₃ `if_then_else
-    (subst-cong-typed hL hστ)
-    (subst-cong-typed hM hστ)
-    (subst-cong-typed hN hστ)
-subst-cong-typed {Γ = Γ} {σ = σ} {τ = τ} (⊢Λ hN) hστ =
-  cong Λ_ (subst-cong-typed hN hστ-⇑)
-  where
-  hστ-⇑ : ∀ {x : Var} {B : Ty} → ⤊ Γ ∋ x ⦂ B → ⇑ σ x ≡ ⇑ τ x
-  hστ-⇑ h with lookup-map-inv h
-  ... | p
-    rewrite DP.proj₂ (snd p) = cong (renameᵀ suc) (hστ (DP.proj₁ (snd p)))
-subst-cong-typed (⊢·[] hM hB) hστ =
-  cong (λ X → X ·[ _ ]) (subst-cong-typed hM hστ)
-
 
 --------------------------------------------------------------------------------
 -- Compatibility Lemmas
 --------------------------------------------------------------------------------
+
+compat-var : ∀ {Γ A x}
+   → Γ ∋ x ⦂ A
+   → Γ ⊨ (` x) ≈ (` x) ⦂ A
+compat-var {A = A} Z ρ γ env =
+  ℰ-close-ρ {A = A} {ρ = ρ} {M = γ .left 0} {N = γ .right 0} (proj₁ env)
+compat-var (S x) ρ γ env = compat-var x ρ (⇓γ γ) (proj₂ env)
 
 compat-· : ∀ {Γ A B}
   → (L M : Term)
@@ -111,11 +73,11 @@ compat-· : ∀ {Γ A B}
   → Γ ⊨ M ≈ M ⦂ A
   → Γ ⊨ (L · M) ≈ (L · M) ⦂ B
 compat-· {Γ = Γ} {A = A} {B = B} L M L-rel M-rel ρ γ env
-  with L-rel ρ γ env | M-rel ρ γ env
-... | ⟨ ⊢L , ⟨ ⊢L' , ⟨ .(ƛ _ ⇒ N) , ⟨ .(ƛ _ ⇒ P) , ⟨ vLam {N = N} , ⟨ vLam {N = P} , ⟨ L₁—↠V , ⟨ L₂—↠W , f-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
+    with L-rel ρ γ env | M-rel ρ γ env
+... | ⟨ ⊢L , ⟨ ⊢L' , ⟨ .(ƛ[ _ ] N) , ⟨ .(ƛ[ _ ] P) , ⟨ vLam {N = N} , ⟨ vLam {N = P} , ⟨ L₁—↠V , ⟨ L₂—↠W , f-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
     | ⟨ ⊢M , ⟨ ⊢M' , ⟨ V , ⟨ W , ⟨ vV , ⟨ vW , ⟨ M₁—↠V , ⟨ M₂—↠W , arg-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-  with (proj₂ (proj₂ f-rel)) vV vW arg-rel
-... | ⟨ _ , ⟨ _ , ⟨ V' , ⟨ W' , ⟨ v' , ⟨ w' , ⟨ redL' , ⟨ redR' , rel' ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
+    with (proj₂ (proj₂ f-rel)) vV vW arg-rel
+... | ⟨ _ , ⟨ _ , ⟨ V' , ⟨ W' , ⟨ v' , ⟨ w' , ⟨ N[V]-↠V' , ⟨ P[W]-↠W' , rel' ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
   ⟨ ⊢· ⊢L ⊢M
   , ⟨ ⊢· ⊢L' ⊢M'
     , ⟨ V'
@@ -123,49 +85,217 @@ compat-· {Γ = Γ} {A = A} {B = B} L M L-rel M-rel ρ γ env
         , ⟨ v'
           , ⟨ w'
             , ⟨   substᵀ (left ρ) (subst (γ .left) (L · M))
-                —↠⟨ left-red ⟩
+                —↠⟨ app-↠ L₁—↠V vLam M₁—↠V ⟩
+                  (ƛ[ _ ] N) · V
+                —↠⟨ β-ƛ-↠ vV ⟩
                   N [ V ]
-                —↠⟨ redL' ⟩
+                —↠⟨ N[V]-↠V' ⟩
                    V'
                 ∎
               , ⟨ substᵀ (right ρ) (subst (γ .right) (L · M))
-                —↠⟨ right-red ⟩
+                —↠⟨ app-↠ L₂—↠W vLam M₂—↠W ⟩
+                  (ƛ[ _ ] P) · W
+                —↠⟨ β-ƛ-↠ vW ⟩
                   P [ W ]
-                —↠⟨ redR' ⟩
+                —↠⟨ P[W]-↠W' ⟩
                   W'
                 ∎
                 , rel' ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
+
+compat-ƛ : ∀ {Δ Γ A B}
+  → (N : Term)
+  → Δ ∣ (A ∷ Γ) ⊢ N ⦂ B
+  → (A ∷ Γ) ⊨ N ≈ N ⦂ B
+  → Γ ⊨ (ƛ[ A ] N) ≈ (ƛ[ A ] N) ⦂ (A ⇒ B)
+compat-ƛ {Δ = Δ} {Γ = Γ} {A = A} {B = B} N ⊢N N-rel ρ γ env =
+  ⟨ left-typed
+  , ⟨ right-typed
+    , ⟨ substᵀ (left ρ) (subst (γ .left) (ƛ[ A ] N))
+      , ⟨ substᵀ (right ρ) (subst (γ .right) (ƛ[ A ] N))
+        , ⟨ vLam
+          , ⟨ vLam
+            , ⟨ substᵀ (left ρ) (subst (γ .left) (ƛ[ A ] N)) ∎
+              , ⟨ substᵀ (right ρ) (subst (γ .right) (ƛ[ A ] N)) ∎
+                , LR-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
   where
-  left-red : substᵀ (left ρ) (subst (γ .left) (L · M)) —↠ N [ V ]
-  left-red = substᵀ (left ρ) (subst (γ .left) (L · M))
-           —↠⟨ app-↠ {L = substᵀ (left ρ) (subst (γ .left) L)} {L' = ƛ _ ⇒ N}
-                     {M = substᵀ (left ρ) (subst (γ .left) M)} {M' = V}
-                     L₁—↠V vLam M₁—↠V ⟩
-             (ƛ _ ⇒ N) · V
-           —↠⟨ β-ƛ-↠ vV ⟩
-             (N [ V ])
-           ∎
+  
+  -- Proof that substᵀ (left ρ) (subst (γ .left) (ƛ[ A ] N)) is well typed
 
-  right-red : substᵀ (right ρ) (subst (γ .right) (L · M)) —↠ P [ W ]
-  right-red = substᵀ (right ρ) (subst (γ .right) (L · M))
-            —↠⟨ app-↠ {L = substᵀ (right ρ) (subst (γ .right) L)} {L' = ƛ _ ⇒ P}
-                      {M = substᵀ (right ρ) (subst (γ .right) M)} {M' = W}
-                      L₂—↠W vLam M₂—↠W ⟩
-              (ƛ _ ⇒ P) · W
-            —↠⟨ β-ƛ-↠ vW ⟩
-              P [ W ]
-            ∎
+  left-TySubstWf : TySubstWf Δ zero (left ρ)
+  left-TySubstWf {X} X<Δ = left-closed ρ X
 
-compat-true : ∀ {Γ}
-  → Γ ⊨ `true ≈ `true ⦂ `Bool
-compat-true ρ γ env =
-  𝒱⇒ℰ {A = `Bool} {ρ = ρ} {V = `true} {W = `true} vTrue vTrue tt
+  left-SubstWf-ext :
+    SubstWf zero
+      (map (substᵗ (left ρ)) (A ∷ Γ))
+      (substᵗ (left ρ) A ∷ [])
+      (λ i → substᵀ (left ρ) (exts (γ .left) i))
+  left-SubstWf-ext Z = ⊢` Z
+  left-SubstWf-ext {x = suc x} {A = C} (S h) =
+    substEq
+      (λ Tm → zero ∣ (substᵗ (left ρ) A ∷ []) ⊢ Tm ⦂ C)
+      (sym (substᵀ-id-typed (λ ()) shifted))
+      shifted
+    where
+    shifted = typing-rename-shift (𝒢-left-SubstWf env h)
 
-compat-suc : ∀ {Γ}
-  → (M : Term)
+  left-body-typed : zero ∣ (substᵗ (left ρ) A ∷ [])
+    ⊢ substᵀ (left ρ) (subst (exts (γ .left)) N) ⦂ substᵗ (left ρ) B
+  left-body-typed =
+    substEq
+      (λ Tm → zero ∣ (substᵗ (left ρ) A ∷ []) ⊢ Tm ⦂ substᵗ (left ρ) B)
+      (sym (substᵀ-subst-commute (left ρ) (exts (γ .left)) N))
+      (typing-subst
+        left-SubstWf-ext
+        (typing-substᵀ left-TySubstWf ⊢N))
+
+  left-typed :
+    zero ∣ [] ⊢ substᵀ (left ρ) (subst (γ .left) (ƛ[ A ] N)) ⦂ substᵗ (left ρ) (A ⇒ B)
+  left-typed =
+    ⊢ƛ (substᵗ-codom-closed (left ρ) (left-closed ρ) A)
+       left-body-typed
+
+  -- Proof that substᵀ (right ρ) (subst (γ .right) (ƛ[ A ] N)) is well typed
+
+  right-TySubstWf : TySubstWf Δ zero (right ρ)
+  right-TySubstWf {X} X<Δ = right-closed ρ X
+
+  right-SubstWf-ext :
+    SubstWf zero
+      (map (substᵗ (right ρ)) (A ∷ Γ))
+      (substᵗ (right ρ) A ∷ [])
+      (λ i → substᵀ (right ρ) (exts (γ .right) i))
+  right-SubstWf-ext Z = ⊢` Z
+  right-SubstWf-ext {x = suc x} {A = C} (S h) =
+    substEq
+      (λ Tm → zero ∣ (substᵗ (right ρ) A ∷ []) ⊢ Tm ⦂ C)
+      (sym (substᵀ-id-typed (λ ()) shifted))
+      shifted
+    where
+    shifted = typing-rename-shift (𝒢-right-SubstWf env h)
+
+  right-body-typed : zero ∣ (substᵗ (right ρ) A ∷ [])
+    ⊢ substᵀ (right ρ) (subst (exts (γ .right)) N) ⦂ substᵗ (right ρ) B
+  right-body-typed =
+    substEq
+      (λ Tm → zero ∣ (substᵗ (right ρ) A ∷ []) ⊢ Tm ⦂ substᵗ (right ρ) B)
+      (sym (substᵀ-subst-commute (right ρ) (exts (γ .right)) N))
+      (typing-subst
+        right-SubstWf-ext
+        (typing-substᵀ right-TySubstWf ⊢N))
+
+  right-typed :
+    zero ∣ [] ⊢ substᵀ (right ρ) (subst (γ .right) (ƛ[ A ] N))
+      ⦂ substᵗ (right ρ) (A ⇒ B)
+  right-typed =
+    ⊢ƛ
+      (substᵗ-codom-closed (right ρ) (right-closed ρ) A)
+      right-body-typed
+
+  -- Proof that 𝒱 (A ⇒ B) ρ (ρ.left (γ.left (ƛ[ A ] N))) (ρ.right (γ.right (ƛ[ A ] N)))
+
+  LR-rel : 𝒱 (A ⇒ B) ρ
+    (substᵀ (left ρ) (subst (γ .left) (ƛ[ A ] N)))
+    (substᵀ (right ρ) (subst (γ .right) (ƛ[ A ] N)))
+    vLam vLam
+  LR-rel = ⟨ left-typed , ⟨ right-typed , body ⟩ ⟩
+    where
+    left-V-id : ∀ {V W} {v : Value V} {w : Value W}
+      → 𝒱 A ρ V W v w
+      → substᵀ (left ρ) V ≡ V
+    left-V-id {V} {W} {v} {w} VW-rel
+      with 𝒱-typing {A = A} {ρ = ρ} {V = V} {W = W} {v = v} {w = w} VW-rel
+    ... | ⟨ ⊢V , _ ⟩ = substᵀ-id-typed (λ ()) ⊢V
+
+    right-W-id : ∀ {V W} {v : Value V} {w : Value W}
+      → 𝒱 A ρ V W v w
+      → substᵀ (right ρ) W ≡ W
+    right-W-id {V} {W} {v} {w} VW-rel
+      with 𝒱-typing {A = A} {ρ = ρ} {V = V} {W = W} {v = v} {w = w} VW-rel
+    ... | ⟨ _ , ⊢W ⟩ = substᵀ-id-typed (λ ()) ⊢W
+
+    left-singleEnv-close : ∀ {V W} {v : Value V} {w : Value W}
+      → (VW-rel : 𝒱 A ρ V W v w)
+      → (i : Var)
+      → substᵀ (left ρ) (singleEnv V i) ≡ singleEnv V i
+    left-singleEnv-close VW-rel zero = left-V-id VW-rel
+    left-singleEnv-close VW-rel (suc i) = refl
+
+    right-singleEnv-close : ∀ {V W} {v : Value V} {w : Value W}
+      → (VW-rel : 𝒱 A ρ V W v w)
+      → (i : Var)
+      → substᵀ (right ρ) (singleEnv W i) ≡ singleEnv W i
+    right-singleEnv-close VW-rel zero = right-W-id VW-rel
+    right-singleEnv-close VW-rel (suc i) = refl
+
+    left-β-bridge : ∀ {V W} {v : Value V} {w : Value W}
+      → (VW-rel : 𝒱 A ρ V W v w)
+      → ((substᵀ (left ρ) (subst (exts (γ .left)) N)) [ V ])
+        ≡ substᵀ (left ρ) (subst (V • (γ .left)) N)
+    left-β-bridge {V} {W} {v} {w} VW-rel =
+      EqR.begin
+        ((substᵀ (left ρ) (subst (exts (γ .left)) N)) [ V ])
+      EqR.≡⟨ sym (subst-cong (left-singleEnv-close VW-rel) (substᵀ (left ρ) (subst (exts (γ .left)) N))) ⟩
+        subst (λ i → substᵀ (left ρ) (singleEnv V i)) (substᵀ (left ρ) (subst (exts (γ .left)) N))
+      EqR.≡⟨ sym (substᵀ-subst-commute (left ρ) (singleEnv V) (subst (exts (γ .left)) N)) ⟩
+        substᵀ (left ρ) (subst (singleEnv V) (subst (exts (γ .left)) N))
+      EqR.≡⟨ cong (substᵀ (left ρ)) (exts-sub-cons (γ .left) N V) ⟩
+        substᵀ (left ρ) (subst (V • (γ .left)) N)
+      EqR.∎
+
+    right-β-bridge : ∀ {V W} {v : Value V} {w : Value W}
+      → (VW-rel : 𝒱 A ρ V W v w)
+      → ((substᵀ (right ρ) (subst (exts (γ .right)) N)) [ W ])
+        ≡ substᵀ (right ρ) (subst (W • (γ .right)) N)
+    right-β-bridge {V} {W} {v} {w} VW-rel =
+      EqR.begin
+        ((substᵀ (right ρ) (subst (exts (γ .right)) N)) [ W ])
+      EqR.≡⟨ sym (subst-cong (right-singleEnv-close VW-rel) (substᵀ (right ρ) (subst (exts (γ .right)) N))) ⟩
+        subst (λ i → substᵀ (right ρ) (singleEnv W i)) (substᵀ (right ρ) (subst (exts (γ .right)) N))
+      EqR.≡⟨ sym (substᵀ-subst-commute (right ρ) (singleEnv W) (subst (exts (γ .right)) N)) ⟩
+        substᵀ (right ρ) (subst (singleEnv W) (subst (exts (γ .right)) N))
+      EqR.≡⟨ cong (substᵀ (right ρ)) (exts-sub-cons (γ .right) N W) ⟩
+        substᵀ (right ρ) (subst (W • (γ .right)) N)
+      EqR.∎
+
+    body : ∀ {V W} (v : Value V) (w : Value W)
+      → 𝒱 A ρ V W v w
+      → ℰ B ρ ((substᵀ (left ρ) (subst (exts (γ .left)) N)) [ V ])
+              ((substᵀ (right ρ) (subst (exts (γ .right)) N)) [ W ])
+    body {V} {W} v w VW-rel
+      with N-rel ρ (γ ,⟨ V , W ⟩) (𝒢-extend {A = A} env v w VW-rel)
+    ... | ⟨ ⊢L , ⟨ ⊢R , ⟨ V' , ⟨ W' , ⟨ v' , ⟨ w' , ⟨ redL , ⟨ redR , rel' ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
+      ⟨ substEq
+          (λ Tm → zero ∣ [] ⊢ Tm ⦂ substᵗ (left ρ) B)
+          (sym (left-β-bridge VW-rel))
+          ⊢L
+      , ⟨ substEq
+            (λ Tm → zero ∣ [] ⊢ Tm ⦂ substᵗ (right ρ) B)
+            (sym (right-β-bridge VW-rel))
+            ⊢R
+        , ⟨ V'
+          , ⟨ W'
+            , ⟨ v'
+              , ⟨ w'
+                , ⟨ substEq (λ Tm → Tm —↠ V') (sym (left-β-bridge VW-rel)) redL
+                  , ⟨ substEq (λ Tm → Tm —↠ W') (sym (right-β-bridge VW-rel)) redR
+                    , rel' ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
+
+compat-true : ∀ {Γ} → Γ ⊨ `true ≈ `true ⦂ `Bool
+compat-true ρ γ env =  𝒱⇒ℰ {A = `Bool} {ρ = ρ} vTrue vTrue tt
+
+compat-false : ∀ {Γ}
+  → Γ ⊨ `false ≈ `false ⦂ `Bool
+compat-false ρ γ env = 𝒱⇒ℰ {A = `Bool} {ρ = ρ} vFalse vFalse tt
+
+compat-zero : ∀ {Γ}
+  → Γ ⊨ `zero ≈ `zero ⦂ `ℕ
+compat-zero ρ γ env = 𝒱⇒ℰ {A = `ℕ} {V = `zero} {W = `zero} vZero vZero tt
+
+compat-suc : ∀ {Γ} (M : Term)
   → Γ ⊨ M ≈ M ⦂ `ℕ
   → Γ ⊨ (`suc M) ≈ (`suc M) ⦂ `ℕ
-compat-suc M M-rel ρ γ env with M-rel ρ γ env
+compat-suc M M-rel ρ γ env
+    with M-rel ρ γ env
 ... | ⟨ ⊢M , ⟨ ⊢M' , ⟨ V , ⟨ W , ⟨ v , ⟨ w , ⟨ M₁—↠V , ⟨ M₂—↠W , VW-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
   ⟨ ⊢suc ⊢M
   , ⟨ ⊢suc ⊢M'
@@ -390,187 +520,6 @@ compat-case {Δ = Δ} {Γ = Γ} {A = A} L M N ⊢N L-rel M-rel N-rel ρ γ env =
         W'
       ∎
 
-compat-zero : ∀ {Γ}
-  → Γ ⊨ `zero ≈ `zero ⦂ `ℕ
-compat-zero ρ γ env = 𝒱⇒ℰ {A = `ℕ} {V = `zero} {W = `zero} vZero vZero tt
-
-compat-ƛ : ∀ {Δ Γ A B}
-  → (N : Term)
-  → Δ ∣ (A ∷ Γ) ⊢ N ⦂ B
-  → (A ∷ Γ) ⊨ N ≈ N ⦂ B
-  → Γ ⊨ (ƛ A ⇒ N) ≈ (ƛ A ⇒ N) ⦂ (A ⇒ B)
-compat-ƛ {Δ = Δ} {Γ = Γ} {A = A} {B = B} N ⊢N N-rel ρ γ env =
-  ⟨ left-typed
-  , ⟨ right-typed
-    , ⟨ substᵀ (left ρ) (subst (γ .left) (ƛ A ⇒ N))
-      , ⟨ substᵀ (right ρ) (subst (γ .right) (ƛ A ⇒ N))
-        , ⟨ vLam
-          , ⟨ vLam
-            , ⟨ substᵀ (left ρ) (subst (γ .left) (ƛ A ⇒ N)) ∎
-              , ⟨ substᵀ (right ρ) (subst (γ .right) (ƛ A ⇒ N)) ∎
-                , LR-rel ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-  where
-  left-TySubstWf : TySubstWf Δ zero (left ρ)
-  left-TySubstWf {X} X<Δ = left-closed ρ X
-
-  right-TySubstWf : TySubstWf Δ zero (right ρ)
-  right-TySubstWf {X} X<Δ = right-closed ρ X
-
-  left-SubstWf-ext :
-    SubstWf zero
-      (map (substᵗ (left ρ)) (A ∷ Γ))
-      (substᵗ (left ρ) A ∷ [])
-      (λ i → substᵀ (left ρ) (exts (γ .left) i))
-  left-SubstWf-ext Z = ⊢` Z
-  left-SubstWf-ext {x = suc x} {A = C} (S h) =
-    substEq
-      (λ Tm → zero ∣ (substᵗ (left ρ) A ∷ []) ⊢ Tm ⦂ C)
-      (sym (substᵀ-id-typed (λ ()) shifted))
-      shifted
-    where
-    shifted : zero ∣ (substᵗ (left ρ) A ∷ [])
-      ⊢ rename suc (γ .left x) ⦂ C
-    shifted = typing-rename-shift (𝒢-left-SubstWf env h)
-
-  right-SubstWf-ext :
-    SubstWf zero
-      (map (substᵗ (right ρ)) (A ∷ Γ))
-      (substᵗ (right ρ) A ∷ [])
-      (λ i → substᵀ (right ρ) (exts (γ .right) i))
-  right-SubstWf-ext Z = ⊢` Z
-  right-SubstWf-ext {x = suc x} {A = C} (S h) =
-    substEq
-      (λ Tm → zero ∣ (substᵗ (right ρ) A ∷ []) ⊢ Tm ⦂ C)
-      (sym (substᵀ-id-typed (λ ()) shifted))
-      shifted
-    where
-    shifted : zero ∣ (substᵗ (right ρ) A ∷ [])
-      ⊢ rename suc (γ .right x) ⦂ C
-    shifted = typing-rename-shift (𝒢-right-SubstWf env h)
-
-  left-body-typed : zero ∣ (substᵗ (left ρ) A ∷ [])
-    ⊢ substᵀ (left ρ) (subst (exts (γ .left)) N) ⦂ substᵗ (left ρ) B
-  left-body-typed =
-    substEq
-      (λ Tm → zero ∣ (substᵗ (left ρ) A ∷ []) ⊢ Tm ⦂ substᵗ (left ρ) B)
-      (sym (substᵀ-subst-commute (left ρ) (exts (γ .left)) N))
-      (typing-subst
-        left-SubstWf-ext
-        (typing-substᵀ left-TySubstWf ⊢N))
-
-  right-body-typed : zero ∣ (substᵗ (right ρ) A ∷ [])
-    ⊢ substᵀ (right ρ) (subst (exts (γ .right)) N) ⦂ substᵗ (right ρ) B
-  right-body-typed =
-    substEq
-      (λ Tm → zero ∣ (substᵗ (right ρ) A ∷ []) ⊢ Tm ⦂ substᵗ (right ρ) B)
-      (sym (substᵀ-subst-commute (right ρ) (exts (γ .right)) N))
-      (typing-subst
-        right-SubstWf-ext
-        (typing-substᵀ right-TySubstWf ⊢N))
-
-  left-typed :
-    zero ∣ [] ⊢ substᵀ (left ρ) (subst (γ .left) (ƛ A ⇒ N))
-      ⦂ substᵗ (left ρ) (A ⇒ B)
-  left-typed =
-    ⊢ƛ
-      (substᵗ-codom-closed (left ρ) (left-closed ρ) A)
-      left-body-typed
-
-  right-typed :
-    zero ∣ [] ⊢ substᵀ (right ρ) (subst (γ .right) (ƛ A ⇒ N))
-      ⦂ substᵗ (right ρ) (A ⇒ B)
-  right-typed =
-    ⊢ƛ
-      (substᵗ-codom-closed (right ρ) (right-closed ρ) A)
-      right-body-typed
-
-  LR-rel : 𝒱 (A ⇒ B) ρ
-    (substᵀ (left ρ) (subst (γ .left) (ƛ A ⇒ N)))
-    (substᵀ (right ρ) (subst (γ .right) (ƛ A ⇒ N)))
-    vLam vLam
-  LR-rel = ⟨ left-typed , ⟨ right-typed , body ⟩ ⟩
-    where
-    left-V-id : ∀ {V W} {v : Value V} {w : Value W}
-      → 𝒱 A ρ V W v w
-      → substᵀ (left ρ) V ≡ V
-    left-V-id {V} {W} {v} {w} VW-rel
-      with 𝒱-typing {A = A} {ρ = ρ} {V = V} {W = W} {v = v} {w = w} VW-rel
-    ... | ⟨ ⊢V , _ ⟩ = substᵀ-id-typed (λ ()) ⊢V
-
-    right-W-id : ∀ {V W} {v : Value V} {w : Value W}
-      → 𝒱 A ρ V W v w
-      → substᵀ (right ρ) W ≡ W
-    right-W-id {V} {W} {v} {w} VW-rel
-      with 𝒱-typing {A = A} {ρ = ρ} {V = V} {W = W} {v = v} {w = w} VW-rel
-    ... | ⟨ _ , ⊢W ⟩ = substᵀ-id-typed (λ ()) ⊢W
-
-    left-singleEnv-close : ∀ {V W} {v : Value V} {w : Value W}
-      → (VW-rel : 𝒱 A ρ V W v w)
-      → (i : Var)
-      → substᵀ (left ρ) (singleEnv V i) ≡ singleEnv V i
-    left-singleEnv-close VW-rel zero = left-V-id VW-rel
-    left-singleEnv-close VW-rel (suc i) = refl
-
-    right-singleEnv-close : ∀ {V W} {v : Value V} {w : Value W}
-      → (VW-rel : 𝒱 A ρ V W v w)
-      → (i : Var)
-      → substᵀ (right ρ) (singleEnv W i) ≡ singleEnv W i
-    right-singleEnv-close VW-rel zero = right-W-id VW-rel
-    right-singleEnv-close VW-rel (suc i) = refl
-
-    left-β-bridge : ∀ {V W} {v : Value V} {w : Value W}
-      → (VW-rel : 𝒱 A ρ V W v w)
-      → ((substᵀ (left ρ) (subst (exts (γ .left)) N)) [ V ])
-        ≡ substᵀ (left ρ) (subst (V • (γ .left)) N)
-    left-β-bridge {V} {W} {v} {w} VW-rel =
-      trans
-        (sym (subst-cong (left-singleEnv-close VW-rel)
-          (substᵀ (left ρ) (subst (exts (γ .left)) N))))
-        (trans
-          (sym (substᵀ-subst-commute (left ρ) (singleEnv V) (subst (exts (γ .left)) N)))
-          (cong (substᵀ (left ρ)) (exts-sub-cons (γ .left) N V)))
-
-    right-β-bridge : ∀ {V W} {v : Value V} {w : Value W}
-      → (VW-rel : 𝒱 A ρ V W v w)
-      → ((substᵀ (right ρ) (subst (exts (γ .right)) N)) [ W ])
-        ≡ substᵀ (right ρ) (subst (W • (γ .right)) N)
-    right-β-bridge {V} {W} {v} {w} VW-rel =
-      trans
-        (sym (subst-cong (right-singleEnv-close VW-rel)
-          (substᵀ (right ρ) (subst (exts (γ .right)) N))))
-        (trans
-          (sym (substᵀ-subst-commute (right ρ) (singleEnv W) (subst (exts (γ .right)) N)))
-          (cong (substᵀ (right ρ)) (exts-sub-cons (γ .right) N W)))
-
-    body : ∀ {V W} (v : Value V) (w : Value W)
-      → 𝒱 A ρ V W v w
-      → ℰ B ρ
-          ((substᵀ (left ρ) (subst (exts (γ .left)) N)) [ V ])
-          ((substᵀ (right ρ) (subst (exts (γ .right)) N)) [ W ])
-    body {V} {W} v w VW-rel
-      with N-rel ρ (γ ,⟨ V , W ⟩) (𝒢-extend {A = A} env v w VW-rel)
-    ... | ⟨ ⊢L , ⟨ ⊢R , ⟨ V' , ⟨ W' , ⟨ v' , ⟨ w' , ⟨ redL , ⟨ redR , rel' ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ =
-      ⟨ substEq
-          (λ Tm → zero ∣ [] ⊢ Tm ⦂ substᵗ (left ρ) B)
-          (sym (left-β-bridge VW-rel))
-          ⊢L
-      , ⟨ substEq
-            (λ Tm → zero ∣ [] ⊢ Tm ⦂ substᵗ (right ρ) B)
-            (sym (right-β-bridge VW-rel))
-            ⊢R
-        , ⟨ V'
-          , ⟨ W'
-            , ⟨ v'
-              , ⟨ w'
-                , ⟨ substEq (λ Tm → Tm —↠ V') (sym (left-β-bridge VW-rel)) redL
-                  , ⟨ substEq (λ Tm → Tm —↠ W') (sym (right-β-bridge VW-rel)) redR
-                    , rel' ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-
-compat-false : ∀ {Γ}
-  → Γ ⊨ `false ≈ `false ⦂ `Bool
-compat-false ρ γ env =
-  𝒱⇒ℰ {A = `Bool} {ρ = ρ} {V = `false} {W = `false} vFalse vFalse tt
-
 compat-if : ∀ {Γ A}
   → (L M N : Term)
   → Γ ⊨ L ≈ L ⦂ `Bool
@@ -643,12 +592,6 @@ compat-if {A = A} L M N L-rel M-rel N-rel ρ γ env
         , relN ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
 ... | vTrue | vFalse | ()
 ... | vFalse | vTrue | ()
-
-compat-var : ∀ {Γ A x} → Γ ∋ x ⦂ A → Γ ⊨ (` x) ≈ (` x) ⦂ A
-compat-var {A = A} Z ρ γ env =
-  ℰ-close-ρ {A = A} {ρ = ρ} {M = γ .left 0} {N = γ .right 0} (proj₁ env)
-compat-var (S x) ρ γ env = compat-var x ρ (⇓γ γ) (proj₂ env)
-
 
 
 compat-·[] : ∀ {Δ Γ A B}
@@ -1008,7 +951,9 @@ compat-Λ {Δ = Δ} {Γ = Γ} {A = A} N ⊢N N-rel ρ γ env =
 -- Fundamental Theorem
 --------------------------------------------------------------------------------
 
-fundamental : ∀ {Δ Γ A} (M : Term) → Δ ∣ Γ ⊢ M ⦂ A → Γ ⊨ M ≈ M ⦂ A
+fundamental : ∀ {Δ Γ A} (M : Term)
+  → Δ ∣ Γ ⊢ M ⦂ A
+  → Γ ⊨ M ≈ M ⦂ A
 fundamental _ (⊢` x) = compat-var x
 fundamental _ (⊢ƛ {A = A} {B = B} {N = N} _ dN) =
   compat-ƛ {A = A} {B = B} N dN (fundamental N dN)

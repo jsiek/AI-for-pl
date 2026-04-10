@@ -8,14 +8,8 @@ lambda - Untyped lambda calculus
 
 GTLC - Gradually Typed Lambda Calculus
 
-System F - Polymorphic Lambda Calculus with proof of type safety and parametricity.
+System F - Polymorphic Lambda Calculus with proofs of type safety and parametricity.
 
-   * extrinsic: standard System F
-   * curry: no type annotations on lambda and type application.
-     It was easier to prove parametricity for this version. 
-   * intrinsic: standard System F with intrinsic typing.
-     The proof of parametricity is stalled.
-   
 GTSF - Gradually Typed System F
 
 PolyCast - A polymorphic cast calculus that uses coercions to express
@@ -25,6 +19,9 @@ that is, generalization and instantiation.
 PolyUpDown - A polymorphic cast calculus that splits imprecision into two
 relations, widening and narrowing, and uses them to express casts between types.
 The Agda development proves PolyUpDown type safe.
+
+PolyUpDownInst - Like PolyUpDown but type application is a first-class feature
+and there is no ν term.
 
 PolyImp - A polymorphic cast calculus that uses imprecision to express
 casts between types. Imprecision allows casts to and from universal

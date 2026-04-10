@@ -12,6 +12,7 @@ open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; z<s; s<s)
 open import Data.Product using (_,_; Σ-syntax; proj₁; proj₂)
 open import Data.Unit using (tt)
+open import Relation.Nullary.Decidable.Core using (toWitness)
 
 open import Types
 open import Store
@@ -19,16 +20,11 @@ open import UpDown
 open import Terms
 open import Reduction
 open import Eval
+open import TypeCheckDec using (type-check; storeWf-∅)
 
 ------------------------------------------------------------------------
 -- Shared terms and helpers
 ------------------------------------------------------------------------
-
-term-of :
-  ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{M : Term}{A : Ty} →
-  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
-  Term
-term-of {M = M} M⊢ = M
 
 polyId : Term
 polyId = Λ (ƛ (＇ zero) ⇒ ` zero)
@@ -583,109 +579,136 @@ example13-mixed-test = refl
 -- Ahmed et al. POPL'11 Section 2
 ------------------------------------------------------------------------
 
-sec2-app-dyn-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ ★
-sec2-app-dyn-⊢ = ⊢· (⊢· (inst-wt _ ★ _ (inst-wt _ ★ _ polyApp-⊢ wf★) wf★) idDyn-⊢) c★-⊢
-
 sec2-app-dyn : Term
-sec2-app-dyn = term-of sec2-app-dyn-⊢
+sec2-app-dyn =
+  ((inst
+      (inst
+        polyApp
+        ★
+        (`∀ ((★ ⇒ ＇ zero) ⇒ (★ ⇒ ＇ zero))))
+      ★
+      ((★ ⇒ ＇ zero) ⇒ (★ ⇒ ＇ zero))
+   ) · idDyn)
+  · c★
 
-sec2-app-base-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ (‵ `ℕ)
-sec2-app-base-⊢ =
-  ⊢·
-    (⊢·
-      (inst-wt _ (‵ `ℕ) _ (inst-wt _ (‵ `ℕ) _ polyApp-⊢ wfBase) wfBase)
-      natId-⊢)
-    c-⊢
+sec2-app-dyn-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec2-app-dyn ⦂ A)
+sec2-app-dyn-⊢ =
+  proj₁
+    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec2-app-dyn} tt)
 
 sec2-app-base : Term
-sec2-app-base = term-of sec2-app-base-⊢
+sec2-app-base =
+  ((inst
+      (inst
+        polyApp
+        (‵ `ℕ)
+        (`∀ (((‵ `ℕ) ⇒ ＇ zero) ⇒ ((‵ `ℕ) ⇒ ＇ zero))))
+      (‵ `ℕ)
+      (((‵ `ℕ) ⇒ ＇ zero) ⇒ ((‵ `ℕ) ⇒ ＇ zero))
+   ) · natId)
+  · c
 
-sec2-app-dyn-test : evalNatDyn uniq[] gas sec2-app-dyn-⊢ ≡ just 7
+sec2-app-base-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec2-app-base ⦂ A)
+sec2-app-base-⊢ =
+  proj₁
+    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec2-app-base} tt)
+
+sec2-app-dyn-test : evalNatDyn uniq[] gas (proj₂ sec2-app-dyn-⊢) ≡ just 7
 sec2-app-dyn-test = refl
 
-sec2-app-base-test : evalNat uniq[] gas sec2-app-base-⊢ ≡ just 7
+sec2-app-base-test : evalNat uniq[] gas (proj₂ sec2-app-base-⊢) ≡ just 7
 sec2-app-base-test = refl
 
 ------------------------------------------------------------------------
 -- Ahmed et al. POPL'11 Section 5
 ------------------------------------------------------------------------
 
-sec5-β-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ (‵ `ℕ)
-sec5-β-⊢ = ⊢· (inst-wt polyBetaId (‵ `ℕ) (＇ zero ⇒ ＇ zero) polyBetaId-⊢ wfBase) c-⊢
-
 sec5-β : Term
-sec5-β = term-of sec5-β-⊢
+sec5-β = (inst polyBetaId (‵ `ℕ) (＇ zero ⇒ ＇ zero)) · c
 
-sec5-β-test : evalNat uniq[] gas sec5-β-⊢ ≡ just 7
+sec5-β-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec5-β ⦂ A)
+sec5-β-⊢ =
+  proj₁
+    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec5-β} tt)
+
+sec5-β-test : evalNat uniq[] gas (proj₂ sec5-β-⊢) ≡ just 7
 sec5-β-test = refl
 
 ------------------------------------------------------------------------
 -- Ahmed et al. POPL'11 Section 6
 ------------------------------------------------------------------------
 
-sec6-K-dyn-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ ★
-sec6-K-dyn-⊢ = ⊢· (⊢· (inst-wt polyK ★ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) polyK-⊢ wf★) n42★-⊢) n69★-⊢
-
 sec6-K-dyn : Term
-sec6-K-dyn = term-of sec6-K-dyn-⊢
+sec6-K-dyn =
+  ((inst polyK ★ (＇ zero ⇒ ＇ zero ⇒ ＇ zero)) · n42★) · n69★
 
-sec6-K-base-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ (‵ `ℕ)
-sec6-K-base-⊢ = ⊢· (⊢· (inst-wt polyK (‵ `ℕ) (＇ zero ⇒ ＇ zero ⇒ ＇ zero) polyK-⊢ wfBase) n42-⊢) n69-⊢
+sec6-K-dyn-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-dyn ⦂ A)
+sec6-K-dyn-⊢ =
+  proj₁
+    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec6-K-dyn} tt)
 
 sec6-K-base : Term
-sec6-K-base = term-of sec6-K-base-⊢
+sec6-K-base =
+  ((inst polyK (‵ `ℕ) (＇ zero ⇒ ＇ zero ⇒ ＇ zero)) · n42) · n69
 
-sec6-K-lax-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ (‵ `ℕ)
-sec6-K-lax-⊢ =
-  ⊢·
-    (⊢·
-      (⊢down
-        (inst-wt polyK ★ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) polyK-⊢ wf★)
-        (kDyn-to-nat★nat 63))
-      n42-⊢)
-    idFun★-⊢
+sec6-K-base-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-base ⦂ A)
+sec6-K-base-⊢ =
+  proj₁
+    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec6-K-base} tt)
 
 sec6-K-lax : Term
-sec6-K-lax = term-of sec6-K-lax-⊢
+sec6-K-lax =
+  ((inst polyK ★ (＇ zero ⇒ ＇ zero ⇒ ＇ zero)
+     down (tag (‵ `ℕ) ↦ ((id ★) ↦ untag (‵ `ℕ) 63)))
+   · n42)
+  · idFun★
 
-sec6-K-strict-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ (‵ `ℕ)
-sec6-K-strict-⊢ =
-  ⊢·
-    (⊢·
-      (⊢up
-        (inst-wt polyK (‵ `ℕ) (＇ zero ⇒ ＇ zero ⇒ ＇ zero) polyK-⊢ wfBase)
-        (kNat-to-nat★nat 64))
-      n42-⊢)
-    idFun★-⊢
+sec6-K-lax-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-lax ⦂ A)
+sec6-K-lax-⊢ =
+  proj₁
+    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec6-K-lax} tt)
 
 sec6-K-strict : Term
-sec6-K-strict = term-of sec6-K-strict-⊢
+sec6-K-strict =
+  ((inst polyK (‵ `ℕ) (＇ zero ⇒ ＇ zero ⇒ ＇ zero)
+     up ((id (‵ `ℕ)) ↦ (untag (‵ `ℕ) 64 ↦ (id (‵ `ℕ)))))
+   · n42)
+  · idFun★
 
-sec6-id-leak-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ ★
-sec6-id-leak-⊢ =
-  ⊢·
-    (inst-wt _ (‵ `ℕ) _ (⊢down idDyn-⊢ idDyn-to-∀X-X⇒★) wfBase)
-    n42-⊢
+sec6-K-strict-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-strict ⦂ A)
+sec6-K-strict-⊢ =
+  proj₁
+    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec6-K-strict} tt)
 
 sec6-id-leak : Term
-sec6-id-leak = term-of sec6-id-leak-⊢
+sec6-id-leak =
+  (inst
+     (idDyn down (ν (tag (｀ zero) ↦ id ★)))
+     (‵ `ℕ)
+     (＇ zero ⇒ ★))
+  · n42
 
-sec6-K-dyn-test : evalNatDyn uniq[] gas sec6-K-dyn-⊢ ≡ just 42
+sec6-id-leak-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-id-leak ⦂ A)
+sec6-id-leak-⊢ =
+  proj₁
+    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec6-id-leak} tt)
+
+sec6-K-dyn-test : evalNatDyn uniq[] gas (proj₂ sec6-K-dyn-⊢) ≡ just 42
 sec6-K-dyn-test = refl
 
-sec6-K-base-test : evalNat uniq[] gas sec6-K-base-⊢ ≡ just 42
+sec6-K-base-test : evalNat uniq[] gas (proj₂ sec6-K-base-⊢) ≡ just 42
 sec6-K-base-test = refl
 
-sec6-K-lax-test : evalNat uniq[] gas sec6-K-lax-⊢ ≡ just 42
+sec6-K-lax-test : evalNat uniq[] gas (proj₂ sec6-K-lax-⊢) ≡ just 42
 sec6-K-lax-test = refl
 
-sec6-K-strict-test : evalBlame uniq[] gas sec6-K-strict-⊢ ≡ just 64
+sec6-K-strict-test : evalBlame uniq[] gas (proj₂ sec6-K-strict-⊢) ≡ just 64
 sec6-K-strict-test = refl
 
 -- Unlike the POPL'11 calculus, PolyUpDown currently allows this sealed
 -- result to escape the surrounding `ν:=`, so evaluation reaches a
 -- non-blame result.
-sec6-id-leak-test : evalNatDyn uniq[] gas sec6-id-leak-⊢ ≡ just 42
+sec6-id-leak-test : evalNatDyn uniq[] gas (proj₂ sec6-id-leak-⊢) ≡ just 42
 sec6-id-leak-test = refl
 
 

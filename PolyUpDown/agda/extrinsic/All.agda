@@ -16,4 +16,5 @@ open import Reduction
 open import Progress
 open import Preservation
 open import Eval
+open import TypeCheckDec
 open import Examples

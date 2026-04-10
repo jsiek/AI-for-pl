@@ -1,22 +1,27 @@
 module STLC where
 
-open import Agda.Builtin.Nat renaming (Nat to ℕ; zero to zeroℕ; suc to sucℕ)
-open import Agda.Builtin.List
+open import Data.Nat
 open import Agda.Builtin.Equality
 open import Agda.Builtin.Sigma using (Σ)
+open import Relation.Nullary using (Dec; yes; no)
+open import Data.Product using (Σ; Σ-syntax; ∃; ∃-syntax; _,_; _×_; proj₁; proj₂)
+open import Data.List using (List; []; _∷_)
+open import Data.Empty using (⊥; ⊥-elim)
+open import Relation.Binary.PropositionalEquality using (sym; refl; cong; cong₂; trans; _≡_)
+
+infixr 7 _⇒_
 
 data Ty : Set where
   nat : Ty
-  fn  : Ty -> Ty -> Ty
-
-infixr 70 _⇒_
-_⇒_ : Ty -> Ty -> Ty
-_⇒_ = fn
+  _⇒_  : Ty -> Ty -> Ty
 
 infix  5 ƛ_⇒_
 infixl 7 _·_
 infix  8 `suc_
 infix  9 `_
+
+Var : Set
+Var = ℕ
 
 data Term : Set where
   `_ : ℕ -> Term
@@ -33,8 +38,8 @@ Subst : Set
 Subst = ℕ -> Term
 
 ext : Rename -> Rename
-ext ρ zeroℕ    = zeroℕ
-ext ρ (sucℕ i) = sucℕ (ρ i)
+ext ρ 0    = 0
+ext ρ (suc i) = suc (ρ i)
 
 rename : Rename -> Term -> Term
 rename ρ (` i)                      = ` (ρ i)
@@ -45,8 +50,8 @@ rename ρ (`suc M)                   = `suc rename ρ M
 rename ρ (case_[zero⇒_|suc⇒_] L M N) = case_[zero⇒_|suc⇒_] (rename ρ L) (rename ρ M) (rename (ext ρ) N)
 
 exts : Subst -> Subst
-exts σ zeroℕ    = ` zeroℕ
-exts σ (sucℕ i) = rename sucℕ (σ i)
+exts σ 0    = ` 0
+exts σ (suc i) = rename suc (σ i)
 
 subst : Subst -> Term -> Term
 subst σ (` i)                      = σ i
@@ -57,8 +62,8 @@ subst σ (`suc M)                   = `suc subst σ M
 subst σ (case_[zero⇒_|suc⇒_] L M N) = case_[zero⇒_|suc⇒_] (subst σ L) (subst σ M) (subst (exts σ) N)
 
 singleEnv : Term -> Subst
-singleEnv M zeroℕ    = M
-singleEnv M (sucℕ i) = ` i
+singleEnv M 0    = M
+singleEnv M (suc i) = ` i
 
 singleSubst : Term -> Term -> Term
 singleSubst N M = subst (singleEnv M) N
@@ -67,9 +72,9 @@ Context : Set
 Context = List Ty
 
 data HasTypeVar : Context -> ℕ -> Ty -> Set where
-  Z : {Γ : Context} {A : Ty} -> HasTypeVar (A ∷ Γ) zeroℕ A
+  Z : {Γ : Context} {A : Ty} -> HasTypeVar (A ∷ Γ) 0 A
   S : {Γ : Context} {A B : Ty} {i : ℕ} ->
-      HasTypeVar Γ i A -> HasTypeVar (B ∷ Γ) (sucℕ i) A
+      HasTypeVar Γ i A -> HasTypeVar (B ∷ Γ) (suc i) A
 
 data HasType : Context -> Term -> Ty -> Set where
   tVar  : {Γ : Context} {i : ℕ} {A : Ty} ->
@@ -116,3 +121,54 @@ _—↠_ = MultiStep
 multi-trans : {M N L : Term} -> M —↠ N -> N —↠ L -> M —↠ L
 multi-trans (ms-refl _) ms2           = ms2
 multi-trans (ms-step _ s ms1') ms2    = ms-step _ s (multi-trans ms1' ms2)
+
+infix 4 _≟Ty_
+_≟Ty_ : (A B : Ty) → Dec (A ≡ B)
+nat ≟Ty nat = yes refl
+nat ≟Ty (B ⇒ B₁) = no λ ()
+(A ⇒ A₁) ≟Ty nat = no (λ ())
+(A₁ ⇒ A₂) ≟Ty (B₁ ⇒ B₂)
+    with A₁ ≟Ty B₁ | A₂ ≟Ty B₂
+... | yes refl | yes refl = yes refl
+... | no neq | _ = no λ { refl → neq refl}
+... | _ | no neq = no λ { refl → neq refl}
+    
+hasTypeVar-unique : {Γ : Context} {x : Var} {A B : Ty}
+    → HasTypeVar Γ x A → HasTypeVar Γ x B
+    → A ≡ B
+hasTypeVar-unique Z Z = refl
+hasTypeVar-unique (S x:A) (S x:B) = hasTypeVar-unique x:A x:B
+
+lookup : (Γ : Context) (x : Var) → Dec (∃[ A ] HasTypeVar Γ x A)
+lookup [] x = no λ { ()}
+lookup (A ∷ Γ) zero = yes (A , Z)
+lookup (A ∷ Γ) (suc x)
+    with lookup Γ x
+... | yes (B , x:B) = yes (B , (S x:B))
+... | no nxx = no λ { (B , S sx:B) → nxx (B , sx:B)}
+
+
+nat-fun : ∀{A B} → nat ≡ A ⇒ B → ⊥
+nat-fun ()
+
+fun-inv1 : ∀{A B C D} → A ⇒ B ≡ C ⇒ D → A ≡ C
+fun-inv1 refl = refl
+
+fun-inv2 : ∀{A B C D} → A ⇒ B ≡ C ⇒ D → B ≡ D
+fun-inv2 refl = refl
+
+typing-unique : (Γ : Context) (M : Term) (A B : Ty)
+    → HasType Γ M A → HasType Γ M B
+    → A ≡ B
+typing-unique Γ _ _ _ (tVar x:A) (tVar x:B) =
+  hasTypeVar-unique x:A x:B
+typing-unique Γ _ _ _ (tLam {A = A} {B = B₁} {N = N} N:B₁) (tLam {B = B₂} N:B₂) =
+  cong (A ⇒_) (typing-unique (A ∷ Γ) N B₁ B₂ N:B₁ N:B₂)
+typing-unique Γ _ _ _ (tApp {A = A₁} {B = B₁} {L = L} L:AB M:A)
+                      (tApp {A = A₂} {B = B₂} L:CD M:C) =
+  fun-inv2 (typing-unique Γ L (A₁ ⇒ B₁) (A₂ ⇒ B₂) L:AB L:CD)
+typing-unique Γ _ _ _ tZero tZero = refl
+typing-unique Γ _ _ _ (tSuc M:nat) (tSuc M:nat′) = refl
+typing-unique Γ _ _ _ (tCase {M = M} L:nat M:A N:A) (tCase L:nat′ M:B N:B) =
+  typing-unique Γ M _ _ M:A M:B
+

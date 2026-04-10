@@ -10,8 +10,10 @@ module TermProperties where
 --   * this file owns term-variable substitution infrastructure.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using (map; []; _∷_)
-open import Data.Nat using (suc; zero; z<s; s<s)
+open import Data.Bool using (Bool; true; false)
+open import Data.Empty using (⊥-elim)
+open import Data.List using (List; map; []; _∷_)
+open import Data.Nat using (_<_; suc; zero; z<s; s<s)
 open import Data.Product using (Σ; Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality using (cong₂; subst; sym)
 
@@ -291,3 +293,175 @@ M [ T ]ᵀ = substᵗᵐ (singleTyEnv T) M
     refl
     refl
     (substᵗ-wt (singleTyEnv T) (singleTyEnv-Wf T wfT) M⊢)
+
+------------------------------------------------------------------------
+-- Permission-list well-formedness and practical renaming shortcut
+------------------------------------------------------------------------
+
+-- What if we changed typing rules for up/down to arbitrary Φ and Ξ?
+
+-- How to repair?
+--       renameˢ-wt ρ hρ (⊢up {p = p} M⊢ hp) = ...
+--       renameˢ-wt ρ hρ (⊢down {p = p} M⊢ hp) = ..
+
+-- Two ways to transport permission lists under seal renaming:
+-- 1) "Practical shortcut": target `every Ψ′` directly via
+--    `RenOk-every-from-PermWf`.
+-- 2) "renamePerm API" (below): compute a precise image-style target list by
+--    setting exactly the bits `ρ α` for permitted source indices `α`.
+
+PermWf : SealCtx → List Bool → Set
+PermWf Ψ P = ∀ {α} → α ∈ P → α < Ψ
+
+-- 1) target `every Ψ′`
+
+PermWf-every :
+  ∀ {Ψ} →
+  PermWf Ψ (every Ψ)
+PermWf-every = every-index
+
+PermWf-ext-true :
+  ∀ {Ψ}{P : List Bool} →
+  PermWf Ψ P →
+  PermWf (suc Ψ) (true ∷ P)
+PermWf-ext-true wfP {zero} here = z<s
+PermWf-ext-true wfP {suc α} (there p) = s<s (wfP p)
+
+PermWf-ext-false :
+  ∀ {Ψ}{P : List Bool} →
+  PermWf Ψ P →
+  PermWf (suc Ψ) (false ∷ P)
+PermWf-ext-false wfP {zero} ()
+PermWf-ext-false wfP {suc α} (there p) = s<s (wfP p)
+
+RenOk-every-from-PermWf :
+  ∀ {Ψ Ψ′} {ρ : Renameˢ} {P : List Bool} →
+  SealRenameWf Ψ Ψ′ ρ →
+  PermWf Ψ P →
+  RenOk ρ P (every Ψ′)
+RenOk-every-from-PermWf hρ wfP p = every-member _ (hρ (wfP p))
+
+RenOk-ext-true-every :
+  ∀ {Ψ′}{ρ : Renameˢ}{P : List Bool} →
+  RenOk ρ P (every Ψ′) →
+  RenOk (extˢ ρ) (true ∷ P) (every (suc Ψ′))
+RenOk-ext-true-every ok {zero} here = here
+RenOk-ext-true-every ok {suc α} (there p) = there (ok p)
+
+RenOk-ext-false-every :
+  ∀ {Ψ′}{ρ : Renameˢ}{P : List Bool} →
+  RenOk ρ P (every Ψ′) →
+  RenOk (extˢ ρ) (false ∷ P) (every (suc Ψ′))
+RenOk-ext-false-every ok {zero} ()
+RenOk-ext-false-every ok {suc α} (there p) = there (ok p)
+
+
+-- 2) compute a precise image-style permission list
+
+pred-< :
+  ∀ {α Ψ} →
+  suc α < suc Ψ →
+  α < Ψ
+pred-< (s<s α<Ψ) = α<Ψ
+
+tail-PermWf :
+  ∀ {Ψ}{b : Bool}{P : List Bool} →
+  PermWf (suc Ψ) (b ∷ P) →
+  PermWf Ψ P
+tail-PermWf wf {α} p = pred-< (wf (there p))
+
+shift-Renameˢ :
+  Renameˢ →
+  Renameˢ
+shift-Renameˢ ρ α = ρ (suc α)
+
+shift-SealRenameWf :
+  ∀ {Ψ Ψ′}{ρ : Renameˢ} →
+  SealRenameWf (suc Ψ) Ψ′ ρ →
+  SealRenameWf Ψ Ψ′ (shift-Renameˢ ρ)
+shift-SealRenameWf hρ α<Ψ = hρ (s<s α<Ψ)
+
+setPerm :
+  Seal →
+  List Bool →
+  List Bool
+setPerm zero [] = true ∷ []
+setPerm zero (b ∷ P) = true ∷ P
+setPerm (suc α) [] = false ∷ setPerm α []
+setPerm (suc α) (b ∷ P) = b ∷ setPerm α P
+
+setPerm-hit :
+  (α : Seal) →
+  (P : List Bool) →
+  α ∈ setPerm α P
+setPerm-hit zero [] = here
+setPerm-hit zero (b ∷ P) = here
+setPerm-hit (suc α) [] = there (setPerm-hit α [])
+setPerm-hit (suc α) (b ∷ P) = there (setPerm-hit α P)
+
+setPerm-preserve :
+  ∀ {α β}{P : List Bool} →
+  β ∈ P →
+  β ∈ setPerm α P
+setPerm-preserve {α = zero} {β = zero} here = here
+setPerm-preserve {α = zero} {β = suc β} (there p) = there p
+setPerm-preserve {α = suc α} {β = zero} here = here
+setPerm-preserve {α = suc α} {β = suc β} (there p) =
+  there (setPerm-preserve {α = α} {β = β} p)
+
+renamePerm :
+  ∀ {Ψ Ψ′} →
+  (ρ : Renameˢ) →
+  SealRenameWf Ψ Ψ′ ρ →
+  List Bool →
+  List Bool
+renamePerm {Ψ = zero} {Ψ′ = Ψ′} ρ hρ P = none Ψ′
+renamePerm {Ψ = suc Ψ} ρ hρ [] =
+  renamePerm
+    {Ψ = Ψ}
+    (shift-Renameˢ ρ)
+    (shift-SealRenameWf hρ)
+    []
+renamePerm {Ψ = suc Ψ} ρ hρ (false ∷ P) =
+  renamePerm
+    {Ψ = Ψ}
+    (shift-Renameˢ ρ)
+    (shift-SealRenameWf hρ)
+    P
+renamePerm {Ψ = suc Ψ} ρ hρ (true ∷ P) =
+  setPerm
+    (ρ zero)
+    (renamePerm
+      {Ψ = Ψ}
+      (shift-Renameˢ ρ)
+      (shift-SealRenameWf hρ)
+      P)
+
+renamePerm-ok :
+  ∀ {Ψ Ψ′} {ρ : Renameˢ} {P : List Bool} →
+  (hρ : SealRenameWf Ψ Ψ′ ρ) →
+  PermWf Ψ P →
+  RenOk ρ P (renamePerm ρ hρ P)
+renamePerm-ok {Ψ = zero} hρ wfP {α} α∈P with wfP α∈P
+renamePerm-ok {Ψ = zero} hρ wfP {α} α∈P | ()
+renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = []} hρ wfP {α} ()
+renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = false ∷ P} hρ wfP {zero} ()
+renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = false ∷ P} hρ wfP {suc α} (there α∈P) =
+  renamePerm-ok
+    (shift-SealRenameWf hρ)
+    (tail-PermWf wfP)
+    α∈P
+renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = true ∷ P} hρ wfP {zero} here =
+  setPerm-hit
+    (ρ zero)
+    (renamePerm
+      {Ψ = Ψ}
+      (shift-Renameˢ ρ)
+      (shift-SealRenameWf hρ)
+      P)
+renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = true ∷ P} hρ wfP {suc α} (there α∈P) =
+  setPerm-preserve
+    (renamePerm-ok
+      (shift-SealRenameWf hρ)
+      (tail-PermWf wfP)
+      α∈P)

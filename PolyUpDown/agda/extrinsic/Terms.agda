@@ -568,8 +568,7 @@ wkΣ-term w (⊢blame ℓ) = ⊢blame ℓ
 -- Auxiliary lookup and instantiation lemmas
 ------------------------------------------------------------------------
 
-reveal-⊑ : (A : Ty) (B : Ty) →
-  Up
+reveal-⊑ : (A : Ty) (B : Ty) → Up
 reveal-⊑ A B =
   substᵗ-⊑
     (singleTyEnv (｀ zero))
@@ -760,16 +759,17 @@ renameˢ-wt ρ hρ (⊢blame ℓ) = ⊢blame ℓ
 -- Instantiation helper for terms
 ------------------------------------------------------------------------
 
-inst : ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx} {L : Term}{A B : Ty} →
+inst : Term → Ty → Ty → Term
+inst L A B = ν:= A ∙ ((⇑ˢᵐ L • zero) up (reveal-⊑ A B))
+
+inst-wt : ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx} (L : Term) (A B : Ty) →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ L ⦂ `∀ B →
   WfTy Δ Ψ A →
-  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢
-    (ν:= A ∙ ((⇑ˢᵐ L • zero) up (reveal-⊑ A B)))
-    ⦂ B [ A ]ᵗ
-inst {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} L wfA =
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ inst L A B ⦂ B [ A ]ᵗ
+inst-wt {Ψ = Ψ} {Σ = Σ} L A B L⊢ wfA =
   ⊢ν wfA (cong-⊢⦂ refl refl refl (inst-⇑ˢ A B)
          (⊢up
-           (⊢• (wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ-wt L)) here (Z∋ˢ refl refl))
+           (⊢• (wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ-wt L⊢)) here (Z∋ˢ refl refl))
            (instSubst⊑-wt
              (singleTyEnv (｀ zero))
              (singleTyEnv (⇑ˢ A))

@@ -6,10 +6,11 @@ module Examples where
 --   * blame behavior.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using ([])
+open import Data.Bool using (true; false)
+open import Data.List using ([]; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; z<s; s<s)
-open import Data.Product using (Σ-syntax; proj₁; proj₂)
+open import Data.Product using (_,_; Σ-syntax; proj₁; proj₂)
 open import Data.Unit using (tt)
 
 open import Types
@@ -582,7 +583,7 @@ example13-mixed-test = refl
 ------------------------------------------------------------------------
 
 sec2-app-dyn-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ ★
-sec2-app-dyn-⊢ = ⊢· (⊢· (inst {A = ★} (inst {A = ★} polyApp-⊢ wf★) wf★) idDyn-⊢) c★-⊢
+sec2-app-dyn-⊢ = ⊢· (⊢· (inst-wt _ ★ _ (inst-wt _ ★ _ polyApp-⊢ wf★) wf★) idDyn-⊢) c★-⊢
 
 sec2-app-dyn : Term
 sec2-app-dyn = term-of sec2-app-dyn-⊢
@@ -591,7 +592,7 @@ sec2-app-base-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ (‵ `ℕ)
 sec2-app-base-⊢ =
   ⊢·
     (⊢·
-      (inst {A = ‵ `ℕ} (inst {A = ‵ `ℕ} polyApp-⊢ wfBase) wfBase)
+      (inst-wt _ (‵ `ℕ) _ (inst-wt _ (‵ `ℕ) _ polyApp-⊢ wfBase) wfBase)
       natId-⊢)
     c-⊢
 
@@ -609,7 +610,7 @@ sec2-app-base-test = refl
 ------------------------------------------------------------------------
 
 sec5-β-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ (‵ `ℕ)
-sec5-β-⊢ = ⊢· (inst {A = ‵ `ℕ} polyBetaId-⊢ wfBase) c-⊢
+sec5-β-⊢ = ⊢· (inst-wt polyBetaId (‵ `ℕ) (＇ zero ⇒ ＇ zero) polyBetaId-⊢ wfBase) c-⊢
 
 sec5-β : Term
 sec5-β = term-of sec5-β-⊢
@@ -622,13 +623,13 @@ sec5-β-test = refl
 ------------------------------------------------------------------------
 
 sec6-K-dyn-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ ★
-sec6-K-dyn-⊢ = ⊢· (⊢· (inst {A = ★} polyK-⊢ wf★) n42★-⊢) n69★-⊢
+sec6-K-dyn-⊢ = ⊢· (⊢· (inst-wt polyK ★ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) polyK-⊢ wf★) n42★-⊢) n69★-⊢
 
 sec6-K-dyn : Term
 sec6-K-dyn = term-of sec6-K-dyn-⊢
 
 sec6-K-base-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ (‵ `ℕ)
-sec6-K-base-⊢ = ⊢· (⊢· (inst {A = ‵ `ℕ} polyK-⊢ wfBase) n42-⊢) n69-⊢
+sec6-K-base-⊢ = ⊢· (⊢· (inst-wt polyK (‵ `ℕ) (＇ zero ⇒ ＇ zero ⇒ ＇ zero) polyK-⊢ wfBase) n42-⊢) n69-⊢
 
 sec6-K-base : Term
 sec6-K-base = term-of sec6-K-base-⊢
@@ -638,7 +639,7 @@ sec6-K-lax-⊢ =
   ⊢·
     (⊢·
       (⊢down
-        (inst {A = ★} polyK-⊢ wf★)
+        (inst-wt polyK ★ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) polyK-⊢ wf★)
         (kDyn-to-nat★nat 63))
       n42-⊢)
     idFun★-⊢
@@ -651,7 +652,7 @@ sec6-K-strict-⊢ =
   ⊢·
     (⊢·
       (⊢up
-        (inst {A = ‵ `ℕ} polyK-⊢ wfBase)
+        (inst-wt polyK (‵ `ℕ) (＇ zero ⇒ ＇ zero ⇒ ＇ zero) polyK-⊢ wfBase)
         (kNat-to-nat★nat 64))
       n42-⊢)
     idFun★-⊢
@@ -662,7 +663,7 @@ sec6-K-strict = term-of sec6-K-strict-⊢
 sec6-id-leak-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ _ ⦂ ★
 sec6-id-leak-⊢ =
   ⊢·
-    (inst {A = ‵ `ℕ} (⊢down idDyn-⊢ idDyn-to-∀X-X⇒★) wfBase)
+    (inst-wt _ (‵ `ℕ) _ (⊢down idDyn-⊢ idDyn-to-∀X-X⇒★) wfBase)
     n42-⊢
 
 sec6-id-leak : Term
@@ -685,3 +686,28 @@ sec6-K-strict-test = refl
 -- non-blame result.
 sec6-id-leak-test : evalNatDyn uniq[] gas sec6-id-leak-⊢ ≡ just 42
 sec6-id-leak-test = refl
+
+------------------------------------------------------------------------
+-- Minimal inst/down-ν witness with α free in p (as de Bruijn index 1)
+-- and no direct `ν:=_∙_` in the program
+------------------------------------------------------------------------
+
+inst-down-ν-p : Down
+inst-down-ν-p = tag (｀ zero) ↦ seal (suc zero)
+
+inst-down-ν-alpha-in-p : Term
+inst-down-ν-alpha-in-p =
+  ((inst polyId ★ (＇ zero ⇒ ＇ zero)) down (ν inst-down-ν-p)) • zero
+
+-- Here α = zero, and α already appears free in p as `seal (suc zero)`.
+inst-down-ν-alpha-in-p-β-down-ν :
+  inst-down-ν-alpha-in-p
+    —→
+  ((inst polyId ★ (＇ zero ⇒ ＇ zero)) down (inst-down-ν-p [ zero ]↓ˢ))
+inst-down-ν-alpha-in-p-β-down-ν = β-down-ν
+
+inst-down-ν-alpha-in-p-step :
+  [] ∣ inst-down-ν-alpha-in-p
+    —→[ idˢ ]
+  [] ∣ ((inst polyId ★ (＇ zero ⇒ ＇ zero)) down (inst-down-ν-p [ zero ]↓ˢ))
+inst-down-ν-alpha-in-p-step = id-step β-down-ν

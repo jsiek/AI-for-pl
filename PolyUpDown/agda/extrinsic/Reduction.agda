@@ -123,12 +123,33 @@ data _—→_ : Term → Term → Set where
 
   β-up-∀ : ∀ {V : Term} {p : Up} {α : Seal} →
     ((V up (∀ᵖ p)) • α) —→ ((V • α) up (p [ ｀ α ]↑))
+  {-
+  The 0 tyvar in p only appears in id, so replacing it
+  with α is OK.
+  -}
 
   β-down-∀ : ∀ {V : Term} {p : Down} {α : Seal} →
     ((V down (∀ᵖ p)) • α) —→ ((V • α) down (p [ ｀ α ]↓))
+  {-
+  The 0 tyvar in p only appears in id, so replacing it
+  with α is OK.
+  -}
 
   β-down-ν : ∀ {p : Down} {V : Term} {α : Seal} →
     ((V down (ν p)) • α) —→ (V down (p [ α ]↓ˢ))
+  {-
+  The 0 tyvar in p is in Ξ but not Φ
+  so it can appear in untag/tag or id but not seal/unseal.
+
+  Thus, α can get substituted into a tag/untag inside p.
+
+  Can α already appear in p?
+  If not, no problem.
+  If so, the α may have been in either Ξ or Φ.
+  Φ′ includes α if Φ does.
+  Ξ′ must include α.
+  
+  -}
 
   β-up-ν : ∀ {V : Term} {p : Up} →
     (V up (ν p)) —→ (ν:= ★ ∙ ((⇑ˢᵐ V • zero) up p))

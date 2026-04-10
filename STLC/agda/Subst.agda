@@ -73,9 +73,9 @@ subst-cong {sigma} {tau} h (case_[zero⇒_|suc⇒_] l m n) =
     h-ext zeroℕ = refl
     h-ext (sucℕ i) = cong (rename sucℕ) (h i)
 
-singleSubstDef : (n m : Term) ->
-  singleSubst n m ≡ subst (singleEnv m) n
-singleSubstDef n m = refl
+subst-single-def : (n m : Term) ->
+  _[_] n m ≡ subst (singleEnv m) n
+subst-single-def n m = refl
 
 ------------------------------------------------------------------------
 -- Substitution theorems
@@ -209,14 +209,14 @@ subst_id (case_[zero⇒_|suc⇒_] l m n) =
     exts-` (sucℕ i) = refl
 
 substitution : {m n l : Term} ->
-  singleSubst (singleSubst m n) l ≡
-  singleSubst (subst_one_at_one m l) (singleSubst n l)
+  _[_] (_[_] m n) l ≡
+  _[_] (subst_one_at_one m l) (_[_] n l)
 substitution {m} {n} {l} =
   trans
     (trans
-      (cong (λ t -> singleSubst t l) (singleSubstDef m n))
+      (cong (λ t -> _[_] t l) (subst-single-def m n))
       (trans
-        (singleSubstDef (subst sigma m) l)
+        (subst-single-def (subst sigma m) l)
         (sub_sub sigma tau m)))
     (trans
       (subst-cong env-eq m)
@@ -224,10 +224,10 @@ substitution {m} {n} {l} =
         (sym (sub_sub (exts tau) phi m))
         (sym
           (trans
-            (cong (λ t -> singleSubst t (singleSubst n l)) (subst_one_at_one_def m l))
+            (cong (λ t -> _[_] t (_[_] n l)) (subst_one_at_one_def m l))
             (trans
-              (cong (λ t -> singleSubst (subst (exts tau) m) t) (singleSubstDef n l))
-              (singleSubstDef (subst (exts tau) m) (subst tau n)))))))
+              (cong (λ t -> _[_] (subst (exts tau) m) t) (subst-single-def n l))
+              (subst-single-def (subst (exts tau) m) (subst tau n)))))))
   where
     sigma : Sub
     sigma = singleEnv n
@@ -249,11 +249,11 @@ substitution {m} {n} {l} =
     env-eq (sucℕ (sucℕ k)) = refl
 
 exts_sub_cons : {σ : Sub} {N V : Term} ->
-  singleSubst (subst (exts σ) N) V ≡
+  _[_] (subst (exts σ) N) V ≡
   subst (consSub σ V) N
 exts_sub_cons {σ} {N} {V} =
   trans
-    (singleSubstDef (subst (exts σ) N) V)
+    (subst-single-def (subst (exts σ) N) V)
     (trans
       (sub_sub (exts σ) phi N)
       (subst-cong env-eq N))

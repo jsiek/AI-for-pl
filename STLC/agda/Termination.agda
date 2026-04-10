@@ -23,36 +23,36 @@ data VNat : Term -> Set where
   vsuc  : {V : Term} -> VNat V -> VNat (`suc V)
 
 VNat_to_Value : {M : Term} -> VNat M -> Value M
-VNat_to_Value vzero = vZero
-VNat_to_Value (vsuc vM) = vSuc (VNat_to_Value vM)
+VNat_to_Value vzero = V-zero
+VNat_to_Value (vsuc vM) = V-suc (VNat_to_Value vM)
 
 𝒱 : Ty -> Term -> Set
 𝒱 nat M            = VNat M
-𝒱 (fn A B) (ƛ _ ⇒ N) =
+𝒱 (A ⇒ B) (ƛ _ ⇒ N) =
   (V : Term) -> 𝒱 A V ->
-  Σ Term (λ V' -> (singleSubst N V —↠ V') × Value V' × 𝒱 B V')
-𝒱 (fn _ _) _       = ⊥
+  Σ Term (λ V' -> (N [ V ] —↠ V') × Value V' × 𝒱 B V')
+𝒱 (_ ⇒ _) _       = ⊥
 
 𝒱_to_Value : {A : Ty} {M : Term} -> 𝒱 A M -> Value M
 𝒱_to_Value {A = nat} vM = VNat_to_Value vM
-𝒱_to_Value {A = fn A B} {M = ƛ _ ⇒ N} wtv = vLam
-𝒱_to_Value {A = fn A B} {M = ` _} ()
-𝒱_to_Value {A = fn A B} {M = L · M₁} ()
-𝒱_to_Value {A = fn A B} {M = `zero} ()
-𝒱_to_Value {A = fn A B} {M = `suc M₁} ()
-𝒱_to_Value {A = fn A B} {M = case_[zero⇒_|suc⇒_] L M₁ N} ()
+𝒱_to_Value {A = A ⇒ B} {M = ƛ _ ⇒ N} wtv = V-ƛ
+𝒱_to_Value {A = A ⇒ B} {M = ` _} ()
+𝒱_to_Value {A = A ⇒ B} {M = L · M₁} ()
+𝒱_to_Value {A = A ⇒ B} {M = `zero} ()
+𝒱_to_Value {A = A ⇒ B} {M = `suc M₁} ()
+𝒱_to_Value {A = A ⇒ B} {M = case_[zero⇒_|suc⇒_] L M₁ N} ()
 
 ℰ : Ty -> Term -> Set
 ℰ A M = Σ Term (λ V -> (M —↠ V) × Value V × 𝒱 A V)
 
 𝒱_to_ℰ : {A : Ty} {M : Term} -> 𝒱 A M -> ℰ A M
-𝒱_to_ℰ {A} {M} wtv = M , ((ms-refl M) , (𝒱_to_Value wtv , wtv))
+𝒱_to_ℰ {A} {M} wtv = M , ((M ∎) , (𝒱_to_Value wtv , wtv))
 
-SubstWellBehaved : Context -> (ℕ -> Term) -> Set
-SubstWellBehaved Γ σ = ∀ {x C} -> HasTypeVar Γ x C -> 𝒱 C (σ x)
+SubstWellBehaved : Ctx -> (ℕ -> Term) -> Set
+SubstWellBehaved Γ σ = ∀ {x C} -> Γ ∋ x ⦂ C -> 𝒱 C (σ x)
 
 extend_sub :
-  {Γ : Context} {σ : ℕ -> Term} {A : Ty} {V : Term} ->
+  {Γ : Ctx} {σ : ℕ -> Term} {A : Ty} {V : Term} ->
   𝒱 A V ->
   SubstWellBehaved Γ σ ->
   SubstWellBehaved (A ∷ Γ) (consSub σ V)
@@ -65,38 +65,40 @@ app_compat :
   Value L' ->
   M —↠ M' ->
   (L · M) —↠ (L' · M')
-app_compat (ms-refl _) vL' (ms-refl _) = ms-refl _
-app_compat (ms-refl _) vL' (ms-step _ s ms_next) =
-  ms-step _ (xiAppRight (vL' , s)) (app_compat (ms-refl _) vL' ms_next)
-app_compat (ms-step _ s ms_next) vL' hM =
-  ms-step _ (xiAppLeft s) (app_compat ms_next vL' hM)
+app_compat {L = L} {L' = L'} {M = M} {M' = M'} (L' ∎) vL' (M' ∎) =
+  (L' · M') ∎
+app_compat {L = L} {L' = L'} {M = M} {M' = M'} (L' ∎) vL' (M —→⟨ s ⟩ M↠M') =
+  (L' · M) —→⟨ ξ-·₂ (vL' , s) ⟩ app_compat (L' ∎) vL' M↠M'
+app_compat {L = L} {L' = L'} {M = M} {M' = M'} (L —→⟨ s ⟩ L↠L') vL' M↠M' =
+  (L · M) —→⟨ ξ-·₁ s ⟩ app_compat L↠L' vL' M↠M'
 
 suc_compat :
   {M M' : Term} ->
   M —↠ M' ->
   (`suc M) —↠ (`suc M')
-suc_compat (ms-refl _) = ms-refl _
-suc_compat (ms-step _ s ms_next) =
-  ms-step _ (xiSuc s) (suc_compat ms_next)
+suc_compat (M ∎) = (`suc M) ∎
+suc_compat (M —→⟨ s ⟩ M↠M') =
+  (`suc M) —→⟨ ξ-suc s ⟩ suc_compat M↠M'
 
 case_compat :
   {L L' M N : Term} ->
   L —↠ L' ->
   (case_[zero⇒_|suc⇒_] L M N) —↠ (case_[zero⇒_|suc⇒_] L' M N)
-case_compat (ms-refl _) = ms-refl _
-case_compat (ms-step _ s ms_next) =
-  ms-step _ (xiCase s) (case_compat ms_next)
+case_compat {L = L} {L' = L'} {M = M} {N = N} (L' ∎) =
+  (case_[zero⇒_|suc⇒_] L' M N) ∎
+case_compat {L = L} {L' = L'} {M = M} {N = N} (L —→⟨ s ⟩ L↠L') =
+  (case_[zero⇒_|suc⇒_] L M N) —→⟨ ξ-case s ⟩ case_compat L↠L'
 
 fundamental_property :
-  {Γ : Context} {M : Term} {A : Ty} {σ : ℕ -> Term} ->
-  HasType Γ M A ->
+  {Γ : Ctx} {M : Term} {A : Ty} {σ : ℕ -> Term} ->
+  Γ ⊢ M ⦂ A ->
   SubstWellBehaved Γ σ ->
   ℰ A (subst σ M)
-fundamental_property (tVar hV) hσ = 𝒱_to_ℰ (hσ hV)
-fundamental_property {σ = σ} (tLam {A = A} {B = B} {N = N} hN) hσ =
+fundamental_property (⊢` hV) hσ = 𝒱_to_ℰ (hσ hV)
+fundamental_property {σ = σ} (⊢ƛ {A = A} {B = B} {N = N} hN) hσ =
   (ƛ A ⇒ subst (exts σ) N) ,
-  ((ms-refl (ƛ A ⇒ subst (exts σ) N)) ,
-   (vLam ,
+  (((ƛ A ⇒ subst (exts σ) N) ∎) ,
+   (V-ƛ ,
     (λ V wtv ->
       let (V' , (ms_N , (v_V' , wtv_V'))) =
             fundamental_property hN (extend_sub wtv hσ)
@@ -104,22 +106,22 @@ fundamental_property {σ = σ} (tLam {A = A} {B = B} {N = N} hN) hσ =
       V' ,
       (substEq (λ T -> T —↠ V') (sym (exts_sub_cons {σ = σ} {N = N} {V = V})) ms_N ,
        (v_V' , wtv_V')))))
-fundamental_property {σ = σ} (tApp {A = A} {B = B} {L = L} {M = M} hL hM) hσ
+fundamental_property {σ = σ} (⊢· {A = A} {B = B} {L = L} {M = M} hL hM) hσ
   with fundamental_property hL hσ | fundamental_property hM hσ
 ... | (ƛ A ⇒ N , (ms_L , (v_L , wtv_L))) | (M' , (ms_M , (v_M , wtv_M))) with wtv_L M' wtv_M
 ... | (V' , (ms_V , (v_V , wtv_V))) =
   V' ,
-  (multi-trans (app_compat ms_L v_L ms_M) (ms-step _ (betaLam v_M) ms_V) ,
+  (multi-trans (app_compat ms_L v_L ms_M) (((ƛ A ⇒ N) · M') —→⟨ β-ƛ v_M ⟩ ms_V) ,
    (v_V , wtv_V))
-fundamental_property {σ = σ} tZero hσ =
-  `zero , ((ms-refl `zero) , (vZero , vzero))
-fundamental_property {σ = σ} (tSuc {M = M} hM) hσ
+fundamental_property {σ = σ} ⊢zero hσ =
+  `zero , ((`zero ∎) , (V-zero , vzero))
+fundamental_property {σ = σ} (⊢suc {M = M} hM) hσ
   with fundamental_property hM hσ
 ... | (V , (ms_M , (v_V , wtv_V))) =
   `suc V ,
   (suc_compat ms_M ,
-   (vSuc v_V , vsuc wtv_V))
-fundamental_property {σ = σ} (tCase {A = A} {L = L} {M = M} {N = N} hL hM hN) hσ
+   (V-suc v_V , vsuc wtv_V))
+fundamental_property {σ = σ} (⊢case {A = A} {L = L} {M = M} {N = N} hL hM hN) hσ
   with fundamental_property hL hσ
 ... | (L' , (ms_L , (v_L , wtv_L))) = case-go L' ms_L v_L wtv_L
   where
@@ -132,12 +134,14 @@ fundamental_property {σ = σ} (tCase {A = A} {L = L} {M = M} {N = N} hL hM hN) 
     case-go `zero ms_L v_L vzero with fundamental_property hM hσ
     ... | (M' , (ms_M , (v_M , wtv_M))) =
       M' ,
-      (multi-trans (case_compat ms_L) (ms-step _ betaZero ms_M) ,
+      (multi-trans
+        (case_compat ms_L)
+        ((case_[zero⇒_|suc⇒_] `zero (subst σ M) (subst (exts σ) N)) —→⟨ β-zero ⟩ ms_M) ,
        (v_M , wtv_M))
     case-go (`suc V) ms_L v_L (vsuc wtv_V) with fundamental_property hN (extend_sub wtv_V hσ)
     ... | (N' , (ms_N , (v_N , wtv_N))) =
       N' ,
       (multi-trans (case_compat ms_L)
-        (ms-step _ (betaSuc (𝒱_to_Value wtv_V))
+        ((case_[zero⇒_|suc⇒_] (`suc V) (subst σ M) (subst (exts σ) N)) —→⟨ β-suc (𝒱_to_Value wtv_V) ⟩
           (substEq (λ T -> T —↠ N') (sym (exts_sub_cons {σ = σ} {N = N} {V = V})) ms_N)) ,
        (v_N , wtv_N))

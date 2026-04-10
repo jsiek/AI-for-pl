@@ -12,7 +12,7 @@ open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; z<s; s<s)
 open import Data.Product using (_,_; Σ-syntax; proj₁; proj₂)
 open import Data.Unit using (tt)
-open import Relation.Nullary.Decidable.Core using (toWitness)
+open import Relation.Nullary.Decidable.Core using (toWitness; True)
 
 open import Types
 open import Store
@@ -20,7 +20,7 @@ open import UpDown
 open import Terms
 open import Reduction
 open import Eval
-open import TypeCheckDec using (type-check; storeWf-∅)
+open import TypeCheckDec using (type-check-expect; storeWf-∅)
 
 ------------------------------------------------------------------------
 -- Shared terms and helpers
@@ -29,74 +29,38 @@ open import TypeCheckDec using (type-check; storeWf-∅)
 polyId : Term
 polyId = Λ (ƛ (＇ zero) ⇒ ` zero)
 
-polyId-⊢ : ∀ {Ψ}{Σ : Store} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ polyId ⦂ (`∀ (＇ zero ⇒ ＇ zero))
-polyId-⊢ = ⊢Λ (⊢ƛ (wfVar z<s) (⊢` Z))
-
 idDyn : Term
 idDyn = ƛ ★ ⇒ ` zero
-
-idDyn-⊢ : ∀ {Ψ}{Σ : Store} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ idDyn ⦂ (★ ⇒ ★)
-idDyn-⊢ = ⊢ƛ wf★ (⊢` Z)
 
 nat : ℕ → Term
 nat n = $ (κℕ n)
 
-nat-⊢ : ∀ {Ψ}{Σ : Store} (n : ℕ) → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ nat n ⦂ (‵ `ℕ)
-nat-⊢ n = ⊢$ (κℕ n)
-
 nat★ : ℕ → Term
 nat★ n = nat n up tag (‵ `ℕ)
-
-nat★-⊢ : ∀ {Ψ}{Σ : Store} (n : ℕ) → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ nat★ n ⦂ ★
-nat★-⊢ n = ⊢up (nat-⊢ n) (wt-tag (‵ `ℕ) tt)
 
 c : Term
 c = nat 7
 
-c-⊢ : ∀ {Ψ}{Σ : Store} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ c ⦂ (‵ `ℕ)
-c-⊢ = nat-⊢ 7
-
 n42 : Term
 n42 = nat 42
-
-n42-⊢ : ∀ {Ψ}{Σ : Store} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ n42 ⦂ (‵ `ℕ)
-n42-⊢ = nat-⊢ 42
 
 n69 : Term
 n69 = nat 69
 
-n69-⊢ : ∀ {Ψ}{Σ : Store} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ n69 ⦂ (‵ `ℕ)
-n69-⊢ = nat-⊢ 69
-
 c★ : Term
 c★ = nat★ 7
-
-c★-⊢ : ∀ {Ψ}{Σ : Store} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ c★ ⦂ ★
-c★-⊢ = nat★-⊢ 7
 
 n42★ : Term
 n42★ = nat★ 42
 
-n42★-⊢ : ∀ {Ψ}{Σ : Store} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ n42★ ⦂ ★
-n42★-⊢ = nat★-⊢ 42
-
 n69★ : Term
 n69★ = nat★ 69
-
-n69★-⊢ : ∀ {Ψ}{Σ : Store} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ n69★ ⦂ ★
-n69★-⊢ = nat★-⊢ 69
 
 natId : Term
 natId = ƛ (‵ `ℕ) ⇒ ` zero
 
-natId-⊢ : ∀ {Ψ}{Σ : Store} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ natId ⦂ (‵ `ℕ ⇒ ‵ `ℕ)
-natId-⊢ = ⊢ƛ wfBase (⊢` Z)
-
 idFun★ : Term
 idFun★ = idDyn up tag (★ ⇒ ★)
-
-idFun★-⊢ : ∀ {Ψ}{Σ : Store} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ idFun★ ⦂ ★
-idFun★-⊢ = ⊢up idDyn-⊢ (wt-tag ★⇒★ tt)
 
 polyApp : Term
 polyApp =
@@ -106,31 +70,8 @@ polyApp =
         ƛ (＇ (suc zero)) ⇒
           (` (suc zero) · ` zero)))
 
-polyApp-⊢ :
-  ∀ {Ψ}{Σ : Store} →
-  0 ∣ Ψ ∣ Σ ∣ [] ⊢
-    polyApp
-    ⦂ (`∀ (`∀ (((＇ (suc zero)) ⇒ (＇ zero)) ⇒ ((＇ (suc zero)) ⇒ (＇ zero)))))
-polyApp-⊢ =
-  ⊢Λ
-    (⊢Λ
-      (⊢ƛ
-        (wf⇒ (wfVar (s<s z<s)) (wfVar z<s))
-        (⊢ƛ
-          (wfVar (s<s z<s))
-          (⊢· (⊢` (S Z)) (⊢` Z)))))
-
 polyK : Term
 polyK = Λ (ƛ (＇ zero) ⇒ ƛ (＇ zero) ⇒ ` (suc zero))
-
-polyK-⊢ :
-  ∀ {Ψ}{Σ : Store} →
-  0 ∣ Ψ ∣ Σ ∣ [] ⊢ polyK ⦂ (`∀ (＇ zero ⇒ ＇ zero ⇒ ＇ zero))
-polyK-⊢ =
-  ⊢Λ
-    (⊢ƛ
-      (wfVar z<s)
-      (⊢ƛ (wfVar z<s) (⊢` (S Z))))
 
 polyBetaId : Term
 polyBetaId =
@@ -138,51 +79,14 @@ polyBetaId =
     (ƛ (＇ zero) ⇒
       ((ƛ (＇ zero) ⇒ ` zero) · ` zero))
 
-polyBetaId-⊢ :
-  ∀ {Ψ}{Σ : Store} →
-  0 ∣ Ψ ∣ Σ ∣ [] ⊢ polyBetaId ⦂ (`∀ (＇ zero ⇒ ＇ zero))
-polyBetaId-⊢ =
-  ⊢Λ
-    (⊢ƛ
-      (wfVar z<s)
-      (⊢·
-        (⊢ƛ (wfVar z<s) (⊢` Z))
-        (⊢` Z)))
-
-kDyn-to-nat★nat :
-  ∀ {Ψ}{Σ : Store} →
-  (ℓ : Label) →
-  Σ ∣ every Ψ ∣ every Ψ ⊢
-    (tag (‵ `ℕ) ↦ ((id ★) ↦ untag (‵ `ℕ) ℓ))
-    ⦂ (★ ⇒ ★ ⇒ ★) ⊒ (‵ `ℕ ⇒ ★ ⇒ ‵ `ℕ)
-kDyn-to-nat★nat ℓ =
-  wt-↦ {p = tag (‵ `ℕ)} {q = (id ★) ↦ untag (‵ `ℕ) ℓ}
-    (wt-tag (‵ `ℕ) tt)
-    (wt-↦ {p = id ★} {q = untag (‵ `ℕ) ℓ}
-      (wt-id (wfTySome ★))
-      (wt-untag (‵ `ℕ) tt ℓ))
-
-kNat-to-nat★nat :
-  ∀ {Ψ}{Σ : Store} →
-  (ℓ : Label) →
-  Σ ∣ every Ψ ∣ every Ψ ⊢
-    ((id (‵ `ℕ)) ↦ (untag (‵ `ℕ) ℓ ↦ (id (‵ `ℕ))))
-    ⦂ (‵ `ℕ ⇒ ‵ `ℕ ⇒ ‵ `ℕ) ⊑ (‵ `ℕ ⇒ ★ ⇒ ‵ `ℕ)
-kNat-to-nat★nat ℓ =
-  wt-↦ {p = id (‵ `ℕ)} {q = untag (‵ `ℕ) ℓ ↦ id (‵ `ℕ)}
-    (wt-id (wfTySome (‵ `ℕ)))
-    (wt-↦ {p = untag (‵ `ℕ) ℓ} {q = id (‵ `ℕ)}
-      (wt-untag (‵ `ℕ) tt ℓ)
-      (wt-id (wfTySome (‵ `ℕ))))
-
-idDyn-to-∀X-X⇒★ :
-  ∀ {Ψ}{Σ : Store} →
-  Σ ∣ every Ψ ∣ every Ψ ⊢ _ ⦂ (★ ⇒ ★) ⊒ (`∀ (＇ zero ⇒ ★))
-idDyn-to-∀X-X⇒★ =
-  wt-ν
-    (wt-↦ {p = tag (｀ zero)} {q = id ★}
-      (wt-tag (｀ zero) here)
-      (wt-id (wfTySome ★)))
+expect-⊢ :
+  (M : Term) →
+  (A : Ty) →
+  True (type-check-expect 0 0 [] [] (λ ()) storeWf-∅ M A) →
+  0 ∣ 0 ∣ [] ∣ [] ⊢ M ⦂ A
+expect-⊢ M A ok =
+  proj₁
+    (toWitness {a? = type-check-expect 0 0 [] [] (λ ()) storeWf-∅ M A} ok)
 
 gas : ℕ
 gas = 250
@@ -242,16 +146,13 @@ example1-left : Term
 example1-left = (idDyn · c★) down (untag (‵ `ℕ) 1)
 
 example1-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example1-left ⦂ (‵ `ℕ)
-example1-left-⊢ =
-  ⊢down
-    (⊢· idDyn-⊢ c★-⊢)
-    (wt-untag (‵ `ℕ) tt 1)
+example1-left-⊢ = expect-⊢ example1-left (‵ `ℕ) tt
 
 example1-right : Term
 example1-right = idDyn · c★
 
 example1-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example1-right ⦂ ★
-example1-right-⊢ = ⊢· idDyn-⊢ c★-⊢
+example1-right-⊢ = expect-⊢ example1-right ★ tt
 
 example1-left-test : evalNat uniq[] gas example1-left-⊢ ≡ just 7
 example1-left-test = refl
@@ -267,13 +168,13 @@ example2-left : Term
 example2-left = example1-left
 
 example2-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example2-left ⦂ (‵ `ℕ)
-example2-left-⊢ = example1-left-⊢
+example2-left-⊢ = expect-⊢ example2-left (‵ `ℕ) tt
 
 example2-right : Term
 example2-right = idDyn · c★
 
 example2-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example2-right ⦂ ★
-example2-right-⊢ = ⊢· idDyn-⊢ c★-⊢
+example2-right-⊢ = expect-⊢ example2-right ★ tt
 
 example2-left-test : evalNat uniq[] gas example2-left-⊢ ≡ just 7
 example2-left-test = refl
@@ -289,13 +190,13 @@ example3-left : Term
 example3-left = idDyn · c★
 
 example3-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example3-left ⦂ ★
-example3-left-⊢ = ⊢· idDyn-⊢ c★-⊢
+example3-left-⊢ = expect-⊢ example3-left ★ tt
 
 example3-right : Term
 example3-right = idDyn · c★
 
 example3-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example3-right ⦂ ★
-example3-right-⊢ = ⊢· idDyn-⊢ c★-⊢
+example3-right-⊢ = expect-⊢ example3-right ★ tt
 
 example3-left-test : evalNatDyn uniq[] gas example3-left-⊢ ≡ just 7
 example3-left-test = refl
@@ -311,13 +212,13 @@ example4-left : Term
 example4-left = example1-left
 
 example4-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example4-left ⦂ (‵ `ℕ)
-example4-left-⊢ = example1-left-⊢
+example4-left-⊢ = expect-⊢ example4-left (‵ `ℕ) tt
 
 example4-right : Term
 example4-right = example3-left
 
 example4-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example4-right ⦂ ★
-example4-right-⊢ = example3-left-⊢
+example4-right-⊢ = expect-⊢ example4-right ★ tt
 
 example4-left-test : evalNat uniq[] gas example4-left-⊢ ≡ just 7
 example4-left-test = refl
@@ -333,17 +234,14 @@ example5-left : Term
 example5-left = example1-left
 
 example5-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example5-left ⦂ (‵ `ℕ)
-example5-left-⊢ = example1-left-⊢
+example5-left-⊢ = expect-⊢ example5-left (‵ `ℕ) tt
 
 example5-right : Term
 example5-right =
   (example1-left up tag (‵ `ℕ)) down (untag (‵ `ℕ) 5)
 
 example5-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example5-right ⦂ (‵ `ℕ)
-example5-right-⊢ =
-  ⊢down
-    (⊢up example1-left-⊢ (wt-tag (‵ `ℕ) tt))
-    (wt-untag (‵ `ℕ) tt 5)
+example5-right-⊢ = expect-⊢ example5-right (‵ `ℕ) tt
 
 example5-left-test : evalNat uniq[] gas example5-left-⊢ ≡ just 7
 example5-left-test = refl
@@ -359,17 +257,14 @@ example6-left : Term
 example6-left = example1-left
 
 example6-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example6-left ⦂ (‵ `ℕ)
-example6-left-⊢ = example1-left-⊢
+example6-left-⊢ = expect-⊢ example6-left (‵ `ℕ) tt
 
 example6-right : Term
 example6-right =
   (example1-right down (untag (‵ `ℕ) 6)) up tag (‵ `ℕ)
 
 example6-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example6-right ⦂ ★
-example6-right-⊢ =
-  ⊢up
-    (⊢down example1-right-⊢ (wt-untag (‵ `ℕ) tt 6))
-    (wt-tag (‵ `ℕ) tt)
+example6-right-⊢ = expect-⊢ example6-right ★ tt
 
 example6-left-test : evalNat uniq[] gas example6-left-⊢ ≡ just 7
 example6-left-test = refl
@@ -385,17 +280,14 @@ example7-left : Term
 example7-left = example1-left
 
 example7-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example7-left ⦂ (‵ `ℕ)
-example7-left-⊢ = example1-left-⊢
+example7-left-⊢ = expect-⊢ example7-left (‵ `ℕ) tt
 
 example7-right : Term
 example7-right =
   (example5-right up tag (‵ `ℕ)) down (untag (‵ `ℕ) 7)
 
 example7-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example7-right ⦂ (‵ `ℕ)
-example7-right-⊢ =
-  ⊢down
-    (⊢up example5-right-⊢ (wt-tag (‵ `ℕ) tt))
-    (wt-untag (‵ `ℕ) tt 7)
+example7-right-⊢ = expect-⊢ example7-right (‵ `ℕ) tt
 
 example7-left-test : evalNat uniq[] gas example7-left-⊢ ≡ just 7
 example7-left-test = refl
@@ -411,13 +303,13 @@ example8-left : Term
 example8-left = example1-left
 
 example8-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example8-left ⦂ (‵ `ℕ)
-example8-left-⊢ = example1-left-⊢
+example8-left-⊢ = expect-⊢ example8-left (‵ `ℕ) tt
 
 example8-right : Term
 example8-right = example1-left down id (‵ `ℕ)
 
 example8-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example8-right ⦂ (‵ `ℕ)
-example8-right-⊢ = ⊢down example1-left-⊢ (wt-id (wfTySome (‵ `ℕ)))
+example8-right-⊢ = expect-⊢ example8-right (‵ `ℕ) tt
 
 example8-left-test : evalNat uniq[] gas example8-left-⊢ ≡ just 7
 example8-left-test = refl
@@ -432,23 +324,17 @@ example8-right-test = refl
 Kdyn : Term
 Kdyn = ƛ ★ ⇒ ƛ ★ ⇒ ` (suc zero)
 
-Kdyn-⊢ : ∀ {Ψ}{Σ : Store} → 0 ∣ Ψ ∣ Σ ∣ [] ⊢ Kdyn ⦂ (★ ⇒ ★ ⇒ ★)
-Kdyn-⊢ = ⊢ƛ wf★ (⊢ƛ wf★ (⊢` (S Z)))
-
 example9-left : Term
 example9-left = ((Kdyn · n42★) · n69★) down (untag (‵ `ℕ) 9)
 
 example9-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example9-left ⦂ (‵ `ℕ)
-example9-left-⊢ =
-  ⊢down
-    (⊢· (⊢· Kdyn-⊢ n42★-⊢) n69★-⊢)
-    (wt-untag (‵ `ℕ) tt 9)
+example9-left-⊢ = expect-⊢ example9-left (‵ `ℕ) tt
 
 example9-right : Term
 example9-right = (Kdyn · n42★) · n69★
 
 example9-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example9-right ⦂ ★
-example9-right-⊢ = ⊢· (⊢· Kdyn-⊢ n42★-⊢) n69★-⊢
+example9-right-⊢ = expect-⊢ example9-right ★ tt
 
 example9-left-test : evalNat uniq[] gas example9-left-⊢ ≡ just 42
 example9-left-test = refl
@@ -464,14 +350,13 @@ example10-left : Term
 example10-left = example9-left
 
 example10-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example10-left ⦂ (‵ `ℕ)
-example10-left-⊢ = example9-left-⊢
+example10-left-⊢ = expect-⊢ example10-left (‵ `ℕ) tt
 
 example10-right : Term
 example10-right = ((Kdyn up id (★ ⇒ ★ ⇒ ★)) · n42★) · n69★
 
 example10-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example10-right ⦂ ★
-example10-right-⊢ =
-  ⊢· (⊢· (⊢up Kdyn-⊢ (wt-id (wfTySome (★ ⇒ ★ ⇒ ★)))) n42★-⊢) n69★-⊢
+example10-right-⊢ = expect-⊢ example10-right ★ tt
 
 example10-left-test : evalNat uniq[] gas example10-left-⊢ ≡ just 42
 example10-left-test = refl
@@ -489,20 +374,13 @@ example11-left =
     (ν:= ‵ `ℕ ∙ c)
 
 example11-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example11-left ⦂ (‵ `ℕ)
-example11-left-⊢ = ⊢ν wfBase (⊢ν wfBase c-⊢)
+example11-left-⊢ = expect-⊢ example11-left (‵ `ℕ) tt
 
 example11-right : Term
 example11-right = (ƛ ★ ⇒ ((ƛ ★ ⇒ ` zero) · ` zero)) · c★
 
 example11-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example11-right ⦂ ★
-example11-right-⊢ =
-  ⊢·
-    (⊢ƛ
-      wf★
-      (⊢·
-        (⊢ƛ wf★ (⊢` Z))
-        (⊢` Z)))
-    c★-⊢
+example11-right-⊢ = expect-⊢ example11-right ★ tt
 
 example11-left-test : evalNat uniq[] gas example11-left-⊢ ≡ just 7
 example11-left-test = refl
@@ -521,12 +399,7 @@ example12 =
   down (untag (‵ `ℕ) 12)
 
 example12-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example12 ⦂ (‵ `ℕ)
-example12-⊢ =
-  ⊢down
-    (⊢up
-      (⊢down c★-⊢ (wt-untag (‵ `ℕ) tt 12))
-      (wt-tag (‵ `ℕ) tt))
-    (wt-untag (‵ `ℕ) tt 12)
+example12-⊢ = expect-⊢ example12 (‵ `ℕ) tt
 
 example12-test : evalNat uniq[] gas example12-⊢ ≡ just 7
 example12-test = refl
@@ -544,16 +417,7 @@ example13-good =
        down (untag (‵ `ℕ) 13)))
 
 example13-good-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example13-good ⦂ (‵ `ℕ)
-example13-good-⊢ =
-  ⊢ν
-    wfBase
-    (⊢ν
-      wfBase
-      (⊢down
-        (⊢up
-          (⊢down c★-⊢ (wt-untag (‵ `ℕ) tt 13))
-          (wt-tag (‵ `ℕ) tt))
-        (wt-untag (‵ `ℕ) tt 13)))
+example13-good-⊢ = expect-⊢ example13-good (‵ `ℕ) tt
 
 example13-mixed : Term
 example13-mixed =
@@ -562,12 +426,7 @@ example13-mixed =
       (c★ down (untag (‵ `𝔹) 13)))
 
 example13-mixed-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example13-mixed ⦂ (‵ `𝔹)
-example13-mixed-⊢ =
-  ⊢ν
-    wfBase
-    (⊢ν
-      wfBase
-      (⊢down c★-⊢ (wt-untag (‵ `𝔹) tt 13)))
+example13-mixed-⊢ = expect-⊢ example13-mixed (‵ `𝔹) tt
 
 example13-good-test : evalNat uniq[] gas example13-good-⊢ ≡ just 7
 example13-good-test = refl
@@ -585,16 +444,14 @@ sec2-app-dyn =
       (inst
         polyApp
         ★
-        (`∀ ((★ ⇒ ＇ zero) ⇒ (★ ⇒ ＇ zero))))
+        (`∀ (((＇ (suc zero)) ⇒ (＇ zero)) ⇒ ((＇ (suc zero)) ⇒ (＇ zero)))))
       ★
       ((★ ⇒ ＇ zero) ⇒ (★ ⇒ ＇ zero))
    ) · idDyn)
   · c★
 
-sec2-app-dyn-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec2-app-dyn ⦂ A)
-sec2-app-dyn-⊢ =
-  proj₁
-    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec2-app-dyn} tt)
+sec2-app-dyn-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec2-app-dyn ⦂ ★
+sec2-app-dyn-⊢ = expect-⊢ sec2-app-dyn ★ tt
 
 sec2-app-base : Term
 sec2-app-base =
@@ -602,21 +459,19 @@ sec2-app-base =
       (inst
         polyApp
         (‵ `ℕ)
-        (`∀ (((‵ `ℕ) ⇒ ＇ zero) ⇒ ((‵ `ℕ) ⇒ ＇ zero))))
+        (`∀ (((＇ (suc zero)) ⇒ (＇ zero)) ⇒ ((＇ (suc zero)) ⇒ (＇ zero)))))
       (‵ `ℕ)
       (((‵ `ℕ) ⇒ ＇ zero) ⇒ ((‵ `ℕ) ⇒ ＇ zero))
    ) · natId)
   · c
 
-sec2-app-base-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec2-app-base ⦂ A)
-sec2-app-base-⊢ =
-  proj₁
-    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec2-app-base} tt)
+sec2-app-base-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec2-app-base ⦂ (‵ `ℕ)
+sec2-app-base-⊢ = expect-⊢ sec2-app-base (‵ `ℕ) tt
 
-sec2-app-dyn-test : evalNatDyn uniq[] gas (proj₂ sec2-app-dyn-⊢) ≡ just 7
+sec2-app-dyn-test : evalNatDyn uniq[] gas sec2-app-dyn-⊢ ≡ just 7
 sec2-app-dyn-test = refl
 
-sec2-app-base-test : evalNat uniq[] gas (proj₂ sec2-app-base-⊢) ≡ just 7
+sec2-app-base-test : evalNat uniq[] gas sec2-app-base-⊢ ≡ just 7
 sec2-app-base-test = refl
 
 ------------------------------------------------------------------------
@@ -626,12 +481,10 @@ sec2-app-base-test = refl
 sec5-β : Term
 sec5-β = (inst polyBetaId (‵ `ℕ) (＇ zero ⇒ ＇ zero)) · c
 
-sec5-β-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec5-β ⦂ A)
-sec5-β-⊢ =
-  proj₁
-    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec5-β} tt)
+sec5-β-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec5-β ⦂ (‵ `ℕ)
+sec5-β-⊢ = expect-⊢ sec5-β (‵ `ℕ) tt
 
-sec5-β-test : evalNat uniq[] gas (proj₂ sec5-β-⊢) ≡ just 7
+sec5-β-test : evalNat uniq[] gas sec5-β-⊢ ≡ just 7
 sec5-β-test = refl
 
 ------------------------------------------------------------------------
@@ -642,19 +495,15 @@ sec6-K-dyn : Term
 sec6-K-dyn =
   ((inst polyK ★ (＇ zero ⇒ ＇ zero ⇒ ＇ zero)) · n42★) · n69★
 
-sec6-K-dyn-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-dyn ⦂ A)
-sec6-K-dyn-⊢ =
-  proj₁
-    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec6-K-dyn} tt)
+sec6-K-dyn-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-dyn ⦂ ★
+sec6-K-dyn-⊢ = expect-⊢ sec6-K-dyn ★ tt
 
 sec6-K-base : Term
 sec6-K-base =
   ((inst polyK (‵ `ℕ) (＇ zero ⇒ ＇ zero ⇒ ＇ zero)) · n42) · n69
 
-sec6-K-base-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-base ⦂ A)
-sec6-K-base-⊢ =
-  proj₁
-    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec6-K-base} tt)
+sec6-K-base-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-base ⦂ (‵ `ℕ)
+sec6-K-base-⊢ = expect-⊢ sec6-K-base (‵ `ℕ) tt
 
 sec6-K-lax : Term
 sec6-K-lax =
@@ -663,10 +512,8 @@ sec6-K-lax =
    · n42)
   · idFun★
 
-sec6-K-lax-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-lax ⦂ A)
-sec6-K-lax-⊢ =
-  proj₁
-    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec6-K-lax} tt)
+sec6-K-lax-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-lax ⦂ (‵ `ℕ)
+sec6-K-lax-⊢ = expect-⊢ sec6-K-lax (‵ `ℕ) tt
 
 sec6-K-strict : Term
 sec6-K-strict =
@@ -675,10 +522,8 @@ sec6-K-strict =
    · n42)
   · idFun★
 
-sec6-K-strict-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-strict ⦂ A)
-sec6-K-strict-⊢ =
-  proj₁
-    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec6-K-strict} tt)
+sec6-K-strict-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-strict ⦂ (‵ `ℕ)
+sec6-K-strict-⊢ = expect-⊢ sec6-K-strict (‵ `ℕ) tt
 
 sec6-id-leak : Term
 sec6-id-leak =
@@ -688,47 +533,31 @@ sec6-id-leak =
      (＇ zero ⇒ ★))
   · n42
 
-sec6-id-leak-⊢ : Σ-syntax Ty (λ A → 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-id-leak ⦂ A)
-sec6-id-leak-⊢ =
-  proj₁
-    (toWitness {a? = type-check 0 0 [] [] (λ ()) storeWf-∅ sec6-id-leak} tt)
+sec6-id-leak-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-id-leak ⦂ ★
+sec6-id-leak-⊢ = expect-⊢ sec6-id-leak ★ tt
 
-sec6-K-dyn-test : evalNatDyn uniq[] gas (proj₂ sec6-K-dyn-⊢) ≡ just 42
+sec6-K-dyn-test : evalNatDyn uniq[] gas sec6-K-dyn-⊢ ≡ just 42
 sec6-K-dyn-test = refl
 
-sec6-K-base-test : evalNat uniq[] gas (proj₂ sec6-K-base-⊢) ≡ just 42
+sec6-K-base-test : evalNat uniq[] gas sec6-K-base-⊢ ≡ just 42
 sec6-K-base-test = refl
 
-sec6-K-lax-test : evalNat uniq[] gas (proj₂ sec6-K-lax-⊢) ≡ just 42
+sec6-K-lax-test : evalNat uniq[] gas sec6-K-lax-⊢ ≡ just 42
 sec6-K-lax-test = refl
 
-sec6-K-strict-test : evalBlame uniq[] gas (proj₂ sec6-K-strict-⊢) ≡ just 64
+sec6-K-strict-test : evalBlame uniq[] gas sec6-K-strict-⊢ ≡ just 64
 sec6-K-strict-test = refl
 
 -- Unlike the POPL'11 calculus, PolyUpDown currently allows this sealed
 -- result to escape the surrounding `ν:=`, so evaluation reaches a
 -- non-blame result.
-sec6-id-leak-test : evalNatDyn uniq[] gas (proj₂ sec6-id-leak-⊢) ≡ just 42
+sec6-id-leak-test : evalNatDyn uniq[] gas sec6-id-leak-⊢ ≡ just 42
 sec6-id-leak-test = refl
 
 
 ------------------------------------------------------------------------
 -- Exploring invariants regarding seal names.
 ------------------------------------------------------------------------
-
-kDyn-to-∀X-∀Y-X⇒Y⇒X :
-  ∀ {Ψ}{Σ : Store} →
-  Σ ∣ every Ψ ∣ every Ψ
-  ⊢ (ν (ν (tag (｀ (suc zero)) ↦ (tag (｀ zero) ↦ untag (｀ (suc zero)) 700))))
-  ⦂ (★ ⇒ ★ ⇒ ★) ⊒ (`∀ (`∀ (＇ (suc zero) ⇒ ＇ zero ⇒ ＇ (suc zero))))
-kDyn-to-∀X-∀Y-X⇒Y⇒X =
-  wt-ν
-    (wt-ν
-      (wt-↦
-        (wt-tag (｀ (suc zero)) (there here))
-        (wt-↦
-          (wt-tag (｀ zero) here)
-          (wt-untag (｀ (suc zero)) (there here) 700))))
 
 seal-name-example : Term
 seal-name-example =
@@ -743,22 +572,7 @@ seal-name-example =
    · nat 0
 
 seal-name-example-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ seal-name-example ⦂ (‵ `ℕ)
-seal-name-example-⊢ =
-  ⊢·
-    (⊢·
-      (inst-wt
-        _
-        (‵ `ℕ)
-        ((‵ `ℕ) ⇒ ＇ zero ⇒ (‵ `ℕ))
-        (inst-wt
-          _
-          (‵ `ℕ)
-          (`∀ (＇ (suc zero) ⇒ ＇ zero ⇒ ＇ (suc zero)))
-          (⊢down Kdyn-⊢ kDyn-to-∀X-∀Y-X⇒Y⇒X)
-          wfBase)
-        wfBase)
-      n42-⊢)
-    (nat-⊢ 0)
+seal-name-example-⊢ = expect-⊢ seal-name-example (‵ `ℕ) tt
 
 seal-name-example-test : evalNat uniq[] gas seal-name-example-⊢ ≡ just 42
 seal-name-example-test = refl

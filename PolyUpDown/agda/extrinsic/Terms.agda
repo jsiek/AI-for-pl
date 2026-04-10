@@ -289,7 +289,7 @@ instVarExt⊑ :
   ((X : TyVar) → Up) →
   (X : TyVar) →
   Up
-instVarExt⊑ σ τ var⊑ zero = id
+instVarExt⊑ σ τ var⊑ zero = id (＇ zero)
 instVarExt⊑ σ τ var⊑ (suc X) = rename⊑ᵗ suc (var⊑ X)
 
 instVarExt⊒ :
@@ -297,7 +297,7 @@ instVarExt⊒ :
   ((X : TyVar) → Down) →
   (X : TyVar) →
   Down
-instVarExt⊒ σ τ var⊒ zero = id
+instVarExt⊒ σ τ var⊒ zero = id (＇ zero)
 instVarExt⊒ σ τ var⊒ (suc X) = rename⊒ᵗ suc (var⊒ X)
 
 mutual
@@ -308,9 +308,9 @@ mutual
     (A : Ty) →
     Up
   substᵗ-⊑ σ τ var⊑ var⊒ (＇ X) = var⊑ X
-  substᵗ-⊑ σ τ var⊑ var⊒ (｀ α) = id
-  substᵗ-⊑ σ τ var⊑ var⊒ (‵ ι) = id
-  substᵗ-⊑ σ τ var⊑ var⊒ ★ = id
+  substᵗ-⊑ σ τ var⊑ var⊒ (｀ α) = id (｀ α)
+  substᵗ-⊑ σ τ var⊑ var⊒ (‵ ι) = id (‵ ι)
+  substᵗ-⊑ σ τ var⊑ var⊒ ★ = id ★
   substᵗ-⊑ σ τ var⊑ var⊒ (A ⇒ B) =
     substᵗ-⊒ σ τ var⊑ var⊒ A ↦ substᵗ-⊑ σ τ var⊑ var⊒ B
   substᵗ-⊑ σ τ var⊑ var⊒ (`∀ A) =
@@ -328,9 +328,9 @@ mutual
     (A : Ty) →
     Down
   substᵗ-⊒ σ τ var⊑ var⊒ (＇ X) = var⊒ X
-  substᵗ-⊒ σ τ var⊑ var⊒ (｀ α) = id
-  substᵗ-⊒ σ τ var⊑ var⊒ (‵ ι) = id
-  substᵗ-⊒ σ τ var⊑ var⊒ ★ = id
+  substᵗ-⊒ σ τ var⊑ var⊒ (｀ α) = id (｀ α)
+  substᵗ-⊒ σ τ var⊑ var⊒ (‵ ι) = id (‵ ι)
+  substᵗ-⊒ σ τ var⊑ var⊒ ★ = id ★
   substᵗ-⊒ σ τ var⊑ var⊒ (A ⇒ B) =
     substᵗ-⊑ σ τ var⊑ var⊒ A ↦ substᵗ-⊒ σ τ var⊑ var⊒ B
   substᵗ-⊒ σ τ var⊑ var⊒ (`∀ A) =
@@ -352,9 +352,9 @@ mutual
     (A : Ty) →
     Σ ∣ every Ψ ∣ every Ψ ⊢ substᵗ-⊑ σ τ var⊑ var⊒ A ⦂ substᵗ σ A ⊑ substᵗ τ A
   instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (＇ X) = h⊑ X
-  instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (｀ α) = wt-id
-  instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (‵ ι) = wt-id
-  instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ ★ = wt-id
+  instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (｀ α) = wt-id (wfTySome (｀ α))
+  instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (‵ ι) = wt-id (wfTySome (‵ ι))
+  instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ ★ = wt-id (wfTySome ★)
   instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (A ⇒ B) =
     wt-↦
       (instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ A)
@@ -372,12 +372,12 @@ mutual
       where
       h⊑′ : (X : TyVar) →
         ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ instVarExt⊑ σ τ var⊑ X ⦂ extsᵗ σ X ⊑ extsᵗ τ X
-      h⊑′ zero = wt-id
+      h⊑′ zero = wt-id (wfTySome (＇ zero))
       h⊑′ (suc X) = ⊑-renameᵗ-wt suc (h⊑ X)
 
       h⊒′ : (X : TyVar) →
         ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ instVarExt⊒ σ τ var⊒ X ⦂ extsᵗ τ X ⊒ extsᵗ σ X
-      h⊒′ zero = wt-id
+      h⊒′ zero = wt-id (wfTySome (＇ zero))
       h⊒′ (suc X) = ⊒-renameᵗ-wt suc (h⊒ X)
 
   instSubst⊒-wt :
@@ -390,9 +390,9 @@ mutual
     (A : Ty) →
     Σ ∣ every Ψ ∣ every Ψ ⊢ substᵗ-⊒ σ τ var⊑ var⊒ A ⦂ substᵗ τ A ⊒ substᵗ σ A
   instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (＇ X) = h⊒ X
-  instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (｀ α) = wt-id
-  instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (‵ ι) = wt-id
-  instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ ★ = wt-id
+  instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (｀ α) = wt-id (wfTySome (｀ α))
+  instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (‵ ι) = wt-id (wfTySome (‵ ι))
+  instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ ★ = wt-id (wfTySome ★)
   instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (A ⇒ B) =
     wt-↦
       (instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ A)
@@ -410,12 +410,12 @@ mutual
       where
       h⊑′ : (X : TyVar) →
         ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ instVarExt⊑ σ τ var⊑ X ⦂ extsᵗ σ X ⊑ extsᵗ τ X
-      h⊑′ zero = wt-id
+      h⊑′ zero = wt-id (wfTySome (＇ zero))
       h⊑′ (suc X) = ⊑-renameᵗ-wt suc (h⊑ X)
 
       h⊒′ : (X : TyVar) →
         ⟰ᵗ Σ ∣ every Ψ ∣ every Ψ ⊢ instVarExt⊒ σ τ var⊒ X ⦂ extsᵗ τ X ⊒ extsᵗ σ X
-      h⊒′ zero = wt-id
+      h⊒′ zero = wt-id (wfTySome (＇ zero))
       h⊒′ (suc X) = ⊒-renameᵗ-wt suc (h⊒ X)
 
 instSubst⊒ :
@@ -451,7 +451,7 @@ instVar⊑ :
   (X : TyVar) →
   Up
 instVar⊑ A α zero = unseal α
-instVar⊑ A α (suc X) = id
+instVar⊑ A α (suc X) = id (＇ X)
 
 instVar⊑-wt :
   ∀ {Ψ}{Σ : Store}{A : Ty}{α : Seal} →
@@ -460,7 +460,7 @@ instVar⊑-wt :
   (X : TyVar) →
   Σ ∣ every Ψ ∣ every Ψ ⊢ instVar⊑ A α X ⦂ singleTyEnv (｀ α) X ⊑ singleTyEnv A X
 instVar⊑-wt h α∈ zero = wt-unseal h α∈
-instVar⊑-wt h α∈ (suc X) = wt-id
+instVar⊑-wt h α∈ (suc X) = wt-id (wfTySome (＇ X))
 
 instVar⊒ :
   (A : Ty) →
@@ -468,13 +468,13 @@ instVar⊒ :
   (X : TyVar) →
   Down
 instVar⊒ A α zero = seal α
-instVar⊒ A α (suc X) = id
+instVar⊒ A α (suc X) = id (＇ X)
 
 instVar⊒-wt : ∀ {Ψ}{Σ : Store}{A : Ty}{α : Seal} →
   (h : Σ ∋ˢ α ⦂ A) (α∈ : α ∈ every Ψ) (X : TyVar) →
   Σ ∣ every Ψ ∣ every Ψ ⊢ instVar⊒ A α X ⦂ singleTyEnv A X ⊒ singleTyEnv (｀ α) X
 instVar⊒-wt h α∈ zero = wt-seal h α∈
-instVar⊒-wt h α∈ (suc X) = wt-id
+instVar⊒-wt h α∈ (suc X) = wt-id (wfTySome (＇ X))
 
 instCast⊑ : ∀ {A : Ty}{B : Ty}{α : Seal} →
   Up
@@ -533,7 +533,7 @@ mutual
   wk⊑ w (wt-↦ p q) = wt-↦ (wk⊒ w p) (wk⊑ w q)
   wk⊑ w (wt-∀ p) = wt-∀ (wk⊑ (inst-⟰ᵗ-⊆ˢ w) p)
   wk⊑ w (wt-ν p) = wt-ν (wk⊑ (ν-⊆ˢ ★ w) p)
-  wk⊑ w wt-id = wt-id
+  wk⊑ w (wt-id wfA) = wt-id wfA
   wk⊑ w (wt-； p q) = wt-； (wk⊑ w p) (wk⊑ w q)
 
   wk⊒ : ∀ {Σ Σ′ : Store}{Φ Ξ : List Bool}{A B : Ty}{p : Down} →
@@ -545,7 +545,7 @@ mutual
   wk⊒ w (wt-↦ p q) = wt-↦ (wk⊑ w p) (wk⊒ w q)
   wk⊒ w (wt-∀ p) = wt-∀ (wk⊒ (inst-⟰ᵗ-⊆ˢ w) p)
   wk⊒ w (wt-ν p) = wt-ν (wk⊒ (ν-⊆ˢ ★ w) p)
-  wk⊒ w wt-id = wt-id
+  wk⊒ w (wt-id wfA) = wt-id wfA
   wk⊒ w (wt-； p q) = wt-； (wk⊒ w p) (wk⊒ w q)
 
 wkΣ-term : ∀ {Δ Ψ}{Σ Σ′ : Store}{Γ : Ctx}{M : Term}{A : Ty} →

@@ -157,36 +157,36 @@ kDyn-to-nat★nat :
   ∀ {Ψ}{Σ : Store} →
   (ℓ : Label) →
   Σ ∣ every Ψ ∣ every Ψ ⊢
-    (tag (‵ `ℕ) ↦ (id ↦ untag (‵ `ℕ) ℓ))
+    (tag (‵ `ℕ) ↦ ((id ★) ↦ untag (‵ `ℕ) ℓ))
     ⦂ (★ ⇒ ★ ⇒ ★) ⊒ (‵ `ℕ ⇒ ★ ⇒ ‵ `ℕ)
 kDyn-to-nat★nat ℓ =
-  wt-↦ {p = tag (‵ `ℕ)} {q = id ↦ untag (‵ `ℕ) ℓ}
+  wt-↦ {p = tag (‵ `ℕ)} {q = (id ★) ↦ untag (‵ `ℕ) ℓ}
     (wt-tag (‵ `ℕ) tt)
-    (wt-↦ {p = id} {q = untag (‵ `ℕ) ℓ}
-      wt-id
+    (wt-↦ {p = id ★} {q = untag (‵ `ℕ) ℓ}
+      (wt-id (wfTySome ★))
       (wt-untag (‵ `ℕ) tt ℓ))
 
 kNat-to-nat★nat :
   ∀ {Ψ}{Σ : Store} →
   (ℓ : Label) →
   Σ ∣ every Ψ ∣ every Ψ ⊢
-    (id ↦ (untag (‵ `ℕ) ℓ ↦ id))
+    ((id (‵ `ℕ)) ↦ (untag (‵ `ℕ) ℓ ↦ (id (‵ `ℕ))))
     ⦂ (‵ `ℕ ⇒ ‵ `ℕ ⇒ ‵ `ℕ) ⊑ (‵ `ℕ ⇒ ★ ⇒ ‵ `ℕ)
 kNat-to-nat★nat ℓ =
-  wt-↦ {p = id} {q = untag (‵ `ℕ) ℓ ↦ id}
-    wt-id
-    (wt-↦ {p = untag (‵ `ℕ) ℓ} {q = id}
+  wt-↦ {p = id (‵ `ℕ)} {q = untag (‵ `ℕ) ℓ ↦ id (‵ `ℕ)}
+    (wt-id (wfTySome (‵ `ℕ)))
+    (wt-↦ {p = untag (‵ `ℕ) ℓ} {q = id (‵ `ℕ)}
       (wt-untag (‵ `ℕ) tt ℓ)
-      wt-id)
+      (wt-id (wfTySome (‵ `ℕ))))
 
 idDyn-to-∀X-X⇒★ :
   ∀ {Ψ}{Σ : Store} →
   Σ ∣ every Ψ ∣ every Ψ ⊢ _ ⦂ (★ ⇒ ★) ⊒ (`∀ (＇ zero ⇒ ★))
 idDyn-to-∀X-X⇒★ =
   wt-ν
-    (wt-↦ {p = tag (｀ zero)} {q = id}
+    (wt-↦ {p = tag (｀ zero)} {q = id ★}
       (wt-tag (｀ zero) here)
-      wt-id)
+      (wt-id (wfTySome ★)))
 
 gas : ℕ
 gas = 250
@@ -418,10 +418,10 @@ example8-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example8-left ⦂ (‵ `ℕ)
 example8-left-⊢ = example1-left-⊢
 
 example8-right : Term
-example8-right = example1-left down id
+example8-right = example1-left down id (‵ `ℕ)
 
 example8-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example8-right ⦂ (‵ `ℕ)
-example8-right-⊢ = ⊢down example1-left-⊢ wt-id
+example8-right-⊢ = ⊢down example1-left-⊢ (wt-id (wfTySome (‵ `ℕ)))
 
 example8-left-test : evalNat uniq[] gas example8-left-⊢ ≡ just 7
 example8-left-test = refl
@@ -471,10 +471,11 @@ example10-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example10-left ⦂ (‵ `ℕ)
 example10-left-⊢ = example9-left-⊢
 
 example10-right : Term
-example10-right = ((Kdyn up id) · n42★) · n69★
+example10-right = ((Kdyn up id (★ ⇒ ★ ⇒ ★)) · n42★) · n69★
 
 example10-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example10-right ⦂ ★
-example10-right-⊢ = ⊢· (⊢· (⊢up Kdyn-⊢ wt-id) n42★-⊢) n69★-⊢
+example10-right-⊢ =
+  ⊢· (⊢· (⊢up Kdyn-⊢ (wt-id (wfTySome (★ ⇒ ★ ⇒ ★)))) n42★-⊢) n69★-⊢
 
 example10-left-test : evalNat uniq[] gas example10-left-⊢ ≡ just 42
 example10-left-test = refl
@@ -738,120 +739,3 @@ seal-name-example-⊢ =
 
 seal-name-example-test : evalNat uniq[] gas seal-name-example-⊢ ≡ just 42
 seal-name-example-test = refl
-
-seal-name-example-trace :
-  Σ[ Ψ′ ∈ SealCtx ]
-  Σ[ Σ′ ∈ Store ]
-  Σ[ N ∈ Term ]
-  Σ[ A′ ∈ Ty ]
-  Σ[ N⊢ ∈ (0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ N ⦂ A′) ]
-    ([] ∣ seal-name-example —↠ Σ′ ∣ N)
-seal-name-example-trace = eval uniq[] gas seal-name-example-⊢
-
-seal-name-example-↠ :
-  [] ∣ seal-name-example —↠ ((zero , ‵ `ℕ) ∷ ((suc zero , ‵ `ℕ) ∷ [])) ∣ ($ (κℕ 42))
-seal-name-example-↠ =
-  seal-name-example
-    —→⟨ ξ-·₁ (ξ-·₁ β-ν) ⟩
-  (((((ν:= ‵ `ℕ ∙
-        ((((ƛ ★ ⇒ (ƛ ★ ⇒ ` 1)) down (ν (ν (tag (｀ 1) ↦ (tag (｀ 0) ↦ untag (｀ 1) 700))))
-            ) • 0)
-          up (∀ᵖ (seal 0 ↦ (id ↦ unseal 0)))))
-      • 0)
-     up (id ↦ (seal 0 ↦ id)))
-    · ($ (κℕ 42)))
-   · ($ (κℕ 0)))
-    —→⟨ ξ-·₁ (ξ-·₁ (ξ-up (ξ-·α β-ν))) ⟩
-  ((((((((ƛ ★ ⇒ (ƛ ★ ⇒ ` 1)) down (ν (ν (tag (｀ 1) ↦ (tag (｀ 0) ↦ untag (｀ 1) 700))))
-        ) • 0)
-      up (∀ᵖ (seal 0 ↦ (id ↦ unseal 0))))
-     • 1)
-    up (id ↦ (seal 1 ↦ id)))
-   · ($ (κℕ 42)))
-  · ($ (κℕ 0)))
-    —→⟨ ξ-·₁ (ξ-·₁ (ξ-up (ξ-·α (ξ-up (id-step β-down-ν))))) ⟩
-  (((((((ƛ ★ ⇒ (ƛ ★ ⇒ ` 1)) down (ν (tag (｀ 1) ↦ (tag (｀ 0) ↦ untag (｀ 1) 700)))
-      ) up (∀ᵖ (seal 0 ↦ (id ↦ unseal 0))))
-     • 1)
-    up (id ↦ (seal 1 ↦ id)))
-   · ($ (κℕ 42)))
-  · ($ (κℕ 0)))
-    —→⟨ ξ-·₁ (ξ-·₁ (ξ-up (id-step β-up-∀))) ⟩
-  (((((((ƛ ★ ⇒ (ƛ ★ ⇒ ` 1)) down (ν (tag (｀ 1) ↦ (tag (｀ 0) ↦ untag (｀ 1) 700)))
-      ) • 1)
-    up (seal 0 ↦ (id ↦ unseal 0)))
-   up (id ↦ (seal 1 ↦ id)))
-  · ($ (κℕ 42)))
- · ($ (κℕ 0)))
-    —→⟨ ξ-·₁ (ξ-·₁ (ξ-up (ξ-up (id-step β-down-ν)))) ⟩
-  ((((((ƛ ★ ⇒ (ƛ ★ ⇒ ` 1)) down (tag (｀ 0) ↦ (tag (｀ 1) ↦ untag (｀ 0) 700)))
-      up (seal 0 ↦ (id ↦ unseal 0)))
-     up (id ↦ (seal 1 ↦ id)))
-    · ($ (κℕ 42)))
-   · ($ (κℕ 0)))
-    —→⟨ ξ-·₁ (id-step β-up-↦) ⟩
-  ((((((ƛ ★ ⇒ (ƛ ★ ⇒ ` 1)) down (tag (｀ 0) ↦ (tag (｀ 1) ↦ untag (｀ 0) 700)))
-      up (seal 0 ↦ (id ↦ unseal 0)))
-     · (($ (κℕ 42)) down id))
-    up (seal 1 ↦ id))
-   · ($ (κℕ 0)))
-    —→⟨ ξ-·₁ (ξ-up (ξ-·₂ (_up_ (_down_ (ƛ ★ ⇒ (ƛ ★ ⇒ ` 1)) _↦_) _↦_) (id-step id-down))) ⟩
-  ((((((ƛ ★ ⇒ (ƛ ★ ⇒ ` 1)) down (tag (｀ 0) ↦ (tag (｀ 1) ↦ untag (｀ 0) 700)))
-      up (seal 0 ↦ (id ↦ unseal 0)))
-     · ($ (κℕ 42)))
-    up (seal 1 ↦ id))
-   · ($ (κℕ 0)))
-    —→⟨ ξ-·₁ (ξ-up (id-step β-up-↦)) ⟩
-  ((((((ƛ ★ ⇒ (ƛ ★ ⇒ ` 1)) down (tag (｀ 0) ↦ (tag (｀ 1) ↦ untag (｀ 0) 700)))
-      · (($ (κℕ 42)) down seal 0))
-     up (id ↦ unseal 0))
-    up (seal 1 ↦ id))
-   · ($ (κℕ 0)))
-    —→⟨ ξ-·₁ (ξ-up (ξ-up (id-step β-down-↦))) ⟩
-  ((((((ƛ ★ ⇒ (ƛ ★ ⇒ ` 1))
-       · ((($ (κℕ 42)) down seal 0) up tag (｀ 0)))
-      down (tag (｀ 1) ↦ untag (｀ 0) 700))
-     up (id ↦ unseal 0))
-    up (seal 1 ↦ id))
-   · ($ (κℕ 0)))
-    —→⟨ ξ-·₁ (ξ-up (ξ-up (ξ-down (id-step (β (_up_ (_down_ ($ (κℕ 42)) seal) tag)))))) ⟩
-  (((((ƛ ★ ⇒ ((($ (κℕ 42)) down seal 0) up tag (｀ 0)))
-      down (tag (｀ 1) ↦ untag (｀ 0) 700))
-     up (id ↦ unseal 0))
-    up (seal 1 ↦ id))
-   · ($ (κℕ 0)))
-    —→⟨ id-step β-up-↦ ⟩
-  (((((ƛ ★ ⇒ ((($ (κℕ 42)) down seal 0) up tag (｀ 0)))
-      down (tag (｀ 1) ↦ untag (｀ 0) 700))
-     up (id ↦ unseal 0))
-    · (($ (κℕ 0)) down seal 1))
-   up id)
-    —→⟨ ξ-up (id-step β-up-↦) ⟩
-  (((((ƛ ★ ⇒ ((($ (κℕ 42)) down seal 0) up tag (｀ 0)))
-      down (tag (｀ 1) ↦ untag (｀ 0) 700))
-     · ((($ (κℕ 0)) down seal 1) down id))
-    up unseal 0)
-   up id)
-    —→⟨ ξ-up (ξ-up (ξ-·₂ (_down_ (ƛ ★ ⇒ ((($ (κℕ 42)) down seal 0) up tag (｀ 0))) _↦_) (id-step id-down))) ⟩
-  (((((ƛ ★ ⇒ ((($ (κℕ 42)) down seal 0) up tag (｀ 0)))
-      down (tag (｀ 1) ↦ untag (｀ 0) 700))
-     · (($ (κℕ 0)) down seal 1))
-    up unseal 0)
-   up id)
-    —→⟨ ξ-up (ξ-up (id-step β-down-↦)) ⟩
-  (((((ƛ ★ ⇒ ((($ (κℕ 42)) down seal 0) up tag (｀ 0)))
-      · ((($ (κℕ 0)) down seal 1) up tag (｀ 1)))
-     down untag (｀ 0) 700)
-    up unseal 0)
-   up id)
-    —→⟨ ξ-up (ξ-up (ξ-down (id-step (β (_up_ (_down_ ($ (κℕ 0)) seal) tag))))) ⟩
-  (((((($ (κℕ 42)) down seal 0) up tag (｀ 0))
-     down untag (｀ 0) 700)
-    up unseal 0)
-   up id)
-    —→⟨ ξ-up (ξ-up (id-step tag-untag-ok)) ⟩
-  (((($ (κℕ 42)) down seal 0) up unseal 0) up id)
-    —→⟨ ξ-up (id-step seal-unseal) ⟩
-  (($ (κℕ 42)) up id)
-    —→⟨ id-step id-up ⟩
-  ($ (κℕ 42)) ∎

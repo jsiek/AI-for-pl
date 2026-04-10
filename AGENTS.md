@@ -17,9 +17,8 @@ Use this as guidance when creating a new language folder.
   polymorphic), membership judgments.
 - [ ] Static semantics: typing judgment(s), including all
   introduction/elimination rules.
-- [ ] Dynamic semantics: small-step reduction and/or big-step evaluator, plus an
-  explicit executable `Eval` function/module when appropriate (for example
-  `PolyUpDown/Eval.agda`), with explicit value forms.
+- [ ] `Reduction` module: values, frames, and small-step reduction.
+- [ ] `Eval` module: executable function `eval` .
 - [ ] Renaming/substitution infrastructure: use parallel renaming and parallel
   substitution as the primary setup (at term level, and at type level when the
   language has type binders), then derive single-variable substitution as a

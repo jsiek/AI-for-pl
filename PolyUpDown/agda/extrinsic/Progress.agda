@@ -264,7 +264,7 @@ progress (⊢up {M = M} {p = p} M⊢ hp) with progress M⊢
 ...   | p ↦ q | wt-↦ p⊢ q⊢ = done (vM up (_↦_ {p = p} {q = q}))
 ...   | ∀ᵖ p | wt-∀ p⊢ = done (vM up (∀ᵖ {p = p}))
 ...   | ν p | wt-ν p⊢ = step (id-step β-up-ν)
-...   | id | wt-id = step (id-step id-up)
+...   | id A | wt-id wfA = step (id-step id-up)
 ...   | p ； q | wt-； p⊢ q⊢ = step (id-step β-up-；)
 progress (⊢down {M = M} {p = p} M⊢ hp) with progress M⊢
 ... | step M→M′ = step (ξ-down M→M′)
@@ -276,6 +276,6 @@ progress (⊢down {M = M} {p = p} M⊢ hp) with progress M⊢
 ...   | p ↦ q | wt-↦ p⊢ q⊢ = done (vM down (_↦_ {p = p} {q = q}))
 ...   | ∀ᵖ p | wt-∀ p⊢ = done (vM down (∀ᵖ {p = p}))
 ...   | ν p | wt-ν p⊢ = done (vM down (ν_ {p = p}))
-...   | id | wt-id = step (id-step id-down)
+...   | id A | wt-id wfA = step (id-step id-down)
 ...   | p ； q | wt-； p⊢ q⊢ = step (id-step β-down-；)
 progress (⊢blame ℓ) = crash (ℓ , refl)

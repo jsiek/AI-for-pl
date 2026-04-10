@@ -160,11 +160,11 @@ data _—→_ : Term → Term → Set where
   β-down-↦ : ∀ {V W : Term} {p : Up} {q : Down} →
     ((V down (p ↦ q)) · W) —→ ((V · (W up p)) down q)
 
-  id-up : ∀ {V : Term} →
-    (V up id) —→ V
+  id-up : ∀ {V : Term} {A : Ty} →
+    (V up (id A)) —→ V
 
-  id-down : ∀ {V : Term} →
-    (V down id) —→ V
+  id-down : ∀ {V : Term} {A : Ty} →
+    (V down (id A)) —→ V
 
   seal-unseal : ∀ {V : Term} {α : Seal} →
     ((V down (seal α)) up (unseal α)) —→ V

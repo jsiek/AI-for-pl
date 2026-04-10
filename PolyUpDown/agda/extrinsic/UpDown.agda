@@ -14,7 +14,7 @@ open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Product using (_,_)
+open import Data.Product using (Σ; Σ-syntax; _,_)
 open import Data.Unit using (⊤)
 
 open import Types
@@ -61,7 +61,7 @@ mutual
 
     ν_ : Up → Up
 
-    id : Up
+    id : Ty → Up
 
     _；_ : Up → Up → Up
 
@@ -76,7 +76,7 @@ mutual
 
     ν_ : Down → Down
 
-    id : Down
+    id : Ty → Down
 
     _；_ : Down → Down → Down
 
@@ -85,6 +85,12 @@ mutual
 ------------------------------------------------------------------------
 
 infix 3 _∣_∣_⊢_⦂_⊑_ _∣_∣_⊢_⦂_⊒_
+
+WfTySome : Ty → Set
+WfTySome A = Σ[ Δ ∈ TyCtx ] Σ[ Ψ ∈ SealCtx ] WfTy Δ Ψ A
+
+postulate
+  wfTySome : (A : Ty) → WfTySome A
 
 mutual
   data _∣_∣_⊢_⦂_⊑_ (Σ : Store) (Φ Ξ : List Bool) : Up → Ty → Ty → Set where
@@ -112,7 +118,8 @@ mutual
       → Σ ∣ Φ ∣ Ξ ⊢ (ν p) ⦂ (`∀ A) ⊑ B
 
     wt-id : ∀ {A}
-      → Σ ∣ Φ ∣ Ξ ⊢ id ⦂ A ⊑ A
+      → WfTySome A
+      → Σ ∣ Φ ∣ Ξ ⊢ id A ⦂ A ⊑ A
 
     wt-； : ∀ {A B C}{p q : Up}
       → Σ ∣ Φ ∣ Ξ ⊢ p ⦂ A ⊑ B
@@ -145,7 +152,8 @@ mutual
       → Σ ∣ Φ ∣ Ξ ⊢ (ν p) ⦂ B ⊒ `∀ A
 
     wt-id : ∀ {A}
-      → Σ ∣ Φ ∣ Ξ ⊢ id ⦂ A ⊒ A
+      → WfTySome A
+      → Σ ∣ Φ ∣ Ξ ⊢ id A ⦂ A ⊒ A
 
     wt-； : ∀ {A B C}{p q : Down}
       → Σ ∣ Φ ∣ Ξ ⊢ p ⦂ A ⊒ B
@@ -229,7 +237,7 @@ mutual
   rename⊑ᵗ ρ (p ↦ q) = rename⊒ᵗ ρ p ↦ rename⊑ᵗ ρ q
   rename⊑ᵗ ρ (∀ᵖ p) = ∀ᵖ (rename⊑ᵗ (extᵗ ρ) p)
   rename⊑ᵗ ρ (ν p) = ν (rename⊑ᵗ ρ p)
-  rename⊑ᵗ ρ id = id
+  rename⊑ᵗ ρ (id A) = id (renameᵗ ρ A)
   rename⊑ᵗ ρ (p ； q) = rename⊑ᵗ ρ p ； rename⊑ᵗ ρ q
 
   rename⊒ᵗ : (ρ : Renameᵗ) → Down → Down
@@ -238,7 +246,7 @@ mutual
   rename⊒ᵗ ρ (p ↦ q) = rename⊑ᵗ ρ p ↦ rename⊒ᵗ ρ q
   rename⊒ᵗ ρ (∀ᵖ p) = ∀ᵖ (rename⊒ᵗ (extᵗ ρ) p)
   rename⊒ᵗ ρ (ν p) = ν (rename⊒ᵗ ρ p)
-  rename⊒ᵗ ρ id = id
+  rename⊒ᵗ ρ (id A) = id (renameᵗ ρ A)
   rename⊒ᵗ ρ (p ； q) = rename⊒ᵗ ρ p ； rename⊒ᵗ ρ q
 
 mutual
@@ -248,7 +256,7 @@ mutual
   rename⊑ˢ ρ (p ↦ q) = rename⊒ˢ ρ p ↦ rename⊑ˢ ρ q
   rename⊑ˢ ρ (∀ᵖ p) = ∀ᵖ (rename⊑ˢ ρ p)
   rename⊑ˢ ρ (ν p) = ν (rename⊑ˢ (extˢ ρ) p)
-  rename⊑ˢ ρ id = id
+  rename⊑ˢ ρ (id A) = id (renameˢ ρ A)
   rename⊑ˢ ρ (p ； q) = rename⊑ˢ ρ p ； rename⊑ˢ ρ q
 
   rename⊒ˢ : (ρ : Renameˢ) → Down → Down
@@ -257,7 +265,7 @@ mutual
   rename⊒ˢ ρ (p ↦ q) = rename⊑ˢ ρ p ↦ rename⊒ˢ ρ q
   rename⊒ˢ ρ (∀ᵖ p) = ∀ᵖ (rename⊒ˢ ρ p)
   rename⊒ˢ ρ (ν p) = ν (rename⊒ˢ (extˢ ρ) p)
-  rename⊒ˢ ρ id = id
+  rename⊒ˢ ρ (id A) = id (renameˢ ρ A)
   rename⊒ˢ ρ (p ； q) = rename⊒ˢ ρ p ； rename⊒ˢ ρ q
 
 mutual
@@ -267,7 +275,7 @@ mutual
   subst⊑ᵗ σ (p ↦ q) = subst⊒ᵗ σ p ↦ subst⊑ᵗ σ q
   subst⊑ᵗ σ (∀ᵖ p) = ∀ᵖ (subst⊑ᵗ (extsᵗ σ) p)
   subst⊑ᵗ σ (ν p) = ν (subst⊑ᵗ (liftSubstˢ σ) p)
-  subst⊑ᵗ σ id = id
+  subst⊑ᵗ σ (id A) = id (substᵗ σ A)
   subst⊑ᵗ σ (p ； q) = subst⊑ᵗ σ p ； subst⊑ᵗ σ q
 
   subst⊒ᵗ : (σ : Substᵗ) → Down → Down
@@ -276,7 +284,7 @@ mutual
   subst⊒ᵗ σ (p ↦ q) = subst⊑ᵗ σ p ↦ subst⊒ᵗ σ q
   subst⊒ᵗ σ (∀ᵖ p) = ∀ᵖ (subst⊒ᵗ (extsᵗ σ) p)
   subst⊒ᵗ σ (ν p) = ν (subst⊒ᵗ (liftSubstˢ σ) p)
-  subst⊒ᵗ σ id = id
+  subst⊒ᵗ σ (id A) = id (substᵗ σ A)
   subst⊒ᵗ σ (p ； q) = subst⊒ᵗ σ p ； subst⊒ᵗ σ q
 
 infixl 8 _[_]↓ˢ
@@ -353,7 +361,7 @@ mutual
           (renameᵗ-ν-src ρ A)
           (renameᵗ-⇑ˢ ρ B)
           (⊑-renameᵗ-wt ρ p)))
-  ⊑-renameᵗ-wt ρ wt-id = wt-id
+  ⊑-renameᵗ-wt ρ (wt-id {A = A} wfA) = wt-id (wfTySome (renameᵗ ρ A))
   ⊑-renameᵗ-wt ρ (wt-； p q) = wt-； (⊑-renameᵗ-wt ρ p) (⊑-renameᵗ-wt ρ q)
 
   ⊒-renameᵗ-wt :
@@ -383,7 +391,7 @@ mutual
           (renameᵗ-⇑ˢ ρ B)
           (renameᵗ-ν-src ρ A)
           (⊒-renameᵗ-wt ρ p)))
-  ⊒-renameᵗ-wt ρ wt-id = wt-id
+  ⊒-renameᵗ-wt ρ (wt-id {A = A} wfA) = wt-id (wfTySome (renameᵗ ρ A))
   ⊒-renameᵗ-wt ρ (wt-； p q) = wt-； (⊒-renameᵗ-wt ρ p) (⊒-renameᵗ-wt ρ q)
 
 ------------------------------------------------------------------------
@@ -427,7 +435,7 @@ mutual
             (RenOk-ext-true okΦ)
             (RenOk-ext-false okΞ)
             p)))
-  ⊑-renameˢ-wt ρ okΦ okΞ wt-id = wt-id
+  ⊑-renameˢ-wt ρ okΦ okΞ (wt-id {A = A} wfA) = wt-id (wfTySome (renameˢ ρ A))
   ⊑-renameˢ-wt ρ okΦ okΞ (wt-； p q) =
     wt-； (⊑-renameˢ-wt ρ okΦ okΞ p) (⊑-renameˢ-wt ρ okΦ okΞ q)
 
@@ -467,7 +475,7 @@ mutual
             (RenOk-ext-false okΦ)
             (RenOk-ext-true okΞ)
             p)))
-  ⊒-renameˢ-wt ρ okΦ okΞ wt-id = wt-id
+  ⊒-renameˢ-wt ρ okΦ okΞ (wt-id {A = A} wfA) = wt-id (wfTySome (renameˢ ρ A))
   ⊒-renameˢ-wt ρ okΦ okΞ (wt-； p q) =
     wt-； (⊒-renameˢ-wt ρ okΦ okΞ p) (⊒-renameˢ-wt ρ okΦ okΞ q)
 
@@ -503,7 +511,7 @@ mutual
           (substᵗ-ν-src σ A)
           (substᵗ-⇑ˢ σ B)
           (⊑-substᵗ-wt (liftSubstˢ σ) p)))
-  ⊑-substᵗ-wt σ wt-id = wt-id
+  ⊑-substᵗ-wt σ (wt-id {A = A} wfA) = wt-id (wfTySome (substᵗ σ A))
   ⊑-substᵗ-wt σ (wt-； p q) = wt-； (⊑-substᵗ-wt σ p) (⊑-substᵗ-wt σ q)
 
   ⊒-substᵗ-wt :
@@ -533,7 +541,7 @@ mutual
           (substᵗ-⇑ˢ σ B)
           (substᵗ-ν-src σ A)
           (⊒-substᵗ-wt (liftSubstˢ σ) p)))
-  ⊒-substᵗ-wt σ wt-id = wt-id
+  ⊒-substᵗ-wt σ (wt-id {A = A} wfA) = wt-id (wfTySome (substᵗ σ A))
   ⊒-substᵗ-wt σ (wt-； p q) = wt-； (⊒-substᵗ-wt σ p) (⊒-substᵗ-wt σ q)
 
 infixl 8 _[_]↑

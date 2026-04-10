@@ -95,7 +95,7 @@ mutual
       h-ext : (α : Seal) → extˢ ρ α ≡ α
       h-ext zero = refl
       h-ext (suc α) = cong suc (h α)
-  rename⊑ˢ-pointwise ρ h id = refl
+  rename⊑ˢ-pointwise ρ h (id A) = cong id (renameˢ-pointwise ρ h A)
   rename⊑ˢ-pointwise ρ h (p ； q) =
     cong₂ _；_
       (rename⊑ˢ-pointwise ρ h p)
@@ -120,7 +120,7 @@ mutual
       h-ext : (α : Seal) → extˢ ρ α ≡ α
       h-ext zero = refl
       h-ext (suc α) = cong suc (h α)
-  rename⊒ˢ-pointwise ρ h id = refl
+  rename⊒ˢ-pointwise ρ h (id A) = cong id (renameˢ-pointwise ρ h A)
   rename⊒ˢ-pointwise ρ h (p ； q) =
     cong₂ _；_
       (rename⊒ˢ-pointwise ρ h p)
@@ -251,7 +251,7 @@ mutual
           (S∋ˢ (renameLookupˢ suc h★))
           (λ { (there α∈Φ) → α∉Φ α∈Φ })
           p))
-  drop★⊒-seal-preserving h★ α∉Φ wt-id = wt-id
+  drop★⊒-seal-preserving h★ α∉Φ (wt-id wfA) = wt-id wfA
   drop★⊒-seal-preserving h★ α∉Φ (wt-； p q) =
     wt-；
       (drop★⊒-seal-preserving h★ α∉Φ p)
@@ -291,7 +291,7 @@ mutual
           (S∋ˢ (renameLookupˢ suc h★))
           (λ { (there α∈Φ) → α∉Φ α∈Φ })
           p))
-  drop★⊑-seal-preserving h★ α∉Φ wt-id = wt-id
+  drop★⊑-seal-preserving h★ α∉Φ (wt-id wfA) = wt-id wfA
   drop★⊑-seal-preserving h★ α∉Φ (wt-； p q) =
     wt-；
       (drop★⊑-seal-preserving h★ α∉Φ p)
@@ -387,8 +387,8 @@ preservation uΣ
         here
         (Z∋ˢ refl refl))
       (upCast-every RenOk-id RenOk-false-every p⊢))
-preservation uΣ (⊢up V⊢ wt-id) id-up = V⊢
-preservation uΣ (⊢down V⊢ wt-id) id-down = V⊢
+preservation uΣ (⊢up V⊢ (wt-id wfA)) id-up = V⊢
+preservation uΣ (⊢down V⊢ (wt-id wfA)) id-down = V⊢
 preservation uΣ
   (⊢up (⊢down V⊢ (wt-seal h α∈)) (wt-unseal h′ α∈′))
   seal-unseal =

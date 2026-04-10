@@ -13,7 +13,9 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥)
 open import Data.List using (List; []; _∷_)
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; _≤_; _⊔_; s≤s)
+open import Data.Nat.Properties
+  using (≤-refl; <-≤-trans; m≤m⊔n; m≤n⊔m; n≤1+n)
 open import Data.Product using (Σ; Σ-syntax; _,_)
 open import Data.Unit using (⊤)
 
@@ -89,8 +91,52 @@ infix 3 _∣_∣_⊢_⦂_⊑_ _∣_∣_⊢_⦂_⊒_
 WfTySome : Ty → Set
 WfTySome A = Σ[ Δ ∈ TyCtx ] Σ[ Ψ ∈ SealCtx ] WfTy Δ Ψ A
 
-postulate
-  wfTySome : (A : Ty) → WfTySome A
+WfTy-weakenᵗ :
+  ∀ {Δ Δ′ Ψ A} →
+  WfTy Δ Ψ A →
+  Δ ≤ Δ′ →
+  WfTy Δ′ Ψ A
+WfTy-weakenᵗ (wfVar X<Δ) Δ≤Δ′ = wfVar (<-≤-trans X<Δ Δ≤Δ′)
+WfTy-weakenᵗ (wfSeal α<Ψ) Δ≤Δ′ = wfSeal α<Ψ
+WfTy-weakenᵗ wfBase Δ≤Δ′ = wfBase
+WfTy-weakenᵗ wf★ Δ≤Δ′ = wf★
+WfTy-weakenᵗ (wf⇒ hA hB) Δ≤Δ′ =
+  wf⇒ (WfTy-weakenᵗ hA Δ≤Δ′) (WfTy-weakenᵗ hB Δ≤Δ′)
+WfTy-weakenᵗ (wf∀ hA) Δ≤Δ′ =
+  wf∀ (WfTy-weakenᵗ hA (s≤s Δ≤Δ′))
+
+WfTy-weakenˢ :
+  ∀ {Δ Ψ Ψ′ A} →
+  WfTy Δ Ψ A →
+  Ψ ≤ Ψ′ →
+  WfTy Δ Ψ′ A
+WfTy-weakenˢ (wfVar X<Δ) Ψ≤Ψ′ = wfVar X<Δ
+WfTy-weakenˢ (wfSeal α<Ψ) Ψ≤Ψ′ = wfSeal (<-≤-trans α<Ψ Ψ≤Ψ′)
+WfTy-weakenˢ wfBase Ψ≤Ψ′ = wfBase
+WfTy-weakenˢ wf★ Ψ≤Ψ′ = wf★
+WfTy-weakenˢ (wf⇒ hA hB) Ψ≤Ψ′ =
+  wf⇒ (WfTy-weakenˢ hA Ψ≤Ψ′) (WfTy-weakenˢ hB Ψ≤Ψ′)
+WfTy-weakenˢ (wf∀ hA) Ψ≤Ψ′ =
+  wf∀ (WfTy-weakenˢ hA Ψ≤Ψ′)
+
+wfTySome : (A : Ty) → WfTySome A
+wfTySome (＇ X) = suc X , zero , wfVar ≤-refl
+wfTySome (｀ α) = zero , suc α , wfSeal ≤-refl
+wfTySome (‵ ι) = zero , zero , wfBase
+wfTySome ★ = zero , zero , wf★
+wfTySome (A ⇒ B)
+  with wfTySome A | wfTySome B
+... | ΔA , ΨA , wfA | ΔB , ΨB , wfB =
+  (ΔA ⊔ ΔB) ,
+  (ΨA ⊔ ΨB) ,
+  wf⇒
+    (WfTy-weakenˢ (WfTy-weakenᵗ wfA (m≤m⊔n ΔA ΔB)) (m≤m⊔n ΨA ΨB))
+    (WfTy-weakenˢ (WfTy-weakenᵗ wfB (m≤n⊔m ΔA ΔB)) (m≤n⊔m ΨA ΨB))
+wfTySome (`∀ A) with wfTySome A
+... | ΔA , ΨA , wfA =
+  ΔA ,
+  ΨA ,
+  wf∀ (WfTy-weakenᵗ wfA (n≤1+n ΔA))
 
 mutual
   data _∣_∣_⊢_⦂_⊑_ (Σ : Store) (Φ Ξ : List Bool) : Up → Ty → Ty → Set where

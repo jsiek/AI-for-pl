@@ -285,6 +285,25 @@ Working fix:
 This avoids confusing Agda's termination checker and keeps recursive functions
 accepted without `{-# TERMINATING #-}`.
 
+## Agda line-break style (from 2026-04-11)
+
+Avoid premature line breaks in simple applications. If a definition is a direct
+application with short arguments, keep it on one line.
+
+Prefer:
+
+    V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (sym eq-src)) V⊢
+
+Over:
+
+    V⊢′ =
+      cong-⊢⦂
+        refl
+        refl
+        refl
+        (cong `∀ (sym eq-src))
+        V⊢
+
 ## Substitution and heterogeneous equality playbook (from 2026-04-03)
 
 When a proof gets stuck in "subst hell", use this pattern.

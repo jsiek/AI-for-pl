@@ -46,6 +46,13 @@ openCast⊒ :
   Σ ∣ Φ ⊢ p [ T ]↓ ⦂ A [ T ]ᵗ ⊒ B [ T ]ᵗ
 openCast⊒ {Σ = Σ} p T = castWt⊒ (substStoreᵗ-singleTyEnv-⟰ᵗ T Σ) refl ([]⊒ᵗ-wt p T)
 
+castWt⊒-term :
+  ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}{p q : Down} →
+  p ≡ q →
+  Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
+  Σ ∣ Φ ⊢ q ⦂ A ⊒ B
+castWt⊒-term refl h = h
+
 RenOk-false-every :
   ∀ {Ψ} →
   RenOk idˢ (false ∷ every Ψ) (every (suc Ψ))
@@ -119,6 +126,91 @@ rename⊑ˢ-id :
   (p : Up) →
   rename⊑ˢ idˢ p ≡ p
 rename⊑ˢ-id p = rename⊑ˢ-pointwise idˢ (λ α → refl) p
+
+renameˢ-compose-local :
+  (ρ : Renameˢ) (ρ′ : Renameˢ) (A : Ty) →
+  renameˢ ρ′ (renameˢ ρ A) ≡ renameˢ (λ α → ρ′ (ρ α)) A
+renameˢ-compose-local ρ ρ′ (＇ X) = refl
+renameˢ-compose-local ρ ρ′ (｀ α) = refl
+renameˢ-compose-local ρ ρ′ (‵ ι) = refl
+renameˢ-compose-local ρ ρ′ ★ = refl
+renameˢ-compose-local ρ ρ′ (A ⇒ B) =
+  cong₂ _⇒_ (renameˢ-compose-local ρ ρ′ A) (renameˢ-compose-local ρ ρ′ B)
+renameˢ-compose-local ρ ρ′ (`∀ A) =
+  cong `∀ (renameˢ-compose-local ρ ρ′ A)
+
+mutual
+  rename⊑ˢ-right-inverse :
+    (ρ : Renameˢ) (ρ⁻¹ : Renameˢ) →
+    ((α : Seal) → ρ⁻¹ (ρ α) ≡ α) →
+    (p : Up) →
+    rename⊑ˢ ρ⁻¹ (rename⊑ˢ ρ p) ≡ p
+  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (tag G) =
+    cong tag
+      (trans
+        (renameˢ-compose-local ρ ρ⁻¹ G)
+        (renameˢ-pointwise (λ α → ρ⁻¹ (ρ α)) h G))
+  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (unseal α) = cong unseal (h α)
+  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (p ↦ q) =
+    cong₂ _↦_
+      (rename⊒ˢ-right-inverse ρ ρ⁻¹ h p)
+      (rename⊑ˢ-right-inverse ρ ρ⁻¹ h q)
+  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (∀ᵖ p) =
+    cong ∀ᵖ (rename⊑ˢ-right-inverse ρ ρ⁻¹ h p)
+  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (ν p) =
+    cong ν_ (rename⊑ˢ-right-inverse (extˢ ρ) (extˢ ρ⁻¹) h-ext p)
+    where
+      h-ext : (α : Seal) → extˢ ρ⁻¹ (extˢ ρ α) ≡ α
+      h-ext zero = refl
+      h-ext (suc α) = cong suc (h α)
+  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (id A) =
+    cong id
+      (trans
+        (renameˢ-compose-local ρ ρ⁻¹ A)
+        (renameˢ-pointwise (λ α → ρ⁻¹ (ρ α)) h A))
+  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (p ； q) =
+    cong₂ _；_
+      (rename⊑ˢ-right-inverse ρ ρ⁻¹ h p)
+      (rename⊑ˢ-right-inverse ρ ρ⁻¹ h q)
+
+  rename⊒ˢ-right-inverse :
+    (ρ : Renameˢ) (ρ⁻¹ : Renameˢ) →
+    ((α : Seal) → ρ⁻¹ (ρ α) ≡ α) →
+    (p : Down) →
+    rename⊒ˢ ρ⁻¹ (rename⊒ˢ ρ p) ≡ p
+  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (untag G ℓ) =
+    cong (λ T → untag T ℓ)
+      (trans
+        (renameˢ-compose-local ρ ρ⁻¹ G)
+        (renameˢ-pointwise (λ α → ρ⁻¹ (ρ α)) h G))
+  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (seal α) = cong seal (h α)
+  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (p ↦ q) =
+    cong₂ _↦_
+      (rename⊑ˢ-right-inverse ρ ρ⁻¹ h p)
+      (rename⊒ˢ-right-inverse ρ ρ⁻¹ h q)
+  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (∀ᵖ p) =
+    cong ∀ᵖ (rename⊒ˢ-right-inverse ρ ρ⁻¹ h p)
+  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (ν p) =
+    cong ν_ (rename⊒ˢ-right-inverse (extˢ ρ) (extˢ ρ⁻¹) h-ext p)
+    where
+      h-ext : (α : Seal) → extˢ ρ⁻¹ (extˢ ρ α) ≡ α
+      h-ext zero = refl
+      h-ext (suc α) = cong suc (h α)
+  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (id A) =
+    cong id
+      (trans
+        (renameˢ-compose-local ρ ρ⁻¹ A)
+        (renameˢ-pointwise (λ α → ρ⁻¹ (ρ α)) h A))
+  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (p ； q) =
+    cong₂ _；_
+      (rename⊒ˢ-right-inverse ρ ρ⁻¹ h p)
+      (rename⊒ˢ-right-inverse ρ ρ⁻¹ h q)
+
+open-shift-⊒-id :
+  (p : Down) →
+  ((rename⊒ˢ suc p) [ zero ]↓ˢ) ≡ p
+open-shift-⊒-id p =
+  rename⊒ˢ-right-inverse suc (singleSealEnv zero) (λ α → refl) p
 
 ------------------------------------------------------------------------
 -- Dropping a distinguished top-★ lookup when it is permission-forbidden
@@ -294,8 +386,8 @@ preservation uΣ (⊢down Φ (⊢up Φ′ V⊢ (wt-tag g gok)) (wt-untag g′ go
   tag-untag-ok = V⊢
 preservation uΣ (⊢down Φ (⊢up Φ′ V⊢ (wt-tag g gok)) (wt-untag h hok ℓ′))
   (tag-untag-bad neq) = ⊢blame ℓ′
-preservation uΣ (⊢up Φ V⊢ (wt-； p⊢ q⊢)) β-up-；= ⊢up Φ (⊢up Φ V⊢ p⊢) q⊢
-preservation uΣ (⊢down Φ V⊢ (wt-； p⊢ q⊢)) β-down-；= ⊢down Φ (⊢down Φ V⊢ p⊢) q⊢
+preservation uΣ (⊢up Φ V⊢ (wt-； p⊢ q⊢)) β-up-； = ⊢up Φ (⊢up Φ V⊢ p⊢) q⊢
+preservation uΣ (⊢down Φ V⊢ (wt-； p⊢ q⊢)) β-down-； = ⊢down Φ (⊢down Φ V⊢ p⊢) q⊢
 preservation uΣ (⊢⊕ (⊢$ (κℕ m)) addℕ (⊢$ (κℕ n))) δ-⊕ = ⊢$ (κℕ (m + n))
 preservation uΣ (⊢· (⊢blame ℓ) M⊢) blame-·₁ = ⊢blame ℓ
 preservation uΣ (⊢· L⊢ (⊢blame ℓ)) (blame-·₂ vV) = ⊢blame ℓ
@@ -319,6 +411,28 @@ preservation-step :
       Sigma.Σ (SealRenameWf Ψ Ψ′ ρ)
         (λ hρ →
           Δ ∣ Ψ′ ∣ Σ′ ∣ map (renameˢ ρ) Γ ⊢ M′ ⦂ renameˢ ρ A))
+
+data StepRenShape : Renameˢ → Set where
+  shape-id : StepRenShape idˢ
+  shape-suc : StepRenShape suc
+
+step-ren-shape :
+  ∀ {Σ Σ′ : Store}{M M′ : Term}{ρ : Renameˢ} →
+  Σ ∣ M —→[ ρ ] Σ′ ∣ M′ →
+  StepRenShape ρ
+step-ren-shape (id-step red) = shape-id
+step-ren-shape β-Λ = shape-suc
+step-ren-shape β-down-∀ = shape-suc
+step-ren-shape β-down-ν = shape-suc
+step-ren-shape β-up-ν = shape-suc
+step-ren-shape (ξ-·₁ red) = step-ren-shape red
+step-ren-shape (ξ-·₂ vV red) = step-ren-shape red
+step-ren-shape (ξ-·α red) = step-ren-shape red
+step-ren-shape (ξ-up red) = step-ren-shape red
+step-ren-shape (ξ-down red) = step-ren-shape red
+step-ren-shape (ξ-⊕₁ red) = step-ren-shape red
+step-ren-shape (ξ-⊕₂ vL red) = step-ren-shape red
+
 preservation-step uΣ M⊢ (id-step red) = _ , (λ α<Ψ → α<Ψ) ,
   cong-⊢⦂ refl (sym (map-renameˢ-id _)) refl (sym renameˢ-id) (preservation uΣ M⊢ red)
 preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} uΣ (⊢• {B = B} {T = T} (⊢Λ V⊢) wfT)
@@ -339,16 +453,258 @@ preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} uΣ (⊢• {B = B} {T
         ∣ ⤊ᵗ (map (renameˢ suc) Γ) ⊢ ⇑ˢᵐ V ⦂ ⇑ˢ B
     V⊢′ = cong-⊢⦂ (sym (renameStoreᵗ-cons-⟰ˢ suc T Σ))
         (map-renameˢ-⤊ᵗ suc Γ) refl refl V⊢↑
-preservation-step uΣ M⊢ β-down-∀ = {!!}
-preservation-step uΣ M⊢ β-down-ν = {!!}
-preservation-step uΣ M⊢ β-up-ν = {!!}
-preservation-step uΣ (⊢· L⊢ M⊢) (ξ-·₁ red) = {!!}
-preservation-step uΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red) = {!!}
-preservation-step uΣ (⊢• M⊢ wfT) (ξ-·α red) = {!!}
-preservation-step uΣ (⊢up Φ M⊢ hp) (ξ-up red) = {!!}
-preservation-step uΣ (⊢down Φ M⊢ hp) (ξ-down red) = {!!}
-preservation-step uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red) = {!!}
-preservation-step uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red) = {!!}
+preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} uΣ
+  (⊢• {B = B} {T = T}
+    (⊢down {A = `∀ C} {B = `∀ B} Φ V⊢ (wt-∀ {A = C} {B = B} {p = p} p⊢))
+    wfT)
+  (β-down-∀ {A = T} {B = B} {V = V} {p = p}) =
+  suc Ψ , SealRenameWf-suc ,
+  cong-⊢⦂ refl refl refl out-eq
+    (⊢up
+      (every (suc Ψ))
+      (⊢down
+        (false ∷ Φ)
+        (⊢• {B = ⇑ˢ (down-src (⟰ᵗ Σ) p)} V⊢′ (wfSeal z<s))
+        (openCast⊒ p⊢′ (｀ zero)))
+      (instCast⊑-wt {A = ⇑ˢ T} {B = ⇑ˢ (down-tgt (⟰ᵗ Σ) p)} {α = zero} top here))
+  where
+    top : ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∋ˢ zero ⦂ ⇑ˢ T
+    top = Z∋ˢ refl refl
+
+    eq-src : down-src (⟰ᵗ Σ) p ≡ C
+    eq-src = down-src-align (unique-⟰ᵗ uΣ) p⊢
+
+    eq-tgt : down-tgt (⟰ᵗ Σ) p ≡ B
+    eq-tgt = down-tgt-align p⊢
+
+    V⊢↑ : Δ ∣ (suc Ψ) ∣ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ)
+        ∣ map (renameˢ suc) Γ ⊢ ⇑ˢᵐ V ⦂ `∀ (⇑ˢ C)
+    V⊢↑ = wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ-wt V⊢)
+
+    V⊢′ : Δ ∣ (suc Ψ) ∣ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ)
+        ∣ map (renameˢ suc) Γ ⊢ ⇑ˢᵐ V ⦂ `∀ (⇑ˢ (down-src (⟰ᵗ Σ) p))
+    V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (cong ⇑ˢ (sym eq-src))) V⊢↑
+
+    p⊢↑ : ((zero , ⇑ˢ (renameᵗ suc T)) ∷ ⟰ˢ (⟰ᵗ Σ)) ∣ (false ∷ Φ)
+        ⊢ rename⊒ˢ suc p ⦂ ⇑ˢ C ⊒ ⇑ˢ B
+    p⊢↑ = wk⊒ (drop ⊆ˢ-refl) (⊒-renameˢ-wt suc RenOk-suc RenNotIn-suc p⊢)
+
+    p⊢″ : ⟰ᵗ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (false ∷ Φ)
+        ⊢ rename⊒ˢ suc p ⦂ ⇑ˢ C ⊒ ⇑ˢ B
+    p⊢″ = castWt⊒ (sym (renameStoreᵗ-cons-⟰ˢ suc T Σ)) refl p⊢↑
+
+    p⊢′ : ⟰ᵗ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (false ∷ Φ)
+        ⊢ rename⊒ˢ suc p ⦂ ⇑ˢ (down-src (⟰ᵗ Σ) p) ⊒ ⇑ˢ (down-tgt (⟰ᵗ Σ) p)
+    p⊢′ = castWt⊒-raw (cong ⇑ˢ (sym eq-src)) (cong ⇑ˢ (sym eq-tgt)) p⊢″
+
+    out-eq :
+      (⇑ˢ (down-tgt (⟰ᵗ Σ) p) [ ⇑ˢ T ]ᵗ) ≡ renameˢ suc (B [ T ]ᵗ)
+    out-eq = trans
+      (cong (λ X → X [ ⇑ˢ T ]ᵗ) (cong ⇑ˢ eq-tgt))
+      (sym (renameˢ-[]ᵗ suc B T))
+preservation-step
+  {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
+  uΣ
+  (⊢• {B = Aν} {T = T}
+    (⊢down {A = Bν} {B = `∀ Aν} Φ V⊢ (wt-ν {A = Aν} {B = Bν} {p = p} p⊢))
+    wfT)
+  (β-down-ν {A = T} {B = Aν} {V = V} {p = p}) =
+  suc Ψ , SealRenameWf-suc ,
+  cong-⊢⦂ refl refl refl (sym (renameˢ-[]ᵗ suc Aν T))
+    (⊢up
+      (every (suc Ψ))
+      (⊢down
+        (false ∷ Φ)
+        V⊢↑
+        p⊢′)
+      (instCast⊑-wt {A = ⇑ˢ T} {B = ⇑ˢ Aν} {α = zero} top here))
+  where
+    top : ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∋ˢ zero ⦂ ⇑ˢ T
+    top = Z∋ˢ refl refl
+
+    top★ : ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∋ˢ zero ⦂ ★
+    top★ = Z∋ˢ refl refl
+
+    top∉Φ : zero ∈ (false ∷ Φ) → ⊥
+    top∉Φ ()
+
+    V⊢↑ : Δ ∣ (suc Ψ) ∣ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ)
+        ∣ map (renameˢ suc) Γ ⊢ ⇑ˢᵐ V ⦂ ⇑ˢ Bν
+    V⊢↑ = wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ-wt V⊢)
+
+    p⊢drop : ⟰ˢ Σ ∣ (false ∷ Φ) ⊢ p ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ ｀ zero ]ᵗ)
+    p⊢drop = drop★⊒-seal-preserving top★ top∉Φ p⊢
+
+    p⊢base : ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (false ∷ Φ) ⊢ p ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ ｀ zero ]ᵗ)
+    p⊢base = wk⊒ (drop ⊆ˢ-refl) p⊢drop
+
+    p⊢′ : ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (false ∷ Φ)
+        ⊢ ((rename⊒ˢ suc p) [ zero ]↓ˢ) ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ ｀ zero ]ᵗ)
+    p⊢′ = castWt⊒-term (sym (open-shift-⊒-id p)) p⊢base
+preservation-step
+  {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
+  uΣ
+  (⊢up {A = `∀ Aν} {B = Bν} Φ V⊢ (wt-ν {A = Aν} {B = Bν} {p = p} p⊢))
+  (β-up-ν {V = V} {p = p}) =
+  suc Ψ , SealRenameWf-suc ,
+  ⊢up
+    (true ∷ Φ)
+    (⊢• {B = ⇑ˢ (closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p))}
+      V⊢′
+      (wfSeal z<s))
+    p⊢′
+  where
+    eq-src : up-src ((zero , ★) ∷ ⟰ˢ Σ) p ≡ (⇑ˢ Aν) [ ｀ zero ]ᵗ
+    eq-src = up-src-align p⊢
+
+    eq-close : closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p) ≡ Aν
+    eq-close = trans (cong closeν eq-src) (closeν-open Aν)
+
+    eq-open :
+      (⇑ˢ (closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ｀ zero ]ᵗ)
+        ≡ ((⇑ˢ Aν) [ ｀ zero ]ᵗ)
+    eq-open = cong (λ X → (⇑ˢ X) [ ｀ zero ]ᵗ) eq-close
+
+    V⊢↑ : Δ ∣ (suc Ψ) ∣ ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ)
+        ∣ map (renameˢ suc) Γ ⊢ ⇑ˢᵐ V ⦂ `∀ (⇑ˢ Aν)
+    V⊢↑ = wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ-wt V⊢)
+
+    V⊢′ : Δ ∣ (suc Ψ) ∣ ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ)
+        ∣ map (renameˢ suc) Γ ⊢ ⇑ˢᵐ V ⦂ `∀ (⇑ˢ (closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)))
+    V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (cong ⇑ˢ (sym eq-close))) V⊢↑
+
+    p⊢′ : ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (true ∷ Φ)
+        ⊢ p ⦂ (⇑ˢ (closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ｀ zero ]ᵗ) ⊑ ⇑ˢ Bν
+    p⊢′ = castWt⊑-raw (sym eq-open) refl p⊢
+preservation-step uΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
+  with preservation-step uΣ L⊢ red | step-ren-shape red
+preservation-step uΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
+  | Ψ′ , hρ , L′⊢ | shape-id =
+    Ψ′ , hρ ,
+    ⊢·
+      L′⊢
+      (wkΣ-term
+        (store-growth red)
+        (renameˢ-wt idˢ hρ (λ Φ → Φ) RenOk-id RenNotIn-id M⊢))
+preservation-step uΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
+  | Ψ′ , hρ , L′⊢ | shape-suc =
+    Ψ′ , hρ ,
+    ⊢·
+      L′⊢
+      (wkΣ-term
+        (store-growth red)
+        (renameˢ-wt suc hρ mapΦ-suc RenOk-suc RenNotIn-suc M⊢))
+preservation-step uΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
+  with preservation-step uΣ M⊢ red | step-ren-shape red
+preservation-step uΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
+  | Ψ′ , hρ , M′⊢ | shape-id =
+    Ψ′ , hρ ,
+    ⊢·
+      (wkΣ-term
+        (store-growth red)
+        (renameˢ-wt idˢ hρ (λ Φ → Φ) RenOk-id RenNotIn-id L⊢))
+      M′⊢
+preservation-step uΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
+  | Ψ′ , hρ , M′⊢ | shape-suc =
+    Ψ′ , hρ ,
+    ⊢·
+      (wkΣ-term
+        (store-growth red)
+        (renameˢ-wt suc hρ mapΦ-suc RenOk-suc RenNotIn-suc L⊢))
+      M′⊢
+preservation-step uΣ (⊢• {B = B} {T = T} M⊢ wfT) (ξ-·α red)
+  with preservation-step uΣ M⊢ red
+preservation-step uΣ (⊢• {B = B} {T = T} M⊢ wfT) (ξ-·α red)
+  | Ψ′ , hρ , M′⊢ =
+    Ψ′ , hρ ,
+    cong-⊢⦂
+      refl
+      refl
+      refl
+      (sym (renameˢ-[]ᵗ _ B T))
+      (⊢•
+        M′⊢
+        (renameˢ-preserves-WfTy wfT hρ))
+preservation-step uΣ (⊢up Φ M⊢ hp) (ξ-up red)
+  with preservation-step uΣ M⊢ red | step-ren-shape red
+preservation-step uΣ (⊢up Φ M⊢ hp) (ξ-up red)
+  | Ψ′ , hρ , M′⊢ | shape-id =
+    Ψ′ , hρ ,
+    ⊢up
+      Φ
+      M′⊢
+      (wk⊑
+        (store-growth red)
+        (⊑-renameˢ-wt idˢ RenOk-id RenNotIn-id hp))
+preservation-step uΣ (⊢up Φ M⊢ hp) (ξ-up red)
+  | Ψ′ , hρ , M′⊢ | shape-suc =
+    Ψ′ , hρ ,
+    ⊢up
+      (mapΦ-suc Φ)
+      M′⊢
+      (wk⊑
+        (store-growth red)
+        (⊑-renameˢ-wt suc RenOk-suc RenNotIn-suc hp))
+preservation-step uΣ (⊢down Φ M⊢ hp) (ξ-down red)
+  with preservation-step uΣ M⊢ red | step-ren-shape red
+preservation-step uΣ (⊢down Φ M⊢ hp) (ξ-down red)
+  | Ψ′ , hρ , M′⊢ | shape-id =
+    Ψ′ , hρ ,
+    ⊢down
+      Φ
+      M′⊢
+      (wk⊒
+        (store-growth red)
+        (⊒-renameˢ-wt idˢ RenOk-id RenNotIn-id hp))
+preservation-step uΣ (⊢down Φ M⊢ hp) (ξ-down red)
+  | Ψ′ , hρ , M′⊢ | shape-suc =
+    Ψ′ , hρ ,
+    ⊢down
+      (mapΦ-suc Φ)
+      M′⊢
+      (wk⊒
+        (store-growth red)
+        (⊒-renameˢ-wt suc RenOk-suc RenNotIn-suc hp))
+preservation-step uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
+  with preservation-step uΣ L⊢ red | step-ren-shape red
+preservation-step uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
+  | Ψ′ , hρ , L′⊢ | shape-id =
+    Ψ′ , hρ ,
+    ⊢⊕
+      L′⊢
+      op
+      (wkΣ-term
+        (store-growth red)
+        (renameˢ-wt idˢ hρ (λ Φ → Φ) RenOk-id RenNotIn-id M⊢))
+preservation-step uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
+  | Ψ′ , hρ , L′⊢ | shape-suc =
+    Ψ′ , hρ ,
+    ⊢⊕
+      L′⊢
+      op
+      (wkΣ-term
+        (store-growth red)
+        (renameˢ-wt suc hρ mapΦ-suc RenOk-suc RenNotIn-suc M⊢))
+preservation-step uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
+  with preservation-step uΣ M⊢ red | step-ren-shape red
+preservation-step uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
+  | Ψ′ , hρ , M′⊢ | shape-id =
+    Ψ′ , hρ ,
+    ⊢⊕
+      (wkΣ-term
+        (store-growth red)
+        (renameˢ-wt idˢ hρ (λ Φ → Φ) RenOk-id RenNotIn-id L⊢))
+      op
+      M′⊢
+preservation-step uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
+  | Ψ′ , hρ , M′⊢ | shape-suc =
+    Ψ′ , hρ ,
+    ⊢⊕
+      (wkΣ-term
+        (store-growth red)
+        (renameˢ-wt suc hρ mapΦ-suc RenOk-suc RenNotIn-suc L⊢))
+      op
+      M′⊢
 
 ------------------------------------------------------------------------
 -- Preservation for store-threaded multi-step reduction
@@ -403,4 +759,17 @@ multi-preservation :
               Δ ∣ Ψ′ ∣ Σ′ ∣ map (renameˢ ρ) Γ ⊢ N ⦂ renameˢ ρ A)))
 multi-preservation uΣ M⊢ (_ ∎) = _ , idˢ , SealRenameWf-id ,
   cong-⊢⦂ refl (sym (map-renameˢ-id _)) refl (sym renameˢ-id) M⊢
-multi-preservation {Γ = Γ} {A = A} uΣ M⊢ (_ —→⟨ L—→M ⟩ M—↠N) = {!!}
+multi-preservation {Γ = Γ} {A = A} uΣ M⊢ (_ —→⟨ L—→M ⟩ M—↠N)
+  with preservation-step uΣ M⊢ L—→M
+... | Ψ₁ , hρ₁ , M′⊢
+  with multi-preservation (unique-store-step uΣ L—→M) M′⊢ M—↠N
+... | Ψ₂ , ρ₂ , hρ₂ , N⊢ =
+  Ψ₂ ,
+  (λ α → ρ₂ ((step-renaming L—→M) α)) ,
+  SealRenameWf-comp hρ₁ hρ₂ ,
+  cong-⊢⦂
+    refl
+    (map-renameˢ-compose (step-renaming L—→M) ρ₂ Γ)
+    refl
+    (renameˢ-compose (step-renaming L—→M) ρ₂ A)
+    N⊢

@@ -193,17 +193,18 @@ data _∣_—→[_]_∣_ :
 
   β-down-∀ : ∀ {Σ : Store} {A B : Ty} {V : Term} {p : Down} →
     Σ ∣ ((V down (∀ᵖ p)) ⦂∀ B [ A ]) —→[ suc ] ((zero , ⇑ˢ A) ∷ ⟰ˢ Σ) ∣
-      (((((⇑ˢᵐ V) ⦂∀ ⇑ˢ B [ ｀ zero ]) down ((rename⊒ˢ suc p) [ ｀ zero ]↓))
+      (((((⇑ˢᵐ V) ⦂∀ ⇑ˢ (down-src (⟰ᵗ Σ) p) [ ｀ zero ]) down ((rename⊒ˢ suc p) [ ｀ zero ]↓))
          up (reveal-⊑ A (down-tgt (⟰ᵗ Σ) p))))
 
   β-down-ν : ∀ {Σ : Store} {A B : Ty} {V : Term} {p : Down} →
+    -- TODO: add premise: Value V
     Σ ∣ ((V down (ν p)) ⦂∀ B [ A ]) —→[ suc ] ((zero , ⇑ˢ A) ∷ ⟰ˢ Σ) ∣
       ((((⇑ˢᵐ V) down ((rename⊒ˢ suc p) [ zero ]↓ˢ))
-         up (reveal-⊑ A (down-tgt ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) p))))
+         up (reveal-⊑ A B)))
 
   β-up-ν : ∀ {Σ : Store} {V : Term} {p : Up} →
     Σ ∣ (V up (ν p)) —→[ suc ] ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣
-      ((((⇑ˢᵐ V) ⦂∀ ⇑ˢ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p) [ ｀ zero ]) up p))
+      ((((⇑ˢᵐ V) ⦂∀ ⇑ˢ (closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ｀ zero ]) up p))
 
   ξ-·₁ : ∀ {Σ Σ′ : Store} {ρ : Renameˢ} {L M L′ : Term} →
     Σ ∣ L —→[ ρ ] Σ′ ∣ L′ →

@@ -777,15 +777,3 @@ renameˢ-wt ρ hρ mapΦ okΦ ok¬Φ (⊢blame ℓ) = ⊢blame ℓ
   Δ ∣ (suc Ψ) ∣ (⟰ˢ Σ) ∣ (⤊ˢ Γ) ⊢ ⇑ˢᵐ M ⦂ ⇑ˢ A
 ⇑ˢᵐ-wt M = renameˢ-wt suc SealRenameWf-suc mapΦ-suc RenOk-suc RenNotIn-suc M
 
-------------------------------------------------------------------------
--- Instantiation helper for terms
-------------------------------------------------------------------------
-
-inst : Term → Ty → Ty → Term
-inst L A B = L ⦂∀ B [ A ]
-
-inst-wt : ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx} (L : Term) (A B : Ty) →
-  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ L ⦂ `∀ B →
-  WfTy Δ Ψ A →
-  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ inst L A B ⦂ B [ A ]ᵗ
-inst-wt L A B L⊢ wfA = ⊢• {B = B} L⊢ wfA

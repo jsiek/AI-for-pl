@@ -149,22 +149,21 @@ substᵗ-preserves-WfTy (wf∀ hA) hσ =
 -- Core renaming/substitution infrastructure
 ------------------------------------------------------------------------
 
-private
-  rename-cong :
-    ∀{ρ ρ′ : Renameᵗ} →
-    ((X : TyVar) → ρ X ≡ ρ′ X) →
-    (A : Ty) →
-    renameᵗ ρ A ≡ renameᵗ ρ′ A
-  rename-cong h (＇ X) = cong ＇_ (h X)
-  rename-cong h (｀ α) = refl
-  rename-cong h (‵ ι) = refl
-  rename-cong h ★ = refl
-  rename-cong h (A ⇒ B) = cong₂ _⇒_ (rename-cong h A) (rename-cong h B)
-  rename-cong {ρ = ρ} {ρ′ = ρ′} h (`∀ A) = cong `∀ (rename-cong h-ext A)
-    where
-      h-ext : (X : TyVar) → extᵗ ρ X ≡ extᵗ ρ′ X
-      h-ext zero = refl
-      h-ext (suc X) = cong suc (h X)
+rename-cong :
+  ∀{ρ ρ′ : Renameᵗ} →
+  ((X : TyVar) → ρ X ≡ ρ′ X) →
+  (A : Ty) →
+  renameᵗ ρ A ≡ renameᵗ ρ′ A
+rename-cong h (＇ X) = cong ＇_ (h X)
+rename-cong h (｀ α) = refl
+rename-cong h (‵ ι) = refl
+rename-cong h ★ = refl
+rename-cong h (A ⇒ B) = cong₂ _⇒_ (rename-cong h A) (rename-cong h B)
+rename-cong {ρ = ρ} {ρ′ = ρ′} h (`∀ A) = cong `∀ (rename-cong h-ext A)
+  where
+    h-ext : (X : TyVar) → extᵗ ρ X ≡ extᵗ ρ′ X
+    h-ext zero = refl
+    h-ext (suc X) = cong suc (h X)
 
 substᵗ-cong :
   ∀
@@ -184,6 +183,24 @@ substᵗ-cong {σ = σ} {τ = τ} h (`∀ A) =
     h-ext : (X : TyVar) → extsᵗ σ X ≡ extsᵗ τ X
     h-ext zero = refl
     h-ext (suc X) = cong (renameᵗ suc) (h X)
+
+substˢᵗ-cong :
+  ∀
+  {τ υ : Substˢᵗ} →
+  ((α : Seal) → τ α ≡ υ α) →
+  (A : Ty) →
+  substˢᵗ τ A ≡ substˢᵗ υ A
+substˢᵗ-cong h (＇ X) = refl
+substˢᵗ-cong h (｀ α) = h α
+substˢᵗ-cong h (‵ ι) = refl
+substˢᵗ-cong h ★ = refl
+substˢᵗ-cong h (A ⇒ B) =
+  cong₂ _⇒_ (substˢᵗ-cong h A) (substˢᵗ-cong h B)
+substˢᵗ-cong {τ = τ} {υ = υ} h (`∀ A) =
+  cong `∀ (substˢᵗ-cong h-ext A)
+  where
+    h-ext : (α : Seal) → extsˢᵗ τ α ≡ extsˢᵗ υ α
+    h-ext α = cong (renameᵗ suc) (h α)
 
 substᵗ-id :
   ∀ (A : Ty) →

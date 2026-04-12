@@ -165,9 +165,15 @@ renameStoreᵗ ρ ((α , A) ∷ Σ) =
 Renameˢ : Set
 Renameˢ = Seal → Seal
 
+Substˢᵗ : Set
+Substˢᵗ = Seal → Ty
+
 extˢ : Renameˢ → Renameˢ
 extˢ ρ zero = zero
 extˢ ρ (suc α) = suc (ρ α)
+
+extsˢᵗ : Substˢᵗ → Substˢᵗ
+extsˢᵗ τ α = renameᵗ suc (τ α)
 
 singleSealEnv : Seal → Renameˢ
 singleSealEnv α zero = α
@@ -180,6 +186,22 @@ renameˢ ρ (‵ ι) = ‵ ι
 renameˢ ρ ★ = ★
 renameˢ ρ (A ⇒ B) = renameˢ ρ A ⇒ renameˢ ρ B
 renameˢ ρ (`∀ A) = `∀ (renameˢ ρ A)
+
+substˢᵗ : Substˢᵗ → Ty → Ty
+substˢᵗ τ (＇ X) = ＇ X
+substˢᵗ τ (｀ α) = τ α
+substˢᵗ τ (‵ ι) = ‵ ι
+substˢᵗ τ ★ = ★
+substˢᵗ τ (A ⇒ B) = substˢᵗ τ A ⇒ substˢᵗ τ B
+substˢᵗ τ (`∀ A) = `∀ (substˢᵗ (extsˢᵗ τ) A)
+
+singleSealTyEnv : Ty → Substˢᵗ
+singleSealTyEnv B zero = B
+singleSealTyEnv B (suc α) = ｀ α
+
+infixl 8 _[_]ˢᵗ
+_[_]ˢᵗ : Ty → Ty → Ty
+A [ B ]ˢᵗ = substˢᵗ (singleSealTyEnv B) A
 
 ⇑ˢ : Ty → Ty
 ⇑ˢ = renameˢ suc

@@ -549,7 +549,7 @@ preservation-step
   suc Ψ , SealRenameWf-suc ,
   ⊢up
     (true ∷ Φ)
-    (⊢• {B = ⇑ˢ (closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p))}
+    (⊢• {B = ⇑ˢ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)}
       V⊢′
       (wfSeal z<s))
     p⊢′
@@ -557,11 +557,14 @@ preservation-step
     eq-src : up-src ((zero , ★) ∷ ⟰ˢ Σ) p ≡ (⇑ˢ Aν) [ ｀ zero ]ᵗ
     eq-src = up-src-align p⊢
 
-    eq-close : closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p) ≡ Aν
-    eq-close = trans (cong closeν eq-src) (closeν-open Aν)
+    eq-close : ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ) ≡ Aν
+    eq-close =
+      trans
+        (cong (λ X → (⇑ᵗ X) [ ＇ zero ]ˢᵗ) eq-src)
+        (closeν-inline-open Aν)
 
     eq-open :
-      (⇑ˢ (closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ｀ zero ]ᵗ)
+      (⇑ˢ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ) [ ｀ zero ]ᵗ)
         ≡ ((⇑ˢ Aν) [ ｀ zero ]ᵗ)
     eq-open = cong (λ X → (⇑ˢ X) [ ｀ zero ]ᵗ) eq-close
 
@@ -570,11 +573,11 @@ preservation-step
     V⊢↑ = wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ-wt V⊢)
 
     V⊢′ : Δ ∣ (suc Ψ) ∣ ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ)
-        ∣ map (renameˢ suc) Γ ⊢ ⇑ˢᵐ V ⦂ `∀ (⇑ˢ (closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)))
+        ∣ map (renameˢ suc) Γ ⊢ ⇑ˢᵐ V ⦂ `∀ (⇑ˢ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ))
     V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (cong ⇑ˢ (sym eq-close))) V⊢↑
 
     p⊢′ : ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (true ∷ Φ)
-        ⊢ p ⦂ (⇑ˢ (closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ｀ zero ]ᵗ) ⊑ ⇑ˢ Bν
+        ⊢ p ⦂ (⇑ˢ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ) [ ｀ zero ]ᵗ) ⊑ ⇑ˢ Bν
     p⊢′ = castWt⊑-raw (sym eq-open) refl p⊢
 preservation-step uΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
   with preservation-step uΣ L⊢ red | step-ren-shape red

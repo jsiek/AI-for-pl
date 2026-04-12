@@ -123,19 +123,10 @@ closeOpenVarAt : TyVar → OpenVar → TyVar
 closeOpenVarAt d (openVar X) = closeVarAt d X
 closeOpenVarAt d openSeal0 = d
 
--- `closeνAt d` closes the ν-introduced seal at depth `d`.
-closeνAt : TyVar → Ty → Ty
-closeνAt d (＇ X) = ＇ (closeVarAt d X)
-closeνAt d (｀ zero) = ＇ d
-closeνAt d (｀ suc α) = ｀ α
-closeνAt d (‵ ι) = ‵ ι
-closeνAt d ★ = ★
-closeνAt d (A ⇒ B) = closeνAt d A ⇒ closeνAt d B
-closeνAt d (`∀ A) = `∀ (closeνAt (suc d) A)
-
--- Public close helper used by endpoint definitions.
-closeν : Ty → Ty
-closeν = closeνAt zero
+-- `closeInlineAt d` closes the ν-introduced seal at depth `d`
+-- via explicit `renameᵗ` + `substˢᵗ`.
+closeInlineAt : TyVar → Ty → Ty
+closeInlineAt d A = substˢᵗ (singleSealTyEnv (＇ d)) (renameᵗ (closeVarAt d) A)
 
 mutual
   up-src : Store → Up → Ty
@@ -144,7 +135,7 @@ mutual
   up-src Σ (p ↦ q) = down-tgt Σ p ⇒ up-src Σ q
   up-src Σ (∀ᵖ p) = `∀ (up-src (⟰ᵗ Σ) p)
   up-src Σ (ν p) =
-    `∀ (closeν (up-src ((zero , ★) ∷ ⟰ˢ Σ) p))
+    `∀ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)
   up-src Σ (id A) = A
   up-src Σ (p ； q) = up-src Σ p
 
@@ -174,7 +165,7 @@ mutual
   down-tgt Σ (p ↦ q) = up-src Σ p ⇒ down-tgt Σ q
   down-tgt Σ (∀ᵖ p) = `∀ (down-tgt (⟰ᵗ Σ) p)
   down-tgt Σ (ν p) =
-    `∀ (closeν (down-tgt ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) p))
+    `∀ ((⇑ᵗ (down-tgt ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)
   down-tgt Σ (id A) = A
   down-tgt Σ (p ； q) = down-tgt Σ q
 
@@ -329,18 +320,18 @@ close-openVarAt (suc d) (suc X)
         ov
         (close-openVarAt d X))
 
-closeν-openVarTy :
+closeInline-openVarTy :
   ∀ (d : TyVar) (ov : OpenVar) →
-  closeνAt d (openVarTy ov) ≡ ＇ (closeOpenVarAt d ov)
-closeν-openVarTy d (openVar X) = refl
-closeν-openVarTy d openSeal0 = refl
+  closeInlineAt d (openVarTy ov) ≡ ＇ (closeOpenVarAt d ov)
+closeInline-openVarTy d (openVar X) = refl
+closeInline-openVarTy d openSeal0 = refl
 
-closeν-openTyEnv :
+closeInline-openTyEnv :
   ∀ (d X : TyVar) →
-  closeνAt d (openTyEnv d X) ≡ ＇ X
-closeν-openTyEnv d X =
+  closeInlineAt d (openTyEnv d X) ≡ ＇ X
+closeInline-openTyEnv d X =
   trans
-    (closeν-openVarTy d (openVarAt d X))
+    (closeInline-openVarTy d (openVarAt d X))
     (cong ＇_ (close-openVarAt d X))
 
 openTyEnv-ext :
@@ -351,21 +342,50 @@ openTyEnv-ext d (suc X) with openVarAt d X
 openTyEnv-ext d (suc X) | openVar Y = refl
 openTyEnv-ext d (suc X) | openSeal0 = refl
 
-closeν-open-at :
+singleSealTyEnv-ext :
+  ∀ (d α : Seal) →
+  extsˢᵗ (singleSealTyEnv (＇ d)) α ≡ singleSealTyEnv (＇ (suc d)) α
+singleSealTyEnv-ext d zero = refl
+singleSealTyEnv-ext d (suc α) = refl
+
+closeVarAt-ext :
+  ∀ (d X : TyVar) →
+  closeVarAt (suc d) X ≡ extᵗ (closeVarAt d) X
+closeVarAt-ext d zero = refl
+closeVarAt-ext d (suc X) = refl
+
+renameᵗ-closeVarAt-suc :
   ∀ (d : TyVar) (A : Ty) →
-  closeνAt d (substᵗ (openTyEnv d) (⇑ˢ A)) ≡ A
-closeν-open-at d (＇ X) = closeν-openTyEnv d X
-closeν-open-at d (｀ α) = refl
-closeν-open-at d (‵ ι) = refl
-closeν-open-at d ★ = refl
-closeν-open-at d (A ⇒ B) =
-  cong₂ _⇒_ (closeν-open-at d A) (closeν-open-at d B)
-closeν-open-at d (`∀ A) =
+  renameᵗ (closeVarAt (suc d)) A ≡ renameᵗ (extᵗ (closeVarAt d)) A
+renameᵗ-closeVarAt-suc d A = rename-cong (closeVarAt-ext d) A
+
+closeInlineAt-suc :
+  ∀ (d : TyVar) (A : Ty) →
+  closeInlineAt (suc d) A ≡
+  substˢᵗ (extsˢᵗ (singleSealTyEnv (＇ d))) (renameᵗ (extᵗ (closeVarAt d)) A)
+closeInlineAt-suc d A =
+  trans
+    (cong (substˢᵗ (singleSealTyEnv (＇ (suc d)))) (renameᵗ-closeVarAt-suc d A))
+    (sym (substˢᵗ-cong (singleSealTyEnv-ext d) (renameᵗ (extᵗ (closeVarAt d)) A)))
+
+closeInline-open-at :
+  ∀ (d : TyVar) (A : Ty) →
+  closeInlineAt d (substᵗ (openTyEnv d) (⇑ˢ A)) ≡ A
+closeInline-open-at d (＇ X) = closeInline-openTyEnv d X
+closeInline-open-at d (｀ α) = refl
+closeInline-open-at d (‵ ι) = refl
+closeInline-open-at d ★ = refl
+closeInline-open-at d (A ⇒ B) =
+  cong₂ _⇒_ (closeInline-open-at d A) (closeInline-open-at d B)
+closeInline-open-at d (`∀ A) =
   cong `∀
     (trans
-      (cong (closeνAt (suc d))
-            (substᵗ-cong (openTyEnv-ext d) (⇑ˢ A)))
-      (closeν-open-at (suc d) A))
+      (cong
+        (λ T → substˢᵗ (extsˢᵗ (singleSealTyEnv (＇ d))) (renameᵗ (extᵗ (closeVarAt d)) T))
+        (substᵗ-cong (openTyEnv-ext d) (⇑ˢ A)))
+      (trans
+        (sym (closeInlineAt-suc d (substᵗ (openTyEnv (suc d)) (⇑ˢ A))))
+        (closeInline-open-at (suc d) A)))
 
 openTyEnv-zero :
   (X : TyVar) →
@@ -373,13 +393,27 @@ openTyEnv-zero :
 openTyEnv-zero zero = refl
 openTyEnv-zero (suc X) = refl
 
-closeν-open :
+closeInlineAt-zero-open :
   (A : Ty) →
-  closeν ((⇑ˢ A) [ ｀ zero ]ᵗ) ≡ A
-closeν-open A =
+  closeInlineAt zero ((⇑ˢ A) [ ｀ zero ]ᵗ) ≡ A
+closeInlineAt-zero-open A =
   trans
-    (cong closeν (sym (substᵗ-cong openTyEnv-zero (⇑ˢ A))))
-    (closeν-open-at zero A)
+    (cong (closeInlineAt zero) (sym (substᵗ-cong openTyEnv-zero (⇑ˢ A))))
+    (closeInline-open-at zero A)
+
+closeν-inline :
+  (A : Ty) →
+  closeInlineAt zero A ≡ (⇑ᵗ A) [ ＇ zero ]ˢᵗ
+closeν-inline A =
+  cong (substˢᵗ (singleSealTyEnv (＇ zero))) (rename-cong (λ X → refl) A)
+
+closeν-inline-open :
+  (A : Ty) →
+  (⇑ᵗ ((⇑ˢ A) [ ｀ zero ]ᵗ)) [ ＇ zero ]ˢᵗ ≡ A
+closeν-inline-open A =
+  trans
+    (sym (closeν-inline ((⇑ˢ A) [ ｀ zero ]ᵗ)))
+    (closeInlineAt-zero-open A)
 
 lookupTyˢ-lookup :
   ∀ {Σ : Store}{α : Seal}{A : Ty} →
@@ -460,7 +494,7 @@ mutual
     cong `∀ (up-src-irrel {Σ = ⟰ᵗ Σ} {Σ′ = ⟰ᵗ Σ′} p)
   up-src-irrel {Σ = Σ} {Σ′ = Σ′} (ν p) =
     cong `∀
-      (cong closeν
+      (cong (λ A → (⇑ᵗ A) [ ＇ zero ]ˢᵗ)
         (up-src-irrel
           {Σ = (zero , ★) ∷ ⟰ˢ Σ}
           {Σ′ = (zero , ★) ∷ ⟰ˢ Σ′}
@@ -483,7 +517,7 @@ mutual
     cong `∀ (down-tgt-irrel {Σ = ⟰ᵗ Σ} {Σ′ = ⟰ᵗ Σ′} p)
   down-tgt-irrel {Σ = Σ} {Σ′ = Σ′} (ν p) =
     cong `∀
-      (cong closeν
+      (cong (λ A → (⇑ᵗ A) [ ＇ zero ]ˢᵗ)
         (down-tgt-irrel
           {Σ = (zero , ⇑ˢ ★) ∷ ⟰ˢ Σ}
           {Σ′ = (zero , ⇑ˢ ★) ∷ ⟰ˢ Σ′}
@@ -505,8 +539,8 @@ mutual
   up-src-align (wt-ν {A = A} p) =
     cong `∀
       (trans
-        (cong closeν (up-src-align p))
-        (closeν-open A))
+        (cong (λ B → (⇑ᵗ B) [ ＇ zero ]ˢᵗ) (up-src-align p))
+        (closeν-inline-open A))
   up-src-align (wt-id wfA) = refl
   up-src-align (wt-； p q) = up-src-align p
 
@@ -556,8 +590,8 @@ mutual
   down-tgt-align (wt-ν {A = A} p) =
     cong `∀
       (trans
-        (cong closeν (down-tgt-align p))
-        (closeν-open A))
+        (cong (λ B → (⇑ᵗ B) [ ＇ zero ]ˢᵗ) (down-tgt-align p))
+        (closeν-inline-open A))
   down-tgt-align (wt-id wfA) = refl
   down-tgt-align (wt-； p q) = down-tgt-align q
 

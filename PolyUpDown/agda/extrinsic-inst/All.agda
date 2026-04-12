@@ -13,6 +13,7 @@ open import UpDown
 open import Terms
 open import TermProperties
 open import Reduction
+open import Progress
 open import Preservation
 open import LogicalRelation
 open import Parametricity

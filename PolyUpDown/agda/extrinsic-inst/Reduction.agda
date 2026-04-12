@@ -119,37 +119,49 @@ data _—→_ : Term → Term → Set where
     ((ƛ B ⇒ N) · V) —→ (N [ V ])
 
   β-up-∀ : ∀ {V : Term} {p : Up} {B T : Ty} →
+    Value V →
     ((V up (∀ᵖ p)) ⦂∀ B [ T ]) —→
     ((V ⦂∀ up-src ∅ˢ p [ T ]) up (p [ T ]↑))
 
   β-up-↦ : ∀ {V W : Term} {p : Down} {q : Up} →
+    Value V →
+    Value W →
     ((V up (p ↦ q)) · W) —→ ((V · (W down p)) up q)
 
   β-down-↦ : ∀ {V W : Term} {p : Up} {q : Down} →
+    Value V →
+    Value W →
     ((V down (p ↦ q)) · W) —→ ((V · (W up p)) down q)
 
   id-up : ∀ {V : Term} {A : Ty} →
+    Value V →
     (V up (id A)) —→ V
 
   id-down : ∀ {V : Term} {A : Ty} →
+    Value V →
     (V down (id A)) —→ V
 
   seal-unseal : ∀ {V : Term} {α : Seal} →
+    Value V →
     ((V down (seal α)) up (unseal α)) —→ V
 
   tag-untag-ok :
     ∀ {G : Ty} {V : Term} {ℓ′ : Label} →
+    Value V →
     ((V up (tag G)) down (untag G ℓ′)) —→ V
 
   tag-untag-bad :
     ∀ {G H : Ty} {V : Term} {ℓ′ : Label} →
+    Value V →
     G ≢ H →
     ((V up (tag G)) down (untag H ℓ′)) —→ blame ℓ′
 
   β-up-； : ∀ {V : Term} {p : Up} {q : Up} →
+    Value V →
     (V up (p ； q)) —→ ((V up p) up q)
 
   β-down-； : ∀ {V : Term} {p : Down} {q : Down} →
+    Value V →
     (V down (p ； q)) —→ ((V down p) down q)
 
   δ-⊕ : ∀ {m n : ℕ} →
@@ -192,17 +204,19 @@ data _∣_—→[_]_∣_ :
       ((((⇑ˢᵐ V) [ ｀ zero ]ᵀ) up (reveal-⊑ A B)))
 
   β-down-∀ : ∀ {Σ : Store} {A B : Ty} {V : Term} {p : Down} →
+    Value V →
     Σ ∣ ((V down (∀ᵖ p)) ⦂∀ B [ A ]) —→[ suc ] ((zero , ⇑ˢ A) ∷ ⟰ˢ Σ) ∣
       (((((⇑ˢᵐ V) ⦂∀ ⇑ˢ (down-src (⟰ᵗ Σ) p) [ ｀ zero ]) down ((rename⊒ˢ suc p) [ ｀ zero ]↓))
          up (reveal-⊑ A (down-tgt (⟰ᵗ Σ) p))))
 
   β-down-ν : ∀ {Σ : Store} {A B : Ty} {V : Term} {p : Down} →
-    -- TODO: add premise: Value V
+    Value V →
     Σ ∣ ((V down (ν p)) ⦂∀ B [ A ]) —→[ suc ] ((zero , ⇑ˢ A) ∷ ⟰ˢ Σ) ∣
       ((((⇑ˢᵐ V) down ((rename⊒ˢ suc p) [ zero ]↓ˢ))
          up (reveal-⊑ A B)))
 
   β-up-ν : ∀ {Σ : Store} {V : Term} {p : Up} →
+    Value V →
     Σ ∣ (V up (ν p)) —→[ suc ] ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣
       ((((⇑ˢᵐ V) ⦂∀ ⇑ˢ (((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)) [ ｀ zero ]) up p))
 
@@ -246,9 +260,9 @@ store-growth :
   renameStoreˢ ρ Σ ⊆ˢ Σ′
 store-growth (id-step red) = idˢ-⊆ˢ
 store-growth β-Λ = drop ⊆ˢ-refl
-store-growth β-down-∀ = drop ⊆ˢ-refl
-store-growth β-down-ν = drop ⊆ˢ-refl
-store-growth β-up-ν = drop ⊆ˢ-refl
+store-growth (β-down-∀ vV) = drop ⊆ˢ-refl
+store-growth (β-down-ν vV) = drop ⊆ˢ-refl
+store-growth (β-up-ν vV) = drop ⊆ˢ-refl
 store-growth (ξ-·₁ red) = store-growth red
 store-growth (ξ-·₂ v red) = store-growth red
 store-growth (ξ-·α red) = store-growth red
@@ -264,9 +278,9 @@ unique-store-step :
   Uniqueˢ Σ′
 unique-store-step uΣ (id-step red) = uΣ
 unique-store-step uΣ (β-Λ {A = A}) = unique-ν A uΣ
-unique-store-step uΣ (β-down-∀ {A = A}) = unique-ν A uΣ
-unique-store-step uΣ (β-down-ν {A = A}) = unique-ν A uΣ
-unique-store-step uΣ (β-up-ν {V = V}) = unique-ν ★ uΣ
+unique-store-step uΣ (β-down-∀ {A = A} vV) = unique-ν A uΣ
+unique-store-step uΣ (β-down-ν {A = A} vV) = unique-ν A uΣ
+unique-store-step uΣ (β-up-ν {V = V} vV) = unique-ν ★ uΣ
 unique-store-step uΣ (ξ-·₁ red) = unique-store-step uΣ red
 unique-store-step uΣ (ξ-·₂ v red) = unique-store-step uΣ red
 unique-store-step uΣ (ξ-·α red) = unique-store-step uΣ red

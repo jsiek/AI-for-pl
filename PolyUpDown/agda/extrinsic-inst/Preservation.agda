@@ -365,7 +365,7 @@ preservation {Σ = Σ} uΣ
   (⊢• {B = B} {T = T}
     (⊢up {A = `∀ A} {B = `∀ B} Φ V⊢ (wt-∀ {A = A} {B = B} {p = p} p⊢))
     wfT)
-  β-up-∀ = ⊢up
+  (β-up-∀ vV) = ⊢up
     Φ
     (cong-⊢⦂ refl refl refl (cong (λ X → X [ T ]ᵗ) eq-src) (⊢• {B = up-src ∅ˢ p} V⊢′ wfT))
     (openCast⊑ p⊢ T)
@@ -374,20 +374,20 @@ preservation {Σ = Σ} uΣ
     eq-src = trans (up-src-irrel {Σ = ∅ˢ} {Σ′ = ⟰ᵗ Σ} p) (up-src-align p⊢)
 
     V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (sym eq-src)) V⊢
-preservation uΣ (⊢· (⊢up Φ V⊢ (wt-↦ p⊢ q⊢)) W⊢) β-up-↦ =
+preservation uΣ (⊢· (⊢up Φ V⊢ (wt-↦ p⊢ q⊢)) W⊢) (β-up-↦ vV vW) =
   ⊢up Φ (⊢· V⊢ (⊢down Φ W⊢ p⊢)) q⊢
-preservation uΣ (⊢· (⊢down Φ V⊢ (wt-↦ p⊢ q⊢)) W⊢) β-down-↦ =
+preservation uΣ (⊢· (⊢down Φ V⊢ (wt-↦ p⊢ q⊢)) W⊢) (β-down-↦ vV vW) =
   ⊢down Φ (⊢· V⊢ (⊢up Φ W⊢ p⊢)) q⊢
-preservation uΣ (⊢up Φ V⊢ (wt-id wfA)) id-up = V⊢
-preservation uΣ (⊢down Φ V⊢ (wt-id wfA)) id-down = V⊢
+preservation uΣ (⊢up Φ V⊢ (wt-id wfA)) (id-up vV) = V⊢
+preservation uΣ (⊢down Φ V⊢ (wt-id wfA)) (id-down vV) = V⊢
 preservation uΣ (⊢up Φ₁ (⊢down Φ₂ V⊢ (wt-seal h α∈Φ₂)) (wt-unseal h′ α∈Φ₁))
-  seal-unseal = cong-⊢⦂ refl refl refl (lookup-unique uΣ h h′) V⊢
+  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique uΣ h h′) V⊢
 preservation uΣ (⊢down Φ (⊢up Φ′ V⊢ (wt-tag g gok)) (wt-untag g′ gok′ ℓ))
-  tag-untag-ok = V⊢
+  (tag-untag-ok vV) = V⊢
 preservation uΣ (⊢down Φ (⊢up Φ′ V⊢ (wt-tag g gok)) (wt-untag h hok ℓ′))
-  (tag-untag-bad neq) = ⊢blame ℓ′
-preservation uΣ (⊢up Φ V⊢ (wt-； p⊢ q⊢)) β-up-； = ⊢up Φ (⊢up Φ V⊢ p⊢) q⊢
-preservation uΣ (⊢down Φ V⊢ (wt-； p⊢ q⊢)) β-down-； = ⊢down Φ (⊢down Φ V⊢ p⊢) q⊢
+  (tag-untag-bad vV neq) = ⊢blame ℓ′
+preservation uΣ (⊢up Φ V⊢ (wt-； p⊢ q⊢)) (β-up-； vV) = ⊢up Φ (⊢up Φ V⊢ p⊢) q⊢
+preservation uΣ (⊢down Φ V⊢ (wt-； p⊢ q⊢)) (β-down-； vV) = ⊢down Φ (⊢down Φ V⊢ p⊢) q⊢
 preservation uΣ (⊢⊕ (⊢$ (κℕ m)) addℕ (⊢$ (κℕ n))) δ-⊕ = ⊢$ (κℕ (m + n))
 preservation uΣ (⊢· (⊢blame ℓ) M⊢) blame-·₁ = ⊢blame ℓ
 preservation uΣ (⊢· L⊢ (⊢blame ℓ)) (blame-·₂ vV) = ⊢blame ℓ
@@ -422,9 +422,9 @@ step-ren-shape :
   StepRenShape ρ
 step-ren-shape (id-step red) = shape-id
 step-ren-shape β-Λ = shape-suc
-step-ren-shape β-down-∀ = shape-suc
-step-ren-shape β-down-ν = shape-suc
-step-ren-shape β-up-ν = shape-suc
+step-ren-shape (β-down-∀ vV) = shape-suc
+step-ren-shape (β-down-ν vV) = shape-suc
+step-ren-shape (β-up-ν vV) = shape-suc
 step-ren-shape (ξ-·₁ red) = step-ren-shape red
 step-ren-shape (ξ-·₂ vV red) = step-ren-shape red
 step-ren-shape (ξ-·α red) = step-ren-shape red
@@ -457,7 +457,7 @@ preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} uΣ
   (⊢• {B = B} {T = T}
     (⊢down {A = `∀ C} {B = `∀ B} Φ V⊢ (wt-∀ {A = C} {B = B} {p = p} p⊢))
     wfT)
-  (β-down-∀ {A = T} {B = B} {V = V} {p = p}) =
+  (β-down-∀ {A = T} {B = B} {V = V} {p = p} vV) =
   suc Ψ , SealRenameWf-suc ,
   cong-⊢⦂ refl refl refl out-eq
     (⊢up
@@ -508,7 +508,7 @@ preservation-step
   (⊢• {B = Aν} {T = T}
     (⊢down {A = Bν} {B = `∀ Aν} Φ V⊢ (wt-ν {A = Aν} {B = Bν} {p = p} p⊢))
     wfT)
-  (β-down-ν {A = T} {B = Aν} {V = V} {p = p}) =
+  (β-down-ν {A = T} {B = Aν} {V = V} {p = p} vV) =
   suc Ψ , SealRenameWf-suc ,
   cong-⊢⦂ refl refl refl (sym (renameˢ-[]ᵗ suc Aν T))
     (⊢up
@@ -545,7 +545,7 @@ preservation-step
   {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
   uΣ
   (⊢up {A = `∀ Aν} {B = Bν} Φ V⊢ (wt-ν {A = Aν} {B = Bν} {p = p} p⊢))
-  (β-up-ν {V = V} {p = p}) =
+  (β-up-ν {V = V} {p = p} vV) =
   suc Ψ , SealRenameWf-suc ,
   ⊢up
     (true ∷ Φ)

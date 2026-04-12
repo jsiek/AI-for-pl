@@ -12,8 +12,11 @@ open import Ctx
 open import UpDown
 open import Terms
 open import TermProperties
+open import TypeCheckDec
 open import Reduction
 open import Progress
 open import Preservation
+open import Eval
+open import Examples
 open import LogicalRelation
 open import Parametricity

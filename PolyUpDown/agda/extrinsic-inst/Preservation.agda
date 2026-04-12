@@ -14,7 +14,7 @@ open import Agda.Builtin.Sigma as Sigma using (Σ)
 open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; map; []; _∷_)
-open import Data.Nat using (zero; suc; _+_)
+open import Data.Nat using (zero; suc; z<s; _+_)
 open import Data.Product using (Σ; proj₁; proj₂; _,_)
 open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; subst; sym; trans)
@@ -22,6 +22,7 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import TypeProperties
 open import Store
+open import Ctx using (⤊ᵗ; map-renameˢ-⤊ᵗ)
 open import UpDown
 open import Terms hiding (_[_]ᵀ)
 open import TermProperties
@@ -281,21 +282,20 @@ preservation {Σ = Σ} uΣ
     eq-src = trans (up-src-irrel {Σ = ∅ˢ} {Σ′ = ⟰ᵗ Σ} p) (up-src-align p⊢)
 
     V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (sym eq-src)) V⊢
-preservation uΣ (⊢· (⊢up Φ V⊢ (wt-↦ p⊢ q⊢)) W⊢) β-up-↦ = ⊢up Φ (⊢· V⊢ (⊢down Φ W⊢ p⊢)) q⊢
-preservation uΣ (⊢· (⊢down Φ V⊢ (wt-↦ p⊢ q⊢)) W⊢) β-down-↦ = ⊢down Φ (⊢· V⊢ (⊢up Φ W⊢ p⊢)) q⊢
+preservation uΣ (⊢· (⊢up Φ V⊢ (wt-↦ p⊢ q⊢)) W⊢) β-up-↦ =
+  ⊢up Φ (⊢· V⊢ (⊢down Φ W⊢ p⊢)) q⊢
+preservation uΣ (⊢· (⊢down Φ V⊢ (wt-↦ p⊢ q⊢)) W⊢) β-down-↦ =
+  ⊢down Φ (⊢· V⊢ (⊢up Φ W⊢ p⊢)) q⊢
 preservation uΣ (⊢up Φ V⊢ (wt-id wfA)) id-up = V⊢
 preservation uΣ (⊢down Φ V⊢ (wt-id wfA)) id-down = V⊢
-preservation uΣ
-  (⊢up Φ₁ (⊢down Φ₂ V⊢ (wt-seal h α∈Φ₂)) (wt-unseal h′ α∈Φ₁))
+preservation uΣ (⊢up Φ₁ (⊢down Φ₂ V⊢ (wt-seal h α∈Φ₂)) (wt-unseal h′ α∈Φ₁))
   seal-unseal = cong-⊢⦂ refl refl refl (lookup-unique uΣ h h′) V⊢
-preservation uΣ
-  (⊢down Φ (⊢up Φ′ V⊢ (wt-tag g gok)) (wt-untag g′ gok′ ℓ))
+preservation uΣ (⊢down Φ (⊢up Φ′ V⊢ (wt-tag g gok)) (wt-untag g′ gok′ ℓ))
   tag-untag-ok = V⊢
-preservation uΣ
-  (⊢down Φ (⊢up Φ′ V⊢ (wt-tag g gok)) (wt-untag h hok ℓ′))
+preservation uΣ (⊢down Φ (⊢up Φ′ V⊢ (wt-tag g gok)) (wt-untag h hok ℓ′))
   (tag-untag-bad neq) = ⊢blame ℓ′
-preservation uΣ (⊢up Φ V⊢ (wt-； p⊢ q⊢)) β-up-； = ⊢up Φ (⊢up Φ V⊢ p⊢) q⊢
-preservation uΣ (⊢down Φ V⊢ (wt-； p⊢ q⊢)) β-down-； = ⊢down Φ (⊢down Φ V⊢ p⊢) q⊢
+preservation uΣ (⊢up Φ V⊢ (wt-； p⊢ q⊢)) β-up-；= ⊢up Φ (⊢up Φ V⊢ p⊢) q⊢
+preservation uΣ (⊢down Φ V⊢ (wt-； p⊢ q⊢)) β-down-；= ⊢down Φ (⊢down Φ V⊢ p⊢) q⊢
 preservation uΣ (⊢⊕ (⊢$ (κℕ m)) addℕ (⊢$ (κℕ n))) δ-⊕ = ⊢$ (κℕ (m + n))
 preservation uΣ (⊢· (⊢blame ℓ) M⊢) blame-·₁ = ⊢blame ℓ
 preservation uΣ (⊢· L⊢ (⊢blame ℓ)) (blame-·₂ vV) = ⊢blame ℓ
@@ -321,7 +321,24 @@ preservation-step :
           Δ ∣ Ψ′ ∣ Σ′ ∣ map (renameˢ ρ) Γ ⊢ M′ ⦂ renameˢ ρ A))
 preservation-step uΣ M⊢ (id-step red) = _ , (λ α<Ψ → α<Ψ) ,
   cong-⊢⦂ refl (sym (map-renameˢ-id _)) refl (sym renameˢ-id) (preservation uΣ M⊢ red)
-preservation-step uΣ M⊢ β-Λ = {!!}
+preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} uΣ (⊢• {B = B} {T = T} (⊢Λ V⊢) wfT)
+  (β-Λ {V = V}) =
+  suc Ψ , SealRenameWf-suc ,
+  cong-⊢⦂ refl refl refl (sym (renameˢ-[]ᵗ suc B T))
+    (⊢up (every (suc Ψ)) ([]ᵀ-wt V⊢′ (｀ zero) (wfSeal z<s))
+      (instCast⊑-wt {A = ⇑ˢ T} {B = ⇑ˢ B} {α = zero} top here))
+  where
+    top : ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∋ˢ zero ⦂ ⇑ˢ T
+    top = Z∋ˢ refl refl
+
+    V⊢↑ : (suc Δ) ∣ (suc Ψ) ∣ ((zero , ⇑ˢ (renameᵗ suc T)) ∷ ⟰ˢ (⟰ᵗ Σ))
+        ∣ map (renameˢ suc) (⤊ᵗ Γ) ⊢ ⇑ˢᵐ V ⦂ ⇑ˢ B
+    V⊢↑ = wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ-wt V⊢)
+
+    V⊢′ : (suc Δ) ∣ (suc Ψ) ∣ ⟰ᵗ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ)
+        ∣ ⤊ᵗ (map (renameˢ suc) Γ) ⊢ ⇑ˢᵐ V ⦂ ⇑ˢ B
+    V⊢′ = cong-⊢⦂ (sym (renameStoreᵗ-cons-⟰ˢ suc T Σ))
+        (map-renameˢ-⤊ᵗ suc Γ) refl refl V⊢↑
 preservation-step uΣ M⊢ β-down-∀ = {!!}
 preservation-step uΣ M⊢ β-down-ν = {!!}
 preservation-step uΣ M⊢ β-up-ν = {!!}

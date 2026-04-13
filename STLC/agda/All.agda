@@ -6,7 +6,6 @@ module All where
 --   * Keeps dependency order explicit for quick sanity checks.
 
 open import STLC
-open import Subst
 open import TypeSafety
 open import Eval
 open import TypeCheckDec

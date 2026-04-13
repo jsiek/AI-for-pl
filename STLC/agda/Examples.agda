@@ -23,7 +23,7 @@ taplIdNatApp-⊢ : [] ⊢ taplIdNatApp ⦂ nat
 taplIdNatApp-⊢ = ⊢· taplIdNat-⊢ ⊢zero
 
 taplIdNatApp-↠ : taplIdNatApp —↠ `zero
-taplIdNatApp-↠ = taplIdNatApp —→⟨ β-ƛ V-zero ⟩ `zero ∎
+taplIdNatApp-↠ = taplIdNatApp —→⟨ β-ƛ `zero ⟩ `zero ∎
 
 -- TAPL-style constant function.
 taplConstNat : Term
@@ -43,8 +43,8 @@ taplConstNatApp-⊢ =
 
 taplConstNatApp-↠ : taplConstNatApp —↠ `zero
 taplConstNatApp-↠ =
-  taplConstNatApp —→⟨ ξ-·₁ (β-ƛ V-zero) ⟩
-  ((ƛ nat ⇒ `zero) · (`suc `zero)) —→⟨ β-ƛ (V-suc V-zero) ⟩
+  taplConstNatApp —→⟨ ξ-·₁ (β-ƛ `zero) ⟩
+  ((ƛ nat ⇒ `zero) · (`suc `zero)) —→⟨ β-ƛ (`suc `zero) ⟩
   `zero ∎
 
 -- TAPL-style successor function.
@@ -61,7 +61,7 @@ taplSuccNatApp-⊢ : [] ⊢ taplSuccNatApp ⦂ nat
 taplSuccNatApp-⊢ = ⊢· taplSuccNat-⊢ ⊢zero
 
 taplSuccNatApp-↠ : taplSuccNatApp —↠ (`suc `zero)
-taplSuccNatApp-↠ = taplSuccNatApp —→⟨ β-ƛ V-zero ⟩ (`suc `zero) ∎
+taplSuccNatApp-↠ = taplSuccNatApp —→⟨ β-ƛ `zero ⟩ (`suc `zero) ∎
 
 -- PLFA-style case split that computes the identity on naturals.
 plfaCaseNat : Term
@@ -78,8 +78,8 @@ plfaCaseNatApp-⊢ = ⊢· plfaCaseNat-⊢ (⊢suc ⊢zero)
 
 plfaCaseNatApp-↠ : plfaCaseNatApp —↠ (`suc `zero)
 plfaCaseNatApp-↠ =
-  plfaCaseNatApp —→⟨ β-ƛ (V-suc V-zero) ⟩
-  (case_[zero⇒_|suc⇒_] (`suc `zero) `zero (`suc ` 0)) —→⟨ β-suc V-zero ⟩
+  plfaCaseNatApp —→⟨ β-ƛ (`suc `zero) ⟩
+  (case_[zero⇒_|suc⇒_] (`suc `zero) `zero (`suc ` 0)) —→⟨ β-suc `zero ⟩
   (`suc `zero) ∎
 
 ------------------------------------------------------------------------
@@ -130,7 +130,7 @@ ex-xi-app1-⊢ =
 ex-xi-app1-↠ : ex-xi-app1 —↠ `zero
 ex-xi-app1-↠ =
   ex-xi-app1 —→⟨ ξ-·₁ β-zero ⟩
-  (taplIdNat · `zero) —→⟨ β-ƛ V-zero ⟩
+  (taplIdNat · `zero) —→⟨ β-ƛ `zero ⟩
   `zero ∎
 
 -- `ξ-·₂`: the argument position of an application reduces.
@@ -142,8 +142,8 @@ ex-xi-app2-⊢ = ⊢· taplIdNat-⊢ (⊢case ⊢zero ⊢zero (⊢suc ⊢zero))
 
 ex-xi-app2-↠ : ex-xi-app2 —↠ `zero
 ex-xi-app2-↠ =
-  ex-xi-app2 —→⟨ ξ-·₂ (V-ƛ , β-zero) ⟩
-  (taplIdNat · `zero) —→⟨ β-ƛ V-zero ⟩
+  ex-xi-app2 —→⟨ ξ-·₂ (ƛ _ ⇒ _ , β-zero) ⟩
+  (taplIdNat · `zero) —→⟨ β-ƛ `zero ⟩
   `zero ∎
 
 -- `β-ƛ`: ordinary lambda beta reduction.
@@ -177,7 +177,7 @@ ex-xi-case-⊢ = ⊢case (⊢· taplIdNat-⊢ ⊢zero) ⊢zero (⊢suc ⊢zero)
 
 ex-xi-case-↠ : ex-xi-case —↠ `zero
 ex-xi-case-↠ =
-  ex-xi-case —→⟨ ξ-case (β-ƛ V-zero) ⟩
+  ex-xi-case —→⟨ ξ-case (β-ƛ `zero) ⟩
   (case_[zero⇒_|suc⇒_] `zero `zero (`suc `zero)) —→⟨ β-zero ⟩
   `zero ∎
 
@@ -202,7 +202,7 @@ ex-beta-suc-⊢ = ⊢case (⊢suc ⊢zero) ⊢zero (⊢suc (⊢` Z))
 
 ex-beta-suc-↠ : ex-beta-suc —↠ (`suc `zero)
 ex-beta-suc-↠ =
-  ex-beta-suc —→⟨ β-suc V-zero ⟩
+  ex-beta-suc —→⟨ β-suc `zero ⟩
   (`suc `zero) ∎
 
 ------------------------------------------------------------------------

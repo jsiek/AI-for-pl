@@ -1,11 +1,12 @@
 module STLC where
 
+-- File Charter:
+--   * Core STLC language definition: syntax, typing, values, and reduction.
+--   * Exports only definitional material used by trusted theorem statements.
+
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
-open import Data.Product using (Σ; Σ-syntax; ∃; ∃-syntax; _,_)
-open import Data.Empty using (⊥)
-open import Relation.Nullary using (Dec; yes; no)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; trans)
+open import Data.Product using (Σ; _,_)
 
 infixr 7 _⇒_
 
@@ -107,9 +108,9 @@ data _⊢_⦂_ (Γ : Ctx) : Term -> Ty -> Set where
           Γ ⊢ (case_[zero⇒_|suc⇒_] L M N) ⦂ A
 
 data Value : Term -> Set where
-  V-ƛ : {A : Ty} {N : Term} -> Value (ƛ A ⇒ N)
-  V-zero : Value `zero
-  V-suc : {V : Term} -> Value V -> Value (`suc V)
+  ƛ_⇒_ : (A : Ty) (N : Term) -> Value (ƛ A ⇒ N)
+  `zero : Value `zero
+  `suc_ : {V : Term} -> Value V -> Value (`suc V)
 
 infix 2 _—→_
 data _—→_ : Term -> Term -> Set where
@@ -149,56 +150,3 @@ data _—↠_ : Term -> Term -> Set where
             L —→ M ->
             M —↠ N ->
             L —↠ N
-
-multi-trans : {M N L : Term} -> M —↠ N -> N —↠ L -> M —↠ L
-multi-trans (_ ∎) ms2 = ms2
-multi-trans (_ —→⟨ s ⟩ ms1') ms2 = _ —→⟨ s ⟩ (multi-trans ms1' ms2)
-
-infix 4 _≟Ty_
-_≟Ty_ : (A B : Ty) → Dec (A ≡ B)
-nat ≟Ty nat = yes refl
-nat ≟Ty (B ⇒ B₁) = no λ ()
-(A ⇒ A₁) ≟Ty nat = no (λ ())
-(A₁ ⇒ A₂) ≟Ty (B₁ ⇒ B₂)
-    with A₁ ≟Ty B₁ | A₂ ≟Ty B₂
-... | yes refl | yes refl = yes refl
-... | no neq | _ = no λ { refl → neq refl }
-... | _ | no neq = no λ { refl → neq refl }
-
-∋-unique : {Γ : Ctx} {x : Var} {A B : Ty}
-    → Γ ∋ x ⦂ A → Γ ∋ x ⦂ B
-    → A ≡ B
-∋-unique Z Z = refl
-∋-unique (S x:A) (S x:B) = ∋-unique x:A x:B
-
-lookup : (Γ : Ctx) (x : Var) → Dec (∃[ A ] Γ ∋ x ⦂ A)
-lookup [] x = no λ { () }
-lookup (A ∷ Γ) zero = yes (A , Z)
-lookup (A ∷ Γ) (suc x)
-    with lookup Γ x
-... | yes (B , x:B) = yes (B , (S x:B))
-... | no nxx = no λ { (B , S sx:B) → nxx (B , sx:B) }
-
-nat-fun : ∀ {A B} → nat ≡ A ⇒ B → ⊥
-nat-fun ()
-
-fun-inv1 : ∀ {A B C D} → A ⇒ B ≡ C ⇒ D → A ≡ C
-fun-inv1 refl = refl
-
-fun-inv2 : ∀ {A B C D} → A ⇒ B ≡ C ⇒ D → B ≡ D
-fun-inv2 refl = refl
-
-typing-unique : (Γ : Ctx) (M : Term) (A B : Ty)
-    → Γ ⊢ M ⦂ A → Γ ⊢ M ⦂ B
-    → A ≡ B
-typing-unique Γ _ _ _ (⊢` x:A) (⊢` x:B) =
-  ∋-unique x:A x:B
-typing-unique Γ _ _ _ (⊢ƛ {A = A} {B = B₁} {N = N} N:B₁) (⊢ƛ {B = B₂} N:B₂) =
-  cong (A ⇒_) (typing-unique (A ∷ Γ) N B₁ B₂ N:B₁ N:B₂)
-typing-unique Γ _ _ _ (⊢· {A = A₁} {B = B₁} {L = L} L:AB M:A)
-                      (⊢· {A = A₂} {B = B₂} L:CD M:C) =
-  fun-inv2 (typing-unique Γ L (A₁ ⇒ B₁) (A₂ ⇒ B₂) L:AB L:CD)
-typing-unique Γ _ _ _ ⊢zero ⊢zero = refl
-typing-unique Γ _ _ _ (⊢suc M:nat) (⊢suc M:nat′) = refl
-typing-unique Γ _ _ _ (⊢case {M = M} L:nat M:A N:A) (⊢case L:nat′ M:B N:B) =
-  typing-unique Γ M _ _ M:A M:B

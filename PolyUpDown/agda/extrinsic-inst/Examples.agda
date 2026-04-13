@@ -79,9 +79,6 @@ polyBetaId =
     (ƛ (＇ zero) ⇒
       ((ƛ (＇ zero) ⇒ ` zero) · ` zero))
 
-inst : Term → Ty → Ty → Term
-inst M T B = M ⦂∀ B [ T ]
-
 expect-⊢ :
   (M : Term) →
   (A : Ty) →
@@ -389,14 +386,9 @@ example12-test = refl
 
 sec2-app-dyn : Term
 sec2-app-dyn =
-  ((inst
-      (inst
-        polyApp
-        ★
-        (`∀ (((＇ (suc zero)) ⇒ (＇ zero)) ⇒ ((＇ (suc zero)) ⇒ (＇ zero)))))
-      ★
-      ((★ ⇒ ＇ zero) ⇒ (★ ⇒ ＇ zero))
-   ) · idDyn)
+  (((polyApp ⦂∀ (`∀ (((＇ (suc zero)) ⇒ (＇ zero)) ⇒ ((＇ (suc zero)) ⇒ (＇ zero)))) [ ★ ])
+     ⦂∀ ((★ ⇒ ＇ zero) ⇒ (★ ⇒ ＇ zero)) [ ★ ])
+   · idDyn)
   · c★
 
 sec2-app-dyn-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec2-app-dyn ⦂ ★
@@ -404,14 +396,9 @@ sec2-app-dyn-⊢ = expect-⊢ sec2-app-dyn ★ tt
 
 sec2-app-base : Term
 sec2-app-base =
-  ((inst
-      (inst
-        polyApp
-        (‵ `ℕ)
-        (`∀ (((＇ (suc zero)) ⇒ (＇ zero)) ⇒ ((＇ (suc zero)) ⇒ (＇ zero)))))
-      (‵ `ℕ)
-      (((‵ `ℕ) ⇒ ＇ zero) ⇒ ((‵ `ℕ) ⇒ ＇ zero))
-   ) · natId)
+  (((polyApp ⦂∀ (`∀ (((＇ (suc zero)) ⇒ (＇ zero)) ⇒ ((＇ (suc zero)) ⇒ (＇ zero)))) [ ‵ `ℕ ])
+     ⦂∀ (((‵ `ℕ) ⇒ ＇ zero) ⇒ ((‵ `ℕ) ⇒ ＇ zero)) [ ‵ `ℕ ])
+   · natId)
   · c
 
 sec2-app-base-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec2-app-base ⦂ (‵ `ℕ)
@@ -428,7 +415,7 @@ sec2-app-base-test = refl
 ------------------------------------------------------------------------
 
 sec5-β : Term
-sec5-β = (inst polyBetaId (‵ `ℕ) (＇ zero ⇒ ＇ zero)) · c
+sec5-β = (polyBetaId ⦂∀ (＇ zero ⇒ ＇ zero) [ ‵ `ℕ ]) · c
 
 sec5-β-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec5-β ⦂ (‵ `ℕ)
 sec5-β-⊢ = expect-⊢ sec5-β (‵ `ℕ) tt
@@ -442,21 +429,21 @@ sec5-β-test = refl
 
 sec6-K-dyn : Term
 sec6-K-dyn =
-  ((inst polyK ★ (＇ zero ⇒ ＇ zero ⇒ ＇ zero)) · n42★) · n69★
+  ((polyK ⦂∀ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) [ ★ ]) · n42★) · n69★
 
 sec6-K-dyn-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-dyn ⦂ ★
 sec6-K-dyn-⊢ = expect-⊢ sec6-K-dyn ★ tt
 
 sec6-K-base : Term
 sec6-K-base =
-  ((inst polyK (‵ `ℕ) (＇ zero ⇒ ＇ zero ⇒ ＇ zero)) · n42) · n69
+  ((polyK ⦂∀ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) [ ‵ `ℕ ]) · n42) · n69
 
 sec6-K-base-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-base ⦂ (‵ `ℕ)
 sec6-K-base-⊢ = expect-⊢ sec6-K-base (‵ `ℕ) tt
 
 sec6-K-lax : Term
 sec6-K-lax =
-  ((inst polyK ★ (＇ zero ⇒ ＇ zero ⇒ ＇ zero)
+  (((polyK ⦂∀ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) [ ★ ])
      down (tag (‵ `ℕ) ↦ ((id ★) ↦ untag (‵ `ℕ) 63)))
    · n42)
   · idFun★
@@ -466,7 +453,7 @@ sec6-K-lax-⊢ = expect-⊢ sec6-K-lax (‵ `ℕ) tt
 
 sec6-K-strict : Term
 sec6-K-strict =
-  ((inst polyK (‵ `ℕ) (＇ zero ⇒ ＇ zero ⇒ ＇ zero)
+  (((polyK ⦂∀ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) [ ‵ `ℕ ])
      up ((id (‵ `ℕ)) ↦ (untag (‵ `ℕ) 64 ↦ (id (‵ `ℕ)))))
    · n42)
   · idFun★
@@ -476,10 +463,7 @@ sec6-K-strict-⊢ = expect-⊢ sec6-K-strict (‵ `ℕ) tt
 
 sec6-id-leak : Term
 sec6-id-leak =
-  (inst
-     (idDyn down (ν (tag (｀ zero) ↦ id ★)))
-     (‵ `ℕ)
-     (＇ zero ⇒ ★))
+  ((idDyn down (ν (tag (｀ zero) ↦ id ★))) ⦂∀ (＇ zero ⇒ ★) [ ‵ `ℕ ])
   · n42
 
 sec6-id-leak-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-id-leak ⦂ ★
@@ -510,13 +494,9 @@ sec6-id-leak-test = refl
 
 seal-name-example : Term
 seal-name-example =
-  ((inst
-     (inst
-       (Kdyn down (ν (ν (tag (｀ (suc zero)) ↦ (tag (｀ zero) ↦ untag (｀ (suc zero)) 700)))))
-       (‵ `ℕ)
-       (`∀ (＇ (suc zero) ⇒ ＇ zero ⇒ ＇ (suc zero))))
-     (‵ `ℕ)
-     ((‵ `ℕ) ⇒ ＇ zero ⇒ (‵ `ℕ)))
+  ((((Kdyn down (ν (ν (tag (｀ (suc zero)) ↦ (tag (｀ zero) ↦ untag (｀ (suc zero)) 700)))))
+      ⦂∀ (`∀ (＇ (suc zero) ⇒ ＇ zero ⇒ ＇ (suc zero))) [ ‵ `ℕ ])
+     ⦂∀ ((‵ `ℕ) ⇒ ＇ zero ⇒ (‵ `ℕ)) [ ‵ `ℕ ])
     · nat 42)
    · nat 0
 

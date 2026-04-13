@@ -3,8 +3,9 @@ module TypeSafety where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.List using (List; []; _∷_)
 open import Agda.Builtin.Nat renaming (Nat to ℕ; suc to sucℕ)
-open import Agda.Builtin.Sigma using (_,_; snd)
+open import Agda.Builtin.Sigma using (Σ; _,_; snd)
 open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import STLC
 
 ------------------------------------------------------------------------
@@ -108,10 +109,6 @@ preservation (⊢case hL hM hN) (ξ-case s) =
 -- Progress
 ------------------------------------------------------------------------
 
-data ProgressResult (M : Term) : Set where
-  pr-step : {N : Term} -> M —→ N -> ProgressResult M
-  pr-done : Value M -> ProgressResult M
-
 noZeroFn : {A B : Ty} -> [] ⊢ `zero ⦂ (A ⇒ B) -> ⊥
 noZeroFn ()
 
@@ -124,58 +121,44 @@ noLamNat ()
 progress-empty :
   {M : Term} {A : Ty} ->
   [] ⊢ M ⦂ A ->
-  ProgressResult M
+  (Σ Term (λ N -> M —→ N)) ⊎ Value M
 progress-empty (⊢` ())
-progress-empty (⊢ƛ hN) = pr-done V-ƛ
+progress-empty (⊢ƛ hN) = inj₂ V-ƛ
 progress-empty (⊢· hL hM) with progress-empty hL
-... | pr-step s = pr-step (ξ-·₁ s)
-... | pr-done vL with progress-empty hM
-...   | pr-step s = pr-step (ξ-·₂ (vL , s))
-...   | pr-done vM with vL
-...     | V-ƛ = pr-step (β-ƛ vM)
-...     | V-zero = ⊥-elim (noZeroFn hL)
-...     | V-suc _ = ⊥-elim (noSucFn hL)
-progress-empty ⊢zero = pr-done V-zero
+progress-empty (⊢· hL hM) | inj₁ (N , s) = inj₁ (_ , ξ-·₁ s)
+progress-empty (⊢· hL hM) | inj₂ vL with progress-empty hM
+progress-empty (⊢· hL hM) | inj₂ vL | inj₁ (N , s) = inj₁ (_ , ξ-·₂ (vL , s))
+progress-empty (⊢· hL hM) | inj₂ vL | inj₂ vM with vL
+progress-empty (⊢· hL hM) | inj₂ vL | inj₂ vM | V-ƛ = inj₁ (_ , β-ƛ vM)
+progress-empty (⊢· hL hM) | inj₂ vL | inj₂ vM | V-zero = ⊥-elim (noZeroFn hL)
+progress-empty (⊢· hL hM) | inj₂ vL | inj₂ vM | V-suc _ = ⊥-elim (noSucFn hL)
+progress-empty ⊢zero = inj₂ V-zero
 progress-empty (⊢suc hM) with progress-empty hM
-... | pr-step s = pr-step (ξ-suc s)
-... | pr-done v = pr-done (V-suc v)
+progress-empty (⊢suc hM) | inj₁ (N , s) = inj₁ (`suc N , ξ-suc s)
+progress-empty (⊢suc hM) | inj₂ v = inj₂ (V-suc v)
 progress-empty (⊢case hL hM hN) with progress-empty hL
-... | pr-step s = pr-step (ξ-case s)
-... | pr-done vL with vL
-...   | V-zero = pr-step β-zero
-...   | V-suc v = pr-step (β-suc v)
-...   | V-ƛ = ⊥-elim (noLamNat hL)
+progress-empty (⊢case hL hM hN) | inj₁ (L' , s) = inj₁ (_ , ξ-case s)
+progress-empty (⊢case hL hM hN) | inj₂ vL with vL
+progress-empty (⊢case hL hM hN) | inj₂ vL | V-zero = inj₁ (_ , β-zero)
+progress-empty (⊢case hL hM hN) | inj₂ vL | V-suc v = inj₁ (_ , β-suc v)
+progress-empty (⊢case hL hM hN) | inj₂ vL | V-ƛ = ⊥-elim (noLamNat hL)
 
 progress :
   {Γ : Ctx} {M : Term} {A : Ty} ->
   Γ ⊢ M ⦂ A ->
   Γ ≡ [] ->
-  ProgressResult M
+  (Σ Term (λ N -> M —→ N)) ⊎ Value M
 progress h refl = progress-empty h
 
-progress_top : 
+progress_top :
   {M : Term} {A : Ty} ->
   [] ⊢ M ⦂ A ->
-  ProgressResult M
+  (Σ Term (λ N -> M —→ N)) ⊎ Value M
 progress_top h = progress-empty h
 
 ------------------------------------------------------------------------
--- Compact safety wrapper
+-- Type safety
 ------------------------------------------------------------------------
-
-record Safety (M : Term) (A : Ty) : Set where
-  constructor safety
-  field
-    progress-witness : ProgressResult M
-    preservation-step : ∀ {N : Term} -> M —→ N -> [] ⊢ N ⦂ A
-
-open Safety public
-
-typeSafety :
-  {M : Term} {A : Ty} ->
-  [] ⊢ M ⦂ A ->
-  Safety M A
-typeSafety hM = safety (progress_top hM) (preservation hM)
 
 typeSafety-step :
   {M : Term} {A : Ty} ->
@@ -190,3 +173,10 @@ typeSafety-↠ :
   [] ⊢ N ⦂ A
 typeSafety-↠ hM (_ ∎) = hM
 typeSafety-↠ hM (_ —→⟨ s ⟩ ms) = typeSafety-↠ (preservation hM s) ms
+
+typeSafety :
+  {M N : Term} {A : Ty} ->
+  [] ⊢ M ⦂ A ->
+  M —↠ N ->
+  (Σ Term (λ N' -> N —→ N')) ⊎ Value N
+typeSafety hM M—↠N = progress-empty (typeSafety-↠ hM M—↠N)

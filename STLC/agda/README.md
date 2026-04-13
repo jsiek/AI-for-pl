@@ -8,8 +8,10 @@ The main ingredients are:
 - `STLC.agda`: syntax, typing, renaming/substitution, values, and small-step reduction.
 - `Subst.agda`: substitution algebra and commuting lemmas.
 - `TypeSafety.agda`: progress, preservation, and related typing lemmas.
+- `TypeCheckDec.agda`: type checker (decidable).
 - `Eval.agda`: a fuel-bounded evaluator that returns a trace and value witness.
 - `Examples.agda`: source-inspired examples plus coverage cases for every reduction rule.
+- `Termination.agda`: a proof that STLC programs terminate, via logical relations.
 
 Design emphasis:
 

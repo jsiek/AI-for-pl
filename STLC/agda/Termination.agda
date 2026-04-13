@@ -3,20 +3,12 @@ module Termination where
 open import Agda.Builtin.Nat renaming (Nat to ℕ)
 open import Agda.Builtin.List
 open import Agda.Builtin.Sigma
+open import Data.Empty using (⊥)
+open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; sym; trans)
   renaming (subst to substEq)
 open import STLC
 open import Subst
-
-data ⊥ : Set where
-
-infixr 30 _×_
-record _×_ (A B : Set) : Set where
-  constructor _,_
-  field
-    fst : A
-    snd : B
-open _×_
 
 data VNat : Term -> Set where
   vzero : VNat `zero
@@ -145,3 +137,23 @@ fundamental_property {σ = σ} (⊢case {A = A} {L = L} {M = M} {N = N} hL hM hN
         ((case_[zero⇒_|suc⇒_] (`suc V) (subst σ M) (subst (exts σ) N)) —→⟨ β-suc (𝒱_to_Value wtv_V) ⟩
           (substEq (λ T -> T —↠ N') (sym (exts_sub_cons {σ = σ} {N = N} {V = V})) ms_N)) ,
        (v_N , wtv_N))
+
+empty-sub-well-behaved : SubstWellBehaved [] `_
+empty-sub-well-behaved ()
+
+termination-empty-ℰ :
+  {M : Term} {A : Ty} ->
+  [] ⊢ M ⦂ A ->
+  ℰ A M
+termination-empty-ℰ {M = M} {A = A} hM =
+  substEq
+    (λ T -> ℰ A T)
+    (subst_id M)
+    (fundamental_property {σ = `_} hM empty-sub-well-behaved)
+
+termination :
+  {M : Term} {A : Ty} ->
+  [] ⊢ M ⦂ A ->
+  Σ Term (λ V -> (M —↠ V) × Value V)
+termination hM with termination-empty-ℰ hM
+... | (V , (ms_MV , (vV , _))) = V , (ms_MV , vV)

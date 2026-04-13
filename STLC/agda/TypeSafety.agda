@@ -18,17 +18,11 @@ preservation :
   [] ⊢ N ⦂ A
 preservation = Proof.preservation
 
-progress_top :
-  {M : Term} {A : Ty} ->
-  [] ⊢ M ⦂ A ->
-  (Σ Term (λ N -> M —→ N)) ⊎ Value M
-progress_top = Proof.progress_top
-
 progress :
   {M : Term} {A : Ty} ->
   [] ⊢ M ⦂ A ->
   (Σ Term (λ N -> M —→ N)) ⊎ Value M
-progress = progress_top
+progress = Proof.progress_top
 
 typeSafety :
   {M N : Term} {A : Ty} ->

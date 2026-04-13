@@ -7,7 +7,7 @@ open import Agda.Builtin.Sigma using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 
 open import STLC
-open import TypeSafety using (progress_top; preservation)
+open import TypeSafety using (progress; preservation)
 
 ------------------------------------------------------------------------
 -- Evaluation results
@@ -31,10 +31,10 @@ eval :
   ℕ ->
   [] ⊢ M ⦂ A ->
   Maybe (EvalResult M)
-eval {M = M} zeroℕ hM with progress_top hM
+eval {M = M} zeroℕ hM with progress hM
 eval {M = M} zeroℕ hM | inj₂ v = just (result M (M ∎) v)
 eval {M = M} zeroℕ hM | inj₁ _ = nothing
-eval {M = M} (sucℕ gas) hM with progress_top hM
+eval {M = M} (sucℕ gas) hM with progress hM
 eval {M = M} (sucℕ gas) hM | inj₂ v = just (result M (M ∎) v)
 eval {M = M} (sucℕ gas) hM | inj₁ (N , s) with eval gas (preservation hM s)
 eval {M = M} (sucℕ gas) hM | inj₁ (N , s) | nothing = nothing

@@ -7,7 +7,7 @@ open import Agda.Builtin.Sigma using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 
 open import STLC
-open import TypeSafety using (progress; preservation)
+open import MetaTheory using (progress; preservation)
 
 ------------------------------------------------------------------------
 -- Evaluation results

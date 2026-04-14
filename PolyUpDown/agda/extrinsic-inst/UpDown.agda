@@ -10,7 +10,6 @@ module UpDown where
 --     the well-typed layer.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc; _≤_; _⊔_; s≤s)
@@ -29,26 +28,51 @@ open import Store
 Label : Set
 Label = ℕ
 
-------------------------------------------------------------------------
--- Permissions as explicit seal membership in bool lists
+-- Permissions as explicit per-seal cast flags
 ------------------------------------------------------------------------
 
-infix 4 _∈_ _∉_
+infix 4 _∈_ _∈conv_ _∈cast_ _∈tag_ _∉_
 
-data _∈_ : Seal → List Bool → Set where
-  here  : ∀ {P} → zero ∈ (true ∷ P)
+data CastPerm : Set where
+  cast-tag : CastPerm
+  cast-seal : CastPerm
+  conv : CastPerm
+
+data _∈_ : Seal → List CastPerm → Set where
+  here-conv : ∀ {P} → zero ∈ (conv ∷ P)
+  here-seal : ∀ {P} → zero ∈ (cast-seal ∷ P)
   there : ∀ {α b P} → α ∈ P → suc α ∈ (b ∷ P)
 
-_∉_ : Seal → List Bool → Set
+data _∈conv_ : Seal → List CastPerm → Set where
+  here-conv-only : ∀ {P} → zero ∈conv (conv ∷ P)
+  there-conv : ∀ {α b P} → α ∈conv P → suc α ∈conv (b ∷ P)
+
+data _∈cast_ : Seal → List CastPerm → Set where
+  here-cast-only : ∀ {P} → zero ∈cast (cast-seal ∷ P)
+  there-cast : ∀ {α b P} → α ∈cast P → suc α ∈cast (b ∷ P)
+
+data _∈tag_ : Seal → List CastPerm → Set where
+  here-tag-only : ∀ {P} → zero ∈tag (cast-tag ∷ P)
+  there-tag : ∀ {α b P} → α ∈tag P → suc α ∈tag (b ∷ P)
+
+_∉_ : Seal → List CastPerm → Set
 α ∉ P = α ∈ P → ⊥
 
-⊢_ok_ : ∀ {G : Ty} → Ground G → List Bool → Set
-⊢ (｀ α) ok Φ = α ∉ Φ
+∈conv⇒∈ : ∀ {α P} → α ∈conv P → α ∈ P
+∈conv⇒∈ here-conv-only = here-conv
+∈conv⇒∈ (there-conv p) = there (∈conv⇒∈ p)
+
+∈cast⇒∈ : ∀ {α P} → α ∈cast P → α ∈ P
+∈cast⇒∈ here-cast-only = here-seal
+∈cast⇒∈ (there-cast p) = there (∈cast⇒∈ p)
+
+⊢_ok_ : ∀ {G : Ty} → Ground G → List CastPerm → Set
+⊢ (｀ α) ok Φ = α ∈tag Φ
 ⊢ (‵ ι) ok Φ = ⊤
 ⊢ ★⇒★ ok Φ = ⊤
 
 ------------------------------------------------------------------------
--- Raw widening/narrowing (no indices)
+-- Widening/narrowing
 ------------------------------------------------------------------------
 
 infixr 7 _↦_
@@ -57,33 +81,39 @@ infixl 6 _；_
 mutual
   data Up : Set where
     tag : Ty → Up
-
     unseal : Seal → Up
-
     _↦_ : Down → Up → Up
-
     ∀ᵖ : Up → Up
-
     ν_ : Up → Up
-
     id : Ty → Up
-
     _；_ : Up → Up → Up
 
   data Down : Set where
     untag : Ty → Label → Down
-
     seal : Seal → Down
-
     _↦_ : Up → Down → Down
-
     ∀ᵖ : Down → Down
-
     ν_ : Down → Down
-
     id : Ty → Down
-
     _；_ : Down → Down → Down
+
+mutual
+  data Conv : Set where
+    reveal : Seal → Conv
+    _↦_ : Conv → Conv → Conv
+    `∀ : Conv → Conv
+    id : Ty → Conv
+    _；_ : Conv → Conv → Conv
+
+mutual
+  data Cast : Set where
+    tag : Ty → Cast
+    reveal : Seal → Cast
+    _↦_ : Cast → Cast → Cast
+    `∀ : Cast → Cast
+    ν_ : Cast → Cast
+    id : Ty → Cast
+    _；_ : Cast → Cast → Cast
 
 ------------------------------------------------------------------------
 -- Raw cast endpoints
@@ -226,7 +256,7 @@ wfTySome (`∀ A) with wfTySome A
   wf∀ (WfTy-weakenᵗ wfA (n≤1+n ΔA))
 
 mutual
-  data _∣_⊢_⦂_⊑_ (Σ : Store) (Φ : List Bool) : Up → Ty → Ty → Set where
+  data _∣_⊢_⦂_⊑_ (Σ : Store) (Φ : List CastPerm) : Up → Ty → Ty → Set where
     wt-tag : ∀ {G}
       → (g : Ground G)
       → ⊢ g ok Φ
@@ -234,20 +264,35 @@ mutual
 
     wt-unseal : ∀ {α A}
       → Σ ∋ˢ α ⦂ A
-      → α ∈ Φ
+      → α ∈conv Φ
       → Σ ∣ Φ ⊢ unseal α ⦂ ｀ α ⊑ A
+
+    wt-unseal★ : ∀ {α}
+      → Σ ∋ˢ α ⦂ ★
+      → α ∈cast Φ
+      → Σ ∣ Φ ⊢ unseal α ⦂ ｀ α ⊑ ★
 
     wt-↦ : ∀ {A A′ B B′}{p : Down}{q : Up}
       → Σ ∣ Φ ⊢ p ⦂ A′ ⊒ A
       → Σ ∣ Φ ⊢ q ⦂ B ⊑ B′
       → Σ ∣ Φ ⊢ (p ↦ q) ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′)
 
+    {-
+      ⤊ Σ ∣ Φ ⊢  p[X]  : A[X] ⊑ B[X]
+      -------------------------------------
+      ⤊ Σ ∣ Φ ⊢  ∀X.p[X]  : ∀X.A[X] ⊑ ∀X.B[X]
+    -}
     wt-∀ : ∀ {A B}{p : Up}
       → ⟰ᵗ Σ ∣ Φ ⊢ p ⦂ A ⊑ B
       → Σ ∣ Φ ⊢ (∀ᵖ p) ⦂ `∀ A ⊑ `∀ B
 
+    {-
+      Σ, α:=★ ∣ Φ, cs ⊢  p[α]  : A[α] ⊑ B
+      -----------------------------------
+      Σ ∣ Φ ⊢  να.p[α]  : ∀X.A[X] ⊑ B
+    -}
     wt-ν : ∀ {A B}{p : Up}
-      → ((zero , ★) ∷ ⟰ˢ Σ) ∣ (true ∷ Φ) ⊢ p ⦂ (⇑ˢ A) [ ｀ zero ]ᵗ ⊑ ⇑ˢ B
+      → ((zero , ★) ∷ ⟰ˢ Σ) ∣ (cast-seal ∷ Φ) ⊢ p ⦂ (⇑ˢ A) [ ｀ zero ]ᵗ ⊑ ⇑ˢ B
       → Σ ∣ Φ ⊢ (ν p) ⦂ (`∀ A) ⊑ B
 
     wt-id : ∀ {A}
@@ -259,7 +304,7 @@ mutual
       → Σ ∣ Φ ⊢ q ⦂ B ⊑ C
       → Σ ∣ Φ ⊢ (p ； q) ⦂ A ⊑ C
 
-  data _∣_⊢_⦂_⊒_ (Σ : Store) (Φ : List Bool) : Down → Ty → Ty → Set where
+  data _∣_⊢_⦂_⊒_ (Σ : Store) (Φ : List CastPerm) : Down → Ty → Ty → Set where
     wt-untag : ∀ {G}
       → (g : Ground G)
       → ⊢ g ok Φ
@@ -268,8 +313,13 @@ mutual
 
     wt-seal : ∀ {α A}
       → Σ ∋ˢ α ⦂ A
-      → α ∈ Φ
+      → α ∈conv Φ
       → Σ ∣ Φ ⊢ seal α ⦂ A ⊒ ｀ α
+
+    wt-seal★ : ∀ {α}
+      → Σ ∋ˢ α ⦂ ★
+      → α ∈cast Φ
+      → Σ ∣ Φ ⊢ seal α ⦂ ★ ⊒ ｀ α
 
     wt-↦ : ∀ {A A′ B B′}{p : Up}{q : Down}
       → Σ ∣ Φ ⊢ p ⦂ A′ ⊑ A
@@ -281,7 +331,7 @@ mutual
       → Σ ∣ Φ ⊢ (∀ᵖ p) ⦂ `∀ A ⊒ `∀ B
 
     wt-ν : ∀ {A B}{p : Down}
-      → ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (false ∷ Φ) ⊢ p ⦂ ⇑ˢ B ⊒ (⇑ˢ A) [ ｀ zero ]ᵗ
+      → ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ) ⊢ p ⦂ ⇑ˢ B ⊒ (⇑ˢ A) [ ｀ zero ]ᵗ
       → Σ ∣ Φ ⊢ (ν p) ⦂ B ⊒ `∀ A
 
     wt-id : ∀ {A}
@@ -528,11 +578,12 @@ mutual
 
 mutual
   up-src-align :
-    ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}{p : Up} →
+    ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
     Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     up-src Σ p ≡ A
   up-src-align (wt-tag g gok) = refl
   up-src-align (wt-unseal h α∈Φ) = refl
+  up-src-align (wt-unseal★ h α∈Φ) = refl
   up-src-align (wt-↦ p q) =
     cong₂ _⇒_ (down-tgt-align p) (up-src-align q)
   up-src-align (wt-∀ p) = cong `∀ (up-src-align p)
@@ -545,12 +596,13 @@ mutual
   up-src-align (wt-； p q) = up-src-align p
 
   up-tgt-align :
-    ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}{p : Up} →
+    ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
     Uniqueˢ Σ →
     Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     up-tgt Σ p ≡ B
   up-tgt-align uΣ (wt-tag g gok) = refl
   up-tgt-align uΣ (wt-unseal h α∈Φ) = lookupTyˢ-lookup uΣ h
+  up-tgt-align uΣ (wt-unseal★ h α∈Φ) = lookupTyˢ-lookup uΣ h
   up-tgt-align uΣ (wt-↦ p q) =
     cong₂ _⇒_ (down-src-align uΣ p) (up-tgt-align uΣ q)
   up-tgt-align uΣ (wt-∀ p) = cong `∀ (up-tgt-align (unique-⟰ᵗ uΣ) p)
@@ -562,12 +614,13 @@ mutual
   up-tgt-align uΣ (wt-； p q) = up-tgt-align uΣ q
 
   down-src-align :
-    ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}{p : Down} →
+    ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
     Uniqueˢ Σ →
     Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     down-src Σ p ≡ A
   down-src-align uΣ (wt-untag g gok ℓ) = refl
   down-src-align uΣ (wt-seal h α∈Φ) = lookupTyˢ-lookup uΣ h
+  down-src-align uΣ (wt-seal★ h α∈Φ) = lookupTyˢ-lookup uΣ h
   down-src-align uΣ (wt-↦ p q) =
     cong₂ _⇒_ (up-tgt-align uΣ p) (down-src-align uΣ q)
   down-src-align uΣ (wt-∀ p) = cong `∀ (down-src-align (unique-⟰ᵗ uΣ) p)
@@ -579,11 +632,12 @@ mutual
   down-src-align uΣ (wt-； p q) = down-src-align uΣ p
 
   down-tgt-align :
-    ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}{p : Down} →
+    ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
     Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     down-tgt Σ p ≡ B
   down-tgt-align (wt-untag g gok ℓ) = refl
   down-tgt-align (wt-seal h α∈Φ) = refl
+  down-tgt-align (wt-seal★ h α∈Φ) = refl
   down-tgt-align (wt-↦ p q) =
     cong₂ _⇒_ (up-src-align p) (down-tgt-align q)
   down-tgt-align (wt-∀ p) = cong `∀ (down-tgt-align p)
@@ -599,64 +653,181 @@ mutual
 -- Transport helpers
 ------------------------------------------------------------------------
 
-RenOk : Renameˢ → List Bool → List Bool → Set
+RenOk : Renameˢ → List CastPerm → List CastPerm → Set
 RenOk ρ P P′ = ∀ {α} → α ∈ P → ρ α ∈ P′
 
-RenNotIn : Renameˢ → List Bool → List Bool → Set
+RenOkConv : Renameˢ → List CastPerm → List CastPerm → Set
+RenOkConv ρ P P′ = ∀ {α} → α ∈conv P → ρ α ∈conv P′
+
+RenOkCast : Renameˢ → List CastPerm → List CastPerm → Set
+RenOkCast ρ P P′ = ∀ {α} → α ∈cast P → ρ α ∈cast P′
+
+RenOkTag : Renameˢ → List CastPerm → List CastPerm → Set
+RenOkTag ρ P P′ = ∀ {α} → α ∈tag P → ρ α ∈tag P′
+
+RenNotIn : Renameˢ → List CastPerm → List CastPerm → Set
 RenNotIn ρ P P′ = ∀ {α} → α ∉ P → ρ α ∉ P′
 
-RenOk-id : ∀ {P : List Bool} → RenOk (λ α → α) P P
+RenOk-id : ∀ {P : List CastPerm} → RenOk (λ α → α) P P
 RenOk-id p = p
 
-RenNotIn-id : ∀ {P : List Bool} → RenNotIn (λ α → α) P P
+RenOkConv-id : ∀ {P : List CastPerm} → RenOkConv (λ α → α) P P
+RenOkConv-id p = p
+
+RenOkCast-id : ∀ {P : List CastPerm} → RenOkCast (λ α → α) P P
+RenOkCast-id p = p
+
+RenOkTag-id : ∀ {P : List CastPerm} → RenOkTag (λ α → α) P P
+RenOkTag-id p = p
+
+RenNotIn-id : ∀ {P : List CastPerm} → RenNotIn (λ α → α) P P
 RenNotIn-id p = p
 
-RenOk-ext-true :
-  ∀ {ρ : Renameˢ} {P P′ : List Bool} →
+RenOk-ext-conv :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
   RenOk ρ P P′ →
-  RenOk (extˢ ρ) (true ∷ P) (true ∷ P′)
-RenOk-ext-true ok {zero} here = here
-RenOk-ext-true ok {suc α} (there p) = there (ok p)
+  RenOk (extˢ ρ) (conv ∷ P) (conv ∷ P′)
+RenOk-ext-conv ok {zero} here-conv = here-conv
+RenOk-ext-conv ok {suc α} (there p) = there (ok p)
 
-RenOk-ext-false :
-  ∀ {ρ : Renameˢ} {P P′ : List Bool} →
+RenOk-ext-cast-seal :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
   RenOk ρ P P′ →
-  RenOk (extˢ ρ) (false ∷ P) (false ∷ P′)
-RenOk-ext-false ok {zero} ()
-RenOk-ext-false ok {suc α} (there p) = there (ok p)
+  RenOk (extˢ ρ) (cast-seal ∷ P) (cast-seal ∷ P′)
+RenOk-ext-cast-seal ok {zero} here-seal = here-seal
+RenOk-ext-cast-seal ok {suc α} (there p) = there (ok p)
 
-RenNotIn-ext-true :
-  ∀ {ρ : Renameˢ} {P P′ : List Bool} →
+RenOk-ext-cast-tag :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
+  RenOk ρ P P′ →
+  RenOk (extˢ ρ) (cast-tag ∷ P) (cast-tag ∷ P′)
+RenOk-ext-cast-tag ok {zero} ()
+RenOk-ext-cast-tag ok {suc α} (there p) = there (ok p)
+
+RenOkConv-ext-conv :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
+  RenOkConv ρ P P′ →
+  RenOkConv (extˢ ρ) (conv ∷ P) (conv ∷ P′)
+RenOkConv-ext-conv ok {zero} here-conv-only = here-conv-only
+RenOkConv-ext-conv ok {suc α} (there-conv p) = there-conv (ok p)
+
+RenOkConv-ext-cast-seal :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
+  RenOkConv ρ P P′ →
+  RenOkConv (extˢ ρ) (cast-seal ∷ P) (cast-seal ∷ P′)
+RenOkConv-ext-cast-seal ok {zero} ()
+RenOkConv-ext-cast-seal ok {suc α} (there-conv p) = there-conv (ok p)
+
+RenOkConv-ext-cast-tag :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
+  RenOkConv ρ P P′ →
+  RenOkConv (extˢ ρ) (cast-tag ∷ P) (cast-tag ∷ P′)
+RenOkConv-ext-cast-tag ok {zero} ()
+RenOkConv-ext-cast-tag ok {suc α} (there-conv p) = there-conv (ok p)
+
+RenOkCast-ext-conv :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
+  RenOkCast ρ P P′ →
+  RenOkCast (extˢ ρ) (conv ∷ P) (conv ∷ P′)
+RenOkCast-ext-conv ok {zero} ()
+RenOkCast-ext-conv ok {suc α} (there-cast p) = there-cast (ok p)
+
+RenOkCast-ext-cast-seal :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
+  RenOkCast ρ P P′ →
+  RenOkCast (extˢ ρ) (cast-seal ∷ P) (cast-seal ∷ P′)
+RenOkCast-ext-cast-seal ok {zero} here-cast-only = here-cast-only
+RenOkCast-ext-cast-seal ok {suc α} (there-cast p) = there-cast (ok p)
+
+RenOkCast-ext-cast-tag :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
+  RenOkCast ρ P P′ →
+  RenOkCast (extˢ ρ) (cast-tag ∷ P) (cast-tag ∷ P′)
+RenOkCast-ext-cast-tag ok {zero} ()
+RenOkCast-ext-cast-tag ok {suc α} (there-cast p) = there-cast (ok p)
+
+RenOkTag-ext-conv :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
+  RenOkTag ρ P P′ →
+  RenOkTag (extˢ ρ) (conv ∷ P) (conv ∷ P′)
+RenOkTag-ext-conv ok {zero} ()
+RenOkTag-ext-conv ok {suc α} (there-tag p) = there-tag (ok p)
+
+RenOkTag-ext-cast-seal :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
+  RenOkTag ρ P P′ →
+  RenOkTag (extˢ ρ) (cast-seal ∷ P) (cast-seal ∷ P′)
+RenOkTag-ext-cast-seal ok {zero} ()
+RenOkTag-ext-cast-seal ok {suc α} (there-tag p) = there-tag (ok p)
+
+RenOkTag-ext-cast-tag :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
+  RenOkTag ρ P P′ →
+  RenOkTag (extˢ ρ) (cast-tag ∷ P) (cast-tag ∷ P′)
+RenOkTag-ext-cast-tag ok {zero} here-tag-only = here-tag-only
+RenOkTag-ext-cast-tag ok {suc α} (there-tag p) = there-tag (ok p)
+
+RenNotIn-ext-conv :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
   RenNotIn ρ P P′ →
-  RenNotIn (extˢ ρ) (true ∷ P) (true ∷ P′)
-RenNotIn-ext-true ok {zero} α∉true _ = α∉true here
-RenNotIn-ext-true ok {suc α} α∉true (there p) =
-  ok (λ α∈ → α∉true (there α∈)) p
+  RenNotIn (extˢ ρ) (conv ∷ P) (conv ∷ P′)
+RenNotIn-ext-conv ok {zero} α∉conv _ = α∉conv here-conv
+RenNotIn-ext-conv ok {suc α} α∉conv (there p) =
+  ok (λ α∈ → α∉conv (there α∈)) p
 
-RenNotIn-ext-false :
-  ∀ {ρ : Renameˢ} {P P′ : List Bool} →
+RenNotIn-ext-cast-seal :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
   RenNotIn ρ P P′ →
-  RenNotIn (extˢ ρ) (false ∷ P) (false ∷ P′)
-RenNotIn-ext-false ok {zero} α∉false ()
-RenNotIn-ext-false ok {suc α} α∉false (there p) =
-  ok (λ α∈ → α∉false (there α∈)) p
+  RenNotIn (extˢ ρ) (cast-seal ∷ P) (cast-seal ∷ P′)
+RenNotIn-ext-cast-seal ok {zero} α∉seal _ = α∉seal here-seal
+RenNotIn-ext-cast-seal ok {suc α} α∉seal (there p) =
+  ok (λ α∈ → α∉seal (there α∈)) p
 
-RenOk-singleSealEnv-true :
-  ∀ {P : List Bool} {α : Seal} →
+RenNotIn-ext-cast-tag :
+  ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
+  RenNotIn ρ P P′ →
+  RenNotIn (extˢ ρ) (cast-tag ∷ P) (cast-tag ∷ P′)
+RenNotIn-ext-cast-tag ok {zero} α∉tag ()
+RenNotIn-ext-cast-tag ok {suc α} α∉tag (there p) =
+  ok (λ α∈ → α∉tag (there α∈)) p
+
+RenOk-singleSealEnv-conv :
+  ∀ {P : List CastPerm} {α : Seal} →
   α ∈ P →
-  RenOk (singleSealEnv α) (true ∷ P) P
-RenOk-singleSealEnv-true α∈P here = α∈P
-RenOk-singleSealEnv-true α∈P (there p) = p
+  RenOk (singleSealEnv α) (conv ∷ P) P
+RenOk-singleSealEnv-conv α∈P here-conv = α∈P
+RenOk-singleSealEnv-conv α∈P (there p) = p
 
-RenOk-singleSealEnv-false :
-  ∀ {P : List Bool} {α : Seal} →
-  RenOk (singleSealEnv α) (false ∷ P) P
-RenOk-singleSealEnv-false {P = P} {α = α} {zero} ()
-RenOk-singleSealEnv-false {P = P} {α = α} {suc β} (there p) = p
+RenOk-singleSealEnv-cast-seal :
+  ∀ {P : List CastPerm} {α : Seal} →
+  α ∈ P →
+  RenOk (singleSealEnv α) (cast-seal ∷ P) P
+RenOk-singleSealEnv-cast-seal α∈P here-seal = α∈P
+RenOk-singleSealEnv-cast-seal α∈P (there p) = p
+
+RenOk-singleSealEnv-cast-tag :
+  ∀ {P : List CastPerm} {α : Seal} →
+  RenOk (singleSealEnv α) (cast-tag ∷ P) P
+RenOk-singleSealEnv-cast-tag {P = P} {α = α} {zero} ()
+RenOk-singleSealEnv-cast-tag {P = P} {α = α} {suc β} (there p) = p
+
+RenOkConv-singleSealEnv-conv :
+  ∀ {P : List CastPerm} {α : Seal} →
+  α ∈conv P →
+  RenOkConv (singleSealEnv α) (conv ∷ P) P
+RenOkConv-singleSealEnv-conv α∈P here-conv-only = α∈P
+RenOkConv-singleSealEnv-conv α∈P (there-conv p) = p
+
+RenOkCast-singleSealEnv-cast-seal :
+  ∀ {P : List CastPerm} {α : Seal} →
+  α ∈cast P →
+  RenOkCast (singleSealEnv α) (cast-seal ∷ P) P
+RenOkCast-singleSealEnv-cast-seal α∈P here-cast-only = α∈P
+RenOkCast-singleSealEnv-cast-seal α∈P (there-cast p) = p
 
 renameᵗ-ground-ok :
   ∀ {G : Ty}
-  (ρ : Renameᵗ) (g : Ground G) {Φ : List Bool} →
+  (ρ : Renameᵗ) (g : Ground G) {Φ : List CastPerm} →
   ⊢ g ok Φ →
   ⊢ renameᵗ-ground ρ g ok Φ
 renameᵗ-ground-ok ρ (｀ α) gok = gok
@@ -665,7 +836,7 @@ renameᵗ-ground-ok ρ ★⇒★ gok = gok
 
 substᵗ-ground-ok :
   ∀ {G : Ty}
-  (σ : Substᵗ) (g : Ground G) {Φ : List Bool} →
+  (σ : Substᵗ) (g : Ground G) {Φ : List CastPerm} →
   ⊢ g ok Φ →
   ⊢ substᵗ-ground σ g ok Φ
 substᵗ-ground-ok σ (｀ α) gok = gok
@@ -674,8 +845,8 @@ substᵗ-ground-ok σ ★⇒★ gok = gok
 
 renameˢ-ground-ok :
   ∀ {G : Ty}
-  (ρ : Renameˢ) {Φ Φ′ : List Bool} →
-  RenNotIn ρ Φ Φ′ →
+  (ρ : Renameˢ) {Φ Φ′ : List CastPerm} →
+  RenOkTag ρ Φ Φ′ →
   (g : Ground G) →
   ⊢ g ok Φ →
   ⊢ renameˢ-ground ρ g ok Φ′
@@ -753,7 +924,7 @@ p [ α ]↓ˢ = rename⊒ˢ (singleSealEnv α) p
 ------------------------------------------------------------------------
 
 castWt⊑ :
-  ∀ {Σ Σ′ : Store}{Φ Φ′ : List Bool}{A B : Ty}{p : Up} →
+  ∀ {Σ Σ′ : Store}{Φ Φ′ : List CastPerm}{A B : Ty}{p : Up} →
   Σ ≡ Σ′ →
   Φ ≡ Φ′ →
   Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
@@ -761,7 +932,7 @@ castWt⊑ :
 castWt⊑ refl refl h = h
 
 castWt⊒ :
-  ∀ {Σ Σ′ : Store}{Φ Φ′ : List Bool}{A B : Ty}{p : Down} →
+  ∀ {Σ Σ′ : Store}{Φ Φ′ : List CastPerm}{A B : Ty}{p : Down} →
   Σ ≡ Σ′ →
   Φ ≡ Φ′ →
   Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
@@ -769,7 +940,7 @@ castWt⊒ :
 castWt⊒ refl refl h = h
 
 castWt⊑-raw :
-  ∀ {Σ : Store}{Φ : List Bool}{A A′ B B′ : Ty}{p : Up} →
+  ∀ {Σ : Store}{Φ : List CastPerm}{A A′ B B′ : Ty}{p : Up} →
   (A≡A′ : A ≡ A′) →
   (B≡B′ : B ≡ B′) →
   Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
@@ -777,7 +948,7 @@ castWt⊑-raw :
 castWt⊑-raw refl refl h = h
 
 castWt⊒-raw :
-  ∀ {Σ : Store}{Φ : List Bool}{A A′ B B′ : Ty}{p : Down} →
+  ∀ {Σ : Store}{Φ : List CastPerm}{A A′ B B′ : Ty}{p : Down} →
   (A≡A′ : A ≡ A′) →
   (B≡B′ : B ≡ B′) →
   Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
@@ -790,7 +961,7 @@ castWt⊒-raw refl refl h = h
 
 mutual
   ⊑-renameᵗ-wt :
-    ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}
+    ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}
     {p : Up} →
     (ρ : Renameᵗ) →
     Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
@@ -798,6 +969,7 @@ mutual
   ⊑-renameᵗ-wt ρ (wt-tag g gokΦ) =
     wt-tag (renameᵗ-ground ρ g) (renameᵗ-ground-ok ρ g gokΦ)
   ⊑-renameᵗ-wt ρ (wt-unseal h α∈Φ) = wt-unseal (renameLookupᵗ ρ h) α∈Φ
+  ⊑-renameᵗ-wt ρ (wt-unseal★ h α∈Φ) = wt-unseal★ (renameLookupᵗ ρ h) α∈Φ
   ⊑-renameᵗ-wt ρ (wt-↦ p q) = wt-↦ (⊒-renameᵗ-wt ρ p) (⊑-renameᵗ-wt ρ q)
   ⊑-renameᵗ-wt {Σ = Σ} ρ (wt-∀ p) =
     wt-∀
@@ -818,7 +990,7 @@ mutual
   ⊑-renameᵗ-wt ρ (wt-； p q) = wt-； (⊑-renameᵗ-wt ρ p) (⊑-renameᵗ-wt ρ q)
 
   ⊒-renameᵗ-wt :
-    ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}
+    ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}
     {p : Down} →
     (ρ : Renameᵗ) →
     Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
@@ -826,6 +998,7 @@ mutual
   ⊒-renameᵗ-wt ρ (wt-untag g gokΦ ℓ) =
     wt-untag (renameᵗ-ground ρ g) (renameᵗ-ground-ok ρ g gokΦ) ℓ
   ⊒-renameᵗ-wt ρ (wt-seal h α∈Φ) = wt-seal (renameLookupᵗ ρ h) α∈Φ
+  ⊒-renameᵗ-wt ρ (wt-seal★ h α∈Φ) = wt-seal★ (renameLookupᵗ ρ h) α∈Φ
   ⊒-renameᵗ-wt ρ (wt-↦ p q) = wt-↦ (⊑-renameᵗ-wt ρ p) (⊒-renameᵗ-wt ρ q)
   ⊒-renameᵗ-wt {Σ = Σ} ρ (wt-∀ p) =
     wt-∀
@@ -852,26 +1025,33 @@ mutual
 mutual
   ⊑-renameˢ-wt :
     ∀ {Σ : Store}
-      {Φ : List Bool}{Φ′ : List Bool}{A B : Ty}
+      {Φ : List CastPerm}{Φ′ : List CastPerm}{A B : Ty}
       {p : Up} →
     (ρ : Renameˢ) →
     RenOk ρ Φ Φ′ →
+    RenOkConv ρ Φ Φ′ →
+    RenOkCast ρ Φ Φ′ →
+    RenOkTag ρ Φ Φ′ →
     RenNotIn ρ Φ Φ′ →
     Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     renameStoreˢ ρ Σ ∣ Φ′ ⊢ rename⊑ˢ ρ p ⦂ renameˢ ρ A ⊑ renameˢ ρ B
-  ⊑-renameˢ-wt ρ okΦ ok¬Φ (wt-tag g gokΦ) =
-    wt-tag (renameˢ-ground ρ g) (renameˢ-ground-ok ρ ok¬Φ g gokΦ)
-  ⊑-renameˢ-wt ρ okΦ ok¬Φ (wt-unseal h α∈Φ) =
-    wt-unseal (renameLookupˢ ρ h) (okΦ α∈Φ)
-  ⊑-renameˢ-wt ρ okΦ ok¬Φ (wt-↦ p q) =
-    wt-↦ (⊒-renameˢ-wt ρ okΦ ok¬Φ p) (⊑-renameˢ-wt ρ okΦ ok¬Φ q)
-  ⊑-renameˢ-wt {Σ = Σ} ρ okΦ ok¬Φ (wt-∀ p) =
+  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-tag g gokΦ) =
+    wt-tag (renameˢ-ground ρ g) (renameˢ-ground-ok ρ okTag g gokΦ)
+  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-unseal h α∈Φ) =
+    wt-unseal (renameLookupˢ ρ h) (okConv α∈Φ)
+  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-unseal★ h α∈Φ) =
+    wt-unseal★ (renameLookupˢ ρ h) (okCast α∈Φ)
+  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-↦ p q) =
+    wt-↦
+      (⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p)
+      (⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ q)
+  ⊑-renameˢ-wt {Σ = Σ} ρ okΦ okConv okCast okTag ok¬Φ (wt-∀ p) =
     wt-∀
       (castWt⊑
         (renameStoreˢ-ext-⟰ᵗ ρ Σ)
         refl
-        (⊑-renameˢ-wt ρ okΦ ok¬Φ p))
-  ⊑-renameˢ-wt {Σ = Σ} ρ okΦ ok¬Φ (wt-ν {A = A} {B = B} p) =
+        (⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p))
+  ⊑-renameˢ-wt {Σ = Σ} ρ okΦ okConv okCast okTag ok¬Φ (wt-ν {A = A} {B = B} p) =
     wt-ν
       (castWt⊑
         (renameStoreˢ-ν ρ Σ)
@@ -881,35 +1061,47 @@ mutual
           (renameˢ-ext-⇑ˢ ρ B)
           (⊑-renameˢ-wt
             (extˢ ρ)
-            (RenOk-ext-true okΦ)
-            (RenNotIn-ext-true ok¬Φ)
+            (RenOk-ext-cast-seal okΦ)
+            (RenOkConv-ext-cast-seal okConv)
+            (RenOkCast-ext-cast-seal okCast)
+            (RenOkTag-ext-cast-seal okTag)
+            (RenNotIn-ext-cast-seal ok¬Φ)
             p)))
-  ⊑-renameˢ-wt ρ okΦ ok¬Φ (wt-id {A = A} wfA) = wt-id (wfTySome (renameˢ ρ A))
-  ⊑-renameˢ-wt ρ okΦ ok¬Φ (wt-； p q) =
-    wt-； (⊑-renameˢ-wt ρ okΦ ok¬Φ p) (⊑-renameˢ-wt ρ okΦ ok¬Φ q)
+  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-id {A = A} wfA) = wt-id (wfTySome (renameˢ ρ A))
+  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-； p q) =
+    wt-；
+      (⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p)
+      (⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ q)
 
   ⊒-renameˢ-wt :
     ∀ {Σ : Store}
-      {Φ : List Bool}{Φ′ : List Bool}{A B : Ty}
+      {Φ : List CastPerm}{Φ′ : List CastPerm}{A B : Ty}
       {p : Down} →
     (ρ : Renameˢ) →
     RenOk ρ Φ Φ′ →
+    RenOkConv ρ Φ Φ′ →
+    RenOkCast ρ Φ Φ′ →
+    RenOkTag ρ Φ Φ′ →
     RenNotIn ρ Φ Φ′ →
     Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     renameStoreˢ ρ Σ ∣ Φ′ ⊢ rename⊒ˢ ρ p ⦂ renameˢ ρ A ⊒ renameˢ ρ B
-  ⊒-renameˢ-wt ρ okΦ ok¬Φ (wt-untag g gokΦ ℓ) =
-    wt-untag (renameˢ-ground ρ g) (renameˢ-ground-ok ρ ok¬Φ g gokΦ) ℓ
-  ⊒-renameˢ-wt ρ okΦ ok¬Φ (wt-seal h α∈Φ) =
-    wt-seal (renameLookupˢ ρ h) (okΦ α∈Φ)
-  ⊒-renameˢ-wt ρ okΦ ok¬Φ (wt-↦ p q) =
-    wt-↦ (⊑-renameˢ-wt ρ okΦ ok¬Φ p) (⊒-renameˢ-wt ρ okΦ ok¬Φ q)
-  ⊒-renameˢ-wt {Σ = Σ} ρ okΦ ok¬Φ (wt-∀ p) =
+  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-untag g gokΦ ℓ) =
+    wt-untag (renameˢ-ground ρ g) (renameˢ-ground-ok ρ okTag g gokΦ) ℓ
+  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-seal h α∈Φ) =
+    wt-seal (renameLookupˢ ρ h) (okConv α∈Φ)
+  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-seal★ h α∈Φ) =
+    wt-seal★ (renameLookupˢ ρ h) (okCast α∈Φ)
+  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-↦ p q) =
+    wt-↦
+      (⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p)
+      (⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ q)
+  ⊒-renameˢ-wt {Σ = Σ} ρ okΦ okConv okCast okTag ok¬Φ (wt-∀ p) =
     wt-∀
       (castWt⊒
         (renameStoreˢ-ext-⟰ᵗ ρ Σ)
         refl
-        (⊒-renameˢ-wt ρ okΦ ok¬Φ p))
-  ⊒-renameˢ-wt {Σ = Σ} ρ okΦ ok¬Φ (wt-ν {A = A} {B = B} p) =
+        (⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p))
+  ⊒-renameˢ-wt {Σ = Σ} ρ okΦ okConv okCast okTag ok¬Φ (wt-ν {A = A} {B = B} p) =
     wt-ν
       (castWt⊒
         (renameStoreˢ-ν ρ Σ)
@@ -919,12 +1111,17 @@ mutual
           (renameˢ-ν-src ρ A)
           (⊒-renameˢ-wt
             (extˢ ρ)
-            (RenOk-ext-false okΦ)
-            (RenNotIn-ext-false ok¬Φ)
+            (RenOk-ext-cast-tag okΦ)
+            (RenOkConv-ext-cast-tag okConv)
+            (RenOkCast-ext-cast-tag okCast)
+            (RenOkTag-ext-cast-tag okTag)
+            (RenNotIn-ext-cast-tag ok¬Φ)
             p)))
-  ⊒-renameˢ-wt ρ okΦ ok¬Φ (wt-id {A = A} wfA) = wt-id (wfTySome (renameˢ ρ A))
-  ⊒-renameˢ-wt ρ okΦ ok¬Φ (wt-； p q) =
-    wt-； (⊒-renameˢ-wt ρ okΦ ok¬Φ p) (⊒-renameˢ-wt ρ okΦ ok¬Φ q)
+  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-id {A = A} wfA) = wt-id (wfTySome (renameˢ ρ A))
+  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-； p q) =
+    wt-；
+      (⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p)
+      (⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ q)
 
 ------------------------------------------------------------------------
 -- Type-variable substitution for well-typed widening and narrowing
@@ -932,7 +1129,7 @@ mutual
 
 mutual
   ⊑-substᵗ-wt :
-    ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}
+    ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}
       {p : Up} →
     (σ : Substᵗ) →
     Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
@@ -940,6 +1137,7 @@ mutual
   ⊑-substᵗ-wt σ (wt-tag g gokΦ) =
     wt-tag (substᵗ-ground σ g) (substᵗ-ground-ok σ g gokΦ)
   ⊑-substᵗ-wt σ (wt-unseal h α∈Φ) = wt-unseal (substLookupᵗ σ h) α∈Φ
+  ⊑-substᵗ-wt σ (wt-unseal★ h α∈Φ) = wt-unseal★ (substLookupᵗ σ h) α∈Φ
   ⊑-substᵗ-wt σ (wt-↦ p q) = wt-↦ (⊒-substᵗ-wt σ p) (⊑-substᵗ-wt σ q)
   ⊑-substᵗ-wt {Σ = Σ} σ (wt-∀ p) =
     wt-∀
@@ -960,7 +1158,7 @@ mutual
   ⊑-substᵗ-wt σ (wt-； p q) = wt-； (⊑-substᵗ-wt σ p) (⊑-substᵗ-wt σ q)
 
   ⊒-substᵗ-wt :
-    ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}
+    ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}
       {p : Down} →
     (σ : Substᵗ) →
     Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
@@ -968,6 +1166,7 @@ mutual
   ⊒-substᵗ-wt σ (wt-untag g gokΦ ℓ) =
     wt-untag (substᵗ-ground σ g) (substᵗ-ground-ok σ g gokΦ) ℓ
   ⊒-substᵗ-wt σ (wt-seal h α∈Φ) = wt-seal (substLookupᵗ σ h) α∈Φ
+  ⊒-substᵗ-wt σ (wt-seal★ h α∈Φ) = wt-seal★ (substLookupᵗ σ h) α∈Φ
   ⊒-substᵗ-wt σ (wt-↦ p q) = wt-↦ (⊑-substᵗ-wt σ p) (⊒-substᵗ-wt σ q)
   ⊒-substᵗ-wt {Σ = Σ} σ (wt-∀ p) =
     wt-∀
@@ -993,7 +1192,7 @@ _[_]↑ :
 p [ T ]↑ = subst⊑ᵗ (singleTyEnv T) p
 
 []⊑ᵗ-wt :
-  ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}
+  ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}
     {p : Up}
   → Σ ∣ Φ ⊢ p ⦂ A ⊑ B
   → (T : Ty)
@@ -1006,7 +1205,7 @@ _[_]↓ :
 p [ T ]↓ = subst⊒ᵗ (singleTyEnv T) p
 
 []⊒ᵗ-wt :
-  ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}
+  ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}
     {p : Down}
   → Σ ∣ Φ ⊢ p ⦂ A ⊒ B
   → (T : Ty)
@@ -1014,7 +1213,7 @@ p [ T ]↓ = subst⊒ᵗ (singleTyEnv T) p
 []⊒ᵗ-wt h T = ⊒-substᵗ-wt (singleTyEnv T) h
 
 ⊑-[]ᵗ-seal :
-  ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}{α : Seal}
+  ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{α : Seal}
     {p : Up}
   → α ∈ Φ
   → Σ ∣ Φ ⊢ p ⦂ A ⊑ B
@@ -1022,7 +1221,7 @@ p [ T ]↓ = subst⊒ᵗ (singleTyEnv T) p
 ⊑-[]ᵗ-seal {α = α} α∈Φ h = []⊑ᵗ-wt h (｀ α)
 
 ⊒-[]ᵗ-seal :
-  ∀ {Σ : Store}{Φ : List Bool}{A B : Ty}{α : Seal}
+  ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{α : Seal}
     {p : Down}
   → α ∈ Φ
   → Σ ∣ Φ ⊢ p ⦂ A ⊒ B

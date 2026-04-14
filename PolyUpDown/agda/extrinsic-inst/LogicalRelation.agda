@@ -41,8 +41,8 @@ Detailed plan: exact relation shape
 
 Design decision (recommended split):
   * Do not use `_∣_⊢_⦂_⊑_` directly as the primary LR index.
-  * Define a separate, store-free type-precision relation (in a new
-    `TypePrecision.agda`) and index the logical relation by that evidence.
+  * Define a separate, store-free imprecision relation (in
+    `Imprecision.agda`) and index the logical relation by that evidence.
   * Treat `_∣_⊢_⦂_⊑_` / `_∣_⊢_⦂_⊒_` as cast realizers used by compatibility lemmas.
 
 Why this split:
@@ -53,13 +53,16 @@ Why this split:
   * Still reuses the existing `UpDown` cast metatheory where it is strongest.
 
 Concrete split plan:
-  1. Add `TypePrecision.agda` with store-free precision evidence
+  Status (2026-04-13):
+    [x] 1. Add `Imprecision.agda` with store-free imprecision evidence
      (and whichever directional decomposition is most convenient).
-  2. Prove bridge lemmas:
-       precision evidence -> well-typed `Up`/`Down` casts in
+    [~] 2. Prove bridge lemmas:
+       imprecision evidence -> well-typed `Up`/`Down` casts in
        `_∣_⊢_⦂_⊑_` / `_∣_⊢_⦂_⊒_` under suitable `Σ` and `Φ`.
-  3. Define `𝒱`/`ℰ` indexed by precision evidence (not by cast syntax).
-  4. For cast compatibility cases in the fundamental theorem, invoke
+       Structural fragment implemented in `ImprecisionBridge.agda`;
+       remaining work is discharging/providing the `★` endpoint realizers.
+    [ ] 3. Define `𝒱`/`ℰ` indexed by precision evidence (not by cast syntax).
+    [ ] 4. For cast compatibility cases in the fundamental theorem, invoke
      bridge lemmas + existing `UpDown`/`Terms` infrastructure.
 
 Term precision plan (add explicitly; currently only sketched):
@@ -72,7 +75,7 @@ Planned artifacts:
   1. `TermPrecision.agda`:
      define a judgement of the form
        `Γv ⊢ M ⊑ M′ ⦂ Av`
-     where `Γv` maps variables to type-precision evidence.
+     where `Γv` maps variables to type-imprecision evidence.
 
   2. Structural term-precision rules:
      variable, constants/primitives, lambda/application, type abstraction and
@@ -117,7 +120,7 @@ How this plugs into the LR:
    * step index `n : ℕ`
    * direction `dir : Dir`
    * world `w`
-   * relational type index `Av` (type-precision evidence)
+   * relational type index `Av` (type-imprecision evidence)
    * closed terms/values on left and right.
 
    Timeout convention:
@@ -142,7 +145,7 @@ How this plugs into the LR:
    requiring the relation in all strict future worlds.
 
 3) Type relational index `Av`
-   The logical relation will be indexed by a type-precision witness `Av`,
+   The logical relation will be indexed by a type-imprecision witness `Av`,
    not raw type pairs. This matches the dissertation design and gives:
    * graduality directly (heterogeneous case),
    * parametricity by reflexive instances (`A ⊑ A`).

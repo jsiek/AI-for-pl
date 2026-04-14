@@ -11,7 +11,6 @@ module Progress where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Sigma as Sigma using (Σ; _,_)
-open import Data.Bool using (Bool)
 open import Data.List using (List; [])
 open import Relation.Nullary using (yes; no)
 
@@ -181,6 +180,9 @@ canonical-｀ :
 canonical-｀ (_down_ {V = W} vW seal)
   (⊢down Φ W⊢ (wt-seal {α = α} h α∈)) =
   sv-down-seal vW refl
+canonical-｀ (_down_ {V = W} vW seal)
+  (⊢down Φ W⊢ (wt-seal★ {α = α} h α∈)) =
+  sv-down-seal vW refl
 canonical-｀ ($ (κℕ n)) ()
 canonical-｀ (_up_ {V = W} vW tag)
   (⊢up Φ W⊢ ())
@@ -196,7 +198,7 @@ canonical-｀ (_up_ {V = W} vW (∀ᵖ {p = p}))
 projGround-progress :
   ∀ {Ψ}{Σ : Store}
     {M : Term}
-    {Φ : List Bool}
+    {Φ : List CastPerm}
     {G : Ty}
     {g′ : Ground G}
     {gok′ : ⊢ g′ ok Φ}
@@ -264,6 +266,7 @@ progress (⊢up {M = M} {p = p} Φ M⊢ hp) with progress M⊢
 ... | done vM with p | hp
 ...   | tag G | wt-tag g gok = done (vM up tag)
 ...   | unseal α | wt-unseal h α∈ = unseal-progress vM M⊢
+...   | unseal α | wt-unseal★ h α∈ = unseal-progress vM M⊢
 ...   | p ↦ q | wt-↦ p⊢ q⊢ = done (vM up (_↦_ {p = p} {q = q}))
 ...   | ∀ᵖ p | wt-∀ p⊢ = done (vM up (∀ᵖ {p = p}))
 ...   | ν p | wt-ν p⊢ = step (β-up-ν vM)
@@ -276,6 +279,7 @@ progress (⊢down {M = M} {p = p} Φ M⊢ hp) with progress M⊢
 ...   | untag G ℓ | wt-untag g′ gok′ .ℓ =
         projGround-progress {G = G} {g′ = g′} {gok′ = gok′} {ℓ = ℓ} vM M⊢
 ...   | seal α | wt-seal h α∈ = done (vM down seal)
+...   | seal α | wt-seal★ h α∈ = done (vM down seal)
 ...   | p ↦ q | wt-↦ p⊢ q⊢ = done (vM down (_↦_ {p = p} {q = q}))
 ...   | ∀ᵖ p | wt-∀ p⊢ = done (vM down (∀ᵖ {p = p}))
 ...   | ν p | wt-ν p⊢ = done (vM down (ν_ {p = p}))

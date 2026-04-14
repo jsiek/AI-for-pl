@@ -63,6 +63,10 @@ Use this as guidance when creating a new language folder.
   `Examples`, `README` for design rationale, and `Design` for informal
   definitoin of the language design. Prefer `UpperCamelCase.agda` for module
   files and stable canonical names over ad-hoc abbreviations.
+- [ ] Public/private split for trust: keep language definitions and main theorem
+  statements in the language's top-level directory, move private proof scripts
+  and helper lemmas to a `proof/` subdirectory, and expose each main theorem at
+  top level as a thin wrapper around its corresponding `proof/*` theorem.
 
 ### 2) Baseline metatheory (default target)
 
@@ -70,6 +74,8 @@ Use this as guidance when creating a new language folder.
 - [ ] Progress.
 - [ ] Preservation.
 - [ ] Type safety theorem (or `progress + preservation` exported clearly).
+- [ ] In public theorem statements with existential witnesses, prefer
+  `∃[ x ] ...` notation over `Σ A (λ x -> ...)`.
 - [ ] Multi-step closure and multi-step preservation (if using small-step).
 - [ ] Substitution theorems: term substitution and, when needed, type
   substitution commuting lemmas.

@@ -10,7 +10,6 @@ module TermProperties where
 --   * this file owns term-variable substitution infrastructure.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (Bool; true; false)
 open import Data.List using (List; map; []; _∷_)
 open import Data.Nat using (_<_; suc; zero; z<s; s<s)
 open import Data.Product using (Σ; Σ-syntax; _,_)
@@ -256,7 +255,7 @@ M [ T ]ᵀ = substᵗᵐ (singleTyEnv T) M
 -- Permission-list well-formedness and practical renaming shortcut
 ------------------------------------------------------------------------
 
-PermWf : SealCtx → List Bool → Set
+PermWf : SealCtx → List CastPerm → Set
 PermWf Ψ P = ∀ {α} → α ∈ P → α < Ψ
 
 PermWf-every :
@@ -265,37 +264,37 @@ PermWf-every :
 PermWf-every = every-index
 
 PermWf-ext-true :
-  ∀ {Ψ}{P : List Bool} →
+  ∀ {Ψ}{P : List CastPerm} →
   PermWf Ψ P →
-  PermWf (suc Ψ) (true ∷ P)
-PermWf-ext-true wfP {zero} here = z<s
+  PermWf (suc Ψ) (conv ∷ P)
+PermWf-ext-true wfP {zero} here-conv = z<s
 PermWf-ext-true wfP {suc α} (there p) = s<s (wfP p)
 
 PermWf-ext-false :
-  ∀ {Ψ}{P : List Bool} →
+  ∀ {Ψ}{P : List CastPerm} →
   PermWf Ψ P →
-  PermWf (suc Ψ) (false ∷ P)
+  PermWf (suc Ψ) (cast-tag ∷ P)
 PermWf-ext-false wfP {zero} ()
 PermWf-ext-false wfP {suc α} (there p) = s<s (wfP p)
 
 RenOk-every-from-PermWf :
-  ∀ {Ψ Ψ′} {ρ : Renameˢ} {P : List Bool} →
+  ∀ {Ψ Ψ′} {ρ : Renameˢ} {P : List CastPerm} →
   SealRenameWf Ψ Ψ′ ρ →
   PermWf Ψ P →
   RenOk ρ P (every Ψ′)
 RenOk-every-from-PermWf hρ wfP p = every-member _ (hρ (wfP p))
 
 RenOk-ext-true-every :
-  ∀ {Ψ′}{ρ : Renameˢ}{P : List Bool} →
+  ∀ {Ψ′}{ρ : Renameˢ}{P : List CastPerm} →
   RenOk ρ P (every Ψ′) →
-  RenOk (extˢ ρ) (true ∷ P) (every (suc Ψ′))
-RenOk-ext-true-every ok {zero} here = here
+  RenOk (extˢ ρ) (conv ∷ P) (every (suc Ψ′))
+RenOk-ext-true-every ok {zero} here-conv = here-conv
 RenOk-ext-true-every ok {suc α} (there p) = there (ok p)
 
 RenOk-ext-false-every :
-  ∀ {Ψ′}{ρ : Renameˢ}{P : List Bool} →
+  ∀ {Ψ′}{ρ : Renameˢ}{P : List CastPerm} →
   RenOk ρ P (every Ψ′) →
-  RenOk (extˢ ρ) (false ∷ P) (every (suc Ψ′))
+  RenOk (extˢ ρ) (cast-tag ∷ P) (every (suc Ψ′))
 RenOk-ext-false-every ok {zero} ()
 RenOk-ext-false-every ok {suc α} (there p) = there (ok p)
 
@@ -306,7 +305,7 @@ pred-< :
 pred-< (s<s α<Ψ) = α<Ψ
 
 tail-PermWf :
-  ∀ {Ψ}{b : Bool}{P : List Bool} →
+  ∀ {Ψ}{b : CastPerm}{P : List CastPerm} →
   PermWf (suc Ψ) (b ∷ P) →
   PermWf Ψ P
 tail-PermWf wf {α} p = pred-< (wf (there p))
@@ -324,29 +323,31 @@ shift-SealRenameWf hρ α<Ψ = hρ (s<s α<Ψ)
 
 setPerm :
   Seal →
-  List Bool →
-  List Bool
-setPerm zero [] = true ∷ []
-setPerm zero (b ∷ P) = true ∷ P
-setPerm (suc α) [] = false ∷ setPerm α []
+  List CastPerm →
+  List CastPerm
+setPerm zero [] = conv ∷ []
+setPerm zero (b ∷ P) = conv ∷ P
+setPerm (suc α) [] = cast-tag ∷ setPerm α []
 setPerm (suc α) (b ∷ P) = b ∷ setPerm α P
 
 setPerm-hit :
   (α : Seal) →
-  (P : List Bool) →
+  (P : List CastPerm) →
   α ∈ setPerm α P
-setPerm-hit zero [] = here
-setPerm-hit zero (b ∷ P) = here
+setPerm-hit zero [] = here-conv
+setPerm-hit zero (b ∷ P) = here-conv
 setPerm-hit (suc α) [] = there (setPerm-hit α [])
 setPerm-hit (suc α) (b ∷ P) = there (setPerm-hit α P)
 
 setPerm-preserve :
-  ∀ {α β}{P : List Bool} →
+  ∀ {α β}{P : List CastPerm} →
   β ∈ P →
   β ∈ setPerm α P
-setPerm-preserve {α = zero} {β = zero} here = here
+setPerm-preserve {α = zero} {β = zero} here-conv = here-conv
+setPerm-preserve {α = zero} {β = zero} here-seal = here-conv
 setPerm-preserve {α = zero} {β = suc β} (there p) = there p
-setPerm-preserve {α = suc α} {β = zero} here = here
+setPerm-preserve {α = suc α} {β = zero} here-conv = here-conv
+setPerm-preserve {α = suc α} {β = zero} here-seal = here-seal
 setPerm-preserve {α = suc α} {β = suc β} (there p) =
   there (setPerm-preserve {α = α} {β = β} p)
 
@@ -354,8 +355,8 @@ renamePerm :
   ∀ {Ψ Ψ′} →
   (ρ : Renameˢ) →
   SealRenameWf Ψ Ψ′ ρ →
-  List Bool →
-  List Bool
+  List CastPerm →
+  List CastPerm
 renamePerm {Ψ = zero} {Ψ′ = Ψ′} ρ hρ P = none Ψ′
 renamePerm {Ψ = suc Ψ} ρ hρ [] =
   renamePerm
@@ -363,13 +364,21 @@ renamePerm {Ψ = suc Ψ} ρ hρ [] =
     (shift-Renameˢ ρ)
     (shift-SealRenameWf hρ)
     []
-renamePerm {Ψ = suc Ψ} ρ hρ (false ∷ P) =
+renamePerm {Ψ = suc Ψ} ρ hρ (cast-tag ∷ P) =
   renamePerm
     {Ψ = Ψ}
     (shift-Renameˢ ρ)
     (shift-SealRenameWf hρ)
     P
-renamePerm {Ψ = suc Ψ} ρ hρ (true ∷ P) =
+renamePerm {Ψ = suc Ψ} ρ hρ (conv ∷ P) =
+  setPerm
+    (ρ zero)
+    (renamePerm
+      {Ψ = Ψ}
+      (shift-Renameˢ ρ)
+      (shift-SealRenameWf hρ)
+      P)
+renamePerm {Ψ = suc Ψ} ρ hρ (cast-seal ∷ P) =
   setPerm
     (ρ zero)
     (renamePerm
@@ -379,20 +388,20 @@ renamePerm {Ψ = suc Ψ} ρ hρ (true ∷ P) =
       P)
 
 renamePerm-ok :
-  ∀ {Ψ Ψ′} {ρ : Renameˢ} {P : List Bool} →
+  ∀ {Ψ Ψ′} {ρ : Renameˢ} {P : List CastPerm} →
   (hρ : SealRenameWf Ψ Ψ′ ρ) →
   PermWf Ψ P →
   RenOk ρ P (renamePerm ρ hρ P)
 renamePerm-ok {Ψ = zero} hρ wfP {α} α∈P with wfP α∈P
 renamePerm-ok {Ψ = zero} hρ wfP {α} α∈P | ()
 renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = []} hρ wfP {α} ()
-renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = false ∷ P} hρ wfP {zero} ()
-renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = false ∷ P} hρ wfP {suc α} (there α∈P) =
+renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = cast-tag ∷ P} hρ wfP {zero} ()
+renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = cast-tag ∷ P} hρ wfP {suc α} (there α∈P) =
   renamePerm-ok
     (shift-SealRenameWf hρ)
     (tail-PermWf wfP)
     α∈P
-renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = true ∷ P} hρ wfP {zero} here =
+renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = conv ∷ P} hρ wfP {zero} here-conv =
   setPerm-hit
     (ρ zero)
     (renamePerm
@@ -400,7 +409,21 @@ renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = true ∷ P} hρ wfP {zero} here =
       (shift-Renameˢ ρ)
       (shift-SealRenameWf hρ)
       P)
-renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = true ∷ P} hρ wfP {suc α} (there α∈P) =
+renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = conv ∷ P} hρ wfP {suc α} (there α∈P) =
+  setPerm-preserve
+    (renamePerm-ok
+      (shift-SealRenameWf hρ)
+      (tail-PermWf wfP)
+      α∈P)
+renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = cast-seal ∷ P} hρ wfP {zero} here-seal =
+  setPerm-hit
+    (ρ zero)
+    (renamePerm
+      {Ψ = Ψ}
+      (shift-Renameˢ ρ)
+      (shift-SealRenameWf hρ)
+      P)
+renamePerm-ok {Ψ = suc Ψ} {ρ = ρ} {P = cast-seal ∷ P} hρ wfP {suc α} (there α∈P) =
   setPerm-preserve
     (renamePerm-ok
       (shift-SealRenameWf hρ)

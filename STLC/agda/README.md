@@ -14,8 +14,7 @@ STLC.
 - `MetaTheory.agda`: public metatheory theorem statements for
   `preservation`, `progress`, `type-safety`, and `termination`.
 - `TypeCheckDec.agda`: public theorem statement/wrapper for `type-check`.
-- `Examples.agda`: executable/typed example suite (kept at top level as a
-  trust-facing artifact).
+- `Examples.agda`: executable/typed example suite.
 - `Eval.agda`: fuel-bounded evaluator.
 - `All.agda`: aggregate driver. Run agda on this file to check everything.
 

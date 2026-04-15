@@ -199,16 +199,18 @@ data _∣_—→[_]_∣_ :
     M —→ M′ →
     Σ ∣ M —→[ idˢ ] Σ ∣ M′
 
+  -- Σ | (ΛX.V[X]) • A —→ Σ,α:=A | V[α] up ((B[α] ⇒ B[A]))
   β-Λ : ∀ {Σ : Store} {A B : Ty} {V : Term} →
-    Σ ∣ ((Λ V) ⦂∀ B [ A ]) —→[ suc ] ((zero , ⇑ˢ A) ∷ ⟰ˢ Σ) ∣
-      ((((⇑ˢᵐ V) [ ｀ zero ]ᵀ) up (reveal-⊑ A B)))
+    Σ ∣ ((Λ V) ⦂∀ B [ A ]) —→[ suc ] ((0 , ⇑ˢ A) ∷ ⟰ˢ Σ) ∣
+      ((((⇑ˢᵐ V) [ ｀ 0 ]ᵀ) up (reveal-⊑ A B))) -- conversion: B[α] ⇒ B[A]
 
   β-down-∀ : ∀ {Σ : Store} {A B : Ty} {V : Term} {p : Down} →
     Value V →
     Σ ∣ ((V down (∀ᵖ p)) ⦂∀ B [ A ]) —→[ suc ] ((zero , ⇑ˢ A) ∷ ⟰ˢ Σ) ∣
-      (((((⇑ˢᵐ V) ⦂∀ ⇑ˢ (down-src (⟰ᵗ Σ) p) [ ｀ zero ]) down ((rename⊒ˢ suc p) [ ｀ zero ]↓))
+      (((((⇑ˢᵐ V) ⦂∀ ⇑ˢ (down-src (⟰ᵗ Σ) p) [ α₀ ]) down ((rename⊒ˢ suc p) [ α₀ ]↓))
          up (reveal-⊑ A (down-tgt (⟰ᵗ Σ) p))))
 
+  -- (V @- να.p[α]) • A —→ V @- p @+ ((B[α] ⇒ B[A]))
   β-down-ν : ∀ {Σ : Store} {A B : Ty} {V : Term} {p : Down} →
     Value V →
     Σ ∣ ((V down (ν p)) ⦂∀ B [ A ]) —→[ suc ] ((zero , ⇑ˢ A) ∷ ⟰ˢ Σ) ∣
@@ -218,7 +220,7 @@ data _∣_—→[_]_∣_ :
   β-up-ν : ∀ {Σ : Store} {V : Term} {p : Up} →
     Value V →
     Σ ∣ (V up (ν p)) —→[ suc ] ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣
-      ((((⇑ˢᵐ V) ⦂∀ ⇑ˢ (((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)) [ ｀ zero ]) up p))
+      ((((⇑ˢᵐ V) ⦂∀ ⇑ˢ (((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)) [ α₀ ]) up p))
 
   ξ-·₁ : ∀ {Σ Σ′ : Store} {ρ : Renameˢ} {L M L′ : Term} →
     Σ ∣ L —→[ ρ ] Σ′ ∣ L′ →

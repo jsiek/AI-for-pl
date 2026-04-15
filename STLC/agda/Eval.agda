@@ -31,6 +31,7 @@ eval :
   ℕ ->
   [] ⊢ M ⦂ A ->
   Maybe (EvalResult M)
+-- TODO: Move the implementation to the proof/ directory. -Jeremy  
 eval {M = M} zeroℕ hM with progress hM
 eval {M = M} zeroℕ hM | inj₂ v = just (result M (M ∎) v)
 eval {M = M} zeroℕ hM | inj₁ _ = nothing

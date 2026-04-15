@@ -4,6 +4,7 @@ AGDA ?= agda
 
 check: agda postulate-check
 
+# use --safe --disallow-unsound-meta
 agda:
 	$(AGDA) -v0 All.agda
 

@@ -27,10 +27,10 @@ open import TypeCheckDec using (type-check-expect; storeWf-∅)
 ------------------------------------------------------------------------
 
 polyId : Term
-polyId = Λ (ƛ (＇ zero) ⇒ ` zero)
+polyId = Λ (ƛ (＇ 0) ⇒ ` 0)
 
 idDyn : Term
-idDyn = ƛ ★ ⇒ ` zero
+idDyn = ƛ ★ ⇒ ` 0
 
 nat : ℕ → Term
 nat n = $ (κℕ n)
@@ -57,7 +57,7 @@ n69★ : Term
 n69★ = nat★ 69
 
 natId : Term
-natId = ƛ (‵ `ℕ) ⇒ ` zero
+natId = ƛ (‵ `ℕ) ⇒ ` 0
 
 idFun★ : Term
 idFun★ = idDyn up tag (★ ⇒ ★)
@@ -66,18 +66,18 @@ polyApp : Term
 polyApp =
   Λ
     (Λ
-      (ƛ ((＇ (suc zero)) ⇒ (＇ zero)) ⇒
-        ƛ (＇ (suc zero)) ⇒
-          (` (suc zero) · ` zero)))
+      (ƛ ((＇ 1) ⇒ (＇ 0)) ⇒
+        ƛ (＇ 1) ⇒
+          (` 1 · ` 0)))
 
 polyK : Term
-polyK = Λ (ƛ (＇ zero) ⇒ ƛ (＇ zero) ⇒ ` (suc zero))
+polyK = Λ (ƛ (＇ 0) ⇒ ƛ (＇ 0) ⇒ ` 1)
 
 polyBetaId : Term
 polyBetaId =
   Λ
-    (ƛ (＇ zero) ⇒
-      ((ƛ (＇ zero) ⇒ ` zero) · ` zero))
+    (ƛ (＇ 0) ⇒
+      ((ƛ (＇ 0) ⇒ ` 0) · ` 0))
 
 expect-⊢ :
   (M : Term) →
@@ -322,7 +322,7 @@ example8-right-test = refl
 ------------------------------------------------------------------------
 
 Kdyn : Term
-Kdyn = ƛ ★ ⇒ ƛ ★ ⇒ ` (suc zero)
+Kdyn = ƛ ★ ⇒ ƛ ★ ⇒ ` 1
 
 example9-left : Term
 example9-left = ((Kdyn · n42★) · n69★) down (untag (‵ `ℕ) 9)
@@ -386,8 +386,8 @@ example12-test = refl
 
 sec2-app-dyn : Term
 sec2-app-dyn =
-  (((polyApp ⦂∀ (`∀ (((＇ (suc zero)) ⇒ (＇ zero)) ⇒ ((＇ (suc zero)) ⇒ (＇ zero)))) [ ★ ])
-     ⦂∀ ((★ ⇒ ＇ zero) ⇒ (★ ⇒ ＇ zero)) [ ★ ])
+  (((polyApp ⦂∀ (`∀ (((＇ 1) ⇒ (＇ 0)) ⇒ ((＇ 1) ⇒ (＇ 0)))) [ ★ ])
+     ⦂∀ ((★ ⇒ ＇ 0) ⇒ (★ ⇒ ＇ 0)) [ ★ ])
    · idDyn)
   · c★
 
@@ -396,8 +396,8 @@ sec2-app-dyn-⊢ = expect-⊢ sec2-app-dyn ★ tt
 
 sec2-app-base : Term
 sec2-app-base =
-  (((polyApp ⦂∀ (`∀ (((＇ (suc zero)) ⇒ (＇ zero)) ⇒ ((＇ (suc zero)) ⇒ (＇ zero)))) [ ‵ `ℕ ])
-     ⦂∀ (((‵ `ℕ) ⇒ ＇ zero) ⇒ ((‵ `ℕ) ⇒ ＇ zero)) [ ‵ `ℕ ])
+  (((polyApp ⦂∀ (`∀ (((＇ 1) ⇒ (＇ 0)) ⇒ ((＇ 1) ⇒ (＇ 0)))) [ ‵ `ℕ ])
+     ⦂∀ (((‵ `ℕ) ⇒ ＇ 0) ⇒ ((‵ `ℕ) ⇒ ＇ 0)) [ ‵ `ℕ ])
    · natId)
   · c
 
@@ -415,7 +415,7 @@ sec2-app-base-test = refl
 ------------------------------------------------------------------------
 
 sec5-β : Term
-sec5-β = (polyBetaId ⦂∀ (＇ zero ⇒ ＇ zero) [ ‵ `ℕ ]) · c
+sec5-β = (polyBetaId ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · c
 
 sec5-β-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec5-β ⦂ (‵ `ℕ)
 sec5-β-⊢ = expect-⊢ sec5-β (‵ `ℕ) tt
@@ -429,21 +429,21 @@ sec5-β-test = refl
 
 sec6-K-dyn : Term
 sec6-K-dyn =
-  ((polyK ⦂∀ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) [ ★ ]) · n42★) · n69★
+  ((polyK ⦂∀ (＇ 0 ⇒ ＇ 0 ⇒ ＇ 0) [ ★ ]) · n42★) · n69★
 
 sec6-K-dyn-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-dyn ⦂ ★
 sec6-K-dyn-⊢ = expect-⊢ sec6-K-dyn ★ tt
 
 sec6-K-base : Term
 sec6-K-base =
-  ((polyK ⦂∀ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) [ ‵ `ℕ ]) · n42) · n69
+  ((polyK ⦂∀ (＇ 0 ⇒ ＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · n42) · n69
 
 sec6-K-base-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-K-base ⦂ (‵ `ℕ)
 sec6-K-base-⊢ = expect-⊢ sec6-K-base (‵ `ℕ) tt
 
 sec6-K-lax : Term
 sec6-K-lax =
-  (((polyK ⦂∀ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) [ ★ ])
+  (((polyK ⦂∀ (＇ 0 ⇒ ＇ 0 ⇒ ＇ 0) [ ★ ])
      down (tag (‵ `ℕ) ↦ ((id ★) ↦ untag (‵ `ℕ) 63)))
    · n42)
   · idFun★
@@ -453,7 +453,7 @@ sec6-K-lax-⊢ = expect-⊢ sec6-K-lax (‵ `ℕ) tt
 
 sec6-K-strict : Term
 sec6-K-strict =
-  (((polyK ⦂∀ (＇ zero ⇒ ＇ zero ⇒ ＇ zero) [ ‵ `ℕ ])
+  (((polyK ⦂∀ (＇ 0 ⇒ ＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ])
      up ((id (‵ `ℕ)) ↦ (untag (‵ `ℕ) 64 ↦ (id (‵ `ℕ)))))
    · n42)
   · idFun★
@@ -463,7 +463,7 @@ sec6-K-strict-⊢ = expect-⊢ sec6-K-strict (‵ `ℕ) tt
 
 sec6-id-leak : Term
 sec6-id-leak =
-  ((idDyn down (ν (tag (｀ zero) ↦ id ★))) ⦂∀ (＇ zero ⇒ ★) [ ‵ `ℕ ])
+  ((idDyn down (ν (tag (｀ 0) ↦ id ★))) ⦂∀ (＇ 0 ⇒ ★) [ ‵ `ℕ ])
   · n42
 
 sec6-id-leak-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-id-leak ⦂ ★
@@ -494,9 +494,9 @@ sec6-id-leak-test = refl
 
 seal-name-example : Term
 seal-name-example =
-  ((((Kdyn down (ν (ν (tag (｀ (suc zero)) ↦ (tag (｀ zero) ↦ untag (｀ (suc zero)) 700)))))
-      ⦂∀ (`∀ (＇ (suc zero) ⇒ ＇ zero ⇒ ＇ (suc zero))) [ ‵ `ℕ ])
-     ⦂∀ ((‵ `ℕ) ⇒ ＇ zero ⇒ (‵ `ℕ)) [ ‵ `ℕ ])
+  ((((Kdyn down (ν (ν (tag (｀ 1) ↦ (tag (｀ 0) ↦ untag (｀ 1) 700)))))
+      ⦂∀ (`∀ (＇ 1 ⇒ ＇ 0 ⇒ ＇ 1)) [ ‵ `ℕ ])
+     ⦂∀ ((‵ `ℕ) ⇒ ＇ 0 ⇒ (‵ `ℕ)) [ ‵ `ℕ ])
     · nat 42)
    · nat 0
 

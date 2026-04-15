@@ -310,6 +310,25 @@ Over:
         (cong `∀ (sym eq-src))
         V⊢
 
+## Agda mixfix notation style (from 2026-04-15)
+
+When constructors or operators are declared in mixfix form, write both terms and
+patterns in that mixfix form rather than in fully-applied underscore form.
+
+Prefer:
+
+    p ；tag G
+    p ；seal α
+    unseal α ； p
+    untag G ℓ ； p
+
+Over:
+
+    (_；tag_ p G)
+    (_；seal_ p α)
+    (unseal_；_ α p)
+    (untag_；_ G ℓ p)
+
 ## Substitution and heterogeneous equality playbook (from 2026-04-03)
 
 When a proof gets stuck in "subst hell", use this pattern.

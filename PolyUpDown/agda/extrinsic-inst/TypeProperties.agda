@@ -561,41 +561,40 @@ renameˢ-ext-⇑ˢ ρ (`∀ A) =
 
 renameᵗ-ν-src :
   ∀  (ρ : Renameᵗ) (A : Ty) →
-  renameᵗ ρ ((⇑ˢ A) [ ｀ zero ]ᵗ) ≡
-  (⇑ˢ (renameᵗ (extᵗ ρ) A)) [ ｀ zero ]ᵗ
+  renameᵗ ρ ((⇑ˢ A) [ α₀ ]ᵗ) ≡
+  (⇑ˢ (renameᵗ (extᵗ ρ) A)) [ α₀ ]ᵗ
 renameᵗ-ν-src ρ A =
   trans
     (renameᵗ-[]ᵗ-seal ρ (⇑ˢ A) zero)
-    (cong (λ C → C [ ｀ zero ]ᵗ) (renameᵗ-⇑ˢ (extᵗ ρ) A))
+    (cong (λ C → C [ α₀ ]ᵗ) (renameᵗ-⇑ˢ (extᵗ ρ) A))
 
 substᵗ-ν-src :
   ∀  (σ : Substᵗ) (A : Ty) →
-  substᵗ (liftSubstˢ σ) ((⇑ˢ A) [ ｀ zero ]ᵗ) ≡
-  (⇑ˢ (substᵗ (extsᵗ σ) A)) [ ｀ zero ]ᵗ
+  substᵗ (liftSubstˢ σ) ((⇑ˢ A) [ α₀ ]ᵗ) ≡
+  (⇑ˢ (substᵗ (extsᵗ σ) A)) [ α₀ ]ᵗ
 substᵗ-ν-src σ A =
   trans
     (substᵗ-[]ᵗ-seal (liftSubstˢ σ) (⇑ˢ A) zero)
     (cong
-      (λ C → C [ ｀ zero ]ᵗ)
+      (λ C → C [ α₀ ]ᵗ)
       (trans
         (substᵗ-cong (exts-liftSubstˢ σ) (⇑ˢ A))
         (substᵗ-⇑ˢ (extsᵗ σ) A)))
 
 renameˢ-ν-src :
   ∀  (ρ : Renameˢ) (A : Ty) →
-  renameˢ (extˢ ρ) ((⇑ˢ A) [ ｀ zero ]ᵗ) ≡
-  (⇑ˢ (renameˢ ρ A)) [ ｀ zero ]ᵗ
+  renameˢ (extˢ ρ) ((⇑ˢ A) [ α₀ ]ᵗ) ≡
+  (⇑ˢ (renameˢ ρ A)) [ α₀ ]ᵗ
 renameˢ-ν-src ρ A =
   trans
-    (renameˢ-[]ᵗ-seal (extˢ ρ) (⇑ˢ A) zero)
-    (cong (λ C → C [ ｀ zero ]ᵗ) (renameˢ-ext-⇑ˢ ρ A))
+    (renameˢ-[]ᵗ-seal (extˢ ρ) (⇑ˢ A) 0)
+    (cong (λ C → C [ α₀ ]ᵗ) (renameˢ-ext-⇑ˢ ρ A))
 
 ------------------------------------------------------------------------
 -- Useful seal-opening identity (used by Store.agda)
 ------------------------------------------------------------------------
 
 renameˢ-single-⇑ˢ-id :
-  
   (α : Seal) →
   (A : Ty) →
   renameˢ (singleSealEnv α) (⇑ˢ A) ≡ A

@@ -51,6 +51,12 @@ data Ty : Set where
   _⇒_ : Ty → Ty → Ty
   `∀ : Ty → Ty
 
+α₀ : Ty
+α₀ = ｀ 0
+
+X₀ : Ty
+X₀ = ＇ 0
+
 data Cross : Ty → Set where
   ＇_ : (X : TyVar) → Cross (＇ X)
   ｀_ : (α : Seal) → Cross (｀ α)
@@ -131,7 +137,7 @@ renameᵗ ρ (`∀ A) = `∀ (renameᵗ (extᵗ ρ) A)
 ⇑ᵗ = renameᵗ suc
 
 extsᵗ : Substᵗ → Substᵗ
-extsᵗ σ zero = ＇ zero
+extsᵗ σ zero = X₀
 extsᵗ σ (suc X) = renameᵗ suc (σ X)
 
 substᵗ : Substᵗ → Ty → Ty

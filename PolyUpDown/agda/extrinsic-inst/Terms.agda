@@ -238,7 +238,7 @@ data _∣_∣_∣_⊢_⦂_
      → (suc Δ) ∣ Ψ ∣ ⟰ᵗ Σ ∣ (⤊ᵗ Γ) ⊢ M ⦂ A
      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (Λ M) ⦂ (`∀ A)
 
-  ⊢• : ∀ {M B T}
+  ⊢• : ∀ {M B T} -- TODO: Change T to one of A,B,C
      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ (`∀ B)
      → WfTy Δ Ψ T
      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (M ⦂∀ B [ T ]) ⦂ B [ T ]ᵗ
@@ -338,7 +338,7 @@ instVarExt⊑ :
   ((X : TyVar) → Up) →
   (X : TyVar) →
   Up
-instVarExt⊑ σ τ var⊑ zero = id (＇ zero)
+instVarExt⊑ σ τ var⊑ zero = id (X₀)
 instVarExt⊑ σ τ var⊑ (suc X) = rename⊑ᵗ suc (var⊑ X)
 
 instVarExt⊒ :
@@ -346,7 +346,7 @@ instVarExt⊒ :
   ((X : TyVar) → Down) →
   (X : TyVar) →
   Down
-instVarExt⊒ σ τ var⊒ zero = id (＇ zero)
+instVarExt⊒ σ τ var⊒ zero = id (X₀)
 instVarExt⊒ σ τ var⊒ (suc X) = rename⊒ᵗ suc (var⊒ X)
 
 mutual
@@ -421,12 +421,12 @@ mutual
       where
       h⊑′ : (X : TyVar) →
         ⟰ᵗ Σ ∣ every Ψ ⊢ instVarExt⊑ σ τ var⊑ X ⦂ extsᵗ σ X ⊑ extsᵗ τ X
-      h⊑′ zero = wt-id (wfTySome (＇ zero))
+      h⊑′ zero = wt-id (wfTySome (X₀))
       h⊑′ (suc X) = ⊑-renameᵗ-wt suc (h⊑ X)
 
       h⊒′ : (X : TyVar) →
         ⟰ᵗ Σ ∣ every Ψ ⊢ instVarExt⊒ σ τ var⊒ X ⦂ extsᵗ τ X ⊒ extsᵗ σ X
-      h⊒′ zero = wt-id (wfTySome (＇ zero))
+      h⊒′ zero = wt-id (wfTySome (X₀))
       h⊒′ (suc X) = ⊒-renameᵗ-wt suc (h⊒ X)
 
   instSubst⊒-wt :
@@ -459,12 +459,12 @@ mutual
       where
       h⊑′ : (X : TyVar) →
         ⟰ᵗ Σ ∣ every Ψ ⊢ instVarExt⊑ σ τ var⊑ X ⦂ extsᵗ σ X ⊑ extsᵗ τ X
-      h⊑′ zero = wt-id (wfTySome (＇ zero))
+      h⊑′ zero = wt-id (wfTySome (X₀))
       h⊑′ (suc X) = ⊑-renameᵗ-wt suc (h⊑ X)
 
       h⊒′ : (X : TyVar) →
         ⟰ᵗ Σ ∣ every Ψ ⊢ instVarExt⊒ σ τ var⊒ X ⦂ extsᵗ τ X ⊒ extsᵗ σ X
-      h⊒′ zero = wt-id (wfTySome (＇ zero))
+      h⊒′ zero = wt-id (wfTySome (X₀))
       h⊒′ (suc X) = ⊒-renameᵗ-wt suc (h⊒ X)
 
 instSubst⊒ :
@@ -621,7 +621,7 @@ wkΣ-term w (⊢blame ℓ) = ⊢blame ℓ
 reveal-⊑ : (A : Ty) (B : Ty) → Up
 reveal-⊑ A B =
   substᵗ-⊑
-    (singleTyEnv (｀ zero))
+    (singleTyEnv α₀)
     (singleTyEnv (⇑ˢ A))
     (instVar⊑ (⇑ˢ A) zero)
     (instVar⊒ (⇑ˢ A) zero)

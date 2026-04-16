@@ -1,5 +1,8 @@
 module ConversionNorm where
 
+-- UNDER CONSTRUCTION
+-- TODO: Needs to be updated to reflect changes to UpDownNorm
+
 -- File Charter:
 --   * Normalized Conversion judgments without a generic composition constructor.
 --   * Composition at conversion boundaries is represented by dedicated

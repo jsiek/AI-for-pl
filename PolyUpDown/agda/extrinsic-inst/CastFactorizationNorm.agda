@@ -1,5 +1,8 @@
 module CastFactorizationNorm where
 
+-- UNDER CONSTRUCTION
+-- TODO: Needs to be updated to reflect changes to UpDownNorm
+
 -- File Charter:
 --   * Initial factorization development for normalized Up/Down witnesses.
 --   * Uses `ConversionNorm` and `CastNorm`, which remove generic composition

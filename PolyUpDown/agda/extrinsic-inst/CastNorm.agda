@@ -1,5 +1,8 @@
 module CastNorm where
 
+-- UNDER CONSTRUCTION
+-- TODO: Needs to be updated to reflect changes to UpDownNorm
+
 -- File Charter:
 --   * Normalized Cast judgments without a generic composition constructor.
 --   * Boundary-aware tag/untag/seal/unseal-star forms absorb local composition.

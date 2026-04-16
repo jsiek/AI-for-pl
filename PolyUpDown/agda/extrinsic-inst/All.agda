@@ -15,6 +15,7 @@ open import Imprecision
 open import Store
 open import Ctx
 open import UpDown
+open import UpDownNorm
 open import Terms
 open import TermProperties
 open import TypeCheckDec

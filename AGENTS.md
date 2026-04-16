@@ -294,7 +294,8 @@ accepted without `{-# TERMINATING #-}`.
 ## Agda line-break style (from 2026-04-11)
 
 Avoid premature line breaks in simple applications. If a definition is a direct
-application with short arguments, keep it on one line.
+application with short arguments, keep it on one line, under the contraint of
+using at most 80 columns per line.
 
 Prefer:
 

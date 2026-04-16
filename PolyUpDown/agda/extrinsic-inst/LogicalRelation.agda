@@ -28,10 +28,6 @@ We will explicitly follow three resources already cited in this file:
    naming/style (`𝒱`, `ℰ`, relation environments, open-term interpretation),
    substitution/renaming closure lemmas, and fundamental-theorem structure.
 
-Additional local assumption (from current discussion):
-  * `PolyUpDown/agda/extrinsic-inst` reduction rules will match
-    `PolyUpDown/agda/extrinsic/Reduction.agda` up to module-path differences.
-
 We will therefore use explicit step indexing (not SIL) and keep the relation
 shape close to New/Peter, with System F-style environment plumbing.
 
@@ -56,12 +52,12 @@ Concrete split plan:
   Status (2026-04-13):
     [x] 1. Add `Imprecision.agda` with store-free imprecision evidence
      (and whichever directional decomposition is most convenient).
-    [~] 2. Prove bridge lemmas:
+    [x] 2. Prove bridge lemmas:
        imprecision evidence -> well-typed `Up`/`Down` casts in
        `_∣_⊢_⦂_⊑_` / `_∣_⊢_⦂_⊒_` under suitable `Σ` and `Φ`.
        Structural fragment implemented in `ImprecisionBridge.agda`;
        remaining work is discharging/providing the `★` endpoint realizers.
-    [ ] 3. Define `𝒱`/`ℰ` indexed by precision evidence (not by cast syntax).
+    [x] 3. Define `𝒱`/`ℰ` indexed by precision evidence (not by cast syntax).
     [ ] 4. For cast compatibility cases in the fundamental theorem, invoke
      bridge lemmas + existing `UpDown`/`Terms` infrastructure.
 
@@ -294,3 +290,161 @@ Practical proof guidance for this codebase
   and reuse them in both `𝒱`/`ℰ` and the fundamental theorem.
 
 -}
+
+module LogicalRelation where
+
+-- File Charter:
+--   * Defines the step-indexed logical relation core for extrinsic-inst
+--   * `PolyUpDown`.
+--   * Introduces direction/index/world/precision indices and concrete
+--   * `𝒱`/`ℰ` clauses.
+--   * Keeps closure/fundamental-theorem proofs for follow-up files.
+
+open import Data.List using (List; []; _∷_)
+open import Data.Nat using (ℕ; zero; suc)
+open import Data.Empty using (⊥)
+open import Data.Product using (Σ; Σ-syntax; _×_; _,_)
+open import Data.Sum using (_⊎_)
+open import Data.Unit using (⊤; tt)
+open import Level using (Lift; 0ℓ) renaming (suc to lsuc)
+open import Agda.Builtin.Equality using (_≡_)
+
+open import Types
+open import Store using (_⊆ˢ_; done; keep; drop; ⊆ˢ-refl)
+open import Imprecision
+open import UpDown
+open import Terms hiding (_[_]ᵀ)
+open import TermProperties using (_[_]; _[_]ᵀ)
+open import Reduction using (Value; _∣_—→[_]_∣_; _∣_—↠_∣_)
+
+------------------------------------------------------------------------
+-- Direction, world, and precision index
+------------------------------------------------------------------------
+
+data Dir : Set where
+  ≼ : Dir
+  ≽ : Dir
+
+Payload : Set₁
+Payload = ℕ → Dir → Term → Term → Set
+
+record SealEntry : Set₁ where
+  constructor ηentry
+  field
+    αˡ : Seal
+    αʳ : Seal
+    Rη : Payload
+open SealEntry public
+
+infix 4 _∋η_↔_∶_
+
+data _∋η_↔_∶_ : List SealEntry → Seal → Seal → Payload → Set₁ where
+  hereη :
+    ∀ {η αˡ αʳ R} →
+    (ηentry αˡ αʳ R ∷ η) ∋η αˡ ↔ αʳ ∶ R
+
+  thereη :
+    ∀ {η αˡ αʳ R βˡ βʳ R′} →
+    η ∋η αˡ ↔ αʳ ∶ R →
+    (ηentry βˡ βʳ R′ ∷ η) ∋η αˡ ↔ αʳ ∶ R
+
+infix 4 _⊆η_
+
+data _⊆η_ : List SealEntry → List SealEntry → Set₁ where
+  η-done : ∀ {η} → [] ⊆η η
+  η-keep : ∀ {η η′ e} → η ⊆η η′ → (e ∷ η) ⊆η (e ∷ η′)
+  η-drop : ∀ {η η′ e} → η ⊆η η′ → η ⊆η (e ∷ η′)
+
+⊆η-refl : ∀ {η} → η ⊆η η
+⊆η-refl {η = []} = η-done
+⊆η-refl {η = e ∷ η} = η-keep ⊆η-refl
+
+record World : Set₁ where
+  constructor mkWorld
+  field
+    Σˡ : Store
+    Σʳ : Store
+    η : List SealEntry
+open World public
+
+record _⪰_ (w′ w : World) : Set₁ where
+  field
+    growˡ : Σˡ w ⊆ˢ Σˡ w′
+    growʳ : Σʳ w ⊆ˢ Σʳ w′
+    growη : η w ⊆η η w′
+
+setΣˡ : Store → World → World
+setΣˡ Σ w = mkWorld Σ (Σʳ w) (η w)
+
+setΣʳ : Store → World → World
+setΣʳ Σ w = mkWorld (Σˡ w) Σ (η w)
+
+stepWorldˡ : Renameˢ → Store → World → World
+stepWorldˡ ρ Σ′ w = mkWorld Σ′ (renameStoreˢ ρ (Σʳ w)) (η w)
+
+stepWorldʳ : Renameˢ → Store → World → World
+stepWorldʳ ρ Σ′ w = mkWorld (renameStoreˢ ρ (Σˡ w)) Σ′ (η w)
+
+extendWorld : World → Payload → World
+extendWorld w R = mkWorld (Σˡ w) (Σʳ w) (ηentry zero zero R ∷ η w)
+
+extendWorld-⪰ : ∀ {w} (R : Payload) → extendWorld w R ⪰ w
+extendWorld-⪰ {w} R ._⪰_.growˡ = ⊆ˢ-refl
+extendWorld-⪰ {w} R ._⪰_.growʳ = ⊆ˢ-refl
+extendWorld-⪰ {w} R ._⪰_.growη = η-drop ⊆η-refl
+
+------------------------------------------------------------------------
+-- Logical relation core
+------------------------------------------------------------------------
+
+mutual
+  𝒱 : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
+  𝒱 p zero dir w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱 ⊑-‵ (suc n) dir w ($ (κℕ m)) ($ (κℕ m′)) = Lift (lsuc 0ℓ) (m ≡ m′)
+  𝒱 (⊑-⇒ pA pB) (suc n) dir w (ƛ A₀ ⇒ N) (ƛ A′₀ ⇒ M) =
+    ∀ {V W} →
+    𝒱 pA (suc n) dir w V W →
+    ℰ pB (suc n) dir w (N [ V ]) (M [ W ])
+  𝒱 (⊑-∀ p) (suc n) dir w (Λ N) (Λ M) =
+    ∀ {w′} →
+    w′ ⪰ w →
+    (R : Payload) →
+    (T U : Ty) →
+    ℰ p (suc n) dir (extendWorld w′ R) (N [ T ]ᵀ) (M [ U ]ᵀ)
+  𝒱 ⊑-★★ (suc n) dir w (V up tag G) (W up tag H) =
+    Lift (lsuc 0ℓ) (G ≡ H) ×
+    𝒱 (⊑-refl {A = G}) n dir w V W
+  𝒱 ⊑-★★ (suc n) dir w (V down seal αˡ) (W down seal αʳ) =
+    Σ[ R ∈ Payload ] (η w ∋η αˡ ↔ αʳ ∶ R) × R n dir V W
+  𝒱 (⊑-★ {G = G} g p) (suc n) dir w V (W up tag H) =
+    Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p (suc n) dir w V W
+  𝒱 (⊑-｀ {α = α}) (suc n) dir w (V down seal βˡ) (W down seal βʳ) =
+    Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Payload ]
+      (η w ∋η α ↔ α ∶ R) ×
+      R (suc n) dir V W
+  𝒱 p (suc n) dir w V W = Lift (lsuc 0ℓ) ⊥
+
+  ℰ : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
+  ℰ p zero dir w Mˡ Mʳ = Lift (lsuc 0ℓ) ⊤
+  ℰ p (suc n) ≼ w Mˡ Mʳ =
+    (Σ[ ρ ∈ Renameˢ ] Σ[ Σˡ′ ∈ Store ] Σ[ Mˡ′ ∈ Term ]
+      (Σˡ w ∣ Mˡ —→[ ρ ] Σˡ′ ∣ Mˡ′) ×
+      ℰ p n ≼ (stepWorldˡ ρ Σˡ′ w) Mˡ′ (renameˢᵐ ρ Mʳ))
+    ⊎
+    (Σ[ Σʳ′ ∈ Store ] Σ[ ℓ ∈ Label ]
+      (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ blame ℓ))
+    ⊎
+    (Value Mˡ × Σ[ Σʳ′ ∈ Store ] Σ[ Wʳ ∈ Term ]
+      (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ Wʳ) ×
+      𝒱 p n ≼ (setΣʳ Σʳ′ w) Mˡ Wʳ)
+  ℰ p (suc n) ≽ w Mˡ Mʳ =
+    (Σ[ ρ ∈ Renameˢ ] Σ[ Σʳ′ ∈ Store ] Σ[ Mʳ′ ∈ Term ]
+      (Σʳ w ∣ Mʳ —→[ ρ ] Σʳ′ ∣ Mʳ′) ×
+      ℰ p n ≽ (stepWorldʳ ρ Σʳ′ w) (renameˢᵐ ρ Mˡ) Mʳ′)
+    ⊎
+    (Σ[ Σʳ′ ∈ Store ] Σ[ ℓ ∈ Label ]
+      (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ blame ℓ))
+    ⊎
+    (Value Mʳ × Σ[ Σˡ′ ∈ Store ] Σ[ Wˡ ∈ Term ]
+      (Σˡ w ∣ Mˡ —↠ Σˡ′ ∣ Wˡ) ×
+      𝒱 p n ≽ (setΣˡ Σˡ′ w) Wˡ Mʳ)

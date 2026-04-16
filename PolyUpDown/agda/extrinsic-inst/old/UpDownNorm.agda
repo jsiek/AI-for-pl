@@ -940,12 +940,11 @@ mutual
   ⨟↓-fuel (suc n) p (id A) = p
   ⨟↓-fuel (suc n) p q = p
 
-mutual
-  _⨟↑_ : Up → Up → Up
-  p ⨟↑ q = ⨟↑-fuel (suc (size↑ p + size↑ q)) p q
+_⨟↑_ : Up → Up → Up
+p ⨟↑ q = ⨟↑-fuel (suc (size↑ p + size↑ q)) p q
 
-  _⨟↓_ : Down → Down → Down
-  p ⨟↓ q = ⨟↓-fuel (suc (size↓ p + size↓ q)) p q
+_⨟↓_ : Down → Down → Down
+p ⨟↓ q = ⨟↓-fuel (suc (size↓ p + size↓ q)) p q
 
 mutual
   wt-⨟↑-fuel :
@@ -1078,16 +1077,14 @@ mutual
     hle ⊢p@(wt-ν ⊢p₀) (wt-ν ⊢q) =
     wt-ν (wt-⨟↓-fuel {n = n} (pred-ν-bound↓ {p = ν p} {q = q} hle) (lift-ν-arg-⊒ ⊢p) ⊢q)
 
-  wt-⨟↑ :
-    ∀ {Σ : Store}{Φ : List CastPerm}{A B C : Ty}{p : Up}{q : Up}
-    → Σ ∣ Φ ⊢ p ⦂ A ⊑ B
-    → Σ ∣ Φ ⊢ q ⦂ B ⊑ C
-    → Σ ∣ Φ ⊢ p ⨟↑ q ⦂ A ⊑ C
-  wt-⨟↑ {p = p} {q = q} ⊢p ⊢q = wt-⨟↑-fuel ≤-refl ⊢p ⊢q
+wt-⨟↑ : ∀ {Σ : Store}{Φ : List CastPerm}{A B C : Ty}{p : Up}{q : Up}
+  → Σ ∣ Φ ⊢ p ⦂ A ⊑ B
+  → Σ ∣ Φ ⊢ q ⦂ B ⊑ C
+  → Σ ∣ Φ ⊢ p ⨟↑ q ⦂ A ⊑ C
+wt-⨟↑ {p = p} {q = q} ⊢p ⊢q = wt-⨟↑-fuel ≤-refl ⊢p ⊢q
 
-  wt-⨟↓ :
-    ∀ {Σ : Store}{Φ : List CastPerm}{A B C : Ty}{p : Down}{q : Down}
-    → Σ ∣ Φ ⊢ p ⦂ A ⊒ B
-    → Σ ∣ Φ ⊢ q ⦂ B ⊒ C
-    → Σ ∣ Φ ⊢ p ⨟↓ q ⦂ A ⊒ C
-  wt-⨟↓ {p = p} {q = q} ⊢p ⊢q = wt-⨟↓-fuel ≤-refl ⊢p ⊢q
+wt-⨟↓ : ∀ {Σ : Store}{Φ : List CastPerm}{A B C : Ty}{p : Down}{q : Down}
+  → Σ ∣ Φ ⊢ p ⦂ A ⊒ B
+  → Σ ∣ Φ ⊢ q ⦂ B ⊒ C
+  → Σ ∣ Φ ⊢ p ⨟↓ q ⦂ A ⊒ C
+wt-⨟↓ {p = p} {q = q} ⊢p ⊢q = wt-⨟↓-fuel ≤-refl ⊢p ⊢q

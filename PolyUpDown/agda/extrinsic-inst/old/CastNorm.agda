@@ -1,11 +1,10 @@
 module CastNorm where
 
--- UNDER CONSTRUCTION
--- TODO: Needs to be updated to reflect changes to UpDownNorm
-
 -- File Charter:
 --   * Normalized Cast judgments without a generic composition constructor.
---   * Boundary-aware tag/untag/seal/unseal-star forms absorb local composition.
+--   * Rule shapes are a subset of `UpDownNorm` Up/Down typing rules:
+--   * include `tag`/`untag`, `ν`, and cast-seal-based `seal★`/`unseal★`.
+--   * Boundary-aware forms absorb local composition at primitive boundaries.
 --   * Exposes explicit composition lemmas (`compose⊑ᶜ`, `compose⊒ᶜ`) for use in
 --   * factorization proofs.
 
@@ -31,27 +30,17 @@ infix 4 _∣_⊢_⊑ᶜ_ _∣_⊢_⊒ᶜ_
 
 mutual
   data _∣_⊢_⊑ᶜ_ (Σ : Store) (Φ : List CastPerm) : Ty → Ty → Set where
-    ⊑ᶜ-tag : ∀ {G}
-      → (g : Ground G)
-      → ⊢ g ok Φ
-      → Σ ∣ Φ ⊢ G ⊑ᶜ ★
-
     ⊑ᶜ-；tag : ∀ {A G}
       → Σ ∣ Φ ⊢ A ⊑ᶜ G
       → (g : Ground G)
       → ⊢ g ok Φ
       → Σ ∣ Φ ⊢ A ⊑ᶜ ★
 
-    ⊑ᶜ-unseal★ : ∀ {α}
+    ⊑ᶜ-unseal★； : ∀ {α B}
       → Σ ∋ˢ α ⦂ ★
       → α ∈cast Φ
-      → Σ ∣ Φ ⊢ ｀ α ⊑ᶜ ★
-
-    ⊑ᶜ-；unseal★ : ∀ {A α}
-      → Σ ∣ Φ ⊢ A ⊑ᶜ ｀ α
-      → Σ ∋ˢ α ⦂ ★
-      → α ∈cast Φ
-      → Σ ∣ Φ ⊢ A ⊑ᶜ ★
+      → Σ ∣ Φ ⊢ ★ ⊑ᶜ B
+      → Σ ∣ Φ ⊢ ｀ α ⊑ᶜ B
 
     ⊑ᶜ-⇒ : ∀ {A A′ B B′}
       → Σ ∣ Φ ⊢ A′ ⊒ᶜ A
@@ -71,23 +60,13 @@ mutual
       → Σ ∣ Φ ⊢ A ⊑ᶜ A
 
   data _∣_⊢_⊒ᶜ_ (Σ : Store) (Φ : List CastPerm) : Ty → Ty → Set where
-    ⊒ᶜ-untag : ∀ {G}
+
+    ⊒ᶜ-untag； : ∀ {G B}
       → (g : Ground G)
       → ⊢ g ok Φ
       → (ℓ : Label)
-      → Σ ∣ Φ ⊢ ★ ⊒ᶜ G
-
-    ⊒ᶜ-；untag : ∀ {A G}
-      → Σ ∣ Φ ⊢ A ⊒ᶜ ★
-      → (g : Ground G)
-      → ⊢ g ok Φ
-      → (ℓ : Label)
-      → Σ ∣ Φ ⊢ A ⊒ᶜ G
-
-    ⊒ᶜ-seal★ : ∀ {α}
-      → Σ ∋ˢ α ⦂ ★
-      → α ∈cast Φ
-      → Σ ∣ Φ ⊢ ★ ⊒ᶜ ｀ α
+      → Σ ∣ Φ ⊢ G ⊒ᶜ B
+      → Σ ∣ Φ ⊢ ★ ⊒ᶜ B
 
     ⊒ᶜ-；seal★ : ∀ {A α}
       → Σ ∣ Φ ⊢ A ⊒ᶜ ★

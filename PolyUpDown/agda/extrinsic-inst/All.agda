@@ -8,14 +8,11 @@ module All where
 open import Types
 open import TypeProperties
 open import Imprecision
--- The following are under construction and not stable
---open import CastFactorization
---open import ImprecisionBridge
---open import ImprecisionCompleteness
+open import ImprecisionBridge
+open import ImprecisionCompleteness
 open import Store
 open import Ctx
 open import UpDown
-open import UpDownNorm
 open import Terms
 open import TermProperties
 open import TypeCheckDec

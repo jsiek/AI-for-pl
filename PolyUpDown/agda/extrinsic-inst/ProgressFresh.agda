@@ -67,10 +67,10 @@ canonical-⇒ :
 canonical-⇒ (ƛ A ⇒ N) (⊢ƛ wfA N⊢) = fv-ƛ refl
 canonical-⇒ ($ (κℕ n)) ()
 canonical-⇒ (_up_ {V = W} vW (_↦_ {p = p} {q = q}))
-  (⊢up Φ W⊢ (wt-↦ {p = p} {q = q} p⊢ q⊢)) =
+  (⊢up Φ lenΦ W⊢ (wt-↦ {p = p} {q = q} p⊢ q⊢)) =
   fv-up-↦ vW refl
 canonical-⇒ (_down_ {V = W} vW (_↦_ {p = p} {q = q}))
-  (⊢down Φ W⊢ (wt-↦ {p = p} {q = q} p⊢ q⊢)) =
+  (⊢down Φ lenΦ W⊢ (wt-↦ {p = p} {q = q} p⊢ q⊢)) =
   fv-down-↦ vW refl
 
 data AllView (V : Term) : Set where
@@ -105,13 +105,13 @@ canonical-∀ :
 canonical-∀ (Λ N) (⊢Λ N⊢) = av-Λ refl
 canonical-∀ ($ (κℕ n)) ()
 canonical-∀ (_up_ {V = W} vW (∀ᵖ {p = p}))
-  (⊢up Φ W⊢ (wt-∀ {p = p} p⊢)) =
+  (⊢up Φ lenΦ W⊢ (wt-∀ {p = p} p⊢)) =
   av-up-∀ vW refl
 canonical-∀ (_down_ {V = W} vW (∀ᵖ {p = p}))
-  (⊢down Φ W⊢ (wt-∀ {p = p} p⊢)) =
+  (⊢down Φ lenΦ W⊢ (wt-∀ {p = p} p⊢)) =
   av-down-∀ vW refl
 canonical-∀ (_down_ {V = W} vW (ν_ {p = p}))
-  (⊢down Φ W⊢ (wt-ν {p = p} p⊢)) =
+  (⊢down Φ lenΦ W⊢ (wt-ν {p = p} p⊢)) =
   av-down-ν vW refl
 
 data NatView (V : Term) : Set where
@@ -127,19 +127,19 @@ canonical-ℕ :
   NatView V
 canonical-ℕ ($ (κℕ n)) (⊢$ (κℕ .n)) = nv-const refl
 canonical-ℕ (_up_ {V = W} vW tag)
-  (⊢up Φ W⊢ ())
+  (⊢up Φ lenΦ W⊢ ())
 canonical-ℕ (_up_ {V = W} vW (_↦_ {p = p} {q = q}))
-  (⊢up Φ W⊢ ())
+  (⊢up Φ lenΦ W⊢ ())
 canonical-ℕ (_up_ {V = W} vW (∀ᵖ {p = p}))
-  (⊢up Φ W⊢ ())
+  (⊢up Φ lenΦ W⊢ ())
 canonical-ℕ (_down_ {V = W} vW seal)
-  (⊢down Φ W⊢ ())
+  (⊢down Φ lenΦ W⊢ ())
 canonical-ℕ (_down_ {V = W} vW (_↦_ {p = p} {q = q}))
-  (⊢down Φ W⊢ ())
+  (⊢down Φ lenΦ W⊢ ())
 canonical-ℕ (_down_ {V = W} vW (∀ᵖ {p = p}))
-  (⊢down Φ W⊢ ())
+  (⊢down Φ lenΦ W⊢ ())
 canonical-ℕ (_down_ {V = W} vW (ν_ {p = p}))
-  (⊢down Φ W⊢ ())
+  (⊢down Φ lenΦ W⊢ ())
 
 data StarView (V : Term) : Set where
   sv-up-tag :
@@ -154,17 +154,17 @@ canonical-★ :
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V ⦂ ★ →
   StarView V
 canonical-★ (_up_ {V = W} vW tag)
-  (⊢up Φ W⊢ (wt-tag {G = G} g gok)) =
+  (⊢up Φ lenΦ W⊢ (wt-tag {G = G} g gok)) =
   sv-up-tag {g = g} vW refl
 canonical-★ ($ (κℕ n)) ()
 canonical-★ (_down_ {V = W} vW seal)
-  (⊢down Φ W⊢ ())
+  (⊢down Φ lenΦ W⊢ ())
 canonical-★ (_down_ {V = W} vW (_↦_ {p = p} {q = q}))
-  (⊢down Φ W⊢ ())
+  (⊢down Φ lenΦ W⊢ ())
 canonical-★ (_down_ {V = W} vW (∀ᵖ {p = p}))
-  (⊢down Φ W⊢ ())
+  (⊢down Φ lenΦ W⊢ ())
 canonical-★ (_down_ {V = W} vW (ν_ {p = p}))
-  (⊢down Φ W⊢ ())
+  (⊢down Φ lenΦ W⊢ ())
 
 data SealView {α : Seal} (V : Term) : Set where
   sv-down-seal :
@@ -180,18 +180,18 @@ canonical-｀ :
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V ⦂ (｀ α) →
   SealView {α = α} V
 canonical-｀ (_down_ {V = W} vW seal)
-  (⊢down Φ W⊢ (wt-seal {α = α} h α∈)) =
+  (⊢down Φ lenΦ W⊢ (wt-seal {α = α} h α∈)) =
   sv-down-seal vW refl
 canonical-｀ (_down_ {V = W} vW seal)
-  (⊢down Φ W⊢ (wt-seal★ {α = α} h α∈)) =
+  (⊢down Φ lenΦ W⊢ (wt-seal★ {α = α} h α∈)) =
   sv-down-seal vW refl
 canonical-｀ ($ (κℕ n)) ()
 canonical-｀ (_up_ {V = W} vW tag)
-  (⊢up Φ W⊢ ())
+  (⊢up Φ lenΦ W⊢ ())
 canonical-｀ (_up_ {V = W} vW (_↦_ {p = p} {q = q}))
-  (⊢up Φ W⊢ ())
+  (⊢up Φ lenΦ W⊢ ())
 canonical-｀ (_up_ {V = W} vW (∀ᵖ {p = p}))
-  (⊢up Φ W⊢ ())
+  (⊢up Φ lenΦ W⊢ ())
 
 ------------------------------------------------------------------------
 -- Progress helpers
@@ -262,7 +262,7 @@ progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) with progress L⊢
 ...   | done vM with canonical-ℕ vL L⊢ | canonical-ℕ vM M⊢
 ...     | nv-const refl | nv-const refl with op
 ...       | addℕ = step (Fresh.id-step δ-⊕)
-progress (⊢up {M = M} {p = p} Φ M⊢ hp) with progress M⊢
+progress (⊢up {M = M} {p = p} Φ lenΦ M⊢ hp) with progress M⊢
 ... | step M→M′ = step (Fresh.ξ-up M→M′)
 ... | crash (ℓ , refl) = step (Fresh.id-step blame-up)
 ... | done vM with p | hp
@@ -274,7 +274,7 @@ progress (⊢up {M = M} {p = p} Φ M⊢ hp) with progress M⊢
 ...   | ν p | wt-ν p⊢ = step (Fresh.β-up-ν vM)
 ...   | id A | wt-id wfA = step (Fresh.id-step (id-up vM))
 ...   | p ； q | wt-； p⊢ q⊢ = step (Fresh.id-step (β-up-； vM))
-progress (⊢down {M = M} {p = p} Φ M⊢ hp) with progress M⊢
+progress (⊢down {M = M} {p = p} Φ lenΦ M⊢ hp) with progress M⊢
 ... | step M→M′ = step (Fresh.ξ-down M→M′)
 ... | crash (ℓ , refl) = step (Fresh.id-step blame-down)
 ... | done vM with p | hp

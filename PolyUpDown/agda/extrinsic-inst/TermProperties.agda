@@ -116,10 +116,10 @@ renameˣ-term-wt ρ hρ (⊢• {B = B} M wfT) =
 renameˣ-term-wt ρ hρ (⊢$ κ) = ⊢$ κ
 renameˣ-term-wt ρ hρ (⊢⊕ L op M) =
   ⊢⊕ (renameˣ-term-wt ρ hρ L) op (renameˣ-term-wt ρ hρ M)
-renameˣ-term-wt ρ hρ (⊢up {p = p} Φ M hp) =
-  ⊢up {p = p} Φ (renameˣ-term-wt ρ hρ M) hp
-renameˣ-term-wt ρ hρ (⊢down {p = p} Φ M hp) =
-  ⊢down {p = p} Φ (renameˣ-term-wt ρ hρ M) hp
+renameˣ-term-wt ρ hρ (⊢up {p = p} Φ lenΦ M hp) =
+  ⊢up {p = p} Φ lenΦ (renameˣ-term-wt ρ hρ M) hp
+renameˣ-term-wt ρ hρ (⊢down {p = p} Φ lenΦ M hp) =
+  ⊢down {p = p} Φ lenΦ (renameˣ-term-wt ρ hρ M) hp
 renameˣ-term-wt ρ hρ (⊢blame ℓ) = ⊢blame ℓ
 
 ↑ᵗᵐ : Substˣ → Substˣ
@@ -178,10 +178,10 @@ substˣ-term-wt σ hσ (⊢• {B = B} M wfT) =
 substˣ-term-wt σ hσ (⊢$ κ) = ⊢$ κ
 substˣ-term-wt σ hσ (⊢⊕ L op M) =
   ⊢⊕ (substˣ-term-wt σ hσ L) op (substˣ-term-wt σ hσ M)
-substˣ-term-wt σ hσ (⊢up {p = p} Φ M hp) =
-  ⊢up {p = p} Φ (substˣ-term-wt σ hσ M) hp
-substˣ-term-wt σ hσ (⊢down {p = p} Φ M hp) =
-  ⊢down {p = p} Φ (substˣ-term-wt σ hσ M) hp
+substˣ-term-wt σ hσ (⊢up {p = p} Φ lenΦ M hp) =
+  ⊢up {p = p} Φ lenΦ (substˣ-term-wt σ hσ M) hp
+substˣ-term-wt σ hσ (⊢down {p = p} Φ lenΦ M hp) =
+  ⊢down {p = p} Φ lenΦ (substˣ-term-wt σ hσ M) hp
 substˣ-term-wt σ hσ (⊢blame ℓ) = ⊢blame ℓ
 
 ------------------------------------------------------------------------

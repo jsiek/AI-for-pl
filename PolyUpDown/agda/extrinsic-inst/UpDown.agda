@@ -964,30 +964,28 @@ mutual
       {Φ : List CastPerm}{Φ′ : List CastPerm}{A B : Ty}
       {p : Up} →
     (ρ : Renameˢ) →
-    RenOk ρ Φ Φ′ →
     RenOkConv ρ Φ Φ′ →
     RenOkCast ρ Φ Φ′ →
     RenOkTag ρ Φ Φ′ →
-    RenNotIn ρ Φ Φ′ →
     Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     renameStoreˢ ρ Σ ∣ Φ′ ⊢ rename⊑ˢ ρ p ⦂ renameˢ ρ A ⊑ renameˢ ρ B
-  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-tag g gokΦ) =
+  ⊑-renameˢ-wt ρ okConv okCast okTag (wt-tag g gokΦ) =
     wt-tag (renameˢ-ground ρ g) (renameˢ-ground-ok ρ okTag g gokΦ)
-  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-unseal h α∈Φ) =
+  ⊑-renameˢ-wt ρ okConv okCast okTag (wt-unseal h α∈Φ) =
     wt-unseal (renameLookupˢ ρ h) (okConv α∈Φ)
-  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-unseal★ h α∈Φ) =
+  ⊑-renameˢ-wt ρ okConv okCast okTag (wt-unseal★ h α∈Φ) =
     wt-unseal★ (renameLookupˢ ρ h) (okCast α∈Φ)
-  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-↦ p q) =
+  ⊑-renameˢ-wt ρ okConv okCast okTag (wt-↦ p q) =
     wt-↦
-      (⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p)
-      (⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ q)
-  ⊑-renameˢ-wt {Σ = Σ} ρ okΦ okConv okCast okTag ok¬Φ (wt-∀ p) =
+      (⊒-renameˢ-wt ρ okConv okCast okTag p)
+      (⊑-renameˢ-wt ρ okConv okCast okTag q)
+  ⊑-renameˢ-wt {Σ = Σ} ρ okConv okCast okTag (wt-∀ p) =
     wt-∀
       (castWt⊑
         (renameStoreˢ-ext-⟰ᵗ ρ Σ)
         refl
-        (⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p))
-  ⊑-renameˢ-wt {Σ = Σ} ρ okΦ okConv okCast okTag ok¬Φ (wt-ν {A = A} {B = B} p) =
+        (⊑-renameˢ-wt ρ okConv okCast okTag p))
+  ⊑-renameˢ-wt {Σ = Σ} ρ okConv okCast okTag (wt-ν {A = A} {B = B} p) =
     wt-ν
       (castWt⊑
         (renameStoreˢ-ν ρ Σ)
@@ -997,47 +995,43 @@ mutual
           (renameˢ-ext-⇑ˢ ρ B)
           (⊑-renameˢ-wt
             (extˢ ρ)
-            (RenOk-ext-cast-seal okΦ)
             (RenOkConv-ext-cast-seal okConv)
             (RenOkCast-ext-cast-seal okCast)
             (RenOkTag-ext-cast-seal okTag)
-            (RenNotIn-ext-cast-seal ok¬Φ)
             p)))
-  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-id {A = A} wfA) = wt-id (wfTySome (renameˢ ρ A))
-  ⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-； p q) =
+  ⊑-renameˢ-wt ρ okConv okCast okTag (wt-id {A = A} wfA) = wt-id (wfTySome (renameˢ ρ A))
+  ⊑-renameˢ-wt ρ okConv okCast okTag (wt-； p q) =
     wt-；
-      (⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p)
-      (⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ q)
+      (⊑-renameˢ-wt ρ okConv okCast okTag p)
+      (⊑-renameˢ-wt ρ okConv okCast okTag q)
 
   ⊒-renameˢ-wt :
     ∀ {Σ : Store}
       {Φ : List CastPerm}{Φ′ : List CastPerm}{A B : Ty}
       {p : Down} →
     (ρ : Renameˢ) →
-    RenOk ρ Φ Φ′ →
     RenOkConv ρ Φ Φ′ →
     RenOkCast ρ Φ Φ′ →
     RenOkTag ρ Φ Φ′ →
-    RenNotIn ρ Φ Φ′ →
     Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     renameStoreˢ ρ Σ ∣ Φ′ ⊢ rename⊒ˢ ρ p ⦂ renameˢ ρ A ⊒ renameˢ ρ B
-  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-untag g gokΦ ℓ) =
+  ⊒-renameˢ-wt ρ okConv okCast okTag (wt-untag g gokΦ ℓ) =
     wt-untag (renameˢ-ground ρ g) (renameˢ-ground-ok ρ okTag g gokΦ) ℓ
-  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-seal h α∈Φ) =
+  ⊒-renameˢ-wt ρ okConv okCast okTag (wt-seal h α∈Φ) =
     wt-seal (renameLookupˢ ρ h) (okConv α∈Φ)
-  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-seal★ h α∈Φ) =
+  ⊒-renameˢ-wt ρ okConv okCast okTag (wt-seal★ h α∈Φ) =
     wt-seal★ (renameLookupˢ ρ h) (okCast α∈Φ)
-  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-↦ p q) =
+  ⊒-renameˢ-wt ρ okConv okCast okTag (wt-↦ p q) =
     wt-↦
-      (⊑-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p)
-      (⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ q)
-  ⊒-renameˢ-wt {Σ = Σ} ρ okΦ okConv okCast okTag ok¬Φ (wt-∀ p) =
+      (⊑-renameˢ-wt ρ okConv okCast okTag p)
+      (⊒-renameˢ-wt ρ okConv okCast okTag q)
+  ⊒-renameˢ-wt {Σ = Σ} ρ okConv okCast okTag (wt-∀ p) =
     wt-∀
       (castWt⊒
         (renameStoreˢ-ext-⟰ᵗ ρ Σ)
         refl
-        (⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p))
-  ⊒-renameˢ-wt {Σ = Σ} ρ okΦ okConv okCast okTag ok¬Φ (wt-ν {A = A} {B = B} p) =
+        (⊒-renameˢ-wt ρ okConv okCast okTag p))
+  ⊒-renameˢ-wt {Σ = Σ} ρ okConv okCast okTag (wt-ν {A = A} {B = B} p) =
     wt-ν
       (castWt⊒
         (renameStoreˢ-ν ρ Σ)
@@ -1047,17 +1041,15 @@ mutual
           (renameˢ-ν-src ρ A)
           (⊒-renameˢ-wt
             (extˢ ρ)
-            (RenOk-ext-cast-tag okΦ)
             (RenOkConv-ext-cast-tag okConv)
             (RenOkCast-ext-cast-tag okCast)
             (RenOkTag-ext-cast-tag okTag)
-            (RenNotIn-ext-cast-tag ok¬Φ)
             p)))
-  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-id {A = A} wfA) = wt-id (wfTySome (renameˢ ρ A))
-  ⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ (wt-； p q) =
+  ⊒-renameˢ-wt ρ okConv okCast okTag (wt-id {A = A} wfA) = wt-id (wfTySome (renameˢ ρ A))
+  ⊒-renameˢ-wt ρ okConv okCast okTag (wt-； p q) =
     wt-；
-      (⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ p)
-      (⊒-renameˢ-wt ρ okΦ okConv okCast okTag ok¬Φ q)
+      (⊒-renameˢ-wt ρ okConv okCast okTag p)
+      (⊒-renameˢ-wt ρ okConv okCast okTag q)
 
 ------------------------------------------------------------------------
 -- Type-variable substitution for well-typed widening and narrowing

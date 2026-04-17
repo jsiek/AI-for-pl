@@ -38,6 +38,6 @@ eval {Ψ} {Σ₀} {M} {A} uΣ₀ (suc gas) M⊢ with progress M⊢
 ... | done v = Ψ , Σ₀ , M , A , M⊢ , (M ∎)
 ... | crash b = Ψ , Σ₀ , M , A , M⊢ , (M ∎)
 ... | step {N = N} M→N with preservation-step uΣ₀ M⊢ M→N
-...   | Ψ₁ , hρ , N⊢ with eval (unique-store-step uΣ₀ M→N) gas N⊢
+...   | Ψ₁ , hρ , eqρ , N⊢ with eval (unique-store-step uΣ₀ M→N) gas N⊢
 ...     | Ψ₂ , Σ₂ , K , C , K⊢ , N—↠K =
           Ψ₂ , Σ₂ , K , C , K⊢ , (M —→⟨ M→N ⟩ N—↠K)

@@ -28,7 +28,6 @@ open import PreservationFresh
 open import Progress
 open import Preservation
 open import Eval
-open import EvalFresh
 open import Examples
 
 open import LogicalRelation

@@ -28,7 +28,7 @@ postulate
     (wfΣ : StoreWf Δ Ψ Σ) →
     (M⊢ : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A) →
     (M→M′ : Σ ∣ M —→ Σ′ ∣ M′) →
-    (Ψ≤Ψ′ : Ψ ≤ Ψ′) →
+    (eqΨ : StepCtxExact (step-ctx-shape M→M′) Ψ Ψ′) →
     (M′⊢ : Δ ∣ Ψ′ ∣ Σ′ ∣ Γ ⊢ M′ ⦂ A) →
     StoreWf Δ Ψ′ Σ′
 
@@ -49,6 +49,6 @@ eval {Ψ} {Σ₀} {M} {A} wfΣ₀ (suc gas) M⊢ with progress M⊢
 ... | done v = Ψ , Σ₀ , M , A , M⊢ , (M ∎)
 ... | crash b = Ψ , Σ₀ , M , A , M⊢ , (M ∎)
 ... | step {N = N} M→N with preservation-step wfΣ₀ M⊢ M→N
-...   | Ψ₁ , Ψ≤Ψ₁ , N⊢ with eval (storeWf-step wfΣ₀ M⊢ M→N Ψ≤Ψ₁ N⊢) gas N⊢
+...   | Ψ₁ , eqΨ₁ , N⊢ with eval (storeWf-step wfΣ₀ M⊢ M→N eqΨ₁ N⊢) gas N⊢
 ...     | Ψ₂ , Σ₂ , K , C , K⊢ , N—↠K =
           Ψ₂ , Σ₂ , K , C , K⊢ , (M —→⟨ M→N ⟩ N—↠K)

@@ -158,8 +158,7 @@ A [ B ]ᵗ = substᵗ (singleTyEnv B) A
 
 renameStoreᵗ : Renameᵗ → Store → Store
 renameStoreᵗ ρ [] = []
-renameStoreᵗ ρ ((α , A) ∷ Σ) =
-  (α , renameᵗ ρ A) ∷ renameStoreᵗ ρ Σ
+renameStoreᵗ ρ ((α , A) ∷ Σ) = (α , renameᵗ ρ A) ∷ renameStoreᵗ ρ Σ
 
 ⟰ᵗ : Store → Store
 ⟰ᵗ = renameStoreᵗ suc

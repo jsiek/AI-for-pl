@@ -89,7 +89,7 @@ data _∣_—→_∣_ :
     Value V →
     Σ ∣ (V up (ν p)) —→ ((length Σ , ★) ∷ Σ) ∣
       (((V ⦂∀
-          (up-src ((length Σ , ★) ∷ Σ) (rename⊑ˢ (singleSealEnv (length Σ)) p))
+          ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)
           [ ｀ (length Σ) ])
          up (p [ length Σ ]⊑)))
 

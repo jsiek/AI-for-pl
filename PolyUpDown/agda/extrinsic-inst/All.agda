@@ -20,6 +20,7 @@ open import Reduction
 
 open import ReductionFresh
 open import EvalPartialFresh
+open import CoverageFresh
 open import ExamplesFresh
 open import ProgressFresh
 open import PreservationFresh

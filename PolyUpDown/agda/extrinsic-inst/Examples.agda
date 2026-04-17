@@ -20,7 +20,7 @@ open import UpDown
 open import Terms
 open import Reduction
 open import Eval
-open import TypeCheckDec using (type-check-expect; storeWf-∅)
+open import TypeCheckDec using (type-check-expect)
 
 ------------------------------------------------------------------------
 -- Shared terms and helpers

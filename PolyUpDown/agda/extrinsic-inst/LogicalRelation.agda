@@ -325,20 +325,20 @@ data Dir : Set where
   ≼ : Dir
   ≽ : Dir
 
-Payload : Set₁
-Payload = ℕ → Dir → Term → Term → Set
+Rel : Set₁
+Rel = ℕ → Dir → Term → Term → Set
 
-record SealEntry : Set₁ where
+record SealRel : Set₁ where
   constructor ηentry
   field
     αˡ : Seal
     αʳ : Seal
-    Rη : Payload
-open SealEntry public
+    Rη : Rel
+open SealRel public
 
 infix 4 _∋η_↔_∶_
 
-data _∋η_↔_∶_ : List SealEntry → Seal → Seal → Payload → Set₁ where
+data _∋η_↔_∶_ : List SealRel → Seal → Seal → Rel → Set₁ where
   hereη :
     ∀ {η αˡ αʳ R} →
     (ηentry αˡ αʳ R ∷ η) ∋η αˡ ↔ αʳ ∶ R
@@ -350,7 +350,7 @@ data _∋η_↔_∶_ : List SealEntry → Seal → Seal → Payload → Set₁ w
 
 infix 4 _⊆η_
 
-data _⊆η_ : List SealEntry → List SealEntry → Set₁ where
+data _⊆η_ : List SealRel → List SealRel → Set₁ where
   η-done : ∀ {η} → [] ⊆η η
   η-keep : ∀ {η η′ e} → η ⊆η η′ → (e ∷ η) ⊆η (e ∷ η′)
   η-drop : ∀ {η η′ e} → η ⊆η η′ → η ⊆η (e ∷ η′)
@@ -359,12 +359,13 @@ data _⊆η_ : List SealEntry → List SealEntry → Set₁ where
 ⊆η-refl {η = []} = η-done
 ⊆η-refl {η = e ∷ η} = η-keep ⊆η-refl
 
+-- Should this also record the Δ : TyCtx and Ψ : SealCtx?
 record World : Set₁ where
   constructor mkWorld
   field
     Σˡ : Store
     Σʳ : Store
-    η : List SealEntry
+    η : List SealRel
 open World public
 
 record _⪰_ (w′ w : World) : Set₁ where
@@ -385,10 +386,11 @@ stepWorldˡ ρ Σ′ w = mkWorld Σ′ (renameStoreˢ ρ (Σʳ w)) (η w)
 stepWorldʳ : Renameˢ → Store → World → World
 stepWorldʳ ρ Σ′ w = mkWorld (renameStoreˢ ρ (Σˡ w)) Σ′ (η w)
 
-extendWorld : World → Payload → World
+-- This is suspicious. Need to shift the old world up by one? -Jeremy
+extendWorld : World → Rel → World
 extendWorld w R = mkWorld (Σˡ w) (Σʳ w) (ηentry zero zero R ∷ η w)
 
-extendWorld-⪰ : ∀ {w} (R : Payload) → extendWorld w R ⪰ w
+extendWorld-⪰ : ∀ {w} (R : Rel) → extendWorld w R ⪰ w
 extendWorld-⪰ {w} R ._⪰_.growˡ = ⊆ˢ-refl
 extendWorld-⪰ {w} R ._⪰_.growʳ = ⊆ˢ-refl
 extendWorld-⪰ {w} R ._⪰_.growη = η-drop ⊆η-refl
@@ -400,29 +402,39 @@ extendWorld-⪰ {w} R ._⪰_.growη = η-drop ⊆η-refl
 mutual
   𝒱 : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
   𝒱 p zero dir w V W = Lift (lsuc 0ℓ) ⊤
+  
   𝒱 ⊑-‵ (suc n) dir w ($ (κℕ m)) ($ (κℕ m′)) = Lift (lsuc 0ℓ) (m ≡ m′)
+  
   𝒱 (⊑-⇒ pA pB) (suc n) dir w (ƛ A₀ ⇒ N) (ƛ A′₀ ⇒ M) =
     ∀ {V W} →
     𝒱 pA (suc n) dir w V W →
     ℰ pB (suc n) dir w (N [ V ]) (M [ W ])
+    
   𝒱 (⊑-∀ p) (suc n) dir w (Λ N) (Λ M) =
     ∀ {w′} →
     w′ ⪰ w →
-    (R : Payload) →
+    (R : Rel) →
     (T U : Ty) →
+    -- Do we need to shift N, M, T, U to move from w to w′? -Jeremy
     ℰ p (suc n) dir (extendWorld w′ R) (N [ T ]ᵀ) (M [ U ]ᵀ)
+    
   𝒱 ⊑-★★ (suc n) dir w (V up tag G) (W up tag H) =
     Lift (lsuc 0ℓ) (G ≡ H) ×
     𝒱 (⊑-refl {A = G}) n dir w V W
+    
   𝒱 ⊑-★★ (suc n) dir w (V down seal αˡ) (W down seal αʳ) =
-    Σ[ R ∈ Payload ] (η w ∋η αˡ ↔ αʳ ∶ R) × R n dir V W
+    Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R n dir V W
+    
   𝒱 (⊑-★ {G = G} g p) (suc n) dir w V (W up tag H) =
     Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p (suc n) dir w V W
+    
   𝒱 (⊑-｀ {α = α}) (suc n) dir w (V down seal βˡ) (W down seal βʳ) =
-    Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Payload ]
+    Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Rel ]
       (η w ∋η α ↔ α ∶ R) ×
       R (suc n) dir V W
+      
   𝒱 p (suc n) dir w V W = Lift (lsuc 0ℓ) ⊥
+
 
   ℰ : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
   ℰ p zero dir w Mˡ Mʳ = Lift (lsuc 0ℓ) ⊤

@@ -120,12 +120,6 @@ mutual
 -- Raw cast endpoints
 ------------------------------------------------------------------------
 
-lookupTyˢ : Store → Seal → Ty
-lookupTyˢ [] α = ｀ α
-lookupTyˢ ((β , B) ∷ Σ) α with seal-≟ α β
-lookupTyˢ ((β , B) ∷ Σ) α | yes _ = B
-lookupTyˢ ((β , B) ∷ Σ) α | no _ = lookupTyˢ Σ α
-
 closeVarAt : TyVar → TyVar → TyVar
 closeVarAt zero X = suc X
 closeVarAt (suc d) zero = zero
@@ -465,70 +459,6 @@ closeν-inline-open A =
   trans
     (sym (closeν-inline ((⇑ˢ A) [ ｀ zero ]ᵗ)))
     (closeInlineAt-zero-open A)
-
-lookupTyˢ-lookup :
-  ∀ {Σ : Store}{α : Seal}{A : Ty} →
-  Uniqueˢ Σ →
-  Σ ∋ˢ α ⦂ A →
-  lookupTyˢ Σ α ≡ A
-lookupTyˢ-lookup uniq[] ()
-lookupTyˢ-lookup
-  {α = α}
-  (uniq∷_ {Σ = Σ} {α = β} β∉Σ uΣ)
-  (Z∋ˢ {A = A} {B = B} α≡β A≡B)
-  with seal-≟ α β
-lookupTyˢ-lookup
-  {α = α}
-  (uniq∷_ {Σ = Σ} {α = β} β∉Σ uΣ)
-  (Z∋ˢ {A = A} {B = B} α≡β A≡B)
-  | yes _ = sym A≡B
-lookupTyˢ-lookup
-  {α = α}
-  (uniq∷_ {Σ = Σ} {α = β} β∉Σ uΣ)
-  (Z∋ˢ {A = A} {B = B} α≡β A≡B)
-  | no α≢β = ⊥-elim (α≢β α≡β)
-lookupTyˢ-lookup
-  {α = α}
-  (uniq∷_ {Σ = Σ} {α = β} β∉Σ uΣ)
-  (S∋ˢ {A = A} h)
-  with seal-≟ α β
-lookupTyˢ-lookup
-  {α = α}
-  (uniq∷_ {Σ = Σ} {α = β} β∉Σ uΣ)
-  (S∋ˢ {A = A} h)
-  | yes α≡β = ⊥-elim (β∉Σ (subst (λ γ → Σ ∋ˢ γ ⦂ A) α≡β h))
-lookupTyˢ-lookup
-  {α = α}
-  (uniq∷_ {Σ = Σ} {α = β} β∉Σ uΣ)
-  (S∋ˢ {A = A} h)
-  | no α≢β = lookupTyˢ-lookup uΣ h
-
-stripLookup-⟰ᵗ :
-  ∀ {Σ : Store}{α : Seal}{A : Ty} →
-  ⟰ᵗ Σ ∋ˢ α ⦂ A →
-  Σ[ B ∈ Ty ] Σ ∋ˢ α ⦂ B
-stripLookup-⟰ᵗ {Σ = []} ()
-stripLookup-⟰ᵗ {Σ = (β , B) ∷ Σ} (Z∋ˢ α≡β A≡B′) =
-  B , Z∋ˢ α≡β refl
-stripLookup-⟰ᵗ {Σ = (β , B) ∷ Σ} (S∋ˢ h)
-  with stripLookup-⟰ᵗ h
-stripLookup-⟰ᵗ {Σ = (β , B) ∷ Σ} (S∋ˢ h)
-  | C , h′ = C , S∋ˢ h′
-
-∉domˢ-⟰ᵗ :
-  ∀ {Σ : Store}{α : Seal} →
-  α ∉domˢ Σ →
-  α ∉domˢ ⟰ᵗ Σ
-∉domˢ-⟰ᵗ α∉Σ h with stripLookup-⟰ᵗ h
-∉domˢ-⟰ᵗ α∉Σ h | B , h′ = α∉Σ h′
-
-unique-⟰ᵗ :
-  ∀ {Σ : Store} →
-  Uniqueˢ Σ →
-  Uniqueˢ (⟰ᵗ Σ)
-unique-⟰ᵗ uniq[] = uniq[]
-unique-⟰ᵗ (uniq∷_ α∉Σ uΣ) =
-  uniq∷_ (∉domˢ-⟰ᵗ α∉Σ) (unique-⟰ᵗ uΣ)
 
 mutual
   up-src-irrel :
@@ -916,9 +846,14 @@ mutual
   subst⊒ᵗ σ (id A) = id (substᵗ σ A)
   subst⊒ᵗ σ (p ； q) = subst⊒ᵗ σ p ； subst⊒ᵗ σ q
 
-infixl 8 _[_]↓ˢ
-_[_]↓ˢ : Down → Seal → Down
-p [ α ]↓ˢ = rename⊒ˢ (singleSealEnv α) p
+infixl 8 _[_]⊑
+_[_]⊑ : Up → Seal → Up
+p [ α ]⊑ = rename⊑ˢ (singleSealEnv α) p
+
+infixl 8 _[_]⊒
+_[_]⊒ : Down → Seal → Down
+p [ α ]⊒ = rename⊒ˢ (singleSealEnv α) p
+
 
 ------------------------------------------------------------------------
 -- Typed-judgment transport helpers

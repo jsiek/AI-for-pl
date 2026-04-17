@@ -17,9 +17,18 @@ open import Terms
 open import TermProperties
 open import TypeCheckDec
 open import Reduction
+
+open import ReductionFresh
+open import EvalPartialFresh
+open import ExamplesFresh
+open import ProgressFresh
+open import PreservationFresh
+
 open import Progress
 open import Preservation
 open import Eval
+open import EvalFresh
 open import Examples
+
 open import LogicalRelation
 open import Parametricity

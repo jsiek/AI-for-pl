@@ -95,18 +95,6 @@ map-renameˢ-id : (Γ : Ctx) →
 map-renameˢ-id [] = refl
 map-renameˢ-id (A ∷ Γ) = cong₂ _∷_ renameˢ-id (map-renameˢ-id Γ)
 
-renameStoreˢ-id : ∀ {Σ : Store} →
-  renameStoreˢ idˢ Σ ≡ Σ
-renameStoreˢ-id {Σ = []} = refl
-renameStoreˢ-id {Σ = ((α , A) ∷ Σ)} =
-  cong₂ _∷_
-    (cong₂ _,_ refl renameˢ-id)
-    renameStoreˢ-id
-
-idˢ-⊆ˢ : ∀ {Σ : Store} →
-  renameStoreˢ idˢ Σ ⊆ˢ Σ
-idˢ-⊆ˢ {Σ = Σ} rewrite renameStoreˢ-id {Σ = Σ} = ⊆ˢ-refl
-
 ------------------------------------------------------------------------
 -- One-step reduction
 ------------------------------------------------------------------------
@@ -214,7 +202,7 @@ data _∣_—→[_]_∣_ :
   β-down-ν : ∀ {Σ : Store} {A B : Ty} {V : Term} {p : Down} →
     Value V →
     Σ ∣ ((V down (ν p)) ⦂∀ B [ A ]) —→[ suc ] ((zero , ⇑ˢ A) ∷ ⟰ˢ Σ) ∣
-      ((((⇑ˢᵐ V) down ((rename⊒ˢ suc p) [ zero ]↓ˢ))
+      ((((⇑ˢᵐ V) down ((rename⊒ˢ suc p) [ zero ]⊒))
          up (reveal-⊑ A B)))
 
   β-up-ν : ∀ {Σ : Store} {V : Term} {p : Up} →

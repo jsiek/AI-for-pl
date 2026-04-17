@@ -207,20 +207,13 @@ mutual
 
 open-shift-⊒-id :
   (p : Down) →
-  ((rename⊒ˢ suc p) [ zero ]↓ˢ) ≡ p
+  ((rename⊒ˢ suc p) [ zero ]⊒) ≡ p
 open-shift-⊒-id p =
   rename⊒ˢ-right-inverse suc (singleSealEnv zero) (λ α → refl) p
 
 ------------------------------------------------------------------------
 -- Dropping a distinguished top-★ lookup when it is permission-forbidden
 ------------------------------------------------------------------------
-
-removeAtˢ :
-  ∀ {Σ : Store}{α : Seal}{A : Ty} →
-  Σ ∋ˢ α ⦂ A →
-  Store
-removeAtˢ {Σ = (beta , ty) ∷ Σ} (Z∋ˢ _ _) = Σ
-removeAtˢ {Σ = (beta , ty) ∷ Σ} (S∋ˢ h) = (beta , ty) ∷ removeAtˢ h
 
 data DropLookup
   {Σ : Store}{α : Seal}
@@ -248,28 +241,6 @@ dropLookup (S∋ˢ h★) (Z∋ˢ β≡δ B≡D) = drop-keep (Z∋ˢ β≡δ B≡
 dropLookup (S∋ˢ h★) (S∋ˢ h) with dropLookup h★ h
 dropLookup (S∋ˢ h★) (S∋ˢ h) | drop-hit β≡α B≡★ = drop-hit β≡α B≡★
 dropLookup (S∋ˢ h★) (S∋ˢ h) | drop-keep h′ = drop-keep (S∋ˢ h′)
-
-removeAtˢ-renameLookup-S :
-  ∀ {Σ : Store}{α : Seal}{A : Ty}
-    (h : Σ ∋ˢ α ⦂ A) →
-  removeAtˢ (renameLookupˢ suc h) ≡ ⟰ˢ (removeAtˢ h)
-removeAtˢ-renameLookup-S (Z∋ˢ _ _) = refl
-removeAtˢ-renameLookup-S {Σ = (beta , ty) ∷ Σ} (S∋ˢ h) = cong₂ _∷_ refl (removeAtˢ-renameLookup-S h)
-
-removeAtˢ-ν-lift :
-  ∀ {Σ : Store}{α : Seal}
-    (h★ : Σ ∋ˢ α ⦂ ★) →
-  removeAtˢ (S∋ˢ (renameLookupˢ suc h★))
-    ≡ ((zero , ⇑ˢ ★) ∷ ⟰ˢ (removeAtˢ h★))
-removeAtˢ-ν-lift h★ = cong₂ _∷_ refl (removeAtˢ-renameLookup-S h★)
-
-removeAtˢ-renameLookupᵗ :
-  ∀ {Σ : Store}{α : Seal}{A : Ty}
-    (ρ : Renameᵗ) →
-    (h : Σ ∋ˢ α ⦂ A) →
-  removeAtˢ (renameLookupᵗ ρ h) ≡ renameStoreᵗ ρ (removeAtˢ h)
-removeAtˢ-renameLookupᵗ ρ (Z∋ˢ _ _) = refl
-removeAtˢ-renameLookupᵗ {Σ = (beta , ty) ∷ Σ} ρ (S∋ˢ h) = cong₂ _∷_ refl (removeAtˢ-renameLookupᵗ ρ h)
 
 mutual
   drop★⊒-seal-preserving :
@@ -557,7 +528,7 @@ preservation-step
     p⊢base = wk⊒ (drop ⊆ˢ-refl) p⊢drop
 
     p⊢′ : ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ)
-        ⊢ ((rename⊒ˢ suc p) [ zero ]↓ˢ) ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ α₀ ]ᵗ)
+        ⊢ ((rename⊒ˢ suc p) [ zero ]⊒) ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ α₀ ]ᵗ)
     p⊢′ = castWt⊒-term (sym (open-shift-⊒-id p)) p⊢base
 preservation-step
   {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}

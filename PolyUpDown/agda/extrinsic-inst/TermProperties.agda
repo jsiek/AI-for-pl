@@ -219,15 +219,6 @@ map-singleTyEnv-⤊ᵗ T (A ∷ Γ) =
     (open-renᵗ-suc A T)
     (map-singleTyEnv-⤊ᵗ T Γ)
 
-substStoreᵗ-singleTyEnv-⟰ᵗ :
-  (T : Ty) (Σ : Store) →
-  substStoreᵗ (singleTyEnv T) (⟰ᵗ Σ) ≡ Σ
-substStoreᵗ-singleTyEnv-⟰ᵗ T [] = refl
-substStoreᵗ-singleTyEnv-⟰ᵗ T ((α , A) ∷ Σ) =
-  cong₂ _∷_
-    (cong₂ _,_ refl (open-renᵗ-suc A T))
-    (substStoreᵗ-singleTyEnv-⟰ᵗ T Σ)
-
 singleTyEnv-Wf : ∀ {Δ Ψ} (T : Ty) →
   WfTy Δ Ψ T →
   TySubstWf (suc Δ) Δ Ψ (singleTyEnv T)

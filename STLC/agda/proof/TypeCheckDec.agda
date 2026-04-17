@@ -87,3 +87,11 @@ type-check Γ case L [zero⇒ M |suc⇒ N ] | yes (A ⇒ B , L:fun) =
        nat-fun eq-nat-fun}
 type-check Γ case L [zero⇒ M |suc⇒ N ] | no nL =
   no λ { (C , ⊢case L:nat _ _) → nL (nat , L:nat)}
+
+type-check-expect : (Γ : Ctx) (M : Term) (A : Ty) → Dec (Γ ⊢ M ⦂ A)
+type-check-expect Γ M A with type-check Γ M
+... | yes (B , M:B) with B ≟Ty A
+...   | yes refl = yes M:B
+...   | no B≢A = no λ M:A → B≢A (typing-unique Γ M B A M:B M:A)
+type-check-expect Γ M A | no nM =
+  no λ M:A → nM (A , M:A)

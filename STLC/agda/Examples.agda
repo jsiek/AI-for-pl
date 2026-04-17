@@ -1,9 +1,46 @@
 module Examples where
 
+-- File Charter:
+--   * Closed STLC example terms with type-checking and evaluation tests.
+--   * Uses `type-check-expect` for typing evidence and `eval` for outcomes.
+
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.List using ([]; _∷_)
-open import Agda.Builtin.Sigma using (_,_)
+open import Agda.Builtin.Maybe using (Maybe; just; nothing)
+open import Agda.Builtin.Nat renaming (Nat to ℕ; zero to zeroℕ; suc to sucℕ)
+open import Data.Product using (_,_)
+open import Data.Unit using (tt)
+open import Relation.Nullary.Decidable.Core using (toWitness; True)
 
 open import STLC
+open import Eval using (eval)
+open import TypeCheckDec using (type-check-expect)
+
+------------------------------------------------------------------------
+-- Shared helpers
+------------------------------------------------------------------------
+
+expect-⊢ : (Γ : Ctx) → (M : Term) → (A : Ty)
+  → True (type-check-expect Γ M A) → Γ ⊢ M ⦂ A
+expect-⊢ Γ M A ok = toWitness {a? = type-check-expect Γ M A} ok
+
+gas : ℕ
+gas = 50
+
+isNatValue : Term → Maybe ℕ
+isNatValue `zero = just zeroℕ
+isNatValue (`suc M) with isNatValue M
+isNatValue (`suc M) | just n = just (sucℕ n)
+isNatValue (`suc M) | nothing = nothing
+isNatValue (` x) = nothing
+isNatValue (ƛ A ⇒ N) = nothing
+isNatValue (L · M) = nothing
+isNatValue (case_[zero⇒_|suc⇒_] L M N) = nothing
+
+evalNat : ∀ {M A} → (fuel : ℕ) → [] ⊢ M ⦂ A → Maybe ℕ
+evalNat {M = M} fuel M⊢ with eval fuel M
+... | just (N , trace) = isNatValue N
+... | nothing = nothing
 
 ------------------------------------------------------------------------
 -- Source-inspired reusable terms
@@ -13,74 +50,65 @@ open import STLC
 taplIdNat : Term
 taplIdNat = ƛ nat ⇒ ` 0
 
-taplIdNat-⊢ : ∀ {Γ : Ctx} -> Γ ⊢ taplIdNat ⦂ (nat ⇒ nat)
-taplIdNat-⊢ = ⊢ƛ (⊢` Z)
+taplIdNat-⊢ : [] ⊢ taplIdNat ⦂ (nat ⇒ nat)
+taplIdNat-⊢ = expect-⊢ [] taplIdNat (nat ⇒ nat) tt
 
 taplIdNatApp : Term
 taplIdNatApp = taplIdNat · `zero
 
 taplIdNatApp-⊢ : [] ⊢ taplIdNatApp ⦂ nat
-taplIdNatApp-⊢ = ⊢· taplIdNat-⊢ ⊢zero
+taplIdNatApp-⊢ = expect-⊢ [] taplIdNatApp nat tt
 
-taplIdNatApp-↠ : taplIdNatApp —↠ `zero
-taplIdNatApp-↠ = taplIdNatApp —→⟨ β-ƛ `zero ⟩ `zero ∎
+taplIdNatApp-eval : evalNat gas taplIdNatApp-⊢ ≡ just zeroℕ
+taplIdNatApp-eval = refl
 
 -- TAPL-style constant function.
 taplConstNat : Term
 taplConstNat = ƛ nat ⇒ ƛ nat ⇒ ` 1
 
-taplConstNat-⊢ : ∀ {Γ : Ctx} -> Γ ⊢ taplConstNat ⦂ (nat ⇒ nat ⇒ nat)
-taplConstNat-⊢ = ⊢ƛ (⊢ƛ (⊢` (S Z)))
+taplConstNat-⊢ : [] ⊢ taplConstNat ⦂ (nat ⇒ nat ⇒ nat)
+taplConstNat-⊢ = expect-⊢ [] taplConstNat (nat ⇒ nat ⇒ nat) tt
 
 taplConstNatApp : Term
 taplConstNatApp = (taplConstNat · `zero) · (`suc `zero)
 
 taplConstNatApp-⊢ : [] ⊢ taplConstNatApp ⦂ nat
-taplConstNatApp-⊢ =
-  ⊢·
-    (⊢· taplConstNat-⊢ ⊢zero)
-    (⊢suc ⊢zero)
+taplConstNatApp-⊢ = expect-⊢ [] taplConstNatApp nat tt
 
-taplConstNatApp-↠ : taplConstNatApp —↠ `zero
-taplConstNatApp-↠ =
-  taplConstNatApp —→⟨ ξ-·₁ (β-ƛ `zero) ⟩
-  ((ƛ nat ⇒ `zero) · (`suc `zero)) —→⟨ β-ƛ (`suc `zero) ⟩
-  `zero ∎
+taplConstNatApp-eval : evalNat gas taplConstNatApp-⊢ ≡ just zeroℕ
+taplConstNatApp-eval = refl
 
 -- TAPL-style successor function.
 taplSuccNat : Term
 taplSuccNat = ƛ nat ⇒ `suc ` 0
 
-taplSuccNat-⊢ : ∀ {Γ : Ctx} -> Γ ⊢ taplSuccNat ⦂ (nat ⇒ nat)
-taplSuccNat-⊢ = ⊢ƛ (⊢suc (⊢` Z))
+taplSuccNat-⊢ : [] ⊢ taplSuccNat ⦂ (nat ⇒ nat)
+taplSuccNat-⊢ = expect-⊢ [] taplSuccNat (nat ⇒ nat) tt
 
 taplSuccNatApp : Term
 taplSuccNatApp = taplSuccNat · `zero
 
 taplSuccNatApp-⊢ : [] ⊢ taplSuccNatApp ⦂ nat
-taplSuccNatApp-⊢ = ⊢· taplSuccNat-⊢ ⊢zero
+taplSuccNatApp-⊢ = expect-⊢ [] taplSuccNatApp nat tt
 
-taplSuccNatApp-↠ : taplSuccNatApp —↠ (`suc `zero)
-taplSuccNatApp-↠ = taplSuccNatApp —→⟨ β-ƛ `zero ⟩ (`suc `zero) ∎
+taplSuccNatApp-eval : evalNat gas taplSuccNatApp-⊢ ≡ just (sucℕ zeroℕ)
+taplSuccNatApp-eval = refl
 
 -- PLFA-style case split that computes the identity on naturals.
 plfaCaseNat : Term
 plfaCaseNat = ƛ nat ⇒ (case_[zero⇒_|suc⇒_] (` 0) `zero (`suc (` 0)))
 
-plfaCaseNat-⊢ : ∀ {Γ : Ctx} -> Γ ⊢ plfaCaseNat ⦂ (nat ⇒ nat)
-plfaCaseNat-⊢ = ⊢ƛ (⊢case (⊢` Z) ⊢zero (⊢suc (⊢` Z)))
+plfaCaseNat-⊢ : [] ⊢ plfaCaseNat ⦂ (nat ⇒ nat)
+plfaCaseNat-⊢ = expect-⊢ [] plfaCaseNat (nat ⇒ nat) tt
 
 plfaCaseNatApp : Term
 plfaCaseNatApp = plfaCaseNat · (`suc `zero)
 
 plfaCaseNatApp-⊢ : [] ⊢ plfaCaseNatApp ⦂ nat
-plfaCaseNatApp-⊢ = ⊢· plfaCaseNat-⊢ (⊢suc ⊢zero)
+plfaCaseNatApp-⊢ = expect-⊢ [] plfaCaseNatApp nat tt
 
-plfaCaseNatApp-↠ : plfaCaseNatApp —↠ (`suc `zero)
-plfaCaseNatApp-↠ =
-  plfaCaseNatApp —→⟨ β-ƛ (`suc `zero) ⟩
-  (case_[zero⇒_|suc⇒_] (`suc `zero) `zero (`suc ` 0)) —→⟨ β-suc `zero ⟩
-  (`suc `zero) ∎
+plfaCaseNatApp-eval : evalNat gas plfaCaseNatApp-⊢ ≡ just (sucℕ zeroℕ)
+plfaCaseNatApp-eval = refl
 
 ------------------------------------------------------------------------
 -- Coverage index
@@ -122,88 +150,70 @@ ex-xi-app1 : Term
 ex-xi-app1 = (case_[zero⇒_|suc⇒_] `zero taplIdNat taplIdNat) · `zero
 
 ex-xi-app1-⊢ : [] ⊢ ex-xi-app1 ⦂ nat
-ex-xi-app1-⊢ =
-  ⊢·
-    (⊢case ⊢zero (taplIdNat-⊢ {Γ = []}) (taplIdNat-⊢ {Γ = nat ∷ []}))
-    ⊢zero
+ex-xi-app1-⊢ = expect-⊢ [] ex-xi-app1 nat tt
 
-ex-xi-app1-↠ : ex-xi-app1 —↠ `zero
-ex-xi-app1-↠ =
-  ex-xi-app1 —→⟨ ξ-·₁ β-zero ⟩
-  (taplIdNat · `zero) —→⟨ β-ƛ `zero ⟩
-  `zero ∎
+ex-xi-app1-eval : evalNat gas ex-xi-app1-⊢ ≡ just zeroℕ
+ex-xi-app1-eval = refl
 
 -- `ξ-·₂`: the argument position of an application reduces.
 ex-xi-app2 : Term
 ex-xi-app2 = taplIdNat · (case_[zero⇒_|suc⇒_] `zero `zero (`suc `zero))
 
 ex-xi-app2-⊢ : [] ⊢ ex-xi-app2 ⦂ nat
-ex-xi-app2-⊢ = ⊢· taplIdNat-⊢ (⊢case ⊢zero ⊢zero (⊢suc ⊢zero))
+ex-xi-app2-⊢ = expect-⊢ [] ex-xi-app2 nat tt
 
-ex-xi-app2-↠ : ex-xi-app2 —↠ `zero
-ex-xi-app2-↠ =
-  ex-xi-app2 —→⟨ ξ-·₂ (ƛ _ ⇒ _ , β-zero) ⟩
-  (taplIdNat · `zero) —→⟨ β-ƛ `zero ⟩
-  `zero ∎
+ex-xi-app2-eval : evalNat gas ex-xi-app2-⊢ ≡ just zeroℕ
+ex-xi-app2-eval = refl
 
 -- `β-ƛ`: ordinary lambda beta reduction.
 ex-beta-lam : Term
 ex-beta-lam = taplIdNatApp
 
 ex-beta-lam-⊢ : [] ⊢ ex-beta-lam ⦂ nat
-ex-beta-lam-⊢ = taplIdNatApp-⊢
+ex-beta-lam-⊢ = expect-⊢ [] ex-beta-lam nat tt
 
-ex-beta-lam-↠ : ex-beta-lam —↠ `zero
-ex-beta-lam-↠ = taplIdNatApp-↠
+ex-beta-lam-eval : evalNat gas ex-beta-lam-⊢ ≡ just zeroℕ
+ex-beta-lam-eval = refl
 
 -- `ξ-suc`: reduce under `suc`.
 ex-xi-suc : Term
 ex-xi-suc = `suc (case_[zero⇒_|suc⇒_] `zero `zero (`suc `zero))
 
 ex-xi-suc-⊢ : [] ⊢ ex-xi-suc ⦂ nat
-ex-xi-suc-⊢ = ⊢suc (⊢case ⊢zero ⊢zero (⊢suc ⊢zero))
+ex-xi-suc-⊢ = expect-⊢ [] ex-xi-suc nat tt
 
-ex-xi-suc-↠ : ex-xi-suc —↠ (`suc `zero)
-ex-xi-suc-↠ =
-  ex-xi-suc —→⟨ ξ-suc β-zero ⟩
-  (`suc `zero) ∎
+ex-xi-suc-eval : evalNat gas ex-xi-suc-⊢ ≡ just (sucℕ zeroℕ)
+ex-xi-suc-eval = refl
 
 -- `ξ-case`: reduce the scrutinee of a case expression.
 ex-xi-case : Term
 ex-xi-case = case_[zero⇒_|suc⇒_] (taplIdNat · `zero) `zero (`suc `zero)
 
 ex-xi-case-⊢ : [] ⊢ ex-xi-case ⦂ nat
-ex-xi-case-⊢ = ⊢case (⊢· taplIdNat-⊢ ⊢zero) ⊢zero (⊢suc ⊢zero)
+ex-xi-case-⊢ = expect-⊢ [] ex-xi-case nat tt
 
-ex-xi-case-↠ : ex-xi-case —↠ `zero
-ex-xi-case-↠ =
-  ex-xi-case —→⟨ ξ-case (β-ƛ `zero) ⟩
-  (case_[zero⇒_|suc⇒_] `zero `zero (`suc `zero)) —→⟨ β-zero ⟩
-  `zero ∎
+ex-xi-case-eval : evalNat gas ex-xi-case-⊢ ≡ just zeroℕ
+ex-xi-case-eval = refl
 
 -- `β-zero`: case on zero.
 ex-beta-zero : Term
 ex-beta-zero = case_[zero⇒_|suc⇒_] `zero `zero (`suc `zero)
 
 ex-beta-zero-⊢ : [] ⊢ ex-beta-zero ⦂ nat
-ex-beta-zero-⊢ = ⊢case ⊢zero ⊢zero (⊢suc ⊢zero)
+ex-beta-zero-⊢ = expect-⊢ [] ex-beta-zero nat tt
 
-ex-beta-zero-↠ : ex-beta-zero —↠ `zero
-ex-beta-zero-↠ =
-  ex-beta-zero —→⟨ β-zero ⟩
-  `zero ∎
+ex-beta-zero-eval : evalNat gas ex-beta-zero-⊢ ≡ just zeroℕ
+ex-beta-zero-eval = refl
 
 -- `β-suc`: case on a successor value.
 ex-beta-suc : Term
 ex-beta-suc = case_[zero⇒_|suc⇒_] (`suc `zero) `zero (`suc ` 0)
 
 ex-beta-suc-⊢ : [] ⊢ ex-beta-suc ⦂ nat
-ex-beta-suc-⊢ = ⊢case (⊢suc ⊢zero) ⊢zero (⊢suc (⊢` Z))
+ex-beta-suc-⊢ = expect-⊢ [] ex-beta-suc nat tt
 
-ex-beta-suc-↠ : ex-beta-suc —↠ (`suc `zero)
-ex-beta-suc-↠ =
-  ex-beta-suc —→⟨ β-suc `zero ⟩
-  (`suc `zero) ∎
+ex-beta-suc-eval : evalNat gas ex-beta-suc-⊢ ≡ just (sucℕ zeroℕ)
+ex-beta-suc-eval = refl
 
 ------------------------------------------------------------------------
 -- Summary

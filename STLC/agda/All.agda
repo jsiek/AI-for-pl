@@ -6,7 +6,7 @@ module All where
 --   * Keeps dependency order explicit for quick sanity checks.
 
 open import STLC
-open import MetaTheory
 open import Eval
 open import TypeCheckDec
 open import Examples
+open import MetaTheory

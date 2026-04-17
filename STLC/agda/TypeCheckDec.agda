@@ -12,3 +12,6 @@ import proof.TypeCheckDec as Proof
 
 type-check : (Γ : Ctx) (M : Term) → Dec (∃[ A ] Γ ⊢ M ⦂ A)
 type-check = Proof.type-check
+
+type-check-expect : (Γ : Ctx) (M : Term) (A : Ty) → Dec (Γ ⊢ M ⦂ A)
+type-check-expect = Proof.type-check-expect

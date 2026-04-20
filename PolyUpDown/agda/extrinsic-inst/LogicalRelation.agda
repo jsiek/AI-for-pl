@@ -344,6 +344,7 @@ open import TypeProperties
          TyRenameWf-suc; SealRenameWf-suc)
 open import UpDown
 open import Terms hiding (_[_]ᵀ)
+open import TermPrecision using (Prec; PCtx)
 open import TermProperties using (Substˣ; substˣ-term; _[_]; _[_]ᵀ)
 open import ReductionFresh using (Value; _∣_—→_∣_; _∣_—↠_∣_)
 
@@ -491,12 +492,6 @@ mutual
 ------------------------------------------------------------------------
 -- Environment interpretation for open terms
 ------------------------------------------------------------------------
-
-Prec : Set
-Prec = Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] (A ⊑ B)
-
-PCtx : Set
-PCtx = List Prec
 
 WfTyClosedᵗ : TyCtx → Ty → Set
 WfTyClosedᵗ Δ A = Σ[ Ψ ∈ SealCtx ] WfTy Δ Ψ A

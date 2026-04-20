@@ -7,15 +7,17 @@ module Imprecision where
 --   * cast typing).
 
 open import Types
-open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; s≤s; s≤s⁻¹)
+open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z<s; s<s; s≤s; s≤s⁻¹)
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; subst; sym; trans)
+open import Data.Product using (Σ; Σ-syntax; _,_; proj₁; proj₂)
 open import Data.Nat.Properties
   using (≤-refl; ≤-trans; +-suc; +-mono-≤; m≤m+n; m≤n+m; n≤1+n)
 open import TypeProperties
-  using (renameˢ-ground ; substᵗ-ground ; renameˢ-ext-⇑ˢ;
-         renameˢ-ν-src ; substᵗ-⇑ˢ ; substᵗ-ν-src ; liftSubstˢ)
+  using (renameˢ-ground; substᵗ-ground; renameˢ-ext-⇑ˢ; renameˢ-ν-src;
+         substᵗ-⇑ˢ; substᵗ-ν-src; substᵗ-id; liftSubstˢ; substᵗ-cong; substˢᵗ-cong;
+         renameˢ-preserves-WfTy; substᵗ-preserves-WfTy; SealRenameWf-suc)
 
 ------------------------------------------------------------------------
 -- Type imprecision
@@ -61,6 +63,138 @@ cast-⊑ :
   A ⊑ B →
   A′ ⊑ B′
 cast-⊑ refl refl p = p
+
+substᵗ-id-on-wf :
+  ∀ {Δ Ψ T} {σ : Substᵗ} →
+  (∀ {X} → X < Δ → σ X ≡ ＇ X) →
+  WfTy Δ Ψ T →
+  substᵗ σ T ≡ T
+substᵗ-id-on-wf hσ (wfVar X<Δ) = hσ X<Δ
+substᵗ-id-on-wf hσ (wfSeal α<Ψ) = refl
+substᵗ-id-on-wf hσ wfBase = refl
+substᵗ-id-on-wf hσ wf★ = refl
+substᵗ-id-on-wf hσ (wf⇒ hA hB) =
+  cong₂ _⇒_ (substᵗ-id-on-wf hσ hA) (substᵗ-id-on-wf hσ hB)
+substᵗ-id-on-wf {Δ = Δ} {σ = σ} hσ (wf∀ hA) =
+  cong `∀ (substᵗ-id-on-wf hσ-ext hA)
+  where
+    hσ-ext : ∀ {X} → X < suc Δ → extsᵗ σ X ≡ ＇ X
+    hσ-ext {zero} z<s = refl
+    hσ-ext {suc X} (s<s X<Δ) = cong (renameᵗ suc) (hσ X<Δ)
+
+substᵗ-closed-id : ∀ {Ψ T} → WfTy 0 Ψ T → (σ : Substᵗ) → substᵗ σ T ≡ T
+substᵗ-closed-id hT σ = substᵗ-id-on-wf (λ ()) hT
+
+renameᵗ-id-on-wf :
+  ∀ {Δ Ψ T} {ρ : Renameᵗ} →
+  (∀ {X} → X < Δ → ρ X ≡ X) →
+  WfTy Δ Ψ T →
+  renameᵗ ρ T ≡ T
+renameᵗ-id-on-wf hρ (wfVar X<Δ) = cong ＇_ (hρ X<Δ)
+renameᵗ-id-on-wf hρ (wfSeal α<Ψ) = refl
+renameᵗ-id-on-wf hρ wfBase = refl
+renameᵗ-id-on-wf hρ wf★ = refl
+renameᵗ-id-on-wf hρ (wf⇒ hA hB) =
+  cong₂ _⇒_ (renameᵗ-id-on-wf hρ hA) (renameᵗ-id-on-wf hρ hB)
+renameᵗ-id-on-wf {Δ = Δ} {ρ = ρ} hρ (wf∀ hA) =
+  cong `∀ (renameᵗ-id-on-wf hρ-ext hA)
+  where
+    hρ-ext : ∀ {X} → X < suc Δ → extᵗ ρ X ≡ X
+    hρ-ext {zero} z<s = refl
+    hρ-ext {suc X} (s<s X<Δ) = cong suc (hρ X<Δ)
+
+renameᵗ-closed-id : ∀ {Ψ T} → WfTy 0 Ψ T → renameᵗ suc T ≡ T
+renameᵗ-closed-id hT = renameᵗ-id-on-wf (λ ()) hT
+
+tySize : Ty → ℕ
+tySize (＇ X) = suc zero
+tySize (｀ α) = suc zero
+tySize (‵ ι) = suc zero
+tySize ★ = suc zero
+tySize (A ⇒ B) = suc (tySize A + tySize B)
+tySize (`∀ A) = suc (tySize A)
+
+tySize-renameᵗ : ∀ ρ A → tySize (renameᵗ ρ A) ≡ tySize A
+tySize-renameᵗ ρ (＇ X) = refl
+tySize-renameᵗ ρ (｀ α) = refl
+tySize-renameᵗ ρ (‵ ι) = refl
+tySize-renameᵗ ρ ★ = refl
+tySize-renameᵗ ρ (A ⇒ B) = cong₂ (λ a b → suc (a + b)) (tySize-renameᵗ ρ A) (tySize-renameᵗ ρ B)
+tySize-renameᵗ ρ (`∀ A) = cong suc (tySize-renameᵗ (extᵗ ρ) A)
+
+tySize-renameˢ : ∀ ρ A → tySize (renameˢ ρ A) ≡ tySize A
+tySize-renameˢ ρ (＇ X) = refl
+tySize-renameˢ ρ (｀ α) = refl
+tySize-renameˢ ρ (‵ ι) = refl
+tySize-renameˢ ρ ★ = refl
+tySize-renameˢ ρ (A ⇒ B) = cong₂ (λ a b → suc (a + b)) (tySize-renameˢ ρ A) (tySize-renameˢ ρ B)
+tySize-renameˢ ρ (`∀ A) = cong suc (tySize-renameˢ ρ A)
+
+tySize-substᵗ-unit : ∀ σ → (∀ X → tySize (σ X) ≡ suc zero) → ∀ A → tySize (substᵗ σ A) ≡ tySize A
+tySize-substᵗ-unit σ hσ (＇ X) = hσ X
+tySize-substᵗ-unit σ hσ (｀ α) = refl
+tySize-substᵗ-unit σ hσ (‵ ι) = refl
+tySize-substᵗ-unit σ hσ ★ = refl
+tySize-substᵗ-unit σ hσ (A ⇒ B) =
+  cong₂ (λ a b → suc (a + b)) (tySize-substᵗ-unit σ hσ A) (tySize-substᵗ-unit σ hσ B)
+tySize-substᵗ-unit σ hσ (`∀ A) = cong suc (tySize-substᵗ-unit (extsᵗ σ) hσ-ext A)
+  where
+    hσ-ext : ∀ X → tySize (extsᵗ σ X) ≡ suc zero
+    hσ-ext zero = refl
+    hσ-ext (suc X) = trans (tySize-renameᵗ suc (σ X)) (hσ X)
+
+tySize-open-shift : ∀ A → tySize ((⇑ˢ A) [ α₀ ]ᵗ) ≡ tySize A
+tySize-open-shift A =
+  trans
+    (tySize-substᵗ-unit (singleTyEnv α₀) hσ (renameˢ suc A))
+    (tySize-renameˢ suc A)
+  where
+    hσ : ∀ X → tySize (singleTyEnv α₀ X) ≡ suc zero
+    hσ zero = refl
+    hσ (suc X) = refl
+
+open-shift-preserves-WfTy :
+  ∀ {Ψ A} →
+  WfTy (suc zero) Ψ A →
+  WfTy zero (suc Ψ) ((⇑ˢ A) [ α₀ ]ᵗ)
+open-shift-preserves-WfTy hA =
+  substᵗ-preserves-WfTy
+    (renameˢ-preserves-WfTy hA SealRenameWf-suc)
+    hσ
+  where
+    hσ : ∀ {X} → X < suc zero → WfTy zero (suc _) (singleTyEnv α₀ X)
+    hσ {zero} z<s = wfSeal z<s
+    hσ {suc X} (s<s ())
+
+closed-⊑-★-fuel : ∀ n {Ψ T} → WfTy 0 Ψ T → tySize T ≤ n → T ⊑ ★
+closed-⊑-★-fuel zero {T = ＇ X} (wfVar ())
+closed-⊑-★-fuel zero {T = ｀ α} (wfSeal α<Ψ) ()
+closed-⊑-★-fuel zero {T = ‵ ι} wfBase ()
+closed-⊑-★-fuel zero {T = ★} wf★ ()
+closed-⊑-★-fuel zero {T = A ⇒ B} (wf⇒ hA hB) ()
+closed-⊑-★-fuel zero {T = `∀ A} (wf∀ hA) ()
+closed-⊑-★-fuel (suc n) {T = ｀ α} (wfSeal α<Ψ) h = ⊑-★ (｀ α) ⊑-｀
+closed-⊑-★-fuel (suc n) {T = ‵ ι} wfBase h = ⊑-★ (‵ ι) ⊑-‵
+closed-⊑-★-fuel (suc n) {T = ★} wf★ h = ⊑-★★
+closed-⊑-★-fuel (suc n) {T = A ⇒ B} (wf⇒ hA hB) h =
+  ⊑-★ ★⇒★ (⊑-⇒ (closed-⊑-★-fuel n hA hA≤n) (closed-⊑-★-fuel n hB hB≤n))
+  where
+    hAB≤n : tySize A + tySize B ≤ n
+    hAB≤n = s≤s⁻¹ h
+
+    hA≤n : tySize A ≤ n
+    hA≤n = ≤-trans (m≤m+n (tySize A) (tySize B)) hAB≤n
+
+    hB≤n : tySize B ≤ n
+    hB≤n = ≤-trans (m≤n+m (tySize B) (tySize A)) hAB≤n
+closed-⊑-★-fuel (suc n) {T = `∀ A} (wf∀ hA) h =
+  ⊑-ν (closed-⊑-★-fuel n (open-shift-preserves-WfTy hA) hA≤n)
+  where
+    hA≤n : tySize ((⇑ˢ A) [ α₀ ]ᵗ) ≤ n
+    hA≤n = subst (λ m → m ≤ n) (sym (tySize-open-shift A)) (s≤s⁻¹ h)
+
+closed-⊑-★ : ∀ {Ψ T} → WfTy 0 Ψ T → T ⊑ ★
+closed-⊑-★ {T = T} hT = closed-⊑-★-fuel (tySize T) hT ≤-refl
 
 ------------------------------------------------------------------------
 -- Seal substitution for imprecision
@@ -409,6 +543,237 @@ right-rec-⇒-bound {a} {b} {c} {d} h =
 
 ⊒-trans : ∀ {A B C} → A ⊒ B → B ⊒ C → A ⊒ C
 ⊒-trans p q = ⊑-trans q p
+
+singleSealTyEnv-ext-closed : ∀ {Ψ T} → WfTy 0 Ψ T → ∀ α → extsˢᵗ (singleSealTyEnv T) α ≡ singleSealTyEnv T α
+singleSealTyEnv-ext-closed hT zero = renameᵗ-closed-id hT
+singleSealTyEnv-ext-closed hT (suc α) = refl
+
+substˢᵗ-single-renameᵗ :
+  ∀ {Ψ T} →
+  WfTy 0 Ψ T →
+  ∀ ρ A →
+  substˢᵗ (singleSealTyEnv T) (renameᵗ ρ A) ≡
+  renameᵗ ρ (substˢᵗ (singleSealTyEnv T) A)
+substˢᵗ-single-renameᵗ hT ρ (＇ X) = refl
+substˢᵗ-single-renameᵗ {T = T} hT ρ (｀ zero) = sym (renameᵗ-id-on-wf (λ ()) hT)
+substˢᵗ-single-renameᵗ hT ρ (｀ suc α) = refl
+substˢᵗ-single-renameᵗ hT ρ (‵ ι) = refl
+substˢᵗ-single-renameᵗ hT ρ ★ = refl
+substˢᵗ-single-renameᵗ hT ρ (A ⇒ B) =
+  cong₂ _⇒_ (substˢᵗ-single-renameᵗ hT ρ A) (substˢᵗ-single-renameᵗ hT ρ B)
+substˢᵗ-single-renameᵗ hT ρ (`∀ A) =
+  cong `∀
+    (trans
+      (substˢᵗ-cong (singleSealTyEnv-ext-closed hT) (renameᵗ (extᵗ ρ) A))
+      (trans
+        (substˢᵗ-single-renameᵗ hT (extᵗ ρ) A)
+        (cong (renameᵗ (extᵗ ρ)) (sym (substˢᵗ-cong (singleSealTyEnv-ext-closed hT) A)))))
+
+substˢᵗ-single-substᵗ :
+  ∀ {Ψ T} →
+  WfTy 0 Ψ T →
+  ∀ σ A →
+  substˢᵗ (singleSealTyEnv T) (substᵗ σ A) ≡
+  substᵗ (λ X → substˢᵗ (singleSealTyEnv T) (σ X)) (substˢᵗ (singleSealTyEnv T) A)
+substˢᵗ-single-substᵗ {T = T} hT σ (＇ X) = refl
+substˢᵗ-single-substᵗ {T = T} hT σ (｀ zero) = sym (substᵗ-closed-id hT _)
+substˢᵗ-single-substᵗ {T = T} hT σ (｀ suc α) = refl
+substˢᵗ-single-substᵗ {T = T} hT σ (‵ ι) = refl
+substˢᵗ-single-substᵗ {T = T} hT σ ★ = refl
+substˢᵗ-single-substᵗ {T = T} hT σ (A ⇒ B) =
+  cong₂ _⇒_ (substˢᵗ-single-substᵗ hT σ A) (substˢᵗ-single-substᵗ hT σ B)
+substˢᵗ-single-substᵗ {T = T} hT σ (`∀ A) =
+  cong `∀
+    (trans
+      (substˢᵗ-cong (singleSealTyEnv-ext-closed hT) (substᵗ (extsᵗ σ) A))
+      (trans
+        (substˢᵗ-single-substᵗ hT (extsᵗ σ) A)
+        (trans
+          (substᵗ-cong env (substˢᵗ (singleSealTyEnv T) A))
+          (cong (substᵗ (extsᵗ (λ X → substˢᵗ (singleSealTyEnv T) (σ X))))
+            (sym (substˢᵗ-cong (singleSealTyEnv-ext-closed hT) A))))))
+  where
+    env : ∀ X →
+      substˢᵗ (singleSealTyEnv T) (extsᵗ σ X) ≡
+      extsᵗ (λ Y → substˢᵗ (singleSealTyEnv T) (σ Y)) X
+    env zero = refl
+    env (suc X) = substˢᵗ-single-renameᵗ hT suc (σ X)
+
+substˢᵗ-single-⇑ˢ-id : ∀ {Ψ T} → WfTy 0 Ψ T → ∀ A → substˢᵗ (singleSealTyEnv T) (⇑ˢ A) ≡ A
+substˢᵗ-single-⇑ˢ-id hT (＇ X) = refl
+substˢᵗ-single-⇑ˢ-id hT (｀ α) = refl
+substˢᵗ-single-⇑ˢ-id hT (‵ ι) = refl
+substˢᵗ-single-⇑ˢ-id hT ★ = refl
+substˢᵗ-single-⇑ˢ-id hT (A ⇒ B) =
+  cong₂ _⇒_ (substˢᵗ-single-⇑ˢ-id hT A) (substˢᵗ-single-⇑ˢ-id hT B)
+substˢᵗ-single-⇑ˢ-id hT (`∀ A) =
+  cong `∀
+    (trans
+      (substˢᵗ-cong (singleSealTyEnv-ext-closed hT) (⇑ˢ A))
+      (substˢᵗ-single-⇑ˢ-id hT A))
+
+substˢᵗ-single-ν-src : ∀ {Ψ T} → WfTy 0 Ψ T → ∀ A →
+  substˢᵗ (singleSealTyEnv T) ((⇑ˢ A) [ α₀ ]ᵗ) ≡ A [ T ]ᵗ
+substˢᵗ-single-ν-src {T = T} hT A =
+  trans
+    (substˢᵗ-single-substᵗ hT (singleTyEnv α₀) (⇑ˢ A))
+    (trans
+      (substᵗ-cong env (substˢᵗ (singleSealTyEnv T) (⇑ˢ A)))
+      (cong (substᵗ (singleTyEnv T)) (substˢᵗ-single-⇑ˢ-id hT A)))
+  where
+    env : ∀ X → substˢᵗ (singleSealTyEnv T) (singleTyEnv α₀ X) ≡ singleTyEnv T X
+    env zero = refl
+    env (suc X) = refl
+
+ground-substˢ-WfTy :
+  ∀ {Ψ T G} →
+  WfTy 0 Ψ T →
+  Ground G →
+  Σ[ Ψ′ ∈ SealCtx ] WfTy 0 Ψ′ (substˢᵗ (singleSealTyEnv T) G)
+ground-substˢ-WfTy {T = T} hT (｀ zero) = _ , hT
+ground-substˢ-WfTy (hT) (｀ suc α) = suc α , wfSeal ≤-refl
+ground-substˢ-WfTy hT (‵ ι) = zero , wfBase
+ground-substˢ-WfTy hT ★⇒★ = zero , wf⇒ wf★ wf★
+
+SealSubstClosed : Substˢᵗ → Set
+SealSubstClosed τ = ∀ α → Σ[ Ψ ∈ SealCtx ] WfTy 0 Ψ (τ α)
+
+extsˢᵗ-closed : ∀ {τ} → SealSubstClosed τ → ∀ α → extsˢᵗ τ α ≡ τ α
+extsˢᵗ-closed hτ α = renameᵗ-closed-id (proj₂ (hτ α))
+
+keepFreshˢ : Substˢᵗ → Substˢᵗ
+keepFreshˢ τ zero = ｀ zero
+keepFreshˢ τ (suc α) = renameˢ suc (τ α)
+
+keepFreshˢ-closed : ∀ {τ} → SealSubstClosed τ → SealSubstClosed (keepFreshˢ τ)
+keepFreshˢ-closed hτ zero = suc zero , wfSeal z<s
+keepFreshˢ-closed hτ (suc α) =
+  let Ψ , hA = hτ α in suc Ψ , renameˢ-preserves-WfTy hA SealRenameWf-suc
+
+ground-substˢ-WfTy-gen :
+  ∀ {τ G} →
+  SealSubstClosed τ →
+  Ground G →
+  Σ[ Ψ ∈ SealCtx ] WfTy 0 Ψ (substˢᵗ τ G)
+ground-substˢ-WfTy-gen hτ (｀ α) = hτ α
+ground-substˢ-WfTy-gen hτ (‵ ι) = zero , wfBase
+ground-substˢ-WfTy-gen hτ ★⇒★ = zero , wf⇒ wf★ wf★
+
+substˢᵗ-renameᵗ-closed :
+  ∀ {τ} →
+  SealSubstClosed τ →
+  ∀ ρ A →
+  substˢᵗ τ (renameᵗ ρ A) ≡ renameᵗ ρ (substˢᵗ τ A)
+substˢᵗ-renameᵗ-closed hτ ρ (＇ X) = refl
+substˢᵗ-renameᵗ-closed hτ ρ (｀ α) = sym (renameᵗ-id-on-wf (λ ()) (proj₂ (hτ α)))
+substˢᵗ-renameᵗ-closed hτ ρ (‵ ι) = refl
+substˢᵗ-renameᵗ-closed hτ ρ ★ = refl
+substˢᵗ-renameᵗ-closed hτ ρ (A ⇒ B) =
+  cong₂ _⇒_ (substˢᵗ-renameᵗ-closed hτ ρ A) (substˢᵗ-renameᵗ-closed hτ ρ B)
+substˢᵗ-renameᵗ-closed hτ ρ (`∀ A) =
+  cong `∀
+    (trans
+      (substˢᵗ-cong (extsˢᵗ-closed hτ) (renameᵗ (extᵗ ρ) A))
+      (trans
+        (substˢᵗ-renameᵗ-closed hτ (extᵗ ρ) A)
+        (cong (renameᵗ (extᵗ ρ)) (sym (substˢᵗ-cong (extsˢᵗ-closed hτ) A)))))
+
+substˢᵗ-substᵗ-closed :
+  ∀ {τ} →
+  SealSubstClosed τ →
+  ∀ σ A →
+  substˢᵗ τ (substᵗ σ A) ≡ substᵗ (λ X → substˢᵗ τ (σ X)) (substˢᵗ τ A)
+substˢᵗ-substᵗ-closed hτ σ (＇ X) = refl
+substˢᵗ-substᵗ-closed hτ σ (｀ α) = sym (substᵗ-closed-id (proj₂ (hτ α)) _)
+substˢᵗ-substᵗ-closed hτ σ (‵ ι) = refl
+substˢᵗ-substᵗ-closed hτ σ ★ = refl
+substˢᵗ-substᵗ-closed hτ σ (A ⇒ B) =
+  cong₂ _⇒_ (substˢᵗ-substᵗ-closed hτ σ A) (substˢᵗ-substᵗ-closed hτ σ B)
+substˢᵗ-substᵗ-closed {τ = τ} hτ σ (`∀ A) =
+  cong `∀
+    (trans
+      (substˢᵗ-cong (extsˢᵗ-closed hτ) (substᵗ (extsᵗ σ) A))
+      (trans
+        (substˢᵗ-substᵗ-closed hτ (extsᵗ σ) A)
+        (trans
+          (substᵗ-cong env (substˢᵗ τ A))
+          (cong (substᵗ (extsᵗ (λ X → substˢᵗ τ (σ X))))
+            (sym (substˢᵗ-cong (extsˢᵗ-closed hτ) A))))))
+  where
+    env : ∀ X → substˢᵗ τ (extsᵗ σ X) ≡ extsᵗ (λ Y → substˢᵗ τ (σ Y)) X
+    env zero = refl
+    env (suc X) = substˢᵗ-renameᵗ-closed hτ suc (σ X)
+
+substˢᵗ-keepFresh-⇑ˢ :
+  ∀ {τ} →
+  SealSubstClosed τ →
+  ∀ A →
+  substˢᵗ (keepFreshˢ τ) (⇑ˢ A) ≡ ⇑ˢ (substˢᵗ τ A)
+substˢᵗ-keepFresh-⇑ˢ hτ (＇ X) = refl
+substˢᵗ-keepFresh-⇑ˢ hτ (｀ α) = refl
+substˢᵗ-keepFresh-⇑ˢ hτ (‵ ι) = refl
+substˢᵗ-keepFresh-⇑ˢ hτ ★ = refl
+substˢᵗ-keepFresh-⇑ˢ hτ (A ⇒ B) =
+  cong₂ _⇒_ (substˢᵗ-keepFresh-⇑ˢ hτ A) (substˢᵗ-keepFresh-⇑ˢ hτ B)
+substˢᵗ-keepFresh-⇑ˢ hτ (`∀ A) =
+  cong `∀
+    (trans
+      (substˢᵗ-cong (extsˢᵗ-closed (keepFreshˢ-closed hτ)) (renameˢ suc A))
+      (trans
+        (substˢᵗ-keepFresh-⇑ˢ hτ A)
+        (cong (renameˢ suc) (sym (substˢᵗ-cong (extsˢᵗ-closed hτ) A)))))
+
+substˢᵗ-keepFresh-ν-src :
+  ∀ {τ} →
+  SealSubstClosed τ →
+  ∀ A →
+  substˢᵗ (keepFreshˢ τ) ((⇑ˢ A) [ α₀ ]ᵗ) ≡ (⇑ˢ (substˢᵗ τ A)) [ α₀ ]ᵗ
+substˢᵗ-keepFresh-ν-src hτ A =
+  trans
+    (substˢᵗ-substᵗ-closed (keepFreshˢ-closed hτ) (singleTyEnv α₀) (⇑ˢ A))
+    (trans
+      (substᵗ-cong env (substˢᵗ (keepFreshˢ τ) (⇑ˢ A)))
+      (cong (substᵗ (singleTyEnv α₀)) (substˢᵗ-keepFresh-⇑ˢ hτ A)))
+  where
+    τ = _
+    env : ∀ X → substˢᵗ (keepFreshˢ τ) (singleTyEnv α₀ X) ≡ singleTyEnv α₀ X
+    env zero = refl
+    env (suc X) = refl
+
+substˢ-⊑-closed-gen :
+  ∀ {τ A B} →
+  SealSubstClosed τ →
+  A ⊑ B →
+  substˢᵗ τ A ⊑ substˢᵗ τ B
+substˢ-⊑-closed-gen hτ ⊑-★★ = ⊑-★★
+substˢ-⊑-closed-gen hτ (⊑-★ g p) =
+  ⊑-trans (substˢ-⊑-closed-gen hτ p) (closed-⊑-★ (proj₂ (ground-substˢ-WfTy-gen hτ g)))
+substˢ-⊑-closed-gen hτ ⊑-＇ = ⊑-＇
+substˢ-⊑-closed-gen hτ ⊑-｀ = ⊑-refl
+substˢ-⊑-closed-gen hτ ⊑-‵ = ⊑-‵
+substˢ-⊑-closed-gen hτ (⊑-⇒ p q) =
+  ⊑-⇒ (substˢ-⊑-closed-gen hτ p) (substˢ-⊑-closed-gen hτ q)
+substˢ-⊑-closed-gen hτ (⊑-∀ {A = A} {B = B} p) =
+  cast-⊑
+    (cong `∀ (sym (substˢᵗ-cong (extsˢᵗ-closed hτ) A)))
+    (cong `∀ (sym (substˢᵗ-cong (extsˢᵗ-closed hτ) B)))
+    (⊑-∀ (substˢ-⊑-closed-gen hτ p))
+substˢ-⊑-closed-gen hτ (⊑-ν {A = A} {B = B} p) =
+  cast-⊑
+    (cong `∀ (sym (substˢᵗ-cong (extsˢᵗ-closed hτ) A)))
+    refl
+    (⊑-ν
+      (cast-⊑
+        (substˢᵗ-keepFresh-ν-src hτ A)
+        (substˢᵗ-keepFresh-⇑ˢ hτ B)
+        (substˢ-⊑-closed-gen (keepFreshˢ-closed hτ) p)))
+
+substˢ-⊑-closed :
+  ∀ {Ψ T A B} →
+  WfTy 0 Ψ T →
+  A ⊑ B →
+  substˢᵗ (singleSealTyEnv T) A ⊑ substˢᵗ (singleSealTyEnv T) B
+substˢ-⊑-closed hT p = substˢ-⊑-closed-gen (λ α → ground-substˢ-WfTy hT (｀ α)) p
 
 ------------------------------------------------------------------------
 -- Dynamic-right inversion (Peter-style, flipped orientation)

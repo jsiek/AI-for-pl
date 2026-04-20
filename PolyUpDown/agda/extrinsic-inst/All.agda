@@ -14,6 +14,7 @@ open import Store
 open import Ctx
 open import UpDown
 open import Terms
+open import TermPrecision
 open import TermProperties
 open import TypeCheckDec
 open import Reduction

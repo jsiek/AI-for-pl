@@ -31,6 +31,15 @@ We will explicitly follow three resources already cited in this file:
 We will therefore use explicit step indexing (not SIL) and keep the relation
 shape close to New/Peter, with System F-style environment plumbing.
 
+Operational convention for this file:
+  * The logical relation is meant to follow `ReductionFresh.agda`, using the
+    fresh-store one-step relation `_∣_—→_∣_` and its multi-step closure.
+  * Fresh seals are allocated at the back of the store, so the freshly created
+    seal is `length Σ`, not `zero` plus a global shift of older seals.
+  * Consequently, ν/fresh-seal observations in `𝒱`/`ℰ` should be phrased in
+    the "fresh-at-the-end" style rather than the older shifted-store style of
+    `_∣_—→[_]_∣_`.
+
 ------------------------------------------------------------------------------
 Detailed plan: exact relation shape
 ------------------------------------------------------------------------------
@@ -101,7 +110,7 @@ How this plugs into the LR:
 
 0) Preliminaries imported/assumed in this folder
    * `Types`, `TypeProperties`, `Store`, `Ctx`, `Terms`, `UpDown`.
-   * Reduction/multi-step from `extrinsic-inst` (mirroring `extrinsic`).
+   * Reduction/multi-step from `ReductionFresh.agda` in `extrinsic-inst`.
    * Typing preservation/progress lemmas used only as prerequisites for
      soundness lemmas, not as part of the relation definition itself.
 
@@ -169,13 +178,13 @@ How this plugs into the LR:
      related iff constants are identical.
 
    * Function case (`A₁⇒B₁` vs `A₂⇒B₂` with precision witness):
-     both values must be lambdas; for all related arguments, bodies are related
-     at expression level.
+     use elimination-oriented observation: for all related arguments, the
+     applications of the observed values are related at expression level.
      Use a guarded condition (`m < n` or explicit `Later`) to satisfy Agda
      termination.
 
    * Polymorphic case:
-     both values must be type abstractions.
+     use elimination-oriented observation rather than matching only `Λ`-forms.
      For every future world `w′`, every choice of instantiation types, and every
      admissible relation `R` for the new type variable, instantiate both terms
      and require expression-relatedness in the extended world.
@@ -211,8 +220,10 @@ How this plugs into the LR:
    Important:
    * Use store-aware one-step/multi-step configurations, threading each side’s
      store and transporting worlds through store growth.
-   * Use the same convention as `extrinsic/Reduction.agda` for ν-steps and
-     congruence renamings.
+   * For ν-steps, follow `ReductionFresh.agda`: fresh allocation appends at the
+     end of the store and the fresh seal is `length Σ`.
+   * Do not rely on the older shifted-store convention of
+     `_∣_—→[_]_∣_` when formulating ν/fresh-seal clauses.
 
 6) Environment interpretation for open terms
    Mirror System F structure, but world-aware and heterogeneous:
@@ -300,7 +311,7 @@ module LogicalRelation where
 --   * `𝒱`/`ℰ` clauses.
 --   * Keeps closure/fundamental-theorem proofs for follow-up files.
 
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; length)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Empty using (⊥)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_)
@@ -315,7 +326,7 @@ open import Imprecision
 open import UpDown
 open import Terms hiding (_[_]ᵀ)
 open import TermProperties using (_[_]; _[_]ᵀ)
-open import Reduction using (Value; _∣_—→[_]_∣_; _∣_—↠_∣_)
+open import ReductionFresh using (Value; _∣_—→_∣_; _∣_—↠_∣_)
 
 ------------------------------------------------------------------------
 -- Direction, world, and precision index
@@ -374,49 +385,41 @@ record _⪰_ (w′ w : World) : Set₁ where
     growʳ : Σʳ w ⊆ˢ Σʳ w′
     growη : η w ⊆η η w′
 
-setΣˡ : Store → World → World
-setΣˡ Σ w = mkWorld Σ (Σʳ w) (η w)
-
-setΣʳ : Store → World → World
-setΣʳ Σ w = mkWorld (Σˡ w) Σ (η w)
-
-stepWorldˡ : Renameˢ → Store → World → World
-stepWorldˡ ρ Σ′ w = mkWorld Σ′ (renameStoreˢ ρ (Σʳ w)) (η w)
-
-stepWorldʳ : Renameˢ → Store → World → World
-stepWorldʳ ρ Σ′ w = mkWorld (renameStoreˢ ρ (Σˡ w)) Σ′ (η w)
-
--- This is suspicious. Need to shift the old world up by one? -Jeremy
 extendWorld : World → Rel → World
-extendWorld w R = mkWorld (Σˡ w) (Σʳ w) (ηentry zero zero R ∷ η w)
+extendWorld w R =
+  mkWorld (Σˡ w) (Σʳ w) (ηentry (length (Σˡ w)) (length (Σʳ w)) R ∷ η w)
 
 extendWorld-⪰ : ∀ {w} (R : Rel) → extendWorld w R ⪰ w
 extendWorld-⪰ {w} R ._⪰_.growˡ = ⊆ˢ-refl
 extendWorld-⪰ {w} R ._⪰_.growʳ = ⊆ˢ-refl
 extendWorld-⪰ {w} R ._⪰_.growη = η-drop ⊆η-refl
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Logical relation core
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 mutual
+  -- Intended invariant:
+  --   `𝒱` is meant to be used only on closed values under an empty
+  --   type context. Under that intended use, the lack of a `⊑-＇` clause is
+  --   deliberate. 
   𝒱 : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
   𝒱 p zero dir w V W = Lift (lsuc 0ℓ) ⊤
   
   𝒱 ⊑-‵ (suc n) dir w ($ (κℕ m)) ($ (κℕ m′)) = Lift (lsuc 0ℓ) (m ≡ m′)
   
-  𝒱 (⊑-⇒ pA pB) (suc n) dir w (ƛ A₀ ⇒ N) (ƛ A′₀ ⇒ M) =
-    ∀ {V W} →
-    𝒱 pA (suc n) dir w V W →
-    ℰ pB (suc n) dir w (N [ V ]) (M [ W ])
-    
-  𝒱 (⊑-∀ p) (suc n) dir w (Λ N) (Λ M) =
-    ∀ {w′} →
-    w′ ⪰ w →
-    (R : Rel) →
-    (T U : Ty) →
-    -- Do we need to shift N, M, T, U to move from w to w′? -Jeremy
-    ℰ p (suc n) dir (extendWorld w′ R) (N [ T ]ᵀ) (M [ U ]ᵀ)
+  𝒱 (⊑-⇒ pA pB) (suc n) dir w V W =
+    ∀ {V′ W′} →
+    𝒱 pA (suc n) dir w V′ W′ →
+    ℰ pB (suc n) dir w (V · V′) (W · W′)
+
+  𝒱 {A = `∀ A} {B = `∀ B} (⊑-∀ p) (suc n) dir w V W =
+    ∀ {w′} → w′ ⪰ w → (R : Rel) → (T U : Ty) →
+    ℰ p (suc n) dir (extendWorld w′ R) (V ⦂∀ A [ T ]) (W ⦂∀ B [ U ])
+
+  𝒱 {A = `∀ A} {B = B} (⊑-ν p) (suc n) dir w V W =
+    ∀ {w′} → w′ ⪰ w → (R : Rel) →
+    ℰ p (suc n) dir (extendWorld w′ R) (V ⦂∀ A [ ｀ length (Σˡ w′) ]) W
     
   𝒱 ⊑-★★ (suc n) dir w (V up tag G) (W up tag H) =
     Lift (lsuc 0ℓ) (G ≡ H) ×
@@ -425,8 +428,11 @@ mutual
   𝒱 ⊑-★★ (suc n) dir w (V down seal αˡ) (W down seal αʳ) =
     Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R n dir V W
     
-  𝒱 (⊑-★ {G = G} g p) (suc n) dir w V (W up tag H) =
-    Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p (suc n) dir w V W
+  𝒱 (⊑-★ {G = G} g p) (suc n) ≼ w V (W up tag H) =
+    Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p n ≼ w V W
+
+  𝒱 (⊑-★ {G = G} g p) (suc n) ≽ w V (W up tag H) =
+    Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p (suc n) ≽ w V W
     
   𝒱 (⊑-｀ {α = α}) (suc n) dir w (V down seal βˡ) (W down seal βʳ) =
     Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Rel ]
@@ -438,25 +444,27 @@ mutual
 
   ℰ : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
   ℰ p zero dir w Mˡ Mʳ = Lift (lsuc 0ℓ) ⊤
+  
   ℰ p (suc n) ≼ w Mˡ Mʳ =
-    (Σ[ ρ ∈ Renameˢ ] Σ[ Σˡ′ ∈ Store ] Σ[ Mˡ′ ∈ Term ]
-      (Σˡ w ∣ Mˡ —→[ ρ ] Σˡ′ ∣ Mˡ′) ×
-      ℰ p n ≼ (stepWorldˡ ρ Σˡ′ w) Mˡ′ (renameˢᵐ ρ Mʳ))
+    (Σ[ Σˡ′ ∈ Store ] Σ[ Mˡ′ ∈ Term ]
+      (Σˡ w ∣ Mˡ —→ Σˡ′ ∣ Mˡ′) ×
+      ℰ p n ≼ (mkWorld Σˡ′ (Σʳ w) (η w)) Mˡ′ Mʳ)
     ⊎
     (Σ[ Σʳ′ ∈ Store ] Σ[ ℓ ∈ Label ]
       (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ blame ℓ))
     ⊎
     (Value Mˡ × Σ[ Σʳ′ ∈ Store ] Σ[ Wʳ ∈ Term ]
       (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ Wʳ) ×
-      𝒱 p n ≼ (setΣʳ Σʳ′ w) Mˡ Wʳ)
+      𝒱 p n ≼ (mkWorld (Σˡ w) Σʳ′ (η w)) Mˡ Wʳ)
+      
   ℰ p (suc n) ≽ w Mˡ Mʳ =
-    (Σ[ ρ ∈ Renameˢ ] Σ[ Σʳ′ ∈ Store ] Σ[ Mʳ′ ∈ Term ]
-      (Σʳ w ∣ Mʳ —→[ ρ ] Σʳ′ ∣ Mʳ′) ×
-      ℰ p n ≽ (stepWorldʳ ρ Σʳ′ w) (renameˢᵐ ρ Mˡ) Mʳ′)
+    (Σ[ Σʳ′ ∈ Store ] Σ[ Mʳ′ ∈ Term ]
+      (Σʳ w ∣ Mʳ —→ Σʳ′ ∣ Mʳ′) ×
+      ℰ p n ≽ (mkWorld (Σˡ w) Σʳ′ (η w)) Mˡ Mʳ′)
     ⊎
     (Σ[ Σʳ′ ∈ Store ] Σ[ ℓ ∈ Label ]
       (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ blame ℓ))
     ⊎
     (Value Mʳ × Σ[ Σˡ′ ∈ Store ] Σ[ Wˡ ∈ Term ]
       (Σˡ w ∣ Mˡ —↠ Σˡ′ ∣ Wˡ) ×
-      𝒱 p n ≽ (setΣˡ Σˡ′ w) Wˡ Mʳ)
+      𝒱 p n ≽ (mkWorld Σˡ′ (Σʳ w) (η w)) Wˡ Mʳ)

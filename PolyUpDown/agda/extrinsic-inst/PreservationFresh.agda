@@ -559,10 +559,8 @@ preservation-step-β-up-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
     eq-src = up-src-align p⊢
 
     eq-close : ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ) ≡ Aν
-    eq-close =
-      trans
-        (cong (λ X → (⇑ᵗ X) [ ＇ zero ]ˢᵗ) eq-src)
-        (closeν-inline-open Aν)
+    eq-close = trans (cong (λ X → (⇑ᵗ X) [ ＇ zero ]ˢᵗ) eq-src)
+                     (closeν-inline-open Aν)
 
     eq-open :
       (((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ) [ ｀ (length Σ) ]ᵗ)

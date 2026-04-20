@@ -291,7 +291,7 @@ Working fix:
 This avoids confusing Agda's termination checker and keeps recursive functions
 accepted without `{-# TERMINATING #-}`.
 
-## Agda line-break style (from 2026-04-11)
+## Agda line-break style (from 2026-04-11 and 2026-04-20)
 
 Avoid premature line breaks in simple applications. If a definition is a direct
 application with short arguments, keep it on one line, under the contraint of
@@ -310,6 +310,24 @@ Over:
         refl
         (cong `∀ (sym eq-src))
         V⊢
+
+When the line goes over 80 columns, break the line and insert
+appropriate indentation, but then use the rest of the 80 columns in
+the next line.
+
+Prefer
+
+    eq-close = trans (cong (λ X → (⇑ᵗ X) [ ＇ zero ]ˢᵗ) eq-src)
+                     (closeν-inline-open Aν)
+
+Over:
+
+    eq-close =
+      trans
+        (cong (λ X → (⇑ᵗ X) [ ＇ zero ]ˢᵗ) eq-src)
+        (closeν-inline-open Aν)
+
+
 
 ## Agda mixfix notation style (from 2026-04-15)
 

@@ -11,11 +11,11 @@ module UpDown where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using (List; []; _∷_)
-open import Data.Nat using (ℕ; zero; suc; _≤_; _⊔_; s≤s)
+open import Data.List using (List; []; _∷_; length)
+open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; _⊔_; z<s; s<s; s≤s)
 open import Data.Nat.Properties
   using (≤-refl; <-≤-trans; m≤m⊔n; m≤n⊔m; n≤1+n)
-open import Data.Product using (Σ; Σ-syntax; _,_)
+open import Data.Product using (Σ; Σ-syntax; _,_; proj₁; proj₂)
 open import Data.Unit using (⊤)
 open import Relation.Nullary using (Dec; yes; no)
 open import Relation.Binary.PropositionalEquality
@@ -38,6 +38,18 @@ data CastPerm : Set where
   cast-tag : CastPerm
   cast-seal : CastPerm
   conv : CastPerm
+
+every : SealCtx → List CastPerm
+every zero = []
+every (suc Ψ) = conv ∷ every Ψ
+
+length-every : (Ψ : SealCtx) → length (every Ψ) ≡ Ψ
+length-every zero = refl
+length-every (suc Ψ) = cong suc (length-every Ψ)
+
+none : SealCtx → List CastPerm
+none zero = []
+none (suc Ψ) = cast-tag ∷ none Ψ
 
 data _∈_ : Seal → List CastPerm → Set where
   here-conv : ∀ {P} → zero ∈ (conv ∷ P)
@@ -66,6 +78,40 @@ _∉_ : Seal → List CastPerm → Set
 ∈cast⇒∈ : ∀ {α P} → α ∈cast P → α ∈ P
 ∈cast⇒∈ here-cast-only = here-seal
 ∈cast⇒∈ (there-cast p) = there (∈cast⇒∈ p)
+
+every-member : ∀ {Ψ} (α : Seal) → α < Ψ → α ∈ every Ψ
+every-member {zero} α ()
+every-member {suc Ψ} zero z<s = here-conv
+every-member {suc Ψ} (suc α) (s<s α<Ψ) = there (every-member α α<Ψ)
+
+every-member-conv : ∀ {Ψ} (α : Seal) → α < Ψ → α ∈conv every Ψ
+every-member-conv {zero} α ()
+every-member-conv {suc Ψ} zero z<s = here-conv-only
+every-member-conv {suc Ψ} (suc α) (s<s α<Ψ) =
+  there-conv (every-member-conv α α<Ψ)
+
+every-index : ∀ {Ψ} {α : Seal} → α ∈ every Ψ → α < Ψ
+every-index {suc Ψ} {zero} here-conv = z<s
+every-index {suc Ψ} {suc α} (there p) = s<s (every-index p)
+
+every-index-conv : ∀ {Ψ} {α : Seal} → α ∈conv every Ψ → α < Ψ
+every-index-conv {suc Ψ} {zero} here-conv-only = z<s
+every-index-conv {suc Ψ} {suc α} (there-conv p) = s<s (every-index-conv p)
+
+every-excluded-cast : ∀ {Ψ} (α : Seal) → α ∈cast every Ψ → ⊥
+every-excluded-cast {zero} α ()
+every-excluded-cast {suc Ψ} zero ()
+every-excluded-cast {suc Ψ} (suc α) (there-cast p) = every-excluded-cast α p
+
+every-excluded-tag : ∀ {Ψ} (α : Seal) → α ∈tag every Ψ → ⊥
+every-excluded-tag {zero} α ()
+every-excluded-tag {suc Ψ} zero ()
+every-excluded-tag {suc Ψ} (suc α) (there-tag p) = every-excluded-tag α p
+
+none-excluded : ∀ {Ψ} (α : Seal) → α ∉ none Ψ
+none-excluded {zero} α ()
+none-excluded {suc Ψ} zero ()
+none-excluded {suc Ψ} (suc α) (there p) = none-excluded α p
 
 ⊢_ok_ : ∀ {G : Ty} → Ground G → List CastPerm → Set
 ⊢ (｀ α) ok Φ = α ∈tag Φ
@@ -337,6 +383,12 @@ mutual
       → Σ ∣ Φ ⊢ p ⦂ A ⊒ B
       → Σ ∣ Φ ⊢ q ⦂ B ⊒ C
       → Σ ∣ Φ ⊢ (p ； q) ⦂ A ⊒ C
+
+Wt⊑ : Store → List CastPerm → Ty → Ty → Set
+Wt⊑ Σ Φ A B = Σ[ p ∈ Up ] (Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
+
+Wt⊒ : Store → List CastPerm → Ty → Ty → Set
+Wt⊒ Σ Φ A B = Σ[ p ∈ Down ] (Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
 
 ------------------------------------------------------------------------
 -- Endpoint alignment helpers
@@ -613,6 +665,58 @@ RenOkTag-id p = p
 
 RenNotIn-id : ∀ {P : List CastPerm} → RenNotIn (λ α → α) P P
 RenNotIn-id p = p
+
+RenOk-every :
+  ∀ {Ψ Ψ′} {ρ : Renameˢ} →
+  SealRenameWf Ψ Ψ′ ρ →
+  RenOk ρ (every Ψ) (every Ψ′)
+RenOk-every hρ p = every-member _ (hρ (every-index p))
+
+RenOkConv-every :
+  ∀ {Ψ Ψ′} {ρ : Renameˢ} →
+  SealRenameWf Ψ Ψ′ ρ →
+  RenOkConv ρ (every Ψ) (every Ψ′)
+RenOkConv-every hρ p = every-member-conv _ (hρ (every-index-conv p))
+
+RenOkCast-every :
+  ∀ {Ψ Ψ′} {ρ : Renameˢ} →
+  SealRenameWf Ψ Ψ′ ρ →
+  RenOkCast ρ (every Ψ) (every Ψ′)
+RenOkCast-every hρ {α} p = ⊥-elim (every-excluded-cast α p)
+
+RenOkTag-every :
+  ∀ {Ψ Ψ′} {ρ : Renameˢ} →
+  SealRenameWf Ψ Ψ′ ρ →
+  RenOkTag ρ (every Ψ) (every Ψ′)
+RenOkTag-every hρ {α} p = ⊥-elim (every-excluded-tag α p)
+
+mapΦ-suc : List CastPerm → List CastPerm
+mapΦ-suc Φ = cast-tag ∷ Φ
+
+RenOk-suc : ∀ {Φ : List CastPerm} → RenOk suc Φ (mapΦ-suc Φ)
+RenOk-suc p = there p
+
+RenOkConv-suc : ∀ {Φ : List CastPerm} → RenOkConv suc Φ (mapΦ-suc Φ)
+RenOkConv-suc p = there-conv p
+
+RenOkCast-suc : ∀ {Φ : List CastPerm} → RenOkCast suc Φ (mapΦ-suc Φ)
+RenOkCast-suc p = there-cast p
+
+RenOkTag-suc : ∀ {Φ : List CastPerm} → RenOkTag suc Φ (mapΦ-suc Φ)
+RenOkTag-suc p = there-tag p
+
+RenNotIn-suc : ∀ {Φ : List CastPerm} → RenNotIn suc Φ (mapΦ-suc Φ)
+RenNotIn-suc α∉ (there p) = α∉ p
+
+RenOk-none : ∀ {Ψ Ψ′} → (ρ : Renameˢ) → RenOk ρ (none Ψ) (none Ψ′)
+RenOk-none ρ {α} p = ⊥-elim (none-excluded α p)
+
+RenOk-any-every :
+  ∀ {Ψ′} {P : List CastPerm} →
+  (ρ : Renameˢ) →
+  RenOk ρ P (every Ψ′) →
+  RenOk ρ P (every Ψ′)
+RenOk-any-every ρ ok = ok
 
 RenOk-ext-conv :
   ∀ {ρ : Renameˢ} {P P′ : List CastPerm} →
@@ -1155,3 +1259,189 @@ p [ T ]↓ = subst⊒ᵗ (singleTyEnv T) p
   → Σ ∣ Φ ⊢ p ⦂ A ⊒ B
   → substStoreᵗ (singleTyEnv (｀ α)) Σ ∣ Φ ⊢ p [ ｀ α ]↓ ⦂ A [ ｀ α ]ᵗ ⊒ B [ ｀ α ]ᵗ
 ⊒-[]ᵗ-seal {α = α} α∈Φ h = []⊒ᵗ-wt h (｀ α)
+
+------------------------------------------------------------------------
+-- Instantiation shorthand for casts
+------------------------------------------------------------------------
+
+instVarExt⊑ : ((X : TyVar) → Up) → (X : TyVar) → Up
+instVarExt⊑ var⊑ zero = id X₀
+instVarExt⊑ var⊑ (suc X) = rename⊑ᵗ suc (var⊑ X)
+
+instVarExt⊒ : ((X : TyVar) → Down) → (X : TyVar) → Down
+instVarExt⊒ var⊒ zero = id X₀
+instVarExt⊒ var⊒ (suc X) = rename⊒ᵗ suc (var⊒ X)
+
+mutual
+  substᵗ-up : ((X : TyVar) → Up) → ((X : TyVar) → Down) → Ty → Up
+  substᵗ-up var⊑ var⊒ (＇ X) = var⊑ X
+  substᵗ-up var⊑ var⊒ (｀ α) = id (｀ α)
+  substᵗ-up var⊑ var⊒ (‵ ι) = id (‵ ι)
+  substᵗ-up var⊑ var⊒ ★ = id ★
+  substᵗ-up var⊑ var⊒ (A ⇒ B) = substᵗ-down var⊑ var⊒ A ↦ substᵗ-up var⊑ var⊒ B
+  substᵗ-up var⊑ var⊒ (`∀ A) =
+    ∀ᵖ (substᵗ-up (instVarExt⊑ var⊑) (instVarExt⊒ var⊒) A)
+
+  substᵗ-down : ((X : TyVar) → Up) → ((X : TyVar) → Down) → Ty → Down
+  substᵗ-down var⊑ var⊒ (＇ X) = var⊒ X
+  substᵗ-down var⊑ var⊒ (｀ α) = id (｀ α)
+  substᵗ-down var⊑ var⊒ (‵ ι) = id (‵ ι)
+  substᵗ-down var⊑ var⊒ ★ = id ★
+  substᵗ-down var⊑ var⊒ (A ⇒ B) = substᵗ-up var⊑ var⊒ A ↦ substᵗ-down var⊑ var⊒ B
+  substᵗ-down var⊑ var⊒ (`∀ A) =
+    ∀ᵖ (substᵗ-down (instVarExt⊑ var⊑) (instVarExt⊒ var⊒) A)
+
+mutual
+  instSubst⊑-wt :
+    ∀ {Ψ}{Σ : Store} →
+    (σ τ : Substᵗ) →
+    (var⊑ : (X : TyVar) → Up) →
+    (var⊒ : (X : TyVar) → Down) →
+    ((X : TyVar) → Σ ∣ every Ψ ⊢ var⊑ X ⦂ σ X ⊑ τ X) →
+    ((X : TyVar) → Σ ∣ every Ψ ⊢ var⊒ X ⦂ τ X ⊒ σ X) →
+    (A : Ty) →
+    Σ ∣ every Ψ ⊢ substᵗ-up var⊑ var⊒ A ⦂ substᵗ σ A ⊑ substᵗ τ A
+  instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (＇ X) = h⊑ X
+  instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (｀ α) = wt-id (wfTySome (｀ α))
+  instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (‵ ι) = wt-id (wfTySome (‵ ι))
+  instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ ★ = wt-id (wfTySome ★)
+  instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ (A ⇒ B) =
+    wt-↦ (instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ A)
+         (instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ B)
+  instSubst⊑-wt {Ψ = Ψ} {Σ = Σ} σ τ var⊑ var⊒ h⊑ h⊒ (`∀ A) =
+    wt-∀ (instSubst⊑-wt (extsᵗ σ) (extsᵗ τ)
+                          (instVarExt⊑ var⊑) (instVarExt⊒ var⊒)
+                          h⊑′ h⊒′ A)
+    where
+    h⊑′ : (X : TyVar) →
+      ⟰ᵗ Σ ∣ every Ψ ⊢ instVarExt⊑ var⊑ X ⦂ extsᵗ σ X ⊑ extsᵗ τ X
+    h⊑′ zero = wt-id (wfTySome X₀)
+    h⊑′ (suc X) = ⊑-renameᵗ-wt suc (h⊑ X)
+
+    h⊒′ : (X : TyVar) →
+      ⟰ᵗ Σ ∣ every Ψ ⊢ instVarExt⊒ var⊒ X ⦂ extsᵗ τ X ⊒ extsᵗ σ X
+    h⊒′ zero = wt-id (wfTySome X₀)
+    h⊒′ (suc X) = ⊒-renameᵗ-wt suc (h⊒ X)
+
+  instSubst⊒-wt :
+    ∀ {Ψ}{Σ : Store} →
+    (σ τ : Substᵗ) →
+    (var⊑ : (X : TyVar) → Up) →
+    (var⊒ : (X : TyVar) → Down) →
+    ((X : TyVar) → Σ ∣ every Ψ ⊢ var⊑ X ⦂ σ X ⊑ τ X) →
+    ((X : TyVar) → Σ ∣ every Ψ ⊢ var⊒ X ⦂ τ X ⊒ σ X) →
+    (A : Ty) →
+    Σ ∣ every Ψ ⊢ substᵗ-down var⊑ var⊒ A ⦂ substᵗ τ A ⊒ substᵗ σ A
+  instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (＇ X) = h⊒ X
+  instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (｀ α) = wt-id (wfTySome (｀ α))
+  instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (‵ ι) = wt-id (wfTySome (‵ ι))
+  instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ ★ = wt-id (wfTySome ★)
+  instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ (A ⇒ B) =
+    wt-↦ (instSubst⊑-wt σ τ var⊑ var⊒ h⊑ h⊒ A)
+         (instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ B)
+  instSubst⊒-wt {Ψ = Ψ} {Σ = Σ} σ τ var⊑ var⊒ h⊑ h⊒ (`∀ A) =
+    wt-∀ (instSubst⊒-wt (extsᵗ σ) (extsᵗ τ)
+                          (instVarExt⊑ var⊑) (instVarExt⊒ var⊒)
+                          h⊑′ h⊒′ A)
+    where
+    h⊑′ : (X : TyVar) →
+      ⟰ᵗ Σ ∣ every Ψ ⊢ instVarExt⊑ var⊑ X ⦂ extsᵗ σ X ⊑ extsᵗ τ X
+    h⊑′ zero = wt-id (wfTySome X₀)
+    h⊑′ (suc X) = ⊑-renameᵗ-wt suc (h⊑ X)
+
+    h⊒′ : (X : TyVar) →
+      ⟰ᵗ Σ ∣ every Ψ ⊢ instVarExt⊒ var⊒ X ⦂ extsᵗ τ X ⊒ extsᵗ σ X
+    h⊒′ zero = wt-id (wfTySome X₀)
+    h⊒′ (suc X) = ⊒-renameᵗ-wt suc (h⊒ X)
+
+instSubst⊒ :
+  ∀ {Ψ}{Σ : Store} →
+  (σ τ : Substᵗ) →
+  ((X : TyVar) → Wt⊑ Σ (every Ψ) (σ X) (τ X)) →
+  ((X : TyVar) → Wt⊒ Σ (every Ψ) (τ X) (σ X)) →
+  (A : Ty) →
+  Wt⊒ Σ (every Ψ) (substᵗ τ A) (substᵗ σ A)
+instSubst⊒ {Ψ = Ψ} {Σ = Σ} σ τ var⊑ var⊒ A = p , hp
+  where
+  var⊑r : (X : TyVar) → Up
+  var⊑r X = proj₁ (var⊑ X)
+
+  var⊒r : (X : TyVar) → Down
+  var⊒r X = proj₁ (var⊒ X)
+
+  var⊑-wt : (X : TyVar) → Σ ∣ every Ψ ⊢ var⊑r X ⦂ σ X ⊑ τ X
+  var⊑-wt X = proj₂ (var⊑ X)
+
+  var⊒-wt : (X : TyVar) → Σ ∣ every Ψ ⊢ var⊒r X ⦂ τ X ⊒ σ X
+  var⊒-wt X = proj₂ (var⊒ X)
+
+  p : Down
+  p = substᵗ-down var⊑r var⊒r A
+
+  hp : Σ ∣ every Ψ ⊢ p ⦂ substᵗ τ A ⊒ substᵗ σ A
+  hp = instSubst⊒-wt σ τ var⊑r var⊒r var⊑-wt var⊒-wt A
+
+instVar⊑ : (A : Ty) → (α : Seal) → (X : TyVar) → Up
+instVar⊑ A α zero = unseal α
+instVar⊑ A α (suc X) = id (＇ X)
+
+instVar⊑-wt :
+  ∀ {Ψ}{Σ : Store}{A : Ty}{α : Seal} →
+  (h : Σ ∋ˢ α ⦂ A) →
+  (α∈ : α ∈conv every Ψ) →
+  (X : TyVar) →
+  Σ ∣ every Ψ ⊢ instVar⊑ A α X ⦂ singleTyEnv (｀ α) X ⊑ singleTyEnv A X
+instVar⊑-wt h α∈ zero = wt-unseal h α∈
+instVar⊑-wt h α∈ (suc X) = wt-id (wfTySome (＇ X))
+
+instVar⊒ : (A : Ty) → (α : Seal) → (X : TyVar) → Down
+instVar⊒ A α zero = seal α
+instVar⊒ A α (suc X) = id (＇ X)
+
+instVar⊒-wt :
+  ∀ {Ψ}{Σ : Store}{A : Ty}{α : Seal} →
+  (h : Σ ∋ˢ α ⦂ A) →
+  (α∈ : α ∈conv every Ψ) →
+  (X : TyVar) →
+  Σ ∣ every Ψ ⊢ instVar⊒ A α X ⦂ singleTyEnv A X ⊒ singleTyEnv (｀ α) X
+instVar⊒-wt h α∈ zero = wt-seal h α∈
+instVar⊒-wt h α∈ (suc X) = wt-id (wfTySome (＇ X))
+
+instCast⊑ : ∀ {A B α} → Up
+instCast⊑ {A = A} {B = B} {α = α} = substᵗ-up (instVar⊑ A α) (instVar⊒ A α) B
+
+instCast⊑-wt :
+  ∀ {Ψ}{Σ : Store}{A : Ty}{B : Ty}{α : Seal} →
+  (h : Σ ∋ˢ α ⦂ A) →
+  α ∈conv every Ψ →
+  Σ ∣ every Ψ ⊢ instCast⊑ {A = A} {B = B} {α = α} ⦂ (B [ ｀ α ]ᵗ) ⊑ (B [ A ]ᵗ)
+instCast⊑-wt {A = A} {B = B} {α = α} h α∈ =
+  instSubst⊑-wt (singleTyEnv (｀ α)) (singleTyEnv A)
+                (instVar⊑ A α) (instVar⊒ A α)
+                (instVar⊑-wt h α∈) (instVar⊒-wt h α∈) B
+
+instCast⊒ : ∀ {A B α} → Down
+instCast⊒ {A = A} {B = B} {α = α} = substᵗ-down (instVar⊑ A α) (instVar⊒ A α) B
+
+instCast⊒-wt :
+  ∀ {Ψ}{Σ : Store}{A : Ty}{B : Ty}{α : Seal} →
+  (h : Σ ∋ˢ α ⦂ A) →
+  α ∈conv every Ψ →
+  Σ ∣ every Ψ ⊢ instCast⊒ {A = A} {B = B} {α = α} ⦂ (B [ A ]ᵗ) ⊒ (B [ ｀ α ]ᵗ)
+instCast⊒-wt {A = A} {B = B} {α = α} h α∈ =
+  instSubst⊒-wt (singleTyEnv (｀ α)) (singleTyEnv A)
+                (instVar⊑ A α) (instVar⊒ A α)
+                (instVar⊑-wt h α∈) (instVar⊒-wt h α∈) B
+
+reveal-⊑ : (A : Ty) (B : Ty) → Up
+reveal-⊑ A B =
+  substᵗ-up (instVar⊑ (⇑ˢ A) zero) (instVar⊒ (⇑ˢ A) zero) (⇑ˢ B)
+
+inst-⇑ˢ : ∀ (A B : Ty) → (⇑ˢ B) [ ⇑ˢ A ]ᵗ ≡ ⇑ˢ (B [ A ]ᵗ)
+inst-⇑ˢ A B =
+  trans (substᵗ-cong env (⇑ˢ B))
+        (substᵗ-⇑ˢ (singleTyEnv A) B)
+  where
+  env : (X : TyVar) → singleTyEnv (⇑ˢ A) X ≡ liftSubstˢ (singleTyEnv A) X
+  env zero = refl
+  env (suc X) = refl

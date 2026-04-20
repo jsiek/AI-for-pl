@@ -103,7 +103,7 @@ Planned artifacts:
 
 How this plugs into the LR:
   * Fundamental theorem should explicitly quantify over this judgement:
-      if `Γv ⊢ M ⊑ M′ ⦂ Av` then `Γv ⊨ M ≈ M′ ⦂ Av`.
+      if `Γv ⊢ M ⊑ M′ ⦂ Av` then `Γv ⊨ M ⊑ M′ ⦂ Av`.
   * Parametricity is recovered via reflexive precision witnesses.
   * Dynamic gradual guarantee is recovered from closed-term instances plus
     the two-direction (`≼`/`≽`) expression relation.
@@ -230,17 +230,31 @@ How this plugs into the LR:
    * relational type-variable environment (maps type vars to type pairs +
      relation payload),
    * relational term environment (maps term vars to related closed values).
+   * As in `PeterLogRel`, the environment/substitution interpretation should be
+     indexed by a single direction `dir : Dir`, not by both directions at once.
+     Intuitively, a pointwise environment relation should say that each pair of
+     substituted variables is related by `𝒱` in the chosen direction.
 
-   Define `𝒢 Γ ρ γ` pointwise:
-   * each variable maps to expressions/values related at the corresponding
-     precision witness.
+   Define the directional environment interpretation, something like
+   `𝒢 Γ dir w ρ γ`, pointwise:
+   * each variable maps to closed values related by `𝒱` at the corresponding
+     precision witness and the chosen `dir`.
+   * do not package both directions into `𝒢` itself; keep the directional split
+     explicit so it matches the directional definitions of `𝒱` and `ℰ`.
 
-   Define open-term logical relation:
+   Define the directional open-term logical relation:
 
-     Γ ⊨ M ≈ M′ ⦂ Av
+     Γ ∣ dir ⊨ M ⊑ M′ ⦂ Av
 
-   meaning: for all admissible `(w, ρ, γ)` satisfying `𝒢`, substituted/instantiated
-   terms are in `ℰ`.
+   meaning: for all admissible `(w, ρ, γ)` satisfying the directional `𝒢`,
+   the instantiated terms are in `ℰ` at the same `dir`.
+
+   Then define the user-facing open-term relation as the conjunction of both
+   directions, again following `PeterLogRel`:
+
+     Γ ⊨ M ⊑ M′ ⦂ Av = (Γ ∣ ≼ ⊨ M ⊑ M′ ⦂ Av) × (Γ ∣ ≽ ⊨ M ⊑ M′ ⦂ Av)
+
+   and provide a projection helper to recover either direction when needed.
 
 7) Core closure lemmas required immediately after definitions
    (same proof engineering pattern as System F file)
@@ -255,7 +269,7 @@ How this plugs into the LR:
 8) Fundamental theorem plan (single theorem powering both goals)
    Prove by induction on term-precision derivation:
 
-     If `Γ ⊢ M ⊑ M′ : Av` then `Γ ⊨ M ≈ M′ ⦂ Av`.
+     If `Γ ⊢ M ⊑ M′ : Av` then `Γ ⊨ M ⊑ M′ ⦂ Av`.
 
    Compatibility cases needed:
    * var, λ, app, Λ, type-app, ν binder, constants/prims.
@@ -312,20 +326,25 @@ module LogicalRelation where
 --   * Keeps closure/fundamental-theorem proofs for follow-up files.
 
 open import Data.List using (List; []; _∷_; length)
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; z<s)
 open import Data.Empty using (⊥)
-open import Data.Product using (Σ; Σ-syntax; _×_; _,_)
+open import Data.Product using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂)
 open import Data.Sum using (_⊎_)
 open import Data.Unit using (⊤; tt)
 open import Level using (Lift; 0ℓ) renaming (suc to lsuc)
-open import Agda.Builtin.Equality using (_≡_)
+open import Agda.Builtin.Equality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (cong; sym; trans)
 
 open import Types
 open import Store using (_⊆ˢ_; done; keep; drop; ⊆ˢ-refl)
 open import Imprecision
+open import TypeProperties
+  using (liftSubstˢ; substᵗ-ν-src; substᵗ-⇑ˢ; substᵗ-id; renameᵗ-substᵗ;
+         substᵗ-ground; renameᵗ-preserves-WfTy; renameˢ-preserves-WfTy;
+         TyRenameWf-suc; SealRenameWf-suc)
 open import UpDown
 open import Terms hiding (_[_]ᵀ)
-open import TermProperties using (_[_]; _[_]ᵀ)
+open import TermProperties using (Substˣ; substˣ-term; _[_]; _[_]ᵀ)
 open import ReductionFresh using (Value; _∣_—→_∣_; _∣_—↠_∣_)
 
 ------------------------------------------------------------------------
@@ -468,3 +487,114 @@ mutual
     (Value Mʳ × Σ[ Σˡ′ ∈ Store ] Σ[ Wˡ ∈ Term ]
       (Σˡ w ∣ Mˡ —↠ Σˡ′ ∣ Wˡ) ×
       𝒱 p n ≽ (mkWorld Σˡ′ (Σʳ w) (η w)) Wˡ Mʳ)
+
+------------------------------------------------------------------------
+-- Environment interpretation for open terms
+------------------------------------------------------------------------
+
+Prec : Set
+Prec = Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] (A ⊑ B)
+
+PCtx : Set
+PCtx = List Prec
+
+WfTyClosedᵗ : TyCtx → Ty → Set
+WfTyClosedᵗ Δ A = Σ[ Ψ ∈ SealCtx ] WfTy Δ Ψ A
+
+record RelSub (Δ : TyCtx) : Set₁ where
+  field
+    leftᵗ : Substᵗ
+    rightᵗ : Substᵗ
+    left-closed : (X : TyVar) → WfTyClosedᵗ Δ (leftᵗ X)
+    right-closed : (X : TyVar) → WfTyClosedᵗ Δ (rightᵗ X)
+    precᵗ : (X : TyVar) → leftᵗ X ⊑ rightᵗ X
+open RelSub public
+
+∅ρ : RelSub 0
+(∅ρ .leftᵗ) = λ _ → ‵ `ℕ
+(∅ρ .rightᵗ) = λ _ → ‵ `ℕ
+(∅ρ .left-closed) = λ _ → 0 , wfBase
+(∅ρ .right-closed) = λ _ → 0 , wfBase
+(∅ρ .precᵗ) = λ _ → ⊑-‵
+
+shift-substᵗ : (A : Ty) → substᵗ (λ X → ＇ suc X) A ≡ renameᵗ suc A
+shift-substᵗ A = trans (sym (renameᵗ-substᵗ suc (λ X → ＇ X) A))
+                        (cong (renameᵗ suc) (substᵗ-id A))
+
+⇑ᵗρ : ∀ {Δ} → RelSub Δ → RelSub (suc Δ)
+(⇑ᵗρ ρ .leftᵗ) = extsᵗ (leftᵗ ρ)
+(⇑ᵗρ ρ .rightᵗ) = extsᵗ (rightᵗ ρ)
+(⇑ᵗρ ρ .left-closed) zero = 0 , wfVar z<s
+(⇑ᵗρ ρ .left-closed) (suc X) =
+  let Ψ , wfA = left-closed ρ X in Ψ , renameᵗ-preserves-WfTy wfA TyRenameWf-suc
+(⇑ᵗρ ρ .right-closed) zero = 0 , wfVar z<s
+(⇑ᵗρ ρ .right-closed) (suc X) =
+  let Ψ , wfA = right-closed ρ X in Ψ , renameᵗ-preserves-WfTy wfA TyRenameWf-suc
+(⇑ᵗρ ρ .precᵗ) zero = ⊑-＇
+(⇑ᵗρ ρ .precᵗ) (suc X) =
+  cast-⊑ (shift-substᵗ (leftᵗ ρ X))
+          (shift-substᵗ (rightᵗ ρ X))
+          (Imprecision.substᵗ-⊑ (λ Y → ＇ suc Y) (precᵗ ρ X))
+
+⇑ˢρ : ∀ {Δ} → RelSub Δ → RelSub Δ
+(⇑ˢρ ρ .leftᵗ) = liftSubstˢ (leftᵗ ρ)
+(⇑ˢρ ρ .rightᵗ) = liftSubstˢ (rightᵗ ρ)
+(⇑ˢρ ρ .left-closed) X =
+  let Ψ , wfA = left-closed ρ X in suc Ψ , renameˢ-preserves-WfTy wfA SealRenameWf-suc
+(⇑ˢρ ρ .right-closed) X =
+  let Ψ , wfA = right-closed ρ X in suc Ψ , renameˢ-preserves-WfTy wfA SealRenameWf-suc
+(⇑ˢρ ρ .precᵗ) X = renameˢ-⊑ suc (precᵗ ρ X)
+
+substᴿ-⊑ : ∀ {Δ} → (ρ : RelSub Δ) → ∀ {A B} → A ⊑ B → substᵗ (leftᵗ ρ) A ⊑ substᵗ (rightᵗ ρ) B
+substᴿ-⊑ ρ ⊑-★★ = ⊑-★★
+substᴿ-⊑ ρ (⊑-★ g p) = ⊑-★ (substᵗ-ground (rightᵗ ρ) g) (substᴿ-⊑ ρ p)
+substᴿ-⊑ ρ (⊑-＇ {X}) = precᵗ ρ X
+substᴿ-⊑ ρ ⊑-｀ = ⊑-｀
+substᴿ-⊑ ρ ⊑-‵ = ⊑-‵
+substᴿ-⊑ ρ (⊑-⇒ p q) = ⊑-⇒ (substᴿ-⊑ ρ p) (substᴿ-⊑ ρ q)
+substᴿ-⊑ ρ (⊑-∀ p) = ⊑-∀ (substᴿ-⊑ (⇑ᵗρ ρ) p)
+substᴿ-⊑ ρ (⊑-ν {A = A} {B = B} p) =
+  ⊑-ν (cast-⊑ (substᵗ-ν-src (leftᵗ ρ) A)
+               (substᵗ-⇑ˢ (rightᵗ ρ) B)
+               (substᴿ-⊑ (⇑ˢρ ρ) p))
+
+record RelEnv : Set where
+  field
+    leftˣ : Substˣ
+    rightˣ : Substˣ
+open RelEnv public
+
+∅γ : RelEnv
+(∅γ .leftˣ) x = ` x
+(∅γ .rightˣ) x = ` x
+
+⇓γ : RelEnv → RelEnv
+(⇓γ γ .leftˣ) x = leftˣ γ (suc x)
+(⇓γ γ .rightˣ) x = rightˣ γ (suc x)
+
+𝒢 : PCtx → ℕ → Dir → World → RelSub 0 → RelEnv → Set₁
+𝒢 [] n dir w ρ γ = Lift (lsuc 0ℓ) ⊤
+𝒢 ((A , B , p) ∷ Γ) n dir w ρ γ =
+  Value (leftˣ γ zero) ×
+  Value (rightˣ γ zero) ×
+  𝒱 (substᴿ-⊑ ρ p) n dir w (leftˣ γ zero) (rightˣ γ zero) ×
+  𝒢 Γ n dir w ρ (⇓γ γ)
+
+_∣_⊨_⊑_⦂_ : PCtx → Dir → Term → Term → ∀ {A B} → A ⊑ B → Set₁
+Γ ∣ dir ⊨ M ⊑ M′ ⦂ p =
+  ∀ (n : ℕ) (w : World) (ρ : RelSub 0) (γ : RelEnv) →
+  𝒢 Γ n dir w ρ γ →
+  ℰ (substᴿ-⊑ ρ p) n dir w
+    (substᵗᵐ (leftᵗ ρ) (substˣ-term (leftˣ γ) M))
+    (substᵗᵐ (rightᵗ ρ) (substˣ-term (rightˣ γ) M′))
+
+_⊨_⊑_⦂_ : PCtx → Term → Term → ∀ {A B} → A ⊑ B → Set₁
+Γ ⊨ M ⊑ M′ ⦂ p = (Γ ∣ ≼ ⊨ M ⊑ M′ ⦂ p) × (Γ ∣ ≽ ⊨ M ⊑ M′ ⦂ p)
+
+proj⊨ :
+  ∀ {Γ M M′ A B} {p : A ⊑ B} →
+  (dir : Dir) →
+  Γ ⊨ M ⊑ M′ ⦂ p →
+  Γ ∣ dir ⊨ M ⊑ M′ ⦂ p
+proj⊨ ≼ rel = proj₁ rel
+proj⊨ ≽ rel = proj₂ rel

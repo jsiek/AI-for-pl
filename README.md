@@ -4,6 +4,8 @@ Experiments in using AI (GPT-5.3-Codex) to do PL metatheory in Agda and Lean.
 
 STLC - Simply Typed Lambda Calculus
 
+STLCRef - Simply Typed Lambda Calculus with mutable references
+
 lambda - Untyped lambda calculus
 
 GTLC - Gradually Typed Lambda Calculus

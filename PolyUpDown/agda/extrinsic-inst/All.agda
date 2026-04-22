@@ -33,3 +33,4 @@ open import Examples
 
 open import LogicalRelation
 open import Parametricity
+open import DynamicGradualGuarantee

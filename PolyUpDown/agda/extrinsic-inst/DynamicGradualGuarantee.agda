@@ -11,17 +11,31 @@ open import Data.List using ([])
 open import Data.Nat using (ℕ; zero; suc; _+_; _≟_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Maybe using (Maybe; just; nothing)
-open import Data.Product using (∃; ∃-syntax; _×_; _,_; proj₁; proj₂; Σ; Σ-syntax)
+open import Data.Product
+  using (∃; ∃-syntax; _×_; _,_; proj₁; proj₂; Σ; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Unit using (tt)
 open import Level using (lift)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans; cong; cong₂)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; sym; trans; cong; cong₂)
 open import Relation.Nullary using (¬_; yes; no)
 
 open import Types
 open import Imprecision
 open import UpDown using (Label; Up; Down)
-open import Terms using (Term; blame; substᵗᵐ; $; κℕ; _·_; _⦂∀_[_]; _⊕[_]_; _up_; _down_)
+open import Terms
+  using
+    ( Term
+    ; blame
+    ; substᵗᵐ
+    ; $
+    ; κℕ
+    ; _·_
+    ; _⦂∀_[_]
+    ; _⊕[_]_
+    ; _up_
+    ; _down_
+    )
 open import TermPrecision
 open import TermProperties using (substˣ-term)
 open import ReductionFresh
@@ -111,15 +125,18 @@ Blames : Store → Term → Set
 Blames Σ M = ∃[ Σ′ ] ∃[ ℓ ] (Σ ∣ M —↠ Σ′ ∣ blame ℓ)
 
 Converges : Store → Term → Set
-Converges Σ M = ∃[ Σ′ ] ∃[ W ] ((Σ ∣ M —↠ Σ′ ∣ W) × (Value W ⊎ Blame W))
+Converges Σ M =
+  ∃[ Σ′ ] ∃[ W ] ((Σ ∣ M —↠ Σ′ ∣ W) × (Value W ⊎ Blame W))
 
 Diverges : Store → Term → Set
 Diverges Σ M = ¬ Converges Σ M
 
 DivergeOrBlame : Store → Term → Set
-DivergeOrBlame Σ M′ = (∀ Σ′ N′ → (Σ ∣ M′ —↠ Σ′ ∣ N′)
-                       → Blame N′
-                         ⊎ (∃[ Σ″ ] ∃[ N″ ] (Σ′ ∣ N′ —→ Σ″ ∣ N″)))
+DivergeOrBlame Σ M′ =
+  (∀ Σ′ N′ →
+     (Σ ∣ M′ —↠ Σ′ ∣ N′) →
+     Blame N′ ⊎
+     (∃[ Σ″ ] ∃[ N″ ] (Σ′ ∣ N′ —→ Σ″ ∣ N″)))
 
 value-up-↦-inv :
   ∀ {V : Term} {p : Down} {q : Up} →
@@ -158,14 +175,16 @@ value-down-seal-inv :
 value-down-seal-inv (_down_ vV (seal {α = α})) = vV
 
 𝒱-left-value :
-  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {dir : Dir} {w : World} {V W : Term} →
+  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {dir : Dir} {w : World}
+    {V W : Term} →
   𝒱 p n dir w V W →
   Value V
 𝒱-left-value {n = zero} rel = proj₁ rel
 𝒱-left-value {n = suc n} rel = proj₁ rel
 
 𝒱-right-value :
-  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {dir : Dir} {w : World} {V W : Term} →
+  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {dir : Dir} {w : World}
+    {V W : Term} →
   𝒱 p n dir w V W →
   Value W
 𝒱-right-value {n = zero} rel = proj₁ (proj₂ rel)
@@ -177,7 +196,8 @@ value-—↠-refl :
   Σ ∣ V —↠ Σ′ ∣ N →
   (Σ ≡ Σ′) × (V ≡ N)
 value-—↠-refl vV (_ ∎) = refl , refl
-value-—↠-refl vV (_ —→⟨ V→N ⟩ N↠W) = ⊥-elim (value-no-step vV V→N)
+value-—↠-refl vV (_ —→⟨ V→N ⟩ N↠W) =
+  ⊥-elim (value-no-step vV V→N)
 
 blame-no-step :
   ∀ {Σ Σ′ : Store} {ℓ : Label} {N : Term} →
@@ -217,9 +237,11 @@ value-vs-blame :
   ⊥
 value-vs-blame vV (_ ∎) M↠blame with value-—↠-refl vV M↠blame
 ... | refl , V≡blame = value≢blame vV V≡blame
-value-vs-blame vV (_ —→⟨ M→M₁ ⟩ M₁↠V) (_ ∎) = blame-no-step M→M₁
-value-vs-blame vV (_ —→⟨ M→M₁ ⟩ M₁↠V) (_ —→⟨ M→M₂ ⟩ M₂↠blame)
-    with step-deterministic M→M₁ M→M₂
+value-vs-blame vV (_ —→⟨ M→M₁ ⟩ M₁↠V) (_ ∎) =
+  blame-no-step M→M₁
+value-vs-blame vV (_ —→⟨ M→M₁ ⟩ M₁↠V)
+  (_ —→⟨ M→M₂ ⟩ M₂↠blame)
+  with step-deterministic M→M₁ M→M₂
 ... | refl , refl = value-vs-blame vV M₁↠V M₂↠blame
 
 blame-or-step :
@@ -228,9 +250,12 @@ blame-or-step :
   Σ ∣ M —↠ Σᵦ ∣ blame ℓ →
   Blame N ⊎ (∃[ Σ″ ] ∃[ N″ ] (Σ′ ∣ N —→ Σ″ ∣ N″))
 blame-or-step (_ ∎) (_ ∎) = inj₁ (_ , refl)
-blame-or-step (_ ∎) (_ —→⟨ M→M₁ ⟩ M₁↠blame) = inj₂ (_ , _ , M→M₁)
-blame-or-step (_ —→⟨ M→N ⟩ N↠N′) (_ ∎) = ⊥-elim (blame-no-step M→N)
-blame-or-step (_ —→⟨ M→N₁ ⟩ N₁↠N′) (_ —→⟨ M→N₂ ⟩ N₂↠blame)
+blame-or-step (_ ∎) (_ —→⟨ M→M₁ ⟩ M₁↠blame) =
+  inj₂ (_ , _ , M→M₁)
+blame-or-step (_ —→⟨ M→N ⟩ N↠N′) (_ ∎) =
+  ⊥-elim (blame-no-step M→N)
+blame-or-step (_ —→⟨ M→N₁ ⟩ N₁↠N′)
+  (_ —→⟨ M→N₂ ⟩ N₂↠blame)
   with step-deterministic M→N₁ M→N₂
 ... | refl , refl = blame-or-step N₁↠N′ N₂↠blame
 
@@ -238,35 +263,36 @@ right-catchup :
   ∀ {Σˡ₀ Σʳ₀ Σʳ′ A B} {p : A ⊑ B} (k : ℕ) {Mˡ Mʳ V′} →
   Value V′ →
   (Mʳ↠V′ : Σʳ₀ ∣ Mʳ —↠ Σʳ′ ∣ V′) →
-  ℰ (substᴿ-⊑ ∅ρ p)
-    (steps Mʳ↠V′ + suc k)
-    ≽
-    (mkWorld Σˡ₀ Σʳ₀ [])
-    Mˡ
-    Mʳ →
+  ℰ (substᴿ-⊑ ∅ρ p) (steps Mʳ↠V′ + suc k) ≽
+    (mkWorld Σˡ₀ Σʳ₀ []) Mˡ Mʳ →
   ∃[ Σˡ′ ] ∃[ V ]
     Value V ×
     (Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ V) ×
-    𝒱 (substᴿ-⊑ ∅ρ p)
-      k
-      ≽
-      (mkWorld Σˡ′ Σʳ′ [])
-      V
-      V′
+    𝒱 (substᴿ-⊑ ∅ρ p) k ≽ (mkWorld Σˡ′ Σʳ′ []) V V′
 right-catchup {A = A} {B = B} {p = p} k vV′ (_ ∎) rel with rel
-... | inj₁ (Σʳ₁ , Mʳ₁ , Mʳ→Mʳ₁ , rel′) = ⊥-elim (value-no-step vV′ Mʳ→Mʳ₁)
-... | inj₂ (inj₁ (Σʳᵇ , ℓ , Mʳ↠blame)) = ⊥-elim (value-vs-blame vV′ (_ ∎) Mʳ↠blame)
-... | inj₂ (inj₂ (vMʳ , Σˡ′ , V , Mˡ↠V , Vrel)) = Σˡ′ , V , 𝒱-left-value Vrel , Mˡ↠V , Vrel
-right-catchup {A = A} {B = B} {p = p} k vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel with rel
-... | inj₁ (Σʳ₁ , Mʳ₁′ , Mʳ→Mʳ₁′ , rel′) with step-deterministic Mʳ→Mʳ₁ Mʳ→Mʳ₁′
-right-catchup {A = A} {B = B} {p = p} k vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
+... | inj₁ (Σʳ₁ , Mʳ₁ , Mʳ→Mʳ₁ , rel′) =
+  ⊥-elim (value-no-step vV′ Mʳ→Mʳ₁)
+... | inj₂ (inj₁ (Σʳᵇ , ℓ , Mʳ↠blame)) =
+  ⊥-elim (value-vs-blame vV′ (_ ∎) Mʳ↠blame)
+... | inj₂ (inj₂ (vMʳ , Σˡ′ , V , Mˡ↠V , Vrel)) =
+  Σˡ′ , V , 𝒱-left-value Vrel , Mˡ↠V , Vrel
+right-catchup {A = A} {B = B} {p = p} k vV′
+  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel with rel
+... | inj₁ (Σʳ₁ , Mʳ₁′ , Mʳ→Mʳ₁′ , rel′)
+  with step-deterministic Mʳ→Mʳ₁ Mʳ→Mʳ₁′
+right-catchup {A = A} {B = B} {p = p} k vV′
+  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
   | inj₁ (Σʳ₁ , Mʳ₁′ , Mʳ→Mʳ₁′ , rel′)
   | refl , refl =
   right-catchup {A = A} {B = B} {p = p} k vV′ Mʳ₁↠V′ rel′
-right-catchup {A = A} {B = B} {p = p} k vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
+right-catchup {A = A} {B = B} {p = p} k vV′
+  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
   | inj₂ (inj₁ (Σʳᵇ , ℓ , Mʳ↠blame)) =
-  ⊥-elim (value-vs-blame vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) Mʳ↠blame)
-right-catchup {A = A} {B = B} {p = p} k vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
+  ⊥-elim
+    (value-vs-blame vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′)
+      Mʳ↠blame)
+right-catchup {A = A} {B = B} {p = p} k vV′
+  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
   | inj₂ (inj₂ (vMʳ , Σˡ′ , V , Mˡ↠V , Vrel)) =
   ⊥-elim (value-no-step vMʳ Mʳ→Mʳ₁)
 
@@ -274,31 +300,24 @@ left-catchup-or-blame :
   ∀ {Σˡ₀ Σʳ₀ Σˡ′ A B} {p : A ⊑ B} (k : ℕ) {Mˡ Mʳ V} →
   Value V →
   (Mˡ↠V : Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ V) →
-  ℰ (substᴿ-⊑ ∅ρ p)
-    (steps Mˡ↠V + suc k)
-    ≼
-    (mkWorld Σˡ₀ Σʳ₀ [])
-    Mˡ
-    Mʳ →
+  ℰ (substᴿ-⊑ ∅ρ p) (steps Mˡ↠V + suc k) ≼
+    (mkWorld Σˡ₀ Σʳ₀ []) Mˡ Mʳ →
   (∃[ Σʳ′ ] ∃[ V′ ]
      Value V′ ×
      (Σʳ₀ ∣ Mʳ —↠ Σʳ′ ∣ V′) ×
-     𝒱 (substᴿ-⊑ ∅ρ p)
-       k
-       ≼
-       (mkWorld Σˡ′ Σʳ′ [])
-       V
-       V′)
-  ⊎
-  Blames Σʳ₀ Mʳ
+     𝒱 (substᴿ-⊑ ∅ρ p) k ≼ (mkWorld Σˡ′ Σʳ′ []) V V′)
+  ⊎ Blames Σʳ₀ Mʳ
 left-catchup-or-blame {A = A} {B = B} {p = p} k vV (_ ∎) rel with rel
-... | inj₁ (Σˡ₁ , Mˡ₁ , Mˡ→Mˡ₁ , rel′) = ⊥-elim (value-no-step vV Mˡ→Mˡ₁)
-... | inj₂ (inj₁ (Σʳᵇ , ℓ , Mʳ↠blame)) = inj₂ (Σʳᵇ , ℓ , Mʳ↠blame)
+... | inj₁ (Σˡ₁ , Mˡ₁ , Mˡ→Mˡ₁ , rel′) =
+  ⊥-elim (value-no-step vV Mˡ→Mˡ₁)
+... | inj₂ (inj₁ (Σʳᵇ , ℓ , Mʳ↠blame)) =
+  inj₂ (Σʳᵇ , ℓ , Mʳ↠blame)
 ... | inj₂ (inj₂ (vMˡ , Σʳ′ , V′ , Mʳ↠V′ , Vrel)) =
   inj₁ (Σʳ′ , V′ , 𝒱-right-value Vrel , Mʳ↠V′ , Vrel)
 left-catchup-or-blame {A = A} {B = B} {p = p} k vV
   (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel with rel
-... | inj₁ (Σˡ₁ , Mˡ₁′ , Mˡ→Mˡ₁′ , rel′) with step-deterministic Mˡ→Mˡ₁ Mˡ→Mˡ₁′
+... | inj₁ (Σˡ₁ , Mˡ₁′ , Mˡ→Mˡ₁′ , rel′)
+  with step-deterministic Mˡ→Mˡ₁ Mˡ→Mˡ₁′
 left-catchup-or-blame {A = A} {B = B} {p = p} k vV
   (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel
   | inj₁ (Σˡ₁ , Mˡ₁′ , Mˡ→Mˡ₁′ , rel′)
@@ -314,22 +333,23 @@ left-catchup-or-blame {A = A} {B = B} {p = p} k vV
   ⊥-elim (value-no-step vMˡ Mˡ→Mˡ₁)
 
 left-blame-catchup :
-  ∀ {Σˡ₀ Σʳ₀ Σˡ′ A B} {p : A ⊑ B} (k : ℕ) {Mˡ Mʳ} {ℓ : Label} →
+  ∀ {Σˡ₀ Σʳ₀ Σˡ′ A B} {p : A ⊑ B} (k : ℕ)
+    {Mˡ Mʳ} {ℓ : Label} →
   (Mˡ↠blame : Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ blame ℓ) →
-  ℰ (substᴿ-⊑ ∅ρ p)
-    (steps Mˡ↠blame + suc k)
-    ≼
-    (mkWorld Σˡ₀ Σʳ₀ [])
-    Mˡ
-    Mʳ →
+  ℰ (substᴿ-⊑ ∅ρ p) (steps Mˡ↠blame + suc k) ≼
+    (mkWorld Σˡ₀ Σʳ₀ []) Mˡ Mʳ →
   Blames Σʳ₀ Mʳ
 left-blame-catchup {A = A} {B = B} {p = p} k (_ ∎) rel with rel
-... | inj₁ (Σˡ₁ , Mˡ₁ , Mˡ→Mˡ₁ , rel′) = ⊥-elim (blame-no-step Mˡ→Mˡ₁)
-... | inj₂ (inj₁ (Σʳᵇ , ℓʳ , Mʳ↠blame)) = Σʳᵇ , ℓʳ , Mʳ↠blame
-... | inj₂ (inj₂ (vMˡ , Σʳ′ , V′ , Mʳ↠V′ , Vrel)) = ⊥-elim (value≢blame vMˡ refl)
+... | inj₁ (Σˡ₁ , Mˡ₁ , Mˡ→Mˡ₁ , rel′) =
+  ⊥-elim (blame-no-step Mˡ→Mˡ₁)
+... | inj₂ (inj₁ (Σʳᵇ , ℓʳ , Mʳ↠blame)) =
+  Σʳᵇ , ℓʳ , Mʳ↠blame
+... | inj₂ (inj₂ (vMˡ , Σʳ′ , V′ , Mʳ↠V′ , Vrel)) =
+  ⊥-elim (value≢blame vMˡ refl)
 left-blame-catchup {A = A} {B = B} {p = p} k
   (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠blame) rel with rel
-... | inj₁ (Σˡ₁ , Mˡ₁′ , Mˡ→Mˡ₁′ , rel′) with step-deterministic Mˡ→Mˡ₁ Mˡ→Mˡ₁′
+... | inj₁ (Σˡ₁ , Mˡ₁′ , Mˡ→Mˡ₁′ , rel′)
+  with step-deterministic Mˡ→Mˡ₁ Mˡ→Mˡ₁′
 left-blame-catchup {A = A} {B = B} {p = p} k
   (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠blame) rel
   | inj₁ (Σˡ₁ , Mˡ₁′ , Mˡ→Mˡ₁′ , rel′)
@@ -348,21 +368,21 @@ right-diverge-or-blame :
   ∀ {Σˡ₀ Σʳ₀ Σʳ′ A B} {p : A ⊑ B} (k : ℕ) {Mˡ Mʳ Nʳ} →
   Diverges Σˡ₀ Mˡ →
   (Mʳ↠Nʳ : Σʳ₀ ∣ Mʳ —↠ Σʳ′ ∣ Nʳ) →
-  ℰ (substᴿ-⊑ ∅ρ p)
-    (steps Mʳ↠Nʳ + suc k)
-    ≽
-    (mkWorld Σˡ₀ Σʳ₀ [])
-    Mˡ
-    Mʳ →
-  Blame Nʳ ⊎ (∃[ Σʳ″ ] ∃[ Nʳ″ ] (Σʳ′ ∣ Nʳ —→ Σʳ″ ∣ Nʳ″))
+  ℰ (substᴿ-⊑ ∅ρ p) (steps Mʳ↠Nʳ + suc k) ≽
+    (mkWorld Σˡ₀ Σʳ₀ []) Mˡ Mʳ →
+  Blame Nʳ ⊎
+  (∃[ Σʳ″ ] ∃[ Nʳ″ ] (Σʳ′ ∣ Nʳ —→ Σʳ″ ∣ Nʳ″))
 right-diverge-or-blame {A = A} {B = B} {p = p} k div (_ ∎) rel with rel
-... | inj₁ (Σʳ₁ , Mʳ₁ , Mʳ→Mʳ₁ , rel′) = inj₂ (Σʳ₁ , Mʳ₁ , Mʳ→Mʳ₁)
-... | inj₂ (inj₁ (Σʳᵇ , ℓ , Mʳ↠blame)) = blame-or-step (_ ∎) Mʳ↠blame
+... | inj₁ (Σʳ₁ , Mʳ₁ , Mʳ→Mʳ₁ , rel′) =
+  inj₂ (Σʳ₁ , Mʳ₁ , Mʳ→Mʳ₁)
+... | inj₂ (inj₁ (Σʳᵇ , ℓ , Mʳ↠blame)) =
+  blame-or-step (_ ∎) Mʳ↠blame
 ... | inj₂ (inj₂ (vMʳ , Σˡ′ , Vˡ , Mˡ↠Vˡ , Vrel)) =
   ⊥-elim (div (Σˡ′ , Vˡ , (Mˡ↠Vˡ , inj₁ (𝒱-left-value Vrel))))
 right-diverge-or-blame {A = A} {B = B} {p = p} k div
   (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) rel with rel
-... | inj₁ (Σʳ₁ , Mʳ₁′ , Mʳ→Mʳ₁′ , rel′) with step-deterministic Mʳ→Mʳ₁ Mʳ→Mʳ₁′
+... | inj₁ (Σʳ₁ , Mʳ₁′ , Mʳ→Mʳ₁′ , rel′)
+  with step-deterministic Mʳ→Mʳ₁ Mʳ→Mʳ₁′
 right-diverge-or-blame {A = A} {B = B} {p = p} k div
   (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) rel
   | inj₁ (Σʳ₁ , Mʳ₁′ , Mʳ→Mʳ₁′ , rel′)
@@ -386,20 +406,12 @@ dynamic-gradual-guarantee-part1 :
      ∃[ Σˡ′ ] ∃[ V ]
        Value V ×
        (Σ ∣ closeˡ M —↠ Σˡ′ ∣ V) ×
-       𝒱 (substᴿ-⊑ ∅ρ p)
-         1
-         ≽
-         (mkWorld Σˡ′ Σʳ′ [])
-         V
-         V′)
+       𝒱 (substᴿ-⊑ ∅ρ p) 1 ≽ (mkWorld Σˡ′ Σʳ′ []) V V′)
 dynamic-gradual-guarantee-part1
   {Σ = Σ} {M = M} {M′ = M′} {A = A} {B = B} {p = p}
   rel {Σʳ′} {V′} vV′ M′↠V′ =
-  right-catchup
-    {Σˡ₀ = Σ} {Σʳ₀ = Σ} {A = A} {B = B} {p = p}
-    1
-    {Mˡ = closeˡ M} {Mʳ = closeʳ M′}
-    vV′ M′↠V′
+  right-catchup {Σˡ₀ = Σ} {Σʳ₀ = Σ} {A = A} {B = B} {p = p}
+    1 {Mˡ = closeˡ M} {Mʳ = closeʳ M′} vV′ M′↠V′
     (fundamental {A = A} {B = B} {p = p} ≽ rel
       (steps M′↠V′ + suc (suc zero))
       (mkWorld Σ Σ [])
@@ -416,10 +428,7 @@ dynamic-gradual-guarantee-part2
   rel divʳ (Σˡ′ , W , M↠W , convW) with convW
 ... | inj₁ vW with left-catchup-or-blame
   {Σˡ₀ = Σ} {Σʳ₀ = Σ} {A = A} {B = B} {p = p}
-  1
-  {Mˡ = closeˡ M} {Mʳ = closeʳ M′}
-  vW
-  M↠W
+  1 {Mˡ = closeˡ M} {Mʳ = closeʳ M′} vW M↠W
   (fundamental {A = A} {B = B} {p = p} ≼ rel
     (steps M↠W + suc (suc zero))
     (mkWorld Σ Σ [])
@@ -435,10 +444,7 @@ dynamic-gradual-guarantee-part2
   rel divʳ (Σˡ′ , W , M↠W , convW) | inj₂ (ℓˡ , refl)
   with left-blame-catchup
   {Σˡ₀ = Σ} {Σʳ₀ = Σ} {A = A} {B = B} {p = p}
-  1
-  {Mˡ = closeˡ M} {Mʳ = closeʳ M′}
-  {ℓ = ℓˡ}
-  M↠W
+  1 {Mˡ = closeˡ M} {Mʳ = closeʳ M′} {ℓ = ℓˡ} M↠W
   (fundamental {A = A} {B = B} {p = p} ≼ rel
     (steps M↠W + suc (suc zero))
     (mkWorld Σ Σ [])
@@ -457,23 +463,13 @@ dynamic-gradual-guarantee-part3 :
      (∃[ Σʳ′ ] ∃[ V′ ]
         Value V′ ×
         (Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ V′) ×
-        𝒱 (substᴿ-⊑ ∅ρ p)
-          1
-          ≼
-          (mkWorld Σˡ′ Σʳ′ [])
-          V
-          V′)
-     ⊎
-     Blames Σ (closeʳ M′))
+        𝒱 (substᴿ-⊑ ∅ρ p) 1 ≼ (mkWorld Σˡ′ Σʳ′ []) V V′)
+     ⊎ Blames Σ (closeʳ M′))
 dynamic-gradual-guarantee-part3
   {Σ = Σ} {M = M} {M′ = M′} {A = A} {B = B} {p = p}
   rel {Σˡ′} {V} vV M↠V =
-  left-catchup-or-blame
-    {Σˡ₀ = Σ} {Σʳ₀ = Σ} {A = A} {B = B} {p = p}
-    1
-    {Mˡ = closeˡ M} {Mʳ = closeʳ M′}
-    vV
-    M↠V
+  left-catchup-or-blame {Σˡ₀ = Σ} {Σʳ₀ = Σ} {A = A} {B = B} {p = p}
+    1 {Mˡ = closeˡ M} {Mʳ = closeʳ M′} vV M↠V
     (fundamental {A = A} {B = B} {p = p} ≼ rel
       (steps M↠V + suc (suc zero))
       (mkWorld Σ Σ [])
@@ -488,12 +484,8 @@ dynamic-gradual-guarantee-part4 :
 dynamic-gradual-guarantee-part4
   {Σ = Σ} {M = M} {M′ = M′} {A = A} {B = B} {p = p}
   rel div Σʳ′ N′ M′↠N′ =
-  right-diverge-or-blame
-    {Σˡ₀ = Σ} {Σʳ₀ = Σ} {A = A} {B = B} {p = p}
-    0
-    {Mˡ = closeˡ M} {Mʳ = closeʳ M′}
-    div
-    M′↠N′
+  right-diverge-or-blame {Σˡ₀ = Σ} {Σʳ₀ = Σ} {A = A} {B = B} {p = p}
+    0 {Mˡ = closeˡ M} {Mʳ = closeʳ M′} div M′↠N′
     (fundamental {A = A} {B = B} {p = p} ≽ rel
       (steps M′↠N′ + suc zero)
       (mkWorld Σ Σ [])
@@ -511,12 +503,7 @@ dynamic-gradual-guarantee :
      ∃[ Σˡ′ ] ∃[ V ]
        Value V ×
        (Σ ∣ closeˡ M —↠ Σˡ′ ∣ V) ×
-       𝒱 (substᴿ-⊑ ∅ρ p)
-         1
-         ≽
-         (mkWorld Σˡ′ Σʳ′ [])
-         V
-         V′)
+       𝒱 (substᴿ-⊑ ∅ρ p) 1 ≽ (mkWorld Σˡ′ Σʳ′ []) V V′)
   ×
   -- Part 2
   (Diverges Σ (closeʳ M′) → Diverges Σ (closeˡ M))
@@ -528,14 +515,8 @@ dynamic-gradual-guarantee :
      (∃[ Σʳ′ ] ∃[ V′ ]
         Value V′ ×
         (Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ V′) ×
-        𝒱 (substᴿ-⊑ ∅ρ p)
-          1
-          ≼
-          (mkWorld Σˡ′ Σʳ′ [])
-          V
-          V′)
-     ⊎
-     Blames Σ (closeʳ M′))
+        𝒱 (substᴿ-⊑ ∅ρ p) 1 ≼ (mkWorld Σˡ′ Σʳ′ []) V V′)
+     ⊎ Blames Σ (closeʳ M′))
   ×
   -- Part 4
   (Diverges Σ (closeˡ M) → DivergeOrBlame Σ (closeʳ M′))

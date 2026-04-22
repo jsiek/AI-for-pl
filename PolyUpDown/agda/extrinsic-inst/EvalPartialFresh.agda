@@ -8,11 +8,12 @@ module EvalPartialFresh where
 --   * Intended for running examples and testing reduction rules without
 --   * preservation/progress typing proofs.
 
-open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_; _++_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; suc; zero; _≟_)
-open import Data.Product using (Σ; Σ-syntax; _,_)
+open import Data.Product using (Σ; Σ-syntax; ∃; ∃-syntax; _×_; _,_; proj₁; proj₂)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans; cong)
 open import Relation.Nullary using (Dec; yes; no)
 
 open import Types
@@ -20,57 +21,6 @@ open import Store
 open import UpDown
 open import Terms hiding (_[_]ᵀ)
 open import ReductionFresh
-  using
-    ( UpValue
-    ; DownValue
-    ; Value
-    ; tag
-    ; seal
-    ; _↦_
-    ; ∀ᵖ
-    ; ν_
-    ; ƛ_⇒_
-    ; $
-    ; Λ_
-    ; _up_
-    ; _down_
-    ; _—→_
-    ; β
-    ; β-up-∀
-    ; β-up-↦
-    ; β-down-↦
-    ; id-up
-    ; id-down
-    ; seal-unseal
-    ; tag-untag-ok
-    ; tag-untag-bad
-    ; β-up-；
-    ; β-down-；
-    ; δ-⊕
-    ; blame-·₁
-    ; blame-·₂
-    ; blame-·α
-    ; blame-up
-    ; blame-down
-    ; blame-⊕₁
-    ; blame-⊕₂
-    ; _∣_—→_∣_
-    ; _∣_—↠_∣_
-    ; _∎
-    ; _—→⟨_⟩_
-    ; id-step
-    ; β-Λ
-    ; β-down-∀
-    ; β-down-ν
-    ; β-up-ν
-    ; ξ-·₁
-    ; ξ-·₂
-    ; ξ-·α
-    ; ξ-up
-    ; ξ-down
-    ; ξ-⊕₁
-    ; ξ-⊕₂
-    )
 
 Step : Store → Term → Set
 Step Σ M = Σ[ Σ′ ∈ Store ] Σ[ N ∈ Term ] (Σ ∣ M —→ Σ′ ∣ N)
@@ -400,6 +350,18 @@ data Progress? {Σ : Store} (M : Term) : Set where
   step : Step Σ M → Progress? M
   stuck : Progress? M
 
+blame? : (M : Term) → Dec (∃[ ℓ ] M ≡ blame ℓ)
+blame? (` x) = no (λ ())
+blame? (ƛ x ⇒ M) = no (λ ())
+blame? (M · M₁) = no (λ ())
+blame? (Λ M) = no (λ ())
+blame? (M ⦂∀ x [ x₁ ]) = no (λ ())
+blame? ($ x) = no (λ ())
+blame? (M ⊕[ x ] M₁) = no λ ()
+blame? (M up x) = no λ ()
+blame? (M down x) = no (λ ())
+blame? (blame ℓ) = yes (ℓ , refl)
+
 step? : (Σ : Store) (M : Term) → Maybe (Step Σ M)
 step? Σ (` x) = nothing
 step? Σ (ƛ A ⇒ N) = nothing
@@ -407,23 +369,25 @@ step? Σ (Λ M) = nothing
 step? Σ ($ κ) = nothing
 step? Σ (blame ℓ) = nothing
 
-step? Σ ((blame ℓ) · M) = just (Σ , blame ℓ , id-step blame-·₁)
-step? Σ (L · M) with step? Σ L
-... | just (Σ′ , L′ , L→L′) = just (Σ′ , (L′ · M) , ξ-·₁ L→L′)
-... | nothing with value? L
-...   | nothing = nothing
-...   | just vL with step? Σ M
-...     | just (Σ′ , M′ , M→M′) = just (Σ′ , _ , ξ-·₂ vL M→M′)
-...     | nothing with blameView M
-...       | just (ℓ , refl) = just (Σ , blame ℓ , id-step (blame-·₂ vL))
-...       | nothing with value? M
-...         | nothing = nothing
-...         | just vM with app-redex? vL vM
-...           | just (N , red) = just (Σ , N , id-step red)
+step? Σ (L · M) with blame? L
+... | yes (ℓ , refl) = just (Σ , blame ℓ , id-step blame-·₁)
+... | no neq with step? Σ L
+...   | just (Σ′ , L′ , L→L′) = just (Σ′ , (L′ · M) , ξ-·₁ L→L′)
+...   | nothing with value? L
+...     | nothing = nothing
+...     | just vL with step? Σ M
+...       | just (Σ′ , M′ , M→M′) = just (Σ′ , _ , ξ-·₂ vL M→M′)
+...       | nothing with blame? M
+...         | yes (ℓ , refl) = just (Σ , blame ℓ , id-step (blame-·₂ vL))
+...         | no neq with value? M
 ...           | nothing = nothing
+...           | just vM with app-redex? vL vM
+...             | just (N , red) = just (Σ , N , id-step red)
+...             | nothing = nothing
 
-step? Σ (_⦂∀_[_] (blame ℓ) B T) = just (Σ , blame ℓ , id-step blame-·α)
-step? Σ (_⦂∀_[_] M B T) with step? Σ M
+step? Σ (_⦂∀_[_] M B T) with blame? M
+... | yes (ℓ , refl) = just (Σ , blame ℓ , id-step blame-·α)
+... | no neq with step? Σ M
 ... | just (Σ′ , M′ , M→M′) = just (Σ′ , _ , ξ-·α M→M′)
 ... | nothing with value? M
 ...   | nothing = nothing
@@ -431,29 +395,32 @@ step? Σ (_⦂∀_[_] M B T) with step? Σ M
 ...     | just s = just s
 ...     | nothing = nothing
 
-step? Σ ((blame ℓ) ⊕[ op ] M) = just (Σ , blame ℓ , id-step blame-⊕₁)
-step? Σ (L ⊕[ op ] M) with step? Σ L
-... | just (Σ′ , L′ , L→L′) = just (Σ′ , (L′ ⊕[ op ] M) , ξ-⊕₁ L→L′)
-... | nothing with value? L
-...   | nothing = nothing
-...   | just vL with step? Σ M
-...     | just (Σ′ , M′ , M→M′) = just (Σ′ , _ , ξ-⊕₂ vL M→M′)
-...     | nothing with blameView M
-...       | just (ℓ , refl) = just (Σ , blame ℓ , id-step (blame-⊕₂ vL))
-...       | nothing with natConstView L | natConstView M | op
-...         | just (m , refl) | just (n , refl) | addℕ =
-              just (Σ , _ , id-step δ-⊕)
-...         | _ | _ | _ = nothing
+step? Σ (L ⊕[ op ] M) with blame? L
+... | yes (ℓ , refl) = just (Σ , blame ℓ , id-step blame-⊕₁)
+... | no neq with step? Σ L
+...   | just (Σ′ , L′ , L→L′) = just (Σ′ , (L′ ⊕[ op ] M) , ξ-⊕₁ L→L′)
+...   | nothing with value? L
+...     | nothing = nothing
+...     | just vL with step? Σ M
+...       | just (Σ′ , M′ , M→M′) = just (Σ′ , _ , ξ-⊕₂ vL M→M′)
+...       | nothing with blame? M
+...         | yes (ℓ , refl) = just (Σ , blame ℓ , id-step (blame-⊕₂ vL))
+...         | no neq with natConstView L | natConstView M | op
+...           | just (m , refl) | just (n , refl) | addℕ =
+                just (Σ , _ , id-step δ-⊕)
+...           | _ | _ | _ = nothing
 
-step? Σ ((blame ℓ) up p) = just (Σ , blame ℓ , id-step blame-up)
-step? Σ (M up p) with step? Σ M
-... | just (Σ′ , M′ , M→M′) = just (Σ′ , (M′ up p) , ξ-up M→M′)
-... | nothing = up-head-step? Σ M p
+step? Σ (M up p) with blame? M
+... | yes (ℓ , refl) = just (Σ , blame ℓ , id-step blame-up)
+... | no neq with step? Σ M
+...   | just (Σ′ , M′ , M→M′) = just (Σ′ , (M′ up p) , ξ-up M→M′)
+...   | nothing = up-head-step? Σ M p
 
-step? Σ ((blame ℓ) down p) = just (Σ , blame ℓ , id-step blame-down)
-step? Σ (M down p) with step? Σ M
-... | just (Σ′ , M′ , M→M′) = just (Σ′ , (M′ down p) , ξ-down M→M′)
-... | nothing = down-head-step? Σ M p
+step? Σ (M down p) with blame? M
+... | yes (ℓ , refl) = just (Σ , blame ℓ , id-step blame-down)
+... | no neq with step? Σ M
+...   | just (Σ′ , M′ , M→M′) = just (Σ′ , (M′ down p) , ξ-down M→M′)
+...   | nothing = down-head-step? Σ M p
 
 progress? : ∀ {Σ : Store} (M : Term) → Progress? {Σ = Σ} M
 progress? {Σ = Σ} M with value? M
@@ -461,6 +428,569 @@ progress? {Σ = Σ} M with value? M
 ... | nothing with step? Σ M
 ...   | just s = step s
 ...   | nothing = stuck
+
+------------------------------------------------------------------------
+-- Completeness of `step?` for one-step reduction
+------------------------------------------------------------------------
+
+just-injective : ∀ {A : Set} {x y : A} → just x ≡ just y → x ≡ y
+just-injective refl = refl
+
+nothing≢just : ∀ {A : Set} {x : A} → nothing ≡ just x → ⊥
+nothing≢just ()
+
+step?-value-none :
+  ∀ {Σ : Store} {V : Term} →
+  Value V →
+  step? Σ V ≡ nothing
+step?-value-none {Σ = Σ} {V = V} vV with step? Σ V
+step?-value-none {Σ = Σ} {V = V} vV | nothing = refl
+step?-value-none {Σ = Σ} {V = V} vV | just (Σ′ , N , red) =
+  ⊥-elim (value-no-step vV red)
+
+step?-blame-none :
+  ∀ {Σ : Store} {ℓ : Label} →
+  step? Σ (blame ℓ) ≡ nothing
+step?-blame-none = refl
+
+target : ∀ {Σ : Store} {M : Term} → Step Σ M → Store × Term
+target (Σ′ , N , red) = Σ′ , N
+
+value?-complete :
+  ∀ {V : Term} →
+  (vV : Value V) →
+  Σ[ v ∈ Value V ] (value? V ≡ just v)
+value?-complete (ƛ A ⇒ N) = (ƛ A ⇒ N) , refl
+value?-complete ($ κ) = ($ κ) , refl
+value?-complete (Λ N) = (Λ N) , refl
+value?-complete (_up_ {V = V} vV tag) with value?-complete vV
+value?-complete (_up_ {V = V} vV tag) | vV′ , eqV rewrite eqV =
+  (vV′ up tag) , refl
+value?-complete (_up_ {V = V} vV (_↦_ {p = p} {q = q})) with value?-complete vV
+value?-complete (_up_ {V = V} vV (_↦_ {p = p} {q = q})) | vV′ , eqV rewrite eqV =
+  (vV′ up (_↦_ {p = p} {q = q})) , refl
+value?-complete (_up_ {V = V} vV (∀ᵖ {p = p})) with value?-complete vV
+value?-complete (_up_ {V = V} vV (∀ᵖ {p = p})) | vV′ , eqV rewrite eqV =
+  (vV′ up (∀ᵖ {p = p})) , refl
+value?-complete (_down_ {V = V} vV seal) with value?-complete vV
+value?-complete (_down_ {V = V} vV seal) | vV′ , eqV rewrite eqV =
+  (vV′ down seal) , refl
+value?-complete (_down_ {V = V} vV (_↦_ {p = p} {q = q})) with value?-complete vV
+value?-complete (_down_ {V = V} vV (_↦_ {p = p} {q = q})) | vV′ , eqV rewrite eqV =
+  (vV′ down (_↦_ {p = p} {q = q})) , refl
+value?-complete (_down_ {V = V} vV (∀ᵖ {p = p})) with value?-complete vV
+value?-complete (_down_ {V = V} vV (∀ᵖ {p = p})) | vV′ , eqV rewrite eqV =
+  (vV′ down (∀ᵖ {p = p})) , refl
+value?-complete (_down_ {V = V} vV (ν_ {p = p})) with value?-complete vV
+value?-complete (_down_ {V = V} vV (ν_ {p = p})) | vV′ , eqV rewrite eqV =
+  (vV′ down (ν_ {p = p})) , refl
+
+value-not-blame :
+  ∀ {V : Term} {ℓ : Label} →
+  Value V →
+  V ≡ blame ℓ →
+  ⊥
+value-not-blame (ƛ A ⇒ N) ()
+value-not-blame ($ κ) ()
+value-not-blame (Λ N) ()
+value-not-blame (_up_ vV tag) ()
+value-not-blame (_up_ vV (_↦_ {p = p} {q = q})) ()
+value-not-blame (_up_ vV (∀ᵖ {p = p})) ()
+value-not-blame (_down_ vV seal) ()
+value-not-blame (_down_ vV (_↦_ {p = p} {q = q})) ()
+value-not-blame (_down_ vV (∀ᵖ {p = p})) ()
+value-not-blame (_down_ vV (ν_ {p = p})) ()
+
+value?-not-none :
+  ∀ {V : Term} →
+  Value V →
+  value? V ≡ nothing →
+  ⊥
+value?-not-none vV eq with value?-complete vV
+value?-not-none vV eq | vV′ , eqV = nothing≢just (trans (sym eq) eqV)
+
+step?-β-up-↦ :
+  ∀ {Σ : Store} {V W : Term} {p : Down} {q : Up} →
+  (vV : Value V) →
+  (vW : Value W) →
+  Σ[ s ∈ Step Σ ((V up (p UpDown.↦ q)) · W) ]
+    (step? Σ ((V up (p UpDown.↦ q)) · W) ≡ just s) ×
+    (target s ≡ (Σ , ((V · (W down p)) up q)))
+step?-β-up-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  with step? Σ (V up (p UpDown.↦ q))
+step?-β-up-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | just (ΣL , L′ , redL) =
+  ⊥-elim (value-no-step (_up_ {V = V} vV (_↦_ {p = p} {q = q})) redL)
+step?-β-up-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing with value? (V up (p UpDown.↦ q)) in eqL
+step?-β-up-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | nothing = ⊥-elim (value?-not-none (_up_ vV (_↦_ {p = p} {q = q})) eqL)
+step?-β-up-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_up_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) with step? Σ W
+step?-β-up-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_up_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | just (ΣW , W′ , redW) =
+  ⊥-elim (value-no-step vW redW)
+step?-β-up-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_up_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | nothing
+  with blame? W
+step?-β-up-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_up_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | nothing | yes (ℓ , W≡blame) =
+  ⊥-elim (value-not-blame vW W≡blame)
+step?-β-up-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_up_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | nothing | no neq
+  with value? W in eqW
+step?-β-up-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_up_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | nothing | no neq | nothing =
+  ⊥-elim (value?-not-none vW eqW)
+step?-β-up-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_up_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | nothing | no neq | just vW′ =
+  (_ , _ , id-step (β-up-↦ vV′ vW′)) , refl , refl
+
+step?-β-down-↦ :
+  ∀ {Σ : Store} {V W : Term} {p : Up} {q : Down} →
+  (vV : Value V) →
+  (vW : Value W) →
+  Σ[ s ∈ Step Σ ((V down (p UpDown.↦ q)) · W) ]
+    (step? Σ ((V down (p UpDown.↦ q)) · W) ≡ just s) ×
+    (target s ≡ (Σ , ((V · (W up p)) down q)))
+step?-β-down-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  with step? Σ (V down (p UpDown.↦ q))
+step?-β-down-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | just (ΣL , L′ , redL) =
+  ⊥-elim (value-no-step (_down_ {V = V} vV (_↦_ {p = p} {q = q})) redL)
+step?-β-down-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing with value? (V down (p UpDown.↦ q)) in eqL
+step?-β-down-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | nothing = ⊥-elim (value?-not-none (_down_ vV (_↦_ {p = p} {q = q})) eqL)
+step?-β-down-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_down_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) with step? Σ W
+step?-β-down-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_down_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | just (ΣW , W′ , redW) =
+  ⊥-elim (value-no-step vW redW)
+step?-β-down-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_down_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | nothing
+  with blame? W
+step?-β-down-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_down_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | nothing | yes (ℓ , W≡blame) =
+  ⊥-elim (value-not-blame vW W≡blame)
+step?-β-down-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_down_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | nothing | no neq
+  with value? W in eqW
+step?-β-down-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_down_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | nothing | no neq | nothing =
+  ⊥-elim (value?-not-none vW eqW)
+step?-β-down-↦ {Σ = Σ} {V = V} {W = W} {p = p} {q = q} vV vW
+  | nothing | just (_down_ {V = .V} vV′ (_↦_ {p = .p} {q = .q})) | nothing | no neq | just vW′ =
+  (_ , _ , id-step (β-down-↦ vV′ vW′)) , refl , refl
+
+step?-id-up :
+  ∀ {Σ : Store} {V : Term} {A : Ty} →
+  (vV : Value V) →
+  Σ[ s ∈ Step Σ (V up (UpDown.id A)) ]
+    (step? Σ (V up (UpDown.id A)) ≡ just s) ×
+    (target s ≡ (Σ , V))
+step?-id-up {Σ = Σ} {V = V} {A = A} vV with step? Σ V
+step?-id-up {Σ = Σ} {V = V} {A = A} vV | just (ΣV , V′ , redV) =
+  ⊥-elim (value-no-step vV redV)
+step?-id-up {Σ = Σ} {V = V} {A = A} vV | nothing
+  with blame? V
+... | yes (ℓ , refl) = (Σ , blame ℓ , id-step blame-up) , refl , refl
+... | no neq
+  rewrite step?-value-none {Σ = Σ} {V = V} vV
+        | proj₂ (value?-complete vV)
+  =
+  let vV′ = proj₁ (value?-complete vV) in
+  (_ , _ , id-step (id-up vV′)) , refl , refl
+
+step?-id-down :
+  ∀ {Σ : Store} {V : Term} {A : Ty} →
+  (vV : Value V) →
+  Σ[ s ∈ Step Σ (V down (Down.id A)) ]
+    (step? Σ (V down (Down.id A)) ≡ just s) ×
+    (target s ≡ (Σ , V))
+step?-id-down {Σ = Σ} {V = V} {A = A} vV with step? Σ V
+step?-id-down {Σ = Σ} {V = V} {A = A} vV | just (ΣV , V′ , redV) =
+  ⊥-elim (value-no-step vV redV)
+step?-id-down {Σ = Σ} {V = V} {A = A} vV | nothing
+  with blame? V
+... | yes (ℓ , refl) = (Σ , blame ℓ , id-step blame-down) , refl , refl
+... | no neq
+  rewrite step?-value-none {Σ = Σ} {V = V} vV
+        | proj₂ (value?-complete vV)
+  =
+  let vV′ = proj₁ (value?-complete vV) in
+  (_ , _ , id-step (id-down vV′)) , refl , refl
+
+step?-seal-unseal :
+  ∀ {Σ : Store} {V : Term} {α : Seal} →
+  (vV : Value V) →
+  Σ[ s ∈ Step Σ ((V down (Down.seal α)) up (Up.unseal α)) ]
+    (step? Σ ((V down (Down.seal α)) up (Up.unseal α)) ≡ just s) ×
+    (target s ≡ (Σ , V))
+step?-seal-unseal {Σ = Σ} {V = V} {α = α} vV
+  with step? Σ (V down (Down.seal α))
+step?-seal-unseal {Σ = Σ} {V = V} {α = α} vV | just (Σ′ , N′ , red) =
+  ⊥-elim (value-no-step (_down_ vV seal) red)
+step?-seal-unseal {Σ = Σ} {V = V} {α = α} vV | nothing
+  with blame? (V down (Down.seal α))
+... | yes (ℓ , eq) = ⊥-elim (value-not-blame (_down_ vV seal) eq)
+... | no neq with value? (V down (Down.seal α)) in eqM
+... | nothing = ⊥-elim (value?-not-none (_down_ vV seal) eqM)
+... | just (_down_ {V = .V} vV′ seal) with α ≟ α
+... | yes refl = (_ , _ , id-step (seal-unseal vV′)) , refl , refl
+... | no α≢α = ⊥-elim (α≢α refl)
+
+step?-complete :
+  ∀ {Σ Σ′ : Store} {M N : Term} →
+  (red : Σ ∣ M —→ Σ′ ∣ N) →
+  Σ[ s ∈ Step Σ M ]
+    (step? Σ M ≡ just s) ×
+    (target s ≡ (Σ′ , N))
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  with blame? (Term.ƛ B ⇒ N)
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | yes (ℓ , ())
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | no neq with step? Σ (Term.ƛ B ⇒ N)
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | no neq | just (ΣL , L′ , redL) = ⊥-elim (value-no-step (ƛ B ⇒ N) redL)
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | no neq | nothing with value? (Term.ƛ B ⇒ N) in eqL
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | no neq | nothing | nothing = ⊥-elim (value?-not-none (ƛ B ⇒ N) eqL)
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | no neq | nothing | just (ƛ .B ⇒ .N) with step? Σ V
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | no neq | nothing | just (ƛ .B ⇒ .N) | just (ΣV , V′ , redV) =
+  ⊥-elim (value-no-step vV redV)
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | no neq | nothing | just (ƛ .B ⇒ .N) | nothing with blame? V
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | no neq | nothing | just (ƛ .B ⇒ .N) | nothing | yes (ℓ , eq) =
+  ⊥-elim (value-not-blame vV eq)
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | no neq | nothing | just (ƛ .B ⇒ .N) | nothing | no neqV with value? V in eqV
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | no neq | nothing | just (ƛ .B ⇒ .N) | nothing | no neqV | nothing =
+  ⊥-elim (value?-not-none vV eqV)
+step?-complete {Σ = Σ} (id-step (β {B = B} {N = N} {V = V} vV))
+  | no neq | nothing | just (ƛ .B ⇒ .N) | nothing | no neqV | just x =
+  (_ , _ , id-step (β x)) , refl , refl
+step?-complete {Σ = Σ} (id-step (β-up-∀ {V = V} {p = p} vV))
+  with step? Σ (V up (UpDown.∀ᵖ p))
+step?-complete {Σ = Σ} (id-step (β-up-∀ {V = V} {p = p} vV))
+  | just (ΣM , M′ , redM) =
+  ⊥-elim (value-no-step (_up_ {V = V} vV (∀ᵖ {p = p})) redM)
+step?-complete {Σ = Σ} (id-step (β-up-∀ {V = V} {p = p} vV))
+  | nothing with value?-complete (_up_ {V = V} vV (∀ᵖ {p = p}))
+step?-complete {Σ = Σ} (id-step (β-up-∀ {V = V} {p = p} vV))
+  | nothing | (_up_ {V = .V} vV′ (∀ᵖ {p = .p})) , eqM
+  rewrite eqM =
+  (_ , _ , id-step (β-up-∀ vV′)) , refl , refl
+step?-complete (id-step (β-up-↦ vV vW)) =
+  step?-β-up-↦ vV vW
+step?-complete (id-step (β-down-↦ vV vW)) =
+  step?-β-down-↦ vV vW
+step?-complete (id-step (id-up {V = V} {A = A} vV)) = step?-id-up {V = V} {A = A} vV
+step?-complete (id-step (id-down {V = V} {A = A} vV)) = step?-id-down {V = V} {A = A} vV
+step?-complete (id-step (seal-unseal {V = V} {α = α} vV)) =
+  step?-seal-unseal {V = V} {α = α} vV
+step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+  with blame? (V up (UpDown.tag G))
+step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+  | yes (ℓb , eq) = ⊥-elim (value-not-blame (_up_ vV tag) eq)
+step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+  | no neq with step? Σ (V up (UpDown.tag G))
+step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+  | no neq | just (Σ′ , M′ , red) = ⊥-elim (value-no-step (_up_ vV tag) red)
+step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+  | no neq | nothing with tyEq? G G
+step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+  | no neq | nothing | no G≢G = ⊥-elim (G≢G refl)
+step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+  | no neq | nothing | yes refl with value? V in eqV
+step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+  | no neq | nothing | yes refl | nothing = ⊥-elim (value?-not-none vV eqV)
+step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+  | no neq | nothing | yes refl | just vV′ =
+  (_ , _ , id-step (tag-untag-ok vV′)) , refl , refl
+step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+  with blame? (V up (UpDown.tag G))
+step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+  | yes (ℓb , eq) = ⊥-elim (value-not-blame (_up_ vV tag) eq)
+step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+  | no neq with step? Σ (V up (UpDown.tag G))
+step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+  | no neq | just (Σ′ , M′ , red) = ⊥-elim (value-no-step (_up_ vV tag) red)
+step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+  | no neq | nothing with tyEq? G H
+step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+  | no neq | nothing | yes G≡H = ⊥-elim (G≢H G≡H)
+step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+  | no neq | nothing | no G≢H′ with value? V in eqV
+step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+  | no neq | nothing | no G≢H′ | nothing = ⊥-elim (value?-not-none vV eqV)
+step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+  | no neq | nothing | no G≢H′ | just vV′ =
+  (_ , _ , id-step (tag-untag-bad vV′ G≢H′)) , refl , refl
+step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
+  with blame? V
+step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
+  | yes (ℓ , eq) = ⊥-elim (value-not-blame vV eq)
+step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
+  | no neq with step? Σ V
+step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
+  | no neq | just (Σ′ , M′ , red) = ⊥-elim (value-no-step vV red)
+step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
+  | no neq | nothing with value? V in eqV
+step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
+  | no neq | nothing | nothing = ⊥-elim (value?-not-none vV eqV)
+step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
+  | no neq | nothing | just vV′ =
+  (_ , _ , id-step (β-up-； vV′)) , refl , refl
+step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
+  with blame? V
+step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
+  | yes (ℓ , eq) = ⊥-elim (value-not-blame vV eq)
+step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
+  | no neq with step? Σ V
+step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
+  | no neq | just (Σ′ , M′ , red) = ⊥-elim (value-no-step vV red)
+step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
+  | no neq | nothing with value? V in eqV
+step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
+  | no neq | nothing | nothing = ⊥-elim (value?-not-none vV eqV)
+step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
+  | no neq | nothing | just vV′ =
+  (_ , _ , id-step (β-down-； vV′)) , refl , refl
+step?-complete (id-step δ-⊕) = (_ , _ , id-step δ-⊕) , refl , refl
+step?-complete (id-step blame-·₁) = (_ , _ , id-step blame-·₁) , refl , refl
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))
+  with blame? V
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))
+  | yes (ℓV , eq) = ⊥-elim (value-not-blame vV eq)
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))
+  | no neqV with step? Σ V
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))
+  | no neqV | just (ΣV , V′ , redV) = ⊥-elim (value-no-step vV redV)
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))
+  | no neqV | nothing with value? V in eqV
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))
+  | no neqV | nothing | nothing = ⊥-elim (value?-not-none vV eqV)
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))
+  | no neqV | nothing | just vV′ with step? Σ (blame ℓ) in eqM
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))
+  | no neqV | nothing | just vV′ | just s =
+  ⊥-elim (nothing≢just (trans (sym step?-blame-none) eqM))
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))
+  | no neqV | nothing | just vV′ | nothing with blame? (blame ℓ)
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))
+  | no neqV | nothing | just vV′ | nothing | yes (ℓ′ , refl) =
+  (_ , _ , id-step (blame-·₂ vV′)) , refl , refl
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))
+  | no neqV | nothing | just vV′ | nothing | no neqℓ =
+  ⊥-elim (neqℓ (ℓ , refl))
+step?-complete (id-step blame-·α) = (_ , _ , id-step blame-·α) , refl , refl
+step?-complete (id-step blame-up) = (_ , _ , id-step blame-up) , refl , refl
+step?-complete (id-step blame-down) = (_ , _ , id-step blame-down) , refl , refl
+step?-complete (id-step blame-⊕₁) = (_ , _ , id-step blame-⊕₁) , refl , refl
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-⊕₂ {L = L} {op = op} vL))
+  with blame? L
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-⊕₂ {L = L} {op = op} vL))
+  | yes (ℓL , eq) = ⊥-elim (value-not-blame vL eq)
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-⊕₂ {L = L} {op = op} vL))
+  | no neqL with step? Σ L
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-⊕₂ {L = L} {op = op} vL))
+  | no neqL | just (ΣL , L′ , redL) = ⊥-elim (value-no-step vL redL)
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-⊕₂ {L = L} {op = op} vL))
+  | no neqL | nothing with value? L in eqL
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-⊕₂ {L = L} {op = op} vL))
+  | no neqL | nothing | nothing = ⊥-elim (value?-not-none vL eqL)
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-⊕₂ {L = L} {op = op} vL))
+  | no neqL | nothing | just vL′ with step? Σ (blame ℓ) in eqM
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-⊕₂ {L = L} {op = op} vL))
+  | no neqL | nothing | just vL′ | just s =
+  ⊥-elim (nothing≢just (trans (sym step?-blame-none) eqM))
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-⊕₂ {L = L} {op = op} vL))
+  | no neqL | nothing | just vL′ | nothing with blame? (blame ℓ)
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-⊕₂ {L = L} {op = op} vL))
+  | no neqL | nothing | just vL′ | nothing | yes (ℓ′ , refl) =
+  (_ , _ , id-step (blame-⊕₂ vL′)) , refl , refl
+step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-⊕₂ {L = L} {op = op} vL))
+  | no neqL | nothing | just vL′ | nothing | no neqℓ =
+  ⊥-elim (neqℓ (ℓ , refl))
+step?-complete β-Λ = (_ , _ , β-Λ) , refl , refl
+step?-complete {Σ = Σ} (β-down-∀ {A = A} {B = B} {V = V} {p = p} vV)
+  with blame? (V down (Down.∀ᵖ p))
+step?-complete {Σ = Σ} (β-down-∀ {A = A} {B = B} {V = V} {p = p} vV)
+  | yes (ℓ , eq) = ⊥-elim (value-not-blame (_down_ vV (∀ᵖ {p = p})) eq)
+step?-complete {Σ = Σ} (β-down-∀ {A = A} {B = B} {V = V} {p = p} vV)
+  | no neq with step? Σ (V down (Down.∀ᵖ p))
+step?-complete {Σ = Σ} (β-down-∀ {A = A} {B = B} {V = V} {p = p} vV)
+  | no neq | just (Σ′ , M′ , red) =
+  ⊥-elim (value-no-step (_down_ vV (∀ᵖ {p = p})) red)
+step?-complete {Σ = Σ} (β-down-∀ {A = A} {B = B} {V = V} {p = p} vV)
+  | no neq | nothing with value? (V down (Down.∀ᵖ p)) in eqM
+step?-complete {Σ = Σ} (β-down-∀ {A = A} {B = B} {V = V} {p = p} vV)
+  | no neq | nothing | nothing =
+  ⊥-elim (value?-not-none (_down_ vV (∀ᵖ {p = p})) eqM)
+step?-complete {Σ = Σ} (β-down-∀ {A = A} {B = B} {V = V} {p = p} vV)
+  | no neq | nothing | just (_down_ {V = .V} vV′ (∀ᵖ {p = .p})) =
+  (_ , _ , β-down-∀ vV′) , refl , refl
+step?-complete {Σ = Σ} (β-down-ν {A = A} {B = B} {V = V} {p = p} vV)
+  with blame? (V down (Down.ν p))
+step?-complete {Σ = Σ} (β-down-ν {A = A} {B = B} {V = V} {p = p} vV)
+  | yes (ℓ , eq) = ⊥-elim (value-not-blame (_down_ vV (ν_ {p = p})) eq)
+step?-complete {Σ = Σ} (β-down-ν {A = A} {B = B} {V = V} {p = p} vV)
+  | no neq with step? Σ (V down (Down.ν p))
+step?-complete {Σ = Σ} (β-down-ν {A = A} {B = B} {V = V} {p = p} vV)
+  | no neq | just (Σ′ , M′ , red) =
+  ⊥-elim (value-no-step (_down_ vV (ν_ {p = p})) red)
+step?-complete {Σ = Σ} (β-down-ν {A = A} {B = B} {V = V} {p = p} vV)
+  | no neq | nothing with value? (V down (Down.ν p)) in eqM
+step?-complete {Σ = Σ} (β-down-ν {A = A} {B = B} {V = V} {p = p} vV)
+  | no neq | nothing | nothing =
+  ⊥-elim (value?-not-none (_down_ vV (ν_ {p = p})) eqM)
+step?-complete {Σ = Σ} (β-down-ν {A = A} {B = B} {V = V} {p = p} vV)
+  | no neq | nothing | just (_down_ {V = .V} vV′ (ν_ {p = .p})) =
+  (_ , _ , β-down-ν vV′) , refl , refl
+step?-complete {Σ = Σ} (β-up-ν {V = V} {p = p} vV) with blame? V
+step?-complete {Σ = Σ} (β-up-ν {V = V} {p = p} vV) | yes (ℓ , eq) =
+  ⊥-elim (value-not-blame vV eq)
+step?-complete {Σ = Σ} (β-up-ν {V = V} {p = p} vV) | no neq with step? Σ V
+step?-complete {Σ = Σ} (β-up-ν {V = V} {p = p} vV) | no neq | just (Σ′ , M′ , red) =
+  ⊥-elim (value-no-step vV red)
+step?-complete {Σ = Σ} (β-up-ν {V = V} {p = p} vV) | no neq | nothing with value? V in eqV
+step?-complete {Σ = Σ} (β-up-ν {V = V} {p = p} vV) | no neq | nothing | nothing =
+  ⊥-elim (value?-not-none vV eqV)
+step?-complete {Σ = Σ} (β-up-ν {V = V} {p = p} vV) | no neq | nothing | just vV′ =
+  (_ , _ , β-up-ν vV′) , refl , refl
+step?-complete {Σ = Σ} (ξ-·₁ {L = L} {M = M} red) with step?-complete red
+step?-complete {Σ = Σ} (ξ-·₁ {L = L} {M = M} red)
+  | (Σ′ , L′ , red′) , eq , tgt with blame? L
+step?-complete {Σ = Σ} (ξ-·₁ {L = L} {M = M} red)
+  | (Σ′ , L′ , red′) , eq , tgt | yes (ℓ , refl) =
+  ⊥-elim (nothing≢just (trans (sym step?-blame-none) eq))
+step?-complete {Σ = Σ} (ξ-·₁ {L = L} {M = M} red)
+  | (Σ′ , L′ , red′) , eq , tgt | no neq
+  rewrite eq =
+  (Σ′ , L′ · M , ξ-·₁ red′) , refl ,
+  cong (λ p → proj₁ p , (proj₂ p · M)) tgt
+step?-complete {Σ = Σ} (ξ-·₂ {V = V} {M = M} vV red) with step?-complete red
+step?-complete {Σ = Σ} (ξ-·₂ {V = V} {M = M} vV red)
+  | (Σ′ , M′ , red′) , eq , tgt with blame? V
+step?-complete {Σ = Σ} (ξ-·₂ {V = V} {M = M} vV red)
+  | (Σ′ , M′ , red′) , eq , tgt | yes (ℓ , eqV) =
+  ⊥-elim (value-not-blame vV eqV)
+step?-complete {Σ = Σ} (ξ-·₂ {V = V} {M = M} vV red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqV with step? Σ V
+step?-complete {Σ = Σ} (ξ-·₂ {V = V} {M = M} vV red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqV | just (ΣV , V′ , redV) =
+  ⊥-elim (value-no-step vV redV)
+step?-complete {Σ = Σ} (ξ-·₂ {V = V} {M = M} vV red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqV | nothing with value? V in eqVal
+step?-complete {Σ = Σ} (ξ-·₂ {V = V} {M = M} vV red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqV | nothing | nothing =
+  ⊥-elim (value?-not-none vV eqVal)
+step?-complete {Σ = Σ} (ξ-·₂ {V = V} {M = M} vV red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqV | nothing | just vV′
+  with step? Σ M in eqM
+step?-complete {Σ = Σ} (ξ-·₂ {V = V} {M = M} vV red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqV | nothing | just vV′ | nothing =
+  ⊥-elim (nothing≢just eq)
+step?-complete {Σ = Σ} (ξ-·₂ {V = V} {M = M} vV red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqV | nothing | just vV′ | just s
+  with just-injective eq
+step?-complete {Σ = Σ} (ξ-·₂ {V = V} {M = M} vV red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqV | nothing | just vV′ | just s
+  | refl =
+  (Σ′ , V · M′ , ξ-·₂ vV′ red′) , refl ,
+  cong (λ p → proj₁ p , (V · proj₂ p)) tgt
+step?-complete {Σ = Σ} (ξ-·α {M = M} {B = B} {T = T} red) with step?-complete red
+step?-complete {Σ = Σ} (ξ-·α {M = M} {B = B} {T = T} red)
+  | (Σ′ , M′ , red′) , eq , tgt with blame? M
+step?-complete {Σ = Σ} (ξ-·α {M = M} {B = B} {T = T} red)
+  | (Σ′ , M′ , red′) , eq , tgt | yes (ℓ , refl) =
+  ⊥-elim (nothing≢just (trans (sym step?-blame-none) eq))
+step?-complete {Σ = Σ} (ξ-·α {M = M} {B = B} {T = T} red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neq
+  rewrite eq =
+  (Σ′ , (M′ ⦂∀ B [ T ]) , ξ-·α red′) , refl ,
+  cong (λ p → proj₁ p , (proj₂ p ⦂∀ B [ T ])) tgt
+step?-complete {Σ = Σ} {M = (M₀ up p)} (ξ-up {p = p} red) with step?-complete red
+step?-complete {Σ = Σ} {M = (M₀ up p)} (ξ-up {p = p} red)
+  | (Σ′ , M′ , red′) , eq , tgt with blame? M₀
+step?-complete {Σ = Σ} {M = (M₀ up p)} (ξ-up {p = p} red)
+  | (Σ′ , M′ , red′) , eq , tgt | yes (ℓ , refl) =
+  ⊥-elim (nothing≢just (trans (sym step?-blame-none) eq))
+step?-complete {Σ = Σ} {M = (M₀ up p)} (ξ-up {p = p} red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neq
+  rewrite eq =
+  (Σ′ , (M′ up p) , ξ-up red′) , refl ,
+  cong (λ q → proj₁ q , (proj₂ q up p)) tgt
+step?-complete {Σ = Σ} {M = (M₀ down p)} (ξ-down {p = p} red) with step?-complete red
+step?-complete {Σ = Σ} {M = (M₀ down p)} (ξ-down {p = p} red)
+  | (Σ′ , M′ , red′) , eq , tgt with blame? M₀
+step?-complete {Σ = Σ} {M = (M₀ down p)} (ξ-down {p = p} red)
+  | (Σ′ , M′ , red′) , eq , tgt | yes (ℓ , refl) =
+  ⊥-elim (nothing≢just (trans (sym step?-blame-none) eq))
+step?-complete {Σ = Σ} {M = (M₀ down p)} (ξ-down {p = p} red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neq
+  rewrite eq =
+  (Σ′ , (M′ down p) , ξ-down red′) , refl ,
+  cong (λ q → proj₁ q , (proj₂ q down p)) tgt
+step?-complete {Σ = Σ} {M = (L₀ ⊕[ op ] M₀)} (ξ-⊕₁ {op = op} red) with step?-complete red
+step?-complete {Σ = Σ} {M = (L₀ ⊕[ op ] M₀)} (ξ-⊕₁ {op = op} red)
+  | (Σ′ , L′ , red′) , eq , tgt with blame? L₀
+step?-complete {Σ = Σ} {M = (L₀ ⊕[ op ] M₀)} (ξ-⊕₁ {op = op} red)
+  | (Σ′ , L′ , red′) , eq , tgt | yes (ℓ , refl) =
+  ⊥-elim (nothing≢just (trans (sym step?-blame-none) eq))
+step?-complete {Σ = Σ} {M = (L₀ ⊕[ op ] M₀)} (ξ-⊕₁ {op = op} red)
+  | (Σ′ , L′ , red′) , eq , tgt | no neq
+  rewrite eq =
+  (Σ′ , (L′ ⊕[ op ] M₀) , ξ-⊕₁ red′) , refl ,
+  cong (λ p → proj₁ p , (proj₂ p ⊕[ op ] M₀)) tgt
+step?-complete {Σ = Σ} (ξ-⊕₂ {L = L} {M = M} {op = op} vL red) with step?-complete red
+step?-complete {Σ = Σ} (ξ-⊕₂ {L = L} {M = M} {op = op} vL red)
+  | (Σ′ , M′ , red′) , eq , tgt with blame? L
+step?-complete {Σ = Σ} (ξ-⊕₂ {L = L} {M = M} {op = op} vL red)
+  | (Σ′ , M′ , red′) , eq , tgt | yes (ℓ , eqL) =
+  ⊥-elim (value-not-blame vL eqL)
+step?-complete {Σ = Σ} (ξ-⊕₂ {L = L} {M = M} {op = op} vL red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqL with step? Σ L
+step?-complete {Σ = Σ} (ξ-⊕₂ {L = L} {M = M} {op = op} vL red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqL | just (ΣL , L′ , redL) =
+  ⊥-elim (value-no-step vL redL)
+step?-complete {Σ = Σ} (ξ-⊕₂ {L = L} {M = M} {op = op} vL red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqL | nothing with value? L in eqVal
+step?-complete {Σ = Σ} (ξ-⊕₂ {L = L} {M = M} {op = op} vL red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqL | nothing | nothing =
+  ⊥-elim (value?-not-none vL eqVal)
+step?-complete {Σ = Σ} (ξ-⊕₂ {L = L} {M = M} {op = op} vL red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqL | nothing | just vL′
+  with step? Σ M in eqM
+step?-complete {Σ = Σ} (ξ-⊕₂ {L = L} {M = M} {op = op} vL red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqL | nothing | just vL′ | nothing =
+  ⊥-elim (nothing≢just eq)
+step?-complete {Σ = Σ} (ξ-⊕₂ {L = L} {M = M} {op = op} vL red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqL | nothing | just vL′ | just s
+  with just-injective eq
+step?-complete {Σ = Σ} (ξ-⊕₂ {L = L} {M = M} {op = op} vL red)
+  | (Σ′ , M′ , red′) , eq , tgt | no neqL | nothing | just vL′ | just s
+  | refl =
+  (Σ′ , (L ⊕[ op ] M′) , ξ-⊕₂ vL′ red′) , refl ,
+  cong (λ p → proj₁ p , (L ⊕[ op ] proj₂ p)) tgt
+
+step-deterministic :
+  ∀ {Σ Σ₁ Σ₂ : Store} {M N₁ N₂ : Term} →
+  (red₁ : Σ ∣ M —→ Σ₁ ∣ N₁) →
+  (red₂ : Σ ∣ M —→ Σ₂ ∣ N₂) →
+  (Σ₁ ≡ Σ₂) × (N₁ ≡ N₂)
+step-deterministic red₁ red₂ with step?-complete red₁ | step?-complete red₂
+... | s₁ , eq₁ , tgt₁ | s₂ , eq₂ , tgt₂ with just-injective (trans (sym eq₁) eq₂)
+... | s₁≡s₂ =
+  let tgtEq = trans (sym tgt₁) (trans (cong target s₁≡s₂) tgt₂) in
+  cong proj₁ tgtEq , cong proj₂ tgtEq
 
 ------------------------------------------------------------------------
 -- Fuel-bounded partial evaluation

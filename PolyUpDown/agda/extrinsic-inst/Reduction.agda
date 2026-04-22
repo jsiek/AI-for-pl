@@ -178,6 +178,31 @@ data _—→_ : Term → Term → Set where
     Value L →
     (L ⊕[ op ] blame ℓ) —→ blame ℓ
 
+raw-value-no-step :
+  ∀ {V N : Term} →
+  Value V →
+  V —→ N →
+  ⊥
+raw-value-no-step () (β v)
+raw-value-no-step () (β-up-∀ v)
+raw-value-no-step () (β-up-↦ vV vW)
+raw-value-no-step () (β-down-↦ vV vW)
+raw-value-no-step (_up_ vV ()) (id-up v)
+raw-value-no-step (_down_ vV ()) (id-down v)
+raw-value-no-step (_up_ vV ()) (seal-unseal v)
+raw-value-no-step (_down_ vV ()) (tag-untag-ok v)
+raw-value-no-step (_down_ vV ()) (tag-untag-bad v neq)
+raw-value-no-step (_up_ vV ()) (β-up-； v)
+raw-value-no-step (_down_ vV ()) (β-down-； v)
+raw-value-no-step () δ-⊕
+raw-value-no-step () blame-·₁
+raw-value-no-step () (blame-·₂ v)
+raw-value-no-step () blame-·α
+raw-value-no-step (_up_ () vp) blame-up
+raw-value-no-step (_down_ () vp) blame-down
+raw-value-no-step () blame-⊕₁
+raw-value-no-step () (blame-⊕₂ v)
+
 
 infix 2 _∣_—→[_]_∣_
 data _∣_—→[_]_∣_ :

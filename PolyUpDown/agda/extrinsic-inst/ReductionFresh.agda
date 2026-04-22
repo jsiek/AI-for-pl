@@ -7,6 +7,7 @@ module ReductionFresh where
 --   * Includes one-step and multi-step reduction plus basic store invariants.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Empty using (⊥)
 open import Data.List using (length; []; _∷_)
 open import Data.Nat using (ℕ; _+_; zero)
 open import Data.Product using (_,_)
@@ -53,6 +54,7 @@ open import Reduction public
     ; blame-down
     ; blame-⊕₁
     ; blame-⊕₂
+    ; raw-value-no-step
     )
 
 ------------------------------------------------------------------------
@@ -122,6 +124,24 @@ data _∣_—→_∣_ :
     Value L →
     Σ ∣ M —→ Σ′ ∣ M′ →
     Σ ∣ (L ⊕[ op ] M) —→ Σ′ ∣ (L ⊕[ op ] M′)
+
+value-no-step :
+  ∀ {Σ Σ′ : Store} {V N : Term} →
+  Value V →
+  Σ ∣ V —→ Σ′ ∣ N →
+  ⊥
+value-no-step vV (id-step red) = raw-value-no-step vV red
+value-no-step () β-Λ
+value-no-step () (β-down-∀ vV)
+value-no-step () (β-down-ν vV)
+value-no-step (_up_ vV ()) (β-up-ν vV′)
+value-no-step () (ξ-·₁ red)
+value-no-step () (ξ-·₂ v red)
+value-no-step () (ξ-·α red)
+value-no-step (_up_ vV vp) (ξ-up red) = value-no-step vV red
+value-no-step (_down_ vV vp) (ξ-down red) = value-no-step vV red
+value-no-step () (ξ-⊕₁ red)
+value-no-step () (ξ-⊕₂ v red)
 
 ------------------------------------------------------------------------
 -- Store growth witness extracted from one step

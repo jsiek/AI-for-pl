@@ -424,44 +424,48 @@ mutual
   --   type context. Under that intended use, the lack of a `⊑-＇` clause is
   --   deliberate. 
   𝒱 : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
-  𝒱 p zero dir w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱 p n dir w V W = Value V × Value W × 𝒱′ p n dir w V W
+
+  𝒱′ : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
+  𝒱′ p zero dir w V W = Lift (lsuc 0ℓ) ⊤
   
-  𝒱 ⊑-‵ (suc n) dir w ($ (κℕ m)) ($ (κℕ m′)) = Lift (lsuc 0ℓ) (m ≡ m′)
+  𝒱′ ⊑-‵ (suc n) dir w ($ (κℕ m)) ($ (κℕ m′)) = Lift (lsuc 0ℓ) (m ≡ m′)
   
-  𝒱 (⊑-⇒ pA pB) (suc n) dir w V W =
+  𝒱′ (⊑-⇒ pA pB) (suc n) dir w V W =
     ∀ {V′ W′} →
     𝒱 pA (suc n) dir w V′ W′ →
     ℰ pB (suc n) dir w (V · V′) (W · W′)
 
-  𝒱 {A = `∀ A} {B = `∀ B} (⊑-∀ p) (suc n) dir w V W =
+  𝒱′ {A = `∀ A} {B = `∀ B} (⊑-∀ p) (suc n) dir w V W =
     ∀ {w′} → w′ ⪰ w → (R : Rel) → (T U : Ty) →
     ℰ p (suc n) dir (extendWorld w′ R) (V ⦂∀ A [ T ]) (W ⦂∀ B [ U ])
 
-  𝒱 {A = `∀ A} {B = B} (⊑-ν p) (suc n) dir w V W =
+  𝒱′ {A = `∀ A} {B = B} (⊑-ν p) (suc n) dir w V W =
     ∀ {w′} → w′ ⪰ w → (R : Rel) →
     ℰ p (suc n) dir (extendWorld w′ R) (V ⦂∀ A [ ｀ length (Σˡ w′) ]) W
     
-  𝒱 ⊑-★★ (suc n) dir w (V up tag G) (W up tag H) =
+  𝒱′ ⊑-★★ (suc n) dir w (V up tag G) (W up tag H) =
     Lift (lsuc 0ℓ) (G ≡ H) ×
     𝒱 (⊑-refl {A = G}) n dir w V W
     
-  𝒱 ⊑-★★ (suc n) dir w (V down seal αˡ) (W down seal αʳ) =
+  𝒱′ ⊑-★★ (suc n) dir w (V down seal αˡ) (W down seal αʳ) =
     Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R n dir V W
     
-  𝒱 (⊑-★ {G = G} g p) (suc n) ≼ w V (W up tag H) =
+  𝒱′ (⊑-★ {G = G} g p) (suc n) ≼ w V (W up tag H) =
     Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p n ≼ w V W
 
-  𝒱 (⊑-★ {G = G} g p) (suc n) ≽ w V (W up tag H) =
+  𝒱′ (⊑-★ {G = G} g p) (suc n) ≽ w V (W up tag H) =
     Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p (suc n) ≽ w V W
     
-  𝒱 (⊑-｀ {α = α}) (suc n) dir w (V down seal βˡ) (W down seal βʳ) =
+  𝒱′ (⊑-｀ {α = α}) (suc n) dir w (V down seal βˡ) (W down seal βʳ) =
     Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Rel ]
       (η w ∋η α ↔ α ∶ R) ×
       R (suc n) dir V W
       
-  𝒱 p (suc n) dir w V W = Lift (lsuc 0ℓ) ⊥
+  𝒱′ p (suc n) dir w V W = Lift (lsuc 0ℓ) ⊥
 
 
+  -- This follows PeterLogRel.
   ℰ : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
   ℰ p zero dir w Mˡ Mʳ = Lift (lsuc 0ℓ) ⊤
   

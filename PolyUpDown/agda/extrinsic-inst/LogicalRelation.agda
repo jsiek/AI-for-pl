@@ -329,7 +329,7 @@ open import Data.List using (List; []; _∷_; length)
 open import Data.Nat using (ℕ; zero; suc; z<s)
 open import Data.Empty using (⊥)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂)
-open import Data.Sum using (_⊎_)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Unit using (⊤; tt)
 open import Level using (Lift; 0ℓ) renaming (suc to lsuc)
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -492,6 +492,99 @@ mutual
     (Value Mʳ × Σ[ Σˡ′ ∈ Store ] Σ[ Wˡ ∈ Term ]
       (Σˡ w ∣ Mˡ —↠ Σˡ′ ∣ Wˡ) ×
       𝒱 p n ≽ (mkWorld Σˡ′ (Σʳ w) (η w)) Wˡ Mʳ)
+
+------------------------------------------------------------------------
+-- Elimination interface (stable surface for consumers)
+------------------------------------------------------------------------
+
+𝒱-left-value :
+  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {dir : Dir} {w : World}
+    {V W : Term} →
+  𝒱 p n dir w V W →
+  Value V
+𝒱-left-value rel = proj₁ rel
+
+𝒱-right-value :
+  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {dir : Dir} {w : World}
+    {V W : Term} →
+  𝒱 p n dir w V W →
+  Value W
+𝒱-right-value rel = proj₁ (proj₂ rel)
+
+𝒱-core :
+  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {dir : Dir} {w : World}
+    {V W : Term} →
+  𝒱 p n dir w V W →
+  𝒱′ p n dir w V W
+𝒱-core rel = proj₂ (proj₂ rel)
+
+data ℰObs≼ {A B : Ty} (p : A ⊑ B) (n : ℕ) (w : World)
+  (Mˡ Mʳ : Term) : Set₁ where
+  obs≼-stepˡ :
+    (Σˡ′ : Store) (Mˡ′ : Term) →
+    (Σˡ w ∣ Mˡ —→ Σˡ′ ∣ Mˡ′) →
+    ℰ p n ≼ (mkWorld Σˡ′ (Σʳ w) (η w)) Mˡ′ Mʳ →
+    ℰObs≼ p n w Mˡ Mʳ
+
+  obs≼-blameʳ :
+    (Σʳ′ : Store) (ℓ : Label) →
+    (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ blame ℓ) →
+    ℰObs≼ p n w Mˡ Mʳ
+
+  obs≼-value :
+    Value Mˡ →
+    (Σʳ′ : Store) (Wʳ : Term) →
+    (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ Wʳ) →
+    𝒱 p n ≼ (mkWorld (Σˡ w) Σʳ′ (η w)) Mˡ Wʳ →
+    ℰObs≼ p n w Mˡ Mʳ
+
+data ℰObs≽ {A B : Ty} (p : A ⊑ B) (n : ℕ) (w : World)
+  (Mˡ Mʳ : Term) : Set₁ where
+  obs≽-stepʳ :
+    (Σʳ′ : Store) (Mʳ′ : Term) →
+    (Σʳ w ∣ Mʳ —→ Σʳ′ ∣ Mʳ′) →
+    ℰ p n ≽ (mkWorld (Σˡ w) Σʳ′ (η w)) Mˡ Mʳ′ →
+    ℰObs≽ p n w Mˡ Mʳ
+
+  obs≽-blameʳ :
+    (Σʳ′ : Store) (ℓ : Label) →
+    (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ blame ℓ) →
+    ℰObs≽ p n w Mˡ Mʳ
+
+  obs≽-value :
+    Value Mʳ →
+    (Σˡ′ : Store) (Wˡ : Term) →
+    (Σˡ w ∣ Mˡ —↠ Σˡ′ ∣ Wˡ) →
+    𝒱 p n ≽ (mkWorld Σˡ′ (Σʳ w) (η w)) Wˡ Mʳ →
+    ℰObs≽ p n w Mˡ Mʳ
+
+observeℰ≼ :
+  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {w : World} {Mˡ Mʳ : Term} →
+  ℰ p (suc n) ≼ w Mˡ Mʳ →
+  ℰObs≼ p n w Mˡ Mʳ
+observeℰ≼ rel with rel
+observeℰ≼ rel | inj₁ red =
+  obs≼-stepˡ (proj₁ red) (proj₁ (proj₂ red))
+    (proj₁ (proj₂ (proj₂ red))) (proj₂ (proj₂ (proj₂ red)))
+observeℰ≼ rel | inj₂ (inj₁ blm) =
+  obs≼-blameʳ (proj₁ blm) (proj₁ (proj₂ blm)) (proj₂ (proj₂ blm))
+observeℰ≼ rel | inj₂ (inj₂ val) =
+  obs≼-value (proj₁ val) (proj₁ (proj₂ val)) (proj₁ (proj₂ (proj₂ val)))
+    (proj₁ (proj₂ (proj₂ (proj₂ val)))) (proj₂ (proj₂ (proj₂ (proj₂ val))))
+
+observeℰ≽ :
+  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {w : World} {Mˡ Mʳ : Term} →
+  ℰ p (suc n) ≽ w Mˡ Mʳ →
+  ℰObs≽ p n w Mˡ Mʳ
+observeℰ≽ rel with rel
+observeℰ≽ rel | inj₁ red =
+  obs≽-stepʳ (proj₁ red) (proj₁ (proj₂ red))
+    (proj₁ (proj₂ (proj₂ red))) (proj₂ (proj₂ (proj₂ red)))
+observeℰ≽ rel | inj₂ (inj₁ blm) =
+  obs≽-blameʳ (proj₁ blm) (proj₁ (proj₂ blm)) (proj₂ (proj₂ blm))
+observeℰ≽ rel | inj₂ (inj₂ val) =
+  obs≽-value (proj₁ val) (proj₁ (proj₂ val)) (proj₁ (proj₂ (proj₂ val)))
+    (proj₁ (proj₂ (proj₂ (proj₂ val)))) (proj₂ (proj₂ (proj₂ (proj₂ val))))
 
 ------------------------------------------------------------------------
 -- Environment interpretation for open terms

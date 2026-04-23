@@ -134,40 +134,42 @@ mutual
   𝒱payload {A = ‵ `𝔹} {B = ‵ `𝔹} ⊑-‵ n dir w V W = Lift (lsuc 0ℓ) ⊥
 
   𝒱payload {A = Aˡ ⇒ Bˡ} {B = Aʳ ⇒ Bʳ} (⊑-⇒ pA pB) n dir w V W =
-    ∀ (j : ℕ) → j < n → ∀ {V′ W′} →
-      𝒱 pA j dir w V′ W′ →
-      ℰ pB j dir w (V · V′) (W · W′)
+    ∀ {V′ W′} →
+      𝒱 pA n dir w V′ W′ →
+      ℰ pB n dir w (V · V′) (W · W′)
 
   𝒱payload {A = `∀ Aˡ} {B = `∀ Aʳ} (⊑-∀ p) n dir w V W =
     ∀ {w′} → w′ ⪰ w → (R : Rel) → (T U : Ty) →
-      ℰ p (suc n) dir (extendWorld w′ R) (V ⦂∀ Aˡ [ T ]) (W ⦂∀ Aʳ [ U ])
+      ℰ p n dir (extendWorld w′ R) (V ⦂∀ Aˡ [ T ]) (W ⦂∀ Aʳ [ U ])
 
   𝒱payload {A = `∀ Aˡ} {B = Bʳ} (⊑-ν p) n dir w V W =
     ∀ {w′} → w′ ⪰ w → (R : Rel) →
-      ℰ p (suc n) dir (extendWorld w′ R) (V ⦂∀ Aˡ [ ｀ length (Σˡ w′) ]) W
+      ℰ p n dir (extendWorld w′ R) (V ⦂∀ Aˡ [ ｀ length (Σˡ w′) ]) W
 
-  𝒱payload {A = ★} {B = ★} ⊑-★★ n dir w V W = star-rel V W
+  𝒱payload {A = ★} {B = ★} ⊑-★★ 0 dir w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱payload {A = ★} {B = ★} ⊑-★★ (suc n) dir w V W = star-rel V W
     where
     star-rel : Term → Term → Set₁
     star-rel (V up tag G) (W up tag H) =
-      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 (⊑-refl {A = G}) n dir w V W
+      Lift (lsuc 0ℓ) (G ≡ H)  ×  𝒱 (⊑-refl {A = G}) n dir w V W
     star-rel (V down seal αˡ) (W down seal αʳ) =
       Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R n dir V W
     star-rel V W = Lift (lsuc 0ℓ) ⊥
 
-  𝒱payload {A = A} {B = ★} (⊑-★ {G = G} g p) n ≼ w V W =
+  𝒱payload {A = A} {B = ★} (⊑-★ {G = G} g p) 0 ≼ w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱payload {A = A} {B = ★} (⊑-★ {G = G} g p) (suc n) ≼ w V W =
     star-right-rel W
     where
     star-right-rel : Term → Set₁
     star-right-rel (W up tag H) = Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p n ≼ w V W
     star-right-rel W = Lift (lsuc 0ℓ) ⊥
 
-  𝒱payload {A = A} {B = ★} (⊑-★ {G = G} g p) n ≽ w V W =
+  𝒱payload {A = A} {B = ★} (⊑-★ {G = G} g p) 0 ≽ w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱payload {A = A} {B = ★} (⊑-★ {G = G} g p) (suc n) ≽ w V W =
     star-right-rel W
     where
     star-right-rel : Term → Set₁
-    star-right-rel (W up tag H) =
-      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p (suc n) ≽ w V W
+    star-right-rel (W up tag H) = Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p n ≽ w V W
     star-right-rel W = Lift (lsuc 0ℓ) ⊥
 
   𝒱payload {A = ｀ α} {B = ｀ α} (⊑-｀ {α = α}) n dir w V W =
@@ -176,7 +178,7 @@ mutual
     seal-rel : Term → Term → Set₁
     seal-rel (V down seal βˡ) (W down seal βʳ) =
       Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Rel ]
-        (η w ∋η α ↔ α ∶ R) × R (suc n) dir V W
+        (η w ∋η α ↔ α ∶ R) × R n dir V W
     seal-rel V W = Lift (lsuc 0ℓ) ⊥
 
   𝒱payload {A = ＇ X} {B = ＇ X} ⊑-＇ n dir w V W = Lift (lsuc 0ℓ) ⊥
@@ -185,18 +187,12 @@ mutual
   --   each related pair is value-level, well-typed, and closed with respect
   --   to term variables.
   𝒱 : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
-  𝒱 {A = A} {B = B} p zero dir w V W =
-    Value V × Value W ×
-    ((Δ w ∣ Ψ w ∣ Σˡ w ∣ [] ⊢ V ⦂ A) × (Δ w ∣ Ψ w ∣ Σʳ w ∣ [] ⊢ W ⦂ B)) ×
-    Lift (lsuc 0ℓ) ⊤
-
-  𝒱 {A = A} {B = B} p (suc n) dir w V W =
+  𝒱 {A = A} {B = B} p n dir w V W =
     Value V × Value W ×
     ((Δ w ∣ Ψ w ∣ Σˡ w ∣ [] ⊢ V ⦂ A) × (Δ w ∣ Ψ w ∣ Σʳ w ∣ [] ⊢ W ⦂ B)) ×
     𝒱payload p n dir w V W
 
   -- This follows PeterLogRel.
-  {-# TERMINATING #-}
   ℰ : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
   ℰ {A = A} {B = B} p zero dir w Mˡ Mʳ =
     ((Δ w ∣ Ψ w ∣ Σˡ w ∣ [] ⊢ Mˡ ⦂ A) ×
@@ -355,13 +351,11 @@ proj⊨ ≼ rel = proj₁ rel
 proj⊨ ≽ rel = proj₂ rel
 
 
-mutual
+postulate
   𝒱-monotone : ∀ A B (p : A ⊑ B) k dir w V W
     → 𝒱 p (suc k) dir w V W
     → 𝒱 p k dir w V W
-  𝒱-monotone A B p k dir w V W = {!!}
 
   ℰ-monotone : ∀ A B (p : A ⊑ B) k dir w Mˡ Mʳ
     → ℰ p (suc k) dir w Mˡ Mʳ
     → ℰ p k dir w Mˡ Mʳ
-  ℰ-monotone A B p k dir w Mˡ Mʳ = {!!}

@@ -8,7 +8,7 @@ This checklist records what appears complete in `STLC/agda` and what is still mi
 - [x] Small-step reduction and multi-step closure are defined in `STLC.agda`.
 - [x] Parallel renaming/substitution infrastructure is present in `STLC.agda`.
 - [x] Single substitution is derived from parallel substitution (`singleEnv`, `singleSubst`).
-- [x] Substitution metatheory is developed in `Subst.agda`.
+- [x] Substitution metatheory is developed in `proof/Subst.agda`.
 - [x] Progress and preservation are proved in `TypeSafety.agda`.
 - [x] Cross-check exists in Lean (`STLC/lean`).
 

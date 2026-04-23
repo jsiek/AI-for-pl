@@ -6,7 +6,7 @@ STLC - Simply Typed Lambda Calculus
 
 STLCRef - Simply Typed Lambda Calculus with mutable references
 
-STLCRec - Simply Typed Lambda Calculus with general recursion via μ.
+STLCRec - Simply Typed Lambda Calculus with recursive functions.
   This includes a proof of type safety via logical relations,
   adapted to de Bruijn variable representation
   from a proof by Peter Thiemann about this calculus but with names.

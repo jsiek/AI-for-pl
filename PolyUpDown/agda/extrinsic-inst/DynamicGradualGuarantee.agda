@@ -7,7 +7,7 @@ module DynamicGradualGuarantee where
 --   * Keeps the catchup argument explicit, indexed by the observed number of
 --   * right-hand reduction steps.
 
-open import Data.List using ([])
+open import Data.List using (List; [])
 open import Data.Nat using (ℕ; zero; suc; _+_; _≟_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Maybe using (Maybe; just; nothing)
@@ -89,7 +89,7 @@ open import ReductionFresh
     ; _∎
     ; _—→⟨_⟩_
     )
-open import LogicalRelation
+open import LogicalRelationDownward
 open import Parametricity using (fundamental)
 open import EvalPartialFresh
   using
@@ -244,140 +244,168 @@ blame-or-step (_ —→⟨ M→N₁ ⟩ N₁↠N′)
 ... | refl , refl = blame-or-step N₁↠N′ N₂↠blame
 
 right-catchup :
-  ∀ {Σˡ₀ Σʳ₀ Σʳ′ A B} {p : A ⊑ B} (k : ℕ) {Mˡ Mʳ V′} →
+  ∀ {Σˡ₀ Σʳ₀ Σʳ′ A B} {p : A ⊑ B} (k : ℕ) {η₀ : List SealRel}
+    {Mˡ Mʳ V′} →
   Value V′ →
   (Mʳ↠V′ : Σʳ₀ ∣ Mʳ —↠ Σʳ′ ∣ V′) →
   ℰ (substᴿ-⊑ ∅ρ p) (steps Mʳ↠V′ + suc k) ≽
-    (mkWorld Σˡ₀ Σʳ₀ []) Mˡ Mʳ →
+    (mkWorld Σˡ₀ Σʳ₀ η₀) Mˡ Mʳ →
   ∃[ Σˡ′ ] ∃[ V ]
     Value V ×
     (Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ V) ×
-    𝒱 (substᴿ-⊑ ∅ρ p) k ≽ (mkWorld Σˡ′ Σʳ′ []) V V′
-right-catchup {A = A} {B = B} {p = p} k vV′ (_ ∎) rel with observeℰ≽ rel
+    𝒱 (substᴿ-⊑ ∅ρ p) k ≽ (mkWorld Σˡ′ Σʳ′ η₀) V V′
+right-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} vV′ (_ ∎) rel
+  with observeℰ≽ {n = k} {w = mkWorld Σˡ₀ Σʳ₀ η₀} rel
 ... | obs≽-stepʳ Σʳ₁ Mʳ₁ Mʳ→Mʳ₁ rel′ =
   ⊥-elim (value-no-step vV′ Mʳ→Mʳ₁)
 ... | obs≽-blameʳ Σʳᵇ ℓ Mʳ↠blame =
   ⊥-elim (value-vs-blame vV′ (_ ∎) Mʳ↠blame)
 ... | obs≽-value vMʳ Σˡ′ V Mˡ↠V Vrel =
-  Σˡ′ , V , 𝒱-left-value Vrel , Mˡ↠V , Vrel
-right-catchup {A = A} {B = B} {p = p} k vV′
-  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel with observeℰ≽ rel
+  Σˡ′ , V ,
+  𝒱-left-value {p = substᴿ-⊑ ∅ρ p} {n = k} {dir = ≽}
+    {w = mkWorld Σˡ′ Σʳ₀ η₀} Vrel ,
+  Mˡ↠V , Vrel
+right-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
+  with observeℰ≽ {n = steps Mʳ₁↠V′ + suc k} {w = mkWorld Σˡ₀ Σʳ₀ η₀} rel
 ... | obs≽-stepʳ Σʳ₁ Mʳ₁′ Mʳ→Mʳ₁′ rel′
   with step-deterministic Mʳ→Mʳ₁ Mʳ→Mʳ₁′
-right-catchup {A = A} {B = B} {p = p} k vV′
-  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
+right-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
   | obs≽-stepʳ Σʳ₁ Mʳ₁′ Mʳ→Mʳ₁′ rel′
   | refl , refl =
-  right-catchup {A = A} {B = B} {p = p} k vV′ Mʳ₁↠V′ rel′
-right-catchup {A = A} {B = B} {p = p} k vV′
-  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
+  right-catchup {A = A} {B = B} {p = p} k {η₀ = η₀} vV′ Mʳ₁↠V′ rel′
+right-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
   | obs≽-blameʳ Σʳᵇ ℓ Mʳ↠blame =
   ⊥-elim
     (value-vs-blame vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′)
       Mʳ↠blame)
-right-catchup {A = A} {B = B} {p = p} k vV′
-  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
+right-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
   | obs≽-value vMʳ Σˡ′ V Mˡ↠V Vrel =
   ⊥-elim (value-no-step vMʳ Mʳ→Mʳ₁)
 
 left-catchup-or-blame :
-  ∀ {Σˡ₀ Σʳ₀ Σˡ′ A B} {p : A ⊑ B} (k : ℕ) {Mˡ Mʳ V} →
+  ∀ {Σˡ₀ Σʳ₀ Σˡ′ A B} {p : A ⊑ B} (k : ℕ) {η₀ : List SealRel}
+    {Mˡ Mʳ V} →
   Value V →
   (Mˡ↠V : Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ V) →
   ℰ (substᴿ-⊑ ∅ρ p) (steps Mˡ↠V + suc k) ≼
-    (mkWorld Σˡ₀ Σʳ₀ []) Mˡ Mʳ →
+    (mkWorld Σˡ₀ Σʳ₀ η₀) Mˡ Mʳ →
   (∃[ Σʳ′ ] ∃[ V′ ]
      Value V′ ×
      (Σʳ₀ ∣ Mʳ —↠ Σʳ′ ∣ V′) ×
-     𝒱 (substᴿ-⊑ ∅ρ p) k ≼ (mkWorld Σˡ′ Σʳ′ []) V V′)
+     𝒱 (substᴿ-⊑ ∅ρ p) k ≼ (mkWorld Σˡ′ Σʳ′ η₀) V V′)
   ⊎ Blames Σʳ₀ Mʳ
-left-catchup-or-blame {A = A} {B = B} {p = p} k vV (_ ∎) rel with observeℰ≼ rel
+left-catchup-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} vV (_ ∎) rel
+  with observeℰ≼ {n = k} {w = mkWorld Σˡ₀ Σʳ₀ η₀} rel
 ... | obs≼-stepˡ Σˡ₁ Mˡ₁ Mˡ→Mˡ₁ rel′ =
   ⊥-elim (value-no-step vV Mˡ→Mˡ₁)
 ... | obs≼-blameʳ Σʳᵇ ℓ Mʳ↠blame =
   inj₂ (Σʳᵇ , ℓ , Mʳ↠blame)
 ... | obs≼-value vMˡ Σʳ′ V′ Mʳ↠V′ Vrel =
-  inj₁ (Σʳ′ , V′ , 𝒱-right-value Vrel , Mʳ↠V′ , Vrel)
-left-catchup-or-blame {A = A} {B = B} {p = p} k vV
-  (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel with observeℰ≼ rel
+  inj₁
+    (Σʳ′ , V′ ,
+     𝒱-right-value {p = substᴿ-⊑ ∅ρ p} {n = k} {dir = ≼}
+       {w = mkWorld Σˡ₀ Σʳ′ η₀} Vrel ,
+     Mʳ↠V′ , Vrel)
+left-catchup-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} vV (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel
+  with observeℰ≼ {n = steps Mˡ₁↠V + suc k} {w = mkWorld Σˡ₀ Σʳ₀ η₀} rel
 ... | obs≼-stepˡ Σˡ₁ Mˡ₁′ Mˡ→Mˡ₁′ rel′
   with step-deterministic Mˡ→Mˡ₁ Mˡ→Mˡ₁′
-left-catchup-or-blame {A = A} {B = B} {p = p} k vV
-  (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel
+left-catchup-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} vV (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel
   | obs≼-stepˡ Σˡ₁ Mˡ₁′ Mˡ→Mˡ₁′ rel′
   | refl , refl =
-  left-catchup-or-blame {A = A} {B = B} {p = p} k vV Mˡ₁↠V rel′
-left-catchup-or-blame {A = A} {B = B} {p = p} k vV
-  (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel
+  left-catchup-or-blame {A = A} {B = B} {p = p} k {η₀ = η₀} vV Mˡ₁↠V rel′
+left-catchup-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} vV (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel
   | obs≼-blameʳ Σʳᵇ ℓ Mʳ↠blame =
   inj₂ (Σʳᵇ , ℓ , Mʳ↠blame)
-left-catchup-or-blame {A = A} {B = B} {p = p} k vV
-  (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel
+left-catchup-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} vV (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel
   | obs≼-value vMˡ Σʳ′ V′ Mʳ↠V′ Vrel =
   ⊥-elim (value-no-step vMˡ Mˡ→Mˡ₁)
 
 left-blame-catchup :
-  ∀ {Σˡ₀ Σʳ₀ Σˡ′ A B} {p : A ⊑ B} (k : ℕ)
+  ∀ {Σˡ₀ Σʳ₀ Σˡ′ A B} {p : A ⊑ B} (k : ℕ) {η₀ : List SealRel}
     {Mˡ Mʳ} {ℓ : Label} →
   (Mˡ↠blame : Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ blame ℓ) →
   ℰ (substᴿ-⊑ ∅ρ p) (steps Mˡ↠blame + suc k) ≼
-    (mkWorld Σˡ₀ Σʳ₀ []) Mˡ Mʳ →
+    (mkWorld Σˡ₀ Σʳ₀ η₀) Mˡ Mʳ →
   Blames Σʳ₀ Mʳ
-left-blame-catchup {A = A} {B = B} {p = p} k (_ ∎) rel with observeℰ≼ rel
+left-blame-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} (_ ∎) rel
+  with observeℰ≼ {n = k} {w = mkWorld Σˡ₀ Σʳ₀ η₀} rel
 ... | obs≼-stepˡ Σˡ₁ Mˡ₁ Mˡ→Mˡ₁ rel′ =
   ⊥-elim (blame-no-step Mˡ→Mˡ₁)
 ... | obs≼-blameʳ Σʳᵇ ℓʳ Mʳ↠blame =
   Σʳᵇ , ℓʳ , Mʳ↠blame
 ... | obs≼-value vMˡ Σʳ′ V′ Mʳ↠V′ Vrel =
   ⊥-elim (value≢blame vMˡ refl)
-left-blame-catchup {A = A} {B = B} {p = p} k
-  (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠blame) rel with observeℰ≼ rel
+left-blame-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠blame) rel
+  with observeℰ≼ {n = steps Mˡ₁↠blame + suc k} {w = mkWorld Σˡ₀ Σʳ₀ η₀} rel
 ... | obs≼-stepˡ Σˡ₁ Mˡ₁′ Mˡ→Mˡ₁′ rel′
   with step-deterministic Mˡ→Mˡ₁ Mˡ→Mˡ₁′
-left-blame-catchup {A = A} {B = B} {p = p} k
-  (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠blame) rel
+left-blame-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠blame) rel
   | obs≼-stepˡ Σˡ₁ Mˡ₁′ Mˡ→Mˡ₁′ rel′
   | refl , refl =
-  left-blame-catchup {A = A} {B = B} {p = p} k Mˡ₁↠blame rel′
-left-blame-catchup {A = A} {B = B} {p = p} k
-  (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠blame) rel
+  left-blame-catchup {A = A} {B = B} {p = p} k {η₀ = η₀} Mˡ₁↠blame rel′
+left-blame-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠blame) rel
   | obs≼-blameʳ Σʳᵇ ℓʳ Mʳ↠blame =
   Σʳᵇ , ℓʳ , Mʳ↠blame
-left-blame-catchup {A = A} {B = B} {p = p} k
-  (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠blame) rel
+left-blame-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠blame) rel
   | obs≼-value vMˡ Σʳ′ V′ Mʳ↠V′ Vrel =
   ⊥-elim (value-no-step vMˡ Mˡ→Mˡ₁)
 
 right-diverge-or-blame :
-  ∀ {Σˡ₀ Σʳ₀ Σʳ′ A B} {p : A ⊑ B} (k : ℕ) {Mˡ Mʳ Nʳ} →
+  ∀ {Σˡ₀ Σʳ₀ Σʳ′ A B} {p : A ⊑ B} (k : ℕ) {η₀ : List SealRel}
+    {Mˡ Mʳ Nʳ} →
   Diverges Σˡ₀ Mˡ →
   (Mʳ↠Nʳ : Σʳ₀ ∣ Mʳ —↠ Σʳ′ ∣ Nʳ) →
   ℰ (substᴿ-⊑ ∅ρ p) (steps Mʳ↠Nʳ + suc k) ≽
-    (mkWorld Σˡ₀ Σʳ₀ []) Mˡ Mʳ →
+    (mkWorld Σˡ₀ Σʳ₀ η₀) Mˡ Mʳ →
   Blame Nʳ ⊎
   (∃[ Σʳ″ ] ∃[ Nʳ″ ] (Σʳ′ ∣ Nʳ —→ Σʳ″ ∣ Nʳ″))
-right-diverge-or-blame {A = A} {B = B} {p = p} k div (_ ∎) rel with observeℰ≽ rel
+right-diverge-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} div (_ ∎) rel
+  with observeℰ≽ {n = k} {w = mkWorld Σˡ₀ Σʳ₀ η₀} rel
 ... | obs≽-stepʳ Σʳ₁ Mʳ₁ Mʳ→Mʳ₁ rel′ =
   inj₂ (Σʳ₁ , Mʳ₁ , Mʳ→Mʳ₁)
 ... | obs≽-blameʳ Σʳᵇ ℓ Mʳ↠blame =
   blame-or-step (_ ∎) Mʳ↠blame
 ... | obs≽-value vMʳ Σˡ′ Vˡ Mˡ↠Vˡ Vrel =
-  ⊥-elim (div (Σˡ′ , Vˡ , (Mˡ↠Vˡ , inj₁ (𝒱-left-value Vrel))))
-right-diverge-or-blame {A = A} {B = B} {p = p} k div
-  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) rel with observeℰ≽ rel
+  ⊥-elim
+    (div
+      (Σˡ′ , Vˡ ,
+       (Mˡ↠Vˡ ,
+        inj₁
+          (𝒱-left-value {p = substᴿ-⊑ ∅ρ p} {n = k} {dir = ≽}
+             {w = mkWorld Σˡ′ Σʳ₀ η₀} Vrel))))
+right-diverge-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} div (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) rel
+  with observeℰ≽ {n = steps Mʳ₁↠Nʳ + suc k} {w = mkWorld Σˡ₀ Σʳ₀ η₀} rel
 ... | obs≽-stepʳ Σʳ₁ Mʳ₁′ Mʳ→Mʳ₁′ rel′
   with step-deterministic Mʳ→Mʳ₁ Mʳ→Mʳ₁′
-right-diverge-or-blame {A = A} {B = B} {p = p} k div
-  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) rel
+right-diverge-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} div (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) rel
   | obs≽-stepʳ Σʳ₁ Mʳ₁′ Mʳ→Mʳ₁′ rel′
   | refl , refl =
-  right-diverge-or-blame {A = A} {B = B} {p = p} k div Mʳ₁↠Nʳ rel′
-right-diverge-or-blame {A = A} {B = B} {p = p} k div
-  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) rel
+  right-diverge-or-blame {A = A} {B = B} {p = p} k {η₀ = η₀} div Mʳ₁↠Nʳ rel′
+right-diverge-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} div (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) rel
   | obs≽-blameʳ Σʳᵇ ℓ Mʳ↠blame =
   blame-or-step (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) Mʳ↠blame
-right-diverge-or-blame {A = A} {B = B} {p = p} k div
-  (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) rel
+right-diverge-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
+  k {η₀ = η₀} div (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) rel
   | obs≽-value vMʳ Σˡ′ Vˡ Mˡ↠Vˡ Vrel =
   ⊥-elim (value-no-step vMʳ Mʳ→Mʳ₁)
 

@@ -418,59 +418,80 @@ extendWorld-⪰ {w} R ._⪰_.growη = η-drop ⊆η-refl
 -- Logical relation core
 --------------------------------------------------------------------------------
 
+ClosedTy :
+  Store → Term → Ty → Set
+ClosedTy Σ M A = Σ[ Ψ ∈ SealCtx ] 0 ∣ Ψ ∣ Σ ∣ [] ⊢ M ⦂ A
+
+ClosedTy₂ :
+  World → Ty → Ty → Term → Term → Set
+ClosedTy₂ w A B V W = ClosedTy (Σˡ w) V A × ClosedTy (Σʳ w) W B
+
 mutual
   -- Intended invariant:
-  --   `𝒱` is meant to be used only on closed values under an empty
-  --   type context. Under that intended use, the lack of a `⊑-＇` clause is
-  --   deliberate. 
+  --   each related pair is value-level, well-typed, and closed with respect
+  --   to term variables.
   𝒱 : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
-  𝒱 p n dir w V W = Value V × Value W × 𝒱′ p n dir w V W
+  𝒱 {A = A} {B = B} p zero dir w V W =
+    Value V × Value W × ClosedTy₂ w A B V W × Lift (lsuc 0ℓ) ⊤
 
-  𝒱′ : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
-  𝒱′ p zero dir w V W = Lift (lsuc 0ℓ) ⊤
-  
-  𝒱′ ⊑-‵ (suc n) dir w ($ (κℕ m)) ($ (κℕ m′)) = Lift (lsuc 0ℓ) (m ≡ m′)
-  
-  𝒱′ (⊑-⇒ pA pB) (suc n) dir w V W =
-    ∀ {V′ W′} →
-    𝒱 pA (suc n) dir w V′ W′ →
-    ℰ pB (suc n) dir w (V · V′) (W · W′)
+  𝒱 {A = ‵ `ℕ} {B = ‵ `ℕ} ⊑-‵ (suc n) dir w ($ (κℕ m)) ($ (κℕ m′)) =
+    Value ($ (κℕ m)) × Value ($ (κℕ m′)) ×
+    ClosedTy₂ w (‵ `ℕ) (‵ `ℕ) ($ (κℕ m)) ($ (κℕ m′)) ×
+    Lift (lsuc 0ℓ) (m ≡ m′)
 
-  𝒱′ {A = `∀ A} {B = `∀ B} (⊑-∀ p) (suc n) dir w V W =
-    ∀ {w′} → w′ ⪰ w → (R : Rel) → (T U : Ty) →
-    ℰ p (suc n) dir (extendWorld w′ R) (V ⦂∀ A [ T ]) (W ⦂∀ B [ U ])
+  𝒱 {A = Aˡ ⇒ Bˡ} {B = Aʳ ⇒ Bʳ} (⊑-⇒ pA pB) (suc n) dir w V W =
+    Value V × Value W × ClosedTy₂ w (Aˡ ⇒ Bˡ) (Aʳ ⇒ Bʳ) V W ×
+    (∀ {V′ W′} →
+      𝒱 pA (suc n) dir w V′ W′ →
+      ℰ pB (suc n) dir w (V · V′) (W · W′))
 
-  𝒱′ {A = `∀ A} {B = B} (⊑-ν p) (suc n) dir w V W =
-    ∀ {w′} → w′ ⪰ w → (R : Rel) →
-    ℰ p (suc n) dir (extendWorld w′ R) (V ⦂∀ A [ ｀ length (Σˡ w′) ]) W
-    
-  𝒱′ ⊑-★★ (suc n) dir w (V up tag G) (W up tag H) =
-    Lift (lsuc 0ℓ) (G ≡ H) ×
-    𝒱 (⊑-refl {A = G}) n dir w V W
-    
-  𝒱′ ⊑-★★ (suc n) dir w (V down seal αˡ) (W down seal αʳ) =
-    Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R n dir V W
-    
-  𝒱′ (⊑-★ {G = G} g p) (suc n) ≼ w V (W up tag H) =
-    Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p n ≼ w V W
+  𝒱 {A = `∀ Aˡ} {B = `∀ Aʳ} (⊑-∀ p) (suc n) dir w V W =
+    Value V × Value W × ClosedTy₂ w (`∀ Aˡ) (`∀ Aʳ) V W ×
+    (∀ {w′} → w′ ⪰ w → (R : Rel) → (T U : Ty) →
+      ℰ p (suc n) dir (extendWorld w′ R) (V ⦂∀ Aˡ [ T ]) (W ⦂∀ Aʳ [ U ]))
 
-  𝒱′ (⊑-★ {G = G} g p) (suc n) ≽ w V (W up tag H) =
-    Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p (suc n) ≽ w V W
-    
-  𝒱′ (⊑-｀ {α = α}) (suc n) dir w (V down seal βˡ) (W down seal βʳ) =
-    Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Rel ]
-      (η w ∋η α ↔ α ∶ R) ×
-      R (suc n) dir V W
-      
-  𝒱′ p (suc n) dir w V W = Lift (lsuc 0ℓ) ⊥
+  𝒱 {A = `∀ Aˡ} {B = Bʳ} (⊑-ν p) (suc n) dir w V W =
+    Value V × Value W × ClosedTy₂ w (`∀ Aˡ) Bʳ V W ×
+    (∀ {w′} → w′ ⪰ w → (R : Rel) →
+      ℰ p (suc n) dir (extendWorld w′ R) (V ⦂∀ Aˡ [ ｀ length (Σˡ w′) ]) W)
+
+  𝒱 {A = ★} {B = ★} ⊑-★★ (suc n) dir w (V up tag G) (W up tag H) =
+    Value (V up tag G) × Value (W up tag H) ×
+    ClosedTy₂ w ★ ★ (V up tag G) (W up tag H) ×
+    (Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 (⊑-refl {A = G}) n dir w V W)
+
+  𝒱 {A = ★} {B = ★} ⊑-★★ (suc n) dir w (V down seal αˡ) (W down seal αʳ) =
+    Value (V down seal αˡ) × Value (W down seal αʳ) ×
+    ClosedTy₂ w ★ ★ (V down seal αˡ) (W down seal αʳ) ×
+    (Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R n dir V W)
+
+  𝒱 {A = A} {B = ★} (⊑-★ {G = G} g p) (suc n) ≼ w V (W up tag H) =
+    Value V × Value (W up tag H) × ClosedTy₂ w A ★ V (W up tag H) ×
+    (Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p n ≼ w V W)
+
+  𝒱 {A = A} {B = ★} (⊑-★ {G = G} g p) (suc n) ≽ w V (W up tag H) =
+    Value V × Value (W up tag H) × ClosedTy₂ w A ★ V (W up tag H) ×
+    (Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p (suc n) ≽ w V W)
+
+  𝒱 {A = ｀ α} {B = ｀ α} (⊑-｀ {α = α}) (suc n) dir w
+    (V down seal βˡ) (W down seal βʳ) =
+    Value (V down seal βˡ) × Value (W down seal βʳ) ×
+    ClosedTy₂ w (｀ α) (｀ α) (V down seal βˡ) (W down seal βʳ) ×
+    (Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Rel ]
+      (η w ∋η α ↔ α ∶ R) × R (suc n) dir V W)
+
+  𝒱 {A = A} {B = B} p (suc n) dir w V W =
+    Value V × Value W × ClosedTy₂ w A B V W × Lift (lsuc 0ℓ) ⊥
 
 
   -- This follows PeterLogRel.
   ℰ : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
-  ℰ p zero dir w Mˡ Mʳ = Lift (lsuc 0ℓ) ⊤
+  ℰ {A = A} {B = B} p zero dir w Mˡ Mʳ =
+    ClosedTy₂ w A B Mˡ Mʳ × Lift (lsuc 0ℓ) ⊤
   
-  ℰ p (suc n) ≼ w Mˡ Mʳ =
-    (Σ[ Σˡ′ ∈ Store ] Σ[ Mˡ′ ∈ Term ]
+  ℰ {A = A} {B = B} p (suc n) ≼ w Mˡ Mʳ =
+    ClosedTy₂ w A B Mˡ Mʳ ×
+    ((Σ[ Σˡ′ ∈ Store ] Σ[ Mˡ′ ∈ Term ]
       (Σˡ w ∣ Mˡ —→ Σˡ′ ∣ Mˡ′) ×
       ℰ p n ≼ (mkWorld Σˡ′ (Σʳ w) (η w)) Mˡ′ Mʳ)
     ⊎
@@ -479,10 +500,11 @@ mutual
     ⊎
     (Value Mˡ × Σ[ Σʳ′ ∈ Store ] Σ[ Wʳ ∈ Term ]
       (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ Wʳ) ×
-      𝒱 p n ≼ (mkWorld (Σˡ w) Σʳ′ (η w)) Mˡ Wʳ)
+      𝒱 p n ≼ (mkWorld (Σˡ w) Σʳ′ (η w)) Mˡ Wʳ))
       
-  ℰ p (suc n) ≽ w Mˡ Mʳ =
-    (Σ[ Σʳ′ ∈ Store ] Σ[ Mʳ′ ∈ Term ]
+  ℰ {A = A} {B = B} p (suc n) ≽ w Mˡ Mʳ =
+    ClosedTy₂ w A B Mˡ Mʳ ×
+    ((Σ[ Σʳ′ ∈ Store ] Σ[ Mʳ′ ∈ Term ]
       (Σʳ w ∣ Mʳ —→ Σʳ′ ∣ Mʳ′) ×
       ℰ p n ≽ (mkWorld (Σˡ w) Σʳ′ (η w)) Mˡ Mʳ′)
     ⊎
@@ -491,32 +513,11 @@ mutual
     ⊎
     (Value Mʳ × Σ[ Σˡ′ ∈ Store ] Σ[ Wˡ ∈ Term ]
       (Σˡ w ∣ Mˡ —↠ Σˡ′ ∣ Wˡ) ×
-      𝒱 p n ≽ (mkWorld Σˡ′ (Σʳ w) (η w)) Wˡ Mʳ)
+      𝒱 p n ≽ (mkWorld Σˡ′ (Σʳ w) (η w)) Wˡ Mʳ))
 
 ------------------------------------------------------------------------
 -- Elimination interface (stable surface for consumers)
 ------------------------------------------------------------------------
-
-𝒱-left-value :
-  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {dir : Dir} {w : World}
-    {V W : Term} →
-  𝒱 p n dir w V W →
-  Value V
-𝒱-left-value rel = proj₁ rel
-
-𝒱-right-value :
-  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {dir : Dir} {w : World}
-    {V W : Term} →
-  𝒱 p n dir w V W →
-  Value W
-𝒱-right-value rel = proj₁ (proj₂ rel)
-
-𝒱-core :
-  ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {dir : Dir} {w : World}
-    {V W : Term} →
-  𝒱 p n dir w V W →
-  𝒱′ p n dir w V W
-𝒱-core rel = proj₂ (proj₂ rel)
 
 data ℰObs≼ {A B : Ty} (p : A ⊑ B) (n : ℕ) (w : World)
   (Mˡ Mʳ : Term) : Set₁ where
@@ -562,7 +563,7 @@ observeℰ≼ :
   ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {w : World} {Mˡ Mʳ : Term} →
   ℰ p (suc n) ≼ w Mˡ Mʳ →
   ℰObs≼ p n w Mˡ Mʳ
-observeℰ≼ rel with rel
+observeℰ≼ rel with proj₂ rel
 observeℰ≼ rel | inj₁ red =
   obs≼-stepˡ (proj₁ red) (proj₁ (proj₂ red))
     (proj₁ (proj₂ (proj₂ red))) (proj₂ (proj₂ (proj₂ red)))
@@ -576,7 +577,7 @@ observeℰ≽ :
   ∀ {A B : Ty} {p : A ⊑ B} {n : ℕ} {w : World} {Mˡ Mʳ : Term} →
   ℰ p (suc n) ≽ w Mˡ Mʳ →
   ℰObs≽ p n w Mˡ Mʳ
-observeℰ≽ rel with rel
+observeℰ≽ rel with proj₂ rel
 observeℰ≽ rel | inj₁ red =
   obs≽-stepʳ (proj₁ red) (proj₁ (proj₂ red))
     (proj₁ (proj₂ (proj₂ red))) (proj₂ (proj₂ (proj₂ red)))
@@ -690,3 +691,15 @@ proj⊨ :
   Γ ∣ dir ⊨ M ⊑ M′ ⦂ p
 proj⊨ ≼ rel = proj₁ rel
 proj⊨ ≽ rel = proj₂ rel
+
+
+mutual
+  𝒱-monotone : ∀ A B (p : A ⊑ B) k dir w V W
+    → 𝒱 p (suc k) dir w V W
+    → 𝒱 p k dir w V W
+  𝒱-monotone A B p k dir w V W = {!!}
+
+  ℰ-monotone : ∀ A B (p : A ⊑ B) k dir w Mˡ Mʳ
+    → ℰ p (suc k) dir w Mˡ Mʳ
+    → ℰ p k dir w Mˡ Mʳ
+  ℰ-monotone A B p k dir w Mˡ Mʳ = {!!}

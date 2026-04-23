@@ -22,26 +22,12 @@ open import Data.Product using (_,_; proj₁; proj₂)
 open import TermPrecision
 open import TermProperties using (substˣ-term)
 open import ReductionFresh using (Value; _∣_—↠_∣_; _∎) renaming ($ to v$)
-open import LogicalRelation
-
--- Temporary helper assumptions for the first compatibility lemmas.
--- These will be discharged by dedicated logical-relation closure lemmas.
-postulate
-  -- Monotonicity in the step index is currently postulated.
-  -- With the present `LogicalRelation.𝒱′` clauses, a full proof is blocked by:
-  --   1) function/∀ clauses quantified at the same index (`suc n`)
-  --   2) seal payload clauses that expose raw `Rel` at exact indices
-  -- A full proof likely requires refactoring those clauses to a downward-closed
-  -- shape (e.g. "for all k ≤ n") before mutual `𝒱/ℰ` monotonicity goes through.
-  𝒱-step-down :
-    ∀ {A B} {p : A ⊑ B} {n dir w V W} →
-    𝒱 p (suc n) dir w V W →
-    𝒱 p n dir w V W
+open import LogicalRelationDownward
 
 𝒢-lookup :
   ∀ {Γ x A B} {p : A ⊑ B} {n dir w} {ρ : RelSub 0} {γ} →
   Γ ∋ₚ x ⦂ (A , B , p) →
-  𝒢 Γ n dir w ρ γ →
+  𝒢 Γ (suc n) dir w ρ γ →
   𝒱 (substᴿ-⊑ ρ p) n dir w (leftˣ γ x) (rightˣ γ x)
 𝒢-lookup Zₚ env = proj₁ (proj₂ (proj₂ env))
 𝒢-lookup {γ = γ} (Sₚ x∈) env =
@@ -51,7 +37,7 @@ postulate
   𝒢-lookup-substᵗ :
     ∀ {Γ x A B} {p : A ⊑ B} {n dir w} {ρ : RelSub 0} {γ} →
     Γ ∋ₚ x ⦂ (A , B , p) →
-    𝒢 Γ n dir w ρ γ →
+    𝒢 Γ (suc n) dir w ρ γ →
     𝒱 (substᴿ-⊑ ρ p) n dir w
       (substᵗᵐ (leftᵗ ρ) (leftˣ γ x))
       (substᵗᵐ (rightᵗ ρ) (rightˣ γ x))
@@ -70,39 +56,37 @@ compat-var {dir = dir} {x = x} {p = p} x∈ zero w ρ γ env = lift tt
 compat-var {dir = ≼} {x = x} {p = p} x∈ (suc n) w ρ γ env =
   inj₂ (inj₂ (vˡ , (Σʳ w , (W , ((W ∎) , vrel↓)))))
   where
-  vrel : 𝒱 (substᴿ-⊑ ρ p) (suc n) ≼ w
+  vrel : 𝒱 (substᴿ-⊑ ρ p) n ≼ w
            (substᵗᵐ (leftᵗ ρ) (leftˣ γ x))
            (substᵗᵐ (rightᵗ ρ) (rightˣ γ x))
   vrel = 𝒢-lookup-substᵗ {ρ = ρ} x∈ env
 
   vˡ : Value (substᵗᵐ (leftᵗ ρ) (leftˣ γ x))
-  vˡ = proj₁ vrel
+  vˡ = 𝒱-left-value {p = substᴿ-⊑ ρ p} {n = n} {dir = ≼} {w = w} vrel
 
   W : Term
   W = substᵗᵐ (rightᵗ ρ) (rightˣ γ x)
 
   vrel↓ : 𝒱 (substᴿ-⊑ ρ p) n ≼ (mkWorld (Σˡ w) (Σʳ w) (η w))
-            (substᵗᵐ (leftᵗ ρ) (leftˣ γ x))
-            W
-  vrel↓ = 𝒱-step-down vrel
+            (substᵗᵐ (leftᵗ ρ) (leftˣ γ x)) W
+  vrel↓ = vrel
 compat-var {dir = ≽} {x = x} {p = p} x∈ (suc n) w ρ γ env =
   inj₂ (inj₂ (vʳ , (Σˡ w , (V , ((V ∎) , vrel↓)))))
   where
-  vrel : 𝒱 (substᴿ-⊑ ρ p) (suc n) ≽ w
+  vrel : 𝒱 (substᴿ-⊑ ρ p) n ≽ w
            (substᵗᵐ (leftᵗ ρ) (leftˣ γ x))
            (substᵗᵐ (rightᵗ ρ) (rightˣ γ x))
   vrel = 𝒢-lookup-substᵗ {ρ = ρ} x∈ env
 
   vʳ : Value (substᵗᵐ (rightᵗ ρ) (rightˣ γ x))
-  vʳ = proj₁ (proj₂ vrel)
+  vʳ = 𝒱-right-value {p = substᴿ-⊑ ρ p} {n = n} {dir = ≽} {w = w} vrel
 
   V : Term
   V = substᵗᵐ (leftᵗ ρ) (leftˣ γ x)
 
-  vrel↓ : 𝒱 (substᴿ-⊑ ρ p) n ≽ (mkWorld (Σˡ w) (Σʳ w) (η w))
-            V
+  vrel↓ : 𝒱 (substᴿ-⊑ ρ p) n ≽ (mkWorld (Σˡ w) (Σʳ w) (η w)) V
             (substᵗᵐ (rightᵗ ρ) (rightˣ γ x))
-  vrel↓ = 𝒱-step-down vrel
+  vrel↓ = vrel
 
 compat-$ :
   ∀ {E dir n} →

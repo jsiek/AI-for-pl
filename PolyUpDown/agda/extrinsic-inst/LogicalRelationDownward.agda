@@ -7,29 +7,40 @@ module LogicalRelationDownward where
 --   * Exposes the same elimination surface as `LogicalRelation`.
 
 open import Data.Empty using (⊥)
-open import Data.Nat using (ℕ; _≤_; zero; suc; z≤n; s≤s)
+open import Data.Nat using (ℕ; _≤_; zero; suc; z≤n; s≤s; z<s)
 open import Data.Nat.Properties using (≤-refl; ≤-trans)
-open import Data.List using (length)
+open import Data.List using (length; []; _∷_)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Data.Unit using (⊤)
-open import Level using (Lift; 0ℓ) renaming (suc to lsuc)
-open import Agda.Builtin.Equality using (_≡_)
+open import Data.Unit using (⊤; tt)
+open import Level using (Lift; lift; 0ℓ) renaming (suc to lsuc)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans; cong)
 
 open import Types
 open import Imprecision
+open import TypeProperties
+  using
+    ( liftSubstˢ
+    ; substᵗ-ν-src
+    ; substᵗ-⇑ˢ
+    ; substᵗ-id
+    ; renameᵗ-substᵗ
+    ; substᵗ-ground
+    ; renameᵗ-preserves-WfTy
+    ; renameˢ-preserves-WfTy
+    ; TyRenameWf-suc
+    ; SealRenameWf-suc
+    )
 open import UpDown
 open import Terms
+open import TermPrecision using (PCtx)
+open import TermProperties using (Substˣ; substˣ-term)
 open import ReductionFresh using (Value; _∣_—→_∣_; _∣_—↠_∣_)
 
 import LogicalRelation as LR
 open LR public hiding
   ( 𝒱
-  ; 𝒱′
   ; ℰ
-  ; 𝒱-left-value
-  ; 𝒱-right-value
-  ; 𝒱-core
   ; ℰObs≼
   ; ℰObs≽
   ; observeℰ≼
@@ -40,6 +51,20 @@ open LR public hiding
   ; obs≽-stepʳ
   ; obs≽-blameʳ
   ; obs≽-value
+  ; WfTyClosedᵗ
+  ; RelSub
+  ; ∅ρ
+  ; shift-substᵗ
+  ; ⇑ᵗρ
+  ; ⇑ˢρ
+  ; substᴿ-⊑
+  ; RelEnv
+  ; ∅γ
+  ; ⇓γ
+  ; 𝒢
+  ; _∣_⊨_⊑_⦂_
+  ; _⊨_⊑_⦂_
+  ; proj⊨
   )
 
 record LR≤ (n : ℕ) : Set₂ where
@@ -273,3 +298,113 @@ observeℰ≽ rel | inj₂ (inj₁ blm) =
 observeℰ≽ rel | inj₂ (inj₂ val) =
   obs≽-value (proj₁ val) (proj₁ (proj₂ val)) (proj₁ (proj₂ (proj₂ val)))
     (proj₁ (proj₂ (proj₂ (proj₂ val)))) (proj₂ (proj₂ (proj₂ (proj₂ val))))
+
+------------------------------------------------------------------------
+-- Environment interpretation for open terms
+------------------------------------------------------------------------
+
+WfTyClosedᵗ : TyCtx → Ty → Set
+WfTyClosedᵗ Δ A = Σ[ Ψ ∈ SealCtx ] WfTy Δ Ψ A
+
+record RelSub (Δ : TyCtx) : Set₁ where
+  field
+    leftᵗ : Substᵗ
+    rightᵗ : Substᵗ
+    left-closed : (X : TyVar) → WfTyClosedᵗ Δ (leftᵗ X)
+    right-closed : (X : TyVar) → WfTyClosedᵗ Δ (rightᵗ X)
+    precᵗ : (X : TyVar) → leftᵗ X ⊑ rightᵗ X
+open RelSub public
+
+∅ρ : RelSub 0
+(∅ρ .leftᵗ) = λ _ → ‵ `ℕ
+(∅ρ .rightᵗ) = λ _ → ‵ `ℕ
+(∅ρ .left-closed) = λ _ → 0 , wfBase
+(∅ρ .right-closed) = λ _ → 0 , wfBase
+(∅ρ .precᵗ) = λ _ → ⊑-‵
+
+shift-substᵗ : (A : Ty) → substᵗ (λ X → ＇ suc X) A ≡ renameᵗ suc A
+shift-substᵗ A = trans (sym (renameᵗ-substᵗ suc (λ X → ＇ X) A))
+                       (cong (renameᵗ suc) (substᵗ-id A))
+
+⇑ᵗρ : ∀ {Δ} → RelSub Δ → RelSub (suc Δ)
+(⇑ᵗρ ρ .leftᵗ) = extsᵗ (leftᵗ ρ)
+(⇑ᵗρ ρ .rightᵗ) = extsᵗ (rightᵗ ρ)
+(⇑ᵗρ ρ .left-closed) zero = 0 , wfVar z<s
+(⇑ᵗρ ρ .left-closed) (suc X) =
+  let Ψ , wfA = left-closed ρ X in Ψ , renameᵗ-preserves-WfTy wfA TyRenameWf-suc
+(⇑ᵗρ ρ .right-closed) zero = 0 , wfVar z<s
+(⇑ᵗρ ρ .right-closed) (suc X) =
+  let Ψ , wfA = right-closed ρ X in Ψ , renameᵗ-preserves-WfTy wfA TyRenameWf-suc
+(⇑ᵗρ ρ .precᵗ) zero = ⊑-＇
+(⇑ᵗρ ρ .precᵗ) (suc X) =
+  cast-⊑ (shift-substᵗ (leftᵗ ρ X))
+          (shift-substᵗ (rightᵗ ρ X))
+          (Imprecision.substᵗ-⊑ (λ Y → ＇ suc Y) (precᵗ ρ X))
+
+⇑ˢρ : ∀ {Δ} → RelSub Δ → RelSub Δ
+(⇑ˢρ ρ .leftᵗ) = liftSubstˢ (leftᵗ ρ)
+(⇑ˢρ ρ .rightᵗ) = liftSubstˢ (rightᵗ ρ)
+(⇑ˢρ ρ .left-closed) X =
+  let Ψ , wfA = left-closed ρ X in suc Ψ , renameˢ-preserves-WfTy wfA SealRenameWf-suc
+(⇑ˢρ ρ .right-closed) X =
+  let Ψ , wfA = right-closed ρ X in suc Ψ , renameˢ-preserves-WfTy wfA SealRenameWf-suc
+(⇑ˢρ ρ .precᵗ) X = renameˢ-⊑ suc (precᵗ ρ X)
+
+substᴿ-⊑ : ∀ {Δ} → (ρ : RelSub Δ) → ∀ {A B} → A ⊑ B → substᵗ (leftᵗ ρ) A ⊑ substᵗ (rightᵗ ρ) B
+substᴿ-⊑ ρ ⊑-★★ = ⊑-★★
+substᴿ-⊑ ρ (⊑-★ g p) = ⊑-★ (substᵗ-ground (rightᵗ ρ) g) (substᴿ-⊑ ρ p)
+substᴿ-⊑ ρ (⊑-＇ {X}) = precᵗ ρ X
+substᴿ-⊑ ρ ⊑-｀ = ⊑-｀
+substᴿ-⊑ ρ ⊑-‵ = ⊑-‵
+substᴿ-⊑ ρ (⊑-⇒ p q) = ⊑-⇒ (substᴿ-⊑ ρ p) (substᴿ-⊑ ρ q)
+substᴿ-⊑ ρ (⊑-∀ p) = ⊑-∀ (substᴿ-⊑ (⇑ᵗρ ρ) p)
+substᴿ-⊑ ρ (⊑-ν {A = A} {B = B} p) =
+  ⊑-ν (cast-⊑ (substᵗ-ν-src (leftᵗ ρ) A)
+               (substᵗ-⇑ˢ (rightᵗ ρ) B)
+               (substᴿ-⊑ (⇑ˢρ ρ) p))
+
+record RelEnv : Set where
+  field
+    leftˣ : Substˣ
+    rightˣ : Substˣ
+open RelEnv public
+
+∅γ : RelEnv
+(∅γ .leftˣ) x = ` x
+(∅γ .rightˣ) x = ` x
+
+⇓γ : RelEnv → RelEnv
+(⇓γ γ .leftˣ) x = leftˣ γ (suc x)
+(⇓γ γ .rightˣ) x = rightˣ γ (suc x)
+
+𝒢 : PCtx → ℕ → Dir → World → RelSub 0 → RelEnv → Set₁
+𝒢 [] n dir w ρ γ = Lift (lsuc 0ℓ) ⊤
+𝒢 ((A , B , p) ∷ Γ) zero dir w ρ γ =
+  Value (leftˣ γ zero) ×
+  Value (rightˣ γ zero) ×
+  𝒱 (substᴿ-⊑ ρ p) zero dir w (leftˣ γ zero) (rightˣ γ zero) ×
+  𝒢 Γ zero dir w ρ (⇓γ γ)
+𝒢 ((A , B , p) ∷ Γ) (suc n) dir w ρ γ =
+  Value (leftˣ γ zero) ×
+  Value (rightˣ γ zero) ×
+  𝒱 (substᴿ-⊑ ρ p) n dir w (leftˣ γ zero) (rightˣ γ zero) ×
+  𝒢 Γ (suc n) dir w ρ (⇓γ γ)
+
+_∣_⊨_⊑_⦂_ : PCtx → Dir → Term → Term → ∀ {A B} → A ⊑ B → Set₁
+Γ ∣ dir ⊨ M ⊑ M′ ⦂ p =
+  ∀ (n : ℕ) (w : World) (ρ : RelSub 0) (γ : RelEnv) →
+  𝒢 Γ n dir w ρ γ →
+  ℰ (substᴿ-⊑ ρ p) n dir w
+    (substᵗᵐ (leftᵗ ρ) (substˣ-term (leftˣ γ) M))
+    (substᵗᵐ (rightᵗ ρ) (substˣ-term (rightˣ γ) M′))
+
+_⊨_⊑_⦂_ : PCtx → Term → Term → ∀ {A B} → A ⊑ B → Set₁
+Γ ⊨ M ⊑ M′ ⦂ p = (Γ ∣ ≼ ⊨ M ⊑ M′ ⦂ p) × (Γ ∣ ≽ ⊨ M ⊑ M′ ⦂ p)
+
+proj⊨ :
+  ∀ {Γ M M′ A B} {p : A ⊑ B} →
+  (dir : Dir) →
+  Γ ⊨ M ⊑ M′ ⦂ p →
+  Γ ∣ dir ⊨ M ⊑ M′ ⦂ p
+proj⊨ ≼ rel = proj₁ rel
+proj⊨ ≽ rel = proj₂ rel

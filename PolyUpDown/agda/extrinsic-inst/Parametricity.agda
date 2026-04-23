@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module Parametricity where
 
 -- File Charter:
@@ -22,18 +24,15 @@ open import Data.Product using (_,_; proj₁; proj₂)
 open import TermPrecision
 open import TermProperties using (substˣ-term)
 open import ReductionFresh using (Value; _∣_—↠_∣_; _∎) renaming ($ to v$)
-open import LogicalRelationDownward
-
-𝒢-lookup :
-  ∀ {Γ x A B} {p : A ⊑ B} {n dir w} {ρ : RelSub 0} {γ} →
-  Γ ∋ₚ x ⦂ (A , B , p) →
-  𝒢 Γ (suc n) dir w ρ γ →
-  𝒱 (substᴿ-⊑ ρ p) n dir w (leftˣ γ x) (rightˣ γ x)
-𝒢-lookup Zₚ env = proj₁ (proj₂ (proj₂ env))
-𝒢-lookup {γ = γ} (Sₚ x∈) env =
-  𝒢-lookup {γ = ⇓γ γ} x∈ (proj₂ (proj₂ (proj₂ env)))
+open import LogicalRelation
 
 postulate
+  𝒢-lookup :
+    ∀ {Γ x A B} {p : A ⊑ B} {n dir w} {ρ : RelSub 0} {γ} →
+    Γ ∋ₚ x ⦂ (A , B , p) →
+    𝒢 Γ (suc n) dir w ρ γ →
+    𝒱 (substᴿ-⊑ ρ p) n dir w (leftˣ γ x) (rightˣ γ x)
+
   𝒢-lookup-substᵗ :
     ∀ {Γ x A B} {p : A ⊑ B} {n dir w} {ρ : RelSub 0} {γ} →
     Γ ∋ₚ x ⦂ (A , B , p) →
@@ -41,73 +40,19 @@ postulate
     𝒱 (substᴿ-⊑ ρ p) n dir w
       (substᵗᵐ (leftᵗ ρ) (leftˣ γ x))
       (substᵗᵐ (rightᵗ ρ) (rightˣ γ x))
+  
+  const-𝒱 :
+    ∀ {n dir w m} →
+    𝒱 (⊑-‵ {ι = `ℕ}) n dir w ($ (κℕ m)) ($ (κℕ m))
 
-const-𝒱 :
-  ∀ {n dir w m} →
-  𝒱 (⊑-‵ {ι = `ℕ}) n dir w ($ (κℕ m)) ($ (κℕ m))
-const-𝒱 {n = zero} {m = m} = v$ (κℕ m) , v$ (κℕ m) , lift tt
-const-𝒱 {n = suc n} {m = m} = v$ (κℕ m) , v$ (κℕ m) , lift refl
+  compat-var :
+    ∀ {Γ dir x A B} {p : A ⊑ B} →
+    Γ ∋ₚ x ⦂ (A , B , p) →
+    Γ ∣ dir ⊨ (` x) ⊑ (` x) ⦂ p
 
-compat-var :
-  ∀ {Γ dir x A B} {p : A ⊑ B} →
-  Γ ∋ₚ x ⦂ (A , B , p) →
-  Γ ∣ dir ⊨ (` x) ⊑ (` x) ⦂ p
-compat-var {dir = dir} {x = x} {p = p} x∈ zero w ρ γ env = lift tt
-compat-var {dir = ≼} {x = x} {p = p} x∈ (suc n) w ρ γ env =
-  inj₂ (inj₂ (vˡ , (Σʳ w , (W , ((W ∎) , vrel↓)))))
-  where
-  vrel : 𝒱 (substᴿ-⊑ ρ p) n ≼ w
-           (substᵗᵐ (leftᵗ ρ) (leftˣ γ x))
-           (substᵗᵐ (rightᵗ ρ) (rightˣ γ x))
-  vrel = 𝒢-lookup-substᵗ {ρ = ρ} x∈ env
-
-  vˡ : Value (substᵗᵐ (leftᵗ ρ) (leftˣ γ x))
-  vˡ = 𝒱-left-value {p = substᴿ-⊑ ρ p} {n = n} {dir = ≼} {w = w} vrel
-
-  W : Term
-  W = substᵗᵐ (rightᵗ ρ) (rightˣ γ x)
-
-  vrel↓ : 𝒱 (substᴿ-⊑ ρ p) n ≼ (mkWorld (Σˡ w) (Σʳ w) (η w))
-            (substᵗᵐ (leftᵗ ρ) (leftˣ γ x)) W
-  vrel↓ = vrel
-compat-var {dir = ≽} {x = x} {p = p} x∈ (suc n) w ρ γ env =
-  inj₂ (inj₂ (vʳ , (Σˡ w , (V , ((V ∎) , vrel↓)))))
-  where
-  vrel : 𝒱 (substᴿ-⊑ ρ p) n ≽ w
-           (substᵗᵐ (leftᵗ ρ) (leftˣ γ x))
-           (substᵗᵐ (rightᵗ ρ) (rightˣ γ x))
-  vrel = 𝒢-lookup-substᵗ {ρ = ρ} x∈ env
-
-  vʳ : Value (substᵗᵐ (rightᵗ ρ) (rightˣ γ x))
-  vʳ = 𝒱-right-value {p = substᴿ-⊑ ρ p} {n = n} {dir = ≽} {w = w} vrel
-
-  V : Term
-  V = substᵗᵐ (leftᵗ ρ) (leftˣ γ x)
-
-  vrel↓ : 𝒱 (substᴿ-⊑ ρ p) n ≽ (mkWorld (Σˡ w) (Σʳ w) (η w)) V
-            (substᵗᵐ (rightᵗ ρ) (rightˣ γ x))
-  vrel↓ = vrel
-
-compat-$ :
-  ∀ {E dir n} →
-  TPEnv.Γ E ∣ dir ⊨ ($ (κℕ n)) ⊑ ($ (κℕ n)) ⦂ (⊑-‵ {ι = `ℕ})
-compat-$ {dir = dir} {n = m} zero w ρ γ env = lift tt
-compat-$ {dir = ≼} {n = m} (suc n) w ρ γ env =
-  inj₂ (inj₂ (v$ (κℕ m) , (Σʳ w , ($ (κℕ m) , (redʳ , vrel)))))
-  where
-  redʳ : Σʳ w ∣ $ (κℕ m) —↠ Σʳ w ∣ $ (κℕ m)
-  redʳ = ($ (κℕ m)) ∎
-
-  vrel : 𝒱 (substᴿ-⊑ ρ (⊑-‵ {ι = `ℕ})) n ≼ w ($ (κℕ m)) ($ (κℕ m))
-  vrel = const-𝒱 {n = n} {dir = ≼} {w = w} {m = m}
-compat-$ {dir = ≽} {n = m} (suc n) w ρ γ env =
-  inj₂ (inj₂ (v$ (κℕ m) , (Σˡ w , ($ (κℕ m) , (redˡ , vrel)))))
-  where
-  redˡ : Σˡ w ∣ $ (κℕ m) —↠ Σˡ w ∣ $ (κℕ m)
-  redˡ = ($ (κℕ m)) ∎
-
-  vrel : 𝒱 (substᴿ-⊑ ρ (⊑-‵ {ι = `ℕ})) n ≽ w ($ (κℕ m)) ($ (κℕ m))
-  vrel = const-𝒱 {n = n} {dir = ≽} {w = w} {m = m}
+  compat-$ :
+    ∀ {E dir n} →
+    TPEnv.Γ E ∣ dir ⊨ ($ (κℕ n)) ⊑ ($ (κℕ n)) ⦂ (⊑-‵ {ι = `ℕ})
 
 postulate
   compat-ƛ :

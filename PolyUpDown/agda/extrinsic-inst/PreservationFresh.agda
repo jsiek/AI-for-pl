@@ -9,8 +9,9 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Sigma as Sigma using (Σ)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; length; _∷_; _++_; [])
-open import Data.Nat using (zero; suc; _+_; _<_; _≤_)
-open import Data.Nat.Properties using (≤-refl; n≤1+n; n<1+n; <-irrefl)
+open import Data.Nat using (zero; suc; z<s; s<s; _+_; _<_; _≤_)
+open import Data.Nat.Properties
+  using (≤-refl; n≤1+n; n<1+n; <-≤-trans; <-irrefl)
 open import Data.Product using (Σ; ∃; ∃-syntax; _×_; proj₁; proj₂; _,_)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; sym; trans)
 
@@ -32,12 +33,12 @@ import Preservation as OldPreservation
 
 preservation :
   ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{M N : Term}{A : Ty} →
-  Uniqueˢ Σ →
+  StoreWf Δ Ψ Σ →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
   M —→ N →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ N ⦂ A
-preservation uΣ M⊢ red =
-  OldPreservation.preservation uΣ M⊢ red
+preservation wfΣ M⊢ red =
+  OldPreservation.preservation wfΣ M⊢ red
 
 ------------------------------------------------------------------------
 -- Permission append helpers (fresh seal at the end)
@@ -187,14 +188,14 @@ RenNotIn-append-tag :
 RenNotIn-append-tag α∉ p = α∉ (member-unappend-tag p)
 
 append-tag-⊑ :
-  ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
-  Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
-  Σ ∣ (Φ ++ cast-tag ∷ []) ⊢ p ⦂ A ⊑ B
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
+  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ (Φ ++ cast-tag ∷ []) p A B
 castWt⊑-term :
-  ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p q : Up} →
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p q : Up} →
   p ≡ q →
-  Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
-  Σ ∣ Φ ⊢ q ⦂ A ⊑ B
+  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ q A B
 castWt⊑-term refl h = h
 
 append-tag-⊑ {Σ = Σ} {A = A} {B = B} {p = p} h =
@@ -208,15 +209,16 @@ append-tag-⊑ {Σ = Σ} {A = A} {B = B} {p = p} h =
         (renameˢ-id-store {A = B})
         (⊑-renameˢ-wt
           (λ α → α)
+          (λ α<Ψ → α<Ψ)
           RenOkConv-append-tag
           RenOkCast-append-tag
           RenOkTag-append-tag
           h)))
 
 append-tag-⊒ :
-  ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
-  Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
-  Σ ∣ (Φ ++ cast-tag ∷ []) ⊢ p ⦂ A ⊒ B
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
+  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ (Φ ++ cast-tag ∷ []) p A B
 append-tag-⊒ {Σ = Σ} {A = A} {B = B} {p = p} h =
   castWt⊒
     (renameStoreˢ-id {Σ = Σ})
@@ -228,6 +230,49 @@ append-tag-⊒ {Σ = Σ} {A = A} {B = B} {p = p} h =
         (renameˢ-id-store {A = B})
         (⊒-renameˢ-wt
           (λ α → α)
+          (λ α<Ψ → α<Ψ)
+          RenOkConv-append-tag
+          RenOkCast-append-tag
+          RenOkTag-append-tag
+          h)))
+
+wkΨ-cast-tag-⊑ :
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
+  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = suc Ψ} Σ (Φ ++ cast-tag ∷ []) p A B
+wkΨ-cast-tag-⊑ {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p} h =
+  castWt⊑
+    (renameStoreˢ-id {Σ = Σ})
+    refl
+    (castWt⊑-term
+      (OldPreservation.rename⊑ˢ-pointwise (λ α → α) (λ α → refl) p)
+      (castWt⊑-raw
+        (renameˢ-id-store {A = A})
+        (renameˢ-id-store {A = B})
+        (⊑-renameˢ-wt
+          (λ α → α)
+          (λ α<Ψ → <-≤-trans α<Ψ (n≤1+n Ψ))
+          RenOkConv-append-tag
+          RenOkCast-append-tag
+          RenOkTag-append-tag
+          h)))
+
+wkΨ-cast-tag-⊒ :
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
+  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = suc Ψ} Σ (Φ ++ cast-tag ∷ []) p A B
+wkΨ-cast-tag-⊒ {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p} h =
+  castWt⊒
+    (renameStoreˢ-id {Σ = Σ})
+    refl
+    (OldPreservation.castWt⊒-term
+      (OldPreservation.rename⊒ˢ-pointwise (λ α → α) (λ α → refl) p)
+      (castWt⊒-raw
+        (renameˢ-id-store {A = A})
+        (renameˢ-id-store {A = B})
+        (⊒-renameˢ-wt
+          (λ α → α)
+          (λ α<Ψ → <-≤-trans α<Ψ (n≤1+n Ψ))
           RenOkConv-append-tag
           RenOkCast-append-tag
           RenOkTag-append-tag
@@ -246,8 +291,11 @@ wkΨ-term-suc (⊢ƛ wfA M⊢) =
   ⊢ƛ (WfTy-weakenˢ wfA (n≤1+n _)) (wkΨ-term-suc M⊢)
 wkΨ-term-suc (⊢· L⊢ M⊢) = ⊢· (wkΨ-term-suc L⊢) (wkΨ-term-suc M⊢)
 wkΨ-term-suc (⊢Λ M⊢) = ⊢Λ (wkΨ-term-suc M⊢)
-wkΨ-term-suc (⊢• {B = B} M⊢ wfT) =
-  ⊢• {B = B} (wkΨ-term-suc M⊢) (WfTy-weakenˢ wfT (n≤1+n _))
+wkΨ-term-suc (⊢• {B = B} M⊢ wfB wfT) =
+  ⊢• {B = B}
+    (wkΨ-term-suc M⊢)
+    (WfTy-weakenˢ wfB (n≤1+n _))
+    (WfTy-weakenˢ wfT (n≤1+n _))
 wkΨ-term-suc (⊢$ κ) = ⊢$ κ
 wkΨ-term-suc (⊢⊕ L⊢ op M⊢) =
   ⊢⊕ (wkΨ-term-suc L⊢) op (wkΨ-term-suc M⊢)
@@ -256,13 +304,13 @@ wkΨ-term-suc (⊢up Φ lenΦ M⊢ p⊢) =
     (Φ ++ cast-tag ∷ [])
     (trans (length-append-tag Φ) (cong suc lenΦ))
     (wkΨ-term-suc M⊢)
-    (append-tag-⊑ p⊢)
+    (wkΨ-cast-tag-⊑ p⊢)
 wkΨ-term-suc (⊢down Φ lenΦ M⊢ p⊢) =
   ⊢down
     (Φ ++ cast-tag ∷ [])
     (trans (length-append-tag Φ) (cong suc lenΦ))
     (wkΨ-term-suc M⊢)
-    (append-tag-⊒ p⊢)
+    (wkΨ-cast-tag-⊒ p⊢)
 wkΨ-term-suc (⊢blame ℓ) = ⊢blame ℓ
 
 len<suc-StoreWf :
@@ -339,7 +387,7 @@ open-fresh-ν⊒ : ∀ {Δ Ψ}{Σ : Store}{Aν Bν T : Ty} {p : Down}{Φ : List 
   ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ) ⊢ p ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ α₀ ]ᵗ) →
   ((length Σ , T) ∷ Σ) ∣ (Φ ++ cast-tag ∷ [])
     ⊢ (p [ length Σ ]⊒) ⦂ Bν ⊒ (Aν [ ｀ (length Σ) ]ᵗ)
-open-fresh-ν⊒ {Σ = Σ}{Aν = Aν}{Bν = Bν}{T = T}{p = p}{Φ} wfΣ lenΦ ⊢p =
+open-fresh-ν⊒ {Ψ = Ψ}{Σ = Σ}{Aν = Aν}{Bν = Bν}{T = T}{p = p}{Φ} wfΣ lenΦ ⊢p =
   wk⊒
     (drop ⊆ˢ-refl)
     (OldPreservation.drop★⊒-seal-preserving top★ top∉ ⊢p★)
@@ -353,7 +401,11 @@ open-fresh-ν⊒ {Σ = Σ}{Aν = Aν}{Bν = Bν}{T = T}{p = p}{Φ} wfΣ lenΦ �
     tag-∉ (there-tag p) (there q) = tag-∉ p q
 
     top-tag : length Σ ∈tag (Φ ++ cast-tag ∷ [])
-    top-tag rewrite storeWf-length wfΣ | sym lenΦ = tag-at-end Φ
+    top-tag =
+      subst
+        (λ α → α ∈tag (Φ ++ cast-tag ∷ []))
+        (trans lenΦ (sym (storeWf-length wfΣ)))
+        (tag-at-end Φ)
 
     okConv :
       RenOkConv (singleSealEnv (length Σ)) (cast-tag ∷ Φ) (Φ ++ cast-tag ∷ [])
@@ -370,6 +422,10 @@ open-fresh-ν⊒ {Σ = Σ}{Aν = Aν}{Bν = Bν}{T = T}{p = p}{Φ} wfΣ lenΦ �
     okTag {zero} here-tag-only = top-tag
     okTag {suc α} (there-tag p) = tag-append-tag p
 
+    hρ : SealRenameWf (suc Ψ) (suc Ψ) (singleSealEnv (length Σ))
+    hρ {zero} z<s = len<suc-StoreWf wfΣ
+    hρ {suc α} (s<s α<Ψ) = <-≤-trans α<Ψ (n≤1+n Ψ)
+
     ⊢p′ :
       renameStoreˢ (singleSealEnv (length Σ)) ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ)
         ∣ (Φ ++ cast-tag ∷ [])
@@ -380,6 +436,7 @@ open-fresh-ν⊒ {Σ = Σ}{Aν = Aν}{Bν = Bν}{T = T}{p = p}{Φ} wfΣ lenΦ �
       ⊒-renameˢ-wt
         {Φ′ = Φ ++ cast-tag ∷ []}
         (singleSealEnv (length Σ))
+        hρ
         okConv
         okCast
         okTag
@@ -429,14 +486,18 @@ open-fresh-ν⊑ :
   ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-seal ∷ Φ) ⊢ p ⦂ ((⇑ˢ Aν) [ α₀ ]ᵗ) ⊑ ⇑ˢ Bν →
   ((length Σ , ★) ∷ Σ) ∣ (Φ ++ cast-seal ∷ [])
     ⊢ (p [ length Σ ]⊑) ⦂ (Aν [ ｀ (length Σ) ]ᵗ) ⊑ Bν
-open-fresh-ν⊑ {Σ = Σ}{Aν = Aν}{Bν = Bν}{p = p}{Φ} wfΣ lenΦ ⊢p =
+open-fresh-ν⊑ {Ψ = Ψ}{Σ = Σ}{Aν = Aν}{Bν = Bν}{p = p}{Φ} wfΣ lenΦ ⊢p =
   castWt⊑
     eq-store★
     refl
     (castWt⊑-raw eq-src eq-tgt ⊢p′)
   where
     top-cast : length Σ ∈cast (Φ ++ cast-seal ∷ [])
-    top-cast rewrite storeWf-length wfΣ | sym lenΦ = cast-at-end Φ
+    top-cast =
+      subst
+        (λ α → α ∈cast (Φ ++ cast-seal ∷ []))
+        (trans lenΦ (sym (storeWf-length wfΣ)))
+        (cast-at-end Φ)
 
     okConv :
       RenOkConv (singleSealEnv (length Σ)) (cast-seal ∷ Φ) (Φ ++ cast-seal ∷ [])
@@ -453,6 +514,10 @@ open-fresh-ν⊑ {Σ = Σ}{Aν = Aν}{Bν = Bν}{p = p}{Φ} wfΣ lenΦ ⊢p =
     okTag {zero} ()
     okTag {suc α} (there-tag p) = tag-append-seal p
 
+    hρ : SealRenameWf (suc Ψ) (suc Ψ) (singleSealEnv (length Σ))
+    hρ {zero} z<s = len<suc-StoreWf wfΣ
+    hρ {suc α} (s<s α<Ψ) = <-≤-trans α<Ψ (n≤1+n Ψ)
+
     ⊢p′ :
       renameStoreˢ (singleSealEnv (length Σ)) ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ)
         ∣ (Φ ++ cast-seal ∷ [])
@@ -463,6 +528,7 @@ open-fresh-ν⊑ {Σ = Σ}{Aν = Aν}{Bν = Bν}{p = p}{Φ} wfΣ lenΦ ⊢p =
       ⊑-renameˢ-wt
         {Φ′ = Φ ++ cast-seal ∷ []}
         (singleSealEnv (length Σ))
+        hρ
         okConv
         okCast
         okTag
@@ -505,8 +571,9 @@ preservation-step-β-down-ν :
 preservation-step-β-down-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
   {Aν = Aν} {T = T} {V = V} {p = p} wfΣ
   (⊢• {B = Aν} {T = T}
-    (⊢down {A = Bν} {B = `∀ Aν} Φ lenΦ V⊢ (wt-ν {A = Aν} {B = Bν} {p = p} p⊢))
-    wfT) =
+    (⊢down {A = Bν} {B = `∀ Aν} Φ lenΦ V⊢
+      (wt-ν {A = Aν} {B = Bν} p⊢))
+    wfAν-app wfT) =
   suc Ψ , refl ,
   ⊢up
     (every (suc Ψ))
@@ -520,6 +587,8 @@ preservation-step-β-down-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
       {A = T}
       {B = Aν}
       {α = length Σ}
+      (WfTy-weakenˢ wfT (n≤1+n _))
+      (WfTy-weakenˢ wfAν-app (n≤1+n _))
       top
       (every-member-conv (length Σ) (len<suc-StoreWf wfΣ)))
   where
@@ -546,17 +615,25 @@ preservation-step-β-up-ν :
     ⦂ Bν
 preservation-step-β-up-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
   {Bν = Bν} {V = V} {p = p} wfΣ
-  (⊢up {A = `∀ Aν} {B = Bν} Φ lenΦ V⊢ (wt-ν {A = Aν} {B = Bν} {p = p} p⊢)) =
+  (⊢up {A = `∀ Aν} {B = Bν} Φ lenΦ V⊢
+    (wt-ν {A = Aν} {B = Bν} p⊢)) =
   ⊢up
     (Φ ++ cast-seal ∷ [])
     (trans (length-append-seal Φ) (cong suc lenΦ))
     (⊢• {B = ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)}
       V⊢′
+      (WfTy-weakenˢ
+        (subst (WfTy (suc _) _) (sym eq-close) wfAν)
+        (n≤1+n _))
       (wfSeal (len<suc-StoreWf wfΣ)))
     p⊢′
   where
     eq-src : up-src ((zero , ★) ∷ ⟰ˢ Σ) p ≡ (⇑ˢ Aν) [ α₀ ]ᵗ
     eq-src = up-src-align p⊢
+
+    wfAν : WfTy (suc Δ) Ψ Aν
+    wfAν = WfTy-ν-open-inv
+      (⊑-src-wf (storeWf-ν-ext wf★ wfΣ) (cong suc lenΦ) p⊢)
 
     eq-close : ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ) ≡ Aν
     eq-close = trans (cong (λ X → (⇑ᵗ X) [ ＇ zero ]ˢᵗ) eq-src)
@@ -586,10 +663,10 @@ preservation-step-β-up-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
 
 preservation-step {Ψ = Ψ} wfΣ M⊢ (id-step red) =
   Ψ , refl ,
-  preservation (storeWf-unique wfΣ) M⊢ red
+  preservation wfΣ M⊢ red
 
 preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
-  (⊢• {B = B} {T = T} (⊢Λ V⊢) wfT)
+  (⊢• {B = B} {T = T} (⊢Λ V⊢) wfB wfT)
   (β-Λ {V = V}) =
   suc Ψ , refl ,
   ⊢up
@@ -605,13 +682,15 @@ preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
       {A = T}
       {B = B}
       {α = length Σ}
+      (WfTy-weakenˢ wfT (n≤1+n _))
+      (WfTy-weakenˢ wfB (n≤1+n _))
       (Z∋ˢ refl refl)
       (every-member-conv (length Σ) (len<suc-StoreWf wfΣ)))
 
 preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
   (⊢• {B = B} {T = T}
     (⊢down {A = `∀ C} {B = `∀ B} Φ lenΦ V⊢ (wt-∀ {A = C} {B = B} {p = p} p⊢))
-    wfT)
+    wfB wfT)
   (β-down-∀ {A = T} {B = B} {V = V} {p = p} vV) =
   suc Ψ , refl ,
   cong-⊢⦂
@@ -634,30 +713,63 @@ preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
               refl
               (cong `∀ (sym (down-src-align (storeWf-unique (storeWf-⟰ᵗ wfΣ)) p⊢)))
               (wkΨ-term-suc V⊢))
+            (WfTy-weakenˢ
+              (subst
+                (WfTy (suc _) _)
+                (sym (down-src-align (storeWf-unique (storeWf-⟰ᵗ wfΣ)) p⊢))
+                (⊒-src-wf (storeWf-⟰ᵗ wfΣ) lenΦ p⊢))
+              (n≤1+n _))
             (wfSeal (len<suc-StoreWf wfΣ)))
           (append-tag-⊒
-            (OldPreservation.openCast⊒
-              (castWt⊒-raw
-                (sym (down-src-align (storeWf-unique (storeWf-⟰ᵗ wfΣ)) p⊢))
-                (sym (down-tgt-align p⊢))
-                p⊢)
-              (｀ (length Σ))))))
+            (OldPreservation.castWt⊒-term
+              (cong
+                (λ q → q [ ｀ (length Σ) ]↓)
+                (OldPreservation.rename⊒ˢ-pointwise
+                  (λ α → α) (λ α → refl) p))
+              (OldPreservation.openCast⊒
+                (castWt⊒
+                  (renameStoreˢ-id {Σ = ⟰ᵗ Σ})
+                  refl
+                  (castWt⊒-raw
+                    (renameˢ-id-store {A = down-src (⟰ᵗ Σ) p})
+                    (renameˢ-id-store {A = down-tgt (⟰ᵗ Σ) p})
+                    (⊒-renameˢ-wt
+                      (λ α → α)
+                      (λ α<Ψ → <-≤-trans α<Ψ (n≤1+n Ψ))
+                      RenOkConv-id
+                      RenOkCast-id
+                      RenOkTag-id
+                      (castWt⊒-raw
+                        (sym (down-src-align (storeWf-unique (storeWf-⟰ᵗ wfΣ)) p⊢))
+                        (sym (down-tgt-align p⊢))
+                        p⊢))))
+                (｀ (length Σ))
+                (wfSeal (len<suc-StoreWf wfΣ)))))))
       (instCast⊑-wt
         {A = T}
         {B = down-tgt (⟰ᵗ Σ) p}
         {α = length Σ}
+        (WfTy-weakenˢ wfT (n≤1+n _))
+        (WfTy-weakenˢ
+          (subst
+            (WfTy (suc _) _)
+            (sym (down-tgt-align p⊢))
+            wfB)
+          (n≤1+n _))
         (Z∋ˢ refl refl)
         (every-member-conv (length Σ) (len<suc-StoreWf wfΣ))))
 
 preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
   (M⊢@(⊢• {B = Aν} {T = T}
-    (⊢down {A = Bν} {B = `∀ Aν} Φ lenΦ V⊢ (wt-ν {A = Aν} {B = Bν} {p = p} p⊢))
-    wfT))
+    (⊢down {A = Bν} {B = `∀ Aν} Φ lenΦ V⊢
+      (wt-ν {A = Aν} {B = Bν} p⊢))
+    wfAν-app wfT))
   (β-down-ν {A = T} {B = Aν} {V = V} {p = p} vV) =
   preservation-step-β-down-ν wfΣ M⊢
 
 preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
-  (M⊢@(⊢up {A = `∀ Aν} {B = Bν} Φ lenΦ V⊢ (wt-ν {A = Aν} {B = Bν} {p = p} p⊢)))
+  (M⊢@(⊢up {A = `∀ Aν} {B = Bν} Φ lenΦ V⊢
+    (wt-ν {A = Aν} {B = Bν} p⊢)))
   (β-up-ν {V = V} {p = p} vV) =
   suc Ψ , refl , preservation-step-β-up-ν wfΣ M⊢
 
@@ -677,11 +789,14 @@ preservation-step wfΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
     (wkΣ-term (store-growth red) (step-wk-term eqΨ′ L⊢))
     M′⊢
 
-preservation-step wfΣ (⊢• {B = B} {T = T} M⊢ wfT) (ξ-·α red)
+preservation-step wfΣ (⊢• {B = B} {T = T} M⊢ wfB wfT) (ξ-·α red)
   with preservation-step wfΣ M⊢ red
 ... | Ψ′ , eqΨ′ , M′⊢ =
   Ψ′ , eqΨ′ ,
-  ⊢• {B = B} M′⊢ (WfTy-weakenˢ wfT (stepCtxLe eqΨ′))
+  ⊢• {B = B}
+    M′⊢
+    (WfTy-weakenˢ wfB (stepCtxLe eqΨ′))
+    (WfTy-weakenˢ wfT (stepCtxLe eqΨ′))
 
 preservation-step {Ψ = Ψ} wfΣ (⊢up Φ lenΦ M⊢ hp) (ξ-up red)
   with step-ctx-shape red | preservation-step wfΣ M⊢ red
@@ -698,7 +813,7 @@ preservation-step {Ψ = Ψ} wfΣ (⊢up Φ lenΦ M⊢ hp) (ξ-up red)
     (Φ ++ cast-tag ∷ [])
     (trans (length-append-tag Φ) (cong suc lenΦ))
     M′⊢
-    (wk⊑ (store-growth red) (append-tag-⊑ hp))
+    (wk⊑ (store-growth red) (wkΨ-cast-tag-⊑ hp))
 
 preservation-step {Ψ = Ψ} wfΣ (⊢down Φ lenΦ M⊢ hp) (ξ-down red)
   with step-ctx-shape red | preservation-step wfΣ M⊢ red
@@ -715,7 +830,7 @@ preservation-step {Ψ = Ψ} wfΣ (⊢down Φ lenΦ M⊢ hp) (ξ-down red)
     (Φ ++ cast-tag ∷ [])
     (trans (length-append-tag Φ) (cong suc lenΦ))
     M′⊢
-    (wk⊒ (store-growth red) (append-tag-⊒ hp))
+    (wk⊒ (store-growth red) (wkΨ-cast-tag-⊒ hp))
 
 preservation-step wfΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
   with preservation-step wfΣ L⊢ red

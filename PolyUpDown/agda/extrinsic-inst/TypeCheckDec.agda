@@ -307,10 +307,10 @@ open-closeνSrc-id C =
 
 mutual
   wt⊑-unique :
-    ∀ {Σ Φ Φ′ A A′ B B′} {p : Up} →
+    ∀ {Δ Ψ Σ Φ Φ′ A A′ B B′} {p : Up} →
     Uniqueˢ Σ →
-    Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
-    Σ ∣ Φ′ ⊢ p ⦂ A′ ⊑ B′ →
+    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A′ B′ →
     (A ≡ A′) × (B ≡ B′)
   wt⊑-unique uΣ (wt-tag g gokΞ) (wt-tag g′ gokΞ′) = refl , refl
   wt⊑-unique uΣ (wt-unseal h α∈Φ) (wt-unseal h′ α∈Φ′) =
@@ -388,10 +388,10 @@ mutual
       eqC = proj₂ qEq
 
   wt⊒-unique :
-    ∀ {Σ Φ Φ′ A A′ B B′} {p : Down} →
+    ∀ {Δ Ψ Σ Φ Φ′ A A′ B B′} {p : Down} →
     Uniqueˢ Σ →
-    Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
-    Σ ∣ Φ′ ⊢ p ⦂ A′ ⊒ B′ →
+    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A′ B′ →
     (A ≡ A′) × (B ≡ B′)
   wt⊒-unique uΣ (wt-untag g gokΞ ℓ) (wt-untag g′ gokΞ′ ℓ′) = refl , refl
   wt⊒-unique uΣ (wt-seal h α∈Φ) (wt-seal h′ α∈Φ′) =
@@ -484,8 +484,8 @@ type-unique-blamefree uΣ (bf-· bfL bfM) (⊢· {A = A} {B = B} L:AB M:A) (⊢�
 type-unique-blamefree uΣ (bf-Λ bfM) (⊢Λ M:A) (⊢Λ M:B) =
   cong `∀ (type-unique-blamefree (unique-⟰ᵗ uΣ) bfM M:A M:B)
 type-unique-blamefree uΣ (bf-⦂∀ bfM)
-  (⊢• {B = B} {T = T} M:∀B wfT)
-  (⊢• {B = B′} {T = T′} M:∀B′ wfT′) = refl
+  (⊢• {B = B} {T = T} M:∀B wfB wfT)
+  (⊢• {B = B′} {T = T′} M:∀B′ wfB′ wfT′) = refl
 type-unique-blamefree uΣ bf-$ (⊢$ κ) (⊢$ κ′) = refl
 type-unique-blamefree uΣ (bf-⊕ bfL bfM) (⊢⊕ L:ℕ op M:ℕ) (⊢⊕ L:ℕ′ op′ M:ℕ′) = refl
 type-unique-blamefree uΣ (bf-up bfM) (⊢up Φ lenΦ M:A hp) (⊢up Φ′ lenΦ′ M:A′ hp′) =
@@ -700,14 +700,35 @@ _≟Ty_ : (A B : Ty) → Dec (A ≡ B)
 ... | yes refl = yes refl
 ... | no A≢B = no (λ { refl → A≢B refl })
 
+wfTyDec : (Δ : TyCtx) → (Ψ : SealCtx) → (A : Ty) → Dec (WfTy Δ Ψ A)
+wfTyDec Δ Ψ (＇ X) with X <? Δ
+... | yes X<Δ = yes (wfVar X<Δ)
+... | no X≮Δ = no (λ { (wfVar X<Δ) → X≮Δ X<Δ })
+wfTyDec Δ Ψ (｀ α) with α <? Ψ
+... | yes α<Ψ = yes (wfSeal α<Ψ)
+... | no α≮Ψ = no (λ { (wfSeal α<Ψ) → α≮Ψ α<Ψ })
+wfTyDec Δ Ψ (‵ ι) = yes wfBase
+wfTyDec Δ Ψ ★ = yes wf★
+wfTyDec Δ Ψ (A ⇒ B) with wfTyDec Δ Ψ A | wfTyDec Δ Ψ B
+... | yes hA | yes hB = yes (wf⇒ hA hB)
+... | no ¬hA | _ = no (λ { (wf⇒ hA hB) → ¬hA hA })
+... | _ | no ¬hB = no (λ { (wf⇒ hA hB) → ¬hB hB })
+wfTyDec Δ Ψ (`∀ A) with wfTyDec (suc Δ) Ψ A
+... | yes hA = yes (wf∀ hA)
+... | no ¬hA = no (λ { (wf∀ hA) → ¬hA hA })
+
 mutual
   up-cast-check′ :
+    (Δ : TyCtx) →
+    (Ψ : SealCtx) →
     (Σ : Store) →
-    Uniqueˢ Σ →
+    StoreWf Δ Ψ Σ →
     (Φ : List CastPerm) →
     (p : Up) →
-    Dec (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
-  up-cast-check′ Σ uΣ Φ (tag G) with groundTyDec G
+    Dec
+      (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+        _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (tag G) with groundTyDec G
   ... | no ¬g =
       no
         (λ
@@ -722,7 +743,7 @@ mutual
             })
   ...   | yes gokΦ = yes (G , (★ , wt-tag g gokΦ))
 
-  up-cast-check′ Σ uΣ Φ (unseal α) with lookupStoreAnyDec Σ α
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α) with lookupStoreAnyDec Σ α
   ... | no ¬lookup =
       no
         (λ
@@ -743,17 +764,20 @@ mutual
         no
           (λ
             { (A′ , (B′ , wt-unseal h′ α∈conv)) → α∉conv α∈conv
-            ; (A′ , (★ , wt-unseal★ h′ α∈cast′)) → A≢★ (lookup-★-contra uΣ h h′)
+            ; (A′ , (★ , wt-unseal★ h′ α∈cast′)) →
+                A≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
             })
   ...   | no A≢★ | no α∉conv | no α∉cast =
         no
           (λ
             { (A′ , (B′ , wt-unseal h′ α∈conv)) → α∉conv α∈conv
-            ; (A′ , (★ , wt-unseal★ h′ α∈cast′)) → A≢★ (lookup-★-contra uΣ h h′)
+            ; (A′ , (★ , wt-unseal★ h′ α∈cast′)) →
+                A≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
             })
 
-  up-cast-check′ Σ uΣ Φ (p ↦ q)
-      with down-cast-check′ Σ uΣ Φ p | up-cast-check′ Σ uΣ Φ q
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (p ↦ q)
+      with down-cast-check′ Δ Ψ Σ wfΣ Φ p |
+           up-cast-check′ Δ Ψ Σ wfΣ Φ q
   ... | no ¬p | _ =
       no
         (λ
@@ -767,7 +791,8 @@ mutual
   ... | yes (A′ , (A , hp)) | yes (B , (B′ , hq)) =
       yes ((A ⇒ B) , ((A′ ⇒ B′) , wt-↦ hp hq))
 
-  up-cast-check′ Σ uΣ Φ (∀ᵖ p) with up-cast-check′ (⟰ᵗ Σ) (unique-⟰ᵗ uΣ) Φ p
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (∀ᵖ p)
+      with up-cast-check′ (suc Δ) Ψ (⟰ᵗ Σ) (storeWf-⟰ᵗ wfΣ) Φ p
   ... | no ¬p =
       no
         (λ
@@ -776,8 +801,9 @@ mutual
   ... | yes (A , (B , hp)) =
       yes (`∀ A , (`∀ B , wt-∀ hp))
 
-  up-cast-check′ Σ uΣ Φ (ν p)
-      with up-cast-check′ ((zero , ★) ∷ ⟰ˢ Σ) (unique-ν ★ uΣ) (cast-seal ∷ Φ) p
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (ν p)
+      with up-cast-check′ Δ (suc Ψ) ((zero , ★) ∷ ⟰ˢ Σ)
+             (storeWf-ν-ext wf★ wfΣ) (cast-seal ∷ Φ) p
   ... | no ¬p =
       no
         (λ
@@ -798,13 +824,25 @@ mutual
         no
           (λ
             { (A′ , (B′ , wt-ν hp′)) →
-                ¬unshift (B′ , proj₂ (wt⊑-unique (unique-ν ★ uΣ) hp hp′))
+                ¬unshift
+                  (B′ ,
+                   proj₂
+                     (wt⊑-unique
+                       (storeWf-unique (storeWf-ν-ext wf★ wfΣ))
+                       hp hp′))
             })
 
-  up-cast-check′ Σ uΣ Φ (id A) = yes (A , (A , wt-id (wfTySome A)))
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (id A) with wfTyDec Δ Ψ A
+  ... | yes wfA = yes (A , (A , wt-id wfA))
+  ... | no ¬wfA =
+      no
+        (λ
+          { (.A , (.A , wt-id wfA)) → ¬wfA wfA
+          })
 
-  up-cast-check′ Σ uΣ Φ (p ； q)
-      with up-cast-check′ Σ uΣ Φ p | up-cast-check′ Σ uΣ Φ q
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (p ； q)
+      with up-cast-check′ Δ Ψ Σ wfΣ Φ p |
+           up-cast-check′ Δ Ψ Σ wfΣ Φ q
   ... | no ¬p | _ =
       no
         (λ
@@ -823,21 +861,25 @@ mutual
             { (A′ , (C′ , wt-； {B = B₀} hp′ hq′)) →
                 let
                   eqB : B ≡ B₀
-                  eqB = proj₂ (wt⊑-unique uΣ hp hp′)
+                  eqB = proj₂ (wt⊑-unique (storeWf-unique wfΣ) hp hp′)
 
                   eqB′ : B′ ≡ B₀
-                  eqB′ = proj₁ (wt⊑-unique uΣ hq hq′)
+                  eqB′ = proj₁ (wt⊑-unique (storeWf-unique wfΣ) hq hq′)
                 in
                 B≢B′ (trans eqB (sym eqB′))
             })
 
   down-cast-check′ :
+    (Δ : TyCtx) →
+    (Ψ : SealCtx) →
     (Σ : Store) →
-    Uniqueˢ Σ →
+    StoreWf Δ Ψ Σ →
     (Φ : List CastPerm) →
     (p : Down) →
-    Dec (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
-  down-cast-check′ Σ uΣ Φ (untag G ℓ) with groundTyDec G
+    Dec
+      (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+        _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (untag G ℓ) with groundTyDec G
   ... | no ¬g =
       no
         (λ
@@ -852,7 +894,7 @@ mutual
             })
   ...   | yes gokΦ = yes (★ , (G , wt-untag g gokΦ ℓ))
 
-  down-cast-check′ Σ uΣ Φ (seal α) with lookupStoreAnyDec Σ α
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal α) with lookupStoreAnyDec Σ α
   ... | no ¬lookup =
       no
         (λ
@@ -873,17 +915,20 @@ mutual
         no
           (λ
             { (A′ , (B′ , wt-seal h′ α∈conv)) → α∉conv α∈conv
-            ; (A′ , (｀ α , wt-seal★ h′ α∈cast′)) → A≢★ (lookup-★-contra uΣ h h′)
+            ; (A′ , (｀ α , wt-seal★ h′ α∈cast′)) →
+                A≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
             })
   ...   | no A≢★ | no α∉conv | no α∉cast =
         no
           (λ
             { (A′ , (B′ , wt-seal h′ α∈conv)) → α∉conv α∈conv
-            ; (A′ , (｀ α , wt-seal★ h′ α∈cast′)) → A≢★ (lookup-★-contra uΣ h h′)
+            ; (A′ , (｀ α , wt-seal★ h′ α∈cast′)) →
+                A≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
             })
 
-  down-cast-check′ Σ uΣ Φ (p ↦ q)
-      with up-cast-check′ Σ uΣ Φ p | down-cast-check′ Σ uΣ Φ q
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (p ↦ q)
+      with up-cast-check′ Δ Ψ Σ wfΣ Φ p |
+           down-cast-check′ Δ Ψ Σ wfΣ Φ q
   ... | no ¬p | _ =
       no
         (λ
@@ -897,7 +942,8 @@ mutual
   ... | yes (A′ , (A , hp)) | yes (B , (B′ , hq)) =
       yes ((A ⇒ B) , ((A′ ⇒ B′) , wt-↦ hp hq))
 
-  down-cast-check′ Σ uΣ Φ (∀ᵖ p) with down-cast-check′ (⟰ᵗ Σ) (unique-⟰ᵗ uΣ) Φ p
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (∀ᵖ p)
+      with down-cast-check′ (suc Δ) Ψ (⟰ᵗ Σ) (storeWf-⟰ᵗ wfΣ) Φ p
   ... | no ¬p =
       no
         (λ
@@ -906,8 +952,9 @@ mutual
   ... | yes (A , (B , hp)) =
       yes (`∀ A , (`∀ B , wt-∀ hp))
 
-  down-cast-check′ Σ uΣ Φ (ν p)
-      with down-cast-check′ ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) (unique-ν ★ uΣ) (cast-tag ∷ Φ) p
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (ν p)
+      with down-cast-check′ Δ (suc Ψ) ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ)
+             (storeWf-ν-ext wf★ wfΣ) (cast-tag ∷ Φ) p
   ... | no ¬p =
       no
         (λ
@@ -928,13 +975,25 @@ mutual
         no
           (λ
             { (B′ , (A′ , wt-ν hp′)) →
-                ¬unshift (B′ , proj₁ (wt⊒-unique (unique-ν ★ uΣ) hp hp′))
+                ¬unshift
+                  (B′ ,
+                   proj₁
+                     (wt⊒-unique
+                       (storeWf-unique (storeWf-ν-ext wf★ wfΣ))
+                       hp hp′))
             })
 
-  down-cast-check′ Σ uΣ Φ (id A) = yes (A , (A , wt-id (wfTySome A)))
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (id A) with wfTyDec Δ Ψ A
+  ... | yes wfA = yes (A , (A , wt-id wfA))
+  ... | no ¬wfA =
+      no
+        (λ
+          { (.A , (.A , wt-id wfA)) → ¬wfA wfA
+          })
 
-  down-cast-check′ Σ uΣ Φ (p ； q)
-      with down-cast-check′ Σ uΣ Φ p | down-cast-check′ Σ uΣ Φ q
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (p ； q)
+      with down-cast-check′ Δ Ψ Σ wfΣ Φ p |
+           down-cast-check′ Δ Ψ Σ wfΣ Φ q
   ... | no ¬p | _ =
       no
         (λ
@@ -953,31 +1012,37 @@ mutual
             { (A′ , (C′ , wt-； {B = B₀} hp′ hq′)) →
                 let
                   eqB : B ≡ B₀
-                  eqB = proj₂ (wt⊒-unique uΣ hp hp′)
+                  eqB = proj₂ (wt⊒-unique (storeWf-unique wfΣ) hp hp′)
 
                   eqB′ : B′ ≡ B₀
-                  eqB′ = proj₁ (wt⊒-unique uΣ hq hq′)
+                  eqB′ = proj₁ (wt⊒-unique (storeWf-unique wfΣ) hq hq′)
                 in
                 B≢B′ (trans eqB (sym eqB′))
             })
 
 up-cast-check :
-  (Σ : Store) →
+  (Δ : TyCtx) →
   (Ψ : SealCtx) →
-  Uniqueˢ Σ →
+  (Σ : Store) →
+  StoreWf Δ Ψ Σ →
   (p : Up) →
-  Dec (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ every Ψ ⊢ p ⦂ A ⊑ B)
-up-cast-check Σ Ψ uΣ p =
-  up-cast-check′ Σ uΣ (every Ψ) p
+  Dec
+    (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+      _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ (every Ψ) p A B)
+up-cast-check Δ Ψ Σ wfΣ p =
+  up-cast-check′ Δ Ψ Σ wfΣ (every Ψ) p
 
 down-cast-check :
-  (Σ : Store) →
+  (Δ : TyCtx) →
   (Ψ : SealCtx) →
-  Uniqueˢ Σ →
+  (Σ : Store) →
+  StoreWf Δ Ψ Σ →
   (p : Down) →
-  Dec (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ every Ψ ⊢ p ⦂ A ⊒ B)
-down-cast-check Σ Ψ uΣ p =
-  down-cast-check′ Σ uΣ (every Ψ) p
+  Dec
+    (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+      _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ (every Ψ) p A B)
+down-cast-check Δ Ψ Σ wfΣ p =
+  down-cast-check′ Δ Ψ Σ wfΣ (every Ψ) p
 
 ------------------------------------------------------------------------
 -- Finite permission-candidate solver (towards `*-cast-check-any`)
@@ -1224,11 +1289,11 @@ ground-ok-clip {g = ★⇒★} n h gok = tt
 
 mutual
   normalize-up :
-    ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
+    ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
     (n : ℕ) →
     maxSealUp p < n →
-    Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
-    Σ ∣ clip n Φ ⊢ p ⦂ A ⊑ B
+    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ (clip n Φ) p A B
   normalize-up n hmax (wt-tag g gok) =
     wt-tag g (ground-ok-clip n hmax gok)
   normalize-up n hmax (wt-unseal h α∈Φ) =
@@ -1245,11 +1310,11 @@ mutual
     wt-； (normalize-up n (⊔-left< hmax) p) (normalize-up n (⊔-right< hmax) q)
 
   normalize-down :
-    ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
+    ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
     (n : ℕ) →
     maxSealDown p < n →
-    Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
-    Σ ∣ clip n Φ ⊢ p ⦂ A ⊒ B
+    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ (clip n Φ) p A B
   normalize-down n hmax (wt-untag g gok ℓ) =
     wt-untag g (ground-ok-clip n hmax gok) ℓ
   normalize-down n hmax (wt-seal h α∈Φ) =
@@ -1266,25 +1331,31 @@ mutual
     wt-； (normalize-down n (⊔-left< hmax) p) (normalize-down n (⊔-right< hmax) q)
 
 search-up-casts :
+  (Δ : TyCtx) →
+  (Ψ : SealCtx) →
   (Σ : Store) →
-  Uniqueˢ Σ →
+  StoreWf Δ Ψ Σ →
   (p : Up) →
   (Φs : List (List CastPerm)) →
   Dec
     (Σ[ Φ ∈ List CastPerm ]
       (Φ ∈perm Φs) ×
-      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
-search-up-casts Σ uΣ p [] =
+      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+        _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+search-up-casts Δ Ψ Σ wfΣ p [] =
   no
     (λ
       { (Φ , (() , (A , (B , hp)))) })
-search-up-casts Σ uΣ p (Φ ∷ Φs) with up-cast-check′ Σ uΣ Φ p
-search-up-casts Σ uΣ p (Φ ∷ Φs) | yes (A , (B , hp)) =
+search-up-casts Δ Ψ Σ wfΣ p (Φ ∷ Φs)
+  with up-cast-check′ Δ Ψ Σ wfΣ Φ p
+search-up-casts Δ Ψ Σ wfΣ p (Φ ∷ Φs) | yes (A , (B , hp)) =
   yes (Φ , (here-perm , (A , (B , hp))))
-search-up-casts Σ uΣ p (Φ ∷ Φs) | no ¬head with search-up-casts Σ uΣ p Φs
-search-up-casts Σ uΣ p (Φ ∷ Φs) | no ¬head | yes (Φ′ , (Φ′∈ , (A , (B , hp)))) =
+search-up-casts Δ Ψ Σ wfΣ p (Φ ∷ Φs) | no ¬head
+  with search-up-casts Δ Ψ Σ wfΣ p Φs
+search-up-casts Δ Ψ Σ wfΣ p (Φ ∷ Φs) | no ¬head
+  | yes (Φ′ , (Φ′∈ , (A , (B , hp)))) =
   yes (Φ′ , (there-perm Φ′∈ , (A , (B , hp))))
-search-up-casts Σ uΣ p (Φ ∷ Φs) | no ¬head | no ¬tail =
+search-up-casts Δ Ψ Σ wfΣ p (Φ ∷ Φs) | no ¬head | no ¬tail =
   no
     (λ
       { (.Φ , (here-perm , (A , (B , hp)))) → ¬head (A , (B , hp))
@@ -1293,30 +1364,34 @@ search-up-casts Σ uΣ p (Φ ∷ Φs) | no ¬head | no ¬tail =
       })
 
 search-up-casts-length :
+  (Δ : TyCtx) →
   (Σ : Store) →
-  Uniqueˢ Σ →
   (Ψ : SealCtx) →
+  StoreWf Δ Ψ Σ →
   (p : Up) →
   (Φs : List (List CastPerm)) →
   Dec
     (Σ[ Φ ∈ List CastPerm ]
       (Φ ∈perm Φs) ×
       (length Φ ≡ Ψ) ×
-      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
-search-up-casts-length Σ uΣ Ψ p [] =
+      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+        _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+search-up-casts-length Δ Σ Ψ wfΣ p [] =
   no
     (λ
       { (Φ , (() , (lenΦ , (A , (B , hp))))) })
-search-up-casts-length Σ uΣ Ψ p (Φ ∷ Φs) with length Φ ≟ Ψ
-search-up-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ with up-cast-check′ Σ uΣ Φ p
-search-up-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ | yes (A , (B , hp)) =
+search-up-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) with length Φ ≟ Ψ
+search-up-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | yes lenΦ
+  with up-cast-check′ Δ Ψ Σ wfΣ Φ p
+search-up-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | yes lenΦ
+  | yes (A , (B , hp)) =
   yes (Φ , (here-perm , (lenΦ , (A , (B , hp)))))
-search-up-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ | no ¬head
-  with search-up-casts-length Σ uΣ Ψ p Φs
-search-up-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ | no ¬head
+search-up-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | yes lenΦ | no ¬head
+  with search-up-casts-length Δ Σ Ψ wfΣ p Φs
+search-up-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | yes lenΦ | no ¬head
   | yes (Φ′ , (Φ′∈ , (lenΦ′ , (A , (B , hp))))) =
       yes (Φ′ , (there-perm Φ′∈ , (lenΦ′ , (A , (B , hp)))))
-search-up-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ | no ¬head
+search-up-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | yes lenΦ | no ¬head
   | no ¬tail =
       no
         (λ
@@ -1324,12 +1399,12 @@ search-up-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ | no ¬head
           ; (Φ′ , (there-perm Φ′∈ , (lenΦ′ , (A , (B , hp))))) →
               ¬tail (Φ′ , (Φ′∈ , (lenΦ′ , (A , (B , hp)))))
           })
-search-up-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | no ¬len
-  with search-up-casts-length Σ uΣ Ψ p Φs
-search-up-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | no ¬len
+search-up-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | no ¬len
+  with search-up-casts-length Δ Σ Ψ wfΣ p Φs
+search-up-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | no ¬len
   | yes (Φ′ , (Φ′∈ , (lenΦ′ , (A , (B , hp))))) =
       yes (Φ′ , (there-perm Φ′∈ , (lenΦ′ , (A , (B , hp)))))
-search-up-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | no ¬len | no ¬tail =
+search-up-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | no ¬len | no ¬tail =
   no
     (λ
       { (.Φ , (here-perm , (lenΦ′ , (A , (B , hp))))) → ¬len lenΦ′
@@ -1338,25 +1413,31 @@ search-up-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | no ¬len | no ¬tail =
       })
 
 search-down-casts :
+  (Δ : TyCtx) →
+  (Ψ : SealCtx) →
   (Σ : Store) →
-  Uniqueˢ Σ →
+  StoreWf Δ Ψ Σ →
   (p : Down) →
   (Φs : List (List CastPerm)) →
   Dec
     (Σ[ Φ ∈ List CastPerm ]
       (Φ ∈perm Φs) ×
-      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
-search-down-casts Σ uΣ p [] =
+      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+        _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+search-down-casts Δ Ψ Σ wfΣ p [] =
   no
     (λ
       { (Φ , (() , (A , (B , hp)))) })
-search-down-casts Σ uΣ p (Φ ∷ Φs) with down-cast-check′ Σ uΣ Φ p
-search-down-casts Σ uΣ p (Φ ∷ Φs) | yes (A , (B , hp)) =
+search-down-casts Δ Ψ Σ wfΣ p (Φ ∷ Φs)
+  with down-cast-check′ Δ Ψ Σ wfΣ Φ p
+search-down-casts Δ Ψ Σ wfΣ p (Φ ∷ Φs) | yes (A , (B , hp)) =
   yes (Φ , (here-perm , (A , (B , hp))))
-search-down-casts Σ uΣ p (Φ ∷ Φs) | no ¬head with search-down-casts Σ uΣ p Φs
-search-down-casts Σ uΣ p (Φ ∷ Φs) | no ¬head | yes (Φ′ , (Φ′∈ , (A , (B , hp)))) =
+search-down-casts Δ Ψ Σ wfΣ p (Φ ∷ Φs) | no ¬head
+  with search-down-casts Δ Ψ Σ wfΣ p Φs
+search-down-casts Δ Ψ Σ wfΣ p (Φ ∷ Φs) | no ¬head
+  | yes (Φ′ , (Φ′∈ , (A , (B , hp)))) =
   yes (Φ′ , (there-perm Φ′∈ , (A , (B , hp))))
-search-down-casts Σ uΣ p (Φ ∷ Φs) | no ¬head | no ¬tail =
+search-down-casts Δ Ψ Σ wfΣ p (Φ ∷ Φs) | no ¬head | no ¬tail =
   no
     (λ
       { (.Φ , (here-perm , (A , (B , hp)))) → ¬head (A , (B , hp))
@@ -1365,32 +1446,34 @@ search-down-casts Σ uΣ p (Φ ∷ Φs) | no ¬head | no ¬tail =
       })
 
 search-down-casts-length :
+  (Δ : TyCtx) →
   (Σ : Store) →
-  Uniqueˢ Σ →
   (Ψ : SealCtx) →
+  StoreWf Δ Ψ Σ →
   (p : Down) →
   (Φs : List (List CastPerm)) →
   Dec
     (Σ[ Φ ∈ List CastPerm ]
       (Φ ∈perm Φs) ×
       (length Φ ≡ Ψ) ×
-      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
-search-down-casts-length Σ uΣ Ψ p [] =
+      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+        _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+search-down-casts-length Δ Σ Ψ wfΣ p [] =
   no
     (λ
       { (Φ , (() , (lenΦ , (A , (B , hp))))) })
-search-down-casts-length Σ uΣ Ψ p (Φ ∷ Φs) with length Φ ≟ Ψ
-search-down-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ
-  with down-cast-check′ Σ uΣ Φ p
-search-down-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ
+search-down-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) with length Φ ≟ Ψ
+search-down-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | yes lenΦ
+  with down-cast-check′ Δ Ψ Σ wfΣ Φ p
+search-down-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | yes lenΦ
   | yes (A , (B , hp)) =
       yes (Φ , (here-perm , (lenΦ , (A , (B , hp)))))
-search-down-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ | no ¬head
-  with search-down-casts-length Σ uΣ Ψ p Φs
-search-down-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ | no ¬head
+search-down-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | yes lenΦ | no ¬head
+  with search-down-casts-length Δ Σ Ψ wfΣ p Φs
+search-down-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | yes lenΦ | no ¬head
   | yes (Φ′ , (Φ′∈ , (lenΦ′ , (A , (B , hp))))) =
       yes (Φ′ , (there-perm Φ′∈ , (lenΦ′ , (A , (B , hp)))))
-search-down-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ | no ¬head
+search-down-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | yes lenΦ | no ¬head
   | no ¬tail =
       no
         (λ
@@ -1398,12 +1481,12 @@ search-down-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | yes lenΦ | no ¬head
           ; (Φ′ , (there-perm Φ′∈ , (lenΦ′ , (A , (B , hp))))) →
               ¬tail (Φ′ , (Φ′∈ , (lenΦ′ , (A , (B , hp)))))
           })
-search-down-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | no ¬len
-  with search-down-casts-length Σ uΣ Ψ p Φs
-search-down-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | no ¬len
+search-down-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | no ¬len
+  with search-down-casts-length Δ Σ Ψ wfΣ p Φs
+search-down-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | no ¬len
   | yes (Φ′ , (Φ′∈ , (lenΦ′ , (A , (B , hp))))) =
       yes (Φ′ , (there-perm Φ′∈ , (lenΦ′ , (A , (B , hp)))))
-search-down-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | no ¬len | no ¬tail =
+search-down-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | no ¬len | no ¬tail =
   no
     (λ
       { (.Φ , (here-perm , (lenΦ′ , (A , (B , hp))))) → ¬len lenΦ′
@@ -1412,11 +1495,11 @@ search-down-casts-length Σ uΣ Ψ p (Φ ∷ Φs) | no ¬len | no ¬tail =
       })
 
 up-cast-candidates-complete :
-  ∀ {Σ : Store}{Φ : List CastPerm}{p : Up}{A B : Ty} →
-  Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{p : Up}{A B : Ty} →
+  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
   Σ[ Φ′ ∈ List CastPerm ]
     (Φ′ ∈perm permCandidatesUp p) ×
-    Σ ∣ Φ′ ⊢ p ⦂ A ⊑ B
+    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A B
 up-cast-candidates-complete {Φ = Φ} {p = p} hp =
   clip (suc (maxSealUp p)) Φ ,
   ( clip∈boolLists (suc (maxSealUp p)) Φ
@@ -1424,11 +1507,11 @@ up-cast-candidates-complete {Φ = Φ} {p = p} hp =
   )
 
 down-cast-candidates-complete :
-  ∀ {Σ : Store}{Φ : List CastPerm}{p : Down}{A B : Ty} →
-  Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{p : Down}{A B : Ty} →
+  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
   Σ[ Φ′ ∈ List CastPerm ]
     (Φ′ ∈perm permCandidatesDown p) ×
-    Σ ∣ Φ′ ⊢ p ⦂ A ⊒ B
+    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A B
 down-cast-candidates-complete {Φ = Φ} {p = p} hp =
   clip (suc (maxSealDown p)) Φ ,
   ( clip∈boolLists (suc (maxSealDown p)) Φ
@@ -1436,14 +1519,19 @@ down-cast-candidates-complete {Φ = Φ} {p = p} hp =
   )
 
 up-cast-check-any :
+  (Δ : TyCtx) →
+  (Ψ : SealCtx) →
   (Σ : Store) →
-  Uniqueˢ Σ →
+  StoreWf Δ Ψ Σ →
   (p : Up) →
-  Dec (Σ[ Φ ∈ List CastPerm ] Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
-up-cast-check-any Σ uΣ p with search-up-casts Σ uΣ p (permCandidatesUp p)
-up-cast-check-any Σ uΣ p | yes (Φ , (Φ∈ , (A , (B , hp)))) =
+  Dec
+    (Σ[ Φ ∈ List CastPerm ] Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+      _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+up-cast-check-any Δ Ψ Σ wfΣ p
+  with search-up-casts Δ Ψ Σ wfΣ p (permCandidatesUp p)
+up-cast-check-any Δ Ψ Σ wfΣ p | yes (Φ , (Φ∈ , (A , (B , hp)))) =
   yes (Φ , (A , (B , hp)))
-up-cast-check-any Σ uΣ p | no ¬search =
+up-cast-check-any Δ Ψ Σ wfΣ p | no ¬search =
   no
     (λ
       { (Φ , (A , (B , hp))) →
@@ -1454,21 +1542,26 @@ up-cast-check-any Σ uΣ p | no ¬search =
             Φ′∈ : Φ′ ∈perm permCandidatesUp p
             Φ′∈ = proj₁ (proj₂ (up-cast-candidates-complete hp))
 
-            hp′ : Σ ∣ Φ′ ⊢ p ⦂ A ⊑ B
+            hp′ : _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A B
             hp′ = proj₂ (proj₂ (up-cast-candidates-complete hp))
           in
           ¬search (Φ′ , (Φ′∈ , (A , (B , hp′))))
       })
 
 down-cast-check-any :
+  (Δ : TyCtx) →
+  (Ψ : SealCtx) →
   (Σ : Store) →
-  Uniqueˢ Σ →
+  StoreWf Δ Ψ Σ →
   (p : Down) →
-  Dec (Σ[ Φ ∈ List CastPerm ] Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
-down-cast-check-any Σ uΣ p with search-down-casts Σ uΣ p (permCandidatesDown p)
-down-cast-check-any Σ uΣ p | yes (Φ , (Φ∈ , (A , (B , hp)))) =
+  Dec
+    (Σ[ Φ ∈ List CastPerm ] Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+      _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+down-cast-check-any Δ Ψ Σ wfΣ p
+  with search-down-casts Δ Ψ Σ wfΣ p (permCandidatesDown p)
+down-cast-check-any Δ Ψ Σ wfΣ p | yes (Φ , (Φ∈ , (A , (B , hp)))) =
   yes (Φ , (A , (B , hp)))
-down-cast-check-any Σ uΣ p | no ¬search =
+down-cast-check-any Δ Ψ Σ wfΣ p | no ¬search =
   no
     (λ
       { (Φ , (A , (B , hp))) →
@@ -1479,27 +1572,29 @@ down-cast-check-any Σ uΣ p | no ¬search =
             Φ′∈ : Φ′ ∈perm permCandidatesDown p
             Φ′∈ = proj₁ (proj₂ (down-cast-candidates-complete hp))
 
-            hp′ : Σ ∣ Φ′ ⊢ p ⦂ A ⊒ B
+            hp′ : _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A B
             hp′ = proj₂ (proj₂ (down-cast-candidates-complete hp))
           in
           ¬search (Φ′ , (Φ′∈ , (A , (B , hp′))))
       })
 
 up-cast-check-length :
+  (Δ : TyCtx) →
   (Σ : Store) →
   (Ψ : SealCtx) →
-  Uniqueˢ Σ →
+  StoreWf Δ Ψ Σ →
   (p : Up) →
   Dec
     (Σ[ Φ ∈ List CastPerm ]
       (length Φ ≡ Ψ) ×
-      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
-up-cast-check-length Σ Ψ uΣ p
-  with search-up-casts-length Σ uΣ Ψ p (boolLists Ψ)
-up-cast-check-length Σ Ψ uΣ p
+      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+        _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+up-cast-check-length Δ Σ Ψ wfΣ p
+  with search-up-casts-length Δ Σ Ψ wfΣ p (boolLists Ψ)
+up-cast-check-length Δ Σ Ψ wfΣ p
   | yes (Φ , (Φ∈ , (lenΦ , (A , (B , hp))))) =
       yes (Φ , (lenΦ , (A , (B , hp))))
-up-cast-check-length Σ Ψ uΣ p | no ¬search =
+up-cast-check-length Δ Σ Ψ wfΣ p | no ¬search =
   no
     (λ
       { (Φ , (lenΦ , (A , (B , hp)))) →
@@ -1514,20 +1609,22 @@ up-cast-check-length Σ Ψ uΣ p | no ¬search =
       })
 
 down-cast-check-length :
+  (Δ : TyCtx) →
   (Σ : Store) →
   (Ψ : SealCtx) →
-  Uniqueˢ Σ →
+  StoreWf Δ Ψ Σ →
   (p : Down) →
   Dec
     (Σ[ Φ ∈ List CastPerm ]
       (length Φ ≡ Ψ) ×
-      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
-down-cast-check-length Σ Ψ uΣ p
-  with search-down-casts-length Σ uΣ Ψ p (boolLists Ψ)
-down-cast-check-length Σ Ψ uΣ p
+      Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+        _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+down-cast-check-length Δ Σ Ψ wfΣ p
+  with search-down-casts-length Δ Σ Ψ wfΣ p (boolLists Ψ)
+down-cast-check-length Δ Σ Ψ wfΣ p
   | yes (Φ , (Φ∈ , (lenΦ , (A , (B , hp))))) =
       yes (Φ , (lenΦ , (A , (B , hp))))
-down-cast-check-length Σ Ψ uΣ p | no ¬search =
+down-cast-check-length Δ Σ Ψ wfΣ p | no ¬search =
   no
     (λ
       { (Φ , (lenΦ , (A , (B , hp)))) →
@@ -1592,23 +1689,6 @@ lookupAnyDec (A ∷ Γ) zero = yes (A , Z)
 lookupAnyDec (A ∷ Γ) (suc x) with lookupAnyDec Γ x
 ... | yes (B , h) = yes (B , S h)
 ... | no ¬lookup = no (λ { (B , S h) → ¬lookup (B , h) })
-
-wfTyDec : (Δ : TyCtx) → (Ψ : SealCtx) → (A : Ty) → Dec (WfTy Δ Ψ A)
-wfTyDec Δ Ψ (＇ X) with X <? Δ
-... | yes X<Δ = yes (wfVar X<Δ)
-... | no X≮Δ = no (λ { (wfVar X<Δ) → X≮Δ X<Δ })
-wfTyDec Δ Ψ (｀ α) with α <? Ψ
-... | yes α<Ψ = yes (wfSeal α<Ψ)
-... | no α≮Ψ = no (λ { (wfSeal α<Ψ) → α≮Ψ α<Ψ })
-wfTyDec Δ Ψ (‵ ι) = yes wfBase
-wfTyDec Δ Ψ ★ = yes wf★
-wfTyDec Δ Ψ (A ⇒ B) with wfTyDec Δ Ψ A | wfTyDec Δ Ψ B
-... | yes hA | yes hB = yes (wf⇒ hA hB)
-... | no ¬hA | _ = no (λ { (wf⇒ hA hB) → ¬hA hA })
-... | _ | no ¬hB = no (λ { (wf⇒ hA hB) → ¬hB hB })
-wfTyDec Δ Ψ (`∀ A) with wfTyDec (suc Δ) Ψ A
-... | yes hA = yes (wf∀ hA)
-... | no ¬hA = no (λ { (wf∀ hA) → ¬hA hA })
 
 ------------------------------------------------------------------------
 -- Decidable type checking
@@ -1751,12 +1831,12 @@ type-check Δ Ψ Σ Γ wfΓ wfΣ (M ⦂∀ B [ T ]) with type-check Δ Ψ Σ Γ 
 ... | no ¬M =
   no
     (λ
-      { ((C , ⊢• M:∀ wfT) , bf-⦂∀ bfM) → ¬M ((`∀ _ , M:∀) , bfM)
+      { ((C , ⊢• M:∀ wfB wfT) , bf-⦂∀ bfM) → ¬M ((`∀ _ , M:∀) , bfM)
       })
 ... | yes ((＇ X , M:X) , bfM) =
   no
     (λ
-      { ((C , ⊢• M:∀ wfT) , bf-⦂∀ bfM′) →
+      { ((C , ⊢• M:∀ wfB wfT) , bf-⦂∀ bfM′) →
           let eq : ＇ X ≡ `∀ _
               eq = type-unique-blamefree (storeWf-unique wfΣ) bfM M:X M:∀
           in nonForall-≠∀ (nf-var X) eq
@@ -1764,7 +1844,7 @@ type-check Δ Ψ Σ Γ wfΓ wfΣ (M ⦂∀ B [ T ]) with type-check Δ Ψ Σ Γ 
 ... | yes ((｀ α , M:α) , bfM) =
   no
     (λ
-      { ((C , ⊢• M:∀ wfT) , bf-⦂∀ bfM′) →
+      { ((C , ⊢• M:∀ wfB wfT) , bf-⦂∀ bfM′) →
           let eq : ｀ α ≡ `∀ _
               eq = type-unique-blamefree (storeWf-unique wfΣ) bfM M:α M:∀
           in nonForall-≠∀ (nf-seal α) eq
@@ -1772,7 +1852,7 @@ type-check Δ Ψ Σ Γ wfΓ wfΣ (M ⦂∀ B [ T ]) with type-check Δ Ψ Σ Γ 
 ... | yes ((‵ ι , M:ι) , bfM) =
   no
     (λ
-      { ((C , ⊢• M:∀ wfT) , bf-⦂∀ bfM′) →
+      { ((C , ⊢• M:∀ wfB wfT) , bf-⦂∀ bfM′) →
           let eq : ‵ ι ≡ `∀ _
               eq = type-unique-blamefree (storeWf-unique wfΣ) bfM M:ι M:∀
           in nonForall-≠∀ (nf-base ι) eq
@@ -1780,7 +1860,7 @@ type-check Δ Ψ Σ Γ wfΓ wfΣ (M ⦂∀ B [ T ]) with type-check Δ Ψ Σ Γ 
 ... | yes ((★ , M:★) , bfM) =
   no
     (λ
-      { ((C , ⊢• M:∀ wfT) , bf-⦂∀ bfM′) →
+      { ((C , ⊢• M:∀ wfB wfT) , bf-⦂∀ bfM′) →
           let eq : ★ ≡ `∀ _
               eq = type-unique-blamefree (storeWf-unique wfΣ) bfM M:★ M:∀
           in nonForall-≠∀ nf-star eq
@@ -1788,28 +1868,34 @@ type-check Δ Ψ Σ Γ wfΓ wfΣ (M ⦂∀ B [ T ]) with type-check Δ Ψ Σ Γ 
 ... | yes ((A ⇒ B′ , M:AB) , bfM) =
   no
     (λ
-      { ((C , ⊢• M:∀ wfT) , bf-⦂∀ bfM′) →
+      { ((C , ⊢• M:∀ wfB wfT) , bf-⦂∀ bfM′) →
           let eq : (A ⇒ B′) ≡ `∀ _
               eq = type-unique-blamefree (storeWf-unique wfΣ) bfM M:AB M:∀
           in nonForall-≠∀ (nf-⇒ A B′) eq
       })
-... | yes ((`∀ B′ , M:∀B′) , bfM) with B′ ≟Ty B | wfTyDec Δ Ψ T
-...   | no B′≢B | _ =
+... | yes ((`∀ B′ , M:∀B′) , bfM)
+  with B′ ≟Ty B | wfTyDec (suc Δ) Ψ B | wfTyDec Δ Ψ T
+...   | no B′≢B | _ | _ =
       no
         (λ
-          { ((C , ⊢• M:∀B wfT) , bf-⦂∀ bfM′) →
+          { ((C , ⊢• M:∀B wfB wfT) , bf-⦂∀ bfM′) →
               let eqAll : `∀ B′ ≡ `∀ B
                   eqAll = type-unique-blamefree (storeWf-unique wfΣ) bfM M:∀B′ M:∀B
               in
               B′≢B (cong forallBodyTy eqAll)
           })
-...   | yes refl | no ¬wfT =
+...   | yes refl | no ¬wfB | _ =
       no
         (λ
-          { ((C , ⊢• M:∀B wfT) , bf-⦂∀ bfM′) → ¬wfT wfT
+          { ((C , ⊢• M:∀B wfB wfT) , bf-⦂∀ bfM′) → ¬wfB wfB
           })
-...   | yes refl | yes wfT =
-      yes ((B [ T ]ᵗ , ⊢• M:∀B′ wfT) , bf-⦂∀ bfM)
+...   | yes refl | yes wfB | no ¬wfT =
+      no
+        (λ
+          { ((C , ⊢• M:∀B wfB′ wfT) , bf-⦂∀ bfM′) → ¬wfT wfT
+          })
+...   | yes refl | yes wfB | yes wfT =
+      yes ((B [ T ]ᵗ , ⊢• M:∀B′ wfB wfT) , bf-⦂∀ bfM)
 
 type-check Δ Ψ Σ Γ wfΓ wfΣ ($ κ) = yes ((constTy κ , ⊢$ κ) , bf-$)
 
@@ -1863,7 +1949,7 @@ type-check Δ Ψ Σ Γ wfΓ wfΣ (M up p) with type-check Δ Ψ Σ Γ wfΓ wfΣ 
       { ((B , ⊢up {A = A′} Φ lenΦ M:A′ hp) , bf-up bfM) →
           ¬M ((A′ , M:A′) , bfM)
       })
-... | yes ((A , M:A) , bfM) with up-cast-check-length Σ Ψ (storeWf-unique wfΣ) p
+... | yes ((A , M:A) , bfM) with up-cast-check-length Δ Σ Ψ wfΣ p
 ...   | no ¬p =
       no
         (λ
@@ -1897,7 +1983,7 @@ type-check Δ Ψ Σ Γ wfΓ wfΣ (M down p) with type-check Δ Ψ Σ Γ wfΓ wf�
       { ((B , ⊢down {A = A′} Φ lenΦ M:A′ hp) , bf-down bfM) →
           ¬M ((A′ , M:A′) , bfM)
       })
-... | yes ((A , M:A) , bfM) with down-cast-check-length Σ Ψ (storeWf-unique wfΣ) p
+... | yes ((A , M:A) , bfM) with down-cast-check-length Δ Σ Ψ wfΣ p
 ...   | no ¬p =
       no
         (λ

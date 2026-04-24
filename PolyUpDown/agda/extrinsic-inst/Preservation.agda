@@ -32,24 +32,30 @@ open import Reduction
 ------------------------------------------------------------------------
 
 openCast⊑ :
-  ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
-  ⟰ᵗ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
+  _∣_⊢_⦂_⊑_ {Δ = suc Δ} {Ψ = Ψ} (⟰ᵗ Σ) Φ p A B →
   (T : Ty) →
-  Σ ∣ Φ ⊢ p [ T ]↑ ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ
-openCast⊑ {Σ = Σ} p T = castWt⊑ (substStoreᵗ-singleTyEnv-⟰ᵗ T Σ) refl ([]⊑ᵗ-wt p T)
+  WfTy Δ Ψ T →
+  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ
+    (p [ T ]↑) (A [ T ]ᵗ) (B [ T ]ᵗ)
+openCast⊑ {Σ = Σ} p T wfT =
+  castWt⊑ (substStoreᵗ-singleTyEnv-⟰ᵗ T Σ) refl ([]⊑ᵗ-wt p T wfT)
 
 openCast⊒ :
-  ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
-  ⟰ᵗ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
+  _∣_⊢_⦂_⊒_ {Δ = suc Δ} {Ψ = Ψ} (⟰ᵗ Σ) Φ p A B →
   (T : Ty) →
-  Σ ∣ Φ ⊢ p [ T ]↓ ⦂ A [ T ]ᵗ ⊒ B [ T ]ᵗ
-openCast⊒ {Σ = Σ} p T = castWt⊒ (substStoreᵗ-singleTyEnv-⟰ᵗ T Σ) refl ([]⊒ᵗ-wt p T)
+  WfTy Δ Ψ T →
+  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ
+    (p [ T ]↓) (A [ T ]ᵗ) (B [ T ]ᵗ)
+openCast⊒ {Σ = Σ} p T wfT =
+  castWt⊒ (substStoreᵗ-singleTyEnv-⟰ᵗ T Σ) refl ([]⊒ᵗ-wt p T wfT)
 
 castWt⊒-term :
-  ∀ {Σ : Store}{Φ : List CastPerm}{A B : Ty}{p q : Down} →
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p q : Down} →
   p ≡ q →
-  Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
-  Σ ∣ Φ ⊢ q ⦂ A ⊒ B
+  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ q A B
 castWt⊒-term refl h = h
 
 RenOk-false-every :
@@ -244,12 +250,12 @@ dropLookup (S∋ˢ h★) (S∋ˢ h) | drop-keep h′ = drop-keep (S∋ˢ h′)
 
 mutual
   drop★⊒-seal-preserving :
-    ∀ {Σ : Store}{α : Seal}
+    ∀ {Δ Ψ}{Σ : Store}{α : Seal}
       {Φ : List CastPerm}{A B : Ty}{p : Down} →
     (h★ : Σ ∋ˢ α ⦂ ★) →
     (α ∈ Φ → ⊥) →
-    Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
-    removeAtˢ h★ ∣ Φ ⊢ p ⦂ A ⊒ B
+    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} (removeAtˢ h★) Φ p A B
   drop★⊒-seal-preserving h★ α∉Φ (wt-untag g gok ℓ) = wt-untag g gok ℓ
   drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal h α∈Φ) with dropLookup h★ h
   drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal h α∈Φ) | drop-hit β≡α B≡★ =
@@ -287,12 +293,12 @@ mutual
       (drop★⊒-seal-preserving h★ α∉Φ q)
 
   drop★⊑-seal-preserving :
-    ∀ {Σ : Store}{α : Seal}
+    ∀ {Δ Ψ}{Σ : Store}{α : Seal}
       {Φ : List CastPerm}{A B : Ty}{p : Up} →
     (h★ : Σ ∋ˢ α ⦂ ★) →
     (α ∈ Φ → ⊥) →
-    Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
-    removeAtˢ h★ ∣ Φ ⊢ p ⦂ A ⊑ B
+    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} (removeAtˢ h★) Φ p A B
   drop★⊑-seal-preserving h★ α∉Φ (wt-tag g gok) = wt-tag g gok
   drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal h α∈Φ) with dropLookup h★ h
   drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal h α∈Φ) | drop-hit β≡α B≡★ =
@@ -335,54 +341,60 @@ mutual
 
 preservation :
   ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{M N : Term}{A : Ty} →
-  Uniqueˢ Σ →
+  StoreWf Δ Ψ Σ →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
   M —→ N →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ N ⦂ A
-preservation uΣ (⊢· (⊢ƛ wfB N⊢) V⊢) (β vV) =
+preservation wfΣ (⊢· (⊢ƛ wfB N⊢) V⊢) (β vV) =
   []-wt N⊢ V⊢
-preservation {Σ = Σ} uΣ
+preservation {Σ = Σ} wfΣ
   (⊢• {B = B} {T = T}
     (⊢up {A = `∀ A} {B = `∀ B} Φ lenΦ V⊢ (wt-∀ {A = A} {B = B} {p = p} p⊢))
-    wfT)
+    wfB wfT)
   (β-up-∀ vV) = ⊢up
     Φ
     lenΦ
-    (cong-⊢⦂ refl refl refl (cong (λ X → X [ T ]ᵗ) eq-src) (⊢• {B = up-src ∅ˢ p} V⊢′ wfT))
-    (openCast⊑ p⊢ T)
+    (cong-⊢⦂ refl refl refl (cong (λ X → X [ T ]ᵗ) eq-src)
+      (⊢• {B = up-src ∅ˢ p} V⊢′
+        (subst
+          (WfTy (suc _) _)
+          (sym eq-src)
+          (⊑-src-wf (storeWf-⟰ᵗ wfΣ) lenΦ p⊢))
+        wfT))
+    (openCast⊑ p⊢ T wfT)
   where
     eq-src : up-src ∅ˢ p ≡ A
     eq-src = trans (up-src-irrel {Σ = ∅ˢ} {Σ′ = ⟰ᵗ Σ} p) (up-src-align p⊢)
 
     V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (sym eq-src)) V⊢
-preservation uΣ (⊢· (⊢up Φ lenΦ V⊢ (wt-↦ p⊢ q⊢)) W⊢) (β-up-↦ vV vW) =
+preservation wfΣ (⊢· (⊢up Φ lenΦ V⊢ (wt-↦ p⊢ q⊢)) W⊢) (β-up-↦ vV vW) =
   ⊢up Φ lenΦ (⊢· V⊢ (⊢down Φ lenΦ W⊢ p⊢)) q⊢
-preservation uΣ (⊢· (⊢down Φ lenΦ V⊢ (wt-↦ p⊢ q⊢)) W⊢) (β-down-↦ vV vW) =
+preservation wfΣ (⊢· (⊢down Φ lenΦ V⊢ (wt-↦ p⊢ q⊢)) W⊢) (β-down-↦ vV vW) =
   ⊢down Φ lenΦ (⊢· V⊢ (⊢up Φ lenΦ W⊢ p⊢)) q⊢
-preservation uΣ (⊢up Φ lenΦ V⊢ (wt-id wfA)) (id-up vV) = V⊢
-preservation uΣ (⊢down Φ lenΦ V⊢ (wt-id wfA)) (id-down vV) = V⊢
-preservation uΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal h α∈Φ₂)) (wt-unseal h′ α∈Φ₁))
-  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique uΣ h h′) V⊢
-preservation uΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal h α∈Φ₂)) (wt-unseal★ h′ α∈Φ₁))
-  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique uΣ h h′) V⊢
-preservation uΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal★ h α∈Φ₂)) (wt-unseal h′ α∈Φ₁))
-  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique uΣ h h′) V⊢
-preservation uΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal★ h α∈Φ₂)) (wt-unseal★ h′ α∈Φ₁))
-  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique uΣ h h′) V⊢
-preservation uΣ (⊢down Φ lenΦ (⊢up Φ′ lenΦ′ V⊢ (wt-tag g gok)) (wt-untag g′ gok′ ℓ))
+preservation wfΣ (⊢up Φ lenΦ V⊢ (wt-id wfA)) (id-up vV) = V⊢
+preservation wfΣ (⊢down Φ lenΦ V⊢ (wt-id wfA)) (id-down vV) = V⊢
+preservation wfΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal h α∈Φ₂)) (wt-unseal h′ α∈Φ₁))
+  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique (storeWf-unique wfΣ) h h′) V⊢
+preservation wfΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal h α∈Φ₂)) (wt-unseal★ h′ α∈Φ₁))
+  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique (storeWf-unique wfΣ) h h′) V⊢
+preservation wfΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal★ h α∈Φ₂)) (wt-unseal h′ α∈Φ₁))
+  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique (storeWf-unique wfΣ) h h′) V⊢
+preservation wfΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal★ h α∈Φ₂)) (wt-unseal★ h′ α∈Φ₁))
+  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique (storeWf-unique wfΣ) h h′) V⊢
+preservation wfΣ (⊢down Φ lenΦ (⊢up Φ′ lenΦ′ V⊢ (wt-tag g gok)) (wt-untag g′ gok′ ℓ))
   (tag-untag-ok vV) = V⊢
-preservation uΣ (⊢down Φ lenΦ (⊢up Φ′ lenΦ′ V⊢ (wt-tag g gok)) (wt-untag h hok ℓ′))
+preservation wfΣ (⊢down Φ lenΦ (⊢up Φ′ lenΦ′ V⊢ (wt-tag g gok)) (wt-untag h hok ℓ′))
   (tag-untag-bad vV neq) = ⊢blame ℓ′
-preservation uΣ (⊢up Φ lenΦ V⊢ (wt-； p⊢ q⊢)) (β-up-； vV) = ⊢up Φ lenΦ (⊢up Φ lenΦ V⊢ p⊢) q⊢
-preservation uΣ (⊢down Φ lenΦ V⊢ (wt-； p⊢ q⊢)) (β-down-； vV) = ⊢down Φ lenΦ (⊢down Φ lenΦ V⊢ p⊢) q⊢
-preservation uΣ (⊢⊕ (⊢$ (κℕ m)) addℕ (⊢$ (κℕ n))) δ-⊕ = ⊢$ (κℕ (m + n))
-preservation uΣ (⊢· (⊢blame ℓ) M⊢) blame-·₁ = ⊢blame ℓ
-preservation uΣ (⊢· L⊢ (⊢blame ℓ)) (blame-·₂ vV) = ⊢blame ℓ
-preservation uΣ (⊢• (⊢blame ℓ) wfT) blame-·α = ⊢blame ℓ
-preservation uΣ (⊢up Φ lenΦ (⊢blame ℓ) p⊢) blame-up = ⊢blame ℓ
-preservation uΣ (⊢down Φ lenΦ (⊢blame ℓ) p⊢) blame-down = ⊢blame ℓ
-preservation uΣ (⊢⊕ (⊢blame ℓ) op M⊢) blame-⊕₁ = ⊢blame ℓ
-preservation uΣ (⊢⊕ L⊢ op (⊢blame ℓ)) (blame-⊕₂ vL) = ⊢blame ℓ
+preservation wfΣ (⊢up Φ lenΦ V⊢ (wt-； p⊢ q⊢)) (β-up-； vV) = ⊢up Φ lenΦ (⊢up Φ lenΦ V⊢ p⊢) q⊢
+preservation wfΣ (⊢down Φ lenΦ V⊢ (wt-； p⊢ q⊢)) (β-down-； vV) = ⊢down Φ lenΦ (⊢down Φ lenΦ V⊢ p⊢) q⊢
+preservation wfΣ (⊢⊕ (⊢$ (κℕ m)) addℕ (⊢$ (κℕ n))) δ-⊕ = ⊢$ (κℕ (m + n))
+preservation wfΣ (⊢· (⊢blame ℓ) M⊢) blame-·₁ = ⊢blame ℓ
+preservation wfΣ (⊢· L⊢ (⊢blame ℓ)) (blame-·₂ vV) = ⊢blame ℓ
+preservation wfΣ (⊢• (⊢blame ℓ) wfB wfT) blame-·α = ⊢blame ℓ
+preservation wfΣ (⊢up Φ lenΦ (⊢blame ℓ) p⊢) blame-up = ⊢blame ℓ
+preservation wfΣ (⊢down Φ lenΦ (⊢blame ℓ) p⊢) blame-down = ⊢blame ℓ
+preservation wfΣ (⊢⊕ (⊢blame ℓ) op M⊢) blame-⊕₁ = ⊢blame ℓ
+preservation wfΣ (⊢⊕ L⊢ op (⊢blame ℓ)) (blame-⊕₂ vL) = ⊢blame ℓ
 
 ------------------------------------------------------------------------
 -- Preservation for store-threaded one-step reduction
@@ -415,7 +427,7 @@ step-ren-shape (ξ-⊕₂ vL red) = step-ren-shape red
 
 preservation-step :
   ∀ {Δ Ψ}{Σ Σ′ : Store}{Γ : Ctx}{M M′ : Term}{A : Ty}{ρ : Renameˢ} →
-  Uniqueˢ Σ →
+  StoreWf Δ Ψ Σ →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
   (red : Σ ∣ M —→[ ρ ] Σ′ ∣ M′) →
   Sigma.Σ SealCtx
@@ -423,17 +435,28 @@ preservation-step :
       Sigma.Σ (SealRenameWf Ψ Ψ′ ρ)
         (λ hρ →
           StepCtxExact (step-ren-shape red) Ψ Ψ′ ×
+          StoreWf Δ Ψ′ Σ′ ×
           Δ ∣ Ψ′ ∣ Σ′ ∣ map (renameˢ ρ) Γ ⊢ M′ ⦂ renameˢ ρ A))
 
-preservation-step {Ψ = Ψ} uΣ M⊢ (id-step red) =
+preservation-step {Ψ = Ψ} wfΣ M⊢ (id-step red) =
   Ψ , (λ α<Ψ → α<Ψ) , refl ,
-  cong-⊢⦂ refl (sym (map-renameˢ-id _)) refl (sym renameˢ-id) (preservation uΣ M⊢ red)
-preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} uΣ (⊢• {B = B} {T = T} (⊢Λ V⊢) wfT)
+  wfΣ ,
+  cong-⊢⦂ refl (sym (map-renameˢ-id _)) refl (sym renameˢ-id) (preservation wfΣ M⊢ red)
+preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
+  (⊢• {B = B} {T = T} (⊢Λ V⊢) wfB wfT)
   (β-Λ {V = V}) =
   suc Ψ , SealRenameWf-suc , refl ,
+  storeWf-ν-ext wfT wfΣ ,
   cong-⊢⦂ refl refl refl (sym (renameˢ-[]ᵗ suc B T))
     (⊢up (every (suc Ψ)) (length-every (suc Ψ)) ([]ᵀ-wt V⊢′ (α₀) (wfSeal z<s))
-      (instCast⊑-wt {A = ⇑ˢ T} {B = ⇑ˢ B} {α = zero} top here-conv-only))
+      (instCast⊑-wt
+        {A = ⇑ˢ T}
+        {B = ⇑ˢ B}
+        {α = zero}
+        (renameˢ-preserves-WfTy wfT SealRenameWf-suc)
+        (renameˢ-preserves-WfTy wfB SealRenameWf-suc)
+        top
+        here-conv-only))
   where
     top : ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∋ˢ zero ⦂ ⇑ˢ T
     top = Z∋ˢ refl refl
@@ -446,12 +469,13 @@ preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} uΣ (⊢• {B = B} {T
         ∣ ⤊ᵗ (map (renameˢ suc) Γ) ⊢ ⇑ˢᵐ V ⦂ ⇑ˢ B
     V⊢′ = cong-⊢⦂ (sym (renameStoreᵗ-cons-⟰ˢ suc T Σ))
         (map-renameˢ-⤊ᵗ suc Γ) refl refl V⊢↑
-preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} uΣ
+preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
   (⊢• {B = B} {T = T}
     (⊢down {A = `∀ C} {B = `∀ B} Φ lenΦ V⊢ (wt-∀ {A = C} {B = B} {p = p} p⊢))
-    wfT)
+    wfB wfT)
   (β-down-∀ {A = T} {B = B} {V = V} {p = p} vV) =
   suc Ψ , SealRenameWf-suc , refl ,
+  storeWf-ν-ext wfT wfΣ ,
   cong-⊢⦂ refl refl refl out-eq
     (⊢up
       (every (suc Ψ))
@@ -459,15 +483,31 @@ preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} uΣ
       (⊢down
         (cast-tag ∷ Φ)
         (mapΦ-suc-length-ren {Φ = Φ} lenΦ)
-        (⊢• {B = ⇑ˢ (down-src (⟰ᵗ Σ) p)} V⊢′ (wfSeal z<s))
-        (openCast⊒ p⊢′ (α₀)))
-      (instCast⊑-wt {A = ⇑ˢ T} {B = ⇑ˢ (down-tgt (⟰ᵗ Σ) p)} {α = zero} top here-conv-only))
+        (⊢• {B = ⇑ˢ (down-src (⟰ᵗ Σ) p)} V⊢′
+          (renameˢ-preserves-WfTy
+            (subst
+              (WfTy (suc _) _)
+              (sym eq-src)
+              (⊒-src-wf (storeWf-⟰ᵗ wfΣ) lenΦ p⊢))
+            SealRenameWf-suc)
+          (wfSeal z<s))
+        (openCast⊒ p⊢′ α₀ (wfSeal z<s)))
+      (instCast⊑-wt
+        {A = ⇑ˢ T}
+        {B = ⇑ˢ (down-tgt (⟰ᵗ Σ) p)}
+        {α = zero}
+        (renameˢ-preserves-WfTy wfT SealRenameWf-suc)
+        (renameˢ-preserves-WfTy
+          (subst (WfTy (suc _) _) (sym eq-tgt) wfB)
+          SealRenameWf-suc)
+        top
+        here-conv-only))
   where
     top : ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∋ˢ zero ⦂ ⇑ˢ T
     top = Z∋ˢ refl refl
 
     eq-src : down-src (⟰ᵗ Σ) p ≡ C
-    eq-src = down-src-align (unique-⟰ᵗ uΣ) p⊢
+    eq-src = down-src-align (unique-⟰ᵗ (storeWf-unique wfΣ)) p⊢
 
     eq-tgt : down-tgt (⟰ᵗ Σ) p ≡ B
     eq-tgt = down-tgt-align p⊢
@@ -485,7 +525,8 @@ preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} uΣ
     p⊢↑ =
       wk⊒
         (drop ⊆ˢ-refl)
-        (⊒-renameˢ-wt suc RenOkConv-suc RenOkCast-suc RenOkTag-suc p⊢)
+        (⊒-renameˢ-wt suc SealRenameWf-suc
+          RenOkConv-suc RenOkCast-suc RenOkTag-suc p⊢)
 
     p⊢″ : ⟰ᵗ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ)
         ⊢ rename⊒ˢ suc p ⦂ ⇑ˢ C ⊒ ⇑ˢ B
@@ -502,12 +543,14 @@ preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} uΣ
       (sym (renameˢ-[]ᵗ suc B T))
 preservation-step
   {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
-  uΣ
+  wfΣ
   (⊢• {B = Aν} {T = T}
-    (⊢down {A = Bν} {B = `∀ Aν} Φ lenΦ V⊢ (wt-ν {A = Aν} {B = Bν} {p = p} p⊢))
-    wfT)
+    (⊢down {A = Bν} {B = `∀ Aν} Φ lenΦ V⊢
+      (wt-ν {A = Aν} {B = Bν} p⊢))
+    wfAν-app wfT)
   (β-down-ν {A = T} {B = Aν} {V = V} {p = p} vV) =
   suc Ψ , SealRenameWf-suc , refl ,
+  storeWf-ν-ext wfT wfΣ ,
   cong-⊢⦂ refl refl refl (sym (renameˢ-[]ᵗ suc Aν T))
     (⊢up
       (every (suc Ψ))
@@ -517,7 +560,14 @@ preservation-step
         (mapΦ-suc-length-ren {Φ = Φ} lenΦ)
         V⊢↑
         p⊢′)
-      (instCast⊑-wt {A = ⇑ˢ T} {B = ⇑ˢ Aν} {α = zero} top here-conv-only))
+      (instCast⊑-wt
+        {A = ⇑ˢ T}
+        {B = ⇑ˢ Aν}
+        {α = zero}
+        (renameˢ-preserves-WfTy wfT SealRenameWf-suc)
+        (renameˢ-preserves-WfTy wfAν-app SealRenameWf-suc)
+        top
+        here-conv-only))
   where
     top : ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∋ˢ zero ⦂ ⇑ˢ T
     top = Z∋ˢ refl refl
@@ -543,20 +593,29 @@ preservation-step
     p⊢′ = castWt⊒-term (sym (open-shift-⊒-id p)) p⊢base
 preservation-step
   {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
-  uΣ
-  (⊢up {A = `∀ Aν} {B = Bν} Φ lenΦ V⊢ (wt-ν {A = Aν} {B = Bν} {p = p} p⊢))
+  wfΣ
+  (⊢up {A = `∀ Aν} {B = Bν} Φ lenΦ V⊢
+    (wt-ν {A = Aν} {B = Bν} p⊢))
   (β-up-ν {V = V} {p = p} vV) =
   suc Ψ , SealRenameWf-suc , refl ,
+  storeWf-ν-ext wf★ wfΣ ,
   ⊢up
     (cast-seal ∷ Φ)
     (mapΦ-suc-length-ren {Φ = Φ} lenΦ)
     (⊢• {B = ⇑ˢ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)}
       V⊢′
+      (renameˢ-preserves-WfTy
+        (subst (WfTy (suc _) _) (sym eq-close) wfAν)
+        SealRenameWf-suc)
       (wfSeal z<s))
     p⊢′
   where
     eq-src : up-src ((zero , ★) ∷ ⟰ˢ Σ) p ≡ (⇑ˢ Aν) [ α₀ ]ᵗ
     eq-src = up-src-align p⊢
+
+    wfAν : WfTy (suc Δ) Ψ Aν
+    wfAν = WfTy-ν-open-inv
+      (⊑-src-wf (storeWf-ν-ext wf★ wfΣ) (cong suc lenΦ) p⊢)
 
     eq-close : ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ) ≡ Aν
     eq-close =
@@ -580,11 +639,11 @@ preservation-step
     p⊢′ : ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-seal ∷ Φ)
         ⊢ p ⦂ (⇑ˢ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ) [ α₀ ]ᵗ) ⊑ ⇑ˢ Bν
     p⊢′ = castWt⊑-raw (sym eq-open) refl p⊢
-preservation-step {Ψ = Ψ} uΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
-  with step-ren-shape red | preservation-step uΣ L⊢ red
-preservation-step {Ψ = Ψ} uΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
-  | shape-id | Ψ′ , hρ , eqΨ′ , L′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+preservation-step {Ψ = Ψ} wfΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
+  with step-ren-shape red | preservation-step wfΣ L⊢ red
+preservation-step {Ψ = Ψ} wfΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
+  | shape-id | Ψ′ , hρ , eqΨ′ , wfΣ′ , L′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢·
       L′⊢
       (wkΣ-term
@@ -596,9 +655,9 @@ preservation-step {Ψ = Ψ} uΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
           (λ lenΦ → trans lenΦ (sym eqΨ′))
           RenOk-id RenOkConv-id RenOkCast-id RenOkTag-id RenNotIn-id
           M⊢))
-preservation-step {Ψ = Ψ} uΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
-  | shape-suc | Ψ′ , hρ , eqΨ′ , L′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+preservation-step {Ψ = Ψ} wfΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
+  | shape-suc | Ψ′ , hρ , eqΨ′ , wfΣ′ , L′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢·
       L′⊢
       (wkΣ-term
@@ -611,11 +670,11 @@ preservation-step {Ψ = Ψ} uΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
             trans (mapΦ-suc-length-ren {Φ = Φ₀} lenΦ₀) (sym eqΨ′))
           RenOk-suc RenOkConv-suc RenOkCast-suc RenOkTag-suc RenNotIn-suc
           M⊢))
-preservation-step {Ψ = Ψ} uΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
-  with step-ren-shape red | preservation-step uΣ M⊢ red
-preservation-step {Ψ = Ψ} uΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
-  | shape-id | Ψ′ , hρ , eqΨ′ , M′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+preservation-step {Ψ = Ψ} wfΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
+  with step-ren-shape red | preservation-step wfΣ M⊢ red
+preservation-step {Ψ = Ψ} wfΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
+  | shape-id | Ψ′ , hρ , eqΨ′ , wfΣ′ , M′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢·
       (wkΣ-term
         (store-growth red)
@@ -627,9 +686,9 @@ preservation-step {Ψ = Ψ} uΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
           RenOk-id RenOkConv-id RenOkCast-id RenOkTag-id RenNotIn-id
           L⊢))
       M′⊢
-preservation-step {Ψ = Ψ} uΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
-  | shape-suc | Ψ′ , hρ , eqΨ′ , M′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+preservation-step {Ψ = Ψ} wfΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
+  | shape-suc | Ψ′ , hρ , eqΨ′ , wfΣ′ , M′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢·
       (wkΣ-term
         (store-growth red)
@@ -642,11 +701,11 @@ preservation-step {Ψ = Ψ} uΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
           RenOk-suc RenOkConv-suc RenOkCast-suc RenOkTag-suc RenNotIn-suc
           L⊢))
       M′⊢
-preservation-step {Ψ = Ψ} uΣ (⊢• {B = B} {T = T} M⊢ wfT) (ξ-·α red)
-  with preservation-step uΣ M⊢ red
-preservation-step {Ψ = Ψ} uΣ (⊢• {B = B} {T = T} M⊢ wfT) (ξ-·α red)
-  | Ψ′ , hρ , eqΨ′ , M′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+preservation-step {Ψ = Ψ} wfΣ (⊢• {B = B} {T = T} M⊢ wfB wfT) (ξ-·α red)
+  with preservation-step wfΣ M⊢ red
+preservation-step {Ψ = Ψ} wfΣ (⊢• {B = B} {T = T} M⊢ wfB wfT) (ξ-·α red)
+  | Ψ′ , hρ , eqΨ′ , wfΣ′ , M′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     cong-⊢⦂
       refl
       refl
@@ -654,56 +713,57 @@ preservation-step {Ψ = Ψ} uΣ (⊢• {B = B} {T = T} M⊢ wfT) (ξ-·α red)
       (sym (renameˢ-[]ᵗ _ B T))
       (⊢•
         M′⊢
+        (renameˢ-preserves-WfTy wfB hρ)
         (renameˢ-preserves-WfTy wfT hρ))
-preservation-step {Ψ = Ψ} uΣ (⊢up Φ lenΦ M⊢ hp) (ξ-up red)
-  with step-ren-shape red | preservation-step uΣ M⊢ red
-preservation-step {Ψ = Ψ} uΣ (⊢up Φ lenΦ M⊢ hp) (ξ-up red)
-  | shape-id | Ψ′ , hρ , eqΨ′ , M′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+preservation-step {Ψ = Ψ} wfΣ (⊢up Φ lenΦ M⊢ hp) (ξ-up red)
+  with step-ren-shape red | preservation-step wfΣ M⊢ red
+preservation-step {Ψ = Ψ} wfΣ (⊢up Φ lenΦ M⊢ hp) (ξ-up red)
+  | shape-id | Ψ′ , hρ , eqΨ′ , wfΣ′ , M′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢up
       Φ
       (trans lenΦ (sym eqΨ′))
       M′⊢
       (wk⊑
         (store-growth red)
-        (⊑-renameˢ-wt idˢ RenOkConv-id RenOkCast-id RenOkTag-id hp))
-preservation-step {Ψ = Ψ} uΣ (⊢up Φ lenΦ M⊢ hp) (ξ-up red)
-  | shape-suc | Ψ′ , hρ , eqΨ′ , M′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+        (⊑-renameˢ-wt idˢ hρ RenOkConv-id RenOkCast-id RenOkTag-id hp))
+preservation-step {Ψ = Ψ} wfΣ (⊢up Φ lenΦ M⊢ hp) (ξ-up red)
+  | shape-suc | Ψ′ , hρ , eqΨ′ , wfΣ′ , M′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢up
       (mapΦ-suc Φ)
       (trans (mapΦ-suc-length-ren {Φ = Φ} lenΦ) (sym eqΨ′))
       M′⊢
       (wk⊑
         (store-growth red)
-        (⊑-renameˢ-wt suc RenOkConv-suc RenOkCast-suc RenOkTag-suc hp))
-preservation-step {Ψ = Ψ} uΣ (⊢down Φ lenΦ M⊢ hp) (ξ-down red)
-  with step-ren-shape red | preservation-step uΣ M⊢ red
-preservation-step {Ψ = Ψ} uΣ (⊢down Φ lenΦ M⊢ hp) (ξ-down red)
-  | shape-id | Ψ′ , hρ , eqΨ′ , M′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+        (⊑-renameˢ-wt suc hρ RenOkConv-suc RenOkCast-suc RenOkTag-suc hp))
+preservation-step {Ψ = Ψ} wfΣ (⊢down Φ lenΦ M⊢ hp) (ξ-down red)
+  with step-ren-shape red | preservation-step wfΣ M⊢ red
+preservation-step {Ψ = Ψ} wfΣ (⊢down Φ lenΦ M⊢ hp) (ξ-down red)
+  | shape-id | Ψ′ , hρ , eqΨ′ , wfΣ′ , M′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢down
       Φ
       (trans lenΦ (sym eqΨ′))
       M′⊢
       (wk⊒
         (store-growth red)
-        (⊒-renameˢ-wt idˢ RenOkConv-id RenOkCast-id RenOkTag-id hp))
-preservation-step {Ψ = Ψ} uΣ (⊢down Φ lenΦ M⊢ hp) (ξ-down red)
-  | shape-suc | Ψ′ , hρ , eqΨ′ , M′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+        (⊒-renameˢ-wt idˢ hρ RenOkConv-id RenOkCast-id RenOkTag-id hp))
+preservation-step {Ψ = Ψ} wfΣ (⊢down Φ lenΦ M⊢ hp) (ξ-down red)
+  | shape-suc | Ψ′ , hρ , eqΨ′ , wfΣ′ , M′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢down
       (mapΦ-suc Φ)
       (trans (mapΦ-suc-length-ren {Φ = Φ} lenΦ) (sym eqΨ′))
       M′⊢
       (wk⊒
         (store-growth red)
-        (⊒-renameˢ-wt suc RenOkConv-suc RenOkCast-suc RenOkTag-suc hp))
-preservation-step {Ψ = Ψ} uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
-  with step-ren-shape red | preservation-step uΣ L⊢ red
-preservation-step {Ψ = Ψ} uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
-  | shape-id | Ψ′ , hρ , eqΨ′ , L′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+        (⊒-renameˢ-wt suc hρ RenOkConv-suc RenOkCast-suc RenOkTag-suc hp))
+preservation-step {Ψ = Ψ} wfΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
+  with step-ren-shape red | preservation-step wfΣ L⊢ red
+preservation-step {Ψ = Ψ} wfΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
+  | shape-id | Ψ′ , hρ , eqΨ′ , wfΣ′ , L′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢⊕
       L′⊢
       op
@@ -716,9 +776,9 @@ preservation-step {Ψ = Ψ} uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
           (λ lenΦ → trans lenΦ (sym eqΨ′))
           RenOk-id RenOkConv-id RenOkCast-id RenOkTag-id RenNotIn-id
           M⊢))
-preservation-step {Ψ = Ψ} uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
-  | shape-suc | Ψ′ , hρ , eqΨ′ , L′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+preservation-step {Ψ = Ψ} wfΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
+  | shape-suc | Ψ′ , hρ , eqΨ′ , wfΣ′ , L′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢⊕
       L′⊢
       op
@@ -732,11 +792,11 @@ preservation-step {Ψ = Ψ} uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
             trans (mapΦ-suc-length-ren {Φ = Φ₀} lenΦ₀) (sym eqΨ′))
           RenOk-suc RenOkConv-suc RenOkCast-suc RenOkTag-suc RenNotIn-suc
           M⊢))
-preservation-step {Ψ = Ψ} uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
-  with step-ren-shape red | preservation-step uΣ M⊢ red
-preservation-step {Ψ = Ψ} uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
-  | shape-id | Ψ′ , hρ , eqΨ′ , M′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+preservation-step {Ψ = Ψ} wfΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
+  with step-ren-shape red | preservation-step wfΣ M⊢ red
+preservation-step {Ψ = Ψ} wfΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
+  | shape-id | Ψ′ , hρ , eqΨ′ , wfΣ′ , M′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢⊕
       (wkΣ-term
         (store-growth red)
@@ -749,9 +809,9 @@ preservation-step {Ψ = Ψ} uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
           L⊢))
       op
       M′⊢
-preservation-step {Ψ = Ψ} uΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
-  | shape-suc | Ψ′ , hρ , eqΨ′ , M′⊢ =
-    Ψ′ , hρ , eqΨ′ ,
+preservation-step {Ψ = Ψ} wfΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
+  | shape-suc | Ψ′ , hρ , eqΨ′ , wfΣ′ , M′⊢ =
+    Ψ′ , hρ , eqΨ′ , wfΣ′ ,
     ⊢⊕
       (wkΣ-term
         (store-growth red)
@@ -807,7 +867,7 @@ step-renaming {ρ = ρ} _ = ρ
 
 multi-preservation :
   ∀ {Δ Ψ}{Σ Σ′ : Store}{Γ : Ctx}{M N : Term}{A : Ty} →
-  Uniqueˢ Σ →
+  StoreWf Δ Ψ Σ →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
   Σ ∣ M —↠ Σ′ ∣ N →
   Sigma.Σ SealCtx
@@ -816,17 +876,19 @@ multi-preservation :
         (λ ρ →
           Sigma.Σ (SealRenameWf Ψ Ψ′ ρ)
             (λ hρ →
+              StoreWf Δ Ψ′ Σ′ ×
               Δ ∣ Ψ′ ∣ Σ′ ∣ map (renameˢ ρ) Γ ⊢ N ⦂ renameˢ ρ A)))
-multi-preservation uΣ M⊢ (_ ∎) = _ , idˢ , SealRenameWf-id ,
+multi-preservation wfΣ M⊢ (_ ∎) = _ , idˢ , SealRenameWf-id , wfΣ ,
   cong-⊢⦂ refl (sym (map-renameˢ-id _)) refl (sym renameˢ-id) M⊢
-multi-preservation {Γ = Γ} {A = A} uΣ M⊢ (_ —→⟨ L—→M ⟩ M—↠N)
-  with preservation-step uΣ M⊢ L—→M
-... | Ψ₁ , hρ₁ , eqρ₁ , M′⊢
-  with multi-preservation (unique-store-step uΣ L—→M) M′⊢ M—↠N
-... | Ψ₂ , ρ₂ , hρ₂ , N⊢ =
+multi-preservation {Γ = Γ} {A = A} wfΣ M⊢ (_ —→⟨ L—→M ⟩ M—↠N)
+  with preservation-step wfΣ M⊢ L—→M
+... | Ψ₁ , hρ₁ , eqρ₁ , wfΣ₁ , M′⊢
+  with multi-preservation wfΣ₁ M′⊢ M—↠N
+... | Ψ₂ , ρ₂ , hρ₂ , wfΣ₂ , N⊢ =
   Ψ₂ ,
   (λ α → ρ₂ ((step-renaming L—→M) α)) ,
   SealRenameWf-comp hρ₁ hρ₂ ,
+  wfΣ₂ ,
   cong-⊢⦂
     refl
     (map-renameˢ-compose (step-renaming L—→M) ρ₂ Γ)

@@ -128,6 +128,7 @@ data _∣_∣_∣_⊢_⦂_
 
   ⊢• : ∀ {M B T} -- TODO: Change T to one of A,B,C
      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ (`∀ B)
+     → WfTy (suc Δ) Ψ B
      → WfTy Δ Ψ T
      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (M ⦂∀ B [ T ]) ⦂ B [ T ]ᵗ
 
@@ -143,13 +144,13 @@ data _∣_∣_∣_⊢_⦂_
   ⊢up : ∀ {M A B} {p : Up} (Φ : List CastPerm)
       → length Φ ≡ Ψ
       → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A
-      → Σ ∣ Φ ⊢ p ⦂ A ⊑ B
+      → _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B
       → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (M up p) ⦂ B
 
   ⊢down : ∀ {M A B} {p : Down} (Φ : List CastPerm)
       → length Φ ≡ Ψ
       → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A
-      → Σ ∣ Φ ⊢ p ⦂ A ⊒ B
+      → _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B
       → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (M down p) ⦂ B
 
   ⊢blame : ∀ {A}
@@ -234,10 +235,10 @@ inst-⟰ᵗ-⊆ˢ (drop {α = α} {A = A} w) =
   drop {α = α} {A = renameᵗ suc A} (inst-⟰ᵗ-⊆ˢ w)
 
 mutual
-  wk⊑ : ∀ {Σ Σ′ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
+  wk⊑ : ∀ {Δ Ψ}{Σ Σ′ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
     Σ ⊆ˢ Σ′ →
-    Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
-    Σ′ ∣ Φ ⊢ p ⦂ A ⊑ B
+    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ′ Φ p A B
   wk⊑ w (wt-tag g gok) = wt-tag g gok
   wk⊑ w (wt-unseal h α∈Φ) = wt-unseal (wkLookupˢ w h) α∈Φ
   wk⊑ w (wt-unseal★ h α∈Φ) = wt-unseal★ (wkLookupˢ w h) α∈Φ
@@ -247,10 +248,10 @@ mutual
   wk⊑ w (wt-id wfA) = wt-id wfA
   wk⊑ w (wt-； p q) = wt-； (wk⊑ w p) (wk⊑ w q)
 
-  wk⊒ : ∀ {Σ Σ′ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
+  wk⊒ : ∀ {Δ Ψ}{Σ Σ′ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
     Σ ⊆ˢ Σ′ →
-    Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
-    Σ′ ∣ Φ ⊢ p ⦂ A ⊒ B
+    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ′ Φ p A B
   wk⊒ w (wt-untag g gok ℓ) = wt-untag g gok ℓ
   wk⊒ w (wt-seal h α∈Φ) = wt-seal (wkLookupˢ w h) α∈Φ
   wk⊒ w (wt-seal★ h α∈Φ) = wt-seal★ (wkLookupˢ w h) α∈Φ
@@ -268,7 +269,8 @@ wkΣ-term w (⊢` h) = ⊢` h
 wkΣ-term w (⊢ƛ wfA M) = ⊢ƛ wfA (wkΣ-term w M)
 wkΣ-term w (⊢· L M) = ⊢· (wkΣ-term w L) (wkΣ-term w M)
 wkΣ-term w (⊢Λ M) = ⊢Λ (wkΣ-term (inst-⟰ᵗ-⊆ˢ w) M)
-wkΣ-term w (⊢• {B = B} M wfT) = ⊢• {B = B} (wkΣ-term w M) wfT
+wkΣ-term w (⊢• {B = B} M wfB wfT) =
+  ⊢• {B = B} (wkΣ-term w M) wfB wfT
 wkΣ-term w (⊢$ κ) = ⊢$ κ
 wkΣ-term w (⊢⊕ L op M) = ⊢⊕ (wkΣ-term w L) op (wkΣ-term w M)
 wkΣ-term w (⊢up Φ lenΦ M⊢ hp) = ⊢up Φ lenΦ (wkΣ-term w M⊢) (wk⊑ w hp)
@@ -355,13 +357,16 @@ renameᵗ-term {Σ = Σ} {Γ = Γ} ρ hρ (⊢Λ {A = A} M) =
       refl
       refl
       (renameᵗ-term (extᵗ ρ) (TyRenameWf-ext hρ) M))
-renameᵗ-term ρ hρ (⊢• {B = B} {T = T} M wfT) =
+renameᵗ-term ρ hρ (⊢• {B = B} {T = T} M wfB wfT) =
   cong-⊢⦂
     refl
     refl
     refl
     (sym (renameᵗ-[]ᵗ ρ B T))
-    (⊢• (renameᵗ-term ρ hρ M) (renameᵗ-preserves-WfTy wfT hρ))
+    (⊢•
+      (renameᵗ-term ρ hρ M)
+      (renameᵗ-preserves-WfTy wfB (TyRenameWf-ext hρ))
+      (renameᵗ-preserves-WfTy wfT hρ))
 renameᵗ-term ρ hρ (⊢$ κ) =
   cong-⊢⦂ refl refl refl (sym (renameᵗ-constTy ρ κ)) (⊢$ κ)
 renameᵗ-term ρ hρ (⊢⊕ L op M) =
@@ -370,12 +375,12 @@ renameᵗ-term ρ hρ (⊢up {p = p} Φ lenΦ M⊢ hp) =
   ⊢up {p = rename⊑ᵗ ρ p} Φ
     lenΦ
     (renameᵗ-term ρ hρ M⊢)
-    (⊑-renameᵗ-wt ρ hp)
+    (⊑-renameᵗ-wt ρ hρ hp)
 renameᵗ-term ρ hρ (⊢down {p = p} Φ lenΦ M⊢ hp) =
   ⊢down {p = rename⊒ᵗ ρ p} Φ
     lenΦ
     (renameᵗ-term ρ hρ M⊢)
-    (⊒-renameᵗ-wt ρ hp)
+    (⊒-renameᵗ-wt ρ hρ hp)
 renameᵗ-term ρ hρ (⊢blame ℓ) = ⊢blame ℓ
 
 substᵗ-wt :
@@ -396,13 +401,16 @@ substᵗ-wt {Σ = Σ} {Γ = Γ} σ hσ (⊢Λ {A = A} M) =
       refl
       refl
       (substᵗ-wt (extsᵗ σ) (TySubstWf-exts hσ) M))
-substᵗ-wt σ hσ (⊢• {B = B} {T = T} M wfT) =
+substᵗ-wt σ hσ (⊢• {B = B} {T = T} M wfB wfT) =
   cong-⊢⦂
     refl
     refl
     refl
     (sym (substᵗ-[]ᵗ σ B T))
-    (⊢• (substᵗ-wt σ hσ M) (substᵗ-preserves-WfTy wfT hσ))
+    (⊢•
+      (substᵗ-wt σ hσ M)
+      (substᵗ-preserves-WfTy wfB (TySubstWf-exts hσ))
+      (substᵗ-preserves-WfTy wfT hσ))
 substᵗ-wt σ hσ (⊢$ κ) =
   cong-⊢⦂ refl refl refl (sym (substᵗ-constTy σ κ)) (⊢$ κ)
 substᵗ-wt σ hσ (⊢⊕ L op M) =
@@ -411,12 +419,12 @@ substᵗ-wt σ hσ (⊢up {p = p} Φ lenΦ M⊢ hp) =
   ⊢up {p = subst⊑ᵗ σ p} Φ
     lenΦ
     (substᵗ-wt σ hσ M⊢)
-    (⊑-substᵗ-wt σ hp)
+    (⊑-substᵗ-wt σ hσ hp)
 substᵗ-wt σ hσ (⊢down {p = p} Φ lenΦ M⊢ hp) =
   ⊢down {p = subst⊒ᵗ σ p} Φ
     lenΦ
     (substᵗ-wt σ hσ M⊢)
-    (⊒-substᵗ-wt σ hp)
+    (⊒-substᵗ-wt σ hσ hp)
 substᵗ-wt σ hσ (⊢blame ℓ) = ⊢blame ℓ
 
 renameˢ-wt :
@@ -457,7 +465,7 @@ renameˢ-wt
       (renameˢ-wt ρ hρ mapΦ mapΦ-length okΦ okConv okCast okTag ok¬Φ M))
 renameˢ-wt
   ρ hρ mapΦ mapΦ-length okΦ okConv okCast okTag ok¬Φ
-  (⊢• {B = B} {T = T} M wfT) =
+  (⊢• {B = B} {T = T} M wfB wfT) =
   cong-⊢⦂
     refl
     refl
@@ -465,6 +473,7 @@ renameˢ-wt
     (sym (renameˢ-[]ᵗ ρ B T))
     (⊢•
       (renameˢ-wt ρ hρ mapΦ mapΦ-length okΦ okConv okCast okTag ok¬Φ M)
+      (renameˢ-preserves-WfTy wfB hρ)
       (renameˢ-preserves-WfTy wfT hρ))
 renameˢ-wt ρ hρ mapΦ mapΦ-length okΦ okConv okCast okTag ok¬Φ (⊢$ κ) =
   cong-⊢⦂ refl refl refl (sym (renameˢ-constTy ρ κ)) (⊢$ κ)
@@ -479,14 +488,14 @@ renameˢ-wt
   ⊢up (mapΦ Φ)
     (mapΦ-length lenΦ)
     (renameˢ-wt ρ hρ mapΦ mapΦ-length okΦ okConv okCast okTag ok¬Φ M⊢)
-    (⊑-renameˢ-wt ρ okConv okCast okTag hp)
+    (⊑-renameˢ-wt ρ hρ okConv okCast okTag hp)
 renameˢ-wt
   ρ hρ mapΦ mapΦ-length okΦ okConv okCast okTag ok¬Φ
   (⊢down {p = p} Φ lenΦ M⊢ hp) =
   ⊢down (mapΦ Φ)
     (mapΦ-length lenΦ)
     (renameˢ-wt ρ hρ mapΦ mapΦ-length okΦ okConv okCast okTag ok¬Φ M⊢)
-    (⊒-renameˢ-wt ρ okConv okCast okTag hp)
+    (⊒-renameˢ-wt ρ hρ okConv okCast okTag hp)
 renameˢ-wt ρ hρ mapΦ mapΦ-length okΦ okConv okCast okTag ok¬Φ (⊢blame ℓ) = ⊢blame ℓ
 
 mapΦ-suc-length :

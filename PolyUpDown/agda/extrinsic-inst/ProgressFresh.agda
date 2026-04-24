@@ -244,7 +244,7 @@ progress (⊢· {L = L} {M = M} L⊢ M⊢) with progress L⊢
 ...     | fv-up-↦ vW refl = step (Fresh.id-step (β-up-↦ vW vM))
 ...     | fv-down-↦ vW refl = step (Fresh.id-step (β-down-↦ vW vM))
 progress (⊢Λ {M = N} N⊢) = done (Λ N)
-progress (⊢• {M = M} {B = B} {T = T} M⊢ wfT) with progress M⊢
+progress (⊢• {M = M} {B = B} {T = T} M⊢ wfB wfT) with progress M⊢
 ... | step M→M′ = step (Fresh.ξ-·α M→M′)
 ... | crash (ℓ , refl) = step (Fresh.id-step blame-·α)
 ... | done vM with canonical-∀ vM M⊢

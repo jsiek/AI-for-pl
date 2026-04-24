@@ -139,11 +139,14 @@ data _⊢_⊑_⦂_ (E : TPEnv) : Term → Term → ∀ {A B} → A ⊑ B → Set
 
   ⊑⦂∀ : ∀ {A B M M′ T} {p : A ⊑ B} →
     E ⊢ M ⊑ M′ ⦂ ⊑-∀ A B p →
+    WfTy (suc (TPEnv.Δ E)) (TPEnv.Ψ E) A →
+    WfTy (suc (TPEnv.Δ E)) (TPEnv.Ψ E) B →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) T →
     E ⊢ (M ⦂∀ A [ T ]) ⊑ (M′ ⦂∀ B [ T ]) ⦂ substᵗ-⊑ (singleTyEnv T) p
 
   ⊑⦂∀-ν : ∀ (A B : Ty) {M M′ T} (p : ((⇑ˢ A) [ α₀ ]ᵗ ⊑ ⇑ˢ B)) →
     E ⊢ M ⊑ M′ ⦂ (⊑-ν A B p) →
+    WfTy (suc (TPEnv.Δ E)) (TPEnv.Ψ E) A →
     (hT : WfTy 0 (TPEnv.Ψ E) T) →
     E ⊢ (M ⦂∀ A [ T ]) ⊑ M′ ⦂ ν-inst-⊑ A B T hT p
 
@@ -159,44 +162,52 @@ data _⊢_⊑_⦂_ (E : TPEnv) : Term → Term → ∀ {A B} → A ⊑ B → Set
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    TPEnv.store E ∣ Φ ⊢ u ⦂ A ⊑ B →
-    TPEnv.store E ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
+    _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
+      (TPEnv.store E) Φ u A B →
+    _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
+      (TPEnv.store E) Φ u′ A′ B′ →
     E ⊢ (M up u) ⊑ (M′ up u′) ⦂ pB
 
   ⊑upL : ∀ {M M′ A A′ B} {pA : A ⊑ A′} {pB : B ⊑ A′} {u : Up}
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    TPEnv.store E ∣ Φ ⊢ u ⦂ A ⊑ B →
+    _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
+      (TPEnv.store E) Φ u A B →
     E ⊢ (M up u) ⊑ M′ ⦂ pB
 
   ⊑upR : ∀ {M M′ A A′ B′} {pA : A ⊑ A′} {pB : A ⊑ B′} {u′ : Up}
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    TPEnv.store E ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
+    _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
+      (TPEnv.store E) Φ u′ A′ B′ →
     E ⊢ M ⊑ (M′ up u′) ⦂ pB
 
   ⊑down : ∀ {M M′ A A′ B B′} {pA : A ⊑ A′} {pB : B ⊑ B′} {d : Down} {d′ : Down}
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    TPEnv.store E ∣ Φ ⊢ d ⦂ A ⊒ B →
-    TPEnv.store E ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
+    _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
+      (TPEnv.store E) Φ d A B →
+    _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
+      (TPEnv.store E) Φ d′ A′ B′ →
     E ⊢ (M down d) ⊑ (M′ down d′) ⦂ pB
 
   ⊑downL : ∀ {M M′ A A′ B} {pA : A ⊑ A′} {pB : B ⊑ A′} {d : Down}
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    TPEnv.store E ∣ Φ ⊢ d ⦂ A ⊒ B →
+    _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
+      (TPEnv.store E) Φ d A B →
     E ⊢ (M down d) ⊑ M′ ⦂ pB
 
   ⊑downR : ∀ {M M′ A A′ B′} {pA : A ⊑ A′} {pB : A ⊑ B′} {d′ : Down}
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    TPEnv.store E ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
+    _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
+      (TPEnv.store E) Φ d′ A′ B′ →
     E ⊢ M ⊑ (M′ down d′) ⦂ pB
 
   ⊑blameR : ∀ {M A B ℓ} {p : A ⊑ B} →
@@ -216,9 +227,10 @@ data _⊢_⊑_⦂_ (E : TPEnv) : Term → Term → ∀ {A B} → A ⊑ B → Set
 ⊑-left-typed (⊑· relL relM) = ⊢· (⊑-left-typed relL) (⊑-left-typed relM)
 ⊑-left-typed {E = E} (⊑Λ rel) =
   ⊢Λ (cong-⊢⦂ refl (leftCtx-⇑ᵗᴾ (TPEnv.Γ E)) refl refl (⊑-left-typed rel))
-⊑-left-typed (⊑⦂∀ rel hT) = ⊢• (⊑-left-typed rel) hT
-⊑-left-typed (⊑⦂∀-ν A B {T = T} p rel hT) =
-  ⊢• (⊑-left-typed rel) (WfTy-weakenᵗ hT z≤n)
+⊑-left-typed (⊑⦂∀ rel wfA wfB hT) =
+  ⊢• (⊑-left-typed rel) wfA hT
+⊑-left-typed (⊑⦂∀-ν A B {T = T} p rel wfA hT) =
+  ⊢• (⊑-left-typed rel) wfA (WfTy-weakenᵗ hT z≤n)
 ⊑-left-typed (⊑$ {n}) = ⊢$ (κℕ n)
 ⊑-left-typed (⊑⊕ {op = op} relL relM) = ⊢⊕ (⊑-left-typed relL) op (⊑-left-typed relM)
 ⊑-left-typed (⊑up Φ lenΦ rel hu hu′) = ⊢up Φ lenΦ (⊑-left-typed rel) hu
@@ -238,8 +250,9 @@ data _⊢_⊑_⦂_ (E : TPEnv) : Term → Term → ∀ {A B} → A ⊑ B → Set
 ⊑-right-typed (⊑· relL relM) = ⊢· (⊑-right-typed relL) (⊑-right-typed relM)
 ⊑-right-typed {E = E} (⊑Λ rel) =
   ⊢Λ (cong-⊢⦂ refl (rightCtx-⇑ᵗᴾ (TPEnv.Γ E)) refl refl (⊑-right-typed rel))
-⊑-right-typed (⊑⦂∀ rel hT) = ⊢• (⊑-right-typed rel) hT
-⊑-right-typed (⊑⦂∀-ν A B {T = T} p rel hT) =
+⊑-right-typed (⊑⦂∀ rel wfA wfB hT) =
+  ⊢• (⊑-right-typed rel) wfB hT
+⊑-right-typed (⊑⦂∀-ν A B {T = T} p rel wfA hT) =
   ⊑-right-typed rel
 ⊑-right-typed (⊑$ {n}) = ⊢$ (κℕ n)
 ⊑-right-typed (⊑⊕ {op = op} relL relM) = ⊢⊕ (⊑-right-typed relL) op (⊑-right-typed relM)

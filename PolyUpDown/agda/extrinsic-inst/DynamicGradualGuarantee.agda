@@ -21,7 +21,7 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary using (¬_; yes; no)
 
 open import Types
-open import Store using (StoreWf)
+open import Store using (StoreWf; ⊆ˢ-refl)
 open import Imprecision
 open import UpDown using (Label; Up; Down)
 open import Terms
@@ -111,6 +111,15 @@ closeˡ M = substᵗᵐ (leftᵗ ∅ρ) (substˣ-term (leftˣ ∅γ) M)
 
 closeʳ : Term → Term
 closeʳ M = substᵗᵐ (rightᵗ ∅ρ) (substˣ-term (rightˣ ∅γ) M)
+
+closed-RelWf :
+  ∀ {Ψ Σ} {wfΣ : StoreWf 0 Ψ Σ} →
+  RelWf ⟪ 0 , Ψ , Σ , [] ⟫ (mkWorld 0 Ψ Σ Σ wfΣ wfΣ []) ∅ρ
+closed-RelWf .RelWf.Ψ≡ = refl
+closed-RelWf .RelWf.leftᵗ-wf ()
+closed-RelWf .RelWf.rightᵗ-wf ()
+closed-RelWf .RelWf.storeˡ = ⊆ˢ-refl
+closed-RelWf .RelWf.storeʳ = ⊆ˢ-refl
 
 steps :
   ∀ {Σ Σ′ : Store} {M N : Term} →
@@ -486,6 +495,7 @@ dynamic-gradual-guarantee-part1
       (mkWorld 0 Ψ₀ Σ Σ wfΣ wfΣ [])
       ∅ρ
       ∅γ
+      closed-RelWf
       (lift tt))
 
 dynamic-gradual-guarantee-part2 :
@@ -504,6 +514,7 @@ dynamic-gradual-guarantee-part2
     (mkWorld 0 Ψ₀ Σ Σ wfΣ wfΣ [])
     ∅ρ
     ∅γ
+    closed-RelWf
     (lift tt))
 ... | inj₁ (wfΣˡ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , Vrel) =
   divʳ (Σʳ′ , V′ , (M′↠V′ , inj₁ vV′))
@@ -520,6 +531,7 @@ dynamic-gradual-guarantee-part2
     (mkWorld 0 Ψ₀ Σ Σ wfΣ wfΣ [])
     ∅ρ
     ∅γ
+    closed-RelWf
     (lift tt))
 ... | Σʳᵇ , ℓʳ , M′↠blame =
   divʳ (Σʳᵇ , blame ℓʳ , (M′↠blame , inj₂ (ℓʳ , refl)))
@@ -546,6 +558,7 @@ dynamic-gradual-guarantee-part3
       (mkWorld 0 Ψ₀ Σ Σ wfΣ wfΣ [])
       ∅ρ
       ∅γ
+      closed-RelWf
       (lift tt))
 
 dynamic-gradual-guarantee-part4 :
@@ -563,6 +576,7 @@ dynamic-gradual-guarantee-part4
       (mkWorld 0 Ψ₀ Σ Σ wfΣ wfΣ [])
       ∅ρ
       ∅γ
+      closed-RelWf
       (lift tt))
 
 dynamic-gradual-guarantee :

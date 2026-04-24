@@ -116,6 +116,13 @@ renameˢ-preserves-WfTy (wf∀ hA) hρ =
 TySubstWf : TyCtx → TyCtx → SealCtx → Substᵗ → Set
 TySubstWf Δ Δ′ Ψ σ = ∀ {X} → X < Δ → WfTy Δ′ Ψ (σ X)
 
+singleTyEnv-Wf :
+  ∀ {Δ Ψ} (T : Ty) →
+  WfTy Δ Ψ T →
+  TySubstWf (suc Δ) Δ Ψ (singleTyEnv T)
+singleTyEnv-Wf T wfT {zero} z<s = wfT
+singleTyEnv-Wf T wfT {suc X} (s<s X<Δ) = wfVar X<Δ
+
 TySubstWf-exts :
   ∀ {Δ Δ′ Ψ} {σ : Substᵗ} →
   TySubstWf Δ Δ′ Ψ σ →

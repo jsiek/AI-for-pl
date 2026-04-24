@@ -90,7 +90,7 @@ open import ReductionFresh
     ; _∎
     ; _—→⟨_⟩_
     )
-open import LogicalRelation
+open import LogicalRelationAlt
 open import Parametricity using (fundamental)
 open import EvalPartialFresh
   using
@@ -208,16 +208,6 @@ transport-𝒱 :
   𝒱 p k dir w′ W W′
 transport-𝒱 refl refl refl Vrel = Vrel
 
-transport-𝒱⟨⟩ :
-  ∀ {n A B} {r : StepRel n} {p : A ⊑ B} {dir : Dir}
-    {w w′ : World} {V V′ W W′ : Term} →
-  w ≡ w′ →
-  V ≡ W →
-  V′ ≡ W′ →
-  𝒱⟨ r ⟩ p dir w V V′ →
-  𝒱⟨ r ⟩ p dir w′ W W′
-transport-𝒱⟨⟩ refl refl refl Vrel = Vrel
-
 blame-no-step :
   ∀ {Σ Σ′ : Store} {ℓ : Label} {N : Term} →
   Σ ∣ blame ℓ —→ Σ′ ∣ N →
@@ -311,9 +301,8 @@ right-catchup
   Vrel′ : 𝒱 (substᴿ-⊑ ∅ρ p) k ≽
             (mkWorld Δ₀ Ψ₀ Σˡ′ Σʳ₀ wfΣˡ′ wfΣʳ₀ η₀) V V′
   Vrel′ =
-    𝒱-lower→sem {n = suc k} <′-base {p = substᴿ-⊑ ∅ρ p} {dir = ≽}
-      (transport-𝒱⟨⟩ {n = k} {r = lowerᵣ (sem (suc k)) <′-base}
-        {p = substᴿ-⊑ ∅ρ p} {dir = ≽} refl refl eqMʳ Vrel)
+    transport-𝒱 {p = substᴿ-⊑ ∅ρ p} {k = k} {dir = ≽}
+      refl refl eqMʳ Vrel
 right-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
   k {η₀ = η₀} vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
   with proj₂ rel
@@ -370,9 +359,8 @@ left-catchup-or-blame
   Vrel′ : 𝒱 (substᴿ-⊑ ∅ρ p) k (≼)
             (mkWorld Δ₀ Ψ₀ Σˡ₀ Σʳ′ wfΣˡ₀ wfΣʳ′ η₀) V V′
   Vrel′ =
-    𝒱-lower→sem {n = suc k} <′-base {p = substᴿ-⊑ ∅ρ p} {dir = ≼}
-      (transport-𝒱⟨⟩ {n = k} {r = lowerᵣ (sem (suc k)) <′-base}
-        {p = substᴿ-⊑ ∅ρ p} {dir = ≼} refl eqMˡ refl Vrel)
+    transport-𝒱 {p = substᴿ-⊑ ∅ρ p} {k = k} {dir = ≼}
+      refl eqMˡ refl Vrel
 left-catchup-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
   k {η₀ = η₀} vV (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel
   with proj₂ rel

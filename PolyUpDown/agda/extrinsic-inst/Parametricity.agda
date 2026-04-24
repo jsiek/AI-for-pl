@@ -58,7 +58,7 @@ open import ReductionFresh
     ; store-growth
     )
   renaming ($ to v$; ƛ_⇒_ to vƛ_⇒_)
-open import LogicalRelation
+open import LogicalRelationAlt
 
 𝒢-lookup :
   ∀ {Γ x A B} {p : A ⊑ B} {n dir w} {ρ : RelSub 0} {γ} →
@@ -149,17 +149,17 @@ const-𝒱 {n = suc n} = v$ _ , v$ _ , (⊢$ _ , ⊢$ _) , lift refl
   ∀ {A B} {p : A ⊑ B} {n dir w V W} →
   𝒱 p n dir w V W →
   ℰ p (suc n) dir w V W
-𝒱⇒ℰ {n = n} {dir = ≼} {w = w} {V = V} {W = W}
+𝒱⇒ℰ {p = p} {n = n} {dir = ≼} {w = w} {V = V} {W = W}
   (vV , vW , (V⊢ , W⊢) , payload) =
   (V⊢ , W⊢) ,
   inj₂ (inj₂ (vV , Σʳ w , wfΣʳ w , W , (W ∎) ,
-    𝒱-sem→lower {n = suc n} <′-base
+    𝒱-⪰ {n = n} {dir = ≼} p (mkWorldʳ-⪰ ⊆ˢ-refl)
       (vV , vW , (V⊢ , W⊢) , payload)))
-𝒱⇒ℰ {n = n} {dir = ≽} {w = w} {V = V} {W = W}
+𝒱⇒ℰ {p = p} {n = n} {dir = ≽} {w = w} {V = V} {W = W}
   (vV , vW , (V⊢ , W⊢) , payload) =
   (V⊢ , W⊢) ,
   inj₂ (inj₂ (vW , Σˡ w , wfΣˡ w , V , (V ∎) ,
-    𝒱-sem→lower {n = suc n} <′-base
+    𝒱-⪰ {n = n} {dir = ≽} p (mkWorldˡ-⪰ ⊆ˢ-refl)
       (vV , vW , (V⊢ , W⊢) , payload)))
 
 𝒱⇒ℰ-zero :
@@ -405,10 +405,7 @@ compat-ƛ {E = E} {dir = dir} {A = A} {A′ = A′} {B = B} {B′ = B′}
   lambda-𝒱-zero :
     𝒱 (substᴿ-⊑ ρ (⊑-⇒ A A′ B B′ pA pB)) zero dir w L R
   lambda-𝒱-zero =
-    vƛ _ ⇒ _ , vƛ _ ⇒ _ , (left-typed , right-typed) ,
-      λ {w′} w′⪰ → λ { zero (≤′-reflexive ())
-                       ; (suc j) (≤′-reflexive ())
-                       }
+    vƛ _ ⇒ _ , vƛ _ ⇒ _ , (left-typed , right-typed) , lift tt
 compat-ƛ {E = E} {dir = ≼} {A = A} {A′ = A′} {B = B} {B′ = B′}
   {M = M} {M′ = M′} {pA = pA} {pB = pB} hA hA′ M⊢ M′⊢ M-rel
   (suc n) w ρ γ rwf env =
@@ -451,30 +448,16 @@ compat-ƛ {E = E} {dir = ≼} {A = A} {A′ = A′} {B = B} {B′ = B′}
     𝒢 (TPEnv.Γ E) (suc m) ≼ w ρ γ →
     𝒱 (substᴿ-⊑ ρ (⊑-⇒ A A′ B B′ pA pB)) m ≼ w L R
   lambda-𝒱 zero env′ =
-    vƛ _ ⇒ _ , vƛ _ ⇒ _ , (left-typed , right-typed) ,
-      λ {w′} w′⪰ → λ { zero (≤′-reflexive ())
-                       ; (suc j) (≤′-reflexive ())
-                       }
+    vƛ _ ⇒ _ , vƛ _ ⇒ _ , (left-typed , right-typed) , lift tt
   lambda-𝒱 (suc k) env′ =
     vƛ _ ⇒ _ , vƛ _ ⇒ _ , (left-typed , right-typed) ,
-      λ {w′} w′⪰ → λ
+      FunAll→𝒱′ (λ {w′} w′⪰ → λ
         { zero j<suc {V′ = V′} {W′ = W′} arg-rel →
-            ℰ-sem→lower {n = suc k} {j = zero} j<suc
-              {p = substᴿ-⊑ ρ pB} {dir = ≼} {w = w′}
-              {Mˡ = L · V′} {Mʳ = R · W′}
-              (app-zero w′⪰
-                (𝒱-lower→sem {n = suc k} {j = zero} j<suc
-                  {p = substᴿ-⊑ ρ pA} {dir = ≼} {w = w′}
-                  {V = V′} {W = W′} arg-rel))
+            app-zero w′⪰ arg-rel
         ; (suc j) j<suc {V′ = V′} {W′ = W′} arg-rel →
-            ℰ-sem→lower {n = suc k} {j = suc j} j<suc
-              {p = substᴿ-⊑ ρ pB} {dir = ≼} {w = w′}
-              {Mˡ = L · V′} {Mʳ = R · W′}
-              (app-suc w′⪰ j<suc
-                (𝒱-lower→sem {n = suc k} {j = suc j} j<suc
-                  {p = substᴿ-⊑ ρ pA} {dir = ≼} {w = w′}
-                  {V = V′} {W = W′} arg-rel))
+            app-suc w′⪰ j<suc arg-rel
         }
+      )
     where
     app-zero :
       ∀ {w′ V′ W′} →
@@ -587,30 +570,16 @@ compat-ƛ {E = E} {dir = ≽} {A = A} {A′ = A′} {B = B} {B′ = B′}
     𝒢 (TPEnv.Γ E) (suc m) ≽ w ρ γ →
     𝒱 (substᴿ-⊑ ρ (⊑-⇒ A A′ B B′ pA pB)) m ≽ w L R
   lambda-𝒱 zero env′ =
-    vƛ _ ⇒ _ , vƛ _ ⇒ _ , (left-typed , right-typed) ,
-      λ {w′} w′⪰ → λ { zero (≤′-reflexive ())
-                       ; (suc j) (≤′-reflexive ())
-                       }
+    vƛ _ ⇒ _ , vƛ _ ⇒ _ , (left-typed , right-typed) , lift tt
   lambda-𝒱 (suc k) env′ =
     vƛ _ ⇒ _ , vƛ _ ⇒ _ , (left-typed , right-typed) ,
-      λ {w′} w′⪰ → λ
+      FunAll→𝒱′ (λ {w′} w′⪰ → λ
         { zero j<suc {V′ = V′} {W′ = W′} arg-rel →
-            ℰ-sem→lower {n = suc k} {j = zero} j<suc
-              {p = substᴿ-⊑ ρ pB} {dir = ≽} {w = w′}
-              {Mˡ = L · V′} {Mʳ = R · W′}
-              (app-zero w′⪰
-                (𝒱-lower→sem {n = suc k} {j = zero} j<suc
-                  {p = substᴿ-⊑ ρ pA} {dir = ≽} {w = w′}
-                  {V = V′} {W = W′} arg-rel))
+            app-zero w′⪰ arg-rel
         ; (suc j) j<suc {V′ = V′} {W′ = W′} arg-rel →
-            ℰ-sem→lower {n = suc k} {j = suc j} j<suc
-              {p = substᴿ-⊑ ρ pB} {dir = ≽} {w = w′}
-              {Mˡ = L · V′} {Mʳ = R · W′}
-              (app-suc w′⪰ j<suc
-                (𝒱-lower→sem {n = suc k} {j = suc j} j<suc
-                  {p = substᴿ-⊑ ρ pA} {dir = ≽} {w = w′}
-                  {V = V′} {W = W′} arg-rel))
+            app-suc w′⪰ j<suc arg-rel
         }
+      )
     where
     app-zero :
       ∀ {w′ V′ W′} →

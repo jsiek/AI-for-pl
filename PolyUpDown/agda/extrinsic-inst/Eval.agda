@@ -23,7 +23,7 @@ open import Preservation
 
 eval :
   ∀ {Ψ}{Σ₀ : Store}{M : Term}{A : Ty} →
-  (uΣ₀ : Uniqueˢ Σ₀) →
+  (wfΣ₀ : StoreWf 0 Ψ Σ₀) →
   (gas : ℕ) →
   (M⊢ : 0 ∣ Ψ ∣ Σ₀ ∣ [] ⊢ M ⦂ A) →
   Σ[ Ψ′ ∈ SealCtx ]
@@ -32,12 +32,12 @@ eval :
   Σ[ A′ ∈ Ty ]
   Σ[ N⊢ ∈ (0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ N ⦂ A′) ]
     (Σ₀ ∣ M —↠ Σ′ ∣ N)
-eval {Ψ} {Σ₀} {M} {A} uΣ₀ zero M⊢ =
+eval {Ψ} {Σ₀} {M} {A} wfΣ₀ zero M⊢ =
   Ψ , Σ₀ , M , A , M⊢ , (M ∎)
-eval {Ψ} {Σ₀} {M} {A} uΣ₀ (suc gas) M⊢ with progress M⊢
+eval {Ψ} {Σ₀} {M} {A} wfΣ₀ (suc gas) M⊢ with progress M⊢
 ... | done v = Ψ , Σ₀ , M , A , M⊢ , (M ∎)
 ... | crash b = Ψ , Σ₀ , M , A , M⊢ , (M ∎)
-... | step {N = N} M→N with preservation-step uΣ₀ M⊢ M→N
-...   | Ψ₁ , hρ , eqρ , N⊢ with eval (unique-store-step uΣ₀ M→N) gas N⊢
+... | step {N = N} M→N with preservation-step wfΣ₀ M⊢ M→N
+...   | Ψ₁ , hρ , eqρ , wfΣ₁ , N⊢ with eval wfΣ₁ gas N⊢
 ...     | Ψ₂ , Σ₂ , K , C , K⊢ , N—↠K =
           Ψ₂ , Σ₂ , K , C , K⊢ , (M —→⟨ M→N ⟩ N—↠K)

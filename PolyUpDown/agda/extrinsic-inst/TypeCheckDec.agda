@@ -309,8 +309,8 @@ mutual
   wt⊑-unique :
     ∀ {Δ Ψ Σ Φ Φ′ A A′ B B′} {p : Up} →
     Uniqueˢ Σ →
-    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A′ B′ →
+    Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
+    Δ ∣ Ψ ∣ Σ ∣ Φ′ ⊢ p ⦂ A′ ⊑ B′ →
     (A ≡ A′) × (B ≡ B′)
   wt⊑-unique uΣ (wt-tag g gokΞ) (wt-tag g′ gokΞ′) = refl , refl
   wt⊑-unique uΣ (wt-unseal h α∈Φ) (wt-unseal h′ α∈Φ′) =
@@ -390,8 +390,8 @@ mutual
   wt⊒-unique :
     ∀ {Δ Ψ Σ Φ Φ′ A A′ B B′} {p : Down} →
     Uniqueˢ Σ →
-    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A′ B′ →
+    Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
+    Δ ∣ Ψ ∣ Σ ∣ Φ′ ⊢ p ⦂ A′ ⊒ B′ →
     (A ≡ A′) × (B ≡ B′)
   wt⊒-unique uΣ (wt-untag g gokΞ ℓ) (wt-untag g′ gokΞ′ ℓ′) = refl , refl
   wt⊒-unique uΣ (wt-seal h α∈Φ) (wt-seal h′ α∈Φ′) =
@@ -727,7 +727,7 @@ mutual
     (p : Up) →
     Dec
       (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-        _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+        Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
   up-cast-check′ Δ Ψ Σ wfΣ Φ (tag G) with groundTyDec G
   ... | no ¬g =
       no
@@ -878,7 +878,7 @@ mutual
     (p : Down) →
     Dec
       (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-        _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+        Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
   down-cast-check′ Δ Ψ Σ wfΣ Φ (untag G ℓ) with groundTyDec G
   ... | no ¬g =
       no
@@ -1028,7 +1028,7 @@ up-cast-check :
   (p : Up) →
   Dec
     (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-      _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ (every Ψ) p A B)
+      Δ ∣ Ψ ∣ Σ ∣ (every Ψ) ⊢ p ⦂ A ⊑ B)
 up-cast-check Δ Ψ Σ wfΣ p =
   up-cast-check′ Δ Ψ Σ wfΣ (every Ψ) p
 
@@ -1040,7 +1040,7 @@ down-cast-check :
   (p : Down) →
   Dec
     (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-      _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ (every Ψ) p A B)
+      Δ ∣ Ψ ∣ Σ ∣ (every Ψ) ⊢ p ⦂ A ⊒ B)
 down-cast-check Δ Ψ Σ wfΣ p =
   down-cast-check′ Δ Ψ Σ wfΣ (every Ψ) p
 
@@ -1292,8 +1292,8 @@ mutual
     ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
     (n : ℕ) →
     maxSealUp p < n →
-    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ (clip n Φ) p A B
+    Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
+    Δ ∣ Ψ ∣ Σ ∣ (clip n Φ) ⊢ p ⦂ A ⊑ B
   normalize-up n hmax (wt-tag g gok) =
     wt-tag g (ground-ok-clip n hmax gok)
   normalize-up n hmax (wt-unseal h α∈Φ) =
@@ -1313,8 +1313,8 @@ mutual
     ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
     (n : ℕ) →
     maxSealDown p < n →
-    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ (clip n Φ) p A B
+    Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
+    Δ ∣ Ψ ∣ Σ ∣ (clip n Φ) ⊢ p ⦂ A ⊒ B
   normalize-down n hmax (wt-untag g gok ℓ) =
     wt-untag g (ground-ok-clip n hmax gok) ℓ
   normalize-down n hmax (wt-seal h α∈Φ) =
@@ -1341,7 +1341,7 @@ search-up-casts :
     (Σ[ Φ ∈ List CastPerm ]
       (Φ ∈perm Φs) ×
       Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-        _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+        Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
 search-up-casts Δ Ψ Σ wfΣ p [] =
   no
     (λ
@@ -1375,7 +1375,7 @@ search-up-casts-length :
       (Φ ∈perm Φs) ×
       (length Φ ≡ Ψ) ×
       Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-        _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+        Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
 search-up-casts-length Δ Σ Ψ wfΣ p [] =
   no
     (λ
@@ -1423,7 +1423,7 @@ search-down-casts :
     (Σ[ Φ ∈ List CastPerm ]
       (Φ ∈perm Φs) ×
       Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-        _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+        Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
 search-down-casts Δ Ψ Σ wfΣ p [] =
   no
     (λ
@@ -1457,7 +1457,7 @@ search-down-casts-length :
       (Φ ∈perm Φs) ×
       (length Φ ≡ Ψ) ×
       Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-        _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+        Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
 search-down-casts-length Δ Σ Ψ wfΣ p [] =
   no
     (λ
@@ -1496,10 +1496,10 @@ search-down-casts-length Δ Σ Ψ wfΣ p (Φ ∷ Φs) | no ¬len | no ¬tail =
 
 up-cast-candidates-complete :
   ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{p : Up}{A B : Ty} →
-  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
   Σ[ Φ′ ∈ List CastPerm ]
     (Φ′ ∈perm permCandidatesUp p) ×
-    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A B
+    Δ ∣ Ψ ∣ Σ ∣ Φ′ ⊢ p ⦂ A ⊑ B
 up-cast-candidates-complete {Φ = Φ} {p = p} hp =
   clip (suc (maxSealUp p)) Φ ,
   ( clip∈boolLists (suc (maxSealUp p)) Φ
@@ -1508,10 +1508,10 @@ up-cast-candidates-complete {Φ = Φ} {p = p} hp =
 
 down-cast-candidates-complete :
   ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{p : Down}{A B : Ty} →
-  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
   Σ[ Φ′ ∈ List CastPerm ]
     (Φ′ ∈perm permCandidatesDown p) ×
-    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A B
+    Δ ∣ Ψ ∣ Σ ∣ Φ′ ⊢ p ⦂ A ⊒ B
 down-cast-candidates-complete {Φ = Φ} {p = p} hp =
   clip (suc (maxSealDown p)) Φ ,
   ( clip∈boolLists (suc (maxSealDown p)) Φ
@@ -1526,7 +1526,7 @@ up-cast-check-any :
   (p : Up) →
   Dec
     (Σ[ Φ ∈ List CastPerm ] Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-      _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+      Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
 up-cast-check-any Δ Ψ Σ wfΣ p
   with search-up-casts Δ Ψ Σ wfΣ p (permCandidatesUp p)
 up-cast-check-any Δ Ψ Σ wfΣ p | yes (Φ , (Φ∈ , (A , (B , hp)))) =
@@ -1542,7 +1542,7 @@ up-cast-check-any Δ Ψ Σ wfΣ p | no ¬search =
             Φ′∈ : Φ′ ∈perm permCandidatesUp p
             Φ′∈ = proj₁ (proj₂ (up-cast-candidates-complete hp))
 
-            hp′ : _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A B
+            hp′ : Δ ∣ Ψ ∣ Σ ∣ Φ′ ⊢ p ⦂ A ⊑ B
             hp′ = proj₂ (proj₂ (up-cast-candidates-complete hp))
           in
           ¬search (Φ′ , (Φ′∈ , (A , (B , hp′))))
@@ -1556,7 +1556,7 @@ down-cast-check-any :
   (p : Down) →
   Dec
     (Σ[ Φ ∈ List CastPerm ] Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-      _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+      Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
 down-cast-check-any Δ Ψ Σ wfΣ p
   with search-down-casts Δ Ψ Σ wfΣ p (permCandidatesDown p)
 down-cast-check-any Δ Ψ Σ wfΣ p | yes (Φ , (Φ∈ , (A , (B , hp)))) =
@@ -1572,7 +1572,7 @@ down-cast-check-any Δ Ψ Σ wfΣ p | no ¬search =
             Φ′∈ : Φ′ ∈perm permCandidatesDown p
             Φ′∈ = proj₁ (proj₂ (down-cast-candidates-complete hp))
 
-            hp′ : _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ′ p A B
+            hp′ : Δ ∣ Ψ ∣ Σ ∣ Φ′ ⊢ p ⦂ A ⊒ B
             hp′ = proj₂ (proj₂ (down-cast-candidates-complete hp))
           in
           ¬search (Φ′ , (Φ′∈ , (A , (B , hp′))))
@@ -1588,7 +1588,7 @@ up-cast-check-length :
     (Σ[ Φ ∈ List CastPerm ]
       (length Φ ≡ Ψ) ×
       Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-        _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+        Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
 up-cast-check-length Δ Σ Ψ wfΣ p
   with search-up-casts-length Δ Σ Ψ wfΣ p (boolLists Ψ)
 up-cast-check-length Δ Σ Ψ wfΣ p
@@ -1618,7 +1618,7 @@ down-cast-check-length :
     (Σ[ Φ ∈ List CastPerm ]
       (length Φ ≡ Ψ) ×
       Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
-        _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B)
+        Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
 down-cast-check-length Δ Σ Ψ wfΣ p
   with search-down-casts-length Δ Σ Ψ wfΣ p (boolLists Ψ)
 down-cast-check-length Δ Σ Ψ wfΣ p

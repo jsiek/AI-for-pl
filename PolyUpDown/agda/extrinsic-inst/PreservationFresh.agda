@@ -189,13 +189,13 @@ RenNotIn-append-tag α∉ p = α∉ (member-unappend-tag p)
 
 append-tag-⊑ :
   ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
-  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ (Φ ++ cast-tag ∷ []) p A B
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
+  Δ ∣ Ψ ∣ Σ ∣ (Φ ++ cast-tag ∷ []) ⊢ p ⦂ A ⊑ B
 castWt⊑-term :
   ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p q : Up} →
   p ≡ q →
-  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ q A B
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ q ⦂ A ⊑ B
 castWt⊑-term refl h = h
 
 append-tag-⊑ {Σ = Σ} {A = A} {B = B} {p = p} h =
@@ -217,8 +217,8 @@ append-tag-⊑ {Σ = Σ} {A = A} {B = B} {p = p} h =
 
 append-tag-⊒ :
   ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
-  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ (Φ ++ cast-tag ∷ []) p A B
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
+  Δ ∣ Ψ ∣ Σ ∣ (Φ ++ cast-tag ∷ []) ⊢ p ⦂ A ⊒ B
 append-tag-⊒ {Σ = Σ} {A = A} {B = B} {p = p} h =
   castWt⊒
     (renameStoreˢ-id {Σ = Σ})
@@ -238,8 +238,8 @@ append-tag-⊒ {Σ = Σ} {A = A} {B = B} {p = p} h =
 
 wkΨ-cast-tag-⊑ :
   ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
-  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = suc Ψ} Σ (Φ ++ cast-tag ∷ []) p A B
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
+  Δ ∣ suc Ψ ∣ Σ ∣ (Φ ++ cast-tag ∷ []) ⊢ p ⦂ A ⊑ B
 wkΨ-cast-tag-⊑ {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p} h =
   castWt⊑
     (renameStoreˢ-id {Σ = Σ})
@@ -259,8 +259,8 @@ wkΨ-cast-tag-⊑ {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p} h =
 
 wkΨ-cast-tag-⊒ :
   ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
-  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = suc Ψ} Σ (Φ ++ cast-tag ∷ []) p A B
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
+  Δ ∣ suc Ψ ∣ Σ ∣ (Φ ++ cast-tag ∷ []) ⊢ p ⦂ A ⊒ B
 wkΨ-cast-tag-⊒ {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p} h =
   castWt⊒
     (renameStoreˢ-id {Σ = Σ})
@@ -384,10 +384,12 @@ preservation-step :
 open-fresh-ν⊒ : ∀ {Δ Ψ}{Σ : Store}{Aν Bν T : Ty} {p : Down}{Φ : List CastPerm} →
   (wfΣ : StoreWf Δ Ψ Σ) →
   (lenΦ : length Φ ≡ Ψ) →
-  ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ) ⊢ p ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ α₀ ]ᵗ) →
-  ((length Σ , T) ∷ Σ) ∣ (Φ ++ cast-tag ∷ [])
+  Δ ∣ suc Ψ ∣ ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ)
+    ⊢ p ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ α₀ ]ᵗ) →
+  Δ ∣ suc Ψ ∣ ((length Σ , T) ∷ Σ) ∣ (Φ ++ cast-tag ∷ [])
     ⊢ (p [ length Σ ]⊒) ⦂ Bν ⊒ (Aν [ ｀ (length Σ) ]ᵗ)
-open-fresh-ν⊒ {Ψ = Ψ}{Σ = Σ}{Aν = Aν}{Bν = Bν}{T = T}{p = p}{Φ} wfΣ lenΦ ⊢p =
+open-fresh-ν⊒ {Δ = Δ} {Ψ = Ψ}{Σ = Σ}{Aν = Aν}{Bν = Bν}{T = T}{p = p}{Φ}
+  wfΣ lenΦ ⊢p =
   wk⊒
     (drop ⊆ˢ-refl)
     (OldPreservation.drop★⊒-seal-preserving top★ top∉ ⊢p★)
@@ -427,11 +429,10 @@ open-fresh-ν⊒ {Ψ = Ψ}{Σ = Σ}{Aν = Aν}{Bν = Bν}{T = T}{p = p}{Φ} wfΣ
     hρ {suc α} (s<s α<Ψ) = <-≤-trans α<Ψ (n≤1+n Ψ)
 
     ⊢p′ :
-      renameStoreˢ (singleSealEnv (length Σ)) ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ)
-        ∣ (Φ ++ cast-tag ∷ [])
-        ⊢ p [ length Σ ]⊒
-          ⦂ renameˢ (singleSealEnv (length Σ)) (⇑ˢ Bν)
-          ⊒ renameˢ (singleSealEnv (length Σ)) ((⇑ˢ Aν) [ α₀ ]ᵗ)
+      Δ ∣ suc Ψ ∣ renameStoreˢ (singleSealEnv (length Σ)) ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ)
+        ∣ (Φ ++ cast-tag ∷ []) ⊢ p [ length Σ ]⊒
+            ⦂ renameˢ (singleSealEnv (length Σ)) (⇑ˢ Bν)
+            ⊒ renameˢ (singleSealEnv (length Σ)) ((⇑ˢ Aν) [ α₀ ]ᵗ)
     ⊢p′ =
       ⊒-renameˢ-wt
         {Φ′ = Φ ++ cast-tag ∷ []}
@@ -465,7 +466,7 @@ open-fresh-ν⊒ {Ψ = Ψ}{Σ = Σ}{Aν = Aν}{Bν = Bν}{T = T}{p = p}{Φ} wfΣ
           (renameˢ-single-⇑ˢ-id (length Σ) Aν))
 
     ⊢p★ :
-      ((length Σ , ★) ∷ Σ) ∣ (Φ ++ cast-tag ∷ [])
+      Δ ∣ suc Ψ ∣ ((length Σ , ★) ∷ Σ) ∣ (Φ ++ cast-tag ∷ [])
         ⊢ p [ length Σ ]⊒ ⦂ Bν ⊒ (Aν [ ｀ (length Σ) ]ᵗ)
     ⊢p★ =
       castWt⊒
@@ -483,10 +484,12 @@ open-fresh-ν⊑ :
   ∀ {Δ Ψ}{Σ : Store}{Aν Bν : Ty} {p : Up}{Φ : List CastPerm} →
   (wfΣ : StoreWf Δ Ψ Σ) →
   (lenΦ : length Φ ≡ Ψ) →
-  ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-seal ∷ Φ) ⊢ p ⦂ ((⇑ˢ Aν) [ α₀ ]ᵗ) ⊑ ⇑ˢ Bν →
-  ((length Σ , ★) ∷ Σ) ∣ (Φ ++ cast-seal ∷ [])
+  Δ ∣ suc Ψ ∣ ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-seal ∷ Φ)
+    ⊢ p ⦂ ((⇑ˢ Aν) [ α₀ ]ᵗ) ⊑ ⇑ˢ Bν →
+  Δ ∣ suc Ψ ∣ ((length Σ , ★) ∷ Σ) ∣ (Φ ++ cast-seal ∷ [])
     ⊢ (p [ length Σ ]⊑) ⦂ (Aν [ ｀ (length Σ) ]ᵗ) ⊑ Bν
-open-fresh-ν⊑ {Ψ = Ψ}{Σ = Σ}{Aν = Aν}{Bν = Bν}{p = p}{Φ} wfΣ lenΦ ⊢p =
+open-fresh-ν⊑ {Δ = Δ} {Ψ = Ψ}{Σ = Σ}{Aν = Aν}{Bν = Bν}{p = p}{Φ}
+  wfΣ lenΦ ⊢p =
   castWt⊑
     eq-store★
     refl
@@ -519,11 +522,10 @@ open-fresh-ν⊑ {Ψ = Ψ}{Σ = Σ}{Aν = Aν}{Bν = Bν}{p = p}{Φ} wfΣ lenΦ 
     hρ {suc α} (s<s α<Ψ) = <-≤-trans α<Ψ (n≤1+n Ψ)
 
     ⊢p′ :
-      renameStoreˢ (singleSealEnv (length Σ)) ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ)
-        ∣ (Φ ++ cast-seal ∷ [])
-        ⊢ p [ length Σ ]⊑
-          ⦂ renameˢ (singleSealEnv (length Σ)) ((⇑ˢ Aν) [ α₀ ]ᵗ)
-          ⊑ renameˢ (singleSealEnv (length Σ)) (⇑ˢ Bν)
+      Δ ∣ suc Ψ ∣ renameStoreˢ (singleSealEnv (length Σ)) ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ)
+        ∣ (Φ ++ cast-seal ∷ []) ⊢ p [ length Σ ]⊑
+            ⦂ renameˢ (singleSealEnv (length Σ)) ((⇑ˢ Aν) [ α₀ ]ᵗ)
+            ⊑ renameˢ (singleSealEnv (length Σ)) (⇑ˢ Bν)
     ⊢p′ =
       ⊑-renameˢ-wt
         {Φ′ = Φ ++ cast-seal ∷ []}
@@ -592,7 +594,7 @@ preservation-step-β-down-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
       top
       (every-member-conv (length Σ) (len<suc-StoreWf wfΣ)))
   where
-    p⊢′ : ((length Σ , T) ∷ Σ) ∣ (Φ ++ cast-tag ∷ [])
+    p⊢′ : Δ ∣ suc Ψ ∣ ((length Σ , T) ∷ Σ) ∣ (Φ ++ cast-tag ∷ [])
       ⊢ (p [ length Σ ]⊒) ⦂ Bν ⊒ (Aν [ ｀ (length Σ) ]ᵗ)
     p⊢′ = open-fresh-ν⊒ {Aν = Aν} {Bν = Bν} {T = T} wfΣ lenΦ p⊢
 
@@ -651,11 +653,11 @@ preservation-step-β-up-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
         ⊢ V ⦂ `∀ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)
     V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (sym eq-close)) V⊢↑
 
-    p⊢base : ((length Σ , ★) ∷ Σ) ∣ (Φ ++ cast-seal ∷ [])
+    p⊢base : Δ ∣ suc Ψ ∣ ((length Σ , ★) ∷ Σ) ∣ (Φ ++ cast-seal ∷ [])
       ⊢ (p [ length Σ ]⊑) ⦂ (Aν [ ｀ (length Σ) ]ᵗ) ⊑ Bν
     p⊢base = open-fresh-ν⊑ {Aν = Aν} {Bν = Bν} wfΣ lenΦ p⊢
 
-    p⊢′ : ((length Σ , ★) ∷ Σ) ∣ (Φ ++ cast-seal ∷ [])
+    p⊢′ : Δ ∣ suc Ψ ∣ ((length Σ , ★) ∷ Σ) ∣ (Φ ++ cast-seal ∷ [])
       ⊢ (p [ length Σ ]⊑)
         ⦂ (((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ) [ ｀ (length Σ) ]ᵗ)
         ⊑ Bν

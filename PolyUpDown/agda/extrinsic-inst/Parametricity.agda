@@ -731,10 +731,8 @@ compat-up :
   (Φ : List CastPerm) →
   length Φ ≡ TPEnv.Ψ E →
   E ∣ dir ⊨ M ⊑ M′ ⦂ pA →
-  _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-    (TPEnv.store E) Φ u A B →
-  _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-    (TPEnv.store E) Φ u′ A′ B′ →
+  TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ u ⦂ A ⊑ B →
+  TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
   E ∣ dir ⊨ (M up u) ⊑ (M′ up u′) ⦂ pB
 compat-up Φ lenΦ M-rel u⊢ u′⊢ n w ρ γ rwf env = {!!}
 
@@ -743,8 +741,7 @@ compat-upL :
   (Φ : List CastPerm) →
   length Φ ≡ TPEnv.Ψ E →
   E ∣ dir ⊨ M ⊑ M′ ⦂ pA →
-  _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-    (TPEnv.store E) Φ u A B →
+  TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ u ⦂ A ⊑ B →
   E ∣ dir ⊨ (M up u) ⊑ M′ ⦂ pB
 compat-upL Φ lenΦ M-rel u⊢ n w ρ γ rwf env = {!!}
 
@@ -753,8 +750,7 @@ compat-upR :
   (Φ : List CastPerm) →
   length Φ ≡ TPEnv.Ψ E →
   E ∣ dir ⊨ M ⊑ M′ ⦂ pA →
-  _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-    (TPEnv.store E) Φ u′ A′ B′ →
+  TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
   E ∣ dir ⊨ M ⊑ (M′ up u′) ⦂ pB
 compat-upR Φ lenΦ M-rel u′⊢ n w ρ γ rwf env = {!!}
 
@@ -764,10 +760,8 @@ compat-down :
   (Φ : List CastPerm) →
   length Φ ≡ TPEnv.Ψ E →
   E ∣ dir ⊨ M ⊑ M′ ⦂ pA →
-  _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-    (TPEnv.store E) Φ d A B →
-  _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-    (TPEnv.store E) Φ d′ A′ B′ →
+  TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ d ⦂ A ⊒ B →
+  TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
   E ∣ dir ⊨ (M down d) ⊑ (M′ down d′) ⦂ pB
 compat-down Φ lenΦ M-rel d⊢ d′⊢ n w ρ γ rwf env = {!!}
 
@@ -776,8 +770,7 @@ compat-downL :
   (Φ : List CastPerm) →
   length Φ ≡ TPEnv.Ψ E →
   E ∣ dir ⊨ M ⊑ M′ ⦂ pA →
-  _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-    (TPEnv.store E) Φ d A B →
+  TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ d ⦂ A ⊒ B →
   E ∣ dir ⊨ (M down d) ⊑ M′ ⦂ pB
 compat-downL Φ lenΦ M-rel d⊢ n w ρ γ rwf env = {!!}
 
@@ -786,8 +779,7 @@ compat-downR :
   (Φ : List CastPerm) →
   length Φ ≡ TPEnv.Ψ E →
   E ∣ dir ⊨ M ⊑ M′ ⦂ pA →
-  _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-    (TPEnv.store E) Φ d′ A′ B′ →
+  TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
   E ∣ dir ⊨ M ⊑ (M′ down d′) ⦂ pB
 compat-downR Φ lenΦ M-rel d′⊢ n w ρ γ rwf env = {!!}
 

@@ -191,9 +191,6 @@ extendWorld-⪰ {w} R downR ._⪰_.growη = η-drop ⊆η-refl
 -- Logical relation core
 --------------------------------------------------------------------------------
 
--- Peter's idea: helper function by induction on k for the function type case,
--- instead of using well founded induction.
-     
 VRelFor :
   (∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁) →
   ∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁

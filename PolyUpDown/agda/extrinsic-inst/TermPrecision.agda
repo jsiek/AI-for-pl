@@ -162,52 +162,44 @@ data _⊢_⊑_⦂_ (E : TPEnv) : Term → Term → ∀ {A B} → A ⊑ B → Set
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-      (TPEnv.store E) Φ u A B →
-    _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-      (TPEnv.store E) Φ u′ A′ B′ →
+    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ u ⦂ A ⊑ B →
+    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
     E ⊢ (M up u) ⊑ (M′ up u′) ⦂ pB
 
   ⊑upL : ∀ {M M′ A A′ B} {pA : A ⊑ A′} {pB : B ⊑ A′} {u : Up}
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-      (TPEnv.store E) Φ u A B →
+    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ u ⦂ A ⊑ B →
     E ⊢ (M up u) ⊑ M′ ⦂ pB
 
   ⊑upR : ∀ {M M′ A A′ B′} {pA : A ⊑ A′} {pB : A ⊑ B′} {u′ : Up}
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    _∣_⊢_⦂_⊑_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-      (TPEnv.store E) Φ u′ A′ B′ →
+    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
     E ⊢ M ⊑ (M′ up u′) ⦂ pB
 
   ⊑down : ∀ {M M′ A A′ B B′} {pA : A ⊑ A′} {pB : B ⊑ B′} {d : Down} {d′ : Down}
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-      (TPEnv.store E) Φ d A B →
-    _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-      (TPEnv.store E) Φ d′ A′ B′ →
+    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ d ⦂ A ⊒ B →
+    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
     E ⊢ (M down d) ⊑ (M′ down d′) ⦂ pB
 
   ⊑downL : ∀ {M M′ A A′ B} {pA : A ⊑ A′} {pB : B ⊑ A′} {d : Down}
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-      (TPEnv.store E) Φ d A B →
+    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ d ⦂ A ⊒ B →
     E ⊢ (M down d) ⊑ M′ ⦂ pB
 
   ⊑downR : ∀ {M M′ A A′ B′} {pA : A ⊑ A′} {pB : A ⊑ B′} {d′ : Down}
     (Φ : List CastPerm) →
     length Φ ≡ TPEnv.Ψ E →
     E ⊢ M ⊑ M′ ⦂ pA →
-    _∣_⊢_⦂_⊒_ {Δ = TPEnv.Δ E} {Ψ = TPEnv.Ψ E}
-      (TPEnv.store E) Φ d′ A′ B′ →
+    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ (TPEnv.store E) ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
     E ⊢ M ⊑ (M′ down d′) ⦂ pB
 
   ⊑blameR : ∀ {M A B ℓ} {p : A ⊑ B} →

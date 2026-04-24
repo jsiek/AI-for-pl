@@ -440,7 +440,7 @@ mutual
     ∀ {Δ Ψ Σ Φ A B p σ} →
     IdOnΔ Δ σ →
     length Φ ≡ Ψ →
-    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+    Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     subst⊑ᵗ σ p ≡ p
   subst⊑ᵗ-id-typed hσ lenΦ (wt-tag g ok) =
     cong tag (substᵗ-id-typed hσ (ground-wf lenΦ g ok))
@@ -473,7 +473,7 @@ mutual
     ∀ {Δ Ψ Σ Φ A B p σ} →
     IdOnΔ Δ σ →
     length Φ ≡ Ψ →
-    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
+    Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     subst⊒ᵗ σ p ≡ p
   subst⊒ᵗ-id-typed hσ lenΦ (wt-untag g ok ℓ) =
     cong (λ T → untag T ℓ) (substᵗ-id-typed hσ (ground-wf lenΦ g ok))

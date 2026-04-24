@@ -33,29 +33,27 @@ open import Reduction
 
 openCast⊑ :
   ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
-  _∣_⊢_⦂_⊑_ {Δ = suc Δ} {Ψ = Ψ} (⟰ᵗ Σ) Φ p A B →
+  suc Δ ∣ Ψ ∣ (⟰ᵗ Σ) ∣ Φ ⊢ p ⦂ A ⊑ B →
   (T : Ty) →
   WfTy Δ Ψ T →
-  _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ
-    (p [ T ]↑) (A [ T ]ᵗ) (B [ T ]ᵗ)
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ (p [ T ]↑) ⦂ (A [ T ]ᵗ) ⊑ (B [ T ]ᵗ)
 openCast⊑ {Σ = Σ} p T wfT =
   castWt⊑ (substStoreᵗ-singleTyEnv-⟰ᵗ T Σ) refl ([]⊑ᵗ-wt p T wfT)
 
 openCast⊒ :
   ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
-  _∣_⊢_⦂_⊒_ {Δ = suc Δ} {Ψ = Ψ} (⟰ᵗ Σ) Φ p A B →
+  suc Δ ∣ Ψ ∣ (⟰ᵗ Σ) ∣ Φ ⊢ p ⦂ A ⊒ B →
   (T : Ty) →
   WfTy Δ Ψ T →
-  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ
-    (p [ T ]↓) (A [ T ]ᵗ) (B [ T ]ᵗ)
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ (p [ T ]↓) ⦂ (A [ T ]ᵗ) ⊒ (B [ T ]ᵗ)
 openCast⊒ {Σ = Σ} p T wfT =
   castWt⊒ (substStoreᵗ-singleTyEnv-⟰ᵗ T Σ) refl ([]⊒ᵗ-wt p T wfT)
 
 castWt⊒-term :
   ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p q : Down} →
   p ≡ q →
-  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-  _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ q A B
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ q ⦂ A ⊒ B
 castWt⊒-term refl h = h
 
 RenOk-false-every :
@@ -254,8 +252,8 @@ mutual
       {Φ : List CastPerm}{A B : Ty}{p : Down} →
     (h★ : Σ ∋ˢ α ⦂ ★) →
     (α ∈ Φ → ⊥) →
-    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-    _∣_⊢_⦂_⊒_ {Δ = Δ} {Ψ = Ψ} (removeAtˢ h★) Φ p A B
+    Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
+    Δ ∣ Ψ ∣ (removeAtˢ h★) ∣ Φ ⊢ p ⦂ A ⊒ B
   drop★⊒-seal-preserving h★ α∉Φ (wt-untag g gok ℓ) = wt-untag g gok ℓ
   drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal h α∈Φ) with dropLookup h★ h
   drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal h α∈Φ) | drop-hit β≡α B≡★ =
@@ -297,8 +295,8 @@ mutual
       {Φ : List CastPerm}{A B : Ty}{p : Up} →
     (h★ : Σ ∋ˢ α ⦂ ★) →
     (α ∈ Φ → ⊥) →
-    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} Σ Φ p A B →
-    _∣_⊢_⦂_⊑_ {Δ = Δ} {Ψ = Ψ} (removeAtˢ h★) Φ p A B
+    Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
+    Δ ∣ Ψ ∣ (removeAtˢ h★) ∣ Φ ⊢ p ⦂ A ⊑ B
   drop★⊑-seal-preserving h★ α∉Φ (wt-tag g gok) = wt-tag g gok
   drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal h α∈Φ) with dropLookup h★ h
   drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal h α∈Φ) | drop-hit β≡α B≡★ =
@@ -520,20 +518,21 @@ preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
         ∣ map (renameˢ suc) Γ ⊢ ⇑ˢᵐ V ⦂ `∀ (⇑ˢ (down-src (⟰ᵗ Σ) p))
     V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (cong ⇑ˢ (sym eq-src))) V⊢↑
 
-    p⊢↑ : ((zero , ⇑ˢ (renameᵗ suc T)) ∷ ⟰ˢ (⟰ᵗ Σ)) ∣ (cast-tag ∷ Φ)
-        ⊢ rename⊒ˢ suc p ⦂ ⇑ˢ C ⊒ ⇑ˢ B
+    p⊢↑ : (suc Δ) ∣ (suc Ψ) ∣ ((zero , ⇑ˢ (renameᵗ suc T)) ∷ ⟰ˢ (⟰ᵗ Σ))
+        ∣ (cast-tag ∷ Φ) ⊢ rename⊒ˢ suc p ⦂ ⇑ˢ C ⊒ ⇑ˢ B
     p⊢↑ =
       wk⊒
         (drop ⊆ˢ-refl)
         (⊒-renameˢ-wt suc SealRenameWf-suc
           RenOkConv-suc RenOkCast-suc RenOkTag-suc p⊢)
 
-    p⊢″ : ⟰ᵗ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ)
-        ⊢ rename⊒ˢ suc p ⦂ ⇑ˢ C ⊒ ⇑ˢ B
+    p⊢″ : (suc Δ) ∣ (suc Ψ) ∣ ⟰ᵗ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ)
+        ∣ (cast-tag ∷ Φ) ⊢ rename⊒ˢ suc p ⦂ ⇑ˢ C ⊒ ⇑ˢ B
     p⊢″ = castWt⊒ (sym (renameStoreᵗ-cons-⟰ˢ suc T Σ)) refl p⊢↑
 
-    p⊢′ : ⟰ᵗ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ)
-        ⊢ rename⊒ˢ suc p ⦂ ⇑ˢ (down-src (⟰ᵗ Σ) p) ⊒ ⇑ˢ (down-tgt (⟰ᵗ Σ) p)
+    p⊢′ : (suc Δ) ∣ (suc Ψ) ∣ ⟰ᵗ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ)
+        ∣ (cast-tag ∷ Φ) ⊢ rename⊒ˢ suc p
+            ⦂ ⇑ˢ (down-src (⟰ᵗ Σ) p) ⊒ ⇑ˢ (down-tgt (⟰ᵗ Σ) p)
     p⊢′ = castWt⊒-raw (cong ⇑ˢ (sym eq-src)) (cong ⇑ˢ (sym eq-tgt)) p⊢″
 
     out-eq :
@@ -582,13 +581,15 @@ preservation-step
         ∣ map (renameˢ suc) Γ ⊢ ⇑ˢᵐ V ⦂ ⇑ˢ Bν
     V⊢↑ = wkΣ-term (drop ⊆ˢ-refl) (⇑ˢᵐ-wt V⊢)
 
-    p⊢drop : ⟰ˢ Σ ∣ (cast-tag ∷ Φ) ⊢ p ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ α₀ ]ᵗ)
+    p⊢drop : Δ ∣ (suc Ψ) ∣ ⟰ˢ Σ ∣ (cast-tag ∷ Φ) ⊢ p
+        ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ α₀ ]ᵗ)
     p⊢drop = drop★⊒-seal-preserving top★ top∉Φ p⊢
 
-    p⊢base : ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ) ⊢ p ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ α₀ ]ᵗ)
+    p⊢base : Δ ∣ (suc Ψ) ∣ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ) ⊢ p
+        ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ α₀ ]ᵗ)
     p⊢base = wk⊒ (drop ⊆ˢ-refl) p⊢drop
 
-    p⊢′ : ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ)
+    p⊢′ : Δ ∣ (suc Ψ) ∣ ((zero , ⇑ˢ T) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ)
         ⊢ ((rename⊒ˢ suc p) [ zero ]⊒) ⦂ ⇑ˢ Bν ⊒ ((⇑ˢ Aν) [ α₀ ]ᵗ)
     p⊢′ = castWt⊒-term (sym (open-shift-⊒-id p)) p⊢base
 preservation-step
@@ -636,8 +637,8 @@ preservation-step
         ∣ map (renameˢ suc) Γ ⊢ ⇑ˢᵐ V ⦂ `∀ (⇑ˢ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ))
     V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (cong ⇑ˢ (sym eq-close))) V⊢↑
 
-    p⊢′ : ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-seal ∷ Φ)
-        ⊢ p ⦂ (⇑ˢ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ) [ α₀ ]ᵗ) ⊑ ⇑ˢ Bν
+    p⊢′ : Δ ∣ (suc Ψ) ∣ ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-seal ∷ Φ) ⊢ p
+        ⦂ (⇑ˢ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ) [ α₀ ]ᵗ) ⊑ ⇑ˢ Bν
     p⊢′ = castWt⊑-raw (sym eq-open) refl p⊢
 preservation-step {Ψ = Ψ} wfΣ (⊢· L⊢ M⊢) (ξ-·₁ red)
   with step-ren-shape red | preservation-step wfΣ L⊢ red

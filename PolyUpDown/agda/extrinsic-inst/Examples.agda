@@ -113,29 +113,29 @@ isBlameValue _ = nothing
 
 evalNat :
   ∀ {Ψ}{Σ : Store}{M : Term}{A : Ty} →
-  Uniqueˢ Σ →
+  StoreWf 0 Ψ Σ →
   (fuel : ℕ) →
   (M⊢ : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ M ⦂ A) →
   Maybe ℕ
-evalNat {Ψ} {Σ} {M} {A} uΣ fuel M⊢ with eval uΣ fuel M⊢
+evalNat {Ψ} {Σ} {M} {A} wfΣ fuel M⊢ with eval wfΣ fuel M⊢
 ... | r = isNatValue (proj₁ (proj₂ (proj₂ r)))
 
 evalNatDyn :
   ∀ {Ψ}{Σ : Store}{M : Term}{A : Ty} →
-  Uniqueˢ Σ →
+  StoreWf 0 Ψ Σ →
   (fuel : ℕ) →
   (M⊢ : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ M ⦂ A) →
   Maybe ℕ
-evalNatDyn {Ψ} {Σ} {M} {A} uΣ fuel M⊢ with eval uΣ fuel M⊢
+evalNatDyn {Ψ} {Σ} {M} {A} wfΣ fuel M⊢ with eval wfΣ fuel M⊢
 ... | r = isNatDynValue (proj₁ (proj₂ (proj₂ r)))
 
 evalBlame :
   ∀ {Ψ}{Σ : Store}{M : Term}{A : Ty} →
-  Uniqueˢ Σ →
+  StoreWf 0 Ψ Σ →
   (fuel : ℕ) →
   (M⊢ : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ M ⦂ A) →
   Maybe Label
-evalBlame {Ψ} {Σ} {M} {A} uΣ fuel M⊢ with eval uΣ fuel M⊢
+evalBlame {Ψ} {Σ} {M} {A} wfΣ fuel M⊢ with eval wfΣ fuel M⊢
 ... | r = isBlameValue (proj₁ (proj₂ (proj₂ r)))
 
 ------------------------------------------------------------------------
@@ -154,10 +154,10 @@ example1-right = idDyn · c★
 example1-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example1-right ⦂ ★
 example1-right-⊢ = expect-⊢ example1-right ★ tt
 
-example1-left-test : evalNat uniq[] gas example1-left-⊢ ≡ just 7
+example1-left-test : evalNat storeWf-∅ gas example1-left-⊢ ≡ just 7
 example1-left-test = refl
 
-example1-right-test : evalNatDyn uniq[] gas example1-right-⊢ ≡ just 7
+example1-right-test : evalNatDyn storeWf-∅ gas example1-right-⊢ ≡ just 7
 example1-right-test = refl
 
 ------------------------------------------------------------------------
@@ -176,10 +176,10 @@ example2-right = idDyn · c★
 example2-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example2-right ⦂ ★
 example2-right-⊢ = expect-⊢ example2-right ★ tt
 
-example2-left-test : evalNat uniq[] gas example2-left-⊢ ≡ just 7
+example2-left-test : evalNat storeWf-∅ gas example2-left-⊢ ≡ just 7
 example2-left-test = refl
 
-example2-right-test : evalNatDyn uniq[] gas example2-right-⊢ ≡ just 7
+example2-right-test : evalNatDyn storeWf-∅ gas example2-right-⊢ ≡ just 7
 example2-right-test = refl
 
 ------------------------------------------------------------------------
@@ -198,10 +198,10 @@ example3-right = idDyn · c★
 example3-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example3-right ⦂ ★
 example3-right-⊢ = expect-⊢ example3-right ★ tt
 
-example3-left-test : evalNatDyn uniq[] gas example3-left-⊢ ≡ just 7
+example3-left-test : evalNatDyn storeWf-∅ gas example3-left-⊢ ≡ just 7
 example3-left-test = refl
 
-example3-right-test : evalNatDyn uniq[] gas example3-right-⊢ ≡ just 7
+example3-right-test : evalNatDyn storeWf-∅ gas example3-right-⊢ ≡ just 7
 example3-right-test = refl
 
 ------------------------------------------------------------------------
@@ -220,10 +220,10 @@ example4-right = example3-left
 example4-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example4-right ⦂ ★
 example4-right-⊢ = expect-⊢ example4-right ★ tt
 
-example4-left-test : evalNat uniq[] gas example4-left-⊢ ≡ just 7
+example4-left-test : evalNat storeWf-∅ gas example4-left-⊢ ≡ just 7
 example4-left-test = refl
 
-example4-right-test : evalNatDyn uniq[] gas example4-right-⊢ ≡ just 7
+example4-right-test : evalNatDyn storeWf-∅ gas example4-right-⊢ ≡ just 7
 example4-right-test = refl
 
 ------------------------------------------------------------------------
@@ -243,10 +243,10 @@ example5-right =
 example5-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example5-right ⦂ (‵ `ℕ)
 example5-right-⊢ = expect-⊢ example5-right (‵ `ℕ) tt
 
-example5-left-test : evalNat uniq[] gas example5-left-⊢ ≡ just 7
+example5-left-test : evalNat storeWf-∅ gas example5-left-⊢ ≡ just 7
 example5-left-test = refl
 
-example5-right-test : evalNat uniq[] gas example5-right-⊢ ≡ just 7
+example5-right-test : evalNat storeWf-∅ gas example5-right-⊢ ≡ just 7
 example5-right-test = refl
 
 ------------------------------------------------------------------------
@@ -266,10 +266,10 @@ example6-right =
 example6-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example6-right ⦂ ★
 example6-right-⊢ = expect-⊢ example6-right ★ tt
 
-example6-left-test : evalNat uniq[] gas example6-left-⊢ ≡ just 7
+example6-left-test : evalNat storeWf-∅ gas example6-left-⊢ ≡ just 7
 example6-left-test = refl
 
-example6-right-test : evalNatDyn uniq[] gas example6-right-⊢ ≡ just 7
+example6-right-test : evalNatDyn storeWf-∅ gas example6-right-⊢ ≡ just 7
 example6-right-test = refl
 
 ------------------------------------------------------------------------
@@ -289,10 +289,10 @@ example7-right =
 example7-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example7-right ⦂ (‵ `ℕ)
 example7-right-⊢ = expect-⊢ example7-right (‵ `ℕ) tt
 
-example7-left-test : evalNat uniq[] gas example7-left-⊢ ≡ just 7
+example7-left-test : evalNat storeWf-∅ gas example7-left-⊢ ≡ just 7
 example7-left-test = refl
 
-example7-right-test : evalNat uniq[] gas example7-right-⊢ ≡ just 7
+example7-right-test : evalNat storeWf-∅ gas example7-right-⊢ ≡ just 7
 example7-right-test = refl
 
 ------------------------------------------------------------------------
@@ -311,10 +311,10 @@ example8-right = example1-left down id (‵ `ℕ)
 example8-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example8-right ⦂ (‵ `ℕ)
 example8-right-⊢ = expect-⊢ example8-right (‵ `ℕ) tt
 
-example8-left-test : evalNat uniq[] gas example8-left-⊢ ≡ just 7
+example8-left-test : evalNat storeWf-∅ gas example8-left-⊢ ≡ just 7
 example8-left-test = refl
 
-example8-right-test : evalNat uniq[] gas example8-right-⊢ ≡ just 7
+example8-right-test : evalNat storeWf-∅ gas example8-right-⊢ ≡ just 7
 example8-right-test = refl
 
 ------------------------------------------------------------------------
@@ -336,10 +336,10 @@ example9-right = (Kdyn · n42★) · n69★
 example9-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example9-right ⦂ ★
 example9-right-⊢ = expect-⊢ example9-right ★ tt
 
-example9-left-test : evalNat uniq[] gas example9-left-⊢ ≡ just 42
+example9-left-test : evalNat storeWf-∅ gas example9-left-⊢ ≡ just 42
 example9-left-test = refl
 
-example9-right-test : evalNatDyn uniq[] gas example9-right-⊢ ≡ just 42
+example9-right-test : evalNatDyn storeWf-∅ gas example9-right-⊢ ≡ just 42
 example9-right-test = refl
 
 ------------------------------------------------------------------------
@@ -358,10 +358,10 @@ example10-right = ((Kdyn up id (★ ⇒ ★ ⇒ ★)) · n42★) · n69★
 example10-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example10-right ⦂ ★
 example10-right-⊢ = expect-⊢ example10-right ★ tt
 
-example10-left-test : evalNat uniq[] gas example10-left-⊢ ≡ just 42
+example10-left-test : evalNat storeWf-∅ gas example10-left-⊢ ≡ just 42
 example10-left-test = refl
 
-example10-right-test : evalNatDyn uniq[] gas example10-right-⊢ ≡ just 42
+example10-right-test : evalNatDyn storeWf-∅ gas example10-right-⊢ ≡ just 42
 example10-right-test = refl
 
 ------------------------------------------------------------------------
@@ -377,7 +377,7 @@ example12 =
 example12-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example12 ⦂ (‵ `ℕ)
 example12-⊢ = expect-⊢ example12 (‵ `ℕ) tt
 
-example12-test : evalNat uniq[] gas example12-⊢ ≡ just 7
+example12-test : evalNat storeWf-∅ gas example12-⊢ ≡ just 7
 example12-test = refl
 
 ------------------------------------------------------------------------
@@ -404,10 +404,10 @@ sec2-app-base =
 sec2-app-base-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec2-app-base ⦂ (‵ `ℕ)
 sec2-app-base-⊢ = expect-⊢ sec2-app-base (‵ `ℕ) tt
 
-sec2-app-dyn-test : evalNatDyn uniq[] gas sec2-app-dyn-⊢ ≡ just 7
+sec2-app-dyn-test : evalNatDyn storeWf-∅ gas sec2-app-dyn-⊢ ≡ just 7
 sec2-app-dyn-test = refl
 
-sec2-app-base-test : evalNat uniq[] gas sec2-app-base-⊢ ≡ just 7
+sec2-app-base-test : evalNat storeWf-∅ gas sec2-app-base-⊢ ≡ just 7
 sec2-app-base-test = refl
 
 ------------------------------------------------------------------------
@@ -420,7 +420,7 @@ sec5-β = (polyBetaId ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · c
 sec5-β-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec5-β ⦂ (‵ `ℕ)
 sec5-β-⊢ = expect-⊢ sec5-β (‵ `ℕ) tt
 
-sec5-β-test : evalNat uniq[] gas sec5-β-⊢ ≡ just 7
+sec5-β-test : evalNat storeWf-∅ gas sec5-β-⊢ ≡ just 7
 sec5-β-test = refl
 
 ------------------------------------------------------------------------
@@ -469,22 +469,22 @@ sec6-id-leak =
 sec6-id-leak-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-id-leak ⦂ ★
 sec6-id-leak-⊢ = expect-⊢ sec6-id-leak ★ tt
 
-sec6-K-dyn-test : evalNatDyn uniq[] gas sec6-K-dyn-⊢ ≡ just 42
+sec6-K-dyn-test : evalNatDyn storeWf-∅ gas sec6-K-dyn-⊢ ≡ just 42
 sec6-K-dyn-test = refl
 
-sec6-K-base-test : evalNat uniq[] gas sec6-K-base-⊢ ≡ just 42
+sec6-K-base-test : evalNat storeWf-∅ gas sec6-K-base-⊢ ≡ just 42
 sec6-K-base-test = refl
 
-sec6-K-lax-test : evalNat uniq[] gas sec6-K-lax-⊢ ≡ just 42
+sec6-K-lax-test : evalNat storeWf-∅ gas sec6-K-lax-⊢ ≡ just 42
 sec6-K-lax-test = refl
 
-sec6-K-strict-test : evalBlame uniq[] gas sec6-K-strict-⊢ ≡ just 64
+sec6-K-strict-test : evalBlame storeWf-∅ gas sec6-K-strict-⊢ ≡ just 64
 sec6-K-strict-test = refl
 
 -- Unlike the POPL'11 calculus, PolyUpDown currently allows this sealed
 -- result to escape the surrounding `ν:=`, so evaluation reaches a
 -- non-blame result.
-sec6-id-leak-test : evalNatDyn uniq[] gas sec6-id-leak-⊢ ≡ just 42
+sec6-id-leak-test : evalNatDyn storeWf-∅ gas sec6-id-leak-⊢ ≡ just 42
 sec6-id-leak-test = refl
 
 
@@ -503,5 +503,5 @@ seal-name-example =
 seal-name-example-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ seal-name-example ⦂ (‵ `ℕ)
 seal-name-example-⊢ = expect-⊢ seal-name-example (‵ `ℕ) tt
 
-seal-name-example-test : evalNat uniq[] gas seal-name-example-⊢ ≡ just 42
+seal-name-example-test : evalNat storeWf-∅ gas seal-name-example-⊢ ≡ just 42
 seal-name-example-test = refl

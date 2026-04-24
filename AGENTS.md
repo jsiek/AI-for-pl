@@ -246,6 +246,13 @@ When using ASCII diagrams in informal proofs:
 
 # Agda Development Notes
 
+## Function extensionality is allowed
+
+It is acceptable to postulate or import function extensionality in Agda proofs
+when it removes proof-engineering friction. Prefer using the standard library's
+`Axiom.Extensionality.Propositional` interface when possible, and keep the
+assumption localized near the proof infrastructure that needs it.
+
 ## Use "constructor form indices" for data type constructors (from 2-26-03-30)
 
 In Agda, constructor form indices are indices of an indexed data type that are

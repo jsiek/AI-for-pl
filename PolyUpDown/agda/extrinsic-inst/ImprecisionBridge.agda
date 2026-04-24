@@ -122,8 +122,8 @@ mutual
     A ⊑ B →
     ∃[ n ] (∀ {Σ Φ} → Resource Σ Φ n → Σ ∣ Φ ⊢ A ⊑ᶜ B)
   build⊑ ⊑-★★ = zero , (λ r → ⊑ᶜ-id (wfTySome ★))
-  build⊑ (⊑-★ g p) with build⊑ p
-  build⊑ (⊑-★ g p) | n , f =
+  build⊑ (⊑-★ A G g p) with build⊑ p
+  build⊑ (⊑-★ A G g p) | n , f =
     (suc (maxGround g) ⊔ n) ,
     (λ r →
       f (resource-restrict (m≤n⊔m (suc (maxGround g)) n) r) ；⊑ᶜ
@@ -131,21 +131,21 @@ mutual
         r
         g
         (<-≤-trans (n<1+n (maxGround g)) (m≤m⊔n (suc (maxGround g)) n)))
-  build⊑ {A = ＇ X} ⊑-＇ = zero , (λ r → ⊑ᶜ-id (wfTySome (＇ X)))
-  build⊑ {A = ｀ α} ⊑-｀ = zero , (λ r → ⊑ᶜ-id (wfTySome (｀ α)))
-  build⊑ {A = ‵ ι} ⊑-‵ = zero , (λ r → ⊑ᶜ-id (wfTySome (‵ ι)))
-  build⊑ (⊑-⇒ p q) with build⊒ p | build⊑ q
-  build⊑ (⊑-⇒ p q) | n₁ , f₁ | n₂ , f₂ =
+  build⊑ (⊑-＇ X) = zero , (λ r → ⊑ᶜ-id (wfTySome (＇ X)))
+  build⊑ (⊑-｀ α) = zero , (λ r → ⊑ᶜ-id (wfTySome (｀ α)))
+  build⊑ (⊑-‵ ι) = zero , (λ r → ⊑ᶜ-id (wfTySome (‵ ι)))
+  build⊑ (⊑-⇒ A A′ B B′ p q) with build⊒ p | build⊑ q
+  build⊑ (⊑-⇒ A A′ B B′ p q) | n₁ , f₁ | n₂ , f₂ =
     (n₁ ⊔ n₂) ,
     (λ r →
       ⊑ᶜ-⇒
         (f₁ (resource-restrict (m≤m⊔n n₁ n₂) r))
         (f₂ (resource-restrict (m≤n⊔m n₁ n₂) r)))
-  build⊑ (⊑-∀ p) with build⊑ p
-  build⊑ (⊑-∀ p) | n , f =
+  build⊑ (⊑-∀ A B p) with build⊑ p
+  build⊑ (⊑-∀ A B p) | n , f =
     n , (λ r → ⊑ᶜ-∀ (f (resource-renameᵗ r)))
-  build⊑ (⊑-ν p) with build⊑ p
-  build⊑ (⊑-ν p) | n , f =
+  build⊑ (⊑-ν A B p) with build⊑ p
+  build⊑ (⊑-ν A B p) | n , f =
     n , (λ r → ⊑ᶜ-ν (f (resource-restrict (n≤1+n n) (resource-upν r))))
 
   build⊒ :
@@ -153,8 +153,8 @@ mutual
     A ⊒ B →
     ∃[ n ] (∀ {Σ Φ} → Resource Σ Φ n → Σ ∣ Φ ⊢ A ⊒ᶜ B)
   build⊒ ⊑-★★ = zero , (λ r → ⊒ᶜ-id (wfTySome ★))
-  build⊒ (⊑-★ g p) with build⊒ p
-  build⊒ (⊑-★ g p) | n , f =
+  build⊒ (⊑-★ A G g p) with build⊒ p
+  build⊒ (⊑-★ A G g p) | n , f =
     (suc (maxGround g) ⊔ n) ,
     (λ r →
       ground⊒⇒cast⊒★
@@ -162,21 +162,21 @@ mutual
         g
         (<-≤-trans (n<1+n (maxGround g)) (m≤m⊔n (suc (maxGround g)) n)) ；⊒ᶜ
       f (resource-restrict (m≤n⊔m (suc (maxGround g)) n) r))
-  build⊒ {B = ＇ X} ⊑-＇ = zero , (λ r → ⊒ᶜ-id (wfTySome (＇ X)))
-  build⊒ {B = ｀ α} ⊑-｀ = zero , (λ r → ⊒ᶜ-id (wfTySome (｀ α)))
-  build⊒ {B = ‵ ι} ⊑-‵ = zero , (λ r → ⊒ᶜ-id (wfTySome (‵ ι)))
-  build⊒ (⊑-⇒ p q) with build⊑ p | build⊒ q
-  build⊒ (⊑-⇒ p q) | n₁ , f₁ | n₂ , f₂ =
+  build⊒ (⊑-＇ X) = zero , (λ r → ⊒ᶜ-id (wfTySome (＇ X)))
+  build⊒ (⊑-｀ α) = zero , (λ r → ⊒ᶜ-id (wfTySome (｀ α)))
+  build⊒ (⊑-‵ ι) = zero , (λ r → ⊒ᶜ-id (wfTySome (‵ ι)))
+  build⊒ (⊑-⇒ A A′ B B′ p q) with build⊑ p | build⊒ q
+  build⊒ (⊑-⇒ A A′ B B′ p q) | n₁ , f₁ | n₂ , f₂ =
     (n₁ ⊔ n₂) ,
     (λ r →
       ⊒ᶜ-⇒
         (f₁ (resource-restrict (m≤m⊔n n₁ n₂) r))
         (f₂ (resource-restrict (m≤n⊔m n₁ n₂) r)))
-  build⊒ (⊑-∀ p) with build⊒ p
-  build⊒ (⊑-∀ p) | n , f =
+  build⊒ (⊑-∀ A B p) with build⊒ p
+  build⊒ (⊑-∀ A B p) | n , f =
     n , (λ r → ⊒ᶜ-∀ (f (resource-renameᵗ r)))
-  build⊒ (⊑-ν p) with build⊒ p
-  build⊒ (⊑-ν p) | n , f =
+  build⊒ (⊑-ν A B p) with build⊒ p
+  build⊒ (⊑-ν A B p) | n , f =
     n , (λ r → ⊒ᶜ-ν (f (resource-restrict (n≤1+n n) (resource-downν r))))
 
 ------------------------------------------------------------------------

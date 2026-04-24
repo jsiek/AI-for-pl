@@ -126,34 +126,34 @@ data _⊢_⊑_⦂_ (E : TPEnv) : Term → Term → ∀ {A B} → A ⊑ B → Set
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) A →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) A′ →
     extendᴾ E (A , A′ , pA) ⊢ M ⊑ M′ ⦂ pB →
-    E ⊢ (ƛ A ⇒ M) ⊑ (ƛ A′ ⇒ M′) ⦂ ⊑-⇒ pA pB
+    E ⊢ (ƛ A ⇒ M) ⊑ (ƛ A′ ⇒ M′) ⦂ ⊑-⇒ A A′ B B′ pA pB
 
   ⊑· : ∀ {A A′ B B′ L L′ M M′} {pA : A ⊑ A′} {pB : B ⊑ B′} →
-    E ⊢ L ⊑ L′ ⦂ ⊑-⇒ pA pB →
+    E ⊢ L ⊑ L′ ⦂ ⊑-⇒ A A′ B B′ pA pB →
     E ⊢ M ⊑ M′ ⦂ pA →
     E ⊢ (L · M) ⊑ (L′ · M′) ⦂ pB
 
   ⊑Λ : ∀ {A B M M′} {p : A ⊑ B} →
     ⇑ᵗᴱ E ⊢ M ⊑ M′ ⦂ p →
-    E ⊢ (Λ M) ⊑ (Λ M′) ⦂ ⊑-∀ p
+    E ⊢ (Λ M) ⊑ (Λ M′) ⦂ ⊑-∀ A B p
 
   ⊑⦂∀ : ∀ {A B M M′ T} {p : A ⊑ B} →
-    E ⊢ M ⊑ M′ ⦂ ⊑-∀ p →
+    E ⊢ M ⊑ M′ ⦂ ⊑-∀ A B p →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) T →
     E ⊢ (M ⦂∀ A [ T ]) ⊑ (M′ ⦂∀ B [ T ]) ⦂ substᵗ-⊑ (singleTyEnv T) p
 
   ⊑⦂∀-ν : ∀ (A B : Ty) {M M′ T} (p : ((⇑ˢ A) [ α₀ ]ᵗ ⊑ ⇑ˢ B)) →
-    E ⊢ M ⊑ M′ ⦂ (⊑-ν {A = A} {B = B} p) →
+    E ⊢ M ⊑ M′ ⦂ (⊑-ν A B p) →
     (hT : WfTy 0 (TPEnv.Ψ E) T) →
     E ⊢ (M ⦂∀ A [ T ]) ⊑ M′ ⦂ ν-inst-⊑ A B T hT p
 
   ⊑$ : ∀ {n} →
-    E ⊢ ($ (κℕ n)) ⊑ ($ (κℕ n)) ⦂ (⊑-‵ {ι = `ℕ})
+    E ⊢ ($ (κℕ n)) ⊑ ($ (κℕ n)) ⦂ (⊑-‵ `ℕ)
 
   ⊑⊕ : ∀ {L L′ M M′} {op : Prim} →
-    E ⊢ L ⊑ L′ ⦂ (⊑-‵ {ι = `ℕ}) →
-    E ⊢ M ⊑ M′ ⦂ (⊑-‵ {ι = `ℕ}) →
-    E ⊢ (L ⊕[ op ] M) ⊑ (L′ ⊕[ op ] M′) ⦂ (⊑-‵ {ι = `ℕ})
+    E ⊢ L ⊑ L′ ⦂ (⊑-‵ `ℕ) →
+    E ⊢ M ⊑ M′ ⦂ (⊑-‵ `ℕ) →
+    E ⊢ (L ⊕[ op ] M) ⊑ (L′ ⊕[ op ] M′) ⦂ (⊑-‵ `ℕ)
 
   ⊑up : ∀ {M M′ A A′ B B′} {pA : A ⊑ A′} {pB : B ⊑ B′} {u : Up} {u′ : Up}
     (Φ : List CastPerm) →

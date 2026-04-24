@@ -1,5 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
 module DynamicGradualGuarantee where
 
 -- File Charter:
@@ -10,7 +8,7 @@ module DynamicGradualGuarantee where
 --   * right-hand reduction steps.
 
 open import Data.List using (List; [])
-open import Data.Nat using (ℕ; zero; suc; _+_; _≟_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _≟_; <′-base)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product
@@ -201,6 +199,16 @@ transport-𝒱 :
   𝒱 p k dir w′ W W′
 transport-𝒱 refl refl refl Vrel = Vrel
 
+transport-𝒱⟨⟩ :
+  ∀ {n A B} {r : StepRel n} {p : A ⊑ B} {dir : Dir}
+    {w w′ : World} {V V′ W W′ : Term} →
+  w ≡ w′ →
+  V ≡ W →
+  V′ ≡ W′ →
+  𝒱⟨ r ⟩ p dir w V V′ →
+  𝒱⟨ r ⟩ p dir w′ W W′
+transport-𝒱⟨⟩ refl refl refl Vrel = Vrel
+
 blame-no-step :
   ∀ {Σ Σ′ : Store} {ℓ : Label} {N : Term} →
   Σ ∣ blame ℓ —→ Σ′ ∣ N →
@@ -274,7 +282,8 @@ right-catchup :
       (Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ V)) ×
      𝒱 (substᴿ-⊑ ∅ρ p) k (≽) (mkWorld Δ₀ Ψ₀ Σˡ′ Σʳ′ wfΣˡ′ wfΣʳ′ η₀) V V′)
 right-catchup
-  {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {Σʳ′ = Σʳ₀}
+  {Δ₀ = Δ₀} {Ψ₀ = Ψ₀} {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀}
+  {Σʳ′ = Σʳ₀}
   {A = A} {B = B} {p = p}
   k {η₀ = η₀} {wfΣʳ₀ = wfΣʳ₀} vV′ (V′ ∎) rel
   with proj₂ rel
@@ -285,13 +294,17 @@ right-catchup
     (value-vs-blame vV′ (↠-refl {Σ = Σʳ₀} {M = V′}) Mʳ↠blame)
 ... | inj₂ (inj₂ (vMʳ , Σˡ′ , wfΣˡ′ , V , Mˡ↠V , Vrel)) =
   wfΣʳ₀ , Σˡ′ , wfΣˡ′ , V ,
-    ((𝒱-left-value Vrel′ , Mˡ↠V) , Vrel′)
+    ((proj₁ Vrel′ , Mˡ↠V) , Vrel′)
   where
   eqMʳ : _
   eqMʳ = proj₂ (value-—↠-refl vMʳ (↠-refl {Σ = Σʳ₀} {M = V′}))
 
-  Vrel′ : _
-  Vrel′ = transport-𝒱 refl refl eqMʳ Vrel
+  Vrel′ : 𝒱 (substᴿ-⊑ ∅ρ p) k ≽
+            (mkWorld Δ₀ Ψ₀ Σˡ′ Σʳ₀ wfΣˡ′ wfΣʳ₀ η₀) V V′
+  Vrel′ =
+    𝒱-lower→sem {n = suc k} <′-base {p = substᴿ-⊑ ∅ρ p} {dir = ≽}
+      (transport-𝒱⟨⟩ {n = k} {r = lowerᵣ (sem (suc k)) <′-base}
+        {p = substᴿ-⊑ ∅ρ p} {dir = ≽} refl refl eqMʳ Vrel)
 right-catchup {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
   k {η₀ = η₀} vV′ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠V′) rel
   with proj₂ rel
@@ -328,7 +341,8 @@ left-catchup-or-blame :
       𝒱 (substᴿ-⊑ ∅ρ p) k (≼) (mkWorld Δ₀ Ψ₀ Σˡ′ Σʳ′ wfΣˡ′ wfΣʳ′ η₀) V V′))
   ⊎ Blames Σʳ₀ Mʳ
 left-catchup-or-blame
-  {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {Σˡ′ = Σˡ₀}
+  {Δ₀ = Δ₀} {Ψ₀ = Ψ₀} {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀}
+  {Σˡ′ = Σˡ₀}
   {A = A} {B = B} {p = p}
   k {η₀ = η₀} {wfΣˡ₀ = wfΣˡ₀} vV (V ∎) rel
   with proj₂ rel
@@ -339,14 +353,17 @@ left-catchup-or-blame
 ... | inj₂ (inj₂ (vMˡ , Σʳ′ , wfΣʳ′ , V′ , Mʳ↠V′ , Vrel)) =
   inj₁
     (wfΣˡ₀ , Σʳ′ , wfΣʳ′ , V′ ,
-     (𝒱-right-value Vrel′ , (Mʳ↠V′ , Vrel′)))
+     (proj₁ (proj₂ Vrel′) , (Mʳ↠V′ , Vrel′)))
   where
   eqMˡ : _ ≡ V
   eqMˡ = proj₂ (value-—↠-refl vMˡ (↠-refl {Σ = Σˡ₀} {M = V}))
 
   Vrel′ : 𝒱 (substᴿ-⊑ ∅ρ p) k (≼)
-            (mkWorld _ _ Σˡ₀ Σʳ′ wfΣˡ₀ wfΣʳ′ η₀) V V′
-  Vrel′ = transport-𝒱 refl eqMˡ refl Vrel
+            (mkWorld Δ₀ Ψ₀ Σˡ₀ Σʳ′ wfΣˡ₀ wfΣʳ′ η₀) V V′
+  Vrel′ =
+    𝒱-lower→sem {n = suc k} <′-base {p = substᴿ-⊑ ∅ρ p} {dir = ≼}
+      (transport-𝒱⟨⟩ {n = k} {r = lowerᵣ (sem (suc k)) <′-base}
+        {p = substᴿ-⊑ ∅ρ p} {dir = ≼} refl eqMˡ refl Vrel)
 left-catchup-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
   k {η₀ = η₀} vV (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠V) rel
   with proj₂ rel
@@ -427,7 +444,7 @@ right-diverge-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {
       (Σˡ′ , Vˡ ,
        (Mˡ↠Vˡ ,
         inj₁
-          (𝒱-left-value Vrel))))
+          (proj₁ Vrel))))
 right-diverge-or-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p}
   k {η₀ = η₀} div (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Nʳ) rel
   with proj₂ rel

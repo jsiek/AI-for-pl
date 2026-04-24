@@ -43,7 +43,7 @@ postulate
   
   const-𝒱 :
     ∀ {n dir w m} →
-    𝒱 (⊑-‵ {ι = `ℕ}) n dir w ($ (κℕ m)) ($ (κℕ m))
+    𝒱 (⊑-‵ `ℕ) n dir w ($ (κℕ m)) ($ (κℕ m))
 
   compat-var :
     ∀ {Γ dir x A B} {p : A ⊑ B} →
@@ -52,7 +52,7 @@ postulate
 
   compat-$ :
     ∀ {E dir n} →
-    TPEnv.Γ E ∣ dir ⊨ ($ (κℕ n)) ⊑ ($ (κℕ n)) ⦂ (⊑-‵ {ι = `ℕ})
+    TPEnv.Γ E ∣ dir ⊨ ($ (κℕ n)) ⊑ ($ (κℕ n)) ⦂ (⊑-‵ `ℕ)
 
 postulate
   compat-ƛ :
@@ -60,36 +60,36 @@ postulate
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) A →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) A′ →
     TPEnv.Γ (extendᴾ E (A , A′ , pA)) ∣ dir ⊨ M ⊑ M′ ⦂ pB →
-    TPEnv.Γ E ∣ dir ⊨ (ƛ A ⇒ M) ⊑ (ƛ A′ ⇒ M′) ⦂ (⊑-⇒ pA pB)
+    TPEnv.Γ E ∣ dir ⊨ (ƛ A ⇒ M) ⊑ (ƛ A′ ⇒ M′) ⦂ (⊑-⇒ A A′ B B′ pA pB)
 
   compat-· :
     ∀ {E dir A A′ B B′ L L′ M M′} {pA : A ⊑ A′} {pB : B ⊑ B′} →
-    TPEnv.Γ E ∣ dir ⊨ L ⊑ L′ ⦂ (⊑-⇒ pA pB) →
+    TPEnv.Γ E ∣ dir ⊨ L ⊑ L′ ⦂ (⊑-⇒ A A′ B B′ pA pB) →
     TPEnv.Γ E ∣ dir ⊨ M ⊑ M′ ⦂ pA →
     TPEnv.Γ E ∣ dir ⊨ (L · M) ⊑ (L′ · M′) ⦂ pB
 
   compat-Λ :
     ∀ {E dir A B M M′} {p : A ⊑ B} →
     TPEnv.Γ (⇑ᵗᴱ E) ∣ dir ⊨ M ⊑ M′ ⦂ p →
-    TPEnv.Γ E ∣ dir ⊨ (Λ M) ⊑ (Λ M′) ⦂ (⊑-∀ p)
+    TPEnv.Γ E ∣ dir ⊨ (Λ M) ⊑ (Λ M′) ⦂ (⊑-∀ A B p)
 
   compat-⦂∀ :
     ∀ {E dir A B M M′ T} {p : A ⊑ B} →
-    TPEnv.Γ E ∣ dir ⊨ M ⊑ M′ ⦂ (⊑-∀ p) →
+    TPEnv.Γ E ∣ dir ⊨ M ⊑ M′ ⦂ (⊑-∀ A B p) →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) T →
     TPEnv.Γ E ∣ dir ⊨ (M ⦂∀ A [ T ]) ⊑ (M′ ⦂∀ B [ T ]) ⦂ substᵗ-⊑ (singleTyEnv T) p
 
   compat-⦂∀-ν :
     ∀ (A B : Ty) {E dir M M′ T} (p : ((⇑ˢ A) [ α₀ ]ᵗ ⊑ ⇑ˢ B)) →
-    TPEnv.Γ E ∣ dir ⊨ M ⊑ M′ ⦂ (⊑-ν {A = A} {B = B} p) →
+    TPEnv.Γ E ∣ dir ⊨ M ⊑ M′ ⦂ (⊑-ν A B p) →
     (hT : WfTy 0 (TPEnv.Ψ E) T) →
     TPEnv.Γ E ∣ dir ⊨ (M ⦂∀ A [ T ]) ⊑ M′ ⦂ ν-inst-⊑ A B T hT p
 
   compat-⊕ :
     ∀ {E dir L L′ M M′} {op : Prim} →
-    TPEnv.Γ E ∣ dir ⊨ L ⊑ L′ ⦂ (⊑-‵ {ι = `ℕ}) →
-    TPEnv.Γ E ∣ dir ⊨ M ⊑ M′ ⦂ (⊑-‵ {ι = `ℕ}) →
-    TPEnv.Γ E ∣ dir ⊨ (L ⊕[ op ] M) ⊑ (L′ ⊕[ op ] M′) ⦂ (⊑-‵ {ι = `ℕ})
+    TPEnv.Γ E ∣ dir ⊨ L ⊑ L′ ⦂ (⊑-‵ `ℕ) →
+    TPEnv.Γ E ∣ dir ⊨ M ⊑ M′ ⦂ (⊑-‵ `ℕ) →
+    TPEnv.Γ E ∣ dir ⊨ (L ⊕[ op ] M) ⊑ (L′ ⊕[ op ] M′) ⦂ (⊑-‵ `ℕ)
 
   compat-up :
     ∀ {E dir M M′ A A′ B B′} {pA : A ⊑ A′} {pB : B ⊑ B′} {u : Up} {u′ : Up} →
@@ -165,23 +165,23 @@ fundamental {E = E} dir
       relL relM) =
   compat-· {E = E} {dir = dir} {A = A} {A′ = A′} {B = B} {B′ = B′}
     {L = L} {L′ = L′} {M = M} {M′ = M′} {pA = pA} {pB = pB}
-    (fundamental {E = E} {M = L} {M′ = L′} {p = ⊑-⇒ pA pB} dir relL)
+    (fundamental {E = E} {M = L} {M′ = L′} {p = ⊑-⇒ A A′ B B′ pA pB} dir relL)
     (fundamental {E = E} {M = M} {M′ = M′} {p = pA} dir relM)
 fundamental {E = E} dir (⊑Λ {A = A} {B = B} {M = M} {M′ = M′} {p = p} rel) =
   compat-Λ {E = E} {dir = dir} {A = A} {B = B} {M = M} {M′ = M′} {p = p}
     (fundamental {E = ⇑ᵗᴱ E} {M = M} {M′ = M′} {p = p} dir rel)
 fundamental {E = E} dir (⊑⦂∀ {A = A} {B = B} {M = M} {M′ = M′} {T = T} {p = p} rel hT) =
   compat-⦂∀ {E = E} {dir = dir} {A = A} {B = B} {M = M} {M′ = M′} {T = T} {p = p}
-    (fundamental {E = E} {M = M} {M′ = M′} {p = ⊑-∀ p} dir rel) hT
+    (fundamental {E = E} {M = M} {M′ = M′} {p = ⊑-∀ A B p} dir rel) hT
 fundamental {E = E} dir (⊑⦂∀-ν A B {M = M} {M′ = M′} {T = T} p rel hT) =
   compat-⦂∀-ν A B {E = E} {dir = dir} {M = M} {M′ = M′} {T = T} p
-    (fundamental {E = E} {M = M} {M′ = M′} {p = ⊑-ν {A = A} {B = B} p} dir rel)
+    (fundamental {E = E} {M = M} {M′ = M′} {p = ⊑-ν A B p} dir rel)
     hT
 fundamental {E = E} dir (⊑$ {n}) = compat-$ {E = E} {dir = dir} {n = n}
 fundamental {E = E} dir (⊑⊕ {L = L} {L′ = L′} {M = M} {M′ = M′} {op = op} relL relM) =
   compat-⊕ {E = E} {dir = dir} {L = L} {L′ = L′} {M = M} {M′ = M′} {op = op}
-    (fundamental {E = E} {M = L} {M′ = L′} {p = ⊑-‵ {ι = `ℕ}} dir relL)
-    (fundamental {E = E} {M = M} {M′ = M′} {p = ⊑-‵ {ι = `ℕ}} dir relM)
+    (fundamental {E = E} {M = L} {M′ = L′} {p = ⊑-‵ `ℕ} dir relL)
+    (fundamental {E = E} {M = M} {M′ = M′} {p = ⊑-‵ `ℕ} dir relM)
 fundamental {E = E} dir
   (⊑up {M = M} {M′ = M′} {A = A} {A′ = A′} {B = B} {B′ = B′}
       {pA = pA} {pB = pB} {u = u} {u′ = u′} Φ lenΦ rel hu hu′) =

@@ -27,18 +27,18 @@ infix 4 _⊑_ _⊒_
 
 data _⊑_ : Ty → Ty → Set where
   ⊑-★★ : ★ ⊑ ★
-  ⊑-★ : ∀ {A G} → Ground G → A ⊑ G → A ⊑ ★
-  ⊑-＇ : ∀ {X} → ＇ X ⊑ ＇ X
-  ⊑-｀ : ∀ {α} → ｀ α ⊑ ｀ α
-  ⊑-‵ : ∀ {ι} → ‵ ι ⊑ ‵ ι
-  ⊑-⇒ : ∀ {A A′ B B′}
+  ⊑-★ : (A G : Ty) → Ground G → A ⊑ G → A ⊑ ★
+  ⊑-＇ : (X : TyVar) → ＇ X ⊑ ＇ X
+  ⊑-｀ : (α : Seal) → ｀ α ⊑ ｀ α
+  ⊑-‵ : (ι : Base) → ‵ ι ⊑ ‵ ι
+  ⊑-⇒ : (A A′ B B′ : Ty)
     → A ⊑ A′
     → B ⊑ B′
     → (A ⇒ B) ⊑ (A′ ⇒ B′)
-  ⊑-∀ : ∀ {A B}
+  ⊑-∀ : (A B : Ty)
     → A ⊑ B
     → (`∀ A) ⊑ (`∀ B)
-  ⊑-ν : ∀ {A B}
+  ⊑-ν : (A B : Ty)
     → ((⇑ˢ A) [ α₀ ]ᵗ) ⊑ ⇑ˢ B
     → (`∀ A) ⊑ B
 
@@ -46,12 +46,12 @@ _⊒_ : Ty → Ty → Set
 B ⊒ A = A ⊑ B
 
 ⊑-refl : ∀ {A} → A ⊑ A
-⊑-refl {＇ X} = ⊑-＇
-⊑-refl {｀ α} = ⊑-｀
-⊑-refl {‵ ι} = ⊑-‵
+⊑-refl {＇ X} = ⊑-＇ X
+⊑-refl {｀ α} = ⊑-｀ α
+⊑-refl {‵ ι} = ⊑-‵ ι
 ⊑-refl {★} = ⊑-★★
-⊑-refl {A ⇒ B} = ⊑-⇒ ⊑-refl ⊑-refl
-⊑-refl {`∀ A} = ⊑-∀ ⊑-refl
+⊑-refl {A ⇒ B} = ⊑-⇒ A A B B ⊑-refl ⊑-refl
+⊑-refl {`∀ A} = ⊑-∀ A A ⊑-refl
 
 ⊒-refl : ∀ {A} → A ⊒ A
 ⊒-refl = ⊑-refl 
@@ -173,11 +173,16 @@ closed-⊑-★-fuel zero {T = ‵ ι} wfBase ()
 closed-⊑-★-fuel zero {T = ★} wf★ ()
 closed-⊑-★-fuel zero {T = A ⇒ B} (wf⇒ hA hB) ()
 closed-⊑-★-fuel zero {T = `∀ A} (wf∀ hA) ()
-closed-⊑-★-fuel (suc n) {T = ｀ α} (wfSeal α<Ψ) h = ⊑-★ (｀ α) ⊑-｀
-closed-⊑-★-fuel (suc n) {T = ‵ ι} wfBase h = ⊑-★ (‵ ι) ⊑-‵
+closed-⊑-★-fuel (suc n) {T = ｀ α} (wfSeal α<Ψ) h =
+  ⊑-★ (｀ α) (｀ α) (｀ α) (⊑-｀ α)
+closed-⊑-★-fuel (suc n) {T = ‵ ι} wfBase h =
+  ⊑-★ (‵ ι) (‵ ι) (‵ ι) (⊑-‵ ι)
 closed-⊑-★-fuel (suc n) {T = ★} wf★ h = ⊑-★★
 closed-⊑-★-fuel (suc n) {T = A ⇒ B} (wf⇒ hA hB) h =
-  ⊑-★ ★⇒★ (⊑-⇒ (closed-⊑-★-fuel n hA hA≤n) (closed-⊑-★-fuel n hB hB≤n))
+  ⊑-★ (A ⇒ B) (★ ⇒ ★) ★⇒★
+    (⊑-⇒ A ★ B ★
+      (closed-⊑-★-fuel n hA hA≤n)
+      (closed-⊑-★-fuel n hB hB≤n))
   where
     hAB≤n : tySize A + tySize B ≤ n
     hAB≤n = s≤s⁻¹ h
@@ -188,7 +193,7 @@ closed-⊑-★-fuel (suc n) {T = A ⇒ B} (wf⇒ hA hB) h =
     hB≤n : tySize B ≤ n
     hB≤n = ≤-trans (m≤n+m (tySize B) (tySize A)) hAB≤n
 closed-⊑-★-fuel (suc n) {T = `∀ A} (wf∀ hA) h =
-  ⊑-ν (closed-⊑-★-fuel n (open-shift-preserves-WfTy hA) hA≤n)
+  ⊑-ν A ★ (closed-⊑-★-fuel n (open-shift-preserves-WfTy hA) hA≤n)
   where
     hA≤n : tySize ((⇑ˢ A) [ α₀ ]ᵗ) ≤ n
     hA≤n = subst (λ m → m ≤ n) (sym (tySize-open-shift A)) (s≤s⁻¹ h)
@@ -207,16 +212,18 @@ mutual
     A ⊑ B →
     renameˢ ρ A ⊑ renameˢ ρ B
   renameˢ-⊑ ρ ⊑-★★ = ⊑-★★
-  renameˢ-⊑ ρ (⊑-★ g p) =
-    ⊑-★ (renameˢ-ground ρ g) (renameˢ-⊑ ρ p)
-  renameˢ-⊑ ρ ⊑-＇ = ⊑-＇
-  renameˢ-⊑ ρ ⊑-｀ = ⊑-｀
-  renameˢ-⊑ ρ ⊑-‵ = ⊑-‵
-  renameˢ-⊑ ρ (⊑-⇒ p q) =
-    ⊑-⇒ (renameˢ-⊑ ρ p) (renameˢ-⊑ ρ q)
-  renameˢ-⊑ ρ (⊑-∀ p) = ⊑-∀ (renameˢ-⊑ ρ p)
-  renameˢ-⊑ ρ (⊑-ν {A = A} {B = B} p) =
-    ⊑-ν
+  renameˢ-⊑ ρ (⊑-★ A G g p) =
+    ⊑-★ (renameˢ ρ A) (renameˢ ρ G) (renameˢ-ground ρ g) (renameˢ-⊑ ρ p)
+  renameˢ-⊑ ρ (⊑-＇ X) = ⊑-＇ X
+  renameˢ-⊑ ρ (⊑-｀ α) = ⊑-｀ (ρ α)
+  renameˢ-⊑ ρ (⊑-‵ ι) = ⊑-‵ ι
+  renameˢ-⊑ ρ (⊑-⇒ A A′ B B′ p q) =
+    ⊑-⇒ (renameˢ ρ A) (renameˢ ρ A′) (renameˢ ρ B) (renameˢ ρ B′)
+      (renameˢ-⊑ ρ p) (renameˢ-⊑ ρ q)
+  renameˢ-⊑ ρ (⊑-∀ A B p) =
+    ⊑-∀ (renameˢ ρ A) (renameˢ ρ B) (renameˢ-⊑ ρ p)
+  renameˢ-⊑ ρ (⊑-ν A B p) =
+    ⊑-ν (renameˢ ρ A) (renameˢ ρ B)
       (cast-⊑
         (renameˢ-ν-src ρ A)
         (renameˢ-ext-⇑ˢ ρ B)
@@ -228,16 +235,18 @@ mutual
     A ⊑ B →
     substᵗ σ A ⊑ substᵗ σ B
   substᵗ-⊑ σ ⊑-★★ = ⊑-★★
-  substᵗ-⊑ σ (⊑-★ g p) =
-    ⊑-★ (substᵗ-ground σ g) (substᵗ-⊑ σ p)
-  substᵗ-⊑ σ ⊑-＇ = ⊑-refl
-  substᵗ-⊑ σ ⊑-｀ = ⊑-｀
-  substᵗ-⊑ σ ⊑-‵ = ⊑-‵
-  substᵗ-⊑ σ (⊑-⇒ p q) =
-    ⊑-⇒ (substᵗ-⊑ σ p) (substᵗ-⊑ σ q)
-  substᵗ-⊑ σ (⊑-∀ p) = ⊑-∀ (substᵗ-⊑ (extsᵗ σ) p)
-  substᵗ-⊑ σ (⊑-ν {A = A} {B = B} p) =
-    ⊑-ν
+  substᵗ-⊑ σ (⊑-★ A G g p) =
+    ⊑-★ (substᵗ σ A) (substᵗ σ G) (substᵗ-ground σ g) (substᵗ-⊑ σ p)
+  substᵗ-⊑ σ (⊑-＇ X) = ⊑-refl
+  substᵗ-⊑ σ (⊑-｀ α) = ⊑-｀ α
+  substᵗ-⊑ σ (⊑-‵ ι) = ⊑-‵ ι
+  substᵗ-⊑ σ (⊑-⇒ A A′ B B′ p q) =
+    ⊑-⇒ (substᵗ σ A) (substᵗ σ A′) (substᵗ σ B) (substᵗ σ B′)
+      (substᵗ-⊑ σ p) (substᵗ-⊑ σ q)
+  substᵗ-⊑ σ (⊑-∀ A B p) =
+    ⊑-∀ (substᵗ (extsᵗ σ) A) (substᵗ (extsᵗ σ) B) (substᵗ-⊑ (extsᵗ σ) p)
+  substᵗ-⊑ σ (⊑-ν A B p) =
+    ⊑-ν (substᵗ (extsᵗ σ) A) (substᵗ σ B)
       (cast-⊑
         (substᵗ-ν-src σ A)
         (substᵗ-⇑ˢ σ B)
@@ -249,13 +258,13 @@ mutual
 
 size⊑ : ∀ {A B} → A ⊑ B → ℕ
 size⊑ ⊑-★★ = zero
-size⊑ (⊑-★ g p) = suc (size⊑ p)
-size⊑ ⊑-＇ = zero
-size⊑ ⊑-｀ = zero
-size⊑ ⊑-‵ = zero
-size⊑ (⊑-⇒ p q) = suc (size⊑ p + size⊑ q)
-size⊑ (⊑-∀ p) = suc (size⊑ p)
-size⊑ (⊑-ν p) = suc (size⊑ p)
+size⊑ (⊑-★ A G g p) = suc (size⊑ p)
+size⊑ (⊑-＇ X) = zero
+size⊑ (⊑-｀ α) = zero
+size⊑ (⊑-‵ ι) = zero
+size⊑ (⊑-⇒ A A′ B B′ p q) = suc (size⊑ p + size⊑ q)
+size⊑ (⊑-∀ A B p) = suc (size⊑ p)
+size⊑ (⊑-ν A B p) = suc (size⊑ p)
 
 size-cast-⊑ :
   ∀ {A A′ B B′} →
@@ -271,14 +280,14 @@ size-renameˢ-⊑ :
   (p : A ⊑ B) →
   size⊑ (renameˢ-⊑ ρ p) ≡ size⊑ p
 size-renameˢ-⊑ ρ ⊑-★★ = refl
-size-renameˢ-⊑ ρ (⊑-★ g p) = cong suc (size-renameˢ-⊑ ρ p)
-size-renameˢ-⊑ ρ ⊑-＇ = refl
-size-renameˢ-⊑ ρ ⊑-｀ = refl
-size-renameˢ-⊑ ρ ⊑-‵ = refl
-size-renameˢ-⊑ ρ (⊑-⇒ p q) =
+size-renameˢ-⊑ ρ (⊑-★ A G g p) = cong suc (size-renameˢ-⊑ ρ p)
+size-renameˢ-⊑ ρ (⊑-＇ X) = refl
+size-renameˢ-⊑ ρ (⊑-｀ α) = refl
+size-renameˢ-⊑ ρ (⊑-‵ ι) = refl
+size-renameˢ-⊑ ρ (⊑-⇒ A A′ B B′ p q) =
   cong suc (cong₂ _+_ (size-renameˢ-⊑ ρ p) (size-renameˢ-⊑ ρ q))
-size-renameˢ-⊑ ρ (⊑-∀ p) = cong suc (size-renameˢ-⊑ ρ p)
-size-renameˢ-⊑ ρ (⊑-ν {A = A} {B = B} p) =
+size-renameˢ-⊑ ρ (⊑-∀ A B p) = cong suc (size-renameˢ-⊑ ρ p)
+size-renameˢ-⊑ ρ (⊑-ν A B p) =
   cong
     suc
     (trans
@@ -346,21 +355,21 @@ size-substᵗ-⊑-leaf :
   (p : A ⊑ B) →
   size⊑ (substᵗ-⊑ σ p) ≡ size⊑ p
 size-substᵗ-⊑-leaf σ leafσ ⊑-★★ = refl
-size-substᵗ-⊑-leaf σ leafσ (⊑-★ g p) =
+size-substᵗ-⊑-leaf σ leafσ (⊑-★ A G g p) =
   cong suc (size-substᵗ-⊑-leaf σ leafσ p)
-size-substᵗ-⊑-leaf σ leafσ {A = ＇ X} ⊑-＇ =
+size-substᵗ-⊑-leaf σ leafσ {A = ＇ X} (⊑-＇ X) =
   size-⊑-refl-leaf (leafσ X)
-size-substᵗ-⊑-leaf σ leafσ ⊑-｀ = refl
-size-substᵗ-⊑-leaf σ leafσ ⊑-‵ = refl
-size-substᵗ-⊑-leaf σ leafσ (⊑-⇒ p q) =
+size-substᵗ-⊑-leaf σ leafσ (⊑-｀ α) = refl
+size-substᵗ-⊑-leaf σ leafσ (⊑-‵ ι) = refl
+size-substᵗ-⊑-leaf σ leafσ (⊑-⇒ A A′ B B′ p q) =
   cong suc
     (cong₂
       _+_
       (size-substᵗ-⊑-leaf σ leafσ p)
       (size-substᵗ-⊑-leaf σ leafσ q))
-size-substᵗ-⊑-leaf σ leafσ (⊑-∀ p) =
+size-substᵗ-⊑-leaf σ leafσ (⊑-∀ A B p) =
   cong suc (size-substᵗ-⊑-leaf (extsᵗ σ) (extsᵗ-leaf leafσ) p)
-size-substᵗ-⊑-leaf σ leafσ (⊑-ν {A = A} {B = B} p) =
+size-substᵗ-⊑-leaf σ leafσ (⊑-ν A B p) =
   cong
     suc
     (trans
@@ -476,29 +485,29 @@ right-rec-⇒-bound {a} {b} {c} {d} h =
   size⊑ p + size⊑ q ≤ n →
   A ⊑ C
 ⊑-trans-fuel {n = zero} p ⊑-★★ h = p
-⊑-trans-fuel {n = zero} ⊑-★★ (⊑-★ g q) ()
-⊑-trans-fuel {n = zero} (⊑-★ g p) (⊑-★ g₁ q) ()
-⊑-trans-fuel {n = zero} ⊑-＇ (⊑-★ g q) ()
-⊑-trans-fuel {n = zero} ⊑-｀ (⊑-★ g q) ()
-⊑-trans-fuel {n = zero} ⊑-‵ (⊑-★ g q) ()
-⊑-trans-fuel {n = zero} (⊑-⇒ p₁ p₂) (⊑-★ g q) ()
-⊑-trans-fuel {n = zero} (⊑-∀ p) (⊑-★ g q) ()
-⊑-trans-fuel {n = zero} (⊑-ν p) (⊑-★ g q) ()
-⊑-trans-fuel {n = zero} p ⊑-＇ h = p
-⊑-trans-fuel {n = zero} p ⊑-｀ h = p
-⊑-trans-fuel {n = zero} p ⊑-‵ h = p
-⊑-trans-fuel {n = zero} (⊑-⇒ p₁ p₂) (⊑-⇒ q₁ q₂) ()
-⊑-trans-fuel {n = zero} (⊑-∀ p) (⊑-∀ q) ()
-⊑-trans-fuel {n = zero} (⊑-∀ p) (⊑-ν q) ()
-⊑-trans-fuel {n = zero} (⊑-ν p) q ()
+⊑-trans-fuel {n = zero} ⊑-★★ (⊑-★ A G g q) ()
+⊑-trans-fuel {n = zero} (⊑-★ A G g p) (⊑-★ A₁ G₁ g₁ q) ()
+⊑-trans-fuel {n = zero} (⊑-＇ X) (⊑-★ A G g q) ()
+⊑-trans-fuel {n = zero} (⊑-｀ α) (⊑-★ A G g q) ()
+⊑-trans-fuel {n = zero} (⊑-‵ ι) (⊑-★ A G g q) ()
+⊑-trans-fuel {n = zero} (⊑-⇒ A A′ B B′ p₁ p₂) (⊑-★ A₁ G g q) ()
+⊑-trans-fuel {n = zero} (⊑-∀ A B p) (⊑-★ A₁ G g q) ()
+⊑-trans-fuel {n = zero} (⊑-ν A B p) (⊑-★ A₁ G g q) ()
+⊑-trans-fuel {n = zero} p (⊑-＇ X) h = p
+⊑-trans-fuel {n = zero} p (⊑-｀ α) h = p
+⊑-trans-fuel {n = zero} p (⊑-‵ ι) h = p
+⊑-trans-fuel {n = zero} (⊑-⇒ A A′ B B′ p₁ p₂) (⊑-⇒ A₁ A″ B₁ B″ q₁ q₂) ()
+⊑-trans-fuel {n = zero} (⊑-∀ A B p) (⊑-∀ A₁ B₁ q) ()
+⊑-trans-fuel {n = zero} (⊑-∀ A B p) (⊑-ν A₁ B₁ q) ()
+⊑-trans-fuel {n = zero} (⊑-ν A B p) q ()
 ⊑-trans-fuel {n = suc n} p ⊑-★★ h = p
-⊑-trans-fuel {n = suc n} p (⊑-★ g q) h =
-  ⊑-★ g (⊑-trans-fuel p q (pred-★-bound h))
-⊑-trans-fuel {n = suc n} p ⊑-＇ h = p
-⊑-trans-fuel {n = suc n} p ⊑-｀ h = p
-⊑-trans-fuel {n = suc n} p ⊑-‵ h = p
-⊑-trans-fuel {n = suc n} (⊑-⇒ p₁ p₂) (⊑-⇒ q₁ q₂) h =
-  ⊑-⇒
+⊑-trans-fuel {n = suc n} p (⊑-★ B G g q) h =
+  ⊑-★ _ G g (⊑-trans-fuel p q (pred-★-bound h))
+⊑-trans-fuel {n = suc n} p (⊑-＇ X) h = p
+⊑-trans-fuel {n = suc n} p (⊑-｀ α) h = p
+⊑-trans-fuel {n = suc n} p (⊑-‵ ι) h = p
+⊑-trans-fuel {n = suc n} (⊑-⇒ A A′ B B′ p₁ p₂) (⊑-⇒ A₁ A″ B₁ B″ q₁ q₂) h =
+  ⊑-⇒ A A″ B B″
     (⊑-trans-fuel
       p₁
       q₁
@@ -513,8 +522,8 @@ right-rec-⇒-bound {a} {b} {c} {d} h =
         {a = size⊑ p₁} {b = size⊑ p₂}
         {c = size⊑ q₁} {d = size⊑ q₂}
         h))
-⊑-trans-fuel {n = suc n} (⊑-ν p) q h =
-  ⊑-ν
+⊑-trans-fuel {n = suc n} (⊑-ν A B p) q h =
+  ⊑-ν A _
     (⊑-trans-fuel
       p
       (shift-⊑ q)
@@ -522,14 +531,14 @@ right-rec-⇒-bound {a} {b} {c} {d} h =
         (λ x → size⊑ p + x ≤ n)
         (sym (size-shift-⊑ q))
         (ν-rec-bound {a = size⊑ p} {b = size⊑ q} h)))
-⊑-trans-fuel {n = suc n} (⊑-∀ p) (⊑-∀ q) h =
-  ⊑-∀
+⊑-trans-fuel {n = suc n} (⊑-∀ A B p) (⊑-∀ B₁ C q) h =
+  ⊑-∀ A C
     (⊑-trans-fuel
       p
       q
       (∀ν-rec-bound {a = size⊑ p} {b = size⊑ q} h))
-⊑-trans-fuel {n = suc n} (⊑-∀ p) (⊑-ν q) h =
-  ⊑-ν
+⊑-trans-fuel {n = suc n} (⊑-∀ A B p) (⊑-ν B₁ C q) h =
+  ⊑-ν A C
     (⊑-trans-fuel
       (open-shift-⊑ p)
       q
@@ -746,23 +755,29 @@ substˢ-⊑-closed-gen :
   A ⊑ B →
   substˢᵗ τ A ⊑ substˢᵗ τ B
 substˢ-⊑-closed-gen hτ ⊑-★★ = ⊑-★★
-substˢ-⊑-closed-gen hτ (⊑-★ g p) =
+substˢ-⊑-closed-gen hτ (⊑-★ A G g p) =
   ⊑-trans (substˢ-⊑-closed-gen hτ p) (closed-⊑-★ (proj₂ (ground-substˢ-WfTy-gen hτ g)))
-substˢ-⊑-closed-gen hτ ⊑-＇ = ⊑-＇
-substˢ-⊑-closed-gen hτ ⊑-｀ = ⊑-refl
-substˢ-⊑-closed-gen hτ ⊑-‵ = ⊑-‵
-substˢ-⊑-closed-gen hτ (⊑-⇒ p q) =
-  ⊑-⇒ (substˢ-⊑-closed-gen hτ p) (substˢ-⊑-closed-gen hτ q)
-substˢ-⊑-closed-gen hτ (⊑-∀ {A = A} {B = B} p) =
+substˢ-⊑-closed-gen hτ (⊑-＇ X) = ⊑-＇ X
+substˢ-⊑-closed-gen hτ (⊑-｀ α) = ⊑-refl
+substˢ-⊑-closed-gen hτ (⊑-‵ ι) = ⊑-‵ ι
+substˢ-⊑-closed-gen {τ = τ} hτ (⊑-⇒ A A′ B B′ p q) =
+  ⊑-⇒
+    (substˢᵗ τ A)
+    (substˢᵗ τ A′)
+    (substˢᵗ τ B)
+    (substˢᵗ τ B′)
+    (substˢ-⊑-closed-gen hτ p)
+    (substˢ-⊑-closed-gen hτ q)
+substˢ-⊑-closed-gen {τ = τ} hτ (⊑-∀ A B p) =
   cast-⊑
     (cong `∀ (sym (substˢᵗ-cong (extsˢᵗ-closed hτ) A)))
     (cong `∀ (sym (substˢᵗ-cong (extsˢᵗ-closed hτ) B)))
-    (⊑-∀ (substˢ-⊑-closed-gen hτ p))
-substˢ-⊑-closed-gen hτ (⊑-ν {A = A} {B = B} p) =
+    (⊑-∀ (substˢᵗ τ A) (substˢᵗ τ B) (substˢ-⊑-closed-gen hτ p))
+substˢ-⊑-closed-gen {τ = τ} hτ (⊑-ν A B p) =
   cast-⊑
     (cong `∀ (sym (substˢᵗ-cong (extsˢᵗ-closed hτ) A)))
     refl
-    (⊑-ν
+    (⊑-ν (substˢᵗ τ A) (substˢᵗ τ B)
       (cast-⊑
         (substˢᵗ-keepFresh-ν-src hτ A)
         (substˢᵗ-keepFresh-⇑ˢ hτ B)
@@ -790,5 +805,5 @@ data DynRightInv (A : Ty) : Set where
 
 dyn-right-inv : ∀ {A} → A ⊑ ★ → DynRightInv A
 dyn-right-inv ⊑-★★ = inv-★★ refl
-dyn-right-inv (⊑-★ g p) = inv-★ g p
-dyn-right-inv (⊑-ν {A = A} p) = inv-ν★ (⊑-∀ (⊑-refl {A = A})) p
+dyn-right-inv (⊑-★ A G g p) = inv-★ g p
+dyn-right-inv (⊑-ν A B p) = inv-ν★ (⊑-∀ A A (⊑-refl {A = A})) p

@@ -90,7 +90,7 @@ open import ReductionFresh
     ; _∎
     ; _—→⟨_⟩_
     )
-open import LogicalRelationAlt
+open import LogicalRelation
 open import Parametricity using (fundamental)
 open import EvalPartialFresh
   using

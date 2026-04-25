@@ -32,7 +32,6 @@ open import Eval
 open import Examples
 
 open import LogicalRelation
-open import LogicalRelationAlt
 -- UNDER CONSTRUCTION
 --open import Parametricity
 --open import DynamicGradualGuarantee

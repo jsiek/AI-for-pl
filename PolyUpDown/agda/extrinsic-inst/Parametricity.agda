@@ -58,7 +58,7 @@ open import ReductionFresh
     ; store-growth
     )
   renaming ($ to v$; ƛ_⇒_ to vƛ_⇒_)
-open import LogicalRelationAlt
+open import LogicalRelation
 
 𝒢-lookup :
   ∀ {Γ x A B} {p : A ⊑ B} {n dir w} {ρ : RelSub 0} {γ} →
@@ -649,6 +649,7 @@ compat-ƛ {E = E} {dir = ≽} {A = A} {A′ = A′} {B = B} {B′ = B′}
         ℰ (substᴿ-⊑ ρ pB) j ≽ w′ Lβ Rβ
       body-beta-j =
         ℰ-monotone _ _ (substᴿ-⊑ ρ pB) j ≽ w′ _ _ body-beta-suc
+
 compat-· :
   ∀ {E dir A A′ B B′ L L′ M M′} {pA : A ⊑ A′} {pB : B ⊑ B′} →
   E ∣ dir ⊨ L ⊑ L′ ⦂ (⊑-⇒ A A′ B B′ pA pB) →

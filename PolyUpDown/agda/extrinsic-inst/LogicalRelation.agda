@@ -1,24 +1,20 @@
 module LogicalRelation where
 
 -- File Charter:
---   * Defines the step-indexed logical relation for `PolyUpDown`.
---   * Introduces direction/index/world/precision indices and `𝒱`/`ℰ` clauses.
+--   * Alternative step-indexed logical relation for `PolyUpDown`.
+--   * Uses direct recursion on indices (no well-founded recursion machinery).
+--   * Uses a `V′`-style helper for function types.
 
 open import Data.List using (List; []; _∷_; length)
 open import Data.Nat
-  using (ℕ; zero; suc; z<s; _<_; _≤_; _<′_; <′-base; ≤′-reflexive;
-         ≤′-step)
+  using (ℕ; zero; suc; z<s; _<′_; _≤_; <′-base; ≤′-step; ≤′-reflexive)
 open import Data.Nat.Properties using (≤-refl)
-open import Data.Nat.Induction using (<′-rec; <′-wellFounded)
 open import Data.Empty using (⊥)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Unit using (⊤; tt)
 open import Level using (Lift; 0ℓ; lift) renaming (suc to lsuc)
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Axiom.Extensionality.Propositional
-  using (Extensionality; implicit-extensionality)
-open import Induction.WellFounded as WF
 open import Relation.Binary.PropositionalEquality using (cong; sym; trans)
 
 open import Types
@@ -29,11 +25,10 @@ open import TypeProperties
          substᵗ-ground; renameᵗ-preserves-WfTy; renameˢ-preserves-WfTy;
          TyRenameWf-suc; SealRenameWf-suc; TySubstWf)
 open import UpDown
-open import Terms hiding (_[_]ᵀ)
-open import TermPrecision using (Prec; PCtx; TPEnv; extendᴾ)
-open import TermProperties using (Substˣ; substˣ-term; _[_]; _[_]ᵀ)
-open import ReductionFresh
-  using (Value; _∣_—→_∣_; _∣_—↠_∣_; _—→⟨_⟩_; multi-trans)
+open import Terms
+open import TermPrecision using (PCtx; TPEnv; extendᴾ)
+open import TermProperties using (Substˣ; substˣ-term)
+open import ReductionFresh using (Value; _∣_—→_∣_; _∣_—↠_∣_; _—→⟨_⟩_)
 open import ProgressFresh using (canonical-★; sv-up-tag; canonical-｀; sv-down-seal)
 
 ------------------------------------------------------------------------
@@ -187,201 +182,73 @@ extendWorld-⪰ {w} R downR ._⪰_.growη = η-drop ⊆η-refl
 η∋-downClosed (thereη η∋) {k} {dir} {V} {W} =
   η∋-downClosed η∋ {k} {dir} {V} {W}
 
---------------------------------------------------------------------------------
--- Logical relation core
---------------------------------------------------------------------------------
-
-VRelFor :
-  (∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁) →
-  ∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁
-VRelFor payload {A = A} {B = B} p dir w V W =
-  Value V × Value W ×
-  ((0 ∣ Ψ w ∣ Σˡ w ∣ [] ⊢ V ⦂ A) ×
-   (0 ∣ Ψ w ∣ Σʳ w ∣ [] ⊢ W ⦂ B)) ×
-  payload p dir w V W
-
-ERelFor :
-  (∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁) →
-  ∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁
-ERelFor body {A = A} {B = B} p dir w Mˡ Mʳ =
-  ((0 ∣ Ψ w ∣ Σˡ w ∣ [] ⊢ Mˡ ⦂ A) ×
-   (0 ∣ Ψ w ∣ Σʳ w ∣ [] ⊢ Mʳ ⦂ B)) ×
-  body p dir w Mˡ Mʳ
-
-mutual
-  record StepRel (n : ℕ) : Set₂ where
-    inductive
-    field
-      payloadᵣ : ∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁
-      bodyᵣ : ∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁
-      lowerᵣ : ∀ {j} → j <′ n → StepRel j
-
-  𝒱⟨_⟩ : ∀ {n A B} → StepRel n → A ⊑ B → Dir → World → Term → Term → Set₁
-  𝒱⟨ r ⟩ = VRelFor (StepRel.payloadᵣ r)
-
-  ℰ⟨_⟩ : ∀ {n A B} → StepRel n → A ⊑ B → Dir → World → Term → Term → Set₁
-  ℰ⟨ r ⟩ = ERelFor (StepRel.bodyᵣ r)
-
-open StepRel public
-
-postulate
-  fun-ext : ∀ {a b} → Extensionality a b
-
-lower-ext :
-  ∀ {n} {ih ih′ : ∀ {j} → j <′ n → StepRel j} →
-  (∀ {j} (j<n : j <′ n) → ih j<n ≡ ih′ j<n) →
-  (λ {j} → ih {j}) ≡ (λ {j} → ih′ {j})
-lower-ext ih≈ =
-  implicit-extensionality fun-ext λ {j} →
-    fun-ext λ j<n → ih≈ j<n
-
 ℕ-payload : Term → Term → Set₁
 ℕ-payload ($ (κℕ m)) ($ (κℕ m′)) = Lift (lsuc 0ℓ) (m ≡ m′)
 ℕ-payload V W = Lift (lsuc 0ℓ) ⊥
 
-suc-<′-suc : ∀ {j k} → j <′ k → suc j <′ suc k
-suc-<′-suc <′-base = <′-base
-suc-<′-suc (≤′-step j<k) = ≤′-step (suc-<′-suc j<k)
+lift⊤ : Lift (lsuc 0ℓ) ⊤
+lift⊤ = lift tt
 
-stepRel : (n : ℕ) → (∀ {j} → j <′ n → StepRel j) → StepRel n
-stepRel zero ih = record
-  { payloadᵣ = payload
-  ; bodyᵣ = body
-  ; lowerᵣ = λ { (≤′-reflexive ()) }
-  }
-  where
-  body : ∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁
-  body p dir w Mˡ Mʳ = Lift (lsuc 0ℓ) ⊤
+mutual
+  infix 4 𝒱′_⟦_⊢_⇒_⟧
 
-  E : ∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁
-  E {A = A} {B = B} p dir w Mˡ Mʳ =
-    ((0 ∣ Ψ w ∣ Σˡ w ∣ [] ⊢ Mˡ ⦂ A) ×
-     (0 ∣ Ψ w ∣ Σʳ w ∣ [] ⊢ Mʳ ⦂ B)) ×
-    body p dir w Mˡ Mʳ
+  𝒱′_⟦_⊢_⇒_⟧ :
+    ∀ {Aˡ Aʳ Bˡ Bʳ} →
+    ℕ → Dir → Aˡ ⊑ Aʳ → Bˡ ⊑ Bʳ → World → Term → Term → Set₁
+  𝒱′ zero ⟦ dir ⊢ pA ⇒ pB ⟧ w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱′ (suc k) ⟦ dir ⊢ pA ⇒ pB ⟧ w V W =
+    (∀ {w′} → w′ ⪰ w → ∀ {V′ W′} →
+      𝒱 pA k dir w′ V′ W′ →
+      ℰ pB k dir w′ (V · V′) (W · W′))
+    ×
+    𝒱′ k ⟦ dir ⊢ pA ⇒ pB ⟧ w V W
 
-  payload : ∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁
-  payload {A = ‵ `ℕ} {B = ‵ `ℕ} (⊑-‵ `ℕ) dir w V W = ℕ-payload V W
-  payload {A = ‵ `𝔹} {B = ‵ `𝔹} (⊑-‵ `𝔹) dir w V W = Lift (lsuc 0ℓ) ⊥
-
-  payload {A = Aˡ ⇒ Bˡ} {B = Aʳ ⇒ Bʳ}
-      (⊑-⇒ Aˡ Aʳ Bˡ Bʳ pA pB) dir w V W =
-    ∀ {w′} → w′ ⪰ w → (j : ℕ) → (j<n : j <′ zero) →
-      ∀ {V′ W′} →
-      𝒱⟨ ih j<n ⟩ pA dir w′ V′ W′ →
-      ℰ⟨ ih j<n ⟩ pB dir w′ (V · V′) (W · W′)
-
-  payload (⊑-∀ Aˡ Aʳ p) dir w V W =
+  𝒱body : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
+  𝒱body (⊑-‵ `ℕ) n dir w V W = ℕ-payload V W
+  𝒱body (⊑-‵ `𝔹) n dir w V W = Lift (lsuc 0ℓ) ⊥
+  𝒱body {A = Aˡ ⇒ Bˡ} {B = Aʳ ⇒ Bʳ}
+      (⊑-⇒ Aˡ Aʳ Bˡ Bʳ pA pB) n dir w V W =
+    𝒱′ n ⟦ dir ⊢ pA ⇒ pB ⟧ w V W
+  𝒱body (⊑-∀ Aˡ Aʳ p) n dir w V W =
     ∀ {w′} → w′ ⪰ w → (R : Rel) → (downR : DownClosed R) → (T U : Ty) →
-      E p dir (extendWorld w′ R downR) (V ⦂∀ Aˡ [ T ]) (W ⦂∀ Aʳ [ U ])
-
-  payload (⊑-ν A′ B′ p) dir w V W =
+      ℰ p n dir (extendWorld w′ R downR) (V ⦂∀ Aˡ [ T ]) (W ⦂∀ Aʳ [ U ])
+  𝒱body (⊑-ν A′ B′ p) n dir w V W =
     ∀ {w′} → w′ ⪰ w → (R : Rel) → (downR : DownClosed R) →
-      E p dir (extendWorld w′ R downR) (V ⦂∀ A′ [ ｀ length (Σˡ w′) ]) W
+      ℰ p n dir (extendWorld w′ R downR) (V ⦂∀ A′ [ ｀ length (Σˡ w′) ]) W
 
-  payload ⊑-★★ dir w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body ⊑-★★ zero dir w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body ⊑-★★ (suc k) dir w V W = star-rel V W
+    where
+    star-rel : Term → Term → Set₁
+    star-rel (V up tag G) (W up tag H) =
+      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 (⊑-refl {A = G}) k dir w V W
+    star-rel (V down seal αˡ) (W down seal αʳ) =
+      Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R k dir V W
+    star-rel V W = Lift (lsuc 0ℓ) ⊥
 
-  payload (⊑-★ _ G g p) ≼ w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body (⊑-★ _ G g p) zero ≼ w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body (⊑-★ _ G g p) zero ≽ w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body (⊑-★ _ G g p) (suc k) ≼ w V W = star-right-rel W
+    where
+    star-right-rel : Term → Set₁
+    star-right-rel (W up tag H) =
+      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p k ≼ w V W
+    star-right-rel W = Lift (lsuc 0ℓ) ⊥
+  𝒱body {A = A} {B = ★} (⊑-★ _ G g p) (suc k) ≽ w V W = star-right-rel W
+    where
+    star-right-rel : Term → Set₁
+    star-right-rel (W up tag H) =
+      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 p k ≽ w V W
+    star-right-rel W = Lift (lsuc 0ℓ) ⊥
 
-  payload {A = A} {B = ★} (⊑-★ _ G g p) ≽ w V W = Lift (lsuc 0ℓ) ⊤
-
-  payload {A = ｀ α} {B = ｀ α} (⊑-｀ α) dir w V W = seal-rel V W
+  𝒱body (⊑-｀ α) zero dir w V W = seal-rel V W
     where
     seal-rel : Term → Term → Set₁
     seal-rel (V down seal βˡ) (W down seal βʳ) =
       Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Rel ]
         (η w ∋η α ↔ α ∶ R) × R zero dir V W
     seal-rel V W = Lift (lsuc 0ℓ) ⊥
-
-  payload {A = ＇ X} {B = ＇ X} (⊑-＇ X) dir w V W = Lift (lsuc 0ℓ) ⊥
-
-stepRel (suc k) ih = record
-  { payloadᵣ = payload
-  ; bodyᵣ = body
-  ; lowerᵣ = lower
-  }
-  where
-  lower : ∀ {j} → j <′ suc k → StepRel j
-  lower {j} j<suc = ih {j} j<suc
-
-  smaller : StepRel k
-  smaller = lower <′-base
-
-  body : ∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁
-  body {A = A} {B = B} p ≼ w Mˡ Mʳ =
-    (Σ[ Σˡ′ ∈ Store ] Σ[ wfΣˡ′ ∈ StoreWf (Δ w) (Ψ w) Σˡ′ ] Σ[ Mˡ′ ∈ Term ]
-      (Σˡ w ∣ Mˡ —→ Σˡ′ ∣ Mˡ′) ×
-      ℰ⟨ smaller ⟩ p ≼ (mkWorldˡ w Σˡ′ wfΣˡ′) Mˡ′ Mʳ)
-    ⊎
-    (Σ[ Σʳ′ ∈ Store ] Σ[ wfΣʳ′ ∈ StoreWf (Δ w) (Ψ w) Σʳ′ ] Σ[ ℓ ∈ Label ]
-      (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ blame ℓ))
-    ⊎
-    (Value Mˡ × Σ[ Σʳ′ ∈ Store ] Σ[ wfΣʳ′ ∈ StoreWf (Δ w) (Ψ w) Σʳ′ ]
-      Σ[ Wʳ ∈ Term ]
-      (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ Wʳ) ×
-      𝒱⟨ smaller ⟩ p ≼ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Wʳ)
-
-  body {A = A} {B = B} p ≽ w Mˡ Mʳ =
-    (Σ[ Σʳ′ ∈ Store ] Σ[ wfΣʳ′ ∈ StoreWf (Δ w) (Ψ w) Σʳ′ ] Σ[ Mʳ′ ∈ Term ]
-      (Σʳ w ∣ Mʳ —→ Σʳ′ ∣ Mʳ′) ×
-      ℰ⟨ smaller ⟩ p ≽ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Mʳ′)
-    ⊎
-    (Σ[ Σʳ′ ∈ Store ] Σ[ wfΣʳ′ ∈ StoreWf (Δ w) (Ψ w) Σʳ′ ] Σ[ ℓ ∈ Label ]
-      (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ blame ℓ))
-    ⊎
-    (Value Mʳ × Σ[ Σˡ′ ∈ Store ] Σ[ wfΣˡ′ ∈ StoreWf (Δ w) (Ψ w) Σˡ′ ]
-      Σ[ Wˡ ∈ Term ]
-      (Σˡ w ∣ Mˡ —↠ Σˡ′ ∣ Wˡ) ×
-      𝒱⟨ smaller ⟩ p ≽ (mkWorldˡ w Σˡ′ wfΣˡ′) Wˡ Mʳ)
-
-  E : ∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁
-  E {A = A} {B = B} p dir w Mˡ Mʳ =
-    ((0 ∣ Ψ w ∣ Σˡ w ∣ [] ⊢ Mˡ ⦂ A) ×
-     (0 ∣ Ψ w ∣ Σʳ w ∣ [] ⊢ Mʳ ⦂ B)) ×
-    body p dir w Mˡ Mʳ
-
-  payload : ∀ {A B} → A ⊑ B → Dir → World → Term → Term → Set₁
-  payload {A = ‵ `ℕ} {B = ‵ `ℕ} (⊑-‵ `ℕ) dir w V W = ℕ-payload V W
-  payload {A = ‵ `𝔹} {B = ‵ `𝔹} (⊑-‵ `𝔹) dir w V W = Lift (lsuc 0ℓ) ⊥
-
-  payload {A = Aˡ ⇒ Bˡ} {B = Aʳ ⇒ Bʳ}
-      (⊑-⇒ Aˡ Aʳ Bˡ Bʳ pA pB) dir w V W =
-    ∀ {w′} → w′ ⪰ w → (j : ℕ) → (j<n : j <′ suc k) →
-      ∀ {V′ W′} →
-      𝒱⟨ lower j<n ⟩ pA dir w′ V′ W′ →
-      ℰ⟨ lower j<n ⟩ pB dir w′ (V · V′) (W · W′)
-
-  payload (⊑-∀ Aˡ Aʳ p) dir w V W =
-    ∀ {w′} → w′ ⪰ w → (R : Rel) → (downR : DownClosed R) → (T U : Ty) →
-      E p dir (extendWorld w′ R downR) (V ⦂∀ Aˡ [ T ]) (W ⦂∀ Aʳ [ U ])
-
-  payload (⊑-ν A′ B′ p) dir w V W =
-    ∀ {w′} → w′ ⪰ w → (R : Rel) → (downR : DownClosed R) →
-      E p dir (extendWorld w′ R downR) (V ⦂∀ A′ [ ｀ length (Σˡ w′) ]) W
-
-  payload ⊑-★★ dir w V W = star-rel V W
-    where
-    star-rel : Term → Term → Set₁
-    star-rel (V up tag G) (W up tag H) =
-      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱⟨ smaller ⟩ (⊑-refl {A = G}) dir w V W
-    star-rel (V down seal αˡ) (W down seal αʳ) =
-      Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R k dir V W
-    star-rel V W = Lift (lsuc 0ℓ) ⊥
-
-  payload (⊑-★ _ G g p) ≼ w V W = star-right-rel W
-    where
-    star-right-rel : Term → Set₁
-    star-right-rel (W up tag H) =
-      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱⟨ smaller ⟩ p ≼ w V W
-    star-right-rel W = Lift (lsuc 0ℓ) ⊥
-
-  payload {A = A} {B = ★} (⊑-★ _ G g p) ≽ w V W = star-right-rel W
-    where
-    star-right-rel : Term → Set₁
-    star-right-rel (W up tag H) =
-      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱⟨ smaller ⟩ p ≽ w V W
-    star-right-rel W = Lift (lsuc 0ℓ) ⊥
-
-  payload {A = ｀ α} {B = ｀ α} (⊑-｀ α) dir w V W = seal-rel V W
+  𝒱body (⊑-｀ α) (suc k) dir w V W = seal-rel V W
     where
     seal-rel : Term → Term → Set₁
     seal-rel (V down seal βˡ) (W down seal βʳ) =
@@ -389,71 +256,49 @@ stepRel (suc k) ih = record
         (η w ∋η α ↔ α ∶ R) × R (suc k) dir V W
     seal-rel V W = Lift (lsuc 0ℓ) ⊥
 
-  payload {A = ＇ X} {B = ＇ X} (⊑-＇ X) dir w V W = Lift (lsuc 0ℓ) ⊥
+  𝒱body (⊑-＇ X) n dir w V W = Lift (lsuc 0ℓ) ⊥
 
-stepRel-ext :
-  (n : ℕ) {ih ih′ : ∀ {j} → j <′ n → StepRel j} →
-  (∀ {j} (j<n : j <′ n) → ih j<n ≡ ih′ j<n) →
-  stepRel n ih ≡ stepRel n ih′
-stepRel-ext n ih≈ rewrite lower-ext ih≈ = refl
+  ℰbody : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
+  ℰbody p zero dir w Mˡ Mʳ = Lift (lsuc 0ℓ) ⊤
 
-sem : (n : ℕ) → StepRel n
-sem = <′-rec StepRel stepRel
+  ℰbody {A = A} {B = B} p (suc k) ≼ w Mˡ Mʳ =
+    (Σ[ Σˡ′ ∈ Store ] Σ[ wfΣˡ′ ∈ StoreWf (Δ w) (Ψ w) Σˡ′ ] Σ[ Mˡ′ ∈ Term ]
+      (Σˡ w ∣ Mˡ —→ Σˡ′ ∣ Mˡ′) ×
+      ℰ p k ≼ (mkWorldˡ w Σˡ′ wfΣˡ′) Mˡ′ Mʳ)
+    ⊎
+    (Σ[ Σʳ′ ∈ Store ] Σ[ wfΣʳ′ ∈ StoreWf (Δ w) (Ψ w) Σʳ′ ] Σ[ ℓ ∈ Label ]
+      (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ blame ℓ))
+    ⊎
+    (Value Mˡ × Σ[ Σʳ′ ∈ Store ] Σ[ wfΣʳ′ ∈ StoreWf (Δ w) (Ψ w) Σʳ′ ]
+      Σ[ Wʳ ∈ Term ]
+      (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ Wʳ) ×
+      𝒱 p k ≼ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Wʳ)
 
-module StepRelFix = WF.FixPoint <′-wellFounded StepRel stepRel stepRel-ext
+  ℰbody {A = A} {B = B} p (suc k) ≽ w Mˡ Mʳ =
+    (Σ[ Σʳ′ ∈ Store ] Σ[ wfΣʳ′ ∈ StoreWf (Δ w) (Ψ w) Σʳ′ ] Σ[ Mʳ′ ∈ Term ]
+      (Σʳ w ∣ Mʳ —→ Σʳ′ ∣ Mʳ′) ×
+      ℰ p k ≽ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Mʳ′)
+    ⊎
+    (Σ[ Σʳ′ ∈ Store ] Σ[ wfΣʳ′ ∈ StoreWf (Δ w) (Ψ w) Σʳ′ ] Σ[ ℓ ∈ Label ]
+      (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ blame ℓ))
+    ⊎
+    (Value Mʳ × Σ[ Σˡ′ ∈ Store ] Σ[ wfΣˡ′ ∈ StoreWf (Δ w) (Ψ w) Σˡ′ ]
+      Σ[ Wˡ ∈ Term ]
+      (Σˡ w ∣ Mˡ —↠ Σˡ′ ∣ Wˡ) ×
+      𝒱 p k ≽ (mkWorldˡ w Σˡ′ wfΣˡ′) Wˡ Mʳ)
 
-lowerᵣ-coh :
-  ∀ {n j} (j<n : j <′ n) →
-  lowerᵣ (sem n) j<n ≡ sem j
-lowerᵣ-coh {n = zero} (≤′-reflexive ())
-lowerᵣ-coh {n = suc n} j<n = StepRelFix.wfRecBuilder-wfRec j<n
+  𝒱 : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
+  𝒱 {A = A} {B = B} p n dir w V W =
+    Value V × Value W ×
+    ((0 ∣ Ψ w ∣ Σˡ w ∣ [] ⊢ V ⦂ A) ×
+     (0 ∣ Ψ w ∣ Σʳ w ∣ [] ⊢ W ⦂ B)) ×
+    𝒱body p n dir w V W
 
-𝒱-step-subst :
-  ∀ {n A B} {r s : StepRel n} {p : A ⊑ B} {dir w V W} →
-  r ≡ s →
-  𝒱⟨ r ⟩ p dir w V W →
-  𝒱⟨ s ⟩ p dir w V W
-𝒱-step-subst refl rel = rel
-
-ℰ-step-subst :
-  ∀ {n A B} {r s : StepRel n} {p : A ⊑ B} {dir w Mˡ Mʳ} →
-  r ≡ s →
-  ℰ⟨ r ⟩ p dir w Mˡ Mʳ →
-  ℰ⟨ s ⟩ p dir w Mˡ Mʳ
-ℰ-step-subst refl rel = rel
-
-𝒱-lower→sem :
-  ∀ {n j A B} (j<n : j <′ n) {p : A ⊑ B} {dir w V W} →
-  𝒱⟨ lowerᵣ (sem n) j<n ⟩ p dir w V W →
-  𝒱⟨ sem j ⟩ p dir w V W
-𝒱-lower→sem j<n = 𝒱-step-subst (lowerᵣ-coh j<n)
-
-𝒱-sem→lower :
-  ∀ {n j A B} (j<n : j <′ n) {p : A ⊑ B} {dir w V W} →
-  𝒱⟨ sem j ⟩ p dir w V W →
-  𝒱⟨ lowerᵣ (sem n) j<n ⟩ p dir w V W
-𝒱-sem→lower j<n = 𝒱-step-subst (sym (lowerᵣ-coh j<n))
-
-ℰ-lower→sem :
-  ∀ {n j A B} (j<n : j <′ n) {p : A ⊑ B} {dir w Mˡ Mʳ} →
-  ℰ⟨ lowerᵣ (sem n) j<n ⟩ p dir w Mˡ Mʳ →
-  ℰ⟨ sem j ⟩ p dir w Mˡ Mʳ
-ℰ-lower→sem j<n = ℰ-step-subst (lowerᵣ-coh j<n)
-
-ℰ-sem→lower :
-  ∀ {n j A B} (j<n : j <′ n) {p : A ⊑ B} {dir w Mˡ Mʳ} →
-  ℰ⟨ sem j ⟩ p dir w Mˡ Mʳ →
-  ℰ⟨ lowerᵣ (sem n) j<n ⟩ p dir w Mˡ Mʳ
-ℰ-sem→lower j<n = ℰ-step-subst (sym (lowerᵣ-coh j<n))
-
-𝒱payload : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
-𝒱payload p n dir w V W = payloadᵣ (sem n) p dir w V W
-
-𝒱 : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
-𝒱 p n dir w V W = 𝒱⟨ sem n ⟩ p dir w V W
-
-ℰ : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
-ℰ p n dir w Mˡ Mʳ = ℰ⟨ sem n ⟩ p dir w Mˡ Mʳ
+  ℰ : ∀ {A B} → A ⊑ B → ℕ → Dir → World → Term → Term → Set₁
+  ℰ {A = A} {B = B} p n dir w Mˡ Mʳ =
+    ((0 ∣ Ψ w ∣ Σˡ w ∣ [] ⊢ Mˡ ⦂ A) ×
+     (0 ∣ Ψ w ∣ Σʳ w ∣ [] ⊢ Mʳ ⦂ B)) ×
+    ℰbody p n dir w Mˡ Mʳ
 
 𝒱-left-value :
   ∀ {A B} {p : A ⊑ B} {k : ℕ} {dir : Dir}
@@ -471,9 +316,6 @@ lowerᵣ-coh {n = suc n} j<n = StepRelFix.wfRecBuilder-wfRec j<n
 𝒱-right-value {k = zero} Vrel = proj₁ (proj₂ Vrel)
 𝒱-right-value {k = suc n} Vrel = proj₁ (proj₂ Vrel)
 
-lift⊤ : Lift (lsuc 0ℓ) ⊤
-lift⊤ = lift tt
-
 wk⪰ˡ :
   ∀ {w w′ A V} →
   w′ ⪰ w →
@@ -489,6 +331,25 @@ wk⪰ʳ :
   0 ∣ Ψ w′ ∣ Σʳ w′ ∣ [] ⊢ V ⦂ A
 wk⪰ʳ w′⪰ V⊢ rewrite _⪰_.growΨ w′⪰ =
   wkΣ-term (_⪰_.growʳ w′⪰) V⊢
+
+𝒱′-⪰ :
+  ∀ {Aˡ Aʳ Bˡ Bʳ k dir w w′ V W} {pA : Aˡ ⊑ Aʳ} {pB : Bˡ ⊑ Bʳ} →
+  w′ ⪰ w →
+  𝒱′ k ⟦ dir ⊢ pA ⇒ pB ⟧ w V W →
+  𝒱′ k ⟦ dir ⊢ pA ⇒ pB ⟧ w′ V W
+𝒱′-⪰ {k = zero} w′⪰ rel = lift tt
+𝒱′-⪰
+    {k = suc k} {dir = dir} {w′ = w′} {V = V} {W = W}
+    {pA = pA} {pB = pB} w′⪰ (step , rest) =
+  step′ , 𝒱′-⪰ {k = k} w′⪰ rest
+  where
+  step′ :
+    ∀ {w″} →
+    w″ ⪰ w′ →
+    ∀ {V′ W′} →
+    𝒱 pA k dir w″ V′ W′ →
+    ℰ pB k dir w″ (V · V′) (W · W′)
+  step′ w″⪰ rel = step (⪰-trans w″⪰ w′⪰) rel
 
 𝒱-⪰ :
   ∀ {A B n dir w w′ V W} (p : A ⊑ B) →
@@ -509,7 +370,8 @@ wk⪰ʳ w′⪰ V⊢ rewrite _⪰_.growΨ w′⪰ =
   (vV , vW , (V⊢ , W⊢) , lift ())
 𝒱-⪰ {n = suc k} (⊑-＇ X) w′⪰
   (vV , vW , (V⊢ , W⊢) , lift ())
-𝒱-⪰ {n = zero} ⊑-★★ w′⪰ (vV , vW , (V⊢ , W⊢) , rel) =
+𝒱-⪰ {n = zero} ⊑-★★ w′⪰
+  (vV , vW , (V⊢ , W⊢) , rel) =
   vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) , lift⊤
 𝒱-⪰ {n = suc k} {dir = dir} ⊑-★★ w′⪰
   (vV , vW , (V⊢ , W⊢) , rel)
@@ -525,10 +387,7 @@ wk⪰ʳ w′⪰ V⊢ rewrite _⪰_.growΨ w′⪰ =
   | sv-up-tag {W = U′} {G = H} vU′ eqW
   | eqG , inner =
   vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) ,
-    eqG ,
-    𝒱-sem→lower {n = suc k} <′-base {p = ⊑-refl {A = G}} {dir = dir}
-      (𝒱-⪰ {n = k} {dir = dir} (⊑-refl {A = G}) w′⪰
-        (𝒱-lower→sem {n = suc k} <′-base inner))
+    eqG , 𝒱-⪰ {n = k} {dir = dir} (⊑-refl {A = G}) w′⪰ inner
 𝒱-⪰ {n = zero} {dir = ≼} (⊑-★ _ G g p) w′⪰
   (vV , vW , (V⊢ , W⊢) , rel) =
   vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) , lift⊤
@@ -547,10 +406,7 @@ wk⪰ʳ w′⪰ V⊢ rewrite _⪰_.growΨ w′⪰ =
   | sv-up-tag {W = W′} {G = H} vW′ eqW
   | eqG , inner =
   vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) ,
-    eqG ,
-    𝒱-sem→lower {n = suc k} <′-base {p = p} {dir = ≼}
-      (𝒱-⪰ {n = k} {dir = ≼} p w′⪰
-        (𝒱-lower→sem {n = suc k} <′-base inner))
+    eqG , 𝒱-⪰ {n = k} {dir = ≼} p w′⪰ inner
 𝒱-⪰ {n = suc k} {dir = ≽} (⊑-★ _ G g p) w′⪰
   (vV , vW , (V⊢ , W⊢) , rel)
   with canonical-★ vW W⊢
@@ -563,10 +419,7 @@ wk⪰ʳ w′⪰ V⊢ rewrite _⪰_.growΨ w′⪰ =
   | sv-up-tag {W = W′} {G = H} vW′ eqW
   | eqG , inner =
   vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) ,
-    eqG ,
-    𝒱-sem→lower {n = suc k} <′-base {p = p} {dir = ≽}
-      (𝒱-⪰ {n = k} {dir = ≽} p w′⪰
-        (𝒱-lower→sem {n = suc k} <′-base inner))
+    eqG , 𝒱-⪰ {n = k} {dir = ≽} p w′⪰ inner
 𝒱-⪰ {n = zero} (⊑-｀ α) w′⪰ (vV , vW , (V⊢ , W⊢) , rel)
   with canonical-｀ vV V⊢ | canonical-｀ vW W⊢
 𝒱-⪰ {n = zero} (⊑-｀ α) w′⪰ (vV , vW , (V⊢ , W⊢) , rel)
@@ -591,40 +444,19 @@ wk⪰ʳ w′⪰ V⊢ rewrite _⪰_.growΨ w′⪰ =
   | eqˡ , eqʳ , R , η∋ , Rrel =
   vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) ,
     eqˡ , eqʳ , R , η∋-weaken (_⪰_.growη w′⪰) η∋ , Rrel
-𝒱-⪰ {n = zero} (⊑-⇒ Aˡ Aʳ Bˡ Bʳ pA pB) w′⪰
+𝒱-⪰ {n = n} (⊑-⇒ Aˡ Aʳ Bˡ Bʳ pA pB) w′⪰
   (vV , vW , (V⊢ , W⊢) , fun-rel) =
-  vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) ,
-    λ {w″} w″⪰ j j<n {V′} {W′} arg →
-      fun-rel (⪰-trans w″⪰ w′⪰) j j<n arg
-𝒱-⪰ {n = suc k} (⊑-⇒ Aˡ Aʳ Bˡ Bʳ pA pB) w′⪰
-  (vV , vW , (V⊢ , W⊢) , fun-rel) =
-  vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) ,
-    λ {w″} w″⪰ j j<n {V′} {W′} arg →
-      fun-rel (⪰-trans w″⪰ w′⪰) j j<n arg
-𝒱-⪰ {n = zero} (⊑-∀ Aˡ Aʳ p) w′⪰
+  vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) , 𝒱′-⪰ {k = n} w′⪰ fun-rel
+𝒱-⪰ {n = n} (⊑-∀ Aˡ Aʳ p) w′⪰
   (vV , vW , (V⊢ , W⊢) , all-rel) =
   vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) ,
     λ {w″} w″⪰ R downR T U →
       all-rel (⪰-trans w″⪰ w′⪰) R downR T U
-𝒱-⪰ {n = suc k} (⊑-∀ Aˡ Aʳ p) w′⪰
-  (vV , vW , (V⊢ , W⊢) , all-rel) =
-  vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) ,
-    λ {w″} w″⪰ R downR T U →
-      all-rel (⪰-trans w″⪰ w′⪰) R downR T U
-𝒱-⪰ {n = zero} (⊑-ν Aˡ Bʳ p) w′⪰
+𝒱-⪰ {n = n} (⊑-ν Aˡ Bʳ p) w′⪰
   (vV , vW , (V⊢ , W⊢) , nu-rel) =
   vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) ,
     λ {w″} w″⪰ R downR →
       nu-rel (⪰-trans w″⪰ w′⪰) R downR
-𝒱-⪰ {n = suc k} (⊑-ν Aˡ Bʳ p) w′⪰
-  (vV , vW , (V⊢ , W⊢) , nu-rel) =
-  vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢) ,
-    λ {w″} w″⪰ R downR →
-      nu-rel (⪰-trans w″⪰ w′⪰) R downR
-
-------------------------------------------------------------------------
--- Expansion for the expression relation
-------------------------------------------------------------------------
 
 ℰ-expand-≼-left :
   ∀ {A B} {p : A ⊑ B} {k : ℕ} {w : World} {Mˡ Mˡ′ Mʳ} →
@@ -634,12 +466,9 @@ wk⪰ʳ w′⪰ V⊢ rewrite _⪰_.growΨ w′⪰ =
   ℰ p k ≼ w Mˡ′ Mʳ →
   ℰ p (suc k) ≼ w Mˡ Mʳ
 ℰ-expand-≼-left
-  {k = k} {w = mkWorld Δ Ψ Σˡ Σʳ wfΣˡ wfΣʳ η}
+  {w = mkWorld Δ Ψ Σˡ Σʳ wfΣˡ wfΣʳ η}
   Mˡ⊢ Mʳ⊢ Mˡ→Mˡ′ rel =
-  (Mˡ⊢ , Mʳ⊢) ,
-  inj₁
-    (Σˡ , wfΣˡ , _ , Mˡ→Mˡ′ ,
-      ℰ-sem→lower {n = suc k} {j = k} <′-base rel)
+  (Mˡ⊢ , Mʳ⊢) , inj₁ (Σˡ , wfΣˡ , _ , Mˡ→Mˡ′ , rel)
 
 ℰ-expand-≽-right :
   ∀ {A B} {p : A ⊑ B} {k : ℕ} {w : World} {Mˡ Mʳ Mʳ′} →
@@ -649,12 +478,9 @@ wk⪰ʳ w′⪰ V⊢ rewrite _⪰_.growΨ w′⪰ =
   ℰ p k ≽ w Mˡ Mʳ′ →
   ℰ p (suc k) ≽ w Mˡ Mʳ
 ℰ-expand-≽-right
-  {k = k} {w = mkWorld Δ Ψ Σˡ Σʳ wfΣˡ wfΣʳ η}
+  {w = mkWorld Δ Ψ Σˡ Σʳ wfΣˡ wfΣʳ η}
   Mˡ⊢ Mʳ⊢ Mʳ→Mʳ′ rel =
-  (Mˡ⊢ , Mʳ⊢) ,
-  inj₁
-    (Σʳ , wfΣʳ , _ , Mʳ→Mʳ′ ,
-      ℰ-sem→lower {n = suc k} {j = k} <′-base rel)
+  (Mˡ⊢ , Mʳ⊢) , inj₁ (Σʳ , wfΣʳ , _ , Mʳ→Mʳ′ , rel)
 
 mutual
   ℰ-expand-≼-right :
@@ -672,14 +498,10 @@ mutual
     (Mˡ⊢ , Mʳ⊢) ,
     inj₁
       (Σˡ′ , wfΣˡ′ , Mˡ′ , Mˡ→Mˡ′ ,
-        ℰ-sem→lower {n = suc k} {j = k} <′-base
-          (ℰ-expand-≼-right {p = p} {k = k}
-            {w = mkWorldˡ w Σˡ′ wfΣˡ′} {Mˡ = Mˡ′}
-            {Mʳ = Mʳ} {Mʳ′ = Mʳ′}
-            (proj₁ (proj₁ (ℰ-lower→sem {n = suc k} {j = k} <′-base rel)))
-            Mʳ⊢
-            Mʳ→Mʳ′
-            (ℰ-lower→sem {n = suc k} {j = k} <′-base rel)))
+        ℰ-expand-≼-right {p = p} {k = k}
+          {w = mkWorldˡ w Σˡ′ wfΣˡ′} {Mˡ = Mˡ′}
+          {Mʳ = Mʳ} {Mʳ′ = Mʳ′}
+          (proj₁ (proj₁ rel)) Mʳ⊢ Mʳ→Mʳ′ rel)
   ℰ-expand-≼-right {k = suc k} {Mʳ = Mʳ} Mˡ⊢ Mʳ⊢ Mʳ→Mʳ′
     ((Mˡ⊢′ , Mʳ′⊢) , inj₂ (inj₁ (Σʳ′ , wfΣʳ′ , ℓ , Mʳ′↠blame))) =
     (Mˡ⊢ , Mʳ⊢) ,
@@ -711,14 +533,10 @@ mutual
     (Mˡ⊢ , Mʳ⊢) ,
     inj₁
       (Σʳ′ , wfΣʳ′ , Mʳ′ , Mʳ→Mʳ′ ,
-        ℰ-sem→lower {n = suc k} {j = k} <′-base
-          (ℰ-expand-≽-left {p = p} {k = k}
-            {w = mkWorldʳ w Σʳ′ wfΣʳ′} {Mˡ = Mˡ}
-            {Mˡ′ = Mˡ′} {Mʳ = Mʳ′}
-            Mˡ⊢
-            (proj₂ (proj₁ (ℰ-lower→sem {n = suc k} {j = k} <′-base rel)))
-            Mˡ→Mˡ′
-            (ℰ-lower→sem {n = suc k} {j = k} <′-base rel)))
+        ℰ-expand-≽-left {p = p} {k = k}
+          {w = mkWorldʳ w Σʳ′ wfΣʳ′} {Mˡ = Mˡ}
+          {Mˡ′ = Mˡ′} {Mʳ = Mʳ′}
+          Mˡ⊢ (proj₂ (proj₁ rel)) Mˡ→Mˡ′ rel)
   ℰ-expand-≽-left {k = suc k} Mˡ⊢ Mʳ⊢ Mˡ→Mˡ′
     ((Mˡ′⊢ , Mʳ⊢′) , inj₂ (inj₁ (Σʳ′ , wfΣʳ′ , ℓ , Mʳ↠blame))) =
     (Mˡ⊢ , Mʳ⊢) ,
@@ -731,84 +549,6 @@ mutual
       (vMʳ , Σˡ′ , wfΣˡ′ , Wˡ ,
        _—→⟨_⟩_ Mˡ Mˡ→Mˡ′ Mˡ′↠Wˡ ,
        rel))
-
-ℰ-expand-≼-right-↠ :
-  ∀ {A B} {p : A ⊑ B} {k : ℕ} {w : World}
-    {Σʳ′ : Store} {wfΣʳ′ : StoreWf (Δ w) (Ψ w) Σʳ′}
-    {Mˡ Mʳ Mʳ′} →
-  0 ∣ Ψ w ∣ Σˡ w ∣ [] ⊢ Mˡ ⦂ A →
-  0 ∣ Ψ w ∣ Σʳ w ∣ [] ⊢ Mʳ ⦂ B →
-  Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ Mʳ′ →
-  ℰ p k ≼ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Mʳ′ →
-  ℰ p k ≼ w Mˡ Mʳ
-ℰ-expand-≼-right-↠ {k = zero} Mˡ⊢ Mʳ⊢ Mʳ↠Mʳ′ rel =
-  (Mˡ⊢ , Mʳ⊢) , lift tt
-ℰ-expand-≼-right-↠ {p = p} {k = suc k} {w = w}
-  {Σʳ′ = Σʳ′} {wfΣʳ′ = wfΣʳ′} {Mʳ = Mʳ}
-  Mˡ⊢ Mʳ⊢ Mʳ↠Mʳ′
-  ((Mˡ⊢′ , Mʳ′⊢) , inj₁ (Σˡ′ , wfΣˡ′ , Mˡ′ , Mˡ→Mˡ′ , rel)) =
-  (Mˡ⊢ , Mʳ⊢) ,
-  inj₁
-    (Σˡ′ , wfΣˡ′ , Mˡ′ , Mˡ→Mˡ′ ,
-      ℰ-sem→lower {n = suc k} {j = k} <′-base
-        (ℰ-expand-≼-right-↠ {p = p} {k = k}
-          {w = mkWorldˡ w Σˡ′ wfΣˡ′}
-          {Σʳ′ = Σʳ′} {wfΣʳ′ = wfΣʳ′}
-          (proj₁ (proj₁ (ℰ-lower→sem {n = suc k} {j = k} <′-base rel)))
-          Mʳ⊢
-          Mʳ↠Mʳ′
-          (ℰ-lower→sem {n = suc k} {j = k} <′-base rel)))
-ℰ-expand-≼-right-↠ {k = suc k} Mˡ⊢ Mʳ⊢ Mʳ↠Mʳ′
-  ((Mˡ⊢′ , Mʳ′⊢) , inj₂ (inj₁ (Σʳᵇ , wfΣʳᵇ , ℓ , Mʳ′↠blame))) =
-  (Mˡ⊢ , Mʳ⊢) ,
-  inj₂ (inj₁ (Σʳᵇ , wfΣʳᵇ , ℓ , multi-trans Mʳ↠Mʳ′ Mʳ′↠blame))
-ℰ-expand-≼-right-↠ {k = suc k} Mˡ⊢ Mʳ⊢ Mʳ↠Mʳ′
-  ((Mˡ⊢′ , Mʳ′⊢) , inj₂ (inj₂
-    (vMˡ , Σʳ″ , wfΣʳ″ , Wʳ , Mʳ′↠Wʳ , rel))) =
-  (Mˡ⊢ , Mʳ⊢) ,
-  inj₂ (inj₂
-    (vMˡ , Σʳ″ , wfΣʳ″ , Wʳ ,
-     multi-trans Mʳ↠Mʳ′ Mʳ′↠Wʳ ,
-     rel))
-
-ℰ-expand-≽-left-↠ :
-  ∀ {A B} {p : A ⊑ B} {k : ℕ} {w : World}
-    {Σˡ′ : Store} {wfΣˡ′ : StoreWf (Δ w) (Ψ w) Σˡ′}
-    {Mˡ Mˡ′ Mʳ} →
-  0 ∣ Ψ w ∣ Σˡ w ∣ [] ⊢ Mˡ ⦂ A →
-  0 ∣ Ψ w ∣ Σʳ w ∣ [] ⊢ Mʳ ⦂ B →
-  Σˡ w ∣ Mˡ —↠ Σˡ′ ∣ Mˡ′ →
-  ℰ p k ≽ (mkWorldˡ w Σˡ′ wfΣˡ′) Mˡ′ Mʳ →
-  ℰ p k ≽ w Mˡ Mʳ
-ℰ-expand-≽-left-↠ {k = zero} Mˡ⊢ Mʳ⊢ Mˡ↠Mˡ′ rel =
-  (Mˡ⊢ , Mʳ⊢) , lift tt
-ℰ-expand-≽-left-↠ {p = p} {k = suc k} {w = w}
-  {Σˡ′ = Σˡ′} {wfΣˡ′ = wfΣˡ′} {Mˡ = Mˡ}
-  Mˡ⊢ Mʳ⊢ Mˡ↠Mˡ′
-  ((Mˡ′⊢ , Mʳ⊢′) , inj₁ (Σʳ′ , wfΣʳ′ , Mʳ′ , Mʳ→Mʳ′ , rel)) =
-  (Mˡ⊢ , Mʳ⊢) ,
-  inj₁
-    (Σʳ′ , wfΣʳ′ , Mʳ′ , Mʳ→Mʳ′ ,
-      ℰ-sem→lower {n = suc k} {j = k} <′-base
-        (ℰ-expand-≽-left-↠ {p = p} {k = k}
-          {w = mkWorldʳ w Σʳ′ wfΣʳ′}
-          {Σˡ′ = Σˡ′} {wfΣˡ′ = wfΣˡ′}
-          Mˡ⊢
-          (proj₂ (proj₁ (ℰ-lower→sem {n = suc k} {j = k} <′-base rel)))
-          Mˡ↠Mˡ′
-          (ℰ-lower→sem {n = suc k} {j = k} <′-base rel)))
-ℰ-expand-≽-left-↠ {k = suc k} Mˡ⊢ Mʳ⊢ Mˡ↠Mˡ′
-  ((Mˡ′⊢ , Mʳ⊢′) , inj₂ (inj₁ (Σʳᵇ , wfΣʳᵇ , ℓ , Mʳ↠blame))) =
-  (Mˡ⊢ , Mʳ⊢) ,
-  inj₂ (inj₁ (Σʳᵇ , wfΣʳᵇ , ℓ , Mʳ↠blame))
-ℰ-expand-≽-left-↠ {k = suc k} Mˡ⊢ Mʳ⊢ Mˡ↠Mˡ′
-  ((Mˡ′⊢ , Mʳ⊢′) , inj₂ (inj₂
-    (vMʳ , Σˡ″ , wfΣˡ″ , Wˡ , Mˡ′↠Wˡ , rel))) =
-  (Mˡ⊢ , Mʳ⊢) ,
-  inj₂ (inj₂
-    (vMʳ , Σˡ″ , wfΣˡ″ , Wˡ ,
-     multi-trans Mˡ↠Mˡ′ Mˡ′↠Wˡ ,
-     rel))
 
 ------------------------------------------------------------------------
 -- Environment interpretation for open terms
@@ -861,7 +601,12 @@ shift-substᵗ A = trans (sym (renameᵗ-substᵗ suc (λ X → ＇ X) A))
   let Ψ , wfA = right-closed ρ X in suc Ψ , renameˢ-preserves-WfTy wfA SealRenameWf-suc
 (⇑ˢρ ρ .precᵗ) X = renameˢ-⊑ suc (precᵗ ρ X)
 
-substᴿ-⊑ : ∀ {Δ} → (ρ : RelSub Δ) → ∀ {A B} → A ⊑ B → substᵗ (leftᵗ ρ) A ⊑ substᵗ (rightᵗ ρ) B
+substᴿ-⊑ :
+  ∀ {Δ} →
+  (ρ : RelSub Δ) →
+  ∀ {A B} →
+  A ⊑ B →
+  substᵗ (leftᵗ ρ) A ⊑ substᵗ (rightᵗ ρ) B
 substᴿ-⊑ ρ ⊑-★★ = ⊑-★★
 substᴿ-⊑ ρ (⊑-★ A G g p) =
   ⊑-★
@@ -913,8 +658,6 @@ open RelEnv public
   Value (leftˣ γ zero) ×
   Value (rightˣ γ zero) ×
   𝒱 (substᴿ-⊑ ρ p) n dir w (leftˣ γ zero) (rightˣ γ zero) ×
-  -- As in the SystemF development, relational substitution closes the
-  -- environment values with respect to type variables.
   (substᵗᵐ (leftᵗ ρ) (leftˣ γ zero) ≡ leftˣ γ zero) ×
   (substᵗᵐ (rightᵗ ρ) (rightˣ γ zero) ≡ rightˣ γ zero) ×
   𝒢 Γ n dir w ρ (⇓γ γ)
@@ -977,10 +720,53 @@ proj⊨ :
 proj⊨ ≼ rel = proj₁ rel
 proj⊨ ≽ rel = proj₂ rel
 
+FunAll :
+  ∀ {Aˡ Aʳ Bˡ Bʳ} →
+  ℕ → Aˡ ⊑ Aʳ → Bˡ ⊑ Bʳ → Dir → World → Term → Term → Set₁
+FunAll n pA pB dir w V W =
+  ∀ {w′} → w′ ⪰ w → (j : ℕ) → j <′ n →
+    ∀ {V′ W′} →
+    𝒱 pA j dir w′ V′ W′ →
+    ℰ pB j dir w′ (V · V′) (W · W′)
+
+𝒱′→FunAll :
+  ∀ {Aˡ Aʳ Bˡ Bʳ n dir w V W} {pA : Aˡ ⊑ Aʳ} {pB : Bˡ ⊑ Bʳ} →
+  𝒱′ n ⟦ dir ⊢ pA ⇒ pB ⟧ w V W →
+  FunAll n pA pB dir w V W
+𝒱′→FunAll {n = zero} V′n w′⪰ j (≤′-reflexive ())
+𝒱′→FunAll {n = suc k} (step , rest) w′⪰ j <′-base rel = step w′⪰ rel
+𝒱′→FunAll {n = suc k} (step , rest) w′⪰ j (≤′-step j<k) rel =
+  𝒱′→FunAll {n = k} rest w′⪰ j j<k rel
+
+FunAll→𝒱′ :
+  ∀ {Aˡ Aʳ Bˡ Bʳ n dir w V W} {pA : Aˡ ⊑ Aʳ} {pB : Bˡ ⊑ Bʳ} →
+  FunAll n pA pB dir w V W →
+  𝒱′ n ⟦ dir ⊢ pA ⇒ pB ⟧ w V W
+FunAll→𝒱′ {n = zero} all = lift⊤
+FunAll→𝒱′
+    {n = suc k} {dir = dir} {w = w} {V = V} {W = W}
+    {pA = pA} {pB = pB} all =
+  step , rest
+  where
+  step :
+    ∀ {w′} →
+    w′ ⪰ w →
+    ∀ {V′ W′} →
+    𝒱 pA k dir w′ V′ W′ →
+    ℰ pB k dir w′ (V · V′) (W · W′)
+  step w′⪰ rel = all w′⪰ k <′-base rel
+
+  rest : 𝒱′ k ⟦ dir ⊢ pA ⇒ pB ⟧ w V W
+  rest = FunAll→𝒱′ {n = k} all-rest
+    where
+    all-rest : FunAll k pA pB dir w V W
+    all-rest w′⪰ j j<k rel = all w′⪰ j (≤′-step j<k) rel
+
 mutual
-  𝒱-monotone : ∀ A B (p : A ⊑ B) k dir w V W
-    → 𝒱 p (suc k) dir w V W
-    → 𝒱 p k dir w V W
+  𝒱-monotone :
+    ∀ A B (p : A ⊑ B) k dir w V W →
+    𝒱 p (suc k) dir w V W →
+    𝒱 p k dir w V W
   𝒱-monotone .(‵ `ℕ) .(‵ `ℕ) (⊑-‵ `ℕ) zero dir w V W
     (vV , vW , (V⊢ , W⊢) , nat-rel) =
     vV , vW , (V⊢ , W⊢) , nat-rel
@@ -1013,11 +799,7 @@ mutual
     | eqG , inner =
     vV , vW , (V⊢ , W⊢) ,
       eqG ,
-      𝒱-sem→lower {n = suc k} <′-base {p = ⊑-refl {A = G}} {dir = dir}
-        {w = w} {V = U} {W = U′}
-        (𝒱-monotone G G (⊑-refl {A = G}) k dir w U U′
-          (𝒱-lower→sem {n = suc (suc k)} <′-base {p = ⊑-refl {A = G}}
-            {dir = dir} {w = w} {V = U} {W = U′} inner))
+      𝒱-monotone G G (⊑-refl {A = G}) k dir w U U′ inner
   𝒱-monotone A .(★) (⊑-★ _ G g p) zero ≼ w V W
     (vV , vW , (V⊢ , W⊢) , star-rel) =
     vV , vW , (V⊢ , W⊢) , lift⊤
@@ -1037,11 +819,7 @@ mutual
     | eqG , inner =
     vV , vW , (V⊢ , W⊢) ,
       eqG ,
-      𝒱-sem→lower {n = suc k} <′-base {p = p} {dir = ≼}
-        {w = w} {V = V} {W = W′}
-        (𝒱-monotone A G p k ≼ w V W′
-          (𝒱-lower→sem {n = suc (suc k)} <′-base {p = p} {dir = ≼}
-            {w = w} {V = V} {W = W′} inner))
+      𝒱-monotone A G p k ≼ w V W′ inner
   𝒱-monotone A B (⊑-★ _ G g p) (suc k) ≽ w V W
     (vV , vW , (V⊢ , W⊢) , star-rel)
     with canonical-★ vW W⊢
@@ -1055,11 +833,7 @@ mutual
     | eqG , inner =
     vV , vW , (V⊢ , W⊢) ,
       eqG ,
-      𝒱-sem→lower {n = suc k} <′-base {p = p} {dir = ≽}
-        {w = w} {V = V} {W = W′}
-        (𝒱-monotone A G p k ≽ w V W′
-          (𝒱-lower→sem {n = suc (suc k)} <′-base {p = p} {dir = ≽}
-            {w = w} {V = V} {W = W′} inner))
+      𝒱-monotone A G p k ≽ w V W′ inner
   𝒱-monotone A B (⊑-｀ α) zero dir w V W
     (vV , vW , (V⊢ , W⊢) , rel)
     with canonical-｀ vV V⊢ | canonical-｀ vW W⊢
@@ -1090,50 +864,28 @@ mutual
     | eqˡ , eqʳ , R , η∋ , Rrel =
     vV , vW , (V⊢ , W⊢) ,
       eqˡ , eqʳ , R , η∋ , η∋-downClosed η∋ Rrel
-  𝒱-monotone A B (⊑-⇒ Aˡ Aʳ Bˡ Bʳ pA pB)
-    zero dir w V W (vV , vW , (V⊢ , W⊢) , fun-rel) =
-    vV , vW , (V⊢ , W⊢) ,
-      λ {w′} w′⪰ j → λ { (≤′-reflexive ()) }
-  𝒱-monotone A B (⊑-⇒ Aˡ Aʳ Bˡ Bʳ pA pB)
-    (suc k) dir w V W (vV , vW , (V⊢ , W⊢) , fun-rel) =
-    vV , vW , (V⊢ , W⊢) , λ {w′} w′⪰ j j<k {V′} {W′} arg →
-      ℰ-sem→lower {n = suc k} j<k
-        (ℰ-lower→sem {n = suc (suc k)} (≤′-step j<k)
-          (fun-rel w′⪰ j (≤′-step j<k)
-            (𝒱-sem→lower {n = suc (suc k)} (≤′-step j<k)
-              (𝒱-lower→sem {n = suc k} j<k arg))))
-  𝒱-monotone A B (⊑-∀ Aˡ Aʳ p) zero dir w V W
+  𝒱-monotone A B (⊑-⇒ Aˡ Aʳ Bˡ Bʳ pA pB) k dir w V W
+    (vV , vW , (V⊢ , W⊢) , fun-rel) =
+    vV , vW , (V⊢ , W⊢) , proj₂ fun-rel
+  𝒱-monotone A B (⊑-∀ Aˡ Aʳ p) k dir w V W
     (vV , vW , (V⊢ , W⊢) , all-rel) =
     vV , vW , (V⊢ , W⊢) ,
       λ {w′} w⪰ (R : Rel) (downR : DownClosed R) T U →
-        ℰ-monotone _ _ p zero dir (extendWorld w′ R downR)
+        ℰ-monotone _ _ p k dir (extendWorld w′ R downR)
           (V ⦂∀ Aˡ [ T ]) (W ⦂∀ Aʳ [ U ])
           (all-rel w⪰ R downR T U)
-  𝒱-monotone A B (⊑-∀ Aˡ Aʳ p) (suc k) dir w V W
-    (vV , vW , (V⊢ , W⊢) , all-rel) =
-    vV , vW , (V⊢ , W⊢) ,
-      λ {w′} w⪰ (R : Rel) (downR : DownClosed R) T U →
-        ℰ-monotone _ _ p (suc k) dir (extendWorld w′ R downR)
-          (V ⦂∀ Aˡ [ T ]) (W ⦂∀ Aʳ [ U ])
-          (all-rel w⪰ R downR T U)
-  𝒱-monotone .(`∀ _) B (⊑-ν Aˡ Bʳ p) zero dir w V W
+  𝒱-monotone .(`∀ _) B (⊑-ν Aˡ Bʳ p) k dir w V W
     (vV , vW , (V⊢ , W⊢) , nu-rel) =
     vV , vW , (V⊢ , W⊢) ,
       λ {w′} w⪰ (R : Rel) (downR : DownClosed R) →
-        ℰ-monotone _ _ p zero dir (extendWorld w′ R downR)
-          (V ⦂∀ Aˡ [ ｀ length (Σˡ w′) ]) W
-          (nu-rel w⪰ R downR)
-  𝒱-monotone .(`∀ _) B (⊑-ν Aˡ Bʳ p) (suc k) dir w V W
-    (vV , vW , (V⊢ , W⊢) , nu-rel) =
-    vV , vW , (V⊢ , W⊢) ,
-      λ {w′} w⪰ (R : Rel) (downR : DownClosed R) →
-        ℰ-monotone _ _ p (suc k) dir (extendWorld w′ R downR)
+        ℰ-monotone _ _ p k dir (extendWorld w′ R downR)
           (V ⦂∀ Aˡ [ ｀ length (Σˡ w′) ]) W
           (nu-rel w⪰ R downR)
 
-  ℰ-monotone : ∀ A B (p : A ⊑ B) k dir w Mˡ Mʳ
-    → ℰ p (suc k) dir w Mˡ Mʳ
-    → ℰ p k dir w Mˡ Mʳ
+  ℰ-monotone :
+    ∀ A B (p : A ⊑ B) k dir w Mˡ Mʳ →
+    ℰ p (suc k) dir w Mˡ Mʳ →
+    ℰ p k dir w Mˡ Mʳ
   ℰ-monotone A B p zero ≼ w Mˡ Mʳ ((Mˡ⊢ , Mʳ⊢) , rel) =
     (Mˡ⊢ , Mʳ⊢) , lift⊤
   ℰ-monotone A B p zero ≽ w Mˡ Mʳ ((Mˡ⊢ , Mʳ⊢) , rel) =
@@ -1142,11 +894,7 @@ mutual
     ((Mˡ⊢ , Mʳ⊢) , inj₁ (Σˡ′ , wfΣˡ′ , Mˡ′ , step , rel′)) =
     (Mˡ⊢ , Mʳ⊢) ,
       inj₁ (Σˡ′ , wfΣˡ′ , Mˡ′ , step ,
-        ℰ-sem→lower {n = suc k} <′-base {p = p} {dir = ≼}
-          {w = mkWorldˡ w Σˡ′ wfΣˡ′} {Mˡ = Mˡ′} {Mʳ = Mʳ}
-          (ℰ-monotone A B p k ≼ (mkWorldˡ w Σˡ′ wfΣˡ′) Mˡ′ Mʳ
-            (ℰ-lower→sem {n = suc (suc k)} <′-base {p = p} {dir = ≼}
-              {w = mkWorldˡ w Σˡ′ wfΣˡ′} {Mˡ = Mˡ′} {Mʳ = Mʳ} rel′)))
+        ℰ-monotone A B p k ≼ (mkWorldˡ w Σˡ′ wfΣˡ′) Mˡ′ Mʳ rel′)
   ℰ-monotone A B p (suc k) ≼ w Mˡ Mʳ
     ((Mˡ⊢ , Mʳ⊢) , inj₂ (inj₁ (Σʳ′ , wfΣʳ′ , ℓ , blame↠))) =
     (Mˡ⊢ , Mʳ⊢) , inj₂ (inj₁ (Σʳ′ , wfΣʳ′ , ℓ , blame↠))
@@ -1155,20 +903,12 @@ mutual
       inj₂ (inj₂ (vMˡ , Σʳ′ , wfΣʳ′ , Wʳ , steps , Vrel))) =
     (Mˡ⊢ , Mʳ⊢) ,
       inj₂ (inj₂ (vMˡ , Σʳ′ , wfΣʳ′ , Wʳ , steps ,
-        𝒱-sem→lower {n = suc k} <′-base {p = p} {dir = ≼}
-          {w = mkWorldʳ w Σʳ′ wfΣʳ′} {V = Mˡ} {W = Wʳ}
-          (𝒱-monotone A B p k ≼ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Wʳ
-            (𝒱-lower→sem {n = suc (suc k)} <′-base {p = p} {dir = ≼}
-              {w = mkWorldʳ w Σʳ′ wfΣʳ′} {V = Mˡ} {W = Wʳ} Vrel))))
+        𝒱-monotone A B p k ≼ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Wʳ Vrel))
   ℰ-monotone A B p (suc k) ≽ w Mˡ Mʳ
     ((Mˡ⊢ , Mʳ⊢) , inj₁ (Σʳ′ , wfΣʳ′ , Mʳ′ , step , rel′)) =
     (Mˡ⊢ , Mʳ⊢) ,
       inj₁ (Σʳ′ , wfΣʳ′ , Mʳ′ , step ,
-        ℰ-sem→lower {n = suc k} <′-base {p = p} {dir = ≽}
-          {w = mkWorldʳ w Σʳ′ wfΣʳ′} {Mˡ = Mˡ} {Mʳ = Mʳ′}
-          (ℰ-monotone A B p k ≽ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Mʳ′
-            (ℰ-lower→sem {n = suc (suc k)} <′-base {p = p} {dir = ≽}
-              {w = mkWorldʳ w Σʳ′ wfΣʳ′} {Mˡ = Mˡ} {Mʳ = Mʳ′} rel′)))
+        ℰ-monotone A B p k ≽ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Mʳ′ rel′)
   ℰ-monotone A B p (suc k) ≽ w Mˡ Mʳ
     ((Mˡ⊢ , Mʳ⊢) , inj₂ (inj₁ (Σʳ′ , wfΣʳ′ , ℓ , blame↠))) =
     (Mˡ⊢ , Mʳ⊢) , inj₂ (inj₁ (Σʳ′ , wfΣʳ′ , ℓ , blame↠))
@@ -1177,8 +917,34 @@ mutual
       inj₂ (inj₂ (vMʳ , Σˡ′ , wfΣˡ′ , Wˡ , steps , Vrel))) =
     (Mˡ⊢ , Mʳ⊢) ,
       inj₂ (inj₂ (vMʳ , Σˡ′ , wfΣˡ′ , Wˡ , steps ,
-        𝒱-sem→lower {n = suc k} <′-base {p = p} {dir = ≽}
-          {w = mkWorldˡ w Σˡ′ wfΣˡ′} {V = Wˡ} {W = Mʳ}
-          (𝒱-monotone A B p k ≽ (mkWorldˡ w Σˡ′ wfΣˡ′) Wˡ Mʳ
-            (𝒱-lower→sem {n = suc (suc k)} <′-base {p = p} {dir = ≽}
-              {w = mkWorldˡ w Σˡ′ wfΣˡ′} {V = Wˡ} {W = Mʳ} Vrel))))
+        𝒱-monotone A B p k ≽ (mkWorldˡ w Σˡ′ wfΣˡ′) Wˡ Mʳ Vrel))
+
+𝒱-lower :
+  ∀ {n j A B} (j<n : j <′ n) {p : A ⊑ B} {dir w V W} →
+  𝒱 p n dir w V W →
+  𝒱 p j dir w V W
+𝒱-lower {n = zero} (≤′-reflexive ()) rel
+𝒱-lower
+    {n = suc n} {A = A} {B = B} <′-base
+    {p = p} {dir = dir} {w = w} {V = V} {W = W} rel =
+  𝒱-monotone A B p n dir w V W rel
+𝒱-lower
+    {n = suc n} {A = A} {B = B} (≤′-step j<n)
+    {p = p} {dir = dir} {w = w} {V = V} {W = W} rel =
+  𝒱-lower j<n {p = p} {dir = dir} {w = w} {V = V} {W = W}
+    (𝒱-monotone A B p n dir w V W rel)
+
+ℰ-lower :
+  ∀ {n j A B} (j<n : j <′ n) {p : A ⊑ B} {dir w Mˡ Mʳ} →
+  ℰ p n dir w Mˡ Mʳ →
+  ℰ p j dir w Mˡ Mʳ
+ℰ-lower {n = zero} (≤′-reflexive ()) rel
+ℰ-lower
+    {n = suc n} {A = A} {B = B} <′-base
+    {p = p} {dir = dir} {w = w} {Mˡ = Mˡ} {Mʳ = Mʳ} rel =
+  ℰ-monotone A B p n dir w Mˡ Mʳ rel
+ℰ-lower
+    {n = suc n} {A = A} {B = B} (≤′-step j<n)
+    {p = p} {dir = dir} {w = w} {Mˡ = Mˡ} {Mʳ = Mʳ} rel =
+  ℰ-lower j<n {p = p} {dir = dir} {w = w} {Mˡ = Mˡ} {Mʳ = Mʳ}
+    (ℰ-monotone A B p n dir w Mˡ Mʳ rel)

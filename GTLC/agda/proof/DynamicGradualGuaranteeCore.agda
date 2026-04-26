@@ -1,4 +1,8 @@
-module DynamicGradualGuaranteeCore where
+module proof.DynamicGradualGuaranteeCore where
+
+-- File Charter:
+--   * Private core lemmas for dynamic gradual guarantee proofs.
+--   * Re-exported by `proof.DynamicGradualGuarantee`.
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; _≢_)
 open import Agda.Builtin.List using ([]; _∷_)
@@ -12,6 +16,7 @@ open import Types
 open import Contexts
 open import CastCalculus
 open import Coercions
+open import proof.CastCalculusMeta
 
 value-not-blame : ∀ {ℓ} → Valueᶜ (blame {ℓ = ℓ}) → ⊥
 value-not-blame ()

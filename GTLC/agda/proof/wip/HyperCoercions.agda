@@ -1,4 +1,8 @@
-module HyperCoercions where
+module proof.wip.HyperCoercions where
+
+-- File Charter:
+--   * Work-in-progress hypercoercion development.
+--   * Kept outside the public metatheory surface.
 
 open import Data.Product using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)

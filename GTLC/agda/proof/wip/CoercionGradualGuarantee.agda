@@ -1,4 +1,8 @@
-module CoercionGradualGuarantee where
+module proof.wip.CoercionGradualGuarantee where
+
+-- File Charter:
+--   * Work-in-progress coercion-level gradual guarantee proofs.
+--   * Kept outside the public metatheory surface.
 
 open import Data.Product using (Σ-syntax; ∃-syntax; _×_; proj₁; proj₂; _,_)
 open import Data.Empty using (⊥; ⊥-elim)

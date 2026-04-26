@@ -1,4 +1,8 @@
-module CoercionNormalForm where
+module proof.wip.CoercionNormalForm where
+
+-- File Charter:
+--   * Work-in-progress coercion normal form development.
+--   * Kept outside the public metatheory surface.
 
 open import Data.Product using (Σ-syntax; ∃-syntax; _×_; proj₁; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)

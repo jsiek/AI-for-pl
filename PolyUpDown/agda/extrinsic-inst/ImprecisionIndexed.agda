@@ -35,7 +35,7 @@ open import Relation.Binary.PropositionalEquality
 open import Imprecision
   using
     (pred-★-bound; left-rec-⇒-bound; right-rec-⇒-bound;
-     ν-rec-bound; ∀ν-rec-bound)
+     ν-rec-bound; ∀ν-rec-bound; renameᵗ-closed-id)
 
 ------------------------------------------------------------------------
 -- Context-indexed imprecision
@@ -107,30 +107,6 @@ _⊢_⊒ᵢ_ : ICtx → Ty → Ty → Set
 ⊑ᵢ-refl {A = ★} = ⊑ᵢ-★★
 ⊑ᵢ-refl {A = A ⇒ B} = ⊑ᵢ-⇒ A A B B ⊑ᵢ-refl ⊑ᵢ-refl
 ⊑ᵢ-refl {A = `∀ A} = ⊑ᵢ-∀ A A ⊑ᵢ-refl
-
-postulate
-  ν-close-inst⊑ᵢ :
-    ∀ {Γ Ψ A B T} →
-    WfTy 0 Ψ T →
-    (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ⇑ᵗ B →
-    Γ ⊢ A [ T ]ᵗ ⊑ᵢ B
-
-record νClosedInstᵢ {Γ A B T}
-    (pν : (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ⇑ᵗ B)
-    (pT : Γ ⊢ A [ T ]ᵗ ⊑ᵢ B) : Set where
-  constructor ν-closed-instᵢ
-  field
-    ν-inst-Ψᵢ : SealCtx
-    ν-inst-wfTᵢ : WfTy 0 ν-inst-Ψᵢ T
-    ν-inst-eqᵢ : pT ≡ ν-close-inst⊑ᵢ ν-inst-wfTᵢ pν
-open νClosedInstᵢ public
-
-ν-close-inst-evidenceᵢ :
-  ∀ {Γ Ψ A B T}
-    (hT : WfTy 0 Ψ T)
-    (pν : (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ⇑ᵗ B) →
-  νClosedInstᵢ pν (ν-close-inst⊑ᵢ hT pν)
-ν-close-inst-evidenceᵢ hT pν = ν-closed-instᵢ _ hT refl
 
 νs : ℕ → ICtx → ICtx
 νs zero Γ = Γ
@@ -807,6 +783,120 @@ closeν-⊑ᵢ k (⊑ᵢ-ν A B p) =
   Γ ⊢ B ⊒ᵢ C →
   Γ ⊢ A ⊒ᵢ C
 ⊒ᵢ-trans p q = ⊑ᵢ-trans q p
+
+substVarFrom-closed :
+  ∀ k {Ψ T} →
+  WfTy 0 Ψ T →
+  substVarFrom k T k ≡ T
+substVarFrom-closed zero hT = refl
+substVarFrom-closed (suc k) hT =
+  trans (cong ⇑ᵗ (substVarFrom-closed k hT)) (renameᵗ-closed-id hT)
+
+substν-lookup :
+  ∀ k {Γ X Ψ T} →
+  WfTy 0 Ψ T →
+  insertνAt k Γ ∋ X ∶ ν-bound →
+  (substVarFrom k T X ≡ T) ⊎
+  ∃[ Y ] (Γ ∋ Y ∶ ν-bound × substVarFrom k T X ≡ ＇ Y)
+substν-lookup zero hT here = inj₁ refl
+substν-lookup zero hT (there x∈) = inj₂ (_ , x∈ , refl)
+substν-lookup (suc k) {Γ = []} hT (there x∈)
+  with substν-lookup k hT x∈
+... | inj₁ eq = inj₁ (trans (cong ⇑ᵗ eq) (renameᵗ-closed-id hT))
+... | inj₂ (_ , () , _)
+substν-lookup (suc k) {Γ = plain ∷ Γ} hT (there x∈)
+  with substν-lookup k hT x∈
+... | inj₁ eq = inj₁ (trans (cong ⇑ᵗ eq) (renameᵗ-closed-id hT))
+... | inj₂ (Y , y∈ , eq) = inj₂ (suc Y , there y∈ , cong ⇑ᵗ eq)
+substν-lookup (suc k) {Γ = ν-bound ∷ Γ} hT here =
+  inj₂ (zero , here , refl)
+substν-lookup (suc k) {Γ = ν-bound ∷ Γ} hT (there x∈)
+  with substν-lookup k hT x∈
+... | inj₁ eq = inj₁ (trans (cong ⇑ᵗ eq) (renameᵗ-closed-id hT))
+... | inj₂ (Y , y∈ , eq) = inj₂ (suc Y , there y∈ , cong ⇑ᵗ eq)
+
+substνAt-ground⊑★ :
+  ∀ k {Γ Ψ G T} →
+  WfTy 0 Ψ T →
+  Groundᵢ (insertνAt k Γ) G →
+  Γ ⊢ substᵗ (substVarFrom k T) G ⊑ᵢ ★
+substνAt-ground⊑★ k hT (ground-ν x∈)
+  with substν-lookup k hT x∈
+... | inj₁ eq = ⊑ᵢ-cast (sym eq) refl (closed-⊑★ hT)
+... | inj₂ (Y , y∈ , eq) =
+  ⊑ᵢ-cast (sym eq) refl
+    (⊑ᵢ-★ (＇ Y) (＇ Y) (ground-ν y∈) (⊑ᵢ-＇ Y))
+substνAt-ground⊑★ k hT (ground-seal α) =
+  ⊑ᵢ-★ (｀ α) (｀ α) (ground-seal α) (⊑ᵢ-｀ α)
+substνAt-ground⊑★ k hT (ground-base ι) =
+  ⊑ᵢ-★ (‵ ι) (‵ ι) (ground-base ι) (⊑ᵢ-‵ ι)
+substνAt-ground⊑★ k hT ground-fun =
+  ⊑ᵢ-★ (★ ⇒ ★) (★ ⇒ ★) ground-fun ⊑ᵢ-refl
+
+substνAt⊑ᵢ :
+  ∀ k {Γ Ψ A B T} →
+  WfTy 0 Ψ T →
+  insertνAt k Γ ⊢ A ⊑ᵢ B →
+  Γ ⊢ substᵗ (substVarFrom k T) A ⊑ᵢ substᵗ (substVarFrom k T) B
+substνAt⊑ᵢ k hT ⊑ᵢ-★★ = ⊑ᵢ-★★
+substνAt⊑ᵢ k hT (⊑ᵢ-★ A G g p) =
+  ⊑ᵢ-trans (substνAt⊑ᵢ k hT p) (substνAt-ground⊑★ k hT g)
+substνAt⊑ᵢ k hT (⊑ᵢ-＇ X) = ⊑ᵢ-refl
+substνAt⊑ᵢ k hT (⊑ᵢ-｀ α) = ⊑ᵢ-｀ α
+substνAt⊑ᵢ k hT (⊑ᵢ-‵ ι) = ⊑ᵢ-‵ ι
+substνAt⊑ᵢ k {T = T} hT (⊑ᵢ-⇒ A A′ B B′ p q) =
+  ⊑ᵢ-⇒
+    (substᵗ (substVarFrom k T) A)
+    (substᵗ (substVarFrom k T) A′)
+    (substᵗ (substVarFrom k T) B)
+    (substᵗ (substVarFrom k T) B′)
+    (substνAt⊑ᵢ k hT p)
+    (substνAt⊑ᵢ k hT q)
+substνAt⊑ᵢ k {T = T} hT (⊑ᵢ-∀ A B p) =
+  ⊑ᵢ-∀
+    (substᵗ (substVarFrom (suc k) T) A)
+    (substᵗ (substVarFrom (suc k) T) B)
+    (substνAt⊑ᵢ (suc k) hT p)
+substνAt⊑ᵢ k {T = T} hT (⊑ᵢ-ν A B p) =
+  ⊑ᵢ-ν
+    (substᵗ (substVarFrom (suc k) T) A)
+    (substᵗ (substVarFrom k T) B)
+    (⊑ᵢ-cast
+      refl
+      (substVarFrom-⇑ᵗ k T B)
+      (substνAt⊑ᵢ (suc k) hT p))
+
+substν⊑ᵢ :
+  ∀ {Γ Ψ A B T} →
+  WfTy 0 Ψ T →
+  (ν-bound ∷ Γ) ⊢ A ⊑ᵢ B →
+  Γ ⊢ A [ T ]ᵗ ⊑ᵢ B [ T ]ᵗ
+substν⊑ᵢ = substνAt⊑ᵢ zero
+
+ν-close-inst⊑ᵢ :
+  ∀ {Γ Ψ A B T} →
+  WfTy 0 Ψ T →
+  (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ⇑ᵗ B →
+  Γ ⊢ A [ T ]ᵗ ⊑ᵢ B
+ν-close-inst⊑ᵢ {B = B} {T = T} hT pν =
+  ⊑ᵢ-cast refl (open-renᵗ-suc B T) (substν⊑ᵢ hT pν)
+
+record νClosedInstᵢ {Γ A B T}
+    (pν : (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ⇑ᵗ B)
+    (pT : Γ ⊢ A [ T ]ᵗ ⊑ᵢ B) : Set where
+  constructor ν-closed-instᵢ
+  field
+    ν-inst-Ψᵢ : SealCtx
+    ν-inst-wfTᵢ : WfTy 0 ν-inst-Ψᵢ T
+    ν-inst-eqᵢ : pT ≡ ν-close-inst⊑ᵢ ν-inst-wfTᵢ pν
+open νClosedInstᵢ public
+
+ν-close-inst-evidenceᵢ :
+  ∀ {Γ Ψ A B T}
+    (hT : WfTy 0 Ψ T)
+    (pν : (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ⇑ᵗ B) →
+  νClosedInstᵢ pν (ν-close-inst⊑ᵢ hT pν)
+ν-close-inst-evidenceᵢ hT pν = ν-closed-instᵢ _ hT refl
 
 interpSeal-plains-empty : ∀ n α → interpSeal (plains n []) α ≡ α
 interpSeal-plains-empty zero α = refl

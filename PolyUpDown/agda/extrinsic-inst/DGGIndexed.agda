@@ -6,7 +6,8 @@ module DGGIndexed where
 --   * Postulates the closed fundamental theorem while
 --   * `ParametricityIndexed.agda` is still under development.
 --   * Uses the corrected imprecision orientation: the public theorem takes
---   * `M′ ⊑ M`, so `M′` is the imprecise/blame-permitted side.
+--   * `M ⊑ M′`, so `M` is less imprecise/more precise and `M′` is
+--     more imprecise/less precise.
 
 open import Data.List using (List; [])
 open import Data.Nat using (ℕ; zero; suc; _+_; _≟_; <′-base)
@@ -89,6 +90,7 @@ open import ReductionFresh
     ; _∣_—↠_∣_
     ; _∎
     ; _—→⟨_⟩_
+    ; multi-trans
     )
 open import LogicalRelationIndexed
 open import EvalPartialFresh
@@ -276,85 +278,256 @@ blame-or-step (_ —→⟨ M→N₁ ⟩ N₁↠N′)
   with step-deterministic M→N₁ M→N₂
 ... | refl , refl = blame-or-step N₁↠N′ N₂↠blame
 
+right-value-implies-left-value-or-blame :
+  ∀ {Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ Σʳ′ Mˡ Mʳ Vʳ A B}
+    {p : [] ⊢ A ⊑ᵢ B} {η₀ : List SealRel}
+    {wfΣˡ₀ : StoreWf 0 Ψˡ₀ Σˡ₀}
+    {wfΣʳ₀ : StoreWf 0 Ψʳ₀ Σʳ₀} →
+  Value Vʳ →
+  (Mʳ↠Vʳ : Σʳ₀ ∣ Mʳ —↠ Σʳ′ ∣ Vʳ) →
+  ℰ ∅ρ p (steps Mʳ↠Vʳ + suc (suc zero)) ≽
+    (mkWorld Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ wfΣˡ₀ wfΣʳ₀ η₀) Mˡ Mʳ →
+  (Σ[ Ψʳ′ ∈ SealCtx ] Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ]
+    Σ[ Σˡ′ ∈ Store ] Σ[ Ψˡ′ ∈ SealCtx ]
+    Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ] Σ[ Vˡ ∈ Term ]
+    ((Value Vˡ × (Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ Vˡ)) ×
+     𝒱 ∅ρ p 1 ≽
+       (mkWorld Ψˡ′ Ψʳ′ Σˡ′ Σʳ′ wfΣˡ′ wfΣʳ′ η₀) Vˡ Vʳ))
+  ⊎ Blames Σˡ₀ Mˡ
+right-value-implies-left-value-or-blame
+    {Ψʳ₀ = Ψʳ₀} {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀}
+    {Σʳ′ = Σʳ₀} {Vʳ = Vʳ} {p = p} {η₀ = η₀}
+    {wfΣʳ₀ = wfΣʳ₀} vVʳ (Vʳ ∎) rel
+    with proj₂ rel
+... | inj₁ (Σʳ₁ , Ψʳ₁ , wfΣʳ₁ , Mʳ₁ , Mʳ→Mʳ₁ ,
+            Σˡ₁ , Ψˡ₁ , wfΣˡ₁ , Mˡ₁ , Mˡ↠Mˡ₁ , rel′) =
+  ⊥-elim (value-no-step vVʳ Mʳ→Mʳ₁)
+... | inj₂ (inj₁ (Σˡᵇ , Ψˡᵇ , wfΣˡᵇ , ℓ , Mˡ↠blame)) =
+  inj₂ (Σˡᵇ , ℓ , Mˡ↠blame)
+... | inj₂ (inj₂ (vMʳ , Σˡ′ , Ψˡ′ , wfΣˡ′ , Vˡ , Mˡ↠Vˡ , Vrel)) =
+  inj₁
+    (Ψʳ₀ , wfΣʳ₀ , Σˡ′ , Ψˡ′ , wfΣˡ′ , Vˡ ,
+     ((proj₁ (proj₁ Vrel) , Mˡ↠Vˡ) , Vrel))
+right-value-implies-left-value-or-blame
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    vVʳ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Vʳ) rel
+    with proj₂ rel
+... | inj₁ (Σʳ₁ , Ψʳ₁ , wfΣʳ₁ , Mʳ₁′ , Mʳ→Mʳ₁′ ,
+            Σˡ₁ , Ψˡ₁ , wfΣˡ₁ , Mˡ₁ , Mˡ↠Mˡ₁ , rel′)
+    with step-deterministic Mʳ→Mʳ₁ Mʳ→Mʳ₁′
+... | refl , refl
+    with right-value-implies-left-value-or-blame vVʳ Mʳ₁↠Vʳ rel′
+... | inj₁ (Ψʳ′ , wfΣʳ′ , Σˡ′ , Ψˡ′ , wfΣˡ′ , Vˡ ,
+            ((vVˡ , Mˡ₁↠Vˡ) , Vrel)) =
+  inj₁
+    (Ψʳ′ , wfΣʳ′ , Σˡ′ , Ψˡ′ , wfΣˡ′ , Vˡ ,
+     ((vVˡ , multi-trans Mˡ↠Mˡ₁ Mˡ₁↠Vˡ) , Vrel))
+... | inj₂ (Σˡᵇ , ℓ , Mˡ₁↠blame) =
+  inj₂ (Σˡᵇ , ℓ , multi-trans Mˡ↠Mˡ₁ Mˡ₁↠blame)
+right-value-implies-left-value-or-blame
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    vVʳ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Vʳ) rel
+    | inj₂ (inj₁ (Σˡᵇ , Ψˡᵇ , wfΣˡᵇ , ℓ , Mˡ↠blame)) =
+  inj₂ (Σˡᵇ , ℓ , Mˡ↠blame)
+right-value-implies-left-value-or-blame
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    vVʳ (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠Vʳ) rel
+    | inj₂ (inj₂ (vMʳ , Σˡ′ , Ψˡ′ , wfΣˡ′ , Vˡ , Mˡ↠Vˡ , Vrel)) =
+  ⊥-elim (value-no-step vMʳ Mʳ→Mʳ₁)
 
-postulate
-  right-value-catchup-or-blame :
-    ∀ {Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ Σʳ′ Mˡ Mʳ Vʳ A B}
-      {p : [] ⊢ A ⊑ᵢ B} {η₀ : List SealRel}
-      {wfΣˡ₀ : StoreWf 0 Ψˡ₀ Σˡ₀}
-      {wfΣʳ₀ : StoreWf 0 Ψʳ₀ Σʳ₀} →
-    Value Vʳ →
-    (Mʳ↠Vʳ : Σʳ₀ ∣ Mʳ —↠ Σʳ′ ∣ Vʳ) →
-    ℰ ∅ρ p (steps Mʳ↠Vʳ + suc zero) ≽
-      (mkWorld Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ wfΣˡ₀ wfΣʳ₀ η₀) Mˡ Mʳ →
-    (Σ[ Ψʳ′ ∈ SealCtx ] Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ]
-      Σ[ Σˡ′ ∈ Store ] Σ[ Ψˡ′ ∈ SealCtx ]
-      Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ] Σ[ Vˡ ∈ Term ]
-      ((Value Vˡ × (Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ Vˡ)) ×
-       𝒱 ∅ρ p 1 ≽
-         (mkWorld Ψˡ′ Ψʳ′ Σˡ′ Σʳ′ wfΣˡ′ wfΣʳ′ η₀) Vˡ Vʳ))
-    ⊎ Blames Σˡ₀ Mˡ
+left-value-implies-right-value :
+  ∀ {Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ Σˡ′ Mˡ Mʳ Vˡ A B}
+    {p : [] ⊢ A ⊑ᵢ B} {η₀ : List SealRel}
+    {wfΣˡ₀ : StoreWf 0 Ψˡ₀ Σˡ₀}
+    {wfΣʳ₀ : StoreWf 0 Ψʳ₀ Σʳ₀} →
+  Value Vˡ →
+  (Mˡ↠Vˡ : Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ Vˡ) →
+  ℰ ∅ρ p (steps Mˡ↠Vˡ + suc (suc zero)) ≼
+    (mkWorld Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ wfΣˡ₀ wfΣʳ₀ η₀) Mˡ Mʳ →
+  Σ[ Ψˡ′ ∈ SealCtx ] Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ]
+    Σ[ Σʳ′ ∈ Store ] Σ[ Ψʳ′ ∈ SealCtx ]
+    Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ] Σ[ Vʳ ∈ Term ]
+    (Value Vʳ × (Σʳ₀ ∣ Mʳ —↠ Σʳ′ ∣ Vʳ) ×
+     𝒱 ∅ρ p 1 ≼
+       (mkWorld Ψˡ′ Ψʳ′ Σˡ′ Σʳ′ wfΣˡ′ wfΣʳ′ η₀) Vˡ Vʳ)
+left-value-implies-right-value
+    {Ψˡ₀ = Ψˡ₀} {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀}
+    {Σˡ′ = Σˡ₀} {Vˡ = Vˡ} {p = p} {η₀ = η₀}
+    {wfΣˡ₀ = wfΣˡ₀} vVˡ (Vˡ ∎) rel
+    with proj₂ rel
+... | inj₁ (Σˡ₁ , Ψˡ₁ , wfΣˡ₁ , Mˡ₁ , Mˡ→Mˡ₁ ,
+            Σʳ₁ , Ψʳ₁ , wfΣʳ₁ , Mʳ₁ , Mʳ↠Mʳ₁ , rel′) =
+  ⊥-elim (value-no-step vVˡ Mˡ→Mˡ₁)
+... | inj₂ (inj₁ (Σˡᵇ , Ψˡᵇ , wfΣˡᵇ , ℓ , Mˡ↠blame)) =
+  ⊥-elim (value-vs-blame vVˡ (↠-refl {Σ = Σˡ₀} {M = Vˡ}) Mˡ↠blame)
+... | inj₂ (inj₂ (vMˡ , Σʳ′ , Ψʳ′ , wfΣʳ′ , Vʳ , Mʳ↠Vʳ , Vrel)) =
+  Ψˡ₀ , wfΣˡ₀ , Σʳ′ , Ψʳ′ , wfΣʳ′ , Vʳ ,
+  (proj₁ (proj₂ (proj₁ Vrel)) , Mʳ↠Vʳ , Vrel)
+left-value-implies-right-value
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    vVˡ (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠Vˡ) rel
+    with proj₂ rel
+... | inj₁ (Σˡ₁ , Ψˡ₁ , wfΣˡ₁ , Mˡ₁′ , Mˡ→Mˡ₁′ ,
+            Σʳ₁ , Ψʳ₁ , wfΣʳ₁ , Mʳ₁ , Mʳ↠Mʳ₁ , rel′)
+    with step-deterministic Mˡ→Mˡ₁ Mˡ→Mˡ₁′
+... | refl , refl
+    with left-value-implies-right-value vVˡ Mˡ₁↠Vˡ rel′
+... | Ψˡ′ , wfΣˡ′ , Σʳ′ , Ψʳ′ , wfΣʳ′ , Vʳ ,
+      (vVʳ , Mʳ₁↠Vʳ , Vrel) =
+  Ψˡ′ , wfΣˡ′ , Σʳ′ , Ψʳ′ , wfΣʳ′ , Vʳ ,
+  (vVʳ , multi-trans Mʳ↠Mʳ₁ Mʳ₁↠Vʳ , Vrel)
+left-value-implies-right-value
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    vVˡ (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠Vˡ) rel
+    | inj₂ (inj₁ (Σˡᵇ , Ψˡᵇ , wfΣˡᵇ , ℓ , Mˡ↠blame)) =
+  ⊥-elim
+    (value-vs-blame vVˡ (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠Vˡ) Mˡ↠blame)
+left-value-implies-right-value
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    vVˡ (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠Vˡ) rel
+    | inj₂ (inj₂ (vMˡ , Σʳ′ , Ψʳ′ , wfΣʳ′ , Vʳ , Mʳ↠Vʳ , Vrel)) =
+  ⊥-elim (value-no-step vMˡ Mˡ→Mˡ₁)
 
-  left-value-catchup :
-    ∀ {Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ Σˡ′ Mˡ Mʳ Vˡ A B}
-      {p : [] ⊢ A ⊑ᵢ B} {η₀ : List SealRel}
-      {wfΣˡ₀ : StoreWf 0 Ψˡ₀ Σˡ₀}
-      {wfΣʳ₀ : StoreWf 0 Ψʳ₀ Σʳ₀} →
-    Value Vˡ →
-    (Mˡ↠Vˡ : Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ Vˡ) →
-    ℰ ∅ρ p (steps Mˡ↠Vˡ + suc zero) ≼
-      (mkWorld Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ wfΣˡ₀ wfΣʳ₀ η₀) Mˡ Mʳ →
-    Σ[ Ψˡ′ ∈ SealCtx ] Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ]
-      Σ[ Σʳ′ ∈ Store ] Σ[ Ψʳ′ ∈ SealCtx ]
-      Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ] Σ[ Vʳ ∈ Term ]
-      (Value Vʳ × (Σʳ₀ ∣ Mʳ —↠ Σʳ′ ∣ Vʳ) ×
-       𝒱 ∅ρ p 1 ≼
-         (mkWorld Ψˡ′ Ψʳ′ Σˡ′ Σʳ′ wfΣˡ′ wfΣʳ′ η₀) Vˡ Vʳ)
+right-diverges-implies-left-blame-or-step :
+  ∀ {Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ Σˡ′ Mˡ Mʳ Nˡ A B}
+    {p : [] ⊢ A ⊑ᵢ B} {η₀ : List SealRel}
+    {wfΣˡ₀ : StoreWf 0 Ψˡ₀ Σˡ₀}
+    {wfΣʳ₀ : StoreWf 0 Ψʳ₀ Σʳ₀} →
+  Diverges Σʳ₀ Mʳ →
+  (Mˡ↠Nˡ : Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ Nˡ) →
+  ℰ ∅ρ p (steps Mˡ↠Nˡ + suc zero) ≼
+    (mkWorld Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ wfΣˡ₀ wfΣʳ₀ η₀) Mˡ Mʳ →
+  Blame Nˡ ⊎
+  (∃[ Σˡ″ ] ∃[ Nˡ″ ] (Σˡ′ ∣ Nˡ —→ Σˡ″ ∣ Nˡ″))
+right-diverges-implies-left-blame-or-step {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀}
+    div (Nˡ ∎) rel
+    with proj₂ rel
+... | inj₁ (Σˡ₁ , Ψˡ₁ , wfΣˡ₁ , Mˡ₁ , Mˡ→Mˡ₁ ,
+            Σʳ₁ , Ψʳ₁ , wfΣʳ₁ , Mʳ₁ , Mʳ↠Mʳ₁ , rel′) =
+  inj₂ (Σˡ₁ , Mˡ₁ , Mˡ→Mˡ₁)
+... | inj₂ (inj₁ (Σˡᵇ , Ψˡᵇ , wfΣˡᵇ , ℓ , Mˡ↠blame)) =
+  blame-or-step (↠-refl {Σ = Σˡ₀} {M = Nˡ}) Mˡ↠blame
+... | inj₂ (inj₂
+      (vMˡ , Σʳ′ , Ψʳ′ , wfΣʳ′ , Vʳ , Mʳ↠Vʳ , lift (_ , vVʳ , _))) =
+  ⊥-elim (div (Σʳ′ , Vʳ , (Mʳ↠Vʳ , inj₁ vVʳ)))
+right-diverges-implies-left-blame-or-step
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    div (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠Nˡ) rel
+    with proj₂ rel
+... | inj₁ (Σˡ₁ , Ψˡ₁ , wfΣˡ₁ , Mˡ₁′ , Mˡ→Mˡ₁′ ,
+            Σʳ₁ , Ψʳ₁ , wfΣʳ₁ , Mʳ₁ , Mʳ↠Mʳ₁ , rel′)
+    with step-deterministic Mˡ→Mˡ₁ Mˡ→Mˡ₁′
+... | refl , refl =
+  right-diverges-implies-left-blame-or-step
+    (λ { (Σʳ′ , Vʳ , Mʳ₁↠Vʳ , conv) →
+      div (Σʳ′ , Vʳ , multi-trans Mʳ↠Mʳ₁ Mʳ₁↠Vʳ , conv) })
+    Mˡ₁↠Nˡ
+    rel′
+right-diverges-implies-left-blame-or-step
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    div (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠Nˡ) rel
+    | inj₂ (inj₁ (Σˡᵇ , Ψˡᵇ , wfΣˡᵇ , ℓ , Mˡ↠blame)) =
+  blame-or-step (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠Nˡ) Mˡ↠blame
+right-diverges-implies-left-blame-or-step
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    div (_ —→⟨ Mˡ→Mˡ₁ ⟩ Mˡ₁↠Nˡ) rel
+    | inj₂ (inj₂ (vMˡ , Σʳ′ , Ψʳ′ , wfΣʳ′ , Vʳ , Mʳ↠Vʳ , Vrel)) =
+  ⊥-elim (value-no-step vMˡ Mˡ→Mˡ₁)
 
-  left-diverge-or-blame :
-    ∀ {Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ Σˡ′ Mˡ Mʳ Nˡ A B}
-      {p : [] ⊢ A ⊑ᵢ B} {η₀ : List SealRel}
-      {wfΣˡ₀ : StoreWf 0 Ψˡ₀ Σˡ₀}
-      {wfΣʳ₀ : StoreWf 0 Ψʳ₀ Σʳ₀} →
-    Diverges Σʳ₀ Mʳ →
-    (Mˡ↠Nˡ : Σˡ₀ ∣ Mˡ —↠ Σˡ′ ∣ Nˡ) →
-    ℰ ∅ρ p (steps Mˡ↠Nˡ + suc zero) ≼
-      (mkWorld Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ wfΣˡ₀ wfΣʳ₀ η₀) Mˡ Mʳ →
-    Blame Nˡ ⊎
-    (∃[ Σˡ″ ] ∃[ Nˡ″ ] (Σˡ′ ∣ Nˡ —→ Σˡ″ ∣ Nˡ″))
+right-blame-implies-left-blame :
+  ∀ {Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ Σʳ′ Mˡ Mʳ A B}
+    {p : [] ⊢ A ⊑ᵢ B} {η₀ : List SealRel}
+    {wfΣˡ₀ : StoreWf 0 Ψˡ₀ Σˡ₀}
+    {wfΣʳ₀ : StoreWf 0 Ψʳ₀ Σʳ₀} {ℓ : Label} →
+  (Mʳ↠blame : Σʳ₀ ∣ Mʳ —↠ Σʳ′ ∣ blame ℓ) →
+  ℰ ∅ρ p (steps Mʳ↠blame + suc zero) ≽
+    (mkWorld Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ wfΣˡ₀ wfΣʳ₀ η₀) Mˡ Mʳ →
+  Blames Σˡ₀ Mˡ
+right-blame-implies-left-blame {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀}
+    (blame ℓ ∎) rel
+    with proj₂ rel
+... | inj₁ (Σʳ₁ , Ψʳ₁ , wfΣʳ₁ , Mʳ₁ , Mʳ→Mʳ₁ ,
+            Σˡ₁ , Ψˡ₁ , wfΣˡ₁ , Mˡ₁ , Mˡ↠Mˡ₁ , rel′) =
+  ⊥-elim (blame-no-step Mʳ→Mʳ₁)
+... | inj₂ (inj₁ (Σˡᵇ , Ψˡᵇ , wfΣˡᵇ , ℓˡ , Mˡ↠blame)) =
+  Σˡᵇ , ℓˡ , Mˡ↠blame
+... | inj₂ (inj₂ (vMʳ , Σˡ′ , Ψˡ′ , wfΣˡ′ , Vˡ , Mˡ↠Vˡ , Vrel)) =
+  ⊥-elim (value≢blame vMʳ refl)
+right-blame-implies-left-blame
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠blame) rel
+    with proj₂ rel
+... | inj₁ (Σʳ₁ , Ψʳ₁ , wfΣʳ₁ , Mʳ₁′ , Mʳ→Mʳ₁′ ,
+            Σˡ₁ , Ψˡ₁ , wfΣˡ₁ , Mˡ₁ , Mˡ↠Mˡ₁ , rel′)
+    with step-deterministic Mʳ→Mʳ₁ Mʳ→Mʳ₁′
+... | refl , refl
+    with right-blame-implies-left-blame Mʳ₁↠blame rel′
+... | Σˡᵇ , ℓˡ , Mˡ₁↠blame =
+  Σˡᵇ , ℓˡ , multi-trans Mˡ↠Mˡ₁ Mˡ₁↠blame
+right-blame-implies-left-blame
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠blame) rel
+    | inj₂ (inj₁ (Σˡᵇ , Ψˡᵇ , wfΣˡᵇ , ℓˡ , Mˡ↠blame)) =
+  Σˡᵇ , ℓˡ , Mˡ↠blame
+right-blame-implies-left-blame
+    {Σˡ₀ = Σˡ₀} {Σʳ₀ = Σʳ₀} {A = A} {B = B} {p = p} {η₀ = η₀}
+    (_ —→⟨ Mʳ→Mʳ₁ ⟩ Mʳ₁↠blame) rel
+    | inj₂ (inj₂ (vMʳ , Σˡ′ , Ψˡ′ , wfΣˡ′ , Vˡ , Mˡ↠Vˡ , Vrel)) =
+  ⊥-elim (value-no-step vMʳ Mʳ→Mʳ₁)
 
-  right-converges-implies-left-converges :
-    ∀ {Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ Mˡ Mʳ A B}
-      {p : [] ⊢ A ⊑ᵢ B} {η₀ : List SealRel}
-      {wfΣˡ₀ : StoreWf 0 Ψˡ₀ Σˡ₀}
-      {wfΣʳ₀ : StoreWf 0 Ψʳ₀ Σʳ₀} →
-    Converges Σʳ₀ Mʳ →
-    (∀ n → ℰ ∅ρ p n ≽
-      (mkWorld Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ wfΣˡ₀ wfΣʳ₀ η₀) Mˡ Mʳ) →
-    Converges Σˡ₀ Mˡ
+right-converges-implies-left-converges :
+  ∀ {Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ Mˡ Mʳ A B}
+    {p : [] ⊢ A ⊑ᵢ B} {η₀ : List SealRel}
+    {wfΣˡ₀ : StoreWf 0 Ψˡ₀ Σˡ₀}
+    {wfΣʳ₀ : StoreWf 0 Ψʳ₀ Σʳ₀} →
+  Converges Σʳ₀ Mʳ →
+  (∀ n → ℰ ∅ρ p n ≽
+    (mkWorld Ψˡ₀ Ψʳ₀ Σˡ₀ Σʳ₀ wfΣˡ₀ wfΣʳ₀ η₀) Mˡ Mʳ) →
+  Converges Σˡ₀ Mˡ
+right-converges-implies-left-converges
+    {Σˡ₀ = Σˡ₀} (Σʳ′ , Vʳ , Mʳ↠Vʳ , inj₁ vVʳ) rel =
+  result (right-value-implies-left-value-or-blame vVʳ Mʳ↠Vʳ
+    (rel (steps Mʳ↠Vʳ + suc (suc zero))))
+  where
+  result :
+    _ →
+    Converges Σˡ₀ _
+  result
+      (inj₁
+        (Ψʳ′ , wfΣʳ′ , Σˡ′ , Ψˡ′ , wfΣˡ′ , Vˡ ,
+         ((vVˡ , Mˡ↠Vˡ) , Vrel))) =
+    Σˡ′ , Vˡ , Mˡ↠Vˡ , inj₁ vVˡ
+  result (inj₂ (Σˡᵇ , ℓ , Mˡ↠blame)) =
+    Σˡᵇ , blame ℓ , Mˡ↠blame , inj₂ (ℓ , refl)
+right-converges-implies-left-converges
+    {Σˡ₀ = Σˡ₀} (Σʳ′ , .(blame ℓ) , Mʳ↠blame , inj₂ (ℓ , refl)) rel
+    with right-blame-implies-left-blame Mʳ↠blame
+      (rel (steps Mʳ↠blame + suc zero))
+... | Σˡᵇ , ℓˡ , Mˡ↠blame =
+  Σˡᵇ , blame ℓˡ , Mˡ↠blame , inj₂ (ℓˡ , refl)
 
 dynamic-gradual-guarantee-part1 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M′ ⊑ M ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
   (∀ {Σˡ′ Vˡ} →
      Value Vˡ →
-     (M′↠Vˡ : Σ ∣ closeˡ M′ —↠ Σˡ′ ∣ Vˡ) →
+     (M↠Vˡ : Σ ∣ closeˡ M —↠ Σˡ′ ∣ Vˡ) →
      Σ[ Ψˡ′ ∈ SealCtx ] Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ]
        Σ[ Σʳ′ ∈ Store ] Σ[ Ψʳ′ ∈ SealCtx ]
        Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ] Σ[ Vʳ ∈ Term ]
-       (Value Vʳ × (Σ ∣ closeʳ M —↠ Σʳ′ ∣ Vʳ) ×
+       (Value Vʳ × (Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ Vʳ) ×
         𝒱 ∅ρ p 1 ≼
           (mkWorld Ψˡ′ Ψʳ′ Σˡ′ Σʳ′ wfΣˡ′ wfΣʳ′ []) Vˡ Vʳ))
-dynamic-gradual-guarantee-part1 wfΣ rel vVˡ M′↠Vˡ =
-  left-value-catchup vVˡ M′↠Vˡ
-    (fundamental ≼ wfΣ rel (steps M′↠Vˡ + suc zero))
+dynamic-gradual-guarantee-part1 wfΣ rel vVˡ M↠Vˡ =
+  left-value-implies-right-value vVˡ M↠Vˡ
+    (fundamental ≼ wfΣ rel (steps M↠Vˡ + suc (suc zero)))
 
 dynamic-gradual-guarantee-part2 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M′ ⊑ M ⦂ p →
-  (Diverges Σ (closeˡ M′) → Diverges Σ (closeʳ M))
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  (Diverges Σ (closeˡ M) → Diverges Σ (closeʳ M′))
 dynamic-gradual-guarantee-part2 wfΣ rel divˡ convʳ =
   divˡ (right-converges-implies-left-converges convʳ
     (λ n → fundamental ≽ wfΣ rel n))
@@ -362,58 +535,58 @@ dynamic-gradual-guarantee-part2 wfΣ rel divˡ convʳ =
 dynamic-gradual-guarantee-part3 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M′ ⊑ M ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
   (∀ {Σʳ′ Vʳ} →
      Value Vʳ →
-     (M↠Vʳ : Σ ∣ closeʳ M —↠ Σʳ′ ∣ Vʳ) →
+     (M′↠Vʳ : Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ Vʳ) →
      (Σ[ Ψʳ′ ∈ SealCtx ] Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ]
        Σ[ Σˡ′ ∈ Store ] Σ[ Ψˡ′ ∈ SealCtx ]
        Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ] Σ[ Vˡ ∈ Term ]
-       ((Value Vˡ × (Σ ∣ closeˡ M′ —↠ Σˡ′ ∣ Vˡ)) ×
+       ((Value Vˡ × (Σ ∣ closeˡ M —↠ Σˡ′ ∣ Vˡ)) ×
         𝒱 ∅ρ p 1 ≽
           (mkWorld Ψˡ′ Ψʳ′ Σˡ′ Σʳ′ wfΣˡ′ wfΣʳ′ []) Vˡ Vʳ))
-     ⊎ Blames Σ (closeˡ M′))
-dynamic-gradual-guarantee-part3 wfΣ rel vVʳ M↠Vʳ =
-  right-value-catchup-or-blame vVʳ M↠Vʳ
-    (fundamental ≽ wfΣ rel (steps M↠Vʳ + suc zero))
+     ⊎ Blames Σ (closeˡ M))
+dynamic-gradual-guarantee-part3 wfΣ rel vVʳ M′↠Vʳ =
+  right-value-implies-left-value-or-blame vVʳ M′↠Vʳ
+    (fundamental ≽ wfΣ rel (steps M′↠Vʳ + suc (suc zero)))
 
 dynamic-gradual-guarantee-part4 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M′ ⊑ M ⦂ p →
-  (Diverges Σ (closeʳ M) → DivergeOrBlame Σ (closeˡ M′))
-dynamic-gradual-guarantee-part4 wfΣ rel divʳ Σˡ′ Nˡ M′↠Nˡ =
-  left-diverge-or-blame divʳ M′↠Nˡ
-    (fundamental ≼ wfΣ rel (steps M′↠Nˡ + suc zero))
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  (Diverges Σ (closeʳ M′) → DivergeOrBlame Σ (closeˡ M))
+dynamic-gradual-guarantee-part4 wfΣ rel divʳ Σˡ′ Nˡ M↠Nˡ =
+  right-diverges-implies-left-blame-or-step divʳ M↠Nˡ
+    (fundamental ≼ wfΣ rel (steps M↠Nˡ + suc zero))
 
 dynamic-gradual-guarantee :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M′ ⊑ M ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
   (∀ {Σˡ′ Vˡ} →
      Value Vˡ →
-     (M′↠Vˡ : Σ ∣ closeˡ M′ —↠ Σˡ′ ∣ Vˡ) →
+     (M↠Vˡ : Σ ∣ closeˡ M —↠ Σˡ′ ∣ Vˡ) →
      Σ[ Ψˡ′ ∈ SealCtx ] Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ]
        Σ[ Σʳ′ ∈ Store ] Σ[ Ψʳ′ ∈ SealCtx ]
        Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ] Σ[ Vʳ ∈ Term ]
-       (Value Vʳ × (Σ ∣ closeʳ M —↠ Σʳ′ ∣ Vʳ) ×
+       (Value Vʳ × (Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ Vʳ) ×
         𝒱 ∅ρ p 1 ≼
           (mkWorld Ψˡ′ Ψʳ′ Σˡ′ Σʳ′ wfΣˡ′ wfΣʳ′ []) Vˡ Vʳ))
   ×
-  (Diverges Σ (closeˡ M′) → Diverges Σ (closeʳ M))
+  (Diverges Σ (closeˡ M) → Diverges Σ (closeʳ M′))
   ×
   (∀ {Σʳ′ Vʳ} →
      Value Vʳ →
-     (M↠Vʳ : Σ ∣ closeʳ M —↠ Σʳ′ ∣ Vʳ) →
+     (M′↠Vʳ : Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ Vʳ) →
      (Σ[ Ψʳ′ ∈ SealCtx ] Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ]
        Σ[ Σˡ′ ∈ Store ] Σ[ Ψˡ′ ∈ SealCtx ]
        Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ] Σ[ Vˡ ∈ Term ]
-       ((Value Vˡ × (Σ ∣ closeˡ M′ —↠ Σˡ′ ∣ Vˡ)) ×
+       ((Value Vˡ × (Σ ∣ closeˡ M —↠ Σˡ′ ∣ Vˡ)) ×
         𝒱 ∅ρ p 1 ≽
           (mkWorld Ψˡ′ Ψʳ′ Σˡ′ Σʳ′ wfΣˡ′ wfΣʳ′ []) Vˡ Vʳ))
-     ⊎ Blames Σ (closeˡ M′))
+     ⊎ Blames Σ (closeˡ M))
   ×
-  (Diverges Σ (closeʳ M) → DivergeOrBlame Σ (closeˡ M′))
+  (Diverges Σ (closeʳ M′) → DivergeOrBlame Σ (closeˡ M))
 dynamic-gradual-guarantee wfΣ rel =
   dynamic-gradual-guarantee-part1 wfΣ rel ,
   (dynamic-gradual-guarantee-part2 wfΣ rel ,

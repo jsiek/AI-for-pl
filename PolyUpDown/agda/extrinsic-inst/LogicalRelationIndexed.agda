@@ -279,6 +279,18 @@ extendWorldν w R downR Tˡ Tʳ hTˡ hTʳ =
     (storeWf-fresh-extᴿ hTʳ (wfΣʳ w))
     (ηentry (length (Σˡ w)) (length (Σʳ w)) R downR ∷ η w)
 
+extendWorldν-⪰ :
+  ∀ {w} (R : Rel) (downR : DownClosed R) Tˡ Tʳ hTˡ hTʳ →
+  extendWorldν w R downR Tˡ Tʳ hTˡ hTʳ ⪰ w
+extendWorldν-⪰ R downR Tˡ Tʳ hTˡ hTʳ ._⪰_.growΨˡ =
+  n≤1+n _
+extendWorldν-⪰ R downR Tˡ Tʳ hTˡ hTʳ ._⪰_.growΨʳ =
+  n≤1+n _
+extendWorldν-⪰ R downR Tˡ Tʳ hTˡ hTʳ ._⪰_.growˡ = drop ⊆ˢ-refl
+extendWorldν-⪰ R downR Tˡ Tʳ hTˡ hTʳ ._⪰_.growʳ = drop ⊆ˢ-refl
+extendWorldν-⪰ R downR Tˡ Tʳ hTˡ hTʳ ._⪰_.growη =
+  η-drop ⊆η-refl
+
 mkWorldˡ :
   (w : World) →
   (Σˡ′ : Store) →
@@ -296,6 +308,32 @@ mkWorldʳ :
   World
 mkWorldʳ w Σʳ′ wfΣʳ′ =
   mkWorld (Ψˡ w) _ (Σˡ w) Σʳ′ (wfΣˡ w) wfΣʳ′ (η w)
+
+mkWorldˡʳ :
+  (w : World) →
+  (Σˡ′ : Store) →
+  ∀ {Ψˡ′} →
+  StoreWf 0 Ψˡ′ Σˡ′ →
+  (Σʳ′ : Store) →
+  ∀ {Ψʳ′} →
+  StoreWf 0 Ψʳ′ Σʳ′ →
+  World
+mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′ =
+  mkWorld _ _ Σˡ′ Σʳ′ wfΣˡ′ wfΣʳ′ (η w)
+
+extendWorldν-⪰-currentˡ :
+  ∀ {w R Tˡ Tʳ hTˡ hTʳ} (downR : DownClosed R) →
+  extendWorldν w R downR Tˡ Tʳ hTˡ hTʳ ⪰
+  mkWorldˡʳ w
+    ((length (Σˡ w) , Tˡ) ∷ Σˡ w)
+    (storeWf-fresh-extᴿ hTˡ (wfΣˡ w))
+    (Σʳ w)
+    (wfΣʳ w)
+extendWorldν-⪰-currentˡ downR ._⪰_.growΨˡ = ≤-refl
+extendWorldν-⪰-currentˡ downR ._⪰_.growΨʳ = n≤1+n _
+extendWorldν-⪰-currentˡ downR ._⪰_.growˡ = ⊆ˢ-refl
+extendWorldν-⪰-currentˡ downR ._⪰_.growʳ = drop ⊆ˢ-refl
+extendWorldν-⪰-currentˡ downR ._⪰_.growη = η-drop ⊆η-refl
 
 ℕ-payload : Term → Term → Set₁
 ℕ-payload ($ (κℕ m)) ($ (κℕ m′)) = Lift (lsuc 0ℓ) (m ≡ m′)
@@ -670,7 +708,10 @@ mutual
     (Σ[ Σˡ′ ∈ Store ] Σ[ Ψˡ′ ∈ SealCtx ] Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ]
       Σ[ Mˡ′ ∈ Term ]
       (Σˡ w ∣ Mˡ —→ Σˡ′ ∣ Mˡ′) ×
-      ℰ ρ p k ≼ (mkWorldˡ w Σˡ′ wfΣˡ′) Mˡ′ Mʳ)
+      Σ[ Σʳ′ ∈ Store ] Σ[ Ψʳ′ ∈ SealCtx ]
+      Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ] Σ[ Mʳ′ ∈ Term ]
+      (Σʳ w ∣ Mʳ —↠ Σʳ′ ∣ Mʳ′) ×
+      ℰ ρ p k ≼ (mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′) Mˡ′ Mʳ′)
     ⊎
     (Σ[ Σˡ′ ∈ Store ] Σ[ Ψˡ′ ∈ SealCtx ] Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ]
       Σ[ ℓ ∈ Label ]
@@ -684,7 +725,10 @@ mutual
     (Σ[ Σʳ′ ∈ Store ] Σ[ Ψʳ′ ∈ SealCtx ] Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ]
       Σ[ Mʳ′ ∈ Term ]
       (Σʳ w ∣ Mʳ —→ Σʳ′ ∣ Mʳ′) ×
-      ℰ ρ p k ≽ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Mʳ′)
+      Σ[ Σˡ′ ∈ Store ] Σ[ Ψˡ′ ∈ SealCtx ]
+      Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ] Σ[ Mˡ′ ∈ Term ]
+      (Σˡ w ∣ Mˡ —↠ Σˡ′ ∣ Mˡ′) ×
+      ℰ ρ p k ≽ (mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′) Mˡ′ Mʳ′)
     ⊎
     (Σ[ Σˡ′ ∈ Store ] Σ[ Ψˡ′ ∈ SealCtx ] Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ]
       Σ[ ℓ ∈ Label ]
@@ -877,25 +921,37 @@ mutual
     ℰbody ρ p k dir w Mˡ Mʳ
   ℰbody-monotone ρ p zero dir w Mˡ Mʳ rel = lift⊤
   ℰbody-monotone ρ p (suc k) ≼ w Mˡ Mʳ
-      (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , Mˡ′ , step , rel′)) =
-    inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , Mˡ′ , step ,
-      ℰ-monotone ρ p k ≼ (mkWorldˡ w Σˡ′ wfΣˡ′) Mˡ′ Mʳ rel′)
+      (inj₁
+        (Σˡ′ , Ψˡ′ , wfΣˡ′ , Mˡ′ , step ,
+         Σʳ′ , Ψʳ′ , wfΣʳ′ , Mʳ′ , steps , rel′)) =
+    inj₁
+      (Σˡ′ , Ψˡ′ , wfΣˡ′ , Mˡ′ , step ,
+       Σʳ′ , Ψʳ′ , wfΣʳ′ , Mʳ′ , steps ,
+       ℰ-monotone ρ p k ≼
+         (mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′) Mˡ′ Mʳ′ rel′)
   ℰbody-monotone ρ p (suc k) ≼ w Mˡ Mʳ
       (inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , blame↠))) =
     inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , blame↠))
   ℰbody-monotone ρ p (suc k) ≼ w Mˡ Mʳ
-      (inj₂ (inj₂ (vMˡ , Σʳ′ , Ψʳ′ , wfΣʳ′ , Wʳ , steps , Vrel))) =
+      (inj₂ (inj₂
+        (vMˡ , Σʳ′ , Ψʳ′ , wfΣʳ′ , Wʳ , steps , Vrel))) =
     inj₂ (inj₂ (vMˡ , Σʳ′ , Ψʳ′ , wfΣʳ′ , Wʳ , steps ,
       𝒱-monotone ρ p k ≼ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Wʳ Vrel))
   ℰbody-monotone ρ p (suc k) ≽ w Mˡ Mʳ
-      (inj₁ (Σʳ′ , Ψʳ′ , wfΣʳ′ , Mʳ′ , step , rel′)) =
-    inj₁ (Σʳ′ , Ψʳ′ , wfΣʳ′ , Mʳ′ , step ,
-      ℰ-monotone ρ p k ≽ (mkWorldʳ w Σʳ′ wfΣʳ′) Mˡ Mʳ′ rel′)
+      (inj₁
+        (Σʳ′ , Ψʳ′ , wfΣʳ′ , Mʳ′ , step ,
+         Σˡ′ , Ψˡ′ , wfΣˡ′ , Mˡ′ , steps , rel′)) =
+    inj₁
+      (Σʳ′ , Ψʳ′ , wfΣʳ′ , Mʳ′ , step ,
+       Σˡ′ , Ψˡ′ , wfΣˡ′ , Mˡ′ , steps ,
+       ℰ-monotone ρ p k ≽
+         (mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′) Mˡ′ Mʳ′ rel′)
   ℰbody-monotone ρ p (suc k) ≽ w Mˡ Mʳ
       (inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , blame↠))) =
     inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , blame↠))
   ℰbody-monotone ρ p (suc k) ≽ w Mˡ Mʳ
-      (inj₂ (inj₂ (vMʳ , Σˡ′ , Ψˡ′ , wfΣˡ′ , Wˡ , steps , Vrel))) =
+      (inj₂ (inj₂
+        (vMʳ , Σˡ′ , Ψˡ′ , wfΣˡ′ , Wˡ , steps , Vrel))) =
     inj₂ (inj₂ (vMʳ , Σˡ′ , Ψˡ′ , wfΣˡ′ , Wˡ , steps ,
       𝒱-monotone ρ p k ≽ (mkWorldˡ w Σˡ′ wfΣˡ′) Wˡ Mʳ Vrel))
 

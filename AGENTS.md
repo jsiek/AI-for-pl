@@ -1,6 +1,10 @@
 ## Working agreements
 
 - Never read or write files outside the current directory (AI-for-pl/).
+- This is a closed-world repository: prefer direct internal references and a
+  small canonical public surface over compatibility re-exports, aliases, or
+  wrapper files. When consolidating APIs, delete obsolete shims instead of
+  preserving them for hypothetical external users.
 
 ## Language Definition + Metatheory Checklist (Join over `AI-for-pl`)
 
@@ -71,6 +75,8 @@ Use this as guidance when creating a new language folder.
   statements in the language's top-level directory, move private proof scripts
   and helper lemmas to a `proof/` subdirectory, and expose each main theorem at
   top level as a thin wrapper around its corresponding `proof/*` theorem.
+  The main theorems should be explicitly stated and not just imported
+  as public from the corresponding `proof/*` file.
 
 ### 2) Baseline metatheory (default target)
 

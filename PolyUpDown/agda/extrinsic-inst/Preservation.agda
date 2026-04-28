@@ -441,7 +441,7 @@ preservation-step {Ψ = Ψ} wfΣ M⊢ (id-step red) =
   wfΣ ,
   cong-⊢⦂ refl (sym (map-renameˢ-id _)) refl (sym renameˢ-id) (preservation wfΣ M⊢ red)
 preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
-  (⊢• {B = B} {T = T} (⊢Λ V⊢) wfB wfT)
+  (⊢• {B = B} {T = T} (⊢Λ vV V⊢) wfB wfT)
   (β-Λ {V = V}) =
   suc Ψ , SealRenameWf-suc , refl ,
   storeWf-ν-ext wfT wfΣ ,

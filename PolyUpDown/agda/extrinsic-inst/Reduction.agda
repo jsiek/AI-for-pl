@@ -21,58 +21,8 @@ open import Types
 open import TypeProperties
 open import Store
 open import UpDown
-open import Terms hiding (_[_]ᵀ)
+open import Terms public hiding (_[_]ᵀ)
 open import TermProperties using (_[_]; _[_]ᵀ)
-
-------------------------------------------------------------------------
--- Values
-------------------------------------------------------------------------
-
-data UpValue : Up → Set where
-  tag : ∀ {G : Ty} →
-    UpValue (tag G)
-
-  _↦_ : ∀ {p : Down} {q : Up} →
-    UpValue (p ↦ q)
-
-  ∀ᵖ : ∀ {p : Up} →
-    UpValue (∀ᵖ p)
-
-data DownValue : Down → Set where
-  seal : ∀ {α : Seal} →
-    DownValue (seal α)
-
-  _↦_ : ∀ {p : Up} {q : Down} →
-    DownValue (p ↦ q)
-
-  ∀ᵖ : ∀ {p : Down} →
-    DownValue (∀ᵖ p)
-
-  ν_ : ∀ {p : Down} →
-    DownValue (ν p)
-
-data Value : Term → Set where
-  ƛ_⇒_ :
-    (A : Ty) (N : Term) →
-    Value (ƛ A ⇒ N)
-
-  $ :
-    (κ : Const) →
-    Value ($ κ)
-
-  Λ_ :
-    (N : Term) →
-    Value (Λ N)
-
-  _up_ : ∀ {V : Term} {p : Up} →
-    Value V →
-    UpValue p →
-    Value (V up p)
-
-  _down_ : ∀ {V : Term} {p : Down} →
-    Value V →
-    DownValue p →
-    Value (V down p)
 
 ------------------------------------------------------------------------
 -- One-step reduction helpers

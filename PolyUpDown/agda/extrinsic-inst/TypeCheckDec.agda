@@ -48,6 +48,42 @@ HasSomeTypeBF Δ Ψ Σ Γ M = HasSomeType Δ Ψ Σ Γ M × BlameFree M
 WellTypedBF : Term → Set
 WellTypedBF M = HasSomeTypeBF 0 0 ∅ˢ [] M
 
+upValue? : (p : Up) → Dec (UpValue p)
+upValue? (tag G) = yes tag
+upValue? (unseal α) = no (λ ())
+upValue? (p ↦ q) = yes _↦_
+upValue? (∀ᵖ p) = yes ∀ᵖ
+upValue? (ν p) = no (λ ())
+upValue? (id A) = no (λ ())
+upValue? (p ； q) = no (λ ())
+
+downValue? : (p : Down) → Dec (DownValue p)
+downValue? (untag G ℓ) = no (λ ())
+downValue? (seal α) = yes seal
+downValue? (p ↦ q) = yes _↦_
+downValue? (∀ᵖ p) = yes ∀ᵖ
+downValue? (ν p) = yes ν_
+downValue? (id A) = no (λ ())
+downValue? (p ； q) = no (λ ())
+
+value? : (M : Term) → Dec (Value M)
+value? (` x) = no (λ ())
+value? (ƛ A ⇒ M) = yes (ƛ A ⇒ M)
+value? (L · M) = no (λ ())
+value? (Λ M) = yes (Λ M)
+value? (M ⦂∀ B [ T ]) = no (λ ())
+value? ($ κ) = yes ($ κ)
+value? (L ⊕[ op ] M) = no (λ ())
+value? (M up p) with value? M | upValue? p
+... | yes vM | yes vp = yes (vM up vp)
+... | no ¬vM | _ = no (λ { (vM up vp) → ¬vM vM })
+... | yes vM | no ¬vp = no (λ { (vM up vp) → ¬vp vp })
+value? (M down p) with value? M | downValue? p
+... | yes vM | yes vp = yes (vM down vp)
+... | no ¬vM | _ = no (λ { (vM down vp) → ¬vM vM })
+... | yes vM | no ¬vp = no (λ { (vM down vp) → ¬vp vp })
+value? (blame ℓ) = no (λ ())
+
 LookupAny : Ctx → Var → Set
 LookupAny Γ x = Σ[ A ∈ Ty ] Γ ∋ x ⦂ A
 
@@ -481,7 +517,7 @@ type-unique-blamefree uΣ (bf-ƛ {A = A} bfM) (⊢ƛ wfA M:A) (⊢ƛ wfA′ M:B)
   cong (A ⇒_) (type-unique-blamefree uΣ bfM M:A M:B)
 type-unique-blamefree uΣ (bf-· bfL bfM) (⊢· {A = A} {B = B} L:AB M:A) (⊢· {A = A′} {B = B′} L:A′B′ M:A′) =
   cong codTy (type-unique-blamefree uΣ bfL L:AB L:A′B′)
-type-unique-blamefree uΣ (bf-Λ bfM) (⊢Λ M:A) (⊢Λ M:B) =
+type-unique-blamefree uΣ (bf-Λ bfM) (⊢Λ vM M:A) (⊢Λ vM′ M:B) =
   cong `∀ (type-unique-blamefree (unique-⟰ᵗ uΣ) bfM M:A M:B)
 type-unique-blamefree uΣ (bf-⦂∀ bfM)
   (⊢• {B = B} {T = T} M:∀B wfB wfT)
@@ -1820,11 +1856,18 @@ type-check Δ Ψ Σ Γ wfΓ wfΣ (L · M) | yes ((A , L:A) , bfL) | no ¬M =
 
 type-check Δ Ψ Σ Γ wfΓ wfΣ (Λ M)
     with type-check (suc Δ) Ψ (⟰ᵗ Σ) (⤊ᵗ Γ) (ctxWf-⤊ᵗ wfΓ) (storeWf-⟰ᵗ wfΣ) M
-... | yes ((A , M:A) , bfM) = yes ((`∀ A , ⊢Λ M:A) , bf-Λ bfM)
-... | no ¬M =
+       | value? M
+... | yes ((A , M:A) , bfM) | yes vM =
+  yes ((`∀ A , ⊢Λ vM M:A) , bf-Λ bfM)
+... | yes ((A , M:A) , bfM) | no ¬vM =
   no
     (λ
-      { ((`∀ B , ⊢Λ M:B) , bf-Λ bfM) → ¬M ((B , M:B) , bfM)
+      { ((`∀ B , ⊢Λ vM M:B) , bf-Λ bfM′) → ¬vM vM
+      })
+... | no ¬M | _ =
+  no
+    (λ
+      { ((`∀ B , ⊢Λ vM M:B) , bf-Λ bfM) → ¬M ((B , M:B) , bfM)
       })
 
 type-check Δ Ψ Σ Γ wfΓ wfΣ (M ⦂∀ B [ T ]) with type-check Δ Ψ Σ Γ wfΓ wfΣ M

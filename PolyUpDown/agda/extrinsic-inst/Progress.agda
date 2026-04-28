@@ -100,7 +100,7 @@ canonical-∀ :
   Value V →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V ⦂ (`∀ A) →
   AllView V
-canonical-∀ (Λ N) (⊢Λ N⊢) = av-Λ refl
+canonical-∀ (Λ N) (⊢Λ vN N⊢) = av-Λ refl
 canonical-∀ ($ (κℕ n)) ()
 canonical-∀ (_up_ {V = W} vW (∀ᵖ {p = p}))
   (⊢up Φ lenΦ W⊢ (wt-∀ {p = p} p⊢)) =
@@ -241,7 +241,7 @@ progress (⊢· {L = L} {M = M} L⊢ M⊢) with progress L⊢
 ...     | fv-ƛ refl = step (id-step (β vM))
 ...     | fv-up-↦ vW refl = step (id-step (β-up-↦ vW vM))
 ...     | fv-down-↦ vW refl = step (id-step (β-down-↦ vW vM))
-progress (⊢Λ {M = N} N⊢) = done (Λ N)
+progress (⊢Λ {M = N} vN N⊢) = done (Λ N)
 progress (⊢• {M = M} {B = B} {T = T} M⊢ wfB wfT) with progress M⊢
 ... | step M→M′ = step (ξ-·α M→M′)
 ... | crash (ℓ , refl) = step (id-step blame-·α)

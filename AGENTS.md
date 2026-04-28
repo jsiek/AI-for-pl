@@ -1,3 +1,7 @@
+## Working agreements
+
+- Never read or write files outside the current directory (AI-for-pl/).
+
 ## Language Definition + Metatheory Checklist (Join over `AI-for-pl`)
 
 This section is a "maximal join" over the language developments in this repo

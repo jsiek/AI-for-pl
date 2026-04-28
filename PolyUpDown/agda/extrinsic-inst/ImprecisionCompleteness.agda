@@ -2,8 +2,9 @@ module ImprecisionCompleteness where
 
 -- File Charter:
 --   * Completeness bridge from `Cast` back to unindexed `Imprecision`.
---   * Together with `ImprecisionBridge`, this gives soundness/completeness of
---   * imprecision with respect to `Cast`.
+--   * This direction remains valid after restricting `Cast` to same-seal
+--   * concrete casts; the opposite direction for old unindexed imprecision is
+--   * false because `Imprecision` still admits arbitrary `⊑-｀ αˡ αʳ`.
 
 open import Types
 open import Imprecision
@@ -13,7 +14,8 @@ mutual
   cast⊑⇒imprecision⊑ : ∀ {Σ Φ A B} → Σ ∣ Φ ⊢ A ⊑ᶜ B → A ⊑ B
   cast⊑⇒imprecision⊑ (⊑ᶜ-tag g ok) = ⊑-★ _ _ g ⊑-refl
   cast⊑⇒imprecision⊑ (⊑ᶜ-unseal★ {α} h α∈Φ) =
-    ⊑-★ _ _ (｀ α) (⊑-｀ α)
+    ⊑-★ _ _ (｀ α) (⊑-｀ α α)
+  cast⊑⇒imprecision⊑ (⊑ᶜ-seal α) = ⊑-｀ α α
   cast⊑⇒imprecision⊑ (⊑ᶜ-⇒ p q) =
     ⊑-⇒ _ _ _ _ (cast⊒⇒imprecision⊒ p) (cast⊑⇒imprecision⊑ q)
   cast⊑⇒imprecision⊑ (⊑ᶜ-∀ p) = ⊑-∀ _ _ (cast⊑⇒imprecision⊑ p)
@@ -24,7 +26,8 @@ mutual
   cast⊒⇒imprecision⊒ : ∀ {Σ Φ A B} → Σ ∣ Φ ⊢ A ⊒ᶜ B → A ⊒ B
   cast⊒⇒imprecision⊒ (⊒ᶜ-untag g ok ℓ) = ⊑-★ _ _ g ⊑-refl
   cast⊒⇒imprecision⊒ (⊒ᶜ-seal★ {α} h α∈Φ) =
-    ⊑-★ _ _ (｀ α) (⊑-｀ α)
+    ⊑-★ _ _ (｀ α) (⊑-｀ α α)
+  cast⊒⇒imprecision⊒ (⊒ᶜ-seal α) = ⊑-｀ α α
   cast⊒⇒imprecision⊒ (⊒ᶜ-⇒ p q) =
     ⊑-⇒ _ _ _ _ (cast⊑⇒imprecision⊑ p) (cast⊒⇒imprecision⊒ q)
   cast⊒⇒imprecision⊒ (⊒ᶜ-∀ p) = ⊑-∀ _ _ (cast⊒⇒imprecision⊒ p)

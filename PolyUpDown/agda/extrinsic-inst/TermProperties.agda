@@ -109,6 +109,15 @@ renameˣᵐ ρ (M up p) = renameˣᵐ ρ M up p
 renameˣᵐ ρ (M down p) = renameˣᵐ ρ M down p
 renameˣᵐ ρ (blame ℓ) = blame ℓ
 
+renameˣᵐ-value : ∀ {V} (ρ : Renameˣ) →
+  Value V →
+  Value (renameˣᵐ ρ V)
+renameˣᵐ-value ρ (ƛ A ⇒ N) = ƛ A ⇒ renameˣᵐ (extʳ ρ) N
+renameˣᵐ-value ρ ($ κ) = $ κ
+renameˣᵐ-value ρ (Λ N) = Λ renameˣᵐ (liftᵗʳ ρ) N
+renameˣᵐ-value ρ (vV up p) = renameˣᵐ-value ρ vV up p
+renameˣᵐ-value ρ (vV down p) = renameˣᵐ-value ρ vV down p
+
 renameˣ-term-wt : ∀ {Δ Ψ}{Σ : Store}{Γ Γ′ : Ctx}{M : Term}{A : Ty} →
   (ρ : Renameˣ) →
   Renameˣ-wt Γ Γ′ ρ →
@@ -119,8 +128,9 @@ renameˣ-term-wt ρ hρ (⊢ƛ {A = A} wfA M) =
   ⊢ƛ wfA (renameˣ-term-wt (extʳ ρ) (extʳ-wt ρ hρ) M)
 renameˣ-term-wt ρ hρ (⊢· L M) =
   ⊢· (renameˣ-term-wt ρ hρ L) (renameˣ-term-wt ρ hρ M)
-renameˣ-term-wt ρ hρ (⊢Λ M) =
-  ⊢Λ (renameˣ-term-wt (liftᵗʳ ρ) (liftᵗʳ-wt ρ hρ) M)
+renameˣ-term-wt ρ hρ (⊢Λ vM M) =
+  ⊢Λ (renameˣᵐ-value (liftᵗʳ ρ) vM)
+    (renameˣ-term-wt (liftᵗʳ ρ) (liftᵗʳ-wt ρ hρ) M)
 renameˣ-term-wt ρ hρ (⊢• {B = B} M wfB wfT) =
   ⊢• {B = B} (renameˣ-term-wt ρ hρ M) wfB wfT
 renameˣ-term-wt ρ hρ (⊢$ κ) = ⊢$ κ
@@ -171,18 +181,28 @@ substˣ-term σ (M up p) = substˣ-term σ M up p
 substˣ-term σ (M down p) = substˣ-term σ M down p
 substˣ-term σ (blame ℓ) = blame ℓ
 
+substˣ-term-value : ∀ {V} (σ : Substˣ) →
+  Value V →
+  Value (substˣ-term σ V)
+substˣ-term-value σ (ƛ A ⇒ N) = ƛ A ⇒ substˣ-term (extˣ σ) N
+substˣ-term-value σ ($ κ) = $ κ
+substˣ-term-value σ (Λ N) = Λ substˣ-term (↑ᵗᵐ σ) N
+substˣ-term-value σ (vV up p) = substˣ-term-value σ vV up p
+substˣ-term-value σ (vV down p) = substˣ-term-value σ vV down p
+
 substˣ-term-wt : ∀ {Δ Ψ}{Σ : Store}{Γ Γ′ : Ctx}{M : Term}{A : Ty} →
   (σ : Substˣ) →
   (hσ : Substˣ-wt {Δ} {Ψ} {Σ} {Γ} {Γ′} σ) →
   (M⊢ : Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A) →
   Δ ∣ Ψ ∣ Σ ∣ Γ′ ⊢ substˣ-term σ M ⦂ A
-substˣ-term-wt σ hσ (⊢` h) = hσ h
+substˣ-term-wt σ hσ (⊢` {x = x} h) = hσ h
 substˣ-term-wt σ hσ (⊢ƛ {A = A} wfA M) =
   ⊢ƛ wfA (substˣ-term-wt (extˣ σ) (extˣ-wt {A = A} σ hσ) M)
 substˣ-term-wt σ hσ (⊢· L M) =
   ⊢· (substˣ-term-wt σ hσ L) (substˣ-term-wt σ hσ M)
-substˣ-term-wt σ hσ (⊢Λ M) =
-  ⊢Λ (substˣ-term-wt (↑ᵗᵐ σ) (↑ᵗᵐ-wt σ hσ) M)
+substˣ-term-wt σ hσ (⊢Λ vM M) =
+  ⊢Λ (substˣ-term-value (↑ᵗᵐ σ) vM)
+    (substˣ-term-wt (↑ᵗᵐ σ) (↑ᵗᵐ-wt σ hσ) M)
 substˣ-term-wt σ hσ (⊢• {B = B} M wfB wfT) =
   ⊢• {B = B} (substˣ-term-wt σ hσ M) wfB wfT
 substˣ-term-wt σ hσ (⊢$ κ) = ⊢$ κ
@@ -516,7 +536,7 @@ substᵗᵐ-id-typed hσ (⊢· L⊢ M⊢) =
   cong₂ _·_
     (substᵗᵐ-id-typed hσ L⊢)
     (substᵗᵐ-id-typed hσ M⊢)
-substᵗᵐ-id-typed hσ (⊢Λ M⊢) =
+substᵗᵐ-id-typed hσ (⊢Λ vM M⊢) =
   cong Λ_
     (substᵗᵐ-id-typed
       (IdOnΔ-exts hσ)

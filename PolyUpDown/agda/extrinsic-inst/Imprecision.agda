@@ -5,6 +5,9 @@ module Imprecision where
 --   * Defines unindexed imprecision evidence over `Ty` (and dual direction).
 --   * This relation is intended to align with `Cast` (not full `UpDown`
 --   * cast typing).
+--   * FIXME: the concrete-seal rule below is too permissive. It should require
+--     the same seal on both sides, as `Cast.⊑ᶜ-seal` and
+--     `ImprecisionIndexed.⊑ᵢ-｀` now do.
 
 open import Types
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z<s; s<s; s≤s; s≤s⁻¹)
@@ -29,7 +32,7 @@ data _⊑_ : Ty → Ty → Set where
   ⊑-★★ : ★ ⊑ ★
   ⊑-★ : (A G : Ty) → Ground G → A ⊑ G → A ⊑ ★
   ⊑-＇ : (X : TyVar) → ＇ X ⊑ ＇ X
-  ⊑-｀ : (α : Seal) → ｀ α ⊑ ｀ α
+  ⊑-｀ : (αˡ αʳ : Seal) → ｀ αˡ ⊑ ｀ αʳ
   ⊑-‵ : (ι : Base) → ‵ ι ⊑ ‵ ι
   ⊑-⇒ : (A A′ B B′ : Ty)
     → A ⊑ A′
@@ -47,7 +50,7 @@ B ⊒ A = A ⊑ B
 
 ⊑-refl : ∀ {A} → A ⊑ A
 ⊑-refl {＇ X} = ⊑-＇ X
-⊑-refl {｀ α} = ⊑-｀ α
+⊑-refl {｀ α} = ⊑-｀ α α
 ⊑-refl {‵ ι} = ⊑-‵ ι
 ⊑-refl {★} = ⊑-★★
 ⊑-refl {A ⇒ B} = ⊑-⇒ A A B B ⊑-refl ⊑-refl
@@ -174,7 +177,7 @@ closed-⊑-★-fuel zero {T = ★} wf★ ()
 closed-⊑-★-fuel zero {T = A ⇒ B} (wf⇒ hA hB) ()
 closed-⊑-★-fuel zero {T = `∀ A} (wf∀ hA) ()
 closed-⊑-★-fuel (suc n) {T = ｀ α} (wfSeal α<Ψ) h =
-  ⊑-★ (｀ α) (｀ α) (｀ α) (⊑-｀ α)
+  ⊑-★ (｀ α) (｀ α) (｀ α) (⊑-｀ α α)
 closed-⊑-★-fuel (suc n) {T = ‵ ι} wfBase h =
   ⊑-★ (‵ ι) (‵ ι) (‵ ι) (⊑-‵ ι)
 closed-⊑-★-fuel (suc n) {T = ★} wf★ h = ⊑-★★
@@ -215,7 +218,7 @@ mutual
   renameˢ-⊑ ρ (⊑-★ A G g p) =
     ⊑-★ (renameˢ ρ A) (renameˢ ρ G) (renameˢ-ground ρ g) (renameˢ-⊑ ρ p)
   renameˢ-⊑ ρ (⊑-＇ X) = ⊑-＇ X
-  renameˢ-⊑ ρ (⊑-｀ α) = ⊑-｀ (ρ α)
+  renameˢ-⊑ ρ (⊑-｀ αˡ αʳ) = ⊑-｀ (ρ αˡ) (ρ αʳ)
   renameˢ-⊑ ρ (⊑-‵ ι) = ⊑-‵ ι
   renameˢ-⊑ ρ (⊑-⇒ A A′ B B′ p q) =
     ⊑-⇒ (renameˢ ρ A) (renameˢ ρ A′) (renameˢ ρ B) (renameˢ ρ B′)
@@ -238,7 +241,7 @@ mutual
   substᵗ-⊑ σ (⊑-★ A G g p) =
     ⊑-★ (substᵗ σ A) (substᵗ σ G) (substᵗ-ground σ g) (substᵗ-⊑ σ p)
   substᵗ-⊑ σ (⊑-＇ X) = ⊑-refl
-  substᵗ-⊑ σ (⊑-｀ α) = ⊑-｀ α
+  substᵗ-⊑ σ (⊑-｀ αˡ αʳ) = ⊑-｀ αˡ αʳ
   substᵗ-⊑ σ (⊑-‵ ι) = ⊑-‵ ι
   substᵗ-⊑ σ (⊑-⇒ A A′ B B′ p q) =
     ⊑-⇒ (substᵗ σ A) (substᵗ σ A′) (substᵗ σ B) (substᵗ σ B′)
@@ -260,7 +263,7 @@ size⊑ : ∀ {A B} → A ⊑ B → ℕ
 size⊑ ⊑-★★ = zero
 size⊑ (⊑-★ A G g p) = suc (size⊑ p)
 size⊑ (⊑-＇ X) = zero
-size⊑ (⊑-｀ α) = zero
+size⊑ (⊑-｀ αˡ αʳ) = zero
 size⊑ (⊑-‵ ι) = zero
 size⊑ (⊑-⇒ A A′ B B′ p q) = suc (size⊑ p + size⊑ q)
 size⊑ (⊑-∀ A B p) = suc (size⊑ p)
@@ -282,7 +285,7 @@ size-renameˢ-⊑ :
 size-renameˢ-⊑ ρ ⊑-★★ = refl
 size-renameˢ-⊑ ρ (⊑-★ A G g p) = cong suc (size-renameˢ-⊑ ρ p)
 size-renameˢ-⊑ ρ (⊑-＇ X) = refl
-size-renameˢ-⊑ ρ (⊑-｀ α) = refl
+size-renameˢ-⊑ ρ (⊑-｀ αˡ αʳ) = refl
 size-renameˢ-⊑ ρ (⊑-‵ ι) = refl
 size-renameˢ-⊑ ρ (⊑-⇒ A A′ B B′ p q) =
   cong suc (cong₂ _+_ (size-renameˢ-⊑ ρ p) (size-renameˢ-⊑ ρ q))
@@ -359,7 +362,7 @@ size-substᵗ-⊑-leaf σ leafσ (⊑-★ A G g p) =
   cong suc (size-substᵗ-⊑-leaf σ leafσ p)
 size-substᵗ-⊑-leaf σ leafσ {A = ＇ X} (⊑-＇ X) =
   size-⊑-refl-leaf (leafσ X)
-size-substᵗ-⊑-leaf σ leafσ (⊑-｀ α) = refl
+size-substᵗ-⊑-leaf σ leafσ (⊑-｀ αˡ αʳ) = refl
 size-substᵗ-⊑-leaf σ leafσ (⊑-‵ ι) = refl
 size-substᵗ-⊑-leaf σ leafσ (⊑-⇒ A A′ B B′ p q) =
   cong suc
@@ -488,13 +491,13 @@ right-rec-⇒-bound {a} {b} {c} {d} h =
 ⊑-trans-fuel {n = zero} ⊑-★★ (⊑-★ A G g q) ()
 ⊑-trans-fuel {n = zero} (⊑-★ A G g p) (⊑-★ A₁ G₁ g₁ q) ()
 ⊑-trans-fuel {n = zero} (⊑-＇ X) (⊑-★ A G g q) ()
-⊑-trans-fuel {n = zero} (⊑-｀ α) (⊑-★ A G g q) ()
+⊑-trans-fuel {n = zero} (⊑-｀ αˡ αʳ) (⊑-★ A G g q) ()
 ⊑-trans-fuel {n = zero} (⊑-‵ ι) (⊑-★ A G g q) ()
 ⊑-trans-fuel {n = zero} (⊑-⇒ A A′ B B′ p₁ p₂) (⊑-★ A₁ G g q) ()
 ⊑-trans-fuel {n = zero} (⊑-∀ A B p) (⊑-★ A₁ G g q) ()
 ⊑-trans-fuel {n = zero} (⊑-ν A B p) (⊑-★ A₁ G g q) ()
 ⊑-trans-fuel {n = zero} p (⊑-＇ X) h = p
-⊑-trans-fuel {n = zero} p (⊑-｀ α) h = p
+⊑-trans-fuel {n = zero} (⊑-｀ α αˡ) (⊑-｀ αˡ αʳ) h = ⊑-｀ α αʳ
 ⊑-trans-fuel {n = zero} p (⊑-‵ ι) h = p
 ⊑-trans-fuel {n = zero} (⊑-⇒ A A′ B B′ p₁ p₂) (⊑-⇒ A₁ A″ B₁ B″ q₁ q₂) ()
 ⊑-trans-fuel {n = zero} (⊑-∀ A B p) (⊑-∀ A₁ B₁ q) ()
@@ -504,7 +507,7 @@ right-rec-⇒-bound {a} {b} {c} {d} h =
 ⊑-trans-fuel {n = suc n} p (⊑-★ B G g q) h =
   ⊑-★ _ G g (⊑-trans-fuel p q (pred-★-bound h))
 ⊑-trans-fuel {n = suc n} p (⊑-＇ X) h = p
-⊑-trans-fuel {n = suc n} p (⊑-｀ α) h = p
+⊑-trans-fuel {n = suc n} (⊑-｀ α αˡ) (⊑-｀ αˡ αʳ) h = ⊑-｀ α αʳ
 ⊑-trans-fuel {n = suc n} p (⊑-‵ ι) h = p
 ⊑-trans-fuel {n = suc n} (⊑-⇒ A A′ B B′ p₁ p₂) (⊑-⇒ A₁ A″ B₁ B″ q₁ q₂) h =
   ⊑-⇒ A A″ B B″
@@ -749,6 +752,12 @@ substˢᵗ-keepFresh-ν-src hτ A =
     env zero = refl
     env (suc X) = refl
 
+postulate
+  substˢ-⊑-closed-seal :
+    ∀ {τ αˡ αʳ} →
+    SealSubstClosed τ →
+    substˢᵗ τ (｀ αˡ) ⊑ substˢᵗ τ (｀ αʳ)
+
 substˢ-⊑-closed-gen :
   ∀ {τ A B} →
   SealSubstClosed τ →
@@ -758,7 +767,7 @@ substˢ-⊑-closed-gen hτ ⊑-★★ = ⊑-★★
 substˢ-⊑-closed-gen hτ (⊑-★ A G g p) =
   ⊑-trans (substˢ-⊑-closed-gen hτ p) (closed-⊑-★ (proj₂ (ground-substˢ-WfTy-gen hτ g)))
 substˢ-⊑-closed-gen hτ (⊑-＇ X) = ⊑-＇ X
-substˢ-⊑-closed-gen hτ (⊑-｀ α) = ⊑-refl
+substˢ-⊑-closed-gen hτ (⊑-｀ αˡ αʳ) = substˢ-⊑-closed-seal hτ
 substˢ-⊑-closed-gen hτ (⊑-‵ ι) = ⊑-‵ ι
 substˢ-⊑-closed-gen {τ = τ} hτ (⊑-⇒ A A′ B B′ p q) =
   ⊑-⇒

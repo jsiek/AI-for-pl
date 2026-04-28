@@ -102,6 +102,56 @@ data Term : Set where
   _down_  : Term → Down → Term
   blame   : Label → Term
 
+------------------------------------------------------------------------
+-- Values
+------------------------------------------------------------------------
+
+data UpValue : Up → Set where
+  tag : ∀ {G : Ty} →
+    UpValue (tag G)
+
+  _↦_ : ∀ {p : Down} {q : Up} →
+    UpValue (p ↦ q)
+
+  ∀ᵖ : ∀ {p : Up} →
+    UpValue (∀ᵖ p)
+
+data DownValue : Down → Set where
+  seal : ∀ {α : Seal} →
+    DownValue (seal α)
+
+  _↦_ : ∀ {p : Up} {q : Down} →
+    DownValue (p ↦ q)
+
+  ∀ᵖ : ∀ {p : Down} →
+    DownValue (∀ᵖ p)
+
+  ν_ : ∀ {p : Down} →
+    DownValue (ν p)
+
+data Value : Term → Set where
+  ƛ_⇒_ :
+    (A : Ty) (N : Term) →
+    Value (ƛ A ⇒ N)
+
+  $ :
+    (κ : Const) →
+    Value ($ κ)
+
+  Λ_ :
+    (N : Term) →
+    Value (Λ N)
+
+  _up_ : ∀ {V : Term} {p : Up} →
+    Value V →
+    UpValue p →
+    Value (V up p)
+
+  _down_ : ∀ {V : Term} {p : Down} →
+    Value V →
+    DownValue p →
+    Value (V down p)
+
 infix  4 _∣_∣_∣_⊢_⦂_
 
 data _∣_∣_∣_⊢_⦂_
@@ -123,6 +173,7 @@ data _∣_∣_∣_⊢_⦂_
      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (L · M) ⦂ B
 
   ⊢Λ : ∀ {M A}
+     → Value M
      → (suc Δ) ∣ Ψ ∣ ⟰ᵗ Σ ∣ (⤊ᵗ Γ) ⊢ M ⦂ A
      → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (Λ M) ⦂ (`∀ A)
 
@@ -213,6 +264,86 @@ renameˢᵐ ρ (M up p) = renameˢᵐ ρ M up rename⊑ˢ ρ p
 renameˢᵐ ρ (M down p) = renameˢᵐ ρ M down rename⊒ˢ ρ p
 renameˢᵐ ρ (blame ℓ) = blame ℓ
 
+mutual
+  renameᵗ-up-value : ∀ {p} (ρ : Renameᵗ) →
+    UpValue p →
+    UpValue (rename⊑ᵗ ρ p)
+  renameᵗ-up-value ρ tag = tag
+  renameᵗ-up-value ρ (_↦_ {p = p} {q = q}) = _↦_
+  renameᵗ-up-value ρ (∀ᵖ {p = p}) = ∀ᵖ
+
+  renameᵗ-down-value : ∀ {p} (ρ : Renameᵗ) →
+    DownValue p →
+    DownValue (rename⊒ᵗ ρ p)
+  renameᵗ-down-value ρ seal = seal
+  renameᵗ-down-value ρ (_↦_ {p = p} {q = q}) = _↦_
+  renameᵗ-down-value ρ (∀ᵖ {p = p}) = ∀ᵖ
+  renameᵗ-down-value ρ (ν_ {p = p}) = ν_
+
+renameᵗᵐ-value : ∀ {V} (ρ : Renameᵗ) →
+  Value V →
+  Value (renameᵗᵐ ρ V)
+renameᵗᵐ-value ρ (ƛ A ⇒ N) = ƛ renameᵗ ρ A ⇒ renameᵗᵐ ρ N
+renameᵗᵐ-value ρ ($ κ) = $ κ
+renameᵗᵐ-value ρ (Λ N) = Λ renameᵗᵐ (extᵗ ρ) N
+renameᵗᵐ-value ρ (vV up p) =
+  renameᵗᵐ-value ρ vV up renameᵗ-up-value ρ p
+renameᵗᵐ-value ρ (vV down p) =
+  renameᵗᵐ-value ρ vV down renameᵗ-down-value ρ p
+
+mutual
+  substᵗ-up-value : ∀ {p} (σ : Substᵗ) →
+    UpValue p →
+    UpValue (subst⊑ᵗ σ p)
+  substᵗ-up-value σ tag = tag
+  substᵗ-up-value σ (_↦_ {p = p} {q = q}) = _↦_
+  substᵗ-up-value σ (∀ᵖ {p = p}) = ∀ᵖ
+  substᵗ-down-value : ∀ {p} (σ : Substᵗ) →
+    DownValue p →
+    DownValue (subst⊒ᵗ σ p)
+  substᵗ-down-value σ seal = seal
+  substᵗ-down-value σ (_↦_ {p = p} {q = q}) = _↦_
+  substᵗ-down-value σ (∀ᵖ {p = p}) = ∀ᵖ
+  substᵗ-down-value σ (ν_ {p = p}) = ν_
+
+substᵗᵐ-value : ∀ {V} (σ : Substᵗ) →
+  Value V →
+  Value (substᵗᵐ σ V)
+substᵗᵐ-value σ (ƛ A ⇒ N) = ƛ substᵗ σ A ⇒ substᵗᵐ σ N
+substᵗᵐ-value σ ($ κ) = $ κ
+substᵗᵐ-value σ (Λ N) = Λ substᵗᵐ (extsᵗ σ) N
+substᵗᵐ-value σ (vV up p) =
+  substᵗᵐ-value σ vV up substᵗ-up-value σ p
+substᵗᵐ-value σ (vV down p) =
+  substᵗᵐ-value σ vV down substᵗ-down-value σ p
+
+mutual
+  renameˢ-up-value : ∀ {p} (ρ : Renameˢ) →
+    UpValue p →
+    UpValue (rename⊑ˢ ρ p)
+  renameˢ-up-value ρ tag = tag
+  renameˢ-up-value ρ (_↦_ {p = p} {q = q}) = _↦_
+  renameˢ-up-value ρ (∀ᵖ {p = p}) = ∀ᵖ
+
+  renameˢ-down-value : ∀ {p} (ρ : Renameˢ) →
+    DownValue p →
+    DownValue (rename⊒ˢ ρ p)
+  renameˢ-down-value ρ seal = seal
+  renameˢ-down-value ρ (_↦_ {p = p} {q = q}) = _↦_
+  renameˢ-down-value ρ (∀ᵖ {p = p}) = ∀ᵖ
+  renameˢ-down-value ρ (ν_ {p = p}) = ν_
+
+renameˢᵐ-value : ∀ {V} (ρ : Renameˢ) →
+  Value V →
+  Value (renameˢᵐ ρ V)
+renameˢᵐ-value ρ (ƛ A ⇒ N) = ƛ renameˢ ρ A ⇒ renameˢᵐ ρ N
+renameˢᵐ-value ρ ($ κ) = $ κ
+renameˢᵐ-value ρ (Λ N) = Λ renameˢᵐ ρ N
+renameˢᵐ-value ρ (vV up p) =
+  renameˢᵐ-value ρ vV up renameˢ-up-value ρ p
+renameˢᵐ-value ρ (vV down p) =
+  renameˢᵐ-value ρ vV down renameˢ-down-value ρ p
+
 infixl 8 _[_]ᵀ
 _[_]ᵀ : Term → Ty → Term
 M [ A ]ᵀ = substᵗᵐ (singleTyEnv A) M
@@ -268,7 +399,7 @@ wkΣ-term : ∀ {Δ Ψ}{Σ Σ′ : Store}{Γ : Ctx}{M : Term}{A : Ty} →
 wkΣ-term w (⊢` h) = ⊢` h
 wkΣ-term w (⊢ƛ wfA M) = ⊢ƛ wfA (wkΣ-term w M)
 wkΣ-term w (⊢· L M) = ⊢· (wkΣ-term w L) (wkΣ-term w M)
-wkΣ-term w (⊢Λ M) = ⊢Λ (wkΣ-term (inst-⟰ᵗ-⊆ˢ w) M)
+wkΣ-term w (⊢Λ vM M) = ⊢Λ vM (wkΣ-term (inst-⟰ᵗ-⊆ˢ w) M)
 wkΣ-term w (⊢• {B = B} M wfB wfT) =
   ⊢• {B = B} (wkΣ-term w M) wfB wfT
 wkΣ-term w (⊢$ κ) = ⊢$ κ
@@ -349,8 +480,9 @@ renameᵗ-term ρ hρ (⊢` h) = ⊢` (renameLookupᵗ-ctx ρ h)
 renameᵗ-term ρ hρ (⊢ƛ wfA M) =
   ⊢ƛ (renameᵗ-preserves-WfTy wfA hρ) (renameᵗ-term ρ hρ M)
 renameᵗ-term ρ hρ (⊢· L M) = ⊢· (renameᵗ-term ρ hρ L) (renameᵗ-term ρ hρ M)
-renameᵗ-term {Σ = Σ} {Γ = Γ} ρ hρ (⊢Λ {A = A} M) =
+renameᵗ-term {Σ = Σ} {Γ = Γ} ρ hρ (⊢Λ {A = A} vM M) =
   ⊢Λ
+    (renameᵗᵐ-value (extᵗ ρ) vM)
     (cong-⊢⦂
       (renameStoreᵗ-ext-⟰ᵗ ρ Σ)
       (map-renameᵗ-⤊ᵗ ρ Γ)
@@ -393,8 +525,9 @@ substᵗ-wt σ hσ (⊢` h) = ⊢` (substLookup σ h)
 substᵗ-wt σ hσ (⊢ƛ wfA M) =
   ⊢ƛ (substᵗ-preserves-WfTy wfA hσ) (substᵗ-wt σ hσ M)
 substᵗ-wt σ hσ (⊢· L M) = ⊢· (substᵗ-wt σ hσ L) (substᵗ-wt σ hσ M)
-substᵗ-wt {Σ = Σ} {Γ = Γ} σ hσ (⊢Λ {A = A} M) =
+substᵗ-wt {Σ = Σ} {Γ = Γ} σ hσ (⊢Λ {A = A} vM M) =
   ⊢Λ
+    (substᵗᵐ-value (extsᵗ σ) vM)
     (cong-⊢⦂
       (substStoreᵗ-ext-⟰ᵗ σ Σ)
       (map-substᵗ-⤊ᵗ σ Γ)
@@ -455,8 +588,9 @@ renameˢ-wt ρ hρ mapΦ mapΦ-length okΦ okConv okCast okTag ok¬Φ (⊢· L M
 renameˢ-wt
   {Σ = Σ} {Γ = Γ}
   ρ hρ mapΦ mapΦ-length okΦ okConv okCast okTag ok¬Φ
-  (⊢Λ {A = A} M) =
+  (⊢Λ {A = A} vM M) =
   ⊢Λ
+    (renameˢᵐ-value ρ vM)
     (cong-⊢⦂
       (renameStoreˢ-ext-⟰ᵗ ρ Σ)
       (map-renameˢ-⤊ᵗ ρ Γ)

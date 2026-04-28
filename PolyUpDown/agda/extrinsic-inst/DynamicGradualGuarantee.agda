@@ -5,7 +5,9 @@ module DynamicGradualGuarantee where
 --   * `PolyUpDown` terms.
 --   * Derives Part 1 from the fundamental theorem in `Parametricity.agda`.
 --   * Keeps the catchup argument explicit, indexed by the observed number of
---   * right-hand reduction steps.
+--     right-hand reduction steps.
+--   * WARNING: this is backwards! We copied from GTLC but forgot to flip for
+--     the switch from precision to imprecision!
 
 open import Data.List using (List; [])
 open import Data.Nat using (ℕ; zero; suc; _+_; _≟_; <′-base)

@@ -290,7 +290,7 @@ wkΨ-term-suc (⊢` h) = ⊢` h
 wkΨ-term-suc (⊢ƛ wfA M⊢) =
   ⊢ƛ (WfTy-weakenˢ wfA (n≤1+n _)) (wkΨ-term-suc M⊢)
 wkΨ-term-suc (⊢· L⊢ M⊢) = ⊢· (wkΨ-term-suc L⊢) (wkΨ-term-suc M⊢)
-wkΨ-term-suc (⊢Λ M⊢) = ⊢Λ (wkΨ-term-suc M⊢)
+wkΨ-term-suc (⊢Λ vM M⊢) = ⊢Λ vM (wkΨ-term-suc M⊢)
 wkΨ-term-suc (⊢• {B = B} M⊢ wfB wfT) =
   ⊢• {B = B}
     (wkΨ-term-suc M⊢)
@@ -668,7 +668,7 @@ preservation-step {Ψ = Ψ} wfΣ M⊢ (id-step red) =
   preservation wfΣ M⊢ red
 
 preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
-  (⊢• {B = B} {T = T} (⊢Λ V⊢) wfB wfT)
+  (⊢• {B = B} {T = T} (⊢Λ vV V⊢) wfB wfT)
   (β-Λ {V = V}) =
   suc Ψ , refl ,
   ⊢up

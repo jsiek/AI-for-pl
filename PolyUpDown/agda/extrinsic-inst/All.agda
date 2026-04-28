@@ -15,6 +15,8 @@ open import Ctx
 open import UpDown
 open import Terms
 open import TermPrecision
+open import ImprecisionIndexed
+open import TermPrecisionIndexed
 open import TermProperties
 open import TypeCheckDec
 open import Reduction
@@ -32,6 +34,8 @@ open import Eval
 open import Examples
 
 open import LogicalRelation
+open import LogicalRelationIndexed
+open import ParametricityIndexed
 -- UNDER CONSTRUCTION
 --open import Parametricity
 --open import DynamicGradualGuarantee

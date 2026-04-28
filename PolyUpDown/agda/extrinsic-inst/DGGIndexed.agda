@@ -2,11 +2,11 @@ module DGGIndexed where
 
 -- File Charter:
 --   * States the dynamic gradual guarantee for closed extrinsic-inst
---   * `PolyUpDown` terms using the indexed logical relation.
+--     `PolyUpDown` terms using the indexed logical relation.
 --   * Postulates the closed fundamental theorem while
---   * `ParametricityIndexed.agda` is still under development.
+--     `ParametricityIndexed.agda` is still under development.
 --   * Uses the corrected imprecision orientation: the public theorem takes
---   * `M ⊑ M′`, so `M` is less imprecise/more precise and `M′` is
+--     `M ⊑ M′`, so `M` is less imprecise/more precise and `M′` is
 --     more imprecise/less precise.
 
 open import Data.List using (List; [])

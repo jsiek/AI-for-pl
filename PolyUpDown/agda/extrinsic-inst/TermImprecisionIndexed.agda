@@ -2,9 +2,9 @@ module TermImprecisionIndexed where
 
 -- File Charter:
 --   * Structural term imprecision for extrinsic-inst PolyUpDown, indexed by
---   * context-indexed type imprecision.
---   * Defines precision contexts and the term-precision judgment without the
---   * cast-specific compatibility rules.
+--     context-indexed type imprecision.
+--   * Defines imprecision contexts and the term-imprecision judgment without 
+--     the cast-specific compatibility rules.
 --   * Provides projections back to ordinary left/right typing derivations.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -27,7 +27,7 @@ open import TypeProperties
     )
 
 ------------------------------------------------------------------------
--- Precision contexts
+-- Imprecision contexts
 ------------------------------------------------------------------------
 
 Prec : ICtx → Set
@@ -86,7 +86,7 @@ lookup-right Zₚ = Z
 lookup-right (Sₚ h) = S (lookup-right h)
 
 ------------------------------------------------------------------------
--- Type-binder lifting of precision contexts
+-- Type-binder lifting of imprecision contexts
 ------------------------------------------------------------------------
 
 subst-as-renameᵗ : (ρ : Renameᵗ) → (A : Ty) → substᵗ (λ X → ＇ ρ X) A ≡ renameᵗ ρ A

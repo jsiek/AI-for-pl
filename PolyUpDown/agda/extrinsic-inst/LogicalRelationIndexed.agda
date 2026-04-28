@@ -3,11 +3,11 @@ module LogicalRelationIndexed where
 -- File Charter:
 --   * Indexed logical-relation core for `PolyUpDown`.
 --   * This is the migration target from `LogicalRelation`: the relation is
---   * indexed by `ImprecisionIndexed._⊢_⊑ᵢ_` and interprets an indexed type
---   * context at the current world before applying the relational substitution.
+--     indexed by `ImprecisionIndexed._⊢_⊑ᵢ_` and interprets an indexed type
+--     context at the current world before applying the relational substitution.
 --   * The key invariant is that `𝒱`/`ℰ` should be used at closed interpreted
---   * types: ν-bound variables become the runtime seals recorded in the world,
---   * while plain type variables are supplied by `RelSub`.
+--     types: ν-bound variables become the runtime seals recorded in the world,
+--     while plain type variables are supplied by `RelSub`.
 
 open import Data.List using (List; []; _∷_; length)
 open import Data.Nat

@@ -27,7 +27,7 @@ open import ImprecisionIndexed
 open import Imprecision using (substᵗ-closed-id)
 open import UpDown
 open import Terms
-open import TermPrecisionIndexed
+open import TermImprecisionIndexed
 open import TermProperties using (Substˣ; substˣ-term; []ᵀ-wt)
 open import TypeProperties
   using

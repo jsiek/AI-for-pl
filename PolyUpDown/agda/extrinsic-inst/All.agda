@@ -16,7 +16,7 @@ open import UpDown
 open import Terms
 open import TermPrecision
 open import ImprecisionIndexed
-open import TermPrecisionIndexed
+open import TermImprecisionIndexed
 open import TermProperties
 open import TypeCheckDec
 open import Reduction

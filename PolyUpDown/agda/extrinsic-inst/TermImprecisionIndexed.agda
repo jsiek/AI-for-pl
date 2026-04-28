@@ -1,4 +1,4 @@
-module TermPrecisionIndexed where
+module TermImprecisionIndexed where
 
 -- File Charter:
 --   * Structural term imprecision for extrinsic-inst PolyUpDown, indexed by

@@ -6,28 +6,27 @@ compilation target, and gradual-guarantee metatheory.
 ## Public/audited surface (`GTLC/agda/`)
 
 The top-level files are the trust-facing API: language definitions and theorem
-statements/wrappers.
+statements.
 
 - `Types.agda`: type grammar, consistency, precision, and helper lemmas.
-- `Contexts.agda`: contexts, lookup, and context precision.
+- `Contexts.agda`: contexts, lookup, context precision, and source context
+  imprecision.
 - `GTLC.agda`: source language terms, typing, and precision.
 - `Coercions.agda`: coercion language used by compilation.
 - `CastCalculus.agda`: cast-calculus terms, typing, and reduction.
 - `Compile.agda`: compilation from GTLC typing derivations.
+- `DynamicGradualGuaranteeDefinitions.agda`: public source runtime
+  observations used to state the dynamic gradual guarantee.
 - `MetaTheory.agda`: public theorem statements for cast type safety, GTLC type
   safety (via compilation), and static/dynamic gradual guarantees.
 - `All.agda`: aggregate driver for checking the public surface.
-
-Compatibility wrappers are also provided:
-
-- `StaticGradualGuarantee.agda`
-- `DynamicGradualGuarantee.agda`
 
 ## Private proof implementation (`GTLC/agda/proof/`)
 
 Proof scripts and implementation details live in `proof/`.
 
 - `proof/StaticGradualGuarantee.agda`
+- `proof/StaticGradualGuaranteeDefinitions.agda`
 - `proof/DynamicGradualGuaranteeCore.agda`
 - `proof/DynamicGradualGuarantee.agda`
 - `proof/CastSafety.agda`

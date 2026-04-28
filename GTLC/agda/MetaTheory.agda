@@ -13,29 +13,13 @@ open import Contexts
 open import GTLC
 open import CastCalculus
 open import Compile using (compile)
+open import Contexts public using (_⊑ˢ_)
+open import DynamicGradualGuaranteeDefinitions public
 
 import proof.CastSafety as CastSafetyProof
 import proof.TypeSafety as TypeSafetyProof
 import proof.StaticGradualGuarantee as StaticGGProof
 import proof.DynamicGradualGuarantee as DynamicGGProof
-
-_⊑ˢ_ : Ctx → Ctx → Set
-_⊑ˢ_ = StaticGGProof._⊑ˢ_
-
-_⇓_ : Term → Termᶜ → Set
-_⇓_ = DynamicGGProof._⇓_
-
-Diverges : Term → Set
-Diverges = DynamicGGProof.Diverges
-
-Blames : Term → Set
-Blames = DynamicGGProof.Blames
-
-DivergeOrBlameᶜ : Termᶜ → Set
-DivergeOrBlameᶜ = DynamicGGProof.DivergeOrBlameᶜ
-
-DivergeOrBlame : Term → Set
-DivergeOrBlame = DynamicGGProof.DivergeOrBlame
 
 cast-type-safety
   : {M N : Termᶜ} {A : Ty}
@@ -65,11 +49,13 @@ dynamic-gradual-guarantee : ∀ {M M′} {A A′}
   → [] ⊢ M′ ⦂ A′
   → (∀ V′ → Valueᶜ V′
           → M′ ⇓ V′
-          → ∃[ V ] Valueᶜ V × M ⇓ V × []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′)
+          → ∃[ V ] Valueᶜ V × M ⇓ V
+            × []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′)
     × (Diverges M′ → Diverges M)
     × (∀ V → Valueᶜ V
            → M ⇓ V
-           → (∃[ V′ ] Valueᶜ V′ × M′ ⇓ V′ × []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′)
+           → (∃[ V′ ] Valueᶜ V′ × M′ ⇓ V′
+              × []⊑[] ⊢ V ⦂ A ⊑ᶜᵀ V′ ⦂ A′)
              ⊎ Blames M′)
     × (Diverges M → DivergeOrBlame M′)
 dynamic-gradual-guarantee = DynamicGGProof.dynamic-gradual-guarantee

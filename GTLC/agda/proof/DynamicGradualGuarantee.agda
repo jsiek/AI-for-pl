@@ -18,6 +18,7 @@ open import GTLC
 open import CastCalculus
 open import Coercions
 open import Compile using (compile)
+open import DynamicGradualGuaranteeDefinitions
 open import proof.CompileMeta using (compile-preserves; compile-precision)
 open import proof.CastCalculusMeta
 
@@ -1115,26 +1116,6 @@ left-prec-equiv
   → []⊑[] ⊢ V ⦂ B ⊑ᶜᵀ V′ ⦂ C
 left-prec-equiv {V = V} {V′ = V′} {C = C} A≡B V⊑V′ =
   subst (λ T → []⊑[] ⊢ V ⦂ T ⊑ᶜᵀ V′ ⦂ C) A≡B V⊑V′
-
---------------------------------------------------------------------------------
--- Definitions used in Dynamic Gradual Guarantee
---------------------------------------------------------------------------------
-
-_⇓_ : Term → Termᶜ → Set
-M ⇓ V = ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (compile wt —↠ᶜ V × Result V))
-
-Diverges : Term → Set
-Diverges M = ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (Divergesᶜ (compile wt)))
-
-Blames : Term → Set
-Blames M = ∃[ ℓ ] (M ⇓ blame {ℓ = ℓ})
-
-DivergeOrBlameᶜ : Termᶜ → Set
-DivergeOrBlameᶜ M′ = (∀ N′ → M′ —↠ᶜ N′ → Blameᶜ N′ ⊎ ∃[ N″ ] N′ —→ᶜ N″)
-
-DivergeOrBlame : Term → Set
-DivergeOrBlame M = ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (DivergeOrBlameᶜ (compile wt)))
-
 
 --------------------------------------------------------------------------------
 -- Theorem: Dynamic Gradual Guarantee

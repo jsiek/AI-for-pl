@@ -3,6 +3,7 @@ module Contexts where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Nat using (Nat; zero; suc)
 open import Agda.Builtin.List using (List; []; _∷_)
+open import Data.Product using (∃-syntax; _×_)
 open import Types
 
 Var : Set
@@ -20,6 +21,10 @@ data _∋_⦂_ : Ctx → Var → Ty → Set where
 _⊑ᵉ_ : Ctx → Ctx → Set
 Γ ⊑ᵉ Γ′ = ∀ x A A′ → Γ ∋ x ⦂ A → Γ′ ∋ x ⦂ A′ → A ⊑ A′
 
+_⊑ˢ_ : Ctx → Ctx → Set
+Γ ⊑ˢ Γ′ =
+  ∀ x A → Γ ∋ x ⦂ A → ∃[ A′ ] (Γ′ ∋ x ⦂ A′) × (A′ ⊑ A)
+
 extend-⊑ᵉ : ∀ {Γ Γ′ A A′} → A ⊑ A′ → Γ ⊑ᵉ Γ′ → (A ∷ Γ) ⊑ᵉ (A′ ∷ Γ′)
 extend-⊑ᵉ {A = A} {A′ = A′} A⊑A′ Γ⊑Γ′ zero .A .A′ Z Z = A⊑A′
 extend-⊑ᵉ A⊑A′ Γ⊑Γ′ (suc x) B B′ (S ∋x) (S ∋x′) =
@@ -31,4 +36,3 @@ extend-⊑ᵉ A⊑A′ Γ⊑Γ′ (suc x) B B′ (S ∋x) (S ∋x′) =
 
 []⊑[] : [] ⊑ᵉ []
 []⊑[] x A A′ ()
-

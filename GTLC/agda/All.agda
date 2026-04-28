@@ -10,6 +10,5 @@ open import GTLC
 open import Coercions
 open import CastCalculus
 open import Compile
-open import StaticGradualGuarantee
-open import DynamicGradualGuarantee
+open import DynamicGradualGuaranteeDefinitions
 open import MetaTheory

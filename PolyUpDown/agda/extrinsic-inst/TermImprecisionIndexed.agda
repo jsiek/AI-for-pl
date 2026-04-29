@@ -220,8 +220,8 @@ data _⊢_⊑_⦂_ (E : TPEnv) :
     E ⊢ M ⊑ (M′ down d′) ⦂ pB
 
   ⊑blameR : ∀ {M A B ℓ} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
-    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ∣ leftCtx (TPEnv.Γ E) ⊢ M ⦂ A →
-    E ⊢ M ⊑ (blame ℓ) ⦂ p
+    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ∣ rightCtx (TPEnv.Γ E) ⊢ M ⦂ B →
+    E ⊢ (blame ℓ) ⊑ M ⦂ p
 
 ------------------------------------------------------------------------
 -- Projections back to ordinary typing
@@ -249,7 +249,7 @@ data _⊢_⊑_⦂_ (E : TPEnv) :
 ⊑-left-typed (⊑down Φ lenΦ rel hd hd′) = ⊢down Φ lenΦ (⊑-left-typed rel) hd
 ⊑-left-typed (⊑downL Φ lenΦ rel hd) = ⊢down Φ lenΦ (⊑-left-typed rel) hd
 ⊑-left-typed (⊑downR Φ lenΦ rel hd′) = ⊑-left-typed rel
-⊑-left-typed (⊑blameR hM) = hM
+⊑-left-typed (⊑blameR hM) = ⊢blame _
 
 ⊑-right-typed :
   ∀ {E M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
@@ -273,7 +273,7 @@ data _⊢_⊑_⦂_ (E : TPEnv) :
 ⊑-right-typed (⊑down Φ lenΦ rel hd hd′) = ⊢down Φ lenΦ (⊑-right-typed rel) hd′
 ⊑-right-typed (⊑downL Φ lenΦ rel hd) = ⊑-right-typed rel
 ⊑-right-typed (⊑downR Φ lenΦ rel hd′) = ⊢down Φ lenΦ (⊑-right-typed rel) hd′
-⊑-right-typed (⊑blameR hM) = ⊢blame _
+⊑-right-typed (⊑blameR hM) = hM
 
 ⊑-type-imprecision :
   ∀ {E M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →

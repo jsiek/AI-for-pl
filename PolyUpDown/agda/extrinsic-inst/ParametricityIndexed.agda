@@ -9,8 +9,10 @@ module ParametricityIndexed where
 --   * remaining operational bridge as an explicit theorem target.
 
 open import Data.List using (List; []; _∷_; length)
-open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; z<s; s<s; z≤n)
-open import Data.Nat.Properties using (≤-refl; <-≤-trans; ≤-trans)
+open import Data.Nat
+  using (ℕ; zero; suc; _<_; _≤_; z<s; s<s; z≤n)
+open import Data.Nat.Properties
+  using (≤-refl; <-≤-trans; ≤-trans; n≤1+n)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -29,11 +31,29 @@ open import Store
     ; drop
     ; StoreWf
     ; storeWf-dom<
+    ; renameLookupᵗ
+    ; renameStoreᵗ-ext-⟰ᵗ
+    ; wkLookupˢ
     )
 open import TypeCheckDec using (raiseVarFrom)
 open import ImprecisionIndexed
 open import Imprecision using (substᵗ-closed-id)
 open import UpDown
+open import Conversion
+  using
+    ( _∣_⊢_↑ˢ_
+    ; _∣_⊢_↓ˢ_
+    ; ↑ˢ-unseal
+    ; ↑ˢ-⇒
+    ; ↑ˢ-∀
+    ; ↑ˢ-id
+    ; _；↑ˢ_
+    ; ↓ˢ-seal
+    ; ↓ˢ-⇒
+    ; ↓ˢ-∀
+    ; ↓ˢ-id
+    ; _；↓ˢ_
+    )
 open import Terms
 open import TermImprecisionIndexed
 open import TermProperties using (Substˣ; substˣ-term; []ᵀ-wt)
@@ -714,22 +734,168 @@ extendPlainρ-right-openᵢ {Ξ = Ξ} {A = A} {Tʳ = Tʳ} ρ w =
   env zero = refl
   env (suc X) = sym (open-renᵗ-suc (rightᵗ ρ X) Tʳ)
 
-postulate
-  extendνρ-left-openᵢ :
-    ∀ {Ξ A αˡ αʳ Rrel} (ρ : RelSub Ξ) (w : World)
-      {downR : DownClosed Rrel} →
-    leftᵢ (extendνρ ρ (ηentry αˡ αʳ Rrel downR)) w A ≡
-    (left∀ᵢ ρ w A) [ ｀ αˡ ]ᵗ
+interpLRVarˡ-ν-open-at :
+  ∀ n Ξ η e X →
+  interpLRVarˡ (plains n (ν-bound ∷ Ξ)) (e ∷ η) X ≡
+  substᵗ (substVarFrom n (｀ (αˡ e)))
+    (interpLRVarˡ (plains n (plain ∷ Ξ)) η X)
+interpLRVarˡ-ν-open-at zero Ξ η e zero = refl
+interpLRVarˡ-ν-open-at zero Ξ η e (suc X) =
+  sym (open-renᵗ-suc (interpLRVarˡ Ξ η X) (｀ (αˡ e)))
+interpLRVarˡ-ν-open-at (suc n) Ξ η e zero = refl
+interpLRVarˡ-ν-open-at (suc n) Ξ η e (suc X) =
+  trans
+    (cong ⇑ᵗ (interpLRVarˡ-ν-open-at n Ξ η e X))
+    (sym
+      (substVarFrom-⇑ᵗ n (｀ (αˡ e))
+        (interpLRVarˡ (plains n (plain ∷ Ξ)) η X)))
 
-  extendνρ-right-openᵢ :
-    ∀ {Ξ A αˡ αʳ Rrel} (ρ : RelSub Ξ) (w : World)
-      {downR : DownClosed Rrel} →
-    rightᵢ (extendνρ ρ (ηentry αˡ αʳ Rrel downR)) w A ≡
-    (right∀ᵢ ρ w A) [ ｀ αʳ ]ᵗ
+interpLRˡ-ν-open-at :
+  ∀ n Ξ η e A →
+  interpLRˡ (plains n (ν-bound ∷ Ξ)) (e ∷ η) A ≡
+  substᵗ (substVarFrom n (｀ (αˡ e)))
+    (interpLRˡ (plains n (plain ∷ Ξ)) η A)
+interpLRˡ-ν-open-at n Ξ η e (＇ X) =
+  interpLRVarˡ-ν-open-at n Ξ η e X
+interpLRˡ-ν-open-at n Ξ η e (｀ α) = refl
+interpLRˡ-ν-open-at n Ξ η e (‵ ι) = refl
+interpLRˡ-ν-open-at n Ξ η e ★ = refl
+interpLRˡ-ν-open-at n Ξ η e (A ⇒ B) =
+  cong₂ _⇒_
+    (interpLRˡ-ν-open-at n Ξ η e A)
+    (interpLRˡ-ν-open-at n Ξ η e B)
+interpLRˡ-ν-open-at n Ξ η e (`∀ A) =
+  cong `∀ (interpLRˡ-ν-open-at (suc n) Ξ η e A)
+
+interpLRˡ-ν-open :
+  ∀ Ξ η e A →
+  interpLRˡ (ν-bound ∷ Ξ) (e ∷ η) A ≡
+  (interpLRˡ (plain ∷ Ξ) η A) [ ｀ (αˡ e) ]ᵗ
+interpLRˡ-ν-open Ξ η e A = interpLRˡ-ν-open-at zero Ξ η e A
+
+interpLRVarʳ-ν-open-at :
+  ∀ n Ξ η e X →
+  interpLRVarʳ (plains n (ν-bound ∷ Ξ)) (e ∷ η) X ≡
+  substᵗ (substVarFrom n (｀ (αʳ e)))
+    (interpLRVarʳ (plains n (plain ∷ Ξ)) η X)
+interpLRVarʳ-ν-open-at zero Ξ η e zero = refl
+interpLRVarʳ-ν-open-at zero Ξ η e (suc X) =
+  sym (open-renᵗ-suc (interpLRVarʳ Ξ η X) (｀ (αʳ e)))
+interpLRVarʳ-ν-open-at (suc n) Ξ η e zero = refl
+interpLRVarʳ-ν-open-at (suc n) Ξ η e (suc X) =
+  trans
+    (cong ⇑ᵗ (interpLRVarʳ-ν-open-at n Ξ η e X))
+    (sym
+      (substVarFrom-⇑ᵗ n (｀ (αʳ e))
+        (interpLRVarʳ (plains n (plain ∷ Ξ)) η X)))
+
+interpLRʳ-ν-open-at :
+  ∀ n Ξ η e A →
+  interpLRʳ (plains n (ν-bound ∷ Ξ)) (e ∷ η) A ≡
+  substᵗ (substVarFrom n (｀ (αʳ e)))
+    (interpLRʳ (plains n (plain ∷ Ξ)) η A)
+interpLRʳ-ν-open-at n Ξ η e (＇ X) =
+  interpLRVarʳ-ν-open-at n Ξ η e X
+interpLRʳ-ν-open-at n Ξ η e (｀ α) = refl
+interpLRʳ-ν-open-at n Ξ η e (‵ ι) = refl
+interpLRʳ-ν-open-at n Ξ η e ★ = refl
+interpLRʳ-ν-open-at n Ξ η e (A ⇒ B) =
+  cong₂ _⇒_
+    (interpLRʳ-ν-open-at n Ξ η e A)
+    (interpLRʳ-ν-open-at n Ξ η e B)
+interpLRʳ-ν-open-at n Ξ η e (`∀ A) =
+  cong `∀ (interpLRʳ-ν-open-at (suc n) Ξ η e A)
+
+interpLRʳ-ν-open :
+  ∀ Ξ η e A →
+  interpLRʳ (ν-bound ∷ Ξ) (e ∷ η) A ≡
+  (interpLRʳ (plain ∷ Ξ) η A) [ ｀ (αʳ e) ]ᵗ
+interpLRʳ-ν-open Ξ η e A = interpLRʳ-ν-open-at zero Ξ η e A
+
+extendνρ-left-openᵢ :
+  ∀ {Ξ A αˡ αʳ Rrel} (ρ : RelSub Ξ) (w : World)
+    {downR : DownClosed Rrel} →
+  leftᵢ (extendνρ ρ (ηentry αˡ αʳ Rrel downR)) w A ≡
+  (left∀ᵢ ρ w A) [ ｀ αˡ ]ᵗ
+extendνρ-left-openᵢ {Ξ = Ξ} {A = A} {αˡ = αˡ} {αʳ = αʳ}
+    {Rrel = Rrel} ρ w {downR = downR} =
+  trans
+    (cong (substᵗ (leftᵗ ρ))
+      (interpLRˡ-ν-open Ξ (νenv ρ)
+        (ηentry αˡ αʳ Rrel downR) A))
+    (substᵗ-open
+      (leftᵗ ρ)
+      (interpLRˡ (plain ∷ Ξ) (νenv ρ) A)
+      (｀ αˡ))
+
+extendνρ-right-openᵢ :
+  ∀ {Ξ A αˡ αʳ Rrel} (ρ : RelSub Ξ) (w : World)
+    {downR : DownClosed Rrel} →
+  rightᵢ (extendνρ ρ (ηentry αˡ αʳ Rrel downR)) w A ≡
+  (right∀ᵢ ρ w A) [ ｀ αʳ ]ᵗ
+extendνρ-right-openᵢ {Ξ = Ξ} {A = A} {αˡ = αˡ} {αʳ = αʳ}
+    {Rrel = Rrel} ρ w {downR = downR} =
+  trans
+    (cong (substᵗ (rightᵗ ρ))
+      (interpLRʳ-ν-open Ξ (νenv ρ)
+        (ηentry αˡ αʳ Rrel downR) A))
+    (substᵗ-open
+      (rightᵗ ρ)
+      (interpLRʳ (plain ∷ Ξ) (νenv ρ) A)
+      (｀ αʳ))
+
+interpLRʳ-ν-shift-at :
+  ∀ n Ξ η e A →
+  interpLRʳ (plains n (ν-bound ∷ Ξ)) (e ∷ η)
+    (renameᵗ (raiseVarFrom n) A) ≡
+  interpLRʳ (plains n Ξ) η A
+interpLRʳ-ν-shift-at zero Ξ η e (＇ X) = refl
+interpLRʳ-ν-shift-at zero Ξ η e (｀ α) = refl
+interpLRʳ-ν-shift-at zero Ξ η e (‵ ι) = refl
+interpLRʳ-ν-shift-at zero Ξ η e ★ = refl
+interpLRʳ-ν-shift-at zero Ξ η e (A ⇒ B) =
+  cong₂ _⇒_
+    (interpLRʳ-ν-shift-at zero Ξ η e A)
+    (interpLRʳ-ν-shift-at zero Ξ η e B)
+interpLRʳ-ν-shift-at zero Ξ η e (`∀ A) =
+  cong `∀
+    (trans
+      (cong (interpLRʳ (plain ∷ ν-bound ∷ Ξ) (e ∷ η))
+        (renameᵗ-cong (raise-ext zero) A))
+      (interpLRʳ-ν-shift-at (suc zero) Ξ η e A))
+interpLRʳ-ν-shift-at (suc n) Ξ η e (＇ zero) = refl
+interpLRʳ-ν-shift-at (suc n) Ξ η e (＇ (suc X)) =
+  cong ⇑ᵗ (interpLRʳ-ν-shift-at n Ξ η e (＇ X))
+interpLRʳ-ν-shift-at (suc n) Ξ η e (｀ α) = refl
+interpLRʳ-ν-shift-at (suc n) Ξ η e (‵ ι) = refl
+interpLRʳ-ν-shift-at (suc n) Ξ η e ★ = refl
+interpLRʳ-ν-shift-at (suc n) Ξ η e (A ⇒ B) =
+  cong₂ _⇒_
+    (interpLRʳ-ν-shift-at (suc n) Ξ η e A)
+    (interpLRʳ-ν-shift-at (suc n) Ξ η e B)
+interpLRʳ-ν-shift-at (suc n) Ξ η e (`∀ A) =
+  cong `∀
+    (trans
+      (cong (interpLRʳ (plains (suc (suc n)) (ν-bound ∷ Ξ)) (e ∷ η))
+        (renameᵗ-cong (raise-ext (suc n)) A))
+      (interpLRʳ-ν-shift-at (suc (suc n)) Ξ η e A))
+
+extendνρ-right-shiftᵢ :
+  ∀ {Ξ A αˡ αʳ Rrel} (ρ : RelSub Ξ) (w : World)
+    {downR : DownClosed Rrel} →
+  rightᵢ (extendνρ ρ (ηentry αˡ αʳ Rrel downR)) w (⇑ᵗ A) ≡
+  rightᵢ ρ w A
+extendνρ-right-shiftᵢ {Ξ = Ξ} {A = A} {αˡ = αˡ} {αʳ = αʳ}
+    {Rrel = Rrel} ρ w {downR = downR} =
+  cong (substᵗ (rightᵗ ρ))
+    (interpLRʳ-ν-shift-at zero Ξ (νenv ρ)
+      (ηentry αˡ αʳ Rrel downR) A)
 
 instCast-up-left-typedᵢν :
   ∀ {Ξ A Tˡ Tʳ αˡ αʳ Rrel} {ρ : RelSub Ξ}
-    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ} {downR : DownClosed Rrel}
+    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
+    {wfTˡc : WfTyClosedᵗ Tˡ} {wfTʳc : WfTyClosedᵗ Tʳ}
+    {downR : DownClosed Rrel}
     {w L} →
   (hTˡ : WfTy 0 (Ψˡ w) Tˡ) →
   (hTʳ : WfTy 0 (Ψʳ w) Tʳ) →
@@ -741,7 +907,7 @@ instCast-up-left-typedᵢν :
     L up (instCast⊑ {A = Tˡ} {B = left∀ᵢ ρ w A} {α = αˡ})
     ⦂ leftᵢ
         (extendPlainρ ρ Tˡ Tʳ
-          (Ψˡ w , hTˡ) (Ψʳ w , hTʳ) pT Rrel downR)
+          wfTˡc wfTʳc pT Rrel downR)
         w A
 instCast-up-left-typedᵢν
     {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
@@ -759,7 +925,9 @@ instCast-up-left-typedᵢν
 
 instCast-up-right-typedᵢν :
   ∀ {Ξ B Tˡ Tʳ αˡ αʳ Rrel} {ρ : RelSub Ξ}
-    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ} {downR : DownClosed Rrel}
+    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
+    {wfTˡc : WfTyClosedᵗ Tˡ} {wfTʳc : WfTyClosedᵗ Tʳ}
+    {downR : DownClosed Rrel}
     {w R} →
   (hTˡ : WfTy 0 (Ψˡ w) Tˡ) →
   (hTʳ : WfTy 0 (Ψʳ w) Tʳ) →
@@ -771,7 +939,7 @@ instCast-up-right-typedᵢν :
     R up (instCast⊑ {A = Tʳ} {B = right∀ᵢ ρ w B} {α = αʳ})
     ⦂ rightᵢ
         (extendPlainρ ρ Tˡ Tʳ
-          (Ψˡ w , hTˡ) (Ψʳ w , hTʳ) pT Rrel downR)
+          wfTˡc wfTʳc pT Rrel downR)
         w B
 instCast-up-right-typedᵢν
     {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
@@ -789,7 +957,9 @@ instCast-up-right-typedᵢν
 
 instCast-down-left-typedᵢν :
   ∀ {Ξ A Tˡ Tʳ αˡ αʳ Rrel} {ρ : RelSub Ξ}
-    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ} {downR : DownClosed Rrel}
+    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
+    {wfTˡc : WfTyClosedᵗ Tˡ} {wfTʳc : WfTyClosedᵗ Tʳ}
+    {downR : DownClosed Rrel}
     {w L} →
   (hTˡ : WfTy 0 (Ψˡ w) Tˡ) →
   (hTʳ : WfTy 0 (Ψʳ w) Tʳ) →
@@ -798,7 +968,7 @@ instCast-down-left-typedᵢν :
   0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ L ⦂
     leftᵢ
       (extendPlainρ ρ Tˡ Tʳ
-        (Ψˡ w , hTˡ) (Ψʳ w , hTʳ) pT Rrel downR)
+        wfTˡc wfTʳc pT Rrel downR)
       w A →
   0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
     L down (instCast⊒ {A = Tˡ} {B = left∀ᵢ ρ w A} {α = αˡ})
@@ -820,7 +990,9 @@ instCast-down-left-typedᵢν
 
 instCast-down-right-typedᵢν :
   ∀ {Ξ B Tˡ Tʳ αˡ αʳ Rrel} {ρ : RelSub Ξ}
-    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ} {downR : DownClosed Rrel}
+    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
+    {wfTˡc : WfTyClosedᵗ Tˡ} {wfTʳc : WfTyClosedᵗ Tʳ}
+    {downR : DownClosed Rrel}
     {w R} →
   (hTˡ : WfTy 0 (Ψˡ w) Tˡ) →
   (hTʳ : WfTy 0 (Ψʳ w) Tʳ) →
@@ -829,7 +1001,7 @@ instCast-down-right-typedᵢν :
   0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ R ⦂
     rightᵢ
       (extendPlainρ ρ Tˡ Tʳ
-        (Ψˡ w , hTˡ) (Ψʳ w , hTʳ) pT Rrel downR)
+        wfTˡc wfTʳc pT Rrel downR)
       w B →
   0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢
     R down (instCast⊒ {A = Tʳ} {B = right∀ᵢ ρ w B} {α = αʳ})
@@ -853,7 +1025,8 @@ InstCastBridgeℰ⊑ᵢ : Set₁
 InstCastBridgeℰ⊑ᵢ =
   ∀ {Ξ A B n dir w Tˡ Tʳ αˡ αʳ} {ρ : RelSub Ξ}
     {p : plain ∷ Ξ ⊢ A ⊑ᵢ B}
-    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ} →
+    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
+    {wfTˡ : WfTyClosedᵗ Tˡ} {wfTʳ : WfTyClosedᵗ Tʳ} →
     (Rrel : Rel) →
     (downR : DownClosed Rrel) →
     (hTˡ : WfTy 0 (Ψˡ w) Tˡ) →
@@ -865,8 +1038,7 @@ InstCastBridgeℰ⊑ᵢ =
     (L R : Term) →
   ℰ (extendνρ ρ (ηentry αˡ αʳ Rrel downR))
     (plain-to-ν⊑ᵢ p) n dir w L R →
-  ℰ (extendPlainρ ρ Tˡ Tʳ
-       (Ψˡ w , hTˡ) (Ψʳ w , hTʳ) pT Rrel downR)
+  ℰ (extendPlainρ ρ Tˡ Tʳ wfTˡ wfTʳ pT Rrel downR)
     p n dir w
     (L up (instCast⊑ {A = Tˡ} {B = left∀ᵢ ρ w A} {α = αˡ}))
     (R up (instCast⊑ {A = Tʳ} {B = right∀ᵢ ρ w B} {α = αʳ}))
@@ -875,7 +1047,8 @@ InstCastBridgeℰ⊒ᵢ : Set₁
 InstCastBridgeℰ⊒ᵢ =
   ∀ {Ξ A B n dir w Tˡ Tʳ αˡ αʳ} {ρ : RelSub Ξ}
     {p : plain ∷ Ξ ⊢ A ⊑ᵢ B}
-    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ} →
+    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
+    {wfTˡ : WfTyClosedᵗ Tˡ} {wfTʳ : WfTyClosedᵗ Tʳ} →
     (Rrel : Rel) →
     (downR : DownClosed Rrel) →
     (hTˡ : WfTy 0 (Ψˡ w) Tˡ) →
@@ -885,78 +1058,102 @@ InstCastBridgeℰ⊒ᵢ =
     (αˡ∈ : Σˡ w ∋ˢ αˡ ⦂ Tˡ) →
     (αʳ∈ : Σʳ w ∋ˢ αʳ ⦂ Tʳ) →
     (L R : Term) →
-  ℰ (extendPlainρ ρ Tˡ Tʳ
-       (Ψˡ w , hTˡ) (Ψʳ w , hTʳ) pT Rrel downR)
+  ℰ (extendPlainρ ρ Tˡ Tʳ wfTˡ wfTʳ pT Rrel downR)
     p n dir w L R →
   ℰ (extendνρ ρ (ηentry αˡ αʳ Rrel downR))
     (plain-to-ν⊑ᵢ p) n dir w
     (L down (instCast⊒ {A = Tˡ} {B = left∀ᵢ ρ w A} {α = αˡ}))
     (R down (instCast⊒ {A = Tʳ} {B = right∀ᵢ ρ w B} {α = αʳ}))
 
+InstCastBridge𝒱⇒ℰ⊑ᵢ : Set₁
+InstCastBridge𝒱⇒ℰ⊑ᵢ =
+  ∀ {Ξ A B n dir w Tˡ Tʳ αˡ αʳ} {ρ : RelSub Ξ}
+    {p : plain ∷ Ξ ⊢ A ⊑ᵢ B}
+    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
+    {wfTˡ : WfTyClosedᵗ Tˡ} {wfTʳ : WfTyClosedᵗ Tʳ} →
+    (Rrel : Rel) →
+    (downR : DownClosed Rrel) →
+    (hTˡ : WfTy 0 (Ψˡ w) Tˡ) →
+    (hTʳ : WfTy 0 (Ψʳ w) Tʳ) →
+    (hAˡ : WfTy (suc 0) (Ψˡ w) (left∀ᵢ ρ w A)) →
+    (hBʳ : WfTy (suc 0) (Ψʳ w) (right∀ᵢ ρ w B)) →
+    (αˡ∈ : Σˡ w ∋ˢ αˡ ⦂ Tˡ) →
+    (αʳ∈ : Σʳ w ∋ˢ αʳ ⦂ Tʳ) →
+    (V W : Term) →
+  𝒱 (extendνρ ρ (ηentry αˡ αʳ Rrel downR))
+    (plain-to-ν⊑ᵢ p) n dir w V W →
+  ℰ (extendPlainρ ρ Tˡ Tʳ wfTˡ wfTʳ pT Rrel downR)
+    p (suc n) dir w
+    (V up (instCast⊑ {A = Tˡ} {B = left∀ᵢ ρ w A} {α = αˡ}))
+    (W up (instCast⊑ {A = Tʳ} {B = right∀ᵢ ρ w B} {α = αʳ}))
+
+InstCastBridge𝒱⇒ℰ⊒ᵢ : Set₁
+InstCastBridge𝒱⇒ℰ⊒ᵢ =
+  ∀ {Ξ A B n dir w Tˡ Tʳ αˡ αʳ} {ρ : RelSub Ξ}
+    {p : plain ∷ Ξ ⊢ A ⊑ᵢ B}
+    {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
+    {wfTˡ : WfTyClosedᵗ Tˡ} {wfTʳ : WfTyClosedᵗ Tʳ} →
+    (Rrel : Rel) →
+    (downR : DownClosed Rrel) →
+    (hTˡ : WfTy 0 (Ψˡ w) Tˡ) →
+    (hTʳ : WfTy 0 (Ψʳ w) Tʳ) →
+    (hAˡ : WfTy (suc 0) (Ψˡ w) (left∀ᵢ ρ w A)) →
+    (hBʳ : WfTy (suc 0) (Ψʳ w) (right∀ᵢ ρ w B)) →
+    (αˡ∈ : Σˡ w ∋ˢ αˡ ⦂ Tˡ) →
+    (αʳ∈ : Σʳ w ∋ˢ αʳ ⦂ Tʳ) →
+    (V W : Term) →
+  𝒱 (extendPlainρ ρ Tˡ Tʳ wfTˡ wfTʳ pT Rrel downR)
+    p n dir w V W →
+  ℰ (extendνρ ρ (ηentry αˡ αʳ Rrel downR))
+    (plain-to-ν⊑ᵢ p) (suc n) dir w
+    (V down (instCast⊒ {A = Tˡ} {B = left∀ᵢ ρ w A} {α = αˡ}))
+    (W down (instCast⊒ {A = Tʳ} {B = right∀ᵢ ρ w B} {α = αʳ}))
+
 postulate
-  instCast-bridge-ℰ⊑ᵢ : InstCastBridgeℰ⊑ᵢ
-  instCast-bridge-ℰ⊒ᵢ : InstCastBridgeℰ⊒ᵢ
+  instCast-bridge-𝒱⇒ℰ⊑ᵢ : InstCastBridge𝒱⇒ℰ⊑ᵢ
+  instCast-bridge-𝒱⇒ℰ⊒ᵢ : InstCastBridge𝒱⇒ℰ⊒ᵢ
 
-instCast-bridge-ℰ⊑ᵢ-zero : InstCastBridgeℰ⊑ᵢ
-instCast-bridge-ℰ⊑ᵢ-zero
-    {A = A} {B = B} {n = zero}
-    {w = w}
-    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-    {ρ = ρ} {pT = pT}
-    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
-    ((L⊢ , R⊢) , rel) =
-  (instCast-up-left-typedᵢν
-     {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
-     {w = w} {L = L}
-     hTˡ hTʳ hAˡ αˡ∈ L⊢ ,
-   instCast-up-right-typedᵢν
-     {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
-     {w = w} {R = R}
-     hTˡ hTʳ hBʳ αʳ∈ R⊢) ,
-  lift tt
-instCast-bridge-ℰ⊑ᵢ-zero {n = suc n} =
-  instCast-bridge-ℰ⊑ᵢ
+up-↠ :
+  ∀ {Σ Σ′ M M′} {p : Up} →
+  Σ ∣ M —↠ Σ′ ∣ M′ →
+  Σ ∣ (M up p) —↠ Σ′ ∣ (M′ up p)
+up-↠ {p = p} (M ∎) = (M up p) ∎
+up-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠W) =
+  (M up p) —→⟨ ξ-up M→M′ ⟩ up-↠ M′↠W
 
-instCast-bridge-ℰ⊒ᵢ-zero : InstCastBridgeℰ⊒ᵢ
-instCast-bridge-ℰ⊒ᵢ-zero
-    {A = A} {B = B} {n = zero}
-    {w = w}
-    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-    {ρ = ρ} {pT = pT}
-    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
-    ((L⊢ , R⊢) , rel) =
-  (instCast-down-left-typedᵢν
-     {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
-     {w = w} {L = L}
-     hTˡ hTʳ hAˡ αˡ∈ L⊢ ,
-   instCast-down-right-typedᵢν
-     {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
-     {w = w} {R = R}
-     hTˡ hTʳ hBʳ αʳ∈ R⊢) ,
-  lift tt
-instCast-bridge-ℰ⊒ᵢ-zero {n = suc n} =
-  instCast-bridge-ℰ⊒ᵢ
+down-↠ :
+  ∀ {Σ Σ′ M M′} {p : Down} →
+  Σ ∣ M —↠ Σ′ ∣ M′ →
+  Σ ∣ (M down p) —↠ Σ′ ∣ (M′ down p)
+down-↠ {p = p} (M ∎) = (M down p) ∎
+down-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠W) =
+  (M down p) —→⟨ ξ-down M→M′ ⟩ down-↠ M′↠W
 
-left∀ᵢ-wf :
-  ∀ {Ξ Δ Ψsrc A w} (ρ : RelSub Ξ) →
-  InterpLRWfˡ (plain ∷ Ξ) (suc Δ) Ψsrc (Ψˡ w) (νenv ρ) →
-  WfTy (suc Δ) Ψsrc A →
-  TySubstWf (plainCount Ξ) 0 (Ψˡ w) (leftᵗ ρ) →
-  WfTy (suc 0) (Ψˡ w) (left∀ᵢ ρ w A)
-left∀ᵢ-wf {Ξ = Ξ} ρ iwf hA hσ =
-  substᵗ-preserves-WfTy (interpLRˡ-wf iwf hA) (TySubstWf-exts hσ)
+up-blame-↠ :
+  ∀ {Σ Σ′ M ℓ} {p : Up} →
+  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
+  Σ ∣ (M up p) —↠ Σ′ ∣ blame ℓ
+up-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
+  (blame ℓ up p) —→⟨ id-step blame-up ⟩ blame ℓ ∎
+up-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
+  (M up p) —→⟨ ξ-up M→M′ ⟩ up-blame-↠ M′↠blame
 
-leftᵢ-wf :
-  ∀ {Ξ Δ Ψsrc T w} (ρ : RelSub Ξ) →
-  InterpLRWfˡ Ξ Δ Ψsrc (Ψˡ w) (νenv ρ) →
-  WfTy Δ Ψsrc T →
-  TySubstWf (plainCount Ξ) 0 (Ψˡ w) (leftᵗ ρ) →
-  WfTy 0 (Ψˡ w) (leftᵢ ρ w T)
-leftᵢ-wf ρ iwf hT hσ = substᵗ-preserves-WfTy (interpLRˡ-wf iwf hT) hσ
+down-blame-↠ :
+  ∀ {Σ Σ′ M ℓ} {p : Down} →
+  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
+  Σ ∣ (M down p) —↠ Σ′ ∣ blame ℓ
+down-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
+  (blame ℓ down p) —→⟨ id-step blame-down ⟩ blame ℓ ∎
+down-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
+  (M down p) —→⟨ ξ-down M→M′ ⟩ down-blame-↠ M′↠blame
+
+multi-store-growth :
+  ∀ {Σ Σ′ L L′} →
+  Σ ∣ L —↠ Σ′ ∣ L′ →
+  Σ ⊆ˢ Σ′
+multi-store-growth (L ∎) = ⊆ˢ-refl
+multi-store-growth (L —→⟨ L→M ⟩ M↠N) =
+  ⊆ˢ-trans (store-growth L→M) (multi-store-growth M↠N)
 
 mkWorldˡ-⪰ :
   ∀ {w Σˡ′ Ψˡ′} {wfΣˡ′ : StoreWf 0 Ψˡ′ Σˡ′} →
@@ -998,110 +1195,6 @@ mkWorldˡʳ-⪰ {w = w} {wfΣʳ′ = wfΣʳ′} growˡ growʳ ._⪰_.growΨʳ
 mkWorldˡʳ-⪰ growˡ growʳ ._⪰_.growˡ = growˡ
 mkWorldˡʳ-⪰ growˡ growʳ ._⪰_.growʳ = growʳ
 mkWorldˡʳ-⪰ growˡ growʳ ._⪰_.growη = ⊆η-refl
-
-tyappν-left-typedᵢ :
-  ∀ {Ξ Δ Ψsrc A T w L} {ρ : RelSub Ξ} →
-  RelWf w ρ →
-  InterpLRWfˡ (plain ∷ Ξ) (suc Δ) Ψsrc (Ψˡ w) (νenv ρ) →
-  InterpLRWfˡ Ξ Δ Ψsrc (Ψˡ w) (νenv ρ) →
-  WfTy (suc Δ) Ψsrc A →
-  WfTy Δ Ψsrc T →
-  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ L ⦂ leftᵢ ρ w (`∀ A) →
-  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-    (L ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂
-    leftᵢ ρ w (A [ T ]ᵗ)
-tyappν-left-typedᵢ {A = A} {T = T} {w = w} {L = L} {ρ = ρ}
-    rwf iwfA iwfT wfA wfT L⊢ =
-  subst
-    (λ C → 0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-      (L ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂ C)
-    (sym (leftᵢ-open ρ w A T))
-    (⊢• L⊢
-      (left∀ᵢ-wf {w = w} ρ iwfA wfA (leftᵗ-wf rwf))
-      (leftᵢ-wf {w = w} ρ iwfT wfT (leftᵗ-wf rwf)))
-
-tyapp-↠ :
-  ∀ {Σ Σ′ L L′ B T} →
-  Σ ∣ L —↠ Σ′ ∣ L′ →
-  Σ ∣ (L ⦂∀ B [ T ]) —↠ Σ′ ∣ (L′ ⦂∀ B [ T ])
-tyapp-↠ (L ∎) = (L ⦂∀ _ [ _ ]) ∎
-tyapp-↠ (L —→⟨ L→M ⟩ M↠N) =
-  (L ⦂∀ _ [ _ ]) —→⟨ ξ-·α L→M ⟩ tyapp-↠ M↠N
-
-up-↠ :
-  ∀ {Σ Σ′ M M′} {p : Up} →
-  Σ ∣ M —↠ Σ′ ∣ M′ →
-  Σ ∣ (M up p) —↠ Σ′ ∣ (M′ up p)
-up-↠ {p = p} (M ∎) = (M up p) ∎
-up-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠W) =
-  (M up p) —→⟨ ξ-up M→M′ ⟩ up-↠ M′↠W
-
-down-↠ :
-  ∀ {Σ Σ′ M M′} {p : Down} →
-  Σ ∣ M —↠ Σ′ ∣ M′ →
-  Σ ∣ (M down p) —↠ Σ′ ∣ (M′ down p)
-down-↠ {p = p} (M ∎) = (M down p) ∎
-down-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠W) =
-  (M down p) —→⟨ ξ-down M→M′ ⟩ down-↠ M′↠W
-
-up-blame-↠ :
-  ∀ {Σ Σ′ M ℓ} {p : Up} →
-  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
-  Σ ∣ (M up p) —↠ Σ′ ∣ blame ℓ
-up-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
-  (blame ℓ up p) —→⟨ id-step blame-up ⟩ blame ℓ ∎
-up-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
-  (M up p) —→⟨ ξ-up M→M′ ⟩ up-blame-↠ M′↠blame
-
-down-blame-↠ :
-  ∀ {Σ Σ′ M ℓ} {p : Down} →
-  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
-  Σ ∣ (M down p) —↠ Σ′ ∣ blame ℓ
-down-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
-  (blame ℓ down p) —→⟨ id-step blame-down ⟩ blame ℓ ∎
-down-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
-  (M down p) —→⟨ ξ-down M→M′ ⟩ down-blame-↠ M′↠blame
-
-tyapp-blame-↠ :
-  ∀ {Σ Σ′ M ℓ B T} →
-  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
-  Σ ∣ (M ⦂∀ B [ T ]) —↠ Σ′ ∣ blame ℓ
-tyapp-blame-↠ {ℓ = ℓ} {B = B} {T = T} (_ ∎) =
-  (blame ℓ ⦂∀ B [ T ]) —→⟨ id-step blame-·α ⟩ blame ℓ ∎
-tyapp-blame-↠ {B = B} {T = T} (M —→⟨ M→M′ ⟩ M′↠blame) =
-  (M ⦂∀ B [ T ]) —→⟨ ξ-·α M→M′ ⟩ tyapp-blame-↠ M′↠blame
-
-data Resultᵢ (Σ : Store) (M : Term) (A : Ty) : Set where
-  result-value :
-    ∀ {Σ′ Ψ′ W} →
-    StoreWf 0 Ψ′ Σ′ →
-    Σ ∣ M —↠ Σ′ ∣ W →
-    Value W →
-    0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ W ⦂ A →
-    Resultᵢ Σ M A
-
-  result-blame :
-    ∀ {Σ′ ℓ} →
-    Σ ∣ M —↠ Σ′ ∣ blame ℓ →
-    Resultᵢ Σ M A
-
-prepend-resultᵢ :
-  ∀ {Σ Σ′ M M′ A} →
-  Σ ∣ M —↠ Σ′ ∣ M′ →
-  Resultᵢ Σ′ M′ A →
-  Resultᵢ Σ M A
-prepend-resultᵢ M↠M′ (result-value wfΣ″ M′↠W vW W⊢) =
-  result-value wfΣ″ (multi-trans M↠M′ M′↠W) vW W⊢
-prepend-resultᵢ M↠M′ (result-blame M′↠blame) =
-  result-blame (multi-trans M↠M′ M′↠blame)
-
-multi-store-growth :
-  ∀ {Σ Σ′ L L′} →
-  Σ ∣ L —↠ Σ′ ∣ L′ →
-  Σ ⊆ˢ Σ′
-multi-store-growth (L ∎) = ⊆ˢ-refl
-multi-store-growth (L —→⟨ L→M ⟩ M↠N) =
-  ⊆ˢ-trans (store-growth L→M) (multi-store-growth M↠N)
 
 ℰ-pull-≼-right-↠ :
   ∀ {Ξ A B} {ρ : RelSub Ξ} {p : Ξ ⊢ A ⊑ᵢ B}
@@ -1179,6 +1272,542 @@ multi-store-growth (L —→⟨ L→M ⟩ M↠N) =
   inj₂ (inj₂
     (vMʳ , Σˡ″ , Ψˡ″ , wfΣˡ″ , Wˡ ,
      multi-trans Mˡ↠Mˡ′ Mˡ′↠Wˡ , rel))
+
+instCast-bridge-ℰ⊑ᵢ : InstCastBridgeℰ⊑ᵢ
+instCast-bridge-ℰ⊑ᵢ
+    {A = A} {B = B} {n = zero}
+    {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {pT = pT} {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) , rel) =
+  (instCast-up-left-typedᵢν
+     {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {L = L}
+     hTˡ hTʳ hAˡ αˡ∈ L⊢ ,
+   instCast-up-right-typedᵢν
+     {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {R = R}
+     hTˡ hTʳ hBʳ αʳ∈ R⊢) ,
+  lift tt
+instCast-bridge-ℰ⊑ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≼} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = p} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₁
+        (Σˡ′ , Ψˡ′ , wfΣˡ′ , L′ , L→L′ ,
+         Σʳ′ , Ψʳ′ , wfΣʳ′ , R′ , R↠R′ , rel′)) =
+  (L↑⊢ , R↑⊢) ,
+  inj₁
+    (Σˡ′ , Ψˡ′ , wfΣˡ′ , _ , ξ-up L→L′ ,
+     Σʳ′ , Ψʳ′ , wfΣʳ′ , _ , up-↠ R↠R′ ,
+     instCast-bridge-ℰ⊑ᵢ
+       {A = A} {B = B} {n = k} {dir = ≼}
+       {w = mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′}
+       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+       {ρ = ρ} {p = p} {pT = pT}
+       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+       Rrel downR
+       (WfTy-weakenˢ hTˡ (_⪰_.growΨˡ grow))
+       (WfTy-weakenˢ hTʳ (_⪰_.growΨʳ grow))
+       (WfTy-weakenˢ hAˡ (_⪰_.growΨˡ grow))
+       (WfTy-weakenˢ hBʳ (_⪰_.growΨʳ grow))
+       (wkLookupˢ (store-growth L→L′) αˡ∈)
+       (wkLookupˢ (multi-store-growth R↠R′) αʳ∈)
+       L′ R′ rel′)
+  where
+  grow : mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′ ⪰ w
+  grow = mkWorldˡʳ-⪰ (store-growth L→L′) (multi-store-growth R↠R′)
+
+  L↑⊢ = instCast-up-left-typedᵢν
+    {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+    {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢
+
+  R↑⊢ = instCast-up-right-typedᵢν
+    {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+    {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢
+instCast-bridge-ℰ⊑ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≼} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {pT = pT} {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , L↠blame))) =
+  (instCast-up-left-typedᵢν
+     {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢ ,
+   instCast-up-right-typedᵢν
+     {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢) ,
+  inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , up-blame-↠ L↠blame))
+instCast-bridge-ℰ⊑ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≼} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = p} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₂ (inj₂
+        (vL , Σʳ′ , Ψʳ′ , wfΣʳ′ , W , R↠W , Vrel))) =
+  ℰ-pull-≼-right-↠
+    {ρ = extendPlainρ ρ Tˡ Tʳ wfTˡc wfTʳc pT Rrel downR}
+    {p = p} {k = suc k} {w = w}
+    {Σʳ′ = Σʳ′} {Ψʳ′ = Ψʳ′} {wfΣʳ′ = wfΣʳ′}
+    (instCast-up-left-typedᵢν
+      {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+      {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢)
+    (instCast-up-right-typedᵢν
+      {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+      {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢)
+    (up-↠ R↠W)
+    (instCast-bridge-𝒱⇒ℰ⊑ᵢ
+      {A = A} {B = B} {n = k} {dir = ≼}
+      {w = mkWorldʳ w Σʳ′ wfΣʳ′}
+      {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {ρ = ρ} {p = p} {pT = pT}
+      {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+      Rrel downR
+      hTˡ
+      (WfTy-weakenˢ hTʳ (_⪰_.growΨʳ grow))
+      hAˡ
+      (WfTy-weakenˢ hBʳ (_⪰_.growΨʳ grow))
+      αˡ∈
+      (wkLookupˢ (multi-store-growth R↠W) αʳ∈)
+      L W Vrel)
+  where
+  grow : mkWorldʳ w Σʳ′ wfΣʳ′ ⪰ w
+  grow = mkWorldʳ-⪰ (multi-store-growth R↠W)
+instCast-bridge-ℰ⊑ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≽} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = p} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₁
+        (Σʳ′ , Ψʳ′ , wfΣʳ′ , R′ , R→R′ ,
+         Σˡ′ , Ψˡ′ , wfΣˡ′ , L′ , L↠L′ , rel′)) =
+  (L↑⊢ , R↑⊢) ,
+  inj₁
+    (Σʳ′ , Ψʳ′ , wfΣʳ′ , _ , ξ-up R→R′ ,
+     Σˡ′ , Ψˡ′ , wfΣˡ′ , _ , up-↠ L↠L′ ,
+     instCast-bridge-ℰ⊑ᵢ
+       {A = A} {B = B} {n = k} {dir = ≽}
+       {w = mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′}
+       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+       {ρ = ρ} {p = p} {pT = pT}
+       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+       Rrel downR
+       (WfTy-weakenˢ hTˡ (_⪰_.growΨˡ grow))
+       (WfTy-weakenˢ hTʳ (_⪰_.growΨʳ grow))
+       (WfTy-weakenˢ hAˡ (_⪰_.growΨˡ grow))
+       (WfTy-weakenˢ hBʳ (_⪰_.growΨʳ grow))
+       (wkLookupˢ (multi-store-growth L↠L′) αˡ∈)
+       (wkLookupˢ (store-growth R→R′) αʳ∈)
+       L′ R′ rel′)
+  where
+  grow : mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′ ⪰ w
+  grow = mkWorldˡʳ-⪰ (multi-store-growth L↠L′) (store-growth R→R′)
+
+  L↑⊢ = instCast-up-left-typedᵢν
+    {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+    {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢
+
+  R↑⊢ = instCast-up-right-typedᵢν
+    {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+    {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢
+instCast-bridge-ℰ⊑ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≽} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {pT = pT} {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , L↠blame))) =
+  (instCast-up-left-typedᵢν
+     {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢ ,
+   instCast-up-right-typedᵢν
+     {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢) ,
+  inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , up-blame-↠ L↠blame))
+instCast-bridge-ℰ⊑ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≽} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = p} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₂ (inj₂
+        (vR , Σˡ′ , Ψˡ′ , wfΣˡ′ , W , L↠W , Vrel))) =
+  ℰ-pull-≽-left-↠
+    {ρ = extendPlainρ ρ Tˡ Tʳ wfTˡc wfTʳc pT Rrel downR}
+    {p = p} {k = suc k} {w = w}
+    {Σˡ′ = Σˡ′} {Ψˡ′ = Ψˡ′} {wfΣˡ′ = wfΣˡ′}
+    (instCast-up-left-typedᵢν
+      {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+      {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢)
+    (instCast-up-right-typedᵢν
+      {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+      {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢)
+    (up-↠ L↠W)
+    (instCast-bridge-𝒱⇒ℰ⊑ᵢ
+      {A = A} {B = B} {n = k} {dir = ≽}
+      {w = mkWorldˡ w Σˡ′ wfΣˡ′}
+      {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {ρ = ρ} {p = p} {pT = pT}
+      {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+      Rrel downR
+      (WfTy-weakenˢ hTˡ (_⪰_.growΨˡ grow))
+      hTʳ
+      (WfTy-weakenˢ hAˡ (_⪰_.growΨˡ grow))
+      hBʳ
+      (wkLookupˢ (multi-store-growth L↠W) αˡ∈)
+      αʳ∈
+      W R Vrel)
+  where
+  grow : mkWorldˡ w Σˡ′ wfΣˡ′ ⪰ w
+  grow = mkWorldˡ-⪰ (multi-store-growth L↠W)
+
+instCast-bridge-ℰ⊒ᵢ : InstCastBridgeℰ⊒ᵢ
+instCast-bridge-ℰ⊒ᵢ
+    {A = A} {B = B} {n = zero}
+    {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {pT = pT} {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) , rel) =
+  (instCast-down-left-typedᵢν
+     {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {L = L}
+     hTˡ hTʳ hAˡ αˡ∈ L⊢ ,
+   instCast-down-right-typedᵢν
+     {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {R = R}
+     hTˡ hTʳ hBʳ αʳ∈ R⊢) ,
+  lift tt
+instCast-bridge-ℰ⊒ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≼} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = p} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₁
+        (Σˡ′ , Ψˡ′ , wfΣˡ′ , L′ , L→L′ ,
+         Σʳ′ , Ψʳ′ , wfΣʳ′ , R′ , R↠R′ , rel′)) =
+  (L↓⊢ , R↓⊢) ,
+  inj₁
+    (Σˡ′ , Ψˡ′ , wfΣˡ′ , _ , ξ-down L→L′ ,
+     Σʳ′ , Ψʳ′ , wfΣʳ′ , _ , down-↠ R↠R′ ,
+     instCast-bridge-ℰ⊒ᵢ
+       {A = A} {B = B} {n = k} {dir = ≼}
+       {w = mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′}
+       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+       {ρ = ρ} {p = p} {pT = pT}
+       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+       Rrel downR
+       (WfTy-weakenˢ hTˡ (_⪰_.growΨˡ grow))
+       (WfTy-weakenˢ hTʳ (_⪰_.growΨʳ grow))
+       (WfTy-weakenˢ hAˡ (_⪰_.growΨˡ grow))
+       (WfTy-weakenˢ hBʳ (_⪰_.growΨʳ grow))
+       (wkLookupˢ (store-growth L→L′) αˡ∈)
+       (wkLookupˢ (multi-store-growth R↠R′) αʳ∈)
+       L′ R′ rel′)
+  where
+  grow : mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′ ⪰ w
+  grow = mkWorldˡʳ-⪰ (store-growth L→L′) (multi-store-growth R↠R′)
+
+  L↓⊢ = instCast-down-left-typedᵢν
+    {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+    {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢
+
+  R↓⊢ = instCast-down-right-typedᵢν
+    {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+    {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢
+instCast-bridge-ℰ⊒ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≼} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {pT = pT} {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , L↠blame))) =
+  (instCast-down-left-typedᵢν
+     {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢ ,
+   instCast-down-right-typedᵢν
+     {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢) ,
+  inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , down-blame-↠ L↠blame))
+instCast-bridge-ℰ⊒ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≼} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = p} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₂ (inj₂
+        (vL , Σʳ′ , Ψʳ′ , wfΣʳ′ , W , R↠W , Vrel))) =
+  ℰ-pull-≼-right-↠
+    {ρ = extendνρ ρ (ηentry αˡ αʳ Rrel downR)}
+    {p = plain-to-ν⊑ᵢ p} {k = suc k} {w = w}
+    {Σʳ′ = Σʳ′} {Ψʳ′ = Ψʳ′} {wfΣʳ′ = wfΣʳ′}
+    (instCast-down-left-typedᵢν
+      {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+      {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢)
+    (instCast-down-right-typedᵢν
+      {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+      {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢)
+    (down-↠ R↠W)
+    (instCast-bridge-𝒱⇒ℰ⊒ᵢ
+      {A = A} {B = B} {n = k} {dir = ≼}
+      {w = mkWorldʳ w Σʳ′ wfΣʳ′}
+      {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {ρ = ρ} {p = p} {pT = pT}
+      {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+      Rrel downR
+      hTˡ
+      (WfTy-weakenˢ hTʳ (_⪰_.growΨʳ grow))
+      hAˡ
+      (WfTy-weakenˢ hBʳ (_⪰_.growΨʳ grow))
+      αˡ∈
+      (wkLookupˢ (multi-store-growth R↠W) αʳ∈)
+      L W Vrel)
+  where
+  grow : mkWorldʳ w Σʳ′ wfΣʳ′ ⪰ w
+  grow = mkWorldʳ-⪰ (multi-store-growth R↠W)
+instCast-bridge-ℰ⊒ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≽} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = p} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₁
+        (Σʳ′ , Ψʳ′ , wfΣʳ′ , R′ , R→R′ ,
+         Σˡ′ , Ψˡ′ , wfΣˡ′ , L′ , L↠L′ , rel′)) =
+  (L↓⊢ , R↓⊢) ,
+  inj₁
+    (Σʳ′ , Ψʳ′ , wfΣʳ′ , _ , ξ-down R→R′ ,
+     Σˡ′ , Ψˡ′ , wfΣˡ′ , _ , down-↠ L↠L′ ,
+     instCast-bridge-ℰ⊒ᵢ
+       {A = A} {B = B} {n = k} {dir = ≽}
+       {w = mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′}
+       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+       {ρ = ρ} {p = p} {pT = pT}
+       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+       Rrel downR
+       (WfTy-weakenˢ hTˡ (_⪰_.growΨˡ grow))
+       (WfTy-weakenˢ hTʳ (_⪰_.growΨʳ grow))
+       (WfTy-weakenˢ hAˡ (_⪰_.growΨˡ grow))
+       (WfTy-weakenˢ hBʳ (_⪰_.growΨʳ grow))
+       (wkLookupˢ (multi-store-growth L↠L′) αˡ∈)
+       (wkLookupˢ (store-growth R→R′) αʳ∈)
+       L′ R′ rel′)
+  where
+  grow : mkWorldˡʳ w Σˡ′ wfΣˡ′ Σʳ′ wfΣʳ′ ⪰ w
+  grow = mkWorldˡʳ-⪰ (multi-store-growth L↠L′) (store-growth R→R′)
+
+  L↓⊢ = instCast-down-left-typedᵢν
+    {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+    {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢
+
+  R↓⊢ = instCast-down-right-typedᵢν
+    {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+    {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢
+instCast-bridge-ℰ⊒ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≽} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {pT = pT} {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , L↠blame))) =
+  (instCast-down-left-typedᵢν
+     {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢ ,
+   instCast-down-right-typedᵢν
+     {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+     {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+     {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢) ,
+  inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , down-blame-↠ L↠blame))
+instCast-bridge-ℰ⊒ᵢ
+    {A = A} {B = B} {n = suc k} {dir = ≽} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = p} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
+    ((L⊢ , R⊢) ,
+      inj₂ (inj₂
+        (vR , Σˡ′ , Ψˡ′ , wfΣˡ′ , W , L↠W , Vrel))) =
+  ℰ-pull-≽-left-↠
+    {ρ = extendνρ ρ (ηentry αˡ αʳ Rrel downR)}
+    {p = plain-to-ν⊑ᵢ p} {k = suc k} {w = w}
+    {Σˡ′ = Σˡ′} {Ψˡ′ = Ψˡ′} {wfΣˡ′ = wfΣˡ′}
+    (instCast-down-left-typedᵢν
+      {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+      {w = w} {L = L} hTˡ hTʳ hAˡ αˡ∈ L⊢)
+    (instCast-down-right-typedᵢν
+      {B = B} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {Rrel = Rrel} {ρ = ρ} {pT = pT} {downR = downR}
+      {w = w} {R = R} hTˡ hTʳ hBʳ αʳ∈ R⊢)
+    (down-↠ L↠W)
+    (instCast-bridge-𝒱⇒ℰ⊒ᵢ
+      {A = A} {B = B} {n = k} {dir = ≽}
+      {w = mkWorldˡ w Σˡ′ wfΣˡ′}
+      {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+      {ρ = ρ} {p = p} {pT = pT}
+      {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+      Rrel downR
+      (WfTy-weakenˢ hTˡ (_⪰_.growΨˡ grow))
+      hTʳ
+      (WfTy-weakenˢ hAˡ (_⪰_.growΨˡ grow))
+      hBʳ
+      (wkLookupˢ (multi-store-growth L↠W) αˡ∈)
+      αʳ∈
+      W R Vrel)
+  where
+  grow : mkWorldˡ w Σˡ′ wfΣˡ′ ⪰ w
+  grow = mkWorldˡ-⪰ (multi-store-growth L↠W)
+
+left∀ᵢ-wf :
+  ∀ {Ξ Δ Ψsrc A w} (ρ : RelSub Ξ) →
+  InterpLRWfˡ (plain ∷ Ξ) (suc Δ) Ψsrc (Ψˡ w) (νenv ρ) →
+  WfTy (suc Δ) Ψsrc A →
+  TySubstWf (plainCount Ξ) 0 (Ψˡ w) (leftᵗ ρ) →
+  WfTy (suc 0) (Ψˡ w) (left∀ᵢ ρ w A)
+left∀ᵢ-wf {Ξ = Ξ} ρ iwf hA hσ =
+  substᵗ-preserves-WfTy (interpLRˡ-wf iwf hA) (TySubstWf-exts hσ)
+
+leftᵢ-wf :
+  ∀ {Ξ Δ Ψsrc T w} (ρ : RelSub Ξ) →
+  InterpLRWfˡ Ξ Δ Ψsrc (Ψˡ w) (νenv ρ) →
+  WfTy Δ Ψsrc T →
+  TySubstWf (plainCount Ξ) 0 (Ψˡ w) (leftᵗ ρ) →
+  WfTy 0 (Ψˡ w) (leftᵢ ρ w T)
+leftᵢ-wf ρ iwf hT hσ = substᵗ-preserves-WfTy (interpLRˡ-wf iwf hT) hσ
+
+tyappν-left-typedᵢ :
+  ∀ {Ξ Δ Ψsrc A T w L} {ρ : RelSub Ξ} →
+  RelWf w ρ →
+  InterpLRWfˡ (plain ∷ Ξ) (suc Δ) Ψsrc (Ψˡ w) (νenv ρ) →
+  InterpLRWfˡ Ξ Δ Ψsrc (Ψˡ w) (νenv ρ) →
+  WfTy (suc Δ) Ψsrc A →
+  WfTy Δ Ψsrc T →
+  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ L ⦂ leftᵢ ρ w (`∀ A) →
+  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
+    (L ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂
+    leftᵢ ρ w (A [ T ]ᵗ)
+tyappν-left-typedᵢ {A = A} {T = T} {w = w} {L = L} {ρ = ρ}
+    rwf iwfA iwfT wfA wfT L⊢ =
+  subst
+    (λ C → 0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
+      (L ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂ C)
+    (sym (leftᵢ-open ρ w A T))
+    (⊢• L⊢
+      (left∀ᵢ-wf {w = w} ρ iwfA wfA (leftᵗ-wf rwf))
+      (leftᵢ-wf {w = w} ρ iwfT wfT (leftᵗ-wf rwf)))
+
+tyapp-↠ :
+  ∀ {Σ Σ′ L L′ B T} →
+  Σ ∣ L —↠ Σ′ ∣ L′ →
+  Σ ∣ (L ⦂∀ B [ T ]) —↠ Σ′ ∣ (L′ ⦂∀ B [ T ])
+tyapp-↠ (L ∎) = (L ⦂∀ _ [ _ ]) ∎
+tyapp-↠ (L —→⟨ L→M ⟩ M↠N) =
+  (L ⦂∀ _ [ _ ]) —→⟨ ξ-·α L→M ⟩ tyapp-↠ M↠N
+
+tyapp-blame-↠ :
+  ∀ {Σ Σ′ M ℓ B T} →
+  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
+  Σ ∣ (M ⦂∀ B [ T ]) —↠ Σ′ ∣ blame ℓ
+tyapp-blame-↠ {ℓ = ℓ} {B = B} {T = T} (_ ∎) =
+  (blame ℓ ⦂∀ B [ T ]) —→⟨ id-step blame-·α ⟩ blame ℓ ∎
+tyapp-blame-↠ {B = B} {T = T} (M —→⟨ M→M′ ⟩ M′↠blame) =
+  (M ⦂∀ B [ T ]) —→⟨ ξ-·α M→M′ ⟩ tyapp-blame-↠ M′↠blame
+
+data Resultᵢ (Σ : Store) (M : Term) (A : Ty) : Set where
+  result-value :
+    ∀ {Σ′ Ψ′ W} →
+    StoreWf 0 Ψ′ Σ′ →
+    Σ ∣ M —↠ Σ′ ∣ W →
+    Value W →
+    0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ W ⦂ A →
+    Resultᵢ Σ M A
+
+  result-blame :
+    ∀ {Σ′ ℓ} →
+    Σ ∣ M —↠ Σ′ ∣ blame ℓ →
+    Resultᵢ Σ M A
+
+prepend-resultᵢ :
+  ∀ {Σ Σ′ M M′ A} →
+  Σ ∣ M —↠ Σ′ ∣ M′ →
+  Resultᵢ Σ′ M′ A →
+  Resultᵢ Σ M A
+prepend-resultᵢ M↠M′ (result-value wfΣ″ M′↠W vW W⊢) =
+  result-value wfΣ″ (multi-trans M↠M′ M′↠W) vW W⊢
+prepend-resultᵢ M↠M′ (result-blame M′↠blame) =
+  result-blame (multi-trans M↠M′ M′↠blame)
+
+data ResultSameᵢ (Ψ : SealCtx) (Σ : Store) (M : Term) (A : Ty) : Set where
+  result-same-value :
+    ∀ {W} →
+    (Σ ∣ M —↠ Σ ∣ W) →
+    Value W →
+    0 ∣ Ψ ∣ Σ ∣ [] ⊢ W ⦂ A →
+    ResultSameᵢ Ψ Σ M A
+
+  result-same-blame :
+    ∀ {ℓ} →
+    (Σ ∣ M —↠ Σ ∣ blame ℓ) →
+    ResultSameᵢ Ψ Σ M A
+
+same-to-resultᵢ :
+  ∀ {Ψ Σ M A} →
+  StoreWf 0 Ψ Σ →
+  ResultSameᵢ Ψ Σ M A →
+  Resultᵢ Σ M A
+same-to-resultᵢ wfΣ (result-same-value M↠W vW W⊢) =
+  result-value wfΣ M↠W vW W⊢
+same-to-resultᵢ wfΣ (result-same-blame M↠blame) =
+  result-blame M↠blame
+
+prepend-sameᵢ :
+  ∀ {Ψ Σ M M′ A} →
+  (Σ ∣ M —↠ Σ ∣ M′) →
+  ResultSameᵢ Ψ Σ M′ A →
+  ResultSameᵢ Ψ Σ M A
+prepend-sameᵢ M↠M′ (result-same-value M′↠W vW W⊢) =
+  result-same-value (multi-trans M↠M′ M′↠W) vW W⊢
+prepend-sameᵢ M↠M′ (result-same-blame M′↠blame) =
+  result-same-blame (multi-trans M↠M′ M′↠blame)
 
 stepCtx : StepCtxShape → SealCtx → SealCtx
 stepCtx shape-id Ψ = Ψ
@@ -1483,6 +2112,643 @@ down-compose-resultᵢ wfΣ vV
     (( _ down _ ) —→⟨ id-step (β-down-； vV) ⟩ _ ∎)
     (down-result-bindᵢ wfΣ step⊢ first cont)
 
+down-cast-value-result-sameᵢ :
+  ∀ {Ψ Σ V B p} →
+  StoreWf 0 Ψ Σ →
+  Value V →
+  0 ∣ Ψ ∣ Σ ∣ [] ⊢ (V down p) ⦂ B →
+  ResultSameᵢ Ψ Σ (V down p) B
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-untag g′ gok ℓ))
+    with canonical-★ vV V⊢
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-untag g′ gok ℓ))
+    | sv-up-tag {g = g} vW refl
+    with g ≟Ground g′
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-untag g′ gok ℓ))
+    | sv-up-tag {g = g} vW refl | yes refl
+    with preservation-step wfΣ outer⊢ (id-step (tag-untag-ok vW))
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-untag g′ gok ℓ))
+    | sv-up-tag {W = W} {g = g} vW refl | yes refl
+    | Ψ′ , eq , W⊢
+    rewrite eq =
+  result-same-value
+    (( _ down _ ) —→⟨ id-step (tag-untag-ok vW) ⟩ W ∎)
+    vW W⊢
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-untag g′ gok ℓ))
+    | sv-up-tag {g = g} vW refl | no neq =
+  result-same-blame
+    (( _ down _ ) —→⟨ id-step (tag-untag-bad vW neq) ⟩ blame ℓ ∎)
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-seal h α∈)) =
+  result-same-value ((_ down _ ) ∎) (vV down seal) outer⊢
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-seal★ h α∈)) =
+  result-same-value ((_ down _ ) ∎) (vV down seal) outer⊢
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-↦ p⊢ q⊢)) =
+  result-same-value ((_ down _ ) ∎) (vV down _↦_) outer⊢
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-∀ p⊢)) =
+  result-same-value ((_ down _ ) ∎) (vV down ∀ᵖ) outer⊢
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-ν p⊢)) =
+  result-same-value ((_ down _ ) ∎) (vV down ν_) outer⊢
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-id wfA))
+    with preservation-step wfΣ outer⊢ (id-step (id-down vV))
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-id wfA))
+    | Ψ′ , eq , V⊢′
+    rewrite eq =
+  result-same-value
+    (( _ down _ ) —→⟨ id-step (id-down vV) ⟩ _ ∎)
+    vV V⊢′
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-； p⊢ q⊢))
+    with preservation-step wfΣ outer⊢ (id-step (β-down-； vV))
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-； p⊢ q⊢))
+    | Ψ′ , eq , step⊢
+    rewrite eq
+    with down-cast-value-result-sameᵢ wfΣ vV (⊢down Φ lenΦ V⊢ p⊢)
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-； p⊢ q⊢))
+    | Ψ′ , eq , step⊢
+    | result-same-value Vdownp↠W vW W⊢
+    rewrite eq =
+  prepend-sameᵢ
+    (( _ down _ ) —→⟨ id-step (β-down-； vV) ⟩ _ ∎)
+    (prepend-sameᵢ
+      (down-↠ Vdownp↠W)
+      (down-cast-value-result-sameᵢ wfΣ vW (⊢down Φ lenΦ W⊢ q⊢)))
+down-cast-value-result-sameᵢ wfΣ vV
+    outer⊢@(⊢down Φ lenΦ V⊢ (wt-； p⊢ q⊢))
+    | Ψ′ , eq , step⊢
+    | result-same-blame Vdownp↠blame
+    rewrite eq =
+  prepend-sameᵢ
+    (( _ down _ ) —→⟨ id-step (β-down-； vV) ⟩ _ ∎)
+    (result-same-blame (down-blame-↠ Vdownp↠blame))
+
+mutual
+  conv↑→up : ∀ {Σ Φ A B} → Σ ∣ Φ ⊢ A ↑ˢ B → Up
+  conv↑→up (↑ˢ-unseal {α = α} h α∈) = unseal α
+  conv↑→up (↑ˢ-⇒ h↓ h↑) = conv↓→down h↓ ↦ conv↑→up h↑
+  conv↑→up (↑ˢ-∀ h↑) = ∀ᵖ (conv↑→up h↑)
+  conv↑→up (↑ˢ-id {A = A} wfA) = id A
+  conv↑→up (h↑₁ ；↑ˢ h↑₂) = conv↑→up h↑₁ ； conv↑→up h↑₂
+
+  conv↓→down : ∀ {Σ Φ A B} → Σ ∣ Φ ⊢ A ↓ˢ B → Down
+  conv↓→down (↓ˢ-seal {α = α} h α∈) = seal α
+  conv↓→down (↓ˢ-⇒ h↑ h↓) = conv↑→up h↑ ↦ conv↓→down h↓
+  conv↓→down (↓ˢ-∀ h↓) = ∀ᵖ (conv↓→down h↓)
+  conv↓→down (↓ˢ-id {A = A} wfA) = id A
+  conv↓→down (h↓₁ ；↓ˢ h↓₂) =
+    conv↓→down h↓₁ ； conv↓→down h↓₂
+
+conv↑→up-subst-store :
+  ∀ {Σ Σ′ Φ A B} →
+  (eq : Σ ≡ Σ′) →
+  (h↑ : Σ ∣ Φ ⊢ A ↑ˢ B) →
+  conv↑→up (subst (λ S → S ∣ Φ ⊢ A ↑ˢ B) eq h↑) ≡ conv↑→up h↑
+conv↑→up-subst-store refl h↑ = refl
+
+conv↓→down-subst-store :
+  ∀ {Σ Σ′ Φ A B} →
+  (eq : Σ ≡ Σ′) →
+  (h↓ : Σ ∣ Φ ⊢ A ↓ˢ B) →
+  conv↓→down (subst (λ S → S ∣ Φ ⊢ A ↓ˢ B) eq h↓) ≡ conv↓→down h↓
+conv↓→down-subst-store refl h↓ = refl
+
+mutual
+  conv↑-renameᵗ :
+    ∀ {Σ Φ A B} →
+    (ρ : Renameᵗ) →
+    Σ ∣ Φ ⊢ A ↑ˢ B →
+    renameStoreᵗ ρ Σ ∣ Φ ⊢ renameᵗ ρ A ↑ˢ renameᵗ ρ B
+  conv↑-renameᵗ ρ (↑ˢ-unseal h α∈) =
+    ↑ˢ-unseal (renameLookupᵗ ρ h) α∈
+  conv↑-renameᵗ ρ (↑ˢ-⇒ h↓ h↑) =
+    ↑ˢ-⇒ (conv↓-renameᵗ ρ h↓) (conv↑-renameᵗ ρ h↑)
+  conv↑-renameᵗ {Σ = Σ} ρ (↑ˢ-∀ {A = A} {B = B} h↑) =
+    ↑ˢ-∀
+      (subst
+        (λ S → S ∣ _ ⊢ renameᵗ (extᵗ ρ) A ↑ˢ renameᵗ (extᵗ ρ) B)
+        (renameStoreᵗ-ext-⟰ᵗ ρ Σ)
+        (conv↑-renameᵗ (extᵗ ρ) h↑))
+  conv↑-renameᵗ ρ (↑ˢ-id {A = A} wfA) =
+    ↑ˢ-id (wfTySome (renameᵗ ρ A))
+  conv↑-renameᵗ ρ (h↑₁ ；↑ˢ h↑₂) =
+    conv↑-renameᵗ ρ h↑₁ ；↑ˢ conv↑-renameᵗ ρ h↑₂
+
+  conv↓-renameᵗ :
+    ∀ {Σ Φ A B} →
+    (ρ : Renameᵗ) →
+    Σ ∣ Φ ⊢ A ↓ˢ B →
+    renameStoreᵗ ρ Σ ∣ Φ ⊢ renameᵗ ρ A ↓ˢ renameᵗ ρ B
+  conv↓-renameᵗ ρ (↓ˢ-seal h α∈) =
+    ↓ˢ-seal (renameLookupᵗ ρ h) α∈
+  conv↓-renameᵗ ρ (↓ˢ-⇒ h↑ h↓) =
+    ↓ˢ-⇒ (conv↑-renameᵗ ρ h↑) (conv↓-renameᵗ ρ h↓)
+  conv↓-renameᵗ {Σ = Σ} ρ (↓ˢ-∀ {A = A} {B = B} h↓) =
+    ↓ˢ-∀
+      (subst
+        (λ S → S ∣ _ ⊢ renameᵗ (extᵗ ρ) A ↓ˢ renameᵗ (extᵗ ρ) B)
+        (renameStoreᵗ-ext-⟰ᵗ ρ Σ)
+        (conv↓-renameᵗ (extᵗ ρ) h↓))
+  conv↓-renameᵗ ρ (↓ˢ-id {A = A} wfA) =
+    ↓ˢ-id (wfTySome (renameᵗ ρ A))
+  conv↓-renameᵗ ρ (h↓₁ ；↓ˢ h↓₂) =
+    conv↓-renameᵗ ρ h↓₁ ；↓ˢ conv↓-renameᵗ ρ h↓₂
+
+mutual
+  conv↑→up-renameᵗ :
+    ∀ {Σ Φ A B} →
+    (ρ : Renameᵗ) →
+    (h↑ : Σ ∣ Φ ⊢ A ↑ˢ B) →
+    conv↑→up (conv↑-renameᵗ ρ h↑) ≡ rename⊑ᵗ ρ (conv↑→up h↑)
+  conv↑→up-renameᵗ ρ (↑ˢ-unseal h α∈) = refl
+  conv↑→up-renameᵗ ρ (↑ˢ-⇒ h↓ h↑)
+      rewrite conv↓→down-renameᵗ ρ h↓
+            | conv↑→up-renameᵗ ρ h↑ =
+    refl
+  conv↑→up-renameᵗ {Σ = Σ} ρ (↑ˢ-∀ {A = A} {B = B} h↑)
+      rewrite conv↑→up-subst-store
+                (renameStoreᵗ-ext-⟰ᵗ ρ Σ)
+                (conv↑-renameᵗ (extᵗ ρ) h↑)
+            | conv↑→up-renameᵗ (extᵗ ρ) h↑ =
+    refl
+  conv↑→up-renameᵗ ρ (↑ˢ-id wfA) = refl
+  conv↑→up-renameᵗ ρ (h↑₁ ；↑ˢ h↑₂)
+      rewrite conv↑→up-renameᵗ ρ h↑₁
+            | conv↑→up-renameᵗ ρ h↑₂ =
+    refl
+
+  conv↓→down-renameᵗ :
+    ∀ {Σ Φ A B} →
+    (ρ : Renameᵗ) →
+    (h↓ : Σ ∣ Φ ⊢ A ↓ˢ B) →
+    conv↓→down (conv↓-renameᵗ ρ h↓) ≡
+    rename⊒ᵗ ρ (conv↓→down h↓)
+  conv↓→down-renameᵗ ρ (↓ˢ-seal h α∈) = refl
+  conv↓→down-renameᵗ ρ (↓ˢ-⇒ h↑ h↓)
+      rewrite conv↑→up-renameᵗ ρ h↑
+            | conv↓→down-renameᵗ ρ h↓ =
+    refl
+  conv↓→down-renameᵗ {Σ = Σ} ρ (↓ˢ-∀ {A = A} {B = B} h↓)
+      rewrite conv↓→down-subst-store
+                (renameStoreᵗ-ext-⟰ᵗ ρ Σ)
+                (conv↓-renameᵗ (extᵗ ρ) h↓)
+            | conv↓→down-renameᵗ (extᵗ ρ) h↓ =
+    refl
+  conv↓→down-renameᵗ ρ (↓ˢ-id wfA) = refl
+  conv↓→down-renameᵗ ρ (h↓₁ ；↓ˢ h↓₂)
+      rewrite conv↓→down-renameᵗ ρ h↓₁
+            | conv↓→down-renameᵗ ρ h↓₂ =
+    refl
+
+instSubst↑ˢ-ext :
+  ∀ {Δ} {Σ : Store} {Φ : List CastPerm} {σ τ : Substᵗ} →
+  ((X : TyVar) → X < Δ → Σ ∣ Φ ⊢ σ X ↑ˢ τ X) →
+  (X : TyVar) →
+  X < suc Δ →
+  ⟰ᵗ Σ ∣ Φ ⊢ extsᵗ σ X ↑ˢ extsᵗ τ X
+instSubst↑ˢ-ext h↑ zero z<s = ↑ˢ-id (wfTySome X₀)
+instSubst↑ˢ-ext h↑ (suc X) (s<s X<Δ) =
+  conv↑-renameᵗ suc (h↑ X X<Δ)
+
+instSubst↓ˢ-ext :
+  ∀ {Δ} {Σ : Store} {Φ : List CastPerm} {σ τ : Substᵗ} →
+  ((X : TyVar) → X < Δ → Σ ∣ Φ ⊢ τ X ↓ˢ σ X) →
+  (X : TyVar) →
+  X < suc Δ →
+  ⟰ᵗ Σ ∣ Φ ⊢ extsᵗ τ X ↓ˢ extsᵗ σ X
+instSubst↓ˢ-ext h↓ zero z<s = ↓ˢ-id (wfTySome X₀)
+instSubst↓ˢ-ext h↓ (suc X) (s<s X<Δ) =
+  conv↓-renameᵗ suc (h↓ X X<Δ)
+
+mutual
+  instSubst↑ˢ :
+    ∀ {Δ Ψ Σ Φ} →
+    (σ τ : Substᵗ) →
+    ((X : TyVar) → X < Δ → Σ ∣ Φ ⊢ σ X ↑ˢ τ X) →
+    ((X : TyVar) → X < Δ → Σ ∣ Φ ⊢ τ X ↓ˢ σ X) →
+    (A : Ty) →
+    WfTy Δ Ψ A →
+    Σ ∣ Φ ⊢ substᵗ σ A ↑ˢ substᵗ τ A
+  instSubst↑ˢ σ τ h↑ h↓ (＇ X) (wfVar X<Δ) = h↑ X X<Δ
+  instSubst↑ˢ σ τ h↑ h↓ (｀ α) (wfSeal α<Ψ) =
+    ↑ˢ-id (wfTySome (｀ α))
+  instSubst↑ˢ σ τ h↑ h↓ (‵ ι) wfBase = ↑ˢ-id (wfTySome (‵ ι))
+  instSubst↑ˢ σ τ h↑ h↓ ★ wf★ = ↑ˢ-id (wfTySome ★)
+  instSubst↑ˢ σ τ h↑ h↓ (A ⇒ B) (wf⇒ wfA wfB) =
+    ↑ˢ-⇒ (instSubst↓ˢ σ τ h↑ h↓ A wfA)
+          (instSubst↑ˢ σ τ h↑ h↓ B wfB)
+  instSubst↑ˢ σ τ h↑ h↓ (`∀ A) (wf∀ wfA) =
+    ↑ˢ-∀
+      (instSubst↑ˢ (extsᵗ σ) (extsᵗ τ)
+        (instSubst↑ˢ-ext h↑) (instSubst↓ˢ-ext h↓) A wfA)
+
+  instSubst↓ˢ :
+    ∀ {Δ Ψ Σ Φ} →
+    (σ τ : Substᵗ) →
+    ((X : TyVar) → X < Δ → Σ ∣ Φ ⊢ σ X ↑ˢ τ X) →
+    ((X : TyVar) → X < Δ → Σ ∣ Φ ⊢ τ X ↓ˢ σ X) →
+    (A : Ty) →
+    WfTy Δ Ψ A →
+    Σ ∣ Φ ⊢ substᵗ τ A ↓ˢ substᵗ σ A
+  instSubst↓ˢ σ τ h↑ h↓ (＇ X) (wfVar X<Δ) = h↓ X X<Δ
+  instSubst↓ˢ σ τ h↑ h↓ (｀ α) (wfSeal α<Ψ) =
+    ↓ˢ-id (wfTySome (｀ α))
+  instSubst↓ˢ σ τ h↑ h↓ (‵ ι) wfBase = ↓ˢ-id (wfTySome (‵ ι))
+  instSubst↓ˢ σ τ h↑ h↓ ★ wf★ = ↓ˢ-id (wfTySome ★)
+  instSubst↓ˢ σ τ h↑ h↓ (A ⇒ B) (wf⇒ wfA wfB) =
+    ↓ˢ-⇒ (instSubst↑ˢ σ τ h↑ h↓ A wfA)
+          (instSubst↓ˢ σ τ h↑ h↓ B wfB)
+  instSubst↓ˢ σ τ h↑ h↓ (`∀ A) (wf∀ wfA) =
+    ↓ˢ-∀
+      (instSubst↓ˢ (extsᵗ σ) (extsᵗ τ)
+        (instSubst↑ˢ-ext h↑) (instSubst↓ˢ-ext h↓) A wfA)
+
+instCast↑ˢ-var :
+  ∀ {Δ Σ Φ A α} →
+  Σ ∋ˢ α ⦂ A →
+  α ∈conv Φ →
+  (X : TyVar) →
+  X < suc Δ →
+  Σ ∣ Φ ⊢ singleTyEnv (｀ α) X ↑ˢ singleTyEnv A X
+instCast↑ˢ-var h α∈ zero z<s = ↑ˢ-unseal h α∈
+instCast↑ˢ-var h α∈ (suc X) (s<s X<Δ) =
+  ↑ˢ-id (wfTySome (＇ X))
+
+instCast↓ˢ-var :
+  ∀ {Δ Σ Φ A α} →
+  Σ ∋ˢ α ⦂ A →
+  α ∈conv Φ →
+  (X : TyVar) →
+  X < suc Δ →
+  Σ ∣ Φ ⊢ singleTyEnv A X ↓ˢ singleTyEnv (｀ α) X
+instCast↓ˢ-var h α∈ zero z<s = ↓ˢ-seal h α∈
+instCast↓ˢ-var h α∈ (suc X) (s<s X<Δ) =
+  ↓ˢ-id (wfTySome (＇ X))
+
+instCast↑ˢ-var-raw :
+  ∀ {Δ Σ Φ A α} →
+  (h : Σ ∋ˢ α ⦂ A) →
+  (α∈ : α ∈conv Φ) →
+  (X : TyVar) →
+  (X<Δ : X < suc Δ) →
+  conv↑→up (instCast↑ˢ-var h α∈ X X<Δ) ≡ instVar⊑ A α X
+instCast↑ˢ-var-raw h α∈ zero z<s = refl
+instCast↑ˢ-var-raw h α∈ (suc X) (s<s X<Δ) = refl
+
+instCast↓ˢ-var-raw :
+  ∀ {Δ Σ Φ A α} →
+  (h : Σ ∋ˢ α ⦂ A) →
+  (α∈ : α ∈conv Φ) →
+  (X : TyVar) →
+  (X<Δ : X < suc Δ) →
+  conv↓→down (instCast↓ˢ-var h α∈ X X<Δ) ≡ instVar⊒ A α X
+instCast↓ˢ-var-raw h α∈ zero z<s = refl
+instCast↓ˢ-var-raw h α∈ (suc X) (s<s X<Δ) = refl
+
+instCast⊑-conv :
+  ∀ {Δ Ψ Σ Φ A B α} →
+  WfTy Δ Ψ A →
+  WfTy (suc Δ) Ψ B →
+  Σ ∋ˢ α ⦂ A →
+  α ∈conv Φ →
+  Σ ∣ Φ ⊢ B [ ｀ α ]ᵗ ↑ˢ B [ A ]ᵗ
+instCast⊑-conv {A = A} {B = B} {α = α} wfA wfB h α∈ =
+  instSubst↑ˢ (singleTyEnv (｀ α)) (singleTyEnv A)
+    (instCast↑ˢ-var h α∈) (instCast↓ˢ-var h α∈) B wfB
+
+instCast⊒-conv :
+  ∀ {Δ Ψ Σ Φ A B α} →
+  WfTy Δ Ψ A →
+  WfTy (suc Δ) Ψ B →
+  Σ ∋ˢ α ⦂ A →
+  α ∈conv Φ →
+  Σ ∣ Φ ⊢ B [ A ]ᵗ ↓ˢ B [ ｀ α ]ᵗ
+instCast⊒-conv {A = A} {B = B} {α = α} wfA wfB h α∈ =
+  instSubst↓ˢ (singleTyEnv (｀ α)) (singleTyEnv A)
+    (instCast↑ˢ-var h α∈) (instCast↓ˢ-var h α∈) B wfB
+
+instSubst↑ˢ-raw-ext :
+  ∀ {Δ} {Σ : Store} {Φ : List CastPerm}
+    {σ τ : Substᵗ} {var⊑ : (X : TyVar) → Up}
+    {h↑ : (X : TyVar) → X < Δ → Σ ∣ Φ ⊢ σ X ↑ˢ τ X} →
+  ((X : TyVar) → (X<Δ : X < Δ) → conv↑→up (h↑ X X<Δ) ≡ var⊑ X) →
+  (X : TyVar) →
+  (X<Δ : X < suc Δ) →
+  conv↑→up (instSubst↑ˢ-ext h↑ X X<Δ) ≡ instVarExt⊑ var⊑ X
+instSubst↑ˢ-raw-ext raw↑ zero z<s = refl
+instSubst↑ˢ-raw-ext {h↑ = h↑} raw↑ (suc X) (s<s X<Δ) =
+  trans (conv↑→up-renameᵗ suc (h↑ X X<Δ))
+        (cong (rename⊑ᵗ suc) (raw↑ X X<Δ))
+
+instSubst↓ˢ-raw-ext :
+  ∀ {Δ} {Σ : Store} {Φ : List CastPerm}
+    {σ τ : Substᵗ} {var⊒ : (X : TyVar) → Down}
+    {h↓ : (X : TyVar) → X < Δ → Σ ∣ Φ ⊢ τ X ↓ˢ σ X} →
+  ((X : TyVar) → (X<Δ : X < Δ) → conv↓→down (h↓ X X<Δ) ≡ var⊒ X) →
+  (X : TyVar) →
+  (X<Δ : X < suc Δ) →
+  conv↓→down (instSubst↓ˢ-ext h↓ X X<Δ) ≡
+  instVarExt⊒ var⊒ X
+instSubst↓ˢ-raw-ext raw↓ zero z<s = refl
+instSubst↓ˢ-raw-ext {h↓ = h↓} raw↓ (suc X) (s<s X<Δ) =
+  trans (conv↓→down-renameᵗ suc (h↓ X X<Δ))
+        (cong (rename⊒ᵗ suc) (raw↓ X X<Δ))
+
+mutual
+  instSubst↑ˢ-raw :
+    ∀ {Δ Ψ Σ Φ} →
+    (σ τ : Substᵗ) →
+    (var⊑ : (X : TyVar) → Up) →
+    (var⊒ : (X : TyVar) → Down) →
+    (h↑ : (X : TyVar) → X < Δ → Σ ∣ Φ ⊢ σ X ↑ˢ τ X) →
+    (h↓ : (X : TyVar) → X < Δ → Σ ∣ Φ ⊢ τ X ↓ˢ σ X) →
+    ((X : TyVar) → (X<Δ : X < Δ) → conv↑→up (h↑ X X<Δ) ≡ var⊑ X) →
+    ((X : TyVar) → (X<Δ : X < Δ) → conv↓→down (h↓ X X<Δ) ≡ var⊒ X) →
+    (A : Ty) →
+    (wfA : WfTy Δ Ψ A) →
+    conv↑→up (instSubst↑ˢ σ τ h↑ h↓ A wfA) ≡
+    substᵗ-up var⊑ var⊒ A
+  instSubst↑ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ (＇ X)
+      (wfVar X<Δ) =
+    raw↑ X X<Δ
+  instSubst↑ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ (｀ α)
+      (wfSeal α<Ψ) =
+    refl
+  instSubst↑ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ (‵ ι) wfBase =
+    refl
+  instSubst↑ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ ★ wf★ =
+    refl
+  instSubst↑ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ (A ⇒ B)
+      (wf⇒ wfA wfB)
+      rewrite instSubst↓ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ A wfA
+            | instSubst↑ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ B wfB =
+    refl
+  instSubst↑ˢ-raw {Δ = Δ} {Σ = Σ} σ τ var⊑ var⊒ h↑ h↓ raw↑
+      raw↓ (`∀ A) (wf∀ wfA)
+      rewrite instSubst↑ˢ-raw
+                (extsᵗ σ)
+                (extsᵗ τ)
+                (instVarExt⊑ var⊑)
+                (instVarExt⊒ var⊒)
+                (instSubst↑ˢ-ext h↑)
+                (instSubst↓ˢ-ext h↓)
+                (instSubst↑ˢ-raw-ext raw↑)
+                (instSubst↓ˢ-raw-ext raw↓)
+                A wfA =
+    refl
+
+  instSubst↓ˢ-raw :
+    ∀ {Δ Ψ Σ Φ} →
+    (σ τ : Substᵗ) →
+    (var⊑ : (X : TyVar) → Up) →
+    (var⊒ : (X : TyVar) → Down) →
+    (h↑ : (X : TyVar) → X < Δ → Σ ∣ Φ ⊢ σ X ↑ˢ τ X) →
+    (h↓ : (X : TyVar) → X < Δ → Σ ∣ Φ ⊢ τ X ↓ˢ σ X) →
+    ((X : TyVar) → (X<Δ : X < Δ) → conv↑→up (h↑ X X<Δ) ≡ var⊑ X) →
+    ((X : TyVar) → (X<Δ : X < Δ) → conv↓→down (h↓ X X<Δ) ≡ var⊒ X) →
+    (A : Ty) →
+    (wfA : WfTy Δ Ψ A) →
+    conv↓→down (instSubst↓ˢ σ τ h↑ h↓ A wfA) ≡
+    substᵗ-down var⊑ var⊒ A
+  instSubst↓ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ (＇ X)
+      (wfVar X<Δ) =
+    raw↓ X X<Δ
+  instSubst↓ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ (｀ α)
+      (wfSeal α<Ψ) =
+    refl
+  instSubst↓ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ (‵ ι) wfBase =
+    refl
+  instSubst↓ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ ★ wf★ =
+    refl
+  instSubst↓ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ (A ⇒ B)
+      (wf⇒ wfA wfB)
+      rewrite instSubst↑ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ A wfA
+            | instSubst↓ˢ-raw σ τ var⊑ var⊒ h↑ h↓ raw↑ raw↓ B wfB =
+    refl
+  instSubst↓ˢ-raw {Δ = Δ} {Σ = Σ} σ τ var⊑ var⊒ h↑ h↓ raw↑
+      raw↓ (`∀ A) (wf∀ wfA)
+      rewrite instSubst↓ˢ-raw
+                (extsᵗ σ)
+                (extsᵗ τ)
+                (instVarExt⊑ var⊑)
+                (instVarExt⊒ var⊒)
+                (instSubst↑ˢ-ext h↑)
+                (instSubst↓ˢ-ext h↓)
+                (instSubst↑ˢ-raw-ext raw↑)
+                (instSubst↓ˢ-raw-ext raw↓)
+                A wfA =
+    refl
+
+instCast⊑-conv-raw :
+  ∀ {Δ Ψ Σ Φ A B α} →
+  (wfA : WfTy Δ Ψ A) →
+  (wfB : WfTy (suc Δ) Ψ B) →
+  (h : Σ ∋ˢ α ⦂ A) →
+  (α∈ : α ∈conv Φ) →
+  conv↑→up (instCast⊑-conv wfA wfB h α∈) ≡
+  instCast⊑ {A = A} {B = B} {α = α}
+instCast⊑-conv-raw {A = A} {B = B} {α = α} wfA wfB h α∈ =
+  instSubst↑ˢ-raw (singleTyEnv (｀ α)) (singleTyEnv A)
+    (instVar⊑ A α) (instVar⊒ A α)
+    (instCast↑ˢ-var h α∈)
+    (instCast↓ˢ-var h α∈)
+    (instCast↑ˢ-var-raw h α∈)
+    (instCast↓ˢ-var-raw h α∈)
+    B wfB
+
+instCast⊒-conv-raw :
+  ∀ {Δ Ψ Σ Φ A B α} →
+  (wfA : WfTy Δ Ψ A) →
+  (wfB : WfTy (suc Δ) Ψ B) →
+  (h : Σ ∋ˢ α ⦂ A) →
+  (α∈ : α ∈conv Φ) →
+  conv↓→down (instCast⊒-conv wfA wfB h α∈) ≡
+  instCast⊒ {A = A} {B = B} {α = α}
+instCast⊒-conv-raw {A = A} {B = B} {α = α} wfA wfB h α∈ =
+  instSubst↓ˢ-raw (singleTyEnv (｀ α)) (singleTyEnv A)
+    (instVar⊑ A α) (instVar⊒ A α)
+    (instCast↑ˢ-var h α∈)
+    (instCast↓ˢ-var h α∈)
+    (instCast↑ˢ-var-raw h α∈)
+    (instCast↓ˢ-var-raw h α∈)
+    B wfB
+
+mutual
+  conv-up-value-result-sameᵢ :
+    ∀ {Ψ Σ Φ V A B C}
+      (h↑ : Σ ∣ Φ ⊢ A ↑ˢ B) →
+    StoreWf 0 Ψ Σ →
+    Value V →
+    0 ∣ Ψ ∣ Σ ∣ [] ⊢ (V up conv↑→up h↑) ⦂ C →
+    ResultSameᵢ Ψ Σ (V up conv↑→up h↑) C
+  conv-up-value-result-sameᵢ (↑ˢ-unseal h α∈) wfΣ vV
+      outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal h′ α∈′))
+      with canonical-｀ vV V⊢
+  conv-up-value-result-sameᵢ (↑ˢ-unseal h α∈) wfΣ vV
+      outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal h′ α∈′))
+      | sv-down-seal {W = W} vW refl
+      with preservation-step wfΣ outer⊢ (id-step (seal-unseal vW))
+  conv-up-value-result-sameᵢ (↑ˢ-unseal h α∈) wfΣ vV
+      outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal h′ α∈′))
+      | sv-down-seal {W = W} vW refl | Ψ′ , eq , W⊢
+      rewrite eq =
+    result-same-value
+      (( _ up _ ) —→⟨ id-step (seal-unseal vW) ⟩ W ∎)
+      vW W⊢
+  conv-up-value-result-sameᵢ (↑ˢ-unseal h α∈) wfΣ vV
+      outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal★ h′ α∈′))
+      with canonical-｀ vV V⊢
+  conv-up-value-result-sameᵢ (↑ˢ-unseal h α∈) wfΣ vV
+      outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal★ h′ α∈′))
+      | sv-down-seal {W = W} vW refl
+      with preservation-step wfΣ outer⊢ (id-step (seal-unseal vW))
+  conv-up-value-result-sameᵢ (↑ˢ-unseal h α∈) wfΣ vV
+      outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal★ h′ α∈′))
+      | sv-down-seal {W = W} vW refl | Ψ′ , eq , W⊢
+      rewrite eq =
+    result-same-value
+      (( _ up _ ) —→⟨ id-step (seal-unseal vW) ⟩ W ∎)
+      vW W⊢
+  conv-up-value-result-sameᵢ (↑ˢ-⇒ h↓ h↑) wfΣ vV outer⊢ =
+    result-same-value ((_ up _ ) ∎) (vV up _↦_) outer⊢
+  conv-up-value-result-sameᵢ (↑ˢ-∀ h↑) wfΣ vV outer⊢ =
+    result-same-value ((_ up _ ) ∎) (vV up ∀ᵖ) outer⊢
+  conv-up-value-result-sameᵢ (↑ˢ-id wfA) wfΣ vV
+      outer⊢@(⊢up Φ lenΦ V⊢ (wt-id wfA′))
+      with preservation-step wfΣ outer⊢ (id-step (id-up vV))
+  conv-up-value-result-sameᵢ (↑ˢ-id wfA) wfΣ vV
+      outer⊢@(⊢up Φ lenΦ V⊢ (wt-id wfA′))
+      | Ψ′ , eq , V⊢′
+      rewrite eq =
+    result-same-value
+      (( _ up _ ) —→⟨ id-step (id-up vV) ⟩ _ ∎)
+      vV V⊢′
+  conv-up-value-result-sameᵢ (h↑₁ ；↑ˢ h↑₂) wfΣ vV
+      outer⊢@(⊢up Φ′ lenΦ V⊢ (wt-； p⊢ q⊢))
+      with conv-up-value-result-sameᵢ h↑₁ wfΣ vV
+             (⊢up Φ′ lenΦ V⊢ p⊢)
+  conv-up-value-result-sameᵢ (h↑₁ ；↑ˢ h↑₂) wfΣ vV
+      outer⊢@(⊢up Φ′ lenΦ V⊢ (wt-； p⊢ q⊢))
+      | result-same-value Vupp↠W vW W⊢ =
+    prepend-sameᵢ
+      (( _ up _ ) —→⟨ id-step (β-up-； vV) ⟩ _ ∎)
+      (prepend-sameᵢ
+        (up-↠ Vupp↠W)
+        (conv-up-value-result-sameᵢ h↑₂ wfΣ vW
+          (⊢up Φ′ lenΦ W⊢ q⊢)))
+  conv-up-value-result-sameᵢ (h↑₁ ；↑ˢ h↑₂) wfΣ vV
+      outer⊢@(⊢up Φ′ lenΦ V⊢ (wt-； p⊢ q⊢))
+      | result-same-blame Vupp↠blame =
+    prepend-sameᵢ
+      (( _ up _ ) —→⟨ id-step (β-up-； vV) ⟩ _ ∎)
+      (result-same-blame (up-blame-↠ Vupp↠blame))
+
+  conv-down-value-result-sameᵢ :
+    ∀ {Ψ Σ Φ V A B C}
+      (h↓ : Σ ∣ Φ ⊢ A ↓ˢ B) →
+    StoreWf 0 Ψ Σ →
+    Value V →
+    0 ∣ Ψ ∣ Σ ∣ [] ⊢ (V down conv↓→down h↓) ⦂ C →
+    ResultSameᵢ Ψ Σ (V down conv↓→down h↓) C
+  conv-down-value-result-sameᵢ (↓ˢ-seal h α∈) wfΣ vV outer⊢ =
+    result-same-value ((_ down _ ) ∎) (vV down seal) outer⊢
+  conv-down-value-result-sameᵢ (↓ˢ-⇒ h↑ h↓) wfΣ vV outer⊢ =
+    result-same-value ((_ down _ ) ∎) (vV down _↦_) outer⊢
+  conv-down-value-result-sameᵢ (↓ˢ-∀ h↓) wfΣ vV outer⊢ =
+    result-same-value ((_ down _ ) ∎) (vV down ∀ᵖ) outer⊢
+  conv-down-value-result-sameᵢ (↓ˢ-id wfA) wfΣ vV
+      outer⊢@(⊢down Φ lenΦ V⊢ (wt-id wfA′))
+      with preservation-step wfΣ outer⊢ (id-step (id-down vV))
+  conv-down-value-result-sameᵢ (↓ˢ-id wfA) wfΣ vV
+      outer⊢@(⊢down Φ lenΦ V⊢ (wt-id wfA′))
+      | Ψ′ , eq , V⊢′
+      rewrite eq =
+    result-same-value
+      (( _ down _ ) —→⟨ id-step (id-down vV) ⟩ _ ∎)
+      vV V⊢′
+  conv-down-value-result-sameᵢ (h↓₁ ；↓ˢ h↓₂) wfΣ vV
+      outer⊢@(⊢down Φ′ lenΦ V⊢ (wt-； p⊢ q⊢))
+      with conv-down-value-result-sameᵢ h↓₁ wfΣ vV
+             (⊢down Φ′ lenΦ V⊢ p⊢)
+  conv-down-value-result-sameᵢ (h↓₁ ；↓ˢ h↓₂) wfΣ vV
+      outer⊢@(⊢down Φ′ lenΦ V⊢ (wt-； p⊢ q⊢))
+      | result-same-value Vdownp↠W vW W⊢ =
+    prepend-sameᵢ
+      (( _ down _ ) —→⟨ id-step (β-down-； vV) ⟩ _ ∎)
+      (prepend-sameᵢ
+        (down-↠ Vdownp↠W)
+        (conv-down-value-result-sameᵢ h↓₂ wfΣ vW
+          (⊢down Φ′ lenΦ W⊢ q⊢)))
+  conv-down-value-result-sameᵢ (h↓₁ ；↓ˢ h↓₂) wfΣ vV
+      outer⊢@(⊢down Φ′ lenΦ V⊢ (wt-； p⊢ q⊢))
+      | result-same-blame Vdownp↠blame =
+    prepend-sameᵢ
+      (( _ down _ ) —→⟨ id-step (β-down-； vV) ⟩ _ ∎)
+      (result-same-blame (down-blame-↠ Vdownp↠blame))
+
+conv-up-value-resultᵢ :
+  ∀ {Ψ Σ Φ V A B C}
+    (h↑ : Σ ∣ Φ ⊢ A ↑ˢ B) →
+  StoreWf 0 Ψ Σ →
+  Value V →
+  0 ∣ Ψ ∣ Σ ∣ [] ⊢ (V up conv↑→up h↑) ⦂ C →
+  Resultᵢ Σ (V up conv↑→up h↑) C
+conv-up-value-resultᵢ h↑ wfΣ vV outer⊢ =
+  same-to-resultᵢ wfΣ (conv-up-value-result-sameᵢ h↑ wfΣ vV outer⊢)
+
+conv-down-value-resultᵢ :
+  ∀ {Ψ Σ Φ V A B C}
+    (h↓ : Σ ∣ Φ ⊢ A ↓ˢ B) →
+  StoreWf 0 Ψ Σ →
+  Value V →
+  0 ∣ Ψ ∣ Σ ∣ [] ⊢ (V down conv↓→down h↓) ⦂ C →
+  Resultᵢ Σ (V down conv↓→down h↓) C
+conv-down-value-resultᵢ h↓ wfΣ vV outer⊢ =
+  same-to-resultᵢ wfΣ (conv-down-value-result-sameᵢ h↓ wfΣ vV outer⊢)
+
+instCast⊑-conv-value-resultᵢ :
+  ∀ {Δ Ψ Σ V A B α C} →
+  WfTy Δ Ψ A →
+  WfTy (suc Δ) Ψ B →
+  Σ ∋ˢ α ⦂ A →
+  α ∈conv every Ψ →
+  StoreWf 0 Ψ Σ →
+  Value V →
+  0 ∣ Ψ ∣ Σ ∣ [] ⊢
+    (V up instCast⊑ {A = A} {B = B} {α = α}) ⦂ C →
+  Resultᵢ Σ (V up instCast⊑ {A = A} {B = B} {α = α}) C
+instCast⊑-conv-value-resultᵢ {A = A} {B = B} {α = α}
+    wfA wfB h α∈ wfΣ vV outer⊢
+    rewrite sym (instCast⊑-conv-raw wfA wfB h α∈) =
+  conv-up-value-resultᵢ (instCast⊑-conv wfA wfB h α∈) wfΣ vV outer⊢
+
+instCast⊒-conv-value-resultᵢ :
+  ∀ {Δ Ψ Σ V A B α C} →
+  WfTy Δ Ψ A →
+  WfTy (suc Δ) Ψ B →
+  Σ ∋ˢ α ⦂ A →
+  α ∈conv every Ψ →
+  StoreWf 0 Ψ Σ →
+  Value V →
+  0 ∣ Ψ ∣ Σ ∣ [] ⊢
+    (V down instCast⊒ {A = A} {B = B} {α = α}) ⦂ C →
+  Resultᵢ Σ (V down instCast⊒ {A = A} {B = B} {α = α}) C
+instCast⊒-conv-value-resultᵢ {A = A} {B = B} {α = α}
+    wfA wfB h α∈ wfΣ vV outer⊢
+    rewrite sym (instCast⊒-conv-raw wfA wfB h α∈) =
+  conv-down-value-resultᵢ (instCast⊒-conv wfA wfB h α∈) wfΣ vV outer⊢
+
 instCast⊑-top-↠value :
   ∀ {A B α Ψ Σ V} →
   WfTy (suc zero) Ψ B →
@@ -1573,6 +2839,90 @@ instCast⊑-top-resultᵢ {A = A} {B = B} {α = α} {V = V}
     | W , cast↠W , vW , W⊢ =
   result-value wfΣ cast↠W vW W⊢
 
+instCast⊑-value-resultᵢ :
+  ∀ {A B α Ψ Σ V C} →
+  StoreWf 0 Ψ Σ →
+  Value V →
+  0 ∣ Ψ ∣ Σ ∣ [] ⊢
+    (V up instCast⊑ {A = A} {B = B} {α = α}) ⦂ C →
+  Resultᵢ Σ (V up instCast⊑ {A = A} {B = B} {α = α}) C
+instCast⊑-value-resultᵢ {A = A} {B = ＇ zero} {α = α} {V = V}
+    wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal h α∈))
+    with canonical-｀ vV V⊢
+instCast⊑-value-resultᵢ {A = A} {B = ＇ zero} {α = α} {V = V}
+    wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal h α∈))
+    | sv-down-seal {W = W} vW refl
+    with preservation-step wfΣ outer⊢ (id-step (seal-unseal vW))
+instCast⊑-value-resultᵢ {A = A} {B = ＇ zero} {α = α} {V = V}
+    wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal h α∈))
+    | sv-down-seal {W = W} vW refl | Ψ′ , eq , W⊢
+    rewrite eq =
+  result-value wfΣ
+    ((V up instCast⊑ {A = A} {B = ＇ zero} {α = α})
+      —→⟨ id-step (seal-unseal vW) ⟩ W ∎)
+    vW W⊢
+instCast⊑-value-resultᵢ {A = A} {B = ＇ zero} {α = α} {V = V}
+    wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal★ h α∈))
+    with canonical-｀ vV V⊢
+instCast⊑-value-resultᵢ {A = A} {B = ＇ zero} {α = α} {V = V}
+    wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal★ h α∈))
+    | sv-down-seal {W = W} vW refl
+    with preservation-step wfΣ outer⊢ (id-step (seal-unseal vW))
+instCast⊑-value-resultᵢ {A = A} {B = ＇ zero} {α = α} {V = V}
+    wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal★ h α∈))
+    | sv-down-seal {W = W} vW refl | Ψ′ , eq , W⊢
+    rewrite eq =
+  result-value wfΣ
+    ((V up instCast⊑ {A = A} {B = ＇ zero} {α = α})
+      —→⟨ id-step (seal-unseal vW) ⟩ W ∎)
+    vW W⊢
+instCast⊑-value-resultᵢ {B = ＇ (suc X)} wfΣ vV
+    outer⊢@(⊢up Φ lenΦ V⊢ (wt-id wfA))
+    with preservation-step wfΣ outer⊢ (id-step (id-up vV))
+instCast⊑-value-resultᵢ {B = ＇ (suc X)} wfΣ vV
+    outer⊢@(⊢up Φ lenΦ V⊢ (wt-id wfA))
+    | Ψ′ , eq , V⊢′
+    rewrite eq =
+  result-value wfΣ
+    (( _ up _ ) —→⟨ id-step (id-up vV) ⟩ _ ∎)
+    vV V⊢′
+instCast⊑-value-resultᵢ {B = ｀ β} wfΣ vV
+    outer⊢@(⊢up Φ lenΦ V⊢ (wt-id wfA))
+    with preservation-step wfΣ outer⊢ (id-step (id-up vV))
+instCast⊑-value-resultᵢ {B = ｀ β} wfΣ vV
+    outer⊢@(⊢up Φ lenΦ V⊢ (wt-id wfA))
+    | Ψ′ , eq , V⊢′
+    rewrite eq =
+  result-value wfΣ
+    (( _ up _ ) —→⟨ id-step (id-up vV) ⟩ _ ∎)
+    vV V⊢′
+instCast⊑-value-resultᵢ {B = ‵ ι} wfΣ vV
+    outer⊢@(⊢up Φ lenΦ V⊢ (wt-id wfA))
+    with preservation-step wfΣ outer⊢ (id-step (id-up vV))
+instCast⊑-value-resultᵢ {B = ‵ ι} wfΣ vV
+    outer⊢@(⊢up Φ lenΦ V⊢ (wt-id wfA))
+    | Ψ′ , eq , V⊢′
+    rewrite eq =
+  result-value wfΣ
+    (( _ up _ ) —→⟨ id-step (id-up vV) ⟩ _ ∎)
+    vV V⊢′
+instCast⊑-value-resultᵢ {B = ★} wfΣ vV
+    outer⊢@(⊢up Φ lenΦ V⊢ (wt-id wfA))
+    with preservation-step wfΣ outer⊢ (id-step (id-up vV))
+instCast⊑-value-resultᵢ {B = ★} wfΣ vV
+    outer⊢@(⊢up Φ lenΦ V⊢ (wt-id wfA))
+    | Ψ′ , eq , V⊢′
+    rewrite eq =
+  result-value wfΣ
+    (( _ up _ ) —→⟨ id-step (id-up vV) ⟩ _ ∎)
+    vV V⊢′
+instCast⊑-value-resultᵢ {B = B₁ ⇒ B₂} wfΣ vV
+    outer⊢@(⊢up Φ lenΦ V⊢ (wt-↦ p⊢ q⊢)) =
+  result-value wfΣ (( _ up _ ) ∎) (vV up _↦_) outer⊢
+instCast⊑-value-resultᵢ {B = `∀ B} wfΣ vV
+    outer⊢@(⊢up Φ lenΦ V⊢ (wt-∀ p⊢)) =
+  result-value wfΣ (( _ up _ ) ∎) (vV up ∀ᵖ) outer⊢
+
 tyapp-Λ-↠valueᵢ :
   ∀ {B T C w N} →
   WfTy 0 (Ψˡ w) T →
@@ -1629,310 +2979,25 @@ tyapp-Λ-resultᵢ {B = B} {T = T} {C = C} {w = w} {N = N}
     | Σ′ , Ψ′ , wfΣ′ , W , app↠W , vW , W⊢ =
   result-value wfΣ′ app↠W vW W⊢
 
-{-# TERMINATING #-}
-mutual
-  up-cast-value-resultᵢ :
-    ∀ {Ψ Σ V B p} →
-    StoreWf 0 Ψ Σ →
-    Value V →
-    0 ∣ Ψ ∣ Σ ∣ [] ⊢ (V up p) ⦂ B →
-    Resultᵢ Σ (V up p) B
-  up-cast-value-resultᵢ wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-tag g gok)) =
-    up-immediate-resultᵢ wfΣ vV tag outer⊢
-  up-cast-value-resultᵢ wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal h α∈)) =
-    up-unseal-resultᵢ wfΣ vV outer⊢
-  up-cast-value-resultᵢ wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-unseal★ h α∈)) =
-    up-unseal-resultᵢ wfΣ vV outer⊢
-  up-cast-value-resultᵢ wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-↦ p⊢ q⊢)) =
-    up-immediate-resultᵢ wfΣ vV _↦_ outer⊢
-  up-cast-value-resultᵢ wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-∀ p⊢)) =
-    up-immediate-resultᵢ wfΣ vV ∀ᵖ outer⊢
-  up-cast-value-resultᵢ wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-ν p⊢)) =
-    up-ν-value-resultᵢ-proof wfΣ vV outer⊢
-  up-cast-value-resultᵢ wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-id wfA)) =
-    up-id-resultᵢ wfΣ vV outer⊢
-  up-cast-value-resultᵢ wfΣ vV
-      outer⊢@(⊢up Φ lenΦ V⊢ (wt-； p⊢ q⊢)) =
-    up-compose-resultᵢ wfΣ vV outer⊢
-      (up-cast-value-resultᵢ wfΣ vV (⊢up Φ lenΦ V⊢ p⊢))
-      (λ wfΣ′ vW Wupq⊢ → up-cast-value-resultᵢ wfΣ′ vW Wupq⊢)
+upν-fresh-wfΣᵢ :
+  ∀ {Ψ Σ} →
+  StoreWf 0 Ψ Σ →
+  StoreWf 0 (suc Ψ) ((length Σ , ★) ∷ Σ)
+upν-fresh-wfΣᵢ = storeWf-fresh-extᴿ wf★
 
-  down-cast-value-resultᵢ :
-    ∀ {Ψ Σ V B p} →
-    StoreWf 0 Ψ Σ →
-    Value V →
-    0 ∣ Ψ ∣ Σ ∣ [] ⊢ (V down p) ⦂ B →
-    Resultᵢ Σ (V down p) B
-  down-cast-value-resultᵢ wfΣ vV
-      outer⊢@(⊢down Φ lenΦ V⊢ (wt-untag g ℓok ℓ)) =
-    down-untag-resultᵢ wfΣ vV outer⊢
-  down-cast-value-resultᵢ wfΣ vV
-      outer⊢@(⊢down Φ lenΦ V⊢ (wt-seal h α∈)) =
-    down-immediate-resultᵢ wfΣ vV seal outer⊢
-  down-cast-value-resultᵢ wfΣ vV
-      outer⊢@(⊢down Φ lenΦ V⊢ (wt-seal★ h α∈)) =
-    down-immediate-resultᵢ wfΣ vV seal outer⊢
-  down-cast-value-resultᵢ wfΣ vV
-      outer⊢@(⊢down Φ lenΦ V⊢ (wt-↦ p⊢ q⊢)) =
-    down-immediate-resultᵢ wfΣ vV _↦_ outer⊢
-  down-cast-value-resultᵢ wfΣ vV
-      outer⊢@(⊢down Φ lenΦ V⊢ (wt-∀ p⊢)) =
-    down-immediate-resultᵢ wfΣ vV ∀ᵖ outer⊢
-  down-cast-value-resultᵢ wfΣ vV
-      outer⊢@(⊢down Φ lenΦ V⊢ (wt-ν p⊢)) =
-    down-immediate-resultᵢ wfΣ vV ν_ outer⊢
-  down-cast-value-resultᵢ wfΣ vV
-      outer⊢@(⊢down Φ lenΦ V⊢ (wt-id wfA)) =
-    down-id-resultᵢ wfΣ vV outer⊢
-  down-cast-value-resultᵢ wfΣ vV
-      outer⊢@(⊢down Φ lenΦ V⊢ (wt-； p⊢ q⊢)) =
-    down-compose-resultᵢ wfΣ vV outer⊢
-      (down-cast-value-resultᵢ wfΣ vV (⊢down Φ lenΦ V⊢ p⊢))
-      (λ wfΣ′ vW Wdownq⊢ → down-cast-value-resultᵢ wfΣ′ vW Wdownq⊢)
+upν-fresh-worldᵢ :
+  ∀ {Ψ Σ} →
+  StoreWf 0 Ψ Σ →
+  World
+upν-fresh-worldᵢ {Ψ = Ψ} {Σ = Σ} wfΣ =
+  mkWorld (suc Ψ) Ψ ((length Σ , ★) ∷ Σ) Σ
+    (upν-fresh-wfΣᵢ wfΣ) wfΣ []
 
-  tyapp-up∀-resultᵢ :
-    ∀ {B T C w V p} →
-    WfTy 0 (Ψˡ w) T →
-    Value V →
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ (V up ∀ᵖ p) ⦂ `∀ B →
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ ((V up ∀ᵖ p) ⦂∀ B [ T ]) ⦂ C →
-    (∀ {B′ C′} →
-      0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ (V ⦂∀ B′ [ T ]) ⦂ C′ →
-      Resultᵢ (Σˡ w) (V ⦂∀ B′ [ T ]) C′) →
-    Resultᵢ (Σˡ w) ((V up ∀ᵖ p) ⦂∀ B [ T ]) C
-  tyapp-up∀-resultᵢ {B = B} {T = T} {C = C} {w = w} {V = V} {p = p}
-      hT vV V∀⊢@(⊢up Φ lenΦ V⊢ (wt-∀ p⊢)) app⊢ rec
-      with preservation-step (wfΣˡ w) app⊢ (id-step (β-up-∀ vV))
-  tyapp-up∀-resultᵢ {B = B} {T = T} {C = C} {w = w} {V = V} {p = p}
-      hT vV V∀⊢@(⊢up Φ lenΦ V⊢ (wt-∀ p⊢)) app⊢ rec
-      | Ψ′ , eq , step⊢
-      rewrite eq
-      with step⊢
-  tyapp-up∀-resultᵢ {B = B} {T = T} {C = C} {w = w} {V = V} {p = p}
-      hT vV V∀⊢@(⊢up Φ lenΦ V⊢ (wt-∀ p⊢)) app⊢ rec
-      | Ψ′ , eq , step⊢
-      | ⊢up Φ′ lenΦ′ innerApp⊢ pT⊢
-      rewrite eq =
-    prepend-resultᵢ
-      (((V up ∀ᵖ p) ⦂∀ B [ T ])
-        —→⟨ id-step (β-up-∀ vV) ⟩ _ ∎)
-      (up-result-bindᵢ
-        (wfΣˡ w)
-        (⊢up Φ′ lenΦ′ innerApp⊢ pT⊢)
-        (rec innerApp⊢)
-        (λ wfΣ′ vW Wup⊢ → up-cast-value-resultᵢ wfΣ′ vW Wup⊢))
-
-  tyapp-value-resultᵢ :
-    ∀ {B T C w V} →
-    WfTy 0 (Ψˡ w) T →
-    Value V →
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ (V ⦂∀ B [ T ]) ⦂ C →
-    Resultᵢ (Σˡ w) (V ⦂∀ B [ T ]) C
-  tyapp-value-resultᵢ {B = B} {T = T} {C = C} {w = w} {V = V}
-      hT vV app⊢@(⊢• V⊢ wfB wfT)
-      with canonical-∀ vV V⊢
-  tyapp-value-resultᵢ {B = B} {T = T} {C = C} {w = w} {V = Λ N}
-      hT vV app⊢@(⊢• V⊢ wfB wfT)
-      | av-Λ refl =
-    tyapp-Λ-resultᵢ {B = B} {T = T} {C = C} {w = w} {N = N}
-      hT V⊢ app⊢
-  tyapp-value-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      {V = V up ∀ᵖ p}
-      hT (vInner up ∀ᵖ) app⊢@(⊢• V∀⊢ wfB wfT)
-      | av-up-∀ vW refl =
-    tyapp-up∀-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      {V = V} {p = p}
-      hT vW V∀⊢ app⊢
-      (λ innerApp⊢ → tyapp-value-resultᵢ {T = T} {w = w}
-        hT vW innerApp⊢)
-  tyapp-value-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      hT vV app⊢@(⊢• V⊢ wfB wfT)
-      | av-down-∀ vW refl =
-    tyapp-down∀-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      hT vW V⊢ app⊢
-  tyapp-value-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      hT vV app⊢@(⊢• V⊢ wfB wfT)
-      | av-down-ν vW refl =
-    tyapp-downν-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      hT vW V⊢ app⊢
-
-  tyapp-down∀-resultᵢ :
-    ∀ {B T C w V p} →
-    WfTy 0 (Ψˡ w) T →
-    Value V →
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ (V down ∀ᵖ p) ⦂ `∀ B →
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ ((V down ∀ᵖ p) ⦂∀ B [ T ]) ⦂ C →
-    Resultᵢ (Σˡ w) ((V down ∀ᵖ p) ⦂∀ B [ T ]) C
-  tyapp-down∀-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      {V = V} {p = p}
-      hT vV V∀⊢@(⊢down Φ lenΦ V⊢ (wt-∀ p⊢)) app⊢
-      with preservation-step (wfΣˡ w) app⊢ (β-down-∀ vV)
-  tyapp-down∀-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      {V = V} {p = p}
-      hT vV V∀⊢@(⊢down Φ lenΦ V⊢ (wt-∀ p⊢)) app⊢
-      | Ψ′ , eq , step⊢
-      rewrite eq
-      with step⊢
-  tyapp-down∀-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      {V = V} {p = p}
-      hT vV V∀⊢@(⊢down Φ lenΦ V⊢ (wt-∀ p⊢)) app⊢
-      | Ψ′ , eq , step⊢
-      | ⊢up Φup lenΦup down⊢ up⊢
-      rewrite eq
-      with down⊢
-  tyapp-down∀-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      {V = V} {p = p}
-      hT vV V∀⊢@(⊢down Φ lenΦ V⊢ (wt-∀ p⊢)) app⊢
-      | Ψ′ , eq , step⊢
-      | ⊢up Φup lenΦup down⊢ up⊢
-      | ⊢down Φdown lenΦdown innerApp⊢ downCast⊢
-      rewrite eq =
-    prepend-resultᵢ
-      (((V down ∀ᵖ p) ⦂∀ B [ T ])
-        —→⟨ β-down-∀ vV ⟩ _ ∎)
-      (up-result-bindᵢ
-        wfΣfresh
-        (⊢up Φup lenΦup down⊢ up⊢)
-        (down-result-bindᵢ
-          wfΣfresh
-          down⊢
-          (tyapp-value-resultᵢ {w = wfresh}
-            (wfSeal (len<suc-StoreWf (wfΣˡ w)))
-            vV
-            innerApp⊢)
-          (λ wfΣ′ vW Wdown⊢ →
-            down-cast-value-resultᵢ wfΣ′ vW Wdown⊢))
-        (λ wfΣ′ vW Wup⊢ → up-cast-value-resultᵢ wfΣ′ vW Wup⊢))
-    where
-    wfΣfresh : StoreWf 0 (suc (Ψˡ w))
-      ((length (Σˡ w) , T) ∷ Σˡ w)
-    wfΣfresh = storeWf-fresh-extᴿ hT (wfΣˡ w)
-
-    wfresh : World
-    wfresh =
-      mkWorld (suc (Ψˡ w)) (Ψʳ w)
-        ((length (Σˡ w) , T) ∷ Σˡ w)
-        (Σʳ w)
-        wfΣfresh
-        (wfΣʳ w)
-        (η w)
-
-  tyapp-downν-resultᵢ :
-    ∀ {B T C w V p} →
-    WfTy 0 (Ψˡ w) T →
-    Value V →
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ (V down ν p) ⦂ `∀ B →
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ ((V down ν p) ⦂∀ B [ T ]) ⦂ C →
-    Resultᵢ (Σˡ w) ((V down ν p) ⦂∀ B [ T ]) C
-  tyapp-downν-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      {V = V} {p = p}
-      hT vV V∀⊢@(⊢down Φ lenΦ V⊢ (wt-ν p⊢)) app⊢
-      with preservation-step (wfΣˡ w) app⊢ (β-down-ν vV)
-  tyapp-downν-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      {V = V} {p = p}
-      hT vV V∀⊢@(⊢down Φ lenΦ V⊢ (wt-ν p⊢)) app⊢
-      | Ψ′ , eq , step⊢
-      rewrite eq
-      with step⊢
-  tyapp-downν-resultᵢ {B = B} {T = T} {C = C} {w = w}
-      {V = V} {p = p}
-      hT vV V∀⊢@(⊢down Φ lenΦ V⊢ (wt-ν p⊢)) app⊢
-      | Ψ′ , eq , step⊢
-      | ⊢up Φup lenΦup down⊢ up⊢
-      rewrite eq =
-    prepend-resultᵢ
-      (((V down ν p) ⦂∀ B [ T ])
-        —→⟨ β-down-ν vV ⟩ _ ∎)
-      (up-result-bindᵢ
-        wfΣfresh
-        (⊢up Φup lenΦup down⊢ up⊢)
-        (down-cast-value-resultᵢ wfΣfresh vV down⊢)
-        (λ wfΣ′ vW Wup⊢ → up-cast-value-resultᵢ wfΣ′ vW Wup⊢))
-    where
-    wfΣfresh : StoreWf 0 (suc (Ψˡ w))
-      ((length (Σˡ w) , T) ∷ Σˡ w)
-    wfΣfresh = storeWf-fresh-extᴿ hT (wfΣˡ w)
-
-  up-ν-value-resultᵢ-proof :
-    ∀ {Ψ Σ V B p} →
-    StoreWf 0 Ψ Σ →
-    Value V →
-    0 ∣ Ψ ∣ Σ ∣ [] ⊢ (V up ν p) ⦂ B →
-    Resultᵢ Σ (V up ν p) B
-  up-ν-value-resultᵢ-proof {Ψ = Ψ} {Σ = Σ} {V = V} {B = B} {p = p}
-      wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-ν p⊢))
-      with preservation-step wfΣ outer⊢ (β-up-ν vV)
-  up-ν-value-resultᵢ-proof {Ψ = Ψ} {Σ = Σ} {V = V} {B = B} {p = p}
-      wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-ν p⊢))
-      | Ψ′ , eq , step⊢
-      rewrite eq
-      with step⊢
-  up-ν-value-resultᵢ-proof {Ψ = Ψ} {Σ = Σ} {V = V} {B = B} {p = p}
-      wfΣ vV outer⊢@(⊢up Φ lenΦ V⊢ (wt-ν p⊢))
-      | Ψ′ , eq , step⊢
-      | ⊢up Φ′ lenΦ′ app⊢ pFresh⊢
-      rewrite eq =
-    prepend-resultᵢ
-      ((V up ν p) —→⟨ β-up-ν vV ⟩ _ ∎)
-      (up-result-bindᵢ
-        wfΣfresh
-        (⊢up Φ′ lenΦ′ app⊢ pFresh⊢)
-        (tyapp-value-resultᵢ {w = wfresh}
-          (wfSeal (len<suc-StoreWf wfΣ))
-          vV
-          app⊢)
-        (λ wfΣ′ vW Wup⊢ → up-cast-value-resultᵢ wfΣ′ vW Wup⊢))
-    where
-    wfΣfresh : StoreWf 0 (suc Ψ) ((length Σ , ★) ∷ Σ)
-    wfΣfresh = storeWf-fresh-extᴿ wf★ wfΣ
-
-    wfresh : World
-    wfresh = mkWorld (suc Ψ) Ψ ((length Σ , ★) ∷ Σ) Σ wfΣfresh wfΣ []
-
-tyapp-value-stepᵢ :
-  ∀ {B T C w V} →
+tyapp-fresh-wfΣᵢ :
+  ∀ {T w} →
   WfTy 0 (Ψˡ w) T →
-  Value V →
-  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V ⦂ `∀ B →
-  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ (V ⦂∀ B [ T ]) ⦂ C →
-  Σ[ Σ′ ∈ Store ] Σ[ Ψ′ ∈ SealCtx ] Σ[ wfΣ′ ∈ StoreWf 0 Ψ′ Σ′ ]
-  Σ[ M′ ∈ Term ]
-    (Σˡ w ∣ (V ⦂∀ B [ T ]) —→ Σ′ ∣ M′) ×
-    (0 ∣ Ψ′ ∣ Σ′ ∣ [] ⊢ M′ ⦂ C)
-tyapp-value-stepᵢ {T = T} {w = w} hT vV V⊢ app⊢
-    with canonical-∀ vV V⊢
-tyapp-value-stepᵢ {T = T} {w = w} hT vV V⊢ app⊢
-    | av-Λ refl
-    with preservation-step (wfΣˡ w) app⊢ β-Λ
-tyapp-value-stepᵢ {T = T} {w = w} hT vV V⊢ app⊢
-    | av-Λ refl | Ψ′ , eq , step⊢
-    rewrite eq =
-  _ , _ , storeWf-fresh-extᴿ hT (wfΣˡ w) , _ ,
-  β-Λ , step⊢
-tyapp-value-stepᵢ {w = w} hT vV V⊢ app⊢
-    | av-up-∀ vW refl
-    with preservation-step (wfΣˡ w) app⊢ (id-step (β-up-∀ vW))
-tyapp-value-stepᵢ {w = w} hT vV V⊢ app⊢
-    | av-up-∀ vW refl | Ψ′ , eq , step⊢
-    rewrite eq =
-  _ , _ , wfΣˡ w , _ ,
-  id-step (β-up-∀ vW) , step⊢
-tyapp-value-stepᵢ {T = T} {w = w} hT vV V⊢ app⊢
-    | av-down-∀ vW refl
-    with preservation-step (wfΣˡ w) app⊢ (β-down-∀ vW)
-tyapp-value-stepᵢ {T = T} {w = w} hT vV V⊢ app⊢
-    | av-down-∀ vW refl | Ψ′ , eq , step⊢
-    rewrite eq =
-  _ , _ , storeWf-fresh-extᴿ hT (wfΣˡ w) , _ ,
-  β-down-∀ vW , step⊢
-tyapp-value-stepᵢ {T = T} {w = w} hT vV V⊢ app⊢
-    | av-down-ν vW refl
-    with preservation-step (wfΣˡ w) app⊢ (β-down-ν vW)
-tyapp-value-stepᵢ {T = T} {w = w} hT vV V⊢ app⊢
-    | av-down-ν vW refl | Ψ′ , eq , step⊢
-    rewrite eq =
-  _ , _ , storeWf-fresh-extᴿ hT (wfΣˡ w) , _ ,
-  β-down-ν vW , step⊢
+  StoreWf 0 (suc (Ψˡ w)) ((length (Σˡ w) , T) ∷ Σˡ w)
+tyapp-fresh-wfΣᵢ {w = w} hT = storeWf-fresh-extᴿ hT (wfΣˡ w)
 
 tyapp-not-valueᵢ : ∀ {V B T} → Value (V ⦂∀ B [ T ]) → ⊥
 tyapp-not-valueᵢ ()
@@ -1956,106 +3021,6 @@ tyapp-not-valueᵢ ()
 ℰbodyᵢ-≼-nonvalue not-value (inj₂ (inj₁ bl)) = inj₂ bl
 ℰbodyᵢ-≼-nonvalue not-value (inj₂ (inj₂ (vM , rest))) =
   ⊥-elim (not-value vM)
-
-ν-fresh-current-ℰbodyᵢ-≼0 :
-  ∀ {Ξ A B T w V W} {ρ : RelSub Ξ}
-    {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B} →
-  (hTˡ : WfTy 0 (Ψˡ w) (leftᵢ ρ w T)) →
-  Value V →
-  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V ⦂ leftᵢ ρ w (`∀ A) →
-  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-    (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂ leftᵢ ρ w (A [ T ]ᵗ) →
-  0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W ⦂ rightᵢ ρ w B →
-  ℰbody ρ pT (suc zero) ≼ w
-    (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ])
-    W
-ν-fresh-current-ℰbodyᵢ-≼0 {A = A} {T = T} {w = w} {V = V}
-    {ρ = ρ} hTˡ vV V⊢ app⊢ W⊢
-    with tyapp-value-stepᵢ
-      {B = left∀ᵢ ρ w A}
-      {T = leftᵢ ρ w T}
-      {C = leftᵢ ρ w (A [ T ]ᵗ)}
-      {w = w}
-      {V = V}
-      hTˡ vV V⊢ app⊢
-ν-fresh-current-ℰbodyᵢ-≼0 {w = w} hTˡ vV V⊢ app⊢ W⊢
-    | Σ′ , Ψ′ , wfΣ′ , M′ , step , M′⊢ =
-  inj₁
-    (Σ′ , Ψ′ , wfΣ′ , M′ , step ,
-     Σʳ w , Ψʳ w , wfΣʳ w , _ , (_ ∎) ,
-     (M′⊢ , W⊢) , lift tt)
-
-left-result-value-ℰbodyᵢ-≽ :
-  ∀ {Ξ A B k w M W} {ρ : RelSub Ξ} {p : Ξ ⊢ A ⊑ᵢ B} →
-  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ M ⦂ leftᵢ ρ w A →
-  Value W →
-  0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W ⦂ rightᵢ ρ w B →
-  Resultᵢ (Σˡ w) M (leftᵢ ρ w A) →
-  (∀ {Σˡ′ Ψˡ′ Wˡ} {wfΣˡ′ : StoreWf 0 Ψˡ′ Σˡ′} →
-    Value Wˡ →
-    0 ∣ Ψˡ′ ∣ Σˡ′ ∣ [] ⊢ Wˡ ⦂
-      leftᵢ ρ (mkWorldˡ w Σˡ′ wfΣˡ′) A →
-    𝒱 ρ p k ≽ (mkWorldˡ w Σˡ′ wfΣˡ′) Wˡ W) →
-  ℰbody ρ p (suc k) ≽ w M W
-left-result-value-ℰbodyᵢ-≽ M⊢ vW W⊢
-    (result-value wfΣˡ′ M↠Wˡ vWˡ Wˡ⊢) value-rel =
-  inj₂ (inj₂
-    (vW , _ , _ , wfΣˡ′ , _ , M↠Wˡ , value-rel vWˡ Wˡ⊢))
-left-result-value-ℰbodyᵢ-≽ {w = w} M⊢ vW W⊢
-    (result-blame {Σ′ = Σˡ′} {ℓ = ℓ} M↠blame) value-rel
-    with preservation-↠ (wfΣˡ w) M⊢ M↠blame
-left-result-value-ℰbodyᵢ-≽ M⊢ vW W⊢
-    (result-blame {Σ′ = Σˡ′} {ℓ = ℓ} M↠blame) value-rel
-    | Ψˡ′ , wfΣˡ′ , blame⊢ =
-  inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , M↠blame))
-
-right-value-ℰbodyᵢ-≽-rest :
-  ∀ {Ξ A B k w M W} {ρ : RelSub Ξ} {p : Ξ ⊢ A ⊑ᵢ B} →
-  Value W →
-  ℰbody ρ p (suc k) ≽ w M W →
-  (Σ[ Σˡ′ ∈ Store ] Σ[ Ψˡ′ ∈ SealCtx ]
-    Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ]
-    Σ[ ℓ ∈ Label ]
-    (Σˡ w ∣ M —↠ Σˡ′ ∣ blame ℓ))
-  ⊎
-  (Value W × Σ[ Σˡ′ ∈ Store ] Σ[ Ψˡ′ ∈ SealCtx ]
-    Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ′ Σˡ′ ] Σ[ Wˡ ∈ Term ]
-    (Σˡ w ∣ M —↠ Σˡ′ ∣ Wˡ) ×
-    𝒱 ρ p k ≽ (mkWorldˡ w Σˡ′ wfΣˡ′) Wˡ W)
-right-value-ℰbodyᵢ-≽-rest vW
-    (inj₁ (Σʳ′ , Ψʳ′ , wfΣʳ′ , W′ , W→W′ , rest)) =
-  ⊥-elim (value-no-step vW W→W′)
-right-value-ℰbodyᵢ-≽-rest vW (inj₂ rest) = rest
-
-current-tyapp-value-ℰbodyᵢ-≽0 :
-  ∀ {Ξ A B T w V W} {ρ : RelSub Ξ}
-    {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B} →
-  (hTˡ : WfTy 0 (Ψˡ w) (leftᵢ ρ w T)) →
-  Value V →
-  Value W →
-  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-    (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂ leftᵢ ρ w (A [ T ]ᵗ) →
-  0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W ⦂ rightᵢ ρ w B →
-  ℰbody ρ pT (suc zero) ≽ w
-    (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ])
-    W
-current-tyapp-value-ℰbodyᵢ-≽0 {A = A} {B = B} {T = T}
-    {w = w} {V = V} {W = W} {ρ = ρ} {pT = pT}
-    hTˡ vV vW app⊢ W⊢
-  =
-  left-result-value-ℰbodyᵢ-≽
-    {A = A [ T ]ᵗ} {B = B} {k = zero} {w = w}
-    {M = V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]} {W = W}
-    {ρ = ρ} {p = pT}
-    app⊢ vW W⊢
-    (tyapp-value-resultᵢ
-      {B = left∀ᵢ ρ w A}
-      {T = leftᵢ ρ w T}
-      {C = leftᵢ ρ w (A [ T ]ᵗ)}
-      {w = w}
-      {V = V}
-      hTˡ vV app⊢)
-    (λ vWˡ Wˡ⊢ → lift (vWˡ , vW , (Wˡ⊢ , W⊢)))
 
 record SemanticRelAtᵢ {Ξ : ICtx} {A B : Ty}
     (ρ : RelSub Ξ)
@@ -2094,193 +3059,55 @@ postulate
     (w : World) →
     SemanticRelKitᵢ ρ p w
 
-  ν-fresh-current-ℰbodyᵢ-rest-≼ :
-    ∀ {Ξ A B T k w V W} {ρ : RelSub Ξ}
+  ν-fresh-current-ℰᵢ-core :
+    ∀ {Ξ A B T k dir w V W R} {ρ : RelSub Ξ}
       {pν : (ν-bound ∷ Ξ) ⊢ A ⊑ᵢ ⇑ᵗ B}
-      {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B}
-      {R : Rel}
-      (inst : νClosedInstᵢ pν pT)
-      (sem : SemanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w R)
-      (hTˡ : WfTy 0 (Ψˡ w) (leftᵢ ρ w T))
-      (hTʳ : WfTy 0 (Ψʳ w) (rightᵢ ρ w T)) →
+      {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B} →
+    νClosedInstᵢ pν pT →
+    (sem : SemanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w R) →
+    (hTˡ : WfTy 0 (Ψˡ w) (leftᵢ ρ w T)) →
+    (hTʳ : WfTy 0 (Ψʳ w) (rightᵢ ρ w T)) →
     Value V →
     Value W →
     0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V ⦂ leftᵢ ρ w (`∀ A) →
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂ leftᵢ ρ w (A [ T ]ᵗ) →
     0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W ⦂ rightᵢ ρ w B →
-    ℰbody (extendνρ ρ
-           (ηentry (length (Σˡ w)) (length (Σʳ w))
-             R (semantic-downᵢ sem)))
-      pν (suc k) ≼
-      (extendWorldν w R (semantic-downᵢ sem)
-        (leftᵢ ρ w T) (rightᵢ ρ w T) hTˡ hTʳ)
-      (V ⦂∀ left∀ᵢ ρ w A [ ｀ length (Σˡ w) ])
-      W →
-    ℰbody ρ pT (suc (suc k)) ≼ w
-      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ])
-      W
-
-  ν-fresh-current-ℰbodyᵢ-rest-≽ :
-    ∀ {Ξ A B T k w V W} {ρ : RelSub Ξ}
-      {pν : (ν-bound ∷ Ξ) ⊢ A ⊑ᵢ ⇑ᵗ B}
-      {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B}
-      {R : Rel}
-      (inst : νClosedInstᵢ pν pT)
-      (sem : SemanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w R)
-      (hTˡ : WfTy 0 (Ψˡ w) (leftᵢ ρ w T))
-      (hTʳ : WfTy 0 (Ψʳ w) (rightᵢ ρ w T)) →
-    Value V →
-    Value W →
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V ⦂ leftᵢ ρ w (`∀ A) →
     0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂ leftᵢ ρ w (A [ T ]ᵗ) →
-    0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W ⦂ rightᵢ ρ w B →
-    ℰbody (extendνρ ρ
-           (ηentry (length (Σˡ w)) (length (Σʳ w))
-             R (semantic-downᵢ sem)))
-      pν (suc k) ≽
-      (extendWorldν w R (semantic-downᵢ sem)
-        (leftᵢ ρ w T) (rightᵢ ρ w T) hTˡ hTʳ)
-      (V ⦂∀ left∀ᵢ ρ w A [ ｀ length (Σˡ w) ])
-      W →
-    ℰbody ρ pT (suc (suc k)) ≽ w
-      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ])
-      W
-
-ν-fresh-current-ℰbodyᵢ-rest :
-    ∀ {Ξ A B T k dir w V W} {ρ : RelSub Ξ}
-      {pν : (ν-bound ∷ Ξ) ⊢ A ⊑ᵢ ⇑ᵗ B}
-      {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B}
-      {R : Rel}
-      (inst : νClosedInstᵢ pν pT)
-      (sem : SemanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w R)
-      (hTˡ : WfTy 0 (Ψˡ w) (leftᵢ ρ w T))
-      (hTʳ : WfTy 0 (Ψʳ w) (rightᵢ ρ w T)) →
-    Value V →
-    Value W →
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V ⦂ leftᵢ ρ w (`∀ A) →
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂ leftᵢ ρ w (A [ T ]ᵗ) →
-    0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W ⦂ rightᵢ ρ w B →
-    ℰbody (extendνρ ρ
-           (ηentry (length (Σˡ w)) (length (Σʳ w))
-             R (semantic-downᵢ sem)))
+      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂
+      leftᵢ ρ w (A [ T ]ᵗ) →
+    ℰ (extendνρ ρ
+        (ηentry (length (Σˡ w)) (length (Σʳ w))
+          R (semantic-downᵢ sem)))
       pν k dir
       (extendWorldν w R (semantic-downᵢ sem)
         (leftᵢ ρ w T) (rightᵢ ρ w T) hTˡ hTʳ)
       (V ⦂∀ left∀ᵢ ρ w A [ ｀ length (Σˡ w) ])
       W →
-    ℰbody ρ pT (suc k) dir w
-      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ])
-      W
-ν-fresh-current-ℰbodyᵢ-rest {A = A} {B = B} {T = T} {k = zero}
-    {dir = ≼} {w = w} {V = V} {W = W} {ρ = ρ} {pT = pT}
-    inst sem hTˡ hTʳ vV vW V⊢ app⊢ W⊢ fresh =
-  ν-fresh-current-ℰbodyᵢ-≼0
-    {A = A} {B = B} {T = T} {w = w} {V = V} {W = W}
-    {ρ = ρ} {pT = pT}
-    hTˡ vV V⊢ app⊢ W⊢
-ν-fresh-current-ℰbodyᵢ-rest {A = A} {B = B} {T = T} {k = zero}
-    {dir = ≽} {w = w} {V = V} {W = W} {ρ = ρ} {pT = pT}
-    inst sem hTˡ hTʳ vV vW V⊢ app⊢ W⊢ fresh =
-  current-tyapp-value-ℰbodyᵢ-≽0
-    {A = A} {B = B} {T = T} {w = w} {V = V} {W = W}
-    {ρ = ρ} {pT = pT}
-    hTˡ vV vW app⊢ W⊢
-ν-fresh-current-ℰbodyᵢ-rest {A = A} {B = B} {T = T} {k = suc k}
-    {dir = ≼} {w = w} {V = V} {W = W} {ρ = ρ} {pν = pν}
-    {pT = pT} {R = R} inst sem hTˡ hTʳ vV vW V⊢ app⊢ W⊢ fresh =
-  ν-fresh-current-ℰbodyᵢ-rest-≼
-    {A = A} {B = B} {T = T} {k = k}
-    {w = w} {V = V} {W = W} {ρ = ρ} {pν = pν} {pT = pT}
-    {R = R}
-    inst sem hTˡ hTʳ vV vW V⊢ app⊢ W⊢ fresh
-ν-fresh-current-ℰbodyᵢ-rest {A = A} {B = B} {T = T} {k = suc k}
-    {dir = ≽} {w = w} {V = V} {W = W} {ρ = ρ} {pν = pν}
-    {pT = pT} {R = R} inst sem hTˡ hTʳ vV vW V⊢ app⊢ W⊢ fresh =
-  ν-fresh-current-ℰbodyᵢ-rest-≽
-    {A = A} {B = B} {T = T} {k = k}
-    {w = w} {V = V} {W = W} {ρ = ρ} {pν = pν} {pT = pT}
-    {R = R}
-    inst sem hTˡ hTʳ vV vW V⊢ app⊢ W⊢ fresh
-
-ν-fresh-current-ℰbodyᵢ :
-  ∀ {Ξ A B T k dir w V W} {ρ : RelSub Ξ}
-    {pν : (ν-bound ∷ Ξ) ⊢ A ⊑ᵢ ⇑ᵗ B}
-    {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B}
-    {R : Rel}
-    (inst : νClosedInstᵢ pν pT)
-    (sem : SemanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w R)
-    (hTˡ : WfTy 0 (Ψˡ w) (leftᵢ ρ w T))
-    (hTʳ : WfTy 0 (Ψʳ w) (rightᵢ ρ w T)) →
-  Value V →
-  Value W →
-  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V ⦂ leftᵢ ρ w (`∀ A) →
-  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-    (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂ leftᵢ ρ w (A [ T ]ᵗ) →
-  0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W ⦂ rightᵢ ρ w B →
-  ℰbody (extendνρ ρ
-         (ηentry (length (Σˡ w)) (length (Σʳ w))
-           R (semantic-downᵢ sem)))
-    pν k dir
-    (extendWorldν w R (semantic-downᵢ sem)
-      (leftᵢ ρ w T) (rightᵢ ρ w T) hTˡ hTʳ)
-    (V ⦂∀ left∀ᵢ ρ w A [ ｀ length (Σˡ w) ])
-    W →
-  ℰbody ρ pT (suc k) dir w
-    (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ])
-    W
-ν-fresh-current-ℰbodyᵢ {A = A} {B = B} {T = T} {k = zero}
-    {dir = ≼} {w = w} {V = V} {W = W} {ρ = ρ} {pT = pT}
-    inst sem hTˡ hTʳ vV vW V⊢ app⊢ W⊢ fresh =
-  ν-fresh-current-ℰbodyᵢ-≼0
-    {A = A} {B = B} {T = T} {w = w} {V = V} {W = W}
-    {ρ = ρ} {pT = pT}
-    hTˡ vV V⊢ app⊢ W⊢
-ν-fresh-current-ℰbodyᵢ {A = A} {B = B} {T = T} {k = zero}
-    {dir = ≽} {w = w} {V = V} {W = W} {ρ = ρ} {pν = pν}
-    {pT = pT} {R = R} inst sem hTˡ hTʳ vV vW V⊢ app⊢ W⊢ fresh =
-  current-tyapp-value-ℰbodyᵢ-≽0
-    {A = A} {B = B} {T = T} {w = w} {V = V} {W = W}
-    {ρ = ρ} {pT = pT}
-    hTˡ vV vW app⊢ W⊢
-ν-fresh-current-ℰbodyᵢ {A = A} {B = B} {T = T} {k = suc k}
-    {dir = dir} {w = w} {V = V} {W = W} {ρ = ρ} {pν = pν}
-    {pT = pT} {R = R} inst sem hTˡ hTʳ vV vW V⊢ app⊢ W⊢ fresh =
-  ν-fresh-current-ℰbodyᵢ-rest
-    {A = A} {B = B} {T = T} {k = suc k} {dir = dir}
-    {w = w} {V = V} {W = W} {ρ = ρ} {pν = pν} {pT = pT}
-    {R = R}
-    inst sem hTˡ hTʳ vV vW V⊢ app⊢ W⊢ fresh
-
-ν-payload-currentᵢ :
-    ∀ {Ξ Δ Ψsrc A B T k dir w V W} {ρ : RelSub Ξ}
-      {pν : (ν-bound ∷ Ξ) ⊢ A ⊑ᵢ ⇑ᵗ B}
-      {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B} →
-    νClosedInstᵢ pν pT →
-    RelWf w ρ →
-    InterpLRWfˡ (plain ∷ Ξ) (suc Δ) Ψsrc (Ψˡ w) (νenv ρ) →
-    InterpLRWfˡ Ξ Δ Ψsrc (Ψˡ w) (νenv ρ) →
-    WfTy (suc Δ) Ψsrc A →
-    WfTy 0 Ψsrc T →
-    Ψsrc ≤ Ψʳ w →
-    𝒱 ρ (⊑ᵢ-ν A B pν) k dir w V W →
     ℰ ρ pT (suc k) dir w
       (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ])
       W
-ν-payload-currentᵢ {Ξ = Ξ} {Δ = Δ} {Ψsrc = Ψsrc}
-    {A = A} {B = B} {T = T} {k = zero} {dir = dir}
+
+ν-fresh-current-ℰᵢ :
+  ∀ {Ξ Δ Ψsrc A B T k dir w V W} {ρ : RelSub Ξ}
+    {pν : (ν-bound ∷ Ξ) ⊢ A ⊑ᵢ ⇑ᵗ B}
+    {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B} →
+  νClosedInstᵢ pν pT →
+  RelWf w ρ →
+  InterpLRWfˡ (plain ∷ Ξ) (suc Δ) Ψsrc (Ψˡ w) (νenv ρ) →
+  InterpLRWfˡ Ξ Δ Ψsrc (Ψˡ w) (νenv ρ) →
+  WfTy (suc Δ) Ψsrc A →
+  WfTy 0 Ψsrc T →
+  Ψsrc ≤ Ψʳ w →
+  𝒱 ρ (⊑ᵢ-ν A B pν) k dir w V W →
+  ℰ ρ pT (suc k) dir w
+    (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ])
+    W
+ν-fresh-current-ℰᵢ {Ξ = Ξ} {Δ = Δ} {Ψsrc = Ψsrc}
+    {A = A} {B = B} {T = T} {k = zero} {dir = ≼}
     {w = w} {V = V} {W = W} {ρ = ρ} {pν = pν} {pT = pT}
     inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ
     (lift (vV , vW , (V⊢ , W⊢))) =
-  (leftApp⊢ , W⊢) ,
-  ν-fresh-current-ℰbodyᵢ
-    {A = A} {B = B} {T = T} {k = zero} {dir = dir}
-    {w = w} {V = V} {W = W} {ρ = ρ} {pν = pν} {pT = pT}
-    {R = R}
-    inst sem hTˡ hTʳ
-    vV vW V⊢ leftApp⊢ W⊢ (lift tt)
+  ν-fresh-current-ℰᵢ-core {k = zero} {dir = ≼} {R = R}
+    inst sem hTˡ hTʳ vV vW V⊢ W⊢ leftApp⊢ fresh
   where
   kit : SemanticRelKitᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
   kit = semanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
@@ -2307,16 +3134,138 @@ postulate
 
   leftApp⊢ :
     0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂ leftᵢ ρ w (A [ T ]ᵗ)
+      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂
+      leftᵢ ρ w (A [ T ]ᵗ)
   leftApp⊢ = tyappν-left-typedᵢ rwf iwfA iwfT wfA wfTΔ V⊢
-ν-payload-currentᵢ {Ξ = Ξ} {Δ = Δ} {Ψsrc = Ψsrc}
+
+  wfresh : World
+  wfresh =
+    extendWorldν w R (semantic-downᵢ sem)
+      (leftᵢ ρ w T) (rightᵢ ρ w T) hTˡ hTʳ
+
+  e : SealRel
+  e = ηentry (length (Σˡ w)) (length (Σʳ w))
+        R (semantic-downᵢ sem)
+
+  freshLeftApp⊢ :
+    0 ∣ Ψˡ wfresh ∣ Σˡ wfresh ∣ [] ⊢
+      (V ⦂∀ left∀ᵢ ρ w A [ ｀ length (Σˡ w) ]) ⦂
+      leftᵢ (extendνρ ρ e) wfresh A
+  freshLeftApp⊢ =
+    cong-⊢⦂ refl refl refl
+      (sym
+        (extendνρ-left-openᵢ {A = A}
+          {αˡ = length (Σˡ w)} {αʳ = length (Σʳ w)}
+          ρ wfresh))
+      (⊢•
+        (wkΣ-term (drop ⊆ˢ-refl) (wkΨ-term-suc V⊢))
+        (WfTy-weakenˢ
+          (left∀ᵢ-wf {w = w} ρ iwfA wfA (leftᵗ-wf rwf))
+          (n≤1+n _))
+        (wfSeal (len<suc-StoreWf (wfΣˡ w))))
+
+  freshW⊢ :
+    0 ∣ Ψʳ wfresh ∣ Σʳ wfresh ∣ [] ⊢ W ⦂
+      rightᵢ (extendνρ ρ e) wfresh (⇑ᵗ B)
+  freshW⊢ =
+    cong-⊢⦂ refl refl refl
+      (sym
+        (extendνρ-right-shiftᵢ {A = B}
+          {αˡ = length (Σˡ w)} {αʳ = length (Σʳ w)}
+          ρ wfresh))
+      (wkΣ-term (drop ⊆ˢ-refl) (wkΨ-term-suc W⊢))
+
+  fresh :
+    ℰ (extendνρ ρ e) pν zero ≼ wfresh
+      (V ⦂∀ left∀ᵢ ρ w A [ ｀ length (Σˡ w) ])
+      W
+  fresh = (freshLeftApp⊢ , freshW⊢) , lift tt
+ν-fresh-current-ℰᵢ {Ξ = Ξ} {Δ = Δ} {Ψsrc = Ψsrc}
+    {A = A} {B = B} {T = T} {k = zero} {dir = ≽}
+    {w = w} {V = V} {W = W} {ρ = ρ} {pν = pν} {pT = pT}
+    inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ
+    (lift (vV , vW , (V⊢ , W⊢))) =
+  ν-fresh-current-ℰᵢ-core {k = zero} {dir = ≽} {R = R}
+    inst sem hTˡ hTʳ vV vW V⊢ W⊢ leftApp⊢ fresh
+  where
+  kit : SemanticRelKitᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
+  kit = semanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
+
+  R : Rel
+  R = relᵢ kit
+
+  sem : SemanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w R
+  sem = semanticᵢ kit
+
+  wfTΔ : WfTy Δ Ψsrc T
+  wfTΔ = WfTy-weakenᵗ {Δ = 0} {Δ′ = Δ} wfT z≤n
+
+  hTˡ : WfTy 0 (Ψˡ w) (leftᵢ ρ w T)
+  hTˡ = leftᵢ-wf {Ξ = Ξ} {Δ = Δ} {Ψsrc = Ψsrc}
+           {T = T} {w = w} ρ iwfT wfTΔ (leftᵗ-wf rwf)
+
+  hTʳ : WfTy 0 (Ψʳ w) (rightᵢ ρ w T)
+  hTʳ =
+    subst
+      (WfTy 0 (Ψʳ w))
+      (sym (rightᵢ-closed-id {w = w} ρ wfT))
+      (WfTy-weakenˢ wfT Ψsrc≤ʳ)
+
+  leftApp⊢ :
+    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
+      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂
+      leftᵢ ρ w (A [ T ]ᵗ)
+  leftApp⊢ = tyappν-left-typedᵢ rwf iwfA iwfT wfA wfTΔ V⊢
+
+  wfresh : World
+  wfresh =
+    extendWorldν w R (semantic-downᵢ sem)
+      (leftᵢ ρ w T) (rightᵢ ρ w T) hTˡ hTʳ
+
+  e : SealRel
+  e = ηentry (length (Σˡ w)) (length (Σʳ w))
+        R (semantic-downᵢ sem)
+
+  freshLeftApp⊢ :
+    0 ∣ Ψˡ wfresh ∣ Σˡ wfresh ∣ [] ⊢
+      (V ⦂∀ left∀ᵢ ρ w A [ ｀ length (Σˡ w) ]) ⦂
+      leftᵢ (extendνρ ρ e) wfresh A
+  freshLeftApp⊢ =
+    cong-⊢⦂ refl refl refl
+      (sym
+        (extendνρ-left-openᵢ {A = A}
+          {αˡ = length (Σˡ w)} {αʳ = length (Σʳ w)}
+          ρ wfresh))
+      (⊢•
+        (wkΣ-term (drop ⊆ˢ-refl) (wkΨ-term-suc V⊢))
+        (WfTy-weakenˢ
+          (left∀ᵢ-wf {w = w} ρ iwfA wfA (leftᵗ-wf rwf))
+          (n≤1+n _))
+        (wfSeal (len<suc-StoreWf (wfΣˡ w))))
+
+  freshW⊢ :
+    0 ∣ Ψʳ wfresh ∣ Σʳ wfresh ∣ [] ⊢ W ⦂
+      rightᵢ (extendνρ ρ e) wfresh (⇑ᵗ B)
+  freshW⊢ =
+    cong-⊢⦂ refl refl refl
+      (sym
+        (extendνρ-right-shiftᵢ {A = B}
+          {αˡ = length (Σˡ w)} {αʳ = length (Σʳ w)}
+          ρ wfresh))
+      (wkΣ-term (drop ⊆ˢ-refl) (wkΨ-term-suc W⊢))
+
+  fresh :
+    ℰ (extendνρ ρ e) pν zero ≽ wfresh
+      (V ⦂∀ left∀ᵢ ρ w A [ ｀ length (Σˡ w) ])
+      W
+  fresh = (freshLeftApp⊢ , freshW⊢) , lift tt
+ν-fresh-current-ℰᵢ {Ξ = Ξ} {Δ = Δ} {Ψsrc = Ψsrc}
     {A = A} {B = B} {T = T} {k = suc k} {dir = dir}
     {w = w} {V = V} {W = W} {ρ = ρ} {pν = pν} {pT = pT}
     inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ
     ((vV , vW , (V⊢ , W⊢)) , payload) =
-  (leftApp⊢ , W⊢) ,
-  ν-fresh-current-ℰbodyᵢ {R = R} inst sem hTˡ hTʳ
-    vV vW V⊢ leftApp⊢ W⊢ (proj₂ fresh)
+  ν-fresh-current-ℰᵢ-core {R = R}
+    inst sem hTˡ hTʳ vV vW V⊢ W⊢ leftApp⊢ fresh
   where
   kit : SemanticRelKitᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
   kit = semanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
@@ -2343,7 +3292,8 @@ postulate
 
   leftApp⊢ :
     0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂ leftᵢ ρ w (A [ T ]ᵗ)
+      (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) ⦂
+      leftᵢ ρ w (A [ T ]ᵗ)
   leftApp⊢ = tyappν-left-typedᵢ rwf iwfA iwfT wfA wfTΔ V⊢
 
   fresh :
@@ -2449,7 +3399,7 @@ tyappν-ℰᵢ {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
       (WfTy-weakenᵗ wfT z≤n) L⊢)
     R⊢
     R↠W
-    (ν-payload-currentᵢ
+    (ν-fresh-current-ℰᵢ
       {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
       {k = k} {dir = ≼}
       {w = mkWorldʳ w Σʳ′ wfΣʳ′} {V = L} {W = W}
@@ -2528,7 +3478,7 @@ tyappν-ℰᵢ {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
       (WfTy-weakenᵗ wfT z≤n) L⊢)
     R⊢
     (tyapp-↠ L↠W)
-    (ν-payload-currentᵢ
+    (ν-fresh-current-ℰᵢ
       {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
       {k = k} {dir = ≽}
       {w = mkWorldˡ w Σˡ′ wfΣˡ′} {V = W} {W = R}
@@ -2572,13 +3522,14 @@ compat-⦂∀-ν :
   νClosedInstᵢ pν pT →
   E ∣ dir ⊨ (M ⦂∀ A [ T ]) ⊑ M′ ⦂ pT
 compat-⦂∀-ν A B {E = E} {M = M} {M′ = M′} {T = T}
-    pν M-rel wfA hT inst n w ρ γ rwf env =
+    pν M-rel wfA hT inst n w ρ γ rwf env
+    rewrite ν-inst-eqᵢ inst =
   tyappν-ℰᵢ
     {Δ = TPEnv.Δ E} {Ψsrc = TPEnv.Ψ E}
     {A = A} {B = B} {T = T} {n = n}
     {L = closeLRˡᵐ ρ w (substˣ-term (leftˣ γ) M)}
     {R = closeLRʳᵐ ρ w (substˣ-term (rightˣ γ) M′)}
-    inst
+    (ν-close-inst-evidenceᵢ (ν-inst-wfTᵢ inst) pν)
     (relWf rwf)
     (InterpLRWfˡ-plain (interpLRWfˡ rwf))
     (interpLRWfˡ rwf)

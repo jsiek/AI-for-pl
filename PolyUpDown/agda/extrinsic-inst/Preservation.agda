@@ -896,3 +896,12 @@ multi-preservation {Γ = Γ} {A = A} wfΣ M⊢ (_ —→⟨ L—→M ⟩ M—↠
     refl
     (renameˢ-compose (step-renaming L—→M) ρ₂ A)
     N⊢
+
+step-preserves-store-wf :
+  ∀ {Δ Ψ Σ Σ′ Γ M M′ A ρ} →
+  (wfΣ : StoreWf Δ Ψ Σ) →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
+  (red : Σ ∣ M —→[ ρ ] Σ′ ∣ M′) →
+  Sigma.Σ SealCtx (λ Ψ′ → StoreWf Δ Ψ′ Σ′)
+step-preserves-store-wf wfΣ M⊢ red with preservation-step wfΣ M⊢ red
+... | Ψ′ , hρ , eqρ , wfΣ′ , M′⊢ = Ψ′ , wfΣ′

@@ -152,14 +152,16 @@ data _⊢_⊑_⦂_ (E : TPEnv) :
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) T →
     E ⊢ (M ⦂∀ A [ T ]) ⊑ (M′ ⦂∀ B [ T ]) ⦂ substPlain⊑ᵢ T p
 
-  ⊑⦂∀-ν : ∀ (A B : Ty) {M M′ T}
+  ⊑⦂∀-ν : ∀ (A A′ B : Ty) {M M₁ M′ T}
       (p : (ν-bound ∷ TPEnv.Ξ E) ⊢ A ⊑ᵢ ⇑ᵗ B) →
-    {pT : TPEnv.Ξ E ⊢ A [ T ]ᵗ ⊑ᵢ B} →
-    E ⊢ M ⊑ M′ ⦂ (⊑ᵢ-ν A B p) →
+    {pT : TPEnv.Ξ E ⊢ A′ ⊑ᵢ B} →
+    A′ ≡ A [ T ]ᵗ →
+    E ⊢ M₁ ⊑ M′ ⦂ (⊑ᵢ-ν A B p) →
     WfTy (suc (TPEnv.Δ E)) (TPEnv.Ψ E) A →
     (hT : WfTy 0 (TPEnv.Ψ E) T) →
     νClosedInstᵢ p pT →
-    E ⊢ (M ⦂∀ A [ T ]) ⊑ M′ ⦂ pT
+    M ≡ (M₁ ⦂∀ A [ T ]) →
+    E ⊢ M ⊑ M′ ⦂ pT
 
   ⊑$ : ∀ {n} →
     E ⊢ ($ (κℕ n)) ⊑ ($ (κℕ n)) ⦂ (⊑ᵢ-‵ `ℕ)
@@ -239,7 +241,8 @@ data _⊢_⊑_⦂_ (E : TPEnv) :
     (cong-⊢⦂ refl (leftCtx-⇑ᵗᴾ (TPEnv.Γ E)) refl refl (⊑-left-typed rel))
 ⊑-left-typed (⊑⦂∀ rel wfA wfB hT) =
   ⊢• (⊑-left-typed rel) wfA hT
-⊑-left-typed (⊑⦂∀-ν A B {T = T} p rel wfA hT inst) =
+⊑-left-typed (⊑⦂∀-ν A B {T = T} p rel wfA hT inst eqM)
+    rewrite eqM =
   ⊢• (⊑-left-typed rel) wfA (WfTy-weakenᵗ hT z≤n)
 ⊑-left-typed (⊑$ {n}) = ⊢$ (κℕ n)
 ⊑-left-typed (⊑⊕ {op = op} relL relM) = ⊢⊕ (⊑-left-typed relL) op (⊑-left-typed relM)
@@ -263,7 +266,7 @@ data _⊢_⊑_⦂_ (E : TPEnv) :
     (cong-⊢⦂ refl (rightCtx-⇑ᵗᴾ (TPEnv.Γ E)) refl refl (⊑-right-typed rel))
 ⊑-right-typed (⊑⦂∀ rel wfA wfB hT) =
   ⊢• (⊑-right-typed rel) wfB hT
-⊑-right-typed (⊑⦂∀-ν A B {T = T} p rel wfA hT inst) =
+⊑-right-typed (⊑⦂∀-ν A B {T = T} p rel wfA hT inst eqM) =
   ⊑-right-typed rel
 ⊑-right-typed (⊑$ {n}) = ⊢$ (κℕ n)
 ⊑-right-typed (⊑⊕ {op = op} relL relM) = ⊢⊕ (⊑-right-typed relL) op (⊑-right-typed relM)

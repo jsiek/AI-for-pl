@@ -382,3 +382,14 @@ When a proof gets stuck in "subst hell", use this pattern.
 - Normalize indices aggressively with small rewrite lemmas. Prove and reuse
   identities such as context-substitution identity, extension identity, and
   type-substitution identity so most branches close by `refl`.
+
+## Avoid catch-all cases in proofs
+
+Prefer exhaustive case splits.
+
+
+## Never add redundant postulates
+
+Never add a postulate whose type (the logical formula) is the same as
+another theorem or postulate. This can lead to wasting time on
+circular reasoning during proof development.

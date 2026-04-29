@@ -1,39 +1,23 @@
 module curry.TypeSafety where
 
-open import Agda.Builtin.Sigma using (Σ; _,_)
+-- File Charter:
+--   * Public type-safety interface for curry System F.
+--   * Re-exports the `Safety` record and helper wrappers.
+--   * Keeps theorem statements thin and trust-facing.
+
+open import Data.Product using (∃-syntax)
+open import Data.Sum using (_⊎_)
 open import Data.List using ([])
 
 open import curry.Reduction
-open import curry.Progress using (Progress; progress)
-open import curry.Preservation using (preservation; multi-preservation)
 
-------------------------------------------------------------------------
--- Closed-term type safety wrapper
-------------------------------------------------------------------------
+import curry.proof.TypeSafety as TypeSafetyProof
 
-record Safety {Δ : TyCtx} (M : Term) (A : Ty) : Set where
-  constructor safety
-  field
-    progress-witness : Progress M
-    preservation-step : ∀ {N : Term} → M —→ N → Δ ⊢ [] ⊢ N ⦂ A
+open TypeSafetyProof public using (Safety; typeSafety; typeSafety-↠)
 
-open Safety public
-
-typeSafety :
-  ∀ {Δ : TyCtx} {M : Term} {A : Ty} →
-  Δ ⊢ [] ⊢ M ⦂ A →
-  Safety {Δ} M A
-typeSafety hM = safety (progress hM) (preservation hM)
-
-typeSafety-↠ :
+type-safety :
   ∀ {Δ : TyCtx} {M N : Term} {A : Ty} →
   Δ ⊢ [] ⊢ M ⦂ A →
   M —↠ N →
-  Δ ⊢ [] ⊢ N ⦂ A
-typeSafety-↠ = multi-preservation
-
-typeSafety-steps :
-  ∀ {Δ : TyCtx} {M : Term} {A : Ty} →
-  Δ ⊢ [] ⊢ M ⦂ A →
-  (Σ (Progress M) (λ _ → ∀ {N : Term} → M —→ N → Δ ⊢ [] ⊢ N ⦂ A))
-typeSafety-steps hM = progress hM , preservation hM
+  (∃[ N′ ] (N —→ N′)) ⊎ Value N
+type-safety = TypeSafetyProof.type-safety

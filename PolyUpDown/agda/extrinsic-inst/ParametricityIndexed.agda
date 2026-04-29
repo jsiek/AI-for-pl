@@ -30,6 +30,9 @@ open import Store
     ; ⊆ˢ-trans
     ; drop
     ; StoreWf
+    ; Uniqueˢ
+    ; lookup-unique
+    ; storeWf-unique
     ; storeWf-dom<
     ; renameLookupᵗ
     ; renameStoreᵗ-ext-⟰ᵗ
@@ -1110,7 +1113,6 @@ InstCastBridge𝒱⇒ℰ⊒ᵢ =
     (W down (instCast⊒ {A = Tʳ} {B = right∀ᵢ ρ w B} {α = αʳ}))
 
 postulate
-  instCast-bridge-𝒱⇒ℰ⊑ᵢ : InstCastBridge𝒱⇒ℰ⊑ᵢ
   instCast-bridge-𝒱⇒ℰ⊒ᵢ : InstCastBridge𝒱⇒ℰ⊒ᵢ
 
 up-↠ :
@@ -1272,6 +1274,456 @@ mkWorldˡʳ-⪰ growˡ growʳ ._⪰_.growη = ⊆η-refl
   inj₂ (inj₂
     (vMʳ , Σˡ″ , Ψˡ″ , wfΣˡ″ , Wˡ ,
      multi-trans Mˡ↠Mˡ′ Mˡ′↠Wˡ , rel))
+
+𝒱⇒ℰᵢ :
+  ∀ {Ξ A B n dir w V W} {ρ : RelSub Ξ} {p : Ξ ⊢ A ⊑ᵢ B} →
+  𝒱 ρ p n dir w V W →
+  ℰ ρ p (suc n) dir w V W
+𝒱⇒ℰᵢ {n = zero} {dir = ≼} {w = w}
+    (lift (vV , vW , (V⊢ , W⊢))) =
+  (V⊢ , W⊢) ,
+  inj₂ (inj₂
+    (vV , Σʳ w , Ψʳ w , wfΣʳ w , _ , (_ ∎) ,
+     lift (vV , vW , (V⊢ , W⊢))))
+𝒱⇒ℰᵢ {n = zero} {dir = ≽} {w = w}
+    (lift (vV , vW , (V⊢ , W⊢))) =
+  (V⊢ , W⊢) ,
+  inj₂ (inj₂
+    (vW , Σˡ w , Ψˡ w , wfΣˡ w , _ , (_ ∎) ,
+     lift (vV , vW , (V⊢ , W⊢))))
+𝒱⇒ℰᵢ {n = suc k} {dir = ≼} {w = w} {W = W}
+    Vrel@((vV , vW , (V⊢ , W⊢)) , payload) =
+  (V⊢ , W⊢) ,
+  inj₂ (inj₂
+    (vV , Σʳ w , Ψʳ w , wfΣʳ w , W , (W ∎) , Vrel))
+𝒱⇒ℰᵢ {n = suc k} {dir = ≽} {w = w} {V = V}
+    Vrel@((vV , vW , (V⊢ , W⊢)) , payload) =
+  (V⊢ , W⊢) ,
+  inj₂ (inj₂
+    (vW , Σˡ w , Ψˡ w , wfΣˡ w , V , (V ∎) , Vrel))
+
+𝒱⇒ℰ-sameᵢ :
+  ∀ {Ξ A B n dir w V W} {ρ : RelSub Ξ} {p : Ξ ⊢ A ⊑ᵢ B} →
+  𝒱 ρ p n dir w V W →
+  ℰ ρ p n dir w V W
+𝒱⇒ℰ-sameᵢ {n = zero} (lift (vV , vW , (V⊢ , W⊢))) =
+  (V⊢ , W⊢) , lift tt
+𝒱⇒ℰ-sameᵢ {n = suc k} {dir = dir} {w = w} {V = V} {W = W}
+    {ρ = ρ} {p = p} Vrel =
+  𝒱⇒ℰᵢ (𝒱-monotone ρ p k dir w V W Vrel)
+
+seal-value-invᵢ :
+  ∀ {V α} →
+  Value (V down seal α) →
+  Value V
+seal-value-invᵢ (vV down seal) = vV
+
+seal-typed-invᵢ :
+  ∀ {Δ Ψ Σ Γ V α A} →
+  Uniqueˢ Σ →
+  Σ ∋ˢ α ⦂ A →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (V down seal α) ⦂ ｀ α →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V ⦂ A
+seal-typed-invᵢ uΣ α∈ (⊢down Φ lenΦ V⊢ (wt-seal h α∈Φ)) =
+  cong-⊢⦂ refl refl refl (lookup-unique uΣ h α∈) V⊢
+seal-typed-invᵢ uΣ α∈ (⊢down Φ lenΦ V⊢ (wt-seal★ h α∈Φ)) =
+  cong-⊢⦂ refl refl refl (lookup-unique uΣ h α∈) V⊢
+
+relᵗ-zero-𝒱ᵢ :
+  ∀ {Ξ k dir w V W} {ρ : RelSub (plain ∷ Ξ)} →
+  Value V →
+  Value W →
+  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V ⦂ leftᵢ ρ w (＇ zero) →
+  0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W ⦂ rightᵢ ρ w (＇ zero) →
+  relᵗ ρ zero k dir V W →
+  𝒱 ρ (⊑ᵢ-＇ zero) k dir w V W
+relᵗ-zero-𝒱ᵢ {k = zero} vV vW V⊢ W⊢ rel =
+  lift (vV , vW , (V⊢ , W⊢))
+relᵗ-zero-𝒱ᵢ {k = suc k} vV vW V⊢ W⊢ rel =
+  (vV , vW , (V⊢ , W⊢)) , lift rel
+
+ℕ-payload-𝒱ᵢ :
+  ∀ {Ξ k dir w V W} {ρ : RelSub Ξ} →
+  Value V →
+  Value W →
+  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V ⦂ leftᵢ ρ w (‵ `ℕ) →
+  0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W ⦂ rightᵢ ρ w (‵ `ℕ) →
+  ℕ-payload V W →
+  𝒱 ρ (⊑ᵢ-‵ `ℕ) k dir w V W
+ℕ-payload-𝒱ᵢ {k = zero} vV vW V⊢ W⊢ payload =
+  lift (vV , vW , (V⊢ , W⊢))
+ℕ-payload-𝒱ᵢ {k = suc k} vV vW V⊢ W⊢ payload =
+  (vV , vW , (V⊢ , W⊢)) , payload
+
+postulate
+  instCast-bridge-𝒱⇒ℰ⊑ᵢ-fallback : InstCastBridge𝒱⇒ℰ⊑ᵢ
+
+instCast-bridge-𝒱⇒ℰ⊑ᵢ : InstCastBridge𝒱⇒ℰ⊑ᵢ
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {A = ＇ zero} {B = ＇ zero} {n = zero} {dir = ≼} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = ⊑ᵢ-＇ zero} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W
+    (lift (vV , vW , (V⊢ , W⊢)))
+    with canonical-｀ vV V⊢ | canonical-｀ vW W⊢
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {n = zero} {dir = ≼} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {pT = pT} {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ .(V′ down seal αˡ)
+    .(W′ down seal αʳ) (lift (vV , vW , (V⊢ , W⊢)))
+    | sv-down-seal {W = V′} vV′ refl
+    | sv-down-seal {W = W′} vW′ refl =
+  (left-typed , right-typed) ,
+  inj₁
+    (Σˡ w , Ψˡ w , wfΣˡ w , V′ , id-step (seal-unseal vV′) ,
+     Σʳ w , Ψʳ w , wfΣʳ w , W′ ,
+     (((W′ down seal αʳ) up unseal αʳ)
+       —→⟨ id-step (seal-unseal vW′) ⟩ W′ ∎) ,
+     (V′⊢ , W′⊢) , lift tt)
+  where
+  left-typed =
+    instCast-up-left-typedᵢν
+      {A = ＇ zero} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w}
+      {L = V′ down seal αˡ}
+      hTˡ hTʳ hAˡ αˡ∈ V⊢
+
+  right-typed =
+    instCast-up-right-typedᵢν
+      {B = ＇ zero} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w}
+      {R = W′ down seal αʳ}
+      hTˡ hTʳ hBʳ αʳ∈ W⊢
+
+  V′⊢ : 0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V′ ⦂ Tˡ
+  V′⊢ = seal-typed-invᵢ (storeWf-unique (wfΣˡ w)) αˡ∈ V⊢
+
+  W′⊢ : 0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W′ ⦂ Tʳ
+  W′⊢ = seal-typed-invᵢ (storeWf-unique (wfΣʳ w)) αʳ∈ W⊢
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {A = ＇ zero} {B = ＇ zero} {n = zero} {dir = ≽} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = ⊑ᵢ-＇ zero} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W
+    (lift (vV , vW , (V⊢ , W⊢)))
+    with canonical-｀ vV V⊢ | canonical-｀ vW W⊢
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {n = zero} {dir = ≽} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {pT = pT} {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ .(V′ down seal αˡ)
+    .(W′ down seal αʳ) (lift (vV , vW , (V⊢ , W⊢)))
+    | sv-down-seal {W = V′} vV′ refl
+    | sv-down-seal {W = W′} vW′ refl =
+  (left-typed , right-typed) ,
+  inj₁
+    (Σʳ w , Ψʳ w , wfΣʳ w , W′ , id-step (seal-unseal vW′) ,
+     Σˡ w , Ψˡ w , wfΣˡ w , V′ ,
+     (((V′ down seal αˡ) up unseal αˡ)
+       —→⟨ id-step (seal-unseal vV′) ⟩ V′ ∎) ,
+     (V′⊢ , W′⊢) , lift tt)
+  where
+  left-typed =
+    instCast-up-left-typedᵢν
+      {A = ＇ zero} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w}
+      {L = V′ down seal αˡ}
+      hTˡ hTʳ hAˡ αˡ∈ V⊢
+
+  right-typed =
+    instCast-up-right-typedᵢν
+      {B = ＇ zero} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w}
+      {R = W′ down seal αʳ}
+      hTˡ hTʳ hBʳ αʳ∈ W⊢
+
+  V′⊢ : 0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V′ ⦂ Tˡ
+  V′⊢ = seal-typed-invᵢ (storeWf-unique (wfΣˡ w)) αˡ∈ V⊢
+
+  W′⊢ : 0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W′ ⦂ Tʳ
+  W′⊢ = seal-typed-invᵢ (storeWf-unique (wfΣʳ w)) αʳ∈ W⊢
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {A = ＇ zero} {B = ＇ zero} {n = suc k} {dir = ≼} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = ⊑ᵢ-＇ zero} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈
+    .(V′ down seal αˡ) .(W′ down seal αʳ)
+    ((vV , vW , (V⊢ , W⊢)) ,
+      lift (V′ , W′ , refl , refl , RrelVW)) =
+  (left-typed , right-typed) ,
+  inj₁
+    (Σˡ w , Ψˡ w , wfΣˡ w , V′ , id-step (seal-unseal vV′) ,
+     Σʳ w , Ψʳ w , wfΣʳ w , W′ ,
+     (((W′ down seal αʳ) up unseal αʳ)
+       —→⟨ id-step (seal-unseal vW′) ⟩ W′ ∎) ,
+     cont)
+  where
+  ρApp : RelSub (plain ∷ _)
+  ρApp = extendPlainρ ρ Tˡ Tʳ wfTˡc wfTʳc pT Rrel downR
+
+  left-typed =
+    instCast-up-left-typedᵢν
+      {A = ＇ zero} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w}
+      {L = V′ down seal αˡ}
+      hTˡ hTʳ hAˡ αˡ∈ V⊢
+
+  right-typed =
+    instCast-up-right-typedᵢν
+      {B = ＇ zero} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w}
+      {R = W′ down seal αʳ}
+      hTˡ hTʳ hBʳ αʳ∈ W⊢
+
+  vV′ : Value V′
+  vV′ = seal-value-invᵢ vV
+
+  vW′ : Value W′
+  vW′ = seal-value-invᵢ vW
+
+  V′⊢ : 0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V′ ⦂ Tˡ
+  V′⊢ = seal-typed-invᵢ (storeWf-unique (wfΣˡ w)) αˡ∈ V⊢
+
+  W′⊢ : 0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W′ ⦂ Tʳ
+  W′⊢ = seal-typed-invᵢ (storeWf-unique (wfΣʳ w)) αʳ∈ W⊢
+
+  rep-𝒱 : 𝒱 ρApp (⊑ᵢ-＇ zero) k ≼ w V′ W′
+  rep-𝒱 = relᵗ-zero-𝒱ᵢ vV′ vW′ V′⊢ W′⊢ (downR RrelVW)
+
+  cont : ℰ ρApp (⊑ᵢ-＇ zero) (suc k) ≼ w V′ W′
+  cont = 𝒱⇒ℰᵢ rep-𝒱
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {A = ＇ zero} {B = ＇ zero} {n = suc k} {dir = ≽} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = ⊑ᵢ-＇ zero} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈
+    .(V′ down seal αˡ) .(W′ down seal αʳ)
+    ((vV , vW , (V⊢ , W⊢)) ,
+      lift (V′ , W′ , refl , refl , RrelVW)) =
+  (left-typed , right-typed) ,
+  inj₁
+    (Σʳ w , Ψʳ w , wfΣʳ w , W′ , id-step (seal-unseal vW′) ,
+     Σˡ w , Ψˡ w , wfΣˡ w , V′ ,
+     (((V′ down seal αˡ) up unseal αˡ)
+       —→⟨ id-step (seal-unseal vV′) ⟩ V′ ∎) ,
+     cont)
+  where
+  ρApp : RelSub (plain ∷ _)
+  ρApp = extendPlainρ ρ Tˡ Tʳ wfTˡc wfTʳc pT Rrel downR
+
+  left-typed =
+    instCast-up-left-typedᵢν
+      {A = ＇ zero} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w}
+      {L = V′ down seal αˡ}
+      hTˡ hTʳ hAˡ αˡ∈ V⊢
+
+  right-typed =
+    instCast-up-right-typedᵢν
+      {B = ＇ zero} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w}
+      {R = W′ down seal αʳ}
+      hTˡ hTʳ hBʳ αʳ∈ W⊢
+
+  vV′ : Value V′
+  vV′ = seal-value-invᵢ vV
+
+  vW′ : Value W′
+  vW′ = seal-value-invᵢ vW
+
+  V′⊢ : 0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V′ ⦂ Tˡ
+  V′⊢ = seal-typed-invᵢ (storeWf-unique (wfΣˡ w)) αˡ∈ V⊢
+
+  W′⊢ : 0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W′ ⦂ Tʳ
+  W′⊢ = seal-typed-invᵢ (storeWf-unique (wfΣʳ w)) αʳ∈ W⊢
+
+  rep-𝒱 : 𝒱 ρApp (⊑ᵢ-＇ zero) k ≽ w V′ W′
+  rep-𝒱 = relᵗ-zero-𝒱ᵢ vV′ vW′ V′⊢ W′⊢ (downR RrelVW)
+
+  cont : ℰ ρApp (⊑ᵢ-＇ zero) (suc k) ≽ w V′ W′
+  cont = 𝒱⇒ℰᵢ rep-𝒱
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {A = ‵ ι} {B = ‵ ι} {n = zero} {dir = ≼} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = ⊑ᵢ-‵ ι} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W
+    (lift (vV , vW , (V⊢ , W⊢))) =
+  (left-typed , right-typed) ,
+  inj₁
+    (Σˡ w , Ψˡ w , wfΣˡ w , V , id-step (id-up vV) ,
+     Σʳ w , Ψʳ w , wfΣʳ w , W ,
+     ((W up id (‵ ι)) —→⟨ id-step (id-up vW) ⟩ W ∎) ,
+     (V⊢ , W⊢) , lift tt)
+  where
+  left-typed =
+    instCast-up-left-typedᵢν
+      {A = ‵ ι} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w} {L = V}
+      hTˡ hTʳ hAˡ αˡ∈ V⊢
+
+  right-typed =
+    instCast-up-right-typedᵢν
+      {B = ‵ ι} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w} {R = W}
+      hTˡ hTʳ hBʳ αʳ∈ W⊢
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {A = ‵ `ℕ} {B = ‵ `ℕ} {n = suc k} {dir = ≼} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = ⊑ᵢ-‵ `ℕ} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W
+    ((vV , vW , (V⊢ , W⊢)) , body) =
+  (left-typed , right-typed) ,
+  inj₁
+    (Σˡ w , Ψˡ w , wfΣˡ w , V , id-step (id-up vV) ,
+     Σʳ w , Ψʳ w , wfΣʳ w , W ,
+     ((W up id (‵ `ℕ)) —→⟨ id-step (id-up vW) ⟩ W ∎) ,
+     cont)
+  where
+  ρApp : RelSub (plain ∷ _)
+  ρApp = extendPlainρ ρ Tˡ Tʳ wfTˡc wfTʳc pT Rrel downR
+
+  wSame : World
+  wSame = mkWorldˡʳ w (Σˡ w) (wfΣˡ w) (Σʳ w) (wfΣʳ w)
+
+  VrelApp : 𝒱 ρApp (⊑ᵢ-‵ `ℕ) (suc k) ≼ wSame V W
+  VrelApp = (vV , vW , (V⊢ , W⊢)) , body
+
+  cont : ℰ ρApp (⊑ᵢ-‵ `ℕ) (suc k) ≼ wSame V W
+  cont =
+    (V⊢ , W⊢) ,
+    inj₂ (inj₂
+      (vV , Σʳ wSame , Ψʳ wSame , wfΣʳ wSame , W , (W ∎) ,
+       ℕ-payload-𝒱ᵢ vV vW V⊢ W⊢ body))
+
+  left-typed =
+    instCast-up-left-typedᵢν
+      {A = ‵ `ℕ} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w} {L = V}
+      hTˡ hTʳ hAˡ αˡ∈ V⊢
+
+  right-typed =
+    instCast-up-right-typedᵢν
+      {B = ‵ `ℕ} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w} {R = W}
+      hTˡ hTʳ hBʳ αʳ∈ W⊢
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {A = ‵ `𝔹} {B = ‵ `𝔹} {n = suc k} {dir = ≼}
+    {p = ⊑ᵢ-‵ `𝔹}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W
+    ((vV , vW , (V⊢ , W⊢)) , lift ())
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {A = ‵ ι} {B = ‵ ι} {n = zero} {dir = ≽} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = ⊑ᵢ-‵ ι} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W
+    (lift (vV , vW , (V⊢ , W⊢))) =
+  (left-typed , right-typed) ,
+  inj₁
+    (Σʳ w , Ψʳ w , wfΣʳ w , W , id-step (id-up vW) ,
+     Σˡ w , Ψˡ w , wfΣˡ w , V ,
+     ((V up id (‵ ι)) —→⟨ id-step (id-up vV) ⟩ V ∎) ,
+     (V⊢ , W⊢) , lift tt)
+  where
+  left-typed =
+    instCast-up-left-typedᵢν
+      {A = ‵ ι} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w} {L = V}
+      hTˡ hTʳ hAˡ αˡ∈ V⊢
+
+  right-typed =
+    instCast-up-right-typedᵢν
+      {B = ‵ ι} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w} {R = W}
+      hTˡ hTʳ hBʳ αʳ∈ W⊢
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {A = ‵ `ℕ} {B = ‵ `ℕ} {n = suc k} {dir = ≽} {w = w}
+    {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
+    {ρ = ρ} {p = ⊑ᵢ-‵ `ℕ} {pT = pT}
+    {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W
+    ((vV , vW , (V⊢ , W⊢)) , body) =
+  (left-typed , right-typed) ,
+  inj₁
+    (Σʳ w , Ψʳ w , wfΣʳ w , W , id-step (id-up vW) ,
+     Σˡ w , Ψˡ w , wfΣˡ w , V ,
+     ((V up id (‵ `ℕ)) —→⟨ id-step (id-up vV) ⟩ V ∎) ,
+     cont)
+  where
+  ρApp : RelSub (plain ∷ _)
+  ρApp = extendPlainρ ρ Tˡ Tʳ wfTˡc wfTʳc pT Rrel downR
+
+  wSame : World
+  wSame = mkWorldˡʳ w (Σˡ w) (wfΣˡ w) (Σʳ w) (wfΣʳ w)
+
+  VrelApp : 𝒱 ρApp (⊑ᵢ-‵ `ℕ) (suc k) ≽ wSame V W
+  VrelApp = (vV , vW , (V⊢ , W⊢)) , body
+
+  cont : ℰ ρApp (⊑ᵢ-‵ `ℕ) (suc k) ≽ wSame V W
+  cont =
+    (V⊢ , W⊢) ,
+    inj₂ (inj₂
+      (vW , Σˡ wSame , Ψˡ wSame , wfΣˡ wSame , V , (V ∎) ,
+       ℕ-payload-𝒱ᵢ vV vW V⊢ W⊢ body))
+
+  left-typed =
+    instCast-up-left-typedᵢν
+      {A = ‵ `ℕ} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w} {L = V}
+      hTˡ hTʳ hAˡ αˡ∈ V⊢
+
+  right-typed =
+    instCast-up-right-typedᵢν
+      {B = ‵ `ℕ} {Tˡ = Tˡ} {Tʳ = Tʳ}
+      {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
+      {pT = pT} {wfTˡc = wfTˡc} {wfTʳc = wfTʳc}
+      {downR = downR} {w = w} {R = W}
+      hTˡ hTʳ hBʳ αʳ∈ W⊢
+instCast-bridge-𝒱⇒ℰ⊑ᵢ
+    {A = ‵ `𝔹} {B = ‵ `𝔹} {n = suc k} {dir = ≽}
+    {p = ⊑ᵢ-‵ `𝔹}
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W
+    ((vV , vW , (V⊢ , W⊢)) , lift ())
+instCast-bridge-𝒱⇒ℰ⊑ᵢ Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W Vrel =
+  instCast-bridge-𝒱⇒ℰ⊑ᵢ-fallback
+    Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W Vrel
 
 instCast-bridge-ℰ⊑ᵢ : InstCastBridgeℰ⊑ᵢ
 instCast-bridge-ℰ⊑ᵢ

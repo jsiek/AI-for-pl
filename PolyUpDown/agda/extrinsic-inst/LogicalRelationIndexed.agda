@@ -63,6 +63,20 @@ Rel = ℕ → Dir → Term → Term → Set
 DownClosed : Rel → Set
 DownClosed R = ∀ {k dir V W} → R (suc k) dir V W → R k dir V W
 
+sealedRel : Seal → Seal → Rel → Rel
+sealedRel αˡ αʳ R k dir V W =
+  Σ[ V′ ∈ Term ] Σ[ W′ ∈ Term ]
+    (V ≡ (V′ down seal αˡ)) ×
+    (W ≡ (W′ down seal αʳ)) ×
+    R k dir V′ W′
+
+sealedRel-down :
+  ∀ {αˡ αʳ R} →
+  DownClosed R →
+  DownClosed (sealedRel αˡ αʳ R)
+sealedRel-down downR (V′ , W′ , eqV , eqW , rel) =
+  V′ , W′ , eqV , eqW , downR rel
+
 WfTyClosedᵗ : Ty → Set
 WfTyClosedᵗ A = Σ[ Ψ ∈ SealCtx ] WfTy 0 Ψ A
 
@@ -599,7 +613,8 @@ varRel {Ξ = []} ρ X = relᵗ ρ X
 varRel {Ξ = plain ∷ Ξ} ρ zero = relᵗ ρ zero
 varRel {Ξ = plain ∷ Ξ} ρ (suc X) = varRel (tailPlainρ ρ) X
 varRel {Ξ = ν-bound ∷ Ξ} ρ zero with νenv-fit ρ
-varRel {Ξ = ν-bound ∷ Ξ} ρ zero | fits-ν {e = e} fit = Rη e
+varRel {Ξ = ν-bound ∷ Ξ} ρ zero | fits-ν {e = e} fit =
+  sealedRel (αˡ e) (αʳ e) (Rη e)
 varRel {Ξ = ν-bound ∷ Ξ} ρ (suc X) = varRel (tailνρ ρ) X
 
 varRel-down : ∀ {Ξ} (ρ : RelSub Ξ) (X : TyVar) → DownClosed (varRel ρ X)
@@ -607,7 +622,8 @@ varRel-down {Ξ = []} ρ X = rel-downᵗ ρ X
 varRel-down {Ξ = plain ∷ Ξ} ρ zero = rel-downᵗ ρ zero
 varRel-down {Ξ = plain ∷ Ξ} ρ (suc X) = varRel-down (tailPlainρ ρ) X
 varRel-down {Ξ = ν-bound ∷ Ξ} ρ zero with νenv-fit ρ
-varRel-down {Ξ = ν-bound ∷ Ξ} ρ zero | fits-ν {e = e} fit = downη e
+varRel-down {Ξ = ν-bound ∷ Ξ} ρ zero | fits-ν {e = e} fit =
+  sealedRel-down {αˡ = αˡ e} {αʳ = αʳ e} {R = Rη e} (downη e)
 varRel-down {Ξ = ν-bound ∷ Ξ} ρ (suc X) = varRel-down (tailνρ ρ) X
 
 mutual

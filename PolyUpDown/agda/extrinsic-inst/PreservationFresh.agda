@@ -12,8 +12,9 @@ open import Data.List using (List; length; _∷_; _++_; [])
 open import Data.Nat using (zero; suc; z<s; s<s; _+_; _<_; _≤_)
 open import Data.Nat.Properties
   using (≤-refl; n≤1+n; n<1+n; <-≤-trans; <-irrefl)
-open import Data.Product using (Σ; ∃; ∃-syntax; _×_; proj₁; proj₂; _,_)
-open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; sym; trans)
+open import Data.Product using (Σ; ∃; ∃-syntax; Σ-syntax; _×_; proj₁; proj₂; _,_)
+open import Relation.Binary.PropositionalEquality using (_≢_; cong; cong₂; subst; sym; trans)
+open import Relation.Nullary using (yes; no)
 
 open import Types
 open import TypeProperties
@@ -327,6 +328,49 @@ length∉dom-StoreWf {Ψ = Ψ} {Σ = Σ} wfΣ {A} h
   rewrite storeWf-length wfΣ =
   <-irrefl refl (storeWf-dom< wfΣ h)
 
+pred-<-neq :
+  ∀ {α Ψ} →
+  α < suc Ψ →
+  α ≢ Ψ →
+  α < Ψ
+pred-<-neq {zero} {zero} z<s α≢Ψ = ⊥-elim (α≢Ψ refl)
+pred-<-neq {zero} {suc Ψ} z<s α≢Ψ = z<s
+pred-<-neq {suc α} {zero} (s<s ()) α≢Ψ
+pred-<-neq {suc α} {suc Ψ} (s<s α<sucΨ) α≢sucΨ =
+  s<s (pred-<-neq α<sucΨ (λ eq → α≢sucΨ (cong suc eq)))
+
+storeWf-fresh-ext :
+  ∀ {Δ Ψ Σ} {T : Ty} →
+  WfTy Δ Ψ T →
+  StoreWf Δ Ψ Σ →
+  StoreWf Δ (suc Ψ) ((length Σ , T) ∷ Σ)
+storeWf-fresh-ext {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {T = T} wfT wfΣ =
+  record
+    { unique = uniq∷_ (length∉dom-StoreWf wfΣ) (storeWf-unique wfΣ)
+    ; wfTy = wf
+    ; dom< = domBound
+    ; dom∋ = domAny
+    ; len = cong suc (storeWf-length wfΣ)
+    }
+  where
+  wf : ∀ {α A} → ((length Σ , T) ∷ Σ) ∋ˢ α ⦂ A → WfTy Δ (suc Ψ) A
+  wf (Z∋ˢ α≡β A≡B) =
+    subst (WfTy Δ (suc Ψ)) (sym A≡B) (WfTy-weakenˢ wfT (n≤1+n _))
+  wf (S∋ˢ h) = WfTy-weakenˢ (storeWf-wfTy wfΣ h) (n≤1+n _)
+
+  domBound : ∀ {α A} → ((length Σ , T) ∷ Σ) ∋ˢ α ⦂ A → α < suc Ψ
+  domBound (Z∋ˢ α≡β A≡B) =
+    subst (λ γ → γ < suc Ψ) (sym α≡β) (len<suc-StoreWf wfΣ)
+  domBound (S∋ˢ h) = <-≤-trans (storeWf-dom< wfΣ h) (n≤1+n _)
+
+  domAny : ∀ {α} → α < suc Ψ → LookupStoreAny ((length Σ , T) ∷ Σ) α
+  domAny {α} α<sucΨ with seal-≟ α (length Σ)
+  domAny {α} α<sucΨ | yes α≡len = T , Z∋ˢ α≡len refl
+  domAny {α} α<sucΨ | no α≢len with
+    storeWf-dom∋ wfΣ
+      (pred-<-neq α<sucΨ (λ eq → α≢len (trans eq (sym (storeWf-length wfΣ)))))
+  domAny {α} α<sucΨ | no α≢len | A , h = A , S∋ˢ h
+
 ------------------------------------------------------------------------
 -- Preservation for store-threaded one-step reduction
 ------------------------------------------------------------------------
@@ -371,6 +415,48 @@ step-wk-term :
 step-wk-term {shape-id} eq M⊢ rewrite eq = M⊢
 step-wk-term {shape-suc} eq M⊢ rewrite eq = wkΨ-term-suc M⊢
 
+stepCtx : StepCtxShape → SealCtx → SealCtx
+stepCtx shape-id Ψ = Ψ
+stepCtx shape-suc Ψ = suc Ψ
+
+step-storeWf :
+  ∀ {Δ Ψ Σ Σ′ Γ M M′ A} →
+  StoreWf Δ Ψ Σ →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
+  (red : Σ ∣ M —→ Σ′ ∣ M′) →
+  StoreWf Δ (stepCtx (step-ctx-shape red) Ψ) Σ′
+step-storeWf wfΣ M⊢ (id-step red) = wfΣ
+step-storeWf wfΣ (⊢• {B = B} {T = T} (⊢Λ vN N⊢) wfB wfT) β-Λ =
+  storeWf-fresh-ext wfT wfΣ
+step-storeWf wfΣ (⊢• {B = B} {T = T} V⊢ wfB wfT) (β-down-∀ vV) =
+  storeWf-fresh-ext wfT wfΣ
+step-storeWf wfΣ (⊢• {B = B} {T = T} V⊢ wfB wfT) (β-down-ν vV) =
+  storeWf-fresh-ext wfT wfΣ
+step-storeWf wfΣ (⊢up Φ lenΦ V⊢ hp) (β-up-ν vV) =
+  storeWf-fresh-ext wf★ wfΣ
+step-storeWf wfΣ (⊢· L⊢ M⊢) (ξ-·₁ red) =
+  step-storeWf wfΣ L⊢ red
+step-storeWf wfΣ (⊢· L⊢ M⊢) (ξ-·₂ vV red) =
+  step-storeWf wfΣ M⊢ red
+step-storeWf wfΣ (⊢• M⊢ wfB wfT) (ξ-·α red) =
+  step-storeWf wfΣ M⊢ red
+step-storeWf wfΣ (⊢up Φ lenΦ M⊢ hp) (ξ-up red) =
+  step-storeWf wfΣ M⊢ red
+step-storeWf wfΣ (⊢down Φ lenΦ M⊢ hp) (ξ-down red) =
+  step-storeWf wfΣ M⊢ red
+step-storeWf wfΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red) =
+  step-storeWf wfΣ L⊢ red
+step-storeWf wfΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red) =
+  step-storeWf wfΣ M⊢ red
+
+exact-storeWf :
+  ∀ {shape Ψ Ψ′ Δ Σ} →
+  StepCtxExact shape Ψ Ψ′ →
+  StoreWf Δ (stepCtx shape Ψ) Σ →
+  StoreWf Δ Ψ′ Σ
+exact-storeWf {shape-id} eq wfΣ rewrite eq = wfΣ
+exact-storeWf {shape-suc} eq wfΣ rewrite eq = wfΣ
+
 preservation-step :
   ∀ {Δ Ψ}{Σ Σ′ : Store}{Γ : Ctx}{M M′ : Term}{A : Ty} →
   (wfΣ : StoreWf Δ Ψ Σ) →
@@ -380,6 +466,16 @@ preservation-step :
     (λ Ψ′ →
       StepCtxExact (step-ctx-shape red) Ψ Ψ′ ×
       (Δ ∣ Ψ′ ∣ Σ′ ∣ Γ ⊢ M′ ⦂ A))
+
+step-preserves-store-wf :
+  ∀ {Δ Ψ Σ Σ′ Γ M N A} →
+  (wfΣ : StoreWf Δ Ψ Σ) →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
+  (red : Σ ∣ M —→ Σ′ ∣ N) →
+  Σ[ Ψ′ ∈ SealCtx ] StoreWf Δ Ψ′ Σ′
+step-preserves-store-wf wfΣ M⊢ red with preservation-step wfΣ M⊢ red
+step-preserves-store-wf wfΣ M⊢ red | Ψ′ , eqΨ , N⊢ =
+  Ψ′ , exact-storeWf eqΨ (step-storeWf wfΣ M⊢ red)
 
 open-fresh-ν⊒ : ∀ {Δ Ψ}{Σ : Store}{Aν Bν T : Ty} {p : Down}{Φ : List CastPerm} →
   (wfΣ : StoreWf Δ Ψ Σ) →

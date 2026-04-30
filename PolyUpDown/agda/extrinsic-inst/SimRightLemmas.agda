@@ -6,17 +6,6 @@ module SimRightLemmas where
 --   * This module is the shared helper namespace for parallel worker tasks.
 --   * Keep helper lemmas grouped by worker slot to minimize merge conflicts.
 
-open import Data.List using ([])
-open import Data.Product using (_,_; Σ-syntax)
-
-open import Types
-open import UpDown using (Label; Up; Down)
-open import Store using (Store)
-open import ImprecisionIndexed
-open import Terms using (Term; blame; _·_; _⦂∀_[_]; _up_; _down_)
-open import TermImprecisionIndexed
-open import ReductionFresh
-
 --------------------------------------------------------------------------------
 -- Worker helper slots for `sim-right` parallelization.
 --
@@ -25,6 +14,15 @@ open import ReductionFresh
 --
 -- Keep each helper self-contained: statement + implementation + short note
 -- naming the `SimRight.agda` hole lines it supports.
+
+open import Data.Product using (Σ-syntax; _,_)
+
+open import Types
+open import UpDown using (Up; Down; Label)
+open import Terms using (Term; _up_; _down_; _⦂∀_[_]; blame)
+open import ImprecisionIndexed
+open import TermImprecisionIndexed
+open import ReductionFresh
 
 -- Worker W01 helper slot
 
@@ -48,82 +46,99 @@ open import ReductionFresh
 
 -- Worker W11 helper slot
 
--- Supports R11 (`blame-·₁`): transport a blame trace through left contexts.
-sim-right-w11-up-blame-↠ :
-  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {p : Up} →
+-- Worker W12 helper slot
+
+-- R14: propagate a left-side blame trace through wrappers introduced only on
+-- the left of a term-imprecision derivation.
+sim-right-w12-up-blame-↠ :
+  ∀ {Σ Σ′ : Store} {M : Term} {u : Up} {ℓ : Label} →
   Σ ∣ M —↠ Σ′ ∣ blame ℓ →
-  Σ ∣ (M up p) —↠ Σ′ ∣ blame ℓ
-sim-right-w11-up-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
-  (blame ℓ up p) —→⟨ id-step blame-up ⟩ ((blame ℓ) ∎)
-sim-right-w11-up-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
-  (M up p) —→⟨ ξ-up M→M′ ⟩ sim-right-w11-up-blame-↠ M′↠blame
+  Σ ∣ (M up u) —↠ Σ′ ∣ blame ℓ
+sim-right-w12-up-blame-↠ {u = u} {ℓ = ℓ} (M ∎) =
+  (blame ℓ up u) —→⟨ id-step blame-up ⟩ blame ℓ ∎
+sim-right-w12-up-blame-↠ {u = u} (M —→⟨ M→M′ ⟩ M′↠blame) =
+  (M up u) —→⟨ ξ-up M→M′ ⟩
+  sim-right-w12-up-blame-↠ M′↠blame
 
--- Supports R11 (`blame-·₁`): transport a blame trace through left contexts.
-sim-right-w11-down-blame-↠ :
-  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {p : Down} →
+-- R14.
+sim-right-w12-down-blame-↠ :
+  ∀ {Σ Σ′ : Store} {M : Term} {d : Down} {ℓ : Label} →
   Σ ∣ M —↠ Σ′ ∣ blame ℓ →
-  Σ ∣ (M down p) —↠ Σ′ ∣ blame ℓ
-sim-right-w11-down-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
-  (blame ℓ down p) —→⟨ id-step blame-down ⟩ ((blame ℓ) ∎)
-sim-right-w11-down-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
-  (M down p) —→⟨ ξ-down M→M′ ⟩
-    sim-right-w11-down-blame-↠ M′↠blame
+  Σ ∣ (M down d) —↠ Σ′ ∣ blame ℓ
+sim-right-w12-down-blame-↠ {d = d} {ℓ = ℓ} (M ∎) =
+  (blame ℓ down d) —→⟨ id-step blame-down ⟩ blame ℓ ∎
+sim-right-w12-down-blame-↠ {d = d} (M —→⟨ M→M′ ⟩ M′↠blame) =
+  (M down d) —→⟨ ξ-down M→M′ ⟩
+  sim-right-w12-down-blame-↠ M′↠blame
 
--- Supports R11 (`blame-·₁`): transport a trace through type application.
-sim-right-w11-tyapp-↠ :
-  ∀ {Σ Σ′ : Store} {M N : Term} {B T : Ty} →
-  Σ ∣ M —↠ Σ′ ∣ N →
-  Σ ∣ (M ⦂∀ B [ T ]) —↠ Σ′ ∣ (N ⦂∀ B [ T ])
-sim-right-w11-tyapp-↠ {B = B} {T = T} (M ∎) = (M ⦂∀ B [ T ]) ∎
-sim-right-w11-tyapp-↠ {B = B} {T = T} (M —→⟨ M→M′ ⟩ M′↠N) =
-  (M ⦂∀ B [ T ]) —→⟨ ξ-·α M→M′ ⟩
-    sim-right-w11-tyapp-↠ M′↠N
-
--- Supports R11 (`blame-·₁`): transport a blame trace through type app.
-sim-right-w11-tyapp-blame-↠ :
-  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {B T : Ty} →
+-- R14.
+sim-right-w12-tyapp-blame-↠ :
+  ∀ {Σ Σ′ : Store} {M : Term} {B T : Ty} {ℓ : Label} →
   Σ ∣ M —↠ Σ′ ∣ blame ℓ →
   Σ ∣ (M ⦂∀ B [ T ]) —↠ Σ′ ∣ blame ℓ
-sim-right-w11-tyapp-blame-↠ {ℓ = ℓ} {B = B} {T = T} (_ ∎) =
-  (blame ℓ ⦂∀ B [ T ]) —→⟨ id-step blame-·α ⟩ ((blame ℓ) ∎)
-sim-right-w11-tyapp-blame-↠ {B = B} {T = T}
+sim-right-w12-tyapp-blame-↠ {B = B} {T = T} {ℓ = ℓ} (M ∎) =
+  (blame ℓ ⦂∀ B [ T ]) —→⟨ id-step blame-·α ⟩ blame ℓ ∎
+sim-right-w12-tyapp-blame-↠ {B = B} {T = T}
     (M —→⟨ M→M′ ⟩ M′↠blame) =
   (M ⦂∀ B [ T ]) —→⟨ ξ-·α M→M′ ⟩
-    sim-right-w11-tyapp-blame-↠ M′↠blame
+  sim-right-w12-tyapp-blame-↠ M′↠blame
 
--- Supports R11 (`blame-·₁`): transport a function-position blame trace.
-sim-right-w11-appL-blame-↠ :
-  ∀ {Σ Σ′ : Store} {L M : Term} {ℓ : Label} →
-  Σ ∣ L —↠ Σ′ ∣ blame ℓ →
-  Σ ∣ (L · M) —↠ Σ′ ∣ blame ℓ
-sim-right-w11-appL-blame-↠ {M = M} {ℓ = ℓ} (_ ∎) =
-  (blame ℓ · M) —→⟨ id-step blame-·₁ ⟩ ((blame ℓ) ∎)
-sim-right-w11-appL-blame-↠ {M = M} (L —→⟨ L→L′ ⟩ L′↠blame) =
-  (L · M) —→⟨ ξ-·₁ L→L′ ⟩
-    sim-right-w11-appL-blame-↠ L′↠blame
+-- R14: if the more-imprecise side is already blame, the precise side either is
+-- blame or reaches blame after stripping left-only wrappers.
+sim-right-w12-right-blame-blames :
+  ∀ {E M A B ℓ} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  E ⊢ M ⊑ blame ℓ ⦂ p →
+  Σ[ Σ′ ∈ Store ] Σ[ ℓ′ ∈ Label ]
+    (TPEnv.store E ∣ M —↠ Σ′ ∣ blame ℓ′)
+sim-right-w12-right-blame-blames
+    (⊑⦂∀-ν A B p rel wfA hT inst)
+    with sim-right-w12-right-blame-blames rel
+sim-right-w12-right-blame-blames
+    (⊑⦂∀-ν A B p rel wfA hT inst)
+  | Σ′ , ℓ′ , M↠blame =
+  Σ′ , ℓ′ , sim-right-w12-tyapp-blame-↠ M↠blame
+sim-right-w12-right-blame-blames (⊑upL Φ lenΦ rel hu)
+    with sim-right-w12-right-blame-blames rel
+sim-right-w12-right-blame-blames (⊑upL Φ lenΦ rel hu)
+  | Σ′ , ℓ′ , M↠blame =
+  Σ′ , ℓ′ , sim-right-w12-up-blame-↠ M↠blame
+sim-right-w12-right-blame-blames (⊑downL Φ lenΦ rel hd)
+    with sim-right-w12-right-blame-blames rel
+sim-right-w12-right-blame-blames (⊑downL Φ lenΦ rel hd)
+  | Σ′ , ℓ′ , M↠blame =
+  Σ′ , ℓ′ , sim-right-w12-down-blame-↠ M↠blame
+sim-right-w12-right-blame-blames (⊑blameR {ℓ = ℓ′} hM) =
+  _ , ℓ′ , (blame ℓ′ ∎)
 
--- Supports R11 (`blame-·₁`): right blame implies left blames.
-sim-right-w11-right-blame-left-blames :
-  ∀ {Ψ Σ M ℓ A B} {p : [] ⊢ A ⊑ᵢ B} →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ blame ℓ ⦂ p →
-  Σ[ Σ′ ∈ Store ]
-    Σ[ ℓ′ ∈ Label ] (Σ ∣ M —↠ Σ′ ∣ blame ℓ′)
-sim-right-w11-right-blame-left-blames (⊑⦂∀-ν A B p rel wfA hT inst)
-    with sim-right-w11-right-blame-left-blames rel
-sim-right-w11-right-blame-left-blames (⊑⦂∀-ν A B p rel wfA hT inst)
+-- R14: inversion for a right-side `blame up _` redex.
+sim-right-w12-right-blame-up-blames :
+  ∀ {E M A B ℓ u′} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  E ⊢ M ⊑ ((blame ℓ) up u′) ⦂ p →
+  Σ[ Σ′ ∈ Store ] Σ[ ℓ′ ∈ Label ]
+    (TPEnv.store E ∣ M —↠ Σ′ ∣ blame ℓ′)
+sim-right-w12-right-blame-up-blames
+    (⊑⦂∀-ν A B p rel wfA hT inst)
+    with sim-right-w12-right-blame-up-blames rel
+sim-right-w12-right-blame-up-blames
+    (⊑⦂∀-ν A B p rel wfA hT inst)
   | Σ′ , ℓ′ , M↠blame =
-    Σ′ , ℓ′ , sim-right-w11-tyapp-blame-↠ M↠blame
-sim-right-w11-right-blame-left-blames (⊑upL Φ lenΦ rel hu)
-    with sim-right-w11-right-blame-left-blames rel
-sim-right-w11-right-blame-left-blames (⊑upL Φ lenΦ rel hu)
+  Σ′ , ℓ′ , sim-right-w12-tyapp-blame-↠ M↠blame
+sim-right-w12-right-blame-up-blames (⊑up Φ lenΦ rel hu hu′)
+    with sim-right-w12-right-blame-blames rel
+sim-right-w12-right-blame-up-blames (⊑up Φ lenΦ rel hu hu′)
   | Σ′ , ℓ′ , M↠blame =
-    Σ′ , ℓ′ , sim-right-w11-up-blame-↠ M↠blame
-sim-right-w11-right-blame-left-blames (⊑downL Φ lenΦ rel hd)
-    with sim-right-w11-right-blame-left-blames rel
-sim-right-w11-right-blame-left-blames (⊑downL Φ lenΦ rel hd)
+  Σ′ , ℓ′ , sim-right-w12-up-blame-↠ M↠blame
+sim-right-w12-right-blame-up-blames (⊑upL Φ lenΦ rel hu)
+    with sim-right-w12-right-blame-up-blames rel
+sim-right-w12-right-blame-up-blames (⊑upL Φ lenΦ rel hu)
   | Σ′ , ℓ′ , M↠blame =
-    Σ′ , ℓ′ , sim-right-w11-down-blame-↠ M↠blame
-sim-right-w11-right-blame-left-blames (⊑blameR {ℓ = ℓ′} hM) =
-  _ , ℓ′ , ((blame ℓ′) ∎)
-
--- Worker W12 helper slot
+  Σ′ , ℓ′ , sim-right-w12-up-blame-↠ M↠blame
+sim-right-w12-right-blame-up-blames (⊑upR Φ lenΦ rel hu′) =
+  sim-right-w12-right-blame-blames rel
+sim-right-w12-right-blame-up-blames (⊑downL Φ lenΦ rel hd)
+    with sim-right-w12-right-blame-up-blames rel
+sim-right-w12-right-blame-up-blames (⊑downL Φ lenΦ rel hd)
+  | Σ′ , ℓ′ , M↠blame =
+  Σ′ , ℓ′ , sim-right-w12-down-blame-↠ M↠blame
+sim-right-w12-right-blame-up-blames (⊑blameR {ℓ = ℓ′} hM) =
+  _ , ℓ′ , (blame ℓ′ ∎)

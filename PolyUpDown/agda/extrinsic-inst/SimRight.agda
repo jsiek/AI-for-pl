@@ -9,7 +9,7 @@ module SimRight where
 open import Data.List using ([])
 open import Data.Nat using (_≤_)
 open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
-open import Data.Sum using (_⊎_)
+open import Data.Sum using (_⊎_; inj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
@@ -62,78 +62,14 @@ sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (tag-untag-bad vV G≢H)) = {!!}
 
 sim-right M⊑M′ wfΣˡ wfΣʳ (id-step δ-⊕) = {!!}
 
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁) with M⊑M′
-sim-right {Σˡ = Σˡ} M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑· L⊑blame relM
-    with sim-right-w11-right-blame-left-blames L⊑blame
-sim-right {Σˡ = Σˡ} M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑· L⊑blame relM | Σˡ′ , ℓ′ , L↠blame =
-    Data.Sum.inj₂ (Σˡ′ , ℓ′ , sim-right-w11-appL-blame-↠ L↠blame)
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑⦂∀-ν A B p rel wfA hT inst
-    with sim-right rel wfΣˡ wfΣʳ (id-step blame-·₁)
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑⦂∀-ν A B p rel wfA hT inst
-  | Data.Sum.inj₁ (Ψˡ″ , Ψˡ≤Ψˡ″ , Σˡ′ , N , M↠N , N⊑blame)
-    with sim-right-w11-right-blame-left-blames N⊑blame
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑⦂∀-ν A B p rel wfA hT inst
-  | Data.Sum.inj₁ (Ψˡ″ , Ψˡ≤Ψˡ″ , Σˡ′ , N , M↠N , N⊑blame)
-  | Σᵇ , ℓᵇ , N↠blame =
-    Data.Sum.inj₂
-      (Σᵇ , ℓᵇ ,
-       multi-trans
-         (sim-right-w11-tyapp-↠ M↠N)
-         (sim-right-w11-tyapp-blame-↠ N↠blame))
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑⦂∀-ν A B p rel wfA hT inst
-  | Data.Sum.inj₂ (Σᵇ , ℓᵇ , M↠blame) =
-    Data.Sum.inj₂ (Σᵇ , ℓᵇ , sim-right-w11-tyapp-blame-↠ M↠blame)
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑upL Φ lenΦ rel hu
-    with sim-right rel wfΣˡ wfΣʳ (id-step blame-·₁)
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑upL Φ lenΦ rel hu
-  | Data.Sum.inj₁ (Ψˡ″ , Ψˡ≤Ψˡ″ , Σˡ′ , N , M↠N , N⊑blame)
-    with sim-right-w11-right-blame-left-blames N⊑blame
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑upL Φ lenΦ rel hu
-  | Data.Sum.inj₁ (Ψˡ″ , Ψˡ≤Ψˡ″ , Σˡ′ , N , M↠N , N⊑blame)
-  | Σᵇ , ℓᵇ , N↠blame =
-    Data.Sum.inj₂
-      (Σᵇ , ℓᵇ ,
-       multi-trans (up-↠ M↠N) (sim-right-w11-up-blame-↠ N↠blame))
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑upL Φ lenΦ rel hu
-  | Data.Sum.inj₂ (Σᵇ , ℓᵇ , M↠blame) =
-    Data.Sum.inj₂ (Σᵇ , ℓᵇ , sim-right-w11-up-blame-↠ M↠blame)
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑downL Φ lenΦ rel hd
-    with sim-right rel wfΣˡ wfΣʳ (id-step blame-·₁)
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑downL Φ lenΦ rel hd
-  | Data.Sum.inj₁ (Ψˡ″ , Ψˡ≤Ψˡ″ , Σˡ′ , N , M↠N , N⊑blame)
-    with sim-right-w11-right-blame-left-blames N⊑blame
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑downL Φ lenΦ rel hd
-  | Data.Sum.inj₁ (Ψˡ″ , Ψˡ≤Ψˡ″ , Σˡ′ , N , M↠N , N⊑blame)
-  | Σᵇ , ℓᵇ , N↠blame =
-    Data.Sum.inj₂
-      (Σᵇ , ℓᵇ ,
-       multi-trans (down-↠ M↠N) (sim-right-w11-down-blame-↠ N↠blame))
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑downL Φ lenΦ rel hd
-  | Data.Sum.inj₂ (Σᵇ , ℓᵇ , M↠blame) =
-    Data.Sum.inj₂ (Σᵇ , ℓᵇ , sim-right-w11-down-blame-↠ M↠blame)
-sim-right {Σˡ = Σˡ} M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁)
-  | ⊑blameR {ℓ = ℓ} hM′ =
-    Data.Sum.inj₂ (Σˡ , ℓ , ((blame ℓ) ∎))
+sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·₁) = {!!}
 
 sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (blame-·₂ vV)) = {!!}
 
 sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·α) = {!!}
 
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-up) = {!!}
+sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-up) =
+  inj₂ (sim-right-w12-right-blame-up-blames M⊑M′)
 
 sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-down) = {!!}
 

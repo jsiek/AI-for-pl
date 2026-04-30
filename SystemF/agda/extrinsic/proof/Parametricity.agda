@@ -35,6 +35,7 @@ open import extrinsic.Preservation
     ; map-substᵗ-⤊)
 open import extrinsic.Reduction
 open import extrinsic.LogicalRelation
+open import extrinsic.proof.LogicalRelation
 
 𝒢-left-SubstWf : ∀ {Γ ρ γ}
   → 𝒢 Γ ρ γ

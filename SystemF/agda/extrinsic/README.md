@@ -10,9 +10,16 @@ safety and relational parametricity.
 - `Terms.agda`: term syntax, core renaming/substitution operators, typing
 - `TypeTermSubst.agda`: type-in-term congruence + mixed commutation support
 - `TermSubst.agda`: term-in-term substitution metatheory
-- `Reduction.agda`, `Progress.agda`, `Preservation.agda`, `TypeSafety.agda`
+- `Reduction.agda`
+- Public theorem wrappers:
+  `Progress.agda`, `Preservation.agda`, `TypeSafety.agda`,
+  `Parametricity.agda`, `FreeTheorems.agda`
+- Private proof scripts:
+  `proof/Progress.agda`, `proof/Preservation.agda`,
+  `proof/TypeSafety.agda`, `proof/Parametricity.agda`,
+  `proof/FreeTheorems.agda`
 - `Eval.agda`, `Examples.agda`
-- `LogicalRelation.agda`, `Parametricity.agda`, `FreeTheorems.agda`
+- `LogicalRelation.agda`
 - `All.agda`: aggregate driver that imports the full extrinsic stack for one-shot checking
 
 ## One-shot check

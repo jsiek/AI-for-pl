@@ -289,8 +289,8 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
   | ⊑down Φ lenΦ rel hd hd′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-  {- BLOCKED[W08][H19]:
-     Hole H19 reported success but produced no applied file changes.
+  {- BLOCKED[W06][H17]:
+     Hole H17 reported success but produced no applied file changes.
   -}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
   | ⊑downL Φ lenΦ rel hd
@@ -322,7 +322,11 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
   | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  let Φᵣ , lenΦᵣ , hdᵣ =
+        wkΨ-cast-tag-⊒-≤ Ψˡ≤Ψˡᵣ lenΦ (wk⊒ (store-growth redL) hd′)
+  in
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
+  ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ hdᵣ
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
   | ⊑⊕ L⊑L′ Arg⊑Arg′
     with sim-left L⊑L′ wfΣˡ wfΣʳ redL

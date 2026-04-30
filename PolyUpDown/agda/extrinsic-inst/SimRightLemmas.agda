@@ -7,16 +7,15 @@ module SimRightLemmas where
 --   * Keep helper lemmas grouped by worker slot to minimize merge conflicts.
 
 open import Data.List using ([])
-open import Data.Nat using (_≤_)
-open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (subst)
 
 open import Types
-open import UpDown using (Down; Label)
+open import UpDown using (Up; Down; Label; wt-id)
+open import Store using (Store)
 open import ImprecisionIndexed
-open import Terms using (Term; _⦂∀_[_]; _up_; _down_; blame)
+open import Terms using (Term; blame; _up_; _down_; _⦂∀_[_])
 open import TermImprecisionIndexed
 open import ReductionFresh
 open import SimLeftLemmas using (sim-left-w03-⊑ᵢ-proof-irrel)
@@ -40,92 +39,96 @@ open import SimLeftLemmas using (sim-left-w03-⊑ᵢ-proof-irrel)
 
 -- Worker W05 helper slot
 
--- Worker W06 helper slot
+-- Supports SimRight.agda R05 (line 53): lift a blame path through an
+-- enclosing up cast while eliminating right identity-up casts.
+sim-right-w05-up-blame-↠ :
+  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {p : Up} →
+  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
+  Σ ∣ (M up p) —↠ Σ′ ∣ blame ℓ
+sim-right-w05-up-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
+  (blame ℓ up p) —→⟨ id-step blame-up ⟩ blame ℓ ∎
+sim-right-w05-up-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
+  (M up p) —→⟨ ξ-up M→M′ ⟩ sim-right-w05-up-blame-↠ M′↠blame
 
--- Supports SimRight.agda R06 (line 55): eliminate an identity-down cast on
--- the right, commuting through left-only casts and reporting left blame.
-sim-right-w06-tapp-↠ :
-  ∀ {Σ Σ′ M N B T} →
+-- Supports SimRight.agda R05 (line 53): lift a blame path through an
+-- enclosing down cast while eliminating right identity-up casts.
+sim-right-w05-down-blame-↠ :
+  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {p : Down} →
+  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
+  Σ ∣ (M down p) —↠ Σ′ ∣ blame ℓ
+sim-right-w05-down-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
+  (blame ℓ down p) —→⟨ id-step blame-down ⟩ blame ℓ ∎
+sim-right-w05-down-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
+  (M down p) —→⟨ ξ-down M→M′ ⟩ sim-right-w05-down-blame-↠ M′↠blame
+
+-- Supports SimRight.agda R05 (line 53): lift reduction through type
+-- application for the `⊑⦂∀-ν` asymmetric case.
+sim-right-w05-tyapp-↠ :
+  ∀ {Σ Σ′ : Store} {M N : Term} {B T : Ty} →
   Σ ∣ M —↠ Σ′ ∣ N →
   Σ ∣ (M ⦂∀ B [ T ]) —↠ Σ′ ∣ (N ⦂∀ B [ T ])
-sim-right-w06-tapp-↠ {B = B} {T = T} (M ∎) = (M ⦂∀ B [ T ]) ∎
-sim-right-w06-tapp-↠ {B = B} {T = T} (M —→⟨ M→M₁ ⟩ M₁↠N) =
-  (M ⦂∀ B [ T ]) —→⟨ ξ-·α M→M₁ ⟩ sim-right-w06-tapp-↠ M₁↠N
+sim-right-w05-tyapp-↠ (M ∎) = (M ⦂∀ _ [ _ ]) ∎
+sim-right-w05-tyapp-↠ (M —→⟨ M→M′ ⟩ M′↠N) =
+  (M ⦂∀ _ [ _ ]) —→⟨ ξ-·α M→M′ ⟩ sim-right-w05-tyapp-↠ M′↠N
 
-sim-right-w06-id-down-core :
+-- Supports SimRight.agda R05 (line 53): lift blame through type application
+-- for the `⊑⦂∀-ν` asymmetric case.
+sim-right-w05-tyapp-blame-↠ :
+  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {B T : Ty} →
+  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
+  Σ ∣ (M ⦂∀ B [ T ]) —↠ Σ′ ∣ blame ℓ
+sim-right-w05-tyapp-blame-↠ {ℓ = ℓ} {B = B} {T = T} (_ ∎) =
+  (blame ℓ ⦂∀ B [ T ]) —→⟨ id-step blame-·α ⟩ blame ℓ ∎
+sim-right-w05-tyapp-blame-↠ {B = B} {T = T} (M —→⟨ M→M′ ⟩ M′↠blame) =
+  (M ⦂∀ B [ T ]) —→⟨ ξ-·α M→M′ ⟩
+  sim-right-w05-tyapp-blame-↠ M′↠blame
+
+-- Supports SimRight.agda R05 (line 53): eliminate a right identity-up cast,
+-- commuting through left-only wrappers.
+sim-right-w05-id-up :
   ∀ {Ψ Σˡ V M C A B} {p : [] ⊢ A ⊑ᵢ B} →
-  ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ M ⊑ (V down Down.id C) ⦂ p →
+  ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ M ⊑ (V up UpDown.id C) ⦂ p →
   (Σ[ N ∈ Term ]
     ((Σˡ ∣ M —↠ Σˡ ∣ N) ×
      (⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ N ⊑ V ⦂ p)))
-  ⊎ (Σ[ ℓ ∈ Label ] (Σˡ ∣ M —↠ Σˡ ∣ blame ℓ))
-sim-right-w06-id-down-core (⊑upL Φ lenΦ rel hu)
-    with sim-right-w06-id-down-core rel
-sim-right-w06-id-down-core (⊑upL Φ lenΦ rel hu)
+  ⊎ (Σ[ Σᵇ ∈ Store ] Σ[ ℓ ∈ Label ] (Σˡ ∣ M —↠ Σᵇ ∣ blame ℓ))
+sim-right-w05-id-up (⊑up Φ lenΦ rel hu (wt-id wfA)) =
+  inj₁ (_ , (_ ∎) , ⊑upL Φ lenΦ rel hu)
+sim-right-w05-id-up {p = p} (⊑upR {pA = pA} Φ lenΦ rel (wt-id wfA)) =
+  inj₁
+    (_ , (_ ∎) ,
+     subst (λ q → _ ⊢ _ ⊑ _ ⦂ q)
+       (sim-left-w03-⊑ᵢ-proof-irrel pA p) rel)
+sim-right-w05-id-up (⊑upL Φ lenΦ rel hu)
+    with sim-right-w05-id-up rel
+sim-right-w05-id-up (⊑upL Φ lenΦ rel hu)
   | inj₁ (N , M↠N , N⊑V) =
-  inj₁ (N up _ , up-↠ M↠N , ⊑upL Φ lenΦ N⊑V hu)
-sim-right-w06-id-down-core (⊑upL Φ lenΦ rel hu)
-  | inj₂ (ℓ , M↠blame) =
-  inj₂ (ℓ ,
-    multi-trans (up-↠ M↠blame)
-      ((blame ℓ up _) —→⟨ id-step blame-up ⟩ blame ℓ ∎))
-sim-right-w06-id-down-core
-    (⊑⦂∀-ν A B {T = T} pν rel wfA hT inst)
-    with sim-right-w06-id-down-core rel
-sim-right-w06-id-down-core
-    (⊑⦂∀-ν A B {T = T} pν rel wfA hT inst)
+  inj₁ (_ , up-↠ M↠N , ⊑upL Φ lenΦ N⊑V hu)
+sim-right-w05-id-up (⊑upL Φ lenΦ rel hu)
+  | inj₂ (Σᵇ , ℓ , M↠blame) =
+  inj₂ (Σᵇ , ℓ , sim-right-w05-up-blame-↠ M↠blame)
+sim-right-w05-id-up (⊑downL Φ lenΦ rel hd)
+    with sim-right-w05-id-up rel
+sim-right-w05-id-up (⊑downL Φ lenΦ rel hd)
   | inj₁ (N , M↠N , N⊑V) =
-  inj₁ (N ⦂∀ A [ T ] , sim-right-w06-tapp-↠ M↠N ,
-        ⊑⦂∀-ν A B pν N⊑V wfA hT inst)
-sim-right-w06-id-down-core
-    (⊑⦂∀-ν A B {T = T} pν rel wfA hT inst)
-  | inj₂ (ℓ , M↠blame) =
-  inj₂ (ℓ ,
-    multi-trans (sim-right-w06-tapp-↠ M↠blame)
-      ((blame ℓ ⦂∀ A [ T ]) —→⟨ id-step blame-·α ⟩ blame ℓ ∎))
-sim-right-w06-id-down-core {p = p}
-    (⊑down {pB = pB} Φ lenΦ rel hd (UpDown.wt-id wfC)) =
-  inj₁ (_ , (_ ∎) ,
-    subst (λ q → _ ⊢ _ ⊑ _ ⦂ q)
-      (sim-left-w03-⊑ᵢ-proof-irrel pB p)
-      (⊑downL {pB = pB} Φ lenΦ rel hd))
-sim-right-w06-id-down-core {p = p}
-    (⊑downR {pA = pA} Φ lenΦ rel (UpDown.wt-id wfC)) =
-  inj₁ (_ , (_ ∎) ,
-    subst (λ q → _ ⊢ _ ⊑ _ ⦂ q)
-      (sim-left-w03-⊑ᵢ-proof-irrel pA p) rel)
-sim-right-w06-id-down-core (⊑downL Φ lenΦ rel hd)
-    with sim-right-w06-id-down-core rel
-sim-right-w06-id-down-core (⊑downL Φ lenΦ rel hd)
+  inj₁ (_ , down-↠ M↠N , ⊑downL Φ lenΦ N⊑V hd)
+sim-right-w05-id-up (⊑downL Φ lenΦ rel hd)
+  | inj₂ (Σᵇ , ℓ , M↠blame) =
+  inj₂ (Σᵇ , ℓ , sim-right-w05-down-blame-↠ M↠blame)
+sim-right-w05-id-up (⊑⦂∀-ν A B pν rel wfA hT inst)
+    with sim-right-w05-id-up rel
+sim-right-w05-id-up (⊑⦂∀-ν A B pν rel wfA hT inst)
   | inj₁ (N , M↠N , N⊑V) =
-  inj₁ (N down _ , down-↠ M↠N , ⊑downL Φ lenΦ N⊑V hd)
-sim-right-w06-id-down-core (⊑downL Φ lenΦ rel hd)
-  | inj₂ (ℓ , M↠blame) =
-  inj₂ (ℓ ,
-    multi-trans (down-↠ M↠blame)
-      ((blame ℓ down _) —→⟨ id-step blame-down ⟩ blame ℓ ∎))
-sim-right-w06-id-down-core (⊑blameR hM) =
-  inj₂ (_ , (blame _ ∎))
+  inj₁
+    (_ , sim-right-w05-tyapp-↠ M↠N ,
+     ⊑⦂∀-ν A B pν N⊑V wfA hT inst)
+sim-right-w05-id-up (⊑⦂∀-ν A B pν rel wfA hT inst)
+  | inj₂ (Σᵇ , ℓ , M↠blame) =
+  inj₂ (Σᵇ , ℓ , sim-right-w05-tyapp-blame-↠ M↠blame)
+sim-right-w05-id-up (⊑blameR {ℓ = ℓ} hM) =
+  inj₂ (_ , ℓ , (blame ℓ ∎))
 
--- Supports SimRight.agda R06 (line 55): package the core same-store result in
--- the public `sim-right` existential shape.
-sim-right-w06-id-down :
-  ∀ {Ψˡ Σˡ V M C A B} {p : [] ⊢ A ⊑ᵢ B} →
-  ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ (V down Down.id C) ⦂ p →
-  (Σ[ Ψˡ″ ∈ SealCtx ]
-    Σ[ Ψˡ≤Ψˡ″ ∈ Ψˡ ≤ Ψˡ″ ]
-    Σ[ Σˡ′ ∈ Store ]
-    Σ[ N ∈ Term ]
-      ((Σˡ ∣ M —↠ Σˡ′ ∣ N) ×
-       (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] ⟫ ⊢ N ⊑ V ⦂ p)))
-  ⊎ (Σ[ Σˡ′ ∈ Store ] Σ[ ℓ ∈ Label ] (Σˡ ∣ M —↠ Σˡ′ ∣ blame ℓ))
-sim-right-w06-id-down {Ψˡ = Ψˡ} {Σˡ = Σˡ} rel
-    with sim-right-w06-id-down-core rel
-sim-right-w06-id-down {Ψˡ = Ψˡ} {Σˡ = Σˡ} rel
-  | inj₁ (N , M↠N , N⊑V) =
-  inj₁ (Ψˡ , ≤-refl , Σˡ , N , M↠N , N⊑V)
-sim-right-w06-id-down {Σˡ = Σˡ} rel | inj₂ (ℓ , M↠blame) =
-  inj₂ (Σˡ , ℓ , M↠blame)
+-- Worker W06 helper slot
 
 -- Worker W07 helper slot
 

@@ -8,8 +8,9 @@ module SimRight where
 
 open import Data.List using ([])
 open import Data.Nat using (_≤_)
+open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
-open import Data.Sum using (_⊎_)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
@@ -50,10 +51,16 @@ sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (β-up-↦ vV vW)) = {!!}
 
 sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (β-down-↦ vV vW)) = {!!}
 
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (id-up vV)) = {!!}
+sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (id-up vV))
+    with sim-right-w05-id-up M⊑M′
+sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (id-up vV))
+  | inj₁ (N , M↠N , N⊑V) =
+  inj₁ (_ , ≤-refl , _ , N , M↠N , N⊑V)
+sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (id-up vV))
+  | inj₂ M↠blame =
+  inj₂ M↠blame
 
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (id-down vV)) =
-  sim-right-w06-id-down M⊑M′
+sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (id-down vV)) = {!!}
 
 sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (seal-unseal vV)) = {!!}
 

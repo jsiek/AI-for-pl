@@ -8,18 +8,22 @@ module SimLeftLemmas where
 --   * Keeps the catchup and substitution proof obligations owned by these
 --     lemmas next to the lemmas that use them.
 
-open import Data.List using ([]; _∷_)
-open import Data.Nat using (_≤_)
+open import Data.List using (List; []; _∷_; _++_; length)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_)
+open import Data.Nat.Properties using (+-comm; m+[n∸m]≡n)
 open import Data.Product using (_×_; _,_; Σ-syntax)
+open import Relation.Binary.PropositionalEquality using (_≡_; cong; subst; trans)
 
 open import Types
-open import UpDown using (Up; Down; wt-↦; WfTy-weakenˢ)
-open import Store using (StoreWf)
+open import UpDown
+  using (Up; Down; CastPerm; cast-tag; wt-↦; _∣_∣_∣_⊢_⦂_⊑_)
+open import Store using (StoreWf; _⊆ˢ_)
 open import ImprecisionIndexed
-open import Terms using (Term; ƛ_⇒_; _·_; _⦂∀_[_]; _up_; _down_)
+open import Terms using (Term; ƛ_⇒_; _·_; _up_; _down_; wk⊑)
 open import TermProperties using (_[_])
 open import TermImprecisionIndexed
 open import ReductionFresh
+open import PreservationFresh using (length-append-tag; wkΨ-cast-tag-⊑)
 
 postulate
   -- GTLC `[]ᶜ-⊑` analogue.
@@ -313,6 +317,53 @@ sim-left-beta-down
 
 -- Worker W03 helper slot
 
+-- Supports DGGSim.agda H13.
+sim-left-w03-wk-up-casts-+ :
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B A′ B′ : Ty}{u u′ : Up} →
+  (k : ℕ) →
+  length Φ ≡ Ψ →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ u ⦂ A ⊑ B →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
+  Σ[ Φ′ ∈ List CastPerm ]
+    ((length Φ′ ≡ k + Ψ) ×
+     ((Δ ∣ (k + Ψ) ∣ Σ ∣ Φ′ ⊢ u ⦂ A ⊑ B) ×
+      (Δ ∣ (k + Ψ) ∣ Σ ∣ Φ′ ⊢ u′ ⦂ A′ ⊑ B′)))
+sim-left-w03-wk-up-casts-+ zero lenΦ hu hu′ = _ , lenΦ , hu , hu′
+sim-left-w03-wk-up-casts-+ (suc k) lenΦ hu hu′
+    with sim-left-w03-wk-up-casts-+ k lenΦ hu hu′
+sim-left-w03-wk-up-casts-+ (suc k) lenΦ hu hu′
+  | Φ′ , lenΦ′ , huᵣ , hu′ᵣ =
+  (Φ′ ++ cast-tag ∷ []) ,
+  trans (length-append-tag Φ′) (cong suc lenΦ′) ,
+  wkΨ-cast-tag-⊑ huᵣ ,
+  wkΨ-cast-tag-⊑ hu′ᵣ
+
+sim-left-w03-wk-up-casts-≤ :
+  ∀ {Δ Ψ Ψ′}{Σ Σ′ : Store}{Φ : List CastPerm}
+    {A B A′ B′ : Ty}{u u′ : Up} →
+  Ψ ≤ Ψ′ →
+  Σ ⊆ˢ Σ′ →
+  length Φ ≡ Ψ →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ u ⦂ A ⊑ B →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
+  Σ[ Φ′ ∈ List CastPerm ]
+    ((length Φ′ ≡ Ψ′) ×
+     ((Δ ∣ Ψ′ ∣ Σ′ ∣ Φ′ ⊢ u ⦂ A ⊑ B) ×
+      (Δ ∣ Ψ′ ∣ Σ′ ∣ Φ′ ⊢ u′ ⦂ A′ ⊑ B′)))
+sim-left-w03-wk-up-casts-≤ {Δ} {Ψ} {Ψ′} {Σ} {Σ′}
+  {A = A} {B = B} {A′ = A′} {B′ = B′} {u = u} {u′ = u′}
+  Ψ≤Ψ′ Σ≤Σ′ lenΦ hu hu′
+    with sim-left-w03-wk-up-casts-+ (Ψ′ ∸ Ψ) lenΦ hu hu′
+sim-left-w03-wk-up-casts-≤ {Δ} {Ψ} {Ψ′} {Σ} {Σ′} {Φ}
+  {A = A} {B = B} {A′ = A′} {B′ = B′} {u = u} {u′ = u′}
+  Ψ≤Ψ′ Σ≤Σ′ lenΦ hu hu′
+  | Φ′ , lenΦ′ , huᵣ , hu′ᵣ =
+  let eq = trans (+-comm (Ψ′ ∸ Ψ) Ψ) (m+[n∸m]≡n Ψ≤Ψ′) in
+  Φ′ , trans lenΦ′ eq ,
+  subst (λ q → Δ ∣ q ∣ Σ′ ∣ Φ′ ⊢ u ⦂ A ⊑ B) eq (wk⊑ Σ≤Σ′ huᵣ) ,
+  subst (λ q → Δ ∣ q ∣ Σ′ ∣ Φ′ ⊢ u′ ⦂ A′ ⊑ B′) eq
+    (wk⊑ Σ≤Σ′ hu′ᵣ)
+
 -- Worker W04 helper slot
 
 -- Worker W05 helper slot
@@ -326,21 +377,6 @@ sim-left-beta-down
 -- Worker W09 helper slot
 
 -- Worker W10 helper slot
-
--- Supports DGGSim.agda H10, the `ξ-·α` / `⊑⦂∀-ν` branch.
-sim-left-w10-tyappν-cong :
-  ∀ {Ψ Ψ′ : SealCtx} {Σ : Store} {M M′ A B T}
-    {p : (ν-bound ∷ []) ⊢ A ⊑ᵢ ⇑ᵗ B}
-    {pT : [] ⊢ A [ T ]ᵗ ⊑ᵢ B} →
-  Ψ ≤ Ψ′ →
-  ⟪ 0 , Ψ′ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ (⊑ᵢ-ν A B p) →
-  WfTy 1 Ψ A →
-  (hT : WfTy 0 Ψ T) →
-  νClosedInstᵢ p pT →
-  ⟪ 0 , Ψ′ , Σ , [] , [] ⟫ ⊢ (M ⦂∀ A [ T ]) ⊑ M′ ⦂ pT
-sim-left-w10-tyappν-cong Ψ≤ rel wfA hT inst =
-  ⊑⦂∀-ν _ _ _ rel (WfTy-weakenˢ wfA Ψ≤)
-    (WfTy-weakenˢ hT Ψ≤) inst
 
 -- Worker W11 helper slot
 

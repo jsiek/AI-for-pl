@@ -7,11 +7,13 @@ module SimRightLemmas where
 --   * Keep helper lemmas grouped by worker slot to minimize merge conflicts.
 
 open import Data.List using ([])
-open import Data.Product using (_,_; ∃-syntax)
+open import Data.Product using (_,_; Σ-syntax)
 
 open import Types
+open import UpDown using (Label; Up; Down)
+open import Store using (_⊆ˢ_; ⊆ˢ-refl; ⊆ˢ-trans)
 open import ImprecisionIndexed
-open import Terms using (Term; blame; _⊕[_]_; _⦂∀_[_]; _up_; _down_)
+open import Terms using (Term; blame; _·_; _⦂∀_[_]; _up_; _down_)
 open import TermImprecisionIndexed
 open import ReductionFresh
 
@@ -44,98 +46,94 @@ open import ReductionFresh
 
 -- Worker W10 helper slot
 
-sim-right-w10-Blames : Store → Term → Set
-sim-right-w10-Blames Σ M = ∃[ Σ′ ] ∃[ ℓ ] (Σ ∣ M —↠ Σ′ ∣ blame ℓ)
-
--- Supports R16 (SimRight.agda:75), where the right term takes `blame-⊕₁`.
-sim-right-w10-up-blames :
-  ∀ {Σ M p} →
-  sim-right-w10-Blames Σ M →
-  sim-right-w10-Blames Σ (M up p)
-sim-right-w10-up-blames {p = p} (Σ′ , ℓ , M↠blame) =
-  Σ′ , ℓ ,
-  multi-trans (up-↠ M↠blame)
-    ((blame ℓ up p) —→⟨ id-step blame-up ⟩ blame ℓ ∎)
-
--- Supports R16 (SimRight.agda:75), where the right term takes `blame-⊕₁`.
-sim-right-w10-down-blames :
-  ∀ {Σ M p} →
-  sim-right-w10-Blames Σ M →
-  sim-right-w10-Blames Σ (M down p)
-sim-right-w10-down-blames {p = p} (Σ′ , ℓ , M↠blame) =
-  Σ′ , ℓ ,
-  multi-trans (down-↠ M↠blame)
-    ((blame ℓ down p) —→⟨ id-step blame-down ⟩ blame ℓ ∎)
-
--- Supports R16 (SimRight.agda:75), where the right term takes `blame-⊕₁`.
-sim-right-w10-tyapp-↠ :
-  ∀ {Σ Σ′ M N A T} →
-  Σ ∣ M —↠ Σ′ ∣ N →
-  Σ ∣ (M ⦂∀ A [ T ]) —↠ Σ′ ∣ (N ⦂∀ A [ T ])
-sim-right-w10-tyapp-↠ {A = A} {T = T} (M ∎) =
-  (M ⦂∀ A [ T ]) ∎
-sim-right-w10-tyapp-↠ {A = A} {T = T} (M —→⟨ M→M₁ ⟩ M₁↠N) =
-  (M ⦂∀ A [ T ]) —→⟨ ξ-·α M→M₁ ⟩ sim-right-w10-tyapp-↠ M₁↠N
-
--- Supports R16 (SimRight.agda:75), where the right term takes `blame-⊕₁`.
-sim-right-w10-tyapp-blames :
-  ∀ {Σ M A T} →
-  sim-right-w10-Blames Σ M →
-  sim-right-w10-Blames Σ (M ⦂∀ A [ T ])
-sim-right-w10-tyapp-blames {A = A} {T = T} (Σ′ , ℓ , M↠blame) =
-  Σ′ , ℓ ,
-  multi-trans (sim-right-w10-tyapp-↠ M↠blame)
-    ((blame ℓ ⦂∀ A [ T ]) —→⟨ id-step blame-·α ⟩ blame ℓ ∎)
-
--- Supports R16 (SimRight.agda:75), where the right term takes `blame-⊕₁`.
-sim-right-w10-⊕L-↠ :
-  ∀ {Σ Σ′ L L′ M op} →
-  Σ ∣ L —↠ Σ′ ∣ L′ →
-  Σ ∣ (L ⊕[ op ] M) —↠ Σ′ ∣ (L′ ⊕[ op ] M)
-sim-right-w10-⊕L-↠ {M = M} {op = op} (L ∎) = (L ⊕[ op ] M) ∎
-sim-right-w10-⊕L-↠ {M = M} {op = op} (L —→⟨ L→L₁ ⟩ L₁↠L′) =
-  (L ⊕[ op ] M) —→⟨ ξ-⊕₁ L→L₁ ⟩ sim-right-w10-⊕L-↠ L₁↠L′
-
--- Supports R16 (SimRight.agda:75), where the right term takes `blame-⊕₁`.
-sim-right-w10-⊕L-blames :
-  ∀ {Σ L M op} →
-  sim-right-w10-Blames Σ L →
-  sim-right-w10-Blames Σ (L ⊕[ op ] M)
-sim-right-w10-⊕L-blames {M = M} {op = op} (Σ′ , ℓ , L↠blame) =
-  Σ′ , ℓ ,
-  multi-trans (sim-right-w10-⊕L-↠ L↠blame)
-    ((blame ℓ ⊕[ op ] M) —→⟨ id-step blame-⊕₁ ⟩ blame ℓ ∎)
-
--- Supports R16 (SimRight.agda:75), where the right term takes `blame-⊕₁`.
-sim-right-w10-right-blame :
-  ∀ {Ψ Σ M A B ℓ} {p : [] ⊢ A ⊑ᵢ B} →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ blame ℓ ⦂ p →
-  sim-right-w10-Blames Σ M
-sim-right-w10-right-blame (⊑⦂∀-ν A B p rel wfA hT inst) =
-  sim-right-w10-tyapp-blames (sim-right-w10-right-blame rel)
-sim-right-w10-right-blame (⊑upL Φ lenΦ rel hu) =
-  sim-right-w10-up-blames (sim-right-w10-right-blame rel)
-sim-right-w10-right-blame (⊑downL Φ lenΦ rel hd) =
-  sim-right-w10-down-blames (sim-right-w10-right-blame rel)
-sim-right-w10-right-blame (⊑blameR {ℓ = ℓ} hM) =
-  _ , ℓ , ((blame ℓ) ∎)
-
--- Supports R16 (SimRight.agda:75), where the right term takes `blame-⊕₁`.
-sim-right-w10-r16-left-blames :
-  ∀ {Ψ Σ M R A B ℓ op} {p : [] ⊢ A ⊑ᵢ B} →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ (blame ℓ ⊕[ op ] R) ⦂ p →
-  sim-right-w10-Blames Σ M
-sim-right-w10-r16-left-blames (⊑⦂∀-ν A B p rel wfA hT inst) =
-  sim-right-w10-tyapp-blames (sim-right-w10-r16-left-blames rel)
-sim-right-w10-r16-left-blames (⊑⊕ relL relM) =
-  sim-right-w10-⊕L-blames (sim-right-w10-right-blame relL)
-sim-right-w10-r16-left-blames (⊑upL Φ lenΦ rel hu) =
-  sim-right-w10-up-blames (sim-right-w10-r16-left-blames rel)
-sim-right-w10-r16-left-blames (⊑downL Φ lenΦ rel hd) =
-  sim-right-w10-down-blames (sim-right-w10-r16-left-blames rel)
-sim-right-w10-r16-left-blames (⊑blameR {ℓ = ℓ} hM) =
-  _ , ℓ , ((blame ℓ) ∎)
-
 -- Worker W11 helper slot
+
+-- Supports R24 (`ξ-·α`): extract store growth from a multi-step trace.
+sim-right-w11-multi-store-growth :
+  ∀ {Σ Σ′ : Store} {M N : Term} →
+  Σ ∣ M —↠ Σ′ ∣ N →
+  Σ ⊆ˢ Σ′
+sim-right-w11-multi-store-growth (M ∎) = ⊆ˢ-refl
+sim-right-w11-multi-store-growth (M —→⟨ M→M′ ⟩ M′↠N) =
+  ⊆ˢ-trans (store-growth M→M′)
+            (sim-right-w11-multi-store-growth M′↠N)
+
+-- Supports R11 (`blame-·₁`): transport a blame trace through left contexts.
+sim-right-w11-up-blame-↠ :
+  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {p : Up} →
+  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
+  Σ ∣ (M up p) —↠ Σ′ ∣ blame ℓ
+sim-right-w11-up-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
+  (blame ℓ up p) —→⟨ id-step blame-up ⟩ ((blame ℓ) ∎)
+sim-right-w11-up-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
+  (M up p) —→⟨ ξ-up M→M′ ⟩ sim-right-w11-up-blame-↠ M′↠blame
+
+-- Supports R11 (`blame-·₁`): transport a blame trace through left contexts.
+sim-right-w11-down-blame-↠ :
+  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {p : Down} →
+  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
+  Σ ∣ (M down p) —↠ Σ′ ∣ blame ℓ
+sim-right-w11-down-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
+  (blame ℓ down p) —→⟨ id-step blame-down ⟩ ((blame ℓ) ∎)
+sim-right-w11-down-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
+  (M down p) —→⟨ ξ-down M→M′ ⟩
+    sim-right-w11-down-blame-↠ M′↠blame
+
+-- Supports R11 (`blame-·₁`): transport a trace through type application.
+sim-right-w11-tyapp-↠ :
+  ∀ {Σ Σ′ : Store} {M N : Term} {B T : Ty} →
+  Σ ∣ M —↠ Σ′ ∣ N →
+  Σ ∣ (M ⦂∀ B [ T ]) —↠ Σ′ ∣ (N ⦂∀ B [ T ])
+sim-right-w11-tyapp-↠ {B = B} {T = T} (M ∎) = (M ⦂∀ B [ T ]) ∎
+sim-right-w11-tyapp-↠ {B = B} {T = T} (M —→⟨ M→M′ ⟩ M′↠N) =
+  (M ⦂∀ B [ T ]) —→⟨ ξ-·α M→M′ ⟩
+    sim-right-w11-tyapp-↠ M′↠N
+
+-- Supports R11 (`blame-·₁`): transport a blame trace through type app.
+sim-right-w11-tyapp-blame-↠ :
+  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {B T : Ty} →
+  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
+  Σ ∣ (M ⦂∀ B [ T ]) —↠ Σ′ ∣ blame ℓ
+sim-right-w11-tyapp-blame-↠ {ℓ = ℓ} {B = B} {T = T} (_ ∎) =
+  (blame ℓ ⦂∀ B [ T ]) —→⟨ id-step blame-·α ⟩ ((blame ℓ) ∎)
+sim-right-w11-tyapp-blame-↠ {B = B} {T = T}
+    (M —→⟨ M→M′ ⟩ M′↠blame) =
+  (M ⦂∀ B [ T ]) —→⟨ ξ-·α M→M′ ⟩
+    sim-right-w11-tyapp-blame-↠ M′↠blame
+
+-- Supports R11 (`blame-·₁`): transport a function-position blame trace.
+sim-right-w11-appL-blame-↠ :
+  ∀ {Σ Σ′ : Store} {L M : Term} {ℓ : Label} →
+  Σ ∣ L —↠ Σ′ ∣ blame ℓ →
+  Σ ∣ (L · M) —↠ Σ′ ∣ blame ℓ
+sim-right-w11-appL-blame-↠ {M = M} {ℓ = ℓ} (_ ∎) =
+  (blame ℓ · M) —→⟨ id-step blame-·₁ ⟩ ((blame ℓ) ∎)
+sim-right-w11-appL-blame-↠ {M = M} (L —→⟨ L→L′ ⟩ L′↠blame) =
+  (L · M) —→⟨ ξ-·₁ L→L′ ⟩
+    sim-right-w11-appL-blame-↠ L′↠blame
+
+-- Supports R11 (`blame-·₁`): right blame implies left blames.
+sim-right-w11-right-blame-left-blames :
+  ∀ {Ψ Σ M ℓ A B} {p : [] ⊢ A ⊑ᵢ B} →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ blame ℓ ⦂ p →
+  Σ[ Σ′ ∈ Store ]
+    Σ[ ℓ′ ∈ Label ] (Σ ∣ M —↠ Σ′ ∣ blame ℓ′)
+sim-right-w11-right-blame-left-blames (⊑⦂∀-ν A B p rel wfA hT inst)
+    with sim-right-w11-right-blame-left-blames rel
+sim-right-w11-right-blame-left-blames (⊑⦂∀-ν A B p rel wfA hT inst)
+  | Σ′ , ℓ′ , M↠blame =
+    Σ′ , ℓ′ , sim-right-w11-tyapp-blame-↠ M↠blame
+sim-right-w11-right-blame-left-blames (⊑upL Φ lenΦ rel hu)
+    with sim-right-w11-right-blame-left-blames rel
+sim-right-w11-right-blame-left-blames (⊑upL Φ lenΦ rel hu)
+  | Σ′ , ℓ′ , M↠blame =
+    Σ′ , ℓ′ , sim-right-w11-up-blame-↠ M↠blame
+sim-right-w11-right-blame-left-blames (⊑downL Φ lenΦ rel hd)
+    with sim-right-w11-right-blame-left-blames rel
+sim-right-w11-right-blame-left-blames (⊑downL Φ lenΦ rel hd)
+  | Σ′ , ℓ′ , M↠blame =
+    Σ′ , ℓ′ , sim-right-w11-down-blame-↠ M↠blame
+sim-right-w11-right-blame-left-blames (⊑blameR {ℓ = ℓ′} hM) =
+  _ , ℓ′ , ((blame ℓ′) ∎)
 
 -- Worker W12 helper slot

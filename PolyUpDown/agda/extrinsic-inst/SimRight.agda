@@ -68,10 +68,10 @@ sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (blame-·₂ vV)) = {!!}
 
 sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-·α) = {!!}
 
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-up) =
-  inj₂ (sim-right-w12-right-blame-up-blames M⊑M′)
+sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-up) = {!!}
 
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-down) = {!!}
+sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-down) =
+  inj₂ (sim-right-w01-right-down-blame M⊑M′)
 
 sim-right M⊑M′ wfΣˡ wfΣʳ (id-step blame-⊕₁) = {!!}
 

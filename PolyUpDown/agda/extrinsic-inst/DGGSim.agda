@@ -33,7 +33,6 @@ open import Terms
     ; _up_
     ; _down_
     ; substᵗᵐ
-    ; wk⊒
     ; `_
     ; _∣_∣_∣_⊢_⦂_
     )
@@ -139,14 +138,8 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
     with sim-left rel wfΣˡ wfΣʳ (ξ-·₁ redL)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
   | ⊑downR Φ lenΦ rel hd′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
-    with wkΨ-cast-tag-⊒-≤ Ψˡ≤Ψˡᵣ lenΦ (wk⊒ (store-growth redL) hd′)
-sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
-  | ⊑downR Φ lenΦ rel hd′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
-  | Φᵣ , lenΦᵣ , hdᵣ =
-  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
-  ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ hdᵣ
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
   | ⊑· L⊑L′ Arg⊑Arg′
     with sim-left L⊑L′ wfΣˡ wfΣʳ redL
@@ -206,7 +199,9 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑upR Φ lenΦ rel hu′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  let Φ′ , lenΦ′ , hu′′ = wkΨ-cast-tag-⊑-≤ Ψˡ≤Ψˡᵣ lenΦ hu′ in
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , (M′ᵣ up _) , up-↠ M′↠M′ᵣ ,
+  ⊑upR Φ′ lenΦ′ Nᵣ⊑M′ᵣ (Terms.wk⊑ (store-growth redM) hu′′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑downR Φ lenΦ rel hd′
     with sim-left rel wfΣˡ wfΣʳ (ξ-·α redM)
@@ -297,14 +292,8 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
     with sim-left rel wfΣˡ wfΣʳ (ξ-⊕₁ redL)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
   | ⊑upR Φ lenΦ rel hu′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
-    with wkΨ-cast-tag-⊑-≤ Ψˡ≤Ψˡᵣ lenΦ (Terms.wk⊑ (store-growth redL) hu′)
-sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
-  | ⊑upR Φ lenΦ rel hu′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
-  | Φᵣ , lenΦᵣ , huᵣ =
-  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ up _ , up-↠ M′↠M′ᵣ ,
-  ⊑upR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ huᵣ
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
   | ⊑downR Φ lenΦ rel hd′
     with sim-left rel wfΣˡ wfΣʳ (ξ-⊕₁ redL)
@@ -336,7 +325,9 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
   | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  let Φᵣ , lenΦᵣ , hdᵣ = wkΨ-cast-tag-⊒-≤ Ψˡ≤Ψˡᵣ lenΦ hd′ in
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
+  ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ (Terms.wk⊒ (store-growth redM) hdᵣ)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
   | ⊑⊕ L⊑L′ Arg⊑Arg′
     with sim-left Arg⊑Arg′ wfΣˡ wfΣʳ redM

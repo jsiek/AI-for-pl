@@ -25,6 +25,7 @@ PLAN_HOLE_RE = re.compile(r"^\s*-\s*([A-Z]\d+)\s*:\s*(\d+)\s*$")
 AGDA_PATH_RE = re.compile(r"([A-Za-z0-9_./-]+\.agda)")
 BLOCKED_LINE_COMMENT_RE = re.compile(r"^\s*--\s*BLOCKED\[W\d+\]\[[A-Z]\d+\]:")
 BLOCKED_BLOCK_COMMENT_START_RE = re.compile(r"^\s*\{\-\s*BLOCKED\[W\d+\]\[[A-Z]\d+\]:")
+APPLY_CONFLICT_MAX_RETRIES = 2
 
 
 @dataclass
@@ -924,6 +925,14 @@ def worker_worktree_dirs(base_dir: Path, parallel: int) -> list[Path]:
     return [base_dir.parent / f"{base_dir.name}-{i}" for i in range(1, parallel + 1)]
 
 
+def is_overlap_conflict_error(message: str) -> bool:
+    return (
+        "Conflicting edits for" in message
+        or "Conflicting delete for" in message
+        or "Conflicting new-file content for" in message
+    )
+
+
 def run_task_attempt(
     *,
     item: TodoItem,
@@ -1105,6 +1114,7 @@ def process_item_per_hole(
     blocked_count = 0
     submitted_count = 0
     last_heartbeat = time.time()
+    retry_counts: dict[str, int] = {}
 
     def submit_hole(
         executor: concurrent.futures.ThreadPoolExecutor,
@@ -1163,7 +1173,7 @@ def process_item_per_hole(
             for finished in done:
                 worker_idx = futures.pop(finished)
                 outcome = finished.result()
-                completed_count += 1
+                retry_conflict = False
 
                 if use_worktree and outcome.result.status == "success":
                     try:
@@ -1177,11 +1187,45 @@ def process_item_per_hole(
                         outcome.removed = removed
                         outcome.touched_paths = touched
                     except RuntimeError as exc:
-                        outcome.result = RunResult(
-                            status="blocked",
-                            summary="Could not apply worktree changes to main tree.",
-                            blocker=str(exc),
-                        )
+                        blocker = str(exc)
+                        hid = outcome.hole_id or "?"
+                        if outcome.hole_id and is_overlap_conflict_error(blocker):
+                            attempts = retry_counts.get(outcome.hole_id, 0)
+                            if attempts < APPLY_CONFLICT_MAX_RETRIES:
+                                retry_counts[outcome.hole_id] = attempts + 1
+                                retry_conflict = True
+                                wid = outcome.worker_id if outcome.worker_id is not None else (worker_idx + 1)
+                                print(
+                                    f"RETRY: {item.signature} [{hid}] (W{wid:02d}) - "
+                                    f"overlapping worker edits; retry {attempts + 1}/{APPLY_CONFLICT_MAX_RETRIES}"
+                                )
+                            else:
+                                outcome.result = RunResult(
+                                    status="blocked",
+                                    summary="Could not apply worktree changes to main tree.",
+                                    blocker=(
+                                        f"{blocker} (gave up after {APPLY_CONFLICT_MAX_RETRIES} "
+                                        "apply-conflict retries)"
+                                    ),
+                                )
+                        else:
+                            outcome.result = RunResult(
+                                status="blocked",
+                                summary="Could not apply worktree changes to main tree.",
+                                blocker=blocker,
+                            )
+
+                if retry_conflict:
+                    if outcome.hole_id is not None:
+                        hole = holes_by_id.get(outcome.hole_id)
+                        if hole is not None:
+                            submit_hole(executor, futures, worker_idx, hole)
+                            continue
+                    outcome.result = RunResult(
+                        status="blocked",
+                        summary="Could not resubmit conflicted hole.",
+                        blocker="Worker apply conflict retry was requested, but the hole could not be requeued.",
+                    )
 
                 if outcome.result.status == "success":
                     if use_worktree and not outcome.touched_paths:
@@ -1215,6 +1259,7 @@ def process_item_per_hole(
                         msg = commit_message_for_hole(item.signature, hid)
                         stage_and_commit_paths(repo_root, outcome.touched_paths, msg)
 
+                completed_count += 1
                 if (
                     outcome.result.status == "blocked"
                     and not dry_run
@@ -1311,6 +1356,7 @@ def process_queue(
     completed_items = 0
     blocked_items = 0
     last_heartbeat = time.time()
+    retry_counts: dict[str, int] = {}
 
     def submit_for_worker(
         executor: concurrent.futures.ThreadPoolExecutor,
@@ -1365,10 +1411,7 @@ def process_queue(
             for finished in done:
                 worker_idx = futures.pop(finished)
                 outcome = finished.result()
-                if outcome.result.status == "success":
-                    completed_items += 1
-                else:
-                    blocked_items += 1
+                retry_conflict = False
 
                 if use_worktree and outcome.result.status == "success":
                     try:
@@ -1382,11 +1425,41 @@ def process_queue(
                         outcome.removed = removed
                         outcome.touched_paths = touched
                     except RuntimeError as exc:
-                        outcome.result = RunResult(
-                            status="blocked",
-                            summary="Could not apply worktree changes to main tree.",
-                            blocker=str(exc),
-                        )
+                        blocker = str(exc)
+                        sig = outcome.item.signature
+                        if is_overlap_conflict_error(blocker):
+                            attempts = retry_counts.get(sig, 0)
+                            if attempts < APPLY_CONFLICT_MAX_RETRIES:
+                                retry_counts[sig] = attempts + 1
+                                retry_conflict = True
+                                print(
+                                    f"RETRY: {sig} - overlapping worker edits; "
+                                    f"retry {attempts + 1}/{APPLY_CONFLICT_MAX_RETRIES}"
+                                )
+                            else:
+                                outcome.result = RunResult(
+                                    status="blocked",
+                                    summary="Could not apply worktree changes to main tree.",
+                                    blocker=(
+                                        f"{blocker} (gave up after {APPLY_CONFLICT_MAX_RETRIES} "
+                                        "apply-conflict retries)"
+                                    ),
+                                )
+                        else:
+                            outcome.result = RunResult(
+                                status="blocked",
+                                summary="Could not apply worktree changes to main tree.",
+                                blocker=blocker,
+                            )
+
+                if retry_conflict:
+                    submit_for_worker(executor, futures, worker_idx, outcome.item)
+                    continue
+
+                if outcome.result.status == "success":
+                    completed_items += 1
+                else:
+                    blocked_items += 1
 
                 log_worker_completion(outcome, outcome.item.signature)
                 finalize_outcome(todo_path, outcome, use_worktree, emit_status_logs=False)

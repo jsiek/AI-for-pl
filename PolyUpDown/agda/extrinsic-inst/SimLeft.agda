@@ -624,6 +624,12 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | β-Λ = {!!}
    H38 cannot be completed locally with the current helper surface: the `β-Λ` left step allocates a fresh seal from `Σˡ`, while a matching right `β-Λ` step would allocate from independent `Σʳ`; the final term-imprecision judgment is indexed by the left post-step store, so there is no known bridge for the right reduct mentioning `length Σʳ`. Zero right steps also fail because no existing lemma relates the instantiated/cast left body to the unreduced right type application. This appears to need additional world/store synchronization metatheory or a revised simulation statement tracking both post-step seal contexts.
 -}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-down-∀ vV = {!!}
+{- BLOCKED[W01][H39]:
+   Conflicting edits for `PolyUpDown/agda/extrinsic-inst/SimLeft.agda` while applying worker changes. Both another worker and this worker modified overlapping text.
+-}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-down-ν vV = {!!}
+{- BLOCKED[W12][H40]:
+   Conflicting edits for `PolyUpDown/agda/extrinsic-inst/SimLeft.agda` while applying worker changes. Both another worker and this worker modified overlapping text.
+-}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-up-ν vV =
   sim-left-w09-H41 M⊑M′ wfΣˡ wfΣʳ red vV

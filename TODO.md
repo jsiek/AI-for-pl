@@ -4,20 +4,6 @@
 
 ## In progress TODO items
 
-[ ] Finish `sim-left` in PolyUpDown/agda/extrinsic-inst/SimLeft.agda using
-    the 12-worker parallel plan in
-    PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md.
-    Run in per-hole mode: workers should be assigned by `HYY` IDs from the
-    plan (one Codex exec subtask per hole assignment).
-    Use SimLeftLemmas.agda for all new helper lemmas (worker-slot ownership),
-    and if a worker cannot prove a hole, add a
-    `{- BLOCKED[WXX][HYY]: ... -}` comment directly below that hole with
-    the full text from the worker.
-    Workers: 12
-    Plan: PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md
-    Helpers: PolyUpDown/agda/extrinsic-inst/SimLeftLemmas.agda
-  Started: 01:34 PM EDT 2026-04-30
-
 ## Completed TODO items
 
 [x] Delete LogicalRelation.agda, DynamicGradualGuarantee.agda, and Parametricity.agda in
@@ -113,6 +99,22 @@
     Check your work with agda and fix any errors.
 
 ## Blocked TODO items
+
+[B] Finish `sim-left` in PolyUpDown/agda/extrinsic-inst/SimLeft.agda using
+    the 12-worker parallel plan in
+    PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md.
+    Run in per-hole mode: workers should be assigned by `HYY` IDs from the
+    plan (one Codex exec subtask per hole assignment).
+    Use SimLeftLemmas.agda for all new helper lemmas (worker-slot ownership),
+    and if a worker cannot prove a hole, add a
+    `{- BLOCKED[WXX][HYY]: ... -}` comment directly below that hole with
+    the full text from the worker.
+    Workers: 12
+    Plan: PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md
+    Helpers: PolyUpDown/agda/extrinsic-inst/SimLeftLemmas.agda
+  Started: 01:35 PM EDT 2026-04-30
+  Stopped: 01:48 PM EDT 2026-04-30
+  Blocker: Blocked holes: H19, H17, H18, H14, H10, H27, H24, H30, H34, H36, H29, H32, H15, H38, H39, H40
 
 [B] Finish `sim-right` in PolyUpDown/agda/extrinsic-inst/SimRight.agda using
     the 12-worker parallel plan in

@@ -59,8 +59,6 @@ open import ReductionFresh
     ; seal-unseal
     ; tag-untag-ok
     ; tag-untag-bad
-    ; β-up-；
-    ; β-down-；
     ; δ-⊕
     ; blame-·₁
     ; blame-·₂
@@ -181,10 +179,10 @@ value-down-ν-inv :
 value-down-ν-inv (_down_ vV (ν_ {p = p})) = vV
 
 value-down-seal-inv :
-  ∀ {V : Term} {α : Seal} →
-  Value (V down (UpDown.seal α)) →
+  ∀ {V : Term} {α : Seal} {p : Down} →
+  Value (V down (UpDown.seal p α)) →
   Value V
-value-down-seal-inv (_down_ vV (seal {α = α})) = vV
+value-down-seal-inv (_down_ vV (seal {p = p} {α = α})) = vV
 
 value-—↠-refl :
   ∀ {Σ Σ′ : Store} {V N : Term} →

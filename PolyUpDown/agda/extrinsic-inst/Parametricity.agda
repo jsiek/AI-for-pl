@@ -475,8 +475,10 @@ mutual
   subst⊑ᵗ-as-renameᵗ :
     (ρ : Renameᵗ) (p : Up) →
     subst⊑ᵗ (λ X → ＇ ρ X) p ≡ rename⊑ᵗ ρ p
-  subst⊑ᵗ-as-renameᵗ ρ (tag G) = cong tag (subst-as-renameᵗ ρ G)
-  subst⊑ᵗ-as-renameᵗ ρ (unseal α) = refl
+  subst⊑ᵗ-as-renameᵗ ρ (tag p G) =
+    cong₂ tag (subst⊑ᵗ-as-renameᵗ ρ p) (subst-as-renameᵗ ρ G)
+  subst⊑ᵗ-as-renameᵗ ρ (unseal α p) =
+    cong (unseal α) (subst⊑ᵗ-as-renameᵗ ρ p)
   subst⊑ᵗ-as-renameᵗ ρ (p ↦ q) =
     cong₂ _↦_ (subst⊒ᵗ-as-renameᵗ ρ p) (subst⊑ᵗ-as-renameᵗ ρ q)
   subst⊑ᵗ-as-renameᵗ ρ (∀ᵖ p) =
@@ -488,15 +490,16 @@ mutual
       (trans (subst⊑ᵗ-cong (liftSubstˢ-as-renameᵗ ρ) p)
              (subst⊑ᵗ-as-renameᵗ ρ p))
   subst⊑ᵗ-as-renameᵗ ρ (id A) = cong id (subst-as-renameᵗ ρ A)
-  subst⊑ᵗ-as-renameᵗ ρ (p ； q) =
-    cong₂ _；_ (subst⊑ᵗ-as-renameᵗ ρ p) (subst⊑ᵗ-as-renameᵗ ρ q)
 
   subst⊒ᵗ-as-renameᵗ :
     (ρ : Renameᵗ) (p : Down) →
     subst⊒ᵗ (λ X → ＇ ρ X) p ≡ rename⊒ᵗ ρ p
-  subst⊒ᵗ-as-renameᵗ ρ (untag G ℓ) =
-    cong (λ T → untag T ℓ) (subst-as-renameᵗ ρ G)
-  subst⊒ᵗ-as-renameᵗ ρ (seal α) = refl
+  subst⊒ᵗ-as-renameᵗ ρ (untag G ℓ p) =
+    cong₂ (λ T q → untag T ℓ q)
+      (subst-as-renameᵗ ρ G)
+      (subst⊒ᵗ-as-renameᵗ ρ p)
+  subst⊒ᵗ-as-renameᵗ ρ (seal p α) =
+    cong (λ q → seal q α) (subst⊒ᵗ-as-renameᵗ ρ p)
   subst⊒ᵗ-as-renameᵗ ρ (p ↦ q) =
     cong₂ _↦_ (subst⊑ᵗ-as-renameᵗ ρ p) (subst⊒ᵗ-as-renameᵗ ρ q)
   subst⊒ᵗ-as-renameᵗ ρ (∀ᵖ p) =
@@ -508,8 +511,6 @@ mutual
       (trans (subst⊒ᵗ-cong (liftSubstˢ-as-renameᵗ ρ) p)
              (subst⊒ᵗ-as-renameᵗ ρ p))
   subst⊒ᵗ-as-renameᵗ ρ (id A) = cong id (subst-as-renameᵗ ρ A)
-  subst⊒ᵗ-as-renameᵗ ρ (p ； q) =
-    cong₂ _；_ (subst⊒ᵗ-as-renameᵗ ρ p) (subst⊒ᵗ-as-renameᵗ ρ q)
 
 substᵗᵐ-as-renameᵗ :
   (ρ : Renameᵗ) (M : Term) →
@@ -1727,20 +1728,20 @@ substᵗ-open σ A T =
 
 sealedRel : Seal → Seal → Rel → Rel
 sealedRel αˡ αʳ R k dir V W =
-  Σ[ V′ ∈ Term ] Σ[ W′ ∈ Term ]
-    (V ≡ (_down_ V′ (seal αˡ))) × (W ≡ (_down_ W′ (seal αʳ))) ×
+  Σ[ V′ ∈ Term ] Σ[ W′ ∈ Term ] Σ[ pˡ ∈ Down ] Σ[ pʳ ∈ Down ]
+    (V ≡ (_down_ V′ (seal pˡ αˡ))) × (W ≡ (_down_ W′ (seal pʳ αʳ))) ×
     R k dir V′ W′
 
 sealedRel-down :
   ∀ {αˡ αʳ R} →
   DownClosed R →
   DownClosed (sealedRel αˡ αʳ R)
-sealedRel-down downR (V′ , W′ , eqV , eqW , rel) =
-  V′ , W′ , eqV , eqW , downR rel
+sealedRel-down downR (V′ , W′ , pˡ , pʳ , eqV , eqW , rel) =
+  V′ , W′ , pˡ , pʳ , eqV , eqW , downR rel
 
 seal-value-inv :
-  ∀ {V α} →
-  Value (_down_ V (seal α)) →
+  ∀ {V α p} →
+  Value (_down_ V (seal p α)) →
   Value V
 seal-value-inv (ReductionFresh._down_ vV ReductionFresh.seal) = vV
 
@@ -1748,11 +1749,11 @@ seal-typed-inv :
   ∀ {Δ Ψ Σ Γ V α A} →
   Uniqueˢ Σ →
   Σ ∋ˢ α ⦂ A →
-  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ _down_ V (seal α) ⦂ ｀ α →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ _down_ V (seal (id A) α) ⦂ ｀ α →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V ⦂ A
-seal-typed-inv uΣ α∈ (⊢down Φ lenΦ V⊢ (wt-seal h α∈Φ)) =
+seal-typed-inv uΣ α∈ (⊢down Φ lenΦ V⊢ (wt-seal (wt-id wfA) h α∈Φ)) =
   cong-⊢⦂ refl refl refl (lookup-unique uΣ h α∈) V⊢
-seal-typed-inv uΣ α∈ (⊢down Φ lenΦ V⊢ (wt-seal★ h α∈Φ)) =
+seal-typed-inv uΣ α∈ (⊢down Φ lenΦ V⊢ (wt-seal★ (wt-id wfA) h α∈Φ)) =
   cong-⊢⦂ refl refl refl (lookup-unique uΣ h α∈) V⊢
 
 instCast-up-left-typed :
@@ -2386,7 +2387,7 @@ instCast-bridge-𝒱⇒ℰ⊑′
     {ρ = ρ} {p = ⊑-＇ zero} {pT = pT}
     {wfTˡ = wfTˡ} {wfTʳ = wfTʳ} {wfαˡ = wfαˡ} {wfαʳ = wfαʳ}
     Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W
-    (vV , vW , (V⊢ , W⊢) , lift (V′ , W′ , refl , refl , RrelVW)) =
+    (vV , vW , (V⊢ , W⊢) , lift (V′ , W′ , pˡ , pʳ , refl , refl , RrelVW)) =
   (left-typed , right-typed) ,
   inj₁ (Σˡ w , Ψˡ w , wfΣˡ w , V′ ,
     id-step (seal-unseal vV′) , right-unsealed)
@@ -2396,7 +2397,7 @@ instCast-bridge-𝒱⇒ℰ⊑′
 
   left-typed :
     0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-      (V′ down seal αˡ) up (unseal αˡ)
+      (V′ down seal (id Tˡ) αˡ) up (unseal αˡ (id Tˡ))
       ⦂ substᵗ (leftᵗ ρApp) (＇ zero)
   left-typed =
     instCast-up-left-typed
@@ -2404,12 +2405,12 @@ instCast-bridge-𝒱⇒ℰ⊑′
       {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
       {pT = pT} {wfTˡ = wfTˡ} {wfTʳ = wfTʳ}
       {wfαˡ = wfαˡ} {wfαʳ = wfαʳ} {downR = downR}
-      {w = w} {L = V′ down seal αˡ}
+      {w = w} {L = V′ down seal (id Tˡ) αˡ}
       hTˡ hAˡ αˡ∈ V⊢
 
   right-typed :
     0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢
-      (W′ down seal αʳ) up (unseal αʳ)
+      (W′ down seal (id Tʳ) αʳ) up (unseal αʳ (id Tʳ))
       ⦂ substᵗ (rightᵗ ρApp) (＇ zero)
   right-typed =
     instCast-up-right-typed
@@ -2417,7 +2418,7 @@ instCast-bridge-𝒱⇒ℰ⊑′
       {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
       {pT = pT} {wfTˡ = wfTˡ} {wfTʳ = wfTʳ}
       {wfαˡ = wfαˡ} {wfαʳ = wfαʳ} {downR = downR}
-      {w = w} {R = W′ down seal αʳ}
+      {w = w} {R = W′ down seal (id Tʳ) αʳ}
       hTʳ hBʳ αʳ∈ W⊢
 
   vV′ : Value V′
@@ -2451,7 +2452,7 @@ instCast-bridge-𝒱⇒ℰ⊑′
   rep-ℰ = rep-ℰ′ n RrelVW
 
   right-unsealed :
-    ℰ ρApp (⊑-＇ zero) n ≼ w V′ ((W′ down seal αʳ) up (unseal αʳ))
+    ℰ ρApp (⊑-＇ zero) n ≼ w V′ ((W′ down seal (id Tʳ) αʳ) up (unseal αʳ (id Tʳ)))
   right-unsealed =
     ℰ-expand-≼-right
       {ρ = ρApp} {p = ⊑-＇ zero} {k = n} {w = w}
@@ -2462,7 +2463,7 @@ instCast-bridge-𝒱⇒ℰ⊑′
     {ρ = ρ} {p = ⊑-＇ zero} {pT = pT}
     {wfTˡ = wfTˡ} {wfTʳ = wfTʳ} {wfαˡ = wfαˡ} {wfαʳ = wfαʳ}
     Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ V W
-    (vV , vW , (V⊢ , W⊢) , lift (V′ , W′ , refl , refl , RrelVW)) =
+    (vV , vW , (V⊢ , W⊢) , lift (V′ , W′ , pˡ , pʳ , refl , refl , RrelVW)) =
   (left-typed , right-typed) ,
   inj₁ (Σʳ w , Ψʳ w , wfΣʳ w , W′ ,
     id-step (seal-unseal vW′) , left-unsealed)
@@ -2472,7 +2473,7 @@ instCast-bridge-𝒱⇒ℰ⊑′
 
   left-typed :
     0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢
-      (V′ down seal αˡ) up (unseal αˡ)
+      (V′ down seal (id Tˡ) αˡ) up (unseal αˡ (id Tˡ))
       ⦂ substᵗ (leftᵗ ρApp) (＇ zero)
   left-typed =
     instCast-up-left-typed
@@ -2480,12 +2481,12 @@ instCast-bridge-𝒱⇒ℰ⊑′
       {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
       {pT = pT} {wfTˡ = wfTˡ} {wfTʳ = wfTʳ}
       {wfαˡ = wfαˡ} {wfαʳ = wfαʳ} {downR = downR}
-      {w = w} {L = V′ down seal αˡ}
+      {w = w} {L = V′ down seal (id Tˡ) αˡ}
       hTˡ hAˡ αˡ∈ V⊢
 
   right-typed :
     0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢
-      (W′ down seal αʳ) up (unseal αʳ)
+      (W′ down seal (id Tʳ) αʳ) up (unseal αʳ (id Tʳ))
       ⦂ substᵗ (rightᵗ ρApp) (＇ zero)
   right-typed =
     instCast-up-right-typed
@@ -2493,7 +2494,7 @@ instCast-bridge-𝒱⇒ℰ⊑′
       {αˡ = αˡ} {αʳ = αʳ} {Rrel = Rrel} {ρ = ρ}
       {pT = pT} {wfTˡ = wfTˡ} {wfTʳ = wfTʳ}
       {wfαˡ = wfαˡ} {wfαʳ = wfαʳ} {downR = downR}
-      {w = w} {R = W′ down seal αʳ}
+      {w = w} {R = W′ down seal (id Tʳ) αʳ}
       hTʳ hBʳ αʳ∈ W⊢
 
   vV′ : Value V′
@@ -2527,7 +2528,7 @@ instCast-bridge-𝒱⇒ℰ⊑′
   rep-ℰ = rep-ℰ′ n RrelVW
 
   left-unsealed :
-    ℰ ρApp (⊑-＇ zero) n ≽ w ((V′ down seal αˡ) up (unseal αˡ)) W′
+    ℰ ρApp (⊑-＇ zero) n ≽ w ((V′ down seal (id Tˡ) αˡ) up (unseal αˡ (id Tˡ))) W′
   left-unsealed =
     ℰ-expand-≽-left
       {ρ = ρApp} {p = ⊑-＇ zero} {k = n} {w = w}
@@ -2916,7 +2917,7 @@ instCast-bridge-𝒱⇒ℰ⊒′
     (vV , vW , (V⊢ , W⊢) , lift RrelVW) =
   𝒱⇒ℰ
     {ρ = ρSeal} {p = ⊑-＇ zero} {n = n} {dir = dir}
-    {w = w} {V = V down seal αˡ} {W = W down seal αʳ}
+    {w = w} {V = V down seal (id Tˡ) αˡ} {W = W down seal (id Tʳ) αʳ}
     sealed-𝒱
   where
   ρSeal : RelSub 0
@@ -2926,7 +2927,7 @@ instCast-bridge-𝒱⇒ℰ⊒′
       (sealedRel-down {αˡ = αˡ} {αʳ = αʳ} {R = Rrel} downR)
 
   V↓⊢ :
-    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V down seal αˡ ⦂
+    0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V down seal (id Tˡ) αˡ ⦂
       substᵗ (leftᵗ ρSeal) (＇ zero)
   V↓⊢ =
     instCast-down-left-typed
@@ -2938,7 +2939,7 @@ instCast-bridge-𝒱⇒ℰ⊒′
       hTˡ hAˡ αˡ∈ V⊢
 
   W↓⊢ :
-    0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W down seal αʳ ⦂
+    0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W down seal (id Tʳ) αʳ ⦂
       substᵗ (rightᵗ ρSeal) (＇ zero)
   W↓⊢ =
     instCast-down-right-typed
@@ -2951,13 +2952,13 @@ instCast-bridge-𝒱⇒ℰ⊒′
 
   sealed-𝒱 :
     𝒱 ρSeal (⊑-＇ zero) n dir w
-      (V down seal αˡ)
-      (W down seal αʳ)
+      (V down seal (id Tˡ) αˡ)
+      (W down seal (id Tʳ) αʳ)
   sealed-𝒱 =
     ReductionFresh._down_ vV ReductionFresh.seal ,
     ReductionFresh._down_ vW ReductionFresh.seal ,
     (V↓⊢ , W↓⊢) ,
-    lift (V , W , refl , refl , RrelVW)
+    lift (V , W , id Tˡ , id Tʳ , refl , refl , RrelVW)
 instCast-bridge-𝒱⇒ℰ⊒′
     {A = ‵ `ℕ} {B = ‵ `ℕ} {n = n} {dir = ≼} {w = w}
     {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}

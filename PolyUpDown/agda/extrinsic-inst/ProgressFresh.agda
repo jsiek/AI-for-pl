@@ -143,9 +143,9 @@ canonical-ℕ (_down_ {V = W} vW (ν_ {p = p}))
 
 data StarView (V : Term) : Set where
   sv-up-tag :
-    ∀ {W : Term}{G : Ty}{g : Ground G} →
+    ∀ {W : Term}{p : Up}{G : Ty}{g : Ground G} →
     Value W →
-    V ≡ (W up (tag G)) →
+    V ≡ (W up (tag p G)) →
     StarView V
 
 canonical-★ :
@@ -154,7 +154,7 @@ canonical-★ :
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V ⦂ ★ →
   StarView V
 canonical-★ (_up_ {V = W} vW tag)
-  (⊢up Φ lenΦ W⊢ (wt-tag {G = G} g gok)) =
+  (⊢up Φ lenΦ W⊢ (wt-tag p⊢ g gok)) =
   sv-up-tag {g = g} vW refl
 canonical-★ ($ (κℕ n)) ()
 canonical-★ (_down_ {V = W} vW seal)
@@ -168,9 +168,9 @@ canonical-★ (_down_ {V = W} vW (ν_ {p = p}))
 
 data SealView {α : Seal} (V : Term) : Set where
   sv-down-seal :
-    ∀ {W : Term} →
+    ∀ {W : Term}{p : Down} →
     Value W →
-    V ≡ (W down (seal α)) →
+    V ≡ (W down (seal p α)) →
     SealView V
 
 canonical-｀ :
@@ -180,10 +180,10 @@ canonical-｀ :
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V ⦂ (｀ α) →
   SealView {α = α} V
 canonical-｀ (_down_ {V = W} vW seal)
-  (⊢down Φ lenΦ W⊢ (wt-seal {α = α} h α∈)) =
+  (⊢down Φ lenΦ W⊢ (wt-seal p⊢ h α∈)) =
   sv-down-seal vW refl
 canonical-｀ (_down_ {V = W} vW seal)
-  (⊢down Φ lenΦ W⊢ (wt-seal★ {α = α} h α∈)) =
+  (⊢down Φ lenΦ W⊢ (wt-seal★ p⊢ h α∈)) =
   sv-down-seal vW refl
 canonical-｀ ($ (κℕ n)) ()
 canonical-｀ (_up_ {V = W} vW tag)
@@ -204,10 +204,11 @@ projGround-progress :
     {G : Ty}
     {g′ : Ground G}
     {gok′ : ⊢ g′ ok Φ}
+    {q : Down}
     {ℓ : Label} →
   Value M →
   0 ∣ Ψ ∣ Σ ∣ [] ⊢ M ⦂ ★ →
-  Progress {Σ = Σ} (M down (untag G ℓ))
+  Progress {Σ = Σ} (M down (untag G ℓ q))
 projGround-progress {g′ = g′} vM M⊢ with canonical-★ vM M⊢
 ... | sv-up-tag {g = g} vW refl with g ≟Ground g′
 ...   | yes refl = step (Fresh.id-step (tag-untag-ok vW))
@@ -216,10 +217,11 @@ projGround-progress {g′ = g′} vM M⊢ with canonical-★ vM M⊢
 unseal-progress :
   ∀ {Ψ}{Σ : Store}
     {α : Seal}
+    {q : Up}
     {M : Term} →
   Value M →
   0 ∣ Ψ ∣ Σ ∣ [] ⊢ M ⦂ (｀ α) →
-  Progress {Σ = Σ} (M up (unseal α))
+  Progress {Σ = Σ} (M up (unseal α q))
 unseal-progress vM M⊢ with canonical-｀ vM M⊢
 ... | sv-down-seal vW refl = step (Fresh.id-step (seal-unseal vW))
 
@@ -266,25 +268,23 @@ progress (⊢up {M = M} {p = p} Φ lenΦ M⊢ hp) with progress M⊢
 ... | step M→M′ = step (Fresh.ξ-up M→M′)
 ... | crash (ℓ , refl) = step (Fresh.id-step blame-up)
 ... | done vM with p | hp
-...   | tag G | wt-tag g gok = done (vM up tag)
-...   | unseal α | wt-unseal h α∈ = unseal-progress vM M⊢
-...   | unseal α | wt-unseal★ h α∈ = unseal-progress vM M⊢
+...   | tag p G | wt-tag p⊢ g gok = done (vM up tag)
+...   | unseal α p | wt-unseal h α∈ p⊢ = unseal-progress {q = p} vM M⊢
+...   | unseal α p | wt-unseal★ h α∈ p⊢ = unseal-progress {q = p} vM M⊢
 ...   | p ↦ q | wt-↦ p⊢ q⊢ = done (vM up (_↦_ {p = p} {q = q}))
 ...   | ∀ᵖ p | wt-∀ p⊢ = done (vM up (∀ᵖ {p = p}))
 ...   | ν p | wt-ν p⊢ = step (Fresh.β-up-ν vM)
 ...   | id A | wt-id wfA = step (Fresh.id-step (id-up vM))
-...   | p ； q | wt-； p⊢ q⊢ = step (Fresh.id-step (β-up-； vM))
 progress (⊢down {M = M} {p = p} Φ lenΦ M⊢ hp) with progress M⊢
 ... | step M→M′ = step (Fresh.ξ-down M→M′)
 ... | crash (ℓ , refl) = step (Fresh.id-step blame-down)
 ... | done vM with p | hp
-...   | untag G ℓ | wt-untag g′ gok′ .ℓ =
-        projGround-progress {G = G} {g′ = g′} {gok′ = gok′} {ℓ = ℓ} vM M⊢
-...   | seal α | wt-seal h α∈ = done (vM down seal)
-...   | seal α | wt-seal★ h α∈ = done (vM down seal)
+...   | untag G ℓ p | wt-untag g′ gok′ .ℓ p⊢ =
+        projGround-progress {G = G} {g′ = g′} {gok′ = gok′} {q = p} {ℓ = ℓ} vM M⊢
+...   | seal p α | wt-seal p⊢ h α∈ = done (vM down seal)
+...   | seal p α | wt-seal★ p⊢ h α∈ = done (vM down seal)
 ...   | p ↦ q | wt-↦ p⊢ q⊢ = done (vM down (_↦_ {p = p} {q = q}))
 ...   | ∀ᵖ p | wt-∀ p⊢ = done (vM down (∀ᵖ {p = p}))
 ...   | ν p | wt-ν p⊢ = done (vM down (ν_ {p = p}))
 ...   | id A | wt-id wfA = step (Fresh.id-step (id-down vM))
-...   | p ； q | wt-； p⊢ q⊢ = step (Fresh.id-step (β-down-； vM))
 progress (⊢blame ℓ) = crash (ℓ , refl)

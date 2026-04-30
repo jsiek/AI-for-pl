@@ -3,7 +3,12 @@
 ## TODO items
 
 ## In progress TODO items
+
+[ ] Delete LogicalRelation.agda, DynamicGradualGuarantee.agda, and Parametricity.agda in
+    PolyUpDown/agda/extrinsic-inst/
+
 ## Completed TODO items
+
 [x] Delete the old _∣_—→[_]_∣_ reduction relation in
     PolyUpDown/agda/extrinsic-inst/Reduction.agda
     because the analogous reduction relation in ReductionFresh.agda is stable.

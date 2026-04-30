@@ -78,28 +78,20 @@ data _—→_ : Term → Term → Set where
     Value V →
     (V down (id A)) —→ V
 
-  seal-unseal : ∀ {V : Term} {α : Seal} →
+  seal-unseal : ∀ {V : Term} {p : Down} {q : Up} {α : Seal} →
     Value V →
-    ((V down (seal α)) up (unseal α)) —→ V
+    ((V down (seal p α)) up (unseal α q)) —→ ((V down p) up q)
 
   tag-untag-ok :
-    ∀ {G : Ty} {V : Term} {ℓ′ : Label} →
+    ∀ {G : Ty} {V : Term} {p : Up} {q : Down} {ℓ′ : Label} →
     Value V →
-    ((V up (tag G)) down (untag G ℓ′)) —→ V
+    ((V up (tag p G)) down (untag G ℓ′ q)) —→ ((V up p) down q)
 
   tag-untag-bad :
-    ∀ {G H : Ty} {V : Term} {ℓ′ : Label} →
+    ∀ {G H : Ty} {V : Term} {p : Up} {q : Down} {ℓ′ : Label} →
     Value V →
     G ≢ H →
-    ((V up (tag G)) down (untag H ℓ′)) —→ blame ℓ′
-
-  β-up-； : ∀ {V : Term} {p : Up} {q : Up} →
-    Value V →
-    (V up (p ； q)) —→ ((V up p) up q)
-
-  β-down-； : ∀ {V : Term} {p : Down} {q : Down} →
-    Value V →
-    (V down (p ； q)) —→ ((V down p) down q)
+    ((V up (tag p G)) down (untag H ℓ′ q)) —→ blame ℓ′
 
   δ-⊕ : ∀ {m n : ℕ} →
     ($ (κℕ m) ⊕[ addℕ ] $ (κℕ n)) —→ $ (κℕ (m + n))
@@ -141,8 +133,6 @@ raw-value-no-step (_down_ vV ()) (id-down v)
 raw-value-no-step (_up_ vV ()) (seal-unseal v)
 raw-value-no-step (_down_ vV ()) (tag-untag-ok v)
 raw-value-no-step (_down_ vV ()) (tag-untag-bad v neq)
-raw-value-no-step (_up_ vV ()) (β-up-； v)
-raw-value-no-step (_down_ vV ()) (β-down-； v)
 raw-value-no-step () δ-⊕
 raw-value-no-step () blame-·₁
 raw-value-no-step () (blame-·₂ v)

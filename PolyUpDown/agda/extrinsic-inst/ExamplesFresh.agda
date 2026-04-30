@@ -36,7 +36,7 @@ nat : ℕ → Term
 nat n = $ (κℕ n)
 
 nat★ : ℕ → Term
-nat★ n = nat n up tag (‵ `ℕ)
+nat★ n = nat n up tag (id (‵ `ℕ)) (‵ `ℕ)
 
 c : Term
 c = nat 7
@@ -60,7 +60,7 @@ natId : Term
 natId = ƛ (‵ `ℕ) ⇒ ` 0
 
 idFun★ : Term
-idFun★ = idDyn up tag (★ ⇒ ★)
+idFun★ = idDyn up tag (id (★ ⇒ ★)) (★ ⇒ ★)
 
 polyApp : Term
 polyApp =
@@ -143,7 +143,7 @@ evalBlame {Σ = Σ} {M = M} fuel M⊢ with eval? fuel Σ M
 ------------------------------------------------------------------------
 
 example1-left : Term
-example1-left = (idDyn · c★) down (untag (‵ `ℕ) 1)
+example1-left = (idDyn · c★) down (untag (‵ `ℕ) 1 (id (‵ `ℕ)))
 
 example1-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example1-left ⦂ (‵ `ℕ)
 example1-left-⊢ = expect-⊢ example1-left (‵ `ℕ) tt
@@ -238,7 +238,7 @@ example5-left-⊢ = expect-⊢ example5-left (‵ `ℕ) tt
 
 example5-right : Term
 example5-right =
-  (example1-left up tag (‵ `ℕ)) down (untag (‵ `ℕ) 5)
+  (example1-left up tag (id (‵ `ℕ)) (‵ `ℕ)) down (untag (‵ `ℕ) 5 (id (‵ `ℕ)))
 
 example5-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example5-right ⦂ (‵ `ℕ)
 example5-right-⊢ = expect-⊢ example5-right (‵ `ℕ) tt
@@ -261,7 +261,7 @@ example6-left-⊢ = expect-⊢ example6-left (‵ `ℕ) tt
 
 example6-right : Term
 example6-right =
-  (example1-right down (untag (‵ `ℕ) 6)) up tag (‵ `ℕ)
+  (example1-right down (untag (‵ `ℕ) 6 (id (‵ `ℕ)))) up tag (id (‵ `ℕ)) (‵ `ℕ)
 
 example6-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example6-right ⦂ ★
 example6-right-⊢ = expect-⊢ example6-right ★ tt
@@ -284,7 +284,7 @@ example7-left-⊢ = expect-⊢ example7-left (‵ `ℕ) tt
 
 example7-right : Term
 example7-right =
-  (example5-right up tag (‵ `ℕ)) down (untag (‵ `ℕ) 7)
+  (example5-right up tag (id (‵ `ℕ)) (‵ `ℕ)) down (untag (‵ `ℕ) 7 (id (‵ `ℕ)))
 
 example7-right-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example7-right ⦂ (‵ `ℕ)
 example7-right-⊢ = expect-⊢ example7-right (‵ `ℕ) tt
@@ -325,7 +325,7 @@ Kdyn : Term
 Kdyn = ƛ ★ ⇒ ƛ ★ ⇒ ` 1
 
 example9-left : Term
-example9-left = ((Kdyn · n42★) · n69★) down (untag (‵ `ℕ) 9)
+example9-left = ((Kdyn · n42★) · n69★) down (untag (‵ `ℕ) 9 (id (‵ `ℕ)))
 
 example9-left-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example9-left ⦂ (‵ `ℕ)
 example9-left-⊢ = expect-⊢ example9-left (‵ `ℕ) tt
@@ -370,9 +370,9 @@ example10-right-test = refl
 
 example12 : Term
 example12 =
-  ((c★ down (untag (‵ `ℕ) 12))
-   up tag (‵ `ℕ))
-  down (untag (‵ `ℕ) 12)
+  ((c★ down (untag (‵ `ℕ) 12 (id (‵ `ℕ))))
+   up tag (id (‵ `ℕ)) (‵ `ℕ))
+  down (untag (‵ `ℕ) 12 (id (‵ `ℕ)))
 
 example12-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ example12 ⦂ (‵ `ℕ)
 example12-⊢ = expect-⊢ example12 (‵ `ℕ) tt
@@ -444,7 +444,7 @@ sec6-K-base-⊢ = expect-⊢ sec6-K-base (‵ `ℕ) tt
 sec6-K-lax : Term
 sec6-K-lax =
   (((polyK ⦂∀ (＇ 0 ⇒ ＇ 0 ⇒ ＇ 0) [ ★ ])
-     down (tag (‵ `ℕ) ↦ ((id ★) ↦ untag (‵ `ℕ) 63)))
+     down (tag (id (‵ `ℕ)) (‵ `ℕ) ↦ ((id ★) ↦ untag (‵ `ℕ) 63 (id (‵ `ℕ)))))
    · n42)
   · idFun★
 
@@ -454,7 +454,7 @@ sec6-K-lax-⊢ = expect-⊢ sec6-K-lax (‵ `ℕ) tt
 sec6-K-strict : Term
 sec6-K-strict =
   (((polyK ⦂∀ (＇ 0 ⇒ ＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ])
-     up ((id (‵ `ℕ)) ↦ (untag (‵ `ℕ) 64 ↦ (id (‵ `ℕ)))))
+     up ((id (‵ `ℕ)) ↦ (untag (‵ `ℕ) 64 (id (‵ `ℕ)) ↦ (id (‵ `ℕ)))))
    · n42)
   · idFun★
 
@@ -463,7 +463,7 @@ sec6-K-strict-⊢ = expect-⊢ sec6-K-strict (‵ `ℕ) tt
 
 sec6-id-leak : Term
 sec6-id-leak =
-  ((idDyn down (ν (tag (｀ 0) ↦ id ★))) ⦂∀ (＇ 0 ⇒ ★) [ ‵ `ℕ ])
+  ((idDyn down (ν (tag (id (｀ 0)) (｀ 0) ↦ id ★))) ⦂∀ (＇ 0 ⇒ ★) [ ‵ `ℕ ])
   · n42
 
 sec6-id-leak-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ sec6-id-leak ⦂ ★
@@ -494,7 +494,7 @@ sec6-id-leak-test = refl
 
 seal-name-example : Term
 seal-name-example =
-  ((((Kdyn down (ν (ν (tag (｀ 1) ↦ (tag (｀ 0) ↦ untag (｀ 1) 700)))))
+  ((((Kdyn down (ν (ν (tag (id (｀ 1)) (｀ 1) ↦ (tag (id (｀ 0)) (｀ 0) ↦ untag (｀ 1) 700 (id (｀ 1)))))))
       ⦂∀ (`∀ (＇ 1 ⇒ ＇ 0 ⇒ ＇ 1)) [ ‵ `ℕ ])
      ⦂∀ ((‵ `ℕ) ⇒ ＇ 0 ⇒ (‵ `ℕ)) [ ‵ `ℕ ])
     · nat 42)
@@ -516,13 +516,13 @@ target-β-up-∀ =
 
 target-tag-untag-bad : Term
 target-tag-untag-bad =
-  (nat 1 up tag (‵ `ℕ)) down (untag (‵ `𝔹) 501)
+  (nat 1 up tag (id (‵ `ℕ)) (‵ `ℕ)) down (untag (‵ `𝔹) 501 (id (‵ `𝔹)))
 
 target-β-up-； : Term
-target-β-up-； = nat 1 up (id (‵ `ℕ) ； id (‵ `ℕ))
+target-β-up-； = nat 1 up (id (‵ `ℕ))
 
 target-β-down-； : Term
-target-β-down-； = nat 1 down (id (‵ `ℕ) ； id (‵ `ℕ))
+target-β-down-； = nat 1 down (id (‵ `ℕ))
 
 target-δ-⊕ : Term
 target-δ-⊕ = nat 1 ⊕[ addℕ ] nat 2

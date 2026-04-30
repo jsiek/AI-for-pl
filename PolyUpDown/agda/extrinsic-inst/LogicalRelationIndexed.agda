@@ -12,11 +12,14 @@ module LogicalRelationIndexed where
 open import Data.List using (List; []; _∷_; length)
 open import Data.Nat
   using
-    ( ℕ; zero; suc; z<s; z≤n; s<s; s≤s; _<_; _≤_; _<′_
+    ( ℕ; zero; suc; z<s; z≤n; s<s; s≤s; _+_; _∸_; _<_; _≤_; _<′_
     ; <′-base; ≤′-step; ≤′-reflexive
     )
 open import Data.Nat.Properties
-  using (≤-refl; ≤-trans; n≤1+n; m≤n⇒m≤1+n; <-≤-trans)
+  using
+    ( ≤-refl; ≤-trans; n≤1+n; m≤n⇒m≤1+n; m+[n∸m]≡n
+    ; +-comm; <-≤-trans
+    )
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -47,7 +50,8 @@ open import ProgressFresh
     ; SealView
     ; sv-down-seal
     )
-open import PreservationFresh using (len<suc-StoreWf; length∉dom-StoreWf)
+open import PreservationFresh
+  using (wkΨ-term-suc; len<suc-StoreWf; length∉dom-StoreWf)
 
 ------------------------------------------------------------------------
 -- Direction and semantic relations
@@ -65,17 +69,17 @@ DownClosed R = ∀ {k dir V W} → R (suc k) dir V W → R k dir V W
 
 sealedRel : Seal → Seal → Rel → Rel
 sealedRel αˡ αʳ R k dir V W =
-  Σ[ V′ ∈ Term ] Σ[ W′ ∈ Term ]
-    (V ≡ (V′ down seal αˡ)) ×
-    (W ≡ (W′ down seal αʳ)) ×
-    R k dir V′ W′
+  Σ[ V′ ∈ Term ] Σ[ W′ ∈ Term ] Σ[ pˡ ∈ UpDown.Down ] Σ[ pʳ ∈ UpDown.Down ]
+    (V ≡ (V′ down seal pˡ αˡ)) ×
+    (W ≡ (W′ down seal pʳ αʳ)) ×
+    R k dir (V′ down pˡ) (W′ down pʳ)
 
 sealedRel-down :
   ∀ {αˡ αʳ R} →
   DownClosed R →
   DownClosed (sealedRel αˡ αʳ R)
-sealedRel-down downR (V′ , W′ , eqV , eqW , rel) =
-  V′ , W′ , eqV , eqW , downR rel
+sealedRel-down downR (V′ , W′ , pˡ , pʳ , eqV , eqW , rel) =
+  V′ , W′ , pˡ , pʳ , eqV , eqW , downR rel
 
 WfTyClosedᵗ : Ty → Set
 WfTyClosedᵗ A = Σ[ Ψ ∈ SealCtx ] WfTy 0 Ψ A
@@ -679,39 +683,39 @@ mutual
   𝒱body ρ ⊑ᵢ-★★ (suc k) dir w V W = star-rel V W
     where
     star-rel : Term → Term → Set₁
-    star-rel (V up tag G) (W up tag H) =
+    star-rel (V up tag pˡ G) (W up tag pʳ H) =
       Lift (lsuc 0ℓ) (G ≡ H) ×
-      𝒱 ρ (⊑ᵢ-refl {A = G}) k dir w V W
-    star-rel (V down seal αˡ) (W down seal αʳ) =
-      Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R k dir V W
+      𝒱 ρ (⊑ᵢ-refl {A = G}) k dir w (V up pˡ) (W up pʳ)
+    star-rel (V down seal pˡ αˡ) (W down seal pʳ αʳ) =
+      Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R k dir (V down pˡ) (W down pʳ)
     star-rel V W = Lift (lsuc 0ℓ) ⊥
   𝒱body ρ (⊑ᵢ-★ _ G g p) zero ≼ w V W = Lift (lsuc 0ℓ) ⊤
   𝒱body ρ (⊑ᵢ-★ _ G g p) zero ≽ w V W = Lift (lsuc 0ℓ) ⊤
   𝒱body ρ (⊑ᵢ-★ _ G g p) (suc k) ≼ w V W = star-right-rel W
     where
     star-right-rel : Term → Set₁
-    star-right-rel (W up tag H) =
-      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 ρ p k ≼ w V W
+    star-right-rel (W up tag pʳ H) =
+      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 ρ p k ≼ w V (W up pʳ)
     star-right-rel W = Lift (lsuc 0ℓ) ⊥
   𝒱body ρ (⊑ᵢ-★ _ G g p) (suc k) ≽ w V W = star-right-rel W
     where
     star-right-rel : Term → Set₁
-    star-right-rel (W up tag H) =
-      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 ρ p k ≽ w V W
+    star-right-rel (W up tag pʳ H) =
+      Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 ρ p k ≽ w V (W up pʳ)
     star-right-rel W = Lift (lsuc 0ℓ) ⊥
   𝒱body ρ (⊑ᵢ-｀ α) zero dir w V W = seal-rel V W
     where
     seal-rel : Term → Term → Set₁
-    seal-rel (V down seal βˡ) (W down seal βʳ) =
+    seal-rel (V down seal pˡ βˡ) (W down seal pʳ βʳ) =
       Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Rel ]
-        (η w ∋η α ↔ α ∶ R) × R zero dir V W
+        (η w ∋η α ↔ α ∶ R) × R zero dir (V down pˡ) (W down pʳ)
     seal-rel V W = Lift (lsuc 0ℓ) ⊥
   𝒱body ρ (⊑ᵢ-｀ α) (suc k) dir w V W = seal-rel V W
     where
     seal-rel : Term → Term → Set₁
-    seal-rel (V down seal βˡ) (W down seal βʳ) =
+    seal-rel (V down seal pˡ βˡ) (W down seal pʳ βʳ) =
       Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Rel ]
-        (η w ∋η α ↔ α ∶ R) × R (suc k) dir V W
+        (η w ∋η α ↔ α ∶ R) × R (suc k) dir (V down pˡ) (W down pʳ)
     seal-rel V W = Lift (lsuc 0ℓ) ⊥
   𝒱body ρ (⊑ᵢ-＇ X) n dir w V W =
     Lift (lsuc 0ℓ) (varRel ρ X n dir V W)
@@ -871,51 +875,51 @@ mutual
       with canonical-★ vV V⊢ | canonical-★ vW W⊢
   𝒱body-monotone ρ ⊑ᵢ-★★ k dir w V W
       (vV , vW , (V⊢ , W⊢)) rel
-      | sv-up-tag {W = U} {G = G} vU eqV
-      | sv-up-tag {W = U′} {G = H} vU′ eqW
+      | sv-up-tag {W = U} {p = pˡ} {G = G} vU eqV
+      | sv-up-tag {W = U′} {p = pʳ} {G = H} vU′ eqW
       rewrite eqV | eqW with rel
   𝒱body-monotone ρ ⊑ᵢ-★★ k dir w V W
       (vV , vW , (V⊢ , W⊢)) rel
-      | sv-up-tag {W = U} {G = G} vU eqV
-      | sv-up-tag {W = U′} {G = H} vU′ eqW
+      | sv-up-tag {W = U} {p = pˡ} {G = G} vU eqV
+      | sv-up-tag {W = U′} {p = pʳ} {G = H} vU′ eqW
       | eqG , inner =
-    eqG , 𝒱-monotone ρ (⊑ᵢ-refl {A = G}) k dir w U U′ inner
+    eqG , 𝒱-monotone ρ (⊑ᵢ-refl {A = G}) k dir w (U up pˡ) (U′ up pʳ) inner
   𝒱body-monotone ρ (⊑ᵢ-★ A G g p) k ≼ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       with canonical-★ vW W⊢
   𝒱body-monotone ρ (⊑ᵢ-★ A G g p) k ≼ w V W
       (vV , vW , (V⊢ , W⊢)) rel
-      | sv-up-tag {W = W′} {G = H} vW′ eqW
+      | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       rewrite eqW with rel
   𝒱body-monotone ρ (⊑ᵢ-★ A G g p) k ≼ w V W
       (vV , vW , (V⊢ , W⊢)) rel
-      | sv-up-tag {W = W′} {G = H} vW′ eqW
+      | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       | eqG , inner =
-    eqG , 𝒱-monotone ρ p k ≼ w V W′ inner
+    eqG , 𝒱-monotone ρ p k ≼ w V (W′ up pʳ) inner
   𝒱body-monotone ρ (⊑ᵢ-★ A G g p) k ≽ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       with canonical-★ vW W⊢
   𝒱body-monotone ρ (⊑ᵢ-★ A G g p) k ≽ w V W
       (vV , vW , (V⊢ , W⊢)) rel
-      | sv-up-tag {W = W′} {G = H} vW′ eqW
+      | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       rewrite eqW with rel
   𝒱body-monotone ρ (⊑ᵢ-★ A G g p) k ≽ w V W
       (vV , vW , (V⊢ , W⊢)) rel
-      | sv-up-tag {W = W′} {G = H} vW′ eqW
+      | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       | eqG , inner =
-    eqG , 𝒱-monotone ρ p k ≽ w V W′ inner
+    eqG , 𝒱-monotone ρ p k ≽ w V (W′ up pʳ) inner
   𝒱body-monotone ρ (⊑ᵢ-｀ α) k dir w V W
       (vV , vW , (V⊢ , W⊢)) rel
       with canonical-｀ vV V⊢ | canonical-｀ vW W⊢
   𝒱body-monotone ρ (⊑ᵢ-｀ α) k dir w V W
       (vV , vW , (V⊢ , W⊢)) rel
-      | sv-down-seal {W = V′} vV′ eqV
-      | sv-down-seal {W = W′} vW′ eqW
+      | sv-down-seal {W = V′} {p = pˡ} vV′ eqV
+      | sv-down-seal {W = W′} {p = pʳ} vW′ eqW
       rewrite eqV | eqW with rel
   𝒱body-monotone ρ (⊑ᵢ-｀ α) k dir w V W
       (vV , vW , (V⊢ , W⊢)) rel
-      | sv-down-seal {W = V′} vV′ eqV
-      | sv-down-seal {W = W′} vW′ eqW
+      | sv-down-seal {W = V′} {p = pˡ} vV′ eqV
+      | sv-down-seal {W = W′} {p = pʳ} vW′ eqW
       | eqˡ , eqʳ , R , η∋ , Rrel =
     eqˡ , eqʳ , R , η∋ , η∋-downClosed η∋ Rrel
   𝒱body-monotone ρ (⊑ᵢ-＇ X) k dir w V W header (lift rel) =
@@ -981,6 +985,82 @@ mutual
   ℰ-monotone ρ p (suc k) dir w Mˡ Mʳ ((Mˡ⊢ , Mʳ⊢) , body) =
     (Mˡ⊢ , Mʳ⊢) ,
     ℰbody-monotone ρ p (suc k) dir w Mˡ Mʳ body
+
+wkΨ-term-+ :
+  ∀ {Δ Ψ Σ Γ M A} →
+  (k : ℕ) →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
+  Δ ∣ k + Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A
+wkΨ-term-+ zero M⊢ = M⊢
+wkΨ-term-+ (suc k) M⊢ = wkΨ-term-suc (wkΨ-term-+ k M⊢)
+
+wkΨ-term-≤ :
+  ∀ {Δ Ψ Ψ′ Σ Γ M A} →
+  Ψ ≤ Ψ′ →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
+  Δ ∣ Ψ′ ∣ Σ ∣ Γ ⊢ M ⦂ A
+wkΨ-term-≤ {Δ} {Ψ} {Ψ′} {Σ} {Γ} {M} {A} Ψ≤Ψ′ M⊢ =
+  subst
+    (λ q → Δ ∣ q ∣ Σ ∣ Γ ⊢ M ⦂ A)
+    (trans (+-comm (Ψ′ ∸ Ψ) Ψ) (m+[n∸m]≡n Ψ≤Ψ′))
+    (wkΨ-term-+ (Ψ′ ∸ Ψ) M⊢)
+
+wk⪰ˡ :
+  ∀ {w w′ A V} →
+  w′ ⪰ w →
+  0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V ⦂ A →
+  0 ∣ Ψˡ w′ ∣ Σˡ w′ ∣ [] ⊢ V ⦂ A
+wk⪰ˡ w′⪰ V⊢ =
+  wkΣ-term (_⪰_.growˡ w′⪰) (wkΨ-term-≤ (_⪰_.growΨˡ w′⪰) V⊢)
+
+wk⪰ʳ :
+  ∀ {w w′ A V} →
+  w′ ⪰ w →
+  0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ V ⦂ A →
+  0 ∣ Ψʳ w′ ∣ Σʳ w′ ∣ [] ⊢ V ⦂ A
+wk⪰ʳ w′⪰ V⊢ =
+  wkΣ-term (_⪰_.growʳ w′⪰) (wkΨ-term-≤ (_⪰_.growΨʳ w′⪰) V⊢)
+
+𝒱⇒′-⪰ :
+  ∀ {Ξ Aˡ Aʳ Bˡ Bʳ k dir w w′ V W}
+    {ρ : RelSub Ξ}
+    {pA : Ξ ⊢ Aˡ ⊑ᵢ Aʳ}
+    {pB : Ξ ⊢ Bˡ ⊑ᵢ Bʳ} →
+  w′ ⪰ w →
+  𝒱′ ρ k dir pA pB w V W →
+  𝒱′ ρ k dir pA pB w′ V W
+𝒱⇒′-⪰ {k = zero} w′⪰ rel = lift tt
+𝒱⇒′-⪰
+    {k = suc k} {dir = dir} {w′ = w′} {V = V} {W = W} {ρ = ρ}
+    {pA = pA} {pB = pB} w′⪰ (step , rest) =
+  step′ , 𝒱⇒′-⪰ {k = k} w′⪰ rest
+  where
+  step′ :
+    ∀ {w″} →
+    w″ ⪰ w′ →
+    ∀ {V′ W′} →
+    𝒱 ρ pA (suc k) dir w″ V′ W′ →
+    Σ[ Lβ ∈ Term ] Σ[ Rβ ∈ Term ]
+      (Σˡ w″ ∣ (V · V′) —→ Σˡ w″ ∣ Lβ) ×
+      (Σʳ w″ ∣ (W · W′) —→ Σʳ w″ ∣ Rβ) ×
+      ℰ ρ pB (suc k) dir w″ Lβ Rβ
+  step′ w″⪰ rel = step (⪰-trans w″⪰ w′⪰) rel
+
+𝒱⇒-⪰ :
+  ∀ {Ξ Aˡ Aʳ Bˡ Bʳ n dir w w′ V W}
+    (ρ : RelSub Ξ)
+    {pA : Ξ ⊢ Aˡ ⊑ᵢ Aʳ}
+    {pB : Ξ ⊢ Bˡ ⊑ᵢ Bʳ} →
+  w′ ⪰ w →
+  𝒱 ρ (⊑ᵢ-⇒ Aˡ Aʳ Bˡ Bʳ pA pB) n dir w V W →
+  𝒱 ρ (⊑ᵢ-⇒ Aˡ Aʳ Bˡ Bʳ pA pB) n dir w′ V W
+𝒱⇒-⪰ {n = zero} ρ w′⪰
+    (lift (vV , vW , (V⊢ , W⊢))) =
+  lift (vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢))
+𝒱⇒-⪰ {n = suc n} ρ w′⪰
+    ((vV , vW , (V⊢ , W⊢)) , fun-rel) =
+  (vV , vW , (wk⪰ˡ w′⪰ V⊢ , wk⪰ʳ w′⪰ W⊢)) ,
+  𝒱⇒′-⪰ {k = suc n} w′⪰ fun-rel
 
 𝒱-lower :
   ∀ {Ξ n j A B} (j<n : j <′ n) {ρ : RelSub Ξ}

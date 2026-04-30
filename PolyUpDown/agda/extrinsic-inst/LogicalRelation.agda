@@ -616,10 +616,10 @@ mutual
   𝒱body ρ ⊑-★★ (suc k) dir w V W = star-rel V W
     where
     star-rel : Term → Term → Set₁
-    star-rel (V up tag G) (W up tag H) =
+    star-rel (V up tag pˡ G) (W up tag pʳ H) =
       Lift (lsuc 0ℓ) (G ≡ H) ×
       𝒱 ρ (⊑-refl {A = G}) k dir w V W
-    star-rel (V down seal αˡ) (W down seal αʳ) =
+    star-rel (V down seal pˡ αˡ) (W down seal pʳ αʳ) =
       Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R k dir V W
     star-rel V W = Lift (lsuc 0ℓ) ⊥
 
@@ -628,28 +628,28 @@ mutual
   𝒱body ρ (⊑-★ _ G g p) (suc k) ≼ w V W = star-right-rel W
     where
     star-right-rel : Term → Set₁
-    star-right-rel (W up tag H) =
+    star-right-rel (W up tag p↑ H) =
       Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 ρ p k ≼ w V W
     star-right-rel W = Lift (lsuc 0ℓ) ⊥
   𝒱body {A = A} {B = ★} ρ (⊑-★ _ G g p) (suc k) ≽ w V W =
     star-right-rel W
     where
     star-right-rel : Term → Set₁
-    star-right-rel (W up tag H) =
+    star-right-rel (W up tag p↑ H) =
       Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 ρ p k ≽ w V W
     star-right-rel W = Lift (lsuc 0ℓ) ⊥
 
   𝒱body ρ (⊑-｀ αˡ αʳ) zero dir w V W = seal-rel V W
     where
     seal-rel : Term → Term → Set₁
-    seal-rel (V down seal βˡ) (W down seal βʳ) =
+    seal-rel (V down seal pˡ βˡ) (W down seal pʳ βʳ) =
       Σ[ eqˡ ∈ αˡ ≡ βˡ ] Σ[ eqʳ ∈ αʳ ≡ βʳ ] Σ[ R ∈ Rel ]
         (η w ∋η αˡ ↔ αʳ ∶ R) × R zero dir V W
     seal-rel V W = Lift (lsuc 0ℓ) ⊥
   𝒱body ρ (⊑-｀ αˡ αʳ) (suc k) dir w V W = seal-rel V W
     where
     seal-rel : Term → Term → Set₁
-    seal-rel (V down seal βˡ) (W down seal βʳ) =
+    seal-rel (V down seal pˡ βˡ) (W down seal pʳ βʳ) =
       Σ[ eqˡ ∈ αˡ ≡ βˡ ] Σ[ eqʳ ∈ αʳ ≡ βʳ ] Σ[ R ∈ Rel ]
         (η w ∋η αˡ ↔ αʳ ∶ R) × R (suc k) dir V W
     seal-rel V W = Lift (lsuc 0ℓ) ⊥

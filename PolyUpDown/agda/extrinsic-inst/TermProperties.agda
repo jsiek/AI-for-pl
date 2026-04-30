@@ -359,8 +359,8 @@ mutual
   subst⊑ᵗ-id :
     (p : Up) →
     subst⊑ᵗ (λ X → ＇ X) p ≡ p
-  subst⊑ᵗ-id (tag G) = cong tag (substᵗ-id G)
-  subst⊑ᵗ-id (unseal α) = refl
+  subst⊑ᵗ-id (tag p G) = cong₂ tag (subst⊑ᵗ-id p) (substᵗ-id G)
+  subst⊑ᵗ-id (unseal α p) = cong (unseal α) (subst⊑ᵗ-id p)
   subst⊑ᵗ-id (p ↦ q) =
     cong₂ _↦_ (subst⊒ᵗ-id p) (subst⊑ᵗ-id q)
   subst⊑ᵗ-id (∀ᵖ p) =
@@ -374,15 +374,13 @@ mutual
         (subst⊑ᵗ-cong liftSubstˢ-id p)
         (subst⊑ᵗ-id p))
   subst⊑ᵗ-id (id A) = cong id (substᵗ-id A)
-  subst⊑ᵗ-id (p ； q) =
-    cong₂ _；_ (subst⊑ᵗ-id p) (subst⊑ᵗ-id q)
 
   subst⊒ᵗ-id :
     (p : Down) →
     subst⊒ᵗ (λ X → ＇ X) p ≡ p
-  subst⊒ᵗ-id (untag G ℓ) =
-    cong (λ T → untag T ℓ) (substᵗ-id G)
-  subst⊒ᵗ-id (seal α) = refl
+  subst⊒ᵗ-id (untag G ℓ p) =
+    cong₂ (λ T q → untag T ℓ q) (substᵗ-id G) (subst⊒ᵗ-id p)
+  subst⊒ᵗ-id (seal p α) = cong (λ q → seal q α) (subst⊒ᵗ-id p)
   subst⊒ᵗ-id (p ↦ q) =
     cong₂ _↦_ (subst⊑ᵗ-id p) (subst⊒ᵗ-id q)
   subst⊒ᵗ-id (∀ᵖ p) =
@@ -396,8 +394,6 @@ mutual
         (subst⊒ᵗ-cong liftSubstˢ-id p)
         (subst⊒ᵗ-id p))
   subst⊒ᵗ-id (id A) = cong id (substᵗ-id A)
-  subst⊒ᵗ-id (p ； q) =
-    cong₂ _；_ (subst⊒ᵗ-id p) (subst⊒ᵗ-id q)
 
 substᵗᵐ-id : (M : Term) → substᵗᵐ (λ X → ＇ X) M ≡ M
 substᵗᵐ-id (` x) = refl
@@ -462,10 +458,14 @@ mutual
     length Φ ≡ Ψ →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     subst⊑ᵗ σ p ≡ p
-  subst⊑ᵗ-id-typed hσ lenΦ (wt-tag g ok) =
-    cong tag (substᵗ-id-typed hσ (ground-wf lenΦ g ok))
-  subst⊑ᵗ-id-typed hσ lenΦ (wt-unseal h α∈Φ) = refl
-  subst⊑ᵗ-id-typed hσ lenΦ (wt-unseal★ h α∈Φ) = refl
+  subst⊑ᵗ-id-typed hσ lenΦ (wt-tag p g ok) =
+    cong₂ tag
+      (subst⊑ᵗ-id-typed hσ lenΦ p)
+      (substᵗ-id-typed hσ (ground-wf lenΦ g ok))
+  subst⊑ᵗ-id-typed hσ lenΦ (wt-unseal {α = α} h α∈Φ p) =
+    cong (unseal α) (subst⊑ᵗ-id-typed hσ lenΦ p)
+  subst⊑ᵗ-id-typed hσ lenΦ (wt-unseal★ {α = α} h α∈Φ p) =
+    cong (unseal α) (subst⊑ᵗ-id-typed hσ lenΦ p)
   subst⊑ᵗ-id-typed hσ lenΦ (wt-↦ p q) =
     cong₂ _↦_
       (subst⊒ᵗ-id-typed hσ lenΦ p)
@@ -484,10 +484,6 @@ mutual
         p)
   subst⊑ᵗ-id-typed hσ lenΦ (wt-id wfA) =
     cong id (substᵗ-id-typed hσ wfA)
-  subst⊑ᵗ-id-typed hσ lenΦ (wt-； p q) =
-    cong₂ _；_
-      (subst⊑ᵗ-id-typed hσ lenΦ p)
-      (subst⊑ᵗ-id-typed hσ lenΦ q)
 
   subst⊒ᵗ-id-typed :
     ∀ {Δ Ψ Σ Φ A B p σ} →
@@ -495,10 +491,14 @@ mutual
     length Φ ≡ Ψ →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     subst⊒ᵗ σ p ≡ p
-  subst⊒ᵗ-id-typed hσ lenΦ (wt-untag g ok ℓ) =
-    cong (λ T → untag T ℓ) (substᵗ-id-typed hσ (ground-wf lenΦ g ok))
-  subst⊒ᵗ-id-typed hσ lenΦ (wt-seal h α∈Φ) = refl
-  subst⊒ᵗ-id-typed hσ lenΦ (wt-seal★ h α∈Φ) = refl
+  subst⊒ᵗ-id-typed hσ lenΦ (wt-untag g ok ℓ p) =
+    cong₂ (λ T q → untag T ℓ q)
+      (substᵗ-id-typed hσ (ground-wf lenΦ g ok))
+      (subst⊒ᵗ-id-typed hσ lenΦ p)
+  subst⊒ᵗ-id-typed hσ lenΦ (wt-seal {α = α} p h α∈Φ) =
+    cong (λ q → seal q α) (subst⊒ᵗ-id-typed hσ lenΦ p)
+  subst⊒ᵗ-id-typed hσ lenΦ (wt-seal★ {α = α} p h α∈Φ) =
+    cong (λ q → seal q α) (subst⊒ᵗ-id-typed hσ lenΦ p)
   subst⊒ᵗ-id-typed hσ lenΦ (wt-↦ p q) =
     cong₂ _↦_
       (subst⊑ᵗ-id-typed hσ lenΦ p)
@@ -517,10 +517,6 @@ mutual
         p)
   subst⊒ᵗ-id-typed hσ lenΦ (wt-id wfA) =
     cong id (substᵗ-id-typed hσ wfA)
-  subst⊒ᵗ-id-typed hσ lenΦ (wt-； p q) =
-    cong₂ _；_
-      (subst⊒ᵗ-id-typed hσ lenΦ p)
-      (subst⊒ᵗ-id-typed hσ lenΦ q)
 
 substᵗᵐ-id-typed :
   ∀ {Δ Ψ Σ Γ M A σ} →

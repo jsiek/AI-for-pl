@@ -80,8 +80,10 @@ mutual
     ((α : Seal) → ρ α ≡ α) →
     (p : Up) →
     rename⊑ˢ ρ p ≡ p
-  rename⊑ˢ-pointwise ρ h (tag G) = cong tag (renameˢ-pointwise ρ h G)
-  rename⊑ˢ-pointwise ρ h (unseal α) = cong unseal (h α)
+  rename⊑ˢ-pointwise ρ h (tag p G) =
+    cong₂ tag (rename⊑ˢ-pointwise ρ h p) (renameˢ-pointwise ρ h G)
+  rename⊑ˢ-pointwise ρ h (unseal α p) =
+    cong₂ unseal (h α) (rename⊑ˢ-pointwise ρ h p)
   rename⊑ˢ-pointwise ρ h (p ↦ q) =
     cong₂ _↦_
       (rename⊒ˢ-pointwise ρ h p)
@@ -95,18 +97,18 @@ mutual
       h-ext zero = refl
       h-ext (suc α) = cong suc (h α)
   rename⊑ˢ-pointwise ρ h (id A) = cong id (renameˢ-pointwise ρ h A)
-  rename⊑ˢ-pointwise ρ h (p ； q) =
-    cong₂ _；_
-      (rename⊑ˢ-pointwise ρ h p)
-      (rename⊑ˢ-pointwise ρ h q)
 
   rename⊒ˢ-pointwise :
     (ρ : Renameˢ) →
     ((α : Seal) → ρ α ≡ α) →
     (p : Down) →
     rename⊒ˢ ρ p ≡ p
-  rename⊒ˢ-pointwise ρ h (untag G ℓ) = cong (λ T → untag T ℓ) (renameˢ-pointwise ρ h G)
-  rename⊒ˢ-pointwise ρ h (seal α) = cong seal (h α)
+  rename⊒ˢ-pointwise ρ h (untag G ℓ p) =
+    cong₂ (λ T q → untag T ℓ q)
+      (renameˢ-pointwise ρ h G)
+      (rename⊒ˢ-pointwise ρ h p)
+  rename⊒ˢ-pointwise ρ h (seal p α) =
+    cong₂ seal (rename⊒ˢ-pointwise ρ h p) (h α)
   rename⊒ˢ-pointwise ρ h (p ↦ q) =
     cong₂ _↦_
       (rename⊑ˢ-pointwise ρ h p)
@@ -120,10 +122,6 @@ mutual
       h-ext zero = refl
       h-ext (suc α) = cong suc (h α)
   rename⊒ˢ-pointwise ρ h (id A) = cong id (renameˢ-pointwise ρ h A)
-  rename⊒ˢ-pointwise ρ h (p ； q) =
-    cong₂ _；_
-      (rename⊒ˢ-pointwise ρ h p)
-      (rename⊒ˢ-pointwise ρ h q)
 
 rename⊑ˢ-id :
   (p : Up) →
@@ -148,12 +146,14 @@ mutual
     ((α : Seal) → ρ⁻¹ (ρ α) ≡ α) →
     (p : Up) →
     rename⊑ˢ ρ⁻¹ (rename⊑ˢ ρ p) ≡ p
-  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (tag G) =
-    cong tag
+  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (tag p G) =
+    cong₂ tag
+      (rename⊑ˢ-right-inverse ρ ρ⁻¹ h p)
       (trans
         (renameˢ-compose-local ρ ρ⁻¹ G)
         (renameˢ-pointwise (λ α → ρ⁻¹ (ρ α)) h G))
-  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (unseal α) = cong unseal (h α)
+  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (unseal α p) =
+    cong₂ unseal (h α) (rename⊑ˢ-right-inverse ρ ρ⁻¹ h p)
   rename⊑ˢ-right-inverse ρ ρ⁻¹ h (p ↦ q) =
     cong₂ _↦_
       (rename⊒ˢ-right-inverse ρ ρ⁻¹ h p)
@@ -171,22 +171,20 @@ mutual
       (trans
         (renameˢ-compose-local ρ ρ⁻¹ A)
         (renameˢ-pointwise (λ α → ρ⁻¹ (ρ α)) h A))
-  rename⊑ˢ-right-inverse ρ ρ⁻¹ h (p ； q) =
-    cong₂ _；_
-      (rename⊑ˢ-right-inverse ρ ρ⁻¹ h p)
-      (rename⊑ˢ-right-inverse ρ ρ⁻¹ h q)
 
   rename⊒ˢ-right-inverse :
     (ρ : Renameˢ) (ρ⁻¹ : Renameˢ) →
     ((α : Seal) → ρ⁻¹ (ρ α) ≡ α) →
     (p : Down) →
     rename⊒ˢ ρ⁻¹ (rename⊒ˢ ρ p) ≡ p
-  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (untag G ℓ) =
-    cong (λ T → untag T ℓ)
+  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (untag G ℓ p) =
+    cong₂ (λ T q → untag T ℓ q)
       (trans
         (renameˢ-compose-local ρ ρ⁻¹ G)
         (renameˢ-pointwise (λ α → ρ⁻¹ (ρ α)) h G))
-  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (seal α) = cong seal (h α)
+      (rename⊒ˢ-right-inverse ρ ρ⁻¹ h p)
+  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (seal p α) =
+    cong₂ seal (rename⊒ˢ-right-inverse ρ ρ⁻¹ h p) (h α)
   rename⊒ˢ-right-inverse ρ ρ⁻¹ h (p ↦ q) =
     cong₂ _↦_
       (rename⊑ˢ-right-inverse ρ ρ⁻¹ h p)
@@ -204,10 +202,6 @@ mutual
       (trans
         (renameˢ-compose-local ρ ρ⁻¹ A)
         (renameˢ-pointwise (λ α → ρ⁻¹ (ρ α)) h A))
-  rename⊒ˢ-right-inverse ρ ρ⁻¹ h (p ； q) =
-    cong₂ _；_
-      (rename⊒ˢ-right-inverse ρ ρ⁻¹ h p)
-      (rename⊒ˢ-right-inverse ρ ρ⁻¹ h q)
 
 open-shift-⊒-id :
   (p : Down) →
@@ -254,17 +248,18 @@ mutual
     (α ∈ Φ → ⊥) →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     Δ ∣ Ψ ∣ (removeAtˢ h★) ∣ Φ ⊢ p ⦂ A ⊒ B
-  drop★⊒-seal-preserving h★ α∉Φ (wt-untag g gok ℓ) = wt-untag g gok ℓ
-  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal h α∈Φ) with dropLookup h★ h
-  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal h α∈Φ) | drop-hit β≡α B≡★ =
+  drop★⊒-seal-preserving h★ α∉Φ (wt-untag g gok ℓ p) =
+    wt-untag g gok ℓ (drop★⊒-seal-preserving h★ α∉Φ p)
+  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal p h α∈Φ) with dropLookup h★ h
+  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal p h α∈Φ) | drop-hit β≡α B≡★ =
     ⊥-elim (α∉Φ (subst (λ γ → γ ∈ _) β≡α (∈conv⇒∈ α∈Φ)))
-  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal h α∈Φ) | drop-keep h′ =
-    wt-seal h′ α∈Φ
-  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal★ h α∈Φ) with dropLookup h★ h
-  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal★ h α∈Φ) | drop-hit β≡α B≡★ =
+  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal p h α∈Φ) | drop-keep h′ =
+    wt-seal (drop★⊒-seal-preserving h★ α∉Φ p) h′ α∈Φ
+  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal★ p h α∈Φ) with dropLookup h★ h
+  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal★ p h α∈Φ) | drop-hit β≡α B≡★ =
     ⊥-elim (α∉Φ (subst (λ γ → γ ∈ _) β≡α (∈cast⇒∈ α∈Φ)))
-  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal★ h α∈Φ) | drop-keep h′ =
-    wt-seal★ h′ α∈Φ
+  drop★⊒-seal-preserving {α = α} h★ α∉Φ (wt-seal★ p h α∈Φ) | drop-keep h′ =
+    wt-seal★ (drop★⊒-seal-preserving h★ α∉Φ p) h′ α∈Φ
   drop★⊒-seal-preserving h★ α∉Φ (wt-↦ p q) =
     wt-↦
       (drop★⊑-seal-preserving h★ α∉Φ p)
@@ -285,10 +280,6 @@ mutual
           (λ { (there α∈Φ) → α∉Φ α∈Φ })
           p))
   drop★⊒-seal-preserving h★ α∉Φ (wt-id wfA) = wt-id wfA
-  drop★⊒-seal-preserving h★ α∉Φ (wt-； p q) =
-    wt-；
-      (drop★⊒-seal-preserving h★ α∉Φ p)
-      (drop★⊒-seal-preserving h★ α∉Φ q)
 
   drop★⊑-seal-preserving :
     ∀ {Δ Ψ}{Σ : Store}{α : Seal}
@@ -297,17 +288,18 @@ mutual
     (α ∈ Φ → ⊥) →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     Δ ∣ Ψ ∣ (removeAtˢ h★) ∣ Φ ⊢ p ⦂ A ⊑ B
-  drop★⊑-seal-preserving h★ α∉Φ (wt-tag g gok) = wt-tag g gok
-  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal h α∈Φ) with dropLookup h★ h
-  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal h α∈Φ) | drop-hit β≡α B≡★ =
+  drop★⊑-seal-preserving h★ α∉Φ (wt-tag p g gok) =
+    wt-tag (drop★⊑-seal-preserving h★ α∉Φ p) g gok
+  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal h α∈Φ p) with dropLookup h★ h
+  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal h α∈Φ p) | drop-hit β≡α B≡★ =
     ⊥-elim (α∉Φ (subst (λ γ → γ ∈ _) β≡α (∈conv⇒∈ α∈Φ)))
-  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal h α∈Φ) | drop-keep h′ =
-    wt-unseal h′ α∈Φ
-  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal★ h α∈Φ) with dropLookup h★ h
-  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal★ h α∈Φ) | drop-hit β≡α B≡★ =
+  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal h α∈Φ p) | drop-keep h′ =
+    wt-unseal h′ α∈Φ (drop★⊑-seal-preserving h★ α∉Φ p)
+  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal★ h α∈Φ p) with dropLookup h★ h
+  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal★ h α∈Φ p) | drop-hit β≡α B≡★ =
     ⊥-elim (α∉Φ (subst (λ γ → γ ∈ _) β≡α (∈cast⇒∈ α∈Φ)))
-  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal★ h α∈Φ) | drop-keep h′ =
-    wt-unseal★ h′ α∈Φ
+  drop★⊑-seal-preserving {α = α} h★ α∉Φ (wt-unseal★ h α∈Φ p) | drop-keep h′ =
+    wt-unseal★ h′ α∈Φ (drop★⊑-seal-preserving h★ α∉Φ p)
   drop★⊑-seal-preserving h★ α∉Φ (wt-↦ p q) =
     wt-↦
       (drop★⊒-seal-preserving h★ α∉Φ p)
@@ -328,10 +320,6 @@ mutual
           (λ { (there α∈Φ) → α∉Φ α∈Φ })
           p))
   drop★⊑-seal-preserving h★ α∉Φ (wt-id wfA) = wt-id wfA
-  drop★⊑-seal-preserving h★ α∉Φ (wt-； p q) =
-    wt-；
-      (drop★⊑-seal-preserving h★ α∉Φ p)
-      (drop★⊑-seal-preserving h★ α∉Φ q)
 
 ------------------------------------------------------------------------
 -- Preservation for raw one-step reduction
@@ -371,20 +359,28 @@ preservation wfΣ (⊢· (⊢down Φ lenΦ V⊢ (wt-↦ p⊢ q⊢)) W⊢) (β-do
   ⊢down Φ lenΦ (⊢· V⊢ (⊢up Φ lenΦ W⊢ p⊢)) q⊢
 preservation wfΣ (⊢up Φ lenΦ V⊢ (wt-id wfA)) (id-up vV) = V⊢
 preservation wfΣ (⊢down Φ lenΦ V⊢ (wt-id wfA)) (id-down vV) = V⊢
-preservation wfΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal h α∈Φ₂)) (wt-unseal h′ α∈Φ₁))
-  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique (storeWf-unique wfΣ) h h′) V⊢
-preservation wfΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal h α∈Φ₂)) (wt-unseal★ h′ α∈Φ₁))
-  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique (storeWf-unique wfΣ) h h′) V⊢
-preservation wfΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal★ h α∈Φ₂)) (wt-unseal h′ α∈Φ₁))
-  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique (storeWf-unique wfΣ) h h′) V⊢
-preservation wfΣ (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal★ h α∈Φ₂)) (wt-unseal★ h′ α∈Φ₁))
-  (seal-unseal vV) = cong-⊢⦂ refl refl refl (lookup-unique (storeWf-unique wfΣ) h h′) V⊢
-preservation wfΣ (⊢down Φ lenΦ (⊢up Φ′ lenΦ′ V⊢ (wt-tag g gok)) (wt-untag g′ gok′ ℓ))
-  (tag-untag-ok vV) = V⊢
-preservation wfΣ (⊢down Φ lenΦ (⊢up Φ′ lenΦ′ V⊢ (wt-tag g gok)) (wt-untag h hok ℓ′))
+preservation wfΣ
+  (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal p⊢ h α∈Φ₂)) (wt-unseal h′ α∈Φ₁ q⊢))
+  (seal-unseal vV) rewrite lookup-unique (storeWf-unique wfΣ) h h′ =
+  ⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ p⊢) q⊢
+preservation wfΣ
+  (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal p⊢ h α∈Φ₂)) (wt-unseal★ h′ α∈Φ₁ q⊢))
+  (seal-unseal vV) rewrite lookup-unique (storeWf-unique wfΣ) h h′ =
+  ⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ p⊢) q⊢
+preservation wfΣ
+  (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal★ p⊢ h α∈Φ₂)) (wt-unseal h′ α∈Φ₁ q⊢))
+  (seal-unseal vV) rewrite lookup-unique (storeWf-unique wfΣ) h h′ =
+  ⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ p⊢) q⊢
+preservation wfΣ
+  (⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ (wt-seal★ p⊢ h α∈Φ₂)) (wt-unseal★ h′ α∈Φ₁ q⊢))
+  (seal-unseal vV) rewrite lookup-unique (storeWf-unique wfΣ) h h′ =
+  ⊢up Φ₁ lenΦ₁ (⊢down Φ₂ lenΦ₂ V⊢ p⊢) q⊢
+preservation wfΣ
+  (⊢down Φ lenΦ (⊢up Φ′ lenΦ′ V⊢ (wt-tag p⊢ g gok)) (wt-untag g′ gok′ ℓ q⊢))
+  (tag-untag-ok vV) = ⊢down Φ lenΦ (⊢up Φ′ lenΦ′ V⊢ p⊢) q⊢
+preservation wfΣ
+  (⊢down Φ lenΦ (⊢up Φ′ lenΦ′ V⊢ (wt-tag p⊢ g gok)) (wt-untag h hok ℓ′ q⊢))
   (tag-untag-bad vV neq) = ⊢blame ℓ′
-preservation wfΣ (⊢up Φ lenΦ V⊢ (wt-； p⊢ q⊢)) (β-up-； vV) = ⊢up Φ lenΦ (⊢up Φ lenΦ V⊢ p⊢) q⊢
-preservation wfΣ (⊢down Φ lenΦ V⊢ (wt-； p⊢ q⊢)) (β-down-； vV) = ⊢down Φ lenΦ (⊢down Φ lenΦ V⊢ p⊢) q⊢
 preservation wfΣ (⊢⊕ (⊢$ (κℕ m)) addℕ (⊢$ (κℕ n))) δ-⊕ = ⊢$ (κℕ (m + n))
 preservation wfΣ (⊢· (⊢blame ℓ) M⊢) blame-·₁ = ⊢blame ℓ
 preservation wfΣ (⊢· L⊢ (⊢blame ℓ)) (blame-·₂ vV) = ⊢blame ℓ
@@ -393,4 +389,3 @@ preservation wfΣ (⊢up Φ lenΦ (⊢blame ℓ) p⊢) blame-up = ⊢blame ℓ
 preservation wfΣ (⊢down Φ lenΦ (⊢blame ℓ) p⊢) blame-down = ⊢blame ℓ
 preservation wfΣ (⊢⊕ (⊢blame ℓ) op M⊢) blame-⊕₁ = ⊢blame ℓ
 preservation wfΣ (⊢⊕ L⊢ op (⊢blame ℓ)) (blame-⊕₂ vL) = ⊢blame ℓ
-

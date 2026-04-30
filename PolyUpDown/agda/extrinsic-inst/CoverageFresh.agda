@@ -26,27 +26,25 @@ rule-code rule-id-down = 5
 rule-code rule-seal-unseal = 6
 rule-code rule-tag-untag-ok = 7
 rule-code rule-tag-untag-bad = 8
-rule-code rule-β-up-； = 9
-rule-code rule-β-down-； = 10
-rule-code rule-δ-⊕ = 11
-rule-code rule-blame-·₁ = 12
-rule-code rule-blame-·₂ = 13
-rule-code rule-blame-·α = 14
-rule-code rule-blame-up = 15
-rule-code rule-blame-down = 16
-rule-code rule-blame-⊕₁ = 17
-rule-code rule-blame-⊕₂ = 18
-rule-code rule-β-Λ = 19
-rule-code rule-β-down-∀ = 20
-rule-code rule-β-down-ν = 21
-rule-code rule-β-up-ν = 22
-rule-code rule-ξ-·₁ = 23
-rule-code rule-ξ-·₂ = 24
-rule-code rule-ξ-·α = 25
-rule-code rule-ξ-up = 26
-rule-code rule-ξ-down = 27
-rule-code rule-ξ-⊕₁ = 28
-rule-code rule-ξ-⊕₂ = 29
+rule-code rule-δ-⊕ = 9
+rule-code rule-blame-·₁ = 10
+rule-code rule-blame-·₂ = 11
+rule-code rule-blame-·α = 12
+rule-code rule-blame-up = 13
+rule-code rule-blame-down = 14
+rule-code rule-blame-⊕₁ = 15
+rule-code rule-blame-⊕₂ = 16
+rule-code rule-β-Λ = 17
+rule-code rule-β-down-∀ = 18
+rule-code rule-β-down-ν = 19
+rule-code rule-β-up-ν = 20
+rule-code rule-ξ-·₁ = 21
+rule-code rule-ξ-·₂ = 22
+rule-code rule-ξ-·α = 23
+rule-code rule-ξ-up = 24
+rule-code rule-ξ-down = 25
+rule-code rule-ξ-⊕₁ = 26
+rule-code rule-ξ-⊕₂ = 27
 
 contains : RuleTag → List RuleTag → Bool
 contains r [] = false
@@ -91,8 +89,6 @@ all-rule-hits =
   trace-steps-from-empty seal-name-example ++
   trace-steps-from-empty target-β-up-∀ ++
   trace-steps-from-empty target-tag-untag-bad ++
-  trace-steps-from-empty target-β-up-； ++
-  trace-steps-from-empty target-β-down-； ++
   trace-steps-from-empty target-δ-⊕ ++
   trace-steps-from-empty target-blame-·₁ ++
   trace-steps-from-empty target-blame-·₂ ++
@@ -121,9 +117,3 @@ covers-β-up-ν = covered rule-β-up-ν
 
 covers-δ-⊕ : Bool
 covers-δ-⊕ = covered rule-δ-⊕
-
-covers-β-up-； : Bool
-covers-β-up-； = covered rule-β-up-；
-
-covers-β-down-； : Bool
-covers-β-down-； = covered rule-β-down-；

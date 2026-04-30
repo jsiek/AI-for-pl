@@ -8,9 +8,11 @@ module TermPrecision where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using (List; []; _∷_; length)
-open import Data.Nat using (zero; suc; z≤n)
+open import Data.Nat using (zero; suc; _⊔_; _≤_; z≤n)
+open import Data.Nat.Properties using (m≤m⊔n; m≤n⊔m)
+open import Data.Nat.Properties using (<-irrelevant)
 open import Data.Product using (Σ; Σ-syntax; _,_; proj₁; proj₂)
-open import Relation.Binary.PropositionalEquality using (cong; sym; trans)
+open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans)
 
 open import Types
 open import Ctx using (⤊ᵗ)
@@ -129,6 +131,35 @@ rightCtx-⇑ᵗᴾ ((A , B , p) ∷ Γ) = cong (renameᵗ suc B ∷_) (rightCtx-
 ν-inst-⊑ A B T hT p =
   cast-⊑ (substˢᵗ-single-ν-src hT A) (substˢᵗ-single-⇑ˢ-id hT B)
          (substˢ-⊑-closed hT p)
+
+WfTy-irrel : ∀ {Δ Ψ A} → (h h′ : WfTy Δ Ψ A) → h ≡ h′
+WfTy-irrel (wfVar X<Δ) (wfVar X<Δ′) = cong wfVar (<-irrelevant X<Δ X<Δ′)
+WfTy-irrel (wfSeal α<Ψ) (wfSeal α<Ψ′) = cong wfSeal (<-irrelevant α<Ψ α<Ψ′)
+WfTy-irrel wfBase wfBase = refl
+WfTy-irrel wf★ wf★ = refl
+WfTy-irrel (wf⇒ hA hB) (wf⇒ hA′ hB′) = cong₂ wf⇒ (WfTy-irrel hA hA′) (WfTy-irrel hB hB′)
+WfTy-irrel (wf∀ hA) (wf∀ hA′) = cong wf∀ (WfTy-irrel hA hA′)
+
+ν-inst-⊑-WfTy-irrel :
+  ∀ {Ψ} (A B T : Ty) →
+  (hT hT′ : WfTy 0 Ψ T) →
+  (p : ((⇑ˢ A) [ α₀ ]ᵗ ⊑ ⇑ˢ B)) →
+  ν-inst-⊑ A B T hT p ≡ ν-inst-⊑ A B T hT′ p
+ν-inst-⊑-WfTy-irrel A B T hT hT′ p rewrite WfTy-irrel hT hT′ = refl
+
+ν-inst-⊑-WfTy-irrel-Ψ :
+  ∀ {Ψ Ψ′} (A B T : Ty) →
+  (hT : WfTy 0 Ψ T) →
+  (hT′ : WfTy 0 Ψ′ T) →
+  (p : ((⇑ˢ A) [ α₀ ]ᵗ ⊑ ⇑ˢ B)) →
+  ν-inst-⊑ A B T (WfTy-weakenˢ hT (m≤m⊔n Ψ Ψ′)) p
+    ≡
+  ν-inst-⊑ A B T (WfTy-weakenˢ hT′ (m≤n⊔m Ψ Ψ′)) p
+ν-inst-⊑-WfTy-irrel-Ψ {Ψ} {Ψ′} A B T hT hT′ p =
+  ν-inst-⊑-WfTy-irrel A B T
+    (WfTy-weakenˢ hT (m≤m⊔n Ψ Ψ′))
+    (WfTy-weakenˢ hT′ (m≤n⊔m Ψ Ψ′))
+    p
 
 ------------------------------------------------------------------------
 -- Term imprecision

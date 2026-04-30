@@ -26,13 +26,8 @@ open import EvalPartialFresh
 open import CoverageFresh
 open import ExamplesFresh
 open import ProgressFresh
+open import Preservation
 open import PreservationFresh
 
-open import Preservation
-
-open import LogicalRelation
 open import LogicalRelationIndexed
 open import ParametricityIndexed
--- UNDER CONSTRUCTION
---open import Parametricity
---open import DynamicGradualGuarantee

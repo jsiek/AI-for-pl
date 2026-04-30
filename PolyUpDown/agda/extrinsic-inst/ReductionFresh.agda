@@ -44,8 +44,6 @@ open import Reduction public
     ; seal-unseal
     ; tag-untag-ok
     ; tag-untag-bad
-    ; β-up-；
-    ; β-down-；
     ; δ-⊕
     ; blame-·₁
     ; blame-·₂

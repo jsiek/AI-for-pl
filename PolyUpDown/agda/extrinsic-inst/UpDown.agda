@@ -127,22 +127,20 @@ infixl 6 _；_
 
 mutual
   data Up : Set where
-    tag : Ty → Up
-    unseal : Seal → Up
+    tag : Up → Ty → Up
+    unseal : Seal → Up → Up
     _↦_ : Down → Up → Up
     ∀ᵖ : Up → Up
     ν_ : Up → Up
     id : Ty → Up
-    _；_ : Up → Up → Up
 
   data Down : Set where
-    untag : Ty → Label → Down
-    seal : Seal → Down
+    untag : Ty → Label → Down → Down
+    seal : Down → Seal → Down
     _↦_ : Up → Down → Down
     ∀ᵖ : Down → Down
     ν_ : Down → Down
     id : Ty → Down
-    _；_ : Down → Down → Down
 
 mutual
   data Conv : Set where
@@ -201,44 +199,40 @@ closeInlineAt d A = substˢᵗ (singleSealTyEnv (＇ d)) (renameᵗ (closeVarAt 
 
 mutual
   up-src : Store → Up → Ty
-  up-src Σ (tag G) = G
-  up-src Σ (unseal α) = ｀ α
+  up-src Σ (tag p G) = up-src Σ p
+  up-src Σ (unseal α p) = ｀ α
   up-src Σ (p ↦ q) = down-tgt Σ p ⇒ up-src Σ q
   up-src Σ (∀ᵖ p) = `∀ (up-src (⟰ᵗ Σ) p)
   up-src Σ (ν p) =
     `∀ ((⇑ᵗ (up-src ((zero , ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)
   up-src Σ (id A) = A
-  up-src Σ (p ； q) = up-src Σ p
 
   up-tgt : Store → Up → Ty
-  up-tgt Σ (tag G) = ★
-  up-tgt Σ (unseal α) = lookupTyˢ Σ α
+  up-tgt Σ (tag p G) = ★
+  up-tgt Σ (unseal α p) = up-tgt Σ p
   up-tgt Σ (p ↦ q) = down-src Σ p ⇒ up-tgt Σ q
   up-tgt Σ (∀ᵖ p) = `∀ (up-tgt (⟰ᵗ Σ) p)
   up-tgt Σ (ν p) =
     renameˢ (singleSealEnv zero) (up-tgt ((zero , ★) ∷ ⟰ˢ Σ) p)
   up-tgt Σ (id A) = A
-  up-tgt Σ (p ； q) = up-tgt Σ q
 
   down-src : Store → Down → Ty
-  down-src Σ (untag G ℓ) = ★
-  down-src Σ (seal α) = lookupTyˢ Σ α
+  down-src Σ (untag G ℓ p) = ★
+  down-src Σ (seal p α) = down-src Σ p
   down-src Σ (p ↦ q) = up-tgt Σ p ⇒ down-src Σ q
   down-src Σ (∀ᵖ p) = `∀ (down-src (⟰ᵗ Σ) p)
   down-src Σ (ν p) =
     renameˢ (singleSealEnv zero) (down-src ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) p)
   down-src Σ (id A) = A
-  down-src Σ (p ； q) = down-src Σ p
 
   down-tgt : Store → Down → Ty
-  down-tgt Σ (untag G ℓ) = G
-  down-tgt Σ (seal α) = ｀ α
+  down-tgt Σ (untag G ℓ p) = down-tgt Σ p
+  down-tgt Σ (seal p α) = ｀ α
   down-tgt Σ (p ↦ q) = up-src Σ p ⇒ down-tgt Σ q
   down-tgt Σ (∀ᵖ p) = `∀ (down-tgt (⟰ᵗ Σ) p)
   down-tgt Σ (ν p) =
     `∀ ((⇑ᵗ (down-tgt ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) p)) [ ＇ zero ]ˢᵗ)
   down-tgt Σ (id A) = A
-  down-tgt Σ (p ； q) = down-tgt Σ q
 
 ------------------------------------------------------------------------
 -- Well-typed widening/narrowing (recaptures intrinsic invariants)
@@ -299,20 +293,23 @@ wfTySome (`∀ A) with wfTySome A
 mutual
   data _∣_∣_∣_⊢_⦂_⊑_ (Δ : TyCtx) (Ψ : SealCtx)
       (Σ : Store) (Φ : List CastPerm) : Up → Ty → Ty → Set where
-    wt-tag : ∀ {G}
+    wt-tag : ∀ {A G}{p : Up}
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ G
       → (g : Ground G)
       → ⊢ g ok Φ
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ tag G ⦂ G ⊑ ★
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ tag p G ⦂ A ⊑ ★
 
-    wt-unseal : ∀ {α A}
+    wt-unseal : ∀ {α A B}{p : Up}
       → Σ ∋ˢ α ⦂ A
       → α ∈conv Φ
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ unseal α ⦂ ｀ α ⊑ A
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ unseal α p ⦂ ｀ α ⊑ B
 
-    wt-unseal★ : ∀ {α}
+    wt-unseal★ : ∀ {α B}{p : Up}
       → Σ ∋ˢ α ⦂ ★
       → α ∈cast Φ
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ unseal α ⦂ ｀ α ⊑ ★
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ ★ ⊑ B
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ unseal α p ⦂ ｀ α ⊑ B
 
     wt-↦ : ∀ {A A′ B B′}{p : Down}{q : Up}
       → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A′ ⊒ A
@@ -342,28 +339,26 @@ mutual
       → WfTy Δ Ψ A
       → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ id A ⦂ A ⊑ A
 
-    wt-； : ∀ {A B C}{p q : Up}
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ q ⦂ B ⊑ C
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ (p ； q) ⦂ A ⊑ C
-
   data _∣_∣_∣_⊢_⦂_⊒_ (Δ : TyCtx) (Ψ : SealCtx)
       (Σ : Store) (Φ : List CastPerm) : Down → Ty → Ty → Set where
-    wt-untag : ∀ {G}
+    wt-untag : ∀ {G B}{p : Down}
       → (g : Ground G)
       → ⊢ g ok Φ
       → (ℓ : Label)
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ (untag G ℓ) ⦂ ★ ⊒ G
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ G ⊒ B
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ untag G ℓ p ⦂ ★ ⊒ B
 
-    wt-seal : ∀ {α A}
-      → Σ ∋ˢ α ⦂ A
+    wt-seal : ∀ {α A B}{p : Down}
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B
+      → Σ ∋ˢ α ⦂ B
       → α ∈conv Φ
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ seal α ⦂ A ⊒ ｀ α
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ seal p α ⦂ A ⊒ ｀ α
 
-    wt-seal★ : ∀ {α}
+    wt-seal★ : ∀ {α A}{p : Down}
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ ★
       → Σ ∋ˢ α ⦂ ★
       → α ∈cast Φ
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ seal α ⦂ ★ ⊒ ｀ α
+      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ seal p α ⦂ A ⊒ ｀ α
 
     wt-↦ : ∀ {A A′ B B′}{p : Up}{q : Down}
       → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A′ ⊑ A
@@ -382,11 +377,6 @@ mutual
     wt-id : ∀ {A}
       → WfTy Δ Ψ A
       → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ id A ⦂ A ⊒ A
-
-    wt-； : ∀ {A B C}{p q : Down}
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ q ⦂ B ⊒ C
-      → Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ (p ； q) ⦂ A ⊒ C
 
 Wt⊑ : TyCtx → SealCtx → Store → List CastPerm → Ty → Ty → Set
 Wt⊑ Δ Ψ Σ Φ A B =
@@ -626,10 +616,10 @@ mutual
     length Φ ≡ Ψ →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     WfTy Δ Ψ A
-  ⊑-src-wf wfΣ lenΦ (wt-tag g ok) = ground-wf lenΦ g ok
-  ⊑-src-wf wfΣ lenΦ (wt-unseal {α = α} h α∈Φ) =
+  ⊑-src-wf wfΣ lenΦ (wt-tag p g ok) = ⊑-src-wf wfΣ lenΦ p
+  ⊑-src-wf wfΣ lenΦ (wt-unseal {α = α} h α∈Φ p) =
     wfSeal (member-bound lenΦ (∈conv⇒∈ α∈Φ))
-  ⊑-src-wf wfΣ lenΦ (wt-unseal★ {α = α} h α∈Φ) =
+  ⊑-src-wf wfΣ lenΦ (wt-unseal★ {α = α} h α∈Φ p) =
     wfSeal (member-bound lenΦ (∈cast⇒∈ α∈Φ))
   ⊑-src-wf wfΣ lenΦ (wt-↦ p q) =
     wf⇒ (⊒-tgt-wf wfΣ lenΦ p) (⊑-src-wf wfΣ lenΦ q)
@@ -640,7 +630,6 @@ mutual
       (WfTy-ν-open-inv
         (⊑-src-wf (storeWf-ν-ext wf★ wfΣ) (cong suc lenΦ) p))
   ⊑-src-wf wfΣ lenΦ (wt-id wfA) = wfA
-  ⊑-src-wf wfΣ lenΦ (wt-； p q) = ⊑-src-wf wfΣ lenΦ p
 
   ⊑-tgt-wf :
     ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
@@ -648,9 +637,9 @@ mutual
     length Φ ≡ Ψ →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     WfTy Δ Ψ B
-  ⊑-tgt-wf wfΣ lenΦ (wt-tag g ok) = wf★
-  ⊑-tgt-wf wfΣ lenΦ (wt-unseal h α∈Φ) = storeWf-wfTy wfΣ h
-  ⊑-tgt-wf wfΣ lenΦ (wt-unseal★ h α∈Φ) = wf★
+  ⊑-tgt-wf wfΣ lenΦ (wt-tag p g ok) = wf★
+  ⊑-tgt-wf wfΣ lenΦ (wt-unseal h α∈Φ p) = ⊑-tgt-wf wfΣ lenΦ p
+  ⊑-tgt-wf wfΣ lenΦ (wt-unseal★ h α∈Φ p) = ⊑-tgt-wf wfΣ lenΦ p
   ⊑-tgt-wf wfΣ lenΦ (wt-↦ p q) =
     wf⇒ (⊒-src-wf wfΣ lenΦ p) (⊑-tgt-wf wfΣ lenΦ q)
   ⊑-tgt-wf wfΣ lenΦ (wt-∀ p) =
@@ -659,7 +648,6 @@ mutual
     WfTy-⇑ˢ-inv
       (⊑-tgt-wf (storeWf-ν-ext wf★ wfΣ) (cong suc lenΦ) p)
   ⊑-tgt-wf wfΣ lenΦ (wt-id wfA) = wfA
-  ⊑-tgt-wf wfΣ lenΦ (wt-； p q) = ⊑-tgt-wf wfΣ lenΦ q
 
   ⊒-src-wf :
     ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
@@ -667,9 +655,9 @@ mutual
     length Φ ≡ Ψ →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     WfTy Δ Ψ A
-  ⊒-src-wf wfΣ lenΦ (wt-untag g ok ℓ) = wf★
-  ⊒-src-wf wfΣ lenΦ (wt-seal h α∈Φ) = storeWf-wfTy wfΣ h
-  ⊒-src-wf wfΣ lenΦ (wt-seal★ h α∈Φ) = wf★
+  ⊒-src-wf wfΣ lenΦ (wt-untag g ok ℓ p) = wf★
+  ⊒-src-wf wfΣ lenΦ (wt-seal p h α∈Φ) = ⊒-src-wf wfΣ lenΦ p
+  ⊒-src-wf wfΣ lenΦ (wt-seal★ p h α∈Φ) = ⊒-src-wf wfΣ lenΦ p
   ⊒-src-wf wfΣ lenΦ (wt-↦ p q) =
     wf⇒ (⊑-tgt-wf wfΣ lenΦ p) (⊒-src-wf wfΣ lenΦ q)
   ⊒-src-wf wfΣ lenΦ (wt-∀ p) =
@@ -678,7 +666,6 @@ mutual
     WfTy-⇑ˢ-inv
       (⊒-src-wf (storeWf-ν-ext wf★ wfΣ) (cong suc lenΦ) p)
   ⊒-src-wf wfΣ lenΦ (wt-id wfA) = wfA
-  ⊒-src-wf wfΣ lenΦ (wt-； p q) = ⊒-src-wf wfΣ lenΦ p
 
   ⊒-tgt-wf :
     ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
@@ -686,10 +673,10 @@ mutual
     length Φ ≡ Ψ →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     WfTy Δ Ψ B
-  ⊒-tgt-wf wfΣ lenΦ (wt-untag g ok ℓ) = ground-wf lenΦ g ok
-  ⊒-tgt-wf wfΣ lenΦ (wt-seal {α = α} h α∈Φ) =
+  ⊒-tgt-wf wfΣ lenΦ (wt-untag g ok ℓ p) = ⊒-tgt-wf wfΣ lenΦ p
+  ⊒-tgt-wf wfΣ lenΦ (wt-seal {α = α} p h α∈Φ) =
     wfSeal (member-bound lenΦ (∈conv⇒∈ α∈Φ))
-  ⊒-tgt-wf wfΣ lenΦ (wt-seal★ {α = α} h α∈Φ) =
+  ⊒-tgt-wf wfΣ lenΦ (wt-seal★ {α = α} p h α∈Φ) =
     wfSeal (member-bound lenΦ (∈cast⇒∈ α∈Φ))
   ⊒-tgt-wf wfΣ lenΦ (wt-↦ p q) =
     wf⇒ (⊑-src-wf wfΣ lenΦ p) (⊒-tgt-wf wfΣ lenΦ q)
@@ -700,7 +687,6 @@ mutual
       (WfTy-ν-open-inv
         (⊒-tgt-wf (storeWf-ν-ext wf★ wfΣ) (cong suc lenΦ) p))
   ⊒-tgt-wf wfΣ lenΦ (wt-id wfA) = wfA
-  ⊒-tgt-wf wfΣ lenΦ (wt-； p q) = ⊒-tgt-wf wfΣ lenΦ q
 
 ------------------------------------------------------------------------
 -- Endpoint alignment helpers
@@ -725,8 +711,9 @@ mutual
     ∀ {Σ Σ′ : Store} →
     (p : Up) →
     up-src Σ p ≡ up-src Σ′ p
-  up-src-irrel {Σ = Σ} {Σ′ = Σ′} (tag G) = refl
-  up-src-irrel {Σ = Σ} {Σ′ = Σ′} (unseal α) = refl
+  up-src-irrel {Σ = Σ} {Σ′ = Σ′} (tag p G) =
+    up-src-irrel {Σ = Σ} {Σ′ = Σ′} p
+  up-src-irrel {Σ = Σ} {Σ′ = Σ′} (unseal α p) = refl
   up-src-irrel {Σ = Σ} {Σ′ = Σ′} (p ↦ q) =
     cong₂ _⇒_
       (down-tgt-irrel {Σ = Σ} {Σ′ = Σ′} p)
@@ -741,15 +728,14 @@ mutual
           {Σ′ = (zero , ★) ∷ ⟰ˢ Σ′}
           p))
   up-src-irrel {Σ = Σ} {Σ′ = Σ′} (id A) = refl
-  up-src-irrel {Σ = Σ} {Σ′ = Σ′} (p ； q) =
-    up-src-irrel {Σ = Σ} {Σ′ = Σ′} p
 
   down-tgt-irrel :
     ∀ {Σ Σ′ : Store} →
     (p : Down) →
     down-tgt Σ p ≡ down-tgt Σ′ p
-  down-tgt-irrel {Σ = Σ} {Σ′ = Σ′} (untag G ℓ) = refl
-  down-tgt-irrel {Σ = Σ} {Σ′ = Σ′} (seal α) = refl
+  down-tgt-irrel {Σ = Σ} {Σ′ = Σ′} (untag G ℓ p) =
+    down-tgt-irrel {Σ = Σ} {Σ′ = Σ′} p
+  down-tgt-irrel {Σ = Σ} {Σ′ = Σ′} (seal p α) = refl
   down-tgt-irrel {Σ = Σ} {Σ′ = Σ′} (p ↦ q) =
     cong₂ _⇒_
       (up-src-irrel {Σ = Σ} {Σ′ = Σ′} p)
@@ -764,17 +750,15 @@ mutual
           {Σ′ = (zero , ⇑ˢ ★) ∷ ⟰ˢ Σ′}
           p))
   down-tgt-irrel {Σ = Σ} {Σ′ = Σ′} (id A) = refl
-  down-tgt-irrel {Σ = Σ} {Σ′ = Σ′} (p ； q) =
-    down-tgt-irrel {Σ = Σ} {Σ′ = Σ′} q
 
 mutual
   up-src-align :
     ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     up-src Σ p ≡ A
-  up-src-align (wt-tag g gok) = refl
-  up-src-align (wt-unseal h α∈Φ) = refl
-  up-src-align (wt-unseal★ h α∈Φ) = refl
+  up-src-align (wt-tag p g gok) = up-src-align p
+  up-src-align (wt-unseal h α∈Φ p) = refl
+  up-src-align (wt-unseal★ h α∈Φ p) = refl
   up-src-align (wt-↦ p q) =
     cong₂ _⇒_ (down-tgt-align p) (up-src-align q)
   up-src-align (wt-∀ p) = cong `∀ (up-src-align p)
@@ -784,16 +768,15 @@ mutual
         (cong (λ B → (⇑ᵗ B) [ ＇ zero ]ˢᵗ) (up-src-align p))
         (closeν-inline-open A))
   up-src-align (wt-id wfA) = refl
-  up-src-align (wt-； p q) = up-src-align p
 
   up-tgt-align :
     ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
     Uniqueˢ Σ →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     up-tgt Σ p ≡ B
-  up-tgt-align uΣ (wt-tag g gok) = refl
-  up-tgt-align uΣ (wt-unseal h α∈Φ) = lookupTyˢ-lookup uΣ h
-  up-tgt-align uΣ (wt-unseal★ h α∈Φ) = lookupTyˢ-lookup uΣ h
+  up-tgt-align uΣ (wt-tag p g gok) = refl
+  up-tgt-align uΣ (wt-unseal h α∈Φ p) = up-tgt-align uΣ p
+  up-tgt-align uΣ (wt-unseal★ h α∈Φ p) = up-tgt-align uΣ p
   up-tgt-align uΣ (wt-↦ p q) =
     cong₂ _⇒_ (down-src-align uΣ p) (up-tgt-align uΣ q)
   up-tgt-align uΣ (wt-∀ p) = cong `∀ (up-tgt-align (unique-⟰ᵗ uΣ) p)
@@ -802,16 +785,15 @@ mutual
       (cong (renameˢ (singleSealEnv zero)) (up-tgt-align (unique-ν ★ uΣ) p))
       (renameˢ-single-⇑ˢ-id zero B)
   up-tgt-align uΣ (wt-id wfA) = refl
-  up-tgt-align uΣ (wt-； p q) = up-tgt-align uΣ q
 
   down-src-align :
     ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
     Uniqueˢ Σ →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     down-src Σ p ≡ A
-  down-src-align uΣ (wt-untag g gok ℓ) = refl
-  down-src-align uΣ (wt-seal h α∈Φ) = lookupTyˢ-lookup uΣ h
-  down-src-align uΣ (wt-seal★ h α∈Φ) = lookupTyˢ-lookup uΣ h
+  down-src-align uΣ (wt-untag g gok ℓ p) = refl
+  down-src-align uΣ (wt-seal p h α∈Φ) = down-src-align uΣ p
+  down-src-align uΣ (wt-seal★ p h α∈Φ) = down-src-align uΣ p
   down-src-align uΣ (wt-↦ p q) =
     cong₂ _⇒_ (up-tgt-align uΣ p) (down-src-align uΣ q)
   down-src-align uΣ (wt-∀ p) = cong `∀ (down-src-align (unique-⟰ᵗ uΣ) p)
@@ -820,15 +802,14 @@ mutual
       (cong (renameˢ (singleSealEnv zero)) (down-src-align (unique-ν (⇑ˢ ★) uΣ) p))
       (renameˢ-single-⇑ˢ-id zero B)
   down-src-align uΣ (wt-id wfA) = refl
-  down-src-align uΣ (wt-； p q) = down-src-align uΣ p
 
   down-tgt-align :
     ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     down-tgt Σ p ≡ B
-  down-tgt-align (wt-untag g gok ℓ) = refl
-  down-tgt-align (wt-seal h α∈Φ) = refl
-  down-tgt-align (wt-seal★ h α∈Φ) = refl
+  down-tgt-align (wt-untag g gok ℓ p) = down-tgt-align p
+  down-tgt-align (wt-seal p h α∈Φ) = refl
+  down-tgt-align (wt-seal★ p h α∈Φ) = refl
   down-tgt-align (wt-↦ p q) =
     cong₂ _⇒_ (up-src-align p) (down-tgt-align q)
   down-tgt-align (wt-∀ p) = cong `∀ (down-tgt-align p)
@@ -838,7 +819,6 @@ mutual
         (cong (λ B → (⇑ᵗ B) [ ＇ zero ]ˢᵗ) (down-tgt-align p))
         (closeν-inline-open A))
   down-tgt-align (wt-id wfA) = refl
-  down-tgt-align (wt-； p q) = down-tgt-align q
 
 ------------------------------------------------------------------------
 -- Transport helpers
@@ -1103,60 +1083,54 @@ renameˢ-ground-ok ρ ok ★⇒★ gok = gok
 
 mutual
   rename⊑ᵗ : (ρ : Renameᵗ) → Up → Up
-  rename⊑ᵗ ρ (tag G) = tag (renameᵗ ρ G)
-  rename⊑ᵗ ρ (unseal α) = unseal α
+  rename⊑ᵗ ρ (tag p G) = tag (rename⊑ᵗ ρ p) (renameᵗ ρ G)
+  rename⊑ᵗ ρ (unseal α p) = unseal α (rename⊑ᵗ ρ p)
   rename⊑ᵗ ρ (p ↦ q) = rename⊒ᵗ ρ p ↦ rename⊑ᵗ ρ q
   rename⊑ᵗ ρ (∀ᵖ p) = ∀ᵖ (rename⊑ᵗ (extᵗ ρ) p)
   rename⊑ᵗ ρ (ν p) = ν (rename⊑ᵗ ρ p)
   rename⊑ᵗ ρ (id A) = id (renameᵗ ρ A)
-  rename⊑ᵗ ρ (p ； q) = rename⊑ᵗ ρ p ； rename⊑ᵗ ρ q
 
   rename⊒ᵗ : (ρ : Renameᵗ) → Down → Down
-  rename⊒ᵗ ρ (untag G ℓ) = untag (renameᵗ ρ G) ℓ
-  rename⊒ᵗ ρ (seal α) = seal α
+  rename⊒ᵗ ρ (untag G ℓ p) = untag (renameᵗ ρ G) ℓ (rename⊒ᵗ ρ p)
+  rename⊒ᵗ ρ (seal p α) = seal (rename⊒ᵗ ρ p) α
   rename⊒ᵗ ρ (p ↦ q) = rename⊑ᵗ ρ p ↦ rename⊒ᵗ ρ q
   rename⊒ᵗ ρ (∀ᵖ p) = ∀ᵖ (rename⊒ᵗ (extᵗ ρ) p)
   rename⊒ᵗ ρ (ν p) = ν (rename⊒ᵗ ρ p)
   rename⊒ᵗ ρ (id A) = id (renameᵗ ρ A)
-  rename⊒ᵗ ρ (p ； q) = rename⊒ᵗ ρ p ； rename⊒ᵗ ρ q
 
 mutual
   rename⊑ˢ : (ρ : Renameˢ) → Up → Up
-  rename⊑ˢ ρ (tag G) = tag (renameˢ ρ G)
-  rename⊑ˢ ρ (unseal α) = unseal (ρ α)
+  rename⊑ˢ ρ (tag p G) = tag (rename⊑ˢ ρ p) (renameˢ ρ G)
+  rename⊑ˢ ρ (unseal α p) = unseal (ρ α) (rename⊑ˢ ρ p)
   rename⊑ˢ ρ (p ↦ q) = rename⊒ˢ ρ p ↦ rename⊑ˢ ρ q
   rename⊑ˢ ρ (∀ᵖ p) = ∀ᵖ (rename⊑ˢ ρ p)
   rename⊑ˢ ρ (ν p) = ν (rename⊑ˢ (extˢ ρ) p)
   rename⊑ˢ ρ (id A) = id (renameˢ ρ A)
-  rename⊑ˢ ρ (p ； q) = rename⊑ˢ ρ p ； rename⊑ˢ ρ q
 
   rename⊒ˢ : (ρ : Renameˢ) → Down → Down
-  rename⊒ˢ ρ (untag G ℓ) = untag (renameˢ ρ G) ℓ
-  rename⊒ˢ ρ (seal α) = seal (ρ α)
+  rename⊒ˢ ρ (untag G ℓ p) = untag (renameˢ ρ G) ℓ (rename⊒ˢ ρ p)
+  rename⊒ˢ ρ (seal p α) = seal (rename⊒ˢ ρ p) (ρ α)
   rename⊒ˢ ρ (p ↦ q) = rename⊑ˢ ρ p ↦ rename⊒ˢ ρ q
   rename⊒ˢ ρ (∀ᵖ p) = ∀ᵖ (rename⊒ˢ ρ p)
   rename⊒ˢ ρ (ν p) = ν (rename⊒ˢ (extˢ ρ) p)
   rename⊒ˢ ρ (id A) = id (renameˢ ρ A)
-  rename⊒ˢ ρ (p ； q) = rename⊒ˢ ρ p ； rename⊒ˢ ρ q
 
 mutual
   subst⊑ᵗ : (σ : Substᵗ) → Up → Up
-  subst⊑ᵗ σ (tag G) = tag (substᵗ σ G)
-  subst⊑ᵗ σ (unseal α) = unseal α
+  subst⊑ᵗ σ (tag p G) = tag (subst⊑ᵗ σ p) (substᵗ σ G)
+  subst⊑ᵗ σ (unseal α p) = unseal α (subst⊑ᵗ σ p)
   subst⊑ᵗ σ (p ↦ q) = subst⊒ᵗ σ p ↦ subst⊑ᵗ σ q
   subst⊑ᵗ σ (∀ᵖ p) = ∀ᵖ (subst⊑ᵗ (extsᵗ σ) p)
   subst⊑ᵗ σ (ν p) = ν (subst⊑ᵗ (liftSubstˢ σ) p)
   subst⊑ᵗ σ (id A) = id (substᵗ σ A)
-  subst⊑ᵗ σ (p ； q) = subst⊑ᵗ σ p ； subst⊑ᵗ σ q
 
   subst⊒ᵗ : (σ : Substᵗ) → Down → Down
-  subst⊒ᵗ σ (untag G ℓ) = untag (substᵗ σ G) ℓ
-  subst⊒ᵗ σ (seal α) = seal α
+  subst⊒ᵗ σ (untag G ℓ p) = untag (substᵗ σ G) ℓ (subst⊒ᵗ σ p)
+  subst⊒ᵗ σ (seal p α) = seal (subst⊒ᵗ σ p) α
   subst⊒ᵗ σ (p ↦ q) = subst⊑ᵗ σ p ↦ subst⊒ᵗ σ q
   subst⊒ᵗ σ (∀ᵖ p) = ∀ᵖ (subst⊒ᵗ (extsᵗ σ) p)
   subst⊒ᵗ σ (ν p) = ν (subst⊒ᵗ (liftSubstˢ σ) p)
   subst⊒ᵗ σ (id A) = id (substᵗ σ A)
-  subst⊒ᵗ σ (p ； q) = subst⊒ᵗ σ p ； subst⊒ᵗ σ q
 
 ------------------------------------------------------------------------
 -- Raw coercion substitution algebra
@@ -1168,8 +1142,8 @@ mutual
     ((X : TyVar) → ρ X ≡ ρ′ X) →
     (p : Up) →
     rename⊑ᵗ ρ p ≡ rename⊑ᵗ ρ′ p
-  rename⊑ᵗ-cong h (tag G) = cong tag (rename-cong h G)
-  rename⊑ᵗ-cong h (unseal α) = refl
+  rename⊑ᵗ-cong h (tag p G) = cong₂ tag (rename⊑ᵗ-cong h p) (rename-cong h G)
+  rename⊑ᵗ-cong h (unseal α p) = cong (unseal α) (rename⊑ᵗ-cong h p)
   rename⊑ᵗ-cong h (p ↦ q) =
     cong₂ _↦_ (rename⊒ᵗ-cong h p) (rename⊑ᵗ-cong h q)
   rename⊑ᵗ-cong h (∀ᵖ p) = cong ∀ᵖ (rename⊑ᵗ-cong h-ext p)
@@ -1179,17 +1153,15 @@ mutual
     h-ext (suc X) = cong suc (h X)
   rename⊑ᵗ-cong h (ν p) = cong ν_ (rename⊑ᵗ-cong h p)
   rename⊑ᵗ-cong h (id A) = cong id (rename-cong h A)
-  rename⊑ᵗ-cong h (p ； q) =
-    cong₂ _；_ (rename⊑ᵗ-cong h p) (rename⊑ᵗ-cong h q)
 
   rename⊒ᵗ-cong :
     ∀ {ρ ρ′ : Renameᵗ} →
     ((X : TyVar) → ρ X ≡ ρ′ X) →
     (p : Down) →
     rename⊒ᵗ ρ p ≡ rename⊒ᵗ ρ′ p
-  rename⊒ᵗ-cong h (untag G ℓ) =
-    cong (λ T → untag T ℓ) (rename-cong h G)
-  rename⊒ᵗ-cong h (seal α) = refl
+  rename⊒ᵗ-cong h (untag G ℓ p) =
+    cong₂ (λ T q → untag T ℓ q) (rename-cong h G) (rename⊒ᵗ-cong h p)
+  rename⊒ᵗ-cong h (seal p α) = cong (λ q → seal q α) (rename⊒ᵗ-cong h p)
   rename⊒ᵗ-cong h (p ↦ q) =
     cong₂ _↦_ (rename⊑ᵗ-cong h p) (rename⊒ᵗ-cong h q)
   rename⊒ᵗ-cong h (∀ᵖ p) = cong ∀ᵖ (rename⊒ᵗ-cong h-ext p)
@@ -1199,8 +1171,6 @@ mutual
     h-ext (suc X) = cong suc (h X)
   rename⊒ᵗ-cong h (ν p) = cong ν_ (rename⊒ᵗ-cong h p)
   rename⊒ᵗ-cong h (id A) = cong id (rename-cong h A)
-  rename⊒ᵗ-cong h (p ； q) =
-    cong₂ _；_ (rename⊒ᵗ-cong h p) (rename⊒ᵗ-cong h q)
 
 mutual
   subst⊑ᵗ-cong :
@@ -1208,8 +1178,8 @@ mutual
     ((X : TyVar) → σ X ≡ τ X) →
     (p : Up) →
     subst⊑ᵗ σ p ≡ subst⊑ᵗ τ p
-  subst⊑ᵗ-cong h (tag G) = cong tag (substᵗ-cong h G)
-  subst⊑ᵗ-cong h (unseal α) = refl
+  subst⊑ᵗ-cong h (tag p G) = cong₂ tag (subst⊑ᵗ-cong h p) (substᵗ-cong h G)
+  subst⊑ᵗ-cong h (unseal α p) = cong (unseal α) (subst⊑ᵗ-cong h p)
   subst⊑ᵗ-cong h (p ↦ q) =
     cong₂ _↦_ (subst⊒ᵗ-cong h p) (subst⊑ᵗ-cong h q)
   subst⊑ᵗ-cong {σ = σ} {τ = τ} h (∀ᵖ p) =
@@ -1224,17 +1194,15 @@ mutual
     h-lift : (X : TyVar) → liftSubstˢ σ X ≡ liftSubstˢ τ X
     h-lift X = cong ⇑ˢ (h X)
   subst⊑ᵗ-cong h (id A) = cong id (substᵗ-cong h A)
-  subst⊑ᵗ-cong h (p ； q) =
-    cong₂ _；_ (subst⊑ᵗ-cong h p) (subst⊑ᵗ-cong h q)
 
   subst⊒ᵗ-cong :
     ∀ {σ τ : Substᵗ} →
     ((X : TyVar) → σ X ≡ τ X) →
     (p : Down) →
     subst⊒ᵗ σ p ≡ subst⊒ᵗ τ p
-  subst⊒ᵗ-cong h (untag G ℓ) =
-    cong (λ T → untag T ℓ) (substᵗ-cong h G)
-  subst⊒ᵗ-cong h (seal α) = refl
+  subst⊒ᵗ-cong h (untag G ℓ p) =
+    cong₂ (λ T q → untag T ℓ q) (substᵗ-cong h G) (subst⊒ᵗ-cong h p)
+  subst⊒ᵗ-cong h (seal p α) = cong (λ q → seal q α) (subst⊒ᵗ-cong h p)
   subst⊒ᵗ-cong h (p ↦ q) =
     cong₂ _↦_ (subst⊑ᵗ-cong h p) (subst⊒ᵗ-cong h q)
   subst⊒ᵗ-cong {σ = σ} {τ = τ} h (∀ᵖ p) =
@@ -1249,17 +1217,18 @@ mutual
     h-lift : (X : TyVar) → liftSubstˢ σ X ≡ liftSubstˢ τ X
     h-lift X = cong ⇑ˢ (h X)
   subst⊒ᵗ-cong h (id A) = cong id (substᵗ-cong h A)
-  subst⊒ᵗ-cong h (p ； q) =
-    cong₂ _；_ (subst⊒ᵗ-cong h p) (subst⊒ᵗ-cong h q)
 
 mutual
   rename⊑ᵗ-rename⊑ᵗ :
     (ρ₁ ρ₂ : Renameᵗ) (p : Up) →
     rename⊑ᵗ ρ₂ (rename⊑ᵗ ρ₁ p) ≡
     rename⊑ᵗ (λ X → ρ₂ (ρ₁ X)) p
-  rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ (tag G) =
-    cong tag (renameᵗ-compose ρ₁ ρ₂ G)
-  rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ (unseal α) = refl
+  rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ (tag p G) =
+    cong₂ tag
+      (rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ p)
+      (renameᵗ-compose ρ₁ ρ₂ G)
+  rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ (unseal α p) =
+    cong (unseal α) (rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ p)
   rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ (p ↦ q) =
     cong₂ _↦_
       (rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ p)
@@ -1278,18 +1247,17 @@ mutual
     cong ν_ (rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ p)
   rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ (id A) =
     cong id (renameᵗ-compose ρ₁ ρ₂ A)
-  rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ (p ； q) =
-    cong₂ _；_
-      (rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ p)
-      (rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ q)
 
   rename⊒ᵗ-rename⊒ᵗ :
     (ρ₁ ρ₂ : Renameᵗ) (p : Down) →
     rename⊒ᵗ ρ₂ (rename⊒ᵗ ρ₁ p) ≡
     rename⊒ᵗ (λ X → ρ₂ (ρ₁ X)) p
-  rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ (untag G ℓ) =
-    cong (λ T → untag T ℓ) (renameᵗ-compose ρ₁ ρ₂ G)
-  rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ (seal α) = refl
+  rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ (untag G ℓ p) =
+    cong₂ (λ T q → untag T ℓ q)
+      (renameᵗ-compose ρ₁ ρ₂ G)
+      (rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ p)
+  rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ (seal p α) =
+    cong (λ q → seal q α) (rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ p)
   rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ (p ↦ q) =
     cong₂ _↦_
       (rename⊑ᵗ-rename⊑ᵗ ρ₁ ρ₂ p)
@@ -1308,19 +1276,18 @@ mutual
     cong ν_ (rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ p)
   rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ (id A) =
     cong id (renameᵗ-compose ρ₁ ρ₂ A)
-  rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ (p ； q) =
-    cong₂ _；_
-      (rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ p)
-      (rename⊒ᵗ-rename⊒ᵗ ρ₁ ρ₂ q)
 
 mutual
   subst⊑ᵗ-rename⊑ᵗ :
     (ρ : Renameᵗ) (σ : Substᵗ) (p : Up) →
     subst⊑ᵗ σ (rename⊑ᵗ ρ p) ≡
     subst⊑ᵗ (λ X → σ (ρ X)) p
-  subst⊑ᵗ-rename⊑ᵗ ρ σ (tag G) =
-    cong tag (substᵗ-renameᵗ ρ σ G)
-  subst⊑ᵗ-rename⊑ᵗ ρ σ (unseal α) = refl
+  subst⊑ᵗ-rename⊑ᵗ ρ σ (tag p G) =
+    cong₂ tag
+      (subst⊑ᵗ-rename⊑ᵗ ρ σ p)
+      (substᵗ-renameᵗ ρ σ G)
+  subst⊑ᵗ-rename⊑ᵗ ρ σ (unseal α p) =
+    cong (unseal α) (subst⊑ᵗ-rename⊑ᵗ ρ σ p)
   subst⊑ᵗ-rename⊑ᵗ ρ σ (p ↦ q) =
     cong₂ _↦_
       (subst⊒ᵗ-rename⊒ᵗ ρ σ p)
@@ -1339,18 +1306,17 @@ mutual
     cong ν_ (subst⊑ᵗ-rename⊑ᵗ ρ (liftSubstˢ σ) p)
   subst⊑ᵗ-rename⊑ᵗ ρ σ (id A) =
     cong id (substᵗ-renameᵗ ρ σ A)
-  subst⊑ᵗ-rename⊑ᵗ ρ σ (p ； q) =
-    cong₂ _；_
-      (subst⊑ᵗ-rename⊑ᵗ ρ σ p)
-      (subst⊑ᵗ-rename⊑ᵗ ρ σ q)
 
   subst⊒ᵗ-rename⊒ᵗ :
     (ρ : Renameᵗ) (σ : Substᵗ) (p : Down) →
     subst⊒ᵗ σ (rename⊒ᵗ ρ p) ≡
     subst⊒ᵗ (λ X → σ (ρ X)) p
-  subst⊒ᵗ-rename⊒ᵗ ρ σ (untag G ℓ) =
-    cong (λ T → untag T ℓ) (substᵗ-renameᵗ ρ σ G)
-  subst⊒ᵗ-rename⊒ᵗ ρ σ (seal α) = refl
+  subst⊒ᵗ-rename⊒ᵗ ρ σ (untag G ℓ p) =
+    cong₂ (λ T q → untag T ℓ q)
+      (substᵗ-renameᵗ ρ σ G)
+      (subst⊒ᵗ-rename⊒ᵗ ρ σ p)
+  subst⊒ᵗ-rename⊒ᵗ ρ σ (seal p α) =
+    cong (λ q → seal q α) (subst⊒ᵗ-rename⊒ᵗ ρ σ p)
   subst⊒ᵗ-rename⊒ᵗ ρ σ (p ↦ q) =
     cong₂ _↦_
       (subst⊑ᵗ-rename⊑ᵗ ρ σ p)
@@ -1369,19 +1335,18 @@ mutual
     cong ν_ (subst⊒ᵗ-rename⊒ᵗ ρ (liftSubstˢ σ) p)
   subst⊒ᵗ-rename⊒ᵗ ρ σ (id A) =
     cong id (substᵗ-renameᵗ ρ σ A)
-  subst⊒ᵗ-rename⊒ᵗ ρ σ (p ； q) =
-    cong₂ _；_
-      (subst⊒ᵗ-rename⊒ᵗ ρ σ p)
-      (subst⊒ᵗ-rename⊒ᵗ ρ σ q)
 
 mutual
   rename⊑ᵗ-subst⊑ᵗ :
     (ρ : Renameᵗ) (σ : Substᵗ) (p : Up) →
     rename⊑ᵗ ρ (subst⊑ᵗ σ p) ≡
     subst⊑ᵗ (λ X → renameᵗ ρ (σ X)) p
-  rename⊑ᵗ-subst⊑ᵗ ρ σ (tag G) =
-    cong tag (renameᵗ-substᵗ ρ σ G)
-  rename⊑ᵗ-subst⊑ᵗ ρ σ (unseal α) = refl
+  rename⊑ᵗ-subst⊑ᵗ ρ σ (tag p G) =
+    cong₂ tag
+      (rename⊑ᵗ-subst⊑ᵗ ρ σ p)
+      (renameᵗ-substᵗ ρ σ G)
+  rename⊑ᵗ-subst⊑ᵗ ρ σ (unseal α p) =
+    cong (unseal α) (rename⊑ᵗ-subst⊑ᵗ ρ σ p)
   rename⊑ᵗ-subst⊑ᵗ ρ σ (p ↦ q) =
     cong₂ _↦_
       (rename⊒ᵗ-subst⊒ᵗ ρ σ p)
@@ -1409,18 +1374,17 @@ mutual
     env X = renameᵗ-⇑ˢ ρ (σ X)
   rename⊑ᵗ-subst⊑ᵗ ρ σ (id A) =
     cong id (renameᵗ-substᵗ ρ σ A)
-  rename⊑ᵗ-subst⊑ᵗ ρ σ (p ； q) =
-    cong₂ _；_
-      (rename⊑ᵗ-subst⊑ᵗ ρ σ p)
-      (rename⊑ᵗ-subst⊑ᵗ ρ σ q)
 
   rename⊒ᵗ-subst⊒ᵗ :
     (ρ : Renameᵗ) (σ : Substᵗ) (p : Down) →
     rename⊒ᵗ ρ (subst⊒ᵗ σ p) ≡
     subst⊒ᵗ (λ X → renameᵗ ρ (σ X)) p
-  rename⊒ᵗ-subst⊒ᵗ ρ σ (untag G ℓ) =
-    cong (λ T → untag T ℓ) (renameᵗ-substᵗ ρ σ G)
-  rename⊒ᵗ-subst⊒ᵗ ρ σ (seal α) = refl
+  rename⊒ᵗ-subst⊒ᵗ ρ σ (untag G ℓ p) =
+    cong₂ (λ T q → untag T ℓ q)
+      (renameᵗ-substᵗ ρ σ G)
+      (rename⊒ᵗ-subst⊒ᵗ ρ σ p)
+  rename⊒ᵗ-subst⊒ᵗ ρ σ (seal p α) =
+    cong (λ q → seal q α) (rename⊒ᵗ-subst⊒ᵗ ρ σ p)
   rename⊒ᵗ-subst⊒ᵗ ρ σ (p ↦ q) =
     cong₂ _↦_
       (rename⊑ᵗ-subst⊑ᵗ ρ σ p)
@@ -1448,10 +1412,6 @@ mutual
     env X = renameᵗ-⇑ˢ ρ (σ X)
   rename⊒ᵗ-subst⊒ᵗ ρ σ (id A) =
     cong id (renameᵗ-substᵗ ρ σ A)
-  rename⊒ᵗ-subst⊒ᵗ ρ σ (p ； q) =
-    cong₂ _；_
-      (rename⊒ᵗ-subst⊒ᵗ ρ σ p)
-      (rename⊒ᵗ-subst⊒ᵗ ρ σ q)
 
 subst⊑ᵗ-suc-rename⊑ᵗ-suc :
   (σ : Substᵗ) (p : Up) →
@@ -1476,9 +1436,12 @@ mutual
     (τ σ : Substᵗ) (p : Up) →
     subst⊑ᵗ τ (subst⊑ᵗ σ p) ≡
     subst⊑ᵗ (λ X → substᵗ τ (σ X)) p
-  subst⊑ᵗ-subst⊑ᵗ τ σ (tag G) =
-    cong tag (substᵗ-substᵗ τ σ G)
-  subst⊑ᵗ-subst⊑ᵗ τ σ (unseal α) = refl
+  subst⊑ᵗ-subst⊑ᵗ τ σ (tag p G) =
+    cong₂ tag
+      (subst⊑ᵗ-subst⊑ᵗ τ σ p)
+      (substᵗ-substᵗ τ σ G)
+  subst⊑ᵗ-subst⊑ᵗ τ σ (unseal α p) =
+    cong (unseal α) (subst⊑ᵗ-subst⊑ᵗ τ σ p)
   subst⊑ᵗ-subst⊑ᵗ τ σ (p ↦ q) =
     cong₂ _↦_
       (subst⊒ᵗ-subst⊒ᵗ τ σ p)
@@ -1506,18 +1469,17 @@ mutual
     env X = substᵗ-⇑ˢ τ (σ X)
   subst⊑ᵗ-subst⊑ᵗ τ σ (id A) =
     cong id (substᵗ-substᵗ τ σ A)
-  subst⊑ᵗ-subst⊑ᵗ τ σ (p ； q) =
-    cong₂ _；_
-      (subst⊑ᵗ-subst⊑ᵗ τ σ p)
-      (subst⊑ᵗ-subst⊑ᵗ τ σ q)
 
   subst⊒ᵗ-subst⊒ᵗ :
     (τ σ : Substᵗ) (p : Down) →
     subst⊒ᵗ τ (subst⊒ᵗ σ p) ≡
     subst⊒ᵗ (λ X → substᵗ τ (σ X)) p
-  subst⊒ᵗ-subst⊒ᵗ τ σ (untag G ℓ) =
-    cong (λ T → untag T ℓ) (substᵗ-substᵗ τ σ G)
-  subst⊒ᵗ-subst⊒ᵗ τ σ (seal α) = refl
+  subst⊒ᵗ-subst⊒ᵗ τ σ (untag G ℓ p) =
+    cong₂ (λ T q → untag T ℓ q)
+      (substᵗ-substᵗ τ σ G)
+      (subst⊒ᵗ-subst⊒ᵗ τ σ p)
+  subst⊒ᵗ-subst⊒ᵗ τ σ (seal p α) =
+    cong (λ q → seal q α) (subst⊒ᵗ-subst⊒ᵗ τ σ p)
   subst⊒ᵗ-subst⊒ᵗ τ σ (p ↦ q) =
     cong₂ _↦_
       (subst⊑ᵗ-subst⊑ᵗ τ σ p)
@@ -1545,10 +1507,6 @@ mutual
     env X = substᵗ-⇑ˢ τ (σ X)
   subst⊒ᵗ-subst⊒ᵗ τ σ (id A) =
     cong id (substᵗ-substᵗ τ σ A)
-  subst⊒ᵗ-subst⊒ᵗ τ σ (p ； q) =
-    cong₂ _；_
-      (subst⊒ᵗ-subst⊒ᵗ τ σ p)
-      (subst⊒ᵗ-subst⊒ᵗ τ σ q)
 
 infixl 8 _[_]⊑
 _[_]⊑ : Up → Seal → Up
@@ -1608,12 +1566,12 @@ mutual
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     Δ′ ∣ Ψ ∣ (renameStoreᵗ ρ Σ) ∣ Φ ⊢ (rename⊑ᵗ ρ p)
       ⦂ (renameᵗ ρ A) ⊑ (renameᵗ ρ B)
-  ⊑-renameᵗ-wt ρ hρ (wt-tag g gokΦ) =
-    wt-tag (renameᵗ-ground ρ g) (renameᵗ-ground-ok ρ g gokΦ)
-  ⊑-renameᵗ-wt ρ hρ (wt-unseal h α∈Φ) =
-    wt-unseal (renameLookupᵗ ρ h) α∈Φ
-  ⊑-renameᵗ-wt ρ hρ (wt-unseal★ h α∈Φ) =
-    wt-unseal★ (renameLookupᵗ ρ h) α∈Φ
+  ⊑-renameᵗ-wt ρ hρ (wt-tag p g gokΦ) =
+    wt-tag (⊑-renameᵗ-wt ρ hρ p) (renameᵗ-ground ρ g) (renameᵗ-ground-ok ρ g gokΦ)
+  ⊑-renameᵗ-wt ρ hρ (wt-unseal h α∈Φ p) =
+    wt-unseal (renameLookupᵗ ρ h) α∈Φ (⊑-renameᵗ-wt ρ hρ p)
+  ⊑-renameᵗ-wt ρ hρ (wt-unseal★ h α∈Φ p) =
+    wt-unseal★ (renameLookupᵗ ρ h) α∈Φ (⊑-renameᵗ-wt ρ hρ p)
   ⊑-renameᵗ-wt ρ hρ (wt-↦ p q) =
     wt-↦ (⊒-renameᵗ-wt ρ hρ p) (⊑-renameᵗ-wt ρ hρ q)
   ⊑-renameᵗ-wt {Σ = Σ} ρ hρ (wt-∀ p) =
@@ -1633,8 +1591,6 @@ mutual
           (⊑-renameᵗ-wt ρ hρ p)))
   ⊑-renameᵗ-wt ρ hρ (wt-id wfA) =
     wt-id (renameᵗ-preserves-WfTy wfA hρ)
-  ⊑-renameᵗ-wt ρ hρ (wt-； p q) =
-    wt-； (⊑-renameᵗ-wt ρ hρ p) (⊑-renameᵗ-wt ρ hρ q)
 
   ⊒-renameᵗ-wt :
     ∀ {Δ Δ′ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}
@@ -1644,12 +1600,12 @@ mutual
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     Δ′ ∣ Ψ ∣ (renameStoreᵗ ρ Σ) ∣ Φ ⊢ (rename⊒ᵗ ρ p)
       ⦂ (renameᵗ ρ A) ⊒ (renameᵗ ρ B)
-  ⊒-renameᵗ-wt ρ hρ (wt-untag g gokΦ ℓ) =
-    wt-untag (renameᵗ-ground ρ g) (renameᵗ-ground-ok ρ g gokΦ) ℓ
-  ⊒-renameᵗ-wt ρ hρ (wt-seal h α∈Φ) =
-    wt-seal (renameLookupᵗ ρ h) α∈Φ
-  ⊒-renameᵗ-wt ρ hρ (wt-seal★ h α∈Φ) =
-    wt-seal★ (renameLookupᵗ ρ h) α∈Φ
+  ⊒-renameᵗ-wt ρ hρ (wt-untag g gokΦ ℓ p) =
+    wt-untag (renameᵗ-ground ρ g) (renameᵗ-ground-ok ρ g gokΦ) ℓ (⊒-renameᵗ-wt ρ hρ p)
+  ⊒-renameᵗ-wt ρ hρ (wt-seal p h α∈Φ) =
+    wt-seal (⊒-renameᵗ-wt ρ hρ p) (renameLookupᵗ ρ h) α∈Φ
+  ⊒-renameᵗ-wt ρ hρ (wt-seal★ p h α∈Φ) =
+    wt-seal★ (⊒-renameᵗ-wt ρ hρ p) (renameLookupᵗ ρ h) α∈Φ
   ⊒-renameᵗ-wt ρ hρ (wt-↦ p q) =
     wt-↦ (⊑-renameᵗ-wt ρ hρ p) (⊒-renameᵗ-wt ρ hρ q)
   ⊒-renameᵗ-wt {Σ = Σ} ρ hρ (wt-∀ p) =
@@ -1669,8 +1625,6 @@ mutual
           (⊒-renameᵗ-wt ρ hρ p)))
   ⊒-renameᵗ-wt ρ hρ (wt-id wfA) =
     wt-id (renameᵗ-preserves-WfTy wfA hρ)
-  ⊒-renameᵗ-wt ρ hρ (wt-； p q) =
-    wt-； (⊒-renameᵗ-wt ρ hρ p) (⊒-renameᵗ-wt ρ hρ q)
 
 ------------------------------------------------------------------------
 -- Seal renaming for well-typed widening and narrowing
@@ -1689,12 +1643,17 @@ mutual
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     Δ ∣ Ψ′ ∣ (renameStoreˢ ρ Σ) ∣ Φ′ ⊢ (rename⊑ˢ ρ p)
       ⦂ (renameˢ ρ A) ⊑ (renameˢ ρ B)
-  ⊑-renameˢ-wt ρ hρ okConv okCast okTag (wt-tag g gokΦ) =
-    wt-tag (renameˢ-ground ρ g) (renameˢ-ground-ok ρ okTag g gokΦ)
-  ⊑-renameˢ-wt ρ hρ okConv okCast okTag (wt-unseal h α∈Φ) =
+  ⊑-renameˢ-wt ρ hρ okConv okCast okTag (wt-tag p g gokΦ) =
+    wt-tag
+      (⊑-renameˢ-wt ρ hρ okConv okCast okTag p)
+      (renameˢ-ground ρ g)
+      (renameˢ-ground-ok ρ okTag g gokΦ)
+  ⊑-renameˢ-wt ρ hρ okConv okCast okTag (wt-unseal h α∈Φ p) =
     wt-unseal (renameLookupˢ ρ h) (okConv α∈Φ)
-  ⊑-renameˢ-wt ρ hρ okConv okCast okTag (wt-unseal★ h α∈Φ) =
+      (⊑-renameˢ-wt ρ hρ okConv okCast okTag p)
+  ⊑-renameˢ-wt ρ hρ okConv okCast okTag (wt-unseal★ h α∈Φ p) =
     wt-unseal★ (renameLookupˢ ρ h) (okCast α∈Φ)
+      (⊑-renameˢ-wt ρ hρ okConv okCast okTag p)
   ⊑-renameˢ-wt ρ hρ okConv okCast okTag (wt-↦ p q) =
     wt-↦
       (⊒-renameˢ-wt ρ hρ okConv okCast okTag p)
@@ -1723,10 +1682,6 @@ mutual
             p)))
   ⊑-renameˢ-wt ρ hρ okConv okCast okTag (wt-id wfA) =
     wt-id (renameˢ-preserves-WfTy wfA hρ)
-  ⊑-renameˢ-wt ρ hρ okConv okCast okTag (wt-； p q) =
-    wt-；
-      (⊑-renameˢ-wt ρ hρ okConv okCast okTag p)
-      (⊑-renameˢ-wt ρ hρ okConv okCast okTag q)
 
   ⊒-renameˢ-wt :
     ∀ {Δ Ψ Ψ′}{Σ : Store}
@@ -1740,12 +1695,22 @@ mutual
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     Δ ∣ Ψ′ ∣ (renameStoreˢ ρ Σ) ∣ Φ′ ⊢ (rename⊒ˢ ρ p)
       ⦂ (renameˢ ρ A) ⊒ (renameˢ ρ B)
-  ⊒-renameˢ-wt ρ hρ okConv okCast okTag (wt-untag g gokΦ ℓ) =
-    wt-untag (renameˢ-ground ρ g) (renameˢ-ground-ok ρ okTag g gokΦ) ℓ
-  ⊒-renameˢ-wt ρ hρ okConv okCast okTag (wt-seal h α∈Φ) =
-    wt-seal (renameLookupˢ ρ h) (okConv α∈Φ)
-  ⊒-renameˢ-wt ρ hρ okConv okCast okTag (wt-seal★ h α∈Φ) =
-    wt-seal★ (renameLookupˢ ρ h) (okCast α∈Φ)
+  ⊒-renameˢ-wt ρ hρ okConv okCast okTag (wt-untag g gokΦ ℓ p) =
+    wt-untag
+      (renameˢ-ground ρ g)
+      (renameˢ-ground-ok ρ okTag g gokΦ)
+      ℓ
+      (⊒-renameˢ-wt ρ hρ okConv okCast okTag p)
+  ⊒-renameˢ-wt ρ hρ okConv okCast okTag (wt-seal p h α∈Φ) =
+    wt-seal
+      (⊒-renameˢ-wt ρ hρ okConv okCast okTag p)
+      (renameLookupˢ ρ h)
+      (okConv α∈Φ)
+  ⊒-renameˢ-wt ρ hρ okConv okCast okTag (wt-seal★ p h α∈Φ) =
+    wt-seal★
+      (⊒-renameˢ-wt ρ hρ okConv okCast okTag p)
+      (renameLookupˢ ρ h)
+      (okCast α∈Φ)
   ⊒-renameˢ-wt ρ hρ okConv okCast okTag (wt-↦ p q) =
     wt-↦
       (⊑-renameˢ-wt ρ hρ okConv okCast okTag p)
@@ -1774,10 +1739,6 @@ mutual
             p)))
   ⊒-renameˢ-wt ρ hρ okConv okCast okTag (wt-id wfA) =
     wt-id (renameˢ-preserves-WfTy wfA hρ)
-  ⊒-renameˢ-wt ρ hρ okConv okCast okTag (wt-； p q) =
-    wt-；
-      (⊒-renameˢ-wt ρ hρ okConv okCast okTag p)
-      (⊒-renameˢ-wt ρ hρ okConv okCast okTag q)
 
 ------------------------------------------------------------------------
 -- Type-variable substitution for well-typed widening and narrowing
@@ -1792,12 +1753,12 @@ mutual
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     Δ′ ∣ Ψ ∣ (substStoreᵗ σ Σ) ∣ Φ ⊢ (subst⊑ᵗ σ p)
       ⦂ (substᵗ σ A) ⊑ (substᵗ σ B)
-  ⊑-substᵗ-wt σ hσ (wt-tag g gokΦ) =
-    wt-tag (substᵗ-ground σ g) (substᵗ-ground-ok σ g gokΦ)
-  ⊑-substᵗ-wt σ hσ (wt-unseal h α∈Φ) =
-    wt-unseal (substLookupᵗ σ h) α∈Φ
-  ⊑-substᵗ-wt σ hσ (wt-unseal★ h α∈Φ) =
-    wt-unseal★ (substLookupᵗ σ h) α∈Φ
+  ⊑-substᵗ-wt σ hσ (wt-tag p g gokΦ) =
+    wt-tag (⊑-substᵗ-wt σ hσ p) (substᵗ-ground σ g) (substᵗ-ground-ok σ g gokΦ)
+  ⊑-substᵗ-wt σ hσ (wt-unseal h α∈Φ p) =
+    wt-unseal (substLookupᵗ σ h) α∈Φ (⊑-substᵗ-wt σ hσ p)
+  ⊑-substᵗ-wt σ hσ (wt-unseal★ h α∈Φ p) =
+    wt-unseal★ (substLookupᵗ σ h) α∈Φ (⊑-substᵗ-wt σ hσ p)
   ⊑-substᵗ-wt σ hσ (wt-↦ p q) =
     wt-↦ (⊒-substᵗ-wt σ hσ p) (⊑-substᵗ-wt σ hσ q)
   ⊑-substᵗ-wt {Σ = Σ} σ hσ (wt-∀ p) =
@@ -1817,8 +1778,6 @@ mutual
           (⊑-substᵗ-wt (liftSubstˢ σ) (TySubstWf-liftˢ hσ) p)))
   ⊑-substᵗ-wt σ hσ (wt-id wfA) =
     wt-id (substᵗ-preserves-WfTy wfA hσ)
-  ⊑-substᵗ-wt σ hσ (wt-； p q) =
-    wt-； (⊑-substᵗ-wt σ hσ p) (⊑-substᵗ-wt σ hσ q)
 
   ⊒-substᵗ-wt :
     ∀ {Δ Δ′ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}
@@ -1828,12 +1787,12 @@ mutual
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     Δ′ ∣ Ψ ∣ (substStoreᵗ σ Σ) ∣ Φ ⊢ (subst⊒ᵗ σ p)
       ⦂ (substᵗ σ A) ⊒ (substᵗ σ B)
-  ⊒-substᵗ-wt σ hσ (wt-untag g gokΦ ℓ) =
-    wt-untag (substᵗ-ground σ g) (substᵗ-ground-ok σ g gokΦ) ℓ
-  ⊒-substᵗ-wt σ hσ (wt-seal h α∈Φ) =
-    wt-seal (substLookupᵗ σ h) α∈Φ
-  ⊒-substᵗ-wt σ hσ (wt-seal★ h α∈Φ) =
-    wt-seal★ (substLookupᵗ σ h) α∈Φ
+  ⊒-substᵗ-wt σ hσ (wt-untag g gokΦ ℓ p) =
+    wt-untag (substᵗ-ground σ g) (substᵗ-ground-ok σ g gokΦ) ℓ (⊒-substᵗ-wt σ hσ p)
+  ⊒-substᵗ-wt σ hσ (wt-seal p h α∈Φ) =
+    wt-seal (⊒-substᵗ-wt σ hσ p) (substLookupᵗ σ h) α∈Φ
+  ⊒-substᵗ-wt σ hσ (wt-seal★ p h α∈Φ) =
+    wt-seal★ (⊒-substᵗ-wt σ hσ p) (substLookupᵗ σ h) α∈Φ
   ⊒-substᵗ-wt σ hσ (wt-↦ p q) =
     wt-↦ (⊑-substᵗ-wt σ hσ p) (⊒-substᵗ-wt σ hσ q)
   ⊒-substᵗ-wt {Σ = Σ} σ hσ (wt-∀ p) =
@@ -1853,8 +1812,6 @@ mutual
           (⊒-substᵗ-wt (liftSubstˢ σ) (TySubstWf-liftˢ hσ) p)))
   ⊒-substᵗ-wt σ hσ (wt-id wfA) =
     wt-id (substᵗ-preserves-WfTy wfA hσ)
-  ⊒-substᵗ-wt σ hσ (wt-； p q) =
-    wt-； (⊒-substᵗ-wt σ hσ p) (⊒-substᵗ-wt σ hσ q)
 
 infixl 8 _[_]↑
 _[_]↑ :
@@ -2043,7 +2000,7 @@ instSubst⊒ {Δ′ = Δ′} {Ψ = Ψ} {Σ = Σ} σ τ var⊑ var⊒ h⊑ h⊒ A
   hp = instSubst⊒-wt σ τ var⊑ var⊒ h⊑ h⊒ A wfA
 
 instVar⊑ : (A : Ty) → (α : Seal) → (X : TyVar) → Up
-instVar⊑ A α zero = unseal α
+instVar⊑ A α zero = unseal α (id A)
 instVar⊑ A α (suc X) = id (＇ X)
 
 instVar⊑-wt :
@@ -2055,11 +2012,11 @@ instVar⊑-wt :
   X < suc Δ →
   Δ ∣ Ψ ∣ Σ ∣ (every Ψ) ⊢ (instVar⊑ A α X)
     ⦂ (singleTyEnv (｀ α) X) ⊑ (singleTyEnv A X)
-instVar⊑-wt wfA h α∈ zero z<s = wt-unseal h α∈
+instVar⊑-wt wfA h α∈ zero z<s = wt-unseal h α∈ (wt-id wfA)
 instVar⊑-wt wfA h α∈ (suc X) (s<s X<Δ) = wt-id (wfVar X<Δ)
 
 instVar⊒ : (A : Ty) → (α : Seal) → (X : TyVar) → Down
-instVar⊒ A α zero = seal α
+instVar⊒ A α zero = seal (id A) α
 instVar⊒ A α (suc X) = id (＇ X)
 
 instVar⊒-wt :
@@ -2071,7 +2028,7 @@ instVar⊒-wt :
   X < suc Δ →
   Δ ∣ Ψ ∣ Σ ∣ (every Ψ) ⊢ (instVar⊒ A α X)
     ⦂ (singleTyEnv A X) ⊒ (singleTyEnv (｀ α) X)
-instVar⊒-wt wfA h α∈ zero z<s = wt-seal h α∈
+instVar⊒-wt wfA h α∈ zero z<s = wt-seal (wt-id wfA) h α∈
 instVar⊒-wt wfA h α∈ (suc X) (s<s X<Δ) = wt-id (wfVar X<Δ)
 
 instCast⊑ : ∀ {A B α} → Up

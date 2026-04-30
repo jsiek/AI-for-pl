@@ -107,8 +107,8 @@ data Term : Set where
 ------------------------------------------------------------------------
 
 data UpValue : Up → Set where
-  tag : ∀ {G : Ty} →
-    UpValue (tag G)
+  tag : ∀ {p : Up} {G : Ty} →
+    UpValue (tag p G)
 
   _↦_ : ∀ {p : Down} {q : Up} →
     UpValue (p ↦ q)
@@ -117,8 +117,8 @@ data UpValue : Up → Set where
     UpValue (∀ᵖ p)
 
 data DownValue : Down → Set where
-  seal : ∀ {α : Seal} →
-    DownValue (seal α)
+  seal : ∀ {p : Down} {α : Seal} →
+    DownValue (seal p α)
 
   _↦_ : ∀ {p : Up} {q : Down} →
     DownValue (p ↦ q)
@@ -370,27 +370,25 @@ mutual
     Σ ⊆ˢ Σ′ →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     Δ ∣ Ψ ∣ Σ′ ∣ Φ ⊢ p ⦂ A ⊑ B
-  wk⊑ w (wt-tag g gok) = wt-tag g gok
-  wk⊑ w (wt-unseal h α∈Φ) = wt-unseal (wkLookupˢ w h) α∈Φ
-  wk⊑ w (wt-unseal★ h α∈Φ) = wt-unseal★ (wkLookupˢ w h) α∈Φ
+  wk⊑ w (wt-tag p g gok) = wt-tag (wk⊑ w p) g gok
+  wk⊑ w (wt-unseal h α∈Φ p) = wt-unseal (wkLookupˢ w h) α∈Φ (wk⊑ w p)
+  wk⊑ w (wt-unseal★ h α∈Φ p) = wt-unseal★ (wkLookupˢ w h) α∈Φ (wk⊑ w p)
   wk⊑ w (wt-↦ p q) = wt-↦ (wk⊒ w p) (wk⊑ w q)
   wk⊑ w (wt-∀ p) = wt-∀ (wk⊑ (inst-⟰ᵗ-⊆ˢ w) p)
   wk⊑ w (wt-ν p) = wt-ν (wk⊑ (ν-⊆ˢ ★ w) p)
   wk⊑ w (wt-id wfA) = wt-id wfA
-  wk⊑ w (wt-； p q) = wt-； (wk⊑ w p) (wk⊑ w q)
 
   wk⊒ : ∀ {Δ Ψ}{Σ Σ′ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
     Σ ⊆ˢ Σ′ →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     Δ ∣ Ψ ∣ Σ′ ∣ Φ ⊢ p ⦂ A ⊒ B
-  wk⊒ w (wt-untag g gok ℓ) = wt-untag g gok ℓ
-  wk⊒ w (wt-seal h α∈Φ) = wt-seal (wkLookupˢ w h) α∈Φ
-  wk⊒ w (wt-seal★ h α∈Φ) = wt-seal★ (wkLookupˢ w h) α∈Φ
+  wk⊒ w (wt-untag g gok ℓ p) = wt-untag g gok ℓ (wk⊒ w p)
+  wk⊒ w (wt-seal p h α∈Φ) = wt-seal (wk⊒ w p) (wkLookupˢ w h) α∈Φ
+  wk⊒ w (wt-seal★ p h α∈Φ) = wt-seal★ (wk⊒ w p) (wkLookupˢ w h) α∈Φ
   wk⊒ w (wt-↦ p q) = wt-↦ (wk⊑ w p) (wk⊒ w q)
   wk⊒ w (wt-∀ p) = wt-∀ (wk⊒ (inst-⟰ᵗ-⊆ˢ w) p)
   wk⊒ w (wt-ν p) = wt-ν (wk⊒ (ν-⊆ˢ ★ w) p)
   wk⊒ w (wt-id wfA) = wt-id wfA
-  wk⊒ w (wt-； p q) = wt-； (wk⊒ w p) (wk⊒ w q)
 
 wkΣ-term : ∀ {Δ Ψ}{Σ Σ′ : Store}{Γ : Ctx}{M : Term}{A : Ty} →
   Σ ⊆ˢ Σ′ →

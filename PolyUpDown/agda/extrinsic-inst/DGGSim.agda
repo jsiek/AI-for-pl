@@ -10,33 +10,48 @@ module DGGSim where
 --   * Works top-down: the public theorem is proved from named simulation
 --     obligations, which are postulated below as the remaining proof plan.
 
-open import Data.List using ([])
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.List using ([]; _++_; _∷_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_)
+open import Data.Nat.Properties using (+-comm; m+[n∸m]≡n; n≤1+n)
 open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; cong; subst; trans)
 open import Relation.Nullary using (¬_)
 
 open import Types
-open import Store using (StoreWf)
-open import Imprecision
+open import UpDown using (WfTy-weakenˢ; cast-tag)
+open import Store using (StoreWf; _⊆ˢ_)
+open import ImprecisionIndexed
 open import Terms
   using
     ( Term
     ; blame
     ; ƛ_⇒_
     ; _·_
+    ; _⦂∀_[_]
     ; _up_
     ; _down_
     ; substᵗᵐ
     ; `_
+    ; inst-⟰ᵗ-⊆ˢ
+    ; wk⊑
+    ; wk⊒
+    ; wkΣ-term
     ; _∣_∣_∣_⊢_⦂_
     )
 open import TermProperties using (substˣ-term; _[_])
-open import TermPrecision
+open import TermImprecisionIndexed
 open import ReductionFresh
   using
-    ( Value
+    ( UpValue
+    ; DownValue
+    ; Value
+    ; tag
+    ; seal
+    ; _↦_
+    ; ∀ᵖ
+    ; ν_
     ; _—→_
     ; β
     ; β-up-∀
@@ -47,8 +62,6 @@ open import ReductionFresh
     ; seal-unseal
     ; tag-untag-ok
     ; tag-untag-bad
-    ; β-up-；
-    ; β-down-；
     ; δ-⊕
     ; blame-·₁
     ; blame-·₂
@@ -79,11 +92,15 @@ open import PreservationFresh
   using
     ( preservation
     ; preservation-step
+    ; length-append-tag
     ; StepCtxShape
     ; shape-id
     ; shape-suc
     ; step-ctx-shape
     ; step-preserves-store-wf
+    ; wkΨ-term-suc
+    ; wkΨ-cast-tag-⊑
+    ; wkΨ-cast-tag-⊒
     )
 
 ------------------------------------------------------------------------
@@ -142,58 +159,226 @@ prefix-blames M↠N (Σᵇ , ℓ , N↠blame) =
 
 postulate
   initial-simulation :
-    ∀ {Ψ Σ M M′ A B} {p : A ⊑ B} →
+    ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
     (wfΣ : StoreWf 0 Ψ Σ) →
-    ⟪ 0 , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
-    ⟪ 0 , Ψ , Σ , [] ⟫ ⊢ closeˡ M ⊑ closeʳ M′ ⦂ p
+    ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+    ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ closeˡ M ⊑ closeʳ M′ ⦂ p
 
   -- GTLC blame-right cases use `⊑blameR` with left typing and type precision.
   sim-left-blame-result :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ M M′ N A B} {p : A ⊑ B} →
-    ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+    ∀ {Ψˡ Ψʳ Σˡ Σʳ M M′ N A B} {p : [] ⊢ A ⊑ᵢ B} →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     M —→ N →
     (Σ[ Ψˡ′ ∈ SealCtx ]
       Σ[ Σʳ′ ∈ Store ]
-      Σ[ N′ ∈ Term ]
+         Σ[ N′ ∈ Term ]
         ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
-         (⟪ 0 , Ψˡ′ , Σˡ , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
+         (⟪ 0 , Ψˡ′ , Σˡ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
 
   -- GTLC `[]ᶜ-⊑` analogue.
   []-⊑ :
     ∀ {E A A′ B B′ M M′ W W′}
-      {pA : A ⊑ A′} {pB : B ⊑ B′} →
+      {pA : TPEnv.Ξ E ⊢ A ⊑ᵢ A′} {pB : TPEnv.Ξ E ⊢ B ⊑ᵢ B′} →
     extendᴾ E (A , A′ , pA) ⊢ M ⊑ M′ ⦂ pB →
     E ⊢ W ⊑ W′ ⦂ pA →
     E ⊢ M [ W ] ⊑ M′ [ W′ ] ⦂ pB
 
+wkΣ-⊑ :
+  ∀ {E Σ′ M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  TPEnv.store E ⊆ˢ Σ′ →
+  E ⊢ M ⊑ M′ ⦂ p →
+  (⟪ TPEnv.Δ E , TPEnv.Ψ E , Σ′ , TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢
+    M ⊑ M′ ⦂ p
+wkΣ-⊑ w (⊑` h) = ⊑` h
+wkΣ-⊑ w (⊑ƛ hA hA′ rel) = ⊑ƛ hA hA′ (wkΣ-⊑ w rel)
+wkΣ-⊑ w (⊑· relL relM) = ⊑· (wkΣ-⊑ w relL) (wkΣ-⊑ w relM)
+wkΣ-⊑ w (⊑Λ vM vM′ wfA wfB rel) =
+  ⊑Λ vM vM′ wfA wfB (wkΣ-⊑ (inst-⟰ᵗ-⊆ˢ w) rel)
+wkΣ-⊑ w (⊑⦂∀ rel wfA wfB hT) = ⊑⦂∀ (wkΣ-⊑ w rel) wfA wfB hT
+wkΣ-⊑ w (⊑⦂∀-ν A B p rel wfA hT inst) =
+  ⊑⦂∀-ν A B p (wkΣ-⊑ w rel) wfA hT inst
+wkΣ-⊑ w (⊑$ {n}) = ⊑$
+wkΣ-⊑ w (⊑⊕ relL relM) = ⊑⊕ (wkΣ-⊑ w relL) (wkΣ-⊑ w relM)
+wkΣ-⊑ w (⊑up Φ lenΦ rel hu hu′) =
+  ⊑up Φ lenΦ (wkΣ-⊑ w rel) (wk⊑ w hu) (wk⊑ w hu′)
+wkΣ-⊑ w (⊑upL Φ lenΦ rel hu) = ⊑upL Φ lenΦ (wkΣ-⊑ w rel) (wk⊑ w hu)
+wkΣ-⊑ w (⊑upR Φ lenΦ rel hu′) = ⊑upR Φ lenΦ (wkΣ-⊑ w rel) (wk⊑ w hu′)
+wkΣ-⊑ w (⊑down Φ lenΦ rel hd hd′) =
+  ⊑down Φ lenΦ (wkΣ-⊑ w rel) (wk⊒ w hd) (wk⊒ w hd′)
+wkΣ-⊑ w (⊑downL Φ lenΦ rel hd) =
+  ⊑downL Φ lenΦ (wkΣ-⊑ w rel) (wk⊒ w hd)
+wkΣ-⊑ w (⊑downR Φ lenΦ rel hd′) =
+  ⊑downR Φ lenΦ (wkΣ-⊑ w rel) (wk⊒ w hd′)
+wkΣ-⊑ w (⊑blameR hM) = ⊑blameR (wkΣ-term w hM)
+
+wkΨ-⊑-suc :
+  ∀ {E M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  E ⊢ M ⊑ M′ ⦂ p →
+  (⟪ TPEnv.Δ E , suc (TPEnv.Ψ E) , TPEnv.store E ,
+    TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢ M ⊑ M′ ⦂ p
+wkΨ-⊑-suc (⊑` h) = ⊑` h
+wkΨ-⊑-suc (⊑ƛ hA hA′ rel) =
+  ⊑ƛ (WfTy-weakenˢ hA (n≤1+n _))
+      (WfTy-weakenˢ hA′ (n≤1+n _))
+      (wkΨ-⊑-suc rel)
+wkΨ-⊑-suc (⊑· relL relM) = ⊑· (wkΨ-⊑-suc relL) (wkΨ-⊑-suc relM)
+wkΨ-⊑-suc (⊑Λ vM vM′ wfA wfB rel) =
+  ⊑Λ vM vM′
+    (WfTy-weakenˢ wfA (n≤1+n _))
+    (WfTy-weakenˢ wfB (n≤1+n _))
+    (wkΨ-⊑-suc rel)
+wkΨ-⊑-suc (⊑⦂∀ rel wfA wfB hT) =
+  ⊑⦂∀ (wkΨ-⊑-suc rel)
+    (WfTy-weakenˢ wfA (n≤1+n _))
+    (WfTy-weakenˢ wfB (n≤1+n _))
+    (WfTy-weakenˢ hT (n≤1+n _))
+wkΨ-⊑-suc {E = E} {M = M} {M′ = M′}
+    (⊑⦂∀-ν A B {T = T} p rel wfA hT inst) =
+  ⊑⦂∀-ν A B p
+    (wkΨ-⊑-suc rel)
+    (WfTy-weakenˢ wfA (n≤1+n _))
+    (WfTy-weakenˢ hT (n≤1+n _))
+    inst
+wkΨ-⊑-suc (⊑$ {n}) = ⊑$
+wkΨ-⊑-suc (⊑⊕ relL relM) = ⊑⊕ (wkΨ-⊑-suc relL) (wkΨ-⊑-suc relM)
+wkΨ-⊑-suc (⊑up Φ lenΦ rel hu hu′) =
+  ⊑up
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊑ hu)
+    (wkΨ-cast-tag-⊑ hu′)
+wkΨ-⊑-suc (⊑upL Φ lenΦ rel hu) =
+  ⊑upL
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊑ hu)
+wkΨ-⊑-suc (⊑upR Φ lenΦ rel hu′) =
+  ⊑upR
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊑ hu′)
+wkΨ-⊑-suc (⊑down Φ lenΦ rel hd hd′) =
+  ⊑down
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊒ hd)
+    (wkΨ-cast-tag-⊒ hd′)
+wkΨ-⊑-suc (⊑downL Φ lenΦ rel hd) =
+  ⊑downL
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊒ hd)
+wkΨ-⊑-suc (⊑downR Φ lenΦ rel hd′) =
+  ⊑downR
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊒ hd′)
+wkΨ-⊑-suc (⊑blameR hM) = ⊑blameR (wkΨ-term-suc hM)
+
+wkΨ-⊑-+ :
+  ∀ {E M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  (k : ℕ) →
+  E ⊢ M ⊑ M′ ⦂ p →
+  (⟪ TPEnv.Δ E , (k + TPEnv.Ψ E) , TPEnv.store E ,
+    TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢ M ⊑ M′ ⦂ p
+wkΨ-⊑-+ zero rel = rel
+wkΨ-⊑-+ (suc k) rel = wkΨ-⊑-suc (wkΨ-⊑-+ k rel)
+
+wkΨ-⊑-≤ :
+  ∀ {E Ψ′ M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  TPEnv.Ψ E ≤ Ψ′ →
+  E ⊢ M ⊑ M′ ⦂ p →
+  (⟪ TPEnv.Δ E , Ψ′ , TPEnv.store E , TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢
+    M ⊑ M′ ⦂ p
+wkΨ-⊑-≤ {E} {Ψ′} Ψ≤ rel =
+  subst
+    (λ q →
+      (⟪ TPEnv.Δ E , q , TPEnv.store E , TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢
+        _ ⊑ _ ⦂ _)
+    (trans (+-comm (Ψ′ ∸ TPEnv.Ψ E) (TPEnv.Ψ E))
+           (m+[n∸m]≡n Ψ≤))
+    (wkΨ-⊑-+ (Ψ′ ∸ TPEnv.Ψ E) rel)
+
+wkΨΣ-⊑ :
+  ∀ {E Ψ′ Σ′ M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  TPEnv.Ψ E ≤ Ψ′ →
+  TPEnv.store E ⊆ˢ Σ′ →
+  E ⊢ M ⊑ M′ ⦂ p →
+  (⟪ TPEnv.Δ E , Ψ′ , Σ′ , TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢
+    M ⊑ M′ ⦂ p
+wkΨΣ-⊑ Ψ≤ w rel = wkΣ-⊑ w (wkΨ-⊑-≤ Ψ≤ rel)
+
 -- GTLC `sim-beta`, adapted to left-imprecision orientation.
 sim-left-beta :
   ∀ {Ψ Σ V W N′ W′ A A′ A′₂ B B′}
-    {pA : A ⊑ A′} {pB : B ⊑ B′} →
-  ⟪ 0 , Ψ , Σ , [] ⟫ ⊢ V ⊑ (ƛ A′₂ ⇒ N′) ⦂ (⊑-⇒ A A′ B B′ pA pB) →
+    {pA : [] ⊢ A ⊑ᵢ A′} {pB : [] ⊢ B ⊑ᵢ B′} →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ V ⊑ (ƛ A′₂ ⇒ N′) ⦂ (⊑ᵢ-⇒ A A′ B B′ pA pB) →
   Value V →
-  ⟪ 0 , Ψ , Σ , [] ⟫ ⊢ W ⊑ W′ ⦂ pA →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ W ⊑ W′ ⦂ pA →
   Value W →
   Value W′ →
   Σ[ N ∈ Term ]
     ((Σ ∣ (V · W) —↠ Σ ∣ N) ×
-     (⟪ 0 , Ψ , Σ , [] ⟫ ⊢ N ⊑ (N′ [ W′ ]) ⦂ pB))
-sim-left-beta {W = W} (⊑ƛ hA hA′ rel) (ƛ _ ⇒ N) W⊑W′ vW vW′ =
-  (N [ W ]) ,
-  (_ —→⟨ id-step (β vW) ⟩
-   ((N [ W ]) ∎)) ,
-  []-⊑ rel W⊑W′
-sim-left-beta rel@(⊑upL Φ lenΦ rel′ hu) vV W⊑W′ vW vW′ =
+     (⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ N ⊑ (N′ [ W′ ]) ⦂ pB))
+
+sim-left-beta
+  {W = W}
+  (⊑ƛ hA hA′ N⊑N′)
+  (ƛ A ⇒ N) W⊑W′ vW vW′ =
+  N [ W ] ,
+  (((ƛ A ⇒ N) · W) —→⟨ id-step (β vW) ⟩ (N [ W ]) ∎) ,
+  []-⊑ N⊑N′ W⊑W′
+sim-left-beta
+  (⊑upL Φ lenΦ rel hu)
+  (_up_ vU vp) W⊑W′ vW vW′
+  with vp | hu
+sim-left-beta
+  (⊑upL Φ lenΦ rel hu)
+  (_up_ vU vp) W⊑W′ vW vW′
+  | tag | ()
+sim-left-beta
+  (⊑upL Φ lenΦ rel hu)
+  (_up_ vU vp) W⊑W′ vW vW′
+  | ∀ᵖ | ()
+sim-left-beta
+  (⊑upL Φ lenΦ rel hu)
+  (_up_ vU vp) W⊑W′ vW vW′
+  | _↦_ {p = p} {q = q} | _ =
   {!!}
-sim-left-beta rel@(⊑downL Φ lenΦ rel′ hd) vV W⊑W′ vW vW′ =
+sim-left-beta
+  (⊑downL Φ lenΦ rel hd)
+  (_down_ vU vp) W⊑W′ vW vW′
+  with vp | hd
+sim-left-beta
+  (⊑downL Φ lenΦ rel hd)
+  (_down_ vU vp) W⊑W′ vW vW′
+  | seal | ()
+sim-left-beta
+  (⊑downL Φ lenΦ rel hd)
+  (_down_ vU vp) W⊑W′ vW vW′
+  | ∀ᵖ | ()
+sim-left-beta
+  (⊑downL Φ lenΦ rel hd)
+  (_down_ vU vp) W⊑W′ vW vW′
+  | ν_ | ()
+sim-left-beta
+  (⊑downL Φ lenΦ rel hd)
+  (_down_ vU vp) W⊑W′ vW vW′
+  | _↦_ {p = p} {q = q} | _ =
   {!!}
 
 
 sim-left-blame-store :
-  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M N A B ℓ} {p : A ⊑ B} →
-  ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ M ⊑ blame ℓ ⦂ p →
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M N A B ℓ} {p : [] ⊢ A ⊑ᵢ B} →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ blame ℓ ⦂ p →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
   Σˡ ∣ M —→ Σˡ′ ∣ N →
@@ -201,24 +386,19 @@ sim-left-blame-store :
     Σ[ Σʳ′ ∈ Store ]
     Σ[ N′ ∈ Term ]
       ((Σʳ ∣ blame ℓ —↠ Σʳ′ ∣ N′) ×
-       (⟪ 0 , Ψˡ″ , Σˡ′ , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
+       (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
 sim-left-blame-store rel wfΣˡ wfΣʳ red
     with step-ctx-shape red | preservation-step wfΣˡ (⊑-left-typed rel) red
 sim-left-blame-store rel wfΣˡ wfΣʳ red
   | shape-id | Ψˡ′ , eqΨ , N⊢
-    rewrite eqΨ =
-  _ , _ , _ ,
-  (_ ∎) ,
-  ⊑blameR N⊢
+    rewrite eqΨ = {!!}
 sim-left-blame-store rel wfΣˡ wfΣʳ red
   | shape-suc | Ψˡ′ , eqΨ , N⊢ =
-  Ψˡ′ , _ , _ ,
-  (_ ∎) ,
-  ⊑blameR N⊢
+  {!!}
 
 sim-left-blame-raw :
-  ∀ {Ψˡ Ψʳ Σˡ Σʳ M N A B ℓ} {p : A ⊑ B} →
-  ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ M ⊑ blame ℓ ⦂ p →
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ M N A B ℓ} {p : [] ⊢ A ⊑ᵢ B} →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ blame ℓ ⦂ p →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
   M —→ N →
@@ -226,11 +406,9 @@ sim-left-blame-raw :
     Σ[ Σʳ′ ∈ Store ]
     Σ[ N′ ∈ Term ]
       ((Σʳ ∣ blame ℓ —↠ Σʳ′ ∣ N′) ×
-       (⟪ 0 , Ψˡ′ , Σˡ , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
+       (⟪ 0 , Ψˡ′ , Σˡ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
 sim-left-blame-raw rel wfΣˡ wfΣʳ red =
-  _ , _ , _ ,
-  (_ ∎) ,
-  ⊑blameR (preservation wfΣˡ (⊑-left-typed rel) red)
+  {!!}
 
 appL-↠ :
   ∀ {Σ Σ′ : Store} {L L′ M : Term} →
@@ -251,19 +429,19 @@ appR-↠ {V = V} vV (M —→⟨ M→M₁ ⟩ M₁↠M′) =
 
 postulate
   right-value-catchup :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ V N′ A B} {p : A ⊑ B} →
+    ∀ {Ψˡ Ψʳ Σˡ Σʳ V N′ A B} {p : [] ⊢ A ⊑ᵢ B} →
     Value V →
-    ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ V ⊑ N′ ⦂ p →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ V ⊑ N′ ⦂ p →
     Σ[ Σʳ′ ∈ Store ]
       Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ Σʳ′ ]
       Σ[ V′ ∈ Term ]
         (Value V′ ×
          (Σʳ ∣ N′ —↠ Σʳ′ ∣ V′) ×
-         (⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ V ⊑ V′ ⦂ p))
+         (⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p))
 
 sim-left :
-  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} {p : A ⊑ B} →
-  ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} {p : [] ⊢ A ⊑ᵢ B} →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
   Σˡ ∣ M —→ Σˡ′ ∣ N →
@@ -271,89 +449,231 @@ sim-left :
     Σ[ Σʳ′ ∈ Store ]
     Σ[ N′ ∈ Term ]
       ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
-       (⟪ 0 , Ψˡ″ , Σˡ′ , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
-sim-left (⊑upR Φ lenΦ rel hu′) wfΣˡ wfΣʳ red
-    with sim-left rel wfΣˡ wfΣʳ red
-sim-left (⊑upR Φ lenΦ rel hu′) wfΣˡ wfΣʳ red
+       (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
+sim-left M⊑M′ wfΣˡ wfΣʳ red with red
+
+-- Congruence: application operator.
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
+    with M⊑M′
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
+  | ⊑upR Φ lenΦ rel hu′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-·₁ redL)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
+  | ⊑upR Φ lenΦ rel hu′
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-sim-left (⊑downR Φ lenΦ rel hd′) wfΣˡ wfΣʳ red
-    with sim-left rel wfΣˡ wfΣʳ red
-sim-left (⊑downR Φ lenΦ rel hd′) wfΣˡ wfΣʳ red
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
+  | ⊑downR Φ lenΦ rel hd′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-·₁ redL)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
+  | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-sim-left rel@(⊑blameR hM) wfΣˡ wfΣʳ red =
-  sim-left-blame-store rel wfΣˡ wfΣʳ red
-sim-left (⊑· L⊑L′ M⊑M′) wfΣˡ wfΣʳ red@(ξ-·₁ redL)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
+  | ⊑· L⊑L′ M⊑M′
     with sim-left L⊑L′ wfΣˡ wfΣʳ redL
-sim-left (⊑· L⊑L′ M⊑M′) wfΣˡ wfΣʳ red@(ξ-·₁ redL)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
+  | ⊑· L⊑L′ M⊑M′
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  Ψˡᵣ , Σʳᵣ , (M′ᵣ · _) , appL-↠ M′↠M′ᵣ , ⊑· Nᵣ⊑M′ᵣ {!!}
+  Ψˡᵣ , Σʳᵣ , (M′ᵣ · _) , appL-↠ M′↠M′ᵣ ,
+  ⊑· Nᵣ⊑M′ᵣ {!!}
+
+-- Congruence: application operand.
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
-  (⊑· L⊑L′ M⊑M′) wfΣˡ wfΣʳ red@(ξ-·₂ vV redM)
-    with right-value-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} vV L⊑L′
+  M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
+    with M⊑M′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
-  (⊑· L⊑L′ M⊑M′) wfΣˡ wfΣʳ red@(ξ-·₂ vV redM)
+  M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
+  | ⊑upR Φ lenΦ rel hu′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-·₂ vV redM)
+sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
+  | ⊑upR Φ lenΦ rel hu′
+  | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
+sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
+  | ⊑downR Φ lenΦ rel hd′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-·₂ vV redM)
+sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
+  | ⊑downR Φ lenΦ rel hd′
+  | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
+sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
+  | ⊑· L⊑L′ M⊑M′
+    with right-value-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
+           {Σˡ = Σˡ} {Σʳ = Σʳ} vV L⊑L′
+sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
+  | ⊑· L⊑L′ M⊑M′
   | Σʳᵥ , wfΣʳᵥ , V′ , vV′ , L′↠V′ , V⊑V′
     with sim-left M⊑M′ wfΣˡ wfΣʳᵥ redM
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
-  (⊑· L⊑L′ M⊑M′) wfΣˡ wfΣʳ red@(ξ-·₂ vV redM)
+  M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
+  | ⊑· L⊑L′ M⊑M′
   | Σʳᵥ , wfΣʳᵥ , V′ , vV′ , L′↠V′ , V⊑V′
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   Ψˡᵣ , Σʳᵣ , (V′ · M′ᵣ) ,
   multi-trans (appL-↠ {M = _} L′↠V′) (appR-↠ vV′ M′↠M′ᵣ) ,
-  {!!}
-sim-left (⊑⦂∀ rel wfA wfB hT) wfΣˡ wfΣʳ red@(ξ-·α redM)
-    with sim-left rel wfΣˡ wfΣʳ redM
-sim-left (⊑⦂∀ rel wfA wfB hT) wfΣˡ wfΣʳ red@(ξ-·α redM)
+  ⊑· {!!} Nᵣ⊑M′ᵣ
+
+-- Congruence: type application.
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+    with M⊑M′
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑upR Φ lenΦ rel hu′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-·α redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑upR Φ lenΦ rel hu′
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-sim-left (⊑⦂∀-ν A B p rel wfA hT) wfΣˡ wfΣʳ red@(ξ-·α redM)
-    with sim-left rel wfΣˡ wfΣʳ redM
-sim-left (⊑⦂∀-ν A B p rel wfA hT) wfΣˡ wfΣʳ red@(ξ-·α redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑downR Φ lenΦ rel hd′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-·α redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-sim-left (⊑up Φ lenΦ rel hu hu′) wfΣˡ wfΣʳ red@(ξ-up redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑⦂∀ rel wfA wfB hT
     with sim-left rel wfΣˡ wfΣʳ redM
-sim-left (⊑up Φ lenΦ rel hu hu′) wfΣˡ wfΣʳ red@(ξ-up redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑⦂∀ rel wfA wfB hT
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-sim-left (⊑upL Φ lenΦ rel hu) wfΣˡ wfΣʳ red@(ξ-up redM)
-    with sim-left rel wfΣˡ wfΣʳ redM
-sim-left (⊑upL Φ lenΦ rel hu) wfΣˡ wfΣʳ red@(ξ-up redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑⦂∀-ν A B p rel wfA hT inst =
+  {!!}
+
+-- Congruence: up casts.
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
+    with M⊑M′
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
+  | ⊑upR Φ lenΦ rel hu′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-up redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
+  | ⊑upR Φ lenΦ rel hu′
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-sim-left (⊑down Φ lenΦ rel hd hd′) wfΣˡ wfΣʳ red@(ξ-down redM)
-    with sim-left rel wfΣˡ wfΣʳ redM
-sim-left (⊑down Φ lenΦ rel hd hd′) wfΣˡ wfΣʳ red@(ξ-down redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
+  | ⊑downR Φ lenΦ rel hd′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-up redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
+  | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-sim-left (⊑downL Φ lenΦ rel hd) wfΣˡ wfΣʳ red@(ξ-down redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
+  | ⊑up Φ lenΦ rel hu hu′
     with sim-left rel wfΣˡ wfΣʳ redM
-sim-left (⊑downL Φ lenΦ rel hd) wfΣˡ wfΣʳ red@(ξ-down redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
+  | ⊑up Φ lenΦ rel hu hu′
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-sim-left (⊑⊕ L⊑L′ M⊑M′) wfΣˡ wfΣʳ red@(ξ-⊕₁ redL)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
+  | ⊑upL Φ lenΦ rel hu
+    with sim-left rel wfΣˡ wfΣʳ redM
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
+  | ⊑upL Φ lenΦ rel hu
+  | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
+
+-- Congruence: down casts.
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
+    with M⊑M′
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
+  | ⊑upR Φ lenΦ rel hu′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-down redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
+  | ⊑upR Φ lenΦ rel hu′
+  | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
+  | ⊑downR Φ lenΦ rel hd′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-down redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
+  | ⊑downR Φ lenΦ rel hd′
+  | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
+  | ⊑down Φ lenΦ rel hd hd′
+    with sim-left rel wfΣˡ wfΣʳ redM
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
+  | ⊑down Φ lenΦ rel hd hd′
+  | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
+  | ⊑downL Φ lenΦ rel hd
+    with sim-left rel wfΣˡ wfΣʳ redM
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
+  | ⊑downL Φ lenΦ rel hd
+  | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
+
+-- Congruence: primitive operator left operand.
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
+    with M⊑M′
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
+  | ⊑upR Φ lenΦ rel hu′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-⊕₁ redL)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
+  | ⊑upR Φ lenΦ rel hu′
+  | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
+  | ⊑downR Φ lenΦ rel hd′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-⊕₁ redL)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
+  | ⊑downR Φ lenΦ rel hd′
+  | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
+  | ⊑⊕ L⊑L′ M⊑M′
     with sim-left L⊑L′ wfΣˡ wfΣʳ redL
-sim-left (⊑⊕ L⊑L′ M⊑M′) wfΣˡ wfΣʳ red@(ξ-⊕₁ redL)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
+  | ⊑⊕ L⊑L′ M⊑M′
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-sim-left (⊑⊕ L⊑L′ M⊑M′) wfΣˡ wfΣʳ red@(ξ-⊕₂ vV redM)
+
+-- Congruence: primitive operator right operand.
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
+    with M⊑M′
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
+  | ⊑upR Φ lenΦ rel hu′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-⊕₂ vV redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
+  | ⊑upR Φ lenΦ rel hu′
+  | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
+  | ⊑downR Φ lenΦ rel hd′
+    with sim-left rel wfΣˡ wfΣʳ (ξ-⊕₂ vV redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
+  | ⊑downR Φ lenΦ rel hd′
+  | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
+  | ⊑⊕ L⊑L′ M⊑M′
     with sim-left M⊑M′ wfΣˡ wfΣʳ redM
-sim-left (⊑⊕ L⊑L′ M⊑M′) wfΣˡ wfΣʳ red@(ξ-⊕₂ vV redM)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
+  | ⊑⊕ L⊑L′ M⊑M′
   | Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-sim-left M⊑M′ wfΣˡ wfΣʳ (id-step red) =
+
+-- Raw, non-store-allocating steps.
+sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step raw =
   {!!}
+
 -- PolyUpDown-specific store-allocation/poly-instantiation cases.
-sim-left M⊑M′ wfΣˡ wfΣʳ β-Λ = {!!}
-sim-left M⊑M′ wfΣˡ wfΣʳ (β-down-∀ vV) = {!!}
-sim-left M⊑M′ wfΣˡ wfΣʳ (β-down-ν vV) = {!!}
-sim-left M⊑M′ wfΣˡ wfΣʳ (β-up-ν vV) = {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | β-Λ = {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | β-down-∀ vV = {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | β-down-ν vV = {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | β-up-ν vV = {!!}
 
 sim-left* :
-  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} {p : A ⊑ B} →
-  ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} {p : [] ⊢ A ⊑ᵢ B} →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
   Σˡ ∣ M —↠ Σˡ′ ∣ N →
@@ -362,7 +682,7 @@ sim-left* :
     Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ Σʳ′ ]
     Σ[ N′ ∈ Term ]
       ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
-       (⟪ 0 , Ψˡ , Σˡ′ , [] ⟫ ⊢ N ⊑ N′ ⦂ p))
+       (⟪ 0 , Ψˡ , Σˡ′ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p))
 sim-left* {Σʳ = Σʳ} {M′ = M′} M⊑M′ wfΣˡ wfΣʳ (M ∎) =
   wfΣˡ , Σʳ , wfΣʳ , M′ , (M′ ∎) , M⊑M′
 sim-left* M⊑M′ wfΣˡ wfΣʳ (M —→⟨ M→M₁ ⟩ M₁↠N)
@@ -374,38 +694,38 @@ sim-left* M⊑M′ wfΣˡ wfΣʳ (M —→⟨ M→M₁ ⟩ M₁↠N)
 
 postulate
   sim-right* :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ Σʳ′ M M′ N′ A B} {p : A ⊑ B} →
-    ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+    ∀ {Ψˡ Ψʳ Σˡ Σʳ Σʳ′ M M′ N′ A B} {p : [] ⊢ A ⊑ᵢ B} →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
     Σʳ ∣ M′ —↠ Σʳ′ ∣ N′ →
     (Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ Σʳ′ ]
       Σ[ Σˡ′ ∈ Store ]
       Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ Σˡ′ ]
       Σ[ N ∈ Term ]
         ((Σˡ ∣ M —↠ Σˡ′ ∣ N) ×
-         (⟪ 0 , Ψˡ , Σˡ′ , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
+         (⟪ 0 , Ψˡ , Σˡ′ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
     ⊎ Blames Σˡ M
 
   left-value-catchup-or-blame :
-    ∀ {Ψˡ Σˡ N V′ A B} {p : A ⊑ B} →
+    ∀ {Ψˡ Σˡ N V′ A B} {p : [] ⊢ A ⊑ᵢ B} →
     Value V′ →
-    ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ N ⊑ V′ ⦂ p →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ N ⊑ V′ ⦂ p →
     (Σ[ Σˡ′ ∈ Store ]
       Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ Σˡ′ ]
       Σ[ V ∈ Term ]
         (Value V ×
          (Σˡ ∣ N —↠ Σˡ′ ∣ V) ×
-         (⟪ 0 , Ψˡ , Σˡ′ , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
+         (⟪ 0 , Ψˡ , Σˡ′ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
     ⊎ Blames Σˡ N
 
   right-converges-implies-left-converges :
-    ∀ {Ψˡ Σˡ Σʳ M M′ A B} {p : A ⊑ B} →
-    ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+    ∀ {Ψˡ Σˡ Σʳ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
     Converges Σʳ M′ →
     Converges Σˡ M
 
   right-diverges-implies-left-blame-or-step :
-    ∀ {Ψˡ Σˡ Σʳ Σˡ′ M M′ N A B} {p : A ⊑ B} →
-    ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+    ∀ {Ψˡ Σˡ Σʳ Σˡ′ M M′ N A B} {p : [] ⊢ A ⊑ᵢ B} →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
     Diverges Σʳ M′ →
     Σˡ ∣ M —↠ Σˡ′ ∣ N →
     Blame N ⊎ (∃[ Σ″ ] ∃[ N″ ] (Σˡ′ ∣ N —→ Σ″ ∣ N″))
@@ -415,9 +735,9 @@ postulate
 ------------------------------------------------------------------------
 
 dynamic-gradual-guarantee-part1 :
-  ∀ {Ψ Σ M M′ A B} {p : A ⊑ B} →
+  ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
   (∀ {Σˡ′ V} →
      Value V →
      (M↠V : Σ ∣ closeˡ M —↠ Σˡ′ ∣ V) →
@@ -425,7 +745,7 @@ dynamic-gradual-guarantee-part1 :
        Σ[ V′ ∈ Term ]
          (Value V′ ×
           (Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ V′) ×
-          (⟪ 0 , Ψ , Σˡ′ , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
+          (⟪ 0 , Ψ , Σˡ′ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
 dynamic-gradual-guarantee-part1
   {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p}
   wfΣ rel {Σˡ′ = Σˡ′} vV M↠V
@@ -440,9 +760,9 @@ dynamic-gradual-guarantee-part1
   vV′ , multi-trans M′↠N′ N′↠V′ , V⊑V′
 
 dynamic-gradual-guarantee-part2 :
-  ∀ {Ψ Σ M M′ A B} {p : A ⊑ B} →
+  ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
   Diverges Σ (closeˡ M) →
   Diverges Σ (closeʳ M′)
 dynamic-gradual-guarantee-part2
@@ -454,9 +774,9 @@ dynamic-gradual-guarantee-part2
       convʳ)
 
 dynamic-gradual-guarantee-part3 :
-  ∀ {Ψ Σ M M′ A B} {p : A ⊑ B} →
+  ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
   (∀ {Σʳ′ V′} →
      Value V′ →
      (M′↠V′ : Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ V′) →
@@ -464,7 +784,7 @@ dynamic-gradual-guarantee-part3 :
        Σ[ V ∈ Term ]
          (Value V ×
           (Σ ∣ closeˡ M —↠ Σˡ′ ∣ V) ×
-          (⟪ 0 , Ψ , Σˡ′ , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
+          (⟪ 0 , Ψ , Σˡ′ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
      ⊎ Blames Σ (closeˡ M))
 dynamic-gradual-guarantee-part3
   {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p}
@@ -483,9 +803,9 @@ dynamic-gradual-guarantee-part3
   inj₂ (prefix-blames M↠N N↠blame)
 
 dynamic-gradual-guarantee-part4 :
-  ∀ {Ψ Σ M M′ A B} {p : A ⊑ B} →
+  ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
   Diverges Σ (closeʳ M′) →
   DivergeOrBlame Σ (closeˡ M)
 dynamic-gradual-guarantee-part4
@@ -497,9 +817,9 @@ dynamic-gradual-guarantee-part4
     M↠N
 
 dynamic-gradual-guarantee :
-  ∀ {Ψ Σ M M′ A B} {p : A ⊑ B} →
+  ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
   -- Part 1: a less-imprecise value run is matched by a more-imprecise one.
   (∀ {Σˡ′ V} →
      Value V →
@@ -508,7 +828,7 @@ dynamic-gradual-guarantee :
        Σ[ V′ ∈ Term ]
          (Value V′ ×
           (Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ V′) ×
-          (⟪ 0 , Ψ , Σˡ′ , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
+          (⟪ 0 , Ψ , Σˡ′ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
   ×
   -- Part 2: divergence of the less-imprecise term is preserved.
   (Diverges Σ (closeˡ M) → Diverges Σ (closeʳ M′))
@@ -522,7 +842,7 @@ dynamic-gradual-guarantee :
        Σ[ V ∈ Term ]
          (Value V ×
           (Σ ∣ closeˡ M —↠ Σˡ′ ∣ V) ×
-          (⟪ 0 , Ψ , Σˡ′ , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
+          (⟪ 0 , Ψ , Σˡ′ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
      ⊎ Blames Σ (closeˡ M))
   ×
   -- Part 4: if the right diverges, every left reduct can still step or blames.

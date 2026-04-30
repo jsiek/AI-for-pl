@@ -49,22 +49,20 @@ WellTypedBF : Term → Set
 WellTypedBF M = HasSomeTypeBF 0 0 ∅ˢ [] M
 
 upValue? : (p : Up) → Dec (UpValue p)
-upValue? (tag G) = yes tag
-upValue? (unseal α) = no (λ ())
+upValue? (tag p G) = yes tag
+upValue? (unseal α p) = no (λ ())
 upValue? (p ↦ q) = yes _↦_
 upValue? (∀ᵖ p) = yes ∀ᵖ
 upValue? (ν p) = no (λ ())
 upValue? (id A) = no (λ ())
-upValue? (p ； q) = no (λ ())
 
 downValue? : (p : Down) → Dec (DownValue p)
-downValue? (untag G ℓ) = no (λ ())
-downValue? (seal α) = yes seal
+downValue? (untag G ℓ p) = no (λ ())
+downValue? (seal p α) = yes seal
 downValue? (p ↦ q) = yes _↦_
 downValue? (∀ᵖ p) = yes ∀ᵖ
 downValue? (ν p) = yes ν_
 downValue? (id A) = no (λ ())
-downValue? (p ； q) = no (λ ())
 
 value? : (M : Term) → Dec (Value M)
 value? (` x) = no (λ ())
@@ -348,14 +346,16 @@ mutual
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     Δ ∣ Ψ ∣ Σ ∣ Φ′ ⊢ p ⦂ A′ ⊑ B′ →
     (A ≡ A′) × (B ≡ B′)
-  wt⊑-unique uΣ (wt-tag g gokΞ) (wt-tag g′ gokΞ′) = refl , refl
-  wt⊑-unique uΣ (wt-unseal h α∈Φ) (wt-unseal h′ α∈Φ′) =
-    refl , lookup-unique uΣ h h′
-  wt⊑-unique uΣ (wt-unseal h α∈Φ) (wt-unseal★ h′ α∈Φ′) =
-    refl , lookup-unique uΣ h h′
-  wt⊑-unique uΣ (wt-unseal★ h α∈Φ) (wt-unseal h′ α∈Φ′) =
-    refl , lookup-unique uΣ h h′
-  wt⊑-unique uΣ (wt-unseal★ h α∈Φ) (wt-unseal★ h′ α∈Φ′) = refl , refl
+  wt⊑-unique uΣ (wt-tag p g gokΞ) (wt-tag p′ g′ gokΞ′) =
+    proj₁ (wt⊑-unique uΣ p p′) , refl
+  wt⊑-unique uΣ (wt-unseal h α∈Φ p) (wt-unseal h′ α∈Φ′ p′) =
+    refl , proj₂ (wt⊑-unique uΣ p p′)
+  wt⊑-unique uΣ (wt-unseal h α∈Φ p) (wt-unseal★ h′ α∈Φ′ p′) =
+    refl , proj₂ (wt⊑-unique uΣ p p′)
+  wt⊑-unique uΣ (wt-unseal★ h α∈Φ p) (wt-unseal h′ α∈Φ′ p′) =
+    refl , proj₂ (wt⊑-unique uΣ p p′)
+  wt⊑-unique uΣ (wt-unseal★ h α∈Φ p) (wt-unseal★ h′ α∈Φ′ p′) =
+    refl , proj₂ (wt⊑-unique uΣ p p′)
   wt⊑-unique uΣ (wt-↦ {A = A} {A′ = A′} {B = B} {B′ = B′} p q)
                  (wt-↦ {A = A₁} {A′ = A₁′} {B = B₁} {B′ = B₁′} p′ q′) =
     (cong₂ _⇒_ eqA eqB) , (cong₂ _⇒_ eqA′ eqB′)
@@ -406,22 +406,6 @@ mutual
       eqTgt : ⇑ˢ B ≡ ⇑ˢ B′
       eqTgt = proj₂ innerEq
   wt⊑-unique uΣ (wt-id wfA) (wt-id wfA′) = refl , refl
-  wt⊑-unique uΣ
-             (wt-； {A = A} {B = B} {C = C} p q)
-             (wt-； {A = A′} {B = B′} {C = C′} p′ q′) =
-    eqA , eqC
-    where
-      pEq : (A ≡ A′) × (B ≡ B′)
-      pEq = wt⊑-unique uΣ p p′
-
-      qEq : (B ≡ B′) × (C ≡ C′)
-      qEq = wt⊑-unique uΣ q q′
-
-      eqA : A ≡ A′
-      eqA = proj₁ pEq
-
-      eqC : C ≡ C′
-      eqC = proj₂ qEq
 
   wt⊒-unique :
     ∀ {Δ Ψ Σ Φ Φ′ A A′ B B′} {p : Down} →
@@ -429,14 +413,16 @@ mutual
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     Δ ∣ Ψ ∣ Σ ∣ Φ′ ⊢ p ⦂ A′ ⊒ B′ →
     (A ≡ A′) × (B ≡ B′)
-  wt⊒-unique uΣ (wt-untag g gokΞ ℓ) (wt-untag g′ gokΞ′ ℓ′) = refl , refl
-  wt⊒-unique uΣ (wt-seal h α∈Φ) (wt-seal h′ α∈Φ′) =
-    lookup-unique uΣ h h′ , refl
-  wt⊒-unique uΣ (wt-seal h α∈Φ) (wt-seal★ h′ α∈Φ′) =
-    lookup-unique uΣ h h′ , refl
-  wt⊒-unique uΣ (wt-seal★ h α∈Φ) (wt-seal h′ α∈Φ′) =
-    lookup-unique uΣ h h′ , refl
-  wt⊒-unique uΣ (wt-seal★ h α∈Φ) (wt-seal★ h′ α∈Φ′) = refl , refl
+  wt⊒-unique uΣ (wt-untag g gokΞ ℓ p) (wt-untag g′ gokΞ′ ℓ′ p′) =
+    refl , proj₂ (wt⊒-unique uΣ p p′)
+  wt⊒-unique uΣ (wt-seal p h α∈Φ) (wt-seal p′ h′ α∈Φ′) =
+    proj₁ (wt⊒-unique uΣ p p′) , refl
+  wt⊒-unique uΣ (wt-seal p h α∈Φ) (wt-seal★ p′ h′ α∈Φ′) =
+    proj₁ (wt⊒-unique uΣ p p′) , refl
+  wt⊒-unique uΣ (wt-seal★ p h α∈Φ) (wt-seal p′ h′ α∈Φ′) =
+    proj₁ (wt⊒-unique uΣ p p′) , refl
+  wt⊒-unique uΣ (wt-seal★ p h α∈Φ) (wt-seal★ p′ h′ α∈Φ′) =
+    proj₁ (wt⊒-unique uΣ p p′) , refl
   wt⊒-unique uΣ (wt-↦ {A = A} {A′ = A′} {B = B} {B′ = B′} p q)
                  (wt-↦ {A = A₁} {A′ = A₁′} {B = B₁} {B′ = B₁′} p′ q′) =
     (cong₂ _⇒_ eqA eqB) , (cong₂ _⇒_ eqA′ eqB′)
@@ -487,22 +473,6 @@ mutual
       eqTgt : ((⇑ˢ A) [ ｀ zero ]ᵗ) ≡ ((⇑ˢ A′) [ ｀ zero ]ᵗ)
       eqTgt = proj₂ innerEq
   wt⊒-unique uΣ (wt-id wfA) (wt-id wfA′) = refl , refl
-  wt⊒-unique uΣ
-             (wt-； {A = A} {B = B} {C = C} p q)
-             (wt-； {A = A′} {B = B′} {C = C′} p′ q′) =
-    eqA , eqC
-    where
-      pEq : (A ≡ A′) × (B ≡ B′)
-      pEq = wt⊒-unique uΣ p p′
-
-      qEq : (B ≡ B′) × (C ≡ C′)
-      qEq = wt⊒-unique uΣ q q′
-
-      eqA : A ≡ A′
-      eqA = proj₁ pEq
-
-      eqC : C ≡ C′
-      eqC = proj₂ qEq
 
 type-unique-blamefree :
   ∀ {Δ Ψ Σ Γ M A B} →
@@ -764,52 +734,105 @@ mutual
     Dec
       (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
         Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B)
-  up-cast-check′ Δ Ψ Σ wfΣ Φ (tag G) with groundTyDec G
-  ... | no ¬g =
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (tag p G)
+      with up-cast-check′ Δ Ψ Σ wfΣ Φ p | groundTyDec G
+  ... | no ¬p | _ =
       no
         (λ
-          { (A , (B , wt-tag g gokΦ)) → ¬g g
+          { (A , (B , wt-tag p′ g gokΦ)) → ¬p (_ , (_ , p′))
           })
-  ... | yes g with groundOkDec g Φ
-  ...   | no ¬gok =
+  ... | yes (A , (B , hp)) | no ¬g =
+      no
+        (λ
+          { (A′ , (B′ , wt-tag p′ g gokΦ)) → ¬g g
+          })
+  ... | yes (A , (B , hp)) | yes g with B ≟Ty G
+  ...   | no B≢G =
         no
           (λ
-            { (A , (B , wt-tag g′ gokΦ)) →
-                ¬gok (ground-ok-cong {g = g′} {g′ = g} gokΦ)
+            { (A′ , (B′ , wt-tag p′ g′ gokΦ)) →
+                B≢G (proj₂ (wt⊑-unique (storeWf-unique wfΣ) hp p′))
             })
-  ...   | yes gokΦ = yes (G , (★ , wt-tag g gokΦ))
+  ...   | yes refl with groundOkDec g Φ
+  ...     | no ¬gok =
+          no
+            (λ
+              { (A′ , (B′ , wt-tag p′ g′ gokΦ)) →
+                  ¬gok (ground-ok-cong {g = g′} {g′ = g} gokΦ)
+              })
+  ...     | yes gokΦ = yes (A , (★ , wt-tag hp g gokΦ))
 
-  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α) with lookupStoreAnyDec Σ α
-  ... | no ¬lookup =
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α p)
+      with up-cast-check′ Δ Ψ Σ wfΣ Φ p | lookupStoreAnyDec Σ α
+  ... | no ¬p | _ =
       no
         (λ
-          { (A , (B , wt-unseal h α∈Φ′)) → ¬lookup (B , h)
-          ; (A , (B , wt-unseal★ h α∈Φ′)) → ¬lookup (★ , h)
+          { (A , (B , wt-unseal h alphaConvInPhi p′)) → ¬p (_ , (_ , p′))
+          ; (A , (B , wt-unseal★ h alphaCastInPhi p′)) → ¬p (_ , (_ , p′))
           })
-  ... | yes (A , h) with A ≟Ty ★ | permConvMemberDec α Φ | permCastMemberDec α Φ
-  ...   | yes refl | yes α∈conv | _ = yes (｀ α , (★ , wt-unseal h α∈conv))
-  ...   | yes refl | no α∉conv | yes α∈cast = yes (｀ α , (★ , wt-unseal★ h α∈cast))
-  ...   | yes refl | no α∉conv | no α∉cast =
-        no
-          (λ
-            { (A′ , (B′ , wt-unseal h′ α∈conv)) → α∉conv α∈conv
-            ; (A′ , (B′ , wt-unseal★ h′ α∈cast)) → α∉cast α∈cast
-            })
-  ...   | no A≢★ | yes α∈conv | _ = yes (｀ α , (A , wt-unseal h α∈conv))
-  ...   | no A≢★ | no α∉conv | yes α∈cast =
-        no
-          (λ
-            { (A′ , (B′ , wt-unseal h′ α∈conv)) → α∉conv α∈conv
-            ; (A′ , (★ , wt-unseal★ h′ α∈cast′)) →
-                A≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
-            })
-  ...   | no A≢★ | no α∉conv | no α∉cast =
-        no
-          (λ
-            { (A′ , (B′ , wt-unseal h′ α∈conv)) → α∉conv α∈conv
-            ; (A′ , (★ , wt-unseal★ h′ α∈cast′)) →
-                A≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
-            })
+  ... | yes (A′ , (B , hp)) | no ¬lookup =
+      no
+        (λ
+          { (A , (B′ , wt-unseal h alphaConvInPhi p′)) → ¬lookup (_ , h)
+          ; (A , (B′ , wt-unseal★ h alphaCastInPhi p′)) → ¬lookup (_ , h)
+          })
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α p)
+      | yes (A′ , (B , hp)) | yes (A , h) with A′ ≟Ty A
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α p)
+      | yes (A′ , (B , hp)) | yes (A , h) | yes refl
+      with A ≟Ty ★ | permConvMemberDec α Φ | permCastMemberDec α Φ
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α p)
+      | yes (A′ , (B , hp)) | yes (A , h) | yes refl
+      | yes refl | yes α∈conv | _ = yes (｀ α , (B , wt-unseal h α∈conv hp))
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α p)
+      | yes (A′ , (B , hp)) | yes (A , h) | yes refl
+      | yes refl | no α∉conv | yes α∈cast = yes (｀ α , (B , wt-unseal★ h α∈cast hp))
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α p)
+      | yes (A′ , (B , hp)) | yes (A , h) | yes refl
+      | yes refl | no α∉conv | no α∉cast =
+      no
+        (λ
+          { (A₀ , (B′ , wt-unseal h′ alphaConvInPhi p′)) → α∉conv alphaConvInPhi
+          ; (A₀ , (B′ , wt-unseal★ h′ alphaCastInPhi p′)) → α∉cast alphaCastInPhi
+          })
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α p)
+      | yes (A′ , (B , hp)) | yes (A , h) | yes refl
+      | no A≢★ | yes α∈conv | _ = yes (｀ α , (B , wt-unseal h α∈conv hp))
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α p)
+      | yes (A′ , (B , hp)) | yes (A , h) | yes refl
+      | no A≢★ | no α∉conv | yes α∈cast =
+      no
+        (λ
+          { (A₀ , (B′ , wt-unseal h′ alphaConvInPhi p′)) → α∉conv alphaConvInPhi
+          ; (A₀ , (B′ , wt-unseal★ h′ alphaCastInPhi p′)) →
+              A≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
+          })
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α p)
+      | yes (A′ , (B , hp)) | yes (A , h) | yes refl
+      | no A≢★ | no α∉conv | no α∉cast =
+      no
+        (λ
+          { (A₀ , (B′ , wt-unseal h′ alphaConvInPhi p′)) → α∉conv alphaConvInPhi
+          ; (A₀ , (B′ , wt-unseal★ h′ alphaCastInPhi p′)) →
+              A≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
+          })
+  up-cast-check′ Δ Ψ Σ wfΣ Φ (unseal α p)
+      | yes (A′ , (B , hp)) | yes (A , h) | no A′≢A =
+      no
+        (λ
+          { (A₀ , (B′ , wt-unseal h′ alphaConvInPhi p′)) →
+              A′≢A
+                (trans
+                  (proj₁ (wt⊑-unique (storeWf-unique wfΣ) hp p′))
+                  (trans
+                    (sym (lookupTyˢ-lookup (storeWf-unique wfΣ) h′))
+                    (lookupTyˢ-lookup (storeWf-unique wfΣ) h)))
+          ; (A₀ , (B′ , wt-unseal★ h′ alphaCastInPhi p′)) →
+              A′≢A
+                (trans
+                  (proj₁ (wt⊑-unique (storeWf-unique wfΣ) hp p′))
+                  (sym (lookup-★-contra (storeWf-unique wfΣ) h h′)))
+          })
 
   up-cast-check′ Δ Ψ Σ wfΣ Φ (p ↦ q)
       with down-cast-check′ Δ Ψ Σ wfΣ Φ p |
@@ -876,35 +899,6 @@ mutual
           { (.A , (.A , wt-id wfA)) → ¬wfA wfA
           })
 
-  up-cast-check′ Δ Ψ Σ wfΣ Φ (p ； q)
-      with up-cast-check′ Δ Ψ Σ wfΣ Φ p |
-           up-cast-check′ Δ Ψ Σ wfΣ Φ q
-  ... | no ¬p | _ =
-      no
-        (λ
-          { (A , (B , wt-； hp hq)) → ¬p (_ , (_ , hp))
-          })
-  ... | yes (A , (B , hp)) | no ¬q =
-      no
-        (λ
-          { (A′ , (C′ , wt-； hp′ hq′)) → ¬q (_ , (_ , hq′))
-          })
-  ... | yes (A , (B , hp)) | yes (B′ , (C , hq)) with B ≟Ty B′
-  ...   | yes refl = yes (A , (C , wt-； hp hq))
-  ...   | no B≢B′ =
-        no
-          (λ
-            { (A′ , (C′ , wt-； {B = B₀} hp′ hq′)) →
-                let
-                  eqB : B ≡ B₀
-                  eqB = proj₂ (wt⊑-unique (storeWf-unique wfΣ) hp hp′)
-
-                  eqB′ : B′ ≡ B₀
-                  eqB′ = proj₁ (wt⊑-unique (storeWf-unique wfΣ) hq hq′)
-                in
-                B≢B′ (trans eqB (sym eqB′))
-            })
-
   down-cast-check′ :
     (Δ : TyCtx) →
     (Ψ : SealCtx) →
@@ -915,52 +909,105 @@ mutual
     Dec
       (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
         Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B)
-  down-cast-check′ Δ Ψ Σ wfΣ Φ (untag G ℓ) with groundTyDec G
-  ... | no ¬g =
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (untag G ℓ p)
+      with down-cast-check′ Δ Ψ Σ wfΣ Φ p | groundTyDec G
+  ... | no ¬p | _ =
       no
         (λ
-          { (A , (B , wt-untag g gokΦ ℓ′)) → ¬g g
+          { (A , (B , wt-untag g gokΦ ℓ′ p′)) → ¬p (_ , (_ , p′))
           })
-  ... | yes g with groundOkDec g Φ
-  ...   | no ¬gok =
+  ... | yes (A , (B , hp)) | no ¬g =
+      no
+        (λ
+          { (A′ , (B′ , wt-untag g gokΦ ℓ′ p′)) → ¬g g
+          })
+  ... | yes (A , (B , hp)) | yes g with A ≟Ty G
+  ...   | no A≢G =
         no
           (λ
-            { (A , (B , wt-untag g′ gokΦ ℓ′)) →
-                ¬gok (ground-ok-cong {g = g′} {g′ = g} gokΦ)
+            { (A′ , (B′ , wt-untag g′ gokΦ ℓ′ p′)) →
+                A≢G (proj₁ (wt⊒-unique (storeWf-unique wfΣ) hp p′))
             })
-  ...   | yes gokΦ = yes (★ , (G , wt-untag g gokΦ ℓ))
+  ...   | yes refl with groundOkDec g Φ
+  ...     | no ¬gok =
+          no
+            (λ
+              { (A′ , (B′ , wt-untag g′ gokΦ ℓ′ p′)) →
+                  ¬gok (ground-ok-cong {g = g′} {g′ = g} gokΦ)
+              })
+  ...     | yes gokΦ = yes (★ , (B , wt-untag g gokΦ ℓ hp))
 
-  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal α) with lookupStoreAnyDec Σ α
-  ... | no ¬lookup =
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal p α)
+      with down-cast-check′ Δ Ψ Σ wfΣ Φ p | lookupStoreAnyDec Σ α
+  ... | no ¬p | _ =
       no
         (λ
-          { (A , (B , wt-seal h α∈Φ′)) → ¬lookup (A , h)
-          ; (A , (B , wt-seal★ h α∈Φ′)) → ¬lookup (★ , h)
+          { (A , (B , wt-seal p′ h alphaConvInPhi)) → ¬p (_ , (_ , p′))
+          ; (A , (B , wt-seal★ p′ h alphaCastInPhi)) → ¬p (_ , (_ , p′))
           })
-  ... | yes (A , h) with A ≟Ty ★ | permConvMemberDec α Φ | permCastMemberDec α Φ
-  ...   | yes refl | yes α∈conv | _ = yes (★ , (｀ α , wt-seal h α∈conv))
-  ...   | yes refl | no α∉conv | yes α∈cast = yes (★ , (｀ α , wt-seal★ h α∈cast))
-  ...   | yes refl | no α∉conv | no α∉cast =
-        no
-          (λ
-            { (A′ , (B′ , wt-seal h′ α∈conv)) → α∉conv α∈conv
-            ; (A′ , (B′ , wt-seal★ h′ α∈cast)) → α∉cast α∈cast
-            })
-  ...   | no A≢★ | yes α∈conv | _ = yes (A , (｀ α , wt-seal h α∈conv))
-  ...   | no A≢★ | no α∉conv | yes α∈cast =
-        no
-          (λ
-            { (A′ , (B′ , wt-seal h′ α∈conv)) → α∉conv α∈conv
-            ; (A′ , (｀ α , wt-seal★ h′ α∈cast′)) →
-                A≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
-            })
-  ...   | no A≢★ | no α∉conv | no α∉cast =
-        no
-          (λ
-            { (A′ , (B′ , wt-seal h′ α∈conv)) → α∉conv α∈conv
-            ; (A′ , (｀ α , wt-seal★ h′ α∈cast′)) →
-                A≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
-            })
+  ... | yes (A , (B′ , hp)) | no ¬lookup =
+      no
+        (λ
+          { (A₀ , (B , wt-seal p′ h alphaConvInPhi)) → ¬lookup (_ , h)
+          ; (A₀ , (B , wt-seal★ p′ h alphaCastInPhi)) → ¬lookup (_ , h)
+          })
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal p α)
+      | yes (A , (B′ , hp)) | yes (B , h) with B′ ≟Ty B
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal p α)
+      | yes (A , (B′ , hp)) | yes (B , h) | yes refl
+      with B ≟Ty ★ | permConvMemberDec α Φ | permCastMemberDec α Φ
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal p α)
+      | yes (A , (B′ , hp)) | yes (B , h) | yes refl
+      | yes refl | yes α∈conv | _ = yes (A , (｀ α , wt-seal hp h α∈conv))
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal p α)
+      | yes (A , (B′ , hp)) | yes (B , h) | yes refl
+      | yes refl | no α∉conv | yes α∈cast = yes (A , (｀ α , wt-seal★ hp h α∈cast))
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal p α)
+      | yes (A , (B′ , hp)) | yes (B , h) | yes refl
+      | yes refl | no α∉conv | no α∉cast =
+      no
+        (λ
+          { (A₀ , (B₀ , wt-seal p′ h′ alphaConvInPhi)) → α∉conv alphaConvInPhi
+          ; (A₀ , (B₀ , wt-seal★ p′ h′ alphaCastInPhi)) → α∉cast alphaCastInPhi
+          })
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal p α)
+      | yes (A , (B′ , hp)) | yes (B , h) | yes refl
+      | no B≢★ | yes α∈conv | _ = yes (A , (｀ α , wt-seal hp h α∈conv))
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal p α)
+      | yes (A , (B′ , hp)) | yes (B , h) | yes refl
+      | no B≢★ | no α∉conv | yes α∈cast =
+      no
+        (λ
+          { (A₀ , (B₀ , wt-seal p′ h′ alphaConvInPhi)) → α∉conv alphaConvInPhi
+          ; (A₀ , (B₀ , wt-seal★ p′ h′ alphaCastInPhi)) →
+              B≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
+          })
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal p α)
+      | yes (A , (B′ , hp)) | yes (B , h) | yes refl
+      | no B≢★ | no α∉conv | no α∉cast =
+      no
+        (λ
+          { (A₀ , (B₀ , wt-seal p′ h′ alphaConvInPhi)) → α∉conv alphaConvInPhi
+          ; (A₀ , (B₀ , wt-seal★ p′ h′ alphaCastInPhi)) →
+              B≢★ (lookup-★-contra (storeWf-unique wfΣ) h h′)
+          })
+  down-cast-check′ Δ Ψ Σ wfΣ Φ (seal p α)
+      | yes (A , (B′ , hp)) | yes (B , h) | no B′≢B =
+      no
+        (λ
+          { (A₀ , (B₀ , wt-seal p′ h′ alphaConvInPhi)) →
+              B′≢B
+                (trans
+                  (proj₂ (wt⊒-unique (storeWf-unique wfΣ) hp p′))
+                  (trans
+                    (sym (lookupTyˢ-lookup (storeWf-unique wfΣ) h′))
+                    (lookupTyˢ-lookup (storeWf-unique wfΣ) h)))
+          ; (A₀ , (B₀ , wt-seal★ p′ h′ alphaCastInPhi)) →
+              B′≢B
+                (trans
+                  (proj₂ (wt⊒-unique (storeWf-unique wfΣ) hp p′))
+                  (sym (lookup-★-contra (storeWf-unique wfΣ) h h′)))
+          })
 
   down-cast-check′ Δ Ψ Σ wfΣ Φ (p ↦ q)
       with up-cast-check′ Δ Ψ Σ wfΣ Φ p |
@@ -1027,35 +1074,6 @@ mutual
           { (.A , (.A , wt-id wfA)) → ¬wfA wfA
           })
 
-  down-cast-check′ Δ Ψ Σ wfΣ Φ (p ； q)
-      with down-cast-check′ Δ Ψ Σ wfΣ Φ p |
-           down-cast-check′ Δ Ψ Σ wfΣ Φ q
-  ... | no ¬p | _ =
-      no
-        (λ
-          { (A , (B , wt-； hp hq)) → ¬p (_ , (_ , hp))
-          })
-  ... | yes (A , (B , hp)) | no ¬q =
-      no
-        (λ
-          { (A′ , (C′ , wt-； hp′ hq′)) → ¬q (_ , (_ , hq′))
-          })
-  ... | yes (A , (B , hp)) | yes (B′ , (C , hq)) with B ≟Ty B′
-  ...   | yes refl = yes (A , (C , wt-； hp hq))
-  ...   | no B≢B′ =
-        no
-          (λ
-            { (A′ , (C′ , wt-； {B = B₀} hp′ hq′)) →
-                let
-                  eqB : B ≡ B₀
-                  eqB = proj₂ (wt⊒-unique (storeWf-unique wfΣ) hp hp′)
-
-                  eqB′ : B′ ≡ B₀
-                  eqB′ = proj₁ (wt⊒-unique (storeWf-unique wfΣ) hq hq′)
-                in
-                B≢B′ (trans eqB (sym eqB′))
-            })
-
 up-cast-check :
   (Δ : TyCtx) →
   (Ψ : SealCtx) →
@@ -1094,22 +1112,20 @@ maxSealTy (`∀ A) = maxSealTy A
 
 mutual
   maxSealUp : Up → Seal
-  maxSealUp (tag G) = maxSealTy G
-  maxSealUp (unseal α) = α
+  maxSealUp (tag p G) = maxSealUp p ⊔ maxSealTy G
+  maxSealUp (unseal α p) = α ⊔ maxSealUp p
   maxSealUp (p ↦ q) = maxSealDown p ⊔ maxSealUp q
   maxSealUp (∀ᵖ p) = maxSealUp p
   maxSealUp (ν p) = maxSealUp p
   maxSealUp (id A) = maxSealTy A
-  maxSealUp (p ； q) = maxSealUp p ⊔ maxSealUp q
 
   maxSealDown : Down → Seal
-  maxSealDown (untag G ℓ) = maxSealTy G
-  maxSealDown (seal α) = α
+  maxSealDown (untag G ℓ p) = maxSealTy G ⊔ maxSealDown p
+  maxSealDown (seal p α) = maxSealDown p ⊔ α
   maxSealDown (p ↦ q) = maxSealUp p ⊔ maxSealDown q
   maxSealDown (∀ᵖ p) = maxSealDown p
   maxSealDown (ν p) = maxSealDown p
   maxSealDown (id A) = maxSealTy A
-  maxSealDown (p ； q) = maxSealDown p ⊔ maxSealDown q
 
 boolLists : ℕ → List (List CastPerm)
 boolLists zero = [] ∷ []
@@ -1330,20 +1346,20 @@ mutual
     maxSealUp p < n →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
     Δ ∣ Ψ ∣ Σ ∣ (clip n Φ) ⊢ p ⦂ A ⊑ B
-  normalize-up n hmax (wt-tag g gok) =
-    wt-tag g (ground-ok-clip n hmax gok)
-  normalize-up n hmax (wt-unseal h α∈Φ) =
-    wt-unseal h (clip-preserve-∈conv hmax α∈Φ)
-  normalize-up n hmax (wt-unseal★ h α∈Φ) =
-    wt-unseal★ h (clip-preserve-∈cast hmax α∈Φ)
+  normalize-up n hmax (wt-tag p g gok) =
+    wt-tag (normalize-up n (⊔-left< hmax) p) g (ground-ok-clip n (⊔-right< hmax) gok)
+  normalize-up n hmax (wt-unseal h α∈Φ p) =
+    wt-unseal h (clip-preserve-∈conv (⊔-left< hmax) α∈Φ)
+      (normalize-up n (⊔-right< hmax) p)
+  normalize-up n hmax (wt-unseal★ h α∈Φ p) =
+    wt-unseal★ h (clip-preserve-∈cast (⊔-left< hmax) α∈Φ)
+      (normalize-up n (⊔-right< hmax) p)
   normalize-up n hmax (wt-↦ p q) =
     wt-↦ (normalize-down n (⊔-left< hmax) p) (normalize-up n (⊔-right< hmax) q)
   normalize-up n hmax (wt-∀ p) = wt-∀ (normalize-up n hmax p)
   normalize-up n hmax (wt-ν p) =
     wt-ν (normalize-up (suc n) (lt-weaken-suc hmax) p)
   normalize-up n hmax (wt-id wfA) = wt-id wfA
-  normalize-up n hmax (wt-； p q) =
-    wt-； (normalize-up n (⊔-left< hmax) p) (normalize-up n (⊔-right< hmax) q)
 
   normalize-down :
     ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
@@ -1351,20 +1367,21 @@ mutual
     maxSealDown p < n →
     Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
     Δ ∣ Ψ ∣ Σ ∣ (clip n Φ) ⊢ p ⦂ A ⊒ B
-  normalize-down n hmax (wt-untag g gok ℓ) =
-    wt-untag g (ground-ok-clip n hmax gok) ℓ
-  normalize-down n hmax (wt-seal h α∈Φ) =
-    wt-seal h (clip-preserve-∈conv hmax α∈Φ)
-  normalize-down n hmax (wt-seal★ h α∈Φ) =
-    wt-seal★ h (clip-preserve-∈cast hmax α∈Φ)
+  normalize-down n hmax (wt-untag g gok ℓ p) =
+    wt-untag g (ground-ok-clip n (⊔-left< hmax) gok) ℓ
+      (normalize-down n (⊔-right< hmax) p)
+  normalize-down n hmax (wt-seal p h α∈Φ) =
+    wt-seal (normalize-down n (⊔-left< hmax) p)
+      h (clip-preserve-∈conv (⊔-right< hmax) α∈Φ)
+  normalize-down n hmax (wt-seal★ p h α∈Φ) =
+    wt-seal★ (normalize-down n (⊔-left< hmax) p)
+      h (clip-preserve-∈cast (⊔-right< hmax) α∈Φ)
   normalize-down n hmax (wt-↦ p q) =
     wt-↦ (normalize-up n (⊔-left< hmax) p) (normalize-down n (⊔-right< hmax) q)
   normalize-down n hmax (wt-∀ p) = wt-∀ (normalize-down n hmax p)
   normalize-down n hmax (wt-ν p) =
     wt-ν (normalize-down (suc n) (lt-weaken-suc hmax) p)
   normalize-down n hmax (wt-id wfA) = wt-id wfA
-  normalize-down n hmax (wt-； p q) =
-    wt-； (normalize-down n (⊔-left< hmax) p) (normalize-down n (⊔-right< hmax) q)
 
 search-up-casts :
   (Δ : TyCtx) →

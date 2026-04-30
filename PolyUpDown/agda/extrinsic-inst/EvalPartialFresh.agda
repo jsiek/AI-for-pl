@@ -39,8 +39,6 @@ data RuleTag : Set where
   rule-seal-unseal : RuleTag
   rule-tag-untag-ok : RuleTag
   rule-tag-untag-bad : RuleTag
-  rule-β-up-； : RuleTag
-  rule-β-down-； : RuleTag
   rule-δ-⊕ : RuleTag
   rule-blame-·₁ : RuleTag
   rule-blame-·₂ : RuleTag
@@ -80,8 +78,6 @@ classify-raw (id-down v) = rule-id-down
 classify-raw (seal-unseal v) = rule-seal-unseal
 classify-raw (tag-untag-ok v) = rule-tag-untag-ok
 classify-raw (tag-untag-bad v neq) = rule-tag-untag-bad
-classify-raw (β-up-； v) = rule-β-up-；
-classify-raw (β-down-； v) = rule-β-down-；
 classify-raw δ-⊕ = rule-δ-⊕
 classify-raw blame-·₁ = rule-blame-·₁
 classify-raw (blame-·₂ v) = rule-blame-·₂
@@ -200,22 +196,20 @@ tyEq? (`∀ A) ★ = no (λ ())
 tyEq? (`∀ A) (B ⇒ C) = no (λ ())
 
 upValue? : (p : Up) → Maybe (UpValue p)
-upValue? (tag G) = just tag
-upValue? (unseal α) = nothing
+upValue? (tag p G) = just tag
+upValue? (unseal α p) = nothing
 upValue? (p ↦ q) = just (_↦_ {p = p} {q = q})
 upValue? (∀ᵖ p) = just (∀ᵖ {p = p})
 upValue? (ν p) = nothing
 upValue? (id A) = nothing
-upValue? (p ； q) = nothing
 
 downValue? : (p : Down) → Maybe (DownValue p)
-downValue? (untag G ℓ) = nothing
-downValue? (seal α) = just seal
+downValue? (untag G ℓ p) = nothing
+downValue? (seal p α) = just seal
 downValue? (p ↦ q) = just (_↦_ {p = p} {q = q})
 downValue? (∀ᵖ p) = just (∀ᵖ {p = p})
 downValue? (ν p) = just (ν_ {p = p})
 downValue? (id A) = nothing
-downValue? (p ； q) = nothing
 
 value? : (M : Term) → Maybe (Value M)
 value? (` x) = nothing
@@ -282,36 +276,38 @@ tapp-redex? (_down_ {V = W} vW (ν_ {p = p})) = just (_ , _ , β-down-ν vW)
 unseal-step? :
   (Σ : Store) →
   (α : Seal) →
+  (q : Up) →
   (M : Term) →
-  Maybe (Step Σ (M up (unseal α)))
-unseal-step? Σ α M with value? M
-unseal-step? Σ α M | just (_down_ {V = V} vV (seal {α = β₁})) with α ≟ β₁
-unseal-step? Σ α M | just (_down_ {V = V} vV (seal {α = β₁})) | yes refl =
-  just (Σ , _ , id-step (seal-unseal vV))
-unseal-step? Σ α M | just (_down_ {V = V} vV (seal {α = β₁})) | no neq = nothing
-unseal-step? Σ α M | _ = nothing
+  Maybe (Step Σ (M up (unseal α q)))
+unseal-step? Σ α q M with value? M
+unseal-step? Σ α q M | just (_down_ {V = V} vV (seal {p = p} {α = β₁})) with α ≟ β₁
+unseal-step? Σ α q M | just (_down_ {V = V} vV (seal {p = p} {α = β₁})) | yes refl =
+  just (Σ , _ , id-step (seal-unseal {p = p} {q = q} vV))
+unseal-step? Σ α q M | just (_down_ {V = V} vV (seal {p = p} {α = β₁})) | no neq = nothing
+unseal-step? Σ α q M | _ = nothing
 
 untag-step? :
   (Σ : Store) →
   (G : Ty) →
   (ℓ : Label) →
+  (q : Down) →
   (M : Term) →
-  Maybe (Step Σ (M down (untag G ℓ)))
-untag-step? Σ G ℓ (V up (tag H)) with tyEq? H G | value? V
-untag-step? Σ G ℓ (V up (tag H)) | yes refl | just vV =
-  just (Σ , _ , id-step (tag-untag-ok vV))
-untag-step? Σ G ℓ (V up (tag H)) | no neq | just vV =
-  just (Σ , _ , id-step (tag-untag-bad vV neq))
-untag-step? Σ G ℓ (V up (tag H)) | _ | _ = nothing
-untag-step? Σ G ℓ M = nothing
+  Maybe (Step Σ (M down (untag G ℓ q)))
+untag-step? Σ G ℓ q (V up (tag p H)) with tyEq? H G | value? V
+untag-step? Σ G ℓ q (V up (tag p H)) | yes refl | just vV =
+  just (Σ , _ , id-step (tag-untag-ok {p = p} {q = q} vV))
+untag-step? Σ G ℓ q (V up (tag p H)) | no neq | just vV =
+  just (Σ , _ , id-step (tag-untag-bad {p = p} {q = q} vV neq))
+untag-step? Σ G ℓ q (V up (tag p H)) | _ | _ = nothing
+untag-step? Σ G ℓ q M = nothing
 
 up-head-step? :
   (Σ : Store) →
   (M : Term) →
   (p : Up) →
   Maybe (Step Σ (M up p))
-up-head-step? Σ M (tag G) = nothing
-up-head-step? Σ M (unseal α) = unseal-step? Σ α M
+up-head-step? Σ M (tag p G) = nothing
+up-head-step? Σ M (unseal α p) = unseal-step? Σ α p M
 up-head-step? Σ M (p ↦ q) = nothing
 up-head-step? Σ M (∀ᵖ p) = nothing
 up-head-step? Σ M (ν p) with value? M
@@ -320,26 +316,20 @@ up-head-step? Σ M (ν p) | nothing = nothing
 up-head-step? Σ M (id A) with value? M
 up-head-step? Σ M (id A) | just vM = just (Σ , _ , id-step (id-up vM))
 up-head-step? Σ M (id A) | nothing = nothing
-up-head-step? Σ M (p ； q) with value? M
-up-head-step? Σ M (p ； q) | just vM = just (Σ , _ , id-step (β-up-； vM))
-up-head-step? Σ M (p ； q) | nothing = nothing
 
 down-head-step? :
   (Σ : Store) →
   (M : Term) →
   (p : Down) →
   Maybe (Step Σ (M down p))
-down-head-step? Σ M (untag G ℓ) = untag-step? Σ G ℓ M
-down-head-step? Σ M (seal α) = nothing
+down-head-step? Σ M (untag G ℓ p) = untag-step? Σ G ℓ p M
+down-head-step? Σ M (seal p α) = nothing
 down-head-step? Σ M (p ↦ q) = nothing
 down-head-step? Σ M (∀ᵖ p) = nothing
 down-head-step? Σ M (ν p) = nothing
 down-head-step? Σ M (id A) with value? M
 down-head-step? Σ M (id A) | just vM = just (Σ , _ , id-step (id-down vM))
 down-head-step? Σ M (id A) | nothing = nothing
-down-head-step? Σ M (p ； q) with value? M
-down-head-step? Σ M (p ； q) | just vM = just (Σ , _ , id-step (β-down-； vM))
-down-head-step? Σ M (p ； q) | nothing = nothing
 
 ------------------------------------------------------------------------
 -- Partial progress and one-step execution
@@ -622,22 +612,22 @@ step?-id-down {Σ = Σ} {V = V} {A = A} vV | nothing
   (_ , _ , id-step (id-down vV′)) , refl , refl
 
 step?-seal-unseal :
-  ∀ {Σ : Store} {V : Term} {α : Seal} →
+  ∀ {Σ : Store} {V : Term} {α : Seal} {p : Down} {q : Up} →
   (vV : Value V) →
-  Σ[ s ∈ Step Σ ((V down (Down.seal α)) up (Up.unseal α)) ]
-    (step? Σ ((V down (Down.seal α)) up (Up.unseal α)) ≡ just s) ×
-    (target s ≡ (Σ , V))
-step?-seal-unseal {Σ = Σ} {V = V} {α = α} vV
-  with step? Σ (V down (Down.seal α))
-step?-seal-unseal {Σ = Σ} {V = V} {α = α} vV | just (Σ′ , N′ , red) =
-  ⊥-elim (value-no-step (_down_ vV seal) red)
-step?-seal-unseal {Σ = Σ} {V = V} {α = α} vV | nothing
-  with blame? (V down (Down.seal α))
+  Σ[ s ∈ Step Σ ((V down (Down.seal p α)) up (Up.unseal α q)) ]
+    (step? Σ ((V down (Down.seal p α)) up (Up.unseal α q)) ≡ just s) ×
+    (target s ≡ (Σ , ((V down p) up q)))
+step?-seal-unseal {Σ = Σ} {V = V} {α = α} {p = p} {q = q} vV
+  with step? Σ (V down (Down.seal p α))
+step?-seal-unseal {Σ = Σ} {V = V} {α = α} {p = p} {q = q} vV
+  | just (Σ′ , N′ , red) = ⊥-elim (value-no-step (_down_ vV seal) red)
+step?-seal-unseal {Σ = Σ} {V = V} {α = α} {p = p} {q = q} vV
+  | nothing with blame? (V down (Down.seal p α))
 ... | yes (ℓ , eq) = ⊥-elim (value-not-blame (_down_ vV seal) eq)
-... | no neq with value? (V down (Down.seal α)) in eqM
+... | no neq with value? (V down (Down.seal p α)) in eqM
 ... | nothing = ⊥-elim (value?-not-none (_down_ vV seal) eqM)
-... | just (_down_ {V = .V} vV′ seal) with α ≟ α
-... | yes refl = (_ , _ , id-step (seal-unseal vV′)) , refl , refl
+... | just (_down_ {V = .V} vV′ (seal {p = .p} {α = .α})) with α ≟ α
+... | yes refl = (_ , _ , id-step (seal-unseal {p = p} {q = q} vV′)) , refl , refl
 ... | no α≢α = ⊥-elim (α≢α refl)
 
 step?-complete :
@@ -693,76 +683,64 @@ step?-complete (id-step (β-down-↦ vV vW)) =
   step?-β-down-↦ vV vW
 step?-complete (id-step (id-up {V = V} {A = A} vV)) = step?-id-up {V = V} {A = A} vV
 step?-complete (id-step (id-down {V = V} {A = A} vV)) = step?-id-down {V = V} {A = A} vV
-step?-complete (id-step (seal-unseal {V = V} {α = α} vV)) =
-  step?-seal-unseal {V = V} {α = α} vV
-step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
-  with blame? (V up (UpDown.tag G))
-step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+step?-complete (id-step (seal-unseal {V = V} {p = p} {q = q} {α = α} vV)) =
+  step?-seal-unseal vV
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-ok {G = G} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV))
+  with blame? (V up (UpDown.tag p G))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-ok {G = G} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV))
   | yes (ℓb , eq) = ⊥-elim (value-not-blame (_up_ vV tag) eq)
-step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
-  | no neq with step? Σ (V up (UpDown.tag G))
-step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-ok {G = G} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV))
+  | no neq with step? Σ (V up (UpDown.tag p G))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-ok {G = G} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV))
   | no neq | just (Σ′ , M′ , red) = ⊥-elim (value-no-step (_up_ vV tag) red)
-step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-ok {G = G} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV))
   | no neq | nothing with tyEq? G G
-step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-ok {G = G} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV))
   | no neq | nothing | no G≢G = ⊥-elim (G≢G refl)
-step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-ok {G = G} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV))
   | no neq | nothing | yes refl with value? V in eqV
-step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-ok {G = G} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV))
   | no neq | nothing | yes refl | nothing = ⊥-elim (value?-not-none vV eqV)
-step?-complete {Σ = Σ} (id-step (tag-untag-ok {G = G} {V = V} {ℓ′ = ℓ} vV))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-ok {G = G} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV))
   | no neq | nothing | yes refl | just vV′ =
-  (_ , _ , id-step (tag-untag-ok vV′)) , refl , refl
-step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
-  with blame? (V up (UpDown.tag G))
-step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+  (_ , _ , id-step (tag-untag-ok {p = p} {q = q} vV′)) , refl , refl
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-bad {G = G} {H = H} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV G≢H))
+  with blame? (V up (UpDown.tag p G))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-bad {G = G} {H = H} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV G≢H))
   | yes (ℓb , eq) = ⊥-elim (value-not-blame (_up_ vV tag) eq)
-step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
-  | no neq with step? Σ (V up (UpDown.tag G))
-step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-bad {G = G} {H = H} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV G≢H))
+  | no neq with step? Σ (V up (UpDown.tag p G))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-bad {G = G} {H = H} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV G≢H))
   | no neq | just (Σ′ , M′ , red) = ⊥-elim (value-no-step (_up_ vV tag) red)
-step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-bad {G = G} {H = H} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV G≢H))
   | no neq | nothing with tyEq? G H
-step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-bad {G = G} {H = H} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV G≢H))
   | no neq | nothing | yes G≡H = ⊥-elim (G≢H G≡H)
-step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-bad {G = G} {H = H} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV G≢H))
   | no neq | nothing | no G≢H′ with value? V in eqV
-step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-bad {G = G} {H = H} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV G≢H))
   | no neq | nothing | no G≢H′ | nothing = ⊥-elim (value?-not-none vV eqV)
-step?-complete {Σ = Σ} (id-step (tag-untag-bad {G = G} {H = H} {V = V} {ℓ′ = ℓ} vV G≢H))
+step?-complete {Σ = Σ}
+  (id-step (tag-untag-bad {G = G} {H = H} {V = V} {p = p} {q = q} {ℓ′ = ℓ} vV G≢H))
   | no neq | nothing | no G≢H′ | just vV′ =
-  (_ , _ , id-step (tag-untag-bad vV′ G≢H′)) , refl , refl
-step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
-  with blame? V
-step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
-  | yes (ℓ , eq) = ⊥-elim (value-not-blame vV eq)
-step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
-  | no neq with step? Σ V
-step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
-  | no neq | just (Σ′ , M′ , red) = ⊥-elim (value-no-step vV red)
-step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
-  | no neq | nothing with value? V in eqV
-step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
-  | no neq | nothing | nothing = ⊥-elim (value?-not-none vV eqV)
-step?-complete {Σ = Σ} (id-step (β-up-； {V = V} {p = p} {q = q} vV))
-  | no neq | nothing | just vV′ =
-  (_ , _ , id-step (β-up-； vV′)) , refl , refl
-step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
-  with blame? V
-step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
-  | yes (ℓ , eq) = ⊥-elim (value-not-blame vV eq)
-step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
-  | no neq with step? Σ V
-step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
-  | no neq | just (Σ′ , M′ , red) = ⊥-elim (value-no-step vV red)
-step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
-  | no neq | nothing with value? V in eqV
-step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
-  | no neq | nothing | nothing = ⊥-elim (value?-not-none vV eqV)
-step?-complete {Σ = Σ} (id-step (β-down-； {V = V} {p = p} {q = q} vV))
-  | no neq | nothing | just vV′ =
-  (_ , _ , id-step (β-down-； vV′)) , refl , refl
+  (_ , _ , id-step (tag-untag-bad {p = p} {q = q} vV′ G≢H′)) , refl , refl
 step?-complete (id-step δ-⊕) = (_ , _ , id-step δ-⊕) , refl , refl
 step?-complete (id-step blame-·₁) = (_ , _ , id-step blame-·₁) , refl , refl
 step?-complete {Σ = Σ} {N = blame ℓ} (id-step (blame-·₂ {V = V} vV))

@@ -26,7 +26,7 @@ open import TermProperties
 open import ReductionFresh
 open import Reduction using (_—→_)
 
-import Preservation as OldPreservation
+import Preservation as RawPreservation
 
 ------------------------------------------------------------------------
 -- Raw-step translation and preservation
@@ -39,7 +39,7 @@ preservation :
   M —→ N →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ N ⦂ A
 preservation wfΣ M⊢ red =
-  OldPreservation.preservation wfΣ M⊢ red
+  RawPreservation.preservation wfΣ M⊢ red
 
 ------------------------------------------------------------------------
 -- Permission append helpers (fresh seal at the end)
@@ -204,7 +204,7 @@ append-tag-⊑ {Σ = Σ} {A = A} {B = B} {p = p} h =
     (renameStoreˢ-id {Σ = Σ})
     refl
     (castWt⊑-term
-      (OldPreservation.rename⊑ˢ-pointwise (λ α → α) (λ α → refl) p)
+      (RawPreservation.rename⊑ˢ-pointwise (λ α → α) (λ α → refl) p)
       (castWt⊑-raw
         (renameˢ-id-store {A = A})
         (renameˢ-id-store {A = B})
@@ -224,8 +224,8 @@ append-tag-⊒ {Σ = Σ} {A = A} {B = B} {p = p} h =
   castWt⊒
     (renameStoreˢ-id {Σ = Σ})
     refl
-    (OldPreservation.castWt⊒-term
-      (OldPreservation.rename⊒ˢ-pointwise (λ α → α) (λ α → refl) p)
+    (RawPreservation.castWt⊒-term
+      (RawPreservation.rename⊒ˢ-pointwise (λ α → α) (λ α → refl) p)
       (castWt⊒-raw
         (renameˢ-id-store {A = A})
         (renameˢ-id-store {A = B})
@@ -246,7 +246,7 @@ wkΨ-cast-tag-⊑ {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p} h =
     (renameStoreˢ-id {Σ = Σ})
     refl
     (castWt⊑-term
-      (OldPreservation.rename⊑ˢ-pointwise (λ α → α) (λ α → refl) p)
+      (RawPreservation.rename⊑ˢ-pointwise (λ α → α) (λ α → refl) p)
       (castWt⊑-raw
         (renameˢ-id-store {A = A})
         (renameˢ-id-store {A = B})
@@ -266,8 +266,8 @@ wkΨ-cast-tag-⊒ {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p} h =
   castWt⊒
     (renameStoreˢ-id {Σ = Σ})
     refl
-    (OldPreservation.castWt⊒-term
-      (OldPreservation.rename⊒ˢ-pointwise (λ α → α) (λ α → refl) p)
+    (RawPreservation.castWt⊒-term
+      (RawPreservation.rename⊒ˢ-pointwise (λ α → α) (λ α → refl) p)
       (castWt⊒-raw
         (renameˢ-id-store {A = A})
         (renameˢ-id-store {A = B})
@@ -488,7 +488,7 @@ open-fresh-ν⊒ {Δ = Δ} {Ψ = Ψ}{Σ = Σ}{Aν = Aν}{Bν = Bν}{T = T}{p = p
   wfΣ lenΦ ⊢p =
   wk⊒
     (drop ⊆ˢ-refl)
-    (OldPreservation.drop★⊒-seal-preserving top★ top∉ ⊢p★)
+    (RawPreservation.drop★⊒-seal-preserving top★ top∉ ⊢p★)
   where
     tag-∉ :
       ∀ {α}{P : List CastPerm} →
@@ -819,12 +819,12 @@ preservation-step {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ} wfΣ
               (n≤1+n _))
             (wfSeal (len<suc-StoreWf wfΣ)))
           (append-tag-⊒
-            (OldPreservation.castWt⊒-term
+            (RawPreservation.castWt⊒-term
               (cong
                 (λ q → q [ ｀ (length Σ) ]↓)
-                (OldPreservation.rename⊒ˢ-pointwise
+                (RawPreservation.rename⊒ˢ-pointwise
                   (λ α → α) (λ α → refl) p))
-              (OldPreservation.openCast⊒
+              (RawPreservation.openCast⊒
                 (castWt⊒
                   (renameStoreˢ-id {Σ = ⟰ᵗ Σ})
                   refl

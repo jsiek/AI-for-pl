@@ -28,10 +28,7 @@ open import ExamplesFresh
 open import ProgressFresh
 open import PreservationFresh
 
-open import Progress
 open import Preservation
-open import Eval
-open import Examples
 
 open import LogicalRelation
 open import LogicalRelationIndexed

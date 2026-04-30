@@ -6,5 +6,6 @@ module All where
 
 open import STLCSub
 open import Eval
+open import TypeCheckDec
 open import Examples
 open import MetaTheory

@@ -11,6 +11,8 @@ STLCRec - Simply Typed Lambda Calculus with recursive functions.
   adapted to de Bruijn variable representation
   from a proof by Peter Thiemann about this calculus but with names.
 
+STLCSub - Simply Typed Lambda Calculus with records and subtyping.
+
 lambda - Untyped lambda calculus
 
 GTLC - Gradually Typed Lambda Calculus

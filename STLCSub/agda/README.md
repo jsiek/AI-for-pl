@@ -11,6 +11,7 @@ record subtyping supports width, depth, and permutation through field lookup.
 - `STLCSub.agda`: core language definition, subtyping, typing, substitution,
   values, reduction, and multi-step closure.
 - `Eval.agda`: executable fuel-bounded evaluator.
+- `TypeCheckDec.agda`: algorithmic subtyping and executable type checking.
 - `Examples.agda`: typed examples and evaluator checks.
 - `MetaTheory.agda`: public progress, preservation, and type-safety statements.
 - `All.agda`: aggregate driver. Run Agda on this file to check the folder.

@@ -7,10 +7,18 @@ module Examples where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.List using ([]; _∷_)
-open import Agda.Builtin.Nat renaming (Nat to ℕ; zero to zeroℕ; suc to sucℕ)
+open import Agda.Builtin.Nat renaming
+  (Nat to ℕ; zero to zeroℕ; suc to sucℕ)
+open import Data.Unit using (tt)
+open import Relation.Nullary.Decidable.Core using (toWitness; True)
 
 open import Eval using (eval)
 open import STLCSub
+open import TypeCheckDec using (type-check-expect)
+
+expect-⊢ : (Γ : Ctx) -> (M : Term) -> (A : Ty) ->
+           True (type-check-expect Γ M A) -> Γ ⊢ M ⦂ A
+expect-⊢ Γ M A ok = toWitness {a? = type-check-expect Γ M A} ok
 
 gas : ℕ
 gas = 20
@@ -41,19 +49,19 @@ person =
   `record ((name ≔ `zero) ∷ (age ≔ `suc `zero) ∷ [])
 
 person-⊢ : [] ⊢ person ⦂ personTy
-person-⊢ = ⊢record (⊢∷ ⊢zero (⊢∷ (⊢suc ⊢zero) ⊢[]))
+person-⊢ = expect-⊢ [] person personTy tt
 
 person-as-age-⊢ : [] ⊢ person ⦂ ageTy
-person-as-age-⊢ = ⊢sub person-⊢ person<:age
+person-as-age-⊢ = expect-⊢ [] person ageTy tt
 
 person-as-top-⊢ : [] ⊢ person ⦂ top
-person-as-top-⊢ = ⊢sub person-as-age-⊢ S-top
+person-as-top-⊢ = expect-⊢ [] person top tt
 
 projectAge : Term
 projectAge = person ‼ age
 
 projectAge-⊢ : [] ⊢ projectAge ⦂ nat
-projectAge-⊢ = ⊢proj person-as-age-⊢ ty-here
+projectAge-⊢ = expect-⊢ [] projectAge nat tt
 
 projectAge-↠ : projectAge —↠ `suc `zero
 projectAge-↠ =
@@ -69,16 +77,16 @@ idAge : Term
 idAge = ƛ ageTy ⇒ ` 0
 
 idAge-⊢ : [] ⊢ idAge ⦂ (ageTy ⇒ ageTy)
-idAge-⊢ = ⊢ƛ (⊢` Z)
+idAge-⊢ = expect-⊢ [] idAge (ageTy ⇒ ageTy) tt
 
 idAge-as-personTop-⊢ : [] ⊢ idAge ⦂ (personTy ⇒ top)
-idAge-as-personTop-⊢ = ⊢sub idAge-⊢ idAge<:personTop
+idAge-as-personTop-⊢ = expect-⊢ [] idAge (personTy ⇒ top) tt
 
 idAgePerson : Term
 idAgePerson = idAge · person
 
 idAgePerson-⊢ : [] ⊢ idAgePerson ⦂ ageTy
-idAgePerson-⊢ = ⊢· idAge-⊢ person-as-age-⊢
+idAgePerson-⊢ = expect-⊢ [] idAgePerson ageTy tt
 
 idAgePerson-↠ : idAgePerson —↠ person
 idAgePerson-↠ =
@@ -94,7 +102,7 @@ caseNat : Term
 caseNat = case_[zero⇒_|suc⇒_] (`suc `zero) `zero (`suc (` 0))
 
 caseNat-⊢ : [] ⊢ caseNat ⦂ nat
-caseNat-⊢ = ⊢case (⊢suc ⊢zero) ⊢zero (⊢suc (⊢` Z))
+caseNat-⊢ = expect-⊢ [] caseNat nat tt
 
 caseNat-↠ : caseNat —↠ `suc `zero
 caseNat-↠ =

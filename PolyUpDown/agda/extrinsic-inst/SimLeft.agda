@@ -625,4 +625,5 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | β-Λ = {!!}
 -}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-down-∀ vV = {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-down-ν vV = {!!}
-sim-left M⊑M′ wfΣˡ wfΣʳ red | β-up-ν vV = {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | β-up-ν vV =
+  sim-left-w09-H41 M⊑M′ wfΣˡ wfΣʳ red vV

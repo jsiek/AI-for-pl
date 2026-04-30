@@ -383,6 +383,24 @@ postulate
 
 -- Worker W09 helper slot
 
+postulate
+  -- Supports SimLeft.agda H41: left `β-up-ν` allocation step.
+  sim-left-w09-H41 :
+    ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ V M′ N A B}
+      {p : [] ⊢ A ⊑ᵢ B} {u : Up} →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢
+      (V up (UpDown.ν u)) ⊑ M′ ⦂ p →
+    StoreWf 0 Ψˡ Σˡ →
+    StoreWf 0 Ψʳ Σʳ →
+    Σˡ ∣ (V up (UpDown.ν u)) —→ Σˡ′ ∣ N →
+    Value V →
+    (Σ[ Ψˡ″ ∈ SealCtx ]
+      Σ[ Ψˡ≤Ψˡ″ ∈ Ψˡ ≤ Ψˡ″ ]
+      Σ[ Σʳ′ ∈ Store ]
+      Σ[ N′ ∈ Term ]
+        ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
+         (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
+
 -- Supports DGGSim.agda H09 (line 215): lift right multi-steps through
 -- type application.
 sim-left-w09-tyapp-↠ :

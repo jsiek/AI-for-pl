@@ -18,6 +18,7 @@ open import ImprecisionIndexed
 open import Terms using (Term; Value; blame)
 open import TermImprecisionIndexed
 open import ReductionFresh
+open import SimRightLemmas
 
 Blame : Term → Set
 Blame M = ∃[ ℓ ] (M ≡ blame ℓ)

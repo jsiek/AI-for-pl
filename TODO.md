@@ -2,18 +2,31 @@
 
 ## TODO items
 
-## In progress TODO items
-
 [ ] Finish `sim-left` in PolyUpDown/agda/extrinsic-inst/DGGSim.agda using
     the 12-worker parallel plan in
     PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md.
+    Run in per-hole mode: workers should be assigned by `HYY` IDs from the
+    plan (one Codex exec subtask per hole assignment).
     Use SimLeftLemmas.agda for all new helper lemmas (worker-slot ownership),
     and if a worker cannot prove a hole, add a
     `-- BLOCKED[WXX][HYY]: ... Tried: ...` comment directly below that hole.
     Workers: 12
     Plan: PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md
     Helpers: PolyUpDown/agda/extrinsic-inst/SimLeftLemmas.agda
-  Started: 12:12 PM EDT 2026-04-30
+
+[ ] Finish `sim-right` in PolyUpDown/agda/extrinsic-inst/SimRight.agda using
+    the 12-worker parallel plan in
+    PolyUpDown/agda/extrinsic-inst/sim-right-parallel-plan.md.
+    Run in per-hole mode: workers should be assigned by `RYY` IDs from the
+    plan (one Codex exec subtask per hole assignment).
+    Use SimRightLemmas.agda for all new helper lemmas (worker-slot ownership),
+    and if a worker cannot prove a hole, add a
+    `-- BLOCKED[WXX][RYY]: ... Tried: ...` comment directly below that hole.
+    Workers: 12
+    Plan: PolyUpDown/agda/extrinsic-inst/sim-right-parallel-plan.md
+    Helpers: PolyUpDown/agda/extrinsic-inst/SimRightLemmas.agda
+
+## In progress TODO items
 
 ## Completed TODO items
 
@@ -147,8 +160,6 @@
     if you can't finish.
 
   Blocker: The remaining `⊑upL` and `⊑downL` `wt-↦` branches require a cast-argument catch-up lemma (GTLC-analogous to `cast-left-id-val`) to obtain a value from `W down p` / `W up p` and a corresponding precision witness before recursive `sim-left-beta` can proceed. That helper is not available in this file, so the proof cannot be completed here without introducing new supporting lemmas or postulates.
-
-
 
 
 

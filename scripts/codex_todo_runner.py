@@ -20,6 +20,7 @@ from typing import Optional
 CHECKBOX_RE = re.compile(r"^(\s*[-*]?\s*)\[( |x|X|B)\](\s*.*)$")
 HEADING_RE = re.compile(r"^##\s+(.*)$")
 DIRECTIVE_RE = re.compile(r"^\s*(Workers|Plan|Helpers)\s*:\s*(.+?)\s*$", re.IGNORECASE)
+PLAN_HOLE_RE = re.compile(r"^\s*-\s*([A-Z]\d+)\s*:\s*(\d+)\s*$")
 
 
 @dataclass
@@ -52,6 +53,8 @@ class TaskOutcome:
     copied: int = 0
     removed: int = 0
     touched_paths: set[Path] = field(default_factory=set)
+    hole_id: Optional[str] = None
+    worker_id: Optional[int] = None
 
 
 @dataclass
@@ -59,6 +62,12 @@ class TodoDirectives:
     workers: Optional[int] = None
     plan: Optional[Path] = None
     helpers: list[Path] = field(default_factory=list)
+
+
+@dataclass
+class HoleTarget:
+    hole_id: str
+    line: int
 
 
 def run_checked(
@@ -387,6 +396,33 @@ def validate_item_directives(
     return None
 
 
+def parse_plan_holes(plan_path: Path) -> list[HoleTarget]:
+    holes: list[HoleTarget] = []
+    for line in plan_path.read_text(encoding="utf-8").splitlines():
+        m = PLAN_HOLE_RE.match(line)
+        if not m:
+            continue
+        holes.append(HoleTarget(hole_id=m.group(1), line=int(m.group(2))))
+    return holes
+
+
+def build_hole_task_text(
+    base_task_text: str,
+    hole: HoleTarget,
+    worker_id: int,
+    worker_count: int,
+) -> str:
+    return (
+        f"{base_task_text}\n\n"
+        "Subtask assignment:\n"
+        f"- Worker-ID: W{worker_id:02d} of {worker_count}\n"
+        f"- Hole-ID: {hole.hole_id}\n"
+        f"- Hole-Line: {hole.line}\n"
+        "- Focus only on this hole and any directly required helper lemmas.\n"
+        f"- If blocked, add comment: `-- BLOCKED[W{worker_id:02d}][{hole.hole_id}]: ... Tried: ...` directly below the hole."
+    )
+
+
 def format_directive_context(directives: TodoDirectives) -> str:
     extra: list[str] = []
     if directives.workers is not None:
@@ -464,6 +500,33 @@ def ensure_stopped_timestamp(lines: list[str], stopped_at: str) -> list[str]:
     return upsert_item_metadata(lines, "Stopped", stopped_at)
 
 
+def short_text(text: str, limit: int = 160) -> str:
+    normalized = " ".join(text.split())
+    if len(normalized) <= limit:
+        return normalized
+    return normalized[: limit - 3].rstrip() + "..."
+
+
+def worker_completion_description(outcome: TaskOutcome) -> str:
+    if outcome.result.status == "success":
+        if outcome.result.summary.strip():
+            return short_text(outcome.result.summary)
+        return "Completed assigned changes."
+    if outcome.result.summary.strip():
+        return short_text(outcome.result.summary)
+    if outcome.result.blocker.strip():
+        return "Attempt blocked: " + short_text(outcome.result.blocker)
+    return "Attempt blocked."
+
+
+def log_worker_completion(outcome: TaskOutcome, signature: str) -> None:
+    hid = f" [{outcome.hole_id}]" if outcome.hole_id else ""
+    wid = f" (W{outcome.worker_id:02d})" if outcome.worker_id is not None else ""
+    status = "SUCCESS" if outcome.result.status == "success" else "BLOCKED"
+    desc = worker_completion_description(outcome)
+    print(f"{status}: {signature}{hid}{wid} - {desc}")
+
+
 def commit_message_for_item(signature: str) -> str:
     one_line = " ".join(signature.split())
     if len(one_line) > 72:
@@ -471,21 +534,35 @@ def commit_message_for_item(signature: str) -> str:
     return f"todo: {one_line}"
 
 
-def stage_and_commit_item(repo_root: Path, todo_path: Path, outcome: TaskOutcome) -> None:
-    todo_rel = todo_path.relative_to(repo_root)
-    paths = set(outcome.touched_paths)
-    paths.add(todo_rel)
+def commit_message_for_hole(signature: str, hole_id: str) -> str:
+    one_line = " ".join(signature.split())
+    if len(one_line) > 56:
+        one_line = one_line[:56].rstrip()
+    return f"todo: {one_line} [{hole_id}]"
+
+
+def stage_and_commit_paths(repo_root: Path, paths: set[Path], message: str) -> None:
     pathspecs = sorted(str(path) for path in paths)
+    if not pathspecs:
+        print("  commit: no changed paths; skipping commit")
+        return
 
     run_checked(["git", "-C", str(repo_root), "add", "-A", "--", *pathspecs])
     staged = run_checked(["git", "-C", str(repo_root), "diff", "--cached", "--name-only", "--", *pathspecs]).stdout.strip()
     if not staged:
-        print("  commit: no staged changes for this item; skipping commit")
+        print("  commit: no staged changes for this scope; skipping commit")
         return
 
-    message = commit_message_for_item(outcome.item.signature)
     run_checked(["git", "-C", str(repo_root), "commit", "-m", message, "--", *pathspecs])
     print(f"  committed: {message}")
+
+
+def stage_and_commit_item(repo_root: Path, todo_path: Path, outcome: TaskOutcome) -> None:
+    todo_rel = todo_path.relative_to(repo_root)
+    paths = set(outcome.touched_paths)
+    paths.add(todo_rel)
+    message = commit_message_for_item(outcome.item.signature)
+    stage_and_commit_paths(repo_root, paths, message)
 
 
 def build_prompt(todo_file: Path, task_text: str, directives: TodoDirectives) -> str:
@@ -599,9 +676,14 @@ def run_task_attempt(
     timeout_seconds: Optional[float],
     dry_run: bool,
     parallel: int,
+    task_text_override: Optional[str] = None,
+    directives_override: Optional[TodoDirectives] = None,
+    hole_target: Optional[HoleTarget] = None,
+    worker_id: Optional[int] = None,
 ) -> TaskOutcome:
-    task_text = extract_task_text(item)
-    _body, directives = parse_item_body_and_directives(item)
+    task_text = extract_task_text(item) if task_text_override is None else task_text_override
+    _body, parsed_directives = parse_item_body_and_directives(item)
+    directives = directives_override if directives_override is not None else parsed_directives
     directive_error = validate_item_directives(directives, repo_root, parallel)
     if directive_error:
         return TaskOutcome(
@@ -612,17 +694,31 @@ def run_task_attempt(
                 blocker=directive_error,
             ),
             worker_dir=worker_dir,
+            hole_id=hole_target.hole_id if hole_target else None,
+            worker_id=worker_id,
         )
 
     if dry_run:
         result = RunResult(status="success", summary="Dry run: skipped codex execution.", blocker="")
-        return TaskOutcome(item=item, result=result, worker_dir=worker_dir)
+        return TaskOutcome(
+            item=item,
+            result=result,
+            worker_dir=worker_dir,
+            hole_id=hole_target.hole_id if hole_target else None,
+            worker_id=worker_id,
+        )
 
     if use_worktree:
         reset_worktree_to_head(repo_root, worker_dir)
     codex_cwd = worker_dir if use_worktree else repo_root
     result = run_codex(todo_path, task_text, directives, run_dir, codex_cwd, model, sandbox, approval, timeout_seconds)
-    return TaskOutcome(item=item, result=result, worker_dir=worker_dir)
+    return TaskOutcome(
+        item=item,
+        result=result,
+        worker_dir=worker_dir,
+        hole_id=hole_target.hole_id if hole_target else None,
+        worker_id=worker_id,
+    )
 
 
 def reserve_next_item(todo_path: Path) -> Optional[TodoItem]:
@@ -678,6 +774,189 @@ def finalize_outcome(todo_path: Path, outcome: TaskOutcome, use_worktree: bool) 
     write_lines(todo_path, latest)
 
 
+def process_item_per_hole(
+    item: TodoItem,
+    todo_path: Path,
+    repo_root: Path,
+    run_dir: Path,
+    worker_dirs: list[Path],
+    use_worktree: bool,
+    parallel: int,
+    model: Optional[str],
+    sandbox: str,
+    approval: str,
+    timeout_seconds: Optional[float],
+    dry_run: bool,
+) -> TaskOutcome:
+    body_lines, directives = parse_item_body_and_directives(item)
+    base_task_text = "\n".join(body_lines).strip()
+    directive_error = validate_item_directives(directives, repo_root, parallel)
+    if directive_error:
+        return TaskOutcome(
+            item=item,
+            result=RunResult(status="blocked", summary="Invalid TODO directives.", blocker=directive_error),
+            worker_dir=worker_dirs[0],
+        )
+    if directives.plan is None:
+        return TaskOutcome(
+            item=item,
+            result=RunResult(
+                status="blocked",
+                summary="Per-hole mode requires a plan.",
+                blocker="Missing `Plan:` directive for per-hole parallelism.",
+            ),
+            worker_dir=worker_dirs[0],
+        )
+
+    plan_path = resolve_repo_relative_path(repo_root, directives.plan)
+    holes = parse_plan_holes(plan_path)
+    if not holes:
+        return TaskOutcome(
+            item=item,
+            result=RunResult(
+                status="blocked",
+                summary="No holes discovered in plan.",
+                blocker=f"Could not parse hole IDs from plan file: {directives.plan}",
+            ),
+            worker_dir=worker_dirs[0],
+        )
+
+    worker_budget = directives.workers if directives.workers is not None else parallel
+    worker_count = max(1, min(worker_budget, len(worker_dirs), len(holes)))
+    todo_rel = todo_path.relative_to(repo_root)
+    total_holes = len(holes)
+
+    hole_queue = holes[:]
+    blocked: list[TaskOutcome] = []
+    completed_count = 0
+    blocked_count = 0
+    submitted_count = 0
+    last_heartbeat = time.time()
+
+    def submit_hole(
+        executor: concurrent.futures.ThreadPoolExecutor,
+        futures: dict[concurrent.futures.Future[TaskOutcome], int],
+        worker_idx: int,
+        hole: HoleTarget,
+    ) -> None:
+        nonlocal submitted_count
+        worker_id = worker_idx + 1
+        print(f"RUNNING: {item.signature} [{hole.hole_id}] (W{worker_id:02d})")
+        task_text = build_hole_task_text(base_task_text, hole, worker_id, worker_count)
+        fut = executor.submit(
+            run_task_attempt,
+            item=item,
+            todo_path=todo_path,
+            repo_root=repo_root,
+            run_dir=run_dir / f"worker-{worker_id}" / hole.hole_id,
+            worker_dir=worker_dirs[worker_idx],
+            use_worktree=use_worktree,
+            model=model,
+            sandbox=sandbox,
+            approval=approval,
+            timeout_seconds=timeout_seconds,
+            dry_run=dry_run,
+            parallel=parallel,
+            task_text_override=task_text,
+            directives_override=directives,
+            hole_target=hole,
+            worker_id=worker_id,
+        )
+        futures[fut] = worker_idx
+        submitted_count += 1
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=worker_count) as executor:
+        futures: dict[concurrent.futures.Future[TaskOutcome], int] = {}
+        for worker_idx in range(worker_count):
+            if not hole_queue:
+                break
+            submit_hole(executor, futures, worker_idx, hole_queue.pop(0))
+
+        while futures:
+            done, _pending = concurrent.futures.wait(
+                futures.keys(),
+                timeout=5.0,
+                return_when=concurrent.futures.FIRST_COMPLETED,
+            )
+            if not done:
+                now = time.time()
+                if now - last_heartbeat >= 15.0:
+                    print(
+                        f"PROGRESS: {item.signature} - completed {completed_count}/{total_holes}, "
+                        f"blocked {blocked_count}, active {len(futures)}, remaining {len(hole_queue)}"
+                    )
+                    last_heartbeat = now
+                continue
+            for finished in done:
+                worker_idx = futures.pop(finished)
+                outcome = finished.result()
+                completed_count += 1
+
+                if use_worktree and outcome.result.status == "success":
+                    try:
+                        copied, removed, touched = apply_worktree_changes_to_main(
+                            repo_root,
+                            outcome.worker_dir,
+                            excluded_relative={todo_rel},
+                        )
+                        outcome.copied = copied
+                        outcome.removed = removed
+                        outcome.touched_paths = touched
+                        if touched:
+                            hid = outcome.hole_id or "hole"
+                            msg = commit_message_for_hole(item.signature, hid)
+                            stage_and_commit_paths(repo_root, touched, msg)
+                    except RuntimeError as exc:
+                        outcome.result = RunResult(
+                            status="blocked",
+                            summary="Could not apply worktree changes to main tree.",
+                            blocker=str(exc),
+                        )
+
+                log_worker_completion(outcome, item.signature)
+                if outcome.result.status == "blocked":
+                    blocked.append(outcome)
+                    blocked_count += 1
+                    hid = outcome.hole_id or "?"
+                    wid = outcome.worker_id if outcome.worker_id is not None else (worker_idx + 1)
+                    print(f"BLOCKED: {item.signature} [{hid}] (W{wid:02d})")
+                    print(f"  blocker: {outcome.result.blocker}")
+                else:
+                    hid = outcome.hole_id or "?"
+                    wid = outcome.worker_id if outcome.worker_id is not None else (worker_idx + 1)
+                    print(f"SUCCESS: {item.signature} [{hid}] (W{wid:02d})")
+                    if use_worktree:
+                        print(f"  applied: copied {outcome.copied} path(s), removed {outcome.removed} path(s)")
+
+                if hole_queue:
+                    submit_hole(executor, futures, worker_idx, hole_queue.pop(0))
+
+    if blocked:
+        blocked_ids = ", ".join((out.hole_id or "?") for out in blocked[:16])
+        if len(blocked) > 16:
+            blocked_ids += ", ..."
+        blocker = f"Blocked holes: {blocked_ids}"
+        return TaskOutcome(
+            item=item,
+            result=RunResult(
+                status="blocked",
+                summary=f"{len(blocked)} hole subtask(s) blocked.",
+                blocker=blocker,
+            ),
+            worker_dir=worker_dirs[0],
+        )
+
+    return TaskOutcome(
+        item=item,
+        result=RunResult(
+            status="success",
+            summary=f"Completed {len(holes)} hole subtask(s).",
+            blocker="",
+        ),
+        worker_dir=worker_dirs[0],
+    )
+
+
 def process_queue(
     todo_path: Path,
     repo_root: Path,
@@ -695,8 +974,32 @@ def process_queue(
     if not first:
         return False
 
+    _body, first_directives = parse_item_body_and_directives(first)
+    if first_directives.plan is not None:
+        aggregate = process_item_per_hole(
+            item=first,
+            todo_path=todo_path,
+            repo_root=repo_root,
+            run_dir=run_dir,
+            worker_dirs=worker_dirs,
+            use_worktree=use_worktree,
+            parallel=parallel,
+            model=model,
+            sandbox=sandbox,
+            approval=approval,
+            timeout_seconds=timeout_seconds,
+            dry_run=dry_run,
+        )
+        finalize_outcome(todo_path, aggregate, use_worktree)
+        if use_worktree and aggregate.result.status == "success":
+            stage_and_commit_item(repo_root, todo_path, aggregate)
+        return True
+
     workers = min(parallel, len(worker_dirs))
     todo_rel = todo_path.relative_to(repo_root)
+    completed_items = 0
+    blocked_items = 0
+    last_heartbeat = time.time()
 
     def submit_for_worker(
         executor: concurrent.futures.ThreadPoolExecutor,
@@ -734,10 +1037,27 @@ def process_queue(
             submit_for_worker(executor, futures, worker_idx, item)
 
         while futures:
-            done, _pending = concurrent.futures.wait(futures.keys(), return_when=concurrent.futures.FIRST_COMPLETED)
+            done, _pending = concurrent.futures.wait(
+                futures.keys(),
+                timeout=5.0,
+                return_when=concurrent.futures.FIRST_COMPLETED,
+            )
+            if not done:
+                now = time.time()
+                if now - last_heartbeat >= 15.0:
+                    print(
+                        f"PROGRESS: queue - completed {completed_items}, blocked {blocked_items}, "
+                        f"active {len(futures)}"
+                    )
+                    last_heartbeat = now
+                continue
             for finished in done:
                 worker_idx = futures.pop(finished)
                 outcome = finished.result()
+                if outcome.result.status == "success":
+                    completed_items += 1
+                else:
+                    blocked_items += 1
 
                 if use_worktree and outcome.result.status == "success":
                     try:
@@ -756,6 +1076,7 @@ def process_queue(
                             blocker=str(exc),
                         )
 
+                log_worker_completion(outcome, outcome.item.signature)
                 finalize_outcome(todo_path, outcome, use_worktree)
                 if use_worktree and outcome.result.status == "success":
                     stage_and_commit_item(repo_root, todo_path, outcome)

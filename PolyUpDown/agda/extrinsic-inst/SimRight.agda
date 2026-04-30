@@ -52,7 +52,8 @@ sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (β-down-↦ vV vW)) = {!!}
 
 sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (id-up vV)) = {!!}
 
-sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (id-down vV)) = {!!}
+sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (id-down vV)) =
+  sim-right-w06-id-down M⊑M′
 
 sim-right M⊑M′ wfΣˡ wfΣʳ (id-step (seal-unseal vV)) = {!!}
 

@@ -33,6 +33,7 @@ open import Terms
     ; _up_
     ; _down_
     ; substᵗᵐ
+    ; wk⊒
     ; `_
     ; _∣_∣_∣_⊢_⦂_
     )
@@ -45,6 +46,7 @@ open import PreservationFresh
   using
     ( step-preserves-store-wf
     ; wkΨ-cast-tag-⊑-≤
+    ; wkΨ-cast-tag-⊒-≤
     )
 
 ------------------------------------------------------------------------
@@ -137,8 +139,14 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
     with sim-left rel wfΣˡ wfΣʳ (ξ-·₁ redL)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
   | ⊑downR Φ lenΦ rel hd′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+    with wkΨ-cast-tag-⊒-≤ Ψˡ≤Ψˡᵣ lenΦ (wk⊒ (store-growth redL) hd′)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
+  | ⊑downR Φ lenΦ rel hd′
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+  | Φᵣ , lenΦᵣ , hdᵣ =
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
+  ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ hdᵣ
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
   | ⊑· L⊑L′ Arg⊑Arg′
     with sim-left L⊑L′ wfΣˡ wfΣʳ redL
@@ -169,11 +177,7 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
   | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  let Φᵣ , lenΦᵣ , hdᵣ =
-        PreservationFresh.wkΨ-cast-tag-⊒-≤ Ψˡ≤Ψˡᵣ lenΦ
-          (Terms.wk⊒ (store-growth redM) hd′) in
-  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
-  ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ hdᵣ
+  {!!}
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
   | ⊑· L⊑L′ Arg⊑Arg′
@@ -262,11 +266,7 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
   | ⊑upR Φ lenΦ rel hu′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  let Φᵣ , lenΦᵣ , huᵣ =
-        wkΨ-cast-tag-⊑-≤ Ψˡ≤Ψˡᵣ lenΦ
-          (Terms.wk⊑ (store-growth redM) hu′) in
-  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ up _ , up-↠ M′↠M′ᵣ ,
-  ⊑upR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ huᵣ
+  {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
   | ⊑downR Φ lenΦ rel hd′
     with sim-left rel wfΣˡ wfΣʳ (ξ-down redM)
@@ -297,8 +297,14 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
     with sim-left rel wfΣˡ wfΣʳ (ξ-⊕₁ redL)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
   | ⊑upR Φ lenΦ rel hu′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+    with wkΨ-cast-tag-⊑-≤ Ψˡ≤Ψˡᵣ lenΦ (Terms.wk⊑ (store-growth redL) hu′)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
+  | ⊑upR Φ lenΦ rel hu′
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+  | Φᵣ , lenΦᵣ , huᵣ =
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ up _ , up-↠ M′↠M′ᵣ ,
+  ⊑upR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ huᵣ
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
   | ⊑downR Φ lenΦ rel hd′
     with sim-left rel wfΣˡ wfΣʳ (ξ-⊕₁ redL)
@@ -404,7 +410,7 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
 
 -- β-up-∀
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-∀ vV) =
-  sim-left-w05-h26-beta-up-forall M⊑M′ wfΣˡ wfΣʳ vV
+  {!!}
 
 -- β-up-↦
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
@@ -469,8 +475,15 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
   | ⊑upR Φ lenΦ rel hu′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+    with wkΨ-cast-tag-⊑-≤ Ψˡ≤Ψˡᵣ lenΦ hu′
+sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
+  | ⊑upR Φ lenΦ rel hu′
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+  | Φᵣ , lenΦᵣ , huᵣ =
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ up _ , up-↠ M′↠M′ᵣ ,
+  ⊑upR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ huᵣ
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
   | ⊑downR Φ lenΦ rel hd′
@@ -510,8 +523,8 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
     (multi-trans (appR-↠ vV′ W′↠W′ᵥ) V′W′↠N′) ,
   N⊑N′
   
-sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (id-up vV) =
-  {!!}
+sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (id-up {A = A} vV) =
+  sim-left-w02-id-up {A = A} vV M⊑M′ wfΣˡ wfΣʳ
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (id-down vV) =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (seal-unseal vV) =
@@ -533,7 +546,7 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-up =
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-down =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-⊕₁ =
-  _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
+  {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (blame-⊕₂ vV) =
   {!!}
 

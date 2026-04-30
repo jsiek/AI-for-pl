@@ -8,22 +8,29 @@ module SimLeftLemmas where
 --   * Keeps the catchup and substitution proof obligations owned by these
 --     lemmas next to the lemmas that use them.
 
-open import Data.List using (List; []; _∷_; _++_; length)
+open import Data.List using ([]; List; length; _∷_; _++_)
 open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_)
 open import Data.Nat.Properties using (+-comm; m+[n∸m]≡n)
 open import Data.Product using (_×_; _,_; Σ-syntax)
-open import Relation.Binary.PropositionalEquality using (_≡_; cong; subst; trans)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; cong; subst; trans)
 
 open import Types
-open import UpDown
-  using (Up; Down; CastPerm; cast-tag; wt-↦; _∣_∣_∣_⊢_⦂_⊑_)
+open import UpDown using
+  ( Up
+  ; Down
+  ; CastPerm
+  ; wt-↦
+  ; cast-tag
+  ; _∣_∣_∣_⊢_⦂_⊒_
+  )
 open import Store using (StoreWf; _⊆ˢ_)
 open import ImprecisionIndexed
-open import Terms using (Term; ƛ_⇒_; _·_; _up_; _down_; wk⊑)
+open import Terms using (Term; ƛ_⇒_; _·_; _⦂∀_[_]; _up_; _down_; wk⊒)
 open import TermProperties using (_[_])
 open import TermImprecisionIndexed
 open import ReductionFresh
-open import PreservationFresh using (length-append-tag; wkΨ-cast-tag-⊑)
+open import PreservationFresh using (length-append-tag; wkΨ-cast-tag-⊒)
 
 postulate
   -- GTLC `[]ᶜ-⊑` analogue.
@@ -315,76 +322,27 @@ sim-left-beta-down
 
 -- Worker W02 helper slot
 
--- Worker W03 helper slot
-
--- Supports DGGSim.agda H13.
-sim-left-w03-wk-up-casts-+ :
-  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B A′ B′ : Ty}{u u′ : Up} →
-  (k : ℕ) →
-  length Φ ≡ Ψ →
-  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ u ⦂ A ⊑ B →
-  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
-  Σ[ Φ′ ∈ List CastPerm ]
-    ((length Φ′ ≡ k + Ψ) ×
-     ((Δ ∣ (k + Ψ) ∣ Σ ∣ Φ′ ⊢ u ⦂ A ⊑ B) ×
-      (Δ ∣ (k + Ψ) ∣ Σ ∣ Φ′ ⊢ u′ ⦂ A′ ⊑ B′)))
-sim-left-w03-wk-up-casts-+ zero lenΦ hu hu′ = _ , lenΦ , hu , hu′
-sim-left-w03-wk-up-casts-+ (suc k) lenΦ hu hu′
-    with sim-left-w03-wk-up-casts-+ k lenΦ hu hu′
-sim-left-w03-wk-up-casts-+ (suc k) lenΦ hu hu′
-  | Φ′ , lenΦ′ , huᵣ , hu′ᵣ =
-  (Φ′ ++ cast-tag ∷ []) ,
-  trans (length-append-tag Φ′) (cong suc lenΦ′) ,
-  wkΨ-cast-tag-⊑ huᵣ ,
-  wkΨ-cast-tag-⊑ hu′ᵣ
-
-sim-left-w03-wk-up-casts-≤ :
-  ∀ {Δ Ψ Ψ′}{Σ Σ′ : Store}{Φ : List CastPerm}
-    {A B A′ B′ : Ty}{u u′ : Up} →
-  Ψ ≤ Ψ′ →
-  Σ ⊆ˢ Σ′ →
-  length Φ ≡ Ψ →
-  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ u ⦂ A ⊑ B →
-  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
-  Σ[ Φ′ ∈ List CastPerm ]
-    ((length Φ′ ≡ Ψ′) ×
-     ((Δ ∣ Ψ′ ∣ Σ′ ∣ Φ′ ⊢ u ⦂ A ⊑ B) ×
-      (Δ ∣ Ψ′ ∣ Σ′ ∣ Φ′ ⊢ u′ ⦂ A′ ⊑ B′)))
-sim-left-w03-wk-up-casts-≤ {Δ} {Ψ} {Ψ′} {Σ} {Σ′}
-  {A = A} {B = B} {A′ = A′} {B′ = B′} {u = u} {u′ = u′}
-  Ψ≤Ψ′ Σ≤Σ′ lenΦ hu hu′
-    with sim-left-w03-wk-up-casts-+ (Ψ′ ∸ Ψ) lenΦ hu hu′
-sim-left-w03-wk-up-casts-≤ {Δ} {Ψ} {Ψ′} {Σ} {Σ′} {Φ}
-  {A = A} {B = B} {A′ = A′} {B′ = B′} {u = u} {u′ = u′}
-  Ψ≤Ψ′ Σ≤Σ′ lenΦ hu hu′
-  | Φ′ , lenΦ′ , huᵣ , hu′ᵣ =
-  let eq = trans (+-comm (Ψ′ ∸ Ψ) Ψ) (m+[n∸m]≡n Ψ≤Ψ′) in
-  Φ′ , trans lenΦ′ eq ,
-  subst (λ q → Δ ∣ q ∣ Σ′ ∣ Φ′ ⊢ u ⦂ A ⊑ B) eq (wk⊑ Σ≤Σ′ huᵣ) ,
-  subst (λ q → Δ ∣ q ∣ Σ′ ∣ Φ′ ⊢ u′ ⦂ A′ ⊑ B′) eq
-    (wk⊑ Σ≤Σ′ hu′ᵣ)
-
--- Worker W04 helper slot
-
 postulate
-  -- Supports DGGSim.agda H33.
-  sim-left-w04-seal-unseal :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B}
-      {pᵢ : [] ⊢ A ⊑ᵢ B}
-      {p : Down} {q : Up} {α : Seal} →
+  -- Supports DGGSim.agda H41 (line 526): simulation of a left
+  -- identity up-cast step.
+  sim-left-w02-id-up :
+    ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B C}
+      {p : [] ⊢ B ⊑ᵢ C} →
     Value V →
     ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢
-      ((V down (UpDown.seal p α)) up (UpDown.unseal α q)) ⊑
-        M′ ⦂ pᵢ →
+      (V up (UpDown.id A)) ⊑ M′ ⦂ p →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
-    Σ[ Ψˡ″ ∈ SealCtx ]
+    (Σ[ Ψˡ″ ∈ SealCtx ]
       Σ[ Ψˡ≤Ψˡ″ ∈ Ψˡ ≤ Ψˡ″ ]
       Σ[ Σʳ′ ∈ Store ]
       Σ[ N′ ∈ Term ]
         ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
-         (⟪ 0 , Ψˡ″ , Σˡ , [] , [] ⟫ ⊢
-            ((V down p) up q) ⊑ N′ ⦂ pᵢ))
+         (⟪ 0 , Ψˡ″ , Σˡ , [] , [] ⟫ ⊢ V ⊑ N′ ⦂ p)))
+
+-- Worker W03 helper slot
+
+-- Worker W04 helper slot
 
 -- Worker W05 helper slot
 
@@ -395,6 +353,66 @@ postulate
 -- Worker W08 helper slot
 
 -- Worker W09 helper slot
+
+-- Supports DGGSim.agda H09 (line 215): lift right multi-steps through
+-- type application.
+sim-left-w09-tyapp-↠ :
+  ∀ {Σ Σ′ L L′ B T} →
+  Σ ∣ L —↠ Σ′ ∣ L′ →
+  Σ ∣ (L ⦂∀ B [ T ]) —↠ Σ′ ∣ (L′ ⦂∀ B [ T ])
+sim-left-w09-tyapp-↠ (L ∎) = (L ⦂∀ _ [ _ ]) ∎
+sim-left-w09-tyapp-↠ (L —→⟨ L→M ⟩ M↠N) =
+  (L ⦂∀ _ [ _ ]) —→⟨ ξ-·α L→M ⟩ sim-left-w09-tyapp-↠ M↠N
+
+-- Supports DGGSim.agda H17 (line 275): weaken both down-cast typings
+-- through the same seal-context extension and store growth.
+sim-left-w09-down-casts-+ :
+  ∀ {Δ Ψ}{Σ Σ′ : Store}{Φ : List CastPerm}{A A′ B B′ : Ty}
+    {d d′ : Down} →
+  (k : ℕ) →
+  Σ ⊆ˢ Σ′ →
+  length Φ ≡ Ψ →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ d ⦂ A ⊒ B →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
+  Σ[ Φ′ ∈ List CastPerm ]
+    ((length Φ′ ≡ k + Ψ) ×
+     ((Δ ∣ (k + Ψ) ∣ Σ′ ∣ Φ′ ⊢ d ⦂ A ⊒ B) ×
+      (Δ ∣ (k + Ψ) ∣ Σ′ ∣ Φ′ ⊢ d′ ⦂ A′ ⊒ B′)))
+sim-left-w09-down-casts-+ zero w lenΦ hd hd′ =
+  _ , lenΦ , wk⊒ w hd , wk⊒ w hd′
+sim-left-w09-down-casts-+ (suc k) w lenΦ hd hd′
+    with sim-left-w09-down-casts-+ k w lenΦ hd hd′
+sim-left-w09-down-casts-+ (suc k) w lenΦ hd hd′
+  | Φ′ , lenΦ′ , hdᵣ , hdᵣ′ =
+  (Φ′ ++ cast-tag ∷ []) ,
+  trans (length-append-tag Φ′) (cong suc lenΦ′) ,
+  wkΨ-cast-tag-⊒ hdᵣ ,
+  wkΨ-cast-tag-⊒ hdᵣ′
+
+sim-left-w09-down-casts-≤ :
+  ∀ {Δ Ψ Ψ′}{Σ Σ′ : Store}{Φ : List CastPerm}{A A′ B B′ : Ty}
+    {d d′ : Down} →
+  Ψ ≤ Ψ′ →
+  Σ ⊆ˢ Σ′ →
+  length Φ ≡ Ψ →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ d ⦂ A ⊒ B →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
+  Σ[ Φ′ ∈ List CastPerm ]
+    ((length Φ′ ≡ Ψ′) ×
+     ((Δ ∣ Ψ′ ∣ Σ′ ∣ Φ′ ⊢ d ⦂ A ⊒ B) ×
+      (Δ ∣ Ψ′ ∣ Σ′ ∣ Φ′ ⊢ d′ ⦂ A′ ⊒ B′)))
+sim-left-w09-down-casts-≤ {Δ} {Ψ} {Ψ′} {Σ′ = Σ′}
+  {A = A} {A′ = A′} {B = B} {B′ = B′} {d = d} {d′ = d′}
+  Ψ≤Ψ′ w lenΦ hd hd′
+    with sim-left-w09-down-casts-+ (Ψ′ ∸ Ψ) w lenΦ hd hd′
+sim-left-w09-down-casts-≤ {Δ} {Ψ} {Ψ′} {Σ′ = Σ′}
+  {A = A} {A′ = A′} {B = B} {B′ = B′} {d = d} {d′ = d′}
+  Ψ≤Ψ′ w lenΦ hd hd′
+  | Φ′ , lenΦ′ , hdᵣ , hdᵣ′ =
+  let eq = trans (+-comm (Ψ′ ∸ Ψ) Ψ) (m+[n∸m]≡n Ψ≤Ψ′) in
+  Φ′ , trans lenΦ′ eq ,
+  subst (λ q → Δ ∣ q ∣ Σ′ ∣ Φ′ ⊢ d ⦂ A ⊒ B) eq hdᵣ ,
+  subst (λ q → Δ ∣ q ∣ Σ′ ∣ Φ′ ⊢ d′ ⦂ A′ ⊒ B′) eq hdᵣ′
 
 -- Worker W10 helper slot
 

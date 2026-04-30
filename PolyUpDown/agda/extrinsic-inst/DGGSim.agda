@@ -35,7 +35,6 @@ open import Terms
     ; substᵗᵐ
     ; `_
     ; _∣_∣_∣_⊢_⦂_
-    ; wk⊒
     )
 open import TermProperties using (substˣ-term; _[_])
 open import TermImprecisionIndexed
@@ -46,7 +45,6 @@ open import PreservationFresh
   using
     ( step-preserves-store-wf
     ; wkΨ-cast-tag-⊑-≤
-    ; wkΨ-cast-tag-⊒-≤
     )
 
 ------------------------------------------------------------------------
@@ -214,15 +212,15 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑⦂∀ rel wfA wfB hT
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , (M′ᵣ ⦂∀ _ [ _ ]) ,
+  sim-left-w09-tyapp-↠ M′↠M′ᵣ ,
+  ⊑⦂∀ Nᵣ⊑M′ᵣ
+    (UpDown.WfTy-weakenˢ wfA Ψˡ≤Ψˡᵣ)
+    (UpDown.WfTy-weakenˢ wfB Ψˡ≤Ψˡᵣ)
+    (UpDown.WfTy-weakenˢ hT Ψˡ≤Ψˡᵣ)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑⦂∀-ν A B p rel wfA hT inst =
   {!!}
-sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
-  | ⊑⦂∀-ν A B p rel wfA hT inst
-    with sim-left rel wfΣˡ wfΣʳ redM
-sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
-  | ⊑⦂∀-ν A B p rel wfA hT inst
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ ,
-  sim-left-w10-tyappν-cong Ψˡ≤Ψˡᵣ Nᵣ⊑M′ᵣ wfA hT inst
 
 -- Congruence: up casts.
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
@@ -278,8 +276,15 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
     with sim-left rel wfΣˡ wfΣʳ redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
   | ⊑down Φ lenΦ rel hd hd′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+    with sim-left-w09-down-casts-≤ Ψˡ≤Ψˡᵣ (store-growth redM)
+           lenΦ hd hd′
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
+  | ⊑down Φ lenΦ rel hd hd′
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+  | Φᵣ , lenΦᵣ , hdᵣ , hdᵣ′ =
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
+  ⊑down Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ hdᵣ hdᵣ′
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
   | ⊑downL Φ lenΦ rel hd
     with sim-left rel wfΣˡ wfΣʳ redM
@@ -303,15 +308,8 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
     with sim-left rel wfΣˡ wfΣʳ (ξ-⊕₁ redL)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
   | ⊑downR Φ lenΦ rel hd′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
-    with wkΨ-cast-tag-⊒-≤ Ψˡ≤Ψˡᵣ lenΦ
-           (wk⊒ (store-growth red) hd′)
-sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
-  | ⊑downR Φ lenΦ rel hd′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
-  | Φᵣ , lenΦᵣ , hdᵣ =
-  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
-  ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ hdᵣ
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₁ redL
   | ⊑⊕ L⊑L′ Arg⊑Arg′
     with sim-left L⊑L′ wfΣˡ wfΣʳ redL

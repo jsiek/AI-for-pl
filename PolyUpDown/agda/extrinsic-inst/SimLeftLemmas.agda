@@ -8,19 +8,29 @@ module SimLeftLemmas where
 --   * Keeps the catchup and substitution proof obligations owned by these
 --     lemmas next to the lemmas that use them.
 
-open import Data.List using ([]; _∷_)
-open import Data.Nat using (_≤_)
+open import Data.List using ([]; List; length; _∷_; _++_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_)
+open import Data.Nat.Properties using (+-comm; m+[n∸m]≡n)
 open import Data.Product using (_×_; _,_; Σ-syntax)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; cong; subst; trans)
 
 open import Types
-open import UpDown using (Up; Down; wt-↦; WfTy-weakenˢ)
-open import Store using (StoreWf)
+open import UpDown using
+  ( Up
+  ; Down
+  ; CastPerm
+  ; wt-↦
+  ; cast-tag
+  ; _∣_∣_∣_⊢_⦂_⊒_
+  )
+open import Store using (StoreWf; _⊆ˢ_)
 open import ImprecisionIndexed
-open import Terms
-  using (Term; Prim; ƛ_⇒_; _·_; _⦂∀_[_]; _⊕[_]_; _up_; _down_)
+open import Terms using (Term; ƛ_⇒_; _·_; _⦂∀_[_]; _up_; _down_; wk⊒)
 open import TermProperties using (_[_])
 open import TermImprecisionIndexed
 open import ReductionFresh
+open import PreservationFresh using (length-append-tag; wkΨ-cast-tag-⊒)
 
 postulate
   -- GTLC `[]ᶜ-⊑` analogue.
@@ -324,45 +334,69 @@ sim-left-beta-down
 
 -- Worker W08 helper slot
 
--- Supports DGGSim.agda H24, the `ξ-⊕₂` / `⊑⊕` branch.
-sim-left-w08-⊕L-↠ :
-  ∀ {Σ Σ′ : Store} {L L′ M : Term} {op : Prim} →
-  Σ ∣ L —↠ Σ′ ∣ L′ →
-  Σ ∣ (L ⊕[ op ] M) —↠ Σ′ ∣ (L′ ⊕[ op ] M)
-sim-left-w08-⊕L-↠ {M = M} (L ∎) = (L ⊕[ _ ] M) ∎
-sim-left-w08-⊕L-↠ {M = M} (L —→⟨ L→L₁ ⟩ L₁↠L′) =
-  (L ⊕[ _ ] M) —→⟨ ξ-⊕₁ L→L₁ ⟩
-  sim-left-w08-⊕L-↠ {M = M} L₁↠L′
-
--- Supports DGGSim.agda H24, the `ξ-⊕₂` / `⊑⊕` branch.
-sim-left-w08-⊕R-↠ :
-  ∀ {Σ Σ′ : Store} {L M M′ : Term} {op : Prim} →
-  Value L →
-  Σ ∣ M —↠ Σ′ ∣ M′ →
-  Σ ∣ (L ⊕[ op ] M) —↠ Σ′ ∣ (L ⊕[ op ] M′)
-sim-left-w08-⊕R-↠ {L = L} vL (M ∎) = (L ⊕[ _ ] M) ∎
-sim-left-w08-⊕R-↠ {L = L} vL (M —→⟨ M→M₁ ⟩ M₁↠M′) =
-  (L ⊕[ _ ] M) —→⟨ ξ-⊕₂ vL M→M₁ ⟩
-  sim-left-w08-⊕R-↠ vL M₁↠M′
-
 -- Worker W09 helper slot
 
--- Worker W10 helper slot
+-- Supports DGGSim.agda H09 (line 215): lift right multi-steps through
+-- type application.
+sim-left-w09-tyapp-↠ :
+  ∀ {Σ Σ′ L L′ B T} →
+  Σ ∣ L —↠ Σ′ ∣ L′ →
+  Σ ∣ (L ⦂∀ B [ T ]) —↠ Σ′ ∣ (L′ ⦂∀ B [ T ])
+sim-left-w09-tyapp-↠ (L ∎) = (L ⦂∀ _ [ _ ]) ∎
+sim-left-w09-tyapp-↠ (L —→⟨ L→M ⟩ M↠N) =
+  (L ⦂∀ _ [ _ ]) —→⟨ ξ-·α L→M ⟩ sim-left-w09-tyapp-↠ M↠N
 
--- Supports DGGSim.agda H10, the `ξ-·α` / `⊑⦂∀-ν` branch.
-sim-left-w10-tyappν-cong :
-  ∀ {Ψ Ψ′ : SealCtx} {Σ : Store} {M M′ A B T}
-    {p : (ν-bound ∷ []) ⊢ A ⊑ᵢ ⇑ᵗ B}
-    {pT : [] ⊢ A [ T ]ᵗ ⊑ᵢ B} →
+-- Supports DGGSim.agda H17 (line 275): weaken both down-cast typings
+-- through the same seal-context extension and store growth.
+sim-left-w09-down-casts-+ :
+  ∀ {Δ Ψ}{Σ Σ′ : Store}{Φ : List CastPerm}{A A′ B B′ : Ty}
+    {d d′ : Down} →
+  (k : ℕ) →
+  Σ ⊆ˢ Σ′ →
+  length Φ ≡ Ψ →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ d ⦂ A ⊒ B →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
+  Σ[ Φ′ ∈ List CastPerm ]
+    ((length Φ′ ≡ k + Ψ) ×
+     ((Δ ∣ (k + Ψ) ∣ Σ′ ∣ Φ′ ⊢ d ⦂ A ⊒ B) ×
+      (Δ ∣ (k + Ψ) ∣ Σ′ ∣ Φ′ ⊢ d′ ⦂ A′ ⊒ B′)))
+sim-left-w09-down-casts-+ zero w lenΦ hd hd′ =
+  _ , lenΦ , wk⊒ w hd , wk⊒ w hd′
+sim-left-w09-down-casts-+ (suc k) w lenΦ hd hd′
+    with sim-left-w09-down-casts-+ k w lenΦ hd hd′
+sim-left-w09-down-casts-+ (suc k) w lenΦ hd hd′
+  | Φ′ , lenΦ′ , hdᵣ , hdᵣ′ =
+  (Φ′ ++ cast-tag ∷ []) ,
+  trans (length-append-tag Φ′) (cong suc lenΦ′) ,
+  wkΨ-cast-tag-⊒ hdᵣ ,
+  wkΨ-cast-tag-⊒ hdᵣ′
+
+sim-left-w09-down-casts-≤ :
+  ∀ {Δ Ψ Ψ′}{Σ Σ′ : Store}{Φ : List CastPerm}{A A′ B B′ : Ty}
+    {d d′ : Down} →
   Ψ ≤ Ψ′ →
-  ⟪ 0 , Ψ′ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ (⊑ᵢ-ν A B p) →
-  WfTy 1 Ψ A →
-  (hT : WfTy 0 Ψ T) →
-  νClosedInstᵢ p pT →
-  ⟪ 0 , Ψ′ , Σ , [] , [] ⟫ ⊢ (M ⦂∀ A [ T ]) ⊑ M′ ⦂ pT
-sim-left-w10-tyappν-cong Ψ≤ rel wfA hT inst =
-  ⊑⦂∀-ν _ _ _ rel (WfTy-weakenˢ wfA Ψ≤)
-    (WfTy-weakenˢ hT Ψ≤) inst
+  Σ ⊆ˢ Σ′ →
+  length Φ ≡ Ψ →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ d ⦂ A ⊒ B →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
+  Σ[ Φ′ ∈ List CastPerm ]
+    ((length Φ′ ≡ Ψ′) ×
+     ((Δ ∣ Ψ′ ∣ Σ′ ∣ Φ′ ⊢ d ⦂ A ⊒ B) ×
+      (Δ ∣ Ψ′ ∣ Σ′ ∣ Φ′ ⊢ d′ ⦂ A′ ⊒ B′)))
+sim-left-w09-down-casts-≤ {Δ} {Ψ} {Ψ′} {Σ′ = Σ′}
+  {A = A} {A′ = A′} {B = B} {B′ = B′} {d = d} {d′ = d′}
+  Ψ≤Ψ′ w lenΦ hd hd′
+    with sim-left-w09-down-casts-+ (Ψ′ ∸ Ψ) w lenΦ hd hd′
+sim-left-w09-down-casts-≤ {Δ} {Ψ} {Ψ′} {Σ′ = Σ′}
+  {A = A} {A′ = A′} {B = B} {B′ = B′} {d = d} {d′ = d′}
+  Ψ≤Ψ′ w lenΦ hd hd′
+  | Φ′ , lenΦ′ , hdᵣ , hdᵣ′ =
+  let eq = trans (+-comm (Ψ′ ∸ Ψ) Ψ) (m+[n∸m]≡n Ψ≤Ψ′) in
+  Φ′ , trans lenΦ′ eq ,
+  subst (λ q → Δ ∣ q ∣ Σ′ ∣ Φ′ ⊢ d ⦂ A ⊒ B) eq hdᵣ ,
+  subst (λ q → Δ ∣ q ∣ Σ′ ∣ Φ′ ⊢ d′ ⦂ A′ ⊒ B′) eq hdᵣ′
+
+-- Worker W10 helper slot
 
 -- Worker W11 helper slot
 

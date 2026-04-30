@@ -204,8 +204,14 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
     with sim-left rel wfΣˡ wfΣʳ (ξ-up redM)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
   | ⊑upR Φ lenΦ rel hu′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+    with wkΨ-cast-tag-⊑-≤ Ψˡ≤Ψˡᵣ lenΦ (Terms.wk⊑ (store-growth redM) hu′)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
+  | ⊑upR Φ lenΦ rel hu′
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+  | Φᵣ , lenΦᵣ , huᵣ =
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ up _ , up-↠ M′↠M′ᵣ ,
+  ⊑upR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ huᵣ
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
   | ⊑downR Φ lenΦ rel hd′
     with sim-left rel wfΣˡ wfΣʳ (ξ-up redM)

@@ -45,6 +45,7 @@ open import PreservationFresh
   using
     ( step-preserves-store-wf
     ; wkΨ-cast-tag-⊑-≤
+    ; wkΨ-cast-tag-⊒-≤
     )
 
 ------------------------------------------------------------------------
@@ -146,7 +147,7 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
   | ⊑· L⊑L′ Arg⊑Arg′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , (M′ᵣ · _) , appL-↠ M′↠M′ᵣ ,
-  ⊑· Nᵣ⊑M′ᵣ (wkΨΣ-⊑ Ψˡ≤Ψˡᵣ (store-growth redL) Arg⊑Arg′)
+  ⊑· Nᵣ⊑M′ᵣ {!!}
 
 -- Congruence: application operand.
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
@@ -198,7 +199,9 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑upR Φ lenΦ rel hu′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  let Φ′ , lenΦ′ , hu′′ = wkΨ-cast-tag-⊑-≤ Ψˡ≤Ψˡᵣ lenΦ hu′ in
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , (M′ᵣ up _) , up-↠ M′↠M′ᵣ ,
+  ⊑upR Φ′ lenΦ′ Nᵣ⊑M′ᵣ (Terms.wk⊑ (store-growth redM) hu′′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑downR Φ lenΦ rel hd′
     with sim-left rel wfΣˡ wfΣʳ (ξ-·α redM)
@@ -239,15 +242,8 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
     with sim-left rel wfΣˡ wfΣʳ redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
   | ⊑up Φ lenΦ rel hu hu′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
-    with sim-left-w03-wk-up-casts-≤ Ψˡ≤Ψˡᵣ (store-growth redM)
-           lenΦ hu hu′
-sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
-  | ⊑up Φ lenΦ rel hu hu′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
-  | Φᵣ , lenΦᵣ , huᵣ , hu′ᵣ =
-  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ up _ , up-↠ M′↠M′ᵣ ,
-  ⊑up Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ huᵣ hu′ᵣ
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
   | ⊑upL Φ lenΦ rel hu
     with sim-left rel wfΣˡ wfΣʳ redM
@@ -329,7 +325,9 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
   | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  let Φᵣ , lenΦᵣ , hdᵣ = wkΨ-cast-tag-⊒-≤ Ψˡ≤Ψˡᵣ lenΦ hd′ in
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
+  ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ (Terms.wk⊒ (store-growth redM) hdᵣ)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
   | ⊑⊕ L⊑L′ Arg⊑Arg′
     with sim-left Arg⊑Arg′ wfΣˡ wfΣʳ redM
@@ -478,7 +476,9 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
   | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  let Φᵣ , lenΦᵣ , hdᵣ = wkΨ-cast-tag-⊒-≤ Ψˡ≤Ψˡᵣ lenΦ hd′ in
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
+  ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ hdᵣ
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
@@ -514,11 +514,11 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (id-up vV) =
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (id-down vV) =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (seal-unseal vV) =
-  sim-left-w04-seal-unseal vV M⊑M′ wfΣˡ wfΣʳ
+  {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (tag-untag-ok vV) =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (tag-untag-bad vV G≢H) =
-  {!!}
+  _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step δ-⊕ =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-·₁ =
@@ -532,7 +532,7 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-up =
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-down =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-⊕₁ =
-  {!!}
+  _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (blame-⊕₂ vV) =
   {!!}
 

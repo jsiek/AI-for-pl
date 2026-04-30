@@ -320,25 +320,16 @@ sim-left-beta-down
 
 -- Worker W01 helper slot
 
--- Worker W02 helper slot
-
 postulate
-  -- Supports DGGSim.agda H41 (line 526): simulation of a left
-  -- identity up-cast step.
-  sim-left-w02-id-up :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B C}
-      {p : [] ⊢ B ⊑ᵢ C} →
-    Value V →
-    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢
-      (V up (UpDown.id A)) ⊑ M′ ⦂ p →
-    StoreWf 0 Ψˡ Σˡ →
-    StoreWf 0 Ψʳ Σʳ →
-    (Σ[ Ψˡ″ ∈ SealCtx ]
-      Σ[ Ψˡ≤Ψˡ″ ∈ Ψˡ ≤ Ψˡ″ ]
-      Σ[ Σʳ′ ∈ Store ]
-      Σ[ N′ ∈ Term ]
-        ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
-         (⟪ 0 , Ψˡ″ , Σˡ , [] , [] ⟫ ⊢ V ⊑ N′ ⦂ p)))
+  -- Supports DGGSim.agda H43 (line 530): after a left identity down-cast
+  -- step, only the fixed-endpoint type-imprecision evidence changes.
+  sim-left-w01-id-downL-index :
+    ∀ {Ψ Σ V M′ A A′}
+      {p p′ : [] ⊢ A ⊑ᵢ A′} →
+    ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ V ⊑ M′ ⦂ p →
+    ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ V ⊑ M′ ⦂ p′
+
+-- Worker W02 helper slot
 
 -- Worker W03 helper slot
 

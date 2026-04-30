@@ -7,18 +7,16 @@ module SimRightLemmas where
 --   * Keep helper lemmas grouped by worker slot to minimize merge conflicts.
 
 open import Data.List using ([])
+open import Data.Nat using (_≤_)
 open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
-open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Relation.Binary.PropositionalEquality using (subst)
+open import Data.Sum using (_⊎_; inj₂)
 
 open import Types
-open import UpDown using (Up; Down; Label; wt-id)
-open import Store using (Store)
+open import UpDown using (Down; Label; Up)
 open import ImprecisionIndexed
-open import Terms using (Term; blame; _up_; _down_; _⦂∀_[_])
+open import Terms using (Term; blame; _⦂∀_[_]; _up_; _down_; ⊢blame)
 open import TermImprecisionIndexed
 open import ReductionFresh
-open import SimLeftLemmas using (sim-left-w03-⊑ᵢ-proof-irrel)
 
 --------------------------------------------------------------------------------
 -- Worker helper slots for `sim-right` parallelization.
@@ -39,95 +37,6 @@ open import SimLeftLemmas using (sim-left-w03-⊑ᵢ-proof-irrel)
 
 -- Worker W05 helper slot
 
--- Supports SimRight.agda R05 (line 53): lift a blame path through an
--- enclosing up cast while eliminating right identity-up casts.
-sim-right-w05-up-blame-↠ :
-  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {p : Up} →
-  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
-  Σ ∣ (M up p) —↠ Σ′ ∣ blame ℓ
-sim-right-w05-up-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
-  (blame ℓ up p) —→⟨ id-step blame-up ⟩ blame ℓ ∎
-sim-right-w05-up-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
-  (M up p) —→⟨ ξ-up M→M′ ⟩ sim-right-w05-up-blame-↠ M′↠blame
-
--- Supports SimRight.agda R05 (line 53): lift a blame path through an
--- enclosing down cast while eliminating right identity-up casts.
-sim-right-w05-down-blame-↠ :
-  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {p : Down} →
-  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
-  Σ ∣ (M down p) —↠ Σ′ ∣ blame ℓ
-sim-right-w05-down-blame-↠ {ℓ = ℓ} {p = p} (_ ∎) =
-  (blame ℓ down p) —→⟨ id-step blame-down ⟩ blame ℓ ∎
-sim-right-w05-down-blame-↠ {p = p} (M —→⟨ M→M′ ⟩ M′↠blame) =
-  (M down p) —→⟨ ξ-down M→M′ ⟩ sim-right-w05-down-blame-↠ M′↠blame
-
--- Supports SimRight.agda R05 (line 53): lift reduction through type
--- application for the `⊑⦂∀-ν` asymmetric case.
-sim-right-w05-tyapp-↠ :
-  ∀ {Σ Σ′ : Store} {M N : Term} {B T : Ty} →
-  Σ ∣ M —↠ Σ′ ∣ N →
-  Σ ∣ (M ⦂∀ B [ T ]) —↠ Σ′ ∣ (N ⦂∀ B [ T ])
-sim-right-w05-tyapp-↠ (M ∎) = (M ⦂∀ _ [ _ ]) ∎
-sim-right-w05-tyapp-↠ (M —→⟨ M→M′ ⟩ M′↠N) =
-  (M ⦂∀ _ [ _ ]) —→⟨ ξ-·α M→M′ ⟩ sim-right-w05-tyapp-↠ M′↠N
-
--- Supports SimRight.agda R05 (line 53): lift blame through type application
--- for the `⊑⦂∀-ν` asymmetric case.
-sim-right-w05-tyapp-blame-↠ :
-  ∀ {Σ Σ′ : Store} {M : Term} {ℓ : Label} {B T : Ty} →
-  Σ ∣ M —↠ Σ′ ∣ blame ℓ →
-  Σ ∣ (M ⦂∀ B [ T ]) —↠ Σ′ ∣ blame ℓ
-sim-right-w05-tyapp-blame-↠ {ℓ = ℓ} {B = B} {T = T} (_ ∎) =
-  (blame ℓ ⦂∀ B [ T ]) —→⟨ id-step blame-·α ⟩ blame ℓ ∎
-sim-right-w05-tyapp-blame-↠ {B = B} {T = T} (M —→⟨ M→M′ ⟩ M′↠blame) =
-  (M ⦂∀ B [ T ]) —→⟨ ξ-·α M→M′ ⟩
-  sim-right-w05-tyapp-blame-↠ M′↠blame
-
--- Supports SimRight.agda R05 (line 53): eliminate a right identity-up cast,
--- commuting through left-only wrappers.
-sim-right-w05-id-up :
-  ∀ {Ψ Σˡ V M C A B} {p : [] ⊢ A ⊑ᵢ B} →
-  ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ M ⊑ (V up UpDown.id C) ⦂ p →
-  (Σ[ N ∈ Term ]
-    ((Σˡ ∣ M —↠ Σˡ ∣ N) ×
-     (⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ N ⊑ V ⦂ p)))
-  ⊎ (Σ[ Σᵇ ∈ Store ] Σ[ ℓ ∈ Label ] (Σˡ ∣ M —↠ Σᵇ ∣ blame ℓ))
-sim-right-w05-id-up (⊑up Φ lenΦ rel hu (wt-id wfA)) =
-  inj₁ (_ , (_ ∎) , ⊑upL Φ lenΦ rel hu)
-sim-right-w05-id-up {p = p} (⊑upR {pA = pA} Φ lenΦ rel (wt-id wfA)) =
-  inj₁
-    (_ , (_ ∎) ,
-     subst (λ q → _ ⊢ _ ⊑ _ ⦂ q)
-       (sim-left-w03-⊑ᵢ-proof-irrel pA p) rel)
-sim-right-w05-id-up (⊑upL Φ lenΦ rel hu)
-    with sim-right-w05-id-up rel
-sim-right-w05-id-up (⊑upL Φ lenΦ rel hu)
-  | inj₁ (N , M↠N , N⊑V) =
-  inj₁ (_ , up-↠ M↠N , ⊑upL Φ lenΦ N⊑V hu)
-sim-right-w05-id-up (⊑upL Φ lenΦ rel hu)
-  | inj₂ (Σᵇ , ℓ , M↠blame) =
-  inj₂ (Σᵇ , ℓ , sim-right-w05-up-blame-↠ M↠blame)
-sim-right-w05-id-up (⊑downL Φ lenΦ rel hd)
-    with sim-right-w05-id-up rel
-sim-right-w05-id-up (⊑downL Φ lenΦ rel hd)
-  | inj₁ (N , M↠N , N⊑V) =
-  inj₁ (_ , down-↠ M↠N , ⊑downL Φ lenΦ N⊑V hd)
-sim-right-w05-id-up (⊑downL Φ lenΦ rel hd)
-  | inj₂ (Σᵇ , ℓ , M↠blame) =
-  inj₂ (Σᵇ , ℓ , sim-right-w05-down-blame-↠ M↠blame)
-sim-right-w05-id-up (⊑⦂∀-ν A B pν rel wfA hT inst)
-    with sim-right-w05-id-up rel
-sim-right-w05-id-up (⊑⦂∀-ν A B pν rel wfA hT inst)
-  | inj₁ (N , M↠N , N⊑V) =
-  inj₁
-    (_ , sim-right-w05-tyapp-↠ M↠N ,
-     ⊑⦂∀-ν A B pν N⊑V wfA hT inst)
-sim-right-w05-id-up (⊑⦂∀-ν A B pν rel wfA hT inst)
-  | inj₂ (Σᵇ , ℓ , M↠blame) =
-  inj₂ (Σᵇ , ℓ , sim-right-w05-tyapp-blame-↠ M↠blame)
-sim-right-w05-id-up (⊑blameR {ℓ = ℓ} hM) =
-  inj₂ (_ , ℓ , (blame ℓ ∎))
-
 -- Worker W06 helper slot
 
 -- Worker W07 helper slot
@@ -135,6 +44,96 @@ sim-right-w05-id-up (⊑blameR {ℓ = ℓ} hM) =
 -- Worker W08 helper slot
 
 -- Worker W09 helper slot
+
+SimRightBlames : Store → Term → Set
+SimRightBlames Σ M = ∃[ Σ′ ] ∃[ ℓ ] (Σ ∣ M —↠ Σ′ ∣ blame ℓ)
+
+-- Supports R13: lift inner blame traces through type application.
+sim-right-w09-typeapp-↠ :
+  ∀ {Σ Σ′ : Store} {M N : Term} {B T : Ty} →
+  Σ ∣ M —↠ Σ′ ∣ N →
+  Σ ∣ (M ⦂∀ B [ T ]) —↠ Σ′ ∣ (N ⦂∀ B [ T ])
+sim-right-w09-typeapp-↠ {B = B} {T = T} (M ∎) = (M ⦂∀ B [ T ]) ∎
+sim-right-w09-typeapp-↠ {B = B} {T = T} (M —→⟨ red ⟩ M↠N) =
+  (M ⦂∀ B [ T ]) —→⟨ ξ-·α red ⟩ sim-right-w09-typeapp-↠ M↠N
+
+-- Supports R13: lift a blame trace through type application.
+sim-right-w09-typeapp-blames :
+  ∀ {Σ : Store} {M : Term} {B T : Ty} →
+  SimRightBlames Σ M →
+  SimRightBlames Σ (M ⦂∀ B [ T ])
+sim-right-w09-typeapp-blames {B = B} {T = T} (Σ′ , ℓ , M↠blame) =
+  Σ′ , ℓ ,
+  multi-trans (sim-right-w09-typeapp-↠ M↠blame)
+    ((blame ℓ ⦂∀ B [ T ]) —→⟨ id-step blame-·α ⟩ blame ℓ ∎)
+
+-- Supports R13: lift a blame trace through an up cast.
+sim-right-w09-up-blames :
+  ∀ {Σ : Store} {M : Term} {u : Up} →
+  SimRightBlames Σ M →
+  SimRightBlames Σ (M up u)
+sim-right-w09-up-blames {u = u} (Σ′ , ℓ , M↠blame) =
+  Σ′ , ℓ ,
+  multi-trans (up-↠ M↠blame)
+    ((blame ℓ up u) —→⟨ id-step blame-up ⟩ blame ℓ ∎)
+
+-- Supports R13: lift a blame trace through a down cast.
+sim-right-w09-down-blames :
+  ∀ {Σ : Store} {M : Term} {d : Down} →
+  SimRightBlames Σ M →
+  SimRightBlames Σ (M down d)
+sim-right-w09-down-blames {d = d} (Σ′ , ℓ , M↠blame) =
+  Σ′ , ℓ ,
+  multi-trans (down-↠ M↠blame)
+    ((blame ℓ down d) —→⟨ id-step blame-down ⟩ blame ℓ ∎)
+
+-- Supports R13: if the right term is blame, the left term can reach blame.
+sim-right-w09-right-blame-rel-blames :
+  ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B : Ty}
+    {p : [] ⊢ A ⊑ᵢ B} {ℓ : Label} →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ blame ℓ ⦂ p →
+  SimRightBlames Σ M
+sim-right-w09-right-blame-rel-blames (⊑⦂∀-ν A B p rel wfA hT inst) =
+  sim-right-w09-typeapp-blames (sim-right-w09-right-blame-rel-blames rel)
+sim-right-w09-right-blame-rel-blames (⊑upL Φ lenΦ rel hu) =
+  sim-right-w09-up-blames (sim-right-w09-right-blame-rel-blames rel)
+sim-right-w09-right-blame-rel-blames (⊑downL Φ lenΦ rel hd) =
+  sim-right-w09-down-blames (sim-right-w09-right-blame-rel-blames rel)
+sim-right-w09-right-blame-rel-blames (⊑blameR {ℓ = ℓ′} hM) =
+  _ , ℓ′ , (blame ℓ′ ∎)
+
+-- Supports R13: right-side `blame-·α` leaves the left with a blame trace.
+sim-right-w09-right-blame-typeapp-blames :
+  ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B C T : Ty}
+    {p : [] ⊢ A ⊑ᵢ B} {ℓ : Label} →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ (blame ℓ ⦂∀ C [ T ]) ⦂ p →
+  SimRightBlames Σ M
+sim-right-w09-right-blame-typeapp-blames (⊑⦂∀ rel wfA wfB hT) =
+  sim-right-w09-typeapp-blames (sim-right-w09-right-blame-rel-blames rel)
+sim-right-w09-right-blame-typeapp-blames (⊑⦂∀-ν A B p rel wfA hT inst) =
+  sim-right-w09-typeapp-blames
+    (sim-right-w09-right-blame-typeapp-blames rel)
+sim-right-w09-right-blame-typeapp-blames (⊑upL Φ lenΦ rel hu) =
+  sim-right-w09-up-blames (sim-right-w09-right-blame-typeapp-blames rel)
+sim-right-w09-right-blame-typeapp-blames (⊑downL Φ lenΦ rel hd) =
+  sim-right-w09-down-blames (sim-right-w09-right-blame-typeapp-blames rel)
+sim-right-w09-right-blame-typeapp-blames (⊑blameR {ℓ = ℓ′} hM) =
+  _ , ℓ′ , (blame ℓ′ ∎)
+
+-- Supports R13: package the right-side `blame-·α` case result.
+sim-right-w09-r13 :
+  ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B C T : Ty}
+    {p : [] ⊢ A ⊑ᵢ B} {ℓ : Label} →
+  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ (blame ℓ ⦂∀ C [ T ]) ⦂ p →
+  (Σ[ Ψ″ ∈ SealCtx ]
+    Σ[ Ψ≤Ψ″ ∈ Ψ ≤ Ψ″ ]
+    Σ[ Σ′ ∈ Store ]
+    Σ[ N ∈ Term ]
+      ((Σ ∣ M —↠ Σ′ ∣ N) ×
+       (⟪ 0 , Ψ″ , Σ′ , [] , [] ⟫ ⊢ N ⊑ blame ℓ ⦂ p)))
+  ⊎ SimRightBlames Σ M
+sim-right-w09-r13 rel =
+  inj₂ (sim-right-w09-right-blame-typeapp-blames rel)
 
 -- Worker W10 helper slot
 

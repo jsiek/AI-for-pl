@@ -146,7 +146,7 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
   | ⊑· L⊑L′ Arg⊑Arg′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , (M′ᵣ · _) , appL-↠ M′↠M′ᵣ ,
-  ⊑· Nᵣ⊑M′ᵣ {!!}
+  ⊑· Nᵣ⊑M′ᵣ (wkΨΣ-⊑ Ψˡ≤Ψˡᵣ (store-growth redL) Arg⊑Arg′)
 
 -- Congruence: application operand.
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}

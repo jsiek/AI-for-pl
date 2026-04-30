@@ -33,6 +33,7 @@ open import Terms
     ; _up_
     ; _down_
     ; substᵗᵐ
+    ; wk⊒
     ; `_
     ; _∣_∣_∣_⊢_⦂_
     )
@@ -45,6 +46,7 @@ open import PreservationFresh
   using
     ( step-preserves-store-wf
     ; wkΨ-cast-tag-⊑-≤
+    ; wkΨ-cast-tag-⊒-≤
     )
 
 ------------------------------------------------------------------------
@@ -198,16 +200,20 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑upR Φ lenΦ rel hu′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  let Φ′ , lenΦ′ , hu′′ = wkΨ-cast-tag-⊑-≤ Ψˡ≤Ψˡᵣ lenΦ hu′ in
-  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , (M′ᵣ up _) , up-↠ M′↠M′ᵣ ,
-  ⊑upR Φ′ lenΦ′ Nᵣ⊑M′ᵣ (Terms.wk⊑ (store-growth redM) hu′′)
+  {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑downR Φ lenΦ rel hd′
     with sim-left rel wfΣˡ wfΣʳ (ξ-·α redM)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑downR Φ lenΦ rel hd′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+    with wkΨ-cast-tag-⊒-≤ Ψˡ≤Ψˡᵣ lenΦ hd′
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑downR Φ lenΦ rel hd′
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+  | Φᵣ , lenΦᵣ , hdᵣ =
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
+  ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ (wk⊒ (store-growth red) hdᵣ)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑⦂∀ rel wfA wfB hT
     with sim-left rel wfΣˡ wfΣʳ redM

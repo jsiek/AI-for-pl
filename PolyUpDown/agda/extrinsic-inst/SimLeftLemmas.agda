@@ -15,7 +15,7 @@ open import Types
 open import UpDown using (Up; Down; wt-↦)
 open import Store using (StoreWf)
 open import ImprecisionIndexed
-open import Terms using (Term; ƛ_⇒_; _·_; _up_; _down_)
+open import Terms using (Term; ƛ_⇒_; _·_; _⦂∀_[_]; _up_; _down_)
 open import TermProperties using (_[_])
 open import TermImprecisionIndexed
 open import ReductionFresh
@@ -323,6 +323,16 @@ sim-left-beta-down
 -- Worker W08 helper slot
 
 -- Worker W09 helper slot
+
+-- Supports DGGSim.agda H09 (line 215): lift right multi-steps through
+-- type application.
+sim-left-w09-tyapp-↠ :
+  ∀ {Σ Σ′ L L′ B T} →
+  Σ ∣ L —↠ Σ′ ∣ L′ →
+  Σ ∣ (L ⦂∀ B [ T ]) —↠ Σ′ ∣ (L′ ⦂∀ B [ T ])
+sim-left-w09-tyapp-↠ (L ∎) = (L ⦂∀ _ [ _ ]) ∎
+sim-left-w09-tyapp-↠ (L —→⟨ L→M ⟩ M↠N) =
+  (L ⦂∀ _ [ _ ]) —→⟨ ξ-·α L→M ⟩ sim-left-w09-tyapp-↠ M↠N
 
 -- Worker W10 helper slot
 

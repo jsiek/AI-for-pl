@@ -212,7 +212,12 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑⦂∀ rel wfA wfB hT
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , (M′ᵣ ⦂∀ _ [ _ ]) ,
+  sim-left-w09-tyapp-↠ M′↠M′ᵣ ,
+  ⊑⦂∀ Nᵣ⊑M′ᵣ
+    (UpDown.WfTy-weakenˢ wfA Ψˡ≤Ψˡᵣ)
+    (UpDown.WfTy-weakenˢ wfB Ψˡ≤Ψˡᵣ)
+    (UpDown.WfTy-weakenˢ hT Ψˡ≤Ψˡᵣ)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑⦂∀-ν A B p rel wfA hT inst =
   {!!}
@@ -233,11 +238,7 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
   | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  let Φᵣ , lenΦᵣ , hdᵣ =
-        PreservationFresh.wkΨ-cast-tag-⊒-≤ Ψˡ≤Ψˡᵣ lenΦ
-          (Terms.wk⊒ (store-growth redM) hd′) in
-  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
-  ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ hdᵣ
+  {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
   | ⊑up Φ lenΦ rel hu hu′
     with sim-left rel wfΣˡ wfΣʳ redM

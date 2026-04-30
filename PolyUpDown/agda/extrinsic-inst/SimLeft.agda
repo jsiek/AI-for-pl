@@ -608,7 +608,7 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-down =
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-⊕₁ =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (blame-⊕₂ vV) =
-  {!!}
+  _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 
 -- PolyUpDown-specific store-allocation/poly-instantiation cases.
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-Λ = {!!}

@@ -193,8 +193,16 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
     (UpDown.WfTy-weakenˢ wfB Ψˡ≤Ψˡᵣ)
     (UpDown.WfTy-weakenˢ hT Ψˡ≤Ψˡᵣ)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
-  | ⊑⦂∀-ν A B p rel wfA hT inst =
-  {!!}
+  | ⊑⦂∀-ν A B p rel wfA hT inst
+    with sim-left rel wfΣˡ wfΣʳ redM
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑⦂∀-ν A B p rel wfA hT inst
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ ,
+  ⊑⦂∀-ν A B p Nᵣ⊑M′ᵣ
+    (UpDown.WfTy-weakenˢ wfA Ψˡ≤Ψˡᵣ)
+    (UpDown.WfTy-weakenˢ hT Ψˡ≤Ψˡᵣ)
+    inst
 
 -- Congruence: up casts.
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM

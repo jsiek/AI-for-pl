@@ -130,8 +130,15 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
     with sim-left rel wfΣˡ wfΣʳ (ξ-·₁ redL)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
   | ⊑upR Φ lenΦ rel hu′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+    with wkΨ-cast-tag-⊑-≤ Ψˡ≤Ψˡᵣ lenΦ
+           (Terms.wk⊑ (store-growth redL) hu′)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
+  | ⊑upR Φ lenΦ rel hu′
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+  | Φᵣ , lenΦᵣ , huᵣ =
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ up _ , up-↠ M′↠M′ᵣ ,
+  ⊑upR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ huᵣ
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
   | ⊑downR Φ lenΦ rel hd′
     with sim-left rel wfΣˡ wfΣʳ (ξ-·₁ redL)
@@ -214,13 +221,8 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
-  | ⊑⦂∀-ν A B p rel wfA hT inst
-    with sim-left rel wfΣˡ wfΣʳ redM
-sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
-  | ⊑⦂∀-ν A B p rel wfA hT inst
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ ,
-  sim-left-w10-tyappν-cong Ψˡ≤Ψˡᵣ Nᵣ⊑M′ᵣ wfA hT inst
+  | ⊑⦂∀-ν A B p rel wfA hT inst =
+  {!!}
 
 -- Congruence: up casts.
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM

@@ -179,7 +179,12 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑⦂∀ rel wfA wfB hT
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ ⦂∀ _ [ _ ] ,
+  sim-left-w09-tyapp-↠ M′↠M′ᵣ ,
+  ⊑⦂∀ Nᵣ⊑M′ᵣ
+    (UpDown.WfTy-weakenˢ wfA Ψˡ≤Ψˡᵣ)
+    (UpDown.WfTy-weakenˢ wfB Ψˡ≤Ψˡᵣ)
+    (UpDown.WfTy-weakenˢ hT Ψˡ≤Ψˡᵣ)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑⦂∀-ν A B p rel wfA hT inst =
   {!!}

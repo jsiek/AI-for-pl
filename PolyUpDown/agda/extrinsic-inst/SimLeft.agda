@@ -479,8 +479,8 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-  {- BLOCKED[W08][H30]:
-     Hole H30 reported success but produced no applied file changes.
+  {- BLOCKED[W11][H29]:
+     Conflicting edits for `PolyUpDown/agda/extrinsic-inst/SimLeft.agda` while applying worker changes. Both another worker and this worker modified overlapping text.
   -}
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-↦ {V = V} {W = W} vV vW)
@@ -600,7 +600,7 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-·₁ =
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (blame-·₂ vV) =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-·α =
-  {!!}
+  _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-up =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-down =

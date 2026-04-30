@@ -4,6 +4,17 @@
 
 ## In progress TODO items
 
+[ ] Finish `sim-left` in PolyUpDown/agda/extrinsic-inst/DGGSim.agda using
+    the 12-worker parallel plan in
+    PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md.
+    Use SimLeftLemmas.agda for all new helper lemmas (worker-slot ownership),
+    and if a worker cannot prove a hole, add a
+    `-- BLOCKED[WXX][HYY]: ... Tried: ...` comment directly below that hole.
+    Workers: 12
+    Plan: PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md
+    Helpers: PolyUpDown/agda/extrinsic-inst/SimLeftLemmas.agda
+  Started: 12:12 PM EDT 2026-04-30
+
 ## Completed TODO items
 
 [x] Delete LogicalRelation.agda, DynamicGradualGuarantee.agda, and Parametricity.agda in
@@ -99,19 +110,6 @@
     Check your work with agda and fix any errors.
 
 ## Blocked TODO items
-
-[B] Finish `sim-left` in PolyUpDown/agda/extrinsic-inst/DGGSim.agda using
-    the 12-worker parallel plan in
-    PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md.
-    Use SimLeftLemmas.agda for all new helper lemmas (worker-slot ownership),
-    and if a worker cannot prove a hole, add a
-    `-- BLOCKED[WXX][HYY]: ... Tried: ...` comment directly below that hole.
-    Workers: 12
-    Plan: PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md
-    Helpers: PolyUpDown/agda/extrinsic-inst/SimLeftLemmas.agda
-  Started: 12:08 PM EDT 2026-04-30
-  Stopped: 12:10 PM EDT 2026-04-30
-  Blocker: Required task inputs are missing from the worktree: `sim-left-parallel-plan.md` and `SimLeftLemmas.agda`. Without the 12-worker ownership plan and helper module, I cannot carry out the requested worker-slot proof workflow or safely place new helper lemmas in the mandated file.
 
 [B] Finish the proof of sim-left-beta in
     PolyUpDown/agda/extrinsic-inst/DGGSim.agda

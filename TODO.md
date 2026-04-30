@@ -4,10 +4,13 @@
 
 ## In progress TODO items
 
-[ ] Delete LogicalRelation.agda, DynamicGradualGuarantee.agda, and Parametricity.agda in
-    PolyUpDown/agda/extrinsic-inst/
-
 ## Completed TODO items
+
+[x] Delete LogicalRelation.agda, DynamicGradualGuarantee.agda, and Parametricity.agda in
+    PolyUpDown/agda/extrinsic-inst/
+  Started: 09:47 AM EDT 2026-04-30
+  Stopped: 09:48 AM EDT 2026-04-30
+
 
 [x] Delete the old _∣_—→[_]_∣_ reduction relation in
     PolyUpDown/agda/extrinsic-inst/Reduction.agda

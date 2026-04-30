@@ -8,14 +8,16 @@ module TermImprecisionIndexed where
 --   * Provides projections back to ordinary left/right typing derivations.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using (List; []; _∷_; length)
-open import Data.Nat using (zero; suc; z≤n)
+open import Data.List using (List; []; _∷_; _++_; length)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n)
+open import Data.Nat.Properties using (+-comm; m+[n∸m]≡n; n≤1+n)
 open import Data.Product using (Σ; Σ-syntax; _,_; proj₁; proj₂)
-open import Relation.Binary.PropositionalEquality using (cong; sym; trans)
+open import Relation.Binary.PropositionalEquality using (cong; subst; sym; trans)
 
 open import Types
 open import Ctx using (⤊ᵗ)
 open import ImprecisionIndexed
+open import Store using (_⊆ˢ_)
 open import UpDown
 open import Terms
 open import TypeProperties
@@ -24,6 +26,13 @@ open import TypeProperties
     ; substᵗ-id
     ; renameᵗ-⇑ˢ
     ; renameᵗ-ν-src
+    )
+open import PreservationFresh
+  using
+    ( length-append-tag
+    ; wkΨ-term-suc
+    ; wkΨ-cast-tag-⊑
+    ; wkΨ-cast-tag-⊒
     )
 
 ------------------------------------------------------------------------
@@ -280,3 +289,138 @@ data _⊢_⊑_⦂_ (E : TPEnv) :
   E ⊢ M ⊑ M′ ⦂ p →
   TPEnv.Ξ E ⊢ A ⊑ᵢ B
 ⊑-type-imprecision {p = p} rel = p
+
+------------------------------------------------------------------------
+-- Store and seal-context weakening
+------------------------------------------------------------------------
+
+wkΣ-⊑ :
+  ∀ {E Σ′ M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  TPEnv.store E ⊆ˢ Σ′ →
+  E ⊢ M ⊑ M′ ⦂ p →
+  (⟪ TPEnv.Δ E , TPEnv.Ψ E , Σ′ , TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢
+    M ⊑ M′ ⦂ p
+wkΣ-⊑ w (⊑` h) = ⊑` h
+wkΣ-⊑ w (⊑ƛ hA hA′ rel) = ⊑ƛ hA hA′ (wkΣ-⊑ w rel)
+wkΣ-⊑ w (⊑· relL relM) = ⊑· (wkΣ-⊑ w relL) (wkΣ-⊑ w relM)
+wkΣ-⊑ w (⊑Λ vM vM′ wfA wfB rel) =
+  ⊑Λ vM vM′ wfA wfB (wkΣ-⊑ (inst-⟰ᵗ-⊆ˢ w) rel)
+wkΣ-⊑ w (⊑⦂∀ rel wfA wfB hT) = ⊑⦂∀ (wkΣ-⊑ w rel) wfA wfB hT
+wkΣ-⊑ w (⊑⦂∀-ν A B p rel wfA hT inst) =
+  ⊑⦂∀-ν A B p (wkΣ-⊑ w rel) wfA hT inst
+wkΣ-⊑ w (⊑$ {n}) = ⊑$
+wkΣ-⊑ w (⊑⊕ relL relM) = ⊑⊕ (wkΣ-⊑ w relL) (wkΣ-⊑ w relM)
+wkΣ-⊑ w (⊑up Φ lenΦ rel hu hu′) =
+  ⊑up Φ lenΦ (wkΣ-⊑ w rel) (wk⊑ w hu) (wk⊑ w hu′)
+wkΣ-⊑ w (⊑upL Φ lenΦ rel hu) = ⊑upL Φ lenΦ (wkΣ-⊑ w rel) (wk⊑ w hu)
+wkΣ-⊑ w (⊑upR Φ lenΦ rel hu′) = ⊑upR Φ lenΦ (wkΣ-⊑ w rel) (wk⊑ w hu′)
+wkΣ-⊑ w (⊑down Φ lenΦ rel hd hd′) =
+  ⊑down Φ lenΦ (wkΣ-⊑ w rel) (wk⊒ w hd) (wk⊒ w hd′)
+wkΣ-⊑ w (⊑downL Φ lenΦ rel hd) =
+  ⊑downL Φ lenΦ (wkΣ-⊑ w rel) (wk⊒ w hd)
+wkΣ-⊑ w (⊑downR Φ lenΦ rel hd′) =
+  ⊑downR Φ lenΦ (wkΣ-⊑ w rel) (wk⊒ w hd′)
+wkΣ-⊑ w (⊑blameR hM) = ⊑blameR (wkΣ-term w hM)
+
+wkΨ-⊑-suc :
+  ∀ {E M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  E ⊢ M ⊑ M′ ⦂ p →
+  (⟪ TPEnv.Δ E , suc (TPEnv.Ψ E) , TPEnv.store E ,
+    TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢ M ⊑ M′ ⦂ p
+wkΨ-⊑-suc (⊑` h) = ⊑` h
+wkΨ-⊑-suc (⊑ƛ hA hA′ rel) =
+  ⊑ƛ (WfTy-weakenˢ hA (n≤1+n _))
+      (WfTy-weakenˢ hA′ (n≤1+n _))
+      (wkΨ-⊑-suc rel)
+wkΨ-⊑-suc (⊑· relL relM) = ⊑· (wkΨ-⊑-suc relL) (wkΨ-⊑-suc relM)
+wkΨ-⊑-suc (⊑Λ vM vM′ wfA wfB rel) =
+  ⊑Λ vM vM′
+    (WfTy-weakenˢ wfA (n≤1+n _))
+    (WfTy-weakenˢ wfB (n≤1+n _))
+    (wkΨ-⊑-suc rel)
+wkΨ-⊑-suc (⊑⦂∀ rel wfA wfB hT) =
+  ⊑⦂∀ (wkΨ-⊑-suc rel)
+    (WfTy-weakenˢ wfA (n≤1+n _))
+    (WfTy-weakenˢ wfB (n≤1+n _))
+    (WfTy-weakenˢ hT (n≤1+n _))
+wkΨ-⊑-suc {E = E} {M = M} {M′ = M′}
+    (⊑⦂∀-ν A B {T = T} p rel wfA hT inst) =
+  ⊑⦂∀-ν A B p
+    (wkΨ-⊑-suc rel)
+    (WfTy-weakenˢ wfA (n≤1+n _))
+    (WfTy-weakenˢ hT (n≤1+n _))
+    inst
+wkΨ-⊑-suc (⊑$ {n}) = ⊑$
+wkΨ-⊑-suc (⊑⊕ relL relM) = ⊑⊕ (wkΨ-⊑-suc relL) (wkΨ-⊑-suc relM)
+wkΨ-⊑-suc (⊑up Φ lenΦ rel hu hu′) =
+  ⊑up
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊑ hu)
+    (wkΨ-cast-tag-⊑ hu′)
+wkΨ-⊑-suc (⊑upL Φ lenΦ rel hu) =
+  ⊑upL
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊑ hu)
+wkΨ-⊑-suc (⊑upR Φ lenΦ rel hu′) =
+  ⊑upR
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊑ hu′)
+wkΨ-⊑-suc (⊑down Φ lenΦ rel hd hd′) =
+  ⊑down
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊒ hd)
+    (wkΨ-cast-tag-⊒ hd′)
+wkΨ-⊑-suc (⊑downL Φ lenΦ rel hd) =
+  ⊑downL
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊒ hd)
+wkΨ-⊑-suc (⊑downR Φ lenΦ rel hd′) =
+  ⊑downR
+    (Φ ++ cast-tag ∷ [])
+    (trans (length-append-tag Φ) (cong suc lenΦ))
+    (wkΨ-⊑-suc rel)
+    (wkΨ-cast-tag-⊒ hd′)
+wkΨ-⊑-suc (⊑blameR hM) = ⊑blameR (wkΨ-term-suc hM)
+
+wkΨ-⊑-+ :
+  ∀ {E M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  (k : ℕ) →
+  E ⊢ M ⊑ M′ ⦂ p →
+  (⟪ TPEnv.Δ E , (k + TPEnv.Ψ E) , TPEnv.store E ,
+    TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢ M ⊑ M′ ⦂ p
+wkΨ-⊑-+ zero rel = rel
+wkΨ-⊑-+ (suc k) rel = wkΨ-⊑-suc (wkΨ-⊑-+ k rel)
+
+wkΨ-⊑-≤ :
+  ∀ {E Ψ′ M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  TPEnv.Ψ E ≤ Ψ′ →
+  E ⊢ M ⊑ M′ ⦂ p →
+  (⟪ TPEnv.Δ E , Ψ′ , TPEnv.store E , TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢
+    M ⊑ M′ ⦂ p
+wkΨ-⊑-≤ {E} {Ψ′} Ψ≤ rel =
+  subst
+    (λ q →
+      (⟪ TPEnv.Δ E , q , TPEnv.store E , TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢
+        _ ⊑ _ ⦂ _)
+    (trans (+-comm (Ψ′ ∸ TPEnv.Ψ E) (TPEnv.Ψ E))
+           (m+[n∸m]≡n Ψ≤))
+    (wkΨ-⊑-+ (Ψ′ ∸ TPEnv.Ψ E) rel)
+
+wkΨΣ-⊑ :
+  ∀ {E Ψ′ Σ′ M M′ A B} {p : TPEnv.Ξ E ⊢ A ⊑ᵢ B} →
+  TPEnv.Ψ E ≤ Ψ′ →
+  TPEnv.store E ⊆ˢ Σ′ →
+  E ⊢ M ⊑ M′ ⦂ p →
+  (⟪ TPEnv.Δ E , Ψ′ , Σ′ , TPEnv.Ξ E , TPEnv.Γ E ⟫) ⊢
+    M ⊑ M′ ⦂ p
+wkΨΣ-⊑ Ψ≤ w rel = wkΣ-⊑ w (wkΨ-⊑-≤ Ψ≤ rel)

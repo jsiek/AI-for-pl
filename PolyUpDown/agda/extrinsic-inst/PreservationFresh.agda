@@ -9,9 +9,17 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Sigma as Sigma using (Σ)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; length; _∷_; _++_; [])
-open import Data.Nat using (zero; suc; z<s; s<s; _+_; _<_; _≤_)
+open import Data.Nat using (ℕ; zero; suc; z<s; s<s; _+_; _∸_; _<_; _≤_)
 open import Data.Nat.Properties
-  using (≤-refl; n≤1+n; n<1+n; <-≤-trans; <-irrefl)
+  using
+    ( ≤-refl
+    ; +-comm
+    ; m+[n∸m]≡n
+    ; n≤1+n
+    ; n<1+n
+    ; <-≤-trans
+    ; <-irrefl
+    )
 open import Data.Product using (Σ; ∃; ∃-syntax; Σ-syntax; _×_; proj₁; proj₂; _,_)
 open import Relation.Binary.PropositionalEquality using (_≢_; cong; cong₂; subst; sym; trans)
 open import Relation.Nullary using (yes; no)
@@ -278,6 +286,76 @@ wkΨ-cast-tag-⊒ {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p} h =
           RenOkCast-append-tag
           RenOkTag-append-tag
           h)))
+
+wkΨ-cast-tag-⊑-+ :
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
+  (k : ℕ) →
+  length Φ ≡ Ψ →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
+  Σ[ Φ′ ∈ List CastPerm ]
+    ((length Φ′ ≡ k + Ψ) ×
+     (Δ ∣ (k + Ψ) ∣ Σ ∣ Φ′ ⊢ p ⦂ A ⊑ B))
+wkΨ-cast-tag-⊑-+ zero lenΦ h = _ , lenΦ , h
+wkΨ-cast-tag-⊑-+ (suc k) lenΦ h
+    with wkΨ-cast-tag-⊑-+ k lenΦ h
+wkΨ-cast-tag-⊑-+ (suc k) lenΦ h
+  | Φ′ , lenΦ′ , h′ =
+  (Φ′ ++ cast-tag ∷ []) ,
+  trans (length-append-tag Φ′) (cong suc lenΦ′) ,
+  wkΨ-cast-tag-⊑ h′
+
+wkΨ-cast-tag-⊒-+ :
+  ∀ {Δ Ψ}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
+  (k : ℕ) →
+  length Φ ≡ Ψ →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
+  Σ[ Φ′ ∈ List CastPerm ]
+    ((length Φ′ ≡ k + Ψ) ×
+     (Δ ∣ (k + Ψ) ∣ Σ ∣ Φ′ ⊢ p ⦂ A ⊒ B))
+wkΨ-cast-tag-⊒-+ zero lenΦ h = _ , lenΦ , h
+wkΨ-cast-tag-⊒-+ (suc k) lenΦ h
+    with wkΨ-cast-tag-⊒-+ k lenΦ h
+wkΨ-cast-tag-⊒-+ (suc k) lenΦ h
+  | Φ′ , lenΦ′ , h′ =
+  (Φ′ ++ cast-tag ∷ []) ,
+  trans (length-append-tag Φ′) (cong suc lenΦ′) ,
+  wkΨ-cast-tag-⊒ h′
+
+wkΨ-cast-tag-⊑-≤ :
+  ∀ {Δ Ψ Ψ′}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Up} →
+  Ψ ≤ Ψ′ →
+  length Φ ≡ Ψ →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊑ B →
+  Σ[ Φ′ ∈ List CastPerm ]
+    ((length Φ′ ≡ Ψ′) ×
+     (Δ ∣ Ψ′ ∣ Σ ∣ Φ′ ⊢ p ⦂ A ⊑ B))
+wkΨ-cast-tag-⊑-≤ {Δ} {Ψ} {Ψ′} {Σ} {A = A} {B = B} {p = p}
+  Ψ≤Ψ′ lenΦ h
+    with wkΨ-cast-tag-⊑-+ (Ψ′ ∸ Ψ) lenΦ h
+wkΨ-cast-tag-⊑-≤ {Δ} {Ψ} {Ψ′} {Σ} {A = A} {B = B} {p = p}
+  Ψ≤Ψ′ lenΦ h
+  | Φ′ , lenΦ′ , h′ =
+  let eq = trans (+-comm (Ψ′ ∸ Ψ) Ψ) (m+[n∸m]≡n Ψ≤Ψ′) in
+  Φ′ , trans lenΦ′ eq ,
+  subst (λ q → Δ ∣ q ∣ Σ ∣ Φ′ ⊢ p ⦂ A ⊑ B) eq h′
+
+wkΨ-cast-tag-⊒-≤ :
+  ∀ {Δ Ψ Ψ′}{Σ : Store}{Φ : List CastPerm}{A B : Ty}{p : Down} →
+  Ψ ≤ Ψ′ →
+  length Φ ≡ Ψ →
+  Δ ∣ Ψ ∣ Σ ∣ Φ ⊢ p ⦂ A ⊒ B →
+  Σ[ Φ′ ∈ List CastPerm ]
+    ((length Φ′ ≡ Ψ′) ×
+     (Δ ∣ Ψ′ ∣ Σ ∣ Φ′ ⊢ p ⦂ A ⊒ B))
+wkΨ-cast-tag-⊒-≤ {Δ} {Ψ} {Ψ′} {Σ} {A = A} {B = B} {p = p}
+  Ψ≤Ψ′ lenΦ h
+    with wkΨ-cast-tag-⊒-+ (Ψ′ ∸ Ψ) lenΦ h
+wkΨ-cast-tag-⊒-≤ {Δ} {Ψ} {Ψ′} {Σ} {A = A} {B = B} {p = p}
+  Ψ≤Ψ′ lenΦ h
+  | Φ′ , lenΦ′ , h′ =
+  let eq = trans (+-comm (Ψ′ ∸ Ψ) Ψ) (m+[n∸m]≡n Ψ≤Ψ′) in
+  Φ′ , trans lenΦ′ eq ,
+  subst (λ q → Δ ∣ q ∣ Σ ∣ Φ′ ⊢ p ⦂ A ⊒ B) eq h′
 
 ------------------------------------------------------------------------
 -- Seal-context monotonicity on term typing (+1 fresh seal)

@@ -220,3 +220,36 @@ _—↠⟨_⟩_ :
   Σ′ ∣ M —↠ Σ″ ∣ N →
   Σ ∣ L —↠ Σ″ ∣ N
 L —↠⟨ L—↠M ⟩ M—↠N = multi-trans L—↠M M—↠N
+
+appL-↠ :
+  ∀ {Σ Σ′ : Store} {L L′ M : Term} →
+  Σ ∣ L —↠ Σ′ ∣ L′ →
+  Σ ∣ (L · M) —↠ Σ′ ∣ (L′ · M)
+appL-↠ {M = M} (L ∎) = (L · M) ∎
+appL-↠ {M = M} (L —→⟨ L→L₁ ⟩ L₁↠L′) =
+  (L · M) —→⟨ ξ-·₁ L→L₁ ⟩ appL-↠ {M = M} L₁↠L′
+
+appR-↠ :
+  ∀ {Σ Σ′ : Store} {V M M′ : Term} →
+  Value V →
+  Σ ∣ M —↠ Σ′ ∣ M′ →
+  Σ ∣ (V · M) —↠ Σ′ ∣ (V · M′)
+appR-↠ {V = V} vV (M ∎) = (V · M) ∎
+appR-↠ {V = V} vV (M —→⟨ M→M₁ ⟩ M₁↠M′) =
+  (V · M) —→⟨ ξ-·₂ vV M→M₁ ⟩ appR-↠ vV M₁↠M′
+
+up-↠ :
+  ∀ {Σ Σ′ : Store} {M N : Term} {p : Up} →
+  Σ ∣ M —↠ Σ′ ∣ N →
+  Σ ∣ (M up p) —↠ Σ′ ∣ (N up p)
+up-↠ {p = p} (M ∎) = (M up p) ∎
+up-↠ {p = p} (M —→⟨ M→M₁ ⟩ M₁↠N) =
+  (M up p) —→⟨ ξ-up M→M₁ ⟩ up-↠ M₁↠N
+
+down-↠ :
+  ∀ {Σ Σ′ : Store} {M N : Term} {p : Down} →
+  Σ ∣ M —↠ Σ′ ∣ N →
+  Σ ∣ (M down p) —↠ Σ′ ∣ (N down p)
+down-↠ {p = p} (M ∎) = (M down p) ∎
+down-↠ {p = p} (M —→⟨ M→M₁ ⟩ M₁↠N) =
+  (M down p) —→⟨ ξ-down M→M₁ ⟩ down-↠ M₁↠N

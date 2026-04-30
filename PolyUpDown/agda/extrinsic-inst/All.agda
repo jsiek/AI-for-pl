@@ -20,7 +20,6 @@ open import TermImprecisionIndexed
 open import TermProperties
 open import TypeCheckDec
 open import Reduction
-
 open import ReductionFresh
 open import EvalPartialFresh
 open import CoverageFresh

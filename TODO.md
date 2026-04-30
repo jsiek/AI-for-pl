@@ -11,14 +11,12 @@
   Started: 09:47 AM EDT 2026-04-30
   Stopped: 09:48 AM EDT 2026-04-30
 
-
 [x] Delete the old _∣_—→[_]_∣_ reduction relation in
     PolyUpDown/agda/extrinsic-inst/Reduction.agda
     because the analogous reduction relation in ReductionFresh.agda is stable.
     Delete definitions and proofs that use the old _∣_—→[_]_∣_ reduction relation.
   Started: 09:21 AM EDT 2026-04-30
   Stopped: 09:28 AM EDT 2026-04-30
-
 
 [x] Add a TypeCheckDec.agda module to STLCSub/agda and use the type checker
     to check the examples.
@@ -102,6 +100,19 @@
 
 ## Blocked TODO items
 
+[B] Finish `sim-left` in PolyUpDown/agda/extrinsic-inst/DGGSim.agda using
+    the 12-worker parallel plan in
+    PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md.
+    Use SimLeftLemmas.agda for all new helper lemmas (worker-slot ownership),
+    and if a worker cannot prove a hole, add a
+    `-- BLOCKED[WXX][HYY]: ... Tried: ...` comment directly below that hole.
+    Workers: 12
+    Plan: PolyUpDown/agda/extrinsic-inst/sim-left-parallel-plan.md
+    Helpers: PolyUpDown/agda/extrinsic-inst/SimLeftLemmas.agda
+  Started: 12:08 PM EDT 2026-04-30
+  Stopped: 12:10 PM EDT 2026-04-30
+  Blocker: Required task inputs are missing from the worktree: `sim-left-parallel-plan.md` and `SimLeftLemmas.agda`. Without the 12-worker ownership plan and helper module, I cannot carry out the requested worker-slot proof workflow or safely place new helper lemmas in the mandated file.
+
 [B] Finish the proof of sim-left-beta in
     PolyUpDown/agda/extrinsic-inst/DGGSim.agda
     The proof structure (cases, recursion) should be
@@ -138,8 +149,6 @@
     if you can't finish.
 
   Blocker: The remaining `⊑upL` and `⊑downL` `wt-↦` branches require a cast-argument catch-up lemma (GTLC-analogous to `cast-left-id-val`) to obtain a value from `W down p` / `W up p` and a corresponding precision witness before recursive `sim-left-beta` can proceed. That helper is not available in this file, so the proof cannot be completed here without introducing new supporting lemmas or postulates.
-
-
 
 
 

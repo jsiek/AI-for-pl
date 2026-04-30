@@ -19,6 +19,7 @@ from typing import Optional
 
 CHECKBOX_RE = re.compile(r"^(\s*[-*]?\s*)\[( |x|X|B)\](\s*.*)$")
 HEADING_RE = re.compile(r"^##\s+(.*)$")
+DIRECTIVE_RE = re.compile(r"^\s*(Workers|Plan|Helpers)\s*:\s*(.+?)\s*$", re.IGNORECASE)
 
 
 @dataclass
@@ -51,6 +52,13 @@ class TaskOutcome:
     copied: int = 0
     removed: int = 0
     touched_paths: set[Path] = field(default_factory=set)
+
+
+@dataclass
+class TodoDirectives:
+    workers: Optional[int] = None
+    plan: Optional[Path] = None
+    helpers: list[Path] = field(default_factory=list)
 
 
 def run_checked(
@@ -303,11 +311,93 @@ def first_todo_item(lines: list[str], todo_section: Section) -> Optional[TodoIte
 
 
 def extract_task_text(item: TodoItem) -> str:
+    body_lines, _directives = parse_item_body_and_directives(item)
+    return "\n".join(body_lines).strip()
+
+
+def parse_item_body_and_directives(item: TodoItem) -> tuple[list[str], TodoDirectives]:
     if not item.lines:
-        return ""
+        return ([], TodoDirectives())
+
     first = CHECKBOX_RE.sub(r"\3", item.lines[0]).rstrip("\n")
     rest = [line.rstrip("\n") for line in item.lines[1:]]
-    return "\n".join([first] + rest).strip()
+    raw_lines = [first] + rest
+
+    directives = TodoDirectives()
+    body_lines: list[str] = []
+
+    for raw in raw_lines:
+        m = DIRECTIVE_RE.match(raw)
+        if not m:
+            body_lines.append(raw)
+            continue
+        key = m.group(1).lower()
+        value = m.group(2).strip()
+        if key == "workers":
+            try:
+                directives.workers = int(value)
+            except ValueError:
+                body_lines.append(raw)
+        elif key == "plan":
+            directives.plan = Path(value)
+        elif key == "helpers":
+            directives.helpers = [Path(part.strip()) for part in value.split(",") if part.strip()]
+        else:
+            body_lines.append(raw)
+
+    return (body_lines, directives)
+
+
+def resolve_repo_relative_path(repo_root: Path, path: Path) -> Path:
+    resolved = (repo_root / path).resolve() if not path.is_absolute() else path.resolve()
+    ensure_path_within(repo_root, resolved)
+    return resolved
+
+
+def validate_item_directives(
+    directives: TodoDirectives,
+    repo_root: Path,
+    parallel: int,
+) -> Optional[str]:
+    if directives.workers is not None:
+        if directives.workers <= 0:
+            return f"Invalid `Workers` directive: {directives.workers}. Must be a positive integer."
+        if directives.workers != parallel:
+            return (
+                f"`Workers: {directives.workers}` does not match runner concurrency "
+                f"`--parallel {parallel}`."
+            )
+
+    if directives.plan is not None:
+        try:
+            plan_path = resolve_repo_relative_path(repo_root, directives.plan)
+        except ValueError as exc:
+            return f"Invalid `Plan` path: {exc}"
+        if not plan_path.exists() or not plan_path.is_file():
+            return f"`Plan` file does not exist: {directives.plan}"
+
+    for helper in directives.helpers:
+        try:
+            helper_path = resolve_repo_relative_path(repo_root, helper)
+        except ValueError as exc:
+            return f"Invalid `Helpers` path: {exc}"
+        if not helper_path.exists() or not helper_path.is_file():
+            return f"`Helpers` file does not exist: {helper}"
+
+    return None
+
+
+def format_directive_context(directives: TodoDirectives) -> str:
+    extra: list[str] = []
+    if directives.workers is not None:
+        extra.append(f"Workers: {directives.workers}")
+    if directives.plan is not None:
+        extra.append(f"Plan: {directives.plan}")
+    if directives.helpers:
+        extra.append("Helpers: " + ", ".join(str(p) for p in directives.helpers))
+    if not extra:
+        return ""
+    return "\n\nTask metadata:\n" + "\n".join(extra)
 
 
 def mark_item_completed(item: TodoItem) -> list[str]:
@@ -330,12 +420,23 @@ def mark_item_blocked(item: TodoItem, blocker: str) -> list[str]:
 
 
 def append_to_section(lines: list[str], section: Section, block: list[str]) -> None:
+    normalized = block[:]
+    while normalized and normalized[0].strip() == "":
+        normalized.pop(0)
+    while normalized and normalized[-1].strip() == "":
+        normalized.pop()
+
     insert_at = section.start + 1
-    chunk: list[str] = ["\n"]
-    chunk.extend(block)
-    if chunk and chunk[-1].strip() != "":
-        chunk.append("\n")
-    lines[insert_at:insert_at] = chunk
+    if insert_at >= len(lines) or lines[insert_at].strip() != "":
+        lines.insert(insert_at, "\n")
+
+    item_start = insert_at + 1
+    chunk: list[str] = normalized + ["\n"]
+    lines[item_start:item_start] = chunk
+
+    boundary = item_start + len(chunk)
+    while boundary < len(lines) and lines[boundary].strip() == "":
+        del lines[boundary]
 
 
 def now_timestamp() -> str:
@@ -367,7 +468,7 @@ def commit_message_for_item(signature: str) -> str:
     one_line = " ".join(signature.split())
     if len(one_line) > 72:
         one_line = one_line[:72].rstrip()
-    return f"todo-runner: {one_line}"
+    return f"todo: {one_line}"
 
 
 def stage_and_commit_item(repo_root: Path, todo_path: Path, outcome: TaskOutcome) -> None:
@@ -387,12 +488,13 @@ def stage_and_commit_item(repo_root: Path, todo_path: Path, outcome: TaskOutcome
     print(f"  committed: {message}")
 
 
-def build_prompt(todo_file: Path, task_text: str) -> str:
+def build_prompt(todo_file: Path, task_text: str, directives: TodoDirectives) -> str:
     return (
         "You are executing one queued task from a TODO runner.\n"
         f"TODO file: {todo_file}\n\n"
         "Task:\n"
-        f"{task_text}\n\n"
+        f"{task_text}"
+        f"{format_directive_context(directives)}\n\n"
         "Please attempt to complete this task in the repository.\n"
         "Do not edit the TODO file itself.\n"
         "Return only a JSON object that matches the provided schema.\n"
@@ -404,6 +506,7 @@ def build_prompt(todo_file: Path, task_text: str) -> str:
 def run_codex(
     todo_file: Path,
     task_text: str,
+    directives: TodoDirectives,
     run_dir: Path,
     codex_cwd: Path,
     model: Optional[str],
@@ -443,7 +546,7 @@ def run_codex(
     ]
     if model:
         cmd.extend(["-m", model])
-    cmd.append(build_prompt(todo_file, task_text))
+    cmd.append(build_prompt(todo_file, task_text, directives))
 
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_seconds)
@@ -495,8 +598,22 @@ def run_task_attempt(
     approval: str,
     timeout_seconds: Optional[float],
     dry_run: bool,
+    parallel: int,
 ) -> TaskOutcome:
     task_text = extract_task_text(item)
+    _body, directives = parse_item_body_and_directives(item)
+    directive_error = validate_item_directives(directives, repo_root, parallel)
+    if directive_error:
+        return TaskOutcome(
+            item=item,
+            result=RunResult(
+                status="blocked",
+                summary="Invalid TODO directives.",
+                blocker=directive_error,
+            ),
+            worker_dir=worker_dir,
+        )
+
     if dry_run:
         result = RunResult(status="success", summary="Dry run: skipped codex execution.", blocker="")
         return TaskOutcome(item=item, result=result, worker_dir=worker_dir)
@@ -504,7 +621,7 @@ def run_task_attempt(
     if use_worktree:
         reset_worktree_to_head(repo_root, worker_dir)
     codex_cwd = worker_dir if use_worktree else repo_root
-    result = run_codex(todo_path, task_text, run_dir, codex_cwd, model, sandbox, approval, timeout_seconds)
+    result = run_codex(todo_path, task_text, directives, run_dir, codex_cwd, model, sandbox, approval, timeout_seconds)
     return TaskOutcome(item=item, result=result, worker_dir=worker_dir)
 
 
@@ -602,6 +719,7 @@ def process_queue(
             approval=approval,
             timeout_seconds=timeout_seconds,
             dry_run=dry_run,
+            parallel=parallel,
         )
         futures[fut] = worker_idx
 

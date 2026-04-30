@@ -142,7 +142,7 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , (V′ · M′ᵣ) ,
   multi-trans (appL-↠ {M = _} L′↠V′) (appR-↠ vV′ M′↠M′ᵣ) ,
-  ⊑· {!!} Nᵣ⊑M′ᵣ
+  ⊑· (wkΨΣ-⊑ Ψˡ≤Ψˡᵣ (store-growth redM) V⊑V′) Nᵣ⊑M′ᵣ
 
 -- Congruence: type application.
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM

@@ -33,7 +33,6 @@ open import Terms
     ; _up_
     ; _down_
     ; substᵗᵐ
-    ; wk⊒
     ; `_
     ; _∣_∣_∣_⊢_⦂_
     )
@@ -46,7 +45,6 @@ open import PreservationFresh
   using
     ( step-preserves-store-wf
     ; wkΨ-cast-tag-⊑-≤
-    ; wkΨ-cast-tag-⊒-≤
     )
 
 ------------------------------------------------------------------------
@@ -139,14 +137,8 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
     with sim-left rel wfΣˡ wfΣʳ (ξ-·₁ redL)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
   | ⊑downR Φ lenΦ rel hd′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
-    with wkΨ-cast-tag-⊒-≤ Ψˡ≤Ψˡᵣ lenΦ (wk⊒ (store-growth redL) hd′)
-sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
-  | ⊑downR Φ lenΦ rel hd′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
-  | Φᵣ , lenΦᵣ , hdᵣ =
-  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
-  ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ hdᵣ
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·₁ redL
   | ⊑· L⊑L′ Arg⊑Arg′
     with sim-left L⊑L′ wfΣˡ wfΣʳ redL
@@ -222,8 +214,13 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
-  | ⊑⦂∀-ν A B p rel wfA hT inst =
-  {!!}
+  | ⊑⦂∀-ν A B p rel wfA hT inst
+    with sim-left rel wfΣˡ wfΣʳ redM
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑⦂∀-ν A B p rel wfA hT inst
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ ,
+  sim-left-w10-tyappν-cong Ψˡ≤Ψˡᵣ Nᵣ⊑M′ᵣ wfA hT inst
 
 -- Congruence: up casts.
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM

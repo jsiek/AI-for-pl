@@ -8,11 +8,12 @@ module SimLeftLemmas where
 --   * Keeps the catchup and substitution proof obligations owned by these
 --     lemmas next to the lemmas that use them.
 
-open import Data.List using ([])
+open import Data.List using ([]; _∷_)
+open import Data.Nat using (_≤_)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 
 open import Types
-open import UpDown using (Up; Down; wt-↦)
+open import UpDown using (Up; Down; wt-↦; WfTy-weakenˢ)
 open import Store using (StoreWf)
 open import ImprecisionIndexed
 open import Terms using (Term; ƛ_⇒_; _·_; _⦂∀_[_]; _up_; _down_)
@@ -324,17 +325,22 @@ sim-left-beta-down
 
 -- Worker W09 helper slot
 
--- Supports DGGSim.agda H09 (line 215): lift right multi-steps through
--- type application.
-sim-left-w09-tyapp-↠ :
-  ∀ {Σ Σ′ L L′ B T} →
-  Σ ∣ L —↠ Σ′ ∣ L′ →
-  Σ ∣ (L ⦂∀ B [ T ]) —↠ Σ′ ∣ (L′ ⦂∀ B [ T ])
-sim-left-w09-tyapp-↠ (L ∎) = (L ⦂∀ _ [ _ ]) ∎
-sim-left-w09-tyapp-↠ (L —→⟨ L→M ⟩ M↠N) =
-  (L ⦂∀ _ [ _ ]) —→⟨ ξ-·α L→M ⟩ sim-left-w09-tyapp-↠ M↠N
-
 -- Worker W10 helper slot
+
+-- Supports DGGSim.agda H10, the `ξ-·α` / `⊑⦂∀-ν` branch.
+sim-left-w10-tyappν-cong :
+  ∀ {Ψ Ψ′ : SealCtx} {Σ : Store} {M M′ A B T}
+    {p : (ν-bound ∷ []) ⊢ A ⊑ᵢ ⇑ᵗ B}
+    {pT : [] ⊢ A [ T ]ᵗ ⊑ᵢ B} →
+  Ψ ≤ Ψ′ →
+  ⟪ 0 , Ψ′ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ (⊑ᵢ-ν A B p) →
+  WfTy 1 Ψ A →
+  (hT : WfTy 0 Ψ T) →
+  νClosedInstᵢ p pT →
+  ⟪ 0 , Ψ′ , Σ , [] , [] ⟫ ⊢ (M ⦂∀ A [ T ]) ⊑ M′ ⦂ pT
+sim-left-w10-tyappν-cong Ψ≤ rel wfA hT inst =
+  ⊑⦂∀-ν _ _ _ rel (WfTy-weakenˢ wfA Ψ≤)
+    (WfTy-weakenˢ hT Ψ≤) inst
 
 -- Worker W11 helper slot
 

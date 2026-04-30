@@ -350,8 +350,14 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
     with sim-left rel wfΣˡ wfΣʳ (ξ-⊕₂ vV redM)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
   | ⊑upR Φ lenΦ rel hu′
-  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+    with wkΨ-cast-tag-⊑-≤ Ψˡ≤Ψˡᵣ lenΦ (Terms.wk⊑ (store-growth redM) hu′)
+sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
+  | ⊑upR Φ lenΦ rel hu′
+  | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ
+  | Φᵣ , lenΦᵣ , huᵣ =
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ up _ , up-↠ M′↠M′ᵣ ,
+  ⊑upR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ huᵣ
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
   | ⊑downR Φ lenΦ rel hd′
     with sim-left rel wfΣˡ wfΣʳ (ξ-⊕₂ vV redM)
@@ -463,6 +469,9 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
+  {- BLOCKED[W04][H27]:
+     Hole H27 reported success but produced no applied file changes.
+  -}
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′

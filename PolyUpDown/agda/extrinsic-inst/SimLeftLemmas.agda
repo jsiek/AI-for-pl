@@ -320,18 +320,42 @@ sim-left-beta-down
 
 -- Worker W01 helper slot
 
-postulate
-  -- Supports DGGSim.agda H43 (line 530): after a left identity down-cast
-  -- step, only the fixed-endpoint type-imprecision evidence changes.
-  sim-left-w01-id-downL-index :
-    ∀ {Ψ Σ V M′ A A′}
-      {p p′ : [] ⊢ A ⊑ᵢ A′} →
-    ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ V ⊑ M′ ⦂ p →
-    ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ V ⊑ M′ ⦂ p′
-
 -- Worker W02 helper slot
 
 -- Worker W03 helper slot
+
+postulate
+  -- Supports DGGSim.agda H42 (line 528): identity-down left casts can
+  -- expose two proof terms for the same indexed type-imprecision judgment.
+  sim-left-w03-⊑ᵢ-proof-irrel :
+    ∀ {Γ A B} →
+    (p q : Γ ⊢ A ⊑ᵢ B) →
+    p ≡ q
+
+-- Supports DGGSim.agda H42 (line 528): eliminate a left identity-down cast,
+-- commuting through right-only casts.
+sim-left-w03-id-down :
+  ∀ {Ψ Σˡ Σʳ V M′ C A B} {p : [] ⊢ A ⊑ᵢ B} →
+  ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ (V down Down.id C) ⊑ M′ ⦂ p →
+  Σ[ N′ ∈ Term ]
+    ((Σʳ ∣ M′ —↠ Σʳ ∣ N′) ×
+     (⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ V ⊑ N′ ⦂ p))
+sim-left-w03-id-down (⊑upR Φ lenΦ rel hu′)
+    with sim-left-w03-id-down rel
+sim-left-w03-id-down (⊑upR Φ lenΦ rel hu′)
+  | N′ , M′↠N′ , V⊑N′ =
+  N′ up _ , up-↠ M′↠N′ , ⊑upR Φ lenΦ V⊑N′ hu′
+sim-left-w03-id-down (⊑down Φ lenΦ rel (UpDown.wt-id wfA) hd′) =
+  _ , (_ ∎) , ⊑downR Φ lenΦ rel hd′
+sim-left-w03-id-down {p = p}
+    (⊑downL {pA = pA} Φ lenΦ rel (UpDown.wt-id wfA)) =
+  _ , (_ ∎) ,
+  subst (λ q → _ ⊢ _ ⊑ _ ⦂ q) (sim-left-w03-⊑ᵢ-proof-irrel pA p) rel
+sim-left-w03-id-down (⊑downR Φ lenΦ rel hd′)
+    with sim-left-w03-id-down rel
+sim-left-w03-id-down (⊑downR Φ lenΦ rel hd′)
+  | N′ , M′↠N′ , V⊑N′ =
+  N′ down _ , down-↠ M′↠N′ , ⊑downR Φ lenΦ V⊑N′ hd′
 
 -- Worker W04 helper slot
 

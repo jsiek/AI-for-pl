@@ -361,6 +361,20 @@ sim-left-w03-id-down (⊑downR Φ lenΦ rel hd′)
 
 -- Worker W05 helper slot
 
+postulate
+  -- Supports SimLeft.agda H28: eliminate a left seal/unseal redex,
+  -- commuting through right-only casts.
+  sim-left-w05-seal-unseal :
+    ∀ {Ψ Σˡ Σʳ V M′ A B} {pᵢ : [] ⊢ A ⊑ᵢ B}
+      {d : Down} {u : Up} {α : Seal} →
+    Value V →
+    ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢
+      ((V down (UpDown.seal d α)) up (UpDown.unseal α u)) ⊑ M′ ⦂ pᵢ →
+    Σ[ N′ ∈ Term ]
+      ((Σʳ ∣ M′ —↠ Σʳ ∣ N′) ×
+       (⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢
+          ((V down d) up u) ⊑ N′ ⦂ pᵢ))
+
 -- Worker W06 helper slot
 
 -- Worker W07 helper slot

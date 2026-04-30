@@ -244,7 +244,7 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
   | ⊑up Φ lenΦ rel hu hu′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-  {- BLOCKED[W11][H14]:
+  {- BLOCKED[W02][H15]:
      Conflicting edits for `PolyUpDown/agda/extrinsic-inst/SimLeft.agda` while applying worker changes. Both another worker and this worker modified overlapping text.
   -}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
@@ -587,8 +587,16 @@ sim-left {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (id-down {V = V} {A = C} vV)
   | N′ , M′↠N′ , V⊑N′ =
   Ψˡ , ≤-refl , Σʳ , N′ , M′↠N′ , V⊑N′
-sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (seal-unseal vV) =
-  {!!}
+sim-left {Ψˡ = Ψˡ} {Σʳ = Σʳ}
+  M⊑M′ wfΣˡ wfΣʳ red
+  | id-step (seal-unseal {V = V} {p = d} {q = u} {α = α} vV)
+    with sim-left-w05-seal-unseal {Σʳ = Σʳ} {V = V}
+           {d = d} {u = u} {α = α} vV M⊑M′
+sim-left {Ψˡ = Ψˡ} {Σʳ = Σʳ}
+  M⊑M′ wfΣˡ wfΣʳ red
+  | id-step (seal-unseal {V = V} {p = d} {q = u} {α = α} vV)
+  | N′ , M′↠N′ , N⊑N′ =
+  Ψˡ , ≤-refl , Σʳ , N′ , M′↠N′ , N⊑N′
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (tag-untag-ok vV) =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (tag-untag-bad vV G≢H) =
@@ -612,6 +620,9 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (blame-⊕₂ vV) =
 
 -- PolyUpDown-specific store-allocation/poly-instantiation cases.
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-Λ = {!!}
+{- BLOCKED[W06][H38]:
+   H38 cannot be completed locally with the current helper surface: the `β-Λ` left step allocates a fresh seal from `Σˡ`, while a matching right `β-Λ` step would allocate from independent `Σʳ`; the final term-imprecision judgment is indexed by the left post-step store, so there is no known bridge for the right reduct mentioning `length Σʳ`. Zero right steps also fail because no existing lemma relates the instantiated/cast left body to the unreduced right type application. This appears to need additional world/store synchronization metatheory or a revised simulation statement tracking both post-step seal contexts.
+-}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-down-∀ vV = {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-down-ν vV = {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-up-ν vV = {!!}

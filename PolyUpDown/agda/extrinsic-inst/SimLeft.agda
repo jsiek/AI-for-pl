@@ -604,7 +604,7 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-·α =
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-up =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-down =
-  {!!}
+  _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-⊕₁ =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (blame-⊕₂ vV) =

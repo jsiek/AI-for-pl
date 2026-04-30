@@ -1,116 +1,113 @@
 # `sim-left` Parallelization Plan (12 Workers)
 
-This plan is for the holes in `sim-left` inside `DGGSim.agda`, using
+This plan is for the holes in `sim-left` inside `SimLeft.agda`, using
 `SimLeftLemmas.agda` as the shared helper location.
 
 ## Scope
 
-- Main target theorem: `sim-left` in `DGGSim.agda` (line range around 111-536).
-- Hole count in `sim-left` right now: 47.
-- `sim-left*` at line 559 is intentionally out of scope for this sheet.
+- Main target theorem: `sim-left` in `SimLeft.agda` (line range around 67-509).
+- Hole count in `sim-left` right now: 41.
 
 ## Conflict-avoidance protocol
 
-1. Each worker owns only the hole lines listed in the assignment table.
+1. Each worker owns only the hole IDs listed in the assignment table.
 2. Workers do not reorder clauses, add imports, or reformat outside owned lines.
 3. New helper lemmas go only in `SimLeftLemmas.agda` under that worker's slot.
 4. Helper names must use prefix `sim-left-wXX-...` where `XX` is worker id.
-5. Every helper should include a short comment listing the hole lines it serves.
-6. Each worker should run `agda -i PolyUpDown/agda PolyUpDown/agda/extrinsic-inst/DGGSim.agda` before handing off.
-7. If a worker cannot finish a hole, add a short comment directly below that
-   hole (`{!!}`) explaining the blocker and naming attempted lemmas/helpers.
+5. Every helper should include a short comment listing the hole IDs it serves.
+6. Each worker should run
+   `agda -v0 -i PolyUpDown/agda/extrinsic-inst -i PolyUpDown/agda PolyUpDown/agda/extrinsic-inst/SimLeft.agda`
+   before handoff.
+7. If a worker cannot finish a hole, add a blocked comment directly below that
+   hole (`{!!}`) explaining the blocker and attempted helper lemmas.
 
 ### Blocked-hole comment format
 
-Use this exact shape under the hole:
+Use a multi-line Agda comment in this exact shape:
 
-`-- BLOCKED[WXX][HYY]: <one-line reason>. Tried: <lemma1>, <lemma2>.`
+`{- BLOCKED[WXX][HYY]:`
+`   <full blocker reason, one or more lines>`
+`-}`
 
-## Hole IDs
+## Hole IDs (current snapshot)
 
-- H01: 134
-- H02: 141
-- H03: 149
-- H04: 163
-- H05: 172
-- H06: 190
-- H07: 201
-- H08: 208
-- H09: 215
-- H10: 218
-- H11: 229
-- H12: 236
-- H13: 243
-- H14: 250
-- H15: 261
-- H16: 268
-- H17: 275
-- H18: 282
-- H19: 293
-- H20: 300
-- H21: 307
-- H22: 318
-- H23: 325
-- H24: 332
-- H25: 365
-- H26: 399
-- H27: 413
-- H28: 422
-- H29: 465
-- H30: 474
-- H31: 506
-- H32: 508
-- H33: 510
-- H34: 512
-- H35: 514
-- H36: 516
-- H37: 518
-- H38: 520
-- H39: 522
-- H40: 524
-- H41: 526
-- H42: 528
-- H43: 530
-- H44: 533
-- H45: 534
-- H46: 535
-- H47: 536
+- H01: 118
+- H02: 127
+- H03: 145
+- H04: 156
+- H05: 163
+- H06: 170
+- H07: 173
+- H08: 184
+- H09: 191
+- H10: 198
+- H11: 205
+- H12: 216
+- H13: 223
+- H14: 230
+- H15: 237
+- H16: 261
+- H17: 268
+- H18: 279
+- H19: 286
+- H20: 293
+- H21: 326
+- H22: 360
+- H23: 374
+- H24: 383
+- H25: 442
+- H26: 474
+- H27: 483
+- H28: 485
+- H29: 487
+- H30: 489
+- H31: 491
+- H32: 493
+- H33: 495
+- H34: 497
+- H35: 499
+- H36: 501
+- H37: 503
+- H38: 506
+- H39: 507
+- H40: 508
+- H41: 509
 
 These `HYY` ids are stable only for this snapshot of the file. The line numbers
 will shift as holes are filled or clauses are edited.
 
-## Worker assignment sheet
+## Worker assignment sheet (12 workers)
 
-- W01: H01-H04 (lines 134, 141, 149, 163); focus on `ξ-·₁` and first `ξ-·₂` bridge.
-- W02: H05-H08 (lines 172, 190, 201, 208); finish `ξ-·₂` and start `ξ-·α`.
-- W03: H09-H12 (lines 215, 218, 229, 236); finish `ξ-·α`, start `ξ-up`.
-- W04: H13-H16 (lines 243, 250, 261, 268); finish `ξ-up`, start `ξ-down`.
-- W05: H17-H20 (lines 275, 282, 293, 300); finish `ξ-down`, start `ξ-⊕₁`.
-- W06: H21-H24 (lines 307, 318, 325, 332); finish `ξ-⊕₁` and `ξ-⊕₂`.
-- W07: H25-H28 (lines 365, 399, 413, 422); `β`, `β-up-∀`, `β-up-↦` simulation branches.
-- W08: H29-H32 (lines 465, 474, 506, 508); `β-down-↦` and first identity cases.
-- W09: H33-H36 (lines 510, 512, 514, 516); seal/tag/delta branches.
-- W10: H37-H40 (lines 518, 520, 522, 524); blame propagation branches (application/type/up).
-- W11: H41-H44 (lines 526, 528, 530, 533); blame branches plus `β-Λ`.
-- W12: H45-H47 (lines 534, 535, 536); PolyUpDown-specific `β-down-∀`, `β-down-ν`, `β-up-ν`.
+- W01: H01-H04 (118, 127, 145, 156) - `ξ-·₂` and early `ξ-·α` bridge cases.
+- W02: H05-H08 (163, 170, 173, 184) - remaining `ξ-·α` plus start of `ξ-up`.
+- W03: H09-H11 (191, 198, 205) - `ξ-up` continuation.
+- W04: H12-H14 (216, 223, 230) - `ξ-down` core cases.
+- W05: H15-H17 (237, 261, 268) - `ξ-down` tail and `ξ-⊕₁` transitions.
+- W06: H18-H21 (279, 286, 293, 326) - `ξ-⊕₂` plus `β` down-right branch.
+- W07: H22-H24 (360, 374, 383) - `β-up-∀` and `β-up-↦` wrapper branches.
+- W08: H25-H27 (442, 474, 483) - `β-down-↦` wrapper branch and identity setup.
+- W09: H28-H30 (485, 487, 489) - tag/untag and `δ-⊕` identity branches.
+- W10: H31-H33 (491, 493, 495) - blame application/type-application branches.
+- W11: H34-H37 (497, 499, 501, 503) - blame up/down/operator branches.
+- W12: H38-H41 (506, 507, 508, 509) - PolyUpDown store-allocation/poly-instantiation (`β-Λ`, `β-down-∀`, `β-down-ν`, `β-up-ν`).
 
 ## Helper-lemma placement rules
 
-- `SimLeftLemmas.agda` now has explicit "Worker WXX helper slot" sections.
-- Workers should append helpers only in their own slot.
-- If a helper is clearly cross-cutting, define it in W12 slot with prefix
+- `SimLeftLemmas.agda` has explicit "Worker WXX helper slot" sections.
+- Workers append helpers only in their own slot.
+- If a helper is cross-cutting, define it in W12 slot with prefix
   `sim-left-w12-shared-...` and mention all consuming hole IDs.
 
 ## Merge strategy
 
-1. Merge W01-W06 first (congruence families).
-2. Merge W07-W08 second (beta family catchup flows).
-3. Merge W09-W12 third (identity/blame/poly-instantiation leaves).
-4. Run a full `DGGSim.agda` check after each wave.
+1. Merge W01-W06 first (congruence family and basic `β` flow).
+2. Merge W07-W09 second (`β-up-*`/`β-down-*` wrappers and identity/tag cases).
+3. Merge W10-W12 third (blame family and poly/store-allocation leaves).
+4. Run a full `SimLeft.agda` check after each wave.
 
 ## Hole ID stability policy
 
 - Do not reassign an existing `HYY` once workers start.
 - If a hole is solved, keep its `HYY` reserved in the tracker as "done".
-- If new holes appear, append new IDs (`H48+`) instead of renumbering old ones.
+- If new holes appear, append new IDs (`H42+`) instead of renumbering old ones.
 - Use both `(HYY, current line)` when reporting status; line is expected to drift.

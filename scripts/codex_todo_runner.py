@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import time
+import tempfile
 from datetime import datetime
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -21,6 +22,9 @@ CHECKBOX_RE = re.compile(r"^(\s*[-*]?\s*)\[( |x|X|B)\](\s*.*)$")
 HEADING_RE = re.compile(r"^##\s+(.*)$")
 DIRECTIVE_RE = re.compile(r"^\s*(Workers|Plan|Helpers)\s*:\s*(.+?)\s*$", re.IGNORECASE)
 PLAN_HOLE_RE = re.compile(r"^\s*-\s*([A-Z]\d+)\s*:\s*(\d+)\s*$")
+AGDA_PATH_RE = re.compile(r"([A-Za-z0-9_./-]+\.agda)")
+BLOCKED_LINE_COMMENT_RE = re.compile(r"^\s*--\s*BLOCKED\[W\d+\]\[[A-Z]\d+\]:")
+BLOCKED_BLOCK_COMMENT_START_RE = re.compile(r"^\s*\{\-\s*BLOCKED\[W\d+\]\[[A-Z]\d+\]:")
 
 
 @dataclass
@@ -50,6 +54,7 @@ class TaskOutcome:
     item: TodoItem
     result: RunResult
     worker_dir: Path
+    base_rev: Optional[str] = None
     copied: int = 0
     removed: int = 0
     touched_paths: set[Path] = field(default_factory=set)
@@ -68,6 +73,12 @@ class TodoDirectives:
 class HoleTarget:
     hole_id: str
     line: int
+
+
+@dataclass
+class HoleLocator:
+    line: int
+    lhs_key: Optional[str]
 
 
 def run_checked(
@@ -159,6 +170,7 @@ def apply_worktree_changes_to_main(
     worktree_dir: Path,
     *,
     excluded_relative: set[Path],
+    base_rev: Optional[str] = None,
 ) -> tuple[int, int, set[Path]]:
     changed = parse_nul_paths(
         run_checked_bytes(["git", "-C", str(worktree_dir), "diff", "--name-only", "-z", "HEAD"]).stdout
@@ -178,21 +190,103 @@ def apply_worktree_changes_to_main(
     removed = 0
     touched: set[Path] = set()
 
+    def read_bytes_if_exists(path: Path) -> Optional[bytes]:
+        if path.exists() and path.is_file():
+            return path.read_bytes()
+        return None
+
+    def git_show_bytes(rev: str, rel: Path) -> Optional[bytes]:
+        proc = subprocess.run(
+            ["git", "-C", str(repo_root), "show", f"{rev}:{rel.as_posix()}"],
+            capture_output=True,
+            text=False,
+        )
+        if proc.returncode != 0:
+            return None
+        return proc.stdout
+
+    def merge_three_way_text(rel: Path, ours: bytes, base: bytes, theirs: bytes) -> bytes:
+        merge_tmp_root = repo_root / ".codex-todo-runner" / "merge-tmp"
+        merge_tmp_root.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="todo-merge-", dir=merge_tmp_root) as td:
+            tdir = Path(td)
+            ours_path = tdir / "ours"
+            base_path = tdir / "base"
+            theirs_path = tdir / "theirs"
+            ours_path.write_bytes(ours)
+            base_path.write_bytes(base)
+            theirs_path.write_bytes(theirs)
+            proc = subprocess.run(
+                [
+                    "git",
+                    "merge-file",
+                    "-p",
+                    str(ours_path),
+                    str(base_path),
+                    str(theirs_path),
+                ],
+                capture_output=True,
+                text=False,
+            )
+            if proc.returncode == 0:
+                return proc.stdout
+            if proc.returncode == 1:
+                raise RuntimeError(
+                    f"Conflicting edits for `{rel}` while applying worker changes. "
+                    "Both another worker and this worker modified overlapping text."
+                )
+            detail = proc.stderr.decode("utf-8", errors="replace").strip() or "merge-file failed"
+            raise RuntimeError(f"Could not merge changes for `{rel}`: {detail}")
+
     for rel in changed:
         if rel in excluded_relative:
             continue
         src = worktree_dir / rel
         dst = repo_root / rel
+        src_bytes = read_bytes_if_exists(src)
+        dst_bytes = read_bytes_if_exists(dst)
+        base_bytes = git_show_bytes(base_rev, rel) if base_rev else None
+
         if rel in deleted:
+            if dst_bytes is not None and base_bytes is not None and dst_bytes != base_bytes:
+                raise RuntimeError(
+                    f"Conflicting delete for `{rel}`: main file changed since worker started."
+                )
             if dst.exists() or dst.is_symlink():
                 if dst.is_dir() and not dst.is_symlink():
                     shutil.rmtree(dst)
                 else:
                     dst.unlink()
                 removed += 1
+                touched.add(rel)
+            continue
+
+        if src_bytes is None:
+            raise RuntimeError(f"Expected modified file is missing in worker tree: `{rel}`")
+
+        if dst_bytes is None:
+            copy_path_preserving_kind(src, dst)
+            copied += 1
             touched.add(rel)
             continue
-        copy_path_preserving_kind(src, dst)
+
+        if dst_bytes == src_bytes:
+            continue
+        if base_bytes is None:
+            raise RuntimeError(
+                f"Cannot safely apply changes for `{rel}` because base revision content is unavailable."
+            )
+        if dst_bytes == base_bytes:
+            copy_path_preserving_kind(src, dst)
+            copied += 1
+            touched.add(rel)
+            continue
+        if src_bytes == base_bytes:
+            continue
+
+        merged = merge_three_way_text(rel, dst_bytes, base_bytes, src_bytes)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(merged)
         copied += 1
         touched.add(rel)
 
@@ -203,6 +297,16 @@ def apply_worktree_changes_to_main(
         if src.is_dir():
             continue
         dst = repo_root / rel
+        src_bytes = read_bytes_if_exists(src)
+        if src_bytes is None:
+            continue
+        dst_bytes = read_bytes_if_exists(dst)
+        if dst_bytes is not None:
+            if dst_bytes == src_bytes:
+                continue
+            raise RuntimeError(
+                f"Conflicting new-file content for `{rel}` from multiple workers."
+            )
         copy_path_preserving_kind(src, dst)
         copied += 1
         touched.add(rel)
@@ -406,6 +510,163 @@ def parse_plan_holes(plan_path: Path) -> list[HoleTarget]:
     return holes
 
 
+def infer_primary_agda_target(base_task_text: str, repo_root: Path, directives: TodoDirectives) -> Optional[Path]:
+    helper_paths: set[Path] = set()
+    for helper in directives.helpers:
+        try:
+            helper_paths.add(resolve_repo_relative_path(repo_root, helper))
+        except ValueError:
+            continue
+
+    for match in AGDA_PATH_RE.finditer(base_task_text):
+        raw = match.group(1)
+        path = Path(raw)
+        try:
+            resolved = resolve_repo_relative_path(repo_root, path)
+        except ValueError:
+            continue
+        if resolved in helper_paths:
+            continue
+        if resolved.exists() and resolved.is_file():
+            return resolved
+    return None
+
+
+def locate_hole_line(lines: list[str], preferred_line: int) -> Optional[int]:
+    if preferred_line > 0 and preferred_line <= len(lines):
+        idx = preferred_line - 1
+        if "{!!}" in lines[idx]:
+            return idx
+    base = max(0, min(len(lines) - 1, preferred_line - 1))
+    for dist in range(1, 41):
+        left = base - dist
+        right = base + dist
+        if left >= 0 and "{!!}" in lines[left]:
+            return left
+        if right < len(lines) and "{!!}" in lines[right]:
+            return right
+    return None
+
+
+def hole_lhs_key_from_line(line: str) -> Optional[str]:
+    if "{!!}" not in line or "=" not in line:
+        return None
+    lhs = line.split("=", 1)[0]
+    normalized = " ".join(lhs.split())
+    return normalized or None
+
+
+def locate_hole_line_by_lhs(lines: list[str], lhs_key: str) -> Optional[int]:
+    for idx, line in enumerate(lines):
+        if "{!!}" not in line:
+            continue
+        key = hole_lhs_key_from_line(line)
+        if key == lhs_key:
+            return idx
+    return None
+
+
+def build_hole_locators(plan_holes: list[HoleTarget], target_file: Optional[Path]) -> dict[str, HoleLocator]:
+    locators: dict[str, HoleLocator] = {hole.hole_id: HoleLocator(line=hole.line, lhs_key=None) for hole in plan_holes}
+    if target_file is None:
+        return locators
+    try:
+        lines = target_file.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return locators
+    for hole in plan_holes:
+        idx = locate_hole_line(lines, hole.line)
+        if idx is None:
+            continue
+        lhs_key = hole_lhs_key_from_line(lines[idx])
+        locators[hole.hole_id] = HoleLocator(line=hole.line, lhs_key=lhs_key)
+    return locators
+
+
+def hole_is_cleared(target_file: Path, locator: HoleLocator) -> bool:
+    try:
+        lines = target_file.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return False
+
+    if locator.lhs_key:
+        for line in lines:
+            if "=" not in line:
+                continue
+            lhs = " ".join(line.split("=", 1)[0].split())
+            if lhs == locator.lhs_key:
+                return "{!!}" not in line
+        return False
+
+    if locator.line > 0 and locator.line <= len(lines):
+        return "{!!}" not in lines[locator.line - 1]
+
+    return False
+
+
+def blocked_comment_block(indent: str, worker_id: int, hole_id: str, blocker: str) -> list[str]:
+    # Avoid accidentally closing the Agda block comment from blocker text.
+    safe = blocker.replace("-}", "- }")
+    body = safe.splitlines() or ["(no blocker details provided)"]
+    out = [f"{indent}{{- BLOCKED[W{worker_id:02d}][{hole_id}]:\n"]
+    for line in body:
+        out.append(f"{indent}   {line}\n")
+    out.append(f"{indent}-}}\n")
+    return out
+
+
+def add_blocked_comment_after_hole(
+    target_file: Path,
+    hole: HoleTarget,
+    worker_id: int,
+    blocker: str,
+    locator: Optional[HoleLocator] = None,
+) -> tuple[bool, str]:
+    try:
+        lines = target_file.read_text(encoding="utf-8").splitlines(keepends=True)
+    except OSError as exc:
+        return (False, f"Could not read hole target file: {exc}")
+    if not lines:
+        return (False, "Hole target file is empty.")
+
+    hole_idx = None
+    if locator and locator.lhs_key:
+        hole_idx = locate_hole_line_by_lhs(lines, locator.lhs_key)
+    if hole_idx is None:
+        hole_idx = locate_hole_line(lines, hole.line)
+    if hole_idx is None:
+        return (False, f"Could not locate hole for {hole.hole_id} near line {hole.line}.")
+
+    hole_line = lines[hole_idx]
+    indent_match = re.match(r"^(\s*)", hole_line)
+    indent = indent_match.group(1) if indent_match else ""
+    comment_block = blocked_comment_block(indent, worker_id, hole.hole_id, blocker)
+    insert_at = hole_idx + 1
+    replace_start: Optional[int] = None
+    replace_end: Optional[int] = None
+
+    if insert_at < len(lines) and BLOCKED_LINE_COMMENT_RE.match(lines[insert_at]):
+        replace_start = insert_at
+        replace_end = insert_at + 1
+    elif insert_at < len(lines) and BLOCKED_BLOCK_COMMENT_START_RE.match(lines[insert_at]):
+        replace_start = insert_at
+        end_idx = insert_at + 1
+        while end_idx < len(lines):
+            if "-}" in lines[end_idx]:
+                end_idx += 1
+                break
+            end_idx += 1
+        replace_end = end_idx
+
+    if replace_start is not None and replace_end is not None:
+        lines[replace_start:replace_end] = comment_block
+    else:
+        lines[insert_at:insert_at] = comment_block
+
+    target_file.write_text("".join(lines), encoding="utf-8")
+    return (True, "")
+
+
 def build_hole_task_text(
     base_task_text: str,
     hole: HoleTarget,
@@ -419,7 +680,8 @@ def build_hole_task_text(
         f"- Hole-ID: {hole.hole_id}\n"
         f"- Hole-Line: {hole.line}\n"
         "- Focus only on this hole and any directly required helper lemmas.\n"
-        f"- If blocked, add comment: `-- BLOCKED[W{worker_id:02d}][{hole.hole_id}]: ... Tried: ...` directly below the hole."
+        f"- If blocked, add a multi-line Agda comment directly below the hole in this exact shape:\n"
+        f"  `{{- BLOCKED[W{worker_id:02d}][{hole.hole_id}]:` then the full blocker reason on following lines, then `-}}`."
     )
 
 
@@ -708,14 +970,20 @@ def run_task_attempt(
             worker_id=worker_id,
         )
 
+    base_rev: Optional[str] = None
     if use_worktree:
         reset_worktree_to_head(repo_root, worker_dir)
+        try:
+            base_rev = run_checked(["git", "-C", str(worker_dir), "rev-parse", "HEAD"]).stdout.strip()
+        except RuntimeError:
+            base_rev = None
     codex_cwd = worker_dir if use_worktree else repo_root
     result = run_codex(todo_path, task_text, directives, run_dir, codex_cwd, model, sandbox, approval, timeout_seconds)
     return TaskOutcome(
         item=item,
         result=result,
         worker_dir=worker_dir,
+        base_rev=base_rev,
         hole_id=hole_target.hole_id if hole_target else None,
         worker_id=worker_id,
     )
@@ -737,7 +1005,7 @@ def reserve_next_item(todo_path: Path) -> Optional[TodoItem]:
     return item
 
 
-def finalize_outcome(todo_path: Path, outcome: TaskOutcome, use_worktree: bool) -> None:
+def finalize_outcome(todo_path: Path, outcome: TaskOutcome, use_worktree: bool, *, emit_status_logs: bool = True) -> None:
     latest = read_lines(todo_path)
     current_item: Optional[TodoItem] = None
     in_progress = find_section_by_keyword(latest, "In progress TODO items")
@@ -763,14 +1031,16 @@ def finalize_outcome(todo_path: Path, outcome: TaskOutcome, use_worktree: bool) 
     if outcome.result.status == "success":
         done_section = ensure_section(latest, "Completed TODO items")
         append_to_section(latest, done_section, mark_item_completed(stamped_item))
-        print(f"SUCCESS: {stamped_item.signature}")
-        if use_worktree:
-            print(f"  applied: copied {outcome.copied} path(s), removed {outcome.removed} path(s)")
+        if emit_status_logs:
+            print(f"SUCCESS: {stamped_item.signature}")
+            if use_worktree:
+                print(f"  applied: copied {outcome.copied} path(s), removed {outcome.removed} path(s)")
     else:
         blocked_section = ensure_section(latest, "Blocked TODO items")
         append_to_section(latest, blocked_section, mark_item_blocked(stamped_item, outcome.result.blocker))
-        print(f"BLOCKED: {stamped_item.signature}")
-        print(f"  blocker: {outcome.result.blocker}")
+        if emit_status_logs:
+            print(f"BLOCKED: {stamped_item.signature}")
+            print(f"  blocker: {outcome.result.blocker}")
     write_lines(todo_path, latest)
 
 
@@ -825,6 +1095,9 @@ def process_item_per_hole(
     worker_count = max(1, min(worker_budget, len(worker_dirs), len(holes)))
     todo_rel = todo_path.relative_to(repo_root)
     total_holes = len(holes)
+    holes_by_id = {hole.hole_id: hole for hole in holes}
+    primary_target = infer_primary_agda_target(base_task_text, repo_root, directives)
+    hole_locators = build_hole_locators(holes, primary_target)
 
     hole_queue = holes[:]
     blocked: list[TaskOutcome] = []
@@ -898,14 +1171,11 @@ def process_item_per_hole(
                             repo_root,
                             outcome.worker_dir,
                             excluded_relative={todo_rel},
+                            base_rev=outcome.base_rev,
                         )
                         outcome.copied = copied
                         outcome.removed = removed
                         outcome.touched_paths = touched
-                        if touched:
-                            hid = outcome.hole_id or "hole"
-                            msg = commit_message_for_hole(item.signature, hid)
-                            stage_and_commit_paths(repo_root, touched, msg)
                     except RuntimeError as exc:
                         outcome.result = RunResult(
                             status="blocked",
@@ -913,20 +1183,61 @@ def process_item_per_hole(
                             blocker=str(exc),
                         )
 
+                if outcome.result.status == "success":
+                    if use_worktree and not outcome.touched_paths:
+                        hid = outcome.hole_id or "?"
+                        outcome.result = RunResult(
+                            status="blocked",
+                            summary="No file changes were applied to the main checkout.",
+                            blocker=f"Hole {hid} reported success but produced no applied file changes.",
+                        )
+                    elif primary_target is None:
+                        hid = outcome.hole_id or "?"
+                        outcome.result = RunResult(
+                            status="blocked",
+                            summary="Could not verify hole completion.",
+                            blocker=f"Hole {hid} reported success, but the runner could not infer the main `.agda` target file.",
+                        )
+                    elif outcome.hole_id is not None:
+                        hole = holes_by_id.get(outcome.hole_id)
+                        locator = hole_locators.get(outcome.hole_id, HoleLocator(line=hole.line if hole else 0, lhs_key=None))
+                        if hole is not None and not hole_is_cleared(primary_target, locator):
+                            outcome.result = RunResult(
+                                status="blocked",
+                                summary="Assigned hole still unresolved.",
+                                blocker=(
+                                    f"Hole {hole.hole_id} at {primary_target}:{hole.line} "
+                                    "still contains `{!!}` after the reported success."
+                                ),
+                            )
+                    if use_worktree and outcome.result.status == "success" and outcome.touched_paths:
+                        hid = outcome.hole_id or "hole"
+                        msg = commit_message_for_hole(item.signature, hid)
+                        stage_and_commit_paths(repo_root, outcome.touched_paths, msg)
+
+                if (
+                    outcome.result.status == "blocked"
+                    and not dry_run
+                    and primary_target is not None
+                    and outcome.hole_id is not None
+                    and outcome.worker_id is not None
+                ):
+                    hole = holes_by_id.get(outcome.hole_id)
+                    if hole is not None:
+                        wrote, detail = add_blocked_comment_after_hole(
+                            primary_target,
+                            hole,
+                            outcome.worker_id,
+                            outcome.result.blocker,
+                            locator=hole_locators.get(outcome.hole_id),
+                        )
+                        if not wrote:
+                            print(f"  note: could not record blocked comment for {outcome.hole_id}: {detail}")
+
                 log_worker_completion(outcome, item.signature)
                 if outcome.result.status == "blocked":
                     blocked.append(outcome)
                     blocked_count += 1
-                    hid = outcome.hole_id or "?"
-                    wid = outcome.worker_id if outcome.worker_id is not None else (worker_idx + 1)
-                    print(f"BLOCKED: {item.signature} [{hid}] (W{wid:02d})")
-                    print(f"  blocker: {outcome.result.blocker}")
-                else:
-                    hid = outcome.hole_id or "?"
-                    wid = outcome.worker_id if outcome.worker_id is not None else (worker_idx + 1)
-                    print(f"SUCCESS: {item.signature} [{hid}] (W{wid:02d})")
-                    if use_worktree:
-                        print(f"  applied: copied {outcome.copied} path(s), removed {outcome.removed} path(s)")
 
                 if hole_queue:
                     submit_hole(executor, futures, worker_idx, hole_queue.pop(0))
@@ -1065,6 +1376,7 @@ def process_queue(
                             repo_root,
                             outcome.worker_dir,
                             excluded_relative={todo_rel},
+                            base_rev=outcome.base_rev,
                         )
                         outcome.copied = copied
                         outcome.removed = removed
@@ -1077,7 +1389,7 @@ def process_queue(
                         )
 
                 log_worker_completion(outcome, outcome.item.signature)
-                finalize_outcome(todo_path, outcome, use_worktree)
+                finalize_outcome(todo_path, outcome, use_worktree, emit_status_logs=False)
                 if use_worktree and outcome.result.status == "success":
                     stage_and_commit_item(repo_root, todo_path, outcome)
 

@@ -202,7 +202,11 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
   | ⊑upL Φ lenΦ rel hu
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
-  {!!}
+  let Φᵣ , lenΦᵣ , huᵣ =
+        wkΨ-cast-tag-⊑-≤ Ψˡ≤Ψˡᵣ lenΦ (Terms.wk⊑ (store-growth redM) hu)
+  in
+  Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ ,
+  ⊑upL Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ huᵣ
 
 -- Congruence: down casts.
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM

@@ -125,7 +125,7 @@ postulate
     ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
     (dir : Dir) →
     (wfΣ : StoreWf 0 Ψ Σ) →
-    ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+    ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
     (n : ℕ) →
     ℰ ∅ρ p n dir (mkWorld Ψ Ψ Σ Σ wfΣ wfΣ []) (closeˡ M) (closeʳ M′)
 
@@ -507,7 +507,7 @@ right-converges-implies-left-converges
 dynamic-gradual-guarantee-part1 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   (∀ {Σˡ′ Vˡ} →
      Value Vˡ →
      (M↠Vˡ : Σ ∣ closeˡ M —↠ Σˡ′ ∣ Vˡ) →
@@ -524,7 +524,7 @@ dynamic-gradual-guarantee-part1 wfΣ rel vVˡ M↠Vˡ =
 dynamic-gradual-guarantee-part2 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   (Diverges Σ (closeˡ M) → Diverges Σ (closeʳ M′))
 dynamic-gradual-guarantee-part2 wfΣ rel divˡ convʳ =
   divˡ (right-converges-implies-left-converges convʳ
@@ -533,7 +533,7 @@ dynamic-gradual-guarantee-part2 wfΣ rel divˡ convʳ =
 dynamic-gradual-guarantee-part3 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   (∀ {Σʳ′ Vʳ} →
      Value Vʳ →
      (M′↠Vʳ : Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ Vʳ) →
@@ -551,7 +551,7 @@ dynamic-gradual-guarantee-part3 wfΣ rel vVʳ M′↠Vʳ =
 dynamic-gradual-guarantee-part4 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   (Diverges Σ (closeʳ M′) → DivergeOrBlame Σ (closeˡ M))
 dynamic-gradual-guarantee-part4 wfΣ rel divʳ Σˡ′ Nˡ M↠Nˡ =
   right-diverges-implies-left-blame-or-step divʳ M↠Nˡ
@@ -560,7 +560,7 @@ dynamic-gradual-guarantee-part4 wfΣ rel divʳ Σˡ′ Nˡ M↠Nˡ =
 dynamic-gradual-guarantee :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   (∀ {Σˡ′ Vˡ} →
      Value Vˡ →
      (M↠Vˡ : Σ ∣ closeˡ M —↠ Σˡ′ ∣ Vˡ) →

@@ -11,7 +11,7 @@ open import Data.Nat using (_≤_)
 open import Data.Nat.Properties using (≤-trans)
 open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Relation.Binary.PropositionalEquality using (_≡_)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types
 open import UpDown using (WfTy-weakenˢ)
@@ -31,7 +31,7 @@ Blames Σ M = ∃[ Σ′ ] ∃[ ℓ ] (Σ ∣ M —↠ Σ′ ∣ blame ℓ)
 
 sim-right :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ Σʳ′ M M′ N′ A B} {p : [] ⊢ A ⊑ᵢ B} →
-  ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
   Σʳ ∣ M′ —→ Σʳ′ ∣ N′ →
@@ -40,7 +40,7 @@ sim-right :
     Σ[ Σˡ′ ∈ Store ]
     Σ[ N ∈ Term ]
       ((Σˡ ∣ M —↠ Σˡ′ ∣ N) ×
-       (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
+       (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ N ⊑ N′ ⦂ p)))
   ⊎ Blames Σˡ M
 
 -- Raw non-store-allocating steps.

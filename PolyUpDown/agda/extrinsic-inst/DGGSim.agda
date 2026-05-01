@@ -108,69 +108,62 @@ postulate
   initial-simulation :
     ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
     (wfΣ : StoreWf 0 Ψ Σ) →
-    ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
-    ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ closeˡ M ⊑ closeʳ M′ ⦂ p
+    ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
+    ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ closeˡ M ⊑ closeʳ M′ ⦂ p
 
 
 --------------------------------------------------------------------------------
 
-sim-left* :
-  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} {p : [] ⊢ A ⊑ᵢ B} →
-  ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
-  StoreWf 0 Ψˡ Σˡ →
-  StoreWf 0 Ψʳ Σʳ →
-  Σˡ ∣ M —↠ Σˡ′ ∣ N →
-  Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ Σˡ′ ]
-    Σ[ Σʳ′ ∈ Store ]
-    Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ Σʳ′ ]
-    Σ[ N′ ∈ Term ]
-      ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
-       (⟪ 0 , Ψˡ , Σˡ′ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p))
-sim-left* {Σʳ = Σʳ} {M′ = M′} M⊑M′ wfΣˡ wfΣʳ (M ∎) =
-  wfΣˡ , Σʳ , wfΣʳ , M′ , (M′ ∎) , M⊑M′
-sim-left* M⊑M′ wfΣˡ wfΣʳ (M —→⟨ M→M₁ ⟩ M₁↠N)
-    with step-preserves-store-wf wfΣˡ (⊑-left-typed M⊑M′) M→M₁
-       | sim-left M⊑M′ wfΣˡ wfΣʳ M→M₁
-sim-left* M⊑M′ wfΣˡ wfΣʳ (M —→⟨ M→M₁ ⟩ M₁↠N)
-  | Ψwf , wfΣ₁ | Ψ₁ , Ψˡ≤Ψ₁ , Σʳ₁ , M′₁ , M′↠M′₁ , M₁⊑M′₁ =
-  {!!}
+postulate
+  sim-left* :
+    ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} {p : [] ⊢ A ⊑ᵢ B} →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
+    StoreWf 0 Ψˡ Σˡ →
+    StoreWf 0 Ψʳ Σʳ →
+    Σˡ ∣ M —↠ Σˡ′ ∣ N →
+    Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ Σˡ′ ]
+      Σ[ Σʳ′ ∈ Store ]
+      Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ Σʳ′ ]
+      Σ[ N′ ∈ Term ]
+        ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
+         (⟪ 0 , Ψˡ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ N ⊑ N′ ⦂ p))
 
 --------------------------------------------------------------------------------
 
 postulate
   sim-right* :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ Σʳ′ M M′ N′ A B} {p : [] ⊢ A ⊑ᵢ B} →
-    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
     Σʳ ∣ M′ —↠ Σʳ′ ∣ N′ →
     (Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ Σʳ′ ]
       Σ[ Σˡ′ ∈ Store ]
       Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ Σˡ′ ]
       Σ[ N ∈ Term ]
         ((Σˡ ∣ M —↠ Σˡ′ ∣ N) ×
-         (⟪ 0 , Ψˡ , Σˡ′ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
+         (⟪ 0 , Ψˡ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ N ⊑ N′ ⦂ p)))
     ⊎ Blames Σˡ M
 
   left-value-catchup-or-blame :
     ∀ {Ψˡ Σˡ N V′ A B} {p : [] ⊢ A ⊑ᵢ B} →
     Value V′ →
-    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ N ⊑ V′ ⦂ p →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ N ⊑ V′ ⦂ p →
     (Σ[ Σˡ′ ∈ Store ]
       Σ[ wfΣˡ′ ∈ StoreWf 0 Ψˡ Σˡ′ ]
       Σ[ V ∈ Term ]
         (Value V ×
          (Σˡ ∣ N —↠ Σˡ′ ∣ V) ×
-         (⟪ 0 , Ψˡ , Σˡ′ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
+         (⟪ 0 , Ψˡ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ p)))
     ⊎ Blames Σˡ N
 
   right-converges-implies-left-converges :
     ∀ {Ψˡ Σˡ Σʳ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
-    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
     Converges Σʳ M′ →
     Converges Σˡ M
 
   right-diverges-implies-left-blame-or-step :
     ∀ {Ψˡ Σˡ Σʳ Σˡ′ M M′ N A B} {p : [] ⊢ A ⊑ᵢ B} →
-    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
     Diverges Σʳ M′ →
     Σˡ ∣ M —↠ Σˡ′ ∣ N →
     Blame N ⊎ (∃[ Σ″ ] ∃[ N″ ] (Σˡ′ ∣ N —→ Σ″ ∣ N″))
@@ -182,7 +175,7 @@ postulate
 dynamic-gradual-guarantee-part1 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   (∀ {Σˡ′ V} →
      Value V →
      (M↠V : Σ ∣ closeˡ M —↠ Σˡ′ ∣ V) →
@@ -190,7 +183,7 @@ dynamic-gradual-guarantee-part1 :
        Σ[ V′ ∈ Term ]
          (Value V′ ×
           (Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ V′) ×
-          (⟪ 0 , Ψ , Σˡ′ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
+          (⟪ 0 , Ψ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ p)))
 dynamic-gradual-guarantee-part1
   {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p}
   wfΣ rel {Σˡ′ = Σˡ′} vV M↠V
@@ -207,7 +200,7 @@ dynamic-gradual-guarantee-part1
 dynamic-gradual-guarantee-part2 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   Diverges Σ (closeˡ M) →
   Diverges Σ (closeʳ M′)
 dynamic-gradual-guarantee-part2
@@ -221,7 +214,7 @@ dynamic-gradual-guarantee-part2
 dynamic-gradual-guarantee-part3 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   (∀ {Σʳ′ V′} →
      Value V′ →
      (M′↠V′ : Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ V′) →
@@ -229,7 +222,7 @@ dynamic-gradual-guarantee-part3 :
        Σ[ V ∈ Term ]
          (Value V ×
           (Σ ∣ closeˡ M —↠ Σˡ′ ∣ V) ×
-          (⟪ 0 , Ψ , Σˡ′ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
+          (⟪ 0 , Ψ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ p)))
      ⊎ Blames Σ (closeˡ M))
 dynamic-gradual-guarantee-part3
   {Ψ = Ψ} {Σ = Σ} {A = A} {B = B} {p = p}
@@ -250,7 +243,7 @@ dynamic-gradual-guarantee-part3
 dynamic-gradual-guarantee-part4 :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   Diverges Σ (closeʳ M′) →
   DivergeOrBlame Σ (closeˡ M)
 dynamic-gradual-guarantee-part4
@@ -264,7 +257,7 @@ dynamic-gradual-guarantee-part4
 dynamic-gradual-guarantee :
   ∀ {Ψ Σ M M′ A B} {p : [] ⊢ A ⊑ᵢ B} →
   (wfΣ : StoreWf 0 Ψ Σ) →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   -- Part 1: a less-imprecise value run is matched by a more-imprecise one.
   (∀ {Σˡ′ V} →
      Value V →
@@ -273,7 +266,7 @@ dynamic-gradual-guarantee :
        Σ[ V′ ∈ Term ]
          (Value V′ ×
           (Σ ∣ closeʳ M′ —↠ Σʳ′ ∣ V′) ×
-          (⟪ 0 , Ψ , Σˡ′ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
+          (⟪ 0 , Ψ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ p)))
   ×
   -- Part 2: divergence of the less-imprecise term is preserved.
   (Diverges Σ (closeˡ M) → Diverges Σ (closeʳ M′))
@@ -287,7 +280,7 @@ dynamic-gradual-guarantee :
        Σ[ V ∈ Term ]
          (Value V ×
           (Σ ∣ closeˡ M —↠ Σˡ′ ∣ V) ×
-          (⟪ 0 , Ψ , Σˡ′ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p)))
+          (⟪ 0 , Ψ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ p)))
      ⊎ Blames Σ (closeˡ M))
   ×
   -- Part 4: if the right diverges, every left reduct can still step or blames.

@@ -10,6 +10,7 @@ open import Data.List using ([])
 open import Data.Nat using (_≤_)
 open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₂)
+open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Types
 open import UpDown using (Down; Label; Up)
@@ -85,7 +86,7 @@ postulate
     ∀ {Ψ Σ M V A B} {p : [] ⊢ A ⊑ᵢ B} →
     Value V →
     StoreWf 0 Ψ Σ →
-    ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ V ⦂ p →
+    ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ V ⦂ p →
     (Σ[ Ψ′ ∈ SealCtx ]
       Σ[ Ψ≤Ψ′ ∈ Ψ ≤ Ψ′ ]
       Σ[ Σ′ ∈ Store ]
@@ -93,7 +94,7 @@ postulate
       Σ[ W ∈ Term ]
         (Value W ×
          (Σ ∣ M —↠ Σ′ ∣ W) ×
-         (⟪ 0 , Ψ′ , Σ′ , [] , [] ⟫ ⊢ W ⊑ V ⦂ p)))
+         (⟪ 0 , Ψ′ , Σ′ , [] , [] , plain-[] , refl ⟫ ⊢ W ⊑ V ⦂ p)))
     ⊎ SimRightBlames Σ M
 
 -- Worker W04 helper slot
@@ -151,7 +152,7 @@ sim-right-w09-down-blames {d = d} (Σ′ , ℓ , M↠blame) =
 sim-right-w09-right-blame-rel-blames :
   ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B : Ty}
     {p : [] ⊢ A ⊑ᵢ B} {ℓ : Label} →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ blame ℓ ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ blame ℓ ⦂ p →
   SimRightBlames Σ M
 sim-right-w09-right-blame-rel-blames (⊑⦂∀-ν A B p rel wfA hT inst) =
   sim-right-w09-typeapp-blames (sim-right-w09-right-blame-rel-blames rel)
@@ -166,7 +167,7 @@ sim-right-w09-right-blame-rel-blames (⊑blameR {ℓ = ℓ′} hM) =
 sim-right-w09-right-blame-typeapp-blames :
   ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B C T : Ty}
     {p : [] ⊢ A ⊑ᵢ B} {ℓ : Label} →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ (blame ℓ ⦂∀ C [ T ]) ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ (blame ℓ ⦂∀ C [ T ]) ⦂ p →
   SimRightBlames Σ M
 sim-right-w09-right-blame-typeapp-blames (⊑⦂∀ rel wfA wfB hT) =
   sim-right-w09-typeapp-blames (sim-right-w09-right-blame-rel-blames rel)
@@ -184,13 +185,13 @@ sim-right-w09-right-blame-typeapp-blames (⊑blameR {ℓ = ℓ′} hM) =
 sim-right-w09-r13 :
   ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B C T : Ty}
     {p : [] ⊢ A ⊑ᵢ B} {ℓ : Label} →
-  ⟪ 0 , Ψ , Σ , [] , [] ⟫ ⊢ M ⊑ (blame ℓ ⦂∀ C [ T ]) ⦂ p →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ (blame ℓ ⦂∀ C [ T ]) ⦂ p →
   (Σ[ Ψ″ ∈ SealCtx ]
     Σ[ Ψ≤Ψ″ ∈ Ψ ≤ Ψ″ ]
     Σ[ Σ′ ∈ Store ]
     Σ[ N ∈ Term ]
       ((Σ ∣ M —↠ Σ′ ∣ N) ×
-       (⟪ 0 , Ψ″ , Σ′ , [] , [] ⟫ ⊢ N ⊑ blame ℓ ⦂ p)))
+       (⟪ 0 , Ψ″ , Σ′ , [] , [] , plain-[] , refl ⟫ ⊢ N ⊑ blame ℓ ⦂ p)))
   ⊎ SimRightBlames Σ M
 sim-right-w09-r13 rel =
   inj₂ (sim-right-w09-right-blame-typeapp-blames rel)

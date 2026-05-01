@@ -51,7 +51,7 @@ open import PreservationFresh
     
 sim-left :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} {p : [] ⊢ A ⊑ᵢ B} →
-  ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
   Σˡ ∣ M —→ Σˡ′ ∣ N →
@@ -60,7 +60,7 @@ sim-left :
     Σ[ Σʳ′ ∈ Store ]
     Σ[ N′ ∈ Term ]
       ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
-       (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
+       (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ N ⊑ N′ ⦂ p)))
 sim-left M⊑M′ wfΣˡ wfΣʳ red with red
 
 -- Congruence: application operator.
@@ -185,17 +185,32 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ down _ , down-↠ M′↠M′ᵣ ,
   ⊑downR Φᵣ lenΦᵣ Nᵣ⊑M′ᵣ hdᵣ
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
-  | ⊑⦂∀ rel wfA wfB hT
+  | ⊑⦂∀ {T = T} {p = p} rel wfA wfB hT
     with sim-left rel wfΣˡ wfΣʳ redM
-sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
-  | ⊑⦂∀ rel wfA wfB hT
+sim-left {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σˡ′ = Σˡ′}
+    M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
+  | ⊑⦂∀ {T = T} {p = p} rel wfA wfB hT
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ ⦂∀ _ [ _ ] ,
   sim-left-w09-tyapp-↠ M′↠M′ᵣ ,
-  ⊑⦂∀ Nᵣ⊑M′ᵣ
-    (UpDown.WfTy-weakenˢ wfA Ψˡ≤Ψˡᵣ)
-    (UpDown.WfTy-weakenˢ wfB Ψˡ≤Ψˡᵣ)
-    (UpDown.WfTy-weakenˢ hT Ψˡ≤Ψˡᵣ)
+  subst
+    (λ q →
+      ⟪ 0 , Ψˡᵣ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢
+        _ ⊑ _ ⦂ q)
+    (⊑ᵢ-proof-irrel
+      (substPlain⊑ᵢ T
+        (TPEnv-refl⊑ᵢ
+          ⟪ 0 , Ψˡᵣ , Σˡ′ , [] , [] , plain-[] , refl ⟫
+          (UpDown.WfTy-weakenˢ hT Ψˡ≤Ψˡᵣ))
+        p)
+      (substPlain⊑ᵢ T
+        (TPEnv-refl⊑ᵢ
+          ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ hT)
+        p))
+    (⊑⦂∀ Nᵣ⊑M′ᵣ
+      (UpDown.WfTy-weakenˢ wfA Ψˡ≤Ψˡᵣ)
+      (UpDown.WfTy-weakenˢ wfB Ψˡ≤Ψˡᵣ)
+      (UpDown.WfTy-weakenˢ hT Ψˡ≤Ψˡᵣ))
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-·α redM
   | ⊑⦂∀-ν A B p rel wfA hT inst
     with sim-left rel wfΣˡ wfΣʳ redM

@@ -14,6 +14,7 @@ open import Data.Nat
 open import Data.Nat.Properties
   using (≤-refl; <-≤-trans; ≤-trans; n≤1+n)
 open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Bool using (true)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Unit using (⊤; tt)
@@ -474,7 +475,7 @@ closed-inst-⊑ᵢ :
 closed-inst-⊑ᵢ {T = T} {w = w} ρ hT =
   ⊑ᵢ-cast (sym (leftᵢ-closed-id {w = w} ρ hT))
           (sym (rightᵢ-closed-id {w = w} ρ hT))
-          (⊑ᵢ-refl {Γ = []})
+          (closed-reflᵢ hT)
 
 record RelWfᴾ (E : TPEnv) (w : World)
     (ρ : RelSub (TPEnv.Ξ E)) : Set₁ where
@@ -1037,6 +1038,7 @@ InstCastBridgeℰ⊑ᵢ : Set₁
 InstCastBridgeℰ⊑ᵢ =
   ∀ {Ξ A B n dir w Tˡ Tʳ αˡ αʳ} {ρ : RelSub Ξ}
     {p : plain ∷ Ξ ⊢ A ⊑ᵢ B}
+    {pν : ν-bound ∷ Ξ ⊢ A ⊑ᵢ B}
     {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
     {wfTˡ : WfTyClosedᵗ Tˡ} {wfTʳ : WfTyClosedᵗ Tʳ} →
     (Rrel : Rel) →
@@ -1049,7 +1051,7 @@ InstCastBridgeℰ⊑ᵢ =
     (αʳ∈ : Σʳ w ∋ˢ αʳ ⦂ Tʳ) →
     (L R : Term) →
   ℰ (extendνρ ρ (ηentry αˡ αʳ Rrel downR))
-    (plain-to-ν⊑ᵢ p) n dir w L R →
+    pν n dir w L R →
   ℰ (extendPlainρ ρ Tˡ Tʳ wfTˡ wfTʳ pT Rrel downR)
     p n dir w
     (L up (instCast⊑ {A = Tˡ} {B = left∀ᵢ ρ w A} {α = αˡ}))
@@ -1059,6 +1061,7 @@ InstCastBridgeℰ⊒ᵢ : Set₁
 InstCastBridgeℰ⊒ᵢ =
   ∀ {Ξ A B n dir w Tˡ Tʳ αˡ αʳ} {ρ : RelSub Ξ}
     {p : plain ∷ Ξ ⊢ A ⊑ᵢ B}
+    {pν : ν-bound ∷ Ξ ⊢ A ⊑ᵢ B}
     {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
     {wfTˡ : WfTyClosedᵗ Tˡ} {wfTʳ : WfTyClosedᵗ Tʳ} →
     (Rrel : Rel) →
@@ -1073,7 +1076,7 @@ InstCastBridgeℰ⊒ᵢ =
   ℰ (extendPlainρ ρ Tˡ Tʳ wfTˡ wfTʳ pT Rrel downR)
     p n dir w L R →
   ℰ (extendνρ ρ (ηentry αˡ αʳ Rrel downR))
-    (plain-to-ν⊑ᵢ p) n dir w
+    pν n dir w
     (L down (instCast⊒ {A = Tˡ} {B = left∀ᵢ ρ w A} {α = αˡ}))
     (R down (instCast⊒ {A = Tʳ} {B = right∀ᵢ ρ w B} {α = αʳ}))
 
@@ -1081,6 +1084,7 @@ InstCastBridge𝒱⇒ℰ⊑ᵢ : Set₁
 InstCastBridge𝒱⇒ℰ⊑ᵢ =
   ∀ {Ξ A B n dir w Tˡ Tʳ αˡ αʳ} {ρ : RelSub Ξ}
     {p : plain ∷ Ξ ⊢ A ⊑ᵢ B}
+    {pν : ν-bound ∷ Ξ ⊢ A ⊑ᵢ B}
     {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
     {wfTˡ : WfTyClosedᵗ Tˡ} {wfTʳ : WfTyClosedᵗ Tʳ} →
     (Rrel : Rel) →
@@ -1093,7 +1097,7 @@ InstCastBridge𝒱⇒ℰ⊑ᵢ =
     (αʳ∈ : Σʳ w ∋ˢ αʳ ⦂ Tʳ) →
     (V W : Term) →
   𝒱 (extendνρ ρ (ηentry αˡ αʳ Rrel downR))
-    (plain-to-ν⊑ᵢ p) n dir w V W →
+    pν n dir w V W →
   ℰ (extendPlainρ ρ Tˡ Tʳ wfTˡ wfTʳ pT Rrel downR)
     p (suc n) dir w
     (V up (instCast⊑ {A = Tˡ} {B = left∀ᵢ ρ w A} {α = αˡ}))
@@ -1103,6 +1107,7 @@ InstCastBridge𝒱⇒ℰ⊒ᵢ : Set₁
 InstCastBridge𝒱⇒ℰ⊒ᵢ =
   ∀ {Ξ A B n dir w Tˡ Tʳ αˡ αʳ} {ρ : RelSub Ξ}
     {p : plain ∷ Ξ ⊢ A ⊑ᵢ B}
+    {pν : ν-bound ∷ Ξ ⊢ A ⊑ᵢ B}
     {pT : [] ⊢ Tˡ ⊑ᵢ Tʳ}
     {wfTˡ : WfTyClosedᵗ Tˡ} {wfTʳ : WfTyClosedᵗ Tʳ} →
     (Rrel : Rel) →
@@ -1117,7 +1122,7 @@ InstCastBridge𝒱⇒ℰ⊒ᵢ =
   𝒱 (extendPlainρ ρ Tˡ Tʳ wfTˡ wfTʳ pT Rrel downR)
     p n dir w V W →
   ℰ (extendνρ ρ (ηentry αˡ αʳ Rrel downR))
-    (plain-to-ν⊑ᵢ p) (suc n) dir w
+    pν (suc n) dir w
     (V down (instCast⊒ {A = Tˡ} {B = left∀ᵢ ρ w A} {α = αˡ}))
     (W down (instCast⊒ {A = Tʳ} {B = right∀ᵢ ρ w B} {α = αʳ}))
 
@@ -1841,7 +1846,7 @@ relᵗ-zero-𝒱ᵢ :
   0 ∣ Ψˡ w ∣ Σˡ w ∣ [] ⊢ V ⦂ leftᵢ ρ w (＇ zero) →
   0 ∣ Ψʳ w ∣ Σʳ w ∣ [] ⊢ W ⦂ rightᵢ ρ w (＇ zero) →
   relᵗ ρ zero k dir V W →
-  𝒱 ρ (⊑ᵢ-＇ zero) k dir w V W
+  𝒱 ρ (⊑ᵢ-＇ here) k dir w V W
 relᵗ-zero-𝒱ᵢ {k = zero} vV vW V⊢ W⊢ rel =
   lift (vV , vW , (V⊢ , W⊢))
 relᵗ-zero-𝒱ᵢ {k = suc k} vV vW V⊢ W⊢ rel =
@@ -1872,7 +1877,9 @@ mutual
       {A = Aˡ ⇒ Bˡ} {B = Aʳ ⇒ Bʳ} {n = zero}
       {dir = dir} {w = w}
       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-      {ρ = ρ} {p = ⊑ᵢ-⇒ Aˡ Aʳ Bˡ Bʳ pA pB} {pT = pT}
+      {ρ = ρ} {p = ⊑ᵢ-⇒ Aˡ Aʳ Bˡ Bʳ pA pB}
+      {pν = arrowν-p@(⊑ᵢ-⇒ .Aˡ .Aʳ .Bˡ .Bʳ pAν pBν)}
+      {pT = pT}
       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
       Rrel downR hTˡ hTʳ (wf⇒ hAˡ hBˡ) (wf⇒ hAʳ hBʳ)
       αˡ∈ αʳ∈ V W (lift (vV , vW , (V⊢ , W⊢))) =
@@ -1880,15 +1887,6 @@ mutual
     where
     ρSeal : RelSub (ν-bound ∷ _)
     ρSeal = extendνρ ρ (ηentry αˡ αʳ Rrel downR)
-  
-    pAν : ν-bound ∷ _ ⊢ Aˡ ⊑ᵢ Aʳ
-    pAν = plain-to-ν⊑ᵢ pA
-  
-    pBν : ν-bound ∷ _ ⊢ Bˡ ⊑ᵢ Bʳ
-    pBν = plain-to-ν⊑ᵢ pB
-  
-    arrowν-p : ν-bound ∷ _ ⊢ Aˡ ⇒ Bˡ ⊑ᵢ Aʳ ⇒ Bʳ
-    arrowν-p = ⊑ᵢ-⇒ Aˡ Aʳ Bˡ Bʳ pAν pBν
   
     left-typed =
       instCast-down-left-typedᵢν
@@ -1926,7 +1924,9 @@ mutual
       {A = Aˡ ⇒ Bˡ} {B = Aʳ ⇒ Bʳ} {n = suc k}
       {dir = dir} {w = w}
       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-      {ρ = ρ} {p = ⊑ᵢ-⇒ Aˡ Aʳ Bˡ Bʳ pA pB} {pT = pT}
+      {ρ = ρ} {p = ⊑ᵢ-⇒ Aˡ Aʳ Bˡ Bʳ pA pB}
+      {pν = arrowν-p@(⊑ᵢ-⇒ .Aˡ .Aʳ .Bˡ .Bʳ pAν pBν)}
+      {pT = pT}
       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
       Rrel downR hTˡ hTʳ (wf⇒ hAˡ hBˡ) (wf⇒ hAʳ hBʳ)
       αˡ∈ αʳ∈ V W Vrel@((vV , vW , (V⊢ , W⊢)) , fun-rel) =
@@ -1940,15 +1940,6 @@ mutual
   
     arrow-p : plain ∷ _ ⊢ Aˡ ⇒ Bˡ ⊑ᵢ Aʳ ⇒ Bʳ
     arrow-p = ⊑ᵢ-⇒ Aˡ Aʳ Bˡ Bʳ pA pB
-  
-    pAν : ν-bound ∷ _ ⊢ Aˡ ⊑ᵢ Aʳ
-    pAν = plain-to-ν⊑ᵢ pA
-  
-    pBν : ν-bound ∷ _ ⊢ Bˡ ⊑ᵢ Bʳ
-    pBν = plain-to-ν⊑ᵢ pB
-  
-    arrowν-p : ν-bound ∷ _ ⊢ Aˡ ⇒ Bˡ ⊑ᵢ Aʳ ⇒ Bʳ
-    arrowν-p = ⊑ᵢ-⇒ Aˡ Aʳ Bˡ Bʳ pAν pBν
   
     left-typed =
       instCast-down-left-typedᵢν
@@ -2134,7 +2125,9 @@ mutual
       {A = `∀ Aˡ} {B = `∀ Aʳ} {n = zero}
       {dir = dir} {w = w}
       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-      {ρ = ρ} {p = ⊑ᵢ-∀ Aˡ Aʳ p} {pT = pT}
+      {ρ = ρ} {p = ⊑ᵢ-∀ Aˡ Aʳ p}
+      {pν = p∀ν@(⊑ᵢ-∀ .Aˡ .Aʳ pν)}
+      {pT = pT}
       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
       Rrel downR hTˡ hTʳ (wf∀ hAˡ) (wf∀ hAʳ)
       αˡ∈ αʳ∈ V W (lift (vV , vW , (V⊢ , W⊢))) =
@@ -2160,7 +2153,7 @@ mutual
         hTˡ hTʳ (wf∀ hAʳ) αʳ∈ W⊢
   
     casted-𝒱 :
-      𝒱 ρSeal (plain-to-ν⊑ᵢ (⊑ᵢ-∀ Aˡ Aʳ p)) zero dir w
+      𝒱 ρSeal p∀ν zero dir w
         (V down (instCast⊒ {A = Tˡ} {B = left∀ᵢ ρ w (`∀ Aˡ)}
           {α = αˡ}))
         (W down (instCast⊒ {A = Tʳ} {B = right∀ᵢ ρ w (`∀ Aʳ)}
@@ -2171,7 +2164,9 @@ mutual
       {A = `∀ Aˡ} {B = `∀ Aʳ} {n = suc zero}
       {dir = dir} {w = w}
       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-      {ρ = ρ} {p = ⊑ᵢ-∀ Aˡ Aʳ p} {pT = pT}
+      {ρ = ρ} {p = ⊑ᵢ-∀ Aˡ Aʳ p}
+      {pν = p∀ν@(⊑ᵢ-∀ .Aˡ .Aʳ pν)}
+      {pT = pT}
       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
       Rrel downR hTˡ hTʳ (wf∀ hAˡ) (wf∀ hAʳ)
       αˡ∈ αʳ∈ V W ((vV , vW , (V⊢ , W⊢)) , payload) =
@@ -2227,7 +2222,7 @@ mutual
         hTˡ hTʳ (wf∀ hAʳ) αʳ∈ W⊢
 
     typeapp-payload :
-      𝒱body ρSeal (plain-to-ν⊑ᵢ (⊑ᵢ-∀ Aˡ Aʳ p)) (suc zero) dir w
+      𝒱body ρSeal p∀ν (suc zero) dir w
         (V down (instCast⊒ {A = Tˡ} {B = left∀ᵢ ρ w (`∀ Aˡ)}
           {α = αˡ}))
         (W down (instCast⊒ {A = Tʳ} {B = right∀ᵢ ρ w (`∀ Aʳ)}
@@ -2316,7 +2311,7 @@ mutual
         ℰbody
           (extendPlainρ ρSeal Uˡ Uʳ
             (Ψˡ w′ , hUˡ) (Ψʳ w′ , hUʳ) pU Srel downS)
-          (replacePlainAt⊑ᵢ (suc zero) p) (suc zero) d w′
+          pν (suc zero) d w′
           ((V down (instCast⊒ {A = Tˡ} {B = left∀ᵢ ρ w (`∀ Aˡ)}
             {α = αˡ})) ⦂∀ left∀ᵢ ρSeal w′ Aˡ [ Uˡ ])
           ((W down (instCast⊒ {A = Tʳ} {B = right∀ᵢ ρ w (`∀ Aʳ)}
@@ -2339,7 +2334,7 @@ mutual
       step-body : ℰbody
         (extendPlainρ ρSeal Uˡ Uʳ
           (Ψˡ w′ , hUˡ) (Ψʳ w′ , hUʳ) pU Srel downS)
-        (replacePlainAt⊑ᵢ (suc zero) p) (suc zero) dir w′
+        pν (suc zero) dir w′
         ((V down (instCast⊒ {A = Tˡ} {B = left∀ᵢ ρ w (`∀ Aˡ)}
           {α = αˡ})) ⦂∀ left∀ᵢ ρSeal w′ Aˡ [ Uˡ ])
         ((W down (instCast⊒ {A = Tʳ} {B = right∀ᵢ ρ w (`∀ Aʳ)}
@@ -2347,7 +2342,7 @@ mutual
       step-body = step-body-dir dir
 
     casted-𝒱 :
-      𝒱 ρSeal (plain-to-ν⊑ᵢ (⊑ᵢ-∀ Aˡ Aʳ p)) (suc zero) dir w
+      𝒱 ρSeal p∀ν (suc zero) dir w
         (V down (instCast⊒ {A = Tˡ} {B = left∀ᵢ ρ w (`∀ Aˡ)}
           {α = αˡ}))
         (W down (instCast⊒ {A = Tʳ} {B = right∀ᵢ ρ w (`∀ Aʳ)}
@@ -2386,7 +2381,7 @@ mutual
   instCast-bridge-ℰ⊑ᵢ
       {A = A} {B = B} {n = suc k} {dir = ≼} {w = w}
       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-      {ρ = ρ} {p = p} {pT = pT}
+      {ρ = ρ} {p = p} {pν = pν} {pT = pT}
       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
       Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
       ((L⊢ , R⊢) ,
@@ -2443,7 +2438,7 @@ mutual
   instCast-bridge-ℰ⊑ᵢ
       {A = A} {B = B} {n = suc k} {dir = ≼} {w = w}
       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-      {ρ = ρ} {p = p} {pT = pT}
+      {ρ = ρ} {p = p} {pν = pν} {pT = pT}
       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
       Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
       ((L⊢ , R⊢) ,
@@ -2482,7 +2477,7 @@ mutual
   instCast-bridge-ℰ⊑ᵢ
       {A = A} {B = B} {n = suc k} {dir = ≽} {w = w}
       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-      {ρ = ρ} {p = p} {pT = pT}
+      {ρ = ρ} {p = p} {pν = pν} {pT = pT}
       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
       Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
       ((L⊢ , R⊢) ,
@@ -2654,7 +2649,7 @@ mutual
   instCast-bridge-ℰ⊒ᵢ
       {A = A} {B = B} {n = suc k} {dir = ≼} {w = w}
       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-      {ρ = ρ} {p = p} {pT = pT}
+      {ρ = ρ} {p = p} {pν = pν} {pT = pT}
       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
       Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
       ((L⊢ , R⊢) ,
@@ -2662,7 +2657,7 @@ mutual
           (vL , Σʳ′ , Ψʳ′ , wfΣʳ′ , W , R↠W , Vrel))) =
     ℰ-pull-≼-right-↠
       {ρ = extendνρ ρ (ηentry αˡ αʳ Rrel downR)}
-      {p = plain-to-ν⊑ᵢ p} {k = suc k} {w = w}
+      {p = pν} {k = suc k} {w = w}
       {Σʳ′ = Σʳ′} {Ψʳ′ = Ψʳ′} {wfΣʳ′ = wfΣʳ′}
       (instCast-down-left-typedᵢν
         {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
@@ -2693,7 +2688,7 @@ mutual
   instCast-bridge-ℰ⊒ᵢ
       {A = A} {B = B} {n = suc k} {dir = ≽} {w = w}
       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-      {ρ = ρ} {p = p} {pT = pT}
+      {ρ = ρ} {p = p} {pν = pν} {pT = pT}
       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
       Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
       ((L⊢ , R⊢) ,
@@ -2750,7 +2745,7 @@ mutual
   instCast-bridge-ℰ⊒ᵢ
       {A = A} {B = B} {n = suc k} {dir = ≽} {w = w}
       {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
-      {ρ = ρ} {p = p} {pT = pT}
+      {ρ = ρ} {p = p} {pν = pν} {pT = pT}
       {wfTˡ = wfTˡc} {wfTʳ = wfTʳc}
       Rrel downR hTˡ hTʳ hAˡ hBʳ αˡ∈ αʳ∈ L R
       ((L⊢ , R⊢) ,
@@ -2758,7 +2753,7 @@ mutual
           (vR , Σˡ′ , Ψˡ′ , wfΣˡ′ , W , L↠W , Vrel))) =
     ℰ-pull-≽-left-↠
       {ρ = extendνρ ρ (ηentry αˡ αʳ Rrel downR)}
-      {p = plain-to-ν⊑ᵢ p} {k = suc k} {w = w}
+      {p = pν} {k = suc k} {w = w}
       {Σˡ′ = Σˡ′} {Ψˡ′ = Ψˡ′} {wfΣˡ′ = wfΣˡ′}
       (instCast-down-left-typedᵢν
         {A = A} {Tˡ = Tˡ} {Tʳ = Tʳ} {αˡ = αˡ} {αʳ = αʳ}
@@ -3752,10 +3747,11 @@ postulate
 
   ν-fresh-current-ℰᵢ-core :
     ∀ {Ξ A B T k dir w V W R} {ρ : RelSub Ξ}
+      {pSelf : Ξ ⊢ T ⊑ᵢ T}
       {pν : (ν-bound ∷ Ξ) ⊢ A ⊑ᵢ ⇑ᵗ B}
       {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B} →
-    νClosedInstᵢ pν pT →
-    (sem : SemanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w R) →
+    (inst : νClosedInstᵢ pν pT) →
+    (sem : SemanticRelAtᵢ ρ pSelf w R) →
     (hTˡ : WfTy 0 (Ψˡ w) (leftᵢ ρ w T)) →
     (hTʳ : WfTy 0 (Ψʳ w) (rightᵢ ρ w T)) →
     Value V →
@@ -3780,6 +3776,7 @@ postulate
 ν-fresh-current-ℰᵢ :
   ∀ {Ξ Δ Ψsrc A B T k dir w V W} {ρ : RelSub Ξ}
     {pν : (ν-bound ∷ Ξ) ⊢ A ⊑ᵢ ⇑ᵗ B}
+    {occ : occurs zero A ≡ true}
     {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B} →
   νClosedInstᵢ pν pT →
   RelWf w ρ →
@@ -3788,7 +3785,7 @@ postulate
   WfTy (suc Δ) Ψsrc A →
   WfTy 0 Ψsrc T →
   Ψsrc ≤ Ψʳ w →
-  𝒱 ρ (⊑ᵢ-ν A B pν) k dir w V W →
+  𝒱 ρ (⊑ᵢ-ν A B occ pν) k dir w V W →
   ℰ ρ pT (suc k) dir w
     (V ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ])
     W
@@ -3800,13 +3797,13 @@ postulate
   ν-fresh-current-ℰᵢ-core {k = zero} {dir = ≼} {R = R}
     inst sem hTˡ hTʳ vV vW V⊢ W⊢ leftApp⊢ fresh
   where
-  kit : SemanticRelKitᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
-  kit = semanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
+  kit : SemanticRelKitᵢ ρ (closed-reflᵢ wfT) w
+  kit = semanticRelAtᵢ ρ (closed-reflᵢ wfT) w
 
   R : Rel
   R = relᵢ kit
 
-  sem : SemanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w R
+  sem : SemanticRelAtᵢ ρ (closed-reflᵢ wfT) w R
   sem = semanticᵢ kit
 
   wfTΔ : WfTy Δ Ψsrc T
@@ -3879,13 +3876,13 @@ postulate
   ν-fresh-current-ℰᵢ-core {k = zero} {dir = ≽} {R = R}
     inst sem hTˡ hTʳ vV vW V⊢ W⊢ leftApp⊢ fresh
   where
-  kit : SemanticRelKitᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
-  kit = semanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
+  kit : SemanticRelKitᵢ ρ (closed-reflᵢ wfT) w
+  kit = semanticRelAtᵢ ρ (closed-reflᵢ wfT) w
 
   R : Rel
   R = relᵢ kit
 
-  sem : SemanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w R
+  sem : SemanticRelAtᵢ ρ (closed-reflᵢ wfT) w R
   sem = semanticᵢ kit
 
   wfTΔ : WfTy Δ Ψsrc T
@@ -3958,13 +3955,13 @@ postulate
   ν-fresh-current-ℰᵢ-core {R = R}
     inst sem hTˡ hTʳ vV vW V⊢ W⊢ leftApp⊢ fresh
   where
-  kit : SemanticRelKitᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
-  kit = semanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w
+  kit : SemanticRelKitᵢ ρ (closed-reflᵢ wfT) w
+  kit = semanticRelAtᵢ ρ (closed-reflᵢ wfT) w
 
   R : Rel
   R = relᵢ kit
 
-  sem : SemanticRelAtᵢ ρ (⊑ᵢ-refl {Γ = Ξ} {A = T}) w R
+  sem : SemanticRelAtᵢ ρ (closed-reflᵢ wfT) w R
   sem = semanticᵢ kit
 
   wfTΔ : WfTy Δ Ψsrc T
@@ -4010,6 +4007,7 @@ postulate
 tyappν-ℰᵢ :
   ∀ {Ξ Δ Ψsrc A B T n dir w L R} {ρ : RelSub Ξ}
     {pν : (ν-bound ∷ Ξ) ⊢ A ⊑ᵢ ⇑ᵗ B}
+    {occ : occurs zero A ≡ true}
     {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B} →
   νClosedInstᵢ pν pT →
   RelWf w ρ →
@@ -4018,7 +4016,7 @@ tyappν-ℰᵢ :
   WfTy (suc Δ) Ψsrc A →
   WfTy 0 Ψsrc T →
   Ψsrc ≤ Ψʳ w →
-  ℰ ρ (⊑ᵢ-ν A B pν) n dir w L R →
+  ℰ ρ (⊑ᵢ-ν A B occ pν) n dir w L R →
   ℰ ρ pT n dir w (L ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) R
 tyappν-ℰᵢ {Ξ} {Δ} {Ψsrc} {A} {B} {T} {zero} {dir}
     {w} {L} {R} {ρ} inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ
@@ -4028,7 +4026,7 @@ tyappν-ℰᵢ {Ξ} {Δ} {Ψsrc} {A} {B} {T} {zero} {dir}
    R⊢) ,
   lift tt
 tyappν-ℰᵢ {A = A} {T = T} {n = suc k} {dir = ≼}
-    {w = w} {L = L} {R = R} {ρ = ρ}
+    {w = w} {L = L} {R = R} {ρ = ρ} {occ = occ}
     inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ
     ((L⊢ , R⊢) ,
       inj₁
@@ -4041,6 +4039,7 @@ tyappν-ℰᵢ {A = A} {T = T} {n = suc k} {dir = ≼}
       ξ-·α L→L′ ,
       Σʳ′ , Ψʳ′ , wfΣʳ′ , R′ , R↠R′ ,
       tyappν-ℰᵢ
+        {occ = occ}
         inst
         (RelWf-⪰ step-grow rwf)
         (InterpLRWfˡ-weakenˢ (_⪰_.growΨˡ step-grow) iwfA)
@@ -4063,7 +4062,7 @@ tyappν-ℰᵢ {A = A} {T = T} {n = suc k} {dir = ≼}
   L•⊢ = tyappν-left-typedᵢ rwf iwfA iwfT wfA
             (WfTy-weakenᵗ wfT z≤n) L⊢
 tyappν-ℰᵢ {A = A} {T = T} {n = suc k} {dir = ≼}
-    {w = w} {L = L} {R = R} {ρ = ρ}
+    {w = w} {L = L} {R = R} {ρ = ρ} {occ = occ}
     inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ
     ((L⊢ , R⊢) , inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , L↠blame))) =
   (tyappν-left-typedᵢ rwf iwfA iwfT wfA
@@ -4072,7 +4071,7 @@ tyappν-ℰᵢ {A = A} {T = T} {n = suc k} {dir = ≼}
   inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , tyapp-blame-↠ L↠blame))
 tyappν-ℰᵢ {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
     {n = suc k} {dir = ≼} {w = w} {L = L} {R = R} {ρ = ρ}
-    {pν = pν} {pT = pT}
+    {pν = pν} {occ = occ} {pT = pT}
     inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ
     ((L⊢ , R⊢) ,
       inj₂ (inj₂
@@ -4094,7 +4093,7 @@ tyappν-ℰᵢ {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
       {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
       {k = k} {dir = ≼}
       {w = mkWorldʳ w Σʳ′ wfΣʳ′} {V = L} {W = W}
-      {ρ = ρ} {pν = pν} {pT = pT}
+      {ρ = ρ} {pν = pν} {occ = occ} {pT = pT}
       inst
       (RelWf-⪰ grow rwf)
       (InterpLRWfˡ-weakenˢ (_⪰_.growΨˡ grow) iwfA)
@@ -4107,7 +4106,7 @@ tyappν-ℰᵢ {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
   grow : mkWorldʳ w Σʳ′ wfΣʳ′ ⪰ w
   grow = mkWorldʳ-⪰ (multi-store-growth R↠W)
 tyappν-ℰᵢ {A = A} {T = T} {n = suc k} {dir = ≽}
-    {w = w} {L = L} {R = R} {ρ = ρ}
+    {w = w} {L = L} {R = R} {ρ = ρ} {occ = occ}
     inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ
     ((L⊢ , R⊢) ,
       inj₁
@@ -4120,6 +4119,7 @@ tyappν-ℰᵢ {A = A} {T = T} {n = suc k} {dir = ≽}
       (L′ ⦂∀ left∀ᵢ ρ wstep A [ leftᵢ ρ wstep T ]) ,
       tyapp-↠ L↠L′ ,
       tyappν-ℰᵢ
+        {occ = occ}
         inst
         (RelWf-⪰ step-grow rwf)
         (InterpLRWfˡ-weakenˢ (_⪰_.growΨˡ step-grow) iwfA)
@@ -4142,7 +4142,7 @@ tyappν-ℰᵢ {A = A} {T = T} {n = suc k} {dir = ≽}
   L•⊢ = tyappν-left-typedᵢ rwf iwfA iwfT wfA
             (WfTy-weakenᵗ wfT z≤n) L⊢
 tyappν-ℰᵢ {A = A} {T = T} {n = suc k} {dir = ≽}
-    {w = w} {L = L} {R = R} {ρ = ρ}
+    {w = w} {L = L} {R = R} {ρ = ρ} {occ = occ}
     inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ
     ((L⊢ , R⊢) , inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , L↠blame))) =
   (tyappν-left-typedᵢ rwf iwfA iwfT wfA
@@ -4151,7 +4151,7 @@ tyappν-ℰᵢ {A = A} {T = T} {n = suc k} {dir = ≽}
   inj₂ (inj₁ (Σˡ′ , Ψˡ′ , wfΣˡ′ , ℓ , tyapp-blame-↠ L↠blame))
 tyappν-ℰᵢ {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
     {n = suc k} {dir = ≽} {w = w} {L = L} {R = R} {ρ = ρ}
-    {pν = pν} {pT = pT}
+    {pν = pν} {occ = occ} {pT = pT}
     inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ
     ((L⊢ , R⊢) ,
       inj₂ (inj₂ (vR , Σˡ′ , Ψˡ′ , wfΣˡ′ , W , L↠W , Vrel))) =
@@ -4173,7 +4173,7 @@ tyappν-ℰᵢ {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
       {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
       {k = k} {dir = ≽}
       {w = mkWorldˡ w Σˡ′ wfΣˡ′} {V = W} {W = R}
-      {ρ = ρ} {pν = pν} {pT = pT}
+      {ρ = ρ} {pν = pν} {occ = occ} {pT = pT}
       inst
       (RelWf-⪰ grow rwf)
       (InterpLRWfˡ-weakenˢ (_⪰_.growΨˡ grow) iwfA)
@@ -4189,6 +4189,7 @@ tyappν-ℰᵢ {Δ = Δ} {Ψsrc = Ψsrc} {A = A} {B = B} {T = T}
 tyappν-ℰᵢ-suc :
   ∀ {Ξ Δ Ψsrc A B T n dir w L R} {ρ : RelSub Ξ}
     {pν : (ν-bound ∷ Ξ) ⊢ A ⊑ᵢ ⇑ᵗ B}
+    {occ : occurs zero A ≡ true}
     {pT : Ξ ⊢ A [ T ]ᵗ ⊑ᵢ B} →
   νClosedInstᵢ pν pT →
   RelWf w ρ →
@@ -4197,29 +4198,33 @@ tyappν-ℰᵢ-suc :
   WfTy (suc Δ) Ψsrc A →
   WfTy 0 Ψsrc T →
   Ψsrc ≤ Ψʳ w →
-  ℰ ρ (⊑ᵢ-ν A B pν) (suc n) dir w L R →
+  ℰ ρ (⊑ᵢ-ν A B occ pν) (suc n) dir w L R →
   ℰ ρ pT (suc n) dir w
     (L ⦂∀ left∀ᵢ ρ w A [ leftᵢ ρ w T ]) R
-tyappν-ℰᵢ-suc inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ rel =
-  tyappν-ℰᵢ inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ rel
+tyappν-ℰᵢ-suc {occ = occ} inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ rel =
+  tyappν-ℰᵢ {occ = occ} inst rwf iwfA iwfT wfA wfT Ψsrc≤ʳ rel
 
 compat-⦂∀-ν :
   ∀ (A B : Ty) {E dir M M′ T}
     (pν : (ν-bound ∷ TPEnv.Ξ E) ⊢ A ⊑ᵢ ⇑ᵗ B)
+    {occ : occurs zero A ≡ true}
     {pT : TPEnv.Ξ E ⊢ A [ T ]ᵗ ⊑ᵢ B} →
-  E ∣ dir ⊨ M ⊑ M′ ⦂ (⊑ᵢ-ν A B pν) →
+  E ∣ dir ⊨ M ⊑ M′ ⦂ (⊑ᵢ-ν A B occ pν) →
   WfTy (suc (TPEnv.Δ E)) (TPEnv.Ψ E) A →
   (hT : WfTy 0 (TPEnv.Ψ E) T) →
   νClosedInstᵢ pν pT →
   E ∣ dir ⊨ (M ⦂∀ A [ T ]) ⊑ M′ ⦂ pT
-compat-⦂∀-ν A B {E = E} {M = M} {M′ = M′} {T = T}
-    pν M-rel wfA hT inst n w ρ γ rwf env
+compat-⦂∀-ν A B {E = E} {dir = dir} {M = M} {M′ = M′} {T = T}
+    pν {occ = occ} M-rel wfA hT inst n w ρ γ rwf env
     rewrite ν-inst-eqᵢ inst =
   tyappν-ℰᵢ
+    {Ξ = TPEnv.Ξ E}
     {Δ = TPEnv.Δ E} {Ψsrc = TPEnv.Ψ E}
-    {A = A} {B = B} {T = T} {n = n}
+    {A = A} {B = B} {T = T} {n = n} {dir = dir} {w = w}
     {L = closeLRˡᵐ ρ w (substˣ-term (leftˣ γ) M)}
     {R = closeLRʳᵐ ρ w (substˣ-term (rightˣ γ) M′)}
+    {ρ = ρ} {pν = pν} {occ = occ}
+    {pT = ν-close-inst⊑ᵢ (ν-inst-wfTᵢ inst) pν}
     (ν-close-inst-evidenceᵢ (ν-inst-wfTᵢ inst) pν)
     (relWf rwf)
     (InterpLRWfˡ-plain (interpLRWfˡ rwf))

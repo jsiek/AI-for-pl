@@ -1,56 +1,38 @@
 module ImprecisionIndexed where
 
 -- File Charter:
---   * Context-indexed imprecision for PolyUpDown.
---   * Keeps ν-bound type variables explicit in the recursive premise of
---   * ν-imprecision, instead of substituting them away.
---   * Provides structural mode changes, transitivity, and bridges to/from Cast.
+--   * Defines the indexed type imprecision relation for extrinsic-inst.
+--   * The relation distinguishes plain and ν-bound type variables, requires
+--   * plain lookup for variable identity, and gives ν-bound variables a
+--   * non-recursive path to ★.
+--   * Proves proof irrelevance for imprecision by excluding the ∀/ν overlap
+--   * with an occurrence-path invariant.
 
 open import Types
-open import Cast
-open import UpDown
-  using
-    ( CastPerm; cast-seal; cast-tag
-    ; _∈cast_; _∈tag_
-    ; here-cast-only; there-cast
-    ; here-tag-only; there-tag
-    ; wfTySome
-    )
-open import Store using (renameLookupᵗ)
-open import TypeCheckDec using
-  (close-openνSrc-id; closeνSrc; openνSrc-zero; raiseVarFrom)
 open import TypeProperties using
-  (open-renᵗ-suc; renameᵗ-⇑ˢ; renameᵗ-suc-comm;
-   substᵗ-suc-renameᵗ-suc)
-
-open import Data.List using (List; []; _∷_)
-open import Data.Nat using (ℕ; zero; suc; _+_; _⊔_; _<_; _≤_; z<s; s<s)
-open import Data.Nat.Properties
-  using (<-≤-trans; n<1+n; n≤1+n; m≤m⊔n; m≤n⊔m; ≤-refl)
-open import Data.Product using (_,_; _×_; ∃; ∃-syntax)
-open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Data.Unit using (tt)
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; cong₂; subst; sym; trans)
-open import Imprecision
-  using
-    (pred-★-bound; left-rec-⇒-bound; right-rec-⇒-bound;
-     ν-rec-bound; ∀ν-rec-bound; renameᵗ-closed-id)
-
-------------------------------------------------------------------------
--- Context-indexed imprecision
-------------------------------------------------------------------------
+  ( rename-cong
+  ; renameᵗ-ground
+  ; renameᵗ-suc-comm
+  ; substᵗ-ground
+  ; substᵗ-suc-renameᵗ-suc
+  )
+open import TypeCheckDec using
+  (raiseVarFrom; raiseVarFrom-≢; suc-injectiveᵛ)
+open import Data.Bool using (Bool; false; true; _∨_)
+open import Data.Empty using (⊥; ⊥-elim)
+open import Data.List using (List; []; _∷_; length)
+open import Data.Nat using (ℕ; zero; suc; _<_; z<s; s<s)
+open import Data.Nat.Properties using (_≟_)
+open import Data.Product using (Σ; _,_)
+open import Relation.Nullary using (yes; no)
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; refl; cong; subst; sym; trans)
 
 data VarMode : Set where
   plain ν-bound : VarMode
 
 ICtx : Set
 ICtx = List VarMode
-
-infix 4 _∋_∶_
-data _∋_∶_ : ICtx → TyVar → VarMode → Set where
-  here : ∀ {Γ m} → (m ∷ Γ) ∋ zero ∶ m
-  there : ∀ {Γ X m m′} → Γ ∋ X ∶ m → (m′ ∷ Γ) ∋ suc X ∶ m
 
 interpSeal : ICtx → Seal → Seal
 interpSeal [] α = α
@@ -72,177 +54,20 @@ interp Γ ★ = ★
 interp Γ (A ⇒ B) = interp Γ A ⇒ interp Γ B
 interp Γ (`∀ A) = `∀ (interp (plain ∷ Γ) A)
 
-data Groundᵢ (Γ : ICtx) : Ty → Set where
-  ground-ν : ∀ {X} → Γ ∋ X ∶ ν-bound → Groundᵢ Γ (＇ X)
-  ground-seal : ∀ α → Groundᵢ Γ (｀ α)
-  ground-base : ∀ ι → Groundᵢ Γ (‵ ι)
-  ground-fun : Groundᵢ Γ (★ ⇒ ★)
-
-data StarSourceᵢ : Ty → Set where
-  star-＇ : (X : TyVar) → StarSourceᵢ (＇ X)
-  star-｀ : (α : Seal) → StarSourceᵢ (｀ α)
-  star-‵ : (ι : Base) → StarSourceᵢ (‵ ι)
-  star-⇒ : (A B : Ty) → StarSourceᵢ (A ⇒ B)
-
-infix 4 _⊢_⊑ᵢ_ _⊢_⊒ᵢ_
-
-data _⊢_⊑ᵢ_ (Γ : ICtx) : Ty → Ty → Set where
-  ⊑ᵢ-★★ : Γ ⊢ ★ ⊑ᵢ ★
-  ⊑ᵢ-★ : (A G : Ty) →
-    StarSourceᵢ A →
-    Groundᵢ Γ G →
-    Γ ⊢ A ⊑ᵢ G →
-    Γ ⊢ A ⊑ᵢ ★
-  ⊑ᵢ-＇ : (X : TyVar) → Γ ⊢ ＇ X ⊑ᵢ ＇ X
-  ⊑ᵢ-｀ : (α : Seal) → Γ ⊢ ｀ α ⊑ᵢ ｀ α
-  ⊑ᵢ-‵ : (ι : Base) → Γ ⊢ ‵ ι ⊑ᵢ ‵ ι
-  ⊑ᵢ-⇒ : (A A′ B B′ : Ty) →
-    Γ ⊢ A ⊑ᵢ A′ →
-    Γ ⊢ B ⊑ᵢ B′ →
-    Γ ⊢ (A ⇒ B) ⊑ᵢ (A′ ⇒ B′)
-  ⊑ᵢ-∀ : (A B : Ty) →
-    (plain ∷ Γ) ⊢ A ⊑ᵢ B →
-    Γ ⊢ (`∀ A) ⊑ᵢ (`∀ B)
-  ⊑ᵢ-ν : (A B : Ty) →
-    (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ⇑ᵗ B →
-    Γ ⊢ (`∀ A) ⊑ᵢ B
-
-_⊢_⊒ᵢ_ : ICtx → Ty → Ty → Set
-Γ ⊢ B ⊒ᵢ A = Γ ⊢ A ⊑ᵢ B
-
-⊑ᵢ-refl : ∀ {Γ A} → Γ ⊢ A ⊑ᵢ A
-⊑ᵢ-refl {A = ＇ X} = ⊑ᵢ-＇ X
-⊑ᵢ-refl {A = ｀ α} = ⊑ᵢ-｀ α
-⊑ᵢ-refl {A = ‵ ι} = ⊑ᵢ-‵ ι
-⊑ᵢ-refl {A = ★} = ⊑ᵢ-★★
-⊑ᵢ-refl {A = A ⇒ B} = ⊑ᵢ-⇒ A A B B ⊑ᵢ-refl ⊑ᵢ-refl
-⊑ᵢ-refl {A = `∀ A} = ⊑ᵢ-∀ A A ⊑ᵢ-refl
-
-νs : ℕ → ICtx → ICtx
-νs zero Γ = Γ
-νs (suc n) Γ = ν-bound ∷ νs n Γ
-
-νs-lookup :
-  ∀ {Γ Δ X} →
-  X < Δ →
-  νs Δ Γ ∋ X ∶ ν-bound
-νs-lookup {Δ = suc Δ} {X = zero} z<s = here
-νs-lookup {Δ = suc Δ} {X = suc X} (s<s X<) = there (νs-lookup X<)
-
-wf-νs-⊑★ :
-  ∀ {Γ Δ Ψ A} →
-  WfTy Δ Ψ A →
-  νs Δ Γ ⊢ A ⊑ᵢ ★
-wf-νs-⊑★ {A = ＇ X} (wfVar X<) =
-  ⊑ᵢ-★ (＇ X) (＇ X) (star-＇ X) (ground-ν (νs-lookup X<)) (⊑ᵢ-＇ X)
-wf-νs-⊑★ {A = ｀ α} (wfSeal α<Ψ) =
-  ⊑ᵢ-★ (｀ α) (｀ α) (star-｀ α) (ground-seal α) (⊑ᵢ-｀ α)
-wf-νs-⊑★ {A = ‵ ι} wfBase =
-  ⊑ᵢ-★ (‵ ι) (‵ ι) (star-‵ ι) (ground-base ι) (⊑ᵢ-‵ ι)
-wf-νs-⊑★ wf★ = ⊑ᵢ-★★
-wf-νs-⊑★ {A = A ⇒ B} (wf⇒ wfA wfB) =
-  ⊑ᵢ-★ (A ⇒ B) (★ ⇒ ★) (star-⇒ A B) ground-fun
-    (⊑ᵢ-⇒ A ★ B ★ (wf-νs-⊑★ wfA) (wf-νs-⊑★ wfB))
-wf-νs-⊑★ {A = `∀ A} (wf∀ wfA) =
-  ⊑ᵢ-ν A ★ (wf-νs-⊑★ wfA)
-
-closed-⊑★ :
-  ∀ {Γ Ψ T} →
-  WfTy 0 Ψ T →
-  Γ ⊢ T ⊑ᵢ ★
-closed-⊑★ hT = wf-νs-⊑★ hT
-
-⊑ᵢ-cast :
-  ∀ {Γ A A′ B B′} →
-  A ≡ A′ →
-  B ≡ B′ →
-  Γ ⊢ A ⊑ᵢ B →
-  Γ ⊢ A′ ⊑ᵢ B′
-⊑ᵢ-cast refl refl p = p
-
-size⊑ᵢ : ∀ {Γ A B} → Γ ⊢ A ⊑ᵢ B → ℕ
-size⊑ᵢ ⊑ᵢ-★★ = zero
-size⊑ᵢ (⊑ᵢ-★ A G s g p) = suc (size⊑ᵢ p)
-size⊑ᵢ (⊑ᵢ-＇ X) = zero
-size⊑ᵢ (⊑ᵢ-｀ α) = zero
-size⊑ᵢ (⊑ᵢ-‵ ι) = zero
-size⊑ᵢ (⊑ᵢ-⇒ A A′ B B′ p q) = suc (size⊑ᵢ p + size⊑ᵢ q)
-size⊑ᵢ (⊑ᵢ-∀ A B p) = suc (size⊑ᵢ p)
-size⊑ᵢ (⊑ᵢ-ν A B p) = suc (size⊑ᵢ p)
-
-size-⊑ᵢ-cast :
-  ∀ {Γ A A′ B B′} →
-  (eqA : A ≡ A′) →
-  (eqB : B ≡ B′) →
-  (p : Γ ⊢ A ⊑ᵢ B) →
-  size⊑ᵢ (⊑ᵢ-cast eqA eqB p) ≡ size⊑ᵢ p
-size-⊑ᵢ-cast refl refl p = refl
-
-------------------------------------------------------------------------
--- Interpreting ν-bound variables as fresh seals
-------------------------------------------------------------------------
-
-ν-lookup-seal :
-  ∀ {Γ X} →
-  Γ ∋ X ∶ ν-bound →
-  ∃[ α ] interpVar Γ X ≡ ｀ α
-ν-lookup-seal here = zero , refl
-ν-lookup-seal (there {m′ = plain} x∈) with ν-lookup-seal x∈
-... | α , eq = α , cong ⇑ᵗ eq
-ν-lookup-seal (there {m′ = ν-bound} x∈) with ν-lookup-seal x∈
-... | α , eq = suc α , cong ⇑ˢ eq
-
-groundᵢ-interp :
-  ∀ {Γ G} →
-  Groundᵢ Γ G →
-  Ground (interp Γ G)
-groundᵢ-interp (ground-ν x∈) with ν-lookup-seal x∈
-... | α , eq = subst Ground (sym eq) (｀ α)
-groundᵢ-interp (ground-seal α) = ｀ _
-groundᵢ-interp (ground-base ι) = ‵ ι
-groundᵢ-interp ground-fun = ★⇒★
-
-maxGroundᵢ : ∀ {Γ G} → Groundᵢ Γ G → ℕ
-maxGroundᵢ (ground-ν x∈) with ν-lookup-seal x∈
-... | α , eq = α
-maxGroundᵢ {Γ = Γ} (ground-seal α) = interpSeal Γ α
-maxGroundᵢ (ground-base ι) = zero
-maxGroundᵢ ground-fun = zero
-
 plains : ℕ → ICtx → ICtx
 plains zero Γ = Γ
 plains (suc n) Γ = plain ∷ plains n Γ
 
-openνEnv : ℕ → Substᵗ
-openνEnv zero = singleTyEnv α₀
-openνEnv (suc n) = extsᵗ (openνEnv n)
-
-renameᵗ-cong :
-  ∀ {ρ ϱ} →
-  (∀ X → ρ X ≡ ϱ X) →
-  ∀ A → renameᵗ ρ A ≡ renameᵗ ϱ A
-renameᵗ-cong h (＇ X) = cong ＇_ (h X)
-renameᵗ-cong h (｀ α) = refl
-renameᵗ-cong h (‵ ι) = refl
-renameᵗ-cong h ★ = refl
-renameᵗ-cong h (A ⇒ B) = cong₂ _⇒_ (renameᵗ-cong h A) (renameᵗ-cong h B)
-renameᵗ-cong h (`∀ A) = cong `∀ (renameᵗ-cong h-ext A)
-  where
-    h-ext : ∀ X → extᵗ _ X ≡ extᵗ _ X
-    h-ext zero = refl
-    h-ext (suc X) = cong suc (h X)
-
-raise-ext : ∀ n X → extᵗ (raiseVarFrom n) X ≡ raiseVarFrom (suc n) X
-raise-ext n zero = refl
-raise-ext n (suc X) = refl
-
-ν-at : ∀ n → plains n (ν-bound ∷ []) ∋ n ∶ ν-bound
-ν-at zero = here
-ν-at (suc n) = there (ν-at n)
+replacePlainAt : ℕ → ICtx → ICtx
+replacePlainAt zero [] = []
+replacePlainAt zero (plain ∷ Γ) = ν-bound ∷ Γ
+replacePlainAt zero (ν-bound ∷ Γ) = ν-bound ∷ Γ
+replacePlainAt (suc k) [] = []
+replacePlainAt (suc k) (m ∷ Γ) = m ∷ replacePlainAt k Γ
 
 insertνAt : ℕ → ICtx → ICtx
 insertνAt zero Γ = ν-bound ∷ Γ
-insertνAt (suc k) [] = plain ∷ insertνAt k []
+insertνAt (suc k) [] = ν-bound ∷ insertνAt k []
 insertνAt (suc k) (m ∷ Γ) = m ∷ insertνAt k Γ
 
 insertPlainAt : ℕ → ICtx → ICtx
@@ -250,29 +75,25 @@ insertPlainAt zero Γ = plain ∷ Γ
 insertPlainAt (suc k) [] = plain ∷ insertPlainAt k []
 insertPlainAt (suc k) (m ∷ Γ) = m ∷ insertPlainAt k Γ
 
-insert-lookup :
-  ∀ {Γ X m} k →
-  Γ ∋ X ∶ m →
-  insertνAt k Γ ∋ raiseVarFrom k X ∶ m
-insert-lookup zero x∈ = there x∈
-insert-lookup (suc k) here = here
-insert-lookup (suc k) (there x∈) = there (insert-lookup k x∈)
+substVarFrom : TyVar → Ty → Substᵗ
+substVarFrom zero T = singleTyEnv T
+substVarFrom (suc k) T = extsᵗ (substVarFrom k T)
 
-insertPlain-lookup :
-  ∀ {Γ X m} k →
-  Γ ∋ X ∶ m →
-  insertPlainAt k Γ ∋ raiseVarFrom k X ∶ m
-insertPlain-lookup zero x∈ = there x∈
-insertPlain-lookup (suc k) here = here
-insertPlain-lookup (suc k) (there x∈) =
-  there (insertPlain-lookup k x∈)
+renameᵗ-cong :
+  ∀ {ρ ϱ} →
+  (∀ X → ρ X ≡ ϱ X) →
+  ∀ A → renameᵗ ρ A ≡ renameᵗ ϱ A
+renameᵗ-cong = rename-cong
 
-inserted-ν :
-  ∀ k Γ →
-  insertνAt k Γ ∋ k ∶ ν-bound
-inserted-ν zero Γ = here
-inserted-ν (suc k) [] = there (inserted-ν k [])
-inserted-ν (suc k) (m ∷ Γ) = there (inserted-ν k Γ)
+substVarFrom-⇑ᵗ :
+  ∀ k T A →
+  substᵗ (substVarFrom (suc k) T) (⇑ᵗ A) ≡
+  ⇑ᵗ (substᵗ (substVarFrom k T) A)
+substVarFrom-⇑ᵗ k T A = substᵗ-suc-renameᵗ-suc (substVarFrom k T) A
+
+raise-ext : ∀ k X → extᵗ (raiseVarFrom k) X ≡ raiseVarFrom (suc k) X
+raise-ext k zero = refl
+raise-ext k (suc X) = refl
 
 rename-raise-⇑ᵗ :
   ∀ k A →
@@ -283,14 +104,47 @@ rename-raise-⇑ᵗ k A =
     (renameᵗ-cong (λ X → sym (raise-ext k X)) (⇑ᵗ A))
     (sym (renameᵗ-suc-comm (raiseVarFrom k) A))
 
-ν-weakenAt-ground :
-  ∀ k {Γ G} →
-  Groundᵢ Γ G →
-  Groundᵢ (insertνAt k Γ) (renameᵗ (raiseVarFrom k) G)
-ν-weakenAt-ground k (ground-ν x∈) = ground-ν (insert-lookup k x∈)
-ν-weakenAt-ground k (ground-seal α) = ground-seal α
-ν-weakenAt-ground k (ground-base ι) = ground-base ι
-ν-weakenAt-ground k ground-fun = ground-fun
+infix 4 _∋_∶_
+data _∋_∶_ : ICtx → TyVar → VarMode → Set where
+  here : ∀ {Γ m} → (m ∷ Γ) ∋ zero ∶ m
+  there : ∀ {Γ X m m′} → Γ ∋ X ∶ m → (m′ ∷ Γ) ∋ suc X ∶ m
+
+data PlainCtx : ICtx → Set where
+  plain-[] : PlainCtx []
+  plain-∷ : ∀ {Γ} → PlainCtx Γ → PlainCtx (plain ∷ Γ)
+
+plainCtx-lookup :
+  ∀ {Γ X} →
+  PlainCtx Γ →
+  X < length Γ →
+  Γ ∋ X ∶ plain
+plainCtx-lookup plain-[] ()
+plainCtx-lookup {X = zero} (plain-∷ h) z<s = here
+plainCtx-lookup {X = suc X} (plain-∷ h) (s<s X<Γ) =
+  there (plainCtx-lookup h X<Γ)
+
+insertPlain-lookup :
+  ∀ {Γ X m} k →
+  Γ ∋ X ∶ m →
+  insertPlainAt k Γ ∋ raiseVarFrom k X ∶ m
+insertPlain-lookup zero x∈ = there x∈
+insertPlain-lookup (suc k) here = here
+insertPlain-lookup (suc k) (there x∈) =
+  there (insertPlain-lookup k x∈)
+
+insertν-lookup :
+  ∀ {Γ X m} k →
+  Γ ∋ X ∶ m →
+  insertνAt k Γ ∋ raiseVarFrom k X ∶ m
+insertν-lookup zero x∈ = there x∈
+insertν-lookup (suc k) here = here
+insertν-lookup (suc k) (there x∈) = there (insertν-lookup k x∈)
+
+data StarSourceᵢ : Ty → Set where
+  star-＇ : (X : TyVar) → StarSourceᵢ (＇ X)
+  star-｀ : (α : Seal) → StarSourceᵢ (｀ α)
+  star-‵ : (ι : Base) → StarSourceᵢ (‵ ι)
+  star-⇒ : (A B : Ty) → StarSourceᵢ (A ⇒ B)
 
 rename-StarSourceᵢ :
   ∀ ρ {A} →
@@ -302,224 +156,681 @@ rename-StarSourceᵢ ρ (star-‵ ι) = star-‵ ι
 rename-StarSourceᵢ ρ (star-⇒ A B) =
   star-⇒ (renameᵗ ρ A) (renameᵗ ρ B)
 
-plain-weakenAt-ground :
-  ∀ k {Γ G} →
-  Groundᵢ Γ G →
-  Groundᵢ (insertPlainAt k Γ) (renameᵗ (raiseVarFrom k) G)
-plain-weakenAt-ground k (ground-ν x∈) =
-  ground-ν (insertPlain-lookup k x∈)
-plain-weakenAt-ground k (ground-seal α) = ground-seal α
-plain-weakenAt-ground k (ground-base ι) = ground-base ι
-plain-weakenAt-ground k ground-fun = ground-fun
+data TyPath : Set where
+  path-＇ : TyPath
+  path-⇒ˡ : TyPath → TyPath
+  path-⇒ʳ : TyPath → TyPath
+
+data At : TyPath → Ty → Ty → Set where
+  at-＇ : ∀ {X} → At path-＇ (＇ X) (＇ X)
+  at-｀ : ∀ {α} → At path-＇ (｀ α) (｀ α)
+  at-‵ : ∀ {ι} → At path-＇ (‵ ι) (‵ ι)
+  at-★ : ∀ {p} → At p ★ ★
+  at-⇒ˡ : ∀ {p A B C} → At p A C → At (path-⇒ˡ p) (A ⇒ B) C
+  at-⇒ʳ : ∀ {p A B C} → At p B C → At (path-⇒ʳ p) (A ⇒ B) C
+  at-∀ : ∀ {p A B} → At p A B → At p (`∀ A) (`∀ B)
+
+data UsesRoot : TyVar → Ty → Set where
+  usesRoot-＇ : ∀ {X} → UsesRoot X (＇ X)
+  usesRoot-∀ : ∀ {X A} → UsesRoot (suc X) A → UsesRoot X (`∀ A)
+
+data VarRoot : Ty → Set where
+  varRoot-＇ : ∀ {X} → VarRoot (＇ X)
+  varRoot-∀ : ∀ {A} → VarRoot A → VarRoot (`∀ A)
+
+data StarRoot : Ty → Set where
+  starRoot-★ : StarRoot ★
+  starRoot-∀ : ∀ {A} → StarRoot A → StarRoot (`∀ A)
+
+UsesAt : TyVar → TyPath → Ty → Set
+UsesAt X p A = Σ Ty (λ B → Σ (At p A B) (λ _ → UsesRoot X B))
+
+VarAt : TyPath → Ty → Set
+VarAt p A = Σ Ty (λ B → Σ (At p A B) (λ _ → VarRoot B))
+
+StarAt : TyPath → Ty → Set
+StarAt p A = Σ Ty (λ B → Σ (At p A B) (λ _ → StarRoot B))
+
+usesAt-＇ : ∀ {X} → UsesAt X path-＇ (＇ X)
+usesAt-＇ = _ , at-＇ , usesRoot-＇
+
+starAt-★ : ∀ {p} → StarAt p ★
+starAt-★ = _ , at-★ , starRoot-★
+
+usesAt-⇒ˡ : ∀ {X p A B} → UsesAt X p A → UsesAt X (path-⇒ˡ p) (A ⇒ B)
+usesAt-⇒ˡ (_ , a , r) = _ , at-⇒ˡ a , r
+
+usesAt-⇒ʳ : ∀ {X p A B} → UsesAt X p B → UsesAt X (path-⇒ʳ p) (A ⇒ B)
+usesAt-⇒ʳ (_ , a , r) = _ , at-⇒ʳ a , r
+
+usesAt-∀ : ∀ {X p A} → UsesAt (suc X) p A → UsesAt X p (`∀ A)
+usesAt-∀ (_ , a , r) = _ , at-∀ a , usesRoot-∀ r
+
+varAt-∀ : ∀ {p A} → VarAt p A → VarAt p (`∀ A)
+varAt-∀ (_ , a , r) = _ , at-∀ a , varRoot-∀ r
+
+starAt-⇒ˡ : ∀ {p A B} → StarAt p A → StarAt (path-⇒ˡ p) (A ⇒ B)
+starAt-⇒ˡ (_ , a , r) = _ , at-⇒ˡ a , r
+
+starAt-⇒ʳ : ∀ {p A B} → StarAt p B → StarAt (path-⇒ʳ p) (A ⇒ B)
+starAt-⇒ʳ (_ , a , r) = _ , at-⇒ʳ a , r
+
+starAt-∀ : ∀ {p A} → StarAt p A → StarAt p (`∀ A)
+starAt-∀ (_ , a , r) = _ , at-∀ a , starRoot-∀ r
+
+usesRoot-ren-varRoot :
+  ∀ ρ {X A} →
+  UsesRoot X A →
+  VarRoot (renameᵗ ρ A)
+usesRoot-ren-varRoot ρ usesRoot-＇ = varRoot-＇
+usesRoot-ren-varRoot ρ (usesRoot-∀ u) =
+  varRoot-∀ (usesRoot-ren-varRoot (extᵗ ρ) u)
+
+at-star-varRoot-⊥ :
+  ∀ {p A B C} →
+  At p A B →
+  StarRoot B →
+  At p A C →
+  VarRoot C →
+  ⊥
+at-star-varRoot-⊥ at-＇ () at-＇ v
+at-star-varRoot-⊥ at-｀ () at-｀ ()
+at-star-varRoot-⊥ at-‵ () at-‵ ()
+at-star-varRoot-⊥ at-★ starRoot-★ at-★ ()
+at-star-varRoot-⊥ (at-⇒ˡ sAt) sRoot (at-⇒ˡ vAt) vRoot =
+  at-star-varRoot-⊥ sAt sRoot vAt vRoot
+at-star-varRoot-⊥ (at-⇒ʳ sAt) sRoot (at-⇒ʳ vAt) vRoot =
+  at-star-varRoot-⊥ sAt sRoot vAt vRoot
+at-star-varRoot-⊥ (at-∀ sAt) (starRoot-∀ sRoot)
+    (at-∀ vAt) (varRoot-∀ vRoot) =
+  at-star-varRoot-⊥ sAt sRoot vAt vRoot
+
+starAt-varAt-⊥ :
+  ∀ {p A} →
+  StarAt p A →
+  VarAt p A →
+  ⊥
+starAt-varAt-⊥ (_ , sAt , sRoot) (_ , vAt , vRoot) =
+  at-star-varRoot-⊥ sAt sRoot vAt vRoot
+
+at-rename :
+  ∀ ρ {p A B} →
+  At p A B →
+  At p (renameᵗ ρ A) (renameᵗ ρ B)
+at-rename ρ at-＇ = at-＇
+at-rename ρ at-｀ = at-｀
+at-rename ρ at-‵ = at-‵
+at-rename ρ at-★ = at-★
+at-rename ρ (at-⇒ˡ a) = at-⇒ˡ (at-rename ρ a)
+at-rename ρ (at-⇒ʳ a) = at-⇒ʳ (at-rename ρ a)
+at-rename ρ (at-∀ a) = at-∀ (at-rename (extᵗ ρ) a)
+
+starAt-rename-lower :
+  ∀ ρ {p A} →
+  StarAt p (renameᵗ ρ A) →
+  StarAt p A
+starAt-rename-lower ρ {A = ＇ X} (_ , at-＇ , ())
+starAt-rename-lower ρ {A = ｀ α} (_ , at-｀ , ())
+starAt-rename-lower ρ {A = ‵ ι} (_ , at-‵ , ())
+starAt-rename-lower ρ {A = ★} (_ , at-★ , starRoot-★) =
+  ★ , at-★ , starRoot-★
+starAt-rename-lower ρ {A = A ⇒ B} (_ , at-⇒ˡ sAt , sRoot) =
+  let _ , a , r = starAt-rename-lower ρ (_ , sAt , sRoot) in
+  _ , at-⇒ˡ a , r
+starAt-rename-lower ρ {A = A ⇒ B} (_ , at-⇒ʳ sAt , sRoot) =
+  let _ , a , r = starAt-rename-lower ρ (_ , sAt , sRoot) in
+  _ , at-⇒ʳ a , r
+starAt-rename-lower ρ {A = `∀ A} (_ , at-∀ sAt , starRoot-∀ sRoot) =
+  let _ , a , r = starAt-rename-lower (extᵗ ρ) (_ , sAt , sRoot) in
+  _ , at-∀ a , starRoot-∀ r
+
+starAt-⇑ᵗ-lower :
+  ∀ {p A} →
+  StarAt p (⇑ᵗ A) →
+  StarAt p A
+starAt-⇑ᵗ-lower = starAt-rename-lower suc
+
+usesAt-ren-varAt :
+  ∀ ρ {X p A} →
+  UsesAt X p A →
+  VarAt p (renameᵗ ρ A)
+usesAt-ren-varAt ρ (_ , a , u) =
+  _ , at-rename ρ a , usesRoot-ren-varRoot ρ u
+
+usesRoot-var-eq :
+  ∀ {X Y} →
+  UsesRoot X (＇ Y) →
+  X ≡ Y
+usesRoot-var-eq usesRoot-＇ = refl
+
+occurs : TyVar → Ty → Bool
+occurs X (＇ Y) with X ≟ Y
+occurs X (＇ Y) | yes eq = true
+occurs X (＇ Y) | no neq = false
+occurs X (｀ α) = false
+occurs X (‵ ι) = false
+occurs X ★ = false
+occurs X (A ⇒ B) = occurs X A ∨ occurs X B
+occurs X (`∀ A) = occurs (suc X) A
+
+no-usesAt-occurs-false :
+  ∀ {X A} →
+  (∀ p → UsesAt X p A → ⊥) →
+  occurs X A ≡ false
+no-usesAt-occurs-false {X} {＇ Y} no-use with X ≟ Y
+no-usesAt-occurs-false {X} {＇ .X} no-use | yes refl =
+  ⊥-elim (no-use path-＇ usesAt-＇)
+no-usesAt-occurs-false {X} {＇ Y} no-use | no neq = refl
+no-usesAt-occurs-false {A = ｀ α} no-use = refl
+no-usesAt-occurs-false {A = ‵ ι} no-use = refl
+no-usesAt-occurs-false {A = ★} no-use = refl
+no-usesAt-occurs-false {A = A ⇒ B} no-use
+  rewrite no-usesAt-occurs-false
+            (λ p u → no-use (path-⇒ˡ p) (usesAt-⇒ˡ u))
+        | no-usesAt-occurs-false
+            (λ p u → no-use (path-⇒ʳ p) (usesAt-⇒ʳ u)) = refl
+no-usesAt-occurs-false {A = `∀ A} no-use =
+  no-usesAt-occurs-false (λ p u → no-use p (usesAt-∀ u))
+
+false≢trueᵢ : .(false ≡ true) → ⊥
+false≢trueᵢ ()
+
+infix 4 _⊢_⊑ₒ_ _⊢_⊑ᵢ_
+data _⊢_⊑ₒ_ (Γ : ICtx) : Ty → Ty → Set where
+  ⊑ₒ-★★ : Γ ⊢ ★ ⊑ₒ ★
+  ⊑ₒ-★ν : ∀ {X} →
+    Γ ∋ X ∶ ν-bound →
+    Γ ⊢ ＇ X ⊑ₒ ★
+  ⊑ₒ-★ : (A G : Ty) →
+    StarSourceᵢ A →
+    Ground G →
+    Γ ⊢ A ⊑ₒ G →
+    Γ ⊢ A ⊑ₒ ★
+  ⊑ₒ-＇ : ∀ {X} → Γ ∋ X ∶ plain → Γ ⊢ ＇ X ⊑ₒ ＇ X
+  ⊑ₒ-｀ : (α : Seal) → Γ ⊢ ｀ α ⊑ₒ ｀ α
+  ⊑ₒ-‵ : (ι : Base) → Γ ⊢ ‵ ι ⊑ₒ ‵ ι
+  ⊑ₒ-⇒ : (A A′ B B′ : Ty) →
+    Γ ⊢ A ⊑ₒ A′ →
+    Γ ⊢ B ⊑ₒ B′ →
+    Γ ⊢ (A ⇒ B) ⊑ₒ (A′ ⇒ B′)
+  ⊑ₒ-∀ : (A B : Ty) →
+    (plain ∷ Γ) ⊢ A ⊑ₒ B →
+    Γ ⊢ (`∀ A) ⊑ₒ (`∀ B)
+  ⊑ₒ-ν : (A B : Ty) →
+    .(occurs zero A ≡ true) →
+    (ν-bound ∷ Γ) ⊢ A ⊑ₒ ⇑ᵗ B →
+    Γ ⊢ (`∀ A) ⊑ₒ B
+
+_⊢_⊑ᵢ_ : ICtx → Ty → Ty → Set
+Γ ⊢ A ⊑ᵢ B = Γ ⊢ A ⊑ₒ B
+
+pattern ⊑ᵢ-★★ = ⊑ₒ-★★
+pattern ⊑ᵢ-★ν x = ⊑ₒ-★ν x
+pattern ⊑ᵢ-★ A G s g p = ⊑ₒ-★ A G s g p
+pattern ⊑ᵢ-＇ x = ⊑ₒ-＇ x
+pattern ⊑ᵢ-｀ α = ⊑ₒ-｀ α
+pattern ⊑ᵢ-‵ ι = ⊑ₒ-‵ ι
+pattern ⊑ᵢ-⇒ A A′ B B′ p q = ⊑ₒ-⇒ A A′ B B′ p q
+pattern ⊑ᵢ-∀ A B p = ⊑ₒ-∀ A B p
+pattern ⊑ᵢ-ν A B occ p = ⊑ₒ-ν A B occ p
+
+⊑ᵢ-refl-plain :
+  ∀ {Γ Ψ A} →
+  PlainCtx Γ →
+  WfTy (length Γ) Ψ A →
+  Γ ⊢ A ⊑ᵢ A
+⊑ᵢ-refl-plain plainΓ (wfVar X<Γ) =
+  ⊑ₒ-＇ (plainCtx-lookup plainΓ X<Γ)
+⊑ᵢ-refl-plain plainΓ (wfSeal α<Ψ) = ⊑ₒ-｀ _
+⊑ᵢ-refl-plain plainΓ wfBase = ⊑ₒ-‵ _
+⊑ᵢ-refl-plain plainΓ wf★ = ⊑ₒ-★★
+⊑ᵢ-refl-plain plainΓ (wf⇒ wfA wfB) =
+  ⊑ₒ-⇒ _ _ _ _
+    (⊑ᵢ-refl-plain plainΓ wfA)
+    (⊑ᵢ-refl-plain plainΓ wfB)
+⊑ᵢ-refl-plain plainΓ (wf∀ wfA) =
+  ⊑ₒ-∀ _ _ (⊑ᵢ-refl-plain (plain-∷ plainΓ) wfA)
+
+ground-reflᵢ :
+  ∀ {Γ G} →
+  Ground G →
+  Γ ⊢ G ⊑ᵢ G
+ground-reflᵢ (｀ α) = ⊑ᵢ-｀ α
+ground-reflᵢ (‵ ι) = ⊑ᵢ-‵ ι
+ground-reflᵢ ★⇒★ = ⊑ᵢ-⇒ ★ ★ ★ ★ ⊑ᵢ-★★ ⊑ᵢ-★★
+
+∋-irrel :
+  ∀ {Γ X m} →
+  (x y : Γ ∋ X ∶ m) →
+  x ≡ y
+∋-irrel here here = refl
+∋-irrel (there x) (there y) = cong there (∋-irrel x y)
+
+mode-plain≠ν : plain ≡ ν-bound → ⊥
+mode-plain≠ν ()
+
+∋-mode-unique :
+  ∀ {Γ X m n} →
+  Γ ∋ X ∶ m →
+  Γ ∋ X ∶ n →
+  m ≡ n
+∋-mode-unique here here = refl
+∋-mode-unique (there x) (there y) = ∋-mode-unique x y
+
+∋-plain-not-ν :
+  ∀ {Γ X} →
+  Γ ∋ X ∶ plain →
+  Γ ∋ X ∶ ν-bound →
+  ⊥
+∋-plain-not-ν x y = mode-plain≠ν (∋-mode-unique x y)
+
+plains-lookup :
+  ∀ {Γ Δ X} →
+  X < Δ →
+  plains Δ Γ ∋ X ∶ plain
+plains-lookup {Δ = suc Δ} {X = zero} z<s = here
+plains-lookup {Δ = suc Δ} {X = suc X} (s<s X<) =
+  there (plains-lookup X<)
+
+wf-plains-reflᵢ :
+  ∀ {Γ Δ Ψ A} →
+  WfTy Δ Ψ A →
+  plains Δ Γ ⊢ A ⊑ᵢ A
+wf-plains-reflᵢ (wfVar X<) = ⊑ᵢ-＇ (plains-lookup X<)
+wf-plains-reflᵢ (wfSeal {α = α} α<Ψ) = ⊑ᵢ-｀ α
+wf-plains-reflᵢ (wfBase {ι = ι}) = ⊑ᵢ-‵ ι
+wf-plains-reflᵢ wf★ = ⊑ᵢ-★★
+wf-plains-reflᵢ (wf⇒ {A = A} {B = B} hA hB) =
+  ⊑ᵢ-⇒ A A B B (wf-plains-reflᵢ hA) (wf-plains-reflᵢ hB)
+wf-plains-reflᵢ (wf∀ {A = A} hA) = ⊑ᵢ-∀ A A (wf-plains-reflᵢ hA)
+
+closed-reflᵢ :
+  ∀ {Γ Ψ A} →
+  WfTy 0 Ψ A →
+  Γ ⊢ A ⊑ᵢ A
+closed-reflᵢ = wf-plains-reflᵢ
+
+Ground-irrel :
+  ∀ {G} →
+  (g h : Ground G) →
+  g ≡ h
+Ground-irrel (｀ α) (｀ .α) = refl
+Ground-irrel (‵ ι) (‵ .ι) = refl
+Ground-irrel ★⇒★ ★⇒★ = refl
+
+StarSourceᵢ-irrel :
+  ∀ {A} →
+  (s t : StarSourceᵢ A) →
+  s ≡ t
+StarSourceᵢ-irrel (star-＇ X) (star-＇ .X) = refl
+StarSourceᵢ-irrel (star-｀ α) (star-｀ .α) = refl
+StarSourceᵢ-irrel (star-‵ ι) (star-‵ .ι) = refl
+StarSourceᵢ-irrel (star-⇒ A B) (star-⇒ .A .B) = refl
+
+inserted-∀-varAt :
+  ∀ k {p B} →
+  UsesAt k p B →
+  VarAt p (renameᵗ (raiseVarFrom k) (`∀ B))
+inserted-∀-varAt k u =
+  varAt-∀ (usesAt-ren-varAt (extᵗ (raiseVarFrom k)) u)
+
+starAt-inserted-∀-usesAt-⊥ :
+  ∀ k {p B} →
+  StarAt p (renameᵗ (raiseVarFrom k) (`∀ B)) →
+  UsesAt k p B →
+  ⊥
+starAt-inserted-∀-usesAt-⊥ k s u =
+  starAt-varAt-⊥ s (inserted-∀-varAt k u)
+
+rename-raise-ext :
+  ∀ k A →
+  renameᵗ (extᵗ (raiseVarFrom k)) A ≡
+  renameᵗ (raiseVarFrom (suc k)) A
+rename-raise-ext k A = rename-cong (raise-ext k) A
+
+raiseVarFrom-injective :
+  ∀ k {X Y} →
+  raiseVarFrom k X ≡ raiseVarFrom k Y →
+  X ≡ Y
+raiseVarFrom-injective zero eq = suc-injectiveᵛ eq
+raiseVarFrom-injective (suc k) {zero} {zero} eq = refl
+raiseVarFrom-injective (suc k) {zero} {suc Y} ()
+raiseVarFrom-injective (suc k) {suc X} {zero} ()
+raiseVarFrom-injective (suc k) {suc X} {suc Y} eq =
+  cong suc (raiseVarFrom-injective k (suc-injectiveᵛ eq))
+
+usesAt-raise-lower :
+  ∀ k {X p A} →
+  UsesAt (raiseVarFrom k X) p (renameᵗ (raiseVarFrom k) A) →
+  UsesAt X p A
+usesAt-raise-lower k {X} {path-＇} {A = ＇ Y} (_ , at-＇ , u) =
+  subst (λ Z → UsesAt X path-＇ (＇ Z))
+    (raiseVarFrom-injective k (usesRoot-var-eq u))
+    usesAt-＇
+usesAt-raise-lower k {p = path-⇒ˡ p} {A = ＇ Y} ()
+usesAt-raise-lower k {p = path-⇒ʳ p} {A = ＇ Y} ()
+usesAt-raise-lower k {A = ｀ α} (_ , at-｀ , ())
+usesAt-raise-lower k {A = ‵ ι} (_ , at-‵ , ())
+usesAt-raise-lower k {A = ★} (_ , at-★ , ())
+usesAt-raise-lower k {p = path-＇} {A = A ⇒ B} ()
+usesAt-raise-lower k {A = A ⇒ B} (_ , at-⇒ˡ uAt , uRoot) =
+  usesAt-⇒ˡ (usesAt-raise-lower k (_ , uAt , uRoot))
+usesAt-raise-lower k {A = A ⇒ B} (_ , at-⇒ʳ uAt , uRoot) =
+  usesAt-⇒ʳ (usesAt-raise-lower k (_ , uAt , uRoot))
+usesAt-raise-lower k {X} {A = `∀ A} (_ , at-∀ uAt , usesRoot-∀ uRoot) =
+  usesAt-∀ (usesAt-raise-lower (suc k) {X = suc X}
+    (subst UsesAt-target (rename-raise-ext k A) (_ , uAt , uRoot)))
+  where
+    UsesAt-target : Ty → Set
+    UsesAt-target T = UsesAt (raiseVarFrom (suc k) (suc X)) _ T
+
+occurs-raise :
+  ∀ k X A →
+  occurs (raiseVarFrom k X) (renameᵗ (raiseVarFrom k) A) ≡
+  occurs X A
+occurs-raise k X (＇ Y) with X ≟ Y | raiseVarFrom k X ≟ raiseVarFrom k Y
+occurs-raise k X (＇ .X) | yes refl | yes refl = refl
+occurs-raise k X (＇ .X) | yes refl | no neq = ⊥-elim (neq refl)
+occurs-raise k X (＇ Y) | no neq | yes eq =
+  ⊥-elim (neq (raiseVarFrom-injective k eq))
+occurs-raise k X (＇ Y) | no neq | no neq′ = refl
+occurs-raise k X (｀ α) = refl
+occurs-raise k X (‵ ι) = refl
+occurs-raise k X ★ = refl
+occurs-raise k X (A ⇒ B)
+  rewrite occurs-raise k X A
+        | occurs-raise k X B = refl
+occurs-raise k X (`∀ A)
+  rewrite rename-raise-ext k A =
+  occurs-raise (suc k) (suc X) A
+
+occurs-zero-rename-ext-raise :
+  ∀ k A →
+  occurs zero (renameᵗ (extᵗ (raiseVarFrom k)) A) ≡ occurs zero A
+occurs-zero-rename-ext-raise k A =
+  trans (cong (occurs zero) (rename-raise-ext k A))
+        (occurs-raise (suc k) zero A)
+
+usesAt-⇑ᵗ-lower :
+  ∀ {X p A} →
+  UsesAt (suc X) p (⇑ᵗ A) →
+  UsesAt X p A
+usesAt-⇑ᵗ-lower = usesAt-raise-lower zero
+
+ground-no-useAt∈ :
+  ∀ {X p G} →
+  Ground G →
+  UsesAt X p G →
+  ⊥
+ground-no-useAt∈ (｀ α) (_ , at-｀ , ())
+ground-no-useAt∈ (‵ ι) (_ , at-‵ , ())
+ground-no-useAt∈ ★⇒★ (_ , at-⇒ˡ at-★ , ())
+ground-no-useAt∈ ★⇒★ (_ , at-⇒ʳ at-★ , ())
+
+ν-source-useAt-target-starAt∈ :
+  ∀ {Γ X p A B} →
+  Γ ∋ X ∶ ν-bound →
+  Γ ⊢ A ⊑ₒ B →
+  UsesAt X p A →
+  StarAt p B
+ν-source-useAt-target-starAt∈ xν ⊑ₒ-★★ (_ , at-★ , ())
+ν-source-useAt-target-starAt∈ xν (⊑ₒ-★ν yν) (_ , at-＇ , usesRoot-＇) =
+  starAt-★
+ν-source-useAt-target-starAt∈ xν (⊑ₒ-★ A G s g p) u =
+  starAt-★
+ν-source-useAt-target-starAt∈ xν (⊑ₒ-＇ y∈) (_ , at-＇ , usesRoot-＇) =
+  ⊥-elim (∋-plain-not-ν y∈ xν)
+ν-source-useAt-target-starAt∈ xν (⊑ₒ-｀ α) (_ , at-｀ , ())
+ν-source-useAt-target-starAt∈ xν (⊑ₒ-‵ ι) (_ , at-‵ , ())
+ν-source-useAt-target-starAt∈ xν
+    (⊑ₒ-⇒ A A′ B B′ p q) (_ , at-⇒ˡ uAt , uRoot) =
+  starAt-⇒ˡ (ν-source-useAt-target-starAt∈ xν p (_ , uAt , uRoot))
+ν-source-useAt-target-starAt∈ xν
+    (⊑ₒ-⇒ A A′ B B′ p q) (_ , at-⇒ʳ uAt , uRoot) =
+  starAt-⇒ʳ (ν-source-useAt-target-starAt∈ xν q (_ , uAt , uRoot))
+ν-source-useAt-target-starAt∈ xν
+    (⊑ₒ-∀ A B p) (_ , at-∀ uAt , usesRoot-∀ uRoot) =
+  starAt-∀ (ν-source-useAt-target-starAt∈ (there xν) p
+    (_ , uAt , uRoot))
+ν-source-useAt-target-starAt∈ xν
+    (⊑ₒ-ν A B occ p) (_ , at-∀ uAt , usesRoot-∀ uRoot) =
+  starAt-⇑ᵗ-lower (ν-source-useAt-target-starAt∈ (there xν) p
+    (_ , uAt , uRoot))
+
+plain-source-useAt-target-useAt∈ :
+  ∀ {Γ X p A B} →
+  Γ ∋ X ∶ plain →
+  Γ ⊢ A ⊑ₒ B →
+  UsesAt X p A →
+  UsesAt X p B
+plain-source-useAt-target-useAt∈ x∈ ⊑ₒ-★★ (_ , at-★ , ())
+plain-source-useAt-target-useAt∈ x∈ (⊑ₒ-★ν yν) (_ , at-＇ , usesRoot-＇) =
+  ⊥-elim (∋-plain-not-ν x∈ yν)
+plain-source-useAt-target-useAt∈ x∈ (⊑ₒ-★ A G s g p) u =
+  ⊥-elim (ground-no-useAt∈ g
+    (plain-source-useAt-target-useAt∈ x∈ p u))
+plain-source-useAt-target-useAt∈ x∈ (⊑ₒ-＇ y∈) (_ , at-＇ , usesRoot-＇) =
+  usesAt-＇
+plain-source-useAt-target-useAt∈ x∈ (⊑ₒ-｀ α) (_ , at-｀ , ())
+plain-source-useAt-target-useAt∈ x∈ (⊑ₒ-‵ ι) (_ , at-‵ , ())
+plain-source-useAt-target-useAt∈ x∈
+    (⊑ₒ-⇒ A A′ B B′ p q) (_ , at-⇒ˡ uAt , uRoot) =
+  usesAt-⇒ˡ (plain-source-useAt-target-useAt∈ x∈ p (_ , uAt , uRoot))
+plain-source-useAt-target-useAt∈ x∈
+    (⊑ₒ-⇒ A A′ B B′ p q) (_ , at-⇒ʳ uAt , uRoot) =
+  usesAt-⇒ʳ (plain-source-useAt-target-useAt∈ x∈ q (_ , uAt , uRoot))
+plain-source-useAt-target-useAt∈ x∈
+    (⊑ₒ-∀ A B p) (_ , at-∀ uAt , usesRoot-∀ uRoot) =
+  usesAt-∀ (plain-source-useAt-target-useAt∈ (there x∈) p
+    (_ , uAt , uRoot))
+plain-source-useAt-target-useAt∈ x∈
+    (⊑ₒ-ν A B occ p) (_ , at-∀ uAt , usesRoot-∀ uRoot) =
+  usesAt-⇑ᵗ-lower (plain-source-useAt-target-useAt∈ (there x∈) p
+    (_ , uAt , uRoot))
+
+star-rest-target-unique :
+  ∀ {Γ A G H} →
+  StarSourceᵢ A →
+  Γ ⊢ A ⊑ₒ G →
+  Ground G →
+  Γ ⊢ A ⊑ₒ H →
+  Ground H →
+  G ≡ H
+star-rest-target-unique (star-＇ X) (⊑ₒ-★ν x) () q h
+star-rest-target-unique (star-＇ X) (⊑ₒ-★ .(＇ X) G s g p) () q h
+star-rest-target-unique (star-＇ X) (⊑ₒ-＇ x) () q h
+star-rest-target-unique (star-｀ α) (⊑ₒ-｀ .α) (｀ .α)
+    (⊑ₒ-｀ .α) (｀ .α) = refl
+star-rest-target-unique (star-‵ ι) (⊑ₒ-‵ .ι) (‵ .ι)
+    (⊑ₒ-‵ .ι) (‵ .ι) = refl
+star-rest-target-unique (star-⇒ A B) (⊑ₒ-⇒ .A A′ .B B′ p₁ p₂)
+    ★⇒★ (⊑ₒ-⇒ .A .A′ .B .B′ q₁ q₂) ★⇒★ = refl
+
+var-ground-⊥ :
+  ∀ {Γ X G} →
+  Γ ⊢ ＇ X ⊑ₒ G →
+  Ground G →
+  ⊥
+var-ground-⊥ (⊑ₒ-★ν x∈) ()
+var-ground-⊥ (⊑ₒ-★ .(＇ _) G s g p) ()
+var-ground-⊥ (⊑ₒ-＇ x∈) ()
+
+∀ν-overlap-useAt-⊥ :
+  ∀ {Γ A B p} →
+  UsesAt zero p A →
+  (plain ∷ Γ) ⊢ A ⊑ₒ B →
+  (ν-bound ∷ Γ) ⊢ A ⊑ₒ ⇑ᵗ (`∀ B) →
+  ⊥
+∀ν-overlap-useAt-⊥ u p q =
+  starAt-inserted-∀-usesAt-⊥ zero
+    (ν-source-useAt-target-starAt∈ here q u)
+    (plain-source-useAt-target-useAt∈ here p u)
+
+∀ν-overlap-occurs-false :
+  ∀ {Γ A B} →
+  (plain ∷ Γ) ⊢ A ⊑ₒ B →
+  (ν-bound ∷ Γ) ⊢ A ⊑ₒ ⇑ᵗ (`∀ B) →
+  occurs zero A ≡ false
+∀ν-overlap-occurs-false p q =
+  no-usesAt-occurs-false λ r uAt →
+    ∀ν-overlap-useAt-⊥ uAt p q
+
+∀ν-overlap-⊥ :
+  ∀ {Γ A B} →
+  .(occurs zero A ≡ true) →
+  (plain ∷ Γ) ⊢ A ⊑ₒ B →
+  (ν-bound ∷ Γ) ⊢ A ⊑ₒ ⇑ᵗ (`∀ B) →
+  ⊥
+∀ν-overlap-⊥ occ p q
+  rewrite ∀ν-overlap-occurs-false p q =
+  false≢trueᵢ occ
+
+⊑ₒ-proof-irrel :
+  ∀ {Γ A B} →
+  (p q : Γ ⊢ A ⊑ₒ B) →
+  p ≡ q
+⊑ₒ-proof-irrel ⊑ₒ-★★ ⊑ₒ-★★ = refl
+⊑ₒ-proof-irrel (⊑ₒ-★ν x) (⊑ₒ-★ν y) =
+  cong ⊑ₒ-★ν (∋-irrel x y)
+⊑ₒ-proof-irrel (⊑ₒ-★ν x) (⊑ₒ-★ .(＇ _) G s g q) =
+  ⊥-elim (var-ground-⊥ q g)
+⊑ₒ-proof-irrel (⊑ₒ-★ .(＇ _) G s g p) (⊑ₒ-★ν x) =
+  ⊥-elim (var-ground-⊥ p g)
+⊑ₒ-proof-irrel (⊑ₒ-★ A G s g p) (⊑ₒ-★ .A H s′ g′ q)
+  with star-rest-target-unique s p g q g′
+⊑ₒ-proof-irrel (⊑ₒ-★ A G s g p) (⊑ₒ-★ .A .G s′ g′ q) | refl
+  rewrite StarSourceᵢ-irrel s s′
+        | Ground-irrel g g′
+        | ⊑ₒ-proof-irrel p q = refl
+⊑ₒ-proof-irrel (⊑ₒ-＇ x) (⊑ₒ-＇ y) = cong ⊑ₒ-＇ (∋-irrel x y)
+⊑ₒ-proof-irrel (⊑ₒ-｀ α) (⊑ₒ-｀ .α) = refl
+⊑ₒ-proof-irrel (⊑ₒ-‵ ι) (⊑ₒ-‵ .ι) = refl
+⊑ₒ-proof-irrel (⊑ₒ-⇒ A A′ B B′ p₁ p₂)
+    (⊑ₒ-⇒ .A .A′ .B .B′ q₁ q₂)
+  rewrite ⊑ₒ-proof-irrel p₁ q₁
+        | ⊑ₒ-proof-irrel p₂ q₂ = refl
+⊑ₒ-proof-irrel (⊑ₒ-∀ A B p) (⊑ₒ-∀ .A .B q)
+  rewrite ⊑ₒ-proof-irrel p q = refl
+⊑ₒ-proof-irrel (⊑ₒ-∀ A B p) (⊑ₒ-ν .A .(`∀ B) occ q) =
+  ⊥-elim (∀ν-overlap-⊥ occ p q)
+⊑ₒ-proof-irrel (⊑ₒ-ν A .(`∀ B) occ p) (⊑ₒ-∀ .A B q) =
+  ⊥-elim (∀ν-overlap-⊥ occ q p)
+⊑ₒ-proof-irrel (⊑ₒ-ν A B occ p) (⊑ₒ-ν .A .B occ′ q)
+  rewrite ⊑ₒ-proof-irrel p q = refl
+
+⊑ᵢ-proof-irrel :
+  ∀ {Γ A B} →
+  (p q : Γ ⊢ A ⊑ᵢ B) →
+  p ≡ q
+⊑ᵢ-proof-irrel = ⊑ₒ-proof-irrel
+
+⊑ᵢ-cast :
+  ∀ {Γ A A′ B B′} →
+  A ≡ A′ →
+  B ≡ B′ →
+  Γ ⊢ A ⊑ᵢ B →
+  Γ ⊢ A′ ⊑ᵢ B′
+⊑ᵢ-cast refl refl p = p
 
 plain-weakenAt⊑ᵢ :
   ∀ k {Γ A B} →
   Γ ⊢ A ⊑ᵢ B →
   insertPlainAt k Γ ⊢
     renameᵗ (raiseVarFrom k) A ⊑ᵢ renameᵗ (raiseVarFrom k) B
-plain-weakenAt⊑ᵢ k ⊑ᵢ-★★ = ⊑ᵢ-★★
-plain-weakenAt⊑ᵢ k (⊑ᵢ-★ A G s g p) =
-  ⊑ᵢ-★
+plain-weakenAt⊑ᵢ k ⊑ₒ-★★ = ⊑ₒ-★★
+plain-weakenAt⊑ᵢ k (⊑ₒ-★ν xν) =
+  ⊑ₒ-★ν (insertPlain-lookup k xν)
+plain-weakenAt⊑ᵢ k (⊑ₒ-★ A G s g p) =
+  ⊑ₒ-★
     (renameᵗ (raiseVarFrom k) A)
     (renameᵗ (raiseVarFrom k) G)
     (rename-StarSourceᵢ (raiseVarFrom k) s)
-    (plain-weakenAt-ground k g)
+    (renameᵗ-ground (raiseVarFrom k) g)
     (plain-weakenAt⊑ᵢ k p)
-plain-weakenAt⊑ᵢ k (⊑ᵢ-＇ X) = ⊑ᵢ-＇ (raiseVarFrom k X)
-plain-weakenAt⊑ᵢ k (⊑ᵢ-｀ α) = ⊑ᵢ-｀ α
-plain-weakenAt⊑ᵢ k (⊑ᵢ-‵ ι) = ⊑ᵢ-‵ ι
-plain-weakenAt⊑ᵢ k (⊑ᵢ-⇒ A A′ B B′ p q) =
-  ⊑ᵢ-⇒
+plain-weakenAt⊑ᵢ k (⊑ₒ-＇ x∈) =
+  ⊑ₒ-＇ (insertPlain-lookup k x∈)
+plain-weakenAt⊑ᵢ k (⊑ₒ-｀ α) = ⊑ₒ-｀ α
+plain-weakenAt⊑ᵢ k (⊑ₒ-‵ ι) = ⊑ₒ-‵ ι
+plain-weakenAt⊑ᵢ k (⊑ₒ-⇒ A A′ B B′ p q) =
+  ⊑ₒ-⇒
     (renameᵗ (raiseVarFrom k) A)
     (renameᵗ (raiseVarFrom k) A′)
     (renameᵗ (raiseVarFrom k) B)
     (renameᵗ (raiseVarFrom k) B′)
     (plain-weakenAt⊑ᵢ k p)
     (plain-weakenAt⊑ᵢ k q)
-plain-weakenAt⊑ᵢ k (⊑ᵢ-∀ A B p) =
-  ⊑ᵢ-∀
+plain-weakenAt⊑ᵢ k (⊑ₒ-∀ A B p) =
+  ⊑ₒ-∀
     (renameᵗ (extᵗ (raiseVarFrom k)) A)
     (renameᵗ (extᵗ (raiseVarFrom k)) B)
     (⊑ᵢ-cast
       (renameᵗ-cong (λ X → sym (raise-ext k X)) A)
       (renameᵗ-cong (λ X → sym (raise-ext k X)) B)
       (plain-weakenAt⊑ᵢ (suc k) p))
-plain-weakenAt⊑ᵢ k (⊑ᵢ-ν A B p) =
-  ⊑ᵢ-ν
+plain-weakenAt⊑ᵢ k (⊑ₒ-ν A B occ p) =
+  ⊑ₒ-ν
     (renameᵗ (extᵗ (raiseVarFrom k)) A)
     (renameᵗ (raiseVarFrom k) B)
+    (trans (occurs-zero-rename-ext-raise k A) occ)
     (⊑ᵢ-cast
       (renameᵗ-cong (λ X → sym (raise-ext k X)) A)
       (rename-raise-⇑ᵗ k B)
       (plain-weakenAt⊑ᵢ (suc k) p))
 
+-- Historical note: the old proof had the same generalized
+-- `plain-weakenAt⊑ᵢ` recursion and the same casts in the `∀`/`ν` cases. The
+-- differences are exactly the new relation changes: `Ground` no longer needs a
+-- context-indexed weakening lemma, `⊑ₒ-★ν` is a direct lookup case, `⊑ₒ-＇`
+-- weakens its plain lookup witness, and `⊑ₒ-ν` transports its occurrence side
+-- condition with `occurs-zero-rename-ext-raise`.
 plain-weaken⊑ᵢ :
   ∀ {Γ A B} →
   Γ ⊢ A ⊑ᵢ B →
   (plain ∷ Γ) ⊢ ⇑ᵗ A ⊑ᵢ ⇑ᵗ B
 plain-weaken⊑ᵢ = plain-weakenAt⊑ᵢ zero
 
-substVarFrom : TyVar → Ty → Substᵗ
-substVarFrom zero T = singleTyEnv T
-substVarFrom (suc k) T = extsᵗ (substVarFrom k T)
-
-substVarFrom-⇑ᵗ :
-  ∀ k T A →
-  substᵗ (substVarFrom (suc k) T) (⇑ᵗ A) ≡
-  ⇑ᵗ (substᵗ (substVarFrom k T) A)
-substVarFrom-⇑ᵗ k T A =
-  substᵗ-suc-renameᵗ-suc (substVarFrom k T) A
-
-substPlain-lookup :
-  ∀ k {Γ X T} →
-  insertPlainAt k Γ ∋ X ∶ ν-bound →
-  ∃[ Y ] (Γ ∋ Y ∶ ν-bound × substVarFrom k T X ≡ ＇ Y)
-substPlain-lookup zero {Γ = Γ} (there x∈) = _ , x∈ , refl
-substPlain-lookup (suc k) {Γ = []} {T = T} (there x∈)
-  with substPlain-lookup k {Γ = []} {T = T} x∈
-... | _ , () , _
-substPlain-lookup (suc k) {Γ = ν-bound ∷ Γ} here = zero , here , refl
-substPlain-lookup (suc k) {Γ = m ∷ Γ} (there x∈)
-  with substPlain-lookup k x∈
-... | Y , y∈ , eq = suc Y , there y∈ , cong ⇑ᵗ eq
-
-substPlainAt-ground :
-  ∀ k T {Γ G} →
-  Groundᵢ (insertPlainAt k Γ) G →
-  Groundᵢ Γ (substᵗ (substVarFrom k T) G)
-substPlainAt-ground k T (ground-ν x∈) with substPlain-lookup k x∈
-... | Y , y∈ , eq = subst (Groundᵢ _) (sym eq) (ground-ν y∈)
-substPlainAt-ground k T (ground-seal α) = ground-seal α
-substPlainAt-ground k T (ground-base ι) = ground-base ι
-substPlainAt-ground k T ground-fun = ground-fun
-
-substPlainAt-StarSourceᵢ :
-  ∀ k T {Γ A G} →
-  StarSourceᵢ A →
-  Groundᵢ (insertPlainAt k Γ) G →
-  insertPlainAt k Γ ⊢ A ⊑ᵢ G →
-  StarSourceᵢ (substᵗ (substVarFrom k T) A)
-substPlainAt-StarSourceᵢ k T (star-＇ X) (ground-ν x∈) (⊑ᵢ-＇ .X)
-    with substPlain-lookup k x∈
-... | Y , y∈ , eq = subst StarSourceᵢ (sym eq) (star-＇ Y)
-substPlainAt-StarSourceᵢ k T (star-｀ α) g p = star-｀ α
-substPlainAt-StarSourceᵢ k T (star-‵ ι) g p = star-‵ ι
-substPlainAt-StarSourceᵢ k T (star-⇒ A B) g p =
-  star-⇒ (substᵗ (substVarFrom k T) A) (substᵗ (substVarFrom k T) B)
-
-substPlainAt⊑ᵢ :
-  ∀ k T {Γ A B} →
-  insertPlainAt k Γ ⊢ A ⊑ᵢ B →
-  Γ ⊢ substᵗ (substVarFrom k T) A ⊑ᵢ substᵗ (substVarFrom k T) B
-substPlainAt⊑ᵢ k T ⊑ᵢ-★★ = ⊑ᵢ-★★
-substPlainAt⊑ᵢ k T (⊑ᵢ-★ A G s g p) =
-  ⊑ᵢ-★
-    (substᵗ (substVarFrom k T) A)
-    (substᵗ (substVarFrom k T) G)
-    (substPlainAt-StarSourceᵢ k T s g p)
-    (substPlainAt-ground k T g)
-    (substPlainAt⊑ᵢ k T p)
-substPlainAt⊑ᵢ k T (⊑ᵢ-＇ X) = ⊑ᵢ-refl
-substPlainAt⊑ᵢ k T (⊑ᵢ-｀ α) = ⊑ᵢ-｀ α
-substPlainAt⊑ᵢ k T (⊑ᵢ-‵ ι) = ⊑ᵢ-‵ ι
-substPlainAt⊑ᵢ k T (⊑ᵢ-⇒ A A′ B B′ p q) =
-  ⊑ᵢ-⇒
-    (substᵗ (substVarFrom k T) A)
-    (substᵗ (substVarFrom k T) A′)
-    (substᵗ (substVarFrom k T) B)
-    (substᵗ (substVarFrom k T) B′)
-    (substPlainAt⊑ᵢ k T p)
-    (substPlainAt⊑ᵢ k T q)
-substPlainAt⊑ᵢ k T (⊑ᵢ-∀ A B p) =
-  ⊑ᵢ-∀
-    (substᵗ (substVarFrom (suc k) T) A)
-    (substᵗ (substVarFrom (suc k) T) B)
-    (substPlainAt⊑ᵢ (suc k) T p)
-substPlainAt⊑ᵢ k T (⊑ᵢ-ν A B p) =
-  ⊑ᵢ-ν
-    (substᵗ (substVarFrom (suc k) T) A)
-    (substᵗ (substVarFrom k T) B)
-    (⊑ᵢ-cast
-      refl
-      (substVarFrom-⇑ᵗ k T B)
-      (substPlainAt⊑ᵢ (suc k) T p))
-
-substPlain⊑ᵢ :
-  ∀ T {Γ A B} →
-  (plain ∷ Γ) ⊢ A ⊑ᵢ B →
-  Γ ⊢ A [ T ]ᵗ ⊑ᵢ B [ T ]ᵗ
-substPlain⊑ᵢ = substPlainAt⊑ᵢ zero
-
 ν-weakenAt⊑ᵢ :
   ∀ k {Γ A B} →
   Γ ⊢ A ⊑ᵢ B →
   insertνAt k Γ ⊢
     renameᵗ (raiseVarFrom k) A ⊑ᵢ renameᵗ (raiseVarFrom k) B
-ν-weakenAt⊑ᵢ k ⊑ᵢ-★★ = ⊑ᵢ-★★
-ν-weakenAt⊑ᵢ k (⊑ᵢ-★ A G s g p) =
-  ⊑ᵢ-★
+ν-weakenAt⊑ᵢ k ⊑ₒ-★★ = ⊑ₒ-★★
+ν-weakenAt⊑ᵢ k (⊑ₒ-★ν xν) = ⊑ₒ-★ν (insertν-lookup k xν)
+ν-weakenAt⊑ᵢ k (⊑ₒ-★ A G s g p) =
+  ⊑ₒ-★
     (renameᵗ (raiseVarFrom k) A)
     (renameᵗ (raiseVarFrom k) G)
     (rename-StarSourceᵢ (raiseVarFrom k) s)
-    (ν-weakenAt-ground k g)
+    (renameᵗ-ground (raiseVarFrom k) g)
     (ν-weakenAt⊑ᵢ k p)
-ν-weakenAt⊑ᵢ k (⊑ᵢ-＇ X) = ⊑ᵢ-＇ (raiseVarFrom k X)
-ν-weakenAt⊑ᵢ k (⊑ᵢ-｀ α) = ⊑ᵢ-｀ α
-ν-weakenAt⊑ᵢ k (⊑ᵢ-‵ ι) = ⊑ᵢ-‵ ι
-ν-weakenAt⊑ᵢ k (⊑ᵢ-⇒ A A′ B B′ p q) =
-  ⊑ᵢ-⇒
+ν-weakenAt⊑ᵢ k (⊑ₒ-＇ x∈) = ⊑ₒ-＇ (insertν-lookup k x∈)
+ν-weakenAt⊑ᵢ k (⊑ₒ-｀ α) = ⊑ₒ-｀ α
+ν-weakenAt⊑ᵢ k (⊑ₒ-‵ ι) = ⊑ₒ-‵ ι
+ν-weakenAt⊑ᵢ k (⊑ₒ-⇒ A A′ B B′ p q) =
+  ⊑ₒ-⇒
     (renameᵗ (raiseVarFrom k) A)
     (renameᵗ (raiseVarFrom k) A′)
     (renameᵗ (raiseVarFrom k) B)
     (renameᵗ (raiseVarFrom k) B′)
     (ν-weakenAt⊑ᵢ k p)
     (ν-weakenAt⊑ᵢ k q)
-ν-weakenAt⊑ᵢ k (⊑ᵢ-∀ A B p) =
-  ⊑ᵢ-∀
+ν-weakenAt⊑ᵢ k (⊑ₒ-∀ A B p) =
+  ⊑ₒ-∀
     (renameᵗ (extᵗ (raiseVarFrom k)) A)
     (renameᵗ (extᵗ (raiseVarFrom k)) B)
     (⊑ᵢ-cast
       (renameᵗ-cong (λ X → sym (raise-ext k X)) A)
       (renameᵗ-cong (λ X → sym (raise-ext k X)) B)
       (ν-weakenAt⊑ᵢ (suc k) p))
-ν-weakenAt⊑ᵢ k (⊑ᵢ-ν A B p) =
-  ⊑ᵢ-ν
+ν-weakenAt⊑ᵢ k (⊑ₒ-ν A B occ p) =
+  ⊑ₒ-ν
     (renameᵗ (extᵗ (raiseVarFrom k)) A)
     (renameᵗ (raiseVarFrom k) B)
+    (trans (occurs-zero-rename-ext-raise k A) occ)
     (⊑ᵢ-cast
       (renameᵗ-cong (λ X → sym (raise-ext k X)) A)
       (rename-raise-⇑ᵗ k B)
       (ν-weakenAt⊑ᵢ (suc k) p))
-
-size-ν-weakenAt⊑ᵢ :
-  ∀ k {Γ A B} →
-  (p : Γ ⊢ A ⊑ᵢ B) →
-  size⊑ᵢ (ν-weakenAt⊑ᵢ k p) ≡ size⊑ᵢ p
-size-ν-weakenAt⊑ᵢ k ⊑ᵢ-★★ = refl
-size-ν-weakenAt⊑ᵢ k (⊑ᵢ-★ A G s g p) =
-  cong suc (size-ν-weakenAt⊑ᵢ k p)
-size-ν-weakenAt⊑ᵢ k (⊑ᵢ-＇ X) = refl
-size-ν-weakenAt⊑ᵢ k (⊑ᵢ-｀ α) = refl
-size-ν-weakenAt⊑ᵢ k (⊑ᵢ-‵ ι) = refl
-size-ν-weakenAt⊑ᵢ k (⊑ᵢ-⇒ A A′ B B′ p q) =
-  cong suc
-    (cong₂ _+_ (size-ν-weakenAt⊑ᵢ k p) (size-ν-weakenAt⊑ᵢ k q))
-size-ν-weakenAt⊑ᵢ k (⊑ᵢ-∀ A B p) =
-  trans
-    (cong suc
-      (size-⊑ᵢ-cast
-        (renameᵗ-cong (λ X → sym (raise-ext k X)) A)
-        (renameᵗ-cong (λ X → sym (raise-ext k X)) B)
-        (ν-weakenAt⊑ᵢ (suc k) p)))
-    (cong suc (size-ν-weakenAt⊑ᵢ (suc k) p))
-size-ν-weakenAt⊑ᵢ k (⊑ᵢ-ν A B p) =
-  trans
-    (cong suc
-      (size-⊑ᵢ-cast
-        (renameᵗ-cong (λ X → sym (raise-ext k X)) A)
-        (rename-raise-⇑ᵗ k B)
-        (ν-weakenAt⊑ᵢ (suc k) p)))
-    (cong suc (size-ν-weakenAt⊑ᵢ (suc k) p))
 
 ν-weaken⊑ᵢ :
   ∀ {Γ A B} →
@@ -527,439 +838,25 @@ size-ν-weakenAt⊑ᵢ k (⊑ᵢ-ν A B p) =
   (ν-bound ∷ Γ) ⊢ ⇑ᵗ A ⊑ᵢ ⇑ᵗ B
 ν-weaken⊑ᵢ = ν-weakenAt⊑ᵢ zero
 
-size-ν-weaken⊑ᵢ :
-  ∀ {Γ A B} →
-  (p : Γ ⊢ A ⊑ᵢ B) →
-  size⊑ᵢ (ν-weaken⊑ᵢ p) ≡ size⊑ᵢ p
-size-ν-weaken⊑ᵢ = size-ν-weakenAt⊑ᵢ zero
+postulate
+  ν-close-inst⊑ᵢ :
+    ∀ {Γ Ψ A B T} →
+    WfTy 0 Ψ T →
+    (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ⇑ᵗ B →
+    Γ ⊢ A [ T ]ᵗ ⊑ᵢ B
 
-replacePlainAt : ℕ → ICtx → ICtx
-replacePlainAt zero [] = []
-replacePlainAt zero (plain ∷ Γ) = ν-bound ∷ Γ
-replacePlainAt zero (ν-bound ∷ Γ) = ν-bound ∷ Γ
-replacePlainAt (suc k) [] = []
-replacePlainAt (suc k) (m ∷ Γ) = m ∷ replacePlainAt k Γ
-
-replacePlainAt-lookup :
+replacePlainAt-ν-lookup :
   ∀ k {Γ X} →
   Γ ∋ X ∶ ν-bound →
   replacePlainAt k Γ ∋ X ∶ ν-bound
-replacePlainAt-lookup zero {Γ = plain ∷ Γ} (there x∈) = there x∈
-replacePlainAt-lookup zero {Γ = ν-bound ∷ Γ} here = here
-replacePlainAt-lookup zero {Γ = ν-bound ∷ Γ} (there x∈) = there x∈
-replacePlainAt-lookup (suc k) {Γ = m ∷ Γ} here = here
-replacePlainAt-lookup (suc k) {Γ = m ∷ Γ} (there x∈) =
-  there (replacePlainAt-lookup k x∈)
-
-replacePlainAt-ground :
-  ∀ k {Γ G} →
-  Groundᵢ Γ G →
-  Groundᵢ (replacePlainAt k Γ) G
-replacePlainAt-ground k (ground-ν x∈) =
-  ground-ν (replacePlainAt-lookup k x∈)
-replacePlainAt-ground k (ground-seal α) = ground-seal α
-replacePlainAt-ground k (ground-base ι) = ground-base ι
-replacePlainAt-ground k ground-fun = ground-fun
-
-replacePlainAt⊑ᵢ :
-  ∀ k {Γ A B} →
-  Γ ⊢ A ⊑ᵢ B →
-  replacePlainAt k Γ ⊢ A ⊑ᵢ B
-replacePlainAt⊑ᵢ k ⊑ᵢ-★★ = ⊑ᵢ-★★
-replacePlainAt⊑ᵢ k (⊑ᵢ-★ A G s g p) =
-  ⊑ᵢ-★ A G s (replacePlainAt-ground k g) (replacePlainAt⊑ᵢ k p)
-replacePlainAt⊑ᵢ k (⊑ᵢ-＇ X) = ⊑ᵢ-＇ X
-replacePlainAt⊑ᵢ k (⊑ᵢ-｀ α) = ⊑ᵢ-｀ α
-replacePlainAt⊑ᵢ k (⊑ᵢ-‵ ι) = ⊑ᵢ-‵ ι
-replacePlainAt⊑ᵢ k (⊑ᵢ-⇒ A A′ B B′ p q) =
-  ⊑ᵢ-⇒ A A′ B B′ (replacePlainAt⊑ᵢ k p) (replacePlainAt⊑ᵢ k q)
-replacePlainAt⊑ᵢ k (⊑ᵢ-∀ A B p) =
-  ⊑ᵢ-∀ A B (replacePlainAt⊑ᵢ (suc k) p)
-replacePlainAt⊑ᵢ k (⊑ᵢ-ν A B p) =
-  ⊑ᵢ-ν A B (replacePlainAt⊑ᵢ (suc k) p)
-
-size-replacePlainAt⊑ᵢ :
-  ∀ k {Γ A B} →
-  (p : Γ ⊢ A ⊑ᵢ B) →
-  size⊑ᵢ (replacePlainAt⊑ᵢ k p) ≡ size⊑ᵢ p
-size-replacePlainAt⊑ᵢ k ⊑ᵢ-★★ = refl
-size-replacePlainAt⊑ᵢ k (⊑ᵢ-★ A G s g p) =
-  cong suc (size-replacePlainAt⊑ᵢ k p)
-size-replacePlainAt⊑ᵢ k (⊑ᵢ-＇ X) = refl
-size-replacePlainAt⊑ᵢ k (⊑ᵢ-｀ α) = refl
-size-replacePlainAt⊑ᵢ k (⊑ᵢ-‵ ι) = refl
-size-replacePlainAt⊑ᵢ k (⊑ᵢ-⇒ A A′ B B′ p q) =
-  cong suc
-    (cong₂ _+_
-      (size-replacePlainAt⊑ᵢ k p)
-      (size-replacePlainAt⊑ᵢ k q))
-size-replacePlainAt⊑ᵢ k (⊑ᵢ-∀ A B p) =
-  cong suc (size-replacePlainAt⊑ᵢ (suc k) p)
-size-replacePlainAt⊑ᵢ k (⊑ᵢ-ν A B p) =
-  cong suc (size-replacePlainAt⊑ᵢ (suc k) p)
-
-plain-to-ν⊑ᵢ :
-  ∀ {Γ A B} →
-  (plain ∷ Γ) ⊢ A ⊑ᵢ B →
-  (ν-bound ∷ Γ) ⊢ A ⊑ᵢ B
-plain-to-ν⊑ᵢ = replacePlainAt⊑ᵢ zero
-
-size-plain-to-ν⊑ᵢ :
-  ∀ {Γ A B} →
-  (p : (plain ∷ Γ) ⊢ A ⊑ᵢ B) →
-  size⊑ᵢ (plain-to-ν⊑ᵢ p) ≡ size⊑ᵢ p
-size-plain-to-ν⊑ᵢ = size-replacePlainAt⊑ᵢ zero
-
-closeν-ground :
-  ∀ k {Γ G} →
-  Groundᵢ Γ G →
-  Groundᵢ (insertνAt k Γ) (closeνSrc k G)
-closeν-ground k (ground-ν x∈) = ground-ν (insert-lookup k x∈)
-closeν-ground k (ground-seal zero) = ground-ν (inserted-ν k _)
-closeν-ground k (ground-seal (suc α)) = ground-seal α
-closeν-ground k (ground-base ι) = ground-base ι
-closeν-ground k ground-fun = ground-fun
-
-raiseVarFrom-+ :
-  ∀ d k →
-  raiseVarFrom d (d + k) ≡ d + suc k
-raiseVarFrom-+ zero k = refl
-raiseVarFrom-+ (suc d) k = cong suc (raiseVarFrom-+ d k)
-
-raiseVarFrom-close-comm :
-  ∀ d k X →
-  raiseVarFrom (d + suc k) (raiseVarFrom d X) ≡
-  raiseVarFrom d (raiseVarFrom (d + k) X)
-raiseVarFrom-close-comm zero k X = refl
-raiseVarFrom-close-comm (suc d) k zero = refl
-raiseVarFrom-close-comm (suc d) k (suc X) =
-  cong suc (raiseVarFrom-close-comm d k X)
-
-closeνSrc-raiseAt :
-  ∀ d k A →
-  closeνSrc (d + suc k) (renameᵗ (raiseVarFrom d) A) ≡
-  renameᵗ (raiseVarFrom d) (closeνSrc (d + k) A)
-closeνSrc-raiseAt d k (＇ X) =
-  cong ＇_ (raiseVarFrom-close-comm d k X)
-closeνSrc-raiseAt d k (｀ zero) = cong ＇_ (sym (raiseVarFrom-+ d k))
-closeνSrc-raiseAt d k (｀ (suc α)) = refl
-closeνSrc-raiseAt d k (‵ ι) = refl
-closeνSrc-raiseAt d k ★ = refl
-closeνSrc-raiseAt d k (A ⇒ B) =
-  cong₂ _⇒_ (closeνSrc-raiseAt d k A) (closeνSrc-raiseAt d k B)
-closeνSrc-raiseAt d k (`∀ A) =
-  cong `∀
-    (trans
-      (cong
-        (closeνSrc (suc (d + suc k)))
-        (renameᵗ-cong (raise-ext d) A))
-      (trans
-        (closeνSrc-raiseAt (suc d) k A)
-        (renameᵗ-cong
-          (λ X → sym (raise-ext d X))
-          (closeνSrc (suc (d + k)) A))))
-
-closeνSrc-⇑ᵗ :
-  ∀ k A →
-  closeνSrc (suc k) (⇑ᵗ A) ≡ ⇑ᵗ (closeνSrc k A)
-closeνSrc-⇑ᵗ k A = closeνSrc-raiseAt zero k A
-
-closeνSrc-⇑ˢ :
-  ∀ k A →
-  closeνSrc k (⇑ˢ A) ≡ renameᵗ (raiseVarFrom k) A
-closeνSrc-⇑ˢ k (＇ X) = refl
-closeνSrc-⇑ˢ k (｀ α) = refl
-closeνSrc-⇑ˢ k (‵ ι) = refl
-closeνSrc-⇑ˢ k ★ = refl
-closeνSrc-⇑ˢ k (A ⇒ B) =
-  cong₂ _⇒_ (closeνSrc-⇑ˢ k A) (closeνSrc-⇑ˢ k B)
-closeνSrc-⇑ˢ k (`∀ A) =
-  cong `∀
-    (trans
-      (closeνSrc-⇑ˢ (suc k) A)
-      (renameᵗ-cong (λ X → sym (raise-ext k X)) A))
-
-close-openν-zero :
-  ∀ A →
-  closeνSrc zero ((⇑ˢ A) [ α₀ ]ᵗ) ≡ A
-close-openν-zero A =
-  trans
-    (cong (closeνSrc zero) (sym (openνSrc-zero A)))
-    (close-openνSrc-id zero A)
-
-ground-closeν :
-  ∀ n {G} →
-  Groundᵢ [] G →
-  Groundᵢ (plains n (ν-bound ∷ [])) (closeνSrc n G)
-ground-closeν n (ground-seal α) with α
-... | zero = ground-ν (ν-at n)
-... | suc β = ground-seal β
-ground-closeν n (ground-base ι) = ground-base ι
-ground-closeν n ground-fun = ground-fun
-
-closeν-StarSourceᵢ :
-  ∀ k {A} →
-  StarSourceᵢ A →
-  StarSourceᵢ (closeνSrc k A)
-closeν-StarSourceᵢ k (star-＇ X) = star-＇ (raiseVarFrom k X)
-closeν-StarSourceᵢ k (star-｀ zero) = star-＇ k
-closeν-StarSourceᵢ k (star-｀ (suc α)) = star-｀ α
-closeν-StarSourceᵢ k (star-‵ ι) = star-‵ ι
-closeν-StarSourceᵢ k (star-⇒ A B) =
-  star-⇒ (closeνSrc k A) (closeνSrc k B)
-
-closeν-⊑ᵢ :
-  ∀ k {Γ A B} →
-  Γ ⊢ A ⊑ᵢ B →
-  insertνAt k Γ ⊢ closeνSrc k A ⊑ᵢ closeνSrc k B
-closeν-⊑ᵢ k ⊑ᵢ-★★ = ⊑ᵢ-★★
-closeν-⊑ᵢ k (⊑ᵢ-★ A G s g p) =
-  ⊑ᵢ-★
-    (closeνSrc k A)
-    (closeνSrc k G)
-    (closeν-StarSourceᵢ k s)
-    (closeν-ground k g)
-    (closeν-⊑ᵢ k p)
-closeν-⊑ᵢ k (⊑ᵢ-＇ X) = ⊑ᵢ-＇ (raiseVarFrom k X)
-closeν-⊑ᵢ k (⊑ᵢ-｀ zero) = ⊑ᵢ-＇ k
-closeν-⊑ᵢ k (⊑ᵢ-｀ (suc α)) = ⊑ᵢ-｀ α
-closeν-⊑ᵢ k (⊑ᵢ-‵ ι) = ⊑ᵢ-‵ ι
-closeν-⊑ᵢ k (⊑ᵢ-⇒ A A′ B B′ p q) =
-  ⊑ᵢ-⇒
-    (closeνSrc k A)
-    (closeνSrc k A′)
-    (closeνSrc k B)
-    (closeνSrc k B′)
-    (closeν-⊑ᵢ k p)
-    (closeν-⊑ᵢ k q)
-closeν-⊑ᵢ k (⊑ᵢ-∀ A B p) =
-  ⊑ᵢ-∀
-    (closeνSrc (suc k) A)
-    (closeνSrc (suc k) B)
-    (closeν-⊑ᵢ (suc k) p)
-closeν-⊑ᵢ k (⊑ᵢ-ν A B p) =
-  ⊑ᵢ-ν
-    (closeνSrc (suc k) A)
-    (closeνSrc k B)
-    (⊑ᵢ-cast
-      refl
-      (closeνSrc-⇑ᵗ k B)
-      (closeν-⊑ᵢ (suc k) p))
-
-⊑ᵢ-trans-fuel :
-  ∀ {n Γ A B C} →
-  (p : Γ ⊢ A ⊑ᵢ B) →
-  (q : Γ ⊢ B ⊑ᵢ C) →
-  size⊑ᵢ p + size⊑ᵢ q ≤ n →
-  Γ ⊢ A ⊑ᵢ C
-⊑ᵢ-trans-fuel {n = zero} p ⊑ᵢ-★★ h = p
-⊑ᵢ-trans-fuel {n = zero} ⊑ᵢ-★★ (⊑ᵢ-★ A G s g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-★ A G s g p) (⊑ᵢ-★ A′ G′ s′ g′ q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-＇ X) (⊑ᵢ-★ A G s g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-｀ α) (⊑ᵢ-★ A G s g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-‵ ι) (⊑ᵢ-★ A G s g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-⇒ A A′ B B′ p₁ p₂) (⊑ᵢ-★ A₁ G s g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-∀ A B p) (⊑ᵢ-★ A₁ G s g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-ν A B p) (⊑ᵢ-★ A₁ G s g q) ()
-⊑ᵢ-trans-fuel {n = zero} p (⊑ᵢ-＇ X) h = p
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-ν A B p) (⊑ᵢ-｀ α′) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-｀ α) (⊑ᵢ-｀ .α) h =
-  ⊑ᵢ-｀ α
-⊑ᵢ-trans-fuel {n = zero} p (⊑ᵢ-‵ ι) h = p
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-⇒ A A′ B B′ p₁ p₂) (⊑ᵢ-⇒ A₁ A″ B₁ B″ q₁ q₂) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-∀ A B p) (⊑ᵢ-∀ A₁ B₁ q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-∀ A B p) (⊑ᵢ-ν A₁ B₁ q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-ν A B p) q ()
-⊑ᵢ-trans-fuel {n = suc n} p ⊑ᵢ-★★ h = p
-⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-ν A B p) q h =
-  ⊑ᵢ-ν A _
-    (⊑ᵢ-trans-fuel
-      p
-      (ν-weaken⊑ᵢ q)
-      (subst
-        (λ x → size⊑ᵢ p + x ≤ n)
-        (sym (size-ν-weaken⊑ᵢ q))
-        (ν-rec-bound {a = size⊑ᵢ p} {b = size⊑ᵢ q} h)))
-⊑ᵢ-trans-fuel {n = suc n} ⊑ᵢ-★★ (⊑ᵢ-★ .★ G () g q) h
-⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-★ A G₁ sA gA p)
-    (⊑ᵢ-★ .★ G () g q) h
-⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-＇ X) (⊑ᵢ-★ .(＇ X) G s g q) h =
-  ⊑ᵢ-★ (＇ X) G (star-＇ X) g
-    (⊑ᵢ-trans-fuel
-      (⊑ᵢ-＇ X)
-      q
-      (pred-★-bound {a = zero} {b = size⊑ᵢ q} h))
-⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-｀ α) (⊑ᵢ-★ .(｀ α) G s g q) h =
-  ⊑ᵢ-★ (｀ α) G (star-｀ α) g
-    (⊑ᵢ-trans-fuel
-      (⊑ᵢ-｀ α)
-      q
-      (pred-★-bound {a = zero} {b = size⊑ᵢ q} h))
-⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-‵ ι) (⊑ᵢ-★ .(‵ ι) G s g q) h =
-  ⊑ᵢ-★ (‵ ι) G (star-‵ ι) g
-    (⊑ᵢ-trans-fuel
-      (⊑ᵢ-‵ ι)
-      q
-      (pred-★-bound {a = zero} {b = size⊑ᵢ q} h))
-⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-⇒ A A′ B B′ p₁ p₂)
-    (⊑ᵢ-★ .(A′ ⇒ B′) G s g q) h =
-  ⊑ᵢ-★ (A ⇒ B) G (star-⇒ A B) g
-    (⊑ᵢ-trans-fuel
-      (⊑ᵢ-⇒ A A′ B B′ p₁ p₂)
-      q
-      (pred-★-bound
-        {a = size⊑ᵢ (⊑ᵢ-⇒ A A′ B B′ p₁ p₂)}
-        {b = size⊑ᵢ q}
-        h))
-⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-∀ A B p)
-    (⊑ᵢ-★ .(`∀ B) G () g q) h
-⊑ᵢ-trans-fuel {n = suc n} p (⊑ᵢ-＇ X) h = p
-⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-｀ α) (⊑ᵢ-｀ .α) h =
-  ⊑ᵢ-｀ α
-⊑ᵢ-trans-fuel {n = suc n} p (⊑ᵢ-‵ ι) h = p
-⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-⇒ A A′ B B′ p₁ p₂)
-    (⊑ᵢ-⇒ A₁ A″ B₁ B″ q₁ q₂) h =
-  ⊑ᵢ-⇒ A A″ B B″
-    (⊑ᵢ-trans-fuel
-      p₁
-      q₁
-      (left-rec-⇒-bound
-        {a = size⊑ᵢ p₁} {b = size⊑ᵢ p₂}
-        {c = size⊑ᵢ q₁} {d = size⊑ᵢ q₂}
-        h))
-    (⊑ᵢ-trans-fuel
-      p₂
-      q₂
-      (right-rec-⇒-bound
-        {a = size⊑ᵢ p₁} {b = size⊑ᵢ p₂}
-        {c = size⊑ᵢ q₁} {d = size⊑ᵢ q₂}
-        h))
-⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-∀ A B p) (⊑ᵢ-∀ B₁ C q) h =
-  ⊑ᵢ-∀ A C
-    (⊑ᵢ-trans-fuel
-      p
-      q
-      (∀ν-rec-bound {a = size⊑ᵢ p} {b = size⊑ᵢ q} h))
-⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-∀ A B p) (⊑ᵢ-ν B₁ C q) h =
-  ⊑ᵢ-ν A C
-    (⊑ᵢ-trans-fuel
-      (plain-to-ν⊑ᵢ p)
-      q
-      (subst
-        (λ x → x + size⊑ᵢ q ≤ n)
-        (sym (size-plain-to-ν⊑ᵢ p))
-        (∀ν-rec-bound {a = size⊑ᵢ p} {b = size⊑ᵢ q} h)))
-
-⊑ᵢ-trans :
-  ∀ {Γ A B C} →
-  Γ ⊢ A ⊑ᵢ B →
-  Γ ⊢ B ⊑ᵢ C →
-  Γ ⊢ A ⊑ᵢ C
-⊑ᵢ-trans p q = ⊑ᵢ-trans-fuel p q ≤-refl
-
-⊒ᵢ-trans :
-  ∀ {Γ A B C} →
-  Γ ⊢ A ⊒ᵢ B →
-  Γ ⊢ B ⊒ᵢ C →
-  Γ ⊢ A ⊒ᵢ C
-⊒ᵢ-trans p q = ⊑ᵢ-trans q p
-
-substVarFrom-closed :
-  ∀ k {Ψ T} →
-  WfTy 0 Ψ T →
-  substVarFrom k T k ≡ T
-substVarFrom-closed zero hT = refl
-substVarFrom-closed (suc k) hT =
-  trans (cong ⇑ᵗ (substVarFrom-closed k hT)) (renameᵗ-closed-id hT)
-
-substν-lookup :
-  ∀ k {Γ X Ψ T} →
-  WfTy 0 Ψ T →
-  insertνAt k Γ ∋ X ∶ ν-bound →
-  (substVarFrom k T X ≡ T) ⊎
-  ∃[ Y ] (Γ ∋ Y ∶ ν-bound × substVarFrom k T X ≡ ＇ Y)
-substν-lookup zero hT here = inj₁ refl
-substν-lookup zero hT (there x∈) = inj₂ (_ , x∈ , refl)
-substν-lookup (suc k) {Γ = []} hT (there x∈)
-  with substν-lookup k hT x∈
-... | inj₁ eq = inj₁ (trans (cong ⇑ᵗ eq) (renameᵗ-closed-id hT))
-... | inj₂ (_ , () , _)
-substν-lookup (suc k) {Γ = plain ∷ Γ} hT (there x∈)
-  with substν-lookup k hT x∈
-... | inj₁ eq = inj₁ (trans (cong ⇑ᵗ eq) (renameᵗ-closed-id hT))
-... | inj₂ (Y , y∈ , eq) = inj₂ (suc Y , there y∈ , cong ⇑ᵗ eq)
-substν-lookup (suc k) {Γ = ν-bound ∷ Γ} hT here =
-  inj₂ (zero , here , refl)
-substν-lookup (suc k) {Γ = ν-bound ∷ Γ} hT (there x∈)
-  with substν-lookup k hT x∈
-... | inj₁ eq = inj₁ (trans (cong ⇑ᵗ eq) (renameᵗ-closed-id hT))
-... | inj₂ (Y , y∈ , eq) = inj₂ (suc Y , there y∈ , cong ⇑ᵗ eq)
-
-substνAt-ground⊑★ :
-  ∀ k {Γ Ψ G T} →
-  WfTy 0 Ψ T →
-  Groundᵢ (insertνAt k Γ) G →
-  Γ ⊢ substᵗ (substVarFrom k T) G ⊑ᵢ ★
-substνAt-ground⊑★ k hT (ground-ν x∈)
-  with substν-lookup k hT x∈
-... | inj₁ eq = ⊑ᵢ-cast (sym eq) refl (closed-⊑★ hT)
-... | inj₂ (Y , y∈ , eq) =
-  ⊑ᵢ-cast (sym eq) refl
-    (⊑ᵢ-★ (＇ Y) (＇ Y) (star-＇ Y) (ground-ν y∈) (⊑ᵢ-＇ Y))
-substνAt-ground⊑★ k hT (ground-seal α) =
-  ⊑ᵢ-★ (｀ α) (｀ α) (star-｀ α) (ground-seal α) (⊑ᵢ-｀ α)
-substνAt-ground⊑★ k hT (ground-base ι) =
-  ⊑ᵢ-★ (‵ ι) (‵ ι) (star-‵ ι) (ground-base ι) (⊑ᵢ-‵ ι)
-substνAt-ground⊑★ k hT ground-fun =
-  ⊑ᵢ-★ (★ ⇒ ★) (★ ⇒ ★) (star-⇒ ★ ★) ground-fun ⊑ᵢ-refl
-
-substνAt⊑ᵢ :
-  ∀ k {Γ Ψ A B T} →
-  WfTy 0 Ψ T →
-  insertνAt k Γ ⊢ A ⊑ᵢ B →
-  Γ ⊢ substᵗ (substVarFrom k T) A ⊑ᵢ substᵗ (substVarFrom k T) B
-substνAt⊑ᵢ k hT ⊑ᵢ-★★ = ⊑ᵢ-★★
-substνAt⊑ᵢ k hT (⊑ᵢ-★ A G s g p) =
-  ⊑ᵢ-trans (substνAt⊑ᵢ k hT p) (substνAt-ground⊑★ k hT g)
-substνAt⊑ᵢ k hT (⊑ᵢ-＇ X) = ⊑ᵢ-refl
-substνAt⊑ᵢ k hT (⊑ᵢ-｀ α) = ⊑ᵢ-｀ α
-substνAt⊑ᵢ k hT (⊑ᵢ-‵ ι) = ⊑ᵢ-‵ ι
-substνAt⊑ᵢ k {T = T} hT (⊑ᵢ-⇒ A A′ B B′ p q) =
-  ⊑ᵢ-⇒
-    (substᵗ (substVarFrom k T) A)
-    (substᵗ (substVarFrom k T) A′)
-    (substᵗ (substVarFrom k T) B)
-    (substᵗ (substVarFrom k T) B′)
-    (substνAt⊑ᵢ k hT p)
-    (substνAt⊑ᵢ k hT q)
-substνAt⊑ᵢ k {T = T} hT (⊑ᵢ-∀ A B p) =
-  ⊑ᵢ-∀
-    (substᵗ (substVarFrom (suc k) T) A)
-    (substᵗ (substVarFrom (suc k) T) B)
-    (substνAt⊑ᵢ (suc k) hT p)
-substνAt⊑ᵢ k {T = T} hT (⊑ᵢ-ν A B p) =
-  ⊑ᵢ-ν
-    (substᵗ (substVarFrom (suc k) T) A)
-    (substᵗ (substVarFrom k T) B)
-    (⊑ᵢ-cast
-      refl
-      (substVarFrom-⇑ᵗ k T B)
-      (substνAt⊑ᵢ (suc k) hT p))
-
-substν⊑ᵢ :
-  ∀ {Γ Ψ A B T} →
-  WfTy 0 Ψ T →
-  (ν-bound ∷ Γ) ⊢ A ⊑ᵢ B →
-  Γ ⊢ A [ T ]ᵗ ⊑ᵢ B [ T ]ᵗ
-substν⊑ᵢ = substνAt⊑ᵢ zero
-
-ν-close-inst⊑ᵢ :
-  ∀ {Γ Ψ A B T} →
-  WfTy 0 Ψ T →
-  (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ⇑ᵗ B →
-  Γ ⊢ A [ T ]ᵗ ⊑ᵢ B
-ν-close-inst⊑ᵢ {B = B} {T = T} hT pν =
-  ⊑ᵢ-cast refl (open-renᵗ-suc B T) (substν⊑ᵢ hT pν)
+replacePlainAt-ν-lookup zero {Γ = []} ()
+replacePlainAt-ν-lookup zero {Γ = plain ∷ Γ} (there x∈) = there x∈
+replacePlainAt-ν-lookup zero {Γ = ν-bound ∷ Γ} here = here
+replacePlainAt-ν-lookup zero {Γ = ν-bound ∷ Γ} (there x∈) = there x∈
+replacePlainAt-ν-lookup (suc k) {Γ = []} ()
+replacePlainAt-ν-lookup (suc k) {Γ = m ∷ Γ} here = here
+replacePlainAt-ν-lookup (suc k) {Γ = m ∷ Γ} (there x∈) =
+  there (replacePlainAt-ν-lookup k x∈)
 
 record νClosedInstᵢ {Γ A B T}
     (pν : (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ⇑ᵗ B)
@@ -978,428 +875,173 @@ open νClosedInstᵢ public
   νClosedInstᵢ pν (ν-close-inst⊑ᵢ hT pν)
 ν-close-inst-evidenceᵢ hT pν = ν-closed-instᵢ _ hT refl
 
-interpSeal-plains-empty : ∀ n α → interpSeal (plains n []) α ≡ α
-interpSeal-plains-empty zero α = refl
-interpSeal-plains-empty (suc n) α = interpSeal-plains-empty n α
+SubstPlainOk : ℕ → ICtx → Ty → Set
+SubstPlainOk k Γ T =
+  ∀ {X} →
+  insertPlainAt k Γ ∋ X ∶ plain →
+  Γ ⊢ substVarFrom k T X ⊑ᵢ substVarFrom k T X
 
-interpSeal-plains-ν :
-  ∀ n Γ α →
-  interpSeal (plains n (ν-bound ∷ Γ)) α ≡
-  suc (interpSeal (plains n Γ) α)
-interpSeal-plains-ν zero Γ α = refl
-interpSeal-plains-ν (suc n) Γ α = interpSeal-plains-ν n Γ α
+SubstPlainOk-zero :
+  ∀ {Γ T} →
+  Γ ⊢ T ⊑ᵢ T →
+  SubstPlainOk zero Γ T
+SubstPlainOk-zero T⊑T here = T⊑T
+SubstPlainOk-zero T⊑T (there x∈) = ⊑ₒ-＇ x∈
 
-interp-plains-empty : ∀ n A → interp (plains n []) A ≡ A
-interp-plains-empty zero (＇ X) = refl
-interp-plains-empty (suc n) (＇ zero) = refl
-interp-plains-empty (suc n) (＇ (suc X)) =
-  cong ⇑ᵗ (interp-plains-empty n (＇ X))
-interp-plains-empty n (｀ α) = cong ｀_ (interpSeal-plains-empty n α)
-interp-plains-empty n (‵ ι) = refl
-interp-plains-empty n ★ = refl
-interp-plains-empty n (A ⇒ B) =
-  cong₂ _⇒_ (interp-plains-empty n A) (interp-plains-empty n B)
-interp-plains-empty n (`∀ A) = cong `∀ (interp-plains-empty (suc n) A)
+SubstPlainOk-plain :
+  ∀ {k Γ T} →
+  SubstPlainOk k Γ T →
+  SubstPlainOk (suc k) (plain ∷ Γ) T
+SubstPlainOk-plain ok here = ⊑ₒ-＇ here
+SubstPlainOk-plain ok (there x∈) = plain-weaken⊑ᵢ (ok x∈)
 
-interp-empty : ∀ A → interp [] A ≡ A
-interp-empty A = interp-plains-empty zero A
+SubstPlainOk-ν :
+  ∀ {k Γ T} →
+  SubstPlainOk k Γ T →
+  SubstPlainOk (suc k) (ν-bound ∷ Γ) T
+SubstPlainOk-ν ok (there x∈) = ν-weaken⊑ᵢ (ok x∈)
 
-interp-ν-left-at :
-  ∀ n Γ A →
-  interp (plains n (ν-bound ∷ Γ)) A ≡
-  substᵗ (openνEnv n) (⇑ˢ (interp (plains (suc n) Γ) A))
-interp-ν-left-at zero Γ (＇ zero) = refl
-interp-ν-left-at zero Γ (＇ (suc X)) =
-  sym
-    (trans
-      (cong
-        (substᵗ (singleTyEnv α₀))
-        (sym (renameᵗ-⇑ˢ suc (interpVar Γ X))))
-      (open-renᵗ-suc (⇑ˢ (interpVar Γ X)) α₀))
-interp-ν-left-at (suc n) Γ (＇ zero) = refl
-interp-ν-left-at (suc n) Γ (＇ (suc X)) =
-  trans
-    (cong ⇑ᵗ (interp-ν-left-at n Γ (＇ X)))
-    (trans
-      (sym
-        (substᵗ-suc-renameᵗ-suc
-          (openνEnv n)
-          (⇑ˢ (interpVar (plains (suc n) Γ) X))))
-      (cong
-        (substᵗ (extsᵗ (openνEnv n)))
-        (renameᵗ-⇑ˢ suc (interpVar (plains (suc n) Γ) X))))
-interp-ν-left-at n Γ (｀ α) = cong ｀_ (interpSeal-plains-ν n Γ α)
-interp-ν-left-at n Γ (‵ ι) = refl
-interp-ν-left-at n Γ ★ = refl
-interp-ν-left-at n Γ (A ⇒ B) =
-  cong₂ _⇒_ (interp-ν-left-at n Γ A) (interp-ν-left-at n Γ B)
-interp-ν-left-at n Γ (`∀ A) =
-  cong `∀ (interp-ν-left-at (suc n) Γ A)
+insertPlainAt-empty-no-ν :
+  ∀ k {X} →
+  insertPlainAt k [] ∋ X ∶ ν-bound →
+  ⊥
+insertPlainAt-empty-no-ν zero (there ())
+insertPlainAt-empty-no-ν (suc k) (there x∈) =
+  insertPlainAt-empty-no-ν k x∈
 
-interp-ν-left :
-  ∀ Γ A →
-  interp (ν-bound ∷ Γ) A ≡
-  (⇑ˢ (interp (plain ∷ Γ) A)) [ α₀ ]ᵗ
-interp-ν-left Γ A = interp-ν-left-at zero Γ A
+substPlain-ν-lookup :
+  ∀ k {Γ X T} →
+  insertPlainAt k Γ ∋ X ∶ ν-bound →
+  Σ TyVar
+    (λ Y → Σ (Γ ∋ Y ∶ ν-bound)
+      (λ _ → substVarFrom k T X ≡ ＇ Y))
+substPlain-ν-lookup zero (there x∈) = _ , x∈ , refl
+substPlain-ν-lookup (suc k) {Γ = []} (there x∈) =
+  ⊥-elim (insertPlainAt-empty-no-ν k x∈)
+substPlain-ν-lookup (suc k) {Γ = ν-bound ∷ Γ} here =
+  zero , here , refl
+substPlain-ν-lookup (suc k) {Γ = m ∷ Γ} (there x∈)
+  with substPlain-ν-lookup k x∈
+substPlain-ν-lookup (suc k) {Γ = m ∷ Γ} (there x∈)
+  | Y , y∈ , eq = suc Y , there y∈ , cong ⇑ᵗ eq
 
-interp-ν-right-at :
-  ∀ n Γ B →
-  interp (plains n (ν-bound ∷ Γ)) (renameᵗ (raiseVarFrom n) B) ≡
-  ⇑ˢ (interp (plains n Γ) B)
-interp-ν-right-at zero Γ (＇ X) = refl
-interp-ν-right-at (suc n) Γ (＇ zero) = refl
-interp-ν-right-at (suc n) Γ (＇ (suc X)) =
-  trans
-    (cong ⇑ᵗ (interp-ν-right-at n Γ (＇ X)))
-    (renameᵗ-⇑ˢ suc (interpVar (plains n Γ) X))
-interp-ν-right-at n Γ (｀ α) = cong ｀_ (interpSeal-plains-ν n Γ α)
-interp-ν-right-at n Γ (‵ ι) = refl
-interp-ν-right-at n Γ ★ = refl
-interp-ν-right-at n Γ (A ⇒ B) =
-  cong₂ _⇒_ (interp-ν-right-at n Γ A) (interp-ν-right-at n Γ B)
-interp-ν-right-at n Γ (`∀ A) =
-  cong `∀
-    (trans
-      (cong
-        (interp (plains (suc n) (ν-bound ∷ Γ)))
-        (renameᵗ-cong (raise-ext n) A))
-      (interp-ν-right-at (suc n) Γ A))
+substPlainAt-StarSourceᵢ :
+  ∀ k T {Γ A G} →
+  StarSourceᵢ A →
+  Ground G →
+  insertPlainAt k Γ ⊢ A ⊑ᵢ G →
+  StarSourceᵢ (substᵗ (substVarFrom k T) A)
+substPlainAt-StarSourceᵢ k T (star-＇ X) g p =
+  ⊥-elim (var-ground-⊥ p g)
+substPlainAt-StarSourceᵢ k T (star-｀ α) g p = star-｀ α
+substPlainAt-StarSourceᵢ k T (star-‵ ι) g p = star-‵ ι
+substPlainAt-StarSourceᵢ k T (star-⇒ A B) g p =
+  star-⇒
+    (substᵗ (substVarFrom k T) A)
+    (substᵗ (substVarFrom k T) B)
 
-interp-ν-right :
-  ∀ Γ B →
-  interp (ν-bound ∷ Γ) (⇑ᵗ B) ≡ ⇑ˢ (interp Γ B)
-interp-ν-right Γ B = interp-ν-right-at zero Γ B
+occurs-raise-fresh :
+  ∀ k A →
+  occurs k (renameᵗ (raiseVarFrom k) A) ≡ false
+occurs-raise-fresh k (＇ X) with k ≟ raiseVarFrom k X
+occurs-raise-fresh k (＇ X) | yes eq =
+  ⊥-elim (raiseVarFrom-≢ k X (sym eq))
+occurs-raise-fresh k (＇ X) | no neq = refl
+occurs-raise-fresh k (｀ α) = refl
+occurs-raise-fresh k (‵ ι) = refl
+occurs-raise-fresh k ★ = refl
+occurs-raise-fresh k (A ⇒ B)
+  rewrite occurs-raise-fresh k A
+        | occurs-raise-fresh k B = refl
+occurs-raise-fresh k (`∀ A)
+  rewrite rename-raise-ext k A =
+  occurs-raise-fresh (suc k) A
 
-cast⊑-cong :
-  ∀ {Σ Φ A A′ B B′} →
-  A ≡ A′ →
-  B ≡ B′ →
-  Σ ∣ Φ ⊢ A ⊑ᶜ B →
-  Σ ∣ Φ ⊢ A′ ⊑ᶜ B′
-cast⊑-cong refl refl p = p
+occurs-substVarFrom-var-< :
+  ∀ k X Y T →
+  X < k →
+  occurs X (substVarFrom k T Y) ≡ occurs X (＇ Y)
+occurs-substVarFrom-var-< zero X Y T ()
+occurs-substVarFrom-var-< (suc k) zero zero T z<s = refl
+occurs-substVarFrom-var-< (suc k) zero (suc Y) T z<s
+  rewrite occurs-raise-fresh zero (substVarFrom k T Y) = refl
+occurs-substVarFrom-var-< (suc k) (suc X) zero T (s<s X<k) =
+  refl
+occurs-substVarFrom-var-< (suc k) (suc X) (suc Y) T (s<s X<k)
+  rewrite occurs-raise zero X (substVarFrom k T Y)
+        | occurs-substVarFrom-var-< k X Y T X<k
+        | occurs-raise zero X (＇ Y) = refl
 
-cast⊒-cong :
-  ∀ {Σ Φ A A′ B B′} →
-  A ≡ A′ →
-  B ≡ B′ →
-  Σ ∣ Φ ⊢ A ⊒ᶜ B →
-  Σ ∣ Φ ⊢ A′ ⊒ᶜ B′
-cast⊒-cong refl refl p = p
+occurs-substVarFrom-<-ty :
+  ∀ A k X T →
+  X < k →
+  occurs X (substᵗ (substVarFrom k T) A) ≡ occurs X A
+occurs-substVarFrom-<-ty (＇ Y) k X T X<k =
+  occurs-substVarFrom-var-< k X Y T X<k
+occurs-substVarFrom-<-ty (｀ α) k X T X<k = refl
+occurs-substVarFrom-<-ty (‵ ι) k X T X<k = refl
+occurs-substVarFrom-<-ty ★ k X T X<k = refl
+occurs-substVarFrom-<-ty (A ⇒ B) k X T X<k
+  rewrite occurs-substVarFrom-<-ty A k X T X<k
+        | occurs-substVarFrom-<-ty B k X T X<k = refl
+occurs-substVarFrom-<-ty (`∀ A) k X T X<k =
+  occurs-substVarFrom-<-ty A (suc k) (suc X) T (s<s X<k)
 
-------------------------------------------------------------------------
--- Permission resources for seals below a bound
-------------------------------------------------------------------------
+occurs-substVarFrom-< :
+  ∀ k X T A →
+  X < k →
+  occurs X (substᵗ (substVarFrom k T) A) ≡ occurs X A
+occurs-substVarFrom-< k X T A =
+  occurs-substVarFrom-<-ty A k X T
 
-Resource : Store → List CastPerm → ℕ → Set
-Resource Σ Φ n =
-  ∀ {α} →
-  α < n →
-  (Σ ∋ˢ α ⦂ ★ × α ∈cast Φ) ⊎ α ∈tag Φ
+substPlainAt⊑ᵢ :
+  ∀ k T {Γ A B} →
+  SubstPlainOk k Γ T →
+  insertPlainAt k Γ ⊢ A ⊑ᵢ B →
+  Γ ⊢ substᵗ (substVarFrom k T) A
+    ⊑ᵢ substᵗ (substVarFrom k T) B
+substPlainAt⊑ᵢ k T ok ⊑ₒ-★★ = ⊑ₒ-★★
+substPlainAt⊑ᵢ k T ok (⊑ₒ-★ν xν)
+  with substPlain-ν-lookup k xν
+substPlainAt⊑ᵢ k T ok (⊑ₒ-★ν xν) | Y , yν , eq =
+  ⊑ᵢ-cast (sym eq) refl (⊑ₒ-★ν yν)
+substPlainAt⊑ᵢ k T ok (⊑ₒ-★ A G s g p) =
+  ⊑ₒ-★
+    (substᵗ (substVarFrom k T) A)
+    (substᵗ (substVarFrom k T) G)
+    (substPlainAt-StarSourceᵢ k T s g p)
+    (substᵗ-ground (substVarFrom k T) g)
+    (substPlainAt⊑ᵢ k T ok p)
+substPlainAt⊑ᵢ k T ok (⊑ₒ-＇ x∈) = ok x∈
+substPlainAt⊑ᵢ k T ok (⊑ₒ-｀ α) = ⊑ₒ-｀ α
+substPlainAt⊑ᵢ k T ok (⊑ₒ-‵ ι) = ⊑ₒ-‵ ι
+substPlainAt⊑ᵢ k T ok (⊑ₒ-⇒ A A′ B B′ p q) =
+  ⊑ₒ-⇒
+    (substᵗ (substVarFrom k T) A)
+    (substᵗ (substVarFrom k T) A′)
+    (substᵗ (substVarFrom k T) B)
+    (substᵗ (substVarFrom k T) B′)
+    (substPlainAt⊑ᵢ k T ok p)
+    (substPlainAt⊑ᵢ k T ok q)
+substPlainAt⊑ᵢ k T ok (⊑ₒ-∀ A B p) =
+  ⊑ₒ-∀
+    (substᵗ (substVarFrom (suc k) T) A)
+    (substᵗ (substVarFrom (suc k) T) B)
+    (substPlainAt⊑ᵢ (suc k) T (SubstPlainOk-plain ok) p)
+substPlainAt⊑ᵢ k T ok (⊑ₒ-ν A B occ p) =
+  ⊑ₒ-ν
+    (substᵗ (substVarFrom (suc k) T) A)
+    (substᵗ (substVarFrom k T) B)
+    (trans (occurs-substVarFrom-< (suc k) zero T A z<s) occ)
+    (⊑ᵢ-cast
+      refl
+      (substVarFrom-⇑ᵗ k T B)
+      (substPlainAt⊑ᵢ (suc k) T (SubstPlainOk-ν ok) p))
 
-resource-restrict :
-  ∀ {Σ Φ m n} →
-  m ≤ n →
-  Resource Σ Φ n →
-  Resource Σ Φ m
-resource-restrict m≤n r α<m = r (<-≤-trans α<m m≤n)
-
-liftLookup★ :
-  ∀ {Σ α} →
-  Σ ∋ˢ α ⦂ ★ →
-  ⟰ˢ Σ ∋ˢ suc α ⦂ ★
-liftLookup★ (Z∋ˢ α≡β A≡B) =
-  Z∋ˢ (cong suc α≡β) (cong (renameˢ suc) A≡B)
-liftLookup★ (S∋ˢ h) = S∋ˢ (liftLookup★ h)
-
-resource-renameᵗ :
-  ∀ {Σ Φ n} →
-  Resource Σ Φ n →
-  Resource (⟰ᵗ Σ) Φ n
-resource-renameᵗ r α<n with r α<n
-... | inj₁ (h , c) = inj₁ (renameLookupᵗ suc h , c)
-... | inj₂ t = inj₂ t
-
-resource-upν :
-  ∀ {Σ Φ n} →
-  Resource Σ Φ n →
-  Resource ((zero , ★) ∷ ⟰ˢ Σ) (cast-seal ∷ Φ) (suc n)
-resource-upν r {zero} z<s = inj₁ (Z∋ˢ refl refl , here-cast-only)
-resource-upν r {suc α} (s<s α<n) with r α<n
-... | inj₁ (h , c) = inj₁ (S∋ˢ (liftLookup★ h) , there-cast c)
-... | inj₂ t = inj₂ (there-tag t)
-
-resource-downν :
-  ∀ {Σ Φ n} →
-  Resource Σ Φ n →
-  Resource ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) (cast-tag ∷ Φ) (suc n)
-resource-downν r {zero} z<s = inj₂ here-tag-only
-resource-downν r {suc α} (s<s α<n) with r α<n
-... | inj₁ (h , c) = inj₁ (S∋ˢ (liftLookup★ h) , there-cast c)
-... | inj₂ t = inj₂ (there-tag t)
-
-ground⊑⇒cast⊑★ :
-  ∀ {Σ Φ n Γ G} →
-  Resource Σ Φ n →
-  (g : Groundᵢ Γ G) →
-  maxGroundᵢ g < n →
-  Σ ∣ Φ ⊢ interp Γ G ⊑ᶜ ★
-ground⊑⇒cast⊑★ r (ground-ν x∈) α<n with ν-lookup-seal x∈
-... | α , eq with r α<n
-...   | inj₁ (h , α∈cast) =
-        cast⊑-cong (sym eq) refl (⊑ᶜ-unseal★ h α∈cast)
-...   | inj₂ α∈tag =
-        cast⊑-cong (sym eq) refl (⊑ᶜ-tag (｀ α) α∈tag)
-ground⊑⇒cast⊑★ {Γ = Γ} r (ground-seal α) α<n
-  with r {interpSeal Γ α} α<n
-... | inj₁ (h , α∈cast) = ⊑ᶜ-unseal★ h α∈cast
-... | inj₂ α∈tag = ⊑ᶜ-tag (｀ (interpSeal Γ α)) α∈tag
-ground⊑⇒cast⊑★ r (ground-base ι) α<n = ⊑ᶜ-tag (‵ ι) tt
-ground⊑⇒cast⊑★ r ground-fun α<n = ⊑ᶜ-tag ★⇒★ tt
-
-ground⊒⇒cast⊒★ :
-  ∀ {Σ Φ n Γ G} →
-  Resource Σ Φ n →
-  (g : Groundᵢ Γ G) →
-  maxGroundᵢ g < n →
-  Σ ∣ Φ ⊢ ★ ⊒ᶜ interp Γ G
-ground⊒⇒cast⊒★ r (ground-ν x∈) α<n with ν-lookup-seal x∈
-... | α , eq with r α<n
-...   | inj₁ (h , α∈cast) =
-        cast⊒-cong refl (sym eq) (⊒ᶜ-seal★ h α∈cast)
-...   | inj₂ α∈tag =
-        cast⊒-cong refl (sym eq) (⊒ᶜ-untag (｀ α) α∈tag zero)
-ground⊒⇒cast⊒★ {Γ = Γ} r (ground-seal α) α<n
-  with r {interpSeal Γ α} α<n
-... | inj₁ (h , α∈cast) = ⊒ᶜ-seal★ h α∈cast
-... | inj₂ α∈tag = ⊒ᶜ-untag (｀ (interpSeal Γ α)) α∈tag zero
-ground⊒⇒cast⊒★ r (ground-base ι) α<n = ⊒ᶜ-untag (‵ ι) tt zero
-ground⊒⇒cast⊒★ r ground-fun α<n = ⊒ᶜ-untag ★⇒★ tt zero
-
-------------------------------------------------------------------------
--- Soundness bridge to same-seal Cast
-------------------------------------------------------------------------
-
-mutual
-  seal⊑-cast :
-    ∀ {Σ Φ α} →
-    Resource Σ Φ zero →
-    Σ ∣ Φ ⊢ ｀ α ⊑ᶜ ｀ α
-  seal⊑-cast {α = α} r = ⊑ᶜ-seal α
-
-  seal⊒-cast :
-    ∀ {Σ Φ α} →
-    Resource Σ Φ zero →
-    Σ ∣ Φ ⊢ ｀ α ⊒ᶜ ｀ α
-  seal⊒-cast {α = α} r = ⊒ᶜ-seal α
-
-  build⊑ :
-    ∀ {Γ A B} →
-    Γ ⊢ A ⊑ᵢ B →
-    ∃[ n ] (∀ {Σ Φ} →
-      Resource Σ Φ n →
-      Σ ∣ Φ ⊢ interp Γ A ⊑ᶜ interp Γ B)
-  build⊑ ⊑ᵢ-★★ = zero , (λ r → ⊑ᶜ-id (wfTySome ★))
-  build⊑ (⊑ᵢ-★ A G s g p) with build⊑ p
-  build⊑ (⊑ᵢ-★ A G s g p) | n , f =
-    (suc (maxGroundᵢ g) ⊔ n) ,
-    (λ r →
-      f (resource-restrict (m≤n⊔m (suc (maxGroundᵢ g)) n) r) ；⊑ᶜ
-      ground⊑⇒cast⊑★
-        r
-        g
-        (<-≤-trans (n<1+n (maxGroundᵢ g))
-          (m≤m⊔n (suc (maxGroundᵢ g)) n)))
-  build⊑ {Γ = Γ} (⊑ᵢ-＇ X) =
-    zero , (λ r → ⊑ᶜ-id (wfTySome (interpVar Γ X)))
-  build⊑ (⊑ᵢ-｀ α) = zero , (λ r → seal⊑-cast r)
-  build⊑ (⊑ᵢ-‵ ι) = zero , (λ r → ⊑ᶜ-id (wfTySome (‵ ι)))
-  build⊑ (⊑ᵢ-⇒ A A′ B B′ p q) with build⊒ p | build⊑ q
-  build⊑ (⊑ᵢ-⇒ A A′ B B′ p q) | n₁ , f₁ | n₂ , f₂ =
-    (n₁ ⊔ n₂) ,
-    (λ r →
-      ⊑ᶜ-⇒
-        (f₁ (resource-restrict (m≤m⊔n n₁ n₂) r))
-        (f₂ (resource-restrict (m≤n⊔m n₁ n₂) r)))
-  build⊑ (⊑ᵢ-∀ A B p) with build⊑ p
-  build⊑ (⊑ᵢ-∀ A B p) | n , f =
-    n , (λ r → ⊑ᶜ-∀ (f (resource-renameᵗ r)))
-  build⊑ {Γ = Γ} (⊑ᵢ-ν A B p) with build⊑ p
-  build⊑ {Γ = Γ} (⊑ᵢ-ν A B p) | n , f =
-    n ,
-    (λ r →
-      ⊑ᶜ-ν
-        (cast⊑-cong
-          (interp-ν-left Γ A)
-          (interp-ν-right Γ B)
-          (f (resource-restrict (n≤1+n n) (resource-upν r)))))
-
-  build⊒ :
-    ∀ {Γ A B} →
-    Γ ⊢ A ⊒ᵢ B →
-    ∃[ n ] (∀ {Σ Φ} →
-      Resource Σ Φ n →
-      Σ ∣ Φ ⊢ interp Γ A ⊒ᶜ interp Γ B)
-  build⊒ ⊑ᵢ-★★ = zero , (λ r → ⊒ᶜ-id (wfTySome ★))
-  build⊒ (⊑ᵢ-★ A G s g p) with build⊒ p
-  build⊒ (⊑ᵢ-★ A G s g p) | n , f =
-    (suc (maxGroundᵢ g) ⊔ n) ,
-    (λ r →
-      ground⊒⇒cast⊒★
-        r
-        g
-        (<-≤-trans (n<1+n (maxGroundᵢ g))
-          (m≤m⊔n (suc (maxGroundᵢ g)) n)) ；⊒ᶜ
-      f (resource-restrict (m≤n⊔m (suc (maxGroundᵢ g)) n) r))
-  build⊒ {Γ = Γ} (⊑ᵢ-＇ X) =
-    zero , (λ r → ⊒ᶜ-id (wfTySome (interpVar Γ X)))
-  build⊒ (⊑ᵢ-｀ α) = zero , (λ r → seal⊒-cast r)
-  build⊒ (⊑ᵢ-‵ ι) = zero , (λ r → ⊒ᶜ-id (wfTySome (‵ ι)))
-  build⊒ (⊑ᵢ-⇒ A A′ B B′ p q) with build⊑ p | build⊒ q
-  build⊒ (⊑ᵢ-⇒ A A′ B B′ p q) | n₁ , f₁ | n₂ , f₂ =
-    (n₁ ⊔ n₂) ,
-    (λ r →
-      ⊒ᶜ-⇒
-        (f₁ (resource-restrict (m≤m⊔n n₁ n₂) r))
-        (f₂ (resource-restrict (m≤n⊔m n₁ n₂) r)))
-  build⊒ (⊑ᵢ-∀ A B p) with build⊒ p
-  build⊒ (⊑ᵢ-∀ A B p) | n , f =
-    n , (λ r → ⊒ᶜ-∀ (f (resource-renameᵗ r)))
-  build⊒ {Γ = Γ} (⊑ᵢ-ν A B p) with build⊒ p
-  build⊒ {Γ = Γ} (⊑ᵢ-ν A B p) | n , f =
-    n ,
-    (λ r →
-      ⊒ᶜ-ν
-        (cast⊒-cong
-          (interp-ν-right Γ B)
-          (interp-ν-left Γ A)
-          (f (resource-restrict (n≤1+n n) (resource-downν r)))))
-
-tagPerms : ℕ → List CastPerm
-tagPerms zero = []
-tagPerms (suc n) = cast-tag ∷ tagPerms n
-
-tagPerms-member :
-  ∀ {n α} →
-  α < n →
-  α ∈tag tagPerms n
-tagPerms-member {zero} ()
-tagPerms-member {suc n} {zero} z<s = here-tag-only
-tagPerms-member {suc n} {suc α} (s<s α<n) = there-tag (tagPerms-member α<n)
-
-resource-tagPerms :
-  ∀ n →
-  Resource ∅ˢ (tagPerms n) n
-resource-tagPerms n α<n = inj₂ (tagPerms-member α<n)
-
-imprecision⊑⇒cast⊑ :
-  ∀ {A B} →
-  [] ⊢ A ⊑ᵢ B →
-  ∃[ Φ ] (∅ˢ ∣ Φ ⊢ A ⊑ᶜ B)
-imprecision⊑⇒cast⊑ p with build⊑ p
-... | n , f =
-  tagPerms n ,
-  cast⊑-cong (interp-empty _) (interp-empty _) (f (resource-tagPerms n))
-
-imprecision⊒⇒cast⊒ :
-  ∀ {A B} →
-  [] ⊢ A ⊒ᵢ B →
-  ∃[ Φ ] (∅ˢ ∣ Φ ⊢ A ⊒ᶜ B)
-imprecision⊒⇒cast⊒ p with build⊒ p
-... | n , f =
-  tagPerms n ,
-  cast⊒-cong (interp-empty _) (interp-empty _) (f (resource-tagPerms n))
-
-------------------------------------------------------------------------
--- Completeness experiment
-------------------------------------------------------------------------
-
-ground-castᵢ-plain : ∀ n {G} → Ground G → Groundᵢ (plains n []) G
-ground-castᵢ-plain n (｀ α) = ground-seal α
-ground-castᵢ-plain n (‵ ι) = ground-base ι
-ground-castᵢ-plain n ★⇒★ = ground-fun
-
-starSource-cast-ground : ∀ {G} → Ground G → StarSourceᵢ G
-starSource-cast-ground (｀ α) = star-｀ α
-starSource-cast-ground (‵ ι) = star-‵ ι
-starSource-cast-ground ★⇒★ = star-⇒ ★ ★
-
-mutual
-  ν-close⊑-plain :
-    ∀ n {Σ Φ A B} →
-    ((zero , ★) ∷ ⟰ˢ Σ) ∣ (cast-seal ∷ Φ) ⊢
-      (⇑ˢ A) [ α₀ ]ᵗ ⊑ᶜ ⇑ˢ B →
-    (ν-bound ∷ plains n []) ⊢ A ⊑ᵢ ⇑ᵗ B
-  ν-close⊑-plain n {A = A} {B = B} p =
-    ⊑ᵢ-cast
-      (close-openν-zero A)
-      (closeνSrc-⇑ˢ zero B)
-      (closeν-⊑ᵢ zero (cast⊑⇒imprecision⊑-plain n p))
-
-  ν-close⊒-plain :
-    ∀ n {Σ Φ A B} →
-    ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ) ⊢
-      ⇑ˢ B ⊒ᶜ (⇑ˢ A) [ α₀ ]ᵗ →
-    (ν-bound ∷ plains n []) ⊢ ⇑ᵗ B ⊒ᵢ A
-  ν-close⊒-plain n {A = A} {B = B} p =
-    ⊑ᵢ-cast
-      (close-openν-zero A)
-      (closeνSrc-⇑ˢ zero B)
-      (closeν-⊑ᵢ zero (cast⊒⇒imprecision⊒-plain n p))
-
-  cast⊑⇒imprecision⊑-plain :
-    ∀ n {Σ Φ A B} →
-    Σ ∣ Φ ⊢ A ⊑ᶜ B →
-    plains n [] ⊢ A ⊑ᵢ B
-  cast⊑⇒imprecision⊑-plain n (⊑ᶜ-tag g ok) =
-    ⊑ᵢ-★ _ _ (starSource-cast-ground g) (ground-castᵢ-plain n g) ⊑ᵢ-refl
-  cast⊑⇒imprecision⊑-plain n (⊑ᶜ-unseal★ {α} h α∈Φ) =
-    ⊑ᵢ-★ _ _ (star-｀ α) (ground-seal α) (⊑ᵢ-｀ α)
-  cast⊑⇒imprecision⊑-plain n (⊑ᶜ-seal α) = ⊑ᵢ-｀ α
-  cast⊑⇒imprecision⊑-plain n (⊑ᶜ-⇒ p q) =
-    ⊑ᵢ-⇒ _ _ _ _
-      (cast⊒⇒imprecision⊒-plain n p)
-      (cast⊑⇒imprecision⊑-plain n q)
-  cast⊑⇒imprecision⊑-plain n (⊑ᶜ-∀ p) =
-    ⊑ᵢ-∀ _ _ (cast⊑⇒imprecision⊑-plain (suc n) p)
-  cast⊑⇒imprecision⊑-plain n (⊑ᶜ-ν p) =
-    ⊑ᵢ-ν _ _ (ν-close⊑-plain n p)
-  cast⊑⇒imprecision⊑-plain n (⊑ᶜ-id wfA) = ⊑ᵢ-refl
-  cast⊑⇒imprecision⊑-plain n (p ；⊑ᶜ q) =
-    ⊑ᵢ-trans
-      (cast⊑⇒imprecision⊑-plain n p)
-      (cast⊑⇒imprecision⊑-plain n q)
-
-  cast⊒⇒imprecision⊒-plain :
-    ∀ n {Σ Φ A B} →
-    Σ ∣ Φ ⊢ A ⊒ᶜ B →
-    plains n [] ⊢ A ⊒ᵢ B
-  cast⊒⇒imprecision⊒-plain n (⊒ᶜ-untag g ok ℓ) =
-    ⊑ᵢ-★ _ _ (starSource-cast-ground g) (ground-castᵢ-plain n g) ⊑ᵢ-refl
-  cast⊒⇒imprecision⊒-plain n (⊒ᶜ-seal★ {α} h α∈Φ) =
-    ⊑ᵢ-★ _ _ (star-｀ α) (ground-seal α) (⊑ᵢ-｀ α)
-  cast⊒⇒imprecision⊒-plain n (⊒ᶜ-seal α) = ⊑ᵢ-｀ α
-  cast⊒⇒imprecision⊒-plain n (⊒ᶜ-⇒ p q) =
-    ⊑ᵢ-⇒ _ _ _ _
-      (cast⊑⇒imprecision⊑-plain n p)
-      (cast⊒⇒imprecision⊒-plain n q)
-  cast⊒⇒imprecision⊒-plain n (⊒ᶜ-∀ p) =
-    ⊑ᵢ-∀ _ _ (cast⊒⇒imprecision⊒-plain (suc n) p)
-  cast⊒⇒imprecision⊒-plain n (⊒ᶜ-ν p) =
-    ⊑ᵢ-ν _ _ (ν-close⊒-plain n p)
-  cast⊒⇒imprecision⊒-plain n (⊒ᶜ-id wfA) = ⊑ᵢ-refl
-  cast⊒⇒imprecision⊒-plain n (p ；⊒ᶜ q) =
-    ⊒ᵢ-trans
-      (cast⊒⇒imprecision⊒-plain n p)
-      (cast⊒⇒imprecision⊒-plain n q)
-
-cast⊑⇒imprecision⊑ :
-  ∀ {Σ Φ A B} →
-  Σ ∣ Φ ⊢ A ⊑ᶜ B →
-  [] ⊢ A ⊑ᵢ B
-cast⊑⇒imprecision⊑ = cast⊑⇒imprecision⊑-plain zero
-
-cast⊒⇒imprecision⊒ :
-  ∀ {Σ Φ A B} →
-  Σ ∣ Φ ⊢ A ⊒ᶜ B →
-  [] ⊢ A ⊒ᵢ B
-cast⊒⇒imprecision⊒ = cast⊒⇒imprecision⊒-plain zero
+substPlain⊑ᵢ :
+  ∀ T {Γ A B} →
+  Γ ⊢ T ⊑ᵢ T →
+  (plain ∷ Γ) ⊢ A ⊑ᵢ B →
+  Γ ⊢ A [ T ]ᵗ ⊑ᵢ B [ T ]ᵗ
+substPlain⊑ᵢ T T⊑T p =
+  substPlainAt⊑ᵢ zero T (SubstPlainOk-zero T⊑T) p

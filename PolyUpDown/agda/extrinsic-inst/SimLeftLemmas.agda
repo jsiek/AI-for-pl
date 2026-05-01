@@ -13,7 +13,7 @@ open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_)
 open import Data.Nat.Properties using (+-comm; m+[n∸m]≡n)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; cong; subst; trans)
+  using (_≡_; refl; cong; subst; trans)
 
 open import Types
 open import UpDown using
@@ -33,24 +33,16 @@ open import ReductionFresh
 open import PreservationFresh using (length-append-tag; wkΨ-cast-tag-⊒)
 
 postulate
-  -- GTLC `[]ᶜ-⊑` analogue.
-  []-⊑ :
-    ∀ {E A A′ B B′ M M′ W W′}
-      {pA : TPEnv.Ξ E ⊢ A ⊑ᵢ A′} {pB : TPEnv.Ξ E ⊢ B ⊑ᵢ B′} →
-    extendᴾ E (A , A′ , pA) ⊢ M ⊑ M′ ⦂ pB →
-    E ⊢ W ⊑ W′ ⦂ pA →
-    E ⊢ M [ W ] ⊑ M′ [ W′ ] ⦂ pB
-
   left-value-right-catchup :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ V N′ A B} {p : [] ⊢ A ⊑ᵢ B} →
     Value V →
-    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ V ⊑ N′ ⦂ p →
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ N′ ⦂ p →
     Σ[ Σʳ′ ∈ Store ]
       Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ Σʳ′ ]
       Σ[ V′ ∈ Term ]
         (Value V′ ×
          (Σʳ ∣ N′ —↠ Σʳ′ ∣ V′) ×
-         (⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢ V ⊑ V′ ⦂ p))
+         (⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ p))
 
 --------------------------------------------------------------------------------
 -- GTLC `sim-beta`, adapted to imprecision orientation.
@@ -58,16 +50,16 @@ postulate
 sim-left-beta :
   ∀ {Ψ Σˡ Σʳ V′ W W′ N A A′ A₂ B B′}
     {pA : [] ⊢ A ⊑ᵢ A′} {pB : [] ⊢ B ⊑ᵢ B′} →
-  ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢
+  ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
     (ƛ A₂ ⇒ N) ⊑ V′ ⦂ (⊑ᵢ-⇒ A A′ B B′ pA pB) →
   Value V′ →
-  ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ W ⊑ W′ ⦂ pA →
+  ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ W ⊑ W′ ⦂ pA →
   Value W →
   Value W′ →
   Σ[ Σʳ′ ∈ Store ]
     Σ[ N′ ∈ Term ]
       ((Σʳ ∣ (V′ · W′) —↠ Σʳ′ ∣ N′) ×
-       (⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ N [ W ] ⊑ N′ ⦂ pB))
+       (⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ N [ W ] ⊑ N′ ⦂ pB))
 sim-left-beta
   {Σʳ = Σʳ} {W′ = W′}
   (⊑ƛ hA hA′ rel) (ƛ A′ ⇒ N′) W⊑W′ vW vW′ =
@@ -138,17 +130,17 @@ sim-left-beta-up :
   ∀ {Ψ Σˡ Σʳ V V′ W W′ A A′ B B′}
     {pA : [] ⊢ A ⊑ᵢ A′} {pB : [] ⊢ B ⊑ᵢ B′}
     {p : Down} {q : Up} →
-  ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢
+  ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
     (V up (Up._↦_ p q)) ⊑ V′ ⦂ (⊑ᵢ-⇒ A A′ B B′ pA pB) →
   Value V →
   Value V′ →
-  ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ W ⊑ W′ ⦂ pA →
+  ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ W ⊑ W′ ⦂ pA →
   Value W →
   Value W′ →
   Σ[ Σʳ′ ∈ Store ]
     Σ[ N′ ∈ Term ]
       ((Σʳ ∣ (V′ · W′) —↠ Σʳ′ ∣ N′) ×
-       (⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢
+       (⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
           ((V · (W down p)) up q) ⊑ N′ ⦂ pB))
 sim-left-beta-up
   {Σʳ = Σʳ} {V′ = V′} {W′ = W′}
@@ -226,17 +218,17 @@ sim-left-beta-down :
   ∀ {Ψ Σˡ Σʳ V V′ W W′ A A′ B B′}
     {pA : [] ⊢ A ⊑ᵢ A′} {pB : [] ⊢ B ⊑ᵢ B′}
     {p : Up} {q : Down} →
-  ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢
+  ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
     (V down (Down._↦_ p q)) ⊑ V′ ⦂ (⊑ᵢ-⇒ A A′ B B′ pA pB) →
   Value V →
   Value V′ →
-  ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ W ⊑ W′ ⦂ pA →
+  ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ W ⊑ W′ ⦂ pA →
   Value W →
   Value W′ →
   Σ[ Σʳ′ ∈ Store ]
     Σ[ N′ ∈ Term ]
       ((Σʳ ∣ (V′ · W′) —↠ Σʳ′ ∣ N′) ×
-       (⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢
+       (⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
           ((V · (W up p)) down q) ⊑ N′ ⦂ pB))
 sim-left-beta-down
   {Σʳ = Σʳ} {V′ = V′} {W′ = W′}
@@ -324,22 +316,22 @@ sim-left-beta-down
 
 -- Worker W03 helper slot
 
-postulate
-  -- Supports DGGSim.agda H42 (line 528): identity-down left casts can
-  -- expose two proof terms for the same indexed type-imprecision judgment.
-  sim-left-w03-⊑ᵢ-proof-irrel :
-    ∀ {Γ A B} →
-    (p q : Γ ⊢ A ⊑ᵢ B) →
-    p ≡ q
+-- Supports DGGSim.agda H42 (line 528): identity-down left casts can
+-- expose two proof terms for the same indexed type-imprecision judgment.
+sim-left-w03-⊑ᵢ-proof-irrel :
+  ∀ {Γ A B} →
+  (p q : Γ ⊢ A ⊑ᵢ B) →
+  p ≡ q
+sim-left-w03-⊑ᵢ-proof-irrel = ⊑ᵢ-proof-irrel
 
 -- Supports DGGSim.agda H42 (line 528): eliminate a left identity-down cast,
 -- commuting through right-only casts.
 sim-left-w03-id-down :
   ∀ {Ψ Σˡ Σʳ V M′ C A B} {p : [] ⊢ A ⊑ᵢ B} →
-  ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ (V down Down.id C) ⊑ M′ ⦂ p →
+  ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ (V down Down.id C) ⊑ M′ ⦂ p →
   Σ[ N′ ∈ Term ]
     ((Σʳ ∣ M′ —↠ Σʳ ∣ N′) ×
-     (⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢ V ⊑ N′ ⦂ p))
+     (⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ N′ ⦂ p))
 sim-left-w03-id-down (⊑upR Φ lenΦ rel hu′)
     with sim-left-w03-id-down rel
 sim-left-w03-id-down (⊑upR Φ lenΦ rel hu′)
@@ -368,11 +360,11 @@ postulate
     ∀ {Ψ Σˡ Σʳ V M′ A B} {pᵢ : [] ⊢ A ⊑ᵢ B}
       {d : Down} {u : Up} {α : Seal} →
     Value V →
-    ⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢
+    ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
       ((V down (UpDown.seal d α)) up (UpDown.unseal α u)) ⊑ M′ ⦂ pᵢ →
     Σ[ N′ ∈ Term ]
       ((Σʳ ∣ M′ —↠ Σʳ ∣ N′) ×
-       (⟪ 0 , Ψ , Σˡ , [] , [] ⟫ ⊢
+       (⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
           ((V down d) up u) ⊑ N′ ⦂ pᵢ))
 
 -- Worker W06 helper slot
@@ -388,7 +380,7 @@ postulate
   sim-left-w09-H41 :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ V M′ N A B}
       {p : [] ⊢ A ⊑ᵢ B} {u : Up} →
-    ⟪ 0 , Ψˡ , Σˡ , [] , [] ⟫ ⊢
+    ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
       (V up (UpDown.ν u)) ⊑ M′ ⦂ p →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
@@ -399,7 +391,7 @@ postulate
       Σ[ Σʳ′ ∈ Store ]
       Σ[ N′ ∈ Term ]
         ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
-         (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] ⟫ ⊢ N ⊑ N′ ⦂ p)))
+         (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ N ⊑ N′ ⦂ p)))
 
 -- Supports DGGSim.agda H09 (line 215): lift right multi-steps through
 -- type application.

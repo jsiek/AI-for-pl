@@ -668,7 +668,7 @@ mutual
         p n dir w′
         (V ⦂∀ left∀ᵢ ρ w′ Aˡ [ Tˡ ])
         (W ⦂∀ right∀ᵢ ρ w′ Aʳ [ Tʳ ])
-  𝒱body {Ξ = Ξ} ρ (⊑ᵢ-ν A′ B′ p) n dir w V W =
+  𝒱body {Ξ = Ξ} ρ (⊑ᵢ-ν A′ B′ occ p) n dir w V W =
     ∀ {w′} → w′ ⪰ w → (R : Rel) → (downR : DownClosed R) →
       (Tˡ Tʳ : Ty) →
       (hTˡ : WfTy 0 (Ψˡ w′) Tˡ) →
@@ -679,25 +679,27 @@ mutual
         p n dir (extendWorldν w′ R downR Tˡ Tʳ hTˡ hTʳ)
         (V ⦂∀ left∀ᵢ ρ w′ A′ [ ｀ length (Σˡ w′) ])
         W
-  𝒱body ρ ⊑ᵢ-★★ zero dir w V W = Lift (lsuc 0ℓ) ⊤
-  𝒱body ρ ⊑ᵢ-★★ (suc k) dir w V W = star-rel V W
+  𝒱body ρ ⊑ₒ-★★ zero dir w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body ρ ⊑ₒ-★★ (suc k) dir w V W = star-rel V W
     where
     star-rel : Term → Term → Set₁
     star-rel (V up tag pˡ G) (W up tag pʳ H) =
       Lift (lsuc 0ℓ) (G ≡ H) ×
-      𝒱 ρ (⊑ᵢ-refl {A = G}) k dir w (V up pˡ) (W up pʳ)
+      Σ[ g ∈ Ground G ] 𝒱 ρ (ground-reflᵢ g) k dir w (V up pˡ) (W up pʳ)
     star-rel (V down seal pˡ αˡ) (W down seal pʳ αʳ) =
       Σ[ R ∈ Rel ] (η w ∋η αˡ ↔ αʳ ∶ R) × R k dir (V down pˡ) (W down pʳ)
     star-rel V W = Lift (lsuc 0ℓ) ⊥
-  𝒱body ρ (⊑ᵢ-★ _ G s g p) zero ≼ w V W = Lift (lsuc 0ℓ) ⊤
-  𝒱body ρ (⊑ᵢ-★ _ G s g p) zero ≽ w V W = Lift (lsuc 0ℓ) ⊤
-  𝒱body ρ (⊑ᵢ-★ _ G s g p) (suc k) ≼ w V W = star-right-rel W
+  𝒱body ρ (⊑ₒ-★ν xν) zero dir w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body ρ (⊑ₒ-★ν xν) (suc k) dir w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body ρ (⊑ₒ-★ _ G s g p) zero ≼ w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body ρ (⊑ₒ-★ _ G s g p) zero ≽ w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body ρ (⊑ₒ-★ _ G s g p) (suc k) ≼ w V W = star-right-rel W
     where
     star-right-rel : Term → Set₁
     star-right-rel (W up tag pʳ H) =
       Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 ρ p k ≼ w V (W up pʳ)
     star-right-rel W = Lift (lsuc 0ℓ) ⊥
-  𝒱body ρ (⊑ᵢ-★ _ G s g p) (suc k) ≽ w V W = star-right-rel W
+  𝒱body ρ (⊑ₒ-★ _ G s g p) (suc k) ≽ w V W = star-right-rel W
     where
     star-right-rel : Term → Set₁
     star-right-rel (W up tag pʳ H) =
@@ -717,7 +719,7 @@ mutual
       Σ[ eqˡ ∈ α ≡ βˡ ] Σ[ eqʳ ∈ α ≡ βʳ ] Σ[ R ∈ Rel ]
         (η w ∋η α ↔ α ∶ R) × R (suc k) dir (V down pˡ) (W down pʳ)
     seal-rel V W = Lift (lsuc 0ℓ) ⊥
-  𝒱body ρ (⊑ᵢ-＇ X) n dir w V W =
+  𝒱body ρ (⊑ₒ-＇ {X = X} x∈) n dir w V W =
     Lift (lsuc 0ℓ) (varRel ρ X n dir V W)
 
   ℰbody :
@@ -868,42 +870,43 @@ mutual
     proj₂ rel
   𝒱body-monotone ρ (⊑ᵢ-∀ Aˡ Aʳ p) k dir w V W header all-rel =
     ∀-payload-monotone ρ k dir w V W all-rel
-  𝒱body-monotone ρ (⊑ᵢ-ν A′ B′ p) k dir w V W header ν-rel =
+  𝒱body-monotone ρ (⊑ᵢ-ν A′ B′ occ p) k dir w V W header ν-rel =
     ν-payload-monotone ρ k dir w V W ν-rel
-  𝒱body-monotone ρ ⊑ᵢ-★★ k dir w V W
+  𝒱body-monotone ρ ⊑ₒ-★★ k dir w V W
       (vV , vW , (V⊢ , W⊢)) rel
       with canonical-★ vV V⊢ | canonical-★ vW W⊢
-  𝒱body-monotone ρ ⊑ᵢ-★★ k dir w V W
+  𝒱body-monotone ρ ⊑ₒ-★★ k dir w V W
       (vV , vW , (V⊢ , W⊢)) rel
       | sv-up-tag {W = U} {p = pˡ} {G = G} vU eqV
       | sv-up-tag {W = U′} {p = pʳ} {G = H} vU′ eqW
       rewrite eqV | eqW with rel
-  𝒱body-monotone ρ ⊑ᵢ-★★ k dir w V W
+  𝒱body-monotone ρ ⊑ₒ-★★ k dir w V W
       (vV , vW , (V⊢ , W⊢)) rel
       | sv-up-tag {W = U} {p = pˡ} {G = G} vU eqV
       | sv-up-tag {W = U′} {p = pʳ} {G = H} vU′ eqW
-      | eqG , inner =
-    eqG , 𝒱-monotone ρ (⊑ᵢ-refl {A = G}) k dir w (U up pˡ) (U′ up pʳ) inner
-  𝒱body-monotone ρ (⊑ᵢ-★ A G s g p) k ≼ w V W
+      | eqG , g , inner =
+    eqG , g , 𝒱-monotone ρ (ground-reflᵢ g) k dir w (U up pˡ) (U′ up pʳ) inner
+  𝒱body-monotone ρ (⊑ₒ-★ν xν) k dir w V W header rel = lift tt
+  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≼ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       with canonical-★ vW W⊢
-  𝒱body-monotone ρ (⊑ᵢ-★ A G s g p) k ≼ w V W
+  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≼ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       rewrite eqW with rel
-  𝒱body-monotone ρ (⊑ᵢ-★ A G s g p) k ≼ w V W
+  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≼ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       | eqG , inner =
     eqG , 𝒱-monotone ρ p k ≼ w V (W′ up pʳ) inner
-  𝒱body-monotone ρ (⊑ᵢ-★ A G s g p) k ≽ w V W
+  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≽ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       with canonical-★ vW W⊢
-  𝒱body-monotone ρ (⊑ᵢ-★ A G s g p) k ≽ w V W
+  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≽ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       rewrite eqW with rel
-  𝒱body-monotone ρ (⊑ᵢ-★ A G s g p) k ≽ w V W
+  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≽ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       | eqG , inner =
@@ -922,7 +925,7 @@ mutual
       | sv-down-seal {W = W′} {p = pʳ} vW′ eqW
       | eqˡ , eqʳ , R , η∋ , Rrel =
     eqˡ , eqʳ , R , η∋ , η∋-downClosed η∋ Rrel
-  𝒱body-monotone ρ (⊑ᵢ-＇ X) k dir w V W header (lift rel) =
+  𝒱body-monotone ρ (⊑ₒ-＇ {X = X} x∈) k dir w V W header (lift rel) =
     lift (varRel-down ρ X rel)
 
   𝒱-monotone :

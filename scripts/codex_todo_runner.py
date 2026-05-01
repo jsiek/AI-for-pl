@@ -471,16 +471,10 @@ def resolve_repo_relative_path(repo_root: Path, path: Path) -> Path:
 def validate_item_directives(
     directives: TodoDirectives,
     repo_root: Path,
-    parallel: int,
 ) -> Optional[str]:
     if directives.workers is not None:
         if directives.workers <= 0:
             return f"Invalid `Workers` directive: {directives.workers}. Must be a positive integer."
-        if directives.workers != parallel:
-            return (
-                f"`Workers: {directives.workers}` does not match runner concurrency "
-                f"`--parallel {parallel}`."
-            )
 
     if directives.plan is not None:
         try:
@@ -925,6 +919,21 @@ def worker_worktree_dirs(base_dir: Path, parallel: int) -> list[Path]:
     return [base_dir.parent / f"{base_dir.name}-{i}" for i in range(1, parallel + 1)]
 
 
+def ensure_worker_dirs_capacity(repo_root: Path, current_worker_dirs: list[Path], needed: int) -> list[Path]:
+    if needed <= 0:
+        return []
+    if len(current_worker_dirs) >= needed:
+        return current_worker_dirs[:needed]
+    if not current_worker_dirs:
+        raise ValueError("No worktree base directory is available for worker expansion.")
+    base_dir = current_worker_dirs[0]
+    expanded = worker_worktree_dirs(base_dir, needed)
+    for worker_dir in expanded:
+        ensure_path_within(repo_root, worker_dir)
+        prepare_worktree(repo_root, worker_dir)
+    return expanded
+
+
 def is_overlap_conflict_error(message: str) -> bool:
     return (
         "Conflicting edits for" in message
@@ -955,7 +964,7 @@ def run_task_attempt(
     task_text = extract_task_text(item) if task_text_override is None else task_text_override
     _body, parsed_directives = parse_item_body_and_directives(item)
     directives = directives_override if directives_override is not None else parsed_directives
-    directive_error = validate_item_directives(directives, repo_root, parallel)
+    directive_error = validate_item_directives(directives, repo_root)
     if directive_error:
         return TaskOutcome(
             item=item,
@@ -1069,7 +1078,7 @@ def process_item_per_hole(
 ) -> TaskOutcome:
     body_lines, directives = parse_item_body_and_directives(item)
     base_task_text = "\n".join(body_lines).strip()
-    directive_error = validate_item_directives(directives, repo_root, parallel)
+    directive_error = validate_item_directives(directives, repo_root)
     if directive_error:
         return TaskOutcome(
             item=item,
@@ -1100,8 +1109,22 @@ def process_item_per_hole(
             worker_dir=worker_dirs[0],
         )
 
-    worker_budget = directives.workers if directives.workers is not None else parallel
-    worker_count = max(1, min(worker_budget, len(worker_dirs), len(holes)))
+    worker_budget = directives.workers if directives.workers is not None else 1
+    if worker_budget > 1 and not use_worktree:
+        return TaskOutcome(
+            item=item,
+            result=RunResult(
+                status="blocked",
+                summary="Per-hole parallelism requires worktree mode.",
+                blocker="Set `Workers: 1` or run without `--no-worktree`.",
+            ),
+            worker_dir=worker_dirs[0],
+        )
+    requested = max(1, min(worker_budget, len(holes)))
+    active_worker_dirs = worker_dirs[:1] if not use_worktree else ensure_worker_dirs_capacity(
+        repo_root, worker_dirs, requested
+    )
+    worker_count = max(1, min(requested, len(active_worker_dirs)))
     todo_rel = todo_path.relative_to(repo_root)
     total_holes = len(holes)
     holes_by_id = {hole.hole_id: hole for hole in holes}
@@ -1132,7 +1155,7 @@ def process_item_per_hole(
             todo_path=todo_path,
             repo_root=repo_root,
             run_dir=run_dir / f"worker-{worker_id}" / hole.hole_id,
-            worker_dir=worker_dirs[worker_idx],
+            worker_dir=active_worker_dirs[worker_idx],
             use_worktree=use_worktree,
             model=model,
             sandbox=sandbox,
@@ -1299,7 +1322,7 @@ def process_item_per_hole(
                 summary=f"{len(blocked)} hole subtask(s) blocked.",
                 blocker=blocker,
             ),
-            worker_dir=worker_dirs[0],
+            worker_dir=active_worker_dirs[0],
         )
 
     return TaskOutcome(
@@ -1309,7 +1332,7 @@ def process_item_per_hole(
             summary=f"Completed {len(holes)} hole subtask(s).",
             blocker="",
         ),
-        worker_dir=worker_dirs[0],
+        worker_dir=active_worker_dirs[0],
     )
 
 
@@ -1503,7 +1526,7 @@ def parse_args() -> argparse.Namespace:
         "--parallel",
         type=int,
         default=1,
-        help="Number of concurrent workers processing TODO items.",
+        help="Number of TODO items to process concurrently.",
     )
     parser.add_argument(
         "--no-worktree",

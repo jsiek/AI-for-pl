@@ -78,11 +78,21 @@ data Groundᵢ (Γ : ICtx) : Ty → Set where
   ground-base : ∀ ι → Groundᵢ Γ (‵ ι)
   ground-fun : Groundᵢ Γ (★ ⇒ ★)
 
+data StarSourceᵢ : Ty → Set where
+  star-＇ : (X : TyVar) → StarSourceᵢ (＇ X)
+  star-｀ : (α : Seal) → StarSourceᵢ (｀ α)
+  star-‵ : (ι : Base) → StarSourceᵢ (‵ ι)
+  star-⇒ : (A B : Ty) → StarSourceᵢ (A ⇒ B)
+
 infix 4 _⊢_⊑ᵢ_ _⊢_⊒ᵢ_
 
 data _⊢_⊑ᵢ_ (Γ : ICtx) : Ty → Ty → Set where
   ⊑ᵢ-★★ : Γ ⊢ ★ ⊑ᵢ ★
-  ⊑ᵢ-★ : (A G : Ty) → Groundᵢ Γ G → Γ ⊢ A ⊑ᵢ G → Γ ⊢ A ⊑ᵢ ★
+  ⊑ᵢ-★ : (A G : Ty) →
+    StarSourceᵢ A →
+    Groundᵢ Γ G →
+    Γ ⊢ A ⊑ᵢ G →
+    Γ ⊢ A ⊑ᵢ ★
   ⊑ᵢ-＇ : (X : TyVar) → Γ ⊢ ＇ X ⊑ᵢ ＇ X
   ⊑ᵢ-｀ : (α : Seal) → Γ ⊢ ｀ α ⊑ᵢ ｀ α
   ⊑ᵢ-‵ : (ι : Base) → Γ ⊢ ‵ ι ⊑ᵢ ‵ ι
@@ -124,14 +134,14 @@ wf-νs-⊑★ :
   WfTy Δ Ψ A →
   νs Δ Γ ⊢ A ⊑ᵢ ★
 wf-νs-⊑★ {A = ＇ X} (wfVar X<) =
-  ⊑ᵢ-★ (＇ X) (＇ X) (ground-ν (νs-lookup X<)) (⊑ᵢ-＇ X)
+  ⊑ᵢ-★ (＇ X) (＇ X) (star-＇ X) (ground-ν (νs-lookup X<)) (⊑ᵢ-＇ X)
 wf-νs-⊑★ {A = ｀ α} (wfSeal α<Ψ) =
-  ⊑ᵢ-★ (｀ α) (｀ α) (ground-seal α) (⊑ᵢ-｀ α)
+  ⊑ᵢ-★ (｀ α) (｀ α) (star-｀ α) (ground-seal α) (⊑ᵢ-｀ α)
 wf-νs-⊑★ {A = ‵ ι} wfBase =
-  ⊑ᵢ-★ (‵ ι) (‵ ι) (ground-base ι) (⊑ᵢ-‵ ι)
+  ⊑ᵢ-★ (‵ ι) (‵ ι) (star-‵ ι) (ground-base ι) (⊑ᵢ-‵ ι)
 wf-νs-⊑★ wf★ = ⊑ᵢ-★★
 wf-νs-⊑★ {A = A ⇒ B} (wf⇒ wfA wfB) =
-  ⊑ᵢ-★ (A ⇒ B) (★ ⇒ ★) ground-fun
+  ⊑ᵢ-★ (A ⇒ B) (★ ⇒ ★) (star-⇒ A B) ground-fun
     (⊑ᵢ-⇒ A ★ B ★ (wf-νs-⊑★ wfA) (wf-νs-⊑★ wfB))
 wf-νs-⊑★ {A = `∀ A} (wf∀ wfA) =
   ⊑ᵢ-ν A ★ (wf-νs-⊑★ wfA)
@@ -152,7 +162,7 @@ closed-⊑★ hT = wf-νs-⊑★ hT
 
 size⊑ᵢ : ∀ {Γ A B} → Γ ⊢ A ⊑ᵢ B → ℕ
 size⊑ᵢ ⊑ᵢ-★★ = zero
-size⊑ᵢ (⊑ᵢ-★ A G g p) = suc (size⊑ᵢ p)
+size⊑ᵢ (⊑ᵢ-★ A G s g p) = suc (size⊑ᵢ p)
 size⊑ᵢ (⊑ᵢ-＇ X) = zero
 size⊑ᵢ (⊑ᵢ-｀ α) = zero
 size⊑ᵢ (⊑ᵢ-‵ ι) = zero
@@ -282,6 +292,16 @@ rename-raise-⇑ᵗ k A =
 ν-weakenAt-ground k (ground-base ι) = ground-base ι
 ν-weakenAt-ground k ground-fun = ground-fun
 
+rename-StarSourceᵢ :
+  ∀ ρ {A} →
+  StarSourceᵢ A →
+  StarSourceᵢ (renameᵗ ρ A)
+rename-StarSourceᵢ ρ (star-＇ X) = star-＇ (ρ X)
+rename-StarSourceᵢ ρ (star-｀ α) = star-｀ α
+rename-StarSourceᵢ ρ (star-‵ ι) = star-‵ ι
+rename-StarSourceᵢ ρ (star-⇒ A B) =
+  star-⇒ (renameᵗ ρ A) (renameᵗ ρ B)
+
 plain-weakenAt-ground :
   ∀ k {Γ G} →
   Groundᵢ Γ G →
@@ -298,10 +318,11 @@ plain-weakenAt⊑ᵢ :
   insertPlainAt k Γ ⊢
     renameᵗ (raiseVarFrom k) A ⊑ᵢ renameᵗ (raiseVarFrom k) B
 plain-weakenAt⊑ᵢ k ⊑ᵢ-★★ = ⊑ᵢ-★★
-plain-weakenAt⊑ᵢ k (⊑ᵢ-★ A G g p) =
+plain-weakenAt⊑ᵢ k (⊑ᵢ-★ A G s g p) =
   ⊑ᵢ-★
     (renameᵗ (raiseVarFrom k) A)
     (renameᵗ (raiseVarFrom k) G)
+    (rename-StarSourceᵢ (raiseVarFrom k) s)
     (plain-weakenAt-ground k g)
     (plain-weakenAt⊑ᵢ k p)
 plain-weakenAt⊑ᵢ k (⊑ᵢ-＇ X) = ⊑ᵢ-＇ (raiseVarFrom k X)
@@ -372,15 +393,30 @@ substPlainAt-ground k T (ground-seal α) = ground-seal α
 substPlainAt-ground k T (ground-base ι) = ground-base ι
 substPlainAt-ground k T ground-fun = ground-fun
 
+substPlainAt-StarSourceᵢ :
+  ∀ k T {Γ A G} →
+  StarSourceᵢ A →
+  Groundᵢ (insertPlainAt k Γ) G →
+  insertPlainAt k Γ ⊢ A ⊑ᵢ G →
+  StarSourceᵢ (substᵗ (substVarFrom k T) A)
+substPlainAt-StarSourceᵢ k T (star-＇ X) (ground-ν x∈) (⊑ᵢ-＇ .X)
+    with substPlain-lookup k x∈
+... | Y , y∈ , eq = subst StarSourceᵢ (sym eq) (star-＇ Y)
+substPlainAt-StarSourceᵢ k T (star-｀ α) g p = star-｀ α
+substPlainAt-StarSourceᵢ k T (star-‵ ι) g p = star-‵ ι
+substPlainAt-StarSourceᵢ k T (star-⇒ A B) g p =
+  star-⇒ (substᵗ (substVarFrom k T) A) (substᵗ (substVarFrom k T) B)
+
 substPlainAt⊑ᵢ :
   ∀ k T {Γ A B} →
   insertPlainAt k Γ ⊢ A ⊑ᵢ B →
   Γ ⊢ substᵗ (substVarFrom k T) A ⊑ᵢ substᵗ (substVarFrom k T) B
 substPlainAt⊑ᵢ k T ⊑ᵢ-★★ = ⊑ᵢ-★★
-substPlainAt⊑ᵢ k T (⊑ᵢ-★ A G g p) =
+substPlainAt⊑ᵢ k T (⊑ᵢ-★ A G s g p) =
   ⊑ᵢ-★
     (substᵗ (substVarFrom k T) A)
     (substᵗ (substVarFrom k T) G)
+    (substPlainAt-StarSourceᵢ k T s g p)
     (substPlainAt-ground k T g)
     (substPlainAt⊑ᵢ k T p)
 substPlainAt⊑ᵢ k T (⊑ᵢ-＇ X) = ⊑ᵢ-refl
@@ -420,10 +456,11 @@ substPlain⊑ᵢ = substPlainAt⊑ᵢ zero
   insertνAt k Γ ⊢
     renameᵗ (raiseVarFrom k) A ⊑ᵢ renameᵗ (raiseVarFrom k) B
 ν-weakenAt⊑ᵢ k ⊑ᵢ-★★ = ⊑ᵢ-★★
-ν-weakenAt⊑ᵢ k (⊑ᵢ-★ A G g p) =
+ν-weakenAt⊑ᵢ k (⊑ᵢ-★ A G s g p) =
   ⊑ᵢ-★
     (renameᵗ (raiseVarFrom k) A)
     (renameᵗ (raiseVarFrom k) G)
+    (rename-StarSourceᵢ (raiseVarFrom k) s)
     (ν-weakenAt-ground k g)
     (ν-weakenAt⊑ᵢ k p)
 ν-weakenAt⊑ᵢ k (⊑ᵢ-＇ X) = ⊑ᵢ-＇ (raiseVarFrom k X)
@@ -459,7 +496,7 @@ size-ν-weakenAt⊑ᵢ :
   (p : Γ ⊢ A ⊑ᵢ B) →
   size⊑ᵢ (ν-weakenAt⊑ᵢ k p) ≡ size⊑ᵢ p
 size-ν-weakenAt⊑ᵢ k ⊑ᵢ-★★ = refl
-size-ν-weakenAt⊑ᵢ k (⊑ᵢ-★ A G g p) =
+size-ν-weakenAt⊑ᵢ k (⊑ᵢ-★ A G s g p) =
   cong suc (size-ν-weakenAt⊑ᵢ k p)
 size-ν-weakenAt⊑ᵢ k (⊑ᵢ-＇ X) = refl
 size-ν-weakenAt⊑ᵢ k (⊑ᵢ-｀ α) = refl
@@ -529,8 +566,8 @@ replacePlainAt⊑ᵢ :
   Γ ⊢ A ⊑ᵢ B →
   replacePlainAt k Γ ⊢ A ⊑ᵢ B
 replacePlainAt⊑ᵢ k ⊑ᵢ-★★ = ⊑ᵢ-★★
-replacePlainAt⊑ᵢ k (⊑ᵢ-★ A G g p) =
-  ⊑ᵢ-★ A G (replacePlainAt-ground k g) (replacePlainAt⊑ᵢ k p)
+replacePlainAt⊑ᵢ k (⊑ᵢ-★ A G s g p) =
+  ⊑ᵢ-★ A G s (replacePlainAt-ground k g) (replacePlainAt⊑ᵢ k p)
 replacePlainAt⊑ᵢ k (⊑ᵢ-＇ X) = ⊑ᵢ-＇ X
 replacePlainAt⊑ᵢ k (⊑ᵢ-｀ α) = ⊑ᵢ-｀ α
 replacePlainAt⊑ᵢ k (⊑ᵢ-‵ ι) = ⊑ᵢ-‵ ι
@@ -546,7 +583,7 @@ size-replacePlainAt⊑ᵢ :
   (p : Γ ⊢ A ⊑ᵢ B) →
   size⊑ᵢ (replacePlainAt⊑ᵢ k p) ≡ size⊑ᵢ p
 size-replacePlainAt⊑ᵢ k ⊑ᵢ-★★ = refl
-size-replacePlainAt⊑ᵢ k (⊑ᵢ-★ A G g p) =
+size-replacePlainAt⊑ᵢ k (⊑ᵢ-★ A G s g p) =
   cong suc (size-replacePlainAt⊑ᵢ k p)
 size-replacePlainAt⊑ᵢ k (⊑ᵢ-＇ X) = refl
 size-replacePlainAt⊑ᵢ k (⊑ᵢ-｀ α) = refl
@@ -660,15 +697,27 @@ ground-closeν n (ground-seal α) with α
 ground-closeν n (ground-base ι) = ground-base ι
 ground-closeν n ground-fun = ground-fun
 
+closeν-StarSourceᵢ :
+  ∀ k {A} →
+  StarSourceᵢ A →
+  StarSourceᵢ (closeνSrc k A)
+closeν-StarSourceᵢ k (star-＇ X) = star-＇ (raiseVarFrom k X)
+closeν-StarSourceᵢ k (star-｀ zero) = star-＇ k
+closeν-StarSourceᵢ k (star-｀ (suc α)) = star-｀ α
+closeν-StarSourceᵢ k (star-‵ ι) = star-‵ ι
+closeν-StarSourceᵢ k (star-⇒ A B) =
+  star-⇒ (closeνSrc k A) (closeνSrc k B)
+
 closeν-⊑ᵢ :
   ∀ k {Γ A B} →
   Γ ⊢ A ⊑ᵢ B →
   insertνAt k Γ ⊢ closeνSrc k A ⊑ᵢ closeνSrc k B
 closeν-⊑ᵢ k ⊑ᵢ-★★ = ⊑ᵢ-★★
-closeν-⊑ᵢ k (⊑ᵢ-★ A G g p) =
+closeν-⊑ᵢ k (⊑ᵢ-★ A G s g p) =
   ⊑ᵢ-★
     (closeνSrc k A)
     (closeνSrc k G)
+    (closeν-StarSourceᵢ k s)
     (closeν-ground k g)
     (closeν-⊑ᵢ k p)
 closeν-⊑ᵢ k (⊑ᵢ-＇ X) = ⊑ᵢ-＇ (raiseVarFrom k X)
@@ -704,14 +753,14 @@ closeν-⊑ᵢ k (⊑ᵢ-ν A B p) =
   size⊑ᵢ p + size⊑ᵢ q ≤ n →
   Γ ⊢ A ⊑ᵢ C
 ⊑ᵢ-trans-fuel {n = zero} p ⊑ᵢ-★★ h = p
-⊑ᵢ-trans-fuel {n = zero} ⊑ᵢ-★★ (⊑ᵢ-★ A G g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-★ A G g p) (⊑ᵢ-★ A′ G′ g′ q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-＇ X) (⊑ᵢ-★ A G g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-｀ α) (⊑ᵢ-★ A G g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-‵ ι) (⊑ᵢ-★ A G g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-⇒ A A′ B B′ p₁ p₂) (⊑ᵢ-★ A₁ G g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-∀ A B p) (⊑ᵢ-★ A₁ G g q) ()
-⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-ν A B p) (⊑ᵢ-★ A₁ G g q) ()
+⊑ᵢ-trans-fuel {n = zero} ⊑ᵢ-★★ (⊑ᵢ-★ A G s g q) ()
+⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-★ A G s g p) (⊑ᵢ-★ A′ G′ s′ g′ q) ()
+⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-＇ X) (⊑ᵢ-★ A G s g q) ()
+⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-｀ α) (⊑ᵢ-★ A G s g q) ()
+⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-‵ ι) (⊑ᵢ-★ A G s g q) ()
+⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-⇒ A A′ B B′ p₁ p₂) (⊑ᵢ-★ A₁ G s g q) ()
+⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-∀ A B p) (⊑ᵢ-★ A₁ G s g q) ()
+⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-ν A B p) (⊑ᵢ-★ A₁ G s g q) ()
 ⊑ᵢ-trans-fuel {n = zero} p (⊑ᵢ-＇ X) h = p
 ⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-ν A B p) (⊑ᵢ-｀ α′) ()
 ⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-｀ α) (⊑ᵢ-｀ .α) h =
@@ -722,9 +771,6 @@ closeν-⊑ᵢ k (⊑ᵢ-ν A B p) =
 ⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-∀ A B p) (⊑ᵢ-ν A₁ B₁ q) ()
 ⊑ᵢ-trans-fuel {n = zero} (⊑ᵢ-ν A B p) q ()
 ⊑ᵢ-trans-fuel {n = suc n} p ⊑ᵢ-★★ h = p
-⊑ᵢ-trans-fuel {n = suc n} p (⊑ᵢ-★ B G g q) h =
-  ⊑ᵢ-★ _ G g (⊑ᵢ-trans-fuel p q (pred-★-bound h))
-⊑ᵢ-trans-fuel {n = suc n} p (⊑ᵢ-＇ X) h = p
 ⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-ν A B p) q h =
   ⊑ᵢ-ν A _
     (⊑ᵢ-trans-fuel
@@ -734,6 +780,40 @@ closeν-⊑ᵢ k (⊑ᵢ-ν A B p) =
         (λ x → size⊑ᵢ p + x ≤ n)
         (sym (size-ν-weaken⊑ᵢ q))
         (ν-rec-bound {a = size⊑ᵢ p} {b = size⊑ᵢ q} h)))
+⊑ᵢ-trans-fuel {n = suc n} ⊑ᵢ-★★ (⊑ᵢ-★ .★ G () g q) h
+⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-★ A G₁ sA gA p)
+    (⊑ᵢ-★ .★ G () g q) h
+⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-＇ X) (⊑ᵢ-★ .(＇ X) G s g q) h =
+  ⊑ᵢ-★ (＇ X) G (star-＇ X) g
+    (⊑ᵢ-trans-fuel
+      (⊑ᵢ-＇ X)
+      q
+      (pred-★-bound {a = zero} {b = size⊑ᵢ q} h))
+⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-｀ α) (⊑ᵢ-★ .(｀ α) G s g q) h =
+  ⊑ᵢ-★ (｀ α) G (star-｀ α) g
+    (⊑ᵢ-trans-fuel
+      (⊑ᵢ-｀ α)
+      q
+      (pred-★-bound {a = zero} {b = size⊑ᵢ q} h))
+⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-‵ ι) (⊑ᵢ-★ .(‵ ι) G s g q) h =
+  ⊑ᵢ-★ (‵ ι) G (star-‵ ι) g
+    (⊑ᵢ-trans-fuel
+      (⊑ᵢ-‵ ι)
+      q
+      (pred-★-bound {a = zero} {b = size⊑ᵢ q} h))
+⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-⇒ A A′ B B′ p₁ p₂)
+    (⊑ᵢ-★ .(A′ ⇒ B′) G s g q) h =
+  ⊑ᵢ-★ (A ⇒ B) G (star-⇒ A B) g
+    (⊑ᵢ-trans-fuel
+      (⊑ᵢ-⇒ A A′ B B′ p₁ p₂)
+      q
+      (pred-★-bound
+        {a = size⊑ᵢ (⊑ᵢ-⇒ A A′ B B′ p₁ p₂)}
+        {b = size⊑ᵢ q}
+        h))
+⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-∀ A B p)
+    (⊑ᵢ-★ .(`∀ B) G () g q) h
+⊑ᵢ-trans-fuel {n = suc n} p (⊑ᵢ-＇ X) h = p
 ⊑ᵢ-trans-fuel {n = suc n} (⊑ᵢ-｀ α) (⊑ᵢ-｀ .α) h =
   ⊑ᵢ-｀ α
 ⊑ᵢ-trans-fuel {n = suc n} p (⊑ᵢ-‵ ι) h = p
@@ -825,13 +905,13 @@ substνAt-ground⊑★ k hT (ground-ν x∈)
 ... | inj₁ eq = ⊑ᵢ-cast (sym eq) refl (closed-⊑★ hT)
 ... | inj₂ (Y , y∈ , eq) =
   ⊑ᵢ-cast (sym eq) refl
-    (⊑ᵢ-★ (＇ Y) (＇ Y) (ground-ν y∈) (⊑ᵢ-＇ Y))
+    (⊑ᵢ-★ (＇ Y) (＇ Y) (star-＇ Y) (ground-ν y∈) (⊑ᵢ-＇ Y))
 substνAt-ground⊑★ k hT (ground-seal α) =
-  ⊑ᵢ-★ (｀ α) (｀ α) (ground-seal α) (⊑ᵢ-｀ α)
+  ⊑ᵢ-★ (｀ α) (｀ α) (star-｀ α) (ground-seal α) (⊑ᵢ-｀ α)
 substνAt-ground⊑★ k hT (ground-base ι) =
-  ⊑ᵢ-★ (‵ ι) (‵ ι) (ground-base ι) (⊑ᵢ-‵ ι)
+  ⊑ᵢ-★ (‵ ι) (‵ ι) (star-‵ ι) (ground-base ι) (⊑ᵢ-‵ ι)
 substνAt-ground⊑★ k hT ground-fun =
-  ⊑ᵢ-★ (★ ⇒ ★) (★ ⇒ ★) ground-fun ⊑ᵢ-refl
+  ⊑ᵢ-★ (★ ⇒ ★) (★ ⇒ ★) (star-⇒ ★ ★) ground-fun ⊑ᵢ-refl
 
 substνAt⊑ᵢ :
   ∀ k {Γ Ψ A B T} →
@@ -839,7 +919,7 @@ substνAt⊑ᵢ :
   insertνAt k Γ ⊢ A ⊑ᵢ B →
   Γ ⊢ substᵗ (substVarFrom k T) A ⊑ᵢ substᵗ (substVarFrom k T) B
 substνAt⊑ᵢ k hT ⊑ᵢ-★★ = ⊑ᵢ-★★
-substνAt⊑ᵢ k hT (⊑ᵢ-★ A G g p) =
+substνAt⊑ᵢ k hT (⊑ᵢ-★ A G s g p) =
   ⊑ᵢ-trans (substνAt⊑ᵢ k hT p) (substνAt-ground⊑★ k hT g)
 substνAt⊑ᵢ k hT (⊑ᵢ-＇ X) = ⊑ᵢ-refl
 substνAt⊑ᵢ k hT (⊑ᵢ-｀ α) = ⊑ᵢ-｀ α
@@ -1119,8 +1199,8 @@ mutual
       Resource Σ Φ n →
       Σ ∣ Φ ⊢ interp Γ A ⊑ᶜ interp Γ B)
   build⊑ ⊑ᵢ-★★ = zero , (λ r → ⊑ᶜ-id (wfTySome ★))
-  build⊑ (⊑ᵢ-★ A G g p) with build⊑ p
-  build⊑ (⊑ᵢ-★ A G g p) | n , f =
+  build⊑ (⊑ᵢ-★ A G s g p) with build⊑ p
+  build⊑ (⊑ᵢ-★ A G s g p) | n , f =
     (suc (maxGroundᵢ g) ⊔ n) ,
     (λ r →
       f (resource-restrict (m≤n⊔m (suc (maxGroundᵢ g)) n) r) ；⊑ᶜ
@@ -1160,8 +1240,8 @@ mutual
       Resource Σ Φ n →
       Σ ∣ Φ ⊢ interp Γ A ⊒ᶜ interp Γ B)
   build⊒ ⊑ᵢ-★★ = zero , (λ r → ⊒ᶜ-id (wfTySome ★))
-  build⊒ (⊑ᵢ-★ A G g p) with build⊒ p
-  build⊒ (⊑ᵢ-★ A G g p) | n , f =
+  build⊒ (⊑ᵢ-★ A G s g p) with build⊒ p
+  build⊒ (⊑ᵢ-★ A G s g p) | n , f =
     (suc (maxGroundᵢ g) ⊔ n) ,
     (λ r →
       ground⊒⇒cast⊒★
@@ -1238,6 +1318,11 @@ ground-castᵢ-plain n (｀ α) = ground-seal α
 ground-castᵢ-plain n (‵ ι) = ground-base ι
 ground-castᵢ-plain n ★⇒★ = ground-fun
 
+starSource-cast-ground : ∀ {G} → Ground G → StarSourceᵢ G
+starSource-cast-ground (｀ α) = star-｀ α
+starSource-cast-ground (‵ ι) = star-‵ ι
+starSource-cast-ground ★⇒★ = star-⇒ ★ ★
+
 mutual
   ν-close⊑-plain :
     ∀ n {Σ Φ A B} →
@@ -1266,9 +1351,9 @@ mutual
     Σ ∣ Φ ⊢ A ⊑ᶜ B →
     plains n [] ⊢ A ⊑ᵢ B
   cast⊑⇒imprecision⊑-plain n (⊑ᶜ-tag g ok) =
-    ⊑ᵢ-★ _ _ (ground-castᵢ-plain n g) ⊑ᵢ-refl
+    ⊑ᵢ-★ _ _ (starSource-cast-ground g) (ground-castᵢ-plain n g) ⊑ᵢ-refl
   cast⊑⇒imprecision⊑-plain n (⊑ᶜ-unseal★ {α} h α∈Φ) =
-    ⊑ᵢ-★ _ _ (ground-seal α) (⊑ᵢ-｀ α)
+    ⊑ᵢ-★ _ _ (star-｀ α) (ground-seal α) (⊑ᵢ-｀ α)
   cast⊑⇒imprecision⊑-plain n (⊑ᶜ-seal α) = ⊑ᵢ-｀ α
   cast⊑⇒imprecision⊑-plain n (⊑ᶜ-⇒ p q) =
     ⊑ᵢ-⇒ _ _ _ _
@@ -1289,9 +1374,9 @@ mutual
     Σ ∣ Φ ⊢ A ⊒ᶜ B →
     plains n [] ⊢ A ⊒ᵢ B
   cast⊒⇒imprecision⊒-plain n (⊒ᶜ-untag g ok ℓ) =
-    ⊑ᵢ-★ _ _ (ground-castᵢ-plain n g) ⊑ᵢ-refl
+    ⊑ᵢ-★ _ _ (starSource-cast-ground g) (ground-castᵢ-plain n g) ⊑ᵢ-refl
   cast⊒⇒imprecision⊒-plain n (⊒ᶜ-seal★ {α} h α∈Φ) =
-    ⊑ᵢ-★ _ _ (ground-seal α) (⊑ᵢ-｀ α)
+    ⊑ᵢ-★ _ _ (star-｀ α) (ground-seal α) (⊑ᵢ-｀ α)
   cast⊒⇒imprecision⊒-plain n (⊒ᶜ-seal α) = ⊑ᵢ-｀ α
   cast⊒⇒imprecision⊒-plain n (⊒ᶜ-⇒ p q) =
     ⊑ᵢ-⇒ _ _ _ _

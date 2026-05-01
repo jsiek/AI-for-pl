@@ -41,7 +41,6 @@ open import Store
     )
 open import TypeCheckDec using (raiseVarFrom)
 open import ImprecisionIndexed
-open import Imprecision using (substᵗ-closed-id)
 open import UpDown
 open import Conversion
   using

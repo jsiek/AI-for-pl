@@ -83,10 +83,10 @@ postulate
   -- Supports R23: when the right function is already a value, the left
   -- function can catch up to a related value or reach blame.
   sim-right-w03-left-value-catchup-or-blame :
-    ∀ {Ψ Σ M V A B} {p : [] ⊢ A ⊑ᵢ B} →
+    ∀ {Ψ Σ M V A B} →
     Value V →
     StoreWf 0 Ψ Σ →
-    ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ V ⦂ p →
+    ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ V ⦂ A ⊑ B →
     (Σ[ Ψ′ ∈ SealCtx ]
       Σ[ Ψ≤Ψ′ ∈ Ψ ≤ Ψ′ ]
       Σ[ Σ′ ∈ Store ]
@@ -94,7 +94,7 @@ postulate
       Σ[ W ∈ Term ]
         (Value W ×
          (Σ ∣ M —↠ Σ′ ∣ W) ×
-         (⟪ 0 , Ψ′ , Σ′ , [] , [] , plain-[] , refl ⟫ ⊢ W ⊑ V ⦂ p)))
+         (⟪ 0 , Ψ′ , Σ′ , [] , [] , plain-[] , refl ⟫ ⊢ W ⊑ V ⦂ A ⊑ B)))
     ⊎ SimRightBlames Σ M
 
 -- Worker W04 helper slot
@@ -150,9 +150,8 @@ sim-right-w09-down-blames {d = d} (Σ′ , ℓ , M↠blame) =
 
 -- Supports R13: if the right term is blame, the left term can reach blame.
 sim-right-w09-right-blame-rel-blames :
-  ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B : Ty}
-    {p : [] ⊢ A ⊑ᵢ B} {ℓ : Label} →
-  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ blame ℓ ⦂ p →
+  ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B : Ty} {ℓ : Label} →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ blame ℓ ⦂ A ⊑ B →
   SimRightBlames Σ M
 sim-right-w09-right-blame-rel-blames (⊑⦂∀-ν A B p rel wfA hT inst) =
   sim-right-w09-typeapp-blames (sim-right-w09-right-blame-rel-blames rel)
@@ -165,9 +164,8 @@ sim-right-w09-right-blame-rel-blames (⊑blameR {ℓ = ℓ′} hM) =
 
 -- Supports R13: right-side `blame-·α` leaves the left with a blame trace.
 sim-right-w09-right-blame-typeapp-blames :
-  ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B C T : Ty}
-    {p : [] ⊢ A ⊑ᵢ B} {ℓ : Label} →
-  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ (blame ℓ ⦂∀ C [ T ]) ⦂ p →
+  ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B C T : Ty} {ℓ : Label} →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ (blame ℓ ⦂∀ C [ T ]) ⦂ A ⊑ B →
   SimRightBlames Σ M
 sim-right-w09-right-blame-typeapp-blames (⊑⦂∀ rel wfA wfB hT) =
   sim-right-w09-typeapp-blames (sim-right-w09-right-blame-rel-blames rel)
@@ -183,15 +181,14 @@ sim-right-w09-right-blame-typeapp-blames (⊑blameR {ℓ = ℓ′} hM) =
 
 -- Supports R13: package the right-side `blame-·α` case result.
 sim-right-w09-r13 :
-  ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B C T : Ty}
-    {p : [] ⊢ A ⊑ᵢ B} {ℓ : Label} →
-  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ (blame ℓ ⦂∀ C [ T ]) ⦂ p →
+  ∀ {Ψ : SealCtx} {Σ : Store} {M : Term} {A B C T : Ty} {ℓ : Label} →
+  ⟪ 0 , Ψ , Σ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ (blame ℓ ⦂∀ C [ T ]) ⦂ A ⊑ B →
   (Σ[ Ψ″ ∈ SealCtx ]
     Σ[ Ψ≤Ψ″ ∈ Ψ ≤ Ψ″ ]
     Σ[ Σ′ ∈ Store ]
     Σ[ N ∈ Term ]
       ((Σ ∣ M —↠ Σ′ ∣ N) ×
-       (⟪ 0 , Ψ″ , Σ′ , [] , [] , plain-[] , refl ⟫ ⊢ N ⊑ blame ℓ ⦂ p)))
+       (⟪ 0 , Ψ″ , Σ′ , [] , [] , plain-[] , refl ⟫ ⊢ N ⊑ blame ℓ ⦂ A ⊑ B)))
   ⊎ SimRightBlames Σ M
 sim-right-w09-r13 rel =
   inj₂ (sim-right-w09-right-blame-typeapp-blames rel)

@@ -5,8 +5,7 @@ module ImprecisionIndexed where
 --   * The relation distinguishes plain and ν-bound type variables, requires
 --   * plain lookup for variable identity, and gives ν-bound variables a
 --   * non-recursive path to ★.
---   * Proves proof irrelevance for imprecision by excluding the ∀/ν overlap
---   * with an occurrence-path invariant.
+--   * Provides weakening and substitution lemmas for indexed imprecision.
 
 open import Types
 open import TypeProperties using
@@ -139,22 +138,6 @@ insertν-lookup :
 insertν-lookup zero x∈ = there x∈
 insertν-lookup (suc k) here = here
 insertν-lookup (suc k) (there x∈) = there (insertν-lookup k x∈)
-
-data StarSourceᵢ : Ty → Set where
-  star-＇ : (X : TyVar) → StarSourceᵢ (＇ X)
-  star-｀ : (α : Seal) → StarSourceᵢ (｀ α)
-  star-‵ : (ι : Base) → StarSourceᵢ (‵ ι)
-  star-⇒ : (A B : Ty) → StarSourceᵢ (A ⇒ B)
-
-rename-StarSourceᵢ :
-  ∀ ρ {A} →
-  StarSourceᵢ A →
-  StarSourceᵢ (renameᵗ ρ A)
-rename-StarSourceᵢ ρ (star-＇ X) = star-＇ (ρ X)
-rename-StarSourceᵢ ρ (star-｀ α) = star-｀ α
-rename-StarSourceᵢ ρ (star-‵ ι) = star-‵ ι
-rename-StarSourceᵢ ρ (star-⇒ A B) =
-  star-⇒ (renameᵗ ρ A) (renameᵗ ρ B)
 
 data TyPath : Set where
   path-＇ : TyPath
@@ -342,7 +325,6 @@ data _⊢_⊑ₒ_ (Γ : ICtx) : Ty → Ty → Set where
     Γ ∋ X ∶ ν-bound →
     Γ ⊢ ＇ X ⊑ₒ ★
   ⊑ₒ-★ : (A G : Ty) →
-    StarSourceᵢ A →
     Ground G →
     Γ ⊢ A ⊑ₒ G →
     Γ ⊢ A ⊑ₒ ★
@@ -366,7 +348,7 @@ _⊢_⊑ᵢ_ : ICtx → Ty → Ty → Set
 
 pattern ⊑ᵢ-★★ = ⊑ₒ-★★
 pattern ⊑ᵢ-★ν x = ⊑ₒ-★ν x
-pattern ⊑ᵢ-★ A G s g p = ⊑ₒ-★ A G s g p
+pattern ⊑ᵢ-★ A G g p = ⊑ₒ-★ A G g p
 pattern ⊑ᵢ-＇ x = ⊑ₒ-＇ x
 pattern ⊑ᵢ-｀ α = ⊑ₒ-｀ α
 pattern ⊑ᵢ-‵ ι = ⊑ₒ-‵ ι
@@ -449,23 +431,6 @@ closed-reflᵢ :
   WfTy 0 Ψ A →
   Γ ⊢ A ⊑ᵢ A
 closed-reflᵢ = wf-plains-reflᵢ
-
-Ground-irrel :
-  ∀ {G} →
-  (g h : Ground G) →
-  g ≡ h
-Ground-irrel (｀ α) (｀ .α) = refl
-Ground-irrel (‵ ι) (‵ .ι) = refl
-Ground-irrel ★⇒★ ★⇒★ = refl
-
-StarSourceᵢ-irrel :
-  ∀ {A} →
-  (s t : StarSourceᵢ A) →
-  s ≡ t
-StarSourceᵢ-irrel (star-＇ X) (star-＇ .X) = refl
-StarSourceᵢ-irrel (star-｀ α) (star-｀ .α) = refl
-StarSourceᵢ-irrel (star-‵ ι) (star-‵ .ι) = refl
-StarSourceᵢ-irrel (star-⇒ A B) (star-⇒ .A .B) = refl
 
 inserted-∀-varAt :
   ∀ k {p B} →
@@ -576,7 +541,7 @@ ground-no-useAt∈ ★⇒★ (_ , at-⇒ʳ at-★ , ())
 ν-source-useAt-target-starAt∈ xν ⊑ₒ-★★ (_ , at-★ , ())
 ν-source-useAt-target-starAt∈ xν (⊑ₒ-★ν yν) (_ , at-＇ , usesRoot-＇) =
   starAt-★
-ν-source-useAt-target-starAt∈ xν (⊑ₒ-★ A G s g p) u =
+ν-source-useAt-target-starAt∈ xν (⊑ₒ-★ A G g p) u =
   starAt-★
 ν-source-useAt-target-starAt∈ xν (⊑ₒ-＇ y∈) (_ , at-＇ , usesRoot-＇) =
   ⊥-elim (∋-plain-not-ν y∈ xν)
@@ -606,7 +571,7 @@ plain-source-useAt-target-useAt∈ :
 plain-source-useAt-target-useAt∈ x∈ ⊑ₒ-★★ (_ , at-★ , ())
 plain-source-useAt-target-useAt∈ x∈ (⊑ₒ-★ν yν) (_ , at-＇ , usesRoot-＇) =
   ⊥-elim (∋-plain-not-ν x∈ yν)
-plain-source-useAt-target-useAt∈ x∈ (⊑ₒ-★ A G s g p) u =
+plain-source-useAt-target-useAt∈ x∈ (⊑ₒ-★ A G g p) u =
   ⊥-elim (ground-no-useAt∈ g
     (plain-source-useAt-target-useAt∈ x∈ p u))
 plain-source-useAt-target-useAt∈ x∈ (⊑ₒ-＇ y∈) (_ , at-＇ , usesRoot-＇) =
@@ -627,33 +592,6 @@ plain-source-useAt-target-useAt∈ x∈
     (⊑ₒ-ν A B occ p) (_ , at-∀ uAt , usesRoot-∀ uRoot) =
   usesAt-⇑ᵗ-lower (plain-source-useAt-target-useAt∈ (there x∈) p
     (_ , uAt , uRoot))
-
-star-rest-target-unique :
-  ∀ {Γ A G H} →
-  StarSourceᵢ A →
-  Γ ⊢ A ⊑ₒ G →
-  Ground G →
-  Γ ⊢ A ⊑ₒ H →
-  Ground H →
-  G ≡ H
-star-rest-target-unique (star-＇ X) (⊑ₒ-★ν x) () q h
-star-rest-target-unique (star-＇ X) (⊑ₒ-★ .(＇ X) G s g p) () q h
-star-rest-target-unique (star-＇ X) (⊑ₒ-＇ x) () q h
-star-rest-target-unique (star-｀ α) (⊑ₒ-｀ .α) (｀ .α)
-    (⊑ₒ-｀ .α) (｀ .α) = refl
-star-rest-target-unique (star-‵ ι) (⊑ₒ-‵ .ι) (‵ .ι)
-    (⊑ₒ-‵ .ι) (‵ .ι) = refl
-star-rest-target-unique (star-⇒ A B) (⊑ₒ-⇒ .A A′ .B B′ p₁ p₂)
-    ★⇒★ (⊑ₒ-⇒ .A .A′ .B .B′ q₁ q₂) ★⇒★ = refl
-
-var-ground-⊥ :
-  ∀ {Γ X G} →
-  Γ ⊢ ＇ X ⊑ₒ G →
-  Ground G →
-  ⊥
-var-ground-⊥ (⊑ₒ-★ν x∈) ()
-var-ground-⊥ (⊑ₒ-★ .(＇ _) G s g p) ()
-var-ground-⊥ (⊑ₒ-＇ x∈) ()
 
 ∀ν-overlap-useAt-⊥ :
   ∀ {Γ A B p} →
@@ -685,45 +623,6 @@ var-ground-⊥ (⊑ₒ-＇ x∈) ()
   rewrite ∀ν-overlap-occurs-false p q =
   false≢trueᵢ occ
 
-⊑ₒ-proof-irrel :
-  ∀ {Γ A B} →
-  (p q : Γ ⊢ A ⊑ₒ B) →
-  p ≡ q
-⊑ₒ-proof-irrel ⊑ₒ-★★ ⊑ₒ-★★ = refl
-⊑ₒ-proof-irrel (⊑ₒ-★ν x) (⊑ₒ-★ν y) =
-  cong ⊑ₒ-★ν (∋-irrel x y)
-⊑ₒ-proof-irrel (⊑ₒ-★ν x) (⊑ₒ-★ .(＇ _) G s g q) =
-  ⊥-elim (var-ground-⊥ q g)
-⊑ₒ-proof-irrel (⊑ₒ-★ .(＇ _) G s g p) (⊑ₒ-★ν x) =
-  ⊥-elim (var-ground-⊥ p g)
-⊑ₒ-proof-irrel (⊑ₒ-★ A G s g p) (⊑ₒ-★ .A H s′ g′ q)
-  with star-rest-target-unique s p g q g′
-⊑ₒ-proof-irrel (⊑ₒ-★ A G s g p) (⊑ₒ-★ .A .G s′ g′ q) | refl
-  rewrite StarSourceᵢ-irrel s s′
-        | Ground-irrel g g′
-        | ⊑ₒ-proof-irrel p q = refl
-⊑ₒ-proof-irrel (⊑ₒ-＇ x) (⊑ₒ-＇ y) = cong ⊑ₒ-＇ (∋-irrel x y)
-⊑ₒ-proof-irrel (⊑ₒ-｀ α) (⊑ₒ-｀ .α) = refl
-⊑ₒ-proof-irrel (⊑ₒ-‵ ι) (⊑ₒ-‵ .ι) = refl
-⊑ₒ-proof-irrel (⊑ₒ-⇒ A A′ B B′ p₁ p₂)
-    (⊑ₒ-⇒ .A .A′ .B .B′ q₁ q₂)
-  rewrite ⊑ₒ-proof-irrel p₁ q₁
-        | ⊑ₒ-proof-irrel p₂ q₂ = refl
-⊑ₒ-proof-irrel (⊑ₒ-∀ A B p) (⊑ₒ-∀ .A .B q)
-  rewrite ⊑ₒ-proof-irrel p q = refl
-⊑ₒ-proof-irrel (⊑ₒ-∀ A B p) (⊑ₒ-ν .A .(`∀ B) occ q) =
-  ⊥-elim (∀ν-overlap-⊥ occ p q)
-⊑ₒ-proof-irrel (⊑ₒ-ν A .(`∀ B) occ p) (⊑ₒ-∀ .A B q) =
-  ⊥-elim (∀ν-overlap-⊥ occ q p)
-⊑ₒ-proof-irrel (⊑ₒ-ν A B occ p) (⊑ₒ-ν .A .B occ′ q)
-  rewrite ⊑ₒ-proof-irrel p q = refl
-
-⊑ᵢ-proof-irrel :
-  ∀ {Γ A B} →
-  (p q : Γ ⊢ A ⊑ᵢ B) →
-  p ≡ q
-⊑ᵢ-proof-irrel = ⊑ₒ-proof-irrel
-
 ⊑ᵢ-cast :
   ∀ {Γ A A′ B B′} →
   A ≡ A′ →
@@ -740,11 +639,10 @@ plain-weakenAt⊑ᵢ :
 plain-weakenAt⊑ᵢ k ⊑ₒ-★★ = ⊑ₒ-★★
 plain-weakenAt⊑ᵢ k (⊑ₒ-★ν xν) =
   ⊑ₒ-★ν (insertPlain-lookup k xν)
-plain-weakenAt⊑ᵢ k (⊑ₒ-★ A G s g p) =
+plain-weakenAt⊑ᵢ k (⊑ₒ-★ A G g p) =
   ⊑ₒ-★
     (renameᵗ (raiseVarFrom k) A)
     (renameᵗ (raiseVarFrom k) G)
-    (rename-StarSourceᵢ (raiseVarFrom k) s)
     (renameᵗ-ground (raiseVarFrom k) g)
     (plain-weakenAt⊑ᵢ k p)
 plain-weakenAt⊑ᵢ k (⊑ₒ-＇ x∈) =
@@ -796,11 +694,10 @@ plain-weaken⊑ᵢ = plain-weakenAt⊑ᵢ zero
     renameᵗ (raiseVarFrom k) A ⊑ᵢ renameᵗ (raiseVarFrom k) B
 ν-weakenAt⊑ᵢ k ⊑ₒ-★★ = ⊑ₒ-★★
 ν-weakenAt⊑ᵢ k (⊑ₒ-★ν xν) = ⊑ₒ-★ν (insertν-lookup k xν)
-ν-weakenAt⊑ᵢ k (⊑ₒ-★ A G s g p) =
+ν-weakenAt⊑ᵢ k (⊑ₒ-★ A G g p) =
   ⊑ₒ-★
     (renameᵗ (raiseVarFrom k) A)
     (renameᵗ (raiseVarFrom k) G)
-    (rename-StarSourceᵢ (raiseVarFrom k) s)
     (renameᵗ-ground (raiseVarFrom k) g)
     (ν-weakenAt⊑ᵢ k p)
 ν-weakenAt⊑ᵢ k (⊑ₒ-＇ x∈) = ⊑ₒ-＇ (insertν-lookup k x∈)
@@ -925,21 +822,6 @@ substPlain-ν-lookup (suc k) {Γ = m ∷ Γ} (there x∈)
 substPlain-ν-lookup (suc k) {Γ = m ∷ Γ} (there x∈)
   | Y , y∈ , eq = suc Y , there y∈ , cong ⇑ᵗ eq
 
-substPlainAt-StarSourceᵢ :
-  ∀ k T {Γ A G} →
-  StarSourceᵢ A →
-  Ground G →
-  insertPlainAt k Γ ⊢ A ⊑ᵢ G →
-  StarSourceᵢ (substᵗ (substVarFrom k T) A)
-substPlainAt-StarSourceᵢ k T (star-＇ X) g p =
-  ⊥-elim (var-ground-⊥ p g)
-substPlainAt-StarSourceᵢ k T (star-｀ α) g p = star-｀ α
-substPlainAt-StarSourceᵢ k T (star-‵ ι) g p = star-‵ ι
-substPlainAt-StarSourceᵢ k T (star-⇒ A B) g p =
-  star-⇒
-    (substᵗ (substVarFrom k T) A)
-    (substᵗ (substVarFrom k T) B)
-
 occurs-raise-fresh :
   ∀ k A →
   occurs k (renameᵗ (raiseVarFrom k) A) ≡ false
@@ -1005,11 +887,10 @@ substPlainAt⊑ᵢ k T ok (⊑ₒ-★ν xν)
   with substPlain-ν-lookup k xν
 substPlainAt⊑ᵢ k T ok (⊑ₒ-★ν xν) | Y , yν , eq =
   ⊑ᵢ-cast (sym eq) refl (⊑ₒ-★ν yν)
-substPlainAt⊑ᵢ k T ok (⊑ₒ-★ A G s g p) =
+substPlainAt⊑ᵢ k T ok (⊑ₒ-★ A G g p) =
   ⊑ₒ-★
     (substᵗ (substVarFrom k T) A)
     (substᵗ (substVarFrom k T) G)
-    (substPlainAt-StarSourceᵢ k T s g p)
     (substᵗ-ground (substVarFrom k T) g)
     (substPlainAt⊑ᵢ k T ok p)
 substPlainAt⊑ᵢ k T ok (⊑ₒ-＇ x∈) = ok x∈

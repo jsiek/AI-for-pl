@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module SimRight where
 
 -- File Charter:
@@ -30,8 +32,8 @@ Blames : Store → Term → Set
 Blames Σ M = ∃[ Σ′ ] ∃[ ℓ ] (Σ ∣ M —↠ Σ′ ∣ blame ℓ)
 
 sim-right :
-  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σʳ′ M M′ N′ A B} {p : [] ⊢ A ⊑ᵢ B} →
-  ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ p →
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σʳ′ M M′ N′ A B} →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
   Σʳ ∣ M′ —→ Σʳ′ ∣ N′ →
@@ -40,7 +42,7 @@ sim-right :
     Σ[ Σˡ′ ∈ Store ]
     Σ[ N ∈ Term ]
       ((Σˡ ∣ M —↠ Σˡ′ ∣ N) ×
-       (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ N ⊑ N′ ⦂ p)))
+       (⟪ 0 , Ψˡ″ , Σˡ′ , [] , [] , plain-[] , refl ⟫ ⊢ N ⊑ N′ ⦂ A ⊑ B)))
   ⊎ Blames Σˡ M
 
 -- Raw non-store-allocating steps.

@@ -691,15 +691,15 @@ mutual
     star-rel V W = Lift (lsuc 0ℓ) ⊥
   𝒱body ρ (⊑ₒ-★ν xν) zero dir w V W = Lift (lsuc 0ℓ) ⊤
   𝒱body ρ (⊑ₒ-★ν xν) (suc k) dir w V W = Lift (lsuc 0ℓ) ⊤
-  𝒱body ρ (⊑ₒ-★ _ G s g p) zero ≼ w V W = Lift (lsuc 0ℓ) ⊤
-  𝒱body ρ (⊑ₒ-★ _ G s g p) zero ≽ w V W = Lift (lsuc 0ℓ) ⊤
-  𝒱body ρ (⊑ₒ-★ _ G s g p) (suc k) ≼ w V W = star-right-rel W
+  𝒱body ρ (⊑ₒ-★ _ G g p) zero ≼ w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body ρ (⊑ₒ-★ _ G g p) zero ≽ w V W = Lift (lsuc 0ℓ) ⊤
+  𝒱body ρ (⊑ₒ-★ _ G g p) (suc k) ≼ w V W = star-right-rel W
     where
     star-right-rel : Term → Set₁
     star-right-rel (W up tag pʳ H) =
       Lift (lsuc 0ℓ) (G ≡ H) × 𝒱 ρ p k ≼ w V (W up pʳ)
     star-right-rel W = Lift (lsuc 0ℓ) ⊥
-  𝒱body ρ (⊑ₒ-★ _ G s g p) (suc k) ≽ w V W = star-right-rel W
+  𝒱body ρ (⊑ₒ-★ _ G g p) (suc k) ≽ w V W = star-right-rel W
     where
     star-right-rel : Term → Set₁
     star-right-rel (W up tag pʳ H) =
@@ -887,26 +887,26 @@ mutual
       | eqG , g , inner =
     eqG , g , 𝒱-monotone ρ (ground-reflᵢ g) k dir w (U up pˡ) (U′ up pʳ) inner
   𝒱body-monotone ρ (⊑ₒ-★ν xν) k dir w V W header rel = lift tt
-  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≼ w V W
+  𝒱body-monotone ρ (⊑ₒ-★ A G g p) k ≼ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       with canonical-★ vW W⊢
-  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≼ w V W
+  𝒱body-monotone ρ (⊑ₒ-★ A G g p) k ≼ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       rewrite eqW with rel
-  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≼ w V W
+  𝒱body-monotone ρ (⊑ₒ-★ A G g p) k ≼ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       | eqG , inner =
     eqG , 𝒱-monotone ρ p k ≼ w V (W′ up pʳ) inner
-  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≽ w V W
+  𝒱body-monotone ρ (⊑ₒ-★ A G g p) k ≽ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       with canonical-★ vW W⊢
-  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≽ w V W
+  𝒱body-monotone ρ (⊑ₒ-★ A G g p) k ≽ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       rewrite eqW with rel
-  𝒱body-monotone ρ (⊑ₒ-★ A G s g p) k ≽ w V W
+  𝒱body-monotone ρ (⊑ₒ-★ A G g p) k ≽ w V W
       (vV , vW , (V⊢ , W⊢)) rel
       | sv-up-tag {W = W′} {p = pʳ} {G = H} vW′ eqW
       | eqG , inner =

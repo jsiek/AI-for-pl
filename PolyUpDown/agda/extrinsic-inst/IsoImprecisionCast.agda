@@ -17,6 +17,7 @@ open import UpDown
     ; _∈cast_; _∈tag_
     ; here-cast-only; there-cast; here-tag-only; there-tag
     ; wfTySome
+    ; ⊢_ok_
     )
 open import Cast
 open import ImprecisionIndexed
@@ -37,6 +38,7 @@ open import Data.List using (List; []; _∷_; length)
 open import Data.Nat using (zero; suc; _<_; z<s; s<s)
 open import Data.Nat.Properties using (_≟_)
 open import Data.Product using (_,_; _×_; ∃; ∃-syntax)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Unit using (tt)
 open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality
@@ -548,62 +550,371 @@ mutual
         (interp-ν-source Γ A)
         (imprecision⇒cast⊒ (cast-ν-tag cΓ) p))
 
-cast⇒imprecision⊑-ground★-hole :
-  ∀ {Γ Σ Φ Ψ A} {G : Ty} →
-  CastCtx Γ Σ Φ →
-  WfTy (length Γ) Ψ A →
-  Ground G →
-  Σ ∣ Φ ⊢ interp Γ A ⊑ᶜ G →
-  Γ ⊢ A ⊑ᵢ ★
-cast⇒imprecision⊑-ground★-hole cΓ wfA g p =
-  -- Missing reflection: recover `Gᵢ` and `Ground Gᵢ` from a cast-side ground
-  -- `G`, then show `interp Γ Gᵢ ≡ G`.
-  {!!}
+-- The only `⊑ᶜ` rules that can derive `_ ⊑ᶜ ｀ α` are `⊑ᶜ-seal`, `⊑ᶜ-id`,
+-- and `⊑ᶜ-ν`. The first two pin the LHS to `｀ α`; the third pins it to a
+-- universal. All other rules end at `★`, an arrow, or a `∀`, so are ruled
+-- out by the indexed return type.
+⊑ᶜ-→｀-shape :
+  ∀ {Σ Φ A α} →
+  Σ ∣ Φ ⊢ A ⊑ᶜ ｀ α →
+  (A ≡ ｀ α) ⊎ (∃[ A′ ] A ≡ `∀ A′)
+⊑ᶜ-→｀-shape (⊑ᶜ-seal _) = inj₁ refl
+⊑ᶜ-→｀-shape (⊑ᶜ-ν {A = A′} _ _) = inj₂ (A′ , refl)
+⊑ᶜ-→｀-shape (⊑ᶜ-id _) = inj₁ refl
 
-cast⇒imprecision⊑-seal★-hole :
+-- Cast-shape inversion at base ground `‵ ι`: only `⊑ᶜ-id` (forcing `A ≡ ‵ ι`)
+-- and `⊑ᶜ-ν` (forcing `A ≡ `∀ A′`) reach this shape.
+⊑ᶜ-→‵-shape :
+  ∀ {Σ Φ A ι} →
+  Σ ∣ Φ ⊢ A ⊑ᶜ ‵ ι →
+  (A ≡ ‵ ι) ⊎ (∃[ A′ ] A ≡ `∀ A′)
+⊑ᶜ-→‵-shape (⊑ᶜ-ν {A = A′} _ _) = inj₂ (A′ , refl)
+⊑ᶜ-→‵-shape (⊑ᶜ-id _) = inj₁ refl
+
+-- Cast-shape inversion at an arrow type: covered by `⊑ᶜ-id` (forcing
+-- `A ≡ B ⇒ C`), `⊑ᶜ-⇒` (any arrow source), or `⊑ᶜ-ν` (`∀ A′`).
+⊑ᶜ-→⇒-shape :
+  ∀ {Σ Φ A B C} →
+  Σ ∣ Φ ⊢ A ⊑ᶜ B ⇒ C →
+  (A ≡ B ⇒ C) ⊎ (∃[ A₁ ] ∃[ A₂ ] A ≡ A₁ ⇒ A₂) ⊎ (∃[ A′ ] A ≡ `∀ A′)
+⊑ᶜ-→⇒-shape (⊑ᶜ-⇒ {A = A₁} {B = A₂} _ _) = inj₂ (inj₁ (A₁ , A₂ , refl))
+⊑ᶜ-→⇒-shape (⊑ᶜ-ν {A = A′} _ _) = inj₂ (inj₂ (A′ , refl))
+⊑ᶜ-→⇒-shape (⊑ᶜ-id _) = inj₁ refl
+
+-- `renameᵗ ρ T ≡ ★` forces `T ≡ ★` (similarly for `renameˢ`). Used to push
+-- `★` through the lifted-context layers in `interpVar`.
+renameᵗ-≡-★ : ∀ {ρ T} → renameᵗ ρ T ≡ ★ → T ≡ ★
+renameᵗ-≡-★ {T = ＇ X} ()
+renameᵗ-≡-★ {T = ｀ α} ()
+renameᵗ-≡-★ {T = ‵ ι} ()
+renameᵗ-≡-★ {T = ★} refl = refl
+renameᵗ-≡-★ {T = A ⇒ B} ()
+renameᵗ-≡-★ {T = `∀ A} ()
+
+renameˢ-≡-★ : ∀ {ρ T} → renameˢ ρ T ≡ ★ → T ≡ ★
+renameˢ-≡-★ {T = ＇ X} ()
+renameˢ-≡-★ {T = ｀ α} ()
+renameˢ-≡-★ {T = ‵ ι} ()
+renameˢ-≡-★ {T = ★} refl = refl
+renameˢ-≡-★ {T = A ⇒ B} ()
+renameˢ-≡-★ {T = `∀ A} ()
+
+-- `interpVar Γ X ≡ ★` is impossible: `interpVar` always returns a `＇`- or
+-- `｀`-headed term (after iterated lifting).
+interpVar-≢-★ : ∀ Γ X → interpVar Γ X ≡ ★ → ⊥
+interpVar-≢-★ [] X ()
+interpVar-≢-★ (plain ∷ Γ) zero ()
+interpVar-≢-★ (plain ∷ Γ) (suc X) eq =
+  interpVar-≢-★ Γ X (renameᵗ-≡-★ eq)
+interpVar-≢-★ (ν-bound ∷ Γ) zero ()
+interpVar-≢-★ (ν-bound ∷ Γ) (suc X) eq =
+  interpVar-≢-★ Γ X (renameˢ-≡-★ eq)
+
+-- Source-shape inversion: if `interp Γ A ≡ ★` then `A ≡ ★`. The `＇ X`
+-- case routes through `interpVar-≢-★`; all others are direct.
+interp-≡-★ : ∀ {Γ A} → interp Γ A ≡ ★ → A ≡ ★
+interp-≡-★ {Γ = Γ} {A = ＇ X} eq = ⊥-elim (interpVar-≢-★ Γ X eq)
+interp-≡-★ {A = ｀ α} ()
+interp-≡-★ {A = ‵ ι} ()
+interp-≡-★ {A = ★} refl = refl
+interp-≡-★ {A = A ⇒ B} ()
+interp-≡-★ {A = `∀ A} ()
+
+-- Dual cast-shape inversion lemmas for `⊒ᶜ`. For `｀ α ⊒ᶜ A`, only
+-- `⊒ᶜ-seal`, `⊒ᶜ-id`, and `⊒ᶜ-ν` (with arbitrary LHS) apply.
+⊒ᶜ-｀→-shape :
+  ∀ {Σ Φ A α} →
+  Σ ∣ Φ ⊢ ｀ α ⊒ᶜ A →
+  (A ≡ ｀ α) ⊎ (∃[ A′ ] A ≡ `∀ A′)
+⊒ᶜ-｀→-shape (⊒ᶜ-seal _) = inj₁ refl
+⊒ᶜ-｀→-shape (⊒ᶜ-ν {A = A′} _ _) = inj₂ (A′ , refl)
+⊒ᶜ-｀→-shape (⊒ᶜ-id _) = inj₁ refl
+
+⊒ᶜ-‵→-shape :
+  ∀ {Σ Φ A ι} →
+  Σ ∣ Φ ⊢ ‵ ι ⊒ᶜ A →
+  (A ≡ ‵ ι) ⊎ (∃[ A′ ] A ≡ `∀ A′)
+⊒ᶜ-‵→-shape (⊒ᶜ-ν {A = A′} _ _) = inj₂ (A′ , refl)
+⊒ᶜ-‵→-shape (⊒ᶜ-id _) = inj₁ refl
+
+⊒ᶜ-⇒→-shape :
+  ∀ {Σ Φ A B C} →
+  Σ ∣ Φ ⊢ B ⇒ C ⊒ᶜ A →
+  (A ≡ B ⇒ C) ⊎ (∃[ A₁ ] ∃[ A₂ ] A ≡ A₁ ⇒ A₂) ⊎ (∃[ A′ ] A ≡ `∀ A′)
+⊒ᶜ-⇒→-shape (⊒ᶜ-⇒ {A′ = A₁} {B′ = A₂} _ _) = inj₂ (inj₁ (A₁ , A₂ , refl))
+⊒ᶜ-⇒→-shape (⊒ᶜ-ν {A = A′} _ _) = inj₂ (inj₂ (A′ , refl))
+⊒ᶜ-⇒→-shape (⊒ᶜ-id _) = inj₁ refl
+
+-- `interpSeal Γ` is injective in its `Seal` argument — it's `α + |ν-bound
+-- prefix of Γ|`, so distinct source seals never collide on the cast side.
+interpSeal-injective :
+  ∀ Γ {α β} → interpSeal Γ α ≡ interpSeal Γ β → α ≡ β
+interpSeal-injective [] eq = eq
+interpSeal-injective (plain ∷ Γ) eq = interpSeal-injective Γ eq
+interpSeal-injective (ν-bound ∷ Γ) {α} {β} eq =
+  interpSeal-injective Γ (suc-injective eq)
+  where
+    suc-injective : ∀ {m n} → suc m ≡ suc n → m ≡ n
+    suc-injective refl = refl
+
+-- A `Clean`-marked seal cannot have a `SealResource`: cleanliness asserts
+-- the seal has no permission, while a resource provides one.
+clean-seal-no-resource :
+  ∀ {Σ Φ α} →
+  Clean Φ (｀ α) →
+  SealResource Σ Φ α →
+  ⊥
+clean-seal-no-resource (α∉cast , _) (seal-cast _ α∈Φ) = α∉cast α∈Φ
+clean-seal-no-resource (_ , α∉tag) (seal-tag α∈Φ) = α∉tag α∈Φ
+
+-- `interpVar Γ X` is always `＇ _` (when X is plain) or `｀ _` (when X is
+-- ν-bound), after iterated liftings. Stated as a sum of equalities so it can
+-- be used as a `with` dispatch without tripping unification.
+interpVar-shape :
+  ∀ Γ X →
+  (∃[ Y ] interpVar Γ X ≡ ＇ Y) ⊎ (∃[ α ] interpVar Γ X ≡ ｀ α)
+interpVar-shape [] X = inj₁ (X , refl)
+interpVar-shape (plain ∷ Γ) zero = inj₁ (zero , refl)
+interpVar-shape (plain ∷ Γ) (suc X) with interpVar-shape Γ X
+... | inj₁ (Y , eq) = inj₁ (suc Y , cong ⇑ᵗ eq)
+... | inj₂ (α , eq) = inj₂ (α , cong ⇑ᵗ eq)
+interpVar-shape (ν-bound ∷ Γ) zero = inj₂ (zero , refl)
+interpVar-shape (ν-bound ∷ Γ) (suc X) with interpVar-shape Γ X
+... | inj₁ (Y , eq) = inj₁ (Y , cong ⇑ˢ eq)
+... | inj₂ (α , eq) = inj₂ (suc α , cong ⇑ˢ eq)
+
+-- Discriminator function for ruling out cross-constructor `Ty` equalities.
+-- Computing it gives the head constructor as a tag; pulling it through `≡`
+-- via `cong`/`subst` makes Agda's coverage checker happy in the `interp-≡-_`
+-- family, where direct `()` on `＇/｀ ≡ ‵/⇒/∀/｀` gets blocked by metavariable
+-- universe inference.
+data TyHead : Set where
+  hVar hSeal hBase hStar hArrow hAll : TyHead
+
+ty-head : Ty → TyHead
+ty-head (＇ _) = hVar
+ty-head (｀ _) = hSeal
+ty-head (‵ _) = hBase
+ty-head ★ = hStar
+ty-head (_ ⇒ _) = hArrow
+ty-head (`∀ _) = hAll
+
+-- Source-shape inversions for the remaining ground constructors. Each is
+-- structurally the same as `interp-≡-★`: source variables route through
+-- `interpVar-shape` to derive contradictions; all other branches are
+-- absurd-by-constructor.
+interp-≡-‵ : ∀ {Γ A ι} → interp Γ A ≡ ‵ ι → A ≡ ‵ ι
+interp-≡-‵ {Γ = Γ} {A = ＇ X} eq with interpVar-shape Γ X
+... | inj₁ (Y , vEq) =
+  ⊥-elim (head-mismatch (cong ty-head (trans (sym vEq) eq)))
+  where
+    head-mismatch : hVar ≡ hBase → ⊥
+    head-mismatch ()
+... | inj₂ (α , vEq) =
+  ⊥-elim (head-mismatch (cong ty-head (trans (sym vEq) eq)))
+  where
+    head-mismatch : hSeal ≡ hBase → ⊥
+    head-mismatch ()
+interp-≡-‵ {A = ｀ α} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where
+    head-mismatch : hSeal ≡ hBase → ⊥
+    head-mismatch ()
+interp-≡-‵ {A = ‵ ι} refl = refl
+interp-≡-‵ {A = ★} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where
+    head-mismatch : hStar ≡ hBase → ⊥
+    head-mismatch ()
+interp-≡-‵ {A = A ⇒ B} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where
+    head-mismatch : hArrow ≡ hBase → ⊥
+    head-mismatch ()
+interp-≡-‵ {A = `∀ A} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where
+    head-mismatch : hAll ≡ hBase → ⊥
+    head-mismatch ()
+
+interp-≡-⇒ :
+  ∀ {Γ A B C} →
+  interp Γ A ≡ B ⇒ C →
+  ∃[ A₁ ] ∃[ A₂ ] (A ≡ A₁ ⇒ A₂ × interp Γ A₁ ≡ B × interp Γ A₂ ≡ C)
+interp-≡-⇒ {Γ = Γ} {A = ＇ X} eq with interpVar-shape Γ X
+... | inj₁ (Y , vEq) =
+  ⊥-elim (head-mismatch (cong ty-head (trans (sym vEq) eq)))
+  where
+    head-mismatch : hVar ≡ hArrow → ⊥
+    head-mismatch ()
+... | inj₂ (α , vEq) =
+  ⊥-elim (head-mismatch (cong ty-head (trans (sym vEq) eq)))
+  where
+    head-mismatch : hSeal ≡ hArrow → ⊥
+    head-mismatch ()
+interp-≡-⇒ {A = ｀ α} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where head-mismatch : hSeal ≡ hArrow → ⊥
+        head-mismatch ()
+interp-≡-⇒ {A = ‵ ι} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where head-mismatch : hBase ≡ hArrow → ⊥
+        head-mismatch ()
+interp-≡-⇒ {A = ★} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where head-mismatch : hStar ≡ hArrow → ⊥
+        head-mismatch ()
+interp-≡-⇒ {A = A₁ ⇒ A₂} refl = A₁ , A₂ , refl , refl , refl
+interp-≡-⇒ {A = `∀ A} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where head-mismatch : hAll ≡ hArrow → ⊥
+        head-mismatch ()
+
+interp-≡-∀ :
+  ∀ {Γ A B} →
+  interp Γ A ≡ `∀ B →
+  ∃[ A′ ] (A ≡ `∀ A′ × interp (plain ∷ Γ) A′ ≡ B)
+interp-≡-∀ {Γ = Γ} {A = ＇ X} eq with interpVar-shape Γ X
+... | inj₁ (Y , vEq) =
+  ⊥-elim (head-mismatch (cong ty-head (trans (sym vEq) eq)))
+  where head-mismatch : hVar ≡ hAll → ⊥
+        head-mismatch ()
+... | inj₂ (α , vEq) =
+  ⊥-elim (head-mismatch (cong ty-head (trans (sym vEq) eq)))
+  where head-mismatch : hSeal ≡ hAll → ⊥
+        head-mismatch ()
+interp-≡-∀ {A = ｀ α} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where head-mismatch : hSeal ≡ hAll → ⊥
+        head-mismatch ()
+interp-≡-∀ {A = ‵ ι} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where head-mismatch : hBase ≡ hAll → ⊥
+        head-mismatch ()
+interp-≡-∀ {A = ★} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where head-mismatch : hStar ≡ hAll → ⊥
+        head-mismatch ()
+interp-≡-∀ {A = A ⇒ B} eq = ⊥-elim (head-mismatch (cong ty-head eq))
+  where head-mismatch : hArrow ≡ hAll → ⊥
+        head-mismatch ()
+interp-≡-∀ {A = `∀ A} refl = A , refl , refl
+
+-- Source-shape inversion at a seal `｀ α`: source is either a `｀ β` whose
+-- `interpSeal` value is `α`, or a ν-bound variable whose `interpVar` is
+-- `｀ α` (the latter is ruled out by `Clean Φ (｀ α)` at the call site).
+data InterpSealSource (Γ : ICtx) (α : Seal) (A : Ty) : Set where
+  isFromSeal : ∀ β → A ≡ ｀ β → interpSeal Γ β ≡ α → InterpSealSource Γ α A
+  isFromν    : ∀ X → A ≡ ＇ X → Γ ∋ X ∶ ν-bound → interpVar Γ X ≡ ｀ α →
+               InterpSealSource Γ α A
+
+interp-≡-｀ :
+  ∀ {Γ Ψ A α} →
+  WfTy (length Γ) Ψ A →
+  interp Γ A ≡ ｀ α →
+  InterpSealSource Γ α A
+interp-≡-｀ {Γ = Γ} (wfVar X<Γ) eq with lookup-mode Γ _ X<Γ
+... | plain , x∈ with plain-var-image x∈
+... | _ , vEq =
+  ⊥-elim (head-mismatch (cong ty-head (trans (sym vEq) eq)))
+  where head-mismatch : hVar ≡ hSeal → ⊥
+        head-mismatch ()
+interp-≡-｀ (wfVar X<Γ) eq | ν-bound , x∈ = isFromν _ refl x∈ eq
+interp-≡-｀ (wfSeal {α = β} _) refl = isFromSeal β refl refl
+interp-≡-｀ wfBase ()
+interp-≡-｀ wf★ ()
+interp-≡-｀ (wf⇒ _ _) ()
+interp-≡-｀ (wf∀ _) ()
+
+-- Source-injectivity of `interp` under `Clean` (planned).
+-- Statement: two well-scoped sources A, B with `interp Γ A ≡ interp Γ B`
+-- and `Clean Φ (interp Γ B)` are syntactically equal at the source.
+-- Clean rules out the asymmetry between `｀ β` (source seal) and `＇ X`
+-- (ν-bound source variable) — both can interpret to the same cast seal,
+-- but only the ν-bound side carries a `SealResource` that contradicts
+-- `Clean` (via `clean-var-plain` + `∋-mode-unique`).
+--
+-- Once this is proved, `cast⇒imprecision⊑-id-hole` becomes:
+--
+--   cast⇒imprecision⊑-id-hole cΓ wfA wfB cleanB refl refl interpEq
+--     with clean-interp-injective cΓ wfA wfB cleanB interpEq
+--   ... | refl = clean-reflᵢ cΓ wfA cleanB
+--
+-- And `cast⇒imprecision⊑-seal-id-hole` becomes a one-liner delegating
+-- to the id-hole.
+--
+-- Implementation sketch (not yet written):
+--   * Case on `wfA × wfB`. Most cross-constructor pairs are absurd by
+--     `interp-≡-‵/⇒/∀/★/｀` pulling B's source shape from A's interp.
+--   * Same-constructor pairs: `wfBase × wfBase`, `wf★ × wf★` are direct
+--     refl. `wfSeal × wfSeal`: by `interpSeal-injective`. `wf⇒ × wf⇒`
+--     and `wf∀ × wf∀`: recurse on components (decreasing on wfA).
+--   * `wfVar × wfVar`: dispatch on plain/ν via `lookup-mode`. The plain
+--     × plain subcase needs `plain-var-image-injective` (a separate
+--     induction on Γ + ∋-membership; not yet written).
+
+-- The cast-side endpoint `｀ α` reflects back to a source-side reason for
+-- `A ⊑ᵢ ★`. This is the shared subroutine used by both
+-- `cast⇒imprecision⊑-seal★-hole` (where `α ∈cast Φ` plus a store witness give
+-- `seal-cast`) and the `g = ｀ α` branch of
+-- `cast⇒imprecision⊑-ground★-hole` (where `α ∈tag Φ` gives `seal-tag`).
+seal-source⊑ᵢ★ :
   ∀ {Γ Σ Φ Ψ A α} →
   CastCtx Γ Σ Φ →
   WfTy (length Γ) Ψ A →
+  SealResource Σ Φ α →
   Σ ∣ Φ ⊢ interp Γ A ⊑ᶜ ｀ α →
-  α ∈cast Φ →
   Γ ⊢ A ⊑ᵢ ★
-cast⇒imprecision⊑-seal★-hole cΓ wfA p α∈Φ =
-  -- Missing reflection: decide whether `｀ α` comes from a ν-bound source
-  -- variable, giving `⊑ᵢ-★ν`, or from an ordinary ground seal, giving
-  -- `⊑ᵢ-★`.
-  {!!}
+seal-source⊑ᵢ★ cΓ (wfVar X<Γ) r p with lookup-mode _ _ X<Γ
+seal-source⊑ᵢ★ cΓ (wfVar X<Γ) r p | plain , x∈
+    with plain-var-image x∈
+seal-source⊑ᵢ★ cΓ (wfVar X<Γ) r p | plain , x∈ | Y , eq
+    with ⊑ᶜ-→｀-shape (subst (λ T → _ ∣ _ ⊢ T ⊑ᶜ _) eq p)
+seal-source⊑ᵢ★ cΓ (wfVar X<Γ) r p | plain , x∈ | Y , eq | inj₁ ()
+seal-source⊑ᵢ★ cΓ (wfVar X<Γ) r p | plain , x∈ | Y , eq | inj₂ (_ , ())
+seal-source⊑ᵢ★ cΓ (wfVar X<Γ) r p | ν-bound , x∈ = ⊑ᵢ-★ν x∈
+seal-source⊑ᵢ★ {α = α} cΓ (wfSeal {α = β} _) r p =
+  ⊑ᵢ-★ (｀ β) (｀ β) (｀ β) (⊑ᵢ-｀ β)
+seal-source⊑ᵢ★ cΓ wfBase r p with ⊑ᶜ-→｀-shape p
+seal-source⊑ᵢ★ cΓ wfBase r p | inj₁ ()
+seal-source⊑ᵢ★ cΓ wfBase r p | inj₂ (_ , ())
+seal-source⊑ᵢ★ cΓ wf★ r p = ⊑ᵢ-★★
+seal-source⊑ᵢ★ cΓ (wf⇒ wfA wfB) r p with ⊑ᶜ-→｀-shape p
+seal-source⊑ᵢ★ cΓ (wf⇒ wfA wfB) r p | inj₁ ()
+seal-source⊑ᵢ★ cΓ (wf⇒ wfA wfB) r p | inj₂ (_ , ())
+seal-source⊑ᵢ★ {Γ = Γ} cΓ (wf∀ {A = A} wfA) r (⊑ᶜ-ν occ p′) =
+  ⊑ᵢ-ν A ★
+    (trans (sym (interp-plain-occurs-zero Γ A)) occ)
+    (seal-source⊑ᵢ★
+      (cast-ν-seal cΓ)
+      wfA
+      (lift-seal-resourceˢ-seal r)
+      (⊑ᶜ-cast (sym (interp-ν-source Γ A)) refl p′))
 
-cast⇒imprecision⊑-seal-id-hole :
-  ∀ {Γ Σ Φ Ψ A B A′ B′ α} →
+-- Dual of `seal-source⊑ᵢ★`: from a cast-side seal `｀ α` reaching the
+-- interpreted source via `⊒ᶜ`, recover `Γ ⊢ B ⊑ᵢ ★`. Same case structure;
+-- the `wf∀` recursion uses `cast-ν-tag` (matching `⊒ᶜ-ν`'s lifted permission).
+seal-source★⊒ᵢ :
+  ∀ {Γ Σ Φ Ψ B α} →
   CastCtx Γ Σ Φ →
-  WfTy (length Γ) Ψ A →
   WfTy (length Γ) Ψ B →
-  Clean Φ (interp Γ B) →
-  A′ ≡ interp Γ A →
-  B′ ≡ interp Γ B →
-  A′ ≡ ｀ α →
-  B′ ≡ ｀ α →
-  Γ ⊢ A ⊑ᵢ B
-cast⇒imprecision⊑-seal-id-hole cΓ wfA wfB cleanB eqA eqB srcSeal tgtSeal =
-  -- Missing reflection: both interpreted endpoints are the same seal.
-  -- We need to recover whether the source terms are equal concrete seals,
-  -- plain variables, or impossible ν variables ruled out by `Clean`.
-  {!!}
-
-cast⇒imprecision⊑-id-hole :
-  ∀ {Γ Σ Φ Ψ A B A′ B′} →
-  CastCtx Γ Σ Φ →
-  WfTy (length Γ) Ψ A →
-  WfTy (length Γ) Ψ B →
-  Clean Φ (interp Γ B) →
-  A′ ≡ interp Γ A →
-  B′ ≡ interp Γ B →
-  A′ ≡ B′ →
-  Γ ⊢ A ⊑ᵢ B
-cast⇒imprecision⊑-id-hole cΓ wfA wfB cleanB eqA eqB interpEq =
-  -- Missing equality reflection: clean, well-scoped interpreted equality
-  -- should give indexed imprecision between the source types.
-  {!!}
+  SealResource Σ Φ α →
+  Σ ∣ Φ ⊢ ｀ α ⊒ᶜ interp Γ B →
+  Γ ⊢ B ⊑ᵢ ★
+seal-source★⊒ᵢ cΓ (wfVar X<Γ) r p with lookup-mode _ _ X<Γ
+seal-source★⊒ᵢ cΓ (wfVar X<Γ) r p | plain , x∈
+    with plain-var-image x∈
+seal-source★⊒ᵢ cΓ (wfVar X<Γ) r p | plain , x∈ | Y , eq
+    with ⊒ᶜ-｀→-shape (subst (λ T → _ ∣ _ ⊢ _ ⊒ᶜ T) eq p)
+seal-source★⊒ᵢ cΓ (wfVar X<Γ) r p | plain , x∈ | Y , eq | inj₁ ()
+seal-source★⊒ᵢ cΓ (wfVar X<Γ) r p | plain , x∈ | Y , eq | inj₂ (_ , ())
+seal-source★⊒ᵢ cΓ (wfVar X<Γ) r p | ν-bound , x∈ = ⊑ᵢ-★ν x∈
+seal-source★⊒ᵢ cΓ (wfSeal {α = β} _) r p =
+  ⊑ᵢ-★ (｀ β) (｀ β) (｀ β) (⊑ᵢ-｀ β)
+seal-source★⊒ᵢ cΓ wfBase r p with ⊒ᶜ-｀→-shape p
+seal-source★⊒ᵢ cΓ wfBase r p | inj₁ ()
+seal-source★⊒ᵢ cΓ wfBase r p | inj₂ (_ , ())
+seal-source★⊒ᵢ cΓ wf★ r p = ⊑ᵢ-★★
+seal-source★⊒ᵢ cΓ (wf⇒ wfA wfB) r p with ⊒ᶜ-｀→-shape p
+seal-source★⊒ᵢ cΓ (wf⇒ wfA wfB) r p | inj₁ ()
+seal-source★⊒ᵢ cΓ (wf⇒ wfA wfB) r p | inj₂ (_ , ())
+seal-source★⊒ᵢ {Γ = Γ} cΓ (wf∀ {A = B} wfB) r (⊒ᶜ-ν occ p′) =
+  ⊑ᵢ-ν B ★
+    (trans (sym (interp-plain-occurs-zero Γ B)) occ)
+    (seal-source★⊒ᵢ
+      (cast-ν-tag cΓ)
+      wfB
+      (lift-seal-resourceˢ-tag r)
+      (⊒ᶜ-cast refl (sym (interp-ν-source Γ B)) p′))
 
 mutual
   cast⇒imprecision⊑ :
@@ -618,10 +929,10 @@ mutual
     Γ ⊢ A ⊑ᵢ B
   cast⇒imprecision⊑ {A = A} {B = ★}
       cΓ wfA wf★ cleanB eqA refl (⊑ᶜ-tag p g ok) =
-    cast⇒imprecision⊑-ground★-hole cΓ wfA g (⊑ᶜ-cast eqA refl p)
+    cast⇒imprecision⊑-ground★-hole cΓ wfA g ok (⊑ᶜ-cast eqA refl p)
   cast⇒imprecision⊑ {A = A} {B = ★}
       cΓ wfA wf★ cleanB eqA refl (⊑ᶜ-unseal★ p h α∈Φ) =
-    cast⇒imprecision⊑-seal★-hole cΓ wfA (⊑ᶜ-cast eqA refl p) α∈Φ
+    cast⇒imprecision⊑-seal★-hole cΓ wfA (⊑ᶜ-cast eqA refl p) h α∈Φ
   cast⇒imprecision⊑ cΓ wfA wfB cleanB eqA eqB (⊑ᶜ-seal α) =
     cast⇒imprecision⊑-seal-id-hole cΓ wfA wfB cleanB eqA eqB refl refl
   cast⇒imprecision⊑ {A = A₁ ⇒ B₁} {B = A₂ ⇒ B₂}
@@ -665,6 +976,319 @@ mutual
   cast⇒imprecision⊒ cΓ wfA wfB cleanA p =
     -- Dual main reflection hole.
     {!!}
+
+  -- The `g = ｀ α` case is closed via `seal-source⊑ᵢ★`. The `g = ‵ ι` and
+  -- `g = ★⇒★` cases need direct cast-derivation inversion (NOT a recursive
+  -- call to `cast⇒imprecision⊑` with the same `p` — that does not decrease
+  -- structurally and would loop the termination checker).
+  cast⇒imprecision⊑-ground★-hole :
+    ∀ {Γ Σ Φ Ψ A G} →
+    CastCtx Γ Σ Φ →
+    WfTy (length Γ) Ψ A →
+    (g : Ground G) →
+    ⊢ g ok Φ →
+    Σ ∣ Φ ⊢ interp Γ A ⊑ᶜ G →
+    Γ ⊢ A ⊑ᵢ ★
+  cast⇒imprecision⊑-ground★-hole cΓ wfA (｀ α) ok p =
+    seal-source⊑ᵢ★ cΓ wfA (seal-tag ok) p
+  -- Base ground `‵ ι`. Only `wfBase` (via `⊑ᶜ-id`) or `wf∀` (via `⊑ᶜ-ν`)
+  -- can supply a derivation; all other source shapes give an interpretation
+  -- that has no `⊑ᶜ` rule reaching `‵ ι`.
+  cast⇒imprecision⊑-ground★-hole cΓ wfBase (‵ ι) tt (⊑ᶜ-id _) =
+    ⊑ᵢ-★ (‵ ι) (‵ ι) (‵ ι) (⊑ᵢ-‵ ι)
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ}
+      cΓ (wf∀ {A = A} wfA) (‵ ι) tt (⊑ᶜ-ν occ p′) =
+    ⊑ᵢ-ν A ★
+      (trans (sym (interp-plain-occurs-zero Γ A)) occ)
+      (cast⇒imprecision⊑-ground★-hole
+        (cast-ν-seal cΓ)
+        wfA
+        (‵ ι)
+        tt
+        (⊑ᶜ-cast (sym (interp-ν-source Γ A)) refl p′))
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ} cΓ (wfVar X<Γ) (‵ ι) tt p
+      with lookup-mode Γ _ X<Γ
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ} cΓ (wfVar X<Γ) (‵ ι) tt p | plain , x∈
+      with plain-var-image x∈
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ} cΓ (wfVar X<Γ) (‵ ι) tt p | plain , x∈ | _ , vEq
+      with ⊑ᶜ-→‵-shape (subst (λ T → Σ ∣ Φ ⊢ T ⊑ᶜ ‵ ι) vEq p)
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ} cΓ (wfVar X<Γ) (‵ ι) tt p | plain , x∈ | _ , vEq | inj₁ ()
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ} cΓ (wfVar X<Γ) (‵ ι) tt p | plain , x∈ | _ , vEq | inj₂ (_ , ())
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ} cΓ (wfVar X<Γ) (‵ ι) tt p | ν-bound , x∈
+      with ν-var-image x∈
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ} cΓ (wfVar X<Γ) (‵ ι) tt p | ν-bound , x∈ | _ , vEq
+      with ⊑ᶜ-→‵-shape (subst (λ T → Σ ∣ Φ ⊢ T ⊑ᶜ ‵ ι) vEq p)
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ} cΓ (wfVar X<Γ) (‵ ι) tt p | ν-bound , x∈ | _ , vEq | inj₁ ()
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ} cΓ (wfVar X<Γ) (‵ ι) tt p | ν-bound , x∈ | _ , vEq | inj₂ (_ , ())
+  cast⇒imprecision⊑-ground★-hole cΓ (wfSeal _) (‵ ι) tt p with ⊑ᶜ-→‵-shape p
+  cast⇒imprecision⊑-ground★-hole cΓ (wfSeal _) (‵ ι) tt p | inj₁ ()
+  cast⇒imprecision⊑-ground★-hole cΓ (wfSeal _) (‵ ι) tt p | inj₂ (_ , ())
+  cast⇒imprecision⊑-ground★-hole cΓ wf★ (‵ ι) tt p with ⊑ᶜ-→‵-shape p
+  cast⇒imprecision⊑-ground★-hole cΓ wf★ (‵ ι) tt p | inj₁ ()
+  cast⇒imprecision⊑-ground★-hole cΓ wf★ (‵ ι) tt p | inj₂ (_ , ())
+  cast⇒imprecision⊑-ground★-hole cΓ (wf⇒ _ _) (‵ ι) tt p with ⊑ᶜ-→‵-shape p
+  cast⇒imprecision⊑-ground★-hole cΓ (wf⇒ _ _) (‵ ι) tt p | inj₁ ()
+  cast⇒imprecision⊑-ground★-hole cΓ (wf⇒ _ _) (‵ ι) tt p | inj₂ (_ , ())
+
+  -- Arrow ground `★ ⇒ ★`. To avoid Agda's `--without-K` unifier getting
+  -- stuck on `interp Γ A_i ≡ ★`, we abstract the interp calls via
+  -- `with ... in ...`, pattern-match the cast on the abstracted shape, then
+  -- recover `A_i ≡ ★` via `interp-≡-★`.
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ}
+      cΓ (wf⇒ {A = A₁} {B = A₂} wfA₁ wfA₂) ★⇒★ tt p
+      with interp Γ A₁ in eqA₁ | interp Γ A₂ in eqA₂
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ}
+      cΓ (wf⇒ {A = A₁} {B = A₂} wfA₁ wfA₂) ★⇒★ tt (⊑ᶜ-⇒ p₁ p₂)
+      | A₁′ | A₂′ =
+    ⊑ᵢ-★ (A₁ ⇒ A₂) (★ ⇒ ★) ★⇒★
+      (⊑ᵢ-⇒ A₁ ★ A₂ ★
+        (cast⇒imprecision⊒ cΓ wf★ wfA₁ tt
+          (subst (λ T → _ ∣ _ ⊢ ★ ⊒ᶜ T) (sym eqA₁) p₁))
+        (cast⇒imprecision⊑ cΓ wfA₂ wf★ tt refl refl
+          (subst (λ T → _ ∣ _ ⊢ T ⊑ᶜ ★) (sym eqA₂) p₂)))
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ}
+      cΓ (wf⇒ {A = A₁} {B = A₂} wfA₁ wfA₂) ★⇒★ tt (⊑ᶜ-id _)
+      | .★ | .★ =
+    subst (λ X → _ ⊢ X ⇒ A₂ ⊑ᵢ ★) (sym (interp-≡-★ eqA₁))
+      (subst (λ Y → _ ⊢ ★ ⇒ Y ⊑ᵢ ★) (sym (interp-≡-★ eqA₂))
+        (⊑ᵢ-★ (★ ⇒ ★) (★ ⇒ ★) ★⇒★ (⊑ᵢ-⇒ ★ ★ ★ ★ ⊑ᵢ-★★ ⊑ᵢ-★★)))
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ}
+      cΓ (wf∀ {A = A} wfA) ★⇒★ tt (⊑ᶜ-ν occ p′) =
+    ⊑ᵢ-ν A ★
+      (trans (sym (interp-plain-occurs-zero Γ A)) occ)
+      (cast⇒imprecision⊑-ground★-hole
+        (cast-ν-seal cΓ)
+        wfA
+        ★⇒★
+        tt
+        (⊑ᶜ-cast (sym (interp-ν-source Γ A)) refl p′))
+  -- Other `wfA` shapes interpret to `＇/｀/‵/★`, none reach `★ ⇒ ★`.
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p
+      with lookup-mode Γ _ X<Γ
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | plain , x∈
+      with plain-var-image x∈
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | plain , x∈ | _ , vEq
+      with ⊑ᶜ-→⇒-shape (subst (λ T → Σ ∣ Φ ⊢ T ⊑ᶜ ★ ⇒ ★) vEq p)
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | plain , x∈ | _ , vEq | inj₁ ()
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | plain , x∈ | _ , vEq | inj₂ (inj₁ (_ , _ , ()))
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | plain , x∈ | _ , vEq | inj₂ (inj₂ (_ , ()))
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | ν-bound , x∈
+      with ν-var-image x∈
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | ν-bound , x∈ | _ , vEq
+      with ⊑ᶜ-→⇒-shape (subst (λ T → Σ ∣ Φ ⊢ T ⊑ᶜ ★ ⇒ ★) vEq p)
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | ν-bound , x∈ | _ , vEq | inj₁ ()
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | ν-bound , x∈ | _ , vEq | inj₂ (inj₁ (_ , _ , ()))
+  cast⇒imprecision⊑-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | ν-bound , x∈ | _ , vEq | inj₂ (inj₂ (_ , ()))
+  cast⇒imprecision⊑-ground★-hole cΓ (wfSeal _) ★⇒★ tt p with ⊑ᶜ-→⇒-shape p
+  cast⇒imprecision⊑-ground★-hole cΓ (wfSeal _) ★⇒★ tt p | inj₁ ()
+  cast⇒imprecision⊑-ground★-hole cΓ (wfSeal _) ★⇒★ tt p | inj₂ (inj₁ (_ , _ , ()))
+  cast⇒imprecision⊑-ground★-hole cΓ (wfSeal _) ★⇒★ tt p | inj₂ (inj₂ (_ , ()))
+  cast⇒imprecision⊑-ground★-hole cΓ wfBase ★⇒★ tt p with ⊑ᶜ-→⇒-shape p
+  cast⇒imprecision⊑-ground★-hole cΓ wfBase ★⇒★ tt p | inj₁ ()
+  cast⇒imprecision⊑-ground★-hole cΓ wfBase ★⇒★ tt p | inj₂ (inj₁ (_ , _ , ()))
+  cast⇒imprecision⊑-ground★-hole cΓ wfBase ★⇒★ tt p | inj₂ (inj₂ (_ , ()))
+  cast⇒imprecision⊑-ground★-hole cΓ wf★ ★⇒★ tt p with ⊑ᶜ-→⇒-shape p
+  cast⇒imprecision⊑-ground★-hole cΓ wf★ ★⇒★ tt p | inj₁ ()
+  cast⇒imprecision⊑-ground★-hole cΓ wf★ ★⇒★ tt p | inj₂ (inj₁ (_ , _ , ()))
+  cast⇒imprecision⊑-ground★-hole cΓ wf★ ★⇒★ tt p | inj₂ (inj₂ (_ , ()))
+
+  -- Closed via `seal-source⊑ᵢ★` once the store witness `h : Σ ∋ˢ α ⦂ ★` is
+  -- threaded through (it lives in the `⊑ᶜ-unseal★` constructor at the call
+  -- site and is now passed as the extra argument).
+  cast⇒imprecision⊑-seal★-hole :
+    ∀ {Γ Σ Φ Ψ A α} →
+    CastCtx Γ Σ Φ →
+    WfTy (length Γ) Ψ A →
+    Σ ∣ Φ ⊢ interp Γ A ⊑ᶜ ｀ α →
+    Σ ∋ˢ α ⦂ ★ →
+    α ∈cast Φ →
+    Γ ⊢ A ⊑ᵢ ★
+  cast⇒imprecision⊑-seal★-hole cΓ wfA p h α∈Φ =
+    seal-source⊑ᵢ★ cΓ wfA (seal-cast h α∈Φ) p
+
+  cast⇒imprecision⊑-seal-id-hole :
+    ∀ {Γ Σ Φ Ψ A B A′ B′ α} →
+    CastCtx Γ Σ Φ →
+    WfTy (length Γ) Ψ A →
+    WfTy (length Γ) Ψ B →
+    Clean Φ (interp Γ B) →
+    A′ ≡ interp Γ A →
+    B′ ≡ interp Γ B →
+    A′ ≡ ｀ α →
+    B′ ≡ ｀ α →
+    Γ ⊢ A ⊑ᵢ B
+  cast⇒imprecision⊑-seal-id-hole cΓ wfA wfB cleanB eqA eqB srcSeal tgtSeal =
+    -- Missing reflection: both interpreted endpoints are the same seal.
+    -- Recover whether the source terms are equal concrete seals, plain
+    -- variables, or impossible ν variables ruled out by `Clean`.
+    {!!}
+
+  cast⇒imprecision⊑-id-hole :
+    ∀ {Γ Σ Φ Ψ A B A′ B′} →
+    CastCtx Γ Σ Φ →
+    WfTy (length Γ) Ψ A →
+    WfTy (length Γ) Ψ B →
+    Clean Φ (interp Γ B) →
+    A′ ≡ interp Γ A →
+    B′ ≡ interp Γ B →
+    A′ ≡ B′ →
+    Γ ⊢ A ⊑ᵢ B
+  cast⇒imprecision⊑-id-hole cΓ wfA wfB cleanB eqA eqB interpEq =
+    -- Missing equality reflection: clean, well-scoped interpreted equality
+    -- should give indexed imprecision between the source types.
+    {!!}
+
+  -- Dual of `cast⇒imprecision⊑-ground★-hole`. Same structure: route
+  -- `g = ｀ α` through `seal-source★⊒ᵢ`; for `g = ‵ ι` and `g = ★⇒★`,
+  -- pattern-match the cast directly to keep recursion structurally founded.
+  cast⇒imprecision⊒-ground★-hole :
+    ∀ {Γ Σ Φ Ψ B G} →
+    CastCtx Γ Σ Φ →
+    WfTy (length Γ) Ψ B →
+    (g : Ground G) →
+    ⊢ g ok Φ →
+    Σ ∣ Φ ⊢ G ⊒ᶜ interp Γ B →
+    Γ ⊢ ★ ⊒ᵢ B
+  cast⇒imprecision⊒-ground★-hole cΓ wfB (｀ α) ok p =
+    seal-source★⊒ᵢ cΓ wfB (seal-tag ok) p
+  -- Base ground `‵ ι`.
+  cast⇒imprecision⊒-ground★-hole cΓ wfBase (‵ ι) tt (⊒ᶜ-id _) =
+    ⊑ᵢ-★ (‵ ι) (‵ ι) (‵ ι) (⊑ᵢ-‵ ι)
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ}
+      cΓ (wf∀ {A = B} wfB) (‵ ι) tt (⊒ᶜ-ν occ p′) =
+    ⊑ᵢ-ν B ★
+      (trans (sym (interp-plain-occurs-zero Γ B)) occ)
+      (cast⇒imprecision⊒-ground★-hole
+        (cast-ν-tag cΓ)
+        wfB
+        (‵ ι)
+        tt
+        (⊒ᶜ-cast refl (sym (interp-ν-source Γ B)) p′))
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) (‵ ι) tt p
+      with lookup-mode Γ _ X<Γ
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) (‵ ι) tt p | plain , x∈
+      with plain-var-image x∈
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) (‵ ι) tt p | plain , x∈ | _ , vEq
+      with ⊒ᶜ-‵→-shape (subst (λ T → Σ ∣ Φ ⊢ ‵ ι ⊒ᶜ T) vEq p)
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) (‵ ι) tt p | plain , x∈ | _ , vEq | inj₁ ()
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) (‵ ι) tt p | plain , x∈ | _ , vEq | inj₂ (_ , ())
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) (‵ ι) tt p | ν-bound , x∈
+      with ν-var-image x∈
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) (‵ ι) tt p | ν-bound , x∈ | _ , vEq
+      with ⊒ᶜ-‵→-shape (subst (λ T → Σ ∣ Φ ⊢ ‵ ι ⊒ᶜ T) vEq p)
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) (‵ ι) tt p | ν-bound , x∈ | _ , vEq | inj₁ ()
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) (‵ ι) tt p | ν-bound , x∈ | _ , vEq | inj₂ (_ , ())
+  cast⇒imprecision⊒-ground★-hole cΓ (wfSeal _) (‵ ι) tt p with ⊒ᶜ-‵→-shape p
+  cast⇒imprecision⊒-ground★-hole cΓ (wfSeal _) (‵ ι) tt p | inj₁ ()
+  cast⇒imprecision⊒-ground★-hole cΓ (wfSeal _) (‵ ι) tt p | inj₂ (_ , ())
+  cast⇒imprecision⊒-ground★-hole cΓ wf★ (‵ ι) tt p with ⊒ᶜ-‵→-shape p
+  cast⇒imprecision⊒-ground★-hole cΓ wf★ (‵ ι) tt p | inj₁ ()
+  cast⇒imprecision⊒-ground★-hole cΓ wf★ (‵ ι) tt p | inj₂ (_ , ())
+  cast⇒imprecision⊒-ground★-hole cΓ (wf⇒ _ _) (‵ ι) tt p with ⊒ᶜ-‵→-shape p
+  cast⇒imprecision⊒-ground★-hole cΓ (wf⇒ _ _) (‵ ι) tt p | inj₁ ()
+  cast⇒imprecision⊒-ground★-hole cΓ (wf⇒ _ _) (‵ ι) tt p | inj₂ (_ , ())
+  -- Arrow ground `★ ⇒ ★`. Same `with ... in ...` + `interp-≡-★` workaround
+  -- as the ⊑ direction for the `wf⇒ + ⊒ᶜ-id` subcase.
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ}
+      cΓ (wf⇒ {A = B₁} {B = B₂} wfB₁ wfB₂) ★⇒★ tt p
+      with interp Γ B₁ in eqB₁ | interp Γ B₂ in eqB₂
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ}
+      cΓ (wf⇒ {A = B₁} {B = B₂} wfB₁ wfB₂) ★⇒★ tt (⊒ᶜ-⇒ p₁ p₂)
+      | B₁′ | B₂′ =
+    ⊑ᵢ-★ (B₁ ⇒ B₂) (★ ⇒ ★) ★⇒★
+      (⊑ᵢ-⇒ B₁ ★ B₂ ★
+        (cast⇒imprecision⊑ cΓ wfB₁ wf★ tt refl refl
+          (subst (λ T → _ ∣ _ ⊢ T ⊑ᶜ ★) (sym eqB₁) p₁))
+        (cast⇒imprecision⊒ cΓ wf★ wfB₂ tt
+          (subst (λ T → _ ∣ _ ⊢ ★ ⊒ᶜ T) (sym eqB₂) p₂)))
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ}
+      cΓ (wf⇒ {A = B₁} {B = B₂} wfB₁ wfB₂) ★⇒★ tt (⊒ᶜ-id _)
+      | .★ | .★ =
+    subst (λ X → _ ⊢ X ⇒ B₂ ⊑ᵢ ★) (sym (interp-≡-★ eqB₁))
+      (subst (λ Y → _ ⊢ ★ ⇒ Y ⊑ᵢ ★) (sym (interp-≡-★ eqB₂))
+        (⊑ᵢ-★ (★ ⇒ ★) (★ ⇒ ★) ★⇒★ (⊑ᵢ-⇒ ★ ★ ★ ★ ⊑ᵢ-★★ ⊑ᵢ-★★)))
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ}
+      cΓ (wf∀ {A = B} wfB) ★⇒★ tt (⊒ᶜ-ν occ p′) =
+    ⊑ᵢ-ν B ★
+      (trans (sym (interp-plain-occurs-zero Γ B)) occ)
+      (cast⇒imprecision⊒-ground★-hole
+        (cast-ν-tag cΓ)
+        wfB
+        ★⇒★
+        tt
+        (⊒ᶜ-cast refl (sym (interp-ν-source Γ B)) p′))
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p
+      with lookup-mode Γ _ X<Γ
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | plain , x∈
+      with plain-var-image x∈
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | plain , x∈ | _ , vEq
+      with ⊒ᶜ-⇒→-shape (subst (λ T → Σ ∣ Φ ⊢ ★ ⇒ ★ ⊒ᶜ T) vEq p)
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | plain , x∈ | _ , vEq | inj₁ ()
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | plain , x∈ | _ , vEq | inj₂ (inj₁ (_ , _ , ()))
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | plain , x∈ | _ , vEq | inj₂ (inj₂ (_ , ()))
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | ν-bound , x∈
+      with ν-var-image x∈
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | ν-bound , x∈ | _ , vEq
+      with ⊒ᶜ-⇒→-shape (subst (λ T → Σ ∣ Φ ⊢ ★ ⇒ ★ ⊒ᶜ T) vEq p)
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | ν-bound , x∈ | _ , vEq | inj₁ ()
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | ν-bound , x∈ | _ , vEq | inj₂ (inj₁ (_ , _ , ()))
+  cast⇒imprecision⊒-ground★-hole {Γ = Γ} {Σ = Σ} {Φ = Φ}
+      cΓ (wfVar X<Γ) ★⇒★ tt p | ν-bound , x∈ | _ , vEq | inj₂ (inj₂ (_ , ()))
+  cast⇒imprecision⊒-ground★-hole cΓ (wfSeal _) ★⇒★ tt p with ⊒ᶜ-⇒→-shape p
+  cast⇒imprecision⊒-ground★-hole cΓ (wfSeal _) ★⇒★ tt p | inj₁ ()
+  cast⇒imprecision⊒-ground★-hole cΓ (wfSeal _) ★⇒★ tt p | inj₂ (inj₁ (_ , _ , ()))
+  cast⇒imprecision⊒-ground★-hole cΓ (wfSeal _) ★⇒★ tt p | inj₂ (inj₂ (_ , ()))
+  cast⇒imprecision⊒-ground★-hole cΓ wfBase ★⇒★ tt p with ⊒ᶜ-⇒→-shape p
+  cast⇒imprecision⊒-ground★-hole cΓ wfBase ★⇒★ tt p | inj₁ ()
+  cast⇒imprecision⊒-ground★-hole cΓ wfBase ★⇒★ tt p | inj₂ (inj₁ (_ , _ , ()))
+  cast⇒imprecision⊒-ground★-hole cΓ wfBase ★⇒★ tt p | inj₂ (inj₂ (_ , ()))
+  cast⇒imprecision⊒-ground★-hole cΓ wf★ ★⇒★ tt p with ⊒ᶜ-⇒→-shape p
+  cast⇒imprecision⊒-ground★-hole cΓ wf★ ★⇒★ tt p | inj₁ ()
+  cast⇒imprecision⊒-ground★-hole cΓ wf★ ★⇒★ tt p | inj₂ (inj₁ (_ , _ , ()))
+  cast⇒imprecision⊒-ground★-hole cΓ wf★ ★⇒★ tt p | inj₂ (inj₂ (_ , ()))
+
+  -- Closed via `seal-source★⊒ᵢ` once the store witness `h : Σ ∋ˢ α ⦂ ★` is
+  -- threaded through (it lives in the `⊒ᶜ-seal★` constructor).
+  cast⇒imprecision⊒-seal★-hole :
+    ∀ {Γ Σ Φ Ψ B α} →
+    CastCtx Γ Σ Φ →
+    WfTy (length Γ) Ψ B →
+    Σ ∣ Φ ⊢ ｀ α ⊒ᶜ interp Γ B →
+    Σ ∋ˢ α ⦂ ★ →
+    α ∈cast Φ →
+    Γ ⊢ ★ ⊒ᵢ B
+  cast⇒imprecision⊒-seal★-hole cΓ wfB p h α∈Φ =
+    seal-source★⊒ᵢ cΓ wfB (seal-cast h α∈Φ) p
 
 cast⇒imprecision⊑-⇒-case :
   ∀ {Γ Σ Φ Ψ A₁ B₁ A₂ B₂} →
@@ -770,30 +1394,6 @@ cast⇒imprecision⊒-ν-case {Γ = Γ} {A = A} {B = B}
         (sym (interp-ν-target Γ B))
         (sym (interp-ν-source Γ A))
         p))
-
-cast⇒imprecision⊒-ground★-hole :
-  ∀ {Γ Σ Φ Ψ B} {G : Ty} →
-  CastCtx Γ Σ Φ →
-  WfTy (length Γ) Ψ B →
-  Ground G →
-  Σ ∣ Φ ⊢ G ⊒ᶜ interp Γ B →
-  Γ ⊢ ★ ⊒ᵢ B
-cast⇒imprecision⊒-ground★-hole cΓ wfB g p =
-  -- Dual missing reflection for `⊒ᶜ-untag`: recover a source ground
-  -- preimage of the cast-side ground `G`.
-  {!!}
-
-cast⇒imprecision⊒-seal★-hole :
-  ∀ {Γ Σ Φ Ψ B α} →
-  CastCtx Γ Σ Φ →
-  WfTy (length Γ) Ψ B →
-  Σ ∣ Φ ⊢ ｀ α ⊒ᶜ interp Γ B →
-  α ∈cast Φ →
-  Γ ⊢ ★ ⊒ᵢ B
-cast⇒imprecision⊒-seal★-hole cΓ wfB p α∈Φ =
-  -- Dual missing reflection for `⊒ᶜ-seal★`: decide whether the permissioned
-  -- seal is a ν-bound variable preimage or an ordinary source seal.
-  {!!}
 
 record ImprecisionCastIso
     (Γ : ICtx) (Σ : Store) (Φ : List CastPerm) (A B : Ty) : Set where

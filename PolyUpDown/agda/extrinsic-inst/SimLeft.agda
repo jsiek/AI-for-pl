@@ -141,16 +141,16 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
   | ⊑· L⊑L′ Arg⊑Arg′
     with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} vV L⊑L′
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ vV L⊑L′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
   | ⊑· L⊑L′ Arg⊑Arg′
-  | Σʳᵥ , wfΣʳᵥ , V′ , vV′ , L′↠V′ , V⊑V′
+  | Ψʳᵥ , Σʳᵥ , wfΣʳᵥ , V′ , vV′ , L′↠V′ , V⊑V′
     with sim-left Arg⊑Arg′ wfΣˡ wfΣʳᵥ redM
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
   | ⊑· L⊑L′ Arg⊑Arg′
-  | Σʳᵥ , wfΣʳᵥ , V′ , vV′ , L′↠V′ , V⊑V′
+  | Ψʳᵥ , Σʳᵥ , wfΣʳᵥ , V′ , vV′ , L′↠V′ , V⊑V′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , (V′ · M′ᵣ) ,
   multi-trans (appL-↠ {M = _} L′↠V′) (appR-↠ vV′ M′↠M′ᵣ) ,
@@ -422,24 +422,25 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β {B = A} {N = N} {V = W} vW)
   | ⊑· L⊑L′ W⊑W′
     with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} (ƛ A ⇒ N) L⊑L′
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ (ƛ A ⇒ N) L⊑L′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β {B = A} {N = N} {V = W} vW)
   | ⊑· L⊑L′ W⊑W′
-  | Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , ƛN⊑V′
-    with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
-           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} vW W⊑W′
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , ƛN⊑V′
+    with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳᶠ}
+           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} wfΣʳᶠ vW W⊑W′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β {B = A} {N = N} {V = W} vW)
   | ⊑· L⊑L′ W⊑W′
-  | Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , ƛN⊑V′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
-    with sim-left-beta {Σʳ = Σʳᵃ} ƛN⊑V′ vV′ W⊑W′ᵥ vW vW′ᵥ
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , ƛN⊑V′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+    with sim-left-beta {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ}
+           ƛN⊑V′ wfΣʳᵃ vV′ W⊑W′ᵥ vW vW′ᵥ
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β {B = A} {N = N} {V = W} vW)
   | ⊑· L⊑L′ W⊑W′
-  | Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , ƛN⊑V′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , ƛN⊑V′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
   | Σʳᵝ , N′ , V′W′↠N′ , N[W]⊑N′ =
   Ψˡ , ≤-refl , Σʳᵝ , N′ ,
   multi-trans
@@ -487,25 +488,25 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
     with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} (vV up _↦_) L⊑L′
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ (vV up _↦_) L⊑L′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
-  | Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vup⊑V′
-    with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
-           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} vW W⊑W′
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vup⊑V′
+    with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳᶠ}
+           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} wfΣʳᶠ vW W⊑W′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
-  | Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vup⊑V′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
-    with sim-left-beta-up {Σʳ = Σʳᵃ} Vup⊑V′ vV vV′
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vup⊑V′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+    with sim-left-beta-up {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ} Vup⊑V′ wfΣʳᵃ vV vV′
            W⊑W′ᵥ vW vW′ᵥ
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
-  | Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vup⊑V′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vup⊑V′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
   | Σʳᵝ , N′ , V′W′↠N′ , N⊑N′ =
   Ψˡ , ≤-refl , Σʳᵝ , N′ ,
   multi-trans
@@ -553,25 +554,26 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
     with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} (vV down _↦_) L⊑L′
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ (vV down _↦_) L⊑L′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
-  | Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vdown⊑V′
-    with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
-           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} vW W⊑W′
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vdown⊑V′
+    with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳᶠ}
+           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} wfΣʳᶠ vW W⊑W′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
-  | Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vdown⊑V′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
-    with sim-left-beta-down {Σʳ = Σʳᵃ} Vdown⊑V′ vV vV′
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vdown⊑V′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+    with sim-left-beta-down {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ}
+           Vdown⊑V′ wfΣʳᵃ vV vV′
            W⊑W′ᵥ vW vW′ᵥ
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
-  | Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vdown⊑V′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vdown⊑V′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
   | Σʳᵝ , N′ , V′W′↠N′ , N⊑N′ =
   Ψˡ , ≤-refl , Σʳᵝ , N′ ,
   multi-trans

@@ -20,8 +20,18 @@ open import UpDown using
   ( Up
   ; Down
   ; CastPerm
+  ; wt-tag
+  ; wt-unseal
+  ; wt-unseal★
   ; wt-↦
+  ; wt-∀
+  ; wt-ν
+  ; wt-id
+  ; wt-untag
+  ; wt-seal
+  ; wt-seal★
   ; cast-tag
+  ; _∣_∣_∣_⊢_⦂_⊑_
   ; _∣_∣_∣_⊢_⦂_⊒_
   )
 open import Store using (StoreWf; _⊆ˢ_)
@@ -32,25 +42,405 @@ open import TermImprecisionIndexed
 open import ReductionFresh
 open import PreservationFresh using (length-append-tag; wkΨ-cast-tag-⊒)
 
-postulate
-  left-value-right-catchup :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ V N′ A B} →
-    Value V →
-    ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ N′ ⦂ A ⊑ B →
-    Σ[ Σʳ′ ∈ Store ]
-      Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ Σʳ′ ]
-      Σ[ V′ ∈ Term ]
-        (Value V′ ×
-         (Σʳ ∣ N′ —↠ Σʳ′ ∣ V′) ×
-         (⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ A ⊑ B))
+{-
+   If V ⊑ N′ then N′ —↠ V′ and V ⊑ V′.
+-}
+right-extra-up-catchup :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B′ u′} →
+  {pB : [] ⊢ A ⊑ᵢ B′} →
+  (Φ : List CastPerm) →
+  length Φ ≡ Ψˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value V →
+  Value V′ →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ A ⊑ A′ →
+  0 ∣ Ψˡ ∣ Σˡ ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
+  Σ[ Ψʳ′ ∈ SealCtx ]
+  Σ[ Σʳ′ ∈ Store ]
+    Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ]
+    Σ[ W′ ∈ Term ]
+      (Value W′ ×
+       (Σʳ ∣ (V′ up u′) —↠ Σʳ′ ∣ W′) ×
+       (⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ W′ ⦂ A ⊑ B′))
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {u′ = u′}
+  {pB = pB} Φ lenΦ wfΣʳ vV vV′ rel (wt-tag p g ok) =
+  Ψʳ , Σʳ , wfΣʳ , V′ up u′ , vV′ up tag , (V′ up u′ ∎) ,
+  ⊑upR {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel (wt-tag p g ok)
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  {pB = pB} Φ lenΦ wfΣʳ vV (_down_ {V = W} vW seal)
+  (⊑down Φd lenD rel hd (wt-seal d⊢ h₂ α∈₂))
+  (wt-unseal {p = u} h α∈Φ u⊢)
+    with left-value-right-catchup wfΣʳ vV
+           (⊑upR {pB = pB} Φ lenΦ
+             (⊑down Φd lenD rel hd d⊢)
+             (subst (λ X → 0 ∣ _ ∣ _ ∣ Φ ⊢ u ⦂ X ⊑ _) {!!} u⊢))
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  {pB = pB} Φ lenΦ wfΣʳ vV (_down_ {V = W} vW seal)
+  (⊑down Φd lenD rel hd (wt-seal d⊢ h₂ α∈₂))
+  (wt-unseal {p = u} h α∈Φ u⊢)
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ , Wdownup↠W′ , V⊑W′ =
+  Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ ,
+  (_ —→⟨ id-step (seal-unseal vW) ⟩ Wdownup↠W′) ,
+  V⊑W′
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  {pB = pB} Φ lenΦ wfΣʳ vV (_down_ {V = W} vW seal)
+  (⊑down Φd lenD rel hd (wt-seal★ d⊢ h₂ α∈₂))
+  (wt-unseal {p = u} h α∈Φ u⊢)
+    with left-value-right-catchup wfΣʳ vV
+           (⊑upR {pB = pB} Φ lenΦ
+             (⊑down Φd lenD rel hd d⊢)
+             (subst (λ X → 0 ∣ _ ∣ _ ∣ Φ ⊢ u ⦂ X ⊑ _) {!!} u⊢))
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  {pB = pB} Φ lenΦ wfΣʳ vV (_down_ {V = W} vW seal)
+  (⊑down Φd lenD rel hd (wt-seal★ d⊢ h₂ α∈₂))
+  (wt-unseal {p = u} h α∈Φ u⊢)
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ , Wdownup↠W′ , V⊑W′ =
+  Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ ,
+  (_ —→⟨ id-step (seal-unseal vW) ⟩ Wdownup↠W′) ,
+  V⊑W′
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  {pB = pB} Φ lenΦ wfΣʳ vV (_down_ {V = W} vW seal)
+  (⊑downR Φd lenD rel (wt-seal d⊢ h₂ α∈₂))
+  (wt-unseal {p = u} h α∈Φ u⊢)
+    with left-value-right-catchup wfΣʳ vV
+           (⊑upR {pB = pB} Φ lenΦ
+             (⊑downR Φd lenD rel d⊢)
+             (subst (λ X → 0 ∣ _ ∣ _ ∣ Φ ⊢ u ⦂ X ⊑ _) {!!} u⊢))
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  {pB = pB} Φ lenΦ wfΣʳ vV (_down_ {V = W} vW seal)
+  (⊑downR Φd lenD rel (wt-seal d⊢ h₂ α∈₂))
+  (wt-unseal {p = u} h α∈Φ u⊢)
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ , Wdownup↠W′ , V⊑W′ =
+  Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ ,
+  (_ —→⟨ id-step (seal-unseal vW) ⟩ Wdownup↠W′) ,
+  V⊑W′
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  {pB = pB} Φ lenΦ wfΣʳ vV (_down_ {V = W} vW seal)
+  (⊑downR Φd lenD rel (wt-seal★ d⊢ h₂ α∈₂))
+  (wt-unseal {p = u} h α∈Φ u⊢)
+    with left-value-right-catchup wfΣʳ vV
+           (⊑upR {pB = pB} Φ lenΦ
+             (⊑downR Φd lenD rel d⊢)
+             (subst (λ X → 0 ∣ _ ∣ _ ∣ Φ ⊢ u ⦂ X ⊑ _) {!!} u⊢))
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  {pB = pB} Φ lenΦ wfΣʳ vV (_down_ {V = W} vW seal)
+  (⊑downR Φd lenD rel (wt-seal★ d⊢ h₂ α∈₂))
+  (wt-unseal {p = u} h α∈Φ u⊢)
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ , Wdownup↠W′ , V⊑W′ =
+  Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ ,
+  (_ —→⟨ id-step (seal-unseal vW) ⟩ Wdownup↠W′) ,
+  V⊑W′
+right-extra-up-catchup Φ lenΦ wfΣʳ vV vV′ rel
+  (wt-unseal h α∈Φ p) = {!!}
+right-extra-up-catchup Φ lenΦ wfΣʳ vV vV′ rel
+  (wt-unseal★ h α∈Φ p) = {!!}
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {u′ = u′}
+  {pB = pB} Φ lenΦ wfΣʳ vV vV′ rel (wt-↦ hp hq) =
+  Ψʳ , Σʳ , wfΣʳ , V′ up u′ , vV′ up _↦_ , (V′ up u′ ∎) ,
+  ⊑upR {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel (wt-↦ hp hq)
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {u′ = u′}
+  {pB = pB} Φ lenΦ wfΣʳ vV vV′ rel (wt-∀ hp) =
+  Ψʳ , Σʳ , wfΣʳ , V′ up u′ , vV′ up ∀ᵖ , (V′ up u′ ∎) ,
+  ⊑upR {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel (wt-∀ hp)
+right-extra-up-catchup Φ lenΦ wfΣʳ vV vV′ rel
+  (wt-ν hp) = {!!}
+right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {u′ = u′}
+  Φ lenΦ wfΣʳ vV vV′ rel (wt-id wfA) =
+  Ψʳ , Σʳ , wfΣʳ , V′ , vV′ ,
+  ((V′ up u′) —→⟨ id-step (id-up vV′) ⟩ V′ ∎) ,
+  rel
+
+right-extra-down-catchup :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B′ d′} →
+  {pB : [] ⊢ A ⊑ᵢ B′} →
+  (Φ : List CastPerm) →
+  length Φ ≡ Ψˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value V →
+  Value V′ →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ A ⊑ A′ →
+  0 ∣ Ψˡ ∣ Σˡ ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
+  Σ[ Ψʳ′ ∈ SealCtx ]
+  Σ[ Σʳ′ ∈ Store ]
+    Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ]
+    Σ[ W′ ∈ Term ]
+      (Value W′ ×
+       (Σʳ ∣ (V′ down d′) —↠ Σʳ′ ∣ W′) ×
+       (⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ W′ ⦂ A ⊑ B′))
+right-extra-down-catchup Φ lenΦ wfΣʳ vV vV′ rel
+  (wt-untag g ok ℓ p) = {!!}
+right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′}
+  {pB = pB} Φ lenΦ wfΣʳ vV vV′ rel (wt-seal p h α∈Φ) =
+  Ψʳ , Σʳ , wfΣʳ , V′ down d′ , vV′ down seal , (V′ down d′ ∎) ,
+  ⊑downR {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel (wt-seal p h α∈Φ)
+right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′}
+  {pB = pB} Φ lenΦ wfΣʳ vV vV′ rel (wt-seal★ p h α∈Φ) =
+  Ψʳ , Σʳ , wfΣʳ , V′ down d′ , vV′ down seal , (V′ down d′ ∎) ,
+  ⊑downR {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel (wt-seal★ p h α∈Φ)
+right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′}
+  {pB = pB} Φ lenΦ wfΣʳ vV vV′ rel (wt-↦ hp hq) =
+  Ψʳ , Σʳ , wfΣʳ , V′ down d′ , vV′ down _↦_ , (V′ down d′ ∎) ,
+  ⊑downR {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel (wt-↦ hp hq)
+right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′}
+  {pB = pB} Φ lenΦ wfΣʳ vV vV′ rel (wt-∀ hp) =
+  Ψʳ , Σʳ , wfΣʳ , V′ down d′ , vV′ down ∀ᵖ , (V′ down d′ ∎) ,
+  ⊑downR {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel (wt-∀ hp)
+right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′}
+  {pB = pB} Φ lenΦ wfΣʳ vV vV′ rel (wt-ν hp) =
+  Ψʳ , Σʳ , wfΣʳ , V′ down d′ , vV′ down ν_ , (V′ down d′ ∎) ,
+  ⊑downR {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel (wt-ν hp)
+right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′}
+  Φ lenΦ wfΣʳ vV vV′ rel (wt-id wfA) =
+  Ψʳ , Σʳ , wfΣʳ , V′ , vV′ ,
+  ((V′ down d′) —→⟨ id-step (id-down vV′) ⟩ V′ ∎) ,
+  rel
+
+right-extra-up-catchup-left :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B B′ u u′} →
+  {pB : [] ⊢ B ⊑ᵢ B′} →
+  (Φ : List CastPerm) →
+  length Φ ≡ Ψˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value V →
+  Value V′ →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ A ⊑ A′ →
+  0 ∣ Ψˡ ∣ Σˡ ∣ Φ ⊢ u ⦂ A ⊑ B →
+  0 ∣ Ψˡ ∣ Σˡ ∣ Φ ⊢ u′ ⦂ A′ ⊑ B′ →
+  Σ[ Ψʳ′ ∈ SealCtx ]
+  Σ[ Σʳ′ ∈ Store ]
+    Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ]
+    Σ[ W′ ∈ Term ]
+      (Value W′ ×
+       (Σʳ ∣ (V′ up u′) —↠ Σʳ′ ∣ W′) ×
+       (⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
+          (V up u) ⊑ W′ ⦂ B ⊑ B′))
+right-extra-up-catchup-left
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {u′ = u′} {pB = pB}
+  Φ lenΦ wfΣʳ vV vV′ rel hu (wt-tag p g ok) =
+  Ψʳ , Σʳ , wfΣʳ , V′ up u′ , vV′ up tag , (V′ up u′ ∎) ,
+  ⊑up {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel hu (wt-tag p g ok)
+right-extra-up-catchup-left Φ lenΦ wfΣʳ vV vV′ rel hu
+  (wt-unseal h α∈Φ p) = {!!}
+right-extra-up-catchup-left Φ lenΦ wfΣʳ vV vV′ rel hu
+  (wt-unseal★ h α∈Φ p) = {!!}
+right-extra-up-catchup-left
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {u′ = u′} {pB = pB}
+  Φ lenΦ wfΣʳ vV vV′ rel hu (wt-↦ hp hq) =
+  Ψʳ , Σʳ , wfΣʳ , V′ up u′ , vV′ up _↦_ , (V′ up u′ ∎) ,
+  ⊑up {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel hu (wt-↦ hp hq)
+right-extra-up-catchup-left
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {u′ = u′} {pB = pB}
+  Φ lenΦ wfΣʳ vV vV′ rel hu (wt-∀ hp) =
+  Ψʳ , Σʳ , wfΣʳ , V′ up u′ , vV′ up ∀ᵖ , (V′ up u′ ∎) ,
+  ⊑up {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel hu (wt-∀ hp)
+right-extra-up-catchup-left Φ lenΦ wfΣʳ vV vV′ rel hu
+  (wt-ν hp) = {!!}
+right-extra-up-catchup-left
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {u′ = u′} {pB = pB}
+  Φ lenΦ wfΣʳ vV vV′ rel hu (wt-id wfA) =
+  Ψʳ , Σʳ , wfΣʳ , V′ , vV′ ,
+  ((V′ up u′) —→⟨ id-step (id-up vV′) ⟩ V′ ∎) ,
+  ⊑upL {pA = ⊑-type-imprecision rel} {pB = pB} Φ lenΦ rel hu
+
+right-extra-down-catchup-left :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B B′ d d′} →
+  {pB : [] ⊢ B ⊑ᵢ B′} →
+  (Φ : List CastPerm) →
+  length Φ ≡ Ψˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value V →
+  Value V′ →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ A ⊑ A′ →
+  0 ∣ Ψˡ ∣ Σˡ ∣ Φ ⊢ d ⦂ A ⊒ B →
+  0 ∣ Ψˡ ∣ Σˡ ∣ Φ ⊢ d′ ⦂ A′ ⊒ B′ →
+  Σ[ Ψʳ′ ∈ SealCtx ]
+  Σ[ Σʳ′ ∈ Store ]
+    Σ[ wfΣʳ′ ∈ StoreWf 0 Ψʳ′ Σʳ′ ]
+    Σ[ W′ ∈ Term ]
+      (Value W′ ×
+       (Σʳ ∣ (V′ down d′) —↠ Σʳ′ ∣ W′) ×
+       (⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
+          (V down d) ⊑ W′ ⦂ B ⊑ B′))
+right-extra-down-catchup-left Φ lenΦ wfΣʳ vV vV′ rel hd
+  (wt-untag g ok ℓ p) = {!!}
+right-extra-down-catchup-left
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′} {pB = pB}
+  Φ lenΦ wfΣʳ vV vV′ rel hd (wt-seal p h α∈Φ) =
+  Ψʳ , Σʳ , wfΣʳ , V′ down d′ , vV′ down seal , (V′ down d′ ∎) ,
+  ⊑down {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel hd (wt-seal p h α∈Φ)
+right-extra-down-catchup-left
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′} {pB = pB}
+  Φ lenΦ wfΣʳ vV vV′ rel hd (wt-seal★ p h α∈Φ) =
+  Ψʳ , Σʳ , wfΣʳ , V′ down d′ , vV′ down seal , (V′ down d′ ∎) ,
+  ⊑down {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel hd (wt-seal★ p h α∈Φ)
+right-extra-down-catchup-left
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′} {pB = pB}
+  Φ lenΦ wfΣʳ vV vV′ rel hd (wt-↦ hp hq) =
+  Ψʳ , Σʳ , wfΣʳ , V′ down d′ , vV′ down _↦_ , (V′ down d′ ∎) ,
+  ⊑down {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel hd (wt-↦ hp hq)
+right-extra-down-catchup-left
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′} {pB = pB}
+  Φ lenΦ wfΣʳ vV vV′ rel hd (wt-∀ hp) =
+  Ψʳ , Σʳ , wfΣʳ , V′ down d′ , vV′ down ∀ᵖ , (V′ down d′ ∎) ,
+  ⊑down {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel hd (wt-∀ hp)
+right-extra-down-catchup-left
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′} {pB = pB}
+  Φ lenΦ wfΣʳ vV vV′ rel hd (wt-ν hp) =
+  Ψʳ , Σʳ , wfΣʳ , V′ down d′ , vV′ down ν_ , (V′ down d′ ∎) ,
+  ⊑down {pA = ⊑-type-imprecision rel} {pB = pB}
+    Φ lenΦ rel hd (wt-ν hp)
+right-extra-down-catchup-left
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′} {pB = pB}
+  Φ lenΦ wfΣʳ vV vV′ rel hd (wt-id wfA) =
+  Ψʳ , Σʳ , wfΣʳ , V′ , vV′ ,
+  ((V′ down d′) —→⟨ id-step (id-down vV′) ⟩ V′ ∎) ,
+  ⊑downL {pA = ⊑-type-imprecision rel} {pB = pB} Φ lenΦ rel hd
+
+left-value-right-catchup wfΣʳ vV (⊑` ())
+left-value-right-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣʳ (ƛ A ⇒ N)
+  (⊑ƛ {A′ = A′} {M′ = N′} {pA = pA} {pB = pB} hA hA′ rel) =
+  Ψʳ , Σʳ , wfΣʳ , ƛ A′ ⇒ N′ , ƛ A′ ⇒ N′ , (ƛ A′ ⇒ N′ ∎) ,
+  ⊑ƛ {pA = pA} {pB = pB} hA hA′ rel
+left-value-right-catchup wfΣʳ () (⊑· L⊑L′ M⊑M′)
+left-value-right-catchup wfΣʳ () (⊑⦂∀ rel wfA wfB hT)
+left-value-right-catchup wfΣʳ () (⊑⦂∀-ν A B p rel wfA hT inst)
+left-value-right-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} wfΣʳ ($ κ) ⊑$ =
+  Ψʳ , Σʳ , wfΣʳ , $ κ , $ κ , ($ κ ∎) , ⊑$
+left-value-right-catchup wfΣʳ () (⊑⊕ L⊑L′ M⊑M′)
+left-value-right-catchup
+  {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  wfΣʳ (_up_ {V = V} {p = u} vV vu)
+  (⊑up {B = B} {B′ = B′} {pB = pB} {u′ = u′} Φ lenΦ rel hu hu′)
+    with left-value-right-catchup wfΣʳ vV rel
+left-value-right-catchup
+  {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  wfΣʳ (_up_ {V = V} {p = u} vV vu)
+  (⊑up {B = B} {B′ = B′} {pB = pB} {u′ = u′} Φ lenΦ rel hu hu′)
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , V′ᵥ , vV′ᵥ , M′↠V′ᵥ , V⊑V′ᵥ
+    with right-extra-up-catchup-left {pB = pB} Φ lenΦ wfΣʳᵃ
+           vV vV′ᵥ V⊑V′ᵥ hu hu′
+left-value-right-catchup
+  {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  wfΣʳ (_up_ {V = V} {p = u} vV vu)
+  (⊑up {B = B} {B′ = B′} {pB = pB} {u′ = u′} Φ lenΦ rel hu hu′)
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , V′ᵥ , vV′ᵥ , M′↠V′ᵥ , V⊑V′ᵥ
+  | Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , W′ , vW′ , V′ᵥup↠W′ , Vup⊑W′ =
+  Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , W′ , vW′ ,
+  multi-trans (up-↠ M′↠V′ᵥ) V′ᵥup↠W′ ,
+  Vup⊑W′
+{-
+    Case E ⊢ (V up p) ⊑ (M′ up u′) ⦂ B ⊑ B′
+                                     ^^   
+                                     |  \ 
+             V        ⊑ M′         ⦂ A₁ ⊑ A′
+             
+    have:
+      V ⊑ M′ ⦂ A₁ ⊑ A′
+      u′ ⦂ A′ ⊑ B
+      p ⦂ A₁ ⊑ A
+      pB : [] ⊢ A ⊑ᵢ B   (not in scope)
+      pA : [] ⊢ A₁ ⊑ᵢ A′   (not in scope)
+    nts:
+      M′ up u′ —↠ V′
+      V up p ⊑ V′     for some V′ 
+-}
+left-value-right-catchup
+  {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  wfΣʳ (_up_ vV vu) (⊑upL {pB = pB} Φ lenΦ rel hu)
+    with left-value-right-catchup wfΣʳ vV rel
+left-value-right-catchup
+  {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  wfΣʳ (_up_ vV vu) (⊑upL {pB = pB} Φ lenΦ rel hu)
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , V⊑V′ =
+  Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ ,
+  ⊑upL {pA = ⊑-type-imprecision V⊑V′} {pB = pB} Φ lenΦ V⊑V′ hu
+left-value-right-catchup
+  {Σʳ = Σʳ} wfΣʳ vV (⊑upR {pB = pB} Φ lenΦ rel hu′)
+    with left-value-right-catchup wfΣʳ vV rel
+left-value-right-catchup
+  {Σʳ = Σʳ} wfΣʳ vV (⊑upR {pB = pB} Φ lenΦ rel hu′)
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , V′ , vV′ , M′↠V′ , V⊑V′
+    with right-extra-up-catchup {pB = pB} Φ lenΦ wfΣʳᵃ vV vV′ V⊑V′ hu′
+left-value-right-catchup
+  {Σʳ = Σʳ} wfΣʳ vV (⊑upR {pB = pB} Φ lenΦ rel hu′)
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , V′ , vV′ , M′↠V′ , V⊑V′
+  | Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , W′ , vW′ , V′up↠W′ , V⊑W′ =
+  Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , W′ , vW′ ,
+  multi-trans (up-↠ M′↠V′) V′up↠W′ ,
+  V⊑W′
+left-value-right-catchup
+  {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  wfΣʳ (_down_ vV vd) (⊑down {pB = pB} Φ lenΦ rel hd hd′)
+    with left-value-right-catchup wfΣʳ vV rel
+left-value-right-catchup
+  {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  wfΣʳ (_down_ vV vd) (⊑down {pB = pB} Φ lenΦ rel hd hd′)
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , V′ , vV′ , M′↠V′ , V⊑V′
+    with right-extra-down-catchup-left {pB = pB} Φ lenΦ wfΣʳᵃ
+           vV vV′ V⊑V′ hd hd′
+left-value-right-catchup
+  {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  wfΣʳ (_down_ vV vd) (⊑down {pB = pB} Φ lenΦ rel hd hd′)
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , V′ , vV′ , M′↠V′ , V⊑V′
+  | Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , W′ , vW′ , V′down↠W′ , Vdown⊑W′ =
+  Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , W′ , vW′ ,
+  multi-trans (down-↠ M′↠V′) V′down↠W′ ,
+  Vdown⊑W′
+left-value-right-catchup
+  {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  wfΣʳ (_down_ vV vd) (⊑downL {pB = pB} Φ lenΦ rel hd)
+    with left-value-right-catchup wfΣʳ vV rel
+left-value-right-catchup
+  {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  wfΣʳ (_down_ vV vd) (⊑downL {pB = pB} Φ lenΦ rel hd)
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , V⊑V′ =
+  Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ ,
+  ⊑downL {pA = ⊑-type-imprecision V⊑V′} {pB = pB}
+    Φ lenΦ V⊑V′ hd
+left-value-right-catchup
+  {Σʳ = Σʳ} wfΣʳ vV (⊑downR {pB = pB} Φ lenΦ rel hd′)
+    with left-value-right-catchup wfΣʳ vV rel
+left-value-right-catchup
+  {Σʳ = Σʳ} wfΣʳ vV (⊑downR {pB = pB} Φ lenΦ rel hd′)
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , V′ , vV′ , M′↠V′ , V⊑V′
+    with right-extra-down-catchup {pB = pB} Φ lenΦ wfΣʳᵃ vV vV′ V⊑V′ hd′
+left-value-right-catchup
+  {Σʳ = Σʳ} wfΣʳ vV (⊑downR {pB = pB} Φ lenΦ rel hd′)
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , V′ , vV′ , M′↠V′ , V⊑V′
+  | Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , W′ , vW′ , V′down↠W′ , V⊑W′ =
+  Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , W′ , vW′ ,
+  multi-trans (down-↠ M′↠V′) V′down↠W′ ,
+  V⊑W′
+left-value-right-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣʳ (Λ N) (⊑Λ {M′ = N′} {p = p} vM vM′ wfA wfB rel) =
+  Ψʳ , Σʳ , wfΣʳ , Λ N′ , Λ N′ , (Λ N′ ∎) ,
+  ⊑Λ {p = p} vM vM′ wfA wfB rel
+left-value-right-catchup wfΣʳ () (⊑blameR M⊢)
 
 --------------------------------------------------------------------------------
 -- GTLC `sim-beta`, adapted to imprecision orientation.
 
 sim-left-beta :
-  ∀ {Ψ Σˡ Σʳ V′ W W′ N A A′ A₂ B B′} →
+  ∀ {Ψ Ψʳ Σˡ Σʳ V′ W W′ N A A′ A₂ B B′} →
   ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
     (ƛ A₂ ⇒ N) ⊑ V′ ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′) →
+  StoreWf 0 Ψʳ Σʳ →
   Value V′ →
   ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ W ⊑ W′ ⦂ A ⊑ A′ →
   Value W →
@@ -62,36 +452,36 @@ sim-left-beta :
 sim-left-beta
   {Σʳ = Σʳ} {W′ = W′}
   (⊑ƛ {pA = pA} {pB = pB} hA hA′ rel)
-  (ƛ A′ ⇒ N′) W⊑W′ vW vW′ =
+  wfΣʳ (ƛ A′ ⇒ N′) W⊑W′ vW vW′ =
   Σʳ , N′ [ W′ ] ,
   (((ƛ A′ ⇒ N′) · W′) —→⟨ id-step (β vW′) ⟩
    (N′ [ W′ ]) ∎) ,
   []-⊑ {pA = pA} {pB = pB} rel W⊑W′
 sim-left-beta
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑upR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  (_up_ vV′ uv′) W⊑W′ vW vW′
-    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} vW
+  wfΣʳ (_up_ vV′ uv′) W⊑W′ vW vW′
+    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψʳ}
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ vW
            (⊑downR {pA = ⊑-type-imprecision W⊑W′} {pB = pDom}
              Φ lenΦ W⊑W′ hp)
 sim-left-beta
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑upR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  (_up_ vV′ uv′) W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
-    with sim-left-beta {Σʳ = Σʳᵃ} rel vV′ W⊑W′ᵥ vW vW′ᵥ
+  wfΣʳ (_up_ vV′ uv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+    with sim-left-beta {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ} rel wfΣʳᵃ vV′ W⊑W′ᵥ vW vW′ᵥ
 sim-left-beta
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑upR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  (_up_ vV′ uv′) W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+  wfΣʳ (_up_ vV′ uv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
   | Σʳᵝ , N′ , V′W′↠N′ , N[W]⊑N′ =
   Σʳᵝ , N′ up _ ,
   (((_ up _) · W′) —→⟨ id-step (β-up-↦ vV′ vW′) ⟩
@@ -99,33 +489,30 @@ sim-left-beta
   ⊑upR {pA = ⊑-type-imprecision N[W]⊑N′} {pB = pCod′}
     Φ lenΦ N[W]⊑N′ hq
 sim-left-beta
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑downR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  (_down_ vV′ dv′)
-  W⊑W′ vW vW′
-    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} vW
+  wfΣʳ (_down_ vV′ dv′) W⊑W′ vW vW′
+    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψʳ}
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ vW
            (⊑upR {pA = ⊑-type-imprecision W⊑W′} {pB = pDom}
              Φ lenΦ W⊑W′ hp)
 sim-left-beta
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑downR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  (_down_ vV′ dv′)
-  W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
-    with sim-left-beta {Σʳ = Σʳᵃ} rel vV′ W⊑W′ᵥ vW vW′ᵥ
+  wfΣʳ (_down_ vV′ dv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+    with sim-left-beta {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ} rel wfΣʳᵃ vV′ W⊑W′ᵥ vW vW′ᵥ
 sim-left-beta
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑downR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  (_down_ vV′ dv′)
-  W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+  wfΣʳ (_down_ vV′ dv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
   | Σʳᵝ , N′ , V′W′↠N′ , N[W]⊑N′ =
   Σʳᵝ , N′ down _ ,
   (((_ down _) · W′) —→⟨ id-step (β-down-↦ vV′ vW′) ⟩
@@ -137,10 +524,11 @@ sim-left-beta
 
 -- GTLC `sim-beta-cast`, adapted to left `up` function casts.
 sim-left-beta-up :
-  ∀ {Ψ Σˡ Σʳ V V′ W W′ A A′ B B′}
+  ∀ {Ψ Ψʳ Σˡ Σʳ V V′ W W′ A A′ B B′}
     {p : Down} {q : Up} →
   ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
     (V up (Up._↦_ p q)) ⊑ V′ ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′) →
+  StoreWf 0 Ψʳ Σʳ →
   Value V →
   Value V′ →
   ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ W ⊑ W′ ⦂ A ⊑ A′ →
@@ -156,7 +544,7 @@ sim-left-beta-up
   (⊑upL {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV vV′ W⊑W′ vW vW′ =
+  wfΣʳ vV vV′ W⊑W′ vW vW′ =
   Σʳ , V′ · W′ ,
   ((V′ · W′) ∎) ,
   ⊑upL {pA = pCod} {pB = pCod′} Φ lenΦ
@@ -169,7 +557,7 @@ sim-left-beta-up
   (⊑up {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq) (wt-↦ hp′ hq′))
-  vV (_up_ vV′ uv′) W⊑W′ vW vW′ =
+  wfΣʳ vV (_up_ vV′ uv′) W⊑W′ vW vW′ =
   Σʳ , _ ,
   (_ —→⟨ id-step (β-up-↦ vV′ vW′) ⟩ _ ∎) ,
   ⊑up {pA = pCod} {pB = pCod′} Φ lenΦ
@@ -178,30 +566,30 @@ sim-left-beta-up
         Φ lenΦ W⊑W′ hp hp′))
     hq hq′
 sim-left-beta-up
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑upR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_up_ vV′ uv′) W⊑W′ vW vW′
-    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} vW
+  wfΣʳ vV (_up_ vV′ uv′) W⊑W′ vW vW′
+    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψʳ}
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ vW
            (⊑downR {pA = ⊑-type-imprecision W⊑W′} {pB = pDom}
              Φ lenΦ W⊑W′ hp)
 sim-left-beta-up
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑upR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_up_ vV′ uv′) W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
-    with sim-left-beta-up {Σʳ = Σʳᵃ} rel vV vV′ W⊑W′ᵥ vW vW′ᵥ
+  wfΣʳ vV (_up_ vV′ uv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+    with sim-left-beta-up {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ} rel wfΣʳᵃ vV vV′ W⊑W′ᵥ vW vW′ᵥ
 sim-left-beta-up
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑upR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_up_ vV′ uv′) W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+  wfΣʳ vV (_up_ vV′ uv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
   | Σʳᵝ , N′ , V′W′↠N′ , N⊑N′ =
   Σʳᵝ , N′ up _ ,
   (((_ up _) · W′) —→⟨ id-step (β-up-↦ vV′ vW′) ⟩
@@ -209,30 +597,30 @@ sim-left-beta-up
   ⊑upR {pA = ⊑-type-imprecision N⊑N′} {pB = pCod′}
     Φ lenΦ N⊑N′ hq
 sim-left-beta-up
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑downR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_down_ vV′ dv′) W⊑W′ vW vW′
-    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} vW
+  wfΣʳ vV (_down_ vV′ dv′) W⊑W′ vW vW′
+    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψʳ}
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ vW
            (⊑upR {pA = ⊑-type-imprecision W⊑W′} {pB = pDom}
              Φ lenΦ W⊑W′ hp)
 sim-left-beta-up
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑downR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_down_ vV′ dv′) W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
-    with sim-left-beta-up {Σʳ = Σʳᵃ} rel vV vV′ W⊑W′ᵥ vW vW′ᵥ
+  wfΣʳ vV (_down_ vV′ dv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+    with sim-left-beta-up {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ} rel wfΣʳᵃ vV vV′ W⊑W′ᵥ vW vW′ᵥ
 sim-left-beta-up
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑downR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_down_ vV′ dv′) W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+  wfΣʳ vV (_down_ vV′ dv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
   | Σʳᵝ , N′ , V′W′↠N′ , N⊑N′ =
   Σʳᵝ , N′ down _ ,
   (((_ down _) · W′) —→⟨ id-step (β-down-↦ vV′ vW′) ⟩
@@ -244,10 +632,11 @@ sim-left-beta-up
 
 -- GTLC `sim-beta-cast`, adapted to left `down` function casts.
 sim-left-beta-down :
-  ∀ {Ψ Σˡ Σʳ V V′ W W′ A A′ B B′}
+  ∀ {Ψ Ψʳ Σˡ Σʳ V V′ W W′ A A′ B B′}
     {p : Up} {q : Down} →
   ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
     (V down (Down._↦_ p q)) ⊑ V′ ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′) →
+  StoreWf 0 Ψʳ Σʳ →
   Value V →
   Value V′ →
   ⟪ 0 , Ψ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ W ⊑ W′ ⦂ A ⊑ A′ →
@@ -263,7 +652,7 @@ sim-left-beta-down
   (⊑downL {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV vV′ W⊑W′ vW vW′ =
+  wfΣʳ vV vV′ W⊑W′ vW vW′ =
   Σʳ , V′ · W′ ,
   ((V′ · W′) ∎) ,
   ⊑downL {pA = pCod} {pB = pCod′} Φ lenΦ
@@ -276,7 +665,7 @@ sim-left-beta-down
   (⊑down {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq) (wt-↦ hp′ hq′))
-  vV (_down_ vV′ dv′) W⊑W′ vW vW′ =
+  wfΣʳ vV (_down_ vV′ dv′) W⊑W′ vW vW′ =
   Σʳ , _ ,
   (_ —→⟨ id-step (β-down-↦ vV′ vW′) ⟩ _ ∎) ,
   ⊑down {pA = pCod} {pB = pCod′} Φ lenΦ
@@ -285,31 +674,31 @@ sim-left-beta-down
         Φ lenΦ W⊑W′ hp hp′))
     hq hq′
 sim-left-beta-down
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑upR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_up_ vV′ uv′) W⊑W′ vW vW′
-    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} vW
+  wfΣʳ vV (_up_ vV′ uv′) W⊑W′ vW vW′
+    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψʳ}
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ vW
            (⊑downR {pA = ⊑-type-imprecision W⊑W′} {pB = pDom}
              Φ lenΦ W⊑W′ hp)
 sim-left-beta-down
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑upR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_up_ vV′ uv′) W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
-    with sim-left-beta-down {Σʳ = Σʳᵃ} rel vV vV′ W⊑W′ᵥ
+  wfΣʳ vV (_up_ vV′ uv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+    with sim-left-beta-down {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ} rel wfΣʳᵃ vV vV′ W⊑W′ᵥ
            vW vW′ᵥ
 sim-left-beta-down
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑upR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_up_ vV′ uv′) W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+  wfΣʳ vV (_up_ vV′ uv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
   | Σʳᵝ , N′ , V′W′↠N′ , N⊑N′ =
   Σʳᵝ , N′ up _ ,
   (((_ up _) · W′) —→⟨ id-step (β-up-↦ vV′ vW′) ⟩
@@ -317,31 +706,31 @@ sim-left-beta-down
   ⊑upR {pA = ⊑-type-imprecision N⊑N′} {pB = pCod′}
     Φ lenΦ N⊑N′ hq
 sim-left-beta-down
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑downR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_down_ vV′ dv′) W⊑W′ vW vW′
-    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} vW
+  wfΣʳ vV (_down_ vV′ dv′) W⊑W′ vW vW′
+    with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψʳ}
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ vW
            (⊑upR {pA = ⊑-type-imprecision W⊑W′} {pB = pDom}
              Φ lenΦ W⊑W′ hp)
 sim-left-beta-down
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑downR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_down_ vV′ dv′) W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
-    with sim-left-beta-down {Σʳ = Σʳᵃ} rel vV vV′ W⊑W′ᵥ
+  wfΣʳ vV (_down_ vV′ dv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+    with sim-left-beta-down {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ} rel wfΣʳᵃ vV vV′ W⊑W′ᵥ
            vW vW′ᵥ
 sim-left-beta-down
-  {Ψ = Ψ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
+  {Ψ = Ψ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ} {W′ = W′}
   (⊑downR {pA = ⊑ᵢ-⇒ A₀ A′₀ B₀ B′₀ pDom pCod}
     {pB = ⊑ᵢ-⇒ A₁ A′₁ B₁ B′₁ pDom′ pCod′}
     Φ lenΦ rel (wt-↦ hp hq))
-  vV (_down_ vV′ dv′) W⊑W′ vW vW′
-  | Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+  wfΣʳ vV (_down_ vV′ dv′) W⊑W′ vW vW′
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
   | Σʳᵝ , N′ , V′W′↠N′ , N⊑N′ =
   Σʳᵝ , N′ down _ ,
   (((_ down _) · W′) —→⟨ id-step (β-down-↦ vV′ vW′) ⟩

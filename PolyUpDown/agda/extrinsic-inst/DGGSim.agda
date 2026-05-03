@@ -192,8 +192,8 @@ dynamic-gradual-guarantee-part1
       wfΣ wfΣ M↠V
 ... | wfΣˡ′ , Σʳ₁ , wfΣʳ₁ , N′ , M′↠N′ , simVN′
     with left-value-right-catchup {Ψˡ = Ψ} {Ψʳ = Ψ} {Σˡ = Σˡ′}
-      {Σʳ = Σʳ₁} {A = A} {B = B} vV simVN′
-... | Σʳ′ , wfΣʳ′ , V′ , vV′ , N′↠V′ , V⊑V′ =
+      {Σʳ = Σʳ₁} {A = A} {B = B} wfΣʳ₁ vV simVN′
+... | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , N′↠V′ , V⊑V′ =
   Σʳ′ , V′ ,
   vV′ , multi-trans M′↠N′ N′↠V′ , V⊑V′
 

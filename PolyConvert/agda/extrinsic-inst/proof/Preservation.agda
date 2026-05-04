@@ -28,6 +28,11 @@ open import Imprecision
 open import Conversion
 open import Terms
 open import Reduction
+open import proof.PreservationWkImp using (wk-⊑; wk-⊒)
+open import proof.PreservationWkConv using (⟰ᵗ-⊆ˢ; wk-conv↑; wk-conv↓)
+open import proof.PreservationWkTerm using (wk-term)
+open import proof.PreservationRaw using (raw-preservation)
+open import proof.PreservationBetaRevealConceal using (preserve-β-reveal-∀)
 
 ------------------------------------------------------------------------
 -- Fresh store extension
@@ -209,40 +214,6 @@ exact-storeWf {shape-suc} eq wfΣ rewrite eq = wfΣ
 ------------------------------------------------------------------------
 
 postulate
-  wk-term :
-    ∀ {Δ Ψ Ψ′}{Σ Σ′ : Store}{Γ : Ctx}{M : Term}{A : Ty} →
-    Ψ ≤ Ψ′ →
-    Σ ⊆ˢ Σ′ →
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
-    Δ ∣ Ψ′ ∣ Σ′ ∣ Γ ⊢ M ⦂ A
-
-  wk-⊑ :
-    ∀ {Ψ Ψ′ Γᵢ p A B} →
-    Ψ ≤ Ψ′ →
-    Ψ ∣ Γᵢ ⊢ p ⦂ A ⊑ B →
-    Ψ′ ∣ Γᵢ ⊢ p ⦂ A ⊑ B
-
-  wk-conv↑ :
-    ∀ {Δ Ψ Ψ′}{Σ Σ′ : Store}{c A B} →
-    Ψ ≤ Ψ′ →
-    Σ ⊆ˢ Σ′ →
-    Δ ∣ Ψ ∣ Σ ⊢ c ⦂ A ↑ˢ B →
-    Δ ∣ Ψ′ ∣ Σ′ ⊢ c ⦂ A ↑ˢ B
-
-  wk-conv↓ :
-    ∀ {Δ Ψ Ψ′}{Σ Σ′ : Store}{c A B} →
-    Ψ ≤ Ψ′ →
-    Σ ⊆ˢ Σ′ →
-    Δ ∣ Ψ ∣ Σ ⊢ c ⦂ A ↓ˢ B →
-    Δ ∣ Ψ′ ∣ Σ′ ⊢ c ⦂ A ↓ˢ B
-
-  raw-preservation :
-    ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{M N : Term}{A : Ty} →
-    StoreWf Δ Ψ Σ →
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
-    M —→ N →
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ N ⦂ A
-
   preserve-β-Λ :
     ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{B T : Ty} →
     StoreWf Δ Ψ Σ →
@@ -280,15 +251,6 @@ postulate
     Δ ∣ suc Ψ ∣ ((length Σ , ★) ∷ Σ) ∣ Γ ⊢
       ((V ⦂∀ (src⊑ p) [ ｀ (length Σ) ]) ⇑
         (p [ ｀ (length Σ) ]⊑)) ⦂ A
-
-  preserve-β-reveal-∀ :
-    ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{B T : Ty}{c : Conv↑} →
-    StoreWf Δ Ψ Σ →
-    Value V →
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ↑ (↑-∀ c)) ⦂∀ B [ T ]) ⦂ B [ T ]ᵗ →
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢
-      ((V ⦂∀ (src↑ (⟰ᵗ Σ) c) [ T ]) ↑
-        (subst↑ (singleTyEnv T) c)) ⦂ B [ T ]ᵗ
 
   preserve-β-conceal-∀ :
     ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{B T : Ty}{c : Conv↓} →

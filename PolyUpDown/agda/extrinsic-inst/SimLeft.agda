@@ -1,4 +1,4 @@
---{-# OPTIONS --allow-unsolved-metas #-}
+{-# OPTIONS --allow-unsolved-metas #-}
 
 module SimLeft where
 
@@ -141,7 +141,7 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
   | ⊑· L⊑L′ Arg⊑Arg′
     with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ vV L⊑L′
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣˡ wfΣʳ vV L⊑L′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | ξ-·₂ vV redM
   | ⊑· L⊑L′ Arg⊑Arg′
@@ -422,20 +422,20 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β {B = A} {N = N} {V = W} vW)
   | ⊑· L⊑L′ W⊑W′
     with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ (ƛ A ⇒ N) L⊑L′
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣˡ wfΣʳ (ƛ A ⇒ N) L⊑L′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β {B = A} {N = N} {V = W} vW)
   | ⊑· L⊑L′ W⊑W′
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , ƛN⊑V′
     with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳᶠ}
-           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} wfΣʳᶠ vW W⊑W′
+           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} wfΣˡ wfΣʳᶠ vW W⊑W′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β {B = A} {N = N} {V = W} vW)
   | ⊑· L⊑L′ W⊑W′
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , ƛN⊑V′
   | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
     with sim-left-beta {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ}
-           ƛN⊑V′ wfΣʳᵃ vV′ W⊑W′ᵥ vW vW′ᵥ
+           ƛN⊑V′ wfΣˡ wfΣʳᵃ vV′ W⊑W′ᵥ vW vW′ᵥ
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β {B = A} {N = N} {V = W} vW)
   | ⊑· L⊑L′ W⊑W′
@@ -488,20 +488,20 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
     with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ (vV up _↦_) L⊑L′
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣˡ wfΣʳ (vV up _↦_) L⊑L′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vup⊑V′
     with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳᶠ}
-           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} wfΣʳᶠ vW W⊑W′
+           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} wfΣˡ wfΣʳᶠ vW W⊑W′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vup⊑V′
   | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
-    with sim-left-beta-up {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ} Vup⊑V′ wfΣʳᵃ vV vV′
-           W⊑W′ᵥ vW vW′ᵥ
+    with sim-left-beta-up {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ} Vup⊑V′ wfΣˡ
+           wfΣʳᵃ vV vV′ W⊑W′ᵥ vW vW′ᵥ
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
@@ -554,20 +554,20 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
     with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳ}
-           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣʳ (vV down _↦_) L⊑L′
+           {Σˡ = Σˡ} {Σʳ = Σʳ} wfΣˡ wfΣʳ (vV down _↦_) L⊑L′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vdown⊑V′
     with left-value-right-catchup {Ψˡ = Ψˡ} {Ψʳ = Ψʳᶠ}
-           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} wfΣʳᶠ vW W⊑W′
+           {Σˡ = Σˡ} {Σʳ = Σʳᶠ} wfΣˡ wfΣʳᶠ vW W⊑W′
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , Vdown⊑V′
   | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
     with sim-left-beta-down {Ψʳ = Ψʳᵃ} {Σʳ = Σʳᵃ}
-           Vdown⊑V′ wfΣʳᵃ vV vV′
+           Vdown⊑V′ wfΣˡ wfΣʳᵃ vV vV′
            W⊑W′ᵥ vW vW′ᵥ
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-down-↦ {V = V} {W = W} vV vW)
@@ -593,13 +593,7 @@ sim-left {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
 sim-left {Ψˡ = Ψˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red
   | id-step (seal-unseal {V = V} {p = d} {q = u} {α = α} vV)
-    with sim-left-w05-seal-unseal {Σʳ = Σʳ} {V = V}
-           {d = d} {u = u} {α = α} vV M⊑M′
-sim-left {Ψˡ = Ψˡ} {Σʳ = Σʳ}
-  M⊑M′ wfΣˡ wfΣʳ red
-  | id-step (seal-unseal {V = V} {p = d} {q = u} {α = α} vV)
-  | N′ , M′↠N′ , N⊑N′ =
-  Ψˡ , ≤-refl , Σʳ , N′ , M′↠N′ , N⊑N′
+  = {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (tag-untag-ok vV) =
   {!!}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (tag-untag-bad vV G≢H) =

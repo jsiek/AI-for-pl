@@ -815,32 +815,96 @@ interp-≡-｀ wf★ ()
 interp-≡-｀ (wf⇒ _ _) ()
 interp-≡-｀ (wf∀ _) ()
 
--- Source-injectivity of `interp` under `Clean` (planned).
--- Statement: two well-scoped sources A, B with `interp Γ A ≡ interp Γ B`
--- and `Clean Φ (interp Γ B)` are syntactically equal at the source.
--- Clean rules out the asymmetry between `｀ β` (source seal) and `＇ X`
--- (ν-bound source variable) — both can interpret to the same cast seal,
--- but only the ν-bound side carries a `SealResource` that contradicts
--- `Clean` (via `clean-var-plain` + `∋-mode-unique`).
---
--- Once this is proved, `cast⇒imprecision⊑-id-hole` becomes:
---
---   cast⇒imprecision⊑-id-hole cΓ wfA wfB cleanB refl refl interpEq
---     with clean-interp-injective cΓ wfA wfB cleanB interpEq
---   ... | refl = clean-reflᵢ cΓ wfA cleanB
---
--- And `cast⇒imprecision⊑-seal-id-hole` becomes a one-liner delegating
--- to the id-hole.
---
--- Implementation sketch (not yet written):
---   * Case on `wfA × wfB`. Most cross-constructor pairs are absurd by
---     `interp-≡-‵/⇒/∀/★/｀` pulling B's source shape from A's interp.
---   * Same-constructor pairs: `wfBase × wfBase`, `wf★ × wf★` are direct
---     refl. `wfSeal × wfSeal`: by `interpSeal-injective`. `wf⇒ × wf⇒`
---     and `wf∀ × wf∀`: recurse on components (decreasing on wfA).
---   * `wfVar × wfVar`: dispatch on plain/ν via `lookup-mode`. The plain
---     × plain subcase needs `plain-var-image-injective` (a separate
---     induction on Γ + ∋-membership; not yet written).
+-- Left inverse of `interp Γ` on the `Clean`-supported subset. Total in
+-- `T : Ty`; the `(ν-bound ∷ Γ) zero` clause for `un-interpSeal` returns
+-- garbage that `Clean` rules out reaching at any actual interp image.
+un-interpVarPlain : ICtx → TyVar → TyVar
+un-interpVarPlain [] Y = Y
+un-interpVarPlain (plain ∷ Γ) zero = zero
+un-interpVarPlain (plain ∷ Γ) (suc Y) = suc (un-interpVarPlain Γ Y)
+un-interpVarPlain (ν-bound ∷ Γ) Y = suc (un-interpVarPlain Γ Y)
+
+un-interpSeal : ICtx → Seal → Seal
+un-interpSeal [] α = α
+un-interpSeal (plain ∷ Γ) α = un-interpSeal Γ α
+un-interpSeal (ν-bound ∷ Γ) zero = zero
+un-interpSeal (ν-bound ∷ Γ) (suc α) = un-interpSeal Γ α
+
+un-interp : ICtx → Ty → Ty
+un-interp Γ (＇ Y) = ＇ (un-interpVarPlain Γ Y)
+un-interp Γ (｀ α) = ｀ (un-interpSeal Γ α)
+un-interp Γ (‵ ι) = ‵ ι
+un-interp Γ ★ = ★
+un-interp Γ (A ⇒ B) = un-interp Γ A ⇒ un-interp Γ B
+un-interp Γ (`∀ A) = `∀ (un-interp (plain ∷ Γ) A)
+
+-- Round-trip on the seal layer: `un-interpSeal Γ` undoes `interpSeal Γ`.
+un-interpSeal-roundtrip : ∀ Γ β → un-interpSeal Γ (interpSeal Γ β) ≡ β
+un-interpSeal-roundtrip [] β = refl
+un-interpSeal-roundtrip (plain ∷ Γ) β = un-interpSeal-roundtrip Γ β
+un-interpSeal-roundtrip (ν-bound ∷ Γ) β = un-interpSeal-roundtrip Γ β
+
+-- Round-trip on plain variables: `interpVar` lands in `＇ Y` for some `Y`,
+-- and `un-interpVarPlain` recovers the original `X`.
+un-interpVarPlain-roundtrip :
+  ∀ {Γ X} →
+  (x∈ : Γ ∋ X ∶ plain) →
+  ∃[ Y ] (interpVar Γ X ≡ ＇ Y × un-interpVarPlain Γ Y ≡ X)
+un-interpVarPlain-roundtrip here = zero , refl , refl
+un-interpVarPlain-roundtrip (there {m′ = plain} x'∈)
+    with un-interpVarPlain-roundtrip x'∈
+... | Y' , vEq , uEq =
+  suc Y' , cong ⇑ᵗ vEq , cong suc uEq
+un-interpVarPlain-roundtrip (there {m′ = ν-bound} x'∈)
+    with un-interpVarPlain-roundtrip x'∈
+... | Y' , vEq , uEq =
+  Y' , cong ⇑ˢ vEq , cong suc uEq
+
+-- The main round-trip: `un-interp Γ (interp Γ A) ≡ A` whenever `Clean`
+-- holds on the interpretation. The ν-bound `wfVar` subcase is ruled out
+-- by `clean-seal-no-resource` because ν-binders inject permissions.
+un-interp-correct :
+  ∀ {Γ Σ Φ Ψ A} →
+  CastCtx Γ Σ Φ →
+  WfTy (length Γ) Ψ A →
+  Clean Φ (interp Γ A) →
+  un-interp Γ (interp Γ A) ≡ A
+un-interp-correct {Γ = Γ} cΓ (wfVar X<Γ) cleanA
+    with lookup-mode Γ _ X<Γ
+... | plain , x∈ with un-interpVarPlain-roundtrip x∈
+... | _ , vEq , uEq =
+  trans (cong (un-interp Γ) vEq) (cong ＇_ uEq)
+un-interp-correct cΓ (wfVar X<Γ) cleanA | ν-bound , x∈
+    with ν-var-resource cΓ x∈
+... | _ , vEq , r =
+  ⊥-elim (clean-seal-no-resource (subst (Clean _) vEq cleanA) r)
+un-interp-correct {Γ = Γ} cΓ (wfSeal {α = β} _) _ =
+  cong ｀_ (un-interpSeal-roundtrip Γ β)
+un-interp-correct cΓ wfBase _ = refl
+un-interp-correct cΓ wf★ _ = refl
+un-interp-correct cΓ (wf⇒ wfA wfB) (cleanA , cleanB) =
+  cong₂ _⇒_
+    (un-interp-correct cΓ wfA cleanA)
+    (un-interp-correct cΓ wfB cleanB)
+un-interp-correct cΓ (wf∀ wfA) cleanA =
+  cong `∀ (un-interp-correct (cast-plain cΓ) wfA cleanA)
+
+-- Source-injectivity of `interp` under `Clean`: by sandwiching `interpEq`
+-- between two round-trips. The Clean precondition for A is transferred
+-- from B's via the equality.
+clean-interp-injective :
+  ∀ {Γ Σ Φ Ψ A B} →
+  CastCtx Γ Σ Φ →
+  WfTy (length Γ) Ψ A →
+  WfTy (length Γ) Ψ B →
+  Clean Φ (interp Γ B) →
+  interp Γ A ≡ interp Γ B →
+  A ≡ B
+clean-interp-injective {Γ = Γ} cΓ wfA wfB cleanB interpEq =
+  trans (sym (un-interp-correct cΓ wfA
+                (subst (Clean _) (sym interpEq) cleanB)))
+        (trans (cong (un-interp Γ) interpEq)
+               (un-interp-correct cΓ wfB cleanB))
 
 -- The cast-side endpoint `｀ α` reflects back to a source-side reason for
 -- `A ⊑ᵢ ★`. This is the shared subroutine used by both
@@ -927,55 +991,137 @@ mutual
     B′ ≡ interp Γ B →
     Σ ∣ Φ ⊢ A′ ⊑ᶜ B′ →
     Γ ⊢ A ⊑ᵢ B
-  cast⇒imprecision⊑ {A = A} {B = ★}
-      cΓ wfA wf★ cleanB eqA refl (⊑ᶜ-tag p g ok) =
+  -- ⊑ᶜ-tag forces the cast's RHS to ★. By interp-≡-★, the source B = ★
+  -- (with eqB and wfB refining accordingly under the `with`-rewrite).
+  cast⇒imprecision⊑ {B = B} cΓ wfA wfB cleanB eqA eqB (⊑ᶜ-tag p g ok)
+      with interp-≡-★ {A = B} (sym eqB)
+  ... | refl =
     cast⇒imprecision⊑-ground★-hole cΓ wfA g ok (⊑ᶜ-cast eqA refl p)
-  cast⇒imprecision⊑ {A = A} {B = ★}
-      cΓ wfA wf★ cleanB eqA refl (⊑ᶜ-unseal★ p h α∈Φ) =
+  -- ⊑ᶜ-unseal★ likewise forces RHS = ★.
+  cast⇒imprecision⊑ {B = B} cΓ wfA wfB cleanB eqA eqB (⊑ᶜ-unseal★ p h α∈Φ)
+      with interp-≡-★ {A = B} (sym eqB)
+  ... | refl =
     cast⇒imprecision⊑-seal★-hole cΓ wfA (⊑ᶜ-cast eqA refl p) h α∈Φ
   cast⇒imprecision⊑ cΓ wfA wfB cleanB eqA eqB (⊑ᶜ-seal α) =
     cast⇒imprecision⊑-seal-id-hole cΓ wfA wfB cleanB eqA eqB refl refl
-  cast⇒imprecision⊑ {A = A₁ ⇒ B₁} {B = A₂ ⇒ B₂}
-      cΓ (wf⇒ wfA₁ wfB₁) (wf⇒ wfA₂ wfB₂)
-      (cleanA₂ , cleanB₂) refl refl (⊑ᶜ-⇒ p q) =
-    ⊑ᵢ-⇒ A₁ A₂ B₁ B₂
-      (cast⇒imprecision⊒ cΓ wfA₂ wfA₁ cleanA₂ p)
-      (cast⇒imprecision⊑ cΓ wfB₁ wfB₂ cleanB₂ refl refl q)
-  cast⇒imprecision⊑ {A = `∀ A} {B = `∀ B}
-      cΓ (wf∀ wfA) (wf∀ wfB) cleanB refl refl (⊑ᶜ-∀ p) =
-    ⊑ᵢ-∀ A B (cast⇒imprecision⊑ (cast-plain cΓ) wfA wfB cleanB refl refl p)
-  cast⇒imprecision⊑ {Γ = Γ} {A = `∀ A} {B = B}
-      cΓ (wf∀ wfA) wfB cleanB refl refl (⊑ᶜ-ν occ p) =
-    ⊑ᵢ-ν A B (trans (sym (interp-plain-occurs-zero Γ A)) occ)
+  -- ⊑ᶜ-⇒ forces both sides to be arrows. Use interp-≡-⇒ to refine A and B,
+  -- then pattern-match wfA, wfB, cleanB on the arrow shape.
+  cast⇒imprecision⊑ {A = A} {B = B} cΓ wfA wfB cleanB eqA eqB (⊑ᶜ-⇒ p q)
+      with interp-≡-⇒ {A = A} (sym eqA) | interp-≡-⇒ {A = B} (sym eqB)
+  ... | A₁ , A₂ , refl , eqA₁ , eqA₂ | B₁ , B₂ , refl , eqB₁ , eqB₂
+      with wfA | wfB | cleanB
+  ... | wf⇒ wfA₁ wfA₂ | wf⇒ wfB₁ wfB₂ | cleanB₁ , cleanB₂ =
+    ⊑ᵢ-⇒ A₁ B₁ A₂ B₂
+      (cast⇒imprecision⊒ cΓ wfB₁ wfA₁ cleanB₁
+        (sym eqB₁) (sym eqA₁) p)
+      (cast⇒imprecision⊑ cΓ wfA₂ wfB₂ cleanB₂
+        (sym eqA₂) (sym eqB₂) q)
+  -- ⊑ᶜ-∀ forces both sides `∀-shaped.
+  cast⇒imprecision⊑ {A = A} {B = B} cΓ wfA wfB cleanB eqA eqB (⊑ᶜ-∀ p)
+      with interp-≡-∀ {A = A} (sym eqA) | interp-≡-∀ {A = B} (sym eqB)
+  ... | A_src , refl , eqA' | B_src , refl , eqB'
+      with wfA | wfB
+  ... | wf∀ wfA_src | wf∀ wfB_src =
+    ⊑ᵢ-∀ A_src B_src
+      (cast⇒imprecision⊑ (cast-plain cΓ) wfA_src wfB_src cleanB
+        (sym eqA') (sym eqB') p)
+  -- ⊑ᶜ-ν forces LHS source to be `∀ A_src.
+  cast⇒imprecision⊑ {Γ = Γ} {A = A} {B = B} cΓ wfA wfB cleanB eqA eqB (⊑ᶜ-ν occ p)
+      with interp-≡-∀ {A = A} (sym eqA)
+  ... | A_src , refl , interpA-eq
+      with wfA
+  ... | wf∀ wfA_src =
+    ⊑ᵢ-ν A_src B
+      (trans (sym (interp-plain-occurs-zero Γ A_src))
+             (subst (λ T → occurs zero T ≡ true) (sym interpA-eq) occ))
       (cast⇒imprecision⊑
         (cast-ν-seal cΓ)
-        wfA
+        wfA_src
         (renameᵗ-preserves-WfTy wfB TyRenameWf-suc)
         (subst (Clean _) (sym (interp-ν-target Γ B))
           (Clean-⇑ˢ {A = interp Γ B} {b = cast-seal} cleanB))
         refl refl
         (⊑ᶜ-cast
-          (sym (interp-ν-source Γ A))
-          (sym (interp-ν-target Γ B))
+          (trans (sym (cong (λ T → (⇑ˢ T) [ α₀ ]ᵗ) interpA-eq))
+                 (sym (interp-ν-source Γ A_src)))
+          (trans (cong ⇑ˢ eqB)
+                 (sym (interp-ν-target Γ B)))
           p))
   cast⇒imprecision⊑ cΓ wfA wfB cleanB eqA eqB (⊑ᶜ-id x) =
     cast⇒imprecision⊑-id-hole cΓ wfA wfB cleanB eqA eqB refl
-  cast⇒imprecision⊑ cΓ wfA wfB cleanB eqA eqB p =
-    -- Remaining endpoint-reflection cases, including shape mismatches and
-    -- interpreted identity/seal cases.
-    {!!}
 
+  -- Dual of `cast⇒imprecision⊑`. Carries `A′ B′` equality bridges so the
+  -- constructor pattern matches don't get stuck on `interp` applications.
   cast⇒imprecision⊒ :
-    ∀ {Γ Σ Φ Ψ A B} →
+    ∀ {Γ Σ Φ Ψ A B A′ B′} →
     CastCtx Γ Σ Φ →
     WfTy (length Γ) Ψ A →
     WfTy (length Γ) Ψ B →
     Clean Φ (interp Γ A) →
-    Σ ∣ Φ ⊢ interp Γ A ⊒ᶜ interp Γ B →
+    A′ ≡ interp Γ A →
+    B′ ≡ interp Γ B →
+    Σ ∣ Φ ⊢ A′ ⊒ᶜ B′ →
     Γ ⊢ A ⊒ᵢ B
-  cast⇒imprecision⊒ cΓ wfA wfB cleanA p =
-    -- Dual main reflection hole.
-    {!!}
+  -- ⊒ᶜ-untag forces the cast's LHS to ★. By interp-≡-★, A = ★.
+  cast⇒imprecision⊒ {A = A} cΓ wfA wfB cleanA eqA eqB (⊒ᶜ-untag g ok ℓ p)
+      with interp-≡-★ {A = A} (sym eqA)
+  ... | refl =
+    cast⇒imprecision⊒-ground★-hole cΓ wfB g ok (⊒ᶜ-cast refl eqB p)
+  -- ⊒ᶜ-seal★ likewise forces LHS = ★.
+  cast⇒imprecision⊒ {A = A} cΓ wfA wfB cleanA eqA eqB (⊒ᶜ-seal★ p h α∈Φ)
+      with interp-≡-★ {A = A} (sym eqA)
+  ... | refl =
+    cast⇒imprecision⊒-seal★-hole cΓ wfB (⊒ᶜ-cast refl eqB p) h α∈Φ
+  -- ⊒ᶜ-seal: both sides ｀ α. Reduce to identity via clean-interp-injective.
+  cast⇒imprecision⊒ cΓ wfA wfB cleanA eqA eqB (⊒ᶜ-seal α)
+      with clean-interp-injective cΓ wfB wfA cleanA (trans (sym eqB) eqA)
+  ... | refl = clean-reflᵢ cΓ wfA cleanA
+  -- ⊒ᶜ-⇒ forces both sides to be arrows. Mirror of the ⊑ᶜ-⇒ clause; the
+  -- arrow's first arg flips to ⊑ direction (cast⇒imprecision⊑).
+  cast⇒imprecision⊒ {A = A} {B = B} cΓ wfA wfB cleanA eqA eqB (⊒ᶜ-⇒ p q)
+      with interp-≡-⇒ {A = A} (sym eqA) | interp-≡-⇒ {A = B} (sym eqB)
+  ... | A₁ , A₂ , refl , eqA₁ , eqA₂ | B₁ , B₂ , refl , eqB₁ , eqB₂
+      with wfA | wfB | cleanA
+  ... | wf⇒ wfA₁ wfA₂ | wf⇒ wfB₁ wfB₂ | cleanA₁ , cleanA₂ =
+    ⊑ᵢ-⇒ B₁ A₁ B₂ A₂
+      (cast⇒imprecision⊑ cΓ wfB₁ wfA₁ cleanA₁
+        (sym eqB₁) (sym eqA₁) p)
+      (cast⇒imprecision⊒ cΓ wfA₂ wfB₂ cleanA₂
+        (sym eqA₂) (sym eqB₂) q)
+  -- ⊒ᶜ-∀ forces both sides `∀-shaped.
+  cast⇒imprecision⊒ {A = A} {B = B} cΓ wfA wfB cleanA eqA eqB (⊒ᶜ-∀ p)
+      with interp-≡-∀ {A = A} (sym eqA) | interp-≡-∀ {A = B} (sym eqB)
+  ... | A_src , refl , interpA-eq | B_src , refl , interpB-eq
+      with wfA | wfB
+  ... | wf∀ wfA_src | wf∀ wfB_src =
+    ⊑ᵢ-∀ B_src A_src
+      (cast⇒imprecision⊒ (cast-plain cΓ) wfA_src wfB_src cleanA
+        (sym interpA-eq) (sym interpB-eq) p)
+  -- ⊒ᶜ-ν forces RHS source to be `∀ B_src; LHS source A is unconstrained.
+  cast⇒imprecision⊒ {Γ = Γ} {A = A} {B = B}
+      cΓ wfA wfB cleanA eqA eqB (⊒ᶜ-ν occ p)
+      with interp-≡-∀ {A = B} (sym eqB)
+  ... | B_src , refl , interpB-eq
+      with wfB
+  ... | wf∀ wfB_src =
+    ⊑ᵢ-ν B_src A
+      (trans (sym (interp-plain-occurs-zero Γ B_src))
+             (subst (λ T → occurs zero T ≡ true) (sym interpB-eq) occ))
+      (cast⇒imprecision⊒
+        (cast-ν-tag cΓ)
+        (renameᵗ-preserves-WfTy wfA TyRenameWf-suc)
+        wfB_src
+        (subst (Clean _) (sym (interp-ν-target Γ A))
+          (Clean-⇑ˢ {A = interp Γ A} {b = cast-tag} cleanA))
+        (trans (cong ⇑ˢ eqA)
+               (sym (interp-ν-target Γ A)))
+        (trans (sym (cong (λ T → (⇑ˢ T) [ α₀ ]ᵗ) interpB-eq))
+               (sym (interp-ν-source Γ B_src)))
+        p)
+  -- ⊒ᶜ-id: A′ ≡ B′. Combined with eqA, eqB, gives interp Γ A ≡ interp Γ B.
+  cast⇒imprecision⊒ cΓ wfA wfB cleanA eqA eqB (⊒ᶜ-id _)
+      with clean-interp-injective cΓ wfB wfA cleanA (trans (sym eqB) eqA)
+  ... | refl = clean-reflᵢ cΓ wfA cleanA
 
   -- The `g = ｀ α` case is closed via `seal-source⊑ᵢ★`. The `g = ‵ ι` and
   -- `g = ★⇒★` cases need direct cast-derivation inversion (NOT a recursive
@@ -1042,8 +1188,7 @@ mutual
       | A₁′ | A₂′ =
     ⊑ᵢ-★ (A₁ ⇒ A₂) (★ ⇒ ★) ★⇒★
       (⊑ᵢ-⇒ A₁ ★ A₂ ★
-        (cast⇒imprecision⊒ cΓ wf★ wfA₁ tt
-          (subst (λ T → _ ∣ _ ⊢ ★ ⊒ᶜ T) (sym eqA₁) p₁))
+        (cast⇒imprecision⊒ cΓ wf★ wfA₁ tt refl (sym eqA₁) p₁)
         (cast⇒imprecision⊑ cΓ wfA₂ wf★ tt refl refl
           (subst (λ T → _ ∣ _ ⊢ T ⊑ᶜ ★) (sym eqA₂) p₂)))
   cast⇒imprecision⊑-ground★-hole {Γ = Γ}
@@ -1128,11 +1273,10 @@ mutual
     A′ ≡ ｀ α →
     B′ ≡ ｀ α →
     Γ ⊢ A ⊑ᵢ B
-  cast⇒imprecision⊑-seal-id-hole cΓ wfA wfB cleanB eqA eqB srcSeal tgtSeal =
-    -- Missing reflection: both interpreted endpoints are the same seal.
-    -- Recover whether the source terms are equal concrete seals, plain
-    -- variables, or impossible ν variables ruled out by `Clean`.
-    {!!}
+  -- Both endpoints are the same seal `｀ α`; delegate to `id-hole` which
+  -- needs only the equality `A′ ≡ B′` (here `refl` after `srcSeal/tgtSeal`).
+  cast⇒imprecision⊑-seal-id-hole cΓ wfA wfB cleanB eqA eqB refl refl =
+    cast⇒imprecision⊑-id-hole cΓ wfA wfB cleanB eqA eqB refl
 
   cast⇒imprecision⊑-id-hole :
     ∀ {Γ Σ Φ Ψ A B A′ B′} →
@@ -1144,10 +1288,12 @@ mutual
     B′ ≡ interp Γ B →
     A′ ≡ B′ →
     Γ ⊢ A ⊑ᵢ B
-  cast⇒imprecision⊑-id-hole cΓ wfA wfB cleanB eqA eqB interpEq =
-    -- Missing equality reflection: clean, well-scoped interpreted equality
-    -- should give indexed imprecision between the source types.
-    {!!}
+  -- Use `clean-interp-injective` to collapse `A ≡ B`, then close with
+  -- `clean-reflᵢ`. Match `eqA refl` and `eqB refl` so `interpEq` has type
+  -- `interp Γ A ≡ interp Γ B`, which we feed to the injectivity lemma.
+  cast⇒imprecision⊑-id-hole cΓ wfA wfB cleanB refl refl interpEq
+      with clean-interp-injective cΓ wfA wfB cleanB interpEq
+  ... | refl = clean-reflᵢ cΓ wfA cleanB
 
   -- Dual of `cast⇒imprecision⊑-ground★-hole`. Same structure: route
   -- `g = ｀ α` through `seal-source★⊒ᵢ`; for `g = ‵ ι` and `g = ★⇒★`,
@@ -1219,8 +1365,7 @@ mutual
       (⊑ᵢ-⇒ B₁ ★ B₂ ★
         (cast⇒imprecision⊑ cΓ wfB₁ wf★ tt refl refl
           (subst (λ T → _ ∣ _ ⊢ T ⊑ᶜ ★) (sym eqB₁) p₁))
-        (cast⇒imprecision⊒ cΓ wf★ wfB₂ tt
-          (subst (λ T → _ ∣ _ ⊢ ★ ⊒ᶜ T) (sym eqB₂) p₂)))
+        (cast⇒imprecision⊒ cΓ wf★ wfB₂ tt refl (sym eqB₂) p₂))
   cast⇒imprecision⊒-ground★-hole {Γ = Γ}
       cΓ (wf⇒ {A = B₁} {B = B₂} wfB₁ wfB₂) ★⇒★ tt (⊒ᶜ-id _)
       | .★ | .★ =
@@ -1290,111 +1435,6 @@ mutual
   cast⇒imprecision⊒-seal★-hole cΓ wfB p h α∈Φ =
     seal-source★⊒ᵢ cΓ wfB (seal-cast h α∈Φ) p
 
-cast⇒imprecision⊑-⇒-case :
-  ∀ {Γ Σ Φ Ψ A₁ B₁ A₂ B₂} →
-  CastCtx Γ Σ Φ →
-  WfTy (length Γ) Ψ A₁ →
-  WfTy (length Γ) Ψ B₁ →
-  WfTy (length Γ) Ψ A₂ →
-  WfTy (length Γ) Ψ B₂ →
-  Clean Φ (interp Γ A₂) →
-  Clean Φ (interp Γ B₂) →
-  Σ ∣ Φ ⊢ interp Γ A₂ ⊒ᶜ interp Γ A₁ →
-  Σ ∣ Φ ⊢ interp Γ B₁ ⊑ᶜ interp Γ B₂ →
-  Γ ⊢ (A₁ ⇒ B₁) ⊑ᵢ (A₂ ⇒ B₂)
-cast⇒imprecision⊑-⇒-case cΓ wfA₁ wfB₁ wfA₂ wfB₂ cleanA₂ cleanB₂ p q =
-  ⊑ᵢ-⇒ _ _ _ _
-    (cast⇒imprecision⊒ cΓ wfA₂ wfA₁ cleanA₂ p)
-    (cast⇒imprecision⊑ cΓ wfB₁ wfB₂ cleanB₂ refl refl q)
-
-cast⇒imprecision⊒-⇒-case :
-  ∀ {Γ Σ Φ Ψ A₁ B₁ A₂ B₂} →
-  CastCtx Γ Σ Φ →
-  WfTy (length Γ) Ψ A₁ →
-  WfTy (length Γ) Ψ B₁ →
-  WfTy (length Γ) Ψ A₂ →
-  WfTy (length Γ) Ψ B₂ →
-  Clean Φ (interp Γ A₁) →
-  Clean Φ (interp Γ B₁) →
-  Σ ∣ Φ ⊢ interp Γ A₂ ⊑ᶜ interp Γ A₁ →
-  Σ ∣ Φ ⊢ interp Γ B₁ ⊒ᶜ interp Γ B₂ →
-  Γ ⊢ (A₁ ⇒ B₁) ⊒ᵢ (A₂ ⇒ B₂)
-cast⇒imprecision⊒-⇒-case cΓ wfA₁ wfB₁ wfA₂ wfB₂ cleanA₁ cleanB₁ p q =
-  ⊑ᵢ-⇒ _ _ _ _
-    (cast⇒imprecision⊑ cΓ wfA₂ wfA₁ cleanA₁ refl refl p)
-    (cast⇒imprecision⊒ cΓ wfB₁ wfB₂ cleanB₁ q)
-
-cast⇒imprecision⊑-∀-case :
-  ∀ {Γ Σ Φ Ψ A B} →
-  CastCtx Γ Σ Φ →
-  WfTy (suc (length Γ)) Ψ A →
-  WfTy (suc (length Γ)) Ψ B →
-  Clean Φ (interp (plain ∷ Γ) B) →
-  ⟰ᵗ Σ ∣ Φ ⊢ interp (plain ∷ Γ) A ⊑ᶜ interp (plain ∷ Γ) B →
-  Γ ⊢ `∀ A ⊑ᵢ `∀ B
-cast⇒imprecision⊑-∀-case cΓ wfA wfB cleanB p =
-  ⊑ᵢ-∀ _ _ (cast⇒imprecision⊑ (cast-plain cΓ) wfA wfB cleanB refl refl p)
-
-cast⇒imprecision⊒-∀-case :
-  ∀ {Γ Σ Φ Ψ A B} →
-  CastCtx Γ Σ Φ →
-  WfTy (suc (length Γ)) Ψ A →
-  WfTy (suc (length Γ)) Ψ B →
-  Clean Φ (interp (plain ∷ Γ) A) →
-  ⟰ᵗ Σ ∣ Φ ⊢ interp (plain ∷ Γ) A ⊒ᶜ interp (plain ∷ Γ) B →
-  Γ ⊢ `∀ A ⊒ᵢ `∀ B
-cast⇒imprecision⊒-∀-case cΓ wfA wfB cleanA p =
-  ⊑ᵢ-∀ _ _ (cast⇒imprecision⊒ (cast-plain cΓ) wfA wfB cleanA p)
-
-cast⇒imprecision⊑-ν-case :
-  ∀ {Γ Σ Φ Ψ A B} →
-  CastCtx Γ Σ Φ →
-  .(occurs zero (interp (plain ∷ Γ) A) ≡ true) →
-  WfTy (suc (length Γ)) Ψ A →
-  WfTy (length Γ) Ψ B →
-  Clean Φ (interp Γ B) →
-  ((zero , ★) ∷ ⟰ˢ Σ) ∣ (cast-seal ∷ Φ) ⊢
-    (⇑ˢ (interp (plain ∷ Γ) A)) [ α₀ ]ᵗ ⊑ᶜ ⇑ˢ (interp Γ B) →
-  Γ ⊢ `∀ A ⊑ᵢ B
-cast⇒imprecision⊑-ν-case {Γ = Γ} {A = A} {B = B}
-    cΓ occ wfA wfB cleanB p =
-  ⊑ᵢ-ν A B (trans (sym (interp-plain-occurs-zero Γ A)) occ)
-    (cast⇒imprecision⊑
-      (cast-ν-seal cΓ)
-      wfA
-      (renameᵗ-preserves-WfTy wfB TyRenameWf-suc)
-      (subst (Clean _) (sym (interp-ν-target Γ B))
-        (Clean-⇑ˢ {A = interp Γ B} {b = cast-seal} cleanB))
-        refl refl
-      (⊑ᶜ-cast
-        (sym (interp-ν-source Γ A))
-        (sym (interp-ν-target Γ B))
-        p))
-
-cast⇒imprecision⊒-ν-case :
-  ∀ {Γ Σ Φ Ψ A B} →
-  CastCtx Γ Σ Φ →
-  .(occurs zero (interp (plain ∷ Γ) A) ≡ true) →
-  WfTy (suc (length Γ)) Ψ A →
-  WfTy (length Γ) Ψ B →
-  Clean Φ (interp Γ B) →
-  ((zero , ⇑ˢ ★) ∷ ⟰ˢ Σ) ∣ (cast-tag ∷ Φ) ⊢
-    ⇑ˢ (interp Γ B) ⊒ᶜ (⇑ˢ (interp (plain ∷ Γ) A)) [ α₀ ]ᵗ →
-  Γ ⊢ B ⊒ᵢ `∀ A
-cast⇒imprecision⊒-ν-case {Γ = Γ} {A = A} {B = B}
-    cΓ occ wfA wfB cleanB p =
-  ⊑ᵢ-ν A B (trans (sym (interp-plain-occurs-zero Γ A)) occ)
-    (cast⇒imprecision⊒
-      (cast-ν-tag cΓ)
-      (renameᵗ-preserves-WfTy wfB TyRenameWf-suc)
-      wfA
-      (subst (Clean _) (sym (interp-ν-target Γ B))
-        (Clean-⇑ˢ {A = interp Γ B} {b = cast-tag} cleanB))
-      (⊒ᶜ-cast
-        (sym (interp-ν-target Γ B))
-        (sym (interp-ν-source Γ A))
-        p))
-
 record ImprecisionCastIso
     (Γ : ICtx) (Σ : Store) (Φ : List CastPerm) (A B : Ty) : Set where
   constructor iso
@@ -1428,4 +1468,5 @@ mkIso cΓ =
     (λ wfA wfB cleanB p →
       cast⇒imprecision⊑ cΓ wfA wfB cleanB refl refl p)
     (imprecision⇒cast⊒ cΓ)
-    (cast⇒imprecision⊒ cΓ)
+    (λ wfA wfB cleanA p →
+      cast⇒imprecision⊒ cΓ wfA wfB cleanA refl refl p)

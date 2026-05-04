@@ -6,7 +6,7 @@ module proof.DGGCommon where
 --   * Keeps proof modules independent from `MetaTheory` to avoid import cycles.
 --   * No simulation proof obligations live here.
 
-open import Data.List using ([])
+open import Data.List using ([]; length)
 open import Data.Product using (_×_; ∃-syntax)
 open import Data.Sum using (_⊎_)
 open import Relation.Binary.PropositionalEquality using (_≡_)
@@ -18,9 +18,25 @@ open import Terms
 open import TermImprecision
 open import Reduction
 
-TermRel : SealCtx → Store → Term → Term → Ty → Ty → Set
-TermRel Ψ Σ M M′ A B =
-  ⟪ 0 , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B
+record SimWorld : Set where
+  constructor mkWorld
+  field
+    Ψˡ Ψʳ : SealCtx
+    Σˡ Σʳ : Store
+    wfΣˡ : StoreWf 0 Ψˡ Σˡ
+    wfΣʳ : StoreWf 0 Ψʳ Σʳ
+    len-sync : length Σˡ ≡ length Σʳ
+
+open SimWorld public
+
+TermRel :
+  SealCtx → Store → SealCtx → Store → Term → Term → Ty → Ty → Set
+TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B =
+  ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B
+
+WorldRel : SimWorld → Term → Term → Ty → Ty → Set
+WorldRel W =
+  TermRel (Ψˡ W) (Σˡ W) (Ψʳ W) (Σʳ W)
 
 Blame : Term → Set
 Blame M = ∃[ ℓ ] (M ≡ blame ℓ)

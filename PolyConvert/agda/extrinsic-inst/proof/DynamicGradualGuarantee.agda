@@ -24,28 +24,32 @@ postulate
   dynamic-gradual-guarantee :
     ∀ {Ψ Σ M M′ A B} →
     StoreWf 0 Ψ Σ →
-    TermRel Ψ Σ M M′ A B →
+    TermRel Ψ Σ Ψ Σ M M′ A B →
     (∀ {Σˡ′ V} →
        Value V →
        Σ ∣ M —↠ Σˡ′ ∣ V →
        ∃[ Ψˡ′ ]
          (StoreWf 0 Ψˡ′ Σˡ′ ×
-          ∃[ Σʳ′ ] ∃[ V′ ]
-            (Value V′ ×
-             (Σ ∣ M′ —↠ Σʳ′ ∣ V′) ×
-             TermRel Ψˡ′ Σˡ′ V V′ A B)))
+          ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
+            (StoreWf 0 Ψʳ′ Σʳ′ ×
+             ∃[ V′ ]
+               (Value V′ ×
+                (Σ ∣ M′ —↠ Σʳ′ ∣ V′) ×
+                TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′ V V′ A B))))
     ×
     (Diverges Σ M → Diverges Σ M′)
     ×
     (∀ {Σʳ′ V′} →
        Value V′ →
        Σ ∣ M′ —↠ Σʳ′ ∣ V′ →
-       (∃[ Ψˡ′ ] ∃[ Σˡ′ ]
-         (StoreWf 0 Ψˡ′ Σˡ′ ×
-          ∃[ V ]
-            (Value V ×
-             (Σ ∣ M —↠ Σˡ′ ∣ V) ×
-             TermRel Ψˡ′ Σˡ′ V V′ A B)))
+       (∃[ Ψʳ′ ]
+         (StoreWf 0 Ψʳ′ Σʳ′ ×
+          ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
+            (StoreWf 0 Ψˡ′ Σˡ′ ×
+             ∃[ V ]
+               (Value V ×
+                (Σ ∣ M —↠ Σˡ′ ∣ V) ×
+                TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′ V V′ A B))))
        ⊎ Blames Σ M)
     ×
     (Diverges Σ M′ → DivergeOrBlame Σ M)

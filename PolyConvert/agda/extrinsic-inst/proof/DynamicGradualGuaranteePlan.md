@@ -67,12 +67,13 @@ Immediate input:
 ### `sim-left*`
 
 If `M ⊑ M′` and `Σˡ ∣ M —↠ Σˡ′ ∣ N`, then `M′` catches up to some `N′`
-and `N ⊑ N′`.
+and `N ⊑ N′`.  The result also carries the accumulated left-world growth
+witness `Ψˡ ≤ Ψˡ′`.
 
 Immediate sublemmas:
 
 - `sim-left`: if `M ⊑ M′` and `Σˡ ∣ M —→ Σˡ₁ ∣ N`, then `M′` takes zero or
-  more right steps to `N′` and `N ⊑ N′`.
+  more right steps to `N′`, producing `Ψˡ ≤ Ψˡ′` and `N ⊑ N′`.
 - `sim-left-preservation`: the relation produced by `sim-left` is well-typed
   under the fresh seal context/store produced by the left step.
 
@@ -114,7 +115,9 @@ Where recursion or induction is needed:
 
 - `sim-left-app₁` and `sim-left-app₂` use the recursive `sim-left` call on the
   strict sub-reduction `L —→ N` or `M —→ N`. This is structural recursion on
-  the one-step reduction derivation.
+  the one-step reduction derivation. The recursive interface must return
+  `Ψˡ ≤ Ψˡ′`, because application and wrapper congruence need it immediately to
+  weaken unchanged premises and imprecision evidence.
 - `appL-↠`, `appR-↠`, `up-↠`, `down-↠`, `reveal-↠`, and `conceal-↠` are proved
   by induction on the right multi-step derivation.
 - `sim-left-beta`, `sim-left-beta-up-app`, `sim-left-beta-down-app`,
@@ -136,8 +139,10 @@ Immediate supporting lemmas for application:
 - `appL-↠`: lift right multi-step reduction through application operator.
 - `appR-↠`: lift right multi-step reduction through application operand, with a
   `Value` proof for the already-caught-up operator.
-- `wk-left-⊑`: weaken a term-imprecision judgment across the seal/store growth
-  produced by a left step, preserving the left store in the judgment.
+- `wk-left-world-⊑`: weaken a term-imprecision judgment across the concrete
+  seal/store growth produced by a left step.  Its inputs include both
+  `Ψˡ ≤ Ψˡ′` and `Σˡ ⊆ˢ Σˡ′`, and its conclusion is stated over the paired
+  final world `TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′ ...`.
 - `subst-⊑`: parallel or single-variable term substitution preserves
   term imprecision.
 - Function-value inversion/catchup lemmas for right values related to a left
@@ -184,10 +189,12 @@ Where recursion or induction is needed for type application:
   imprecision, plus compatibility with the conversion inserted by `β-Λ`.
 - The `∀` imprecision cases need instantiation lemmas for raw `Imp` evidence:
   ordinary type substitution for `⊑-∀`, and fresh-seal/ν opening for `⊑-ν`.
-- Store-allocating cases need an explicit bridge for fresh seal allocation:
-  either synchronized allocation in the simulation world, or a renaming theorem
-  relating the right fresh seal `length Σʳ` to the left fresh seal
-  `length Σˡ`.
+- Store-allocating cases use a paired-world simulation invariant. The proof
+  state carries `Ψˡ, Σˡ` and `Ψʳ, Σʳ`, together with store well-formedness and
+  a length synchronization fact.  When a type application allocates fresh seals,
+  the resulting term relation is stated over both extended worlds:
+  `TermRel (suc Ψˡ) ((length Σˡ , T) ∷ Σˡ)
+           (suc Ψʳ) ((length Σʳ , T) ∷ Σʳ) ...`.
 
 Immediate supporting lemmas for type application:
 
@@ -197,8 +204,9 @@ Immediate supporting lemmas for type application:
   across ordinary type application and ν/fresh-seal opening.
 - `convert↑-⊑` and `convert↓-⊑`: conversion evidence inserted by reveal/conceal
   remains compatible with the term-imprecision endpoint relation.
-- `fresh-seal-sync` or `fresh-seal-rename-⊑`: relate imprecision judgments whose
-  terms mention freshly allocated seals from different stores.
+- `fresh-seal-sync-Λ`: the paired-world allocation bridge for `β-Λ`; this is
+  now the preferred statement instead of a one-world renaming-after-the-fact
+  theorem.
 
 ### `left-value-right-catchup`
 
@@ -306,7 +314,7 @@ The skeleton now supports six independent workers with disjoint write sets.
 
    First target: replace `subst-⊑` with a real single-variable substitution
    theorem, then add the parallel form if needed. This worker owns
-   `wk-left-⊑`, `tysubst-⊑`, and `fresh-seal-rename-⊑`.
+   `wk-left-world-⊑`, `tysubst-⊑`, and `fresh-seal-rename-⊑`.
 
 2. `proof/DGGCatchup.agda`
 

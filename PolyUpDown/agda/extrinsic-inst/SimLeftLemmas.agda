@@ -15,6 +15,7 @@ open import Data.Nat.Properties using (+-comm; m+[n∸m]≡n)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; subst; trans)
+open import Relation.Nullary using (yes; no)
 
 open import Types
 open import UpDown using
@@ -277,7 +278,28 @@ mutual
          (Σʳ ∣ (V′ down d′) —↠ Σʳ′ ∣ W′) ×
          (⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ W′ ⦂ A ⊑ B′))
   right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel
-    (wt-untag g ok ℓ p) = {!!}
+    (wt-untag {G = G} g ok ℓ p)
+    with canonical-★-imprecision vV′ rel
+  ... | sv-up-tag {W = W′} {p = q′} {G = G′} {g = g′} vW′ refl
+    with g ≟Ground g′
+  ... | yes refl =
+    -- Tags match: V′ down (untag G ℓ p) —→ (W′ up q′) down p via
+    -- tag-untag-ok. The result `(W′ up q′) down p` is not yet a value:
+    -- need a recursive catchup that drives `up q′` then `down p`.
+    -- That recursion requires inverting `rel` (case-split on ⊑upR/⊑up
+    -- constructors) to extract a sub-relation `V ⊑ W′ ⦂ A ⊑ A_W`, then
+    -- supplying `pB : [] ⊢ A ⊑ᵢ G` for the inner `right-extra-up-catchup`
+    -- — currently no helper extracts this `A ⊑ᵢ G` from the cast typing
+    -- `q′ ⦂ A_W ⊑ G` plus the outer `pA : A ⊑ᵢ ★`.
+    {!!}
+  ... | no  G≢G′ =
+    -- Tags mismatch: V′ down (untag G ℓ p) —→ blame ℓ via tag-untag-bad.
+    -- BUT the lemma's contract requires `Value W′` and blame is not a
+    -- value, so producing the right outcome here violates the return
+    -- type. Filling this case cleanly likely needs the catchup lemma's
+    -- return type relaxed to (Value W′ ⊎ ∃ ℓ. W′ ≡ blame ℓ), or a new
+    -- variant lemma for blame-producing catchups.
+    {!!}
   right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′}
     {pB = pB} Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel (wt-seal p h α∈Φ) =
     Ψʳ , Σʳ , wfΣʳ , V′ down d′ , vV′ down seal , (V′ down d′ ∎) ,
@@ -407,7 +429,22 @@ mutual
          (⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢
             (V down d) ⊑ W′ ⦂ B ⊑ B′))
   right-extra-down-catchup-left Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel hd
-    (wt-untag g ok ℓ p) = {!!}
+    (wt-untag {G = G} g ok ℓ p)
+    with canonical-★-imprecision vV′ rel
+  ... | sv-up-tag {W = W′} {p = q′} {G = G′} {g = g′} vW′ refl
+    with g ≟Ground g′
+  ... | yes refl =
+    -- Tags match: V′ down (untag G ℓ p) —→ (W′ up q′) down p via
+    -- tag-untag-ok. Same recursive obstruction as the non-`-left`
+    -- variant, plus the `-left` form additionally needs to compose the
+    -- left cast `d` (from `hd`) with the recursive answer — neither
+    -- bridge lemma is available yet.
+    {!!}
+  ... | no  G≢G′ =
+    -- Tags mismatch: blame ℓ result violates the lemma's `Value W′`
+    -- contract (same issue as `right-extra-down-catchup`'s wt-untag);
+    -- a relaxed return type is needed before this case can land.
+    {!!}
   {- BLOCKED[Wclaude-B][catchup-left-untag]:
      The other wt-* clauses below (wt-seal / wt-seal★ / wt-↦ / wt-∀ /
      wt-ν) take ZERO right-side reductions and return `V′ down d′`

@@ -280,9 +280,64 @@ mutual
   right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel
     (wt-untag {G = G} g ok ℓ p)
     with canonical-★-imprecision vV′ rel
-  ... | sv-up-tag {W = W′} {p = q′} {G = G′} {g = g′} vW′ refl
-    with g ≟Ground g′
-  ... | yes refl =
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = G′} {g = g′} vW′ refl
+      with g ≟Ground g′
+  ... | yes refl with rel
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel₀
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = .G} {g = g′} vW′ refl
+      | yes refl
+      | ⊑⦂∀-ν Aν Bν pν rel wfAν hTν instν =
+    {!!}
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel₀
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = .G} {g = g′} vW′ refl
+      | yes refl
+      | ⊑up {pB = pB′} Φu lenΦu rel hu (wt-tag q⊢ gq okq)
+      with pB′
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel₀
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = .G} {g = g′} vW′ refl
+      | yes refl
+      | ⊑up Φu lenΦu rel hu (wt-tag q⊢ gq okq)
+      | ⊑ᵢ-★★ =
+    {!!}
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel₀
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = .G} {g = g′} vW′ refl
+      | yes refl
+      | ⊑up Φu lenΦu rel hu (wt-tag q⊢ gq okq)
+      | ⊑ᵢ-★ν xν =
+    {!!}
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel₀
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = .G} {g = g′} vW′ refl
+      | yes refl
+      | ⊑up Φu lenΦu rel hu (wt-tag q⊢ gq okq)
+      | ⊑ᵢ-★ B H h pBH
+      with ground-target-uniqueᵢ h g pBH {!!}
+  ... | refl =
+    {!!}
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel₀
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = .G} {g = g′} vW′ refl
+      | yes refl
+      | ⊑up Φu lenΦu rel hu (wt-tag q⊢ gq okq)
+      | ⊑ᵢ-ν B ★ occ pν =
+    {!!}
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel₀
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = .G} {g = g′} vW′ refl
+      | yes refl
+      | ⊑upL {pB = pB′} Φu lenΦu rel hu =
+    {!!}
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel₀
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = .G} {g = g′} vW′ refl
+      | yes refl
+      | ⊑upR {pB = pB′} Φu lenΦu rel (wt-tag q⊢ gq okq) =
     -- Tags match: V′ down (untag G ℓ p) —→ (W′ up q′) down p via
     -- tag-untag-ok. The result `(W′ up q′) down p` is not yet a value:
     -- need a recursive catchup that drives `up q′` then `down p`.
@@ -292,7 +347,22 @@ mutual
     -- — currently no helper extracts this `A ⊑ᵢ G` from the cast typing
     -- `q′ ⦂ A_W ⊑ G` plus the outer `pA : A ⊑ᵢ ★`.
     {!!}
-  ... | no  G≢G′ =
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel₀
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = .G} {g = g′} vW′ refl
+      | yes refl
+      | ⊑downL {pB = pB′} Φd lenΦd rel hd =
+    {!!}
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel₀
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = .G} {g = g′} vW′ refl
+      | yes refl
+      | ⊑blameR M⊢ =
+    {!!}
+  right-extra-down-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel
+    (wt-untag {G = G} g ok ℓ p)
+      | sv-up-tag {W = W′} {p = q′} {G = G′} {g = g′} vW′ refl
+      | no  G≢G′ =
     -- Tags mismatch: V′ down (untag G ℓ p) —→ blame ℓ via tag-untag-bad.
     -- BUT the lemma's contract requires `Value W′` and blame is not a
     -- value, so producing the right outcome here violates the return

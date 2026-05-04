@@ -296,6 +296,27 @@ occurs X ★ = false
 occurs X (A ⇒ B) = occurs X A ∨ occurs X B
 occurs X (`∀ A) = occurs (suc X) A
 
+occurs-true-usesAt :
+  ∀ {X A} →
+  occurs X A ≡ true →
+  Σ TyPath (λ p → UsesAt X p A)
+occurs-true-usesAt {X} {＇ Y} occ with X ≟ Y
+occurs-true-usesAt {X} {＇ .X} occ | yes refl = path-＇ , usesAt-＇
+occurs-true-usesAt {X} {＇ Y} () | no neq
+occurs-true-usesAt {A = ｀ α} ()
+occurs-true-usesAt {A = ‵ ι} ()
+occurs-true-usesAt {A = ★} ()
+occurs-true-usesAt {X} {A ⇒ B} occ with occurs X A in eqA
+occurs-true-usesAt {X} {A ⇒ B} occ | true =
+  let p , u = occurs-true-usesAt eqA in
+  path-⇒ˡ p , usesAt-⇒ˡ u
+occurs-true-usesAt {X} {A ⇒ B} occ | false =
+  let p , u = occurs-true-usesAt occ in
+  path-⇒ʳ p , usesAt-⇒ʳ u
+occurs-true-usesAt {X} {`∀ A} occ =
+  let p , u = occurs-true-usesAt {X = suc X} {A = A} occ in
+  p , usesAt-∀ u
+
 no-usesAt-occurs-false :
   ∀ {X A} →
   (∀ p → UsesAt X p A → ⊥) →
@@ -532,6 +553,18 @@ ground-no-useAt∈ (‵ ι) (_ , at-‵ , ())
 ground-no-useAt∈ ★⇒★ (_ , at-⇒ˡ at-★ , ())
 ground-no-useAt∈ ★⇒★ (_ , at-⇒ʳ at-★ , ())
 
+starAt-seal-⊥ :
+  ∀ {p α} →
+  StarAt p (｀ α) →
+  ⊥
+starAt-seal-⊥ (_ , at-｀ , ())
+
+starAt-base-⊥ :
+  ∀ {p ι} →
+  StarAt p (‵ ι) →
+  ⊥
+starAt-base-⊥ (_ , at-‵ , ())
+
 ν-source-useAt-target-starAt∈ :
   ∀ {Γ X p A B} →
   Γ ∋ X ∶ ν-bound →
@@ -561,6 +594,61 @@ ground-no-useAt∈ ★⇒★ (_ , at-⇒ʳ at-★ , ())
     (⊑ₒ-ν A B occ p) (_ , at-∀ uAt , usesRoot-∀ uRoot) =
   starAt-⇑ᵗ-lower (ν-source-useAt-target-starAt∈ (there xν) p
     (_ , uAt , uRoot))
+
+ν-to-seal-⊥ :
+  ∀ {Γ A α} →
+  .(occurs zero A ≡ true) →
+  (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ｀ α →
+  ⊥
+ν-to-seal-⊥ occ p
+  rewrite no-usesAt-occurs-false
+            (λ r u → starAt-seal-⊥ (ν-source-useAt-target-starAt∈ here p u)) =
+  false≢trueᵢ occ
+
+ν-to-base-⊥ :
+  ∀ {Γ A ι} →
+  .(occurs zero A ≡ true) →
+  (ν-bound ∷ Γ) ⊢ A ⊑ᵢ ‵ ι →
+  ⊥
+ν-to-base-⊥ occ p
+  rewrite no-usesAt-occurs-false
+            (λ r u → starAt-base-⊥ (ν-source-useAt-target-starAt∈ here p u)) =
+  false≢trueᵢ occ
+
+ground-target-uniqueᵢ :
+  ∀ {Γ A G H} →
+  Ground G →
+  Ground H →
+  Γ ⊢ A ⊑ᵢ G →
+  Γ ⊢ A ⊑ᵢ H →
+  G ≡ H
+ground-target-uniqueᵢ (｀ α) (｀ .α) (⊑ᵢ-｀ .α) (⊑ᵢ-｀ .α) = refl
+ground-target-uniqueᵢ (｀ α) (｀ β) (⊑ᵢ-ν A .(｀ α) occ p) q =
+  ⊥-elim (ν-to-seal-⊥ occ p)
+ground-target-uniqueᵢ (｀ α) (‵ ι) (⊑ᵢ-｀ .α) ()
+ground-target-uniqueᵢ (｀ α) (‵ ι) (⊑ᵢ-ν A .(｀ α) occ p) q =
+  ⊥-elim (ν-to-seal-⊥ occ p)
+ground-target-uniqueᵢ (｀ α) ★⇒★ (⊑ᵢ-｀ .α) ()
+ground-target-uniqueᵢ (｀ α) ★⇒★ (⊑ᵢ-ν A .(｀ α) occ p) q =
+  ⊥-elim (ν-to-seal-⊥ occ p)
+ground-target-uniqueᵢ (‵ ι) (｀ α) (⊑ᵢ-‵ .ι) ()
+ground-target-uniqueᵢ (‵ ι) (｀ α) (⊑ᵢ-ν A .(‵ ι) occ p) q =
+  ⊥-elim (ν-to-base-⊥ occ p)
+ground-target-uniqueᵢ (‵ ι) (‵ .ι) (⊑ᵢ-‵ .ι) (⊑ᵢ-‵ .ι) = refl
+ground-target-uniqueᵢ (‵ ι) (‵ ι′) (⊑ᵢ-ν A .(‵ ι) occ p) q =
+  ⊥-elim (ν-to-base-⊥ occ p)
+ground-target-uniqueᵢ (‵ ι) ★⇒★ (⊑ᵢ-‵ .ι) ()
+ground-target-uniqueᵢ (‵ ι) ★⇒★ (⊑ᵢ-ν A .(‵ ι) occ p) q =
+  ⊥-elim (ν-to-base-⊥ occ p)
+ground-target-uniqueᵢ ★⇒★ (｀ α) p (⊑ᵢ-｀ .α) with p
+... | ()
+ground-target-uniqueᵢ ★⇒★ (｀ α) p (⊑ᵢ-ν A .(｀ α) occ q) =
+  ⊥-elim (ν-to-seal-⊥ occ q)
+ground-target-uniqueᵢ ★⇒★ (‵ ι) p (⊑ᵢ-‵ .ι) with p
+... | ()
+ground-target-uniqueᵢ ★⇒★ (‵ ι) p (⊑ᵢ-ν A .(‵ ι) occ q) =
+  ⊥-elim (ν-to-base-⊥ occ q)
+ground-target-uniqueᵢ ★⇒★ ★⇒★ p q = refl
 
 plain-source-useAt-target-useAt∈ :
   ∀ {Γ X p A B} →

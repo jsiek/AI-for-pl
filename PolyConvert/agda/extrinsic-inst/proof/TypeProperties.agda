@@ -14,9 +14,11 @@ module proof.TypeProperties where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Nat using (zero; suc; _<_; _≤_; z<s; s<s)
 open import Data.Nat.Properties using (<-≤-trans)
+open import Data.Product using (Σ-syntax)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; sym; trans)
 
 open import Types
+open import Imprecision
 
 ------------------------------------------------------------------------
 -- Public API: basic lemmas
@@ -42,6 +44,146 @@ renameˢ-ground : ∀{G : Ty} (ρ : Renameˢ)
 renameˢ-ground ρ (｀ α) = ｀ (ρ α)
 renameˢ-ground ρ (‵ ι) = ‵ ι
 renameˢ-ground ρ ★⇒★ = ★⇒★
+
+ground-upper-unique-⊑ :
+  ∀ {Ψ Γ A G H p q} →
+  Ground G →
+  Ground H →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ G →
+  Ψ ∣ Γ ⊢ q ⦂ A ⊑ H →
+  G ≡ H
+ground-upper-unique-⊑ (｀ α) (｀ .α) (⊑-｀ wfα) (⊑-｀ wfβ) = refl
+ground-upper-unique-⊑ (｀ α) (｀ β)
+  (⊑-ν wfB occ p⊢) (⊑-ν wfB′ occ′ q⊢) =
+  ground-upper-unique-⊑ (｀ α) (｀ β) p⊢ q⊢
+ground-upper-unique-⊑ (｀ α) (‵ ι) (⊑-｀ wfα) ()
+ground-upper-unique-⊑ (｀ α) (‵ ι)
+  (⊑-ν wfB occ p⊢) (⊑-ν wfB′ occ′ q⊢) =
+  ground-upper-unique-⊑ (｀ α) (‵ ι) p⊢ q⊢
+ground-upper-unique-⊑ (｀ α) ★⇒★ (⊑-｀ wfα) ()
+ground-upper-unique-⊑ (｀ α) ★⇒★
+  (⊑-ν wfB occ p⊢) (⊑-ν wfB′ occ′ q⊢) =
+  ground-upper-unique-⊑ (｀ α) ★⇒★ p⊢ q⊢
+ground-upper-unique-⊑ (‵ ι) (｀ α) (⊑-‵) ()
+ground-upper-unique-⊑ (‵ ι) (｀ α)
+  (⊑-ν wfB occ p⊢) (⊑-ν wfB′ occ′ q⊢) =
+  ground-upper-unique-⊑ (‵ ι) (｀ α) p⊢ q⊢
+ground-upper-unique-⊑ (‵ ι) (‵ .ι) (⊑-‵) (⊑-‵) = refl
+ground-upper-unique-⊑ (‵ ι) (‵ ι′)
+  (⊑-ν wfB occ p⊢) (⊑-ν wfB′ occ′ q⊢) =
+  ground-upper-unique-⊑ (‵ ι) (‵ ι′) p⊢ q⊢
+ground-upper-unique-⊑ (‵ ι) ★⇒★ (⊑-‵) ()
+ground-upper-unique-⊑ (‵ ι) ★⇒★
+  (⊑-ν wfB occ p⊢) (⊑-ν wfB′ occ′ q⊢) =
+  ground-upper-unique-⊑ (‵ ι) ★⇒★ p⊢ q⊢
+ground-upper-unique-⊑ ★⇒★ (｀ α) (⊑-⇒ p⊢ q⊢) ()
+ground-upper-unique-⊑ ★⇒★ (｀ α)
+  (⊑-ν wfB occ p⊢) (⊑-ν wfB′ occ′ q⊢) =
+  ground-upper-unique-⊑ ★⇒★ (｀ α) p⊢ q⊢
+ground-upper-unique-⊑ ★⇒★ (‵ ι) (⊑-⇒ p⊢ q⊢) ()
+ground-upper-unique-⊑ ★⇒★ (‵ ι)
+  (⊑-ν wfB occ p⊢) (⊑-ν wfB′ occ′ q⊢) =
+  ground-upper-unique-⊑ ★⇒★ (‵ ι) p⊢ q⊢
+ground-upper-unique-⊑ ★⇒★ ★⇒★ (⊑-⇒ p⊢ q⊢) (⊑-⇒ p⊢′ q⊢′) =
+  refl
+ground-upper-unique-⊑ ★⇒★ ★⇒★
+  (⊑-ν wfB occ p⊢) (⊑-ν wfB′ occ′ q⊢) =
+  ground-upper-unique-⊑ ★⇒★ ★⇒★ p⊢ q⊢
+
+★⊑Ground-elim :
+  ∀ {Ψ Γ G p} {A : Set} →
+  Ground G →
+  Ψ ∣ Γ ⊢ p ⦂ ★ ⊑ G →
+  A
+★⊑Ground-elim (｀ α) ()
+★⊑Ground-elim (‵ ι) ()
+★⊑Ground-elim ★⇒★ ()
+
+＇⊑Ground-elim :
+  ∀ {Ψ Γ X G p} {A : Set} →
+  Ground G →
+  Ψ ∣ Γ ⊢ p ⦂ ＇ X ⊑ G →
+  A
+＇⊑Ground-elim (｀ α) ()
+＇⊑Ground-elim (‵ ι) ()
+＇⊑Ground-elim ★⇒★ ()
+
+data Non∀ : Ty → Set where
+  non∀-＇ : ∀ {X} → Non∀ (＇ X)
+  non∀-｀ : ∀ {α} → Non∀ (｀ α)
+  non∀-‵ : ∀ {ι} → Non∀ (‵ ι)
+  non∀-★ : Non∀ ★
+  non∀-⇒ : ∀ {A B} → Non∀ (A ⇒ B)
+
+ground-upper-unique-chain-non∀-⊑ :
+  ∀ {Ψ Γ A B C G H p q r s} →
+  Non∀ A →
+  Ground G →
+  Ground H →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
+  Ψ ∣ Γ ⊢ q ⦂ B ⊑ G →
+  Ψ ∣ Γ ⊢ r ⦂ A ⊑ C →
+  Ψ ∣ Γ ⊢ s ⦂ C ⊑ H →
+  G ≡ H
+ground-upper-unique-chain-non∀-⊑ non∀-＇ g h (⊑-★ν xν) q⊢ r⊢ s⊢ =
+  ★⊑Ground-elim g q⊢
+ground-upper-unique-chain-non∀-⊑ non∀-＇ g h (⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
+  ★⊑Ground-elim g q⊢
+ground-upper-unique-chain-non∀-⊑ non∀-＇ g h (⊑-＇ x∈) q⊢ r⊢ s⊢ =
+  ＇⊑Ground-elim g q⊢
+ground-upper-unique-chain-non∀-⊑ non∀-｀ g h (⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
+  ★⊑Ground-elim g q⊢
+ground-upper-unique-chain-non∀-⊑
+  non∀-｀ (｀ α) (｀ .α) (⊑-｀ wfα) (⊑-｀ wfα′)
+  (⊑-｀ wfα″) (⊑-｀ wfα‴) = refl
+ground-upper-unique-chain-non∀-⊑
+  non∀-｀ (｀ α) (‵ ι) (⊑-｀ wfα) (⊑-｀ wfα′)
+  (⊑-｀ wfα″) ()
+ground-upper-unique-chain-non∀-⊑
+  non∀-｀ (｀ α) ★⇒★ (⊑-｀ wfα) (⊑-｀ wfα′)
+  (⊑-｀ wfα″) ()
+ground-upper-unique-chain-non∀-⊑
+  non∀-｀ g h (⊑-｀ wfα) (⊑-｀ wfα′) (⊑-★ g′ r⊢) s⊢ =
+  ★⊑Ground-elim h s⊢
+ground-upper-unique-chain-non∀-⊑ non∀-‵ g h (⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
+  ★⊑Ground-elim g q⊢
+ground-upper-unique-chain-non∀-⊑
+  non∀-‵ (｀ α) h (⊑-‵) () r⊢ s⊢
+ground-upper-unique-chain-non∀-⊑
+  non∀-‵ (‵ ι) (｀ α) (⊑-‵) (⊑-‵) (⊑-‵) ()
+ground-upper-unique-chain-non∀-⊑
+  non∀-‵ (‵ ι) (‵ .ι) (⊑-‵) (⊑-‵) (⊑-‵) (⊑-‵) = refl
+ground-upper-unique-chain-non∀-⊑
+  non∀-‵ (‵ ι) ★⇒★ (⊑-‵) (⊑-‵) (⊑-‵) ()
+ground-upper-unique-chain-non∀-⊑
+  non∀-‵ ★⇒★ h (⊑-‵) () r⊢ s⊢
+ground-upper-unique-chain-non∀-⊑
+  non∀-‵ g h (⊑-‵) (⊑-‵) (⊑-★ g′ r⊢) s⊢ =
+  ★⊑Ground-elim h s⊢
+ground-upper-unique-chain-non∀-⊑ non∀-★ g h ⊑-★★ q⊢ r⊢ s⊢ =
+  ★⊑Ground-elim g q⊢
+ground-upper-unique-chain-non∀-⊑ non∀-★ g h (⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
+  ★⊑Ground-elim g q⊢
+ground-upper-unique-chain-non∀-⊑
+  non∀-⇒ g h (⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
+  ★⊑Ground-elim g q⊢
+ground-upper-unique-chain-non∀-⊑
+  non∀-⇒ (｀ α) h (⊑-⇒ p⊢ q⊢) () r⊢ s⊢
+ground-upper-unique-chain-non∀-⊑
+  non∀-⇒ (‵ ι) h (⊑-⇒ p⊢ q⊢) () r⊢ s⊢
+ground-upper-unique-chain-non∀-⊑
+  non∀-⇒ ★⇒★ (｀ α) (⊑-⇒ p⊢ q⊢) (⊑-⇒ p⊢′ q⊢′)
+  (⊑-⇒ r⊢ s⊢) () 
+ground-upper-unique-chain-non∀-⊑
+  non∀-⇒ ★⇒★ (‵ ι) (⊑-⇒ p⊢ q⊢) (⊑-⇒ p⊢′ q⊢′)
+  (⊑-⇒ r⊢ s⊢) ()
+ground-upper-unique-chain-non∀-⊑
+  non∀-⇒ ★⇒★ ★⇒★ (⊑-⇒ p⊢ q⊢) (⊑-⇒ p⊢′ q⊢′)
+  (⊑-⇒ r⊢ s⊢) (⊑-⇒ r⊢′ s⊢′) = refl
+ground-upper-unique-chain-non∀-⊑
+  non∀-⇒ ★⇒★ h (⊑-⇒ p⊢ q⊢) (⊑-⇒ p⊢′ q⊢′)
+  (⊑-★ g′ r⊢) s⊢ =
+  ★⊑Ground-elim h s⊢
 
 ------------------------------------------------------------------------
 -- Well-formedness preserved by substitution

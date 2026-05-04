@@ -20,6 +20,8 @@ open import TermImprecision
 open import Reduction
 open import proof.DGGCommon
 open import proof.DGGMultistep
+open import proof.Preservation using (store-growth)
+open import proof.PreservationWkConv using (wk-conv↑; wk-conv↓)
 open import proof.PreservationWkImp using (wk-⊑; wk-⊒)
 open import proof.DGGSimLeftApp
 open import proof.DGGSimLeftTypeApp
@@ -47,47 +49,85 @@ postulate
     Σˡ ∣ M —→ Σˡ′ ∣ N →
     SimLeftResult Ψˡ Σˡ M′ Σʳ Σˡ′ N A B
 
-  sim-left-reveal-cong :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A A′ B B′ c c′ pB} →
-    StoreWf 0 Ψˡ Σˡ →
-    StoreWf 0 Ψʳ Σʳ →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A A′ →
-    0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↑ˢ B →
-    0 ∣ Ψˡ ∣ Σˡ ⊢ c′ ⦂ A′ ↑ˢ B′ →
-    Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ B′ →
-    Σˡ ∣ M —→ Σˡ′ ∣ N →
-    SimLeftResult Ψˡ Σˡ (M′ ↑ c′) Σʳ Σˡ′ (N ↑ c) B B′
+sim-left-reveal-cong :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A A′ B B′ c c′ pB} →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A A′ →
+  0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↑ˢ B →
+  0 ∣ Ψˡ ∣ Σˡ ⊢ c′ ⦂ A′ ↑ˢ B′ →
+  Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ B′ →
+  Σˡ ∣ M —→ Σˡ′ ∣ N →
+  SimLeftResult Ψˡ Σˡ (M′ ↑ c′) Σʳ Σˡ′ (N ↑ c) B B′
+sim-left-reveal-cong wfΣˡ wfΣʳ rel c⊢ c′⊢ pB⊢ redM
+    with sim-left-with-≤ wfΣˡ wfΣʳ rel redM
+... | Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ , N′ ,
+      M′↠N′ , rel′ =
+  Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ ,
+  (N′ ↑ _) , reveal-↠ M′↠N′ ,
+  ⊑↑ rel′
+    (wk-conv↑ Ψ≤Ψ′ (store-growth redM) c⊢)
+    (wk-conv↑ Ψ≤Ψ′ (store-growth redM) c′⊢)
+    (wk-⊑ Ψ≤Ψ′ pB⊢)
 
-  sim-left-revealL-cong :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A A′ B c pB} →
-    StoreWf 0 Ψˡ Σˡ →
-    StoreWf 0 Ψʳ Σʳ →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A A′ →
-    0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↑ˢ B →
-    Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ A′ →
-    Σˡ ∣ M —→ Σˡ′ ∣ N →
-    SimLeftResult Ψˡ Σˡ M′ Σʳ Σˡ′ (N ↑ c) B A′
+sim-left-revealL-cong :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A A′ B c pB} →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A A′ →
+  0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↑ˢ B →
+  Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ A′ →
+  Σˡ ∣ M —→ Σˡ′ ∣ N →
+  SimLeftResult Ψˡ Σˡ M′ Σʳ Σˡ′ (N ↑ c) B A′
+sim-left-revealL-cong wfΣˡ wfΣʳ rel c⊢ pB⊢ redM
+    with sim-left-with-≤ wfΣˡ wfΣʳ rel redM
+... | Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ , N′ ,
+      M′↠N′ , rel′ =
+  Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ ,
+  N′ , M′↠N′ ,
+  ⊑↑L rel′
+    (wk-conv↑ Ψ≤Ψ′ (store-growth redM) c⊢)
+    (wk-⊑ Ψ≤Ψ′ pB⊢)
 
-  sim-left-conceal-cong :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A A′ B B′ c c′ pB} →
-    StoreWf 0 Ψˡ Σˡ →
-    StoreWf 0 Ψʳ Σʳ →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A A′ →
-    0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↓ˢ B →
-    0 ∣ Ψˡ ∣ Σˡ ⊢ c′ ⦂ A′ ↓ˢ B′ →
-    Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ B′ →
-    Σˡ ∣ M —→ Σˡ′ ∣ N →
-    SimLeftResult Ψˡ Σˡ (M′ ↓ c′) Σʳ Σˡ′ (N ↓ c) B B′
+sim-left-conceal-cong :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A A′ B B′ c c′ pB} →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A A′ →
+  0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↓ˢ B →
+  0 ∣ Ψˡ ∣ Σˡ ⊢ c′ ⦂ A′ ↓ˢ B′ →
+  Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ B′ →
+  Σˡ ∣ M —→ Σˡ′ ∣ N →
+  SimLeftResult Ψˡ Σˡ (M′ ↓ c′) Σʳ Σˡ′ (N ↓ c) B B′
+sim-left-conceal-cong wfΣˡ wfΣʳ rel c⊢ c′⊢ pB⊢ redM
+    with sim-left-with-≤ wfΣˡ wfΣʳ rel redM
+... | Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ , N′ ,
+      M′↠N′ , rel′ =
+  Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ ,
+  (N′ ↓ _) , conceal-↠ M′↠N′ ,
+  ⊑↓ rel′
+    (wk-conv↓ Ψ≤Ψ′ (store-growth redM) c⊢)
+    (wk-conv↓ Ψ≤Ψ′ (store-growth redM) c′⊢)
+    (wk-⊑ Ψ≤Ψ′ pB⊢)
 
-  sim-left-concealL-cong :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A A′ B c pB} →
-    StoreWf 0 Ψˡ Σˡ →
-    StoreWf 0 Ψʳ Σʳ →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A A′ →
-    0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↓ˢ B →
-    Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ A′ →
-    Σˡ ∣ M —→ Σˡ′ ∣ N →
-    SimLeftResult Ψˡ Σˡ M′ Σʳ Σˡ′ (N ↓ c) B A′
+sim-left-concealL-cong :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A A′ B c pB} →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A A′ →
+  0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↓ˢ B →
+  Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ A′ →
+  Σˡ ∣ M —→ Σˡ′ ∣ N →
+  SimLeftResult Ψˡ Σˡ M′ Σʳ Σˡ′ (N ↓ c) B A′
+sim-left-concealL-cong wfΣˡ wfΣʳ rel c⊢ pB⊢ redM
+    with sim-left-with-≤ wfΣˡ wfΣʳ rel redM
+... | Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ , N′ ,
+      M′↠N′ , rel′ =
+  Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ ,
+  N′ , M′↠N′ ,
+  ⊑↓L rel′
+    (wk-conv↓ Ψ≤Ψ′ (store-growth redM) c⊢)
+    (wk-⊑ Ψ≤Ψ′ pB⊢)
 
 sim-left :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} →

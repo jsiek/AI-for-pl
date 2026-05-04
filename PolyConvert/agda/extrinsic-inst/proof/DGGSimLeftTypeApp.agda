@@ -8,8 +8,9 @@ module proof.DGGSimLeftTypeApp where
 
 open import Data.List using ([]; _∷_; length)
 open import Data.Nat using (_≤_; suc)
+open import Data.Nat.Properties using (n≤1+n)
 open import Data.Product using (_×_; _,_; ∃-syntax)
-open import Relation.Binary.PropositionalEquality using (_≡_)
+open import Relation.Binary.PropositionalEquality using (_≡_; cong; refl; subst; sym; trans)
 
 open import Types
 open import Imprecision
@@ -19,10 +20,22 @@ open import Terms
 open import TermImprecision
 open import Reduction
 open import proof.DGGCommon
-open import proof.DGGMultistep using (tyapp-↠)
+open import proof.DGGTermImprecision using (tysubst-body-⊑; wk-rel-⊑; wkᴾ-map)
+open import proof.DGGMultistep using (multi-trans; tyapp-↠; up-↠)
+open import proof.Preservation using (len<suc-StoreWf; storeWf-fresh-ext)
+open import proof.PreservationBetaDownForall using (convert↑-fresh-wt)
 open import proof.PreservationBetaRevealConceal using (openConv↑)
+open import proof.PreservationImpSubst using ([]⊑ᵗ-wt)
 open import proof.PreservationWkImp using (wk-⊑)
 open import proof.TypeProperties using (WfTy-weakenˢ)
+
+cong-⊢⊑ :
+  ∀ {Ψ Γ p A A′ B B′} →
+  A ≡ A′ →
+  B ≡ B′ →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
+  Ψ ∣ Γ ⊢ p ⦂ A′ ⊑ B′
+cong-⊢⊑ refl refl p⊢ = p⊢
 
 SimLeftStepˢ : Set
 SimLeftStepˢ =
@@ -112,32 +125,126 @@ sim-left-beta-reveal-∀-matched wfΣ vV′ relV wfT c⊢ c′⊢ pSrcT⊢ pTgtT
     (openConv↑ c′⊢ wfT)
     pTgtT⊢
 
--- This is the store-allocation bridge isolated by the first β-Λ pass.
--- After the right side catches up to a type abstraction, both sides allocate
--- a fresh seal.  The DGG relation then needs a synchronized left-world store
--- in which the opened bodies, whose fresh seals may be named by different
--- store lengths, are related after the generated reveals.
-postulate
-  fresh-seal-sync-Λ :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A B T pT} →
-    StoreWf 0 Ψˡ Σˡ →
-    StoreWf 0 Ψʳ Σʳ →
-    length Σˡ ≡ length Σʳ →
-    Value V →
-    Value V′ →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ (Λ V) (Λ V′) (`∀ A) (`∀ B) →
-    WfTy 1 Ψˡ A →
-    WfTy 1 Ψˡ B →
-    WfTy 0 Ψˡ T →
-    Ψˡ ∣ plains 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
-    TermRel (suc Ψˡ) ((length Σˡ , T) ∷ Σˡ)
-      (suc Ψʳ) ((length Σʳ , T) ∷ Σʳ)
-      ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ))
-      ((V′ [ ｀ (length Σʳ) ]ᵀ) ↑ convert↑ B (length Σʳ))
-      (A [ T ]ᵗ) (B [ T ]ᵗ)
+fresh-seal-sync-Λ :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A B T pT} →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  length Σˡ ≡ length Σʳ →
+  Value V →
+  Value V′ →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ (Λ V) (Λ V′) (`∀ A) (`∀ B) →
+  WfTy 1 Ψˡ A →
+  WfTy 1 Ψˡ B →
+  WfTy 0 Ψˡ T →
+  Ψˡ ∣ plains 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
+  TermRel (suc Ψˡ) ((length Σˡ , T) ∷ Σˡ)
+    (suc Ψʳ) ((length Σʳ , T) ∷ Σʳ)
+    ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ))
+    ((V′ [ ｀ (length Σʳ) ]ᵀ) ↑ convert↑ B (length Σʳ))
+    (A [ T ]ᵗ) (B [ T ]ᵗ)
+fresh-seal-sync-Λ {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+    {V = V} {V′ = V′} {A = A} {B = B} {T = T}
+    wfΣˡ wfΣʳ lenEq vV vV′ (⊑Λ vV₀ vV′₀ relBody)
+    wfA wfB wfT pT⊢
+    rewrite sym lenEq =
+  ⊑↑ opened cA⊢ cB⊢ (wk-⊑ (n≤1+n Ψˡ) pT⊢)
+  where
+    α = length Σˡ
+
+    wfα : WfTy 0 (suc Ψˡ) (｀ α)
+    wfα = wfSeal (len<suc-StoreWf wfΣˡ)
+
+    relBody↑ :
+      ⟪ 1 , suc Ψˡ , ⟰ᵗ ((α , T) ∷ Σˡ) , [] ⟫
+        ⊢ V ⊑ V′ ⦂ A ⊑ B
+    relBody↑ =
+      wk-rel-⊑ {E = ⟪ 1 , Ψˡ , ⟰ᵗ Σˡ , [] ⟫}
+        {Ψ′ = suc Ψˡ} {Σ′ = ⟰ᵗ ((α , T) ∷ Σˡ)}
+        (n≤1+n Ψˡ) (drop ⊆ˢ-refl) (wkᴾ-map (n≤1+n Ψˡ))
+        relBody
+
+    opened :
+      TermRel (suc Ψˡ) ((α , T) ∷ Σˡ) (suc Ψˡ) ((α , T) ∷ Σˡ)
+        (V [ ｀ α ]ᵀ) (V′ [ ｀ α ]ᵀ)
+        (A [ ｀ α ]ᵗ) (B [ ｀ α ]ᵗ)
+    opened = tysubst-body-⊑ wfα relBody↑
+
+    cA⊢ :
+      0 ∣ suc Ψˡ ∣ ((α , T) ∷ Σˡ) ⊢
+        convert↑ A α ⦂ A [ ｀ α ]ᵗ ↑ˢ A [ T ]ᵗ
+    cA⊢ = convert↑-fresh-wt wfΣˡ wfA wfT
+
+    cB⊢ :
+      0 ∣ suc Ψˡ ∣ ((α , T) ∷ Σˡ) ⊢
+        convert↑ B α ⦂ B [ ｀ α ]ᵗ ↑ˢ B [ T ]ᵗ
+    cB⊢ = convert↑-fresh-wt wfΣˡ wfB wfT
+
+sealCtx-sync :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ} →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  length Σˡ ≡ length Σʳ →
+  Ψˡ ≡ Ψʳ
+sealCtx-sync wfΣˡ wfΣʳ lenEq =
+  trans (sym (storeWf-length wfΣˡ))
+    (trans lenEq (storeWf-length wfΣʳ))
 
 postulate
-  sim-left-beta-Λ :
+  left-value-right-catchup-Λ :
+    ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B} →
+    StoreWf 0 Ψˡ Σˡ →
+    StoreWf 0 Ψʳ Σʳ →
+    Value V →
+    TermRel Ψˡ Σˡ Ψʳ Σʳ (Λ V) M′ (`∀ A) (`∀ B) →
+    ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
+      (StoreWf 0 Ψʳ′ Σʳ′ ×
+       ∃[ V′ ]
+         (Value V′ ×
+          (Σʳ ∣ M′ —↠ Σʳ′ ∣ V′) ×
+          TermRel Ψˡ Σˡ Ψʳ′ Σʳ′ (Λ V) V′ (`∀ A) (`∀ B)))
+
+sim-left-beta-Λ-matched :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A B T pT} →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  length Σˡ ≡ length Σʳ →
+  Value V →
+  Value V′ →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ (Λ V) (Λ V′) (`∀ A) (`∀ B) →
+  WfTy 1 Ψˡ A →
+  WfTy 1 Ψˡ B →
+  WfTy 0 Ψˡ T →
+  Ψˡ ∣ plains 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
+  ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
+    (StoreWf 0 Ψˡ′ Σˡ′ ×
+     ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
+       (StoreWf 0 Ψʳ′ Σʳ′ ×
+        ∃[ N′ ]
+          ((Σʳ ∣ ((Λ V′) ⦂∀ B [ T ]) —↠ Σʳ′ ∣ N′) ×
+           TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′
+             ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ))
+             N′ (A [ T ]ᵗ) (B [ T ]ᵗ))))
+sim-left-beta-Λ-matched
+    {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+    {V = V} {V′ = V′} {A = A} {B = B} {T = T}
+    wfΣˡ wfΣʳ lenEq vV vV′ rel wfA wfB wfT pT⊢ =
+  suc Ψˡ ,
+  ((length Σˡ , T) ∷ Σˡ) ,
+  storeWf-fresh-ext wfT wfΣˡ ,
+  suc Ψʳ ,
+  ((length Σʳ , T) ∷ Σʳ) ,
+  storeWf-fresh-ext wfTʳ wfΣʳ ,
+  ((V′ [ ｀ (length Σʳ) ]ᵀ) ↑ convert↑ B (length Σʳ)) ,
+  (((Λ V′) ⦂∀ B [ T ]) —→⟨ β-Λ ⟩
+    (((V′ [ ｀ (length Σʳ) ]ᵀ) ↑ convert↑ B (length Σʳ)) ∎)) ,
+  fresh-seal-sync-Λ wfΣˡ wfΣʳ lenEq vV vV′ rel wfA wfB wfT pT⊢
+  where
+    wfTʳ : WfTy 0 Ψʳ T
+    wfTʳ = subst (λ Ψ → WfTy 0 Ψ T)
+      (sealCtx-sync wfΣˡ wfΣʳ lenEq) wfT
+
+postulate
+  sim-left-beta-Λ-rest :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B T pT} →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
@@ -148,7 +255,8 @@ postulate
     WfTy 0 Ψˡ T →
     Ψˡ ∣ plains 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
     ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
-      (StoreWf 0 Ψˡ′ Σˡ′ ×
+      (Ψˡ ≤ Ψˡ′ ×
+       StoreWf 0 Ψˡ′ Σˡ′ ×
        ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
          (StoreWf 0 Ψʳ′ Σʳ′ ×
           ∃[ N′ ]
@@ -156,6 +264,97 @@ postulate
              TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′
                ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ))
                N′ (A [ T ]ᵗ) (B [ T ]ᵗ))))
+
+sim-left-beta-Λ :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B T pT} →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value V →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ (Λ V) M′ (`∀ A) (`∀ B) →
+  WfTy 1 Ψˡ A →
+  WfTy 1 Ψˡ B →
+  WfTy 0 Ψˡ T →
+  Ψˡ ∣ plains 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
+  ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
+    (StoreWf 0 Ψˡ′ Σˡ′ ×
+     ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
+       (StoreWf 0 Ψʳ′ Σʳ′ ×
+        ∃[ N′ ]
+          ((Σʳ ∣ (M′ ⦂∀ B [ T ]) —↠ Σʳ′ ∣ N′) ×
+           TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′
+             ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ))
+             N′ (A [ T ]ᵗ) (B [ T ]ᵗ))))
+sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
+    {B = B} {T = T}
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfA wfB wfT pT⊢
+    with left-value-right-catchup-Λ wfΣˡ wfΣʳ vV rel
+sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
+    {B = B} {T = T}
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfA wfB wfT pT⊢
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
+    with ⊑-index-cast refl (sym (cong `∀ (src⊑-correct pR⊢))) ΛV⊑V′
+sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
+    {B = B} {T = T}
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfA wfB wfT pT⊢
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
+  | ΛV⊑V′R
+    with ⊑-type-imprecision ΛV⊑V′R
+sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
+    {B = B} {T = T}
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfA wfB wfT pT⊢
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
+  | ΛV⊑V′R
+  | `∀A⊑B Bν pν , ⊑-ν wfBν occ pν⊢
+    with sim-left-beta-Λ-rest wfΣˡ wfΣʳ vV
+      (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢) wfA wfB wfT pT⊢
+... | Ψˡ′ , Σˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ , N′ ,
+      M′⦂∀↠N′ , relN =
+  Ψˡ′ , Σˡ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ , N′ , M′⦂∀↠N′ , relN
+sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
+    {B = B} {T = T}
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfA wfB wfT pT⊢
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
+  | ΛV⊑V′R
+  | `∀A⊑∀B pI , ⊑-∀ pI⊢
+    with sim-left-beta-Λ-rest wfΣˡ wfΣʳ′ vV ΛV⊑V′R
+      wfA
+      (subst (WfTy 1 _) (sym (src⊑-correct pR⊢)) (⊑-src-wf pR⊢))
+      wfT
+      (cong-⊢⊑
+        (cong (λ C → C [ T ]ᵗ) (src⊑-correct pI⊢))
+        (cong (λ C → C [ T ]ᵗ) (tgt⊑-correct pI⊢))
+        ([]⊑ᵗ-wt pI⊢ wfT))
+sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
+    {B = B} {T = T}
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfA wfB wfT pT⊢
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
+  | ΛV⊑V′R
+  | `∀A⊑∀B pI , ⊑-∀ pI⊢
+  | Ψˡ′ , Σˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ , N′ ,
+    V′⦂∀↠N′ , relN =
+  Ψˡ′ , Σˡ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ ,
+  (N′ ⇑ pR [ T ]⊑) ,
+  multi-trans (tyapp-↠ (up-↠ M′↠V′))
+    (((V′ ⇑ `∀A⊑∀B pR) ⦂∀ B [ T ])
+      —→⟨ pure-step (β-up-∀ vV′) ⟩ up-↠ V′⦂∀↠N′) ,
+  ⊑⇑R relN
+    (cong-⊢⊑ refl
+      (cong (λ C → C [ T ]ᵗ) (tgt⊑-correct pR⊢))
+      ([]⊑ᵗ-wt (wk-⊑ Ψ≤Ψ′ pR⊢) (WfTy-weakenˢ wfT Ψ≤Ψ′)))
+    (wk-⊑ Ψ≤Ψ′ pT⊢)
+sim-left-beta-Λ wfΣˡ wfΣʳ vV rel wfA wfB wfT pT⊢
+    with sim-left-beta-Λ-rest wfΣˡ wfΣʳ vV rel wfA wfB wfT pT⊢
+... | Ψˡ′ , Σˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ , N′ ,
+      M′⦂∀↠N′ , relN =
+  Ψˡ′ , Σˡ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ , N′ , M′⦂∀↠N′ , relN
+
+postulate
 
   sim-left-beta-up-∀ :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B T p C D} →

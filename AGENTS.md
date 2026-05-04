@@ -6,6 +6,17 @@
   wrapper files. When consolidating APIs, delete obsolete shims instead of
   preserving them for hypothetical external users.
 
+## Subagent launch notes
+
+- When launching full-history forked subagents, do not also specify
+  `agent_type`, `model`, or `reasoning_effort`; full-history forks inherit those
+  settings from the parent. If a specific worker type is needed, spawn without a
+  full-history fork and include the needed context in the prompt or in a repo
+  handoff file.
+- If spawning fails because the agent thread limit is reached, reuse existing
+  subagents with `send_input` or close unneeded agents before trying to create
+  more.
+
 ## Language Definition + Metatheory Checklist (Join over `AI-for-pl`)
 
 This section is a "maximal join" over the language developments in this repo

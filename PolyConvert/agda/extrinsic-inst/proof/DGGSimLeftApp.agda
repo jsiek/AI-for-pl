@@ -5,8 +5,9 @@ module proof.DGGSimLeftApp where
 --   * Owns operator/operand congruence and term-level beta-family obligations.
 --   * Intended as one independent worker-owned proof surface.
 
-open import Data.List using ([])
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (_≤_)
+open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 
 open import Types
@@ -17,9 +18,10 @@ open import Terms
 open import TermImprecision
 open import Reduction
 open import proof.DGGCommon
-open import proof.DGGMultistep using (appL-↠; appR-↠; multi-trans)
+open import proof.DGGMultistep
+  using (appL-↠; appR-↠; down-↠; multi-trans; up-↠)
 open import proof.DGGCatchup using (left-value-right-catchup)
-open import proof.DGGTermImprecision using (wk-left-world-⊑)
+open import proof.DGGTermImprecision using (subst-⊑; wk-left-world-⊑)
 open import proof.Preservation using (store-growth)
 
 SimLeftStepᵃ : Set
@@ -102,20 +104,164 @@ sim-left-app₂ sim-left-step wfΣˡ wfΣʳ vV relL relM redM
       wfΣˡ′ wfΣʳ′ Ψ≤Ψ′ (store-growth redM) V⊑V′)
     N⊑N′
 
-postulate
-  sim-left-beta-app :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ A A′ B B′ C N W L′ W′} →
-    StoreWf 0 Ψˡ Σˡ →
-    StoreWf 0 Ψʳ Σʳ →
-    Value W →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ (ƛ C ⇒ N) L′ (A ⇒ B) (A′ ⇒ B′) →
+private
+  beta-subst-⊑ :
+    ∀ {Ψˡ Ψʳ Σˡ Σʳ M M′ W W′ A A′ B B′} →
+    (p : Imp) →
+    (p⊢ : Ψˡ ∣ plains 0 [] ⊢ p ⦂ A ⊑ A′) →
     TermRel Ψˡ Σˡ Ψʳ Σʳ W W′ A A′ →
-    ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
-      (StoreWf 0 Ψʳ′ Σʳ′ ×
-       ∃[ N′ ]
-         ((Σʳ ∣ (L′ · W′) —↠ Σʳ′ ∣ N′) ×
-          TermRel Ψˡ Σˡ Ψʳ′ Σʳ′ (N [ W ]) N′ B B′))
+    ⟪ 0 , Ψˡ , Σˡ , (A , A′ , p , p⊢) ∷ [] ⟫
+      ⊢ M ⊑ M′ ⦂ B ⊑ B′ →
+    TermRel Ψˡ Σˡ Ψʳ Σʳ (M [ W ]) (M′ [ W′ ]) B B′
+  beta-subst-⊑ p p⊢ W⊑W′ rel = subst-⊑ W⊑W′ rel
 
+  postulate
+    sim-left-beta-app-rest :
+      ∀ {Ψˡ Ψʳ Σˡ Σʳ A A′ B B′ C N W L′ W′} →
+      StoreWf 0 Ψˡ Σˡ →
+      StoreWf 0 Ψʳ Σʳ →
+      Value W →
+      TermRel Ψˡ Σˡ Ψʳ Σʳ (ƛ C ⇒ N) L′ (A ⇒ B) (A′ ⇒ B′) →
+      TermRel Ψˡ Σˡ Ψʳ Σʳ W W′ A A′ →
+      ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
+        (StoreWf 0 Ψʳ′ Σʳ′ ×
+         ∃[ N′ ]
+           ((Σʳ ∣ (L′ · W′) —↠ Σʳ′ ∣ N′) ×
+            TermRel Ψˡ Σˡ Ψʳ′ Σʳ′ (N [ W ]) N′ B B′))
+
+sim-left-beta-app :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ A A′ B B′ C N W L′ W′} →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value W →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ (ƛ C ⇒ N) L′ (A ⇒ B) (A′ ⇒ B′) →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ W W′ A A′ →
+  ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
+    (StoreWf 0 Ψʳ′ Σʳ′ ×
+     ∃[ N′ ]
+       ((Σʳ ∣ (L′ · W′) —↠ Σʳ′ ∣ N′) ×
+        TermRel Ψˡ Σˡ Ψʳ′ Σʳ′ (N [ W ]) N′ B B′))
+sim-left-beta-app
+  wfΣˡ wfΣʳ vW
+  (⊑ƛ {A′ = A′} {M′ = N′} {pA = pA} {pA⊢ = pA⊢}
+       hA hA′ relN) relW
+    with left-value-right-catchup wfΣˡ wfΣʳ vW relW
+sim-left-beta-app
+  wfΣˡ wfΣʳ vW
+  (⊑ƛ {A′ = A′} {M′ = N′} {pA = pA} {pA⊢ = pA⊢}
+       hA hA′ relN) relW
+  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , W′↠V′ , W⊑V′ =
+  Ψʳ′ , Σʳ′ , wfΣʳ′ , N′ [ V′ ] ,
+  multi-trans (appR-↠ (ƛ A′ ⇒ N′) W′↠V′)
+    (((ƛ A′ ⇒ N′) · V′) —→⟨ pure-step (β vV′) ⟩
+      (N′ [ V′ ]) ∎) ,
+  beta-subst-⊑ {Ψʳ = Ψʳ′} {Σʳ = Σʳ′} pA pA⊢ W⊑V′ relN
+sim-left-beta-app
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
+  wfΣˡ wfΣʳ vW
+  (⊑⇑R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+    with left-value-right-catchup wfΣˡ wfΣʳ (ƛ _ ⇒ _) rel
+sim-left-beta-app
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
+  wfΣˡ wfΣʳ vW
+  (⊑⇑R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
+    with ⊑-type-imprecision L⊑V′
+sim-left-beta-app
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
+  wfΣˡ wfΣʳ vW
+  (⊑⇑R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
+  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+    with left-value-right-catchup wfΣˡ wfΣʳᶠ vW
+      (wk-left-world-⊑
+        {Ψʳ = Ψʳ} {Ψʳ′ = Ψʳᶠ} {Σʳ = Σʳ} {Σʳ′ = Σʳᶠ}
+        wfΣˡ wfΣʳᶠ ≤-refl ⊆ˢ-refl relW)
+sim-left-beta-app
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
+  wfΣˡ wfΣʳ vW
+  (⊑⇑R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
+  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+    with sim-left-beta-app-rest
+      wfΣˡ wfΣʳᵃ vW
+      (wk-left-world-⊑
+        {Ψʳ = Ψʳᶠ} {Ψʳ′ = Ψʳᵃ} {Σʳ = Σʳᶠ} {Σʳ′ = Σʳᵃ}
+        wfΣˡ wfΣʳᵃ ≤-refl ⊆ˢ-refl L⊑V′)
+      (⊑⇓R W⊑W′ᵥ pDom′⊢ pDom⊢)
+sim-left-beta-app
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
+  wfΣˡ wfΣʳ vW
+  (⊑⇑R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
+  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+  | Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , N′ , V′W′↠N′ , N⊑N′ =
+  Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , N′ ⇑ _ ,
+  multi-trans (appL-↠ (up-↠ L′↠V′))
+    (multi-trans (appR-↠ (vV′ ⇑ _↦_) W′↠W′ᵥ)
+      (((V′ ⇑ _) · W′ᵥ) —→⟨ pure-step (β-up-↦ vV′ vW′ᵥ) ⟩
+        up-↠ V′W′↠N′)) ,
+  ⊑⇑R N⊑N′ pCod′⊢ pCodB⊢
+sim-left-beta-app wfΣˡ wfΣʳ vW (⊑⇑R rel p′⊢ pB⊢) relW =
+  sim-left-beta-app-rest wfΣˡ wfΣʳ vW (⊑⇑R rel p′⊢ pB⊢) relW
+sim-left-beta-app
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
+  wfΣˡ wfΣʳ vW
+  (⊑⇓R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+    with left-value-right-catchup wfΣˡ wfΣʳ (ƛ _ ⇒ _) rel
+sim-left-beta-app
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
+  wfΣˡ wfΣʳ vW
+  (⊑⇓R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
+    with ⊑-type-imprecision L⊑V′
+sim-left-beta-app
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
+  wfΣˡ wfΣʳ vW
+  (⊑⇓R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
+  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+    with left-value-right-catchup wfΣˡ wfΣʳᶠ vW
+      (wk-left-world-⊑
+        {Ψʳ = Ψʳ} {Ψʳ′ = Ψʳᶠ} {Σʳ = Σʳ} {Σʳ′ = Σʳᶠ}
+        wfΣˡ wfΣʳᶠ ≤-refl ⊆ˢ-refl relW)
+sim-left-beta-app
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
+  wfΣˡ wfΣʳ vW
+  (⊑⇓R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
+  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+    with sim-left-beta-app-rest
+      wfΣˡ wfΣʳᵃ vW
+      (wk-left-world-⊑
+        {Ψʳ = Ψʳᶠ} {Ψʳ′ = Ψʳᵃ} {Σʳ = Σʳᶠ} {Σʳ′ = Σʳᵃ}
+        wfΣˡ wfΣʳᵃ ≤-refl ⊆ˢ-refl L⊑V′)
+      (⊑⇑R W⊑W′ᵥ pDom′⊢ pDom⊢)
+sim-left-beta-app
+  {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
+  wfΣˡ wfΣʳ vW
+  (⊑⇓R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
+  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+  | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
+  | Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , N′ , V′W′↠N′ , N⊑N′ =
+  Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , N′ ⇓ _ ,
+  multi-trans (appL-↠ (down-↠ L′↠V′))
+    (multi-trans (appR-↠ (vV′ ⇓ _↦_) W′↠W′ᵥ)
+      (((V′ ⇓ _) · W′ᵥ) —→⟨ pure-step (β-down-↦ vV′ vW′ᵥ) ⟩
+        down-↠ V′W′↠N′)) ,
+  ⊑⇓R N⊑N′ pCod′⊢ pCodB⊢
+sim-left-beta-app wfΣˡ wfΣʳ vW (⊑⇓R rel p′⊢ pB⊢) relW =
+  sim-left-beta-app-rest wfΣˡ wfΣʳ vW (⊑⇓R rel p′⊢ pB⊢) relW
+sim-left-beta-app wfΣˡ wfΣʳ vW (⊑↑R rel c′⊢ pB⊢) relW =
+  sim-left-beta-app-rest wfΣˡ wfΣʳ vW (⊑↑R rel c′⊢ pB⊢) relW
+sim-left-beta-app wfΣˡ wfΣʳ vW (⊑↓R rel c′⊢ pB⊢) relW =
+  sim-left-beta-app-rest wfΣˡ wfΣʳ vW (⊑↓R rel c′⊢ pB⊢) relW
+
+postulate
   sim-left-beta-up-app :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ V W V′ W′ A A′ B B′ p q} →
     StoreWf 0 Ψˡ Σˡ →

@@ -5,9 +5,11 @@ module proof.DGGSimRight where
 --   * Owns `sim-right` and its multi-step closure.
 --   * Intended as one independent worker-owned proof surface.
 
-open import Data.List using ([])
+open import Data.List using ([]; length)
+open import Data.Nat using (ℕ; _≤_; suc; z≤n; s≤s)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import Relation.Binary.PropositionalEquality using (sym)
 
 open import Types
 open import Imprecision
@@ -21,6 +23,40 @@ open import proof.DGGMultistep using
   ( multi-trans; appL-↠; appR-↠; tyapp-↠
   ; up-↠; down-↠; reveal-↠; conceal-↠
   )
+open import proof.DGGTermImprecision using (wk-left-world-⊑)
+
+≤-step :
+  ∀ {m n : ℕ} →
+  m ≤ n →
+  m ≤ suc n
+≤-step z≤n = z≤n
+≤-step (s≤s m≤n) = s≤s (≤-step m≤n)
+
+length-⊆ˢ :
+  ∀ {Σ Σ′ : Store} →
+  Σ ⊆ˢ Σ′ →
+  length Σ ≤ length Σ′
+length-⊆ˢ done = z≤n
+length-⊆ˢ (keep wΣ) = s≤s (length-⊆ˢ wΣ)
+length-⊆ˢ (drop wΣ) = ≤-step (length-⊆ˢ wΣ)
+
+storeWf-⊆ˢ-≤ :
+  ∀ {Ψ Ψ′ Σ Σ′} →
+  StoreWf 0 Ψ Σ →
+  StoreWf 0 Ψ′ Σ′ →
+  Σ ⊆ˢ Σ′ →
+  Ψ ≤ Ψ′
+storeWf-⊆ˢ-≤ wfΣ wfΣ′ wΣ
+  rewrite sym (storeWf-length wfΣ) | sym (storeWf-length wfΣ′) =
+    length-⊆ˢ wΣ
+
+multi-store-growth :
+  ∀ {Σ Σ′ : Store} {M N : Term} →
+  Σ ∣ M —↠ Σ′ ∣ N →
+  Σ ⊆ˢ Σ′
+multi-store-growth (M ∎) = ⊆ˢ-refl
+multi-store-growth (M —→⟨ M→N ⟩ N↠K) =
+  ⊆ˢ-trans (Preservation.store-growth M→N) (multi-store-growth N↠K)
 
 prefix-blames :
   ∀ {Σ Σ′ M N} →
@@ -197,10 +233,22 @@ sim-right wfΣˡ wfΣʳ
   inj₂ (_ , ℓ ,
     ((blame ℓ ⊕[ op ] _)
       —→⟨ pure-step blame-⊕₁ ⟩ blame ℓ ∎))
-sim-right wfΣˡ wfΣʳ rel@(⊑· relL relM) (ξ-·₁ redL)
+sim-right {Ψʳ = Ψʳ} {Σʳ = Σʳ} {Σʳ′ = Σʳ′}
+    wfΣˡ wfΣʳ rel@(⊑· relL relM) (ξ-·₁ redL)
     with sim-right wfΣˡ wfΣʳ relL redL
 ... | inj₂ L↠blame = inj₂ (appL-blames L↠blame)
-... | inj₁ success = sim-right-rest wfΣˡ wfΣʳ rel (ξ-·₁ redL)
+... | inj₁ (Ψʳ′ , wfΣʳ′ , Ψˡ′ , Σˡ′ , N ,
+            wfΣˡ′ , L↠N , N⊑N′) =
+  inj₁
+    (Ψʳ′ , wfΣʳ′ , Ψˡ′ , Σˡ′ , (N · _) , wfΣˡ′ ,
+     appL-↠ L↠N ,
+     ⊑· N⊑N′
+       (wk-left-world-⊑
+         {Ψʳ = Ψʳ} {Ψʳ′ = Ψʳ′} {Σʳ = Σʳ} {Σʳ′ = Σʳ′}
+         wfΣˡ′ wfΣʳ′
+         (storeWf-⊆ˢ-≤ wfΣˡ wfΣˡ′ (multi-store-growth L↠N))
+         (multi-store-growth L↠N)
+         relM))
 sim-right wfΣˡ wfΣʳ rel@(⊑⦂∀ relM wfA wfB wfT pT⊢) (ξ-·α redM)
     with sim-right wfΣˡ wfΣʳ relM redM
 ... | inj₂ M↠blame = inj₂ (tyapp-blames M↠blame)

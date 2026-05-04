@@ -60,19 +60,19 @@ mutual
   tgt↓ Σ (↓-id A) = A
 
 mutual
-  substConv↑ᵗ : Substᵗ → Conv↑ → Conv↑
-  substConv↑ᵗ σ (↑-unseal α) = ↑-unseal α
-  substConv↑ᵗ σ (↑-⇒ p q) =
-    ↑-⇒ (substConv↓ᵗ σ p) (substConv↑ᵗ σ q)
-  substConv↑ᵗ σ (↑-∀ c) = ↑-∀ (substConv↑ᵗ (extsᵗ σ) c)
-  substConv↑ᵗ σ (↑-id A) = ↑-id (substᵗ σ A)
+  subst↑ : Substᵗ → Conv↑ → Conv↑
+  subst↑ σ (↑-unseal α) = ↑-unseal α
+  subst↑ σ (↑-⇒ p q) =
+    ↑-⇒ (subst↓ σ p) (subst↑ σ q)
+  subst↑ σ (↑-∀ c) = ↑-∀ (subst↑ (extsᵗ σ) c)
+  subst↑ σ (↑-id A) = ↑-id (substᵗ σ A)
 
-  substConv↓ᵗ : Substᵗ → Conv↓ → Conv↓
-  substConv↓ᵗ σ (↓-seal α) = ↓-seal α
-  substConv↓ᵗ σ (↓-⇒ p q) =
-    ↓-⇒ (substConv↑ᵗ σ p) (substConv↓ᵗ σ q)
-  substConv↓ᵗ σ (↓-∀ c) = ↓-∀ (substConv↓ᵗ (extsᵗ σ) c)
-  substConv↓ᵗ σ (↓-id A) = ↓-id (substᵗ σ A)
+  subst↓ : Substᵗ → Conv↓ → Conv↓
+  subst↓ σ (↓-seal α) = ↓-seal α
+  subst↓ σ (↓-⇒ p q) =
+    ↓-⇒ (subst↑ σ p) (subst↓ σ q)
+  subst↓ σ (↓-∀ c) = ↓-∀ (subst↓ (extsᵗ σ) c)
+  subst↓ σ (↓-id A) = ↓-id (substᵗ σ A)
 
 mutual
   convert↑ : Ty → Seal → Conv↑

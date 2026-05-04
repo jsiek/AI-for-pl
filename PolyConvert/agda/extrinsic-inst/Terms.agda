@@ -24,6 +24,7 @@ open import Imprecision
     ; A⇒B⊑A′⇒B′
     ; `∀A⊑∀B
     ; `∀A⊑B
+    ; renameImp
     ; substImp
     )
 open import Conversion
@@ -223,6 +224,44 @@ data _∣_∣_∣_⊢_⦂_
       → Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ (blame ℓ) ⦂ A
 
 ------------------------------------------------------------------------
+-- Type-variable substitution
+------------------------------------------------------------------------
+
+renameᵗᵐ : Renameᵗ → Term → Term
+renameᵗᵐ ρ (` x) = ` x
+renameᵗᵐ ρ (ƛ A ⇒ M) = ƛ renameᵗ ρ A ⇒ renameᵗᵐ ρ M
+renameᵗᵐ ρ (L · M) = renameᵗᵐ ρ L · renameᵗᵐ ρ M
+renameᵗᵐ ρ (Λ M) = Λ (renameᵗᵐ (extᵗ ρ) M)
+renameᵗᵐ ρ (M ⦂∀ B [ T ]) =
+  renameᵗᵐ ρ M ⦂∀ renameᵗ (extᵗ ρ) B [ renameᵗ ρ T ]
+renameᵗᵐ ρ ($ κ) = $ κ
+renameᵗᵐ ρ (L ⊕[ op ] M) = renameᵗᵐ ρ L ⊕[ op ] renameᵗᵐ ρ M
+renameᵗᵐ ρ (M ⇑ p) = renameᵗᵐ ρ M ⇑ renameImp ρ p
+renameᵗᵐ ρ (M ⇓ p) = renameᵗᵐ ρ M ⇓ renameImp ρ p
+renameᵗᵐ ρ (M ↑ c) = renameᵗᵐ ρ M ↑ subst↑ (λ X → ＇ (ρ X)) c
+renameᵗᵐ ρ (M ↓ c) = renameᵗᵐ ρ M ↓ subst↓ (λ X → ＇ (ρ X)) c
+renameᵗᵐ ρ (blame ℓ) = blame ℓ
+
+substᵗᵐ : Substᵗ → Term → Term
+substᵗᵐ σ (` x) = ` x
+substᵗᵐ σ (ƛ A ⇒ M) = ƛ substᵗ σ A ⇒ substᵗᵐ σ M
+substᵗᵐ σ (L · M) = substᵗᵐ σ L · substᵗᵐ σ M
+substᵗᵐ σ (Λ M) = Λ (substᵗᵐ (extsᵗ σ) M)
+substᵗᵐ σ (M ⦂∀ B [ T ]) =
+  substᵗᵐ σ M ⦂∀ substᵗ (extsᵗ σ) B [ substᵗ σ T ]
+substᵗᵐ σ ($ κ) = $ κ
+substᵗᵐ σ (L ⊕[ op ] M) = substᵗᵐ σ L ⊕[ op ] substᵗᵐ σ M
+substᵗᵐ σ (M ⇑ p) = substᵗᵐ σ M ⇑ substImp σ p
+substᵗᵐ σ (M ⇓ p) = substᵗᵐ σ M ⇓ substImp σ p
+substᵗᵐ σ (M ↑ c) = substᵗᵐ σ M ↑ subst↑ σ c
+substᵗᵐ σ (M ↓ c) = substᵗᵐ σ M ↓ subst↓ σ c
+substᵗᵐ σ (blame ℓ) = blame ℓ
+
+infixl 8 _[_]ᵀ
+_[_]ᵀ : Term → Ty → Term
+M [ T ]ᵀ = substᵗᵐ (singleTyEnv T) M
+
+------------------------------------------------------------------------
 -- Term-variable substitution
 ------------------------------------------------------------------------
 
@@ -254,11 +293,14 @@ extˢˣ : Substˣ → Substˣ
 extˢˣ σ zero = ` zero
 extˢˣ σ (suc x) = renameˣᵐ suc (σ x)
 
+↑ᵗᵐ : Substˣ → Substˣ
+↑ᵗᵐ σ x = renameᵗᵐ suc (σ x)
+
 substˣᵐ : Substˣ → Term → Term
 substˣᵐ σ (` x) = σ x
 substˣᵐ σ (ƛ A ⇒ M) = ƛ A ⇒ substˣᵐ (extˢˣ σ) M
 substˣᵐ σ (L · M) = substˣᵐ σ L · substˣᵐ σ M
-substˣᵐ σ (Λ M) = Λ (substˣᵐ σ M)
+substˣᵐ σ (Λ M) = Λ (substˣᵐ (↑ᵗᵐ σ) M)
 substˣᵐ σ (M ⦂∀ B [ T ]) = substˣᵐ σ M ⦂∀ B [ T ]
 substˣᵐ σ ($ κ) = $ κ
 substˣᵐ σ (L ⊕[ op ] M) = substˣᵐ σ L ⊕[ op ] substˣᵐ σ M
@@ -275,25 +317,6 @@ singleEnv N (suc x) = ` x
 infixl 8 _[_]
 _[_] : Term → Term → Term
 M [ N ] = substˣᵐ (singleEnv N) M
-
-substᵗᵐ : Substᵗ → Term → Term
-substᵗᵐ σ (` x) = ` x
-substᵗᵐ σ (ƛ A ⇒ M) = ƛ substᵗ σ A ⇒ substᵗᵐ σ M
-substᵗᵐ σ (L · M) = substᵗᵐ σ L · substᵗᵐ σ M
-substᵗᵐ σ (Λ M) = Λ (substᵗᵐ (extsᵗ σ) M)
-substᵗᵐ σ (M ⦂∀ B [ T ]) =
-  substᵗᵐ σ M ⦂∀ substᵗ (extsᵗ σ) B [ substᵗ σ T ]
-substᵗᵐ σ ($ κ) = $ κ
-substᵗᵐ σ (L ⊕[ op ] M) = substᵗᵐ σ L ⊕[ op ] substᵗᵐ σ M
-substᵗᵐ σ (M ⇑ p) = substᵗᵐ σ M ⇑ substImp σ p
-substᵗᵐ σ (M ⇓ p) = substᵗᵐ σ M ⇓ substImp σ p
-substᵗᵐ σ (M ↑ c) = substᵗᵐ σ M ↑ substConv↑ᵗ σ c
-substᵗᵐ σ (M ↓ c) = substᵗᵐ σ M ↓ substConv↓ᵗ σ c
-substᵗᵐ σ (blame ℓ) = blame ℓ
-
-infixl 8 _[_]ᵀ
-_[_]ᵀ : Term → Ty → Term
-M [ T ]ᵀ = substᵗᵐ (singleTyEnv T) M
 
 ------------------------------------------------------------------------
 -- Transport helper for term typing

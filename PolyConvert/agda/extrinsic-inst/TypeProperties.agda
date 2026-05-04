@@ -10,7 +10,8 @@ module TypeProperties where
 --     place it in that module instead.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Nat using (zero; suc; _<_; z<s; s<s)
+open import Data.Nat using (zero; suc; _<_; _≤_; z<s; s<s)
+open import Data.Nat.Properties using (<-≤-trans)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; sym; trans)
 
 open import Types
@@ -112,6 +113,20 @@ renameˢ-preserves-WfTy (wf⇒ hA hB) hρ =
   wf⇒ (renameˢ-preserves-WfTy hA hρ) (renameˢ-preserves-WfTy hB hρ)
 renameˢ-preserves-WfTy (wf∀ hA) hρ =
   wf∀ (renameˢ-preserves-WfTy hA hρ)
+
+WfTy-weakenˢ :
+  ∀ {Δ Ψ Ψ′ A} →
+  WfTy Δ Ψ A →
+  Ψ ≤ Ψ′ →
+  WfTy Δ Ψ′ A
+WfTy-weakenˢ (wfVar X<Δ) Ψ≤Ψ′ = wfVar X<Δ
+WfTy-weakenˢ (wfSeal α<Ψ) Ψ≤Ψ′ = wfSeal (<-≤-trans α<Ψ Ψ≤Ψ′)
+WfTy-weakenˢ wfBase Ψ≤Ψ′ = wfBase
+WfTy-weakenˢ wf★ Ψ≤Ψ′ = wf★
+WfTy-weakenˢ (wf⇒ hA hB) Ψ≤Ψ′ =
+  wf⇒ (WfTy-weakenˢ hA Ψ≤Ψ′) (WfTy-weakenˢ hB Ψ≤Ψ′)
+WfTy-weakenˢ (wf∀ hA) Ψ≤Ψ′ =
+  wf∀ (WfTy-weakenˢ hA Ψ≤Ψ′)
 
 TySubstWf : TyCtx → TyCtx → SealCtx → Substᵗ → Set
 TySubstWf Δ Δ′ Ψ σ = ∀ {X} → X < Δ → WfTy Δ′ Ψ (σ X)

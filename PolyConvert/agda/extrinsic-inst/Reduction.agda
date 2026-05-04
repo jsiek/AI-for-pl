@@ -194,13 +194,13 @@ data _∣_—→_∣_ : Store → Term → Store → Term → Set where
     Value V →
     Σ ∣ ((V ↑ (↑-∀ c)) ⦂∀ B [ T ]) —→ Σ ∣
       ((V ⦂∀ (src↑ (⟰ᵗ Σ) c) [ T ]) ↑
-        (substConv↑ᵗ (singleTyEnv T) c))
+        (subst↑ (singleTyEnv T) c))
 
   β-conceal-∀ : ∀ {Σ : Store} {B T V c} →
     Value V →
     Σ ∣ ((V ↓ (↓-∀ c)) ⦂∀ B [ T ]) —→ Σ ∣
       ((V ⦂∀ (tgt↓ (⟰ᵗ Σ) c) [ T ]) ↓
-        (substConv↓ᵗ (singleTyEnv T) c))
+        (subst↓ (singleTyEnv T) c))
 
   ξ-·₁ : ∀ {Σ Σ′ : Store} {L M L′ : Term} →
     Σ ∣ L —→ Σ′ ∣ L′ →

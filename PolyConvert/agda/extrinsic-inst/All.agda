@@ -7,7 +7,6 @@ module All where
 --   * Metatheory and operational modules will be added explicitly as they mature.
 
 open import Types
-open import TypeProperties
 open import Ctx
 open import Store
 open import Imprecision

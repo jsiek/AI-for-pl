@@ -103,10 +103,6 @@ starImp (A ⇒ B) =
   A⊑★ (A⇒B⊑A′⇒B′ (starImp A) (starImp B))
 starImp (`∀ A) = `∀A⊑B ★ (starImp A)
 
-plainSubstVarFrom : TyVar → Ty → Substᵗ
-plainSubstVarFrom zero T = singleTyEnv T
-plainSubstVarFrom (suc k) T = extsᵗ (plainSubstVarFrom k T)
-
 substImp : Substᵗ → Imp → Imp
 substImp σ ★⊑★ = ★⊑★
 substImp σ (X⊑★ X) = starImp (σ X)
@@ -125,7 +121,7 @@ substPlainAtImp k T = substImp (plainSubstVarFrom k T)
 
 infixl 8 _[_]⊑
 _[_]⊑ : Imp → Ty → Imp
-p [ T ]⊑ = substPlainAtImp zero T p
+p [ T ]⊑ = substImp (singleTyEnv T) p
 
 ------------------------------------------------------------------------
 -- Imprecision typing judgment

@@ -3,20 +3,21 @@ module Types where
 -- File Charter:
 --   * Core syntax and primitive operations for extrinsic types, contexts, and stores.
 --   * Definitions only (renaming/substitution/opening operators, lookup relations,
---   * and well-formedness judgments).
---   * No deep proof engineering or coercion-specific metatheory.
+--   * well-formedness judgments, and top-level type algebra needed by definition
+--     modules such as `Ctx` and `Store`).
+--   * No proof-only metatheory or coercion-specific metatheory.
 -- Note to self:
---   * Keep this file focused on syntax/judgments; place algebraic lemmas in
---     `TypeProperties.agda` and context/store-specific theorems in their modules.
+--   * Keep this file focused on syntax/judgments and definition-layer algebra;
+--     place proof-only type lemmas in `proof/TypeProperties.agda`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (Bool; false; true; _∨_)
 open import Data.List using (List; []; _∷_; map)
-open import Data.Nat using (ℕ; _<_; zero; suc)
+open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
 open import Data.Nat.Properties using (_≟_)
 open import Data.Product using (_×_; _,_)
 open import Relation.Nullary using (Dec; yes; no)
-open import Relation.Binary.PropositionalEquality using (cong)
+open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans)
 
 ------------------------------------------------------------------------
 -- Variables, contexts, base types
@@ -163,6 +164,10 @@ singleTyEnv : Ty → Substᵗ
 singleTyEnv B zero = B
 singleTyEnv B (suc X) = ＇ X
 
+plainSubstVarFrom : TyVar → Ty → Substᵗ
+plainSubstVarFrom zero T = singleTyEnv T
+plainSubstVarFrom (suc k) T = extsᵗ (plainSubstVarFrom k T)
+
 infixl 8 _[_]ᵗ
 _[_]ᵗ : Ty → Ty → Ty
 A [ B ]ᵗ = substᵗ (singleTyEnv B) A
@@ -268,3 +273,300 @@ data _∋ˢ_⦂_ : Store → Seal → Ty → Set where
   S∋ˢ : ∀ {Σ α β A B}
        → Σ ∋ˢ α ⦂ A
        → ((β , B) ∷ Σ) ∋ˢ α ⦂ A
+
+------------------------------------------------------------------------
+-- Definition-layer type algebra
+------------------------------------------------------------------------
+
+renameLookupˢ :
+  ∀  (ρ : Renameˢ) {Σ : Store} {α : Seal} {A : Ty} →
+  Σ ∋ˢ α ⦂ A →
+  renameStoreˢ ρ Σ ∋ˢ ρ α ⦂ renameˢ ρ A
+renameLookupˢ ρ (Z∋ˢ α≡β A≡B) =
+  Z∋ˢ (cong ρ α≡β) (cong (renameˢ ρ) A≡B)
+renameLookupˢ ρ (S∋ˢ h) = S∋ˢ (renameLookupˢ ρ h)
+
+liftSubstˢ :  Substᵗ → Substᵗ
+liftSubstˢ σ X = ⇑ˢ (σ X)
+
+TyRenameWf : TyCtx → TyCtx → Renameᵗ → Set
+TyRenameWf Δ Δ′ ρ = ∀ {X} → X < Δ → ρ X < Δ′
+
+TyRenameWf-ext :
+  ∀ {Δ Δ′} {ρ : Renameᵗ} →
+  TyRenameWf Δ Δ′ ρ →
+  TyRenameWf (suc Δ) (suc Δ′) (extᵗ ρ)
+TyRenameWf-ext hρ {zero} z<s = z<s
+TyRenameWf-ext hρ {suc X} (s<s X<Δ) = s<s (hρ X<Δ)
+
+TyRenameWf-suc :
+  ∀ {Δ} →
+  TyRenameWf Δ (suc Δ) suc
+TyRenameWf-suc {Δ} X<Δ = s<s X<Δ
+
+SealRenameWf : SealCtx → SealCtx → Renameˢ → Set
+SealRenameWf Ψ Ψ′ ρ = ∀ {α} → α < Ψ → ρ α < Ψ′
+
+SealRenameWf-ext :
+  ∀ {Ψ Ψ′} {ρ : Renameˢ} →
+  SealRenameWf Ψ Ψ′ ρ →
+  SealRenameWf (suc Ψ) (suc Ψ′) (extˢ ρ)
+SealRenameWf-ext hρ {zero} z<s = z<s
+SealRenameWf-ext hρ {suc α} (s<s α<Ψ) = s<s (hρ α<Ψ)
+
+SealRenameWf-suc :
+  ∀ {Ψ} →
+  SealRenameWf Ψ (suc Ψ) suc
+SealRenameWf-suc α<Ψ = s<s α<Ψ
+
+renameᵗ-preserves-WfTy :
+  ∀ {Δ Δ′ Ψ} {ρ : Renameᵗ} {A : Ty} →
+  WfTy Δ Ψ A →
+  TyRenameWf Δ Δ′ ρ →
+  WfTy Δ′ Ψ (renameᵗ ρ A)
+renameᵗ-preserves-WfTy (wfVar X<Δ) hρ = wfVar (hρ X<Δ)
+renameᵗ-preserves-WfTy (wfSeal α<Ψ) hρ = wfSeal α<Ψ
+renameᵗ-preserves-WfTy wfBase hρ = wfBase
+renameᵗ-preserves-WfTy wf★ hρ = wf★
+renameᵗ-preserves-WfTy (wf⇒ hA hB) hρ =
+  wf⇒ (renameᵗ-preserves-WfTy hA hρ) (renameᵗ-preserves-WfTy hB hρ)
+renameᵗ-preserves-WfTy (wf∀ hA) hρ =
+  wf∀ (renameᵗ-preserves-WfTy hA (TyRenameWf-ext hρ))
+
+renameˢ-preserves-WfTy :
+  ∀ {Δ Ψ Ψ′} {ρ : Renameˢ} {A : Ty} →
+  WfTy Δ Ψ A →
+  SealRenameWf Ψ Ψ′ ρ →
+  WfTy Δ Ψ′ (renameˢ ρ A)
+renameˢ-preserves-WfTy (wfVar X<Δ) hρ = wfVar X<Δ
+renameˢ-preserves-WfTy (wfSeal α<Ψ) hρ = wfSeal (hρ α<Ψ)
+renameˢ-preserves-WfTy wfBase hρ = wfBase
+renameˢ-preserves-WfTy wf★ hρ = wf★
+renameˢ-preserves-WfTy (wf⇒ hA hB) hρ =
+  wf⇒ (renameˢ-preserves-WfTy hA hρ) (renameˢ-preserves-WfTy hB hρ)
+renameˢ-preserves-WfTy (wf∀ hA) hρ =
+  wf∀ (renameˢ-preserves-WfTy hA hρ)
+
+rename-cong :
+  ∀{ρ ρ′ : Renameᵗ} →
+  ((X : TyVar) → ρ X ≡ ρ′ X) →
+  (A : Ty) →
+  renameᵗ ρ A ≡ renameᵗ ρ′ A
+rename-cong h (＇ X) = cong ＇_ (h X)
+rename-cong h (｀ α) = refl
+rename-cong h (‵ ι) = refl
+rename-cong h ★ = refl
+rename-cong h (A ⇒ B) = cong₂ _⇒_ (rename-cong h A) (rename-cong h B)
+rename-cong {ρ = ρ} {ρ′ = ρ′} h (`∀ A) = cong `∀ (rename-cong h-ext A)
+  where
+    h-ext : (X : TyVar) → extᵗ ρ X ≡ extᵗ ρ′ X
+    h-ext zero = refl
+    h-ext (suc X) = cong suc (h X)
+
+substᵗ-cong :
+  ∀
+  {σ τ : Substᵗ} →
+  ((X : TyVar) → σ X ≡ τ X) →
+  (A : Ty) →
+  substᵗ σ A ≡ substᵗ τ A
+substᵗ-cong h (＇ X) = h X
+substᵗ-cong h (｀ α) = refl
+substᵗ-cong h (‵ ι) = refl
+substᵗ-cong h ★ = refl
+substᵗ-cong h (A ⇒ B) =
+  cong₂ _⇒_ (substᵗ-cong h A) (substᵗ-cong h B)
+substᵗ-cong {σ = σ} {τ = τ} h (`∀ A) =
+  cong `∀ (substᵗ-cong h-ext A)
+  where
+    h-ext : (X : TyVar) → extsᵗ σ X ≡ extsᵗ τ X
+    h-ext zero = refl
+    h-ext (suc X) = cong (renameᵗ suc) (h X)
+
+substᵗ-id :
+  ∀ (A : Ty) →
+  substᵗ (λ X → ＇ X) A ≡ A
+substᵗ-id (＇ X) = refl
+substᵗ-id (｀ α) = refl
+substᵗ-id (‵ ι) = refl
+substᵗ-id ★ = refl
+substᵗ-id (A ⇒ B) = cong₂ _⇒_ (substᵗ-id A) (substᵗ-id B)
+substᵗ-id (`∀ A) =
+  cong `∀
+    (trans
+      (substᵗ-cong env-eq A)
+      (substᵗ-id A))
+  where
+    env-eq : (X : TyVar) → extsᵗ (λ Y → ＇ Y) X ≡ ＇ X
+    env-eq zero = refl
+    env-eq (suc X) = refl
+
+renameᵗ-compose :
+  ∀
+  (ρ₁ : Renameᵗ) (ρ₂ : Renameᵗ) (A : Ty) →
+  renameᵗ ρ₂ (renameᵗ ρ₁ A) ≡ renameᵗ (λ X → ρ₂ (ρ₁ X)) A
+renameᵗ-compose ρ₁ ρ₂ (＇ X) = refl
+renameᵗ-compose ρ₁ ρ₂ (｀ α) = refl
+renameᵗ-compose ρ₁ ρ₂ (‵ ι) = refl
+renameᵗ-compose ρ₁ ρ₂ ★ = refl
+renameᵗ-compose ρ₁ ρ₂ (A ⇒ B) =
+  cong₂ _⇒_ (renameᵗ-compose ρ₁ ρ₂ A) (renameᵗ-compose ρ₁ ρ₂ B)
+renameᵗ-compose ρ₁ ρ₂ (`∀ A) =
+  trans
+    (cong `∀ (renameᵗ-compose (extᵗ ρ₁) (extᵗ ρ₂) A))
+    (cong `∀ (rename-cong ext-comp A))
+  where
+    ext-comp :
+      (X : TyVar) →
+      extᵗ ρ₂ (extᵗ ρ₁ X) ≡ extᵗ (λ X′ → ρ₂ (ρ₁ X′)) X
+    ext-comp zero = refl
+    ext-comp (suc X) = refl
+
+renameᵗ-suc-comm :
+  ∀
+  (ρ : Renameᵗ) (A : Ty) →
+  renameᵗ suc (renameᵗ ρ A) ≡
+  renameᵗ (extᵗ ρ) (renameᵗ suc A)
+renameᵗ-suc-comm ρ A =
+  trans
+    (renameᵗ-compose ρ suc A)
+    (sym (renameᵗ-compose suc (extᵗ ρ) A))
+
+substᵗ-renameᵗ :
+  ∀
+  (ρ : Renameᵗ) (σ : Substᵗ) (A : Ty) →
+  substᵗ σ (renameᵗ ρ A) ≡ substᵗ (λ X → σ (ρ X)) A
+substᵗ-renameᵗ ρ σ (＇ X) = refl
+substᵗ-renameᵗ ρ σ (｀ α) = refl
+substᵗ-renameᵗ ρ σ (‵ ι) = refl
+substᵗ-renameᵗ ρ σ ★ = refl
+substᵗ-renameᵗ ρ σ (A ⇒ B) =
+  cong₂ _⇒_ (substᵗ-renameᵗ ρ σ A) (substᵗ-renameᵗ ρ σ B)
+substᵗ-renameᵗ ρ σ (`∀ A) =
+  cong `∀
+    (trans
+      (substᵗ-renameᵗ (extᵗ ρ) (extsᵗ σ) A)
+      (substᵗ-cong env-eq A))
+  where
+    env-eq :
+      (X : TyVar) →
+      extsᵗ σ (extᵗ ρ X) ≡ extsᵗ (λ Y → σ (ρ Y)) X
+    env-eq zero = refl
+    env-eq (suc X) = refl
+
+renameᵗ-substᵗ :
+  ∀
+  (ρ : Renameᵗ) (σ : Substᵗ) (A : Ty) →
+  renameᵗ ρ (substᵗ σ A) ≡ substᵗ (λ X → renameᵗ ρ (σ X)) A
+renameᵗ-substᵗ ρ σ (＇ X) = refl
+renameᵗ-substᵗ ρ σ (｀ α) = refl
+renameᵗ-substᵗ ρ σ (‵ ι) = refl
+renameᵗ-substᵗ ρ σ ★ = refl
+renameᵗ-substᵗ ρ σ (A ⇒ B) =
+  cong₂ _⇒_ (renameᵗ-substᵗ ρ σ A) (renameᵗ-substᵗ ρ σ B)
+renameᵗ-substᵗ ρ σ (`∀ A) =
+  cong `∀
+    (trans
+      (renameᵗ-substᵗ (extᵗ ρ) (extsᵗ σ) A)
+      (substᵗ-cong env-eq A))
+  where
+    env-eq :
+      (X : TyVar) →
+      renameᵗ (extᵗ ρ) (extsᵗ σ X) ≡ extsᵗ (λ Y → renameᵗ ρ (σ Y)) X
+    env-eq zero = refl
+    env-eq (suc X) = sym (renameᵗ-suc-comm ρ (σ X))
+
+substᵗ-suc-renameᵗ-suc :
+  ∀
+  (σ : Substᵗ) (A : Ty) →
+  substᵗ (extsᵗ σ) (renameᵗ suc A) ≡
+  renameᵗ suc (substᵗ σ A)
+substᵗ-suc-renameᵗ-suc σ A =
+  trans
+    (substᵗ-renameᵗ suc (extsᵗ σ) A)
+    (sym (renameᵗ-substᵗ suc σ A))
+
+renameˢ-renameᵗ :
+  ∀
+  (ρᵗ : Renameᵗ) (ρˢ : Renameˢ) (A : Ty) →
+  renameˢ ρˢ (renameᵗ ρᵗ A) ≡
+  renameᵗ ρᵗ (renameˢ ρˢ A)
+renameˢ-renameᵗ ρᵗ ρˢ (＇ X) = refl
+renameˢ-renameᵗ ρᵗ ρˢ (｀ α) = refl
+renameˢ-renameᵗ ρᵗ ρˢ (‵ ι) = refl
+renameˢ-renameᵗ ρᵗ ρˢ ★ = refl
+renameˢ-renameᵗ ρᵗ ρˢ (A ⇒ B) =
+  cong₂ _⇒_ (renameˢ-renameᵗ ρᵗ ρˢ A) (renameˢ-renameᵗ ρᵗ ρˢ B)
+renameˢ-renameᵗ ρᵗ ρˢ (`∀ A) =
+  cong `∀ (renameˢ-renameᵗ (extᵗ ρᵗ) ρˢ A)
+
+renameᵗ-⇑ˢ :
+  ∀  (ρ : Renameᵗ) (B : Ty) →
+  renameᵗ ρ (⇑ˢ B) ≡ ⇑ˢ (renameᵗ ρ B)
+renameᵗ-⇑ˢ ρ (＇ X) = refl
+renameᵗ-⇑ˢ ρ (｀ α) = refl
+renameᵗ-⇑ˢ ρ (‵ ι) = refl
+renameᵗ-⇑ˢ ρ ★ = refl
+renameᵗ-⇑ˢ ρ (A ⇒ B) =
+  cong₂ _⇒_ (renameᵗ-⇑ˢ ρ A) (renameᵗ-⇑ˢ ρ B)
+renameᵗ-⇑ˢ ρ (`∀ A) =
+  cong `∀ (renameᵗ-⇑ˢ (extᵗ ρ) A)
+
+private
+  exts-liftSubstˢ :
+    ∀
+    (σ : Substᵗ) (X : TyVar) →
+    extsᵗ (liftSubstˢ σ) X ≡ liftSubstˢ (extsᵗ σ) X
+  exts-liftSubstˢ σ zero = refl
+  exts-liftSubstˢ σ (suc X) = renameᵗ-⇑ˢ suc (σ X)
+
+substᵗ-⇑ˢ :
+  ∀  (σ : Substᵗ) (B : Ty) →
+  substᵗ (liftSubstˢ σ) (⇑ˢ B) ≡ ⇑ˢ (substᵗ σ B)
+substᵗ-⇑ˢ σ (＇ X) = refl
+substᵗ-⇑ˢ σ (｀ α) = refl
+substᵗ-⇑ˢ σ (‵ ι) = refl
+substᵗ-⇑ˢ σ ★ = refl
+substᵗ-⇑ˢ σ (A ⇒ B) =
+  cong₂ _⇒_ (substᵗ-⇑ˢ σ A) (substᵗ-⇑ˢ σ B)
+substᵗ-⇑ˢ σ (`∀ A) =
+  cong `∀
+    (trans
+      (substᵗ-cong (exts-liftSubstˢ σ) (⇑ˢ A))
+      (substᵗ-⇑ˢ (extsᵗ σ) A))
+
+open-renᵗ-suc :
+  (A : Ty) →
+  (T : Ty) →
+  (renameᵗ suc A) [ T ]ᵗ ≡ A
+open-renᵗ-suc A T =
+  trans
+    (substᵗ-renameᵗ suc (singleTyEnv T) A)
+    (trans
+      (substᵗ-cong (λ X → refl) A)
+      (substᵗ-id A))
+
+renameˢ-ext-⇑ˢ :
+  ∀
+  (ρ : Renameˢ) (A : Ty) →
+  renameˢ (extˢ ρ) (⇑ˢ A) ≡ ⇑ˢ (renameˢ ρ A)
+renameˢ-ext-⇑ˢ ρ (＇ X) = refl
+renameˢ-ext-⇑ˢ ρ (｀ α) = refl
+renameˢ-ext-⇑ˢ ρ (‵ ι) = refl
+renameˢ-ext-⇑ˢ ρ ★ = refl
+renameˢ-ext-⇑ˢ ρ (A ⇒ B) =
+  cong₂ _⇒_ (renameˢ-ext-⇑ˢ ρ A) (renameˢ-ext-⇑ˢ ρ B)
+renameˢ-ext-⇑ˢ ρ (`∀ A) =
+  cong `∀ (renameˢ-ext-⇑ˢ ρ A)
+
+renameˢ-single-⇑ˢ-id :
+  (α : Seal) →
+  (A : Ty) →
+  renameˢ (singleSealEnv α) (⇑ˢ A) ≡ A
+renameˢ-single-⇑ˢ-id α (＇ X) = refl
+renameˢ-single-⇑ˢ-id α (｀ β) = refl
+renameˢ-single-⇑ˢ-id α (‵ ι) = refl
+renameˢ-single-⇑ˢ-id α ★ = refl
+renameˢ-single-⇑ˢ-id α (A ⇒ B) =
+  cong₂ _⇒_ (renameˢ-single-⇑ˢ-id α A) (renameˢ-single-⇑ˢ-id α B)
+renameˢ-single-⇑ˢ-id α (`∀ A) =
+  cong `∀ (renameˢ-single-⇑ˢ-id α A)

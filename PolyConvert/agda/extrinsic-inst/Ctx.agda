@@ -14,16 +14,6 @@ open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality using (cong₂; sym)
 
 open import Types
-open import TypeProperties
-  using
-    ( liftSubstˢ
-    ; substᵗ-suc-renameᵗ-suc
-    ; substᵗ-⇑ˢ
-    ; renameᵗ-suc-comm
-    ; renameᵗ-⇑ˢ
-    ; renameˢ-renameᵗ
-    ; renameˢ-ext-⇑ˢ
-    )
 
 ------------------------------------------------------------------------
 -- Context lookup transport under renaming/substitution

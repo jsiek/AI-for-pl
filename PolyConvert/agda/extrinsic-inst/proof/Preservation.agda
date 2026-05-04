@@ -21,7 +21,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≢_; cong; subst; sym; trans)
 
 open import Types
-open import TypeProperties
+open import proof.TypeProperties
 open import Ctx
 open import Store
 open import Imprecision
@@ -32,7 +32,13 @@ open import proof.PreservationWkImp using (wk-⊑; wk-⊒)
 open import proof.PreservationWkConv using (⟰ᵗ-⊆ˢ; wk-conv↑; wk-conv↓)
 open import proof.PreservationWkTerm using (wk-term)
 open import proof.PreservationRaw using (raw-preservation)
-open import proof.PreservationBetaRevealConceal using (preserve-β-reveal-∀)
+open import proof.PreservationBetaRevealConceal
+  using (preserve-β-reveal-∀)
+  renaming (preserve-β-conceal-∀-src to preserve-β-conceal-∀)
+open import proof.PreservationBetaUpNu using (preserve-β-up-ν)
+open import proof.PreservationBetaDownForall using (preserve-β-down-∀)
+open import proof.PreservationBetaDownNu using (preserve-β-down-ν)
+open import proof.PreservationBetaLambda using (preserve-β-Λ)
 
 ------------------------------------------------------------------------
 -- Fresh store extension
@@ -208,58 +214,6 @@ exact-storeWf :
   StoreWf Δ Ψ′ Σ
 exact-storeWf {shape-id} eq wfΣ rewrite eq = wfΣ
 exact-storeWf {shape-suc} eq wfΣ rewrite eq = wfΣ
-
-------------------------------------------------------------------------
--- Named preservation obligations
-------------------------------------------------------------------------
-
-postulate
-  preserve-β-Λ :
-    ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{B T : Ty} →
-    StoreWf Δ Ψ Σ →
-    Value V →
-    suc Δ ∣ Ψ ∣ ⟰ᵗ Σ ∣ ⤊ᵗ Γ ⊢ V ⦂ B →
-    WfTy (suc Δ) Ψ B →
-    WfTy Δ Ψ T →
-    Δ ∣ suc Ψ ∣ ((length Σ , T) ∷ Σ) ∣ Γ ⊢
-      ((V [ ｀ (length Σ) ]ᵀ) ↑ (convert↑ B (length Σ))) ⦂ B [ T ]ᵗ
-
-  preserve-β-down-∀ :
-    ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{B T : Ty}{p : Imp} →
-    StoreWf Δ Ψ Σ →
-    Value V →
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ⇓ (`∀A⊑∀B p)) ⦂∀ B [ T ]) ⦂ B [ T ]ᵗ →
-    Δ ∣ suc Ψ ∣ ((length Σ , T) ∷ Σ) ∣ Γ ⊢
-      (((V ⦂∀ (tgt⊑ p) [ ｀ (length Σ) ]) ⇓
-        (p [ ｀ (length Σ) ]⊑)) ↑ (convert↑ (src⊑ p) (length Σ)))
-      ⦂ B [ T ]ᵗ
-
-  preserve-β-down-ν :
-    ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{A B C : Ty}{p : Imp} →
-    StoreWf Δ Ψ Σ →
-    Value V →
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ⇓ (`∀A⊑B B p)) ⦂∀ C [ A ]) ⦂ C [ A ]ᵗ →
-    Δ ∣ suc Ψ ∣ ((length Σ , A) ∷ Σ) ∣ Γ ⊢
-      ((V ⇓ (p [ ｀ (length Σ) ]⊑)) ↑
-        (convert↑ (src⊑ p) (length Σ))) ⦂ C [ A ]ᵗ
-
-  preserve-β-up-ν :
-    ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{A B : Ty}{p : Imp} →
-    StoreWf Δ Ψ Σ →
-    Value V →
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V ⇑ (`∀A⊑B B p) ⦂ A →
-    Δ ∣ suc Ψ ∣ ((length Σ , ★) ∷ Σ) ∣ Γ ⊢
-      ((V ⦂∀ (src⊑ p) [ ｀ (length Σ) ]) ⇑
-        (p [ ｀ (length Σ) ]⊑)) ⦂ A
-
-  preserve-β-conceal-∀ :
-    ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{B T : Ty}{c : Conv↓} →
-    StoreWf Δ Ψ Σ →
-    Value V →
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ↓ (↓-∀ c)) ⦂∀ B [ T ]) ⦂ B [ T ]ᵗ →
-    Δ ∣ Ψ ∣ Σ ∣ Γ ⊢
-      ((V ⦂∀ (tgt↓ (⟰ᵗ Σ) c) [ T ]) ↓
-        (subst↓ (singleTyEnv T) c)) ⦂ B [ T ]ᵗ
 
 ------------------------------------------------------------------------
 -- Preservation for store-threaded one-step reduction

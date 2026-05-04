@@ -6,7 +6,8 @@ module Conversion where
 --     store-indexed seal replacement structure.
 --   * This file owns the conversion surface used by PolyConvert terms.
 
-open import Data.Nat using (ℕ; suc)
+open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat.Properties using (_≟_)
 open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; cong₂; subst)
@@ -60,6 +61,18 @@ mutual
   tgt↓ Σ (↓-id A) = A
 
 mutual
+  rename↑ᵗ : Renameᵗ → Conv↑ → Conv↑
+  rename↑ᵗ ρ (↑-unseal α) = ↑-unseal α
+  rename↑ᵗ ρ (↑-⇒ p q) = ↑-⇒ (rename↓ᵗ ρ p) (rename↑ᵗ ρ q)
+  rename↑ᵗ ρ (↑-∀ c) = ↑-∀ (rename↑ᵗ (extᵗ ρ) c)
+  rename↑ᵗ ρ (↑-id A) = ↑-id (renameᵗ ρ A)
+
+  rename↓ᵗ : Renameᵗ → Conv↓ → Conv↓
+  rename↓ᵗ ρ (↓-seal α) = ↓-seal α
+  rename↓ᵗ ρ (↓-⇒ p q) = ↓-⇒ (rename↑ᵗ ρ p) (rename↓ᵗ ρ q)
+  rename↓ᵗ ρ (↓-∀ c) = ↓-∀ (rename↓ᵗ (extᵗ ρ) c)
+  rename↓ᵗ ρ (↓-id A) = ↓-id (renameᵗ ρ A)
+
   subst↑ : Substᵗ → Conv↑ → Conv↑
   subst↑ σ (↑-unseal α) = ↑-unseal α
   subst↑ σ (↑-⇒ p q) =
@@ -75,25 +88,35 @@ mutual
   subst↓ σ (↓-id A) = ↓-id (substᵗ σ A)
 
 mutual
-  convert↑ : Ty → Seal → Conv↑
-  convert↑ (＇ X) α = ↑-id (＇ X)
-  convert↑ (｀ β) α with seal-≟ β α
-  convert↑ (｀ β) α | yes _ = ↑-unseal α
-  convert↑ (｀ β) α | no _ = ↑-id (｀ β)
-  convert↑ (‵ ι) α = ↑-id (‵ ι)
-  convert↑ ★ α = ↑-id ★
-  convert↑ (A ⇒ B) α = ↑-⇒ (convert↓ A α) (convert↑ B α)
-  convert↑ (`∀ A) α = ↑-∀ (convert↑ A α)
+  convert↑At : TyVar → Ty → Seal → Conv↑
+  convert↑At X (＇ Y) α with X ≟ Y
+  convert↑At X (＇ Y) α | yes refl = ↑-unseal α
+  convert↑At X (＇ Y) α | no _ =
+    ↑-id (plainSubstVarFrom X (｀ α) Y)
+  convert↑At X (｀ β) α = ↑-id (｀ β)
+  convert↑At X (‵ ι) α = ↑-id (‵ ι)
+  convert↑At X ★ α = ↑-id ★
+  convert↑At X (A ⇒ B) α =
+    ↑-⇒ (convert↓At X A α) (convert↑At X B α)
+  convert↑At X (`∀ A) α = ↑-∀ (convert↑At (suc X) A α)
 
-  convert↓ : Ty → Seal → Conv↓
-  convert↓ (＇ X) α = ↓-id (＇ X)
-  convert↓ (｀ β) α with seal-≟ β α
-  convert↓ (｀ β) α | yes _ = ↓-seal α
-  convert↓ (｀ β) α | no _ = ↓-id (｀ β)
-  convert↓ (‵ ι) α = ↓-id (‵ ι)
-  convert↓ ★ α = ↓-id ★
-  convert↓ (A ⇒ B) α = ↓-⇒ (convert↑ A α) (convert↓ B α)
-  convert↓ (`∀ A) α = ↓-∀ (convert↓ A α)
+  convert↓At : TyVar → Ty → Seal → Conv↓
+  convert↓At X (＇ Y) α with X ≟ Y
+  convert↓At X (＇ Y) α | yes refl = ↓-seal α
+  convert↓At X (＇ Y) α | no _ =
+    ↓-id (plainSubstVarFrom X (｀ α) Y)
+  convert↓At X (｀ β) α = ↓-id (｀ β)
+  convert↓At X (‵ ι) α = ↓-id (‵ ι)
+  convert↓At X ★ α = ↓-id ★
+  convert↓At X (A ⇒ B) α =
+    ↓-⇒ (convert↑At X A α) (convert↓At X B α)
+  convert↓At X (`∀ A) α = ↓-∀ (convert↓At (suc X) A α)
+
+convert↑ : Ty → Seal → Conv↑
+convert↑ = convert↑At zero
+
+convert↓ : Ty → Seal → Conv↓
+convert↓ = convert↓At zero
 
 ------------------------------------------------------------------------
 -- Conversion typing: store-driven seal replacement structure

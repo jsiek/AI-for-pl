@@ -20,7 +20,6 @@ open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; subst; sym; trans)
 
 open import Types
-open import TypeProperties
 
 ------------------------------------------------------------------------
 -- Store extension (same seal context)

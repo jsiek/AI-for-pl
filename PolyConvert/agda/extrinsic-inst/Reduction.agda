@@ -1,7 +1,8 @@
 module Reduction where
 
 -- File Charter:
---   * Raw and store-threaded one-step reduction for PolyConvert terms.
+--   * Raw, store-threaded one-step, and store-threaded multi-step reduction
+--     for PolyConvert terms.
 --   * Adapts the non-store-threaded PolyUpDown reduction rules to raw
 --     imprecision and conversion evidence.
 
@@ -199,7 +200,7 @@ data _∣_—→_∣_ : Store → Term → Store → Term → Set where
   β-conceal-∀ : ∀ {Σ : Store} {B T V c} →
     Value V →
     Σ ∣ ((V ↓ (↓-∀ c)) ⦂∀ B [ T ]) —→ Σ ∣
-      ((V ⦂∀ (tgt↓ (⟰ᵗ Σ) c) [ T ]) ↓
+      ((V ⦂∀ (src↓ (⟰ᵗ Σ) c) [ T ]) ↓
         (subst↓ (singleTyEnv T) c))
 
   ξ-·₁ : ∀ {Σ Σ′ : Store} {L M L′ : Term} →
@@ -239,3 +240,23 @@ data _∣_—→_∣_ : Store → Term → Store → Term → Set where
     Value L →
     Σ ∣ M —→ Σ′ ∣ M′ →
     Σ ∣ (L ⊕[ op ] M) —→ Σ′ ∣ (L ⊕[ op ] M′)
+
+------------------------------------------------------------------------
+-- Store-threaded multi-step reduction
+------------------------------------------------------------------------
+
+infix 2 _∣_—↠_∣_
+infix 3 _∎
+infixr 2 _—→⟨_⟩_
+
+data _∣_—↠_∣_ : Store → Term → Store → Term → Set where
+  _∎ : ∀ {Σ : Store} →
+    (M : Term) →
+    Σ ∣ M —↠ Σ ∣ M
+
+  _—→⟨_⟩_ :
+    ∀ {Σ Σ′ Σ″ : Store} {N K : Term} →
+    (M : Term) →
+    Σ ∣ M —→ Σ′ ∣ N →
+    Σ′ ∣ N —↠ Σ″ ∣ K →
+    Σ ∣ M —↠ Σ″ ∣ K

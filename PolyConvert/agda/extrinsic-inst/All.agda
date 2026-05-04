@@ -12,5 +12,6 @@ open import Store
 open import Imprecision
 open import Conversion
 open import Terms
+open import TermImprecision
 open import Reduction
 open import MetaTheory

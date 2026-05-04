@@ -245,9 +245,6 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
   | ⊑up Φ lenΦ rel hu hu′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-  {- BLOCKED[W02][H15]:
-     Conflicting edits for `PolyUpDown/agda/extrinsic-inst/SimLeft.agda` while applying worker changes. Both another worker and this worker modified overlapping text.
-  -}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-up redM
   | ⊑upL Φ lenΦ rel hu
     with sim-left rel wfΣˡ wfΣʳ redM
@@ -297,9 +294,6 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
   | ⊑down Φ lenΦ rel hd hd′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-  {- BLOCKED[W05][H18]:
-     Conflicting edits for `PolyUpDown/agda/extrinsic-inst/SimLeft.agda` while applying worker changes. Both another worker and this worker modified overlapping text.
-  -}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-down redM
   | ⊑downL Φ lenΦ rel hd
     with sim-left rel wfΣˡ wfΣʳ redM
@@ -373,9 +367,6 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | ξ-⊕₂ vV redM
   | ⊑⊕ L⊑L′ Arg⊑Arg′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-  {- BLOCKED[W03][H24]:
-     Conflicting edits for `PolyUpDown/agda/extrinsic-inst/SimLeft.agda` while applying worker changes. Both another worker and this worker modified overlapping text.
-  -}
 
 -- β reduction
 -- β reduction, ⊑upR
@@ -481,9 +472,6 @@ sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   | ⊑downR Φ lenΦ rel hd′
   | Ψˡᵣ , Ψˡ≤Ψˡᵣ , Σʳᵣ , M′ᵣ , M′↠M′ᵣ , Nᵣ⊑M′ᵣ =
   {!!}
-  {- BLOCKED[W04][H32]:
-     Hole H32 reported success but produced no applied file changes.
-  -}
 sim-left {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   M⊑M′ wfΣˡ wfΣʳ red | id-step (β-up-↦ {V = V} {W = W} vV vW)
   | ⊑· L⊑L′ W⊑W′
@@ -603,15 +591,15 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step δ-⊕ =
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-·₁ =
   _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (blame-·₂ vV) =
-  {!!}
+  _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-·α =
   _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-up =
-  {!!}
+  _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-down =
   _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step blame-⊕₁ =
-  {!!}
+  _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 sim-left M⊑M′ wfΣˡ wfΣʳ red | id-step (blame-⊕₂ vV) =
   _ , ≤-refl , _ , _ , (_ ∎) , ⊑blameR (⊑-right-typed M⊑M′)
 
@@ -621,12 +609,8 @@ sim-left M⊑M′ wfΣˡ wfΣʳ red | β-Λ = {!!}
    H38 cannot be completed locally with the current helper surface: the `β-Λ` left step allocates a fresh seal from `Σˡ`, while a matching right `β-Λ` step would allocate from independent `Σʳ`; the final term-imprecision judgment is indexed by the left post-step store, so there is no known bridge for the right reduct mentioning `length Σʳ`. Zero right steps also fail because no existing lemma relates the instantiated/cast left body to the unreduced right type application. This appears to need additional world/store synchronization metatheory or a revised simulation statement tracking both post-step seal contexts.
 -}
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-down-∀ vV = {!!}
-{- BLOCKED[W01][H39]:
-   Conflicting edits for `PolyUpDown/agda/extrinsic-inst/SimLeft.agda` while applying worker changes. Both another worker and this worker modified overlapping text.
--}
+
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-down-ν vV = {!!}
-{- BLOCKED[W12][H40]:
-   Conflicting edits for `PolyUpDown/agda/extrinsic-inst/SimLeft.agda` while applying worker changes. Both another worker and this worker modified overlapping text.
--}
+
 sim-left M⊑M′ wfΣˡ wfΣʳ red | β-up-ν vV =
   sim-left-w09-H41 M⊑M′ wfΣˡ wfΣʳ red vV

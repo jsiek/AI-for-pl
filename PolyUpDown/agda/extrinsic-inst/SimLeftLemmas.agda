@@ -42,6 +42,29 @@ open import TermProperties using (_[_])
 open import TermImprecisionIndexed
 open import ReductionFresh
 open import PreservationFresh using (length-append-tag; wkΨ-cast-tag-⊒)
+open import ProgressFresh
+  using (StarView; sv-up-tag; canonical-★; SealView; sv-down-seal; canonical-｀)
+
+-- Bridge lemmas: canonical-forms inversion lifted from typing to imprecision.
+-- The catchup-residual cases (`wt-untag` at type ★, and `wt-unseal`/
+-- `wt-unseal★` at type `｀ α`) need to learn V′'s shape from `Value V′`
+-- plus a relation `V ⊑ V′ ⦂ A ⊑ ★` (resp. `⦂ A ⊑ ｀ α`). Routing through
+-- `⊑-right-typed` recovers a typing of V′ at the right-side type, after
+-- which `canonical-★` / `canonical-｀` from `ProgressFresh` apply.
+
+canonical-★-imprecision :
+  ∀ {Ψˡ Σˡ V V′ A} →
+  Value V′ →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ A ⊑ ★ →
+  StarView V′
+canonical-★-imprecision vV′ rel = canonical-★ vV′ (⊑-right-typed rel)
+
+canonical-｀-imprecision :
+  ∀ {Ψˡ Σˡ V V′ A α} →
+  Value V′ →
+  ⟪ 0 , Ψˡ , Σˡ , [] , [] , plain-[] , refl ⟫ ⊢ V ⊑ V′ ⦂ A ⊑ ｀ α →
+  SealView {α = α} V′
+canonical-｀-imprecision vV′ rel = canonical-｀ vV′ (⊑-right-typed rel)
 
 {-
    If V ⊑ N′ then N′ —↠ V′ and V ⊑ V′.
@@ -180,8 +203,43 @@ mutual
     V⊑W′
   right-extra-up-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel
     (wt-unseal h α∈Φ u⊢) = {!!}
+  {- BLOCKED[Wclaude-C][catchup-unseal]:
+     The right-side cast is `unseal α p` whose source type is ｀ α, so
+     the hypothesis `rel : V ⊑ V′ ⦂ A ⊑ ｀ α` constrains V′ to a value at
+     the abstract-name type ｀ α.  By `canonical-｀` (ProgressFresh.agda
+     :176) the only such value shape is `V′ = (W′ down (seal q α))`.
+     Twelve explicit clauses above (lines 73–180) cover the subcases
+     where `rel` itself names this outer down with `⊑down`/`⊑downR`
+     paired with `wt-seal`/`wt-seal★`; those clauses fire `seal-unseal`
+     on the right and recurse with the inner up cast `u⊢`.
+
+     The residual case is reachable when `rel` does NOT syntactically
+     expose the outer `down seal` on V′.  Specifically:
+       (a) `rel = ⊑upL …` — V = (M up u), V′ = M′ where M′ is the
+           value-of-type-｀α and so canonicalizes to (W down seal q α)
+           only after inverting the inner relation `M ⊑ M′ ⦂ ? ⊑ ｀ α`.
+       (b) `rel = ⊑downL …` — V = (M down d), V′ = M′ similarly an
+           outer-down value only via canonical inversion.
+
+     Both shapes need a canonical-forms inversion (or a new helper that
+     fires `seal-unseal` on V′ then composes the recursive answer with
+     the extra `⊑upL`/`⊑downL` outer wrapper).  No such bridge lemma
+     yet exists in this file; the parallel `right-extra-up-catchup-
+     left` residual at line 281 is BLOCKED for the analogous reason.
+  -}
   right-extra-up-catchup Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel
     (wt-unseal★ h α∈Φ p) = {!!}
+  {- BLOCKED[Wclaude-C][catchup-unseal-star]:
+     Same obstruction as `catchup-unseal` above, except the right-side
+     cast is `unseal α p` typed by `wt-unseal★` (α sealed at ★ instead
+     of at a richer source type).  The hypothesis `rel` still has
+     shape V ⊑ V′ ⦂ A ⊑ ｀ α and V′ still canonicalizes via
+     `canonical-｀` to `(W′ down (seal q α))`.  The reachable residual
+     `rel`-shapes — `⊑upL` and `⊑downL` — both need a canonical-forms
+     inversion plus an outer-cast composition lemma that does not yet
+     exist here; the parallel `right-extra-up-catchup-left` residual
+     at line 301 is BLOCKED for the analogous reason.
+  -}
   right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {u′ = u′}
     {pB = pB} Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel (wt-↦ hp hq) =
     Ψʳ , Σʳ , wfΣʳ , V′ up u′ , vV′ up _↦_ , (V′ up u′ ∎) ,
@@ -279,8 +337,34 @@ mutual
       Φ lenΦ rel hu (wt-tag p g ok)
   right-extra-up-catchup-left Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel hu
     (wt-unseal h α∈Φ p) = {!!}
+  {- BLOCKED[Wclaude-D][catchup-left-unseal]:
+     The right-side cast is `unseal α p` with source type ｀ α, so the
+     relation `rel : V ⊑ V′ ⦂ A ⊑ ｀ α` constrains V′ to a canonical form
+     at the abstract-name type ｀ α.  In the parallel non-`-left` lemma
+     `right-extra-up-catchup`, twelve explicit clauses (lines 73–180)
+     handle the case `V′ = V′₀ down seal` with relation `⊑down`/`⊑downR`
+     by reducing right via `seal-unseal` and recursing — but that residual
+     hole at line 182 is also unfilled because no helper inverts the
+     relation to rule out other shapes (e.g. `V′ = V′₀ up id` at type ｀ α
+     via `wt-id`, or yet other ⊑downL/⊑upL forms).  The `-left` variant
+     adds an extra left-side cast `u` that must additionally be preserved
+     or composed in the result, requiring `⊑up` (two-sided) instead of
+     `⊑upR`.  Even if we fired the matching `seal-unseal` step on the
+     right, no existing lemma constructs `(V up u) ⊑ W′ ⦂ B ⊑ B′` from
+     the recursive answer plus the left cast `hu`.  This needs a
+     canonical-forms-at-｀ α lemma plus a left-cast-composition bridge
+     analogous to the `wt-untag` BLOCKED at line 327.
+  -}
   right-extra-up-catchup-left Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel hu
     (wt-unseal★ h α∈Φ p) = {!!}
+  {- BLOCKED[Wclaude-D][catchup-left-unseal-star]:
+     Same obstruction as `catchup-left-unseal` above: the right-side cast
+     is `unseal α p` with `wt-unseal★` (α sealed at ★), so the relation
+     `rel : V ⊑ V′ ⦂ A ⊑ ｀ α` again requires a canonical-forms inversion
+     at type ｀ α plus a bridge lemma to compose the extra left cast `u`
+     with the recursive result.  The parallel `right-extra-up-catchup`
+     residual at line 184 is also unfilled.
+  -}
   right-extra-up-catchup-left
     {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {u′ = u′} {pB = pB}
     Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel hu (wt-↦ hp hq) =
@@ -324,6 +408,35 @@ mutual
             (V down d) ⊑ W′ ⦂ B ⊑ B′))
   right-extra-down-catchup-left Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel hd
     (wt-untag g ok ℓ p) = {!!}
+  {- BLOCKED[Wclaude-B][catchup-left-untag]:
+     The other wt-* clauses below (wt-seal / wt-seal★ / wt-↦ / wt-∀ /
+     wt-ν) take ZERO right-side reductions and return `V′ down d′`
+     because each of those cast-tag forms is a DownValue.  But
+     `untag G ℓ p` is NOT a DownValue (Terms.agda:119), so
+     `V′ down (untag G ℓ p)` is not a value and the template pattern
+     does not apply — the right side genuinely must reduce.
+
+     A real reduction is required: by canonical forms at ★, V′ must be
+     `W up (tag p′ G′)`, so the right reduces via tag-untag-ok (G ≡ G′)
+     to `(W up p′) down p` or via tag-untag-bad to `blame ℓ`.  The
+     natural delegation is:
+
+         right-extra-down-catchup {pB = ???}
+           Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel (wt-untag g ok ℓ p)
+
+     yielding `V ⊑ W′ ⦂ A ⊑ B′`, then wrap with `⊑downL` to add the
+     left-side `d` cast.  But that helper expects a witness
+     `pB : [] ⊢ A ⊑ᵢ B′` relating the LEFT source A (from hd : d ⦂ A ⊒ B)
+     to the RIGHT target B′ (from wt-untag : ★ ⊒ B′).  The only
+     in-scope type-imprecision facts are `[] ⊢ A ⊑ᵢ ★` (from rel) and
+     `[] ⊢ B ⊑ᵢ B′` (the input pB), and there is no general inversion
+     `A ⊑ᵢ ★` + `★ ⊒ B′` ⇒ `A ⊑ᵢ B′`.  The analogous wt-untag clause
+     of right-extra-down-catchup (line ~222) and the wt-unseal /
+     wt-unseal★ clauses of right-extra-up-catchup-left (lines ~281,
+     ~283) are also unfilled, suggesting this whole family needs a new
+     canonical-forms-at-★ + matched-tag-untag bridge lemma before any
+     of them can be discharged.
+  -}
   right-extra-down-catchup-left
     {Ψʳ = Ψʳ} {Σʳ = Σʳ} {V′ = V′} {d′ = d′} {pB = pB}
     Φ lenΦ wfΣˡ wfΣʳ vV vV′ rel hd (wt-seal p h α∈Φ) =
@@ -409,10 +522,10 @@ mutual
     Vup⊑W′
   {-
       Case E ⊢ (V up p) ⊑ (M′ up u′) ⦂ B ⊑ B′
-                                       ^^   
-                                       |  \ 
+                                       ^^
+                                       |  \
                V        ⊑ M′         ⦂ A₁ ⊑ A′
-               
+
       have:
         V ⊑ M′ ⦂ A₁ ⊑ A′
         u′ ⦂ A′ ⊑ B
@@ -421,7 +534,7 @@ mutual
         pA : [] ⊢ A₁ ⊑ᵢ A′   (not in scope)
       nts:
         M′ up u′ —↠ V′
-        V up p ⊑ V′     for some V′ 
+        V up p ⊑ V′     for some V′
   -}
   left-value-right-catchup
     {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}

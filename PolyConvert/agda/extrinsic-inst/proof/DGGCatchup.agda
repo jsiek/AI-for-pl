@@ -388,21 +388,6 @@ postulate
     (tgt⊑ p ≡ tgt⊑ q) ×
     Catchup Ψˡ Σˡ (M ⇓ p₀) B′ B Ψʳ Σʳ ((W ⇑ p) ⇓ q)
 
-  right-tag-less-ground-catchup-↑L :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ M W A B B′ G p q c p★ pB} →
-    Ground G →
-    StoreWf 0 Ψˡ Σˡ →
-    StoreWf 0 Ψʳ Σʳ →
-    Value (M ↑ c) →
-    Value W →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ M (W ⇑ A⊑★ p) A ★ →
-    0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↑ˢ B′ →
-    Ψˡ ∣ [] ⊢ p★ ⦂ B′ ⊑ ★ →
-    Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
-    Ψˡ ∣ [] ⊢ pB ⦂ B′ ⊑ B →
-    (tgt⊑ p ≡ tgt⊑ q) ×
-    Catchup Ψˡ Σˡ (M ↑ c) B′ B Ψʳ Σʳ ((W ⇑ p) ⇓ q)
-
 right-tag-less-ground-catchup-other :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V W A B G p q pB} →
   Ground G →
@@ -465,12 +450,8 @@ right-tag-less-ground-catchup-other g wfΣˡ wfΣʳ vV vW
   (⊑⇓L rel p⊢ p★⊢) q⊢ pB⊢ =
   right-tag-less-ground-catchup-⇓L
     g wfΣˡ wfΣʳ vV vW rel p⊢ p★⊢ q⊢ pB⊢
-right-tag-less-ground-catchup-other g wfΣˡ wfΣʳ vV vW
-  (⊑↑L rel c⊢ p★⊢) q⊢ pB⊢ =
-  right-tag-less-ground-catchup-↑L
-    g wfΣˡ wfΣʳ vV vW rel c⊢ p★⊢ q⊢ pB⊢
 right-tag-less-ground-catchup-other g wfΣˡ wfΣʳ () vW
-  (⊑blameR hM p⊢) q⊢ pB⊢
+  (⊑blameL hM p⊢) q⊢ pB⊢
 
 right-tag-less-ground-catchup :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V W A B G p q pB} →
@@ -831,28 +812,6 @@ left-value-right-catchup
   multi-trans (reveal-↠ M′↠V′) V′↑↠W′ ,
   V↑⊑W′
 left-value-right-catchup
-  wfΣˡ wfΣʳ (vV ↑ revealV) (⊑↑L rel c⊢ pB⊢)
-    with left-value-right-catchup wfΣˡ wfΣʳ vV rel
-left-value-right-catchup
-  wfΣˡ wfΣʳ (vV ↑ revealV) (⊑↑L rel c⊢ pB⊢)
-  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , V⊑V′ =
-  Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ ,
-  ⊑↑L V⊑V′ c⊢ pB⊢
-left-value-right-catchup
-  wfΣˡ wfΣʳ vV (⊑↑R rel c′⊢ pB⊢)
-    with left-value-right-catchup wfΣˡ wfΣʳ vV rel
-left-value-right-catchup
-  wfΣˡ wfΣʳ vV (⊑↑R rel c′⊢ pB⊢)
-  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , V⊑V′
-    with right-extra-reveal-catchup wfΣˡ wfΣʳ′ vV vV′ V⊑V′ c′⊢ pB⊢
-left-value-right-catchup
-  wfΣˡ wfΣʳ vV (⊑↑R rel c′⊢ pB⊢)
-  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , V⊑V′
-  | Ψʳ″ , Σʳ″ , wfΣʳ″ , W′ , vW′ , V′↑↠W′ , V⊑W′ =
-  Ψʳ″ , Σʳ″ , wfΣʳ″ , W′ , vW′ ,
-  multi-trans (reveal-↠ M′↠V′) V′↑↠W′ ,
-  V⊑W′
-left-value-right-catchup
   wfΣˡ wfΣʳ (vV ↓ concealV) (⊑↓ rel c⊢ c′⊢ pB⊢)
     with left-value-right-catchup wfΣˡ wfΣʳ vV rel
 left-value-right-catchup
@@ -866,7 +825,7 @@ left-value-right-catchup
   Ψʳ″ , Σʳ″ , wfΣʳ″ , W′ , vW′ ,
   multi-trans (conceal-↠ M′↠V′) V′↓↠W′ ,
   V↓⊑W′
-left-value-right-catchup wfΣˡ wfΣʳ () (⊑blameR hM p⊢)
+left-value-right-catchup wfΣˡ wfΣʳ () (⊑blameL hM p⊢)
 
 postulate
   right-value-left-catchup-or-blame :

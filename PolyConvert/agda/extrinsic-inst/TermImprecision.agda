@@ -214,18 +214,6 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
     TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
     E ⊢ (M ↑ c) ⊑ (M′ ↑ c′) ⦂ B ⊑ B′
 
-  ⊑↑L : ∀ {M M′ A A′ B c pB} →
-    E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
-    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ⊢ c ⦂ A ↑ˢ B →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ A′ →
-    E ⊢ (M ↑ c) ⊑ M′ ⦂ B ⊑ A′
-
-  ⊑↑R : ∀ {M M′ A A′ B′ c′ pB} →
-    E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
-    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ⊢ c′ ⦂ A′ ↑ˢ B′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ A ⊑ B′ →
-    E ⊢ M ⊑ (M′ ↑ c′) ⦂ A ⊑ B′
-
   ⊑↓ : ∀ {M M′ A A′ B B′ c c′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ⊢ c ⦂ A ↓ˢ B →
@@ -233,7 +221,7 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
     TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
     E ⊢ (M ↓ c) ⊑ (M′ ↓ c′) ⦂ B ⊑ B′
 
-  ⊑blameR : ∀ {M A B p ℓ} →
+  ⊑blameL : ∀ {M A B p ℓ} →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ∣
       rightCtx (TPEnv.Γ E) ⊢ M ⦂ B →
     TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B →
@@ -277,10 +265,8 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
 ⊑-left-typed (⊑⇓L rel p⊢ pB⊢) = ⊢down p⊢ (⊑-left-typed rel)
 ⊑-left-typed (⊑⇓R rel p′⊢ pB⊢) = ⊑-left-typed rel
 ⊑-left-typed (⊑↑ rel c⊢ c′⊢ pB⊢) = ⊢reveal c⊢ (⊑-left-typed rel)
-⊑-left-typed (⊑↑L rel c⊢ pB⊢) = ⊢reveal c⊢ (⊑-left-typed rel)
-⊑-left-typed (⊑↑R rel c′⊢ pB⊢) = ⊑-left-typed rel
 ⊑-left-typed (⊑↓ rel c⊢ c′⊢ pB⊢) = ⊢conceal c⊢ (⊑-left-typed rel)
-⊑-left-typed (⊑blameR hM p⊢) = ⊢blame _
+⊑-left-typed (⊑blameL hM p⊢) = ⊢blame _
 
 ⊑-right-typed :
   ∀ {E M M′ A B} →
@@ -307,10 +293,8 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
 ⊑-right-typed (⊑⇓L rel p⊢ pB⊢) = ⊑-right-typed rel
 ⊑-right-typed (⊑⇓R rel p′⊢ pB⊢) = ⊢down p′⊢ (⊑-right-typed rel)
 ⊑-right-typed (⊑↑ rel c⊢ c′⊢ pB⊢) = ⊢reveal c′⊢ (⊑-right-typed rel)
-⊑-right-typed (⊑↑L rel c⊢ pB⊢) = ⊑-right-typed rel
-⊑-right-typed (⊑↑R rel c′⊢ pB⊢) = ⊢reveal c′⊢ (⊑-right-typed rel)
 ⊑-right-typed (⊑↓ rel c⊢ c′⊢ pB⊢) = ⊢conceal c′⊢ (⊑-right-typed rel)
-⊑-right-typed (⊑blameR hM p⊢) = hM
+⊑-right-typed (⊑blameL hM p⊢) = hM
 
 ⊑-type-imprecision :
   ∀ {E M M′ A B} →
@@ -335,7 +319,5 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
 ⊑-type-imprecision (⊑⇓L rel p⊢ pB⊢) = _ , pB⊢
 ⊑-type-imprecision (⊑⇓R rel p′⊢ pB⊢) = _ , pB⊢
 ⊑-type-imprecision (⊑↑ rel c⊢ c′⊢ pB⊢) = _ , pB⊢
-⊑-type-imprecision (⊑↑L rel c⊢ pB⊢) = _ , pB⊢
-⊑-type-imprecision (⊑↑R rel c′⊢ pB⊢) = _ , pB⊢
 ⊑-type-imprecision (⊑↓ rel c⊢ c′⊢ pB⊢) = _ , pB⊢
-⊑-type-imprecision (⊑blameR hM p⊢) = _ , p⊢
+⊑-type-imprecision (⊑blameL hM p⊢) = _ , p⊢

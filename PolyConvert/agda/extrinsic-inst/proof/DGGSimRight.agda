@@ -186,45 +186,41 @@ sim-right :
   TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B →
   Σʳ ∣ M′ —→ Σʳ′ ∣ N′ →
   SimRightResult Ψˡ Σˡ M Σʳ′ N′ A B
-sim-right wfΣˡ wfΣʳ (⊑blameR M′⊢ p⊢) red =
+sim-right wfΣˡ wfΣʳ (⊑blameL M′⊢ p⊢) red =
   sim-right-blameR wfΣˡ wfΣʳ M′⊢ red
-sim-right wfΣˡ wfΣʳ (⊑· (⊑blameR {ℓ = ℓ} L′⊢ p⊢) relM)
+sim-right wfΣˡ wfΣʳ (⊑· (⊑blameL {ℓ = ℓ} L′⊢ p⊢) relM)
     (pure-step blame-·₁) =
   inj₂ (appL-blames (blame-blames {ℓ = ℓ}))
 sim-right wfΣˡ wfΣʳ
-    (⊑⦂∀ (⊑blameR {ℓ = ℓ} M′⊢ p⊢) wfA wfB wfT pT⊢)
+    (⊑⦂∀ (⊑blameL {ℓ = ℓ} M′⊢ p⊢) wfA wfB wfT pT⊢)
     (pure-step blame-·α) =
   inj₂ (tyapp-blames (blame-blames {ℓ = ℓ}))
 sim-right wfΣˡ wfΣʳ
-    (⊑⇑ (⊑blameR {ℓ = ℓ} M′⊢ p⊢) p⊢′ p′⊢ pB⊢)
+    (⊑⇑ (⊑blameL {ℓ = ℓ} M′⊢ p⊢) p⊢′ p′⊢ pB⊢)
     (pure-step blame-up) =
   inj₂ (up-blames (blame-blames {ℓ = ℓ}))
 sim-right wfΣˡ wfΣʳ
-    (⊑⇑R (⊑blameR {ℓ = ℓ} M′⊢ p⊢) p′⊢ pB⊢)
+    (⊑⇑R (⊑blameL {ℓ = ℓ} M′⊢ p⊢) p′⊢ pB⊢)
     (pure-step blame-up) =
   inj₂ (blame-blames {ℓ = ℓ})
 sim-right wfΣˡ wfΣʳ
-    (⊑⇓ (⊑blameR {ℓ = ℓ} M′⊢ p⊢) p⊢′ p′⊢ pB⊢)
+    (⊑⇓ (⊑blameL {ℓ = ℓ} M′⊢ p⊢) p⊢′ p′⊢ pB⊢)
     (pure-step blame-down) =
   inj₂ (down-blames (blame-blames {ℓ = ℓ}))
 sim-right wfΣˡ wfΣʳ
-    (⊑⇓R (⊑blameR {ℓ = ℓ} M′⊢ p⊢) p′⊢ pB⊢)
+    (⊑⇓R (⊑blameL {ℓ = ℓ} M′⊢ p⊢) p′⊢ pB⊢)
     (pure-step blame-down) =
   inj₂ (blame-blames {ℓ = ℓ})
 sim-right wfΣˡ wfΣʳ
-    (⊑↑ (⊑blameR {ℓ = ℓ} M′⊢ p⊢) c⊢ c′⊢ pB⊢)
+    (⊑↑ (⊑blameL {ℓ = ℓ} M′⊢ p⊢) c⊢ c′⊢ pB⊢)
     (pure-step blame-reveal) =
   inj₂ (reveal-blames (blame-blames {ℓ = ℓ}))
 sim-right wfΣˡ wfΣʳ
-    (⊑↑R (⊑blameR {ℓ = ℓ} M′⊢ p⊢) c′⊢ pB⊢)
-    (pure-step blame-reveal) =
-  inj₂ (blame-blames {ℓ = ℓ})
-sim-right wfΣˡ wfΣʳ
-    (⊑↓ (⊑blameR {ℓ = ℓ} M′⊢ p⊢) c⊢ c′⊢ pB⊢)
+    (⊑↓ (⊑blameL {ℓ = ℓ} M′⊢ p⊢) c⊢ c′⊢ pB⊢)
     (pure-step blame-conceal) =
   inj₂ (conceal-blames (blame-blames {ℓ = ℓ}))
 sim-right wfΣˡ wfΣʳ
-    (⊑⊕ {op = op} (⊑blameR {ℓ = ℓ} L′⊢ p⊢) relM)
+    (⊑⊕ {op = op} (⊑blameL {ℓ = ℓ} L′⊢ p⊢) relM)
     (pure-step blame-⊕₁) =
   inj₂ (_ , ℓ ,
     ((blame ℓ ⊕[ op ] _)

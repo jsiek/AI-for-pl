@@ -203,15 +203,11 @@ renameˣ-⊑ hρ (⊑⇓R rel p′⊢ pB⊢) =
   ⊑⇓R (renameˣ-⊑ hρ rel) p′⊢ pB⊢
 renameˣ-⊑ hρ (⊑↑ rel c⊢ c′⊢ pB⊢) =
   ⊑↑ (renameˣ-⊑ hρ rel) c⊢ c′⊢ pB⊢
-renameˣ-⊑ hρ (⊑↑L rel c⊢ pB⊢) =
-  ⊑↑L (renameˣ-⊑ hρ rel) c⊢ pB⊢
-renameˣ-⊑ hρ (⊑↑R rel c′⊢ pB⊢) =
-  ⊑↑R (renameˣ-⊑ hρ rel) c′⊢ pB⊢
 renameˣ-⊑ hρ (⊑↓ rel c⊢ c′⊢ pB⊢) =
   ⊑↓ (renameˣ-⊑ hρ rel) c⊢ c′⊢ pB⊢
 renameˣ-⊑ {E = E} {Γ′ = Γ′} {ρ = ρ} hρ
-  (⊑blameR {p = p} {ℓ = ℓ} hM p⊢) =
-  ⊑blameR {p = p} {ℓ = ℓ}
+  (⊑blameL {p = p} {ℓ = ℓ} hM p⊢) =
+  ⊑blameL {p = p} {ℓ = ℓ}
     (renameˣᵐ-wt ρ (renameᴾ-right-wt {E = E} {Γ′ = Γ′} hρ) hM) p⊢
 
 Substᴾ : (E : TPEnv) → PCtx (TPEnv.Δ E) (TPEnv.Ψ E) →
@@ -476,20 +472,14 @@ mutual
       (rename↑-raise-wt k eqΣ c⊢)
       (rename↑-raise-wt k eqΣ c′⊢)
       (wkImp-plains k pB⊢)
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑↑L rel c⊢ pB⊢) =
-    ⊑↑L (renameᵗ-raise-⊑ k eqΣ hΓ rel)
-      (rename↑-raise-wt k eqΣ c⊢) (wkImp-plains k pB⊢)
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑↑R rel c′⊢ pB⊢) =
-    ⊑↑R (renameᵗ-raise-⊑ k eqΣ hΓ rel)
-      (rename↑-raise-wt k eqΣ c′⊢) (wkImp-plains k pB⊢)
   renameᵗ-raise-⊑ k eqΣ hΓ (⊑↓ rel c⊢ c′⊢ pB⊢) =
     ⊑↓ (renameᵗ-raise-⊑ k eqΣ hΓ rel)
       (rename↓-raise-wt k eqΣ c⊢)
       (rename↓-raise-wt k eqΣ c′⊢)
       (wkImp-plains k pB⊢)
   renameᵗ-raise-⊑ k {Σ = Σ} {M′ = M′} eqΣ hΓ
-    (⊑blameR {p = p} {ℓ = ℓ} hM p⊢) =
-    ⊑blameR {p = renameImp (raiseVarFrom k) p} {ℓ = ℓ}
+    (⊑blameL {p = p} {ℓ = ℓ} hM p⊢) =
+    ⊑blameL {p = renameImp (raiseVarFrom k) p} {ℓ = ℓ}
       (cong-⊢⦂
         (sym eqΣ)
         refl
@@ -557,14 +547,10 @@ substᴾ-⊑ hσ (⊑⇓R rel p′⊢ pB⊢) =
   ⊑⇓R (substᴾ-⊑ hσ rel) p′⊢ pB⊢
 substᴾ-⊑ hσ (⊑↑ rel c⊢ c′⊢ pB⊢) =
   ⊑↑ (substᴾ-⊑ hσ rel) c⊢ c′⊢ pB⊢
-substᴾ-⊑ hσ (⊑↑L rel c⊢ pB⊢) =
-  ⊑↑L (substᴾ-⊑ hσ rel) c⊢ pB⊢
-substᴾ-⊑ hσ (⊑↑R rel c′⊢ pB⊢) =
-  ⊑↑R (substᴾ-⊑ hσ rel) c′⊢ pB⊢
 substᴾ-⊑ hσ (⊑↓ rel c⊢ c′⊢ pB⊢) =
   ⊑↓ (substᴾ-⊑ hσ rel) c⊢ c′⊢ pB⊢
-substᴾ-⊑ hσ (⊑blameR hM p⊢) =
-  ⊑blameR (substˣ-wt _ (substᴾ-right-wt hσ) hM) p⊢
+substᴾ-⊑ hσ (⊑blameL hM p⊢) =
+  ⊑blameL (substˣ-wt _ (substᴾ-right-wt hσ) hM) p⊢
 
 singleSubstᴾ :
   ∀ {E A A′ W W′ p p⊢} →
@@ -713,20 +699,14 @@ wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ (⊑↑ rel c⊢ c′⊢ pB⊢) =
     (wk-conv↑ Ψ≤Ψ′ wΣ c⊢)
     (wk-conv↑ Ψ≤Ψ′ wΣ c′⊢)
     (wk-⊑ Ψ≤Ψ′ pB⊢)
-wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ (⊑↑L rel c⊢ pB⊢) =
-  ⊑↑L (wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ rel)
-    (wk-conv↑ Ψ≤Ψ′ wΣ c⊢) (wk-⊑ Ψ≤Ψ′ pB⊢)
-wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ (⊑↑R rel c′⊢ pB⊢) =
-  ⊑↑R (wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ rel)
-    (wk-conv↑ Ψ≤Ψ′ wΣ c′⊢) (wk-⊑ Ψ≤Ψ′ pB⊢)
 wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ (⊑↓ rel c⊢ c′⊢ pB⊢) =
   ⊑↓ (wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ rel)
     (wk-conv↓ Ψ≤Ψ′ wΣ c⊢)
     (wk-conv↓ Ψ≤Ψ′ wΣ c′⊢)
     (wk-⊑ Ψ≤Ψ′ pB⊢)
 wk-rel-⊑ {E = E} {Γ′ = Γ′} Ψ≤Ψ′ wΣ hΓ
- (⊑blameR {M = M} {p = p} {ℓ = ℓ} hM p⊢) =
-  ⊑blameR {p = p} {ℓ = ℓ}
+ (⊑blameL {M = M} {p = p} {ℓ = ℓ} hM p⊢) =
+  ⊑blameL {p = p} {ℓ = ℓ}
     (cong-⊢⦂ refl refl (renameˣᵐ-id (λ x → x) (λ x → refl) M) refl
       (renameˣᵐ-wt (λ x → x)
         (WkPCtxMap-right-wt {Γ = TPEnv.Γ E} {Γ′ = Γ′}

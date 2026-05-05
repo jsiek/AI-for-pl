@@ -224,10 +224,6 @@ sim-right wfΣˡ wfΣʳ
     (pure-step blame-conceal) =
   inj₂ (conceal-blames (blame-blames {ℓ = ℓ}))
 sim-right wfΣˡ wfΣʳ
-    (⊑↓R (⊑blameR {ℓ = ℓ} M′⊢ p⊢) c′⊢ pB⊢)
-    (pure-step blame-conceal) =
-  inj₂ (blame-blames {ℓ = ℓ})
-sim-right wfΣˡ wfΣʳ
     (⊑⊕ {op = op} (⊑blameR {ℓ = ℓ} L′⊢ p⊢) relM)
     (pure-step blame-⊕₁) =
   inj₂ (_ , ℓ ,

@@ -8,7 +8,8 @@ module proof.DGGCatchup where
 open import Data.List using ([])
 open import Data.Product using (_×_; ∃-syntax; _,_)
 open import Data.Sum using (_⊎_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; subst; sym; trans)
 
 open import Types
 open import Imprecision
@@ -124,56 +125,174 @@ right-extra-up-catchup wfΣˡ wfΣʳ vV vV′ rel (⊑-ν wfB occ p′⊢) pB⊢
     (⊑-ν wfB occ p′⊢) pB⊢
 
 postulate
-  right-extra-up-catchup-left :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B B′ p p′ pB} →
+  right-extra-up-catchup-left-ν :
+    ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B B′ Bν p pν pB} →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
-    Value V →
+    Value (V ⇑ p) →
     Value V′ →
     TermRel Ψˡ Σˡ Ψʳ Σʳ V V′ A A′ →
     Ψˡ ∣ [] ⊢ p ⦂ A ⊑ B →
-    Ψˡ ∣ [] ⊢ p′ ⦂ A′ ⊑ B′ →
+    Ψˡ ∣ [] ⊢ `∀A⊑B Bν pν ⦂ A′ ⊑ B′ →
     Ψˡ ∣ [] ⊢ pB ⦂ B ⊑ B′ →
-    Catchup Ψˡ Σˡ (V ⇑ p) B B′ Ψʳ Σʳ (V′ ⇑ p′)
+    Catchup Ψˡ Σˡ (V ⇑ p) B B′ Ψʳ Σʳ (V′ ⇑ `∀A⊑B Bν pν)
 
-postulate
-  right-tag-less-ground-catchup-⇑R-core :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ V W A A′ B G H p q pB} →
-    Ground H →
-    Ground G →
-    tgt⊑ p ≡ tgt⊑ q →
-    Value V →
-    Value W →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ V W A A′ →
-    Ψˡ ∣ [] ⊢ p ⦂ A′ ⊑ H →
-    Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
-    Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B →
-    Catchup Ψˡ Σˡ V A B Ψʳ Σʳ ((W ⇑ p) ⇓ q)
+right-extra-up-catchup-left :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B B′ p p′ pB} →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value (V ⇑ p) →
+  Value V′ →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ V V′ A A′ →
+  Ψˡ ∣ [] ⊢ p ⦂ A ⊑ B →
+  Ψˡ ∣ [] ⊢ p′ ⦂ A′ ⊑ B′ →
+  Ψˡ ∣ [] ⊢ pB ⦂ B ⊑ B′ →
+  Catchup Ψˡ Σˡ (V ⇑ p) B B′ Ψʳ Σʳ (V′ ⇑ p′)
+right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊑-★★ pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
+  ((_ ⇑ ★⊑★) —→⟨ pure-step (id-up-★ vV′) ⟩ _ ∎) ,
+  ⊑⇑L rel p⊢ pB⊢
+right-extra-up-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-★ν ()) pB⊢
+right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-★ g p′⊢) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ tag) , ((_ ⇑ A⊑★ _) ∎) ,
+  ⊑⇑ rel p⊢ (⊑-★ g p′⊢) pB⊢
+right-extra-up-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-＇ ()) pB⊢
+right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-｀ wfα) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
+  ((_ ⇑ α⊑α _) —→⟨ pure-step (id-up-｀ vV′) ⟩ _ ∎) ,
+  ⊑⇑L rel p⊢ pB⊢
+right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊑-‵ pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
+  ((_ ⇑ ι⊑ι _) —→⟨ pure-step (id-up-‵ vV′) ⟩ _ ∎) ,
+  ⊑⇑L rel p⊢ pB⊢
+right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-⇒ p′⊢ q′⊢) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ (_↦_ {p = _} {q = _})) ,
+  ((_ ⇑ A⇒B⊑A′⇒B′ _ _) ∎) ,
+  ⊑⇑ rel p⊢ (⊑-⇒ p′⊢ q′⊢) pB⊢
+right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-∀ p′⊢) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ `∀) ,
+  ((_ ⇑ `∀A⊑∀B _) ∎) ,
+  ⊑⇑ rel p⊢ (⊑-∀ p′⊢) pB⊢
+right-extra-up-catchup-left
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-ν wfB occ p′⊢) pB⊢ =
+  right-extra-up-catchup-left-ν wfΣˡ wfΣʳ vVp vV′ rel p⊢
+    (⊑-ν wfB occ p′⊢) pB⊢
 
-  right-tag-less-ground-catchup-⇑-core :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ M W A A′ B B₀ G H p p₀ q pB} →
-    Ground H →
-    Ground G →
-    tgt⊑ p ≡ tgt⊑ q →
-    Value (M ⇑ p₀) →
-    Value W →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ M W A A′ →
-    Ψˡ ∣ [] ⊢ p₀ ⦂ A ⊑ B₀ →
-    Ψˡ ∣ [] ⊢ p ⦂ A′ ⊑ H →
-    Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
-    Ψˡ ∣ [] ⊢ pB ⦂ B₀ ⊑ B →
-    Catchup Ψˡ Σˡ (M ⇑ p₀) B₀ B Ψʳ Σʳ ((W ⇑ p) ⇓ q)
+right-ground-down-catchup :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B′ p′ pB} →
+  Ground A′ →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value V →
+  Value V′ →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ V V′ A A′ →
+  Ψˡ ∣ [] ⊢ p′ ⦂ A′ ⊒ B′ →
+  Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B′ →
+  Catchup Ψˡ Σˡ V A B′ Ψʳ Σʳ (V′ ⇓ p′)
+right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel ⊑-★★ pB⊢
+right-ground-down-catchup h wfΣˡ wfΣʳ vV vV′ rel (⊑-★ν ()) pB⊢
+right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel (⊑-★ g p′⊢) pB⊢
+right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel (⊑-＇ x∈) pB⊢
+right-ground-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  h wfΣˡ wfΣʳ vV vV′ rel (⊑-｀ wfα) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
+  ((_ ⇓ α⊑α _) —→⟨ pure-step (id-down-｀ vV′) ⟩ _ ∎) ,
+  rel
+right-ground-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  h wfΣˡ wfΣʳ vV vV′ rel ⊑-‵ pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
+  ((_ ⇓ ι⊑ι _) —→⟨ pure-step (id-down-‵ vV′) ⟩ _ ∎) ,
+  rel
+right-ground-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  h wfΣˡ wfΣʳ vV vV′ rel (⊑-⇒ p′⊢ q′⊢) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ (_↦_ {p = _} {q = _})) ,
+  ((_ ⇓ A⇒B⊑A′⇒B′ _ _) ∎) ,
+  ⊑⇓R rel (⊑-⇒ p′⊢ q′⊢) pB⊢
+right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel (⊑-∀ p′⊢) pB⊢
+right-ground-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  h wfΣˡ wfΣʳ vV vV′ rel (⊑-ν wfB occ p′⊢) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ ν_) ,
+  ((_ ⇓ `∀A⊑B _ _) ∎) ,
+  ⊑⇓R rel (⊑-ν wfB occ p′⊢) pB⊢
 
-  right-tag-less-ground-catchup-other :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ V W A B G p q pB} →
-    Ground G →
-    Value V →
-    Value W →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ V (W ⇑ A⊑★ p) A ★ →
-    Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
-    Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B →
-    (tgt⊑ p ≡ tgt⊑ q) ×
-    Catchup Ψˡ Σˡ V A B Ψʳ Σʳ ((W ⇑ p) ⇓ q)
+right-tag-less-ground-catchup-⇑R-core :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V W A A′ B G H p q pB} →
+  Ground H →
+  Ground G →
+  tgt⊑ p ≡ tgt⊑ q →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value V →
+  Value W →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ V W A A′ →
+  Ψˡ ∣ [] ⊢ p ⦂ A′ ⊑ H →
+  Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
+  Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B →
+  Catchup Ψˡ Σˡ V A B Ψʳ Σʳ ((W ⇑ p) ⇓ q)
+right-tag-less-ground-catchup-⇑R-core
+  h g tag-eq wfΣˡ wfΣʳ vV vW rel p⊢ q⊢ pB⊢
+    with ⊑-type-imprecision rel
+... | pA , pA⊢
+    with ⊑-trans pA⊢ p⊢
+... | pAH , pAH⊢
+    with right-extra-up-catchup wfΣˡ wfΣʳ vV vW rel p⊢ pAH⊢
+... | Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ , W⇑p↠W′ , V⊑W′
+    with right-ground-down-catchup h wfΣˡ wfΣʳ′ vV vW′ V⊑W′
+           qH⊢ pB⊢
+  where
+    H≡G =
+      trans (sym (tgt⊑-correct p⊢))
+        (trans tag-eq (tgt⊑-correct q⊢))
+    qH⊢ = subst (λ X → _ ∣ [] ⊢ _ ⦂ _ ⊑ X) (sym H≡G) q⊢
+... | Ψʳ″ , Σʳ″ , wfΣʳ″ , W″ , vW″ , W′⇓q↠W″ , V⊑W″ =
+  Ψʳ″ , Σʳ″ , wfΣʳ″ , W″ , vW″ ,
+  multi-trans (down-↠ W⇑p↠W′) W′⇓q↠W″ ,
+  V⊑W″
+
+right-tag-less-ground-catchup-⇑-core :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ M W A A′ B B₀ G H p p₀ q pB} →
+  Ground H →
+  Ground G →
+  tgt⊑ p ≡ tgt⊑ q →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value (M ⇑ p₀) →
+  Value W →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ M W A A′ →
+  Ψˡ ∣ [] ⊢ p₀ ⦂ A ⊑ B₀ →
+  Ψˡ ∣ [] ⊢ p ⦂ A′ ⊑ H →
+  Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
+  Ψˡ ∣ [] ⊢ pB ⦂ B₀ ⊑ B →
+  Catchup Ψˡ Σˡ (M ⇑ p₀) B₀ B Ψʳ Σʳ ((W ⇑ p) ⇓ q)
+right-tag-less-ground-catchup-⇑-core
+  h g tag-eq wfΣˡ wfΣʳ (vM ⇑ upV) vW rel p₀⊢ p⊢ q⊢ pB⊢
+    with ⊑-trans pB⊢ qH⊢
+  where
+    H≡G =
+      trans (sym (tgt⊑-correct p⊢))
+        (trans tag-eq (tgt⊑-correct q⊢))
+    qH⊢ = subst (λ X → _ ∣ [] ⊢ _ ⦂ _ ⊑ X) (sym H≡G) q⊢
+... | pB₀H , pB₀H⊢
+    with right-extra-up-catchup-left wfΣˡ wfΣʳ (vM ⇑ upV) vW rel
+           p₀⊢ p⊢ pB₀H⊢
+... | Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ , W⇑p↠W′ , M⇑p₀⊑W′
+    with right-ground-down-catchup h wfΣˡ wfΣʳ′ (vM ⇑ upV) vW′
+           M⇑p₀⊑W′ qH⊢ pB⊢
+  where
+    H≡G =
+      trans (sym (tgt⊑-correct p⊢))
+        (trans tag-eq (tgt⊑-correct q⊢))
+    qH⊢ = subst (λ X → _ ∣ [] ⊢ _ ⦂ _ ⊑ X) (sym H≡G) q⊢
+... | Ψʳ″ , Σʳ″ , wfΣʳ″ , W″ , vW″ , W′⇓q↠W″ , M⇑p₀⊑W″ =
+  Ψʳ″ , Σʳ″ , wfΣʳ″ , W″ , vW″ ,
+  multi-trans (down-↠ W⇑p↠W′) W′⇓q↠W″ ,
+  M⇑p₀⊑W″
 
 tag-eq-two-step :
   ∀ {Ψ A A′ B G H pA p q pB} →
@@ -253,9 +372,111 @@ tag-eq-from-ground-eq :
 tag-eq-from-ground-eq H≡G p⊢ q⊢ =
   trans (tgt⊑-correct p⊢) (trans H≡G (sym (tgt⊑-correct q⊢)))
 
+postulate
+  right-tag-less-ground-catchup-⇓L :
+    ∀ {Ψˡ Ψʳ Σˡ Σʳ M W A B B′ G p p₀ q p★ pB} →
+    Ground G →
+    StoreWf 0 Ψˡ Σˡ →
+    StoreWf 0 Ψʳ Σʳ →
+    Value (M ⇓ p₀) →
+    Value W →
+    TermRel Ψˡ Σˡ Ψʳ Σʳ M (W ⇑ A⊑★ p) A ★ →
+    Ψˡ ∣ [] ⊢ p₀ ⦂ A ⊒ B′ →
+    Ψˡ ∣ [] ⊢ p★ ⦂ B′ ⊑ ★ →
+    Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
+    Ψˡ ∣ [] ⊢ pB ⦂ B′ ⊑ B →
+    (tgt⊑ p ≡ tgt⊑ q) ×
+    Catchup Ψˡ Σˡ (M ⇓ p₀) B′ B Ψʳ Σʳ ((W ⇑ p) ⇓ q)
+
+  right-tag-less-ground-catchup-↑L :
+    ∀ {Ψˡ Ψʳ Σˡ Σʳ M W A B B′ G p q c p★ pB} →
+    Ground G →
+    StoreWf 0 Ψˡ Σˡ →
+    StoreWf 0 Ψʳ Σʳ →
+    Value (M ↑ c) →
+    Value W →
+    TermRel Ψˡ Σˡ Ψʳ Σʳ M (W ⇑ A⊑★ p) A ★ →
+    0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↑ˢ B′ →
+    Ψˡ ∣ [] ⊢ p★ ⦂ B′ ⊑ ★ →
+    Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
+    Ψˡ ∣ [] ⊢ pB ⦂ B′ ⊑ B →
+    (tgt⊑ p ≡ tgt⊑ q) ×
+    Catchup Ψˡ Σˡ (M ↑ c) B′ B Ψʳ Σʳ ((W ⇑ p) ⇓ q)
+
+right-tag-less-ground-catchup-other :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V W A B G p q pB} →
+  Ground G →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value V →
+  Value W →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ V (W ⇑ A⊑★ p) A ★ →
+  Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
+  Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B →
+  (tgt⊑ p ≡ tgt⊑ q) ×
+  Catchup Ψˡ Σˡ V A B Ψʳ Σʳ ((W ⇑ p) ⇓ q)
+right-tag-less-ground-catchup-other g wfΣˡ wfΣʳ () vW
+  (⊑⦂∀-ν rel wfA wfT pT⊢) q⊢ pB⊢
+right-tag-less-ground-catchup-other
+  {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  {W = W} {B = B} {G = G} {p = p} {q = q}
+  g wfΣˡ wfΣʳ vV vW
+  (⊑⇑ rel p₀⊢ (⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
+  tag-eq ,
+  right-tag-less-ground-catchup-⇑-core
+    {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+    {W = W} {B = B} {G = G} {H = H} {p = p} {q = q}
+    h g tag-eq wfΣˡ wfΣʳ vV vW rel p₀⊢ p⊢ q⊢ pB⊢
+  where
+    tag-eq =
+      right-tag-eq-⇑
+        {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+        {W = W} {B = B} {G = G} {H = H} {p = p} {q = q}
+        h g vV vW rel p₀⊢ p⊢ q⊢ pB⊢
+right-tag-less-ground-catchup-other
+  g wfΣˡ wfΣʳ (vM ⇑ upV) vW (⊑⇑L rel p⊢ pB⊢) q⊢ pAB⊢
+    with ⊑-trans p⊢ pAB⊢
+... | pA₀B , pA₀B⊢
+    with right-tag-less-ground-catchup-other
+           g wfΣˡ wfΣʳ vM vW rel q⊢ pA₀B⊢
+... | tag-eq , Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ , W↠W′ , M⊑W′ =
+  tag-eq ,
+  Ψʳ′ , Σʳ′ , wfΣʳ′ , W′ , vW′ , W↠W′ ,
+  ⊑⇑L M⊑W′ p⊢ pAB⊢
+right-tag-less-ground-catchup-other
+  {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  {V = V} {W = W} {A = A} {B = B} {G = G} {p = p} {q = q}
+  g wfΣˡ wfΣʳ vV vW
+  (⊑⇑R rel (⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
+  tag-eq ,
+  right-tag-less-ground-catchup-⇑R-core
+    {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+    {V = V} {W = W} {A = A} {B = B} {G = G} {H = H}
+    {p = p} {q = q}
+    h g tag-eq wfΣˡ wfΣʳ vV vW rel p⊢ q⊢ pB⊢
+  where
+    tag-eq =
+      right-tag-eq-⇑R
+        {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+        {V = V} {W = W} {A = A} {B = B} {G = G} {H = H}
+        {p = p} {q = q}
+        h g vV vW rel p⊢ q⊢ pB⊢
+right-tag-less-ground-catchup-other g wfΣˡ wfΣʳ vV vW
+  (⊑⇓L rel p⊢ p★⊢) q⊢ pB⊢ =
+  right-tag-less-ground-catchup-⇓L
+    g wfΣˡ wfΣʳ vV vW rel p⊢ p★⊢ q⊢ pB⊢
+right-tag-less-ground-catchup-other g wfΣˡ wfΣʳ vV vW
+  (⊑↑L rel c⊢ p★⊢) q⊢ pB⊢ =
+  right-tag-less-ground-catchup-↑L
+    g wfΣˡ wfΣʳ vV vW rel c⊢ p★⊢ q⊢ pB⊢
+right-tag-less-ground-catchup-other g wfΣˡ wfΣʳ () vW
+  (⊑blameR hM p⊢) q⊢ pB⊢
+
 right-tag-less-ground-catchup :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V W A B G p q pB} →
   Ground G →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
   Value V →
   Value W →
   TermRel Ψˡ Σˡ Ψʳ Σʳ V (W ⇑ A⊑★ p) A ★ →
@@ -266,14 +487,14 @@ right-tag-less-ground-catchup :
 right-tag-less-ground-catchup
   {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   {V = V} {W = W} {A = A} {B = B} {G = G} {p = p} {q = q}
-  g vV vW
+  g wfΣˡ wfΣʳ vV vW
   (⊑⇑R rel (⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
   tag-eq ,
   right-tag-less-ground-catchup-⇑R-core
     {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
     {V = V} {W = W} {A = A} {B = B} {G = G} {H = H}
     {p = p} {q = q}
-    h g tag-eq vV vW rel p⊢ q⊢ pB⊢
+    h g tag-eq wfΣˡ wfΣʳ vV vW rel p⊢ q⊢ pB⊢
   where
     tag-eq =
       right-tag-eq-⇑R
@@ -284,13 +505,13 @@ right-tag-less-ground-catchup
 right-tag-less-ground-catchup
   {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   {W = W} {B = B} {G = G} {p = p} {q = q}
-  g vV vW
+  g wfΣˡ wfΣʳ vV vW
   (⊑⇑ rel p₀⊢ (⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
   tag-eq ,
   right-tag-less-ground-catchup-⇑-core
     {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
     {W = W} {B = B} {G = G} {H = H} {p = p} {q = q}
-    h g tag-eq vV vW rel p₀⊢ p⊢ q⊢ pB⊢
+    h g tag-eq wfΣˡ wfΣʳ vV vW rel p₀⊢ p⊢ q⊢ pB⊢
   where
     tag-eq =
       right-tag-eq-⇑
@@ -300,11 +521,11 @@ right-tag-less-ground-catchup
 right-tag-less-ground-catchup
   {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   {V = V} {W = W} {A = A} {B = B} {G = G} {p = p} {q = q}
-  g vV vW rel q⊢ pB⊢ =
+  g wfΣˡ wfΣʳ vV vW rel q⊢ pB⊢ =
   right-tag-less-ground-catchup-other
     {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
     {V = V} {W = W} {A = A} {B = B} {G = G} {p = p} {q = q}
-    g vV vW rel q⊢ pB⊢
+    g wfΣˡ wfΣʳ vV vW rel q⊢ pB⊢
 
 right-extra-down-catchup-tag :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B′ p′ pB} →
@@ -333,7 +554,7 @@ right-extra-down-catchup-tag
         {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
         {V = V} {W = W′} {A = A} {B = B′} {G = G}
         {p = p} {q = q}
-        g vV vW′ rel q⊢ pB⊢
+        g wfΣˡ wfΣʳ vV vW′ rel q⊢ pB⊢
     result :
       Catchup Ψˡ Σˡ V A B′ Ψʳ Σʳ ((W′ ⇑ A⊑★ p) ⇓ A⊑★ q)
     result with tag-catchup
@@ -395,19 +616,57 @@ right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
   ((_ ⇓ `∀A⊑B _ _) ∎) ,
   ⊑⇓R rel (⊑-ν wfB occ p′⊢) pB⊢
 
-postulate
-  right-extra-down-catchup-left :
-    ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B B′ p p′ pB} →
-    StoreWf 0 Ψˡ Σˡ →
-    StoreWf 0 Ψʳ Σʳ →
-    Value V →
-    Value V′ →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ V V′ A A′ →
-    Ψˡ ∣ [] ⊢ p ⦂ A ⊒ B →
-    Ψˡ ∣ [] ⊢ p′ ⦂ A′ ⊒ B′ →
-    Ψˡ ∣ [] ⊢ pB ⦂ B ⊑ B′ →
-    Catchup Ψˡ Σˡ (V ⇓ p) B B′ Ψʳ Σʳ (V′ ⇓ p′)
+right-extra-down-catchup-left :
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B B′ p p′ pB} →
+  StoreWf 0 Ψˡ Σˡ →
+  StoreWf 0 Ψʳ Σʳ →
+  Value (V ⇓ p) →
+  Value V′ →
+  TermRel Ψˡ Σˡ Ψʳ Σʳ V V′ A A′ →
+  Ψˡ ∣ [] ⊢ p ⦂ A ⊒ B →
+  Ψˡ ∣ [] ⊢ p′ ⦂ A′ ⊒ B′ →
+  Ψˡ ∣ [] ⊢ pB ⦂ B ⊑ B′ →
+  Catchup Ψˡ Σˡ (V ⇓ p) B B′ Ψʳ Σʳ (V′ ⇓ p′)
+right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊑-★★ pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
+  ((_ ⇓ ★⊑★) —→⟨ pure-step (id-down-★ vV′) ⟩ _ ∎) ,
+  ⊑⇓L rel p⊢ pB⊢
+right-extra-down-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-★ν ()) pB⊢
+right-extra-down-catchup-left
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-★ g p′⊢) pB⊢
+    with ⊑-trans pB⊢ (⊑-★ g p′⊢)
+... | p★ , p★⊢ =
+  right-extra-down-catchup-tag wfΣˡ wfΣʳ vVp vV′
+    (⊑⇓L rel p⊢ p★⊢) (⊑-★ g p′⊢) pB⊢
+right-extra-down-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-＇ ()) pB⊢
+right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-｀ wfα) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
+  ((_ ⇓ α⊑α _) —→⟨ pure-step (id-down-｀ vV′) ⟩ _ ∎) ,
+  ⊑⇓L rel p⊢ pB⊢
+right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊑-‵ pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
+  ((_ ⇓ ι⊑ι _) —→⟨ pure-step (id-down-‵ vV′) ⟩ _ ∎) ,
+  ⊑⇓L rel p⊢ pB⊢
+right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-⇒ p′⊢ q′⊢) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ (_↦_ {p = _} {q = _})) ,
+  ((_ ⇓ A⇒B⊑A′⇒B′ _ _) ∎) ,
+  ⊑⇓ rel p⊢ (⊑-⇒ p′⊢ q′⊢) pB⊢
+right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-∀ p′⊢) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ `∀) ,
+  ((_ ⇓ `∀A⊑∀B _) ∎) ,
+  ⊑⇓ rel p⊢ (⊑-∀ p′⊢) pB⊢
+right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-ν wfB occ p′⊢) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ ν_) ,
+  ((_ ⇓ `∀A⊑B _ _) ∎) ,
+  ⊑⇓ rel p⊢ (⊑-ν wfB occ p′⊢) pB⊢
 
+postulate
   right-extra-reveal-catchup :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B′ c′ pB} →
     StoreWf 0 Ψˡ Σˡ →
@@ -488,7 +747,8 @@ left-value-right-catchup
   {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   wfΣˡ wfΣʳ (vV ⇑ upV) (⊑⇑ rel p⊢ p′⊢ pB⊢)
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , V⊑V′
-    with right-extra-up-catchup-left wfΣˡ wfΣʳ′ vV vV′ V⊑V′ p⊢ p′⊢ pB⊢
+    with right-extra-up-catchup-left wfΣˡ wfΣʳ′ (vV ⇑ upV) vV′
+           V⊑V′ p⊢ p′⊢ pB⊢
 left-value-right-catchup
   {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   wfΣˡ wfΣʳ (vV ⇑ upV) (⊑⇑ rel p⊢ p′⊢ pB⊢)
@@ -525,7 +785,8 @@ left-value-right-catchup
 left-value-right-catchup
   wfΣˡ wfΣʳ (vV ⇓ downV) (⊑⇓ rel p⊢ p′⊢ pB⊢)
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , V⊑V′
-    with right-extra-down-catchup-left wfΣˡ wfΣʳ′ vV vV′ V⊑V′ p⊢ p′⊢ pB⊢
+    with right-extra-down-catchup-left wfΣˡ wfΣʳ′ (vV ⇓ downV) vV′
+           V⊑V′ p⊢ p′⊢ pB⊢
 left-value-right-catchup
   wfΣˡ wfΣʳ (vV ⇓ downV) (⊑⇓ rel p⊢ p′⊢ pB⊢)
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , V⊑V′
@@ -605,28 +866,6 @@ left-value-right-catchup
   Ψʳ″ , Σʳ″ , wfΣʳ″ , W′ , vW′ ,
   multi-trans (conceal-↠ M′↠V′) V′↓↠W′ ,
   V↓⊑W′
-left-value-right-catchup
-  wfΣˡ wfΣʳ (vV ↓ concealV) (⊑↓L rel c⊢ pB⊢)
-    with left-value-right-catchup wfΣˡ wfΣʳ vV rel
-left-value-right-catchup
-  wfΣˡ wfΣʳ (vV ↓ concealV) (⊑↓L rel c⊢ pB⊢)
-  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , V⊑V′ =
-  Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ ,
-  ⊑↓L V⊑V′ c⊢ pB⊢
-left-value-right-catchup
-  wfΣˡ wfΣʳ vV (⊑↓R rel c′⊢ pB⊢)
-    with left-value-right-catchup wfΣˡ wfΣʳ vV rel
-left-value-right-catchup
-  wfΣˡ wfΣʳ vV (⊑↓R rel c′⊢ pB⊢)
-  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , V⊑V′
-    with right-extra-conceal-catchup wfΣˡ wfΣʳ′ vV vV′ V⊑V′ c′⊢ pB⊢
-left-value-right-catchup
-  wfΣˡ wfΣʳ vV (⊑↓R rel c′⊢ pB⊢)
-  | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , V⊑V′
-  | Ψʳ″ , Σʳ″ , wfΣʳ″ , W′ , vW′ , V′↓↠W′ , V⊑W′ =
-  Ψʳ″ , Σʳ″ , wfΣʳ″ , W′ , vW′ ,
-  multi-trans (conceal-↠ M′↠V′) V′↓↠W′ ,
-  V⊑W′
 left-value-right-catchup wfΣˡ wfΣʳ () (⊑blameR hM p⊢)
 
 postulate

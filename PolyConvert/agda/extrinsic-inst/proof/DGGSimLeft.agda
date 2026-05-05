@@ -110,25 +110,6 @@ sim-left-conceal-cong wfΣˡ wfΣʳ rel c⊢ c′⊢ pB⊢ redM
     (wk-conv↓ Ψ≤Ψ′ (store-growth redM) c′⊢)
     (wk-⊑ Ψ≤Ψ′ pB⊢)
 
-sim-left-concealL-cong :
-  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A A′ B c pB} →
-  StoreWf 0 Ψˡ Σˡ →
-  StoreWf 0 Ψʳ Σʳ →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A A′ →
-  0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↓ˢ B →
-  Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ A′ →
-  Σˡ ∣ M —→ Σˡ′ ∣ N →
-  SimLeftResult Ψˡ Σˡ M′ Σʳ Σˡ′ (N ↓ c) B A′
-sim-left-concealL-cong wfΣˡ wfΣʳ rel c⊢ pB⊢ redM
-    with sim-left-with-≤ wfΣˡ wfΣʳ rel redM
-... | Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ , N′ ,
-      M′↠N′ , rel′ =
-  Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ ,
-  N′ , M′↠N′ ,
-  ⊑↓L rel′
-    (wk-conv↓ Ψ≤Ψ′ (store-growth redM) c⊢)
-    (wk-⊑ Ψ≤Ψ′ pB⊢)
-
 sim-left :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} →
   StoreWf 0 Ψˡ Σˡ →
@@ -259,8 +240,6 @@ sim-left wfΣˡ wfΣʳ (⊑↑L rel c⊢ pB⊢) (ξ-↑ redM) =
   sim-left-revealL-cong wfΣˡ wfΣʳ rel c⊢ pB⊢ redM
 sim-left wfΣˡ wfΣʳ (⊑↓ rel c⊢ c′⊢ pB⊢) (ξ-↓ redM) =
   sim-left-conceal-cong wfΣˡ wfΣʳ rel c⊢ c′⊢ pB⊢ redM
-sim-left wfΣˡ wfΣʳ (⊑↓L rel c⊢ pB⊢) (ξ-↓ redM) =
-  sim-left-concealL-cong wfΣˡ wfΣʳ rel c⊢ pB⊢ redM
 sim-left wfΣˡ wfΣʳ rel red = sim-left-rest wfΣˡ wfΣʳ rel red
 
 sim-left* :

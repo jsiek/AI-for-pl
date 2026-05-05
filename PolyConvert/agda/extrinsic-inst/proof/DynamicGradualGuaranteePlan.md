@@ -123,8 +123,8 @@ Where recursion or induction is needed:
 - `sim-left-beta`, `sim-left-beta-up-app`, `sim-left-beta-down-app`,
   `sim-left-beta-reveal-app`, and `sim-left-beta-conceal-app` should be a
   mutual recursive family over the function-value imprecision derivation. The
-  recursive calls peel one right-side wrapper relation (`⊑⇑R`, `⊑⇓R`, `⊑↑R`,
-  `⊑↓R`) or one matching two-sided wrapper relation, then call the same
+  recursive calls peel one right-side wrapper relation (`⊑⇑R`, `⊑⇓R`, `⊑↑R`)
+  or one matching two-sided wrapper relation (`⊑↓` for conceal), then call the same
   beta-family lemma on the inner relation.
 - Ordinary lambda beta needs a substitution lemma for term imprecision:
   `subst-⊑` or `[]-⊑`, proved by induction on the body-imprecision derivation.
@@ -183,8 +183,8 @@ Where recursion or induction is needed for type application:
   `sim-left-beta-down-ν`, `sim-left-beta-up-ν`,
   `sim-left-beta-reveal-∀`, and `sim-left-beta-conceal-∀` should form a
   mutual recursive family over polymorphic-value imprecision. The recursive
-  calls peel right-side wrappers (`⊑⇑R`, `⊑⇓R`, `⊑↑R`, `⊑↓R`) or matching
-  two-sided wrappers, just as the function beta-family does.
+  calls peel right-side wrappers (`⊑⇑R`, `⊑⇓R`, `⊑↑R`) or matching
+  two-sided wrappers (`⊑↓` for conceal), just as the function beta-family does.
 - The ordinary `Λ` case needs type-substitution/opening preservation for term
   imprecision, plus compatibility with the conversion inserted by `β-Λ`.
 - The `∀` imprecision cases need instantiation lemmas for raw `Imp` evidence:

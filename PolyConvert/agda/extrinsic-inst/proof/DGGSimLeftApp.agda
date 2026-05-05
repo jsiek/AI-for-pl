@@ -258,8 +258,6 @@ sim-left-beta-app wfΣˡ wfΣʳ vW (⊑⇓R rel p′⊢ pB⊢) relW =
   sim-left-beta-app-rest wfΣˡ wfΣʳ vW (⊑⇓R rel p′⊢ pB⊢) relW
 sim-left-beta-app wfΣˡ wfΣʳ vW (⊑↑R rel c′⊢ pB⊢) relW =
   sim-left-beta-app-rest wfΣˡ wfΣʳ vW (⊑↑R rel c′⊢ pB⊢) relW
-sim-left-beta-app wfΣˡ wfΣʳ vW (⊑↓R rel c′⊢ pB⊢) relW =
-  sim-left-beta-app-rest wfΣˡ wfΣʳ vW (⊑↓R rel c′⊢ pB⊢) relW
 
 postulate
   sim-left-beta-up-app :

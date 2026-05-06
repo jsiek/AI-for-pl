@@ -34,17 +34,22 @@ PCtx : TyCtx → SealCtx → Set
 PCtx Δ Ψ = List (Prec Δ Ψ)
 
 record TPEnv : Set where
-  constructor ⟪_,_,_,_⟫
+  constructor ⟪_,_,_,_,_,_⟫
   field
     Δ : TyCtx
+    -- Left seal/store world. Imprecision evidence is stated in this world.
     Ψ : SealCtx
     store : Store
+    -- Right seal/store world. The less precise endpoint is typed here.
+    Ψʳ : SealCtx
+    storeʳ : Store
     Γ : PCtx Δ Ψ
 open TPEnv public
 
 extendᴾ : (E : TPEnv) → Prec (TPEnv.Δ E) (TPEnv.Ψ E) → TPEnv
 extendᴾ E P =
-  ⟪ TPEnv.Δ E , TPEnv.Ψ E , TPEnv.store E , P ∷ TPEnv.Γ E ⟫
+  ⟪ TPEnv.Δ E , TPEnv.Ψ E , TPEnv.store E ,
+    TPEnv.Ψʳ E , TPEnv.storeʳ E , P ∷ TPEnv.Γ E ⟫
 
 leftTy : ∀ {Δ Ψ} → Prec Δ Ψ → Ty
 leftTy (A , B , p , p⊢) = A
@@ -111,6 +116,7 @@ rightCtx-⇑ᵗᴾ ((A , B , p , p⊢) ∷ Γ) =
 ⇑ᵗᴱ : TPEnv → TPEnv
 ⇑ᵗᴱ E =
   ⟪ suc (TPEnv.Δ E) , TPEnv.Ψ E , ⟰ᵗ (TPEnv.store E) ,
+    TPEnv.Ψʳ E , ⟰ᵗ (TPEnv.storeʳ E) ,
     ⇑ᵗᴾ (TPEnv.Γ E) ⟫
 
 ------------------------------------------------------------------------

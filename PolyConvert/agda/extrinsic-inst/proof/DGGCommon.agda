@@ -3,7 +3,8 @@ module proof.DGGCommon where
 -- File Charter:
 --   * Shared observations and relation abbreviations for the PolyConvert DGG
 --     proof skeleton.
---   * Keeps proof modules independent from `MetaTheory` to avoid import cycles.
+--   * Keeps proof modules independent from `GradualGuarantee` to avoid import
+--     cycles.
 --   * No simulation proof obligations live here.
 
 open import Data.List using ([]; length)
@@ -29,14 +30,10 @@ record SimWorld : Set where
 
 open SimWorld public
 
-TermRel :
-  SealCtx → Store → SealCtx → Store → Term → Term → Ty → Ty → Set
-TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B =
-  ⟪ 0 , Ψˡ , Σˡ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B
-
 WorldRel : SimWorld → Term → Term → Ty → Ty → Set
-WorldRel W =
-  TermRel (Ψˡ W) (Σˡ W) (Ψʳ W) (Σʳ W)
+WorldRel W M M′ A B =
+  ⟪ 0 , Ψˡ W , Σˡ W , Ψʳ W , Σʳ W , [] ⟫
+    ⊢ M ⊑ M′ ⦂ A ⊑ B
 
 Blame : Term → Set
 Blame M = ∃[ ℓ ] (M ≡ blame ℓ)

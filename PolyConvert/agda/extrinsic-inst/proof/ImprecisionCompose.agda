@@ -65,6 +65,29 @@ wf-length-cast :
 wf-length-cast Γ≤Γ′ wfA =
   subst (λ Δ → WfTy Δ _ _) (≤ᵢ-length Γ≤Γ′) wfA
 
+mode-weaken-⊑ :
+  ∀ {Ψ Γ Γ′ p A B} →
+  Γ ≤ᵢ Γ′ →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
+  Ψ ∣ Γ′ ⊢ p ⦂ A ⊑ B
+mode-weaken-⊑ Γ≤Γ′ ⊑-★★ = ⊑-★★
+mode-weaken-⊑ Γ≤Γ′ (⊑-★ν xν) =
+  ⊑-★ν (≤ᵢ-ν-lookup Γ≤Γ′ xν)
+mode-weaken-⊑ Γ≤Γ′ (⊑-★ g p⊢) =
+  ⊑-★ g (mode-weaken-⊑ Γ≤Γ′ p⊢)
+mode-weaken-⊑ Γ≤Γ′ (⊑-＇ wfX) =
+  ⊑-＇ (wf-length-cast Γ≤Γ′ wfX)
+mode-weaken-⊑ Γ≤Γ′ (⊑-｀ wfα) =
+  ⊑-｀ (wf-length-cast Γ≤Γ′ wfα)
+mode-weaken-⊑ Γ≤Γ′ ⊑-‵ = ⊑-‵
+mode-weaken-⊑ Γ≤Γ′ (⊑-⇒ p⊢ q⊢) =
+  ⊑-⇒ (mode-weaken-⊑ Γ≤Γ′ p⊢) (mode-weaken-⊑ Γ≤Γ′ q⊢)
+mode-weaken-⊑ Γ≤Γ′ (⊑-∀ p⊢) =
+  ⊑-∀ (mode-weaken-⊑ (plain≤plain ∷≤ᵢ Γ≤Γ′) p⊢)
+mode-weaken-⊑ Γ≤Γ′ (⊑-ν wfB p⊢) =
+  ⊑-ν (wf-length-cast Γ≤Γ′ wfB)
+    (mode-weaken-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢)
+
 ------------------------------------------------------------------------
 -- Occurrence inversion for plain variables
 ------------------------------------------------------------------------
@@ -86,7 +109,7 @@ plain-target-occurs-source :
 plain-target-occurs-source x∈ ⊑-★★ ()
 plain-target-occurs-source x∈ (⊑-★ν xν) ()
 plain-target-occurs-source x∈ (⊑-★ g p⊢) ()
-plain-target-occurs-source x∈ (⊑-＇ y∈) occ = occ
+plain-target-occurs-source x∈ (⊑-＇ wfY) occ = occ
 plain-target-occurs-source x∈ (⊑-｀ wfα) ()
 plain-target-occurs-source x∈ ⊑-‵ ()
 plain-target-occurs-source {X = X} x∈
@@ -109,7 +132,7 @@ plain-target-occurs-source {X = X} x∈
   plain-target-occurs-source x∈ q⊢ occ
 plain-target-occurs-source x∈ (⊑-∀ p⊢) occ =
   plain-target-occurs-source (there x∈) p⊢ occ
-plain-target-occurs-source {X = X} x∈ (⊑-ν {B = B} wfB occA p⊢) occB =
+plain-target-occurs-source {X = X} x∈ (⊑-ν {B = B} wfB p⊢) occB =
   plain-target-occurs-source (there x∈) p⊢
     (trans (occurs-⇑ᵗ-suc X B) occB)
 
@@ -130,11 +153,11 @@ mutual
       with transport-to-ground-⊑ Γ≤Γ′ g p⊢
   transport-to-star-⊑ Γ≤Γ′ (⊑-★ g p⊢) | r , r⊢ =
     A⊑★ r , ⊑-★ g r⊢
-  transport-to-star-⊑ Γ≤Γ′ (⊑-ν {B = ★} wf★ occ p⊢)
+  transport-to-star-⊑ Γ≤Γ′ (⊑-ν {B = ★} wf★ p⊢)
       with transport-to-star-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢
-  transport-to-star-⊑ Γ≤Γ′ (⊑-ν {B = ★} wf★ occ p⊢)
+  transport-to-star-⊑ Γ≤Γ′ (⊑-ν {B = ★} wf★ p⊢)
       | r , r⊢ =
-    `∀A⊑B ★ r , ⊑-ν (wf-length-cast Γ≤Γ′ wf★) occ r⊢
+    `∀A⊑B ★ r , ⊑-ν (wf-length-cast Γ≤Γ′ wf★) r⊢
 
   transport-to-ground-⊑ :
     ∀ {Ψ Γ Γ′ A G p} →
@@ -152,11 +175,11 @@ mutual
   transport-to-ground-⊑ Γ≤Γ′ ★⇒★ (⊑-⇒ p⊢ q⊢)
       | p′ , p′⊢ | q′ , q′⊢ =
     A⇒B⊑A′⇒B′ p′ q′ , ⊑-⇒ p′⊢ q′⊢
-  transport-to-ground-⊑ Γ≤Γ′ g (⊑-ν {B = B} wfB occ p⊢)
+  transport-to-ground-⊑ Γ≤Γ′ g (⊑-ν {B = B} wfB p⊢)
       with transport-to-ground-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) (renameᵗ-ground suc g) p⊢
-  transport-to-ground-⊑ Γ≤Γ′ g (⊑-ν {B = B} wfB occ p⊢)
+  transport-to-ground-⊑ Γ≤Γ′ g (⊑-ν {B = B} wfB p⊢)
       | r , r⊢ =
-    `∀A⊑B B r , ⊑-ν (wf-length-cast Γ≤Γ′ wfB) occ r⊢
+    `∀A⊑B B r , ⊑-ν (wf-length-cast Γ≤Γ′ wfB) r⊢
 
 ------------------------------------------------------------------------
 -- Full transitivity
@@ -168,11 +191,11 @@ trans-ctx-⊑ :
   Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
   Ψ ∣ Γ′ ⊢ q ⦂ B ⊑ C →
   Σ[ r ∈ Imp ] Ψ ∣ Γ′ ⊢ r ⦂ A ⊑ C
-trans-ctx-⊑ Γ≤Γ′ (⊑-ν {B = B} wfB occB p⊢) q⊢
+trans-ctx-⊑ Γ≤Γ′ (⊑-ν {B = B} wfB p⊢) q⊢
     with trans-ctx-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢ (wkImpAt {Φ = []} q⊢)
-trans-ctx-⊑ Γ≤Γ′ (⊑-ν {B = B} wfB occB p⊢) q⊢
+trans-ctx-⊑ Γ≤Γ′ (⊑-ν {B = B} wfB p⊢) q⊢
     | r , r⊢ =
-  `∀A⊑B _ r , ⊑-ν (⊑-tgt-wf q⊢) occB r⊢
+  `∀A⊑B _ r , ⊑-ν (⊑-tgt-wf q⊢) r⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ ⊑-★★ = transport-to-star-⊑ Γ≤Γ′ p⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊑-★ν xν) =
   trans-to-starν Γ≤Γ′ p⊢ xν
@@ -183,18 +206,18 @@ trans-ctx-⊑ Γ≤Γ′ p⊢ (⊑-★ν xν) =
       Ψ ∣ Γ ⊢ p ⦂ A ⊑ ＇ X →
       Γ′ ∋ X ∶ ν-bound →
       Σ[ r ∈ Imp ] Ψ ∣ Γ′ ⊢ r ⦂ A ⊑ ★
-    trans-to-starν Γ≤Γ′ (⊑-＇ x∈) xν = X⊑★ _ , ⊑-★ν xν
-    trans-to-starν Γ≤Γ′ (⊑-ν {B = ＇ X} wfB occ p⊢) xν
+    trans-to-starν Γ≤Γ′ (⊑-＇ wfX) xν = X⊑★ _ , ⊑-★ν xν
+    trans-to-starν Γ≤Γ′ (⊑-ν {B = ＇ X} wfB p⊢) xν
         with trans-ctx-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢ (wkImpAt {Φ = []} (⊑-★ν xν))
-    trans-to-starν Γ≤Γ′ (⊑-ν {B = ＇ X} wfB occ p⊢) xν
+    trans-to-starν Γ≤Γ′ (⊑-ν {B = ＇ X} wfB p⊢) xν
         | r , r⊢ =
-      `∀A⊑B ★ r , ⊑-ν wf★ occ r⊢
+      `∀A⊑B ★ r , ⊑-ν wf★ r⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊑-★ g q⊢)
     with trans-ctx-⊑ Γ≤Γ′ p⊢ q⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊑-★ g q⊢) | r , r⊢ =
   A⊑★ r , ⊑-★ g r⊢
-trans-ctx-⊑ Γ≤Γ′ (⊑-＇ x∈) (⊑-＇ x∈′) =
-  _ , ⊑-＇ x∈′
+trans-ctx-⊑ Γ≤Γ′ (⊑-＇ wfX) (⊑-＇ wfX′) =
+  _ , ⊑-＇ wfX′
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊑-｀ wfα) =
   transport-to-ground-⊑ Γ≤Γ′ (｀ _) p⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ ⊑-‵ =
@@ -209,12 +232,11 @@ trans-ctx-⊑ Γ≤Γ′ (⊑-∀ p⊢) (⊑-∀ q⊢)
     with trans-ctx-⊑ (plain≤plain ∷≤ᵢ Γ≤Γ′) p⊢ q⊢
 trans-ctx-⊑ Γ≤Γ′ (⊑-∀ p⊢) (⊑-∀ q⊢) | r , r⊢ =
   `∀A⊑∀B r , ⊑-∀ r⊢
-trans-ctx-⊑ Γ≤Γ′ (⊑-∀ p⊢) (⊑-ν {B = B} wfB occB q⊢)
+trans-ctx-⊑ Γ≤Γ′ (⊑-∀ p⊢) (⊑-ν {B = B} wfB q⊢)
     with trans-ctx-⊑ (plain≤ν ∷≤ᵢ Γ≤Γ′) p⊢ q⊢
-trans-ctx-⊑ Γ≤Γ′ (⊑-∀ p⊢) (⊑-ν {B = B} wfB occB q⊢)
+trans-ctx-⊑ Γ≤Γ′ (⊑-∀ p⊢) (⊑-ν {B = B} wfB q⊢)
     | r , r⊢ =
-  `∀A⊑B B r ,
-  ⊑-ν wfB (plain-target-occurs-source here p⊢ occB) r⊢
+  `∀A⊑B B r , ⊑-ν wfB r⊢
 
 ⊑-trans :
   ∀ {Ψ Γ A B C p q} →

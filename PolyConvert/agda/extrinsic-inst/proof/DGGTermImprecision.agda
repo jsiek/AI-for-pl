@@ -58,12 +58,15 @@ postulate
     ∀ {Ψˡ Ψʳ Σˡ Σʳ M M′ A B} →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B →
-    ∃[ Ψ ] ∃[ Σ ] (StoreWf 0 Ψ Σ × TermRel Ψ Σ Ψ Σ M M′ A B)
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
+    ∃[ Ψ ] ∃[ Σ ]
+      (StoreWf 0 Ψ Σ ×
+       ⟪ 0 , Ψ , Σ , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B)
 
 replaceΓᴾ : (E : TPEnv) → PCtx (TPEnv.Δ E) (TPEnv.Ψ E) → TPEnv
 replaceΓᴾ E Γ′ =
-  ⟪ TPEnv.Δ E , TPEnv.Ψ E , TPEnv.store E , Γ′ ⟫
+  ⟪ TPEnv.Δ E , TPEnv.Ψ E , TPEnv.store E ,
+    TPEnv.Ψʳ E , TPEnv.storeʳ E , Γ′ ⟫
 
 RightLookupᴾ :
   ∀ {Δ Ψ} → PCtx Δ Ψ → Var → Ty → Set
@@ -373,21 +376,22 @@ rename↓-raise-wt k {Σ = Σ} eqΣ c⊢ =
 
 mutual
   renameᵗ-raise-⊑ :
-    ∀ k {Δ Ψ}{Σ Σ′ : Store}
+    ∀ k {Δ Ψ Ψʳ}{Σ Σ′ Σʳ Σʳ′ : Store}
       {Γ : PCtx (k + Δ) Ψ} {Γ′ : PCtx (suc (k + Δ)) Ψ}
       {M M′ : Term} {A B : Ty} →
     Σ′ ≡ renameStoreᵗ (raiseVarFrom k) Σ →
+    Σʳ′ ≡ renameStoreᵗ (raiseVarFrom k) Σʳ →
     RenameᵗPCtxMap k Γ Γ′ →
-    ⟪ k + Δ , Ψ , Σ , Γ ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
-    ⟪ suc (k + Δ) , Ψ , Σ′ , Γ′ ⟫ ⊢
+    ⟪ k + Δ , Ψ , Σ , Ψʳ , Σʳ , Γ ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
+    ⟪ suc (k + Δ) , Ψ , Σ′ , Ψʳ , Σʳ′ , Γ′ ⟫ ⊢
       renameᵗᵐ (raiseVarFrom k) M ⊑
       renameᵗᵐ (raiseVarFrom k) M′ ⦂
       renameᵗ (raiseVarFrom k) A ⊑ renameᵗ (raiseVarFrom k) B
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑` h) with hΓ h
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑` h)
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑` h) with hΓ h
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑` h)
     | A′ , B′ , p′ , p⊢′ , eqA , eqB , h′ =
     ⊑-index-cast eqA eqB (⊑` h′)
-  renameᵗ-raise-⊑ k eqΣ hΓ
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ
     (⊑ƛ {pA = pA} {pB = pB} {pA⊢ = pA⊢} {pB⊢ = pB⊢}
       hA hA′ rel) =
     ⊑ƛ
@@ -397,12 +401,12 @@ mutual
       {pB⊢ = wkImp-plains k pB⊢}
       (renameᵗ-preserves-WfTy hA (raiseWfPlus k))
       (renameᵗ-preserves-WfTy hA′ (raiseWfPlus k))
-      (renameᵗ-raise-⊑ k eqΣ (renameᵗPCtxMap-ext k hΓ) rel)
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑· relL relM) =
-    ⊑· (renameᵗ-raise-⊑ k eqΣ hΓ relL)
-       (renameᵗ-raise-⊑ k eqΣ hΓ relM)
-  renameᵗ-raise-⊑ k {Σ = Σ} {M = Λ M} {M′ = Λ M′}
-    {A = `∀ A} {B = `∀ B} eqΣ hΓ (⊑Λ vM vM′ rel) =
+      (renameᵗ-raise-⊑ k eqΣ eqΣʳ (renameᵗPCtxMap-ext k hΓ) rel)
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑· relL relM) =
+    ⊑· (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ relL)
+       (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ relM)
+  renameᵗ-raise-⊑ k {Σ = Σ} {Σʳ = Σʳ} {M = Λ M} {M′ = Λ M′}
+    {A = `∀ A} {B = `∀ B} eqΣ eqΣʳ hΓ (⊑Λ vM vM′ rel) =
     ⊑Λ
       (renameᵗᵐ-value (extᵗ (raiseVarFrom k)) vM)
       (renameᵗᵐ-value (extᵗ (raiseVarFrom k)) vM′)
@@ -414,15 +418,16 @@ mutual
           (renameᵗᵐ-cong (λ X → sym (raise-ext k X)) M′)
           (renameᵗ-raise-⊑ (suc k)
             (trans (cong ⟰ᵗ eqΣ) (sym (renameStoreᵗ-raise-⟰ᵗ k Σ)))
+            (trans (cong ⟰ᵗ eqΣʳ) (sym (renameStoreᵗ-raise-⟰ᵗ k Σʳ)))
             (renameᵗPCtxMap-⇑ᵗᴾ k hΓ)
             rel)))
-  renameᵗ-raise-⊑ k eqΣ hΓ
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ
     (⊑⦂∀ {A = A} {B = B} {T = T} rel wfA wfB wfT pT⊢) =
     ⊑-index-cast
       (sym (renameᵗ-[]ᵗ (raiseVarFrom k) A T))
       (sym (renameᵗ-[]ᵗ (raiseVarFrom k) B T))
       (⊑⦂∀
-        (renameᵗ-raise-⊑ k eqΣ hΓ rel)
+        (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
         (renameᵗ-preserves-WfTy wfA (TyRenameWf-ext (raiseWfPlus k)))
         (renameᵗ-preserves-WfTy wfB (TyRenameWf-ext (raiseWfPlus k)))
         (renameᵗ-preserves-WfTy wfT (raiseWfPlus k))
@@ -430,54 +435,54 @@ mutual
           (renameᵗ-[]ᵗ (raiseVarFrom k) A T)
           (renameᵗ-[]ᵗ (raiseVarFrom k) B T)
           (wkImp-plains k pT⊢)))
-  renameᵗ-raise-⊑ k eqΣ hΓ
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ
     (⊑⦂∀-ν {A = A} {T = T} rel wfA wfT pT⊢) =
     ⊑-index-cast
       (sym (renameᵗ-[]ᵗ (raiseVarFrom k) A T))
       refl
       (⊑⦂∀-ν
-        (renameᵗ-raise-⊑ k eqΣ hΓ rel)
+        (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
         (renameᵗ-preserves-WfTy wfA (TyRenameWf-ext (raiseWfPlus k)))
         (renameᵗ-preserves-WfTy wfT (raiseWfPlus k))
         (cong-⊢⊑-raw refl
           (renameᵗ-[]ᵗ (raiseVarFrom k) A T)
           refl
           (wkImp-plains k pT⊢)))
-  renameᵗ-raise-⊑ k eqΣ hΓ ⊑$ = ⊑$
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑⊕ relL relM) =
-    ⊑⊕ (renameᵗ-raise-⊑ k eqΣ hΓ relL)
-        (renameᵗ-raise-⊑ k eqΣ hΓ relM)
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑⇑ rel p⊢ p′⊢ pB⊢) =
-    ⊑⇑ (renameᵗ-raise-⊑ k eqΣ hΓ rel)
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ ⊑$ = ⊑$
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⊕ relL relM) =
+    ⊑⊕ (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ relL)
+        (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ relM)
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇑ rel p⊢ p′⊢ pB⊢) =
+    ⊑⇑ (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
       (wkImp-plains k p⊢) (wkImp-plains k p′⊢)
       (wkImp-plains k pB⊢)
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑⇑L rel p⊢ pB⊢) =
-    ⊑⇑L (renameᵗ-raise-⊑ k eqΣ hΓ rel)
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇑L rel p⊢ pB⊢) =
+    ⊑⇑L (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
       (wkImp-plains k p⊢) (wkImp-plains k pB⊢)
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑⇑R rel p′⊢ pB⊢) =
-    ⊑⇑R (renameᵗ-raise-⊑ k eqΣ hΓ rel)
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇑R rel p′⊢ pB⊢) =
+    ⊑⇑R (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
       (wkImp-plains k p′⊢) (wkImp-plains k pB⊢)
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑⇓ rel p⊢ p′⊢ pB⊢) =
-    ⊑⇓ (renameᵗ-raise-⊑ k eqΣ hΓ rel)
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇓ rel p⊢ p′⊢ pB⊢) =
+    ⊑⇓ (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
       (wkImp-plains k p⊢) (wkImp-plains k p′⊢)
       (wkImp-plains k pB⊢)
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑⇓L rel p⊢ pB⊢) =
-    ⊑⇓L (renameᵗ-raise-⊑ k eqΣ hΓ rel)
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇓L rel p⊢ pB⊢) =
+    ⊑⇓L (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
       (wkImp-plains k p⊢) (wkImp-plains k pB⊢)
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑⇓R rel p′⊢ pB⊢) =
-    ⊑⇓R (renameᵗ-raise-⊑ k eqΣ hΓ rel)
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇓R rel p′⊢ pB⊢) =
+    ⊑⇓R (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
       (wkImp-plains k p′⊢) (wkImp-plains k pB⊢)
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑↑ rel c⊢ c′⊢ pB⊢) =
-    ⊑↑ (renameᵗ-raise-⊑ k eqΣ hΓ rel)
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑↑ rel c⊢ c′⊢ pB⊢) =
+    ⊑↑ (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
       (rename↑-raise-wt k eqΣ c⊢)
       (rename↑-raise-wt k eqΣ c′⊢)
       (wkImp-plains k pB⊢)
-  renameᵗ-raise-⊑ k eqΣ hΓ (⊑↓ rel c⊢ c′⊢ pB⊢) =
-    ⊑↓ (renameᵗ-raise-⊑ k eqΣ hΓ rel)
+  renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑↓ rel c⊢ c′⊢ pB⊢) =
+    ⊑↓ (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
       (rename↓-raise-wt k eqΣ c⊢)
       (rename↓-raise-wt k eqΣ c′⊢)
       (wkImp-plains k pB⊢)
-  renameᵗ-raise-⊑ k {Σ = Σ} {M′ = M′} eqΣ hΓ
+  renameᵗ-raise-⊑ k {Σʳ = Σʳ} {M′ = M′} eqΣ eqΣʳ hΓ
     (⊑blameL {p = p} {ℓ = ℓ} hM p⊢) =
     ⊑blameL {p = renameImp (raiseVarFrom k) p} {ℓ = ℓ}
       (cong-⊢⦂
@@ -495,19 +500,20 @@ renameᵗ-suc-⊑ :
   ∀ {E M M′ A B} →
   E ⊢ M ⊑ M′ ⦂ A ⊑ B →
   ⇑ᵗᴱ E ⊢ renameᵗᵐ suc M ⊑ renameᵗᵐ suc M′ ⦂ ⇑ᵗ A ⊑ ⇑ᵗ B
-renameᵗ-suc-⊑ {E = ⟪ Δ , Ψ , Σ , Γ ⟫} rel =
-  renameᵗ-raise-⊑ zero refl renameᵗPCtxMap-⇑ᵗᴾ-zero rel
+renameᵗ-suc-⊑ {E = ⟪ Δ , Ψ , Σ , Ψʳ , Σʳ , Γ ⟫} rel =
+  renameᵗ-raise-⊑ zero refl refl renameᵗPCtxMap-⇑ᵗᴾ-zero rel
 
 ↑ᵗᵐᴾ :
   ∀ {E Γ′ σ σ′} →
   Substᴾ E Γ′ σ σ′ →
   Substᴾ (⇑ᵗᴱ E) (⇑ᵗᴾ Γ′) (↑ᵗᵐ σ) (↑ᵗᵐ σ′)
-↑ᵗᵐᴾ {E = ⟪ Δ , Ψ , Σ , [] ⟫} hσ ()
-↑ᵗᵐᴾ {E = ⟪ Δ , Ψ , Σ , (A , B , p , p⊢) ∷ Γ ⟫}
+↑ᵗᵐᴾ {E = ⟪ Δ , Ψ , Σ , Ψʳ , Σʳ , [] ⟫} hσ ()
+↑ᵗᵐᴾ {E = ⟪ Δ , Ψ , Σ , Ψʳ , Σʳ , (A , B , p , p⊢) ∷ Γ ⟫}
   hσ Zₚ =
   renameᵗ-suc-⊑ (hσ Zₚ)
-↑ᵗᵐᴾ {E = ⟪ Δ , Ψ , Σ , P ∷ Γ ⟫} hσ (Sₚ h) =
-  ↑ᵗᵐᴾ {E = ⟪ Δ , Ψ , Σ , Γ ⟫} (λ q → hσ (Sₚ q)) h
+↑ᵗᵐᴾ {E = ⟪ Δ , Ψ , Σ , Ψʳ , Σʳ , P ∷ Γ ⟫} hσ (Sₚ h) =
+  ↑ᵗᵐᴾ {E = ⟪ Δ , Ψ , Σ , Ψʳ , Σʳ , Γ ⟫}
+    (λ q → hσ (Sₚ q)) h
 
 substᴾ-⊑ :
   ∀ {E Γ′ σ σ′ M M′ A B} →
@@ -561,10 +567,12 @@ singleSubstᴾ W⊑W′ Zₚ = W⊑W′
 singleSubstᴾ W⊑W′ (Sₚ h) = ⊑` h
 
 subst-⊑ :
-  ∀ {Ψ Σ M M′ N N′ A A′ B B′ p p⊢} →
-  TermRel Ψ Σ Ψ Σ N N′ A A′ →
-  ⟪ 0 , Ψ , Σ , (A , A′ , p , p⊢) ∷ [] ⟫ ⊢ M ⊑ M′ ⦂ B ⊑ B′ →
-  TermRel Ψ Σ Ψ Σ (M [ N ]) (M′ [ N′ ]) B B′
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ M M′ N N′ A A′ B B′ p p⊢} →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ N ⊑ N′ ⦂ A ⊑ A′ →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , (A , A′ , p , p⊢) ∷ [] ⟫
+    ⊢ M ⊑ M′ ⦂ B ⊑ B′ →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫
+    ⊢ (M [ N ]) ⊑ (M′ [ N′ ]) ⦂ B ⊑ B′
 subst-⊑ N⊑N′ rel = substᴾ-⊑ (singleSubstᴾ N⊑N′) rel
 
 WkPCtxMap :
@@ -640,7 +648,8 @@ wk-rel-⊑ :
   TPEnv.store E ⊆ˢ Σ′ →
   WkPCtxMap Ψ≤Ψ′ (TPEnv.Γ E) Γ′ →
   E ⊢ M ⊑ M′ ⦂ A ⊑ B →
-  ⟪ TPEnv.Δ E , Ψ′ , Σ′ , Γ′ ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B
+  ⟪ TPEnv.Δ E , Ψ′ , Σ′ , TPEnv.Ψʳ E , TPEnv.storeʳ E , Γ′ ⟫
+    ⊢ M ⊑ M′ ⦂ A ⊑ B
 wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ (⊑` h) with hΓ h
 wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ (⊑` h) | p⊢′ , h′ = ⊑` h′
 wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ
@@ -714,27 +723,36 @@ wk-rel-⊑ {E = E} {Γ′ = Γ′} Ψ≤Ψ′ wΣ hΓ
         (wk-term Ψ≤Ψ′ wΣ hM)))
     (wk-⊑ Ψ≤Ψ′ p⊢)
 
-wk-left-world-⊑ :
-  ∀ {Ψˡ Ψˡ′ Ψʳ Ψʳ′ Σˡ Σˡ′ Σʳ Σʳ′ M M′ A B} →
-  StoreWf 0 Ψˡ′ Σˡ′ →
-  StoreWf 0 Ψʳ′ Σʳ′ →
-  Ψˡ ≤ Ψˡ′ →
-  Σˡ ⊆ˢ Σˡ′ →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B →
-  TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′ M M′ A B
-wk-left-world-⊑ wfΣˡ′ wfΣʳ′ Ψ≤Ψ′ wΣ rel =
-  wk-rel-⊑ Ψ≤Ψ′ wΣ (wkᴾ-map Ψ≤Ψ′) rel
+postulate
+  wk-right-world-⊑ :
+    ∀ {E : TPEnv} {Ψʳ′ : SealCtx} {Σʳ′ : Store}
+      {M M′ : Term} {A B : Ty} →
+    StoreWf (TPEnv.Δ E) Ψʳ′ Σʳ′ →
+    E ⊢ M ⊑ M′ ⦂ A ⊑ B →
+    ⟪ TPEnv.Δ E , TPEnv.Ψ E , TPEnv.store E ,
+      Ψʳ′ , Σʳ′ , TPEnv.Γ E ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B
+
+  wk-left-world-⊑ :
+    ∀ {Ψˡ Ψˡ′ Ψʳ Ψʳ′ Σˡ Σˡ′ Σʳ Σʳ′ M M′ A B} →
+    StoreWf 0 Ψˡ′ Σˡ′ →
+    StoreWf 0 Ψʳ′ Σʳ′ →
+    Ψˡ ≤ Ψˡ′ →
+    Σˡ ⊆ˢ Σˡ′ →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
+    ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B
 
 postulate
   tysubst-body-⊑ :
     ∀ {Ψ Σ M M′ A B T} →
     WfTy 0 Ψ T →
-    ⟪ 1 , Ψ , ⟰ᵗ Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
-    TermRel Ψ Σ Ψ Σ (M [ T ]ᵀ) (M′ [ T ]ᵀ) (A [ T ]ᵗ) (B [ T ]ᵗ)
+    ⟪ 1 , Ψ , ⟰ᵗ Σ , Ψ , ⟰ᵗ Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
+    ⟪ 0 , Ψ , Σ , Ψ , Σ , [] ⟫
+      ⊢ (M [ T ]ᵀ) ⊑ (M′ [ T ]ᵀ) ⦂ (A [ T ]ᵗ) ⊑ (B [ T ]ᵗ)
 
 tysubst-⊑ :
   ∀ {Ψ Σ M M′ A B T} →
   WfTy 0 Ψ T →
-  TermRel Ψ Σ Ψ Σ (Λ M) (Λ M′) (`∀ A) (`∀ B) →
-  TermRel Ψ Σ Ψ Σ (M [ T ]ᵀ) (M′ [ T ]ᵀ) (A [ T ]ᵗ) (B [ T ]ᵗ)
+  ⟪ 0 , Ψ , Σ , Ψ , Σ , [] ⟫ ⊢ (Λ M) ⊑ (Λ M′) ⦂ `∀ A ⊑ `∀ B →
+  ⟪ 0 , Ψ , Σ , Ψ , Σ , [] ⟫
+    ⊢ (M [ T ]ᵀ) ⊑ (M′ [ T ]ᵀ) ⦂ (A [ T ]ᵗ) ⊑ (B [ T ]ᵗ)
 tysubst-⊑ hT (⊑Λ vM vM′ rel) = tysubst-body-⊑ hT rel

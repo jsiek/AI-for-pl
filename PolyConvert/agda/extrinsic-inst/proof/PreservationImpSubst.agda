@@ -10,6 +10,7 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (false; _∨_)
 open import Data.List using ([]; _∷_; length)
 open import Data.Nat using (ℕ; zero; suc; _<_; z<s; s<s)
+open import Data.Product using (∃-syntax; _,_)
 open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; subst; sym; trans)
 
@@ -28,8 +29,10 @@ open import proof.PreservationBetaUpNu
     ( VarSubst
     ; cong-⊢⊑
     ; length-plains[]
+    ; lookup-mode
     ; occurs-raise
     ; occurs-raise-fresh
+    ; wkImpAt
     ; wk-VarSubst
     )
 
@@ -97,6 +100,102 @@ ImpSubstWt-exts {m′ = m′} hσ (there x∈) =
   wk-VarSubst {m′ = m′} (hσ x∈)
 
 ------------------------------------------------------------------------
+-- Parallel substitution that sends all ν-bound variables to ★
+------------------------------------------------------------------------
+
+ν★Subst : ICtx → Substᵗ
+ν★Subst [] X = ＇ X
+ν★Subst (plain ∷ Γ) zero = ＇ zero
+ν★Subst (plain ∷ Γ) (suc X) = ⇑ᵗ (ν★Subst Γ X)
+ν★Subst (ν-bound ∷ Γ) zero = ★
+ν★Subst (ν-bound ∷ Γ) (suc X) = ⇑ᵗ (ν★Subst Γ X)
+
+ν★Subst-plain-exts :
+  ∀ Γ X →
+  ν★Subst (plain ∷ Γ) X ≡ extsᵗ (ν★Subst Γ) X
+ν★Subst-plain-exts Γ zero = refl
+ν★Subst-plain-exts Γ (suc X) = refl
+
+wk-ν★-var-⊑ :
+  ∀ {Ψ Γ X p m′} →
+  Ψ ∣ Γ ⊢ p ⦂ ＇ X ⊑ ν★Subst Γ X →
+  Ψ ∣ (m′ ∷ Γ) ⊢ renameImp suc p ⦂
+    ＇ suc X ⊑ ⇑ᵗ (ν★Subst Γ X)
+wk-ν★-var-⊑ p⊢ = wkImpAt {Φ = []} p⊢
+
+ν★-var-⊑ :
+  ∀ {Ψ Γ X m} →
+  Γ ∋ X ∶ m →
+  ∃[ p ] Ψ ∣ Γ ⊢ p ⦂ ＇ X ⊑ ν★Subst Γ X
+ν★-var-⊑ {Γ = plain ∷ Γ} here =
+  X⊑X zero , ⊑-＇ here
+ν★-var-⊑ {Γ = ν-bound ∷ Γ} here =
+  X⊑★ zero , ⊑-★ν here
+ν★-var-⊑ {Γ = plain ∷ Γ} {X = suc X} (there x∈)
+    with ν★-var-⊑ x∈
+ν★-var-⊑ {Γ = plain ∷ Γ} {X = suc X} (there x∈) | p , p⊢ =
+  renameImp suc p , wk-ν★-var-⊑ p⊢
+ν★-var-⊑ {Γ = ν-bound ∷ Γ} {X = suc X} (there x∈)
+    with ν★-var-⊑ x∈
+ν★-var-⊑ {Γ = ν-bound ∷ Γ} {X = suc X} (there x∈) | p , p⊢ =
+  renameImp suc p , wk-ν★-var-⊑ p⊢
+
+ν★-⊑ :
+  ∀ {Ψ Γ A} →
+  WfTy (length Γ) Ψ A →
+  ∃[ p ] Ψ ∣ Γ ⊢ p ⦂ A ⊑ substᵗ (ν★Subst Γ) A
+ν★-⊑ {Γ = Γ} (wfVar X<Γ) with lookup-mode Γ X<Γ
+ν★-⊑ {Γ = Γ} (wfVar X<Γ) | m , x∈ = ν★-var-⊑ x∈
+ν★-⊑ (wfSeal α<Ψ) = α⊑α _ , ⊑-｀ (wfSeal α<Ψ)
+ν★-⊑ wfBase = ι⊑ι _ , ⊑-‵
+ν★-⊑ wf★ = ★⊑★ , ⊑-★★
+ν★-⊑ (wf⇒ wfA wfB) with ν★-⊑ wfA | ν★-⊑ wfB
+ν★-⊑ (wf⇒ wfA wfB) | p , p⊢ | q , q⊢ =
+  A⇒B⊑A′⇒B′ p q , ⊑-⇒ p⊢ q⊢
+ν★-⊑ {Γ = Γ} {A = `∀ A} (wf∀ wfA)
+    with ν★-⊑ {Γ = plain ∷ Γ} wfA
+ν★-⊑ {Γ = Γ} {A = `∀ A} (wf∀ wfA) | p , p⊢ =
+  `∀A⊑∀B p ,
+  ⊑-∀
+    (cong-⊢⊑
+      refl
+      (substᵗ-cong (ν★Subst-plain-exts Γ) A)
+      p⊢)
+
+ν★Subst-plains-id :
+  ∀ Δ X →
+  ν★Subst (plains Δ []) X ≡ ＇ X
+ν★Subst-plains-id zero X = refl
+ν★Subst-plains-id (suc Δ) zero = refl
+ν★Subst-plains-id (suc Δ) (suc X) =
+  cong ⇑ᵗ (ν★Subst-plains-id Δ X)
+
+singleν★Subst : Substᵗ
+singleν★Subst zero = ★
+singleν★Subst (suc X) = ＇ suc X
+
+ν★Subst-singleν★ :
+  ∀ Δ X →
+  ν★Subst (ν-bound ∷ plains Δ []) X ≡ singleν★Subst X
+ν★Subst-singleν★ Δ zero = refl
+ν★Subst-singleν★ Δ (suc X) = cong ⇑ᵗ (ν★Subst-plains-id Δ X)
+
+ν★-⊑-single :
+  ∀ {Δ Ψ A} →
+  WfTy (suc Δ) Ψ A →
+  ∃[ p ] Ψ ∣ (ν-bound ∷ plains Δ []) ⊢ p ⦂
+    A ⊑ substᵗ singleν★Subst A
+ν★-⊑-single {Δ = Δ} {A = A} wfA
+    with ν★-⊑ {Γ = ν-bound ∷ plains Δ []}
+      (subst (λ n → WfTy (suc n) _ A) (sym (length-plains[] Δ)) wfA)
+ν★-⊑-single {Δ = Δ} {A = A} wfA | p , p⊢ =
+  p ,
+  cong-⊢⊑
+    refl
+    (substᵗ-cong (ν★Subst-singleν★ Δ) A)
+    p⊢
+
+------------------------------------------------------------------------
 -- Plain contexts provide reflexive imprecision for well-formed types
 ------------------------------------------------------------------------
 
@@ -113,7 +212,8 @@ reflImp-wt-plains :
   ∀ {Δ Ψ A} →
   WfTy Δ Ψ A →
   Ψ ∣ plains Δ [] ⊢ reflImp A ⦂ A ⊑ A
-reflImp-wt-plains (wfVar X<Δ) = ⊑-＇ (plains-lookup X<Δ)
+reflImp-wt-plains (wfVar X<Δ) =
+  ⊑-＇ (plains-lookup X<Δ)
 reflImp-wt-plains (wfSeal α<Ψ) = ⊑-｀ (wfSeal α<Ψ)
 reflImp-wt-plains wfBase = ⊑-‵
 reflImp-wt-plains wf★ = ⊑-★★
@@ -170,10 +270,9 @@ singleTyEnv-TySubstWf-plains {Δ = Δ} {T = T} wfT
   ⊑-⇒ (⊑-substᵗ-wt hσ hᵢ p⊢) (⊑-substᵗ-wt hσ hᵢ q⊢)
 ⊑-substᵗ-wt hσ hᵢ (⊑-∀ p⊢) =
   ⊑-∀ (⊑-substᵗ-wt (TySubstWf-exts hσ) (ImpSubstWt-exts hᵢ) p⊢)
-⊑-substᵗ-wt {σ = σ} hσ hᵢ (⊑-ν {A = A} {B = B} wfB occ p⊢) =
+⊑-substᵗ-wt {σ = σ} hσ hᵢ (⊑-ν {A = A} {B = B} wfB p⊢) =
   ⊑-ν
     (substᵗ-preserves-WfTy wfB hσ)
-    (trans (occurs-subst-exts-zero σ A) occ)
     (cong-⊢⊑
       refl
       (substᵗ-suc-renameᵗ-suc σ B)

@@ -144,7 +144,7 @@ SimRightSuccess Ψˡ Σˡ M Σʳ′ N′ A B =
      ∃[ Ψˡ′ ] ∃[ Σˡ′ ] ∃[ N ]
        (StoreWf 0 Ψˡ′ Σˡ′ ×
         (Σˡ ∣ M —↠ Σˡ′ ∣ N) ×
-        TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′ N N′ A B))
+        ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ N ⊑ N′ ⦂ A ⊑ B))
 
 SimRightResult :
   SealCtx → Store → Term → Store → Term → Ty → Ty → Set
@@ -154,7 +154,7 @@ SimRightResult Ψˡ Σˡ M Σʳ′ N′ A B =
 same-right-step-store-wf :
   ∀ {Ψ Σ Σ′ M M′ N′ A B} →
   StoreWf 0 Ψ Σ →
-  TermRel Ψ Σ Ψ Σ M M′ A B →
+  ⟪ 0 , Ψ , Σ , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
   Σ ∣ M′ —→ Σ′ ∣ N′ →
   ∃[ Ψ′ ] StoreWf 0 Ψ′ Σ′
 same-right-step-store-wf wfΣ M⊑M′ red =
@@ -175,7 +175,7 @@ postulate
     ∀ {Ψˡ Ψʳ Σˡ Σʳ Σʳ′ M M′ N′ A B} →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
     Σʳ ∣ M′ —→ Σʳ′ ∣ N′ →
     SimRightResult Ψˡ Σˡ M Σʳ′ N′ A B
 
@@ -183,7 +183,7 @@ sim-right :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ Σʳ′ M M′ N′ A B} →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
   Σʳ ∣ M′ —→ Σʳ′ ∣ N′ →
   SimRightResult Ψˡ Σˡ M Σʳ′ N′ A B
 sim-right wfΣˡ wfΣʳ (⊑blameL M′⊢ p⊢) red =
@@ -267,7 +267,7 @@ sim-right* :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ Σʳ′ M M′ N′ A B} →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
     Σʳ ∣ M′ —↠ Σʳ′ ∣ N′ →
     SimRightResult Ψˡ Σˡ M Σʳ′ N′ A B
 sim-right* {M = M} wfΣˡ wfΣʳ M⊑M′ (M′ ∎) =

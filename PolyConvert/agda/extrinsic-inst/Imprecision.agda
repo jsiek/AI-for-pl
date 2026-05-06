@@ -163,7 +163,6 @@ data _∣_⊢_⦂_⊑_ (Ψ : SealCtx) (Γ : ICtx) : Imp → Ty → Ty → Set wh
 
   ⊑-ν : ∀ {A B p} →
     WfTy (length Γ) Ψ B →
-    .(occurs zero A ≡ true) →
     Ψ ∣ (ν-bound ∷ Γ) ⊢ p ⦂ A ⊑ ⇑ᵗ B →
     Ψ ∣ Γ ⊢ `∀A⊑B B p ⦂ (`∀ A) ⊑ B
 
@@ -184,7 +183,7 @@ src⊑-correct ⊑-‵ = refl
 src⊑-correct (⊑-⇒ p⊢ q⊢) =
   cong₂ _⇒_ (src⊑-correct p⊢) (src⊑-correct q⊢)
 src⊑-correct (⊑-∀ p⊢) = cong `∀ (src⊑-correct p⊢)
-src⊑-correct (⊑-ν wfB occ p⊢) = cong `∀ (src⊑-correct p⊢)
+src⊑-correct (⊑-ν wfB p⊢) = cong `∀ (src⊑-correct p⊢)
 
 tgt⊑-correct :
   ∀ {Ψ Γ p A B} →
@@ -199,7 +198,7 @@ tgt⊑-correct ⊑-‵ = refl
 tgt⊑-correct (⊑-⇒ p⊢ q⊢) =
   cong₂ _⇒_ (tgt⊑-correct p⊢) (tgt⊑-correct q⊢)
 tgt⊑-correct (⊑-∀ p⊢) = cong `∀ (tgt⊑-correct p⊢)
-tgt⊑-correct (⊑-ν wfB occ p⊢) = refl
+tgt⊑-correct (⊑-ν wfB p⊢) = refl
 
 ------------------------------------------------------------------------
 -- Endpoint well-formedness
@@ -218,7 +217,7 @@ tgt⊑-correct (⊑-ν wfB occ p⊢) = refl
 ⊑-src-wf (⊑-⇒ p⊢ q⊢) =
   wf⇒ (⊑-src-wf p⊢) (⊑-src-wf q⊢)
 ⊑-src-wf (⊑-∀ p⊢) = wf∀ (⊑-src-wf p⊢)
-⊑-src-wf (⊑-ν wfB occ p⊢) = wf∀ (⊑-src-wf p⊢)
+⊑-src-wf (⊑-ν wfB p⊢) = wf∀ (⊑-src-wf p⊢)
 
 ⊑-tgt-wf :
   ∀ {Ψ Γ p A B} →
@@ -233,4 +232,4 @@ tgt⊑-correct (⊑-ν wfB occ p⊢) = refl
 ⊑-tgt-wf (⊑-⇒ p⊢ q⊢) =
   wf⇒ (⊑-tgt-wf p⊢) (⊑-tgt-wf q⊢)
 ⊑-tgt-wf (⊑-∀ p⊢) = wf∀ (⊑-tgt-wf p⊢)
-⊑-tgt-wf (⊑-ν wfB occ p⊢) = wfB
+⊑-tgt-wf (⊑-ν wfB p⊢) = wfB

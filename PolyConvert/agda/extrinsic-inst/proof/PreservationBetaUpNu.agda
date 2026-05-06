@@ -276,7 +276,8 @@ wkImpAt {Φ = Φ} ⊑-★★ = ⊑-★★
 wkImpAt {Φ = Φ} (⊑-★ν xν) = ⊑-★ν (rename∋-insert {Φ = Φ} xν)
 wkImpAt {Φ = Φ} (⊑-★ g p⊢) =
   ⊑-★ (renameᵗ-ground _ g) (wkImpAt {Φ = Φ} p⊢)
-wkImpAt {Φ = Φ} (⊑-＇ x∈) = ⊑-＇ (rename∋-insert {Φ = Φ} x∈)
+wkImpAt {Φ = Φ} (⊑-＇ x∈) =
+  ⊑-＇ (rename∋-insert {Φ = Φ} x∈)
 wkImpAt {Φ = Φ} (⊑-｀ (wfSeal α<Ψ)) = ⊑-｀ (wfSeal α<Ψ)
 wkImpAt {Φ = Φ} ⊑-‵ = ⊑-‵
 wkImpAt {Φ = Φ} (⊑-⇒ p⊢ q⊢) =
@@ -288,13 +289,9 @@ wkImpAt {Φ = Φ} (⊑-∀ p⊢) =
       (sym (rename-raise-ext (length Φ) _))
       (sym (rename-raise-ext (length Φ) _))
       (wkImpAt {Φ = plain ∷ Φ} p⊢))
-wkImpAt {Φ = Φ} (⊑-ν {A = A} {B = B} wfB occ p⊢) =
+wkImpAt {Φ = Φ} (⊑-ν {A = A} {B = B} wfB p⊢) =
   ⊑-ν
     (renameᵗ-preserves-WfTy wfB (raiseWf {Φ = Φ}))
-    (trans
-      (trans (cong (occurs zero) (rename-raise-ext (length Φ) A))
-             (occurs-raise (suc (length Φ)) zero A))
-      occ)
     (cong-⊢⊑-raw
       (sym (renameImp-cong (raise-ext (length Φ)) _))
       (sym (rename-raise-ext (length Φ) A))
@@ -368,7 +365,8 @@ open-fresh-ν⊑-prefix wfΣ ⊑-★★ = ⊑-★★
 open-fresh-ν⊑-prefix wfΣ (⊑-★ν xν) = subst-var-prefix wfΣ xν
 open-fresh-ν⊑-prefix wfΣ (⊑-★ g p⊢) =
   ⊑-★ (substᵗ-ground _ g) (open-fresh-ν⊑-prefix wfΣ p⊢)
-open-fresh-ν⊑-prefix wfΣ (⊑-＇ x∈) = subst-var-prefix wfΣ x∈
+open-fresh-ν⊑-prefix {Φ = Φ} wfΣ (⊑-＇ x∈) =
+  subst-var-prefix {Φ = Φ} wfΣ x∈
 open-fresh-ν⊑-prefix wfΣ (⊑-｀ (wfSeal α<Ψ)) =
   ⊑-｀ (wfSeal (<-≤-trans α<Ψ (n≤1+n _)))
 open-fresh-ν⊑-prefix wfΣ ⊑-‵ = ⊑-‵
@@ -377,14 +375,11 @@ open-fresh-ν⊑-prefix wfΣ (⊑-⇒ p⊢ q⊢) =
        (open-fresh-ν⊑-prefix wfΣ q⊢)
 open-fresh-ν⊑-prefix {Φ = Φ} wfΣ (⊑-∀ p⊢) =
   ⊑-∀ (open-fresh-ν⊑-prefix {Φ = plain ∷ Φ} wfΣ p⊢)
-open-fresh-ν⊑-prefix {Φ = Φ} wfΣ (⊑-ν {A = A} {B = B} wfB occ p⊢) =
+open-fresh-ν⊑-prefix {Φ = Φ} wfΣ (⊑-ν {A = A} {B = B} wfB p⊢) =
   ⊑-ν
     (substᵗ-preserves-WfTy
       (WfTy-weakenˢ wfB (n≤1+n _))
       (substWf-prefix {Φ = Φ} wfΣ))
-    (trans
-      (occurs-substVarFrom-< (suc (length Φ)) zero (｀ _) A z<s)
-      occ)
     (cong-⊢⊑
       refl
       (substᵗ-suc-renameᵗ-suc
@@ -415,7 +410,7 @@ preserve-β-up-ν :
     ((V ⦂∀ (src⊑ p) [ ｀ (length Σ) ]) ⇑
       (p [ ｀ (length Σ) ]⊑)) ⦂ A
 preserve-β-up-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {V = V} {p = p} wfΣ vV
-  (⊢up (⊑-ν {A = Aν} wfB occ p⊢) V⊢) =
+  (⊢up (⊑-ν {A = Aν} wfB p⊢) V⊢) =
   ⊢up
     (cong-⊢⊑
       (cong (λ A → A [ ｀ (length Σ) ]ᵗ) (sym (src⊑-correct p⊢)))

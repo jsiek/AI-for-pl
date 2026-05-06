@@ -20,7 +20,8 @@ open import Terms
 open import TermImprecision
 open import Reduction
 open import proof.DGGCommon
-open import proof.DGGTermImprecision using (tysubst-body-⊑; wk-rel-⊑; wkᴾ-map)
+open import proof.DGGTermImprecision using
+  (tysubst-body-⊑; wk-rel-⊑; wkᴾ-map; wk-right-world-⊑)
 open import proof.DGGMultistep using (multi-trans; tyapp-↠; up-↠)
 open import proof.Preservation using (len<suc-StoreWf; storeWf-fresh-ext)
 open import proof.PreservationBetaDownForall using (convert↑-fresh-wt)
@@ -42,7 +43,7 @@ SimLeftStepˢ =
   ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
   Σˡ ∣ M —→ Σˡ′ ∣ N →
   ∃[ Ψˡ′ ]
     (Ψˡ ≤ Ψˡ′ ×
@@ -51,14 +52,14 @@ SimLeftStepˢ =
        (StoreWf 0 Ψʳ′ Σʳ′ ×
         ∃[ N′ ]
           ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
-           TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′ N N′ A B)))
+           ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ N ⊑ N′ ⦂ A ⊑ B)))
 
 sim-left-tyapp :
   SimLeftStepˢ →
   ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B T pT} →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ (`∀ A) (`∀ B) →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
   WfTy 1 Ψˡ A →
   WfTy 1 Ψˡ B →
   WfTy 0 Ψˡ T →
@@ -71,8 +72,7 @@ sim-left-tyapp :
        (StoreWf 0 Ψʳ′ Σʳ′ ×
         ∃[ N′ ]
           ((Σʳ ∣ (M′ ⦂∀ B [ T ]) —↠ Σʳ′ ∣ N′) ×
-           TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′ (N ⦂∀ A [ T ]) N′
-             (A [ T ]ᵗ) (B [ T ]ᵗ))))
+           ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ (N ⦂∀ A [ T ]) ⊑ N′ ⦂ (A [ T ]ᵗ) ⊑ (B [ T ]ᵗ))))
 sim-left-tyapp sim-left wfΣˡ wfΣʳ rel wfA wfB wfT pT⊢ M→N
   with sim-left wfΣˡ wfΣʳ rel M→N
 sim-left-tyapp sim-left wfΣˡ wfΣʳ rel wfA wfB wfT pT⊢ M→N
@@ -91,8 +91,7 @@ sim-left-beta-reveal-∀-matched :
   ∀ {Ψ Σ V V′ T c c′ pSrcT pTgtT} →
   StoreWf 0 Ψ Σ →
   Value V′ →
-  TermRel Ψ Σ Ψ Σ V V′
-    (`∀ (src↑ (⟰ᵗ Σ) c)) (`∀ (src↑ (⟰ᵗ Σ) c′)) →
+  ⟪ 0 , Ψ , Σ , Ψ , Σ , [] ⟫ ⊢ V ⊑ V′ ⦂ (`∀ (src↑ (⟰ᵗ Σ) c)) ⊑ (`∀ (src↑ (⟰ᵗ Σ) c′)) →
   WfTy 0 Ψ T →
   1 ∣ Ψ ∣ ⟰ᵗ Σ ⊢ c ⦂
     src↑ (⟰ᵗ Σ) c ↑ˢ tgt↑ (⟰ᵗ Σ) c →
@@ -105,11 +104,7 @@ sim-left-beta-reveal-∀-matched :
   ∃[ Σ′ ] ∃[ N′ ]
     ((Σ ∣ ((V′ ↑ ↑-∀ c′) ⦂∀ tgt↑ (⟰ᵗ Σ) c′ [ T ])
       —↠ Σ′ ∣ N′) ×
-     TermRel Ψ Σ Ψ Σ
-       ((V ⦂∀ src↑ (⟰ᵗ Σ) c [ T ]) ↑ subst↑ (singleTyEnv T) c)
-       N′
-       (tgt↑ (⟰ᵗ Σ) c [ T ]ᵗ)
-       (tgt↑ (⟰ᵗ Σ) c′ [ T ]ᵗ))
+     ⟪ 0 , Ψ , Σ , Ψ , Σ , [] ⟫ ⊢ ((V ⦂∀ src↑ (⟰ᵗ Σ) c [ T ]) ↑ subst↑ (singleTyEnv T) c) ⊑ N′ ⦂ (tgt↑ (⟰ᵗ Σ) c [ T ]ᵗ) ⊑ (tgt↑ (⟰ᵗ Σ) c′ [ T ]ᵗ))
 sim-left-beta-reveal-∀-matched wfΣ vV′ relV wfT c⊢ c′⊢ pSrcT⊢ pTgtT⊢ =
   _ ,
   (( _ ⦂∀ _ [ _ ]) ↑ subst↑ (singleTyEnv _) _) ,
@@ -132,41 +127,60 @@ fresh-seal-sync-Λ :
   length Σˡ ≡ length Σʳ →
   Value V →
   Value V′ →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ (Λ V) (Λ V′) (`∀ A) (`∀ B) →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (Λ V) ⊑ (Λ V′) ⦂ (`∀ A) ⊑ (`∀ B) →
   WfTy 1 Ψˡ A →
   WfTy 1 Ψˡ B →
   WfTy 0 Ψˡ T →
   Ψˡ ∣ plains 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
-  TermRel (suc Ψˡ) ((length Σˡ , T) ∷ Σˡ)
-    (suc Ψʳ) ((length Σʳ , T) ∷ Σʳ)
-    ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ))
-    ((V′ [ ｀ (length Σʳ) ]ᵀ) ↑ convert↑ B (length Σʳ))
-    (A [ T ]ᵗ) (B [ T ]ᵗ)
-fresh-seal-sync-Λ {Ψˡ = Ψˡ} {Σˡ = Σˡ} {Σʳ = Σʳ}
+  ⟪ 0 , (suc Ψˡ) , ((length Σˡ , T) ∷ Σˡ) , (suc Ψʳ) , ((length Σʳ , T) ∷ Σʳ) , [] ⟫ ⊢ ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ)) ⊑ ((V′ [ ｀ (length Σʳ) ]ᵀ) ↑ convert↑ B (length Σʳ)) ⦂ (A [ T ]ᵗ) ⊑ (B [ T ]ᵗ)
+fresh-seal-sync-Λ {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
     {V = V} {V′ = V′} {A = A} {B = B} {T = T}
     wfΣˡ wfΣʳ lenEq vV vV′ (⊑Λ vV₀ vV′₀ relBody)
     wfA wfB wfT pT⊢
     rewrite sym lenEq =
-  ⊑↑ opened cA⊢ cB⊢ (wk-⊑ (n≤1+n Ψˡ) pT⊢)
+  wk-right-world-⊑ wfΣʳfresh
+    (⊑↑ opened cA⊢ cB⊢ (wk-⊑ (n≤1+n Ψˡ) pT⊢))
   where
     α = length Σˡ
 
     wfα : WfTy 0 (suc Ψˡ) (｀ α)
     wfα = wfSeal (len<suc-StoreWf wfΣˡ)
 
-    relBody↑ :
-      ⟪ 1 , suc Ψˡ , ⟰ᵗ ((α , T) ∷ Σˡ) , [] ⟫
+    wfTʳ : WfTy 0 Ψʳ T
+    wfTʳ = subst (λ Ψ → WfTy 0 Ψ T)
+      (trans (sym (storeWf-length wfΣˡ))
+        (trans lenEq (storeWf-length wfΣʳ)))
+      wfT
+
+    wfΣʳfresh : StoreWf 0 (suc Ψʳ) ((length Σˡ , T) ∷ Σʳ)
+    wfΣʳfresh =
+      subst (λ n → StoreWf 0 (suc Ψʳ) ((n , T) ∷ Σʳ))
+        (sym lenEq) (storeWf-fresh-ext wfTʳ wfΣʳ)
+
+    relBodyLeft :
+      ⟪ 1 , Ψˡ , ⟰ᵗ Σˡ , Ψˡ , ⟰ᵗ Σˡ , [] ⟫
         ⊢ V ⊑ V′ ⦂ A ⊑ B
-    relBody↑ =
-      wk-rel-⊑ {E = ⟪ 1 , Ψˡ , ⟰ᵗ Σˡ , [] ⟫}
+    relBodyLeft = wk-right-world-⊑ (storeWf-⟰ᵗ wfΣˡ) relBody
+
+    relBodyLeft↑ :
+      ⟪ 1 , suc Ψˡ , ⟰ᵗ ((α , T) ∷ Σˡ) ,
+        Ψˡ , ⟰ᵗ Σˡ , [] ⟫
+        ⊢ V ⊑ V′ ⦂ A ⊑ B
+    relBodyLeft↑ =
+      wk-rel-⊑ {E = ⟪ 1 , Ψˡ , ⟰ᵗ Σˡ , Ψˡ , ⟰ᵗ Σˡ , [] ⟫}
         {Ψ′ = suc Ψˡ} {Σ′ = ⟰ᵗ ((α , T) ∷ Σˡ)}
         (n≤1+n Ψˡ) (drop ⊆ˢ-refl) (wkᴾ-map (n≤1+n Ψˡ))
-        relBody
+        relBodyLeft
+
+    relBody↑ :
+      ⟪ 1 , suc Ψˡ , ⟰ᵗ ((α , T) ∷ Σˡ) ,
+        suc Ψˡ , ⟰ᵗ ((α , T) ∷ Σˡ) , [] ⟫
+        ⊢ V ⊑ V′ ⦂ A ⊑ B
+    relBody↑ = wk-right-world-⊑ (storeWf-⟰ᵗ (storeWf-fresh-ext wfT wfΣˡ))
+      relBodyLeft↑
 
     opened :
-      TermRel (suc Ψˡ) ((α , T) ∷ Σˡ) (suc Ψˡ) ((α , T) ∷ Σˡ)
-        (V [ ｀ α ]ᵀ) (V′ [ ｀ α ]ᵀ)
-        (A [ ｀ α ]ᵗ) (B [ ｀ α ]ᵗ)
+      ⟪ 0 , (suc Ψˡ) , ((α , T) ∷ Σˡ) , (suc Ψˡ) , ((α , T) ∷ Σˡ) , [] ⟫ ⊢ (V [ ｀ α ]ᵀ) ⊑ (V′ [ ｀ α ]ᵀ) ⦂ (A [ ｀ α ]ᵗ) ⊑ (B [ ｀ α ]ᵗ)
     opened = tysubst-body-⊑ wfα relBody↑
 
     cA⊢ :
@@ -195,13 +209,13 @@ postulate
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ (Λ V) M′ (`∀ A) (`∀ B) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (Λ V) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
     ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
       (StoreWf 0 Ψʳ′ Σʳ′ ×
        ∃[ V′ ]
          (Value V′ ×
           (Σʳ ∣ M′ —↠ Σʳ′ ∣ V′) ×
-          TermRel Ψˡ Σˡ Ψʳ′ Σʳ′ (Λ V) V′ (`∀ A) (`∀ B)))
+          ⟪ 0 , Ψˡ , Σˡ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ (Λ V) ⊑ V′ ⦂ (`∀ A) ⊑ (`∀ B)))
 
 sim-left-beta-Λ-matched :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A B T pT} →
@@ -210,7 +224,7 @@ sim-left-beta-Λ-matched :
   length Σˡ ≡ length Σʳ →
   Value V →
   Value V′ →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ (Λ V) (Λ V′) (`∀ A) (`∀ B) →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (Λ V) ⊑ (Λ V′) ⦂ (`∀ A) ⊑ (`∀ B) →
   WfTy 1 Ψˡ A →
   WfTy 1 Ψˡ B →
   WfTy 0 Ψˡ T →
@@ -221,9 +235,7 @@ sim-left-beta-Λ-matched :
        (StoreWf 0 Ψʳ′ Σʳ′ ×
         ∃[ N′ ]
           ((Σʳ ∣ ((Λ V′) ⦂∀ B [ T ]) —↠ Σʳ′ ∣ N′) ×
-           TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′
-             ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ))
-             N′ (A [ T ]ᵗ) (B [ T ]ᵗ))))
+           ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ)) ⊑ N′ ⦂ (A [ T ]ᵗ) ⊑ (B [ T ]ᵗ))))
 sim-left-beta-Λ-matched
     {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
     {V = V} {V′ = V′} {A = A} {B = B} {T = T}
@@ -249,7 +261,7 @@ postulate
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ (Λ V) M′ (`∀ A) (`∀ B) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (Λ V) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
     WfTy 1 Ψˡ A →
     WfTy 1 Ψˡ B →
     WfTy 0 Ψˡ T →
@@ -261,16 +273,14 @@ postulate
          (StoreWf 0 Ψʳ′ Σʳ′ ×
           ∃[ N′ ]
             ((Σʳ ∣ (M′ ⦂∀ B [ T ]) —↠ Σʳ′ ∣ N′) ×
-             TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′
-               ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ))
-               N′ (A [ T ]ᵗ) (B [ T ]ᵗ))))
+             ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ)) ⊑ N′ ⦂ (A [ T ]ᵗ) ⊑ (B [ T ]ᵗ))))
 
 sim-left-beta-Λ :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B T pT} →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
   Value V →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ (Λ V) M′ (`∀ A) (`∀ B) →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (Λ V) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
   WfTy 1 Ψˡ A →
   WfTy 1 Ψˡ B →
   WfTy 0 Ψˡ T →
@@ -281,9 +291,7 @@ sim-left-beta-Λ :
        (StoreWf 0 Ψʳ′ Σʳ′ ×
         ∃[ N′ ]
           ((Σʳ ∣ (M′ ⦂∀ B [ T ]) —↠ Σʳ′ ∣ N′) ×
-           TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′
-             ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ))
-             N′ (A [ T ]ᵗ) (B [ T ]ᵗ))))
+           ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ)) ⊑ N′ ⦂ (A [ T ]ᵗ) ⊑ (B [ T ]ᵗ))))
 sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     {B = B} {T = T}
     wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
@@ -308,7 +316,7 @@ sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     wfA wfB wfT pT⊢
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
   | ΛV⊑V′R
-  | `∀A⊑B Bν pν , ⊑-ν wfBν occ pν⊢
+  | `∀A⊑B Bν pν , ⊑-ν wfBν pν⊢
     with sim-left-beta-Λ-rest wfΣˡ wfΣʳ vV
       (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢) wfA wfB wfT pT⊢
 ... | Ψˡ′ , Σˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ , N′ ,
@@ -361,90 +369,79 @@ postulate
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ (V ⇑ (`∀A⊑∀B p)) M′ (`∀ A) (`∀ B) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ (`∀A⊑∀B p)) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
     ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
       (StoreWf 0 Ψʳ′ Σʳ′ ×
        ∃[ N′ ]
          ((Σʳ ∣ (M′ ⦂∀ B [ T ]) —↠ Σʳ′ ∣ N′) ×
-          TermRel Ψˡ Σˡ Ψʳ′ Σʳ′
-            ((V ⦂∀ src⊑ p [ T ]) ⇑ p [ T ]⊑) N′ C D))
+          ⟪ 0 , Ψˡ , Σˡ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ ((V ⦂∀ src⊑ p [ T ]) ⇑ p [ T ]⊑) ⊑ N′ ⦂ C ⊑ D))
 
   sim-left-beta-down-∀ :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B T p C D} →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ (V ⇓ (`∀A⊑∀B p)) M′ (`∀ A) (`∀ B) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ (`∀A⊑∀B p)) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
     ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
       (StoreWf 0 Ψˡ′ Σˡ′ ×
        ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
          (StoreWf 0 Ψʳ′ Σʳ′ ×
           ∃[ N′ ]
             ((Σʳ ∣ (M′ ⦂∀ B [ T ]) —↠ Σʳ′ ∣ N′) ×
-             TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′
-               (((V ⦂∀ tgt⊑ p [ ｀ (length Σˡ) ]) ⇓
+             ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ (((V ⦂∀ tgt⊑ p [ ｀ (length Σˡ) ]) ⇓
                  p [ ｀ (length Σˡ) ]⊑) ↑
-                 convert↑ (src⊑ p) (length Σˡ))
-               N′ C D)))
+                 convert↑ (src⊑ p) (length Σˡ)) ⊑ N′ ⦂ C ⊑ D)))
 
   sim-left-beta-down-ν :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B C T p D E} →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ (V ⇓ (`∀A⊑B B p)) M′ (`∀ A) C →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ (`∀A⊑B B p)) ⊑ M′ ⦂ (`∀ A) ⊑ C →
     ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
       (StoreWf 0 Ψˡ′ Σˡ′ ×
        ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
          (StoreWf 0 Ψʳ′ Σʳ′ ×
           ∃[ N′ ]
             ((Σʳ ∣ (M′ ⦂∀ C [ T ]) —↠ Σʳ′ ∣ N′) ×
-             TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′
-               ((V ⇓ p [ ｀ (length Σˡ) ]⊑) ↑
-                 convert↑ (src⊑ p) (length Σˡ))
-               N′ D E)))
+             ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ ((V ⇓ p [ ｀ (length Σˡ) ]⊑) ↑
+                 convert↑ (src⊑ p) (length Σˡ)) ⊑ N′ ⦂ D ⊑ E)))
 
   sim-left-beta-up-ν :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B p C D} →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ (V ⇑ (`∀A⊑B B p)) M′ A B →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ (`∀A⊑B B p)) ⊑ M′ ⦂ A ⊑ B →
     ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
       (StoreWf 0 Ψˡ′ Σˡ′ ×
        ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
          (StoreWf 0 Ψʳ′ Σʳ′ ×
           ∃[ N′ ]
             ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
-             TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′
-               ((V ⦂∀ src⊑ p [ ｀ (length Σˡ) ]) ⇑
-                 p [ ｀ (length Σˡ) ]⊑)
-               N′ C D)))
+             ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ ((V ⦂∀ src⊑ p [ ｀ (length Σˡ) ]) ⇑
+                 p [ ｀ (length Σˡ) ]⊑) ⊑ N′ ⦂ C ⊑ D)))
 
   sim-left-beta-reveal-∀ :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B T c C D} →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ (V ↑ ↑-∀ c) M′ (`∀ A) (`∀ B) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ↑ ↑-∀ c) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
     ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
       (StoreWf 0 Ψʳ′ Σʳ′ ×
        ∃[ N′ ]
          ((Σʳ ∣ (M′ ⦂∀ B [ T ]) —↠ Σʳ′ ∣ N′) ×
-          TermRel Ψˡ Σˡ Ψʳ′ Σʳ′
-            ((V ⦂∀ src↑ (⟰ᵗ Σˡ) c [ T ]) ↑ subst↑ (singleTyEnv T) c)
-            N′ C D))
+          ⟪ 0 , Ψˡ , Σˡ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ ((V ⦂∀ src↑ (⟰ᵗ Σˡ) c [ T ]) ↑ subst↑ (singleTyEnv T) c) ⊑ N′ ⦂ C ⊑ D))
 
   sim-left-beta-conceal-∀ :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ V M′ A B T c C D} →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ (V ↓ ↓-∀ c) M′ (`∀ A) (`∀ B) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ↓ ↓-∀ c) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
     ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
       (StoreWf 0 Ψʳ′ Σʳ′ ×
        ∃[ N′ ]
          ((Σʳ ∣ (M′ ⦂∀ B [ T ]) —↠ Σʳ′ ∣ N′) ×
-          TermRel Ψˡ Σˡ Ψʳ′ Σʳ′
-            ((V ⦂∀ src↓ (⟰ᵗ Σˡ) c [ T ]) ↓ subst↓ (singleTyEnv T) c)
-            N′ C D))
+          ⟪ 0 , Ψˡ , Σˡ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ ((V ⦂∀ src↓ (⟰ᵗ Σˡ) c [ T ]) ↓ subst↓ (singleTyEnv T) c) ⊑ N′ ⦂ C ⊑ D))

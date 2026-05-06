@@ -2,7 +2,8 @@
 
 File Charter:
 
-- Purpose: plan the simulation proof of `MetaTheory.dynamic-gradual-guarantee`.
+- Purpose: plan the simulation proof of
+  `GradualGuarantee.dynamic-gradual-guarantee`.
 - Scope: identify the main lemmas down to depth 2 from the top theorem.
 - Dependencies: `TermImprecision`, `Reduction`, `Progress`, `Preservation`,
   and store/weakening infrastructure for fresh seal allocation.
@@ -10,7 +11,7 @@ File Charter:
 ## Top theorem
 
 `dynamic-gradual-guarantee`: if `StoreWf 0 Ψ Σ` and
-`⟪ 0 , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B`, then:
+`⟪ 0 , Ψ , Σ , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B`, then:
 
 1. If `Σ ∣ M —↠ Σˡ′ ∣ V` and `Value V`, then `M′` reduces to a value `V′`
    and `V ⊑ V′`.
@@ -142,7 +143,7 @@ Immediate supporting lemmas for application:
 - `wk-left-world-⊑`: weaken a term-imprecision judgment across the concrete
   seal/store growth produced by a left step.  Its inputs include both
   `Ψˡ ≤ Ψˡ′` and `Σˡ ⊆ˢ Σˡ′`, and its conclusion is stated over the paired
-  final world `TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′ ...`.
+  final paired-world term-imprecision judgment.
 - `subst-⊑`: parallel or single-variable term substitution preserves
   term imprecision.
 - Function-value inversion/catchup lemmas for right values related to a left
@@ -193,8 +194,8 @@ Where recursion or induction is needed for type application:
   state carries `Ψˡ, Σˡ` and `Ψʳ, Σʳ`, together with store well-formedness and
   a length synchronization fact.  When a type application allocates fresh seals,
   the resulting term relation is stated over both extended worlds:
-  `TermRel (suc Ψˡ) ((length Σˡ , T) ∷ Σˡ)
-           (suc Ψʳ) ((length Σʳ , T) ∷ Σʳ) ...`.
+  `⟪ 0 , suc Ψˡ , (length Σˡ , T) ∷ Σˡ ,
+        suc Ψʳ , (length Σʳ , T) ∷ Σʳ , [] ⟫ ⊢ ...`.
 
 Immediate supporting lemmas for type application:
 

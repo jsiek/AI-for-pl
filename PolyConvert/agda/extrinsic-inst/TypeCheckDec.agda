@@ -332,8 +332,8 @@ mutual
           })
   ... | yes g | no ¬p = no (λ { (⊑-★ g p⊢) → ¬p (⊑-to-computed p⊢) })
   imp-check Ψ Γ (X⊑X X) with lookupModeDec Γ X plain
-  ... | yes xp = yes (⊑-＇ xp)
-  ... | no ¬xp = no (λ { (⊑-＇ xp) → ¬xp xp })
+  ... | yes x∈ = yes (⊑-＇ x∈)
+  ... | no ¬x∈ = no (λ { (⊑-＇ x∈) → ¬x∈ x∈ })
   imp-check Ψ Γ (α⊑α α) with wfTyDec (length Γ) Ψ (｀ α)
   ... | yes wfα = yes (⊑-｀ wfα)
   ... | no ¬wfα = no (λ { (⊑-｀ wfα) → ¬wfα wfα })
@@ -347,32 +347,22 @@ mutual
   ... | no ¬p = no (λ { (⊑-∀ p⊢) → ¬p (⊑-to-computed p⊢) })
   imp-check Ψ Γ (`∀A⊑B B p) with wfTyDec (length Γ) Ψ B
   imp-check Ψ Γ (`∀A⊑B B p) | no ¬wfB =
-      no (λ { (⊑-ν wfB occ p⊢) → ¬wfB wfB })
+      no (λ { (⊑-ν wfB p⊢) → ¬wfB wfB })
   imp-check Ψ Γ (`∀A⊑B B p) | yes wfB
       with imp-check Ψ (ν-bound ∷ Γ) p
   imp-check Ψ Γ (`∀A⊑B B p) | yes wfB | no ¬p =
-      no (λ { (⊑-ν wfB′ occ p⊢) → ¬p (⊑-to-computed p⊢) })
+      no (λ { (⊑-ν wfB′ p⊢) → ¬p (⊑-to-computed p⊢) })
   imp-check Ψ Γ (`∀A⊑B B p) | yes wfB | yes p⊢
       with tgt⊑ p ≟Ty ⇑ᵗ B
   imp-check Ψ Γ (`∀A⊑B B p) | yes wfB | yes p⊢ | no tgt≢ =
-      no (λ { (⊑-ν wfB′ occ p⊢′) → tgt≢ (tgt⊑-correct p⊢′) })
-  imp-check Ψ Γ (`∀A⊑B B p) | yes wfB | yes p⊢ | yes eq
-      with occurs zero (src⊑ p) | inspect (λ A → occurs zero A) (src⊑ p)
-  imp-check Ψ Γ (`∀A⊑B B p) | yes wfB | yes p⊢ | yes eq | true | [ occ ] =
+      no (λ { (⊑-ν wfB′ p⊢′) → tgt≢ (tgt⊑-correct p⊢′) })
+  imp-check Ψ Γ (`∀A⊑B B p) | yes wfB | yes p⊢ | yes eq =
       yes
-        (⊑-ν {A = src⊑ p} wfB occ
+        (⊑-ν {A = src⊑ p} wfB
           (subst
             (λ C → Ψ ∣ (ν-bound ∷ Γ) ⊢ p ⦂ src⊑ p ⊑ C)
             eq
             p⊢))
-  imp-check Ψ Γ (`∀A⊑B B p) | yes wfB | yes p⊢ | yes eq | false | [ occ ] =
-      no
-        (λ
-          { (⊑-ν wfB′ occ′ p⊢′) →
-              ⊥-elim-irr
-                (false≢true-irr
-                  (subst (λ b → b ≡ true) occ occ′))
-          })
 
 imp-check-any :
   (Ψ : SealCtx) →

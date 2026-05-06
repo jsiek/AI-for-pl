@@ -204,8 +204,8 @@ open-fresh-∀⊑-prefix wfΣ (⊑-★ν xν) =
   subst-var-plain-prefix wfΣ xν
 open-fresh-∀⊑-prefix wfΣ (⊑-★ g p⊢) =
   ⊑-★ (substᵗ-ground _ g) (open-fresh-∀⊑-prefix wfΣ p⊢)
-open-fresh-∀⊑-prefix wfΣ (⊑-＇ x∈) =
-  subst-var-plain-prefix wfΣ x∈
+open-fresh-∀⊑-prefix {Φ = Φ} wfΣ (⊑-＇ x∈) =
+  subst-var-plain-prefix {Φ = Φ} wfΣ x∈
 open-fresh-∀⊑-prefix wfΣ (⊑-｀ (wfSeal α<Ψ)) =
   ⊑-｀ (wfSeal (<-≤-trans α<Ψ (n≤1+n _)))
 open-fresh-∀⊑-prefix wfΣ ⊑-‵ = ⊑-‵
@@ -214,14 +214,11 @@ open-fresh-∀⊑-prefix wfΣ (⊑-⇒ p⊢ q⊢) =
        (open-fresh-∀⊑-prefix wfΣ q⊢)
 open-fresh-∀⊑-prefix {Φ = Φ} wfΣ (⊑-∀ p⊢) =
   ⊑-∀ (open-fresh-∀⊑-prefix {Φ = plain ∷ Φ} wfΣ p⊢)
-open-fresh-∀⊑-prefix {Φ = Φ} wfΣ (⊑-ν {A = A} {B = B} wfB occ p⊢) =
+open-fresh-∀⊑-prefix {Φ = Φ} wfΣ (⊑-ν {A = A} {B = B} wfB p⊢) =
   ⊑-ν
     (substᵗ-preserves-WfTy
       (WfTy-weakenˢ wfB (n≤1+n _))
       (substWf-plain-prefix {Φ = Φ} wfΣ))
-    (trans
-      (occurs-substVarFrom-< (suc (length Φ)) zero (｀ _) A z<s)
-      occ)
     (cong-⊢⊑
       refl
       (substᵗ-suc-renameᵗ-suc

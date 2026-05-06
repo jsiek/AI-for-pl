@@ -26,8 +26,8 @@ wk-⊑ Ψ≤Ψ′ ⊑-‵ = ⊑-‵
 wk-⊑ Ψ≤Ψ′ (⊑-⇒ p⊢ q⊢) =
   ⊑-⇒ (wk-⊑ Ψ≤Ψ′ p⊢) (wk-⊑ Ψ≤Ψ′ q⊢)
 wk-⊑ Ψ≤Ψ′ (⊑-∀ p⊢) = ⊑-∀ (wk-⊑ Ψ≤Ψ′ p⊢)
-wk-⊑ Ψ≤Ψ′ (⊑-ν wfB occ p⊢) =
-  ⊑-ν (WfTy-weakenˢ wfB Ψ≤Ψ′) occ (wk-⊑ Ψ≤Ψ′ p⊢)
+wk-⊑ Ψ≤Ψ′ (⊑-ν wfB p⊢) =
+  ⊑-ν (WfTy-weakenˢ wfB Ψ≤Ψ′) (wk-⊑ Ψ≤Ψ′ p⊢)
 
 wk-⊒ :
   ∀ {Ψ Ψ′ Γᵢ p A B} →

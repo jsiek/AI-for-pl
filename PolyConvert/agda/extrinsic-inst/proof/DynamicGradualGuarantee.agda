@@ -16,15 +16,12 @@ open import Terms
 open import TermImprecision
 open import Reduction
 open import proof.DGGCommon
-open import proof.DGGSimLeft
-open import proof.DGGSimRight
-open import proof.DGGCatchup
 
 postulate
   dynamic-gradual-guarantee :
     ∀ {Ψ Σ M M′ A B} →
     StoreWf 0 Ψ Σ →
-    TermRel Ψ Σ Ψ Σ M M′ A B →
+    ⟪ 0 , Ψ , Σ , Ψ , Σ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
     (∀ {Σˡ′ V} →
        Value V →
        Σ ∣ M —↠ Σˡ′ ∣ V →
@@ -35,7 +32,8 @@ postulate
              ∃[ V′ ]
                (Value V′ ×
                 (Σ ∣ M′ —↠ Σʳ′ ∣ V′) ×
-                TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′ V V′ A B))))
+                (⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫
+                  ⊢ V ⊑ V′ ⦂ A ⊑ B)))))
     ×
     (Diverges Σ M → Diverges Σ M′)
     ×
@@ -49,7 +47,8 @@ postulate
              ∃[ V ]
                (Value V ×
                 (Σ ∣ M —↠ Σˡ′ ∣ V) ×
-                TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′ V V′ A B))))
+                (⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫
+                  ⊢ V ⊑ V′ ⦂ A ⊑ B)))))
        ⊎ Blames Σ M)
     ×
     (Diverges Σ M′ → DivergeOrBlame Σ M)

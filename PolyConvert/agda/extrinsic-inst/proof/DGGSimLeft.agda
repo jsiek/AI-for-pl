@@ -36,7 +36,7 @@ SimLeftResult Ψˡ Σˡ M′ Σʳ Σˡ′ N A B =
        (StoreWf 0 Ψʳ′ Σʳ′ ×
         ∃[ N′ ]
           ((Σʳ ∣ M′ —↠ Σʳ′ ∣ N′) ×
-           TermRel Ψˡ′ Σˡ′ Ψʳ′ Σʳ′ N N′ A B)))
+           ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ N ⊑ N′ ⦂ A ⊑ B)))
 
 postulate
   sim-left-with-≤ : SimLeftStepˢ
@@ -45,7 +45,7 @@ postulate
     ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} →
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
-    TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
     Σˡ ∣ M —→ Σˡ′ ∣ N →
     SimLeftResult Ψˡ Σˡ M′ Σʳ Σˡ′ N A B
 
@@ -53,7 +53,7 @@ sim-left-reveal-cong :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A A′ B B′ c c′ pB} →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A A′ →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
   0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↑ˢ B →
   0 ∣ Ψˡ ∣ Σˡ ⊢ c′ ⦂ A′ ↑ˢ B′ →
   Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ B′ →
@@ -74,7 +74,7 @@ sim-left-conceal-cong :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A A′ B B′ c c′ pB} →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A A′ →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
   0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↓ˢ B →
   0 ∣ Ψˡ ∣ Σˡ ⊢ c′ ⦂ A′ ↓ˢ B′ →
   Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ B′ →
@@ -95,7 +95,7 @@ sim-left :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
   Σˡ ∣ M —→ Σˡ′ ∣ N →
   SimLeftResult Ψˡ Σˡ M′ Σʳ Σˡ′ N A B
 sim-left wfΣˡ wfΣʳ (⊑· relL relM) (ξ-·₁ redL)
@@ -225,7 +225,7 @@ sim-left* :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B} →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
-  TermRel Ψˡ Σˡ Ψʳ Σʳ M M′ A B →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ B →
   Σˡ ∣ M —↠ Σˡ′ ∣ N →
   SimLeftResult Ψˡ Σˡ M′ Σʳ Σˡ′ N A B
 sim-left* {M′ = M′} wfΣˡ wfΣʳ rel (M ∎) =

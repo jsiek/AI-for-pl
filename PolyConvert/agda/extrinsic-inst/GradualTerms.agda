@@ -57,6 +57,7 @@ open import Terms
     ; ⊢blame to ⊢ᵀblame
     )
 open import proof.ConsistencyCoerce using (coerce-⊒; coerce-⊑; coerce-wt)
+open import proof.ImprecisionCompose using (⊑-trans)
 open import proof.PreservationTermSubst using (wkImp-plains)
 
 ------------------------------------------------------------------------
@@ -387,7 +388,7 @@ trans-⊑-plains :
   0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B →
   0 ∣ plains Δ [] ⊢ q ⦂ B ⊑ C →
   Σ[ r ∈ Imp ] 0 ∣ plains Δ [] ⊢ r ⦂ A ⊑ C
-trans-⊑-plains p⊢ q⊢ = {!!}
+trans-⊑-plains = ⊑-trans
 
 app-consistency :
   ∀ {Δ A A′ B B′ p q} →

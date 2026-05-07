@@ -12,7 +12,7 @@ open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
 data CMode : Set where
-  left right both : CMode
+  left right both neither : CMode
 
 CCtx : Set
 CCtx = List CMode
@@ -25,11 +25,13 @@ leftMode : CMode → VarMode
 leftMode left = plain
 leftMode right = ν-bound
 leftMode both = plain
+leftMode neither = ν-bound
 
 rightMode : CMode → VarMode
 rightMode left = ν-bound
 rightMode right = plain
 rightMode both = plain
+rightMode neither = ν-bound
 
 leftICtx : CCtx → ICtx
 leftICtx [] = []

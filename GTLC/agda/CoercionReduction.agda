@@ -8,6 +8,8 @@ open import Types
 open import Contexts
 open import GTLC 
 
+-- TODO: Replace _⨟_ with List as in PolyCast/Coercions.agda -Jeremy
+
 infixr 7 _⨟_
 infixr 6 _↦_
 

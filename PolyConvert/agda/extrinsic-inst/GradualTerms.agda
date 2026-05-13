@@ -9,13 +9,14 @@ open import Data.List using (List; []; _∷_; _++_; length)
 open import Data.Nat using (ℕ; _+_; _<_; _≤_; zero; suc; z<s; s<s; z≤n; s≤s)
 open import Data.Nat.Properties using (suc-injective)
 open import Data.Product using (∃-syntax; Σ-syntax; _×_; _,_; proj₁)
-open import Relation.Binary.PropositionalEquality using (cong; subst; sym; trans)
+open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; sym; trans)
 
 open import Types
 open import Ctx using (⤊ᵗ)
 open import Imprecision
   using
     ( plains
+    ; ICtx
     ; plain
     ; ν-bound
     ; _∋_∶_
@@ -23,10 +24,17 @@ open import Imprecision
     ; _∣_⊢_⦂_⊒_
     ; Imp
     ; ★⊑★
+    ; X⊑★
+    ; A⊑★
+    ; X⊑X
+    ; α⊑α
+    ; reflImp
     ; renameImp
+    ; substImp
     ; ι⊑ι
     ; A⇒B⊑A′⇒B′
     ; `∀A⊑∀B
+    ; `∀A⊑B
     ; ⊑-★★
     ; ⊑-★ν
     ; ⊑-★
@@ -70,8 +78,22 @@ open import Terms
 open import proof.ConsistencyCoerce using (coerce-⊒; coerce-⊑; coerce-wt)
 open import proof.ImprecisionCompose using (⊑-trans)
 open import proof.PreservationBetaUpNu
-  using (raiseVarFrom; rename-raise-ext; rename-raise-⇑ᵗ)
-open import proof.PreservationTermSubst using (wkImp-plains)
+  using
+    ( raiseVarFrom
+    ; raise-ext
+    ; rename-raise-ext
+    ; rename-raise-⇑ᵗ
+    ; cong-⊢⊑
+    )
+open import proof.PreservationImpSubst
+  using
+    ( ⊑-substᵗ-wt
+    ; singleTyEnv-TySubstWf-plains
+    ; singleTyEnv-ImpSubstWt
+    ; reflImp-wt-plains
+    )
+open import proof.PreservationTermSubst
+  using (renameᵗ-[]ᵗ; unmap∋-⤊ᵗ; wkImp-plains)
 
 ------------------------------------------------------------------------
 -- Terms
@@ -120,6 +142,55 @@ renameᵗᴳ ρ (M `[ T ]) = renameᵗᴳ ρ M `[ renameᵗ ρ T ]
 renameᵗᴳ ρ ($ κ) = $ κ
 renameᵗᴳ ρ (L ⊕[ op ] M) = renameᵗᴳ ρ L ⊕[ op ] renameᵗᴳ ρ M
 
+renameCtxAt : ℕ → Ctx → Ctx
+renameCtxAt k [] = []
+renameCtxAt k (A ∷ Γ) =
+  renameᵗ (raiseVarFrom k) A ∷ renameCtxAt k Γ
+
+renameCtxAt-zero :
+  ∀ Γ →
+  renameCtxAt zero Γ ≡ ⤊ᵗ Γ
+renameCtxAt-zero [] = refl
+renameCtxAt-zero (A ∷ Γ) = cong (⇑ᵗ A ∷_) (renameCtxAt-zero Γ)
+
+renameCtxAt-⤊ᵗ :
+  ∀ k Γ →
+  renameCtxAt (suc k) (⤊ᵗ Γ) ≡ ⤊ᵗ (renameCtxAt k Γ)
+renameCtxAt-⤊ᵗ k [] = refl
+renameCtxAt-⤊ᵗ k (A ∷ Γ) =
+  cong₂ _∷_ (rename-raise-⇑ᵗ k A) (renameCtxAt-⤊ᵗ k Γ)
+
+renameᵗᴳ-cong :
+  ∀ {ρ ρ′} →
+  (∀ X → ρ X ≡ ρ′ X) →
+  (M : GTerm) →
+  renameᵗᴳ ρ M ≡ renameᵗᴳ ρ′ M
+renameᵗᴳ-cong h (` x) = refl
+renameᵗᴳ-cong h (ƛ A ⇒ M) =
+  cong₂ ƛ_⇒_ (rename-cong h A) (renameᵗᴳ-cong h M)
+renameᵗᴳ-cong h (L · M) =
+  cong₂ _·_ (renameᵗᴳ-cong h L) (renameᵗᴳ-cong h M)
+renameᵗᴳ-cong {ρ = ρ} {ρ′ = ρ′} h (Λ M) =
+  cong Λ_ (renameᵗᴳ-cong h′ M)
+  where
+    h′ : ∀ X → extᵗ ρ X ≡ extᵗ ρ′ X
+    h′ zero = refl
+    h′ (suc X) = cong suc (h X)
+renameᵗᴳ-cong h (M `[ T ]) =
+  cong₂ _`[_] (renameᵗᴳ-cong h M) (rename-cong h T)
+renameᵗᴳ-cong h ($ κ) = refl
+renameᵗᴳ-cong h (L ⊕[ op ] M) =
+  cong₂ (λ L M → L ⊕[ op ] M)
+    (renameᵗᴳ-cong h L) (renameᵗᴳ-cong h M)
+
+renameᵗᴳ-value-inv :
+  ∀ {ρ M} →
+  Value (renameᵗᴳ ρ M) →
+  Value M
+renameᵗᴳ-value-inv {M = ƛ A ⇒ M} (ƛ ._ ⇒ ._) = ƛ A ⇒ M
+renameᵗᴳ-value-inv {M = Λ M} (Λ ._) = Λ M
+renameᵗᴳ-value-inv {M = $ κ} ($ .κ) = $ κ
+
 ------------------------------------------------------------------------
 -- Typing
 ------------------------------------------------------------------------
@@ -162,7 +233,7 @@ data _∣_⊢_⦂_ (Δ : TyCtx) (Γ : Ctx) : GTerm → Ty → Set where
      
   ⊢•★ : ∀ {M T}
      → Δ ∣ Γ ⊢ M ⦂ ★
-     → WfTy Δ 0 T
+     → WfTy 0 0 T
      → Δ ∣ Γ ⊢ (M `[ T ]) ⦂ ★
 
   ⊢$ : ∀ (κ : Const)
@@ -173,6 +244,16 @@ data _∣_⊢_⦂_ (Δ : TyCtx) (Γ : Ctx) : GTerm → Ty → Set where
      → (op : Prim)
      → Δ ∣ Γ ⊢ M ⦂ B → boths Δ [] ⊢ B ~ (‵ `ℕ)
      → Δ ∣ Γ ⊢ (L ⊕[ op ] M) ⦂ (‵ `ℕ)
+
+cong-⊢ᴳ⦂ :
+  ∀ {Δ Δ′ Γ Γ′ M M′ A A′} →
+  Δ ≡ Δ′ →
+  Γ ≡ Γ′ →
+  M ≡ M′ →
+  A ≡ A′ →
+  Δ ∣ Γ ⊢ M ⦂ A →
+  Δ′ ∣ Γ′ ⊢ M′ ⦂ A′
+cong-⊢ᴳ⦂ refl refl refl refl M⊢ = M⊢
 
 ------------------------------------------------------------------------
 -- Gradual-term imprecision
@@ -209,6 +290,11 @@ data _⊢ᴳ_⊑_ (Δ : TyCtx) : GTerm → GTerm → Set where
     Δ ⊢ᴳ M ⊑ M′ →
     0 ∣ plains Δ [] ⊢ pT ⦂ T ⊑ T′ →
     Δ ⊢ᴳ (M `[ T ]) ⊑ (M′ `[ T′ ])
+
+  ⊑`[]L : ∀ {M M′ T} →
+    Δ ⊢ᴳ M ⊑ M′ →
+    WfTy 0 0 T →
+    Δ ⊢ᴳ (M `[ T ]) ⊑ M′
 
   ⊑$ : ∀ {n} →
     Δ ⊢ᴳ ($ (κℕ n)) ⊑ ($ (κℕ n))
@@ -310,6 +396,35 @@ length-plains[] :
 length-plains[] zero = refl
 length-plains[] (suc Δ) = cong suc (length-plains[] Δ)
 
+length-boths[] :
+  ∀ Δ →
+  length (boths Δ []) ≡ Δ
+length-boths[] zero = refl
+length-boths[] (suc Δ) = cong suc (length-boths[] Δ)
+
+boths-length-split :
+  (Φ Γ : CCtx) →
+  boths (length (Φ ++ Γ)) [] ≡ boths (length Φ) [] ++ boths (length Γ) []
+boths-length-split [] Γ = refl
+boths-length-split (m ∷ Φ) Γ =
+  cong (both ∷_) (boths-length-split Φ Γ)
+
+length-boths-split :
+  (Φ Γ : CCtx) →
+  length (Φ ++ Γ) ≡ length (boths (length Φ) [] ++ boths (length Γ) [])
+length-boths-split [] Γ = sym (length-boths[] (length Γ))
+length-boths-split (m ∷ Φ) Γ = cong suc (length-boths-split Φ Γ)
+
+rename-raise-length-boths :
+  (Φ : CCtx) (A : Ty) →
+  renameᵗ (raiseVarFrom (length Φ)) A ≡
+  renameᵗ (raiseVarFrom (length (boths (length Φ) []))) A
+rename-raise-length-boths Φ A =
+  rename-cong
+    (λ X → cong (λ n → raiseVarFrom n X)
+      (sym (length-boths[] (length Φ))))
+    A
+
 ⊑-src-wf-plains :
   ∀ {Δ p A B} →
   0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B →
@@ -367,23 +482,47 @@ renameᵗ-ground-id (｀ α) = refl
 renameᵗ-ground-id (‵ ι) = refl
 renameᵗ-ground-id ★⇒★ = refl
 
+constTy-⇑ᵗ :
+  ∀ κ →
+  constTy κ ≡ ⇑ᵗ (constTy κ)
+constTy-⇑ᵗ (κℕ n) = refl
+
+constTy-renameᵗ :
+  ∀ ρ κ →
+  constTy κ ≡ renameᵗ ρ (constTy κ)
+constTy-renameᵗ ρ (κℕ n) = refl
+
+drop∋ᶜ-mode :
+  ∀ {d Φ Γ X m} →
+  (Φ ++ d ∷ Γ) ∋ᶜ raiseVarFrom (length Φ) X ∶ m →
+  (Φ ++ Γ) ∋ᶜ X ∶ m
+drop∋ᶜ-mode {Φ = []} (there x∈) = x∈
+drop∋ᶜ-mode {Φ = m₀ ∷ Φ} {X = zero} here = here
+drop∋ᶜ-mode {Φ = m₀ ∷ Φ} {X = suc X} (there x∈) =
+  there (drop∋ᶜ-mode {Φ = Φ} x∈)
+
 drop∋ᶜ-neither :
   ∀ {Φ Γ X m} →
   (Φ ++ neither ∷ Γ) ∋ᶜ raiseVarFrom (length Φ) X ∶ m →
   (Φ ++ Γ) ∋ᶜ X ∶ m
-drop∋ᶜ-neither {Φ = []} (there x∈) = x∈
-drop∋ᶜ-neither {Φ = m₀ ∷ Φ} {X = zero} here = here
-drop∋ᶜ-neither {Φ = m₀ ∷ Φ} {X = suc X} (there x∈) =
-  there (drop∋ᶜ-neither {Φ = Φ} x∈)
+drop∋ᶜ-neither {Φ = Φ} {Γ = Γ} {X = X} x∈ =
+  drop∋ᶜ-mode {d = neither} {Φ = Φ} {Γ = Γ} {X = X} x∈
+
+drop<-raise-mode :
+  ∀ {d Φ Γ X} →
+  raiseVarFrom (length Φ) X < length (Φ ++ d ∷ Γ) →
+  X < length (Φ ++ Γ)
+drop<-raise-mode {Φ = []} (s<s X<Γ) = X<Γ
+drop<-raise-mode {Φ = m ∷ Φ} {X = zero} z<s = z<s
+drop<-raise-mode {Φ = m ∷ Φ} {X = suc X} (s<s X<Γ) =
+  s<s (drop<-raise-mode {Φ = Φ} X<Γ)
 
 drop<-raise :
   ∀ {Φ Γ X} →
   raiseVarFrom (length Φ) X < length (Φ ++ neither ∷ Γ) →
   X < length (Φ ++ Γ)
-drop<-raise {Φ = []} (s<s X<Γ) = X<Γ
-drop<-raise {Φ = m ∷ Φ} {X = zero} z<s = z<s
-drop<-raise {Φ = m ∷ Φ} {X = suc X} (s<s X<Γ) =
-  s<s (drop<-raise {Φ = Φ} X<Γ)
+drop<-raise {Φ = Φ} {Γ = Γ} {X = X} X<Γ =
+  drop<-raise-mode {d = neither} {Φ = Φ} {Γ = Γ} {X = X} X<Γ
 
 raiseVarFrom-injective :
   ∀ k {X Y} →
@@ -396,25 +535,97 @@ raiseVarFrom-injective (suc k) {suc X} {zero} ()
 raiseVarFrom-injective (suc k) {suc X} {suc Y} eq =
   cong suc (raiseVarFrom-injective k (suc-injective eq))
 
+<-step :
+  ∀ {m n} →
+  m < n →
+  m < suc n
+<-step {zero} {suc n} z<s = z<s
+<-step {suc m} {suc n} (s<s m<n) = s<s (<-step m<n)
+
+raiseVarFrom-<-inv :
+  ∀ k {Δ X} →
+  raiseVarFrom k X < Δ →
+  X < Δ
+raiseVarFrom-<-inv zero {Δ = zero} ()
+raiseVarFrom-<-inv zero {Δ = suc Δ} (s<s X<Δ) = <-step X<Δ
+raiseVarFrom-<-inv (suc k) {Δ = zero} ()
+raiseVarFrom-<-inv (suc k) {Δ = suc Δ} {X = zero} z<s = z<s
+raiseVarFrom-<-inv (suc k) {Δ = suc Δ} {X = suc X}
+    (s<s rX<Δ) =
+  s<s (raiseVarFrom-<-inv k rX<Δ)
+
+<-weaken+ :
+  ∀ Δ {X k} →
+  X < k →
+  X < k + Δ
+<-weaken+ Δ {k = zero} ()
+<-weaken+ Δ {X = zero} {k = suc k} z<s = z<s
+<-weaken+ Δ {X = suc X} {k = suc k} (s<s X<k) =
+  s<s (<-weaken+ Δ X<k)
+
+WfTy-weakenᵗ :
+  ∀ k Δ {Ψ A} →
+  WfTy k Ψ A →
+  WfTy (k + Δ) Ψ A
+WfTy-weakenᵗ k Δ (wfVar X<k) = wfVar (<-weaken+ Δ X<k)
+WfTy-weakenᵗ k Δ (wfSeal α<Ψ) = wfSeal α<Ψ
+WfTy-weakenᵗ k Δ wfBase = wfBase
+WfTy-weakenᵗ k Δ wf★ = wf★
+WfTy-weakenᵗ k Δ (wf⇒ wfA wfB) =
+  wf⇒ (WfTy-weakenᵗ k Δ wfA) (WfTy-weakenᵗ k Δ wfB)
+WfTy-weakenᵗ k Δ (wf∀ wfA) = wf∀ (WfTy-weakenᵗ (suc k) Δ wfA)
+
+WfTy-closed-weakenᵗ :
+  ∀ Δ {Ψ A} →
+  WfTy 0 Ψ A →
+  WfTy Δ Ψ A
+WfTy-closed-weakenᵗ Δ wfA = WfTy-weakenᵗ zero Δ wfA
+
+renameᵗ-inv-WfTy :
+  ∀ {Δ Ψ A ρ} →
+  (∀ {X} → ρ X < Δ → X < Δ) →
+  WfTy Δ Ψ (renameᵗ ρ A) →
+  WfTy Δ Ψ A
+renameᵗ-inv-WfTy {A = ＇ X} hρ (wfVar ρX<Δ) = wfVar (hρ ρX<Δ)
+renameᵗ-inv-WfTy {A = ｀ α} hρ (wfSeal α<Ψ) = wfSeal α<Ψ
+renameᵗ-inv-WfTy {A = ‵ ι} hρ wfBase = wfBase
+renameᵗ-inv-WfTy {A = ★} hρ wf★ = wf★
+renameᵗ-inv-WfTy {A = A ⇒ B} hρ (wf⇒ wfA wfB) =
+  wf⇒ (renameᵗ-inv-WfTy hρ wfA) (renameᵗ-inv-WfTy hρ wfB)
+renameᵗ-inv-WfTy {A = `∀ A} hρ (wf∀ wfA) =
+  wf∀ (renameᵗ-inv-WfTy h-ext wfA)
+  where
+    h-ext : ∀ {X} → extᵗ _ X < _ → X < _
+    h-ext {zero} z<s = z<s
+    h-ext {suc X} (s<s ρX<Δ) = s<s (hρ ρX<Δ)
+
+drop-mode-WfTy :
+  ∀ {d Φ Γ A} →
+  WfTy (length (Φ ++ d ∷ Γ)) 0
+    (renameᵗ (raiseVarFrom (length Φ)) A) →
+  WfTy (length (Φ ++ Γ)) 0 A
+drop-mode-WfTy {Φ = Φ} {Γ = Γ} {A = ＇ X} (wfVar X<Γ) =
+  wfVar (drop<-raise-mode {Φ = Φ} {Γ = Γ} {X = X} X<Γ)
+drop-mode-WfTy {A = ｀ α} (wfSeal α<Ψ) = wfSeal α<Ψ
+drop-mode-WfTy {A = ‵ ι} wfBase = wfBase
+drop-mode-WfTy {A = ★} wf★ = wf★
+drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A ⇒ B} (wf⇒ wfA wfB) =
+  wf⇒ (drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A} wfA)
+       (drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = B} wfB)
+drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = `∀ A} (wf∀ wfA) =
+  wf∀
+    (drop-mode-WfTy {d = d} {Φ = both ∷ Φ} {Γ = Γ} {A = A}
+      (subst (λ B → WfTy (length ((both ∷ Φ) ++ d ∷ Γ)) 0 B)
+        (rename-raise-ext (length Φ) A)
+        wfA))
+
 drop-neither-WfTy :
   ∀ {Φ Γ A} →
   WfTy (length (Φ ++ neither ∷ Γ)) 0
     (renameᵗ (raiseVarFrom (length Φ)) A) →
   WfTy (length (Φ ++ Γ)) 0 A
-drop-neither-WfTy {Φ = Φ} {Γ = Γ} {A = ＇ X} (wfVar X<Γ) =
-  wfVar (drop<-raise {Φ = Φ} {Γ = Γ} {X = X} X<Γ)
-drop-neither-WfTy {A = ｀ α} (wfSeal α<Ψ) = wfSeal α<Ψ
-drop-neither-WfTy {A = ‵ ι} wfBase = wfBase
-drop-neither-WfTy {A = ★} wf★ = wf★
-drop-neither-WfTy {Φ = Φ} {Γ = Γ} {A = A ⇒ B} (wf⇒ wfA wfB) =
-  wf⇒ (drop-neither-WfTy {Φ = Φ} {Γ = Γ} {A = A} wfA)
-       (drop-neither-WfTy {Φ = Φ} {Γ = Γ} {A = B} wfB)
-drop-neither-WfTy {Φ = Φ} {Γ = Γ} {A = `∀ A} (wf∀ wfA) =
-  wf∀
-    (drop-neither-WfTy {Φ = both ∷ Φ} {Γ = Γ} {A = A}
-      (subst (λ B → WfTy (length ((both ∷ Φ) ++ neither ∷ Γ)) 0 B)
-        (rename-raise-ext (length Φ) A)
-        wfA))
+drop-neither-WfTy {Φ = Φ} {Γ = Γ} {A = A} wfA =
+  drop-mode-WfTy {d = neither} {Φ = Φ} {Γ = Γ} {A = A} wfA
 
 var-var-~-inj :
   ∀ {Γ X Y} →
@@ -476,143 +687,157 @@ cong-~-≤ :
 cong-~-≤ eqA eqB h p =
   subst (λ n → n ≤ _) (sym (cong-~-size eqA eqB h)) p
 
-drop-neither-at-X-suc :
-  ∀ {m Φ Γ X Y} →
-  (m ∷ Φ) ++ neither ∷ Γ ⊢
+drop-mode-at-X-suc :
+  ∀ {d m Φ Γ X Y} →
+  (m ∷ Φ) ++ d ∷ Γ ⊢
     ＇ suc (raiseVarFrom (length Φ) X) ~
     ＇ suc (raiseVarFrom (length Φ) Y) →
   (m ∷ Φ) ++ Γ ⊢ ＇ suc X ~ ＇ suc Y
-drop-neither-at-X-suc {m = m} {Φ = Φ} {Γ = Γ} {X = X} h
+drop-mode-at-X-suc {d = d} {m = m} {Φ = Φ} {Γ = Γ} {X = X} h
     with var-var-~-inj h
-drop-neither-at-X-suc {m = m} {Φ = Φ} {Γ = Γ} {X = X} h | eq , x∈
+drop-mode-at-X-suc {d = d} {m = m} {Φ = Φ} {Γ = Γ} {X = X} h
+    | eq , x∈
     with raiseVarFrom-injective (length Φ) (suc-injective eq)
-drop-neither-at-X-suc {m = m} {Φ = Φ} {Γ = Γ} {X = X} h
+drop-mode-at-X-suc {d = d} {m = m} {Φ = Φ} {Γ = Γ} {X = X} h
     | eq , x∈ | refl =
-  X-~-X (drop∋ᶜ-neither {Φ = m ∷ Φ} {Γ = Γ} {X = suc X} x∈)
+  X-~-X (drop∋ᶜ-mode {d = d} {Φ = m ∷ Φ} {Γ = Γ}
+           {X = suc X} x∈)
 
-drop-neither-at-νL-suc :
-  ∀ {m Φ Γ X} →
-  (m ∷ Φ) ++ neither ∷ Γ ⊢
+drop-mode-at-νL-suc :
+  ∀ {d m Φ Γ X} →
+  (m ∷ Φ) ++ d ∷ Γ ⊢
     ＇ suc (raiseVarFrom (length Φ) X) ~ ★ →
   (m ∷ Φ) ++ Γ ⊢ ＇ suc X ~ ★
-drop-neither-at-νL-suc {m = m} {Φ = Φ} {Γ = Γ} {X = X} (νX-~-★ x∈) =
+drop-mode-at-νL-suc {d = d} {m = m} {Φ = Φ} {Γ = Γ} {X = X}
+    (νX-~-★ x∈) =
   νX-~-★
-    (drop∋ᶜ-neither {Φ = m ∷ Φ} {Γ = Γ} {X = suc X} x∈)
-drop-neither-at-νL-suc (A-~-★ (｀ α) ())
-drop-neither-at-νL-suc (A-~-★ (‵ ι) ())
-drop-neither-at-νL-suc (A-~-★ ★⇒★ ())
+    (drop∋ᶜ-mode {d = d} {Φ = m ∷ Φ} {Γ = Γ} {X = suc X} x∈)
+drop-mode-at-νL-suc (A-~-★ (｀ α) ())
+drop-mode-at-νL-suc (A-~-★ (‵ ι) ())
+drop-mode-at-νL-suc (A-~-★ ★⇒★ ())
 
-drop-neither-at-νR-suc :
-  ∀ {m Φ Γ X} →
-  (m ∷ Φ) ++ neither ∷ Γ ⊢
+drop-mode-at-νR-suc :
+  ∀ {d m Φ Γ X} →
+  (m ∷ Φ) ++ d ∷ Γ ⊢
     ★ ~ ＇ suc (raiseVarFrom (length Φ) X) →
   (m ∷ Φ) ++ Γ ⊢ ★ ~ ＇ suc X
-drop-neither-at-νR-suc {m = m} {Φ = Φ} {Γ = Γ} {X = X} (★-~-νX x∈) =
+drop-mode-at-νR-suc {d = d} {m = m} {Φ = Φ} {Γ = Γ} {X = X}
+    (★-~-νX x∈) =
   ★-~-νX
-    (drop∋ᶜ-neither {Φ = m ∷ Φ} {Γ = Γ} {X = suc X} x∈)
-drop-neither-at-νR-suc (★-~-B (｀ α) ())
-drop-neither-at-νR-suc (★-~-B (‵ ι) ())
-drop-neither-at-νR-suc (★-~-B ★⇒★ ())
+    (drop∋ᶜ-mode {d = d} {Φ = m ∷ Φ} {Γ = Γ} {X = suc X} x∈)
+drop-mode-at-νR-suc (★-~-B (｀ α) ())
+drop-mode-at-νR-suc (★-~-B (‵ ι) ())
+drop-mode-at-νR-suc (★-~-B ★⇒★ ())
 
-drop-neither-at-~-gas :
+drop-mode-at-~-gas :
   (gas : ℕ) →
-  ∀ {Φ Γ B C}
-    {h : Φ ++ neither ∷ Γ ⊢ renameᵗ (raiseVarFrom (length Φ)) B
-                            ~ renameᵗ (raiseVarFrom (length Φ)) C} →
+  ∀ {d Φ Γ B C}
+    {h : Φ ++ d ∷ Γ ⊢ renameᵗ (raiseVarFrom (length Φ)) B
+                         ~ renameᵗ (raiseVarFrom (length Φ)) C} →
   ~-size h ≤ gas →
   Φ ++ Γ ⊢ B ~ C
-drop-neither-at-~-gas gas {B = ★} {C = ★} {h = ★-~-★} p = ★-~-★
-drop-neither-at-~-gas gas {Φ = []} {Γ = Γ} {B = ＇ X} {C = ＇ .X}
+drop-mode-at-~-gas gas {B = ★} {C = ★} {h = ★-~-★} p = ★-~-★
+drop-mode-at-~-gas gas {d = d} {Φ = []} {Γ = Γ}
+    {B = ＇ X} {C = ＇ .X}
     {h = X-~-X {X = .(suc X)} x∈} p =
-  X-~-X (drop∋ᶜ-neither {Φ = []} {Γ = Γ} {X = X} x∈)
-drop-neither-at-~-gas gas {Φ = m ∷ Φ} {Γ = Γ} {B = ＇ zero}
+  X-~-X (drop∋ᶜ-mode {d = d} {Φ = []} {Γ = Γ} {X = X} x∈)
+drop-mode-at-~-gas gas {d = d} {Φ = m ∷ Φ} {Γ = Γ} {B = ＇ zero}
     {C = ＇ zero}
     {h = X-~-X {X = zero} x∈} p =
-  X-~-X (drop∋ᶜ-neither {Φ = m ∷ Φ} {Γ = Γ} {X = zero} x∈)
-drop-neither-at-~-gas gas {Φ = m ∷ Φ} {Γ = Γ} {B = ＇ suc X}
+  X-~-X (drop∋ᶜ-mode {d = d} {Φ = m ∷ Φ} {Γ = Γ}
+           {X = zero} x∈)
+drop-mode-at-~-gas gas {d = d} {Φ = m ∷ Φ} {Γ = Γ} {B = ＇ suc X}
     {C = ＇ suc Y} {h = h} p =
-  drop-neither-at-X-suc {m = m} {Φ = Φ} {Γ = Γ} {X = X} {Y = Y} h
-drop-neither-at-~-gas gas {B = ‵ ι} {C = ‵ ι′} {h = ι-~-ι} p =
+  drop-mode-at-X-suc {d = d} {m = m} {Φ = Φ} {Γ = Γ}
+    {X = X} {Y = Y} h
+drop-mode-at-~-gas gas {B = ‵ ι} {C = ‵ ι′} {h = ι-~-ι} p =
   ι-~-ι
-drop-neither-at-~-gas zero {B = A ⇒ B} {C = A′ ⇒ B′}
+drop-mode-at-~-gas zero {B = A ⇒ B} {C = A′ ⇒ B′}
     {h = ⇒-~-⇒ A~A′ B~B′} ()
-drop-neither-at-~-gas (suc gas) {Φ = Φ} {Γ = Γ} {B = A ⇒ B}
+drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = A ⇒ B}
     {C = A′ ⇒ B′} {h = ⇒-~-⇒ A~A′ B~B′} (s≤s p) =
   ⇒-~-⇒
-    (drop-neither-at-~-gas gas
-      {Φ = Φ} {Γ = Γ} {B = A} {C = A′} {h = A~A′}
+    (drop-mode-at-~-gas gas
+      {d = d} {Φ = Φ} {Γ = Γ} {B = A} {C = A′} {h = A~A′}
       (≤trans (≤left+ (~-size A~A′) (~-size B~B′)) p))
-    (drop-neither-at-~-gas gas
-      {Φ = Φ} {Γ = Γ} {B = B} {C = B′} {h = B~B′}
+    (drop-mode-at-~-gas gas
+      {d = d} {Φ = Φ} {Γ = Γ} {B = B} {C = B′} {h = B~B′}
       (≤trans (≤right+ (~-size A~A′) (~-size B~B′)) p))
-drop-neither-at-~-gas zero {B = `∀ A} {C = `∀ B} {h = ∀-~-∀ A~B} ()
-drop-neither-at-~-gas (suc gas) {Φ = Φ} {Γ = Γ} {B = `∀ A}
+drop-mode-at-~-gas zero {B = `∀ A} {C = `∀ B} {h = ∀-~-∀ A~B} ()
+drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = `∀ A}
     {C = `∀ B} {h = ∀-~-∀ A~B} (s≤s p) =
   ∀-~-∀
-    (drop-neither-at-~-gas gas
-      {Φ = both ∷ Φ} {Γ = Γ} {B = A} {C = B}
+    (drop-mode-at-~-gas gas
+      {d = d} {Φ = both ∷ Φ} {Γ = Γ} {B = A} {C = B}
       {h = cong-~ (rename-raise-ext (length Φ) A)
                   (rename-raise-ext (length Φ) B)
                   A~B}
       (cong-~-≤ (rename-raise-ext (length Φ) A)
                 (rename-raise-ext (length Φ) B)
                 A~B p))
-drop-neither-at-~-gas zero {B = A} {C = ★} {h = A-~-★ g A~G} ()
-drop-neither-at-~-gas (suc gas) {Φ = Φ} {Γ = Γ} {B = A} {C = ★}
+drop-mode-at-~-gas zero {B = A} {C = ★} {h = A-~-★ g A~G} ()
+drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = A}
+    {C = ★}
     {h = A-~-★ {G = G} g A~G} (s≤s p) =
   A-~-★ g
-    (drop-neither-at-~-gas gas
-      {Φ = Φ} {Γ = Γ} {B = A} {C = G}
+    (drop-mode-at-~-gas gas
+      {d = d} {Φ = Φ} {Γ = Γ} {B = A} {C = G}
       {h = cong-~ refl (sym (renameᵗ-ground-id g)) A~G}
       (cong-~-≤ refl (sym (renameᵗ-ground-id g)) A~G p))
-drop-neither-at-~-gas zero {B = ★} {C = B} {h = ★-~-B g H~B} ()
-drop-neither-at-~-gas (suc gas) {Φ = Φ} {Γ = Γ} {B = ★} {C = B}
+drop-mode-at-~-gas zero {B = ★} {C = B} {h = ★-~-B g H~B} ()
+drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = ★}
+    {C = B}
     {h = ★-~-B {H = H} g H~B} (s≤s p) =
   ★-~-B g
-    (drop-neither-at-~-gas gas
-      {Φ = Φ} {Γ = Γ} {B = H} {C = B}
+    (drop-mode-at-~-gas gas
+      {d = d} {Φ = Φ} {Γ = Γ} {B = H} {C = B}
       {h = cong-~ (sym (renameᵗ-ground-id g)) refl H~B}
       (cong-~-≤ (sym (renameᵗ-ground-id g)) refl H~B p))
-drop-neither-at-~-gas gas {Φ = []} {Γ = Γ} {B = ＇ X} {C = ★}
+drop-mode-at-~-gas gas {d = d} {Φ = []} {Γ = Γ} {B = ＇ X}
+    {C = ★}
     {h = νX-~-★ {X = .(suc X)} x∈} p =
-  νX-~-★ (drop∋ᶜ-neither {Φ = []} {Γ = Γ} {X = X} x∈)
-drop-neither-at-~-gas gas {Φ = m ∷ Φ} {Γ = Γ} {B = ＇ zero}
+  νX-~-★ (drop∋ᶜ-mode {d = d} {Φ = []} {Γ = Γ} {X = X} x∈)
+drop-mode-at-~-gas gas {d = d} {Φ = m ∷ Φ} {Γ = Γ} {B = ＇ zero}
     {C = ★}
     {h = νX-~-★ {X = zero} x∈} p =
-  νX-~-★ (drop∋ᶜ-neither {Φ = m ∷ Φ} {Γ = Γ} {X = zero} x∈)
-drop-neither-at-~-gas gas {Φ = m ∷ Φ} {Γ = Γ} {B = ＇ suc X} {C = ★}
-    {h = h} p =
-  drop-neither-at-νL-suc {m = m} {Φ = Φ} {Γ = Γ} {X = X} h
-drop-neither-at-~-gas gas {Φ = []} {Γ = Γ} {B = ★} {C = ＇ X}
+  νX-~-★ (drop∋ᶜ-mode {d = d} {Φ = m ∷ Φ} {Γ = Γ}
+            {X = zero} x∈)
+drop-mode-at-~-gas gas {d = d} {Φ = m ∷ Φ} {Γ = Γ} {B = ＇ suc X}
+    {C = ★} {h = h} p =
+  drop-mode-at-νL-suc {d = d} {m = m} {Φ = Φ} {Γ = Γ} {X = X} h
+drop-mode-at-~-gas gas {d = d} {Φ = []} {Γ = Γ} {B = ★} {C = ＇ X}
     {h = ★-~-νX {X = .(suc X)} x∈} p =
-  ★-~-νX (drop∋ᶜ-neither {Φ = []} {Γ = Γ} {X = X} x∈)
-drop-neither-at-~-gas gas {Φ = m ∷ Φ} {Γ = Γ} {B = ★}
+  ★-~-νX (drop∋ᶜ-mode {d = d} {Φ = []} {Γ = Γ} {X = X} x∈)
+drop-mode-at-~-gas gas {d = d} {Φ = m ∷ Φ} {Γ = Γ} {B = ★}
     {C = ＇ zero}
     {h = ★-~-νX {X = zero} x∈} p =
-  ★-~-νX (drop∋ᶜ-neither {Φ = m ∷ Φ} {Γ = Γ} {X = zero} x∈)
-drop-neither-at-~-gas gas {Φ = m ∷ Φ} {Γ = Γ} {B = ★} {C = ＇ suc X}
-    {h = h} p =
-  drop-neither-at-νR-suc {m = m} {Φ = Φ} {Γ = Γ} {X = X} h
-drop-neither-at-~-gas zero {B = `∀ A} {C = B} {h = ∀-~-B wfB A~⇑B} ()
-drop-neither-at-~-gas (suc gas) {Φ = Φ} {Γ = Γ} {B = `∀ A} {C = B}
+  ★-~-νX (drop∋ᶜ-mode {d = d} {Φ = m ∷ Φ} {Γ = Γ}
+            {X = zero} x∈)
+drop-mode-at-~-gas gas {d = d} {Φ = m ∷ Φ} {Γ = Γ} {B = ★}
+    {C = ＇ suc X} {h = h} p =
+  drop-mode-at-νR-suc {d = d} {m = m} {Φ = Φ} {Γ = Γ} {X = X} h
+drop-mode-at-~-gas zero {B = `∀ A} {C = B} {h = ∀-~-B wfB A~⇑B} ()
+drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = `∀ A}
+    {C = B}
     {h = ∀-~-B wfB A~⇑B} (s≤s p) =
   ∀-~-B
-    (drop-neither-WfTy {Φ = Φ} {Γ = Γ} {A = B} wfB)
-    (drop-neither-at-~-gas gas
-      {Φ = left ∷ Φ} {Γ = Γ} {B = A} {C = ⇑ᵗ B}
+    (drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = B} wfB)
+    (drop-mode-at-~-gas gas
+      {d = d} {Φ = left ∷ Φ} {Γ = Γ} {B = A} {C = ⇑ᵗ B}
       {h = cong-~ (rename-raise-ext (length Φ) A)
                   (sym (rename-raise-⇑ᵗ (length Φ) B))
                   A~⇑B}
       (cong-~-≤ (rename-raise-ext (length Φ) A)
                 (sym (rename-raise-⇑ᵗ (length Φ) B))
                 A~⇑B p))
-drop-neither-at-~-gas zero {B = A} {C = `∀ B} {h = A-~-∀ wfA ⇑A~B} ()
-drop-neither-at-~-gas (suc gas) {Φ = Φ} {Γ = Γ} {B = A} {C = `∀ B}
+drop-mode-at-~-gas zero {B = A} {C = `∀ B} {h = A-~-∀ wfA ⇑A~B} ()
+drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = A}
+    {C = `∀ B}
     {h = A-~-∀ wfA ⇑A~B} (s≤s p) =
   A-~-∀
-    (drop-neither-WfTy {Φ = Φ} {Γ = Γ} {A = A} wfA)
-    (drop-neither-at-~-gas gas
-      {Φ = right ∷ Φ} {Γ = Γ} {B = ⇑ᵗ A} {C = B}
+    (drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A} wfA)
+    (drop-mode-at-~-gas gas
+      {d = d} {Φ = right ∷ Φ} {Γ = Γ} {B = ⇑ᵗ A} {C = B}
       {h = cong-~ (sym (rename-raise-⇑ᵗ (length Φ) A))
                   (rename-raise-ext (length Φ) B)
                   ⇑A~B}
@@ -620,18 +845,85 @@ drop-neither-at-~-gas (suc gas) {Φ = Φ} {Γ = Γ} {B = A} {C = `∀ B}
                 (rename-raise-ext (length Φ) B)
                 ⇑A~B p))
 
+drop-mode-at-~ :
+  ∀ {d Φ Γ B C} →
+  Φ ++ d ∷ Γ ⊢ renameᵗ (raiseVarFrom (length Φ)) B
+                  ~ renameᵗ (raiseVarFrom (length Φ)) C →
+  Φ ++ Γ ⊢ B ~ C
+drop-mode-at-~ h = drop-mode-at-~-gas (~-size h) {h = h} ≤refl
+
 drop-neither-at-~ :
   ∀ {Φ Γ B C} →
   Φ ++ neither ∷ Γ ⊢ renameᵗ (raiseVarFrom (length Φ)) B
                      ~ renameᵗ (raiseVarFrom (length Φ)) C →
   Φ ++ Γ ⊢ B ~ C
-drop-neither-at-~ h = drop-neither-at-~-gas (~-size h) {h = h} ≤refl
+drop-neither-at-~ = drop-mode-at-~ {d = neither}
+
+drop-mode-~ :
+  ∀ {d Γ B C} →
+  d ∷ Γ ⊢ ⇑ᵗ B ~ ⇑ᵗ C →
+  Γ ⊢ B ~ C
+drop-mode-~ = drop-mode-at-~ {Φ = []}
+
+drop-both-~ :
+  ∀ {Γ B C} →
+  both ∷ Γ ⊢ ⇑ᵗ B ~ ⇑ᵗ C →
+  Γ ⊢ B ~ C
+drop-both-~ = drop-mode-~ {d = both}
+
+drop-boths-at-~ :
+  ∀ {d Φ Γ B C} →
+  boths (length (Φ ++ d ∷ Γ)) [] ⊢
+    renameᵗ (raiseVarFrom (length Φ)) B ~
+    renameᵗ (raiseVarFrom (length Φ)) C →
+  boths (length (Φ ++ Γ)) [] ⊢ B ~ C
+drop-boths-at-~ {d = d} {Φ = Φ} {Γ = Γ} {B = B} {C = C} h =
+  subst (λ Ξ → Ξ ⊢ B ~ C) (sym (boths-length-split Φ Γ))
+    (drop-mode-at-~ {d = both} {Φ = boths (length Φ) []}
+      {Γ = boths (length Γ) []} {B = B} {C = C}
+      (cong-~
+        (rename-raise-length-boths Φ B)
+        (rename-raise-length-boths Φ C)
+        (subst
+          (λ Ξ → Ξ ⊢ renameᵗ (raiseVarFrom (length Φ)) B
+                     ~ renameᵗ (raiseVarFrom (length Φ)) C)
+          (boths-length-split Φ (d ∷ Γ))
+          h)))
 
 drop-neither-~ :
   ∀ {Γ B C} →
   neither ∷ Γ ⊢ ⇑ᵗ B ~ ⇑ᵗ C →
   Γ ⊢ B ~ C
-drop-neither-~ = drop-neither-at-~ {Φ = []}
+drop-neither-~ = drop-mode-~ {d = neither}
+
+drop-boths-WfTy :
+  ∀ {d Φ Γ A} →
+  WfTy (length (Φ ++ d ∷ Γ)) 0
+    (renameᵗ (raiseVarFrom (length Φ)) A) →
+  WfTy (length (Φ ++ Γ)) 0 A
+drop-boths-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A} wfA =
+  subst (λ n → WfTy n 0 A) (sym (length-boths-split Φ Γ))
+    (drop-mode-WfTy {d = both} {Φ = boths (length Φ) []}
+      {Γ = boths (length Γ) []} {A = A}
+      (subst
+        (λ n → WfTy n 0
+          (renameᵗ (raiseVarFrom (length (boths (length Φ) []))) A))
+        (length-boths-split Φ (d ∷ Γ))
+        (subst
+          (λ B → WfTy (length (Φ ++ d ∷ Γ)) 0 B)
+          (rename-raise-length-boths Φ A)
+          wfA)))
+
+drop-⇑ᵗ-WfTy-plains :
+  ∀ {Δ A} →
+  WfTy (suc Δ) 0 (⇑ᵗ A) →
+  WfTy Δ 0 A
+drop-⇑ᵗ-WfTy-plains {Δ = Δ} {A = A} wfA =
+  subst (λ n → WfTy n 0 A) (length-boths[] Δ)
+    (drop-mode-WfTy {d = both} {Φ = []} {Γ = boths Δ []} {A = A}
+      (subst (λ n → WfTy (suc n) 0 (⇑ᵗ A))
+        (sym (length-boths[] Δ))
+        wfA))
 
 swapMode : CMode → CMode
 swapMode left = right
@@ -853,6 +1145,339 @@ star-app-sgg L′⊢ (⊑-★ (｀ α) ()) M′⊢ pArg⊢ A′~★
 star-app-sgg L′⊢ (⊑-★ (‵ ι) ()) M′⊢ pArg⊢ A′~★
 star-app-sgg L′⊢ (⊑-★ ★⇒★ ()) M′⊢ pArg⊢ A′~★
 
+DropRenameGTypingResult : TyCtx → Ctx → GTerm → Ty → Set
+DropRenameGTypingResult Δ Γ M B′ =
+  Σ[ B ∈ Ty ] ((B′ ≡ ⇑ᵗ B) × (Δ ∣ Γ ⊢ M ⦂ B))
+
+DropRenameGTypingAtResult : CCtx → CCtx → Ctx → GTerm → Ty → Set
+DropRenameGTypingAtResult Φ Γᶜ Γ M B′ =
+  Σ[ B ∈ Ty ]
+    ((B′ ≡ renameᵗ (raiseVarFrom (length Φ)) B) ×
+     (length (Φ ++ Γᶜ) ∣ Γ ⊢ M ⦂ B))
+
+unmap∋-renameCtxAt :
+  ∀ k {Γ x A′} →
+  renameCtxAt k Γ ∋ x ⦂ A′ →
+  Σ[ A ∈ Ty ] (A′ ≡ renameᵗ (raiseVarFrom k) A) × (Γ ∋ x ⦂ A)
+unmap∋-renameCtxAt k {Γ = A ∷ Γ} Z = A , refl , Z
+unmap∋-renameCtxAt k {Γ = A ∷ Γ} (S x∈)
+    with unmap∋-renameCtxAt k x∈
+unmap∋-renameCtxAt k {Γ = A ∷ Γ} (S x∈) | B , eq , x∈′ =
+  B , eq , S x∈′
+
+drop-renameᵗᴳ-at-wt :
+  ∀ {d Φ Γᶜ Γ M B′} →
+  length (Φ ++ d ∷ Γᶜ) ∣ renameCtxAt (length Φ) Γ ⊢
+    renameᵗᴳ (raiseVarFrom (length Φ)) M ⦂ B′ →
+  DropRenameGTypingAtResult Φ Γᶜ Γ M B′
+drop-renameᵗᴳ-at-wt {Φ = Φ} {M = ` x} (⊢` x∈)
+    with unmap∋-renameCtxAt (length Φ) x∈
+drop-renameᵗᴳ-at-wt {Φ = Φ} {M = ` x} (⊢` x∈)
+    | A , eq , x∈′ =
+  A , eq , ⊢` x∈′
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = ƛ A ⇒ M} (⊢ƛ wfA M⊢)
+    with drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ} M⊢
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = ƛ A ⇒ M} (⊢ƛ wfA M⊢)
+    | B , refl , M⊢′ =
+  A ⇒ B , refl ,
+  ⊢ƛ (drop-boths-WfTy {d = d} {Φ = Φ} {Γ = Γᶜ} wfA) M⊢′
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = L · M} (⊢· L⊢ M⊢ A~A′)
+    with drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ} L⊢
+       | drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ} M⊢
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = L · M} (⊢· L⊢ M⊢ A~A′)
+    | A ⇒ B , refl , L⊢′ | A′ , refl , M⊢′ =
+  B , refl ,
+  ⊢· L⊢′ M⊢′ (drop-boths-at-~ {d = d} {Φ = Φ} {Γ = Γᶜ} A~A′)
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = L · M} (⊢·★ L⊢ M⊢ A~★)
+    with drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ} L⊢
+       | drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ} M⊢
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = L · M} (⊢·★ L⊢ M⊢ A~★)
+    | ★ , refl , L⊢′ | A , refl , M⊢′ =
+  ★ , refl ,
+  ⊢·★ L⊢′ M⊢′ (drop-boths-at-~ {d = d} {Φ = Φ} {Γ = Γᶜ} A~★)
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ} {Γ = Γ}
+    {M = Λ M} (⊢Λ vM M⊢)
+    with drop-renameᵗᴳ-at-wt {d = d} {Φ = both ∷ Φ} {Γᶜ = Γᶜ}
+      {Γ = ⤊ᵗ Γ} {M = M}
+      (subst
+        (λ N → length ((both ∷ Φ) ++ d ∷ Γᶜ) ∣
+          renameCtxAt (suc (length Φ)) (⤊ᵗ Γ) ⊢ N ⦂ _)
+        (renameᵗᴳ-cong (raise-ext (length Φ)) M)
+        (subst
+          (λ Γ′ → length ((both ∷ Φ) ++ d ∷ Γᶜ) ∣ Γ′ ⊢
+            renameᵗᴳ (extᵗ (raiseVarFrom (length Φ))) M ⦂ _)
+          (sym (renameCtxAt-⤊ᵗ (length Φ) Γ))
+          M⊢))
+drop-renameᵗᴳ-at-wt {Φ = Φ} {M = Λ M} (⊢Λ vM M⊢)
+    | B , eqB , M⊢′ =
+  `∀ B ,
+  cong `∀ (trans eqB (sym (rename-raise-ext (length Φ) B))) ,
+  ⊢Λ (renameᵗᴳ-value-inv vM) M⊢′
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = M `[ T ]} (⊢• M⊢ wfB wfT)
+    with drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ} M⊢
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = M `[ T ]} (⊢• M⊢ wfB wfT)
+    | `∀ B , refl , M⊢′ =
+  B [ T ]ᵗ ,
+  sym (renameᵗ-[]ᵗ (raiseVarFrom (length Φ)) B T) ,
+  ⊢• M⊢′
+    (drop-boths-WfTy {d = d} {Φ = both ∷ Φ} {Γ = Γᶜ} {A = B}
+      (subst (λ B′ → WfTy (suc (length (Φ ++ d ∷ Γᶜ))) 0 B′)
+        (rename-raise-ext (length Φ) B)
+        wfB))
+    (drop-boths-WfTy {d = d} {Φ = Φ} {Γ = Γᶜ} wfT)
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = M `[ T ]} (⊢•★ M⊢ wfT)
+    with drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ} M⊢
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = M `[ T ]} (⊢•★ M⊢ wfT)
+    | ★ , refl , M⊢′ =
+  ★ , refl ,
+  ⊢•★ M⊢′
+    (renameᵗ-inv-WfTy (raiseVarFrom-<-inv (length Φ)) wfT)
+drop-renameᵗᴳ-at-wt {Φ = Φ} {M = $ κ} (⊢$ κ) =
+  constTy κ , constTy-renameᵗ (raiseVarFrom (length Φ)) κ , ⊢$ κ
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = L ⊕[ op ] M} (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ)
+    with drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ} L⊢
+       | drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ} M⊢
+drop-renameᵗᴳ-at-wt {d = d} {Φ = Φ} {Γᶜ = Γᶜ}
+    {M = L ⊕[ op ] M} (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ)
+    | A , refl , L⊢′ | B , refl , M⊢′ =
+  ‵ `ℕ , refl ,
+  ⊢⊕ L⊢′ (drop-boths-at-~ {d = d} {Φ = Φ} {Γ = Γᶜ} A~ℕ) op
+      M⊢′ (drop-boths-at-~ {d = d} {Φ = Φ} {Γ = Γᶜ} B~ℕ)
+
+drop-renameᵗᴳ-wt :
+  ∀ {Δ Γ M B′} →
+  suc Δ ∣ ⤊ᵗ Γ ⊢ renameᵗᴳ suc M ⦂ B′ →
+  DropRenameGTypingResult Δ Γ M B′
+drop-renameᵗᴳ-wt {M = ` x} (⊢` x∈) with unmap∋-⤊ᵗ x∈
+drop-renameᵗᴳ-wt {M = ` x} (⊢` x∈) | A , eq , x∈′ =
+  A , eq , ⊢` x∈′
+drop-renameᵗᴳ-wt {M = ƛ A ⇒ M} (⊢ƛ wfA M⊢)
+    with drop-renameᵗᴳ-wt M⊢
+drop-renameᵗᴳ-wt {M = ƛ A ⇒ M} (⊢ƛ wfA M⊢)
+    | B , refl , M⊢′ =
+  A ⇒ B , refl ,
+  ⊢ƛ (drop-⇑ᵗ-WfTy-plains wfA) M⊢′
+drop-renameᵗᴳ-wt {M = L · M} (⊢· L⊢ M⊢ A~A′)
+    with drop-renameᵗᴳ-wt L⊢ | drop-renameᵗᴳ-wt M⊢
+drop-renameᵗᴳ-wt {M = L · M} (⊢· L⊢ M⊢ A~A′)
+    | A ⇒ B , refl , L⊢′ | A′ , refl , M⊢′ =
+  B , refl , ⊢· L⊢′ M⊢′ (drop-both-~ A~A′)
+drop-renameᵗᴳ-wt {M = L · M} (⊢·★ L⊢ M⊢ A~★)
+    with drop-renameᵗᴳ-wt L⊢ | drop-renameᵗᴳ-wt M⊢
+drop-renameᵗᴳ-wt {M = L · M} (⊢·★ L⊢ M⊢ A~★)
+    | ★ , refl , L⊢′ | A , refl , M⊢′ =
+  ★ , refl , ⊢·★ L⊢′ M⊢′ (drop-both-~ A~★)
+drop-renameᵗᴳ-wt {Δ = Δ} {Γ = Γ} {M = Λ M} (⊢Λ vM M⊢)
+    with drop-renameᵗᴳ-at-wt {d = both} {Φ = both ∷ []}
+      {Γᶜ = boths Δ []} {Γ = ⤊ᵗ Γ} {M = M}
+      (cong-⊢ᴳ⦂
+        (cong suc (cong suc (sym (length-boths[] Δ))))
+        (sym (trans (renameCtxAt-⤊ᵗ zero Γ)
+                    (cong ⤊ᵗ (renameCtxAt-zero Γ))))
+        (renameᵗᴳ-cong (raise-ext zero) M)
+        refl
+        M⊢)
+drop-renameᵗᴳ-wt {M = Λ M} (⊢Λ vM M⊢) | B , eqB , M⊢′ =
+  `∀ B , cong `∀ (trans eqB (sym (rename-raise-ext zero B))) ,
+  ⊢Λ (renameᵗᴳ-value-inv vM)
+    (cong-⊢ᴳ⦂ (cong suc (length-boths[] _)) refl refl refl M⊢′)
+drop-renameᵗᴳ-wt {Δ = Δ} {Γ = Γ} {M = M `[ T ]} M[T]⊢
+    with drop-renameᵗᴳ-at-wt {d = both} {Φ = []}
+      {Γᶜ = boths Δ []} {Γ = Γ} {M = M `[ T ]}
+      (cong-⊢ᴳ⦂
+        (cong suc (sym (length-boths[] Δ)))
+        (sym (renameCtxAt-zero Γ))
+        refl
+        refl
+        M[T]⊢)
+drop-renameᵗᴳ-wt {Δ = Δ} {M = M `[ T ]} M[T]⊢
+    | B , eqB , M[T]⊢′ =
+  B , eqB , cong-⊢ᴳ⦂ (length-boths[] Δ) refl refl refl M[T]⊢′
+drop-renameᵗᴳ-wt {M = $ κ} (⊢$ κ) = constTy κ , constTy-⇑ᵗ κ , ⊢$ κ
+drop-renameᵗᴳ-wt {M = L ⊕[ op ] M} (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ)
+    with drop-renameᵗᴳ-wt L⊢ | drop-renameᵗᴳ-wt M⊢
+drop-renameᵗᴳ-wt {M = L ⊕[ op ] M} (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ)
+    | A , refl , L⊢′ | B , refl , M⊢′ =
+  ‵ `ℕ , refl ,
+  ⊢⊕ L⊢′ (drop-both-~ A~ℕ) op M⊢′ (drop-both-~ B~ℕ)
+
+change-plain-to-ν-ν∋ :
+  ∀ {Δ Φ X} →
+  (Φ ++ (plain ∷ plains Δ [])) ∋ X ∶ ν-bound →
+  (Φ ++ (ν-bound ∷ plains Δ [])) ∋ X ∶ ν-bound
+change-plain-to-ν-ν∋ {Φ = []} {X = zero} ()
+change-plain-to-ν-ν∋ {Φ = []} {X = suc X}
+    (Imprecision.there x∈) =
+  Imprecision.there x∈
+change-plain-to-ν-ν∋ {Φ = plain ∷ Φ} {X = zero} ()
+change-plain-to-ν-ν∋ {Φ = ν-bound ∷ Φ} {X = zero}
+    Imprecision.here =
+  Imprecision.here
+change-plain-to-ν-ν∋ {Φ = m ∷ Φ} {X = suc X}
+    (Imprecision.there x∈) =
+  Imprecision.there (change-plain-to-ν-ν∋ {Φ = Φ} x∈)
+
+change-plain-to-ν-raised∋ :
+  ∀ {Δ Φ X m} →
+  (Φ ++ (plain ∷ plains Δ [])) ∋
+    raiseVarFrom (length Φ) X ∶ m →
+  (Φ ++ (ν-bound ∷ plains Δ [])) ∋
+    raiseVarFrom (length Φ) X ∶ m
+change-plain-to-ν-raised∋ {Φ = []} (Imprecision.there x∈) =
+  Imprecision.there x∈
+change-plain-to-ν-raised∋ {Φ = m₀ ∷ Φ} {X = zero}
+    Imprecision.here =
+  Imprecision.here
+change-plain-to-ν-raised∋ {Φ = m₀ ∷ Φ} {X = suc X}
+    (Imprecision.there x∈) =
+  Imprecision.there
+    (change-plain-to-ν-raised∋ {Φ = Φ} {X = X} x∈)
+
+length-plain-to-ν :
+  ∀ Δ (Φ : ICtx) →
+  length (Φ ++ (plain ∷ plains Δ [])) ≡
+  length (Φ ++ (ν-bound ∷ plains Δ []))
+length-plain-to-ν Δ [] = refl
+length-plain-to-ν Δ (m ∷ Φ) = cong suc (length-plain-to-ν Δ Φ)
+
+plain-to-ν-raised-at-⊑ :
+  ∀ {Δ Φ A B p} →
+  0 ∣ Φ ++ (plain ∷ plains Δ []) ⊢ p ⦂ A ⊑
+    renameᵗ (raiseVarFrom (length Φ)) B →
+  Σ[ q ∈ Imp ]
+    0 ∣ Φ ++ (ν-bound ∷ plains Δ []) ⊢ q ⦂ A ⊑
+      renameᵗ (raiseVarFrom (length Φ)) B
+plain-to-ν-raised-at-⊑ {B = ★} ⊑-★★ = ★⊑★ , ⊑-★★
+plain-to-ν-raised-at-⊑ {B = ★} (⊑-★ν xν) =
+  X⊑★ _ , ⊑-★ν (change-plain-to-ν-ν∋ xν)
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = ★} (⊑-★ {G = G} g p⊢)
+    with plain-to-ν-raised-at-⊑ {Φ = Φ} {B = G}
+      (cong-⊢⊑ refl (sym (renameᵗ-ground-id g)) p⊢)
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = ★} (⊑-★ {G = G} g p⊢)
+    | q , q⊢ =
+  A⊑★ q , ⊑-★ g (cong-⊢⊑ refl (renameᵗ-ground-id g) q⊢)
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = ＇ X} (⊑-＇ x∈) =
+  X⊑X (raiseVarFrom (length Φ) X) ,
+  ⊑-＇ (change-plain-to-ν-raised∋ {Φ = Φ} x∈)
+plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = ｀ α} (⊑-｀ wfα) =
+  α⊑α α ,
+  ⊑-｀ (subst (λ n → WfTy n 0 (｀ α)) (length-plain-to-ν Δ Φ) wfα)
+plain-to-ν-raised-at-⊑ {B = ‵ ι} ⊑-‵ = ι⊑ι ι , ⊑-‵
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = A ⇒ B} (⊑-⇒ p⊢ q⊢)
+    with plain-to-ν-raised-at-⊑ {Φ = Φ} {B = A} p⊢
+       | plain-to-ν-raised-at-⊑ {Φ = Φ} {B = B} q⊢
+plain-to-ν-raised-at-⊑ {B = A ⇒ B} (⊑-⇒ p⊢ q⊢)
+    | p , p⊢′ | q , q⊢′ =
+  A⇒B⊑A′⇒B′ p q , ⊑-⇒ p⊢′ q⊢′
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = `∀ B} (⊑-∀ p⊢)
+    with plain-to-ν-raised-at-⊑ {Φ = plain ∷ Φ} {B = B}
+      (cong-⊢⊑ refl (rename-raise-ext (length Φ) B) p⊢)
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = `∀ B} (⊑-∀ p⊢)
+    | q , q⊢ =
+  `∀A⊑∀B q ,
+  cong-⊢⊑ refl (cong `∀ (sym (rename-raise-ext (length Φ) B)))
+    (⊑-∀ q⊢)
+plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
+    (⊑-ν {A = A} wfB p⊢)
+    with plain-to-ν-raised-at-⊑ {Φ = ν-bound ∷ Φ} {B = ⇑ᵗ B}
+      (cong-⊢⊑ refl (sym (rename-raise-⇑ᵗ (length Φ) B)) p⊢)
+plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
+    (⊑-ν {A = A} wfB p⊢)
+    | q , q⊢ =
+  `∀A⊑B (renameᵗ (raiseVarFrom (length Φ)) B) q ,
+  ⊑-ν
+    (subst (λ n → WfTy n 0 (renameᵗ (raiseVarFrom (length Φ)) B))
+      (length-plain-to-ν Δ Φ) wfB)
+    (cong-⊢⊑ refl (rename-raise-⇑ᵗ (length Φ) B) q⊢)
+
+plain-to-ν-raised-⊑ :
+  ∀ {Δ A B p} →
+  0 ∣ plain ∷ plains Δ [] ⊢ p ⦂ A ⊑ ⇑ᵗ B →
+  Σ[ q ∈ Imp ] 0 ∣ ν-bound ∷ plains Δ [] ⊢ q ⦂ A ⊑ ⇑ᵗ B
+plain-to-ν-raised-⊑ p⊢ = plain-to-ν-raised-at-⊑ {Φ = []} p⊢
+
+tysubst-right-at-⊑ :
+  ∀ k {Δ A T T′ pT} →
+  WfTy (suc (k + Δ)) 0 A →
+  0 ∣ plains Δ [] ⊢ pT ⦂ T ⊑ T′ →
+  Σ[ p ∈ Imp ]
+    0 ∣ plains (k + Δ) [] ⊢ p ⦂
+      substᵗ (plainSubstVarFrom k T) A ⊑
+      substᵗ (plainSubstVarFrom k T′) A
+tysubst-right-at-⊑ zero {A = ＇ zero} (wfVar z<s) pT⊢ =
+  _ , pT⊢
+tysubst-right-at-⊑ zero {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢ =
+  reflImp (＇ X) , reflImp-wt-plains (wfVar X<Δ)
+tysubst-right-at-⊑ (suc k) {A = ＇ zero} (wfVar z<s) pT⊢ =
+  reflImp (＇ zero) , reflImp-wt-plains (wfVar z<s)
+tysubst-right-at-⊑ (suc k) {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢
+    with tysubst-right-at-⊑ k (wfVar X<Δ) pT⊢
+tysubst-right-at-⊑ (suc k) {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢
+    | p , p⊢ =
+  renameImp suc p , wkImp-plains zero p⊢
+tysubst-right-at-⊑ k {A = ｀ α} (wfSeal ()) pT⊢
+tysubst-right-at-⊑ k {A = ‵ ι} wfBase pT⊢ =
+  reflImp (‵ ι) , reflImp-wt-plains wfBase
+tysubst-right-at-⊑ k {A = ★} wf★ pT⊢ =
+  reflImp ★ , reflImp-wt-plains wf★
+tysubst-right-at-⊑ k {A = A ⇒ B} (wf⇒ wfA wfB) pT⊢
+    with tysubst-right-at-⊑ k wfA pT⊢
+       | tysubst-right-at-⊑ k wfB pT⊢
+tysubst-right-at-⊑ k {A = A ⇒ B} (wf⇒ wfA wfB) pT⊢
+    | p , p⊢ | q , q⊢ =
+  A⇒B⊑A′⇒B′ p q , ⊑-⇒ p⊢ q⊢
+tysubst-right-at-⊑ k {A = `∀ A} (wf∀ wfA) pT⊢
+    with tysubst-right-at-⊑ (suc k) wfA pT⊢
+tysubst-right-at-⊑ k {A = `∀ A} (wf∀ wfA) pT⊢
+    | p , p⊢ =
+  `∀A⊑∀B p , ⊑-∀ p⊢
+
+tysubst-right-⊑ :
+  ∀ {Δ A T T′ pT} →
+  WfTy (suc Δ) 0 A →
+  0 ∣ plains Δ [] ⊢ pT ⦂ T ⊑ T′ →
+  Σ[ p ∈ Imp ] 0 ∣ plains Δ [] ⊢ p ⦂ A [ T ]ᵗ ⊑ A [ T′ ]ᵗ
+tysubst-right-⊑ wfA pT⊢ = tysubst-right-at-⊑ zero wfA pT⊢
+
+⊑-tgt-wf-prefix :
+  ∀ {Δ Φ A B p} →
+  WfTy (length Φ) 0 A →
+  0 ∣ Φ ++ plains Δ [] ⊢ p ⦂ A ⊑ B →
+  WfTy (length Φ) 0 B
+⊑-tgt-wf-prefix wf★ ⊑-★★ = wf★
+⊑-tgt-wf-prefix wfA (⊑-★ν xν) = wf★
+⊑-tgt-wf-prefix wfA (⊑-★ g p⊢) = wf★
+⊑-tgt-wf-prefix (wfVar X<Φ) (⊑-＇ x∈) = wfVar X<Φ
+⊑-tgt-wf-prefix (wfSeal ()) (⊑-｀ wfα)
+⊑-tgt-wf-prefix wfBase ⊑-‵ = wfBase
+⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf⇒ wfA wfB) (⊑-⇒ p⊢ q⊢) =
+  wf⇒ (⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} wfA p⊢)
+       (⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} wfB q⊢)
+⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA) (⊑-∀ p⊢) =
+  wf∀ (⊑-tgt-wf-prefix {Δ = Δ} {Φ = plain ∷ Φ} wfA p⊢)
+⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA) (⊑-ν wfB p⊢) =
+  drop-⇑ᵗ-WfTy-plains {Δ = length Φ}
+    (⊑-tgt-wf-prefix {Δ = Δ} {Φ = ν-bound ∷ Φ} wfA p⊢)
+
+⊑-tgt-wf-closed-plains :
+  ∀ {Δ A B p} →
+  WfTy 0 0 A →
+  0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B →
+  WfTy 0 0 B
+⊑-tgt-wf-closed-plains wfA p⊢ =
+  ⊑-tgt-wf-prefix {Φ = []} wfA p⊢
+
 static-gradual-guarantee ⊑` (⊢` x∈) with lookup-leftᴳ-inv x∈
 static-gradual-guarantee ⊑` (⊢` x∈) | B , p , p⊢ , hᴳ =
   B , p , ⊢` (lookup-rightᴳ hᴳ) , p⊢
@@ -898,13 +1523,110 @@ static-gradual-guarantee {Γ = Γ} (⊑Λ vM vM′ M⊑M′) (⊢Λ vM₀ M⊢)
     (subst (λ Γ → _ ∣ Γ ⊢ _ ⦂ _)
       (rightGCtx-⇑ᵗᴳPCtx Γ) M′⊢) ,
   ⊑-∀ pB⊢
-static-gradual-guarantee (⊑ΛL vM M⊑M′) (⊢Λ vM₀ M⊢) = {!!}
-static-gradual-guarantee (⊑`[] M⊑M′ pT⊢) (⊢• M⊢ wfB wfT) = {!!}
-static-gradual-guarantee (⊑`[] M⊑M′ pT⊢) (⊢•★ M⊢ wfT) = {!!}
+static-gradual-guarantee {Γ = Γ}
+    (⊑ΛL vM M⊑M′) (⊢Λ vM₀ M⊢)
+    with static-gradual-guarantee
+      {Γ = ⇑ᵗᴳPCtx Γ}
+      M⊑M′
+      (subst (λ Γ → _ ∣ Γ ⊢ _ ⦂ _)
+        (sym (leftGCtx-⇑ᵗᴳPCtx Γ)) M⊢)
+static-gradual-guarantee {Δ = Δ} {Γ = Γ}
+    (⊑ΛL vM M⊑M′) (⊢Λ vM₀ M⊢)
+    | B′ , pB , M′↑⊢ , pB⊢
+    with drop-renameᵗᴳ-wt
+      (subst (λ Γ → _ ∣ Γ ⊢ _ ⦂ _)
+        (rightGCtx-⇑ᵗᴳPCtx Γ) M′↑⊢)
+static-gradual-guarantee {Δ = Δ} {Γ = Γ}
+    (⊑ΛL vM M⊑M′) (⊢Λ vM₀ M⊢)
+    | B′ , pB , M′↑⊢ , pB⊢ | B , refl , M′⊢
+    with plain-to-ν-raised-⊑ pB⊢
+static-gradual-guarantee {Δ = Δ} {Γ = Γ}
+    (⊑ΛL vM M⊑M′) (⊢Λ vM₀ M⊢)
+    | B′ , pB , M′↑⊢ , pB⊢ | B , refl , M′⊢ | q , q⊢ =
+  B , `∀A⊑B B q , M′⊢ ,
+  ⊑-ν
+    (subst (λ n → WfTy n 0 B) (sym (length-plains[] Δ))
+      (drop-⇑ᵗ-WfTy-plains
+        (subst (λ n → WfTy n 0 (⇑ᵗ B))
+          (cong suc (length-plains[] Δ))
+          (⊑-tgt-wf q⊢))))
+    q⊢
+static-gradual-guarantee {Δ = Δ}
+    (⊑`[] {T′ = T′} M⊑M′ pT⊢) (⊢• {B = B} {T = T} M⊢ wfB wfT)
+    with static-gradual-guarantee M⊑M′ M⊢
+static-gradual-guarantee {Δ = Δ}
+    (⊑`[] {T′ = T′} M⊑M′ pT⊢) (⊢• {B = B} {T = T} M⊢ wfB wfT)
+    | ★ , A⊑★ p , M′⊢ , ⊑-★ g p⊢ =
+  ★ , A⊑★ {!!} , ⊢•★ M′⊢ {!!} , ⊑-★ g {!!}
+static-gradual-guarantee {Δ = Δ}
+    (⊑`[] {T′ = T′} M⊑M′ pT⊢) (⊢• {B = B} {T = T} M⊢ wfB wfT)
+    | `∀ C , `∀A⊑∀B p , M′⊢ , ⊑-∀ p⊢
+    with ⊑-substᵗ-wt
+           (singleTyEnv-TySubstWf-plains wfT)
+           (singleTyEnv-ImpSubstWt wfT)
+           p⊢
+       | tysubst-right-⊑
+           (subst (λ n → WfTy n 0 C) (cong suc (length-plains[] Δ))
+             (⊑-tgt-wf p⊢))
+           pT⊢
+static-gradual-guarantee {Δ = Δ}
+    (⊑`[] {T′ = T′} M⊑M′ pT⊢) (⊢• {B = B} {T = T} M⊢ wfB wfT)
+    | `∀ C , `∀A⊑∀B p , M′⊢ , ⊑-∀ p⊢ | pBT⊢ | q , q⊢
+    with trans-⊑-plains pBT⊢ q⊢
+static-gradual-guarantee {Δ = Δ}
+    (⊑`[] {T′ = T′} M⊑M′ pT⊢) (⊢• {B = B} {T = T} M⊢ wfB wfT)
+    | `∀ C , `∀A⊑∀B p , M′⊢ , ⊑-∀ p⊢ | pBT⊢ | q , q⊢
+    | r , r⊢ =
+  C [ T′ ]ᵗ , r ,
+  ⊢• M′⊢
+    (subst (λ n → WfTy n 0 C) (cong suc (length-plains[] Δ))
+      (⊑-tgt-wf p⊢))
+    (⊑-tgt-wf-plains pT⊢) ,
+  r⊢
+static-gradual-guarantee {Δ = Δ}
+    (⊑`[] {T′ = T′} M⊑M′ pT⊢) (⊢• {B = B} {T = T} M⊢ wfB wfT)
+    | D , `∀A⊑B .D p , M′⊢ , ⊑-ν wfD p⊢ =
+  D , {!!} , {!!} , {!!}
+static-gradual-guarantee (⊑`[] M⊑M′ pT⊢) (⊢•★ M⊢ wfT)
+    with static-gradual-guarantee M⊑M′ M⊢
+static-gradual-guarantee (⊑`[] M⊑M′ pT⊢) (⊢•★ M⊢ wfT)
+    | ★ , ★⊑★ , M′⊢ , ⊑-★★ =
+  ★ , ★⊑★ , ⊢•★ M′⊢ (⊑-tgt-wf-closed-plains wfT pT⊢) ,
+  ⊑-★★
+static-gradual-guarantee (⊑`[] M⊑M′ pT⊢) (⊢•★ M⊢ wfT)
+    | ★ , A⊑★ p , M′⊢ , ⊑-★ g p⊢ =
+  ★ , ★⊑★ , ⊢•★ M′⊢ (⊑-tgt-wf-closed-plains wfT pT⊢) ,
+  ⊑-★★
+static-gradual-guarantee
+    (⊑`[]L M⊑M′ wfT) (⊢• {B = B} {T = T} M⊢ wfB wfT′)
+    with static-gradual-guarantee M⊑M′ M⊢
+static-gradual-guarantee
+    (⊑`[]L M⊑M′ wfT) (⊢• {B = B} {T = T} M⊢ wfB wfT′)
+    | ★ , A⊑★ p , M′⊢ , ⊑-★ g p⊢ =
+  ★ , A⊑★ {!!} , M′⊢ , ⊑-★ g {!!}
+static-gradual-guarantee
+    (⊑`[]L M⊑M′ wfT) (⊢• {B = B} {T = T} M⊢ wfB wfT′)
+    | `∀ C , `∀A⊑∀B p , M′⊢ , ⊑-∀ p⊢ =
+  `∀ C , {!!} , M′⊢ , {!!}
+static-gradual-guarantee
+    (⊑`[]L M⊑M′ wfT) (⊢• {B = B} {T = T} M⊢ wfB wfT′)
+    | D , `∀A⊑B .D p , M′⊢ , ⊑-ν wfD p⊢ =
+  D , {!!} , M′⊢ , {!!}
+static-gradual-guarantee (⊑`[]L M⊑M′ wfT) (⊢•★ M⊢ wfT′) =
+  static-gradual-guarantee M⊑M′ M⊢
 static-gradual-guarantee ⊑$ (⊢$ (κℕ n)) =
   ‵ `ℕ , ι⊑ι `ℕ , ⊢$ (κℕ n) , ⊑-‵
-static-gradual-guarantee (⊑⊕ L⊑L′ M⊑M′) (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ) =
-  {!!}
+static-gradual-guarantee
+    (⊑⊕ L⊑L′ M⊑M′) (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ)
+    with static-gradual-guarantee L⊑L′ L⊢
+       | static-gradual-guarantee M⊑M′ M⊢
+static-gradual-guarantee
+    (⊑⊕ L⊑L′ M⊑M′) (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ)
+    | C , pL , L′⊢ , pL⊢ | D , pM , M′⊢ , pM⊢ =
+  ‵ `ℕ , ι⊑ι `ℕ ,
+  ⊢⊕ L′⊢ (app-consistency pL⊢ A~ℕ ⊑-‵) op
+      M′⊢ (app-consistency pM⊢ B~ℕ ⊑-‵) ,
+  ⊑-‵
 
 ∀★-~-★ :
   ∀ {Δ} →
@@ -953,7 +1675,8 @@ compile {Δ = Δ} (⊢•★ {T = T} M⊢ wfT)
     | M′ , M′⊢ | B , p⊒⊢ , p⊑⊢ =
   ((M′ ⇓ᵀ coerce-⊑ (∀★-~-★ {Δ = Δ}))
     ⇑ᵀ coerce-⊒ (∀★-~-★ {Δ = Δ})) ⦂∀ᵀ ★ [ T ] ,
-  ⊢ᵀ• (⊢ᵀup p⊒⊢ (⊢ᵀdown p⊑⊢ M′⊢)) wf★ wfT
+  ⊢ᵀ• (⊢ᵀup p⊒⊢ (⊢ᵀdown p⊑⊢ M′⊢)) wf★
+    (WfTy-closed-weakenᵗ Δ wfT)
 compile (⊢$ κ) =
   $ᵀ κ , ⊢ᵀ$ κ
 compile (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ)

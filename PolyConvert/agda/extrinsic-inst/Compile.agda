@@ -38,7 +38,7 @@ open import Terms
     ; ⊢up to ⊢ᵀup
     ; ⊢down to ⊢ᵀdown
     )
-open import proof.ConsistencyCoerce using (coerce-wt-plains)
+open import proof.ImprecisionConsistent using (coerce-wt-plains)
 open import proof.TypeProperties using (WfTy-closed-weakenᵗ)
 
 compile :

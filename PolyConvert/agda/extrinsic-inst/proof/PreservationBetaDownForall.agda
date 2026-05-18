@@ -34,6 +34,10 @@ open import proof.ImprecisionProperties
     ( cong-⊢⊑
     ; length-plains[]
     ; open-fresh-∀⊑
+    ; src⊑-correct
+    ; tgt⊑-correct
+    ; ⊑-src-wf
+    ; ⊑-tgt-wf
     )
 open import proof.StoreProperties using (len<suc-StoreWf)
 open import proof.TermProperties using (wk-term)

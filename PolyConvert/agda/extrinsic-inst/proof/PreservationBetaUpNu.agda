@@ -21,7 +21,7 @@ open import Store
 open import Imprecision
 open import Terms
 open import proof.ImprecisionProperties using
-  (cong-⊢⊑; length-plains[]; open-fresh-ν⊑)
+  (cong-⊢⊑; length-plains[]; open-fresh-ν⊑; src⊑-correct; ⊑-src-wf)
 open import proof.StoreProperties using (len<suc-StoreWf)
 open import proof.TermProperties using (wk-term)
 

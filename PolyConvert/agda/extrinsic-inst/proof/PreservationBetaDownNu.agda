@@ -26,7 +26,8 @@ open import Imprecision
 open import Conversion
 open import Terms
 open import proof.ConversionProperties using (convert↑At-wt)
-open import proof.ImprecisionProperties using (length-plains[]; open-fresh-ν⊑)
+open import proof.ImprecisionProperties
+  using (length-plains[]; open-fresh-ν⊑; src⊑-correct; ⊑-src-wf)
 open import proof.StoreProperties using (len<suc-StoreWf)
 open import proof.TermProperties using (wk-term)
 

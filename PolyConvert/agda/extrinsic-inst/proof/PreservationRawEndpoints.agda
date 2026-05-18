@@ -13,6 +13,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Types
 open import Imprecision
+open import proof.ImprecisionProperties using (src⊑-correct; ⊑-src-wf)
 
 length-plains[] :
   ∀ Δ →

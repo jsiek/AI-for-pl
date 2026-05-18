@@ -19,8 +19,73 @@ open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; s
 open import Types
 open import Imprecision
 open import Store
+open import proof.ConsistencyProperties using (drop-⇑ᵗ-WfTy-plains)
 open import proof.TypeProperties
 open import proof.StoreProperties using (len<suc-StoreWf)
+
+------------------------------------------------------------------------
+-- Correctness of src⊑ and tgt⊑
+------------------------------------------------------------------------
+
+src⊑-correct : ∀ {Ψ Γ p A B} →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
+  src⊑ p ≡ A
+src⊑-correct ⊢★-⊑-★ = refl
+src⊑-correct (⊢X-⊑-★ xν) = refl
+src⊑-correct (⊢A-⊑-★ g p⊢) = src⊑-correct p⊢
+src⊑-correct (⊢X-⊑-X x∈) = refl
+src⊑-correct (⊢α-⊑-α wfα) = refl
+src⊑-correct ⊢ι-⊑-ι = refl
+src⊑-correct (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
+  cong₂ _⇒_ (src⊑-correct p⊢) (src⊑-correct q⊢)
+src⊑-correct (⊢∀A-⊑-∀B p⊢) = cong `∀ (src⊑-correct p⊢)
+src⊑-correct (⊢∀A-⊑-B wfB p⊢) = cong `∀ (src⊑-correct p⊢)
+
+tgt⊑-correct : ∀ {Ψ Γ p A B} →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
+  tgt⊑ p ≡ B
+tgt⊑-correct ⊢★-⊑-★ = refl
+tgt⊑-correct (⊢X-⊑-★ xν) = refl
+tgt⊑-correct (⊢A-⊑-★ g p⊢) = refl
+tgt⊑-correct (⊢X-⊑-X x∈) = refl
+tgt⊑-correct (⊢α-⊑-α wfα) = refl
+tgt⊑-correct ⊢ι-⊑-ι = refl
+tgt⊑-correct (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
+  cong₂ _⇒_ (tgt⊑-correct p⊢) (tgt⊑-correct q⊢)
+tgt⊑-correct (⊢∀A-⊑-∀B p⊢) = cong `∀ (tgt⊑-correct p⊢)
+tgt⊑-correct (⊢∀A-⊑-B wfB p⊢) = refl
+
+------------------------------------------------------------------------
+-- Endpoint well-formedness
+------------------------------------------------------------------------
+
+⊑-src-wf : ∀ {Ψ Γ p A B} →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
+  WfTy (length Γ) Ψ A
+⊑-src-wf ⊢★-⊑-★ = wf★
+⊑-src-wf (⊢X-⊑-★ xν) = wfVar (∋→< xν)
+⊑-src-wf (⊢A-⊑-★ g p⊢) = ⊑-src-wf p⊢
+⊑-src-wf (⊢X-⊑-X x∈) = wfVar (∋→< x∈)
+⊑-src-wf (⊢α-⊑-α wfα) = wfα
+⊑-src-wf ⊢ι-⊑-ι = wfBase
+⊑-src-wf (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
+  wf⇒ (⊑-src-wf p⊢) (⊑-src-wf q⊢)
+⊑-src-wf (⊢∀A-⊑-∀B p⊢) = wf∀ (⊑-src-wf p⊢)
+⊑-src-wf (⊢∀A-⊑-B wfB p⊢) = wf∀ (⊑-src-wf p⊢)
+
+⊑-tgt-wf : ∀ {Ψ Γ p A B} →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
+  WfTy (length Γ) Ψ B
+⊑-tgt-wf ⊢★-⊑-★ = wf★
+⊑-tgt-wf (⊢X-⊑-★ xν) = wf★
+⊑-tgt-wf (⊢A-⊑-★ g p⊢) = wf★
+⊑-tgt-wf (⊢X-⊑-X x∈) = wfVar (∋→< x∈)
+⊑-tgt-wf (⊢α-⊑-α wfα) = wfα
+⊑-tgt-wf ⊢ι-⊑-ι = wfBase
+⊑-tgt-wf (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
+  wf⇒ (⊑-tgt-wf p⊢) (⊑-tgt-wf q⊢)
+⊑-tgt-wf (⊢∀A-⊑-∀B p⊢) = wf∀ (⊑-tgt-wf p⊢)
+⊑-tgt-wf (⊢∀A-⊑-B wfB p⊢) = wfB
 
 wk-⊑ :
   ∀ {Ψ Ψ′ Γᵢ p A B} →
@@ -65,6 +130,34 @@ length-plains[] (suc Δ) = cong suc (length-plains[] Δ)
   WfTy Δ 0 B
 ⊑-tgt-wf-plains {Δ = Δ} p⊢ =
   subst (λ n → WfTy n 0 _) (length-plains[] Δ) (⊑-tgt-wf p⊢)
+
+⊑-tgt-wf-prefix :
+  ∀ {Δ Φ A B p} →
+  WfTy (length Φ) 0 A →
+  0 ∣ Φ ++ plains Δ [] ⊢ p ⦂ A ⊑ B →
+  WfTy (length Φ) 0 B
+⊑-tgt-wf-prefix wf★ ⊢★-⊑-★ = wf★
+⊑-tgt-wf-prefix wfA (⊢X-⊑-★ xν) = wf★
+⊑-tgt-wf-prefix wfA (⊢A-⊑-★ g p⊢) = wf★
+⊑-tgt-wf-prefix (wfVar X<Φ) (⊢X-⊑-X x∈) = wfVar X<Φ
+⊑-tgt-wf-prefix (wfSeal ()) (⊢α-⊑-α wfα)
+⊑-tgt-wf-prefix wfBase ⊢ι-⊑-ι = wfBase
+⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf⇒ wfA wfB) (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
+  wf⇒ (⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} wfA p⊢)
+       (⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} wfB q⊢)
+⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA) (⊢∀A-⊑-∀B p⊢) =
+  wf∀ (⊑-tgt-wf-prefix {Δ = Δ} {Φ = X⊑X ∷ Φ} wfA p⊢)
+⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA) (⊢∀A-⊑-B wfB p⊢) =
+  drop-⇑ᵗ-WfTy-plains {Δ = length Φ}
+    (⊑-tgt-wf-prefix {Δ = Δ} {Φ = X⊑★ ∷ Φ} wfA p⊢)
+
+⊑-tgt-wf-closed-plains :
+  ∀ {Δ A B p} →
+  WfTy 0 0 A →
+  0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B →
+  WfTy 0 0 B
+⊑-tgt-wf-closed-plains wfA p⊢ =
+  ⊑-tgt-wf-prefix {Φ = []} wfA p⊢
 
 cong-⊢⊑ :
   ∀ {Ψ Γ p A A′ B B′} →
@@ -254,7 +347,7 @@ open-fresh-ν⊑-prefix :
   StoreWf Δ Ψ Σ →
   Ψ ∣ (Φ ++ X⊑★ ∷ plains Δ []) ⊢ p ⦂ A ⊑ B →
   suc Ψ ∣ (Φ ++ plains Δ []) ⊢
-    substPlainAtImp (length Φ) (｀ (length Σ)) p ⦂
+    substAtImp (length Φ) (｀ (length Σ)) p ⦂
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A ⊑
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B
 open-fresh-ν⊑-prefix wfΣ ⊢★-⊑-★ = ⊢★-⊑-★
@@ -327,7 +420,7 @@ open-fresh-∀⊑-prefix :
   StoreWf Δ Ψ Σ →
   Ψ ∣ (Φ ++ X⊑X ∷ plains Δ []) ⊢ p ⦂ A ⊑ B →
   suc Ψ ∣ (Φ ++ plains Δ []) ⊢
-    substPlainAtImp (length Φ) (｀ (length Σ)) p ⦂
+    substAtImp (length Φ) (｀ (length Σ)) p ⦂
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A ⊑
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B
 open-fresh-∀⊑-prefix wfΣ ⊢★-⊑-★ = ⊢★-⊑-★
@@ -463,6 +556,91 @@ plain-target-occurs-source {X = X} x∈ (⊢∀A-⊑-B {B = B} wfB p⊢) occB =
 ------------------------------------------------------------------------
 -- Transport across plain-to-ν context changes
 ------------------------------------------------------------------------
+
+change-plain-to-ν-ν∋ :
+  ∀ {Δ Φ X} →
+  (Φ ++ (X⊑X ∷ plains Δ [])) ∋ X ∶ X⊑★ →
+  (Φ ++ (X⊑★ ∷ plains Δ [])) ∋ X ∶ X⊑★
+change-plain-to-ν-ν∋ {Φ = []} {X = zero} ()
+change-plain-to-ν-ν∋ {Φ = []} {X = suc X} (there x∈) = there x∈
+change-plain-to-ν-ν∋ {Φ = X⊑X ∷ Φ} {X = zero} ()
+change-plain-to-ν-ν∋ {Φ = X⊑★ ∷ Φ} {X = zero} here = here
+change-plain-to-ν-ν∋ {Φ = m ∷ Φ} {X = suc X} (there x∈) =
+  there (change-plain-to-ν-ν∋ {Φ = Φ} x∈)
+
+change-plain-to-ν-raised∋ :
+  ∀ {Δ Φ X m} →
+  (Φ ++ (X⊑X ∷ plains Δ [])) ∋
+    raiseVarFrom (length Φ) X ∶ m →
+  (Φ ++ (X⊑★ ∷ plains Δ [])) ∋
+    raiseVarFrom (length Φ) X ∶ m
+change-plain-to-ν-raised∋ {Φ = []} (there x∈) = there x∈
+change-plain-to-ν-raised∋ {Φ = m₀ ∷ Φ} {X = zero} here = here
+change-plain-to-ν-raised∋ {Φ = m₀ ∷ Φ} {X = suc X} (there x∈) =
+  there (change-plain-to-ν-raised∋ {Φ = Φ} {X = X} x∈)
+
+length-plain-to-ν :
+  ∀ Δ (Φ : VarPrecCtx) →
+  length (Φ ++ (X⊑X ∷ plains Δ [])) ≡
+  length (Φ ++ (X⊑★ ∷ plains Δ []))
+length-plain-to-ν Δ [] = refl
+length-plain-to-ν Δ (m ∷ Φ) = cong suc (length-plain-to-ν Δ Φ)
+
+plain-to-ν-raised-at-⊑ :
+  ∀ {Δ Φ A B p} →
+  0 ∣ Φ ++ (X⊑X ∷ plains Δ []) ⊢ p ⦂ A ⊑
+    renameᵗ (raiseVarFrom (length Φ)) B →
+  Σ[ q ∈ Imp ]
+    0 ∣ Φ ++ (X⊑★ ∷ plains Δ []) ⊢ q ⦂ A ⊑
+      renameᵗ (raiseVarFrom (length Φ)) B
+plain-to-ν-raised-at-⊑ {B = ★} ⊢★-⊑-★ = ★-⊑-★ , ⊢★-⊑-★
+plain-to-ν-raised-at-⊑ {B = ★} (⊢X-⊑-★ xν) =
+  X-⊑-★ _ , ⊢X-⊑-★ (change-plain-to-ν-ν∋ xν)
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = ★} (⊢A-⊑-★ {G = G} g p⊢)
+    with plain-to-ν-raised-at-⊑ {Φ = Φ} {B = G}
+      (cong-⊢⊑ refl (sym (renameᵗ-ground-id g)) p⊢)
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = ★} (⊢A-⊑-★ {G = G} g p⊢)
+    | q , q⊢ =
+  A-⊑-★ q , ⊢A-⊑-★ g (cong-⊢⊑ refl (renameᵗ-ground-id g) q⊢)
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = ＇ X} (⊢X-⊑-X x∈) =
+  X-⊑-X (raiseVarFrom (length Φ) X) ,
+  ⊢X-⊑-X (change-plain-to-ν-raised∋ {Φ = Φ} x∈)
+plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = ｀ α} (⊢α-⊑-α wfα) =
+  α-⊑-α α ,
+  ⊢α-⊑-α (subst (λ n → WfTy n 0 (｀ α)) (length-plain-to-ν Δ Φ) wfα)
+plain-to-ν-raised-at-⊑ {B = ‵ ι} ⊢ι-⊑-ι = ι-⊑-ι ι , ⊢ι-⊑-ι
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = A ⇒ B} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
+    with plain-to-ν-raised-at-⊑ {Φ = Φ} {B = A} p⊢
+       | plain-to-ν-raised-at-⊑ {Φ = Φ} {B = B} q⊢
+plain-to-ν-raised-at-⊑ {B = A ⇒ B} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
+    | p , p⊢′ | q , q⊢′ =
+  A⇒B-⊑-A′⇒B′ p q , ⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = `∀ B} (⊢∀A-⊑-∀B p⊢)
+    with plain-to-ν-raised-at-⊑ {Φ = X⊑X ∷ Φ} {B = B}
+      (cong-⊢⊑ refl (rename-raise-ext (length Φ) B) p⊢)
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = `∀ B} (⊢∀A-⊑-∀B p⊢)
+    | q , q⊢ =
+  ∀A-⊑-∀B q ,
+  cong-⊢⊑ refl (cong `∀ (sym (rename-raise-ext (length Φ) B)))
+    (⊢∀A-⊑-∀B q⊢)
+plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
+    (⊢∀A-⊑-B {A = A} wfB p⊢)
+    with plain-to-ν-raised-at-⊑ {Φ = X⊑★ ∷ Φ} {B = ⇑ᵗ B}
+      (cong-⊢⊑ refl (sym (rename-raise-⇑ᵗ (length Φ) B)) p⊢)
+plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
+    (⊢∀A-⊑-B {A = A} wfB p⊢)
+    | q , q⊢ =
+  ∀A-⊑-B (renameᵗ (raiseVarFrom (length Φ)) B) q ,
+  ⊢∀A-⊑-B
+    (subst (λ n → WfTy n 0 (renameᵗ (raiseVarFrom (length Φ)) B))
+      (length-plain-to-ν Δ Φ) wfB)
+    (cong-⊢⊑ refl (rename-raise-⇑ᵗ (length Φ) B) q⊢)
+
+plain-to-ν-raised-⊑ :
+  ∀ {Δ A B p} →
+  0 ∣ X⊑X ∷ plains Δ [] ⊢ p ⦂ A ⊑ ⇑ᵗ B →
+  Σ[ q ∈ Imp ] 0 ∣ X⊑★ ∷ plains Δ [] ⊢ q ⦂ A ⊑ ⇑ᵗ B
+plain-to-ν-raised-⊑ p⊢ = plain-to-ν-raised-at-⊑ {Φ = []} p⊢
 
 mutual
   transport-to-star-⊑ :

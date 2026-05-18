@@ -25,7 +25,6 @@ open import Imprecision
     ; ∀A-⊑-∀B
     ; ∀A-⊑-B
     ; tgt⊑
-    ; tgt⊑-correct
     ; ⊢★-⊑-★
     ; ⊢X-⊑-★
     ; ⊢A-⊑-★
@@ -46,7 +45,7 @@ open import Reduction
 open import proof.DGGCommon
 open import proof.DGGMultistep
 open import proof.Progress using (canonical-★; sv-⇑tag)
-open import proof.ImprecisionProperties using (⊑-trans)
+open import proof.ImprecisionProperties using (tgt⊑-correct; ⊑-trans)
 open import proof.TypeProperties using (ground-upper-unique-⊑)
 
 Catchup :

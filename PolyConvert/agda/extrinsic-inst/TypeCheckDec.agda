@@ -25,6 +25,7 @@ open import Conversion
 open import Primitives
 open import Terms
 open import Store
+open import proof.ImprecisionProperties using (src⊑-correct; tgt⊑-correct)
 
 ------------------------------------------------------------------------
 -- Local propositions

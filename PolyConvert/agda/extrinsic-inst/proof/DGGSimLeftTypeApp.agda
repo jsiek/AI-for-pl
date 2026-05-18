@@ -26,7 +26,7 @@ open import proof.DGGMultistep using (multi-trans; tyapp-↠; up-↠)
 open import proof.Preservation using (len<suc-StoreWf; storeWf-fresh-ext)
 open import proof.ConversionProperties using (convert↑-fresh-wt; openConv↑)
 open import proof.PreservationImpSubst using ([]⊑ᵗ-wt)
-open import proof.ImprecisionProperties using (wk-⊑)
+open import proof.ImprecisionProperties using (src⊑-correct; tgt⊑-correct; wk-⊑; ⊑-src-wf)
 open import proof.TypeProperties using (WfTy-weakenˢ)
 
 cong-⊢⊑ :

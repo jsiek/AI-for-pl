@@ -9,8 +9,8 @@ module proof.PreservationImpSubst where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (false; _∨_)
 open import Data.List using ([]; _∷_; length)
-open import Data.Nat using (ℕ; zero; suc; _<_; z<s; s<s)
-open import Data.Product using (∃-syntax; _,_)
+open import Data.Nat using (ℕ; _+_; zero; suc; _<_; z<s; s<s)
+open import Data.Product using (Σ-syntax; ∃-syntax; _,_)
 open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; subst; sym; trans)
 
@@ -33,9 +33,12 @@ open import proof.ImprecisionProperties
     ; length-plains[]
     ; lookup-mode
     ; plain-var-subst
+    ; src⊑-correct
+    ; tgt⊑-correct
     ; wkImpAt
     ; wk-VarSubst
     )
+open import proof.PreservationTermSubst using (wkImp-plains)
 
 ------------------------------------------------------------------------
 -- Occurrence preservation for binder-protected substitutions
@@ -221,6 +224,49 @@ reflImp-wt-plains wf★ = ⊢★-⊑-★
 reflImp-wt-plains (wf⇒ wfA wfB) =
   ⊢A⇒B-⊑-A′⇒B′ (reflImp-wt-plains wfA) (reflImp-wt-plains wfB)
 reflImp-wt-plains (wf∀ wfA) = ⊢∀A-⊑-∀B (reflImp-wt-plains wfA)
+
+tysubst-right-at-⊑ :
+  ∀ k {Δ A T T′ pT} →
+  WfTy (suc (k + Δ)) 0 A →
+  0 ∣ plains Δ [] ⊢ pT ⦂ T ⊑ T′ →
+  Σ[ p ∈ Imp ]
+    (0 ∣ plains (k + Δ) [] ⊢ p ⦂
+      substᵗ (substVarFrom k T) A ⊑
+      substᵗ (substVarFrom k T′) A)
+tysubst-right-at-⊑ zero {A = ＇ zero} (wfVar z<s) pT⊢ =
+  _ , pT⊢
+tysubst-right-at-⊑ zero {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢ =
+  reflImp (＇ X) , reflImp-wt-plains (wfVar X<Δ)
+tysubst-right-at-⊑ (suc k) {A = ＇ zero} (wfVar z<s) pT⊢ =
+  reflImp (＇ zero) , reflImp-wt-plains (wfVar z<s)
+tysubst-right-at-⊑ (suc k) {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢
+    with tysubst-right-at-⊑ k (wfVar X<Δ) pT⊢
+tysubst-right-at-⊑ (suc k) {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢
+    | p , p⊢ =
+  renameImp suc p , wkImp-plains zero p⊢
+tysubst-right-at-⊑ k {A = ｀ α} (wfSeal ()) pT⊢
+tysubst-right-at-⊑ k {A = ‵ ι} wfBase pT⊢ =
+  reflImp (‵ ι) , reflImp-wt-plains wfBase
+tysubst-right-at-⊑ k {A = ★} wf★ pT⊢ =
+  reflImp ★ , reflImp-wt-plains wf★
+tysubst-right-at-⊑ k {A = A ⇒ B} (wf⇒ wfA wfB) pT⊢
+    with tysubst-right-at-⊑ k wfA pT⊢
+       | tysubst-right-at-⊑ k wfB pT⊢
+tysubst-right-at-⊑ k {A = A ⇒ B} (wf⇒ wfA wfB) pT⊢
+    | p , p⊢ | q , q⊢ =
+  A⇒B-⊑-A′⇒B′ p q , ⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢
+tysubst-right-at-⊑ k {A = `∀ A} (wf∀ wfA) pT⊢
+    with tysubst-right-at-⊑ (suc k) wfA pT⊢
+tysubst-right-at-⊑ k {A = `∀ A} (wf∀ wfA) pT⊢
+    | p , p⊢ =
+  ∀A-⊑-∀B p , ⊢∀A-⊑-∀B p⊢
+
+tysubst-right-⊑ :
+  ∀ {Δ A T T′ pT} →
+  WfTy (suc Δ) 0 A →
+  0 ∣ plains Δ [] ⊢ pT ⦂ T ⊑ T′ →
+  Σ[ p ∈ Imp ] (0 ∣ plains Δ [] ⊢ p ⦂ A [ T ]ᵗ ⊑ A [ T′ ]ᵗ)
+tysubst-right-⊑ wfA pT⊢ = tysubst-right-at-⊑ zero wfA pT⊢
 
 singleTyEnv-ImpSubstWt :
   ∀ {Δ Ψ T} →

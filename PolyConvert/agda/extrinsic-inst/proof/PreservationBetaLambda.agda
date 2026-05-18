@@ -36,7 +36,7 @@ open import Imprecision
     ; plains
     ; starImp
     ; substImp
-    ; substPlainAtImp
+    ; substAtImp
     )
 open import Conversion
 open import Primitives
@@ -182,7 +182,7 @@ open-fresh-∀⊑-plains :
   _∣_⊢_⦂_⊑_
     (suc Ψ)
     (plains (length (Φ ++ plains Δ [])) [])
-    (substPlainAtImp (length Φ) (｀ (length Σ)) p)
+    (substAtImp (length Φ) (｀ (length Σ)) p)
     (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A)
     (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B)
 open-fresh-∀⊑-plains
@@ -193,7 +193,7 @@ open-fresh-∀⊑-plains
       _∣_⊢_⦂_⊑_
         (suc Ψ)
         Γ
-        (substPlainAtImp (length Φ) (｀ (length Σ)) p)
+        (substAtImp (length Φ) (｀ (length Σ)) p)
         (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A)
         (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B))
     (sym (PlainList-plains plainΦ Δ))

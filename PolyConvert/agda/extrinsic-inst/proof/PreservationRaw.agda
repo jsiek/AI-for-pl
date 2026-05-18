@@ -20,6 +20,7 @@ open import Conversion
 open import Primitives
 open import Terms
 open import Reduction
+open import proof.ImprecisionProperties using (src⊑-correct; tgt⊑-correct)
 open import proof.PreservationRawEndpoints using (⊑-src-wf-plains)
 open import proof.PreservationImpSubst using ([]⊑ᵗ-wt)
 open import proof.PreservationTermSubst using ([]-wt)

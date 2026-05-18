@@ -18,6 +18,7 @@ open import Ctx using (⤊ᵗ)
 open import Imprecision
 open import Conversion
 open import Store using (renameStoreᵗ-ext-⟰ᵗ)
+open import Primitives
 open import Terms
 open import proof.PreservationTermSubst using (wkImp-plains)
 
@@ -309,15 +310,15 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
 ⊑-type-imprecision (⊑` {p = p} {p⊢ = p⊢} h) = p , p⊢
 ⊑-type-imprecision
   (⊑ƛ {pA = pA} {pB = pB} {pA⊢ = pA⊢} {pB⊢ = pB⊢} hA hA′ rel) =
-  A⇒B⊑A′⇒B′ pA pB , ⊑-⇒ pA⊢ pB⊢
+  A⇒B-⊑-A′⇒B′ pA pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢
 ⊑-type-imprecision (⊑· relL relM) with ⊑-type-imprecision relL
-... | A⇒B⊑A′⇒B′ pA pB , ⊑-⇒ pA⊢ pB⊢ = pB , pB⊢
+... | A⇒B-⊑-A′⇒B′ pA pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢ = pB , pB⊢
 ⊑-type-imprecision (⊑Λ relM relM′ rel) with ⊑-type-imprecision rel
-... | p , p⊢ = `∀A⊑∀B p , ⊑-∀ p⊢
+... | p , p⊢ = ∀A-⊑-∀B p , ⊢∀A-⊑-∀B p⊢
 ⊑-type-imprecision (⊑⦂∀ rel wfA wfB wfT pT⊢) = _ , pT⊢
 ⊑-type-imprecision (⊑⦂∀-ν rel wfA wfT pT⊢) = _ , pT⊢
-⊑-type-imprecision ⊑$ = ι⊑ι `ℕ , ⊑-‵
-⊑-type-imprecision (⊑⊕ relL relM) = ι⊑ι `ℕ , ⊑-‵
+⊑-type-imprecision ⊑$ = ι-⊑-ι `ℕ , ⊢ι-⊑-ι
+⊑-type-imprecision (⊑⊕ relL relM) = ι-⊑-ι `ℕ , ⊢ι-⊑-ι
 ⊑-type-imprecision (⊑⇑ rel p⊢ p′⊢ pB⊢) = _ , pB⊢
 ⊑-type-imprecision (⊑⇑L rel p⊢ pB⊢) = _ , pB⊢
 ⊑-type-imprecision (⊑⇑R rel p′⊢ pB⊢) = _ , pB⊢

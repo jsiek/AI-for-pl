@@ -40,7 +40,7 @@ open import proof.PreservationTermSubst using
 open import proof.ConversionProperties using
   (cong-⊢↑; cong-⊢↓; subst↑-wt; subst↓-wt)
 open import proof.ImprecisionProperties using (cong-⊢⊑-raw)
-open import proof.TypeProperties using (raiseVarFrom; raise-ext; rename-raise-⇑ᵗ)
+open import proof.TypeProperties using (raise-ext; rename-raise-⇑ᵗ)
 open import proof.ImprecisionProperties using (wk-⊑; wk-⊒)
 open import proof.ConversionProperties using (⟰ᵗ-⊆ˢ; wk-conv↑; wk-conv↓)
 open import proof.TermProperties using (wk-term)

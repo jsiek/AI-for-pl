@@ -137,6 +137,11 @@ extᵗ : Renameᵗ → Renameᵗ
 extᵗ ρ zero = zero
 extᵗ ρ (suc X) = suc (ρ X)
 
+raiseVarFrom : TyVar → TyVar → TyVar
+raiseVarFrom zero X = suc X
+raiseVarFrom (suc k) zero = zero
+raiseVarFrom (suc k) (suc X) = suc (raiseVarFrom k X)
+
 renameᵗ : Renameᵗ → Ty → Ty
 renameᵗ ρ (＇ X) = ＇ (ρ X)
 renameᵗ ρ (｀ α) = ｀ α

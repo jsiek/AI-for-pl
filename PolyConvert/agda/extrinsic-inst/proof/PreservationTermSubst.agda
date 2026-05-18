@@ -22,6 +22,7 @@ open import Ctx using (⤊ᵗ; map-renameᵗ-⤊ᵗ)
 open import Imprecision
 open import Conversion
 open import Store using (substStoreᵗ; renameStoreᵗ-ext-⟰ᵗ)
+open import Primitives
 open import Terms
 open import proof.ConversionProperties
   using (cong-⊢↑; cong-⊢↓; subst↑-wt; subst↓-wt)
@@ -34,7 +35,6 @@ open import proof.ImprecisionProperties
 open import proof.TypeProperties
   using
     ( raise-ext
-    ; raiseVarFrom
     ; rename-raise-ext
     )
 
@@ -265,7 +265,7 @@ renSubst-raise-wf k {Δ = Δ} X<Δ =
 plains-++ : ∀ k Δ →
   plains (k + Δ) [] ≡ plains k [] ++ plains Δ []
 plains-++ zero Δ = refl
-plains-++ (suc k) Δ = cong (plain ∷_) (plains-++ k Δ)
+plains-++ (suc k) Δ = cong (X⊑X ∷_) (plains-++ k Δ)
 
 length-plains : ∀ k →
   length (plains k []) ≡ k
@@ -273,9 +273,9 @@ length-plains zero = refl
 length-plains (suc k) = cong suc (length-plains k)
 
 plains-insert : ∀ k Δ →
-  plains k [] ++ plain ∷ plains Δ [] ≡ plains (suc (k + Δ)) []
+  plains k [] ++ X⊑X ∷ plains Δ [] ≡ plains (suc (k + Δ)) []
 plains-insert zero Δ = refl
-plains-insert (suc k) Δ = cong (plain ∷_) (plains-insert k Δ)
+plains-insert (suc k) Δ = cong (X⊑X ∷_) (plains-insert k Δ)
 
 wkImp-plains :
   ∀ k {Δ Ψ p A B} →

@@ -9,7 +9,7 @@ module Terms where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (ℕ; _+_; zero; suc)
+open import Data.Nat using (ℕ; zero; suc)
 
 open import Types
 open import Ctx using (⤊ᵗ)
@@ -19,35 +19,16 @@ open import Imprecision
     ; _∣_⊢_⦂_⊑_
     ; _∣_⊢_⦂_⊒_
     ; plains
-    ; X⊑★
-    ; A⊑★
-    ; A⇒B⊑A′⇒B′
-    ; `∀A⊑∀B
-    ; `∀A⊑B
+    ; X-⊑-★
+    ; A-⊑-★
+    ; A⇒B-⊑-A′⇒B′
+    ; ∀A-⊑-∀B
+    ; ∀A-⊑-B
     ; renameImp
     ; substImp
     )
 open import Conversion
-
-------------------------------------------------------------------------
--- Constants and primitive operators
-------------------------------------------------------------------------
-
-data Const : Set where
-  κℕ : ℕ → Const
-
-constTy : Const → Ty
-constTy (κℕ n) = ‵ `ℕ
-
-data Prim : Set where
-  addℕ : Prim
-
-primTy : Prim → Ty
-primTy addℕ = ‵ `ℕ ⇒ ‵ `ℕ ⇒ ‵ `ℕ
-
-data δ : Prim → Const → Const → Const → Set where
-  δ-add : {m n : ℕ} →
-          δ addℕ (κℕ m) (κℕ n) (κℕ (m + n))
+open import Primitives
 
 ------------------------------------------------------------------------
 -- Terms
@@ -84,26 +65,26 @@ data Term : Set where
 
 data UpValue : Imp → Set where
   tagν : ∀ {X} →
-    UpValue (X⊑★ X)
+    UpValue (X-⊑-★ X)
 
   tag : ∀ {p} →
-    UpValue (A⊑★ p)
+    UpValue (A-⊑-★ p)
 
   _↦_ : ∀ {p q} →
-    UpValue (A⇒B⊑A′⇒B′ p q)
+    UpValue (A⇒B-⊑-A′⇒B′ p q)
 
   `∀ : ∀ {p} →
-    UpValue (`∀A⊑∀B p)
+    UpValue (∀A-⊑-∀B p)
 
 data DownValue : Imp → Set where
   _↦_ : ∀ {p q} →
-    DownValue (A⇒B⊑A′⇒B′ p q)
+    DownValue (A⇒B-⊑-A′⇒B′ p q)
 
   `∀ : ∀ {p} →
-    DownValue (`∀A⊑∀B p)
+    DownValue (∀A-⊑-∀B p)
 
   ν_ : ∀ {B p} →
-    DownValue (`∀A⊑B B p)
+    DownValue (∀A-⊑-B B p)
 
 data RevealValue : Conv↑ → Set where
   _↦_ : ∀ {p q} →
@@ -332,10 +313,3 @@ cong-⊢⦂ :
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
   Δ ∣ Ψ ∣ Σ′ ∣ Γ′ ⊢ M′ ⦂ A′
 cong-⊢⦂ refl refl refl refl M = M
-
-constTy-⇑ᵗ : ∀ κ → constTy κ ≡ ⇑ᵗ (constTy κ)
-constTy-⇑ᵗ (κℕ n) = refl
-
-constTy-renameᵗ : ∀ ρ κ → constTy κ ≡ renameᵗ ρ (constTy κ)
-constTy-renameᵗ ρ (κℕ n) = refl
-

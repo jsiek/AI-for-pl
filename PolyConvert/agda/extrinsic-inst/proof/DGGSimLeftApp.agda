@@ -163,20 +163,20 @@ sim-left-beta-app
 sim-left-beta-app
   {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
   wfΣˡ wfΣʳ vW
-  (⊑⇑R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  (⊑⇑R rel (⊢A⇒B-⊑-A′⇒B′ pDom′⊢ pCod′⊢) (⊢A⇒B-⊑-A′⇒B′ pDomB⊢ pCodB⊢)) relW
     with left-value-right-catchup wfΣˡ wfΣʳ (ƛ _ ⇒ _) rel
 sim-left-beta-app
   {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
   wfΣˡ wfΣʳ vW
-  (⊑⇑R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  (⊑⇑R rel (⊢A⇒B-⊑-A′⇒B′ pDom′⊢ pCod′⊢) (⊢A⇒B-⊑-A′⇒B′ pDomB⊢ pCodB⊢)) relW
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
     with ⊑-type-imprecision L⊑V′
 sim-left-beta-app
   {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
   wfΣˡ wfΣʳ vW
-  (⊑⇑R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  (⊑⇑R rel (⊢A⇒B-⊑-A′⇒B′ pDom′⊢ pCod′⊢) (⊢A⇒B-⊑-A′⇒B′ pDomB⊢ pCodB⊢)) relW
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
-  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+  | A⇒B-⊑-A′⇒B′ pDom pCod , ⊢A⇒B-⊑-A′⇒B′ pDom⊢ pCod⊢
     with left-value-right-catchup wfΣˡ wfΣʳᶠ vW
       (wk-left-world-⊑
         {Ψʳ = Ψʳ} {Ψʳ′ = Ψʳᶠ} {Σʳ = Σʳ} {Σʳ′ = Σʳᶠ}
@@ -184,9 +184,9 @@ sim-left-beta-app
 sim-left-beta-app
   {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
   wfΣˡ wfΣʳ vW
-  (⊑⇑R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  (⊑⇑R rel (⊢A⇒B-⊑-A′⇒B′ pDom′⊢ pCod′⊢) (⊢A⇒B-⊑-A′⇒B′ pDomB⊢ pCodB⊢)) relW
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
-  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+  | A⇒B-⊑-A′⇒B′ pDom pCod , ⊢A⇒B-⊑-A′⇒B′ pDom⊢ pCod⊢
   | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
     with sim-left-beta-app-rest
       wfΣˡ wfΣʳᵃ vW
@@ -197,9 +197,9 @@ sim-left-beta-app
 sim-left-beta-app
   {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
   wfΣˡ wfΣʳ vW
-  (⊑⇑R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  (⊑⇑R rel (⊢A⇒B-⊑-A′⇒B′ pDom′⊢ pCod′⊢) (⊢A⇒B-⊑-A′⇒B′ pDomB⊢ pCodB⊢)) relW
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
-  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+  | A⇒B-⊑-A′⇒B′ pDom pCod , ⊢A⇒B-⊑-A′⇒B′ pDom⊢ pCod⊢
   | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
   | Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , N′ , V′W′↠N′ , N⊑N′ =
   Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , N′ ⇑ _ ,
@@ -213,20 +213,20 @@ sim-left-beta-app wfΣˡ wfΣʳ vW (⊑⇑R rel p′⊢ pB⊢) relW =
 sim-left-beta-app
   {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
   wfΣˡ wfΣʳ vW
-  (⊑⇓R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  (⊑⇓R rel (⊢A⇒B-⊑-A′⇒B′ pDom′⊢ pCod′⊢) (⊢A⇒B-⊑-A′⇒B′ pDomB⊢ pCodB⊢)) relW
     with left-value-right-catchup wfΣˡ wfΣʳ (ƛ _ ⇒ _) rel
 sim-left-beta-app
   {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
   wfΣˡ wfΣʳ vW
-  (⊑⇓R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  (⊑⇓R rel (⊢A⇒B-⊑-A′⇒B′ pDom′⊢ pCod′⊢) (⊢A⇒B-⊑-A′⇒B′ pDomB⊢ pCodB⊢)) relW
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
     with ⊑-type-imprecision L⊑V′
 sim-left-beta-app
   {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
   wfΣˡ wfΣʳ vW
-  (⊑⇓R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  (⊑⇓R rel (⊢A⇒B-⊑-A′⇒B′ pDom′⊢ pCod′⊢) (⊢A⇒B-⊑-A′⇒B′ pDomB⊢ pCodB⊢)) relW
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
-  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+  | A⇒B-⊑-A′⇒B′ pDom pCod , ⊢A⇒B-⊑-A′⇒B′ pDom⊢ pCod⊢
     with left-value-right-catchup wfΣˡ wfΣʳᶠ vW
       (wk-left-world-⊑
         {Ψʳ = Ψʳ} {Ψʳ′ = Ψʳᶠ} {Σʳ = Σʳ} {Σʳ′ = Σʳᶠ}
@@ -234,9 +234,9 @@ sim-left-beta-app
 sim-left-beta-app
   {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
   wfΣˡ wfΣʳ vW
-  (⊑⇓R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  (⊑⇓R rel (⊢A⇒B-⊑-A′⇒B′ pDom′⊢ pCod′⊢) (⊢A⇒B-⊑-A′⇒B′ pDomB⊢ pCodB⊢)) relW
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
-  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+  | A⇒B-⊑-A′⇒B′ pDom pCod , ⊢A⇒B-⊑-A′⇒B′ pDom⊢ pCod⊢
   | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
     with sim-left-beta-app-rest
       wfΣˡ wfΣʳᵃ vW
@@ -247,9 +247,9 @@ sim-left-beta-app
 sim-left-beta-app
   {Ψʳ = Ψʳ} {Σʳ = Σʳ} {W′ = W′}
   wfΣˡ wfΣʳ vW
-  (⊑⇓R rel (⊑-⇒ pDom′⊢ pCod′⊢) (⊑-⇒ pDomB⊢ pCodB⊢)) relW
+  (⊑⇓R rel (⊢A⇒B-⊑-A′⇒B′ pDom′⊢ pCod′⊢) (⊢A⇒B-⊑-A′⇒B′ pDomB⊢ pCodB⊢)) relW
   | Ψʳᶠ , Σʳᶠ , wfΣʳᶠ , V′ , vV′ , L′↠V′ , L⊑V′
-  | A⇒B⊑A′⇒B′ pDom pCod , ⊑-⇒ pDom⊢ pCod⊢
+  | A⇒B-⊑-A′⇒B′ pDom pCod , ⊢A⇒B-⊑-A′⇒B′ pDom⊢ pCod⊢
   | Ψʳᵃ , Σʳᵃ , wfΣʳᵃ , W′ᵥ , vW′ᵥ , W′↠W′ᵥ , W⊑W′ᵥ
   | Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , N′ , V′W′↠N′ , N⊑N′ =
   Ψʳᵝ , Σʳᵝ , wfΣʳᵝ , N′ ⇓ _ ,
@@ -268,7 +268,7 @@ postulate
     StoreWf 0 Ψʳ Σʳ →
     Value V →
     Value W →
-    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ A⇒B⊑A′⇒B′ p q) ⊑ V′ ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ A⇒B-⊑-A′⇒B′ p q) ⊑ V′ ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′) →
     ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ W ⊑ W′ ⦂ A ⊑ A′ →
     ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
       (StoreWf 0 Ψʳ′ Σʳ′ ×
@@ -282,7 +282,7 @@ postulate
     StoreWf 0 Ψʳ Σʳ →
     Value V →
     Value W →
-    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ A⇒B⊑A′⇒B′ p q) ⊑ V′ ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ A⇒B-⊑-A′⇒B′ p q) ⊑ V′ ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′) →
     ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ W ⊑ W′ ⦂ A ⊑ A′ →
     ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
       (StoreWf 0 Ψʳ′ Σʳ′ ×

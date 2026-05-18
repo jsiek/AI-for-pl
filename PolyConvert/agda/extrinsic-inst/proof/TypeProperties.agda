@@ -14,7 +14,7 @@ module proof.TypeProperties where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (false)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.Nat using (zero; suc; _<_; _≤_; z<s; s<s)
+open import Data.Nat using (zero; suc; _+_; _<_; _≤_; z<s; s<s)
 open import Data.Nat.Properties using (<-≤-trans; _≟_; m<n⇒m<1+n; suc-injective)
 open import Data.Product using (Σ-syntax)
 open import Relation.Nullary using (yes; no)
@@ -59,11 +59,6 @@ substVarFrom-≢ (suc X) zero s t X≢Y = refl
 substVarFrom-≢ (suc X) (suc Y) s t X≢Y =
   cong (renameᵗ suc)
     (substVarFrom-≢ X Y s t (λ eq → X≢Y (cong suc eq)))
-
-raiseVarFrom : TyVar → TyVar → TyVar
-raiseVarFrom zero X = suc X
-raiseVarFrom (suc k) zero = zero
-raiseVarFrom (suc k) (suc X) = suc (raiseVarFrom k X)
 
 raiseVarFrom-≢ :
   ∀ k X →
@@ -212,42 +207,42 @@ ground-upper-unique-⊑ :
   Ψ ∣ Γ ⊢ p ⦂ A ⊑ G →
   Ψ ∣ Γ ⊢ q ⦂ A ⊑ H →
   G ≡ H
-ground-upper-unique-⊑ (｀ α) (｀ .α) (⊑-｀ wfα) (⊑-｀ wfβ) = refl
+ground-upper-unique-⊑ (｀ α) (｀ .α) (⊢α-⊑-α wfα) (⊢α-⊑-α wfβ) = refl
 ground-upper-unique-⊑ (｀ α) (｀ β)
-  (⊑-ν wfB p⊢) (⊑-ν wfB′ q⊢) =
+  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
   ground-upper-unique-⊑ (｀ α) (｀ β) p⊢ q⊢
-ground-upper-unique-⊑ (｀ α) (‵ ι) (⊑-｀ wfα) ()
+ground-upper-unique-⊑ (｀ α) (‵ ι) (⊢α-⊑-α wfα) ()
 ground-upper-unique-⊑ (｀ α) (‵ ι)
-  (⊑-ν wfB p⊢) (⊑-ν wfB′ q⊢) =
+  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
   ground-upper-unique-⊑ (｀ α) (‵ ι) p⊢ q⊢
-ground-upper-unique-⊑ (｀ α) ★⇒★ (⊑-｀ wfα) ()
+ground-upper-unique-⊑ (｀ α) ★⇒★ (⊢α-⊑-α wfα) ()
 ground-upper-unique-⊑ (｀ α) ★⇒★
-  (⊑-ν wfB p⊢) (⊑-ν wfB′ q⊢) =
+  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
   ground-upper-unique-⊑ (｀ α) ★⇒★ p⊢ q⊢
-ground-upper-unique-⊑ (‵ ι) (｀ α) (⊑-‵) ()
+ground-upper-unique-⊑ (‵ ι) (｀ α) (⊢ι-⊑-ι) ()
 ground-upper-unique-⊑ (‵ ι) (｀ α)
-  (⊑-ν wfB p⊢) (⊑-ν wfB′ q⊢) =
+  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
   ground-upper-unique-⊑ (‵ ι) (｀ α) p⊢ q⊢
-ground-upper-unique-⊑ (‵ ι) (‵ .ι) (⊑-‵) (⊑-‵) = refl
+ground-upper-unique-⊑ (‵ ι) (‵ .ι) (⊢ι-⊑-ι) (⊢ι-⊑-ι) = refl
 ground-upper-unique-⊑ (‵ ι) (‵ ι′)
-  (⊑-ν wfB p⊢) (⊑-ν wfB′ q⊢) =
+  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
   ground-upper-unique-⊑ (‵ ι) (‵ ι′) p⊢ q⊢
-ground-upper-unique-⊑ (‵ ι) ★⇒★ (⊑-‵) ()
+ground-upper-unique-⊑ (‵ ι) ★⇒★ (⊢ι-⊑-ι) ()
 ground-upper-unique-⊑ (‵ ι) ★⇒★
-  (⊑-ν wfB p⊢) (⊑-ν wfB′ q⊢) =
+  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
   ground-upper-unique-⊑ (‵ ι) ★⇒★ p⊢ q⊢
-ground-upper-unique-⊑ ★⇒★ (｀ α) (⊑-⇒ p⊢ q⊢) ()
+ground-upper-unique-⊑ ★⇒★ (｀ α) (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) ()
 ground-upper-unique-⊑ ★⇒★ (｀ α)
-  (⊑-ν wfB p⊢) (⊑-ν wfB′ q⊢) =
+  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
   ground-upper-unique-⊑ ★⇒★ (｀ α) p⊢ q⊢
-ground-upper-unique-⊑ ★⇒★ (‵ ι) (⊑-⇒ p⊢ q⊢) ()
+ground-upper-unique-⊑ ★⇒★ (‵ ι) (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) ()
 ground-upper-unique-⊑ ★⇒★ (‵ ι)
-  (⊑-ν wfB p⊢) (⊑-ν wfB′ q⊢) =
+  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
   ground-upper-unique-⊑ ★⇒★ (‵ ι) p⊢ q⊢
-ground-upper-unique-⊑ ★⇒★ ★⇒★ (⊑-⇒ p⊢ q⊢) (⊑-⇒ p⊢′ q⊢′) =
+ground-upper-unique-⊑ ★⇒★ ★⇒★ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) (⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′) =
   refl
 ground-upper-unique-⊑ ★⇒★ ★⇒★
-  (⊑-ν wfB p⊢) (⊑-ν wfB′ q⊢) =
+  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
   ground-upper-unique-⊑ ★⇒★ ★⇒★ p⊢ q⊢
 
 ★⊑Ground-elim :
@@ -285,64 +280,64 @@ ground-upper-unique-chain-non∀-⊑ :
   Ψ ∣ Γ ⊢ r ⦂ A ⊑ C →
   Ψ ∣ Γ ⊢ s ⦂ C ⊑ H →
   G ≡ H
-ground-upper-unique-chain-non∀-⊑ non∀-＇ g h (⊑-★ν xν) q⊢ r⊢ s⊢ =
+ground-upper-unique-chain-non∀-⊑ non∀-＇ g h (⊢X-⊑-★ xν) q⊢ r⊢ s⊢ =
   ★⊑Ground-elim g q⊢
-ground-upper-unique-chain-non∀-⊑ non∀-＇ g h (⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
+ground-upper-unique-chain-non∀-⊑ non∀-＇ g h (⊢A-⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
   ★⊑Ground-elim g q⊢
-ground-upper-unique-chain-non∀-⊑ non∀-＇ g h (⊑-＇ wfX) q⊢ r⊢ s⊢ =
+ground-upper-unique-chain-non∀-⊑ non∀-＇ g h (⊢X-⊑-X wfX) q⊢ r⊢ s⊢ =
   ＇⊑Ground-elim g q⊢
-ground-upper-unique-chain-non∀-⊑ non∀-｀ g h (⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
+ground-upper-unique-chain-non∀-⊑ non∀-｀ g h (⊢A-⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
   ★⊑Ground-elim g q⊢
 ground-upper-unique-chain-non∀-⊑
-  non∀-｀ (｀ α) (｀ .α) (⊑-｀ wfα) (⊑-｀ wfα′)
-  (⊑-｀ wfα″) (⊑-｀ wfα‴) = refl
+  non∀-｀ (｀ α) (｀ .α) (⊢α-⊑-α wfα) (⊢α-⊑-α wfα′)
+  (⊢α-⊑-α wfα″) (⊢α-⊑-α wfα‴) = refl
 ground-upper-unique-chain-non∀-⊑
-  non∀-｀ (｀ α) (‵ ι) (⊑-｀ wfα) (⊑-｀ wfα′)
-  (⊑-｀ wfα″) ()
+  non∀-｀ (｀ α) (‵ ι) (⊢α-⊑-α wfα) (⊢α-⊑-α wfα′)
+  (⊢α-⊑-α wfα″) ()
 ground-upper-unique-chain-non∀-⊑
-  non∀-｀ (｀ α) ★⇒★ (⊑-｀ wfα) (⊑-｀ wfα′)
-  (⊑-｀ wfα″) ()
+  non∀-｀ (｀ α) ★⇒★ (⊢α-⊑-α wfα) (⊢α-⊑-α wfα′)
+  (⊢α-⊑-α wfα″) ()
 ground-upper-unique-chain-non∀-⊑
-  non∀-｀ g h (⊑-｀ wfα) (⊑-｀ wfα′) (⊑-★ g′ r⊢) s⊢ =
+  non∀-｀ g h (⊢α-⊑-α wfα) (⊢α-⊑-α wfα′) (⊢A-⊑-★ g′ r⊢) s⊢ =
   ★⊑Ground-elim h s⊢
-ground-upper-unique-chain-non∀-⊑ non∀-‵ g h (⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
+ground-upper-unique-chain-non∀-⊑ non∀-‵ g h (⊢A-⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
   ★⊑Ground-elim g q⊢
 ground-upper-unique-chain-non∀-⊑
-  non∀-‵ (｀ α) h (⊑-‵) () r⊢ s⊢
+  non∀-‵ (｀ α) h (⊢ι-⊑-ι) () r⊢ s⊢
 ground-upper-unique-chain-non∀-⊑
-  non∀-‵ (‵ ι) (｀ α) (⊑-‵) (⊑-‵) (⊑-‵) ()
+  non∀-‵ (‵ ι) (｀ α) (⊢ι-⊑-ι) (⊢ι-⊑-ι) (⊢ι-⊑-ι) ()
 ground-upper-unique-chain-non∀-⊑
-  non∀-‵ (‵ ι) (‵ .ι) (⊑-‵) (⊑-‵) (⊑-‵) (⊑-‵) = refl
+  non∀-‵ (‵ ι) (‵ .ι) (⊢ι-⊑-ι) (⊢ι-⊑-ι) (⊢ι-⊑-ι) (⊢ι-⊑-ι) = refl
 ground-upper-unique-chain-non∀-⊑
-  non∀-‵ (‵ ι) ★⇒★ (⊑-‵) (⊑-‵) (⊑-‵) ()
+  non∀-‵ (‵ ι) ★⇒★ (⊢ι-⊑-ι) (⊢ι-⊑-ι) (⊢ι-⊑-ι) ()
 ground-upper-unique-chain-non∀-⊑
-  non∀-‵ ★⇒★ h (⊑-‵) () r⊢ s⊢
+  non∀-‵ ★⇒★ h (⊢ι-⊑-ι) () r⊢ s⊢
 ground-upper-unique-chain-non∀-⊑
-  non∀-‵ g h (⊑-‵) (⊑-‵) (⊑-★ g′ r⊢) s⊢ =
+  non∀-‵ g h (⊢ι-⊑-ι) (⊢ι-⊑-ι) (⊢A-⊑-★ g′ r⊢) s⊢ =
   ★⊑Ground-elim h s⊢
-ground-upper-unique-chain-non∀-⊑ non∀-★ g h ⊑-★★ q⊢ r⊢ s⊢ =
+ground-upper-unique-chain-non∀-⊑ non∀-★ g h ⊢★-⊑-★ q⊢ r⊢ s⊢ =
   ★⊑Ground-elim g q⊢
-ground-upper-unique-chain-non∀-⊑ non∀-★ g h (⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
-  ★⊑Ground-elim g q⊢
-ground-upper-unique-chain-non∀-⊑
-  non∀-⇒ g h (⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
+ground-upper-unique-chain-non∀-⊑ non∀-★ g h (⊢A-⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
   ★⊑Ground-elim g q⊢
 ground-upper-unique-chain-non∀-⊑
-  non∀-⇒ (｀ α) h (⊑-⇒ p⊢ q⊢) () r⊢ s⊢
+  non∀-⇒ g h (⊢A-⊑-★ g′ p⊢) q⊢ r⊢ s⊢ =
+  ★⊑Ground-elim g q⊢
 ground-upper-unique-chain-non∀-⊑
-  non∀-⇒ (‵ ι) h (⊑-⇒ p⊢ q⊢) () r⊢ s⊢
+  non∀-⇒ (｀ α) h (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) () r⊢ s⊢
 ground-upper-unique-chain-non∀-⊑
-  non∀-⇒ ★⇒★ (｀ α) (⊑-⇒ p⊢ q⊢) (⊑-⇒ p⊢′ q⊢′)
-  (⊑-⇒ r⊢ s⊢) () 
+  non∀-⇒ (‵ ι) h (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) () r⊢ s⊢
 ground-upper-unique-chain-non∀-⊑
-  non∀-⇒ ★⇒★ (‵ ι) (⊑-⇒ p⊢ q⊢) (⊑-⇒ p⊢′ q⊢′)
-  (⊑-⇒ r⊢ s⊢) ()
+  non∀-⇒ ★⇒★ (｀ α) (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) (⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′)
+  (⊢A⇒B-⊑-A′⇒B′ r⊢ s⊢) () 
 ground-upper-unique-chain-non∀-⊑
-  non∀-⇒ ★⇒★ ★⇒★ (⊑-⇒ p⊢ q⊢) (⊑-⇒ p⊢′ q⊢′)
-  (⊑-⇒ r⊢ s⊢) (⊑-⇒ r⊢′ s⊢′) = refl
+  non∀-⇒ ★⇒★ (‵ ι) (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) (⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′)
+  (⊢A⇒B-⊑-A′⇒B′ r⊢ s⊢) ()
 ground-upper-unique-chain-non∀-⊑
-  non∀-⇒ ★⇒★ h (⊑-⇒ p⊢ q⊢) (⊑-⇒ p⊢′ q⊢′)
-  (⊑-★ g′ r⊢) s⊢ =
+  non∀-⇒ ★⇒★ ★⇒★ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) (⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′)
+  (⊢A⇒B-⊑-A′⇒B′ r⊢ s⊢) (⊢A⇒B-⊑-A′⇒B′ r⊢′ s⊢′) = refl
+ground-upper-unique-chain-non∀-⊑
+  non∀-⇒ ★⇒★ h (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) (⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′)
+  (⊢A-⊑-★ g′ r⊢) s⊢ =
   ★⊑Ground-elim h s⊢
 
 ------------------------------------------------------------------------
@@ -362,6 +357,51 @@ WfTy-weakenˢ (wf⇒ hA hB) Ψ≤Ψ′ =
   wf⇒ (WfTy-weakenˢ hA Ψ≤Ψ′) (WfTy-weakenˢ hB Ψ≤Ψ′)
 WfTy-weakenˢ (wf∀ hA) Ψ≤Ψ′ =
   wf∀ (WfTy-weakenˢ hA Ψ≤Ψ′)
+
+<-weaken+ :
+  ∀ Δ {X k} →
+  X < k →
+  X < k + Δ
+<-weaken+ Δ {k = zero} ()
+<-weaken+ Δ {X = zero} {k = suc k} z<s = z<s
+<-weaken+ Δ {X = suc X} {k = suc k} (s<s X<k) =
+  s<s (<-weaken+ Δ X<k)
+
+WfTy-weakenᵗ :
+  ∀ k Δ {Ψ A} →
+  WfTy k Ψ A →
+  WfTy (k + Δ) Ψ A
+WfTy-weakenᵗ k Δ (wfVar X<k) = wfVar (<-weaken+ Δ X<k)
+WfTy-weakenᵗ k Δ (wfSeal α<Ψ) = wfSeal α<Ψ
+WfTy-weakenᵗ k Δ wfBase = wfBase
+WfTy-weakenᵗ k Δ wf★ = wf★
+WfTy-weakenᵗ k Δ (wf⇒ wfA wfB) =
+  wf⇒ (WfTy-weakenᵗ k Δ wfA) (WfTy-weakenᵗ k Δ wfB)
+WfTy-weakenᵗ k Δ (wf∀ wfA) = wf∀ (WfTy-weakenᵗ (suc k) Δ wfA)
+
+WfTy-closed-weakenᵗ :
+  ∀ Δ {Ψ A} →
+  WfTy 0 Ψ A →
+  WfTy Δ Ψ A
+WfTy-closed-weakenᵗ Δ wfA = WfTy-weakenᵗ zero Δ wfA
+
+renameᵗ-inv-WfTy :
+  ∀ {Δ Ψ A ρ} →
+  (∀ {X} → ρ X < Δ → X < Δ) →
+  WfTy Δ Ψ (renameᵗ ρ A) →
+  WfTy Δ Ψ A
+renameᵗ-inv-WfTy {A = ＇ X} hρ (wfVar ρX<Δ) = wfVar (hρ ρX<Δ)
+renameᵗ-inv-WfTy {A = ｀ α} hρ (wfSeal α<Ψ) = wfSeal α<Ψ
+renameᵗ-inv-WfTy {A = ‵ ι} hρ wfBase = wfBase
+renameᵗ-inv-WfTy {A = ★} hρ wf★ = wf★
+renameᵗ-inv-WfTy {A = A ⇒ B} hρ (wf⇒ wfA wfB) =
+  wf⇒ (renameᵗ-inv-WfTy hρ wfA) (renameᵗ-inv-WfTy hρ wfB)
+renameᵗ-inv-WfTy {A = `∀ A} hρ (wf∀ wfA) =
+  wf∀ (renameᵗ-inv-WfTy h-ext wfA)
+  where
+    h-ext : ∀ {X} → extᵗ _ X < _ → X < _
+    h-ext {zero} z<s = z<s
+    h-ext {suc X} (s<s ρX<Δ) = s<s (hρ ρX<Δ)
 
 TySubstWf : TyCtx → TyCtx → SealCtx → Substᵗ → Set
 TySubstWf Δ Δ′ Ψ σ = ∀ {X} → X < Δ → WfTy Δ′ Ψ (σ X)

@@ -2,7 +2,7 @@ module proof.PreservationBetaDownNu where
 
 -- File Charter:
 --   * Worker file for the PolyConvert β-down-ν preservation redex.
---   * Opens the ν-bound imprecision evidence at the freshly allocated seal
+--   * Opens the X⊑★ imprecision evidence at the freshly allocated seal
 --     and types the final reveal conversion from that seal back to the
 --     type-application instantiation.
 --   * Relies on shared type, imprecision, and conversion property modules;
@@ -38,13 +38,13 @@ preserve-β-down-ν :
   ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{A B C : Ty}{p : Imp} →
   StoreWf Δ Ψ Σ →
   Value V →
-  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ⇓ (`∀A⊑B B p)) ⦂∀ C [ A ]) ⦂ C [ A ]ᵗ →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ⇓ (∀A-⊑-B B p)) ⦂∀ C [ A ]) ⦂ C [ A ]ᵗ →
   Δ ∣ suc Ψ ∣ ((length Σ , A) ∷ Σ) ∣ Γ ⊢
     ((V ⇓ (p [ ｀ (length Σ) ]⊑)) ↑
       (convert↑ (src⊑ p) (length Σ))) ⦂ C [ A ]ᵗ
 preserve-β-down-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
   {V = V} {A = A} {C = C} {p = p} wfΣ vV
-  (⊢• (⊢down (⊑-ν {A = Aν} {B = Bν} wfB p⊢) V⊢)
+  (⊢• (⊢down (⊢∀A-⊑-B {A = Aν} {B = Bν} wfB p⊢) V⊢)
       wfC wfA) =
   cong-⊢⦂ refl refl refl
     (cong (λ B → B [ A ]ᵗ) (src⊑-correct p⊢))

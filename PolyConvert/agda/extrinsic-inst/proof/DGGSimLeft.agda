@@ -15,6 +15,7 @@ open import Types
 open import Imprecision
 open import Conversion
 open import Store
+open import Primitives
 open import Terms
 open import TermImprecision
 open import Reduction

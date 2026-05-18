@@ -29,16 +29,17 @@ open import Store
 open import Imprecision
   using
     ( Imp
-    ; ICtx
-    ; VarMode
+    ; VarPrecCtx
+    ; VarPrec
     ; _∣_⊢_⦂_⊑_
-    ; plain
+    ; X⊑X
     ; plains
     ; starImp
     ; substImp
     ; substPlainAtImp
     )
 open import Conversion
+open import Primitives
 open import Terms
 open import proof.ImprecisionProperties
   using (open-fresh-∀⊑-prefix; substWf-plain-prefix)
@@ -153,9 +154,9 @@ substPlain-value k α (vV ↑ c) =
 substPlain-value k α (vV ↓ c) =
   substPlain-value k α vV ↓ substPlain-conceal-value k α c
 
-data PlainList : ICtx → Set where
-  plain[] : PlainList []
-  plain∷_ : ∀ {Φ} → PlainList Φ → PlainList (plain ∷ Φ)
+data PlainList : VarPrecCtx → Set where
+  X⊑X[] : PlainList []
+  X⊑X∷_ : ∀ {Φ} → PlainList Φ → PlainList (X⊑X ∷ Φ)
 
 length-plains : ∀ Δ → length (plains Δ []) ≡ Δ
 length-plains zero = refl
@@ -166,17 +167,17 @@ PlainList-plains :
   PlainList Φ →
   (Δ : TyCtx) →
   plains (length (Φ ++ plains Δ [])) [] ≡ Φ ++ plains Δ []
-PlainList-plains plain[] Δ rewrite length-plains Δ = refl
-PlainList-plains (plain∷ plainΦ) Δ =
-  cong (plain ∷_) (PlainList-plains plainΦ Δ)
+PlainList-plains X⊑X[] Δ rewrite length-plains Δ = refl
+PlainList-plains (X⊑X∷ plainΦ) Δ =
+  cong (X⊑X ∷_) (PlainList-plains plainΦ Δ)
 
 open-fresh-∀⊑-plains :
-  ∀ {Δ Ψ}{Σ : Store}{Φ : ICtx}{A B : Ty}{p : Imp} →
+  ∀ {Δ Ψ}{Σ : Store}{Φ : VarPrecCtx}{A B : Ty}{p : Imp} →
   PlainList Φ →
   StoreWf Δ Ψ Σ →
   _∣_⊢_⦂_⊑_
     Ψ
-    (plains (length (Φ ++ plain ∷ plains Δ [])) [])
+    (plains (length (Φ ++ X⊑X ∷ plains Δ [])) [])
     p A B →
   _∣_⊢_⦂_⊑_
     (suc Ψ)
@@ -203,10 +204,10 @@ open-fresh-∀⊑-plains
         p⊢))
 
 openTerm-fresh-∀-prefix :
-  ∀ {Δ Ψ}{Σ Σ₀ : Store}{Φ : ICtx}{Γ : Ctx}{M : Term}{A : Ty} →
+  ∀ {Δ Ψ}{Σ Σ₀ : Store}{Φ : VarPrecCtx}{Γ : Ctx}{M : Term}{A : Ty} →
   PlainList Φ →
   StoreWf Δ Ψ Σ →
-  length (Φ ++ plain ∷ plains Δ []) ∣ Ψ ∣ Σ₀ ∣ Γ ⊢ M ⦂ A →
+  length (Φ ++ X⊑X ∷ plains Δ []) ∣ Ψ ∣ Σ₀ ∣ Γ ⊢ M ⦂ A →
   length (Φ ++ plains Δ []) ∣ suc Ψ ∣
     substStoreᵗ (substVarFrom (length Φ) (｀ (length Σ))) Σ₀ ∣
     map (substᵗ (substVarFrom (length Φ) (｀ (length Σ)))) Γ ⊢
@@ -235,7 +236,7 @@ openTerm-fresh-∀-prefix {Σ = Σ} {Σ₀ = Σ₀} {Φ = Φ} {Γ = Γ} plainΦ 
         Γ)
       refl
       refl
-      (openTerm-fresh-∀-prefix {Φ = plain ∷ Φ} (plain∷ plainΦ) wfΣ M⊢))
+      (openTerm-fresh-∀-prefix {Φ = X⊑X ∷ Φ} (X⊑X∷ plainΦ) wfΣ M⊢))
 openTerm-fresh-∀-prefix {Φ = Φ} plainΦ wfΣ
   (⊢• {B = B} {T = T} M⊢ wfB wfT) =
   cong-⊢⦂
@@ -291,7 +292,7 @@ openTerm-fresh-∀-prefix plainΦ wfΣ (⊢blame ℓ) = ⊢blame ℓ
       (map-singleTyEnv-⤊ᵗ (｀ (length Σ)) Γ)
       refl
       refl
-      (openTerm-fresh-∀-prefix {Δ = Δ} {Φ = []} plain[] wfΣ
+      (openTerm-fresh-∀-prefix {Δ = Δ} {Φ = []} X⊑X[] wfΣ
         (cong-⊢Δ⦂ (sym (length-plains (suc Δ))) M⊢)))
 
 ------------------------------------------------------------------------

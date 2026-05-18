@@ -20,15 +20,16 @@ open import Store
 open import Imprecision
   using
     ( Imp
-    ; A⊑★
-    ; A⇒B⊑A′⇒B′
-    ; ★⊑★
-    ; ι⊑ι
-    ; `∀A⊑B
+    ; A-⊑-★
+    ; A⇒B-⊑-A′⇒B′
+    ; ★-⊑-★
+    ; ι-⊑-ι
+    ; ∀A-⊑-B
     ; reflImp
     ; starImp
     )
 open import Conversion
+open import Primitives
 open import Terms
 open import Reduction
 open import Eval
@@ -39,7 +40,7 @@ open import TypeCheckDec using (type-check-expect)
 ------------------------------------------------------------------------
 
 ℕ⊑★ : Imp
-ℕ⊑★ = A⊑★ (ι⊑ι `ℕ)
+ℕ⊑★ = A-⊑-★ (ι-⊑-ι `ℕ)
 
 polyId : Term
 polyId = Λ (ƛ (＇ 0) ⇒ ` 0)

@@ -15,26 +15,26 @@ open import Types
 open import Imprecision
   using
     ( Imp
-    ; ★⊑★
-    ; X⊑★
-    ; A⊑★
-    ; X⊑X
-    ; α⊑α
-    ; ι⊑ι
-    ; A⇒B⊑A′⇒B′
-    ; `∀A⊑∀B
-    ; `∀A⊑B
+    ; ★-⊑-★
+    ; X-⊑-★
+    ; A-⊑-★
+    ; X-⊑-X
+    ; α-⊑-α
+    ; ι-⊑-ι
+    ; A⇒B-⊑-A′⇒B′
+    ; ∀A-⊑-∀B
+    ; ∀A-⊑-B
     ; tgt⊑
     ; tgt⊑-correct
-    ; ⊑-★★
-    ; ⊑-★ν
-    ; ⊑-★
-    ; ⊑-＇
-    ; ⊑-｀
-    ; ⊑-‵
-    ; ⊑-⇒
-    ; ⊑-∀
-    ; ⊑-ν
+    ; ⊢★-⊑-★
+    ; ⊢X-⊑-★
+    ; ⊢A-⊑-★
+    ; ⊢X-⊑-X
+    ; ⊢α-⊑-α
+    ; ⊢ι-⊑-ι
+    ; ⊢A⇒B-⊑-A′⇒B′
+    ; ⊢∀A-⊑-∀B
+    ; ⊢∀A-⊑-B
     ; _∣_⊢_⦂_⊑_
     ; _∣_⊢_⦂_⊒_
     )
@@ -68,9 +68,9 @@ postulate
     Value V →
     Value V′ →
     ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ V ⊑ V′ ⦂ A ⊑ A′ →
-    Ψˡ ∣ [] ⊢ `∀A⊑B Bν pν ⦂ A′ ⊑ B′ →
+    Ψˡ ∣ [] ⊢ ∀A-⊑-B Bν pν ⦂ A′ ⊑ B′ →
     Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B′ →
-    Catchup Ψˡ Σˡ V A B′ Ψʳ Σʳ (V′ ⇑ `∀A⊑B Bν pν)
+    Catchup Ψˡ Σˡ V A B′ Ψʳ Σʳ (V′ ⇑ ∀A-⊑-B Bν pν)
 
 right-extra-up-catchup :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B′ p′ pB} →
@@ -83,46 +83,46 @@ right-extra-up-catchup :
   Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B′ →
   Catchup Ψˡ Σˡ V A B′ Ψʳ Σʳ (V′ ⇑ p′)
 right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel ⊑-★★ pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel ⊢★-⊑-★ pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇑ ★⊑★) —→⟨ pure-step (id-up-★ vV′) ⟩ _ ∎) ,
+  ((_ ⇑ ★-⊑-★) —→⟨ pure-step (id-up-★ vV′) ⟩ _ ∎) ,
   rel
 right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-★ν xν) pB⊢ =
-  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ tagν) , ((_ ⇑ X⊑★ _) ∎) ,
-  ⊑⇑R rel (⊑-★ν xν) pB⊢
+  wfΣˡ wfΣʳ vV vV′ rel (⊢X-⊑-★ xν) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ tagν) , ((_ ⇑ X-⊑-★ _) ∎) ,
+  ⊑⇑R rel (⊢X-⊑-★ xν) pB⊢
 right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-★ g p′⊢) pB⊢ =
-  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ tag) , ((_ ⇑ A⊑★ _) ∎) ,
-  ⊑⇑R rel (⊑-★ g p′⊢) pB⊢
+  wfΣˡ wfΣʳ vV vV′ rel (⊢A-⊑-★ g p′⊢) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ tag) , ((_ ⇑ A-⊑-★ _) ∎) ,
+  ⊑⇑R rel (⊢A-⊑-★ g p′⊢) pB⊢
 right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-＇ x∈) pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel (⊢X-⊑-X x∈) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇑ X⊑X _) —→⟨ pure-step (id-up-＇ vV′) ⟩ _ ∎) ,
+  ((_ ⇑ X-⊑-X _) —→⟨ pure-step (id-up-＇ vV′) ⟩ _ ∎) ,
   rel
 right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-｀ wfα) pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel (⊢α-⊑-α wfα) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇑ α⊑α _) —→⟨ pure-step (id-up-｀ vV′) ⟩ _ ∎) ,
+  ((_ ⇑ α-⊑-α _) —→⟨ pure-step (id-up-｀ vV′) ⟩ _ ∎) ,
   rel
 right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel ⊑-‵ pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel ⊢ι-⊑-ι pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇑ ι⊑ι _) —→⟨ pure-step (id-up-‵ vV′) ⟩ _ ∎) ,
+  ((_ ⇑ ι-⊑-ι _) —→⟨ pure-step (id-up-‵ vV′) ⟩ _ ∎) ,
   rel
 right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-⇒ p′⊢ q′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel (⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ (_↦_ {p = _} {q = _})) ,
-  ((_ ⇑ A⇒B⊑A′⇒B′ _ _) ∎) ,
-  ⊑⇑R rel (⊑-⇒ p′⊢ q′⊢) pB⊢
+  ((_ ⇑ A⇒B-⊑-A′⇒B′ _ _) ∎) ,
+  ⊑⇑R rel (⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢) pB⊢
 right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-∀ p′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-∀B p′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ `∀) ,
-  ((_ ⇑ `∀A⊑∀B _) ∎) ,
-  ⊑⇑R rel (⊑-∀ p′⊢) pB⊢
-right-extra-up-catchup wfΣˡ wfΣʳ vV vV′ rel (⊑-ν wfB p′⊢) pB⊢ =
+  ((_ ⇑ ∀A-⊑-∀B _) ∎) ,
+  ⊑⇑R rel (⊢∀A-⊑-∀B p′⊢) pB⊢
+right-extra-up-catchup wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-B wfB p′⊢) pB⊢ =
   right-extra-up-catchup-ν wfΣˡ wfΣʳ vV vV′ rel
-    (⊑-ν wfB p′⊢) pB⊢
+    (⊢∀A-⊑-B wfB p′⊢) pB⊢
 
 postulate
   right-extra-up-catchup-left-ν :
@@ -133,9 +133,9 @@ postulate
     Value V′ →
     ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ V ⊑ V′ ⦂ A ⊑ A′ →
     Ψˡ ∣ [] ⊢ p ⦂ A ⊑ B →
-    Ψˡ ∣ [] ⊢ `∀A⊑B Bν pν ⦂ A′ ⊑ B′ →
+    Ψˡ ∣ [] ⊢ ∀A-⊑-B Bν pν ⦂ A′ ⊑ B′ →
     Ψˡ ∣ [] ⊢ pB ⦂ B ⊑ B′ →
-    Catchup Ψˡ Σˡ (V ⇑ p) B B′ Ψʳ Σʳ (V′ ⇑ `∀A⊑B Bν pν)
+    Catchup Ψˡ Σˡ (V ⇑ p) B B′ Ψʳ Σʳ (V′ ⇑ ∀A-⊑-B Bν pν)
 
 right-extra-up-catchup-left :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B B′ p p′ pB} →
@@ -149,40 +149,40 @@ right-extra-up-catchup-left :
   Ψˡ ∣ [] ⊢ pB ⦂ B ⊑ B′ →
   Catchup Ψˡ Σˡ (V ⇑ p) B B′ Ψʳ Σʳ (V′ ⇑ p′)
 right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊑-★★ pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊢★-⊑-★ pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇑ ★⊑★) —→⟨ pure-step (id-up-★ vV′) ⟩ _ ∎) ,
+  ((_ ⇑ ★-⊑-★) —→⟨ pure-step (id-up-★ vV′) ⟩ _ ∎) ,
   ⊑⇑L rel p⊢ pB⊢
-right-extra-up-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-★ν ()) pB⊢
+right-extra-up-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢X-⊑-★ ()) pB⊢
 right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-★ g p′⊢) pB⊢ =
-  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ tag) , ((_ ⇑ A⊑★ _) ∎) ,
-  ⊑⇑ rel p⊢ (⊑-★ g p′⊢) pB⊢
-right-extra-up-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-＇ ()) pB⊢
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢A-⊑-★ g p′⊢) pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ tag) , ((_ ⇑ A-⊑-★ _) ∎) ,
+  ⊑⇑ rel p⊢ (⊢A-⊑-★ g p′⊢) pB⊢
+right-extra-up-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢X-⊑-X ()) pB⊢
 right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-｀ wfα) pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢α-⊑-α wfα) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇑ α⊑α _) —→⟨ pure-step (id-up-｀ vV′) ⟩ _ ∎) ,
-  ⊑⇑L rel p⊢ pB⊢
-right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊑-‵ pB⊢ =
-  Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇑ ι⊑ι _) —→⟨ pure-step (id-up-‵ vV′) ⟩ _ ∎) ,
+  ((_ ⇑ α-⊑-α _) —→⟨ pure-step (id-up-｀ vV′) ⟩ _ ∎) ,
   ⊑⇑L rel p⊢ pB⊢
 right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-⇒ p′⊢ q′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊢ι-⊑-ι pB⊢ =
+  Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
+  ((_ ⇑ ι-⊑-ι _) —→⟨ pure-step (id-up-‵ vV′) ⟩ _ ∎) ,
+  ⊑⇑L rel p⊢ pB⊢
+right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ (_↦_ {p = _} {q = _})) ,
-  ((_ ⇑ A⇒B⊑A′⇒B′ _ _) ∎) ,
-  ⊑⇑ rel p⊢ (⊑-⇒ p′⊢ q′⊢) pB⊢
+  ((_ ⇑ A⇒B-⊑-A′⇒B′ _ _) ∎) ,
+  ⊑⇑ rel p⊢ (⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢) pB⊢
 right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-∀ p′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢∀A-⊑-∀B p′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ `∀) ,
-  ((_ ⇑ `∀A⊑∀B _) ∎) ,
-  ⊑⇑ rel p⊢ (⊑-∀ p′⊢) pB⊢
+  ((_ ⇑ ∀A-⊑-∀B _) ∎) ,
+  ⊑⇑ rel p⊢ (⊢∀A-⊑-∀B p′⊢) pB⊢
 right-extra-up-catchup-left
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-ν wfB p′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢∀A-⊑-B wfB p′⊢) pB⊢ =
   right-extra-up-catchup-left-ν wfΣˡ wfΣʳ vVp vV′ rel p⊢
-    (⊑-ν wfB p′⊢) pB⊢
+    (⊢∀A-⊑-B wfB p′⊢) pB⊢
 
 right-ground-down-catchup :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B′ p′ pB} →
@@ -195,31 +195,31 @@ right-ground-down-catchup :
   Ψˡ ∣ [] ⊢ p′ ⦂ A′ ⊒ B′ →
   Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B′ →
   Catchup Ψˡ Σˡ V A B′ Ψʳ Σʳ (V′ ⇓ p′)
-right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel ⊑-★★ pB⊢
-right-ground-down-catchup h wfΣˡ wfΣʳ vV vV′ rel (⊑-★ν ()) pB⊢
-right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel (⊑-★ g p′⊢) pB⊢
-right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel (⊑-＇ x∈) pB⊢
+right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel ⊢★-⊑-★ pB⊢
+right-ground-down-catchup h wfΣˡ wfΣʳ vV vV′ rel (⊢X-⊑-★ ()) pB⊢
+right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel (⊢A-⊑-★ g p′⊢) pB⊢
+right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel (⊢X-⊑-X x∈) pB⊢
 right-ground-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  h wfΣˡ wfΣʳ vV vV′ rel (⊑-｀ wfα) pB⊢ =
+  h wfΣˡ wfΣʳ vV vV′ rel (⊢α-⊑-α wfα) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇓ α⊑α _) —→⟨ pure-step (id-down-｀ vV′) ⟩ _ ∎) ,
+  ((_ ⇓ α-⊑-α _) —→⟨ pure-step (id-down-｀ vV′) ⟩ _ ∎) ,
   rel
 right-ground-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  h wfΣˡ wfΣʳ vV vV′ rel ⊑-‵ pB⊢ =
+  h wfΣˡ wfΣʳ vV vV′ rel ⊢ι-⊑-ι pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇓ ι⊑ι _) —→⟨ pure-step (id-down-‵ vV′) ⟩ _ ∎) ,
+  ((_ ⇓ ι-⊑-ι _) —→⟨ pure-step (id-down-‵ vV′) ⟩ _ ∎) ,
   rel
 right-ground-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  h wfΣˡ wfΣʳ vV vV′ rel (⊑-⇒ p′⊢ q′⊢) pB⊢ =
+  h wfΣˡ wfΣʳ vV vV′ rel (⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ (_↦_ {p = _} {q = _})) ,
-  ((_ ⇓ A⇒B⊑A′⇒B′ _ _) ∎) ,
-  ⊑⇓R rel (⊑-⇒ p′⊢ q′⊢) pB⊢
-right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel (⊑-∀ p′⊢) pB⊢
+  ((_ ⇓ A⇒B-⊑-A′⇒B′ _ _) ∎) ,
+  ⊑⇓R rel (⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢) pB⊢
+right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-∀B p′⊢) pB⊢
 right-ground-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  h wfΣˡ wfΣʳ vV vV′ rel (⊑-ν wfB p′⊢) pB⊢ =
+  h wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-B wfB p′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ ν_) ,
-  ((_ ⇓ `∀A⊑B _ _) ∎) ,
-  ⊑⇓R rel (⊑-ν wfB p′⊢) pB⊢
+  ((_ ⇓ ∀A-⊑-B _ _) ∎) ,
+  ⊑⇓R rel (⊢∀A-⊑-B wfB p′⊢) pB⊢
 
 right-tag-less-ground-catchup-⇑R-core :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V W A A′ B G H p q pB} →
@@ -380,7 +380,7 @@ postulate
     StoreWf 0 Ψʳ Σʳ →
     Value (M ⇓ p₀) →
     Value W →
-    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ (W ⇑ A⊑★ p) ⦂ A ⊑ ★ →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ (W ⇑ A-⊑-★ p) ⦂ A ⊑ ★ →
     Ψˡ ∣ [] ⊢ p₀ ⦂ A ⊒ B′ →
     Ψˡ ∣ [] ⊢ p★ ⦂ B′ ⊑ ★ →
     Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
@@ -395,7 +395,7 @@ right-tag-less-ground-catchup-other :
   StoreWf 0 Ψʳ Σʳ →
   Value V →
   Value W →
-  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ V ⊑ (W ⇑ A⊑★ p) ⦂ A ⊑ ★ →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ V ⊑ (W ⇑ A-⊑-★ p) ⦂ A ⊑ ★ →
   Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
   Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B →
   (tgt⊑ p ≡ tgt⊑ q) ×
@@ -406,7 +406,7 @@ right-tag-less-ground-catchup-other
   {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   {W = W} {B = B} {G = G} {p = p} {q = q}
   g wfΣˡ wfΣʳ vV vW
-  (⊑⇑ rel p₀⊢ (⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
+  (⊑⇑ rel p₀⊢ (⊢A-⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
   tag-eq ,
   right-tag-less-ground-catchup-⇑-core
     {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
@@ -432,7 +432,7 @@ right-tag-less-ground-catchup-other
   {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   {V = V} {W = W} {A = A} {B = B} {G = G} {p = p} {q = q}
   g wfΣˡ wfΣʳ vV vW
-  (⊑⇑R rel (⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
+  (⊑⇑R rel (⊢A-⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
   tag-eq ,
   right-tag-less-ground-catchup-⇑R-core
     {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
@@ -460,7 +460,7 @@ right-tag-less-ground-catchup :
   StoreWf 0 Ψʳ Σʳ →
   Value V →
   Value W →
-  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ V ⊑ (W ⇑ A⊑★ p) ⦂ A ⊑ ★ →
+  ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ V ⊑ (W ⇑ A-⊑-★ p) ⦂ A ⊑ ★ →
   Ψˡ ∣ [] ⊢ q ⦂ B ⊑ G →
   Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B →
   (tgt⊑ p ≡ tgt⊑ q) ×
@@ -469,7 +469,7 @@ right-tag-less-ground-catchup
   {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   {V = V} {W = W} {A = A} {B = B} {G = G} {p = p} {q = q}
   g wfΣˡ wfΣʳ vV vW
-  (⊑⇑R rel (⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
+  (⊑⇑R rel (⊢A-⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
   tag-eq ,
   right-tag-less-ground-catchup-⇑R-core
     {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
@@ -487,7 +487,7 @@ right-tag-less-ground-catchup
   {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   {W = W} {B = B} {G = G} {p = p} {q = q}
   g wfΣˡ wfΣʳ vV vW
-  (⊑⇑ rel p₀⊢ (⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
+  (⊑⇑ rel p₀⊢ (⊢A-⊑-★ {G = H} h p⊢) p★⊢) q⊢ pB⊢ =
   tag-eq ,
   right-tag-less-ground-catchup-⇑-core
     {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
@@ -515,18 +515,18 @@ right-extra-down-catchup-tag :
     Value V →
     Value V′ →
     ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ V ⊑ V′ ⦂ A ⊑ A′ →
-    Ψˡ ∣ [] ⊢ A⊑★ p′ ⦂ A′ ⊒ B′ →
+    Ψˡ ∣ [] ⊢ A-⊑-★ p′ ⦂ A′ ⊒ B′ →
     Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B′ →
-    Catchup Ψˡ Σˡ V A B′ Ψʳ Σʳ (V′ ⇓ A⊑★ p′)
+    Catchup Ψˡ Σˡ V A B′ Ψʳ Σʳ (V′ ⇓ A-⊑-★ p′)
 right-extra-down-catchup-tag
   {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   {V = V} {A = A} {B′ = B′}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-★ g q⊢) pB⊢
+  wfΣˡ wfΣʳ vV vV′ rel (⊢A-⊑-★ g q⊢) pB⊢
     with canonical-★ vV′ (⊑-right-typed rel)
 right-extra-down-catchup-tag
   {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
   {V = V} {A = A} {B′ = B′}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-★ {G = G} {p = q} g q⊢) pB⊢
+  wfΣˡ wfΣʳ vV vV′ rel (⊢A-⊑-★ {G = G} {p = q} g q⊢) pB⊢
   | sv-⇑tag {W = W′} {p = p} vW′ refl =
     result
   where
@@ -537,12 +537,12 @@ right-extra-down-catchup-tag
         {p = p} {q = q}
         g wfΣˡ wfΣʳ vV vW′ rel q⊢ pB⊢
     result :
-      Catchup Ψˡ Σˡ V A B′ Ψʳ Σʳ ((W′ ⇑ A⊑★ p) ⇓ A⊑★ q)
+      Catchup Ψˡ Σˡ V A B′ Ψʳ Σʳ ((W′ ⇑ A-⊑-★ p) ⇓ A-⊑-★ q)
     result with tag-catchup
     result | tag-eq ,
       Ψʳ′ , Σʳ′ , wfΣʳ′ , W″ , vW″ , W⇑p⇓q↠W″ , V⊑W″ =
       Ψʳ′ , Σʳ′ , wfΣʳ′ , W″ , vW″ ,
-      ((_ ⇓ A⊑★ _) —→⟨ pure-step (tag-untag-ok vW′ tag-eq) ⟩
+      ((_ ⇓ A-⊑-★ _) —→⟨ pure-step (tag-untag-ok vW′ tag-eq) ⟩
        W⇑p⇓q↠W″) ,
       V⊑W″
 
@@ -557,45 +557,45 @@ right-extra-down-catchup :
   Ψˡ ∣ [] ⊢ pB ⦂ A ⊑ B′ →
   Catchup Ψˡ Σˡ V A B′ Ψʳ Σʳ (V′ ⇓ p′)
 right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel ⊑-★★ pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel ⊢★-⊑-★ pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇓ ★⊑★) —→⟨ pure-step (id-down-★ vV′) ⟩ _ ∎) ,
+  ((_ ⇓ ★-⊑-★) —→⟨ pure-step (id-down-★ vV′) ⟩ _ ∎) ,
   rel
-right-extra-down-catchup wfΣˡ wfΣʳ vV vV′ rel (⊑-★ν ()) pB⊢
+right-extra-down-catchup wfΣˡ wfΣʳ vV vV′ rel (⊢X-⊑-★ ()) pB⊢
 right-extra-down-catchup
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-★ g p′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel (⊢A-⊑-★ g p′⊢) pB⊢ =
   right-extra-down-catchup-tag wfΣˡ wfΣʳ vV vV′ rel
-    (⊑-★ g p′⊢) pB⊢
+    (⊢A-⊑-★ g p′⊢) pB⊢
 right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-＇ x∈) pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel (⊢X-⊑-X x∈) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇓ X⊑X _) —→⟨ pure-step (id-down-＇ vV′) ⟩ _ ∎) ,
+  ((_ ⇓ X-⊑-X _) —→⟨ pure-step (id-down-＇ vV′) ⟩ _ ∎) ,
   rel
 right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-｀ wfα) pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel (⊢α-⊑-α wfα) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇓ α⊑α _) —→⟨ pure-step (id-down-｀ vV′) ⟩ _ ∎) ,
+  ((_ ⇓ α-⊑-α _) —→⟨ pure-step (id-down-｀ vV′) ⟩ _ ∎) ,
   rel
 right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel ⊑-‵ pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel ⊢ι-⊑-ι pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇓ ι⊑ι _) —→⟨ pure-step (id-down-‵ vV′) ⟩ _ ∎) ,
+  ((_ ⇓ ι-⊑-ι _) —→⟨ pure-step (id-down-‵ vV′) ⟩ _ ∎) ,
   rel
 right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-⇒ p′⊢ q′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel (⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ (_↦_ {p = _} {q = _})) ,
-  ((_ ⇓ A⇒B⊑A′⇒B′ _ _) ∎) ,
-  ⊑⇓R rel (⊑-⇒ p′⊢ q′⊢) pB⊢
+  ((_ ⇓ A⇒B-⊑-A′⇒B′ _ _) ∎) ,
+  ⊑⇓R rel (⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢) pB⊢
 right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-∀ p′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-∀B p′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ `∀) ,
-  ((_ ⇓ `∀A⊑∀B _) ∎) ,
-  ⊑⇓R rel (⊑-∀ p′⊢) pB⊢
+  ((_ ⇓ ∀A-⊑-∀B _) ∎) ,
+  ⊑⇓R rel (⊢∀A-⊑-∀B p′⊢) pB⊢
 right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊑-ν wfB p′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-B wfB p′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ ν_) ,
-  ((_ ⇓ `∀A⊑B _ _) ∎) ,
-  ⊑⇓R rel (⊑-ν wfB p′⊢) pB⊢
+  ((_ ⇓ ∀A-⊑-B _ _) ∎) ,
+  ⊑⇓R rel (⊢∀A-⊑-B wfB p′⊢) pB⊢
 
 right-extra-down-catchup-left :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B B′ p p′ pB} →
@@ -609,43 +609,43 @@ right-extra-down-catchup-left :
   Ψˡ ∣ [] ⊢ pB ⦂ B ⊑ B′ →
   Catchup Ψˡ Σˡ (V ⇓ p) B B′ Ψʳ Σʳ (V′ ⇓ p′)
 right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊑-★★ pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊢★-⊑-★ pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇓ ★⊑★) —→⟨ pure-step (id-down-★ vV′) ⟩ _ ∎) ,
+  ((_ ⇓ ★-⊑-★) —→⟨ pure-step (id-down-★ vV′) ⟩ _ ∎) ,
   ⊑⇓L rel p⊢ pB⊢
-right-extra-down-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-★ν ()) pB⊢
+right-extra-down-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢X-⊑-★ ()) pB⊢
 right-extra-down-catchup-left
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-★ g p′⊢) pB⊢
-    with ⊑-trans pB⊢ (⊑-★ g p′⊢)
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢A-⊑-★ g p′⊢) pB⊢
+    with ⊑-trans pB⊢ (⊢A-⊑-★ g p′⊢)
 ... | p★ , p★⊢ =
   right-extra-down-catchup-tag wfΣˡ wfΣʳ vVp vV′
-    (⊑⇓L rel p⊢ p★⊢) (⊑-★ g p′⊢) pB⊢
-right-extra-down-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-＇ ()) pB⊢
+    (⊑⇓L rel p⊢ p★⊢) (⊢A-⊑-★ g p′⊢) pB⊢
+right-extra-down-catchup-left wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢X-⊑-X ()) pB⊢
 right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-｀ wfα) pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢α-⊑-α wfα) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇓ α⊑α _) —→⟨ pure-step (id-down-｀ vV′) ⟩ _ ∎) ,
+  ((_ ⇓ α-⊑-α _) —→⟨ pure-step (id-down-｀ vV′) ⟩ _ ∎) ,
   ⊑⇓L rel p⊢ pB⊢
 right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊑-‵ pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ ⊢ι-⊑-ι pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , vV′ ,
-  ((_ ⇓ ι⊑ι _) —→⟨ pure-step (id-down-‵ vV′) ⟩ _ ∎) ,
+  ((_ ⇓ ι-⊑-ι _) —→⟨ pure-step (id-down-‵ vV′) ⟩ _ ∎) ,
   ⊑⇓L rel p⊢ pB⊢
 right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-⇒ p′⊢ q′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ (_↦_ {p = _} {q = _})) ,
-  ((_ ⇓ A⇒B⊑A′⇒B′ _ _) ∎) ,
-  ⊑⇓ rel p⊢ (⊑-⇒ p′⊢ q′⊢) pB⊢
+  ((_ ⇓ A⇒B-⊑-A′⇒B′ _ _) ∎) ,
+  ⊑⇓ rel p⊢ (⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢) pB⊢
 right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-∀ p′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢∀A-⊑-∀B p′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ `∀) ,
-  ((_ ⇓ `∀A⊑∀B _) ∎) ,
-  ⊑⇓ rel p⊢ (⊑-∀ p′⊢) pB⊢
+  ((_ ⇓ ∀A-⊑-∀B _) ∎) ,
+  ⊑⇓ rel p⊢ (⊢∀A-⊑-∀B p′⊢) pB⊢
 right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊑-ν wfB p′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢∀A-⊑-B wfB p′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ ν_) ,
-  ((_ ⇓ `∀A⊑B _ _) ∎) ,
-  ⊑⇓ rel p⊢ (⊑-ν wfB p′⊢) pB⊢
+  ((_ ⇓ ∀A-⊑-B _ _) ∎) ,
+  ⊑⇓ rel p⊢ (⊢∀A-⊑-B wfB p′⊢) pB⊢
 
 postulate
   right-extra-reveal-catchup :

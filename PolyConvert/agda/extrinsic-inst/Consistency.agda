@@ -29,23 +29,23 @@ data _∋ᶜ_∶_ : CCtx → TyVar → CMode → Set where
 boths : ℕ → CCtx → CCtx
 boths n Γ = (replicate n both) ++ Γ
 
-leftMode : CMode → VarMode
-leftMode left = plain
-leftMode right = ν-bound
-leftMode both = plain
-leftMode neither = ν-bound
+leftMode : CMode → VarPrec
+leftMode left = X⊑X
+leftMode right = X⊑★
+leftMode both = X⊑X
+leftMode neither = X⊑★
 
-rightMode : CMode → VarMode
-rightMode left = ν-bound
-rightMode right = plain
-rightMode both = plain
-rightMode neither = ν-bound
+rightMode : CMode → VarPrec
+rightMode left = X⊑★
+rightMode right = X⊑X
+rightMode both = X⊑X
+rightMode neither = X⊑★
 
-leftICtx : CCtx → ICtx
+leftICtx : CCtx → VarPrecCtx
 leftICtx [] = []
 leftICtx (m ∷ Γ) = leftMode m ∷ leftICtx Γ
 
-rightICtx : CCtx → ICtx
+rightICtx : CCtx → VarPrecCtx
 rightICtx [] = []
 rightICtx (m ∷ Γ) = rightMode m ∷ rightICtx Γ
 
@@ -112,36 +112,36 @@ coerce :
   Γ ⊢ A ~ C →
   Imp × Imp
 coerce ★-~-★ =
-  ★⊑★ , ★⊑★
+  ★-⊑-★ , ★-⊑-★
 coerce (X-~-X {X} x∈) =
-  X⊑X X , X⊑X X
+  X-⊑-X X , X-⊑-X X
 coerce (ι-~-ι {ι}) =
-  ι⊑ι ι , ι⊑ι ι
+  ι-⊑-ι ι , ι-⊑-ι ι
 coerce (⇒-~-⇒ A~A′ B~B′) with coerce A~A′ | coerce B~B′
 coerce (⇒-~-⇒ A~A′ B~B′)
     | pA⊒ , pA⊑
     | pB⊒ , pB⊑ =
-  A⇒B⊑A′⇒B′ pA⊒ pB⊒ ,
-  A⇒B⊑A′⇒B′ pA⊑ pB⊑
+  A⇒B-⊑-A′⇒B′ pA⊒ pB⊒ ,
+  A⇒B-⊑-A′⇒B′ pA⊑ pB⊑
 coerce (∀-~-∀ A~B) with coerce A~B
 coerce (∀-~-∀ A~B) | p⊒ , p⊑ =
-  `∀A⊑∀B p⊒ , `∀A⊑∀B p⊑
+  ∀A-⊑-∀B p⊒ , ∀A-⊑-∀B p⊑
 coerce (A-~-★ g A~G) with coerce A~G
 coerce (A-~-★ g A~G) | p⊒ , p⊑ =
-  p⊒ , A⊑★ p⊑
+  p⊒ , A-⊑-★ p⊑
 coerce (★-~-B h H~B) with coerce H~B
 coerce (★-~-B h H~B) | p⊒ , p⊑ =
-  A⊑★ p⊒ , p⊑
+  A-⊑-★ p⊒ , p⊑
 coerce (νX-~-★ {X} x∈) =
-  X⊑X X , X⊑★ X
+  X-⊑-X X , X-⊑-★ X
 coerce (★-~-νX {X} x∈) =
-  X⊑★ X , X⊑X X
+  X-⊑-★ X , X-⊑-X X
 coerce (∀-~-B {B = B} wfB A~⇑B) with coerce A~⇑B
 coerce (∀-~-B {B = B} wfB A~⇑B) | p⊒ , p⊑ =
-  `∀A⊑∀B p⊒ , `∀A⊑B B p⊑
+  ∀A-⊑-∀B p⊒ , ∀A-⊑-B B p⊑
 coerce (A-~-∀ {A = A} wfA ⇑A~B) with coerce ⇑A~B
 coerce (A-~-∀ {A = A} wfA ⇑A~B) | p⊒ , p⊑ =
-  `∀A⊑B A p⊒ , `∀A⊑∀B p⊑
+  ∀A-⊑-B A p⊒ , ∀A-⊑-∀B p⊑
 
 
 coerce-⊒ : ∀ {Γ A C} → Γ ⊢ A ~ C → Imp

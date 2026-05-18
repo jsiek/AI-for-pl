@@ -46,14 +46,14 @@ preserve-β-down-∀ :
   ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{B T : Ty}{p : Imp} →
   StoreWf Δ Ψ Σ →
   Value V →
-  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ⇓ (`∀A⊑∀B p)) ⦂∀ B [ T ]) ⦂ B [ T ]ᵗ →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ⇓ (∀A-⊑-∀B p)) ⦂∀ B [ T ]) ⦂ B [ T ]ᵗ →
   Δ ∣ suc Ψ ∣ ((length Σ , T) ∷ Σ) ∣ Γ ⊢
     (((V ⦂∀ (tgt⊑ p) [ ｀ (length Σ) ]) ⇓
       (p [ ｀ (length Σ) ]⊑)) ↑ (convert↑ (src⊑ p) (length Σ)))
     ⦂ B [ T ]ᵗ
 preserve-β-down-∀ {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {V = V} {T = T} {p = p}
   wfΣ vV
-  (⊢• (⊢down (⊑-∀ {A = Aₚ} {B = Bₚ} p⊢) V⊢) wfB wfT) =
+  (⊢• (⊢down (⊢∀A-⊑-∀B {A = Aₚ} {B = Bₚ} p⊢) V⊢) wfB wfT) =
   cong-⊢⦂ refl refl refl (cong (λ A → A [ T ]ᵗ) eq-src)
     (⊢reveal c⊢ (⊢down p-open⊢ app⊢))
   where

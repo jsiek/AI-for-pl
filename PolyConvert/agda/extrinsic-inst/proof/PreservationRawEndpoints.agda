@@ -22,7 +22,7 @@ length-plains[] (suc Δ) = cong suc (length-plains[] Δ)
 
 ⊑-src-wf-plains :
   ∀ {Δ Ψ}{p : Imp}{A B : Ty} →
-  Ψ ∣ (plain ∷ plains Δ []) ⊢ p ⦂ A ⊑ B →
+  Ψ ∣ (X⊑X ∷ plains Δ []) ⊢ p ⦂ A ⊑ B →
   WfTy (suc Δ) Ψ (src⊑ p)
 ⊑-src-wf-plains {Δ = Δ} {Ψ = Ψ} {A = A} p⊢ =
   subst

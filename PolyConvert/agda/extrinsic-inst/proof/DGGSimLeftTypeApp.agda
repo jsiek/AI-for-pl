@@ -293,41 +293,41 @@ sim-left-beta-Λ :
            ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ)) ⊑ N′ ⦂ (A [ T ]ᵗ) ⊑ (B [ T ]ᵗ))))
 sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     {B = B} {T = T}
-    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊢∀A-⊑-∀B {p = pR} pR⊢) pB⊢)
     wfA wfB wfT pT⊢
     with left-value-right-catchup-Λ wfΣˡ wfΣʳ vV rel
 sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     {B = B} {T = T}
-    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊢∀A-⊑-∀B {p = pR} pR⊢) pB⊢)
     wfA wfB wfT pT⊢
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
     with ⊑-index-cast refl (sym (cong `∀ (src⊑-correct pR⊢))) ΛV⊑V′
 sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     {B = B} {T = T}
-    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊢∀A-⊑-∀B {p = pR} pR⊢) pB⊢)
     wfA wfB wfT pT⊢
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
   | ΛV⊑V′R
     with ⊑-type-imprecision ΛV⊑V′R
 sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     {B = B} {T = T}
-    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊢∀A-⊑-∀B {p = pR} pR⊢) pB⊢)
     wfA wfB wfT pT⊢
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
   | ΛV⊑V′R
-  | `∀A⊑B Bν pν , ⊑-ν wfBν pν⊢
+  | ∀A-⊑-B Bν pν , ⊢∀A-⊑-B wfBν pν⊢
     with sim-left-beta-Λ-rest wfΣˡ wfΣʳ vV
-      (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢) wfA wfB wfT pT⊢
+      (⊑⇑R rel (⊢∀A-⊑-∀B {p = pR} pR⊢) pB⊢) wfA wfB wfT pT⊢
 ... | Ψˡ′ , Σˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ , N′ ,
       M′⦂∀↠N′ , relN =
   Ψˡ′ , Σˡ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ , N′ , M′⦂∀↠N′ , relN
 sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     {B = B} {T = T}
-    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊢∀A-⊑-∀B {p = pR} pR⊢) pB⊢)
     wfA wfB wfT pT⊢
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
   | ΛV⊑V′R
-  | `∀A⊑∀B pI , ⊑-∀ pI⊢
+  | ∀A-⊑-∀B pI , ⊢∀A-⊑-∀B pI⊢
     with sim-left-beta-Λ-rest wfΣˡ wfΣʳ′ vV ΛV⊑V′R
       wfA
       (subst (WfTy 1 _) (sym (src⊑-correct pR⊢)) (⊑-src-wf pR⊢))
@@ -338,17 +338,17 @@ sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
         ([]⊑ᵗ-wt pI⊢ wfT))
 sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     {B = B} {T = T}
-    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊑-∀ {p = pR} pR⊢) pB⊢)
+    wfΣˡ wfΣʳ vV (⊑⇑R rel (⊢∀A-⊑-∀B {p = pR} pR⊢) pB⊢)
     wfA wfB wfT pT⊢
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
   | ΛV⊑V′R
-  | `∀A⊑∀B pI , ⊑-∀ pI⊢
+  | ∀A-⊑-∀B pI , ⊢∀A-⊑-∀B pI⊢
   | Ψˡ′ , Σˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ , N′ ,
     V′⦂∀↠N′ , relN =
   Ψˡ′ , Σˡ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ ,
   (N′ ⇑ pR [ T ]⊑) ,
   multi-trans (tyapp-↠ (up-↠ M′↠V′))
-    (((V′ ⇑ `∀A⊑∀B pR) ⦂∀ B [ T ])
+    (((V′ ⇑ ∀A-⊑-∀B pR) ⦂∀ B [ T ])
       —→⟨ pure-step (β-up-∀ vV′) ⟩ up-↠ V′⦂∀↠N′) ,
   ⊑⇑R relN
     (cong-⊢⊑ refl
@@ -368,7 +368,7 @@ postulate
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ (`∀A⊑∀B p)) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ (∀A-⊑-∀B p)) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
     ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
       (StoreWf 0 Ψʳ′ Σʳ′ ×
        ∃[ N′ ]
@@ -380,7 +380,7 @@ postulate
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ (`∀A⊑∀B p)) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ (∀A-⊑-∀B p)) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
     ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
       (StoreWf 0 Ψˡ′ Σˡ′ ×
        ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
@@ -396,7 +396,7 @@ postulate
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ (`∀A⊑B B p)) ⊑ M′ ⦂ (`∀ A) ⊑ C →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ (∀A-⊑-B B p)) ⊑ M′ ⦂ (`∀ A) ⊑ C →
     ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
       (StoreWf 0 Ψˡ′ Σˡ′ ×
        ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
@@ -411,7 +411,7 @@ postulate
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ (`∀A⊑B B p)) ⊑ M′ ⦂ A ⊑ B →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ (∀A-⊑-B B p)) ⊑ M′ ⦂ A ⊑ B →
     ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
       (StoreWf 0 Ψˡ′ Σˡ′ ×
        ∃[ Ψʳ′ ] ∃[ Σʳ′ ]

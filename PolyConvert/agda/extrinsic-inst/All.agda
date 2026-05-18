@@ -13,8 +13,10 @@ open import Ctx
 open import Store
 open import Imprecision
 open import Conversion
+open import Primitives
 open import Terms
 open import GradualTerms
+open import Compile
 open import TermImprecision
 open import Reduction
 open import TypeSafety

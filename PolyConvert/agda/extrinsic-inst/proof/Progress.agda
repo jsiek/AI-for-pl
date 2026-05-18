@@ -17,6 +17,7 @@ open import Relation.Binary.PropositionalEquality using (cong; cong₂)
 open import Types
 open import Imprecision
 open import Conversion
+open import Primitives
 open import Terms
 open import Reduction
 
@@ -105,13 +106,13 @@ data FunView (V : Term) : Set where
   fv-⇑↦ :
     ∀ {W : Term}{p q : Imp} →
     Value W →
-    V ≡ (W ⇑ (A⇒B⊑A′⇒B′ p q)) →
+    V ≡ (W ⇑ (A⇒B-⊑-A′⇒B′ p q)) →
     FunView V
 
   fv-⇓↦ :
     ∀ {W : Term}{p q : Imp} →
     Value W →
-    V ≡ (W ⇓ (A⇒B⊑A′⇒B′ p q)) →
+    V ≡ (W ⇓ (A⇒B-⊑-A′⇒B′ p q)) →
     FunView V
 
   fv-↑↦ :
@@ -137,11 +138,11 @@ canonical-⇒ (Λ N) ()
 canonical-⇒ (_⇑_ {V = W} vW tagν) (⊢up () W⊢)
 canonical-⇒ (_⇑_ {V = W} vW tag) (⊢up () W⊢)
 canonical-⇒ (_⇑_ {V = W} vW (_↦_ {p = p} {q = q}))
-  (⊢up (⊑-⇒ p⊢ q⊢) W⊢) =
+  (⊢up (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) W⊢) =
   fv-⇑↦ vW refl
 canonical-⇒ (_⇑_ {V = W} vW `∀) (⊢up () W⊢)
 canonical-⇒ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q}))
-  (⊢down (⊑-⇒ p⊢ q⊢) W⊢) =
+  (⊢down (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) W⊢) =
   fv-⇓↦ vW refl
 canonical-⇒ (_⇓_ {V = W} vW `∀) (⊢down () W⊢)
 canonical-⇒ (_⇓_ {V = W} vW (ν_ {B = B} {p = p})) (⊢down () W⊢)
@@ -164,19 +165,19 @@ data AllView (V : Term) : Set where
   av-⇑∀ :
     ∀ {W : Term}{p : Imp} →
     Value W →
-    V ≡ (W ⇑ (`∀A⊑∀B p)) →
+    V ≡ (W ⇑ (∀A-⊑-∀B p)) →
     AllView V
 
   av-⇓∀ :
     ∀ {W : Term}{p : Imp} →
     Value W →
-    V ≡ (W ⇓ (`∀A⊑∀B p)) →
+    V ≡ (W ⇓ (∀A-⊑-∀B p)) →
     AllView V
 
   av-⇓ν :
     ∀ {W : Term}{B : Ty}{p : Imp} →
     Value W →
-    V ≡ (W ⇓ (`∀A⊑B B p)) →
+    V ≡ (W ⇓ (∀A-⊑-B B p)) →
     AllView V
 
   av-↑∀ :
@@ -202,13 +203,13 @@ canonical-∀ (Λ N) (⊢Λ vN N⊢) = av-Λ refl
 canonical-∀ (_⇑_ {V = W} vW tagν) (⊢up () W⊢)
 canonical-∀ (_⇑_ {V = W} vW tag) (⊢up () W⊢)
 canonical-∀ (_⇑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢up () W⊢)
-canonical-∀ (_⇑_ {V = W} vW (`∀ {p = p})) (⊢up (⊑-∀ p⊢) W⊢) =
+canonical-∀ (_⇑_ {V = W} vW (`∀ {p = p})) (⊢up (⊢∀A-⊑-∀B p⊢) W⊢) =
   av-⇑∀ vW refl
 canonical-∀ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢down () W⊢)
-canonical-∀ (_⇓_ {V = W} vW (`∀ {p = p})) (⊢down (⊑-∀ p⊢) W⊢) =
+canonical-∀ (_⇓_ {V = W} vW (`∀ {p = p})) (⊢down (⊢∀A-⊑-∀B p⊢) W⊢) =
   av-⇓∀ vW refl
 canonical-∀ (_⇓_ {V = W} vW (ν_ {B = B} {p = p}))
-  (⊢down (⊑-ν wfB p⊢) W⊢) =
+  (⊢down (⊢∀A-⊑-B wfB p⊢) W⊢) =
   av-⇓ν vW refl
 canonical-∀ (_↑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢reveal () W⊢)
 canonical-∀ (_↑_ {V = W} vW (`∀ {c = c}))
@@ -251,7 +252,7 @@ data StarView (V : Term) : Set where
   sv-⇑tag :
     ∀ {W : Term}{p : Imp} →
     Value W →
-    V ≡ (W ⇑ (A⊑★ p)) →
+    V ≡ (W ⇑ (A-⊑-★ p)) →
     StarView V
 
 canonical-★ :
@@ -262,8 +263,8 @@ canonical-★ :
 canonical-★ (ƛ A ⇒ N) ()
 canonical-★ ($ (κℕ n)) ()
 canonical-★ (Λ N) ()
-canonical-★ (_⇑_ {V = W} vW tagν) (⊢up (⊑-★ν ()) W⊢)
-canonical-★ (_⇑_ {V = W} vW tag) (⊢up (⊑-★ g p⊢) W⊢) =
+canonical-★ (_⇑_ {V = W} vW tagν) (⊢up (⊢X-⊑-★ ()) W⊢)
+canonical-★ (_⇑_ {V = W} vW tag) (⊢up (⊢A-⊑-★ g p⊢) W⊢) =
   sv-⇑tag vW refl
 canonical-★ (_⇑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢up () W⊢)
 canonical-★ (_⇑_ {V = W} vW `∀) (⊢up () W⊢)
@@ -313,7 +314,7 @@ untag-progress :
   ∀ {Ψ}{Σ : Store}{M : Term}{q : Imp} →
   Value M →
   0 ∣ Ψ ∣ Σ ∣ [] ⊢ M ⦂ ★ →
-  Progress {Σ = Σ} (M ⇓ (A⊑★ q))
+  Progress {Σ = Σ} (M ⇓ (A-⊑-★ q))
 untag-progress {q = q} vM M⊢ with canonical-★ vM M⊢
 ... | sv-⇑tag {p = p} vW refl with tgt⊑ p ≟Ty tgt⊑ q
 untag-progress {q = q} vM M⊢ | sv-⇑tag {p = p} vW refl | yes eq =
@@ -413,22 +414,22 @@ progress (⊢up {M = M} {p = p} p⊢ M⊢) | step M→M′ =
   step (ξ-⇑ M→M′)
 progress (⊢up {M = M} {p = p} p⊢ M⊢) | crash (ℓ , refl) =
   step (pure-step blame-up)
-progress (⊢up {M = M} {p = ★⊑★} ⊑-★★ M⊢) | done vM =
+progress (⊢up {M = M} {p = ★-⊑-★} ⊢★-⊑-★ M⊢) | done vM =
   step (pure-step (id-up-★ vM))
-progress (⊢up {M = M} {p = X⊑★ X} (⊑-★ν ()) M⊢) | done vM
-progress (⊢up {M = M} {p = A⊑★ p} (⊑-★ g p⊢) M⊢) | done vM =
+progress (⊢up {M = M} {p = X-⊑-★ X} (⊢X-⊑-★ ()) M⊢) | done vM
+progress (⊢up {M = M} {p = A-⊑-★ p} (⊢A-⊑-★ g p⊢) M⊢) | done vM =
   done (vM ⇑ tag)
-progress (⊢up {M = M} {p = X⊑X X} (⊑-＇ ()) M⊢) | done vM
-progress (⊢up {M = M} {p = α⊑α α} (⊑-｀ wfα) M⊢) | done vM =
+progress (⊢up {M = M} {p = X-⊑-X X} (⊢X-⊑-X ()) M⊢) | done vM
+progress (⊢up {M = M} {p = α-⊑-α α} (⊢α-⊑-α wfα) M⊢) | done vM =
   step (pure-step (id-up-｀ vM))
-progress (⊢up {M = M} {p = ι⊑ι ι} ⊑-‵ M⊢) | done vM =
+progress (⊢up {M = M} {p = ι-⊑-ι ι} ⊢ι-⊑-ι M⊢) | done vM =
   step (pure-step (id-up-‵ vM))
-progress (⊢up {M = M} {p = A⇒B⊑A′⇒B′ p q} (⊑-⇒ p⊢ q⊢) M⊢)
+progress (⊢up {M = M} {p = A⇒B-⊑-A′⇒B′ p q} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) M⊢)
     | done vM =
   done (vM ⇑ (_↦_ {p = p} {q = q}))
-progress (⊢up {M = M} {p = `∀A⊑∀B p} (⊑-∀ p⊢) M⊢) | done vM =
+progress (⊢up {M = M} {p = ∀A-⊑-∀B p} (⊢∀A-⊑-∀B p⊢) M⊢) | done vM =
   done (vM ⇑ (`∀ {p = p}))
-progress (⊢up {M = M} {p = `∀A⊑B B p} (⊑-ν wfB p⊢) M⊢)
+progress (⊢up {M = M} {p = ∀A-⊑-B B p} (⊢∀A-⊑-B wfB p⊢) M⊢)
     | done vM =
   step (β-up-ν vM)
 progress (⊢down {M = M} {p = p} p⊢ M⊢) with progress M⊢
@@ -436,23 +437,23 @@ progress (⊢down {M = M} {p = p} p⊢ M⊢) | step M→M′ =
   step (ξ-⇓ M→M′)
 progress (⊢down {M = M} {p = p} p⊢ M⊢) | crash (ℓ , refl) =
   step (pure-step blame-down)
-progress (⊢down {M = M} {p = ★⊑★} ⊑-★★ M⊢) | done vM =
+progress (⊢down {M = M} {p = ★-⊑-★} ⊢★-⊑-★ M⊢) | done vM =
   step (pure-step (id-down-★ vM))
-progress (⊢down {M = M} {p = X⊑★ X} (⊑-★ν ()) M⊢) | done vM
-progress (⊢down {M = M} {p = A⊑★ p} (⊑-★ g p⊢) M⊢) | done vM =
+progress (⊢down {M = M} {p = X-⊑-★ X} (⊢X-⊑-★ ()) M⊢) | done vM
+progress (⊢down {M = M} {p = A-⊑-★ p} (⊢A-⊑-★ g p⊢) M⊢) | done vM =
   untag-progress {q = p} vM M⊢
-progress (⊢down {M = M} {p = X⊑X X} (⊑-＇ ()) M⊢) | done vM
-progress (⊢down {M = M} {p = α⊑α α} (⊑-｀ wfα) M⊢) | done vM =
+progress (⊢down {M = M} {p = X-⊑-X X} (⊢X-⊑-X ()) M⊢) | done vM
+progress (⊢down {M = M} {p = α-⊑-α α} (⊢α-⊑-α wfα) M⊢) | done vM =
   step (pure-step (id-down-｀ vM))
-progress (⊢down {M = M} {p = ι⊑ι ι} ⊑-‵ M⊢) | done vM =
+progress (⊢down {M = M} {p = ι-⊑-ι ι} ⊢ι-⊑-ι M⊢) | done vM =
   step (pure-step (id-down-‵ vM))
 progress
-  (⊢down {M = M} {p = A⇒B⊑A′⇒B′ p q} (⊑-⇒ p⊢ q⊢) M⊢)
+  (⊢down {M = M} {p = A⇒B-⊑-A′⇒B′ p q} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) M⊢)
   | done vM =
   done (vM ⇓ (_↦_ {p = p} {q = q}))
-progress (⊢down {M = M} {p = `∀A⊑∀B p} (⊑-∀ p⊢) M⊢) | done vM =
+progress (⊢down {M = M} {p = ∀A-⊑-∀B p} (⊢∀A-⊑-∀B p⊢) M⊢) | done vM =
   done (vM ⇓ (`∀ {p = p}))
-progress (⊢down {M = M} {p = `∀A⊑B B p} (⊑-ν wfB p⊢) M⊢)
+progress (⊢down {M = M} {p = ∀A-⊑-B B p} (⊢∀A-⊑-B wfB p⊢) M⊢)
     | done vM =
   done (vM ⇓ (ν_ {B = B} {p = p}))
 progress (⊢reveal {M = M} {c = c} c⊢ M⊢) with progress M⊢

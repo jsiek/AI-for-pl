@@ -17,6 +17,7 @@ open import proof.TypeProperties
 open import Store
 open import Imprecision
 open import Conversion
+open import Primitives
 open import Terms
 open import Reduction
 open import proof.PreservationRawEndpoints using (⊑-src-wf-plains)
@@ -37,7 +38,7 @@ raw-preservation wfΣ (⊢· (⊢ƛ wfB N⊢) V⊢) (β vV) =
   []-wt N⊢ V⊢
 raw-preservation wfΣ
   (⊢• {B = B} {T = T}
-    (⊢up (⊑-∀ p⊢) V⊢)
+    (⊢up (⊢∀A-⊑-∀B p⊢) V⊢)
     wfB wfT)
   (β-up-∀ vV) =
   cong-⊢⦂ refl refl refl (cong (λ A → A [ T ]ᵗ) (tgt⊑-correct p⊢))
@@ -49,11 +50,11 @@ raw-preservation wfΣ
   where
     V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (sym (src⊑-correct p⊢))) V⊢
 raw-preservation wfΣ
-  (⊢· (⊢up (⊑-⇒ p⊢ q⊢) V⊢) W⊢)
+  (⊢· (⊢up (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) V⊢) W⊢)
   (β-up-↦ vV vW) =
   ⊢up q⊢ (⊢· V⊢ (⊢down p⊢ W⊢))
 raw-preservation wfΣ
-  (⊢· (⊢down (⊑-⇒ p⊢ q⊢) V⊢) W⊢)
+  (⊢· (⊢down (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) V⊢) W⊢)
   (β-down-↦ vV vW) =
   ⊢down q⊢ (⊢· V⊢ (⊢up p⊢ W⊢))
 raw-preservation wfΣ
@@ -64,14 +65,14 @@ raw-preservation wfΣ
   (⊢· (⊢conceal (⊢↓-⇒ p⊢ q⊢) V⊢) W⊢)
   (β-conceal-↦ vV vW) =
   ⊢conceal q⊢ (⊢· V⊢ (⊢reveal p⊢ W⊢))
-raw-preservation wfΣ (⊢up ⊑-★★ V⊢) (id-up-★ vV) = V⊢
-raw-preservation wfΣ (⊢up (⊑-＇ x∈) V⊢) (id-up-＇ vV) = V⊢
-raw-preservation wfΣ (⊢up (⊑-｀ wfα) V⊢) (id-up-｀ vV) = V⊢
-raw-preservation wfΣ (⊢up ⊑-‵ V⊢) (id-up-‵ vV) = V⊢
-raw-preservation wfΣ (⊢down ⊑-★★ V⊢) (id-down-★ vV) = V⊢
-raw-preservation wfΣ (⊢down (⊑-＇ x∈) V⊢) (id-down-＇ vV) = V⊢
-raw-preservation wfΣ (⊢down (⊑-｀ wfα) V⊢) (id-down-｀ vV) = V⊢
-raw-preservation wfΣ (⊢down ⊑-‵ V⊢) (id-down-‵ vV) = V⊢
+raw-preservation wfΣ (⊢up ⊢★-⊑-★ V⊢) (id-up-★ vV) = V⊢
+raw-preservation wfΣ (⊢up (⊢X-⊑-X x∈) V⊢) (id-up-＇ vV) = V⊢
+raw-preservation wfΣ (⊢up (⊢α-⊑-α wfα) V⊢) (id-up-｀ vV) = V⊢
+raw-preservation wfΣ (⊢up ⊢ι-⊑-ι V⊢) (id-up-‵ vV) = V⊢
+raw-preservation wfΣ (⊢down ⊢★-⊑-★ V⊢) (id-down-★ vV) = V⊢
+raw-preservation wfΣ (⊢down (⊢X-⊑-X x∈) V⊢) (id-down-＇ vV) = V⊢
+raw-preservation wfΣ (⊢down (⊢α-⊑-α wfα) V⊢) (id-down-｀ vV) = V⊢
+raw-preservation wfΣ (⊢down ⊢ι-⊑-ι V⊢) (id-down-‵ vV) = V⊢
 raw-preservation wfΣ (⊢reveal (⊢↑-id wfA) V⊢) (id-reveal vV) = V⊢
 raw-preservation wfΣ (⊢conceal (⊢↓-id wfA) V⊢) (id-conceal vV) = V⊢
 raw-preservation wfΣ
@@ -80,7 +81,7 @@ raw-preservation wfΣ
   rewrite lookup-unique (storeWf-unique wfΣ) h↓ h↑ =
   V⊢
 raw-preservation wfΣ
-  (⊢down (⊑-★ g q⊢) (⊢up (⊑-★ g′ p⊢) V⊢))
+  (⊢down (⊢A-⊑-★ g q⊢) (⊢up (⊢A-⊑-★ g′ p⊢) V⊢))
   (tag-untag-ok vV eq) =
   ⊢down q⊢ inner⊢
   where
@@ -88,7 +89,7 @@ raw-preservation wfΣ
                    (trans eq (tgt⊑-correct q⊢))
     inner⊢ = cong-⊢⦂ refl refl refl tag-eq (⊢up p⊢ V⊢)
 raw-preservation wfΣ
-  (⊢down (⊑-★ g q⊢) (⊢up (⊑-★ g′ p⊢) V⊢))
+  (⊢down (⊢A-⊑-★ g q⊢) (⊢up (⊢A-⊑-★ g′ p⊢) V⊢))
   (tag-untag-bad vV neq) =
   ⊢blame _
 raw-preservation wfΣ (⊢⊕ (⊢$ (κℕ m)) addℕ (⊢$ (κℕ n))) δ-⊕ =

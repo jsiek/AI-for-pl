@@ -85,7 +85,7 @@ occurs-subst-exts-zero σ A =
 -- Mode-aware type substitutions for imprecision evidence
 ------------------------------------------------------------------------
 
-ImpSubstWt : SealCtx → ICtx → ICtx → Substᵗ → Set
+ImpSubstWt : SealCtx → VarPrecCtx → VarPrecCtx → Substᵗ → Set
 ImpSubstWt Ψ Γ Γ′ σ =
   ∀ {X m} →
   Γ ∋ X ∶ m →
@@ -95,25 +95,25 @@ ImpSubstWt-exts :
   ∀ {Ψ Γ Γ′ σ m′} →
   ImpSubstWt Ψ Γ Γ′ σ →
   ImpSubstWt Ψ (m′ ∷ Γ) (m′ ∷ Γ′) (extsᵗ σ)
-ImpSubstWt-exts {m′ = plain} hσ here = ⊑-＇ here
-ImpSubstWt-exts {m′ = ν-bound} hσ here = ⊑-★ν here
+ImpSubstWt-exts {m′ = X⊑X} hσ here = ⊢X-⊑-X here
+ImpSubstWt-exts {m′ = X⊑★} hσ here = ⊢X-⊑-★ here
 ImpSubstWt-exts {m′ = m′} hσ (there x∈) =
   wk-VarSubst {m′ = m′} (hσ x∈)
 
 ------------------------------------------------------------------------
--- Parallel substitution that sends all ν-bound variables to ★
+-- Parallel substitution that sends all X⊑★ variables to ★
 ------------------------------------------------------------------------
 
-ν★Subst : ICtx → Substᵗ
+ν★Subst : VarPrecCtx → Substᵗ
 ν★Subst [] X = ＇ X
-ν★Subst (plain ∷ Γ) zero = ＇ zero
-ν★Subst (plain ∷ Γ) (suc X) = ⇑ᵗ (ν★Subst Γ X)
-ν★Subst (ν-bound ∷ Γ) zero = ★
-ν★Subst (ν-bound ∷ Γ) (suc X) = ⇑ᵗ (ν★Subst Γ X)
+ν★Subst (X⊑X ∷ Γ) zero = ＇ zero
+ν★Subst (X⊑X ∷ Γ) (suc X) = ⇑ᵗ (ν★Subst Γ X)
+ν★Subst (X⊑★ ∷ Γ) zero = ★
+ν★Subst (X⊑★ ∷ Γ) (suc X) = ⇑ᵗ (ν★Subst Γ X)
 
 ν★Subst-plain-exts :
   ∀ Γ X →
-  ν★Subst (plain ∷ Γ) X ≡ extsᵗ (ν★Subst Γ) X
+  ν★Subst (X⊑X ∷ Γ) X ≡ extsᵗ (ν★Subst Γ) X
 ν★Subst-plain-exts Γ zero = refl
 ν★Subst-plain-exts Γ (suc X) = refl
 
@@ -128,17 +128,17 @@ wk-ν★-var-⊑ p⊢ = wkImpAt {Φ = []} p⊢
   ∀ {Ψ Γ X m} →
   Γ ∋ X ∶ m →
   ∃[ p ] Ψ ∣ Γ ⊢ p ⦂ ＇ X ⊑ ν★Subst Γ X
-ν★-var-⊑ {Γ = plain ∷ Γ} here =
-  X⊑X zero , ⊑-＇ here
-ν★-var-⊑ {Γ = ν-bound ∷ Γ} here =
-  X⊑★ zero , ⊑-★ν here
-ν★-var-⊑ {Γ = plain ∷ Γ} {X = suc X} (there x∈)
+ν★-var-⊑ {Γ = X⊑X ∷ Γ} here =
+  X-⊑-X zero , ⊢X-⊑-X here
+ν★-var-⊑ {Γ = X⊑★ ∷ Γ} here =
+  X-⊑-★ zero , ⊢X-⊑-★ here
+ν★-var-⊑ {Γ = X⊑X ∷ Γ} {X = suc X} (there x∈)
     with ν★-var-⊑ x∈
-ν★-var-⊑ {Γ = plain ∷ Γ} {X = suc X} (there x∈) | p , p⊢ =
+ν★-var-⊑ {Γ = X⊑X ∷ Γ} {X = suc X} (there x∈) | p , p⊢ =
   renameImp suc p , wk-ν★-var-⊑ p⊢
-ν★-var-⊑ {Γ = ν-bound ∷ Γ} {X = suc X} (there x∈)
+ν★-var-⊑ {Γ = X⊑★ ∷ Γ} {X = suc X} (there x∈)
     with ν★-var-⊑ x∈
-ν★-var-⊑ {Γ = ν-bound ∷ Γ} {X = suc X} (there x∈) | p , p⊢ =
+ν★-var-⊑ {Γ = X⊑★ ∷ Γ} {X = suc X} (there x∈) | p , p⊢ =
   renameImp suc p , wk-ν★-var-⊑ p⊢
 
 ν★-⊑ :
@@ -147,17 +147,17 @@ wk-ν★-var-⊑ p⊢ = wkImpAt {Φ = []} p⊢
   ∃[ p ] Ψ ∣ Γ ⊢ p ⦂ A ⊑ substᵗ (ν★Subst Γ) A
 ν★-⊑ {Γ = Γ} (wfVar X<Γ) with lookup-mode Γ X<Γ
 ν★-⊑ {Γ = Γ} (wfVar X<Γ) | m , x∈ = ν★-var-⊑ x∈
-ν★-⊑ (wfSeal α<Ψ) = α⊑α _ , ⊑-｀ (wfSeal α<Ψ)
-ν★-⊑ wfBase = ι⊑ι _ , ⊑-‵
-ν★-⊑ wf★ = ★⊑★ , ⊑-★★
+ν★-⊑ (wfSeal α<Ψ) = α-⊑-α _ , ⊢α-⊑-α (wfSeal α<Ψ)
+ν★-⊑ wfBase = ι-⊑-ι _ , ⊢ι-⊑-ι
+ν★-⊑ wf★ = ★-⊑-★ , ⊢★-⊑-★
 ν★-⊑ (wf⇒ wfA wfB) with ν★-⊑ wfA | ν★-⊑ wfB
 ν★-⊑ (wf⇒ wfA wfB) | p , p⊢ | q , q⊢ =
-  A⇒B⊑A′⇒B′ p q , ⊑-⇒ p⊢ q⊢
+  A⇒B-⊑-A′⇒B′ p q , ⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢
 ν★-⊑ {Γ = Γ} {A = `∀ A} (wf∀ wfA)
-    with ν★-⊑ {Γ = plain ∷ Γ} wfA
+    with ν★-⊑ {Γ = X⊑X ∷ Γ} wfA
 ν★-⊑ {Γ = Γ} {A = `∀ A} (wf∀ wfA) | p , p⊢ =
-  `∀A⊑∀B p ,
-  ⊑-∀
+  ∀A-⊑-∀B p ,
+  ⊢∀A-⊑-∀B
     (cong-⊢⊑
       refl
       (substᵗ-cong (ν★Subst-plain-exts Γ) A)
@@ -177,17 +177,17 @@ singleν★Subst (suc X) = ＇ suc X
 
 ν★Subst-singleν★ :
   ∀ Δ X →
-  ν★Subst (ν-bound ∷ plains Δ []) X ≡ singleν★Subst X
+  ν★Subst (X⊑★ ∷ plains Δ []) X ≡ singleν★Subst X
 ν★Subst-singleν★ Δ zero = refl
 ν★Subst-singleν★ Δ (suc X) = cong ⇑ᵗ (ν★Subst-plains-id Δ X)
 
 ν★-⊑-single :
   ∀ {Δ Ψ A} →
   WfTy (suc Δ) Ψ A →
-  ∃[ p ] Ψ ∣ (ν-bound ∷ plains Δ []) ⊢ p ⦂
+  ∃[ p ] Ψ ∣ (X⊑★ ∷ plains Δ []) ⊢ p ⦂
     A ⊑ substᵗ singleν★Subst A
 ν★-⊑-single {Δ = Δ} {A = A} wfA
-    with ν★-⊑ {Γ = ν-bound ∷ plains Δ []}
+    with ν★-⊑ {Γ = X⊑★ ∷ plains Δ []}
       (subst (λ n → WfTy (suc n) _ A) (sym (length-plains[] Δ)) wfA)
 ν★-⊑-single {Δ = Δ} {A = A} wfA | p , p⊢ =
   p ,
@@ -203,7 +203,7 @@ singleν★Subst (suc X) = ＇ suc X
 plains-lookup :
   ∀ {Δ X} →
   X < Δ →
-  plains Δ [] ∋ X ∶ plain
+  plains Δ [] ∋ X ∶ X⊑X
 plains-lookup {Δ = zero} ()
 plains-lookup {Δ = suc Δ} {X = zero} z<s = here
 plains-lookup {Δ = suc Δ} {X = suc X} (s<s X<Δ) =
@@ -214,18 +214,18 @@ reflImp-wt-plains :
   WfTy Δ Ψ A →
   Ψ ∣ plains Δ [] ⊢ reflImp A ⦂ A ⊑ A
 reflImp-wt-plains (wfVar X<Δ) =
-  ⊑-＇ (plains-lookup X<Δ)
-reflImp-wt-plains (wfSeal α<Ψ) = ⊑-｀ (wfSeal α<Ψ)
-reflImp-wt-plains wfBase = ⊑-‵
-reflImp-wt-plains wf★ = ⊑-★★
+  ⊢X-⊑-X (plains-lookup X<Δ)
+reflImp-wt-plains (wfSeal α<Ψ) = ⊢α-⊑-α (wfSeal α<Ψ)
+reflImp-wt-plains wfBase = ⊢ι-⊑-ι
+reflImp-wt-plains wf★ = ⊢★-⊑-★
 reflImp-wt-plains (wf⇒ wfA wfB) =
-  ⊑-⇒ (reflImp-wt-plains wfA) (reflImp-wt-plains wfB)
-reflImp-wt-plains (wf∀ wfA) = ⊑-∀ (reflImp-wt-plains wfA)
+  ⊢A⇒B-⊑-A′⇒B′ (reflImp-wt-plains wfA) (reflImp-wt-plains wfB)
+reflImp-wt-plains (wf∀ wfA) = ⊢∀A-⊑-∀B (reflImp-wt-plains wfA)
 
 singleTyEnv-ImpSubstWt :
   ∀ {Δ Ψ T} →
   WfTy Δ Ψ T →
-  ImpSubstWt Ψ (plain ∷ plains Δ []) (plains Δ []) (singleTyEnv T)
+  ImpSubstWt Ψ (X⊑X ∷ plains Δ []) (plains Δ []) (singleTyEnv T)
 singleTyEnv-ImpSubstWt wfT here = reflImp-wt-plains wfT
 singleTyEnv-ImpSubstWt wfT (there x∈) = plain-var-subst x∈
 
@@ -233,7 +233,7 @@ singleTyEnv-TySubstWf-plains :
   ∀ {Δ Ψ T} →
   WfTy Δ Ψ T →
   TySubstWf
-    (length (plain ∷ plains Δ []))
+    (length (X⊑X ∷ plains Δ []))
     (length (plains Δ []))
     Ψ
     (singleTyEnv T)
@@ -251,19 +251,19 @@ singleTyEnv-TySubstWf-plains {Δ = Δ} {T = T} wfT
   ImpSubstWt Ψ Γ Γ′ σ →
   Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
   Ψ ∣ Γ′ ⊢ substImp σ p ⦂ substᵗ σ A ⊑ substᵗ σ B
-⊑-substᵗ-wt hσ hᵢ ⊑-★★ = ⊑-★★
-⊑-substᵗ-wt hσ hᵢ (⊑-★ν xν) = hᵢ xν
-⊑-substᵗ-wt hσ hᵢ (⊑-★ g p⊢) =
-  ⊑-★ (substᵗ-ground _ g) (⊑-substᵗ-wt hσ hᵢ p⊢)
-⊑-substᵗ-wt hσ hᵢ (⊑-＇ x∈) = hᵢ x∈
-⊑-substᵗ-wt hσ hᵢ (⊑-｀ (wfSeal α<Ψ)) = ⊑-｀ (wfSeal α<Ψ)
-⊑-substᵗ-wt hσ hᵢ ⊑-‵ = ⊑-‵
-⊑-substᵗ-wt hσ hᵢ (⊑-⇒ p⊢ q⊢) =
-  ⊑-⇒ (⊑-substᵗ-wt hσ hᵢ p⊢) (⊑-substᵗ-wt hσ hᵢ q⊢)
-⊑-substᵗ-wt hσ hᵢ (⊑-∀ p⊢) =
-  ⊑-∀ (⊑-substᵗ-wt (TySubstWf-exts hσ) (ImpSubstWt-exts hᵢ) p⊢)
-⊑-substᵗ-wt {σ = σ} hσ hᵢ (⊑-ν {A = A} {B = B} wfB p⊢) =
-  ⊑-ν
+⊑-substᵗ-wt hσ hᵢ ⊢★-⊑-★ = ⊢★-⊑-★
+⊑-substᵗ-wt hσ hᵢ (⊢X-⊑-★ xν) = hᵢ xν
+⊑-substᵗ-wt hσ hᵢ (⊢A-⊑-★ g p⊢) =
+  ⊢A-⊑-★ (substᵗ-ground _ g) (⊑-substᵗ-wt hσ hᵢ p⊢)
+⊑-substᵗ-wt hσ hᵢ (⊢X-⊑-X x∈) = hᵢ x∈
+⊑-substᵗ-wt hσ hᵢ (⊢α-⊑-α (wfSeal α<Ψ)) = ⊢α-⊑-α (wfSeal α<Ψ)
+⊑-substᵗ-wt hσ hᵢ ⊢ι-⊑-ι = ⊢ι-⊑-ι
+⊑-substᵗ-wt hσ hᵢ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
+  ⊢A⇒B-⊑-A′⇒B′ (⊑-substᵗ-wt hσ hᵢ p⊢) (⊑-substᵗ-wt hσ hᵢ q⊢)
+⊑-substᵗ-wt hσ hᵢ (⊢∀A-⊑-∀B p⊢) =
+  ⊢∀A-⊑-∀B (⊑-substᵗ-wt (TySubstWf-exts hσ) (ImpSubstWt-exts hᵢ) p⊢)
+⊑-substᵗ-wt {σ = σ} hσ hᵢ (⊢∀A-⊑-B {A = A} {B = B} wfB p⊢) =
+  ⊢∀A-⊑-B
     (substᵗ-preserves-WfTy wfB hσ)
     (cong-⊢⊑
       refl
@@ -272,7 +272,7 @@ singleTyEnv-TySubstWf-plains {Δ = Δ} {T = T} wfT
 
 []⊑ᵗ-wt :
   ∀ {Δ Ψ}{p : Imp}{A B T : Ty} →
-  Ψ ∣ (plain ∷ plains Δ []) ⊢ p ⦂ A ⊑ B →
+  Ψ ∣ (X⊑X ∷ plains Δ []) ⊢ p ⦂ A ⊑ B →
   WfTy Δ Ψ T →
   Ψ ∣ plains Δ [] ⊢ p [ T ]⊑ ⦂
     src⊑ p [ T ]ᵗ ⊑ tgt⊑ p [ T ]ᵗ

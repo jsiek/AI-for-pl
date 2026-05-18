@@ -20,19 +20,20 @@ open import Store
 open import Imprecision
   using
     ( Imp
-    ; ★⊑★
-    ; X⊑★
-    ; A⊑★
-    ; X⊑X
-    ; α⊑α
-    ; ι⊑ι
-    ; A⇒B⊑A′⇒B′
-    ; `∀A⊑∀B
-    ; `∀A⊑B
+    ; ★-⊑-★
+    ; X-⊑-★
+    ; A-⊑-★
+    ; X-⊑-X
+    ; α-⊑-α
+    ; ι-⊑-ι
+    ; A⇒B-⊑-A′⇒B′
+    ; ∀A-⊑-∀B
+    ; ∀A-⊑-B
     ; src⊑
     ; tgt⊑
     )
 open import Conversion
+open import Primitives
 open import Terms
 open import Reduction
 
@@ -240,26 +241,26 @@ tyEq? (`∀ A) ★ = no (λ ())
 tyEq? (`∀ A) (B ⇒ C) = no (λ ())
 
 upValue? : (p : Imp) → Maybe (UpValue p)
-upValue? ★⊑★ = nothing
-upValue? (X⊑★ X) = just tagν
-upValue? (A⊑★ p) = just tag
-upValue? (X⊑X X) = nothing
-upValue? (α⊑α α) = nothing
-upValue? (ι⊑ι ι) = nothing
-upValue? (A⇒B⊑A′⇒B′ p q) = just (_↦_ {p = p} {q = q})
-upValue? (`∀A⊑∀B p) = just (`∀ {p = p})
-upValue? (`∀A⊑B B p) = nothing
+upValue? ★-⊑-★ = nothing
+upValue? (X-⊑-★ X) = just tagν
+upValue? (A-⊑-★ p) = just tag
+upValue? (X-⊑-X X) = nothing
+upValue? (α-⊑-α α) = nothing
+upValue? (ι-⊑-ι ι) = nothing
+upValue? (A⇒B-⊑-A′⇒B′ p q) = just (_↦_ {p = p} {q = q})
+upValue? (∀A-⊑-∀B p) = just (`∀ {p = p})
+upValue? (∀A-⊑-B B p) = nothing
 
 downValue? : (p : Imp) → Maybe (DownValue p)
-downValue? ★⊑★ = nothing
-downValue? (X⊑★ X) = nothing
-downValue? (A⊑★ p) = nothing
-downValue? (X⊑X X) = nothing
-downValue? (α⊑α α) = nothing
-downValue? (ι⊑ι ι) = nothing
-downValue? (A⇒B⊑A′⇒B′ p q) = just (_↦_ {p = p} {q = q})
-downValue? (`∀A⊑∀B p) = just (`∀ {p = p})
-downValue? (`∀A⊑B B p) = just (ν_ {B = B} {p = p})
+downValue? ★-⊑-★ = nothing
+downValue? (X-⊑-★ X) = nothing
+downValue? (A-⊑-★ p) = nothing
+downValue? (X-⊑-X X) = nothing
+downValue? (α-⊑-α α) = nothing
+downValue? (ι-⊑-ι ι) = nothing
+downValue? (A⇒B-⊑-A′⇒B′ p q) = just (_↦_ {p = p} {q = q})
+downValue? (∀A-⊑-∀B p) = just (`∀ {p = p})
+downValue? (∀A-⊑-B B p) = just (ν_ {B = B} {p = p})
 
 revealValue? : (c : Conv↑) → Maybe (RevealValue c)
 revealValue? (↑-unseal α) = nothing
@@ -370,8 +371,8 @@ untag-step? :
   (Σ : Store) →
   (q : Imp) →
   (M : Term) →
-  Maybe (Step Σ (M ⇓ (A⊑★ q)))
-untag-step? Σ q (V ⇑ (A⊑★ p))
+  Maybe (Step Σ (M ⇓ (A-⊑-★ q)))
+untag-step? Σ q (V ⇑ (A-⊑-★ p))
   with tyEq? (tgt⊑ p) (tgt⊑ q) | value? V
 ... | yes eq | just vV =
   just (Σ , _ , pure-step (tag-untag-ok {p = p} {q = q} vV eq))
@@ -395,16 +396,16 @@ up-id-step? :
   (M : Term) →
   (p : Imp) →
   Maybe (Step Σ (M ⇑ p))
-up-id-step? Σ M ★⊑★ with value? M
+up-id-step? Σ M ★-⊑-★ with value? M
 ... | just vM = just (Σ , _ , pure-step (id-up-★ vM))
 ... | nothing = nothing
-up-id-step? Σ M (X⊑X X) with value? M
+up-id-step? Σ M (X-⊑-X X) with value? M
 ... | just vM = just (Σ , _ , pure-step (id-up-＇ vM))
 ... | nothing = nothing
-up-id-step? Σ M (α⊑α α) with value? M
+up-id-step? Σ M (α-⊑-α α) with value? M
 ... | just vM = just (Σ , _ , pure-step (id-up-｀ vM))
 ... | nothing = nothing
-up-id-step? Σ M (ι⊑ι ι) with value? M
+up-id-step? Σ M (ι-⊑-ι ι) with value? M
 ... | just vM = just (Σ , _ , pure-step (id-up-‵ vM))
 ... | nothing = nothing
 up-id-step? Σ M p = nothing
@@ -414,16 +415,16 @@ down-id-step? :
   (M : Term) →
   (p : Imp) →
   Maybe (Step Σ (M ⇓ p))
-down-id-step? Σ M ★⊑★ with value? M
+down-id-step? Σ M ★-⊑-★ with value? M
 ... | just vM = just (Σ , _ , pure-step (id-down-★ vM))
 ... | nothing = nothing
-down-id-step? Σ M (X⊑X X) with value? M
+down-id-step? Σ M (X-⊑-X X) with value? M
 ... | just vM = just (Σ , _ , pure-step (id-down-＇ vM))
 ... | nothing = nothing
-down-id-step? Σ M (α⊑α α) with value? M
+down-id-step? Σ M (α-⊑-α α) with value? M
 ... | just vM = just (Σ , _ , pure-step (id-down-｀ vM))
 ... | nothing = nothing
-down-id-step? Σ M (ι⊑ι ι) with value? M
+down-id-step? Σ M (ι-⊑-ι ι) with value? M
 ... | just vM = just (Σ , _ , pure-step (id-down-‵ vM))
 ... | nothing = nothing
 down-id-step? Σ M p = nothing
@@ -433,7 +434,7 @@ up-head-step? :
   (M : Term) →
   (p : Imp) →
   Maybe (Step Σ (M ⇑ p))
-up-head-step? Σ M (`∀A⊑B B p) with value? M
+up-head-step? Σ M (∀A-⊑-B B p) with value? M
 ... | just vM = just (_ , _ , β-up-ν vM)
 ... | nothing = nothing
 up-head-step? Σ M p = up-id-step? Σ M p
@@ -443,7 +444,7 @@ down-head-step? :
   (M : Term) →
   (p : Imp) →
   Maybe (Step Σ (M ⇓ p))
-down-head-step? Σ M (A⊑★ p) = untag-step? Σ p M
+down-head-step? Σ M (A-⊑-★ p) = untag-step? Σ p M
 down-head-step? Σ M p = down-id-step? Σ M p
 
 reveal-head-step? :

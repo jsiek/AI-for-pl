@@ -23,16 +23,19 @@ open import Imprecision
 open import Conversion
 open import Store using (substStoreᵗ; renameStoreᵗ-ext-⟰ᵗ)
 open import Terms
-open import proof.PreservationBetaRevealConceal
+open import proof.ConversionProperties
   using (cong-⊢↑; cong-⊢↓; subst↑-wt; subst↓-wt)
-open import proof.PreservationBetaUpNu
+open import proof.ImprecisionProperties
   using
     ( cong-⊢⊑-raw
-    ; raise-ext
-    ; raiseVarFrom
-    ; rename-raise-ext
     ; renameImp-cong
     ; wkImpAt
+    )
+open import proof.TypeProperties
+  using
+    ( raise-ext
+    ; raiseVarFrom
+    ; rename-raise-ext
     )
 
 cong₃ : ∀ {A B C D : Set}

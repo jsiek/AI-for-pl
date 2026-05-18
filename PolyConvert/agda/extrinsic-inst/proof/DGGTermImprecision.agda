@@ -37,13 +37,13 @@ open import proof.PreservationTermSubst using
   ; substˣᵐ-value
   ; wkImp-plains
   )
-open import proof.PreservationBetaRevealConceal using
+open import proof.ConversionProperties using
   (cong-⊢↑; cong-⊢↓; subst↑-wt; subst↓-wt)
-open import proof.PreservationBetaUpNu using
-  (cong-⊢⊑-raw; raiseVarFrom; raise-ext; rename-raise-⇑ᵗ)
-open import proof.PreservationWkImp using (wk-⊑; wk-⊒)
-open import proof.PreservationWkConv using (⟰ᵗ-⊆ˢ; wk-conv↑; wk-conv↓)
-open import proof.PreservationWkTerm using (wk-term)
+open import proof.ImprecisionProperties using (cong-⊢⊑-raw)
+open import proof.TypeProperties using (raiseVarFrom; raise-ext; rename-raise-⇑ᵗ)
+open import proof.ImprecisionProperties using (wk-⊑; wk-⊒)
+open import proof.ConversionProperties using (⟰ᵗ-⊆ˢ; wk-conv↑; wk-conv↓)
+open import proof.TermProperties using (wk-term)
 open import proof.TypeProperties using (WfTy-weakenˢ)
 open import proof.DGGCommon
 

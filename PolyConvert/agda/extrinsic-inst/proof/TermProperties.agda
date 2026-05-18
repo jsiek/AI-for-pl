@@ -1,10 +1,8 @@
-module proof.PreservationWkTerm where
+module proof.TermProperties where
 
 -- File Charter:
---   * Seal-context and store weakening for PolyConvert term typing.
---   * Proves the `wk-term` preservation obligation independently by induction
---     on term typing derivations.
---   * Depends on the sibling weakening slices for imprecision and conversions.
+--   * Properties of PolyConvert term typing.
+--   * Includes seal-context and store weakening for term typing derivations.
 
 open import Data.Nat using (_≤_)
 
@@ -12,8 +10,8 @@ open import Types
 open import proof.TypeProperties using (WfTy-weakenˢ)
 open import Store using (_⊆ˢ_)
 open import Terms
-open import proof.PreservationWkImp using (wk-⊑; wk-⊒)
-open import proof.PreservationWkConv using (⟰ᵗ-⊆ˢ; wk-conv↑; wk-conv↓)
+open import proof.ImprecisionProperties using (wk-⊑; wk-⊒)
+open import proof.ConversionProperties using (⟰ᵗ-⊆ˢ; wk-conv↑; wk-conv↓)
 
 wk-term :
   ∀ {Δ Ψ Ψ′}{Σ Σ′ : Store}{Γ : Ctx}{M : Term}{A : Ty} →

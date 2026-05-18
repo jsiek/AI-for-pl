@@ -117,7 +117,7 @@ substImp σ (`∀A⊑B B p) =
   `∀A⊑B (substᵗ σ B) (substImp (extsᵗ σ) p)
 
 substPlainAtImp : TyVar → Ty → Imp → Imp
-substPlainAtImp k T = substImp (plainSubstVarFrom k T)
+substPlainAtImp k T = substImp (substVarFrom k T)
 
 infixl 8 _[_]⊑
 _[_]⊑ : Imp → Ty → Imp

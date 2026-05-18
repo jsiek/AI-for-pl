@@ -21,8 +21,8 @@ open import Reduction
 open import proof.DGGCommon
 open import proof.DGGMultistep
 open import proof.Preservation using (store-growth)
-open import proof.PreservationWkConv using (wk-conv↑; wk-conv↓)
-open import proof.PreservationWkImp using (wk-⊑; wk-⊒)
+open import proof.ConversionProperties using (wk-conv↑; wk-conv↓)
+open import proof.ImprecisionProperties using (wk-⊑; wk-⊒)
 open import proof.DGGSimLeftApp
 open import proof.DGGSimLeftTypeApp
 

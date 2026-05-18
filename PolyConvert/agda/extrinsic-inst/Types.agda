@@ -164,9 +164,9 @@ singleTyEnv : Ty → Substᵗ
 singleTyEnv B zero = B
 singleTyEnv B (suc X) = ＇ X
 
-plainSubstVarFrom : TyVar → Ty → Substᵗ
-plainSubstVarFrom zero T = singleTyEnv T
-plainSubstVarFrom (suc k) T = extsᵗ (plainSubstVarFrom k T)
+substVarFrom : TyVar → Ty → Substᵗ
+substVarFrom zero T = singleTyEnv T
+substVarFrom (suc k) T = extsᵗ (substVarFrom k T)
 
 infixl 8 _[_]ᵗ
 _[_]ᵗ : Ty → Ty → Ty

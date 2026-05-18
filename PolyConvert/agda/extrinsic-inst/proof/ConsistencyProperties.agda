@@ -12,9 +12,12 @@ open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; s
 
 open import Consistency
 open import Types
-open import proof.PreservationBetaUpNu
+open import proof.TypeProperties
   using
-    ( raiseVarFrom )
+    ( raiseVarFrom
+    ; raiseVarFrom-injective
+    ; raiseVarFrom-<-inv
+    )
 
 cong-~ :
   ∀ {Γ A A′ B B′} →
@@ -124,27 +127,3 @@ drop<-raise :
   X < length (Φ ++ Γ)
 drop<-raise {Φ = Φ} {Γ = Γ} {X = X} X<Γ =
   drop<-raise-mode {d = neither} {Φ = Φ} {Γ = Γ} {X = X} X<Γ
-
-raiseVarFrom-injective :
-  ∀ k {X Y} →
-  raiseVarFrom k X ≡ raiseVarFrom k Y →
-  X ≡ Y
-raiseVarFrom-injective zero eq = suc-injective eq
-raiseVarFrom-injective (suc k) {zero} {zero} eq = refl
-raiseVarFrom-injective (suc k) {zero} {suc Y} ()
-raiseVarFrom-injective (suc k) {suc X} {zero} ()
-raiseVarFrom-injective (suc k) {suc X} {suc Y} eq =
-  cong suc (raiseVarFrom-injective k (suc-injective eq))
-
-raiseVarFrom-<-inv :
-  ∀ k {Δ X} →
-  raiseVarFrom k X < Δ →
-  X < Δ
-raiseVarFrom-<-inv zero {Δ = zero} ()
-raiseVarFrom-<-inv zero {Δ = suc Δ} (s<s X<Δ) = m<n⇒m<1+n X<Δ
-raiseVarFrom-<-inv (suc k) {Δ = zero} ()
-raiseVarFrom-<-inv (suc k) {Δ = suc Δ} {X = zero} z<s = z<s
-raiseVarFrom-<-inv (suc k) {Δ = suc Δ} {X = suc X}
-    (s<s rX<Δ) =
-  s<s (raiseVarFrom-<-inv k rX<Δ)
-

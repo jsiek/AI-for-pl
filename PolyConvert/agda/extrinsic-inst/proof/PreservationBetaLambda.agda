@@ -40,12 +40,11 @@ open import Imprecision
     )
 open import Conversion
 open import Terms
-open import proof.PreservationBetaDownForall
+open import proof.ImprecisionProperties
   using (open-fresh-∀⊑-prefix; substWf-plain-prefix)
-open import proof.PreservationBetaRevealConceal
-  using (subst↑-wt; subst↓-wt)
-open import proof.PreservationWkConv using (wk-conv↑; wk-conv↓)
-open import proof.PreservationWkTerm using (wk-term)
+open import proof.ConversionProperties
+  using (cong-⊢↑; cong-⊢↓; subst↑-wt; subst↓-wt; wk-conv↑; wk-conv↓)
+open import proof.TermProperties using (wk-term)
 
 ------------------------------------------------------------------------
 -- Fresh type-variable opening for terms
@@ -88,12 +87,12 @@ cong-⊢Δ⦂ refl M⊢ = M⊢
 
 plainSubst-star-up :
   ∀ k α X →
-  UpValue (starImp (plainSubstVarFrom k (｀ α) X))
+  UpValue (starImp (substVarFrom k (｀ α) X))
 plainSubst-star-up zero α zero = tag
 plainSubst-star-up zero α (suc X) = tagν
 plainSubst-star-up (suc k) α zero = tagν
 plainSubst-star-up (suc k) α (suc X)
-  with plainSubstVarFrom k (｀ α) X | plainSubst-star-up k α X
+  with substVarFrom k (｀ α) X | plainSubst-star-up k α X
 ... | ＇ Y | tagν = tagν
 ... | ｀ β | tag = tag
 ... | ‵ ι | tag = tag
@@ -103,7 +102,7 @@ mutual
   substPlain-up-value :
     ∀ {p} k α →
     UpValue p →
-    UpValue (substImp (plainSubstVarFrom k (｀ α)) p)
+    UpValue (substImp (substVarFrom k (｀ α)) p)
   substPlain-up-value k α (tagν {X = X}) = plainSubst-star-up k α X
   substPlain-up-value k α tag = tag
   substPlain-up-value k α (_↦_ {p = p} {q = q}) = _↦_
@@ -112,25 +111,25 @@ mutual
   substPlain-down-value :
     ∀ {p} k α →
     DownValue p →
-    DownValue (substImp (plainSubstVarFrom k (｀ α)) p)
+    DownValue (substImp (substVarFrom k (｀ α)) p)
   substPlain-down-value k α (_↦_ {p = p} {q = q}) = _↦_
   substPlain-down-value k α (`∀ {p = p}) = `∀
   substPlain-down-value k α (ν_ {B = B} {p = p}) =
-    ν_ {B = substᵗ (plainSubstVarFrom k (｀ α)) B}
-      {p = substImp (plainSubstVarFrom (suc k) (｀ α)) p}
+    ν_ {B = substᵗ (substVarFrom k (｀ α)) B}
+      {p = substImp (substVarFrom (suc k) (｀ α)) p}
 
 mutual
   substPlain-reveal-value :
     ∀ {c} k α →
     RevealValue c →
-    RevealValue (subst↑ (plainSubstVarFrom k (｀ α)) c)
+    RevealValue (subst↑ (substVarFrom k (｀ α)) c)
   substPlain-reveal-value k α (_↦_ {p = p} {q = q}) = _↦_
   substPlain-reveal-value k α (`∀ {c = c}) = `∀
 
   substPlain-conceal-value :
     ∀ {c} k α →
     ConcealValue c →
-    ConcealValue (subst↓ (plainSubstVarFrom k (｀ α)) c)
+    ConcealValue (subst↓ (substVarFrom k (｀ α)) c)
   substPlain-conceal-value k α seal = seal
   substPlain-conceal-value k α (_↦_ {p = p} {q = q}) = _↦_
   substPlain-conceal-value k α (`∀ {c = c}) = `∀
@@ -138,13 +137,13 @@ mutual
 substPlain-value :
   ∀ {V} k α →
   Value V →
-  Value (substᵗᵐ (plainSubstVarFrom k (｀ α)) V)
+  Value (substᵗᵐ (substVarFrom k (｀ α)) V)
 substPlain-value k α (ƛ A ⇒ N) =
-  ƛ substᵗ (plainSubstVarFrom k (｀ α)) A ⇒
-    substᵗᵐ (plainSubstVarFrom k (｀ α)) N
+  ƛ substᵗ (substVarFrom k (｀ α)) A ⇒
+    substᵗᵐ (substVarFrom k (｀ α)) N
 substPlain-value k α ($ κ) = $ κ
 substPlain-value k α (Λ N) =
-  Λ substᵗᵐ (plainSubstVarFrom (suc k) (｀ α)) N
+  Λ substᵗᵐ (substVarFrom (suc k) (｀ α)) N
 substPlain-value k α (vV ⇑ p) =
   substPlain-value k α vV ⇑ substPlain-up-value k α p
 substPlain-value k α (vV ⇓ p) =
@@ -183,8 +182,8 @@ open-fresh-∀⊑-plains :
     (suc Ψ)
     (plains (length (Φ ++ plains Δ [])) [])
     (substPlainAtImp (length Φ) (｀ (length Σ)) p)
-    (substᵗ (plainSubstVarFrom (length Φ) (｀ (length Σ))) A)
-    (substᵗ (plainSubstVarFrom (length Φ) (｀ (length Σ))) B)
+    (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A)
+    (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B)
 open-fresh-∀⊑-plains
   {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Φ = Φ} {A = A} {B = B} {p = p}
   plainΦ wfΣ p⊢ =
@@ -194,8 +193,8 @@ open-fresh-∀⊑-plains
         (suc Ψ)
         Γ
         (substPlainAtImp (length Φ) (｀ (length Σ)) p)
-        (substᵗ (plainSubstVarFrom (length Φ) (｀ (length Σ))) A)
-        (substᵗ (plainSubstVarFrom (length Φ) (｀ (length Σ))) B))
+        (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A)
+        (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B))
     (sym (PlainList-plains plainΦ Δ))
     (open-fresh-∀⊑-prefix {Φ = Φ} wfΣ
       (subst
@@ -209,10 +208,10 @@ openTerm-fresh-∀-prefix :
   StoreWf Δ Ψ Σ →
   length (Φ ++ plain ∷ plains Δ []) ∣ Ψ ∣ Σ₀ ∣ Γ ⊢ M ⦂ A →
   length (Φ ++ plains Δ []) ∣ suc Ψ ∣
-    substStoreᵗ (plainSubstVarFrom (length Φ) (｀ (length Σ))) Σ₀ ∣
-    map (substᵗ (plainSubstVarFrom (length Φ) (｀ (length Σ)))) Γ ⊢
-    substᵗᵐ (plainSubstVarFrom (length Φ) (｀ (length Σ))) M ⦂
-    substᵗ (plainSubstVarFrom (length Φ) (｀ (length Σ))) A
+    substStoreᵗ (substVarFrom (length Φ) (｀ (length Σ))) Σ₀ ∣
+    map (substᵗ (substVarFrom (length Φ) (｀ (length Σ)))) Γ ⊢
+    substᵗᵐ (substVarFrom (length Φ) (｀ (length Σ))) M ⦂
+    substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A
 openTerm-fresh-∀-prefix plainΦ wfΣ (⊢` h) = ⊢` (substLookup _ h)
 openTerm-fresh-∀-prefix {Φ = Φ} plainΦ wfΣ (⊢ƛ wfA M⊢) =
   ⊢ƛ
@@ -229,10 +228,10 @@ openTerm-fresh-∀-prefix {Σ = Σ} {Σ₀ = Σ₀} {Φ = Φ} {Γ = Γ} plainΦ 
     (substPlain-value (suc (length Φ)) (length Σ) vM)
     (cong-⊢⦂
       (substStoreᵗ-ext-⟰ᵗ
-        (plainSubstVarFrom (length Φ) (｀ (length Σ)))
+        (substVarFrom (length Φ) (｀ (length Σ)))
         Σ₀)
       (map-substᵗ-⤊ᵗ
-        (plainSubstVarFrom (length Φ) (｀ (length Σ)))
+        (substVarFrom (length Φ) (｀ (length Σ)))
         Γ)
       refl
       refl
@@ -243,7 +242,7 @@ openTerm-fresh-∀-prefix {Φ = Φ} plainΦ wfΣ
     refl
     refl
     refl
-    (sym (substᵗ-[]ᵗ (plainSubstVarFrom (length Φ) (｀ _)) B T))
+    (sym (substᵗ-[]ᵗ (substVarFrom (length Φ) (｀ _)) B T))
     (⊢•
       (openTerm-fresh-∀-prefix plainΦ wfΣ M⊢)
       (substᵗ-preserves-WfTy
@@ -305,63 +304,39 @@ len<suc-StoreWf :
   length Σ < suc Ψ
 len<suc-StoreWf {Ψ = Ψ} wfΣ rewrite storeWf-length wfΣ = n<1+n Ψ
 
-------------------------------------------------------------------------
--- Conversion generated by fresh type instantiation
-------------------------------------------------------------------------
-
-cong-⊢↑ :
-  ∀ {Δ Ψ}{Σ Σ′ : Store}{c c′ : Conv↑}{A A′ B B′ : Ty} →
-  Σ ≡ Σ′ →
-  c ≡ c′ →
-  A ≡ A′ →
-  B ≡ B′ →
-  Δ ∣ Ψ ∣ Σ ⊢ c ⦂ A ↑ˢ B →
-  Δ ∣ Ψ ∣ Σ′ ⊢ c′ ⦂ A′ ↑ˢ B′
-cong-⊢↑ refl refl refl refl c⊢ = c⊢
-
-cong-⊢↓ :
-  ∀ {Δ Ψ}{Σ Σ′ : Store}{c c′ : Conv↓}{A A′ B B′ : Ty} →
-  Σ ≡ Σ′ →
-  c ≡ c′ →
-  A ≡ A′ →
-  B ≡ B′ →
-  Δ ∣ Ψ ∣ Σ ⊢ c ⦂ A ↓ˢ B →
-  Δ ∣ Ψ ∣ Σ′ ⊢ c′ ⦂ A′ ↓ˢ B′
-cong-⊢↓ refl refl refl refl c⊢ = c⊢
-
-plainSubstVarFrom-neq :
+substVarFrom-neq :
   ∀ X Y S₁ T →
   X ≢ Y →
-  plainSubstVarFrom X S₁ Y ≡ plainSubstVarFrom X T Y
-plainSubstVarFrom-neq zero zero S₁ T X≢Y = ⊥-elim (X≢Y refl)
-plainSubstVarFrom-neq zero (suc Y) S₁ T X≢Y = refl
-plainSubstVarFrom-neq (suc X) zero S₁ T X≢Y = refl
-plainSubstVarFrom-neq (suc X) (suc Y) S₁ T X≢Y =
+  substVarFrom X S₁ Y ≡ substVarFrom X T Y
+substVarFrom-neq zero zero S₁ T X≢Y = ⊥-elim (X≢Y refl)
+substVarFrom-neq zero (suc Y) S₁ T X≢Y = refl
+substVarFrom-neq (suc X) zero S₁ T X≢Y = refl
+substVarFrom-neq (suc X) (suc Y) S₁ T X≢Y =
   cong (renameᵗ suc)
-    (plainSubstVarFrom-neq X Y S₁ T (λ X≡Y → X≢Y (cong suc X≡Y)))
+    (substVarFrom-neq X Y S₁ T (λ X≡Y → X≢Y (cong suc X≡Y)))
 
-plainSubstVarFrom-seal-self :
+substVarFrom-seal-self :
   ∀ X α →
-  plainSubstVarFrom X (｀ α) X ≡ ｀ α
-plainSubstVarFrom-seal-self zero α = refl
-plainSubstVarFrom-seal-self (suc X) α
-  rewrite plainSubstVarFrom-seal-self X α = refl
+  substVarFrom X (｀ α) X ≡ ｀ α
+substVarFrom-seal-self zero α = refl
+substVarFrom-seal-self (suc X) α
+  rewrite substVarFrom-seal-self X α = refl
 
 mutual
   convert↑At-wt :
     ∀ {Δ Ψ}{Σ : Store}{α : Seal}{T B : Ty} →
     (Xᵛ : TyVar) →
-    Σ ∋ˢ α ⦂ plainSubstVarFrom Xᵛ T Xᵛ →
-    WfTy Δ Ψ (substᵗ (plainSubstVarFrom Xᵛ (｀ α)) B) →
+    Σ ∋ˢ α ⦂ substVarFrom Xᵛ T Xᵛ →
+    WfTy Δ Ψ (substᵗ (substVarFrom Xᵛ (｀ α)) B) →
     Δ ∣ Ψ ∣ Σ ⊢ convert↑At Xᵛ B α ⦂
-      substᵗ (plainSubstVarFrom Xᵛ (｀ α)) B ↑ˢ
-      substᵗ (plainSubstVarFrom Xᵛ T) B
+      substᵗ (substVarFrom Xᵛ (｀ α)) B ↑ˢ
+      substᵗ (substVarFrom Xᵛ T) B
   convert↑At-wt {α = α} {B = ＇ Y} X hα wfSrc with X ≟ Y
   convert↑At-wt {α = α} {B = ＇ .X} X hα wfSrc | yes refl =
-    cong-⊢↑ refl refl (sym (plainSubstVarFrom-seal-self X α)) refl
+    cong-⊢↑ refl refl (sym (substVarFrom-seal-self X α)) refl
       (⊢↑-unseal hα)
   convert↑At-wt {α = α} {T = T} {B = ＇ Y} X hα wfSrc | no X≢Y =
-    cong-⊢↑ refl refl refl (plainSubstVarFrom-neq X Y (｀ α) T X≢Y)
+    cong-⊢↑ refl refl refl (substVarFrom-neq X Y (｀ α) T X≢Y)
       (⊢↑-id wfSrc)
   convert↑At-wt {B = ｀ β} X hα wfSrc = ⊢↑-id wfSrc
   convert↑At-wt {B = ‵ ι} X hα wfSrc = ⊢↑-id wfSrc
@@ -375,17 +350,17 @@ mutual
   convert↓At-wt :
     ∀ {Δ Ψ}{Σ : Store}{α : Seal}{T B : Ty} →
     (Xᵛ : TyVar) →
-    Σ ∋ˢ α ⦂ plainSubstVarFrom Xᵛ T Xᵛ →
-    WfTy Δ Ψ (substᵗ (plainSubstVarFrom Xᵛ (｀ α)) B) →
+    Σ ∋ˢ α ⦂ substVarFrom Xᵛ T Xᵛ →
+    WfTy Δ Ψ (substᵗ (substVarFrom Xᵛ (｀ α)) B) →
     Δ ∣ Ψ ∣ Σ ⊢ convert↓At Xᵛ B α ⦂
-      substᵗ (plainSubstVarFrom Xᵛ T) B ↓ˢ
-      substᵗ (plainSubstVarFrom Xᵛ (｀ α)) B
+      substᵗ (substVarFrom Xᵛ T) B ↓ˢ
+      substᵗ (substVarFrom Xᵛ (｀ α)) B
   convert↓At-wt {α = α} {B = ＇ Y} X hα wfSrc with X ≟ Y
   convert↓At-wt {α = α} {B = ＇ .X} X hα wfSrc | yes refl =
-    cong-⊢↓ refl refl refl (sym (plainSubstVarFrom-seal-self X α))
+    cong-⊢↓ refl refl refl (sym (substVarFrom-seal-self X α))
       (⊢↓-seal hα)
   convert↓At-wt {α = α} {T = T} {B = ＇ Y} X hα wfSrc | no X≢Y =
-    cong-⊢↓ refl refl (plainSubstVarFrom-neq X Y (｀ α) T X≢Y) refl
+    cong-⊢↓ refl refl (substVarFrom-neq X Y (｀ α) T X≢Y) refl
       (⊢↓-id wfSrc)
   convert↓At-wt {B = ｀ β} X hα wfSrc = ⊢↓-id wfSrc
   convert↓At-wt {B = ‵ ι} X hα wfSrc = ⊢↓-id wfSrc

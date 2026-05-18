@@ -24,10 +24,9 @@ open import proof.DGGTermImprecision using
   (tysubst-body-⊑; wk-rel-⊑; wkᴾ-map; wk-right-world-⊑)
 open import proof.DGGMultistep using (multi-trans; tyapp-↠; up-↠)
 open import proof.Preservation using (len<suc-StoreWf; storeWf-fresh-ext)
-open import proof.PreservationBetaDownForall using (convert↑-fresh-wt)
-open import proof.PreservationBetaRevealConceal using (openConv↑)
+open import proof.ConversionProperties using (convert↑-fresh-wt; openConv↑)
 open import proof.PreservationImpSubst using ([]⊑ᵗ-wt)
-open import proof.PreservationWkImp using (wk-⊑)
+open import proof.ImprecisionProperties using (wk-⊑)
 open import proof.TypeProperties using (WfTy-weakenˢ)
 
 cong-⊢⊑ :

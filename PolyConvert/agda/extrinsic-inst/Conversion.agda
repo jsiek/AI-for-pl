@@ -92,7 +92,7 @@ mutual
   convert↑At X (＇ Y) α with X ≟ Y
   convert↑At X (＇ Y) α | yes refl = ↑-unseal α
   convert↑At X (＇ Y) α | no _ =
-    ↑-id (plainSubstVarFrom X (｀ α) Y)
+    ↑-id (substVarFrom X (｀ α) Y)
   convert↑At X (｀ β) α = ↑-id (｀ β)
   convert↑At X (‵ ι) α = ↑-id (‵ ι)
   convert↑At X ★ α = ↑-id ★
@@ -104,7 +104,7 @@ mutual
   convert↓At X (＇ Y) α with X ≟ Y
   convert↓At X (＇ Y) α | yes refl = ↓-seal α
   convert↓At X (＇ Y) α | no _ =
-    ↓-id (plainSubstVarFrom X (｀ α) Y)
+    ↓-id (substVarFrom X (｀ α) Y)
   convert↓At X (｀ β) α = ↓-id (｀ β)
   convert↓At X (‵ ι) α = ↓-id (‵ ι)
   convert↓At X ★ α = ↓-id ★

@@ -12,10 +12,14 @@ module proof.TypeProperties where
 --     place it in that module instead.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (false)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (zero; suc; _<_; _≤_; z<s; s<s)
-open import Data.Nat.Properties using (<-≤-trans)
+open import Data.Nat.Properties using (<-≤-trans; _≟_; m<n⇒m<1+n; suc-injective)
 open import Data.Product using (Σ-syntax)
-open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; sym; trans)
+open import Relation.Nullary using (yes; no)
+open import Relation.Binary.PropositionalEquality
+  using (_≢_; cong; cong₂; subst; sym; trans)
 
 open import Types
 open import Imprecision
@@ -37,6 +41,154 @@ substᵗ-ground : ∀{G : Ty} (σ : Substᵗ)
 substᵗ-ground σ (｀ α) = ｀ α
 substᵗ-ground σ (‵ ι) = ‵ ι
 substᵗ-ground σ ★⇒★ = ★⇒★
+
+substVarFrom-seal-self :
+  ∀ X α →
+  substVarFrom X (｀ α) X ≡ ｀ α
+substVarFrom-seal-self zero α = refl
+substVarFrom-seal-self (suc X) α =
+  cong (renameᵗ suc) (substVarFrom-seal-self X α)
+
+substVarFrom-≢ :
+  ∀ X Y s t →
+  X ≢ Y →
+  substVarFrom X s Y ≡ substVarFrom X t Y
+substVarFrom-≢ zero zero s t X≢Y = ⊥-elim (X≢Y refl)
+substVarFrom-≢ zero (suc Y) s t X≢Y = refl
+substVarFrom-≢ (suc X) zero s t X≢Y = refl
+substVarFrom-≢ (suc X) (suc Y) s t X≢Y =
+  cong (renameᵗ suc)
+    (substVarFrom-≢ X Y s t (λ eq → X≢Y (cong suc eq)))
+
+raiseVarFrom : TyVar → TyVar → TyVar
+raiseVarFrom zero X = suc X
+raiseVarFrom (suc k) zero = zero
+raiseVarFrom (suc k) (suc X) = suc (raiseVarFrom k X)
+
+raiseVarFrom-≢ :
+  ∀ k X →
+  raiseVarFrom k X ≡ k →
+  ⊥
+raiseVarFrom-≢ zero X ()
+raiseVarFrom-≢ (suc k) zero ()
+raiseVarFrom-≢ (suc k) (suc X) eq =
+  raiseVarFrom-≢ k X (suc-injective eq)
+
+raiseVarFrom-injective :
+  ∀ k {X Y} →
+  raiseVarFrom k X ≡ raiseVarFrom k Y →
+  X ≡ Y
+raiseVarFrom-injective zero eq = suc-injective eq
+raiseVarFrom-injective (suc k) {zero} {zero} eq = refl
+raiseVarFrom-injective (suc k) {zero} {suc Y} ()
+raiseVarFrom-injective (suc k) {suc X} {zero} ()
+raiseVarFrom-injective (suc k) {suc X} {suc Y} eq =
+  cong suc (raiseVarFrom-injective k (suc-injective eq))
+
+raiseVarFrom-<-inv :
+  ∀ k {Δ X} →
+  raiseVarFrom k X < Δ →
+  X < Δ
+raiseVarFrom-<-inv zero {Δ = zero} ()
+raiseVarFrom-<-inv zero {Δ = suc Δ} (s<s X<Δ) = m<n⇒m<1+n X<Δ
+raiseVarFrom-<-inv (suc k) {Δ = zero} ()
+raiseVarFrom-<-inv (suc k) {Δ = suc Δ} {X = zero} z<s = z<s
+raiseVarFrom-<-inv (suc k) {Δ = suc Δ} {X = suc X} (s<s rX<Δ) =
+  s<s (raiseVarFrom-<-inv k rX<Δ)
+
+raise-ext :
+  ∀ k X →
+  extᵗ (raiseVarFrom k) X ≡ raiseVarFrom (suc k) X
+raise-ext k zero = refl
+raise-ext k (suc X) = refl
+
+rename-raise-ext :
+  ∀ k A →
+  renameᵗ (extᵗ (raiseVarFrom k)) A ≡
+  renameᵗ (raiseVarFrom (suc k)) A
+rename-raise-ext k A = rename-cong (raise-ext k) A
+
+rename-raise-⇑ᵗ :
+  ∀ k A →
+  renameᵗ (raiseVarFrom (suc k)) (⇑ᵗ A) ≡
+  ⇑ᵗ (renameᵗ (raiseVarFrom k) A)
+rename-raise-⇑ᵗ k A =
+  trans
+    (rename-cong (λ X → sym (raise-ext k X)) (⇑ᵗ A))
+    (sym (renameᵗ-suc-comm (raiseVarFrom k) A))
+
+occurs-raise :
+  ∀ k X A →
+  occurs (raiseVarFrom k X) (renameᵗ (raiseVarFrom k) A) ≡
+  occurs X A
+occurs-raise k X (＇ Y) with X ≟ Y | raiseVarFrom k X ≟ raiseVarFrom k Y
+occurs-raise k X (＇ .X) | yes refl | yes refl = refl
+occurs-raise k X (＇ .X) | yes refl | no neq = ⊥-elim (neq refl)
+occurs-raise k X (＇ Y) | no neq | yes eq =
+  ⊥-elim (neq (raiseVarFrom-injective k eq))
+occurs-raise k X (＇ Y) | no neq | no neq′ = refl
+occurs-raise k X (｀ α) = refl
+occurs-raise k X (‵ ι) = refl
+occurs-raise k X ★ = refl
+occurs-raise k X (A ⇒ B)
+  rewrite occurs-raise k X A
+        | occurs-raise k X B = refl
+occurs-raise k X (`∀ A)
+  rewrite rename-raise-ext k A =
+  occurs-raise (suc k) (suc X) A
+
+occurs-raise-fresh :
+  ∀ k A →
+  occurs k (renameᵗ (raiseVarFrom k) A) ≡ false
+occurs-raise-fresh k (＇ X) with k ≟ raiseVarFrom k X
+occurs-raise-fresh k (＇ X) | yes eq =
+  ⊥-elim (raiseVarFrom-≢ k X (sym eq))
+occurs-raise-fresh k (＇ X) | no neq = refl
+occurs-raise-fresh k (｀ α) = refl
+occurs-raise-fresh k (‵ ι) = refl
+occurs-raise-fresh k ★ = refl
+occurs-raise-fresh k (A ⇒ B)
+  rewrite occurs-raise-fresh k A
+        | occurs-raise-fresh k B = refl
+occurs-raise-fresh k (`∀ A)
+  rewrite rename-raise-ext k A =
+  occurs-raise-fresh (suc k) A
+
+occurs-substVarFrom-var-< :
+  ∀ k X Y T →
+  X < k →
+  occurs X (substVarFrom k T Y) ≡ occurs X (＇ Y)
+occurs-substVarFrom-var-< zero X Y T ()
+occurs-substVarFrom-var-< (suc k) zero zero T z<s = refl
+occurs-substVarFrom-var-< (suc k) zero (suc Y) T z<s
+  rewrite occurs-raise-fresh zero (substVarFrom k T Y) = refl
+occurs-substVarFrom-var-< (suc k) (suc X) zero T (s<s X<k) = refl
+occurs-substVarFrom-var-< (suc k) (suc X) (suc Y) T (s<s X<k)
+  rewrite occurs-raise zero X (substVarFrom k T Y)
+        | occurs-substVarFrom-var-< k X Y T X<k
+        | occurs-raise zero X (＇ Y) = refl
+
+occurs-substVarFrom-<-ty :
+  ∀ A k X T →
+  X < k →
+  occurs X (substᵗ (substVarFrom k T) A) ≡ occurs X A
+occurs-substVarFrom-<-ty (＇ Y) k X T X<k =
+  occurs-substVarFrom-var-< k X Y T X<k
+occurs-substVarFrom-<-ty (｀ α) k X T X<k = refl
+occurs-substVarFrom-<-ty (‵ ι) k X T X<k = refl
+occurs-substVarFrom-<-ty ★ k X T X<k = refl
+occurs-substVarFrom-<-ty (A ⇒ B) k X T X<k
+  rewrite occurs-substVarFrom-<-ty A k X T X<k
+        | occurs-substVarFrom-<-ty B k X T X<k = refl
+occurs-substVarFrom-<-ty (`∀ A) k X T X<k =
+  occurs-substVarFrom-<-ty A (suc k) (suc X) T (s<s X<k)
+
+occurs-substVarFrom-< :
+  ∀ k X T A →
+  X < k →
+  occurs X (substᵗ (substVarFrom k T) A) ≡ occurs X A
+occurs-substVarFrom-< k X T A =
+  occurs-substVarFrom-<-ty A k X T
 
 renameˢ-ground : ∀{G : Ty} (ρ : Renameˢ)
   → Ground G

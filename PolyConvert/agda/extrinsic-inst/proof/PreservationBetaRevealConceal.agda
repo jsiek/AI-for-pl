@@ -2,11 +2,10 @@ module proof.PreservationBetaRevealConceal where
 
 -- File Charter:
 --   * Worker proof file for the β-reveal-∀ and β-conceal-∀ preservation redexes.
---   * Owns conversion type-substitution preservation for `subst↑`/`subst↓`.
+--   * Uses conversion opening properties from `proof.ConversionProperties`.
 --   * Does not depend on the preservation-step induction hypothesis.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality
   using (cong; sym; trans)
 
@@ -15,101 +14,8 @@ open import proof.TypeProperties
 open import Store
 open import Conversion
 open import Terms
-
-------------------------------------------------------------------------
--- Conversion typing transport
-------------------------------------------------------------------------
-
-cong-⊢↑ :
-  ∀ {Δ Ψ}{Σ Σ′ : Store}{c c′ : Conv↑}{A A′ B B′ : Ty} →
-  Σ ≡ Σ′ →
-  c ≡ c′ →
-  A ≡ A′ →
-  B ≡ B′ →
-  Δ ∣ Ψ ∣ Σ ⊢ c ⦂ A ↑ˢ B →
-  Δ ∣ Ψ ∣ Σ′ ⊢ c′ ⦂ A′ ↑ˢ B′
-cong-⊢↑ refl refl refl refl c⊢ = c⊢
-
-cong-⊢↓ :
-  ∀ {Δ Ψ}{Σ Σ′ : Store}{c c′ : Conv↓}{A A′ B B′ : Ty} →
-  Σ ≡ Σ′ →
-  c ≡ c′ →
-  A ≡ A′ →
-  B ≡ B′ →
-  Δ ∣ Ψ ∣ Σ ⊢ c ⦂ A ↓ˢ B →
-  Δ ∣ Ψ ∣ Σ′ ⊢ c′ ⦂ A′ ↓ˢ B′
-cong-⊢↓ refl refl refl refl c⊢ = c⊢
-
-------------------------------------------------------------------------
--- Type-variable substitution preserves conversion typing
-------------------------------------------------------------------------
-
-mutual
-  subst↑-wt :
-    ∀ {Δ Δ′ Ψ}{Σ : Store}{σ : Substᵗ}{c : Conv↑}{A B : Ty} →
-    TySubstWf Δ Δ′ Ψ σ →
-    Δ ∣ Ψ ∣ Σ ⊢ c ⦂ A ↑ˢ B →
-    Δ′ ∣ Ψ ∣ substStoreᵗ σ Σ ⊢ subst↑ σ c ⦂
-      substᵗ σ A ↑ˢ substᵗ σ B
-  subst↑-wt hσ (⊢↑-unseal h) = ⊢↑-unseal (substLookupᵗ _ h)
-  subst↑-wt hσ (⊢↑-⇒ p⊢ q⊢) =
-    ⊢↑-⇒ (subst↓-wt hσ p⊢) (subst↑-wt hσ q⊢)
-  subst↑-wt {Σ = Σ} {σ = σ} hσ (⊢↑-∀ c⊢) =
-    ⊢↑-∀
-      (cong-⊢↑
-        (substStoreᵗ-ext-⟰ᵗ σ Σ)
-        refl
-        refl
-        refl
-        (subst↑-wt (TySubstWf-exts hσ) c⊢))
-  subst↑-wt hσ (⊢↑-id wfA) =
-    ⊢↑-id (substᵗ-preserves-WfTy wfA hσ)
-
-  subst↓-wt :
-    ∀ {Δ Δ′ Ψ}{Σ : Store}{σ : Substᵗ}{c : Conv↓}{A B : Ty} →
-    TySubstWf Δ Δ′ Ψ σ →
-    Δ ∣ Ψ ∣ Σ ⊢ c ⦂ A ↓ˢ B →
-    Δ′ ∣ Ψ ∣ substStoreᵗ σ Σ ⊢ subst↓ σ c ⦂
-      substᵗ σ A ↓ˢ substᵗ σ B
-  subst↓-wt hσ (⊢↓-seal h) = ⊢↓-seal (substLookupᵗ _ h)
-  subst↓-wt hσ (⊢↓-⇒ p⊢ q⊢) =
-    ⊢↓-⇒ (subst↑-wt hσ p⊢) (subst↓-wt hσ q⊢)
-  subst↓-wt {Σ = Σ} {σ = σ} hσ (⊢↓-∀ c⊢) =
-    ⊢↓-∀
-      (cong-⊢↓
-        (substStoreᵗ-ext-⟰ᵗ σ Σ)
-        refl
-        refl
-        refl
-        (subst↓-wt (TySubstWf-exts hσ) c⊢))
-  subst↓-wt hσ (⊢↓-id wfA) =
-    ⊢↓-id (substᵗ-preserves-WfTy wfA hσ)
-
-openConv↑ :
-  ∀ {Δ Ψ}{Σ : Store}{c : Conv↑}{A B T : Ty} →
-  suc Δ ∣ Ψ ∣ ⟰ᵗ Σ ⊢ c ⦂ A ↑ˢ B →
-  WfTy Δ Ψ T →
-  Δ ∣ Ψ ∣ Σ ⊢ subst↑ (singleTyEnv T) c ⦂ A [ T ]ᵗ ↑ˢ B [ T ]ᵗ
-openConv↑ {Σ = Σ} {T = T} c⊢ wfT =
-  cong-⊢↑
-    (substStoreᵗ-singleTyEnv-⟰ᵗ T Σ)
-    refl
-    refl
-    refl
-    (subst↑-wt (singleTyEnv-Wf T wfT) c⊢)
-
-openConv↓ :
-  ∀ {Δ Ψ}{Σ : Store}{c : Conv↓}{A B T : Ty} →
-  suc Δ ∣ Ψ ∣ ⟰ᵗ Σ ⊢ c ⦂ A ↓ˢ B →
-  WfTy Δ Ψ T →
-  Δ ∣ Ψ ∣ Σ ⊢ subst↓ (singleTyEnv T) c ⦂ A [ T ]ᵗ ↓ˢ B [ T ]ᵗ
-openConv↓ {Σ = Σ} {T = T} c⊢ wfT =
-  cong-⊢↓
-    (substStoreᵗ-singleTyEnv-⟰ᵗ T Σ)
-    refl
-    refl
-    refl
-    (subst↓-wt (singleTyEnv-Wf T wfT) c⊢)
+open import proof.ConversionProperties using
+  (cong-⊢↑; cong-⊢↓; openConv↑; openConv↓)
 
 ------------------------------------------------------------------------
 -- β-reveal-∀ preservation

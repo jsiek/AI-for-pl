@@ -28,9 +28,9 @@ open import Imprecision
 open import Conversion
 open import Terms
 open import Reduction
-open import proof.PreservationWkImp using (wk-⊑; wk-⊒)
-open import proof.PreservationWkConv using (⟰ᵗ-⊆ˢ; wk-conv↑; wk-conv↓)
-open import proof.PreservationWkTerm using (wk-term)
+open import proof.ImprecisionProperties using (wk-⊑; wk-⊒)
+open import proof.ConversionProperties using (⟰ᵗ-⊆ˢ; wk-conv↑; wk-conv↓)
+open import proof.TermProperties using (wk-term)
 open import proof.PreservationRaw using (raw-preservation)
 open import proof.PreservationBetaRevealConceal
   using (preserve-β-reveal-∀)

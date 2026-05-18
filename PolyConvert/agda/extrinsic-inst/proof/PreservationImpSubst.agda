@@ -19,19 +19,20 @@ open import proof.TypeProperties
   using
     ( TySubstWf
     ; TySubstWf-exts
+    ; occurs-raise
+    ; occurs-raise-fresh
     ; singleTyEnv-Wf
     ; substᵗ-ground
     ; substᵗ-preserves-WfTy
     )
 open import Imprecision
-open import proof.PreservationBetaUpNu
+open import proof.ImprecisionProperties
   using
     ( VarSubst
     ; cong-⊢⊑
     ; length-plains[]
     ; lookup-mode
-    ; occurs-raise
-    ; occurs-raise-fresh
+    ; plain-var-subst
     ; wkImpAt
     ; wk-VarSubst
     )
@@ -220,15 +221,6 @@ reflImp-wt-plains wf★ = ⊑-★★
 reflImp-wt-plains (wf⇒ wfA wfB) =
   ⊑-⇒ (reflImp-wt-plains wfA) (reflImp-wt-plains wfB)
 reflImp-wt-plains (wf∀ wfA) = ⊑-∀ (reflImp-wt-plains wfA)
-
-plain-var-subst :
-  ∀ {Δ Ψ X m} →
-  plains Δ [] ∋ X ∶ m →
-  VarSubst Ψ (plains Δ []) (＇ X) m
-plain-var-subst {Δ = zero} ()
-plain-var-subst {Δ = suc Δ} here = ⊑-＇ here
-plain-var-subst {Δ = suc Δ} {Ψ = Ψ} (there x∈) =
-  wk-VarSubst {m′ = plain} (plain-var-subst {Ψ = Ψ} x∈)
 
 singleTyEnv-ImpSubstWt :
   ∀ {Δ Ψ T} →

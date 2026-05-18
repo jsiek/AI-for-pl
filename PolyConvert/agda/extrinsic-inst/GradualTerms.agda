@@ -78,19 +78,19 @@ open import Terms
     )
 open import proof.ConsistencyCoerce using (coerce-wt; coerce-wt-plains)
 open import proof.ConsistencyProperties using (cong-~)
-open import proof.ImprecisionCompose using (⊑-trans)
-open import proof.TypeProperties using (renameᵗ-ground-id)
+open import proof.ImprecisionProperties using (⊑-trans)
+open import proof.TypeProperties
+  using ( raiseVarFrom
+        ; raiseVarFrom-injective
+        ; raiseVarFrom-<-inv
+        ; raise-ext
+        ; rename-raise-ext
+        ; rename-raise-⇑ᵗ
+        ; renameᵗ-ground-id
+        )
 open import proof.ImprecisionProperties
 open import proof.ConsistencyProperties
 open import proof.ImprecisionConsistent
-open import proof.PreservationBetaUpNu
-  using
-    ( raiseVarFrom
-    ; raise-ext
-    ; rename-raise-ext
-    ; rename-raise-⇑ᵗ
-    ; cong-⊢⊑
-    )
 open import proof.PreservationImpSubst
   using
     ( ⊑-substᵗ-wt
@@ -1262,8 +1262,8 @@ tysubst-right-at-⊑ :
   0 ∣ plains Δ [] ⊢ pT ⦂ T ⊑ T′ →
   Σ[ p ∈ Imp ]
     0 ∣ plains (k + Δ) [] ⊢ p ⦂
-      substᵗ (plainSubstVarFrom k T) A ⊑
-      substᵗ (plainSubstVarFrom k T′) A
+      substᵗ (substVarFrom k T) A ⊑
+      substᵗ (substVarFrom k T′) A
 tysubst-right-at-⊑ zero {A = ＇ zero} (wfVar z<s) pT⊢ =
   _ , pT⊢
 tysubst-right-at-⊑ zero {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢ =

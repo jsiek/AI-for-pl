@@ -6,13 +6,15 @@ module proof.ConsistencyCoerce where
 --     `ν-bound`; its left and right projections are used for the two
 --     imprecision witnesses returned by `coerce`.
 
-open import Data.List using (length)
+open import Data.List using ([]; length)
 open import Data.Product using (∃-syntax; _×_; _,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 
 open import Types
 open import Imprecision
 open import Consistency
+open import proof.ImprecisionConsistent
+open import proof.ConsistencyProperties
 
 wf-leftICtx :
   ∀ {Γ A} →
@@ -28,24 +30,11 @@ wf-rightICtx :
 wf-rightICtx {Γ = Γ} wfA =
   subst (λ Δ → WfTy Δ 0 _) (sym (length-rightICtx Γ)) wfA
 
-coerce-⊒ :
-  ∀ {Γ A C} →
-  Γ ⊢ A ~ C →
-  Imp
-coerce-⊒ A~C = proj₁ (coerce A~C)
-
-coerce-⊑ :
-  ∀ {Γ A C} →
-  Γ ⊢ A ~ C →
-  Imp
-coerce-⊑ A~C = proj₂ (coerce A~C)
-
-coerce-wt :
-  ∀ {Γ A C} →
+coerce-wt : ∀ {Γ A C} →
   (A~C : Γ ⊢ A ~ C) →
   ∃[ B ]
-    ((0 ∣ leftICtx Γ ⊢ coerce-⊒ A~C ⦂ A ⊒ B) ×
-     (0 ∣ rightICtx Γ ⊢ coerce-⊑ A~C ⦂ B ⊑ C))
+    (0 ∣ leftICtx Γ ⊢ proj₁ (coerce A~C) ⦂ A ⊒ B) ×
+    (0 ∣ rightICtx Γ ⊢ proj₂ (coerce A~C) ⦂ B ⊑ C)
 coerce-wt ★-~-★ =
   ★ , ⊑-★★ , ⊑-★★
 coerce-wt (X-~-X {X} x∈) =
@@ -96,3 +85,15 @@ coerce-wt {Γ = Γ} (A-~-∀ {A = A} wfA ⇑A~B)
     | p⊒ , p⊑ | Bₘ , p⊒⊢ , p⊑⊢ =
   `∀ Bₘ ,
   ⊑-ν (wf-leftICtx {Γ = Γ} wfA) p⊒⊢ , ⊑-∀ p⊑⊢
+
+coerce-wt-plains :
+  ∀ {Δ A C} →
+  (A~C : boths Δ [] ⊢ A ~ C) →
+  ∃[ B ]
+    ((0 ∣ plains Δ [] ⊢ coerce-⊒ A~C ⦂ A ⊒ B) ×
+     (0 ∣ plains Δ [] ⊢ coerce-⊑ A~C ⦂ B ⊑ C))
+coerce-wt-plains {Δ = Δ} A~C with coerce-wt A~C
+coerce-wt-plains {Δ = Δ} A~C | B , p⊒⊢ , p⊑⊢
+  rewrite leftICtx-boths[] Δ | rightICtx-boths[] Δ =
+  B , p⊒⊢ , p⊑⊢
+

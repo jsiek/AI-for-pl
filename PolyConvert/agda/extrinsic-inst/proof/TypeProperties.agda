@@ -21,7 +21,7 @@ open import Types
 open import Imprecision
 
 ------------------------------------------------------------------------
--- Public API: basic lemmas
+-- basic lemmas
 ------------------------------------------------------------------------
 
 renameᵗ-ground : ∀{G : Ty} (ρ : Renameᵗ)
@@ -44,6 +44,14 @@ renameˢ-ground : ∀{G : Ty} (ρ : Renameˢ)
 renameˢ-ground ρ (｀ α) = ｀ (ρ α)
 renameˢ-ground ρ (‵ ι) = ‵ ι
 renameˢ-ground ρ ★⇒★ = ★⇒★
+
+renameᵗ-ground-id :
+  ∀ {ρ G} →
+  Ground G →
+  renameᵗ ρ G ≡ G
+renameᵗ-ground-id (｀ α) = refl
+renameᵗ-ground-id (‵ ι) = refl
+renameᵗ-ground-id ★⇒★ = refl
 
 ground-upper-unique-⊑ :
   ∀ {Ψ Γ A G H p q} →

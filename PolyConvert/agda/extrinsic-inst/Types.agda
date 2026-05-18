@@ -243,7 +243,7 @@ _[_]ˢ : Ty → Seal → Ty
 A [ α ]ˢ = renameˢ (singleSealEnv α) A
 
 ------------------------------------------------------------------------
--- Well-formedness and lookups
+-- Well-formedness
 ------------------------------------------------------------------------
 
 data WfTy : TyCtx → SealCtx → Ty → Set where
@@ -254,6 +254,10 @@ data WfTy : TyCtx → SealCtx → Ty → Set where
   wf⇒ : ∀ {Δ Ψ A B} → WfTy Δ Ψ A → WfTy Δ Ψ B → WfTy Δ Ψ (A ⇒ B)
   wf∀ : ∀ {Δ Ψ A} → WfTy (suc Δ) Ψ A → WfTy Δ Ψ (`∀ A)
 
+------------------------------------------------------------------------
+-- Lookup term variable in a context
+------------------------------------------------------------------------
+
 infix 4 _∋_⦂_
 data _∋_⦂_ : Ctx → Var → Ty → Set where
   Z : ∀ {Γ A} →
@@ -262,6 +266,10 @@ data _∋_⦂_ : Ctx → Var → Ty → Set where
   S : ∀ {Γ A B x} →
       Γ ∋ x ⦂ A →
       (B ∷ Γ) ∋ suc x ⦂ A
+
+------------------------------------------------------------------------
+-- Lookup seal in a store
+------------------------------------------------------------------------
 
 infix 4 _∋ˢ_⦂_
 data _∋ˢ_⦂_ : Store → Seal → Ty → Set where

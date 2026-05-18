@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 module GradualTerms where
 
 -- File Charter:
@@ -7,7 +8,7 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_; _++_; length)
 open import Data.Nat using (ℕ; _+_; _<_; _≤_; zero; suc; z<s; s<s; z≤n; s≤s)
-open import Data.Nat.Properties using (suc-injective)
+open import Data.Nat.Properties using (suc-injective; m<n⇒m<1+n)
 open import Data.Product using (∃-syntax; Σ-syntax; _×_; _,_; proj₁)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; sym; trans)
 
@@ -48,7 +49,7 @@ open import Imprecision
     ; ⊑-tgt-wf
     )
 open import Consistency
-open import Terms using (Const; Prim; constTy; κℕ)
+open import Terms using (Const; Prim; constTy; κℕ; constTy-renameᵗ; constTy-⇑ᵗ)
 open import Terms
   using (Term)
   renaming
@@ -75,8 +76,13 @@ open import Terms
     ; ⊢down to ⊢ᵀdown
     ; ⊢blame to ⊢ᵀblame
     )
-open import proof.ConsistencyCoerce using (coerce-⊒; coerce-⊑; coerce-wt)
+open import proof.ConsistencyCoerce using (coerce-wt; coerce-wt-plains)
+open import proof.ConsistencyProperties using (cong-~)
 open import proof.ImprecisionCompose using (⊑-trans)
+open import proof.TypeProperties using (renameᵗ-ground-id)
+open import proof.ImprecisionProperties
+open import proof.ConsistencyProperties
+open import proof.ImprecisionConsistent
 open import proof.PreservationBetaUpNu
   using
     ( raiseVarFrom
@@ -390,18 +396,6 @@ rightGCtx-⇑ᵗᴳPCtx [] = refl
 rightGCtx-⇑ᵗᴳPCtx ((A , B , p , p⊢) ∷ Γ) =
   cong (⇑ᵗ B ∷_) (rightGCtx-⇑ᵗᴳPCtx Γ)
 
-length-plains[] :
-  ∀ Δ →
-  length (plains Δ []) ≡ Δ
-length-plains[] zero = refl
-length-plains[] (suc Δ) = cong suc (length-plains[] Δ)
-
-length-boths[] :
-  ∀ Δ →
-  length (boths Δ []) ≡ Δ
-length-boths[] zero = refl
-length-boths[] (suc Δ) = cong suc (length-boths[] Δ)
-
 boths-length-split :
   (Φ Γ : CCtx) →
   boths (length (Φ ++ Γ)) [] ≡ boths (length Φ) [] ++ boths (length Γ) []
@@ -449,110 +443,12 @@ static-gradual-guarantee :
   ∀ {Δ Γ M M′ A} →
   Δ ⊢ᴳ M ⊑ M′ →
   Δ ∣ leftGCtx Γ ⊢ M ⦂ A →
-  SGGResult Δ Γ M′ A
-
+  Σ[ B ∈ Ty ] Σ[ p ∈ Imp ]
+    (Δ ∣ rightGCtx Γ ⊢ M′ ⦂ B) × (0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B)
+    
 ------------------------------------------------------------------------
 -- Compilation to explicit casts
 ------------------------------------------------------------------------
-
-coerce-wt-plains :
-  ∀ {Δ A C} →
-  (A~C : boths Δ [] ⊢ A ~ C) →
-  ∃[ B ]
-    ((0 ∣ plains Δ [] ⊢ coerce-⊒ A~C ⦂ A ⊒ B) ×
-     (0 ∣ plains Δ [] ⊢ coerce-⊑ A~C ⦂ B ⊑ C))
-coerce-wt-plains {Δ = Δ} A~C with coerce-wt A~C
-coerce-wt-plains {Δ = Δ} A~C | B , p⊒⊢ , p⊑⊢
-  rewrite leftICtx-boths[] Δ | rightICtx-boths[] Δ =
-  B , p⊒⊢ , p⊑⊢
-
-cong-~ :
-  ∀ {Γ A A′ B B′} →
-  A ≡ A′ →
-  B ≡ B′ →
-  Γ ⊢ A ~ B →
-  Γ ⊢ A′ ~ B′
-cong-~ refl refl h = h
-
-renameᵗ-ground-id :
-  ∀ {ρ G} →
-  Ground G →
-  renameᵗ ρ G ≡ G
-renameᵗ-ground-id (｀ α) = refl
-renameᵗ-ground-id (‵ ι) = refl
-renameᵗ-ground-id ★⇒★ = refl
-
-constTy-⇑ᵗ :
-  ∀ κ →
-  constTy κ ≡ ⇑ᵗ (constTy κ)
-constTy-⇑ᵗ (κℕ n) = refl
-
-constTy-renameᵗ :
-  ∀ ρ κ →
-  constTy κ ≡ renameᵗ ρ (constTy κ)
-constTy-renameᵗ ρ (κℕ n) = refl
-
-drop∋ᶜ-mode :
-  ∀ {d Φ Γ X m} →
-  (Φ ++ d ∷ Γ) ∋ᶜ raiseVarFrom (length Φ) X ∶ m →
-  (Φ ++ Γ) ∋ᶜ X ∶ m
-drop∋ᶜ-mode {Φ = []} (there x∈) = x∈
-drop∋ᶜ-mode {Φ = m₀ ∷ Φ} {X = zero} here = here
-drop∋ᶜ-mode {Φ = m₀ ∷ Φ} {X = suc X} (there x∈) =
-  there (drop∋ᶜ-mode {Φ = Φ} x∈)
-
-drop∋ᶜ-neither :
-  ∀ {Φ Γ X m} →
-  (Φ ++ neither ∷ Γ) ∋ᶜ raiseVarFrom (length Φ) X ∶ m →
-  (Φ ++ Γ) ∋ᶜ X ∶ m
-drop∋ᶜ-neither {Φ = Φ} {Γ = Γ} {X = X} x∈ =
-  drop∋ᶜ-mode {d = neither} {Φ = Φ} {Γ = Γ} {X = X} x∈
-
-drop<-raise-mode :
-  ∀ {d Φ Γ X} →
-  raiseVarFrom (length Φ) X < length (Φ ++ d ∷ Γ) →
-  X < length (Φ ++ Γ)
-drop<-raise-mode {Φ = []} (s<s X<Γ) = X<Γ
-drop<-raise-mode {Φ = m ∷ Φ} {X = zero} z<s = z<s
-drop<-raise-mode {Φ = m ∷ Φ} {X = suc X} (s<s X<Γ) =
-  s<s (drop<-raise-mode {Φ = Φ} X<Γ)
-
-drop<-raise :
-  ∀ {Φ Γ X} →
-  raiseVarFrom (length Φ) X < length (Φ ++ neither ∷ Γ) →
-  X < length (Φ ++ Γ)
-drop<-raise {Φ = Φ} {Γ = Γ} {X = X} X<Γ =
-  drop<-raise-mode {d = neither} {Φ = Φ} {Γ = Γ} {X = X} X<Γ
-
-raiseVarFrom-injective :
-  ∀ k {X Y} →
-  raiseVarFrom k X ≡ raiseVarFrom k Y →
-  X ≡ Y
-raiseVarFrom-injective zero eq = suc-injective eq
-raiseVarFrom-injective (suc k) {zero} {zero} eq = refl
-raiseVarFrom-injective (suc k) {zero} {suc Y} ()
-raiseVarFrom-injective (suc k) {suc X} {zero} ()
-raiseVarFrom-injective (suc k) {suc X} {suc Y} eq =
-  cong suc (raiseVarFrom-injective k (suc-injective eq))
-
-<-step :
-  ∀ {m n} →
-  m < n →
-  m < suc n
-<-step {zero} {suc n} z<s = z<s
-<-step {suc m} {suc n} (s<s m<n) = s<s (<-step m<n)
-
-raiseVarFrom-<-inv :
-  ∀ k {Δ X} →
-  raiseVarFrom k X < Δ →
-  X < Δ
-raiseVarFrom-<-inv zero {Δ = zero} ()
-raiseVarFrom-<-inv zero {Δ = suc Δ} (s<s X<Δ) = <-step X<Δ
-raiseVarFrom-<-inv (suc k) {Δ = zero} ()
-raiseVarFrom-<-inv (suc k) {Δ = suc Δ} {X = zero} z<s = z<s
-raiseVarFrom-<-inv (suc k) {Δ = suc Δ} {X = suc X}
-    (s<s rX<Δ) =
-  s<s (raiseVarFrom-<-inv k rX<Δ)
 
 <-weaken+ :
   ∀ Δ {X k} →
@@ -925,64 +821,18 @@ drop-⇑ᵗ-WfTy-plains {Δ = Δ} {A = A} wfA =
         (sym (length-boths[] Δ))
         wfA))
 
-swapMode : CMode → CMode
-swapMode left = right
-swapMode right = left
-swapMode both = both
-swapMode neither = neither
-
-swapCCtx : CCtx → CCtx
-swapCCtx [] = []
-swapCCtx (m ∷ Γ) = swapMode m ∷ swapCCtx Γ
-
-length-swapCCtx :
-  ∀ Γ →
-  length (swapCCtx Γ) ≡ length Γ
-length-swapCCtx [] = refl
-length-swapCCtx (m ∷ Γ) = cong suc (length-swapCCtx Γ)
-
-swap∋ᶜ :
-  ∀ {Γ X m} →
-  Γ ∋ᶜ X ∶ m →
-  swapCCtx Γ ∋ᶜ X ∶ swapMode m
-swap∋ᶜ here = here
-swap∋ᶜ (there x∈) = there (swap∋ᶜ x∈)
-
 swap-boths[] :
   ∀ Δ →
   swapCCtx (boths Δ []) ≡ boths Δ []
 swap-boths[] zero = refl
 swap-boths[] (suc Δ) = cong (both ∷_) (swap-boths[] Δ)
 
-~-swap :
-  ∀ {Γ A B} →
-  Γ ⊢ A ~ B →
-  swapCCtx Γ ⊢ B ~ A
-~-swap ★-~-★ = ★-~-★
-~-swap (X-~-X x∈) = X-~-X (swap∋ᶜ x∈)
-~-swap ι-~-ι = ι-~-ι
-~-swap (⇒-~-⇒ A~A′ B~B′) =
-  ⇒-~-⇒ (~-swap A~A′) (~-swap B~B′)
-~-swap (∀-~-∀ A~B) = ∀-~-∀ (~-swap A~B)
-~-swap (A-~-★ g A~G) = ★-~-B g (~-swap A~G)
-~-swap (★-~-B h H~B) = A-~-★ h (~-swap H~B)
-~-swap (νX-~-★ x∈) = ★-~-νX (swap∋ᶜ x∈)
-~-swap (★-~-νX x∈) = νX-~-★ (swap∋ᶜ x∈)
-~-swap {Γ = Γ} (∀-~-B {B = B} wfB A~⇑B) =
-  A-~-∀
-    (subst (λ n → WfTy n 0 B) (sym (length-swapCCtx Γ)) wfB)
-    (~-swap A~⇑B)
-~-swap {Γ = Γ} (A-~-∀ {A = A} wfA ⇑A~B) =
-  ∀-~-B
-    (subst (λ n → WfTy n 0 A) (sym (length-swapCCtx Γ)) wfA)
-    (~-swap ⇑A~B)
-
 boths-sym :
   ∀ {Δ A B} →
   boths Δ [] ⊢ A ~ B →
   boths Δ [] ⊢ B ~ A
 boths-sym {Δ = Δ} {A = A} {B = B} A~B =
-  subst (λ Γ → Γ ⊢ B ~ A) (swap-boths[] Δ) (~-swap A~B)
+  subst (λ Γ → Γ ⊢ B ~ A) (swap-boths[] Δ) (~-sym A~B)
 
 left-right-plain :
   ∀ {Γ X} →
@@ -1063,7 +913,6 @@ lower-bounds-consistentᶜ (⊑-＇ x∈) (⊑-★ν yν) =
 lower-bounds-consistentᶜ (⊑-＇ x∈) (⊑-＇ y∈) =
   X-~-X (left-right-plain x∈ y∈)
 lower-bounds-consistentᶜ (⊑-｀ (wfSeal ())) q⊢
-lower-bounds-consistentᶜ p⊢ (⊑-｀ (wfSeal ()))
 lower-bounds-consistentᶜ ⊑-‵ ⊑-‵ = ι-~-ι
 lower-bounds-consistentᶜ (⊑-⇒ p₁⊢ p₂⊢) (⊑-⇒ q₁⊢ q₂⊢) =
   ⇒-~-⇒ (lower-bounds-consistentᶜ p₁⊢ q₁⊢)

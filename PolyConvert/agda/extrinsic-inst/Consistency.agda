@@ -6,10 +6,14 @@ module Consistency where
 open import Types
 open import Imprecision
 
-open import Data.List using (List; []; _∷_; length)
+open import Data.List using (List; []; _∷_; _++_; length; replicate)
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Product using (_×_; _,_)
+open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
+
+------------------------------------------------------------------------
+-- Consistency context and lookup
+------------------------------------------------------------------------
 
 data CMode : Set where
   left right both neither : CMode
@@ -17,9 +21,13 @@ data CMode : Set where
 CCtx : Set
 CCtx = List CMode
 
+infix 4 _∋ᶜ_∶_
+data _∋ᶜ_∶_ : CCtx → TyVar → CMode → Set where
+  here : ∀ {Γ m} → (m ∷ Γ) ∋ᶜ zero ∶ m
+  there : ∀ {Γ X m m′} → Γ ∋ᶜ X ∶ m → (m′ ∷ Γ) ∋ᶜ suc X ∶ m
+
 boths : ℕ → CCtx → CCtx
-boths zero Γ = Γ
-boths (suc n) Γ = both ∷ boths n Γ
+boths n Γ = (replicate n both) ++ Γ
 
 leftMode : CMode → VarMode
 leftMode left = plain
@@ -41,68 +49,9 @@ rightICtx : CCtx → ICtx
 rightICtx [] = []
 rightICtx (m ∷ Γ) = rightMode m ∷ rightICtx Γ
 
-length-leftICtx : ∀ Γ → length (leftICtx Γ) ≡ length Γ
-length-leftICtx [] = refl
-length-leftICtx (m ∷ Γ) = cong suc (length-leftICtx Γ)
-
-length-rightICtx : ∀ Γ → length (rightICtx Γ) ≡ length Γ
-length-rightICtx [] = refl
-length-rightICtx (m ∷ Γ) = cong suc (length-rightICtx Γ)
-
-leftICtx-boths[] : ∀ Δ → leftICtx (boths Δ []) ≡ plains Δ []
-leftICtx-boths[] zero = refl
-leftICtx-boths[] (suc Δ) = cong (plain ∷_) (leftICtx-boths[] Δ)
-
-rightICtx-boths[] : ∀ Δ → rightICtx (boths Δ []) ≡ plains Δ []
-rightICtx-boths[] zero = refl
-rightICtx-boths[] (suc Δ) = cong (plain ∷_) (rightICtx-boths[] Δ)
-
-infix 4 _∋ᶜ_∶_
-data _∋ᶜ_∶_ : CCtx → TyVar → CMode → Set where
-  here : ∀ {Γ m} → (m ∷ Γ) ∋ᶜ zero ∶ m
-  there : ∀ {Γ X m m′} → Γ ∋ᶜ X ∶ m → (m′ ∷ Γ) ∋ᶜ suc X ∶ m
-
-left-lookup-left :
-  ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ left →
-  leftICtx Γ ∋ X ∶ plain
-left-lookup-left here = here
-left-lookup-left (there x∈) = there (left-lookup-left x∈)
-
-right-lookup-left :
-  ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ left →
-  rightICtx Γ ∋ X ∶ ν-bound
-right-lookup-left here = here
-right-lookup-left (there x∈) = there (right-lookup-left x∈)
-
-left-lookup-right :
-  ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ right →
-  leftICtx Γ ∋ X ∶ ν-bound
-left-lookup-right here = here
-left-lookup-right (there x∈) = there (left-lookup-right x∈)
-
-right-lookup-right :
-  ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ right →
-  rightICtx Γ ∋ X ∶ plain
-right-lookup-right here = here
-right-lookup-right (there x∈) = there (right-lookup-right x∈)
-
-left-lookup-both :
-  ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ both →
-  leftICtx Γ ∋ X ∶ plain
-left-lookup-both here = here
-left-lookup-both (there x∈) = there (left-lookup-both x∈)
-
-right-lookup-both :
-  ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ both →
-  rightICtx Γ ∋ X ∶ plain
-right-lookup-both here = here
-right-lookup-both (there x∈) = there (right-lookup-both x∈)
+------------------------------------------------------------------------
+-- Type Consistency
+------------------------------------------------------------------------
 
 infix 4 _⊢_~_
 
@@ -154,6 +103,10 @@ data _⊢_~_ (Γ : CCtx) : Ty → Ty → Set where
     right ∷ Γ ⊢ ⇑ᵗ A ~ B →
     Γ ⊢ A ~ (`∀ B)
 
+------------------------------------------------------------------------
+-- Generate a pair of imprecisions from consistent types
+------------------------------------------------------------------------
+
 coerce :
   ∀ {Γ A C} →
   Γ ⊢ A ~ C →
@@ -189,3 +142,12 @@ coerce (∀-~-B {B = B} wfB A~⇑B) | p⊒ , p⊑ =
 coerce (A-~-∀ {A = A} wfA ⇑A~B) with coerce ⇑A~B
 coerce (A-~-∀ {A = A} wfA ⇑A~B) | p⊒ , p⊑ =
   `∀A⊑B A p⊒ , `∀A⊑∀B p⊑
+
+
+coerce-⊒ : ∀ {Γ A C} → Γ ⊢ A ~ C → Imp
+coerce-⊒ A~C = proj₁ (coerce A~C)
+
+coerce-⊑ : ∀ {Γ A C} → Γ ⊢ A ~ C → Imp
+coerce-⊑ A~C = proj₂ (coerce A~C)
+
+

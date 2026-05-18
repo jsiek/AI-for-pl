@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 module All where
 
 -- File Charter:

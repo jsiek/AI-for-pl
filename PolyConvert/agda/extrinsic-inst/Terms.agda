@@ -332,3 +332,10 @@ cong-⊢⦂ :
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A →
   Δ ∣ Ψ ∣ Σ′ ∣ Γ′ ⊢ M′ ⦂ A′
 cong-⊢⦂ refl refl refl refl M = M
+
+constTy-⇑ᵗ : ∀ κ → constTy κ ≡ ⇑ᵗ (constTy κ)
+constTy-⇑ᵗ (κℕ n) = refl
+
+constTy-renameᵗ : ∀ ρ κ → constTy κ ≡ renameᵗ ρ (constTy κ)
+constTy-renameᵗ ρ (κℕ n) = refl
+

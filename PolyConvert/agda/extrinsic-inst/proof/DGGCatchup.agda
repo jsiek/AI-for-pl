@@ -2,7 +2,7 @@ module proof.DGGCatchup where
 
 -- File Charter:
 --   * Value catchup and convergence lemmas for the PolyConvert DGG proof.
---   * Owns the mutual terminal/value reasoning used by both simulations.
+--   * Owns the mutual terminal/value reasoning used by X~X simulations.
 --   * Intended as one independent worker-owned proof surface.
 
 open import Data.List using ([])

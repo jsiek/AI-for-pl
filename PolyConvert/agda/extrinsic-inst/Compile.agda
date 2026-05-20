@@ -38,8 +38,7 @@ open import Terms
     ; ⊢up to ⊢ᵀup
     ; ⊢down to ⊢ᵀdown
     )
-open import proof.ImprecisionConsistent using (coerce-wt-plains)
-open import proof.TypeProperties using (WfTy-closed-weakenᵗ)
+open import proof.ImprecisionConsistent using (coerce-wt-extend-X⊑X)
 
 compile :
   ∀ {Δ Γ M A} →
@@ -58,14 +57,14 @@ compile (⊢ƛ wfA M⊢) with compile M⊢
 compile (⊢ƛ wfA M⊢) | N , N⊢ =
   ƛᵀ _ ⇒ N , ⊢ᵀƛ wfA N⊢
 compile (⊢· L⊢ M⊢ A~A′)
-    with compile L⊢ | compile M⊢ | coerce-wt-plains A~A′
+    with compile L⊢ | compile M⊢ | coerce-wt-extend-X⊑X A~A′
 compile (⊢· L⊢ M⊢ A~A′)
     | L′ , L′⊢ | M′ , M′⊢ | B , p⊒⊢ , p⊑⊢ =
   L′ ·ᵀ ((M′ ⇓ᵀ coerce-⊑ A~A′) ⇑ᵀ coerce-⊒ A~A′) ,
   ⊢ᵀ· L′⊢ (⊢ᵀup p⊒⊢ (⊢ᵀdown p⊑⊢ M′⊢))
 compile (⊢·★ L⊢ M⊢ A′~★)
     with compile L⊢ | compile M⊢
-       | coerce-wt-plains (A-~-★ ★⇒★ (⇒-~-⇒ A′~★ ★-~-★))
+       | coerce-wt-extend-X⊑X (A-~-★ ★⇒★ (⇒-~-⇒ A′~★ ★-~-★))
 compile (⊢·★ L⊢ M⊢ A′~★)
     | L′ , L′⊢ | M′ , M′⊢ | B , p⊒⊢ , p⊑⊢ =
   ((L′ ⇓ᵀ coerce-⊑ (A-~-★ ★⇒★ (⇒-~-⇒ A′~★ ★-~-★)))
@@ -77,20 +76,11 @@ compile (⊢Λ vM M⊢) | N , N⊢ | vN =
 compile (⊢• M⊢ wfB wfT) with compile M⊢
 compile (⊢• {B = B} {T = T} M⊢ wfB wfT) | M′ , M′⊢ =
   M′ ⦂∀ᵀ B [ T ] , ⊢ᵀ• M′⊢ wfB wfT
-compile {Δ = Δ} (⊢•★ M⊢ wfT)
-    with compile M⊢
-       | coerce-wt-plains (∀-~-B {Γ = boths Δ []} wf★ ★-~-★)
-compile {Δ = Δ} (⊢•★ {T = T} M⊢ wfT)
-    | M′ , M′⊢ | B , p⊒⊢ , p⊑⊢ =
-  ((M′ ⇓ᵀ coerce-⊑ (∀-~-B {Γ = boths Δ []} wf★ ★-~-★))
-    ⇑ᵀ coerce-⊒ (∀-~-B {Γ = boths Δ []} wf★ ★-~-★)) ⦂∀ᵀ ★ [ T ] ,
-  ⊢ᵀ• (⊢ᵀup p⊒⊢ (⊢ᵀdown p⊑⊢ M′⊢)) wf★
-    (WfTy-closed-weakenᵗ Δ wfT)
 compile (⊢$ κ) =
   $ᵀ κ , ⊢ᵀ$ κ
 compile (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ)
-    with compile L⊢ | compile M⊢ | coerce-wt-plains A~ℕ
-       | coerce-wt-plains B~ℕ
+    with compile L⊢ | compile M⊢ | coerce-wt-extend-X⊑X A~ℕ
+       | coerce-wt-extend-X⊑X B~ℕ
 compile (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ)
     | L′ , L′⊢ | M′ , M′⊢ | BL , pL⊒⊢ , pL⊑⊢
     | BM , pM⊒⊢ , pM⊑⊢ =

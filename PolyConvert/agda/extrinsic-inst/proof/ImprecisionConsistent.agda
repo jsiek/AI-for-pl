@@ -13,16 +13,29 @@ open import Imprecision
 open import Consistency
 open import Types
 open import proof.ConsistencyProperties
-  using (length-leftICtx; length-rightICtx; drop-neither-~)
-open import proof.ImprecisionProperties using (trans-⊑-plains)
+  using
+    ( length-leftICtx
+    ; length-rightICtx
+    ; length-extend-X~X[]
+    ; drop-neither-~
+    )
+open import proof.ImprecisionProperties
+  using
+    ( _≤ᵢ_
+    ; []≤ᵢ
+    ; _∷≤ᵢ_
+    ; X⊑X≤X⊑X
+    ; X⊑X≤ν
+    ; trans-ctx-⊑
+    )
 
-leftICtx-boths[] : ∀ Δ → leftICtx (boths Δ []) ≡ plains Δ []
-leftICtx-boths[] zero = refl
-leftICtx-boths[] (suc Δ) = cong (X⊑X ∷_) (leftICtx-boths[] Δ)
+leftICtx-extend-X~X[] : ∀ Δ → leftICtx (extend-X~X Δ []) ≡ extend-X⊑X Δ []
+leftICtx-extend-X~X[] zero = refl
+leftICtx-extend-X~X[] (suc Δ) = cong (X⊑X ∷_) (leftICtx-extend-X~X[] Δ)
 
-rightICtx-boths[] : ∀ Δ → rightICtx (boths Δ []) ≡ plains Δ []
-rightICtx-boths[] zero = refl
-rightICtx-boths[] (suc Δ) = cong (X⊑X ∷_) (rightICtx-boths[] Δ)
+rightICtx-extend-X~X[] : ∀ Δ → rightICtx (extend-X~X Δ []) ≡ extend-X⊑X Δ []
+rightICtx-extend-X~X[] zero = refl
+rightICtx-extend-X~X[] (suc Δ) = cong (X⊑X ∷_) (rightICtx-extend-X~X[] Δ)
 
 wf-leftICtx :
   ∀ {Γ A} →
@@ -40,42 +53,42 @@ wf-rightICtx {Γ = Γ} wfA =
 
 left-lookup-left :
   ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ left →
+  Γ ∋ᶜ X ∶ X~★ →
   leftICtx Γ ∋ X ∶ X⊑X
 left-lookup-left here = here
 left-lookup-left (there x∈) = there (left-lookup-left x∈)
 
 right-lookup-left :
   ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ left →
+  Γ ∋ᶜ X ∶ X~★ →
   rightICtx Γ ∋ X ∶ X⊑★
 right-lookup-left here = here
 right-lookup-left (there x∈) = there (right-lookup-left x∈)
 
 left-lookup-right :
   ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ right →
+  Γ ∋ᶜ X ∶ ★~X →
   leftICtx Γ ∋ X ∶ X⊑★
 left-lookup-right here = here
 left-lookup-right (there x∈) = there (left-lookup-right x∈)
 
 right-lookup-right :
   ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ right →
+  Γ ∋ᶜ X ∶ ★~X →
   rightICtx Γ ∋ X ∶ X⊑X
 right-lookup-right here = here
 right-lookup-right (there x∈) = there (right-lookup-right x∈)
 
 left-lookup-both :
   ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ both →
+  Γ ∋ᶜ X ∶ X~X →
   leftICtx Γ ∋ X ∶ X⊑X
 left-lookup-both here = here
 left-lookup-both (there x∈) = there (left-lookup-both x∈)
 
 right-lookup-both : 
   ∀ {Γ X} →
-  Γ ∋ᶜ X ∶ both →
+  Γ ∋ᶜ X ∶ X~X →
   rightICtx Γ ∋ X ∶ X⊑X
 right-lookup-both here = here
 right-lookup-both (there x∈) = there (right-lookup-both x∈)
@@ -136,30 +149,30 @@ coerce-wt {Γ = Γ} (A-~-∀ {A = A} wfA ⇑A~B)
   `∀ Bₘ ,
   ⊢∀A-⊑-B (wf-leftICtx {Γ = Γ} wfA) p⊒⊢ , ⊢∀A-⊑-∀B p⊑⊢
 
-coerce-wt-plains :
+coerce-wt-extend-X⊑X :
   ∀ {Δ A C} →
-  (A~C : boths Δ [] ⊢ A ~ C) →
+  (A~C : extend-X~X Δ [] ⊢ A ~ C) →
   ∃[ B ]
-    ((0 ∣ plains Δ [] ⊢ coerce-⊒ A~C ⦂ A ⊒ B) ×
-     (0 ∣ plains Δ [] ⊢ coerce-⊑ A~C ⦂ B ⊑ C))
-coerce-wt-plains {Δ = Δ} A~C with coerce-wt A~C
-coerce-wt-plains {Δ = Δ} A~C | B , p⊒⊢ , p⊑⊢
-  rewrite leftICtx-boths[] Δ | rightICtx-boths[] Δ =
+    ((0 ∣ extend-X⊑X Δ [] ⊢ coerce-⊒ A~C ⦂ A ⊒ B) ×
+     (0 ∣ extend-X⊑X Δ [] ⊢ coerce-⊑ A~C ⦂ B ⊑ C))
+coerce-wt-extend-X⊑X {Δ = Δ} A~C with coerce-wt A~C
+coerce-wt-extend-X⊑X {Δ = Δ} A~C | B , p⊒⊢ , p⊑⊢
+  rewrite leftICtx-extend-X~X[] Δ | rightICtx-extend-X~X[] Δ =
   B , p⊒⊢ , p⊑⊢
 
 left-right-plain :
   ∀ {Γ X} →
   leftICtx Γ ∋ X ∶ X⊑X →
   rightICtx Γ ∋ X ∶ X⊑X →
-  Γ ∋ᶜ X ∶ both
-left-right-plain {Γ = left ∷ Γ} here ()
-left-right-plain {Γ = left ∷ Γ} (there x∈) (there y∈) =
+  Γ ∋ᶜ X ∶ X~X
+left-right-plain {Γ = X~★ ∷ Γ} here ()
+left-right-plain {Γ = X~★ ∷ Γ} (there x∈) (there y∈) =
   there (left-right-plain x∈ y∈)
-left-right-plain {Γ = right ∷ Γ} () here
-left-right-plain {Γ = right ∷ Γ} (there x∈) (there y∈) =
+left-right-plain {Γ = ★~X ∷ Γ} () here
+left-right-plain {Γ = ★~X ∷ Γ} (there x∈) (there y∈) =
   there (left-right-plain x∈ y∈)
-left-right-plain {Γ = both ∷ Γ} here here = here
-left-right-plain {Γ = both ∷ Γ} (there x∈) (there y∈) =
+left-right-plain {Γ = X~X ∷ Γ} here here = here
+left-right-plain {Γ = X~X ∷ Γ} (there x∈) (there y∈) =
   there (left-right-plain x∈ y∈)
 left-right-plain {Γ = neither ∷ Γ} {X = zero} () ()
 left-right-plain {Γ = neither ∷ Γ} {X = suc X} (there x∈) (there y∈) =
@@ -169,15 +182,15 @@ left-ν-right-plain :
   ∀ {Γ X} →
   leftICtx Γ ∋ X ∶ X⊑★ →
   rightICtx Γ ∋ X ∶ X⊑X →
-  Γ ∋ᶜ X ∶ right
-left-ν-right-plain {Γ = left ∷ Γ} {X = zero} ()
-left-ν-right-plain {Γ = left ∷ Γ} {X = suc X} (there x∈) (there y∈) =
+  Γ ∋ᶜ X ∶ ★~X
+left-ν-right-plain {Γ = X~★ ∷ Γ} {X = zero} ()
+left-ν-right-plain {Γ = X~★ ∷ Γ} {X = suc X} (there x∈) (there y∈) =
   there (left-ν-right-plain x∈ y∈)
-left-ν-right-plain {Γ = right ∷ Γ} here here = here
-left-ν-right-plain {Γ = right ∷ Γ} (there x∈) (there y∈) =
+left-ν-right-plain {Γ = ★~X ∷ Γ} here here = here
+left-ν-right-plain {Γ = ★~X ∷ Γ} (there x∈) (there y∈) =
   there (left-ν-right-plain x∈ y∈)
-left-ν-right-plain {Γ = both ∷ Γ} {X = zero} () here
-left-ν-right-plain {Γ = both ∷ Γ} {X = suc X} (there x∈) (there y∈) =
+left-ν-right-plain {Γ = X~X ∷ Γ} {X = zero} () here
+left-ν-right-plain {Γ = X~X ∷ Γ} {X = suc X} (there x∈) (there y∈) =
   there (left-ν-right-plain x∈ y∈)
 left-ν-right-plain {Γ = neither ∷ Γ} {X = zero} here ()
 left-ν-right-plain {Γ = neither ∷ Γ} {X = suc X} (there x∈) (there y∈) =
@@ -187,15 +200,15 @@ left-plain-right-ν :
   ∀ {Γ X} →
   leftICtx Γ ∋ X ∶ X⊑X →
   rightICtx Γ ∋ X ∶ X⊑★ →
-  Γ ∋ᶜ X ∶ left
-left-plain-right-ν {Γ = left ∷ Γ} here here = here
-left-plain-right-ν {Γ = left ∷ Γ} (there x∈) (there y∈) =
+  Γ ∋ᶜ X ∶ X~★
+left-plain-right-ν {Γ = X~★ ∷ Γ} here here = here
+left-plain-right-ν {Γ = X~★ ∷ Γ} (there x∈) (there y∈) =
   there (left-plain-right-ν x∈ y∈)
-left-plain-right-ν {Γ = right ∷ Γ} {X = zero} () ()
-left-plain-right-ν {Γ = right ∷ Γ} {X = suc X} (there x∈) (there y∈) =
+left-plain-right-ν {Γ = ★~X ∷ Γ} {X = zero} () ()
+left-plain-right-ν {Γ = ★~X ∷ Γ} {X = suc X} (there x∈) (there y∈) =
   there (left-plain-right-ν x∈ y∈)
-left-plain-right-ν {Γ = both ∷ Γ} {X = zero} here ()
-left-plain-right-ν {Γ = both ∷ Γ} {X = suc X} (there x∈) (there y∈) =
+left-plain-right-ν {Γ = X~X ∷ Γ} {X = zero} here ()
+left-plain-right-ν {Γ = X~X ∷ Γ} {X = suc X} (there x∈) (there y∈) =
   there (left-plain-right-ν x∈ y∈)
 left-plain-right-ν {Γ = neither ∷ Γ} {X = zero} () here
 left-plain-right-ν {Γ = neither ∷ Γ} {X = suc X} (there x∈) (there y∈) =
@@ -224,38 +237,172 @@ lower-bounds-consistentᶜ (⊢A⇒B-⊑-A′⇒B′ p₁⊢ p₂⊢) (⊢A⇒B-
   ⇒-~-⇒ (lower-bounds-consistentᶜ p₁⊢ q₁⊢)
          (lower-bounds-consistentᶜ p₂⊢ q₂⊢)
 lower-bounds-consistentᶜ {Γ = Γ} (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-∀B q⊢) =
-  ∀-~-∀ (lower-bounds-consistentᶜ {Γ = both ∷ Γ} p⊢ q⊢)
+  ∀-~-∀ (lower-bounds-consistentᶜ {Γ = X~X ∷ Γ} p⊢ q⊢)
 lower-bounds-consistentᶜ {Γ = Γ} {C = C} (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B wfC q⊢) =
   ∀-~-B
     (subst (λ n → WfTy n 0 C) (length-rightICtx Γ) wfC)
-    (lower-bounds-consistentᶜ {Γ = left ∷ Γ} p⊢ q⊢)
+    (lower-bounds-consistentᶜ {Γ = X~★ ∷ Γ} p⊢ q⊢)
 lower-bounds-consistentᶜ {Γ = Γ} {B = B} (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-∀B q⊢) =
   A-~-∀
     (subst (λ n → WfTy n 0 B) (length-leftICtx Γ) wfB)
-    (lower-bounds-consistentᶜ {Γ = right ∷ Γ} p⊢ q⊢)
+    (lower-bounds-consistentᶜ {Γ = ★~X ∷ Γ} p⊢ q⊢)
 lower-bounds-consistentᶜ {Γ = Γ} (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfC q⊢) =
   drop-neither-~ (lower-bounds-consistentᶜ {Γ = neither ∷ Γ} p⊢ q⊢)
 
 lower-bounds-consistent :
   ∀ {Δ A B C p q} →
-  0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B →
-  0 ∣ plains Δ [] ⊢ q ⦂ A ⊑ C →
-  boths Δ [] ⊢ B ~ C
+  0 ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B →
+  0 ∣ extend-X⊑X Δ [] ⊢ q ⦂ A ⊑ C →
+  extend-X~X Δ [] ⊢ B ~ C
 lower-bounds-consistent
     {Δ = Δ} {A = A} {B = B} {C = C} {p = p} {q = q} p⊢ q⊢ =
-  lower-bounds-consistentᶜ {Γ = boths Δ []}
-    (subst (λ Φ → 0 ∣ Φ ⊢ p ⦂ A ⊑ B) (sym (leftICtx-boths[] Δ)) p⊢)
-    (subst (λ Φ → 0 ∣ Φ ⊢ q ⦂ A ⊑ C) (sym (rightICtx-boths[] Δ)) q⊢)
+  lower-bounds-consistentᶜ {Γ = extend-X~X Δ []}
+    (subst (λ Φ → 0 ∣ Φ ⊢ p ⦂ A ⊑ B) (sym (leftICtx-extend-X~X[] Δ)) p⊢)
+    (subst (λ Φ → 0 ∣ Φ ⊢ q ⦂ A ⊑ C) (sym (rightICtx-extend-X~X[] Δ)) q⊢)
 
-app-consistency :
-  ∀ {Δ A A′ B B′ p q} →
-  0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B →
-  boths Δ [] ⊢ A ~ A′ →
-  0 ∣ plains Δ [] ⊢ q ⦂ A′ ⊑ B′ →
-  boths Δ [] ⊢ B ~ B′
-app-consistency p⊢ A~A′ q⊢ with coerce-wt-plains A~A′
-app-consistency p⊢ A~A′ q⊢ | C , C⊑A , C⊑A′
-    with trans-⊑-plains C⊑A p⊢ | trans-⊑-plains C⊑A′ q⊢
-app-consistency p⊢ A~A′ q⊢ | C , C⊑A , C⊑A′
+sameCCtx : VarPrecCtx → CCtx
+sameCCtx [] = []
+sameCCtx (X⊑X ∷ Φ) = X~X ∷ sameCCtx Φ
+sameCCtx (X⊑★ ∷ Φ) = neither ∷ sameCCtx Φ
+
+leftICtx-sameCCtx : ∀ Φ → leftICtx (sameCCtx Φ) ≡ Φ
+leftICtx-sameCCtx [] = refl
+leftICtx-sameCCtx (X⊑X ∷ Φ) = cong (X⊑X ∷_) (leftICtx-sameCCtx Φ)
+leftICtx-sameCCtx (X⊑★ ∷ Φ) = cong (X⊑★ ∷_) (leftICtx-sameCCtx Φ)
+
+rightICtx-sameCCtx : ∀ Φ → rightICtx (sameCCtx Φ) ≡ Φ
+rightICtx-sameCCtx [] = refl
+rightICtx-sameCCtx (X⊑X ∷ Φ) = cong (X⊑X ∷_) (rightICtx-sameCCtx Φ)
+rightICtx-sameCCtx (X⊑★ ∷ Φ) = cong (X⊑★ ∷_) (rightICtx-sameCCtx Φ)
+
+length-sameCCtx : ∀ Φ → length (sameCCtx Φ) ≡ length Φ
+length-sameCCtx [] = refl
+length-sameCCtx (X⊑X ∷ Φ) = cong suc (length-sameCCtx Φ)
+length-sameCCtx (X⊑★ ∷ Φ) = cong suc (length-sameCCtx Φ)
+
+length-same-to-plain :
+  ∀ Ω Φ →
+  length (Ω ++ sameCCtx Φ) ≡
+  length (Ω ++ extend-X~X (length Φ) [])
+length-same-to-plain [] Φ =
+  trans (length-sameCCtx Φ) (sym (length-extend-X~X[] (length Φ)))
+length-same-to-plain (d ∷ Ω) Φ = cong suc (length-same-to-plain Ω Φ)
+
+same-to-plain-X~X∋ᶜ :
+  ∀ {Ω Φ X} →
+  Ω ++ sameCCtx Φ ∋ᶜ X ∶ X~X →
+  Ω ++ extend-X~X (length Φ) [] ∋ᶜ X ∶ X~X
+same-to-plain-X~X∋ᶜ {Ω = []} {Φ = []} ()
+same-to-plain-X~X∋ᶜ {Ω = []} {Φ = X⊑X ∷ Φ} here = here
+same-to-plain-X~X∋ᶜ {Ω = []} {Φ = X⊑X ∷ Φ} (there x∈) =
+  there (same-to-plain-X~X∋ᶜ {Ω = []} {Φ = Φ} x∈)
+same-to-plain-X~X∋ᶜ {Ω = []} {Φ = X⊑★ ∷ Φ} (there x∈) =
+  there (same-to-plain-X~X∋ᶜ {Ω = []} {Φ = Φ} x∈)
+same-to-plain-X~X∋ᶜ {Ω = d ∷ Ω} here = here
+same-to-plain-X~X∋ᶜ {Ω = d ∷ Ω} (there x∈) =
+  there (same-to-plain-X~X∋ᶜ {Ω = Ω} x∈)
+
+same-to-plain-X~★∋ᶜ :
+  ∀ {Ω Φ X} →
+  Ω ++ sameCCtx Φ ∋ᶜ X ∶ X~★ →
+  Ω ++ extend-X~X (length Φ) [] ∋ᶜ X ∶ X~★
+same-to-plain-X~★∋ᶜ {Ω = []} {Φ = []} ()
+same-to-plain-X~★∋ᶜ {Ω = []} {Φ = X⊑X ∷ Φ} (there x∈) =
+  there (same-to-plain-X~★∋ᶜ {Ω = []} {Φ = Φ} x∈)
+same-to-plain-X~★∋ᶜ {Ω = []} {Φ = X⊑★ ∷ Φ} (there x∈) =
+  there (same-to-plain-X~★∋ᶜ {Ω = []} {Φ = Φ} x∈)
+same-to-plain-X~★∋ᶜ {Ω = d ∷ Ω} here = here
+same-to-plain-X~★∋ᶜ {Ω = d ∷ Ω} (there x∈) =
+  there (same-to-plain-X~★∋ᶜ {Ω = Ω} x∈)
+
+same-to-plain-★~X∋ᶜ :
+  ∀ {Ω Φ X} →
+  Ω ++ sameCCtx Φ ∋ᶜ X ∶ ★~X →
+  Ω ++ extend-X~X (length Φ) [] ∋ᶜ X ∶ ★~X
+same-to-plain-★~X∋ᶜ {Ω = []} {Φ = []} ()
+same-to-plain-★~X∋ᶜ {Ω = []} {Φ = X⊑X ∷ Φ} (there x∈) =
+  there (same-to-plain-★~X∋ᶜ {Ω = []} {Φ = Φ} x∈)
+same-to-plain-★~X∋ᶜ {Ω = []} {Φ = X⊑★ ∷ Φ} (there x∈) =
+  there (same-to-plain-★~X∋ᶜ {Ω = []} {Φ = Φ} x∈)
+same-to-plain-★~X∋ᶜ {Ω = d ∷ Ω} here = here
+same-to-plain-★~X∋ᶜ {Ω = d ∷ Ω} (there x∈) =
+  there (same-to-plain-★~X∋ᶜ {Ω = Ω} x∈)
+
+same-to-plain-WfTy :
+  ∀ {Ω Φ A} →
+  WfTy (length (Ω ++ sameCCtx Φ)) 0 A →
+  WfTy (length (Ω ++ extend-X~X (length Φ) [])) 0 A
+same-to-plain-WfTy {Ω = Ω} {Φ = Φ} wfA =
+  subst (λ n → WfTy n 0 _) (length-same-to-plain Ω Φ) wfA
+
+same-to-plain-~ :
+  ∀ {Ω Φ A B} →
+  Ω ++ sameCCtx Φ ⊢ A ~ B →
+  Ω ++ extend-X~X (length Φ) [] ⊢ A ~ B
+same-to-plain-~ ★-~-★ = ★-~-★
+same-to-plain-~ {Ω = Ω} {Φ = Φ} (X-~-X x∈) =
+  X-~-X (same-to-plain-X~X∋ᶜ {Ω = Ω} {Φ = Φ} x∈)
+same-to-plain-~ ι-~-ι = ι-~-ι
+same-to-plain-~ {Ω = Ω} {Φ = Φ} (⇒-~-⇒ A~A′ B~B′) =
+  ⇒-~-⇒ (same-to-plain-~ {Ω = Ω} {Φ = Φ} A~A′)
+         (same-to-plain-~ {Ω = Ω} {Φ = Φ} B~B′)
+same-to-plain-~ {Ω = Ω} {Φ = Φ} (∀-~-∀ A~B) =
+  ∀-~-∀ (same-to-plain-~ {Ω = X~X ∷ Ω} {Φ = Φ} A~B)
+same-to-plain-~ {Ω = Ω} {Φ = Φ} (A-~-★ g A~G) =
+  A-~-★ g (same-to-plain-~ {Ω = Ω} {Φ = Φ} A~G)
+same-to-plain-~ {Ω = Ω} {Φ = Φ} (★-~-B g G~B) =
+  ★-~-B g (same-to-plain-~ {Ω = Ω} {Φ = Φ} G~B)
+same-to-plain-~ {Ω = Ω} {Φ = Φ} (νX-~-★ x∈) =
+  νX-~-★ (same-to-plain-X~★∋ᶜ {Ω = Ω} {Φ = Φ} x∈)
+same-to-plain-~ {Ω = Ω} {Φ = Φ} (★-~-νX x∈) =
+  ★-~-νX (same-to-plain-★~X∋ᶜ {Ω = Ω} {Φ = Φ} x∈)
+same-to-plain-~ {Ω = Ω} {Φ = Φ} (∀-~-B wfB A~⇑B) =
+  ∀-~-B (same-to-plain-WfTy {Ω = Ω} {Φ = Φ} wfB)
+    (same-to-plain-~ {Ω = X~★ ∷ Ω} {Φ = Φ} A~⇑B)
+same-to-plain-~ {Ω = Ω} {Φ = Φ} (A-~-∀ wfA ⇑A~B) =
+  A-~-∀ (same-to-plain-WfTy {Ω = Ω} {Φ = Φ} wfA)
+    (same-to-plain-~ {Ω = ★~X ∷ Ω} {Φ = Φ} ⇑A~B)
+
+lower-bounds-consistentᵢ :
+  ∀ {Φ A B C p q} →
+  0 ∣ Φ ⊢ p ⦂ A ⊑ B →
+  0 ∣ Φ ⊢ q ⦂ A ⊑ C →
+  extend-X~X (length Φ) [] ⊢ B ~ C
+lower-bounds-consistentᵢ {Φ = Φ} {A = A} {B = B} {C = C} {p = p} {q = q} p⊢ q⊢ =
+  same-to-plain-~ {Ω = []} {Φ = Φ}
+    (lower-bounds-consistentᶜ {Γ = sameCCtx Φ}
+      (subst (λ Ψ → 0 ∣ Ψ ⊢ p ⦂ A ⊑ B) (sym (leftICtx-sameCCtx Φ)) p⊢)
+      (subst (λ Ψ → 0 ∣ Ψ ⊢ q ⦂ A ⊑ C) (sym (rightICtx-sameCCtx Φ)) q⊢))
+
+suc-injective : ∀ {m n} → suc m ≡ suc n → m ≡ n
+suc-injective refl = refl
+
+plain≤ᵢ :
+  ∀ {Δ Φ} →
+  length Φ ≡ Δ →
+  extend-X⊑X Δ [] ≤ᵢ Φ
+plain≤ᵢ {Δ = zero} {Φ = []} refl = []≤ᵢ
+plain≤ᵢ {Δ = zero} {Φ = X⊑X ∷ Φ} ()
+plain≤ᵢ {Δ = zero} {Φ = X⊑★ ∷ Φ} ()
+plain≤ᵢ {Δ = suc Δ} {Φ = []} ()
+plain≤ᵢ {Δ = suc Δ} {Φ = X⊑X ∷ Φ} len =
+  X⊑X≤X⊑X ∷≤ᵢ plain≤ᵢ (suc-injective len)
+plain≤ᵢ {Δ = suc Δ} {Φ = X⊑★ ∷ Φ} len =
+  X⊑X≤ν ∷≤ᵢ plain≤ᵢ (suc-injective len)
+
+app-consistencyᵢ :
+  ∀ {Δ Φ A A′ B B′ p q} →
+  length Φ ≡ Δ →
+  0 ∣ Φ ⊢ p ⦂ A ⊑ B →
+  extend-X~X Δ [] ⊢ A ~ A′ →
+  0 ∣ Φ ⊢ q ⦂ A′ ⊑ B′ →
+  extend-X~X Δ [] ⊢ B ~ B′
+app-consistencyᵢ {Δ = Δ} {Φ = Φ} len p⊢ A~A′ q⊢
+    with coerce-wt-extend-X⊑X A~A′
+app-consistencyᵢ {Δ = Δ} {Φ = Φ} len p⊢ A~A′ q⊢ | C , C⊑A , C⊑A′
+    with trans-ctx-⊑ (plain≤ᵢ len) C⊑A p⊢
+       | trans-ctx-⊑ (plain≤ᵢ len) C⊑A′ q⊢
+app-consistencyᵢ {Φ = Φ} len p⊢ A~A′ q⊢ | C , C⊑A , C⊑A′
     | r , C⊑B | s , C⊑B′ =
-  lower-bounds-consistent C⊑B C⊑B′
+  subst (λ n → extend-X~X n [] ⊢ _ ~ _) len
+    (lower-bounds-consistentᵢ C⊑B C⊑B′)

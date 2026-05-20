@@ -19,7 +19,7 @@ open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; s
 open import Types
 open import Imprecision
 open import Store
-open import proof.ConsistencyProperties using (drop-⇑ᵗ-WfTy-plains)
+open import proof.ConsistencyProperties using (drop-⇑ᵗ-WfTy-extend-X⊑X)
 open import proof.TypeProperties
 open import proof.StoreProperties using (len<suc-StoreWf)
 
@@ -87,6 +87,19 @@ tgt⊑-correct (⊢∀A-⊑-B wfB p⊢) = refl
 ⊑-tgt-wf (⊢∀A-⊑-∀B p⊢) = wf∀ (⊑-tgt-wf p⊢)
 ⊑-tgt-wf (⊢∀A-⊑-B wfB p⊢) = wfB
 
+⊑-tgt-non∀ :
+  ∀ {Ψ Γ p A B} →
+  Non∀ A →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
+  Non∀ B
+⊑-tgt-non∀ non∀-★ ⊢★-⊑-★ = non∀-★
+⊑-tgt-non∀ non∀A (⊢X-⊑-★ xν) = non∀-★
+⊑-tgt-non∀ non∀A (⊢A-⊑-★ g p⊢) = non∀-★
+⊑-tgt-non∀ non∀A (⊢X-⊑-X x∈) = non∀-＇
+⊑-tgt-non∀ non∀A (⊢α-⊑-α wfα) = non∀-｀
+⊑-tgt-non∀ non∀A ⊢ι-⊑-ι = non∀-‵
+⊑-tgt-non∀ non∀-⇒ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) = non∀-⇒
+
 wk-⊑ :
   ∀ {Ψ Ψ′ Γᵢ p A B} →
   Ψ ≤ Ψ′ →
@@ -111,30 +124,55 @@ wk-⊒ :
   Ψ′ ∣ Γᵢ ⊢ p ⦂ A ⊒ B
 wk-⊒ = wk-⊑
 
-length-plains[] :
+length-extend-X⊑X[] :
   ∀ Δ →
-  length (plains Δ []) ≡ Δ
-length-plains[] zero = refl
-length-plains[] (suc Δ) = cong suc (length-plains[] Δ)
+  length (extend-X⊑X Δ []) ≡ Δ
+length-extend-X⊑X[] zero = refl
+length-extend-X⊑X[] (suc Δ) = cong suc (length-extend-X⊑X[] Δ)
 
-⊑-src-wf-plains :
+extend-X⊑X-lookup :
+  ∀ {Δ X} →
+  X < Δ →
+  extend-X⊑X Δ [] ∋ X ∶ X⊑X
+extend-X⊑X-lookup {Δ = zero} ()
+extend-X⊑X-lookup {Δ = suc Δ} {X = zero} z<s = here
+extend-X⊑X-lookup {Δ = suc Δ} {X = suc X} (s<s X<Δ) =
+  there (extend-X⊑X-lookup X<Δ)
+
+reflImp-wt-extend-X⊑X :
+  ∀ {Δ Ψ A} →
+  WfTy Δ Ψ A →
+  Ψ ∣ extend-X⊑X Δ [] ⊢ reflImp A ⦂ A ⊑ A
+reflImp-wt-extend-X⊑X (wfVar X<Δ) =
+  ⊢X-⊑-X (extend-X⊑X-lookup X<Δ)
+reflImp-wt-extend-X⊑X (wfSeal α<Ψ) = ⊢α-⊑-α (wfSeal α<Ψ)
+reflImp-wt-extend-X⊑X wfBase = ⊢ι-⊑-ι
+reflImp-wt-extend-X⊑X wf★ = ⊢★-⊑-★
+reflImp-wt-extend-X⊑X (wf⇒ wfA wfB) =
+  ⊢A⇒B-⊑-A′⇒B′
+    (reflImp-wt-extend-X⊑X wfA)
+    (reflImp-wt-extend-X⊑X wfB)
+reflImp-wt-extend-X⊑X (wf∀ wfA) =
+  ⊢∀A-⊑-∀B (reflImp-wt-extend-X⊑X wfA)
+
+⊑-src-wf-extend-X⊑X :
   ∀ {Δ p A B} →
-  0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B →
+  0 ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B →
   WfTy Δ 0 A
-⊑-src-wf-plains {Δ = Δ} p⊢ =
-  subst (λ n → WfTy n 0 _) (length-plains[] Δ) (⊑-src-wf p⊢)
+⊑-src-wf-extend-X⊑X {Δ = Δ} p⊢ =
+  subst (λ n → WfTy n 0 _) (length-extend-X⊑X[] Δ) (⊑-src-wf p⊢)
 
-⊑-tgt-wf-plains :
+⊑-tgt-wf-extend-X⊑X :
   ∀ {Δ p A B} →
-  0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B →
+  0 ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B →
   WfTy Δ 0 B
-⊑-tgt-wf-plains {Δ = Δ} p⊢ =
-  subst (λ n → WfTy n 0 _) (length-plains[] Δ) (⊑-tgt-wf p⊢)
+⊑-tgt-wf-extend-X⊑X {Δ = Δ} p⊢ =
+  subst (λ n → WfTy n 0 _) (length-extend-X⊑X[] Δ) (⊑-tgt-wf p⊢)
 
 ⊑-tgt-wf-prefix :
   ∀ {Δ Φ A B p} →
   WfTy (length Φ) 0 A →
-  0 ∣ Φ ++ plains Δ [] ⊢ p ⦂ A ⊑ B →
+  0 ∣ Φ ++ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B →
   WfTy (length Φ) 0 B
 ⊑-tgt-wf-prefix wf★ ⊢★-⊑-★ = wf★
 ⊑-tgt-wf-prefix wfA (⊢X-⊑-★ xν) = wf★
@@ -148,16 +186,45 @@ length-plains[] (suc Δ) = cong suc (length-plains[] Δ)
 ⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA) (⊢∀A-⊑-∀B p⊢) =
   wf∀ (⊑-tgt-wf-prefix {Δ = Δ} {Φ = X⊑X ∷ Φ} wfA p⊢)
 ⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA) (⊢∀A-⊑-B wfB p⊢) =
-  drop-⇑ᵗ-WfTy-plains {Δ = length Φ}
+  drop-⇑ᵗ-WfTy-extend-X⊑X {Δ = length Φ}
     (⊑-tgt-wf-prefix {Δ = Δ} {Φ = X⊑★ ∷ Φ} wfA p⊢)
 
-⊑-tgt-wf-closed-plains :
+⊑-tgt-wf-closed-extend-X⊑X :
   ∀ {Δ A B p} →
   WfTy 0 0 A →
-  0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B →
+  0 ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B →
   WfTy 0 0 B
-⊑-tgt-wf-closed-plains wfA p⊢ =
+⊑-tgt-wf-closed-extend-X⊑X wfA p⊢ =
   ⊑-tgt-wf-prefix {Φ = []} wfA p⊢
+
+⊑-tgt-wf-prefix-any :
+  ∀ {Φ Γ A B p} →
+  WfTy (length Φ) 0 A →
+  0 ∣ Φ ++ Γ ⊢ p ⦂ A ⊑ B →
+  WfTy (length Φ) 0 B
+⊑-tgt-wf-prefix-any wf★ ⊢★-⊑-★ = wf★
+⊑-tgt-wf-prefix-any wfA (⊢X-⊑-★ xν) = wf★
+⊑-tgt-wf-prefix-any wfA (⊢A-⊑-★ g p⊢) = wf★
+⊑-tgt-wf-prefix-any (wfVar X<Φ) (⊢X-⊑-X x∈) = wfVar X<Φ
+⊑-tgt-wf-prefix-any (wfSeal ()) (⊢α-⊑-α wfα)
+⊑-tgt-wf-prefix-any wfBase ⊢ι-⊑-ι = wfBase
+⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ}
+    (wf⇒ wfA wfB) (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
+  wf⇒ (⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} wfA p⊢)
+       (⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} wfB q⊢)
+⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} (wf∀ wfA) (⊢∀A-⊑-∀B p⊢) =
+  wf∀ (⊑-tgt-wf-prefix-any {Φ = X⊑X ∷ Φ} {Γ = Γ} wfA p⊢)
+⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} (wf∀ wfA) (⊢∀A-⊑-B wfB p⊢) =
+  drop-⇑ᵗ-WfTy-extend-X⊑X {Δ = length Φ}
+    (⊑-tgt-wf-prefix-any {Φ = X⊑★ ∷ Φ} {Γ = Γ} wfA p⊢)
+
+⊑-tgt-wf-closed :
+  ∀ {Φ A B p} →
+  WfTy 0 0 A →
+  0 ∣ Φ ⊢ p ⦂ A ⊑ B →
+  WfTy 0 0 B
+⊑-tgt-wf-closed wfA p⊢ =
+  ⊑-tgt-wf-prefix-any {Φ = []} wfA p⊢
 
 cong-⊢⊑ :
   ∀ {Ψ Γ p A A′ B B′} →
@@ -300,8 +367,8 @@ wk-VarSubst {m = X⊑★} h =
 
 plain-var-subst :
   ∀ {Δ Ψ X m} →
-  plains Δ [] ∋ X ∶ m →
-  VarSubst Ψ (plains Δ []) (＇ X) m
+  extend-X⊑X Δ [] ∋ X ∶ m →
+  VarSubst Ψ (extend-X⊑X Δ []) (＇ X) m
 plain-var-subst {Δ = zero} ()
 plain-var-subst {Δ = suc Δ} here = ⊢X-⊑-X here
 plain-var-subst {Δ = suc Δ} {Ψ = Ψ} (there x∈) =
@@ -310,8 +377,8 @@ plain-var-subst {Δ = suc Δ} {Ψ = Ψ} (there x∈) =
 subst-var-prefix :
   ∀ {Δ Ψ}{Σ : Store}{Φ X m} →
   StoreWf Δ Ψ Σ →
-  (Φ ++ X⊑★ ∷ plains Δ []) ∋ X ∶ m →
-  VarSubst (suc Ψ) (Φ ++ plains Δ [])
+  (Φ ++ X⊑★ ∷ extend-X⊑X Δ []) ∋ X ∶ m →
+  VarSubst (suc Ψ) (Φ ++ extend-X⊑X Δ [])
     (substVarFrom (length Φ) (｀ (length Σ)) X) m
 subst-var-prefix {Φ = []} wfΣ here =
   ⊢A-⊑-★ (｀ _) (⊢α-⊑-α (wfSeal (len<suc-StoreWf wfΣ)))
@@ -335,8 +402,8 @@ substWf-prefix :
   ∀ {Δ Ψ}{Σ : Store}{Φ} →
   StoreWf Δ Ψ Σ →
   TySubstWf
-    (length (Φ ++ X⊑★ ∷ plains Δ []))
-    (length (Φ ++ plains Δ []))
+    (length (Φ ++ X⊑★ ∷ extend-X⊑X Δ []))
+    (length (Φ ++ extend-X⊑X Δ []))
     (suc Ψ)
     (substVarFrom (length Φ) (｀ (length Σ)))
 substWf-prefix {Φ = Φ} wfΣ X<len =
@@ -345,8 +412,8 @@ substWf-prefix {Φ = Φ} wfΣ X<len =
 open-fresh-ν⊑-prefix :
   ∀ {Δ Ψ}{Σ : Store}{Φ : VarPrecCtx}{A B : Ty}{p : Imp} →
   StoreWf Δ Ψ Σ →
-  Ψ ∣ (Φ ++ X⊑★ ∷ plains Δ []) ⊢ p ⦂ A ⊑ B →
-  suc Ψ ∣ (Φ ++ plains Δ []) ⊢
+  Ψ ∣ (Φ ++ X⊑★ ∷ extend-X⊑X Δ []) ⊢ p ⦂ A ⊑ B →
+  suc Ψ ∣ (Φ ++ extend-X⊑X Δ []) ⊢
     substAtImp (length Φ) (｀ (length Σ)) p ⦂
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A ⊑
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B
@@ -379,8 +446,8 @@ open-fresh-ν⊑-prefix {Φ = Φ} wfΣ (⊢∀A-⊑-B {A = A} {B = B} wfB p⊢) 
 open-fresh-ν⊑ :
   ∀ {Δ Ψ}{Σ : Store}{A B : Ty}{p : Imp} →
   StoreWf Δ Ψ Σ →
-  Ψ ∣ (X⊑★ ∷ plains Δ []) ⊢ p ⦂ A ⊑ ⇑ᵗ B →
-  suc Ψ ∣ plains Δ [] ⊢ p [ ｀ (length Σ) ]⊑ ⦂
+  Ψ ∣ (X⊑★ ∷ extend-X⊑X Δ []) ⊢ p ⦂ A ⊑ ⇑ᵗ B →
+  suc Ψ ∣ extend-X⊑X Δ [] ⊢ p [ ｀ (length Σ) ]⊑ ⦂
     (A [ ｀ (length Σ) ]ᵗ) ⊑ B
 open-fresh-ν⊑ {Σ = Σ} {B = B} wfΣ p⊢ =
   cong-⊢⊑ refl (open-renᵗ-suc B (｀ (length Σ)))
@@ -389,8 +456,8 @@ open-fresh-ν⊑ {Σ = Σ} {B = B} wfΣ p⊢ =
 subst-var-plain-prefix :
   ∀ {Δ Ψ}{Σ : Store}{Φ X m} →
   StoreWf Δ Ψ Σ →
-  (Φ ++ X⊑X ∷ plains Δ []) ∋ X ∶ m →
-  VarSubst (suc Ψ) (Φ ++ plains Δ [])
+  (Φ ++ X⊑X ∷ extend-X⊑X Δ []) ∋ X ∶ m →
+  VarSubst (suc Ψ) (Φ ++ extend-X⊑X Δ [])
     (substVarFrom (length Φ) (｀ (length Σ)) X) m
 subst-var-plain-prefix {Φ = []} wfΣ here =
   ⊢α-⊑-α (wfSeal (len<suc-StoreWf wfΣ))
@@ -407,8 +474,8 @@ substWf-plain-prefix :
   ∀ {Δ Ψ}{Σ : Store}{Φ} →
   StoreWf Δ Ψ Σ →
   TySubstWf
-    (length (Φ ++ X⊑X ∷ plains Δ []))
-    (length (Φ ++ plains Δ []))
+    (length (Φ ++ X⊑X ∷ extend-X⊑X Δ []))
+    (length (Φ ++ extend-X⊑X Δ []))
     (suc Ψ)
     (substVarFrom (length Φ) (｀ (length Σ)))
 substWf-plain-prefix {Φ = Φ} wfΣ X<len =
@@ -418,8 +485,8 @@ substWf-plain-prefix {Φ = Φ} wfΣ X<len =
 open-fresh-∀⊑-prefix :
   ∀ {Δ Ψ}{Σ : Store}{Φ : VarPrecCtx}{A B : Ty}{p : Imp} →
   StoreWf Δ Ψ Σ →
-  Ψ ∣ (Φ ++ X⊑X ∷ plains Δ []) ⊢ p ⦂ A ⊑ B →
-  suc Ψ ∣ (Φ ++ plains Δ []) ⊢
+  Ψ ∣ (Φ ++ X⊑X ∷ extend-X⊑X Δ []) ⊢ p ⦂ A ⊑ B →
+  suc Ψ ∣ (Φ ++ extend-X⊑X Δ []) ⊢
     substAtImp (length Φ) (｀ (length Σ)) p ⦂
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A ⊑
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B
@@ -453,8 +520,8 @@ open-fresh-∀⊑-prefix {Φ = Φ} wfΣ (⊢∀A-⊑-B {A = A} {B = B} wfB p⊢)
 open-fresh-∀⊑ :
   ∀ {Δ Ψ}{Σ : Store}{A B : Ty}{p : Imp} →
   StoreWf Δ Ψ Σ →
-  Ψ ∣ (X⊑X ∷ plains Δ []) ⊢ p ⦂ A ⊑ B →
-  suc Ψ ∣ plains Δ [] ⊢ p [ ｀ (length Σ) ]⊑ ⦂
+  Ψ ∣ (X⊑X ∷ extend-X⊑X Δ []) ⊢ p ⦂ A ⊑ B →
+  suc Ψ ∣ extend-X⊑X Δ [] ⊢ p [ ｀ (length Σ) ]⊑ ⦂
     A [ ｀ (length Σ) ]ᵗ ⊑ B [ ｀ (length Σ) ]ᵗ
 open-fresh-∀⊑ wfΣ p⊢ =
   open-fresh-∀⊑-prefix {Φ = []} wfΣ p⊢
@@ -559,8 +626,8 @@ plain-target-occurs-source {X = X} x∈ (⊢∀A-⊑-B {B = B} wfB p⊢) occB =
 
 change-plain-to-ν-ν∋ :
   ∀ {Δ Φ X} →
-  (Φ ++ (X⊑X ∷ plains Δ [])) ∋ X ∶ X⊑★ →
-  (Φ ++ (X⊑★ ∷ plains Δ [])) ∋ X ∶ X⊑★
+  (Φ ++ (X⊑X ∷ extend-X⊑X Δ [])) ∋ X ∶ X⊑★ →
+  (Φ ++ (X⊑★ ∷ extend-X⊑X Δ [])) ∋ X ∶ X⊑★
 change-plain-to-ν-ν∋ {Φ = []} {X = zero} ()
 change-plain-to-ν-ν∋ {Φ = []} {X = suc X} (there x∈) = there x∈
 change-plain-to-ν-ν∋ {Φ = X⊑X ∷ Φ} {X = zero} ()
@@ -570,9 +637,9 @@ change-plain-to-ν-ν∋ {Φ = m ∷ Φ} {X = suc X} (there x∈) =
 
 change-plain-to-ν-raised∋ :
   ∀ {Δ Φ X m} →
-  (Φ ++ (X⊑X ∷ plains Δ [])) ∋
+  (Φ ++ (X⊑X ∷ extend-X⊑X Δ [])) ∋
     raiseVarFrom (length Φ) X ∶ m →
-  (Φ ++ (X⊑★ ∷ plains Δ [])) ∋
+  (Φ ++ (X⊑★ ∷ extend-X⊑X Δ [])) ∋
     raiseVarFrom (length Φ) X ∶ m
 change-plain-to-ν-raised∋ {Φ = []} (there x∈) = there x∈
 change-plain-to-ν-raised∋ {Φ = m₀ ∷ Φ} {X = zero} here = here
@@ -581,17 +648,17 @@ change-plain-to-ν-raised∋ {Φ = m₀ ∷ Φ} {X = suc X} (there x∈) =
 
 length-plain-to-ν :
   ∀ Δ (Φ : VarPrecCtx) →
-  length (Φ ++ (X⊑X ∷ plains Δ [])) ≡
-  length (Φ ++ (X⊑★ ∷ plains Δ []))
+  length (Φ ++ (X⊑X ∷ extend-X⊑X Δ [])) ≡
+  length (Φ ++ (X⊑★ ∷ extend-X⊑X Δ []))
 length-plain-to-ν Δ [] = refl
 length-plain-to-ν Δ (m ∷ Φ) = cong suc (length-plain-to-ν Δ Φ)
 
 plain-to-ν-raised-at-⊑ :
   ∀ {Δ Φ A B p} →
-  0 ∣ Φ ++ (X⊑X ∷ plains Δ []) ⊢ p ⦂ A ⊑
+  0 ∣ Φ ++ (X⊑X ∷ extend-X⊑X Δ []) ⊢ p ⦂ A ⊑
     renameᵗ (raiseVarFrom (length Φ)) B →
   Σ[ q ∈ Imp ]
-    0 ∣ Φ ++ (X⊑★ ∷ plains Δ []) ⊢ q ⦂ A ⊑
+    0 ∣ Φ ++ (X⊑★ ∷ extend-X⊑X Δ []) ⊢ q ⦂ A ⊑
       renameᵗ (raiseVarFrom (length Φ)) B
 plain-to-ν-raised-at-⊑ {B = ★} ⊢★-⊑-★ = ★-⊑-★ , ⊢★-⊑-★
 plain-to-ν-raised-at-⊑ {B = ★} (⊢X-⊑-★ xν) =
@@ -638,8 +705,8 @@ plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
 
 plain-to-ν-raised-⊑ :
   ∀ {Δ A B p} →
-  0 ∣ X⊑X ∷ plains Δ [] ⊢ p ⦂ A ⊑ ⇑ᵗ B →
-  Σ[ q ∈ Imp ] 0 ∣ X⊑★ ∷ plains Δ [] ⊢ q ⦂ A ⊑ ⇑ᵗ B
+  0 ∣ X⊑X ∷ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ ⇑ᵗ B →
+  Σ[ q ∈ Imp ] 0 ∣ X⊑★ ∷ extend-X⊑X Δ [] ⊢ q ⦂ A ⊑ ⇑ᵗ B
 plain-to-ν-raised-⊑ p⊢ = plain-to-ν-raised-at-⊑ {Φ = []} p⊢
 
 mutual
@@ -747,9 +814,9 @@ trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B {B = B} wfB q⊢
   Σ[ r ∈ Imp ] Ψ ∣ Γ ⊢ r ⦂ A ⊑ C
 ⊑-trans = trans-ctx-⊑ ≤ᵢ-refl
 
-trans-⊑-plains :
+trans-⊑-extend-X⊑X :
   ∀ {Δ A B C p q} →
-  0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B →
-  0 ∣ plains Δ [] ⊢ q ⦂ B ⊑ C →
-  Σ[ r ∈ Imp ] 0 ∣ plains Δ [] ⊢ r ⦂ A ⊑ C
-trans-⊑-plains = ⊑-trans
+  0 ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B →
+  0 ∣ extend-X⊑X Δ [] ⊢ q ⦂ B ⊑ C →
+  Σ[ r ∈ Imp ] 0 ∣ extend-X⊑X Δ [] ⊢ r ⦂ A ⊑ C
+trans-⊑-extend-X⊑X = ⊑-trans

@@ -35,7 +35,7 @@ open import proof.PreservationTermSubst using
   ; substˣ-wt
   ; renameˣᵐ-value
   ; substˣᵐ-value
-  ; wkImp-plains
+  ; wkImp-extend-X⊑X
   )
 open import proof.ConversionProperties using
   (cong-⊢↑; cong-⊢↓; subst↑-wt; subst↓-wt)
@@ -72,7 +72,7 @@ RightLookupᴾ :
   ∀ {Δ Ψ} → PCtx Δ Ψ → Var → Ty → Set
 RightLookupᴾ {Δ} {Ψ} Γ x B =
   Σ[ A ∈ Ty ] Σ[ p ∈ Imp ]
-    Σ[ p⊢ ∈ Ψ ∣ plains Δ [] ⊢ p ⦂ A ⊑ B ]
+    Σ[ p⊢ ∈ Ψ ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B ]
       Γ ∋ₚ x ⦂ (A , B , p , p⊢)
 
 lookup-right-inv :
@@ -89,7 +89,7 @@ lookup-⇑ᵗᴾ :
   ∀ {Δ Ψ Γ x A B p p⊢} →
   Γ ∋ₚ x ⦂ (A , B , p , p⊢) →
   ⇑ᵗᴾ {Δ} {Ψ} Γ ∋ₚ x ⦂
-    (⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-plains zero p⊢)
+    (⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-extend-X⊑X zero p⊢)
 lookup-⇑ᵗᴾ Zₚ = Zₚ
 lookup-⇑ᵗᴾ (Sₚ h) = Sₚ (lookup-⇑ᵗᴾ h)
 
@@ -97,8 +97,8 @@ lookup-⇑ᵗᴾ (Sₚ h) = Sₚ (lookup-⇑ᵗᴾ h)
   ∀ {Δ Ψ Γ x P} →
   ⇑ᵗᴾ {Δ} {Ψ} Γ ∋ₚ x ⦂ P →
   Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ[ p ∈ Imp ]
-    Σ[ p⊢ ∈ Ψ ∣ plains Δ [] ⊢ p ⦂ A ⊑ B ]
-      (P ≡ (⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-plains zero p⊢) ×
+    Σ[ p⊢ ∈ Ψ ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B ]
+      (P ≡ (⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-extend-X⊑X zero p⊢) ×
        Γ ∋ₚ x ⦂ (A , B , p , p⊢))
 ⇑ᵗᴾ-un∋ {Γ = (A , B , p , p⊢) ∷ Γ} Zₚ =
   A , B , p , p⊢ , refl , Zₚ
@@ -129,7 +129,7 @@ renameᴾ-right-wt hρ h | A , p , p⊢ , hₚ = lookup-right (hρ hₚ)
 
 extᴾ-map :
   ∀ {Δ Ψ} {Γ Γ′ : PCtx Δ Ψ} {ρ : Renameˣ} {A A′ : Ty} {p : Imp}
-    {p⊢ : Ψ ∣ plains Δ [] ⊢ p ⦂ A ⊑ A′} →
+    {p⊢ : Ψ ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ A′} →
   (∀ {x B B′ q q⊢} →
     Γ ∋ₚ x ⦂ (B , B′ , q , q⊢) →
     Γ′ ∋ₚ ρ x ⦂ (B , B′ , q , q⊢)) →
@@ -246,7 +246,7 @@ RenameᵗPCtxMap k {Δ} {Ψ} Γ Γ′ =
   ∀ {x A B p p⊢} →
   Γ ∋ₚ x ⦂ (A , B , p , p⊢) →
   Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ] Σ[ p′ ∈ Imp ]
-    Σ[ p⊢′ ∈ Ψ ∣ plains (suc (k + Δ)) [] ⊢ p′ ⦂ A′ ⊑ B′ ]
+    Σ[ p⊢′ ∈ Ψ ∣ extend-X⊑X (suc (k + Δ)) [] ⊢ p′ ⦂ A′ ⊑ B′ ]
       ( A′ ≡ renameᵗ (raiseVarFrom k) A ×
         B′ ≡ renameᵗ (raiseVarFrom k) B ×
         Γ′ ∋ₚ x ⦂ (A′ , B′ , p′ , p⊢′) )
@@ -261,7 +261,7 @@ renameᵗPCtxMap-⇑ᵗᴾ k hΓ h | A , B , p , p⊢ , refl , h′
   with hΓ h′
 renameᵗPCtxMap-⇑ᵗᴾ k hΓ h | A , B , p , p⊢ , refl , h′
   | A′ , B′ , p′ , p⊢′ , eqA , eqB , h″ =
-  ⇑ᵗ A′ , ⇑ᵗ B′ , renameImp suc p′ , wkImp-plains zero p⊢′ ,
+  ⇑ᵗ A′ , ⇑ᵗ B′ , renameImp suc p′ , wkImp-extend-X⊑X zero p⊢′ ,
   trans (cong ⇑ᵗ eqA) (sym (rename-raise-⇑ᵗ k A)) ,
   trans (cong ⇑ᵗ eqB) (sym (rename-raise-⇑ᵗ k B)) ,
   lookup-⇑ᵗᴾ h″
@@ -269,20 +269,20 @@ renameᵗPCtxMap-⇑ᵗᴾ k hΓ h | A , B , p , p⊢ , refl , h′
 renameᵗPCtxMap-ext :
   ∀ k {Δ Ψ} {Γ : PCtx (k + Δ) Ψ}
     {Γ′ : PCtx (suc (k + Δ)) Ψ} {A A′ : Ty} {p : Imp}
-    {p⊢ : Ψ ∣ plains (k + Δ) [] ⊢ p ⦂ A ⊑ A′} →
+    {p⊢ : Ψ ∣ extend-X⊑X (k + Δ) [] ⊢ p ⦂ A ⊑ A′} →
   RenameᵗPCtxMap k Γ Γ′ →
   RenameᵗPCtxMap k
     ((A , A′ , p , p⊢) ∷ Γ)
     ( ( renameᵗ (raiseVarFrom k) A
       , renameᵗ (raiseVarFrom k) A′
       , renameImp (raiseVarFrom k) p
-      , wkImp-plains k p⊢ )
+      , wkImp-extend-X⊑X k p⊢ )
       ∷ Γ′ )
 renameᵗPCtxMap-ext k hΓ {A = A} {B = B} {p = p} {p⊢ = p⊢} Zₚ =
   renameᵗ (raiseVarFrom k) A ,
   renameᵗ (raiseVarFrom k) B ,
   renameImp (raiseVarFrom k) p ,
-  wkImp-plains k p⊢ ,
+  wkImp-extend-X⊑X k p⊢ ,
   refl , refl , Zₚ
 renameᵗPCtxMap-ext k hΓ (Sₚ h) with hΓ h
 renameᵗPCtxMap-ext k hΓ (Sₚ h)
@@ -294,7 +294,7 @@ renameᵗPCtxMap-⇑ᵗᴾ-zero :
   RenameᵗPCtxMap zero Γ (⇑ᵗᴾ Γ)
 renameᵗPCtxMap-⇑ᵗᴾ-zero {Γ = []} ()
 renameᵗPCtxMap-⇑ᵗᴾ-zero {Γ = (A , B , p , p⊢) ∷ Γ} Zₚ =
-  ⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-plains zero p⊢ ,
+  ⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-extend-X⊑X zero p⊢ ,
   refl , refl , Zₚ
 renameᵗPCtxMap-⇑ᵗᴾ-zero {Γ = P ∷ Γ} (Sₚ h)
   with renameᵗPCtxMap-⇑ᵗᴾ-zero {Γ = Γ} h
@@ -306,7 +306,7 @@ unmap-right-renameᵗᴾ :
   ∀ k {Δ Ψ} {Γ : PCtx (k + Δ) Ψ} {x C} →
   Data.List.map (renameᵗ (raiseVarFrom k)) (rightCtx Γ) ∋ x ⦂ C →
   Σ[ B ∈ Ty ] Σ[ A ∈ Ty ] Σ[ p ∈ Imp ]
-    Σ[ p⊢ ∈ Ψ ∣ plains (k + Δ) [] ⊢ p ⦂ A ⊑ B ]
+    Σ[ p⊢ ∈ Ψ ∣ extend-X⊑X (k + Δ) [] ⊢ p ⦂ A ⊑ B ]
       (C ≡ renameᵗ (raiseVarFrom k) B ×
        Γ ∋ₚ x ⦂ (A , B , p , p⊢))
 unmap-right-renameᵗᴾ k {Γ = (A , B , p , p⊢) ∷ Γ} Z =
@@ -397,8 +397,8 @@ mutual
     ⊑ƛ
       {pA = renameImp (raiseVarFrom k) pA}
       {pB = renameImp (raiseVarFrom k) pB}
-      {pA⊢ = wkImp-plains k pA⊢}
-      {pB⊢ = wkImp-plains k pB⊢}
+      {pA⊢ = wkImp-extend-X⊑X k pA⊢}
+      {pB⊢ = wkImp-extend-X⊑X k pB⊢}
       (renameᵗ-preserves-WfTy hA (raiseWfPlus k))
       (renameᵗ-preserves-WfTy hA′ (raiseWfPlus k))
       (renameᵗ-raise-⊑ k eqΣ eqΣʳ (renameᵗPCtxMap-ext k hΓ) rel)
@@ -434,7 +434,7 @@ mutual
         (cong-⊢⊑-raw refl
           (renameᵗ-[]ᵗ (raiseVarFrom k) A T)
           (renameᵗ-[]ᵗ (raiseVarFrom k) B T)
-          (wkImp-plains k pT⊢)))
+          (wkImp-extend-X⊑X k pT⊢)))
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ
     (⊑⦂∀-ν {A = A} {T = T} rel wfA wfT pT⊢) =
     ⊑-index-cast
@@ -447,41 +447,41 @@ mutual
         (cong-⊢⊑-raw refl
           (renameᵗ-[]ᵗ (raiseVarFrom k) A T)
           refl
-          (wkImp-plains k pT⊢)))
+          (wkImp-extend-X⊑X k pT⊢)))
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ ⊑$ = ⊑$
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⊕ relL relM) =
     ⊑⊕ (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ relL)
         (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ relM)
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇑ rel p⊢ p′⊢ pB⊢) =
     ⊑⇑ (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
-      (wkImp-plains k p⊢) (wkImp-plains k p′⊢)
-      (wkImp-plains k pB⊢)
+      (wkImp-extend-X⊑X k p⊢) (wkImp-extend-X⊑X k p′⊢)
+      (wkImp-extend-X⊑X k pB⊢)
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇑L rel p⊢ pB⊢) =
     ⊑⇑L (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
-      (wkImp-plains k p⊢) (wkImp-plains k pB⊢)
+      (wkImp-extend-X⊑X k p⊢) (wkImp-extend-X⊑X k pB⊢)
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇑R rel p′⊢ pB⊢) =
     ⊑⇑R (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
-      (wkImp-plains k p′⊢) (wkImp-plains k pB⊢)
+      (wkImp-extend-X⊑X k p′⊢) (wkImp-extend-X⊑X k pB⊢)
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇓ rel p⊢ p′⊢ pB⊢) =
     ⊑⇓ (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
-      (wkImp-plains k p⊢) (wkImp-plains k p′⊢)
-      (wkImp-plains k pB⊢)
+      (wkImp-extend-X⊑X k p⊢) (wkImp-extend-X⊑X k p′⊢)
+      (wkImp-extend-X⊑X k pB⊢)
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇓L rel p⊢ pB⊢) =
     ⊑⇓L (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
-      (wkImp-plains k p⊢) (wkImp-plains k pB⊢)
+      (wkImp-extend-X⊑X k p⊢) (wkImp-extend-X⊑X k pB⊢)
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑⇓R rel p′⊢ pB⊢) =
     ⊑⇓R (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
-      (wkImp-plains k p′⊢) (wkImp-plains k pB⊢)
+      (wkImp-extend-X⊑X k p′⊢) (wkImp-extend-X⊑X k pB⊢)
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑↑ rel c⊢ c′⊢ pB⊢) =
     ⊑↑ (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
       (rename↑-raise-wt k eqΣ c⊢)
       (rename↑-raise-wt k eqΣ c′⊢)
-      (wkImp-plains k pB⊢)
+      (wkImp-extend-X⊑X k pB⊢)
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ (⊑↓ rel c⊢ c′⊢ pB⊢) =
     ⊑↓ (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
       (rename↓-raise-wt k eqΣ c⊢)
       (rename↓-raise-wt k eqΣ c′⊢)
-      (wkImp-plains k pB⊢)
+      (wkImp-extend-X⊑X k pB⊢)
   renameᵗ-raise-⊑ k {Σʳ = Σʳ} {M′ = M′} eqΣ eqΣʳ hΓ
     (⊑blameL {p = p} {ℓ = ℓ} hM p⊢) =
     ⊑blameL {p = renameImp (raiseVarFrom k) p} {ℓ = ℓ}
@@ -494,7 +494,7 @@ mutual
         (renameˣᵐ-wt (λ x → x)
           (renameᵗPCtxMap-right-wt k hΓ)
           (renameᵗᵐ-raise-wt k hM)))
-      (wkImp-plains k p⊢)
+      (wkImp-extend-X⊑X k p⊢)
 
 renameᵗ-suc-⊑ :
   ∀ {E M M′ A B} →
@@ -584,7 +584,7 @@ WkPCtxMap :
 WkPCtxMap {Δ} {Ψ′ = Ψ′} Ψ≤Ψ′ Γ Γ′ =
   ∀ {x A B p p⊢} →
   Γ ∋ₚ x ⦂ (A , B , p , p⊢) →
-  Σ[ p⊢′ ∈ Ψ′ ∣ plains Δ [] ⊢ p ⦂ A ⊑ B ]
+  Σ[ p⊢′ ∈ Ψ′ ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B ]
     Γ′ ∋ₚ x ⦂ (A , B , p , p⊢′)
 
 wkᴾ :
@@ -621,7 +621,7 @@ WkPCtxMap-right-wt hΓ h | A , p , p⊢ , hₚ | p⊢′ , h′ =
 extWkPCtxMap :
   ∀ {Δ : TyCtx} {Ψ Ψ′ : SealCtx} {Γ : PCtx Δ Ψ}
     {Γ′ : PCtx Δ Ψ′} {A A′ : Ty} {p : Imp}
-    {p⊢ : Ψ ∣ plains Δ [] ⊢ p ⦂ A ⊑ A′}
+    {p⊢ : Ψ ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ A′}
     {Ψ≤Ψ′ : Ψ ≤ Ψ′} →
   WkPCtxMap Ψ≤Ψ′ Γ Γ′ →
   WkPCtxMap Ψ≤Ψ′
@@ -639,7 +639,7 @@ liftᵗWkPCtxMap :
 liftᵗWkPCtxMap hΓ h with ⇑ᵗᴾ-un∋ h
 liftᵗWkPCtxMap hΓ h | A , B , p , p⊢ , refl , h′ with hΓ h′
 liftᵗWkPCtxMap hΓ h | A , B , p , p⊢ , refl , h′ | p⊢′ , h″ =
-  wkImp-plains zero p⊢′ , lookup-⇑ᵗᴾ h″
+  wkImp-extend-X⊑X zero p⊢′ , lookup-⇑ᵗᴾ h″
 
 wk-rel-⊑ :
   ∀ {E : TPEnv} {Ψ′ : SealCtx} {Σ′ : Store}

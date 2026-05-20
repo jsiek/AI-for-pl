@@ -21,7 +21,7 @@ open import Store
 open import Imprecision
 open import Terms
 open import proof.ImprecisionProperties using
-  (cong-⊢⊑; length-plains[]; open-fresh-ν⊑; src⊑-correct; ⊑-src-wf)
+  (cong-⊢⊑; length-extend-X⊑X[]; open-fresh-ν⊑; src⊑-correct; ⊑-src-wf)
 open import proof.StoreProperties using (len<suc-StoreWf)
 open import proof.TermProperties using (wk-term)
 
@@ -55,7 +55,7 @@ preserve-β-up-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {V = V} {p = p} wfΣ vV
         (sym (src⊑-correct p⊢))
         (subst
           (λ n → WfTy n Ψ Aν)
-          (cong suc (length-plains[] Δ))
+          (cong suc (length-extend-X⊑X[] Δ))
           (⊑-src-wf p⊢))
 
     V⊢↑ :

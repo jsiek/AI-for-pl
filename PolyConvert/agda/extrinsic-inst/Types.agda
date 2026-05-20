@@ -81,6 +81,13 @@ data Ground : Ty → Set where
   ‵_ : (ι : Base) → Ground (‵ ι)
   ★⇒★ : Ground (★ ⇒ ★)
 
+data Non∀ : Ty → Set where
+  non∀-＇ : ∀ {X} → Non∀ (＇ X)
+  non∀-｀ : ∀ {α} → Non∀ (｀ α)
+  non∀-‵ : ∀ {ι} → Non∀ (‵ ι)
+  non∀-★ : Non∀ ★
+  non∀-⇒ : ∀ {A B} → Non∀ (A ⇒ B)
+
 infix 4 _≟Base_
 _≟Base_ : (ι ι′ : Base) → Dec (ι ≡ ι′)
 `ℕ ≟Base `ℕ = yes refl

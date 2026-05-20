@@ -16,7 +16,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 ------------------------------------------------------------------------
 
 data CMode : Set where
-  left right both neither : CMode
+  X~★ ★~X X~X neither : CMode
 
 CCtx : Set
 CCtx = List CMode
@@ -26,19 +26,19 @@ data _∋ᶜ_∶_ : CCtx → TyVar → CMode → Set where
   here : ∀ {Γ m} → (m ∷ Γ) ∋ᶜ zero ∶ m
   there : ∀ {Γ X m m′} → Γ ∋ᶜ X ∶ m → (m′ ∷ Γ) ∋ᶜ suc X ∶ m
 
-boths : ℕ → CCtx → CCtx
-boths n Γ = (replicate n both) ++ Γ
+extend-X~X : ℕ → CCtx → CCtx
+extend-X~X n Γ = (replicate n X~X) ++ Γ
 
 leftMode : CMode → VarPrec
-leftMode left = X⊑X
-leftMode right = X⊑★
-leftMode both = X⊑X
+leftMode X~★ = X⊑X
+leftMode ★~X = X⊑★
+leftMode X~X = X⊑X
 leftMode neither = X⊑★
 
 rightMode : CMode → VarPrec
-rightMode left = X⊑★
-rightMode right = X⊑X
-rightMode both = X⊑X
+rightMode X~★ = X⊑★
+rightMode ★~X = X⊑X
+rightMode X~X = X⊑X
 rightMode neither = X⊑★
 
 leftICtx : CCtx → VarPrecCtx
@@ -60,7 +60,7 @@ data _⊢_~_ (Γ : CCtx) : Ty → Ty → Set where
   ★-~-★ : Γ ⊢ ★ ~ ★
 
   X-~-X : ∀ {X} →
-    Γ ∋ᶜ X ∶ both →
+    Γ ∋ᶜ X ∶ X~X →
     Γ ⊢ ＇ X ~ ＇ X
 
   ι-~-ι : ∀ {ι} →
@@ -72,7 +72,7 @@ data _⊢_~_ (Γ : CCtx) : Ty → Ty → Set where
     Γ ⊢ (A ⇒ B) ~ (A′ ⇒ B′)
 
   ∀-~-∀ : ∀ {A B} →
-    both ∷ Γ ⊢ A ~ B →
+    X~X ∷ Γ ⊢ A ~ B →
     Γ ⊢ (`∀ A) ~ (`∀ B)
 
   A-~-★ : ∀ {A G} →
@@ -86,21 +86,21 @@ data _⊢_~_ (Γ : CCtx) : Ty → Ty → Set where
     Γ ⊢ ★ ~ B
 
   νX-~-★ : ∀ {X} →
-    Γ ∋ᶜ X ∶ left →
+    Γ ∋ᶜ X ∶ X~★ →
     Γ ⊢ ＇ X ~ ★
 
   ★-~-νX : ∀ {X} →
-    Γ ∋ᶜ X ∶ right →
+    Γ ∋ᶜ X ∶ ★~X →
     Γ ⊢ ★ ~ ＇ X
 
   ∀-~-B : ∀ {A B} →
     WfTy (length Γ) 0 B →
-    left ∷ Γ ⊢ A ~ ⇑ᵗ B →
+    X~★ ∷ Γ ⊢ A ~ ⇑ᵗ B →
     Γ ⊢ (`∀ A) ~ B
 
   A-~-∀ : ∀ {A B} →
     WfTy (length Γ) 0 A →
-    right ∷ Γ ⊢ ⇑ᵗ A ~ B →
+    ★~X ∷ Γ ⊢ ⇑ᵗ A ~ B →
     Γ ⊢ A ~ (`∀ B)
 
 ------------------------------------------------------------------------

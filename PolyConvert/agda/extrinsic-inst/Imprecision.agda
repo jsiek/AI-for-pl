@@ -17,8 +17,8 @@ data VarPrec : Set where
 VarPrecCtx : Set
 VarPrecCtx = List VarPrec
 
-plains : ℕ → VarPrecCtx → VarPrecCtx
-plains n Γ = (replicate n X⊑X) ++ Γ
+extend-X⊑X : ℕ → VarPrecCtx → VarPrecCtx
+extend-X⊑X n Γ = (replicate n X⊑X) ++ Γ
 
 infix 4 _∋_∶_
 data _∋_∶_ : VarPrecCtx → TyVar → VarPrec → Set where

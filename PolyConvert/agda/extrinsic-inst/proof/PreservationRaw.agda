@@ -21,7 +21,7 @@ open import Primitives
 open import Terms
 open import Reduction
 open import proof.ImprecisionProperties using (src⊑-correct; tgt⊑-correct)
-open import proof.PreservationRawEndpoints using (⊑-src-wf-plains)
+open import proof.PreservationRawEndpoints using (⊑-src-wf-extend-X⊑X)
 open import proof.PreservationImpSubst using ([]⊑ᵗ-wt)
 open import proof.PreservationTermSubst using ([]-wt)
 
@@ -46,7 +46,7 @@ raw-preservation wfΣ
     (⊢up
       ([]⊑ᵗ-wt p⊢ wfT)
       (⊢• V⊢′
-        (⊑-src-wf-plains p⊢)
+        (⊑-src-wf-extend-X⊑X p⊢)
         wfT))
   where
     V⊢′ = cong-⊢⦂ refl refl refl (cong `∀ (sym (src⊑-correct p⊢))) V⊢

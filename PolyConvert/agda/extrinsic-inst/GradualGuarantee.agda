@@ -10,10 +10,10 @@ open import Data.Sum using (_⊎_)
 
 open import Types
 open import Store
-open import Imprecision using (Imp; plains; _∣_⊢_⦂_⊑_)
+open import Imprecision using (Imp; extend-X⊑X; _∣_⊢_⦂_⊑_)
 open import Terms
 open import GradualTerms
-  using (GPrec; GPCtx; GTerm; leftGCtx; rightGCtx; _⊢ᴳ_⊑_; _∣_⊢_⦂_)
+  using (GPrec; GPCtx; GTerm; leftGCtx; rightGCtx; _∣_⊢ᴳ_⊑_; _∣_⊢_⦂_)
 open import TermImprecision
 open import Reduction
 
@@ -21,12 +21,12 @@ import proof.DynamicGradualGuarantee as DGGProof
 import proof.StaticGradualGuarantee as SGGProof
 
 static-gradual-guarantee :
-  ∀ {Δ} {Γ : GPCtx Δ} {M M′ : GTerm} {A} →
-  Δ ⊢ᴳ M ⊑ M′ →
-  Δ ∣ leftGCtx Γ ⊢ M ⦂ A →
-  Σ[ B ∈ Ty ] Σ[ p ∈ Imp ]
-    (Δ ∣ rightGCtx Γ ⊢ M′ ⦂ B) × (0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B)
-static-gradual-guarantee = SGGProof.static-gradual-guarantee
+  ∀ {M M′ : GTerm} {A} →
+  0 ∣ [] ⊢ᴳ M ⊑ M′ →
+  0 ∣ [] ⊢ M ⦂ A →
+  Σ[ B ∈ Ty ] Σ[ p ∈ Imp ] (0 ∣ [] ⊢ M′ ⦂ B)  ×  (0 ∣ [] ⊢ p ⦂ A ⊑ B)
+static-gradual-guarantee =
+  SGGProof.static-gradual-guarantee {Δ = 0} {Γ = []}
 
 dynamic-gradual-guarantee :
   ∀ {Ψ Σ M M′ A B} →

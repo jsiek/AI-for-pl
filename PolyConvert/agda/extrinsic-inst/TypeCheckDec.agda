@@ -709,7 +709,7 @@ type-check Δ Ψ Σ Γ wfΓ wfΣ (L ⊕[ op ] M) | yes ((A , L:A) , bfL) | no ¬
 type-check Δ Ψ Σ Γ wfΓ wfΣ (M ⇑ p) with type-check Δ Ψ Σ Γ wfΓ wfΣ M
 ... | no ¬M =
     no (λ { ((B , ⊢up p⊢ M:A′) , bf-⇑ bfM) → ¬M ((_ , M:A′) , bfM) })
-... | yes ((A , M:A) , bfM) with imp-check-any Ψ (plains Δ []) p
+... | yes ((A , M:A) , bfM) with imp-check-any Ψ (extend-X⊑X Δ []) p
 ...   | no ¬p =
       no (λ { ((B , ⊢up p⊢ M:A′) , bf-⇑ bfM′) → ¬p (_ , (_ , p⊢)) })
 ...   | yes (A′ , (B , p⊢)) with A′ ≟Ty A
@@ -726,7 +726,7 @@ type-check Δ Ψ Σ Γ wfΓ wfΣ (M ⇑ p) with type-check Δ Ψ Σ Γ wfΓ wfΣ
 type-check Δ Ψ Σ Γ wfΓ wfΣ (M ⇓ p) with type-check Δ Ψ Σ Γ wfΓ wfΣ M
 ... | no ¬M =
     no (λ { ((B , ⊢down p⊢ M:A′) , bf-⇓ bfM) → ¬M ((_ , M:A′) , bfM) })
-... | yes ((A , M:A) , bfM) with imp-down-check-any Ψ (plains Δ []) p
+... | yes ((A , M:A) , bfM) with imp-down-check-any Ψ (extend-X⊑X Δ []) p
 ...   | no ¬p =
       no (λ { ((B , ⊢down p⊢ M:A′) , bf-⇓ bfM′) → ¬p (_ , (_ , p⊢)) })
 ...   | yes (A′ , (B , p⊢)) with A′ ≟Ty A

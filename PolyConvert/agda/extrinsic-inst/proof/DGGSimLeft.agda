@@ -57,7 +57,7 @@ sim-left-reveal-cong :
   ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
   0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↑ˢ B →
   0 ∣ Ψˡ ∣ Σˡ ⊢ c′ ⦂ A′ ↑ˢ B′ →
-  Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ B′ →
+  Ψˡ ∣ extend-X⊑X 0 [] ⊢ pB ⦂ B ⊑ B′ →
   Σˡ ∣ M —→ Σˡ′ ∣ N →
   SimLeftResult Ψˡ Σˡ (M′ ↑ c′) Σʳ Σˡ′ (N ↑ c) B B′
 sim-left-reveal-cong wfΣˡ wfΣʳ rel c⊢ c′⊢ pB⊢ redM
@@ -78,7 +78,7 @@ sim-left-conceal-cong :
   ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
   0 ∣ Ψˡ ∣ Σˡ ⊢ c ⦂ A ↓ˢ B →
   0 ∣ Ψˡ ∣ Σˡ ⊢ c′ ⦂ A′ ↓ˢ B′ →
-  Ψˡ ∣ plains 0 [] ⊢ pB ⦂ B ⊑ B′ →
+  Ψˡ ∣ extend-X⊑X 0 [] ⊢ pB ⦂ B ⊑ B′ →
   Σˡ ∣ M —→ Σˡ′ ∣ N →
   SimLeftResult Ψˡ Σˡ (M′ ↓ c′) Σʳ Σˡ′ (N ↓ c) B B′
 sim-left-conceal-cong wfΣˡ wfΣʳ rel c⊢ c′⊢ pB⊢ redM

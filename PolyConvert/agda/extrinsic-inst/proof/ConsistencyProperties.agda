@@ -31,9 +31,9 @@ cong-~ :
 cong-~ refl refl h = h
 
 swapMode : CMode → CMode
-swapMode left = right
-swapMode right = left
-swapMode both = both
+swapMode X~★ = ★~X
+swapMode ★~X = X~★
+swapMode X~X = X~X
 swapMode neither = neither
 
 swapCCtx : CCtx → CCtx
@@ -93,32 +93,90 @@ length-rightICtx : ∀ Γ → length (rightICtx Γ) ≡ length Γ
 length-rightICtx [] = refl
 length-rightICtx (m ∷ Γ) = cong suc (length-rightICtx Γ)
 
-length-boths[] : ∀ Δ → length (boths Δ []) ≡ Δ
-length-boths[] Δ
-  rewrite ++-identityʳ (replicate Δ both)
-        | (length-replicate Δ {both}) = refl
+length-extend-X~X[] : ∀ Δ → length (extend-X~X Δ []) ≡ Δ
+length-extend-X~X[] Δ
+  rewrite ++-identityʳ (replicate Δ X~X)
+        | (length-replicate Δ {X~X}) = refl
 
-boths-length-split :
+lookup-extend-X~X[] :
+  ∀ {Δ X} →
+  X < Δ →
+  extend-X~X Δ [] ∋ᶜ X ∶ X~X
+lookup-extend-X~X[] {Δ = zero} ()
+lookup-extend-X~X[] {Δ = suc Δ} {X = zero} z<s = here
+lookup-extend-X~X[] {Δ = suc Δ} {X = suc X} (s<s X<Δ) =
+  there (lookup-extend-X~X[] X<Δ)
+
+extend-X~X-length-split :
   (Φ Γ : CCtx) →
-  boths (length (Φ ++ Γ)) [] ≡ boths (length Φ) [] ++ boths (length Γ) []
-boths-length-split [] Γ = refl
-boths-length-split (m ∷ Φ) Γ =
-  cong (both ∷_) (boths-length-split Φ Γ)
+  extend-X~X (length (Φ ++ Γ)) [] ≡ extend-X~X (length Φ) [] ++ extend-X~X (length Γ) []
+extend-X~X-length-split [] Γ = refl
+extend-X~X-length-split (m ∷ Φ) Γ =
+  cong (X~X ∷_) (extend-X~X-length-split Φ Γ)
 
-length-boths-split :
+lookup-insert-extend-X~X :
+  ∀ k {Δ X d} →
+  X < k + Δ →
+  (extend-X~X k [] ++ d ∷ extend-X~X Δ []) ∋ᶜ
+    raiseVarFrom k X ∶ X~X
+lookup-insert-extend-X~X zero X<Δ =
+  there (lookup-extend-X~X[] X<Δ)
+lookup-insert-extend-X~X (suc k) {X = zero} z<s = here
+lookup-insert-extend-X~X (suc k) {X = suc X} (s<s X<k+Δ) =
+  there (lookup-insert-extend-X~X k X<k+Δ)
+
+refl-insert-extend-X~X :
+  ∀ k {Δ A d} →
+  WfTy (k + Δ) 0 A →
+  extend-X~X k [] ++ d ∷ extend-X~X Δ [] ⊢
+    renameᵗ (raiseVarFrom k) A ~ renameᵗ (raiseVarFrom k) A
+refl-insert-extend-X~X k (wfVar X<k+Δ) =
+  X-~-X (lookup-insert-extend-X~X k X<k+Δ)
+refl-insert-extend-X~X k (wfSeal ())
+refl-insert-extend-X~X k wfBase = ι-~-ι
+refl-insert-extend-X~X k wf★ = ★-~-★
+refl-insert-extend-X~X k (wf⇒ wfA wfB) =
+  ⇒-~-⇒ (refl-insert-extend-X~X k wfA)
+         (refl-insert-extend-X~X k wfB)
+refl-insert-extend-X~X k {A = `∀ A} (wf∀ wfA) =
+  ∀-~-∀
+    (cong-~
+      (sym (rename-raise-ext k A))
+      (sym (rename-raise-ext k A))
+      (refl-insert-extend-X~X (suc k) wfA))
+
+non∀-raise-refl-~ :
+  ∀ {Δ A} →
+  Non∀ A →
+  WfTy Δ 0 A →
+  ★~X ∷ extend-X~X Δ [] ⊢ ⇑ᵗ A ~ ⇑ᵗ A
+non∀-raise-refl-~ non∀A wfA =
+  refl-insert-extend-X~X zero wfA
+
+non∀-∀-consistent :
+  ∀ {Δ A} →
+  Non∀ A →
+  WfTy Δ 0 A →
+  extend-X~X Δ [] ⊢ A ~ `∀ (⇑ᵗ A)
+non∀-∀-consistent non∀A wfA =
+  A-~-∀
+    (subst (λ n → WfTy n 0 _) (sym (length-extend-X~X[] _)) wfA)
+    (non∀-raise-refl-~ non∀A wfA)
+
+length-extend-X~X-split :
   (Φ Γ : CCtx) →
-  length (Φ ++ Γ) ≡ length (boths (length Φ) [] ++ boths (length Γ) [])
-length-boths-split [] Γ = sym (length-boths[] (length Γ))
-length-boths-split (m ∷ Φ) Γ = cong suc (length-boths-split Φ Γ)
+  length (Φ ++ Γ) ≡ length (extend-X~X (length Φ) [] ++ extend-X~X (length Γ) [])
+length-extend-X~X-split [] Γ = sym (length-extend-X~X[] (length Γ))
+length-extend-X~X-split (m ∷ Φ) Γ = cong suc (length-extend-X~X-split Φ Γ)
 
-rename-raise-length-boths :
+rename-raise-length-extend-X~X :
   (Φ : CCtx) (A : Ty) →
   renameᵗ (raiseVarFrom (length Φ)) A ≡
-  renameᵗ (raiseVarFrom (length (boths (length Φ) []))) A
-rename-raise-length-boths Φ A =
+  renameᵗ (raiseVarFrom (length (extend-X~X (length Φ) []))) A
+rename-raise-length-extend-X~X Φ A =
   rename-cong
     (λ X → cong (λ n → raiseVarFrom n X)
-      (sym (length-boths[] (length Φ))))
+      (sym (length-extend-X~X[] (length Φ))))
     A
 
 
@@ -169,8 +227,8 @@ drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A ⇒ B} (wf⇒ wfA wfB) =
        (drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = B} wfB)
 drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = `∀ A} (wf∀ wfA) =
   wf∀
-    (drop-mode-WfTy {d = d} {Φ = both ∷ Φ} {Γ = Γ} {A = A}
-      (subst (λ B → WfTy (length ((both ∷ Φ) ++ d ∷ Γ)) 0 B)
+    (drop-mode-WfTy {d = d} {Φ = X~X ∷ Φ} {Γ = Γ} {A = A}
+      (subst (λ B → WfTy (length ((X~X ∷ Φ) ++ d ∷ Γ)) 0 B)
         (rename-raise-ext (length Φ) A)
         wfA))
 
@@ -185,7 +243,7 @@ drop-neither-WfTy {Φ = Φ} {Γ = Γ} {A = A} wfA =
 var-var-~-inj :
   ∀ {Γ X Y} →
   Γ ⊢ ＇ X ~ ＇ Y →
-  Σ[ eq ∈ X ≡ Y ] Γ ∋ᶜ X ∶ both
+  Σ[ eq ∈ X ≡ Y ] Γ ∋ᶜ X ∶ X~X
 var-var-~-inj (X-~-X x∈) = refl , x∈
 
 ~-size :
@@ -323,7 +381,7 @@ drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = `∀ A}
     {C = `∀ B} {h = ∀-~-∀ A~B} (s≤s p) =
   ∀-~-∀
     (drop-mode-at-~-gas gas
-      {d = d} {Φ = both ∷ Φ} {Γ = Γ} {B = A} {C = B}
+      {d = d} {Φ = X~X ∷ Φ} {Γ = Γ} {B = A} {C = B}
       {h = cong-~ (rename-raise-ext (length Φ) A)
                   (rename-raise-ext (length Φ) B)
                   A~B}
@@ -378,7 +436,7 @@ drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = `∀ A}
   ∀-~-B
     (drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = B} wfB)
     (drop-mode-at-~-gas gas
-      {d = d} {Φ = left ∷ Φ} {Γ = Γ} {B = A} {C = ⇑ᵗ B}
+      {d = d} {Φ = X~★ ∷ Φ} {Γ = Γ} {B = A} {C = ⇑ᵗ B}
       {h = cong-~ (rename-raise-ext (length Φ) A)
                   (sym (rename-raise-⇑ᵗ (length Φ) B))
                   A~⇑B}
@@ -392,7 +450,7 @@ drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = A}
   A-~-∀
     (drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A} wfA)
     (drop-mode-at-~-gas gas
-      {d = d} {Φ = right ∷ Φ} {Γ = Γ} {B = ⇑ᵗ A} {C = B}
+      {d = d} {Φ = ★~X ∷ Φ} {Γ = Γ} {B = ⇑ᵗ A} {C = B}
       {h = cong-~ (sym (rename-raise-⇑ᵗ (length Φ) A))
                   (rename-raise-ext (length Φ) B)
                   ⇑A~B}
@@ -422,27 +480,27 @@ drop-mode-~ = drop-mode-at-~ {Φ = []}
 
 drop-both-~ :
   ∀ {Γ B C} →
-  both ∷ Γ ⊢ ⇑ᵗ B ~ ⇑ᵗ C →
+  X~X ∷ Γ ⊢ ⇑ᵗ B ~ ⇑ᵗ C →
   Γ ⊢ B ~ C
-drop-both-~ = drop-mode-~ {d = both}
+drop-both-~ = drop-mode-~ {d = X~X}
 
-drop-boths-at-~ :
+drop-extend-X~X-at-~ :
   ∀ {d Φ Γ B C} →
-  boths (length (Φ ++ d ∷ Γ)) [] ⊢
+  extend-X~X (length (Φ ++ d ∷ Γ)) [] ⊢
     renameᵗ (raiseVarFrom (length Φ)) B ~
     renameᵗ (raiseVarFrom (length Φ)) C →
-  boths (length (Φ ++ Γ)) [] ⊢ B ~ C
-drop-boths-at-~ {d = d} {Φ = Φ} {Γ = Γ} {B = B} {C = C} h =
-  subst (λ Ξ → Ξ ⊢ B ~ C) (sym (boths-length-split Φ Γ))
-    (drop-mode-at-~ {d = both} {Φ = boths (length Φ) []}
-      {Γ = boths (length Γ) []} {B = B} {C = C}
+  extend-X~X (length (Φ ++ Γ)) [] ⊢ B ~ C
+drop-extend-X~X-at-~ {d = d} {Φ = Φ} {Γ = Γ} {B = B} {C = C} h =
+  subst (λ Ξ → Ξ ⊢ B ~ C) (sym (extend-X~X-length-split Φ Γ))
+    (drop-mode-at-~ {d = X~X} {Φ = extend-X~X (length Φ) []}
+      {Γ = extend-X~X (length Γ) []} {B = B} {C = C}
       (cong-~
-        (rename-raise-length-boths Φ B)
-        (rename-raise-length-boths Φ C)
+        (rename-raise-length-extend-X~X Φ B)
+        (rename-raise-length-extend-X~X Φ C)
         (subst
           (λ Ξ → Ξ ⊢ renameᵗ (raiseVarFrom (length Φ)) B
                      ~ renameᵗ (raiseVarFrom (length Φ)) C)
-          (boths-length-split Φ (d ∷ Γ))
+          (extend-X~X-length-split Φ (d ∷ Γ))
           h)))
 
 drop-neither-~ :
@@ -451,44 +509,44 @@ drop-neither-~ :
   Γ ⊢ B ~ C
 drop-neither-~ = drop-mode-~ {d = neither}
 
-drop-boths-WfTy :
+drop-extend-X~X-WfTy :
   ∀ {d : CMode} {Φ Γ : CCtx} {A} →
   WfTy (length (Φ ++ d ∷ Γ)) 0
     (renameᵗ (raiseVarFrom (length Φ)) A) →
   WfTy (length (Φ ++ Γ)) 0 A
-drop-boths-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A} wfA =
-  subst (λ n → WfTy n 0 A) (sym (length-boths-split Φ Γ))
-    (drop-mode-WfTy {d = both} {Φ = boths (length Φ) []}
-      {Γ = boths (length Γ) []} {A = A}
+drop-extend-X~X-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A} wfA =
+  subst (λ n → WfTy n 0 A) (sym (length-extend-X~X-split Φ Γ))
+    (drop-mode-WfTy {d = X~X} {Φ = extend-X~X (length Φ) []}
+      {Γ = extend-X~X (length Γ) []} {A = A}
       (subst
         (λ n → WfTy n 0
-          (renameᵗ (raiseVarFrom (length (boths (length Φ) []))) A))
-        (length-boths-split Φ (d ∷ Γ))
+          (renameᵗ (raiseVarFrom (length (extend-X~X (length Φ) []))) A))
+        (length-extend-X~X-split Φ (d ∷ Γ))
         (subst
           (λ B → WfTy (length (Φ ++ d ∷ Γ)) 0 B)
-          (rename-raise-length-boths Φ A)
+          (rename-raise-length-extend-X~X Φ A)
           wfA)))
 
-drop-⇑ᵗ-WfTy-plains :
+drop-⇑ᵗ-WfTy-extend-X⊑X :
   ∀ {Δ A} →
   WfTy (suc Δ) 0 (⇑ᵗ A) →
   WfTy Δ 0 A
-drop-⇑ᵗ-WfTy-plains {Δ = Δ} {A = A} wfA =
-  subst (λ n → WfTy n 0 A) (length-boths[] Δ)
-    (drop-mode-WfTy {d = both} {Φ = []} {Γ = boths Δ []} {A = A}
+drop-⇑ᵗ-WfTy-extend-X⊑X {Δ = Δ} {A = A} wfA =
+  subst (λ n → WfTy n 0 A) (length-extend-X~X[] Δ)
+    (drop-mode-WfTy {d = X~X} {Φ = []} {Γ = extend-X~X Δ []} {A = A}
       (subst (λ n → WfTy (suc n) 0 (⇑ᵗ A))
-        (sym (length-boths[] Δ))
+        (sym (length-extend-X~X[] Δ))
         wfA))
 
-swap-boths[] :
+swap-extend-X~X[] :
   ∀ Δ →
-  swapCCtx (boths Δ []) ≡ boths Δ []
-swap-boths[] zero = refl
-swap-boths[] (suc Δ) = cong (both ∷_) (swap-boths[] Δ)
+  swapCCtx (extend-X~X Δ []) ≡ extend-X~X Δ []
+swap-extend-X~X[] zero = refl
+swap-extend-X~X[] (suc Δ) = cong (X~X ∷_) (swap-extend-X~X[] Δ)
 
-boths-sym :
+extend-X~X-sym :
   ∀ {Δ A B} →
-  boths Δ [] ⊢ A ~ B →
-  boths Δ [] ⊢ B ~ A
-boths-sym {Δ = Δ} {A = A} {B = B} A~B =
-  subst (λ Γ → Γ ⊢ B ~ A) (swap-boths[] Δ) (~-sym A~B)
+  extend-X~X Δ [] ⊢ A ~ B →
+  extend-X~X Δ [] ⊢ B ~ A
+extend-X~X-sym {Δ = Δ} {A = A} {B = B} A~B =
+  subst (λ Γ → Γ ⊢ B ~ A) (swap-extend-X~X[] Δ) (~-sym A~B)

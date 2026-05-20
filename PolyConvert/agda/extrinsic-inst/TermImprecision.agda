@@ -20,7 +20,7 @@ open import Conversion
 open import Store using (renameStoreᵗ-ext-⟰ᵗ)
 open import Primitives
 open import Terms
-open import proof.PreservationTermSubst using (wkImp-plains)
+open import proof.PreservationTermSubst using (wkImp-extend-X⊑X)
 
 ------------------------------------------------------------------------
 -- Imprecision contexts
@@ -29,7 +29,7 @@ open import proof.PreservationTermSubst using (wkImp-plains)
 Prec : TyCtx → SealCtx → Set
 Prec Δ Ψ =
   Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ[ p ∈ Imp ]
-    (Ψ ∣ plains Δ [] ⊢ p ⦂ A ⊑ B)
+    (Ψ ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B)
 
 PCtx : TyCtx → SealCtx → Set
 PCtx Δ Ψ = List (Prec Δ Ψ)
@@ -98,7 +98,7 @@ lookup-right (Sₚ h) = S (lookup-right h)
 ⇑ᵗᴾ : ∀ {Δ Ψ} → PCtx Δ Ψ → PCtx (suc Δ) Ψ
 ⇑ᵗᴾ [] = []
 ⇑ᵗᴾ ((A , B , p , p⊢) ∷ Γ) =
-  (⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-plains zero p⊢) ∷ ⇑ᵗᴾ Γ
+  (⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-extend-X⊑X zero p⊢) ∷ ⇑ᵗᴾ Γ
 
 leftCtx-⇑ᵗᴾ :
   ∀ {Δ Ψ} → (Γ : PCtx Δ Ψ) →
@@ -133,8 +133,8 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
     E ⊢ (` x) ⊑ (` x) ⦂ A ⊑ B
 
   ⊑ƛ : ∀ {A A′ B B′ M M′ pA pB}
-      {pA⊢ : TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pA ⦂ A ⊑ A′}
-      {pB⊢ : TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′} →
+      {pA⊢ : TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pA ⦂ A ⊑ A′}
+      {pB⊢ : TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′} →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) A →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) A′ →
     extendᴾ E (A , A′ , pA , pA⊢) ⊢ M ⊑ M′ ⦂ B ⊑ B′ →
@@ -156,7 +156,7 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
     WfTy (suc (TPEnv.Δ E)) (TPEnv.Ψ E) A →
     WfTy (suc (TPEnv.Δ E)) (TPEnv.Ψ E) B →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) T →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pT ⦂
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pT ⦂
       A [ T ]ᵗ ⊑ B [ T ]ᵗ →
     E ⊢ (M ⦂∀ A [ T ]) ⊑ (M′ ⦂∀ B [ T ]) ⦂
       A [ T ]ᵗ ⊑ B [ T ]ᵗ
@@ -165,7 +165,7 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
     E ⊢ M ⊑ M′ ⦂ `∀ A ⊑ B →
     WfTy (suc (TPEnv.Δ E)) (TPEnv.Ψ E) A →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) T →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B →
     E ⊢ (M ⦂∀ A [ T ]) ⊑ M′ ⦂ A [ T ]ᵗ ⊑ B
 
   ⊑$ : ∀ {n} →
@@ -178,60 +178,60 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
 
   ⊑⇑ : ∀ {M M′ A A′ B B′ p p′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊑ B′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊑ B′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
     E ⊢ (M ⇑ p) ⊑ (M′ ⇑ p′) ⦂ B ⊑ B′
 
   ⊑⇑L : ∀ {M M′ A A′ B p pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ A′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ A′ →
     E ⊢ (M ⇑ p) ⊑ M′ ⦂ B ⊑ A′
 
   ⊑⇑R : ∀ {M M′ A A′ B′ p′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊑ B′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ A ⊑ B′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊑ B′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ A ⊑ B′ →
     E ⊢ M ⊑ (M′ ⇑ p′) ⦂ A ⊑ B′
 
   ⊑⇓ : ∀ {M M′ A A′ B B′ p p′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ p ⦂ A ⊒ B →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊒ B′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊒ B →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊒ B′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
     E ⊢ (M ⇓ p) ⊑ (M′ ⇓ p′) ⦂ B ⊑ B′
 
   ⊑⇓L : ∀ {M M′ A A′ B p pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ p ⦂ A ⊒ B →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ A′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊒ B →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ A′ →
     E ⊢ (M ⇓ p) ⊑ M′ ⦂ B ⊑ A′
 
   ⊑⇓R : ∀ {M M′ A A′ B′ p′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊒ B′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ A ⊑ B′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊒ B′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ A ⊑ B′ →
     E ⊢ M ⊑ (M′ ⇓ p′) ⦂ A ⊑ B′
 
   ⊑↑ : ∀ {M M′ A A′ B B′ c c′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ⊢ c ⦂ A ↑ˢ B →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ⊢ c′ ⦂ A′ ↑ˢ B′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
     E ⊢ (M ↑ c) ⊑ (M′ ↑ c′) ⦂ B ⊑ B′
 
   ⊑↓ : ∀ {M M′ A A′ B B′ c c′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ⊢ c ⦂ A ↓ˢ B →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ⊢ c′ ⦂ A′ ↓ˢ B′ →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
     E ⊢ (M ↓ c) ⊑ (M′ ↓ c′) ⦂ B ⊑ B′
 
   ⊑blameL : ∀ {M A B p ℓ} →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ∣
       rightCtx (TPEnv.Γ E) ⊢ M ⦂ B →
-    TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B →
+    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B →
     E ⊢ (blame ℓ) ⊑ M ⦂ A ⊑ B
 
 ⊑-index-cast :
@@ -306,7 +306,7 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
 ⊑-type-imprecision :
   ∀ {E M M′ A B} →
   E ⊢ M ⊑ M′ ⦂ A ⊑ B →
-  Σ[ p ∈ Imp ] (TPEnv.Ψ E ∣ plains (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B)
+  Σ[ p ∈ Imp ] (TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B)
 ⊑-type-imprecision (⊑` {p = p} {p⊢ = p⊢} h) = p , p⊢
 ⊑-type-imprecision
   (⊑ƛ {pA = pA} {pB = pB} {pA⊢ = pA⊢} {pB⊢ = pB⊢} hA hA′ rel) =

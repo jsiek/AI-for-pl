@@ -1,7 +1,8 @@
 module GradualTerms where
 
 -- File Charter:
---   * Extrinsic term syntax and typing judgment for Gradually Typed System F (GTSF).
+--   * Term syntax and typing judgment for Gradually Typed System F (GTSF).
+--   * Term imprecision for GTSF.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using (List; []; _∷_)
@@ -14,7 +15,10 @@ open import Ctx using (⤊ᵗ)
 open import Imprecision
   using
     ( Imp
-    ; plains
+    ; VarPrecCtx
+    ; extend-X⊑X
+    ; X⊑X
+    ; X⊑★
     ; _∣_⊢_⦂_⊑_
     )
 open import Consistency
@@ -26,27 +30,27 @@ open import proof.TypeProperties
 -- Gradual precision contexts
 ------------------------------------------------------------------------
 
-GPrec : TyCtx → Set
-GPrec Δ =
+GPrec : VarPrecCtx → Set
+GPrec Φ =
   Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ[ p ∈ Imp ]
-    (0 ∣ plains Δ [] ⊢ p ⦂ A ⊑ B)
+    (0 ∣ Φ ⊢ p ⦂ A ⊑ B)
 
-GPCtx : TyCtx → Set
-GPCtx Δ = List (GPrec Δ)
+GPCtx : VarPrecCtx → Set
+GPCtx Φ = List (GPrec Φ)
 
-leftGTy : ∀ {Δ} → GPrec Δ → Ty
+leftGTy : ∀ {Φ} → GPrec Φ → Ty
 leftGTy (A , B , p , p⊢) = A
 
-rightGTy : ∀ {Δ} → GPrec Δ → Ty
+rightGTy : ∀ {Φ} → GPrec Φ → Ty
 rightGTy (A , B , p , p⊢) = B
 
-leftGCtx : ∀ {Δ} → GPCtx Δ → Ctx
+leftGCtx : ∀ {Φ} → GPCtx Φ → Ctx
 leftGCtx [] = []
-leftGCtx (P ∷ Γ) = leftGTy P ∷ leftGCtx Γ
+leftGCtx {Φ} (P ∷ Γ) = leftGTy {Φ} P ∷ leftGCtx {Φ} Γ
 
-rightGCtx : ∀ {Δ} → GPCtx Δ → Ctx
+rightGCtx : ∀ {Φ} → GPCtx Φ → Ctx
 rightGCtx [] = []
-rightGCtx (P ∷ Γ) = rightGTy P ∷ rightGCtx Γ
+rightGCtx {Φ} (P ∷ Γ) = rightGTy {Φ} P ∷ rightGCtx {Φ} Γ
 
 ------------------------------------------------------------------------
 -- Terms
@@ -164,13 +168,13 @@ data _∣_⊢_⦂_ (Δ : TyCtx) (Γ : Ctx) : GTerm → Ty → Set where
   ⊢· : ∀ {L M A A′ B}
      → Δ ∣ Γ ⊢ L ⦂ (A ⇒ B)
      → Δ ∣ Γ ⊢ M ⦂ A′
-     → boths Δ [] ⊢ A ~ A′
+     → extend-X~X Δ [] ⊢ A ~ A′
      → Δ ∣ Γ ⊢ (L · M) ⦂ B
 
   ⊢·★ : ∀ {L M A′}
      → Δ ∣ Γ ⊢ L ⦂ ★
      → Δ ∣ Γ ⊢ M ⦂ A′
-     → boths Δ [] ⊢ A′ ~ ★
+     → extend-X~X Δ [] ⊢ A′ ~ ★
      → Δ ∣ Γ ⊢ (L · M) ⦂ ★
 
   ⊢Λ : ∀ {M A}
@@ -183,19 +187,14 @@ data _∣_⊢_⦂_ (Δ : TyCtx) (Γ : Ctx) : GTerm → Ty → Set where
      → WfTy (suc Δ) 0 B
      → WfTy Δ 0 T
      → Δ ∣ Γ ⊢ (M `[ T ]) ⦂ B [ T ]ᵗ
-     
-  ⊢•★ : ∀ {M T}
-     → Δ ∣ Γ ⊢ M ⦂ ★
-     → WfTy 0 0 T
-     → Δ ∣ Γ ⊢ (M `[ T ]) ⦂ ★
 
   ⊢$ : ∀ (κ : Const)
      → Δ ∣ Γ ⊢ ($ κ) ⦂ constTy κ
 
   ⊢⊕ : ∀ {L M A B}
-     → Δ ∣ Γ ⊢ L ⦂ A → boths Δ [] ⊢ A ~ (‵ `ℕ)
+     → Δ ∣ Γ ⊢ L ⦂ A → extend-X~X Δ [] ⊢ A ~ (‵ `ℕ)
      → (op : Prim)
-     → Δ ∣ Γ ⊢ M ⦂ B → boths Δ [] ⊢ B ~ (‵ `ℕ)
+     → Δ ∣ Γ ⊢ M ⦂ B → extend-X~X Δ [] ⊢ B ~ (‵ `ℕ)
      → Δ ∣ Γ ⊢ (L ⊕[ op ] M) ⦂ (‵ `ℕ)
 
 cong-⊢ᴳ⦂ :
@@ -212,47 +211,47 @@ cong-⊢ᴳ⦂ refl refl refl refl M⊢ = M⊢
 -- Gradual-term imprecision
 ------------------------------------------------------------------------
 
-infix 4 _⊢ᴳ_⊑_
-data _⊢ᴳ_⊑_ (Δ : TyCtx) : GTerm → GTerm → Set where
+infix 4 _∣_⊢ᴳ_⊑_
+data _∣_⊢ᴳ_⊑_ (Δ : TyCtx) (Φ : VarPrecCtx) : GTerm → GTerm → Set where
 
   ⊑` : ∀ {x} →
-    Δ ⊢ᴳ (` x) ⊑ (` x)
+    Δ ∣ Φ ⊢ᴳ (` x) ⊑ (` x)
 
   ⊑ƛ : ∀ {A A′ M M′ pA} →
-    0 ∣ plains Δ [] ⊢ pA ⦂ A ⊑ A′ →
-    Δ ⊢ᴳ M ⊑ M′ →
-    Δ ⊢ᴳ (ƛ A ⇒ M) ⊑ (ƛ A′ ⇒ M′)
+    0 ∣ Φ ⊢ pA ⦂ A ⊑ A′ →
+    Δ ∣ Φ ⊢ᴳ M ⊑ M′ →
+    Δ ∣ Φ ⊢ᴳ (ƛ A ⇒ M) ⊑ (ƛ A′ ⇒ M′)
 
   ⊑· : ∀ {L L′ M M′} →
-    Δ ⊢ᴳ L ⊑ L′ →
-    Δ ⊢ᴳ M ⊑ M′ →
-    Δ ⊢ᴳ (L · M) ⊑ (L′ · M′)
+    Δ ∣ Φ ⊢ᴳ L ⊑ L′ →
+    Δ ∣ Φ ⊢ᴳ M ⊑ M′ →
+    Δ ∣ Φ ⊢ᴳ (L · M) ⊑ (L′ · M′)
 
   ⊑Λ : ∀ {M M′} →
     Value M →
     Value M′ →
-    suc Δ ⊢ᴳ M ⊑ M′ →
-    Δ ⊢ᴳ (Λ M) ⊑ (Λ M′)
+    suc Δ ∣ X⊑X ∷ Φ ⊢ᴳ M ⊑ M′ →
+    Δ ∣ Φ ⊢ᴳ (Λ M) ⊑ (Λ M′)
 
   ⊑ΛL : ∀ {M M′} →
     Value M →
-    suc Δ ⊢ᴳ M ⊑ renameᵗᴳ suc M′ →
-    Δ ⊢ᴳ (Λ M) ⊑ M′
+    suc Δ ∣ X⊑★ ∷ Φ ⊢ᴳ M ⊑ renameᵗᴳ suc M′ →
+    Δ ∣ Φ ⊢ᴳ (Λ M) ⊑ M′
 
   ⊑`[] : ∀ {M M′ T T′ pT} →
-    Δ ⊢ᴳ M ⊑ M′ →
-    0 ∣ plains Δ [] ⊢ pT ⦂ T ⊑ T′ →
-    Δ ⊢ᴳ (M `[ T ]) ⊑ (M′ `[ T′ ])
+    Δ ∣ Φ ⊢ᴳ M ⊑ M′ →
+    0 ∣ Φ ⊢ pT ⦂ T ⊑ T′ →
+    Δ ∣ Φ ⊢ᴳ (M `[ T ]) ⊑ (M′ `[ T′ ])
 
-  ⊑`[]L : ∀ {M M′ T} →
-    Δ ⊢ᴳ M ⊑ M′ →
-    WfTy 0 0 T →
-    Δ ⊢ᴳ (M `[ T ]) ⊑ M′
+  ⊑`[]L : ∀ {M M′ T pT} →
+    Δ ∣ Φ ⊢ᴳ M ⊑ M′ →
+    0 ∣ Φ ⊢ pT ⦂ T ⊑ ★ →
+    Δ ∣ Φ ⊢ᴳ (M `[ T ]) ⊑ M′
 
   ⊑$ : ∀ {n} →
-    Δ ⊢ᴳ ($ (κℕ n)) ⊑ ($ (κℕ n))
+    Δ ∣ Φ ⊢ᴳ ($ (κℕ n)) ⊑ ($ (κℕ n))
 
   ⊑⊕ : ∀ {L L′ M M′ op} →
-    Δ ⊢ᴳ L ⊑ L′ →
-    Δ ⊢ᴳ M ⊑ M′ →
-    Δ ⊢ᴳ (L ⊕[ op ] M) ⊑ (L′ ⊕[ op ] M′)
+    Δ ∣ Φ ⊢ᴳ L ⊑ L′ →
+    Δ ∣ Φ ⊢ᴳ M ⊑ M′ →
+    Δ ∣ Φ ⊢ᴳ (L ⊕[ op ] M) ⊑ (L′ ⊕[ op ] M′)

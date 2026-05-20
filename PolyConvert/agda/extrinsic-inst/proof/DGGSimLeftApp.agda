@@ -111,7 +111,7 @@ private
   beta-subst-⊑ :
     ∀ {Ψˡ Ψʳ Σˡ Σʳ M M′ W W′ A A′ B B′} →
     (p : Imp) →
-    (p⊢ : Ψˡ ∣ plains 0 [] ⊢ p ⦂ A ⊑ A′) →
+    (p⊢ : Ψˡ ∣ extend-X⊑X 0 [] ⊢ p ⦂ A ⊑ A′) →
     ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ W ⊑ W′ ⦂ A ⊑ A′ →
     ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , (A , A′ , p , p⊢) ∷ [] ⟫
       ⊢ M ⊑ M′ ⦂ B ⊑ B′ →

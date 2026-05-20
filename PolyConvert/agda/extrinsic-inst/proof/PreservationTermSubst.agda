@@ -262,42 +262,42 @@ renSubst-raise-wf : ∀ k {Δ Ψ} →
 renSubst-raise-wf k {Δ = Δ} X<Δ =
   wfVar (raiseWfPlus k {Δ = Δ} X<Δ)
 
-plains-++ : ∀ k Δ →
-  plains (k + Δ) [] ≡ plains k [] ++ plains Δ []
-plains-++ zero Δ = refl
-plains-++ (suc k) Δ = cong (X⊑X ∷_) (plains-++ k Δ)
+extend-X⊑X-++ : ∀ k Δ →
+  extend-X⊑X (k + Δ) [] ≡ extend-X⊑X k [] ++ extend-X⊑X Δ []
+extend-X⊑X-++ zero Δ = refl
+extend-X⊑X-++ (suc k) Δ = cong (X⊑X ∷_) (extend-X⊑X-++ k Δ)
 
-length-plains : ∀ k →
-  length (plains k []) ≡ k
-length-plains zero = refl
-length-plains (suc k) = cong suc (length-plains k)
+length-extend-X⊑X : ∀ k →
+  length (extend-X⊑X k []) ≡ k
+length-extend-X⊑X zero = refl
+length-extend-X⊑X (suc k) = cong suc (length-extend-X⊑X k)
 
-plains-insert : ∀ k Δ →
-  plains k [] ++ X⊑X ∷ plains Δ [] ≡ plains (suc (k + Δ)) []
-plains-insert zero Δ = refl
-plains-insert (suc k) Δ = cong (X⊑X ∷_) (plains-insert k Δ)
+extend-X⊑X-insert : ∀ k Δ →
+  extend-X⊑X k [] ++ X⊑X ∷ extend-X⊑X Δ [] ≡ extend-X⊑X (suc (k + Δ)) []
+extend-X⊑X-insert zero Δ = refl
+extend-X⊑X-insert (suc k) Δ = cong (X⊑X ∷_) (extend-X⊑X-insert k Δ)
 
-wkImp-plains :
+wkImp-extend-X⊑X :
   ∀ k {Δ Ψ p A B} →
-  Ψ ∣ plains (k + Δ) [] ⊢ p ⦂ A ⊑ B →
-  Ψ ∣ plains (suc (k + Δ)) [] ⊢ renameImp (raiseVarFrom k) p ⦂
+  Ψ ∣ extend-X⊑X (k + Δ) [] ⊢ p ⦂ A ⊑ B →
+  Ψ ∣ extend-X⊑X (suc (k + Δ)) [] ⊢ renameImp (raiseVarFrom k) p ⦂
     renameᵗ (raiseVarFrom k) A ⊑ renameᵗ (raiseVarFrom k) B
-wkImp-plains k {Δ} {Ψ} {p} {A} {B} p⊢ =
+wkImp-extend-X⊑X k {Δ} {Ψ} {p} {A} {B} p⊢ =
   subst
     (λ Γᵢ →
       Ψ ∣ Γᵢ ⊢ renameImp (raiseVarFrom k) p ⦂
         renameᵗ (raiseVarFrom k) A ⊑ renameᵗ (raiseVarFrom k) B)
-    (plains-insert k Δ)
+    (extend-X⊑X-insert k Δ)
     (cong-⊢⊑-raw
       (renameImp-cong len-eq p)
       (rename-cong len-eq A)
       (rename-cong len-eq B)
-      (wkImpAt {Φ = plains k []} {Γ = plains Δ []}
-        (subst (λ Γᵢ → Ψ ∣ Γᵢ ⊢ p ⦂ A ⊑ B) (plains-++ k Δ) p⊢)))
+      (wkImpAt {Φ = extend-X⊑X k []} {Γ = extend-X⊑X Δ []}
+        (subst (λ Γᵢ → Ψ ∣ Γᵢ ⊢ p ⦂ A ⊑ B) (extend-X⊑X-++ k Δ) p⊢)))
   where
     len-eq : (X : TyVar) →
-      raiseVarFrom (length (plains k [])) X ≡ raiseVarFrom k X
-    len-eq X = cong (λ n → raiseVarFrom n X) (length-plains k)
+      raiseVarFrom (length (extend-X⊑X k [])) X ≡ raiseVarFrom k X
+    len-eq X = cong (λ n → raiseVarFrom n X) (length-extend-X⊑X k)
 
 renameStoreᵗ-raise-⟰ᵗ : ∀ k (Σ : Store) →
   renameStoreᵗ (raiseVarFrom (suc k)) (⟰ᵗ Σ) ≡
@@ -399,9 +399,9 @@ renameᵗᵐ-raise-wt k (⊢$ (κℕ n)) = ⊢$ (κℕ n)
 renameᵗᵐ-raise-wt k (⊢⊕ L⊢ op M⊢) =
   ⊢⊕ (renameᵗᵐ-raise-wt k L⊢) op (renameᵗᵐ-raise-wt k M⊢)
 renameᵗᵐ-raise-wt k (⊢up p⊢ M⊢) =
-  ⊢up (wkImp-plains k p⊢) (renameᵗᵐ-raise-wt k M⊢)
+  ⊢up (wkImp-extend-X⊑X k p⊢) (renameᵗᵐ-raise-wt k M⊢)
 renameᵗᵐ-raise-wt k (⊢down p⊢ M⊢) =
-  ⊢down (wkImp-plains k p⊢) (renameᵗᵐ-raise-wt k M⊢)
+  ⊢down (wkImp-extend-X⊑X k p⊢) (renameᵗᵐ-raise-wt k M⊢)
 renameᵗᵐ-raise-wt k {Σ = Σ} (⊢reveal {A = A} {B = B} c⊢ M⊢) =
   ⊢reveal
     (cong-⊢↑

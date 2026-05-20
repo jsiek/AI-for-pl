@@ -62,7 +62,7 @@ sim-left-tyapp :
   WfTy 1 Ψˡ A →
   WfTy 1 Ψˡ B →
   WfTy 0 Ψˡ T →
-  Ψˡ ∣ plains 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
+  Ψˡ ∣ extend-X⊑X 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
   Σˡ ∣ M —→ Σˡ′ ∣ N →
   ∃[ Ψˡ′ ]
     (Ψˡ ≤ Ψˡ′ ×
@@ -96,9 +96,9 @@ sim-left-beta-reveal-∀-matched :
     src↑ (⟰ᵗ Σ) c ↑ˢ tgt↑ (⟰ᵗ Σ) c →
   1 ∣ Ψ ∣ ⟰ᵗ Σ ⊢ c′ ⦂
     src↑ (⟰ᵗ Σ) c′ ↑ˢ tgt↑ (⟰ᵗ Σ) c′ →
-  Ψ ∣ plains 0 [] ⊢ pSrcT ⦂
+  Ψ ∣ extend-X⊑X 0 [] ⊢ pSrcT ⦂
     src↑ (⟰ᵗ Σ) c [ T ]ᵗ ⊑ src↑ (⟰ᵗ Σ) c′ [ T ]ᵗ →
-  Ψ ∣ plains 0 [] ⊢ pTgtT ⦂
+  Ψ ∣ extend-X⊑X 0 [] ⊢ pTgtT ⦂
     tgt↑ (⟰ᵗ Σ) c [ T ]ᵗ ⊑ tgt↑ (⟰ᵗ Σ) c′ [ T ]ᵗ →
   ∃[ Σ′ ] ∃[ N′ ]
     ((Σ ∣ ((V′ ↑ ↑-∀ c′) ⦂∀ tgt↑ (⟰ᵗ Σ) c′ [ T ])
@@ -130,7 +130,7 @@ fresh-seal-sync-Λ :
   WfTy 1 Ψˡ A →
   WfTy 1 Ψˡ B →
   WfTy 0 Ψˡ T →
-  Ψˡ ∣ plains 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
+  Ψˡ ∣ extend-X⊑X 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
   ⟪ 0 , (suc Ψˡ) , ((length Σˡ , T) ∷ Σˡ) , (suc Ψʳ) , ((length Σʳ , T) ∷ Σʳ) , [] ⟫ ⊢ ((V [ ｀ (length Σˡ) ]ᵀ) ↑ convert↑ A (length Σˡ)) ⊑ ((V′ [ ｀ (length Σʳ) ]ᵀ) ↑ convert↑ B (length Σʳ)) ⦂ (A [ T ]ᵗ) ⊑ (B [ T ]ᵗ)
 fresh-seal-sync-Λ {Ψˡ = Ψˡ} {Ψʳ = Ψʳ} {Σˡ = Σˡ} {Σʳ = Σʳ}
     {V = V} {V′ = V′} {A = A} {B = B} {T = T}
@@ -227,7 +227,7 @@ sim-left-beta-Λ-matched :
   WfTy 1 Ψˡ A →
   WfTy 1 Ψˡ B →
   WfTy 0 Ψˡ T →
-  Ψˡ ∣ plains 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
+  Ψˡ ∣ extend-X⊑X 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
   ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
     (StoreWf 0 Ψˡ′ Σˡ′ ×
      ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
@@ -264,7 +264,7 @@ postulate
     WfTy 1 Ψˡ A →
     WfTy 1 Ψˡ B →
     WfTy 0 Ψˡ T →
-    Ψˡ ∣ plains 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
+    Ψˡ ∣ extend-X⊑X 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
     ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
       (Ψˡ ≤ Ψˡ′ ×
        StoreWf 0 Ψˡ′ Σˡ′ ×
@@ -283,7 +283,7 @@ sim-left-beta-Λ :
   WfTy 1 Ψˡ A →
   WfTy 1 Ψˡ B →
   WfTy 0 Ψˡ T →
-  Ψˡ ∣ plains 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
+  Ψˡ ∣ extend-X⊑X 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
   ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
     (StoreWf 0 Ψˡ′ Σˡ′ ×
      ∃[ Ψʳ′ ] ∃[ Σʳ′ ]

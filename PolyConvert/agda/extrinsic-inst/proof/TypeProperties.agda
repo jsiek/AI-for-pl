@@ -112,6 +112,27 @@ rename-raise-⇑ᵗ k A =
     (rename-cong (λ X → sym (raise-ext k X)) (⇑ᵗ A))
     (sym (renameᵗ-suc-comm (raiseVarFrom k) A))
 
+renameᵗ-preserves-Non∀ :
+  (ρ : Renameᵗ) {A : Ty} →
+  Non∀ A →
+  Non∀ (renameᵗ ρ A)
+renameᵗ-preserves-Non∀ ρ non∀-＇ = non∀-＇
+renameᵗ-preserves-Non∀ ρ non∀-｀ = non∀-｀
+renameᵗ-preserves-Non∀ ρ non∀-‵ = non∀-‵
+renameᵗ-preserves-Non∀ ρ non∀-★ = non∀-★
+renameᵗ-preserves-Non∀ ρ non∀-⇒ = non∀-⇒
+
+renameᵗ-inv-Non∀ :
+  (ρ : Renameᵗ) {A : Ty} →
+  Non∀ (renameᵗ ρ A) →
+  Non∀ A
+renameᵗ-inv-Non∀ ρ {A = ＇ X} non∀A = non∀-＇
+renameᵗ-inv-Non∀ ρ {A = ｀ α} non∀A = non∀-｀
+renameᵗ-inv-Non∀ ρ {A = ‵ ι} non∀A = non∀-‵
+renameᵗ-inv-Non∀ ρ {A = ★} non∀A = non∀-★
+renameᵗ-inv-Non∀ ρ {A = A ⇒ B} non∀A = non∀-⇒
+renameᵗ-inv-Non∀ ρ {A = `∀ A} ()
+
 occurs-raise :
   ∀ k X A →
   occurs (raiseVarFrom k X) (renameᵗ (raiseVarFrom k) A) ≡
@@ -262,13 +283,6 @@ ground-upper-unique-⊑ ★⇒★ ★⇒★
 ＇⊑Ground-elim (｀ α) ()
 ＇⊑Ground-elim (‵ ι) ()
 ＇⊑Ground-elim ★⇒★ ()
-
-data Non∀ : Ty → Set where
-  non∀-＇ : ∀ {X} → Non∀ (＇ X)
-  non∀-｀ : ∀ {α} → Non∀ (｀ α)
-  non∀-‵ : ∀ {ι} → Non∀ (‵ ι)
-  non∀-★ : Non∀ ★
-  non∀-⇒ : ∀ {A B} → Non∀ (A ⇒ B)
 
 ground-upper-unique-chain-non∀-⊑ :
   ∀ {Ψ Γ A B C G H p q r s} →

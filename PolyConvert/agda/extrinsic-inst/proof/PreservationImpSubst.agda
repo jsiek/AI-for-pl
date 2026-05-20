@@ -30,15 +30,17 @@ open import proof.ImprecisionProperties
   using
     ( VarSubst
     ; cong-⊢⊑
-    ; length-plains[]
+    ; extend-X⊑X-lookup
+    ; length-extend-X⊑X[]
     ; lookup-mode
     ; plain-var-subst
+    ; reflImp-wt-extend-X⊑X
     ; src⊑-correct
     ; tgt⊑-correct
     ; wkImpAt
     ; wk-VarSubst
     )
-open import proof.PreservationTermSubst using (wkImp-plains)
+open import proof.PreservationTermSubst using (wkImp-extend-X⊑X)
 
 ------------------------------------------------------------------------
 -- Occurrence preservation for binder-protected substitutions
@@ -103,6 +105,34 @@ ImpSubstWt-exts {m′ = X⊑★} hσ here = ⊢X-⊑-★ here
 ImpSubstWt-exts {m′ = m′} hσ (there x∈) =
   wk-VarSubst {m′ = m′} (hσ x∈)
 
+VarSubstRel : SealCtx → VarPrecCtx → Ty → Ty → VarPrec → Set
+VarSubstRel Ψ Γ A B X⊑X = Σ[ p ∈ Imp ] Ψ ∣ Γ ⊢ p ⦂ A ⊑ B
+VarSubstRel Ψ Γ A B X⊑★ = Σ[ p ∈ Imp ] Ψ ∣ Γ ⊢ p ⦂ A ⊑ ★
+
+ImpSubstRel : SealCtx → VarPrecCtx → VarPrecCtx → Substᵗ → Substᵗ → Set
+ImpSubstRel Ψ Γ Γ′ σ τ =
+  ∀ {X m} →
+  Γ ∋ X ∶ m →
+  VarSubstRel Ψ Γ′ (σ X) (τ X) m
+
+wk-VarSubstRel :
+  ∀ {Ψ Γ A B m m′} →
+  VarSubstRel Ψ Γ A B m →
+  VarSubstRel Ψ (m′ ∷ Γ) (⇑ᵗ A) (⇑ᵗ B) m
+wk-VarSubstRel {m = X⊑X} (p , p⊢) =
+  renameImp suc p , wkImpAt {Φ = []} p⊢
+wk-VarSubstRel {m = X⊑★} (p , p⊢) =
+  renameImp suc p , wkImpAt {Φ = []} p⊢
+
+ImpSubstRel-exts :
+  ∀ {Ψ Γ Γ′ σ τ m′} →
+  ImpSubstRel Ψ Γ Γ′ σ τ →
+  ImpSubstRel Ψ (m′ ∷ Γ) (m′ ∷ Γ′) (extsᵗ σ) (extsᵗ τ)
+ImpSubstRel-exts {m′ = X⊑X} h here = X-⊑-X zero , ⊢X-⊑-X here
+ImpSubstRel-exts {m′ = X⊑★} h here = X-⊑-★ zero , ⊢X-⊑-★ here
+ImpSubstRel-exts {m′ = m′} h (there x∈) =
+  wk-VarSubstRel {m′ = m′} (h x∈)
+
 ------------------------------------------------------------------------
 -- Parallel substitution that sends all X⊑★ variables to ★
 ------------------------------------------------------------------------
@@ -166,13 +196,13 @@ wk-ν★-var-⊑ p⊢ = wkImpAt {Φ = []} p⊢
       (substᵗ-cong (ν★Subst-plain-exts Γ) A)
       p⊢)
 
-ν★Subst-plains-id :
+ν★Subst-extend-X⊑X-id :
   ∀ Δ X →
-  ν★Subst (plains Δ []) X ≡ ＇ X
-ν★Subst-plains-id zero X = refl
-ν★Subst-plains-id (suc Δ) zero = refl
-ν★Subst-plains-id (suc Δ) (suc X) =
-  cong ⇑ᵗ (ν★Subst-plains-id Δ X)
+  ν★Subst (extend-X⊑X Δ []) X ≡ ＇ X
+ν★Subst-extend-X⊑X-id zero X = refl
+ν★Subst-extend-X⊑X-id (suc Δ) zero = refl
+ν★Subst-extend-X⊑X-id (suc Δ) (suc X) =
+  cong ⇑ᵗ (ν★Subst-extend-X⊑X-id Δ X)
 
 singleν★Subst : Substᵗ
 singleν★Subst zero = ★
@@ -180,18 +210,18 @@ singleν★Subst (suc X) = ＇ suc X
 
 ν★Subst-singleν★ :
   ∀ Δ X →
-  ν★Subst (X⊑★ ∷ plains Δ []) X ≡ singleν★Subst X
+  ν★Subst (X⊑★ ∷ extend-X⊑X Δ []) X ≡ singleν★Subst X
 ν★Subst-singleν★ Δ zero = refl
-ν★Subst-singleν★ Δ (suc X) = cong ⇑ᵗ (ν★Subst-plains-id Δ X)
+ν★Subst-singleν★ Δ (suc X) = cong ⇑ᵗ (ν★Subst-extend-X⊑X-id Δ X)
 
 ν★-⊑-single :
   ∀ {Δ Ψ A} →
   WfTy (suc Δ) Ψ A →
-  ∃[ p ] Ψ ∣ (X⊑★ ∷ plains Δ []) ⊢ p ⦂
+  ∃[ p ] Ψ ∣ (X⊑★ ∷ extend-X⊑X Δ []) ⊢ p ⦂
     A ⊑ substᵗ singleν★Subst A
 ν★-⊑-single {Δ = Δ} {A = A} wfA
-    with ν★-⊑ {Γ = X⊑★ ∷ plains Δ []}
-      (subst (λ n → WfTy (suc n) _ A) (sym (length-plains[] Δ)) wfA)
+    with ν★-⊑ {Γ = X⊑★ ∷ extend-X⊑X Δ []}
+      (subst (λ n → WfTy (suc n) _ A) (sym (length-extend-X⊑X[] Δ)) wfA)
 ν★-⊑-single {Δ = Δ} {A = A} wfA | p , p⊢ =
   p ,
   cong-⊢⊑
@@ -203,52 +233,30 @@ singleν★Subst (suc X) = ＇ suc X
 -- Plain contexts provide reflexive imprecision for well-formed types
 ------------------------------------------------------------------------
 
-plains-lookup :
-  ∀ {Δ X} →
-  X < Δ →
-  plains Δ [] ∋ X ∶ X⊑X
-plains-lookup {Δ = zero} ()
-plains-lookup {Δ = suc Δ} {X = zero} z<s = here
-plains-lookup {Δ = suc Δ} {X = suc X} (s<s X<Δ) =
-  there (plains-lookup X<Δ)
-
-reflImp-wt-plains :
-  ∀ {Δ Ψ A} →
-  WfTy Δ Ψ A →
-  Ψ ∣ plains Δ [] ⊢ reflImp A ⦂ A ⊑ A
-reflImp-wt-plains (wfVar X<Δ) =
-  ⊢X-⊑-X (plains-lookup X<Δ)
-reflImp-wt-plains (wfSeal α<Ψ) = ⊢α-⊑-α (wfSeal α<Ψ)
-reflImp-wt-plains wfBase = ⊢ι-⊑-ι
-reflImp-wt-plains wf★ = ⊢★-⊑-★
-reflImp-wt-plains (wf⇒ wfA wfB) =
-  ⊢A⇒B-⊑-A′⇒B′ (reflImp-wt-plains wfA) (reflImp-wt-plains wfB)
-reflImp-wt-plains (wf∀ wfA) = ⊢∀A-⊑-∀B (reflImp-wt-plains wfA)
-
 tysubst-right-at-⊑ :
   ∀ k {Δ A T T′ pT} →
   WfTy (suc (k + Δ)) 0 A →
-  0 ∣ plains Δ [] ⊢ pT ⦂ T ⊑ T′ →
+  0 ∣ extend-X⊑X Δ [] ⊢ pT ⦂ T ⊑ T′ →
   Σ[ p ∈ Imp ]
-    (0 ∣ plains (k + Δ) [] ⊢ p ⦂
+    (0 ∣ extend-X⊑X (k + Δ) [] ⊢ p ⦂
       substᵗ (substVarFrom k T) A ⊑
       substᵗ (substVarFrom k T′) A)
 tysubst-right-at-⊑ zero {A = ＇ zero} (wfVar z<s) pT⊢ =
   _ , pT⊢
 tysubst-right-at-⊑ zero {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢ =
-  reflImp (＇ X) , reflImp-wt-plains (wfVar X<Δ)
+  reflImp (＇ X) , reflImp-wt-extend-X⊑X (wfVar X<Δ)
 tysubst-right-at-⊑ (suc k) {A = ＇ zero} (wfVar z<s) pT⊢ =
-  reflImp (＇ zero) , reflImp-wt-plains (wfVar z<s)
+  reflImp (＇ zero) , reflImp-wt-extend-X⊑X (wfVar z<s)
 tysubst-right-at-⊑ (suc k) {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢
     with tysubst-right-at-⊑ k (wfVar X<Δ) pT⊢
 tysubst-right-at-⊑ (suc k) {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢
     | p , p⊢ =
-  renameImp suc p , wkImp-plains zero p⊢
+  renameImp suc p , wkImp-extend-X⊑X zero p⊢
 tysubst-right-at-⊑ k {A = ｀ α} (wfSeal ()) pT⊢
 tysubst-right-at-⊑ k {A = ‵ ι} wfBase pT⊢ =
-  reflImp (‵ ι) , reflImp-wt-plains wfBase
+  reflImp (‵ ι) , reflImp-wt-extend-X⊑X wfBase
 tysubst-right-at-⊑ k {A = ★} wf★ pT⊢ =
-  reflImp ★ , reflImp-wt-plains wf★
+  reflImp ★ , reflImp-wt-extend-X⊑X wf★
 tysubst-right-at-⊑ k {A = A ⇒ B} (wf⇒ wfA wfB) pT⊢
     with tysubst-right-at-⊑ k wfA pT⊢
        | tysubst-right-at-⊑ k wfB pT⊢
@@ -264,27 +272,27 @@ tysubst-right-at-⊑ k {A = `∀ A} (wf∀ wfA) pT⊢
 tysubst-right-⊑ :
   ∀ {Δ A T T′ pT} →
   WfTy (suc Δ) 0 A →
-  0 ∣ plains Δ [] ⊢ pT ⦂ T ⊑ T′ →
-  Σ[ p ∈ Imp ] (0 ∣ plains Δ [] ⊢ p ⦂ A [ T ]ᵗ ⊑ A [ T′ ]ᵗ)
+  0 ∣ extend-X⊑X Δ [] ⊢ pT ⦂ T ⊑ T′ →
+  Σ[ p ∈ Imp ] (0 ∣ extend-X⊑X Δ [] ⊢ p ⦂ A [ T ]ᵗ ⊑ A [ T′ ]ᵗ)
 tysubst-right-⊑ wfA pT⊢ = tysubst-right-at-⊑ zero wfA pT⊢
 
 singleTyEnv-ImpSubstWt :
   ∀ {Δ Ψ T} →
   WfTy Δ Ψ T →
-  ImpSubstWt Ψ (X⊑X ∷ plains Δ []) (plains Δ []) (singleTyEnv T)
-singleTyEnv-ImpSubstWt wfT here = reflImp-wt-plains wfT
+  ImpSubstWt Ψ (X⊑X ∷ extend-X⊑X Δ []) (extend-X⊑X Δ []) (singleTyEnv T)
+singleTyEnv-ImpSubstWt wfT here = reflImp-wt-extend-X⊑X wfT
 singleTyEnv-ImpSubstWt wfT (there x∈) = plain-var-subst x∈
 
-singleTyEnv-TySubstWf-plains :
+singleTyEnv-TySubstWf-extend-X⊑X :
   ∀ {Δ Ψ T} →
   WfTy Δ Ψ T →
   TySubstWf
-    (length (X⊑X ∷ plains Δ []))
-    (length (plains Δ []))
+    (length (X⊑X ∷ extend-X⊑X Δ []))
+    (length (extend-X⊑X Δ []))
     Ψ
     (singleTyEnv T)
-singleTyEnv-TySubstWf-plains {Δ = Δ} {T = T} wfT
-  rewrite length-plains[] Δ =
+singleTyEnv-TySubstWf-extend-X⊑X {Δ = Δ} {T = T} wfT
+  rewrite length-extend-X⊑X[] Δ =
   singleTyEnv-Wf T wfT
 
 ------------------------------------------------------------------------
@@ -316,17 +324,84 @@ singleTyEnv-TySubstWf-plains {Δ = Δ} {T = T} wfT
       (substᵗ-suc-renameᵗ-suc σ B)
       (⊑-substᵗ-wt (TySubstWf-exts hσ) (ImpSubstWt-exts hᵢ) p⊢))
 
+⊑-substᵗ-rel :
+  ∀ {Ψ Γ Γ′ σ τ p A B} →
+  TySubstWf (length Γ) (length Γ′) Ψ τ →
+  ImpSubstRel Ψ Γ Γ′ σ τ →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
+  Σ[ q ∈ Imp ] Ψ ∣ Γ′ ⊢ q ⦂ substᵗ σ A ⊑ substᵗ τ B
+⊑-substᵗ-rel hτ hᵢ ⊢★-⊑-★ = ★-⊑-★ , ⊢★-⊑-★
+⊑-substᵗ-rel hτ hᵢ (⊢X-⊑-★ xν) = hᵢ xν
+⊑-substᵗ-rel hτ hᵢ (⊢A-⊑-★ g p⊢)
+    with ⊑-substᵗ-rel hτ hᵢ p⊢
+⊑-substᵗ-rel hτ hᵢ (⊢A-⊑-★ g p⊢) | q , q⊢ =
+  A-⊑-★ q , ⊢A-⊑-★ (substᵗ-ground _ g) q⊢
+⊑-substᵗ-rel hτ hᵢ (⊢X-⊑-X x∈) = hᵢ x∈
+⊑-substᵗ-rel hτ hᵢ (⊢α-⊑-α (wfSeal α<Ψ)) =
+  α-⊑-α _ , ⊢α-⊑-α (wfSeal α<Ψ)
+⊑-substᵗ-rel hτ hᵢ ⊢ι-⊑-ι = ι-⊑-ι _ , ⊢ι-⊑-ι
+⊑-substᵗ-rel hτ hᵢ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
+    with ⊑-substᵗ-rel hτ hᵢ p⊢ | ⊑-substᵗ-rel hτ hᵢ q⊢
+⊑-substᵗ-rel hτ hᵢ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
+    | p′ , p′⊢ | q′ , q′⊢ =
+  A⇒B-⊑-A′⇒B′ p′ q′ , ⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢
+⊑-substᵗ-rel hτ hᵢ (⊢∀A-⊑-∀B p⊢)
+    with ⊑-substᵗ-rel (TySubstWf-exts hτ) (ImpSubstRel-exts hᵢ) p⊢
+⊑-substᵗ-rel hτ hᵢ (⊢∀A-⊑-∀B p⊢) | q , q⊢ =
+  ∀A-⊑-∀B q , ⊢∀A-⊑-∀B q⊢
+⊑-substᵗ-rel {τ = τ} hτ hᵢ (⊢∀A-⊑-B {B = B} wfB p⊢)
+    with ⊑-substᵗ-rel (TySubstWf-exts hτ) (ImpSubstRel-exts hᵢ) p⊢
+⊑-substᵗ-rel {τ = τ} hτ hᵢ (⊢∀A-⊑-B {B = B} wfB p⊢)
+    | q , q⊢ =
+  ∀A-⊑-B (substᵗ τ B) q ,
+  ⊢∀A-⊑-B
+    (substᵗ-preserves-WfTy wfB hτ)
+    (cong-⊢⊑ refl (substᵗ-suc-renameᵗ-suc τ B) q⊢)
+
+var-subst-rel-id :
+  ∀ {Ψ Γ X m} →
+  Γ ∋ X ∶ m →
+  VarSubstRel Ψ Γ (＇ X) (＇ X) m
+var-subst-rel-id {m = X⊑X} x∈ = X-⊑-X _ , ⊢X-⊑-X x∈
+var-subst-rel-id {m = X⊑★} x∈ = X-⊑-★ _ , ⊢X-⊑-★ x∈
+
+singleTyEnv-TySubstWf :
+  ∀ {Φ Ψ T} →
+  WfTy (length Φ) Ψ T →
+  TySubstWf (length (X⊑X ∷ Φ)) (length Φ) Ψ (singleTyEnv T)
+singleTyEnv-TySubstWf wfT {zero} z<s = wfT
+singleTyEnv-TySubstWf wfT {suc X} (s<s X<Φ) = wfVar X<Φ
+
+singleTyEnv-ImpSubstRel :
+  ∀ {Φ Ψ T T′ pT} →
+  Ψ ∣ Φ ⊢ pT ⦂ T ⊑ T′ →
+  ImpSubstRel Ψ (X⊑X ∷ Φ) Φ (singleTyEnv T) (singleTyEnv T′)
+singleTyEnv-ImpSubstRel pT⊢ here = _ , pT⊢
+singleTyEnv-ImpSubstRel pT⊢ (there x∈) = var-subst-rel-id x∈
+
+[]⊑ᵗ-rel-wt :
+  ∀ {Φ Ψ p A B T T′ pT} →
+  Ψ ∣ (X⊑X ∷ Φ) ⊢ p ⦂ A ⊑ B →
+  WfTy (length Φ) Ψ T′ →
+  Ψ ∣ Φ ⊢ pT ⦂ T ⊑ T′ →
+  Σ[ q ∈ Imp ] Ψ ∣ Φ ⊢ q ⦂ A [ T ]ᵗ ⊑ B [ T′ ]ᵗ
+[]⊑ᵗ-rel-wt {Φ = Φ} p⊢ wfT′ pT⊢ =
+  ⊑-substᵗ-rel
+    (singleTyEnv-TySubstWf {Φ = Φ} wfT′)
+    (singleTyEnv-ImpSubstRel {Φ = Φ} pT⊢)
+    p⊢
+
 []⊑ᵗ-wt :
   ∀ {Δ Ψ}{p : Imp}{A B T : Ty} →
-  Ψ ∣ (X⊑X ∷ plains Δ []) ⊢ p ⦂ A ⊑ B →
+  Ψ ∣ (X⊑X ∷ extend-X⊑X Δ []) ⊢ p ⦂ A ⊑ B →
   WfTy Δ Ψ T →
-  Ψ ∣ plains Δ [] ⊢ p [ T ]⊑ ⦂
+  Ψ ∣ extend-X⊑X Δ [] ⊢ p [ T ]⊑ ⦂
     src⊑ p [ T ]ᵗ ⊑ tgt⊑ p [ T ]ᵗ
 []⊑ᵗ-wt {Δ = Δ} {T = T} p⊢ wfT =
   cong-⊢⊑
     (cong (λ A → A [ T ]ᵗ) (sym (src⊑-correct p⊢)))
     (cong (λ B → B [ T ]ᵗ) (sym (tgt⊑-correct p⊢)))
     (⊑-substᵗ-wt
-      (singleTyEnv-TySubstWf-plains wfT)
+      (singleTyEnv-TySubstWf-extend-X⊑X wfT)
       (singleTyEnv-ImpSubstWt wfT)
       p⊢)

@@ -33,7 +33,7 @@ open import Imprecision
     ; VarPrec
     ; _∣_⊢_⦂_⊑_
     ; X⊑X
-    ; plains
+    ; extend-X⊑X
     ; starImp
     ; substImp
     ; substAtImp
@@ -158,34 +158,34 @@ data PlainList : VarPrecCtx → Set where
   X⊑X[] : PlainList []
   X⊑X∷_ : ∀ {Φ} → PlainList Φ → PlainList (X⊑X ∷ Φ)
 
-length-plains : ∀ Δ → length (plains Δ []) ≡ Δ
-length-plains zero = refl
-length-plains (suc Δ) = cong suc (length-plains Δ)
+length-extend-X⊑X : ∀ Δ → length (extend-X⊑X Δ []) ≡ Δ
+length-extend-X⊑X zero = refl
+length-extend-X⊑X (suc Δ) = cong suc (length-extend-X⊑X Δ)
 
-PlainList-plains :
+PlainList-extend-X⊑X :
   ∀ {Φ} →
   PlainList Φ →
   (Δ : TyCtx) →
-  plains (length (Φ ++ plains Δ [])) [] ≡ Φ ++ plains Δ []
-PlainList-plains X⊑X[] Δ rewrite length-plains Δ = refl
-PlainList-plains (X⊑X∷ plainΦ) Δ =
-  cong (X⊑X ∷_) (PlainList-plains plainΦ Δ)
+  extend-X⊑X (length (Φ ++ extend-X⊑X Δ [])) [] ≡ Φ ++ extend-X⊑X Δ []
+PlainList-extend-X⊑X X⊑X[] Δ rewrite length-extend-X⊑X Δ = refl
+PlainList-extend-X⊑X (X⊑X∷ plainΦ) Δ =
+  cong (X⊑X ∷_) (PlainList-extend-X⊑X plainΦ Δ)
 
-open-fresh-∀⊑-plains :
+open-fresh-∀⊑-extend-X⊑X :
   ∀ {Δ Ψ}{Σ : Store}{Φ : VarPrecCtx}{A B : Ty}{p : Imp} →
   PlainList Φ →
   StoreWf Δ Ψ Σ →
   _∣_⊢_⦂_⊑_
     Ψ
-    (plains (length (Φ ++ X⊑X ∷ plains Δ [])) [])
+    (extend-X⊑X (length (Φ ++ X⊑X ∷ extend-X⊑X Δ [])) [])
     p A B →
   _∣_⊢_⦂_⊑_
     (suc Ψ)
-    (plains (length (Φ ++ plains Δ [])) [])
+    (extend-X⊑X (length (Φ ++ extend-X⊑X Δ [])) [])
     (substAtImp (length Φ) (｀ (length Σ)) p)
     (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A)
     (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B)
-open-fresh-∀⊑-plains
+open-fresh-∀⊑-extend-X⊑X
   {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Φ = Φ} {A = A} {B = B} {p = p}
   plainΦ wfΣ p⊢ =
   subst
@@ -196,19 +196,19 @@ open-fresh-∀⊑-plains
         (substAtImp (length Φ) (｀ (length Σ)) p)
         (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A)
         (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B))
-    (sym (PlainList-plains plainΦ Δ))
+    (sym (PlainList-extend-X⊑X plainΦ Δ))
     (open-fresh-∀⊑-prefix {Φ = Φ} wfΣ
       (subst
         (λ Γ → _∣_⊢_⦂_⊑_ Ψ Γ p A B)
-        (PlainList-plains plainΦ (suc Δ))
+        (PlainList-extend-X⊑X plainΦ (suc Δ))
         p⊢))
 
 openTerm-fresh-∀-prefix :
   ∀ {Δ Ψ}{Σ Σ₀ : Store}{Φ : VarPrecCtx}{Γ : Ctx}{M : Term}{A : Ty} →
   PlainList Φ →
   StoreWf Δ Ψ Σ →
-  length (Φ ++ X⊑X ∷ plains Δ []) ∣ Ψ ∣ Σ₀ ∣ Γ ⊢ M ⦂ A →
-  length (Φ ++ plains Δ []) ∣ suc Ψ ∣
+  length (Φ ++ X⊑X ∷ extend-X⊑X Δ []) ∣ Ψ ∣ Σ₀ ∣ Γ ⊢ M ⦂ A →
+  length (Φ ++ extend-X⊑X Δ []) ∣ suc Ψ ∣
     substStoreᵗ (substVarFrom (length Φ) (｀ (length Σ))) Σ₀ ∣
     map (substᵗ (substVarFrom (length Φ) (｀ (length Σ)))) Γ ⊢
     substᵗᵐ (substVarFrom (length Φ) (｀ (length Σ))) M ⦂
@@ -259,11 +259,11 @@ openTerm-fresh-∀-prefix plainΦ wfΣ (⊢⊕ L⊢ op M⊢) =
       (openTerm-fresh-∀-prefix plainΦ wfΣ M⊢)
 openTerm-fresh-∀-prefix {Φ = Φ} plainΦ wfΣ (⊢up {p = p} p⊢ M⊢) =
   ⊢up
-    (open-fresh-∀⊑-plains {Φ = Φ} plainΦ wfΣ p⊢)
+    (open-fresh-∀⊑-extend-X⊑X {Φ = Φ} plainΦ wfΣ p⊢)
     (openTerm-fresh-∀-prefix plainΦ wfΣ M⊢)
 openTerm-fresh-∀-prefix {Φ = Φ} plainΦ wfΣ (⊢down {p = p} p⊢ M⊢) =
   ⊢down
-    (open-fresh-∀⊑-plains {Φ = Φ} plainΦ wfΣ p⊢)
+    (open-fresh-∀⊑-extend-X⊑X {Φ = Φ} plainΦ wfΣ p⊢)
     (openTerm-fresh-∀-prefix plainΦ wfΣ M⊢)
 openTerm-fresh-∀-prefix {Σ = Σ} {Σ₀ = Σ₀} {Φ = Φ} plainΦ wfΣ
   (⊢reveal c⊢ M⊢) =
@@ -286,14 +286,14 @@ openTerm-fresh-∀-prefix plainΦ wfΣ (⊢blame ℓ) = ⊢blame ℓ
   suc Δ ∣ Ψ ∣ ⟰ᵗ Σ ∣ ⤊ᵗ Γ ⊢ M ⦂ A →
   Δ ∣ suc Ψ ∣ Σ ∣ Γ ⊢ M [ ｀ (length Σ) ]ᵀ ⦂ A [ ｀ (length Σ) ]ᵗ
 []ᵀ-fresh-∀-wt {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ M⊢ =
-  cong-⊢Δ⦂ (length-plains Δ)
+  cong-⊢Δ⦂ (length-extend-X⊑X Δ)
     (cong-⊢⦂
       (substStoreᵗ-singleTyEnv-⟰ᵗ (｀ (length Σ)) Σ)
       (map-singleTyEnv-⤊ᵗ (｀ (length Σ)) Γ)
       refl
       refl
       (openTerm-fresh-∀-prefix {Δ = Δ} {Φ = []} X⊑X[] wfΣ
-        (cong-⊢Δ⦂ (sym (length-plains (suc Δ))) M⊢)))
+        (cong-⊢Δ⦂ (sym (length-extend-X⊑X (suc Δ))) M⊢)))
 
 ------------------------------------------------------------------------
 -- Fresh seal facts

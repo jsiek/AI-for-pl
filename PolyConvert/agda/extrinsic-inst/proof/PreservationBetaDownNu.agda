@@ -27,7 +27,7 @@ open import Conversion
 open import Terms
 open import proof.ConversionProperties using (convert↑At-wt)
 open import proof.ImprecisionProperties
-  using (length-plains[]; open-fresh-ν⊑; src⊑-correct; ⊑-src-wf)
+  using (length-extend-X⊑X[]; open-fresh-ν⊑; src⊑-correct; ⊑-src-wf)
 open import proof.StoreProperties using (len<suc-StoreWf)
 open import proof.TermProperties using (wk-term)
 
@@ -77,7 +77,7 @@ preserve-β-down-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
           (sym (src⊑-correct p⊢))
           (subst
             (λ n → WfTy n Ψ Aν)
-            (cong suc (length-plains[] Δ))
+            (cong suc (length-extend-X⊑X[] Δ))
             (⊑-src-wf p⊢)))
         (n≤1+n Ψ)
 
@@ -88,7 +88,7 @@ preserve-β-down-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
     c⊢ = convert↑At-wt hSeal hA top wf-src
 
     p⊢′ :
-      suc Ψ ∣ plains Δ [] ⊢ p [ ｀ len ]⊑ ⦂
+      suc Ψ ∣ extend-X⊑X Δ [] ⊢ p [ ｀ len ]⊑ ⦂
         (Aν [ ｀ len ]ᵗ) ⊑ Bν
     p⊢′ = open-fresh-ν⊑ wfΣ p⊢
 

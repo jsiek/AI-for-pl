@@ -32,7 +32,7 @@ open import proof.ConversionProperties using (convert↑-fresh-wt)
 open import proof.ImprecisionProperties
   using
     ( cong-⊢⊑
-    ; length-plains[]
+    ; length-extend-X⊑X[]
     ; open-fresh-∀⊑
     ; src⊑-correct
     ; tgt⊑-correct
@@ -71,7 +71,7 @@ preserve-β-down-∀ {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {V = V} {T = T} {p = p}
         (sym eq-src)
         (subst
           (λ n → WfTy n Ψ Aₚ)
-          (cong suc (length-plains[] Δ))
+          (cong suc (length-extend-X⊑X[] Δ))
           (⊑-src-wf p⊢))
 
     wf-tgt : WfTy (suc Δ) Ψ (tgt⊑ p)
@@ -81,7 +81,7 @@ preserve-β-down-∀ {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {V = V} {T = T} {p = p}
         (sym eq-tgt)
         (subst
           (λ n → WfTy n Ψ Bₚ)
-          (cong suc (length-plains[] Δ))
+          (cong suc (length-extend-X⊑X[] Δ))
           (⊑-tgt-wf p⊢))
 
     V⊢′ :
@@ -101,7 +101,7 @@ preserve-β-down-∀ {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {V = V} {T = T} {p = p}
         (wfSeal (len<suc-StoreWf wfΣ))
 
     p-open⊢ :
-      suc Ψ ∣ plains Δ [] ⊢ p [ ｀ (length Σ) ]⊑ ⦂
+      suc Ψ ∣ extend-X⊑X Δ [] ⊢ p [ ｀ (length Σ) ]⊑ ⦂
       tgt⊑ p [ ｀ (length Σ) ]ᵗ ⊒
       src⊑ p [ ｀ (length Σ) ]ᵗ
     p-open⊢ =

@@ -24,9 +24,20 @@ open import proof.ImprecisionProperties
     ( _≤ᵢ_
     ; []≤ᵢ
     ; _∷≤ᵢ_
+    ; ≤ᵢ-refl
+    ; ≤ᵢ-ν-lookup
+    ; cong-⊢⊑
+    ; dropTyFrom-raise-same
+    ; tgt⊑-correct
     ; X⊑X≤X⊑X
     ; X⊑X≤ν
+    ; ν≤ν
     ; trans-ctx-⊑
+    )
+open import proof.TypeProperties
+  using
+    ( ground-upper-unique-⊑
+    ; ground-upper-unique-chain-non∀-⊑
     )
 
 leftICtx-extend-X~X[] : ∀ Δ → leftICtx (extend-X~X Δ []) ≡ extend-X⊑X Δ []
@@ -160,19 +171,217 @@ coerce-wt-extend-X⊑X {Δ = Δ} A~C | B , p⊒⊢ , p⊑⊢
   rewrite leftICtx-extend-X~X[] Δ | rightICtx-extend-X~X[] Δ =
   B , p⊒⊢ , p⊑⊢
 
-postulate
-  coerce-glbᶜ :
-    ∀ {Γ Φ A C B B′ p⊒ p⊑ pA pC} →
-    (A~C : Γ ⊢ A ~ C) →
-    leftICtx Γ ≤ᵢ Φ →
+coerce-⊒-tgt :
+  ∀ {Γ A C} →
+  (A~C : Γ ⊢ A ~ C) →
+  tgt⊑ (coerce-⊒ A~C) ≡ A
+coerce-⊒-tgt ★-~-★ = refl
+coerce-⊒-tgt (X-~-X x∈) = refl
+coerce-⊒-tgt ι-~-ι = refl
+coerce-⊒-tgt (⇒-~-⇒ A~A′ B~B′) =
+  cong₂ _⇒_ (coerce-⊒-tgt A~A′) (coerce-⊒-tgt B~B′)
+coerce-⊒-tgt (∀-~-∀ A~B) =
+  cong `∀ (coerce-⊒-tgt A~B)
+coerce-⊒-tgt (A-~-★ n★ n∀ g A~G) =
+  coerce-⊒-tgt A~G
+coerce-⊒-tgt (★-~-B n★ n∀ g G~B) = refl
+coerce-⊒-tgt (νX-~-★ x∈) = refl
+coerce-⊒-tgt (★-~-νX x∈) = refl
+coerce-⊒-tgt (∀-~-B wfB A~⇑B) =
+  cong `∀ (coerce-⊒-tgt A~⇑B)
+coerce-⊒-tgt {A = A} (A-~-∀ wfA ⇑A~B) =
+  trans (cong (dropTyFrom zero) (coerce-⊒-tgt ⇑A~B))
+        (dropTyFrom-raise-same zero A)
+
+coerce-⊑-tgt :
+  ∀ {Γ A C} →
+  (A~C : Γ ⊢ A ~ C) →
+  tgt⊑ (coerce-⊑ A~C) ≡ C
+coerce-⊑-tgt ★-~-★ = refl
+coerce-⊑-tgt (X-~-X x∈) = refl
+coerce-⊑-tgt ι-~-ι = refl
+coerce-⊑-tgt (⇒-~-⇒ A~A′ B~B′) =
+  cong₂ _⇒_ (coerce-⊑-tgt A~A′) (coerce-⊑-tgt B~B′)
+coerce-⊑-tgt (∀-~-∀ A~B) =
+  cong `∀ (coerce-⊑-tgt A~B)
+coerce-⊑-tgt (A-~-★ n★ n∀ g A~G) = refl
+coerce-⊑-tgt (★-~-B n★ n∀ g G~B) =
+  coerce-⊑-tgt G~B
+coerce-⊑-tgt (νX-~-★ x∈) = refl
+coerce-⊑-tgt (★-~-νX x∈) = refl
+coerce-⊑-tgt {C = C} (∀-~-B wfC A~⇑C) =
+  trans (cong (dropTyFrom zero) (coerce-⊑-tgt A~⇑C))
+        (dropTyFrom-raise-same zero C)
+coerce-⊑-tgt (A-~-∀ wfA ⇑A~B) =
+  cong `∀ (coerce-⊑-tgt ⇑A~B)
+
+mutual
+  right-consistent-star-⊑ :
+    ∀ {Γ Φ A} →
+    Γ ⊢ A ~ ★ →
     rightICtx Γ ≤ᵢ Φ →
-    0 ∣ leftICtx Γ ⊢ p⊒ ⦂ B ⊑ A →
-    0 ∣ rightICtx Γ ⊢ p⊑ ⦂ B ⊑ C →
-    0 ∣ Φ ⊢ pA ⦂ B′ ⊑ A →
-    0 ∣ Φ ⊢ pC ⦂ B′ ⊑ C →
-    p⊒ ≡ coerce-⊒ A~C →
-    p⊑ ≡ coerce-⊑ A~C →
-    ∃[ r ] 0 ∣ Φ ⊢ r ⦂ B′ ⊑ B
+    ∃[ p ] 0 ∣ Φ ⊢ p ⦂ A ⊑ ★
+  right-consistent-star-⊑ ★-~-★ Γ≤Φ =
+    id★ , ⊢★-⊑-★
+  right-consistent-star-⊑ (A-~-★ n★′ n∀ g A~G) Γ≤Φ
+      with right-consistent-ground-⊑ n★′ n∀ g A~G Γ≤Φ
+  ... | p , p⊢ = p ! , ⊢A-⊑-★ g p⊢
+  right-consistent-star-⊑ (νX-~-★ x∈) Γ≤Φ =
+    ‵ _ ! , ⊢X-⊑-★ (≤ᵢ-ν-lookup Γ≤Φ (right-lookup-left x∈))
+  right-consistent-star-⊑ (∀-~-B {B = ★} wf★ A~⇑★) Γ≤Φ
+      with right-consistent-star-⊑ A~⇑★ (ν≤ν ∷≤ᵢ Γ≤Φ)
+  ... | p , p⊢ =
+    ν p , ⊢∀A-⊑-B wf★ p⊢
+
+  left-consistent-star-⊑ :
+    ∀ {Γ Φ B} →
+    Γ ⊢ ★ ~ B →
+    leftICtx Γ ≤ᵢ Φ →
+    ∃[ p ] 0 ∣ Φ ⊢ p ⦂ B ⊑ ★
+  left-consistent-star-⊑ ★-~-★ Γ≤Φ =
+    id★ , ⊢★-⊑-★
+  left-consistent-star-⊑ (★-~-B n★′ n∀ g G~B) Γ≤Φ
+      with left-consistent-ground-⊑ n★′ n∀ g G~B Γ≤Φ
+  ... | p , p⊢ = p ! , ⊢A-⊑-★ g p⊢
+  left-consistent-star-⊑ (★-~-νX x∈) Γ≤Φ =
+    ‵ _ ! , ⊢X-⊑-★ (≤ᵢ-ν-lookup Γ≤Φ (left-lookup-right x∈))
+  left-consistent-star-⊑ (A-~-∀ {A = ★} wf★ ★~B) Γ≤Φ
+      with left-consistent-star-⊑ ★~B (ν≤ν ∷≤ᵢ Γ≤Φ)
+  ... | p , p⊢ =
+    ν p , ⊢∀A-⊑-B wf★ p⊢
+
+  right-consistent-ground-⊑ :
+    ∀ {Γ Φ A G} →
+    Non★ A →
+    Non∀ A →
+    Ground G →
+    Γ ⊢ A ~ G →
+    rightICtx Γ ≤ᵢ Φ →
+    ∃[ p ] 0 ∣ Φ ⊢ p ⦂ A ⊑ G
+  right-consistent-ground-⊑ non★-‵ non∀-‵ (‵ ι) ι-~-ι Γ≤Φ =
+    idι ι , ⊢ι-⊑-ι
+  right-consistent-ground-⊑ {G = ★ ⇒ ★} non★-⇒ non∀-⇒ ★⇒★
+      (⇒-~-⇒ A~★ B~★) Γ≤Φ
+      with right-consistent-star-⊑ A~★ Γ≤Φ
+         | right-consistent-star-⊑ B~★ Γ≤Φ
+  ... | p , p⊢ | q , q⊢ =
+    p ↦ q , ⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢
+
+  left-consistent-ground-⊑ :
+    ∀ {Γ Φ G B} →
+    Non★ B →
+    Non∀ B →
+    Ground G →
+    Γ ⊢ G ~ B →
+    leftICtx Γ ≤ᵢ Φ →
+    ∃[ p ] 0 ∣ Φ ⊢ p ⦂ B ⊑ G
+  left-consistent-ground-⊑ non★-‵ non∀-‵ (‵ ι) ι-~-ι Γ≤Φ =
+    idι ι , ⊢ι-⊑-ι
+  left-consistent-ground-⊑ {G = ★ ⇒ ★} non★-⇒ non∀-⇒ ★⇒★
+      (⇒-~-⇒ ★~A ★~B) Γ≤Φ
+      with left-consistent-star-⊑ ★~A Γ≤Φ
+         | left-consistent-star-⊑ ★~B Γ≤Φ
+  ... | p , p⊢ | q , q⊢ =
+    p ↦ q , ⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢
+
+coerce-glbᶜ′ :
+  ∀ {Γ Φ A C B B′ pA pC} →
+  (A~C : Γ ⊢ A ~ C) →
+  leftICtx Γ ≤ᵢ Φ →
+  rightICtx Γ ≤ᵢ Φ →
+  0 ∣ leftICtx Γ ⊢ coerce-⊒ A~C ⦂ B ⊑ A →
+  0 ∣ rightICtx Γ ⊢ coerce-⊑ A~C ⦂ B ⊑ C →
+  0 ∣ Φ ⊢ pA ⦂ B′ ⊑ A →
+  0 ∣ Φ ⊢ pC ⦂ B′ ⊑ C →
+  ∃[ r ] 0 ∣ Φ ⊢ r ⦂ B′ ⊑ B
+coerce-glbᶜ′ ★-~-★ Γ≤Φ Γ′≤Φ ⊢★-⊑-★ ⊢★-⊑-★ pA⊢ pC⊢ =
+  _ , pA⊢
+coerce-glbᶜ′ (X-~-X x∈) Γ≤Φ Γ′≤Φ (⊢X-⊑-X _) (⊢X-⊑-X _)
+    pA⊢ pC⊢ =
+  _ , pA⊢
+coerce-glbᶜ′ ι-~-ι Γ≤Φ Γ′≤Φ ⊢ι-⊑-ι ⊢ι-⊑-ι pA⊢ pC⊢ =
+  _ , pA⊢
+coerce-glbᶜ′ (νX-~-★ x∈) Γ≤Φ Γ′≤Φ (⊢X-⊑-X _) (⊢X-⊑-★ _)
+    pA⊢ pC⊢ =
+  _ , pA⊢
+coerce-glbᶜ′ (★-~-νX x∈) Γ≤Φ Γ′≤Φ (⊢X-⊑-★ _) (⊢X-⊑-X _)
+    pA⊢ pC⊢ =
+  _ , pC⊢
+coerce-glbᶜ′ (⇒-~-⇒ A~C B~D) Γ≤Φ Γ′≤Φ
+    (⊢A⇒B-⊑-A′⇒B′ p⊒₁⊢ p⊒₂⊢)
+    (⊢A⇒B-⊑-A′⇒B′ p⊑₁⊢ p⊑₂⊢)
+    (⊢A⇒B-⊑-A′⇒B′ pA₁⊢ pA₂⊢)
+    (⊢A⇒B-⊑-A′⇒B′ pC₁⊢ pC₂⊢)
+    with coerce-glbᶜ′ A~C Γ≤Φ Γ′≤Φ p⊒₁⊢ p⊑₁⊢ pA₁⊢ pC₁⊢
+       | coerce-glbᶜ′ B~D Γ≤Φ Γ′≤Φ p⊒₂⊢ p⊑₂⊢ pA₂⊢ pC₂⊢
+... | r₁ , r₁⊢ | r₂ , r₂⊢ =
+  r₁ ↦ r₂ , ⊢A⇒B-⊑-A′⇒B′ r₁⊢ r₂⊢
+coerce-glbᶜ′ (⇒-~-⇒ A~C B~D) Γ≤Φ Γ′≤Φ
+    (⊢A⇒B-⊑-A′⇒B′ p⊒₁⊢ p⊒₂⊢)
+    (⊢A⇒B-⊑-A′⇒B′ p⊑₁⊢ p⊑₂⊢)
+    pA⊢
+    (⊢∀A-⊑-B wfC pC⊢) =
+  ?
+coerce-glbᶜ′ (A-~-★ n★ n∀ g A~G) Γ≤Φ Γ′≤Φ p⊒⊢
+    (⊢A-⊑-★ h p⊑⊢) pA⊢ pC⊢
+    with right-consistent-ground-⊑ n★ n∀ g A~G Γ′≤Φ
+coerce-glbᶜ′ (A-~-★ n★ n∀ g A~G) Γ≤Φ Γ′≤Φ p⊒⊢
+    (⊢A-⊑-★ h p⊑⊢) pA⊢ pC⊢
+    | A⊑G , A⊑G⊢
+    with trans-ctx-⊑ ≤ᵢ-refl pA⊢ A⊑G⊢
+... | B′⊑G , B′⊑G⊢ =
+  coerce-glbᶜ′ A~G Γ≤Φ Γ′≤Φ p⊒⊢
+    (cong-⊢⊑ refl
+      (trans (sym (tgt⊑-correct p⊑⊢)) (coerce-⊑-tgt A~G))
+      p⊑⊢)
+    pA⊢ B′⊑G⊢
+coerce-glbᶜ′ (★-~-B n★ n∀ h H~B) Γ≤Φ Γ′≤Φ
+    (⊢A-⊑-★ g p⊒⊢) p⊑⊢ pA⊢ pC⊢
+    with left-consistent-ground-⊑ n★ n∀ h H~B Γ≤Φ
+coerce-glbᶜ′ (★-~-B n★ n∀ h H~B) Γ≤Φ Γ′≤Φ
+    (⊢A-⊑-★ g p⊒⊢) p⊑⊢ pA⊢ pC⊢
+    | B⊑H , B⊑H⊢
+    with trans-ctx-⊑ ≤ᵢ-refl pC⊢ B⊑H⊢
+... | B′⊑H , B′⊑H⊢ =
+  coerce-glbᶜ′ H~B Γ≤Φ Γ′≤Φ
+    (cong-⊢⊑ refl
+      (trans (sym (tgt⊑-correct p⊒⊢)) (coerce-⊒-tgt H~B))
+      p⊒⊢)
+    p⊑⊢ B′⊑H⊢ pC⊢
+coerce-glbᶜ′ (∀-~-∀ A~C) Γ≤Φ Γ′≤Φ
+    (⊢∀A-⊑-∀B p⊒⊢) (⊢∀A-⊑-∀B p⊑⊢)
+    (⊢∀A-⊑-∀B pA⊢) (⊢∀A-⊑-∀B pC⊢)
+    with coerce-glbᶜ′ A~C
+      (X⊑X≤X⊑X ∷≤ᵢ Γ≤Φ)
+      (X⊑X≤X⊑X ∷≤ᵢ Γ′≤Φ)
+      p⊒⊢ p⊑⊢ pA⊢ pC⊢
+... | r , r⊢ =
+  ‵∀ r , ⊢∀A-⊑-∀B r⊢
+coerce-glbᶜ′ (∀-~-∀ A~C) Γ≤Φ Γ′≤Φ
+    (⊢∀A-⊑-∀B p⊒⊢) (⊢∀A-⊑-∀B p⊑⊢) pA⊢ pC⊢ =
+  ?
+coerce-glbᶜ′ (∀-~-B wfC A~⇑C) Γ≤Φ Γ′≤Φ
+    (⊢∀A-⊑-∀B p⊒⊢) (⊢∀A-⊑-B wfC′ p⊑⊢) pA⊢ pC⊢ =
+  ?
+coerce-glbᶜ′ (A-~-∀ wfA ⇑A~C) Γ≤Φ Γ′≤Φ
+    (⊢∀A-⊑-B wfA′ p⊒⊢) (⊢∀A-⊑-∀B p⊑⊢) pA⊢ pC⊢ =
+  ?
+
+coerce-glbᶜ :
+  ∀ {Γ Φ A C B B′ p⊒ p⊑ pA pC} →
+  (A~C : Γ ⊢ A ~ C) →
+  leftICtx Γ ≤ᵢ Φ →
+  rightICtx Γ ≤ᵢ Φ →
+  0 ∣ leftICtx Γ ⊢ p⊒ ⦂ B ⊑ A →
+  0 ∣ rightICtx Γ ⊢ p⊑ ⦂ B ⊑ C →
+  0 ∣ Φ ⊢ pA ⦂ B′ ⊑ A →
+  0 ∣ Φ ⊢ pC ⦂ B′ ⊑ C →
+  p⊒ ≡ coerce-⊒ A~C →
+  p⊑ ≡ coerce-⊑ A~C →
+  ∃[ r ] 0 ∣ Φ ⊢ r ⦂ B′ ⊑ B
+coerce-glbᶜ A~C Γ≤Φ Γ′≤Φ p⊒⊢ p⊑⊢ pA⊢ pC⊢ eq⊒ eq⊑
+  rewrite eq⊒ | eq⊑ =
+  coerce-glbᶜ′ A~C Γ≤Φ Γ′≤Φ p⊒⊢ p⊑⊢ pA⊢ pC⊢
 
 left-right-plain :
   ∀ {Γ X} →

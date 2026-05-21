@@ -2,10 +2,9 @@ module GradualTerms where
 
 -- File Charter:
 --   * Term syntax and typing judgment for Gradually Typed System F (GTSF).
---   * Term imprecision for GTSF.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂)
@@ -13,14 +12,6 @@ open import Relation.Binary.PropositionalEquality using (cong; cong₂)
 open import Types
 open import Ctx using (⤊ᵗ)
 open import Imprecision
-  using
-    ( Imp
-    ; VarPrecCtx
-    ; extend-X⊑X
-    ; X⊑X
-    ; X⊑★
-    ; _∣_⊢_⦂_⊑_
-    )
 open import Consistency
 open import Primitives using (Const; Prim; constTy; κℕ)
 open import proof.TypeProperties
@@ -99,6 +90,8 @@ renameᵗᴳ ρ (M `[ T ]) = renameᵗᴳ ρ M `[ renameᵗ ρ T ]
 renameᵗᴳ ρ ($ κ) = $ κ
 renameᵗᴳ ρ (L ⊕[ op ] M) = renameᵗᴳ ρ L ⊕[ op ] renameᵗᴳ ρ M
 
+⇑ᵗᴳ = renameᵗᴳ suc
+
 renameCtxAt : ℕ → Ctx → Ctx
 renameCtxAt k [] = []
 renameCtxAt k (A ∷ Γ) =
@@ -154,7 +147,7 @@ renameᵗᴳ-value-inv {M = $ κ} ($ .κ) = $ κ
 
 infix  4 _∣_⊢_⦂_
 
-data _∣_⊢_⦂_ (Δ : TyCtx) (Γ : Ctx) : GTerm → Ty → Set where
+data _∣_⊢_⦂_ (Δ : TyCtx) (Γ : Ctx) : GTerm → Ty → Set₁ where
 
   ⊢` : ∀ {x A}
      → Γ ∋ x ⦂ A
@@ -207,51 +200,3 @@ cong-⊢ᴳ⦂ :
   Δ′ ∣ Γ′ ⊢ M′ ⦂ A′
 cong-⊢ᴳ⦂ refl refl refl refl M⊢ = M⊢
 
-------------------------------------------------------------------------
--- Gradual-term imprecision
-------------------------------------------------------------------------
-
-infix 4 _∣_⊢ᴳ_⊑_
-data _∣_⊢ᴳ_⊑_ (Δ : TyCtx) (Φ : VarPrecCtx) : GTerm → GTerm → Set where
-
-  ⊑` : ∀ {x} →
-    Δ ∣ Φ ⊢ᴳ (` x) ⊑ (` x)
-
-  ⊑ƛ : ∀ {A A′ M M′ pA} →
-    0 ∣ Φ ⊢ pA ⦂ A ⊑ A′ →
-    Δ ∣ Φ ⊢ᴳ M ⊑ M′ →
-    Δ ∣ Φ ⊢ᴳ (ƛ A ⇒ M) ⊑ (ƛ A′ ⇒ M′)
-
-  ⊑· : ∀ {L L′ M M′} →
-    Δ ∣ Φ ⊢ᴳ L ⊑ L′ →
-    Δ ∣ Φ ⊢ᴳ M ⊑ M′ →
-    Δ ∣ Φ ⊢ᴳ (L · M) ⊑ (L′ · M′)
-
-  ⊑Λ : ∀ {M M′} →
-    Value M →
-    Value M′ →
-    suc Δ ∣ X⊑X ∷ Φ ⊢ᴳ M ⊑ M′ →
-    Δ ∣ Φ ⊢ᴳ (Λ M) ⊑ (Λ M′)
-
-  ⊑ΛL : ∀ {M M′} →
-    Value M →
-    suc Δ ∣ X⊑★ ∷ Φ ⊢ᴳ M ⊑ renameᵗᴳ suc M′ →
-    Δ ∣ Φ ⊢ᴳ (Λ M) ⊑ M′
-
-  ⊑`[] : ∀ {M M′ T T′ pT} →
-    Δ ∣ Φ ⊢ᴳ M ⊑ M′ →
-    0 ∣ Φ ⊢ pT ⦂ T ⊑ T′ →
-    Δ ∣ Φ ⊢ᴳ (M `[ T ]) ⊑ (M′ `[ T′ ])
-
-  ⊑`[]L : ∀ {M M′ T pT} →
-    Δ ∣ Φ ⊢ᴳ M ⊑ M′ →
-    0 ∣ Φ ⊢ pT ⦂ T ⊑ ★ →
-    Δ ∣ Φ ⊢ᴳ (M `[ T ]) ⊑ M′
-
-  ⊑$ : ∀ {n} →
-    Δ ∣ Φ ⊢ᴳ ($ (κℕ n)) ⊑ ($ (κℕ n))
-
-  ⊑⊕ : ∀ {L L′ M M′ op} →
-    Δ ∣ Φ ⊢ᴳ L ⊑ L′ →
-    Δ ∣ Φ ⊢ᴳ M ⊑ M′ →
-    Δ ∣ Φ ⊢ᴳ (L ⊕[ op ] M) ⊑ (L′ ⊕[ op ] M′)

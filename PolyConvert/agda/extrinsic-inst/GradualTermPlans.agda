@@ -67,6 +67,12 @@ data TyEdit (Γ : VarPrecCtx) : Ty → Set where
   ty-∀keep : ∀ {A} → TyEdit (X⊑X ∷ Γ) A → TyEdit Γ (`∀ A)
   ty-∀drop : ∀ {A} → TyEdit (X⊑★ ∷ Γ) A → TyEdit Γ (`∀ A)
 
+-- TargetOk records the invariant that a target type mentions only variables
+-- whose precision mode is X⊑X.  Variables introduced by dropped source foralls
+-- have mode X⊑★, so they may guide an edit but must not escape into the
+-- resulting target type.  The edit interpreters return TargetOk evidence with
+-- each computed type, and the drop operations use that evidence to remove an
+-- X⊑★ binder while preserving the invariant.
 data TargetOk (Γ : VarPrecCtx) : Ty → Set where
   ok-X : ∀ {X} → Γ ∋ⁱ X ∶ X⊑X → TargetOk Γ (＇ X)
   ok-｀ : ∀ {α} → TargetOk Γ (｀ α)

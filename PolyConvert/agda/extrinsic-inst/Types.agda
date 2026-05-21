@@ -267,15 +267,15 @@ data WfTy : TyCtx → SealCtx → Ty → Set where
   wf∀ : ∀ {Δ Ψ A} → WfTy (suc Δ) Ψ A → WfTy Δ Ψ (`∀ A)
 
 ------------------------------------------------------------------------
--- Lookup term variable in a context
+-- Lookup de Bruijn variable in a list
 ------------------------------------------------------------------------
 
 infix 4 _∋_⦂_
-data _∋_⦂_ : Ctx → Var → Ty → Set where
-  Z : ∀ {Γ A} →
+data _∋_⦂_ : ∀{X : Set} → List X → Var → X → Set₁ where
+  Z : ∀ {X}{Γ : List X}{A : X} →
       (A ∷ Γ) ∋ zero ⦂ A
 
-  S : ∀ {Γ A B x} →
+  S : ∀{X}{Γ}{A B : X}{x} →
       Γ ∋ x ⦂ A →
       (B ∷ Γ) ∋ suc x ⦂ A
 
@@ -590,3 +590,17 @@ renameˢ-single-⇑ˢ-id α (A ⇒ B) =
   cong₂ _⇒_ (renameˢ-single-⇑ˢ-id α A) (renameˢ-single-⇑ˢ-id α B)
 renameˢ-single-⇑ˢ-id α (`∀ A) =
   cong `∀ (renameˢ-single-⇑ˢ-id α A)
+
+dropVarFrom : TyVar → TyVar → TyVar
+dropVarFrom zero zero = zero
+dropVarFrom zero (suc X) = X
+dropVarFrom (suc n) zero = zero
+dropVarFrom (suc n) (suc X) = suc (dropVarFrom n X)
+
+dropTyFrom : TyVar → Ty → Ty
+dropTyFrom n (＇ X) = ＇ (dropVarFrom n X)
+dropTyFrom n (｀ α) = ｀ α
+dropTyFrom n (‵ ι) = ‵ ι
+dropTyFrom n ★ = ★
+dropTyFrom n (A ⇒ B) = dropTyFrom n A ⇒ dropTyFrom n B
+dropTyFrom n (`∀ A) = `∀ (dropTyFrom (suc n) A)

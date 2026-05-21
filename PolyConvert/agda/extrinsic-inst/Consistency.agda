@@ -138,10 +138,10 @@ coerce (★-~-νX {X} x∈) =
   X-⊑-★ X , X-⊑-X X
 coerce (∀-~-B {B = B} wfB A~⇑B) with coerce A~⇑B
 coerce (∀-~-B {B = B} wfB A~⇑B) | p⊒ , p⊑ =
-  ∀A-⊑-∀B p⊒ , ∀A-⊑-B B p⊑
+  ∀A-⊑-∀B p⊒ , ∀A-⊑-B p⊑
 coerce (A-~-∀ {A = A} wfA ⇑A~B) with coerce ⇑A~B
 coerce (A-~-∀ {A = A} wfA ⇑A~B) | p⊒ , p⊑ =
-  ∀A-⊑-B A p⊒ , ∀A-⊑-∀B p⊑
+  ∀A-⊑-B p⊒ , ∀A-⊑-∀B p⊑
 
 
 coerce-⊒ : ∀ {Γ A C} → Γ ⊢ A ~ C → Imp

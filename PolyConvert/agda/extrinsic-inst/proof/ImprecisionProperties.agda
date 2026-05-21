@@ -27,6 +27,28 @@ open import proof.StoreProperties using (len<suc-StoreWf)
 -- Correctness of src⊑ and tgt⊑
 ------------------------------------------------------------------------
 
+dropVarFrom-raise-same :
+  ∀ k X →
+  dropVarFrom k (raiseVarFrom k X) ≡ X
+dropVarFrom-raise-same zero X = refl
+dropVarFrom-raise-same (suc k) zero = refl
+dropVarFrom-raise-same (suc k) (suc X) =
+  cong suc (dropVarFrom-raise-same k X)
+
+dropTyFrom-raise-same :
+  ∀ k A →
+  dropTyFrom k (renameᵗ (raiseVarFrom k) A) ≡ A
+dropTyFrom-raise-same k (＇ X) =
+  cong ＇_ (dropVarFrom-raise-same k X)
+dropTyFrom-raise-same k (｀ α) = refl
+dropTyFrom-raise-same k (‵ ι) = refl
+dropTyFrom-raise-same k ★ = refl
+dropTyFrom-raise-same k (A ⇒ B) =
+  cong₂ _⇒_ (dropTyFrom-raise-same k A) (dropTyFrom-raise-same k B)
+dropTyFrom-raise-same k (`∀ A)
+  rewrite rename-raise-ext k A =
+  cong `∀ (dropTyFrom-raise-same (suc k) A)
+
 src⊑-correct : ∀ {Ψ Γ p A B} →
   Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
   src⊑ p ≡ A
@@ -53,7 +75,9 @@ tgt⊑-correct ⊢ι-⊑-ι = refl
 tgt⊑-correct (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   cong₂ _⇒_ (tgt⊑-correct p⊢) (tgt⊑-correct q⊢)
 tgt⊑-correct (⊢∀A-⊑-∀B p⊢) = cong `∀ (tgt⊑-correct p⊢)
-tgt⊑-correct (⊢∀A-⊑-B wfB p⊢) = refl
+tgt⊑-correct (⊢∀A-⊑-B {B = B} wfB p⊢) =
+  trans (cong (dropTyFrom zero) (tgt⊑-correct p⊢))
+        (dropTyFrom-raise-same zero B)
 
 ------------------------------------------------------------------------
 -- Endpoint well-formedness
@@ -268,7 +292,7 @@ renameImp-star ρ ★ = refl
 renameImp-star ρ (A ⇒ B) =
   cong A-⊑-★
     (cong₂ A⇒B-⊑-A′⇒B′ (renameImp-star ρ A) (renameImp-star ρ B))
-renameImp-star ρ (`∀ A) = cong (∀A-⊑-B ★) (renameImp-star (extᵗ ρ) A)
+renameImp-star ρ (`∀ A) = cong ∀A-⊑-B (renameImp-star (extᵗ ρ) A)
 
 renameImp-cong :
   ∀ {ρ ρ′} →
@@ -289,8 +313,8 @@ renameImp-cong {ρ = ρ} {ρ′ = ρ′} h (∀A-⊑-∀B p) =
     h′ : ∀ X → extᵗ ρ X ≡ extᵗ ρ′ X
     h′ zero = refl
     h′ (suc X) = cong suc (h X)
-renameImp-cong {ρ = ρ} {ρ′ = ρ′} h (∀A-⊑-B B p) =
-  cong₂ ∀A-⊑-B (rename-cong h B) (renameImp-cong h′ p)
+renameImp-cong {ρ = ρ} {ρ′ = ρ′} h (∀A-⊑-B p) =
+  cong ∀A-⊑-B (renameImp-cong h′ p)
   where
     h′ : ∀ X → extᵗ ρ X ≡ extᵗ ρ′ X
     h′ zero = refl
@@ -697,7 +721,7 @@ plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
 plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
     (⊢∀A-⊑-B {A = A} wfB p⊢)
     | q , q⊢ =
-  ∀A-⊑-B (renameᵗ (raiseVarFrom (length Φ)) B) q ,
+  ∀A-⊑-B q ,
   ⊢∀A-⊑-B
     (subst (λ n → WfTy n 0 (renameᵗ (raiseVarFrom (length Φ)) B))
       (length-plain-to-ν Δ Φ) wfB)
@@ -726,7 +750,7 @@ mutual
       with transport-to-star-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢
   transport-to-star-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = ★} wf★ p⊢)
       | r , r⊢ =
-    ∀A-⊑-B ★ r , ⊢∀A-⊑-B (wf-length-cast Γ≤Γ′ wf★) r⊢
+    ∀A-⊑-B r , ⊢∀A-⊑-B (wf-length-cast Γ≤Γ′ wf★) r⊢
 
   transport-to-ground-⊑ :
     ∀ {Ψ Γ Γ′ A G p} →
@@ -748,7 +772,7 @@ mutual
       with transport-to-ground-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) (renameᵗ-ground suc g) p⊢
   transport-to-ground-⊑ Γ≤Γ′ g (⊢∀A-⊑-B {B = B} wfB p⊢)
       | r , r⊢ =
-    ∀A-⊑-B B r , ⊢∀A-⊑-B (wf-length-cast Γ≤Γ′ wfB) r⊢
+    ∀A-⊑-B r , ⊢∀A-⊑-B (wf-length-cast Γ≤Γ′ wfB) r⊢
 
 ------------------------------------------------------------------------
 -- Full transitivity
@@ -764,7 +788,7 @@ trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = B} wfB p⊢) q⊢
     with trans-ctx-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢ (wkImpAt {Φ = []} q⊢)
 trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = B} wfB p⊢) q⊢
     | r , r⊢ =
-  ∀A-⊑-B _ r , ⊢∀A-⊑-B (⊑-tgt-wf q⊢) r⊢
+  ∀A-⊑-B r , ⊢∀A-⊑-B (⊑-tgt-wf q⊢) r⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ ⊢★-⊑-★ = transport-to-star-⊑ Γ≤Γ′ p⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢X-⊑-★ xν) =
   trans-to-starν Γ≤Γ′ p⊢ xν
@@ -780,7 +804,7 @@ trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢X-⊑-★ xν) =
         with trans-ctx-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢ (wkImpAt {Φ = []} (⊢X-⊑-★ xν))
     trans-to-starν Γ≤Γ′ (⊢∀A-⊑-B {B = ＇ X} wfB p⊢) xν
         | r , r⊢ =
-      ∀A-⊑-B ★ r , ⊢∀A-⊑-B wf★ r⊢
+      ∀A-⊑-B r , ⊢∀A-⊑-B wf★ r⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢A-⊑-★ g q⊢)
     with trans-ctx-⊑ Γ≤Γ′ p⊢ q⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢A-⊑-★ g q⊢) | r , r⊢ =
@@ -805,7 +829,7 @@ trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B {B = B} wfB q⊢
     with trans-ctx-⊑ (X⊑X≤ν ∷≤ᵢ Γ≤Γ′) p⊢ q⊢
 trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B {B = B} wfB q⊢)
     | r , r⊢ =
-  ∀A-⊑-B B r , ⊢∀A-⊑-B wfB r⊢
+  ∀A-⊑-B r , ⊢∀A-⊑-B wfB r⊢
 
 ⊑-trans :
   ∀ {Ψ Γ A B C p q} →

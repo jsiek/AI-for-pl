@@ -16,6 +16,7 @@ open import Conversion
 open import Primitives
 open import Terms
 open import GradualTerms
+open import GradualTermImprecision
 open import Compile
 open import TermImprecision
 open import Reduction

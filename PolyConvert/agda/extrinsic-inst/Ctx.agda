@@ -114,7 +114,7 @@ map-renameˢ-⤊ˢ ρ (A ∷ Γ) =
 -- Context well-formedness
 ------------------------------------------------------------------------
 
-CtxWf : TyCtx → SealCtx → Ctx → Set
+CtxWf : TyCtx → SealCtx → Ctx → Set₁
 CtxWf Δ Ψ Γ = ∀ {x A} → Γ ∋ x ⦂ A → WfTy Δ Ψ A
 
 ctxWf-[] : {Δ : TyCtx} {Ψ : SealCtx} → CtxWf Δ Ψ []

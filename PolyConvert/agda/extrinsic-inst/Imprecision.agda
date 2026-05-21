@@ -42,7 +42,7 @@ data Imp : Set where
   ι-⊑-ι : Base → Imp
   A⇒B-⊑-A′⇒B′ : Imp → Imp → Imp
   ∀A-⊑-∀B : Imp → Imp
-  ∀A-⊑-B : Ty → Imp → Imp
+  ∀A-⊑-B : Imp → Imp
 
 src⊑ : Imp → Ty
 src⊑ ★-⊑-★ = ★
@@ -53,7 +53,7 @@ src⊑ (α-⊑-α α) = ｀ α
 src⊑ (ι-⊑-ι ι) = ‵ ι
 src⊑ (A⇒B-⊑-A′⇒B′ p q) = src⊑ p ⇒ src⊑ q
 src⊑ (∀A-⊑-∀B p) = `∀ (src⊑ p)
-src⊑ (∀A-⊑-B B p) = `∀ (src⊑ p)
+src⊑ (∀A-⊑-B p) = `∀ (src⊑ p)
 
 tgt⊑ : Imp → Ty
 tgt⊑ ★-⊑-★ = ★
@@ -64,7 +64,7 @@ tgt⊑ (α-⊑-α α) = ｀ α
 tgt⊑ (ι-⊑-ι ι) = ‵ ι
 tgt⊑ (A⇒B-⊑-A′⇒B′ p q) = tgt⊑ p ⇒ tgt⊑ q
 tgt⊑ (∀A-⊑-∀B p) = `∀ (tgt⊑ p)
-tgt⊑ (∀A-⊑-B B p) = B
+tgt⊑ (∀A-⊑-B p) = dropTyFrom zero (tgt⊑ p)
 
 ------------------------------------------------------------------------
 -- Raw imprecision operations used by reduction
@@ -80,8 +80,46 @@ renameImp ρ (ι-⊑-ι ι) = ι-⊑-ι ι
 renameImp ρ (A⇒B-⊑-A′⇒B′ p q) =
   A⇒B-⊑-A′⇒B′ (renameImp ρ p) (renameImp ρ q)
 renameImp ρ (∀A-⊑-∀B p) = ∀A-⊑-∀B (renameImp (extᵗ ρ) p)
-renameImp ρ (∀A-⊑-B B p) =
-  ∀A-⊑-B (renameᵗ ρ B) (renameImp (extᵗ ρ) p)
+renameImp ρ (∀A-⊑-B p) =
+  ∀A-⊑-B (renameImp (extᵗ ρ) p)
+
+⇑⊑ : Imp → Imp
+⇑⊑ = renameImp suc
+
+Subst⊑ : Set
+Subst⊑ = TyVar → VarPrec → Imp
+
+ren⊑ : Renameᵗ → Subst⊑
+ren⊑ ρ X X⊑X = X-⊑-X (ρ X)
+ren⊑ ρ X X⊑★ = X-⊑-★ (ρ X)
+
+id⊑ : Subst⊑
+id⊑ = ren⊑ (λ X → X)
+
+exts⊑ : Subst⊑ → Subst⊑
+exts⊑ σ zero m = id⊑ zero m
+exts⊑ σ (suc X) m = renameImp suc (σ X m)
+
+subst⊑ : Subst⊑ → Imp → Imp
+subst⊑ σ ★-⊑-★ = ★-⊑-★
+subst⊑ σ (X-⊑-★ X) = σ X X⊑★
+subst⊑ σ (A-⊑-★ p) = A-⊑-★ (subst⊑ σ p)
+subst⊑ σ (X-⊑-X X) = σ X X⊑X
+subst⊑ σ (α-⊑-α α) = α-⊑-α α
+subst⊑ σ (ι-⊑-ι ι) = ι-⊑-ι ι
+subst⊑ σ (A⇒B-⊑-A′⇒B′ p q) =
+  A⇒B-⊑-A′⇒B′ (subst⊑ σ p) (subst⊑ σ q)
+subst⊑ σ (∀A-⊑-∀B p) = ∀A-⊑-∀B (subst⊑ (exts⊑ σ) p)
+subst⊑ σ (∀A-⊑-B p) = ∀A-⊑-B (subst⊑ (exts⊑ σ) p)
+
+singleImpEnv : Imp → Subst⊑
+singleImpEnv p zero m = p
+singleImpEnv p (suc X) X⊑X = X-⊑-X X
+singleImpEnv p (suc X) X⊑★ = X-⊑-★ X
+
+infixl 8 _[_]⊑ᵢ
+_[_]⊑ᵢ : Imp → Imp → Imp
+p [ q ]⊑ᵢ = subst⊑ (singleImpEnv q) p
 
 -- reflImp is for the X-⊑-X case of substImp
 reflImp : Ty → Imp
@@ -99,7 +137,7 @@ starImp (｀ α) = A-⊑-★ (α-⊑-α α)
 starImp (‵ ι) = A-⊑-★ (ι-⊑-ι ι)
 starImp ★ = ★-⊑-★
 starImp (A ⇒ B) = A-⊑-★ (A⇒B-⊑-A′⇒B′ (starImp A) (starImp B))
-starImp (`∀ A) = ∀A-⊑-B ★ (starImp A)
+starImp (`∀ A) = ∀A-⊑-B (starImp A)
 
 substImp : Substᵗ → Imp → Imp
 substImp σ ★-⊑-★ = ★-⊑-★
@@ -110,7 +148,7 @@ substImp σ (α-⊑-α α) = α-⊑-α α
 substImp σ (ι-⊑-ι ι) = ι-⊑-ι ι
 substImp σ (A⇒B-⊑-A′⇒B′ p q) = A⇒B-⊑-A′⇒B′ (substImp σ p) (substImp σ q)
 substImp σ (∀A-⊑-∀B p) = ∀A-⊑-∀B (substImp (extsᵗ σ) p)
-substImp σ (∀A-⊑-B B p) = ∀A-⊑-B (substᵗ σ B) (substImp (extsᵗ σ) p)
+substImp σ (∀A-⊑-B p) = ∀A-⊑-B (substImp (extsᵗ σ) p)
 
 substAtImp : TyVar → Ty → Imp → Imp
 substAtImp k T = substImp (substVarFrom k T)
@@ -168,8 +206,8 @@ data _∣_⊢_⦂_⊑_ (Ψ : SealCtx) (Γ : VarPrecCtx) : Imp → Ty → Ty → 
   ⊢∀A-⊑-B : ∀ {A B p} →
     WfTy (length Γ) Ψ B →
     Ψ ∣ X⊑★ ∷ Γ ⊢ p ⦂ A ⊑ ⇑ᵗ B →
-    -------------------------------
-    Ψ ∣ Γ ⊢ ∀A-⊑-B B p ⦂ (`∀ A) ⊑ B
+    -----------------------------
+    Ψ ∣ Γ ⊢ ∀A-⊑-B p ⦂ (`∀ A) ⊑ B
 
 infix 4 _∣_⊢_⦂_⊒_
 _∣_⊢_⦂_⊒_ : SealCtx → VarPrecCtx → Imp → Ty → Ty → Set

@@ -696,3 +696,4 @@ renameˢ-ν-src ρ A =
   trans
     (renameˢ-[]ᵗ-seal (extˢ ρ) (⇑ˢ A) 0)
     (cong (λ C → C [ α₀ ]ᵗ) (renameˢ-ext-⇑ˢ ρ A))
+

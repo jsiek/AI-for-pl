@@ -501,20 +501,6 @@ insertMode-extend-X⊑X zero k m Γ = refl
 insertMode-extend-X⊑X (suc n) k m Γ =
   cong (X⊑X ∷_) (insertMode-extend-X⊑X n k m Γ)
 
-dropVarFrom : TyVar → TyVar → TyVar
-dropVarFrom zero zero = zero
-dropVarFrom zero (suc X) = X
-dropVarFrom (suc n) zero = zero
-dropVarFrom (suc n) (suc X) = suc (dropVarFrom n X)
-
-dropTyFrom : TyVar → Ty → Ty
-dropTyFrom n (＇ X) = ＇ (dropVarFrom n X)
-dropTyFrom n (｀ α) = ｀ α
-dropTyFrom n (‵ ι) = ‵ ι
-dropTyFrom n ★ = ★
-dropTyFrom n (A ⇒ B) = dropTyFrom n A ⇒ dropTyFrom n B
-dropTyFrom n (`∀ A) = `∀ (dropTyFrom (suc n) A)
-
 dropVarFrom-raise-same :
   ∀ k X →
   dropVarFrom k (raiseVarFrom k X) ≡ X
@@ -742,8 +728,8 @@ dropTargetTermFrom-wt okM okA M⊢ | B , eqB , M′⊢ =
   subst (λ C → _ ∣ _ ⊢ dropTargetTermFrom zero okM ⦂ C)
     (sym (rename-raise-injective zero eqB))
     M′⊢
-applyTermEdit-wt :
-  ∀ {Φ Γπ M A} →
+
+applyTermEdit-wt : ∀ {Φ Γπ M A} →
   CtxWf (length Φ) 0 (sourceCtx Γπ) →
   (ρ : TermEdit Φ Γπ M A) →
   TermEditOk Φ Γπ ρ →

@@ -192,7 +192,7 @@ sim-right wfΣˡ wfΣʳ (⊑· (⊑blameL {ℓ = ℓ} L′⊢ p⊢) relM)
     (pure-step blame-·₁) =
   inj₂ (appL-blames (blame-blames {ℓ = ℓ}))
 sim-right wfΣˡ wfΣʳ
-    (⊑⦂∀ (⊑blameL {ℓ = ℓ} M′⊢ p⊢) wfA wfB wfT pT⊢)
+    (⊑⦂∀ (⊑blameL {ℓ = ℓ} M′⊢ p⊢) wfA wfB wfT wfT′ pT⊢)
     (pure-step blame-·α) =
   inj₂ (tyapp-blames (blame-blames {ℓ = ℓ}))
 sim-right wfΣˡ wfΣʳ
@@ -241,7 +241,7 @@ sim-right {Ψʳ = Ψʳ} {Σʳ = Σʳ} {Σʳ′ = Σʳ′}
          (storeWf-⊆ˢ-≤ wfΣˡ wfΣˡ′ (multi-store-growth L↠N))
          (multi-store-growth L↠N)
          relM))
-sim-right wfΣˡ wfΣʳ rel@(⊑⦂∀ relM wfA wfB wfT pT⊢) (ξ-·α redM)
+sim-right wfΣˡ wfΣʳ rel@(⊑⦂∀ relM wfA wfB wfT wfT′ pT⊢) (ξ-·α redM)
     with sim-right wfΣˡ wfΣʳ relM redM
 ... | inj₂ M↠blame = inj₂ (tyapp-blames M↠blame)
 ... | inj₁ success = sim-right-rest wfΣˡ wfΣʳ rel (ξ-·α redM)

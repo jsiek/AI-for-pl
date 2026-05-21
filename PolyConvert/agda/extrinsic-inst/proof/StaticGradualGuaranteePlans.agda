@@ -743,7 +743,7 @@ applyTermEdit-wt wfΓ (term-lam πA ρM) (ok-lam okM) (⊢ƛ wfA M⊢)
 applyTermEdit-wt wfΓ (term-lam πA ρM) (ok-lam okM) (⊢ƛ wfA M⊢)
     | pA , pA⊢ | M′⊢ , pB , pB⊢ =
   ⊢ƛ (tyEdit-wf wfA πA) M′⊢ ,
-  A⇒B-⊑-A′⇒B′ pA pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢
+  pA ↦ pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢
 applyTermEdit-wt wfΓ (term-app ρL ρM) (ok-app okL okM) LM⊢
     with termApp-align wfΓ ρL ρM LM⊢
 applyTermEdit-wt wfΓ (term-app ρL ρM) (ok-app okL okM) LM⊢
@@ -769,7 +769,7 @@ applyTermEdit-wt wfΓ (term-app★ ρL ρM) (ok-app★ okL okM) LM⊢
   starApp-wt
     (applyTermEdit-type-ok _ _ ρL)
     L′⊢ pF⊢ M′⊢ pArg⊢ A~★ ,
-  ★-⊑-★ , ⊢★-⊑-★
+  id★ , ⊢★-⊑-★
 applyTermEdit-wt {Γπ = Γπ} wfΓ (term-LamKeep {M = M} ρM)
     (ok-LamKeep okM) (⊢Λ vM M⊢)
     with applyTermEdit (liftTyEditCtx X⊑X Γπ) M ρM
@@ -793,7 +793,7 @@ applyTermEdit-wt {Γπ = Γπ} wfΓ (term-LamKeep ρM)
     vM′
     (subst (λ Γ → _ ∣ Γ ⊢ _ ⦂ _)
     (targetCtx-liftTyEditCtx X⊑X Γπ) M′⊢) ,
-  ∀A-⊑-∀B pB , ⊢∀A-⊑-∀B pB⊢
+  ‵∀ pB , ⊢∀A-⊑-∀B pB⊢
 applyTermEdit-wt {Γπ = Γπ} wfΓ (term-LamDrop {M = M} ρM)
     (ok-LamDrop okM) (⊢Λ vM M⊢)
     with applyTermEdit (liftTyEditCtx X⊑★ Γπ) M ρM
@@ -807,7 +807,7 @@ applyTermEdit-wt {Γπ = Γπ} wfΓ (term-LamDrop ρM)
     (ok-LamDrop okM) (⊢Λ vM M⊢)
     | M′ , B′ , okM′ , okB′ | M′⊢ , pB , pB⊢ =
   dropTargetTermFrom-wt okM′ okB′ M′⊢ ,
-  ∀A-⊑-B (dropTargetFrom zero okB′) pB ,
+  ν (dropTargetFrom zero okB′) pB ,
   ⊢∀A-⊑-B
     (dropTargetFrom-WfTy zero (⊑-tgt-wf pB⊢) okB′)
     (subst (λ C → _ ∣ _ ⊢ pB ⦂ _ ⊑ C)
@@ -840,7 +840,7 @@ applyTermEdit-wt {Γπ = Γπ} wfΓ (term-tyappDrop {M = M} ρM πT)
     | M′ , A′ , okM′ , okA′ | M′⊢ , pM , pM⊢ =
   M′⊢ , _ , q⊢
 applyTermEdit-wt wfΓ term-const ok-const (⊢$ (κℕ n)) =
-  ⊢$ (κℕ n) , ι-⊑-ι `ℕ , ⊢ι-⊑-ι
+  ⊢$ (κℕ n) , idι `ℕ , ⊢ι-⊑-ι
 applyTermEdit-wt wfΓ (term-prim ρL ρM) (ok-prim okL okM)
     (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ)
     with termEdit-source-typed wfΓ ρL L⊢
@@ -860,4 +860,4 @@ applyTermEdit-wt wfΓ (term-prim ρL ρM) (ok-prim okL okM)
     | L′⊢ , pL , pL⊢ | M′⊢ , pM , pM⊢ =
   ⊢⊕ L′⊢ (app-consistencyᵢ refl pL⊢ A~ℕ ⊢ι-⊑-ι)
     op M′⊢ (app-consistencyᵢ refl pM⊢ B~ℕ ⊢ι-⊑-ι) ,
-  ι-⊑-ι `ℕ , ⊢ι-⊑-ι
+  idι `ℕ , ⊢ι-⊑-ι

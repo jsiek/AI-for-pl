@@ -8,7 +8,7 @@ module TermImprecision where
 --     precise and the right endpoint is less precise.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; length)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (Σ; Σ-syntax; _,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (cong; subst)
@@ -20,55 +20,63 @@ open import Conversion
 open import Store using (renameStoreᵗ-ext-⟰ᵗ)
 open import Primitives
 open import Terms
-open import proof.PreservationTermSubst using (wkImp-extend-X⊑X)
+open import proof.ImprecisionProperties using (wkImpAt)
 
 ------------------------------------------------------------------------
 -- Imprecision contexts
 ------------------------------------------------------------------------
 
-Prec : TyCtx → SealCtx → Set
-Prec Δ Ψ =
+Prec : SealCtx → VarPrecCtx → Set
+Prec Ψ Φ =
   Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ[ p ∈ Imp ]
-    (Ψ ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B)
+    (Ψ ∣ Φ ⊢ p ⦂ A ⊑ B)
 
-PCtx : TyCtx → SealCtx → Set
-PCtx Δ Ψ = List (Prec Δ Ψ)
+PCtx : SealCtx → VarPrecCtx → Set
+PCtx Ψ Φ = List (Prec Ψ Φ)
 
 record TPEnv : Set where
-  constructor ⟪_,_,_,_,_,_⟫
+  constructor mkTPEnv
   field
     Δ : TyCtx
+    Φ : VarPrecCtx
     -- Left seal/store world. Imprecision evidence is stated in this world.
     Ψ : SealCtx
     store : Store
     -- Right seal/store world. The less precise endpoint is typed here.
     Ψʳ : SealCtx
     storeʳ : Store
-    Γ : PCtx Δ Ψ
+    Γ : PCtx Ψ Φ
 open TPEnv public
 
-extendᴾ : (E : TPEnv) → Prec (TPEnv.Δ E) (TPEnv.Ψ E) → TPEnv
-extendᴾ E P =
-  ⟪ TPEnv.Δ E , TPEnv.Ψ E , TPEnv.store E ,
-    TPEnv.Ψʳ E , TPEnv.storeʳ E , P ∷ TPEnv.Γ E ⟫
+⟪_,_,_,_,_,_⟫ :
+  (Δ : TyCtx) (Ψ : SealCtx) (store : Store)
+  (Ψʳ : SealCtx) (storeʳ : Store) →
+  PCtx Ψ (extend-X⊑X Δ []) → TPEnv
+⟪ Δ , Ψ , store , Ψʳ , storeʳ , Γ ⟫ =
+  mkTPEnv Δ (extend-X⊑X Δ []) Ψ store Ψʳ storeʳ Γ
 
-leftTy : ∀ {Δ Ψ} → Prec Δ Ψ → Ty
+extendᴾ : (E : TPEnv) → Prec (TPEnv.Ψ E) (TPEnv.Φ E) → TPEnv
+extendᴾ E P =
+  mkTPEnv (TPEnv.Δ E) (TPEnv.Φ E) (TPEnv.Ψ E) (TPEnv.store E)
+    (TPEnv.Ψʳ E) (TPEnv.storeʳ E) (P ∷ TPEnv.Γ E)
+
+leftTy : ∀ {Ψ Φ} → Prec Ψ Φ → Ty
 leftTy (A , B , p , p⊢) = A
 
-rightTy : ∀ {Δ Ψ} → Prec Δ Ψ → Ty
+rightTy : ∀ {Ψ Φ} → Prec Ψ Φ → Ty
 rightTy (A , B , p , p⊢) = B
 
-leftCtx : ∀ {Δ Ψ} → PCtx Δ Ψ → Ctx
+leftCtx : ∀ {Ψ Φ} → PCtx Ψ Φ → Ctx
 leftCtx [] = []
 leftCtx (P ∷ Γ) = leftTy P ∷ leftCtx Γ
 
-rightCtx : ∀ {Δ Ψ} → PCtx Δ Ψ → Ctx
+rightCtx : ∀ {Ψ Φ} → PCtx Ψ Φ → Ctx
 rightCtx [] = []
 rightCtx (P ∷ Γ) = rightTy P ∷ rightCtx Γ
 
 infix 4 _∋ₚ_⦂_
-data _∋ₚ_⦂_ {Δ : TyCtx} {Ψ : SealCtx} :
-    PCtx Δ Ψ → Var → Prec Δ Ψ → Set where
+data _∋ₚ_⦂_ {Ψ : SealCtx} {Φ : VarPrecCtx} :
+    PCtx Ψ Φ → Var → Prec Ψ Φ → Set where
 
   Zₚ : ∀ {Γ P} →
     (P ∷ Γ) ∋ₚ zero ⦂ P
@@ -78,14 +86,14 @@ data _∋ₚ_⦂_ {Δ : TyCtx} {Ψ : SealCtx} :
     (Q ∷ Γ) ∋ₚ suc x ⦂ P
 
 lookup-left :
-  ∀ {Δ Ψ} {Γ : PCtx Δ Ψ} {x A B p p⊢} →
+  ∀ {Ψ Φ} {Γ : PCtx Ψ Φ} {x A B p p⊢} →
   Γ ∋ₚ x ⦂ (A , B , p , p⊢) →
   leftCtx Γ ∋ x ⦂ A
 lookup-left Zₚ = Z
 lookup-left (Sₚ h) = S (lookup-left h)
 
 lookup-right :
-  ∀ {Δ Ψ} {Γ : PCtx Δ Ψ} {x A B p p⊢} →
+  ∀ {Ψ Φ} {Γ : PCtx Ψ Φ} {x A B p p⊢} →
   Γ ∋ₚ x ⦂ (A , B , p , p⊢) →
   rightCtx Γ ∋ x ⦂ B
 lookup-right Zₚ = Z
@@ -95,30 +103,38 @@ lookup-right (Sₚ h) = S (lookup-right h)
 -- Type-binder lifting of imprecision contexts
 ------------------------------------------------------------------------
 
-⇑ᵗᴾ : ∀ {Δ Ψ} → PCtx Δ Ψ → PCtx (suc Δ) Ψ
+⇑ᵗᴾ : ∀ {Ψ Φ m} → PCtx Ψ Φ → PCtx Ψ (m ∷ Φ)
 ⇑ᵗᴾ [] = []
 ⇑ᵗᴾ ((A , B , p , p⊢) ∷ Γ) =
-  (⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-extend-X⊑X zero p⊢) ∷ ⇑ᵗᴾ Γ
+  (⇑ᵗ A , ⇑ᵗ B , rename⊑ suc p , wkImpAt {Φ = []} p⊢) ∷ ⇑ᵗᴾ Γ
 
 leftCtx-⇑ᵗᴾ :
-  ∀ {Δ Ψ} → (Γ : PCtx Δ Ψ) →
-  leftCtx (⇑ᵗᴾ Γ) ≡ ⤊ᵗ (leftCtx Γ)
+  ∀ {Ψ Φ m} → (Γ : PCtx Ψ Φ) →
+  leftCtx (⇑ᵗᴾ {m = m} Γ) ≡ ⤊ᵗ (leftCtx Γ)
 leftCtx-⇑ᵗᴾ [] = refl
-leftCtx-⇑ᵗᴾ ((A , B , p , p⊢) ∷ Γ) =
-  cong (⇑ᵗ A ∷_) (leftCtx-⇑ᵗᴾ Γ)
+leftCtx-⇑ᵗᴾ {m = m} ((A , B , p , p⊢) ∷ Γ) =
+  cong (⇑ᵗ A ∷_) (leftCtx-⇑ᵗᴾ {m = m} Γ)
 
 rightCtx-⇑ᵗᴾ :
-  ∀ {Δ Ψ} → (Γ : PCtx Δ Ψ) →
-  rightCtx (⇑ᵗᴾ Γ) ≡ ⤊ᵗ (rightCtx Γ)
+  ∀ {Ψ Φ m} → (Γ : PCtx Ψ Φ) →
+  rightCtx (⇑ᵗᴾ {m = m} Γ) ≡ ⤊ᵗ (rightCtx Γ)
 rightCtx-⇑ᵗᴾ [] = refl
-rightCtx-⇑ᵗᴾ ((A , B , p , p⊢) ∷ Γ) =
-  cong (⇑ᵗ B ∷_) (rightCtx-⇑ᵗᴾ Γ)
+rightCtx-⇑ᵗᴾ {m = m} ((A , B , p , p⊢) ∷ Γ) =
+  cong (⇑ᵗ B ∷_) (rightCtx-⇑ᵗᴾ {m = m} Γ)
 
 ⇑ᵗᴱ : TPEnv → TPEnv
 ⇑ᵗᴱ E =
-  ⟪ suc (TPEnv.Δ E) , TPEnv.Ψ E , ⟰ᵗ (TPEnv.store E) ,
-    TPEnv.Ψʳ E , ⟰ᵗ (TPEnv.storeʳ E) ,
-    ⇑ᵗᴾ (TPEnv.Γ E) ⟫
+  mkTPEnv (suc (TPEnv.Δ E)) (X⊑X ∷ TPEnv.Φ E)
+    (TPEnv.Ψ E) (⟰ᵗ (TPEnv.store E))
+    (TPEnv.Ψʳ E) (⟰ᵗ (TPEnv.storeʳ E))
+    (⇑ᵗᴾ {m = X⊑X} (TPEnv.Γ E))
+
+⇑νᵗᴱ : TPEnv → TPEnv
+⇑νᵗᴱ E =
+  mkTPEnv (suc (TPEnv.Δ E)) (X⊑★ ∷ TPEnv.Φ E)
+    (TPEnv.Ψ E) (⟰ᵗ (TPEnv.store E))
+    (TPEnv.Ψʳ E) (⟰ᵗ (TPEnv.storeʳ E))
+    (⇑ᵗᴾ {m = X⊑★} (TPEnv.Γ E))
 
 ------------------------------------------------------------------------
 -- Term imprecision
@@ -133,8 +149,8 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
     E ⊢ (` x) ⊑ (` x) ⦂ A ⊑ B
 
   ⊑ƛ : ∀ {A A′ B B′ M M′ pA pB}
-      {pA⊢ : TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pA ⦂ A ⊑ A′}
-      {pB⊢ : TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′} →
+      {pA⊢ : TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pA ⦂ A ⊑ A′}
+      {pB⊢ : TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pB ⦂ B ⊑ B′} →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) A →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) A′ →
     extendᴾ E (A , A′ , pA , pA⊢) ⊢ M ⊑ M′ ⦂ B ⊑ B′ →
@@ -151,21 +167,30 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
     ⇑ᵗᴱ E ⊢ M ⊑ M′ ⦂ A ⊑ B →
     E ⊢ (Λ M) ⊑ (Λ M′) ⦂ `∀ A ⊑ `∀ B
 
-  ⊑⦂∀ : ∀ {A B M M′ T pT} →
+  ⊑Λν : ∀ {A B M M′ N′ p} →
+    Value M →
+    WfTy (length (TPEnv.Φ E)) (TPEnv.Ψ E) B →
+    TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ∣
+      rightCtx (TPEnv.Γ E) ⊢ M′ ⦂ B →
+    ⇑νᵗᴱ E ⊢ M ⊑ N′ ⦂ A ⊑ ⇑ᵗ B →
+    TPEnv.Ψ E ∣ X⊑★ ∷ TPEnv.Φ E ⊢ p ⦂ A ⊑ ⇑ᵗ B →
+    E ⊢ (Λ M) ⊑ M′ ⦂ `∀ A ⊑ B
+
+  ⊑⦂∀ : ∀ {A B M M′ T T′ pT} →
     E ⊢ M ⊑ M′ ⦂ `∀ A ⊑ `∀ B →
     WfTy (suc (TPEnv.Δ E)) (TPEnv.Ψ E) A →
     WfTy (suc (TPEnv.Δ E)) (TPEnv.Ψ E) B →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) T →
-    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pT ⦂
-      A [ T ]ᵗ ⊑ B [ T ]ᵗ →
-    E ⊢ (M ⦂∀ A [ T ]) ⊑ (M′ ⦂∀ B [ T ]) ⦂
-      A [ T ]ᵗ ⊑ B [ T ]ᵗ
+    WfTy (TPEnv.Δ E) (TPEnv.Ψ E) T′ →
+    TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T′ ]ᵗ →
+    E ⊢ (M ⦂∀ A [ T ]) ⊑ (M′ ⦂∀ B [ T′ ]) ⦂
+      A [ T ]ᵗ ⊑ B [ T′ ]ᵗ
 
   ⊑⦂∀-ν : ∀ {A B M M′ T pT} →
     E ⊢ M ⊑ M′ ⦂ `∀ A ⊑ B →
     WfTy (suc (TPEnv.Δ E)) (TPEnv.Ψ E) A →
     WfTy (TPEnv.Δ E) (TPEnv.Ψ E) T →
-    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B →
+    TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pT ⦂ A [ T ]ᵗ ⊑ B →
     E ⊢ (M ⦂∀ A [ T ]) ⊑ M′ ⦂ A [ T ]ᵗ ⊑ B
 
   ⊑$ : ∀ {n} →
@@ -180,58 +205,58 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
     TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B →
     TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊑ B′ →
-    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
+    TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pB ⦂ B ⊑ B′ →
     E ⊢ (M ⇑ p) ⊑ (M′ ⇑ p′) ⦂ B ⊑ B′
 
   ⊑⇑L : ∀ {M M′ A A′ B p pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
     TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B →
-    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ A′ →
+    TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pB ⦂ B ⊑ A′ →
     E ⊢ (M ⇑ p) ⊑ M′ ⦂ B ⊑ A′
 
   ⊑⇑R : ∀ {M M′ A A′ B′ p′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
     TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊑ B′ →
-    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ A ⊑ B′ →
+    TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pB ⦂ A ⊑ B′ →
     E ⊢ M ⊑ (M′ ⇑ p′) ⦂ A ⊑ B′
 
   ⊑⇓ : ∀ {M M′ A A′ B B′ p p′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
     TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊒ B →
     TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊒ B′ →
-    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
+    TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pB ⦂ B ⊑ B′ →
     E ⊢ (M ⇓ p) ⊑ (M′ ⇓ p′) ⦂ B ⊑ B′
 
   ⊑⇓L : ∀ {M M′ A A′ B p pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
     TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊒ B →
-    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ A′ →
+    TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pB ⦂ B ⊑ A′ →
     E ⊢ (M ⇓ p) ⊑ M′ ⦂ B ⊑ A′
 
   ⊑⇓R : ∀ {M M′ A A′ B′ p′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
     TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p′ ⦂ A′ ⊒ B′ →
-    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ A ⊑ B′ →
+    TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pB ⦂ A ⊑ B′ →
     E ⊢ M ⊑ (M′ ⇓ p′) ⦂ A ⊑ B′
 
   ⊑↑ : ∀ {M M′ A A′ B B′ c c′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ⊢ c ⦂ A ↑ˢ B →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ⊢ c′ ⦂ A′ ↑ˢ B′ →
-    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
+    TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pB ⦂ B ⊑ B′ →
     E ⊢ (M ↑ c) ⊑ (M′ ↑ c′) ⦂ B ⊑ B′
 
   ⊑↓ : ∀ {M M′ A A′ B B′ c c′ pB} →
     E ⊢ M ⊑ M′ ⦂ A ⊑ A′ →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ⊢ c ⦂ A ↓ˢ B →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ⊢ c′ ⦂ A′ ↓ˢ B′ →
-    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ pB ⦂ B ⊑ B′ →
+    TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ pB ⦂ B ⊑ B′ →
     E ⊢ (M ↓ c) ⊑ (M′ ↓ c′) ⦂ B ⊑ B′
 
   ⊑blameL : ∀ {M A B p ℓ} →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ∣
       rightCtx (TPEnv.Γ E) ⊢ M ⦂ B →
-    TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B →
+    TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ p ⦂ A ⊑ B →
     E ⊢ (blame ℓ) ⊑ M ⦂ A ⊑ B
 
 ⊑-index-cast :
@@ -256,9 +281,13 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
   ⊢· (⊑-left-typed relL) (⊑-left-typed relM)
 ⊑-left-typed {E = E} (⊑Λ vM vM′ rel) =
   ⊢Λ vM
-    (cong-⊢⦂ refl (leftCtx-⇑ᵗᴾ (TPEnv.Γ E)) refl refl
+    (cong-⊢⦂ refl (leftCtx-⇑ᵗᴾ {m = X⊑X} (TPEnv.Γ E)) refl refl
       (⊑-left-typed rel))
-⊑-left-typed (⊑⦂∀ rel wfA wfB wfT pT⊢) =
+⊑-left-typed {E = E} (⊑Λν vM wfB M′⊢ rel p⊢) =
+  ⊢Λ vM
+    (cong-⊢⦂ refl (leftCtx-⇑ᵗᴾ {m = X⊑★} (TPEnv.Γ E)) refl refl
+      (⊑-left-typed rel))
+⊑-left-typed (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) =
   ⊢• (⊑-left-typed rel) wfA wfT
 ⊑-left-typed (⊑⦂∀-ν rel wfA wfT pT⊢) =
   ⊢• (⊑-left-typed rel) wfA wfT
@@ -285,10 +314,11 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
   ⊢· (⊑-right-typed relL) (⊑-right-typed relM)
 ⊑-right-typed {E = E} (⊑Λ vM vM′ rel) =
   ⊢Λ vM′
-    (cong-⊢⦂ refl (rightCtx-⇑ᵗᴾ (TPEnv.Γ E)) refl refl
+    (cong-⊢⦂ refl (rightCtx-⇑ᵗᴾ {m = X⊑X} (TPEnv.Γ E)) refl refl
       (⊑-right-typed rel))
-⊑-right-typed (⊑⦂∀ rel wfA wfB wfT pT⊢) =
-  ⊢• (⊑-right-typed rel) wfB wfT
+⊑-right-typed (⊑Λν vM wfB M′⊢ rel p⊢) = M′⊢
+⊑-right-typed (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) =
+  ⊢• (⊑-right-typed rel) wfB wfT′
 ⊑-right-typed (⊑⦂∀-ν rel wfA wfT pT⊢) = ⊑-right-typed rel
 ⊑-right-typed (⊑$ {n}) = ⊢$ (κℕ n)
 ⊑-right-typed (⊑⊕ {op = op} relL relM) =
@@ -306,19 +336,21 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
 ⊑-type-imprecision :
   ∀ {E M M′ A B} →
   E ⊢ M ⊑ M′ ⦂ A ⊑ B →
-  Σ[ p ∈ Imp ] (TPEnv.Ψ E ∣ extend-X⊑X (TPEnv.Δ E) [] ⊢ p ⦂ A ⊑ B)
+  Σ[ p ∈ Imp ] (TPEnv.Ψ E ∣ TPEnv.Φ E ⊢ p ⦂ A ⊑ B)
 ⊑-type-imprecision (⊑` {p = p} {p⊢ = p⊢} h) = p , p⊢
 ⊑-type-imprecision
   (⊑ƛ {pA = pA} {pB = pB} {pA⊢ = pA⊢} {pB⊢ = pB⊢} hA hA′ rel) =
-  A⇒B-⊑-A′⇒B′ pA pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢
+  pA ↦ pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢
 ⊑-type-imprecision (⊑· relL relM) with ⊑-type-imprecision relL
-... | A⇒B-⊑-A′⇒B′ pA pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢ = pB , pB⊢
+... | pA ↦ pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢ = pB , pB⊢
 ⊑-type-imprecision (⊑Λ relM relM′ rel) with ⊑-type-imprecision rel
-... | p , p⊢ = ∀A-⊑-∀B p , ⊢∀A-⊑-∀B p⊢
-⊑-type-imprecision (⊑⦂∀ rel wfA wfB wfT pT⊢) = _ , pT⊢
+... | p , p⊢ = ‵∀ p , ⊢∀A-⊑-∀B p⊢
+⊑-type-imprecision (⊑Λν {p = p} vM wfB M′⊢ rel p⊢) =
+  ν p , ⊢∀A-⊑-B wfB p⊢
+⊑-type-imprecision (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) = _ , pT⊢
 ⊑-type-imprecision (⊑⦂∀-ν rel wfA wfT pT⊢) = _ , pT⊢
-⊑-type-imprecision ⊑$ = ι-⊑-ι `ℕ , ⊢ι-⊑-ι
-⊑-type-imprecision (⊑⊕ relL relM) = ι-⊑-ι `ℕ , ⊢ι-⊑-ι
+⊑-type-imprecision ⊑$ = idι `ℕ , ⊢ι-⊑-ι
+⊑-type-imprecision (⊑⊕ relL relM) = idι `ℕ , ⊢ι-⊑-ι
 ⊑-type-imprecision (⊑⇑ rel p⊢ p′⊢ pB⊢) = _ , pB⊢
 ⊑-type-imprecision (⊑⇑L rel p⊢ pB⊢) = _ , pB⊢
 ⊑-type-imprecision (⊑⇑R rel p′⊢ pB⊢) = _ , pB⊢

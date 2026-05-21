@@ -76,11 +76,15 @@ data _⊢_~_ (Γ : CCtx) : Ty → Ty → Set where
     Γ ⊢ (`∀ A) ~ (`∀ B)
 
   A-~-★ : ∀ {A G} →
+    Non★ A →
+    Non∀ A →
     Ground G →
     Γ ⊢ A ~ G →
     Γ ⊢ A ~ ★
 
   ★-~-B : ∀ {B H} →
+    Non★ B →
+    Non∀ B →
     Ground H →
     Γ ⊢ H ~ B →
     Γ ⊢ ★ ~ B
@@ -112,36 +116,36 @@ coerce :
   Γ ⊢ A ~ C →
   Imp × Imp
 coerce ★-~-★ =
-  ★-⊑-★ , ★-⊑-★
+  id★ , id★
 coerce (X-~-X {X} x∈) =
-  X-⊑-X X , X-⊑-X X
+  idₓ X , idₓ X
 coerce (ι-~-ι {ι}) =
-  ι-⊑-ι ι , ι-⊑-ι ι
+  idι ι , idι ι
 coerce (⇒-~-⇒ A~A′ B~B′) with coerce A~A′ | coerce B~B′
 coerce (⇒-~-⇒ A~A′ B~B′)
     | pA⊒ , pA⊑
     | pB⊒ , pB⊑ =
-  A⇒B-⊑-A′⇒B′ pA⊒ pB⊒ ,
-  A⇒B-⊑-A′⇒B′ pA⊑ pB⊑
+  pA⊒ ↦ pB⊒ ,
+  pA⊑ ↦ pB⊑
 coerce (∀-~-∀ A~B) with coerce A~B
 coerce (∀-~-∀ A~B) | p⊒ , p⊑ =
-  ∀A-⊑-∀B p⊒ , ∀A-⊑-∀B p⊑
-coerce (A-~-★ g A~G) with coerce A~G
-coerce (A-~-★ g A~G) | p⊒ , p⊑ =
-  p⊒ , A-⊑-★ p⊑
-coerce (★-~-B h H~B) with coerce H~B
-coerce (★-~-B h H~B) | p⊒ , p⊑ =
-  A-⊑-★ p⊒ , p⊑
+  ‵∀ p⊒ , ‵∀ p⊑
+coerce (A-~-★ n★ n∀ g A~G) with coerce A~G
+coerce (A-~-★ n★ n∀ g A~G) | p⊒ , p⊑ =
+  p⊒ , p⊑ !
+coerce (★-~-B n★ n∀ h H~B) with coerce H~B
+coerce (★-~-B n★ n∀ h H~B) | p⊒ , p⊑ =
+  p⊒ ! , p⊑
 coerce (νX-~-★ {X} x∈) =
-  X-⊑-X X , X-⊑-★ X
+  idₓ X , ‵ X !
 coerce (★-~-νX {X} x∈) =
-  X-⊑-★ X , X-⊑-X X
+  ‵ X ! , idₓ X
 coerce (∀-~-B {B = B} wfB A~⇑B) with coerce A~⇑B
 coerce (∀-~-B {B = B} wfB A~⇑B) | p⊒ , p⊑ =
-  ∀A-⊑-∀B p⊒ , ∀A-⊑-B p⊑
+  ‵∀ p⊒ , ν p⊑
 coerce (A-~-∀ {A = A} wfA ⇑A~B) with coerce ⇑A~B
 coerce (A-~-∀ {A = A} wfA ⇑A~B) | p⊒ , p⊑ =
-  ∀A-⊑-B p⊒ , ∀A-⊑-∀B p⊑
+  ν p⊒ , ‵∀ p⊑
 
 
 coerce-⊒ : ∀ {Γ A C} → Γ ⊢ A ~ C → Imp
@@ -149,5 +153,3 @@ coerce-⊒ A~C = proj₁ (coerce A~C)
 
 coerce-⊑ : ∀ {Γ A C} → Γ ⊢ A ~ C → Imp
 coerce-⊑ A~C = proj₂ (coerce A~C)
-
-

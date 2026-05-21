@@ -29,7 +29,7 @@ open import proof.ConversionProperties
 open import proof.ImprecisionProperties
   using
     ( cong-⊢⊑-raw
-    ; renameImp-cong
+    ; rename⊑-cong
     ; wkImpAt
     )
 open import proof.TypeProperties
@@ -104,32 +104,32 @@ renameˣᵐ-value ρ (vV ⇓ p) = renameˣᵐ-value ρ vV ⇓ p
 renameˣᵐ-value ρ (vV ↑ c) = renameˣᵐ-value ρ vV ↑ c
 renameˣᵐ-value ρ (vV ↓ c) = renameˣᵐ-value ρ vV ↓ c
 
-renameImp-up-value : ∀ ρ {p} →
+rename⊑-up-value : ∀ ρ {p} →
   UpValue p →
-  UpValue (renameImp ρ p)
-renameImp-up-value ρ tagν = tagν
-renameImp-up-value ρ tag = tag
-renameImp-up-value ρ (_↦_) = _↦_
-renameImp-up-value ρ `∀ = `∀
+  UpValue (rename⊑ ρ p)
+rename⊑-up-value ρ tagν = tagν
+rename⊑-up-value ρ tag = tag
+rename⊑-up-value ρ (_↦ᵥ_) = _↦ᵥ_
+rename⊑-up-value ρ `∀ = `∀
 
-renameImp-down-value : ∀ ρ {p} →
+rename⊑-down-value : ∀ ρ {p} →
   DownValue p →
-  DownValue (renameImp ρ p)
-renameImp-down-value ρ (_↦_) = _↦_
-renameImp-down-value ρ `∀ = `∀
-renameImp-down-value ρ (ν_) = ν_
+  DownValue (rename⊑ ρ p)
+rename⊑-down-value ρ (_↦ᵥ_) = _↦ᵥ_
+rename⊑-down-value ρ `∀ = `∀
+rename⊑-down-value ρ (νᵥ_) = νᵥ_
 
 subst↑-ren-reveal-value : (ρ : Renameᵗ) {c : Conv↑} →
   RevealValue c →
   RevealValue (subst↑ (λ X → ＇ ρ X) c)
-subst↑-ren-reveal-value ρ (_↦_) = _↦_
+subst↑-ren-reveal-value ρ (_↦ᵥ_) = _↦ᵥ_
 subst↑-ren-reveal-value ρ `∀ = `∀
 
 subst↓-ren-conceal-value : (ρ : Renameᵗ) {c : Conv↓} →
   ConcealValue c →
   ConcealValue (subst↓ (λ X → ＇ ρ X) c)
 subst↓-ren-conceal-value ρ seal = seal
-subst↓-ren-conceal-value ρ (_↦_) = _↦_
+subst↓-ren-conceal-value ρ (_↦ᵥ_) = _↦ᵥ_
 subst↓-ren-conceal-value ρ `∀ = `∀
 
 renameᵗᵐ-value : ∀ {V} ρ →
@@ -139,9 +139,9 @@ renameᵗᵐ-value ρ (ƛ A ⇒ N) = ƛ renameᵗ ρ A ⇒ renameᵗᵐ ρ N
 renameᵗᵐ-value ρ ($ κ) = $ κ
 renameᵗᵐ-value ρ (Λ N) = Λ renameᵗᵐ (extᵗ ρ) N
 renameᵗᵐ-value ρ (vV ⇑ p) =
-  renameᵗᵐ-value ρ vV ⇑ renameImp-up-value ρ p
+  renameᵗᵐ-value ρ vV ⇑ rename⊑-up-value ρ p
 renameᵗᵐ-value ρ (vV ⇓ p) =
-  renameᵗᵐ-value ρ vV ⇓ renameImp-down-value ρ p
+  renameᵗᵐ-value ρ vV ⇓ rename⊑-down-value ρ p
 renameᵗᵐ-value ρ (vV ↑ c) =
   renameᵗᵐ-value ρ vV ↑ subst↑-ren-reveal-value ρ c
 renameᵗᵐ-value ρ (vV ↓ c) =
@@ -218,9 +218,9 @@ renameᵗᵐ-cong h ($ κ) = refl
 renameᵗᵐ-cong h (L ⊕[ op ] M) =
   cong₃ _⊕[_]_ (renameᵗᵐ-cong h L) refl (renameᵗᵐ-cong h M)
 renameᵗᵐ-cong h (M ⇑ p) =
-  cong₂ _⇑_ (renameᵗᵐ-cong h M) (renameImp-cong h p)
+  cong₂ _⇑_ (renameᵗᵐ-cong h M) (rename⊑-cong h p)
 renameᵗᵐ-cong h (M ⇓ p) =
-  cong₂ _⇓_ (renameᵗᵐ-cong h M) (renameImp-cong h p)
+  cong₂ _⇓_ (renameᵗᵐ-cong h M) (rename⊑-cong h p)
 renameᵗᵐ-cong h (M ↑ c) =
   cong₂ _↑_ (renameᵗᵐ-cong h M) (subst↑-cong (λ X → cong ＇_ (h X)) c)
 renameᵗᵐ-cong h (M ↓ c) =
@@ -280,16 +280,16 @@ extend-X⊑X-insert (suc k) Δ = cong (X⊑X ∷_) (extend-X⊑X-insert k Δ)
 wkImp-extend-X⊑X :
   ∀ k {Δ Ψ p A B} →
   Ψ ∣ extend-X⊑X (k + Δ) [] ⊢ p ⦂ A ⊑ B →
-  Ψ ∣ extend-X⊑X (suc (k + Δ)) [] ⊢ renameImp (raiseVarFrom k) p ⦂
+  Ψ ∣ extend-X⊑X (suc (k + Δ)) [] ⊢ rename⊑ (raiseVarFrom k) p ⦂
     renameᵗ (raiseVarFrom k) A ⊑ renameᵗ (raiseVarFrom k) B
 wkImp-extend-X⊑X k {Δ} {Ψ} {p} {A} {B} p⊢ =
   subst
     (λ Γᵢ →
-      Ψ ∣ Γᵢ ⊢ renameImp (raiseVarFrom k) p ⦂
+      Ψ ∣ Γᵢ ⊢ rename⊑ (raiseVarFrom k) p ⦂
         renameᵗ (raiseVarFrom k) A ⊑ renameᵗ (raiseVarFrom k) B)
     (extend-X⊑X-insert k Δ)
     (cong-⊢⊑-raw
-      (renameImp-cong len-eq p)
+      (rename⊑-cong len-eq p)
       (rename-cong len-eq A)
       (rename-cong len-eq B)
       (wkImpAt {Φ = extend-X⊑X k []} {Γ = extend-X⊑X Δ []}

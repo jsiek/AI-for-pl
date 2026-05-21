@@ -106,13 +106,13 @@ data FunView (V : Term) : Set where
   fv-⇑↦ :
     ∀ {W : Term}{p q : Imp} →
     Value W →
-    V ≡ (W ⇑ (A⇒B-⊑-A′⇒B′ p q)) →
+    V ≡ (W ⇑ (p ↦ q)) →
     FunView V
 
   fv-⇓↦ :
     ∀ {W : Term}{p q : Imp} →
     Value W →
-    V ≡ (W ⇓ (A⇒B-⊑-A′⇒B′ p q)) →
+    V ≡ (W ⇓ (p ↦ q)) →
     FunView V
 
   fv-↑↦ :
@@ -137,21 +137,21 @@ canonical-⇒ ($ (κℕ n)) ()
 canonical-⇒ (Λ N) ()
 canonical-⇒ (_⇑_ {V = W} vW tagν) (⊢up () W⊢)
 canonical-⇒ (_⇑_ {V = W} vW tag) (⊢up () W⊢)
-canonical-⇒ (_⇑_ {V = W} vW (_↦_ {p = p} {q = q}))
+canonical-⇒ (_⇑_ {V = W} vW (_↦ᵥ_ {p = p} {q = q}))
   (⊢up (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) W⊢) =
   fv-⇑↦ vW refl
 canonical-⇒ (_⇑_ {V = W} vW `∀) (⊢up () W⊢)
-canonical-⇒ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q}))
+canonical-⇒ (_⇓_ {V = W} vW (_↦ᵥ_ {p = p} {q = q}))
   (⊢down (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) W⊢) =
   fv-⇓↦ vW refl
 canonical-⇒ (_⇓_ {V = W} vW `∀) (⊢down () W⊢)
-canonical-⇒ (_⇓_ {V = W} vW (ν_ {p = p})) (⊢down () W⊢)
-canonical-⇒ (_↑_ {V = W} vW (_↦_ {p = p} {q = q}))
+canonical-⇒ (_⇓_ {V = W} vW (νᵥ_ {p = p})) (⊢down () W⊢)
+canonical-⇒ (_↑_ {V = W} vW (_↦ᵥ_ {p = p} {q = q}))
   (⊢reveal (⊢↑-⇒ p⊢ q⊢) W⊢) =
   fv-↑↦ vW refl
 canonical-⇒ (_↑_ {V = W} vW `∀) (⊢reveal () W⊢)
 canonical-⇒ (_↓_ {V = W} vW seal) (⊢conceal () W⊢)
-canonical-⇒ (_↓_ {V = W} vW (_↦_ {p = p} {q = q}))
+canonical-⇒ (_↓_ {V = W} vW (_↦ᵥ_ {p = p} {q = q}))
   (⊢conceal (⊢↓-⇒ p⊢ q⊢) W⊢) =
   fv-↓↦ vW refl
 canonical-⇒ (_↓_ {V = W} vW `∀) (⊢conceal () W⊢)
@@ -165,19 +165,19 @@ data AllView (V : Term) : Set where
   av-⇑∀ :
     ∀ {W : Term}{p : Imp} →
     Value W →
-    V ≡ (W ⇑ (∀A-⊑-∀B p)) →
+    V ≡ (W ⇑ (‵∀ p)) →
     AllView V
 
   av-⇓∀ :
     ∀ {W : Term}{p : Imp} →
     Value W →
-    V ≡ (W ⇓ (∀A-⊑-∀B p)) →
+    V ≡ (W ⇓ (‵∀ p)) →
     AllView V
 
   av-⇓ν :
     ∀ {W : Term}{p : Imp} →
     Value W →
-    V ≡ (W ⇓ (∀A-⊑-B p)) →
+    V ≡ (W ⇓ (ν p)) →
     AllView V
 
   av-↑∀ :
@@ -202,21 +202,21 @@ canonical-∀ ($ (κℕ n)) ()
 canonical-∀ (Λ N) (⊢Λ vN N⊢) = av-Λ refl
 canonical-∀ (_⇑_ {V = W} vW tagν) (⊢up () W⊢)
 canonical-∀ (_⇑_ {V = W} vW tag) (⊢up () W⊢)
-canonical-∀ (_⇑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢up () W⊢)
+canonical-∀ (_⇑_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢up () W⊢)
 canonical-∀ (_⇑_ {V = W} vW (`∀ {p = p})) (⊢up (⊢∀A-⊑-∀B p⊢) W⊢) =
   av-⇑∀ vW refl
-canonical-∀ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢down () W⊢)
+canonical-∀ (_⇓_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢down () W⊢)
 canonical-∀ (_⇓_ {V = W} vW (`∀ {p = p})) (⊢down (⊢∀A-⊑-∀B p⊢) W⊢) =
   av-⇓∀ vW refl
-canonical-∀ (_⇓_ {V = W} vW (ν_ {p = p}))
+canonical-∀ (_⇓_ {V = W} vW (νᵥ_ {p = p}))
   (⊢down (⊢∀A-⊑-B wfB p⊢) W⊢) =
   av-⇓ν vW refl
-canonical-∀ (_↑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢reveal () W⊢)
+canonical-∀ (_↑_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢reveal () W⊢)
 canonical-∀ (_↑_ {V = W} vW (`∀ {c = c}))
   (⊢reveal (⊢↑-∀ c⊢) W⊢) =
   av-↑∀ vW refl
 canonical-∀ (_↓_ {V = W} vW seal) (⊢conceal () W⊢)
-canonical-∀ (_↓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢conceal () W⊢)
+canonical-∀ (_↓_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢conceal () W⊢)
 canonical-∀ (_↓_ {V = W} vW (`∀ {c = c}))
   (⊢conceal (⊢↓-∀ c⊢) W⊢) =
   av-↓∀ vW refl
@@ -237,22 +237,22 @@ canonical-ℕ ($ (κℕ n)) (⊢$ (κℕ .n)) = nv-const refl
 canonical-ℕ (Λ N) ()
 canonical-ℕ (_⇑_ {V = W} vW tagν) (⊢up () W⊢)
 canonical-ℕ (_⇑_ {V = W} vW tag) (⊢up () W⊢)
-canonical-ℕ (_⇑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢up () W⊢)
+canonical-ℕ (_⇑_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢up () W⊢)
 canonical-ℕ (_⇑_ {V = W} vW `∀) (⊢up () W⊢)
-canonical-ℕ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢down () W⊢)
+canonical-ℕ (_⇓_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢down () W⊢)
 canonical-ℕ (_⇓_ {V = W} vW `∀) (⊢down () W⊢)
-canonical-ℕ (_⇓_ {V = W} vW (ν_ {p = p})) (⊢down () W⊢)
-canonical-ℕ (_↑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢reveal () W⊢)
+canonical-ℕ (_⇓_ {V = W} vW (νᵥ_ {p = p})) (⊢down () W⊢)
+canonical-ℕ (_↑_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢reveal () W⊢)
 canonical-ℕ (_↑_ {V = W} vW `∀) (⊢reveal () W⊢)
 canonical-ℕ (_↓_ {V = W} vW seal) (⊢conceal () W⊢)
-canonical-ℕ (_↓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢conceal () W⊢)
+canonical-ℕ (_↓_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢conceal () W⊢)
 canonical-ℕ (_↓_ {V = W} vW `∀) (⊢conceal () W⊢)
 
 data StarView (V : Term) : Set where
   sv-⇑tag :
     ∀ {W : Term}{p : Imp} →
     Value W →
-    V ≡ (W ⇑ (A-⊑-★ p)) →
+    V ≡ (W ⇑ (p !)) →
     StarView V
 
 canonical-★ :
@@ -266,15 +266,15 @@ canonical-★ (Λ N) ()
 canonical-★ (_⇑_ {V = W} vW tagν) (⊢up (⊢X-⊑-★ ()) W⊢)
 canonical-★ (_⇑_ {V = W} vW tag) (⊢up (⊢A-⊑-★ g p⊢) W⊢) =
   sv-⇑tag vW refl
-canonical-★ (_⇑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢up () W⊢)
+canonical-★ (_⇑_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢up () W⊢)
 canonical-★ (_⇑_ {V = W} vW `∀) (⊢up () W⊢)
-canonical-★ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢down () W⊢)
+canonical-★ (_⇓_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢down () W⊢)
 canonical-★ (_⇓_ {V = W} vW `∀) (⊢down () W⊢)
-canonical-★ (_⇓_ {V = W} vW (ν_ {p = p})) (⊢down () W⊢)
-canonical-★ (_↑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢reveal () W⊢)
+canonical-★ (_⇓_ {V = W} vW (νᵥ_ {p = p})) (⊢down () W⊢)
+canonical-★ (_↑_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢reveal () W⊢)
 canonical-★ (_↑_ {V = W} vW `∀) (⊢reveal () W⊢)
 canonical-★ (_↓_ {V = W} vW seal) (⊢conceal () W⊢)
-canonical-★ (_↓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢conceal () W⊢)
+canonical-★ (_↓_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢conceal () W⊢)
 canonical-★ (_↓_ {V = W} vW `∀) (⊢conceal () W⊢)
 
 data SealView {α : Seal} (V : Term) : Set where
@@ -294,16 +294,16 @@ canonical-｀ ($ (κℕ n)) ()
 canonical-｀ (Λ N) ()
 canonical-｀ (_⇑_ {V = W} vW tagν) (⊢up () W⊢)
 canonical-｀ (_⇑_ {V = W} vW tag) (⊢up () W⊢)
-canonical-｀ (_⇑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢up () W⊢)
+canonical-｀ (_⇑_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢up () W⊢)
 canonical-｀ (_⇑_ {V = W} vW `∀) (⊢up () W⊢)
-canonical-｀ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢down () W⊢)
+canonical-｀ (_⇓_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢down () W⊢)
 canonical-｀ (_⇓_ {V = W} vW `∀) (⊢down () W⊢)
-canonical-｀ (_⇓_ {V = W} vW (ν_ {p = p})) (⊢down () W⊢)
-canonical-｀ (_↑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢reveal () W⊢)
+canonical-｀ (_⇓_ {V = W} vW (νᵥ_ {p = p})) (⊢down () W⊢)
+canonical-｀ (_↑_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢reveal () W⊢)
 canonical-｀ (_↑_ {V = W} vW `∀) (⊢reveal () W⊢)
 canonical-｀ (_↓_ {V = W} vW seal) (⊢conceal (⊢↓-seal h) W⊢) =
   sv-↓seal vW refl
-canonical-｀ (_↓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢conceal () W⊢)
+canonical-｀ (_↓_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢conceal () W⊢)
 canonical-｀ (_↓_ {V = W} vW `∀) (⊢conceal () W⊢)
 
 ------------------------------------------------------------------------
@@ -314,7 +314,7 @@ untag-progress :
   ∀ {Ψ}{Σ : Store}{M : Term}{q : Imp} →
   Value M →
   0 ∣ Ψ ∣ Σ ∣ [] ⊢ M ⦂ ★ →
-  Progress {Σ = Σ} (M ⇓ (A-⊑-★ q))
+  Progress {Σ = Σ} (M ⇓ (q !))
 untag-progress {q = q} vM M⊢ with canonical-★ vM M⊢
 ... | sv-⇑tag {p = p} vW refl with tgt⊑ p ≟Ty tgt⊑ q
 untag-progress {q = q} vM M⊢ | sv-⇑tag {p = p} vW refl | yes eq =
@@ -414,22 +414,22 @@ progress (⊢up {M = M} {p = p} p⊢ M⊢) | step M→M′ =
   step (ξ-⇑ M→M′)
 progress (⊢up {M = M} {p = p} p⊢ M⊢) | crash (ℓ , refl) =
   step (pure-step blame-up)
-progress (⊢up {M = M} {p = ★-⊑-★} ⊢★-⊑-★ M⊢) | done vM =
+progress (⊢up {M = M} {p = id★} ⊢★-⊑-★ M⊢) | done vM =
   step (pure-step (id-up-★ vM))
-progress (⊢up {M = M} {p = X-⊑-★ X} (⊢X-⊑-★ ()) M⊢) | done vM
-progress (⊢up {M = M} {p = A-⊑-★ p} (⊢A-⊑-★ g p⊢) M⊢) | done vM =
+progress (⊢up {M = M} {p = ‵ X !} (⊢X-⊑-★ ()) M⊢) | done vM
+progress (⊢up {M = M} {p = p !} (⊢A-⊑-★ g p⊢) M⊢) | done vM =
   done (vM ⇑ tag)
-progress (⊢up {M = M} {p = X-⊑-X X} (⊢X-⊑-X ()) M⊢) | done vM
-progress (⊢up {M = M} {p = α-⊑-α α} (⊢α-⊑-α wfα) M⊢) | done vM =
+progress (⊢up {M = M} {p = idₓ X} (⊢X-⊑-X ()) M⊢) | done vM
+progress (⊢up {M = M} {p = idₛ α} (⊢α-⊑-α wfα) M⊢) | done vM =
   step (pure-step (id-up-｀ vM))
-progress (⊢up {M = M} {p = ι-⊑-ι ι} ⊢ι-⊑-ι M⊢) | done vM =
+progress (⊢up {M = M} {p = idι ι} ⊢ι-⊑-ι M⊢) | done vM =
   step (pure-step (id-up-‵ vM))
-progress (⊢up {M = M} {p = A⇒B-⊑-A′⇒B′ p q} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) M⊢)
+progress (⊢up {M = M} {p = p ↦ q} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) M⊢)
     | done vM =
-  done (vM ⇑ (_↦_ {p = p} {q = q}))
-progress (⊢up {M = M} {p = ∀A-⊑-∀B p} (⊢∀A-⊑-∀B p⊢) M⊢) | done vM =
+  done (vM ⇑ (_↦ᵥ_ {p = p} {q = q}))
+progress (⊢up {M = M} {p = ‵∀ p} (⊢∀A-⊑-∀B p⊢) M⊢) | done vM =
   done (vM ⇑ (`∀ {p = p}))
-progress (⊢up {M = M} {p = ∀A-⊑-B p} (⊢∀A-⊑-B wfB p⊢) M⊢)
+progress (⊢up {M = M} {p = ν p} (⊢∀A-⊑-B wfB p⊢) M⊢)
     | done vM =
   step (β-up-ν vM)
 progress (⊢down {M = M} {p = p} p⊢ M⊢) with progress M⊢
@@ -437,25 +437,25 @@ progress (⊢down {M = M} {p = p} p⊢ M⊢) | step M→M′ =
   step (ξ-⇓ M→M′)
 progress (⊢down {M = M} {p = p} p⊢ M⊢) | crash (ℓ , refl) =
   step (pure-step blame-down)
-progress (⊢down {M = M} {p = ★-⊑-★} ⊢★-⊑-★ M⊢) | done vM =
+progress (⊢down {M = M} {p = id★} ⊢★-⊑-★ M⊢) | done vM =
   step (pure-step (id-down-★ vM))
-progress (⊢down {M = M} {p = X-⊑-★ X} (⊢X-⊑-★ ()) M⊢) | done vM
-progress (⊢down {M = M} {p = A-⊑-★ p} (⊢A-⊑-★ g p⊢) M⊢) | done vM =
+progress (⊢down {M = M} {p = ‵ X !} (⊢X-⊑-★ ()) M⊢) | done vM
+progress (⊢down {M = M} {p = p !} (⊢A-⊑-★ g p⊢) M⊢) | done vM =
   untag-progress {q = p} vM M⊢
-progress (⊢down {M = M} {p = X-⊑-X X} (⊢X-⊑-X ()) M⊢) | done vM
-progress (⊢down {M = M} {p = α-⊑-α α} (⊢α-⊑-α wfα) M⊢) | done vM =
+progress (⊢down {M = M} {p = idₓ X} (⊢X-⊑-X ()) M⊢) | done vM
+progress (⊢down {M = M} {p = idₛ α} (⊢α-⊑-α wfα) M⊢) | done vM =
   step (pure-step (id-down-｀ vM))
-progress (⊢down {M = M} {p = ι-⊑-ι ι} ⊢ι-⊑-ι M⊢) | done vM =
+progress (⊢down {M = M} {p = idι ι} ⊢ι-⊑-ι M⊢) | done vM =
   step (pure-step (id-down-‵ vM))
 progress
-  (⊢down {M = M} {p = A⇒B-⊑-A′⇒B′ p q} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) M⊢)
+  (⊢down {M = M} {p = p ↦ q} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) M⊢)
   | done vM =
-  done (vM ⇓ (_↦_ {p = p} {q = q}))
-progress (⊢down {M = M} {p = ∀A-⊑-∀B p} (⊢∀A-⊑-∀B p⊢) M⊢) | done vM =
+  done (vM ⇓ (_↦ᵥ_ {p = p} {q = q}))
+progress (⊢down {M = M} {p = ‵∀ p} (⊢∀A-⊑-∀B p⊢) M⊢) | done vM =
   done (vM ⇓ (`∀ {p = p}))
-progress (⊢down {M = M} {p = ∀A-⊑-B p} (⊢∀A-⊑-B wfB p⊢) M⊢)
+progress (⊢down {M = M} {p = ν p} (⊢∀A-⊑-B wfB p⊢) M⊢)
     | done vM =
-  done (vM ⇓ (ν_ {p = p}))
+  done (vM ⇓ (νᵥ_ {p = p}))
 progress (⊢reveal {M = M} {c = c} c⊢ M⊢) with progress M⊢
 progress (⊢reveal {M = M} {c = c} c⊢ M⊢) | step M→M′ =
   step (ξ-↑ M→M′)
@@ -466,7 +466,7 @@ progress (⊢reveal {M = M} {c = ↑-unseal α} (⊢↑-unseal h) M⊢)
   unseal-progress vM M⊢
 progress (⊢reveal {M = M} {c = ↑-⇒ p q} (⊢↑-⇒ p⊢ q⊢) M⊢)
     | done vM =
-  done (vM ↑ (_↦_ {p = p} {q = q}))
+  done (vM ↑ (_↦ᵥ_ {p = p} {q = q}))
 progress (⊢reveal {M = M} {c = ↑-∀ c} (⊢↑-∀ c⊢) M⊢) | done vM =
   done (vM ↑ (`∀ {c = c}))
 progress (⊢reveal {M = M} {c = ↑-id A} (⊢↑-id wfA) M⊢) | done vM =
@@ -480,7 +480,7 @@ progress (⊢conceal {M = M} {c = ↓-seal α} (⊢↓-seal h) M⊢) | done vM =
   done (vM ↓ seal)
 progress (⊢conceal {M = M} {c = ↓-⇒ p q} (⊢↓-⇒ p⊢ q⊢) M⊢)
     | done vM =
-  done (vM ↓ (_↦_ {p = p} {q = q}))
+  done (vM ↓ (_↦ᵥ_ {p = p} {q = q}))
 progress (⊢conceal {M = M} {c = ↓-∀ c} (⊢↓-∀ c⊢) M⊢) | done vM =
   done (vM ↓ (`∀ {c = c}))
 progress (⊢conceal {M = M} {c = ↓-id A} (⊢↓-id wfA) M⊢) | done vM =

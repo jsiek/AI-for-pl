@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 module All where
 
 -- File Charter:
@@ -16,9 +15,12 @@ open import Conversion
 open import Primitives
 open import Terms
 open import GradualTerms
-open import GradualTermImprecision
 open import Compile
-open import TermImprecision
 open import Reduction
+open import Eval
+open import TypeCheckDec
+open import Examples
+open import GradualTermImprecision
+open import TermImprecision
 open import TypeSafety
 open import GradualGuarantee

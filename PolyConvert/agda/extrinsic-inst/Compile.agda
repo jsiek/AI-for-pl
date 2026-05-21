@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 module Compile where
 
 -- File Charter:
@@ -64,17 +63,20 @@ compile (⊢· L⊢ M⊢ A~A′)
   ⊢ᵀ· L′⊢ (⊢ᵀup p⊒⊢ (⊢ᵀdown p⊑⊢ M′⊢))
 compile (⊢·★ L⊢ M⊢ A′~★)
     with compile L⊢ | compile M⊢
-       | coerce-wt-extend-X⊑X (A-~-★ ★⇒★ (⇒-~-⇒ A′~★ ★-~-★))
+       | coerce-wt-extend-X⊑X
+           (A-~-★ non★-⇒ non∀-⇒ ★⇒★ (⇒-~-⇒ A′~★ ★-~-★))
 compile (⊢·★ L⊢ M⊢ A′~★)
     | L′ , L′⊢ | M′ , M′⊢ | B , p⊒⊢ , p⊑⊢ =
-  ((L′ ⇓ᵀ coerce-⊑ (A-~-★ ★⇒★ (⇒-~-⇒ A′~★ ★-~-★)))
-    ⇑ᵀ coerce-⊒ (A-~-★ ★⇒★ (⇒-~-⇒ A′~★ ★-~-★))) ·ᵀ M′ ,
+  ((L′ ⇓ᵀ coerce-⊑
+      (A-~-★ non★-⇒ non∀-⇒ ★⇒★ (⇒-~-⇒ A′~★ ★-~-★)))
+    ⇑ᵀ coerce-⊒
+      (A-~-★ non★-⇒ non∀-⇒ ★⇒★ (⇒-~-⇒ A′~★ ★-~-★))) ·ᵀ M′ ,
   ⊢ᵀ· (⊢ᵀup p⊒⊢ (⊢ᵀdown p⊑⊢ L′⊢)) M′⊢
 compile (⊢Λ vM M⊢) with compile M⊢ | compile-value vM M⊢
 compile (⊢Λ vM M⊢) | N , N⊢ | vN =
   Λᵀ N , ⊢ᵀΛ vN N⊢
-compile (⊢• M⊢ wfB wfT) with compile M⊢
-compile (⊢• {B = B} {T = T} M⊢ wfB wfT) | M′ , M′⊢ =
+compile (⊢• {B = B} {A = T} M⊢ wfB wfT) with compile M⊢
+compile (⊢• {B = B} {A = T} M⊢ wfB wfT) | M′ , M′⊢ =
   M′ ⦂∀ᵀ B [ T ] , ⊢ᵀ• M′⊢ wfB wfT
 compile (⊢$ κ) =
   $ᵀ κ , ⊢ᵀ$ κ

@@ -57,36 +57,36 @@ WellTypedBF : Term → Set₁
 WellTypedBF M = HasSomeTypeBF 0 0 ∅ˢ [] M
 
 upValue? : (p : Imp) → Dec (UpValue p)
-upValue? ★-⊑-★ = no (λ ())
-upValue? (X-⊑-★ X) = yes tagν
-upValue? (A-⊑-★ p) = yes tag
-upValue? (X-⊑-X X) = no (λ ())
-upValue? (α-⊑-α α) = no (λ ())
-upValue? (ι-⊑-ι ι) = no (λ ())
-upValue? (A⇒B-⊑-A′⇒B′ p q) = yes (_↦_)
-upValue? (∀A-⊑-∀B p) = yes `∀
-upValue? (∀A-⊑-B p) = no (λ ())
+upValue? id★ = no (λ ())
+upValue? (‵ X !) = yes tagν
+upValue? (p !) = yes tag
+upValue? (idₓ X) = no (λ ())
+upValue? (idₛ α) = no (λ ())
+upValue? (idι ι) = no (λ ())
+upValue? (p ↦ q) = yes (_↦ᵥ_)
+upValue? (‵∀ p) = yes `∀
+upValue? (ν p) = no (λ ())
 
 downValue? : (p : Imp) → Dec (DownValue p)
-downValue? ★-⊑-★ = no (λ ())
-downValue? (X-⊑-★ X) = no (λ ())
-downValue? (A-⊑-★ p) = no (λ ())
-downValue? (X-⊑-X X) = no (λ ())
-downValue? (α-⊑-α α) = no (λ ())
-downValue? (ι-⊑-ι ι) = no (λ ())
-downValue? (A⇒B-⊑-A′⇒B′ p q) = yes (_↦_)
-downValue? (∀A-⊑-∀B p) = yes `∀
-downValue? (∀A-⊑-B p) = yes (ν_)
+downValue? id★ = no (λ ())
+downValue? (‵ X !) = no (λ ())
+downValue? (p !) = no (λ ())
+downValue? (idₓ X) = no (λ ())
+downValue? (idₛ α) = no (λ ())
+downValue? (idι ι) = no (λ ())
+downValue? (p ↦ q) = yes (_↦ᵥ_)
+downValue? (‵∀ p) = yes `∀
+downValue? (ν p) = yes (νᵥ_)
 
 revealValue? : (c : Conv↑) → Dec (RevealValue c)
 revealValue? (↑-unseal α) = no (λ ())
-revealValue? (↑-⇒ p q) = yes (_↦_)
+revealValue? (↑-⇒ p q) = yes (_↦ᵥ_)
 revealValue? (↑-∀ c) = yes `∀
 revealValue? (↑-id A) = no (λ ())
 
 concealValue? : (c : Conv↓) → Dec (ConcealValue c)
 concealValue? (↓-seal α) = yes seal
-concealValue? (↓-⇒ p q) = yes (_↦_)
+concealValue? (↓-⇒ p q) = yes (_↦ᵥ_)
 concealValue? (↓-∀ c) = yes `∀
 concealValue? (↓-id A) = no (λ ())
 
@@ -320,11 +320,11 @@ mutual
     (Γ : VarPrecCtx) →
     (p : Imp) →
     Dec (Ψ ∣ Γ ⊢ p ⦂ src⊑ p ⊑ tgt⊑ p)
-  imp-check Ψ Γ ★-⊑-★ = yes ⊢★-⊑-★
-  imp-check Ψ Γ (X-⊑-★ X) with lookupModeDec Γ X X⊑★
+  imp-check Ψ Γ id★ = yes ⊢★-⊑-★
+  imp-check Ψ Γ (‵ X !) with lookupModeDec Γ X X⊑★
   ... | yes xν = yes (⊢X-⊑-★ xν)
   ... | no ¬xν = no (λ { (⊢X-⊑-★ xν) → ¬xν xν })
-  imp-check Ψ Γ (A-⊑-★ p) with groundTyDec (tgt⊑ p) | imp-check Ψ Γ p
+  imp-check Ψ Γ (p !) with groundTyDec (tgt⊑ p) | imp-check Ψ Γ p
   ... | yes g | yes p⊢ = yes (⊢A-⊑-★ g p⊢)
   ... | no ¬g | _ =
       no
@@ -333,32 +333,32 @@ mutual
               ¬g (subst Ground (sym (tgt⊑-correct p⊢)) g)
           })
   ... | yes g | no ¬p = no (λ { (⊢A-⊑-★ g p⊢) → ¬p (⊑-to-computed p⊢) })
-  imp-check Ψ Γ (X-⊑-X X) with lookupModeDec Γ X X⊑X
+  imp-check Ψ Γ (idₓ X) with lookupModeDec Γ X X⊑X
   ... | yes x∈ = yes (⊢X-⊑-X x∈)
   ... | no ¬x∈ = no (λ { (⊢X-⊑-X x∈) → ¬x∈ x∈ })
-  imp-check Ψ Γ (α-⊑-α α) with wfTyDec (length Γ) Ψ (｀ α)
+  imp-check Ψ Γ (idₛ α) with wfTyDec (length Γ) Ψ (｀ α)
   ... | yes wfα = yes (⊢α-⊑-α wfα)
   ... | no ¬wfα = no (λ { (⊢α-⊑-α wfα) → ¬wfα wfα })
-  imp-check Ψ Γ (ι-⊑-ι ι) = yes ⊢ι-⊑-ι
-  imp-check Ψ Γ (A⇒B-⊑-A′⇒B′ p q) with imp-check Ψ Γ p | imp-check Ψ Γ q
+  imp-check Ψ Γ (idι ι) = yes ⊢ι-⊑-ι
+  imp-check Ψ Γ (p ↦ q) with imp-check Ψ Γ p | imp-check Ψ Γ q
   ... | yes p⊢ | yes q⊢ = yes (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
   ... | no ¬p | _ = no (λ { (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) → ¬p (⊑-to-computed p⊢) })
   ... | _ | no ¬q = no (λ { (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) → ¬q (⊑-to-computed q⊢) })
-  imp-check Ψ Γ (∀A-⊑-∀B p) with imp-check Ψ (X⊑X ∷ Γ) p
+  imp-check Ψ Γ (‵∀ p) with imp-check Ψ (X⊑X ∷ Γ) p
   ... | yes p⊢ = yes (⊢∀A-⊑-∀B p⊢)
   ... | no ¬p = no (λ { (⊢∀A-⊑-∀B p⊢) → ¬p (⊑-to-computed p⊢) })
-  imp-check Ψ Γ (∀A-⊑-B p) with wfTyDec (length Γ) Ψ (dropTyFrom zero (tgt⊑ p))
-  imp-check Ψ Γ (∀A-⊑-B p) | no ¬wfB =
+  imp-check Ψ Γ (ν p) with wfTyDec (length Γ) Ψ (dropTyFrom zero (tgt⊑ p))
+  imp-check Ψ Γ (ν p) | no ¬wfB =
       no (λ { (⊢∀A-⊑-B wfB p⊢) → ¬wfB wfB })
-  imp-check Ψ Γ (∀A-⊑-B p) | yes wfB
+  imp-check Ψ Γ (ν p) | yes wfB
       with imp-check Ψ (X⊑★ ∷ Γ) p
-  imp-check Ψ Γ (∀A-⊑-B p) | yes wfB | no ¬p =
+  imp-check Ψ Γ (ν p) | yes wfB | no ¬p =
       no (λ { (⊢∀A-⊑-B wfB′ p⊢) → ¬p (⊑-to-computed p⊢) })
-  imp-check Ψ Γ (∀A-⊑-B p) | yes wfB | yes p⊢
+  imp-check Ψ Γ (ν p) | yes wfB | yes p⊢
       with tgt⊑ p ≟Ty ⇑ᵗ (dropTyFrom zero (tgt⊑ p))
-  imp-check Ψ Γ (∀A-⊑-B p) | yes wfB | yes p⊢ | no tgt≢ =
+  imp-check Ψ Γ (ν p) | yes wfB | yes p⊢ | no tgt≢ =
       no (λ { (⊢∀A-⊑-B wfB′ p⊢′) → tgt≢ (tgt⊑-correct p⊢′) })
-  imp-check Ψ Γ (∀A-⊑-B p) | yes wfB | yes p⊢ | yes eq =
+  imp-check Ψ Γ (ν p) | yes wfB | yes p⊢ | yes eq =
       yes
         (⊢∀A-⊑-B {A = src⊑ p} wfB
           (subst

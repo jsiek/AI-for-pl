@@ -89,7 +89,7 @@ lookup-⇑ᵗᴾ :
   ∀ {Δ Ψ Γ x A B p p⊢} →
   Γ ∋ₚ x ⦂ (A , B , p , p⊢) →
   ⇑ᵗᴾ {Δ} {Ψ} Γ ∋ₚ x ⦂
-    (⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-extend-X⊑X zero p⊢)
+    (⇑ᵗ A , ⇑ᵗ B , rename⊑ suc p , wkImp-extend-X⊑X zero p⊢)
 lookup-⇑ᵗᴾ Zₚ = Zₚ
 lookup-⇑ᵗᴾ (Sₚ h) = Sₚ (lookup-⇑ᵗᴾ h)
 
@@ -98,7 +98,7 @@ lookup-⇑ᵗᴾ (Sₚ h) = Sₚ (lookup-⇑ᵗᴾ h)
   ⇑ᵗᴾ {Δ} {Ψ} Γ ∋ₚ x ⦂ P →
   Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Σ[ p ∈ Imp ]
     Σ[ p⊢ ∈ Ψ ∣ extend-X⊑X Δ [] ⊢ p ⦂ A ⊑ B ]
-      (P ≡ (⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-extend-X⊑X zero p⊢) ×
+      (P ≡ (⇑ᵗ A , ⇑ᵗ B , rename⊑ suc p , wkImp-extend-X⊑X zero p⊢) ×
        Γ ∋ₚ x ⦂ (A , B , p , p⊢))
 ⇑ᵗᴾ-un∋ {Γ = (A , B , p , p⊢) ∷ Γ} Zₚ =
   A , B , p , p⊢ , refl , Zₚ
@@ -185,8 +185,8 @@ renameˣ-⊑ hρ (⊑Λ vM vM′ rel) =
     (renameˣᵐ-value _ vM)
     (renameˣᵐ-value _ vM′)
     (renameˣ-⊑ (map-lookup-⇑ᵗᴾ hρ) rel)
-renameˣ-⊑ hρ (⊑⦂∀ rel wfA wfB wfT pT⊢) =
-  ⊑⦂∀ (renameˣ-⊑ hρ rel) wfA wfB wfT pT⊢
+renameˣ-⊑ hρ (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) =
+  ⊑⦂∀ (renameˣ-⊑ hρ rel) wfA wfB wfT wfT′ pT⊢
 renameˣ-⊑ hρ (⊑⦂∀-ν rel wfA wfT pT⊢) =
   ⊑⦂∀-ν (renameˣ-⊑ hρ rel) wfA wfT pT⊢
 renameˣ-⊑ hρ ⊑$ = ⊑$
@@ -261,7 +261,7 @@ renameᵗPCtxMap-⇑ᵗᴾ k hΓ h | A , B , p , p⊢ , refl , h′
   with hΓ h′
 renameᵗPCtxMap-⇑ᵗᴾ k hΓ h | A , B , p , p⊢ , refl , h′
   | A′ , B′ , p′ , p⊢′ , eqA , eqB , h″ =
-  ⇑ᵗ A′ , ⇑ᵗ B′ , renameImp suc p′ , wkImp-extend-X⊑X zero p⊢′ ,
+  ⇑ᵗ A′ , ⇑ᵗ B′ , rename⊑ suc p′ , wkImp-extend-X⊑X zero p⊢′ ,
   trans (cong ⇑ᵗ eqA) (sym (rename-raise-⇑ᵗ k A)) ,
   trans (cong ⇑ᵗ eqB) (sym (rename-raise-⇑ᵗ k B)) ,
   lookup-⇑ᵗᴾ h″
@@ -275,13 +275,13 @@ renameᵗPCtxMap-ext :
     ((A , A′ , p , p⊢) ∷ Γ)
     ( ( renameᵗ (raiseVarFrom k) A
       , renameᵗ (raiseVarFrom k) A′
-      , renameImp (raiseVarFrom k) p
+      , rename⊑ (raiseVarFrom k) p
       , wkImp-extend-X⊑X k p⊢ )
       ∷ Γ′ )
 renameᵗPCtxMap-ext k hΓ {A = A} {B = B} {p = p} {p⊢ = p⊢} Zₚ =
   renameᵗ (raiseVarFrom k) A ,
   renameᵗ (raiseVarFrom k) B ,
-  renameImp (raiseVarFrom k) p ,
+  rename⊑ (raiseVarFrom k) p ,
   wkImp-extend-X⊑X k p⊢ ,
   refl , refl , Zₚ
 renameᵗPCtxMap-ext k hΓ (Sₚ h) with hΓ h
@@ -294,7 +294,7 @@ renameᵗPCtxMap-⇑ᵗᴾ-zero :
   RenameᵗPCtxMap zero Γ (⇑ᵗᴾ Γ)
 renameᵗPCtxMap-⇑ᵗᴾ-zero {Γ = []} ()
 renameᵗPCtxMap-⇑ᵗᴾ-zero {Γ = (A , B , p , p⊢) ∷ Γ} Zₚ =
-  ⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImp-extend-X⊑X zero p⊢ ,
+  ⇑ᵗ A , ⇑ᵗ B , rename⊑ suc p , wkImp-extend-X⊑X zero p⊢ ,
   refl , refl , Zₚ
 renameᵗPCtxMap-⇑ᵗᴾ-zero {Γ = P ∷ Γ} (Sₚ h)
   with renameᵗPCtxMap-⇑ᵗᴾ-zero {Γ = Γ} h
@@ -395,8 +395,8 @@ mutual
     (⊑ƛ {pA = pA} {pB = pB} {pA⊢ = pA⊢} {pB⊢ = pB⊢}
       hA hA′ rel) =
     ⊑ƛ
-      {pA = renameImp (raiseVarFrom k) pA}
-      {pB = renameImp (raiseVarFrom k) pB}
+      {pA = rename⊑ (raiseVarFrom k) pA}
+      {pB = rename⊑ (raiseVarFrom k) pB}
       {pA⊢ = wkImp-extend-X⊑X k pA⊢}
       {pB⊢ = wkImp-extend-X⊑X k pB⊢}
       (renameᵗ-preserves-WfTy hA (raiseWfPlus k))
@@ -422,18 +422,20 @@ mutual
             (renameᵗPCtxMap-⇑ᵗᴾ k hΓ)
             rel)))
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ
-    (⊑⦂∀ {A = A} {B = B} {T = T} rel wfA wfB wfT pT⊢) =
+    (⊑⦂∀ {A = A} {B = B} {T = T} {T′ = T′}
+      rel wfA wfB wfT wfT′ pT⊢) =
     ⊑-index-cast
       (sym (renameᵗ-[]ᵗ (raiseVarFrom k) A T))
-      (sym (renameᵗ-[]ᵗ (raiseVarFrom k) B T))
+      (sym (renameᵗ-[]ᵗ (raiseVarFrom k) B T′))
       (⊑⦂∀
         (renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ rel)
         (renameᵗ-preserves-WfTy wfA (TyRenameWf-ext (raiseWfPlus k)))
         (renameᵗ-preserves-WfTy wfB (TyRenameWf-ext (raiseWfPlus k)))
         (renameᵗ-preserves-WfTy wfT (raiseWfPlus k))
+        (renameᵗ-preserves-WfTy wfT′ (raiseWfPlus k))
         (cong-⊢⊑-raw refl
           (renameᵗ-[]ᵗ (raiseVarFrom k) A T)
-          (renameᵗ-[]ᵗ (raiseVarFrom k) B T)
+          (renameᵗ-[]ᵗ (raiseVarFrom k) B T′)
           (wkImp-extend-X⊑X k pT⊢)))
   renameᵗ-raise-⊑ k eqΣ eqΣʳ hΓ
     (⊑⦂∀-ν {A = A} {T = T} rel wfA wfT pT⊢) =
@@ -484,7 +486,7 @@ mutual
       (wkImp-extend-X⊑X k pB⊢)
   renameᵗ-raise-⊑ k {Σʳ = Σʳ} {M′ = M′} eqΣ eqΣʳ hΓ
     (⊑blameL {p = p} {ℓ = ℓ} hM p⊢) =
-    ⊑blameL {p = renameImp (raiseVarFrom k) p} {ℓ = ℓ}
+    ⊑blameL {p = rename⊑ (raiseVarFrom k) p} {ℓ = ℓ}
       (cong-⊢⦂
         (sym eqΣ)
         refl
@@ -532,8 +534,8 @@ substᴾ-⊑ hσ (⊑Λ vM vM′ rel) =
     (substˣᵐ-value _ vM)
     (substˣᵐ-value _ vM′)
     (substᴾ-⊑ (↑ᵗᵐᴾ hσ) rel)
-substᴾ-⊑ hσ (⊑⦂∀ rel wfA wfB wfT pT⊢) =
-  ⊑⦂∀ (substᴾ-⊑ hσ rel) wfA wfB wfT pT⊢
+substᴾ-⊑ hσ (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) =
+  ⊑⦂∀ (substᴾ-⊑ hσ rel) wfA wfB wfT wfT′ pT⊢
 substᴾ-⊑ hσ (⊑⦂∀-ν rel wfA wfT pT⊢) =
   ⊑⦂∀-ν (substᴾ-⊑ hσ rel) wfA wfT pT⊢
 substᴾ-⊑ hσ ⊑$ = ⊑$
@@ -668,12 +670,13 @@ wk-rel-⊑ {E = E} {Γ′ = Γ′} Ψ≤Ψ′ wΣ hΓ (⊑Λ vM vM′ rel) =
       Ψ≤Ψ′ (⟰ᵗ-⊆ˢ wΣ)
       (liftᵗWkPCtxMap {Ψ≤Ψ′ = Ψ≤Ψ′} hΓ)
       rel)
-wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ (⊑⦂∀ rel wfA wfB wfT pT⊢) =
+wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) =
   ⊑⦂∀
     (wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ rel)
     (WfTy-weakenˢ wfA Ψ≤Ψ′)
     (WfTy-weakenˢ wfB Ψ≤Ψ′)
     (WfTy-weakenˢ wfT Ψ≤Ψ′)
+    (WfTy-weakenˢ wfT′ Ψ≤Ψ′)
     (wk-⊑ Ψ≤Ψ′ pT⊢)
 wk-rel-⊑ Ψ≤Ψ′ wΣ hΓ (⊑⦂∀-ν rel wfA wfT pT⊢) =
   ⊑⦂∀-ν

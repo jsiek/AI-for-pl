@@ -2,7 +2,7 @@ module proof.PreservationImpSubst where
 
 -- File Charter:
 --   * Type-variable substitution preservation for PolyConvert imprecision typing.
---   * Proves the general `⊑-substᵗ-wt` theorem for `substImp` under
+--   * Proves the general `⊑-substᵗ-wt` theorem for `subst⊑` under
 --     well-formed type substitutions and mode-aware variable evidence.
 --   * Exports the `singleTyEnv` corollary `[]⊑ᵗ-wt` used by raw preservation.
 
@@ -120,16 +120,16 @@ wk-VarSubstRel :
   VarSubstRel Ψ Γ A B m →
   VarSubstRel Ψ (m′ ∷ Γ) (⇑ᵗ A) (⇑ᵗ B) m
 wk-VarSubstRel {m = X⊑X} (p , p⊢) =
-  renameImp suc p , wkImpAt {Φ = []} p⊢
+  rename⊑ suc p , wkImpAt {Φ = []} p⊢
 wk-VarSubstRel {m = X⊑★} (p , p⊢) =
-  renameImp suc p , wkImpAt {Φ = []} p⊢
+  rename⊑ suc p , wkImpAt {Φ = []} p⊢
 
 ImpSubstRel-exts :
   ∀ {Ψ Γ Γ′ σ τ m′} →
   ImpSubstRel Ψ Γ Γ′ σ τ →
   ImpSubstRel Ψ (m′ ∷ Γ) (m′ ∷ Γ′) (extsᵗ σ) (extsᵗ τ)
-ImpSubstRel-exts {m′ = X⊑X} h here = X-⊑-X zero , ⊢X-⊑-X here
-ImpSubstRel-exts {m′ = X⊑★} h here = X-⊑-★ zero , ⊢X-⊑-★ here
+ImpSubstRel-exts {m′ = X⊑X} h here = idₓ zero , ⊢X-⊑-X here
+ImpSubstRel-exts {m′ = X⊑★} h here = ‵ zero ! , ⊢X-⊑-★ here
 ImpSubstRel-exts {m′ = m′} h (there x∈) =
   wk-VarSubstRel {m′ = m′} (h x∈)
 
@@ -147,7 +147,7 @@ ImpSubst⊑Rel Ψ Γ Γ′ σ τˡ τʳ =
 wk-VarSubst⊑Rel :
   ∀ {Ψ Γ p A B m m′} →
   VarSubst⊑Rel Ψ Γ p A B m →
-  VarSubst⊑Rel Ψ (m′ ∷ Γ) (renameImp suc p) (⇑ᵗ A) (⇑ᵗ B) m
+  VarSubst⊑Rel Ψ (m′ ∷ Γ) (rename⊑ suc p) (⇑ᵗ A) (⇑ᵗ B) m
 wk-VarSubst⊑Rel {m = X⊑X} p⊢ = wkImpAt {Φ = []} p⊢
 wk-VarSubst⊑Rel {m = X⊑★} p⊢ = wkImpAt {Φ = []} p⊢
 
@@ -163,34 +163,34 @@ ImpSubst⊑Rel-exts {m′ = X⊑★} h here =
 ImpSubst⊑Rel-exts {m′ = m′} h (there x∈) =
   wk-VarSubst⊑Rel {m′ = m′} (h x∈)
 
-⊑-subst⊑-rel :
+⊑-subst⊑ᵢ-rel :
   ∀ {Ψ Γ Γ′ σ τˡ τʳ p A B} →
   TySubstWf (length Γ) (length Γ′) Ψ τʳ →
   ImpSubst⊑Rel Ψ Γ Γ′ σ τˡ τʳ →
   Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
-  Ψ ∣ Γ′ ⊢ subst⊑ σ p ⦂ substᵗ τˡ A ⊑ substᵗ τʳ B
-⊑-subst⊑-rel hτʳ hᵢ ⊢★-⊑-★ = ⊢★-⊑-★
-⊑-subst⊑-rel hτʳ hᵢ (⊢X-⊑-★ xν) = hᵢ xν
-⊑-subst⊑-rel hτʳ hᵢ (⊢A-⊑-★ g p⊢) =
-  ⊢A-⊑-★ (substᵗ-ground _ g) (⊑-subst⊑-rel hτʳ hᵢ p⊢)
-⊑-subst⊑-rel hτʳ hᵢ (⊢X-⊑-X x∈) = hᵢ x∈
-⊑-subst⊑-rel hτʳ hᵢ (⊢α-⊑-α (wfSeal α<Ψ)) =
+  Ψ ∣ Γ′ ⊢ subst⊑ᵢ σ p ⦂ substᵗ τˡ A ⊑ substᵗ τʳ B
+⊑-subst⊑ᵢ-rel hτʳ hᵢ ⊢★-⊑-★ = ⊢★-⊑-★
+⊑-subst⊑ᵢ-rel hτʳ hᵢ (⊢X-⊑-★ xν) = hᵢ xν
+⊑-subst⊑ᵢ-rel hτʳ hᵢ (⊢A-⊑-★ g p⊢) =
+  ⊢A-⊑-★ (substᵗ-ground _ g) (⊑-subst⊑ᵢ-rel hτʳ hᵢ p⊢)
+⊑-subst⊑ᵢ-rel hτʳ hᵢ (⊢X-⊑-X x∈) = hᵢ x∈
+⊑-subst⊑ᵢ-rel hτʳ hᵢ (⊢α-⊑-α (wfSeal α<Ψ)) =
   ⊢α-⊑-α (wfSeal α<Ψ)
-⊑-subst⊑-rel hτʳ hᵢ ⊢ι-⊑-ι = ⊢ι-⊑-ι
-⊑-subst⊑-rel hτʳ hᵢ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
+⊑-subst⊑ᵢ-rel hτʳ hᵢ ⊢ι-⊑-ι = ⊢ι-⊑-ι
+⊑-subst⊑ᵢ-rel hτʳ hᵢ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   ⊢A⇒B-⊑-A′⇒B′
-    (⊑-subst⊑-rel hτʳ hᵢ p⊢)
-    (⊑-subst⊑-rel hτʳ hᵢ q⊢)
-⊑-subst⊑-rel hτʳ hᵢ (⊢∀A-⊑-∀B p⊢) =
+    (⊑-subst⊑ᵢ-rel hτʳ hᵢ p⊢)
+    (⊑-subst⊑ᵢ-rel hτʳ hᵢ q⊢)
+⊑-subst⊑ᵢ-rel hτʳ hᵢ (⊢∀A-⊑-∀B p⊢) =
   ⊢∀A-⊑-∀B
-    (⊑-subst⊑-rel (TySubstWf-exts hτʳ) (ImpSubst⊑Rel-exts hᵢ) p⊢)
-⊑-subst⊑-rel {τʳ = τʳ} hτʳ hᵢ (⊢∀A-⊑-B {B = B} wfB p⊢) =
+    (⊑-subst⊑ᵢ-rel (TySubstWf-exts hτʳ) (ImpSubst⊑Rel-exts hᵢ) p⊢)
+⊑-subst⊑ᵢ-rel {τʳ = τʳ} hτʳ hᵢ (⊢∀A-⊑-B {B = B} wfB p⊢) =
   ⊢∀A-⊑-B
     (substᵗ-preserves-WfTy wfB hτʳ)
     (cong-⊢⊑
       refl
       (substᵗ-suc-renameᵗ-suc τʳ B)
-      (⊑-subst⊑-rel
+      (⊑-subst⊑ᵢ-rel
         (TySubstWf-exts hτʳ) (ImpSubst⊑Rel-exts hᵢ) p⊢))
 
 ------------------------------------------------------------------------
@@ -213,7 +213,7 @@ ImpSubst⊑Rel-exts {m′ = m′} h (there x∈) =
 wk-ν★-var-⊑ :
   ∀ {Ψ Γ X p m′} →
   Ψ ∣ Γ ⊢ p ⦂ ＇ X ⊑ ν★Subst Γ X →
-  Ψ ∣ (m′ ∷ Γ) ⊢ renameImp suc p ⦂
+  Ψ ∣ (m′ ∷ Γ) ⊢ rename⊑ suc p ⦂
     ＇ suc X ⊑ ⇑ᵗ (ν★Subst Γ X)
 wk-ν★-var-⊑ p⊢ = wkImpAt {Φ = []} p⊢
 
@@ -222,17 +222,17 @@ wk-ν★-var-⊑ p⊢ = wkImpAt {Φ = []} p⊢
   Γ ∋ X ∶ m →
   ∃[ p ] Ψ ∣ Γ ⊢ p ⦂ ＇ X ⊑ ν★Subst Γ X
 ν★-var-⊑ {Γ = X⊑X ∷ Γ} here =
-  X-⊑-X zero , ⊢X-⊑-X here
+  idₓ zero , ⊢X-⊑-X here
 ν★-var-⊑ {Γ = X⊑★ ∷ Γ} here =
-  X-⊑-★ zero , ⊢X-⊑-★ here
+  ‵ zero ! , ⊢X-⊑-★ here
 ν★-var-⊑ {Γ = X⊑X ∷ Γ} {X = suc X} (there x∈)
     with ν★-var-⊑ x∈
 ν★-var-⊑ {Γ = X⊑X ∷ Γ} {X = suc X} (there x∈) | p , p⊢ =
-  renameImp suc p , wk-ν★-var-⊑ p⊢
+  rename⊑ suc p , wk-ν★-var-⊑ p⊢
 ν★-var-⊑ {Γ = X⊑★ ∷ Γ} {X = suc X} (there x∈)
     with ν★-var-⊑ x∈
 ν★-var-⊑ {Γ = X⊑★ ∷ Γ} {X = suc X} (there x∈) | p , p⊢ =
-  renameImp suc p , wk-ν★-var-⊑ p⊢
+  rename⊑ suc p , wk-ν★-var-⊑ p⊢
 
 ν★-⊑ :
   ∀ {Ψ Γ A} →
@@ -240,16 +240,16 @@ wk-ν★-var-⊑ p⊢ = wkImpAt {Φ = []} p⊢
   ∃[ p ] Ψ ∣ Γ ⊢ p ⦂ A ⊑ substᵗ (ν★Subst Γ) A
 ν★-⊑ {Γ = Γ} (wfVar X<Γ) with lookup-mode Γ X<Γ
 ν★-⊑ {Γ = Γ} (wfVar X<Γ) | m , x∈ = ν★-var-⊑ x∈
-ν★-⊑ (wfSeal α<Ψ) = α-⊑-α _ , ⊢α-⊑-α (wfSeal α<Ψ)
-ν★-⊑ wfBase = ι-⊑-ι _ , ⊢ι-⊑-ι
-ν★-⊑ wf★ = ★-⊑-★ , ⊢★-⊑-★
+ν★-⊑ (wfSeal α<Ψ) = idₛ _ , ⊢α-⊑-α (wfSeal α<Ψ)
+ν★-⊑ wfBase = idι _ , ⊢ι-⊑-ι
+ν★-⊑ wf★ = id★ , ⊢★-⊑-★
 ν★-⊑ (wf⇒ wfA wfB) with ν★-⊑ wfA | ν★-⊑ wfB
 ν★-⊑ (wf⇒ wfA wfB) | p , p⊢ | q , q⊢ =
-  A⇒B-⊑-A′⇒B′ p q , ⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢
+  p ↦ q , ⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢
 ν★-⊑ {Γ = Γ} {A = `∀ A} (wf∀ wfA)
     with ν★-⊑ {Γ = X⊑X ∷ Γ} wfA
 ν★-⊑ {Γ = Γ} {A = `∀ A} (wf∀ wfA) | p , p⊢ =
-  ∀A-⊑-∀B p ,
+  ‵∀ p ,
   ⊢∀A-⊑-∀B
     (cong-⊢⊑
       refl
@@ -311,7 +311,7 @@ tysubst-right-at-⊑ (suc k) {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢
     with tysubst-right-at-⊑ k (wfVar X<Δ) pT⊢
 tysubst-right-at-⊑ (suc k) {A = ＇ suc X} (wfVar (s<s X<Δ)) pT⊢
     | p , p⊢ =
-  renameImp suc p , wkImp-extend-X⊑X zero p⊢
+  rename⊑ suc p , wkImp-extend-X⊑X zero p⊢
 tysubst-right-at-⊑ k {A = ｀ α} (wfSeal ()) pT⊢
 tysubst-right-at-⊑ k {A = ‵ ι} wfBase pT⊢ =
   reflImp (‵ ι) , reflImp-wt-extend-X⊑X wfBase
@@ -322,12 +322,12 @@ tysubst-right-at-⊑ k {A = A ⇒ B} (wf⇒ wfA wfB) pT⊢
        | tysubst-right-at-⊑ k wfB pT⊢
 tysubst-right-at-⊑ k {A = A ⇒ B} (wf⇒ wfA wfB) pT⊢
     | p , p⊢ | q , q⊢ =
-  A⇒B-⊑-A′⇒B′ p q , ⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢
+  p ↦ q , ⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢
 tysubst-right-at-⊑ k {A = `∀ A} (wf∀ wfA) pT⊢
     with tysubst-right-at-⊑ (suc k) wfA pT⊢
 tysubst-right-at-⊑ k {A = `∀ A} (wf∀ wfA) pT⊢
     | p , p⊢ =
-  ∀A-⊑-∀B p , ⊢∀A-⊑-∀B p⊢
+  ‵∀ p , ⊢∀A-⊑-∀B p⊢
 
 tysubst-right-⊑ :
   ∀ {Δ A T T′ pT} →
@@ -364,7 +364,7 @@ singleTyEnv-TySubstWf-extend-X⊑X {Δ = Δ} {T = T} wfT
   TySubstWf (length Γ) (length Γ′) Ψ σ →
   ImpSubstWt Ψ Γ Γ′ σ →
   Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
-  Ψ ∣ Γ′ ⊢ substImp σ p ⦂ substᵗ σ A ⊑ substᵗ σ B
+  Ψ ∣ Γ′ ⊢ subst⊑ σ p ⦂ substᵗ σ A ⊑ substᵗ σ B
 ⊑-substᵗ-wt hσ hᵢ ⊢★-⊑-★ = ⊢★-⊑-★
 ⊑-substᵗ-wt hσ hᵢ (⊢X-⊑-★ xν) = hᵢ xν
 ⊑-substᵗ-wt hσ hᵢ (⊢A-⊑-★ g p⊢) =
@@ -390,30 +390,30 @@ singleTyEnv-TySubstWf-extend-X⊑X {Δ = Δ} {T = T} wfT
   ImpSubstRel Ψ Γ Γ′ σ τ →
   Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
   Σ[ q ∈ Imp ] Ψ ∣ Γ′ ⊢ q ⦂ substᵗ σ A ⊑ substᵗ τ B
-⊑-substᵗ-rel hτ hᵢ ⊢★-⊑-★ = ★-⊑-★ , ⊢★-⊑-★
+⊑-substᵗ-rel hτ hᵢ ⊢★-⊑-★ = id★ , ⊢★-⊑-★
 ⊑-substᵗ-rel hτ hᵢ (⊢X-⊑-★ xν) = hᵢ xν
 ⊑-substᵗ-rel hτ hᵢ (⊢A-⊑-★ g p⊢)
     with ⊑-substᵗ-rel hτ hᵢ p⊢
 ⊑-substᵗ-rel hτ hᵢ (⊢A-⊑-★ g p⊢) | q , q⊢ =
-  A-⊑-★ q , ⊢A-⊑-★ (substᵗ-ground _ g) q⊢
+  q ! , ⊢A-⊑-★ (substᵗ-ground _ g) q⊢
 ⊑-substᵗ-rel hτ hᵢ (⊢X-⊑-X x∈) = hᵢ x∈
 ⊑-substᵗ-rel hτ hᵢ (⊢α-⊑-α (wfSeal α<Ψ)) =
-  α-⊑-α _ , ⊢α-⊑-α (wfSeal α<Ψ)
-⊑-substᵗ-rel hτ hᵢ ⊢ι-⊑-ι = ι-⊑-ι _ , ⊢ι-⊑-ι
+  idₛ _ , ⊢α-⊑-α (wfSeal α<Ψ)
+⊑-substᵗ-rel hτ hᵢ ⊢ι-⊑-ι = idι _ , ⊢ι-⊑-ι
 ⊑-substᵗ-rel hτ hᵢ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
     with ⊑-substᵗ-rel hτ hᵢ p⊢ | ⊑-substᵗ-rel hτ hᵢ q⊢
 ⊑-substᵗ-rel hτ hᵢ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
     | p′ , p′⊢ | q′ , q′⊢ =
-  A⇒B-⊑-A′⇒B′ p′ q′ , ⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢
+  p′ ↦ q′ , ⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢
 ⊑-substᵗ-rel hτ hᵢ (⊢∀A-⊑-∀B p⊢)
     with ⊑-substᵗ-rel (TySubstWf-exts hτ) (ImpSubstRel-exts hᵢ) p⊢
 ⊑-substᵗ-rel hτ hᵢ (⊢∀A-⊑-∀B p⊢) | q , q⊢ =
-  ∀A-⊑-∀B q , ⊢∀A-⊑-∀B q⊢
+  ‵∀ q , ⊢∀A-⊑-∀B q⊢
 ⊑-substᵗ-rel {τ = τ} hτ hᵢ (⊢∀A-⊑-B {B = B} wfB p⊢)
     with ⊑-substᵗ-rel (TySubstWf-exts hτ) (ImpSubstRel-exts hᵢ) p⊢
 ⊑-substᵗ-rel {τ = τ} hτ hᵢ (⊢∀A-⊑-B {B = B} wfB p⊢)
     | q , q⊢ =
-  ∀A-⊑-B q ,
+  ν q ,
   ⊢∀A-⊑-B
     (substᵗ-preserves-WfTy wfB hτ)
     (cong-⊢⊑ refl (substᵗ-suc-renameᵗ-suc τ B) q⊢)
@@ -422,8 +422,8 @@ var-subst-rel-id :
   ∀ {Ψ Γ X m} →
   Γ ∋ X ∶ m →
   VarSubstRel Ψ Γ (＇ X) (＇ X) m
-var-subst-rel-id {m = X⊑X} x∈ = X-⊑-X _ , ⊢X-⊑-X x∈
-var-subst-rel-id {m = X⊑★} x∈ = X-⊑-★ _ , ⊢X-⊑-★ x∈
+var-subst-rel-id {m = X⊑X} x∈ = idₓ _ , ⊢X-⊑-X x∈
+var-subst-rel-id {m = X⊑★} x∈ = ‵ _ ! , ⊢X-⊑-★ x∈
 
 singleTyEnv-TySubstWf :
   ∀ {Φ Ψ T} →
@@ -480,7 +480,7 @@ singleImpEnv-ImpSubst⊑StarRel {pT = pT} pT⊢ (there {m = X⊑★} x∈) =
   Ψ ∣ Φ ⊢ pT ⦂ T ⊑ T′ →
   Ψ ∣ Φ ⊢ p [ pT ]⊑ᵢ ⦂ A [ T ]ᵗ ⊑ B [ T′ ]ᵗ
 []⊑ᵢ-rel-wt {Φ = Φ} p⊢ wfT′ pT⊢ =
-  ⊑-subst⊑-rel
+  ⊑-subst⊑ᵢ-rel
     (singleTyEnv-TySubstWf {Φ = Φ} wfT′)
     (singleImpEnv-ImpSubst⊑Rel {Φ = Φ} pT⊢)
     p⊢
@@ -491,7 +491,7 @@ singleImpEnv-ImpSubst⊑StarRel {pT = pT} pT⊢ (there {m = X⊑★} x∈) =
   Ψ ∣ Φ ⊢ pT ⦂ T ⊑ ★ →
   Ψ ∣ Φ ⊢ p [ pT ]⊑ᵢ ⦂ A [ T ]ᵗ ⊑ B [ ★ ]ᵗ
 []⊑ᵢ-star-rel-wt {Φ = Φ} p⊢ pT⊢ =
-  ⊑-subst⊑-rel
+  ⊑-subst⊑ᵢ-rel
     (singleTyEnv-TySubstWf {Φ = Φ} wf★)
     (singleImpEnv-ImpSubst⊑StarRel {Φ = Φ} pT⊢)
     p⊢

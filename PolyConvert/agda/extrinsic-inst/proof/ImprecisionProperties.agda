@@ -271,50 +271,50 @@ VarSubst : SealCtx → VarPrecCtx → Ty → VarPrec → Set
 VarSubst Ψ Γ A X⊑X = Ψ ∣ Γ ⊢ reflImp A ⦂ A ⊑ A
 VarSubst Ψ Γ A X⊑★ = Ψ ∣ Γ ⊢ starImp A ⦂ A ⊑ ★
 
-renameImp-refl :
+rename⊑-refl :
   ∀ ρ A →
-  renameImp ρ (reflImp A) ≡ reflImp (renameᵗ ρ A)
-renameImp-refl ρ (＇ X) = refl
-renameImp-refl ρ (｀ α) = refl
-renameImp-refl ρ (‵ ι) = refl
-renameImp-refl ρ ★ = refl
-renameImp-refl ρ (A ⇒ B) =
-  cong₂ A⇒B-⊑-A′⇒B′ (renameImp-refl ρ A) (renameImp-refl ρ B)
-renameImp-refl ρ (`∀ A) = cong ∀A-⊑-∀B (renameImp-refl (extᵗ ρ) A)
+  rename⊑ ρ (reflImp A) ≡ reflImp (renameᵗ ρ A)
+rename⊑-refl ρ (＇ X) = refl
+rename⊑-refl ρ (｀ α) = refl
+rename⊑-refl ρ (‵ ι) = refl
+rename⊑-refl ρ ★ = refl
+rename⊑-refl ρ (A ⇒ B) =
+  cong₂ _↦_ (rename⊑-refl ρ A) (rename⊑-refl ρ B)
+rename⊑-refl ρ (`∀ A) = cong ‵∀_ (rename⊑-refl (extᵗ ρ) A)
 
-renameImp-star :
+rename⊑-star :
   ∀ ρ A →
-  renameImp ρ (starImp A) ≡ starImp (renameᵗ ρ A)
-renameImp-star ρ (＇ X) = refl
-renameImp-star ρ (｀ α) = refl
-renameImp-star ρ (‵ ι) = refl
-renameImp-star ρ ★ = refl
-renameImp-star ρ (A ⇒ B) =
-  cong A-⊑-★
-    (cong₂ A⇒B-⊑-A′⇒B′ (renameImp-star ρ A) (renameImp-star ρ B))
-renameImp-star ρ (`∀ A) = cong ∀A-⊑-B (renameImp-star (extᵗ ρ) A)
+  rename⊑ ρ (starImp A) ≡ starImp (renameᵗ ρ A)
+rename⊑-star ρ (＇ X) = refl
+rename⊑-star ρ (｀ α) = refl
+rename⊑-star ρ (‵ ι) = refl
+rename⊑-star ρ ★ = refl
+rename⊑-star ρ (A ⇒ B) =
+  cong _!
+    (cong₂ _↦_ (rename⊑-star ρ A) (rename⊑-star ρ B))
+rename⊑-star ρ (`∀ A) = cong ν_ (rename⊑-star (extᵗ ρ) A)
 
-renameImp-cong :
+rename⊑-cong :
   ∀ {ρ ρ′} →
   (∀ X → ρ X ≡ ρ′ X) →
   (p : Imp) →
-  renameImp ρ p ≡ renameImp ρ′ p
-renameImp-cong h ★-⊑-★ = refl
-renameImp-cong h (X-⊑-★ X) = cong X-⊑-★ (h X)
-renameImp-cong h (A-⊑-★ p) = cong A-⊑-★ (renameImp-cong h p)
-renameImp-cong h (X-⊑-X X) = cong X-⊑-X (h X)
-renameImp-cong h (α-⊑-α α) = refl
-renameImp-cong h (ι-⊑-ι ι) = refl
-renameImp-cong h (A⇒B-⊑-A′⇒B′ p q) =
-  cong₂ A⇒B-⊑-A′⇒B′ (renameImp-cong h p) (renameImp-cong h q)
-renameImp-cong {ρ = ρ} {ρ′ = ρ′} h (∀A-⊑-∀B p) =
-  cong ∀A-⊑-∀B (renameImp-cong h′ p)
+  rename⊑ ρ p ≡ rename⊑ ρ′ p
+rename⊑-cong h id★ = refl
+rename⊑-cong h (‵ X !) = cong ‵_! (h X)
+rename⊑-cong h (p !) = cong _! (rename⊑-cong h p)
+rename⊑-cong h (idₓ X) = cong idₓ_ (h X)
+rename⊑-cong h (idₛ α) = refl
+rename⊑-cong h (idι ι) = refl
+rename⊑-cong h (p ↦ q) =
+  cong₂ _↦_ (rename⊑-cong h p) (rename⊑-cong h q)
+rename⊑-cong {ρ = ρ} {ρ′ = ρ′} h (‵∀ p) =
+  cong ‵∀_ (rename⊑-cong h′ p)
   where
     h′ : ∀ X → extᵗ ρ X ≡ extᵗ ρ′ X
     h′ zero = refl
     h′ (suc X) = cong suc (h X)
-renameImp-cong {ρ = ρ} {ρ′ = ρ′} h (∀A-⊑-B p) =
-  cong ∀A-⊑-B (renameImp-cong h′ p)
+rename⊑-cong {ρ = ρ} {ρ′ = ρ′} h (ν p) =
+  cong ν_ (rename⊑-cong h′ p)
   where
     h′ : ∀ X → extᵗ ρ X ≡ extᵗ ρ′ X
     h′ zero = refl
@@ -349,7 +349,7 @@ wkImpAt :
   ∀ {Ψ Φ Γ p A B m′} →
   Ψ ∣ (Φ ++ Γ) ⊢ p ⦂ A ⊑ B →
   Ψ ∣ (Φ ++ m′ ∷ Γ) ⊢
-    renameImp (raiseVarFrom (length Φ)) p ⦂
+    rename⊑ (raiseVarFrom (length Φ)) p ⦂
     renameᵗ (raiseVarFrom (length Φ)) A ⊑
     renameᵗ (raiseVarFrom (length Φ)) B
 wkImpAt {Φ = Φ} ⊢★-⊑-★ = ⊢★-⊑-★
@@ -365,7 +365,7 @@ wkImpAt {Φ = Φ} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
 wkImpAt {Φ = Φ} (⊢∀A-⊑-∀B p⊢) =
   ⊢∀A-⊑-∀B
     (cong-⊢⊑-raw
-      (sym (renameImp-cong (raise-ext (length Φ)) _))
+      (sym (rename⊑-cong (raise-ext (length Φ)) _))
       (sym (rename-raise-ext (length Φ) _))
       (sym (rename-raise-ext (length Φ) _))
       (wkImpAt {Φ = X⊑X ∷ Φ} p⊢))
@@ -373,7 +373,7 @@ wkImpAt {Φ = Φ} (⊢∀A-⊑-B {A = A} {B = B} wfB p⊢) =
   ⊢∀A-⊑-B
     (renameᵗ-preserves-WfTy wfB (raiseWf {Φ = Φ}))
     (cong-⊢⊑-raw
-      (sym (renameImp-cong (raise-ext (length Φ)) _))
+      (sym (rename⊑-cong (raise-ext (length Φ)) _))
       (sym (rename-raise-ext (length Φ) A))
       (rename-raise-⇑ᵗ (length Φ) B)
       (wkImpAt {Φ = X⊑★ ∷ Φ} p⊢))
@@ -383,10 +383,10 @@ wk-VarSubst :
   VarSubst Ψ Γ A m →
   VarSubst Ψ (m′ ∷ Γ) (⇑ᵗ A) m
 wk-VarSubst {m = X⊑X} h =
-  cong-⊢⊑-raw (renameImp-refl suc _) refl refl
+  cong-⊢⊑-raw (rename⊑-refl suc _) refl refl
     (wkImpAt {Φ = []} h)
 wk-VarSubst {m = X⊑★} h =
-  cong-⊢⊑-raw (renameImp-star suc _) refl refl
+  cong-⊢⊑-raw (rename⊑-star suc _) refl refl
     (wkImpAt {Φ = []} h)
 
 plain-var-subst :
@@ -438,7 +438,7 @@ open-fresh-ν⊑-prefix :
   StoreWf Δ Ψ Σ →
   Ψ ∣ (Φ ++ X⊑★ ∷ extend-X⊑X Δ []) ⊢ p ⦂ A ⊑ B →
   suc Ψ ∣ (Φ ++ extend-X⊑X Δ []) ⊢
-    substAtImp (length Φ) (｀ (length Σ)) p ⦂
+    substAt⊑ (length Φ) (｀ (length Σ)) p ⦂
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A ⊑
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B
 open-fresh-ν⊑-prefix wfΣ ⊢★-⊑-★ = ⊢★-⊑-★
@@ -511,7 +511,7 @@ open-fresh-∀⊑-prefix :
   StoreWf Δ Ψ Σ →
   Ψ ∣ (Φ ++ X⊑X ∷ extend-X⊑X Δ []) ⊢ p ⦂ A ⊑ B →
   suc Ψ ∣ (Φ ++ extend-X⊑X Δ []) ⊢
-    substAtImp (length Φ) (｀ (length Σ)) p ⦂
+    substAt⊑ (length Φ) (｀ (length Σ)) p ⦂
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A ⊑
     substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B
 open-fresh-∀⊑-prefix wfΣ ⊢★-⊑-★ = ⊢★-⊑-★
@@ -684,34 +684,34 @@ plain-to-ν-raised-at-⊑ :
   Σ[ q ∈ Imp ]
     0 ∣ Φ ++ (X⊑★ ∷ extend-X⊑X Δ []) ⊢ q ⦂ A ⊑
       renameᵗ (raiseVarFrom (length Φ)) B
-plain-to-ν-raised-at-⊑ {B = ★} ⊢★-⊑-★ = ★-⊑-★ , ⊢★-⊑-★
+plain-to-ν-raised-at-⊑ {B = ★} ⊢★-⊑-★ = id★ , ⊢★-⊑-★
 plain-to-ν-raised-at-⊑ {B = ★} (⊢X-⊑-★ xν) =
-  X-⊑-★ _ , ⊢X-⊑-★ (change-plain-to-ν-ν∋ xν)
+  ‵ _ ! , ⊢X-⊑-★ (change-plain-to-ν-ν∋ xν)
 plain-to-ν-raised-at-⊑ {Φ = Φ} {B = ★} (⊢A-⊑-★ {G = G} g p⊢)
     with plain-to-ν-raised-at-⊑ {Φ = Φ} {B = G}
       (cong-⊢⊑ refl (sym (renameᵗ-ground-id g)) p⊢)
 plain-to-ν-raised-at-⊑ {Φ = Φ} {B = ★} (⊢A-⊑-★ {G = G} g p⊢)
     | q , q⊢ =
-  A-⊑-★ q , ⊢A-⊑-★ g (cong-⊢⊑ refl (renameᵗ-ground-id g) q⊢)
+  q ! , ⊢A-⊑-★ g (cong-⊢⊑ refl (renameᵗ-ground-id g) q⊢)
 plain-to-ν-raised-at-⊑ {Φ = Φ} {B = ＇ X} (⊢X-⊑-X x∈) =
-  X-⊑-X (raiseVarFrom (length Φ) X) ,
+  idₓ (raiseVarFrom (length Φ) X) ,
   ⊢X-⊑-X (change-plain-to-ν-raised∋ {Φ = Φ} x∈)
 plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = ｀ α} (⊢α-⊑-α wfα) =
-  α-⊑-α α ,
+  idₛ α ,
   ⊢α-⊑-α (subst (λ n → WfTy n 0 (｀ α)) (length-plain-to-ν Δ Φ) wfα)
-plain-to-ν-raised-at-⊑ {B = ‵ ι} ⊢ι-⊑-ι = ι-⊑-ι ι , ⊢ι-⊑-ι
+plain-to-ν-raised-at-⊑ {B = ‵ ι} ⊢ι-⊑-ι = idι ι , ⊢ι-⊑-ι
 plain-to-ν-raised-at-⊑ {Φ = Φ} {B = A ⇒ B} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
     with plain-to-ν-raised-at-⊑ {Φ = Φ} {B = A} p⊢
        | plain-to-ν-raised-at-⊑ {Φ = Φ} {B = B} q⊢
 plain-to-ν-raised-at-⊑ {B = A ⇒ B} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
     | p , p⊢′ | q , q⊢′ =
-  A⇒B-⊑-A′⇒B′ p q , ⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′
+  p ↦ q , ⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′
 plain-to-ν-raised-at-⊑ {Φ = Φ} {B = `∀ B} (⊢∀A-⊑-∀B p⊢)
     with plain-to-ν-raised-at-⊑ {Φ = X⊑X ∷ Φ} {B = B}
       (cong-⊢⊑ refl (rename-raise-ext (length Φ) B) p⊢)
 plain-to-ν-raised-at-⊑ {Φ = Φ} {B = `∀ B} (⊢∀A-⊑-∀B p⊢)
     | q , q⊢ =
-  ∀A-⊑-∀B q ,
+  ‵∀ q ,
   cong-⊢⊑ refl (cong `∀ (sym (rename-raise-ext (length Φ) B)))
     (⊢∀A-⊑-∀B q⊢)
 plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
@@ -721,7 +721,7 @@ plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
 plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
     (⊢∀A-⊑-B {A = A} wfB p⊢)
     | q , q⊢ =
-  ∀A-⊑-B q ,
+  ν q ,
   ⊢∀A-⊑-B
     (subst (λ n → WfTy n 0 (renameᵗ (raiseVarFrom (length Φ)) B))
       (length-plain-to-ν Δ Φ) wfB)
@@ -739,18 +739,18 @@ mutual
     Γ ≤ᵢ Γ′ →
     Ψ ∣ Γ ⊢ p ⦂ A ⊑ ★ →
     Σ[ r ∈ Imp ] Ψ ∣ Γ′ ⊢ r ⦂ A ⊑ ★
-  transport-to-star-⊑ Γ≤Γ′ ⊢★-⊑-★ = ★-⊑-★ , ⊢★-⊑-★
+  transport-to-star-⊑ Γ≤Γ′ ⊢★-⊑-★ = id★ , ⊢★-⊑-★
   transport-to-star-⊑ Γ≤Γ′ (⊢X-⊑-★ xν) =
     _ , ⊢X-⊑-★ (≤ᵢ-ν-lookup Γ≤Γ′ xν)
   transport-to-star-⊑ Γ≤Γ′ (⊢A-⊑-★ g p⊢)
       with transport-to-ground-⊑ Γ≤Γ′ g p⊢
   transport-to-star-⊑ Γ≤Γ′ (⊢A-⊑-★ g p⊢) | r , r⊢ =
-    A-⊑-★ r , ⊢A-⊑-★ g r⊢
+    r ! , ⊢A-⊑-★ g r⊢
   transport-to-star-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = ★} wf★ p⊢)
       with transport-to-star-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢
   transport-to-star-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = ★} wf★ p⊢)
       | r , r⊢ =
-    ∀A-⊑-B r , ⊢∀A-⊑-B (wf-length-cast Γ≤Γ′ wf★) r⊢
+    ν r , ⊢∀A-⊑-B (wf-length-cast Γ≤Γ′ wf★) r⊢
 
   transport-to-ground-⊑ :
     ∀ {Ψ Γ Γ′ A G p} →
@@ -759,20 +759,20 @@ mutual
     Ψ ∣ Γ ⊢ p ⦂ A ⊑ G →
     Σ[ r ∈ Imp ] Ψ ∣ Γ′ ⊢ r ⦂ A ⊑ G
   transport-to-ground-⊑ Γ≤Γ′ (｀ α) (⊢α-⊑-α wfα) =
-    α-⊑-α α , ⊢α-⊑-α (wf-length-cast Γ≤Γ′ wfα)
+    idₛ α , ⊢α-⊑-α (wf-length-cast Γ≤Γ′ wfα)
   transport-to-ground-⊑ Γ≤Γ′ (‵ ι) ⊢ι-⊑-ι =
-    ι-⊑-ι ι , ⊢ι-⊑-ι
+    idι ι , ⊢ι-⊑-ι
   transport-to-ground-⊑ Γ≤Γ′ ★⇒★ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
       with transport-to-star-⊑ Γ≤Γ′ p⊢
          | transport-to-star-⊑ Γ≤Γ′ q⊢
   transport-to-ground-⊑ Γ≤Γ′ ★⇒★ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
       | p′ , p′⊢ | q′ , q′⊢ =
-    A⇒B-⊑-A′⇒B′ p′ q′ , ⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢
+    p′ ↦ q′ , ⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢
   transport-to-ground-⊑ Γ≤Γ′ g (⊢∀A-⊑-B {B = B} wfB p⊢)
       with transport-to-ground-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) (renameᵗ-ground suc g) p⊢
   transport-to-ground-⊑ Γ≤Γ′ g (⊢∀A-⊑-B {B = B} wfB p⊢)
       | r , r⊢ =
-    ∀A-⊑-B r , ⊢∀A-⊑-B (wf-length-cast Γ≤Γ′ wfB) r⊢
+    ν r , ⊢∀A-⊑-B (wf-length-cast Γ≤Γ′ wfB) r⊢
 
 ------------------------------------------------------------------------
 -- Full transitivity
@@ -788,7 +788,7 @@ trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = B} wfB p⊢) q⊢
     with trans-ctx-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢ (wkImpAt {Φ = []} q⊢)
 trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = B} wfB p⊢) q⊢
     | r , r⊢ =
-  ∀A-⊑-B r , ⊢∀A-⊑-B (⊑-tgt-wf q⊢) r⊢
+  ν r , ⊢∀A-⊑-B (⊑-tgt-wf q⊢) r⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ ⊢★-⊑-★ = transport-to-star-⊑ Γ≤Γ′ p⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢X-⊑-★ xν) =
   trans-to-starν Γ≤Γ′ p⊢ xν
@@ -799,16 +799,16 @@ trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢X-⊑-★ xν) =
       Ψ ∣ Γ ⊢ p ⦂ A ⊑ ＇ X →
       Γ′ ∋ X ∶ X⊑★ →
       Σ[ r ∈ Imp ] Ψ ∣ Γ′ ⊢ r ⦂ A ⊑ ★
-    trans-to-starν Γ≤Γ′ (⊢X-⊑-X wfX) xν = X-⊑-★ _ , ⊢X-⊑-★ xν
+    trans-to-starν Γ≤Γ′ (⊢X-⊑-X wfX) xν = ‵ _ ! , ⊢X-⊑-★ xν
     trans-to-starν Γ≤Γ′ (⊢∀A-⊑-B {B = ＇ X} wfB p⊢) xν
         with trans-ctx-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢ (wkImpAt {Φ = []} (⊢X-⊑-★ xν))
     trans-to-starν Γ≤Γ′ (⊢∀A-⊑-B {B = ＇ X} wfB p⊢) xν
         | r , r⊢ =
-      ∀A-⊑-B r , ⊢∀A-⊑-B wf★ r⊢
+      ν r , ⊢∀A-⊑-B wf★ r⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢A-⊑-★ g q⊢)
     with trans-ctx-⊑ Γ≤Γ′ p⊢ q⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢A-⊑-★ g q⊢) | r , r⊢ =
-  A-⊑-★ r , ⊢A-⊑-★ g r⊢
+  r ! , ⊢A-⊑-★ g r⊢
 trans-ctx-⊑ Γ≤Γ′ (⊢X-⊑-X wfX) (⊢X-⊑-X wfX′) =
   _ , ⊢X-⊑-X wfX′
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢α-⊑-α wfα) =
@@ -820,16 +820,16 @@ trans-ctx-⊑ Γ≤Γ′ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) (⊢A⇒B-⊑-A′
        | trans-ctx-⊑ Γ≤Γ′ q⊢ q⊢′
 trans-ctx-⊑ Γ≤Γ′ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) (⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′)
     | r₁ , r₁⊢ | r₂ , r₂⊢ =
-  A⇒B-⊑-A′⇒B′ r₁ r₂ , ⊢A⇒B-⊑-A′⇒B′ r₁⊢ r₂⊢
+  r₁ ↦ r₂ , ⊢A⇒B-⊑-A′⇒B′ r₁⊢ r₂⊢
 trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-∀B q⊢)
     with trans-ctx-⊑ (X⊑X≤X⊑X ∷≤ᵢ Γ≤Γ′) p⊢ q⊢
 trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-∀B q⊢) | r , r⊢ =
-  ∀A-⊑-∀B r , ⊢∀A-⊑-∀B r⊢
+  ‵∀ r , ⊢∀A-⊑-∀B r⊢
 trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B {B = B} wfB q⊢)
     with trans-ctx-⊑ (X⊑X≤ν ∷≤ᵢ Γ≤Γ′) p⊢ q⊢
 trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B {B = B} wfB q⊢)
     | r , r⊢ =
-  ∀A-⊑-B r , ⊢∀A-⊑-B wfB r⊢
+  ν r , ⊢∀A-⊑-B wfB r⊢
 
 ⊑-trans :
   ∀ {Ψ Γ A B C p q} →

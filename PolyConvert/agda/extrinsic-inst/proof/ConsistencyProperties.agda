@@ -53,6 +53,20 @@ length-swapCCtx :
 length-swapCCtx [] = refl
 length-swapCCtx (m ∷ Γ) = cong suc (length-swapCCtx Γ)
 
+renameᵗ-Non★-inv : ∀ {ρ A} → Non★ (renameᵗ ρ A) → Non★ A
+renameᵗ-Non★-inv {A = ＇ X} non★-＇ = non★-＇
+renameᵗ-Non★-inv {A = ｀ α} non★-｀ = non★-｀
+renameᵗ-Non★-inv {A = ‵ ι} non★-‵ = non★-‵
+renameᵗ-Non★-inv {A = A ⇒ B} non★-⇒ = non★-⇒
+renameᵗ-Non★-inv {A = `∀ A} non★-∀ = non★-∀
+
+renameᵗ-Non∀-inv : ∀ {ρ A} → Non∀ (renameᵗ ρ A) → Non∀ A
+renameᵗ-Non∀-inv {A = ＇ X} non∀-＇ = non∀-＇
+renameᵗ-Non∀-inv {A = ｀ α} non∀-｀ = non∀-｀
+renameᵗ-Non∀-inv {A = ‵ ι} non∀-‵ = non∀-‵
+renameᵗ-Non∀-inv {A = ★} non∀-★ = non∀-★
+renameᵗ-Non∀-inv {A = A ⇒ B} non∀-⇒ = non∀-⇒
+
 ------------------------------------------------------------------------
 -- Consistency is Symmetric
 ------------------------------------------------------------------------
@@ -67,8 +81,8 @@ length-swapCCtx (m ∷ Γ) = cong suc (length-swapCCtx Γ)
 ~-sym (⇒-~-⇒ A~A′ B~B′) =
   ⇒-~-⇒ (~-sym A~A′) (~-sym B~B′)
 ~-sym (∀-~-∀ A~B) = ∀-~-∀ (~-sym A~B)
-~-sym (A-~-★ g A~G) = ★-~-B g (~-sym A~G)
-~-sym (★-~-B h H~B) = A-~-★ h (~-sym H~B)
+~-sym (A-~-★ n★ n∀ g A~G) = ★-~-B n★ n∀ g (~-sym A~G)
+~-sym (★-~-B n★ n∀ h H~B) = A-~-★ n★ n∀ h (~-sym H~B)
 ~-sym (νX-~-★ x∈) = ★-~-νX (swap∋ᶜ x∈)
 ~-sym (★-~-νX x∈) = νX-~-★ (swap∋ᶜ x∈)
 ~-sym {Γ = Γ} (∀-~-B {B = B} wfB A~⇑B) =
@@ -255,8 +269,8 @@ var-var-~-inj (X-~-X x∈) = refl , x∈
 ~-size ι-~-ι = zero
 ~-size (⇒-~-⇒ h₁ h₂) = suc (~-size h₁ + ~-size h₂)
 ~-size (∀-~-∀ h) = suc (~-size h)
-~-size (A-~-★ g h) = suc (~-size h)
-~-size (★-~-B hG h) = suc (~-size h)
+~-size (A-~-★ n★ n∀ g h) = suc (~-size h)
+~-size (★-~-B n★ n∀ hG h) = suc (~-size h)
 ~-size (νX-~-★ x∈) = zero
 ~-size (★-~-νX x∈) = zero
 ~-size (∀-~-B wfB h) = suc (~-size h)
@@ -325,9 +339,9 @@ drop-mode-at-νL-suc {d = d} {m = m} {Φ = Φ} {Γ = Γ} {X = X}
     (νX-~-★ x∈) =
   νX-~-★
     (drop∋ᶜ-mode {d = d} {Φ = m ∷ Φ} {Γ = Γ} {X = suc X} x∈)
-drop-mode-at-νL-suc (A-~-★ (｀ α) ())
-drop-mode-at-νL-suc (A-~-★ (‵ ι) ())
-drop-mode-at-νL-suc (A-~-★ ★⇒★ ())
+drop-mode-at-νL-suc (A-~-★ n★ n∀ (｀ α) ())
+drop-mode-at-νL-suc (A-~-★ n★ n∀ (‵ ι) ())
+drop-mode-at-νL-suc (A-~-★ n★ n∀ ★⇒★ ())
 
 drop-mode-at-νR-suc :
   ∀ {d m Φ Γ X} →
@@ -338,9 +352,9 @@ drop-mode-at-νR-suc {d = d} {m = m} {Φ = Φ} {Γ = Γ} {X = X}
     (★-~-νX x∈) =
   ★-~-νX
     (drop∋ᶜ-mode {d = d} {Φ = m ∷ Φ} {Γ = Γ} {X = suc X} x∈)
-drop-mode-at-νR-suc (★-~-B (｀ α) ())
-drop-mode-at-νR-suc (★-~-B (‵ ι) ())
-drop-mode-at-νR-suc (★-~-B ★⇒★ ())
+drop-mode-at-νR-suc (★-~-B n★ n∀ (｀ α) ())
+drop-mode-at-νR-suc (★-~-B n★ n∀ (‵ ι) ())
+drop-mode-at-νR-suc (★-~-B n★ n∀ ★⇒★ ())
 
 drop-mode-at-~-gas :
   (gas : ℕ) →
@@ -388,20 +402,20 @@ drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = `∀ A}
       (cong-~-≤ (rename-raise-ext (length Φ) A)
                 (rename-raise-ext (length Φ) B)
                 A~B p))
-drop-mode-at-~-gas zero {B = A} {C = ★} {h = A-~-★ g A~G} ()
+drop-mode-at-~-gas zero {B = A} {C = ★} {h = A-~-★ n★ n∀ g A~G} ()
 drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = A}
     {C = ★}
-    {h = A-~-★ {G = G} g A~G} (s≤s p) =
-  A-~-★ g
+    {h = A-~-★ {G = G} n★ n∀ g A~G} (s≤s p) =
+  A-~-★ (renameᵗ-Non★-inv n★) (renameᵗ-Non∀-inv n∀) g
     (drop-mode-at-~-gas gas
       {d = d} {Φ = Φ} {Γ = Γ} {B = A} {C = G}
       {h = cong-~ refl (sym (renameᵗ-ground-id g)) A~G}
       (cong-~-≤ refl (sym (renameᵗ-ground-id g)) A~G p))
-drop-mode-at-~-gas zero {B = ★} {C = B} {h = ★-~-B g H~B} ()
+drop-mode-at-~-gas zero {B = ★} {C = B} {h = ★-~-B n★ n∀ g H~B} ()
 drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = ★}
     {C = B}
-    {h = ★-~-B {H = H} g H~B} (s≤s p) =
-  ★-~-B g
+    {h = ★-~-B {H = H} n★ n∀ g H~B} (s≤s p) =
+  ★-~-B (renameᵗ-Non★-inv n★) (renameᵗ-Non∀-inv n∀) g
     (drop-mode-at-~-gas gas
       {d = d} {Φ = Φ} {Γ = Γ} {B = H} {C = B}
       {h = cong-~ (sym (renameᵗ-ground-id g)) refl H~B}

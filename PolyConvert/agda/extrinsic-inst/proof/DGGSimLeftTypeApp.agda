@@ -55,14 +55,15 @@ SimLeftStepˢ =
 
 sim-left-tyapp :
   SimLeftStepˢ →
-  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B T pT} →
+  ∀ {Ψˡ Ψʳ Σˡ Σʳ Σˡ′ M M′ N A B T T′ pT} →
   StoreWf 0 Ψˡ Σˡ →
   StoreWf 0 Ψʳ Σʳ →
   ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ M ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
   WfTy 1 Ψˡ A →
   WfTy 1 Ψˡ B →
   WfTy 0 Ψˡ T →
-  Ψˡ ∣ extend-X⊑X 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T ]ᵗ →
+  WfTy 0 Ψˡ T′ →
+  Ψˡ ∣ extend-X⊑X 0 [] ⊢ pT ⦂ A [ T ]ᵗ ⊑ B [ T′ ]ᵗ →
   Σˡ ∣ M —→ Σˡ′ ∣ N →
   ∃[ Ψˡ′ ]
     (Ψˡ ≤ Ψˡ′ ×
@@ -70,11 +71,12 @@ sim-left-tyapp :
      ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
        (StoreWf 0 Ψʳ′ Σʳ′ ×
         ∃[ N′ ]
-          ((Σʳ ∣ (M′ ⦂∀ B [ T ]) —↠ Σʳ′ ∣ N′) ×
-           ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢ (N ⦂∀ A [ T ]) ⊑ N′ ⦂ (A [ T ]ᵗ) ⊑ (B [ T ]ᵗ))))
-sim-left-tyapp sim-left wfΣˡ wfΣʳ rel wfA wfB wfT pT⊢ M→N
+          ((Σʳ ∣ (M′ ⦂∀ B [ T′ ]) —↠ Σʳ′ ∣ N′) ×
+           ⟪ 0 , Ψˡ′ , Σˡ′ , Ψʳ′ , Σʳ′ , [] ⟫ ⊢
+             (N ⦂∀ A [ T ]) ⊑ N′ ⦂ (A [ T ]ᵗ) ⊑ (B [ T′ ]ᵗ))))
+sim-left-tyapp sim-left wfΣˡ wfΣʳ rel wfA wfB wfT wfT′ pT⊢ M→N
   with sim-left wfΣˡ wfΣʳ rel M→N
-sim-left-tyapp sim-left wfΣˡ wfΣʳ rel wfA wfB wfT pT⊢ M→N
+sim-left-tyapp sim-left wfΣˡ wfΣʳ rel wfA wfB wfT wfT′ pT⊢ M→N
   | Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ , N′ ,
     M′↠N′ , relN =
     Ψˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ′ , Σʳ′ , wfΣʳ′ ,
@@ -84,6 +86,7 @@ sim-left-tyapp sim-left wfΣˡ wfΣʳ rel wfA wfB wfT pT⊢ M→N
       (WfTy-weakenˢ wfA Ψ≤Ψ′)
       (WfTy-weakenˢ wfB Ψ≤Ψ′)
       (WfTy-weakenˢ wfT Ψ≤Ψ′)
+      (WfTy-weakenˢ wfT′ Ψ≤Ψ′)
       (wk-⊑ Ψ≤Ψ′ pT⊢)
 
 sim-left-beta-reveal-∀-matched :
@@ -113,6 +116,7 @@ sim-left-beta-reveal-∀-matched wfΣ vV′ relV wfT c⊢ c′⊢ pSrcT⊢ pTgtT
     (⊑⦂∀ relV
       (src↑-wf (storeWf-⟰ᵗ wfΣ) c⊢)
       (src↑-wf (storeWf-⟰ᵗ wfΣ) c′⊢)
+      wfT
       wfT
       pSrcT⊢)
     (openConv↑ c⊢ wfT)
@@ -315,7 +319,7 @@ sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     wfA wfB wfT pT⊢
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
   | ΛV⊑V′R
-  | ∀A-⊑-B Bν pν , ⊢∀A-⊑-B wfBν pν⊢
+  | ν Bν pν , ⊢∀A-⊑-B wfBν pν⊢
     with sim-left-beta-Λ-rest wfΣˡ wfΣʳ vV
       (⊑⇑R rel (⊢∀A-⊑-∀B {p = pR} pR⊢) pB⊢) wfA wfB wfT pT⊢
 ... | Ψˡ′ , Σˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ , N′ ,
@@ -327,7 +331,7 @@ sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     wfA wfB wfT pT⊢
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
   | ΛV⊑V′R
-  | ∀A-⊑-∀B pI , ⊢∀A-⊑-∀B pI⊢
+  | ‵∀ pI , ⊢∀A-⊑-∀B pI⊢
     with sim-left-beta-Λ-rest wfΣˡ wfΣʳ′ vV ΛV⊑V′R
       wfA
       (subst (WfTy 1 _) (sym (src⊑-correct pR⊢)) (⊑-src-wf pR⊢))
@@ -342,13 +346,13 @@ sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     wfA wfB wfT pT⊢
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
   | ΛV⊑V′R
-  | ∀A-⊑-∀B pI , ⊢∀A-⊑-∀B pI⊢
+  | ‵∀ pI , ⊢∀A-⊑-∀B pI⊢
   | Ψˡ′ , Σˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ , N′ ,
     V′⦂∀↠N′ , relN =
   Ψˡ′ , Σˡ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ ,
   (N′ ⇑ pR [ T ]⊑) ,
   multi-trans (tyapp-↠ (up-↠ M′↠V′))
-    (((V′ ⇑ ∀A-⊑-∀B pR) ⦂∀ B [ T ])
+    (((V′ ⇑ ‵∀ pR) ⦂∀ B [ T ])
       —→⟨ pure-step (β-up-∀ vV′) ⟩ up-↠ V′⦂∀↠N′) ,
   ⊑⇑R relN
     (cong-⊢⊑ refl
@@ -368,7 +372,7 @@ postulate
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ (∀A-⊑-∀B p)) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ (‵∀ p)) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
     ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
       (StoreWf 0 Ψʳ′ Σʳ′ ×
        ∃[ N′ ]
@@ -380,7 +384,7 @@ postulate
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ (∀A-⊑-∀B p)) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ (‵∀ p)) ⊑ M′ ⦂ (`∀ A) ⊑ (`∀ B) →
     ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
       (StoreWf 0 Ψˡ′ Σˡ′ ×
        ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
@@ -396,7 +400,7 @@ postulate
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ (∀A-⊑-B B p)) ⊑ M′ ⦂ (`∀ A) ⊑ C →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇓ (ν B p)) ⊑ M′ ⦂ (`∀ A) ⊑ C →
     ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
       (StoreWf 0 Ψˡ′ Σˡ′ ×
        ∃[ Ψʳ′ ] ∃[ Σʳ′ ]
@@ -411,7 +415,7 @@ postulate
     StoreWf 0 Ψˡ Σˡ →
     StoreWf 0 Ψʳ Σʳ →
     Value V →
-    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ (∀A-⊑-B B p)) ⊑ M′ ⦂ A ⊑ B →
+    ⟪ 0 , Ψˡ , Σˡ , Ψʳ , Σʳ , [] ⟫ ⊢ (V ⇑ (ν B p)) ⊑ M′ ⦂ A ⊑ B →
     ∃[ Ψˡ′ ] ∃[ Σˡ′ ]
       (StoreWf 0 Ψˡ′ Σˡ′ ×
        ∃[ Ψʳ′ ] ∃[ Σʳ′ ]

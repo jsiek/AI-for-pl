@@ -35,8 +35,8 @@ open import Imprecision
     ; X⊑X
     ; extend-X⊑X
     ; starImp
-    ; substImp
-    ; substAtImp
+    ; subst⊑
+    ; substAt⊑
     )
 open import Conversion
 open import Primitives
@@ -103,27 +103,27 @@ mutual
   substPlain-up-value :
     ∀ {p} k α →
     UpValue p →
-    UpValue (substImp (substVarFrom k (｀ α)) p)
+    UpValue (subst⊑ (substVarFrom k (｀ α)) p)
   substPlain-up-value k α (tagν {X = X}) = plainSubst-star-up k α X
   substPlain-up-value k α tag = tag
-  substPlain-up-value k α (_↦_ {p = p} {q = q}) = _↦_
+  substPlain-up-value k α (_↦ᵥ_ {p = p} {q = q}) = _↦ᵥ_
   substPlain-up-value k α (`∀ {p = p}) = `∀
 
   substPlain-down-value :
     ∀ {p} k α →
     DownValue p →
-    DownValue (substImp (substVarFrom k (｀ α)) p)
-  substPlain-down-value k α (_↦_ {p = p} {q = q}) = _↦_
+    DownValue (subst⊑ (substVarFrom k (｀ α)) p)
+  substPlain-down-value k α (_↦ᵥ_ {p = p} {q = q}) = _↦ᵥ_
   substPlain-down-value k α (`∀ {p = p}) = `∀
-  substPlain-down-value k α (ν_ {p = p}) =
-    ν_ {p = substImp (substVarFrom (suc k) (｀ α)) p}
+  substPlain-down-value k α (νᵥ_ {p = p}) =
+    νᵥ_ {p = subst⊑ (substVarFrom (suc k) (｀ α)) p}
 
 mutual
   substPlain-reveal-value :
     ∀ {c} k α →
     RevealValue c →
     RevealValue (subst↑ (substVarFrom k (｀ α)) c)
-  substPlain-reveal-value k α (_↦_ {p = p} {q = q}) = _↦_
+  substPlain-reveal-value k α (_↦ᵥ_ {p = p} {q = q}) = _↦ᵥ_
   substPlain-reveal-value k α (`∀ {c = c}) = `∀
 
   substPlain-conceal-value :
@@ -131,7 +131,7 @@ mutual
     ConcealValue c →
     ConcealValue (subst↓ (substVarFrom k (｀ α)) c)
   substPlain-conceal-value k α seal = seal
-  substPlain-conceal-value k α (_↦_ {p = p} {q = q}) = _↦_
+  substPlain-conceal-value k α (_↦ᵥ_ {p = p} {q = q}) = _↦ᵥ_
   substPlain-conceal-value k α (`∀ {c = c}) = `∀
 
 substPlain-value :
@@ -181,7 +181,7 @@ open-fresh-∀⊑-extend-X⊑X :
   _∣_⊢_⦂_⊑_
     (suc Ψ)
     (extend-X⊑X (length (Φ ++ extend-X⊑X Δ [])) [])
-    (substAtImp (length Φ) (｀ (length Σ)) p)
+    (substAt⊑ (length Φ) (｀ (length Σ)) p)
     (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A)
     (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B)
 open-fresh-∀⊑-extend-X⊑X
@@ -192,7 +192,7 @@ open-fresh-∀⊑-extend-X⊑X
       _∣_⊢_⦂_⊑_
         (suc Ψ)
         Γ
-        (substAtImp (length Φ) (｀ (length Σ)) p)
+        (substAt⊑ (length Φ) (｀ (length Σ)) p)
         (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) A)
         (substᵗ (substVarFrom (length Φ) (｀ (length Σ))) B))
     (sym (PlainList-extend-X⊑X plainΦ Δ))

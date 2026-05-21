@@ -326,20 +326,20 @@ starEdit-⊑ :
   (s : StarEdit Γ A) →
   Σ[ p ∈ Imp ] Ψ ∣ Γ ⊢ p ⦂ A ⊑ ★
 starEdit-⊑ wf★ star-★ =
-  Imprecision.★-⊑-★ , Imprecision.⊢★-⊑-★
+  Imprecision.id★ , Imprecision.⊢★-⊑-★
 starEdit-⊑ (wfVar X<Γ) (star-X x∈) =
-  Imprecision.X-⊑-★ _ , Imprecision.⊢X-⊑-★ x∈
+  Imprecision.‵ _ ! , Imprecision.⊢X-⊑-★ x∈
 starEdit-⊑ wfα@(wfSeal α<Ψ) star-｀ =
-  Imprecision.A-⊑-★ (Imprecision.α-⊑-α _) ,
+  (Imprecision.idₛ _) Imprecision.! ,
   Imprecision.⊢A-⊑-★ (｀ _) (Imprecision.⊢α-⊑-α wfα)
 starEdit-⊑ wfBase star-‵ =
-  Imprecision.A-⊑-★ (Imprecision.ι-⊑-ι _) ,
+  (Imprecision.idι _) Imprecision.! ,
   Imprecision.⊢A-⊑-★ (‵ _) Imprecision.⊢ι-⊑-ι
 starEdit-⊑ (wf⇒ wfA wfB) (star-⇒ sA sB)
     with starEdit-⊑ wfA sA | starEdit-⊑ wfB sB
 starEdit-⊑ (wf⇒ wfA wfB) (star-⇒ sA sB)
     | pA , pA⊢ | pB , pB⊢ =
-  Imprecision.A-⊑-★ (Imprecision.A⇒B-⊑-A′⇒B′ pA pB) ,
+  (pA Imprecision.↦ pB) Imprecision.! ,
   Imprecision.⊢A-⊑-★ ★⇒★
     (Imprecision.⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢)
 
@@ -350,27 +350,27 @@ tyEdit-⊑ :
   Σ[ p ∈ Imp ] Ψ ∣ Γ ⊢ p ⦂ A ⊑ applyTyEdit-type e
 tyEdit-⊑ wfA (ty-star s) = starEdit-⊑ wfA s
 tyEdit-⊑ (wfVar X<Γ) (ty-X x∈) =
-  Imprecision.X-⊑-X _ , Imprecision.⊢X-⊑-X x∈
+  Imprecision.idₓ _ , Imprecision.⊢X-⊑-X x∈
 tyEdit-⊑ wfα@(wfSeal α<Ψ) ty-｀ =
-  Imprecision.α-⊑-α _ , Imprecision.⊢α-⊑-α wfα
+  Imprecision.idₛ _ , Imprecision.⊢α-⊑-α wfα
 tyEdit-⊑ wfBase ty-‵ =
-  Imprecision.ι-⊑-ι _ , Imprecision.⊢ι-⊑-ι
+  Imprecision.idι _ , Imprecision.⊢ι-⊑-ι
 tyEdit-⊑ wf★ ty-★ =
-  Imprecision.★-⊑-★ , Imprecision.⊢★-⊑-★
+  Imprecision.id★ , Imprecision.⊢★-⊑-★
 tyEdit-⊑ (wf⇒ wfA wfB) (ty-⇒ eA eB)
     with tyEdit-⊑ wfA eA | tyEdit-⊑ wfB eB
 tyEdit-⊑ (wf⇒ wfA wfB) (ty-⇒ eA eB)
     | pA , pA⊢ | pB , pB⊢ =
-  Imprecision.A⇒B-⊑-A′⇒B′ pA pB ,
+  pA Imprecision.↦ pB ,
   Imprecision.⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢
 tyEdit-⊑ (wf∀ wfA) (ty-∀keep eA)
     with tyEdit-⊑ wfA eA
 tyEdit-⊑ (wf∀ wfA) (ty-∀keep eA) | pA , pA⊢ =
-  Imprecision.∀A-⊑-∀B pA , Imprecision.⊢∀A-⊑-∀B pA⊢
+  Imprecision.‵∀ pA , Imprecision.⊢∀A-⊑-∀B pA⊢
 tyEdit-⊑ (wf∀ wfA) (ty-∀drop eA)
     with tyEdit-⊑ wfA eA | tyEdit-ok eA
 tyEdit-⊑ {Γ = Γ} (wf∀ wfA) (ty-∀drop eA) | pA , pA⊢ | okA =
-  Imprecision.∀A-⊑-B (dropTargetFrom zero okA) pA ,
+  Imprecision.ν pA ,
   Imprecision.⊢∀A-⊑-B
     (dropTargetFrom-WfTy zero (tyEdit-wf wfA eA) okA)
     (subst (λ C → _ ∣ _ ⊢ pA ⦂ _ ⊑ C)

@@ -20,7 +20,7 @@ open import Imprecision
     ; VarPrecCtx
     ; extend-X⊑X
     ; X⊑X
-    ; renameImp
+    ; rename⊑
     ; ⇑⊑
     ; _∣_⊢_⦂_⊑_
     )
@@ -121,7 +121,7 @@ lookup-imp-leftᴳ-inv {Γ = P ∷ Γ} (S x∈) (S p∈) | B , p⊢ , hᴳ =
 
 ⇑ᵗᴳPrec : ∀ {Φ m} → GPrec Φ → GPrec (m ∷ Φ)
 ⇑ᵗᴳPrec {m = m} (A , B , p , p⊢) =
-  ⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImpAt {Φ = []} p⊢
+  ⇑ᵗ A , ⇑ᵗ B , rename⊑ suc p , wkImpAt {Φ = []} p⊢
 
 ⇑ᵗᴳPCtx : ∀ {Φ m} → GPCtx Φ → GPCtx (m ∷ Φ)
 ⇑ᵗᴳPCtx {m = m} [] = []

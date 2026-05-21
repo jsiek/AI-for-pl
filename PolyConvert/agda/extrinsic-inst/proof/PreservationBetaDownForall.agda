@@ -50,7 +50,7 @@ preserve-β-down-∀ :
   ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{B T : Ty}{p : Imp} →
   StoreWf Δ Ψ Σ →
   Value V →
-  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ⇓ (∀A-⊑-∀B p)) ⦂∀ B [ T ]) ⦂ B [ T ]ᵗ →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ⇓ (‵∀ p)) ⦂∀ B [ T ]) ⦂ B [ T ]ᵗ →
   Δ ∣ suc Ψ ∣ ((length Σ , T) ∷ Σ) ∣ Γ ⊢
     (((V ⦂∀ (tgt⊑ p) [ ｀ (length Σ) ]) ⇓
       (p [ ｀ (length Σ) ]⊑)) ↑ (convert↑ (src⊑ p) (length Σ)))

@@ -39,7 +39,7 @@ preserve-β-down-ν :
   ∀ {Δ Ψ}{Σ : Store}{Γ : Ctx}{V : Term}{A C : Ty}{p : Imp} →
   StoreWf Δ Ψ Σ →
   Value V →
-  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ⇓ (∀A-⊑-B p)) ⦂∀ C [ A ]) ⦂ C [ A ]ᵗ →
+  Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ ((V ⇓ (ν p)) ⦂∀ C [ A ]) ⦂ C [ A ]ᵗ →
   Δ ∣ suc Ψ ∣ ((length Σ , A) ∷ Σ) ∣ Γ ⊢
     ((V ⇓ (p [ ｀ (length Σ) ]⊑)) ↑
       (convert↑ (src⊑ p) (length Σ))) ⦂ C [ A ]ᵗ

@@ -81,6 +81,13 @@ data Ground : Ty → Set where
   ‵_ : (ι : Base) → Ground (‵ ι)
   ★⇒★ : Ground (★ ⇒ ★)
 
+data Non★ : Ty → Set where
+  non★-＇ : ∀ {X} → Non★ (＇ X)
+  non★-｀ : ∀ {α} → Non★ (｀ α)
+  non★-‵ : ∀ {ι} → Non★ (‵ ι)
+  non★-⇒ : ∀ {A B} → Non★ (A ⇒ B)
+  non★-∀ : ∀ {A} → Non★ (`∀ A)
+
 data Non∀ : Ty → Set where
   non∀-＇ : ∀ {X} → Non∀ (＇ X)
   non∀-｀ : ∀ {α} → Non∀ (｀ α)

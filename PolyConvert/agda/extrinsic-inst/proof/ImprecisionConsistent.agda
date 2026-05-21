@@ -120,12 +120,12 @@ coerce-wt (∀-~-∀ A~B) with coerce A~B | coerce-wt A~B
 coerce-wt (∀-~-∀ A~B) | p⊒ , p⊑ | Bₘ , p⊒⊢ , p⊑⊢ =
   `∀ Bₘ ,
   ⊢∀A-⊑-∀B p⊒⊢ , ⊢∀A-⊑-∀B p⊑⊢
-coerce-wt (A-~-★ g A~G) with coerce A~G | coerce-wt A~G
-coerce-wt (A-~-★ g A~G) | p⊒ , p⊑ | B , p⊒⊢ , p⊑⊢ =
+coerce-wt (A-~-★ n★ n∀ g A~G) with coerce A~G | coerce-wt A~G
+coerce-wt (A-~-★ n★ n∀ g A~G) | p⊒ , p⊑ | B , p⊒⊢ , p⊑⊢ =
   B ,
   p⊒⊢ , ⊢A-⊑-★ g p⊑⊢
-coerce-wt (★-~-B h H~B) with coerce H~B | coerce-wt H~B
-coerce-wt (★-~-B h H~B) | p⊒ , p⊑ | B , p⊒⊢ , p⊑⊢ =
+coerce-wt (★-~-B n★ n∀ h H~B) with coerce H~B | coerce-wt H~B
+coerce-wt (★-~-B n★ n∀ h H~B) | p⊒ , p⊑ | B , p⊒⊢ , p⊑⊢ =
   B ,
   ⊢A-⊑-★ h p⊒⊢ , p⊑⊢
 coerce-wt (νX-~-★ {X} x∈) =
@@ -159,6 +159,20 @@ coerce-wt-extend-X⊑X {Δ = Δ} A~C with coerce-wt A~C
 coerce-wt-extend-X⊑X {Δ = Δ} A~C | B , p⊒⊢ , p⊑⊢
   rewrite leftICtx-extend-X~X[] Δ | rightICtx-extend-X~X[] Δ =
   B , p⊒⊢ , p⊑⊢
+
+postulate
+  coerce-glbᶜ :
+    ∀ {Γ Φ A C B B′ p⊒ p⊑ pA pC} →
+    (A~C : Γ ⊢ A ~ C) →
+    leftICtx Γ ≤ᵢ Φ →
+    rightICtx Γ ≤ᵢ Φ →
+    0 ∣ leftICtx Γ ⊢ p⊒ ⦂ B ⊑ A →
+    0 ∣ rightICtx Γ ⊢ p⊑ ⦂ B ⊑ C →
+    0 ∣ Φ ⊢ pA ⦂ B′ ⊑ A →
+    0 ∣ Φ ⊢ pC ⦂ B′ ⊑ C →
+    p⊒ ≡ coerce-⊒ A~C →
+    p⊑ ≡ coerce-⊑ A~C →
+    ∃[ r ] 0 ∣ Φ ⊢ r ⦂ B′ ⊑ B
 
 left-right-plain :
   ∀ {Γ X} →
@@ -214,15 +228,30 @@ left-plain-right-ν {Γ = neither ∷ Γ} {X = zero} () here
 left-plain-right-ν {Γ = neither ∷ Γ} {X = suc X} (there x∈) (there y∈) =
   there (left-plain-right-ν x∈ y∈)
 
+postulate
+  lower-bounds-star-leftᶜ :
+    ∀ {Γ A C p q G} →
+    Ground G →
+    0 ∣ leftICtx Γ ⊢ p ⦂ A ⊑ G →
+    0 ∣ rightICtx Γ ⊢ q ⦂ A ⊑ C →
+    Γ ⊢ ★ ~ C
+
+  lower-bounds-star-rightᶜ :
+    ∀ {Γ A B p q G} →
+    Ground G →
+    0 ∣ leftICtx Γ ⊢ p ⦂ A ⊑ B →
+    0 ∣ rightICtx Γ ⊢ q ⦂ A ⊑ G →
+    Γ ⊢ B ~ ★
+
 lower-bounds-consistentᶜ :
   ∀ {Γ A B C p q} →
   0 ∣ leftICtx Γ ⊢ p ⦂ A ⊑ B →
   0 ∣ rightICtx Γ ⊢ q ⦂ A ⊑ C →
   Γ ⊢ B ~ C
 lower-bounds-consistentᶜ (⊢A-⊑-★ g p⊢) q⊢ =
-  ★-~-B g (lower-bounds-consistentᶜ p⊢ q⊢)
+  lower-bounds-star-leftᶜ g p⊢ q⊢
 lower-bounds-consistentᶜ p⊢ (⊢A-⊑-★ g q⊢) =
-  A-~-★ g (lower-bounds-consistentᶜ p⊢ q⊢)
+  lower-bounds-star-rightᶜ g p⊢ q⊢
 lower-bounds-consistentᶜ ⊢★-⊑-★ ⊢★-⊑-★ = ★-~-★
 lower-bounds-consistentᶜ (⊢X-⊑-★ xν) (⊢X-⊑-★ yν) = ★-~-★
 lower-bounds-consistentᶜ (⊢X-⊑-★ xν) (⊢X-⊑-X y∈) =
@@ -348,10 +377,10 @@ same-to-plain-~ {Ω = Ω} {Φ = Φ} (⇒-~-⇒ A~A′ B~B′) =
          (same-to-plain-~ {Ω = Ω} {Φ = Φ} B~B′)
 same-to-plain-~ {Ω = Ω} {Φ = Φ} (∀-~-∀ A~B) =
   ∀-~-∀ (same-to-plain-~ {Ω = X~X ∷ Ω} {Φ = Φ} A~B)
-same-to-plain-~ {Ω = Ω} {Φ = Φ} (A-~-★ g A~G) =
-  A-~-★ g (same-to-plain-~ {Ω = Ω} {Φ = Φ} A~G)
-same-to-plain-~ {Ω = Ω} {Φ = Φ} (★-~-B g G~B) =
-  ★-~-B g (same-to-plain-~ {Ω = Ω} {Φ = Φ} G~B)
+same-to-plain-~ {Ω = Ω} {Φ = Φ} (A-~-★ n★ n∀ g A~G) =
+  A-~-★ n★ n∀ g (same-to-plain-~ {Ω = Ω} {Φ = Φ} A~G)
+same-to-plain-~ {Ω = Ω} {Φ = Φ} (★-~-B n★ n∀ g G~B) =
+  ★-~-B n★ n∀ g (same-to-plain-~ {Ω = Ω} {Φ = Φ} G~B)
 same-to-plain-~ {Ω = Ω} {Φ = Φ} (νX-~-★ x∈) =
   νX-~-★ (same-to-plain-X~★∋ᶜ {Ω = Ω} {Φ = Φ} x∈)
 same-to-plain-~ {Ω = Ω} {Φ = Φ} (★-~-νX x∈) =
@@ -389,6 +418,31 @@ plain≤ᵢ {Δ = suc Δ} {Φ = X⊑X ∷ Φ} len =
   X⊑X≤X⊑X ∷≤ᵢ plain≤ᵢ (suc-injective len)
 plain≤ᵢ {Δ = suc Δ} {Φ = X⊑★ ∷ Φ} len =
   X⊑X≤ν ∷≤ᵢ plain≤ᵢ (suc-injective len)
+
+coerce-glbᵢ :
+  ∀ {Φ A C B B′ p⊒ p⊑ pA pC} →
+  (A~C : extend-X~X (length Φ) [] ⊢ A ~ C) →
+  0 ∣ extend-X⊑X (length Φ) [] ⊢ p⊒ ⦂ B ⊑ A →
+  0 ∣ extend-X⊑X (length Φ) [] ⊢ p⊑ ⦂ B ⊑ C →
+  0 ∣ Φ ⊢ pA ⦂ B′ ⊑ A →
+  0 ∣ Φ ⊢ pC ⦂ B′ ⊑ C →
+  p⊒ ≡ coerce-⊒ A~C →
+  p⊑ ≡ coerce-⊑ A~C →
+  ∃[ r ] 0 ∣ Φ ⊢ r ⦂ B′ ⊑ B
+coerce-glbᵢ {Φ = Φ} {A = A} {C = C} {B = B}
+    {B′ = B′} {p⊒ = p⊒} {p⊑ = p⊑} A~C p⊒⊢ p⊑⊢ pA⊢ pC⊢
+    eq⊒ eq⊑ =
+  coerce-glbᶜ {Γ = extend-X~X (length Φ) []} {Φ = Φ}
+    A~C
+    (subst (λ Ψ → Ψ ≤ᵢ Φ)
+      (sym (leftICtx-extend-X~X[] (length Φ))) (plain≤ᵢ refl))
+    (subst (λ Ψ → Ψ ≤ᵢ Φ)
+      (sym (rightICtx-extend-X~X[] (length Φ))) (plain≤ᵢ refl))
+    (subst (λ Ψ → 0 ∣ Ψ ⊢ p⊒ ⦂ B ⊑ A)
+      (sym (leftICtx-extend-X~X[] (length Φ))) p⊒⊢)
+    (subst (λ Ψ → 0 ∣ Ψ ⊢ p⊑ ⦂ B ⊑ C)
+      (sym (rightICtx-extend-X~X[] (length Φ))) p⊑⊢)
+    pA⊢ pC⊢ eq⊒ eq⊑
 
 app-consistencyᵢ :
   ∀ {Δ Φ A A′ B B′ p q} →

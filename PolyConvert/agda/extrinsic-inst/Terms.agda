@@ -19,13 +19,13 @@ open import Imprecision
     ; _∣_⊢_⦂_⊑_
     ; _∣_⊢_⦂_⊒_
     ; extend-X⊑X
-    ; X-⊑-★
-    ; A-⊑-★
-    ; A⇒B-⊑-A′⇒B′
-    ; ∀A-⊑-∀B
-    ; ∀A-⊑-B
-    ; renameImp
-    ; substImp
+    ; ‵_!
+    ; _!
+    ; _↦_
+    ; ‵∀_
+    ; ν_
+    ; rename⊑
+    ; subst⊑
     )
 open import Conversion
 open import Primitives
@@ -65,29 +65,29 @@ data Term : Set where
 
 data UpValue : Imp → Set where
   tagν : ∀ {X} →
-    UpValue (X-⊑-★ X)
+    UpValue (‵ X !)
 
   tag : ∀ {p} →
-    UpValue (A-⊑-★ p)
+    UpValue (p !)
 
-  _↦_ : ∀ {p q} →
-    UpValue (A⇒B-⊑-A′⇒B′ p q)
+  _↦ᵥ_ : ∀ {p q} →
+    UpValue (p ↦ q)
 
   `∀ : ∀ {p} →
-    UpValue (∀A-⊑-∀B p)
+    UpValue (‵∀ p)
 
 data DownValue : Imp → Set where
-  _↦_ : ∀ {p q} →
-    DownValue (A⇒B-⊑-A′⇒B′ p q)
+  _↦ᵥ_ : ∀ {p q} →
+    DownValue (p ↦ q)
 
   `∀ : ∀ {p} →
-    DownValue (∀A-⊑-∀B p)
+    DownValue (‵∀ p)
 
-  ν_ : ∀ {p} →
-    DownValue (∀A-⊑-B p)
+  νᵥ_ : ∀ {p} →
+    DownValue (ν p)
 
 data RevealValue : Conv↑ → Set where
-  _↦_ : ∀ {p q} →
+  _↦ᵥ_ : ∀ {p q} →
     RevealValue (↑-⇒ p q)
 
   `∀ : ∀ {c} →
@@ -97,7 +97,7 @@ data ConcealValue : Conv↓ → Set where
   seal : ∀ {α} →
     ConcealValue (↓-seal α)
 
-  _↦_ : ∀ {p q} →
+  _↦ᵥ_ : ∀ {p q} →
     ConcealValue (↓-⇒ p q)
 
   `∀ : ∀ {c} →
@@ -217,8 +217,8 @@ renameᵗᵐ ρ (M ⦂∀ B [ T ]) =
   renameᵗᵐ ρ M ⦂∀ renameᵗ (extᵗ ρ) B [ renameᵗ ρ T ]
 renameᵗᵐ ρ ($ κ) = $ κ
 renameᵗᵐ ρ (L ⊕[ op ] M) = renameᵗᵐ ρ L ⊕[ op ] renameᵗᵐ ρ M
-renameᵗᵐ ρ (M ⇑ p) = renameᵗᵐ ρ M ⇑ renameImp ρ p
-renameᵗᵐ ρ (M ⇓ p) = renameᵗᵐ ρ M ⇓ renameImp ρ p
+renameᵗᵐ ρ (M ⇑ p) = renameᵗᵐ ρ M ⇑ rename⊑ ρ p
+renameᵗᵐ ρ (M ⇓ p) = renameᵗᵐ ρ M ⇓ rename⊑ ρ p
 renameᵗᵐ ρ (M ↑ c) = renameᵗᵐ ρ M ↑ subst↑ (λ X → ＇ (ρ X)) c
 renameᵗᵐ ρ (M ↓ c) = renameᵗᵐ ρ M ↓ subst↓ (λ X → ＇ (ρ X)) c
 renameᵗᵐ ρ (blame ℓ) = blame ℓ
@@ -232,8 +232,8 @@ substᵗᵐ σ (M ⦂∀ B [ T ]) =
   substᵗᵐ σ M ⦂∀ substᵗ (extsᵗ σ) B [ substᵗ σ T ]
 substᵗᵐ σ ($ κ) = $ κ
 substᵗᵐ σ (L ⊕[ op ] M) = substᵗᵐ σ L ⊕[ op ] substᵗᵐ σ M
-substᵗᵐ σ (M ⇑ p) = substᵗᵐ σ M ⇑ substImp σ p
-substᵗᵐ σ (M ⇓ p) = substᵗᵐ σ M ⇓ substImp σ p
+substᵗᵐ σ (M ⇑ p) = substᵗᵐ σ M ⇑ subst⊑ σ p
+substᵗᵐ σ (M ⇓ p) = substᵗᵐ σ M ⇓ subst⊑ σ p
 substᵗᵐ σ (M ↑ c) = substᵗᵐ σ M ↑ subst↑ σ c
 substᵗᵐ σ (M ↓ c) = substᵗᵐ σ M ↓ subst↓ σ c
 substᵗᵐ σ (blame ℓ) = blame ℓ

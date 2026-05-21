@@ -109,8 +109,8 @@ sim-left wfΣˡ wfΣʳ rel (ξ-·₁ redL) =
   sim-left-rest wfΣˡ wfΣʳ rel (ξ-·₁ redL)
 sim-left wfΣˡ wfΣʳ (⊑· relL relM) (ξ-·₂ vV redM) =
   sim-left-app₂ sim-left-with-≤ wfΣˡ wfΣʳ vV relL relM redM
-sim-left wfΣˡ wfΣʳ (⊑⦂∀ rel wfA wfB wfT pT⊢) (ξ-·α redM) =
-  sim-left-tyapp sim-left-with-≤ wfΣˡ wfΣʳ rel wfA wfB wfT pT⊢ redM
+sim-left wfΣˡ wfΣʳ (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) (ξ-·α redM) =
+  sim-left-tyapp sim-left-with-≤ wfΣˡ wfΣʳ rel wfA wfB wfT wfT′ pT⊢ redM
 sim-left wfΣˡ wfΣʳ (⊑· relL relM) (pure-step (β vW)) =
   _ , ≤-refl , wfΣˡ , sim-left-beta-app wfΣˡ wfΣʳ vW relL relM
 sim-left wfΣˡ wfΣʳ (⊑· relL relM) (pure-step (β-up-↦ vV vW)) =
@@ -125,19 +125,20 @@ sim-left wfΣˡ wfΣʳ (⊑· relL relM) (pure-step (β-conceal-↦ vV vW)) =
   _ , ≤-refl , wfΣˡ ,
   sim-left-beta-conceal-app wfΣˡ wfΣʳ vV vW relL relM
 sim-left wfΣˡ wfΣʳ
-    rel@((⊑⦂∀ (⊑Λ vV vM′ relBody) wfA wfB wfT pT⊢)) β-Λ =
+    rel@((⊑⦂∀ (⊑Λ vV vM′ relBody) wfA wfB wfT wfT′ pT⊢)) β-Λ =
   sim-left-rest wfΣˡ wfΣʳ rel β-Λ
-sim-left wfΣˡ wfΣʳ (⊑⦂∀ rel wfA wfB wfT pT⊢) (pure-step (β-up-∀ vV)) =
+sim-left wfΣˡ wfΣʳ
+    (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) (pure-step (β-up-∀ vV)) =
   _ , ≤-refl , wfΣˡ , sim-left-beta-up-∀ wfΣˡ wfΣʳ vV rel
-sim-left wfΣˡ wfΣʳ rel@(⊑⦂∀ relM wfA wfB wfT pT⊢) (β-down-∀ vV) =
+sim-left wfΣˡ wfΣʳ rel@(⊑⦂∀ relM wfA wfB wfT wfT′ pT⊢) (β-down-∀ vV) =
   sim-left-rest wfΣˡ wfΣʳ rel (β-down-∀ vV)
 sim-left wfΣˡ wfΣʳ rel@(⊑⦂∀-ν relM wfA wfT pT⊢) (β-down-ν vV) =
   sim-left-rest wfΣˡ wfΣʳ rel (β-down-ν vV)
 sim-left wfΣˡ wfΣʳ rel (β-up-ν vV) =
   sim-left-rest wfΣˡ wfΣʳ rel (β-up-ν vV)
-sim-left wfΣˡ wfΣʳ (⊑⦂∀ rel wfA wfB wfT pT⊢) (β-reveal-∀ vV) =
+sim-left wfΣˡ wfΣʳ (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) (β-reveal-∀ vV) =
   _ , ≤-refl , wfΣˡ , sim-left-beta-reveal-∀ wfΣˡ wfΣʳ vV rel
-sim-left wfΣˡ wfΣʳ (⊑⦂∀ rel wfA wfB wfT pT⊢) (β-conceal-∀ vV) =
+sim-left wfΣˡ wfΣʳ (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) (β-conceal-∀ vV) =
   _ , ≤-refl , wfΣˡ , sim-left-beta-conceal-∀ wfΣˡ wfΣʳ vV rel
 sim-left {M′ = M′} wfΣˡ wfΣʳ rel (pure-step blame-·₁)
     with ⊑-type-imprecision rel

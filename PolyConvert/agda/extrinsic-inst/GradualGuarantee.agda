@@ -13,7 +13,8 @@ open import Store
 open import Imprecision using (Imp; extend-X⊑X; _∣_⊢_⦂_⊑_)
 open import Terms
 open import GradualTerms
-  using (GPrec; GPCtx; GTerm; leftGCtx; rightGCtx; _∣_⊢ᴳ_⊑_; _∣_⊢_⦂_)
+  using (GPrec; GPCtx; GTerm; leftGCtx; rightGCtx; _∣_⊢_⦂_)
+open import GradualTermImprecision using (_∣_∣_⊢ᴳ_⊑_⦂_)
 open import TermImprecision
 open import Reduction
 
@@ -21,12 +22,11 @@ import proof.DynamicGradualGuarantee as DGGProof
 import proof.StaticGradualGuarantee as SGGProof
 
 static-gradual-guarantee :
-  ∀ {M M′ : GTerm} {A} →
-  0 ∣ [] ⊢ᴳ M ⊑ M′ →
+  ∀ {M M′ : GTerm} {A p} →
+  0 ∣ [] ∣ [] ⊢ᴳ M ⊑ M′ ⦂ p →
   0 ∣ [] ⊢ M ⦂ A →
-  Σ[ B ∈ Ty ] Σ[ p ∈ Imp ] (0 ∣ [] ⊢ M′ ⦂ B)  ×  (0 ∣ [] ⊢ p ⦂ A ⊑ B)
-static-gradual-guarantee =
-  SGGProof.static-gradual-guarantee {Δ = 0} {Γ = []}
+  Σ[ B ∈ Ty ] (0 ∣ [] ⊢ M′ ⦂ B) × (0 ∣ [] ⊢ p ⦂ A ⊑ B)
+static-gradual-guarantee = SGGProof.static-gradual-guarantee
 
 dynamic-gradual-guarantee :
   ∀ {Ψ Σ M M′ A B} →

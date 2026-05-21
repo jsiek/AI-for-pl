@@ -7,7 +7,7 @@ module proof.GradualTermProperties where
 --   * Main SGG case analysis belongs in `proof.StaticGradualGuarantee`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using ([]; _∷_; _++_; length)
+open import Data.List using (List; []; _∷_; _++_; length; map)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality using (cong; subst; sym; trans)
@@ -21,12 +21,13 @@ open import Imprecision
     ; extend-X⊑X
     ; X⊑X
     ; renameImp
+    ; ⇑⊑
     ; _∣_⊢_⦂_⊑_
     )
 open import Consistency
 open import GradualTerms
+open import GradualTermImprecision
 open import Primitives using (κℕ; constTy; constTy-renameᵗ; constTy-⇑ᵗ)
-open import Terms
 open import proof.ConsistencyProperties
 open import proof.ImprecisionProperties using (reflImp-wt-extend-X⊑X; wkImpAt)
 open import proof.TypeProperties
@@ -37,23 +38,35 @@ open import proof.TypeProperties
     ; renameᵗ-ground-id
     ; renameᵗ-inv-WfTy
     )
-open import proof.PreservationTermSubst
-  using (renameᵗ-[]ᵗ; unmap∋-⤊ᵗ)
 
-⊢ᴳ-refl :
-  ∀ {Δ Γ M A} →
-  Δ ∣ Γ ⊢ M ⦂ A →
-  Δ ∣ extend-X⊑X Δ [] ⊢ᴳ M ⊑ M
-⊢ᴳ-refl (⊢` x∈) = ⊑`
-⊢ᴳ-refl (⊢ƛ wfA M⊢) = ⊑ƛ (reflImp-wt-extend-X⊑X wfA) (⊢ᴳ-refl M⊢)
-⊢ᴳ-refl (⊢· L⊢ M⊢ A~A′) = ⊑· (⊢ᴳ-refl L⊢) (⊢ᴳ-refl M⊢)
-⊢ᴳ-refl (⊢·★ L⊢ M⊢ A′~★) = ⊑· (⊢ᴳ-refl L⊢) (⊢ᴳ-refl M⊢)
-⊢ᴳ-refl (⊢Λ vM M⊢) = ⊑Λ vM vM (⊢ᴳ-refl M⊢)
-⊢ᴳ-refl (⊢• M⊢ wfB wfT) =
-  ⊑`[] (⊢ᴳ-refl M⊢) (reflImp-wt-extend-X⊑X wfT)
-⊢ᴳ-refl (⊢$ (κℕ n)) = ⊑$
-⊢ᴳ-refl (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ) =
-  ⊑⊕ (⊢ᴳ-refl L⊢) (⊢ᴳ-refl M⊢)
+impGCtx : ∀ {Φ} → GPCtx Φ → List Imp
+impGCtx [] = []
+impGCtx ((A , B , p , p⊢) ∷ Γ) = p ∷ impGCtx Γ
+
+unmap∋-⤊ᵗ : ∀ {Γ : Ctx}{x : Var}{A : Ty} →
+  ⤊ᵗ Γ ∋ x ⦂ A →
+  Σ[ B ∈ Ty ] (A ≡ renameᵗ suc B) × (Γ ∋ x ⦂ B)
+unmap∋-⤊ᵗ {Γ = B ∷ Γ} Z = B , refl , Z
+unmap∋-⤊ᵗ {Γ = B ∷ Γ} (S h) with unmap∋-⤊ᵗ {Γ = Γ} h
+unmap∋-⤊ᵗ {Γ = B ∷ Γ} (S h) | C , eq , h′ = C , eq , S h′
+
+renameᵗ-[]ᵗ :
+  (ρ : Renameᵗ) (A T : Ty) →
+  renameᵗ ρ (A [ T ]ᵗ) ≡
+  (renameᵗ (extᵗ ρ) A) [ renameᵗ ρ T ]ᵗ
+renameᵗ-[]ᵗ ρ A T =
+  trans
+    (renameᵗ-substᵗ ρ (singleTyEnv T) A)
+    (trans
+      (substᵗ-cong env A)
+      (sym (substᵗ-renameᵗ (extᵗ ρ) (singleTyEnv (renameᵗ ρ T)) A)))
+  where
+    env :
+      (X : TyVar) →
+      renameᵗ ρ (singleTyEnv T X) ≡
+      singleTyEnv (renameᵗ ρ T) (extᵗ ρ X)
+    env zero = refl
+    env (suc X) = refl
 
 infix 4 _∋ᴳ_⦂_
 data _∋ᴳ_⦂_ {Φ : VarPrecCtx} :
@@ -93,6 +106,19 @@ lookup-leftᴳ-inv {Φ} {Γ = P ∷ Γ} (S h)
 lookup-leftᴳ-inv {Φ} {Γ = P ∷ Γ} (S h) | B , p , p⊢ , hᴳ =
   B , p , p⊢ , Sᴳ hᴳ
 
+lookup-imp-leftᴳ-inv :
+  ∀ {Φ} {Γ : GPCtx Φ} {x A p} →
+  leftGCtx {Φ} Γ ∋ x ⦂ A →
+  impGCtx Γ ∋ x ⦂ p →
+  Σ[ B ∈ Ty ] Σ[ p⊢ ∈ (0 ∣ Φ ⊢ p ⦂ A ⊑ B) ]
+    (Γ ∋ᴳ x ⦂ (A , B , p , p⊢))
+lookup-imp-leftᴳ-inv {Γ = (A , B , p , p⊢) ∷ Γ} Z Z =
+  B , p⊢ , Zᴳ
+lookup-imp-leftᴳ-inv {Γ = P ∷ Γ} (S x∈) (S p∈)
+    with lookup-imp-leftᴳ-inv {Γ = Γ} x∈ p∈
+lookup-imp-leftᴳ-inv {Γ = P ∷ Γ} (S x∈) (S p∈) | B , p⊢ , hᴳ =
+  B , p⊢ , Sᴳ hᴳ
+
 ⇑ᵗᴳPrec : ∀ {Φ m} → GPrec Φ → GPrec (m ∷ Φ)
 ⇑ᵗᴳPrec {m = m} (A , B , p , p⊢) =
   ⇑ᵗ A , ⇑ᵗ B , renameImp suc p , wkImpAt {Φ = []} p⊢
@@ -100,6 +126,13 @@ lookup-leftᴳ-inv {Φ} {Γ = P ∷ Γ} (S h) | B , p , p⊢ , hᴳ =
 ⇑ᵗᴳPCtx : ∀ {Φ m} → GPCtx Φ → GPCtx (m ∷ Φ)
 ⇑ᵗᴳPCtx {m = m} [] = []
 ⇑ᵗᴳPCtx {m = m} (P ∷ Γ) = ⇑ᵗᴳPrec {m = m} P ∷ ⇑ᵗᴳPCtx {m = m} Γ
+
+impGCtx-⇑ᵗᴳPCtx :
+  ∀ {Φ m} → (Γ : GPCtx Φ) →
+  impGCtx (⇑ᵗᴳPCtx {m = m} Γ) ≡ map ⇑⊑ (impGCtx Γ)
+impGCtx-⇑ᵗᴳPCtx [] = refl
+impGCtx-⇑ᵗᴳPCtx ((A , B , p , p⊢) ∷ Γ) =
+  cong (⇑⊑ p ∷_) (impGCtx-⇑ᵗᴳPCtx Γ)
 
 leftGCtx-⇑ᵗᴳPCtx :
   ∀ {Φ m} → (Γ : GPCtx Φ) →
@@ -117,11 +150,11 @@ rightGCtx-⇑ᵗᴳPCtx {m = m} [] = refl
 rightGCtx-⇑ᵗᴳPCtx {m = m} ((A , B , p , p⊢) ∷ Γ) =
   cong (⇑ᵗ B ∷_) (rightGCtx-⇑ᵗᴳPCtx {m = m} Γ)
 
-DropRenameGTypingResult : TyCtx → Ctx → GTerm → Ty → Set
+DropRenameGTypingResult : TyCtx → Ctx → GTerm → Ty → Set₁
 DropRenameGTypingResult Δ Γ M B′ =
   Σ[ B ∈ Ty ] ((B′ ≡ ⇑ᵗ B) × (Δ ∣ Γ ⊢ M ⦂ B))
 
-DropRenameGTypingAtResult : CCtx → CCtx → Ctx → GTerm → Ty → Set
+DropRenameGTypingAtResult : CCtx → CCtx → Ctx → GTerm → Ty → Set₁
 DropRenameGTypingAtResult Φ Γᶜ Γ M B′ =
   Σ[ B ∈ Ty ]
     ((B′ ≡ renameᵗ (raiseVarFrom (length Φ)) B) ×

@@ -28,7 +28,7 @@ record SimWorld : Set where
 
 open SimWorld public
 
-WorldRel : SimWorld → Term → Term → Ty → Ty → Set
+WorldRel : SimWorld → Term → Term → Ty → Ty → Set₁
 WorldRel W M M′ A B =
   ⟪ 0 , Ψˡ W , Σˡ W , Ψʳ W , Σʳ W , [] ⟫
     ⊢ M ⊑ M′ ⦂ A ⊑ B

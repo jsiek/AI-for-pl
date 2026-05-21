@@ -133,6 +133,66 @@ ImpSubstRel-exts {m′ = X⊑★} h here = X-⊑-★ zero , ⊢X-⊑-★ here
 ImpSubstRel-exts {m′ = m′} h (there x∈) =
   wk-VarSubstRel {m′ = m′} (h x∈)
 
+VarSubst⊑Rel : SealCtx → VarPrecCtx → Imp → Ty → Ty → VarPrec → Set
+VarSubst⊑Rel Ψ Γ p A B X⊑X = Ψ ∣ Γ ⊢ p ⦂ A ⊑ B
+VarSubst⊑Rel Ψ Γ p A B X⊑★ = Ψ ∣ Γ ⊢ p ⦂ A ⊑ ★
+
+ImpSubst⊑Rel :
+  SealCtx → VarPrecCtx → VarPrecCtx → Subst⊑ → Substᵗ → Substᵗ → Set
+ImpSubst⊑Rel Ψ Γ Γ′ σ τˡ τʳ =
+  ∀ {X m} →
+  Γ ∋ X ∶ m →
+  VarSubst⊑Rel Ψ Γ′ (σ X m) (τˡ X) (τʳ X) m
+
+wk-VarSubst⊑Rel :
+  ∀ {Ψ Γ p A B m m′} →
+  VarSubst⊑Rel Ψ Γ p A B m →
+  VarSubst⊑Rel Ψ (m′ ∷ Γ) (renameImp suc p) (⇑ᵗ A) (⇑ᵗ B) m
+wk-VarSubst⊑Rel {m = X⊑X} p⊢ = wkImpAt {Φ = []} p⊢
+wk-VarSubst⊑Rel {m = X⊑★} p⊢ = wkImpAt {Φ = []} p⊢
+
+ImpSubst⊑Rel-exts :
+  ∀ {Ψ Γ Γ′ σ τˡ τʳ m′} →
+  ImpSubst⊑Rel Ψ Γ Γ′ σ τˡ τʳ →
+  ImpSubst⊑Rel Ψ (m′ ∷ Γ) (m′ ∷ Γ′)
+    (exts⊑ σ) (extsᵗ τˡ) (extsᵗ τʳ)
+ImpSubst⊑Rel-exts {m′ = X⊑X} h here =
+  ⊢X-⊑-X here
+ImpSubst⊑Rel-exts {m′ = X⊑★} h here =
+  ⊢X-⊑-★ here
+ImpSubst⊑Rel-exts {m′ = m′} h (there x∈) =
+  wk-VarSubst⊑Rel {m′ = m′} (h x∈)
+
+⊑-subst⊑-rel :
+  ∀ {Ψ Γ Γ′ σ τˡ τʳ p A B} →
+  TySubstWf (length Γ) (length Γ′) Ψ τʳ →
+  ImpSubst⊑Rel Ψ Γ Γ′ σ τˡ τʳ →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
+  Ψ ∣ Γ′ ⊢ subst⊑ σ p ⦂ substᵗ τˡ A ⊑ substᵗ τʳ B
+⊑-subst⊑-rel hτʳ hᵢ ⊢★-⊑-★ = ⊢★-⊑-★
+⊑-subst⊑-rel hτʳ hᵢ (⊢X-⊑-★ xν) = hᵢ xν
+⊑-subst⊑-rel hτʳ hᵢ (⊢A-⊑-★ g p⊢) =
+  ⊢A-⊑-★ (substᵗ-ground _ g) (⊑-subst⊑-rel hτʳ hᵢ p⊢)
+⊑-subst⊑-rel hτʳ hᵢ (⊢X-⊑-X x∈) = hᵢ x∈
+⊑-subst⊑-rel hτʳ hᵢ (⊢α-⊑-α (wfSeal α<Ψ)) =
+  ⊢α-⊑-α (wfSeal α<Ψ)
+⊑-subst⊑-rel hτʳ hᵢ ⊢ι-⊑-ι = ⊢ι-⊑-ι
+⊑-subst⊑-rel hτʳ hᵢ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
+  ⊢A⇒B-⊑-A′⇒B′
+    (⊑-subst⊑-rel hτʳ hᵢ p⊢)
+    (⊑-subst⊑-rel hτʳ hᵢ q⊢)
+⊑-subst⊑-rel hτʳ hᵢ (⊢∀A-⊑-∀B p⊢) =
+  ⊢∀A-⊑-∀B
+    (⊑-subst⊑-rel (TySubstWf-exts hτʳ) (ImpSubst⊑Rel-exts hᵢ) p⊢)
+⊑-subst⊑-rel {τʳ = τʳ} hτʳ hᵢ (⊢∀A-⊑-B {B = B} wfB p⊢) =
+  ⊢∀A-⊑-B
+    (substᵗ-preserves-WfTy wfB hτʳ)
+    (cong-⊢⊑
+      refl
+      (substᵗ-suc-renameᵗ-suc τʳ B)
+      (⊑-subst⊑-rel
+        (TySubstWf-exts hτʳ) (ImpSubst⊑Rel-exts hᵢ) p⊢))
+
 ------------------------------------------------------------------------
 -- Parallel substitution that sends all X⊑★ variables to ★
 ------------------------------------------------------------------------
@@ -353,7 +413,7 @@ singleTyEnv-TySubstWf-extend-X⊑X {Δ = Δ} {T = T} wfT
     with ⊑-substᵗ-rel (TySubstWf-exts hτ) (ImpSubstRel-exts hᵢ) p⊢
 ⊑-substᵗ-rel {τ = τ} hτ hᵢ (⊢∀A-⊑-B {B = B} wfB p⊢)
     | q , q⊢ =
-  ∀A-⊑-B (substᵗ τ B) q ,
+  ∀A-⊑-B q ,
   ⊢∀A-⊑-B
     (substᵗ-preserves-WfTy wfB hτ)
     (cong-⊢⊑ refl (substᵗ-suc-renameᵗ-suc τ B) q⊢)
@@ -379,6 +439,28 @@ singleTyEnv-ImpSubstRel :
 singleTyEnv-ImpSubstRel pT⊢ here = _ , pT⊢
 singleTyEnv-ImpSubstRel pT⊢ (there x∈) = var-subst-rel-id x∈
 
+singleImpEnv-ImpSubst⊑Rel :
+  ∀ {Φ Ψ T T′ pT} →
+  Ψ ∣ Φ ⊢ pT ⦂ T ⊑ T′ →
+  ImpSubst⊑Rel Ψ (X⊑X ∷ Φ) Φ
+    (singleImpEnv pT) (singleTyEnv T) (singleTyEnv T′)
+singleImpEnv-ImpSubst⊑Rel pT⊢ here = pT⊢
+singleImpEnv-ImpSubst⊑Rel {pT = pT} pT⊢ (there {m = X⊑X} x∈) =
+  ⊢X-⊑-X x∈
+singleImpEnv-ImpSubst⊑Rel {pT = pT} pT⊢ (there {m = X⊑★} x∈) =
+  ⊢X-⊑-★ x∈
+
+singleImpEnv-ImpSubst⊑StarRel :
+  ∀ {Φ Ψ T pT} →
+  Ψ ∣ Φ ⊢ pT ⦂ T ⊑ ★ →
+  ImpSubst⊑Rel Ψ (X⊑★ ∷ Φ) Φ
+    (singleImpEnv pT) (singleTyEnv T) (singleTyEnv ★)
+singleImpEnv-ImpSubst⊑StarRel pT⊢ here = pT⊢
+singleImpEnv-ImpSubst⊑StarRel {pT = pT} pT⊢ (there {m = X⊑X} x∈) =
+  ⊢X-⊑-X x∈
+singleImpEnv-ImpSubst⊑StarRel {pT = pT} pT⊢ (there {m = X⊑★} x∈) =
+  ⊢X-⊑-★ x∈
+
 []⊑ᵗ-rel-wt :
   ∀ {Φ Ψ p A B T T′ pT} →
   Ψ ∣ (X⊑X ∷ Φ) ⊢ p ⦂ A ⊑ B →
@@ -389,6 +471,29 @@ singleTyEnv-ImpSubstRel pT⊢ (there x∈) = var-subst-rel-id x∈
   ⊑-substᵗ-rel
     (singleTyEnv-TySubstWf {Φ = Φ} wfT′)
     (singleTyEnv-ImpSubstRel {Φ = Φ} pT⊢)
+    p⊢
+
+[]⊑ᵢ-rel-wt :
+  ∀ {Φ Ψ p A B T T′ pT} →
+  Ψ ∣ (X⊑X ∷ Φ) ⊢ p ⦂ A ⊑ B →
+  WfTy (length Φ) Ψ T′ →
+  Ψ ∣ Φ ⊢ pT ⦂ T ⊑ T′ →
+  Ψ ∣ Φ ⊢ p [ pT ]⊑ᵢ ⦂ A [ T ]ᵗ ⊑ B [ T′ ]ᵗ
+[]⊑ᵢ-rel-wt {Φ = Φ} p⊢ wfT′ pT⊢ =
+  ⊑-subst⊑-rel
+    (singleTyEnv-TySubstWf {Φ = Φ} wfT′)
+    (singleImpEnv-ImpSubst⊑Rel {Φ = Φ} pT⊢)
+    p⊢
+
+[]⊑ᵢ-star-rel-wt :
+  ∀ {Φ Ψ p A B T pT} →
+  Ψ ∣ (X⊑★ ∷ Φ) ⊢ p ⦂ A ⊑ B →
+  Ψ ∣ Φ ⊢ pT ⦂ T ⊑ ★ →
+  Ψ ∣ Φ ⊢ p [ pT ]⊑ᵢ ⦂ A [ T ]ᵗ ⊑ B [ ★ ]ᵗ
+[]⊑ᵢ-star-rel-wt {Φ = Φ} p⊢ pT⊢ =
+  ⊑-subst⊑-rel
+    (singleTyEnv-TySubstWf {Φ = Φ} wf★)
+    (singleImpEnv-ImpSubst⊑StarRel {Φ = Φ} pT⊢)
     p⊢
 
 []⊑ᵗ-wt :

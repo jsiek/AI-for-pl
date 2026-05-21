@@ -83,8 +83,8 @@ data DownValue : Imp → Set where
   `∀ : ∀ {p} →
     DownValue (∀A-⊑-∀B p)
 
-  ν_ : ∀ {B p} →
-    DownValue (∀A-⊑-B B p)
+  ν_ : ∀ {p} →
+    DownValue (∀A-⊑-B p)
 
 data RevealValue : Conv↑ → Set where
   _↦_ : ∀ {p q} →
@@ -144,7 +144,7 @@ infix  4 _∣_∣_∣_⊢_⦂_
 
 data _∣_∣_∣_⊢_⦂_
   (Δ : TyCtx) (Ψ : SealCtx) (Σ : Store) (Γ : Ctx)
-  : Term → Ty → Set where
+  : Term → Ty → Set₁ where
 
   ⊢` : ∀ {x A}
      → Γ ∋ x ⦂ A

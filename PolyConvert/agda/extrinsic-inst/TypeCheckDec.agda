@@ -31,10 +31,10 @@ open import proof.ImprecisionProperties using (src⊑-correct; tgt⊑-correct)
 -- Local propositions
 ------------------------------------------------------------------------
 
-HasSomeType : TyCtx → SealCtx → Store → Ctx → Term → Set
+HasSomeType : TyCtx → SealCtx → Store → Ctx → Term → Set₁
 HasSomeType Δ Ψ Σ Γ M = Σ[ A ∈ Ty ] Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ M ⦂ A
 
-WellTyped : Term → Set
+WellTyped : Term → Set₁
 WellTyped M = HasSomeType 0 0 ∅ˢ [] M
 
 data BlameFree : Term → Set where
@@ -50,10 +50,10 @@ data BlameFree : Term → Set where
   bf-↑ : ∀ {M c} → BlameFree M → BlameFree (M ↑ c)
   bf-↓ : ∀ {M c} → BlameFree M → BlameFree (M ↓ c)
 
-HasSomeTypeBF : TyCtx → SealCtx → Store → Ctx → Term → Set
+HasSomeTypeBF : TyCtx → SealCtx → Store → Ctx → Term → Set₁
 HasSomeTypeBF Δ Ψ Σ Γ M = HasSomeType Δ Ψ Σ Γ M × BlameFree M
 
-WellTypedBF : Term → Set
+WellTypedBF : Term → Set₁
 WellTypedBF M = HasSomeTypeBF 0 0 ∅ˢ [] M
 
 upValue? : (p : Imp) → Dec (UpValue p)
@@ -65,7 +65,7 @@ upValue? (α-⊑-α α) = no (λ ())
 upValue? (ι-⊑-ι ι) = no (λ ())
 upValue? (A⇒B-⊑-A′⇒B′ p q) = yes (_↦_)
 upValue? (∀A-⊑-∀B p) = yes `∀
-upValue? (∀A-⊑-B B p) = no (λ ())
+upValue? (∀A-⊑-B p) = no (λ ())
 
 downValue? : (p : Imp) → Dec (DownValue p)
 downValue? ★-⊑-★ = no (λ ())
@@ -76,7 +76,7 @@ downValue? (α-⊑-α α) = no (λ ())
 downValue? (ι-⊑-ι ι) = no (λ ())
 downValue? (A⇒B-⊑-A′⇒B′ p q) = yes (_↦_)
 downValue? (∀A-⊑-∀B p) = yes `∀
-downValue? (∀A-⊑-B B p) = yes (ν_)
+downValue? (∀A-⊑-B p) = yes (ν_)
 
 revealValue? : (c : Conv↑) → Dec (RevealValue c)
 revealValue? (↑-unseal α) = no (λ ())
@@ -116,7 +116,7 @@ value? (M ↓ c) | no ¬vM | _ = no (λ { (vM ↓ vc) → ¬vM vM })
 value? (M ↓ c) | yes vM | no ¬vc = no (λ { (vM ↓ vc) → ¬vc vc })
 value? (blame ℓ) = no (λ ())
 
-LookupAny : Ctx → Var → Set
+LookupAny : Ctx → Var → Set₁
 LookupAny Γ x = Σ[ A ∈ Ty ] Γ ∋ x ⦂ A
 
 data NonArrow : Ty → Set where
@@ -347,18 +347,18 @@ mutual
   imp-check Ψ Γ (∀A-⊑-∀B p) with imp-check Ψ (X⊑X ∷ Γ) p
   ... | yes p⊢ = yes (⊢∀A-⊑-∀B p⊢)
   ... | no ¬p = no (λ { (⊢∀A-⊑-∀B p⊢) → ¬p (⊑-to-computed p⊢) })
-  imp-check Ψ Γ (∀A-⊑-B B p) with wfTyDec (length Γ) Ψ B
-  imp-check Ψ Γ (∀A-⊑-B B p) | no ¬wfB =
+  imp-check Ψ Γ (∀A-⊑-B p) with wfTyDec (length Γ) Ψ (dropTyFrom zero (tgt⊑ p))
+  imp-check Ψ Γ (∀A-⊑-B p) | no ¬wfB =
       no (λ { (⊢∀A-⊑-B wfB p⊢) → ¬wfB wfB })
-  imp-check Ψ Γ (∀A-⊑-B B p) | yes wfB
+  imp-check Ψ Γ (∀A-⊑-B p) | yes wfB
       with imp-check Ψ (X⊑★ ∷ Γ) p
-  imp-check Ψ Γ (∀A-⊑-B B p) | yes wfB | no ¬p =
+  imp-check Ψ Γ (∀A-⊑-B p) | yes wfB | no ¬p =
       no (λ { (⊢∀A-⊑-B wfB′ p⊢) → ¬p (⊑-to-computed p⊢) })
-  imp-check Ψ Γ (∀A-⊑-B B p) | yes wfB | yes p⊢
-      with tgt⊑ p ≟Ty ⇑ᵗ B
-  imp-check Ψ Γ (∀A-⊑-B B p) | yes wfB | yes p⊢ | no tgt≢ =
+  imp-check Ψ Γ (∀A-⊑-B p) | yes wfB | yes p⊢
+      with tgt⊑ p ≟Ty ⇑ᵗ (dropTyFrom zero (tgt⊑ p))
+  imp-check Ψ Γ (∀A-⊑-B p) | yes wfB | yes p⊢ | no tgt≢ =
       no (λ { (⊢∀A-⊑-B wfB′ p⊢′) → tgt≢ (tgt⊑-correct p⊢′) })
-  imp-check Ψ Γ (∀A-⊑-B B p) | yes wfB | yes p⊢ | yes eq =
+  imp-check Ψ Γ (∀A-⊑-B p) | yes wfB | yes p⊢ | yes eq =
       yes
         (⊢∀A-⊑-B {A = src⊑ p} wfB
           (subst

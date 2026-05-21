@@ -249,7 +249,7 @@ upValue? (α-⊑-α α) = nothing
 upValue? (ι-⊑-ι ι) = nothing
 upValue? (A⇒B-⊑-A′⇒B′ p q) = just (_↦_ {p = p} {q = q})
 upValue? (∀A-⊑-∀B p) = just (`∀ {p = p})
-upValue? (∀A-⊑-B B p) = nothing
+upValue? (∀A-⊑-B p) = nothing
 
 downValue? : (p : Imp) → Maybe (DownValue p)
 downValue? ★-⊑-★ = nothing
@@ -260,7 +260,7 @@ downValue? (α-⊑-α α) = nothing
 downValue? (ι-⊑-ι ι) = nothing
 downValue? (A⇒B-⊑-A′⇒B′ p q) = just (_↦_ {p = p} {q = q})
 downValue? (∀A-⊑-∀B p) = just (`∀ {p = p})
-downValue? (∀A-⊑-B B p) = just (ν_ {B = B} {p = p})
+downValue? (∀A-⊑-B p) = just (ν_ {p = p})
 
 revealValue? : (c : Conv↑) → Maybe (RevealValue c)
 revealValue? (↑-unseal α) = nothing
@@ -334,7 +334,7 @@ app-redex? (_⇑_ {V = W} vW (`∀ {p = p})) vM = nothing
 app-redex? (_⇓_ {V = W} vW (_↦_ {p = p} {q = q})) vM =
   just (_ , β-down-↦ vW vM)
 app-redex? (_⇓_ {V = W} vW (`∀ {p = p})) vM = nothing
-app-redex? (_⇓_ {V = W} vW (ν_ {B = B} {p = p})) vM = nothing
+app-redex? (_⇓_ {V = W} vW (ν_ {p = p})) vM = nothing
 app-redex? (_↑_ {V = W} vW (_↦_ {p = p} {q = q})) vM =
   just (_ , β-reveal-↦ vW vM)
 app-redex? (_↑_ {V = W} vW (`∀ {c = c})) vM = nothing
@@ -357,7 +357,7 @@ tapp-redex? (_⇑_ {V = W} vW (`∀ {p = p})) =
   just (_ , _ , pure-step (β-up-∀ vW))
 tapp-redex? (_⇓_ {V = W} vW (_↦_ {p = p} {q = q})) = nothing
 tapp-redex? (_⇓_ {V = W} vW (`∀ {p = p})) = just (_ , _ , β-down-∀ vW)
-tapp-redex? (_⇓_ {V = W} vW (ν_ {B = B} {p = p})) =
+tapp-redex? (_⇓_ {V = W} vW (ν_ {p = p})) =
   just (_ , _ , β-down-ν vW)
 tapp-redex? (_↑_ {V = W} vW (_↦_ {p = p} {q = q})) = nothing
 tapp-redex? (_↑_ {V = W} vW (`∀ {c = c})) =
@@ -434,7 +434,7 @@ up-head-step? :
   (M : Term) →
   (p : Imp) →
   Maybe (Step Σ (M ⇑ p))
-up-head-step? Σ M (∀A-⊑-B B p) with value? M
+up-head-step? Σ M (∀A-⊑-B p) with value? M
 ... | just vM = just (_ , _ , β-up-ν vM)
 ... | nothing = nothing
 up-head-step? Σ M p = up-id-step? Σ M p

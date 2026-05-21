@@ -51,7 +51,7 @@ cong₃ f refl refl refl = refl
 -- Term-variable renaming environments
 ------------------------------------------------------------------------
 
-Renameˣ-wt : (Γ Γ′ : Ctx) (ρ : Renameˣ) → Set
+Renameˣ-wt : (Γ Γ′ : Ctx) (ρ : Renameˣ) → Set₁
 Renameˣ-wt Γ Γ′ ρ =
   ∀ {A : Ty}{x : Var} → Γ ∋ x ⦂ A → Γ′ ∋ ρ x ⦂ A
 
@@ -467,7 +467,7 @@ renameˣᵐ-wt ρ hρ (⊢blame ℓ) = ⊢blame ℓ
 Substˣ-wt :
   ∀ {Δ Ψ}{Σ : Store}{Γ Γ′ : Ctx} →
   (σ : Substˣ) →
-  Set
+  Set₁
 Substˣ-wt {Δ} {Ψ} {Σ} {Γ} {Γ′} σ =
   ∀ {A : Ty}{x : Var} →
   Γ ∋ x ⦂ A →

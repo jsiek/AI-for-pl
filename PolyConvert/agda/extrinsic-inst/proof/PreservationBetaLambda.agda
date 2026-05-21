@@ -115,9 +115,8 @@ mutual
     DownValue (substImp (substVarFrom k (｀ α)) p)
   substPlain-down-value k α (_↦_ {p = p} {q = q}) = _↦_
   substPlain-down-value k α (`∀ {p = p}) = `∀
-  substPlain-down-value k α (ν_ {B = B} {p = p}) =
-    ν_ {B = substᵗ (substVarFrom k (｀ α)) B}
-      {p = substImp (substVarFrom (suc k) (｀ α)) p}
+  substPlain-down-value k α (ν_ {p = p}) =
+    ν_ {p = substImp (substVarFrom (suc k) (｀ α)) p}
 
 mutual
   substPlain-reveal-value :

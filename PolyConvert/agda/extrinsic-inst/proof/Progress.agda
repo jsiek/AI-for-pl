@@ -145,7 +145,7 @@ canonical-⇒ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q}))
   (⊢down (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) W⊢) =
   fv-⇓↦ vW refl
 canonical-⇒ (_⇓_ {V = W} vW `∀) (⊢down () W⊢)
-canonical-⇒ (_⇓_ {V = W} vW (ν_ {B = B} {p = p})) (⊢down () W⊢)
+canonical-⇒ (_⇓_ {V = W} vW (ν_ {p = p})) (⊢down () W⊢)
 canonical-⇒ (_↑_ {V = W} vW (_↦_ {p = p} {q = q}))
   (⊢reveal (⊢↑-⇒ p⊢ q⊢) W⊢) =
   fv-↑↦ vW refl
@@ -175,9 +175,9 @@ data AllView (V : Term) : Set where
     AllView V
 
   av-⇓ν :
-    ∀ {W : Term}{B : Ty}{p : Imp} →
+    ∀ {W : Term}{p : Imp} →
     Value W →
-    V ≡ (W ⇓ (∀A-⊑-B B p)) →
+    V ≡ (W ⇓ (∀A-⊑-B p)) →
     AllView V
 
   av-↑∀ :
@@ -208,7 +208,7 @@ canonical-∀ (_⇑_ {V = W} vW (`∀ {p = p})) (⊢up (⊢∀A-⊑-∀B p⊢) W
 canonical-∀ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢down () W⊢)
 canonical-∀ (_⇓_ {V = W} vW (`∀ {p = p})) (⊢down (⊢∀A-⊑-∀B p⊢) W⊢) =
   av-⇓∀ vW refl
-canonical-∀ (_⇓_ {V = W} vW (ν_ {B = B} {p = p}))
+canonical-∀ (_⇓_ {V = W} vW (ν_ {p = p}))
   (⊢down (⊢∀A-⊑-B wfB p⊢) W⊢) =
   av-⇓ν vW refl
 canonical-∀ (_↑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢reveal () W⊢)
@@ -241,7 +241,7 @@ canonical-ℕ (_⇑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢up () W⊢)
 canonical-ℕ (_⇑_ {V = W} vW `∀) (⊢up () W⊢)
 canonical-ℕ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢down () W⊢)
 canonical-ℕ (_⇓_ {V = W} vW `∀) (⊢down () W⊢)
-canonical-ℕ (_⇓_ {V = W} vW (ν_ {B = B} {p = p})) (⊢down () W⊢)
+canonical-ℕ (_⇓_ {V = W} vW (ν_ {p = p})) (⊢down () W⊢)
 canonical-ℕ (_↑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢reveal () W⊢)
 canonical-ℕ (_↑_ {V = W} vW `∀) (⊢reveal () W⊢)
 canonical-ℕ (_↓_ {V = W} vW seal) (⊢conceal () W⊢)
@@ -270,7 +270,7 @@ canonical-★ (_⇑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢up () W⊢)
 canonical-★ (_⇑_ {V = W} vW `∀) (⊢up () W⊢)
 canonical-★ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢down () W⊢)
 canonical-★ (_⇓_ {V = W} vW `∀) (⊢down () W⊢)
-canonical-★ (_⇓_ {V = W} vW (ν_ {B = B} {p = p})) (⊢down () W⊢)
+canonical-★ (_⇓_ {V = W} vW (ν_ {p = p})) (⊢down () W⊢)
 canonical-★ (_↑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢reveal () W⊢)
 canonical-★ (_↑_ {V = W} vW `∀) (⊢reveal () W⊢)
 canonical-★ (_↓_ {V = W} vW seal) (⊢conceal () W⊢)
@@ -298,7 +298,7 @@ canonical-｀ (_⇑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢up () W⊢)
 canonical-｀ (_⇑_ {V = W} vW `∀) (⊢up () W⊢)
 canonical-｀ (_⇓_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢down () W⊢)
 canonical-｀ (_⇓_ {V = W} vW `∀) (⊢down () W⊢)
-canonical-｀ (_⇓_ {V = W} vW (ν_ {B = B} {p = p})) (⊢down () W⊢)
+canonical-｀ (_⇓_ {V = W} vW (ν_ {p = p})) (⊢down () W⊢)
 canonical-｀ (_↑_ {V = W} vW (_↦_ {p = p} {q = q})) (⊢reveal () W⊢)
 canonical-｀ (_↑_ {V = W} vW `∀) (⊢reveal () W⊢)
 canonical-｀ (_↓_ {V = W} vW seal) (⊢conceal (⊢↓-seal h) W⊢) =
@@ -429,7 +429,7 @@ progress (⊢up {M = M} {p = A⇒B-⊑-A′⇒B′ p q} (⊢A⇒B-⊑-A′⇒B�
   done (vM ⇑ (_↦_ {p = p} {q = q}))
 progress (⊢up {M = M} {p = ∀A-⊑-∀B p} (⊢∀A-⊑-∀B p⊢) M⊢) | done vM =
   done (vM ⇑ (`∀ {p = p}))
-progress (⊢up {M = M} {p = ∀A-⊑-B B p} (⊢∀A-⊑-B wfB p⊢) M⊢)
+progress (⊢up {M = M} {p = ∀A-⊑-B p} (⊢∀A-⊑-B wfB p⊢) M⊢)
     | done vM =
   step (β-up-ν vM)
 progress (⊢down {M = M} {p = p} p⊢ M⊢) with progress M⊢
@@ -453,9 +453,9 @@ progress
   done (vM ⇓ (_↦_ {p = p} {q = q}))
 progress (⊢down {M = M} {p = ∀A-⊑-∀B p} (⊢∀A-⊑-∀B p⊢) M⊢) | done vM =
   done (vM ⇓ (`∀ {p = p}))
-progress (⊢down {M = M} {p = ∀A-⊑-B B p} (⊢∀A-⊑-B wfB p⊢) M⊢)
+progress (⊢down {M = M} {p = ∀A-⊑-B p} (⊢∀A-⊑-B wfB p⊢) M⊢)
     | done vM =
-  done (vM ⇓ (ν_ {B = B} {p = p}))
+  done (vM ⇓ (ν_ {p = p}))
 progress (⊢reveal {M = M} {c = c} c⊢ M⊢) with progress M⊢
 progress (⊢reveal {M = M} {c = c} c⊢ M⊢) | step M→M′ =
   step (ξ-↑ M→M′)

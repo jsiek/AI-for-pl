@@ -126,7 +126,7 @@ rightCtx-⇑ᵗᴾ ((A , B , p , p⊢) ∷ Γ) =
 
 infix 4 _⊢_⊑_⦂_⊑_
 data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
-    Term → Term → Ty → Ty → Set where
+    Term → Term → Ty → Ty → Set₁ where
 
   ⊑` : ∀ {x A B p p⊢} →
     TPEnv.Γ E ∋ₚ x ⦂ (A , B , p , p⊢) →

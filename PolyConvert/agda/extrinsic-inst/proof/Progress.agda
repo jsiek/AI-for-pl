@@ -209,7 +209,7 @@ canonical-∀ (_⇓_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢down () W⊢)
 canonical-∀ (_⇓_ {V = W} vW (`∀ {p = p})) (⊢down (⊢∀A-⊑-∀B p⊢) W⊢) =
   av-⇓∀ vW refl
 canonical-∀ (_⇓_ {V = W} vW (νᵥ_ {p = p}))
-  (⊢down (⊢∀A-⊑-B wfB p⊢) W⊢) =
+  (⊢down (⊢∀A-⊑-B occA wfB p⊢) W⊢) =
   av-⇓ν vW refl
 canonical-∀ (_↑_ {V = W} vW (_↦ᵥ_ {p = p} {q = q})) (⊢reveal () W⊢)
 canonical-∀ (_↑_ {V = W} vW (`∀ {c = c}))
@@ -429,7 +429,7 @@ progress (⊢up {M = M} {p = p ↦ q} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) M⊢)
   done (vM ⇑ (_↦ᵥ_ {p = p} {q = q}))
 progress (⊢up {M = M} {p = ‵∀ p} (⊢∀A-⊑-∀B p⊢) M⊢) | done vM =
   done (vM ⇑ (`∀ {p = p}))
-progress (⊢up {M = M} {p = ν p} (⊢∀A-⊑-B wfB p⊢) M⊢)
+progress (⊢up {M = M} {p = ν p} (⊢∀A-⊑-B occA wfB p⊢) M⊢)
     | done vM =
   step (β-up-ν vM)
 progress (⊢down {M = M} {p = p} p⊢ M⊢) with progress M⊢
@@ -453,7 +453,7 @@ progress
   done (vM ⇓ (_↦ᵥ_ {p = p} {q = q}))
 progress (⊢down {M = M} {p = ‵∀ p} (⊢∀A-⊑-∀B p⊢) M⊢) | done vM =
   done (vM ⇓ (`∀ {p = p}))
-progress (⊢down {M = M} {p = ν p} (⊢∀A-⊑-B wfB p⊢) M⊢)
+progress (⊢down {M = M} {p = ν p} (⊢∀A-⊑-B occA wfB p⊢) M⊢)
     | done vM =
   done (vM ⇓ (νᵥ_ {p = p}))
 progress (⊢reveal {M = M} {c = c} c⊢ M⊢) with progress M⊢

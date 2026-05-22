@@ -119,9 +119,9 @@ right-extra-up-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇑ `∀) ,
   ((_ ⇑ ‵∀ _) ∎) ,
   ⊑⇑R rel (⊢∀A-⊑-∀B p′⊢) pB⊢
-right-extra-up-catchup wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-B wfB p′⊢) pB⊢ =
+right-extra-up-catchup wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-B occA wfB p′⊢) pB⊢ =
   right-extra-up-catchup-ν wfΣˡ wfΣʳ vV vV′ rel
-    (⊢∀A-⊑-B wfB p′⊢) pB⊢
+    (⊢∀A-⊑-B occA wfB p′⊢) pB⊢
 
 postulate
   right-extra-up-catchup-left-ν :
@@ -179,9 +179,9 @@ right-extra-up-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
   ((_ ⇑ ‵∀ _) ∎) ,
   ⊑⇑ rel p⊢ (⊢∀A-⊑-∀B p′⊢) pB⊢
 right-extra-up-catchup-left
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢∀A-⊑-B wfB p′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢∀A-⊑-B occA wfB p′⊢) pB⊢ =
   right-extra-up-catchup-left-ν wfΣˡ wfΣʳ vVp vV′ rel p⊢
-    (⊢∀A-⊑-B wfB p′⊢) pB⊢
+    (⊢∀A-⊑-B occA wfB p′⊢) pB⊢
 
 right-ground-down-catchup :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B′ p′ pB} →
@@ -215,10 +215,10 @@ right-ground-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
   ⊑⇓R rel (⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢) pB⊢
 right-ground-down-catchup () wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-∀B p′⊢) pB⊢
 right-ground-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  h wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-B wfB p′⊢) pB⊢ =
+  h wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-B occA wfB p′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ νᵥ_) ,
   ((_ ⇓ ν _) ∎) ,
-  ⊑⇓R rel (⊢∀A-⊑-B wfB p′⊢) pB⊢
+  ⊑⇓R rel (⊢∀A-⊑-B occA wfB p′⊢) pB⊢
 
 right-tag-less-ground-catchup-⇑R-core :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V W A A′ B G H p q pB} →
@@ -591,10 +591,10 @@ right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
   ((_ ⇓ ‵∀ _) ∎) ,
   ⊑⇓R rel (⊢∀A-⊑-∀B p′⊢) pB⊢
 right-extra-down-catchup {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-B wfB p′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vV vV′ rel (⊢∀A-⊑-B occA wfB p′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ νᵥ_) ,
   ((_ ⇓ ν _) ∎) ,
-  ⊑⇓R rel (⊢∀A-⊑-B wfB p′⊢) pB⊢
+  ⊑⇓R rel (⊢∀A-⊑-B occA wfB p′⊢) pB⊢
 
 right-extra-down-catchup-left :
   ∀ {Ψˡ Ψʳ Σˡ Σʳ V V′ A A′ B B′ p p′ pB} →
@@ -641,10 +641,10 @@ right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
   ((_ ⇓ ‵∀ _) ∎) ,
   ⊑⇓ rel p⊢ (⊢∀A-⊑-∀B p′⊢) pB⊢
 right-extra-down-catchup-left {Ψʳ = Ψʳ} {Σʳ = Σʳ}
-  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢∀A-⊑-B wfB p′⊢) pB⊢ =
+  wfΣˡ wfΣʳ vVp vV′ rel p⊢ (⊢∀A-⊑-B occA wfB p′⊢) pB⊢ =
   Ψʳ , Σʳ , wfΣʳ , _ , (vV′ ⇓ νᵥ_) ,
   ((_ ⇓ ν _) ∎) ,
-  ⊑⇓ rel p⊢ (⊢∀A-⊑-B wfB p′⊢) pB⊢
+  ⊑⇓ rel p⊢ (⊢∀A-⊑-B occA wfB p′⊢) pB⊢
 
 postulate
   right-extra-reveal-catchup :

@@ -2,8 +2,8 @@ module proof.CompilePreservesImprecision where
 
 -- File Charter:
 --   * Compile-imprecision preservation scaffolding for gradual terms.
---   * Proves the formerly blocking polymorphic `Λ⊑` example using the new
---     target `⊑Λν` rule.
+--   * The old constant-body polymorphic `Λ⊑` example is intentionally absent:
+--     `Λ⊑` now requires the quantified variable to occur in the body type.
 --   * States the closed compile-preservation theorem shape and isolates the
 --     remaining compatibility obligations needed for the full structural proof.
 
@@ -243,31 +243,6 @@ compiled-prim-compat {Φ = Φ} {Γ = Γ} A~ℕ A′~ℕ B~ℕ B′~ℕ relL relM
       A~ℕ A′~ℕ relL ⊢ι-⊑-ι)
     (compiled-coerce-right-compat {Φ = Φ} {Γ = Γ}
       B~ℕ B′~ℕ relM ⊢ι-⊑-ι)
-
-source-Λ⊑$ :
-  zero ∣ [] ∣ [] ⊢ᴳ (Λᴳ ($ᴳ (κℕ zero))) ⊑ ($ᴳ (κℕ zero)) ⦂
-    ν (idι `ℕ)
-source-Λ⊑$ = Λ⊑ ($ᴳ (κℕ zero)) $⊑$
-
-source-left-typed :
-  zero ∣ [] ⊢ᴳ Λᴳ ($ᴳ (κℕ zero)) ⦂ `∀ ℕᵗ
-source-left-typed = ⊢ᴳΛ ($ᴳ (κℕ zero)) (⊢ᴳ$ (κℕ zero))
-
-source-right-typed :
-  zero ∣ [] ⊢ᴳ $ᴳ (κℕ zero) ⦂ ℕᵗ
-source-right-typed = ⊢ᴳ$ (κℕ zero)
-
-compiled-Λ⊑$ :
-  ⟪ zero , zero , [] , zero , [] , [] ⟫ ⊢
-    proj₁ (compile source-left-typed) ⊑
-    proj₁ (compile source-right-typed) ⦂ `∀ ℕᵗ ⊑ ℕᵗ
-compiled-Λ⊑$ =
-  ⊑Λν
-    ($ᵀ (κℕ zero))
-    wfBase
-    (⊢ᵀ$ (κℕ zero))
-    ⊑$
-    ⊢ι-⊑-ι
 
 ClosedCompilePreservation : Set₁
 ClosedCompilePreservation =

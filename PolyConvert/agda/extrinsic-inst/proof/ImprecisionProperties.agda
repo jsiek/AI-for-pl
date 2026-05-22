@@ -8,18 +8,20 @@ module proof.ImprecisionProperties where
 --   * Includes structural transitivity for type imprecision.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (true; false)
+open import Data.Bool using (true; false; _∨_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_; _++_; length)
 open import Data.Nat using (_<_; _≤_; zero; suc; z<s; s<s)
-open import Data.Nat.Properties using (<-≤-trans; n≤1+n)
+open import Data.Nat.Properties using (_≟_; <-≤-trans; n≤1+n)
 open import Data.Product using (Σ; Σ-syntax; _,_; proj₂)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; sym; trans)
+open import Relation.Nullary using (yes; no)
 
 open import Types
 open import Imprecision
 open import Store
-open import proof.ConsistencyProperties using (drop-⇑ᵗ-WfTy-extend-X⊑X)
+open import proof.ConsistencyProperties
+  using (drop-⇑ᵗ-WfTy-extend-X⊑X; occurs-rename-ext-raise-zero)
 open import proof.TypeProperties
 open import proof.StoreProperties using (len<suc-StoreWf)
 
@@ -61,7 +63,7 @@ src⊑-correct ⊢ι-⊑-ι = refl
 src⊑-correct (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   cong₂ _⇒_ (src⊑-correct p⊢) (src⊑-correct q⊢)
 src⊑-correct (⊢∀A-⊑-∀B p⊢) = cong `∀ (src⊑-correct p⊢)
-src⊑-correct (⊢∀A-⊑-B wfB p⊢) = cong `∀ (src⊑-correct p⊢)
+src⊑-correct (⊢∀A-⊑-B _ wfB p⊢) = cong `∀ (src⊑-correct p⊢)
 
 tgt⊑-correct : ∀ {Ψ Γ p A B} →
   Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
@@ -75,7 +77,7 @@ tgt⊑-correct ⊢ι-⊑-ι = refl
 tgt⊑-correct (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   cong₂ _⇒_ (tgt⊑-correct p⊢) (tgt⊑-correct q⊢)
 tgt⊑-correct (⊢∀A-⊑-∀B p⊢) = cong `∀ (tgt⊑-correct p⊢)
-tgt⊑-correct (⊢∀A-⊑-B {B = B} wfB p⊢) =
+tgt⊑-correct (⊢∀A-⊑-B {B = B} _ wfB p⊢) =
   trans (cong (dropTyFrom zero) (tgt⊑-correct p⊢))
         (dropTyFrom-raise-same zero B)
 
@@ -95,7 +97,7 @@ tgt⊑-correct (⊢∀A-⊑-B {B = B} wfB p⊢) =
 ⊑-src-wf (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   wf⇒ (⊑-src-wf p⊢) (⊑-src-wf q⊢)
 ⊑-src-wf (⊢∀A-⊑-∀B p⊢) = wf∀ (⊑-src-wf p⊢)
-⊑-src-wf (⊢∀A-⊑-B wfB p⊢) = wf∀ (⊑-src-wf p⊢)
+⊑-src-wf (⊢∀A-⊑-B _ wfB p⊢) = wf∀ (⊑-src-wf p⊢)
 
 ⊑-tgt-wf : ∀ {Ψ Γ p A B} →
   Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
@@ -109,7 +111,7 @@ tgt⊑-correct (⊢∀A-⊑-B {B = B} wfB p⊢) =
 ⊑-tgt-wf (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   wf⇒ (⊑-tgt-wf p⊢) (⊑-tgt-wf q⊢)
 ⊑-tgt-wf (⊢∀A-⊑-∀B p⊢) = wf∀ (⊑-tgt-wf p⊢)
-⊑-tgt-wf (⊢∀A-⊑-B wfB p⊢) = wfB
+⊑-tgt-wf (⊢∀A-⊑-B _ wfB p⊢) = wfB
 
 ⊑-tgt-non∀ :
   ∀ {Ψ Γ p A B} →
@@ -138,8 +140,8 @@ wk-⊑ Ψ≤Ψ′ ⊢ι-⊑-ι = ⊢ι-⊑-ι
 wk-⊑ Ψ≤Ψ′ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   ⊢A⇒B-⊑-A′⇒B′ (wk-⊑ Ψ≤Ψ′ p⊢) (wk-⊑ Ψ≤Ψ′ q⊢)
 wk-⊑ Ψ≤Ψ′ (⊢∀A-⊑-∀B p⊢) = ⊢∀A-⊑-∀B (wk-⊑ Ψ≤Ψ′ p⊢)
-wk-⊑ Ψ≤Ψ′ (⊢∀A-⊑-B wfB p⊢) =
-  ⊢∀A-⊑-B (WfTy-weakenˢ wfB Ψ≤Ψ′) (wk-⊑ Ψ≤Ψ′ p⊢)
+wk-⊑ Ψ≤Ψ′ (⊢∀A-⊑-B occA wfB p⊢) =
+  ⊢∀A-⊑-B occA (WfTy-weakenˢ wfB Ψ≤Ψ′) (wk-⊑ Ψ≤Ψ′ p⊢)
 
 wk-⊒ :
   ∀ {Ψ Ψ′ Γᵢ p A B} →
@@ -209,7 +211,7 @@ reflImp-wt-extend-X⊑X (wf∀ wfA) =
        (⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} wfB q⊢)
 ⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA) (⊢∀A-⊑-∀B p⊢) =
   wf∀ (⊑-tgt-wf-prefix {Δ = Δ} {Φ = X⊑X ∷ Φ} wfA p⊢)
-⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA) (⊢∀A-⊑-B wfB p⊢) =
+⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA) (⊢∀A-⊑-B _ wfB p⊢) =
   drop-⇑ᵗ-WfTy-extend-X⊑X {Δ = length Φ}
     (⊑-tgt-wf-prefix {Δ = Δ} {Φ = X⊑★ ∷ Φ} wfA p⊢)
 
@@ -238,7 +240,7 @@ reflImp-wt-extend-X⊑X (wf∀ wfA) =
        (⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} wfB q⊢)
 ⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} (wf∀ wfA) (⊢∀A-⊑-∀B p⊢) =
   wf∀ (⊑-tgt-wf-prefix-any {Φ = X⊑X ∷ Φ} {Γ = Γ} wfA p⊢)
-⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} (wf∀ wfA) (⊢∀A-⊑-B wfB p⊢) =
+⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} (wf∀ wfA) (⊢∀A-⊑-B _ wfB p⊢) =
   drop-⇑ᵗ-WfTy-extend-X⊑X {Δ = length Φ}
     (⊑-tgt-wf-prefix-any {Φ = X⊑★ ∷ Φ} {Γ = Γ} wfA p⊢)
 
@@ -369,8 +371,9 @@ wkImpAt {Φ = Φ} (⊢∀A-⊑-∀B p⊢) =
       (sym (rename-raise-ext (length Φ) _))
       (sym (rename-raise-ext (length Φ) _))
       (wkImpAt {Φ = X⊑X ∷ Φ} p⊢))
-wkImpAt {Φ = Φ} (⊢∀A-⊑-B {A = A} {B = B} wfB p⊢) =
+wkImpAt {Φ = Φ} (⊢∀A-⊑-B {A = A} {B = B} occA wfB p⊢) =
   ⊢∀A-⊑-B
+    (trans (occurs-rename-ext-raise-zero (length Φ) A) occA)
     (renameᵗ-preserves-WfTy wfB (raiseWf {Φ = Φ}))
     (cong-⊢⊑-raw
       (sym (rename⊑-cong (raise-ext (length Φ)) _))
@@ -455,8 +458,12 @@ open-fresh-ν⊑-prefix wfΣ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
        (open-fresh-ν⊑-prefix wfΣ q⊢)
 open-fresh-ν⊑-prefix {Φ = Φ} wfΣ (⊢∀A-⊑-∀B p⊢) =
   ⊢∀A-⊑-∀B (open-fresh-ν⊑-prefix {Φ = X⊑X ∷ Φ} wfΣ p⊢)
-open-fresh-ν⊑-prefix {Φ = Φ} wfΣ (⊢∀A-⊑-B {A = A} {B = B} wfB p⊢) =
+open-fresh-ν⊑-prefix {Φ = Φ} wfΣ
+    (⊢∀A-⊑-B {A = A} {B = B} occA wfB p⊢) =
   ⊢∀A-⊑-B
+    (trans
+      (occurs-substVarFrom-< (suc (length Φ)) zero (｀ _) A z<s)
+      occA)
     (substᵗ-preserves-WfTy
       (WfTy-weakenˢ wfB (n≤1+n _))
       (substWf-prefix {Φ = Φ} wfΣ))
@@ -529,8 +536,12 @@ open-fresh-∀⊑-prefix wfΣ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
        (open-fresh-∀⊑-prefix wfΣ q⊢)
 open-fresh-∀⊑-prefix {Φ = Φ} wfΣ (⊢∀A-⊑-∀B p⊢) =
   ⊢∀A-⊑-∀B (open-fresh-∀⊑-prefix {Φ = X⊑X ∷ Φ} wfΣ p⊢)
-open-fresh-∀⊑-prefix {Φ = Φ} wfΣ (⊢∀A-⊑-B {A = A} {B = B} wfB p⊢) =
+open-fresh-∀⊑-prefix {Φ = Φ} wfΣ
+    (⊢∀A-⊑-B {A = A} {B = B} occA wfB p⊢) =
   ⊢∀A-⊑-B
+    (trans
+      (occurs-substVarFrom-< (suc (length Φ)) zero (｀ _) A z<s)
+      occA)
     (substᵗ-preserves-WfTy
       (WfTy-weakenˢ wfB (n≤1+n _))
       (substWf-plain-prefix {Φ = Φ} wfΣ))
@@ -603,6 +614,38 @@ wf-length-cast Γ≤Γ′ wfA =
 false≢true : false ≡ true → ⊥
 false≢true ()
 
+lookup-X⊑X-not-X⊑★ :
+  ∀ {Γ X} →
+  Γ ∋ X ∶ X⊑X →
+  Γ ∋ X ∶ X⊑★ →
+  ⊥
+lookup-X⊑X-not-X⊑★ here ()
+lookup-X⊑X-not-X⊑★ (there x∈) (there y∈) =
+  lookup-X⊑X-not-X⊑★ x∈ y∈
+
+ground-occurs-false :
+  ∀ {X G} →
+  Ground G →
+  occurs X G ≡ true →
+  ⊥
+ground-occurs-false (｀ α) ()
+ground-occurs-false (‵ ι) ()
+ground-occurs-false ★⇒★ ()
+
+∨-trueˡ :
+  ∀ {b c} →
+  b ≡ true →
+  b ∨ c ≡ true
+∨-trueˡ {b = true} refl = refl
+∨-trueˡ {b = false} ()
+
+∨-trueʳ :
+  ∀ {b c} →
+  c ≡ true →
+  b ∨ c ≡ true
+∨-trueʳ {b = true} refl = refl
+∨-trueʳ {b = false} eq = eq
+
 occurs-⇑ᵗ-suc :
   ∀ X A →
   occurs (suc X) (⇑ᵗ A) ≡ occurs X A
@@ -640,9 +683,61 @@ plain-target-occurs-source {X = X} x∈
   plain-target-occurs-source x∈ q⊢ occ
 plain-target-occurs-source x∈ (⊢∀A-⊑-∀B p⊢) occ =
   plain-target-occurs-source (there x∈) p⊢ occ
-plain-target-occurs-source {X = X} x∈ (⊢∀A-⊑-B {B = B} wfB p⊢) occB =
+plain-target-occurs-source {X = X} x∈ (⊢∀A-⊑-B {B = B} _ wfB p⊢) occB =
   plain-target-occurs-source (there x∈) p⊢
     (trans (occurs-⇑ᵗ-suc X B) occB)
+
+plain-source-occurs-target :
+  ∀ {Ψ Γ X A B p} →
+  Γ ∋ X ∶ X⊑X →
+  Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
+  occurs X A ≡ true →
+  occurs X B ≡ true
+plain-source-occurs-target x∈ ⊢★-⊑-★ ()
+plain-source-occurs-target {X = X} x∈ (⊢X-⊑-★ {X = Y} yν) occ
+    with X ≟ Y
+plain-source-occurs-target {X = X} x∈ (⊢X-⊑-★ {X = Y} yν) occ
+    | yes refl =
+  ⊥-elim (lookup-X⊑X-not-X⊑★ x∈ yν)
+plain-source-occurs-target {X = X} x∈ (⊢X-⊑-★ {X = Y} yν) ()
+    | no neq
+plain-source-occurs-target x∈ (⊢A-⊑-★ g p⊢) occ =
+  ⊥-elim (ground-occurs-false g
+    (plain-source-occurs-target x∈ p⊢ occ))
+plain-source-occurs-target {X = X} x∈ (⊢X-⊑-X {X = Y} wfY) occ = occ
+plain-source-occurs-target x∈ (⊢α-⊑-α wfα) ()
+plain-source-occurs-target x∈ ⊢ι-⊑-ι ()
+plain-source-occurs-target {X = X} x∈
+    (⊢A⇒B-⊑-A′⇒B′ {A = A} {A′ = A′} {B = B} {B′ = B′} p⊢ q⊢) occ
+    with occurs X A in occA | occurs X B in occB
+plain-source-occurs-target {X = X} x∈
+    (⊢A⇒B-⊑-A′⇒B′ {A = A} {A′ = A′} {B = B} {B′ = B′} p⊢ q⊢) occ
+    | true | true =
+  ∨-trueˡ (plain-source-occurs-target x∈ p⊢ occA)
+plain-source-occurs-target {X = X} x∈
+    (⊢A⇒B-⊑-A′⇒B′ {A = A} {A′ = A′} {B = B} {B′ = B′} p⊢ q⊢) occ
+    | true | false =
+  ∨-trueˡ (plain-source-occurs-target x∈ p⊢ occA)
+plain-source-occurs-target {X = X} x∈
+    (⊢A⇒B-⊑-A′⇒B′ {A = A} {A′ = A′} {B = B} {B′ = B′} p⊢ q⊢) occ
+    | false | true
+    with occurs X A′
+plain-source-occurs-target {X = X} x∈
+    (⊢A⇒B-⊑-A′⇒B′ {A = A} {A′ = A′} {B = B} {B′ = B′} p⊢ q⊢) occ
+    | false | true | true = refl
+plain-source-occurs-target {X = X} x∈
+    (⊢A⇒B-⊑-A′⇒B′ {A = A} {A′ = A′} {B = B} {B′ = B′} p⊢ q⊢) occ
+    | false | true | false =
+  plain-source-occurs-target x∈ q⊢ occB
+plain-source-occurs-target {X = X} x∈
+    (⊢A⇒B-⊑-A′⇒B′ {A = A} {A′ = A′} {B = B} {B′ = B′} p⊢ q⊢) ()
+    | false | false
+plain-source-occurs-target x∈ (⊢∀A-⊑-∀B p⊢) occ =
+  plain-source-occurs-target (there x∈) p⊢ occ
+plain-source-occurs-target {X = X} x∈
+    (⊢∀A-⊑-B {B = B} occA wfB p⊢) occ =
+  trans (sym (occurs-⇑ᵗ-suc X B))
+    (plain-source-occurs-target (there x∈) p⊢ occ)
 
 ------------------------------------------------------------------------
 -- Transport across plain-to-ν context changes
@@ -715,14 +810,15 @@ plain-to-ν-raised-at-⊑ {Φ = Φ} {B = `∀ B} (⊢∀A-⊑-∀B p⊢)
   cong-⊢⊑ refl (cong `∀ (sym (rename-raise-ext (length Φ) B)))
     (⊢∀A-⊑-∀B q⊢)
 plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
-    (⊢∀A-⊑-B {A = A} wfB p⊢)
+    (⊢∀A-⊑-B {A = A} occA wfB p⊢)
     with plain-to-ν-raised-at-⊑ {Φ = X⊑★ ∷ Φ} {B = ⇑ᵗ B}
       (cong-⊢⊑ refl (sym (rename-raise-⇑ᵗ (length Φ) B)) p⊢)
 plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
-    (⊢∀A-⊑-B {A = A} wfB p⊢)
+    (⊢∀A-⊑-B {A = A} occA wfB p⊢)
     | q , q⊢ =
   ν q ,
   ⊢∀A-⊑-B
+    occA
     (subst (λ n → WfTy n 0 (renameᵗ (raiseVarFrom (length Φ)) B))
       (length-plain-to-ν Δ Φ) wfB)
     (cong-⊢⊑ refl (rename-raise-⇑ᵗ (length Φ) B) q⊢)
@@ -746,11 +842,11 @@ mutual
       with transport-to-ground-⊑ Γ≤Γ′ g p⊢
   transport-to-star-⊑ Γ≤Γ′ (⊢A-⊑-★ g p⊢) | r , r⊢ =
     r ! , ⊢A-⊑-★ g r⊢
-  transport-to-star-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = ★} wf★ p⊢)
+  transport-to-star-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = ★} occA wf★ p⊢)
       with transport-to-star-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢
-  transport-to-star-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = ★} wf★ p⊢)
+  transport-to-star-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = ★} occA wf★ p⊢)
       | r , r⊢ =
-    ν r , ⊢∀A-⊑-B (wf-length-cast Γ≤Γ′ wf★) r⊢
+    ν r , ⊢∀A-⊑-B occA (wf-length-cast Γ≤Γ′ wf★) r⊢
 
   transport-to-ground-⊑ :
     ∀ {Ψ Γ Γ′ A G p} →
@@ -768,11 +864,11 @@ mutual
   transport-to-ground-⊑ Γ≤Γ′ ★⇒★ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
       | p′ , p′⊢ | q′ , q′⊢ =
     p′ ↦ q′ , ⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢
-  transport-to-ground-⊑ Γ≤Γ′ g (⊢∀A-⊑-B {B = B} wfB p⊢)
+  transport-to-ground-⊑ Γ≤Γ′ g (⊢∀A-⊑-B {B = B} occA wfB p⊢)
       with transport-to-ground-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) (renameᵗ-ground suc g) p⊢
-  transport-to-ground-⊑ Γ≤Γ′ g (⊢∀A-⊑-B {B = B} wfB p⊢)
+  transport-to-ground-⊑ Γ≤Γ′ g (⊢∀A-⊑-B {B = B} occA wfB p⊢)
       | r , r⊢ =
-    ν r , ⊢∀A-⊑-B (wf-length-cast Γ≤Γ′ wfB) r⊢
+    ν r , ⊢∀A-⊑-B occA (wf-length-cast Γ≤Γ′ wfB) r⊢
 
 ------------------------------------------------------------------------
 -- Full transitivity
@@ -784,11 +880,11 @@ trans-ctx-⊑ :
   Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
   Ψ ∣ Γ′ ⊢ q ⦂ B ⊑ C →
   Σ[ r ∈ Imp ] Ψ ∣ Γ′ ⊢ r ⦂ A ⊑ C
-trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = B} wfB p⊢) q⊢
+trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = B} occA wfB p⊢) q⊢
     with trans-ctx-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢ (wkImpAt {Φ = []} q⊢)
-trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = B} wfB p⊢) q⊢
+trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-B {B = B} occA wfB p⊢) q⊢
     | r , r⊢ =
-  ν r , ⊢∀A-⊑-B (⊑-tgt-wf q⊢) r⊢
+  ν r , ⊢∀A-⊑-B occA (⊑-tgt-wf q⊢) r⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ ⊢★-⊑-★ = transport-to-star-⊑ Γ≤Γ′ p⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢X-⊑-★ xν) =
   trans-to-starν Γ≤Γ′ p⊢ xν
@@ -800,11 +896,11 @@ trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢X-⊑-★ xν) =
       Γ′ ∋ X ∶ X⊑★ →
       Σ[ r ∈ Imp ] Ψ ∣ Γ′ ⊢ r ⦂ A ⊑ ★
     trans-to-starν Γ≤Γ′ (⊢X-⊑-X wfX) xν = ‵ _ ! , ⊢X-⊑-★ xν
-    trans-to-starν Γ≤Γ′ (⊢∀A-⊑-B {B = ＇ X} wfB p⊢) xν
+    trans-to-starν Γ≤Γ′ (⊢∀A-⊑-B {B = ＇ X} occA wfB p⊢) xν
         with trans-ctx-⊑ (ν≤ν ∷≤ᵢ Γ≤Γ′) p⊢ (wkImpAt {Φ = []} (⊢X-⊑-★ xν))
-    trans-to-starν Γ≤Γ′ (⊢∀A-⊑-B {B = ＇ X} wfB p⊢) xν
+    trans-to-starν Γ≤Γ′ (⊢∀A-⊑-B {B = ＇ X} occA wfB p⊢) xν
         | r , r⊢ =
-      ν r , ⊢∀A-⊑-B wf★ r⊢
+      ν r , ⊢∀A-⊑-B occA wf★ r⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢A-⊑-★ g q⊢)
     with trans-ctx-⊑ Γ≤Γ′ p⊢ q⊢
 trans-ctx-⊑ Γ≤Γ′ p⊢ (⊢A-⊑-★ g q⊢) | r , r⊢ =
@@ -825,11 +921,11 @@ trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-∀B q⊢)
     with trans-ctx-⊑ (X⊑X≤X⊑X ∷≤ᵢ Γ≤Γ′) p⊢ q⊢
 trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-∀B q⊢) | r , r⊢ =
   ‵∀ r , ⊢∀A-⊑-∀B r⊢
-trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B {B = B} wfB q⊢)
+trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B {B = B} occB wfB q⊢)
     with trans-ctx-⊑ (X⊑X≤ν ∷≤ᵢ Γ≤Γ′) p⊢ q⊢
-trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B {B = B} wfB q⊢)
+trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B {B = B} occB wfB q⊢)
     | r , r⊢ =
-  ν r , ⊢∀A-⊑-B wfB r⊢
+  ν r , ⊢∀A-⊑-B (plain-target-occurs-source here p⊢ occB) wfB r⊢
 
 ⊑-trans :
   ∀ {Ψ Γ A B C p q} →

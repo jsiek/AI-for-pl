@@ -45,7 +45,7 @@ preserve-β-down-ν :
       (convert↑ (src⊑ p) (length Σ))) ⦂ C [ A ]ᵗ
 preserve-β-down-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {Γ = Γ}
   {V = V} {A = A} {C = C} {p = p} wfΣ vV
-  (⊢• (⊢down (⊢∀A-⊑-B {A = Aν} {B = Bν} wfB p⊢) V⊢)
+  (⊢• (⊢down (⊢∀A-⊑-B {A = Aν} {B = Bν} occA wfB p⊢) V⊢)
       wfC wfA) =
   cong-⊢⦂ refl refl refl
     (cong (λ B → B [ A ]ᵗ) (src⊑-correct p⊢))

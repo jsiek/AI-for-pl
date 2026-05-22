@@ -184,8 +184,10 @@ ImpSubst⊑Rel-exts {m′ = m′} h (there x∈) =
 ⊑-subst⊑ᵢ-rel hτʳ hᵢ (⊢∀A-⊑-∀B p⊢) =
   ⊢∀A-⊑-∀B
     (⊑-subst⊑ᵢ-rel (TySubstWf-exts hτʳ) (ImpSubst⊑Rel-exts hᵢ) p⊢)
-⊑-subst⊑ᵢ-rel {τʳ = τʳ} hτʳ hᵢ (⊢∀A-⊑-B {B = B} wfB p⊢) =
+⊑-subst⊑ᵢ-rel {τˡ = τˡ} {τʳ = τʳ} hτʳ hᵢ
+    (⊢∀A-⊑-B {A = A} {B = B} occA wfB p⊢) =
   ⊢∀A-⊑-B
+    (trans (occurs-subst-exts-zero τˡ A) occA)
     (substᵗ-preserves-WfTy wfB hτʳ)
     (cong-⊢⊑
       refl
@@ -376,8 +378,10 @@ singleTyEnv-TySubstWf-extend-X⊑X {Δ = Δ} {T = T} wfT
   ⊢A⇒B-⊑-A′⇒B′ (⊑-substᵗ-wt hσ hᵢ p⊢) (⊑-substᵗ-wt hσ hᵢ q⊢)
 ⊑-substᵗ-wt hσ hᵢ (⊢∀A-⊑-∀B p⊢) =
   ⊢∀A-⊑-∀B (⊑-substᵗ-wt (TySubstWf-exts hσ) (ImpSubstWt-exts hᵢ) p⊢)
-⊑-substᵗ-wt {σ = σ} hσ hᵢ (⊢∀A-⊑-B {A = A} {B = B} wfB p⊢) =
+⊑-substᵗ-wt {σ = σ} hσ hᵢ
+    (⊢∀A-⊑-B {A = A} {B = B} occA wfB p⊢) =
   ⊢∀A-⊑-B
+    (trans (occurs-subst-exts-zero σ A) occA)
     (substᵗ-preserves-WfTy wfB hσ)
     (cong-⊢⊑
       refl
@@ -409,12 +413,15 @@ singleTyEnv-TySubstWf-extend-X⊑X {Δ = Δ} {T = T} wfT
     with ⊑-substᵗ-rel (TySubstWf-exts hτ) (ImpSubstRel-exts hᵢ) p⊢
 ⊑-substᵗ-rel hτ hᵢ (⊢∀A-⊑-∀B p⊢) | q , q⊢ =
   ‵∀ q , ⊢∀A-⊑-∀B q⊢
-⊑-substᵗ-rel {τ = τ} hτ hᵢ (⊢∀A-⊑-B {B = B} wfB p⊢)
+⊑-substᵗ-rel {σ = σ} {τ = τ} hτ hᵢ
+    (⊢∀A-⊑-B {A = A} {B = B} occA wfB p⊢)
     with ⊑-substᵗ-rel (TySubstWf-exts hτ) (ImpSubstRel-exts hᵢ) p⊢
-⊑-substᵗ-rel {τ = τ} hτ hᵢ (⊢∀A-⊑-B {B = B} wfB p⊢)
+⊑-substᵗ-rel {σ = σ} {τ = τ} hτ hᵢ
+    (⊢∀A-⊑-B {A = A} {B = B} occA wfB p⊢)
     | q , q⊢ =
   ν q ,
   ⊢∀A-⊑-B
+    (trans (occurs-subst-exts-zero σ A) occA)
     (substᵗ-preserves-WfTy wfB hτ)
     (cong-⊢⊑ refl (substᵗ-suc-renameᵗ-suc τ B) q⊢)
 

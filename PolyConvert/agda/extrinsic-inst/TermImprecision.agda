@@ -8,6 +8,7 @@ module TermImprecision where
 --     precise and the right endpoint is less precise.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_; length)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (Σ; Σ-syntax; _,_; proj₁; proj₂)
@@ -169,6 +170,7 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
 
   ⊑Λν : ∀ {A B M M′ N′ p} →
     Value M →
+    occurs zero A ≡ true →
     WfTy (length (TPEnv.Φ E)) (TPEnv.Ψ E) B →
     TPEnv.Δ E ∣ TPEnv.Ψ E ∣ TPEnv.store E ∣
       rightCtx (TPEnv.Γ E) ⊢ M′ ⦂ B →
@@ -283,7 +285,7 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
   ⊢Λ vM
     (cong-⊢⦂ refl (leftCtx-⇑ᵗᴾ {m = X⊑X} (TPEnv.Γ E)) refl refl
       (⊑-left-typed rel))
-⊑-left-typed {E = E} (⊑Λν vM wfB M′⊢ rel p⊢) =
+⊑-left-typed {E = E} (⊑Λν vM occA wfB M′⊢ rel p⊢) =
   ⊢Λ vM
     (cong-⊢⦂ refl (leftCtx-⇑ᵗᴾ {m = X⊑★} (TPEnv.Γ E)) refl refl
       (⊑-left-typed rel))
@@ -316,7 +318,7 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
   ⊢Λ vM′
     (cong-⊢⦂ refl (rightCtx-⇑ᵗᴾ {m = X⊑X} (TPEnv.Γ E)) refl refl
       (⊑-right-typed rel))
-⊑-right-typed (⊑Λν vM wfB M′⊢ rel p⊢) = M′⊢
+⊑-right-typed (⊑Λν vM occA wfB M′⊢ rel p⊢) = M′⊢
 ⊑-right-typed (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) =
   ⊢• (⊑-right-typed rel) wfB wfT′
 ⊑-right-typed (⊑⦂∀-ν rel wfA wfT pT⊢) = ⊑-right-typed rel
@@ -345,8 +347,8 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
 ... | pA ↦ pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢ = pB , pB⊢
 ⊑-type-imprecision (⊑Λ relM relM′ rel) with ⊑-type-imprecision rel
 ... | p , p⊢ = ‵∀ p , ⊢∀A-⊑-∀B p⊢
-⊑-type-imprecision (⊑Λν {p = p} vM wfB M′⊢ rel p⊢) =
-  ν p , ⊢∀A-⊑-B wfB p⊢
+⊑-type-imprecision (⊑Λν {p = p} vM occA wfB M′⊢ rel p⊢) =
+  ν p , ⊢∀A-⊑-B occA wfB p⊢
 ⊑-type-imprecision (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) = _ , pT⊢
 ⊑-type-imprecision (⊑⦂∀-ν rel wfA wfT pT⊢) = _ , pT⊢
 ⊑-type-imprecision ⊑$ = idι `ℕ , ⊢ι-⊑-ι

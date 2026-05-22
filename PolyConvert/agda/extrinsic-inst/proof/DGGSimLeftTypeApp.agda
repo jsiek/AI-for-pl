@@ -319,7 +319,7 @@ sim-left-beta-Λ {Σʳ = Σʳ} {V = V} {M′ = M′} {A = A}
     wfA wfB wfT pT⊢
   | Ψʳ′ , Σʳ′ , wfΣʳ′ , V′ , vV′ , M′↠V′ , ΛV⊑V′
   | ΛV⊑V′R
-  | ν Bν pν , ⊢∀A-⊑-B wfBν pν⊢
+  | ν Bν pν , ⊢∀A-⊑-B occBν wfBν pν⊢
     with sim-left-beta-Λ-rest wfΣˡ wfΣʳ vV
       (⊑⇑R rel (⊢∀A-⊑-∀B {p = pR} pR⊢) pB⊢) wfA wfB wfT pT⊢
 ... | Ψˡ′ , Σˡ′ , Ψ≤Ψ′ , wfΣˡ′ , Ψʳ″ , Σʳ″ , wfΣʳ″ , N′ ,

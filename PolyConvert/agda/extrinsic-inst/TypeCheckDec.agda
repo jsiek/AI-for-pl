@@ -347,20 +347,24 @@ mutual
   imp-check Ψ Γ (‵∀ p) with imp-check Ψ (X⊑X ∷ Γ) p
   ... | yes p⊢ = yes (⊢∀A-⊑-∀B p⊢)
   ... | no ¬p = no (λ { (⊢∀A-⊑-∀B p⊢) → ¬p (⊑-to-computed p⊢) })
-  imp-check Ψ Γ (ν p) with wfTyDec (length Γ) Ψ (dropTyFrom zero (tgt⊑ p))
-  imp-check Ψ Γ (ν p) | no ¬wfB =
-      no (λ { (⊢∀A-⊑-B wfB p⊢) → ¬wfB wfB })
-  imp-check Ψ Γ (ν p) | yes wfB
+  imp-check Ψ Γ (ν p) with trueDec (occurs zero (src⊑ p))
+  imp-check Ψ Γ (ν p) | no ¬occ =
+      no (λ { (⊢∀A-⊑-B occA wfB p⊢) → ¬occ occA })
+  imp-check Ψ Γ (ν p) | yes occA
+      with wfTyDec (length Γ) Ψ (dropTyFrom zero (tgt⊑ p))
+  imp-check Ψ Γ (ν p) | yes occA | no ¬wfB =
+      no (λ { (⊢∀A-⊑-B occA wfB p⊢) → ¬wfB wfB })
+  imp-check Ψ Γ (ν p) | yes occA | yes wfB
       with imp-check Ψ (X⊑★ ∷ Γ) p
-  imp-check Ψ Γ (ν p) | yes wfB | no ¬p =
-      no (λ { (⊢∀A-⊑-B wfB′ p⊢) → ¬p (⊑-to-computed p⊢) })
-  imp-check Ψ Γ (ν p) | yes wfB | yes p⊢
+  imp-check Ψ Γ (ν p) | yes occA | yes wfB | no ¬p =
+      no (λ { (⊢∀A-⊑-B occA′ wfB′ p⊢) → ¬p (⊑-to-computed p⊢) })
+  imp-check Ψ Γ (ν p) | yes occA | yes wfB | yes p⊢
       with tgt⊑ p ≟Ty ⇑ᵗ (dropTyFrom zero (tgt⊑ p))
-  imp-check Ψ Γ (ν p) | yes wfB | yes p⊢ | no tgt≢ =
-      no (λ { (⊢∀A-⊑-B wfB′ p⊢′) → tgt≢ (tgt⊑-correct p⊢′) })
-  imp-check Ψ Γ (ν p) | yes wfB | yes p⊢ | yes eq =
+  imp-check Ψ Γ (ν p) | yes occA | yes wfB | yes p⊢ | no tgt≢ =
+      no (λ { (⊢∀A-⊑-B occA′ wfB′ p⊢′) → tgt≢ (tgt⊑-correct p⊢′) })
+  imp-check Ψ Γ (ν p) | yes occA | yes wfB | yes p⊢ | yes eq =
       yes
-        (⊢∀A-⊑-B {A = src⊑ p} wfB
+        (⊢∀A-⊑-B {A = src⊑ p} occA wfB
           (subst
             (λ C → Ψ ∣ (X⊑★ ∷ Γ) ⊢ p ⦂ src⊑ p ⊑ C)
             eq

@@ -3,6 +3,8 @@ module GradualTermImprecision where
 -- File Charter:
 --   * Term imprecision for gradual terms.
 
+open import Agda.Builtin.Equality using (_≡_)
+open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; zero; suc)
 
@@ -44,6 +46,7 @@ data _∣_∣_⊢ᴳ_⊑_⦂_ (Δ : TyCtx) (Φ : VarPrecCtx) (Π : List Imp) : G
 
   Λ⊑ : ∀ {M M′}{pA : Imp}
     → Value M 
+    → occurs zero (src⊑ pA) ≡ true
     → suc Δ ∣ X⊑★ ∷ Φ  ∣ map ⇑⊑ Π ⊢ᴳ M ⊑ ⇑ᵗᴳ M′ ⦂ pA 
     -----------------------------------------
     → Δ ∣ Φ ∣ Π ⊢ᴳ (Λ M) ⊑ M′ ⦂ ν pA

@@ -230,40 +230,40 @@ ground-upper-unique-⊑ :
   G ≡ H
 ground-upper-unique-⊑ (｀ α) (｀ .α) (⊢α-⊑-α wfα) (⊢α-⊑-α wfβ) = refl
 ground-upper-unique-⊑ (｀ α) (｀ β)
-  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
+  (⊢∀A-⊑-B _ wfB p⊢) (⊢∀A-⊑-B _ wfB′ q⊢) =
   ground-upper-unique-⊑ (｀ α) (｀ β) p⊢ q⊢
 ground-upper-unique-⊑ (｀ α) (‵ ι) (⊢α-⊑-α wfα) ()
 ground-upper-unique-⊑ (｀ α) (‵ ι)
-  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
+  (⊢∀A-⊑-B _ wfB p⊢) (⊢∀A-⊑-B _ wfB′ q⊢) =
   ground-upper-unique-⊑ (｀ α) (‵ ι) p⊢ q⊢
 ground-upper-unique-⊑ (｀ α) ★⇒★ (⊢α-⊑-α wfα) ()
 ground-upper-unique-⊑ (｀ α) ★⇒★
-  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
+  (⊢∀A-⊑-B _ wfB p⊢) (⊢∀A-⊑-B _ wfB′ q⊢) =
   ground-upper-unique-⊑ (｀ α) ★⇒★ p⊢ q⊢
 ground-upper-unique-⊑ (‵ ι) (｀ α) (⊢ι-⊑-ι) ()
 ground-upper-unique-⊑ (‵ ι) (｀ α)
-  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
+  (⊢∀A-⊑-B _ wfB p⊢) (⊢∀A-⊑-B _ wfB′ q⊢) =
   ground-upper-unique-⊑ (‵ ι) (｀ α) p⊢ q⊢
 ground-upper-unique-⊑ (‵ ι) (‵ .ι) (⊢ι-⊑-ι) (⊢ι-⊑-ι) = refl
 ground-upper-unique-⊑ (‵ ι) (‵ ι′)
-  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
+  (⊢∀A-⊑-B _ wfB p⊢) (⊢∀A-⊑-B _ wfB′ q⊢) =
   ground-upper-unique-⊑ (‵ ι) (‵ ι′) p⊢ q⊢
 ground-upper-unique-⊑ (‵ ι) ★⇒★ (⊢ι-⊑-ι) ()
 ground-upper-unique-⊑ (‵ ι) ★⇒★
-  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
+  (⊢∀A-⊑-B _ wfB p⊢) (⊢∀A-⊑-B _ wfB′ q⊢) =
   ground-upper-unique-⊑ (‵ ι) ★⇒★ p⊢ q⊢
 ground-upper-unique-⊑ ★⇒★ (｀ α) (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) ()
 ground-upper-unique-⊑ ★⇒★ (｀ α)
-  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
+  (⊢∀A-⊑-B _ wfB p⊢) (⊢∀A-⊑-B _ wfB′ q⊢) =
   ground-upper-unique-⊑ ★⇒★ (｀ α) p⊢ q⊢
 ground-upper-unique-⊑ ★⇒★ (‵ ι) (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) ()
 ground-upper-unique-⊑ ★⇒★ (‵ ι)
-  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
+  (⊢∀A-⊑-B _ wfB p⊢) (⊢∀A-⊑-B _ wfB′ q⊢) =
   ground-upper-unique-⊑ ★⇒★ (‵ ι) p⊢ q⊢
 ground-upper-unique-⊑ ★⇒★ ★⇒★ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) (⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′) =
   refl
 ground-upper-unique-⊑ ★⇒★ ★⇒★
-  (⊢∀A-⊑-B wfB p⊢) (⊢∀A-⊑-B wfB′ q⊢) =
+  (⊢∀A-⊑-B _ wfB p⊢) (⊢∀A-⊑-B _ wfB′ q⊢) =
   ground-upper-unique-⊑ ★⇒★ ★⇒★ p⊢ q⊢
 
 ★⊑Ground-elim :

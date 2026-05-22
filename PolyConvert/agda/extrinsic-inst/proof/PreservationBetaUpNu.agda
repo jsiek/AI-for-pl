@@ -38,7 +38,7 @@ preserve-β-up-ν :
     ((V ⦂∀ (src⊑ p) [ ｀ (length Σ) ]) ⇑
       (p [ ｀ (length Σ) ]⊑)) ⦂ A
 preserve-β-up-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {V = V} {p = p} wfΣ vV
-  (⊢up (⊢∀A-⊑-B {A = Aν} wfB p⊢) V⊢) =
+  (⊢up (⊢∀A-⊑-B {A = Aν} occA wfB p⊢) V⊢) =
   ⊢up
     (cong-⊢⊑
       (cong (λ A → A [ ｀ (length Σ) ]ᵗ) (sym (src⊑-correct p⊢)))

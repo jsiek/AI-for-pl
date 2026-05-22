@@ -6,6 +6,7 @@ module Consistency where
 open import Types
 open import Imprecision
 
+open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_; _++_; length; replicate)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (_×_; _,_; proj₁; proj₂)
@@ -98,11 +99,13 @@ data _⊢_~_ (Γ : CCtx) : Ty → Ty → Set where
     Γ ⊢ ★ ~ ＇ X
 
   ∀-~-B : ∀ {A B} →
+    occurs zero A ≡ true →
     WfTy (length Γ) 0 B →
     X~★ ∷ Γ ⊢ A ~ ⇑ᵗ B →
     Γ ⊢ (`∀ A) ~ B
 
   A-~-∀ : ∀ {A B} →
+    occurs zero B ≡ true →
     WfTy (length Γ) 0 A →
     ★~X ∷ Γ ⊢ ⇑ᵗ A ~ B →
     Γ ⊢ A ~ (`∀ B)
@@ -140,11 +143,11 @@ coerce (νX-~-★ {X} x∈) =
   idₓ X , ‵ X !
 coerce (★-~-νX {X} x∈) =
   ‵ X ! , idₓ X
-coerce (∀-~-B {B = B} wfB A~⇑B) with coerce A~⇑B
-coerce (∀-~-B {B = B} wfB A~⇑B) | p⊒ , p⊑ =
+coerce (∀-~-B {B = B} occA wfB A~⇑B) with coerce A~⇑B
+coerce (∀-~-B {B = B} occA wfB A~⇑B) | p⊒ , p⊑ =
   ‵∀ p⊒ , ν p⊑
-coerce (A-~-∀ {A = A} wfA ⇑A~B) with coerce ⇑A~B
-coerce (A-~-∀ {A = A} wfA ⇑A~B) | p⊒ , p⊑ =
+coerce (A-~-∀ {A = A} occB wfA ⇑A~B) with coerce ⇑A~B
+coerce (A-~-∀ {A = A} occB wfA ⇑A~B) | p⊒ , p⊑ =
   ν p⊒ , ‵∀ p⊑
 
 

@@ -17,10 +17,53 @@ open import proof.TypeProperties
   using
     ( raiseVarFrom-injective
     ; raiseVarFrom-<-inv
+    ; occurs-raise
     ; rename-raise-ext
     ; rename-raise-⇑ᵗ
     ; renameᵗ-ground-id
     )
+
+ext-raiseVarFrom :
+  ∀ k X →
+  extᵗ (raiseVarFrom k) X ≡ raiseVarFrom (suc k) X
+ext-raiseVarFrom k zero = refl
+ext-raiseVarFrom k (suc X) = refl
+
+occurs-raise-protected-var :
+  ∀ k X Y →
+  X < k →
+  occurs X (＇ raiseVarFrom k Y) ≡ occurs X (＇ Y)
+occurs-raise-protected-var zero X Y ()
+occurs-raise-protected-var (suc k) zero zero z<s = refl
+occurs-raise-protected-var (suc k) zero (suc Y) z<s = refl
+occurs-raise-protected-var (suc k) (suc X) zero (s<s X<k) = refl
+occurs-raise-protected-var (suc k) (suc X) (suc Y) (s<s X<k)
+  rewrite occurs-raise zero X (＇ raiseVarFrom k Y)
+        | occurs-raise-protected-var k X Y X<k
+        | occurs-raise zero X (＇ Y) = refl
+
+occurs-raise-protected :
+  ∀ A k X →
+  X < k →
+  occurs X (renameᵗ (raiseVarFrom k) A) ≡ occurs X A
+occurs-raise-protected (＇ Y) k X X<k =
+  occurs-raise-protected-var k X Y X<k
+occurs-raise-protected (｀ α) k X X<k = refl
+occurs-raise-protected (‵ ι) k X X<k = refl
+occurs-raise-protected ★ k X X<k = refl
+occurs-raise-protected (A ⇒ B) k X X<k
+  rewrite occurs-raise-protected A k X X<k
+        | occurs-raise-protected B k X X<k = refl
+occurs-raise-protected (`∀ A) k X X<k
+  rewrite rename-cong (ext-raiseVarFrom k) A =
+  occurs-raise-protected A (suc k) (suc X) (s<s X<k)
+
+occurs-rename-ext-raise-zero :
+  ∀ k A →
+  occurs zero (renameᵗ (extᵗ (raiseVarFrom k)) A) ≡ occurs zero A
+occurs-rename-ext-raise-zero k A
+  rewrite rename-cong (ext-raiseVarFrom k) A =
+  occurs-raise-protected A (suc k) zero z<s
 
 cong-~ :
   ∀ {Γ A A′ B B′} →
@@ -85,12 +128,14 @@ renameᵗ-Non∀-inv {A = A ⇒ B} non∀-⇒ = non∀-⇒
 ~-sym (★-~-B n★ n∀ h H~B) = A-~-★ n★ n∀ h (~-sym H~B)
 ~-sym (νX-~-★ x∈) = ★-~-νX (swap∋ᶜ x∈)
 ~-sym (★-~-νX x∈) = νX-~-★ (swap∋ᶜ x∈)
-~-sym {Γ = Γ} (∀-~-B {B = B} wfB A~⇑B) =
+~-sym {Γ = Γ} (∀-~-B {B = B} occA wfB A~⇑B) =
   A-~-∀
+    occA
     (subst (λ n → WfTy n 0 B) (sym (length-swapCCtx Γ)) wfB)
     (~-sym A~⇑B)
-~-sym {Γ = Γ} (A-~-∀ {A = A} wfA ⇑A~B) =
+~-sym {Γ = Γ} (A-~-∀ {A = A} occB wfA ⇑A~B) =
   ∀-~-B
+    occB
     (subst (λ n → WfTy n 0 A) (sym (length-swapCCtx Γ)) wfA)
     (~-sym ⇑A~B)
 
@@ -166,16 +211,6 @@ non∀-raise-refl-~ :
   ★~X ∷ extend-X~X Δ [] ⊢ ⇑ᵗ A ~ ⇑ᵗ A
 non∀-raise-refl-~ non∀A wfA =
   refl-insert-extend-X~X zero wfA
-
-non∀-∀-consistent :
-  ∀ {Δ A} →
-  Non∀ A →
-  WfTy Δ 0 A →
-  extend-X~X Δ [] ⊢ A ~ `∀ (⇑ᵗ A)
-non∀-∀-consistent non∀A wfA =
-  A-~-∀
-    (subst (λ n → WfTy n 0 _) (sym (length-extend-X~X[] _)) wfA)
-    (non∀-raise-refl-~ non∀A wfA)
 
 length-extend-X~X-split :
   (Φ Γ : CCtx) →
@@ -273,8 +308,8 @@ var-var-~-inj (X-~-X x∈) = refl , x∈
 ~-size (★-~-B n★ n∀ hG h) = suc (~-size h)
 ~-size (νX-~-★ x∈) = zero
 ~-size (★-~-νX x∈) = zero
-~-size (∀-~-B wfB h) = suc (~-size h)
-~-size (A-~-∀ wfA h) = suc (~-size h)
+~-size (∀-~-B occA wfB h) = suc (~-size h)
+~-size (A-~-∀ occB wfA h) = suc (~-size h)
 
 ≤refl : ∀ {n} → n ≤ n
 ≤refl {zero} = z≤n
@@ -443,11 +478,12 @@ drop-mode-at-~-gas gas {d = d} {Φ = m ∷ Φ} {Γ = Γ} {B = ★}
 drop-mode-at-~-gas gas {d = d} {Φ = m ∷ Φ} {Γ = Γ} {B = ★}
     {C = ＇ suc X} {h = h} p =
   drop-mode-at-νR-suc {d = d} {m = m} {Φ = Φ} {Γ = Γ} {X = X} h
-drop-mode-at-~-gas zero {B = `∀ A} {C = B} {h = ∀-~-B wfB A~⇑B} ()
+drop-mode-at-~-gas zero {B = `∀ A} {C = B} {h = ∀-~-B occA wfB A~⇑B} ()
 drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = `∀ A}
     {C = B}
-    {h = ∀-~-B wfB A~⇑B} (s≤s p) =
+    {h = ∀-~-B occA wfB A~⇑B} (s≤s p) =
   ∀-~-B
+    (trans (sym (occurs-rename-ext-raise-zero (length Φ) A)) occA)
     (drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = B} wfB)
     (drop-mode-at-~-gas gas
       {d = d} {Φ = X~★ ∷ Φ} {Γ = Γ} {B = A} {C = ⇑ᵗ B}
@@ -457,11 +493,12 @@ drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = `∀ A}
       (cong-~-≤ (rename-raise-ext (length Φ) A)
                 (sym (rename-raise-⇑ᵗ (length Φ) B))
                 A~⇑B p))
-drop-mode-at-~-gas zero {B = A} {C = `∀ B} {h = A-~-∀ wfA ⇑A~B} ()
+drop-mode-at-~-gas zero {B = A} {C = `∀ B} {h = A-~-∀ occB wfA ⇑A~B} ()
 drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = A}
     {C = `∀ B}
-    {h = A-~-∀ wfA ⇑A~B} (s≤s p) =
+    {h = A-~-∀ occB wfA ⇑A~B} (s≤s p) =
   A-~-∀
+    (trans (sym (occurs-rename-ext-raise-zero (length Φ) B)) occB)
     (drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A} wfA)
     (drop-mode-at-~-gas gas
       {d = d} {Φ = ★~X ∷ Φ} {Γ = Γ} {B = ⇑ᵗ A} {C = B}

@@ -8,6 +8,8 @@ module Imprecision where
 
 open import Types
 
+open import Agda.Builtin.Equality using (_≡_)
+open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_; _++_; length; replicate)
 open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
 
@@ -204,6 +206,7 @@ data _∣_⊢_⦂_⊑_ (Ψ : SealCtx) (Φ : VarPrecCtx) : Imp → Ty → Ty → 
     Ψ ∣ Φ ⊢ ‵∀ p ⦂ (`∀ A) ⊑ (`∀ B)
 
   ⊢∀A-⊑-B : ∀ {A B p} →
+    occurs zero A ≡ true →
     WfTy (length Φ) Ψ B →
     Ψ ∣ X⊑★ ∷ Φ ⊢ p ⦂ A ⊑ ⇑ᵗ B →
     -----------------------------

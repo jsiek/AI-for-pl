@@ -5,7 +5,6 @@ module ConsistencyAlt where
 --   * Type consistency.
 
 open import Types
-open import Imprecision
 
 open import Data.Bool using (Bool; true; false)
 open import Data.List.Membership.Propositional using (_∈_)
@@ -477,9 +476,6 @@ consistent? A B
     with lift-∀ n m A′~B′
 ...   | nothing = nothing
 ...   | just (Δ , A~B) =
-        just (Δ , cast-right (split-add∀-from sB) (cast-left (split-add∀-from sA) A~B))
+        just (Δ , cast-right (split-add∀-from sB)
+                    (cast-left (split-add∀-from sA) A~B))
 
-
-------------------------------------------------------------------------
--- Least Upper Bound, Greatest Lower Bound
-------------------------------------------------------------------------

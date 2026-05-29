@@ -12,6 +12,7 @@ open import Agda.Builtin.Equality using (_≡_)
 open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_; _++_; length; replicate)
 open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
+open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃; ∃-syntax)
 
 data VarPrec : Set where
   X⊑X X⊑★ : VarPrec
@@ -215,3 +216,19 @@ data _∣_⊢_⦂_⊑_ (Ψ : SealCtx) (Φ : VarPrecCtx) : Imp → Ty → Ty → 
 infix 4 _∣_⊢_⦂_⊒_
 _∣_⊢_⦂_⊒_ : SealCtx → VarPrecCtx → Imp → Ty → Ty → Set
 Ψ ∣ Φ ⊢ p ⦂ A ⊒ B = Ψ ∣ Φ ⊢ p ⦂ B ⊑ A
+
+-- A is a lower bound of B and C
+lb : SealCtx → VarPrecCtx → Ty → Ty → Ty → Set
+lb Ψ Φ A B C = ∃[ p ] ∃[ q ] (Ψ ∣ Φ ⊢ p ⦂ A ⊑ B) × (Ψ ∣ Φ ⊢ q ⦂ A ⊑ C)
+
+-- A is a greatest lower bound of B and C
+glb : SealCtx → VarPrecCtx → Ty → Ty → Ty → Set
+glb Ψ Φ A B C = lb Ψ Φ A B C × (∀ A′ → lb Ψ Φ A′ B C → ∃[ p ] Ψ ∣ Φ ⊢ p ⦂ A′ ⊑ A)
+
+-- A is an upper bound of B and C
+ub : SealCtx → VarPrecCtx → Ty → Ty → Ty → Set
+ub Ψ Φ A B C = ∃[ p ] ∃[ q ] (Ψ ∣ Φ ⊢ p ⦂ B ⊑ A) × (Ψ ∣ Φ ⊢ q ⦂ C ⊑ A)
+
+-- A is a least upper bound of B and C
+lub : SealCtx → VarPrecCtx → Ty → Ty → Ty → Set
+lub Ψ Φ A B C = ub Ψ Φ A B C × (∀ A′ → ub Ψ Φ A′ B C → ∃[ p ] Ψ ∣ Φ ⊢ p ⦂ A ⊑ A′)

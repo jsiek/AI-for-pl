@@ -1,7 +1,7 @@
 module proof.ImprecisionConsistent where
 
 -- File Charter:
---   * Properties that involve Imprecisoin and Consistency
+--   * Properties that involve Imprecision and Consistency
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -769,12 +769,6 @@ leftICtx-sameCCtx : ∀ Φ → leftICtx (sameCCtx Φ) ≡ Φ
 
 rightICtx-sameCCtx : ∀ Φ → rightICtx (sameCCtx Φ) ≡ Φ
 
-lower-bounds-consistentᶜ :
-  ∀ {Γ A B C p q} →
-  0 ∣ leftICtx Γ ⊢ p ⦂ A ⊑ B →
-  0 ∣ rightICtx Γ ⊢ q ⦂ A ⊑ C →
-  Γ ⊢ B ~ C
-
 coerce-glbᶜ :
   ∀ {Γ Φ A C B B′ p⊒ p⊑ pA pC} →
   (A~C : Γ ⊢ A ~ C) →
@@ -1532,6 +1526,12 @@ postulate
     0 ∣ leftICtx Γ ⊢ p ⦂ A ⊑ B →
     0 ∣ rightICtx Γ ⊢ q ⦂ A ⊑ G →
     Γ ⊢ B ~ ★
+
+lower-bounds-consistentᶜ :
+  ∀ {Γ A B C p q} →
+  0 ∣ leftICtx Γ ⊢ p ⦂ A ⊑ B →
+  0 ∣ rightICtx Γ ⊢ q ⦂ A ⊑ C →
+  Γ ⊢ B ~ C
 
 lower-bounds-consistentᶜ (⊢A-⊑-★ g p⊢) q⊢ =
   lower-bounds-star-leftᶜ g p⊢ q⊢

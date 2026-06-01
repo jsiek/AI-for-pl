@@ -178,9 +178,6 @@ wk-++ˡ {Γ₁} {Γ₂} {A} {B} A~B =
 wk-++ʳ : ∀ (Γ₁ : CCtx) {Γ₂ A B} → Γ₂ ⊢ A ~ B → Γ₁ ++ Γ₂ ⊢ A ~ B
 wk-++ʳ Γ₁ A~B = wk-mid [] Γ₁ A~B
 
-{-# TERMINATING #-}
-consistent? : (A B : Ty) → Maybe (Σ[ Γ ∈ CCtx ] Γ ⊢ A ~ B)
-
 add∀ : ℕ → Ty → Ty
 add∀ zero A = A
 add∀ (suc n) A = `∀ (add∀ n A)
@@ -317,6 +314,9 @@ lift-∀ n m {A} {B} {Γ} A~B | (★~ᶜ 0) ∷ Γ′ with occurs zero B | unshi
   ...   | nothing = nothing
   ...   | just (Ξ , k) = just (Ξ , cast-right (add∀-step m′ B) k)
 lift-∀ n m {A} {B} {Γ} A~B | _ = nothing
+
+{-# TERMINATING #-}
+consistent? : (A B : Ty) → Maybe (Σ[ Γ ∈ CCtx ] Γ ⊢ A ~ B)
 
 core-consistent? : (A B : Ty) → Non∀ A → Non∀ B → Maybe (Σ[ Γ ∈ CCtx ] Γ ⊢ A ~ B)
 core-consistent? (＇ X) (＇ Y) nA nB = just ((X ~ᶜ Y) ∷ [] , X-~-Y (here refl))

@@ -4,6 +4,7 @@ module proof.ConsistencyAltProperties where
 --   * Properties of type consistency.
 
 open import Types
+open import ImprecisionAlt
 open import ConsistencyAlt
 
 open import Data.Bool using (Bool; true; false)
@@ -378,8 +379,8 @@ consistent? A B
                     (cast-left (split-add∀-from sA) A~B))
 
 ------------------------------------------------------------------------
--- Greatest Lower Bound
+-- Meet Operator (computes the greatest lower bound)
 ------------------------------------------------------------------------
 
-_⊓_ : Ty → Ty → Maybe Ty
-A ⊓ B = {!!}
+_∣_⊢_⊓_ : SealCtx → ImpCtx → Ty → Ty → Maybe Ty
+Ψ ∣ Φ ⊢ A ⊓ B = {!!}

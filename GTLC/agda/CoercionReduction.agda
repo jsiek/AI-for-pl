@@ -8,8 +8,17 @@ module CoercionReduction where
 open import Agda.Builtin.Nat using (Nat)
 open import Data.List using (List; []; _∷_; _++_)
 open import Data.Maybe using (Maybe; just; nothing)
-open import Data.Product using (Σ-syntax; _,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
+open import Data.Nat using (_+_; _<_; z≤n; s≤s)
+open import Data.Nat.Induction using (<-wellFounded)
+open import Data.Nat.Properties using
+  ( 0<1+n; n<1+n; m<m+n; +-assoc; +-comm; +-identityʳ
+  ; +-monoˡ-<; +-monoʳ-<)
+open import Data.Nat.Solver using (module +-*-Solver)
+open import Data.Product using (Σ-syntax; _×_; _,_)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import Induction.WellFounded using (Acc; acc)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; sym; subst)
 open import Relation.Nullary using (yes; no)
 
 open import Types
@@ -268,10 +277,47 @@ preserve-—→ᶜᶜ (⊢∷ (⊢↦ cwt dwt) restwt) (ξ-↦₂ᶜ d→d′) =
 -- Coercion Normal Forms
 ----------------------------------------------------------------
 
-data Normalᶜ : Coercion → Set where
-  nf-[] : Normalᶜ []
+data IrredPairᶜ : Crcn → Crcn → Set where
+  irred-?! : ∀ {G ℓ}
+    → IrredPairᶜ (G `? ℓ) (G !)
 
-  -- TODO: Use Tianyu's new approach to normal forms
+  irred-?⊥ : ∀ {G ℓ A B}
+    → IrredPairᶜ (G `? ℓ) (⊥ᶜ A ⇨ B)
+
+  irred-?↦ : ∀ {ℓ c d}
+    → IrredPairᶜ ((★ ⇒ ★) `? ℓ) (c ↦ d)
+
+  irred-↦! : ∀ {c d}
+    → IrredPairᶜ (c ↦ d) ((★ ⇒ ★) !)
+
+mutual
+  data SingleNormalᶜ : Crcn → Set where
+    nf-! : ∀ {G}
+      → SingleNormalᶜ (G !)
+
+    nf-? : ∀ {G ℓ}
+      → SingleNormalᶜ (G `? ℓ)
+
+    nf-↦ : ∀ {c d}
+      → Normalᶜ c
+      → Normalᶜ d
+      → SingleNormalᶜ (c ↦ d)
+
+    nf-⊥ : ∀ {A B}
+      → SingleNormalᶜ (⊥ᶜ A ⇨ B)
+
+  data Normalᶜ : Coercion → Set where
+    nf-[] : Normalᶜ []
+
+    nf-singleton : ∀ {c}
+      → SingleNormalᶜ c
+      → Normalᶜ (c ∷ [])
+
+    nf-step : ∀ {c d cs}
+      → SingleNormalᶜ c
+      → IrredPairᶜ c d
+      → Normalᶜ (d ∷ cs)
+      → Normalᶜ (c ∷ d ∷ cs)
 
 Step : Coercion → Set
 Step c = Σ[ c′ ∈ Coercion ] c —→ᶜᶜ c′
@@ -316,6 +362,66 @@ step (⊢∷ cwt (⊢∷ dwt restwt)) | just (_ , d→d′) =
   just (_ , ξ-∷ᶜ d→d′)
 step (⊢∷ cwt (⊢∷ dwt restwt)) | nothing = nothing
 
+data Progressᶜᶜ (c : Coercion) : Set where
+  done : Normalᶜ c → Progressᶜᶜ c
+  stepᶜᶜ : Step c → Progressᶜᶜ c
+
+progressᶜᶜ : ∀ {c A B}
+  → ⊢ c ⦂ A ⇨ B
+  → Progressᶜᶜ c
+progressᶜᶜ ⊢[] = done nf-[]
+progressᶜᶜ (⊢∷ (⊢! g) ⊢[]) = done (nf-singleton nf-!)
+progressᶜᶜ (⊢∷ (⊢? g) ⊢[]) = done (nf-singleton nf-?)
+progressᶜᶜ (⊢∷ ⊢⊥ ⊢[]) = done (nf-singleton nf-⊥)
+progressᶜᶜ (⊢∷ (⊢↦ cwt dwt) restwt) with progressᶜᶜ cwt
+progressᶜᶜ (⊢∷ (⊢↦ cwt dwt) restwt) | stepᶜᶜ (_ , c→c′) =
+  stepᶜᶜ (_ , ξ-↦₁ᶜ c→c′)
+progressᶜᶜ (⊢∷ (⊢↦ cwt dwt) restwt) | done cnf with progressᶜᶜ dwt
+progressᶜᶜ (⊢∷ (⊢↦ cwt dwt) restwt) | done cnf
+  | stepᶜᶜ (_ , d→d′) = stepᶜᶜ (_ , ξ-↦₂ᶜ d→d′)
+progressᶜᶜ (⊢∷ (⊢↦ cwt dwt) ⊢[]) | done cnf | done dnf =
+  done (nf-singleton (nf-↦ cnf dnf))
+progressᶜᶜ (⊢∷ (⊢↦ cwt dwt) (⊢∷ (⊢! G-⇒) restwt))
+  | done cnf | done dnf with progressᶜᶜ (⊢∷ (⊢! G-⇒) restwt)
+progressᶜᶜ (⊢∷ (⊢↦ cwt dwt) (⊢∷ (⊢! G-⇒) restwt))
+  | done cnf | done dnf | done restnf =
+  done (nf-step (nf-↦ cnf dnf) irred-↦! restnf)
+progressᶜᶜ (⊢∷ (⊢↦ cwt dwt) (⊢∷ (⊢! G-⇒) restwt))
+  | done cnf | done dnf | stepᶜᶜ (_ , rest→rest′) =
+  stepᶜᶜ (_ , ξ-∷ᶜ rest→rest′)
+progressᶜᶜ (⊢∷ (⊢↦ cwt dwt) (⊢∷ (⊢↦ c′wt d′wt) restwt))
+  | done cnf | done dnf = stepᶜᶜ (_ , ξ-pair β-↦ᶜ refl)
+progressᶜᶜ (⊢∷ (⊢↦ cwt dwt) (⊢∷ ⊢⊥ restwt))
+  | done cnf | done dnf = stepᶜᶜ (_ , ξ-pair (β-↦⊥ᶜ cwt dwt) refl)
+progressᶜᶜ (⊢∷ (⊢! {G = G} g) (⊢∷ (⊢? {G = H} h) restwt))
+  with G ≟Ty H
+progressᶜᶜ (⊢∷ (⊢! g) (⊢∷ (⊢? h) restwt)) | yes refl =
+  stepᶜᶜ (_ , ξ-pair β-proj-inj-okᶜ refl)
+progressᶜᶜ (⊢∷ (⊢! g) (⊢∷ (⊢? h) restwt)) | no G≢H =
+  stepᶜᶜ (_ , ξ-pair (β-proj-inj-badᶜ G≢H) refl)
+progressᶜᶜ (⊢∷ (⊢! g) (⊢∷ ⊢⊥ restwt)) =
+  stepᶜᶜ (_ , ξ-pair β-!⊥ᶜ refl)
+progressᶜᶜ (⊢∷ ⊢⊥ (⊢∷ dwt restwt)) =
+  stepᶜᶜ (_ , ξ-pair (β-⊥Lᶜ dwt) refl)
+progressᶜᶜ (⊢∷ (⊢? g) (⊢∷ (⊢! g′) restwt))
+  with progressᶜᶜ (⊢∷ (⊢! g′) restwt)
+progressᶜᶜ (⊢∷ (⊢? g) (⊢∷ (⊢! g′) restwt))
+  | done restnf = done (nf-step nf-? irred-?! restnf)
+progressᶜᶜ (⊢∷ (⊢? g) (⊢∷ (⊢! g′) restwt))
+  | stepᶜᶜ (_ , rest→rest′) = stepᶜᶜ (_ , ξ-∷ᶜ rest→rest′)
+progressᶜᶜ (⊢∷ (⊢? G-⇒) (⊢∷ (⊢↦ cwt dwt) restwt))
+  with progressᶜᶜ (⊢∷ (⊢↦ cwt dwt) restwt)
+progressᶜᶜ (⊢∷ (⊢? G-⇒) (⊢∷ (⊢↦ cwt dwt) restwt))
+  | done restnf = done (nf-step nf-? irred-?↦ restnf)
+progressᶜᶜ (⊢∷ (⊢? G-⇒) (⊢∷ (⊢↦ cwt dwt) restwt))
+  | stepᶜᶜ (_ , rest→rest′) = stepᶜᶜ (_ , ξ-∷ᶜ rest→rest′)
+progressᶜᶜ (⊢∷ (⊢? g) (⊢∷ ⊢⊥ restwt))
+  with progressᶜᶜ (⊢∷ ⊢⊥ restwt)
+progressᶜᶜ (⊢∷ (⊢? g) (⊢∷ ⊢⊥ restwt))
+  | done restnf = done (nf-step nf-? irred-?⊥ restnf)
+progressᶜᶜ (⊢∷ (⊢? g) (⊢∷ ⊢⊥ restwt))
+  | stepᶜᶜ (_ , rest→rest′) = stepᶜᶜ (_ , ξ-∷ᶜ rest→rest′)
+
 preserve-—↠ᶜᶜ : ∀ {c c′ A B}
   → ⊢ c ⦂ A ⇨ B
   → c —↠ᶜᶜ c′
@@ -346,3 +452,103 @@ multi-ξ-↦₂ᶜᶜ (_ ∎ᶜᶜ) = singleᶜ (_ ↦ _) ∎ᶜᶜ
 multi-ξ-↦₂ᶜᶜ (_ —→ᶜᶜ⟨ d→d₁ ⟩ d₁↠d′) =
   singleᶜ (_ ↦ _) —→ᶜᶜ⟨ ξ-↦₂ᶜ d→d₁ ⟩
   multi-ξ-↦₂ᶜᶜ d₁↠d′
+
+mutual
+  singleSize : Crcn → Nat
+  singleSize (G !) = 1
+  singleSize (G `? ℓ) = 1
+  singleSize (c ↦ d) = 1 + (seqSize c + seqSize d)
+  singleSize (⊥ᶜ A ⇨ B) = 1
+
+  seqSize : Coercion → Nat
+  seqSize [] = 0
+  seqSize (c ∷ cs) = singleSize c + seqSize cs
+
+singleSize-positive : ∀ c → 0 < singleSize c
+singleSize-positive (G !) = 0<1+n
+singleSize-positive (G `? ℓ) = 0<1+n
+singleSize-positive (c ↦ d) = 0<1+n
+singleSize-positive (⊥ᶜ A ⇨ B) = 0<1+n
+
+seqSize-++ : ∀ c d → seqSize (c ++ d) ≡ seqSize c + seqSize d
+seqSize-++ [] d = refl
+seqSize-++ (c ∷ cs) d
+  rewrite seqSize-++ cs d
+        | sym (+-assoc (singleSize c) (seqSize cs) (seqSize d)) =
+  refl
+
+seqSize-⨟ : ∀ c d → seqSize (c ⨟ d) ≡ seqSize c + seqSize d
+seqSize-⨟ [] d = refl
+seqSize-⨟ (c ∷ cs) d
+  rewrite seqSize-⨟ cs d
+        | sym (+-assoc (singleSize c) (seqSize cs) (seqSize d)) =
+  refl
+
+↦-pair-size : ∀ c d c′ d′
+  → 1 + singleSize ((c′ ⨟ c) ↦ (d ⨟ d′))
+      ≡ singleSize (c ↦ d) + singleSize (c′ ↦ d′)
+↦-pair-size c d c′ d′
+  rewrite seqSize-⨟ c′ c
+        | seqSize-⨟ d d′ =
+  solve 4
+    (λ a b c d →
+      con 1 :+ (con 1 :+ ((c :+ a) :+ (b :+ d)))
+        :=ᵉ (con 1 :+ (a :+ b)) :+ (con 1 :+ (c :+ d)))
+    refl
+    (seqSize c)
+    (seqSize d)
+    (seqSize c′)
+    (seqSize d′)
+  where
+  open +-*-Solver using (solve; _:+_; con) renaming (_:=_ to _:=ᵉ_)
+
+pair-step-decreases : ∀ {c d d′}
+  → c ; d —→ᶜ d′
+  → seqSize d′ < singleSize c + singleSize d
+pair-step-decreases β-proj-inj-okᶜ = s≤s z≤n
+pair-step-decreases (β-proj-inj-badᶜ G≢H) = n<1+n 1
+pair-step-decreases {c = c ↦ d} {d = c′ ↦ d′} β-↦ᶜ
+  rewrite +-identityʳ (singleSize ((c′ ⨟ c) ↦ (d ⨟ d′))) =
+  subst (singleSize ((c′ ⨟ c) ↦ (d ⨟ d′)) <_)
+        (↦-pair-size c d c′ d′)
+        (n<1+n _)
+pair-step-decreases {d = d} (β-⊥Lᶜ dwt) =
+  s≤s (singleSize-positive d)
+pair-step-decreases β-!⊥ᶜ = n<1+n 1
+pair-step-decreases {c = c ↦ d} (β-↦⊥ᶜ cwt dwt)
+  rewrite +-comm (seqSize c + seqSize d) 1 =
+  s≤s (s≤s z≤n)
+
+step-decreases : ∀ {c d}
+  → c —→ᶜᶜ d
+  → seqSize d < seqSize c
+step-decreases (ξ-pair {c₁} {c₂} {d̅} {c̅} c₁;c₂→d̅ refl)
+  rewrite seqSize-++ d̅ c̅ =
+  subst (seqSize d̅ + seqSize c̅ <_)
+        (+-assoc (singleSize c₁) (singleSize c₂) (seqSize c̅))
+        (+-monoˡ-< (seqSize c̅) (pair-step-decreases c₁;c₂→d̅))
+step-decreases (ξ-∷ᶜ {c = c} cs→cs′) =
+  +-monoʳ-< (singleSize c) (step-decreases cs→cs′)
+step-decreases (ξ-↦₁ᶜ {d = d} {cs = cs} c→c′) =
+  +-monoˡ-< (seqSize cs)
+    (s≤s (+-monoˡ-< (seqSize d) (step-decreases c→c′)))
+step-decreases (ξ-↦₂ᶜ {c = c} {cs = cs} d→d′) =
+  +-monoˡ-< (seqSize cs)
+    (s≤s (+-monoʳ-< (seqSize c) (step-decreases d→d′)))
+
+normalize-acc : ∀ {c A B}
+  → Acc _<_ (seqSize c)
+  → ⊢ c ⦂ A ⇨ B
+  → Σ[ d ∈ Coercion ] ((c —↠ᶜᶜ d) × Normalᶜ d)
+normalize-acc (acc rec) cwt with progressᶜᶜ cwt
+... | done nf = _ , ((_ ∎ᶜᶜ) , nf)
+... | stepᶜᶜ (d , c→d)
+    with normalize-acc (rec (step-decreases c→d))
+                       (preserve-—→ᶜᶜ cwt c→d)
+...   | e , (d↠e , nf) = e , ((_ —→ᶜᶜ⟨ c→d ⟩ d↠e) , nf)
+
+normalization : ∀ {c A B}
+  → ⊢ c ⦂ A ⇨ B
+  → Σ[ d ∈ Coercion ] ((c —↠ᶜᶜ d) × Normalᶜ d)
+normalization {c = c} cwt = normalize-acc (<-wellFounded (seqSize c)) cwt
+

@@ -14,10 +14,11 @@ open import Data.Bool using (false; true; _∨_)
 open import Data.List using ([]; length; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
-open import Data.Nat using (_<_; zero; suc; z<s; s<s; _≟_)
+open import Data.Nat using (ℕ; _<_; _≤_; zero; suc; z<s; s<s; z≤n; s≤s; _≟_)
+open import Data.Nat.Properties using (≤-antisym; ≤-trans)
 open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; cong; refl; subst; sym; trans)
+  (_≡_; cong; cong₂; refl; subst; sym; trans)
 
 ------------------------------------------------------------------------
 -- Reflexive
@@ -732,3 +733,153 @@ mutual
   Ψ ∣ [] ⊢ B ⊑ C →
   Ψ ∣ [] ⊢ A ⊑ C
 ⊑-trans-closed = ⊑-trans ImpCtxClosed-[]
+
+------------------------------------------------------------------------
+-- Antisymmetry
+------------------------------------------------------------------------
+
+DownwardImpCtx : ImpCtx → Set
+DownwardImpCtx Φ = ∀ {X Y} → (X ˣ⊑ˣ Y) ∈ Φ → Y ≤ X
+
+≤-sucʳ :
+  ∀ {m n} →
+  m ≤ n →
+  m ≤ suc n
+≤-sucʳ z≤n = z≤n
+≤-sucʳ (s≤s m≤n) = s≤s (≤-sucʳ m≤n)
+
+suc≰ :
+  ∀ {X} →
+  suc X ≤ X →
+  ⊥
+suc≰ {zero} ()
+suc≰ {suc X} (s≤s sucX≤X) = suc≰ sucX≤X
+
+DownwardImpCtx-[] : DownwardImpCtx []
+DownwardImpCtx-[] ()
+
+DownwardImpCtx-∀ :
+  ∀ {Φ} →
+  DownwardImpCtx Φ →
+  DownwardImpCtx ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ)
+DownwardImpCtx-∀ downΦ (here refl) = z≤n
+DownwardImpCtx-∀ downΦ {zero} (there x⊑y) =
+  ⊥-elim (no-⇑ᵢ-zero-left x⊑y)
+DownwardImpCtx-∀ downΦ {suc X} {zero} (there x⊑y) =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑y)
+DownwardImpCtx-∀ downΦ {suc X} {suc Y} (there x⊑y) =
+  s≤s (downΦ (un⇑ᵢ-ˣ∈ x⊑y))
+
+DownwardImpCtx-ν :
+  ∀ {Φ} →
+  DownwardImpCtx Φ →
+  DownwardImpCtx ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+DownwardImpCtx-ν downΦ (here ())
+DownwardImpCtx-ν downΦ {zero} (there x⊑y) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left x⊑y)
+DownwardImpCtx-ν downΦ {suc X} (there x⊑y) =
+  ≤-sucʳ (downΦ (un⇑ᴸᵢ-ˣ∈ x⊑y))
+
+DownwardImpCtx-antisymˣ :
+  ∀ {Φ X Y} →
+  DownwardImpCtx Φ →
+  (X ˣ⊑ˣ Y) ∈ Φ →
+  (Y ˣ⊑ˣ X) ∈ Φ →
+  X ≡ Y
+DownwardImpCtx-antisymˣ downΦ x⊑y y⊑x =
+  ≤-antisym (downΦ y⊑x) (downΦ x⊑y)
+
+DownwardImpCtx-no-ν-cycle :
+  ∀ {Φ X Y} →
+  DownwardImpCtx Φ →
+  (X ˣ⊑ˣ Y) ∈ Φ →
+  (Y ˣ⊑ˣ suc X) ∈ Φ →
+  ⊥
+DownwardImpCtx-no-ν-cycle downΦ x⊑y y⊑sucX =
+  suc≰ (≤-trans (downΦ y⊑sucX) (downΦ x⊑y))
+
+DownwardImpCtx-no-ν-cross :
+  ∀ {Φ X Y} →
+  DownwardImpCtx Φ →
+  (suc X ˣ⊑ˣ Y) ∈ ⇑ᴸᵢ Φ →
+  (Y ˣ⊑ˣ suc X) ∈ Φ →
+  ⊥
+DownwardImpCtx-no-ν-cross downΦ sx⊑y y⊑sx =
+  DownwardImpCtx-no-ν-cycle downΦ (un⇑ᴸᵢ-ˣ∈ sx⊑y) y⊑sx
+
+leading∀ : Ty → ℕ
+leading∀ (`∀ A) = suc (leading∀ A)
+leading∀ _ = zero
+
+⊑-leading∀ :
+  ∀ {Ψ Φ A B} →
+  Ψ ∣ Φ ⊢ A ⊑ B →
+  leading∀ B ≤ leading∀ A
+⊑-leading∀ id★ = z≤n
+⊑-leading∀ (idˣ _) = z≤n
+⊑-leading∀ idι = z≤n
+⊑-leading∀ (idα _) = z≤n
+⊑-leading∀ (_ ↦ _) = z≤n
+⊑-leading∀ (∀ⁱ p) = s≤s (⊑-leading∀ p)
+⊑-leading∀ (tag _) = z≤n
+⊑-leading∀ (tag_⇒_ _ _) = z≤n
+⊑-leading∀ (tagˣ _) = z≤n
+⊑-leading∀ (ν _ p) = ≤-sucʳ (⊑-leading∀ p)
+
+ν-antisym-⊥ :
+  ∀ {Ψ Φ A B} →
+  Ψ ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ ⊢ A ⊑ B →
+  Ψ ∣ Φ ⊢ B ⊑ `∀ A →
+  ⊥
+ν-antisym-⊥ p q =
+  suc≰ (≤-trans (⊑-leading∀ q) (⊑-leading∀ p))
+
+⊑-antisym-down :
+  ∀ {Ψ Φ A B} →
+  DownwardImpCtx Φ →
+  WfTy (length Φ) Ψ A →
+  WfTy (length Φ) Ψ B →
+  Ψ ∣ Φ ⊢ A ⊑ B →
+  Ψ ∣ Φ ⊢ B ⊑ A →
+  A ≡ B
+⊑-antisym-down downΦ (wf∀ wfA) wfB (ν _ p) q =
+  ⊥-elim (ν-antisym-⊥ p q)
+⊑-antisym-down downΦ wfA (wf∀ wfB) p (ν _ q) =
+  ⊥-elim (ν-antisym-⊥ q p)
+⊑-antisym-down downΦ wf★ wf★ id★ id★ = refl
+⊑-antisym-down downΦ (wfVar _) (wfVar _) (idˣ x⊑y) (idˣ y⊑x) =
+  cong ＇_ (DownwardImpCtx-antisymˣ downΦ x⊑y y⊑x)
+⊑-antisym-down downΦ wfBase wfBase idι idι = refl
+⊑-antisym-down downΦ (wfSeal _) (wfSeal _) (idα _) (idα _) = refl
+⊑-antisym-down downΦ (wf⇒ wfA₁ wfA₂) (wf⇒ wfB₁ wfB₂)
+    (p₁ ↦ p₂) (q₁ ↦ q₂) =
+  cong₂ _⇒_
+    (⊑-antisym-down downΦ wfA₁ wfB₁ p₁ q₁)
+    (⊑-antisym-down downΦ wfA₂ wfB₂ p₂ q₂)
+⊑-antisym-down {Ψ = Ψ} {Φ = Φ} {A = `∀ A} {B = `∀ B} downΦ
+    (wf∀ wfA) (wf∀ wfB) (∀ⁱ p) (∀ⁱ q) =
+  cong `∀
+    (⊑-antisym-down (DownwardImpCtx-∀ downΦ) wfA′ wfB′ p q)
+  where
+  wfA′ : WfTy (length ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ)) Ψ A
+  wfA′ =
+    subst (λ n → WfTy n Ψ A) (sym (cong suc (length-⇑ᵢ Φ))) wfA
+
+  wfB′ : WfTy (length ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ)) Ψ B
+  wfB′ =
+    subst (λ n → WfTy n Ψ B) (sym (cong suc (length-⇑ᵢ Φ))) wfB
+⊑-antisym-down downΦ wfBase wf★ (tag _) ()
+⊑-antisym-down downΦ (wf⇒ _ _) wf★ (tag_⇒_ _ _) ()
+⊑-antisym-down downΦ (wfVar _) wf★ (tagˣ _) ()
+⊑-antisym-down downΦ wf★ wfBase () (tag _)
+⊑-antisym-down downΦ wf★ (wf⇒ _ _) () (tag_⇒_ _ _)
+⊑-antisym-down downΦ wf★ (wfVar _) () (tagˣ _)
+
+⊑-antisym-closed :
+  ∀ {Ψ A B} →
+  WfTy 0 Ψ A →
+  WfTy 0 Ψ B →
+  Ψ ∣ [] ⊢ A ⊑ B →
+  Ψ ∣ [] ⊢ B ⊑ A →
+  A ≡ B
+⊑-antisym-closed = ⊑-antisym-down DownwardImpCtx-[]

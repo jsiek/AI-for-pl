@@ -6,7 +6,7 @@ module CoercionReduction where
 -- re-exporting the older binary sequencing presentation from Coercions.
 
 open import Agda.Builtin.Nat using (Nat)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; _++_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
@@ -20,9 +20,8 @@ infixr 6 _↦_
 
 -- This adds ⊥ compared to Coercion in Coercions.agda.
 data Crcn : Set where
-  idᶜ    : Ty → Crcn
   _!     : Ty → Crcn -- injection (tagging)
-  _`?    : {ℓ : Nat} → Ty → Crcn -- projection (tag checking)
+  _`?_    : Ty → Nat → Crcn -- projection (tag checking)
   _↦_    : List Crcn → List Crcn → Crcn
   ⊥ᶜ_⇨_ : Ty → Ty → Crcn
 
@@ -37,9 +36,8 @@ singleᶜ : Crcn → Coercion
 singleᶜ c = c ∷ []
 
 data Atomic : Crcn → Set where
-  atom-idᶜ : ∀ {A} → Atomic (idᶜ A)
   atom-! : ∀ {G} → Atomic (G !)
-  atom-? : ∀ {G ℓ} → Atomic ((_`? {ℓ = ℓ}) G)
+  atom-? : ∀ {G ℓ} → Atomic (G `? ℓ)
 
 infix 4 ⊢_⦂_⇨ᶜ_
 infix 4 ⊢_⦂_⇨_
@@ -47,16 +45,13 @@ infix 4 ⊢_⦂_⇨_
 data ⊢_⦂_⇨_ : Coercion → Ty → Ty → Set
 
 data ⊢_⦂_⇨ᶜ_ : Crcn → Ty → Ty → Set where
-  ⊢idᶜ : ∀ {A}
-    → ⊢ idᶜ A ⦂ A ⇨ᶜ A
-
   ⊢! : ∀ {G}
     → Ground G
     → ⊢ G ! ⦂ G ⇨ᶜ ★
 
   ⊢? : ∀ {G ℓ}
     → Ground G
-    → ⊢ ((_`? {ℓ = ℓ}) G) ⦂ ★ ⇨ᶜ G
+    → ⊢ (G `? ℓ) ⦂ ★ ⇨ᶜ G
 
   ⊢↦ : ∀ {A B C D c d}
     → ⊢ c ⦂ C ⇨ A
@@ -87,22 +82,28 @@ data ⊢_⦂_⇨_ where
 ⊢⨟ ⊢[] dwt = dwt
 ⊢⨟ (⊢∷ cwt restwt) dwt = ⊢∷ cwt (⊢⨟ restwt dwt)
 
+⊢++ : ∀ {A B C c d}
+  → ⊢ c ⦂ A ⇨ B
+  → ⊢ d ⦂ B ⇨ C
+  → ⊢ c ++ d ⦂ A ⇨ C
+⊢++ ⊢[] dwt = dwt
+⊢++ (⊢∷ cwt restwt) dwt = ⊢∷ cwt (⊢++ restwt dwt)
+
 coerce : ∀ {A B} → Nat → A ~ B → Coercion
-coerce ℓ ~-ℕ = singleᶜ (idᶜ ℕ)
-coerce ℓ ~-★ = singleᶜ (idᶜ ★)
-coerce ℓ ★~ℕ = singleᶜ ((_`? {ℓ = ℓ}) ℕ)
+coerce ℓ ~-ℕ = []
+coerce ℓ ~-★ = []
+coerce ℓ ★~ℕ = singleᶜ (ℕ `? ℓ)
 coerce ℓ ℕ~★ = singleᶜ (ℕ !)
 coerce ℓ (★~⇒ c d) =
-  singleᶜ ((_`? {ℓ = ℓ}) (★ ⇒ ★)) ⨟
-  singleᶜ (coerce ℓ c ↦ coerce ℓ d)
+  singleᶜ ((★ ⇒ ★) `? ℓ) ⨟ singleᶜ (coerce ℓ c ↦ coerce ℓ d)
 coerce ℓ (⇒~★ c d) =
   singleᶜ (coerce ℓ c ↦ coerce ℓ d) ⨟
   singleᶜ ((★ ⇒ ★) !)
 coerce ℓ (~-⇒ c d) = singleᶜ (coerce ℓ c ↦ coerce ℓ d)
 
 coerce-wt : ∀ {A B} (ℓ : Nat) (p : A ~ B) → ⊢ coerce ℓ p ⦂ A ⇨ B
-coerce-wt ℓ ~-ℕ = ⊢singleᶜ ⊢idᶜ
-coerce-wt ℓ ~-★ = ⊢singleᶜ ⊢idᶜ
+coerce-wt ℓ ~-ℕ = ⊢[]
+coerce-wt ℓ ~-★ = ⊢[]
 coerce-wt ℓ ★~ℕ = ⊢singleᶜ (⊢? G-ℕ)
 coerce-wt ℓ ℕ~★ = ⊢singleᶜ (⊢! G-ℕ)
 coerce-wt ℓ (★~⇒ c d) =
@@ -119,7 +120,6 @@ mutual
     → ⊢ c ⦂ A ⇨ᶜ B
     → ⊢ c ⦂ A ⇨ᶜ C
     → B ≡ C
-  coercion-crcn-target-unique ⊢idᶜ ⊢idᶜ = refl
   coercion-crcn-target-unique (⊢! g₁) (⊢! g₂) = refl
   coercion-crcn-target-unique (⊢? g₁) (⊢? g₂) = refl
   coercion-crcn-target-unique (⊢↦ c₁ d₁) (⊢↦ c₂ d₂)
@@ -141,7 +141,6 @@ mutual
     → ⊢ c ⦂ A ⇨ᶜ C
     → ⊢ c ⦂ B ⇨ᶜ C
     → A ≡ B
-  coercion-crcn-source-unique ⊢idᶜ ⊢idᶜ = refl
   coercion-crcn-source-unique (⊢! g₁) (⊢! g₂) = refl
   coercion-crcn-source-unique (⊢? g₁) (⊢? g₂) = refl
   coercion-crcn-source-unique (⊢↦ c₁ d₁) (⊢↦ c₂ d₂)
@@ -163,41 +162,42 @@ mutual
 -- Coercion Reduction
 ----------------------------------------------------------------
 
+infix 4 _;_—→ᶜ_
 infix 4 _—→ᶜᶜ_
 infix 3 _∎ᶜᶜ
 infixr 2 _—→ᶜᶜ⟨_⟩_
 infix 2 _—↠ᶜᶜ_
 
-data _—→ᶜᶜ_ : Coercion → Coercion → Set where
-  β-proj-inj-okᶜ : ∀ {G ℓ cs}
-    → (G ! ∷ ((_`? {ℓ = ℓ}) G) ∷ cs) —→ᶜᶜ (idᶜ G ∷ cs)
+data _;_—→ᶜ_ : Crcn → Crcn → Coercion → Set where
+  β-proj-inj-okᶜ : ∀ {G ℓ}
+    → G ! ; (G `? ℓ) —→ᶜ []
 
-  β-proj-inj-badᶜ : ∀ {G H ℓ cs}
+  β-proj-inj-badᶜ : ∀ {G H ℓ}
     → G ≢ H
-    → (G ! ∷ ((_`? {ℓ = ℓ}) H) ∷ cs) —→ᶜᶜ ((⊥ᶜ G ⇨ H) ∷ cs)
+    → G ! ;  H `? ℓ  —→ᶜ (⊥ᶜ G ⇨ H) ∷ []
 
-  β-idLᶜ : ∀ {A d cs}
-    → (idᶜ A ∷ d ∷ cs) —→ᶜᶜ (d ∷ cs)
+  β-↦ᶜ : ∀ {c d c′ d′}
+    → (c ↦ d) ; (c′ ↦ d′) —→ᶜ (c′ ⨟ c) ↦ (d ⨟ d′) ∷ []
 
-  β-idRᶜ : ∀ {B c cs}
-    → (c ∷ idᶜ B ∷ cs) —→ᶜᶜ (c ∷ cs)
-
-  β-↦ᶜ : ∀ {c d c′ d′ cs}
-    → ((c ↦ d) ∷ (c′ ↦ d′) ∷ cs) —→ᶜᶜ
-      (((c′ ⨟ c) ↦ (d ⨟ d′)) ∷ cs)
-
-  β-⊥Lᶜ : ∀ {A B C d cs}
+  β-⊥Lᶜ : ∀ {A B C d}
     → ⊢ d ⦂ B ⇨ᶜ C
-    → ((⊥ᶜ A ⇨ B) ∷ d ∷ cs) —→ᶜᶜ ((⊥ᶜ A ⇨ C) ∷ cs)
+    → (⊥ᶜ A ⇨ B) ; d  —→ᶜ (⊥ᶜ A ⇨ C) ∷ []
 
-  β-!⊥ᶜ : ∀ {G B cs}
-    → (G ! ∷ (⊥ᶜ ★ ⇨ B) ∷ cs) —→ᶜᶜ ((⊥ᶜ G ⇨ B) ∷ cs)
+  β-!⊥ᶜ : ∀ {G B}
+    → G ! ; (⊥ᶜ ★ ⇨ B) —→ᶜ (⊥ᶜ G ⇨ B) ∷ []
 
-  β-↦⊥ᶜ : ∀ {c d A B C D E cs}
+  β-↦⊥ᶜ : ∀ {c d A B C D E}
     → ⊢ c ⦂ C ⇨ A
     → ⊢ d ⦂ B ⇨ D
-    → ((c ↦ d) ∷ (⊥ᶜ (C ⇒ D) ⇨ E) ∷ cs) —→ᶜᶜ
-      ((⊥ᶜ (A ⇒ B) ⇨ E) ∷ cs)
+    → (c ↦ d) ; (⊥ᶜ (C ⇒ D) ⇨ E) —→ᶜ (⊥ᶜ (A ⇒ B) ⇨ E) ∷ []
+
+data _—→ᶜᶜ_ : Coercion → Coercion → Set where
+
+  ξ-pair : ∀ {c₁ c₂ d̅ c̅ c′}
+    → c₁ ; c₂ —→ᶜ d̅
+    → c′ ≡ d̅ ++ c̅
+      ---------------------------------------
+    →  (c₁ ∷ c₂ ∷ c̅) —→ᶜᶜ c′ 
 
   ξ-∷ᶜ : ∀ {c cs cs′}
     → cs —→ᶜᶜ cs′
@@ -210,9 +210,6 @@ data _—→ᶜᶜ_ : Coercion → Coercion → Set where
   ξ-↦₂ᶜ : ∀ {c d d′ cs}
     → d —→ᶜᶜ d′
     → ((c ↦ d) ∷ cs) —→ᶜᶜ ((c ↦ d′) ∷ cs)
-
-  -- consider adding:
-  --  idᶜ A ↦ idᶜ B —→ᶜᶜ idᶜ (A ⇒ B)
 
 data _—↠ᶜᶜ_ : Coercion → Coercion → Set where
   _∎ᶜᶜ : (c : Coercion) → c —↠ᶜᶜ c
@@ -236,30 +233,30 @@ _—↠ᶜᶜ⟨_⟩_ : ∀ (l : Coercion) {m n : Coercion}
   → l —↠ᶜᶜ n
 l —↠ᶜᶜ⟨ l—↠m ⟩ m—↠n = multi-transᶜᶜ l—↠m m—↠n
 
+preserve-pairᶜ : ∀ {c d c′ A B C}
+  → ⊢ c ⦂ A ⇨ᶜ B
+  → ⊢ d ⦂ B ⇨ᶜ C
+  → c ; d —→ᶜ c′
+  → ⊢ c′ ⦂ A ⇨ C
+preserve-pairᶜ (⊢! g) (⊢? h) β-proj-inj-okᶜ = ⊢[]
+preserve-pairᶜ (⊢! g) (⊢? h) (β-proj-inj-badᶜ G≢H) = ⊢singleᶜ ⊢⊥
+preserve-pairᶜ (⊢↦ cwt dwt) (⊢↦ c′wt d′wt) β-↦ᶜ =
+  ⊢singleᶜ (⊢↦ (⊢⨟ c′wt cwt) (⊢⨟ dwt d′wt))
+preserve-pairᶜ ⊢⊥ dwt (β-⊥Lᶜ dwt′)
+  with coercion-crcn-target-unique dwt dwt′
+preserve-pairᶜ ⊢⊥ dwt (β-⊥Lᶜ dwt′) | refl = ⊢singleᶜ ⊢⊥
+preserve-pairᶜ (⊢! g) ⊢⊥ β-!⊥ᶜ = ⊢singleᶜ ⊢⊥
+preserve-pairᶜ (⊢↦ cwt dwt) ⊢⊥ (β-↦⊥ᶜ cwt′ dwt′)
+  with coercion-target-unique cwt cwt′ | coercion-source-unique dwt dwt′
+preserve-pairᶜ (⊢↦ cwt dwt) ⊢⊥ (β-↦⊥ᶜ cwt′ dwt′)
+  | refl | refl = ⊢singleᶜ ⊢⊥
+
 preserve-—→ᶜᶜ : ∀ {c c′ A B}
   → ⊢ c ⦂ A ⇨ B
   → c —→ᶜᶜ c′
   → ⊢ c′ ⦂ A ⇨ B
-preserve-—→ᶜᶜ (⊢∷ (⊢! g) (⊢∷ (⊢? g′) restwt))
-  β-proj-inj-okᶜ = ⊢∷ ⊢idᶜ restwt
-preserve-—→ᶜᶜ (⊢∷ (⊢! g) (⊢∷ (⊢? g′) restwt))
-  (β-proj-inj-badᶜ G≢H) = ⊢∷ ⊢⊥ restwt
-preserve-—→ᶜᶜ (⊢∷ ⊢idᶜ (⊢∷ dwt restwt)) β-idLᶜ =
-  ⊢∷ dwt restwt
-preserve-—→ᶜᶜ (⊢∷ cwt (⊢∷ ⊢idᶜ restwt)) β-idRᶜ =
-  ⊢∷ cwt restwt
-preserve-—→ᶜᶜ
-  (⊢∷ (⊢↦ cwt dwt) (⊢∷ (⊢↦ c′wt d′wt) restwt))
-  β-↦ᶜ = ⊢∷ (⊢↦ (⊢⨟ c′wt cwt) (⊢⨟ dwt d′wt)) restwt
-preserve-—→ᶜᶜ (⊢∷ ⊢⊥ (⊢∷ dwt restwt)) (β-⊥Lᶜ dwt′)
-  with coercion-crcn-target-unique dwt dwt′
-... | refl = ⊢∷ ⊢⊥ restwt
-preserve-—→ᶜᶜ (⊢∷ (⊢! g) (⊢∷ ⊢⊥ restwt)) β-!⊥ᶜ =
-  ⊢∷ ⊢⊥ restwt
-preserve-—→ᶜᶜ (⊢∷ (⊢↦ cwt dwt) (⊢∷ ⊢⊥ restwt))
-  (β-↦⊥ᶜ cwt′ dwt′)
-  with coercion-target-unique cwt cwt′ | coercion-source-unique dwt dwt′
-... | refl | refl = ⊢∷ ⊢⊥ restwt
+preserve-—→ᶜᶜ (⊢∷ cwt (⊢∷ dwt restwt)) (ξ-pair c;d→c′ refl) =
+  ⊢++ (preserve-pairᶜ cwt dwt c;d→c′) restwt
 preserve-—→ᶜᶜ (⊢∷ cwt restwt) (ξ-∷ᶜ cs→cs′) =
   ⊢∷ cwt (preserve-—→ᶜᶜ restwt cs→cs′)
 preserve-—→ᶜᶜ (⊢∷ (⊢↦ cwt dwt) restwt) (ξ-↦₁ᶜ c→c′) =
@@ -274,50 +271,7 @@ preserve-—→ᶜᶜ (⊢∷ (⊢↦ cwt dwt) restwt) (ξ-↦₂ᶜ d→d′) =
 data Normalᶜ : Coercion → Set where
   nf-[] : Normalᶜ []
 
-  nf-id : ∀ {A}
-    → Normalᶜ (singleᶜ (idᶜ A))
-
-  nf-? : ∀ {G}
-    → Ground G
-    → ∀ {ℓ} → Normalᶜ (singleᶜ ((_`? {ℓ = ℓ}) G))
-
-  nf-! : ∀ {G}
-    → Ground G
-    → Normalᶜ (singleᶜ (G !))
-
-  nf-?! : ∀ {G ℓ}
-    → Ground G
-    → Normalᶜ (((_`? {ℓ = ℓ}) G) ∷ G ! ∷ [])
-
-  nf-↦ : ∀ {c d}
-    → Normalᶜ c
-    → Normalᶜ d
-    → Normalᶜ (singleᶜ (c ↦ d))
-
-  nf-?↦ : ∀ {G c d ℓ}
-    → Ground G
-    → Normalᶜ c
-    → Normalᶜ d
-    → Normalᶜ (((_`? {ℓ = ℓ}) G) ∷ (c ↦ d) ∷ [])
-
-  nf-↦! : ∀ {c d G}
-    → Normalᶜ c
-    → Normalᶜ d
-    → Ground G
-    → Normalᶜ ((c ↦ d) ∷ G ! ∷ [])
-
-  nf-?↦! : ∀ {G c d ℓ}
-    → Ground G
-    → Normalᶜ c
-    → Normalᶜ d
-    → Normalᶜ (((_`? {ℓ = ℓ}) G) ∷ (c ↦ d) ∷ G ! ∷ [])
-
-  nf-?⊥ : ∀ {G A B ℓ}
-    → Ground G
-    → Normalᶜ (((_`? {ℓ = ℓ}) G) ∷ (⊥ᶜ A ⇨ B) ∷ [])
-
-  nf-⊥ : ∀ {A B}
-    → Normalᶜ (singleᶜ (⊥ᶜ A ⇨ B))
+  -- TODO: Use Tianyu's new approach to normal forms
 
 Step : Coercion → Set
 Step c = Σ[ c′ ∈ Coercion ] c —→ᶜᶜ c′
@@ -326,11 +280,9 @@ step : ∀ {c A B}
   → ⊢ c ⦂ A ⇨ B
   → Maybe (Step c)
 step ⊢[] = nothing
-step (⊢∷ ⊢idᶜ ⊢[]) = nothing
 step (⊢∷ (⊢! g) ⊢[]) = nothing
 step (⊢∷ (⊢? g) ⊢[]) = nothing
 step (⊢∷ ⊢⊥ ⊢[]) = nothing
-step (⊢∷ ⊢idᶜ (⊢∷ dwt restwt)) = just (_ , β-idLᶜ)
 step (⊢∷ (⊢↦ cwt dwt) restwt) with step cwt
 step (⊢∷ (⊢↦ cwt dwt) restwt) | just (_ , c→c′) =
   just (_ , ξ-↦₁ᶜ c→c′)
@@ -338,12 +290,10 @@ step (⊢∷ (⊢↦ cwt dwt) restwt) | nothing with step dwt
 step (⊢∷ (⊢↦ cwt dwt) restwt) | nothing | just (_ , d→d′) =
   just (_ , ξ-↦₂ᶜ d→d′)
 step (⊢∷ (⊢↦ cwt dwt) ⊢[]) | nothing | nothing = nothing
-step (⊢∷ (⊢↦ cwt dwt) (⊢∷ ⊢idᶜ restwt))
-  | nothing | nothing = just (_ , β-idRᶜ)
 step (⊢∷ (⊢↦ cwt dwt) (⊢∷ (⊢↦ c′wt d′wt) restwt))
-  | nothing | nothing = just (_ , β-↦ᶜ)
+  | nothing | nothing = just (_ , ξ-pair β-↦ᶜ refl)
 step (⊢∷ (⊢↦ cwt dwt) (⊢∷ ⊢⊥ restwt))
-  | nothing | nothing = just (_ , β-↦⊥ᶜ cwt dwt)
+  | nothing | nothing = just (_ , ξ-pair (β-↦⊥ᶜ cwt dwt) refl)
 step (⊢∷ (⊢↦ cwt dwt) (⊢∷ dwt′ restwt))
   | nothing | nothing
   with step (⊢∷ dwt′ restwt)
@@ -351,15 +301,16 @@ step (⊢∷ (⊢↦ cwt dwt) (⊢∷ dwt′ restwt))
   | nothing | nothing | just (_ , d→d′) = just (_ , ξ-∷ᶜ d→d′)
 step (⊢∷ (⊢↦ cwt dwt) (⊢∷ dwt′ restwt))
   | nothing | nothing | nothing = nothing
-step (⊢∷ cwt (⊢∷ ⊢idᶜ restwt)) = just (_ , β-idRᶜ)
 step (⊢∷ (⊢! {G = G} g) (⊢∷ (⊢? {G = H} h) restwt))
   with G ≟Ty H
 step (⊢∷ (⊢! g) (⊢∷ (⊢? h) restwt)) | yes refl =
-  just (_ , β-proj-inj-okᶜ)
+  just (_ , ξ-pair β-proj-inj-okᶜ refl)
 step (⊢∷ (⊢! g) (⊢∷ (⊢? h) restwt)) | no G≢H =
-  just (_ , β-proj-inj-badᶜ G≢H)
-step (⊢∷ (⊢! g) (⊢∷ ⊢⊥ restwt)) = just (_ , β-!⊥ᶜ)
-step (⊢∷ ⊢⊥ (⊢∷ dwt restwt)) = just (_ , β-⊥Lᶜ dwt)
+  just (_ , ξ-pair (β-proj-inj-badᶜ G≢H) refl)
+step (⊢∷ (⊢! g) (⊢∷ ⊢⊥ restwt)) =
+  just (_ , ξ-pair β-!⊥ᶜ refl)
+step (⊢∷ ⊢⊥ (⊢∷ dwt restwt)) =
+  just (_ , ξ-pair (β-⊥Lᶜ dwt) refl)
 step (⊢∷ cwt (⊢∷ dwt restwt)) with step (⊢∷ dwt restwt)
 step (⊢∷ cwt (⊢∷ dwt restwt)) | just (_ , d→d′) =
   just (_ , ξ-∷ᶜ d→d′)

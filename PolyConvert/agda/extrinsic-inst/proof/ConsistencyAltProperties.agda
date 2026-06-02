@@ -13,6 +13,7 @@ open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.List using (List; []; _∷_; _++_; length; replicate; map)
 open import Data.Maybe using (Maybe; nothing; just)
 open import Data.Nat using (ℕ; zero; suc; _≟_)
+open import Data.Nat.Properties using (_<?_)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ; Σ-syntax; ∃; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; cong; sym; trans; subst)
@@ -63,6 +64,17 @@ consistent-ctx? (a ∷ Γ₁) Γ₂ | false = false
 ∈-++ʳ [] x∈ = x∈
 ∈-++ʳ (_ ∷ xs) x∈ = there (∈-++ʳ xs x∈)
 
+postulate
+  wk-⊑-++ˡ :
+    ∀ {Ψ Φ A B} (Γ : ImpCtx) →
+    Ψ ∣ Φ ⊢ A ⊑ B →
+    Ψ ∣ Φ ++ Γ ⊢ A ⊑ B
+
+  wk-⊑-++ʳ :
+    ∀ {Ψ Φ A B} (Γ : ImpCtx) →
+    Ψ ∣ Φ ⊢ A ⊑ B →
+    Ψ ∣ Γ ++ Φ ⊢ A ⊑ B
+
 append-[] : ∀ {A : Set} (xs : List A) → xs ++ [] ≡ xs
 append-[] [] = refl
 append-[] (x ∷ xs) = cong (λ ys → x ∷ ys) (append-[] xs)
@@ -87,6 +99,9 @@ cast-left refl A~B = A~B
 
 cast-right : ∀ {Γ A B B′} → B ≡ B′ → Γ ⊢ A ~ B → Γ ⊢ A ~ B′
 cast-right refl A~B = A~B
+
+cast-⊑ : ∀ {Ψ Φ Φ′ A B} → Φ ≡ Φ′ → Ψ ∣ Φ ⊢ A ⊑ B → Ψ ∣ Φ′ ⊢ A ⊑ B
+cast-⊑ refl A⊑B = A⊑B
 
 ∈-++-mid : ∀ {A : Set} {x : A} (Δ Γ₁ : List A) {Γ₂ : List A} →
   x ∈ (Δ ++ Γ₂) → x ∈ (Δ ++ Γ₁ ++ Γ₂)
@@ -342,10 +357,8 @@ core-consistent? ★ (B₁ ⇒ B₂) nA nB
     with consistent? ★ B₁ | consistent? ★ B₂
 ... | nothing | _ = nothing
 ... | _ | nothing = nothing
-... | just (Γ₁ , ★~B₁) | just (Γ₂ , ★~B₂)
-    with consistent-ctx? Γ₁ Γ₂
-... | true = just (Γ₁ ++ Γ₂ , ★-~-⇒ (wk-++ˡ ★~B₁) (wk-++ʳ Γ₁ ★~B₂))
-... | false = nothing
+... | just (Γ₁ , ★~B₁) | just (Γ₂ , ★~B₂) =
+      just (Γ₁ ++ Γ₂ , ★-~-⇒ (wk-++ˡ ★~B₁) (wk-++ʳ Γ₁ ★~B₂))
 core-consistent? (A₁ ⇒ A₂) (＇ X) nA nB = nothing
 core-consistent? (A₁ ⇒ A₂) (｀ α) nA nB = nothing
 core-consistent? (A₁ ⇒ A₂) (‵ ι) nA nB = nothing
@@ -353,18 +366,16 @@ core-consistent? (A₁ ⇒ A₂) ★ nA nB
     with consistent? A₁ ★ | consistent? A₂ ★
 ... | nothing | _ = nothing
 ... | _ | nothing = nothing
-... | just (Γ₁ , A₁~★) | just (Γ₂ , A₂~★)
-    with consistent-ctx? Γ₁ Γ₂
-... | true = just (Γ₁ ++ Γ₂ , ⇒-~-★ (wk-++ˡ A₁~★) (wk-++ʳ Γ₁ A₂~★))
-... | false = nothing
+... | just (Γ₁ , A₁~★) | just (Γ₂ , A₂~★) =
+      just (Γ₁ ++ Γ₂ , ⇒-~-★ (wk-++ˡ A₁~★) (wk-++ʳ Γ₁ A₂~★))
+
 core-consistent? (A₁ ⇒ A₂) (B₁ ⇒ B₂) nA nB
     with consistent? A₁ B₁ | consistent? A₂ B₂
 ... | nothing | _ = nothing
 ... | _ | nothing = nothing
-... | just (Γ₁ , A₁~A₂) | just (Γ₂ , B₁~B₂)
-    with consistent-ctx? Γ₁ Γ₂
-... | true = just (Γ₁ ++ Γ₂ , ⇒-~-⇒ (wk-++ˡ A₁~A₂) (wk-++ʳ Γ₁ B₁~B₂))
-... | false = nothing
+... | just (Γ₁ , A₁~A₂) | just (Γ₂ , B₁~B₂) =
+      just (Γ₁ ++ Γ₂ , ⇒-~-⇒ (wk-++ˡ A₁~A₂) (wk-++ʳ Γ₁ B₁~B₂))
+
 
 consistent? A B
     with split-∀ A in sA | split-∀ B in sB
@@ -382,5 +393,101 @@ consistent? A B
 -- Meet Operator (computes the greatest lower bound)
 ------------------------------------------------------------------------
 
-_∣_⊢_⊓_ : SealCtx → ImpCtx → Ty → Ty → Maybe Ty
-Ψ ∣ Φ ⊢ A ⊓ B = {!!}
+postulate
+  star-⇒-glb-max :
+    ∀ {Ψ Γ₁ Γ₂ A′ B₁ B₂ C₁ C₂} →
+    GLB Ψ Γ₁ C₁ ★ B₁ →
+    GLB Ψ Γ₂ C₂ ★ B₂ →
+    Ψ ∣ leftImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ ★ →
+    Ψ ∣ rightImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (B₁ ⇒ B₂) →
+    Ψ ∣ mergeImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (C₁ ⇒ C₂)
+
+  ⇒-star-glb-max :
+    ∀ {Ψ Γ₁ Γ₂ A′ A₁ A₂ C₁ C₂} →
+    GLB Ψ Γ₁ C₁ A₁ ★ →
+    GLB Ψ Γ₂ C₂ A₂ ★ →
+    Ψ ∣ leftImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (A₁ ⇒ A₂) →
+    Ψ ∣ rightImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ ★ →
+    Ψ ∣ mergeImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (C₁ ⇒ C₂)
+
+{-# TERMINATING #-}
+glb? : (Ψ : SealCtx) (A B : Ty) →
+  Maybe (Σ[ Γ ∈ CCtx ] Σ[ C ∈ Ty ] GLB Ψ Γ C A B)
+
+core-glb? : (Ψ : SealCtx) (A B : Ty) → Non∀ A → Non∀ B →
+  Maybe (Σ[ Γ ∈ CCtx ] Σ[ C ∈ Ty ] GLB Ψ Γ C A B)
+core-glb? Ψ (＇ X) (＇ Y) nA nB =
+  just ((X ~ᶜ★) ∷ (X ~ᶜ Y) ∷ [] , ＇ X ,
+    (idˣ (here refl) , idˣ (there (here refl)) ,
+     λ A′ A′⊑X A′⊑Y →
+       wk-⊑-++ˡ (rightImpCtx ((X ~ᶜ★) ∷ (X ~ᶜ Y) ∷ [])) A′⊑X))
+core-glb? Ψ (＇ X) (｀ α) nA nB = nothing
+core-glb? Ψ (＇ X) (‵ ι) nA nB = nothing
+core-glb? Ψ (＇ X) ★ nA nB =
+  just ((X ~ᶜ★) ∷ [] , (＇ X) , (idˣ (here refl)) , (tagˣ (here refl)) ,
+    λ A′ z z₁ → wk-⊑-++ˡ (rightImpCtx ((X ~ᶜ★) ∷ [])) z)
+core-glb? Ψ (＇ X) (B₁ ⇒ B₂) nA nB = nothing
+core-glb? Ψ (｀ α) B nA nB = nothing
+core-glb? Ψ (‵ ι) (＇ X) nA nB = nothing
+core-glb? Ψ (‵ ι) (｀ α) nA nB = nothing
+core-glb? Ψ (‵ ι) (‵ ι′) nA nB with ι ≟Base ι′
+... | yes refl = just ([] , (‵ ι) , idι , idι , λ A′ z z₁ → z)
+... | no neq = nothing
+core-glb? Ψ (‵ ι) ★ nA nB = just ([] , (‵ ι) , idι , (tag ι) , (λ A′ z z₁ → z))
+core-glb? Ψ (‵ ι) (B₁ ⇒ B₂) nA nB = nothing
+core-glb? Ψ ★ (＇ X) nA nB =
+  just ((★~ᶜ X) ∷ [] , ＇ X , tagˣ (here refl) , idˣ (here refl) ,
+    λ A′ A′⊑★ A′⊑X → wk-⊑-++ʳ (leftImpCtx ((★~ᶜ X) ∷ [])) A′⊑X)
+core-glb? Ψ ★ (｀ α) nA nB = nothing
+core-glb? Ψ ★ (‵ ι) nA nB =
+  just ([] , ‵ ι , tag ι , idι , (λ A′ z z₁ → z₁))
+core-glb? Ψ ★ ★ nA nB =
+  just ([] , ★ , id★ , id★ , (λ A′ z z₁ → z))
+core-glb? Ψ ★ (B₁ ⇒ B₂) nA nB with glb? Ψ ★ B₁ | glb? Ψ ★ B₂
+... | nothing | _ = nothing
+... | _ | nothing = nothing
+... | just (Γ₁ , C₁ , C₁-glb) | just (Γ₂ , C₂ , C₂-glb) =
+    just (Γ₁ ++ Γ₂ , C₁ ⇒ C₂ ,
+      (tag_⇒_
+        (cast-⊑ (sym (leftImpCtx-++ Γ₁ Γ₂))
+          (wk-⊑-++ˡ (leftImpCtx Γ₂) (proj₁ C₁-glb)))
+        (cast-⊑ (sym (leftImpCtx-++ Γ₁ Γ₂))
+          (wk-⊑-++ʳ (leftImpCtx Γ₁) (proj₁ C₂-glb)))) ,
+      ((cast-⊑ (sym (rightImpCtx-++ Γ₁ Γ₂))
+          (wk-⊑-++ˡ (rightImpCtx Γ₂) (proj₁ (proj₂ C₁-glb))))
+        ↦
+        (cast-⊑ (sym (rightImpCtx-++ Γ₁ Γ₂))
+          (wk-⊑-++ʳ (rightImpCtx Γ₁) (proj₁ (proj₂ C₂-glb)))) ,
+       λ A′ z z₁ → star-⇒-glb-max C₁-glb C₂-glb z z₁))
+core-glb? Ψ (A₁ ⇒ A₂) (＇ X) nA nB = nothing
+core-glb? Ψ (A₁ ⇒ A₂) (｀ α) nA nB = nothing
+core-glb? Ψ (A₁ ⇒ A₂) (‵ ι) nA nB = nothing
+core-glb? Ψ (A₁ ⇒ A₂) ★ nA nB with glb? Ψ A₁ ★ | glb? Ψ A₂ ★
+... | nothing | _ = nothing
+... | _ | nothing = nothing
+... | just (Γ₁ , C₁ , C₁-glb) | just (Γ₂ , C₂ , C₂-glb) =
+      just (Γ₁ ++ Γ₂ , C₁ ⇒ C₂ ,
+        ((cast-⊑ (sym (leftImpCtx-++ Γ₁ Γ₂))
+            (wk-⊑-++ˡ (leftImpCtx Γ₂) (proj₁ C₁-glb)))
+          ↦
+          (cast-⊑ (sym (leftImpCtx-++ Γ₁ Γ₂))
+            (wk-⊑-++ʳ (leftImpCtx Γ₁) (proj₁ C₂-glb)))) ,
+        (tag_⇒_
+          (cast-⊑ (sym (rightImpCtx-++ Γ₁ Γ₂))
+            (wk-⊑-++ˡ (rightImpCtx Γ₂) (proj₁ (proj₂ C₁-glb))))
+          (cast-⊑ (sym (rightImpCtx-++ Γ₁ Γ₂))
+            (wk-⊑-++ʳ (rightImpCtx Γ₁) (proj₁ (proj₂ C₂-glb)))) ,
+        λ A′ z z₁ → ⇒-star-glb-max C₁-glb C₂-glb z z₁))
+core-glb? Ψ (A₁ ⇒ A₂) (B₁ ⇒ B₂) nA nB
+    with glb? Ψ A₁ B₁ | glb? Ψ A₂ B₂
+... | nothing | _ = nothing
+... | _ | nothing = nothing
+... | just (Γ₁ , C₁ , C₁-glb) | just (Γ₂ , C₂ , C₂-glb) =
+      just ({!!} , C₁ ⇒ C₂ , {!!})
+
+glb? Ψ A B
+    with split-∀ A in sA | split-∀ B in sB
+... | n , A′ , n∀A | m , B′ , n∀B
+    with core-glb? Ψ A′ B′ n∀A n∀B
+... | nothing = nothing
+... | just (Γ , C , C-glb) = {!!}

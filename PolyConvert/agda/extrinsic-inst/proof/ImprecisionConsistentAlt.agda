@@ -19,24 +19,6 @@ open import ImprecisionAlt
 open import ConsistencyAlt
 open import Types
 
-leftAssm : CAssm → ImpAssm
-leftAssm (X ~ᶜ★) = X ˣ⊑ˣ X
-leftAssm (★~ᶜ X) = X ˣ⊑★
-leftAssm (X ~ᶜ Y) = X ˣ⊑ˣ Y
-
-rightAssm : CAssm → ImpAssm
-rightAssm (X ~ᶜ★) = X ˣ⊑★
-rightAssm (★~ᶜ X) = X ˣ⊑ˣ X
-rightAssm (X ~ᶜ Y) = X ˣ⊑ˣ Y
-
-leftImpCtx : CCtx → ImpCtx
-leftImpCtx [] = []
-leftImpCtx (m ∷ Γ) = leftAssm m ∷ leftImpCtx Γ
-
-rightImpCtx : CCtx → ImpCtx
-rightImpCtx [] = []
-rightImpCtx (m ∷ Γ) = rightAssm m ∷ rightImpCtx Γ
-
 {-
 lower-bounds-consistent : ∀ {Γ A B C}
   → 0 ∣ leftImpCtx Γ ⊢ A ⊑ B

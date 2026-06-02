@@ -202,6 +202,8 @@ data _∣_⊢_⦂_⊑_ (Ψ : SealCtx) (Φ : VarPrecCtx) : Imp → Ty → Ty → 
     Ψ ∣ Φ ⊢ p ↦ q ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′)
 
   ⊢∀A-⊑-∀B : ∀ {A B p} →
+    {occA : occurs zero A ≡ true} →
+    {occB : occurs zero B ≡ true} →
     Ψ ∣ X⊑X ∷ Φ ⊢ p ⦂ A ⊑ B →
     -----------------------------------
     Ψ ∣ Φ ⊢ ‵∀ p ⦂ (`∀ A) ⊑ (`∀ B)

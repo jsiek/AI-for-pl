@@ -344,8 +344,15 @@ mutual
   convert↑At-wt {B = A ⇒ B} X hα (wf⇒ wfA wfB) =
     ⊢↑-⇒ (convert↓At-wt {B = A} X hα wfA)
           (convert↑At-wt {B = B} X hα wfB)
-  convert↑At-wt {B = `∀ A} X hα (wf∀ wfA) =
-    ⊢↑-∀ (convert↑At-wt {B = A} (suc X) (renameLookupᵗ suc hα) wfA)
+  convert↑At-wt {α = α} {T = T} {B = `∀ A}
+      X hα (wf∀ {occ = occA} wfA) =
+    ⊢↑-∀
+      {occA = occA}
+      {occB =
+        trans (occurs-substᵗ-exts-zero (substVarFrom X T) A)
+          (trans (sym (occurs-substᵗ-exts-zero (substVarFrom X (｀ α)) A))
+            occA)}
+      (convert↑At-wt {B = A} (suc X) (renameLookupᵗ suc hα) wfA)
 
   convert↓At-wt :
     ∀ {Δ Ψ}{Σ : Store}{α : Seal}{T B : Ty} →
@@ -368,8 +375,15 @@ mutual
   convert↓At-wt {B = A ⇒ B} X hα (wf⇒ wfA wfB) =
     ⊢↓-⇒ (convert↑At-wt {B = A} X hα wfA)
           (convert↓At-wt {B = B} X hα wfB)
-  convert↓At-wt {B = `∀ A} X hα (wf∀ wfA) =
-    ⊢↓-∀ (convert↓At-wt {B = A} (suc X) (renameLookupᵗ suc hα) wfA)
+  convert↓At-wt {α = α} {T = T} {B = `∀ A}
+      X hα (wf∀ {occ = occA} wfA) =
+    ⊢↓-∀
+      {occA =
+        trans (occurs-substᵗ-exts-zero (substVarFrom X T) A)
+          (trans (sym (occurs-substᵗ-exts-zero (substVarFrom X (｀ α)) A))
+            occA)}
+      {occB = occA}
+      (convert↓At-wt {B = A} (suc X) (renameLookupᵗ suc hα) wfA)
 
 ------------------------------------------------------------------------
 -- β-Λ preservation

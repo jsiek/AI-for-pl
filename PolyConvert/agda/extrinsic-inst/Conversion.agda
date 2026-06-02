@@ -6,11 +6,12 @@ module Conversion where
 --     store-indexed seal replacement structure.
 --   * This file owns the conversion surface used by PolyConvert terms.
 
+open import Data.Bool using (true)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (_≟_)
 open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong; cong₂; subst)
+  using (_≡_; refl; sym; cong; cong₂; subst; trans)
 
 open import Types
 open import Store
@@ -137,6 +138,8 @@ mutual
       → Δ ∣ Ψ ∣ Σ ⊢ ↑-⇒ p q ⦂ (A ⇒ B) ↑ˢ (A′ ⇒ B′)
 
     ⊢↑-∀ : ∀ {A B c}
+      → {occA : occurs zero A ≡ true}
+      → {occB : occurs zero B ≡ true}
       → suc Δ ∣ Ψ ∣ ⟰ᵗ Σ ⊢ c ⦂ A ↑ˢ B
       → Δ ∣ Ψ ∣ Σ ⊢ ↑-∀ c ⦂ (`∀ A) ↑ˢ (`∀ B)
 
@@ -156,6 +159,8 @@ mutual
       → Δ ∣ Ψ ∣ Σ ⊢ ↓-⇒ p q ⦂ (A ⇒ B) ↓ˢ (A′ ⇒ B′)
 
     ⊢↓-∀ : ∀ {A B c}
+      → {occA : occurs zero A ≡ true}
+      → {occB : occurs zero B ≡ true}
       → suc Δ ∣ Ψ ∣ ⟰ᵗ Σ ⊢ c ⦂ A ↓ˢ B
       → Δ ∣ Ψ ∣ Σ ⊢ ↓-∀ c ⦂ (`∀ A) ↓ˢ (`∀ B)
 
@@ -231,8 +236,12 @@ mutual
   src↑-wf wfΣ (⊢↑-unseal h) = wfSeal (storeWf-dom< wfΣ h)
   src↑-wf wfΣ (⊢↑-⇒ p⊢ q⊢) =
     wf⇒ (tgt↓-wf wfΣ p⊢) (src↑-wf wfΣ q⊢)
-  src↑-wf wfΣ (⊢↑-∀ c⊢) =
-    wf∀ (src↑-wf (storeWf-⟰ᵗ wfΣ) c⊢)
+  src↑-wf wfΣ (⊢↑-∀ {occA = occA} c⊢) =
+    wf∀
+      {occ =
+        trans (cong (occurs zero) (src↑-correct (storeWf-⟰ᵗ wfΣ) c⊢))
+          occA}
+      (src↑-wf (storeWf-⟰ᵗ wfΣ) c⊢)
   src↑-wf wfΣ (⊢↑-id wfA) = wfA
 
   tgt↑-wf :
@@ -247,8 +256,12 @@ mutual
       (storeWf-wfTy wfΣ h)
   tgt↑-wf wfΣ (⊢↑-⇒ p⊢ q⊢) =
     wf⇒ (src↓-wf wfΣ p⊢) (tgt↑-wf wfΣ q⊢)
-  tgt↑-wf wfΣ (⊢↑-∀ c⊢) =
-    wf∀ (tgt↑-wf (storeWf-⟰ᵗ wfΣ) c⊢)
+  tgt↑-wf wfΣ (⊢↑-∀ {occB = occB} c⊢) =
+    wf∀
+      {occ =
+        trans (cong (occurs zero) (tgt↑-correct (storeWf-⟰ᵗ wfΣ) c⊢))
+          occB}
+      (tgt↑-wf (storeWf-⟰ᵗ wfΣ) c⊢)
   tgt↑-wf wfΣ (⊢↑-id wfA) = wfA
 
   src↓-wf :
@@ -263,8 +276,12 @@ mutual
       (storeWf-wfTy wfΣ h)
   src↓-wf wfΣ (⊢↓-⇒ p⊢ q⊢) =
     wf⇒ (tgt↑-wf wfΣ p⊢) (src↓-wf wfΣ q⊢)
-  src↓-wf wfΣ (⊢↓-∀ c⊢) =
-    wf∀ (src↓-wf (storeWf-⟰ᵗ wfΣ) c⊢)
+  src↓-wf wfΣ (⊢↓-∀ {occA = occA} c⊢) =
+    wf∀
+      {occ =
+        trans (cong (occurs zero) (src↓-correct (storeWf-⟰ᵗ wfΣ) c⊢))
+          occA}
+      (src↓-wf (storeWf-⟰ᵗ wfΣ) c⊢)
   src↓-wf wfΣ (⊢↓-id wfA) = wfA
 
   tgt↓-wf :
@@ -275,6 +292,10 @@ mutual
   tgt↓-wf wfΣ (⊢↓-seal h) = wfSeal (storeWf-dom< wfΣ h)
   tgt↓-wf wfΣ (⊢↓-⇒ p⊢ q⊢) =
     wf⇒ (src↑-wf wfΣ p⊢) (tgt↓-wf wfΣ q⊢)
-  tgt↓-wf wfΣ (⊢↓-∀ c⊢) =
-    wf∀ (tgt↓-wf (storeWf-⟰ᵗ wfΣ) c⊢)
+  tgt↓-wf wfΣ (⊢↓-∀ {occB = occB} c⊢) =
+    wf∀
+      {occ =
+        trans (cong (occurs zero) (tgt↓-correct (storeWf-⟰ᵗ wfΣ) c⊢))
+          occB}
+      (tgt↓-wf (storeWf-⟰ᵗ wfΣ) c⊢)
   tgt↓-wf wfΣ (⊢↓-id wfA) = wfA

@@ -369,8 +369,8 @@ WfTy-weakenˢ wfBase Ψ≤Ψ′ = wfBase
 WfTy-weakenˢ wf★ Ψ≤Ψ′ = wf★
 WfTy-weakenˢ (wf⇒ hA hB) Ψ≤Ψ′ =
   wf⇒ (WfTy-weakenˢ hA Ψ≤Ψ′) (WfTy-weakenˢ hB Ψ≤Ψ′)
-WfTy-weakenˢ (wf∀ hA) Ψ≤Ψ′ =
-  wf∀ (WfTy-weakenˢ hA Ψ≤Ψ′)
+WfTy-weakenˢ (wf∀ {occ = occ} hA) Ψ≤Ψ′ =
+  wf∀ {occ = occ} (WfTy-weakenˢ hA Ψ≤Ψ′)
 
 <-weaken+ :
   ∀ Δ {X k} →
@@ -391,7 +391,8 @@ WfTy-weakenᵗ k Δ wfBase = wfBase
 WfTy-weakenᵗ k Δ wf★ = wf★
 WfTy-weakenᵗ k Δ (wf⇒ wfA wfB) =
   wf⇒ (WfTy-weakenᵗ k Δ wfA) (WfTy-weakenᵗ k Δ wfB)
-WfTy-weakenᵗ k Δ (wf∀ wfA) = wf∀ (WfTy-weakenᵗ (suc k) Δ wfA)
+WfTy-weakenᵗ k Δ (wf∀ {occ = occ} wfA) =
+  wf∀ {occ = occ} (WfTy-weakenᵗ (suc k) Δ wfA)
 
 WfTy-closed-weakenᵗ :
   ∀ Δ {Ψ A} →
@@ -410,8 +411,9 @@ renameᵗ-inv-WfTy {A = ‵ ι} hρ wfBase = wfBase
 renameᵗ-inv-WfTy {A = ★} hρ wf★ = wf★
 renameᵗ-inv-WfTy {A = A ⇒ B} hρ (wf⇒ wfA wfB) =
   wf⇒ (renameᵗ-inv-WfTy hρ wfA) (renameᵗ-inv-WfTy hρ wfB)
-renameᵗ-inv-WfTy {A = `∀ A} hρ (wf∀ wfA) =
-  wf∀ (renameᵗ-inv-WfTy h-ext wfA)
+renameᵗ-inv-WfTy {A = `∀ A} hρ (wf∀ {occ = occ} wfA) =
+  wf∀ {occ = trans (sym (occurs-renameᵗ-ext-zero _ A)) occ}
+    (renameᵗ-inv-WfTy h-ext wfA)
   where
     h-ext : ∀ {X} → extᵗ _ X < _ → X < _
     h-ext {zero} z<s = z<s
@@ -453,8 +455,9 @@ substᵗ-preserves-WfTy wfBase hσ = wfBase
 substᵗ-preserves-WfTy wf★ hσ = wf★
 substᵗ-preserves-WfTy (wf⇒ hA hB) hσ =
   wf⇒ (substᵗ-preserves-WfTy hA hσ) (substᵗ-preserves-WfTy hB hσ)
-substᵗ-preserves-WfTy (wf∀ hA) hσ =
-  wf∀ (substᵗ-preserves-WfTy hA (TySubstWf-exts hσ))
+substᵗ-preserves-WfTy (wf∀ {A = A} {occ = occ} hA) hσ =
+  wf∀ {occ = trans (occurs-substᵗ-exts-zero _ A) occ}
+    (substᵗ-preserves-WfTy hA (TySubstWf-exts hσ))
 
 ------------------------------------------------------------------------
 -- Core renaming/substitution infrastructure
@@ -696,4 +699,3 @@ renameˢ-ν-src ρ A =
   trans
     (renameˢ-[]ᵗ-seal (extˢ ρ) (⇑ˢ A) 0)
     (cong (λ C → C [ α₀ ]ᵗ) (renameˢ-ext-⇑ˢ ρ A))
-

@@ -22,6 +22,7 @@ open import proof.ConsistencyProperties
   using
     ( cong-~
     ; occurs-rename-ext-raise-zero
+    ; occurs-raise-protected
     ; length-leftICtx
     ; length-rightICtx
     ; length-extend-X~X[]
@@ -161,8 +162,9 @@ insert-mode-WfTy {A = ★} wf★ = wf★
 insert-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A ⇒ B} (wf⇒ wfA wfB) =
   wf⇒ (insert-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A} wfA)
        (insert-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = B} wfB)
-insert-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = `∀ A} (wf∀ wfA) =
-  wf∀
+insert-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = `∀ A}
+    (wf∀ {occ = occA} wfA) =
+  wf∀ {occ = trans (occurs-rename-ext-raise-zero (length Φ) A) occA}
     (subst (λ B → WfTy (length ((X~X ∷ Φ) ++ d ∷ Γ)) 0 B)
       (sym (rename-raise-ext (length Φ) A))
       (insert-mode-WfTy {d = d} {Φ = X~X ∷ Φ} {Γ = Γ} {A = A}
@@ -208,8 +210,8 @@ drop-mode-WfTyᵢ {Ψ = Ψ} {m = m} {Φ = Φ} {Γ = Γ} {A = A ⇒ B}
   wf⇒ (drop-mode-WfTyᵢ {Ψ = Ψ} {m = m} {Φ = Φ} {Γ = Γ} {A = A} wfA)
        (drop-mode-WfTyᵢ {Ψ = Ψ} {m = m} {Φ = Φ} {Γ = Γ} {A = B} wfB)
 drop-mode-WfTyᵢ {Ψ = Ψ} {m = m} {Φ = Φ} {Γ = Γ} {A = `∀ A}
-    (wf∀ wfA) =
-  wf∀
+    (wf∀ {occ = occA} wfA) =
+  wf∀ {occ = trans (sym (occurs-rename-ext-raise-zero (length Φ) A)) occA}
     (drop-mode-WfTyᵢ {Ψ = Ψ} {m = m} {Φ = X⊑X ∷ Φ} {Γ = Γ} {A = A}
       (subst (λ B → WfTy (length ((X⊑X ∷ Φ) ++ m ∷ Γ)) Ψ B)
         (rename-raise-ext (length Φ) A)
@@ -265,12 +267,16 @@ drop-mode-⊑ {A = A ⇒ B} {B = A′ ⇒ B′}
 ... | p , p⊢′ | q , q⊢′ =
   p ↦ q , ⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′
 drop-mode-⊑ {m = m} {Φ = Φ} {Γ = Γ} {A = `∀ A} {B = `∀ B}
-    (⊢∀A-⊑-∀B p⊢)
+    (⊢∀A-⊑-∀B {occA = occA} {occB = occB} p⊢)
     with drop-mode-⊑ {m = m} {Φ = X⊑X ∷ Φ} {Γ = Γ} {A = A} {B = B}
       (cong-⊢⊑ (rename-raise-ext (length Φ) A)
         (rename-raise-ext (length Φ) B) p⊢)
 ... | q , q⊢ =
-  ‵∀ q , ⊢∀A-⊑-∀B q⊢
+  ‵∀ q ,
+  ⊢∀A-⊑-∀B
+    {occA = trans (sym (occurs-rename-ext-raise-zero (length Φ) A)) occA}
+    {occB = trans (sym (occurs-rename-ext-raise-zero (length Φ) B)) occB}
+    q⊢
 drop-mode-⊑ {Ψ = Ψ} {m = m} {Φ = Φ} {Γ = Γ} {A = `∀ A} {B = B}
     (⊢∀A-⊑-B occA wfB p⊢)
     with drop-mode-⊑ {m = m} {Φ = X⊑★ ∷ Φ} {Γ = Γ} {A = A} {B = ⇑ᵗ B}
@@ -397,8 +403,11 @@ insert-mode-~ ι-~-ι = ι-~-ι
 insert-mode-~ {d = d} {Φ = Φ} {Γ = Γ} (⇒-~-⇒ A~B C~D) =
   ⇒-~-⇒ (insert-mode-~ {d = d} {Φ = Φ} {Γ = Γ} A~B)
          (insert-mode-~ {d = d} {Φ = Φ} {Γ = Γ} C~D)
-insert-mode-~ {d = d} {Φ = Φ} {Γ = Γ} (∀-~-∀ A~B) =
+insert-mode-~ {d = d} {Φ = Φ} {Γ = Γ}
+    (∀-~-∀ {A = A} {B = B} {occA = occA} {occB = occB} A~B) =
   ∀-~-∀
+    {occA = trans (occurs-rename-ext-raise-zero (length Φ) A) occA}
+    {occB = trans (occurs-rename-ext-raise-zero (length Φ) B) occB}
     (cong-~ (sym (rename-raise-ext (length Φ) _))
             (sym (rename-raise-ext (length Φ) _))
       (insert-mode-~ {d = d} {Φ = X~X ∷ Φ} {Γ = Γ} A~B))
@@ -602,10 +611,19 @@ coerce-wt (⇒-~-⇒ A~A′ B~B′)
   Aₘ ⇒ Bₘ ,
   ⊢A⇒B-⊑-A′⇒B′ pA⊒⊢ pB⊒⊢ ,
   ⊢A⇒B-⊑-A′⇒B′ pA⊑⊢ pB⊑⊢
-coerce-wt (∀-~-∀ A~B) with coerce A~B | coerce-wt A~B
-coerce-wt (∀-~-∀ A~B) | p⊒ , p⊑ | Bₘ , p⊒⊢ , p⊑⊢ =
+coerce-wt (∀-~-∀ {occA = occA} {occB = occB} A~B)
+    with coerce A~B | coerce-wt A~B
+coerce-wt (∀-~-∀ {occA = occA} {occB = occB} A~B)
+    | p⊒ , p⊑ | Bₘ , p⊒⊢ , p⊑⊢ =
   `∀ Bₘ ,
-  ⊢∀A-⊑-∀B p⊒⊢ , ⊢∀A-⊑-∀B p⊑⊢
+  ⊢∀A-⊑-∀B
+    {occA = plain-target-occurs-source here p⊒⊢ occA}
+    {occB = occA}
+    p⊒⊢ ,
+  ⊢∀A-⊑-∀B
+    {occA = plain-target-occurs-source here p⊑⊢ occB}
+    {occB = occB}
+    p⊑⊢
 coerce-wt (A-~-★ n★ n∀ g A~G) with coerce A~G | coerce-wt A~G
 coerce-wt (A-~-★ n★ n∀ g A~G) | p⊒ , p⊑ | B , p⊒⊢ , p⊑⊢ =
   B ,
@@ -627,7 +645,10 @@ coerce-wt {Γ = Γ} (∀-~-B {B = B} occA wfB A~⇑B)
 coerce-wt {Γ = Γ} (∀-~-B {B = B} occA wfB A~⇑B)
     | p⊒ , p⊑ | Bₘ , p⊒⊢ , p⊑⊢ =
   `∀ Bₘ ,
-  ⊢∀A-⊑-∀B p⊒⊢ ,
+  ⊢∀A-⊑-∀B
+    {occA = plain-target-occurs-source here p⊒⊢ occA}
+    {occB = occA}
+    p⊒⊢ ,
   ⊢∀A-⊑-B (plain-target-occurs-source here p⊒⊢ occA)
     (wf-rightICtx {Γ = Γ} wfB) p⊑⊢
 coerce-wt {Γ = Γ} (A-~-∀ {A = A} occB wfA ⇑A~B)
@@ -637,7 +658,10 @@ coerce-wt {Γ = Γ} (A-~-∀ {A = A} occB wfA ⇑A~B)
   `∀ Bₘ ,
   ⊢∀A-⊑-B (plain-target-occurs-source here p⊑⊢ occB)
     (wf-leftICtx {Γ = Γ} wfA) p⊒⊢ ,
-  ⊢∀A-⊑-∀B p⊑⊢
+  ⊢∀A-⊑-∀B
+    {occA = plain-target-occurs-source here p⊑⊢ occB}
+    {occB = occB}
+    p⊑⊢
 
 coerce-wt-extend-X⊑X :
   ∀ {Δ A C} →
@@ -883,22 +907,6 @@ dropTargetFrom-ok n (ok-⇒ okA okB) =
   ok-⇒ (dropTargetFrom-ok n okA) (dropTargetFrom-ok n okB)
 dropTargetFrom-ok n (ok-∀ okA) = ok-∀ (dropTargetFrom-ok (suc n) okA)
 
-dropTargetFrom-WfTy :
-  ∀ n {Γ Ψ A} →
-  WfTy (length (extend-X⊑X n (X⊑★ ∷ Γ))) Ψ A →
-  (ok : TargetOk (extend-X⊑X n (X⊑★ ∷ Γ)) A) →
-  WfTy (length (extend-X⊑X n Γ)) Ψ (dropTargetFrom n ok)
-dropTargetFrom-WfTy n wfA (ok-X x∈) =
-  wfVar (∋→< (dropTargetVar∈ n x∈))
-dropTargetFrom-WfTy n (wfSeal α<Ψ) (ok-｀ {α = α}) = wfSeal α<Ψ
-dropTargetFrom-WfTy n wfBase (ok-‵ {ι = ι}) = wfBase
-dropTargetFrom-WfTy n wf★ ok-★ = wf★
-dropTargetFrom-WfTy n (wf⇒ wfA wfB) (ok-⇒ okA okB) =
-  wf⇒ (dropTargetFrom-WfTy n wfA okA)
-      (dropTargetFrom-WfTy n wfB okB)
-dropTargetFrom-WfTy n (wf∀ wfA) (ok-∀ okA) =
-  wf∀ (dropTargetFrom-WfTy (suc n) wfA okA)
-
 dropTargetFrom-eq :
   ∀ n {Γ A}
     (ok : TargetOk (extend-X⊑X n (X⊑★ ∷ Γ)) A) →
@@ -913,6 +921,30 @@ dropTargetFrom-eq n (ok-⇒ okA okB) =
 dropTargetFrom-eq n (ok-∀ okA) =
   cong `∀ (trans (dropTargetFrom-eq (suc n) okA)
     (sym (rename-raise-ext n (dropTargetFrom (suc n) okA))))
+
+dropTargetFrom-WfTy :
+  ∀ n {Γ Ψ A} →
+  WfTy (length (extend-X⊑X n (X⊑★ ∷ Γ))) Ψ A →
+  (ok : TargetOk (extend-X⊑X n (X⊑★ ∷ Γ)) A) →
+  WfTy (length (extend-X⊑X n Γ)) Ψ (dropTargetFrom n ok)
+dropTargetFrom-WfTy n wfA (ok-X x∈) =
+  wfVar (∋→< (dropTargetVar∈ n x∈))
+dropTargetFrom-WfTy n (wfSeal α<Ψ) (ok-｀ {α = α}) = wfSeal α<Ψ
+dropTargetFrom-WfTy n wfBase (ok-‵ {ι = ι}) = wfBase
+dropTargetFrom-WfTy n wf★ ok-★ = wf★
+dropTargetFrom-WfTy n (wf⇒ wfA wfB) (ok-⇒ okA okB) =
+  wf⇒ (dropTargetFrom-WfTy n wfA okA)
+      (dropTargetFrom-WfTy n wfB okB)
+dropTargetFrom-WfTy n (wf∀ {occ = occA} wfA) (ok-∀ okA) =
+  wf∀
+    {occ =
+      trans
+        (sym (occurs-raise-protected (dropTargetFrom (suc n) okA)
+          (suc n) zero z<s))
+        (trans
+          (sym (cong (occurs zero) (dropTargetFrom-eq (suc n) okA)))
+          occA)}
+    (dropTargetFrom-WfTy (suc n) wfA okA)
 
 occurs-map-ν-vars-preserve-X⊑X :
   ∀ {Φ A X} →
@@ -986,10 +1018,18 @@ map-ν-vars-upper-wf {Φ = Φ} {A = A ⇒ B} (wf⇒ wfA wfB)
        | map-ν-vars-upper-wf {Φ = Φ} {A = B} wfB
 ... | pA , pA⊢ | pB , pB⊢ =
   pA ↦ pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢
-map-ν-vars-upper-wf {Φ = Φ} {A = `∀ A} (wf∀ wfA)
+map-ν-vars-upper-wf {Φ = Φ} {A = `∀ A} (wf∀ {occ = occA} wfA)
     with map-ν-vars-upper-wf {Φ = X⊑X ∷ Φ} {A = A} wfA
 ... | pA , pA⊢ =
-  ‵∀ pA , ⊢∀A-⊑-∀B pA⊢
+  ‵∀ pA ,
+  ⊢∀A-⊑-∀B
+    {occA = occA}
+    {occB =
+      trans
+        (occurs-map-ν-vars-preserve-X⊑X
+          {Φ = X⊑X ∷ Φ} {A = A} {X = zero} refl)
+        occA}
+    pA⊢
 
 map-ν-vars-mono-wf :
   ∀ {Φ Φ′ A} →
@@ -1021,7 +1061,8 @@ map-ν-vars-mono-wf {Φ = Φ} {Φ′ = Φ′} {A = A ⇒ B} Φ≤Φ′ (wf⇒ wf
        | map-ν-vars-mono-wf {Φ = Φ} {Φ′ = Φ′} {A = B} Φ≤Φ′ wfB
 ... | pA , pA⊢ | pB , pB⊢ =
   pA ↦ pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢
-map-ν-vars-mono-wf {Φ = Φ} {Φ′ = Φ′} {A = `∀ A} Φ≤Φ′ (wf∀ wfA)
+map-ν-vars-mono-wf {Φ = Φ} {Φ′ = Φ′} {A = `∀ A} Φ≤Φ′
+    (wf∀ {occ = occA} wfA)
     with map-ν-vars-mono-wf
       {Φ = X⊑X ∷ Φ}
       {Φ′ = X⊑X ∷ Φ′}
@@ -1029,7 +1070,19 @@ map-ν-vars-mono-wf {Φ = Φ} {Φ′ = Φ′} {A = `∀ A} Φ≤Φ′ (wf∀ wfA
       (X⊑X≤X⊑X ∷≤ᵢ Φ≤Φ′)
       wfA
 ... | pA , pA⊢ =
-  ‵∀ pA , ⊢∀A-⊑-∀B pA⊢
+  ‵∀ pA ,
+  ⊢∀A-⊑-∀B
+    {occA =
+      trans
+        (occurs-map-ν-vars-preserve-X⊑X
+          {Φ = X⊑X ∷ Φ} {A = A} {X = zero} refl)
+        occA}
+    {occB =
+      trans
+        (occurs-map-ν-vars-preserve-X⊑X
+          {Φ = X⊑X ∷ Φ′} {A = A} {X = zero} refl)
+        occA}
+    pA⊢
 
 map-ν-vars-to-target :
   ∀ {Φ A B p} →
@@ -1056,10 +1109,19 @@ map-ν-vars-to-target (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
        | map-ν-vars-to-target q⊢
 ... | p′ , p′⊢ | q′ , q′⊢ =
   p′ ↦ q′ , ⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢
-map-ν-vars-to-target (⊢∀A-⊑-∀B p⊢)
+map-ν-vars-to-target {Φ = Φ}
+    (⊢∀A-⊑-∀B {A = A} {occA = occA} {occB = occB} p⊢)
     with map-ν-vars-to-target p⊢
 ... | p′ , p′⊢ =
-  ‵∀ p′ , ⊢∀A-⊑-∀B p′⊢
+  ‵∀ p′ ,
+  ⊢∀A-⊑-∀B
+    {occA =
+      trans
+        (occurs-map-ν-vars-preserve-X⊑X
+          {Φ = X⊑X ∷ Φ} {A = A} {X = zero} refl)
+        occA}
+    {occB = occB}
+    p′⊢
 map-ν-vars-to-target {Φ = Φ} (⊢∀A-⊑-B {A = Aν} {B = B} occA wfB p⊢)
     with map-ν-vars-to-target p⊢
        | map-ν-vars-mono-wf
@@ -1191,10 +1253,10 @@ target-refl-⊑ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
     with target-refl-⊑ p⊢ | target-refl-⊑ q⊢
 ... | p′ , p′⊢ | q′ , q′⊢ =
   p′ ↦ q′ , ⊢A⇒B-⊑-A′⇒B′ p′⊢ q′⊢
-target-refl-⊑ (⊢∀A-⊑-∀B p⊢)
+target-refl-⊑ (⊢∀A-⊑-∀B {occB = occB} p⊢)
     with target-refl-⊑ p⊢
 ... | p′ , p′⊢ =
-  ‵∀ p′ , ⊢∀A-⊑-∀B p′⊢
+  ‵∀ p′ , ⊢∀A-⊑-∀B {occA = occB} {occB = occB} p′⊢
 target-refl-⊑ {Φ = Φ} {A = B} (⊢∀A-⊑-B {B = B} occA wfB p⊢)
     with target-refl-⊑ p⊢
 ... | p′ , p′⊢
@@ -1421,14 +1483,14 @@ coerce-glbᶜ′ (★-~-B n★ n∀ h H~B) Γ≤Φ Γ′≤Φ
       p⊒⊢)
     p⊑⊢ B′⊑H⊢ pC⊢
 coerce-glbᶜ′ (∀-~-∀ A~C) Γ≤Φ Γ′≤Φ
-    (⊢∀A-⊑-∀B p⊒⊢) (⊢∀A-⊑-∀B p⊑⊢)
-    (⊢∀A-⊑-∀B pA⊢) (⊢∀A-⊑-∀B pC⊢)
+    (⊢∀A-⊑-∀B {occA = occB} p⊒⊢) (⊢∀A-⊑-∀B p⊑⊢)
+    (⊢∀A-⊑-∀B {occA = occB′} pA⊢) (⊢∀A-⊑-∀B pC⊢)
     with coerce-glbᶜ′ A~C
       (X⊑X≤X⊑X ∷≤ᵢ Γ≤Φ)
       (X⊑X≤X⊑X ∷≤ᵢ Γ′≤Φ)
       p⊒⊢ p⊑⊢ pA⊢ pC⊢
 ... | r , r⊢ =
-  ‵∀ r , ⊢∀A-⊑-∀B r⊢
+  ‵∀ r , ⊢∀A-⊑-∀B {occA = occB′} {occB = occB} r⊢
 coerce-glbᶜ′ (∀-~-∀{A = A}{C} A~C) Γ≤Φ Γ′≤Φ
     (⊢∀A-⊑-∀B{A = B}{B = A} B⊑A) (⊢∀A-⊑-∀B{A = B}{B = C} B⊑C)
     (⊢∀A-⊑-∀B{A = B′} B′⊑A) (⊢∀A-⊑-B{A = B′} occC wfC B′⊑∀C)
@@ -1550,8 +1612,11 @@ lower-bounds-consistentᶜ ⊢ι-⊑-ι ⊢ι-⊑-ι = ι-~-ι
 lower-bounds-consistentᶜ (⊢A⇒B-⊑-A′⇒B′ p₁⊢ p₂⊢) (⊢A⇒B-⊑-A′⇒B′ q₁⊢ q₂⊢) =
   ⇒-~-⇒ (lower-bounds-consistentᶜ p₁⊢ q₁⊢)
          (lower-bounds-consistentᶜ p₂⊢ q₂⊢)
-lower-bounds-consistentᶜ {Γ = Γ} (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-∀B q⊢) =
-  ∀-~-∀ (lower-bounds-consistentᶜ {Γ = X~X ∷ Γ} p⊢ q⊢)
+lower-bounds-consistentᶜ {Γ = Γ}
+    (⊢∀A-⊑-∀B {occB = occA} p⊢)
+    (⊢∀A-⊑-∀B {occB = occC} q⊢) =
+  ∀-~-∀ {occA = occA} {occB = occC}
+    (lower-bounds-consistentᶜ {Γ = X~X ∷ Γ} p⊢ q⊢)
 lower-bounds-consistentᶜ {Γ = Γ} {C = C} (⊢∀A-⊑-∀B p⊢)
     (⊢∀A-⊑-B occA wfC q⊢) =
   ∀-~-B
@@ -1662,8 +1727,10 @@ same-to-plain-~ ι-~-ι = ι-~-ι
 same-to-plain-~ {Ω = Ω} {Φ = Φ} (⇒-~-⇒ A~A′ B~B′) =
   ⇒-~-⇒ (same-to-plain-~ {Ω = Ω} {Φ = Φ} A~A′)
          (same-to-plain-~ {Ω = Ω} {Φ = Φ} B~B′)
-same-to-plain-~ {Ω = Ω} {Φ = Φ} (∀-~-∀ A~B) =
-  ∀-~-∀ (same-to-plain-~ {Ω = X~X ∷ Ω} {Φ = Φ} A~B)
+same-to-plain-~ {Ω = Ω} {Φ = Φ}
+    (∀-~-∀ {occA = occA} {occB = occB} A~B) =
+  ∀-~-∀ {occA = occA} {occB = occB}
+    (same-to-plain-~ {Ω = X~X ∷ Ω} {Φ = Φ} A~B)
 same-to-plain-~ {Ω = Ω} {Φ = Φ} (A-~-★ n★ n∀ g A~G) =
   A-~-★ n★ n∀ g (same-to-plain-~ {Ω = Ω} {Φ = Φ} A~G)
 same-to-plain-~ {Ω = Ω} {Φ = Φ} (★-~-B n★ n∀ g G~B) =

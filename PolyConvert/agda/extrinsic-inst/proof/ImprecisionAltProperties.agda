@@ -196,6 +196,42 @@ ReflImpCtx-[] ()
 ⊑-refl-closed = ⊑-refl ReflImpCtx-[]
 
 ------------------------------------------------------------------------
+-- Imprecision to ★
+------------------------------------------------------------------------
+
+StarImpCtx : ImpCtx → Set
+StarImpCtx Φ = ∀ {X} → X < length Φ → (X ˣ⊑★) ∈ Φ
+
+StarImpCtx-ν :
+  ∀ {Φ} →
+  StarImpCtx Φ →
+  StarImpCtx ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+StarImpCtx-ν starΦ {zero} z<s = here refl
+StarImpCtx-ν {Φ = Φ} starΦ {suc X} (s<s X<⇑Φ) =
+  there
+    (⇑ᴸᵢ-★∈
+      (starΦ (subst (λ n → X < n) (length-⇑ᴸᵢ Φ) X<⇑Φ)))
+
+⊑★ :
+  ∀ {Φ A} →
+  StarImpCtx Φ →
+  WfTy (length Φ) 0 A →
+  0 ∣ Φ ⊢ A ⊑ ★
+⊑★ starΦ (wfVar X<Φ) = tagˣ (starΦ X<Φ)
+⊑★ starΦ (wfSeal ())
+⊑★ starΦ wfBase = tag _
+⊑★ starΦ wf★ = id★
+⊑★ starΦ (wf⇒ wfA wfB) =
+  tag_⇒_ (⊑★ starΦ wfA) (⊑★ starΦ wfB)
+⊑★ {Φ = Φ} {A = `∀ A} starΦ (wf∀ {occ = occA} wfA) =
+  ν occA (⊑★ (StarImpCtx-ν starΦ) wfA′)
+  where
+  wfA′ : WfTy (length ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ)) 0 A
+  wfA′ =
+    subst (λ n → WfTy n 0 A)
+      (sym (cong suc (length-⇑ᴸᵢ Φ))) wfA
+
+------------------------------------------------------------------------
 -- Context closure for transitivity
 ------------------------------------------------------------------------
 

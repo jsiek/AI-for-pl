@@ -12,9 +12,10 @@ module Types where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (Bool; false; true; _∨_)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
-open import Data.Nat.Properties using (_≟_)
+open import Data.Nat.Properties using (_≟_; suc-injective)
 open import Data.Product using (_×_; _,_)
 open import Relation.Nullary using (Dec; yes; no)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans)
@@ -271,7 +272,192 @@ data WfTy : TyCtx → SealCtx → Ty → Set where
   wfBase : ∀ {Δ Ψ ι} → WfTy Δ Ψ (‵ ι)
   wf★ : ∀ {Δ Ψ} → WfTy Δ Ψ ★
   wf⇒ : ∀ {Δ Ψ A B} → WfTy Δ Ψ A → WfTy Δ Ψ B → WfTy Δ Ψ (A ⇒ B)
-  wf∀ : ∀ {Δ Ψ A} → WfTy (suc Δ) Ψ A → WfTy Δ Ψ (`∀ A)
+  wf∀ : ∀ {Δ Ψ A} → {occ : occurs zero A ≡ true} →
+    WfTy (suc Δ) Ψ A → WfTy Δ Ψ (`∀ A)
+
+renameᵗ-cong-occ :
+  ∀ {ρ ρ′ : Renameᵗ} →
+  (∀ X → ρ X ≡ ρ′ X) →
+  ∀ A → renameᵗ ρ A ≡ renameᵗ ρ′ A
+renameᵗ-cong-occ h (＇ X) = cong ＇_ (h X)
+renameᵗ-cong-occ h (｀ α) = refl
+renameᵗ-cong-occ h (‵ ι) = refl
+renameᵗ-cong-occ h ★ = refl
+renameᵗ-cong-occ h (A ⇒ B) =
+  cong₂ _⇒_ (renameᵗ-cong-occ h A) (renameᵗ-cong-occ h B)
+renameᵗ-cong-occ {ρ = ρ} {ρ′ = ρ′} h (`∀ A) =
+  cong `∀ (renameᵗ-cong-occ h-ext A)
+  where
+  h-ext : ∀ X → extᵗ ρ X ≡ extᵗ ρ′ X
+  h-ext zero = refl
+  h-ext (suc X) = cong suc (h X)
+
+raiseVarFrom-≢-occ :
+  ∀ k X →
+  raiseVarFrom k X ≡ k →
+  ⊥
+raiseVarFrom-≢-occ zero X ()
+raiseVarFrom-≢-occ (suc k) zero ()
+raiseVarFrom-≢-occ (suc k) (suc X) eq =
+  raiseVarFrom-≢-occ k X (suc-injective eq)
+
+raiseVarFrom-injective-occ :
+  ∀ k {X Y} →
+  raiseVarFrom k X ≡ raiseVarFrom k Y →
+  X ≡ Y
+raiseVarFrom-injective-occ zero eq = suc-injective eq
+raiseVarFrom-injective-occ (suc k) {zero} {zero} eq = refl
+raiseVarFrom-injective-occ (suc k) {zero} {suc Y} ()
+raiseVarFrom-injective-occ (suc k) {suc X} {zero} ()
+raiseVarFrom-injective-occ (suc k) {suc X} {suc Y} eq =
+  cong suc (raiseVarFrom-injective-occ k (suc-injective eq))
+
+raise-ext-occ :
+  ∀ k X →
+  extᵗ (raiseVarFrom k) X ≡ raiseVarFrom (suc k) X
+raise-ext-occ k zero = refl
+raise-ext-occ k (suc X) = refl
+
+rename-raise-ext-occ :
+  ∀ k A →
+  renameᵗ (extᵗ (raiseVarFrom k)) A ≡
+  renameᵗ (raiseVarFrom (suc k)) A
+rename-raise-ext-occ k A = renameᵗ-cong-occ (raise-ext-occ k) A
+
+occurs-raise-occ :
+  ∀ k X A →
+  occurs (raiseVarFrom k X) (renameᵗ (raiseVarFrom k) A) ≡
+  occurs X A
+occurs-raise-occ k X (＇ Y)
+    with X ≟ Y | raiseVarFrom k X ≟ raiseVarFrom k Y
+occurs-raise-occ k X (＇ .X) | yes refl | yes refl = refl
+occurs-raise-occ k X (＇ .X) | yes refl | no neq = ⊥-elim (neq refl)
+occurs-raise-occ k X (＇ Y) | no neq | yes eq =
+  ⊥-elim (neq (raiseVarFrom-injective-occ k eq))
+occurs-raise-occ k X (＇ Y) | no neq | no neq′ = refl
+occurs-raise-occ k X (｀ α) = refl
+occurs-raise-occ k X (‵ ι) = refl
+occurs-raise-occ k X ★ = refl
+occurs-raise-occ k X (A ⇒ B)
+  rewrite occurs-raise-occ k X A
+        | occurs-raise-occ k X B = refl
+occurs-raise-occ k X (`∀ A)
+  rewrite rename-raise-ext-occ k A =
+  occurs-raise-occ (suc k) (suc X) A
+
+occurs-raise-fresh-occ :
+  ∀ k A →
+  occurs k (renameᵗ (raiseVarFrom k) A) ≡ false
+occurs-raise-fresh-occ k (＇ X) with k ≟ raiseVarFrom k X
+occurs-raise-fresh-occ k (＇ X) | yes eq =
+  ⊥-elim (raiseVarFrom-≢-occ k X (sym eq))
+occurs-raise-fresh-occ k (＇ X) | no neq = refl
+occurs-raise-fresh-occ k (｀ α) = refl
+occurs-raise-fresh-occ k (‵ ι) = refl
+occurs-raise-fresh-occ k ★ = refl
+occurs-raise-fresh-occ k (A ⇒ B)
+  rewrite occurs-raise-fresh-occ k A
+        | occurs-raise-fresh-occ k B = refl
+occurs-raise-fresh-occ k (`∀ A)
+  rewrite rename-raise-ext-occ k A =
+  occurs-raise-fresh-occ (suc k) A
+
+extᵗFrom : ℕ → Renameᵗ → Renameᵗ
+extᵗFrom zero ρ = ρ
+extᵗFrom (suc k) ρ = extᵗ (extᵗFrom k ρ)
+
+extᵗFrom-protect-var :
+  ∀ k ρ X Y →
+  X < k →
+  occurs X (＇ extᵗFrom k ρ Y) ≡ occurs X (＇ Y)
+extᵗFrom-protect-var zero ρ X Y ()
+extᵗFrom-protect-var (suc k) ρ zero zero z<s = refl
+extᵗFrom-protect-var (suc k) ρ zero (suc Y) z<s = refl
+extᵗFrom-protect-var (suc k) ρ (suc X) zero (s<s X<k) = refl
+extᵗFrom-protect-var (suc k) ρ (suc X) (suc Y) (s<s X<k) =
+  trans
+    (occurs-raise-occ zero X (＇ extᵗFrom k ρ Y))
+    (trans
+      (extᵗFrom-protect-var k ρ X Y X<k)
+      (sym (occurs-raise-occ zero X (＇ Y))))
+
+occurs-renameᵗ-protected :
+  ∀ k ρ X A →
+  X < k →
+  occurs X (renameᵗ (extᵗFrom k ρ) A) ≡ occurs X A
+occurs-renameᵗ-protected k ρ X (＇ Y) X<k =
+  extᵗFrom-protect-var k ρ X Y X<k
+occurs-renameᵗ-protected k ρ X (｀ α) X<k = refl
+occurs-renameᵗ-protected k ρ X (‵ ι) X<k = refl
+occurs-renameᵗ-protected k ρ X ★ X<k = refl
+occurs-renameᵗ-protected k ρ X (A ⇒ B) X<k
+  rewrite occurs-renameᵗ-protected k ρ X A X<k
+        | occurs-renameᵗ-protected k ρ X B X<k = refl
+occurs-renameᵗ-protected k ρ X (`∀ A) X<k =
+  occurs-renameᵗ-protected (suc k) ρ (suc X) A (s<s X<k)
+
+occurs-renameᵗ-ext-zero :
+  ∀ ρ A →
+  occurs zero (renameᵗ (extᵗ ρ) A) ≡ occurs zero A
+occurs-renameᵗ-ext-zero ρ A =
+  occurs-renameᵗ-protected (suc zero) ρ zero A z<s
+
+occurs-renameˢ :
+  ∀ X ρ A →
+  occurs X (renameˢ ρ A) ≡ occurs X A
+occurs-renameˢ X ρ (＇ Y) = refl
+occurs-renameˢ X ρ (｀ α) = refl
+occurs-renameˢ X ρ (‵ ι) = refl
+occurs-renameˢ X ρ ★ = refl
+occurs-renameˢ X ρ (A ⇒ B)
+  rewrite occurs-renameˢ X ρ A
+        | occurs-renameˢ X ρ B = refl
+occurs-renameˢ X ρ (`∀ A) = occurs-renameˢ (suc X) ρ A
+
+occurs-renameˢ-zero :
+  ∀ ρ A →
+  occurs zero (renameˢ ρ A) ≡ occurs zero A
+occurs-renameˢ-zero ρ A = occurs-renameˢ zero ρ A
+
+extsᵗFrom : ℕ → Substᵗ → Substᵗ
+extsᵗFrom zero σ = σ
+extsᵗFrom (suc k) σ = extsᵗ (extsᵗFrom k σ)
+
+extsᵗFrom-protect-var :
+  ∀ k σ X Y →
+  X < k →
+  occurs X (extsᵗFrom k σ Y) ≡ occurs X (＇ Y)
+extsᵗFrom-protect-var zero σ X Y ()
+extsᵗFrom-protect-var (suc k) σ X zero X<sk = refl
+extsᵗFrom-protect-var (suc k) σ zero (suc Y) z<s =
+  occurs-raise-fresh-occ zero (extsᵗFrom k σ Y)
+extsᵗFrom-protect-var (suc k) σ (suc X) (suc Y) (s<s X<k) =
+  trans
+    (occurs-raise-occ zero X (extsᵗFrom k σ Y))
+    (trans
+      (extsᵗFrom-protect-var k σ X Y X<k)
+      (sym (occurs-raise-occ zero X (＇ Y))))
+
+occurs-substᵗ-protected :
+  ∀ k σ X A →
+  X < k →
+  occurs X (substᵗ (extsᵗFrom k σ) A) ≡ occurs X A
+occurs-substᵗ-protected k σ X (＇ Y) X<k =
+  extsᵗFrom-protect-var k σ X Y X<k
+occurs-substᵗ-protected k σ X (｀ α) X<k = refl
+occurs-substᵗ-protected k σ X (‵ ι) X<k = refl
+occurs-substᵗ-protected k σ X ★ X<k = refl
+occurs-substᵗ-protected k σ X (A ⇒ B) X<k
+  rewrite occurs-substᵗ-protected k σ X A X<k
+        | occurs-substᵗ-protected k σ X B X<k = refl
+occurs-substᵗ-protected k σ X (`∀ A) X<k =
+  occurs-substᵗ-protected (suc k) σ (suc X) A (s<s X<k)
+
+occurs-substᵗ-exts-zero :
+  ∀ σ A →
+  occurs zero (substᵗ (extsᵗ σ) A) ≡ occurs zero A
+occurs-substᵗ-exts-zero σ A =
+  occurs-substᵗ-protected (suc zero) σ zero A z<s
 
 ------------------------------------------------------------------------
 -- Lookup de Bruijn variable in a list
@@ -357,8 +543,9 @@ renameᵗ-preserves-WfTy wfBase hρ = wfBase
 renameᵗ-preserves-WfTy wf★ hρ = wf★
 renameᵗ-preserves-WfTy (wf⇒ hA hB) hρ =
   wf⇒ (renameᵗ-preserves-WfTy hA hρ) (renameᵗ-preserves-WfTy hB hρ)
-renameᵗ-preserves-WfTy (wf∀ hA) hρ =
-  wf∀ (renameᵗ-preserves-WfTy hA (TyRenameWf-ext hρ))
+renameᵗ-preserves-WfTy (wf∀ {A = A} {occ = occ} hA) hρ =
+  wf∀ {occ = trans (occurs-renameᵗ-ext-zero _ A) occ}
+    (renameᵗ-preserves-WfTy hA (TyRenameWf-ext hρ))
 
 renameˢ-preserves-WfTy :
   ∀ {Δ Ψ Ψ′} {ρ : Renameˢ} {A : Ty} →
@@ -371,8 +558,9 @@ renameˢ-preserves-WfTy wfBase hρ = wfBase
 renameˢ-preserves-WfTy wf★ hρ = wf★
 renameˢ-preserves-WfTy (wf⇒ hA hB) hρ =
   wf⇒ (renameˢ-preserves-WfTy hA hρ) (renameˢ-preserves-WfTy hB hρ)
-renameˢ-preserves-WfTy (wf∀ hA) hρ =
-  wf∀ (renameˢ-preserves-WfTy hA hρ)
+renameˢ-preserves-WfTy (wf∀ {A = A} {occ = occ} hA) hρ =
+  wf∀ {occ = trans (occurs-renameˢ-zero _ A) occ}
+    (renameˢ-preserves-WfTy hA hρ)
 
 rename-cong :
   ∀{ρ ρ′ : Renameᵗ} →

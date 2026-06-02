@@ -12,7 +12,7 @@ open import Data.Nat using (_≤_; suc)
 open import Data.Nat.Properties using (_≟_; n≤1+n)
 open import Data.Product using (_,_)
 open import Relation.Nullary using (yes; no)
-open import Relation.Binary.PropositionalEquality using (sym)
+open import Relation.Binary.PropositionalEquality using (sym; trans)
 
 open import Types
 open import proof.TypeProperties
@@ -61,8 +61,10 @@ mutual
     ⊢↑-unseal (wkLookupˢ wΣ h)
   wk-conv↑ Ψ≤Ψ′ wΣ (⊢↑-⇒ p⊢ q⊢) =
     ⊢↑-⇒ (wk-conv↓ Ψ≤Ψ′ wΣ p⊢) (wk-conv↑ Ψ≤Ψ′ wΣ q⊢)
-  wk-conv↑ Ψ≤Ψ′ wΣ (⊢↑-∀ c⊢) =
-    ⊢↑-∀ (wk-conv↑ Ψ≤Ψ′ (⟰ᵗ-⊆ˢ wΣ) c⊢)
+  wk-conv↑ Ψ≤Ψ′ wΣ
+      (⊢↑-∀ {occA = occA} {occB = occB} c⊢) =
+    ⊢↑-∀ {occA = occA} {occB = occB}
+      (wk-conv↑ Ψ≤Ψ′ (⟰ᵗ-⊆ˢ wΣ) c⊢)
   wk-conv↑ Ψ≤Ψ′ wΣ (⊢↑-id wfA) =
     ⊢↑-id (WfTy-weakenˢ wfA Ψ≤Ψ′)
 
@@ -76,8 +78,10 @@ mutual
     ⊢↓-seal (wkLookupˢ wΣ h)
   wk-conv↓ Ψ≤Ψ′ wΣ (⊢↓-⇒ p⊢ q⊢) =
     ⊢↓-⇒ (wk-conv↑ Ψ≤Ψ′ wΣ p⊢) (wk-conv↓ Ψ≤Ψ′ wΣ q⊢)
-  wk-conv↓ Ψ≤Ψ′ wΣ (⊢↓-∀ c⊢) =
-    ⊢↓-∀ (wk-conv↓ Ψ≤Ψ′ (⟰ᵗ-⊆ˢ wΣ) c⊢)
+  wk-conv↓ Ψ≤Ψ′ wΣ
+      (⊢↓-∀ {occA = occA} {occB = occB} c⊢) =
+    ⊢↓-∀ {occA = occA} {occB = occB}
+      (wk-conv↓ Ψ≤Ψ′ (⟰ᵗ-⊆ˢ wΣ) c⊢)
   wk-conv↓ Ψ≤Ψ′ wΣ (⊢↓-id wfA) =
     ⊢↓-id (WfTy-weakenˢ wfA Ψ≤Ψ′)
 
@@ -91,8 +95,11 @@ mutual
   subst↑-wt hσ (⊢↑-unseal h) = ⊢↑-unseal (substLookupᵗ _ h)
   subst↑-wt hσ (⊢↑-⇒ p⊢ q⊢) =
     ⊢↑-⇒ (subst↓-wt hσ p⊢) (subst↑-wt hσ q⊢)
-  subst↑-wt {Σ = Σ} {σ = σ} hσ (⊢↑-∀ c⊢) =
+  subst↑-wt {Σ = Σ} {σ = σ} hσ
+      (⊢↑-∀ {A = A} {B = B} {occA = occA} {occB = occB} c⊢) =
     ⊢↑-∀
+      {occA = trans (occurs-substᵗ-exts-zero σ A) occA}
+      {occB = trans (occurs-substᵗ-exts-zero σ B) occB}
       (cong-⊢↑
         (substStoreᵗ-ext-⟰ᵗ σ Σ)
         refl
@@ -111,8 +118,11 @@ mutual
   subst↓-wt hσ (⊢↓-seal h) = ⊢↓-seal (substLookupᵗ _ h)
   subst↓-wt hσ (⊢↓-⇒ p⊢ q⊢) =
     ⊢↓-⇒ (subst↑-wt hσ p⊢) (subst↓-wt hσ q⊢)
-  subst↓-wt {Σ = Σ} {σ = σ} hσ (⊢↓-∀ c⊢) =
+  subst↓-wt {Σ = Σ} {σ = σ} hσ
+      (⊢↓-∀ {A = A} {B = B} {occA = occA} {occB = occB} c⊢) =
     ⊢↓-∀
+      {occA = trans (occurs-substᵗ-exts-zero σ A) occA}
+      {occB = trans (occurs-substᵗ-exts-zero σ B) occB}
       (cong-⊢↓
         (substStoreᵗ-ext-⟰ᵗ σ Σ)
         refl
@@ -174,8 +184,13 @@ mutual
   convert↑At-wt hSeal hT hα (wf⇒ wfA wfB) =
     ⊢↑-⇒ (convert↓At-wt hSeal hT hα wfA)
           (convert↑At-wt hSeal hT hα wfB)
-  convert↑At-wt hSeal hT hα (wf∀ wfA) =
+  convert↑At-wt {X = X} {A = `∀ A} {T = T} {α = α}
+      hSeal hT hα (wf∀ {occ = occA} wfA) =
     ⊢↑-∀
+      {occA = trans (occurs-substᵗ-exts-zero (substVarFrom X (｀ α)) A)
+                    occA}
+      {occB = trans (occurs-substᵗ-exts-zero (substVarFrom X T) A)
+                    occA}
       (convert↑At-wt
         (TySubstWf-exts hSeal)
         (TySubstWf-exts hT)
@@ -207,8 +222,13 @@ mutual
   convert↓At-wt hSeal hT hα (wf⇒ wfA wfB) =
     ⊢↓-⇒ (convert↑At-wt hSeal hT hα wfA)
           (convert↓At-wt hSeal hT hα wfB)
-  convert↓At-wt hSeal hT hα (wf∀ wfA) =
+  convert↓At-wt {X = X} {A = `∀ A} {T = T} {α = α}
+      hSeal hT hα (wf∀ {occ = occA} wfA) =
     ⊢↓-∀
+      {occA = trans (occurs-substᵗ-exts-zero (substVarFrom X T) A)
+                    occA}
+      {occB = trans (occurs-substᵗ-exts-zero (substVarFrom X (｀ α)) A)
+                    occA}
       (convert↓At-wt
         (TySubstWf-exts hSeal)
         (TySubstWf-exts hT)

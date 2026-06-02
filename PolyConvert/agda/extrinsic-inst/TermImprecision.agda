@@ -163,6 +163,8 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
     E ⊢ (L · M) ⊑ (L′ · M′) ⦂ B ⊑ B′
 
   ⊑Λ : ∀ {A B M M′} →
+    {occA : occurs zero A ≡ true} →
+    {occB : occurs zero B ≡ true} →
     Value M →
     Value M′ →
     ⇑ᵗᴱ E ⊢ M ⊑ M′ ⦂ A ⊑ B →
@@ -345,8 +347,10 @@ data _⊢_⊑_⦂_⊑_ (E : TPEnv) :
   pA ↦ pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢
 ⊑-type-imprecision (⊑· relL relM) with ⊑-type-imprecision relL
 ... | pA ↦ pB , ⊢A⇒B-⊑-A′⇒B′ pA⊢ pB⊢ = pB , pB⊢
-⊑-type-imprecision (⊑Λ relM relM′ rel) with ⊑-type-imprecision rel
-... | p , p⊢ = ‵∀ p , ⊢∀A-⊑-∀B p⊢
+⊑-type-imprecision (⊑Λ {occA = occA} {occB = occB} relM relM′ rel)
+    with ⊑-type-imprecision rel
+... | p , p⊢ =
+  ‵∀ p , ⊢∀A-⊑-∀B {occA = occA} {occB = occB} p⊢
 ⊑-type-imprecision (⊑Λν {p = p} vM occA wfB M′⊢ rel p⊢) =
   ν p , ⊢∀A-⊑-B occA wfB p⊢
 ⊑-type-imprecision (⊑⦂∀ rel wfA wfB wfT wfT′ pT⊢) = _ , pT⊢

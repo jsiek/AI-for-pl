@@ -96,8 +96,10 @@ tgt⊑-correct (⊢∀A-⊑-B {B = B} _ wfB p⊢) =
 ⊑-src-wf ⊢ι-⊑-ι = wfBase
 ⊑-src-wf (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   wf⇒ (⊑-src-wf p⊢) (⊑-src-wf q⊢)
-⊑-src-wf (⊢∀A-⊑-∀B p⊢) = wf∀ (⊑-src-wf p⊢)
-⊑-src-wf (⊢∀A-⊑-B _ wfB p⊢) = wf∀ (⊑-src-wf p⊢)
+⊑-src-wf (⊢∀A-⊑-∀B {occA = occA} p⊢) =
+  wf∀ {occ = occA} (⊑-src-wf p⊢)
+⊑-src-wf (⊢∀A-⊑-B occA wfB p⊢) =
+  wf∀ {occ = occA} (⊑-src-wf p⊢)
 
 ⊑-tgt-wf : ∀ {Ψ Γ p A B} →
   Ψ ∣ Γ ⊢ p ⦂ A ⊑ B →
@@ -110,7 +112,8 @@ tgt⊑-correct (⊢∀A-⊑-B {B = B} _ wfB p⊢) =
 ⊑-tgt-wf ⊢ι-⊑-ι = wfBase
 ⊑-tgt-wf (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   wf⇒ (⊑-tgt-wf p⊢) (⊑-tgt-wf q⊢)
-⊑-tgt-wf (⊢∀A-⊑-∀B p⊢) = wf∀ (⊑-tgt-wf p⊢)
+⊑-tgt-wf (⊢∀A-⊑-∀B {occB = occB} p⊢) =
+  wf∀ {occ = occB} (⊑-tgt-wf p⊢)
 ⊑-tgt-wf (⊢∀A-⊑-B _ wfB p⊢) = wfB
 
 ⊑-tgt-non∀ :
@@ -139,7 +142,8 @@ wk-⊑ Ψ≤Ψ′ (⊢α-⊑-α wfα) = ⊢α-⊑-α (WfTy-weakenˢ wfα Ψ≤Ψ
 wk-⊑ Ψ≤Ψ′ ⊢ι-⊑-ι = ⊢ι-⊑-ι
 wk-⊑ Ψ≤Ψ′ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   ⊢A⇒B-⊑-A′⇒B′ (wk-⊑ Ψ≤Ψ′ p⊢) (wk-⊑ Ψ≤Ψ′ q⊢)
-wk-⊑ Ψ≤Ψ′ (⊢∀A-⊑-∀B p⊢) = ⊢∀A-⊑-∀B (wk-⊑ Ψ≤Ψ′ p⊢)
+wk-⊑ Ψ≤Ψ′ (⊢∀A-⊑-∀B {occA = occA} {occB = occB} p⊢) =
+  ⊢∀A-⊑-∀B {occA = occA} {occB = occB} (wk-⊑ Ψ≤Ψ′ p⊢)
 wk-⊑ Ψ≤Ψ′ (⊢∀A-⊑-B occA wfB p⊢) =
   ⊢∀A-⊑-B occA (WfTy-weakenˢ wfB Ψ≤Ψ′) (wk-⊑ Ψ≤Ψ′ p⊢)
 
@@ -178,8 +182,9 @@ reflImp-wt-extend-X⊑X (wf⇒ wfA wfB) =
   ⊢A⇒B-⊑-A′⇒B′
     (reflImp-wt-extend-X⊑X wfA)
     (reflImp-wt-extend-X⊑X wfB)
-reflImp-wt-extend-X⊑X (wf∀ wfA) =
-  ⊢∀A-⊑-∀B (reflImp-wt-extend-X⊑X wfA)
+reflImp-wt-extend-X⊑X (wf∀ {occ = occA} wfA) =
+  ⊢∀A-⊑-∀B {occA = occA} {occB = occA}
+    (reflImp-wt-extend-X⊑X wfA)
 
 ⊑-src-wf-extend-X⊑X :
   ∀ {Δ p A B} →
@@ -209,8 +214,10 @@ reflImp-wt-extend-X⊑X (wf∀ wfA) =
 ⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf⇒ wfA wfB) (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   wf⇒ (⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} wfA p⊢)
        (⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} wfB q⊢)
-⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA) (⊢∀A-⊑-∀B p⊢) =
-  wf∀ (⊑-tgt-wf-prefix {Δ = Δ} {Φ = X⊑X ∷ Φ} wfA p⊢)
+⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA)
+    (⊢∀A-⊑-∀B {occB = occB} p⊢) =
+  wf∀ {occ = occB}
+    (⊑-tgt-wf-prefix {Δ = Δ} {Φ = X⊑X ∷ Φ} wfA p⊢)
 ⊑-tgt-wf-prefix {Δ = Δ} {Φ = Φ} (wf∀ wfA) (⊢∀A-⊑-B _ wfB p⊢) =
   drop-⇑ᵗ-WfTy-extend-X⊑X {Δ = length Φ}
     (⊑-tgt-wf-prefix {Δ = Δ} {Φ = X⊑★ ∷ Φ} wfA p⊢)
@@ -238,8 +245,10 @@ reflImp-wt-extend-X⊑X (wf∀ wfA) =
     (wf⇒ wfA wfB) (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   wf⇒ (⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} wfA p⊢)
        (⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} wfB q⊢)
-⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} (wf∀ wfA) (⊢∀A-⊑-∀B p⊢) =
-  wf∀ (⊑-tgt-wf-prefix-any {Φ = X⊑X ∷ Φ} {Γ = Γ} wfA p⊢)
+⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} (wf∀ wfA)
+    (⊢∀A-⊑-∀B {occB = occB} p⊢) =
+  wf∀ {occ = occB}
+    (⊑-tgt-wf-prefix-any {Φ = X⊑X ∷ Φ} {Γ = Γ} wfA p⊢)
 ⊑-tgt-wf-prefix-any {Φ = Φ} {Γ = Γ} (wf∀ wfA) (⊢∀A-⊑-B _ wfB p⊢) =
   drop-⇑ᵗ-WfTy-extend-X⊑X {Δ = length Φ}
     (⊑-tgt-wf-prefix-any {Φ = X⊑★ ∷ Φ} {Γ = Γ} wfA p⊢)
@@ -364,8 +373,11 @@ wkImpAt {Φ = Φ} (⊢α-⊑-α (wfSeal α<Ψ)) = ⊢α-⊑-α (wfSeal α<Ψ)
 wkImpAt {Φ = Φ} ⊢ι-⊑-ι = ⊢ι-⊑-ι
 wkImpAt {Φ = Φ} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   ⊢A⇒B-⊑-A′⇒B′ (wkImpAt {Φ = Φ} p⊢) (wkImpAt {Φ = Φ} q⊢)
-wkImpAt {Φ = Φ} (⊢∀A-⊑-∀B p⊢) =
+wkImpAt {Φ = Φ}
+    (⊢∀A-⊑-∀B {A = A} {B = B} {occA = occA} {occB = occB} p⊢) =
   ⊢∀A-⊑-∀B
+    {occA = trans (occurs-rename-ext-raise-zero (length Φ) A) occA}
+    {occB = trans (occurs-rename-ext-raise-zero (length Φ) B) occB}
     (cong-⊢⊑-raw
       (sym (rename⊑-cong (raise-ext (length Φ)) _))
       (sym (rename-raise-ext (length Φ) _))
@@ -456,8 +468,16 @@ open-fresh-ν⊑-prefix wfΣ ⊢ι-⊑-ι = ⊢ι-⊑-ι
 open-fresh-ν⊑-prefix wfΣ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   ⊢A⇒B-⊑-A′⇒B′ (open-fresh-ν⊑-prefix wfΣ p⊢)
        (open-fresh-ν⊑-prefix wfΣ q⊢)
-open-fresh-ν⊑-prefix {Φ = Φ} wfΣ (⊢∀A-⊑-∀B p⊢) =
-  ⊢∀A-⊑-∀B (open-fresh-ν⊑-prefix {Φ = X⊑X ∷ Φ} wfΣ p⊢)
+open-fresh-ν⊑-prefix {Φ = Φ} wfΣ
+    (⊢∀A-⊑-∀B {A = A} {B = B} {occA = occA} {occB = occB} p⊢) =
+  ⊢∀A-⊑-∀B
+    {occA =
+      trans (occurs-substVarFrom-< (suc (length Φ)) zero (｀ _) A z<s)
+        occA}
+    {occB =
+      trans (occurs-substVarFrom-< (suc (length Φ)) zero (｀ _) B z<s)
+        occB}
+    (open-fresh-ν⊑-prefix {Φ = X⊑X ∷ Φ} wfΣ p⊢)
 open-fresh-ν⊑-prefix {Φ = Φ} wfΣ
     (⊢∀A-⊑-B {A = A} {B = B} occA wfB p⊢) =
   ⊢∀A-⊑-B
@@ -534,8 +554,16 @@ open-fresh-∀⊑-prefix wfΣ ⊢ι-⊑-ι = ⊢ι-⊑-ι
 open-fresh-∀⊑-prefix wfΣ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
   ⊢A⇒B-⊑-A′⇒B′ (open-fresh-∀⊑-prefix wfΣ p⊢)
        (open-fresh-∀⊑-prefix wfΣ q⊢)
-open-fresh-∀⊑-prefix {Φ = Φ} wfΣ (⊢∀A-⊑-∀B p⊢) =
-  ⊢∀A-⊑-∀B (open-fresh-∀⊑-prefix {Φ = X⊑X ∷ Φ} wfΣ p⊢)
+open-fresh-∀⊑-prefix {Φ = Φ} wfΣ
+    (⊢∀A-⊑-∀B {A = A} {B = B} {occA = occA} {occB = occB} p⊢) =
+  ⊢∀A-⊑-∀B
+    {occA =
+      trans (occurs-substVarFrom-< (suc (length Φ)) zero (｀ _) A z<s)
+        occA}
+    {occB =
+      trans (occurs-substVarFrom-< (suc (length Φ)) zero (｀ _) B z<s)
+        occB}
+    (open-fresh-∀⊑-prefix {Φ = X⊑X ∷ Φ} wfΣ p⊢)
 open-fresh-∀⊑-prefix {Φ = Φ} wfΣ
     (⊢∀A-⊑-B {A = A} {B = B} occA wfB p⊢) =
   ⊢∀A-⊑-B
@@ -801,14 +829,20 @@ plain-to-ν-raised-at-⊑ {Φ = Φ} {B = A ⇒ B} (⊢A⇒B-⊑-A′⇒B′ p⊢
 plain-to-ν-raised-at-⊑ {B = A ⇒ B} (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
     | p , p⊢′ | q , q⊢′ =
   p ↦ q , ⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′
-plain-to-ν-raised-at-⊑ {Φ = Φ} {B = `∀ B} (⊢∀A-⊑-∀B p⊢)
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = `∀ B}
+    (⊢∀A-⊑-∀B {occA = occA} {occB = occB} p⊢)
     with plain-to-ν-raised-at-⊑ {Φ = X⊑X ∷ Φ} {B = B}
       (cong-⊢⊑ refl (rename-raise-ext (length Φ) B) p⊢)
-plain-to-ν-raised-at-⊑ {Φ = Φ} {B = `∀ B} (⊢∀A-⊑-∀B p⊢)
+plain-to-ν-raised-at-⊑ {Φ = Φ} {B = `∀ B}
+    (⊢∀A-⊑-∀B {occA = occA} {occB = occB} p⊢)
     | q , q⊢ =
   ‵∀ q ,
   cong-⊢⊑ refl (cong `∀ (sym (rename-raise-ext (length Φ) B)))
-    (⊢∀A-⊑-∀B q⊢)
+    (⊢∀A-⊑-∀B
+      {occA = occA}
+      {occB = trans (sym (cong (occurs zero) (rename-raise-ext (length Φ) B)))
+                    occB}
+      q⊢)
 plain-to-ν-raised-at-⊑ {Δ = Δ} {Φ = Φ} {B = B}
     (⊢∀A-⊑-B {A = A} occA wfB p⊢)
     with plain-to-ν-raised-at-⊑ {Φ = X⊑★ ∷ Φ} {B = ⇑ᵗ B}
@@ -917,10 +951,15 @@ trans-ctx-⊑ Γ≤Γ′ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) (⊢A⇒B-⊑-A′
 trans-ctx-⊑ Γ≤Γ′ (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) (⊢A⇒B-⊑-A′⇒B′ p⊢′ q⊢′)
     | r₁ , r₁⊢ | r₂ , r₂⊢ =
   r₁ ↦ r₂ , ⊢A⇒B-⊑-A′⇒B′ r₁⊢ r₂⊢
-trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-∀B q⊢)
+trans-ctx-⊑ Γ≤Γ′
+    (⊢∀A-⊑-∀B {occA = occA} p⊢)
+    (⊢∀A-⊑-∀B {occB = occC} q⊢)
     with trans-ctx-⊑ (X⊑X≤X⊑X ∷≤ᵢ Γ≤Γ′) p⊢ q⊢
-trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-∀B q⊢) | r , r⊢ =
-  ‵∀ r , ⊢∀A-⊑-∀B r⊢
+trans-ctx-⊑ Γ≤Γ′
+    (⊢∀A-⊑-∀B {occA = occA} p⊢)
+    (⊢∀A-⊑-∀B {occB = occC} q⊢)
+    | r , r⊢ =
+  ‵∀ r , ⊢∀A-⊑-∀B {occA = occA} {occB = occC} r⊢
 trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B {B = B} occB wfB q⊢)
     with trans-ctx-⊑ (X⊑X≤ν ∷≤ᵢ Γ≤Γ′) p⊢ q⊢
 trans-ctx-⊑ Γ≤Γ′ (⊢∀A-⊑-∀B p⊢) (⊢∀A-⊑-B {B = B} occB wfB q⊢)

@@ -232,6 +232,10 @@ _≟Ty_ : (A B : Ty) → Dec (A ≡ B)
 ... | yes refl = yes refl
 ... | no A≢B = no (λ { refl → A≢B refl })
 
+trueDec : (b : Bool) → Dec (b ≡ true)
+trueDec true = yes refl
+trueDec false = no (λ ())
+
 wfTyDec : (Δ : TyCtx) → (Ψ : SealCtx) → (A : Ty) → Dec (WfTy Δ Ψ A)
 wfTyDec Δ Ψ (＇ X) with X <? Δ
 ... | yes X<Δ = yes (wfVar X<Δ)
@@ -246,8 +250,13 @@ wfTyDec Δ Ψ (A ⇒ B) with wfTyDec Δ Ψ A | wfTyDec Δ Ψ B
 ... | no ¬hA | _ = no (λ { (wf⇒ hA hB) → ¬hA hA })
 ... | _ | no ¬hB = no (λ { (wf⇒ hA hB) → ¬hB hB })
 wfTyDec Δ Ψ (`∀ A) with wfTyDec (suc Δ) Ψ A
-... | yes hA = yes (wf∀ hA)
-... | no ¬hA = no (λ { (wf∀ hA) → ¬hA hA })
+wfTyDec Δ Ψ (`∀ A) | no ¬hA =
+  no (λ { (wf∀ hA) → ¬hA hA })
+wfTyDec Δ Ψ (`∀ A) | yes hA with trueDec (occurs zero A)
+wfTyDec Δ Ψ (`∀ A) | yes hA | yes occA =
+  yes (wf∀ {occ = occA} hA)
+wfTyDec Δ Ψ (`∀ A) | yes hA | no ¬occA =
+  no (λ { (wf∀ {occ = occA} hA) → ¬occA occA })
 
 groundTyDec : (G : Ty) → Dec (Ground G)
 groundTyDec (＇ X) = no (λ ())
@@ -289,10 +298,6 @@ lookupModeDec (n ∷ Γ) zero m with modeEqDec n m
 lookupModeDec (n ∷ Γ) (suc X) m with lookupModeDec Γ X m
 ... | yes h = yes (there h)
 ... | no ¬h = no (λ { (there h) → ¬h h })
-
-trueDec : (b : Bool) → Dec (b ≡ true)
-trueDec true = yes refl
-trueDec false = no (λ ())
 
 false≢true-irr : .(false ≡ true) → ⊥
 false≢true-irr ()
@@ -344,9 +349,19 @@ mutual
   ... | yes p⊢ | yes q⊢ = yes (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢)
   ... | no ¬p | _ = no (λ { (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) → ¬p (⊑-to-computed p⊢) })
   ... | _ | no ¬q = no (λ { (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) → ¬q (⊑-to-computed q⊢) })
-  imp-check Ψ Γ (‵∀ p) with imp-check Ψ (X⊑X ∷ Γ) p
-  ... | yes p⊢ = yes (⊢∀A-⊑-∀B p⊢)
-  ... | no ¬p = no (λ { (⊢∀A-⊑-∀B p⊢) → ¬p (⊑-to-computed p⊢) })
+  imp-check Ψ Γ (‵∀ p)
+      with trueDec (occurs zero (src⊑ p))
+         | trueDec (occurs zero (tgt⊑ p))
+  imp-check Ψ Γ (‵∀ p) | no ¬occA | _ =
+    no (λ { (⊢∀A-⊑-∀B {occA = occA} p⊢) → ¬occA occA })
+  imp-check Ψ Γ (‵∀ p) | yes occA | no ¬occB =
+    no (λ { (⊢∀A-⊑-∀B {occB = occB} p⊢) → ¬occB occB })
+  imp-check Ψ Γ (‵∀ p) | yes occA | yes occB
+      with imp-check Ψ (X⊑X ∷ Γ) p
+  imp-check Ψ Γ (‵∀ p) | yes occA | yes occB | yes p⊢ =
+    yes (⊢∀A-⊑-∀B {occA = occA} {occB = occB} p⊢)
+  imp-check Ψ Γ (‵∀ p) | yes occA | yes occB | no ¬p =
+    no (λ { (⊢∀A-⊑-∀B p⊢) → ¬p (⊑-to-computed p⊢) })
   imp-check Ψ Γ (ν p) with trueDec (occurs zero (src⊑ p))
   imp-check Ψ Γ (ν p) | no ¬occ =
       no (λ { (⊢∀A-⊑-B occA wfB p⊢) → ¬occ occA })
@@ -440,10 +455,21 @@ mutual
   ... | no ¬p | _ = no (λ { (⊢↑-⇒ p⊢ q⊢) → ¬p (↓-to-computed wfΣ p⊢) })
   ... | _ | no ¬q = no (λ { (⊢↑-⇒ p⊢ q⊢) → ¬q (↑-to-computed wfΣ q⊢) })
   conv↑-check Δ Ψ Σ wfΣ (↑-∀ c)
+      with trueDec (occurs zero (src↑ (⟰ᵗ Σ) c))
+         | trueDec (occurs zero (tgt↑ (⟰ᵗ Σ) c))
+  conv↑-check Δ Ψ Σ wfΣ (↑-∀ c) | no ¬occA | _ =
+    no (λ { (⊢↑-∀ {occA = occA} c⊢) → ¬occA occA })
+  conv↑-check Δ Ψ Σ wfΣ (↑-∀ c) | yes occA | no ¬occB =
+    no (λ { (⊢↑-∀ {occB = occB} c⊢) → ¬occB occB })
+  conv↑-check Δ Ψ Σ wfΣ (↑-∀ c) | yes occA | yes occB
       with conv↑-check (suc Δ) Ψ (⟰ᵗ Σ) (storeWf-⟰ᵗ wfΣ) c
-  ... | yes c⊢ = yes (⊢↑-∀ c⊢)
-  ... | no ¬c =
-      no (λ { (⊢↑-∀ c⊢) → ¬c (↑-to-computed (storeWf-⟰ᵗ wfΣ) c⊢) })
+  conv↑-check Δ Ψ Σ wfΣ (↑-∀ c) | yes occA | yes occB
+      | yes c⊢ =
+    yes (⊢↑-∀ {occA = occA} {occB = occB} c⊢)
+  conv↑-check Δ Ψ Σ wfΣ (↑-∀ c) | yes occA | yes occB
+      | no ¬c =
+    no (λ { (⊢↑-∀ c⊢) →
+      ¬c (↑-to-computed (storeWf-⟰ᵗ wfΣ) c⊢) })
   conv↑-check Δ Ψ Σ wfΣ (↑-id A) with wfTyDec Δ Ψ A
   ... | yes wfA = yes (⊢↑-id wfA)
   ... | no ¬wfA = no (λ { (⊢↑-id wfA) → ¬wfA wfA })
@@ -469,10 +495,21 @@ mutual
   ... | no ¬p | _ = no (λ { (⊢↓-⇒ p⊢ q⊢) → ¬p (↑-to-computed wfΣ p⊢) })
   ... | _ | no ¬q = no (λ { (⊢↓-⇒ p⊢ q⊢) → ¬q (↓-to-computed wfΣ q⊢) })
   conv↓-check Δ Ψ Σ wfΣ (↓-∀ c)
+      with trueDec (occurs zero (src↓ (⟰ᵗ Σ) c))
+         | trueDec (occurs zero (tgt↓ (⟰ᵗ Σ) c))
+  conv↓-check Δ Ψ Σ wfΣ (↓-∀ c) | no ¬occA | _ =
+    no (λ { (⊢↓-∀ {occA = occA} c⊢) → ¬occA occA })
+  conv↓-check Δ Ψ Σ wfΣ (↓-∀ c) | yes occA | no ¬occB =
+    no (λ { (⊢↓-∀ {occB = occB} c⊢) → ¬occB occB })
+  conv↓-check Δ Ψ Σ wfΣ (↓-∀ c) | yes occA | yes occB
       with conv↓-check (suc Δ) Ψ (⟰ᵗ Σ) (storeWf-⟰ᵗ wfΣ) c
-  ... | yes c⊢ = yes (⊢↓-∀ c⊢)
-  ... | no ¬c =
-      no (λ { (⊢↓-∀ c⊢) → ¬c (↓-to-computed (storeWf-⟰ᵗ wfΣ) c⊢) })
+  conv↓-check Δ Ψ Σ wfΣ (↓-∀ c) | yes occA | yes occB
+      | yes c⊢ =
+    yes (⊢↓-∀ {occA = occA} {occB = occB} c⊢)
+  conv↓-check Δ Ψ Σ wfΣ (↓-∀ c) | yes occA | yes occB
+      | no ¬c =
+    no (λ { (⊢↓-∀ c⊢) →
+      ¬c (↓-to-computed (storeWf-⟰ᵗ wfΣ) c⊢) })
   conv↓-check Δ Ψ Σ wfΣ (↓-id A) with wfTyDec Δ Ψ A
   ... | yes wfA = yes (⊢↓-id wfA)
   ... | no ¬wfA = no (λ { (⊢↓-id wfA) → ¬wfA wfA })

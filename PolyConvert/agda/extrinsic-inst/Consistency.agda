@@ -73,6 +73,8 @@ data _⊢_~_ (Γ : CCtx) : Ty → Ty → Set where
     Γ ⊢ (A ⇒ B) ~ (A′ ⇒ B′)
 
   ∀-~-∀ : ∀ {A B} →
+    {occA : occurs zero A ≡ true} →
+    {occB : occurs zero B ≡ true} →
     X~X ∷ Γ ⊢ A ~ B →
     Γ ⊢ (`∀ A) ~ (`∀ B)
 

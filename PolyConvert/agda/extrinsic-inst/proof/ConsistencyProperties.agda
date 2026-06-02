@@ -123,7 +123,8 @@ renameᵗ-Non∀-inv {A = A ⇒ B} non∀-⇒ = non∀-⇒
 ~-sym ι-~-ι = ι-~-ι
 ~-sym (⇒-~-⇒ A~A′ B~B′) =
   ⇒-~-⇒ (~-sym A~A′) (~-sym B~B′)
-~-sym (∀-~-∀ A~B) = ∀-~-∀ (~-sym A~B)
+~-sym (∀-~-∀ {occA = occA} {occB = occB} A~B) =
+  ∀-~-∀ {occA = occB} {occB = occA} (~-sym A~B)
 ~-sym (A-~-★ n★ n∀ g A~G) = ★-~-B n★ n∀ g (~-sym A~G)
 ~-sym (★-~-B n★ n∀ h H~B) = A-~-★ n★ n∀ h (~-sym H~B)
 ~-sym (νX-~-★ x∈) = ★-~-νX (swap∋ᶜ x∈)
@@ -197,8 +198,10 @@ refl-insert-extend-X~X k wf★ = ★-~-★
 refl-insert-extend-X~X k (wf⇒ wfA wfB) =
   ⇒-~-⇒ (refl-insert-extend-X~X k wfA)
          (refl-insert-extend-X~X k wfB)
-refl-insert-extend-X~X k {A = `∀ A} (wf∀ wfA) =
+refl-insert-extend-X~X k {A = `∀ A} (wf∀ {occ = occA} wfA) =
   ∀-~-∀
+    {occA = trans (occurs-rename-ext-raise-zero k A) occA}
+    {occB = trans (occurs-rename-ext-raise-zero k A) occA}
     (cong-~
       (sym (rename-raise-ext k A))
       (sym (rename-raise-ext k A))
@@ -274,8 +277,9 @@ drop-mode-WfTy {A = ★} wf★ = wf★
 drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A ⇒ B} (wf⇒ wfA wfB) =
   wf⇒ (drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = A} wfA)
        (drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = B} wfB)
-drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = `∀ A} (wf∀ wfA) =
-  wf∀
+drop-mode-WfTy {d = d} {Φ = Φ} {Γ = Γ} {A = `∀ A}
+    (wf∀ {occ = occA} wfA) =
+  wf∀ {occ = trans (sym (occurs-rename-ext-raise-zero (length Φ) A)) occA}
     (drop-mode-WfTy {d = d} {Φ = X~X ∷ Φ} {Γ = Γ} {A = A}
       (subst (λ B → WfTy (length ((X~X ∷ Φ) ++ d ∷ Γ)) 0 B)
         (rename-raise-ext (length Φ) A)
@@ -427,8 +431,11 @@ drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = A ⇒ B}
       (≤trans (≤right+ (~-size A~A′) (~-size B~B′)) p))
 drop-mode-at-~-gas zero {B = `∀ A} {C = `∀ B} {h = ∀-~-∀ A~B} ()
 drop-mode-at-~-gas (suc gas) {d = d} {Φ = Φ} {Γ = Γ} {B = `∀ A}
-    {C = `∀ B} {h = ∀-~-∀ A~B} (s≤s p) =
+    {C = `∀ B}
+    {h = ∀-~-∀ {occA = occA} {occB = occB} A~B} (s≤s p) =
   ∀-~-∀
+    {occA = trans (sym (occurs-rename-ext-raise-zero (length Φ) A)) occA}
+    {occB = trans (sym (occurs-rename-ext-raise-zero (length Φ) B)) occB}
     (drop-mode-at-~-gas gas
       {d = d} {Φ = X~X ∷ Φ} {Γ = Γ} {B = A} {C = B}
       {h = cong-~ (rename-raise-ext (length Φ) A)

@@ -6,8 +6,20 @@ module proof.ConsistencyAltProperties where
 open import Types
 open import ImprecisionAlt
 open import ConsistencyAlt
+open import proof.ImprecisionAltProperties using
+  ( no-⇑ᵢ-zero-left
+  ; no-⇑ᵢ-zero-right
+  ; no-⇑ᵢ-zero-star
+  ; no-⇑ᴸᵢ-zero-left
+  ; no-⇑ᴸᵢ-zero-star
+  ; un⇑ᵢ-ˣ∈
+  ; un⇑ᵢ-★∈
+  ; un⇑ᴸᵢ-ˣ∈
+  ; un⇑ᴸᵢ-★∈
+  )
 
 open import Data.Bool using (Bool; true; false)
+open import Data.Empty using (⊥-elim)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.List using (List; []; _∷_; _++_; length; replicate; map)
@@ -32,8 +44,6 @@ split-∀ (A ⇒ B) = 0 , A ⇒ B , non∀-⇒
 split-∀ (`∀ A)
     with split-∀ A
 ... | n , B , n∀ = suc n , B , n∀
-
--- _~ₐ_ : CAssm → CAssm → 
 
 clash : CAssm → CAssm → Bool
 clash (X ~ᶜ Y) (X′ ~ᶜ Y′) with X ≟ X′ | Y ≟ Y′
@@ -226,7 +236,7 @@ split-add∀-from {A} {p} eq =
 
 unshiftₐ : (a : CAssm) → Maybe (Σ[ b ∈ CAssm ] ⇑ₐ b ≡ a)
 unshiftₐ (suc X ~ᶜ★) = just (X ~ᶜ★ , refl)
-unshiftₐ (★~ᶜ Y) = just (★~ᶜ Y , refl)
+unshiftₐ (★~ᶜ suc Y) = just (★~ᶜ Y , refl)
 unshiftₐ (suc X ~ᶜ suc Y) = just (X ~ᶜ Y , refl)
 unshiftₐ _ = nothing
 
@@ -390,138 +400,240 @@ consistent? A B
                     (cast-left (split-add∀-from sA) A~B))
 
 ------------------------------------------------------------------------
--- Meet Operator (computes the greatest lower bound)
+-- Consistency is exists Greatest Lower Bound
 ------------------------------------------------------------------------
 
-leftAssm : CAssm → ImpAssm
-leftAssm (X ~ᶜ★) = X ˣ⊑ˣ X
-leftAssm (★~ᶜ X) = X ˣ⊑★
-leftAssm (X ~ᶜ Y) = X ˣ⊑ˣ Y
+⇑ᶜ-ˣˣ∈ :
+  ∀ {Γ X Y} →
+  (X ~ᶜ Y) ∈ Γ →
+  (suc X ~ᶜ suc Y) ∈ ⇑ Γ
+⇑ᶜ-ˣˣ∈ (here refl) = here refl
+⇑ᶜ-ˣˣ∈ (there x~y) = there (⇑ᶜ-ˣˣ∈ x~y)
 
-rightAssm : CAssm → ImpAssm
-rightAssm (X ~ᶜ★) = X ˣ⊑★
-rightAssm (★~ᶜ X) = X ˣ⊑ˣ X
-rightAssm (X ~ᶜ Y) = X ˣ⊑ˣ Y
+⇑ᶜ-ˣ★∈ :
+  ∀ {Γ X} →
+  (X ~ᶜ★) ∈ Γ →
+  (suc X ~ᶜ★) ∈ ⇑ Γ
+⇑ᶜ-ˣ★∈ (here refl) = here refl
+⇑ᶜ-ˣ★∈ (there x~★) = there (⇑ᶜ-ˣ★∈ x~★)
 
-leftImpCtx : CCtx → ImpCtx
-leftImpCtx [] = []
-leftImpCtx (m ∷ Γ) = leftAssm m ∷ leftImpCtx Γ
+⇑ᶜ-★ˣ∈ :
+  ∀ {Γ X} →
+  (★~ᶜ X) ∈ Γ →
+  (★~ᶜ suc X) ∈ ⇑ Γ
+⇑ᶜ-★ˣ∈ (here refl) = here refl
+⇑ᶜ-★ˣ∈ (there ★~x) = there (⇑ᶜ-★ˣ∈ ★~x)
 
-rightImpCtx : CCtx → ImpCtx
-rightImpCtx [] = []
-rightImpCtx (m ∷ Γ) = rightAssm m ∷ rightImpCtx Γ
+⇑ᴸᶜ-ˣˣ∈ :
+  ∀ {Γ X Y} →
+  (X ~ᶜ Y) ∈ Γ →
+  (suc X ~ᶜ Y) ∈ ⇑ᴸ Γ
+⇑ᴸᶜ-ˣˣ∈ (here refl) = here refl
+⇑ᴸᶜ-ˣˣ∈ (there x~y) = there (⇑ᴸᶜ-ˣˣ∈ x~y)
 
-mergeImpCtx : CCtx → ImpCtx
-mergeImpCtx Γ = leftImpCtx Γ ++ rightImpCtx Γ
+⇑ᴸᶜ-ˣ★∈ :
+  ∀ {Γ X} →
+  (X ~ᶜ★) ∈ Γ →
+  (suc X ~ᶜ★) ∈ ⇑ᴸ Γ
+⇑ᴸᶜ-ˣ★∈ (here refl) = here refl
+⇑ᴸᶜ-ˣ★∈ (there x~★) = there (⇑ᴸᶜ-ˣ★∈ x~★)
 
-leftImpCtx-++ : ∀ Γ₁ Γ₂ → leftImpCtx (Γ₁ ++ Γ₂) ≡ leftImpCtx Γ₁ ++ leftImpCtx Γ₂
-leftImpCtx-++ [] Γ₂ = refl
-leftImpCtx-++ (a ∷ Γ₁) Γ₂ = cong (λ xs → leftAssm a ∷ xs) (leftImpCtx-++ Γ₁ Γ₂)
+⇑ᴸᶜ-★ˣ∈ :
+  ∀ {Γ X} →
+  (★~ᶜ X) ∈ Γ →
+  (★~ᶜ X) ∈ ⇑ᴸ Γ
+⇑ᴸᶜ-★ˣ∈ (here refl) = here refl
+⇑ᴸᶜ-★ˣ∈ (there ★~x) = there (⇑ᴸᶜ-★ˣ∈ ★~x)
 
-rightImpCtx-++ : ∀ Γ₁ Γ₂ → rightImpCtx (Γ₁ ++ Γ₂) ≡ rightImpCtx Γ₁ ++ rightImpCtx Γ₂
-rightImpCtx-++ [] Γ₂ = refl
-rightImpCtx-++ (a ∷ Γ₁) Γ₂ = cong (λ xs → rightAssm a ∷ xs) (rightImpCtx-++ Γ₁ Γ₂)
+⇑ᴿᶜ-ˣˣ∈ :
+  ∀ {Γ X Y} →
+  (X ~ᶜ Y) ∈ Γ →
+  (X ~ᶜ suc Y) ∈ ⇑ᴿ Γ
+⇑ᴿᶜ-ˣˣ∈ (here refl) = here refl
+⇑ᴿᶜ-ˣˣ∈ (there x~y) = there (⇑ᴿᶜ-ˣˣ∈ x~y)
 
-GLB-open : SealCtx → CCtx → Ty → Ty → Ty → Set
-GLB-open Ψ Γ A B C = Ψ ∣ leftImpCtx Γ ⊢ A ⊑ B × Ψ ∣ rightImpCtx Γ ⊢ A ⊑ C
-    × (∀ A′ → Ψ ∣ leftImpCtx Γ ⊢ A′ ⊑ B → Ψ ∣ rightImpCtx Γ ⊢ A′ ⊑ C
-        → Ψ ∣ mergeImpCtx Γ ⊢ A′ ⊑ A)
+⇑ᴿᶜ-ˣ★∈ :
+  ∀ {Γ X} →
+  (X ~ᶜ★) ∈ Γ →
+  (X ~ᶜ★) ∈ ⇑ᴿ Γ
+⇑ᴿᶜ-ˣ★∈ (here refl) = here refl
+⇑ᴿᶜ-ˣ★∈ (there x~★) = there (⇑ᴿᶜ-ˣ★∈ x~★)
 
-postulate
-  star-⇒-glb-max :
-    ∀ {Ψ Γ₁ Γ₂ A′ B₁ B₂ C₁ C₂} →
-    GLB-open Ψ Γ₁ C₁ ★ B₁ →
-    GLB-open Ψ Γ₂ C₂ ★ B₂ →
-    Ψ ∣ leftImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ ★ →
-    Ψ ∣ rightImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (B₁ ⇒ B₂) →
-    Ψ ∣ mergeImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (C₁ ⇒ C₂)
+⇑ᴿᶜ-★ˣ∈ :
+  ∀ {Γ X} →
+  (★~ᶜ X) ∈ Γ →
+  (★~ᶜ suc X) ∈ ⇑ᴿ Γ
+⇑ᴿᶜ-★ˣ∈ (here refl) = here refl
+⇑ᴿᶜ-★ˣ∈ (there ★~x) = there (⇑ᴿᶜ-★ˣ∈ ★~x)
 
-  ⇒-star-glb-max :
-    ∀ {Ψ Γ₁ Γ₂ A′ A₁ A₂ C₁ C₂} →
-    GLB-open Ψ Γ₁ C₁ A₁ ★ →
-    GLB-open Ψ Γ₂ C₂ A₂ ★ →
-    Ψ ∣ leftImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (A₁ ⇒ A₂) →
-    Ψ ∣ rightImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ ★ →
-    Ψ ∣ mergeImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (C₁ ⇒ C₂)
+record LowerCtx (Φᴸ Φᴿ : ImpCtx) (Γ : CCtx) : Set where
+  field
+    lower-var-var :
+      ∀ {X Y Z} →
+      (X ˣ⊑ˣ Y) ∈ Φᴸ →
+      (X ˣ⊑ˣ Z) ∈ Φᴿ →
+      (Y ~ᶜ Z) ∈ Γ
 
-{-# TERMINATING #-}
-glb? : (Ψ : SealCtx) (A B : Ty) →
-  Maybe (Σ[ Γ ∈ CCtx ] Σ[ C ∈ Ty ] GLB-open Ψ Γ C A B)
+    lower-var-star :
+      ∀ {X Y} →
+      (X ˣ⊑ˣ Y) ∈ Φᴸ →
+      (X ˣ⊑★) ∈ Φᴿ →
+      (Y ~ᶜ★) ∈ Γ
 
-core-glb? : (Ψ : SealCtx) (A B : Ty) → Non∀ A → Non∀ B →
-  Maybe (Σ[ Γ ∈ CCtx ] Σ[ C ∈ Ty ] GLB-open Ψ Γ C A B)
-core-glb? Ψ (＇ X) (＇ Y) nA nB =
-  just ((X ~ᶜ★) ∷ (X ~ᶜ Y) ∷ [] , ＇ X ,
-    (idˣ (here refl) , idˣ (there (here refl)) ,
-     λ A′ A′⊑X A′⊑Y →
-       wk-⊑-++ˡ (rightImpCtx ((X ~ᶜ★) ∷ (X ~ᶜ Y) ∷ [])) A′⊑X))
-core-glb? Ψ (＇ X) (｀ α) nA nB = nothing
-core-glb? Ψ (＇ X) (‵ ι) nA nB = nothing
-core-glb? Ψ (＇ X) ★ nA nB =
-  just ((X ~ᶜ★) ∷ [] , (＇ X) , (idˣ (here refl)) , (tagˣ (here refl)) ,
-    λ A′ z z₁ → wk-⊑-++ˡ (rightImpCtx ((X ~ᶜ★) ∷ [])) z)
-core-glb? Ψ (＇ X) (B₁ ⇒ B₂) nA nB = nothing
-core-glb? Ψ (｀ α) B nA nB = nothing
-core-glb? Ψ (‵ ι) (＇ X) nA nB = nothing
-core-glb? Ψ (‵ ι) (｀ α) nA nB = nothing
-core-glb? Ψ (‵ ι) (‵ ι′) nA nB with ι ≟Base ι′
-... | yes refl = just ([] , (‵ ι) , idι , idι , λ A′ z z₁ → z)
-... | no neq = nothing
-core-glb? Ψ (‵ ι) ★ nA nB = just ([] , (‵ ι) , idι , (tag ι) , (λ A′ z z₁ → z))
-core-glb? Ψ (‵ ι) (B₁ ⇒ B₂) nA nB = nothing
-core-glb? Ψ ★ (＇ X) nA nB =
-  just ((★~ᶜ X) ∷ [] , ＇ X , tagˣ (here refl) , idˣ (here refl) ,
-    λ A′ A′⊑★ A′⊑X → wk-⊑-++ʳ (leftImpCtx ((★~ᶜ X) ∷ [])) A′⊑X)
-core-glb? Ψ ★ (｀ α) nA nB = nothing
-core-glb? Ψ ★ (‵ ι) nA nB =
-  just ([] , ‵ ι , tag ι , idι , (λ A′ z z₁ → z₁))
-core-glb? Ψ ★ ★ nA nB =
-  just ([] , ★ , id★ , id★ , (λ A′ z z₁ → z))
-core-glb? Ψ ★ (B₁ ⇒ B₂) nA nB with glb? Ψ ★ B₁ | glb? Ψ ★ B₂
-... | nothing | _ = nothing
-... | _ | nothing = nothing
-... | just (Γ₁ , C₁ , C₁-glb) | just (Γ₂ , C₂ , C₂-glb) =
-    just (Γ₁ ++ Γ₂ , C₁ ⇒ C₂ ,
-      (tag_⇒_
-        (cast-⊑ (sym (leftImpCtx-++ Γ₁ Γ₂))
-          (wk-⊑-++ˡ (leftImpCtx Γ₂) (proj₁ C₁-glb)))
-        (cast-⊑ (sym (leftImpCtx-++ Γ₁ Γ₂))
-          (wk-⊑-++ʳ (leftImpCtx Γ₁) (proj₁ C₂-glb)))) ,
-      ((cast-⊑ (sym (rightImpCtx-++ Γ₁ Γ₂))
-          (wk-⊑-++ˡ (rightImpCtx Γ₂) (proj₁ (proj₂ C₁-glb))))
-        ↦
-        (cast-⊑ (sym (rightImpCtx-++ Γ₁ Γ₂))
-          (wk-⊑-++ʳ (rightImpCtx Γ₁) (proj₁ (proj₂ C₂-glb)))) ,
-       λ A′ z z₁ → star-⇒-glb-max C₁-glb C₂-glb z z₁))
-core-glb? Ψ (A₁ ⇒ A₂) (＇ X) nA nB = nothing
-core-glb? Ψ (A₁ ⇒ A₂) (｀ α) nA nB = nothing
-core-glb? Ψ (A₁ ⇒ A₂) (‵ ι) nA nB = nothing
-core-glb? Ψ (A₁ ⇒ A₂) ★ nA nB with glb? Ψ A₁ ★ | glb? Ψ A₂ ★
-... | nothing | _ = nothing
-... | _ | nothing = nothing
-... | just (Γ₁ , C₁ , C₁-glb) | just (Γ₂ , C₂ , C₂-glb) =
-      just (Γ₁ ++ Γ₂ , C₁ ⇒ C₂ ,
-        ((cast-⊑ (sym (leftImpCtx-++ Γ₁ Γ₂))
-            (wk-⊑-++ˡ (leftImpCtx Γ₂) (proj₁ C₁-glb)))
-          ↦
-          (cast-⊑ (sym (leftImpCtx-++ Γ₁ Γ₂))
-            (wk-⊑-++ʳ (leftImpCtx Γ₁) (proj₁ C₂-glb)))) ,
-        (tag_⇒_
-          (cast-⊑ (sym (rightImpCtx-++ Γ₁ Γ₂))
-            (wk-⊑-++ˡ (rightImpCtx Γ₂) (proj₁ (proj₂ C₁-glb))))
-          (cast-⊑ (sym (rightImpCtx-++ Γ₁ Γ₂))
-            (wk-⊑-++ʳ (rightImpCtx Γ₁) (proj₁ (proj₂ C₂-glb)))) ,
-        λ A′ z z₁ → ⇒-star-glb-max C₁-glb C₂-glb z z₁))
-core-glb? Ψ (A₁ ⇒ A₂) (B₁ ⇒ B₂) nA nB
-    with glb? Ψ A₁ B₁ | glb? Ψ A₂ B₂
-... | nothing | _ = nothing
-... | _ | nothing = nothing
-... | just (Γ₁ , C₁ , C₁-glb) | just (Γ₂ , C₂ , C₂-glb) =
-      just ({!!} , C₁ ⇒ C₂ , {!!})
+    lower-star-var :
+      ∀ {X Z} →
+      (X ˣ⊑★) ∈ Φᴸ →
+      (X ˣ⊑ˣ Z) ∈ Φᴿ →
+      (★~ᶜ Z) ∈ Γ
 
-glb? Ψ A B
-    with split-∀ A in sA | split-∀ B in sB
-... | n , A′ , n∀A | m , B′ , n∀B
-    with core-glb? Ψ A′ B′ n∀A n∀B
-... | nothing = nothing
-... | just (Γ , C , C-glb) = {!!}
+open LowerCtx public
+
+LowerCtx-[] : LowerCtx [] [] []
+LowerCtx-[] .lower-var-var ()
+LowerCtx-[] .lower-var-star ()
+LowerCtx-[] .lower-star-var ()
+
+LowerCtx-νν :
+  ∀ {Φᴸ Φᴿ Γ} →
+  LowerCtx Φᴸ Φᴿ Γ →
+  LowerCtx ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ) ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ) Γ
+LowerCtx-νν L .lower-var-var (here ()) _
+LowerCtx-νν L .lower-var-var {X = zero} (there x⊑y) _ =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left x⊑y)
+LowerCtx-νν L .lower-var-var {X = suc x} (there x⊑y) (here ())
+LowerCtx-νν L .lower-var-var {X = suc x} (there x⊑y) (there x⊑z) =
+  lower-var-var L (un⇑ᴸᵢ-ˣ∈ x⊑y) (un⇑ᴸᵢ-ˣ∈ x⊑z)
+LowerCtx-νν L .lower-var-star (here ()) _
+LowerCtx-νν L .lower-var-star {X = zero} (there x⊑y) (here refl) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left x⊑y)
+LowerCtx-νν L .lower-var-star {X = zero} (there x⊑y) (there x⊑★) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left x⊑y)
+LowerCtx-νν L .lower-var-star {X = suc x} (there x⊑y) (there x⊑★) =
+  lower-var-star L (un⇑ᴸᵢ-ˣ∈ x⊑y) (un⇑ᴸᵢ-★∈ x⊑★)
+LowerCtx-νν L .lower-star-var (here refl) (here ())
+LowerCtx-νν L .lower-star-var {X = zero} (here refl) (there x⊑z) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left x⊑z)
+LowerCtx-νν L .lower-star-var {X = zero} (there x⊑★) (there x⊑z) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star x⊑★)
+LowerCtx-νν L .lower-star-var {X = suc x} (there x⊑★) (there x⊑z) =
+  lower-star-var L (un⇑ᴸᵢ-★∈ x⊑★) (un⇑ᴸᵢ-ˣ∈ x⊑z)
+
+LowerCtx-∀∀ :
+  ∀ {Φᴸ Φᴿ Γ} →
+  LowerCtx Φᴸ Φᴿ Γ →
+  LowerCtx ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ) ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+           ((0 ~ᶜ 0) ∷ ⇑ Γ)
+LowerCtx-∀∀ L .lower-var-var (here refl) (here refl) = here refl
+LowerCtx-∀∀ L .lower-var-var (here refl) (there x⊑z) =
+  ⊥-elim (no-⇑ᵢ-zero-left x⊑z)
+LowerCtx-∀∀ L .lower-var-var (there x⊑y) (here refl) =
+  ⊥-elim (no-⇑ᵢ-zero-left x⊑y)
+LowerCtx-∀∀ L .lower-var-var {X = zero} (there x⊑y) _ =
+  ⊥-elim (no-⇑ᵢ-zero-left x⊑y)
+LowerCtx-∀∀ L .lower-var-var {X = suc x} {Y = zero}
+    (there x⊑y) _ =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑y)
+LowerCtx-∀∀ L .lower-var-var {X = suc x} {Z = zero}
+    (there x⊑y) (there x⊑z) =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑z)
+LowerCtx-∀∀ L .lower-var-var {X = suc x} {Y = suc y} {Z = suc z}
+    (there x⊑y) (there x⊑z) =
+  there (⇑ᶜ-ˣˣ∈
+    (lower-var-var L (un⇑ᵢ-ˣ∈ x⊑y) (un⇑ᵢ-ˣ∈ x⊑z)))
+LowerCtx-∀∀ L .lower-var-star (here refl) (here ())
+LowerCtx-∀∀ L .lower-var-star (here refl) (there x⊑★) =
+  ⊥-elim (no-⇑ᵢ-zero-star x⊑★)
+LowerCtx-∀∀ L .lower-var-star {X = zero} (there x⊑y) _ =
+  ⊥-elim (no-⇑ᵢ-zero-left x⊑y)
+LowerCtx-∀∀ L .lower-var-star {X = suc x} {Y = zero}
+    (there x⊑y) _ =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑y)
+LowerCtx-∀∀ L .lower-var-star {X = suc x} {Y = suc y}
+    (there x⊑y) (there x⊑★) =
+  there (⇑ᶜ-ˣ★∈
+    (lower-var-star L (un⇑ᵢ-ˣ∈ x⊑y) (un⇑ᵢ-★∈ x⊑★)))
+LowerCtx-∀∀ L .lower-star-var (here ()) (here refl)
+LowerCtx-∀∀ L .lower-star-var (there x⊑★) (here refl) =
+  ⊥-elim (no-⇑ᵢ-zero-star x⊑★)
+LowerCtx-∀∀ L .lower-star-var {X = zero} (there x⊑★) _ =
+  ⊥-elim (no-⇑ᵢ-zero-star x⊑★)
+LowerCtx-∀∀ L .lower-star-var {X = suc x} {Z = zero}
+    (there x⊑★) (there x⊑z) =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑z)
+LowerCtx-∀∀ L .lower-star-var {X = suc x} {Z = suc z}
+    (there x⊑★) (there x⊑z) =
+  there (⇑ᶜ-★ˣ∈
+    (lower-star-var L (un⇑ᵢ-★∈ x⊑★) (un⇑ᵢ-ˣ∈ x⊑z)))
+
+LowerCtx-∀ν :
+  ∀ {Φᴸ Φᴿ Γ} →
+  LowerCtx Φᴸ Φᴿ Γ →
+  LowerCtx ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ) ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ)
+           ((0 ~ᶜ★) ∷ ⇑ᴸ Γ)
+LowerCtx-∀ν L .lower-var-var (here refl) (here ())
+LowerCtx-∀ν L .lower-var-var {X = zero} (here refl) (there x⊑z) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left x⊑z)
+LowerCtx-∀ν L .lower-var-var {X = zero} (there x⊑y) _ =
+  ⊥-elim (no-⇑ᵢ-zero-left x⊑y)
+LowerCtx-∀ν L .lower-var-var {X = suc x} {Y = zero}
+    (there x⊑y) (there x⊑z) =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑y)
+LowerCtx-∀ν L .lower-var-var {X = suc x} {Y = suc y}
+    (there x⊑y) (there x⊑z) =
+  there (⇑ᴸᶜ-ˣˣ∈
+    (lower-var-var L (un⇑ᵢ-ˣ∈ x⊑y) (un⇑ᴸᵢ-ˣ∈ x⊑z)))
+LowerCtx-∀ν L .lower-var-star (here refl) (here refl) = here refl
+LowerCtx-∀ν L .lower-var-star (here refl) (there x⊑★) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star x⊑★)
+LowerCtx-∀ν L .lower-var-star {X = zero} (there x⊑y) _ =
+  ⊥-elim (no-⇑ᵢ-zero-left x⊑y)
+LowerCtx-∀ν L .lower-var-star {X = suc x} {Y = zero}
+    (there x⊑y) (there x⊑★) =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑y)
+LowerCtx-∀ν L .lower-var-star {X = suc x} {Y = suc y}
+    (there x⊑y) (there x⊑★) =
+  there (⇑ᴸᶜ-ˣ★∈
+    (lower-var-star L (un⇑ᵢ-ˣ∈ x⊑y) (un⇑ᴸᵢ-★∈ x⊑★)))
+LowerCtx-∀ν L .lower-star-var {X = zero} (here ()) _
+LowerCtx-∀ν L .lower-star-var {X = zero} (there x⊑★) _ =
+  ⊥-elim (no-⇑ᵢ-zero-star x⊑★)
+LowerCtx-∀ν L .lower-star-var {X = suc x} (there x⊑★) (here ())
+LowerCtx-∀ν L .lower-star-var {X = suc x} (there x⊑★) (there x⊑z) =
+  there (⇑ᴸᶜ-★ˣ∈
+    (lower-star-var L (un⇑ᵢ-★∈ x⊑★) (un⇑ᴸᵢ-ˣ∈ x⊑z)))
+
+LowerCtx-ν∀ :
+  ∀ {Φᴸ Φᴿ Γ} →
+  LowerCtx Φᴸ Φᴿ Γ →
+  LowerCtx ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ) ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+           ((★~ᶜ 0) ∷ ⇑ᴿ Γ)
+LowerCtx-ν∀ L .lower-var-var (here ()) _
+LowerCtx-ν∀ L .lower-var-var (there x⊑y) (here refl) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left x⊑y)
+LowerCtx-ν∀ L .lower-var-var {X = zero} (there x⊑y) _ =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left x⊑y)
+LowerCtx-ν∀ L .lower-var-var {X = suc x} {Z = zero}
+    (there x⊑y) (there x⊑z) =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑z)
+LowerCtx-ν∀ L .lower-var-var {X = suc x} {Z = suc z}
+    (there x⊑y) (there x⊑z) =
+  there (⇑ᴿᶜ-ˣˣ∈
+    (lower-var-var L (un⇑ᴸᵢ-ˣ∈ x⊑y) (un⇑ᵢ-ˣ∈ x⊑z)))
+LowerCtx-ν∀ L .lower-var-star (here ()) _
+LowerCtx-ν∀ L .lower-var-star {X = zero} (there x⊑y) x⊑★ =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left x⊑y)
+LowerCtx-ν∀ L .lower-var-star {X = suc x} (there x⊑y) (there x⊑★) =
+  there (⇑ᴿᶜ-ˣ★∈
+    (lower-var-star L (un⇑ᴸᵢ-ˣ∈ x⊑y) (un⇑ᵢ-★∈ x⊑★)))
+LowerCtx-ν∀ L .lower-star-var (here refl) (here refl) = here refl
+LowerCtx-ν∀ L .lower-star-var (here refl) (there x⊑z) =
+  ⊥-elim (no-⇑ᵢ-zero-left x⊑z)
+LowerCtx-ν∀ L .lower-star-var {X = zero} (there x⊑★) _ =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star x⊑★)
+LowerCtx-ν∀ L .lower-star-var {X = suc x} {Z = zero}
+    (there x⊑★) (there x⊑z) =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑z)
+LowerCtx-ν∀ L .lower-star-var {X = suc x} {Z = suc z}
+    (there x⊑★) (there x⊑z) =
+  there (⇑ᴿᶜ-★ˣ∈
+    (lower-star-var L (un⇑ᴸᵢ-★∈ x⊑★) (un⇑ᵢ-ˣ∈ x⊑z)))

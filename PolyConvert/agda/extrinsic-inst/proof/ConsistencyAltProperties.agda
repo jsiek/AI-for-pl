@@ -12,14 +12,18 @@ open import proof.ImprecisionAltProperties using
   ; no-⇑ᵢ-zero-star
   ; no-⇑ᴸᵢ-zero-left
   ; no-⇑ᴸᵢ-zero-star
+  ; ⇑ᵢ-ˣ∈
+  ; ⇑ᵢ-★∈
+  ; ⇑ᴸᵢ-ˣ∈
+  ; ⇑ᴸᵢ-★∈
   ; un⇑ᵢ-ˣ∈
   ; un⇑ᵢ-★∈
   ; un⇑ᴸᵢ-ˣ∈
   ; un⇑ᴸᵢ-★∈
   )
 
-open import Data.Bool using (Bool; true; false)
-open import Data.Empty using (⊥-elim)
+open import Data.Bool using (Bool; true; false; _∨_)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.List using (List; []; _∷_; _++_; length; replicate; map)
@@ -73,17 +77,6 @@ consistent-ctx? (a ∷ Γ₁) Γ₂ | false = false
   x ∈ ys → x ∈ xs ++ ys
 ∈-++ʳ [] x∈ = x∈
 ∈-++ʳ (_ ∷ xs) x∈ = there (∈-++ʳ xs x∈)
-
-postulate
-  wk-⊑-++ˡ :
-    ∀ {Ψ Φ A B} (Γ : ImpCtx) →
-    Ψ ∣ Φ ⊢ A ⊑ B →
-    Ψ ∣ Φ ++ Γ ⊢ A ⊑ B
-
-  wk-⊑-++ʳ :
-    ∀ {Ψ Φ A B} (Γ : ImpCtx) →
-    Ψ ∣ Φ ⊢ A ⊑ B →
-    Ψ ∣ Γ ++ Φ ⊢ A ⊑ B
 
 append-[] : ∀ {A : Set} (xs : List A) → xs ++ [] ≡ xs
 append-[] [] = refl
@@ -637,3 +630,167 @@ LowerCtx-ν∀ L .lower-star-var {X = suc x} {Z = suc z}
     (there x⊑★) (there x⊑z) =
   there (⇑ᴿᶜ-★ˣ∈
     (lower-star-var L (un⇑ᴸᵢ-★∈ x⊑★) (un⇑ᵢ-ˣ∈ x⊑z)))
+
+false≢true : false ≡ true → ⊥
+false≢true ()
+
+∨-trueˡ :
+  ∀ {b c} →
+  b ≡ true →
+  b ∨ c ≡ true
+∨-trueˡ {b = true} refl = refl
+∨-trueˡ {b = false} ()
+
+∨-trueʳ :
+  ∀ {b c} →
+  c ≡ true →
+  b ∨ c ≡ true
+∨-trueʳ {b = true} refl = refl
+∨-trueʳ {b = false} eq = eq
+
+occurs-same : ∀ X → occurs X (＇ X) ≡ true
+occurs-same X with X ≟ X
+... | yes refl = refl
+... | no neq = ⊥-elim (neq refl)
+
+record SourceFocus (Φ : ImpCtx) (X Y : TyVar) : Set where
+  field
+    hitˢ : (X ˣ⊑ˣ Y) ∈ Φ
+    unique-target : ∀ {Z} → (X ˣ⊑ˣ Z) ∈ Φ → Z ≡ Y
+    no-star-target : (X ˣ⊑★) ∈ Φ → ⊥
+
+open SourceFocus public
+
+source-focus-plain-zero :
+  ∀ {Φ} →
+  SourceFocus ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ) 0 0
+source-focus-plain-zero .hitˢ = here refl
+source-focus-plain-zero .unique-target (here refl) = refl
+source-focus-plain-zero .unique-target (there z⊑0) =
+  ⊥-elim (no-⇑ᵢ-zero-left z⊑0)
+source-focus-plain-zero .no-star-target (here ())
+source-focus-plain-zero .no-star-target (there z⊑★) =
+  no-⇑ᵢ-zero-star z⊑★
+
+source-focus-∀ :
+  ∀ {Φ X Y} →
+  SourceFocus Φ X Y →
+  SourceFocus ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ) (suc X) (suc Y)
+source-focus-∀ f .hitˢ = there (⇑ᵢ-ˣ∈ (hitˢ f))
+source-focus-∀ f .unique-target (here ())
+source-focus-∀ f .unique-target {Z = zero} (there x⊑z) =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑z)
+source-focus-∀ f .unique-target {Z = suc z} (there x⊑z)
+  rewrite unique-target f (un⇑ᵢ-ˣ∈ x⊑z) =
+  refl
+source-focus-∀ f .no-star-target (here ())
+source-focus-∀ f .no-star-target (there x⊑★) =
+  no-star-target f (un⇑ᵢ-★∈ x⊑★)
+
+source-focus-ν :
+  ∀ {Φ X Y} →
+  SourceFocus Φ X Y →
+  SourceFocus ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc X) Y
+source-focus-ν f .hitˢ = there (⇑ᴸᵢ-ˣ∈ (hitˢ f))
+source-focus-ν f .unique-target (here ())
+source-focus-ν f .unique-target (there x⊑z)
+  rewrite unique-target f (un⇑ᴸᵢ-ˣ∈ x⊑z) =
+  refl
+source-focus-ν f .no-star-target (here ())
+source-focus-ν f .no-star-target (there x⊑★) =
+  no-star-target f (un⇑ᴸᵢ-★∈ x⊑★)
+
+source-occurs-target-focus :
+  ∀ {Ψ Φ X Y A B} →
+  SourceFocus Φ X Y →
+  Ψ ∣ Φ ⊢ A ⊑ B →
+  occurs X A ≡ true →
+  occurs Y B ≡ true
+source-occurs-target-focus f id★ ()
+source-occurs-target-focus {X = X} {Y = Y} f
+    (idˣ {X = X′} {Y = Y′} x′⊑y′) occ
+    with X ≟ X′
+... | yes refl
+    rewrite unique-target f x′⊑y′ =
+  occurs-same Y
+... | no neq = ⊥-elim (false≢true occ)
+source-occurs-target-focus f idι ()
+source-occurs-target-focus f (idα wfα) ()
+source-occurs-target-focus {X = X} f
+    (_↦_ {A = A} {B = B} p q) occ
+    with occurs X A in occA
+... | true = ∨-trueˡ (source-occurs-target-focus f p occA)
+... | false = ∨-trueʳ (source-occurs-target-focus f q occ)
+source-occurs-target-focus f (∀ⁱ p) occ =
+  source-occurs-target-focus (source-focus-∀ f) p occ
+source-occurs-target-focus f (tag ι) ()
+source-occurs-target-focus {X = X} f
+    (tag_⇒_ {A₁ = A₁} {A₂ = A₂} p q) occ
+    with occurs X A₁ in occA₁
+... | true =
+  ⊥-elim (false≢true (source-occurs-target-focus f p occA₁))
+... | false =
+  ⊥-elim (false≢true (source-occurs-target-focus f q occ))
+source-occurs-target-focus {X = X} {A = ＇ X′} f (tagˣ x⊑★) occ
+    with X ≟ X′
+... | yes refl = ⊥-elim (no-star-target f x⊑★)
+... | no neq = ⊥-elim (false≢true occ)
+source-occurs-target-focus f (ν occA p) occ =
+  source-occurs-target-focus (source-focus-ν f) p occ
+
+plain-source-occurs-target :
+  ∀ {Ψ Φ A B} →
+  Ψ ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ ⊢ A ⊑ B →
+  occurs zero A ≡ true →
+  occurs zero B ≡ true
+plain-source-occurs-target =
+  source-occurs-target-focus source-focus-plain-zero
+
+lower-bounds-consistentᶜ :
+  ∀ {Φᴸ Φᴿ Γ A B C} →
+  LowerCtx Φᴸ Φᴿ Γ →
+  0 ∣ Φᴸ ⊢ A ⊑ B →
+  0 ∣ Φᴿ ⊢ A ⊑ C →
+  Γ ⊢ B ~ C
+lower-bounds-consistentᶜ L id★ id★ = ★-~-★
+lower-bounds-consistentᶜ L (idˣ x⊑y) (idˣ x⊑z) =
+  X-~-Y (lower-var-var L x⊑y x⊑z)
+lower-bounds-consistentᶜ L (idˣ x⊑y) (tagˣ x⊑★) =
+  νX-~-★ (lower-var-star L x⊑y x⊑★)
+lower-bounds-consistentᶜ L idι idι = ι-~-ι
+lower-bounds-consistentᶜ L idι (tag ι) = ι-~-★
+lower-bounds-consistentᶜ L (idα (wfSeal ())) q
+lower-bounds-consistentᶜ L (p₁ ↦ p₂) (q₁ ↦ q₂) =
+  ⇒-~-⇒ (lower-bounds-consistentᶜ L p₁ q₁)
+         (lower-bounds-consistentᶜ L p₂ q₂)
+lower-bounds-consistentᶜ L (p₁ ↦ p₂) (tag_⇒_ q₁ q₂) =
+  ⇒-~-★ (lower-bounds-consistentᶜ L p₁ q₁)
+         (lower-bounds-consistentᶜ L p₂ q₂)
+lower-bounds-consistentᶜ L (∀ⁱ p) (∀ⁱ q) =
+  ∀-~-∀ (lower-bounds-consistentᶜ (LowerCtx-∀∀ L) p q)
+lower-bounds-consistentᶜ L (∀ⁱ p) (ν occA q) =
+  ∀-~-B (plain-source-occurs-target p occA)
+    (lower-bounds-consistentᶜ (LowerCtx-∀ν L) p q)
+lower-bounds-consistentᶜ L (tag ι) idι = ★-~-ι
+lower-bounds-consistentᶜ L (tag ι) (tag ι) = ★-~-★
+lower-bounds-consistentᶜ L (tag_⇒_ p₁ p₂) (q₁ ↦ q₂) =
+  ★-~-⇒ (lower-bounds-consistentᶜ L p₁ q₁)
+         (lower-bounds-consistentᶜ L p₂ q₂)
+lower-bounds-consistentᶜ L (tag_⇒_ p₁ p₂) (tag_⇒_ q₁ q₂) = ★-~-★
+lower-bounds-consistentᶜ L (tagˣ x⊑★) (idˣ x⊑z) =
+  ★-~-νX (lower-star-var L x⊑★ x⊑z)
+lower-bounds-consistentᶜ L (tagˣ x⊑★) (tagˣ x⊑★′) = ★-~-★
+lower-bounds-consistentᶜ L (ν occA p) (∀ⁱ q) =
+  A-~-∀ (plain-source-occurs-target q occA)
+    (lower-bounds-consistentᶜ (LowerCtx-ν∀ L) p q)
+lower-bounds-consistentᶜ L (ν occA p) (ν occA′ q) =
+  lower-bounds-consistentᶜ (LowerCtx-νν L) p q
+
+lower-bounds-consistent :
+  ∀ {A B C} →
+  0 ∣ [] ⊢ A ⊑ B →
+  0 ∣ [] ⊢ A ⊑ C →
+  [] ⊢ B ~ C
+lower-bounds-consistent =
+  lower-bounds-consistentᶜ LowerCtx-[]
+

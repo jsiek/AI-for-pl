@@ -393,29 +393,63 @@ consistent? A B
 -- Meet Operator (computes the greatest lower bound)
 ------------------------------------------------------------------------
 
+leftAssm : CAssm → ImpAssm
+leftAssm (X ~ᶜ★) = X ˣ⊑ˣ X
+leftAssm (★~ᶜ X) = X ˣ⊑★
+leftAssm (X ~ᶜ Y) = X ˣ⊑ˣ Y
+
+rightAssm : CAssm → ImpAssm
+rightAssm (X ~ᶜ★) = X ˣ⊑★
+rightAssm (★~ᶜ X) = X ˣ⊑ˣ X
+rightAssm (X ~ᶜ Y) = X ˣ⊑ˣ Y
+
+leftImpCtx : CCtx → ImpCtx
+leftImpCtx [] = []
+leftImpCtx (m ∷ Γ) = leftAssm m ∷ leftImpCtx Γ
+
+rightImpCtx : CCtx → ImpCtx
+rightImpCtx [] = []
+rightImpCtx (m ∷ Γ) = rightAssm m ∷ rightImpCtx Γ
+
+mergeImpCtx : CCtx → ImpCtx
+mergeImpCtx Γ = leftImpCtx Γ ++ rightImpCtx Γ
+
+leftImpCtx-++ : ∀ Γ₁ Γ₂ → leftImpCtx (Γ₁ ++ Γ₂) ≡ leftImpCtx Γ₁ ++ leftImpCtx Γ₂
+leftImpCtx-++ [] Γ₂ = refl
+leftImpCtx-++ (a ∷ Γ₁) Γ₂ = cong (λ xs → leftAssm a ∷ xs) (leftImpCtx-++ Γ₁ Γ₂)
+
+rightImpCtx-++ : ∀ Γ₁ Γ₂ → rightImpCtx (Γ₁ ++ Γ₂) ≡ rightImpCtx Γ₁ ++ rightImpCtx Γ₂
+rightImpCtx-++ [] Γ₂ = refl
+rightImpCtx-++ (a ∷ Γ₁) Γ₂ = cong (λ xs → rightAssm a ∷ xs) (rightImpCtx-++ Γ₁ Γ₂)
+
+GLB-open : SealCtx → CCtx → Ty → Ty → Ty → Set
+GLB-open Ψ Γ A B C = Ψ ∣ leftImpCtx Γ ⊢ A ⊑ B × Ψ ∣ rightImpCtx Γ ⊢ A ⊑ C
+    × (∀ A′ → Ψ ∣ leftImpCtx Γ ⊢ A′ ⊑ B → Ψ ∣ rightImpCtx Γ ⊢ A′ ⊑ C
+        → Ψ ∣ mergeImpCtx Γ ⊢ A′ ⊑ A)
+
 postulate
   star-⇒-glb-max :
     ∀ {Ψ Γ₁ Γ₂ A′ B₁ B₂ C₁ C₂} →
-    GLB Ψ Γ₁ C₁ ★ B₁ →
-    GLB Ψ Γ₂ C₂ ★ B₂ →
+    GLB-open Ψ Γ₁ C₁ ★ B₁ →
+    GLB-open Ψ Γ₂ C₂ ★ B₂ →
     Ψ ∣ leftImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ ★ →
     Ψ ∣ rightImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (B₁ ⇒ B₂) →
     Ψ ∣ mergeImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (C₁ ⇒ C₂)
 
   ⇒-star-glb-max :
     ∀ {Ψ Γ₁ Γ₂ A′ A₁ A₂ C₁ C₂} →
-    GLB Ψ Γ₁ C₁ A₁ ★ →
-    GLB Ψ Γ₂ C₂ A₂ ★ →
+    GLB-open Ψ Γ₁ C₁ A₁ ★ →
+    GLB-open Ψ Γ₂ C₂ A₂ ★ →
     Ψ ∣ leftImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (A₁ ⇒ A₂) →
     Ψ ∣ rightImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ ★ →
     Ψ ∣ mergeImpCtx (Γ₁ ++ Γ₂) ⊢ A′ ⊑ (C₁ ⇒ C₂)
 
 {-# TERMINATING #-}
 glb? : (Ψ : SealCtx) (A B : Ty) →
-  Maybe (Σ[ Γ ∈ CCtx ] Σ[ C ∈ Ty ] GLB Ψ Γ C A B)
+  Maybe (Σ[ Γ ∈ CCtx ] Σ[ C ∈ Ty ] GLB-open Ψ Γ C A B)
 
 core-glb? : (Ψ : SealCtx) (A B : Ty) → Non∀ A → Non∀ B →
-  Maybe (Σ[ Γ ∈ CCtx ] Σ[ C ∈ Ty ] GLB Ψ Γ C A B)
+  Maybe (Σ[ Γ ∈ CCtx ] Σ[ C ∈ Ty ] GLB-open Ψ Γ C A B)
 core-glb? Ψ (＇ X) (＇ Y) nA nB =
   just ((X ~ᶜ★) ∷ (X ~ᶜ Y) ∷ [] , ＇ X ,
     (idˣ (here refl) , idˣ (there (here refl)) ,

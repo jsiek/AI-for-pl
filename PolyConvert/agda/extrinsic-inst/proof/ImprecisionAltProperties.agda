@@ -16,6 +16,7 @@ open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (ℕ; _<_; _≤_; zero; suc; z<s; s<s; z≤n; s≤s; _≟_)
 open import Data.Nat.Properties using (≤-antisym; ≤-trans)
+open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; cong; cong₂; refl; subst; sym; trans)
@@ -202,6 +203,9 @@ ReflImpCtx-[] ()
 
 StarImpCtx : ImpCtx → Set
 StarImpCtx Φ = ∀ {X} → X < length Φ → (X ˣ⊑★) ∈ Φ
+
+StarImpCtx-[] : StarImpCtx []
+StarImpCtx-[] ()
 
 StarImpCtx-ν :
   ∀ {Φ} →
@@ -883,3 +887,139 @@ leading∀ _ = zero
   Ψ ∣ [] ⊢ B ⊑ A →
   A ≡ B
 ⊑-antisym-closed = ⊑-antisym-down DownwardImpCtx-[]
+
+------------------------------------------------------------------------
+-- Properties of Greatest Lower Bound (_⊢_＝_⊓_)
+------------------------------------------------------------------------
+
+⊓-lowerˡ :
+  ∀ {Ψ A B C} →
+  Ψ ⊢ A ＝ B ⊓ C →
+  Ψ ∣ [] ⊢ A ⊑ B
+⊓-lowerˡ = proj₁
+
+⊓-lowerʳ :
+  ∀ {Ψ A B C} →
+  Ψ ⊢ A ＝ B ⊓ C →
+  Ψ ∣ [] ⊢ A ⊑ C
+⊓-lowerʳ glb = proj₁ (proj₂ glb)
+
+⊓-greatest :
+  ∀ {Ψ A B C} →
+  Ψ ⊢ A ＝ B ⊓ C →
+  ∀ A′ →
+  Ψ ∣ [] ⊢ A′ ⊑ B →
+  Ψ ∣ [] ⊢ A′ ⊑ C →
+  Ψ ∣ [] ⊢ A′ ⊑ A
+⊓-greatest glb = proj₂ (proj₂ glb)
+
+⊓-intro :
+  ∀ {Ψ A B C} →
+  Ψ ∣ [] ⊢ A ⊑ B →
+  Ψ ∣ [] ⊢ A ⊑ C →
+  (∀ A′ →
+   Ψ ∣ [] ⊢ A′ ⊑ B →
+   Ψ ∣ [] ⊢ A′ ⊑ C →
+   Ψ ∣ [] ⊢ A′ ⊑ A) →
+  Ψ ⊢ A ＝ B ⊓ C
+⊓-intro A⊑B A⊑C greatest = A⊑B , A⊑C , greatest
+
+-- commutative
+
+⊓-comm :
+  ∀ {Ψ A B C} →
+  Ψ ⊢ A ＝ B ⊓ C →
+  Ψ ⊢ A ＝ C ⊓ B
+⊓-comm glb =
+  ⊓-intro (⊓-lowerʳ glb) (⊓-lowerˡ glb)
+    (λ A′ A′⊑C A′⊑B → ⊓-greatest glb A′ A′⊑B A′⊑C)
+
+-- idempotent
+
+⊓-idempotent :
+  ∀ {Ψ A} →
+  WfTy 0 Ψ A →
+  Ψ ⊢ A ＝ A ⊓ A
+⊓-idempotent wfA =
+  ⊓-intro (⊑-refl-closed wfA) (⊑-refl-closed wfA)
+    (λ A′ A′⊑A _ → A′⊑A)
+
+-- A ⊑ B iff A = A ⊓ B
+
+⊑⇒⊓ :
+  ∀ {Ψ A B} →
+  WfTy 0 Ψ A →
+  Ψ ∣ [] ⊢ A ⊑ B →
+  Ψ ⊢ A ＝ A ⊓ B
+⊑⇒⊓ wfA A⊑B =
+  ⊓-intro (⊑-refl-closed wfA) A⊑B
+    (λ A′ A′⊑A _ → A′⊑A)
+
+⊓⇒⊑ :
+  ∀ {Ψ A B} →
+  Ψ ⊢ A ＝ A ⊓ B →
+  Ψ ∣ [] ⊢ A ⊑ B
+⊓⇒⊑ = ⊓-lowerʳ
+
+⊑-iff-⊓ :
+  ∀ {Ψ A B} →
+  WfTy 0 Ψ A →
+  (Ψ ∣ [] ⊢ A ⊑ B → Ψ ⊢ A ＝ A ⊓ B) ×
+  (Ψ ⊢ A ＝ A ⊓ B → Ψ ∣ [] ⊢ A ⊑ B)
+⊑-iff-⊓ wfA = ⊑⇒⊓ wfA , ⊓⇒⊑
+
+-- A = A ⊓ ★
+
+⊓-top :
+  ∀ {A} →
+  WfTy 0 0 A →
+  0 ⊢ A ＝ A ⊓ ★
+⊓-top wfA = ⊑⇒⊓ wfA (⊑★ StarImpCtx-[] wfA)
+
+-- unique
+
+⊓-unique :
+  ∀ {Ψ A A′ B C} →
+  WfTy 0 Ψ A →
+  WfTy 0 Ψ A′ →
+  Ψ ⊢ A ＝ B ⊓ C →
+  Ψ ⊢ A′ ＝ B ⊓ C →
+  A ≡ A′
+⊓-unique wfA wfA′ glb glb′ =
+  ⊑-antisym-closed wfA wfA′
+    (⊓-greatest glb′ _ (⊓-lowerˡ glb) (⊓-lowerʳ glb))
+    (⊓-greatest glb _ (⊓-lowerˡ glb′) (⊓-lowerʳ glb′))
+
+-- associative
+
+⊓-assoc-rebracket :
+  ∀ {Ψ A B C AB BC ABC} →
+  Ψ ⊢ AB ＝ A ⊓ B →
+  Ψ ⊢ ABC ＝ AB ⊓ C →
+  Ψ ⊢ BC ＝ B ⊓ C →
+  Ψ ⊢ ABC ＝ A ⊓ BC
+⊓-assoc-rebracket AB⊓B ABC⊓C BC⊓C =
+  ⊓-intro
+    (⊑-trans-closed (⊓-lowerˡ ABC⊓C) (⊓-lowerˡ AB⊓B))
+    (⊓-greatest BC⊓C _
+      (⊑-trans-closed (⊓-lowerˡ ABC⊓C) (⊓-lowerʳ AB⊓B))
+      (⊓-lowerʳ ABC⊓C))
+    (λ A′ A′⊑A A′⊑BC →
+      ⊓-greatest ABC⊓C A′
+        (⊓-greatest AB⊓B A′ A′⊑A
+          (⊑-trans-closed A′⊑BC (⊓-lowerˡ BC⊓C)))
+        (⊑-trans-closed A′⊑BC (⊓-lowerʳ BC⊓C)))
+
+⊓-assoc :
+  ∀ {Ψ A B C AB BC ABC ABC′} →
+  WfTy 0 Ψ ABC →
+  WfTy 0 Ψ ABC′ →
+  Ψ ⊢ AB ＝ A ⊓ B →
+  Ψ ⊢ ABC ＝ AB ⊓ C →
+  Ψ ⊢ BC ＝ B ⊓ C →
+  Ψ ⊢ ABC′ ＝ A ⊓ BC →
+  ABC ≡ ABC′
+⊓-assoc wfABC wfABC′ AB⊓B ABC⊓C BC⊓C ABC′⊓ =
+  ⊓-unique wfABC wfABC′
+    (⊓-assoc-rebracket AB⊓B ABC⊓C BC⊓C)
+    ABC′⊓

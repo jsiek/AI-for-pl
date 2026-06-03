@@ -37,35 +37,6 @@ ImpCtx = List ImpAssm
 ⇑ᴸᵢ [] = []
 ⇑ᴸᵢ (m ∷ Φ) = ⇑ᴸᵢₐ m ∷ ⇑ᴸᵢ Φ
 
-leftAssm : CAssm → ImpAssm
-leftAssm (X ~ᶜ★) = X ˣ⊑ˣ X
-leftAssm (★~ᶜ X) = X ˣ⊑★
-leftAssm (X ~ᶜ Y) = X ˣ⊑ˣ Y
-
-rightAssm : CAssm → ImpAssm
-rightAssm (X ~ᶜ★) = X ˣ⊑★
-rightAssm (★~ᶜ X) = X ˣ⊑ˣ X
-rightAssm (X ~ᶜ Y) = X ˣ⊑ˣ Y
-
-leftImpCtx : CCtx → ImpCtx
-leftImpCtx [] = []
-leftImpCtx (m ∷ Γ) = leftAssm m ∷ leftImpCtx Γ
-
-rightImpCtx : CCtx → ImpCtx
-rightImpCtx [] = []
-rightImpCtx (m ∷ Γ) = rightAssm m ∷ rightImpCtx Γ
-
-mergeImpCtx : CCtx → ImpCtx
-mergeImpCtx Γ = leftImpCtx Γ ++ rightImpCtx Γ
-
-leftImpCtx-++ : ∀ Γ₁ Γ₂ → leftImpCtx (Γ₁ ++ Γ₂) ≡ leftImpCtx Γ₁ ++ leftImpCtx Γ₂
-leftImpCtx-++ [] Γ₂ = refl
-leftImpCtx-++ (a ∷ Γ₁) Γ₂ = cong (λ xs → leftAssm a ∷ xs) (leftImpCtx-++ Γ₁ Γ₂)
-
-rightImpCtx-++ : ∀ Γ₁ Γ₂ → rightImpCtx (Γ₁ ++ Γ₂) ≡ rightImpCtx Γ₁ ++ rightImpCtx Γ₂
-rightImpCtx-++ [] Γ₂ = refl
-rightImpCtx-++ (a ∷ Γ₁) Γ₂ = cong (λ xs → rightAssm a ∷ xs) (rightImpCtx-++ Γ₁ Γ₂)
-
 infix 4 _∣_⊢_⊑_
 data _∣_⊢_⊑_ (Ψ : SealCtx) (Φ : ImpCtx) : Ty → Ty → Set where
   id★ :
@@ -122,12 +93,8 @@ data _∣_⊢_⊑_ (Ψ : SealCtx) (Φ : ImpCtx) : Ty → Ty → Set where
 -- Greatest Lower Bound
 ------------------------------------------------------------------------
 
-GLB-closed : SealCtx → Ty → Ty → Ty → Set
-GLB-closed Ψ A B C = Ψ ∣ [] ⊢ A ⊑ B × Ψ ∣ [] ⊢ A ⊑ C
+_⊢_＝_⊓_ : SealCtx → Ty → Ty → Ty → Set
+_⊢_＝_⊓_ Ψ A B C = Ψ ∣ [] ⊢ A ⊑ B × Ψ ∣ [] ⊢ A ⊑ C
     × (∀ A′ → Ψ ∣ [] ⊢ A′ ⊑ B → Ψ ∣ [] ⊢ A′ ⊑ C
         → Ψ ∣ [] ⊢ A′ ⊑ A)
 
-GLB : SealCtx → CCtx → Ty → Ty → Ty → Set
-GLB Ψ Γ A B C = Ψ ∣ leftImpCtx Γ ⊢ A ⊑ B × Ψ ∣ rightImpCtx Γ ⊢ A ⊑ C
-    × (∀ A′ → Ψ ∣ leftImpCtx Γ ⊢ A′ ⊑ B → Ψ ∣ rightImpCtx Γ ⊢ A′ ⊑ C
-        → Ψ ∣ mergeImpCtx Γ ⊢ A′ ⊑ A)

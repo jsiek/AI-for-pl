@@ -11,7 +11,8 @@ open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_; _++_; length; replicate)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
-open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃; ∃-syntax)
+open import Data.Product using
+  (_×_; _,_; proj₁; proj₂; ∃; ∃-syntax; Σ-syntax)
 open import Relation.Binary.PropositionalEquality using (cong)
 
 data ImpAssm : Set where
@@ -93,8 +94,14 @@ data _∣_⊢_⊑_ (Ψ : SealCtx) (Φ : ImpCtx) : Ty → Ty → Set where
 -- Greatest Lower Bound
 ------------------------------------------------------------------------
 
+CommonLowerᶜ : ImpCtx → ImpCtx → Ty → Ty → Ty → Set
+CommonLowerᶜ Φᴸ Φᴿ C A B =
+  0 ∣ Φᴸ ⊢ C ⊑ A × 0 ∣ Φᴿ ⊢ C ⊑ B
+
+CommonLower : Ty → Ty → Set
+CommonLower A B = Σ[ C ∈ Ty ] CommonLowerᶜ [] [] C A B
+
 _⊢_＝_⊓_ : SealCtx → Ty → Ty → Ty → Set
 _⊢_＝_⊓_ Ψ A B C = Ψ ∣ [] ⊢ A ⊑ B × Ψ ∣ [] ⊢ A ⊑ C
     × (∀ A′ → Ψ ∣ [] ⊢ A′ ⊑ B → Ψ ∣ [] ⊢ A′ ⊑ C
         → Ψ ∣ [] ⊢ A′ ⊑ A)
-

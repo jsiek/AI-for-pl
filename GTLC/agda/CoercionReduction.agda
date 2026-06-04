@@ -30,7 +30,7 @@ infixr 6 _↦_
 -- This adds ⊥ compared to Coercion in Coercions.agda.
 data Crcn : Set where
   _!     : Ty → Crcn -- injection (tagging)
-  _`?_    : Ty → Nat → Crcn -- projection (tag checking)
+  _？_    : Ty → Nat → Crcn -- projection (tag checking)
   _↦_    : List Crcn → List Crcn → Crcn
   ⊥ᶜ_⇨_ : Ty → Ty → Crcn
 
@@ -46,7 +46,7 @@ singleᶜ c = c ∷ []
 
 data Atomic : Crcn → Set where
   atom-! : ∀ {G} → Atomic (G !)
-  atom-? : ∀ {G ℓ} → Atomic (G `? ℓ)
+  atom-? : ∀ {G ℓ} → Atomic (G ？ ℓ)
 
 infix 4 ⊢_⦂_⇨ᶜ_
 infix 4 ⊢_⦂_⇨_
@@ -60,7 +60,7 @@ data ⊢_⦂_⇨ᶜ_ : Crcn → Ty → Ty → Set where
 
   ⊢? : ∀ {G ℓ}
     → Ground G
-    → ⊢ (G `? ℓ) ⦂ ★ ⇨ᶜ G
+    → ⊢ (G ？ ℓ) ⦂ ★ ⇨ᶜ G
 
   ⊢↦ : ∀ {A B C D c d}
     → ⊢ c ⦂ C ⇨ A
@@ -101,10 +101,10 @@ data ⊢_⦂_⇨_ where
 coerce : ∀ {A B} → Nat → A ~ B → Coercion
 coerce ℓ ~-ℕ = []
 coerce ℓ ~-★ = []
-coerce ℓ ★~ℕ = singleᶜ (ℕ `? ℓ)
+coerce ℓ ★~ℕ = singleᶜ (ℕ ？ ℓ)
 coerce ℓ ℕ~★ = singleᶜ (ℕ !)
 coerce ℓ (★~⇒ c d) =
-  singleᶜ ((★ ⇒ ★) `? ℓ) ⨟ singleᶜ (coerce ℓ c ↦ coerce ℓ d)
+  singleᶜ ((★ ⇒ ★) ？ ℓ) ⨟ singleᶜ (coerce ℓ c ↦ coerce ℓ d)
 coerce ℓ (⇒~★ c d) =
   singleᶜ (coerce ℓ c ↦ coerce ℓ d) ⨟
   singleᶜ ((★ ⇒ ★) !)
@@ -179,11 +179,11 @@ infix 2 _—↠ᶜᶜ_
 
 data _;_—→ᶜ_ : Crcn → Crcn → Coercion → Set where
   β-proj-inj-okᶜ : ∀ {G ℓ}
-    → G ! ; (G `? ℓ) —→ᶜ []
+    → G ! ; (G ？ ℓ) —→ᶜ []
 
   β-proj-inj-badᶜ : ∀ {G H ℓ}
     → G ≢ H
-    → G ! ;  H `? ℓ  —→ᶜ (⊥ᶜ G ⇨ H) ∷ []
+    → G ! ;  H ？ ℓ  —→ᶜ (⊥ᶜ G ⇨ H) ∷ []
 
   β-↦ᶜ : ∀ {c d c′ d′}
     → (c ↦ d) ; (c′ ↦ d′) —→ᶜ (c′ ⨟ c) ↦ (d ⨟ d′) ∷ []
@@ -279,13 +279,13 @@ preserve-—→ᶜᶜ (⊢∷ (⊢↦ cwt dwt) restwt) (ξ-↦₂ᶜ d→d′) =
 
 data IrredPairᶜ : Crcn → Crcn → Set where
   irred-?! : ∀ {G ℓ}
-    → IrredPairᶜ (G `? ℓ) (G !)
+    → IrredPairᶜ (G ？ ℓ) (G !)
 
   irred-?⊥ : ∀ {G ℓ A B}
-    → IrredPairᶜ (G `? ℓ) (⊥ᶜ A ⇨ B)
+    → IrredPairᶜ (G ？ ℓ) (⊥ᶜ A ⇨ B)
 
   irred-?↦ : ∀ {ℓ c d}
-    → IrredPairᶜ ((★ ⇒ ★) `? ℓ) (c ↦ d)
+    → IrredPairᶜ ((★ ⇒ ★) ？ ℓ) (c ↦ d)
 
   irred-↦! : ∀ {c d}
     → IrredPairᶜ (c ↦ d) ((★ ⇒ ★) !)
@@ -296,7 +296,7 @@ mutual
       → SingleNormalᶜ (G !)
 
     nf-? : ∀ {G ℓ}
-      → SingleNormalᶜ (G `? ℓ)
+      → SingleNormalᶜ (G ？ ℓ)
 
     nf-↦ : ∀ {c d}
       → Normalᶜ c
@@ -456,7 +456,7 @@ multi-ξ-↦₂ᶜᶜ (_ —→ᶜᶜ⟨ d→d₁ ⟩ d₁↠d′) =
 mutual
   singleSize : Crcn → Nat
   singleSize (G !) = 1
-  singleSize (G `? ℓ) = 1
+  singleSize (G ？ ℓ) = 1
   singleSize (c ↦ d) = 1 + (seqSize c + seqSize d)
   singleSize (⊥ᶜ A ⇨ B) = 1
 
@@ -466,7 +466,7 @@ mutual
 
 singleSize-positive : ∀ c → 0 < singleSize c
 singleSize-positive (G !) = 0<1+n
-singleSize-positive (G `? ℓ) = 0<1+n
+singleSize-positive (G ？ ℓ) = 0<1+n
 singleSize-positive (c ↦ d) = 0<1+n
 singleSize-positive (⊥ᶜ A ⇨ B) = 0<1+n
 

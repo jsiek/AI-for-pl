@@ -16,7 +16,7 @@ open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (ℕ; _<_; _≤_; zero; suc; z<s; s<s; z≤n; s≤s; _≟_)
 open import Data.Nat.Properties using (≤-antisym; ≤-trans)
-open import Data.Product using (_×_; _,_; proj₁; proj₂)
+open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ-syntax)
 open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; cong; cong₂; refl; subst; sym; trans)
@@ -190,6 +190,16 @@ ReflImpCtx Φ = ∀ {X} → X < length Φ → (X ˣ⊑ˣ X) ∈ Φ
 
 ReflImpCtx-[] : ReflImpCtx []
 ReflImpCtx-[] ()
+
+ReflImpCtx-∀ :
+  ∀ {Φ} →
+  ReflImpCtx Φ →
+  ReflImpCtx ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ)
+ReflImpCtx-∀ reflΦ {zero} z<s = here refl
+ReflImpCtx-∀ {Φ = Φ} reflΦ {suc X} (s<s X<⇑Φ) =
+  there
+    (⇑ᵢ-refl∈
+      (reflΦ (subst (λ n → X < n) (length-⇑ᵢ Φ) X<⇑Φ)))
 
 ⊑-refl-closed :
   ∀ {Ψ A} →
@@ -892,6 +902,1268 @@ leading∀ _ = zero
 -- Properties of Greatest Lower Bound (_⊢_＝_⊓_)
 ------------------------------------------------------------------------
 
+data ∀Lower (Φ : ImpCtx) : Ty → Ty → Set where
+  via-∀ :
+    ∀ {A B} →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ ⊢ A ⊑ B →
+    ∀Lower Φ (`∀ A) B
+
+  via-ν :
+    ∀ {A B} →
+    occurs zero A ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ ⊢ A ⊑ `∀ B →
+    ∀Lower Φ (`∀ A) B
+
+∀-lower-inv :
+  ∀ {Φ A B} →
+  0 ∣ Φ ⊢ A ⊑ `∀ B →
+  ∀Lower Φ A B
+∀-lower-inv (∀ⁱ p) = via-∀ p
+∀-lower-inv (ν occA p) = via-ν occA p
+
+data ∀SourceLower (Φ : ImpCtx) : Ty → Ty → Set where
+  source-∀ :
+    ∀ {A B} →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ ⊢ A ⊑ B →
+    ∀SourceLower Φ A (`∀ B)
+
+  source-ν :
+    ∀ {A B} →
+    occurs zero A ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ ⊢ A ⊑ B →
+    ∀SourceLower Φ A B
+
+∀-source-lower-inv :
+  ∀ {Φ A B} →
+  0 ∣ Φ ⊢ `∀ A ⊑ B →
+  ∀SourceLower Φ A B
+∀-source-lower-inv (∀ⁱ p) = source-∀ p
+∀-source-lower-inv (ν occA p) = source-ν occA p
+
+data ∀Lower² (Φᴸ Φᴿ : ImpCtx) : Ty → Ty → Ty → Set where
+  via-∀∀ :
+    ∀ {A B C} →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ C ⊑ A →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ C ⊑ B →
+    ∀Lower² Φᴸ Φᴿ (`∀ C) A B
+
+  via-∀ν :
+    ∀ {A B C} →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ C ⊑ A →
+    occurs zero C ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ C ⊑ `∀ B →
+    ∀Lower² Φᴸ Φᴿ (`∀ C) A B
+
+  via-ν∀ :
+    ∀ {A B C} →
+    occurs zero C ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ C ⊑ `∀ A →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ C ⊑ B →
+    ∀Lower² Φᴸ Φᴿ (`∀ C) A B
+
+  via-νν :
+    ∀ {A B C} →
+    occurs zero C ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ C ⊑ `∀ A →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ C ⊑ `∀ B →
+    ∀Lower² Φᴸ Φᴿ (`∀ C) A B
+
+∀∀-lower²-inv :
+  ∀ {Φᴸ Φᴿ A B C} →
+  0 ∣ Φᴸ ⊢ C ⊑ `∀ A →
+  0 ∣ Φᴿ ⊢ C ⊑ `∀ B →
+  ∀Lower² Φᴸ Φᴿ C A B
+∀∀-lower²-inv (∀ⁱ p) (∀ⁱ q) = via-∀∀ p q
+∀∀-lower²-inv (∀ⁱ p) (ν occC q) = via-∀ν p occC q
+∀∀-lower²-inv (ν occC p) (∀ⁱ q) = via-ν∀ occC p q
+∀∀-lower²-inv (ν occC p) (ν _ q) = via-νν occC p q
+
+data ∀νLower² (Φᴸ Φᴿ : ImpCtx) : Ty → Ty → Ty → Set where
+  via-∀∀ʳ :
+    ∀ {A B C} →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ C ⊑ A →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ C ⊑ B →
+    ∀νLower² Φᴸ Φᴿ (`∀ C) A (`∀ B)
+
+  via-∀νʳ :
+    ∀ {A B C} →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ C ⊑ A →
+    occurs zero C ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ C ⊑ B →
+    ∀νLower² Φᴸ Φᴿ (`∀ C) A B
+
+  via-νˡ :
+    ∀ {A B C} →
+    occurs zero C ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ C ⊑ `∀ A →
+    0 ∣ Φᴿ ⊢ `∀ C ⊑ B →
+    ∀νLower² Φᴸ Φᴿ (`∀ C) A B
+
+∀ν-lower²-inv :
+  ∀ {Φᴸ Φᴿ A B C} →
+  0 ∣ Φᴸ ⊢ C ⊑ `∀ A →
+  0 ∣ Φᴿ ⊢ C ⊑ B →
+  ∀νLower² Φᴸ Φᴿ C A B
+∀ν-lower²-inv (∀ⁱ p) q with ∀-source-lower-inv q
+∀ν-lower²-inv (∀ⁱ p) q | source-∀ r = via-∀∀ʳ p r
+∀ν-lower²-inv (∀ⁱ p) q | source-ν occC r = via-∀νʳ p occC r
+∀ν-lower²-inv (ν occC p) q = via-νˡ occC p q
+
+data ν∀Lower² (Φᴸ Φᴿ : ImpCtx) : Ty → Ty → Ty → Set where
+  via-∀∀ˡ :
+    ∀ {A B C} →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ C ⊑ A →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ C ⊑ B →
+    ν∀Lower² Φᴸ Φᴿ (`∀ C) (`∀ A) B
+
+  via-ν∀ˡ :
+    ∀ {A B C} →
+    occurs zero C ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ C ⊑ A →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ C ⊑ B →
+    ν∀Lower² Φᴸ Φᴿ (`∀ C) A B
+
+  via-νʳ :
+    ∀ {A B C} →
+    occurs zero C ≡ true →
+    0 ∣ Φᴸ ⊢ `∀ C ⊑ A →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ C ⊑ `∀ B →
+    ν∀Lower² Φᴸ Φᴿ (`∀ C) A B
+
+ν∀-lower²-inv :
+  ∀ {Φᴸ Φᴿ A B C} →
+  0 ∣ Φᴸ ⊢ C ⊑ A →
+  0 ∣ Φᴿ ⊢ C ⊑ `∀ B →
+  ν∀Lower² Φᴸ Φᴿ C A B
+ν∀-lower²-inv p (∀ⁱ q) with ∀-source-lower-inv p
+ν∀-lower²-inv p (∀ⁱ q) | source-∀ r = via-∀∀ˡ r q
+ν∀-lower²-inv p (∀ⁱ q) | source-ν occC r = via-ν∀ˡ occC r q
+ν∀-lower²-inv p (ν occC q) = via-νʳ occC p q
+
+record Glbᶜ (Φᴸ Φᴿ Φᴼ : ImpCtx) (C A B : Ty) : Set where
+  field
+    lowerˡᶜ : 0 ∣ Φᴸ ⊢ C ⊑ A
+    lowerʳᶜ : 0 ∣ Φᴿ ⊢ C ⊑ B
+    greatestᶜ :
+      ∀ C′ →
+      0 ∣ Φᴸ ⊢ C′ ⊑ A →
+      0 ∣ Φᴿ ⊢ C′ ⊑ B →
+      0 ∣ Φᴼ ⊢ C′ ⊑ C
+
+open Glbᶜ public
+
+glbᶜ-intro :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  0 ∣ Φᴸ ⊢ C ⊑ A →
+  0 ∣ Φᴿ ⊢ C ⊑ B →
+  (∀ C′ →
+   0 ∣ Φᴸ ⊢ C′ ⊑ A →
+   0 ∣ Φᴿ ⊢ C′ ⊑ B →
+   0 ∣ Φᴼ ⊢ C′ ⊑ C) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ C A B
+glbᶜ-intro C⊑A C⊑B greatest .lowerˡᶜ = C⊑A
+glbᶜ-intro C⊑A C⊑B greatest .lowerʳᶜ = C⊑B
+glbᶜ-intro C⊑A C⊑B greatest .greatestᶜ = greatest
+
+glbᶜ⇒common-lowerᶜ :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  Glbᶜ Φᴸ Φᴿ Φᴼ C A B →
+  CommonLowerᶜ Φᴸ Φᴿ C A B
+glbᶜ⇒common-lowerᶜ glb = lowerˡᶜ glb , lowerʳᶜ glb
+
+record GlbCtx (Φᴸ Φᴿ Φᴼ : ImpCtx) : Set where
+  field
+    glb-var-var :
+      ∀ {W X Y} →
+      (W ˣ⊑ˣ X) ∈ Φᴸ →
+      (W ˣ⊑ˣ Y) ∈ Φᴿ →
+      (Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑ˣ X) ∈ Φᴸ × (Z ˣ⊑ˣ Y) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑ˣ X) ∈ Φᴸ →
+          (W′ ˣ⊑ˣ Y) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ)))
+
+    glb-var-star :
+      ∀ {W X} →
+      (W ˣ⊑ˣ X) ∈ Φᴸ →
+      (W ˣ⊑★) ∈ Φᴿ →
+      (Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑ˣ X) ∈ Φᴸ × (Z ˣ⊑★) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑ˣ X) ∈ Φᴸ →
+          (W′ ˣ⊑★) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ)))
+
+    glb-star-var :
+      ∀ {W Y} →
+      (W ˣ⊑★) ∈ Φᴸ →
+      (W ˣ⊑ˣ Y) ∈ Φᴿ →
+      (Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑★) ∈ Φᴸ × (Z ˣ⊑ˣ Y) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑★) ∈ Φᴸ →
+          (W′ ˣ⊑ˣ Y) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ)))
+
+    glb-star-star :
+      ∀ {W} →
+      (W ˣ⊑★) ∈ Φᴸ →
+      (W ˣ⊑★) ∈ Φᴿ →
+      (W ˣ⊑★) ∈ Φᴼ
+
+open GlbCtx public
+
+GlbCtx-[] : GlbCtx [] [] []
+GlbCtx-[] .glb-var-var ()
+GlbCtx-[] .glb-var-star ()
+GlbCtx-[] .glb-star-var ()
+GlbCtx-[] .glb-star-star ()
+
+GlbCtx-∀∀ :
+  ∀ {Φᴸ Φᴿ Φᴼ} →
+  GlbCtx Φᴸ Φᴿ Φᴼ →
+  GlbCtx ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+         ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+         ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+GlbCtx-∀∀ {Φᴸ} {Φᴿ} {Φᴼ} G .glb-var-var (here refl) (here refl) =
+  zero , here refl , here refl , greatest
+  where
+  greatest :
+    ∀ {W} →
+    (W ˣ⊑ˣ zero) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ →
+    (W ˣ⊑ˣ zero) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ →
+    (W ˣ⊑ˣ zero) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest (here refl) (here refl) = here refl
+  greatest (here refl) (there w⊑0) =
+    ⊥-elim (no-⇑ᵢ-zero-left w⊑0)
+  greatest (there w⊑0) _ =
+    ⊥-elim (no-⇑ᵢ-zero-right w⊑0)
+GlbCtx-∀∀ G .glb-var-var (here refl) (there w⊑Y) =
+  ⊥-elim (no-⇑ᵢ-zero-left w⊑Y)
+GlbCtx-∀∀ G .glb-var-var (there w⊑X) (here refl) =
+  ⊥-elim (no-⇑ᵢ-zero-left w⊑X)
+GlbCtx-∀∀ G .glb-var-var {W = zero} (there w⊑X) _ =
+  ⊥-elim (no-⇑ᵢ-zero-left w⊑X)
+GlbCtx-∀∀ G .glb-var-var {W = suc W} {X = zero}
+    (there w⊑0) _ =
+  ⊥-elim (no-⇑ᵢ-zero-right w⊑0)
+GlbCtx-∀∀ G .glb-var-var {W = suc W} {Y = zero}
+    _ (there w⊑0) =
+  ⊥-elim (no-⇑ᵢ-zero-right w⊑0)
+GlbCtx-∀∀ {Φᴸ} {Φᴿ} {Φᴼ} G
+    .glb-var-var {W = suc W} {X = suc X} {Y = suc Y}
+    (there w⊑X) (there w⊑Y) =
+  suc (proj₁ r) ,
+  there (⇑ᵢ-ˣ∈ (proj₁ (proj₂ r))) ,
+  there (⇑ᵢ-ˣ∈ (proj₁ (proj₂ (proj₂ r)))) ,
+  greatest′
+  where
+  r : Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑ˣ X) ∈ Φᴸ × (Z ˣ⊑ˣ Y) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑ˣ X) ∈ Φᴸ →
+          (W′ ˣ⊑ˣ Y) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ))
+  r = glb-var-var G (un⇑ᵢ-ˣ∈ w⊑X) (un⇑ᵢ-ˣ∈ w⊑Y)
+
+  greatest′ :
+    ∀ {W′} →
+    (W′ ˣ⊑ˣ suc X) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ →
+    (W′ ˣ⊑ˣ suc Y) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ →
+    (W′ ˣ⊑ˣ suc (proj₁ r)) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest′ {W′ = zero} (there w′⊑X) _ =
+    ⊥-elim (no-⇑ᵢ-zero-left w′⊑X)
+  greatest′ {W′ = suc W′} (there w′⊑X) (there w′⊑Y) =
+    there
+      (⇑ᵢ-ˣ∈
+        (proj₂ (proj₂ (proj₂ r))
+          (un⇑ᵢ-ˣ∈ w′⊑X)
+          (un⇑ᵢ-ˣ∈ w′⊑Y)))
+GlbCtx-∀∀ G .glb-var-star (here refl) (there w⊑★) =
+  ⊥-elim (no-⇑ᵢ-zero-star w⊑★)
+GlbCtx-∀∀ G .glb-var-star (there w⊑X) (here ())
+GlbCtx-∀∀ G .glb-var-star {W = zero} (there w⊑X) _ =
+  ⊥-elim (no-⇑ᵢ-zero-left w⊑X)
+GlbCtx-∀∀ G .glb-var-star {W = suc W} {X = zero}
+    (there w⊑0) _ =
+  ⊥-elim (no-⇑ᵢ-zero-right w⊑0)
+GlbCtx-∀∀ {Φᴸ} {Φᴿ} {Φᴼ} G
+    .glb-var-star {W = suc W} {X = suc X}
+    (there w⊑X) (there w⊑★) =
+  suc (proj₁ r) ,
+  there (⇑ᵢ-ˣ∈ (proj₁ (proj₂ r))) ,
+  there (⇑ᵢ-★∈ (proj₁ (proj₂ (proj₂ r)))) ,
+  greatest′
+  where
+  r : Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑ˣ X) ∈ Φᴸ × (Z ˣ⊑★) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑ˣ X) ∈ Φᴸ →
+          (W′ ˣ⊑★) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ))
+  r = glb-var-star G (un⇑ᵢ-ˣ∈ w⊑X) (un⇑ᵢ-★∈ w⊑★)
+
+  greatest′ :
+    ∀ {W′} →
+    (W′ ˣ⊑ˣ suc X) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ →
+    (W′ ˣ⊑★) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ →
+    (W′ ˣ⊑ˣ suc (proj₁ r)) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest′ {W′ = zero} (there w′⊑X) _ =
+    ⊥-elim (no-⇑ᵢ-zero-left w′⊑X)
+  greatest′ {W′ = suc W′} (there w′⊑X) (there w′⊑★) =
+    there
+      (⇑ᵢ-ˣ∈
+        (proj₂ (proj₂ (proj₂ r))
+          (un⇑ᵢ-ˣ∈ w′⊑X)
+          (un⇑ᵢ-★∈ w′⊑★)))
+GlbCtx-∀∀ G .glb-star-var (here ()) _
+GlbCtx-∀∀ G .glb-star-var (there w⊑★) (here refl) =
+  ⊥-elim (no-⇑ᵢ-zero-star w⊑★)
+GlbCtx-∀∀ G .glb-star-var {W = zero} (there w⊑★) _ =
+  ⊥-elim (no-⇑ᵢ-zero-star w⊑★)
+GlbCtx-∀∀ G .glb-star-var {W = suc W} {Y = zero}
+    _ (there w⊑0) =
+  ⊥-elim (no-⇑ᵢ-zero-right w⊑0)
+GlbCtx-∀∀ {Φᴸ} {Φᴿ} {Φᴼ} G
+    .glb-star-var {W = suc W} {Y = suc Y}
+    (there w⊑★) (there w⊑Y) =
+  suc (proj₁ r) ,
+  there (⇑ᵢ-★∈ (proj₁ (proj₂ r))) ,
+  there (⇑ᵢ-ˣ∈ (proj₁ (proj₂ (proj₂ r)))) ,
+  greatest′
+  where
+  r : Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑★) ∈ Φᴸ × (Z ˣ⊑ˣ Y) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑★) ∈ Φᴸ →
+          (W′ ˣ⊑ˣ Y) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ))
+  r = glb-star-var G (un⇑ᵢ-★∈ w⊑★) (un⇑ᵢ-ˣ∈ w⊑Y)
+
+  greatest′ :
+    ∀ {W′} →
+    (W′ ˣ⊑★) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ →
+    (W′ ˣ⊑ˣ suc Y) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ →
+    (W′ ˣ⊑ˣ suc (proj₁ r)) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest′ {W′ = zero} (there w′⊑★) _ =
+    ⊥-elim (no-⇑ᵢ-zero-star w′⊑★)
+  greatest′ {W′ = suc W′} (there w′⊑★) (there w′⊑Y) =
+    there
+      (⇑ᵢ-ˣ∈
+        (proj₂ (proj₂ (proj₂ r))
+          (un⇑ᵢ-★∈ w′⊑★)
+          (un⇑ᵢ-ˣ∈ w′⊑Y)))
+GlbCtx-∀∀ G .glb-star-star (here ()) _
+GlbCtx-∀∀ G .glb-star-star {W = zero} (there w⊑★) _ =
+  ⊥-elim (no-⇑ᵢ-zero-star w⊑★)
+GlbCtx-∀∀ G .glb-star-star {W = suc W} (there w⊑★ᴸ) (there w⊑★ᴿ) =
+  there
+    (⇑ᵢ-★∈
+      (glb-star-star G (un⇑ᵢ-★∈ w⊑★ᴸ) (un⇑ᵢ-★∈ w⊑★ᴿ)))
+
+GlbCtx-∀ν :
+  ∀ {Φᴸ Φᴿ Φᴼ} →
+  GlbCtx Φᴸ Φᴿ Φᴼ →
+  GlbCtx ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+         ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ)
+         ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+GlbCtx-∀ν G .glb-var-var (here refl) (there w⊑Y) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left w⊑Y)
+GlbCtx-∀ν G .glb-var-var (there w⊑X) (here ())
+GlbCtx-∀ν G .glb-var-var {W = zero} (there w⊑X) _ =
+  ⊥-elim (no-⇑ᵢ-zero-left w⊑X)
+GlbCtx-∀ν G .glb-var-var {W = suc W} {X = zero}
+    (there w⊑0) _ =
+  ⊥-elim (no-⇑ᵢ-zero-right w⊑0)
+GlbCtx-∀ν {Φᴸ} {Φᴿ} {Φᴼ} G
+    .glb-var-var {W = suc W} {X = suc X}
+    (there w⊑X) (there w⊑Y) =
+  suc (proj₁ r) ,
+  there (⇑ᵢ-ˣ∈ (proj₁ (proj₂ r))) ,
+  there (⇑ᴸᵢ-ˣ∈ (proj₁ (proj₂ (proj₂ r)))) ,
+  greatest′
+  where
+  r : Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑ˣ X) ∈ Φᴸ × (Z ˣ⊑ˣ _) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑ˣ X) ∈ Φᴸ →
+          (W′ ˣ⊑ˣ _) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ))
+  r = glb-var-var G (un⇑ᵢ-ˣ∈ w⊑X) (un⇑ᴸᵢ-ˣ∈ w⊑Y)
+
+  greatest′ :
+    ∀ {W′} →
+    (W′ ˣ⊑ˣ suc X) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ →
+    (W′ ˣ⊑ˣ _) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ →
+    (W′ ˣ⊑ˣ suc (proj₁ r)) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest′ {W′ = zero} (there w′⊑X) _ =
+    ⊥-elim (no-⇑ᵢ-zero-left w′⊑X)
+  greatest′ {W′ = suc W′} (there w′⊑X) (there w′⊑Y) =
+    there
+      (⇑ᵢ-ˣ∈
+        (proj₂ (proj₂ (proj₂ r))
+          (un⇑ᵢ-ˣ∈ w′⊑X)
+          (un⇑ᴸᵢ-ˣ∈ w′⊑Y)))
+GlbCtx-∀ν {Φᴸ} {Φᴿ} {Φᴼ} G
+    .glb-var-star (here refl) (here refl) =
+  zero , here refl , here refl , greatest
+  where
+  greatest :
+    ∀ {W′} →
+    (W′ ˣ⊑ˣ zero) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ →
+    (W′ ˣ⊑★) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ →
+    (W′ ˣ⊑ˣ zero) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest (here refl) (here refl) = here refl
+  greatest (here refl) (there w⊑★) =
+    ⊥-elim (no-⇑ᴸᵢ-zero-star w⊑★)
+  greatest (there w⊑0) _ =
+    ⊥-elim (no-⇑ᵢ-zero-right w⊑0)
+GlbCtx-∀ν G .glb-var-star (here refl) (there w⊑★) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star w⊑★)
+GlbCtx-∀ν G .glb-var-star (there w⊑X) (here refl) =
+  ⊥-elim (no-⇑ᵢ-zero-left w⊑X)
+GlbCtx-∀ν G .glb-var-star {W = zero} (there w⊑X) _ =
+  ⊥-elim (no-⇑ᵢ-zero-left w⊑X)
+GlbCtx-∀ν G .glb-var-star {W = suc W} {X = zero}
+    (there w⊑0) _ =
+  ⊥-elim (no-⇑ᵢ-zero-right w⊑0)
+GlbCtx-∀ν {Φᴸ} {Φᴿ} {Φᴼ} G
+    .glb-var-star {W = suc W} {X = suc X}
+    (there w⊑X) (there w⊑★) =
+  suc (proj₁ r) ,
+  there (⇑ᵢ-ˣ∈ (proj₁ (proj₂ r))) ,
+  there (⇑ᴸᵢ-★∈ (proj₁ (proj₂ (proj₂ r)))) ,
+  greatest′
+  where
+  r : Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑ˣ X) ∈ Φᴸ × (Z ˣ⊑★) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑ˣ X) ∈ Φᴸ →
+          (W′ ˣ⊑★) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ))
+  r = glb-var-star G (un⇑ᵢ-ˣ∈ w⊑X) (un⇑ᴸᵢ-★∈ w⊑★)
+
+  greatest′ :
+    ∀ {W′} →
+    (W′ ˣ⊑ˣ suc X) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ →
+    (W′ ˣ⊑★) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ →
+    (W′ ˣ⊑ˣ suc (proj₁ r)) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest′ {W′ = zero} (there w′⊑X) _ =
+    ⊥-elim (no-⇑ᵢ-zero-left w′⊑X)
+  greatest′ {W′ = suc W′} (there w′⊑X) (there w′⊑★) =
+    there
+      (⇑ᵢ-ˣ∈
+        (proj₂ (proj₂ (proj₂ r))
+          (un⇑ᵢ-ˣ∈ w′⊑X)
+          (un⇑ᴸᵢ-★∈ w′⊑★)))
+GlbCtx-∀ν G .glb-star-var (here ()) _
+GlbCtx-∀ν G .glb-star-var _ (here ())
+GlbCtx-∀ν G .glb-star-var {W = zero} (there w⊑★) _ =
+  ⊥-elim (no-⇑ᵢ-zero-star w⊑★)
+GlbCtx-∀ν {Φᴸ} {Φᴿ} {Φᴼ} G
+    .glb-star-var {W = suc W} (there w⊑★) (there w⊑Y) =
+  suc (proj₁ r) ,
+  there (⇑ᵢ-★∈ (proj₁ (proj₂ r))) ,
+  there (⇑ᴸᵢ-ˣ∈ (proj₁ (proj₂ (proj₂ r)))) ,
+  greatest′
+  where
+  r : Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑★) ∈ Φᴸ × (Z ˣ⊑ˣ _) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑★) ∈ Φᴸ →
+          (W′ ˣ⊑ˣ _) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ))
+  r = glb-star-var G (un⇑ᵢ-★∈ w⊑★) (un⇑ᴸᵢ-ˣ∈ w⊑Y)
+
+  greatest′ :
+    ∀ {W′} →
+    (W′ ˣ⊑★) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ →
+    (W′ ˣ⊑ˣ _) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ →
+    (W′ ˣ⊑ˣ suc (proj₁ r)) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest′ {W′ = zero} (there w′⊑★) _ =
+    ⊥-elim (no-⇑ᵢ-zero-star w′⊑★)
+  greatest′ {W′ = suc W′} (there w′⊑★) (there w′⊑Y) =
+    there
+      (⇑ᵢ-ˣ∈
+        (proj₂ (proj₂ (proj₂ r))
+          (un⇑ᵢ-★∈ w′⊑★)
+          (un⇑ᴸᵢ-ˣ∈ w′⊑Y)))
+GlbCtx-∀ν G .glb-star-star (here ()) _
+GlbCtx-∀ν G .glb-star-star {W = zero} (there w⊑★) _ =
+  ⊥-elim (no-⇑ᵢ-zero-star w⊑★)
+GlbCtx-∀ν G .glb-star-star {W = suc W} (there w⊑★ᴸ) (there w⊑★ᴿ) =
+  there
+    (⇑ᵢ-★∈
+      (glb-star-star G (un⇑ᵢ-★∈ w⊑★ᴸ) (un⇑ᴸᵢ-★∈ w⊑★ᴿ)))
+
+GlbCtx-ν∀ :
+  ∀ {Φᴸ Φᴿ Φᴼ} →
+  GlbCtx Φᴸ Φᴿ Φᴼ →
+  GlbCtx ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ)
+         ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+         ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+GlbCtx-ν∀ G .glb-var-var (here ()) _
+GlbCtx-ν∀ G .glb-var-var (there w⊑X) (here refl) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left w⊑X)
+GlbCtx-ν∀ G .glb-var-var {W = zero} (there w⊑X) _ =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left w⊑X)
+GlbCtx-ν∀ G .glb-var-var {W = suc W} {Y = zero}
+    _ (there w⊑0) =
+  ⊥-elim (no-⇑ᵢ-zero-right w⊑0)
+GlbCtx-ν∀ {Φᴸ} {Φᴿ} {Φᴼ} G
+    .glb-var-var {W = suc W} {Y = suc Y}
+    (there w⊑X) (there w⊑Y) =
+  suc (proj₁ r) ,
+  there (⇑ᴸᵢ-ˣ∈ (proj₁ (proj₂ r))) ,
+  there (⇑ᵢ-ˣ∈ (proj₁ (proj₂ (proj₂ r)))) ,
+  greatest′
+  where
+  r : Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑ˣ _) ∈ Φᴸ × (Z ˣ⊑ˣ Y) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑ˣ _) ∈ Φᴸ →
+          (W′ ˣ⊑ˣ Y) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ))
+  r = glb-var-var G (un⇑ᴸᵢ-ˣ∈ w⊑X) (un⇑ᵢ-ˣ∈ w⊑Y)
+
+  greatest′ :
+    ∀ {W′} →
+    (W′ ˣ⊑ˣ _) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ →
+    (W′ ˣ⊑ˣ suc Y) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ →
+    (W′ ˣ⊑ˣ suc (proj₁ r)) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest′ {W′ = zero} (there w′⊑X) _ =
+    ⊥-elim (no-⇑ᴸᵢ-zero-left w′⊑X)
+  greatest′ {W′ = suc W′} (there w′⊑X) (there w′⊑Y) =
+    there
+      (⇑ᵢ-ˣ∈
+        (proj₂ (proj₂ (proj₂ r))
+          (un⇑ᴸᵢ-ˣ∈ w′⊑X)
+          (un⇑ᵢ-ˣ∈ w′⊑Y)))
+GlbCtx-ν∀ G .glb-var-star (here ()) _
+GlbCtx-ν∀ G .glb-var-star _ (here ())
+GlbCtx-ν∀ G .glb-var-star {W = zero} (there w⊑X) _ =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left w⊑X)
+GlbCtx-ν∀ {Φᴸ} {Φᴿ} {Φᴼ} G
+    .glb-var-star {W = suc W} (there w⊑X) (there w⊑★) =
+  suc (proj₁ r) ,
+  there (⇑ᴸᵢ-ˣ∈ (proj₁ (proj₂ r))) ,
+  there (⇑ᵢ-★∈ (proj₁ (proj₂ (proj₂ r)))) ,
+  greatest′
+  where
+  r : Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑ˣ _) ∈ Φᴸ × (Z ˣ⊑★) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑ˣ _) ∈ Φᴸ →
+          (W′ ˣ⊑★) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ))
+  r = glb-var-star G (un⇑ᴸᵢ-ˣ∈ w⊑X) (un⇑ᵢ-★∈ w⊑★)
+
+  greatest′ :
+    ∀ {W′} →
+    (W′ ˣ⊑ˣ _) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ →
+    (W′ ˣ⊑★) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ →
+    (W′ ˣ⊑ˣ suc (proj₁ r)) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest′ {W′ = zero} (there w′⊑X) _ =
+    ⊥-elim (no-⇑ᴸᵢ-zero-left w′⊑X)
+  greatest′ {W′ = suc W′} (there w′⊑X) (there w′⊑★) =
+    there
+      (⇑ᵢ-ˣ∈
+        (proj₂ (proj₂ (proj₂ r))
+          (un⇑ᴸᵢ-ˣ∈ w′⊑X)
+          (un⇑ᵢ-★∈ w′⊑★)))
+GlbCtx-ν∀ {Φᴸ} {Φᴿ} {Φᴼ} G
+    .glb-star-var (here refl) (here refl) =
+  zero , here refl , here refl , greatest
+  where
+  greatest :
+    ∀ {W′} →
+    (W′ ˣ⊑★) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ →
+    (W′ ˣ⊑ˣ zero) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ →
+    (W′ ˣ⊑ˣ zero) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest (here refl) (here refl) = here refl
+  greatest (here refl) (there w⊑0) =
+    ⊥-elim (no-⇑ᵢ-zero-left w⊑0)
+  greatest {W′ = zero} (there w⊑★) _ =
+    ⊥-elim (no-⇑ᴸᵢ-zero-star w⊑★)
+  greatest {W′ = suc W′} _ (there w⊑0) =
+    ⊥-elim (no-⇑ᵢ-zero-right w⊑0)
+GlbCtx-ν∀ G .glb-star-var (here refl) (there w⊑Y) =
+  ⊥-elim (no-⇑ᵢ-zero-left w⊑Y)
+GlbCtx-ν∀ G .glb-star-var (there w⊑★) (here refl) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star w⊑★)
+GlbCtx-ν∀ G .glb-star-var {W = zero} (there w⊑★) _ =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star w⊑★)
+GlbCtx-ν∀ G .glb-star-var {W = suc W} {Y = zero}
+    _ (there w⊑0) =
+  ⊥-elim (no-⇑ᵢ-zero-right w⊑0)
+GlbCtx-ν∀ {Φᴸ} {Φᴿ} {Φᴼ} G
+    .glb-star-var {W = suc W} {Y = suc Y}
+    (there w⊑★) (there w⊑Y) =
+  suc (proj₁ r) ,
+  there (⇑ᴸᵢ-★∈ (proj₁ (proj₂ r))) ,
+  there (⇑ᵢ-ˣ∈ (proj₁ (proj₂ (proj₂ r)))) ,
+  greatest′
+  where
+  r : Σ[ Z ∈ TyVar ]
+        ((Z ˣ⊑★) ∈ Φᴸ × (Z ˣ⊑ˣ Y) ∈ Φᴿ ×
+         (∀ {W′} →
+          (W′ ˣ⊑★) ∈ Φᴸ →
+          (W′ ˣ⊑ˣ Y) ∈ Φᴿ →
+          (W′ ˣ⊑ˣ Z) ∈ Φᴼ))
+  r = glb-star-var G (un⇑ᴸᵢ-★∈ w⊑★) (un⇑ᵢ-ˣ∈ w⊑Y)
+
+  greatest′ :
+    ∀ {W′} →
+    (W′ ˣ⊑★) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ →
+    (W′ ˣ⊑ˣ suc Y) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ →
+    (W′ ˣ⊑ˣ suc (proj₁ r)) ∈ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ
+  greatest′ {W′ = zero} (here refl) (there w′⊑Y) =
+    ⊥-elim (no-⇑ᵢ-zero-left w′⊑Y)
+  greatest′ {W′ = zero} (there w′⊑★) _ =
+    ⊥-elim (no-⇑ᴸᵢ-zero-star w′⊑★)
+  greatest′ {W′ = suc W′} (there w′⊑★) (there w′⊑Y) =
+    there
+      (⇑ᵢ-ˣ∈
+        (proj₂ (proj₂ (proj₂ r))
+          (un⇑ᴸᵢ-★∈ w′⊑★)
+          (un⇑ᵢ-ˣ∈ w′⊑Y)))
+GlbCtx-ν∀ G .glb-star-star _ (here ())
+GlbCtx-ν∀ G .glb-star-star {W = zero} (here refl) (there w⊑★) =
+  ⊥-elim (no-⇑ᵢ-zero-star w⊑★)
+GlbCtx-ν∀ G .glb-star-star {W = zero} (there w⊑★) _ =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star w⊑★)
+GlbCtx-ν∀ G .glb-star-star {W = suc W} (there w⊑★ᴸ) (there w⊑★ᴿ) =
+  there
+    (⇑ᵢ-★∈
+      (glb-star-star G (un⇑ᴸᵢ-★∈ w⊑★ᴸ) (un⇑ᵢ-★∈ w⊑★ᴿ)))
+
+greatest-var-varᵍ :
+  ∀ {Φᴸ Φᴿ Φᴼ X Y Z} →
+  (∀ {W} →
+   (W ˣ⊑ˣ X) ∈ Φᴸ →
+   (W ˣ⊑ˣ Y) ∈ Φᴿ →
+   (W ˣ⊑ˣ Z) ∈ Φᴼ) →
+  ∀ {D} →
+  0 ∣ Φᴸ ⊢ D ⊑ ＇ X →
+  0 ∣ Φᴿ ⊢ D ⊑ ＇ Y →
+  0 ∣ Φᴼ ⊢ D ⊑ ＇ Z
+greatest-var-varᵍ g (idˣ d⊑x) (idˣ d⊑y) =
+  idˣ (g d⊑x d⊑y)
+greatest-var-varᵍ {Φᴸ = phiL} {Φᴿ = phiR} {Φᴼ = phiO} {X = x}
+    {Y = y} {Z = z}
+    g (ν occD d⊑x) (ν _ d⊑y) =
+  ν occD (greatest-var-varᵍ gν d⊑x d⊑y)
+  where
+  gν :
+    ∀ {W} →
+    (W ˣ⊑ˣ x) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiL →
+    (W ˣ⊑ˣ y) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiR →
+    (W ˣ⊑ˣ z) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiO
+  gν {W = zero} (there w⊑x) _ =
+    ⊥-elim (no-⇑ᴸᵢ-zero-left w⊑x)
+  gν {W = suc W} (there w⊑x) (there w⊑y) =
+    there (⇑ᴸᵢ-ˣ∈ (g (un⇑ᴸᵢ-ˣ∈ w⊑x) (un⇑ᴸᵢ-ˣ∈ w⊑y)))
+
+greatest-var-starᵍ :
+  ∀ {Φᴸ Φᴿ Φᴼ X Z} →
+  (∀ {W} →
+   (W ˣ⊑ˣ X) ∈ Φᴸ →
+   (W ˣ⊑★) ∈ Φᴿ →
+   (W ˣ⊑ˣ Z) ∈ Φᴼ) →
+  ∀ {D} →
+  0 ∣ Φᴸ ⊢ D ⊑ ＇ X →
+  0 ∣ Φᴿ ⊢ D ⊑ ★ →
+  0 ∣ Φᴼ ⊢ D ⊑ ＇ Z
+greatest-var-starᵍ g (idˣ d⊑x) (tagˣ d⊑★) =
+  idˣ (g d⊑x d⊑★)
+greatest-var-starᵍ {Φᴸ = phiL} {Φᴿ = phiR} {Φᴼ = phiO} {X = x}
+    {Z = z}
+    g (ν occD d⊑x) (ν _ d⊑★) =
+  ν occD (greatest-var-starᵍ gν d⊑x d⊑★)
+  where
+  gν :
+    ∀ {W} →
+    (W ˣ⊑ˣ x) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiL →
+    (W ˣ⊑★) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiR →
+    (W ˣ⊑ˣ z) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiO
+  gν {W = zero} (there w⊑x) _ =
+    ⊥-elim (no-⇑ᴸᵢ-zero-left w⊑x)
+  gν {W = suc W} (there w⊑x) (there w⊑★) =
+    there (⇑ᴸᵢ-ˣ∈ (g (un⇑ᴸᵢ-ˣ∈ w⊑x) (un⇑ᴸᵢ-★∈ w⊑★)))
+
+greatest-star-varᵍ :
+  ∀ {Φᴸ Φᴿ Φᴼ Y Z} →
+  (∀ {W} →
+   (W ˣ⊑★) ∈ Φᴸ →
+   (W ˣ⊑ˣ Y) ∈ Φᴿ →
+   (W ˣ⊑ˣ Z) ∈ Φᴼ) →
+  ∀ {D} →
+  0 ∣ Φᴸ ⊢ D ⊑ ★ →
+  0 ∣ Φᴿ ⊢ D ⊑ ＇ Y →
+  0 ∣ Φᴼ ⊢ D ⊑ ＇ Z
+greatest-star-varᵍ g (tagˣ d⊑★) (idˣ d⊑y) =
+  idˣ (g d⊑★ d⊑y)
+greatest-star-varᵍ {Φᴸ = phiL} {Φᴿ = phiR} {Φᴼ = phiO} {Y = y}
+    {Z = z}
+    g (ν occD d⊑★) (ν _ d⊑y) =
+  ν occD (greatest-star-varᵍ gν d⊑★ d⊑y)
+  where
+  gν :
+    ∀ {W} →
+    (W ˣ⊑★) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiL →
+    (W ˣ⊑ˣ y) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiR →
+    (W ˣ⊑ˣ z) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiO
+  gν {W = zero} (here refl) (there w⊑y) =
+    ⊥-elim (no-⇑ᴸᵢ-zero-left w⊑y)
+  gν {W = zero} (there w⊑★) _ =
+    ⊥-elim (no-⇑ᴸᵢ-zero-star w⊑★)
+  gν {W = suc W} (there w⊑★) (there w⊑y) =
+    there (⇑ᴸᵢ-ˣ∈ (g (un⇑ᴸᵢ-★∈ w⊑★) (un⇑ᴸᵢ-ˣ∈ w⊑y)))
+
+greatest-star-starᵍ :
+  ∀ {Φᴸ Φᴿ Φᴼ} →
+  (∀ {W} →
+   (W ˣ⊑★) ∈ Φᴸ →
+   (W ˣ⊑★) ∈ Φᴿ →
+   (W ˣ⊑★) ∈ Φᴼ) →
+  ∀ {D} →
+  0 ∣ Φᴸ ⊢ D ⊑ ★ →
+  0 ∣ Φᴿ ⊢ D ⊑ ★ →
+  0 ∣ Φᴼ ⊢ D ⊑ ★
+greatest-star-starᵍ g id★ id★ = id★
+greatest-star-starᵍ g (tag ι) (tag .ι) = tag ι
+greatest-star-starᵍ g (tag_⇒_ p₁ p₂) (tag_⇒_ q₁ q₂) =
+  tag_⇒_ (greatest-star-starᵍ g p₁ q₁) (greatest-star-starᵍ g p₂ q₂)
+greatest-star-starᵍ g (tagˣ d⊑★ᴸ) (tagˣ d⊑★ᴿ) =
+  tagˣ (g d⊑★ᴸ d⊑★ᴿ)
+greatest-star-starᵍ {Φᴸ = phiL} {Φᴿ = phiR} {Φᴼ = phiO}
+    g (ν occD d⊑★ᴸ) (ν _ d⊑★ᴿ) =
+  ν occD (greatest-star-starᵍ gν d⊑★ᴸ d⊑★ᴿ)
+  where
+  gν :
+    ∀ {W} →
+    (W ˣ⊑★) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiL →
+    (W ˣ⊑★) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiR →
+    (W ˣ⊑★) ∈ (0 ˣ⊑★) ∷ ⇑ᴸᵢ phiO
+  gν {W = zero} (here refl) _ = here refl
+  gν {W = zero} (there w⊑★) _ =
+    ⊥-elim (no-⇑ᴸᵢ-zero-star w⊑★)
+  gν {W = suc W} (there w⊑★ᴸ) (there w⊑★ᴿ) =
+    there (⇑ᴸᵢ-★∈ (g (un⇑ᴸᵢ-★∈ w⊑★ᴸ) (un⇑ᴸᵢ-★∈ w⊑★ᴿ)))
+
+greatest-base-baseᵍ :
+  ∀ {Φᴸ Φᴿ Φᴼ ι D} →
+  0 ∣ Φᴸ ⊢ D ⊑ ‵ ι →
+  0 ∣ Φᴿ ⊢ D ⊑ ‵ ι →
+  0 ∣ Φᴼ ⊢ D ⊑ ‵ ι
+greatest-base-baseᵍ idι idι = idι
+greatest-base-baseᵍ (ν occD d⊑ιᴸ) (ν _ d⊑ιᴿ) =
+  ν occD (greatest-base-baseᵍ d⊑ιᴸ d⊑ιᴿ)
+
+greatest-base-starᵍ :
+  ∀ {Φᴸ Φᴿ Φᴼ ι D} →
+  0 ∣ Φᴸ ⊢ D ⊑ ‵ ι →
+  0 ∣ Φᴿ ⊢ D ⊑ ★ →
+  0 ∣ Φᴼ ⊢ D ⊑ ‵ ι
+greatest-base-starᵍ idι (tag ι) = idι
+greatest-base-starᵍ (ν occD d⊑ι) (ν _ d⊑★) =
+  ν occD (greatest-base-starᵍ d⊑ι d⊑★)
+
+greatest-star-baseᵍ :
+  ∀ {Φᴸ Φᴿ Φᴼ ι D} →
+  0 ∣ Φᴸ ⊢ D ⊑ ★ →
+  0 ∣ Φᴿ ⊢ D ⊑ ‵ ι →
+  0 ∣ Φᴼ ⊢ D ⊑ ‵ ι
+greatest-star-baseᵍ (tag ι) idι = idι
+greatest-star-baseᵍ (ν occD d⊑★) (ν _ d⊑ι) =
+  ν occD (greatest-star-baseᵍ d⊑★ d⊑ι)
+
+glbᶜ-star-star :
+  ∀ {Φᴸ Φᴿ Φᴼ} →
+  GlbCtx Φᴸ Φᴿ Φᴼ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ ★ ★ ★
+glbᶜ-star-star G =
+  glbᶜ-intro id★ id★
+    (λ D D⊑★ᴸ D⊑★ᴿ →
+      greatest-star-starᵍ (glb-star-star G) D⊑★ᴸ D⊑★ᴿ)
+
+glbᶜ-base-base :
+  ∀ {Φᴸ Φᴿ Φᴼ ι} →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (‵ ι) (‵ ι) (‵ ι)
+glbᶜ-base-base =
+  glbᶜ-intro idι idι
+    (λ D D⊑ιᴸ D⊑ιᴿ → greatest-base-baseᵍ D⊑ιᴸ D⊑ιᴿ)
+
+glbᶜ-base-star :
+  ∀ {Φᴸ Φᴿ Φᴼ ι} →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (‵ ι) (‵ ι) ★
+glbᶜ-base-star =
+  glbᶜ-intro idι (tag _)
+    (λ D D⊑ι D⊑★ → greatest-base-starᵍ D⊑ι D⊑★)
+
+glbᶜ-star-base :
+  ∀ {Φᴸ Φᴿ Φᴼ ι} →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (‵ ι) ★ (‵ ι)
+glbᶜ-star-base =
+  glbᶜ-intro (tag _) idι
+    (λ D D⊑★ D⊑ι → greatest-star-baseᵍ D⊑★ D⊑ι)
+
+glbᶜ-var-var :
+  ∀ {Φᴸ Φᴿ Φᴼ X Y W} →
+  GlbCtx Φᴸ Φᴿ Φᴼ →
+  (W ˣ⊑ˣ X) ∈ Φᴸ →
+  (W ˣ⊑ˣ Y) ∈ Φᴿ →
+  Σ[ Z ∈ TyVar ] Glbᶜ Φᴸ Φᴿ Φᴼ (＇ Z) (＇ X) (＇ Y)
+glbᶜ-var-var G w⊑x w⊑y =
+  proj₁ r ,
+  glbᶜ-intro
+    (idˣ (proj₁ (proj₂ r)))
+    (idˣ (proj₁ (proj₂ (proj₂ r))))
+    (λ D D⊑x D⊑y →
+      greatest-var-varᵍ (proj₂ (proj₂ (proj₂ r))) D⊑x D⊑y)
+  where
+  r = glb-var-var G w⊑x w⊑y
+
+glbᶜ-var-star :
+  ∀ {Φᴸ Φᴿ Φᴼ X W} →
+  GlbCtx Φᴸ Φᴿ Φᴼ →
+  (W ˣ⊑ˣ X) ∈ Φᴸ →
+  (W ˣ⊑★) ∈ Φᴿ →
+  Σ[ Z ∈ TyVar ] Glbᶜ Φᴸ Φᴿ Φᴼ (＇ Z) (＇ X) ★
+glbᶜ-var-star G w⊑x w⊑★ =
+  proj₁ r ,
+  glbᶜ-intro
+    (idˣ (proj₁ (proj₂ r)))
+    (tagˣ (proj₁ (proj₂ (proj₂ r))))
+    (λ D D⊑x D⊑★ →
+      greatest-var-starᵍ (proj₂ (proj₂ (proj₂ r))) D⊑x D⊑★)
+  where
+  r = glb-var-star G w⊑x w⊑★
+
+glbᶜ-star-var :
+  ∀ {Φᴸ Φᴿ Φᴼ Y W} →
+  GlbCtx Φᴸ Φᴿ Φᴼ →
+  (W ˣ⊑★) ∈ Φᴸ →
+  (W ˣ⊑ˣ Y) ∈ Φᴿ →
+  Σ[ Z ∈ TyVar ] Glbᶜ Φᴸ Φᴿ Φᴼ (＇ Z) ★ (＇ Y)
+glbᶜ-star-var G w⊑★ w⊑y =
+  proj₁ r ,
+  glbᶜ-intro
+    (tagˣ (proj₁ (proj₂ r)))
+    (idˣ (proj₁ (proj₂ (proj₂ r))))
+    (λ D D⊑★ D⊑y →
+      greatest-star-varᵍ (proj₂ (proj₂ (proj₂ r))) D⊑★ D⊑y)
+  where
+  r = glb-star-var G w⊑★ w⊑y
+
+glbᶜ-idempotent :
+  ∀ {Φ A} →
+  ReflImpCtx Φ →
+  WfTy (length Φ) 0 A →
+  Glbᶜ Φ Φ Φ A A A
+glbᶜ-idempotent reflΦ wfA =
+  glbᶜ-intro (⊑-refl reflΦ wfA) (⊑-refl reflΦ wfA)
+    (λ C′ C′⊑A _ → C′⊑A)
+
+glbᶜ-topʳ :
+  ∀ {Φ A} →
+  ReflImpCtx Φ →
+  StarImpCtx Φ →
+  WfTy (length Φ) 0 A →
+  Glbᶜ Φ Φ Φ A A ★
+glbᶜ-topʳ reflΦ starΦ wfA =
+  glbᶜ-intro (⊑-refl reflΦ wfA) (⊑★ starΦ wfA)
+    (λ C′ C′⊑A _ → C′⊑A)
+
+glbᶜ-topˡ :
+  ∀ {Φ B} →
+  ReflImpCtx Φ →
+  StarImpCtx Φ →
+  WfTy (length Φ) 0 B →
+  Glbᶜ Φ Φ Φ B ★ B
+glbᶜ-topˡ reflΦ starΦ wfB =
+  glbᶜ-intro (⊑★ starΦ wfB) (⊑-refl reflΦ wfB)
+    (λ C′ _ C′⊑B → C′⊑B)
+
+glbᶜ-greatest-∀∀ :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C C′} →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ C′ ⊑ A →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ C′ ⊑ B →
+  0 ∣ Φᴼ ⊢ `∀ C′ ⊑ `∀ C
+glbᶜ-greatest-∀∀ glb C′⊑A C′⊑B =
+  ∀ⁱ greatestᶜ glb _ C′⊑A C′⊑B
+
+glbᶜ-greatest-∀ν :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C C′} →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ C′ ⊑ A →
+  0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ C′ ⊑ B →
+  0 ∣ Φᴼ ⊢ `∀ C′ ⊑ `∀ C
+glbᶜ-greatest-∀ν glb C′⊑A C′⊑B =
+  ∀ⁱ greatestᶜ glb _ C′⊑A C′⊑B
+
+glbᶜ-greatest-ν∀ :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C C′} →
+  Glbᶜ ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ C′ ⊑ A →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ C′ ⊑ B →
+  0 ∣ Φᴼ ⊢ `∀ C′ ⊑ `∀ C
+glbᶜ-greatest-ν∀ glb C′⊑A C′⊑B =
+  ∀ⁱ greatestᶜ glb _ C′⊑A C′⊑B
+
+glbᶜ-greatest-∀∀-dispatch :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C C′} →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  ∀Lower² Φᴸ Φᴿ C′ A B →
+  (∀ {D} →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ D ⊑ A →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ D ⊑ `∀ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ D ⊑ `∀ A →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ D ⊑ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ D ⊑ `∀ A →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ D ⊑ `∀ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  0 ∣ Φᴼ ⊢ C′ ⊑ `∀ C
+glbᶜ-greatest-∀∀-dispatch glb (via-∀∀ p q) _ _ _ =
+  glbᶜ-greatest-∀∀ glb p q
+glbᶜ-greatest-∀∀-dispatch glb (via-∀ν p occD q) k∀ν _ _ =
+  k∀ν p occD q
+glbᶜ-greatest-∀∀-dispatch glb (via-ν∀ occD p q) _ kν∀ _ =
+  kν∀ occD p q
+glbᶜ-greatest-∀∀-dispatch glb (via-νν occD p q) _ _ kνν =
+  kνν occD p q
+
+glbᶜ-greatest-∀∀-open :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C C′} →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  0 ∣ Φᴸ ⊢ C′ ⊑ `∀ A →
+  0 ∣ Φᴿ ⊢ C′ ⊑ `∀ B →
+  (∀ {D} →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ D ⊑ A →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ D ⊑ `∀ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ D ⊑ `∀ A →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ D ⊑ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ D ⊑ `∀ A →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ D ⊑ `∀ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  0 ∣ Φᴼ ⊢ C′ ⊑ `∀ C
+glbᶜ-greatest-∀∀-open glb C′⊑∀A C′⊑∀B k∀ν kν∀ kνν =
+  glbᶜ-greatest-∀∀-dispatch glb
+    (∀∀-lower²-inv C′⊑∀A C′⊑∀B)
+    k∀ν kν∀ kνν
+
+glbᶜ-greatest-∀ν-dispatch :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C C′} →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  ∀νLower² Φᴸ Φᴿ C′ A B →
+  (∀ {D B′} →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ D ⊑ A →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ D ⊑ B′ →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ D ⊑ `∀ A →
+   0 ∣ Φᴿ ⊢ `∀ D ⊑ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  0 ∣ Φᴼ ⊢ C′ ⊑ `∀ C
+glbᶜ-greatest-∀ν-dispatch glb (via-∀∀ʳ p q) k∀∀ʳ _ =
+  k∀∀ʳ p q
+glbᶜ-greatest-∀ν-dispatch glb (via-∀νʳ p occD q) _ _ =
+  glbᶜ-greatest-∀ν glb p q
+glbᶜ-greatest-∀ν-dispatch glb (via-νˡ occD p q) _ kνˡ =
+  kνˡ occD p q
+
+glbᶜ-greatest-∀ν-open :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C C′} →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  0 ∣ Φᴸ ⊢ C′ ⊑ `∀ A →
+  0 ∣ Φᴿ ⊢ C′ ⊑ B →
+  (∀ {D B′} →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ D ⊑ A →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ D ⊑ B′ →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ D ⊑ `∀ A →
+   0 ∣ Φᴿ ⊢ `∀ D ⊑ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  0 ∣ Φᴼ ⊢ C′ ⊑ `∀ C
+glbᶜ-greatest-∀ν-open glb C′⊑∀A C′⊑B k∀∀ʳ kνˡ =
+  glbᶜ-greatest-∀ν-dispatch glb
+    (∀ν-lower²-inv C′⊑∀A C′⊑B)
+    k∀∀ʳ kνˡ
+
+glbᶜ-greatest-ν∀-dispatch :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C C′} →
+  Glbᶜ ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  ν∀Lower² Φᴸ Φᴿ C′ A B →
+  (∀ {D A′} →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ D ⊑ A′ →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ D ⊑ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ Φᴸ ⊢ `∀ D ⊑ A →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ D ⊑ `∀ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  0 ∣ Φᴼ ⊢ C′ ⊑ `∀ C
+glbᶜ-greatest-ν∀-dispatch glb (via-∀∀ˡ p q) k∀∀ˡ _ =
+  k∀∀ˡ p q
+glbᶜ-greatest-ν∀-dispatch glb (via-ν∀ˡ occD p q) _ _ =
+  glbᶜ-greatest-ν∀ glb p q
+glbᶜ-greatest-ν∀-dispatch glb (via-νʳ occD p q) _ kνʳ =
+  kνʳ occD p q
+
+glbᶜ-greatest-ν∀-open :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C C′} →
+  Glbᶜ ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  0 ∣ Φᴸ ⊢ C′ ⊑ A →
+  0 ∣ Φᴿ ⊢ C′ ⊑ `∀ B →
+  (∀ {D A′} →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ D ⊑ A′ →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ D ⊑ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ Φᴸ ⊢ `∀ D ⊑ A →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ D ⊑ `∀ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  0 ∣ Φᴼ ⊢ C′ ⊑ `∀ C
+glbᶜ-greatest-ν∀-open glb C′⊑A C′⊑∀B k∀∀ˡ kνʳ =
+  glbᶜ-greatest-ν∀-dispatch glb
+    (ν∀-lower²-inv C′⊑A C′⊑∀B)
+    k∀∀ˡ kνʳ
+
+glbᶜ-lift-lower-∀∀ :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  CommonLowerᶜ Φᴸ Φᴿ (`∀ C) (`∀ A) (`∀ B)
+glbᶜ-lift-lower-∀∀ glb =
+  ∀ⁱ lowerˡᶜ glb , ∀ⁱ lowerʳᶜ glb
+
+glbᶜ-lift-lower-∀ν :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  occurs zero A ≡ true →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  CommonLowerᶜ Φᴸ Φᴿ (`∀ C) (`∀ A) B
+glbᶜ-lift-lower-∀ν occA glb =
+  ∀ⁱ lowerˡᶜ glb ,
+  ν (plainν-target-occurs-source (lowerˡᶜ glb) occA) (lowerʳᶜ glb)
+
+glbᶜ-lift-lower-ν∀ :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  occurs zero B ≡ true →
+  Glbᶜ ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  CommonLowerᶜ Φᴸ Φᴿ (`∀ C) A (`∀ B)
+glbᶜ-lift-lower-ν∀ occB glb =
+  ν (plainν-target-occurs-source (lowerʳᶜ glb) occB) (lowerˡᶜ glb) ,
+  ∀ⁱ lowerʳᶜ glb
+
+glbᶜ-lift-lower-νν :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  occurs zero C ≡ true →
+  Glbᶜ ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ)
+       ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ)
+       ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴼ)
+       C A B →
+  CommonLowerᶜ Φᴸ Φᴿ (`∀ C) A B
+glbᶜ-lift-lower-νν occC glb =
+  ν occC (lowerˡᶜ glb) , ν occC (lowerʳᶜ glb)
+
+glbᶜ-lift-∀∀ :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  (∀ C′ →
+   0 ∣ Φᴸ ⊢ C′ ⊑ `∀ A →
+   0 ∣ Φᴿ ⊢ C′ ⊑ `∀ B →
+   0 ∣ Φᴼ ⊢ C′ ⊑ `∀ C) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (`∀ C) (`∀ A) (`∀ B)
+glbᶜ-lift-∀∀ glb greatest =
+  glbᶜ-intro
+    (proj₁ (glbᶜ-lift-lower-∀∀ glb))
+    (proj₂ (glbᶜ-lift-lower-∀∀ glb))
+    greatest
+
+glbᶜ-lift-∀ν :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  occurs zero A ≡ true →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  (∀ C′ →
+   0 ∣ Φᴸ ⊢ C′ ⊑ `∀ A →
+   0 ∣ Φᴿ ⊢ C′ ⊑ B →
+   0 ∣ Φᴼ ⊢ C′ ⊑ `∀ C) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (`∀ C) (`∀ A) B
+glbᶜ-lift-∀ν occA glb greatest =
+  glbᶜ-intro
+    (proj₁ (glbᶜ-lift-lower-∀ν occA glb))
+    (proj₂ (glbᶜ-lift-lower-∀ν occA glb))
+    greatest
+
+glbᶜ-lift-ν∀ :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  occurs zero B ≡ true →
+  Glbᶜ ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  (∀ C′ →
+   0 ∣ Φᴸ ⊢ C′ ⊑ A →
+   0 ∣ Φᴿ ⊢ C′ ⊑ `∀ B →
+   0 ∣ Φᴼ ⊢ C′ ⊑ `∀ C) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (`∀ C) A (`∀ B)
+glbᶜ-lift-ν∀ occB glb greatest =
+  glbᶜ-intro
+    (proj₁ (glbᶜ-lift-lower-ν∀ occB glb))
+    (proj₂ (glbᶜ-lift-lower-ν∀ occB glb))
+    greatest
+
+glbᶜ-lift-νν :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  occurs zero C ≡ true →
+  Glbᶜ ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ)
+       ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ)
+       ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴼ)
+       C A B →
+  (∀ C′ →
+   0 ∣ Φᴸ ⊢ C′ ⊑ A →
+   0 ∣ Φᴿ ⊢ C′ ⊑ B →
+   0 ∣ Φᴼ ⊢ C′ ⊑ `∀ C) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (`∀ C) A B
+glbᶜ-lift-νν occC glb greatest =
+  glbᶜ-intro
+    (proj₁ (glbᶜ-lift-lower-νν occC glb))
+    (proj₂ (glbᶜ-lift-lower-νν occC glb))
+    greatest
+
+glbᶜ-lift-∀∀-open :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  (∀ {D} →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ D ⊑ A →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ D ⊑ `∀ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ D ⊑ `∀ A →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ D ⊑ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ D ⊑ `∀ A →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ D ⊑ `∀ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (`∀ C) (`∀ A) (`∀ B)
+glbᶜ-lift-∀∀-open glb k∀ν kν∀ kνν =
+  glbᶜ-lift-∀∀ glb
+    (λ C′ C′⊑∀A C′⊑∀B →
+      glbᶜ-greatest-∀∀-open glb C′⊑∀A C′⊑∀B k∀ν kν∀ kνν)
+
+glbᶜ-lift-∀ν-open :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  occurs zero A ≡ true →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ)
+       ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  (∀ {D B′} →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ D ⊑ A →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ D ⊑ B′ →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ D ⊑ `∀ A →
+   0 ∣ Φᴿ ⊢ `∀ D ⊑ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (`∀ C) (`∀ A) B
+glbᶜ-lift-∀ν-open occA glb k∀∀ʳ kνˡ =
+  glbᶜ-lift-∀ν occA glb
+    (λ C′ C′⊑∀A C′⊑B →
+      glbᶜ-greatest-∀ν-open glb C′⊑∀A C′⊑B k∀∀ʳ kνˡ)
+
+glbᶜ-lift-ν∀-open :
+  ∀ {Φᴸ Φᴿ Φᴼ A B C} →
+  occurs zero B ≡ true →
+  Glbᶜ ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ)
+       ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴼ)
+       C A B →
+  (∀ {D A′} →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ D ⊑ A′ →
+   0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ D ⊑ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  (∀ {D} →
+   occurs zero D ≡ true →
+   0 ∣ Φᴸ ⊢ `∀ D ⊑ A →
+   0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ D ⊑ `∀ B →
+   0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ C) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (`∀ C) A (`∀ B)
+glbᶜ-lift-ν∀-open occB glb k∀∀ˡ kνʳ =
+  glbᶜ-lift-ν∀ occB glb
+    (λ C′ C′⊑A C′⊑∀B →
+      glbᶜ-greatest-ν∀-open glb C′⊑A C′⊑∀B k∀∀ˡ kνʳ)
+
 ⊓-lowerˡ :
   ∀ {Ψ A B C} →
   Ψ ⊢ A ＝ B ⊓ C →
@@ -912,6 +2184,33 @@ leading∀ _ = zero
   Ψ ∣ [] ⊢ A′ ⊑ C →
   Ψ ∣ [] ⊢ A′ ⊑ A
 ⊓-greatest glb = proj₂ (proj₂ glb)
+
+⊓⇒common-lower :
+  ∀ {A B C} →
+  0 ⊢ C ＝ A ⊓ B →
+  CommonLower A B
+⊓⇒common-lower glb = _ , ⊓-lowerˡ glb , ⊓-lowerʳ glb
+
+glb-exists⇒common-lower :
+  ∀ {A B} →
+  Σ[ C ∈ Ty ] 0 ⊢ C ＝ A ⊓ B →
+  CommonLower A B
+glb-exists⇒common-lower (_ , glb) = ⊓⇒common-lower glb
+
+⊓⇒glbᶜ-closed :
+  ∀ {A B C} →
+  0 ⊢ C ＝ A ⊓ B →
+  Glbᶜ [] [] [] C A B
+⊓⇒glbᶜ-closed glb .lowerˡᶜ = ⊓-lowerˡ glb
+⊓⇒glbᶜ-closed glb .lowerʳᶜ = ⊓-lowerʳ glb
+⊓⇒glbᶜ-closed glb .greatestᶜ = ⊓-greatest glb
+
+glbᶜ-closed⇒⊓ :
+  ∀ {A B C} →
+  Glbᶜ [] [] [] C A B →
+  0 ⊢ C ＝ A ⊓ B
+glbᶜ-closed⇒⊓ glb =
+  lowerˡᶜ glb , lowerʳᶜ glb , greatestᶜ glb
 
 ⊓-intro :
   ∀ {Ψ A B C} →
@@ -975,6 +2274,20 @@ leading∀ _ = zero
   WfTy 0 0 A →
   0 ⊢ A ＝ A ⊓ ★
 ⊓-top wfA = ⊑⇒⊓ wfA (⊑★ StarImpCtx-[] wfA)
+
+common-lower-topʳ⇒glb :
+  ∀ {A} →
+  WfTy 0 0 A →
+  CommonLower A ★ →
+  Σ[ C ∈ Ty ] 0 ⊢ C ＝ A ⊓ ★
+common-lower-topʳ⇒glb wfA _ = _ , ⊓-top wfA
+
+common-lower-topˡ⇒glb :
+  ∀ {B} →
+  WfTy 0 0 B →
+  CommonLower ★ B →
+  Σ[ C ∈ Ty ] 0 ⊢ C ＝ ★ ⊓ B
+common-lower-topˡ⇒glb wfB _ = _ , ⊓-comm (⊓-top wfB)
 
 -- unique
 

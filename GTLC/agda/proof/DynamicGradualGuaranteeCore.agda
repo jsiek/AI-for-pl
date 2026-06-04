@@ -1084,6 +1084,16 @@ sim (⊑castL {M = M} {c = c₁} M⊑M′ x x₁) (β-↦ {c = c} {d} vV vW)
 ... | N , M→N , N≤ =
     sim-castL-result x x₁ M→N N≤
 
+-- Case β-⊥
+
+sim {M = M} {M′ = M′} {A = A} {A′ = A′} M⊑M′ (β-⊥ {ℓ = ℓ} vV′) =
+  let prec : []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′
+      prec = M⊑M′ in
+  let red = M ∎ᶜ in
+  let prec′ : []⊑[] ⊢ M ⦂ A ⊑ᶜᵀ blame {ℓ = ℓ} ⦂ A′
+      prec′ = ⊑blameR (⊑ᶜᵀ-left-typed M⊑M′) (⊑ᶜᵀ-type-precision M⊑M′) in
+  M , red , prec′
+
 -- Case β-proj-inj-ok
 
 sim {A = A} {A′ = A′}

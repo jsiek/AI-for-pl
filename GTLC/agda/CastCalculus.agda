@@ -240,6 +240,10 @@ data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
     → Valueᶜ W
     → cast V [ c ↦ d ] · W —→ᶜ cast (V · cast W [ c ]) [ d ]
 
+  β-⊥ : ∀ {A B V ℓ}
+    → Valueᶜ V
+    → cast V [ ⊥ᶜ A ⇨ B at ℓ ] —→ᶜ blame {ℓ = ℓ}
+
   β-proj-inj-ok : ∀ {V G ℓ}
     → Valueᶜ V
     → cast (cast V [ G ! ]) [ (_`? {ℓ = ℓ}) G ] —→ᶜ V

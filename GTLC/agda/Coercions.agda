@@ -17,6 +17,7 @@ data Coercion : Set where
   _`?  : {ℓ : Nat} → Ty → Coercion -- projection (tag checking)
   _↦_  : Coercion → Coercion → Coercion
   _⨟_  : Coercion → Coercion → Coercion
+  ⊥ᶜ_⇨_at_ : Ty → Ty → Nat → Coercion
 
 data Atomic : Coercion → Set where
   atom-idᶜ : ∀ {A} → Atomic (idᶜ A)
@@ -46,6 +47,9 @@ data ⊢_⦂_⇨_ : Coercion → Ty → Ty → Set where
     → ⊢ c ⦂ A ⇨ B
     → ⊢ d ⦂ B ⇨ C
     → ⊢ c ⨟ d ⦂ A ⇨ C
+
+  ⊢⊥ : ∀ {A B ℓ}
+    → ⊢ (⊥ᶜ A ⇨ B at ℓ) ⦂ A ⇨ B
 
 coerce : ∀ {A B} → Nat → A ~ B → Coercion
 coerce ℓ ~-ℕ = idᶜ ℕ
@@ -105,12 +109,19 @@ data _⊑ᶜ_ : Coercion → Coercion → Set where
     → c′ ⊑ᶜ c
     → (c′ ⨟ ((★ ⇒ ★) !)) ⊑ᶜ c
 
+  ⊑⊥ : ∀ {A′ B′ A B c ℓ}
+    → ⊢ c ⦂ A′ ⇨ B′
+    → A′ ⊑ A
+    → B′ ⊑ B
+    → c ⊑ᶜ (⊥ᶜ A ⇨ B at ℓ)
+
 ⊑ᶜ-reflexive : ∀ {c} → c ⊑ᶜ c
 ⊑ᶜ-reflexive {c = idᶜ A} = ⊑idᶜ ⊑-refl
 ⊑ᶜ-reflexive {c = A !} = ⊑! ⊑-refl
 ⊑ᶜ-reflexive {c = A `?} = ⊑? ⊑-refl
 ⊑ᶜ-reflexive {c = c ↦ d} = ⊑↦ ⊑ᶜ-reflexive ⊑ᶜ-reflexive
 ⊑ᶜ-reflexive {c = c ⨟ d} = ⊑⨟ ⊑ᶜ-reflexive ⊑ᶜ-reflexive
+⊑ᶜ-reflexive {c = ⊥ᶜ A ⇨ B at ℓ} = ⊑⊥ ⊢⊥ ⊑-refl ⊑-refl
 
 ⊑id★ : ∀ {c A B} → ⊢ c ⦂ A ⇨ B → idᶜ ★ ⊑ᶜ c
 ⊑id★ ⊢idᶜ = ⊑idᶜ ⊑-★
@@ -118,6 +129,7 @@ data _⊑ᶜ_ : Coercion → Coercion → Set where
 ⊑id★ (⊢? g) = ⊑idL atom-? (⊢? g) ⊑-★ ⊑-★
 ⊑id★ (⊢↦ cwt dwt) = ⊑idL↦★ (⊑id★ cwt) (⊑id★ dwt)
 ⊑id★ (⊢⨟ cwt dwt) = ⊑idL⨟ (⊑id★ cwt) (⊑id★ dwt)
+⊑id★ ⊢⊥ = ⊑⊥ ⊢idᶜ ⊑-★ ⊑-★
 
 coerce-monotonic
   : ∀ {A A′ B B′}
@@ -192,6 +204,7 @@ coercion-type-unique (⊢↦ c₁ d₁) (⊢↦ c₂ d₂)
 coercion-type-unique (⊢⨟ c₁ d₁) (⊢⨟ c₂ d₂)
   with coercion-type-unique c₁ c₂ | coercion-type-unique d₁ d₂
 ... | refl , refl | refl , refl = refl , refl
+coercion-type-unique ⊢⊥ ⊢⊥ = refl , refl
 
 ⊑ᶜ→⊑ : ∀ {c c′ A B A′ B′ }
     → ⊢ c ⦂ A ⇨ B → ⊢ c′ ⦂ A′ ⇨ B′
@@ -233,6 +246,9 @@ coercion-type-unique (⊢⨟ c₁ d₁) (⊢⨟ c₂ d₂)
 ⊑ᶜ→⊑ ⊢c (⊢⨟ c′wt (⊢! G-⇒)) (⊑drop! c′⊑c)
   with ⊑ᶜ→⊑ ⊢c c′wt c′⊑c
 ... | A′⊑A , _ = A′⊑A , ⊑-★
+⊑ᶜ→⊑ ⊢c ⊢c′ (⊑⊥ c′wt A′⊑A B′⊑B)
+  with coercion-type-unique ⊢c ⊢⊥ | coercion-type-unique ⊢c′ c′wt
+... | refl , refl | refl , refl = A′⊑A , B′⊑B
 
 ⊑idR↦-inv : ∀ {A B c d}
   → (c ↦ d) ⊑ᶜ idᶜ (A ⇒ B)

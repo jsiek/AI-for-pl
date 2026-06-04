@@ -62,6 +62,7 @@ progressᶜ (⊢cast {c = c} M⦂A c⦂A⇨B) with progressᶜ M⦂A
 ... | ⊢! g = done (V-cast! vM)
 ... | ⊢↦ cwt dwt = done (V-cast↦ vM)
 ... | ⊢⨟ cwt dwt = step (β-seq vM)
+... | ⊢⊥ = step (β-⊥ vM)
 ... | ⊢? {G = G} {ℓ = ℓ} g with canonical-★-inj vM M⦂A
 ... | H , W , (vW , refl) with H ≟Ty G
 ... | yes refl = step (β-proj-inj-ok vW)
@@ -171,6 +172,7 @@ mutual
     ⊢cast (⊢cast V⦂A c⦂) d⦂
   preserveᶜ (⊢· (⊢cast V⦂ (⊢↦ c⦂ d⦂)) W⦂) (β-↦ vV vW) =
     ⊢cast (⊢· V⦂ (⊢cast W⦂ c⦂)) d⦂
+  preserveᶜ (⊢cast V⦂A ⊢⊥) (β-⊥ vV) = ⊢blame
   preserveᶜ (⊢cast (⊢cast V⦂ (⊢! g)) (⊢? x)) (β-proj-inj-ok vV) = V⦂
   preserveᶜ M⦂A (β-proj-inj-bad vV G≢H) = ⊢blame
   preserveᶜ M⦂A (ξξ-blame {F = F} refl) = frame-blameᶜ {F = F} M⦂A

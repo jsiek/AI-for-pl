@@ -32,7 +32,7 @@ data Crcn : Set where
   _!     : Ty → Crcn -- injection (tagging)
   _？_    : Ty → Nat → Crcn -- projection (tag checking)
   _↦_    : List Crcn → List Crcn → Crcn
-  ⊥ᶜ_⇨_ : Ty → Ty → Crcn
+  ⊥ᶜ_⇨_at_ : Ty → Ty → Nat → Crcn
 
 Coercion : Set
 Coercion = List Crcn
@@ -67,8 +67,8 @@ data ⊢_⦂_⇨ᶜ_ : Crcn → Ty → Ty → Set where
     → ⊢ d ⦂ B ⇨ D
     → ⊢ c ↦ d ⦂ (A ⇒ B) ⇨ᶜ (C ⇒ D)
 
-  ⊢⊥ : ∀ {A B}
-    → ⊢ (⊥ᶜ A ⇨ B) ⦂ A ⇨ᶜ B
+  ⊢⊥ : ∀ {A B ℓ}
+    → ⊢ (⊥ᶜ A ⇨ B at ℓ) ⦂ A ⇨ᶜ B
 
 data ⊢_⦂_⇨_ where
   ⊢[] : ∀ {A}
@@ -183,22 +183,23 @@ data _;_—→ᶜ_ : Crcn → Crcn → Coercion → Set where
 
   β-proj-inj-badᶜ : ∀ {G H ℓ}
     → G ≢ H
-    → G ! ;  H ？ ℓ  —→ᶜ (⊥ᶜ G ⇨ H) ∷ []
+    → G ! ;  H ？ ℓ  —→ᶜ (⊥ᶜ G ⇨ H at ℓ) ∷ []
 
   β-↦ᶜ : ∀ {c d c′ d′}
     → (c ↦ d) ; (c′ ↦ d′) —→ᶜ (c′ ⨟ c) ↦ (d ⨟ d′) ∷ []
 
-  β-⊥Lᶜ : ∀ {A B C d}
+  β-⊥Lᶜ : ∀ {A B C d ℓ}
     → ⊢ d ⦂ B ⇨ᶜ C
-    → (⊥ᶜ A ⇨ B) ; d  —→ᶜ (⊥ᶜ A ⇨ C) ∷ []
+    → (⊥ᶜ A ⇨ B at ℓ) ; d —→ᶜ (⊥ᶜ A ⇨ C at ℓ) ∷ []
 
-  β-!⊥ᶜ : ∀ {G B}
-    → G ! ; (⊥ᶜ ★ ⇨ B) —→ᶜ (⊥ᶜ G ⇨ B) ∷ []
+  β-!⊥ᶜ : ∀ {G B ℓ}
+    → G ! ; (⊥ᶜ ★ ⇨ B at ℓ) —→ᶜ (⊥ᶜ G ⇨ B at ℓ) ∷ []
 
-  β-↦⊥ᶜ : ∀ {c d A B C D E}
+  β-↦⊥ᶜ : ∀ {c d A B C D E ℓ}
     → ⊢ c ⦂ C ⇨ A
     → ⊢ d ⦂ B ⇨ D
-    → (c ↦ d) ; (⊥ᶜ (C ⇒ D) ⇨ E) —→ᶜ (⊥ᶜ (A ⇒ B) ⇨ E) ∷ []
+    → (c ↦ d) ; (⊥ᶜ (C ⇒ D) ⇨ E at ℓ)
+      —→ᶜ (⊥ᶜ (A ⇒ B) ⇨ E at ℓ) ∷ []
 
 data _—→ᶜᶜ_ : Coercion → Coercion → Set where
 
@@ -281,8 +282,8 @@ data IrredPairᶜ : Crcn → Crcn → Set where
   irred-?! : ∀ {G ℓ}
     → IrredPairᶜ (G ？ ℓ) (G !)
 
-  irred-?⊥ : ∀ {G ℓ A B}
-    → IrredPairᶜ (G ？ ℓ) (⊥ᶜ A ⇨ B)
+  irred-?⊥ : ∀ {G ℓ ℓ′ A B}
+    → IrredPairᶜ (G ？ ℓ) (⊥ᶜ A ⇨ B at ℓ′)
 
   irred-?↦ : ∀ {ℓ c d}
     → IrredPairᶜ ((★ ⇒ ★) ？ ℓ) (c ↦ d)
@@ -303,8 +304,8 @@ mutual
       → Normalᶜ d
       → SingleNormalᶜ (c ↦ d)
 
-    nf-⊥ : ∀ {A B}
-      → SingleNormalᶜ (⊥ᶜ A ⇨ B)
+    nf-⊥ : ∀ {A B ℓ}
+      → SingleNormalᶜ (⊥ᶜ A ⇨ B at ℓ)
 
   data Normalᶜ : Coercion → Set where
     nf-[] : Normalᶜ []
@@ -458,7 +459,7 @@ mutual
   singleSize (G !) = 1
   singleSize (G ？ ℓ) = 1
   singleSize (c ↦ d) = 1 + (seqSize c + seqSize d)
-  singleSize (⊥ᶜ A ⇨ B) = 1
+  singleSize (⊥ᶜ A ⇨ B at ℓ) = 1
 
   seqSize : Coercion → Nat
   seqSize [] = 0
@@ -468,7 +469,7 @@ singleSize-positive : ∀ c → 0 < singleSize c
 singleSize-positive (G !) = 0<1+n
 singleSize-positive (G ？ ℓ) = 0<1+n
 singleSize-positive (c ↦ d) = 0<1+n
-singleSize-positive (⊥ᶜ A ⇨ B) = 0<1+n
+singleSize-positive (⊥ᶜ A ⇨ B at ℓ) = 0<1+n
 
 seqSize-++ : ∀ c d → seqSize (c ++ d) ≡ seqSize c + seqSize d
 seqSize-++ [] d = refl
@@ -551,4 +552,3 @@ normalization : ∀ {c A B}
   → ⊢ c ⦂ A ⇨ B
   → Σ[ d ∈ Coercion ] ((c —↠ᶜᶜ d) × Normalᶜ d)
 normalization {c = c} cwt = normalize-acc (<-wellFounded (seqSize c)) cwt
-

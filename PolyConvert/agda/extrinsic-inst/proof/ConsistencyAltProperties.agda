@@ -1322,21 +1322,35 @@ record GlbSearch (A B : Ty) : Set where
 
 open GlbSearch public
 
-data GlbSearch⁺ (A B : Ty) : Set where
+data GlbSearch⁺ : Ty → Ty → Set where
   glb-left :
-    ∀ {Φᴸ Φᴿ} →
+    ∀ {Φᴸ Φᴿ A B} →
     Glbᶜ Φᴸ Φᴿ Φᴸ A A B →
     GlbSearch⁺ A B
 
   glb-right :
-    ∀ {Φᴸ Φᴿ} →
+    ∀ {Φᴸ Φᴿ A B} →
     Glbᶜ Φᴸ Φᴿ Φᴿ B A B →
     GlbSearch⁺ A B
 
   glb-any :
-    ∀ {Φᴸ Φᴿ Φᴼ C} →
+    ∀ {Φᴸ Φᴿ Φᴼ A B C} →
     Glbᶜ Φᴸ Φᴿ Φᴼ C A B →
     GlbSearch⁺ A B
+
+  glb-mixed-left-right :
+    ∀ {Φᴸ₁ Φᴿ₁ Φᴸ₂ Φᴿ₂ Φᴸ Φᴿ Φᴼ A₁ A₂ B₁ B₂ C} →
+    Glbᶜ Φᴸ₁ Φᴿ₁ Φᴸ₁ A₁ A₁ B₁ →
+    Glbᶜ Φᴸ₂ Φᴿ₂ Φᴿ₂ B₂ A₂ B₂ →
+    Glbᶜ Φᴸ Φᴿ Φᴼ C (A₁ ⇒ A₂) (B₁ ⇒ B₂) →
+    GlbSearch⁺ (A₁ ⇒ A₂) (B₁ ⇒ B₂)
+
+  glb-mixed-right-left :
+    ∀ {Φᴸ₁ Φᴿ₁ Φᴸ₂ Φᴿ₂ Φᴸ Φᴿ Φᴼ A₁ A₂ B₁ B₂ C} →
+    Glbᶜ Φᴸ₁ Φᴿ₁ Φᴿ₁ B₁ A₁ B₁ →
+    Glbᶜ Φᴸ₂ Φᴿ₂ Φᴸ₂ A₂ A₂ B₂ →
+    Glbᶜ Φᴸ Φᴿ Φᴼ C (A₁ ⇒ A₂) (B₁ ⇒ B₂) →
+    GlbSearch⁺ (A₁ ⇒ A₂) (B₁ ⇒ B₂)
 
 to-search : ∀ {A B} → GlbSearch⁺ A B → GlbSearch A B
 to-search (glb-left {Φᴸ = Φᴸ} {Φᴿ = Φᴿ} glb) =
@@ -1344,6 +1358,14 @@ to-search (glb-left {Φᴸ = Φᴸ} {Φᴿ = Φᴿ} glb) =
 to-search (glb-right {Φᴸ = Φᴸ} {Φᴿ = Φᴿ} glb) =
   glb-search Φᴸ Φᴿ Φᴿ _ glb
 to-search (glb-any {Φᴸ = Φᴸ} {Φᴿ = Φᴿ} {Φᴼ = Φᴼ} {C = C} glb) =
+  glb-search Φᴸ Φᴿ Φᴼ C glb
+to-search
+    (glb-mixed-left-right {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
+      {Φᴼ = Φᴼ} {C = C} _ _ glb) =
+  glb-search Φᴸ Φᴿ Φᴼ C glb
+to-search
+    (glb-mixed-right-left {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
+      {Φᴼ = Φᴼ} {C = C} _ _ glb) =
   glb-search Φᴸ Φᴿ Φᴼ C glb
 
 cast-search⁺ˡ :
@@ -1615,6 +1637,12 @@ map-⊑ f (tag_⇒_ p q) = tag_⇒_ (map-⊑ f p) (map-⊑ f q)
 map-⊑ f (tagˣ x⊑★) = tagˣ (f x⊑★)
 map-⊑ f (ν occA p) = ν occA (map-⊑ (map-νᵢ f) p)
 
+weaken-⊑-∷ :
+  ∀ {Ψ a Φ A B} →
+  Ψ ∣ Φ ⊢ A ⊑ B →
+  Ψ ∣ a ∷ Φ ⊢ A ⊑ B
+weaken-⊑-∷ = map-⊑ there
+
 weaken-⊑-++ˡ :
   ∀ {Ψ Φ Φ′ A B} →
   Ψ ∣ Φ ⊢ A ⊑ B →
@@ -1651,6 +1679,732 @@ weaken-⊑-head-++ʳ :
   Ψ ∣ a ∷ Φ′ ⊢ A ⊑ B →
   Ψ ∣ a ∷ (Φ ++ Φ′) ⊢ A ⊑ B
 weaken-⊑-head-++ʳ = map-⊑ head-++ʳ
+
+glbᶜ-left-cons :
+  ∀ {aᴸ aᴿ Φᴸ Φᴿ A B} →
+  Glbᶜ Φᴸ Φᴿ Φᴸ A A B →
+  Glbᶜ (aᴸ ∷ Φᴸ) (aᴿ ∷ Φᴿ) (aᴸ ∷ Φᴸ) A A B
+glbᶜ-left-cons glb =
+  glbᶜ-intro
+    (weaken-⊑-∷ (lowerˡᶜ glb))
+    (weaken-⊑-∷ (lowerʳᶜ glb))
+    (λ D D⊑A _ → D⊑A)
+
+glbᶜ-right-cons :
+  ∀ {aᴸ aᴿ Φᴸ Φᴿ A B} →
+  Glbᶜ Φᴸ Φᴿ Φᴿ B A B →
+  Glbᶜ (aᴸ ∷ Φᴸ) (aᴿ ∷ Φᴿ) (aᴿ ∷ Φᴿ) B A B
+glbᶜ-right-cons glb =
+  glbᶜ-intro
+    (weaken-⊑-∷ (lowerˡᶜ glb))
+    (weaken-⊑-∷ (lowerʳᶜ glb))
+    (λ D _ D⊑B → D⊑B)
+
+glbᶜ-left-map :
+  ∀ {Φᴸ Φᴿ Φᴸ′ Φᴿ′ A B} →
+  ImpCtxMap Φᴸ Φᴸ′ →
+  ImpCtxMap Φᴿ Φᴿ′ →
+  Glbᶜ Φᴸ Φᴿ Φᴸ A A B →
+  Glbᶜ Φᴸ′ Φᴿ′ Φᴸ′ A A B
+glbᶜ-left-map f g glb =
+  glbᶜ-intro
+    (map-⊑ f (lowerˡᶜ glb))
+    (map-⊑ g (lowerʳᶜ glb))
+    (λ D D⊑A _ → D⊑A)
+
+glbᶜ-right-map :
+  ∀ {Φᴸ Φᴿ Φᴸ′ Φᴿ′ A B} →
+  ImpCtxMap Φᴸ Φᴸ′ →
+  ImpCtxMap Φᴿ Φᴿ′ →
+  Glbᶜ Φᴸ Φᴿ Φᴿ B A B →
+  Glbᶜ Φᴸ′ Φᴿ′ Φᴿ′ B A B
+glbᶜ-right-map f g glb =
+  glbᶜ-intro
+    (map-⊑ f (lowerˡᶜ glb))
+    (map-⊑ g (lowerʳᶜ glb))
+    (λ D _ D⊑B → D⊑B)
+
+ImpVarCtxMap : ImpCtx → ImpCtx → Set
+ImpVarCtxMap Φ Ψ = ∀ {X Y} → (X ˣ⊑ˣ Y) ∈ Φ → (X ˣ⊑ˣ Y) ∈ Ψ
+
+map⇑ᵢ-var∈ :
+  ∀ {Φ Ψ} →
+  ImpVarCtxMap Φ Ψ →
+  ImpVarCtxMap (⇑ᵢ Φ) (⇑ᵢ Ψ)
+map⇑ᵢ-var∈ {Φ = []} f ()
+map⇑ᵢ-var∈ {Φ = (X ˣ⊑★) ∷ Φ} f (here ())
+map⇑ᵢ-var∈ {Φ = (X ˣ⊑★) ∷ Φ} f (there x⊑y) =
+  map⇑ᵢ-var∈ (λ z∈Φ → f (there z∈Φ)) x⊑y
+map⇑ᵢ-var∈ {Φ = (X ˣ⊑ˣ Y) ∷ Φ} f (here refl) =
+  ⇑ᵢ-ˣ∈ (f (here refl))
+map⇑ᵢ-var∈ {Φ = (X ˣ⊑ˣ Y) ∷ Φ} f (there x⊑y) =
+  map⇑ᵢ-var∈ (λ z∈Φ → f (there z∈Φ)) x⊑y
+
+map⇑ᴸᵢ-var∈ :
+  ∀ {Φ Ψ} →
+  ImpVarCtxMap Φ Ψ →
+  ImpVarCtxMap (⇑ᴸᵢ Φ) (⇑ᴸᵢ Ψ)
+map⇑ᴸᵢ-var∈ {Φ = []} f ()
+map⇑ᴸᵢ-var∈ {Φ = (X ˣ⊑★) ∷ Φ} f (here ())
+map⇑ᴸᵢ-var∈ {Φ = (X ˣ⊑★) ∷ Φ} f (there x⊑y) =
+  map⇑ᴸᵢ-var∈ (λ z∈Φ → f (there z∈Φ)) x⊑y
+map⇑ᴸᵢ-var∈ {Φ = (X ˣ⊑ˣ Y) ∷ Φ} f (here refl) =
+  ⇑ᴸᵢ-ˣ∈ (f (here refl))
+map⇑ᴸᵢ-var∈ {Φ = (X ˣ⊑ˣ Y) ∷ Φ} f (there x⊑y) =
+  map⇑ᴸᵢ-var∈ (λ z∈Φ → f (there z∈Φ)) x⊑y
+
+map-ν-var∈ :
+  ∀ {Φ Ψ} →
+  ImpVarCtxMap Φ Ψ →
+  ImpVarCtxMap ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Ψ)
+map-ν-var∈ f (here ())
+map-ν-var∈ f (there x⊑y) = there (map⇑ᴸᵢ-var∈ f x⊑y)
+
+map-var-target-⊑ :
+  ∀ {Ψ Φ Φ′ A X} →
+  ImpVarCtxMap Φ Φ′ →
+  Ψ ∣ Φ ⊢ A ⊑ ＇ X →
+  Ψ ∣ Φ′ ⊢ A ⊑ ＇ X
+map-var-target-⊑ f (idˣ x⊑y) = idˣ (f x⊑y)
+map-var-target-⊑ f (ν occA p) =
+  ν occA (map-var-target-⊑ (map-ν-var∈ f) p)
+
+ImpVarTargetMap : ImpCtx → ImpCtx → TyVar → TyVar → Set
+ImpVarTargetMap Φ Ψ y z = ∀ {x} → (x ˣ⊑ˣ y) ∈ Φ → (x ˣ⊑ˣ z) ∈ Ψ
+
+map⇑ᴸᵢ-target∈ :
+  ∀ {Φ Ψ Y Z} →
+  ImpVarTargetMap Φ Ψ Y Z →
+  ImpVarTargetMap (⇑ᴸᵢ Φ) (⇑ᴸᵢ Ψ) Y Z
+map⇑ᴸᵢ-target∈ {Φ = []} f ()
+map⇑ᴸᵢ-target∈ {Φ = (X ˣ⊑★) ∷ Φ} f (there x⊑y) =
+  map⇑ᴸᵢ-target∈ (λ z∈Φ → f (there z∈Φ)) x⊑y
+map⇑ᴸᵢ-target∈ {Φ = (X ˣ⊑ˣ Y) ∷ Φ} f (here refl) =
+  ⇑ᴸᵢ-ˣ∈ (f (here refl))
+map⇑ᴸᵢ-target∈ {Φ = (X ˣ⊑ˣ Y) ∷ Φ} f (there x⊑y) =
+  map⇑ᴸᵢ-target∈ (λ z∈Φ → f (there z∈Φ)) x⊑y
+
+map-ν-target∈ :
+  ∀ {Φ Ψ Y Z} →
+  ImpVarTargetMap Φ Ψ Y Z →
+  ImpVarTargetMap ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Ψ) Y Z
+map-ν-target∈ f (here ())
+map-ν-target∈ f (there x⊑y) = there (map⇑ᴸᵢ-target∈ f x⊑y)
+
+map-var-target-change-⊑ :
+  ∀ {Ψ Φ Φ′ A Y Z} →
+  ImpVarTargetMap Φ Φ′ Y Z →
+  Ψ ∣ Φ ⊢ A ⊑ ＇ Y →
+  Ψ ∣ Φ′ ⊢ A ⊑ ＇ Z
+map-var-target-change-⊑ f (idˣ x⊑y) = idˣ (f x⊑y)
+map-var-target-change-⊑ f (ν occA p) =
+  ν occA (map-var-target-change-⊑ (map-ν-target∈ f) p)
+
+data Arrow∀Lower² (Φᴸ Φᴿ : ImpCtx) : Ty → Ty → Ty → Ty → Ty → Set where
+  via-arrow∀ :
+    ∀ {A₁ A₂ B₁ B₂ C} →
+    occurs zero C ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ C ⊑ A₁ ⇒ A₂ →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴿ ⊢ C ⊑ B₁ ⇒ B₂ →
+    Arrow∀Lower² Φᴸ Φᴿ (`∀ C) A₁ A₂ B₁ B₂
+
+  via-arrowν :
+    ∀ {A₁ A₂ B₁ B₂ C} →
+    occurs zero C ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ C ⊑ A₁ ⇒ A₂ →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ C ⊑ `∀ (B₁ ⇒ B₂) →
+    Arrow∀Lower² Φᴸ Φᴿ (`∀ C) A₁ A₂ B₁ B₂
+
+arrow∀-lower²-inv :
+  ∀ {Φᴸ Φᴿ A₁ A₂ B₁ B₂ D} →
+  0 ∣ Φᴸ ⊢ D ⊑ A₁ ⇒ A₂ →
+  0 ∣ Φᴿ ⊢ D ⊑ `∀ (B₁ ⇒ B₂) →
+  Arrow∀Lower² Φᴸ Φᴿ D A₁ A₂ B₁ B₂
+arrow∀-lower²-inv (ν occC p) (∀ⁱ q) = via-arrow∀ occC p q
+arrow∀-lower²-inv (ν occC p) (ν _ q) = via-arrowν occC p q
+
+data ∀ArrowLower² (Φᴸ Φᴿ : ImpCtx) : Ty → Ty → Ty → Ty → Ty → Set where
+  via-∀arrow :
+    ∀ {A₁ A₂ B₁ B₂ C} →
+    0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φᴸ ⊢ C ⊑ A₁ ⇒ A₂ →
+    occurs zero C ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ C ⊑ B₁ ⇒ B₂ →
+    ∀ArrowLower² Φᴸ Φᴿ (`∀ C) A₁ A₂ B₁ B₂
+
+  via-νarrow :
+    ∀ {A₁ A₂ B₁ B₂ C} →
+    occurs zero C ≡ true →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ ⊢ C ⊑ `∀ (A₁ ⇒ A₂) →
+    0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ ⊢ C ⊑ B₁ ⇒ B₂ →
+    ∀ArrowLower² Φᴸ Φᴿ (`∀ C) A₁ A₂ B₁ B₂
+
+∀arrow-lower²-inv :
+  ∀ {Φᴸ Φᴿ A₁ A₂ B₁ B₂ D} →
+  0 ∣ Φᴸ ⊢ D ⊑ `∀ (A₁ ⇒ A₂) →
+  0 ∣ Φᴿ ⊢ D ⊑ B₁ ⇒ B₂ →
+  ∀ArrowLower² Φᴸ Φᴿ D A₁ A₂ B₁ B₂
+∀arrow-lower²-inv (∀ⁱ p) (ν occC q) = via-∀arrow p occC q
+∀arrow-lower²-inv (ν occC p) (ν _ q) = via-νarrow occC p q
+
+lower-base-context-free :
+  ∀ {Ψ Φ Φ′ D ι} →
+  Ψ ∣ Φ ⊢ D ⊑ ‵ ι →
+  Ψ ∣ Φ′ ⊢ D ⊑ ‵ ι
+lower-base-context-free idι = idι
+lower-base-context-free (ν occD p) =
+  ν occD (lower-base-context-free p)
+
+greatest-arrow-left-right-base-base :
+  ∀ {Φᴸ Φᴿ Φᴼ A₂ B₁ D ι κ} →
+  0 ∣ Φᴸ ⊢ D ⊑ ‵ ι ⇒ A₂ →
+  0 ∣ Φᴿ ⊢ D ⊑ B₁ ⇒ ‵ κ →
+  0 ∣ Φᴼ ⊢ D ⊑ ‵ ι ⇒ ‵ κ
+greatest-arrow-left-right-base-base (D⊑ι ↦ _) (_ ↦ D⊑κ) =
+  lower-base-context-free D⊑ι ↦ lower-base-context-free D⊑κ
+greatest-arrow-left-right-base-base (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD (greatest-arrow-left-right-base-base D⊑A D⊑B)
+
+glbᶜ-arrow-left-right-base-base :
+  ∀ {Φᴸ Φᴿ Φᴼ A₂ B₁ ι κ} →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (‵ ι) (‵ ι) B₁ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (‵ κ) A₂ (‵ κ) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (‵ ι ⇒ ‵ κ) (‵ ι ⇒ A₂) (B₁ ⇒ ‵ κ)
+glbᶜ-arrow-left-right-base-base glb₁ glb₂ =
+  glbᶜ-intro
+    (lowerˡᶜ glb₁ ↦ lowerˡᶜ glb₂)
+    (lowerʳᶜ glb₁ ↦ lowerʳᶜ glb₂)
+    (λ D D⊑A D⊑B →
+      greatest-arrow-left-right-base-base D⊑A D⊑B)
+
+greatest-arrow-right-left-base-base :
+  ∀ {Φᴸ Φᴿ Φᴼ A₁ B₂ D ι κ} →
+  0 ∣ Φᴸ ⊢ D ⊑ A₁ ⇒ ‵ κ →
+  0 ∣ Φᴿ ⊢ D ⊑ ‵ ι ⇒ B₂ →
+  0 ∣ Φᴼ ⊢ D ⊑ ‵ ι ⇒ ‵ κ
+greatest-arrow-right-left-base-base (_ ↦ D⊑κ) (D⊑ι ↦ _) =
+  lower-base-context-free D⊑ι ↦ lower-base-context-free D⊑κ
+greatest-arrow-right-left-base-base (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD (greatest-arrow-right-left-base-base D⊑A D⊑B)
+
+glbᶜ-arrow-right-left-base-base :
+  ∀ {Φᴸ Φᴿ Φᴼ A₁ B₂ ι κ} →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (‵ ι) A₁ (‵ ι) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (‵ κ) (‵ κ) B₂ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (‵ ι ⇒ ‵ κ) (A₁ ⇒ ‵ κ) (‵ ι ⇒ B₂)
+glbᶜ-arrow-right-left-base-base glb₁ glb₂ =
+  glbᶜ-intro
+    (lowerˡᶜ glb₁ ↦ lowerˡᶜ glb₂)
+    (lowerʳᶜ glb₁ ↦ lowerʳᶜ glb₂)
+    (λ D D⊑A D⊑B →
+      greatest-arrow-right-left-base-base D⊑A D⊑B)
+
+greatest-arrow-left-right-var-var-map :
+  ∀ {Φᴸ Φᴿ Φᴼ A₂ B₁ D X Y} →
+  ImpVarCtxMap Φᴸ Φᴼ →
+  ImpVarCtxMap Φᴿ Φᴼ →
+  0 ∣ Φᴸ ⊢ D ⊑ ＇ X ⇒ A₂ →
+  0 ∣ Φᴿ ⊢ D ⊑ B₁ ⇒ ＇ Y →
+  0 ∣ Φᴼ ⊢ D ⊑ ＇ X ⇒ ＇ Y
+greatest-arrow-left-right-var-var-map f g (D⊑X ↦ _) (_ ↦ D⊑Y) =
+  map-var-target-⊑ f D⊑X ↦ map-var-target-⊑ g D⊑Y
+greatest-arrow-left-right-var-var-map f g (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD
+    (greatest-arrow-left-right-var-var-map
+      (map-ν-var∈ f) (map-ν-var∈ g) D⊑A D⊑B)
+
+greatest-arrow-right-left-var-var-map :
+  ∀ {Φᴸ Φᴿ Φᴼ A₁ B₂ D X Y} →
+  ImpVarCtxMap Φᴸ Φᴼ →
+  ImpVarCtxMap Φᴿ Φᴼ →
+  0 ∣ Φᴸ ⊢ D ⊑ A₁ ⇒ ＇ Y →
+  0 ∣ Φᴿ ⊢ D ⊑ ＇ X ⇒ B₂ →
+  0 ∣ Φᴼ ⊢ D ⊑ ＇ X ⇒ ＇ Y
+greatest-arrow-right-left-var-var-map f g (_ ↦ D⊑Y) (D⊑X ↦ _) =
+  map-var-target-⊑ g D⊑X ↦ map-var-target-⊑ f D⊑Y
+greatest-arrow-right-left-var-var-map f g (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD
+    (greatest-arrow-right-left-var-var-map
+      (map-ν-var∈ f) (map-ν-var∈ g) D⊑A D⊑B)
+
+greatest-arrow-left-right-target-map :
+  ∀ {Φᴸ Φᴿ Φᴼ A₂ B₁ D X X′ Y Y′} →
+  ImpVarTargetMap Φᴸ Φᴼ X X′ →
+  ImpVarTargetMap Φᴿ Φᴼ Y Y′ →
+  0 ∣ Φᴸ ⊢ D ⊑ ＇ X ⇒ A₂ →
+  0 ∣ Φᴿ ⊢ D ⊑ B₁ ⇒ ＇ Y →
+  0 ∣ Φᴼ ⊢ D ⊑ ＇ X′ ⇒ ＇ Y′
+greatest-arrow-left-right-target-map f g (D⊑X ↦ _) (_ ↦ D⊑Y) =
+  map-var-target-change-⊑ f D⊑X ↦
+  map-var-target-change-⊑ g D⊑Y
+greatest-arrow-left-right-target-map f g (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD
+    (greatest-arrow-left-right-target-map
+      (map-ν-target∈ f) (map-ν-target∈ g) D⊑A D⊑B)
+
+greatest-arrow-right-left-target-map :
+  ∀ {Φᴸ Φᴿ Φᴼ A₁ B₂ D X X′ Y Y′} →
+  ImpVarTargetMap Φᴸ Φᴼ Y Y′ →
+  ImpVarTargetMap Φᴿ Φᴼ X X′ →
+  0 ∣ Φᴸ ⊢ D ⊑ A₁ ⇒ ＇ Y →
+  0 ∣ Φᴿ ⊢ D ⊑ ＇ X ⇒ B₂ →
+  0 ∣ Φᴼ ⊢ D ⊑ ＇ X′ ⇒ ＇ Y′
+greatest-arrow-right-left-target-map f g (_ ↦ D⊑Y) (D⊑X ↦ _) =
+  map-var-target-change-⊑ g D⊑X ↦
+  map-var-target-change-⊑ f D⊑Y
+greatest-arrow-right-left-target-map f g (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD
+    (greatest-arrow-right-left-target-map
+      (map-ν-target∈ f) (map-ν-target∈ g) D⊑A D⊑B)
+
+greatest-arrow-left-right-var-base-map :
+  ∀ {Φᴸ Φᴿ Φᴼ A₂ B₁ D X κ} →
+  ImpVarCtxMap Φᴸ Φᴼ →
+  0 ∣ Φᴸ ⊢ D ⊑ ＇ X ⇒ A₂ →
+  0 ∣ Φᴿ ⊢ D ⊑ B₁ ⇒ ‵ κ →
+  0 ∣ Φᴼ ⊢ D ⊑ ＇ X ⇒ ‵ κ
+greatest-arrow-left-right-var-base-map f (D⊑X ↦ _) (_ ↦ D⊑κ) =
+  map-var-target-⊑ f D⊑X ↦ lower-base-context-free D⊑κ
+greatest-arrow-left-right-var-base-map f (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD (greatest-arrow-left-right-var-base-map (map-ν-var∈ f) D⊑A D⊑B)
+
+greatest-arrow-right-left-base-var-map :
+  ∀ {Φᴸ Φᴿ Φᴼ A₁ B₂ D X κ} →
+  ImpVarCtxMap Φᴿ Φᴼ →
+  0 ∣ Φᴸ ⊢ D ⊑ A₁ ⇒ ‵ κ →
+  0 ∣ Φᴿ ⊢ D ⊑ ＇ X ⇒ B₂ →
+  0 ∣ Φᴼ ⊢ D ⊑ ＇ X ⇒ ‵ κ
+greatest-arrow-right-left-base-var-map f (_ ↦ D⊑κ) (D⊑X ↦ _) =
+  map-var-target-⊑ f D⊑X ↦ lower-base-context-free D⊑κ
+greatest-arrow-right-left-base-var-map f (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD (greatest-arrow-right-left-base-var-map (map-ν-var∈ f) D⊑A D⊑B)
+
+greatest-arrow-right-left-base-var-from-left :
+  ∀ {Φᴸ Φᴿ Φᴼ A₁ B₂ D Y κ} →
+  ImpVarCtxMap Φᴸ Φᴼ →
+  0 ∣ Φᴸ ⊢ D ⊑ A₁ ⇒ ＇ Y →
+  0 ∣ Φᴿ ⊢ D ⊑ ‵ κ ⇒ B₂ →
+  0 ∣ Φᴼ ⊢ D ⊑ ‵ κ ⇒ ＇ Y
+greatest-arrow-right-left-base-var-from-left f (_ ↦ D⊑Y) (D⊑κ ↦ _) =
+  lower-base-context-free D⊑κ ↦ map-var-target-⊑ f D⊑Y
+greatest-arrow-right-left-base-var-from-left f (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD
+    (greatest-arrow-right-left-base-var-from-left (map-ν-var∈ f) D⊑A D⊑B)
+
+greatest-arrow-left-right-base-var-from-right :
+  ∀ {Φᴸ Φᴿ Φᴼ A₂ B₁ D Y κ} →
+  ImpVarCtxMap Φᴿ Φᴼ →
+  0 ∣ Φᴸ ⊢ D ⊑ ‵ κ ⇒ A₂ →
+  0 ∣ Φᴿ ⊢ D ⊑ B₁ ⇒ ＇ Y →
+  0 ∣ Φᴼ ⊢ D ⊑ ‵ κ ⇒ ＇ Y
+greatest-arrow-left-right-base-var-from-right f (D⊑κ ↦ _) (_ ↦ D⊑Y) =
+  lower-base-context-free D⊑κ ↦ map-var-target-⊑ f D⊑Y
+greatest-arrow-left-right-base-var-from-right f (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD
+    (greatest-arrow-left-right-base-var-from-right (map-ν-var∈ f) D⊑A D⊑B)
+
+greatest-∀ν-arrow-var-base :
+  ∀ {Φ D κ} →
+  0 ∣ Φ ⊢ D ⊑ `∀ (＇ 0 ⇒ ★) →
+  0 ∣ Φ ⊢ D ⊑ ★ ⇒ ‵ κ →
+  0 ∣ Φ ⊢ D ⊑ `∀ (＇ 0 ⇒ ‵ κ)
+greatest-∀ν-arrow-var-base (∀ⁱ D⊑A) (ν occD D⊑B) =
+  ∀ⁱ (greatest-arrow-left-right-var-base-map (λ x → x) D⊑A D⊑B)
+greatest-∀ν-arrow-var-base (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD (greatest-∀ν-arrow-var-base D⊑A D⊑B)
+
+greatest-ν∀-arrow-base-var :
+  ∀ {Φ D κ} →
+  0 ∣ Φ ⊢ D ⊑ ★ ⇒ ‵ κ →
+  0 ∣ Φ ⊢ D ⊑ `∀ (＇ 0 ⇒ ★) →
+  0 ∣ Φ ⊢ D ⊑ `∀ (＇ 0 ⇒ ‵ κ)
+greatest-ν∀-arrow-base-var (ν occD D⊑A) (∀ⁱ D⊑B) =
+  ∀ⁱ (greatest-arrow-right-left-base-var-map (λ x → x) D⊑A D⊑B)
+greatest-ν∀-arrow-base-var (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD (greatest-ν∀-arrow-base-var D⊑A D⊑B)
+
+greatest-∀ν-arrow-var-codomain :
+  ∀ {Φ D κ} →
+  0 ∣ Φ ⊢ D ⊑ `∀ (★ ⇒ ＇ 0) →
+  0 ∣ Φ ⊢ D ⊑ ‵ κ ⇒ ★ →
+  0 ∣ Φ ⊢ D ⊑ `∀ (‵ κ ⇒ ＇ 0)
+greatest-∀ν-arrow-var-codomain (∀ⁱ D⊑A) (ν occD D⊑B) =
+  ∀ⁱ (greatest-arrow-right-left-base-var-from-left (λ x → x) D⊑A D⊑B)
+greatest-∀ν-arrow-var-codomain (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD (greatest-∀ν-arrow-var-codomain D⊑A D⊑B)
+
+greatest-ν∀-arrow-var-codomain :
+  ∀ {Φ D κ} →
+  0 ∣ Φ ⊢ D ⊑ ‵ κ ⇒ ★ →
+  0 ∣ Φ ⊢ D ⊑ `∀ (★ ⇒ ＇ 0) →
+  0 ∣ Φ ⊢ D ⊑ `∀ (‵ κ ⇒ ＇ 0)
+greatest-ν∀-arrow-var-codomain (ν occD D⊑A) (∀ⁱ D⊑B) =
+  ∀ⁱ (greatest-arrow-left-right-base-var-from-right (λ x → x) D⊑A D⊑B)
+greatest-ν∀-arrow-var-codomain (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD (greatest-ν∀-arrow-var-codomain D⊑A D⊑B)
+
+glbᶜ-arrow-left-right-var-var-map :
+  ∀ {Φᴸ Φᴿ Φᴼ Φᴼ₁ Φᴼ₂ A₂ B₁ X Y} →
+  ImpVarCtxMap Φᴸ Φᴼ →
+  ImpVarCtxMap Φᴿ Φᴼ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₁ (＇ X) (＇ X) B₁ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₂ (＇ Y) A₂ (＇ Y) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (＇ X ⇒ ＇ Y) (＇ X ⇒ A₂) (B₁ ⇒ ＇ Y)
+glbᶜ-arrow-left-right-var-var-map f g glb₁ glb₂ =
+  glbᶜ-intro
+    (lowerˡᶜ glb₁ ↦ lowerˡᶜ glb₂)
+    (lowerʳᶜ glb₁ ↦ lowerʳᶜ glb₂)
+    (λ D D⊑A D⊑B →
+      greatest-arrow-left-right-var-var-map f g D⊑A D⊑B)
+
+glbᶜ-arrow-left-right-var-base-map :
+  ∀ {Φᴸ Φᴿ Φᴼ Φᴼ₁ Φᴼ₂ A₂ B₁ X κ} →
+  ImpVarCtxMap Φᴸ Φᴼ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₁ (＇ X) (＇ X) B₁ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₂ (‵ κ) A₂ (‵ κ) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (＇ X ⇒ ‵ κ) (＇ X ⇒ A₂) (B₁ ⇒ ‵ κ)
+glbᶜ-arrow-left-right-var-base-map f glb₁ glb₂ =
+  glbᶜ-intro
+    (lowerˡᶜ glb₁ ↦ lowerˡᶜ glb₂)
+    (lowerʳᶜ glb₁ ↦ lowerʳᶜ glb₂)
+    (λ D D⊑A D⊑B →
+      greatest-arrow-left-right-var-base-map f D⊑A D⊑B)
+
+glbᶜ-arrow-right-left-base-var-map :
+  ∀ {Φᴸ Φᴿ Φᴼ Φᴼ₁ Φᴼ₂ A₁ B₂ X κ} →
+  ImpVarCtxMap Φᴿ Φᴼ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₁ (＇ X) A₁ (＇ X) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₂ (‵ κ) (‵ κ) B₂ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (＇ X ⇒ ‵ κ) (A₁ ⇒ ‵ κ) (＇ X ⇒ B₂)
+glbᶜ-arrow-right-left-base-var-map f glb₁ glb₂ =
+  glbᶜ-intro
+    (lowerˡᶜ glb₁ ↦ lowerˡᶜ glb₂)
+    (lowerʳᶜ glb₁ ↦ lowerʳᶜ glb₂)
+    (λ D D⊑A D⊑B →
+      greatest-arrow-right-left-base-var-map f D⊑A D⊑B)
+
+glbᶜ-arrow-right-left-base-var-from-left :
+  ∀ {Φᴸ Φᴿ Φᴼ Φᴼ₁ Φᴼ₂ A₁ B₂ Y κ} →
+  ImpVarCtxMap Φᴸ Φᴼ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₁ (‵ κ) A₁ (‵ κ) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₂ (＇ Y) (＇ Y) B₂ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (‵ κ ⇒ ＇ Y) (A₁ ⇒ ＇ Y) (‵ κ ⇒ B₂)
+glbᶜ-arrow-right-left-base-var-from-left f glb₁ glb₂ =
+  glbᶜ-intro
+    (lowerˡᶜ glb₁ ↦ lowerˡᶜ glb₂)
+    (lowerʳᶜ glb₁ ↦ lowerʳᶜ glb₂)
+    (λ D D⊑A D⊑B →
+      greatest-arrow-right-left-base-var-from-left f D⊑A D⊑B)
+
+glbᶜ-arrow-left-right-base-var-from-right :
+  ∀ {Φᴸ Φᴿ Φᴼ Φᴼ₁ Φᴼ₂ A₂ B₁ Y κ} →
+  ImpVarCtxMap Φᴿ Φᴼ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₁ (‵ κ) (‵ κ) B₁ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₂ (＇ Y) A₂ (＇ Y) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (‵ κ ⇒ ＇ Y) (‵ κ ⇒ A₂) (B₁ ⇒ ＇ Y)
+glbᶜ-arrow-left-right-base-var-from-right f glb₁ glb₂ =
+  glbᶜ-intro
+    (lowerˡᶜ glb₁ ↦ lowerˡᶜ glb₂)
+    (lowerʳᶜ glb₁ ↦ lowerʳᶜ glb₂)
+    (λ D D⊑A D⊑B →
+      greatest-arrow-left-right-base-var-from-right f D⊑A D⊑B)
+
+glbᶜ-arrow-right-left-var-var-map :
+  ∀ {Φᴸ Φᴿ Φᴼ Φᴼ₁ Φᴼ₂ A₁ B₂ X Y} →
+  ImpVarCtxMap Φᴸ Φᴼ →
+  ImpVarCtxMap Φᴿ Φᴼ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₁ (＇ X) A₁ (＇ X) →
+  Glbᶜ Φᴸ Φᴿ Φᴼ₂ (＇ Y) (＇ Y) B₂ →
+  Glbᶜ Φᴸ Φᴿ Φᴼ (＇ X ⇒ ＇ Y) (A₁ ⇒ ＇ Y) (＇ X ⇒ B₂)
+glbᶜ-arrow-right-left-var-var-map f g glb₁ glb₂ =
+  glbᶜ-intro
+    (lowerˡᶜ glb₁ ↦ lowerˡᶜ glb₂)
+    (lowerʳᶜ glb₁ ↦ lowerʳᶜ glb₂)
+    (λ D D⊑A D⊑B →
+      greatest-arrow-right-left-var-var-map f g D⊑A D⊑B)
+
+var-star-left-map :
+  ImpCtxMap ((0 ˣ⊑ˣ 0) ∷ []) ((0 ˣ⊑ˣ 0) ∷ (0 ˣ⊑★) ∷ [])
+var-star-left-map (here refl) = here refl
+var-star-left-map (there ())
+
+var-star-right-map :
+  ImpCtxMap ((0 ˣ⊑★) ∷ []) ((0 ˣ⊑★) ∷ (0 ˣ⊑ˣ 0) ∷ [])
+var-star-right-map (here refl) = here refl
+var-star-right-map (there ())
+
+star-var-left-map :
+  ImpCtxMap ((0 ˣ⊑★) ∷ []) ((0 ˣ⊑ˣ 0) ∷ (0 ˣ⊑★) ∷ [])
+star-var-left-map (here refl) = there (here refl)
+star-var-left-map (there ())
+
+star-var-right-map :
+  ImpCtxMap ((0 ˣ⊑ˣ 0) ∷ []) ((0 ˣ⊑★) ∷ (0 ˣ⊑ˣ 0) ∷ [])
+star-var-right-map (here refl) = there (here refl)
+star-var-right-map (there ())
+
+var-star-var-target-map :
+  ImpVarCtxMap ((0 ˣ⊑ˣ 0) ∷ (0 ˣ⊑★) ∷ []) ((0 ˣ⊑ˣ 0) ∷ [])
+var-star-var-target-map (here refl) = here refl
+var-star-var-target-map (there (here ()))
+var-star-var-target-map (there (there ()))
+
+star-var-var-target-map :
+  ImpVarCtxMap ((0 ˣ⊑★) ∷ (0 ˣ⊑ˣ 0) ∷ []) ((0 ˣ⊑ˣ 0) ∷ [])
+star-var-var-target-map (here ())
+star-var-var-target-map (there (here refl)) = here refl
+star-var-var-target-map (there (there ()))
+
+glbᶜ-arrow-var-star-star-var :
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ (0 ˣ⊑★) ∷ [])
+       ((0 ˣ⊑★) ∷ (0 ˣ⊑ˣ 0) ∷ [])
+       ((0 ˣ⊑ˣ 0) ∷ [])
+       (＇ 0 ⇒ ＇ 0) (＇ 0 ⇒ ★) (★ ⇒ ＇ 0)
+glbᶜ-arrow-var-star-star-var =
+  glbᶜ-arrow-left-right-var-var-map
+    var-star-var-target-map
+    star-var-var-target-map
+    (glbᶜ-left-map
+      var-star-left-map var-star-right-map glbᶜ-var-star-single-core)
+    (glbᶜ-right-map
+      star-var-left-map star-var-right-map glbᶜ-star-var-single-core)
+
+glbᶜ-arrow-star-var-var-star :
+  Glbᶜ ((0 ˣ⊑★) ∷ (0 ˣ⊑ˣ 0) ∷ [])
+       ((0 ˣ⊑ˣ 0) ∷ (0 ˣ⊑★) ∷ [])
+       ((0 ˣ⊑ˣ 0) ∷ [])
+       (＇ 0 ⇒ ＇ 0) (★ ⇒ ＇ 0) (＇ 0 ⇒ ★)
+glbᶜ-arrow-star-var-var-star =
+  glbᶜ-arrow-right-left-var-var-map
+    star-var-var-target-map
+    var-star-var-target-map
+    (glbᶜ-right-map
+      var-star-right-map var-star-left-map glbᶜ-star-var-single-core)
+    (glbᶜ-left-map
+      star-var-right-map star-var-left-map glbᶜ-var-star-single-core)
+
+nested-domain-target-map :
+  ImpVarTargetMap
+    ((0 ˣ⊑ˣ 0) ∷ (1 ˣ⊑★) ∷ [])
+    ((0 ˣ⊑ˣ 0) ∷ (1 ˣ⊑ˣ 1) ∷ [])
+    0 0
+nested-domain-target-map (here refl) = here refl
+nested-domain-target-map (there (here ()))
+nested-domain-target-map (there (there ()))
+
+nested-codomain-target-map :
+  ImpVarTargetMap
+    ((0 ˣ⊑★) ∷ (1 ˣ⊑ˣ 0) ∷ [])
+    ((0 ˣ⊑ˣ 0) ∷ (1 ˣ⊑ˣ 1) ∷ [])
+    0 1
+nested-codomain-target-map (here ())
+nested-codomain-target-map (there (here refl)) = there (here refl)
+nested-codomain-target-map (there (there ()))
+
+glbᶜ-arrow-var-star-star-var-nested :
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ (1 ˣ⊑★) ∷ [])
+       ((0 ˣ⊑★) ∷ (1 ˣ⊑ˣ 0) ∷ [])
+       ((0 ˣ⊑ˣ 0) ∷ (1 ˣ⊑ˣ 1) ∷ [])
+       (＇ 0 ⇒ ＇ 1) (＇ 0 ⇒ ★) (★ ⇒ ＇ 0)
+glbᶜ-arrow-var-star-star-var-nested =
+  glbᶜ-intro
+    ((idˣ (here refl)) ↦ (tagˣ (there (here refl))))
+    ((tagˣ (here refl)) ↦ (idˣ (there (here refl))))
+    (λ D D⊑A D⊑B →
+      greatest-arrow-left-right-target-map
+        nested-domain-target-map
+        nested-codomain-target-map
+        D⊑A D⊑B)
+
+glbᶜ-arrow-star-var-var-star-nested :
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ (1 ˣ⊑★) ∷ [])
+       ((0 ˣ⊑★) ∷ (1 ˣ⊑ˣ 0) ∷ [])
+       ((0 ˣ⊑ˣ 0) ∷ (1 ˣ⊑ˣ 1) ∷ [])
+       (＇ 1 ⇒ ＇ 0) (★ ⇒ ＇ 0) (＇ 0 ⇒ ★)
+glbᶜ-arrow-star-var-var-star-nested =
+  glbᶜ-intro
+    ((tagˣ (there (here refl))) ↦ (idˣ (here refl)))
+    ((idˣ (there (here refl))) ↦ (tagˣ (here refl)))
+    (λ D D⊑A D⊑B →
+      greatest-arrow-right-left-target-map
+        nested-domain-target-map
+        nested-codomain-target-map
+        D⊑A D⊑B)
+
+plain-zero-target-map :
+  ∀ {Φ Φ′} →
+  ImpVarTargetMap ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ)
+                  ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ′)
+                  0 0
+plain-zero-target-map (here refl) = here refl
+plain-zero-target-map (there x⊑0) =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑0)
+
+right-zero-to-one-target-map :
+  ∀ {Φ Φ′} →
+  ImpVarTargetMap Φ Φ′ 0 0 →
+  ImpVarTargetMap ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+                  ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ′)
+                  0 1
+right-zero-to-one-target-map f (here ())
+right-zero-to-one-target-map f {x = zero} (there x⊑0) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left x⊑0)
+right-zero-to-one-target-map f {x = suc x} (there x⊑0) =
+  there (⇑ᵢ-ˣ∈ (f (un⇑ᴸᵢ-ˣ∈ x⊑0)))
+
+zero-target-single-map :
+  ImpVarTargetMap ((0 ˣ⊑ˣ 0) ∷ []) ((0 ˣ⊑ˣ 0) ∷ []) 0 0
+zero-target-single-map (here refl) = here refl
+zero-target-single-map (there ())
+
+greatest-∀ν-arrow-var-star-star-var-map :
+  ∀ {Φᴸ Φᴿ Φᴼ D} →
+  ImpVarTargetMap Φᴿ Φᴼ 0 0 →
+  0 ∣ Φᴸ ⊢ D ⊑ `∀ (＇ 0 ⇒ ★) →
+  0 ∣ Φᴿ ⊢ D ⊑ ★ ⇒ ＇ 0 →
+  0 ∣ Φᴼ ⊢ D ⊑ `∀ (＇ 0 ⇒ ＇ 1)
+greatest-∀ν-arrow-var-star-star-var-map f (∀ⁱ D⊑A) (ν occD D⊑B) =
+  ∀ⁱ
+    (greatest-arrow-left-right-target-map
+      plain-zero-target-map
+      (right-zero-to-one-target-map f)
+      D⊑A D⊑B)
+greatest-∀ν-arrow-var-star-star-var-map f (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD
+    (greatest-∀ν-arrow-var-star-star-var-map
+      (map-ν-target∈ f) D⊑A D⊑B)
+
+greatest-∀ν-arrow-star-var-var-star-map :
+  ∀ {Φᴸ Φᴿ Φᴼ D} →
+  ImpVarTargetMap Φᴿ Φᴼ 0 0 →
+  0 ∣ Φᴸ ⊢ D ⊑ `∀ (★ ⇒ ＇ 0) →
+  0 ∣ Φᴿ ⊢ D ⊑ ＇ 0 ⇒ ★ →
+  0 ∣ Φᴼ ⊢ D ⊑ `∀ (＇ 1 ⇒ ＇ 0)
+greatest-∀ν-arrow-star-var-var-star-map f (∀ⁱ D⊑A) (ν occD D⊑B) =
+  ∀ⁱ
+    (greatest-arrow-right-left-target-map
+      plain-zero-target-map
+      (right-zero-to-one-target-map f)
+      D⊑A D⊑B)
+greatest-∀ν-arrow-star-var-var-star-map f (ν occD D⊑A) (ν _ D⊑B) =
+  ν occD
+    (greatest-∀ν-arrow-star-var-var-star-map
+      (map-ν-target∈ f) D⊑A D⊑B)
+
+glbᶜ-lift-∀ν-arrow-var-star-star-var :
+  Glbᶜ ((0 ˣ⊑★) ∷ []) ((0 ˣ⊑ˣ 0) ∷ []) ((0 ˣ⊑ˣ 0) ∷ [])
+       (`∀ (＇ 0 ⇒ ＇ 1)) (`∀ (＇ 0 ⇒ ★)) (★ ⇒ ＇ 0)
+glbᶜ-lift-∀ν-arrow-var-star-star-var =
+  glbᶜ-intro
+    (∀ⁱ (lowerˡᶜ glbᶜ-arrow-var-star-star-var-nested))
+    (ν refl (lowerʳᶜ glbᶜ-arrow-var-star-star-var-nested))
+    (λ D D⊑A D⊑B →
+      greatest-∀ν-arrow-var-star-star-var-map
+        zero-target-single-map D⊑A D⊑B)
+
+glbᶜ-lift-∀ν-arrow-star-var-var-star :
+  Glbᶜ ((0 ˣ⊑★) ∷ []) ((0 ˣ⊑ˣ 0) ∷ []) ((0 ˣ⊑ˣ 0) ∷ [])
+       (`∀ (＇ 1 ⇒ ＇ 0)) (`∀ (★ ⇒ ＇ 0)) (＇ 0 ⇒ ★)
+glbᶜ-lift-∀ν-arrow-star-var-var-star =
+  glbᶜ-intro
+    (∀ⁱ (lowerˡᶜ glbᶜ-arrow-star-var-var-star-nested))
+    (ν refl (lowerʳᶜ glbᶜ-arrow-star-var-var-star-nested))
+    (λ D D⊑A D⊑B →
+      greatest-∀ν-arrow-star-var-var-star-map
+        zero-target-single-map D⊑A D⊑B)
+
+glbᶜ-arrow-var-star-star-base :
+  ∀ {κ} →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ []) ((0 ˣ⊑★) ∷ []) ((0 ˣ⊑ˣ 0) ∷ [])
+       (＇ 0 ⇒ ‵ κ) (＇ 0 ⇒ ★) (★ ⇒ ‵ κ)
+glbᶜ-arrow-var-star-star-base =
+  glbᶜ-arrow-left-right-var-base-map
+    (λ x → x)
+    glbᶜ-var-star-single-core
+    (glbᶜ-star-base
+      {Φᴸ = (0 ˣ⊑ˣ 0) ∷ []}
+      {Φᴿ = (0 ˣ⊑★) ∷ []}
+      {Φᴼ = (0 ˣ⊑ˣ 0) ∷ []})
+
+occurs-zero-var-arrow-star : occurs zero (＇ 0 ⇒ ★) ≡ true
+occurs-zero-var-arrow-star = refl
+
+glbᶜ-lift-∀ν-arrow-var-base :
+  ∀ {κ} →
+  Glbᶜ [] [] [] (`∀ (＇ 0 ⇒ ‵ κ)) (`∀ (＇ 0 ⇒ ★)) (★ ⇒ ‵ κ)
+glbᶜ-lift-∀ν-arrow-var-base =
+  glbᶜ-intro
+    (∀ⁱ (lowerˡᶜ glbᶜ-arrow-var-star-star-base))
+    (ν occurs-zero-var-arrow-star (lowerʳᶜ glbᶜ-arrow-var-star-star-base))
+    (λ D D⊑∀A D⊑B → greatest-∀ν-arrow-var-base D⊑∀A D⊑B)
+
+glbᶜ-arrow-star-base-var-star :
+  ∀ {κ} →
+  Glbᶜ ((0 ˣ⊑★) ∷ []) ((0 ˣ⊑ˣ 0) ∷ []) ((0 ˣ⊑ˣ 0) ∷ [])
+       (＇ 0 ⇒ ‵ κ) (★ ⇒ ‵ κ) (＇ 0 ⇒ ★)
+glbᶜ-arrow-star-base-var-star =
+  glbᶜ-arrow-right-left-base-var-map
+    (λ x → x)
+    glbᶜ-star-var-single-core
+    (glbᶜ-base-star
+      {Φᴸ = (0 ˣ⊑★) ∷ []}
+      {Φᴿ = (0 ˣ⊑ˣ 0) ∷ []}
+      {Φᴼ = (0 ˣ⊑ˣ 0) ∷ []})
+
+glbᶜ-lift-ν∀-arrow-base-var :
+  ∀ {κ} →
+  Glbᶜ [] [] [] (`∀ (＇ 0 ⇒ ‵ κ)) (★ ⇒ ‵ κ) (`∀ (＇ 0 ⇒ ★))
+glbᶜ-lift-ν∀-arrow-base-var =
+  glbᶜ-intro
+    (ν occurs-zero-var-arrow-star (lowerˡᶜ glbᶜ-arrow-star-base-var-star))
+    (∀ⁱ (lowerʳᶜ glbᶜ-arrow-star-base-var-star))
+    (λ D D⊑A D⊑∀B → greatest-ν∀-arrow-base-var D⊑A D⊑∀B)
+
+glbᶜ-arrow-star-var-base-star :
+  ∀ {κ} →
+  Glbᶜ ((0 ˣ⊑ˣ 0) ∷ []) ((0 ˣ⊑★) ∷ []) ((0 ˣ⊑ˣ 0) ∷ [])
+       (‵ κ ⇒ ＇ 0) (★ ⇒ ＇ 0) (‵ κ ⇒ ★)
+glbᶜ-arrow-star-var-base-star =
+  glbᶜ-arrow-right-left-base-var-from-left
+    (λ x → x)
+    (glbᶜ-star-base
+      {Φᴸ = (0 ˣ⊑ˣ 0) ∷ []}
+      {Φᴿ = (0 ˣ⊑★) ∷ []}
+      {Φᴼ = (0 ˣ⊑ˣ 0) ∷ []})
+    glbᶜ-var-star-single-core
+
+occurs-zero-star-arrow-var : occurs zero (★ ⇒ ＇ 0) ≡ true
+occurs-zero-star-arrow-var = refl
+
+glbᶜ-lift-∀ν-arrow-var-codomain :
+  ∀ {κ} →
+  Glbᶜ [] [] [] (`∀ (‵ κ ⇒ ＇ 0)) (`∀ (★ ⇒ ＇ 0)) (‵ κ ⇒ ★)
+glbᶜ-lift-∀ν-arrow-var-codomain =
+  glbᶜ-intro
+    (∀ⁱ (lowerˡᶜ glbᶜ-arrow-star-var-base-star))
+    (ν occurs-zero-star-arrow-var (lowerʳᶜ glbᶜ-arrow-star-var-base-star))
+    (λ D D⊑∀A D⊑B → greatest-∀ν-arrow-var-codomain D⊑∀A D⊑B)
+
+glbᶜ-arrow-base-star-star-var :
+  ∀ {κ} →
+  Glbᶜ ((0 ˣ⊑★) ∷ []) ((0 ˣ⊑ˣ 0) ∷ []) ((0 ˣ⊑ˣ 0) ∷ [])
+       (‵ κ ⇒ ＇ 0) (‵ κ ⇒ ★) (★ ⇒ ＇ 0)
+glbᶜ-arrow-base-star-star-var =
+  glbᶜ-arrow-left-right-base-var-from-right
+    (λ x → x)
+    (glbᶜ-base-star
+      {Φᴸ = (0 ˣ⊑★) ∷ []}
+      {Φᴿ = (0 ˣ⊑ˣ 0) ∷ []}
+      {Φᴼ = (0 ˣ⊑ˣ 0) ∷ []})
+    glbᶜ-star-var-single-core
+
+glbᶜ-lift-ν∀-arrow-var-codomain :
+  ∀ {κ} →
+  Glbᶜ [] [] [] (`∀ (‵ κ ⇒ ＇ 0)) (‵ κ ⇒ ★) (`∀ (★ ⇒ ＇ 0))
+glbᶜ-lift-ν∀-arrow-var-codomain =
+  glbᶜ-intro
+    (ν occurs-zero-star-arrow-var (lowerˡᶜ glbᶜ-arrow-base-star-star-var))
+    (∀ⁱ (lowerʳᶜ glbᶜ-arrow-base-star-star-var))
+    (λ D D⊑A D⊑∀B → greatest-ν∀-arrow-var-codomain D⊑A D⊑∀B)
 
 record Lift⊓∀∀Support
     (Φᴸ Φᴿ Φᴼ : ImpCtx) (A B C : Ty) : Set where
@@ -1770,6 +2524,118 @@ right-ν∀-support :
 right-ν∀-support .k∀∀ˡ D⊑A′ D⊑B = ∀ⁱ D⊑B
 right-ν∀-support .kνʳ occD ∀D⊑A D⊑∀B = ν occD D⊑∀B
 
+mutual
+  base-base-left-right-k∀ν :
+    ∀ {Φᴸ Φᴿ Φᴼ A₂ B₁ D ι κ} →
+    0 ∣ Φᴸ ⊢ D ⊑ ‵ ι ⇒ A₂ →
+    occurs zero D ≡ true →
+    0 ∣ Φᴿ ⊢ D ⊑ `∀ (B₁ ⇒ ‵ κ) →
+    0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ (‵ ι ⇒ ‵ κ)
+  base-base-left-right-k∀ν D⊑A occD D⊑∀B
+      with arrow∀-lower²-inv D⊑A D⊑∀B
+  base-base-left-right-k∀ν D⊑A occD D⊑∀B
+      | via-arrow∀ occC C⊑A C⊑B =
+        ν occD (∀ⁱ (greatest-arrow-left-right-base-base C⊑A C⊑B))
+  base-base-left-right-k∀ν D⊑A occD D⊑∀B
+      | via-arrowν occC C⊑A C⊑∀B =
+        ν occD (base-base-left-right-k∀ν C⊑A occC C⊑∀B)
+
+  base-base-left-right-kν∀ :
+    ∀ {Φᴸ Φᴿ Φᴼ A₂ B₁ D ι κ} →
+    occurs zero D ≡ true →
+    0 ∣ Φᴸ ⊢ D ⊑ `∀ (‵ ι ⇒ A₂) →
+    0 ∣ Φᴿ ⊢ D ⊑ B₁ ⇒ ‵ κ →
+    0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ (‵ ι ⇒ ‵ κ)
+  base-base-left-right-kν∀ occD D⊑∀A D⊑B
+      with ∀arrow-lower²-inv D⊑∀A D⊑B
+  base-base-left-right-kν∀ occD D⊑∀A D⊑B
+      | via-∀arrow C⊑A occC C⊑B =
+        ν occD (∀ⁱ (greatest-arrow-left-right-base-base C⊑A C⊑B))
+  base-base-left-right-kν∀ occD D⊑∀A D⊑B
+      | via-νarrow occC C⊑∀A C⊑B =
+        ν occD (base-base-left-right-kν∀ occC C⊑∀A C⊑B)
+
+  base-base-left-right-kνν :
+    ∀ {Φᴸ Φᴿ Φᴼ A₂ B₁ D ι κ} →
+    occurs zero D ≡ true →
+    0 ∣ Φᴸ ⊢ D ⊑ `∀ (‵ ι ⇒ A₂) →
+    0 ∣ Φᴿ ⊢ D ⊑ `∀ (B₁ ⇒ ‵ κ) →
+    0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ (‵ ι ⇒ ‵ κ)
+  base-base-left-right-kνν occD (∀ⁱ C⊑A) (∀ⁱ C⊑B) =
+    ν occD (∀ⁱ (greatest-arrow-left-right-base-base C⊑A C⊑B))
+  base-base-left-right-kνν occD (∀ⁱ C⊑A) (ν occC C⊑∀B) =
+    ν occD (base-base-left-right-k∀ν C⊑A occC C⊑∀B)
+  base-base-left-right-kνν occD (ν occC C⊑∀A) (∀ⁱ C⊑B) =
+    ν occD (base-base-left-right-kν∀ occC C⊑∀A C⊑B)
+  base-base-left-right-kνν occD (ν occC C⊑∀A) (ν _ C⊑∀B) =
+    ν occD (base-base-left-right-kνν occC C⊑∀A C⊑∀B)
+
+base-base-left-right-∀∀-support :
+  ∀ {Φᴸ Φᴿ Φᴼ A₂ B₁ ι κ} →
+  Lift⊓∀∀Support Φᴸ Φᴿ Φᴼ (‵ ι ⇒ A₂) (B₁ ⇒ ‵ κ) (‵ ι ⇒ ‵ κ)
+base-base-left-right-∀∀-support .k∀ν D⊑A occD D⊑∀B =
+  base-base-left-right-k∀ν D⊑A occD D⊑∀B
+base-base-left-right-∀∀-support .kν∀ occD D⊑∀A D⊑B =
+  base-base-left-right-kν∀ occD D⊑∀A D⊑B
+base-base-left-right-∀∀-support .kνν occD D⊑∀A D⊑∀B =
+  base-base-left-right-kνν occD D⊑∀A D⊑∀B
+
+mutual
+  base-base-right-left-k∀ν :
+    ∀ {Φᴸ Φᴿ Φᴼ A₁ B₂ D ι κ} →
+    0 ∣ Φᴸ ⊢ D ⊑ A₁ ⇒ ‵ κ →
+    occurs zero D ≡ true →
+    0 ∣ Φᴿ ⊢ D ⊑ `∀ (‵ ι ⇒ B₂) →
+    0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ (‵ ι ⇒ ‵ κ)
+  base-base-right-left-k∀ν D⊑A occD D⊑∀B
+      with arrow∀-lower²-inv D⊑A D⊑∀B
+  base-base-right-left-k∀ν D⊑A occD D⊑∀B
+      | via-arrow∀ occC C⊑A C⊑B =
+        ν occD (∀ⁱ (greatest-arrow-right-left-base-base C⊑A C⊑B))
+  base-base-right-left-k∀ν D⊑A occD D⊑∀B
+      | via-arrowν occC C⊑A C⊑∀B =
+        ν occD (base-base-right-left-k∀ν C⊑A occC C⊑∀B)
+
+  base-base-right-left-kν∀ :
+    ∀ {Φᴸ Φᴿ Φᴼ A₁ B₂ D ι κ} →
+    occurs zero D ≡ true →
+    0 ∣ Φᴸ ⊢ D ⊑ `∀ (A₁ ⇒ ‵ κ) →
+    0 ∣ Φᴿ ⊢ D ⊑ ‵ ι ⇒ B₂ →
+    0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ (‵ ι ⇒ ‵ κ)
+  base-base-right-left-kν∀ occD D⊑∀A D⊑B
+      with ∀arrow-lower²-inv D⊑∀A D⊑B
+  base-base-right-left-kν∀ occD D⊑∀A D⊑B
+      | via-∀arrow C⊑A occC C⊑B =
+        ν occD (∀ⁱ (greatest-arrow-right-left-base-base C⊑A C⊑B))
+  base-base-right-left-kν∀ occD D⊑∀A D⊑B
+      | via-νarrow occC C⊑∀A C⊑B =
+        ν occD (base-base-right-left-kν∀ occC C⊑∀A C⊑B)
+
+  base-base-right-left-kνν :
+    ∀ {Φᴸ Φᴿ Φᴼ A₁ B₂ D ι κ} →
+    occurs zero D ≡ true →
+    0 ∣ Φᴸ ⊢ D ⊑ `∀ (A₁ ⇒ ‵ κ) →
+    0 ∣ Φᴿ ⊢ D ⊑ `∀ (‵ ι ⇒ B₂) →
+    0 ∣ Φᴼ ⊢ `∀ D ⊑ `∀ (‵ ι ⇒ ‵ κ)
+  base-base-right-left-kνν occD (∀ⁱ C⊑A) (∀ⁱ C⊑B) =
+    ν occD (∀ⁱ (greatest-arrow-right-left-base-base C⊑A C⊑B))
+  base-base-right-left-kνν occD (∀ⁱ C⊑A) (ν occC C⊑∀B) =
+    ν occD (base-base-right-left-k∀ν C⊑A occC C⊑∀B)
+  base-base-right-left-kνν occD (ν occC C⊑∀A) (∀ⁱ C⊑B) =
+    ν occD (base-base-right-left-kν∀ occC C⊑∀A C⊑B)
+  base-base-right-left-kνν occD (ν occC C⊑∀A) (ν _ C⊑∀B) =
+    ν occD (base-base-right-left-kνν occC C⊑∀A C⊑∀B)
+
+base-base-right-left-∀∀-support :
+  ∀ {Φᴸ Φᴿ Φᴼ A₁ B₂ ι κ} →
+  Lift⊓∀∀Support Φᴸ Φᴿ Φᴼ (A₁ ⇒ ‵ κ) (‵ ι ⇒ B₂) (‵ ι ⇒ ‵ κ)
+base-base-right-left-∀∀-support .k∀ν D⊑A occD D⊑∀B =
+  base-base-right-left-k∀ν D⊑A occD D⊑∀B
+base-base-right-left-∀∀-support .kν∀ occD D⊑∀A D⊑B =
+  base-base-right-left-kν∀ occD D⊑∀A D⊑B
+base-base-right-left-∀∀-support .kνν occD D⊑∀A D⊑∀B =
+  base-base-right-left-kνν occD D⊑∀A D⊑∀B
+
 lift-⊓-ν∀ :
   ∀ {Φᴸ Φᴿ Φᴼ A B C} →
   occurs zero B ≡ true →
@@ -1831,6 +2697,73 @@ lift-search⁺ zero (suc m) {A = A} {B = B}
                {Φᴿ = (0 ˣ⊑ˣ 0) ∷ Φᴿ′} glb)
     | true | just (Φᴸ , eqL) | just (Φᴿ , eqR) | just result =
       just (cast-search⁺ʳ (add∀-step m B) result)
+lift-search⁺ zero (suc m) {A = A} {B = B}
+    (glb-right {Φᴸ = []} {Φᴿ = []} glb)
+    with occurs zero B in occB
+lift-search⁺ zero (suc m) {A = A} {B = B}
+    (glb-right {Φᴸ = []} {Φᴿ = []} glb)
+    | false = nothing
+lift-search⁺ zero (suc m) {A = A} {B = B}
+    (glb-right {Φᴸ = []} {Φᴿ = []} glb)
+    | true
+    with lift-search⁺ zero m
+      (glb-right
+        (glbᶜ-lift-ν∀-open occB
+          (glbᶜ-right-cons
+            {aᴸ = 0 ˣ⊑★} {aᴿ = 0 ˣ⊑ˣ 0} glb)
+          (k∀∀ˡ
+            (right-ν∀-support {Φᴸ = []} {Φᴿ = []} {A = A} {B = B}))
+          (kνʳ
+            (right-ν∀-support {Φᴸ = []} {Φᴿ = []} {A = A} {B = B}))))
+lift-search⁺ zero (suc m) {A = A} {B = B}
+    (glb-right {Φᴸ = []} {Φᴿ = []} glb)
+    | true | nothing = nothing
+lift-search⁺ zero (suc m) {A = A} {B = B}
+    (glb-right {Φᴸ = []} {Φᴿ = []} glb)
+    | true | just result =
+      just (cast-search⁺ʳ (add∀-step m B) result)
+lift-search⁺ zero (suc m) {A = A} {B = B}
+    (glb-mixed-right-left
+      {Φᴸ₁ = (0 ˣ⊑★) ∷ []} {Φᴿ₁ = (0 ˣ⊑ˣ 0) ∷ []}
+      {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = ★} {A₂ = ‵ κ} {B₁ = ＇ 0} {B₂ = ★}
+      glb₁ glb₂ glb)
+    with lift-search⁺ zero m
+      (glb-any (glbᶜ-lift-ν∀-arrow-base-var {κ = κ}))
+lift-search⁺ zero (suc m) {A = A} {B = B}
+    (glb-mixed-right-left
+      {Φᴸ₁ = (0 ˣ⊑★) ∷ []} {Φᴿ₁ = (0 ˣ⊑ˣ 0) ∷ []}
+      {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = ★} {A₂ = ‵ κ} {B₁ = ＇ 0} {B₂ = ★}
+      glb₁ glb₂ glb) | nothing = nothing
+lift-search⁺ zero (suc m) {A = A} {B = B}
+    (glb-mixed-right-left
+      {Φᴸ₁ = (0 ˣ⊑★) ∷ []} {Φᴿ₁ = (0 ˣ⊑ˣ 0) ∷ []}
+      {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = ★} {A₂ = ‵ κ} {B₁ = ＇ 0} {B₂ = ★}
+      glb₁ glb₂ glb) | just result =
+      just (cast-search⁺ʳ (add∀-step m (＇ 0 ⇒ ★)) result)
+lift-search⁺ zero (suc m) {A = A} {B = B}
+    (glb-mixed-left-right
+      {Φᴸ₁ = []} {Φᴿ₁ = []}
+      {Φᴸ₂ = (0 ˣ⊑★) ∷ []} {Φᴿ₂ = (0 ˣ⊑ˣ 0) ∷ []}
+      {A₁ = ‵ κ} {A₂ = ★} {B₁ = ★} {B₂ = ＇ 0}
+      glb₁ glb₂ glb)
+    with lift-search⁺ zero m
+      (glb-any (glbᶜ-lift-ν∀-arrow-var-codomain {κ = κ}))
+lift-search⁺ zero (suc m) {A = A} {B = B}
+    (glb-mixed-left-right
+      {Φᴸ₁ = []} {Φᴿ₁ = []}
+      {Φᴸ₂ = (0 ˣ⊑★) ∷ []} {Φᴿ₂ = (0 ˣ⊑ˣ 0) ∷ []}
+      {A₁ = ‵ κ} {A₂ = ★} {B₁ = ★} {B₂ = ＇ 0}
+      glb₁ glb₂ glb) | nothing = nothing
+lift-search⁺ zero (suc m) {A = A} {B = B}
+    (glb-mixed-left-right
+      {Φᴸ₁ = []} {Φᴿ₁ = []}
+      {Φᴸ₂ = (0 ˣ⊑★) ∷ []} {Φᴿ₂ = (0 ˣ⊑ˣ 0) ∷ []}
+      {A₁ = ‵ κ} {A₂ = ★} {B₁ = ★} {B₂ = ＇ 0}
+      glb₁ glb₂ glb) | just result =
+      just (cast-search⁺ʳ (add∀-step m (★ ⇒ ＇ 0)) result)
 lift-search⁺ zero (suc m) result = nothing
 lift-search⁺ (suc n) zero {A = A} {B = B}
     (glb-left {Φᴸ = (0 ˣ⊑ˣ 0) ∷ Φᴸ′}
@@ -1873,6 +2806,73 @@ lift-search⁺ (suc n) zero {A = A} {B = B}
               {Φᴿ = (0 ˣ⊑★) ∷ Φᴿ′} glb)
     | true | just (Φᴸ , eqL) | just (Φᴿ , eqR) | just result =
       just (cast-search⁺ˡ (add∀-step n A) result)
+lift-search⁺ (suc n) zero {A = A} {B = B}
+    (glb-left {Φᴸ = []} {Φᴿ = []} glb)
+    with occurs zero A in occA
+lift-search⁺ (suc n) zero {A = A} {B = B}
+    (glb-left {Φᴸ = []} {Φᴿ = []} glb)
+    | false = nothing
+lift-search⁺ (suc n) zero {A = A} {B = B}
+    (glb-left {Φᴸ = []} {Φᴿ = []} glb)
+    | true
+    with lift-search⁺ n zero
+      (glb-left
+        (glbᶜ-lift-∀ν-open occA
+          (glbᶜ-left-cons
+            {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑★} glb)
+          (k∀∀ʳ
+            (left-∀ν-support {Φᴸ = []} {Φᴿ = []} {A = A} {B = B}))
+          (kνˡ
+            (left-∀ν-support {Φᴸ = []} {Φᴿ = []} {A = A} {B = B}))))
+lift-search⁺ (suc n) zero {A = A} {B = B}
+    (glb-left {Φᴸ = []} {Φᴿ = []} glb)
+    | true | nothing = nothing
+lift-search⁺ (suc n) zero {A = A} {B = B}
+    (glb-left {Φᴸ = []} {Φᴿ = []} glb)
+    | true | just result =
+      just (cast-search⁺ˡ (add∀-step n A) result)
+lift-search⁺ (suc n) zero {A = A} {B = B}
+    (glb-mixed-left-right
+      {Φᴸ₁ = (0 ˣ⊑ˣ 0) ∷ []} {Φᴿ₁ = (0 ˣ⊑★) ∷ []}
+      {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = ＇ 0} {A₂ = ★} {B₁ = ★} {B₂ = ‵ κ}
+      glb₁ glb₂ glb)
+    with lift-search⁺ n zero
+      (glb-any (glbᶜ-lift-∀ν-arrow-var-base {κ = κ}))
+lift-search⁺ (suc n) zero {A = A} {B = B}
+    (glb-mixed-left-right
+      {Φᴸ₁ = (0 ˣ⊑ˣ 0) ∷ []} {Φᴿ₁ = (0 ˣ⊑★) ∷ []}
+      {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = ＇ 0} {A₂ = ★} {B₁ = ★} {B₂ = ‵ κ}
+      glb₁ glb₂ glb) | nothing = nothing
+lift-search⁺ (suc n) zero {A = A} {B = B}
+    (glb-mixed-left-right
+      {Φᴸ₁ = (0 ˣ⊑ˣ 0) ∷ []} {Φᴿ₁ = (0 ˣ⊑★) ∷ []}
+      {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = ＇ 0} {A₂ = ★} {B₁ = ★} {B₂ = ‵ κ}
+      glb₁ glb₂ glb) | just result =
+      just (cast-search⁺ˡ (add∀-step n (＇ 0 ⇒ ★)) result)
+lift-search⁺ (suc n) zero {A = A} {B = B}
+    (glb-mixed-right-left
+      {Φᴸ₁ = []} {Φᴿ₁ = []}
+      {Φᴸ₂ = (0 ˣ⊑ˣ 0) ∷ []} {Φᴿ₂ = (0 ˣ⊑★) ∷ []}
+      {A₁ = ★} {A₂ = ＇ 0} {B₁ = ‵ κ} {B₂ = ★}
+      glb₁ glb₂ glb)
+    with lift-search⁺ n zero
+      (glb-any (glbᶜ-lift-∀ν-arrow-var-codomain {κ = κ}))
+lift-search⁺ (suc n) zero {A = A} {B = B}
+    (glb-mixed-right-left
+      {Φᴸ₁ = []} {Φᴿ₁ = []}
+      {Φᴸ₂ = (0 ˣ⊑ˣ 0) ∷ []} {Φᴿ₂ = (0 ˣ⊑★) ∷ []}
+      {A₁ = ★} {A₂ = ＇ 0} {B₁ = ‵ κ} {B₂ = ★}
+      glb₁ glb₂ glb) | nothing = nothing
+lift-search⁺ (suc n) zero {A = A} {B = B}
+    (glb-mixed-right-left
+      {Φᴸ₁ = []} {Φᴿ₁ = []}
+      {Φᴸ₂ = (0 ˣ⊑ˣ 0) ∷ []} {Φᴿ₂ = (0 ˣ⊑★) ∷ []}
+      {A₁ = ★} {A₂ = ＇ 0} {B₁ = ‵ κ} {B₂ = ★}
+      glb₁ glb₂ glb) | just result =
+      just (cast-search⁺ˡ (add∀-step n (★ ⇒ ＇ 0)) result)
 lift-search⁺ (suc n) zero result = nothing
 lift-search⁺ (suc n) (suc m) {A = A} {B = B}
     (glb-left {Φᴸ = (0 ˣ⊑ˣ 0) ∷ Φᴸ′}
@@ -1912,6 +2912,22 @@ lift-search⁺ (suc n) (suc m) {A = A} {B = B}
       just (cast-search⁺ʳ (add∀-step m B)
              (cast-search⁺ˡ (add∀-step n A) result))
 lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-left {Φᴸ = []} {Φᴿ = []} glb)
+    with lift-search⁺ n m
+      (glb-left
+        (glbᶜ-lift-∀∀-open
+          (glbᶜ-left-cons
+            {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑ˣ 0} glb)
+          (k∀ν left-∀∀-support)
+          (kν∀ left-∀∀-support)
+          (kνν left-∀∀-support)))
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-left {Φᴸ = []} {Φᴿ = []} glb) | nothing = nothing
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-left {Φᴸ = []} {Φᴿ = []} glb) | just result =
+      just (cast-search⁺ʳ (add∀-step m B)
+             (cast-search⁺ˡ (add∀-step n A) result))
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
     (glb-right {Φᴸ = (0 ˣ⊑ˣ 0) ∷ Φᴸ′}
                {Φᴿ = (0 ˣ⊑ˣ 0) ∷ Φᴿ′} glb)
     with unshiftᵢ Φᴸ′ | unshiftᵢ Φᴿ′
@@ -1948,6 +2964,78 @@ lift-search⁺ (suc n) (suc m) {A = A} {B = B}
     | just (Φᴸ , eqL) | just (Φᴿ , eqR) | just result =
       just (cast-search⁺ʳ (add∀-step m B)
              (cast-search⁺ˡ (add∀-step n A) result))
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-right {Φᴸ = []} {Φᴿ = []} glb)
+    with lift-search⁺ n m
+      (glb-right
+        (glbᶜ-lift-∀∀-open
+          (glbᶜ-right-cons
+            {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑ˣ 0} glb)
+          (k∀ν right-∀∀-support)
+          (kν∀ right-∀∀-support)
+          (kνν right-∀∀-support)))
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-right {Φᴸ = []} {Φᴿ = []} glb) | nothing = nothing
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-right {Φᴸ = []} {Φᴿ = []} glb) | just result =
+      just (cast-search⁺ʳ (add∀-step m B)
+             (cast-search⁺ˡ (add∀-step n A) result))
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-mixed-left-right
+      {Φᴸ₁ = []} {Φᴿ₁ = []} {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = ‵ ι} {A₂ = A₂} {B₁ = B₁} {B₂ = ‵ κ}
+      glb₁ glb₂ glb)
+    with lift-search⁺ n m
+      (glb-any
+        (glbᶜ-lift-∀∀-open
+          (glbᶜ-arrow-left-right-base-base
+            (glbᶜ-left-cons
+              {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑ˣ 0} glb₁)
+            (glbᶜ-right-cons
+              {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑ˣ 0} glb₂))
+          (k∀ν base-base-left-right-∀∀-support)
+          (kν∀ base-base-left-right-∀∀-support)
+          (kνν base-base-left-right-∀∀-support)))
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-mixed-left-right
+      {Φᴸ₁ = []} {Φᴿ₁ = []} {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = ‵ ι} {A₂ = A₂} {B₁ = B₁} {B₂ = ‵ κ}
+      glb₁ glb₂ glb) | nothing = nothing
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-mixed-left-right
+      {Φᴸ₁ = []} {Φᴿ₁ = []} {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = ‵ ι} {A₂ = A₂} {B₁ = B₁} {B₂ = ‵ κ}
+      glb₁ glb₂ glb) | just result =
+      just (cast-search⁺ʳ (add∀-step m B)
+             (cast-search⁺ˡ (add∀-step n A) result))
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-mixed-right-left
+      {Φᴸ₁ = []} {Φᴿ₁ = []} {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = A₁} {A₂ = ‵ κ} {B₁ = ‵ ι} {B₂ = B₂}
+      glb₁ glb₂ glb)
+    with lift-search⁺ n m
+      (glb-any
+        (glbᶜ-lift-∀∀-open
+          (glbᶜ-arrow-right-left-base-base
+            (glbᶜ-right-cons
+              {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑ˣ 0} glb₁)
+            (glbᶜ-left-cons
+              {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑ˣ 0} glb₂))
+          (k∀ν base-base-right-left-∀∀-support)
+          (kν∀ base-base-right-left-∀∀-support)
+          (kνν base-base-right-left-∀∀-support)))
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-mixed-right-left
+      {Φᴸ₁ = []} {Φᴿ₁ = []} {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = A₁} {A₂ = ‵ κ} {B₁ = ‵ ι} {B₂ = B₂}
+      glb₁ glb₂ glb) | nothing = nothing
+lift-search⁺ (suc n) (suc m) {A = A} {B = B}
+    (glb-mixed-right-left
+      {Φᴸ₁ = []} {Φᴿ₁ = []} {Φᴸ₂ = []} {Φᴿ₂ = []}
+      {A₁ = A₁} {A₂ = ‵ κ} {B₁ = ‵ ι} {B₂ = B₂}
+      glb₁ glb₂ glb) | just result =
+      just (cast-search⁺ʳ (add∀-step m B)
+             (cast-search⁺ˡ (add∀-step n A) result))
 lift-search⁺ (suc n) (suc m) result = nothing
 
 closed-search⁺ :
@@ -1960,6 +3048,14 @@ closed-search⁺ (glb-right {Φᴸ = []} {Φᴿ = []} glb) =
   just (glb-right glb)
 closed-search⁺ (glb-any {Φᴸ = []} {Φᴿ = []} {Φᴼ = []} glb) =
   just (glb-any glb)
+closed-search⁺
+    (glb-mixed-left-right {Φᴸ = []} {Φᴿ = []} {Φᴼ = []}
+      glb₁ glb₂ glb) =
+  just (glb-mixed-left-right glb₁ glb₂ glb)
+closed-search⁺
+    (glb-mixed-right-left {Φᴸ = []} {Φᴿ = []} {Φᴼ = []}
+      glb₁ glb₂ glb) =
+  just (glb-mixed-right-left glb₁ glb₂ glb)
 closed-search⁺ _ = nothing
 
 glbᶜ-arrow-left :
@@ -2358,11 +3454,13 @@ arrow-mixed-search? :
 arrow-mixed-search?
     (glb-left {Φᴸ = []} {Φᴿ = []} glb₁)
     (glb-right {Φᴸ = []} {Φᴿ = []} glb₂) =
-  just (glb-any (glbᶜ-arrow-left-right glb₁ glb₂))
+  just (glb-mixed-left-right glb₁ glb₂
+          (glbᶜ-arrow-left-right glb₁ glb₂))
 arrow-mixed-search?
     (glb-right {Φᴸ = []} {Φᴿ = []} glb₁)
     (glb-left {Φᴸ = []} {Φᴿ = []} glb₂) =
-  just (glb-any (glbᶜ-arrow-right-left glb₁ glb₂))
+  just (glb-mixed-right-left glb₁ glb₂
+          (glbᶜ-arrow-right-left glb₁ glb₂))
 arrow-mixed-search?
     (glb-left {Φᴸ = aᴸ₁ ∷ Φᴸ₁} {Φᴿ = aᴿ₁ ∷ Φᴿ₁} glb₁)
     (glb-right {Φᴸ = aᴸ₂ ∷ Φᴸ₂} {Φᴿ = aᴿ₂ ∷ Φᴿ₂} glb₂)
@@ -2372,12 +3470,14 @@ arrow-mixed-search?
     (glb-left {Φᴸ = a ∷ Φᴸ₁} {Φᴿ = .a ∷ Φᴿ₁} glb₁)
     (glb-right {Φᴸ = .a ∷ Φᴸ₂} {Φᴿ = .a ∷ Φᴿ₂} glb₂)
     | yes refl | yes refl | yes refl =
-      just (glb-any (glbᶜ-arrow-left-right-head-++ glb₁ glb₂))
+      just (glb-mixed-left-right glb₁ glb₂
+              (glbᶜ-arrow-left-right-head-++ glb₁ glb₂))
 arrow-mixed-search?
     (glb-left {Φᴸ = aᴸ₁ ∷ Φᴸ₁} {Φᴿ = aᴿ₁ ∷ Φᴿ₁} glb₁)
     (glb-right {Φᴸ = aᴸ₂ ∷ Φᴸ₂} {Φᴿ = aᴿ₂ ∷ Φᴿ₂} glb₂)
     | _ | _ | _ =
-      just (glb-any (glbᶜ-arrow-left-right-++ glb₁ glb₂))
+      just (glb-mixed-left-right glb₁ glb₂
+              (glbᶜ-arrow-left-right-++ glb₁ glb₂))
 arrow-mixed-search?
     (glb-right {Φᴸ = aᴸ₁ ∷ Φᴸ₁} {Φᴿ = aᴿ₁ ∷ Φᴿ₁} glb₁)
     (glb-left {Φᴸ = aᴸ₂ ∷ Φᴸ₂} {Φᴿ = aᴿ₂ ∷ Φᴿ₂} glb₂)
@@ -2387,16 +3487,20 @@ arrow-mixed-search?
     (glb-right {Φᴸ = a ∷ Φᴸ₁} {Φᴿ = .a ∷ Φᴿ₁} glb₁)
     (glb-left {Φᴸ = .a ∷ Φᴸ₂} {Φᴿ = .a ∷ Φᴿ₂} glb₂)
     | yes refl | yes refl | yes refl =
-      just (glb-any (glbᶜ-arrow-right-left-head-++ glb₁ glb₂))
+      just (glb-mixed-right-left glb₁ glb₂
+              (glbᶜ-arrow-right-left-head-++ glb₁ glb₂))
 arrow-mixed-search?
     (glb-right {Φᴸ = aᴸ₁ ∷ Φᴸ₁} {Φᴿ = aᴿ₁ ∷ Φᴿ₁} glb₁)
     (glb-left {Φᴸ = aᴸ₂ ∷ Φᴸ₂} {Φᴿ = aᴿ₂ ∷ Φᴿ₂} glb₂)
     | _ | _ | _ =
-      just (glb-any (glbᶜ-arrow-right-left-++ glb₁ glb₂))
+      just (glb-mixed-right-left glb₁ glb₂
+              (glbᶜ-arrow-right-left-++ glb₁ glb₂))
 arrow-mixed-search? (glb-left glb₁) (glb-right glb₂) =
-  just (glb-any (glbᶜ-arrow-left-right-++ glb₁ glb₂))
+  just (glb-mixed-left-right glb₁ glb₂
+          (glbᶜ-arrow-left-right-++ glb₁ glb₂))
 arrow-mixed-search? (glb-right glb₁) (glb-left glb₂) =
-  just (glb-any (glbᶜ-arrow-right-left-++ glb₁ glb₂))
+  just (glb-mixed-right-left glb₁ glb₂
+          (glbᶜ-arrow-right-left-++ glb₁ glb₂))
 arrow-mixed-search? _ _ = nothing
 
 arrow-search? :
@@ -2552,3 +3656,134 @@ glb? : (A B : Ty) → Maybe (Σ[ C ∈ Ty ] 0 ⊢ C ＝ A ⊓ B)
 glb? A B with glb-search? A B
 glb? A B | nothing = nothing
 glb? A B | just result = closed-search⇒⊓ (to-search result)
+
+glb?-consistent : (A B : Ty) → Maybe ([] ⊢ A ~ B)
+glb?-consistent A B with glb? A B
+glb?-consistent A B | nothing = nothing
+glb?-consistent A B | just glb = just (glb-exists-consistent glb)
+
+glb-∀base-star :
+  Σ[ C ∈ Ty ] 0 ⊢ C ＝ (`∀ (‵ `ℕ)) ⊓ (`∀ ★)
+glb-∀base-star =
+  `∀ (‵ `ℕ) ,
+  glbᶜ-closed⇒⊓
+    (glbᶜ-lift-∀∀-open
+      (glbᶜ-left-cons {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑ˣ 0}
+        (glbᶜ-base-star {Φᴸ = []} {Φᴿ = []} {Φᴼ = []}))
+      (k∀ν left-∀∀-support)
+      (kν∀ left-∀∀-support)
+      (kνν left-∀∀-support))
+
+glb-∀arrow-base-base :
+  Σ[ C ∈ Ty ]
+    0 ⊢ C ＝ (`∀ (‵ `ℕ ⇒ ★)) ⊓ (`∀ (★ ⇒ ‵ `ℕ))
+glb-∀arrow-base-base =
+  `∀ (‵ `ℕ ⇒ ‵ `ℕ) ,
+  glbᶜ-closed⇒⊓
+    (glbᶜ-lift-∀∀-open
+      (glbᶜ-arrow-left-right-base-base
+        (glbᶜ-left-cons {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑ˣ 0}
+          (glbᶜ-base-star {Φᴸ = []} {Φᴿ = []} {Φᴼ = []}))
+        (glbᶜ-right-cons {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑ˣ 0}
+          (glbᶜ-star-base {Φᴸ = []} {Φᴿ = []} {Φᴼ = []})))
+      (k∀ν base-base-left-right-∀∀-support)
+      (kν∀ base-base-left-right-∀∀-support)
+      (kνν base-base-left-right-∀∀-support))
+
+glb?-∀arrow-base-base :
+  glb? (`∀ (‵ `ℕ ⇒ ★)) (`∀ (★ ⇒ ‵ `ℕ)) ≡
+    just glb-∀arrow-base-base
+glb?-∀arrow-base-base = refl
+
+glb-∀arrow-base-base-right-left :
+  Σ[ C ∈ Ty ]
+    0 ⊢ C ＝ (`∀ (★ ⇒ ‵ `ℕ)) ⊓ (`∀ (‵ `ℕ ⇒ ★))
+glb-∀arrow-base-base-right-left =
+  `∀ (‵ `ℕ ⇒ ‵ `ℕ) ,
+  glbᶜ-closed⇒⊓
+    (glbᶜ-lift-∀∀-open
+      (glbᶜ-arrow-right-left-base-base
+        (glbᶜ-right-cons {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑ˣ 0}
+          (glbᶜ-star-base {Φᴸ = []} {Φᴿ = []} {Φᴼ = []}))
+        (glbᶜ-left-cons {aᴸ = 0 ˣ⊑ˣ 0} {aᴿ = 0 ˣ⊑ˣ 0}
+          (glbᶜ-base-star {Φᴸ = []} {Φᴿ = []} {Φᴼ = []})))
+      (k∀ν base-base-right-left-∀∀-support)
+      (kν∀ base-base-right-left-∀∀-support)
+      (kνν base-base-right-left-∀∀-support))
+
+glb?-∀arrow-base-base-right-left :
+  glb? (`∀ (★ ⇒ ‵ `ℕ)) (`∀ (‵ `ℕ ⇒ ★)) ≡
+    just glb-∀arrow-base-base-right-left
+glb?-∀arrow-base-base-right-left = refl
+
+glb-∀arrow-var-star-star-base :
+  Σ[ C ∈ Ty ] 0 ⊢ C ＝ (`∀ (＇ 0 ⇒ ★)) ⊓ (★ ⇒ ‵ `ℕ)
+glb-∀arrow-var-star-star-base =
+  `∀ (＇ 0 ⇒ ‵ `ℕ) ,
+  glbᶜ-closed⇒⊓ (glbᶜ-lift-∀ν-arrow-var-base {κ = `ℕ})
+
+glb?-∀arrow-var-star-star-base :
+  glb? (`∀ (＇ 0 ⇒ ★)) (★ ⇒ ‵ `ℕ) ≡
+    just glb-∀arrow-var-star-star-base
+glb?-∀arrow-var-star-star-base = refl
+
+glb-arrow-star-base-∀var-star :
+  Σ[ C ∈ Ty ] 0 ⊢ C ＝ (★ ⇒ ‵ `ℕ) ⊓ (`∀ (＇ 0 ⇒ ★))
+glb-arrow-star-base-∀var-star =
+  `∀ (＇ 0 ⇒ ‵ `ℕ) ,
+  glbᶜ-closed⇒⊓ (glbᶜ-lift-ν∀-arrow-base-var {κ = `ℕ})
+
+glb?-arrow-star-base-∀var-star :
+  glb? (★ ⇒ ‵ `ℕ) (`∀ (＇ 0 ⇒ ★)) ≡
+    just glb-arrow-star-base-∀var-star
+glb?-arrow-star-base-∀var-star = refl
+
+glb-∀arrow-star-var-base-star :
+  Σ[ C ∈ Ty ] 0 ⊢ C ＝ (`∀ (★ ⇒ ＇ 0)) ⊓ (‵ `ℕ ⇒ ★)
+glb-∀arrow-star-var-base-star =
+  `∀ (‵ `ℕ ⇒ ＇ 0) ,
+  glbᶜ-closed⇒⊓ (glbᶜ-lift-∀ν-arrow-var-codomain {κ = `ℕ})
+
+glb?-∀arrow-star-var-base-star :
+  glb? (`∀ (★ ⇒ ＇ 0)) (‵ `ℕ ⇒ ★) ≡
+    just glb-∀arrow-star-var-base-star
+glb?-∀arrow-star-var-base-star = refl
+
+glb-arrow-base-star-∀star-var :
+  Σ[ C ∈ Ty ] 0 ⊢ C ＝ (‵ `ℕ ⇒ ★) ⊓ (`∀ (★ ⇒ ＇ 0))
+glb-arrow-base-star-∀star-var =
+  `∀ (‵ `ℕ ⇒ ＇ 0) ,
+  glbᶜ-closed⇒⊓ (glbᶜ-lift-ν∀-arrow-var-codomain {κ = `ℕ})
+
+glb?-arrow-base-star-∀star-var :
+  glb? (‵ `ℕ ⇒ ★) (`∀ (★ ⇒ ＇ 0)) ≡
+    just glb-arrow-base-star-∀star-var
+glb?-arrow-base-star-∀star-var = refl
+
+consistent-∀arrow-var-star-∀star-var :
+  [] ⊢ `∀ (＇ 0 ⇒ ★) ~ `∀ (★ ⇒ ＇ 0)
+consistent-∀arrow-var-star-∀star-var =
+  A-~-∀ refl
+    (∀-~-B refl
+      (⇒-~-⇒
+        (νX-~-★ (here refl))
+        (★-~-νX (there (here refl)))))
+
+consistent-∀arrow-star-var-∀var-star :
+  [] ⊢ `∀ (★ ⇒ ＇ 0) ~ `∀ (＇ 0 ⇒ ★)
+consistent-∀arrow-star-var-∀var-star =
+  A-~-∀ refl
+    (∀-~-B refl
+      (⇒-~-⇒
+        (★-~-νX (there (here refl)))
+        (νX-~-★ (here refl))))
+
+common-lower-∀arrow-var-star-∀star-var :
+  CommonLower (`∀ (＇ 0 ⇒ ★)) (`∀ (★ ⇒ ＇ 0))
+common-lower-∀arrow-var-star-∀star-var =
+  consistent-common-lower consistent-∀arrow-var-star-∀star-var
+
+common-lower-∀arrow-star-var-∀var-star :
+  CommonLower (`∀ (★ ⇒ ＇ 0)) (`∀ (＇ 0 ⇒ ★))
+common-lower-∀arrow-star-var-∀var-star =
+  consistent-common-lower consistent-∀arrow-star-var-∀var-star

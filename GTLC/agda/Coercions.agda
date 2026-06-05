@@ -3,6 +3,8 @@ module Coercions where
 -- File Charter:
 --   * Public coercion syntax, typing, precision, reduction, and equivalence
 --     definitions for GTLC.
+--   * Provides the public structural normal-form grammar used by coercion
+--     normalization.
 --   * Provides coercion generation from type consistency plus helper
 --     metatheory used by compilation and gradual-guarantee proofs.
 
@@ -200,6 +202,80 @@ record Irreducible (c : Coercion) : Set where
   constructor irred
   field
     no-step : ∀ {d} → ¬ (c —→ᶜ d)
+
+----------------------------------------------------------------
+-- Structural Coercion Normal Forms
+----------------------------------------------------------------
+
+mutual
+  data NormalCoercion : Ty → Ty → Set where
+    normal-id : (A : Ty)
+      → NormalCoercion A A
+
+    normal-proj : ∀ (G : Ty)
+      → Nat
+      → Ground G
+      → NormalCoercion ★ G
+
+    normal-proj-tail : ∀ (G : Ty) {B : Ty}
+      → Nat
+      → Ground G
+      → NormalTail G B
+      → NormalCoercion ★ B
+
+    normal-tail : ∀ {A B : Ty}
+      → NormalTail A B
+      → NormalCoercion A B
+
+  data NormalTail : Ty → Ty → Set where
+    normal-inj : ∀ (G : Ty)
+      → Ground G
+      → NormalTail G ★
+
+    normal-middle : ∀ {A B : Ty}
+      → NormalMiddle A B
+      → NormalTail A B
+
+    normal-middle-inj : ∀ {A : Ty} (G : Ty)
+      → NormalMiddle A G
+      → Ground G
+      → NormalTail A ★
+
+    normal-blame : ∀ {A B : Ty}
+      → Nat
+      → NormalTail A B
+
+  data NormalMiddle : Ty → Ty → Set where
+    normal-↦ : ∀ {A B C D : Ty}
+      → NormalCoercion C A
+      → NormalCoercion B D
+      → NormalMiddle (A ⇒ B) (C ⇒ D)
+
+mutual
+  coercionOf : ∀ {A B}
+    → NormalCoercion A B
+    → Coercion
+  coercionOf (normal-id A) = idᶜ A
+  coercionOf (normal-proj G ℓ g) = (_`? {ℓ = ℓ}) G
+  coercionOf (normal-proj-tail G ℓ g tail) =
+    ((_`? {ℓ = ℓ}) G) ⨟ tailCoercionOf tail
+  coercionOf (normal-tail tail) = tailCoercionOf tail
+
+  tailCoercionOf : ∀ {A B}
+    → NormalTail A B
+    → Coercion
+  tailCoercionOf (normal-inj G g) = G !
+  tailCoercionOf (normal-middle middle) = middleCoercionOf middle
+  tailCoercionOf (normal-middle-inj G middle g) =
+    middleCoercionOf middle ⨟ (G !)
+  tailCoercionOf (normal-blame {A = A} {B = B} ℓ) =
+    ⊥ᶜ A ⇨ B at ℓ
+
+  middleCoercionOf : ∀ {A B}
+    → NormalMiddle A B
+    → Coercion
+  middleCoercionOf (normal-↦ dom cod) =
+    coercionOf dom ↦ coercionOf cod
 
 ----------------------------------------------------------------
 -- Coercion Precision

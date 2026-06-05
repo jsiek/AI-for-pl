@@ -6,14 +6,17 @@ module MetaTheory where
 --     gradual guarantees.
 
 open import Agda.Builtin.List using ([])
-open import Data.Product using (∃; ∃-syntax; _×_)
+open import Data.Product using (Σ-syntax; ∃; ∃-syntax; _×_)
 open import Data.Sum using (_⊎_)
 
 open import Types
 open import Contexts
 open import GTLC
 open import Coercions public
-  using (_—↠≈ᶜ_; Irreducible)
+  using
+    ( _—↠≈ᶜ_; Irreducible; NormalCoercion; NormalTail; NormalMiddle
+    ; coercionOf; tailCoercionOf; middleCoercionOf
+    )
 open import Coercions
 open import CastCalculus
 open import Compile using (compile)
@@ -28,8 +31,14 @@ import proof.DynamicGradualGuarantee as DynamicGGProof
 
 coercion-normalization : ∀ {c A B}
   → ⊢ c ⦂ A ⇨ B
-  → ∃[ d ] (c —↠≈ᶜ d × Irreducible d)
+  → Σ[ n ∈ NormalCoercion A B ] c —↠≈ᶜ coercionOf n
 coercion-normalization = CoercionNormProof.normalization
+
+normal-coercion-irreducible : ∀ {A B}
+  → (n : NormalCoercion A B)
+  → Irreducible (coercionOf n)
+normal-coercion-irreducible =
+  CoercionNormProof.normal-coercion-irreducible
 
 cast-type-safety
   : {M N : Termᶜ} {A : Ty}

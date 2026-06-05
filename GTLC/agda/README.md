@@ -13,7 +13,8 @@ statements.
   imprecision.
 - `GTLC.agda`: source language terms, typing, and precision.
 - `Coercions.agda`: coercion language used by compilation, including public
-  coercion reduction/equivalence vocabulary used to state normalization.
+  coercion reduction/equivalence vocabulary and the structural normal-form
+  grammar used to state normalization.
 - `CastCalculus.agda`: cast-calculus terms, typing, and reduction.
 - `Compile.agda`: compilation from GTLC typing derivations.
 - `DynamicGradualGuaranteeDefinitions.agda`: public source runtime
@@ -21,8 +22,9 @@ statements.
 - `MetaTheory.agda`: public theorem statements for coercion normalization,
   cast type safety, GTLC type safety (via compilation), and static/dynamic
   gradual guarantees. The coercion-normalization theorem states that every
-  well-typed coercion reduces, up to coercion equivalence, to an irreducible
-  coercion.
+  well-typed coercion reduces, up to coercion equivalence, to a structural
+  coercion normal form. A separate public theorem states that structural
+  coercion normal forms are irreducible.
 - `All.agda`: aggregate driver for checking the public surface.
 
 ## Private proof implementation (`GTLC/agda/proof/`)

@@ -22,10 +22,12 @@ open import proof.ImprecisionAltProperties using
   ; glbᶜ-star-var
   ; glbᶜ-var-star
   ; glbᶜ-var-var
+  ; glb-exists⇒common-lower
   ; glb-star-star
   ; glb-star-var
   ; glb-var-star
   ; glb-var-var
+  ; greatestᶜ
   ; greatest-star-varᵍ
   ; greatest-var-starᵍ
   ; greatest-var-varᵍ
@@ -36,6 +38,8 @@ open import proof.ImprecisionAltProperties using
   ; no-⇑ᵢ-zero-star
   ; no-⇑ᴸᵢ-zero-left
   ; no-⇑ᴸᵢ-zero-star
+  ; ⊓-comm
+  ; ⊑-trans-closed
   ; ⇑ᵢ-ˣ∈
   ; ⇑ᵢ-★∈
   ; ⇑ᴸᵢ-ˣ∈
@@ -127,6 +131,72 @@ cast-left refl A~B = A~B
 
 cast-right : ∀ {Γ A B B′} → B ≡ B′ → Γ ⊢ A ~ B → Γ ⊢ A ~ B′
 cast-right refl A~B = A~B
+
+swapᶜₐ : CAssm → CAssm
+swapᶜₐ (X ~ᶜ★) = ★~ᶜ X
+swapᶜₐ (★~ᶜ X) = X ~ᶜ★
+swapᶜₐ (X ~ᶜ Y) = Y ~ᶜ X
+
+swapᶜ : CCtx → CCtx
+swapᶜ = map swapᶜₐ
+
+swapᶜ-∈ : ∀ {Γ a} → a ∈ Γ → swapᶜₐ a ∈ swapᶜ Γ
+swapᶜ-∈ {Γ = []} ()
+swapᶜ-∈ {Γ = a ∷ Γ} (here refl) = here refl
+swapᶜ-∈ {Γ = a ∷ Γ} (there a∈Γ) = there (swapᶜ-∈ a∈Γ)
+
+swapᶜ-⇑ : ∀ Γ → swapᶜ (⇑ Γ) ≡ ⇑ (swapᶜ Γ)
+swapᶜ-⇑ [] = refl
+swapᶜ-⇑ ((X ~ᶜ★) ∷ Γ) =
+  cong (λ xs → (★~ᶜ suc X) ∷ xs) (swapᶜ-⇑ Γ)
+swapᶜ-⇑ ((★~ᶜ X) ∷ Γ) =
+  cong (λ xs → (suc X ~ᶜ★) ∷ xs) (swapᶜ-⇑ Γ)
+swapᶜ-⇑ ((X ~ᶜ Y) ∷ Γ) =
+  cong (λ xs → (suc Y ~ᶜ suc X) ∷ xs) (swapᶜ-⇑ Γ)
+
+swapᶜ-⇑ᴸ : ∀ Γ → swapᶜ (⇑ᴸ Γ) ≡ ⇑ᴿ (swapᶜ Γ)
+swapᶜ-⇑ᴸ [] = refl
+swapᶜ-⇑ᴸ ((X ~ᶜ★) ∷ Γ) =
+  cong (λ xs → (★~ᶜ suc X) ∷ xs) (swapᶜ-⇑ᴸ Γ)
+swapᶜ-⇑ᴸ ((★~ᶜ X) ∷ Γ) =
+  cong (λ xs → (X ~ᶜ★) ∷ xs) (swapᶜ-⇑ᴸ Γ)
+swapᶜ-⇑ᴸ ((X ~ᶜ Y) ∷ Γ) =
+  cong (λ xs → (Y ~ᶜ suc X) ∷ xs) (swapᶜ-⇑ᴸ Γ)
+
+swapᶜ-⇑ᴿ : ∀ Γ → swapᶜ (⇑ᴿ Γ) ≡ ⇑ᴸ (swapᶜ Γ)
+swapᶜ-⇑ᴿ [] = refl
+swapᶜ-⇑ᴿ ((X ~ᶜ★) ∷ Γ) =
+  cong (λ xs → (★~ᶜ X) ∷ xs) (swapᶜ-⇑ᴿ Γ)
+swapᶜ-⇑ᴿ ((★~ᶜ X) ∷ Γ) =
+  cong (λ xs → (suc X ~ᶜ★) ∷ xs) (swapᶜ-⇑ᴿ Γ)
+swapᶜ-⇑ᴿ ((X ~ᶜ Y) ∷ Γ) =
+  cong (λ xs → (suc Y ~ᶜ X) ∷ xs) (swapᶜ-⇑ᴿ Γ)
+
+~-sym : ∀ {Γ A B} → Γ ⊢ A ~ B → swapᶜ Γ ⊢ B ~ A
+~-sym {Γ = Γ} ★-~-★ = ★-~-★
+~-sym {Γ = Γ} (X-~-Y x∈) = X-~-Y (swapᶜ-∈ x∈)
+~-sym {Γ = Γ} ι-~-ι = ι-~-ι
+~-sym {Γ = Γ} (⇒-~-⇒ A~B C~D) = ⇒-~-⇒ (~-sym A~B) (~-sym C~D)
+~-sym {Γ = Γ} (∀-~-∀ A~B) =
+  ∀-~-∀
+    (cast-ctx (cong (λ xs → (0 ~ᶜ 0) ∷ xs) (swapᶜ-⇑ Γ))
+      (~-sym A~B))
+~-sym {Γ = Γ} ι-~-★ = ★-~-ι
+~-sym {Γ = Γ} (⇒-~-★ A~★ B~★) =
+  ★-~-⇒ (~-sym A~★) (~-sym B~★)
+~-sym {Γ = Γ} (νX-~-★ x∈) = ★-~-νX (swapᶜ-∈ x∈)
+~-sym {Γ = Γ} ★-~-ι = ι-~-★
+~-sym {Γ = Γ} (★-~-⇒ ★~A ★~B) =
+  ⇒-~-★ (~-sym ★~A) (~-sym ★~B)
+~-sym {Γ = Γ} (★-~-νX x∈) = νX-~-★ (swapᶜ-∈ x∈)
+~-sym {Γ = Γ} (∀-~-B occA A~B) =
+  A-~-∀ occA
+    (cast-ctx (cong (λ xs → (★~ᶜ 0) ∷ xs) (swapᶜ-⇑ᴸ Γ))
+      (~-sym A~B))
+~-sym {Γ = Γ} (A-~-∀ occB A~B) =
+  ∀-~-B occB
+    (cast-ctx (cong (λ xs → (0 ~ᶜ★) ∷ xs) (swapᶜ-⇑ᴿ Γ))
+      (~-sym A~B))
 
 cast-⊑ : ∀ {Ψ Φ Φ′ A B} → Φ ≡ Φ′ → Ψ ∣ Φ ⊢ A ⊑ B → Ψ ∣ Φ′ ⊢ A ⊑ B
 cast-⊑ refl A⊑B = A⊑B
@@ -2312,6 +2382,709 @@ glbᶜ-lift-∀ν-arrow-star-var-var-star =
       greatest-∀ν-arrow-star-var-var-star-map
         zero-target-single-map D⊑A D⊑B)
 
+no-0~★-in-0~0 : (0 ~ᶜ★) ∈ ((0 ~ᶜ 0) ∷ []) → ⊥
+no-0~★-in-0~0 (here ())
+no-0~★-in-0~0 (there ())
+
+no-★~0-in-0~0 : (★~ᶜ 0) ∈ ((0 ~ᶜ 0) ∷ []) → ⊥
+no-★~0-in-0~0 (here ())
+no-★~0-in-0~0 (there ())
+
+no-plain-arrow-var-star-star-var-consistent :
+  ((0 ~ᶜ 0) ∷ []) ⊢ (＇ 0 ⇒ ★) ~ (★ ⇒ ＇ 0) → ⊥
+no-plain-arrow-var-star-star-var-consistent
+    (⇒-~-⇒ (νX-~-★ x~★) _) =
+  no-0~★-in-0~0 x~★
+
+no-plain-arrow-var-star-star-var-lower :
+  ∀ {D} →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ＇ 0 ⇒ ★ →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ★ ⇒ ＇ 0 →
+  ⊥
+no-plain-arrow-var-star-star-var-lower D⊑A D⊑B =
+  no-plain-arrow-var-star-star-var-consistent
+    (lower-bounds-consistentᶜ (LowerCtx-∀∀ LowerCtx-[]) D⊑A D⊑B)
+
+no-plain-arrow-star-var-var-star-consistent :
+  ((0 ~ᶜ 0) ∷ []) ⊢ (★ ⇒ ＇ 0) ~ (＇ 0 ⇒ ★) → ⊥
+no-plain-arrow-star-var-var-star-consistent
+    (⇒-~-⇒ (★-~-νX ★~x) _) =
+  no-★~0-in-0~0 ★~x
+
+no-plain-arrow-star-var-var-star-lower :
+  ∀ {D} →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ★ ⇒ ＇ 0 →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ＇ 0 ⇒ ★ →
+  ⊥
+no-plain-arrow-star-var-var-star-lower D⊑A D⊑B =
+  no-plain-arrow-star-var-var-star-consistent
+    (lower-bounds-consistentᶜ (LowerCtx-∀∀ LowerCtx-[]) D⊑A D⊑B)
+
+greatest-outer-∀arrow-var-star-∀star-var-via-∀∀ :
+  ∀ {D} →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ＇ 0 ⇒ ★ →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ★ ⇒ ＇ 0 →
+  0 ∣ [] ⊢ `∀ D ⊑ `∀ (`∀ (＇ 0 ⇒ ＇ 1))
+greatest-outer-∀arrow-var-star-∀star-var-via-∀∀ D⊑A D⊑B =
+  ⊥-elim (no-plain-arrow-var-star-star-var-lower D⊑A D⊑B)
+
+greatest-outer-∀arrow-star-var-∀var-star-via-∀∀ :
+  ∀ {D} →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ★ ⇒ ＇ 0 →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ＇ 0 ⇒ ★ →
+  0 ∣ [] ⊢ `∀ D ⊑ `∀ (`∀ (＇ 1 ⇒ ＇ 0))
+greatest-outer-∀arrow-star-var-∀var-star-via-∀∀ D⊑A D⊑B =
+  ⊥-elim (no-plain-arrow-star-var-var-star-lower D⊑A D⊑B)
+
+greatest-outer-∀arrow-var-star-∀star-var-via-ν∀ :
+  ∀ {D} →
+  occurs zero D ≡ true →
+  0 ∣ (0 ˣ⊑★) ∷ [] ⊢ D ⊑ `∀ (＇ 0 ⇒ ★) →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ★ ⇒ ＇ 0 →
+  0 ∣ [] ⊢ `∀ D ⊑ `∀ (`∀ (＇ 0 ⇒ ＇ 1))
+greatest-outer-∀arrow-var-star-∀star-var-via-ν∀ {D = D} occD D⊑A D⊑B =
+  ∀ⁱ (greatestᶜ glbᶜ-lift-∀ν-arrow-var-star-star-var D D⊑A D⊑B)
+
+greatest-outer-∀arrow-star-var-∀var-star-via-ν∀ :
+  ∀ {D} →
+  occurs zero D ≡ true →
+  0 ∣ (0 ˣ⊑★) ∷ [] ⊢ D ⊑ `∀ (★ ⇒ ＇ 0) →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ＇ 0 ⇒ ★ →
+  0 ∣ [] ⊢ `∀ D ⊑ `∀ (`∀ (＇ 1 ⇒ ＇ 0))
+greatest-outer-∀arrow-star-var-∀var-star-via-ν∀ {D = D} occD D⊑A D⊑B =
+  ∀ⁱ (greatestᶜ glbᶜ-lift-∀ν-arrow-star-var-var-star D D⊑A D⊑B)
+
+NoVarTo0Star : ImpCtx → Set
+NoVarTo0Star Φ =
+  ∀ {X} → (X ˣ⊑ˣ 0) ∈ Φ → (X ˣ⊑★) ∈ Φ → ⊥
+
+NoVarTo0Star-[] : NoVarTo0Star []
+NoVarTo0Star-[] ()
+
+NoVarTo0Star-∀ :
+  ∀ {Φ} →
+  NoVarTo0Star Φ →
+  NoVarTo0Star ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ)
+NoVarTo0Star-∀ no0★ (here refl) (here ())
+NoVarTo0Star-∀ no0★ (here refl) (there x⊑★) =
+  no-⇑ᵢ-zero-star x⊑★
+NoVarTo0Star-∀ no0★ (there x⊑0) _ =
+  no-⇑ᵢ-zero-right x⊑0
+
+NoVarTo0Star-ν :
+  ∀ {Φ} →
+  NoVarTo0Star Φ →
+  NoVarTo0Star ((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+NoVarTo0Star-ν no0★ (here ()) _
+NoVarTo0Star-ν no0★ (there x⊑0) (here refl) =
+  no-⇑ᴸᵢ-zero-left x⊑0
+NoVarTo0Star-ν no0★ {zero} (there x⊑0) (there x⊑★) =
+  no-⇑ᴸᵢ-zero-left x⊑0
+NoVarTo0Star-ν no0★ {suc X} (there x⊑0) (there x⊑★) =
+  no0★ (un⇑ᴸᵢ-ˣ∈ x⊑0) (un⇑ᴸᵢ-★∈ x⊑★)
+
+no-lower-var0-star :
+  ∀ {Φ D} →
+  NoVarTo0Star Φ →
+  0 ∣ Φ ⊢ D ⊑ ＇ 0 →
+  0 ∣ Φ ⊢ D ⊑ ★ →
+  ⊥
+no-lower-var0-star no0★ (idˣ x⊑0) (tagˣ x⊑★) =
+  no0★ x⊑0 x⊑★
+no-lower-var0-star no0★ (ν occD D⊑0) (ν _ D⊑★) =
+  no-lower-var0-star (NoVarTo0Star-ν no0★) D⊑0 D⊑★
+
+no-lower-arrow-var-star-star-var :
+  ∀ {Φ D} →
+  NoVarTo0Star Φ →
+  0 ∣ Φ ⊢ D ⊑ ＇ 0 ⇒ ★ →
+  0 ∣ Φ ⊢ D ⊑ ★ ⇒ ＇ 0 →
+  ⊥
+no-lower-arrow-var-star-star-var no0★ (D⊑0 ↦ _) (D⊑★ ↦ _) =
+  no-lower-var0-star no0★ D⊑0 D⊑★
+no-lower-arrow-var-star-star-var no0★ (ν occD D⊑A) (ν _ D⊑B) =
+  no-lower-arrow-var-star-star-var (NoVarTo0Star-ν no0★) D⊑A D⊑B
+
+no-lower-arrow-star-var-var-star :
+  ∀ {Φ D} →
+  NoVarTo0Star Φ →
+  0 ∣ Φ ⊢ D ⊑ ★ ⇒ ＇ 0 →
+  0 ∣ Φ ⊢ D ⊑ ＇ 0 ⇒ ★ →
+  ⊥
+no-lower-arrow-star-var-var-star no0★ (D⊑★ ↦ _) (D⊑0 ↦ _) =
+  no-lower-var0-star no0★ D⊑0 D⊑★
+no-lower-arrow-star-var-var-star no0★ (ν occD D⊑A) (ν _ D⊑B) =
+  no-lower-arrow-star-var-var-star (NoVarTo0Star-ν no0★) D⊑A D⊑B
+
+greatest-outer-∀arrow-var-star-∀star-var-via-ν∀ᵍ :
+  ∀ {Φ D} →
+  occurs zero D ≡ true →
+  0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ ⊢ D ⊑ `∀ (＇ 0 ⇒ ★) →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ ⊢ D ⊑ ★ ⇒ ＇ 0 →
+  0 ∣ Φ ⊢ `∀ D ⊑ `∀ (`∀ (＇ 0 ⇒ ＇ 1))
+greatest-outer-∀arrow-var-star-∀star-var-via-ν∀ᵍ occD D⊑A D⊑B =
+  ∀ⁱ
+    (greatest-∀ν-arrow-var-star-star-var-map
+      (λ x → x) D⊑A D⊑B)
+
+greatest-outer-∀arrow-star-var-∀var-star-via-ν∀ᵍ :
+  ∀ {Φ D} →
+  occurs zero D ≡ true →
+  0 ∣ (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ ⊢ D ⊑ `∀ (★ ⇒ ＇ 0) →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ ⊢ D ⊑ ＇ 0 ⇒ ★ →
+  0 ∣ Φ ⊢ `∀ D ⊑ `∀ (`∀ (＇ 1 ⇒ ＇ 0))
+greatest-outer-∀arrow-star-var-∀var-star-via-ν∀ᵍ occD D⊑A D⊑B =
+  ∀ⁱ
+    (greatest-∀ν-arrow-star-var-var-star-map
+      (λ x → x) D⊑A D⊑B)
+
+data HardLowerClass (Φ : ImpCtx) (C : Ty) : Set where
+  below01 :
+    0 ∣ Φ ⊢ C ⊑ `∀ (`∀ (＇ 0 ⇒ ＇ 1)) →
+    HardLowerClass Φ C
+
+  below10 :
+    0 ∣ Φ ⊢ C ⊑ `∀ (`∀ (＇ 1 ⇒ ＇ 0)) →
+    HardLowerClass Φ C
+
+hard-lower-class :
+  ∀ {Φ C} →
+  NoVarTo0Star Φ →
+  0 ∣ Φ ⊢ C ⊑ `∀ (＇ 0 ⇒ ★) →
+  0 ∣ Φ ⊢ C ⊑ `∀ (★ ⇒ ＇ 0) →
+  HardLowerClass Φ C
+hard-lower-class no0★ (∀ⁱ D⊑A) (∀ⁱ D⊑B) =
+  ⊥-elim
+    (no-lower-arrow-var-star-star-var (NoVarTo0Star-∀ no0★)
+      D⊑A D⊑B)
+hard-lower-class no0★ (∀ⁱ D⊑A) (ν occD D⊑B) =
+  below10
+    (greatest-outer-∀arrow-star-var-∀var-star-via-ν∀ᵍ
+      occD D⊑B D⊑A)
+hard-lower-class no0★ (ν occD D⊑A) (∀ⁱ D⊑B) =
+  below01
+    (greatest-outer-∀arrow-var-star-∀star-var-via-ν∀ᵍ
+      occD D⊑A D⊑B)
+hard-lower-class no0★ (ν occD D⊑A) (ν _ D⊑B)
+    with hard-lower-class (NoVarTo0Star-ν no0★) D⊑A D⊑B
+hard-lower-class no0★ (ν occD D⊑A) (ν _ D⊑B)
+    | below01 D⊑01 = below01 (ν occD D⊑01)
+hard-lower-class no0★ (ν occD D⊑A) (ν _ D⊑B)
+    | below10 D⊑10 = below10 (ν occD D⊑10)
+
+no-arrow-⊑-∀ :
+  ∀ {Φ A B C} →
+  0 ∣ Φ ⊢ A ⇒ B ⊑ `∀ C →
+  ⊥
+no-arrow-⊑-∀ ()
+
+no-1⊑0-in-plain2 :
+  (1 ˣ⊑ˣ 0) ∈ ((0 ˣ⊑ˣ 0) ∷ (1 ˣ⊑ˣ 1) ∷ []) → ⊥
+no-1⊑0-in-plain2 (here ())
+no-1⊑0-in-plain2 (there (here ()))
+no-1⊑0-in-plain2 (there (there ()))
+
+no-0⊑1-in-plain2 :
+  (0 ˣ⊑ˣ 1) ∈ ((0 ˣ⊑ˣ 0) ∷ (1 ˣ⊑ˣ 1) ∷ []) → ⊥
+no-0⊑1-in-plain2 (here ())
+no-0⊑1-in-plain2 (there (here ()))
+no-0⊑1-in-plain2 (there (there ()))
+
+no-∀∀10⊑∀∀01 :
+  0 ∣ [] ⊢ `∀ (`∀ (＇ 1 ⇒ ＇ 0)) ⊑ `∀ (`∀ (＇ 0 ⇒ ＇ 1)) →
+  ⊥
+no-∀∀10⊑∀∀01 (∀ⁱ (∀ⁱ ((idˣ x⊑0) ↦ _))) =
+  no-1⊑0-in-plain2 x⊑0
+no-∀∀10⊑∀∀01 (∀ⁱ (ν _ p)) = no-arrow-⊑-∀ p
+no-∀∀10⊑∀∀01 (ν _ (∀ⁱ p)) = no-arrow-⊑-∀ p
+no-∀∀10⊑∀∀01 (ν _ (ν _ p)) = no-arrow-⊑-∀ p
+
+no-∀∀01⊑∀∀10 :
+  0 ∣ [] ⊢ `∀ (`∀ (＇ 0 ⇒ ＇ 1)) ⊑ `∀ (`∀ (＇ 1 ⇒ ＇ 0)) →
+  ⊥
+no-∀∀01⊑∀∀10 (∀ⁱ (∀ⁱ ((idˣ x⊑1) ↦ _))) =
+  no-0⊑1-in-plain2 x⊑1
+no-∀∀01⊑∀∀10 (∀ⁱ (ν _ p)) = no-arrow-⊑-∀ p
+no-∀∀01⊑∀∀10 (ν _ (∀ⁱ p)) = no-arrow-⊑-∀ p
+no-∀∀01⊑∀∀10 (ν _ (ν _ p)) = no-arrow-⊑-∀ p
+
+consistent?-∀∀01-∀∀10 :
+  consistent? (`∀ (`∀ (＇ 0 ⇒ ＇ 1))) (`∀ (`∀ (＇ 1 ⇒ ＇ 0))) ≡
+    nothing
+consistent?-∀∀01-∀∀10 = refl
+
+consistent?-∀∀10-∀∀01 :
+  consistent? (`∀ (`∀ (＇ 1 ⇒ ＇ 0))) (`∀ (`∀ (＇ 0 ⇒ ＇ 1))) ≡
+    nothing
+consistent?-∀∀10-∀∀01 = refl
+
+no-0~1-in-plain2ᶜ :
+  (0 ~ᶜ 1) ∈ ((0 ~ᶜ 0) ∷ (1 ~ᶜ 1) ∷ []) → ⊥
+no-0~1-in-plain2ᶜ (here ())
+no-0~1-in-plain2ᶜ (there (here ()))
+no-0~1-in-plain2ᶜ (there (there ()))
+
+no-0~1-in-star0-varstar0-plain1 :
+  (0 ~ᶜ 1) ∈ ((★~ᶜ 0) ∷ (0 ~ᶜ★) ∷ (1 ~ᶜ 1) ∷ []) → ⊥
+no-0~1-in-star0-varstar0-plain1 (here ())
+no-0~1-in-star0-varstar0-plain1 (there (here ()))
+no-0~1-in-star0-varstar0-plain1 (there (there (here ())))
+no-0~1-in-star0-varstar0-plain1 (there (there (there ())))
+
+no-0~1-in-varstar0-star0-plain1 :
+  (0 ~ᶜ 1) ∈ ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (1 ~ᶜ 1) ∷ []) → ⊥
+no-0~1-in-varstar0-star0-plain1 (here ())
+no-0~1-in-varstar0-star0-plain1 (there (here ()))
+no-0~1-in-varstar0-star0-plain1 (there (there (here ())))
+no-0~1-in-varstar0-star0-plain1 (there (there (there ())))
+
+no-1~0-in-plain2ᶜ :
+  (1 ~ᶜ 0) ∈ ((0 ~ᶜ 0) ∷ (1 ~ᶜ 1) ∷ []) → ⊥
+no-1~0-in-plain2ᶜ (here ())
+no-1~0-in-plain2ᶜ (there (here ()))
+no-1~0-in-plain2ᶜ (there (there ()))
+
+no-1~0-in-star0-varstar0-plain1 :
+  (1 ~ᶜ 0) ∈ ((★~ᶜ 0) ∷ (0 ~ᶜ★) ∷ (1 ~ᶜ 1) ∷ []) → ⊥
+no-1~0-in-star0-varstar0-plain1 (here ())
+no-1~0-in-star0-varstar0-plain1 (there (here ()))
+no-1~0-in-star0-varstar0-plain1 (there (there (here ())))
+no-1~0-in-star0-varstar0-plain1 (there (there (there ())))
+
+no-1~0-in-varstar0-star0-plain1 :
+  (1 ~ᶜ 0) ∈ ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (1 ~ᶜ 1) ∷ []) → ⊥
+no-1~0-in-varstar0-star0-plain1 (here ())
+no-1~0-in-varstar0-star0-plain1 (there (here ()))
+no-1~0-in-varstar0-star0-plain1 (there (there (here ())))
+no-1~0-in-varstar0-star0-plain1 (there (there (there ())))
+
+no-consistent-arrow01-10-plain2 :
+  ((0 ~ᶜ 0) ∷ (1 ~ᶜ 1) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-plain2
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-plain2ᶜ x~1
+
+no-consistent-arrow01-10-star-varstar :
+  ((★~ᶜ 0) ∷ (0 ~ᶜ★) ∷ (1 ~ᶜ 1) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-star-varstar
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-star0-varstar0-plain1 x~1
+
+no-consistent-arrow01-10-varstar-star :
+  ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (1 ~ᶜ 1) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-varstar-star
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-varstar0-star0-plain1 x~1
+
+no-consistent-arrow10-01-plain2 :
+  ((0 ~ᶜ 0) ∷ (1 ~ᶜ 1) ∷ []) ⊢
+    (＇ 1 ⇒ ＇ 0) ~ (＇ 0 ⇒ ＇ 1) →
+  ⊥
+no-consistent-arrow10-01-plain2
+    (⇒-~-⇒ (X-~-Y x~0) _) =
+  no-1~0-in-plain2ᶜ x~0
+
+no-consistent-arrow10-01-star-varstar :
+  ((★~ᶜ 0) ∷ (0 ~ᶜ★) ∷ (1 ~ᶜ 1) ∷ []) ⊢
+    (＇ 1 ⇒ ＇ 0) ~ (＇ 0 ⇒ ＇ 1) →
+  ⊥
+no-consistent-arrow10-01-star-varstar
+    (⇒-~-⇒ (X-~-Y x~0) _) =
+  no-1~0-in-star0-varstar0-plain1 x~0
+
+no-consistent-arrow10-01-varstar-star :
+  ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (1 ~ᶜ 1) ∷ []) ⊢
+    (＇ 1 ⇒ ＇ 0) ~ (＇ 0 ⇒ ＇ 1) →
+  ⊥
+no-consistent-arrow10-01-varstar-star
+    (⇒-~-⇒ (X-~-Y x~0) _) =
+  no-1~0-in-varstar0-star0-plain1 x~0
+
+no-consistent-arrow01-∀10-varstar-plain :
+  ((0 ~ᶜ★) ∷ (1 ~ᶜ 0) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ `∀ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-∀10-varstar-plain
+    (A-~-∀ occ p) =
+  no-consistent-arrow01-10-star-varstar p
+
+no-consistent-∀01-arrow10-star-plain :
+  ((★~ᶜ 0) ∷ (0 ~ᶜ 1) ∷ []) ⊢
+    `∀ (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-∀01-arrow10-star-plain
+    (∀-~-B occ p) =
+  no-consistent-arrow01-10-varstar-star p
+
+no-consistent-arrow10-∀01-varstar-plain :
+  ((0 ~ᶜ★) ∷ (1 ~ᶜ 0) ∷ []) ⊢
+    (＇ 1 ⇒ ＇ 0) ~ `∀ (＇ 0 ⇒ ＇ 1) →
+  ⊥
+no-consistent-arrow10-∀01-varstar-plain
+    (A-~-∀ occ p) =
+  no-consistent-arrow10-01-star-varstar p
+
+no-consistent-∀10-arrow01-star-plain :
+  ((★~ᶜ 0) ∷ (0 ~ᶜ 1) ∷ []) ⊢
+    `∀ (＇ 1 ⇒ ＇ 0) ~ (＇ 0 ⇒ ＇ 1) →
+  ⊥
+no-consistent-∀10-arrow01-star-plain
+    (∀-~-B occ p) =
+  no-consistent-arrow10-01-varstar-star p
+
+no-consistent-∀01-∀10-plain :
+  ((0 ~ᶜ 0) ∷ []) ⊢ `∀ (＇ 0 ⇒ ＇ 1) ~ `∀ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-∀01-∀10-plain (∀-~-∀ p) =
+  no-consistent-arrow01-10-plain2 p
+no-consistent-∀01-∀10-plain (∀-~-B occ p) =
+  no-consistent-arrow01-∀10-varstar-plain p
+no-consistent-∀01-∀10-plain (A-~-∀ occ p) =
+  no-consistent-∀01-arrow10-star-plain p
+
+no-consistent-∀10-∀01-plain :
+  ((0 ~ᶜ 0) ∷ []) ⊢ `∀ (＇ 1 ⇒ ＇ 0) ~ `∀ (＇ 0 ⇒ ＇ 1) →
+  ⊥
+no-consistent-∀10-∀01-plain (∀-~-∀ p) =
+  no-consistent-arrow10-01-plain2 p
+no-consistent-∀10-∀01-plain (∀-~-B occ p) =
+  no-consistent-arrow10-∀01-varstar-plain p
+no-consistent-∀10-∀01-plain (A-~-∀ occ p) =
+  no-consistent-∀10-arrow01-star-plain p
+
+no-1~0-in-star0-0~1-varstar1 :
+  (1 ~ᶜ 0) ∈ ((★~ᶜ 0) ∷ (0 ~ᶜ 1) ∷ (1 ~ᶜ★) ∷ []) → ⊥
+no-1~0-in-star0-0~1-varstar1 (here ())
+no-1~0-in-star0-0~1-varstar1 (there (here ()))
+no-1~0-in-star0-0~1-varstar1 (there (there (here ())))
+no-1~0-in-star0-0~1-varstar1 (there (there (there ())))
+
+no-0~1-in-star0-star1-varstar0-varstar1 :
+  (0 ~ᶜ 1) ∈
+    ((★~ᶜ 0) ∷ (★~ᶜ 1) ∷ (0 ~ᶜ★) ∷ (1 ~ᶜ★) ∷ []) →
+  ⊥
+no-0~1-in-star0-star1-varstar0-varstar1 (here ())
+no-0~1-in-star0-star1-varstar0-varstar1 (there (here ()))
+no-0~1-in-star0-star1-varstar0-varstar1 (there (there (here ())))
+no-0~1-in-star0-star1-varstar0-varstar1 (there (there (there (here ()))))
+no-0~1-in-star0-star1-varstar0-varstar1 (there (there (there (there ()))))
+
+no-0~1-in-plain0-star1-varstar1 :
+  (0 ~ᶜ 1) ∈ ((0 ~ᶜ 0) ∷ (★~ᶜ 1) ∷ (1 ~ᶜ★) ∷ []) → ⊥
+no-0~1-in-plain0-star1-varstar1 (here ())
+no-0~1-in-plain0-star1-varstar1 (there (here ()))
+no-0~1-in-plain0-star1-varstar1 (there (there (here ())))
+no-0~1-in-plain0-star1-varstar1 (there (there (there ())))
+
+no-0~1-in-varstar0-star0-varstar1 :
+  (0 ~ᶜ 1) ∈ ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (1 ~ᶜ★) ∷ []) → ⊥
+no-0~1-in-varstar0-star0-varstar1 (here ())
+no-0~1-in-varstar0-star0-varstar1 (there (here ()))
+no-0~1-in-varstar0-star0-varstar1 (there (there (here ())))
+no-0~1-in-varstar0-star0-varstar1 (there (there (there ())))
+
+no-0~1-in-star0-varstar0-star1-varstar1 :
+  (0 ~ᶜ 1) ∈
+    ((★~ᶜ 0) ∷ (0 ~ᶜ★) ∷ (★~ᶜ 1) ∷ (1 ~ᶜ★) ∷ []) →
+  ⊥
+no-0~1-in-star0-varstar0-star1-varstar1 (here ())
+no-0~1-in-star0-varstar0-star1-varstar1 (there (here ()))
+no-0~1-in-star0-varstar0-star1-varstar1 (there (there (here ())))
+no-0~1-in-star0-varstar0-star1-varstar1 (there (there (there (here ()))))
+no-0~1-in-star0-varstar0-star1-varstar1 (there (there (there (there ()))))
+
+no-0~1-in-varstar0-star0-star1-varstar1 :
+  (0 ~ᶜ 1) ∈
+    ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (★~ᶜ 1) ∷ (1 ~ᶜ★) ∷ []) →
+  ⊥
+no-0~1-in-varstar0-star0-star1-varstar1 (here ())
+no-0~1-in-varstar0-star0-star1-varstar1 (there (here ()))
+no-0~1-in-varstar0-star0-star1-varstar1 (there (there (here ())))
+no-0~1-in-varstar0-star0-star1-varstar1 (there (there (there (here ()))))
+no-0~1-in-varstar0-star0-star1-varstar1 (there (there (there (there ()))))
+
+no-consistent-arrow01-10-star0-0~1-varstar1 :
+  ((★~ᶜ 0) ∷ (0 ~ᶜ 1) ∷ (1 ~ᶜ★) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-star0-0~1-varstar1
+    (⇒-~-⇒ _ (X-~-Y x~0)) =
+  no-1~0-in-star0-0~1-varstar1 x~0
+
+no-consistent-arrow01-10-starstar-varstar :
+  ((★~ᶜ 0) ∷ (★~ᶜ 1) ∷ (0 ~ᶜ★) ∷ (1 ~ᶜ★) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-starstar-varstar
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-star0-star1-varstar0-varstar1 x~1
+
+no-consistent-arrow01-10-plain-star-varstar :
+  ((0 ~ᶜ 0) ∷ (★~ᶜ 1) ∷ (1 ~ᶜ★) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-plain-star-varstar
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-plain0-star1-varstar1 x~1
+
+no-consistent-arrow01-10-varstar-star-varstar :
+  ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (1 ~ᶜ★) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-varstar-star-varstar
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-varstar0-star0-varstar1 x~1
+
+no-consistent-arrow01-10-star-varstar-star-varstar :
+  ((★~ᶜ 0) ∷ (0 ~ᶜ★) ∷ (★~ᶜ 1) ∷ (1 ~ᶜ★) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-star-varstar-star-varstar
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-star0-varstar0-star1-varstar1 x~1
+
+no-consistent-arrow01-10-varstar-star-star-varstar :
+  ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (★~ᶜ 1) ∷ (1 ~ᶜ★) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-varstar-star-star-varstar
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-varstar0-star0-star1-varstar1 x~1
+
+no-consistent-arrow01-∀10-plain-varstar :
+  ((0 ~ᶜ 0) ∷ (1 ~ᶜ★) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ `∀ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-∀10-plain-varstar
+    (A-~-∀ occ p) =
+  no-consistent-arrow01-10-star0-0~1-varstar1 p
+
+no-consistent-arrow01-∀∀10-varstar-varstar :
+  ((0 ~ᶜ★) ∷ (1 ~ᶜ★) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ `∀ (`∀ (＇ 1 ⇒ ＇ 0)) →
+  ⊥
+no-consistent-arrow01-∀∀10-varstar-varstar
+    (A-~-∀ occ (A-~-∀ _ p)) =
+  no-consistent-arrow01-10-starstar-varstar p
+
+no-consistent-arrow01-∀10-varstar-star-varstar :
+  ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (1 ~ᶜ★) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ `∀ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-∀10-varstar-star-varstar
+    (A-~-∀ occ p) =
+  no-consistent-arrow01-10-star-varstar-star-varstar p
+
+no-consistent-∀01-arrow10-star-varstar :
+  ((★~ᶜ 0) ∷ (0 ~ᶜ★) ∷ []) ⊢
+    `∀ (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-∀01-arrow10-star-varstar
+    (∀-~-B occ p) =
+  no-consistent-arrow01-10-varstar-star-varstar p
+
+no-consistent-∀01-arrow10-star-star-varstar :
+  ((★~ᶜ 0) ∷ (★~ᶜ 1) ∷ (0 ~ᶜ★) ∷ []) ⊢
+    `∀ (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-∀01-arrow10-star-star-varstar
+    (∀-~-B occ p) =
+  no-consistent-arrow01-10-varstar-star-star-varstar p
+
+no-consistent-∀01-∀10-star-varstar :
+  ((★~ᶜ 0) ∷ (0 ~ᶜ★) ∷ []) ⊢
+    `∀ (＇ 0 ⇒ ＇ 1) ~ `∀ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-∀01-∀10-star-varstar (∀-~-∀ p) =
+  no-consistent-arrow01-10-plain-star-varstar p
+no-consistent-∀01-∀10-star-varstar (∀-~-B occ p) =
+  no-consistent-arrow01-∀10-varstar-star-varstar p
+no-consistent-∀01-∀10-star-varstar (A-~-∀ occ p) =
+  no-consistent-∀01-arrow10-star-star-varstar p
+
+no-consistent-∀01-∀∀10-left :
+  ((0 ~ᶜ★) ∷ []) ⊢ `∀ (＇ 0 ⇒ ＇ 1) ~
+    `∀ (`∀ (＇ 1 ⇒ ＇ 0)) →
+  ⊥
+no-consistent-∀01-∀∀10-left (∀-~-∀ p) =
+  no-consistent-arrow01-∀10-plain-varstar p
+no-consistent-∀01-∀∀10-left (∀-~-B occ p) =
+  no-consistent-arrow01-∀∀10-varstar-varstar p
+no-consistent-∀01-∀∀10-left (A-~-∀ occ p) =
+  no-consistent-∀01-∀10-star-varstar p
+
+no-0~1-in-varstar0-1~0-star1 :
+  (0 ~ᶜ 1) ∈ ((0 ~ᶜ★) ∷ (1 ~ᶜ 0) ∷ (★~ᶜ 1) ∷ []) → ⊥
+no-0~1-in-varstar0-1~0-star1 (here ())
+no-0~1-in-varstar0-1~0-star1 (there (here ()))
+no-0~1-in-varstar0-1~0-star1 (there (there (here ())))
+no-0~1-in-varstar0-1~0-star1 (there (there (there ())))
+
+no-0~1-in-plain0-varstar1-star1 :
+  (0 ~ᶜ 1) ∈ ((0 ~ᶜ 0) ∷ (1 ~ᶜ★) ∷ (★~ᶜ 1) ∷ []) → ⊥
+no-0~1-in-plain0-varstar1-star1 (here ())
+no-0~1-in-plain0-varstar1-star1 (there (here ()))
+no-0~1-in-plain0-varstar1-star1 (there (there (here ())))
+no-0~1-in-plain0-varstar1-star1 (there (there (there ())))
+
+no-0~1-in-star0-varstar0-varstar1-star1 :
+  (0 ~ᶜ 1) ∈
+    ((★~ᶜ 0) ∷ (0 ~ᶜ★) ∷ (1 ~ᶜ★) ∷ (★~ᶜ 1) ∷ []) →
+  ⊥
+no-0~1-in-star0-varstar0-varstar1-star1 (here ())
+no-0~1-in-star0-varstar0-varstar1-star1 (there (here ()))
+no-0~1-in-star0-varstar0-varstar1-star1 (there (there (here ())))
+no-0~1-in-star0-varstar0-varstar1-star1 (there (there (there (here ()))))
+no-0~1-in-star0-varstar0-varstar1-star1 (there (there (there (there ()))))
+
+no-0~1-in-varstar0-star0-varstar1-star1 :
+  (0 ~ᶜ 1) ∈
+    ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (1 ~ᶜ★) ∷ (★~ᶜ 1) ∷ []) →
+  ⊥
+no-0~1-in-varstar0-star0-varstar1-star1 (here ())
+no-0~1-in-varstar0-star0-varstar1-star1 (there (here ()))
+no-0~1-in-varstar0-star0-varstar1-star1 (there (there (here ())))
+no-0~1-in-varstar0-star0-varstar1-star1 (there (there (there (here ()))))
+no-0~1-in-varstar0-star0-varstar1-star1 (there (there (there (there ()))))
+
+no-0~1-in-varstar0-varstar1-star0-star1 :
+  (0 ~ᶜ 1) ∈
+    ((0 ~ᶜ★) ∷ (1 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (★~ᶜ 1) ∷ []) →
+  ⊥
+no-0~1-in-varstar0-varstar1-star0-star1 (here ())
+no-0~1-in-varstar0-varstar1-star0-star1 (there (here ()))
+no-0~1-in-varstar0-varstar1-star0-star1 (there (there (here ())))
+no-0~1-in-varstar0-varstar1-star0-star1 (there (there (there (here ()))))
+no-0~1-in-varstar0-varstar1-star0-star1 (there (there (there (there ()))))
+
+no-consistent-arrow01-10-varstar-1~0-star :
+  ((0 ~ᶜ★) ∷ (1 ~ᶜ 0) ∷ (★~ᶜ 1) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-varstar-1~0-star
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-varstar0-1~0-star1 x~1
+
+no-consistent-arrow01-10-plain-varstar-star :
+  ((0 ~ᶜ 0) ∷ (1 ~ᶜ★) ∷ (★~ᶜ 1) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-plain-varstar-star
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-plain0-varstar1-star1 x~1
+
+no-consistent-arrow01-10-star-varstar-varstar-star :
+  ((★~ᶜ 0) ∷ (0 ~ᶜ★) ∷ (1 ~ᶜ★) ∷ (★~ᶜ 1) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-star-varstar-varstar-star
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-star0-varstar0-varstar1-star1 x~1
+
+no-consistent-arrow01-10-varstar-star-varstar-star :
+  ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (1 ~ᶜ★) ∷ (★~ᶜ 1) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-varstar-star-varstar-star
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-varstar0-star0-varstar1-star1 x~1
+
+no-consistent-arrow01-10-varstar-varstar-star-star :
+  ((0 ~ᶜ★) ∷ (1 ~ᶜ★) ∷ (★~ᶜ 0) ∷ (★~ᶜ 1) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-10-varstar-varstar-star-star
+    (⇒-~-⇒ (X-~-Y x~1) _) =
+  no-0~1-in-varstar0-varstar1-star0-star1 x~1
+
+no-consistent-∀01-arrow10-plain-star :
+  ((0 ~ᶜ 0) ∷ (★~ᶜ 1) ∷ []) ⊢
+    `∀ (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-∀01-arrow10-plain-star
+    (∀-~-B occ p) =
+  no-consistent-arrow01-10-varstar-1~0-star p
+
+no-consistent-arrow01-∀10-varstar-varstar-star :
+  ((0 ~ᶜ★) ∷ (1 ~ᶜ★) ∷ (★~ᶜ 0) ∷ []) ⊢
+    (＇ 0 ⇒ ＇ 1) ~ `∀ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-arrow01-∀10-varstar-varstar-star
+    (A-~-∀ occ p) =
+  no-consistent-arrow01-10-star-varstar-varstar-star p
+
+no-consistent-∀01-arrow10-star-varstar-star :
+  ((★~ᶜ 0) ∷ (0 ~ᶜ★) ∷ (★~ᶜ 1) ∷ []) ⊢
+    `∀ (＇ 0 ⇒ ＇ 1) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-∀01-arrow10-star-varstar-star
+    (∀-~-B occ p) =
+  no-consistent-arrow01-10-varstar-star-varstar-star p
+
+no-consistent-∀01-∀10-varstar-star :
+  ((0 ~ᶜ★) ∷ (★~ᶜ 0) ∷ []) ⊢
+    `∀ (＇ 0 ⇒ ＇ 1) ~ `∀ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-∀01-∀10-varstar-star (∀-~-∀ p) =
+  no-consistent-arrow01-10-plain-varstar-star p
+no-consistent-∀01-∀10-varstar-star (∀-~-B occ p) =
+  no-consistent-arrow01-∀10-varstar-varstar-star p
+no-consistent-∀01-∀10-varstar-star (A-~-∀ occ p) =
+  no-consistent-∀01-arrow10-star-varstar-star p
+
+no-consistent-∀∀01-arrow10-star-star :
+  ((★~ᶜ 0) ∷ (★~ᶜ 1) ∷ []) ⊢
+    `∀ (`∀ (＇ 0 ⇒ ＇ 1)) ~ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-∀∀01-arrow10-star-star
+    (∀-~-B occ (∀-~-B _ p)) =
+  no-consistent-arrow01-10-varstar-varstar-star-star p
+
+no-consistent-∀∀01-∀10-right :
+  ((★~ᶜ 0) ∷ []) ⊢ `∀ (`∀ (＇ 0 ⇒ ＇ 1)) ~
+    `∀ (＇ 1 ⇒ ＇ 0) →
+  ⊥
+no-consistent-∀∀01-∀10-right (∀-~-∀ p) =
+  no-consistent-∀01-arrow10-plain-star p
+no-consistent-∀∀01-∀10-right (∀-~-B occ p) =
+  no-consistent-∀01-∀10-varstar-star p
+no-consistent-∀∀01-∀10-right (A-~-∀ occ p) =
+  no-consistent-∀∀01-arrow10-star-star p
+
+no-consistent-∀∀01-∀∀10 :
+  [] ⊢ `∀ (`∀ (＇ 0 ⇒ ＇ 1)) ~ `∀ (`∀ (＇ 1 ⇒ ＇ 0)) →
+  ⊥
+no-consistent-∀∀01-∀∀10 (∀-~-∀ p) =
+  no-consistent-∀01-∀10-plain p
+no-consistent-∀∀01-∀∀10 (∀-~-B occ p) =
+  no-consistent-∀01-∀∀10-left p
+no-consistent-∀∀01-∀∀10 (A-~-∀ occ p) =
+  no-consistent-∀∀01-∀10-right p
+
+no-consistent-∀∀10-∀∀01 :
+  [] ⊢ `∀ (`∀ (＇ 1 ⇒ ＇ 0)) ~ `∀ (`∀ (＇ 0 ⇒ ＇ 1)) →
+  ⊥
+no-consistent-∀∀10-∀∀01 p =
+  no-consistent-∀∀01-∀∀10 (~-sym p)
+
+no-common-lower-∀∀01-∀∀10 :
+  CommonLower (`∀ (`∀ (＇ 0 ⇒ ＇ 1))) (`∀ (`∀ (＇ 1 ⇒ ＇ 0))) →
+  ⊥
+no-common-lower-∀∀01-∀∀10 lower =
+  no-consistent-∀∀01-∀∀10 (common-lower-consistent lower)
+
+no-common-lower-∀∀10-∀∀01 :
+  CommonLower (`∀ (`∀ (＇ 1 ⇒ ＇ 0))) (`∀ (`∀ (＇ 0 ⇒ ＇ 1))) →
+  ⊥
+no-common-lower-∀∀10-∀∀01 lower =
+  no-consistent-∀∀10-∀∀01 (common-lower-consistent lower)
+
 glbᶜ-arrow-var-star-star-base :
   ∀ {κ} →
   Glbᶜ ((0 ˣ⊑ˣ 0) ∷ []) ((0 ˣ⊑★) ∷ []) ((0 ˣ⊑ˣ 0) ∷ [])
@@ -3662,6 +4435,11 @@ glb?-consistent A B with glb? A B
 glb?-consistent A B | nothing = nothing
 glb?-consistent A B | just glb = just (glb-exists-consistent glb)
 
+glb?-common-lower : (A B : Ty) → Maybe (CommonLower A B)
+glb?-common-lower A B with glb? A B
+glb?-common-lower A B | nothing = nothing
+glb?-common-lower A B | just glb = just (glb-exists⇒common-lower glb)
+
 glb-∀base-star :
   Σ[ C ∈ Ty ] 0 ⊢ C ＝ (`∀ (‵ `ℕ)) ⊓ (`∀ ★)
 glb-∀base-star =
@@ -3787,3 +4565,249 @@ common-lower-∀arrow-star-var-∀var-star :
   CommonLower (`∀ (★ ⇒ ＇ 0)) (`∀ (＇ 0 ⇒ ★))
 common-lower-∀arrow-star-var-∀var-star =
   consistent-common-lower consistent-∀arrow-star-var-∀var-star
+
+candidate-common-lower-∀arrow-var-star-∀star-var :
+  CommonLower (`∀ (＇ 0 ⇒ ★)) (`∀ (★ ⇒ ＇ 0))
+candidate-common-lower-∀arrow-var-star-∀star-var =
+  `∀ (`∀ (＇ 0 ⇒ ＇ 1)) ,
+  ν refl (∀ⁱ (lowerˡᶜ glbᶜ-arrow-var-star-star-var-nested)) ,
+  ∀ⁱ (ν refl (lowerʳᶜ glbᶜ-arrow-var-star-star-var-nested))
+
+candidate-common-lower-∀arrow-star-var-∀var-star :
+  CommonLower (`∀ (★ ⇒ ＇ 0)) (`∀ (＇ 0 ⇒ ★))
+candidate-common-lower-∀arrow-star-var-∀var-star =
+  `∀ (`∀ (＇ 1 ⇒ ＇ 0)) ,
+  ν refl (∀ⁱ (lowerˡᶜ glbᶜ-arrow-star-var-var-star-nested)) ,
+  ∀ⁱ (ν refl (lowerʳᶜ glbᶜ-arrow-star-var-var-star-nested))
+
+alternate-common-lower-∀arrow-var-star-∀star-var :
+  CommonLower (`∀ (＇ 0 ⇒ ★)) (`∀ (★ ⇒ ＇ 0))
+alternate-common-lower-∀arrow-var-star-∀star-var =
+  `∀ (`∀ (＇ 1 ⇒ ＇ 0)) ,
+  ∀ⁱ (ν refl
+    ((idˣ (there (here refl))) ↦ (tagˣ (here refl)))) ,
+  ν refl (∀ⁱ
+    ((tagˣ (there (here refl))) ↦ (idˣ (here refl))))
+
+alternate-common-lower-∀arrow-star-var-∀var-star :
+  CommonLower (`∀ (★ ⇒ ＇ 0)) (`∀ (＇ 0 ⇒ ★))
+alternate-common-lower-∀arrow-star-var-∀var-star =
+  `∀ (`∀ (＇ 0 ⇒ ＇ 1)) ,
+  ∀ⁱ (ν refl
+    ((tagˣ (here refl)) ↦ (idˣ (there (here refl))))) ,
+  ν refl (∀ⁱ
+    ((idˣ (here refl)) ↦ (tagˣ (there (here refl)))))
+
+glb-upper-candidates-∀arrow-var-star-∀star-var :
+  ∀ {C} →
+  0 ⊢ C ＝ (`∀ (＇ 0 ⇒ ★)) ⊓ (`∀ (★ ⇒ ＇ 0)) →
+  0 ∣ [] ⊢ `∀ (`∀ (＇ 0 ⇒ ＇ 1)) ⊑ C ×
+  0 ∣ [] ⊢ `∀ (`∀ (＇ 1 ⇒ ＇ 0)) ⊑ C
+glb-upper-candidates-∀arrow-var-star-∀star-var C⊓A⊓B =
+  proj₂ (proj₂ C⊓A⊓B) _
+    (proj₁ (proj₂ candidate-common-lower-∀arrow-var-star-∀star-var))
+    (proj₂ (proj₂ candidate-common-lower-∀arrow-var-star-∀star-var)) ,
+  proj₂ (proj₂ C⊓A⊓B) _
+    (proj₁ (proj₂ alternate-common-lower-∀arrow-var-star-∀star-var))
+    (proj₂ (proj₂ alternate-common-lower-∀arrow-var-star-∀star-var))
+
+glb-upper-candidates-∀arrow-star-var-∀var-star :
+  ∀ {C} →
+  0 ⊢ C ＝ (`∀ (★ ⇒ ＇ 0)) ⊓ (`∀ (＇ 0 ⇒ ★)) →
+  0 ∣ [] ⊢ `∀ (`∀ (＇ 1 ⇒ ＇ 0)) ⊑ C ×
+  0 ∣ [] ⊢ `∀ (`∀ (＇ 0 ⇒ ＇ 1)) ⊑ C
+glb-upper-candidates-∀arrow-star-var-∀var-star C⊓A⊓B =
+  proj₂ (proj₂ C⊓A⊓B) _
+    (proj₁ (proj₂ candidate-common-lower-∀arrow-star-var-∀var-star))
+    (proj₂ (proj₂ candidate-common-lower-∀arrow-star-var-∀var-star)) ,
+  proj₂ (proj₂ C⊓A⊓B) _
+    (proj₁ (proj₂ alternate-common-lower-∀arrow-star-var-∀var-star))
+    (proj₂ (proj₂ alternate-common-lower-∀arrow-star-var-∀var-star))
+
+no-glb-ν∀-branch-∀arrow-var-star-∀star-var :
+  ∀ {D} →
+  occurs zero D ≡ true →
+  0 ∣ (0 ˣ⊑★) ∷ [] ⊢ D ⊑ `∀ (＇ 0 ⇒ ★) →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ★ ⇒ ＇ 0 →
+  (∀ C′ →
+    0 ∣ [] ⊢ C′ ⊑ `∀ (＇ 0 ⇒ ★) →
+    0 ∣ [] ⊢ C′ ⊑ `∀ (★ ⇒ ＇ 0) →
+    0 ∣ [] ⊢ C′ ⊑ `∀ D) →
+  ⊥
+no-glb-ν∀-branch-∀arrow-var-star-∀star-var occD D⊑A D⊑B greatest =
+  no-∀∀10⊑∀∀01
+    (⊑-trans-closed
+      (greatest _
+        (proj₁ (proj₂ alternate-common-lower-∀arrow-var-star-∀star-var))
+        (proj₂ (proj₂ alternate-common-lower-∀arrow-var-star-∀star-var)))
+      (greatest-outer-∀arrow-var-star-∀star-var-via-ν∀
+        occD D⊑A D⊑B))
+
+no-glb-∀ν-branch-∀arrow-var-star-∀star-var :
+  ∀ {D} →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ＇ 0 ⇒ ★ →
+  occurs zero D ≡ true →
+  0 ∣ (0 ˣ⊑★) ∷ [] ⊢ D ⊑ `∀ (★ ⇒ ＇ 0) →
+  (∀ C′ →
+    0 ∣ [] ⊢ C′ ⊑ `∀ (＇ 0 ⇒ ★) →
+    0 ∣ [] ⊢ C′ ⊑ `∀ (★ ⇒ ＇ 0) →
+    0 ∣ [] ⊢ C′ ⊑ `∀ D) →
+  ⊥
+no-glb-∀ν-branch-∀arrow-var-star-∀star-var D⊑A occD D⊑B greatest =
+  no-∀∀01⊑∀∀10
+    (⊑-trans-closed
+      (greatest _
+        (proj₁ (proj₂ candidate-common-lower-∀arrow-var-star-∀star-var))
+        (proj₂ (proj₂ candidate-common-lower-∀arrow-var-star-∀star-var)))
+      (greatest-outer-∀arrow-star-var-∀var-star-via-ν∀
+        occD D⊑B D⊑A))
+
+no-glb-ν∀-branch-∀arrow-star-var-∀var-star :
+  ∀ {D} →
+  occurs zero D ≡ true →
+  0 ∣ (0 ˣ⊑★) ∷ [] ⊢ D ⊑ `∀ (★ ⇒ ＇ 0) →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ＇ 0 ⇒ ★ →
+  (∀ C′ →
+    0 ∣ [] ⊢ C′ ⊑ `∀ (★ ⇒ ＇ 0) →
+    0 ∣ [] ⊢ C′ ⊑ `∀ (＇ 0 ⇒ ★) →
+    0 ∣ [] ⊢ C′ ⊑ `∀ D) →
+  ⊥
+no-glb-ν∀-branch-∀arrow-star-var-∀var-star occD D⊑A D⊑B greatest =
+  no-∀∀01⊑∀∀10
+    (⊑-trans-closed
+      (greatest _
+        (proj₁ (proj₂ alternate-common-lower-∀arrow-star-var-∀var-star))
+        (proj₂ (proj₂ alternate-common-lower-∀arrow-star-var-∀var-star)))
+      (greatest-outer-∀arrow-star-var-∀var-star-via-ν∀
+        occD D⊑A D⊑B))
+
+no-glb-∀ν-branch-∀arrow-star-var-∀var-star :
+  ∀ {D} →
+  0 ∣ (0 ˣ⊑ˣ 0) ∷ [] ⊢ D ⊑ ★ ⇒ ＇ 0 →
+  occurs zero D ≡ true →
+  0 ∣ (0 ˣ⊑★) ∷ [] ⊢ D ⊑ `∀ (＇ 0 ⇒ ★) →
+  (∀ C′ →
+    0 ∣ [] ⊢ C′ ⊑ `∀ (★ ⇒ ＇ 0) →
+    0 ∣ [] ⊢ C′ ⊑ `∀ (＇ 0 ⇒ ★) →
+    0 ∣ [] ⊢ C′ ⊑ `∀ D) →
+  ⊥
+no-glb-∀ν-branch-∀arrow-star-var-∀var-star D⊑A occD D⊑B greatest =
+  no-∀∀10⊑∀∀01
+    (⊑-trans-closed
+      (greatest _
+        (proj₁ (proj₂ candidate-common-lower-∀arrow-star-var-∀var-star))
+        (proj₂ (proj₂ candidate-common-lower-∀arrow-star-var-∀var-star)))
+      (greatest-outer-∀arrow-var-star-∀star-var-via-ν∀
+        occD D⊑B D⊑A))
+
+no-glb-∀arrow-var-star-∀star-var :
+  Σ[ C ∈ Ty ] 0 ⊢ C ＝ (`∀ (＇ 0 ⇒ ★)) ⊓ (`∀ (★ ⇒ ＇ 0)) →
+  ⊥
+no-glb-∀arrow-var-star-∀star-var (C , C⊓A⊓B)
+    with hard-lower-class NoVarTo0Star-[]
+      (proj₁ C⊓A⊓B)
+      (proj₁ (proj₂ C⊓A⊓B))
+no-glb-∀arrow-var-star-∀star-var (C , C⊓A⊓B) | below01 C⊑01 =
+  no-∀∀10⊑∀∀01
+    (⊑-trans-closed
+      (proj₂ (proj₂ C⊓A⊓B) _
+        (proj₁ (proj₂ alternate-common-lower-∀arrow-var-star-∀star-var))
+        (proj₂ (proj₂ alternate-common-lower-∀arrow-var-star-∀star-var)))
+      C⊑01)
+no-glb-∀arrow-var-star-∀star-var (C , C⊓A⊓B) | below10 C⊑10 =
+  no-∀∀01⊑∀∀10
+    (⊑-trans-closed
+      (proj₂ (proj₂ C⊓A⊓B) _
+        (proj₁ (proj₂ candidate-common-lower-∀arrow-var-star-∀star-var))
+        (proj₂ (proj₂ candidate-common-lower-∀arrow-var-star-∀star-var)))
+      C⊑10)
+
+no-glb-∀arrow-star-var-∀var-star :
+  Σ[ C ∈ Ty ] 0 ⊢ C ＝ (`∀ (★ ⇒ ＇ 0)) ⊓ (`∀ (＇ 0 ⇒ ★)) →
+  ⊥
+no-glb-∀arrow-star-var-∀var-star (C , C⊓A⊓B) =
+  no-glb-∀arrow-var-star-∀star-var (C , ⊓-comm C⊓A⊓B)
+
+consistent-without-glb-∀arrow-var-star-∀star-var :
+  [] ⊢ `∀ (＇ 0 ⇒ ★) ~ `∀ (★ ⇒ ＇ 0) ×
+  (Σ[ C ∈ Ty ] 0 ⊢ C ＝ (`∀ (＇ 0 ⇒ ★)) ⊓ (`∀ (★ ⇒ ＇ 0)) →
+    ⊥)
+consistent-without-glb-∀arrow-var-star-∀star-var =
+  consistent-∀arrow-var-star-∀star-var ,
+  no-glb-∀arrow-var-star-∀star-var
+
+common-lower-without-glb-∀arrow-var-star-∀star-var :
+  CommonLower (`∀ (＇ 0 ⇒ ★)) (`∀ (★ ⇒ ＇ 0)) ×
+  (Σ[ C ∈ Ty ] 0 ⊢ C ＝ (`∀ (＇ 0 ⇒ ★)) ⊓ (`∀ (★ ⇒ ＇ 0)) →
+    ⊥)
+common-lower-without-glb-∀arrow-var-star-∀star-var =
+  common-lower-∀arrow-var-star-∀star-var ,
+  no-glb-∀arrow-var-star-∀star-var
+
+consistent-without-glb-∀arrow-star-var-∀var-star :
+  [] ⊢ `∀ (★ ⇒ ＇ 0) ~ `∀ (＇ 0 ⇒ ★) ×
+  (Σ[ C ∈ Ty ] 0 ⊢ C ＝ (`∀ (★ ⇒ ＇ 0)) ⊓ (`∀ (＇ 0 ⇒ ★)) →
+    ⊥)
+consistent-without-glb-∀arrow-star-var-∀var-star =
+  consistent-∀arrow-star-var-∀var-star ,
+  no-glb-∀arrow-star-var-∀var-star
+
+common-lower-without-glb-∀arrow-star-var-∀var-star :
+  CommonLower (`∀ (★ ⇒ ＇ 0)) (`∀ (＇ 0 ⇒ ★)) ×
+  (Σ[ C ∈ Ty ] 0 ⊢ C ＝ (`∀ (★ ⇒ ＇ 0)) ⊓ (`∀ (＇ 0 ⇒ ★)) →
+    ⊥)
+common-lower-without-glb-∀arrow-star-var-∀var-star =
+  common-lower-∀arrow-star-var-∀var-star ,
+  no-glb-∀arrow-star-var-∀var-star
+
+consistent-does-not-imply-glb :
+  Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+    [] ⊢ A ~ B × ((Σ[ C ∈ Ty ] 0 ⊢ C ＝ A ⊓ B) → ⊥)
+consistent-does-not-imply-glb =
+  `∀ (＇ 0 ⇒ ★) ,
+  `∀ (★ ⇒ ＇ 0) ,
+  consistent-without-glb-∀arrow-var-star-∀star-var
+
+common-lower-does-not-imply-glb :
+  Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+    CommonLower A B × ((Σ[ C ∈ Ty ] 0 ⊢ C ＝ A ⊓ B) → ⊥)
+common-lower-does-not-imply-glb =
+  `∀ (＇ 0 ⇒ ★) ,
+  `∀ (★ ⇒ ＇ 0) ,
+  common-lower-without-glb-∀arrow-var-star-∀star-var
+
+glb?-∀arrow-var-star-∀star-var :
+  glb? (`∀ (＇ 0 ⇒ ★)) (`∀ (★ ⇒ ＇ 0)) ≡ nothing
+glb?-∀arrow-var-star-∀star-var = refl
+
+glb?-∀arrow-star-var-∀var-star :
+  glb? (`∀ (★ ⇒ ＇ 0)) (`∀ (＇ 0 ⇒ ★)) ≡ nothing
+glb?-∀arrow-star-var-∀var-star = refl
+
+glb?-nothing-with-consistency :
+  Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+    glb? A B ≡ nothing × [] ⊢ A ~ B
+glb?-nothing-with-consistency =
+  `∀ (＇ 0 ⇒ ★) ,
+  `∀ (★ ⇒ ＇ 0) ,
+  glb?-∀arrow-var-star-∀star-var ,
+  consistent-∀arrow-var-star-∀star-var
+
+glb?-nothing-with-common-lower :
+  Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+    glb? A B ≡ nothing × CommonLower A B
+glb?-nothing-with-common-lower =
+  `∀ (＇ 0 ⇒ ★) ,
+  `∀ (★ ⇒ ＇ 0) ,
+  glb?-∀arrow-var-star-∀star-var ,
+  common-lower-∀arrow-var-star-∀star-var
+
+glb?-nothing-without-glb :
+  Σ[ A ∈ Ty ] Σ[ B ∈ Ty ]
+    glb? A B ≡ nothing ×
+    ((Σ[ C ∈ Ty ] 0 ⊢ C ＝ A ⊓ B) → ⊥)
+glb?-nothing-without-glb =
+  `∀ (＇ 0 ⇒ ★) ,
+  `∀ (★ ⇒ ＇ 0) ,
+  glb?-∀arrow-var-star-∀star-var ,
+  no-glb-∀arrow-var-star-∀star-var

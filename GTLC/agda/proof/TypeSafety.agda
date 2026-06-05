@@ -18,6 +18,6 @@ import proof.CastSafety as CastSafetyProof
 type-safety
   : {M : Term} {A : Ty} {N : Termᶜ}
   → (M⦂A : [] ⊢ M ⦂ A)
-  → compile M⦂A —↠ᶜ N
-  → (∃[ N′ ] (N —→ᶜ N′)) ⊎ Result N
+  → compile M⦂A —↠ N
+  → (∃[ N′ ] (N —→ N′)) ⊎ Result N
 type-safety M⦂A M—↠N = CastSafetyProof.type-safetyᶜ (compile-preserves M⦂A) M—↠N

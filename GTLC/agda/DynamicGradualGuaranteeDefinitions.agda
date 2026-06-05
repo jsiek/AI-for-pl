@@ -17,7 +17,7 @@ open import Compile using (compile)
 
 _⇓_ : Term → Termᶜ → Set
 M ⇓ V =
-  ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (compile wt —↠ᶜ V × Result V))
+  ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (compile wt —↠ V × Result V))
 
 Diverges : Term → Set
 Diverges M = ∃[ A ] (Σ[ wt ∈ ([] ⊢ M ⦂ A) ] (Divergesᶜ (compile wt)))
@@ -28,8 +28,8 @@ Blames M = ∃[ ℓ ] (M ⇓ blame {ℓ = ℓ})
 DivergeOrBlameᶜ : Termᶜ → Set
 DivergeOrBlameᶜ M′ =
   ∀ N′
-  → M′ —↠ᶜ N′
-  → Blameᶜ N′ ⊎ ∃[ N″ ] N′ —→ᶜ N″
+  → M′ —↠ N′
+  → Blameᶜ N′ ⊎ ∃[ N″ ] N′ —→ N″
 
 DivergeOrBlame : Term → Set
 DivergeOrBlame M =

@@ -16,7 +16,7 @@ open import Coercions
 open import CastCalculus
 data Progressᶜ (M : Termᶜ) : Set where
   done  : Valueᶜ M → Progressᶜ M
-  step  : ∀ {N} → M —→ᶜ N → Progressᶜ M
+  step  : ∀ {N} → M —→ N → Progressᶜ M
   crash : ∀ {ℓ} → M ≡ blame {ℓ = ℓ} → Progressᶜ M
 
 canonical-★-inj : ∀ {V}
@@ -161,7 +161,7 @@ frame-blameᶜ {F = cast□[ c ]} (⊢cast M⦂ c⦂) = ⊢blame
 mutual
   preserveᶜ : ∀ {M N A}
       → [] ⊢ᶜ M ⦂ A
-      → M —→ᶜ N
+      → M —→ N
       → [] ⊢ᶜ N ⦂ A
   preserveᶜ M⦂A (ξξ {F = F} refl refl M→N) =
     frame-preserveᶜ {F = F} M⦂A M→N
@@ -180,7 +180,7 @@ mutual
   frame-preserveᶜ
     : ∀ {F M N A}
     → [] ⊢ᶜ plug F M ⦂ A
-    → M —→ᶜ N
+    → M —→ N
     → [] ⊢ᶜ plug F N ⦂ A
   frame-preserveᶜ {F = □· M₁} (⊢· M⦂ M₁⦂) M→N =
     ⊢· (preserveᶜ M⦂ M→N) M₁⦂
@@ -192,8 +192,8 @@ mutual
 preserveᶜ*
   : ∀ {M N A}
   → [] ⊢ᶜ M ⦂ A
-  → M —↠ᶜ N
+  → M —↠ N
   → [] ⊢ᶜ N ⦂ A
-preserveᶜ* M⦂ (M ∎ᶜ) = M⦂
-preserveᶜ* M⦂ (M —→ᶜ⟨ M→N ⟩ N—↠P) =
+preserveᶜ* M⦂ (M ∎) = M⦂
+preserveᶜ* M⦂ (M —→⟨ M→N ⟩ N—↠P) =
   preserveᶜ* (preserveᶜ M⦂ M→N) N—↠P

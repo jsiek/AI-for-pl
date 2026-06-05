@@ -74,78 +74,78 @@ private
     field
       left-wt : ⊢ c ⦂ A ⇨ B
       right-wt : ⊢ d ⦂ A ⇨ B
-      quotiented-eq : QuotEq._≈ᶜ_ (coercion→quotiented c)
+      quotiented-eq : QuotEq._≈_ (coercion→quotiented c)
                                     (coercion→quotiented d)
 
-  multi-transᶜʳ : ∀ {c d e}
-    → c —↠ᶜʳ d
-    → d —↠ᶜʳ e
-    → c —↠ᶜʳ e
-  multi-transᶜʳ (_ ∎ᶜʳ) d↠e = d↠e
-  multi-transᶜʳ (_ —→ᶜʳ⟨ c→d ⟩ d↠e) e↠f =
-    _ —→ᶜʳ⟨ c→d ⟩ multi-transᶜʳ d↠e e↠f
+  multi-transᶜ : ∀ {c d e}
+    → c —↠ᶜ d
+    → d —↠ᶜ e
+    → c —↠ᶜ e
+  multi-transᶜ (_ ∎ᶜ) d↠e = d↠e
+  multi-transᶜ (_ —→ᶜ⟨ c→d ⟩ d↠e) e↠f =
+    _ —→ᶜ⟨ c→d ⟩ multi-transᶜ d↠e e↠f
 
-  multi-trans≈ᶜʳ : ∀ {c d e}
-    → c —↠≈ᶜʳ d
-    → d —↠≈ᶜʳ e
-    → c —↠≈ᶜʳ e
-  multi-trans≈ᶜʳ (≈ᶜʳ-done c≈d) d↠e = eq≈ᶜʳ c≈d d↠e
-  multi-trans≈ᶜʳ (step≈ᶜʳ c→d d↠e) e↠f =
-    step≈ᶜʳ c→d (multi-trans≈ᶜʳ d↠e e↠f)
-  multi-trans≈ᶜʳ (eq≈ᶜʳ c≈d d↠e) e↠f =
-    eq≈ᶜʳ c≈d (multi-trans≈ᶜʳ d↠e e↠f)
+  multi-trans≈ᶜ : ∀ {c d e}
+    → c —↠≈ᶜ d
+    → d —↠≈ᶜ e
+    → c —↠≈ᶜ e
+  multi-trans≈ᶜ (≈ᶜ-done c≈d) d↠e = eq≈ᶜ c≈d d↠e
+  multi-trans≈ᶜ (step≈ᶜ c→d d↠e) e↠f =
+    step≈ᶜ c→d (multi-trans≈ᶜ d↠e e↠f)
+  multi-trans≈ᶜ (eq≈ᶜ c≈d d↠e) e↠f =
+    eq≈ᶜ c≈d (multi-trans≈ᶜ d↠e e↠f)
 
-  multi-ξ-⨟₁≈ᶜʳ : ∀ {c c′ d}
-    → c —↠≈ᶜʳ c′
-    → (c ⨟ d) —↠≈ᶜʳ (c′ ⨟ d)
-  multi-ξ-⨟₁≈ᶜʳ (≈ᶜʳ-done c≈c′) =
-    ≈ᶜʳ-done (≈ᶜʳ-⨟ c≈c′ ≈ᶜʳ-refl)
-  multi-ξ-⨟₁≈ᶜʳ (step≈ᶜʳ c→d d↠e) =
-    step≈ᶜʳ (ξ-⨟₁ᶜʳ c→d) (multi-ξ-⨟₁≈ᶜʳ d↠e)
-  multi-ξ-⨟₁≈ᶜʳ (eq≈ᶜʳ c≈d d↠e) =
-    eq≈ᶜʳ (≈ᶜʳ-⨟ c≈d ≈ᶜʳ-refl) (multi-ξ-⨟₁≈ᶜʳ d↠e)
+  multi-ξ-⨟₁≈ᶜ : ∀ {c c′ d}
+    → c —↠≈ᶜ c′
+    → (c ⨟ d) —↠≈ᶜ (c′ ⨟ d)
+  multi-ξ-⨟₁≈ᶜ (≈ᶜ-done c≈c′) =
+    ≈ᶜ-done (≈ᶜ-⨟ c≈c′ ≈ᶜ-refl)
+  multi-ξ-⨟₁≈ᶜ (step≈ᶜ c→d d↠e) =
+    step≈ᶜ (ξ-⨟₁ᶜ c→d) (multi-ξ-⨟₁≈ᶜ d↠e)
+  multi-ξ-⨟₁≈ᶜ (eq≈ᶜ c≈d d↠e) =
+    eq≈ᶜ (≈ᶜ-⨟ c≈d ≈ᶜ-refl) (multi-ξ-⨟₁≈ᶜ d↠e)
 
-  ξ-head≈ᶜʳ : ∀ {c d e rest}
-    → c ;ᶜʳ d —→ e
-    → (c ⨟ (d ⨟ rest)) —↠≈ᶜʳ (e ⨟ rest)
-  ξ-head≈ᶜʳ c;d→e =
-    eq≈ᶜʳ (≈ᶜʳ-sym ≈ᶜʳ-assoc)
-      (multi-ξ-⨟₁≈ᶜʳ
-        (step≈ᶜʳ (ξ-pairᶜʳ c;d→e) (≈ᶜʳ-done ≈ᶜʳ-refl)))
+  ξ-head≈ᶜ : ∀ {c d e rest}
+    → c ; d —→ e
+    → (c ⨟ (d ⨟ rest)) —↠≈ᶜ (e ⨟ rest)
+  ξ-head≈ᶜ c;d→e =
+    eq≈ᶜ (≈ᶜ-sym ≈ᶜ-assoc)
+      (multi-ξ-⨟₁≈ᶜ
+        (step≈ᶜ (ξ-pairᶜ c;d→e) (≈ᶜ-done ≈ᶜ-refl)))
 
-  multi-ξ-⨟₂≈ᶜʳ : ∀ {c d d′}
-    → d —↠≈ᶜʳ d′
-    → (c ⨟ d) —↠≈ᶜʳ (c ⨟ d′)
-  multi-ξ-⨟₂≈ᶜʳ (≈ᶜʳ-done d≈d′) =
-    ≈ᶜʳ-done (≈ᶜʳ-⨟ ≈ᶜʳ-refl d≈d′)
-  multi-ξ-⨟₂≈ᶜʳ (step≈ᶜʳ d→e e↠f) =
-    step≈ᶜʳ (ξ-⨟₂ᶜʳ d→e) (multi-ξ-⨟₂≈ᶜʳ e↠f)
-  multi-ξ-⨟₂≈ᶜʳ (eq≈ᶜʳ d≈e e↠f) =
-    eq≈ᶜʳ (≈ᶜʳ-⨟ ≈ᶜʳ-refl d≈e) (multi-ξ-⨟₂≈ᶜʳ e↠f)
+  multi-ξ-⨟₂≈ᶜ : ∀ {c d d′}
+    → d —↠≈ᶜ d′
+    → (c ⨟ d) —↠≈ᶜ (c ⨟ d′)
+  multi-ξ-⨟₂≈ᶜ (≈ᶜ-done d≈d′) =
+    ≈ᶜ-done (≈ᶜ-⨟ ≈ᶜ-refl d≈d′)
+  multi-ξ-⨟₂≈ᶜ (step≈ᶜ d→e e↠f) =
+    step≈ᶜ (ξ-⨟₂ᶜ d→e) (multi-ξ-⨟₂≈ᶜ e↠f)
+  multi-ξ-⨟₂≈ᶜ (eq≈ᶜ d≈e e↠f) =
+    eq≈ᶜ (≈ᶜ-⨟ ≈ᶜ-refl d≈e) (multi-ξ-⨟₂≈ᶜ e↠f)
 
-  multi-ξ-↦₁≈ᶜʳ : ∀ {c c′ d}
-    → c —↠≈ᶜʳ c′
-    → (c ↦ d) —↠≈ᶜʳ (c′ ↦ d)
-  multi-ξ-↦₁≈ᶜʳ (≈ᶜʳ-done c≈c′) =
-    ≈ᶜʳ-done (≈ᶜʳ-↦ c≈c′ ≈ᶜʳ-refl)
-  multi-ξ-↦₁≈ᶜʳ (step≈ᶜʳ c→d d↠e) =
-    step≈ᶜʳ (ξ-↦₁ᶜʳ c→d) (multi-ξ-↦₁≈ᶜʳ d↠e)
-  multi-ξ-↦₁≈ᶜʳ (eq≈ᶜʳ c≈d d↠e) =
-    eq≈ᶜʳ (≈ᶜʳ-↦ c≈d ≈ᶜʳ-refl) (multi-ξ-↦₁≈ᶜʳ d↠e)
+  multi-ξ-↦₁≈ᶜ : ∀ {c c′ d}
+    → c —↠≈ᶜ c′
+    → (c ↦ d) —↠≈ᶜ (c′ ↦ d)
+  multi-ξ-↦₁≈ᶜ (≈ᶜ-done c≈c′) =
+    ≈ᶜ-done (≈ᶜ-↦ c≈c′ ≈ᶜ-refl)
+  multi-ξ-↦₁≈ᶜ (step≈ᶜ c→d d↠e) =
+    step≈ᶜ (ξ-↦₁ᶜ c→d) (multi-ξ-↦₁≈ᶜ d↠e)
+  multi-ξ-↦₁≈ᶜ (eq≈ᶜ c≈d d↠e) =
+    eq≈ᶜ (≈ᶜ-↦ c≈d ≈ᶜ-refl) (multi-ξ-↦₁≈ᶜ d↠e)
 
-  multi-ξ-↦₂≈ᶜʳ : ∀ {c d d′}
-    → d —↠≈ᶜʳ d′
-    → (c ↦ d) —↠≈ᶜʳ (c ↦ d′)
-  multi-ξ-↦₂≈ᶜʳ (≈ᶜʳ-done d≈d′) =
-    ≈ᶜʳ-done (≈ᶜʳ-↦ ≈ᶜʳ-refl d≈d′)
-  multi-ξ-↦₂≈ᶜʳ (step≈ᶜʳ d→e e↠f) =
-    step≈ᶜʳ (ξ-↦₂ᶜʳ d→e) (multi-ξ-↦₂≈ᶜʳ e↠f)
-  multi-ξ-↦₂≈ᶜʳ (eq≈ᶜʳ d≈e e↠f) =
-    eq≈ᶜʳ (≈ᶜʳ-↦ ≈ᶜʳ-refl d≈e) (multi-ξ-↦₂≈ᶜʳ e↠f)
+  multi-ξ-↦₂≈ᶜ : ∀ {c d d′}
+    → d —↠≈ᶜ d′
+    → (c ↦ d) —↠≈ᶜ (c ↦ d′)
+  multi-ξ-↦₂≈ᶜ (≈ᶜ-done d≈d′) =
+    ≈ᶜ-done (≈ᶜ-↦ ≈ᶜ-refl d≈d′)
+  multi-ξ-↦₂≈ᶜ (step≈ᶜ d→e e↠f) =
+    step≈ᶜ (ξ-↦₂ᶜ d→e) (multi-ξ-↦₂≈ᶜ e↠f)
+  multi-ξ-↦₂≈ᶜ (eq≈ᶜ d≈e e↠f) =
+    eq≈ᶜ (≈ᶜ-↦ ≈ᶜ-refl d≈e) (multi-ξ-↦₂≈ᶜ e↠f)
 
   irred-pair-no-step : ∀ {c d e}
     → Quot.IrredPairᶜ c d
-    → ¬ (Quot._;_—→ᶜ_ c d e)
+    → ¬ (Quot._;_—→_ c d e)
   irred-pair-no-step Quot.irred-?! ()
   irred-pair-no-step Quot.irred-?⊥ ()
   irred-pair-no-step Quot.irred-?↦ ()
@@ -153,7 +153,7 @@ private
 
   quotiented-normal-no-step : ∀ {c d}
     → Quot.Normalᶜ c
-    → ¬ (Quot._—→ᶜᶜ_ c d)
+    → ¬ (Quot._—→_ c d)
   quotiented-normal-no-step Quot.nf-[] ()
   quotiented-normal-no-step (Quot.nf-singleton Quot.nf-!) (Quot.ξ-∷ᶜ ())
   quotiented-normal-no-step (Quot.nf-singleton Quot.nf-?) (Quot.ξ-∷ᶜ ())
@@ -214,35 +214,35 @@ private
     → (cwt : Quot.⊢_⦂_⇨ᶜ_ c A B)
     → (restwt : Quot.⊢_⦂_⇨_ cs B C)
     → proj₁ (quotiented→coercion (Quot.⊢∷ cwt restwt))
-      ≈ᶜʳ
+      ≈ᶜ
       (proj₁ (quotiented-crcn→coercion cwt) ⨟ proj₁ (quotiented→coercion restwt))
   quotiented→coercion-cons≈ cwt Quot.⊢[] =
-    ≈ᶜʳ-sym ≈ᶜʳ-idR
+    ≈ᶜ-sym ≈ᶜ-idR
   quotiented→coercion-cons≈ cwt (Quot.⊢∷ dwt restwt) =
-    ≈ᶜʳ-refl
+    ≈ᶜ-refl
 
   quotiented→coercion-⨟≈ : ∀ {c d A B C}
     → (cwt : Quot.⊢_⦂_⇨_ c A B)
     → (dwt : Quot.⊢_⦂_⇨_ d B C)
     → proj₁ (quotiented→coercion (Quot.⊢⨟ cwt dwt))
-      ≈ᶜʳ
+      ≈ᶜ
       (proj₁ (quotiented→coercion cwt) ⨟ proj₁ (quotiented→coercion dwt))
   quotiented→coercion-⨟≈ Quot.⊢[] dwt =
-    ≈ᶜʳ-sym ≈ᶜʳ-idL
+    ≈ᶜ-sym ≈ᶜ-idL
   quotiented→coercion-⨟≈ (Quot.⊢∷ cwt Quot.⊢[]) Quot.⊢[] =
-    ≈ᶜʳ-sym ≈ᶜʳ-idR
+    ≈ᶜ-sym ≈ᶜ-idR
   quotiented→coercion-⨟≈ (Quot.⊢∷ cwt Quot.⊢[]) (Quot.⊢∷ dwt restwt) =
-    ≈ᶜʳ-refl
+    ≈ᶜ-refl
   quotiented→coercion-⨟≈ (Quot.⊢∷ cwt (Quot.⊢∷ dwt restwt)) ewt =
-    ≈ᶜʳ-trans
-      (≈ᶜʳ-⨟ ≈ᶜʳ-refl
+    ≈ᶜ-trans
+      (≈ᶜ-⨟ ≈ᶜ-refl
         (quotiented→coercion-⨟≈ (Quot.⊢∷ dwt restwt) ewt))
-      (≈ᶜʳ-sym ≈ᶜʳ-assoc)
+      (≈ᶜ-sym ≈ᶜ-assoc)
 
-  ≡⇒≈ᶜ : ∀ {c d}
+  ≡⇒≈ : ∀ {c d}
     → c ≡ d
-    → QuotEq._≈ᶜ_ c d
-  ≡⇒≈ᶜ refl = QuotEq.≈-refl
+    → QuotEq._≈_ c d
+  ≡⇒≈ refl = QuotEq.≈-refl
 
   coercion-quotiented-roundtrip : ∀ {c A B}
     → (cwt : ⊢ c ⦂ A ⇨ B)
@@ -251,55 +251,55 @@ private
     typed-coercion-eq
       cwt
       (proj₂ (quotiented→coercion (coercion→quotiented-wt cwt)))
-      (QuotEq.≈-sym (≡⇒≈ᶜ (quotiented→coercion-roundtrip (coercion→quotiented-wt cwt))))
+      (QuotEq.≈-sym (≡⇒≈ (quotiented→coercion-roundtrip (coercion→quotiented-wt cwt))))
 
-  coercion-roundtrip≈ᶜʳ : ∀ {c A B}
+  coercion-roundtrip≈ᶜ : ∀ {c A B}
     → (cwt : ⊢ c ⦂ A ⇨ B)
-    → c ≈ᶜʳ proj₁ (quotiented→coercion (coercion→quotiented-wt cwt))
-  coercion-roundtrip≈ᶜʳ ⊢idᶜ = ≈ᶜʳ-refl
-  coercion-roundtrip≈ᶜʳ (⊢! g) = ≈ᶜʳ-refl
-  coercion-roundtrip≈ᶜʳ (⊢? g) = ≈ᶜʳ-refl
-  coercion-roundtrip≈ᶜʳ (⊢↦ cwt dwt) =
-    ≈ᶜʳ-↦ (coercion-roundtrip≈ᶜʳ cwt) (coercion-roundtrip≈ᶜʳ dwt)
-  coercion-roundtrip≈ᶜʳ (⊢⨟ cwt dwt) =
-    ≈ᶜʳ-trans
-      (≈ᶜʳ-⨟ (coercion-roundtrip≈ᶜʳ cwt) (coercion-roundtrip≈ᶜʳ dwt))
-      (≈ᶜʳ-sym (quotiented→coercion-⨟≈ (coercion→quotiented-wt cwt) (coercion→quotiented-wt dwt)))
-  coercion-roundtrip≈ᶜʳ ⊢⊥ = ≈ᶜʳ-refl
+    → c ≈ᶜ proj₁ (quotiented→coercion (coercion→quotiented-wt cwt))
+  coercion-roundtrip≈ᶜ ⊢idᶜ = ≈ᶜ-refl
+  coercion-roundtrip≈ᶜ (⊢! g) = ≈ᶜ-refl
+  coercion-roundtrip≈ᶜ (⊢? g) = ≈ᶜ-refl
+  coercion-roundtrip≈ᶜ (⊢↦ cwt dwt) =
+    ≈ᶜ-↦ (coercion-roundtrip≈ᶜ cwt) (coercion-roundtrip≈ᶜ dwt)
+  coercion-roundtrip≈ᶜ (⊢⨟ cwt dwt) =
+    ≈ᶜ-trans
+      (≈ᶜ-⨟ (coercion-roundtrip≈ᶜ cwt) (coercion-roundtrip≈ᶜ dwt))
+      (≈ᶜ-sym (quotiented→coercion-⨟≈ (coercion→quotiented-wt cwt) (coercion→quotiented-wt dwt)))
+  coercion-roundtrip≈ᶜ ⊢⊥ = ≈ᶜ-refl
 
-  irred-pair-no-stepᶜʳ : ∀ {c d A B C e}
+  irred-pair-no-stepᶜ : ∀ {c d A B C e}
     → (cwt : Quot.⊢_⦂_⇨ᶜ_ c A B)
     → (dwt : Quot.⊢_⦂_⇨ᶜ_ d B C)
     → Quot.IrredPairᶜ c d
-    → ¬ (proj₁ (quotiented-crcn→coercion cwt) ;ᶜʳ
+    → ¬ (proj₁ (quotiented-crcn→coercion cwt) ;
           proj₁ (quotiented-crcn→coercion dwt) —→ e)
-  irred-pair-no-stepᶜʳ (Quot.⊢? g) (Quot.⊢! h) Quot.irred-?! ()
-  irred-pair-no-stepᶜʳ (Quot.⊢? g) Quot.⊢⊥ Quot.irred-?⊥ ()
-  irred-pair-no-stepᶜʳ (Quot.⊢? g) (Quot.⊢↦ cwt dwt) Quot.irred-?↦ ()
-  irred-pair-no-stepᶜʳ (Quot.⊢↦ cwt dwt) (Quot.⊢! g) Quot.irred-↦! ()
+  irred-pair-no-stepᶜ (Quot.⊢? g) (Quot.⊢! h) Quot.irred-?! ()
+  irred-pair-no-stepᶜ (Quot.⊢? g) Quot.⊢⊥ Quot.irred-?⊥ ()
+  irred-pair-no-stepᶜ (Quot.⊢? g) (Quot.⊢↦ cwt dwt) Quot.irred-?↦ ()
+  irred-pair-no-stepᶜ (Quot.⊢↦ cwt dwt) (Quot.⊢! g) Quot.irred-↦! ()
 
-  irred-head-no-stepᶜʳ : ∀ {c d cs A B C D e}
+  irred-head-no-stepᶜ : ∀ {c d cs A B C D e}
     → (cwt : Quot.⊢_⦂_⇨ᶜ_ c A B)
     → (dwt : Quot.⊢_⦂_⇨ᶜ_ d B C)
     → (restwt : Quot.⊢_⦂_⇨_ cs C D)
     → Quot.IrredPairᶜ c d
-    → ¬ (proj₁ (quotiented-crcn→coercion cwt) ;ᶜʳ
+    → ¬ (proj₁ (quotiented-crcn→coercion cwt) ;
           proj₁ (quotiented→coercion (Quot.⊢∷ dwt restwt)) —→ e)
-  irred-head-no-stepᶜʳ (Quot.⊢? g) (Quot.⊢! h) Quot.⊢[]
+  irred-head-no-stepᶜ (Quot.⊢? g) (Quot.⊢! h) Quot.⊢[]
                         Quot.irred-?! ()
-  irred-head-no-stepᶜʳ (Quot.⊢? g) (Quot.⊢! h) (Quot.⊢∷ restwt restwt′)
+  irred-head-no-stepᶜ (Quot.⊢? g) (Quot.⊢! h) (Quot.⊢∷ restwt restwt′)
                         Quot.irred-?! ()
-  irred-head-no-stepᶜʳ (Quot.⊢? g) Quot.⊢⊥ Quot.⊢[]
+  irred-head-no-stepᶜ (Quot.⊢? g) Quot.⊢⊥ Quot.⊢[]
                         Quot.irred-?⊥ ()
-  irred-head-no-stepᶜʳ (Quot.⊢? g) Quot.⊢⊥ (Quot.⊢∷ restwt restwt′)
+  irred-head-no-stepᶜ (Quot.⊢? g) Quot.⊢⊥ (Quot.⊢∷ restwt restwt′)
                         Quot.irred-?⊥ ()
-  irred-head-no-stepᶜʳ (Quot.⊢? g) (Quot.⊢↦ cwt dwt) Quot.⊢[]
+  irred-head-no-stepᶜ (Quot.⊢? g) (Quot.⊢↦ cwt dwt) Quot.⊢[]
                         Quot.irred-?↦ ()
-  irred-head-no-stepᶜʳ (Quot.⊢? g) (Quot.⊢↦ cwt dwt)
+  irred-head-no-stepᶜ (Quot.⊢? g) (Quot.⊢↦ cwt dwt)
                         (Quot.⊢∷ restwt restwt′) Quot.irred-?↦ ()
-  irred-head-no-stepᶜʳ (Quot.⊢↦ cwt dwt) (Quot.⊢! g) Quot.⊢[]
+  irred-head-no-stepᶜ (Quot.⊢↦ cwt dwt) (Quot.⊢! g) Quot.⊢[]
                         Quot.irred-↦! ()
-  irred-head-no-stepᶜʳ (Quot.⊢↦ cwt dwt) (Quot.⊢! g)
+  irred-head-no-stepᶜ (Quot.⊢↦ cwt dwt) (Quot.⊢! g)
                         (Quot.⊢∷ restwt restwt′) Quot.irred-↦! ()
 
   mutual
@@ -313,10 +313,10 @@ private
       irred (λ ())
     quotiented-single-normal→irreducible (Quot.⊢↦ cwt dwt) (Quot.nf-↦ cnf dnf) =
       irred
-        (λ { (ξ-↦₁ᶜʳ c→c′) →
+        (λ { (ξ-↦₁ᶜ c→c′) →
                 Irreducible.no-step
                   (quotiented-normal→irreducible cwt cnf) c→c′
-           ; (ξ-↦₂ᶜʳ d→d′) →
+           ; (ξ-↦₂ᶜ d→d′) →
                 Irreducible.no-step
                   (quotiented-normal→irreducible dwt dnf) d→d′ })
     quotiented-single-normal→irreducible Quot.⊢⊥ Quot.nf-⊥ =
@@ -335,13 +335,13 @@ private
       (Quot.⊢∷ (Quot.⊢? g) (Quot.⊢∷ (Quot.⊢! h) Quot.⊢[]))
       (Quot.nf-step snf Quot.irred-?! restnf) =
       irred
-        (λ { (ξ-pairᶜʳ c;rest→e) →
-                irred-head-no-stepᶜʳ (Quot.⊢? g) (Quot.⊢! h) Quot.⊢[]
+        (λ { (ξ-pairᶜ c;rest→e) →
+                irred-head-no-stepᶜ (Quot.⊢? g) (Quot.⊢! h) Quot.⊢[]
                                      Quot.irred-?! c;rest→e
-           ; (ξ-⨟₁ᶜʳ c→c′) →
+           ; (ξ-⨟₁ᶜ c→c′) →
                 Irreducible.no-step
                   (quotiented-single-normal→irreducible (Quot.⊢? g) snf) c→c′
-           ; (ξ-⨟₂ᶜʳ rest→rest′) →
+           ; (ξ-⨟₂ᶜ rest→rest′) →
                 Irreducible.no-step
                   (quotiented-normal→irreducible (Quot.⊢∷ (Quot.⊢! h) Quot.⊢[])
                                           restnf)
@@ -350,13 +350,13 @@ private
       (Quot.⊢∷ (Quot.⊢? g) (Quot.⊢∷ Quot.⊢⊥ Quot.⊢[]))
       (Quot.nf-step snf Quot.irred-?⊥ restnf) =
       irred
-        (λ { (ξ-pairᶜʳ c;rest→e) →
-                irred-head-no-stepᶜʳ (Quot.⊢? g) Quot.⊢⊥ Quot.⊢[]
+        (λ { (ξ-pairᶜ c;rest→e) →
+                irred-head-no-stepᶜ (Quot.⊢? g) Quot.⊢⊥ Quot.⊢[]
                                      Quot.irred-?⊥ c;rest→e
-           ; (ξ-⨟₁ᶜʳ c→c′) →
+           ; (ξ-⨟₁ᶜ c→c′) →
                 Irreducible.no-step
                   (quotiented-single-normal→irreducible (Quot.⊢? g) snf) c→c′
-           ; (ξ-⨟₂ᶜʳ rest→rest′) →
+           ; (ξ-⨟₂ᶜ rest→rest′) →
                 Irreducible.no-step
                   (quotiented-normal→irreducible (Quot.⊢∷ Quot.⊢⊥ Quot.⊢[])
                                           restnf)
@@ -365,13 +365,13 @@ private
       (Quot.⊢∷ (Quot.⊢? g) (Quot.⊢∷ (Quot.⊢↦ cwt dwt) Quot.⊢[]))
       (Quot.nf-step snf Quot.irred-?↦ restnf) =
       irred
-        (λ { (ξ-pairᶜʳ c;rest→e) →
-                irred-head-no-stepᶜʳ (Quot.⊢? g) (Quot.⊢↦ cwt dwt)
+        (λ { (ξ-pairᶜ c;rest→e) →
+                irred-head-no-stepᶜ (Quot.⊢? g) (Quot.⊢↦ cwt dwt)
                                      Quot.⊢[] Quot.irred-?↦ c;rest→e
-           ; (ξ-⨟₁ᶜʳ c→c′) →
+           ; (ξ-⨟₁ᶜ c→c′) →
                 Irreducible.no-step
                   (quotiented-single-normal→irreducible (Quot.⊢? g) snf) c→c′
-           ; (ξ-⨟₂ᶜʳ rest→rest′) →
+           ; (ξ-⨟₂ᶜ rest→rest′) →
                 Irreducible.no-step
                   (quotiented-normal→irreducible
                     (Quot.⊢∷ (Quot.⊢↦ cwt dwt) Quot.⊢[]) restnf)
@@ -380,13 +380,13 @@ private
       (Quot.⊢∷ (Quot.⊢↦ cwt dwt) (Quot.⊢∷ (Quot.⊢! g) Quot.⊢[]))
       (Quot.nf-step snf Quot.irred-↦! restnf) =
       irred
-        (λ { (ξ-pairᶜʳ c;rest→e) →
-                irred-head-no-stepᶜʳ (Quot.⊢↦ cwt dwt) (Quot.⊢! g)
+        (λ { (ξ-pairᶜ c;rest→e) →
+                irred-head-no-stepᶜ (Quot.⊢↦ cwt dwt) (Quot.⊢! g)
                                      Quot.⊢[] Quot.irred-↦! c;rest→e
-           ; (ξ-⨟₁ᶜʳ c→c′) →
+           ; (ξ-⨟₁ᶜ c→c′) →
                 Irreducible.no-step
                   (quotiented-single-normal→irreducible (Quot.⊢↦ cwt dwt) snf) c→c′
-           ; (ξ-⨟₂ᶜʳ rest→rest′) →
+           ; (ξ-⨟₂ᶜ rest→rest′) →
                 Irreducible.no-step
                   (quotiented-normal→irreducible (Quot.⊢∷ (Quot.⊢! g) Quot.⊢[])
                                           restnf)
@@ -395,71 +395,71 @@ private
       (Quot.⊢∷ cwt (Quot.⊢∷ dwt (Quot.⊢∷ ewt restwt)))
       (Quot.nf-step snf pair-irred restnf) =
       irred
-        (λ { (ξ-pairᶜʳ c;rest→e) →
-                irred-head-no-stepᶜʳ cwt dwt (Quot.⊢∷ ewt restwt)
+        (λ { (ξ-pairᶜ c;rest→e) →
+                irred-head-no-stepᶜ cwt dwt (Quot.⊢∷ ewt restwt)
                                        pair-irred c;rest→e
-           ; (ξ-⨟₁ᶜʳ c→c′) →
+           ; (ξ-⨟₁ᶜ c→c′) →
                 Irreducible.no-step
                   (quotiented-single-normal→irreducible cwt snf) c→c′
-           ; (ξ-⨟₂ᶜʳ rest→rest′) →
+           ; (ξ-⨟₂ᶜ rest→rest′) →
                 Irreducible.no-step
                   (quotiented-normal→irreducible
                     (Quot.⊢∷ dwt (Quot.⊢∷ ewt restwt)) restnf)
                   rest→rest′ })
 
-  β-↦-target≈ᶜʳ : ∀ {c d c′ d′ A B C D E F}
+  β-↦-target≈ᶜ : ∀ {c d c′ d′ A B C D E F}
     → (cwt : Quot.⊢_⦂_⇨_ c C A)
     → (dwt : Quot.⊢_⦂_⇨_ d B D)
     → (c′wt : Quot.⊢_⦂_⇨_ c′ E C)
     → (d′wt : Quot.⊢_⦂_⇨_ d′ D F)
     → ((proj₁ (quotiented→coercion c′wt) ⨟ proj₁ (quotiented→coercion cwt)) ↦
        (proj₁ (quotiented→coercion dwt) ⨟ proj₁ (quotiented→coercion d′wt)))
-      ≈ᶜʳ
+      ≈ᶜ
       proj₁ (quotiented-crcn→coercion
         (Quot.⊢↦ (Quot.⊢⨟ c′wt cwt) (Quot.⊢⨟ dwt d′wt)))
-  β-↦-target≈ᶜʳ cwt dwt c′wt d′wt =
-    ≈ᶜʳ-↦
-      (≈ᶜʳ-sym (quotiented→coercion-⨟≈ c′wt cwt))
-      (≈ᶜʳ-sym (quotiented→coercion-⨟≈ dwt d′wt))
+  β-↦-target≈ᶜ cwt dwt c′wt d′wt =
+    ≈ᶜ-↦
+      (≈ᶜ-sym (quotiented→coercion-⨟≈ c′wt cwt))
+      (≈ᶜ-sym (quotiented→coercion-⨟≈ dwt d′wt))
 
   quotiented-step→coercion-reduction : ∀ {c d A B}
     → (cwt : Quot.⊢_⦂_⇨_ c A B)
-    → (c→d : c Quot.—→ᶜᶜ d)
+    → (c→d : c Quot.—→ d)
     → proj₁ (quotiented→coercion cwt)
-      —↠≈ᶜʳ
-      proj₁ (quotiented→coercion (Quot.preserve-—→ᶜᶜ cwt c→d))
+      —↠≈ᶜ
+      proj₁ (quotiented→coercion (Quot.preserve-—→ cwt c→d))
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢! g) (Quot.⊢∷ (Quot.⊢? h) Quot.⊢[]))
     (Quot.ξ-pair Quot.β-proj-inj-okᶜ refl) =
-    step≈ᶜʳ (ξ-pairᶜʳ β-proj-inj-okᶜʳ) (≈ᶜʳ-done ≈ᶜʳ-refl)
+    step≈ᶜ (ξ-pairᶜ β-proj-inj-okᶜ) (≈ᶜ-done ≈ᶜ-refl)
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢! g)
       (Quot.⊢∷ (Quot.⊢? h) (Quot.⊢∷ restwt restwt′)))
     (Quot.ξ-pair Quot.β-proj-inj-okᶜ refl) =
-    multi-trans≈ᶜʳ (ξ-head≈ᶜʳ β-proj-inj-okᶜʳ)
-                   (≈ᶜʳ-done ≈ᶜʳ-idL)
+    multi-trans≈ᶜ (ξ-head≈ᶜ β-proj-inj-okᶜ)
+                   (≈ᶜ-done ≈ᶜ-idL)
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢! g) (Quot.⊢∷ (Quot.⊢? h) Quot.⊢[]))
     (Quot.ξ-pair (Quot.β-proj-inj-badᶜ G≢H) refl) =
-    step≈ᶜʳ (ξ-pairᶜʳ (β-proj-inj-badᶜʳ G≢H)) (≈ᶜʳ-done ≈ᶜʳ-refl)
+    step≈ᶜ (ξ-pairᶜ (β-proj-inj-badᶜ G≢H)) (≈ᶜ-done ≈ᶜ-refl)
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢! g)
       (Quot.⊢∷ (Quot.⊢? h) (Quot.⊢∷ restwt restwt′)))
     (Quot.ξ-pair (Quot.β-proj-inj-badᶜ G≢H) refl) =
-    ξ-head≈ᶜʳ (β-proj-inj-badᶜʳ G≢H)
+    ξ-head≈ᶜ (β-proj-inj-badᶜ G≢H)
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢↦ cwt dwt)
       (Quot.⊢∷ (Quot.⊢↦ c′wt d′wt) Quot.⊢[]))
     (Quot.ξ-pair Quot.β-↦ᶜ refl) =
-    step≈ᶜʳ (ξ-pairᶜʳ β-↦ᶜʳ)
-      (≈ᶜʳ-done (β-↦-target≈ᶜʳ cwt dwt c′wt d′wt))
+    step≈ᶜ (ξ-pairᶜ β-↦ᶜ)
+      (≈ᶜ-done (β-↦-target≈ᶜ cwt dwt c′wt d′wt))
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢↦ cwt dwt)
       (Quot.⊢∷ (Quot.⊢↦ c′wt d′wt) (Quot.⊢∷ restwt restwt′)))
     (Quot.ξ-pair Quot.β-↦ᶜ refl) =
-    multi-trans≈ᶜʳ (ξ-head≈ᶜʳ β-↦ᶜʳ)
-      (≈ᶜʳ-done (≈ᶜʳ-⨟ (β-↦-target≈ᶜʳ cwt dwt c′wt d′wt)
-                         ≈ᶜʳ-refl))
+    multi-trans≈ᶜ (ξ-head≈ᶜ β-↦ᶜ)
+      (≈ᶜ-done (≈ᶜ-⨟ (β-↦-target≈ᶜ cwt dwt c′wt d′wt)
+                         ≈ᶜ-refl))
   quotiented-step→coercion-reduction
     (Quot.⊢∷ Quot.⊢⊥ (Quot.⊢∷ dwt Quot.⊢[]))
     (Quot.ξ-pair (Quot.β-⊥Lᶜ dwt′) refl)
@@ -467,8 +467,8 @@ private
   quotiented-step→coercion-reduction
     (Quot.⊢∷ Quot.⊢⊥ (Quot.⊢∷ dwt Quot.⊢[]))
     (Quot.ξ-pair (Quot.β-⊥Lᶜ dwt′) refl) | refl =
-    step≈ᶜʳ (ξ-pairᶜʳ (β-⊥Lᶜʳ (proj₂ (quotiented-crcn→coercion dwt))))
-            (≈ᶜʳ-done ≈ᶜʳ-refl)
+    step≈ᶜ (ξ-pairᶜ (β-⊥Lᶜ (proj₂ (quotiented-crcn→coercion dwt))))
+            (≈ᶜ-done ≈ᶜ-refl)
   quotiented-step→coercion-reduction
     (Quot.⊢∷ Quot.⊢⊥ (Quot.⊢∷ dwt (Quot.⊢∷ restwt restwt′)))
     (Quot.ξ-pair (Quot.β-⊥Lᶜ dwt′) refl)
@@ -476,16 +476,16 @@ private
   quotiented-step→coercion-reduction
     (Quot.⊢∷ Quot.⊢⊥ (Quot.⊢∷ dwt (Quot.⊢∷ restwt restwt′)))
     (Quot.ξ-pair (Quot.β-⊥Lᶜ dwt′) refl) | refl =
-    ξ-head≈ᶜʳ (β-⊥Lᶜʳ (proj₂ (quotiented-crcn→coercion dwt)))
+    ξ-head≈ᶜ (β-⊥Lᶜ (proj₂ (quotiented-crcn→coercion dwt)))
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢! g) (Quot.⊢∷ Quot.⊢⊥ Quot.⊢[]))
     (Quot.ξ-pair Quot.β-!⊥ᶜ refl) =
-    step≈ᶜʳ (ξ-pairᶜʳ β-!⊥ᶜʳ) (≈ᶜʳ-done ≈ᶜʳ-refl)
+    step≈ᶜ (ξ-pairᶜ β-!⊥ᶜ) (≈ᶜ-done ≈ᶜ-refl)
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢! g)
       (Quot.⊢∷ Quot.⊢⊥ (Quot.⊢∷ restwt restwt′)))
     (Quot.ξ-pair Quot.β-!⊥ᶜ refl) =
-    ξ-head≈ᶜʳ β-!⊥ᶜʳ
+    ξ-head≈ᶜ β-!⊥ᶜ
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢↦ cwt dwt) (Quot.⊢∷ Quot.⊢⊥ Quot.⊢[]))
     (Quot.ξ-pair (Quot.β-↦⊥ᶜ cwt′ dwt′) refl)
@@ -494,9 +494,9 @@ private
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢↦ cwt dwt) (Quot.⊢∷ Quot.⊢⊥ Quot.⊢[]))
     (Quot.ξ-pair (Quot.β-↦⊥ᶜ cwt′ dwt′) refl) | refl | refl =
-    step≈ᶜʳ (ξ-pairᶜʳ (β-↦⊥ᶜʳ (proj₂ (quotiented→coercion cwt))
+    step≈ᶜ (ξ-pairᶜ (β-↦⊥ᶜ (proj₂ (quotiented→coercion cwt))
                               (proj₂ (quotiented→coercion dwt))))
-            (≈ᶜʳ-done ≈ᶜʳ-refl)
+            (≈ᶜ-done ≈ᶜ-refl)
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢↦ cwt dwt)
       (Quot.⊢∷ Quot.⊢⊥ (Quot.⊢∷ restwt restwt′)))
@@ -507,77 +507,77 @@ private
     (Quot.⊢∷ (Quot.⊢↦ cwt dwt)
       (Quot.⊢∷ Quot.⊢⊥ (Quot.⊢∷ restwt restwt′)))
     (Quot.ξ-pair (Quot.β-↦⊥ᶜ cwt′ dwt′) refl) | refl | refl =
-    ξ-head≈ᶜʳ (β-↦⊥ᶜʳ (proj₂ (quotiented→coercion cwt))
+    ξ-head≈ᶜ (β-↦⊥ᶜ (proj₂ (quotiented→coercion cwt))
                        (proj₂ (quotiented→coercion dwt)))
   quotiented-step→coercion-reduction
     (Quot.⊢∷ cwt (Quot.⊢∷ dwt restwt))
     (Quot.ξ-∷ᶜ rest→rest′) =
-    eq≈ᶜʳ (quotiented→coercion-cons≈ cwt (Quot.⊢∷ dwt restwt))
-      (multi-trans≈ᶜʳ
-        (multi-ξ-⨟₂≈ᶜʳ
+    eq≈ᶜ (quotiented→coercion-cons≈ cwt (Quot.⊢∷ dwt restwt))
+      (multi-trans≈ᶜ
+        (multi-ξ-⨟₂≈ᶜ
           (quotiented-step→coercion-reduction (Quot.⊢∷ dwt restwt) rest→rest′))
-        (≈ᶜʳ-done
-          (≈ᶜʳ-sym
+        (≈ᶜ-done
+          (≈ᶜ-sym
             (quotiented→coercion-cons≈ cwt
-              (Quot.preserve-—→ᶜᶜ (Quot.⊢∷ dwt restwt) rest→rest′)))))
+              (Quot.preserve-—→ (Quot.⊢∷ dwt restwt) rest→rest′)))))
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢↦ cwt dwt) Quot.⊢[])
     (Quot.ξ-↦₁ᶜ c→c′) =
-    multi-ξ-↦₁≈ᶜʳ (quotiented-step→coercion-reduction cwt c→c′)
+    multi-ξ-↦₁≈ᶜ (quotiented-step→coercion-reduction cwt c→c′)
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢↦ cwt dwt) (Quot.⊢∷ restwt restwt′))
     (Quot.ξ-↦₁ᶜ c→c′) =
-    multi-ξ-⨟₁≈ᶜʳ
-      (multi-ξ-↦₁≈ᶜʳ (quotiented-step→coercion-reduction cwt c→c′))
+    multi-ξ-⨟₁≈ᶜ
+      (multi-ξ-↦₁≈ᶜ (quotiented-step→coercion-reduction cwt c→c′))
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢↦ cwt dwt) Quot.⊢[])
     (Quot.ξ-↦₂ᶜ d→d′) =
-    multi-ξ-↦₂≈ᶜʳ (quotiented-step→coercion-reduction dwt d→d′)
+    multi-ξ-↦₂≈ᶜ (quotiented-step→coercion-reduction dwt d→d′)
   quotiented-step→coercion-reduction
     (Quot.⊢∷ (Quot.⊢↦ cwt dwt) (Quot.⊢∷ restwt restwt′))
     (Quot.ξ-↦₂ᶜ d→d′) =
-    multi-ξ-⨟₁≈ᶜʳ
-      (multi-ξ-↦₂≈ᶜʳ (quotiented-step→coercion-reduction dwt d→d′))
+    multi-ξ-⨟₁≈ᶜ
+      (multi-ξ-↦₂≈ᶜ (quotiented-step→coercion-reduction dwt d→d′))
 
   quotiented-multi→coercion-reduction : ∀ {c d A B}
     → (cwt : Quot.⊢_⦂_⇨_ c A B)
-    → (c↠d : c Quot.—↠ᶜᶜ d)
+    → (c↠d : c Quot.—↠ d)
     → proj₁ (quotiented→coercion cwt)
-      —↠≈ᶜʳ
-      proj₁ (quotiented→coercion (Quot.preserve-—↠ᶜᶜ cwt c↠d))
-  quotiented-multi→coercion-reduction cwt (_ Quot.∎ᶜᶜ) =
-    ≈ᶜʳ-done ≈ᶜʳ-refl
-  quotiented-multi→coercion-reduction cwt (_ Quot.—→ᶜᶜ⟨ c→d ⟩ d↠e) =
-    multi-trans≈ᶜʳ
+      —↠≈ᶜ
+      proj₁ (quotiented→coercion (Quot.preserve-—↠ cwt c↠d))
+  quotiented-multi→coercion-reduction cwt (_ Quot.∎) =
+    ≈ᶜ-done ≈ᶜ-refl
+  quotiented-multi→coercion-reduction cwt (_ Quot.—→⟨ c→d ⟩ d↠e) =
+    multi-trans≈ᶜ
       (quotiented-step→coercion-reduction cwt c→d)
-      (quotiented-multi→coercion-reduction (Quot.preserve-—→ᶜᶜ cwt c→d) d↠e)
+      (quotiented-multi→coercion-reduction (Quot.preserve-—→ cwt c→d) d↠e)
 
   normalization-with-typing : ∀ {c A B}
     → ⊢ c ⦂ A ⇨ B
     → Σ[ d ∈ Coercion ]
         (⊢ d ⦂ A ⇨ B ×
-         c —↠≈ᶜʳ d ×
+         c —↠≈ᶜ d ×
          TypedCoercionEq A B c d ×
          Irreducible d)
   normalization-with-typing {c = c} cwt with Quot.normalization (coercion→quotiented-wt cwt)
   ... | n , (c↠n , nf)
-    with quotiented→coercion-roundtrip (Quot.preserve-—↠ᶜᶜ (coercion→quotiented-wt cwt) c↠n)
+    with quotiented→coercion-roundtrip (Quot.preserve-—↠ (coercion→quotiented-wt cwt) c↠n)
   ... | eq =
-    let nwt = Quot.preserve-—↠ᶜᶜ (coercion→quotiented-wt cwt) c↠n
+    let nwt = Quot.preserve-—↠ (coercion→quotiented-wt cwt) c↠n
         dnf = quotiented-normal→irreducible nwt nf in
     proj₁ (quotiented→coercion nwt)
     , ( proj₂ (quotiented→coercion nwt)
-      , ( eq≈ᶜʳ (coercion-roundtrip≈ᶜʳ cwt)
+      , ( eq≈ᶜ (coercion-roundtrip≈ᶜ cwt)
                 (quotiented-multi→coercion-reduction (coercion→quotiented-wt cwt) c↠n)
         , ( typed-coercion-eq cwt (proj₂ (quotiented→coercion nwt))
               (QuotEq.≈-trans
-                (QuotEq.—↠ᶜᶜ⇒≈ᶜ c↠n)
-                (QuotEq.≈-sym (≡⇒≈ᶜ eq)))
+                (QuotEq.—↠⇒≈ c↠n)
+                (QuotEq.≈-sym (≡⇒≈ eq)))
           , dnf)))
 
   normalization-reduces : ∀ {c A B}
     → (cwt : ⊢ c ⦂ A ⇨ B)
-    → c —↠≈ᶜʳ proj₁ (normalization-with-typing cwt)
+    → c —↠≈ᶜ proj₁ (normalization-with-typing cwt)
   normalization-reduces cwt =
     proj₁ (proj₂ (proj₂ (normalization-with-typing cwt)))
 
@@ -589,7 +589,7 @@ private
 
 normalization : ∀ {c A B}
   → ⊢ c ⦂ A ⇨ B
-  → Σ[ d ∈ Coercion ] (c —↠≈ᶜʳ d × Irreducible d)
+  → Σ[ d ∈ Coercion ] (c —↠≈ᶜ d × Irreducible d)
 normalization cwt =
   proj₁ (normalization-with-typing cwt)
   , (normalization-reduces cwt , normalization-irreducible cwt)

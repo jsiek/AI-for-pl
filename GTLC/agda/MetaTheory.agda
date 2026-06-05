@@ -13,7 +13,7 @@ open import Types
 open import Contexts
 open import GTLC
 open import Coercions public
-  using (_—↠≈ᶜʳ_; Irreducible)
+  using (_—↠≈ᶜ_; Irreducible)
 open import Coercions
 open import CastCalculus
 open import Compile using (compile)
@@ -28,21 +28,21 @@ import proof.DynamicGradualGuarantee as DynamicGGProof
 
 coercion-normalization : ∀ {c A B}
   → ⊢ c ⦂ A ⇨ B
-  → ∃[ d ] (c —↠≈ᶜʳ d × Irreducible d)
+  → ∃[ d ] (c —↠≈ᶜ d × Irreducible d)
 coercion-normalization = CoercionNormProof.normalization
 
 cast-type-safety
   : {M N : Termᶜ} {A : Ty}
   → [] ⊢ᶜ M ⦂ A
-  → M —↠ᶜ N
-  → (∃[ N′ ] (N —→ᶜ N′)) ⊎ Result N
+  → M —↠ N
+  → (∃[ N′ ] (N —→ N′)) ⊎ Result N
 cast-type-safety = CastSafetyProof.type-safetyᶜ
 
 type-safety
   : {M : Term} {A : Ty} {N : Termᶜ}
   → (M⦂A : [] ⊢ M ⦂ A)
-  → compile M⦂A —↠ᶜ N
-  → (∃[ N′ ] (N —→ᶜ N′)) ⊎ Result N
+  → compile M⦂A —↠ N
+  → (∃[ N′ ] (N —→ N′)) ⊎ Result N
 type-safety = TypeSafetyProof.type-safety
 
 static-gradual-guarantee

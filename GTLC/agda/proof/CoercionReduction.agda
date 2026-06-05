@@ -171,82 +171,82 @@ mutual
 -- Coercion Reduction
 ----------------------------------------------------------------
 
-infix 4 _;_—→ᶜ_
-infix 4 _—→ᶜᶜ_
-infix 3 _∎ᶜᶜ
-infixr 2 _—→ᶜᶜ⟨_⟩_
-infix 2 _—↠ᶜᶜ_
+infix 4 _;_—→_
+infix 4 _—→_
+infix 3 _∎
+infixr 2 _—→⟨_⟩_
+infix 2 _—↠_
 
-data _;_—→ᶜ_ : Crcn → Crcn → Coercion → Set where
+data _;_—→_ : Crcn → Crcn → Coercion → Set where
   β-proj-inj-okᶜ : ∀ {G ℓ}
-    → G ! ; (G ？ ℓ) —→ᶜ []
+    → G ! ; (G ？ ℓ) —→ []
 
   β-proj-inj-badᶜ : ∀ {G H ℓ}
     → G ≢ H
-    → G ! ;  H ？ ℓ  —→ᶜ (⊥ᶜ G ⇨ H at ℓ) ∷ []
+    → G ! ;  H ？ ℓ  —→ (⊥ᶜ G ⇨ H at ℓ) ∷ []
 
   β-↦ᶜ : ∀ {c d c′ d′}
-    → (c ↦ d) ; (c′ ↦ d′) —→ᶜ (c′ ⨟ c) ↦ (d ⨟ d′) ∷ []
+    → (c ↦ d) ; (c′ ↦ d′) —→ (c′ ⨟ c) ↦ (d ⨟ d′) ∷ []
 
   β-⊥Lᶜ : ∀ {A B C d ℓ}
     → ⊢ d ⦂ B ⇨ᶜ C
-    → (⊥ᶜ A ⇨ B at ℓ) ; d —→ᶜ (⊥ᶜ A ⇨ C at ℓ) ∷ []
+    → (⊥ᶜ A ⇨ B at ℓ) ; d —→ (⊥ᶜ A ⇨ C at ℓ) ∷ []
 
   β-!⊥ᶜ : ∀ {G B ℓ}
-    → G ! ; (⊥ᶜ ★ ⇨ B at ℓ) —→ᶜ (⊥ᶜ G ⇨ B at ℓ) ∷ []
+    → G ! ; (⊥ᶜ ★ ⇨ B at ℓ) —→ (⊥ᶜ G ⇨ B at ℓ) ∷ []
 
   β-↦⊥ᶜ : ∀ {c d A B C D E ℓ}
     → ⊢ c ⦂ C ⇨ A
     → ⊢ d ⦂ B ⇨ D
     → (c ↦ d) ; (⊥ᶜ (C ⇒ D) ⇨ E at ℓ)
-      —→ᶜ (⊥ᶜ (A ⇒ B) ⇨ E at ℓ) ∷ []
+      —→ (⊥ᶜ (A ⇒ B) ⇨ E at ℓ) ∷ []
 
-data _—→ᶜᶜ_ : Coercion → Coercion → Set where
+data _—→_ : Coercion → Coercion → Set where
 
   ξ-pair : ∀ {c₁ c₂ d̅ c̅ c′}
-    → c₁ ; c₂ —→ᶜ d̅
+    → c₁ ; c₂ —→ d̅
     → c′ ≡ d̅ ++ c̅
       ---------------------------------------
-    →  (c₁ ∷ c₂ ∷ c̅) —→ᶜᶜ c′ 
+    →  (c₁ ∷ c₂ ∷ c̅) —→ c′
 
   ξ-∷ᶜ : ∀ {c cs cs′}
-    → cs —→ᶜᶜ cs′
-    → (c ∷ cs) —→ᶜᶜ (c ∷ cs′)
+    → cs —→ cs′
+    → (c ∷ cs) —→ (c ∷ cs′)
 
   ξ-↦₁ᶜ : ∀ {c c′ d cs}
-    → c —→ᶜᶜ c′
-    → ((c ↦ d) ∷ cs) —→ᶜᶜ ((c′ ↦ d) ∷ cs)
+    → c —→ c′
+    → ((c ↦ d) ∷ cs) —→ ((c′ ↦ d) ∷ cs)
 
   ξ-↦₂ᶜ : ∀ {c d d′ cs}
-    → d —→ᶜᶜ d′
-    → ((c ↦ d) ∷ cs) —→ᶜᶜ ((c ↦ d′) ∷ cs)
+    → d —→ d′
+    → ((c ↦ d) ∷ cs) —→ ((c ↦ d′) ∷ cs)
 
-data _—↠ᶜᶜ_ : Coercion → Coercion → Set where
-  _∎ᶜᶜ : (c : Coercion) → c —↠ᶜᶜ c
-  _—→ᶜᶜ⟨_⟩_ : (l : Coercion) {m n : Coercion}
-    → l —→ᶜᶜ m
-    → m —↠ᶜᶜ n
-    → l —↠ᶜᶜ n
+data _—↠_ : Coercion → Coercion → Set where
+  _∎ : (c : Coercion) → c —↠ c
+  _—→⟨_⟩_ : (l : Coercion) {m n : Coercion}
+    → l —→ m
+    → m —↠ n
+    → l —↠ n
 
 multi-transᶜᶜ : {c d e : Coercion}
-  → c —↠ᶜᶜ d
-  → d —↠ᶜᶜ e
-  → c —↠ᶜᶜ e
-multi-transᶜᶜ (_ ∎ᶜᶜ) ms2 = ms2
-multi-transᶜᶜ (_ —→ᶜᶜ⟨ s ⟩ ms1′) ms2 =
-  _ —→ᶜᶜ⟨ s ⟩ (multi-transᶜᶜ ms1′ ms2)
+  → c —↠ d
+  → d —↠ e
+  → c —↠ e
+multi-transᶜᶜ (_ ∎) ms2 = ms2
+multi-transᶜᶜ (_ —→⟨ s ⟩ ms1′) ms2 =
+  _ —→⟨ s ⟩ (multi-transᶜᶜ ms1′ ms2)
 
-infixr 2 _—↠ᶜᶜ⟨_⟩_
-_—↠ᶜᶜ⟨_⟩_ : ∀ (l : Coercion) {m n : Coercion}
-  → l —↠ᶜᶜ m
-  → m —↠ᶜᶜ n
-  → l —↠ᶜᶜ n
-l —↠ᶜᶜ⟨ l—↠m ⟩ m—↠n = multi-transᶜᶜ l—↠m m—↠n
+infixr 2 _—↠⟨_⟩_
+_—↠⟨_⟩_ : ∀ (l : Coercion) {m n : Coercion}
+  → l —↠ m
+  → m —↠ n
+  → l —↠ n
+l —↠⟨ l—↠m ⟩ m—↠n = multi-transᶜᶜ l—↠m m—↠n
 
 preserve-pairᶜ : ∀ {c d c′ A B C}
   → ⊢ c ⦂ A ⇨ᶜ B
   → ⊢ d ⦂ B ⇨ᶜ C
-  → c ; d —→ᶜ c′
+  → c ; d —→ c′
   → ⊢ c′ ⦂ A ⇨ C
 preserve-pairᶜ (⊢! g) (⊢? h) β-proj-inj-okᶜ = ⊢[]
 preserve-pairᶜ (⊢! g) (⊢? h) (β-proj-inj-badᶜ G≢H) = ⊢singleᶜ ⊢⊥
@@ -261,18 +261,18 @@ preserve-pairᶜ (⊢↦ cwt dwt) ⊢⊥ (β-↦⊥ᶜ cwt′ dwt′)
 preserve-pairᶜ (⊢↦ cwt dwt) ⊢⊥ (β-↦⊥ᶜ cwt′ dwt′)
   | refl | refl = ⊢singleᶜ ⊢⊥
 
-preserve-—→ᶜᶜ : ∀ {c c′ A B}
+preserve-—→ : ∀ {c c′ A B}
   → ⊢ c ⦂ A ⇨ B
-  → c —→ᶜᶜ c′
+  → c —→ c′
   → ⊢ c′ ⦂ A ⇨ B
-preserve-—→ᶜᶜ (⊢∷ cwt (⊢∷ dwt restwt)) (ξ-pair c;d→c′ refl) =
+preserve-—→ (⊢∷ cwt (⊢∷ dwt restwt)) (ξ-pair c;d→c′ refl) =
   ⊢++ (preserve-pairᶜ cwt dwt c;d→c′) restwt
-preserve-—→ᶜᶜ (⊢∷ cwt restwt) (ξ-∷ᶜ cs→cs′) =
-  ⊢∷ cwt (preserve-—→ᶜᶜ restwt cs→cs′)
-preserve-—→ᶜᶜ (⊢∷ (⊢↦ cwt dwt) restwt) (ξ-↦₁ᶜ c→c′) =
-  ⊢∷ (⊢↦ (preserve-—→ᶜᶜ cwt c→c′) dwt) restwt
-preserve-—→ᶜᶜ (⊢∷ (⊢↦ cwt dwt) restwt) (ξ-↦₂ᶜ d→d′) =
-  ⊢∷ (⊢↦ cwt (preserve-—→ᶜᶜ dwt d→d′)) restwt
+preserve-—→ (⊢∷ cwt restwt) (ξ-∷ᶜ cs→cs′) =
+  ⊢∷ cwt (preserve-—→ restwt cs→cs′)
+preserve-—→ (⊢∷ (⊢↦ cwt dwt) restwt) (ξ-↦₁ᶜ c→c′) =
+  ⊢∷ (⊢↦ (preserve-—→ cwt c→c′) dwt) restwt
+preserve-—→ (⊢∷ (⊢↦ cwt dwt) restwt) (ξ-↦₂ᶜ d→d′) =
+  ⊢∷ (⊢↦ cwt (preserve-—→ dwt d→d′)) restwt
 
 ----------------------------------------------------------------
 -- Coercion Normal Forms
@@ -321,7 +321,7 @@ mutual
       → Normalᶜ (c ∷ d ∷ cs)
 
 Step : Coercion → Set
-Step c = Σ[ c′ ∈ Coercion ] c —→ᶜᶜ c′
+Step c = Σ[ c′ ∈ Coercion ] c —→ c′
 
 step : ∀ {c A B}
   → ⊢ c ⦂ A ⇨ B
@@ -423,35 +423,35 @@ progressᶜᶜ (⊢∷ (⊢? g) (⊢∷ ⊢⊥ restwt))
 progressᶜᶜ (⊢∷ (⊢? g) (⊢∷ ⊢⊥ restwt))
   | stepᶜᶜ (_ , rest→rest′) = stepᶜᶜ (_ , ξ-∷ᶜ rest→rest′)
 
-preserve-—↠ᶜᶜ : ∀ {c c′ A B}
+preserve-—↠ : ∀ {c c′ A B}
   → ⊢ c ⦂ A ⇨ B
-  → c —↠ᶜᶜ c′
+  → c —↠ c′
   → ⊢ c′ ⦂ A ⇨ B
-preserve-—↠ᶜᶜ cwt (_ ∎ᶜᶜ) = cwt
-preserve-—↠ᶜᶜ cwt (_ —→ᶜᶜ⟨ c→c₁ ⟩ c₁↠c′) =
-  preserve-—↠ᶜᶜ (preserve-—→ᶜᶜ cwt c→c₁) c₁↠c′
+preserve-—↠ cwt (_ ∎) = cwt
+preserve-—↠ cwt (_ —→⟨ c→c₁ ⟩ c₁↠c′) =
+  preserve-—↠ (preserve-—→ cwt c→c₁) c₁↠c′
 
 multi-ξ-∷ᶜᶜ : ∀ {c cs cs′}
-  → cs —↠ᶜᶜ cs′
-  → (c ∷ cs) —↠ᶜᶜ (c ∷ cs′)
-multi-ξ-∷ᶜᶜ (_ ∎ᶜᶜ) = (_ ∷ _) ∎ᶜᶜ
-multi-ξ-∷ᶜᶜ (_ —→ᶜᶜ⟨ cs→cs₁ ⟩ cs₁↠cs′) =
-  (_ ∷ _) —→ᶜᶜ⟨ ξ-∷ᶜ cs→cs₁ ⟩ multi-ξ-∷ᶜᶜ cs₁↠cs′
+  → cs —↠ cs′
+  → (c ∷ cs) —↠ (c ∷ cs′)
+multi-ξ-∷ᶜᶜ (_ ∎) = (_ ∷ _) ∎
+multi-ξ-∷ᶜᶜ (_ —→⟨ cs→cs₁ ⟩ cs₁↠cs′) =
+  (_ ∷ _) —→⟨ ξ-∷ᶜ cs→cs₁ ⟩ multi-ξ-∷ᶜᶜ cs₁↠cs′
 
 multi-ξ-↦₁ᶜᶜ : ∀ {c c′ d}
-  → c —↠ᶜᶜ c′
-  → singleᶜ (c ↦ d) —↠ᶜᶜ singleᶜ (c′ ↦ d)
-multi-ξ-↦₁ᶜᶜ (_ ∎ᶜᶜ) = singleᶜ (_ ↦ _) ∎ᶜᶜ
-multi-ξ-↦₁ᶜᶜ (_ —→ᶜᶜ⟨ c→c₁ ⟩ c₁↠c′) =
-  singleᶜ (_ ↦ _) —→ᶜᶜ⟨ ξ-↦₁ᶜ c→c₁ ⟩
+  → c —↠ c′
+  → singleᶜ (c ↦ d) —↠ singleᶜ (c′ ↦ d)
+multi-ξ-↦₁ᶜᶜ (_ ∎) = singleᶜ (_ ↦ _) ∎
+multi-ξ-↦₁ᶜᶜ (_ —→⟨ c→c₁ ⟩ c₁↠c′) =
+  singleᶜ (_ ↦ _) —→⟨ ξ-↦₁ᶜ c→c₁ ⟩
   multi-ξ-↦₁ᶜᶜ c₁↠c′
 
 multi-ξ-↦₂ᶜᶜ : ∀ {c d d′}
-  → d —↠ᶜᶜ d′
-  → singleᶜ (c ↦ d) —↠ᶜᶜ singleᶜ (c ↦ d′)
-multi-ξ-↦₂ᶜᶜ (_ ∎ᶜᶜ) = singleᶜ (_ ↦ _) ∎ᶜᶜ
-multi-ξ-↦₂ᶜᶜ (_ —→ᶜᶜ⟨ d→d₁ ⟩ d₁↠d′) =
-  singleᶜ (_ ↦ _) —→ᶜᶜ⟨ ξ-↦₂ᶜ d→d₁ ⟩
+  → d —↠ d′
+  → singleᶜ (c ↦ d) —↠ singleᶜ (c ↦ d′)
+multi-ξ-↦₂ᶜᶜ (_ ∎) = singleᶜ (_ ↦ _) ∎
+multi-ξ-↦₂ᶜᶜ (_ —→⟨ d→d₁ ⟩ d₁↠d′) =
+  singleᶜ (_ ↦ _) —→⟨ ξ-↦₂ᶜ d→d₁ ⟩
   multi-ξ-↦₂ᶜᶜ d₁↠d′
 
 mutual
@@ -504,7 +504,7 @@ seqSize-⨟ (c ∷ cs) d
   open +-*-Solver using (solve; _:+_; con) renaming (_:=_ to _:=ᵉ_)
 
 pair-step-decreases : ∀ {c d d′}
-  → c ; d —→ᶜ d′
+  → c ; d —→ d′
   → seqSize d′ < singleSize c + singleSize d
 pair-step-decreases β-proj-inj-okᶜ = s≤s z≤n
 pair-step-decreases (β-proj-inj-badᶜ G≢H) = n<1+n 1
@@ -521,7 +521,7 @@ pair-step-decreases {c = c ↦ d} (β-↦⊥ᶜ cwt dwt)
   s≤s (s≤s z≤n)
 
 step-decreases : ∀ {c d}
-  → c —→ᶜᶜ d
+  → c —→ d
   → seqSize d < seqSize c
 step-decreases (ξ-pair {c₁} {c₂} {d̅} {c̅} c₁;c₂→d̅ refl)
   rewrite seqSize-++ d̅ c̅ =
@@ -540,15 +540,15 @@ step-decreases (ξ-↦₂ᶜ {c = c} {cs = cs} d→d′) =
 normalize-acc : ∀ {c A B}
   → Acc _<_ (seqSize c)
   → ⊢ c ⦂ A ⇨ B
-  → Σ[ d ∈ Coercion ] ((c —↠ᶜᶜ d) × Normalᶜ d)
+  → Σ[ d ∈ Coercion ] ((c —↠ d) × Normalᶜ d)
 normalize-acc (acc rec) cwt with progressᶜᶜ cwt
-... | done nf = _ , ((_ ∎ᶜᶜ) , nf)
+... | done nf = _ , ((_ ∎) , nf)
 ... | stepᶜᶜ (d , c→d)
     with normalize-acc (rec (step-decreases c→d))
-                       (preserve-—→ᶜᶜ cwt c→d)
-...   | e , (d↠e , nf) = e , ((_ —→ᶜᶜ⟨ c→d ⟩ d↠e) , nf)
+                       (preserve-—→ cwt c→d)
+...   | e , (d↠e , nf) = e , ((_ —→⟨ c→d ⟩ d↠e) , nf)
 
 normalization : ∀ {c A B}
   → ⊢ c ⦂ A ⇨ B
-  → Σ[ d ∈ Coercion ] ((c —↠ᶜᶜ d) × Normalᶜ d)
+  → Σ[ d ∈ Coercion ] ((c —↠ d) × Normalᶜ d)
 normalization {c = c} cwt = normalize-acc (<-wellFounded (seqSize c)) cwt

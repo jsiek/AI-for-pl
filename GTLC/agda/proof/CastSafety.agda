@@ -15,8 +15,8 @@ open import proof.CastCalculusMeta
 type-safetyᶜ
   : {M N : Termᶜ} {A : Ty}
   → [] ⊢ᶜ M ⦂ A
-  → M —↠ᶜ N
-  → (∃[ N′ ] (N —→ᶜ N′)) ⊎ Result N
+  → M —↠ N
+  → (∃[ N′ ] (N —→ N′)) ⊎ Result N
 type-safetyᶜ M⦂A M—↠N with progressᶜ (preserveᶜ* M⦂A M—↠N)
 ... | step N→N′ = inj₁ (_ , N→N′)
 ... | done vN = inj₂ (r-val _ vN)

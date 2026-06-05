@@ -213,49 +213,49 @@ N [ M ]ᶜ = substᶜ (singleEnvᶜ M) N
 -- Reduction
 --------------------------------------------------------------------------------
 
-infix 4 _—→ᶜ_
-infix 4 _—↠ᶜ_
+infix 4 _—→_
+infix 4 _—↠_
 
-data _—→ᶜ_ : Termᶜ → Termᶜ → Set where
+data _—→_ : Termᶜ → Termᶜ → Set where
   ξξ : ∀ {F M N M′ N′}
     → M′ ≡ plug F M
     → N′ ≡ plug F N
-    → M —→ᶜ N
-    → M′ —→ᶜ N′
+    → M —→ N
+    → M′ —→ N′
 
   β-ƛ : ∀ {A N V}
     → Valueᶜ V
-    → (ƛ A ⇒ N) · V —→ᶜ N [ V ]ᶜ
+    → (ƛ A ⇒ N) · V —→ N [ V ]ᶜ
 
   β-id : ∀ {A V}
     → Valueᶜ V
-    → cast V [ idᶜ A ] —→ᶜ V
+    → cast V [ idᶜ A ] —→ V
 
   β-seq : ∀ {V c d}
     → Valueᶜ V
-    → cast V [ c ⨟ d ] —→ᶜ cast (cast V [ c ]) [ d ]
+    → cast V [ c ⨟ d ] —→ cast (cast V [ c ]) [ d ]
 
   β-↦ : ∀ {V W c d}
     → Valueᶜ V
     → Valueᶜ W
-    → cast V [ c ↦ d ] · W —→ᶜ cast (V · cast W [ c ]) [ d ]
+    → cast V [ c ↦ d ] · W —→ cast (V · cast W [ c ]) [ d ]
 
   β-⊥ : ∀ {A B V ℓ}
     → Valueᶜ V
-    → cast V [ ⊥ᶜ A ⇨ B at ℓ ] —→ᶜ blame {ℓ = ℓ}
+    → cast V [ ⊥ᶜ A ⇨ B at ℓ ] —→ blame {ℓ = ℓ}
 
   β-proj-inj-ok : ∀ {V G ℓ}
     → Valueᶜ V
-    → cast (cast V [ G ! ]) [ (_`? {ℓ = ℓ}) G ] —→ᶜ V
+    → cast (cast V [ G ! ]) [ (_`? {ℓ = ℓ}) G ] —→ V
 
   β-proj-inj-bad : ∀ {V G H ℓ}
     → Valueᶜ V
     → G ≢ H
-    → cast (cast V [ G ! ]) [ (_`? {ℓ = ℓ}) H ] —→ᶜ blame {ℓ = ℓ}
+    → cast (cast V [ G ! ]) [ (_`? {ℓ = ℓ}) H ] —→ blame {ℓ = ℓ}
 
   ξξ-blame : ∀ {F M′ ℓ}
     → M′ ≡ plug F (blame {ℓ = ℓ})
-    → M′ —→ᶜ blame {ℓ = ℓ}
+    → M′ —→ blame {ℓ = ℓ}
 
 pattern ξ F M—→N = ξξ {F = F} refl refl M—→N
 pattern ξ-blame F = ξξ-blame {F = F} refl
@@ -270,7 +270,7 @@ mutual
   ξ-value-impossible : ∀ {V F M N}
     → Valueᶜ V
     → V ≡ plug F M
-    → M —→ᶜ N
+    → M —→ N
     → ⊥
   ξ-value-impossible {F = □· _} V-$ ()
   ξ-value-impossible {F = _ ·□ _} V-$ ()
@@ -306,13 +306,13 @@ mutual
   ξ-blame-value-impossible {F = cast□[ _ ]} (V-cast↦ vV) refl =
     value-not-blameᶜ vV refl
 
-  value-irreducible : ∀ {V N} → Valueᶜ V → V —→ᶜ N → ⊥
+  value-irreducible : ∀ {V N} → Valueᶜ V → V —→ N → ⊥
   value-irreducible vV (ξξ V≡plugV N≡plugN M→N) =
     ξ-value-impossible vV V≡plugV M→N
   value-irreducible vV (ξξ-blame V≡blame) =
     ξ-blame-value-impossible vV V≡blame
 
-var-irreducible : ∀ {x N} → ` x —→ᶜ N → ⊥
+var-irreducible : ∀ {x N} → ` x —→ N → ⊥
 var-irreducible (ξξ {F = □· _} eq _ _) with eq
 ... | ()
 var-irreducible (ξξ {F = _ ·□ _} eq _ _) with eq
@@ -326,7 +326,7 @@ var-irreducible (ξξ-blame {F = _ ·□ _} eq) with eq
 var-irreducible (ξξ-blame {F = cast□[ _ ]} eq) with eq
 ... | ()
 
-blame-irreducible : ∀ {N ℓ} → blame {ℓ = ℓ} —→ᶜ N → ⊥
+blame-irreducible : ∀ {N ℓ} → blame {ℓ = ℓ} —→ N → ⊥
 blame-irreducible (ξξ {F = □· _} eq _ _) with eq
 ... | ()
 blame-irreducible (ξξ {F = _ ·□ _} eq _ _) with eq
@@ -340,46 +340,46 @@ blame-irreducible (ξξ-blame {F = _ ·□ _} eq) with eq
 blame-irreducible (ξξ-blame {F = cast□[ _ ]} eq) with eq
 ... | ()
 
-data _—↠ᶜ_ : Termᶜ → Termᶜ → Set where
+data _—↠_ : Termᶜ → Termᶜ → Set where
   ms-refl : ∀ (M : Termᶜ)
-    → M —↠ᶜ M
+    → M —↠ M
 
   ms-step : ∀ (L : Termᶜ) {M N : Termᶜ}
-    → L —→ᶜ M
-    → M —↠ᶜ N
-    → L —↠ᶜ N
+    → L —→ M
+    → M —↠ N
+    → L —↠ N
 
-infix 3 _∎ᶜ
-pattern _∎ᶜ M = ms-refl M
+infix 3 _∎
+pattern _∎ M = ms-refl M
 
-infixr 2 _—→ᶜ⟨_⟩_
-pattern _—→ᶜ⟨_⟩_ L L—→M M—↠N = ms-step L L—→M M—↠N
+infixr 2 _—→⟨_⟩_
+pattern _—→⟨_⟩_ L L—→M M—↠N = ms-step L L—→M M—↠N
 
-_++ᶜ_ : ∀ {L M N} → L —↠ᶜ M → M —↠ᶜ N → L —↠ᶜ N
-_++ᶜ_ {L = L} (L ∎ᶜ) M—↠N = M—↠N
-_++ᶜ_ {L = L} (L —→ᶜ⟨ L—→M ⟩ M—↠N) N—↠P =
-  L —→ᶜ⟨ L—→M ⟩ (M—↠N ++ᶜ N—↠P)
+_++ᶜ_ : ∀ {L M N} → L —↠ M → M —↠ N → L —↠ N
+_++ᶜ_ {L = L} (L ∎) M—↠N = M—↠N
+_++ᶜ_ {L = L} (L —→⟨ L—→M ⟩ M—↠N) N—↠P =
+  L —→⟨ L—→M ⟩ (M—↠N ++ᶜ N—↠P)
 
-infixr 2 _—↠ᶜ⟨_⟩_
-_—↠ᶜ⟨_⟩_ : ∀ (L : Termᶜ) {M N : Termᶜ}
-    → L —↠ᶜ M
-    → M —↠ᶜ N
+infixr 2 _—↠⟨_⟩_
+_—↠⟨_⟩_ : ∀ (L : Termᶜ) {M N : Termᶜ}
+    → L —↠ M
+    → M —↠ N
       ---------
-    → L —↠ᶜ N
-L —↠ᶜ⟨ L—↠M ⟩ M—↠N = L—↠M ++ᶜ M—↠N
+    → L —↠ N
+L —↠⟨ L—↠M ⟩ M—↠N = L—↠M ++ᶜ M—↠N
 
 ξ* : ∀ F {M N}
-  → M —↠ᶜ N
-  → plug F M —↠ᶜ plug F N
-ξ* F (M ∎ᶜ) = plug F M ∎ᶜ
-ξ* F (M —→ᶜ⟨ M—→N ⟩ N—↠P) =
-  plug F M —→ᶜ⟨ ξ F M—→N ⟩ ξ* F N—↠P
+  → M —↠ N
+  → plug F M —↠ plug F N
+ξ* F (M ∎) = plug F M ∎
+ξ* F (M —→⟨ M—→N ⟩ N—↠P) =
+  plug F M —→⟨ ξ F M—→N ⟩ ξ* F N—↠P
 
 Blameᶜ : Termᶜ → Set
 Blameᶜ M = ∃[ ℓ ] (M ≡ blame {ℓ = ℓ})
 
 Convergesᶜ : Termᶜ → Set
-Convergesᶜ M = ∃[ W ] ((M —↠ᶜ W) × (Valueᶜ W ⊎ Blameᶜ W))
+Convergesᶜ M = ∃[ W ] ((M —↠ W) × (Valueᶜ W ⊎ Blameᶜ W))
 
 data Result : Termᶜ → Set where
   r-val : (V : Termᶜ) → Valueᶜ V → Result V

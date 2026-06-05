@@ -15,7 +15,6 @@ open import Relation.Nullary using (¬_)
 
 open import Types
 open import Coercions
-open import CoercionNormalizationDefinitions
 import proof.CoercionReduction as Quot
 import proof.CoercionEquality as QuotEq
 

@@ -8,7 +8,6 @@ open import Types
 open import Contexts
 open import GTLC
 open import Coercions
-open import CoercionNormalizationDefinitions
 open import CastCalculus
 open import Compile
 open import DynamicGradualGuaranteeDefinitions

@@ -12,9 +12,8 @@ statements.
 - `Contexts.agda`: contexts, lookup, context precision, and source context
   imprecision.
 - `GTLC.agda`: source language terms, typing, and precision.
-- `Coercions.agda`: coercion language used by compilation.
-- `CoercionNormalizationDefinitions.agda`: public reduction/equivalence
-  vocabulary used to state coercion normalization.
+- `Coercions.agda`: coercion language used by compilation, including public
+  coercion reduction/equivalence vocabulary used to state normalization.
 - `CastCalculus.agda`: cast-calculus terms, typing, and reduction.
 - `Compile.agda`: compilation from GTLC typing derivations.
 - `DynamicGradualGuaranteeDefinitions.agda`: public source runtime

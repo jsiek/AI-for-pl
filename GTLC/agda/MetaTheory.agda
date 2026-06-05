@@ -12,9 +12,9 @@ open import Data.Sum using (_⊎_)
 open import Types
 open import Contexts
 open import GTLC
-open import Coercions
-open import CoercionNormalizationDefinitions public
+open import Coercions public
   using (_—↠≈ᶜʳ_; Irreducible)
+open import Coercions
 open import CastCalculus
 open import Compile using (compile)
 open import Contexts public using (_⊑ˢ_)

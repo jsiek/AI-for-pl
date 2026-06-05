@@ -8,7 +8,7 @@ open import Types
 open import Contexts
 open import GTLC
 open import Coercions
-open import CoercionBridge
+open import CoercionNormalization
 open import CastCalculus
 open import Compile
 open import DynamicGradualGuaranteeDefinitions

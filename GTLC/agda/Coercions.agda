@@ -207,74 +207,81 @@ record Irreducible (c : Coercion) : Set where
 -- Structural Coercion Normal Forms
 ----------------------------------------------------------------
 
+infix 4 _⇨ⁿ_ _⇨ᵗ_ _⇨ᵐ_
+infix 7 _`?_at_ _!_
+infixr 7 _`?_at_⨟_ _⨟!_
+
 mutual
-  data NormalCoercion : Ty → Ty → Set where
-    normal-id : (A : Ty)
-      → NormalCoercion A A
+  data _⇨ⁿ_ : Ty → Ty → Set where
+    idᶜ : (A : Ty)
+      → A ⇨ⁿ A
 
-    normal-proj : ∀ (G : Ty)
+    _`?_at_ : (G : Ty)
+      → Ground G
       → Nat
-      → Ground G
-      → NormalCoercion ★ G
+      → ★ ⇨ⁿ G
 
-    normal-proj-tail : ∀ (G : Ty) {B : Ty}
+    _`?_at_⨟_ : (G : Ty)
+      → Ground G
       → Nat
+      → {B : Ty}
+      → G ⇨ᵗ B
+      → ★ ⇨ⁿ B
+
+    ′_ : ∀ {A B : Ty}
+      → A ⇨ᵗ B
+      → A ⇨ⁿ B
+
+  data _⇨ᵗ_ : Ty → Ty → Set where
+    _!_ : (G : Ty)
       → Ground G
-      → NormalTail G B
-      → NormalCoercion ★ B
+      → G ⇨ᵗ ★
 
-    normal-tail : ∀ {A B : Ty}
-      → NormalTail A B
-      → NormalCoercion A B
+    ＇_ : ∀ {A B : Ty}
+      → A ⇨ᵐ B
+      → A ⇨ᵗ B
 
-  data NormalTail : Ty → Ty → Set where
-    normal-inj : ∀ (G : Ty)
+    _⨟!_ : ∀ {A G : Ty}
+      → A ⇨ᵐ G
       → Ground G
-      → NormalTail G ★
+      → A ⇨ᵗ ★
 
-    normal-middle : ∀ {A B : Ty}
-      → NormalMiddle A B
-      → NormalTail A B
-
-    normal-middle-inj : ∀ {A : Ty} (G : Ty)
-      → NormalMiddle A G
-      → Ground G
-      → NormalTail A ★
-
-    normal-blame : ∀ {A B : Ty}
+    ⊥ᶜ_⇨_at_ : (A B : Ty)
       → Nat
-      → NormalTail A B
+      → A ⇨ᵗ B
 
-  data NormalMiddle : Ty → Ty → Set where
-    normal-↦ : ∀ {A B C D : Ty}
-      → NormalCoercion C A
-      → NormalCoercion B D
-      → NormalMiddle (A ⇒ B) (C ⇒ D)
+  data _⇨ᵐ_ : Ty → Ty → Set where
+    _↦_ : ∀ {A B C D : Ty}
+      → C ⇨ⁿ A
+      → B ⇨ⁿ D
+      → (A ⇒ B) ⇨ᵐ (C ⇒ D)
 
 mutual
   coercionOf : ∀ {A B}
-    → NormalCoercion A B
+    → A ⇨ⁿ B
     → Coercion
-  coercionOf (normal-id A) = idᶜ A
-  coercionOf (normal-proj G ℓ g) = (_`? {ℓ = ℓ}) G
-  coercionOf (normal-proj-tail G ℓ g tail) =
+  coercionOf (idᶜ A) = idᶜ A
+  coercionOf (G `? g at ℓ) = (_`? {ℓ = ℓ}) G
+  coercionOf (G `? g at ℓ ⨟ tail) =
     ((_`? {ℓ = ℓ}) G) ⨟ tailCoercionOf tail
-  coercionOf (normal-tail tail) = tailCoercionOf tail
+  coercionOf (′ tail) = tailCoercionOf tail
 
   tailCoercionOf : ∀ {A B}
-    → NormalTail A B
+    → A ⇨ᵗ B
     → Coercion
-  tailCoercionOf (normal-inj G g) = G !
-  tailCoercionOf (normal-middle middle) = middleCoercionOf middle
-  tailCoercionOf (normal-middle-inj G middle g) =
-    middleCoercionOf middle ⨟ (G !)
-  tailCoercionOf (normal-blame {A = A} {B = B} ℓ) =
+  tailCoercionOf (G ! g) = G !
+  tailCoercionOf (＇ middle) = middleCoercionOf middle
+  tailCoercionOf (middle ⨟! G-ℕ) =
+    middleCoercionOf middle ⨟ (ℕ !)
+  tailCoercionOf (middle ⨟! G-⇒) =
+    middleCoercionOf middle ⨟ ((★ ⇒ ★) !)
+  tailCoercionOf (⊥ᶜ A ⇨ B at ℓ) =
     ⊥ᶜ A ⇨ B at ℓ
 
   middleCoercionOf : ∀ {A B}
-    → NormalMiddle A B
+    → A ⇨ᵐ B
     → Coercion
-  middleCoercionOf (normal-↦ dom cod) =
+  middleCoercionOf (dom ↦ cod) =
     coercionOf dom ↦ coercionOf cod
 
 ----------------------------------------------------------------

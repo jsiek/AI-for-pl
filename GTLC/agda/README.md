@@ -14,7 +14,7 @@ statements.
 - `GTLC.agda`: source language terms, typing, and precision.
 - `Coercions.agda`: coercion language used by compilation, including public
   coercion reduction/equivalence vocabulary and the structural normal-form
-  grammar used to state normalization.
+  grammar (`_⇨ⁿ_`, `_⇨ᵗ_`, `_⇨ᵐ_`) used to state normalization.
 - `CastCalculus.agda`: cast-calculus terms, typing, and reduction.
 - `Compile.agda`: compilation from GTLC typing derivations.
 - `DynamicGradualGuaranteeDefinitions.agda`: public source runtime

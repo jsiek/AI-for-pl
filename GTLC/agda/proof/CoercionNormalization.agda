@@ -271,19 +271,19 @@ private
     quotiented-normal→normal-coercion : ∀ {c A B}
       → (cwt : Quot.⊢_⦂_⇨_ c A B)
       → Quot.Normalᶜ c
-      → Σ[ n ∈ NormalCoercion A B ]
+      → Σ[ n ∈ A ⇨ⁿ B ]
           (proj₁ (quotiented→coercion cwt) ≡ coercionOf n)
     quotiented-normal→normal-coercion Quot.⊢[] Quot.nf-[] =
-      normal-id _ , refl
+      idᶜ _ , refl
     quotiented-normal→normal-coercion
       (Quot.⊢∷ (Quot.⊢? {G = G} {ℓ = ℓ} g) Quot.⊢[])
       (Quot.nf-singleton Quot.nf-?) =
-      normal-proj G ℓ g , refl
+      G `? g at ℓ , refl
     quotiented-normal→normal-coercion
       (Quot.⊢∷ (Quot.⊢? {G = G} {ℓ = ℓ} g)
                 (Quot.⊢∷ (Quot.⊢! h) Quot.⊢[]))
       (Quot.nf-step snf Quot.irred-?! restnf) =
-      normal-proj-tail G ℓ g (normal-inj G h) , refl
+      G `? g at ℓ ⨟ (G ! h) , refl
     quotiented-normal→normal-coercion
       (Quot.⊢∷ (Quot.⊢? g)
                 (Quot.⊢∷ (Quot.⊢! h) (Quot.⊢∷ ewt restwt)))
@@ -292,7 +292,7 @@ private
       (Quot.⊢∷ (Quot.⊢? {G = G} {ℓ = ℓ} g)
                 (Quot.⊢∷ (Quot.⊢⊥ {ℓ = ℓ′}) Quot.⊢[]))
       (Quot.nf-step snf Quot.irred-?⊥ restnf) =
-      normal-proj-tail G ℓ g (normal-blame ℓ′) , refl
+      G `? g at ℓ ⨟ (⊥ᶜ _ ⇨ _ at ℓ′) , refl
     quotiented-normal→normal-coercion
       (Quot.⊢∷ (Quot.⊢? g)
                 (Quot.⊢∷ Quot.⊢⊥ (Quot.⊢∷ ewt restwt)))
@@ -303,21 +303,21 @@ private
       (Quot.nf-step snf Quot.irred-?↦ restnf)
       with quotiented-↦-normal→normal-tail cwt dwt restwt restnf
     ... | tail , eq rewrite eq =
-      normal-proj-tail (★ ⇒ ★) ℓ G-⇒ tail , refl
+      (★ ⇒ ★) `? G-⇒ at ℓ ⨟ tail , refl
     quotiented-normal→normal-coercion
       (Quot.⊢∷ (Quot.⊢? g) (Quot.⊢∷ (Quot.⊢? h) restwt))
       (Quot.nf-step snf () restnf)
     quotiented-normal→normal-coercion
-      (Quot.⊢∷ (Quot.⊢! g) Quot.⊢[])
+      (Quot.⊢∷ (Quot.⊢! {G = G} g) Quot.⊢[])
       (Quot.nf-singleton Quot.nf-!) =
-      normal-tail (normal-inj _ g) , refl
+      ′ (G ! g) , refl
     quotiented-normal→normal-coercion
       (Quot.⊢∷ (Quot.⊢! g) (Quot.⊢∷ dwt restwt))
       (Quot.nf-step snf () restnf)
     quotiented-normal→normal-coercion
       (Quot.⊢∷ Quot.⊢⊥ Quot.⊢[])
       (Quot.nf-singleton Quot.nf-⊥) =
-      normal-tail (normal-blame _) , refl
+      ′ (⊥ᶜ _ ⇨ _ at _) , refl
     quotiented-normal→normal-coercion
       (Quot.⊢∷ Quot.⊢⊥ (Quot.⊢∷ dwt restwt))
       (Quot.nf-step snf () restnf)
@@ -325,28 +325,28 @@ private
       (Quot.⊢∷ (Quot.⊢↦ cwt dwt) restwt) nf
       with quotiented-↦-normal→normal-tail cwt dwt restwt nf
     ... | tail , eq =
-      normal-tail tail , eq
+      ′ tail , eq
 
     quotiented-↦-normal→normal-tail : ∀ {c d cs A B C D E}
       → (cwt : Quot.⊢_⦂_⇨_ c C A)
       → (dwt : Quot.⊢_⦂_⇨_ d B D)
       → (restwt : Quot.⊢_⦂_⇨_ cs (C ⇒ D) E)
       → Quot.Normalᶜ (Quot._↦_ c d ∷ cs)
-      → Σ[ tail ∈ NormalTail (A ⇒ B) E ]
+      → Σ[ tail ∈ (A ⇒ B) ⇨ᵗ E ]
           (proj₁ (quotiented→coercion
             (Quot.⊢∷ (Quot.⊢↦ cwt dwt) restwt)) ≡ tailCoercionOf tail)
     quotiented-↦-normal→normal-tail cwt dwt Quot.⊢[]
       (Quot.nf-singleton (Quot.nf-↦ cnf dnf))
       with quotiented-↦-normal→normal-middle cwt dwt cnf dnf
     ... | middle , eq rewrite eq =
-      normal-middle middle , refl
+      ＇ middle , refl
     quotiented-↦-normal→normal-tail cwt dwt
       (Quot.⊢∷ (Quot.⊢! G-⇒) Quot.⊢[])
       (Quot.nf-step (Quot.nf-↦ cnf dnf) Quot.irred-↦!
                     (Quot.nf-singleton Quot.nf-!))
       with quotiented-↦-normal→normal-middle cwt dwt cnf dnf
     ... | middle , eq rewrite eq =
-      normal-middle-inj (★ ⇒ ★) middle G-⇒ , refl
+      middle ⨟! G-⇒ , refl
     quotiented-↦-normal→normal-tail cwt dwt
       (Quot.⊢∷ (Quot.⊢! G-⇒) (Quot.⊢∷ ewt restwt))
       (Quot.nf-step snf Quot.irred-↦! (Quot.nf-step snf′ () restnf))
@@ -362,7 +362,7 @@ private
       → (dwt : Quot.⊢_⦂_⇨_ d B D)
       → Quot.Normalᶜ c
       → Quot.Normalᶜ d
-      → Σ[ middle ∈ NormalMiddle (A ⇒ B) (C ⇒ D) ]
+      → Σ[ middle ∈ (A ⇒ B) ⇨ᵐ (C ⇒ D) ]
           (proj₁ (quotiented-crcn→coercion
             (Quot.⊢↦ cwt dwt)) ≡ middleCoercionOf middle)
     quotiented-↦-normal→normal-middle cwt dwt cnf dnf
@@ -370,7 +370,7 @@ private
          | quotiented-normal→normal-coercion dwt dnf
     ... | dom , dom-eq | cod , cod-eq
       rewrite dom-eq | cod-eq =
-      normal-↦ dom cod , refl
+      dom ↦ cod , refl
 
   irred-pair-no-stepᶜ : ∀ {c d A B C e}
     → (cwt : Quot.⊢_⦂_⇨ᶜ_ c A B)
@@ -514,27 +514,27 @@ private
 
   mutual
     normal-proj-tail-pair-no-step : ∀ {G B ℓ e}
-      → (tail : NormalTail G B)
+      → (tail : G ⇨ᵗ B)
       → ¬ (((_`? {ℓ = ℓ}) G) ; tailCoercionOf tail —→ e)
-    normal-proj-tail-pair-no-step (normal-inj G g) ()
-    normal-proj-tail-pair-no-step (normal-middle (normal-↦ dom cod)) ()
+    normal-proj-tail-pair-no-step (G ! g) ()
+    normal-proj-tail-pair-no-step (＇ (dom ↦ cod)) ()
     normal-proj-tail-pair-no-step
-      (normal-middle-inj G (normal-↦ dom cod) g) ()
-    normal-proj-tail-pair-no-step (normal-blame ℓ) ()
+      ((dom ↦ cod) ⨟! G-⇒) ()
+    normal-proj-tail-pair-no-step (⊥ᶜ A ⇨ B at ℓ) ()
 
     normal-middle-inj-pair-no-step : ∀ {A G e}
-      → (middle : NormalMiddle A G)
+      → (middle : A ⇨ᵐ G)
       → ¬ (middleCoercionOf middle ; G ! —→ e)
-    normal-middle-inj-pair-no-step (normal-↦ dom cod) ()
+    normal-middle-inj-pair-no-step (dom ↦ cod) ()
 
     normal-coercion-irreducible′ : ∀ {A B}
-      → (n : NormalCoercion A B)
+      → (n : A ⇨ⁿ B)
       → Irreducible (coercionOf n)
-    normal-coercion-irreducible′ (normal-id A) =
+    normal-coercion-irreducible′ (idᶜ A) =
       irred (λ ())
-    normal-coercion-irreducible′ (normal-proj G ℓ g) =
+    normal-coercion-irreducible′ (G `? g at ℓ) =
       irred (λ ())
-    normal-coercion-irreducible′ (normal-proj-tail G ℓ g tail) =
+    normal-coercion-irreducible′ (G `? g at ℓ ⨟ tail) =
       irred
         (λ { (ξ-pairᶜ pair→) →
                normal-proj-tail-pair-no-step tail pair→
@@ -542,17 +542,17 @@ private
            ; (ξ-⨟₂ᶜ tail→tail′) →
                Irreducible.no-step
                  (normal-tail-irreducible tail) tail→tail′ })
-    normal-coercion-irreducible′ (normal-tail tail) =
+    normal-coercion-irreducible′ (′ tail) =
       normal-tail-irreducible tail
 
     normal-tail-irreducible : ∀ {A B}
-      → (tail : NormalTail A B)
+      → (tail : A ⇨ᵗ B)
       → Irreducible (tailCoercionOf tail)
-    normal-tail-irreducible (normal-inj G g) =
+    normal-tail-irreducible (G ! g) =
       irred (λ ())
-    normal-tail-irreducible (normal-middle middle) =
+    normal-tail-irreducible (＇ middle) =
       normal-middle-irreducible middle
-    normal-tail-irreducible (normal-middle-inj G middle g) =
+    normal-tail-irreducible (middle ⨟! G-⇒) =
       irred
         (λ { (ξ-pairᶜ pair→) →
                normal-middle-inj-pair-no-step middle pair→
@@ -560,13 +560,13 @@ private
                Irreducible.no-step
                  (normal-middle-irreducible middle) middle→middle′
            ; (ξ-⨟₂ᶜ ()) })
-    normal-tail-irreducible (normal-blame ℓ) =
+    normal-tail-irreducible (⊥ᶜ A ⇨ B at ℓ) =
       irred (λ ())
 
     normal-middle-irreducible : ∀ {A B}
-      → (middle : NormalMiddle A B)
+      → (middle : A ⇨ᵐ B)
       → Irreducible (middleCoercionOf middle)
-    normal-middle-irreducible (normal-↦ dom cod) =
+    normal-middle-irreducible (dom ↦ cod) =
       irred
         (λ { (ξ-↦₁ᶜ dom→dom′) →
                Irreducible.no-step
@@ -757,7 +757,7 @@ private
 
   normalization-structural : ∀ {c A B}
     → ⊢ c ⦂ A ⇨ B
-    → Σ[ n ∈ NormalCoercion A B ] c —↠≈ᶜ coercionOf n
+    → Σ[ n ∈ A ⇨ⁿ B ] c —↠≈ᶜ coercionOf n
   normalization-structural {c = c} cwt
     with Quot.normalization (coercion→quotiented-wt cwt)
   ... | n , (c↠n , nf)
@@ -774,13 +774,13 @@ private
                 (coercion→quotiented-wt cwt) c↠n))
 
 normal-coercion-irreducible : ∀ {A B}
-  → (n : NormalCoercion A B)
+  → (n : A ⇨ⁿ B)
   → Irreducible (coercionOf n)
 normal-coercion-irreducible = normal-coercion-irreducible′
 
 normalization : ∀ {c A B}
   → ⊢ c ⦂ A ⇨ B
-  → Σ[ n ∈ NormalCoercion A B ] c —↠≈ᶜ coercionOf n
+  → Σ[ n ∈ A ⇨ⁿ B ] c —↠≈ᶜ coercionOf n
 normalization = normalization-structural
 
 private

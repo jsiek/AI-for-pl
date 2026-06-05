@@ -14,7 +14,7 @@ open import Contexts
 open import GTLC
 open import Coercions public
   using
-    ( _—↠≈ᶜ_; Irreducible; NormalCoercion; NormalTail; NormalMiddle
+    ( _—↠≈ᶜ_; Irreducible; _⇨ⁿ_; _⇨ᵗ_; _⇨ᵐ_
     ; coercionOf; tailCoercionOf; middleCoercionOf
     )
 open import Coercions
@@ -31,11 +31,11 @@ import proof.DynamicGradualGuarantee as DynamicGGProof
 
 coercion-normalization : ∀ {c A B}
   → ⊢ c ⦂ A ⇨ B
-  → Σ[ n ∈ NormalCoercion A B ] c —↠≈ᶜ coercionOf n
+  → Σ[ n ∈ A ⇨ⁿ B ] c —↠≈ᶜ coercionOf n
 coercion-normalization = CoercionNormProof.normalization
 
 normal-coercion-irreducible : ∀ {A B}
-  → (n : NormalCoercion A B)
+  → (n : A ⇨ⁿ B)
   → Irreducible (coercionOf n)
 normal-coercion-irreducible =
   CoercionNormProof.normal-coercion-irreducible

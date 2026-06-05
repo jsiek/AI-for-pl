@@ -1,49 +1,17 @@
 module CoercionNormalizationDefinitions where
 
 -- File Charter:
---   * Shared public vocabulary for the bridge between coercions and
---     quotiented coercions.
---   * Defines the translations, coercion reduction/equivalence relations,
---     typed quotient equivalence, and irreducibility predicate.
---   * Proof scripts and normalization live in `proof/CoercionNormalization.agda`;
---     public theorem wrappers live in `CoercionNormalization.agda`.
+--   * Public coercion reduction vocabulary used to state coercion
+--     normalization.
+--   * Defines coercion one-step reduction, multi-step reduction, equivalence
+--     up to administrative laws, and irreducibility.
+--   * Quotiented coercion implementation details live under `proof/`.
 
-open import Agda.Builtin.Nat using (Nat)
-open import Agda.Builtin.List using ([]; _∷_)
-open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality using (_≢_)
 open import Relation.Nullary using (¬_)
 
 open import Types
 open import Coercions
-import CoercionReduction as Quot
-import CoercionEquality as QuotEq
-
-coercion→quotiented : Coercion → Quot.Coercion
-coercion→quotiented (idᶜ A) = []
-coercion→quotiented (G !) = Quot.singleᶜ (Quot._! G)
-coercion→quotiented (((_`? {ℓ = ℓ}) G)) =
-  Quot.singleᶜ (Quot._？_ G ℓ)
-coercion→quotiented (c ↦ d) =
-  Quot.singleᶜ (Quot._↦_ (coercion→quotiented c)
-                           (coercion→quotiented d))
-coercion→quotiented (c ⨟ d) =
-  Quot._⨟_ (coercion→quotiented c) (coercion→quotiented d)
-coercion→quotiented (⊥ᶜ A ⇨ B at ℓ) =
-  Quot.singleᶜ (Quot.⊥ᶜ_⇨_at_ A B ℓ)
-
-coercion→quotiented-wt : ∀ {c A B}
-  → ⊢ c ⦂ A ⇨ B
-  → Quot.⊢_⦂_⇨_ (coercion→quotiented c) A B
-coercion→quotiented-wt ⊢idᶜ = Quot.⊢[]
-coercion→quotiented-wt (⊢! g) = Quot.⊢singleᶜ (Quot.⊢! g)
-coercion→quotiented-wt (⊢? g) = Quot.⊢singleᶜ (Quot.⊢? g)
-coercion→quotiented-wt (⊢↦ cwt dwt) =
-  Quot.⊢singleᶜ (Quot.⊢↦ (coercion→quotiented-wt cwt)
-                           (coercion→quotiented-wt dwt))
-coercion→quotiented-wt (⊢⨟ cwt dwt) =
-  Quot.⊢⨟ (coercion→quotiented-wt cwt) (coercion→quotiented-wt dwt)
-coercion→quotiented-wt ⊢⊥ = Quot.⊢singleᶜ Quot.⊢⊥
 
 infix 4 _—→ᶜʳ_
 infix 4 _—↠ᶜʳ_
@@ -163,35 +131,3 @@ record Irreducible (c : Coercion) : Set where
   constructor irred
   field
     no-step : ∀ {d} → ¬ (c —→ᶜʳ d)
-
-mutual
-  quotiented-crcn→coercion : ∀ {c A B}
-    → Quot.⊢_⦂_⇨ᶜ_ c A B
-    → Σ[ d ∈ Coercion ] ⊢ d ⦂ A ⇨ B
-  quotiented-crcn→coercion (Quot.⊢! g) = _ ! , ⊢! g
-  quotiented-crcn→coercion (Quot.⊢? {G = G} {ℓ = ℓ} g) =
-    (_`? {ℓ = ℓ}) G , ⊢? g
-  quotiented-crcn→coercion (Quot.⊢↦ cwt dwt)
-    with quotiented→coercion cwt | quotiented→coercion dwt
-  ... | c , cwt′ | d , dwt′ = c ↦ d , ⊢↦ cwt′ dwt′
-  quotiented-crcn→coercion (Quot.⊢⊥ {A = A} {B = B} {ℓ = ℓ}) =
-    ⊥ᶜ A ⇨ B at ℓ , ⊢⊥
-
-  quotiented→coercion : ∀ {c A B}
-    → Quot.⊢_⦂_⇨_ c A B
-    → Σ[ d ∈ Coercion ] ⊢ d ⦂ A ⇨ B
-  quotiented→coercion Quot.⊢[] = idᶜ _ , ⊢idᶜ
-  quotiented→coercion (Quot.⊢∷ cwt Quot.⊢[]) =
-    quotiented-crcn→coercion cwt
-  quotiented→coercion (Quot.⊢∷ cwt (Quot.⊢∷ dwt restwt))
-    with quotiented-crcn→coercion cwt
-       | quotiented→coercion (Quot.⊢∷ dwt restwt)
-  ... | c , cwt′ | d , dwt′ = c ⨟ d , ⊢⨟ cwt′ dwt′
-
-record TypedCoercionEq (A B : Ty) (c d : Coercion) : Set where
-  constructor typed-coercion-eq
-  field
-    left-wt : ⊢ c ⦂ A ⇨ B
-    right-wt : ⊢ d ⦂ A ⇨ B
-    quotiented-eq : QuotEq._≈ᶜ_ (coercion→quotiented c)
-                                  (coercion→quotiented d)

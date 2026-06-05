@@ -1,11 +1,11 @@
-module CoercionEquality where
+module proof.CoercionEquality where
 
 open import Agda.Builtin.List using ([])
 open import Data.Product using (Σ-syntax; ∃-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality using (_≢_; refl)
 
 open import Types
-open import CoercionReduction
+open import proof.CoercionReduction
 
 infix 4 _≈ᶜ_
 

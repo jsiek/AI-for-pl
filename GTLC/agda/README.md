@@ -13,12 +13,17 @@ statements.
   imprecision.
 - `GTLC.agda`: source language terms, typing, and precision.
 - `Coercions.agda`: coercion language used by compilation.
+- `CoercionNormalizationDefinitions.agda`: public reduction/equivalence
+  vocabulary used to state coercion normalization.
 - `CastCalculus.agda`: cast-calculus terms, typing, and reduction.
 - `Compile.agda`: compilation from GTLC typing derivations.
 - `DynamicGradualGuaranteeDefinitions.agda`: public source runtime
   observations used to state the dynamic gradual guarantee.
-- `MetaTheory.agda`: public theorem statements for cast type safety, GTLC type
-  safety (via compilation), and static/dynamic gradual guarantees.
+- `MetaTheory.agda`: public theorem statements for coercion normalization,
+  cast type safety, GTLC type safety (via compilation), and static/dynamic
+  gradual guarantees. The coercion-normalization theorem states that every
+  well-typed coercion reduces, up to coercion equivalence, to an irreducible
+  coercion.
 - `All.agda`: aggregate driver for checking the public surface.
 
 ## Private proof implementation (`GTLC/agda/proof/`)
@@ -33,6 +38,13 @@ Proof scripts and implementation details live in `proof/`.
 - `proof/TypeSafety.agda`
 - `proof/CastCalculusMeta.agda`
 - `proof/CompileMeta.agda`
+- `proof/CoercionReduction.agda`: quotiented coercion syntax, reduction, and
+  quotient normalizer used internally by the coercion-normalization proof.
+- `proof/CoercionEquality.agda`: quotient equality lemmas used internally by
+  coercion normalization.
+- `proof/CoercionNormalization.agda`: private implementation of coercion
+  normalization, including the bridge between coercions and quotiented
+  coercions.
 
 Work-in-progress modules are isolated in `proof/wip/` and are intentionally not
 part of the public check driver.

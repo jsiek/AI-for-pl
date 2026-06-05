@@ -1,4 +1,4 @@
-module CoercionReduction where
+module proof.CoercionReduction where
 
 -- Coercion lists for GTLC, including blame coercions, adjacent-cell
 -- reduction, preservation, and normal-form syntax for the reduction proof

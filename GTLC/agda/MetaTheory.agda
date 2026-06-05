@@ -2,7 +2,8 @@ module MetaTheory where
 
 -- File Charter:
 --   * Public metatheory statements/wrappers for GTLC.
---   * Exposes type safety (via compilation) and both gradual guarantees.
+--   * Exposes coercion normalization, type safety (via compilation), and both
+--     gradual guarantees.
 
 open import Agda.Builtin.List using ([])
 open import Data.Product using (∃; ∃-syntax; _×_)
@@ -11,15 +12,24 @@ open import Data.Sum using (_⊎_)
 open import Types
 open import Contexts
 open import GTLC
+open import Coercions
+open import CoercionNormalizationDefinitions public
+  using (_—↠≈ᶜʳ_; Irreducible)
 open import CastCalculus
 open import Compile using (compile)
 open import Contexts public using (_⊑ˢ_)
 open import DynamicGradualGuaranteeDefinitions public
 
+import proof.CoercionNormalization as CoercionNormProof
 import proof.CastSafety as CastSafetyProof
 import proof.TypeSafety as TypeSafetyProof
 import proof.StaticGradualGuarantee as StaticGGProof
 import proof.DynamicGradualGuarantee as DynamicGGProof
+
+coercion-normalization : ∀ {c A B}
+  → ⊢ c ⦂ A ⇨ B
+  → ∃[ d ] (c —↠≈ᶜʳ d × Irreducible d)
+coercion-normalization = CoercionNormProof.normalization
 
 cast-type-safety
   : {M N : Termᶜ} {A : Ty}

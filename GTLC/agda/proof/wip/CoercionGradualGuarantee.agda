@@ -10,7 +10,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types
 open import Contexts
-open import CoercionReduction
+open import proof.CoercionReduction
 
 ------------------------------------------------------------------------
 -- Coercion simulation

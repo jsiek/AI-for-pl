@@ -9,7 +9,7 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂)
 
 open import Types
-open import CoercionReduction
+open import proof.CoercionReduction
 
 infix 7 _↣_
 infix 5 _i⨟s_

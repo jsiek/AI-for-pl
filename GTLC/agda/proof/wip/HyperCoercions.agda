@@ -10,7 +10,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong
 open import Relation.Nullary using (Dec; yes; no; ¬_)
 
 open import Types
-open import CoercionReduction
+open import proof.CoercionReduction
 
 --------------------------------------------------------------------------------
 --- Hypercoercions

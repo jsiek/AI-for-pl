@@ -3,11 +3,12 @@ module proof.PreservationBetaUpNu where
 -- File Charter:
 --   * Standalone preservation proof slice for the store-allocating β-up-ν
 --     redex in PolyConvert.
---   * Uses fresh-ν imprecision opening from `proof.ImprecisionProperties`.
+--   * Opens ν at a fresh seal, reveals that seal back to ★, and then upcasts
+--     through the dynamically opened imprecision evidence.
 --   * Depends on seal/store weakening for terms, but not on the
 --     store-threaded preservation induction hypothesis.
 
-open import Data.List using (_∷_; length)
+open import Data.List using ([]; _∷_; length)
 open import Data.Nat using (suc)
 open import Data.Nat.Properties using (n≤1+n)
 open import Data.Product using (_,_)
@@ -19,9 +20,16 @@ open import proof.TypeProperties using
   ( WfTy-weakenˢ )
 open import Store
 open import Imprecision
+open import Conversion using (convert↑; _∣_∣_⊢_⦂_↑ˢ_)
 open import Terms
+open import proof.ConversionProperties using (convert↑-fresh-wt)
 open import proof.ImprecisionProperties using
-  (cong-⊢⊑; length-extend-X⊑X[]; open-fresh-ν⊑; src⊑-correct; ⊑-src-wf)
+  ( cong-⊢⊑
+  ; length-extend-X⊑X[]
+  ; open-dynamic-ν⊑
+  ; src⊑-correct
+  ; ⊑-src-wf
+  )
 open import proof.StoreProperties using (len<suc-StoreWf)
 open import proof.TermProperties using (wk-term)
 
@@ -35,18 +43,12 @@ preserve-β-up-ν :
   Value V →
   Δ ∣ Ψ ∣ Σ ∣ Γ ⊢ V ⇑ (ν p) ⦂ A →
   Δ ∣ suc Ψ ∣ ((length Σ , ★) ∷ Σ) ∣ Γ ⊢
-    ((V ⦂∀ (src⊑ p) [ ｀ (length Σ) ]) ⇑
-      (p [ ｀ (length Σ) ]⊑)) ⦂ A
+    (((V ⦂∀ (src⊑ p) [ ｀ (length Σ) ])
+      ↑ convert↑ (src⊑ p) (length Σ)) ⇑
+      p [ ★ ]⊑) ⦂ A
 preserve-β-up-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {V = V} {p = p} wfΣ vV
   (⊢up (⊢∀A-⊑-B {A = Aν} occA wfB p⊢) V⊢) =
-  ⊢up
-    (cong-⊢⊑
-      (cong (λ A → A [ ｀ (length Σ) ]ᵗ) (sym (src⊑-correct p⊢)))
-      refl
-      (open-fresh-ν⊑ wfΣ p⊢))
-    (⊢• V⊢′
-      (WfTy-weakenˢ wf-src (n≤1+n Ψ))
-      (wfSeal (len<suc-StoreWf wfΣ)))
+  ⊢up p★⊢ (⊢reveal c⊢ app⊢)
   where
     wf-src : WfTy (suc Δ) Ψ (src⊑ p)
     wf-src =
@@ -69,3 +71,28 @@ preserve-β-up-ν {Δ = Δ} {Ψ = Ψ} {Σ = Σ} {V = V} {p = p} wfΣ vV
       cong-⊢⦂ refl refl refl
         (cong `∀ (sym (src⊑-correct p⊢)))
         V⊢↑
+
+    app⊢ :
+      _ ∣ suc Ψ ∣ ((length Σ , ★) ∷ Σ) ∣ _ ⊢
+      V ⦂∀ (src⊑ p) [ ｀ (length Σ) ] ⦂
+      src⊑ p [ ｀ (length Σ) ]ᵗ
+    app⊢ =
+      ⊢•
+        V⊢′
+        (WfTy-weakenˢ wf-src (n≤1+n Ψ))
+        (wfSeal (len<suc-StoreWf wfΣ))
+
+    c⊢ :
+      _ ∣ suc Ψ ∣ ((length Σ , ★) ∷ Σ) ⊢
+      convert↑ (src⊑ p) (length Σ) ⦂
+      src⊑ p [ ｀ (length Σ) ]ᵗ ↑ˢ src⊑ p [ ★ ]ᵗ
+    c⊢ = convert↑-fresh-wt wfΣ wf-src wf★
+
+    p★⊢ :
+      suc Ψ ∣ extend-X⊑X Δ [] ⊢ p [ ★ ]⊑ ⦂
+      src⊑ p [ ★ ]ᵗ ⊑ _
+    p★⊢ =
+      cong-⊢⊑
+        (cong (λ A → A [ ★ ]ᵗ) (sym (src⊑-correct p⊢)))
+        refl
+        (open-dynamic-ν⊑ p⊢)

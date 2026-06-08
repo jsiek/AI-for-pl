@@ -34,6 +34,9 @@ casts between types. Imprecision allows casts to and from universal
 types, that is, generalization and instantiation. The Agda development
 proves PolyImp type safe.
 
+PolyConvert - Similar to PolyImp, but splits out the "conversion" aspect
+into a separate relation.
+
 PolyBlameI - A failed attempt at a polymorphic cast calculus that uses
 imprecision. This design is not type safe because type substitution does not
 preserve imprecision typing.

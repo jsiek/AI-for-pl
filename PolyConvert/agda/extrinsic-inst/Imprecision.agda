@@ -145,7 +145,7 @@ starImp (`∀ A) = ν (starImp A)
 subst⊑ : Substᵗ → Imp → Imp
 subst⊑ σ id★ = id★
 subst⊑ σ (‵ X !) = starImp (σ X)
-subst⊑ σ (p !) = subst⊑ σ p !
+subst⊑ σ (p !) = (subst⊑ σ p) !
 subst⊑ σ (idₓ X) = reflImp (σ X)
 subst⊑ σ (idₛ α) = idₛ α
 subst⊑ σ (idι ι) = idι ι

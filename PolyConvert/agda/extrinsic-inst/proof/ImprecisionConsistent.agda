@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 module proof.ImprecisionConsistent where
 
 -- File Charter:

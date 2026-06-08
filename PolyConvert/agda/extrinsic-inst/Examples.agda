@@ -12,7 +12,7 @@ open import Data.List using ([]; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero)
 open import Data.Product using (_,_; proj₁)
-open import Data.Unit using (tt)
+open import Data.Unit using (⊤; tt)
 open import Relation.Nullary.Decidable.Core using (True; toWitness)
 
 open import Types
@@ -23,10 +23,13 @@ open import Imprecision
     ; _!
     ; _↦_
     ; id★
+    ; idₓ_
     ; idι_
     ; ν_
     ; reflImp
     ; starImp
+    ; ‵_!
+    ; ‵∀_
     )
 open import Conversion
 open import Primitives
@@ -166,6 +169,20 @@ evalBlame :
 evalBlame {Σ = Σ} {M = M} fuel M⊢ with eval? fuel Σ M
 ... | just (_ , (N , M↠N)) = isBlameValue N
 ... | nothing = nothing
+
+evalValue :
+  ∀ {Ψ}{Σ : Store}{M : Term}{A : Ty} →
+  (fuel : ℕ) →
+  (M⊢ : 0 ∣ Ψ ∣ Σ ∣ [] ⊢ M ⦂ A) →
+  Maybe ⊤
+evalValue {Σ = Σ} {M = M} fuel M⊢ with eval? fuel Σ M
+evalValue {Σ = Σ} {M = M} fuel M⊢ | nothing = nothing
+evalValue {Σ = Σ} {M = M} fuel M⊢ | just (_ , (N , M↠N))
+    with value? N
+evalValue {Σ = Σ} {M = M} fuel M⊢ | just (_ , (N , M↠N))
+    | just _ = just tt
+evalValue {Σ = Σ} {M = M} fuel M⊢ | just (_ , (N , M↠N))
+    | nothing = nothing
 
 ------------------------------------------------------------------------
 -- Basic up/down examples
@@ -308,6 +325,290 @@ sec6-K-dyn-test = refl
 
 sec6-K-base-test : evalNat gas sec6-K-base-⊢ ≡ just 42
 sec6-K-base-test = refl
+
+------------------------------------------------------------------------
+-- K through two incomparable lower-bound choices
+------------------------------------------------------------------------
+
+Kcoh-source-ty : Ty
+Kcoh-source-ty = `∀ (＇ 0 ⇒ ★ ⇒ ＇ 0)
+
+Kcoh-target-ty : Ty
+Kcoh-target-ty = `∀ (★ ⇒ ＇ 0 ⇒ ★)
+
+Kcoh-lower₁-ty : Ty
+Kcoh-lower₁-ty = `∀ (`∀ (＇ 1 ⇒ ＇ 0 ⇒ ＇ 1))
+
+Kcoh-lower₂-ty : Ty
+Kcoh-lower₂-ty = `∀ (`∀ (＇ 0 ⇒ ＇ 1 ⇒ ＇ 0))
+
+Kcoh-source : Term
+Kcoh-source = Λ (ƛ (＇ 0) ⇒ ƛ ★ ⇒ ` 1)
+
+Kcoh-source-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-source ⦂ Kcoh-source-ty
+Kcoh-source-⊢ = expect-⊢ Kcoh-source Kcoh-source-ty tt
+
+Kcoh-lower₁⊑source : Imp
+Kcoh-lower₁⊑source =
+  ‵∀ (ν ((idₓ 1) ↦ ((‵ 0 !) ↦ (idₓ 1))))
+
+Kcoh-lower₁⊑target : Imp
+Kcoh-lower₁⊑target =
+  ν (‵∀ ((‵ 1 !) ↦ ((idₓ 0) ↦ (‵ 1 !))))
+
+Kcoh-lower₂⊑source : Imp
+Kcoh-lower₂⊑source =
+  ν (‵∀ ((idₓ 0) ↦ ((‵ 1 !) ↦ (idₓ 0))))
+
+Kcoh-lower₂⊑target : Imp
+Kcoh-lower₂⊑target =
+  ‵∀ (ν ((‵ 0 !) ↦ ((idₓ 1) ↦ (‵ 0 !))))
+
+Kcoh-cast₁ : Term
+Kcoh-cast₁ = (Kcoh-source ⇓ Kcoh-lower₁⊑source) ⇑ Kcoh-lower₁⊑target
+
+Kcoh-cast₂ : Term
+Kcoh-cast₂ = (Kcoh-source ⇓ Kcoh-lower₂⊑source) ⇑ Kcoh-lower₂⊑target
+
+Kcoh-cast₁-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-cast₁ ⦂ Kcoh-target-ty
+Kcoh-cast₁-⊢ = expect-⊢ Kcoh-cast₁ Kcoh-target-ty tt
+
+Kcoh-cast₂-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-cast₂ ⦂ Kcoh-target-ty
+Kcoh-cast₂-⊢ = expect-⊢ Kcoh-cast₂ Kcoh-target-ty tt
+
+Kcoh-use₁ : Term
+Kcoh-use₁ =
+  ((Kcoh-cast₁ ⦂∀ (★ ⇒ ＇ 0 ⇒ ★) [ ‵ `ℕ ]) · n42★) · n69
+
+Kcoh-use₂ : Term
+Kcoh-use₂ =
+  ((Kcoh-cast₂ ⦂∀ (★ ⇒ ＇ 0 ⇒ ★) [ ‵ `ℕ ]) · n42★) · n69
+
+Kcoh-use₁-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-use₁ ⦂ ★
+Kcoh-use₁-⊢ = expect-⊢ Kcoh-use₁ ★ tt
+
+Kcoh-use₂-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-use₂ ⦂ ★
+Kcoh-use₂-⊢ = expect-⊢ Kcoh-use₂ ★ tt
+
+Kcoh-use₁-test : evalNatDyn gas Kcoh-use₁-⊢ ≡ just 42
+Kcoh-use₁-test = refl
+
+Kcoh-use₂-test : evalNatDyn gas Kcoh-use₂-⊢ ≡ just 42
+Kcoh-use₂-test = refl
+
+Kcoh-use★₁ : Term
+Kcoh-use★₁ =
+  ((Kcoh-cast₁ ⦂∀ (★ ⇒ ＇ 0 ⇒ ★) [ ★ ]) · n42★) · n69★
+
+Kcoh-use★₂ : Term
+Kcoh-use★₂ =
+  ((Kcoh-cast₂ ⦂∀ (★ ⇒ ＇ 0 ⇒ ★) [ ★ ]) · n42★) · n69★
+
+Kcoh-use★₁-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-use★₁ ⦂ ★
+Kcoh-use★₁-⊢ = expect-⊢ Kcoh-use★₁ ★ tt
+
+Kcoh-use★₂-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-use★₂ ⦂ ★
+Kcoh-use★₂-⊢ = expect-⊢ Kcoh-use★₂ ★ tt
+
+Kcoh-use★₁-test : evalNatDyn gas Kcoh-use★₁-⊢ ≡ just 42
+Kcoh-use★₁-test = refl
+
+Kcoh-use★₂-test : evalNatDyn gas Kcoh-use★₂-⊢ ≡ just 42
+Kcoh-use★₂-test = refl
+
+Kcoh-swap-source-ty : Ty
+Kcoh-swap-source-ty = Kcoh-target-ty
+
+Kcoh-swap-target-ty : Ty
+Kcoh-swap-target-ty = Kcoh-source-ty
+
+Kcoh-swap-source : Term
+Kcoh-swap-source = Λ (ƛ ★ ⇒ ƛ (＇ 0) ⇒ ` 1)
+
+Kcoh-swap-source-⊢ :
+  0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-swap-source ⦂ Kcoh-swap-source-ty
+Kcoh-swap-source-⊢ = expect-⊢ Kcoh-swap-source Kcoh-swap-source-ty tt
+
+Kcoh-swap-cast₁ : Term
+Kcoh-swap-cast₁ =
+  (Kcoh-swap-source ⇓ Kcoh-lower₁⊑target) ⇑ Kcoh-lower₁⊑source
+
+Kcoh-swap-cast₂ : Term
+Kcoh-swap-cast₂ =
+  (Kcoh-swap-source ⇓ Kcoh-lower₂⊑target) ⇑ Kcoh-lower₂⊑source
+
+Kcoh-swap-cast₁-⊢ :
+  0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-swap-cast₁ ⦂ Kcoh-swap-target-ty
+Kcoh-swap-cast₁-⊢ =
+  expect-⊢ Kcoh-swap-cast₁ Kcoh-swap-target-ty tt
+
+Kcoh-swap-cast₂-⊢ :
+  0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-swap-cast₂ ⦂ Kcoh-swap-target-ty
+Kcoh-swap-cast₂-⊢ =
+  expect-⊢ Kcoh-swap-cast₂ Kcoh-swap-target-ty tt
+
+Kcoh-swap-inst₁ : Term
+Kcoh-swap-inst₁ =
+  Kcoh-swap-cast₁ ⦂∀ (＇ 0 ⇒ ★ ⇒ ＇ 0) [ ‵ `ℕ ]
+
+Kcoh-swap-inst₂ : Term
+Kcoh-swap-inst₂ =
+  Kcoh-swap-cast₂ ⦂∀ (＇ 0 ⇒ ★ ⇒ ＇ 0) [ ‵ `ℕ ]
+
+Kcoh-swap-inst₁-⊢ :
+  0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-swap-inst₁ ⦂ (‵ `ℕ ⇒ ★ ⇒ ‵ `ℕ)
+Kcoh-swap-inst₁-⊢ =
+  expect-⊢ Kcoh-swap-inst₁ (‵ `ℕ ⇒ ★ ⇒ ‵ `ℕ) tt
+
+Kcoh-swap-inst₂-⊢ :
+  0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-swap-inst₂ ⦂ (‵ `ℕ ⇒ ★ ⇒ ‵ `ℕ)
+Kcoh-swap-inst₂-⊢ =
+  expect-⊢ Kcoh-swap-inst₂ (‵ `ℕ ⇒ ★ ⇒ ‵ `ℕ) tt
+
+Kcoh-swap-inst₁-value-test :
+  evalValue gas Kcoh-swap-inst₁-⊢ ≡ just tt
+Kcoh-swap-inst₁-value-test = refl
+
+Kcoh-swap-inst₂-value-test :
+  evalValue gas Kcoh-swap-inst₂-⊢ ≡ just tt
+Kcoh-swap-inst₂-value-test = refl
+
+Kcoh-swap-partial₁ : Term
+Kcoh-swap-partial₁ = Kcoh-swap-inst₁ · n42
+
+Kcoh-swap-partial₂ : Term
+Kcoh-swap-partial₂ = Kcoh-swap-inst₂ · n42
+
+Kcoh-swap-partial₁-⊢ :
+  0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-swap-partial₁ ⦂ (★ ⇒ ‵ `ℕ)
+Kcoh-swap-partial₁-⊢ =
+  expect-⊢ Kcoh-swap-partial₁ (★ ⇒ ‵ `ℕ) tt
+
+Kcoh-swap-partial₂-⊢ :
+  0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-swap-partial₂ ⦂ (★ ⇒ ‵ `ℕ)
+Kcoh-swap-partial₂-⊢ =
+  expect-⊢ Kcoh-swap-partial₂ (★ ⇒ ‵ `ℕ) tt
+
+Kcoh-swap-partial₁-value-test :
+  evalValue gas Kcoh-swap-partial₁-⊢ ≡ just tt
+Kcoh-swap-partial₁-value-test = refl
+
+Kcoh-swap-partial₂-value-test :
+  evalValue gas Kcoh-swap-partial₂-⊢ ≡ just tt
+Kcoh-swap-partial₂-value-test = refl
+
+Kcoh-swap-use₁ : Term
+Kcoh-swap-use₁ =
+  Kcoh-swap-partial₁ · n69★
+
+Kcoh-swap-use₂ : Term
+Kcoh-swap-use₂ =
+  Kcoh-swap-partial₂ · n69★
+
+Kcoh-swap-use₁-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-swap-use₁ ⦂ (‵ `ℕ)
+Kcoh-swap-use₁-⊢ = expect-⊢ Kcoh-swap-use₁ (‵ `ℕ) tt
+
+Kcoh-swap-use₂-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-swap-use₂ ⦂ (‵ `ℕ)
+Kcoh-swap-use₂-⊢ = expect-⊢ Kcoh-swap-use₂ (‵ `ℕ) tt
+
+Kcoh-swap-use₁-test : evalNat gas Kcoh-swap-use₁-⊢ ≡ just 42
+Kcoh-swap-use₁-test = refl
+
+Kcoh-swap-use₂-test : evalNat gas Kcoh-swap-use₂-⊢ ≡ just 42
+Kcoh-swap-use₂-test = refl
+
+Kcoh-swap-use★₁ : Term
+Kcoh-swap-use★₁ =
+  ((Kcoh-swap-cast₁ ⦂∀ (＇ 0 ⇒ ★ ⇒ ＇ 0) [ ★ ]) · n42★) · n69★
+
+Kcoh-swap-use★₂ : Term
+Kcoh-swap-use★₂ =
+  ((Kcoh-swap-cast₂ ⦂∀ (＇ 0 ⇒ ★ ⇒ ＇ 0) [ ★ ]) · n42★) · n69★
+
+Kcoh-swap-use★₁-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-swap-use★₁ ⦂ ★
+Kcoh-swap-use★₁-⊢ = expect-⊢ Kcoh-swap-use★₁ ★ tt
+
+Kcoh-swap-use★₂-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-swap-use★₂ ⦂ ★
+Kcoh-swap-use★₂-⊢ = expect-⊢ Kcoh-swap-use★₂ ★ tt
+
+Kcoh-swap-use★₁-test : evalNatDyn gas Kcoh-swap-use★₁-⊢ ≡ just 42
+Kcoh-swap-use★₁-test = refl
+
+Kcoh-swap-use★₂-test : evalNatDyn gas Kcoh-swap-use★₂-⊢ ≡ just 42
+Kcoh-swap-use★₂-test = refl
+
+Kcoh-base-source-ty : Ty
+Kcoh-base-source-ty = `∀ (★ ⇒ ＇ 0 ⇒ ‵ `ℕ)
+
+Kcoh-base-target-ty : Ty
+Kcoh-base-target-ty = `∀ (＇ 0 ⇒ ★ ⇒ ‵ `ℕ)
+
+Kcoh-base-lower₁-ty : Ty
+Kcoh-base-lower₁-ty = `∀ (`∀ (＇ 1 ⇒ ＇ 0 ⇒ ‵ `ℕ))
+
+Kcoh-base-lower₂-ty : Ty
+Kcoh-base-lower₂-ty = `∀ (`∀ (＇ 0 ⇒ ＇ 1 ⇒ ‵ `ℕ))
+
+Kcoh-base-source : Term
+Kcoh-base-source = Λ (ƛ ★ ⇒ ƛ (＇ 0) ⇒ n42)
+
+Kcoh-base-source-⊢ :
+  0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-base-source ⦂ Kcoh-base-source-ty
+Kcoh-base-source-⊢ = expect-⊢ Kcoh-base-source Kcoh-base-source-ty tt
+
+Kcoh-base-lower₁⊑source : Imp
+Kcoh-base-lower₁⊑source =
+  ν (‵∀ ((‵ 1 !) ↦ ((idₓ 0) ↦ (idι `ℕ))))
+
+Kcoh-base-lower₁⊑target : Imp
+Kcoh-base-lower₁⊑target =
+  ‵∀ (ν ((idₓ 1) ↦ ((‵ 0 !) ↦ (idι `ℕ))))
+
+Kcoh-base-lower₂⊑source : Imp
+Kcoh-base-lower₂⊑source =
+  ‵∀ (ν ((‵ 0 !) ↦ ((idₓ 1) ↦ (idι `ℕ))))
+
+Kcoh-base-lower₂⊑target : Imp
+Kcoh-base-lower₂⊑target =
+  ν (‵∀ ((idₓ 0) ↦ ((‵ 1 !) ↦ (idι `ℕ))))
+
+Kcoh-base-cast₁ : Term
+Kcoh-base-cast₁ =
+  (Kcoh-base-source ⇓ Kcoh-base-lower₁⊑source) ⇑
+    Kcoh-base-lower₁⊑target
+
+Kcoh-base-cast₂ : Term
+Kcoh-base-cast₂ =
+  (Kcoh-base-source ⇓ Kcoh-base-lower₂⊑source) ⇑
+    Kcoh-base-lower₂⊑target
+
+Kcoh-base-cast₁-⊢ :
+  0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-base-cast₁ ⦂ Kcoh-base-target-ty
+Kcoh-base-cast₁-⊢ = expect-⊢ Kcoh-base-cast₁ Kcoh-base-target-ty tt
+
+Kcoh-base-cast₂-⊢ :
+  0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-base-cast₂ ⦂ Kcoh-base-target-ty
+Kcoh-base-cast₂-⊢ = expect-⊢ Kcoh-base-cast₂ Kcoh-base-target-ty tt
+
+Kcoh-base-use₁ : Term
+Kcoh-base-use₁ =
+  ((Kcoh-base-cast₁ ⦂∀ (＇ 0 ⇒ ★ ⇒ ‵ `ℕ) [ ‵ `ℕ ]) · n69) · n42★
+
+Kcoh-base-use₂ : Term
+Kcoh-base-use₂ =
+  ((Kcoh-base-cast₂ ⦂∀ (＇ 0 ⇒ ★ ⇒ ‵ `ℕ) [ ‵ `ℕ ]) · n69) · n42★
+
+Kcoh-base-use₁-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-base-use₁ ⦂ (‵ `ℕ)
+Kcoh-base-use₁-⊢ = expect-⊢ Kcoh-base-use₁ (‵ `ℕ) tt
+
+Kcoh-base-use₂-⊢ : 0 ∣ 0 ∣ [] ∣ [] ⊢ Kcoh-base-use₂ ⦂ (‵ `ℕ)
+Kcoh-base-use₂-⊢ = expect-⊢ Kcoh-base-use₂ (‵ `ℕ) tt
+
+Kcoh-base-use₁-test : evalNat gas Kcoh-base-use₁-⊢ ≡ just 42
+Kcoh-base-use₁-test = refl
+
+Kcoh-base-use₂-test : evalNat gas Kcoh-base-use₂-⊢ ≡ just 42
+Kcoh-base-use₂-test = refl
 
 ------------------------------------------------------------------------
 -- Store-threaded reveal/conceal conversion

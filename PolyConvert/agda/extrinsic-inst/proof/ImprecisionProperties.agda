@@ -504,6 +504,83 @@ open-fresh-ν⊑ {Σ = Σ} {B = B} wfΣ p⊢ =
   cong-⊢⊑ refl (open-renᵗ-suc B (｀ (length Σ)))
     (open-fresh-ν⊑-prefix {Φ = []} wfΣ p⊢)
 
+subst-var-dyn-prefix :
+  ∀ {Δ Ψ}{Φ X m} →
+  (Φ ++ X⊑★ ∷ extend-X⊑X Δ []) ∋ X ∶ m →
+  VarSubst (suc Ψ) (Φ ++ extend-X⊑X Δ [])
+    (substVarFrom (length Φ) ★ X) m
+subst-var-dyn-prefix {Φ = []} here = ⊢★-⊑-★
+subst-var-dyn-prefix {Ψ = Ψ} {Φ = []} (there x∈) =
+  plain-var-subst {Ψ = suc Ψ} x∈
+subst-var-dyn-prefix {Φ = X⊑X ∷ Φ} here = ⊢X-⊑-X here
+subst-var-dyn-prefix {Φ = X⊑X ∷ Φ} (there x∈) =
+  wk-VarSubst (subst-var-dyn-prefix {Φ = Φ} x∈)
+subst-var-dyn-prefix {Φ = X⊑★ ∷ Φ} here = ⊢X-⊑-★ here
+subst-var-dyn-prefix {Φ = X⊑★ ∷ Φ} (there x∈) =
+  wk-VarSubst (subst-var-dyn-prefix {Φ = Φ} x∈)
+
+substWf-dyn-prefix :
+  ∀ {Δ Ψ}{Φ} →
+  TySubstWf
+    (length (Φ ++ X⊑★ ∷ extend-X⊑X Δ []))
+    (length (Φ ++ extend-X⊑X Δ []))
+    (suc Ψ)
+    (substVarFrom (length Φ) ★)
+substWf-dyn-prefix {Φ = Φ} X<len =
+  varSubst-wf (subst-var-dyn-prefix {Φ = Φ} (proj₂ (lookup-mode _ X<len)))
+
+open-dynamic-ν⊑-prefix :
+  ∀ {Δ Ψ}{Φ : VarPrecCtx}{A B : Ty}{p : Imp} →
+  Ψ ∣ (Φ ++ X⊑★ ∷ extend-X⊑X Δ []) ⊢ p ⦂ A ⊑ B →
+  suc Ψ ∣ (Φ ++ extend-X⊑X Δ []) ⊢
+    substAt⊑ (length Φ) ★ p ⦂
+    substᵗ (substVarFrom (length Φ) ★) A ⊑
+    substᵗ (substVarFrom (length Φ) ★) B
+open-dynamic-ν⊑-prefix ⊢★-⊑-★ = ⊢★-⊑-★
+open-dynamic-ν⊑-prefix (⊢X-⊑-★ xν) = subst-var-dyn-prefix xν
+open-dynamic-ν⊑-prefix (⊢A-⊑-★ g p⊢) =
+  ⊢A-⊑-★ (substᵗ-ground _ g) (open-dynamic-ν⊑-prefix p⊢)
+open-dynamic-ν⊑-prefix {Φ = Φ} (⊢X-⊑-X x∈) =
+  subst-var-dyn-prefix {Φ = Φ} x∈
+open-dynamic-ν⊑-prefix (⊢α-⊑-α (wfSeal α<Ψ)) =
+  ⊢α-⊑-α (wfSeal (<-≤-trans α<Ψ (n≤1+n _)))
+open-dynamic-ν⊑-prefix ⊢ι-⊑-ι = ⊢ι-⊑-ι
+open-dynamic-ν⊑-prefix (⊢A⇒B-⊑-A′⇒B′ p⊢ q⊢) =
+  ⊢A⇒B-⊑-A′⇒B′ (open-dynamic-ν⊑-prefix p⊢)
+       (open-dynamic-ν⊑-prefix q⊢)
+open-dynamic-ν⊑-prefix {Φ = Φ}
+    (⊢∀A-⊑-∀B {A = A} {B = B} {occA = occA} {occB = occB} p⊢) =
+  ⊢∀A-⊑-∀B
+    {occA =
+      trans (occurs-substVarFrom-< (suc (length Φ)) zero ★ A z<s)
+        occA}
+    {occB =
+      trans (occurs-substVarFrom-< (suc (length Φ)) zero ★ B z<s)
+        occB}
+    (open-dynamic-ν⊑-prefix {Φ = X⊑X ∷ Φ} p⊢)
+open-dynamic-ν⊑-prefix {Φ = Φ}
+    (⊢∀A-⊑-B {A = A} {B = B} occA wfB p⊢) =
+  ⊢∀A-⊑-B
+    (trans
+      (occurs-substVarFrom-< (suc (length Φ)) zero ★ A z<s)
+      occA)
+    (substᵗ-preserves-WfTy
+      (WfTy-weakenˢ wfB (n≤1+n _))
+      (substWf-dyn-prefix {Φ = Φ}))
+    (cong-⊢⊑
+      refl
+      (substᵗ-suc-renameᵗ-suc (substVarFrom (length Φ) ★) B)
+      (open-dynamic-ν⊑-prefix {Φ = X⊑★ ∷ Φ} p⊢))
+
+open-dynamic-ν⊑ :
+  ∀ {Δ Ψ}{A B : Ty}{p : Imp} →
+  Ψ ∣ (X⊑★ ∷ extend-X⊑X Δ []) ⊢ p ⦂ A ⊑ ⇑ᵗ B →
+  suc Ψ ∣ extend-X⊑X Δ [] ⊢ p [ ★ ]⊑ ⦂
+    (A [ ★ ]ᵗ) ⊑ B
+open-dynamic-ν⊑ {B = B} p⊢ =
+  cong-⊢⊑ refl (open-renᵗ-suc B ★)
+    (open-dynamic-ν⊑-prefix {Φ = []} p⊢)
+
 subst-var-plain-prefix :
   ∀ {Δ Ψ}{Σ : Store}{Φ X m} →
   StoreWf Δ Ψ Σ →

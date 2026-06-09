@@ -285,4 +285,4 @@ progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-inst _ cwt =
   step (β-up-ν vM)
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-gen _ cwt =
   done (vM ⟨ gen _ _ ⟩)
-progress (⊢blame ℓ) = crash (ℓ , refl)
+progress (⊢blame hA ℓ) = crash (ℓ , refl)

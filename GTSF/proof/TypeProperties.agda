@@ -440,6 +440,36 @@ renameᵗ-single-suc-cancel α A =
   trans (renameᵗ-compose suc (singleRenameᵗ α) A)
         (renameᵗ-id A)
 
+subst-ren-var :
+  ∀ ρ A →
+  substᵗ (λ X → ＇ (ρ X)) A ≡ renameᵗ ρ A
+subst-ren-var ρ (＇ X) = refl
+subst-ren-var ρ (‵ ι) = refl
+subst-ren-var ρ ★ = refl
+subst-ren-var ρ (A ⇒ B) =
+  cong₂ _⇒_ (subst-ren-var ρ A) (subst-ren-var ρ B)
+subst-ren-var ρ (`∀ A) =
+  cong `∀
+    (trans
+      (subst-cong env-eq A)
+      (subst-ren-var (extᵗ ρ) A))
+  where
+    env-eq :
+      ∀ X →
+      extsᵗ (λ Y → ＇ (ρ Y)) X ≡ ＇ (extᵗ ρ X)
+    env-eq zero = refl
+    env-eq (suc X) = refl
+
+subst-var-rename :
+  ∀ α A →
+  A [ ＇ α ]ᵗ ≡ A [ α ]ᴿ
+subst-var-rename α A =
+  trans (subst-cong env-eq A) (subst-ren-var (singleRenameᵗ α) A)
+  where
+    env-eq : ∀ X → singleTyEnv (＇ α) X ≡ ＇ (singleRenameᵗ α X)
+    env-eq zero = refl
+    env-eq (suc X) = refl
+
 renameStoreᵗ-ext-suc-comm :
   ∀ ρ Σ →
   renameStoreᵗ (extᵗ ρ) (⟰ᵗ Σ) ≡ ⟰ᵗ (renameStoreᵗ ρ Σ)

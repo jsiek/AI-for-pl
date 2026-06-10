@@ -1,4 +1,4 @@
-module compile where
+module Compile where
 
 -- File Charter:
 --   * Compilation from source gradual GTSF terms to target explicit-coercion terms.

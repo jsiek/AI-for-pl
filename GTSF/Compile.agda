@@ -92,17 +92,11 @@ record CastPlan (Δ : TyCtx) (Σ : Store) (A B : Ty) : Set₁ where
   field
     mlb : MaximalLowerBound Δ A B
 
-    down-left : Coercion
-    down-left⊢ : Δ ∣ Σ ⊢ down-left ∶ A =⇒ lower mlb
+    down : Coercion
+    down⊢ : Δ ∣ Σ ⊢ down ∶ A =⇒ lower mlb
 
-    up-left : Coercion
-    up-left⊢ : Δ ∣ Σ ⊢ up-left ∶ lower mlb =⇒ A
-
-    down-right : Coercion
-    down-right⊢ : Δ ∣ Σ ⊢ down-right ∶ B =⇒ lower mlb
-
-    up-right : Coercion
-    up-right⊢ : Δ ∣ Σ ⊢ up-right ∶ lower mlb =⇒ B
+    up : Coercion
+    up⊢ : Δ ∣ Σ ⊢ up ∶ lower mlb =⇒ B
 
 open CastPlan public
 
@@ -114,6 +108,12 @@ postulate
     Δ ⊢ A ~ B →
     CastPlan Δ [] A B
 
+~-sym :
+  ∀ {Δ A B} →
+  Δ ⊢ A ~ B →
+  Δ ⊢ B ~ A
+~-sym (C , C⊑A , C⊑B) = C , C⊑B , C⊑A
+
 arrow★-consistent :
   ∀ {Δ A} →
   Δ ⊢ A ~ ★ →
@@ -121,37 +121,21 @@ arrow★-consistent :
 arrow★-consistent (C , C⊑A , C⊑★) =
   C ⇒ ★ , (C⊑A ↦ id★) , (tag C⊑★ ⇒ id★)
 
-cast-left-to-right :
+cast :
   ∀ {Δ A B} →
   CastPlan Δ [] A B →
   Term →
   Term
-cast-left-to-right plan M =
-  (M ⟨ᵀ down-left plan ⟩) ⟨ᵀ up-right plan ⟩
+cast plan M =
+  (M ⟨ᵀ down plan ⟩) ⟨ᵀ up plan ⟩
 
-cast-left-to-right⊢ :
+cast⊢ :
   ∀ {Δ Γ A B M} →
   (plan : CastPlan Δ [] A B) →
   Δ ∣ [] ∣ Γ ⊢ᵀ M ⦂ A →
-  Δ ∣ [] ∣ Γ ⊢ᵀ cast-left-to-right plan M ⦂ B
-cast-left-to-right⊢ plan M⊢ =
-  ⊢ᵀup (up-right⊢ plan) (⊢ᵀup (down-left⊢ plan) M⊢)
-
-cast-right-to-left :
-  ∀ {Δ A B} →
-  CastPlan Δ [] A B →
-  Term →
-  Term
-cast-right-to-left plan M =
-  (M ⟨ᵀ down-right plan ⟩) ⟨ᵀ up-left plan ⟩
-
-cast-right-to-left⊢ :
-  ∀ {Δ Γ A B M} →
-  (plan : CastPlan Δ [] A B) →
-  Δ ∣ [] ∣ Γ ⊢ᵀ M ⦂ B →
-  Δ ∣ [] ∣ Γ ⊢ᵀ cast-right-to-left plan M ⦂ A
-cast-right-to-left⊢ plan M⊢ =
-  ⊢ᵀup (up-left⊢ plan) (⊢ᵀup (down-right⊢ plan) M⊢)
+  Δ ∣ [] ∣ Γ ⊢ᵀ cast plan M ⦂ B
+cast⊢ plan M⊢ =
+  ⊢ᵀup (up⊢ plan) (⊢ᵀup (down⊢ plan) M⊢)
 
 ------------------------------------------------------------------------
 -- Compilation
@@ -176,18 +160,18 @@ compile hΓ (⊢ᴳƛ wfA M⊢) with compile (ctxWf-∷ wfA hΓ) M⊢
 compile hΓ (⊢ᴳƛ wfA M⊢) | N , N⊢ =
   ƛᵀ N , ⊢ᵀƛ wfA N⊢
 compile hΓ (⊢ᴳ· L⊢ M⊢ A~A′)
-    with compile hΓ L⊢ | compile hΓ M⊢ | consistency-cast-plan A~A′
+    with compile hΓ L⊢ | compile hΓ M⊢ | consistency-cast-plan (~-sym A~A′)
 compile hΓ (⊢ᴳ· L⊢ M⊢ A~A′)
     | L′ , L′⊢ | M′ , M′⊢ | plan =
-  L′ ·ᵀ cast-right-to-left plan M′ ,
-  ⊢ᵀ· L′⊢ (cast-right-to-left⊢ plan M′⊢)
+  L′ ·ᵀ cast plan M′ ,
+  ⊢ᵀ· L′⊢ (cast⊢ plan M′⊢)
 compile hΓ (⊢ᴳ·★ L⊢ M⊢ A′~★)
     with compile hΓ L⊢ | compile hΓ M⊢
-       | consistency-cast-plan (arrow★-consistent A′~★)
+       | consistency-cast-plan (~-sym (arrow★-consistent A′~★))
 compile hΓ (⊢ᴳ·★ L⊢ M⊢ A′~★)
     | L′ , L′⊢ | M′ , M′⊢ | plan =
-  cast-right-to-left plan L′ ·ᵀ M′ ,
-  ⊢ᵀ· (cast-right-to-left⊢ plan L′⊢) M′⊢
+  cast plan L′ ·ᵀ M′ ,
+  ⊢ᵀ· (cast⊢ plan L′⊢) M′⊢
 compile hΓ (⊢ᴳΛ {occ = occ} vM M⊢)
     with compile (CtxWf-⤊ hΓ) M⊢
        | compile-value (CtxWf-⤊ hΓ) vM M⊢
@@ -203,9 +187,8 @@ compile hΓ (⊢ᴳ⊕ L⊢ A~ℕ op M⊢ B~ℕ)
        | consistency-cast-plan A~ℕ | consistency-cast-plan B~ℕ
 compile hΓ (⊢ᴳ⊕ L⊢ A~ℕ op M⊢ B~ℕ)
     | L′ , L′⊢ | M′ , M′⊢ | planL | planM =
-  cast-left-to-right planL L′ ⊕ᵀ[ op ] cast-left-to-right planM M′ ,
-  ⊢ᵀ⊕ (cast-left-to-right⊢ planL L′⊢) op
-       (cast-left-to-right⊢ planM M′⊢)
+  cast planL L′ ⊕ᵀ[ op ] cast planM M′ ,
+  ⊢ᵀ⊕ (cast⊢ planL L′⊢) op (cast⊢ planM M′⊢)
 
 compile-value hΓ (ƛᴳ A ⇒ M) (⊢ᴳƛ wfA M⊢)
     with compile (ctxWf-∷ wfA hΓ) M⊢

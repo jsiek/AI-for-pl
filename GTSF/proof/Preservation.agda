@@ -15,11 +15,13 @@ open import Relation.Binary.PropositionalEquality using (cong; subst; sym; trans
 
 open import Types
 open import Ctx
+open import Store
 open import Coercions
 open import Primitives
 open import Terms
 open import Reduction
 open import proof.TypeProperties
+open import proof.StoreProperties
 open import proof.CoercionProperties
 open import proof.TermProperties
 

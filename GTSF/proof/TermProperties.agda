@@ -17,10 +17,12 @@ open import Relation.Binary.PropositionalEquality as Eq
 
 open import Types
 open import Ctx
+open import Store
 open import Coercions
 open import Primitives
 open import Terms
 open import proof.TypeProperties
+open import proof.StoreProperties
 open import proof.CoercionProperties
 
 ------------------------------------------------------------------------

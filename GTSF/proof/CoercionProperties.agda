@@ -2,8 +2,9 @@ module proof.CoercionProperties where
 
 -- File Charter:
 --   * Proof-only metatheory for GTSF coercion typing.
---   * Store membership transport, coercion weakening, and coercion type-renaming
---     lemmas used by term preservation.
+--   * Coercion weakening, type-renaming, endpoint well-formedness, and
+--     reveal/conceal typing lemmas used by term preservation.
+--   * Store-specific lemmas belong in `proof.StoreProperties`.
 --   * Term substitution/renaming lemmas belong in `proof.TermProperties`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -21,8 +22,10 @@ open import Relation.Binary.PropositionalEquality
   using (_≢_; cong; cong₂; subst; sym; trans)
 
 open import Types
+open import Store
 open import Coercions
 open import proof.TypeProperties
+open import proof.StoreProperties
 
 ------------------------------------------------------------------------
 -- Inert coercions
@@ -38,161 +41,6 @@ renameᶜ-preserves-Inert ρ (c ↦ d) = renameᶜ ρ c ↦ renameᶜ ρ d
 renameᶜ-preserves-Inert ρ (`∀ c) = `∀ (renameᶜ (extᵗ ρ) c)
 renameᶜ-preserves-Inert ρ (gen A c) =
   gen (renameᵗ ρ A) (renameᶜ (extᵗ ρ) c)
-
-------------------------------------------------------------------------
--- Store membership transport
-------------------------------------------------------------------------
-
-StoreIncl : Store → Store → Set
-StoreIncl Σ Σ′ = ∀ {x} → x ∈ Σ → x ∈ Σ′
-
-StoreIncl-refl :
-  ∀ {Σ} →
-  StoreIncl Σ Σ
-StoreIncl-refl x∈ = x∈
-
-StoreIncl-drop :
-  ∀ {Σ α A} →
-  StoreIncl Σ ((α , A) ∷ Σ)
-StoreIncl-drop x∈ = there x∈
-
-StoreIncl-cons :
-  ∀ {Σ Σ′ x} →
-  StoreIncl Σ Σ′ →
-  StoreIncl (x ∷ Σ) (x ∷ Σ′)
-StoreIncl-cons incl (here refl) = here refl
-StoreIncl-cons incl (there x∈) = there (incl x∈)
-
-record StoreWfAt (Δ : TyCtx) (Σ : Store) : Set₁ where
-  field
-    bound : ∀ {α A} → (α , A) ∈ Σ → α < Δ
-    wfTy : ∀ {α A} → (α , A) ∈ Σ → WfTy Δ A
-
-record StoreWf (Δ : TyCtx) (Σ : Store) : Set₁ where
-  field
-    at : StoreWfAt Δ Σ
-    unique : ∀ {α A B} → (α , A) ∈ Σ → (α , B) ∈ Σ → A ≡ B
-    len : length Σ ≡ Δ
-
-open StoreWfAt public
-open StoreWf public
-
-StoreWfAt-weaken :
-  ∀ {Δ Δ′ Σ} →
-  Δ ≤ Δ′ →
-  StoreWfAt Δ Σ →
-  StoreWfAt Δ′ Σ
-StoreWfAt-weaken Δ≤Δ′ wfΣ =
-  record
-    { bound = λ α∈Σ → <-≤-trans (bound wfΣ α∈Σ) Δ≤Δ′
-    ; wfTy = λ α∈Σ → WfTy-weakenᵗ (wfTy wfΣ α∈Σ) Δ≤Δ′
-    }
-
-StoreWfAt-cons :
-  ∀ {Δ Σ α A} →
-  α < Δ →
-  WfTy Δ A →
-  StoreWfAt Δ Σ →
-  StoreWfAt Δ ((α , A) ∷ Σ)
-StoreWfAt-cons α<Δ hA wfΣ =
-  record
-    { bound = bound′
-    ; wfTy = wfTy′
-    }
-  where
-    bound′ : ∀ {β B} → (β , B) ∈ _ → β < _
-    bound′ (here refl) = α<Δ
-    bound′ (there β∈Σ) = bound wfΣ β∈Σ
-
-    wfTy′ : ∀ {β B} → (β , B) ∈ _ → WfTy _ B
-    wfTy′ (here refl) = hA
-    wfTy′ (there β∈Σ) = wfTy wfΣ β∈Σ
-
-StoreWfAt-rename :
-  ∀ {Δ Δ′ Σ ρ} →
-  TyRenameWf Δ Δ′ ρ →
-  StoreWfAt Δ Σ →
-  StoreWfAt Δ′ (renameStoreᵗ ρ Σ)
-StoreWfAt-rename {Σ = []} hρ wfΣ =
-  record { bound = λ (); wfTy = λ () }
-StoreWfAt-rename {Σ = (α , A) ∷ Σ} {ρ = ρ} hρ wfΣ =
-  record
-    { bound = bound′
-    ; wfTy = wfTy′
-    }
-  where
-    wfTail : StoreWfAt _ Σ
-    wfTail =
-      record
-        { bound = λ α∈Σ → bound wfΣ (there α∈Σ)
-        ; wfTy = λ α∈Σ → wfTy wfΣ (there α∈Σ)
-        }
-
-    bound′ : ∀ {β B} → (β , B) ∈ _ → β < _
-    bound′ (here refl) = hρ (bound wfΣ (here refl))
-    bound′ (there β∈Σ) = bound (StoreWfAt-rename hρ wfTail) β∈Σ
-
-    wfTy′ : ∀ {β B} → (β , B) ∈ _ → WfTy _ B
-    wfTy′ (here refl) =
-      renameᵗ-preserves-WfTy (wfTy wfΣ (here refl)) hρ
-    wfTy′ (there β∈Σ) = wfTy (StoreWfAt-rename hρ wfTail) β∈Σ
-
-StoreWfAt-⟰ᵗ :
-  ∀ {Δ Σ} →
-  StoreWfAt Δ Σ →
-  StoreWfAt (suc Δ) (⟰ᵗ Σ)
-StoreWfAt-⟰ᵗ = StoreWfAt-rename TyRenameWf-suc
-
-StoreWf-length∉ :
-  ∀ {Δ Σ A} →
-  StoreWf Δ Σ →
-  (length Σ , A) ∈ Σ →
-  ⊥
-StoreWf-length∉ wfΣ α∈Σ rewrite len wfΣ =
-  <-irrefl refl (bound (at wfΣ) α∈Σ)
-
-StoreWf-fresh-ext :
-  ∀ {Δ Σ A} →
-  StoreWf Δ Σ →
-  WfTy Δ A →
-  StoreWf (suc Δ) ((length Σ , A) ∷ Σ)
-StoreWf-fresh-ext {Δ = Δ} {Σ = Σ} wfΣ hA =
-  record
-    { at = StoreWfAt-cons fresh< (WfTy-weakenᵗ hA (n≤1+n Δ))
-             (StoreWfAt-weaken (n≤1+n Δ) (at wfΣ))
-    ; unique = unique′
-    ; len = cong suc (len wfΣ)
-    }
-  where
-    fresh< : length Σ < suc Δ
-    fresh< rewrite len wfΣ = n<1+n Δ
-
-    unique′ :
-      ∀ {α A B} →
-      (α , A) ∈ ((length Σ , _) ∷ Σ) →
-      (α , B) ∈ ((length Σ , _) ∷ Σ) →
-      A ≡ B
-    unique′ (here refl) (here refl) = refl
-    unique′ (here refl) (there hB) = ⊥-elim (StoreWf-length∉ wfΣ hB)
-    unique′ (there hA) (here refl) = ⊥-elim (StoreWf-length∉ wfΣ hA)
-    unique′ (there hA) (there hB) = unique wfΣ hA hB
-
-∈-renameStoreᵗ :
-  ∀ ρ {Σ α A} →
-  (α , A) ∈ Σ →
-  (ρ α , renameᵗ ρ A) ∈ renameStoreᵗ ρ Σ
-∈-renameStoreᵗ ρ (here refl) = here refl
-∈-renameStoreᵗ ρ (there x∈) = there (∈-renameStoreᵗ ρ x∈)
-
-renameStoreᵗ-incl :
-  ∀ ρ {Σ Σ′} →
-  StoreIncl Σ Σ′ →
-  StoreIncl (renameStoreᵗ ρ Σ) (renameStoreᵗ ρ Σ′)
-renameStoreᵗ-incl ρ {Σ = []} incl ()
-renameStoreᵗ-incl ρ {Σ = (α , A) ∷ Σ} incl (here refl) =
-  ∈-renameStoreᵗ ρ (incl (here refl))
-renameStoreᵗ-incl ρ {Σ = (α , A) ∷ Σ} incl (there x∈) =
-  renameStoreᵗ-incl ρ (λ y∈ → incl (there y∈)) x∈
 
 ------------------------------------------------------------------------
 -- Coercion typing under store/type-context weakening

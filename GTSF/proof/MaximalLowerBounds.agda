@@ -1112,39 +1112,70 @@ split-∀ (`∀ A)
     with split-∀ A
 ... | n , B , n∀ = suc n , B , n∀
 
-clash? : (TyVar × TyVar) → (TyVar × TyVar) → Bool
-clash? (X , Y) (X′ , Y′) with X ≟ X′ | Y ≟ Y′
-clash? (X , Y) (X′ , Y′) | yes _ | yes _ = false
-clash? (X , Y) (X′ , Y′) | yes _ | no _ = true
-clash? (X , Y) (X′ , Y′) | no _ | yes _ = true
-clash? (X , Y) (X′ , Y′) | no _ | no _ = false
+data CAssm : Set where
+  _~ᶜ★ : TyVar → CAssm
+  ★~ᶜ_ : TyVar → CAssm
+  _~ᶜ_ : TyVar → TyVar → CAssm
 
-same-eqn? : (TyVar × TyVar) → (TyVar × TyVar) → Bool
-same-eqn? (X , Y) (X′ , Y′) with X ≟ X′ | Y ≟ Y′
-same-eqn? (X , Y) (X′ , Y′) | yes _ | yes _ = true
-same-eqn? (X , Y) (X′ , Y′) | yes _ | no _ = false
-same-eqn? (X , Y) (X′ , Y′) | no _ | yes _ = false
-same-eqn? (X , Y) (X′ , Y′) | no _ | no _ = false
+clash? : CAssm → CAssm → Bool
+clash? (X ~ᶜ Y) (X′ ~ᶜ Y′) with X ≟ X′ | Y ≟ Y′
+clash? (X ~ᶜ Y) (X′ ~ᶜ Y′) | yes _ | yes _ = false
+clash? (X ~ᶜ Y) (X′ ~ᶜ Y′) | yes _ | no _ = true
+clash? (X ~ᶜ Y) (X′ ~ᶜ Y′) | no _ | yes _ = true
+clash? (X ~ᶜ Y) (X′ ~ᶜ Y′) | no _ | no _ = false
+clash? (X ~ᶜ Y) (X′ ~ᶜ★) with X ≟ X′
+clash? (X ~ᶜ Y) (X′ ~ᶜ★) | yes _ = true
+clash? (X ~ᶜ Y) (X′ ~ᶜ★) | no _ = false
+clash? (X ~ᶜ Y) (★~ᶜ Y′) with Y ≟ Y′
+clash? (X ~ᶜ Y) (★~ᶜ Y′) | yes _ = true
+clash? (X ~ᶜ Y) (★~ᶜ Y′) | no _ = false
+clash? (X ~ᶜ★) (X′ ~ᶜ Y′) with X ≟ X′
+clash? (X ~ᶜ★) (X′ ~ᶜ Y′) | yes _ = true
+clash? (X ~ᶜ★) (X′ ~ᶜ Y′) | no _ = false
+clash? (X ~ᶜ★) (X′ ~ᶜ★) = false
+clash? (X ~ᶜ★) (★~ᶜ Y′) = false
+clash? (★~ᶜ Y) (X′ ~ᶜ Y′) with Y ≟ Y′
+clash? (★~ᶜ Y) (X′ ~ᶜ Y′) | yes _ = true
+clash? (★~ᶜ Y) (X′ ~ᶜ Y′) | no _ = false
+clash? (★~ᶜ Y) (X′ ~ᶜ★) = false
+clash? (★~ᶜ Y) (★~ᶜ Y′) = false
 
-insert-eqn : (TyVar × TyVar) → List (TyVar × TyVar)
-  → Maybe (List (TyVar × TyVar))
-insert-eqn eq [] = just (eq ∷ [])
-insert-eqn eq₁ (eq₂ ∷ eqs′)
-    with same-eqn? eq₁ eq₂ | clash? eq₁ eq₂
-... | true | _ = just (eq₂ ∷ eqs′)
+same-assm? : CAssm → CAssm → Bool
+same-assm? (X ~ᶜ★) (X′ ~ᶜ★) with X ≟ X′
+same-assm? (X ~ᶜ★) (X′ ~ᶜ★) | yes _ = true
+same-assm? (X ~ᶜ★) (X′ ~ᶜ★) | no _ = false
+same-assm? (X ~ᶜ★) (★~ᶜ Y′) = false
+same-assm? (X ~ᶜ★) (X′ ~ᶜ Y′) = false
+same-assm? (★~ᶜ Y) (X′ ~ᶜ★) = false
+same-assm? (★~ᶜ Y) (★~ᶜ Y′) with Y ≟ Y′
+same-assm? (★~ᶜ Y) (★~ᶜ Y′) | yes _ = true
+same-assm? (★~ᶜ Y) (★~ᶜ Y′) | no _ = false
+same-assm? (★~ᶜ Y) (X′ ~ᶜ Y′) = false
+same-assm? (X ~ᶜ Y) (X′ ~ᶜ★) = false
+same-assm? (X ~ᶜ Y) (★~ᶜ Y′) = false
+same-assm? (X ~ᶜ Y) (X′ ~ᶜ Y′) with X ≟ X′ | Y ≟ Y′
+same-assm? (X ~ᶜ Y) (X′ ~ᶜ Y′) | yes _ | yes _ = true
+same-assm? (X ~ᶜ Y) (X′ ~ᶜ Y′) | yes _ | no _ = false
+same-assm? (X ~ᶜ Y) (X′ ~ᶜ Y′) | no _ | yes _ = false
+same-assm? (X ~ᶜ Y) (X′ ~ᶜ Y′) | no _ | no _ = false
+
+insert-assm : CAssm → List CAssm → Maybe (List CAssm)
+insert-assm a [] = just (a ∷ [])
+insert-assm a (b ∷ Γ)
+    with same-assm? a b | clash? a b
+... | true | _ = just (b ∷ Γ)
 ... | false | true = nothing
 ... | false | false
-    with insert-eqn eq₁ eqs′
+    with insert-assm a Γ
 ... | nothing = nothing
-... | just eqs = just (eq₂ ∷ eqs)
+... | just Γ′ = just (b ∷ Γ′)
 
-merge-eqns : List (TyVar × TyVar) → List (TyVar × TyVar)
-  → Maybe (List (TyVar × TyVar))
-merge-eqns [] eqs′ = just eqs′
-merge-eqns (eq ∷ eqs) eqs′
-    with merge-eqns eqs eqs′
+merge-assms : List CAssm → List CAssm → Maybe (List CAssm)
+merge-assms [] Γ′ = just Γ′
+merge-assms (a ∷ Γ) Γ′
+    with merge-assms Γ Γ′
 ... | nothing = nothing
-... | just eqs″ = insert-eqn eq eqs″ 
+... | just Γ″ = insert-assm a Γ″
 
 add∀ : ℕ → Ty → Ty
 add∀ zero A = A
@@ -1172,65 +1203,217 @@ right-bound? n m Y with Y <? n | Y <? (n + m)
 ... | no _ | yes _ = true
 ... | no _ | no _ = false
 
-bound-eqn? : ℕ → ℕ → (TyVar × TyVar) → Bool
-bound-eqn? n m (X , Y) with X <? n | right-bound? n m Y
+bound-var-var? : ℕ → ℕ → CAssm → Bool
+bound-var-var? n m (X ~ᶜ Y) with X <? n | right-bound? n m Y
 ... | yes _ | true = true
 ... | yes _ | false = false
 ... | no _ | _ = false
+bound-var-var? n m (X ~ᶜ★) = false
+bound-var-var? n m (★~ᶜ Y) = false
 
-bound-eqn-count : ℕ → ℕ → List (TyVar × TyVar) → ℕ
-bound-eqn-count n m [] = zero
-bound-eqn-count n m (eq ∷ eqs) with bound-eqn? n m eq
-... | true = suc (bound-eqn-count n m eqs)
-... | false = bound-eqn-count n m eqs
-
-mlb-∀-count : ℕ → ℕ → List (TyVar × TyVar) → ℕ
-mlb-∀-count n m eqs = (n + m) ∸ bound-eqn-count n m eqs
-
-find-left-for-right : TyVar → List (TyVar × TyVar) → Maybe TyVar
-find-left-for-right Y [] = nothing
-find-left-for-right Y ((X , Y′) ∷ eqs) with Y ≟ Y′
-... | yes _ = just X
-... | no _ = find-left-for-right Y eqs
-
-matched-right? : TyVar → List (TyVar × TyVar) → Bool
-matched-right? Y [] = false
-matched-right? Y ((X , Y′) ∷ eqs) with Y ≟ Y′
+discharged-assm? : ℕ → ℕ → CAssm → Bool
+discharged-assm? n m (X ~ᶜ Y) = bound-var-var? n m (X ~ᶜ Y)
+discharged-assm? n m (X ~ᶜ★) with X <? n
 ... | yes _ = true
-... | no _ = matched-right? Y eqs
+... | no _ = false
+discharged-assm? n m (★~ᶜ Y) = right-bound? n m Y
 
-unmatched-right-before : ℕ → ℕ → List (TyVar × TyVar) → ℕ
-unmatched-right-before n zero eqs = zero
-unmatched-right-before n (suc Y) eqs
-    with matched-right? (n + Y) eqs
-... | true = unmatched-right-before n Y eqs
-... | false = suc (unmatched-right-before n Y eqs)
+escapes-local? : ℕ → ℕ → CAssm → Bool
+escapes-local? n m (X ~ᶜ Y) with X <? n | right-bound? n m Y
+... | yes _ | true = false
+... | yes _ | false = true
+... | no _ | true = true
+... | no _ | false = false
+escapes-local? n m (X ~ᶜ★) = false
+escapes-local? n m (★~ᶜ Y) = false
 
-normalize-var : ℕ → ℕ → List (TyVar × TyVar) → TyVar → TyVar
-normalize-var n m eqs X with X <? n | X <? (n + m)
-... | yes _ | _ = X
+no-escaping-assms? : ℕ → ℕ → List CAssm → Bool
+no-escaping-assms? n m [] = true
+no-escaping-assms? n m (a ∷ Γ) with escapes-local? n m a
+... | true = false
+... | false = no-escaping-assms? n m Γ
+
+bound-var-var-order-ok? : CAssm → CAssm → Bool
+bound-var-var-order-ok? (X ~ᶜ Y) (X′ ~ᶜ Y′)
+    with X <? X′ | X′ <? X | Y <? Y′ | Y′ <? Y
+bound-var-var-order-ok? (X ~ᶜ Y) (X′ ~ᶜ Y′)
+    | yes _ | _ | yes _ | _ = true
+bound-var-var-order-ok? (X ~ᶜ Y) (X′ ~ᶜ Y′)
+    | yes _ | _ | no _ | _ = false
+bound-var-var-order-ok? (X ~ᶜ Y) (X′ ~ᶜ Y′)
+    | no _ | yes _ | _ | yes _ = true
+bound-var-var-order-ok? (X ~ᶜ Y) (X′ ~ᶜ Y′)
+    | no _ | yes _ | _ | no _ = false
+bound-var-var-order-ok? (X ~ᶜ Y) (X′ ~ᶜ Y′)
+    | no _ | no _ | _ | _ = true
+bound-var-var-order-ok? _ _ = true
+
+bound-var-var-order-ok-with? :
+  ℕ → ℕ → CAssm → List CAssm → Bool
+bound-var-var-order-ok-with? n m a [] = true
+bound-var-var-order-ok-with? n m a (a′ ∷ Γ)
+    with bound-var-var? n m a | bound-var-var? n m a′
+... | true | true
+    with bound-var-var-order-ok? a a′
+... | true = bound-var-var-order-ok-with? n m a Γ
+... | false = false
+bound-var-var-order-ok-with? n m a (a′ ∷ Γ) | _ | _ =
+  bound-var-var-order-ok-with? n m a Γ
+
+bound-var-var-order-ok-list? : ℕ → ℕ → List CAssm → Bool
+bound-var-var-order-ok-list? n m [] = true
+bound-var-var-order-ok-list? n m (a ∷ Γ)
+    with bound-var-var-order-ok-with? n m a Γ
+... | true = bound-var-var-order-ok-list? n m Γ
+... | false = false
+
+bound-var-var-count : ℕ → ℕ → List CAssm → ℕ
+bound-var-var-count n m [] = zero
+bound-var-var-count n m (a ∷ Γ) with bound-var-var? n m a
+... | true = suc (bound-var-var-count n m Γ)
+... | false = bound-var-var-count n m Γ
+
+mlb-∀-count : ℕ → ℕ → List CAssm → ℕ
+mlb-∀-count n m Γ = (n + m) ∸ bound-var-var-count n m Γ
+
+find-left-for-right : TyVar → List CAssm → Maybe TyVar
+find-left-for-right Y [] = nothing
+find-left-for-right Y ((X ~ᶜ Y′) ∷ Γ) with Y ≟ Y′
+... | yes _ = just X
+... | no _ = find-left-for-right Y Γ
+find-left-for-right Y ((X ~ᶜ★) ∷ Γ) = find-left-for-right Y Γ
+find-left-for-right Y ((★~ᶜ Y′) ∷ Γ) = find-left-for-right Y Γ
+
+find-right-for-left : TyVar → List CAssm → Maybe TyVar
+find-right-for-left X [] = nothing
+find-right-for-left X ((X′ ~ᶜ Y) ∷ Γ) with X ≟ X′
+... | yes _ = just Y
+... | no _ = find-right-for-left X Γ
+find-right-for-left X ((X′ ~ᶜ★) ∷ Γ) = find-right-for-left X Γ
+find-right-for-left X ((★~ᶜ Y) ∷ Γ) = find-right-for-left X Γ
+
+find-bound-right-for-left :
+  ℕ → ℕ → TyVar → List CAssm → Maybe TyVar
+find-bound-right-for-left n m X Γ with find-right-for-left X Γ
+... | nothing = nothing
+... | just Y with right-bound? n m Y
+... | true = just Y
+... | false = nothing
+
+matched-right? : TyVar → List CAssm → Bool
+matched-right? Y [] = false
+matched-right? Y ((X ~ᶜ Y′) ∷ Γ) with Y ≟ Y′
+... | yes _ = true
+... | no _ = matched-right? Y Γ
+matched-right? Y ((X ~ᶜ★) ∷ Γ) = matched-right? Y Γ
+matched-right? Y ((★~ᶜ Y′) ∷ Γ) = matched-right? Y Γ
+
+unmatched-right-before : ℕ → ℕ → List CAssm → ℕ
+unmatched-right-before n zero Γ = zero
+unmatched-right-before n (suc Y) Γ
+    with matched-right? (n + Y) Γ
+... | true = unmatched-right-before n Y Γ
+... | false = suc (unmatched-right-before n Y Γ)
+
+last-bound-right-before-left :
+  ℕ → ℕ → List CAssm → TyVar → Maybe TyVar
+last-bound-right-before-left n m Γ zero = nothing
+last-bound-right-before-left n m Γ (suc X)
+    with last-bound-right-before-left n m Γ X
+       | find-bound-right-for-left n m X Γ
+... | _ | just Y = just Y
+... | prev | nothing = prev
+
+unmatched-rights-before-left :
+  ℕ → ℕ → List CAssm → TyVar → ℕ
+unmatched-rights-before-left n m Γ X
+    with find-bound-right-for-left n m X Γ
+... | just Y = unmatched-right-before n (Y ∸ n) Γ
+... | nothing
+    with last-bound-right-before-left n m Γ X
+... | just Y = unmatched-right-before n (Y ∸ n) Γ
+... | nothing = zero
+
+normalize-left-var : ℕ → ℕ → List CAssm → TyVar → TyVar
+normalize-left-var n m Γ X = X + unmatched-rights-before-left n m Γ X
+
+left-binders-before-right-from :
+  ℕ → ℕ → List CAssm → TyVar → ℕ → TyVar → ℕ
+left-binders-before-right-from n m Γ Y zero X = X
+left-binders-before-right-from n m Γ Y (suc fuel) X
+    with find-bound-right-for-left n m X Γ
+... | nothing =
+  left-binders-before-right-from n m Γ Y fuel (suc X)
+... | just Y′ with Y <? Y′
+... | yes _ = X
+... | no _ =
+  left-binders-before-right-from n m Γ Y fuel (suc X)
+
+left-binders-before-right : ℕ → ℕ → List CAssm → TyVar → ℕ
+left-binders-before-right n m Γ Y =
+  left-binders-before-right-from n m Γ Y n zero
+
+normalize-var : ℕ → ℕ → List CAssm → TyVar → TyVar
+normalize-var n m Γ X with X <? n | X <? (n + m)
+... | yes _ | _ = normalize-left-var n m Γ X
 ... | no _ | yes _
-    with find-left-for-right X eqs
-... | just Y = Y
-... | nothing = n + unmatched-right-before n (X ∸ n) eqs
-normalize-var n m eqs X | no _ | no _ =
-  mlb-∀-count n m eqs + (X ∸ (n + m))
+    with find-left-for-right X Γ
+... | just Y = normalize-left-var n m Γ Y
+... | nothing =
+  left-binders-before-right n m Γ X + unmatched-right-before n (X ∸ n) Γ
+normalize-var n m Γ X | no _ | no _ =
+  mlb-∀-count n m Γ + (X ∸ (n + m))
 
-normalize-eqns :
-  ℕ → ℕ → List (TyVar × TyVar) → Maybe (List (TyVar × TyVar))
-normalize-eqns n m [] = just []
-normalize-eqns n m ((X , Y) ∷ eqs)
-    with normalize-eqns n m eqs | bound-eqn? n m (X , Y)
+identity-assm? : CAssm → Bool
+identity-assm? (X ~ᶜ Y) with X ≟ Y
+... | yes _ = true
+... | no _ = false
+identity-assm? (X ~ᶜ★) = false
+identity-assm? (★~ᶜ Y) = false
+
+normalize-assm : ℕ → ℕ → List CAssm → CAssm → CAssm
+normalize-assm n m Γ (X ~ᶜ Y) =
+  normalize-var n m Γ X ~ᶜ normalize-var n m Γ Y
+normalize-assm n m Γ (X ~ᶜ★) = normalize-var n m Γ X ~ᶜ★
+normalize-assm n m Γ (★~ᶜ Y) = ★~ᶜ normalize-var n m Γ Y
+
+normalize-assms :
+  ℕ → ℕ → List CAssm → Maybe (List CAssm)
+normalize-assms n m [] = just []
+normalize-assms n m (a ∷ Γ)
+    with normalize-assms n m Γ | discharged-assm? n m a
 ... | nothing | _ = nothing
-... | just eqs′ | true = just eqs′
-... | just eqs′ | false =
-  insert-eqn (normalize-var n m ((X , Y) ∷ eqs) X ,
-              normalize-var n m ((X , Y) ∷ eqs) Y)
-             eqs′
+... | just Γ′ | true = just Γ′
+... | just Γ′ | false
+    with normalize-assm n m (a ∷ Γ) a
+... | a′ with identity-assm? a′
+... | true = just Γ′
+... | false = insert-assm a′ Γ′
+
+residual-assms-ok? : List CAssm → Bool
+residual-assms-ok? [] = true
+residual-assms-ok? (a ∷ Γ) with identity-assm? a
+... | true = residual-assms-ok? Γ
+... | false = false
+
+foralls-used? : Ty → Bool
+foralls-used? (＇ X) = true
+foralls-used? (‵ ι) = true
+foralls-used? ★ = true
+foralls-used? (A ⇒ B) with foralls-used? A | foralls-used? B
+... | true | true = true
+... | true | false = false
+... | false | true = false
+... | false | false = false
+foralls-used? (`∀ A) with occurs zero A | foralls-used? A
+... | true | true = true
+... | true | false = false
+... | false | true = false
+... | false | false = false
 
 mutual
   {-# TERMINATING #-}
-  search-mlb? : (A B : Ty) → Maybe (Ty × List (TyVar × TyVar))
+  search-mlb? : (A B : Ty) → Maybe (Ty × List CAssm)
   search-mlb? A B
       with split-∀ A | split-∀ B
   ... | n , A′ , n∀A′ | m , B′ , n∀B′
@@ -1240,18 +1423,25 @@ mutual
              (rename-non∀ n∀A′)
              (rename-non∀ n∀B′)
   ... | nothing = nothing
-  ... | just (C , Eq)
-      with normalize-eqns n m Eq
+  ... | just (C , Γ)
+      with no-escaping-assms? n m Γ
+  ... | false = nothing
+  ... | true
+      with bound-var-var-order-ok-list? n m Γ
+  ... | false = nothing
+  ... | true
+      with normalize-assms n m Γ
   ... | nothing = nothing
-  ... | just Eq′ =
-    just ( add∀ (mlb-∀-count n m Eq) (renameᵗ (normalize-var n m Eq) C)
-         , Eq′
-         )
+  ... | just Γ′
+      with add∀ (mlb-∀-count n m Γ) (renameᵗ (normalize-var n m Γ) C)
+  ... | C′ with foralls-used? C′
+  ... | true = just (C′ , Γ′)
+  ... | false = nothing
 
-  core-mlb? : (A B : Ty) → Non∀ A → Non∀ B → Maybe (Ty × List (TyVar × TyVar))
-  core-mlb? (＇ X) (＇ Y) n∀A n∀B = just ((＇ X) , (X , Y) ∷ [])
+  core-mlb? : (A B : Ty) → Non∀ A → Non∀ B → Maybe (Ty × List CAssm)
+  core-mlb? (＇ X) (＇ Y) n∀A n∀B = just ((＇ X) , (X ~ᶜ Y) ∷ [])
   core-mlb? (＇ X) (‵ ι) n∀A n∀B = nothing
-  core-mlb? (＇ X) ★ n∀A n∀B = just ((＇ X) , [])
+  core-mlb? (＇ X) ★ n∀A n∀B = just ((＇ X) , (X ~ᶜ★) ∷ [])
   core-mlb? (＇ X) (B₁ ⇒ B₂) n∀A n∀B = nothing
   core-mlb? (‵ ι) (＇ x) n∀A n∀B = nothing
   core-mlb? (‵ ι₁) (‵ ι₂) n∀A n∀B
@@ -1260,25 +1450,45 @@ mutual
   ... | no neq = nothing
   core-mlb? (‵ ι) ★ n∀A n∀B = just ((‵ ι) , [])
   core-mlb? (‵ ι) (B₁ ⇒ B₂) n∀A n∀B = nothing
-  core-mlb? ★ B n∀A n∀B = just (B , [])
+  core-mlb? ★ (＇ Y) n∀A n∀B = just ((＇ Y) , (★~ᶜ Y) ∷ [])
+  core-mlb? ★ (‵ ι) n∀A n∀B = just ((‵ ι) , [])
+  core-mlb? ★ ★ n∀A n∀B = just (★ , [])
+  core-mlb? ★ (B₁ ⇒ B₂) n∀A n∀B
+      with search-mlb? ★ B₁ | search-mlb? ★ B₂
+  ... | nothing | _ = nothing
+  ... | _ | nothing = nothing
+  ... | just (C₁ , Γ₁) | just (C₂ , Γ₂)
+      with merge-assms Γ₁ Γ₂
+  ... | nothing = nothing
+  ... | just Γ = just (C₁ ⇒ C₂ , Γ)
+  core-mlb? ★ (`∀ B) n∀A ()
   core-mlb? (A₁ ⇒ A₂) (＇ X) n∀A n∀B = nothing
   core-mlb? (A₁ ⇒ A₂) (‵ ι) n∀A n∀B = nothing
-  core-mlb? (A₁ ⇒ A₂) ★ n∀A n∀B = just (A₁ ⇒ A₂ , [])
+  core-mlb? (A₁ ⇒ A₂) ★ n∀A n∀B
+      with search-mlb? A₁ ★ | search-mlb? A₂ ★
+  ... | nothing | _ = nothing
+  ... | _ | nothing = nothing
+  ... | just (C₁ , Γ₁) | just (C₂ , Γ₂)
+      with merge-assms Γ₁ Γ₂
+  ... | nothing = nothing
+  ... | just Γ = just (C₁ ⇒ C₂ , Γ)
   core-mlb? (A₁ ⇒ A₂) (B₁ ⇒ B₂) n∀A n∀B
       with search-mlb? A₁ B₁ | search-mlb? A₂ B₂
   ... | nothing | _ = nothing
   ... | _ | nothing = nothing
-  ... | just (C₁ , Eq₁) | just (C₂ , Eq₂)
-      with merge-eqns Eq₁ Eq₂
+  ... | just (C₁ , Γ₁) | just (C₂ , Γ₂)
+      with merge-assms Γ₁ Γ₂
   ... | nothing = nothing
-  ... | just Eq = just (C₁ ⇒ C₂ , Eq)
+  ... | just Γ = just (C₁ ⇒ C₂ , Γ)
   core-mlb? (A₁ ⇒ A₂) (`∀ B) n∀A ()
 
 
 mlb? : (A B : Ty) → Maybe Ty
 mlb? A B with search-mlb? A B
 ... | nothing = nothing
-... | just (C , Eq) = just C
+... | just (C , Γ) with residual-assms-ok? Γ
+... | true = just C
+... | false = nothing
 
 mlb-type :
   ∀ {Γ A B C} →
@@ -1817,22 +2027,22 @@ data ForallForallLower²ᶜ
       {occC : occurs zero C ≡ true}
       {occA : occurs zero A ≡ true} →
     liftCtx ∀ᵇ Φᴸ ⊢ C ⊑ A →
-    liftCtx νᵇ Φᴿ ⊢ C ⊑ ⇑ᵗ (`∀ B) →
+    liftCtx νᵇ Φᴿ ⊢ C ⊑ `∀ B →
     ForallForallLower²ᶜ Φᴸ Φᴿ (`∀ C) A B
 
   ff-via-ν∀ :
     ∀ {A B C}
       {occC : occurs zero C ≡ true}
       {occB : occurs zero B ≡ true} →
-    liftCtx νᵇ Φᴸ ⊢ C ⊑ ⇑ᵗ (`∀ A) →
+    liftCtx νᵇ Φᴸ ⊢ C ⊑ `∀ A →
     liftCtx ∀ᵇ Φᴿ ⊢ C ⊑ B →
     ForallForallLower²ᶜ Φᴸ Φᴿ (`∀ C) A B
 
   ff-via-νν :
     ∀ {A B C} →
     occurs zero C ≡ true →
-    liftCtx νᵇ Φᴸ ⊢ C ⊑ ⇑ᵗ (`∀ A) →
-    liftCtx νᵇ Φᴿ ⊢ C ⊑ ⇑ᵗ (`∀ B) →
+    liftCtx νᵇ Φᴸ ⊢ C ⊑ `∀ A →
+    liftCtx νᵇ Φᴿ ⊢ C ⊑ `∀ B →
     ForallForallLower²ᶜ Φᴸ Φᴿ (`∀ C) A B
 
 forall-forall-lower²-invᶜ :
@@ -1863,13 +2073,13 @@ record LiftMlb∀∀Support
       liftCtx ∀ᵇ Φᴸ ⊢ D ⊑ A →
       occurs zero D ≡ true →
       occurs zero A ≡ true →
-      liftCtx νᵇ Φᴿ ⊢ D ⊑ ⇑ᵗ (`∀ B) →
+      liftCtx νᵇ Φᴿ ⊢ D ⊑ `∀ B →
       Φᴼ ⊢ `∀ D ⊑ `∀ C
 
     kν∀ :
       ∀ {D} →
       occurs zero D ≡ true →
-      liftCtx νᵇ Φᴸ ⊢ D ⊑ ⇑ᵗ (`∀ A) →
+      liftCtx νᵇ Φᴸ ⊢ D ⊑ `∀ A →
       liftCtx ∀ᵇ Φᴿ ⊢ D ⊑ B →
       occurs zero B ≡ true →
       Φᴼ ⊢ `∀ D ⊑ `∀ C
@@ -1877,8 +2087,8 @@ record LiftMlb∀∀Support
     kνν :
       ∀ {D} →
       occurs zero D ≡ true →
-      liftCtx νᵇ Φᴸ ⊢ D ⊑ ⇑ᵗ (`∀ A) →
-      liftCtx νᵇ Φᴿ ⊢ D ⊑ ⇑ᵗ (`∀ B) →
+      liftCtx νᵇ Φᴸ ⊢ D ⊑ `∀ A →
+      liftCtx νᵇ Φᴿ ⊢ D ⊑ `∀ B →
       Φᴼ ⊢ `∀ D ⊑ `∀ C
 
 open LiftMlb∀∀Support public

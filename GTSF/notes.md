@@ -1,3 +1,20 @@
+
+
+A = ∀Y. ★ → Y → ★ → ★
+B = ∀X. X → ★ → ★ → X
+C = ∀X.∀Z.∀Y.X → Y → Z → X
+MLB = ∀X.∀Y.X → Y → ★ → X
+
+A = ∀X.∀Z.∀S.∀T.∀V. X → ★ → Z → ★ → S → T → ★ → V → ★ → X
+B = ∀Y.∀Z.∀W.∀T.∀U. ★ → Y → Z → W → ★ → T → U → ★ → ★ → ★
+C = ∀X.∀Y.∀Z.∀W.∀S.∀T.∀U.∀V.∀R. X → Y → Z → W → S → T → U → V → R → X
+MLB = ?
+
+
+
+
+
+
 What does the compilation from the source language to the poly. blame calculus look like?
 We need to make sure it satisfies the static gradual guarantee.
 

@@ -9,14 +9,15 @@ module proof.MaximalLowerBounds where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (Bool; true; false; _∨_)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; length)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (ℕ; _+_; _∸_; _<_; zero; suc; z<s; s<s; _≟_)
 open import Data.Nat.Properties using (_<?_)
 open import Data.Product
   using (_×_; _,_; proj₁; proj₂; Σ; Σ-syntax; ∃; ∃-syntax)
-open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
+open import Relation.Binary.PropositionalEquality
+  using (cong; subst; sym; trans)
 open import Relation.Nullary using (¬_; Dec; yes; no)
 open import Data.Maybe using (Maybe; nothing; just)
 
@@ -43,6 +44,8 @@ open import Imprecision
     ; ν
     )
 open import proof.ImprecisionProperties using (⊑-refl-idᵢ; ⊑-tgt-wf-idᵢ)
+open import proof.TypeProperties
+  using (TyRenameWf; occurs-zero-rename-ext; renameᵗ-preserves-WfTy)
 
 ------------------------------------------------------------------------
 -- Binder context modes
@@ -1117,6 +1120,24 @@ data CAssm : Set where
   ★~ᶜ_ : TyVar → CAssm
   _~ᶜ_ : TyVar → TyVar → CAssm
 
+assm-left-assm : CAssm → ImpAssm
+assm-left-assm (X ~ᶜ Y) = X ˣ⊑ˣ X
+assm-left-assm (X ~ᶜ★) = X ˣ⊑ˣ X
+assm-left-assm (★~ᶜ Y) = Y ˣ⊑★
+
+assm-right-assm : CAssm → ImpAssm
+assm-right-assm (X ~ᶜ Y) = X ˣ⊑ˣ Y
+assm-right-assm (X ~ᶜ★) = X ˣ⊑★
+assm-right-assm (★~ᶜ Y) = Y ˣ⊑ˣ Y
+
+assm-left : List CAssm → ImpCtx
+assm-left [] = []
+assm-left (a ∷ Γ) = assm-left-assm a ∷ assm-left Γ
+
+assm-right : List CAssm → ImpCtx
+assm-right [] = []
+assm-right (a ∷ Γ) = assm-right-assm a ∷ assm-right Γ
+
 clash? : CAssm → CAssm → Bool
 clash? (X ~ᶜ Y) (X′ ~ᶜ Y′) with X ≟ X′ | Y ≟ Y′
 clash? (X ~ᶜ Y) (X′ ~ᶜ Y′) | yes _ | yes _ = false
@@ -1180,6 +1201,29 @@ merge-assms (a ∷ Γ) Γ′
 add∀ : ℕ → Ty → Ty
 add∀ zero A = A
 add∀ (suc n) A = `∀ (add∀ n A)
+
+split-∀-rebuild-direct :
+  (A : Ty) →
+  A ≡ add∀ (proj₁ (split-∀ A)) (proj₁ (proj₂ (split-∀ A)))
+split-∀-rebuild-direct (＇ X) = refl
+split-∀-rebuild-direct (‵ ι) = refl
+split-∀-rebuild-direct ★ = refl
+split-∀-rebuild-direct (A ⇒ B) = refl
+split-∀-rebuild-direct (`∀ A)
+    with split-∀ A | split-∀-rebuild-direct A
+split-∀-rebuild-direct (`∀ A)
+    | n , B , n∀ | eq =
+  cong `∀ eq
+
+split-∀-rebuild :
+  ∀ {A n A′ n∀A′} →
+  split-∀ A ≡ (n , A′ , n∀A′) →
+  A ≡ add∀ n A′
+split-∀-rebuild {A = A} eq =
+  subst
+    (λ p → A ≡ add∀ (proj₁ p) (proj₁ (proj₂ p)))
+    eq
+    (split-∀-rebuild-direct A)
 
 rename-non∀ : ∀ {ρ A} → Non∀ A → Non∀ (renameᵗ ρ A)
 rename-non∀ non∀-＇ = non∀-＇
@@ -1489,6 +1533,1622 @@ mlb? A B with search-mlb? A B
 ... | just (C , Γ) with residual-assms-ok? Γ
 ... | true = just C
 ... | false = nothing
+
+------------------------------------------------------------------------
+-- Proof skeleton for `mlb?` lower-bound soundness
+------------------------------------------------------------------------
+
+-- The target theorem for the executable `mlb?` procedure is:
+--
+-- mlb?-lower :
+--   ∀ {Δ A B C} →
+--   WfTy Δ A →
+--   WfTy Δ B →
+--   mlb? A B ≡ just C →
+--   idᵢ Δ ⊢ C ⊑ A × idᵢ Δ ⊢ C ⊑ B
+--
+-- The proof should go through `search-mlb?`:
+--
+-- search-mlb?-lower :
+--   ∀ {Δ A B C Γ} →
+--   WfTy Δ A →
+--   WfTy Δ B →
+--   search-mlb? A B ≡ just (C , Γ) →
+--   residual-assms-ok? Γ ≡ true →
+--   idᵢ Δ ⊢ C ⊑ A × idᵢ Δ ⊢ C ⊑ B
+--
+-- The main invariant should interpret the `CAssm` list as the variable
+-- assumptions needed by the raw result from `core-mlb?`.  A useful proof
+-- view is an output-binder spine:
+--
+-- data OutBinder : Set where
+--   both      : OutBinder
+--   leftOnly  : OutBinder
+--   rightOnly : OutBinder
+--
+-- The `both` case is wrapped with `∀ⁱ` on both sides.  The `leftOnly`
+-- case is wrapped with `∀ⁱ` on the left and `ν` on the right.  The
+-- `rightOnly` case is wrapped with `ν` on the left and `∀ⁱ` on the
+-- right.
+--
+-- AssmCtx Φᴸ Φᴿ Γ should say that each `CAssm` in Γ has the
+-- corresponding imprecision evidence:
+--
+--   X ~ᶜ Y  :  Φᴸ contains X ˣ⊑ˣ X and Φᴿ contains X ˣ⊑ˣ Y
+--   X ~ᶜ★   :  Φᴸ contains X ˣ⊑ˣ X and Φᴿ contains X ˣ⊑★
+--   ★~ᶜ Y   :  Φᴸ contains Y ˣ⊑★   and Φᴿ contains Y ˣ⊑ˣ Y
+--
+-- Lemmas for `split-∀`:
+--
+-- split-∀-rebuild :
+--   split-∀ A ≡ (n , A′ , n∀A′) →
+--   A ≡ add∀ n A′
+--
+-- split-∀-wf :
+--   WfTy Δ A →
+--   split-∀ A ≡ (n , A′ , n∀A′) →
+--   WfTy (n + Δ) A′
+--
+-- Lemmas for `add∀` and `foralls-used?`:
+--
+-- foralls-used?-sound :
+--   foralls-used? A ≡ true →
+--   -- every `∀` in A has the occurrence proof needed by `wf∀`/`∀ⁱ`/`ν`.
+--
+-- add∀-lower :
+--   -- Given the output-binder spine and a body lower-bound proof under the
+--   -- corresponding lifted contexts, build the two lower-bound proofs for
+--   -- `add∀ k C` below the original split inputs.
+--
+-- Lemmas for `rename-non∀`:
+--
+-- rename-non∀-sound :
+--   (n∀A : Non∀ A) →
+--   Non∀ (renameᵗ ρ A)
+--
+-- Lemmas for `embed-left-var` and `embed-right-var`:
+--
+-- embed-left-var-bound :
+--   X < n →
+--   embed-left-var n m X ≡ X
+--
+-- embed-left-var-free :
+--   n ≤ X →
+--   embed-left-var n m X ≡ n + m + (X ∸ n)
+--
+-- embed-right-var-bound :
+--   Y < m →
+--   embed-right-var n m Y ≡ n + Y
+--
+-- embed-right-var-free :
+--   m ≤ Y →
+--   embed-right-var n m Y ≡ n + m + (Y ∸ m)
+--
+-- embed-left-wf :
+--   WfTy (n + Δ) A →
+--   WfTy (n + m + Δ) (renameᵗ (embed-left-var n m) A)
+--
+-- embed-right-wf :
+--   WfTy (m + Δ) B →
+--   WfTy (n + m + Δ) (renameᵗ (embed-right-var n m) B)
+--
+-- Lemmas for `clash?`, `same-assm?`, `insert-assm`, and `merge-assms`:
+--
+-- same-assm?-sound :
+--   same-assm? a b ≡ true →
+--   a ≡ b
+--
+-- clash?-sound :
+--   clash? a b ≡ true →
+--   -- a and b cannot both be satisfied by one coherent binder merge.
+--
+-- insert-assm-preserves :
+--   insert-assm a Γ ≡ just Γ′ →
+--   -- Γ′ contains a and preserves every assumption from Γ, up to dedup.
+--
+-- insert-assm-no-clash :
+--   insert-assm a Γ ≡ just Γ′ →
+--   -- Γ′ remains pairwise clash-free.
+--
+-- merge-assms-preserves :
+--   merge-assms Γ₁ Γ₂ ≡ just Γ →
+--   -- Γ contains assumptions from Γ₁ and Γ₂, up to dedup.
+--
+-- merge-assms-no-clash :
+--   merge-assms Γ₁ Γ₂ ≡ just Γ →
+--   -- Γ remains pairwise clash-free.
+--
+-- Lemmas for `right-bound?`, `bound-var-var?`, and `discharged-assm?`:
+--
+-- right-bound?-sound :
+--   right-bound? n m Y ≡ true →
+--   n ≤ Y × Y < n + m
+--
+-- bound-var-var?-sound :
+--   bound-var-var? n m a ≡ true →
+--   ∃[ X ] ∃[ Y ]
+--     a ≡ X ~ᶜ Y × X < n × right-bound? n m Y ≡ true
+--
+-- discharged-assm?-sound :
+--   discharged-assm? n m a ≡ true →
+--   -- a is accounted for by a local output forall binder.
+--
+-- Lemmas for `escapes-local?` and `no-escaping-assms?`:
+--
+-- escapes-local?-sound :
+--   escapes-local? n m a ≡ true →
+--   -- a is a local/nonlocal variable equation and cannot safely escape.
+--
+-- no-escaping-assms?-sound :
+--   no-escaping-assms? n m Γ ≡ true →
+--   -- every non-discharged var-var assumption is fully nonlocal.
+--
+-- Lemmas for binder ordering and counting:
+--
+-- bound-var-var-order-ok?-sound :
+--   bound-var-var-order-ok? a b ≡ true →
+--   -- matched local binder pairs preserve left/right order.
+--
+-- bound-var-var-order-ok-with?-sound :
+--   bound-var-var-order-ok-with? n m a Γ ≡ true →
+--   -- a is order-compatible with all matched local assumptions in Γ.
+--
+-- bound-var-var-order-ok-list?-sound :
+--   bound-var-var-order-ok-list? n m Γ ≡ true →
+--   -- all matched local binder pairs in Γ are order-preserving.
+--
+-- bound-var-var-count-sound :
+--   bound-var-var-count n m Γ ≡ k →
+--   -- k is the number of matched local binder pairs.
+--
+-- mlb-∀-count-sound :
+--   mlb-∀-count n m Γ ≡ k →
+--   -- k = left binders + right binders - matched binder pairs.
+--
+-- Lemmas for lookup and position helpers:
+--
+-- find-left-for-right-sound :
+--   find-left-for-right Y Γ ≡ just X →
+--   (X ~ᶜ Y) ∈ Γ
+--
+-- find-right-for-left-sound :
+--   find-right-for-left X Γ ≡ just Y →
+--   (X ~ᶜ Y) ∈ Γ
+--
+-- find-bound-right-for-left-sound :
+--   find-bound-right-for-left n m X Γ ≡ just Y →
+--   (X ~ᶜ Y) ∈ Γ × right-bound? n m Y ≡ true
+--
+-- matched-right?-sound :
+--   matched-right? Y Γ ≡ true →
+--   ∃[ X ] (X ~ᶜ Y) ∈ Γ
+--
+-- unmatched-right-before-sound :
+--   -- `unmatched-right-before n Y Γ` counts right binders before `n + Y`
+--   -- that are not matched by Γ.
+--
+-- last-bound-right-before-left-sound :
+--   -- If this returns `just Y`, then Y is the last right binder matched by
+--   -- some left binder strictly before X.
+--
+-- unmatched-rights-before-left-sound :
+--   -- Counts right-only output binders that must appear before a left binder.
+--
+-- normalize-left-var-sound :
+--   -- Gives the output binder position for a local left binder.
+--
+-- left-binders-before-right-from-sound :
+--   -- Accumulator lemma for `left-binders-before-right`.
+--
+-- left-binders-before-right-sound :
+--   -- Counts left output binders that must appear before a right-only binder.
+--
+-- Lemmas for `normalize-var`, `normalize-assm`, and `normalize-assms`:
+--
+-- normalize-var-left-bound :
+--   X < n →
+--   -- `normalize-var n m Γ X` is the output position for left binder X.
+--
+-- normalize-var-right-bound :
+--   right-bound? n m Y ≡ true →
+--   -- `normalize-var n m Γ Y` is the matched-left position, or the
+--   -- right-only output position when Y is unmatched.
+--
+-- normalize-var-free :
+--   n + m ≤ X →
+--   -- Free variables are shifted past all output foralls.
+--
+-- identity-assm?-sound :
+--   identity-assm? a ≡ true →
+--   ∃[ X ] a ≡ X ~ᶜ X
+--
+-- normalize-assm-sound :
+--   normalize-assm n m Γ a ≡ a′ →
+--   -- a′ is a normalized form of a under `normalize-var n m Γ`.
+--
+-- normalize-assms-sound :
+--   normalize-assms n m Γ ≡ just Γ′ →
+--   -- Γ′ is the residual assumption list: discharged local binder
+--   -- assumptions and normalized identities have been removed, and the
+--   -- remaining normalized assumptions are clash-free.
+--
+-- The body proof cannot be transported directly into `assm-left Γ′` and
+-- `assm-right Γ′`: discharged assumptions are still needed until the
+-- output `∀` spine is introduced.  Instead, normalization first transports
+-- into an explicit pending-spine context containing every raw assumption
+-- after `normalize-var`.  The `add∀` proof then consumes the discharged
+-- assumptions from that pending context while wrapping the output binders.
+--
+-- The proof-facing `left-output-spine` walks the left local binders in order.
+-- Before each left binder X it inserts the unmatched right-only binders
+-- counted by `unmatched-rights-before-left`; then it emits `both` when
+-- `find-bound-right-for-left` finds a bound right partner and `leftOnly`
+-- otherwise.  After all left binders, it appends the remaining unmatched
+-- right-only binders counted by `unmatched-right-before`.
+--
+-- The soundness lemmas for that concrete spine require the same guards that
+-- `search-mlb?` has already checked: no local/nonlocal escaping assumptions,
+-- order compatibility for matched local binders, and successful normalization.
+--
+-- residual-assms-ok?-sound :
+--   residual-assms-ok? Γ ≡ true →
+--   -- every residual assumption is an identity `X ~ᶜ X`.
+--
+-- Core proof theorem:
+--
+-- core-mlb?-lower-raw :
+--   core-mlb? A B n∀A n∀B ≡ just (C , Γ) →
+--   AssmCtx Φᴸ Φᴿ Γ →
+--   Φᴸ ⊢ C ⊑ A × Φᴿ ⊢ C ⊑ B
+--
+-- The variable cases consume one `CAssm`.  The base/star cases use `id★`,
+-- `idι`, `tag`, `tag_⇒_`, and `tagˣ`.  The arrow cases use recursive
+-- `search-mlb?-lower` results plus `merge-assms-preserves`.
+--
+-- Search proof theorem:
+--
+-- search-mlb?-lower should:
+--   1. use `split-∀-rebuild` and `split-∀-wf`;
+--   2. use `embed-left-wf` and `embed-right-wf`;
+--   3. call `core-mlb?-lower-raw`;
+--   4. use `no-escaping-assms?-sound`,
+--      `bound-var-var-order-ok-list?-sound`, and `normalize-assms-sound`;
+--   5. transport the raw proofs through `normalize-var` into the explicit
+--      pending output-spine contexts;
+--   6. use `add∀-lower` and `foralls-used?-sound` to wrap the output
+--      binders and consume the pending assumptions down to the residual
+--      contexts;
+--   7. use `residual-assms-ok?-sound` to discharge remaining assumptions
+--      into `idᵢ Δ`.
+--
+-- Top-level proof:
+--
+-- mlb?-lower follows by reducing `mlb? A B`, extracting the successful
+-- `search-mlb? A B ≡ just (C , Γ)` branch, observing that the final guard
+-- gives `residual-assms-ok? Γ ≡ true`, and calling `search-mlb?-lower`.
+
+ForallsUsed : Ty → Set
+ForallsUsed A = foralls-used? A ≡ true
+
+data OutBinder : Set where
+  both : OutBinder
+  leftOnly : OutBinder
+  rightOnly : OutBinder
+
+OutputSpine : Set
+OutputSpine = List OutBinder
+
+wrap-output : OutputSpine → Ty → Ty
+wrap-output [] A = A
+wrap-output (_ ∷ bs) A = `∀ (wrap-output bs A)
+
+suc-injective-local : ∀ {n m} → suc n ≡ suc m → n ≡ m
+suc-injective-local refl = refl
+
+wrap-output-length :
+  ∀ {bs A k} →
+  length bs ≡ k →
+  wrap-output bs A ≡ add∀ k A
+wrap-output-length {bs = []} refl = refl
+wrap-output-length {bs = _ ∷ _} {k = zero} ()
+wrap-output-length {bs = _ ∷ bs} {k = suc k} eq =
+  cong `∀ (wrap-output-length {bs = bs} (suc-injective-local eq))
+
+wrap-left-target : OutputSpine → Ty → Ty
+wrap-left-target [] A = A
+wrap-left-target (both ∷ bs) A = `∀ (wrap-left-target bs A)
+wrap-left-target (leftOnly ∷ bs) A = `∀ (wrap-left-target bs A)
+wrap-left-target (rightOnly ∷ bs) A = wrap-left-target bs A
+
+left-spine-ctx : OutputSpine → ImpCtx → ImpCtx
+left-spine-ctx [] Φ = Φ
+left-spine-ctx (both ∷ bs) Φ =
+  left-spine-ctx bs ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+left-spine-ctx (leftOnly ∷ bs) Φ =
+  left-spine-ctx bs ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+left-spine-ctx (rightOnly ∷ bs) Φ =
+  left-spine-ctx bs ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+
+foralls-used?-sound :
+  ∀ {A} →
+  foralls-used? A ≡ true →
+  ForallsUsed A
+foralls-used?-sound used≡ = used≡
+
+WfTy-foralls-used :
+  ∀ {Δ A} →
+  WfTy Δ A →
+  ForallsUsed A
+WfTy-foralls-used (wfVar x<Δ) = refl
+WfTy-foralls-used wfBase = refl
+WfTy-foralls-used wf★ = refl
+WfTy-foralls-used (wf⇒ hA hB)
+    rewrite WfTy-foralls-used hA | WfTy-foralls-used hB = refl
+WfTy-foralls-used (wf∀ {occ = occ} hA)
+    rewrite occ | WfTy-foralls-used hA = refl
+
+ForallsUsed-∀-occ :
+  ∀ {A} →
+  ForallsUsed (`∀ A) →
+  occurs zero A ≡ true
+ForallsUsed-∀-occ {A = A} used with occurs zero A | foralls-used? A
+ForallsUsed-∀-occ used | true | true = refl
+ForallsUsed-∀-occ () | true | false
+ForallsUsed-∀-occ () | false | true
+ForallsUsed-∀-occ () | false | false
+
+ForallsUsed-∀-body :
+  ∀ {A} →
+  ForallsUsed (`∀ A) →
+  ForallsUsed A
+ForallsUsed-∀-body {A = A} used with occurs zero A | foralls-used? A
+ForallsUsed-∀-body used | true | true = refl
+ForallsUsed-∀-body () | true | false
+ForallsUsed-∀-body () | false | true
+ForallsUsed-∀-body () | false | false
+
++-suc-local : ∀ n Δ → n + suc Δ ≡ suc (n + Δ)
++-suc-local zero Δ = refl
++-suc-local (suc n) Δ = cong suc (+-suc-local n Δ)
+
+split-∀-wf :
+  ∀ {Δ A n A′ n∀A′} →
+  WfTy Δ A →
+  split-∀ A ≡ (n , A′ , n∀A′) →
+  WfTy (n + Δ) A′
+split-∀-wf {A = ＇ X} hA refl = hA
+split-∀-wf {A = ‵ ι} hA refl = hA
+split-∀-wf {A = ★} hA refl = hA
+split-∀-wf {A = A ⇒ B} hA refl = hA
+split-∀-wf {Δ = Δ} {A = `∀ A} (wf∀ hA) eq
+    with split-∀ A in splitA≡
+split-∀-wf {Δ = Δ} {A = `∀ A} (wf∀ hA) eq
+    | n , A′ , n∀A′
+    with eq
+split-∀-wf {Δ = Δ} {A = `∀ A} (wf∀ hA) eq
+    | n , A′ , n∀A′
+    | refl =
+  subst (λ Δ′ → WfTy Δ′ A′) (+-suc-local n Δ)
+    (split-∀-wf hA splitA≡)
+
++-left-mono-< :
+  ∀ m {X Δ} →
+  X < Δ →
+  m + X < m + Δ
++-left-mono-< zero X<Δ = X<Δ
++-left-mono-< (suc m) X<Δ = s<s (+-left-mono-< m X<Δ)
+
+<-extend-right :
+  ∀ {X n} m Δ →
+  X < n →
+  X < n + m + Δ
+<-extend-right {zero} {suc n} m Δ z<s = z<s
+<-extend-right {suc X} {suc n} m Δ (s<s X<n) =
+  s<s (<-extend-right {X} {n} m Δ X<n)
+
+drop-left-prefix-< :
+  ∀ n m {X Δ} →
+  X < n + Δ →
+  ¬ (X < n) →
+  n + m + (X ∸ n) < n + m + Δ
+drop-left-prefix-< zero m X<Δ _ = +-left-mono-< m X<Δ
+drop-left-prefix-< (suc n) m {zero} z<s ¬0<sucn =
+  ⊥-elim (¬0<sucn z<s)
+drop-left-prefix-< (suc n) m {suc X} (s<s X<n+Δ) ¬sucX<sucn =
+  s<s (drop-left-prefix-< n m X<n+Δ λ X<n → ¬sucX<sucn (s<s X<n))
+
+embed-left-rename-wf :
+  ∀ {Δ n m} →
+  TyRenameWf (n + Δ) (n + m + Δ) (embed-left-var n m)
+embed-left-rename-wf {Δ} {n} {m} {X} X<n+Δ with X <? n
+embed-left-rename-wf {Δ} {n} {m} {X} X<n+Δ | yes X<n =
+  <-extend-right m Δ X<n
+embed-left-rename-wf {Δ} {n} {m} {X} X<n+Δ | no ¬X<n =
+  drop-left-prefix-< n m X<n+Δ ¬X<n
+
+embed-left-wf :
+  ∀ {Δ n m A} →
+  WfTy (n + Δ) A →
+  WfTy (n + m + Δ) (renameᵗ (embed-left-var n m) A)
+embed-left-wf {Δ = Δ} {n = n} {m = m} {A = A} hA =
+  renameᵗ-preserves-WfTy
+    {Δ = n + Δ} {Δ′ = n + m + Δ}
+    {A = A} {ρ = embed-left-var n m}
+    hA (embed-left-rename-wf {Δ = Δ} {n = n} {m = m})
+
+<-+-right :
+  ∀ {X m} Δ →
+  X < m →
+  X < m + Δ
+<-+-right {m = zero} Δ ()
+<-+-right {X = zero} {m = suc m} Δ z<s = z<s
+<-+-right {X = suc X} {m = suc m} Δ (s<s X<m) =
+  s<s (<-+-right Δ X<m)
+
+right-bound-embed :
+  ∀ n {Y m Δ} →
+  Y < m →
+  n + Y < n + m + Δ
+right-bound-embed zero {Δ = Δ} Y<m = <-+-right Δ Y<m
+right-bound-embed (suc n) Y<m = s<s (right-bound-embed n Y<m)
+
+∸-lt-offset :
+  ∀ {Y m Δ} →
+  ¬ Y < m →
+  Y < m + Δ →
+  Y ∸ m < Δ
+∸-lt-offset {m = zero} _ Y<Δ = Y<Δ
+∸-lt-offset {Y = zero} {m = suc m} Y≮m _ = ⊥-elim (Y≮m z<s)
+∸-lt-offset {Y = suc Y} {m = suc m} Y≮m (s<s Y<m+Δ) =
+  ∸-lt-offset (λ Y<m → Y≮m (s<s Y<m)) Y<m+Δ
+
+embed-right-rename-wf :
+  ∀ {Δ n m} →
+  TyRenameWf (m + Δ) (n + m + Δ) (embed-right-var n m)
+embed-right-rename-wf {Δ} {n} {m} {Y} Y<m+Δ with Y <? m
+embed-right-rename-wf {Δ} {n} {m} {Y} Y<m+Δ | yes Y<m =
+  right-bound-embed n {Δ = Δ} Y<m
+embed-right-rename-wf {Δ} {n} {m} {Y} Y<m+Δ | no Y≮m =
+  +-left-mono-< (n + m) (∸-lt-offset Y≮m Y<m+Δ)
+
+embed-right-wf :
+  ∀ {Δ n m B} →
+  WfTy (m + Δ) B →
+  WfTy (n + m + Δ) (renameᵗ (embed-right-var n m) B)
+embed-right-wf {Δ = Δ} {n = n} {m = m} {B = B} hB =
+  renameᵗ-preserves-WfTy
+    {Δ = m + Δ} {Δ′ = n + m + Δ}
+    {A = B} {ρ = embed-right-var n m}
+    hB (embed-right-rename-wf {Δ = Δ} {n = n} {m = m})
+
+rename-assm² : Renameᵗ → Renameᵗ → ImpAssm → ImpAssm
+rename-assm² ρ σ (X ˣ⊑★) = ρ X ˣ⊑★
+rename-assm² ρ σ (X ˣ⊑ˣ Y) = ρ X ˣ⊑ˣ σ Y
+
+rename-assm²-⇑ᵢ :
+  ∀ {ρ σ Φ Ψ} →
+  (∀ {a} → a ∈ Φ → rename-assm² ρ σ a ∈ Ψ) →
+  ∀ {a} →
+  a ∈ (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ →
+  rename-assm² (extᵗ ρ) (extᵗ σ) a ∈
+    (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Ψ
+rename-assm²-⇑ᵢ h {a = zero ˣ⊑★} (here ())
+rename-assm²-⇑ᵢ h {a = zero ˣ⊑★} (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-star a∈)
+rename-assm²-⇑ᵢ h {a = suc X ˣ⊑★} (here ())
+rename-assm²-⇑ᵢ h {a = suc X ˣ⊑★} (there a∈) =
+  there (⇑ᵢ-★∈ (h (un⇑ᵢ-★∈ a∈)))
+rename-assm²-⇑ᵢ h {a = zero ˣ⊑ˣ zero} (here refl) = here refl
+rename-assm²-⇑ᵢ h {a = zero ˣ⊑ˣ zero} (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left a∈)
+rename-assm²-⇑ᵢ h {a = zero ˣ⊑ˣ suc Y} (here ())
+rename-assm²-⇑ᵢ h {a = zero ˣ⊑ˣ suc Y} (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left a∈)
+rename-assm²-⇑ᵢ h {a = suc X ˣ⊑ˣ zero} (here ())
+rename-assm²-⇑ᵢ h {a = suc X ˣ⊑ˣ zero} (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-right a∈)
+rename-assm²-⇑ᵢ h {a = suc X ˣ⊑ˣ suc Y} (here ())
+rename-assm²-⇑ᵢ h {a = suc X ˣ⊑ˣ suc Y} (there a∈) =
+  there (⇑ᵢ-ˣ∈ (h (un⇑ᵢ-ˣ∈ a∈)))
+
+rename-assm²-⇑ᴸᵢ :
+  ∀ {ρ σ Φ Ψ} →
+  (∀ {a} → a ∈ Φ → rename-assm² ρ σ a ∈ Ψ) →
+  ∀ {a} →
+  a ∈ (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ →
+  rename-assm² (extᵗ ρ) σ a ∈ (zero ˣ⊑★) ∷ ⇑ᴸᵢ Ψ
+rename-assm²-⇑ᴸᵢ h {a = zero ˣ⊑★} (here refl) = here refl
+rename-assm²-⇑ᴸᵢ h {a = zero ˣ⊑★} (there a∈) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star a∈)
+rename-assm²-⇑ᴸᵢ h {a = suc X ˣ⊑★} (here ())
+rename-assm²-⇑ᴸᵢ h {a = suc X ˣ⊑★} (there a∈) =
+  there (⇑ᴸᵢ-★∈ (h (un⇑ᴸᵢ-★∈ a∈)))
+rename-assm²-⇑ᴸᵢ h {a = zero ˣ⊑ˣ Y} (here ())
+rename-assm²-⇑ᴸᵢ h {a = zero ˣ⊑ˣ Y} (there a∈) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left a∈)
+rename-assm²-⇑ᴸᵢ h {a = suc X ˣ⊑ˣ Y} (here ())
+rename-assm²-⇑ᴸᵢ h {a = suc X ˣ⊑ˣ Y} (there a∈) =
+  there (⇑ᴸᵢ-ˣ∈ (h (un⇑ᴸᵢ-ˣ∈ a∈)))
+
+⊑-renameᵗ² :
+  ∀ {Φ Ψ ρ σ A B} →
+  (∀ {a} → a ∈ Φ → rename-assm² ρ σ a ∈ Ψ) →
+  Φ ⊢ A ⊑ B →
+  Ψ ⊢ renameᵗ ρ A ⊑ renameᵗ σ B
+⊑-renameᵗ² h id★ = id★
+⊑-renameᵗ² h (idˣ x∈) = idˣ (h x∈)
+⊑-renameᵗ² h idι = idι
+⊑-renameᵗ² h (p ↦ q) = ⊑-renameᵗ² h p ↦ ⊑-renameᵗ² h q
+⊑-renameᵗ² {ρ = ρ} {σ = σ} h
+    (∀ⁱ_ {A = A} {B = B} {occA = occA} {occB = occB} p) =
+  ∀ⁱ_ {occA = trans (occurs-zero-rename-ext ρ A) occA}
+      {occB = trans (occurs-zero-rename-ext σ B) occB}
+      (⊑-renameᵗ² (rename-assm²-⇑ᵢ h) p)
+⊑-renameᵗ² h (tag ι) = tag ι
+⊑-renameᵗ² h (tag_⇒_ p q) =
+  tag_⇒_ (⊑-renameᵗ² h p) (⊑-renameᵗ² h q)
+⊑-renameᵗ² h (tagˣ x∈) = tagˣ (h x∈)
+⊑-renameᵗ² {ρ = ρ} h
+    (ν {A = A} {B = B} occA p) =
+  ν (trans (occurs-zero-rename-ext ρ A) occA)
+    (⊑-renameᵗ² (rename-assm²-⇑ᴸᵢ h) p)
+
+CtxIncl : ImpCtx → ImpCtx → Set
+CtxIncl Φ Ψ = ∀ {a} → a ∈ Φ → a ∈ Ψ
+
+CAssmIncl : List CAssm → List CAssm → Set
+CAssmIncl Γ Γ′ = ∀ {a} → a ∈ Γ → a ∈ Γ′
+
+⇑ᵢ-incl :
+  ∀ {Φ Ψ a} →
+  CtxIncl Φ Ψ →
+  a ∈ ⇑ᵢ Φ →
+  a ∈ ⇑ᵢ Ψ
+⇑ᵢ-incl {a = zero ˣ⊑★} incl a∈ =
+  ⊥-elim (no-⇑ᵢ-zero-star a∈)
+⇑ᵢ-incl {a = suc X ˣ⊑★} incl a∈ =
+  ⇑ᵢ-★∈ (incl (un⇑ᵢ-★∈ a∈))
+⇑ᵢ-incl {a = zero ˣ⊑ˣ Y} incl a∈ =
+  ⊥-elim (no-⇑ᵢ-zero-left a∈)
+⇑ᵢ-incl {a = suc X ˣ⊑ˣ zero} incl a∈ =
+  ⊥-elim (no-⇑ᵢ-zero-right a∈)
+⇑ᵢ-incl {a = suc X ˣ⊑ˣ suc Y} incl a∈ =
+  ⇑ᵢ-ˣ∈ (incl (un⇑ᵢ-ˣ∈ a∈))
+
+⇑ᴸᵢ-incl :
+  ∀ {Φ Ψ a} →
+  CtxIncl Φ Ψ →
+  a ∈ ⇑ᴸᵢ Φ →
+  a ∈ ⇑ᴸᵢ Ψ
+⇑ᴸᵢ-incl {a = zero ˣ⊑★} incl a∈ =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star a∈)
+⇑ᴸᵢ-incl {a = suc X ˣ⊑★} incl a∈ =
+  ⇑ᴸᵢ-★∈ (incl (un⇑ᴸᵢ-★∈ a∈))
+⇑ᴸᵢ-incl {a = zero ˣ⊑ˣ Y} incl a∈ =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left a∈)
+⇑ᴸᵢ-incl {a = suc X ˣ⊑ˣ Y} incl a∈ =
+  ⇑ᴸᵢ-ˣ∈ (incl (un⇑ᴸᵢ-ˣ∈ a∈))
+
+⊑-mono :
+  ∀ {Φ Ψ A B} →
+  CtxIncl Φ Ψ →
+  Φ ⊢ A ⊑ B →
+  Ψ ⊢ A ⊑ B
+⊑-mono incl id★ = id★
+⊑-mono incl (idˣ x∈) = idˣ (incl x∈)
+⊑-mono incl idι = idι
+⊑-mono incl (p ↦ q) = ⊑-mono incl p ↦ ⊑-mono incl q
+⊑-mono {Φ = Φ} {Ψ = Ψ} incl
+    (∀ⁱ_ {A = A} {B = B} {occA = occA} {occB = occB} p) =
+  ∀ⁱ_ {A = A} {B = B} {occA = occA} {occB = occB}
+    (⊑-mono
+      {Φ = (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ}
+      {Ψ = (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Ψ}
+      incl′ p)
+  where
+    incl′ : CtxIncl ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+                    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Ψ)
+    incl′ (here refl) = here refl
+    incl′ (there a∈) = there (⇑ᵢ-incl incl a∈)
+⊑-mono incl (tag ι) = tag ι
+⊑-mono incl (tag_⇒_ p q) = tag_⇒_ (⊑-mono incl p) (⊑-mono incl q)
+⊑-mono incl (tagˣ x∈) = tagˣ (incl x∈)
+⊑-mono {Φ = Φ} {Ψ = Ψ} incl (ν occ p) =
+  ν occ
+    (⊑-mono
+      {Φ = (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ}
+      {Ψ = (zero ˣ⊑★) ∷ ⇑ᴸᵢ Ψ}
+      incl′ p)
+  where
+    incl′ : CtxIncl ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+                    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Ψ)
+    incl′ (here refl) = here refl
+    incl′ (there a∈) = there (⇑ᴸᵢ-incl incl a∈)
+
+assm-left-member :
+  ∀ {Γ a} →
+  a ∈ Γ →
+  assm-left-assm a ∈ assm-left Γ
+assm-left-member {Γ = []} ()
+assm-left-member {Γ = (_ ~ᶜ _) ∷ Γ} (here refl) = here refl
+assm-left-member {Γ = (_ ~ᶜ★) ∷ Γ} (here refl) = here refl
+assm-left-member {Γ = (★~ᶜ _) ∷ Γ} (here refl) = here refl
+assm-left-member {Γ = (_ ~ᶜ _) ∷ Γ} (there a∈) =
+  there (assm-left-member a∈)
+assm-left-member {Γ = (_ ~ᶜ★) ∷ Γ} (there a∈) =
+  there (assm-left-member a∈)
+assm-left-member {Γ = (★~ᶜ _) ∷ Γ} (there a∈) =
+  there (assm-left-member a∈)
+
+assm-right-member :
+  ∀ {Γ a} →
+  a ∈ Γ →
+  assm-right-assm a ∈ assm-right Γ
+assm-right-member {Γ = []} ()
+assm-right-member {Γ = (_ ~ᶜ _) ∷ Γ} (here refl) = here refl
+assm-right-member {Γ = (_ ~ᶜ★) ∷ Γ} (here refl) = here refl
+assm-right-member {Γ = (★~ᶜ _) ∷ Γ} (here refl) = here refl
+assm-right-member {Γ = (_ ~ᶜ _) ∷ Γ} (there a∈) =
+  there (assm-right-member a∈)
+assm-right-member {Γ = (_ ~ᶜ★) ∷ Γ} (there a∈) =
+  there (assm-right-member a∈)
+assm-right-member {Γ = (★~ᶜ _) ∷ Γ} (there a∈) =
+  there (assm-right-member a∈)
+
+assm-left-incl :
+  ∀ {Γ Γ′} →
+  CAssmIncl Γ Γ′ →
+  CtxIncl (assm-left Γ) (assm-left Γ′)
+assm-left-incl {Γ = []} incl ()
+assm-left-incl {Γ = (_ ~ᶜ _) ∷ Γ} incl (here refl) =
+  assm-left-member (incl (here refl))
+assm-left-incl {Γ = (_ ~ᶜ★) ∷ Γ} incl (here refl) =
+  assm-left-member (incl (here refl))
+assm-left-incl {Γ = (★~ᶜ _) ∷ Γ} incl (here refl) =
+  assm-left-member (incl (here refl))
+assm-left-incl {Γ = _ ∷ Γ} incl (there a∈) =
+  assm-left-incl (λ b∈ → incl (there b∈)) a∈
+
+assm-right-incl :
+  ∀ {Γ Γ′} →
+  CAssmIncl Γ Γ′ →
+  CtxIncl (assm-right Γ) (assm-right Γ′)
+assm-right-incl {Γ = []} incl ()
+assm-right-incl {Γ = (_ ~ᶜ _) ∷ Γ} incl (here refl) =
+  assm-right-member (incl (here refl))
+assm-right-incl {Γ = (_ ~ᶜ★) ∷ Γ} incl (here refl) =
+  assm-right-member (incl (here refl))
+assm-right-incl {Γ = (★~ᶜ _) ∷ Γ} incl (here refl) =
+  assm-right-member (incl (here refl))
+assm-right-incl {Γ = _ ∷ Γ} incl (there a∈) =
+  assm-right-incl (λ b∈ → incl (there b∈)) a∈
+
+same-assm?-sound :
+  ∀ {a b} →
+  same-assm? a b ≡ true →
+  a ≡ b
+same-assm?-sound {a = X ~ᶜ★} {b = X′ ~ᶜ★} eq
+    with X ≟ X′
+same-assm?-sound {a = X ~ᶜ★} {b = .X ~ᶜ★} eq | yes refl = refl
+same-assm?-sound {a = X ~ᶜ★} {b = X′ ~ᶜ★} () | no _
+same-assm?-sound {a = X ~ᶜ★} {b = ★~ᶜ Y′} ()
+same-assm?-sound {a = X ~ᶜ★} {b = X′ ~ᶜ Y′} ()
+same-assm?-sound {a = ★~ᶜ Y} {b = X′ ~ᶜ★} ()
+same-assm?-sound {a = ★~ᶜ Y} {b = ★~ᶜ Y′} eq
+    with Y ≟ Y′
+same-assm?-sound {a = ★~ᶜ Y} {b = ★~ᶜ .Y} eq | yes refl = refl
+same-assm?-sound {a = ★~ᶜ Y} {b = ★~ᶜ Y′} () | no _
+same-assm?-sound {a = ★~ᶜ Y} {b = X′ ~ᶜ Y′} ()
+same-assm?-sound {a = X ~ᶜ Y} {b = X′ ~ᶜ★} ()
+same-assm?-sound {a = X ~ᶜ Y} {b = ★~ᶜ Y′} ()
+same-assm?-sound {a = X ~ᶜ Y} {b = X′ ~ᶜ Y′} eq
+    with X ≟ X′ | Y ≟ Y′
+same-assm?-sound {a = X ~ᶜ Y} {b = .X ~ᶜ .Y} eq
+    | yes refl | yes refl = refl
+same-assm?-sound {a = X ~ᶜ Y} {b = X′ ~ᶜ Y′} ()
+    | yes _ | no _
+same-assm?-sound {a = X ~ᶜ Y} {b = X′ ~ᶜ Y′} ()
+    | no _ | yes _
+same-assm?-sound {a = X ~ᶜ Y} {b = X′ ~ᶜ Y′} ()
+    | no _ | no _
+
+insert-assm-includes-new :
+  ∀ {a Γ Γ′} →
+  insert-assm a Γ ≡ just Γ′ →
+  a ∈ Γ′
+insert-assm-includes-new {Γ = []} refl = here refl
+insert-assm-includes-new {a = a} {Γ = b ∷ Γ} eq
+    with same-assm? a b in same≡ | clash? a b
+insert-assm-includes-new {a = a} {Γ = b ∷ Γ} refl
+    | true | c =
+  subst (λ d → d ∈ b ∷ Γ) (sym (same-assm?-sound same≡))
+    (here refl)
+insert-assm-includes-new {Γ = b ∷ Γ} () | false | true
+insert-assm-includes-new {a = a} {Γ = b ∷ Γ} eq
+    | false | false
+    with insert-assm a Γ in ins≡
+insert-assm-includes-new {a = a} {Γ = b ∷ Γ} ()
+    | false | false | nothing
+insert-assm-includes-new {a = a} {Γ = b ∷ Γ} eq
+    | false | false | just Γ′
+    with eq
+insert-assm-includes-new {a = a} {Γ = b ∷ Γ} refl
+    | false | false | just Γ′ | refl =
+  there (insert-assm-includes-new {a = a} {Γ = Γ} {Γ′ = Γ′} ins≡)
+
+insert-assm-preserves :
+  ∀ {a Γ Γ′} →
+  insert-assm a Γ ≡ just Γ′ →
+  CAssmIncl Γ Γ′
+insert-assm-preserves {Γ = []} eq ()
+insert-assm-preserves {a = a} {Γ = b ∷ Γ} eq old∈
+    with same-assm? a b | clash? a b
+insert-assm-preserves {a = a} {Γ = b ∷ Γ} eq old∈
+    | true | c
+    with eq
+insert-assm-preserves {a = a} {Γ = b ∷ Γ} refl old∈
+    | true | c | refl = old∈
+insert-assm-preserves {Γ = b ∷ Γ} () old∈ | false | true
+insert-assm-preserves {a = a} {Γ = b ∷ Γ} eq (here refl)
+    | false | false
+    with insert-assm a Γ
+insert-assm-preserves {a = a} {Γ = b ∷ Γ} () (here refl)
+    | false | false | nothing
+insert-assm-preserves {a = a} {Γ = b ∷ Γ} eq (here refl)
+    | false | false | just Γ′
+    with eq
+insert-assm-preserves {a = a} {Γ = b ∷ Γ} refl (here refl)
+    | false | false | just Γ′ | refl = here refl
+insert-assm-preserves {a = a} {Γ = b ∷ Γ} eq (there old∈)
+    | false | false
+    with insert-assm a Γ in ins≡
+insert-assm-preserves {a = a} {Γ = b ∷ Γ} () (there old∈)
+    | false | false | nothing
+insert-assm-preserves {a = a} {Γ = b ∷ Γ} eq (there old∈)
+    | false | false | just Γ′
+    with eq
+insert-assm-preserves {a = a} {Γ = b ∷ Γ} refl (there old∈)
+    | false | false | just Γ′ | refl =
+  there (insert-assm-preserves {a = a} {Γ = Γ} {Γ′ = Γ′} ins≡ old∈)
+
+merge-assms-left :
+  ∀ {Γ₁ Γ₂ Γ} →
+  merge-assms Γ₁ Γ₂ ≡ just Γ →
+  CAssmIncl Γ₁ Γ
+merge-assms-left {Γ₁ = []} eq ()
+merge-assms-left {Γ₁ = a ∷ Γ₁} {Γ₂ = Γ₂} {Γ = Γ} eq (here refl)
+    with merge-assms Γ₁ Γ₂ in merge≡
+merge-assms-left {Γ₁ = a ∷ Γ₁} {Γ₂ = Γ₂} {Γ = Γ} () (here refl)
+    | nothing
+merge-assms-left {Γ₁ = a ∷ Γ₁} {Γ₂ = Γ₂} {Γ = Γ} eq (here refl)
+    | just Γ″ =
+  insert-assm-includes-new {a = a} {Γ = Γ″} {Γ′ = Γ} eq
+merge-assms-left {Γ₁ = a ∷ Γ₁} {Γ₂ = Γ₂} eq (there a∈)
+    with merge-assms Γ₁ Γ₂ in merge≡
+merge-assms-left {Γ₁ = a ∷ Γ₁} {Γ₂ = Γ₂} () (there a∈)
+    | nothing
+merge-assms-left {Γ₁ = a ∷ Γ₁} {Γ₂ = Γ₂} eq (there a∈)
+    | just Γ″ =
+  insert-assm-preserves {a = a} {Γ = Γ″} eq
+    (merge-assms-left {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ″} merge≡ a∈)
+
+merge-assms-right :
+  ∀ {Γ₁ Γ₂ Γ} →
+  merge-assms Γ₁ Γ₂ ≡ just Γ →
+  CAssmIncl Γ₂ Γ
+merge-assms-right {Γ₁ = []} refl a∈ = a∈
+merge-assms-right {Γ₁ = a ∷ Γ₁} {Γ₂ = Γ₂} eq a∈
+    with merge-assms Γ₁ Γ₂ in merge≡
+merge-assms-right {Γ₁ = a ∷ Γ₁} {Γ₂ = Γ₂} () a∈
+    | nothing
+merge-assms-right {Γ₁ = a ∷ Γ₁} {Γ₂ = Γ₂} eq a∈
+    | just Γ″ =
+  insert-assm-preserves {a = a} {Γ = Γ″} eq
+    (merge-assms-right {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ″} merge≡ a∈)
+
+normalize-assms-for :
+  ℕ → ℕ → List CAssm → List CAssm → List CAssm
+normalize-assms-for n m Γ₀ [] = []
+normalize-assms-for n m Γ₀ (a ∷ Γ) =
+  normalize-assm n m Γ₀ a ∷ normalize-assms-for n m Γ₀ Γ
+
+spine-left : ℕ → ℕ → List CAssm → List CAssm → ImpCtx
+spine-left n m Γ₀ Γ = assm-left (normalize-assms-for n m Γ₀ Γ₀)
+
+spine-right : ℕ → ℕ → List CAssm → List CAssm → ImpCtx
+spine-right n m Γ₀ Γ = assm-right (normalize-assms-for n m Γ₀ Γ₀)
+
+normalize-left-assm :
+  ∀ n m Γ₀ a →
+  rename-assm² (normalize-var n m Γ₀) (normalize-var n m Γ₀)
+    (assm-left-assm a)
+    ≡ assm-left-assm (normalize-assm n m Γ₀ a)
+normalize-left-assm n m Γ₀ (X ~ᶜ Y) = refl
+normalize-left-assm n m Γ₀ (X ~ᶜ★) = refl
+normalize-left-assm n m Γ₀ (★~ᶜ Y) = refl
+
+normalize-right-assm :
+  ∀ n m Γ₀ a →
+  rename-assm² (normalize-var n m Γ₀) (normalize-var n m Γ₀)
+    (assm-right-assm a)
+    ≡ assm-right-assm (normalize-assm n m Γ₀ a)
+normalize-right-assm n m Γ₀ (X ~ᶜ Y) = refl
+normalize-right-assm n m Γ₀ (X ~ᶜ★) = refl
+normalize-right-assm n m Γ₀ (★~ᶜ Y) = refl
+
+normalize-left-incl :
+  ∀ {n m Γ₀ Γ a} →
+  a ∈ assm-left Γ →
+  rename-assm² (normalize-var n m Γ₀) (normalize-var n m Γ₀) a ∈
+    assm-left (normalize-assms-for n m Γ₀ Γ)
+normalize-left-incl {Γ = []} ()
+normalize-left-incl {n = n} {m = m} {Γ₀ = Γ₀}
+    {Γ = a ∷ Γ} (here refl) =
+  subst
+    (λ b → b ∈ assm-left (normalize-assms-for n m Γ₀ (a ∷ Γ)))
+    (sym (normalize-left-assm n m Γ₀ a))
+    (here refl)
+normalize-left-incl {n = n} {m = m} {Γ₀ = Γ₀}
+    {Γ = a ∷ Γ} (there a∈) =
+  there (normalize-left-incl {n = n} {m = m} {Γ₀ = Γ₀}
+           {Γ = Γ} a∈)
+
+normalize-right-incl :
+  ∀ {n m Γ₀ Γ a} →
+  a ∈ assm-right Γ →
+  rename-assm² (normalize-var n m Γ₀) (normalize-var n m Γ₀) a ∈
+    assm-right (normalize-assms-for n m Γ₀ Γ)
+normalize-right-incl {Γ = []} ()
+normalize-right-incl {n = n} {m = m} {Γ₀ = Γ₀}
+    {Γ = a ∷ Γ} (here refl) =
+  subst
+    (λ b → b ∈ assm-right (normalize-assms-for n m Γ₀ (a ∷ Γ)))
+    (sym (normalize-right-assm n m Γ₀ a))
+    (here refl)
+normalize-right-incl {n = n} {m = m} {Γ₀ = Γ₀}
+    {Γ = a ∷ Γ} (there a∈) =
+  there (normalize-right-incl {n = n} {m = m} {Γ₀ = Γ₀}
+           {Γ = Γ} a∈)
+
+normalize-lower-spine :
+  ∀ {n m Γ₀ Γ C A B} →
+  no-escaping-assms? n m Γ₀ ≡ true →
+  bound-var-var-order-ok-list? n m Γ₀ ≡ true →
+  normalize-assms n m Γ₀ ≡ just Γ →
+  assm-left Γ₀ ⊢ C ⊑ A × assm-right Γ₀ ⊢ C ⊑ B →
+  spine-left n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C
+                         ⊑ renameᵗ (normalize-var n m Γ₀) A
+    ×
+  spine-right n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C
+                          ⊑ renameᵗ (normalize-var n m Γ₀) B
+normalize-lower-spine {n = n} {m = m} {Γ₀ = Γ₀}
+    noEsc≡ order≡ norm≡ (C⊑A , C⊑B) =
+  ( ⊑-renameᵗ²
+      (normalize-left-incl {n = n} {m = m} {Γ₀ = Γ₀} {Γ = Γ₀})
+      C⊑A
+  , ⊑-renameᵗ²
+      (normalize-right-incl {n = n} {m = m} {Γ₀ = Γ₀} {Γ = Γ₀})
+      C⊑B
+  )
+
+normalized-type : ℕ → ℕ → List CAssm → Ty → Ty
+normalized-type n m Γ₀ A = renameᵗ (normalize-var n m Γ₀) A
+
+left-normalized-target : ℕ → ℕ → List CAssm → Ty → Ty
+left-normalized-target n m Γ₀ A′ =
+  normalized-type n m Γ₀ (renameᵗ (embed-left-var n m) A′)
+
+rightOnlys-then : ℕ → OutputSpine → OutputSpine
+rightOnlys-then zero bs = bs
+rightOnlys-then (suc n) bs = rightOnly ∷ rightOnlys-then n bs
+
+left-binder-out : ℕ → ℕ → List CAssm → TyVar → OutBinder
+left-binder-out n m Γ X with find-bound-right-for-left n m X Γ
+... | just Y = both
+... | nothing = leftOnly
+
+left-output-spine-from :
+  ℕ → ℕ → List CAssm → ℕ → TyVar → ℕ → OutputSpine
+left-output-spine-from n m Γ zero X emitted =
+  rightOnlys-then (unmatched-right-before n m Γ ∸ emitted) []
+left-output-spine-from n m Γ (suc fuel) X emitted
+    with unmatched-rights-before-left n m Γ X
+... | before =
+  rightOnlys-then (before ∸ emitted)
+    (left-binder-out n m Γ X ∷
+     left-output-spine-from n m Γ fuel (suc X) before)
+
+left-output-spine : ℕ → ℕ → List CAssm → List CAssm → OutputSpine
+left-output-spine n m Γ₀ Γ =
+  left-output-spine-from n m Γ₀ n zero zero
+
+wrap-left-target-rightOnlys-then :
+  ∀ k bs A →
+  wrap-left-target (rightOnlys-then k bs) A ≡ wrap-left-target bs A
+wrap-left-target-rightOnlys-then zero bs A = refl
+wrap-left-target-rightOnlys-then (suc k) bs A =
+  wrap-left-target-rightOnlys-then k bs A
+
+wrap-left-target-spine-from :
+  ∀ n m Γ fuel X emitted A →
+  wrap-left-target (left-output-spine-from n m Γ fuel X emitted) A ≡
+  add∀ fuel A
+wrap-left-target-spine-from n m Γ zero X emitted A =
+  wrap-left-target-rightOnlys-then
+    (unmatched-right-before n m Γ ∸ emitted) [] A
+wrap-left-target-spine-from n m Γ (suc fuel) X emitted A
+    with unmatched-rights-before-left n m Γ X
+wrap-left-target-spine-from n m Γ (suc fuel) X emitted A
+    | before
+    with find-bound-right-for-left n m X Γ
+wrap-left-target-spine-from n m Γ (suc fuel) X emitted A
+    | before | just Y =
+  trans
+    (wrap-left-target-rightOnlys-then
+      (before ∸ emitted)
+      (both ∷ left-output-spine-from n m Γ fuel (suc X) before) A)
+    (cong `∀ (wrap-left-target-spine-from n m Γ fuel (suc X) before A))
+wrap-left-target-spine-from n m Γ (suc fuel) X emitted A
+    | before | nothing =
+  trans
+    (wrap-left-target-rightOnlys-then
+      (before ∸ emitted)
+      (leftOnly ∷ left-output-spine-from n m Γ fuel (suc X) before) A)
+    (cong `∀ (wrap-left-target-spine-from n m Γ fuel (suc X) before A))
+
+wrap-left-target-left-output-spine :
+  ∀ n m Γ₀ Γ A →
+  wrap-left-target (left-output-spine n m Γ₀ Γ) A ≡ add∀ n A
+wrap-left-target-left-output-spine n m Γ₀ Γ A =
+  wrap-left-target-spine-from n m Γ₀ n zero zero A
+
+postulate
+
+  left-output-spine-length :
+    ∀ {n m Γ₀ Γ} →
+    no-escaping-assms? n m Γ₀ ≡ true →
+    bound-var-var-order-ok-list? n m Γ₀ ≡ true →
+    normalize-assms n m Γ₀ ≡ just Γ →
+    length (left-output-spine n m Γ₀ Γ) ≡ mlb-∀-count n m Γ₀
+
+  left-spine-context-sound :
+    ∀ {n m Γ₀ Γ} →
+    no-escaping-assms? n m Γ₀ ≡ true →
+    bound-var-var-order-ok-list? n m Γ₀ ≡ true →
+    normalize-assms n m Γ₀ ≡ just Γ →
+    CtxIncl (spine-left n m Γ₀ Γ)
+            (left-spine-ctx (left-output-spine n m Γ₀ Γ) (assm-left Γ))
+
+  left-spine-target-sound :
+    ∀ {A n m A′ n∀A′ Γ₀ Γ} →
+    no-escaping-assms? n m Γ₀ ≡ true →
+    bound-var-var-order-ok-list? n m Γ₀ ≡ true →
+    normalize-assms n m Γ₀ ≡ just Γ →
+    split-∀ A ≡ (n , A′ , n∀A′) →
+    wrap-left-target (left-output-spine n m Γ₀ Γ)
+      (left-normalized-target n m Γ₀ A′) ≡ A
+
+wrap-left-spine :
+  ∀ {Φ bs C A} →
+  ForallsUsed (wrap-output bs C) →
+  ForallsUsed (wrap-left-target bs A) →
+  left-spine-ctx bs Φ ⊢ C ⊑ A →
+  Φ ⊢ wrap-output bs C ⊑ wrap-left-target bs A
+wrap-left-spine {bs = []} usedC usedA C⊑A = C⊑A
+wrap-left-spine {Φ = Φ} {bs = both ∷ bs} {C = C} {A = A}
+    usedC usedA C⊑A =
+  ∀ⁱ_ {occA = ForallsUsed-∀-occ {A = wrap-output bs C} usedC}
+      {occB = ForallsUsed-∀-occ {A = wrap-left-target bs A} usedA}
+      (wrap-left-spine (ForallsUsed-∀-body {A = wrap-output bs C} usedC)
+                       (ForallsUsed-∀-body
+                         {A = wrap-left-target bs A} usedA)
+                       C⊑A)
+wrap-left-spine {Φ = Φ} {bs = leftOnly ∷ bs} {C = C} {A = A}
+    usedC usedA C⊑A =
+  ∀ⁱ_ {occA = ForallsUsed-∀-occ {A = wrap-output bs C} usedC}
+      {occB = ForallsUsed-∀-occ {A = wrap-left-target bs A} usedA}
+      (wrap-left-spine (ForallsUsed-∀-body {A = wrap-output bs C} usedC)
+                       (ForallsUsed-∀-body
+                         {A = wrap-left-target bs A} usedA)
+                       C⊑A)
+wrap-left-spine {Φ = Φ} {bs = rightOnly ∷ bs} {C = C} {A = A}
+    usedC usedA C⊑A =
+  ν (ForallsUsed-∀-occ {A = wrap-output bs C} usedC)
+    (wrap-left-spine
+      (ForallsUsed-∀-body {A = wrap-output bs C} usedC) usedA C⊑A)
+
+left-spine-count-sound :
+  ∀ {n m Γ₀ Γ A} →
+  no-escaping-assms? n m Γ₀ ≡ true →
+  bound-var-var-order-ok-list? n m Γ₀ ≡ true →
+  normalize-assms n m Γ₀ ≡ just Γ →
+  wrap-output (left-output-spine n m Γ₀ Γ) A ≡
+  add∀ (mlb-∀-count n m Γ₀) A
+left-spine-count-sound {n = n} {m = m} {Γ₀ = Γ₀} {Γ = Γ} {A = A}
+    noEsc≡ order≡ norm≡ =
+  wrap-output-length {bs = left-output-spine n m Γ₀ Γ} {A = A}
+    {k = mlb-∀-count n m Γ₀}
+    (left-output-spine-length {n = n} {m = m} {Γ₀ = Γ₀} {Γ = Γ}
+      noEsc≡ order≡ norm≡)
+
+add∀-lower-left-spine :
+  ∀ {Δ A n m A′ n∀A′ C₀ Γ₀ Γ C} →
+  WfTy Δ A →
+  no-escaping-assms? n m Γ₀ ≡ true →
+  bound-var-var-order-ok-list? n m Γ₀ ≡ true →
+  normalize-assms n m Γ₀ ≡ just Γ →
+  split-∀ A ≡ (n , A′ , n∀A′) →
+  add∀ (mlb-∀-count n m Γ₀)
+    (renameᵗ (normalize-var n m Γ₀) C₀) ≡ C →
+  ForallsUsed C →
+  spine-left n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
+                        ⊑ renameᵗ (normalize-var n m Γ₀)
+                            (renameᵗ (embed-left-var n m) A′) →
+  assm-left Γ ⊢ C ⊑ A
+add∀-lower-left-spine {A = A} {n = n} {m = m} {A′ = A′}
+    {C₀ = C₀} {Γ₀ = Γ₀} {Γ = Γ} {C = C}
+    hA noEsc≡ order≡ norm≡ splitA≡ result≡ used C⊑A′ =
+  subst (λ T → assm-left Γ ⊢ C ⊑ T) target≡
+    (subst (λ S → assm-left Γ ⊢ S ⊑ target) source≡ wrapped)
+  where
+    body : Ty
+    body = normalized-type n m Γ₀ C₀
+
+    target : Ty
+    target =
+      wrap-left-target (left-output-spine n m Γ₀ Γ)
+        (left-normalized-target n m Γ₀ A′)
+
+    source≡ : wrap-output (left-output-spine n m Γ₀ Γ) body ≡ C
+    source≡ =
+      trans (left-spine-count-sound {n = n} {m = m} {Γ₀ = Γ₀}
+               {Γ = Γ} {A = body} noEsc≡ order≡ norm≡)
+            result≡
+
+    target≡ : target ≡ A
+    target≡ =
+      left-spine-target-sound {A = A} {n = n} {m = m} {A′ = A′}
+        {Γ₀ = Γ₀} {Γ = Γ} noEsc≡ order≡ norm≡ splitA≡
+
+    used′ : ForallsUsed (wrap-output (left-output-spine n m Γ₀ Γ) body)
+    used′ = subst ForallsUsed (sym source≡) used
+
+    target-used : ForallsUsed target
+    target-used = subst ForallsUsed (sym target≡) (WfTy-foralls-used hA)
+
+    body-lower :
+      left-spine-ctx (left-output-spine n m Γ₀ Γ) (assm-left Γ)
+        ⊢ body ⊑ left-normalized-target n m Γ₀ A′
+    body-lower =
+      ⊑-mono (left-spine-context-sound {n = n} {m = m}
+                {Γ₀ = Γ₀} {Γ = Γ} noEsc≡ order≡ norm≡)
+              C⊑A′
+
+    wrapped : assm-left Γ ⊢
+      wrap-output (left-output-spine n m Γ₀ Γ) body ⊑ target
+    wrapped = wrap-left-spine used′ target-used body-lower
+
+postulate
+
+  add∀-lower-right-spine :
+    ∀ {Δ B n m B′ n∀B′ C₀ Γ₀ Γ C} →
+    WfTy Δ B →
+    no-escaping-assms? n m Γ₀ ≡ true →
+    bound-var-var-order-ok-list? n m Γ₀ ≡ true →
+    normalize-assms n m Γ₀ ≡ just Γ →
+    split-∀ B ≡ (m , B′ , n∀B′) →
+    add∀ (mlb-∀-count n m Γ₀)
+      (renameᵗ (normalize-var n m Γ₀) C₀) ≡ C →
+    ForallsUsed C →
+    spine-right n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
+                           ⊑ renameᵗ (normalize-var n m Γ₀)
+                               (renameᵗ (embed-right-var n m) B′) →
+    assm-right Γ ⊢ C ⊑ B
+
+add∀-lower :
+  ∀ {Δ A B n m A′ B′ n∀A′ n∀B′ C₀ Γ₀ Γ C} →
+  WfTy Δ A →
+  WfTy Δ B →
+  no-escaping-assms? n m Γ₀ ≡ true →
+  bound-var-var-order-ok-list? n m Γ₀ ≡ true →
+  normalize-assms n m Γ₀ ≡ just Γ →
+  split-∀ A ≡ (n , A′ , n∀A′) →
+  split-∀ B ≡ (m , B′ , n∀B′) →
+  add∀ (mlb-∀-count n m Γ₀)
+    (renameᵗ (normalize-var n m Γ₀) C₀) ≡ C →
+  ForallsUsed C →
+  spine-left n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
+                        ⊑ renameᵗ (normalize-var n m Γ₀)
+                            (renameᵗ (embed-left-var n m) A′)
+    ×
+  spine-right n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
+                         ⊑ renameᵗ (normalize-var n m Γ₀)
+                             (renameᵗ (embed-right-var n m) B′) →
+  assm-left Γ ⊢ C ⊑ A × assm-right Γ ⊢ C ⊑ B
+add∀-lower hA hB noEsc≡ order≡ norm≡ splitA≡ splitB≡ result≡ used
+    (C⊑A′ , C⊑B′) =
+  ( add∀-lower-left-spine hA noEsc≡ order≡ norm≡ splitA≡ result≡ used
+      C⊑A′
+  , add∀-lower-right-spine hB noEsc≡ order≡ norm≡ splitB≡ result≡ used
+      C⊑B′
+  )
+
+residual-left-var-id :
+  ∀ {Γ X Y} →
+  residual-assms-ok? Γ ≡ true →
+  (X ˣ⊑ˣ Y) ∈ assm-left Γ →
+  X ≡ Y
+residual-left-var-id {Γ = []} ok ()
+residual-left-var-id {Γ = (x ~ᶜ y) ∷ Γ} ok x⊑y∈
+    with x ≟ y
+residual-left-var-id {Γ = (x ~ᶜ y) ∷ Γ} () x⊑y∈
+    | no x≢y
+residual-left-var-id {Γ = (x ~ᶜ .x) ∷ Γ} ok (here refl)
+    | yes refl = refl
+residual-left-var-id {Γ = (x ~ᶜ .x) ∷ Γ} ok (there x⊑y∈)
+    | yes refl =
+  residual-left-var-id ok x⊑y∈
+residual-left-var-id {Γ = (x ~ᶜ★) ∷ Γ} () x⊑y∈
+residual-left-var-id {Γ = (★~ᶜ x) ∷ Γ} () x⊑y∈
+
+residual-right-var-id :
+  ∀ {Γ X Y} →
+  residual-assms-ok? Γ ≡ true →
+  (X ˣ⊑ˣ Y) ∈ assm-right Γ →
+  X ≡ Y
+residual-right-var-id {Γ = []} ok ()
+residual-right-var-id {Γ = (x ~ᶜ y) ∷ Γ} ok x⊑y∈
+    with x ≟ y
+residual-right-var-id {Γ = (x ~ᶜ y) ∷ Γ} () x⊑y∈
+    | no x≢y
+residual-right-var-id {Γ = (x ~ᶜ .x) ∷ Γ} ok (here refl)
+    | yes refl = refl
+residual-right-var-id {Γ = (x ~ᶜ .x) ∷ Γ} ok (there x⊑y∈)
+    | yes refl =
+  residual-right-var-id ok x⊑y∈
+residual-right-var-id {Γ = (x ~ᶜ★) ∷ Γ} () x⊑y∈
+residual-right-var-id {Γ = (★~ᶜ x) ∷ Γ} () x⊑y∈
+
+residual-left-no-star :
+  ∀ {Γ X} →
+  residual-assms-ok? Γ ≡ true →
+  (X ˣ⊑★) ∈ assm-left Γ →
+  ⊥
+residual-left-no-star {Γ = []} ok ()
+residual-left-no-star {Γ = (x ~ᶜ y) ∷ Γ} ok x⊑★∈
+    with x ≟ y
+residual-left-no-star {Γ = (x ~ᶜ y) ∷ Γ} () x⊑★∈
+    | no x≢y
+residual-left-no-star {Γ = (x ~ᶜ .x) ∷ Γ} ok (there x⊑★∈)
+    | yes refl =
+  residual-left-no-star ok x⊑★∈
+residual-left-no-star {Γ = (x ~ᶜ★) ∷ Γ} () x⊑★∈
+residual-left-no-star {Γ = (★~ᶜ x) ∷ Γ} () x⊑★∈
+
+residual-right-no-star :
+  ∀ {Γ X} →
+  residual-assms-ok? Γ ≡ true →
+  (X ˣ⊑★) ∈ assm-right Γ →
+  ⊥
+residual-right-no-star {Γ = []} ok ()
+residual-right-no-star {Γ = (x ~ᶜ y) ∷ Γ} ok x⊑★∈
+    with x ≟ y
+residual-right-no-star {Γ = (x ~ᶜ y) ∷ Γ} () x⊑★∈
+    | no x≢y
+residual-right-no-star {Γ = (x ~ᶜ .x) ∷ Γ} ok (there x⊑★∈)
+    | yes refl =
+  residual-right-no-star ok x⊑★∈
+residual-right-no-star {Γ = (x ~ᶜ★) ∷ Γ} () x⊑★∈
+residual-right-no-star {Γ = (★~ᶜ x) ∷ Γ} () x⊑★∈
+
+record DischargeCtx (Δ : TyCtx) (Φ Ψ : ImpCtx) : Set where
+  field
+    discharge-var :
+      ∀ {X Y} →
+      Y < Δ →
+      (X ˣ⊑ˣ Y) ∈ Φ →
+      (X ˣ⊑ˣ Y) ∈ Ψ
+    discharge-star :
+      ∀ {X} →
+      (X ˣ⊑★) ∈ Φ →
+      (X ˣ⊑★) ∈ Ψ
+
+open DischargeCtx
+
+discharge-∀ :
+  ∀ {Δ Φ Ψ} →
+  DischargeCtx Δ Φ Ψ →
+  DischargeCtx (suc Δ)
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Ψ)
+discharge-∀ d .discharge-var {X = zero} {Y = zero} y<Δ
+    (here refl) = here refl
+discharge-∀ d .discharge-var {X = zero} {Y = zero} y<Δ
+    (there x⊑y∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left x⊑y∈)
+discharge-∀ d .discharge-var {X = zero} {Y = suc Y} y<Δ
+    (there x⊑y∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left x⊑y∈)
+discharge-∀ d .discharge-var {X = suc X} {Y = zero} y<Δ
+    (there x⊑y∈) =
+  ⊥-elim (no-⇑ᵢ-zero-right x⊑y∈)
+discharge-∀ d .discharge-var {X = suc X} {Y = suc Y} (s<s y<Δ)
+    (there x⊑y∈) =
+  there (⇑ᵢ-ˣ∈ (discharge-var d y<Δ (un⇑ᵢ-ˣ∈ x⊑y∈)))
+discharge-∀ d .discharge-star (here ())
+discharge-∀ d .discharge-star {X = zero} (there x⊑★∈) =
+  ⊥-elim (no-⇑ᵢ-zero-star x⊑★∈)
+discharge-∀ d .discharge-star {X = suc X} (there x⊑★∈) =
+  there (⇑ᵢ-★∈ (discharge-star d (un⇑ᵢ-★∈ x⊑★∈)))
+
+discharge-ν :
+  ∀ {Δ Φ Ψ} →
+  DischargeCtx Δ Φ Ψ →
+  DischargeCtx Δ
+    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Ψ)
+discharge-ν d .discharge-var y<Δ (here ())
+discharge-ν d .discharge-var {X = zero} y<Δ (there x⊑y∈) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left x⊑y∈)
+discharge-ν d .discharge-var {X = suc X} y<Δ (there x⊑y∈) =
+  there (⇑ᴸᵢ-ˣ∈ (discharge-var d y<Δ (un⇑ᴸᵢ-ˣ∈ x⊑y∈)))
+discharge-ν d .discharge-star (here refl) = here refl
+discharge-ν d .discharge-star {X = zero} (there x⊑★∈) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star x⊑★∈)
+discharge-ν d .discharge-star {X = suc X} (there x⊑★∈) =
+  there (⇑ᴸᵢ-★∈ (discharge-star d (un⇑ᴸᵢ-★∈ x⊑★∈)))
+
+⊑-discharge :
+  ∀ {Δ Φ Ψ C A} →
+  DischargeCtx Δ Φ Ψ →
+  WfTy Δ A →
+  Φ ⊢ C ⊑ A →
+  Ψ ⊢ C ⊑ A
+⊑-discharge d wf★ id★ = id★
+⊑-discharge d (wfVar y<Δ) (idˣ x⊑y∈) =
+  idˣ (discharge-var d y<Δ x⊑y∈)
+⊑-discharge d wfBase idι = idι
+⊑-discharge d (wf⇒ hA hB) (p ↦ q) =
+  ⊑-discharge d hA p ↦ ⊑-discharge d hB q
+⊑-discharge d (wf∀ {occ = occB} hB) (∀ⁱ_ {occA = occA} p) =
+  ∀ⁱ_ {occA = occA} {occB = occB}
+    (⊑-discharge (discharge-∀ d) hB p)
+⊑-discharge d wf★ (tag ι) = tag ι
+⊑-discharge d wf★ (tag_⇒_ p q) =
+  tag_⇒_ (⊑-discharge d wf★ p) (⊑-discharge d wf★ q)
+⊑-discharge d wf★ (tagˣ x⊑★∈) =
+  tagˣ (discharge-star d x⊑★∈)
+⊑-discharge d hB (ν occA p) =
+  ν occA (⊑-discharge (discharge-ν d) hB p)
+
+residual-left-discharge :
+  ∀ {Δ Γ} →
+  residual-assms-ok? Γ ≡ true →
+  DischargeCtx Δ (assm-left Γ) (idᵢ Δ)
+residual-left-discharge {Δ = Δ} ok .discharge-var {X = X} {Y = Y}
+    y<Δ x⊑y∈ =
+  subst (λ Z → (Z ˣ⊑ˣ Y) ∈ idᵢ Δ)
+        (sym (residual-left-var-id ok x⊑y∈))
+        (idᵢ-refl-∈ y<Δ)
+residual-left-discharge ok .discharge-star x⊑★∈ =
+  ⊥-elim (residual-left-no-star ok x⊑★∈)
+
+residual-right-discharge :
+  ∀ {Δ Γ} →
+  residual-assms-ok? Γ ≡ true →
+  DischargeCtx Δ (assm-right Γ) (idᵢ Δ)
+residual-right-discharge {Δ = Δ} ok .discharge-var {X = X} {Y = Y}
+    y<Δ x⊑y∈ =
+  subst (λ Z → (Z ˣ⊑ˣ Y) ∈ idᵢ Δ)
+        (sym (residual-right-var-id ok x⊑y∈))
+        (idᵢ-refl-∈ y<Δ)
+residual-right-discharge ok .discharge-star x⊑★∈ =
+  ⊥-elim (residual-right-no-star ok x⊑★∈)
+
+residual-assms-ok-lower :
+  ∀ {Δ Γ C A B} →
+  WfTy Δ A →
+  WfTy Δ B →
+  residual-assms-ok? Γ ≡ true →
+  assm-left Γ ⊢ C ⊑ A × assm-right Γ ⊢ C ⊑ B →
+  idᵢ Δ ⊢ C ⊑ A × idᵢ Δ ⊢ C ⊑ B
+residual-assms-ok-lower hA hB residual≡ (C⊑A , C⊑B) =
+  ⊑-discharge (residual-left-discharge residual≡) hA C⊑A ,
+  ⊑-discharge (residual-right-discharge residual≡) hB C⊑B
+
+mutual
+  {-# TERMINATING #-}
+  core-mlb?-lower-raw :
+    ∀ {Δ A B C Γ n∀A n∀B} →
+    WfTy Δ A →
+    WfTy Δ B →
+    core-mlb? A B n∀A n∀B ≡ just (C , Γ) →
+    assm-left Γ ⊢ C ⊑ A × assm-right Γ ⊢ C ⊑ B
+  core-mlb?-lower-raw {A = `∀ A} {n∀A = ()}
+  core-mlb?-lower-raw {B = `∀ B} {n∀B = ()}
+  core-mlb?-lower-raw {A = ＇ X} {B = ＇ Y} hA hB refl =
+    idˣ (here refl) , idˣ (here refl)
+  core-mlb?-lower-raw {A = ＇ X} {B = ‵ ι} hA hB ()
+  core-mlb?-lower-raw {A = ＇ X} {B = ★} hA hB refl =
+    idˣ (here refl) , tagˣ (here refl)
+  core-mlb?-lower-raw {A = ＇ X} {B = B₁ ⇒ B₂} hA hB ()
+  core-mlb?-lower-raw {A = ‵ ι} {B = ＇ X} hA hB ()
+  core-mlb?-lower-raw {A = ‵ ι₁} {B = ‵ ι₂} hA hB eq
+      with ι₁ ≟Base ι₂
+  core-mlb?-lower-raw {A = ‵ ι} {B = ‵ .ι} hA hB refl
+      | yes refl = idι , idι
+  core-mlb?-lower-raw {A = ‵ ι₁} {B = ‵ ι₂} hA hB ()
+      | no neq
+  core-mlb?-lower-raw {A = ‵ ι} {B = ★} hA hB refl =
+    idι , tag ι
+  core-mlb?-lower-raw {A = ‵ ι} {B = B₁ ⇒ B₂} hA hB ()
+  core-mlb?-lower-raw {A = ★} {B = ＇ Y} hA hB refl =
+    tagˣ (here refl) , idˣ (here refl)
+  core-mlb?-lower-raw {A = ★} {B = ‵ ι} hA hB refl =
+    tag ι , idι
+  core-mlb?-lower-raw {A = ★} {B = ★} hA hB refl = id★ , id★
+  core-mlb?-lower-raw {A = ★} {B = B₁ ⇒ B₂} wf★ (wf⇒ hB₁ hB₂) eq
+      with search-mlb? ★ B₁ in s₁≡ | search-mlb? ★ B₂ in s₂≡
+  core-mlb?-lower-raw {A = ★} {B = B₁ ⇒ B₂} wf★ (wf⇒ hB₁ hB₂) ()
+      | nothing | s₂
+  core-mlb?-lower-raw {A = ★} {B = B₁ ⇒ B₂} wf★ (wf⇒ hB₁ hB₂) ()
+      | just r₁ | nothing
+  core-mlb?-lower-raw {A = ★} {B = B₁ ⇒ B₂} wf★ (wf⇒ hB₁ hB₂) eq
+      | just (C₁ , Γ₁) | just (C₂ , Γ₂)
+      with merge-assms Γ₁ Γ₂ in merge≡
+  core-mlb?-lower-raw {A = ★} {B = B₁ ⇒ B₂} wf★ (wf⇒ hB₁ hB₂) ()
+      | just (C₁ , Γ₁) | just (C₂ , Γ₂) | nothing
+  core-mlb?-lower-raw {A = ★} {B = B₁ ⇒ B₂} wf★ (wf⇒ hB₁ hB₂) refl
+      | just (C₁ , Γ₁) | just (C₂ , Γ₂) | just Γ =
+    ( tag_⇒_
+        (⊑-mono left₁ (proj₁ lower₁))
+        (⊑-mono left₂ (proj₁ lower₂))
+    , ⊑-mono right₁ (proj₂ lower₁) ↦ ⊑-mono right₂ (proj₂ lower₂)
+    )
+    where
+      lower₁ : assm-left Γ₁ ⊢ C₁ ⊑ ★ × assm-right Γ₁ ⊢ C₁ ⊑ B₁
+      lower₁ = search-mlb?-lower-raw wf★ hB₁ s₁≡
+
+      lower₂ : assm-left Γ₂ ⊢ C₂ ⊑ ★ × assm-right Γ₂ ⊢ C₂ ⊑ B₂
+      lower₂ = search-mlb?-lower-raw wf★ hB₂ s₂≡
+
+      left₁ : CtxIncl (assm-left Γ₁) (assm-left Γ)
+      left₁ =
+        assm-left-incl
+          (merge-assms-left {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+
+      left₂ : CtxIncl (assm-left Γ₂) (assm-left Γ)
+      left₂ =
+        assm-left-incl
+          (merge-assms-right {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+
+      right₁ : CtxIncl (assm-right Γ₁) (assm-right Γ)
+      right₁ =
+        assm-right-incl
+          (merge-assms-left {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+
+      right₂ : CtxIncl (assm-right Γ₂) (assm-right Γ)
+      right₂ =
+        assm-right-incl
+          (merge-assms-right {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = ＇ X} hA hB ()
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = ‵ ι} hA hB ()
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = ★} (wf⇒ hA₁ hA₂) wf★ eq
+      with search-mlb? A₁ ★ in s₁≡ | search-mlb? A₂ ★ in s₂≡
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = ★} (wf⇒ hA₁ hA₂) wf★ ()
+      | nothing | s₂
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = ★} (wf⇒ hA₁ hA₂) wf★ ()
+      | just r₁ | nothing
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = ★} (wf⇒ hA₁ hA₂) wf★ eq
+      | just (C₁ , Γ₁) | just (C₂ , Γ₂)
+      with merge-assms Γ₁ Γ₂ in merge≡
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = ★} (wf⇒ hA₁ hA₂) wf★ ()
+      | just (C₁ , Γ₁) | just (C₂ , Γ₂) | nothing
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = ★} (wf⇒ hA₁ hA₂) wf★ refl
+      | just (C₁ , Γ₁) | just (C₂ , Γ₂) | just Γ =
+    ( ⊑-mono left₁ (proj₁ lower₁) ↦ ⊑-mono left₂ (proj₁ lower₂)
+    , tag_⇒_
+        (⊑-mono right₁ (proj₂ lower₁))
+        (⊑-mono right₂ (proj₂ lower₂))
+    )
+    where
+      lower₁ : assm-left Γ₁ ⊢ C₁ ⊑ A₁ × assm-right Γ₁ ⊢ C₁ ⊑ ★
+      lower₁ = search-mlb?-lower-raw hA₁ wf★ s₁≡
+
+      lower₂ : assm-left Γ₂ ⊢ C₂ ⊑ A₂ × assm-right Γ₂ ⊢ C₂ ⊑ ★
+      lower₂ = search-mlb?-lower-raw hA₂ wf★ s₂≡
+
+      left₁ : CtxIncl (assm-left Γ₁) (assm-left Γ)
+      left₁ =
+        assm-left-incl
+          (merge-assms-left {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+
+      left₂ : CtxIncl (assm-left Γ₂) (assm-left Γ)
+      left₂ =
+        assm-left-incl
+          (merge-assms-right {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+
+      right₁ : CtxIncl (assm-right Γ₁) (assm-right Γ)
+      right₁ =
+        assm-right-incl
+          (merge-assms-left {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+
+      right₂ : CtxIncl (assm-right Γ₂) (assm-right Γ)
+      right₂ =
+        assm-right-incl
+          (merge-assms-right {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = B₁ ⇒ B₂}
+      (wf⇒ hA₁ hA₂) (wf⇒ hB₁ hB₂) eq
+      with search-mlb? A₁ B₁ in s₁≡ | search-mlb? A₂ B₂ in s₂≡
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = B₁ ⇒ B₂}
+      (wf⇒ hA₁ hA₂) (wf⇒ hB₁ hB₂) ()
+      | nothing | s₂
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = B₁ ⇒ B₂}
+      (wf⇒ hA₁ hA₂) (wf⇒ hB₁ hB₂) ()
+      | just r₁ | nothing
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = B₁ ⇒ B₂}
+      (wf⇒ hA₁ hA₂) (wf⇒ hB₁ hB₂) eq
+      | just (C₁ , Γ₁) | just (C₂ , Γ₂)
+      with merge-assms Γ₁ Γ₂ in merge≡
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = B₁ ⇒ B₂}
+      (wf⇒ hA₁ hA₂) (wf⇒ hB₁ hB₂) ()
+      | just (C₁ , Γ₁) | just (C₂ , Γ₂) | nothing
+  core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = B₁ ⇒ B₂}
+      (wf⇒ hA₁ hA₂) (wf⇒ hB₁ hB₂) refl
+      | just (C₁ , Γ₁) | just (C₂ , Γ₂) | just Γ =
+    ( ⊑-mono left₁ (proj₁ lower₁) ↦ ⊑-mono left₂ (proj₁ lower₂)
+    , ⊑-mono right₁ (proj₂ lower₁) ↦ ⊑-mono right₂ (proj₂ lower₂)
+    )
+    where
+      lower₁ : assm-left Γ₁ ⊢ C₁ ⊑ A₁ × assm-right Γ₁ ⊢ C₁ ⊑ B₁
+      lower₁ = search-mlb?-lower-raw hA₁ hB₁ s₁≡
+
+      lower₂ : assm-left Γ₂ ⊢ C₂ ⊑ A₂ × assm-right Γ₂ ⊢ C₂ ⊑ B₂
+      lower₂ = search-mlb?-lower-raw hA₂ hB₂ s₂≡
+
+      left₁ : CtxIncl (assm-left Γ₁) (assm-left Γ)
+      left₁ =
+        assm-left-incl
+          (merge-assms-left {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+
+      left₂ : CtxIncl (assm-left Γ₂) (assm-left Γ)
+      left₂ =
+        assm-left-incl
+          (merge-assms-right {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+
+      right₁ : CtxIncl (assm-right Γ₁) (assm-right Γ)
+      right₁ =
+        assm-right-incl
+          (merge-assms-left {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+
+      right₂ : CtxIncl (assm-right Γ₂) (assm-right Γ)
+      right₂ =
+        assm-right-incl
+          (merge-assms-right {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ} merge≡)
+
+  {-# TERMINATING #-}
+  search-mlb?-lower-raw :
+    ∀ {Δ A B C Γ} →
+    WfTy Δ A →
+    WfTy Δ B →
+    search-mlb? A B ≡ just (C , Γ) →
+    assm-left Γ ⊢ C ⊑ A × assm-right Γ ⊢ C ⊑ B
+  search-mlb?-lower-raw {A = A} {B = B} hA hB search≡
+      with split-∀ A in splitA≡ | split-∀ B in splitB≡
+  search-mlb?-lower-raw {A = A} {B = B} hA hB search≡
+      | n , A′ , n∀A′ | m , B′ , n∀B′
+      with core-mlb?
+             (renameᵗ (embed-left-var n m) A′)
+             (renameᵗ (embed-right-var n m) B′)
+             (rename-non∀ n∀A′)
+             (rename-non∀ n∀B′) in core≡
+  search-mlb?-lower-raw {A = A} {B = B} hA hB ()
+      | n , A′ , n∀A′ | m , B′ , n∀B′ | nothing
+  search-mlb?-lower-raw {A = A} {B = B} hA hB search≡
+      | n , A′ , n∀A′ | m , B′ , n∀B′ | just (C₀ , Γ₀)
+      with no-escaping-assms? n m Γ₀ in noEsc≡
+  search-mlb?-lower-raw {A = A} {B = B} hA hB ()
+      | n , A′ , n∀A′ | m , B′ , n∀B′ | just (C₀ , Γ₀) | false
+  search-mlb?-lower-raw {A = A} {B = B} hA hB search≡
+      | n , A′ , n∀A′ | m , B′ , n∀B′ | just (C₀ , Γ₀) | true
+      with bound-var-var-order-ok-list? n m Γ₀ in order≡
+  search-mlb?-lower-raw {A = A} {B = B} hA hB ()
+      | n , A′ , n∀A′ | m , B′ , n∀B′ | just (C₀ , Γ₀) | true
+      | false
+  search-mlb?-lower-raw {A = A} {B = B} hA hB search≡
+      | n , A′ , n∀A′ | m , B′ , n∀B′ | just (C₀ , Γ₀) | true
+      | true
+      with normalize-assms n m Γ₀ in norm≡
+  search-mlb?-lower-raw {A = A} {B = B} hA hB ()
+      | n , A′ , n∀A′ | m , B′ , n∀B′ | just (C₀ , Γ₀) | true
+      | true | nothing
+  search-mlb?-lower-raw {A = A} {B = B} hA hB search≡
+      | n , A′ , n∀A′ | m , B′ , n∀B′ | just (C₀ , Γ₀) | true
+      | true | just Γ′
+      with add∀ (mlb-∀-count n m Γ₀)
+                 (renameᵗ (normalize-var n m Γ₀) C₀) in result≡
+  search-mlb?-lower-raw {A = A} {B = B} hA hB search≡
+      | n , A′ , n∀A′ | m , B′ , n∀B′ | just (C₀ , Γ₀) | true
+      | true | just Γ′ | C′
+      with foralls-used? C′ in used≡
+  search-mlb?-lower-raw {A = A} {B = B} hA hB ()
+      | n , A′ , n∀A′ | m , B′ , n∀B′ | just (C₀ , Γ₀) | true
+      | true | just Γ′ | C′ | false
+  search-mlb?-lower-raw {Δ = Δ} {A = A} {B = B} hA hB refl
+      | n , A′ , n∀A′ | m , B′ , n∀B′ | just (C₀ , Γ₀) | true
+      | true | just Γ′ | C′ | true =
+    wrapped-lower
+    where
+      splitA-wf : WfTy (n + Δ) A′
+      splitA-wf = split-∀-wf hA splitA≡
+
+      splitB-wf : WfTy (m + Δ) B′
+      splitB-wf = split-∀-wf hB splitB≡
+
+      embedded-left-wf :
+        WfTy (n + m + Δ)
+          (renameᵗ (embed-left-var n m) A′)
+      embedded-left-wf =
+        embed-left-wf {Δ = Δ} {n = n} {m = m} {A = A′} splitA-wf
+
+      embedded-right-wf :
+        WfTy (n + m + Δ)
+          (renameᵗ (embed-right-var n m) B′)
+      embedded-right-wf =
+        embed-right-wf {Δ = Δ} {n = n} {m = m} {B = B′} splitB-wf
+
+      raw-lower :
+        assm-left Γ₀ ⊢ C₀ ⊑ renameᵗ (embed-left-var n m) A′
+          ×
+        assm-right Γ₀ ⊢ C₀ ⊑ renameᵗ (embed-right-var n m) B′
+      raw-lower =
+        core-mlb?-lower-raw embedded-left-wf embedded-right-wf core≡
+
+      normalized-lower :
+        spine-left n m Γ₀ Γ′ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
+                                ⊑ renameᵗ (normalize-var n m Γ₀)
+                                    (renameᵗ (embed-left-var n m) A′)
+          ×
+        spine-right n m Γ₀ Γ′ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
+                                 ⊑ renameᵗ (normalize-var n m Γ₀)
+                                     (renameᵗ (embed-right-var n m) B′)
+      normalized-lower =
+        normalize-lower-spine noEsc≡ order≡ norm≡ raw-lower
+
+      used-sound : ForallsUsed C′
+      used-sound = foralls-used?-sound {A = C′} used≡
+
+      wrapped-lower :
+        assm-left Γ′ ⊢ C′ ⊑ A × assm-right Γ′ ⊢ C′ ⊑ B
+      wrapped-lower =
+        add∀-lower hA hB noEsc≡ order≡ norm≡ splitA≡ splitB≡ result≡
+          used-sound normalized-lower
+
+search-mlb?-lower :
+  ∀ {Δ A B C Γ} →
+  WfTy Δ A →
+  WfTy Δ B →
+  search-mlb? A B ≡ just (C , Γ) →
+  residual-assms-ok? Γ ≡ true →
+  idᵢ Δ ⊢ C ⊑ A × idᵢ Δ ⊢ C ⊑ B
+search-mlb?-lower hA hB search≡ residual≡ =
+  residual-assms-ok-lower hA hB residual≡
+    (search-mlb?-lower-raw hA hB search≡)
+
+mlb?-lower :
+  ∀ {Δ A B C} →
+  WfTy Δ A →
+  WfTy Δ B →
+  mlb? A B ≡ just C →
+  idᵢ Δ ⊢ C ⊑ A × idᵢ Δ ⊢ C ⊑ B
+mlb?-lower {A = A} {B = B} hA hB eq
+    with search-mlb? A B in search≡
+mlb?-lower {A = A} {B = B} hA hB () | nothing
+mlb?-lower {A = A} {B = B} hA hB eq | just (C′ , Γ)
+    with residual-assms-ok? Γ in residual≡
+mlb?-lower {A = A} {B = B} hA hB () | just (C′ , Γ) | false
+mlb?-lower {A = A} {B = B} hA hB refl | just (C , Γ) | true =
+  search-mlb?-lower hA hB search≡ residual≡
 
 mlb-type :
   ∀ {Γ A B C} →

@@ -59,8 +59,8 @@ data _—→_ : Term → Term → Set where
 
   β-inst : ∀ {Σ : Store} {V B c}{α : TyVar}
     → Value V
-    -----------------------------------------------
-    → V ⟨ inst B c ⟩ —→ ν ★ ((V • α ) ⟨ c [ α ]ᶜ ⟩)
+    ----------------------------------------------
+    → V ⟨ inst B c ⟩ —→ ν ★ (((⇑ᵗᵐ V) • 0 ) ⟨ c ⟩)
 
   tag-untag-ok : ∀ {V G}{ℓ}
     → Value V

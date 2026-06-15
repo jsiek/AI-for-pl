@@ -60,6 +60,9 @@ renameᵗᵐ ρ (L ⊕[ op ] M) = renameᵗᵐ ρ L ⊕[ op ] renameᵗᵐ ρ M
 renameᵗᵐ ρ (M ⟨ c ⟩) = renameᵗᵐ ρ M ⟨ renameᶜ ρ c ⟩
 renameᵗᵐ ρ (blame ℓ) = blame ℓ
 
+⇑ᵗᵐ : Term → Term
+⇑ᵗᵐ = renameᵗᵐ suc
+
 infixl 8 _[_]ᵀ
 _[_]ᵀ : Term → TyVar → Term
 M [ X ]ᵀ = renameᵗᵐ (singleRenameᵗ X) M

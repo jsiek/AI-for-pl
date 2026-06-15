@@ -176,7 +176,7 @@ data _∣_⊢_∶_=⇒_ : TyCtx → Store → Coercion → Ty → Ty → Set whe
      ----------------------------------
     → Δ ∣ Σ ⊢ (`∀ s) ∶ (`∀ A) =⇒ (`∀ B)
 
-  -- ν
+  -- ν̅ 
   cast-inst : ∀{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → {occA : occurs zero A ≡ true}
     → WfTy Δ B
@@ -184,7 +184,7 @@ data _∣_⊢_∶_=⇒_ : TyCtx → Store → Coercion → Ty → Ty → Set whe
      ----------------------------------------
     → Δ ∣ Σ ⊢ (inst B s) ∶ (`∀ A) =⇒ B
 
-  -- ν̅ 
+  -- ν
   cast-gen : ∀{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → {occB : occurs zero B ≡ true}
     → WfTy Δ A

@@ -236,7 +236,7 @@ progress (⊢• {L = M} {B = B} {α = α} M⊢ α<Δ) | done vM
 progress {Σ = Σ} (⊢• {L = M} {B = B} {α = α} M⊢ α<Δ) | done vM
     | av-gen vW refl =
   step (pure-step (β-gen {Σ = Σ} vW))
-progress (⊢ν {A = A} N⊢) = step (ν-step {A = A} {α = zero})
+progress (⊢ν {A = A} hA N⊢) = step (ν-step {A = A} {α = zero})
 progress (⊢$ κ) = done ($ κ)
 progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) with progress L⊢
 progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | step L→L′ =

@@ -72,6 +72,11 @@ data Non∀ : Ty → Set where
   non∀-★ : Non∀ ★
   non∀-⇒ : ∀ {A B} → Non∀ (A ⇒ B)
   
+data Atom : Ty → Set where
+  ＇_ : (α : TyVar) → Atom (＇ α)
+  ‵_ : (ι : Base) → Atom (‵ ι)
+  ★ : Atom ★
+
 infix 4 _≟Base_
 _≟Base_ : (ι ι′ : Base) → Dec (ι ≡ ι′)
 `ℕ ≟Base `ℕ = yes refl
@@ -227,8 +232,7 @@ data WfTy : TyCtx → Ty → Set where
   wfBase : ∀ {Δ ι} → WfTy Δ (‵ ι)
   wf★ : ∀ {Δ} → WfTy Δ ★
   wf⇒ : ∀ {Δ A B} → WfTy Δ A → WfTy Δ B → WfTy Δ (A ⇒ B)
-  wf∀ : ∀ {Δ A} → {occ : occurs zero A ≡ true} → -- Phil: recommend removing
-    WfTy (suc Δ) A → WfTy Δ (`∀ A)
+  wf∀ : ∀ {Δ A} → WfTy (suc Δ) A → WfTy Δ (`∀ A)
 
 ------------------------------------------------------------------------
 -- Lookup de Bruijn variable in a list

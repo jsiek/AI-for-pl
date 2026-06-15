@@ -1,7 +1,6 @@
 module NuTerms where
 
 open import Agda.Builtin.Equality using (_≡_)
-open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃; ∃-syntax)
@@ -146,7 +145,7 @@ data _∣_∣_⊢_⦂_ (Δ : TyCtx) (Σ : Store) (Γ : Ctx) : Term → Ty → Se
       -------------------------
      → Δ ∣ Σ ∣ Γ ⊢ (L · M) ⦂ B
 
-  ⊢Λ : ∀ {M A} {occ : occurs zero A ≡ true}
+  ⊢Λ : ∀ {M A}
      → Value M
      → suc Δ ∣ ⟰ᵗ Σ ∣ ⤊ᵗ Γ ⊢ M ⦂ A
       ----------------------------

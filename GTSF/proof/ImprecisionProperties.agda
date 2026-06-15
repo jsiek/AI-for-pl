@@ -50,9 +50,8 @@ renameᵗ-reflects-WfTy {A = ★} wf★ hρ = wf★
 renameᵗ-reflects-WfTy {A = A ⇒ B} (wf⇒ hA hB) hρ =
   wf⇒ (renameᵗ-reflects-WfTy hA hρ)
       (renameᵗ-reflects-WfTy hB hρ)
-renameᵗ-reflects-WfTy {A = `∀ A} {ρ = ρ} (wf∀ {occ = occ} hA) hρ =
-  wf∀ {occ = trans (sym (occurs-zero-rename-ext ρ A)) occ}
-    (renameᵗ-reflects-WfTy hA (TyRenameReflectsWf-ext hρ))
+renameᵗ-reflects-WfTy {A = `∀ A} (wf∀ hA) hρ =
+  wf∀ (renameᵗ-reflects-WfTy hA (TyRenameReflectsWf-ext hρ))
 
 suc-reflects-Wf : ∀ {Δ} → TyRenameReflectsWf Δ (suc Δ) suc
 suc-reflects-Wf (s<s X<Δ) = X<Δ
@@ -378,46 +377,57 @@ mutual
   ... | yes A₁⊑B₁ | no A₂⋢B₂ =
     no λ { (A₁⊑B₁ ↦ A₂⊑B₂) → A₂⋢B₂ A₂⊑B₂ }
   imp? Φ (A₁ ⇒ A₂) (`∀ B) = no (λ ())
-  imp? Φ (`∀ A) B with occurs-zero? A
-  ... | no ¬occA =
+  imp? Φ (`∀ A) (＇ X) with occurs-zero? A
+  imp? Φ (`∀ A) (＇ X) | no ¬occA =
+    no λ { (ν occ A⊑X) → ¬occA occ }
+  imp? Φ (`∀ A) (＇ X) | yes occA
+      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (＇ X)
+  imp? Φ (`∀ A) (＇ X) | yes occA | yes A⊑X = yes (ν occA A⊑X)
+  imp? Φ (`∀ A) (＇ X) | yes occA | no A⋢X =
+    no λ { (ν occ A⊑X) → A⋢X A⊑X }
+  imp? Φ (`∀ A) (‵ ι) with occurs-zero? A
+  imp? Φ (`∀ A) (‵ ι) | no ¬occA =
+    no λ { (ν occ A⊑ι) → ¬occA occ }
+  imp? Φ (`∀ A) (‵ ι) | yes occA
+      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (‵ ι)
+  imp? Φ (`∀ A) (‵ ι) | yes occA | yes A⊑ι = yes (ν occA A⊑ι)
+  imp? Φ (`∀ A) (‵ ι) | yes occA | no A⋢ι =
+    no λ { (ν occ A⊑ι) → A⋢ι A⊑ι }
+  imp? Φ (`∀ A) ★ with occurs-zero? A
+  imp? Φ (`∀ A) ★ | no ¬occA =
+    no λ { (ν occ A⊑★) → ¬occA occ }
+  imp? Φ (`∀ A) ★ | yes occA
+      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A ★
+  imp? Φ (`∀ A) ★ | yes occA | yes A⊑★ = yes (ν occA A⊑★)
+  imp? Φ (`∀ A) ★ | yes occA | no A⋢★ =
+    no λ { (ν occ A⊑★) → A⋢★ A⊑★ }
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) with occurs-zero? A
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) | no ¬occA =
+    no λ { (ν occ A⊑B) → ¬occA occ }
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes occA
+      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (B₁ ⇒ B₂)
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes occA | yes A⊑B =
+    yes (ν occA A⊑B)
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes occA | no A⋢B =
+    no λ { (ν occ A⊑B) → A⋢B A⊑B }
+  imp? Φ (`∀ A) (`∀ B)
+      with imp? ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) A B
+  imp? Φ (`∀ A) (`∀ B) | yes A⊑B = yes (∀ⁱ A⊑B)
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B with occurs-zero? A
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B | no ¬occA =
     no λ
-      { (∀ⁱ_ {occA = occA} p) → ¬occA occA
-      ; (ν occA p) → ¬occA occA
+      { (∀ⁱ A⊑B) → A⋢B A⊑B
+      ; (ν occ A⊑∀B) → ¬occA occ
       }
-  imp? Φ (`∀ A) (`∀ B) | yes occA with occurs-zero? B
-  ... | yes occB with imp? ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) A B
-  ... | yes A⊑B = yes (∀ⁱ_ {occA = occA} {occB = occB} A⊑B)
-  ... | no A⋢B with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (`∀ B)
-  ... | yes A⊑∀B = yes (ν occA A⊑∀B)
-  ... | no A⋢∀B =
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes occA
+      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (`∀ B)
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes occA | yes A⊑∀B =
+    yes (ν occA A⊑∀B)
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes occA | no A⋢∀B =
     no λ
       { (∀ⁱ A⊑B) → A⋢B A⊑B
       ; (ν occ A⊑∀B) → A⋢∀B A⊑∀B
       }
-  imp? Φ (`∀ A) (`∀ B) | yes occA | no ¬occB
-      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (`∀ B)
-  ... | yes A⊑∀B = yes (ν occA A⊑∀B)
-  ... | no A⋢∀B =
-    no λ
-      { (∀ⁱ_ {occB = occB} A⊑B) → ¬occB occB
-      ; (ν occ A⊑∀B) → A⋢∀B A⊑∀B
-      }
-  imp? Φ (`∀ A) (＇ X) | yes occA
-      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (＇ X)
-  ... | yes A⊑X = yes (ν occA A⊑X)
-  ... | no A⋢X = no λ { (ν occ A⊑X) → A⋢X A⊑X }
-  imp? Φ (`∀ A) (‵ ι) | yes occA
-      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (‵ ι)
-  ... | yes A⊑ι = yes (ν occA A⊑ι)
-  ... | no A⋢ι = no λ { (ν occ A⊑ι) → A⋢ι A⊑ι }
-  imp? Φ (`∀ A) ★ | yes occA
-      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A ★
-  ... | yes A⊑★ = yes (ν occA A⊑★)
-  ... | no A⋢★ = no λ { (ν occ A⊑★) → A⋢★ A⊑★ }
-  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes occA
-      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (B₁ ⇒ B₂)
-  ... | yes A⊑B = yes (ν occA A⊑B)
-  ... | no A⋢B = no λ { (ν occ A⊑B) → A⋢B A⊑B }
 
 ------------------------------------------------------------------------
 -- Endpoint well-formedness
@@ -441,22 +451,22 @@ mutual
   ⊑-src-wf² hΦ idι = wfBase
   ⊑-src-wf² hΦ (p ↦ q) =
     wf⇒ (⊑-src-wf² hΦ p) (⊑-src-wf² hΦ q)
-  ⊑-src-wf² hΦ (∀ⁱ_ {occA = occA} p) =
-    wf∀ {occ = occA} (⊑-src-wf² (∀ᵢ-wf² hΦ) p)
+  ⊑-src-wf² hΦ (∀ⁱ p) =
+    wf∀ (⊑-src-wf² (∀ᵢ-wf² hΦ) p)
   ⊑-src-wf² hΦ (tag ι) = wfBase
   ⊑-src-wf² hΦ (tag_⇒_ p q) =
     wf⇒ (⊑-src-wf² hΦ p) (⊑-src-wf² hΦ q)
   ⊑-src-wf² hΦ (tagˣ X⊑★∈) = wfVar (hΦ X⊑★∈)
   ⊑-src-wf² hΦ (ν occA p) =
-    wf∀ {occ = occA} (⊑-src-wf² (νᵢ-wf² hΦ) p)
+    wf∀ (⊑-src-wf² (νᵢ-wf² hΦ) p)
 
   ⊑-tgt-wf² hΦ id★ = wf★
   ⊑-tgt-wf² hΦ (idˣ X⊑Y∈) = wfVar (proj₂ (hΦ X⊑Y∈))
   ⊑-tgt-wf² hΦ idι = wfBase
   ⊑-tgt-wf² hΦ (p ↦ q) =
     wf⇒ (⊑-tgt-wf² hΦ p) (⊑-tgt-wf² hΦ q)
-  ⊑-tgt-wf² hΦ (∀ⁱ_ {occB = occB} p) =
-    wf∀ {occ = occB} (⊑-tgt-wf² (∀ᵢ-wf² hΦ) p)
+  ⊑-tgt-wf² hΦ (∀ⁱ p) =
+    wf∀ (⊑-tgt-wf² (∀ᵢ-wf² hΦ) p)
   ⊑-tgt-wf² hΦ (tag ι) = wf★
   ⊑-tgt-wf² hΦ (tag_⇒_ p q) = wf★
   ⊑-tgt-wf² hΦ (tagˣ X⊑★∈) = wf★
@@ -605,8 +615,6 @@ data ArrowTargetInv (Δ : TyCtx) : Ty → Ty → Ty → Set where
 data ForallTargetInv (Δ : TyCtx) : Ty → Ty → Set where
   forall-target-∀ⁱ :
     ∀ {A C} →
-    {occC : occurs zero C ≡ true} →
-    {occA : occurs zero A ≡ true} →
     (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ (idᵢ Δ) ⊢ C ⊑ A →
     ForallTargetInv Δ (`∀ C) A
 
@@ -620,8 +628,7 @@ data ForallTargetInv (Δ : TyCtx) : Ty → Ty → Set where
   ∀ {Δ C A} →
   idᵢ Δ ⊢ C ⊑ `∀ A →
   ForallTargetInv Δ C A
-⊑-forall-inv-idᵢ (∀ⁱ_ {occA = occC} {occB = occA} p) =
-  forall-target-∀ⁱ {occC = occC} {occA = occA} p
+⊑-forall-inv-idᵢ (∀ⁱ p) = forall-target-∀ⁱ p
 ⊑-forall-inv-idᵢ (ν occ p) = forall-target-ν occ p
 
 ⊑-base-var-⊥ :
@@ -728,8 +735,7 @@ data ForallTargetInv (Δ : TyCtx) : Ty → Ty → Set where
 ⊑-refl-idᵢ wfBase = idι
 ⊑-refl-idᵢ wf★ = id★
 ⊑-refl-idᵢ (wf⇒ hA hB) = ⊑-refl-idᵢ hA ↦ ⊑-refl-idᵢ hB
-⊑-refl-idᵢ (wf∀ {occ = occ} hA) =
-  ∀ⁱ_ {occA = occ} {occB = occ} (⊑-refl-idᵢ hA)
+⊑-refl-idᵢ (wf∀ hA) = ∀ⁱ (⊑-refl-idᵢ hA)
 
 ~-sym :
   ∀ {Δ A B} →

@@ -260,9 +260,8 @@ renameᵗ-preserves-WfTy wf★ hρ = wf★
 renameᵗ-preserves-WfTy (wf⇒ hA hB) hρ =
   wf⇒ (renameᵗ-preserves-WfTy hA hρ)
       (renameᵗ-preserves-WfTy hB hρ)
-renameᵗ-preserves-WfTy {ρ = ρ} (wf∀ {A = A} {occ = occ} hA) hρ =
-  wf∀ {occ = trans (occurs-zero-rename-ext ρ A) occ}
-    (renameᵗ-preserves-WfTy hA (TyRenameWf-ext hρ))
+renameᵗ-preserves-WfTy (wf∀ hA) hρ =
+  wf∀ (renameᵗ-preserves-WfTy hA (TyRenameWf-ext hρ))
 
 TySubstWf : TyCtx → TyCtx → Substᵗ → Set
 TySubstWf Δ Δ′ σ = ∀ {X} → X < Δ → WfTy Δ′ (σ X)
@@ -286,9 +285,8 @@ substᵗ-preserves-WfTy wf★ hσ = wf★
 substᵗ-preserves-WfTy (wf⇒ hA hB) hσ =
   wf⇒ (substᵗ-preserves-WfTy hA hσ)
       (substᵗ-preserves-WfTy hB hσ)
-substᵗ-preserves-WfTy {σ = σ} (wf∀ {A = A} {occ = occ} hA) hσ =
-  wf∀ {occ = trans (occurs-zero-subst-exts σ A) occ}
-    (substᵗ-preserves-WfTy hA (TySubstWf-exts hσ))
+substᵗ-preserves-WfTy (wf∀ hA) hσ =
+  wf∀ (substᵗ-preserves-WfTy hA (TySubstWf-exts hσ))
 
 singleTyEnv-Wf :
   ∀ {Δ B} →
@@ -307,8 +305,8 @@ WfTy-weakenᵗ wfBase Δ≤Δ′ = wfBase
 WfTy-weakenᵗ wf★ Δ≤Δ′ = wf★
 WfTy-weakenᵗ (wf⇒ hA hB) Δ≤Δ′ =
   wf⇒ (WfTy-weakenᵗ hA Δ≤Δ′) (WfTy-weakenᵗ hB Δ≤Δ′)
-WfTy-weakenᵗ (wf∀ {occ = occ} hA) Δ≤Δ′ =
-  wf∀ {occ = occ} (WfTy-weakenᵗ hA (s≤s Δ≤Δ′))
+WfTy-weakenᵗ (wf∀ hA) Δ≤Δ′ =
+  wf∀ (WfTy-weakenᵗ hA (s≤s Δ≤Δ′))
 
 ------------------------------------------------------------------------
 -- Renaming cancellation and store-map equalities

@@ -8,7 +8,6 @@ module proof.CompileCoercions where
 --     turns a chosen imprecision witness into typed target coercions.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
@@ -278,11 +277,11 @@ mutual
   coerce-up ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) r (p ↦ q)
       | s , s⊢ | t , t⊢ =
     (s ↦ᶜ t) , cast-fun s⊢ t⊢
-  coerce-up ℓ (wf∀ {occ = occA} hA) (wf∀ {occ = occB} hB) r (∀ⁱ p)
+  coerce-up ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
       with coerce-up ℓ hA hB (Realizes-∀ⁱ r) p
-  coerce-up ℓ (wf∀ {occ = occA} hA) (wf∀ {occ = occB} hB) r (∀ⁱ p)
+  coerce-up ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
       | c , c⊢ =
-    `∀ᶜ c , cast-all {occA = occA} {occB = occB} c⊢
+    `∀ᶜ c , cast-all c⊢
   coerce-up {C = ‵ ι} ℓ wfBase wf★ r (tag ι) =
     ((‵ ι) !ᶜ) , cast-tag wfBase (‵ ι)
   coerce-up ℓ (wf⇒ hA hB) wf★ r (tag_⇒_ p q)
@@ -293,15 +292,15 @@ mutual
     cast-seq (cast-fun s⊢ t⊢) (cast-tag (wf⇒ wf★ wf★) ★⇒★)
   coerce-up {C = ＇ X} ℓ hX wf★ r (tagˣ X⊑★) =
     realizes-star-up r X⊑★
-  coerce-up {A = B} ℓ (wf∀ {occ = occA} hA) hB r (ν occ p)
+  coerce-up {A = B} ℓ (wf∀ hA) hB r (ν occ p)
       with coerce-up ℓ
              hA
              (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
              (Realizes-ν-inst ℓ r)
              p
-  coerce-up {A = B} ℓ (wf∀ {occ = occA} hA) hB r (ν occ p)
+  coerce-up {A = B} ℓ (wf∀ hA) hB r (ν occ p)
       | c , c⊢ =
-    instᶜ B c , cast-inst {occA = occ} hB c⊢
+    instᶜ B c , cast-inst hB c⊢
 
   coerce-down :
     ∀ {Δ Σ Φ C A} →
@@ -322,11 +321,11 @@ mutual
   coerce-down ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) r (p ↦ q)
       | s , s⊢ | t , t⊢ =
     (s ↦ᶜ t) , cast-fun s⊢ t⊢
-  coerce-down ℓ (wf∀ {occ = occA} hA) (wf∀ {occ = occB} hB) r (∀ⁱ p)
+  coerce-down ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
       with coerce-down ℓ hA hB (Realizes-∀ⁱ r) p
-  coerce-down ℓ (wf∀ {occ = occA} hA) (wf∀ {occ = occB} hB) r (∀ⁱ p)
+  coerce-down ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
       | c , c⊢ =
-    `∀ᶜ c , cast-all {occA = occB} {occB = occA} c⊢
+    `∀ᶜ c , cast-all c⊢
   coerce-down {C = ‵ ι} ℓ wfBase wf★ r (tag ι) =
     ((‵ ι) ？ᶜ ℓ) , cast-untag wfBase (‵ ι)
   coerce-down ℓ (wf⇒ hA hB) wf★ r (tag_⇒_ p q)
@@ -337,12 +336,12 @@ mutual
     cast-seq (cast-untag (wf⇒ wf★ wf★) ★⇒★) (cast-fun s⊢ t⊢)
   coerce-down {C = ＇ X} ℓ hX wf★ r (tagˣ X⊑★) =
     realizes-star-down r X⊑★
-  coerce-down {A = B} ℓ (wf∀ {occ = occA} hA) hB r (ν occ p)
+  coerce-down {A = B} ℓ (wf∀ hA) hB r (ν occ p)
       with coerce-down ℓ
              hA
              (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
              (Realizes-ν-gen ℓ r)
              p
-  coerce-down {A = B} ℓ (wf∀ {occ = occA} hA) hB r (ν occ p)
+  coerce-down {A = B} ℓ (wf∀ hA) hB r (ν occ p)
       | c , c⊢ =
-    genᶜ B c , cast-gen {occB = occ} hB c⊢
+    genᶜ B c , cast-gen hB c⊢

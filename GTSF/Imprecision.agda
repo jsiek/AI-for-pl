@@ -63,8 +63,6 @@ data _⊢_⊑_ (Φ : ImpCtx) : Ty → Ty → Set where
     Φ ⊢ (A ⇒ B) ⊑ (A′ ⇒ B′)
 
   ∀ⁱ_ : ∀ {A B}
-    → {occA : occurs zero A ≡ true}
-    → {occB : occurs zero B ≡ true}
     → (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ ⊢ A ⊑ B
     ----------------------------
     → Φ ⊢ (`∀ A) ⊑ (`∀ B)

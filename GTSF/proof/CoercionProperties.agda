@@ -68,22 +68,21 @@ coercion-weaken Δ≤Δ′ incl (cast-untag hH gH) =
 coercion-weaken Δ≤Δ′ incl (cast-fun c⊢ d⊢) =
   cast-fun (coercion-weaken Δ≤Δ′ incl c⊢)
            (coercion-weaken Δ≤Δ′ incl d⊢)
-coercion-weaken Δ≤Δ′ incl
-    (cast-all {occA = occA} {occB = occB} c⊢) =
-  cast-all {occA = occA} {occB = occB}
+coercion-weaken Δ≤Δ′ incl (cast-all c⊢) =
+  cast-all
     (coercion-weaken
       (s≤s Δ≤Δ′)
       (renameStoreᵗ-incl suc incl)
       c⊢)
-coercion-weaken Δ≤Δ′ incl (cast-inst {occA = occA} hB c⊢) =
-  cast-inst {occA = occA}
+coercion-weaken Δ≤Δ′ incl (cast-inst hB c⊢) =
+  cast-inst
     (WfTy-weakenᵗ hB Δ≤Δ′)
     (coercion-weaken
       (s≤s Δ≤Δ′)
       (StoreIncl-cons (renameStoreᵗ-incl suc incl))
       c⊢)
-coercion-weaken Δ≤Δ′ incl (cast-gen {occB = occB} hA c⊢) =
-  cast-gen {occB = occB}
+coercion-weaken Δ≤Δ′ incl (cast-gen hA c⊢) =
+  cast-gen
     (WfTy-weakenᵗ hA Δ≤Δ′)
     (coercion-weaken
       (s≤s Δ≤Δ′)
@@ -126,18 +125,15 @@ coercion-renameᵗ hρ (cast-fun c⊢ d⊢) =
   cast-fun (coercion-renameᵗ hρ c⊢)
            (coercion-renameᵗ hρ d⊢)
 coercion-renameᵗ {ρ = ρ} hρ
-    (cast-all {A = A} {B = B} {occA = occA} {occB = occB} c⊢) =
+    (cast-all {A = A} {B = B} c⊢) =
   cast-all
-    {occA = trans (occurs-zero-rename-ext ρ A) occA}
-    {occB = trans (occurs-zero-rename-ext ρ B) occB}
     (subst
       (λ Σ′ → _ ∣ Σ′ ⊢ renameᶜ (extᵗ ρ) _ ∶ _ =⇒ _)
       (renameStoreᵗ-ext-suc-comm ρ _)
       (coercion-renameᵗ (TyRenameWf-ext hρ) c⊢))
 coercion-renameᵗ {ρ = ρ} hρ
-    (cast-inst {A = A} {B = B} {occA = occA} hB c⊢) =
+    (cast-inst {B = B} hB c⊢) =
   cast-inst
-    {occA = trans (occurs-zero-rename-ext ρ A) occA}
     (renameᵗ-preserves-WfTy hB hρ)
     (subst
       (λ T → _ ∣ _ ⊢ renameᶜ (extᵗ ρ) _ ∶ _ =⇒ T)
@@ -148,9 +144,8 @@ coercion-renameᵗ {ρ = ρ} hρ
         (renameStoreᵗ-ext-suc-comm ρ _)
         (coercion-renameᵗ (TyRenameWf-ext hρ) c⊢)))
 coercion-renameᵗ {ρ = ρ} hρ
-    (cast-gen {A = A} {B = B} {occB = occB} hA c⊢) =
+    (cast-gen {A = A} hA c⊢) =
   cast-gen
-    {occB = trans (occurs-zero-rename-ext ρ B) occB}
     (renameᵗ-preserves-WfTy hA hρ)
     (subst
       (λ T → _ ∣ _ ⊢ renameᶜ (extᵗ ρ) _ ∶ T =⇒ _)
@@ -212,21 +207,20 @@ coercion-wf wfΣ (cast-fun c⊢ d⊢)
 coercion-wf wfΣ (cast-fun c⊢ d⊢)
     | hA′ , hA | hB , hB′ =
   wf⇒ hA hB , wf⇒ hA′ hB′
-coercion-wf wfΣ (cast-all {occA = occA} {occB = occB} c⊢)
+coercion-wf wfΣ (cast-all c⊢)
     with coercion-wf (StoreWfAt-⟰ᵗ wfΣ) c⊢
-coercion-wf wfΣ (cast-all {occA = occA} {occB = occB} c⊢)
-    | hA , hB =
-  wf∀ {occ = occA} hA , wf∀ {occ = occB} hB
-coercion-wf wfΣ (cast-inst {occA = occA} hB c⊢)
+coercion-wf wfΣ (cast-all c⊢) | hA , hB =
+  wf∀ hA , wf∀ hB
+coercion-wf wfΣ (cast-inst hB c⊢)
     with coercion-wf
       (StoreWfAt-cons z<s wf★ (StoreWfAt-⟰ᵗ wfΣ))
       c⊢
-coercion-wf wfΣ (cast-inst {occA = occA} hB c⊢) | hA , hB′ =
-  wf∀ {occ = occA} hA , hB
-coercion-wf wfΣ (cast-gen {occB = occB} hA c⊢)
+coercion-wf wfΣ (cast-inst hB c⊢) | hA , hB′ =
+  wf∀ hA , hB
+coercion-wf wfΣ (cast-gen hA c⊢)
     with coercion-wf (StoreWfAt-⟰ᵗ wfΣ) c⊢
-coercion-wf wfΣ (cast-gen {occB = occB} hA c⊢) | hA′ , hB =
-  hA , wf∀ {occ = occB} hB
+coercion-wf wfΣ (cast-gen hA c⊢) | hA′ , hB =
+  hA , wf∀ hB
 
 ------------------------------------------------------------------------
 -- Typing the reveal/conceal coercions generated after fresh allocation
@@ -350,10 +344,8 @@ mutual
       (conceal-typing-env hA hρ hσ env hC α∈Σ)
       (reveal-typing-env hB hρ hσ env hC α∈Σ)
   reveal-typing-env {B = `∀ B} {ρ = ρ} {σ = σ}
-      (wf∀ {occ = occ} hB) hρ hσ env hC α∈Σ =
+      (wf∀ hB) hρ hσ env hC α∈Σ =
     cast-all
-      {occA = trans (occurs-zero-rename-ext ρ B) occ}
-      {occB = trans (occurs-zero-subst-exts σ B) occ}
       (reveal-typing-env
         hB
         (TyRenameWf-ext hρ)
@@ -391,10 +383,8 @@ mutual
       (reveal-typing-env hA hρ hσ env hC α∈Σ)
       (conceal-typing-env hB hρ hσ env hC α∈Σ)
   conceal-typing-env {B = `∀ B} {ρ = ρ} {σ = σ}
-      (wf∀ {occ = occ} hB) hρ hσ env hC α∈Σ =
+      (wf∀ hB) hρ hσ env hC α∈Σ =
     cast-all
-      {occA = trans (occurs-zero-subst-exts σ B) occ}
-      {occB = trans (occurs-zero-rename-ext ρ B) occ}
       (conceal-typing-env
         hB
         (TyRenameWf-ext hρ)

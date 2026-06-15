@@ -249,9 +249,8 @@ typing-wf wfΣ hΓ (⊢ƛ hA hM) =
   wf⇒ hA (typing-wf wfΣ (ctxWf-∷ hA hΓ) hM)
 typing-wf wfΣ hΓ (⊢· hL hM) with typing-wf wfΣ hΓ hL
 typing-wf wfΣ hΓ (⊢· hL hM) | wf⇒ hA hB = hB
-typing-wf wfΣ hΓ (⊢Λ {occ = occ} vM hM) =
-  wf∀ {occ = occ}
-    (typing-wf (StoreWfAt-⟰ᵗ wfΣ) (CtxWf-⤊ hΓ) hM)
+typing-wf wfΣ hΓ (⊢Λ vM hM) =
+  wf∀ (typing-wf (StoreWfAt-⟰ᵗ wfΣ) (CtxWf-⤊ hΓ) hM)
 typing-wf wfΣ hΓ (⊢• hM hA) with typing-wf wfΣ hΓ hM
 typing-wf wfΣ hΓ (⊢• hM hA) | wf∀ hB =
   substᵗ-preserves-WfTy hB (singleTyEnv-Wf hA)

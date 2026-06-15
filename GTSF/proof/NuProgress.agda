@@ -283,7 +283,7 @@ progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-all cwt =
   done (vM ⟨ `∀ _ ⟩)
 progress {Σ = Σ} (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢)
     | done vM | cast-inst _ cwt =
-  step (pure-step (β-inst {Σ = Σ} {α = zero} vM))
+  step (pure-step (β-inst {Σ = Σ} vM))
 progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-gen _ cwt =
   done (vM ⟨ gen _ _ ⟩)
 progress (⊢blame hA ℓ) = crash (ℓ , refl)

@@ -9,7 +9,7 @@ module proof.MaximalLowerBounds where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (Bool; true; false; _∨_)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using (List; []; _∷_; length)
+open import Data.List using (List; []; _∷_; _++_; length)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (ℕ; _+_; _∸_; _<_; zero; suc; z<s; s<s; _≟_)
@@ -28,7 +28,9 @@ open import Imprecision
     ; ImpCtx
     ; _ˣ⊑★
     ; _ˣ⊑ˣ_
+    ; ⇑ᵢₐ
     ; ⇑ᵢ
+    ; ⇑ᴸᵢₐ
     ; ⇑ᴸᵢ
     ; idᵢ
     ; _⊢_⊑_
@@ -45,7 +47,14 @@ open import Imprecision
     )
 open import proof.ImprecisionProperties using (⊑-refl-idᵢ; ⊑-tgt-wf-idᵢ)
 open import proof.TypeProperties
-  using (TyRenameWf; occurs-zero-rename-ext; renameᵗ-preserves-WfTy)
+  using
+    ( TyRenameWf
+    ; occurs-zero-rename-ext
+    ; rename-cong
+    ; renameᵗ-compose
+    ; renameᵗ-id
+    ; renameᵗ-preserves-WfTy
+    )
 
 ------------------------------------------------------------------------
 -- Binder context modes
@@ -1317,9 +1326,6 @@ bound-var-var-count n m (a ∷ Γ) with bound-var-var? n m a
 ... | true = suc (bound-var-var-count n m Γ)
 ... | false = bound-var-var-count n m Γ
 
-mlb-∀-count : ℕ → ℕ → List CAssm → ℕ
-mlb-∀-count n m Γ = (n + m) ∸ bound-var-var-count n m Γ
-
 find-left-for-right : TyVar → List CAssm → Maybe TyVar
 find-left-for-right Y [] = nothing
 find-left-for-right Y ((X ~ᶜ Y′) ∷ Γ) with Y ≟ Y′
@@ -1378,6 +1384,24 @@ unmatched-rights-before-left n m Γ X
 ... | just Y = unmatched-right-before n (Y ∸ n) Γ
 ... | nothing = zero
 
+rightOnlys-count : ℕ → ℕ → ℕ
+rightOnlys-count zero rest = rest
+rightOnlys-count (suc k) rest = suc (rightOnlys-count k rest)
+
+left-output-spine-count-from :
+  ℕ → ℕ → List CAssm → ℕ → TyVar → ℕ → ℕ
+left-output-spine-count-from n m Γ zero X emitted =
+  rightOnlys-count (unmatched-right-before n m Γ ∸ emitted) zero
+left-output-spine-count-from n m Γ (suc fuel) X emitted
+    with unmatched-rights-before-left n m Γ X
+... | before =
+  rightOnlys-count (before ∸ emitted)
+    (suc (left-output-spine-count-from n m Γ fuel (suc X) before))
+
+mlb-∀-count : ℕ → ℕ → List CAssm → ℕ
+mlb-∀-count n m Γ =
+  left-output-spine-count-from n m Γ n zero zero
+
 normalize-left-var : ℕ → ℕ → List CAssm → TyVar → TyVar
 normalize-left-var n m Γ X = X + unmatched-rights-before-left n m Γ X
 
@@ -1415,24 +1439,50 @@ identity-assm? (X ~ᶜ Y) with X ≟ Y
 identity-assm? (X ~ᶜ★) = false
 identity-assm? (★~ᶜ Y) = false
 
+residual-var : ℕ → ℕ → TyVar → TyVar
+residual-var n m X with X <? (n + m)
+... | yes _ = X
+... | no _ = X ∸ (n + m)
+
 normalize-assm : ℕ → ℕ → List CAssm → CAssm → CAssm
 normalize-assm n m Γ (X ~ᶜ Y) =
-  normalize-var n m Γ X ~ᶜ normalize-var n m Γ Y
-normalize-assm n m Γ (X ~ᶜ★) = normalize-var n m Γ X ~ᶜ★
-normalize-assm n m Γ (★~ᶜ Y) = ★~ᶜ normalize-var n m Γ Y
+  residual-var n m X ~ᶜ residual-var n m Y
+normalize-assm n m Γ (X ~ᶜ★) = residual-var n m X ~ᶜ★
+normalize-assm n m Γ (★~ᶜ Y) = ★~ᶜ residual-var n m Y
 
-normalize-assms :
+normalize-assm-ctx-irrelevant :
+  ∀ n m Γ Γ′ a →
+  normalize-assm n m Γ a ≡ normalize-assm n m Γ′ a
+normalize-assm-ctx-irrelevant n m Γ Γ′ (X ~ᶜ Y) = refl
+normalize-assm-ctx-irrelevant n m Γ Γ′ (X ~ᶜ★) = refl
+normalize-assm-ctx-irrelevant n m Γ Γ′ (★~ᶜ Y) = refl
+
+normalize-assms-clash-check :
   ℕ → ℕ → List CAssm → Maybe (List CAssm)
-normalize-assms n m [] = just []
-normalize-assms n m (a ∷ Γ)
-    with normalize-assms n m Γ | discharged-assm? n m a
+normalize-assms-clash-check n m [] = just []
+normalize-assms-clash-check n m (a ∷ Γ)
+    with normalize-assms-clash-check n m Γ
+... | nothing = nothing
+... | just Γ′ =
+  insert-assm (normalize-assm n m (a ∷ Γ) a) Γ′
+
+normalize-assms-residual :
+  ℕ → ℕ → List CAssm → Maybe (List CAssm)
+normalize-assms-residual n m [] = just []
+normalize-assms-residual n m (a ∷ Γ)
+    with normalize-assms-residual n m Γ | discharged-assm? n m a
 ... | nothing | _ = nothing
 ... | just Γ′ | true = just Γ′
 ... | just Γ′ | false
     with normalize-assm n m (a ∷ Γ) a
-... | a′ with identity-assm? a′
-... | true = just Γ′
-... | false = insert-assm a′ Γ′
+... | a′ = insert-assm a′ Γ′
+
+normalize-assms :
+  ℕ → ℕ → List CAssm → Maybe (List CAssm)
+normalize-assms n m Γ
+    with normalize-assms-clash-check n m Γ
+... | nothing = nothing
+... | just _ = normalize-assms-residual n m Γ
 
 residual-assms-ok? : List CAssm → Bool
 residual-assms-ok? [] = true
@@ -1842,6 +1892,39 @@ wrap-output : OutputSpine → Ty → Ty
 wrap-output [] A = A
 wrap-output (_ ∷ bs) A = `∀ (wrap-output bs A)
 
+reverse-local : ∀ {A : Set} → List A → List A
+reverse-local [] = []
+reverse-local (x ∷ xs) = reverse-local xs ++ (x ∷ [])
+
+length-++-local :
+  ∀ {A : Set} (xs ys : List A) →
+  length (xs ++ ys) ≡ length xs + length ys
+length-++-local [] ys = refl
+length-++-local (x ∷ xs) ys =
+  cong suc (length-++-local xs ys)
+
+++-assoc-local :
+  ∀ {A : Set} (xs ys zs : List A) →
+  (xs ++ ys) ++ zs ≡ xs ++ (ys ++ zs)
+++-assoc-local [] ys zs = refl
+++-assoc-local (x ∷ xs) ys zs =
+  cong (λ ws → x ∷ ws) (++-assoc-local xs ys zs)
+
++-one-right-local : ∀ n → n + 1 ≡ suc n
++-one-right-local zero = refl
++-one-right-local (suc n) = cong suc (+-one-right-local n)
+
+length-reverse-local :
+  ∀ {A : Set} (xs : List A) →
+  length (reverse-local xs) ≡ length xs
+length-reverse-local [] = refl
+length-reverse-local (x ∷ xs) =
+  trans
+    (length-++-local (reverse-local xs) (x ∷ []))
+    (trans
+      (cong (λ k → k + 1) (length-reverse-local xs))
+      (+-one-right-local (length xs)))
+
 suc-injective-local : ∀ {n m} → suc n ≡ suc m → n ≡ m
 suc-injective-local refl = refl
 
@@ -1860,6 +1943,56 @@ wrap-left-target (both ∷ bs) A = `∀ (wrap-left-target bs A)
 wrap-left-target (leftOnly ∷ bs) A = `∀ (wrap-left-target bs A)
 wrap-left-target (rightOnly ∷ bs) A = wrap-left-target bs A
 
+wrap-left-target-++ :
+  ∀ bs cs A →
+  wrap-left-target (bs ++ cs) A ≡
+  wrap-left-target bs (wrap-left-target cs A)
+wrap-left-target-++ [] cs A = refl
+wrap-left-target-++ (both ∷ bs) cs A =
+  cong `∀ (wrap-left-target-++ bs cs A)
+wrap-left-target-++ (leftOnly ∷ bs) cs A =
+  cong `∀ (wrap-left-target-++ bs cs A)
+wrap-left-target-++ (rightOnly ∷ bs) cs A =
+  wrap-left-target-++ bs cs A
+
+wrap-left-target-∀ :
+  ∀ bs A →
+  wrap-left-target bs (`∀ A) ≡ `∀ (wrap-left-target bs A)
+wrap-left-target-∀ [] A = refl
+wrap-left-target-∀ (both ∷ bs) A =
+  cong `∀ (wrap-left-target-∀ bs A)
+wrap-left-target-∀ (leftOnly ∷ bs) A =
+  cong `∀ (wrap-left-target-∀ bs A)
+wrap-left-target-∀ (rightOnly ∷ bs) A =
+  wrap-left-target-∀ bs A
+
+wrap-left-target-reverse :
+  ∀ bs A →
+  wrap-left-target (reverse-local bs) A ≡ wrap-left-target bs A
+wrap-left-target-reverse [] A = refl
+wrap-left-target-reverse (both ∷ bs) A =
+  trans
+    (wrap-left-target-++ (reverse-local bs) (both ∷ []) A)
+    (trans
+      (wrap-left-target-reverse bs (`∀ A))
+      (wrap-left-target-∀ bs A))
+wrap-left-target-reverse (leftOnly ∷ bs) A =
+  trans
+    (wrap-left-target-++ (reverse-local bs) (leftOnly ∷ []) A)
+    (trans
+      (wrap-left-target-reverse bs (`∀ A))
+      (wrap-left-target-∀ bs A))
+wrap-left-target-reverse (rightOnly ∷ bs) A =
+  trans
+    (wrap-left-target-++ (reverse-local bs) (rightOnly ∷ []) A)
+    (wrap-left-target-reverse bs A)
+
+wrap-right-target : OutputSpine → Ty → Ty
+wrap-right-target [] A = A
+wrap-right-target (both ∷ bs) A = `∀ (wrap-right-target bs A)
+wrap-right-target (leftOnly ∷ bs) A = wrap-right-target bs A
+wrap-right-target (rightOnly ∷ bs) A = `∀ (wrap-right-target bs A)
+
 left-spine-ctx : OutputSpine → ImpCtx → ImpCtx
 left-spine-ctx [] Φ = Φ
 left-spine-ctx (both ∷ bs) Φ =
@@ -1868,6 +2001,121 @@ left-spine-ctx (leftOnly ∷ bs) Φ =
   left-spine-ctx bs ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
 left-spine-ctx (rightOnly ∷ bs) Φ =
   left-spine-ctx bs ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+
+left-spine-ctx-++ :
+  ∀ bs cs Φ →
+  left-spine-ctx (bs ++ cs) Φ ≡
+  left-spine-ctx cs (left-spine-ctx bs Φ)
+left-spine-ctx-++ [] cs Φ = refl
+left-spine-ctx-++ (both ∷ bs) cs Φ =
+  left-spine-ctx-++ bs cs ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+left-spine-ctx-++ (leftOnly ∷ bs) cs Φ =
+  left-spine-ctx-++ bs cs ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+left-spine-ctx-++ (rightOnly ∷ bs) cs Φ =
+  left-spine-ctx-++ bs cs ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+
+right-spine-ctx : OutputSpine → ImpCtx → ImpCtx
+right-spine-ctx [] Φ = Φ
+right-spine-ctx (both ∷ bs) Φ =
+  right-spine-ctx bs ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+right-spine-ctx (leftOnly ∷ bs) Φ =
+  right-spine-ctx bs ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+right-spine-ctx (rightOnly ∷ bs) Φ =
+  right-spine-ctx bs ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+
+left-spine-source-var : OutputSpine → TyVar → TyVar
+left-spine-source-var [] X = X
+left-spine-source-var (_ ∷ bs) X = left-spine-source-var bs (suc X)
+
+left-spine-target-var : OutputSpine → TyVar → TyVar
+left-spine-target-var [] X = X
+left-spine-target-var (both ∷ bs) X =
+  left-spine-target-var bs (suc X)
+left-spine-target-var (leftOnly ∷ bs) X =
+  left-spine-target-var bs (suc X)
+left-spine-target-var (rightOnly ∷ bs) X =
+  left-spine-target-var bs X
+
+left-spine-assm : OutputSpine → ImpAssm → ImpAssm
+left-spine-assm [] a = a
+left-spine-assm (both ∷ bs) a = left-spine-assm bs (⇑ᵢₐ a)
+left-spine-assm (leftOnly ∷ bs) a = left-spine-assm bs (⇑ᵢₐ a)
+left-spine-assm (rightOnly ∷ bs) a = left-spine-assm bs (⇑ᴸᵢₐ a)
+
+left-spine-assm-star :
+  ∀ bs X →
+  left-spine-assm bs (X ˣ⊑★) ≡ left-spine-source-var bs X ˣ⊑★
+left-spine-assm-star [] X = refl
+left-spine-assm-star (both ∷ bs) X =
+  left-spine-assm-star bs (suc X)
+left-spine-assm-star (leftOnly ∷ bs) X =
+  left-spine-assm-star bs (suc X)
+left-spine-assm-star (rightOnly ∷ bs) X =
+  left-spine-assm-star bs (suc X)
+
+left-spine-assm-var :
+  ∀ bs X Y →
+  left-spine-assm bs (X ˣ⊑ˣ Y) ≡
+    left-spine-source-var bs X ˣ⊑ˣ left-spine-target-var bs Y
+left-spine-assm-var [] X Y = refl
+left-spine-assm-var (both ∷ bs) X Y =
+  left-spine-assm-var bs (suc X) (suc Y)
+left-spine-assm-var (leftOnly ∷ bs) X Y =
+  left-spine-assm-var bs (suc X) (suc Y)
+left-spine-assm-var (rightOnly ∷ bs) X Y =
+  left-spine-assm-var bs (suc X) Y
+
+left-spine-binder-assm : OutBinder → ImpAssm
+left-spine-binder-assm both = zero ˣ⊑ˣ zero
+left-spine-binder-assm leftOnly = zero ˣ⊑ˣ zero
+left-spine-binder-assm rightOnly = zero ˣ⊑★
+
+⇑ᵢₐ-∈ :
+  ∀ {Φ a} →
+  a ∈ Φ →
+  ⇑ᵢₐ a ∈ ⇑ᵢ Φ
+⇑ᵢₐ-∈ {a = X ˣ⊑★} a∈ = ⇑ᵢ-★∈ a∈
+⇑ᵢₐ-∈ {a = X ˣ⊑ˣ Y} a∈ = ⇑ᵢ-ˣ∈ a∈
+
+⇑ᴸᵢₐ-∈ :
+  ∀ {Φ a} →
+  a ∈ Φ →
+  ⇑ᴸᵢₐ a ∈ ⇑ᴸᵢ Φ
+⇑ᴸᵢₐ-∈ {a = X ˣ⊑★} a∈ = ⇑ᴸᵢ-★∈ a∈
+⇑ᴸᵢₐ-∈ {a = X ˣ⊑ˣ Y} a∈ = ⇑ᴸᵢ-ˣ∈ a∈
+
+left-spine-ctx-member :
+  ∀ bs {Φ a} →
+  a ∈ Φ →
+  left-spine-assm bs a ∈ left-spine-ctx bs Φ
+left-spine-ctx-member [] a∈ = a∈
+left-spine-ctx-member (both ∷ bs) a∈ =
+  left-spine-ctx-member bs (there (⇑ᵢₐ-∈ a∈))
+left-spine-ctx-member (leftOnly ∷ bs) a∈ =
+  left-spine-ctx-member bs (there (⇑ᵢₐ-∈ a∈))
+left-spine-ctx-member (rightOnly ∷ bs) a∈ =
+  left-spine-ctx-member bs (there (⇑ᴸᵢₐ-∈ a∈))
+
+left-spine-ctx-emitted-member :
+  ∀ b bs {Φ} →
+  left-spine-assm bs (left-spine-binder-assm b) ∈
+    left-spine-ctx (b ∷ bs) Φ
+left-spine-ctx-emitted-member both bs =
+  left-spine-ctx-member bs (here refl)
+left-spine-ctx-emitted-member leftOnly bs =
+  left-spine-ctx-member bs (here refl)
+left-spine-ctx-emitted-member rightOnly bs =
+  left-spine-ctx-member bs (here refl)
+
+left-spine-ctx-emitted-between :
+  ∀ outer b inner {Φ} →
+  left-spine-assm inner (left-spine-binder-assm b) ∈
+    left-spine-ctx (outer ++ (b ∷ inner)) Φ
+left-spine-ctx-emitted-between outer b inner {Φ = Φ} =
+  subst
+    (λ Ψ → left-spine-assm inner (left-spine-binder-assm b) ∈ Ψ)
+    (sym (left-spine-ctx-++ outer (b ∷ inner) Φ))
+    (left-spine-ctx-emitted-member b inner)
 
 foralls-used?-sound :
   ∀ {A} →
@@ -1975,6 +2223,98 @@ embed-left-wf {Δ = Δ} {n = n} {m = m} {A = A} hA =
     {Δ = n + Δ} {Δ′ = n + m + Δ}
     {A = A} {ρ = embed-left-var n m}
     hA (embed-left-rename-wf {Δ = Δ} {n = n} {m = m})
+
+left-target-var : ℕ → ℕ → TyVar → TyVar
+left-target-var n m X with X <? n | X <? (n + m)
+... | yes _ | _ = X
+... | no _ | yes _ = X
+... | no _ | no _ = n + (X ∸ (n + m))
+
+not-<-self+ : ∀ n k → ¬ (n + k < n)
+not-<-self+ zero k ()
+not-<-self+ (suc n) k (s<s n+k<n) = not-<-self+ n k n+k<n
+
+not-<-double-prefix : ∀ n m k → ¬ (n + m + k < n)
+not-<-double-prefix zero m k ()
+not-<-double-prefix (suc n) m k (s<s n+m+k<n) =
+  not-<-double-prefix n m k n+m+k<n
+
++-∸-cancel-left-local : ∀ n k → (n + k) ∸ n ≡ k
++-∸-cancel-left-local zero k = refl
++-∸-cancel-left-local (suc n) k = +-∸-cancel-left-local n k
+
++-∸-id-if-not< : ∀ n X → ¬ (X < n) → n + (X ∸ n) ≡ X
++-∸-id-if-not< zero X X≮0 = refl
++-∸-id-if-not< (suc n) zero 0≮sucn = ⊥-elim (0≮sucn z<s)
++-∸-id-if-not< (suc n) (suc X) sucX≮sucn =
+  cong suc (+-∸-id-if-not< n X (λ X<n → sucX≮sucn (s<s X<n)))
+
+left-target-var-embed-left :
+  ∀ n m X →
+  left-target-var n m (embed-left-var n m X) ≡ X
+left-target-var-embed-left n m X with X <? n
+left-target-var-embed-left n m X | yes X<n
+    with X <? n | X <? (n + m)
+left-target-var-embed-left n m X | yes X<n
+    | yes _ | _ = refl
+left-target-var-embed-left n m X | yes X<n
+    | no X≮n | _ = ⊥-elim (X≮n X<n)
+left-target-var-embed-left n m X | no X≮n
+    with (n + m + (X ∸ n)) <? n
+       | (n + m + (X ∸ n)) <? (n + m)
+left-target-var-embed-left n m X | no X≮n
+    | yes n+m+x∸n<n | _ =
+  ⊥-elim (not-<-double-prefix n m (X ∸ n) n+m+x∸n<n)
+left-target-var-embed-left n m X | no X≮n
+    | no _ | yes n+m+x∸n<n+m =
+  ⊥-elim (not-<-self+ (n + m) (X ∸ n) n+m+x∸n<n+m)
+left-target-var-embed-left n m X | no X≮n
+    | no _ | no _ =
+  trans
+    (cong (λ k → n + k) (+-∸-cancel-left-local (n + m) (X ∸ n)))
+    (+-∸-id-if-not< n X X≮n)
+
+right-target-var : ℕ → ℕ → TyVar → TyVar
+right-target-var n m X with X <? n | X <? (n + m)
+... | yes _ | _ = X
+... | no _ | yes _ = X ∸ n
+... | no _ | no _ = m + (X ∸ (n + m))
+
+right-bound-embed-exact :
+  ∀ n {Y m} →
+  Y < m →
+  n + Y < n + m
+right-bound-embed-exact zero Y<m = Y<m
+right-bound-embed-exact (suc n) Y<m =
+  s<s (right-bound-embed-exact n Y<m)
+
+right-target-var-embed-right :
+  ∀ n m Y →
+  right-target-var n m (embed-right-var n m Y) ≡ Y
+right-target-var-embed-right n m Y with Y <? m
+right-target-var-embed-right n m Y | yes Y<m
+    with (n + Y) <? n | (n + Y) <? (n + m)
+right-target-var-embed-right n m Y | yes Y<m
+    | yes n+y<n | _ = ⊥-elim (not-<-self+ n Y n+y<n)
+right-target-var-embed-right n m Y | yes Y<m
+    | no _ | yes _ = +-∸-cancel-left-local n Y
+right-target-var-embed-right n m Y | yes Y<m
+    | no _ | no n+y≮n+m =
+  ⊥-elim (n+y≮n+m (right-bound-embed-exact n Y<m))
+right-target-var-embed-right n m Y | no Y≮m
+    with (n + m + (Y ∸ m)) <? n
+       | (n + m + (Y ∸ m)) <? (n + m)
+right-target-var-embed-right n m Y | no Y≮m
+    | yes n+m+y∸m<n | _ =
+  ⊥-elim (not-<-double-prefix n m (Y ∸ m) n+m+y∸m<n)
+right-target-var-embed-right n m Y | no Y≮m
+    | no _ | yes n+m+y∸m<n+m =
+  ⊥-elim (not-<-self+ (n + m) (Y ∸ m) n+m+y∸m<n+m)
+right-target-var-embed-right n m Y | no Y≮m
+    | no _ | no _ =
+  trans
+    (cong (λ k → m + k) (+-∸-cancel-left-local (n + m) (Y ∸ m)))
+    (+-∸-id-if-not< m Y Y≮m)
 
 <-+-right :
   ∀ {X m} Δ →
@@ -2129,6 +2469,35 @@ CAssmIncl Γ Γ′ = ∀ {a} → a ∈ Γ → a ∈ Γ′
 ⇑ᴸᵢ-incl {a = suc X ˣ⊑ˣ Y} incl a∈ =
   ⇑ᴸᵢ-ˣ∈ (incl (un⇑ᴸᵢ-ˣ∈ a∈))
 
+left-spine-ctx-incl :
+  ∀ bs {Φ Ψ} →
+  CtxIncl Φ Ψ →
+  CtxIncl (left-spine-ctx bs Φ) (left-spine-ctx bs Ψ)
+left-spine-ctx-incl [] incl = incl
+left-spine-ctx-incl (both ∷ bs) {Φ = Φ} {Ψ = Ψ} incl =
+  left-spine-ctx-incl bs incl′
+  where
+    incl′ :
+      CtxIncl ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+              ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Ψ)
+    incl′ (here refl) = here refl
+    incl′ (there a∈) = there (⇑ᵢ-incl incl a∈)
+left-spine-ctx-incl (leftOnly ∷ bs) {Φ = Φ} {Ψ = Ψ} incl =
+  left-spine-ctx-incl bs incl′
+  where
+    incl′ :
+      CtxIncl ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+              ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Ψ)
+    incl′ (here refl) = here refl
+    incl′ (there a∈) = there (⇑ᵢ-incl incl a∈)
+left-spine-ctx-incl (rightOnly ∷ bs) {Φ = Φ} {Ψ = Ψ} incl =
+  left-spine-ctx-incl bs incl′
+  where
+    incl′ : CtxIncl ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+                    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Ψ)
+    incl′ (here refl) = here refl
+    incl′ (there a∈) = there (⇑ᴸᵢ-incl incl a∈)
+
 ⊑-mono :
   ∀ {Φ Ψ A B} →
   CtxIncl Φ Ψ →
@@ -2179,6 +2548,14 @@ assm-left-member {Γ = (_ ~ᶜ★) ∷ Γ} (there a∈) =
   there (assm-left-member a∈)
 assm-left-member {Γ = (★~ᶜ _) ∷ Γ} (there a∈) =
   there (assm-left-member a∈)
+
+left-spine-ctx-assm-left-member :
+  ∀ bs {Γ a} →
+  a ∈ Γ →
+  left-spine-assm bs (assm-left-assm a) ∈
+    left-spine-ctx bs (assm-left Γ)
+left-spine-ctx-assm-left-member bs a∈ =
+  left-spine-ctx-member bs (assm-left-member a∈)
 
 assm-right-member :
   ∀ {Γ a} →
@@ -2346,65 +2723,175 @@ merge-assms-right {Γ₁ = a ∷ Γ₁} {Γ₂ = Γ₂} eq a∈
   insert-assm-preserves {a = a} {Γ = Γ″} eq
     (merge-assms-right {Γ₁ = Γ₁} {Γ₂ = Γ₂} {Γ = Γ″} merge≡ a∈)
 
+normalize-assms-clash-check-includes :
+  ∀ {n m Γ₀ Γ a} →
+  normalize-assms-clash-check n m Γ₀ ≡ just Γ →
+  a ∈ Γ₀ →
+  normalize-assm n m Γ₀ a ∈ Γ
+normalize-assms-clash-check-includes {Γ₀ = []} eq ()
+normalize-assms-clash-check-includes {n = n} {m = m}
+    {Γ₀ = a ∷ Γ₀} eq (here refl)
+    with normalize-assms-clash-check n m Γ₀
+normalize-assms-clash-check-includes {n = n} {m = m}
+    {Γ₀ = a ∷ Γ₀} () (here refl) | nothing
+normalize-assms-clash-check-includes {n = n} {m = m}
+    {Γ₀ = a ∷ Γ₀} eq (here refl) | just Γ′ =
+  insert-assm-includes-new
+    {a = normalize-assm n m (a ∷ Γ₀) a} {Γ = Γ′} eq
+normalize-assms-clash-check-includes {n = n} {m = m}
+    {Γ₀ = h ∷ Γ₀} {a = b} eq (there b∈)
+    with normalize-assms-clash-check n m Γ₀ in chk≡
+normalize-assms-clash-check-includes {n = n} {m = m}
+    {Γ₀ = h ∷ Γ₀} () (there b∈) | nothing
+normalize-assms-clash-check-includes {n = n} {m = m}
+    {Γ₀ = h ∷ Γ₀} {a = b} eq (there b∈) | just Γ′ =
+  insert-assm-preserves
+    {a = normalize-assm n m (h ∷ Γ₀) h} {Γ = Γ′} eq
+    (subst
+      (λ a′ → a′ ∈ Γ′)
+      (sym (normalize-assm-ctx-irrelevant n m (h ∷ Γ₀) Γ₀ b))
+      (normalize-assms-clash-check-includes
+        {n = n} {m = m} {Γ₀ = Γ₀} chk≡ b∈))
+
+normalize-assms-residual-includes :
+  ∀ {n m Γ₀ Γ a} →
+  normalize-assms-residual n m Γ₀ ≡ just Γ →
+  discharged-assm? n m a ≡ false →
+  a ∈ Γ₀ →
+  normalize-assm n m Γ₀ a ∈ Γ
+normalize-assms-residual-includes {Γ₀ = []} eq notDis ()
+normalize-assms-residual-includes {n = n} {m = m}
+    {Γ₀ = a ∷ Γ₀} eq notDis (here refl)
+    with normalize-assms-residual n m Γ₀ | discharged-assm? n m a
+normalize-assms-residual-includes {Γ₀ = a ∷ Γ₀} ()
+    notDis (here refl) | nothing | _
+normalize-assms-residual-includes {Γ₀ = a ∷ Γ₀} eq
+    () (here refl) | just Γ′ | true
+normalize-assms-residual-includes {n = n} {m = m}
+    {Γ₀ = a ∷ Γ₀} eq notDis (here refl) | just Γ′ | false =
+  insert-assm-includes-new
+    {a = normalize-assm n m (a ∷ Γ₀) a} {Γ = Γ′} eq
+normalize-assms-residual-includes {n = n} {m = m}
+    {Γ₀ = h ∷ Γ₀} {a = b} eq notDis (there b∈)
+    with normalize-assms-residual n m Γ₀ in norm≡
+       | discharged-assm? n m h
+normalize-assms-residual-includes {Γ₀ = h ∷ Γ₀} ()
+    notDis (there b∈) | nothing | _
+normalize-assms-residual-includes {n = n} {m = m}
+    {Γ₀ = h ∷ Γ₀} {Γ = Γ} {a = b} eq notDis (there b∈)
+    | just Γ′ | true =
+    helper eq
+  where
+    helper :
+      just Γ′ ≡ just Γ →
+      normalize-assm n m (h ∷ Γ₀) b ∈ Γ
+    helper refl =
+      subst
+        (λ a′ → a′ ∈ Γ′)
+        (sym (normalize-assm-ctx-irrelevant n m (h ∷ Γ₀) Γ₀ b))
+        (normalize-assms-residual-includes
+          {n = n} {m = m} {Γ₀ = Γ₀} norm≡ notDis b∈)
+normalize-assms-residual-includes {n = n} {m = m}
+    {Γ₀ = h ∷ Γ₀} {a = b} eq notDis (there b∈) | just Γ′ | false
+    with normalize-assm n m (h ∷ Γ₀) h
+... | a′ =
+  insert-assm-preserves {a = a′} {Γ = Γ′} eq
+    (subst
+      (λ b′ → b′ ∈ Γ′)
+      (sym (normalize-assm-ctx-irrelevant n m (h ∷ Γ₀) Γ₀ b))
+      (normalize-assms-residual-includes
+        {n = n} {m = m} {Γ₀ = Γ₀} norm≡ notDis b∈))
+
+normalize-assms-includes-residual :
+  ∀ {n m Γ₀ Γ a} →
+  normalize-assms n m Γ₀ ≡ just Γ →
+  discharged-assm? n m a ≡ false →
+  a ∈ Γ₀ →
+  normalize-assm n m Γ₀ a ∈ Γ
+normalize-assms-includes-residual {n = n} {m = m} {Γ₀ = Γ₀}
+    norm≡ notDis a∈
+    with normalize-assms-clash-check n m Γ₀
+normalize-assms-includes-residual {Γ₀ = Γ₀} () notDis a∈
+    | nothing
+normalize-assms-includes-residual {n = n} {m = m} {Γ₀ = Γ₀}
+    norm≡ notDis a∈ | just _ =
+  normalize-assms-residual-includes norm≡ notDis a∈
+
 normalize-assms-for :
   ℕ → ℕ → List CAssm → List CAssm → List CAssm
 normalize-assms-for n m Γ₀ [] = []
 normalize-assms-for n m Γ₀ (a ∷ Γ) =
   normalize-assm n m Γ₀ a ∷ normalize-assms-for n m Γ₀ Γ
 
+normalize-left-assms-for :
+  ℕ → ℕ → List CAssm → List CAssm → ImpCtx
+normalize-left-assms-for n m Γ₀ [] = []
+normalize-left-assms-for n m Γ₀ (a ∷ Γ) =
+  rename-assm² (normalize-var n m Γ₀) (left-target-var n m)
+    (assm-left-assm a)
+  ∷ normalize-left-assms-for n m Γ₀ Γ
+
+normalize-right-assms-for :
+  ℕ → ℕ → List CAssm → List CAssm → ImpCtx
+normalize-right-assms-for n m Γ₀ [] = []
+normalize-right-assms-for n m Γ₀ (a ∷ Γ) =
+  rename-assm² (normalize-var n m Γ₀) (right-target-var n m)
+    (assm-right-assm a)
+  ∷ normalize-right-assms-for n m Γ₀ Γ
+
 spine-left : ℕ → ℕ → List CAssm → List CAssm → ImpCtx
-spine-left n m Γ₀ Γ = assm-left (normalize-assms-for n m Γ₀ Γ₀)
+spine-left n m Γ₀ Γ = normalize-left-assms-for n m Γ₀ Γ₀
 
 spine-right : ℕ → ℕ → List CAssm → List CAssm → ImpCtx
-spine-right n m Γ₀ Γ = assm-right (normalize-assms-for n m Γ₀ Γ₀)
-
-normalize-left-assm :
-  ∀ n m Γ₀ a →
-  rename-assm² (normalize-var n m Γ₀) (normalize-var n m Γ₀)
-    (assm-left-assm a)
-    ≡ assm-left-assm (normalize-assm n m Γ₀ a)
-normalize-left-assm n m Γ₀ (X ~ᶜ Y) = refl
-normalize-left-assm n m Γ₀ (X ~ᶜ★) = refl
-normalize-left-assm n m Γ₀ (★~ᶜ Y) = refl
-
-normalize-right-assm :
-  ∀ n m Γ₀ a →
-  rename-assm² (normalize-var n m Γ₀) (normalize-var n m Γ₀)
-    (assm-right-assm a)
-    ≡ assm-right-assm (normalize-assm n m Γ₀ a)
-normalize-right-assm n m Γ₀ (X ~ᶜ Y) = refl
-normalize-right-assm n m Γ₀ (X ~ᶜ★) = refl
-normalize-right-assm n m Γ₀ (★~ᶜ Y) = refl
+spine-right n m Γ₀ Γ = normalize-right-assms-for n m Γ₀ Γ₀
 
 normalize-left-incl :
   ∀ {n m Γ₀ Γ a} →
   a ∈ assm-left Γ →
-  rename-assm² (normalize-var n m Γ₀) (normalize-var n m Γ₀) a ∈
-    assm-left (normalize-assms-for n m Γ₀ Γ)
+  rename-assm² (normalize-var n m Γ₀) (left-target-var n m) a ∈
+    normalize-left-assms-for n m Γ₀ Γ
 normalize-left-incl {Γ = []} ()
 normalize-left-incl {n = n} {m = m} {Γ₀ = Γ₀}
-    {Γ = a ∷ Γ} (here refl) =
-  subst
-    (λ b → b ∈ assm-left (normalize-assms-for n m Γ₀ (a ∷ Γ)))
-    (sym (normalize-left-assm n m Γ₀ a))
-    (here refl)
+    {Γ = (_ ~ᶜ _) ∷ Γ} (here refl) = here refl
+normalize-left-incl {n = n} {m = m} {Γ₀ = Γ₀}
+    {Γ = (_ ~ᶜ★) ∷ Γ} (here refl) = here refl
+normalize-left-incl {n = n} {m = m} {Γ₀ = Γ₀}
+    {Γ = (★~ᶜ _) ∷ Γ} (here refl) = here refl
 normalize-left-incl {n = n} {m = m} {Γ₀ = Γ₀}
     {Γ = a ∷ Γ} (there a∈) =
   there (normalize-left-incl {n = n} {m = m} {Γ₀ = Γ₀}
            {Γ = Γ} a∈)
 
+normalize-left-assms-for-member :
+  ∀ {n m Γ₀ Γ a} →
+  a ∈ normalize-left-assms-for n m Γ₀ Γ →
+  Σ[ b ∈ CAssm ]
+    (b ∈ Γ ×
+     a ≡ rename-assm² (normalize-var n m Γ₀) (left-target-var n m)
+           (assm-left-assm b))
+normalize-left-assms-for-member {Γ = []} ()
+normalize-left-assms-for-member {Γ = b ∷ Γ} (here refl) =
+  b , here refl , refl
+normalize-left-assms-for-member {n = n} {m = m} {Γ₀ = Γ₀}
+    {Γ = b ∷ Γ} (there a∈)
+    with normalize-left-assms-for-member {n = n} {m = m}
+           {Γ₀ = Γ₀} {Γ = Γ} a∈
+normalize-left-assms-for-member {Γ = b ∷ Γ} (there a∈)
+    | c , c∈ , eq =
+  c , there c∈ , eq
+
 normalize-right-incl :
   ∀ {n m Γ₀ Γ a} →
   a ∈ assm-right Γ →
-  rename-assm² (normalize-var n m Γ₀) (normalize-var n m Γ₀) a ∈
-    assm-right (normalize-assms-for n m Γ₀ Γ)
+  rename-assm² (normalize-var n m Γ₀) (right-target-var n m) a ∈
+    normalize-right-assms-for n m Γ₀ Γ
 normalize-right-incl {Γ = []} ()
 normalize-right-incl {n = n} {m = m} {Γ₀ = Γ₀}
-    {Γ = a ∷ Γ} (here refl) =
-  subst
-    (λ b → b ∈ assm-right (normalize-assms-for n m Γ₀ (a ∷ Γ)))
-    (sym (normalize-right-assm n m Γ₀ a))
-    (here refl)
+    {Γ = (_ ~ᶜ _) ∷ Γ} (here refl) = here refl
+normalize-right-incl {n = n} {m = m} {Γ₀ = Γ₀}
+    {Γ = (_ ~ᶜ★) ∷ Γ} (here refl) = here refl
+normalize-right-incl {n = n} {m = m} {Γ₀ = Γ₀}
+    {Γ = (★~ᶜ _) ∷ Γ} (here refl) = here refl
 normalize-right-incl {n = n} {m = m} {Γ₀ = Γ₀}
     {Γ = a ∷ Γ} (there a∈) =
   there (normalize-right-incl {n = n} {m = m} {Γ₀ = Γ₀}
@@ -2417,10 +2904,10 @@ normalize-lower-spine :
   normalize-assms n m Γ₀ ≡ just Γ →
   assm-left Γ₀ ⊢ C ⊑ A × assm-right Γ₀ ⊢ C ⊑ B →
   spine-left n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C
-                         ⊑ renameᵗ (normalize-var n m Γ₀) A
+                         ⊑ renameᵗ (left-target-var n m) A
     ×
   spine-right n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C
-                          ⊑ renameᵗ (normalize-var n m Γ₀) B
+                          ⊑ renameᵗ (right-target-var n m) B
 normalize-lower-spine {n = n} {m = m} {Γ₀ = Γ₀}
     noEsc≡ order≡ norm≡ (C⊑A , C⊑B) =
   ( ⊑-renameᵗ²
@@ -2436,11 +2923,89 @@ normalized-type n m Γ₀ A = renameᵗ (normalize-var n m Γ₀) A
 
 left-normalized-target : ℕ → ℕ → List CAssm → Ty → Ty
 left-normalized-target n m Γ₀ A′ =
-  normalized-type n m Γ₀ (renameᵗ (embed-left-var n m) A′)
+  renameᵗ (left-target-var n m) (renameᵗ (embed-left-var n m) A′)
+
+left-normalized-target-cancel :
+  ∀ n m Γ₀ A →
+  left-normalized-target n m Γ₀ A ≡ A
+left-normalized-target-cancel n m Γ₀ A =
+  trans
+    (renameᵗ-compose (embed-left-var n m) (left-target-var n m) A)
+    (trans
+      (rename-cong (left-target-var-embed-left n m) A)
+      (renameᵗ-id A))
+
+right-normalized-target : ℕ → ℕ → List CAssm → Ty → Ty
+right-normalized-target n m Γ₀ B′ =
+  renameᵗ (right-target-var n m) (renameᵗ (embed-right-var n m) B′)
+
+right-normalized-target-cancel :
+  ∀ n m Γ₀ B →
+  right-normalized-target n m Γ₀ B ≡ B
+right-normalized-target-cancel n m Γ₀ B =
+  trans
+    (renameᵗ-compose (embed-right-var n m) (right-target-var n m) B)
+    (trans
+      (rename-cong (right-target-var-embed-right n m) B)
+      (renameᵗ-id B))
 
 rightOnlys-then : ℕ → OutputSpine → OutputSpine
 rightOnlys-then zero bs = bs
 rightOnlys-then (suc n) bs = rightOnly ∷ rightOnlys-then n bs
+
+rightOnlys-then-snoc :
+  ∀ k →
+  rightOnlys-then k [] ++ (rightOnly ∷ []) ≡
+  rightOnlys-then (suc k) []
+rightOnlys-then-snoc zero = refl
+rightOnlys-then-snoc (suc k) =
+  cong (λ bs → rightOnly ∷ bs) (rightOnlys-then-snoc k)
+
+reverse-local-rightOnlys-then-cons :
+  ∀ k b bs →
+  reverse-local (rightOnlys-then k (b ∷ bs)) ≡
+  reverse-local bs ++ (b ∷ rightOnlys-then k [])
+reverse-local-rightOnlys-then-cons zero b bs = refl
+reverse-local-rightOnlys-then-cons (suc k) b bs =
+  trans
+    (cong (λ xs → xs ++ (rightOnly ∷ []))
+      (reverse-local-rightOnlys-then-cons k b bs))
+    (trans
+      (++-assoc-local (reverse-local bs)
+        (b ∷ rightOnlys-then k []) (rightOnly ∷ []))
+      (cong (λ xs → reverse-local bs ++ (b ∷ xs))
+        (rightOnlys-then-snoc k)))
+
+left-spine-target-var-rightOnlys-then :
+  ∀ k bs X →
+  left-spine-target-var (rightOnlys-then k bs) X ≡
+    left-spine-target-var bs X
+left-spine-target-var-rightOnlys-then zero bs X = refl
+left-spine-target-var-rightOnlys-then (suc k) bs X =
+  left-spine-target-var-rightOnlys-then k bs X
+
+rightOnlys-then-head-emitted-member :
+  ∀ k bs {Φ} →
+  left-spine-assm (rightOnlys-then k bs) (zero ˣ⊑★) ∈
+    left-spine-ctx (rightOnlys-then (suc k) bs) Φ
+rightOnlys-then-head-emitted-member k bs =
+  left-spine-ctx-emitted-member rightOnly (rightOnlys-then k bs)
+
+rightOnlys-then-tail-emitted-member :
+  ∀ k b bs {Φ} →
+  left-spine-assm bs (left-spine-binder-assm b) ∈
+    left-spine-ctx (rightOnlys-then k (b ∷ bs)) Φ
+rightOnlys-then-tail-emitted-member zero b bs =
+  left-spine-ctx-emitted-member b bs
+rightOnlys-then-tail-emitted-member (suc k) b bs =
+  rightOnlys-then-tail-emitted-member k b bs
+
+rightOnlys-then-length :
+  ∀ k bs →
+  length (rightOnlys-then k bs) ≡ rightOnlys-count k (length bs)
+rightOnlys-then-length zero bs = refl
+rightOnlys-then-length (suc k) bs =
+  cong suc (rightOnlys-then-length k bs)
 
 left-binder-out : ℕ → ℕ → List CAssm → TyVar → OutBinder
 left-binder-out n m Γ X with find-bound-right-for-left n m X Γ
@@ -2460,7 +3025,76 @@ left-output-spine-from n m Γ (suc fuel) X emitted
 
 left-output-spine : ℕ → ℕ → List CAssm → List CAssm → OutputSpine
 left-output-spine n m Γ₀ Γ =
-  left-output-spine-from n m Γ₀ n zero zero
+  reverse-local (left-output-spine-from n m Γ₀ n zero zero)
+
+left-output-spine-from-left-binder-member :
+  ∀ n m Γ fuel X emitted {Φ} →
+  left-spine-assm
+    (left-output-spine-from n m Γ fuel (suc X)
+      (unmatched-rights-before-left n m Γ X))
+    (left-spine-binder-assm (left-binder-out n m Γ X)) ∈
+  left-spine-ctx
+    (left-output-spine-from n m Γ (suc fuel) X emitted) Φ
+left-output-spine-from-left-binder-member n m Γ fuel X emitted
+    with unmatched-rights-before-left n m Γ X
+... | before =
+  rightOnlys-then-tail-emitted-member
+    (before ∸ emitted)
+    (left-binder-out n m Γ X)
+    (left-output-spine-from n m Γ fuel (suc X) before)
+
+left-output-spine-from-left-binder-member-reverse :
+  ∀ n m Γ fuel X emitted {Φ} →
+  left-spine-assm (rightOnlys-then
+    (unmatched-rights-before-left n m Γ X ∸ emitted) [])
+    (left-spine-binder-assm (left-binder-out n m Γ X)) ∈
+  left-spine-ctx
+    (reverse-local (left-output-spine-from n m Γ (suc fuel) X emitted)) Φ
+left-output-spine-from-left-binder-member-reverse n m Γ fuel X emitted
+    with unmatched-rights-before-left n m Γ X
+... | before =
+  subst
+    (λ bs →
+      left-spine-assm (rightOnlys-then (before ∸ emitted) [])
+        (left-spine-binder-assm (left-binder-out n m Γ X)) ∈
+      left-spine-ctx bs _)
+    (sym
+      (reverse-local-rightOnlys-then-cons
+        (before ∸ emitted)
+        (left-binder-out n m Γ X)
+        (left-output-spine-from n m Γ fuel (suc X) before)))
+    (left-spine-ctx-emitted-between
+      (reverse-local (left-output-spine-from n m Γ fuel (suc X) before))
+      (left-binder-out n m Γ X)
+      (rightOnlys-then (before ∸ emitted) []))
+
+left-output-spine-residual-member :
+  ∀ {n m Γ₀ Γ a} →
+  a ∈ Γ →
+  left-spine-assm (left-output-spine n m Γ₀ Γ) (assm-left-assm a) ∈
+    left-spine-ctx (left-output-spine n m Γ₀ Γ) (assm-left Γ)
+left-output-spine-residual-member {n = n} {m = m} {Γ₀ = Γ₀}
+    {Γ = Γ} a∈ =
+  left-spine-ctx-assm-left-member (left-output-spine n m Γ₀ Γ) a∈
+
+left-output-spine-from-length :
+  ∀ n m Γ fuel X emitted →
+  length (left-output-spine-from n m Γ fuel X emitted) ≡
+  left-output-spine-count-from n m Γ fuel X emitted
+left-output-spine-from-length n m Γ zero X emitted =
+  rightOnlys-then-length (unmatched-right-before n m Γ ∸ emitted) []
+left-output-spine-from-length n m Γ (suc fuel) X emitted
+    with unmatched-rights-before-left n m Γ X
+left-output-spine-from-length n m Γ (suc fuel) X emitted
+    | before =
+  trans
+    (rightOnlys-then-length
+      (before ∸ emitted)
+      (left-binder-out n m Γ X ∷
+       left-output-spine-from n m Γ fuel (suc X) before))
+    (cong (rightOnlys-count (before ∸ emitted))
+      (cong suc
+        (left-output-spine-from-length n m Γ fuel (suc X) before)))
 
 wrap-left-target-rightOnlys-then :
   ∀ k bs A →
@@ -2500,33 +3134,76 @@ wrap-left-target-left-output-spine :
   ∀ n m Γ₀ Γ A →
   wrap-left-target (left-output-spine n m Γ₀ Γ) A ≡ add∀ n A
 wrap-left-target-left-output-spine n m Γ₀ Γ A =
-  wrap-left-target-spine-from n m Γ₀ n zero zero A
+  trans
+    (wrap-left-target-reverse
+      (left-output-spine-from n m Γ₀ n zero zero) A)
+    (wrap-left-target-spine-from n m Γ₀ n zero zero A)
+
+left-output-spine-length :
+  ∀ {n m Γ₀ Γ} →
+  no-escaping-assms? n m Γ₀ ≡ true →
+  bound-var-var-order-ok-list? n m Γ₀ ≡ true →
+  normalize-assms n m Γ₀ ≡ just Γ →
+  length (left-output-spine n m Γ₀ Γ) ≡ mlb-∀-count n m Γ₀
+left-output-spine-length {n = n} {m = m} {Γ₀ = Γ₀} noEsc≡ order≡ norm≡ =
+  trans
+    (length-reverse-local (left-output-spine-from n m Γ₀ n zero zero))
+    (left-output-spine-from-length n m Γ₀ n zero zero)
 
 postulate
 
-  left-output-spine-length :
-    ∀ {n m Γ₀ Γ} →
+  left-spine-context-contains-left-raw :
+    ∀ {n m Γ₀ Γ a} →
     no-escaping-assms? n m Γ₀ ≡ true →
     bound-var-var-order-ok-list? n m Γ₀ ≡ true →
     normalize-assms n m Γ₀ ≡ just Γ →
-    length (left-output-spine n m Γ₀ Γ) ≡ mlb-∀-count n m Γ₀
+    a ∈ Γ₀ →
+    rename-assm² (normalize-var n m Γ₀) (left-target-var n m)
+      (assm-left-assm a) ∈
+    left-spine-ctx (left-output-spine n m Γ₀ Γ) (assm-left Γ)
 
-  left-spine-context-sound :
-    ∀ {n m Γ₀ Γ} →
-    no-escaping-assms? n m Γ₀ ≡ true →
-    bound-var-var-order-ok-list? n m Γ₀ ≡ true →
-    normalize-assms n m Γ₀ ≡ just Γ →
-    CtxIncl (spine-left n m Γ₀ Γ)
-            (left-spine-ctx (left-output-spine n m Γ₀ Γ) (assm-left Γ))
+left-spine-context-sound :
+  ∀ {n m Γ₀ Γ} →
+  no-escaping-assms? n m Γ₀ ≡ true →
+  bound-var-var-order-ok-list? n m Γ₀ ≡ true →
+  normalize-assms n m Γ₀ ≡ just Γ →
+  CtxIncl (spine-left n m Γ₀ Γ)
+          (left-spine-ctx (left-output-spine n m Γ₀ Γ) (assm-left Γ))
+left-spine-context-sound {n = n} {m = m} {Γ₀ = Γ₀} {Γ = Γ}
+    noEsc≡ order≡ norm≡ {a = a} a∈ =
+  subst
+    (λ b → b ∈ left-spine-ctx (left-output-spine n m Γ₀ Γ) (assm-left Γ))
+    (sym eq)
+    (left-spine-context-contains-left-raw
+      {n = n} {m = m} {Γ₀ = Γ₀} {Γ = Γ} noEsc≡ order≡ norm≡ raw∈)
+  where
+    raw :
+      Σ[ b ∈ CAssm ]
+        (b ∈ Γ₀ ×
+         a ≡ rename-assm² (normalize-var n m Γ₀) (left-target-var n m)
+               (assm-left-assm b))
+    raw = normalize-left-assms-for-member
+            {n = n} {m = m} {Γ₀ = Γ₀} {Γ = Γ₀} a∈
 
-  left-spine-target-sound :
-    ∀ {A n m A′ n∀A′ Γ₀ Γ} →
-    no-escaping-assms? n m Γ₀ ≡ true →
-    bound-var-var-order-ok-list? n m Γ₀ ≡ true →
-    normalize-assms n m Γ₀ ≡ just Γ →
-    split-∀ A ≡ (n , A′ , n∀A′) →
-    wrap-left-target (left-output-spine n m Γ₀ Γ)
-      (left-normalized-target n m Γ₀ A′) ≡ A
+    raw∈ : proj₁ raw ∈ Γ₀
+    raw∈ = proj₁ (proj₂ raw)
+
+    eq :
+      a ≡ rename-assm² (normalize-var n m Γ₀) (left-target-var n m)
+            (assm-left-assm (proj₁ raw))
+    eq = proj₂ (proj₂ raw)
+
+left-spine-target-sound :
+  ∀ {A n m A′ n∀A′ Γ₀ Γ} →
+  no-escaping-assms? n m Γ₀ ≡ true →
+  bound-var-var-order-ok-list? n m Γ₀ ≡ true →
+  normalize-assms n m Γ₀ ≡ just Γ →
+  split-∀ A ≡ (n , A′ , n∀A′) →
+  wrap-left-target (left-output-spine n m Γ₀ Γ) A′ ≡ A
+left-spine-target-sound {n = n} {m = m} {A′ = A′}
+    {Γ₀ = Γ₀} {Γ = Γ} noEsc≡ order≡ norm≡ splitA≡ =
+  trans (wrap-left-target-left-output-spine n m Γ₀ Γ A′)
+        (sym (split-∀-rebuild splitA≡))
 
 wrap-left-spine :
   ∀ {Φ bs C A} →
@@ -2557,6 +3234,35 @@ wrap-left-spine {Φ = Φ} {bs = rightOnly ∷ bs} {C = C} {A = A}
     (wrap-left-spine
       (ForallsUsed-∀-body {A = wrap-output bs C} usedC) usedA C⊑A)
 
+wrap-right-spine :
+  ∀ {Φ bs C B} →
+  ForallsUsed (wrap-output bs C) →
+  ForallsUsed (wrap-right-target bs B) →
+  right-spine-ctx bs Φ ⊢ C ⊑ B →
+  Φ ⊢ wrap-output bs C ⊑ wrap-right-target bs B
+wrap-right-spine {bs = []} usedC usedB C⊑B = C⊑B
+wrap-right-spine {Φ = Φ} {bs = both ∷ bs} {C = C} {B = B}
+    usedC usedB C⊑B =
+  ∀ⁱ_ {occA = ForallsUsed-∀-occ {A = wrap-output bs C} usedC}
+      {occB = ForallsUsed-∀-occ {A = wrap-right-target bs B} usedB}
+      (wrap-right-spine (ForallsUsed-∀-body {A = wrap-output bs C} usedC)
+                        (ForallsUsed-∀-body
+                          {A = wrap-right-target bs B} usedB)
+                        C⊑B)
+wrap-right-spine {Φ = Φ} {bs = leftOnly ∷ bs} {C = C} {B = B}
+    usedC usedB C⊑B =
+  ν (ForallsUsed-∀-occ {A = wrap-output bs C} usedC)
+    (wrap-right-spine
+      (ForallsUsed-∀-body {A = wrap-output bs C} usedC) usedB C⊑B)
+wrap-right-spine {Φ = Φ} {bs = rightOnly ∷ bs} {C = C} {B = B}
+    usedC usedB C⊑B =
+  ∀ⁱ_ {occA = ForallsUsed-∀-occ {A = wrap-output bs C} usedC}
+      {occB = ForallsUsed-∀-occ {A = wrap-right-target bs B} usedB}
+      (wrap-right-spine (ForallsUsed-∀-body {A = wrap-output bs C} usedC)
+                        (ForallsUsed-∀-body
+                          {A = wrap-right-target bs B} usedB)
+                        C⊑B)
+
 left-spine-count-sound :
   ∀ {n m Γ₀ Γ A} →
   no-escaping-assms? n m Γ₀ ≡ true →
@@ -2582,8 +3288,7 @@ add∀-lower-left-spine :
     (renameᵗ (normalize-var n m Γ₀) C₀) ≡ C →
   ForallsUsed C →
   spine-left n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
-                        ⊑ renameᵗ (normalize-var n m Γ₀)
-                            (renameᵗ (embed-left-var n m) A′) →
+                        ⊑ left-normalized-target n m Γ₀ A′ →
   assm-left Γ ⊢ C ⊑ A
 add∀-lower-left-spine {A = A} {n = n} {m = m} {A′ = A′}
     {C₀ = C₀} {Γ₀ = Γ₀} {Γ = Γ} {C = C}
@@ -2596,8 +3301,7 @@ add∀-lower-left-spine {A = A} {n = n} {m = m} {A′ = A′}
 
     target : Ty
     target =
-      wrap-left-target (left-output-spine n m Γ₀ Γ)
-        (left-normalized-target n m Γ₀ A′)
+      wrap-left-target (left-output-spine n m Γ₀ Γ) A′
 
     source≡ : wrap-output (left-output-spine n m Γ₀ Γ) body ≡ C
     source≡ =
@@ -2618,11 +3322,16 @@ add∀-lower-left-spine {A = A} {n = n} {m = m} {A′ = A′}
 
     body-lower :
       left-spine-ctx (left-output-spine n m Γ₀ Γ) (assm-left Γ)
-        ⊢ body ⊑ left-normalized-target n m Γ₀ A′
+        ⊢ body ⊑ A′
     body-lower =
-      ⊑-mono (left-spine-context-sound {n = n} {m = m}
-                {Γ₀ = Γ₀} {Γ = Γ} noEsc≡ order≡ norm≡)
-              C⊑A′
+      subst
+        (λ T →
+          left-spine-ctx (left-output-spine n m Γ₀ Γ) (assm-left Γ)
+            ⊢ body ⊑ T)
+        (left-normalized-target-cancel n m Γ₀ A′)
+        (⊑-mono (left-spine-context-sound {n = n} {m = m}
+                   {Γ₀ = Γ₀} {Γ = Γ} noEsc≡ order≡ norm≡)
+                 C⊑A′)
 
     wrapped : assm-left Γ ⊢
       wrap-output (left-output-spine n m Γ₀ Γ) body ⊑ target
@@ -2641,8 +3350,7 @@ postulate
       (renameᵗ (normalize-var n m Γ₀) C₀) ≡ C →
     ForallsUsed C →
     spine-right n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
-                           ⊑ renameᵗ (normalize-var n m Γ₀)
-                               (renameᵗ (embed-right-var n m) B′) →
+                           ⊑ right-normalized-target n m Γ₀ B′ →
     assm-right Γ ⊢ C ⊑ B
 
 add∀-lower :
@@ -2658,12 +3366,10 @@ add∀-lower :
     (renameᵗ (normalize-var n m Γ₀) C₀) ≡ C →
   ForallsUsed C →
   spine-left n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
-                        ⊑ renameᵗ (normalize-var n m Γ₀)
-                            (renameᵗ (embed-left-var n m) A′)
+                        ⊑ left-normalized-target n m Γ₀ A′
     ×
   spine-right n m Γ₀ Γ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
-                         ⊑ renameᵗ (normalize-var n m Γ₀)
-                             (renameᵗ (embed-right-var n m) B′) →
+                         ⊑ right-normalized-target n m Γ₀ B′ →
   assm-left Γ ⊢ C ⊑ A × assm-right Γ ⊢ C ⊑ B
 add∀-lower hA hB noEsc≡ order≡ norm≡ splitA≡ splitB≡ result≡ used
     (C⊑A′ , C⊑B′) =
@@ -3106,12 +3812,10 @@ mutual
 
       normalized-lower :
         spine-left n m Γ₀ Γ′ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
-                                ⊑ renameᵗ (normalize-var n m Γ₀)
-                                    (renameᵗ (embed-left-var n m) A′)
+                                ⊑ left-normalized-target n m Γ₀ A′
           ×
         spine-right n m Γ₀ Γ′ ⊢ renameᵗ (normalize-var n m Γ₀) C₀
-                                 ⊑ renameᵗ (normalize-var n m Γ₀)
-                                     (renameᵗ (embed-right-var n m) B′)
+                                 ⊑ right-normalized-target n m Γ₀ B′
       normalized-lower =
         normalize-lower-spine noEsc≡ order≡ norm≡ raw-lower
 

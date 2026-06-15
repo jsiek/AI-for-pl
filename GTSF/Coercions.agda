@@ -25,7 +25,7 @@ data Coercion : Set where
  _↦_ : Coercion → Coercion → Coercion
  `∀ : Coercion → Coercion
  _! : Ty → Coercion
- _？_ : Ty → Label → Coercion
+ _？_ : Ty → Label → Coercion    -- Phil: don't need/want label for duality
  seal : Ty → TyVar → Coercion
  unseal : TyVar → Ty → Coercion
  gen : Ty → Coercion → Coercion
@@ -127,6 +127,7 @@ data _∣_⊢_∶_=⇒_ : TyCtx → Store → Coercion → Ty → Ty → Set whe
 
   cast-id : ∀{Δ : TyCtx}{Σ : Store}{A : Ty}
     → WfTy Δ A
+    -- fvs(A) ∩ dom(Σ) = ∅
      -------------------
     → Δ ∣ Σ ⊢ id A ∶ A =⇒ A
 
@@ -142,6 +143,7 @@ data _∣_⊢_∶_=⇒_ : TyCtx → Store → Coercion → Ty → Ty → Set whe
      -----------------------------
     → Δ ∣ Σ ⊢ unseal α A ∶ (＇ α) =⇒ A
 
+  -- Phil: s and t have different Σ's, they combine, with side condition
   cast-seq : ∀{Δ : TyCtx}{Σ : Store}{A B C : Ty}{s t : Coercion}
     → Δ ∣ Σ ⊢ s ∶ A =⇒ B
     → Δ ∣ Σ ⊢ t ∶ B =⇒ C
@@ -151,6 +153,7 @@ data _∣_⊢_∶_=⇒_ : TyCtx → Store → Coercion → Ty → Ty → Set whe
   cast-tag : ∀{Δ : TyCtx}{Σ : Store}{G : Ty}
     → WfTy Δ G
     → Ground G
+    -- If G is α, then α ∉ dom(Σ)
      ---------------------
     → Δ ∣ Σ ⊢ G ! ∶ G =⇒ ★
 
@@ -173,13 +176,15 @@ data _∣_⊢_∶_=⇒_ : TyCtx → Store → Coercion → Ty → Ty → Set whe
      ----------------------------------
     → Δ ∣ Σ ⊢ (`∀ s) ∶ (`∀ A) =⇒ (`∀ B)
 
+  -- ν
   cast-inst : ∀{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → {occA : occurs zero A ≡ true}
     → WfTy Δ B
     → suc Δ ∣ (0 , ★) ∷ ⟰ᵗ Σ ⊢ s ∶ A =⇒ ⇑ᵗ B
-     --------------------------------
+     ----------------------------------------
     → Δ ∣ Σ ⊢ (inst B s) ∶ (`∀ A) =⇒ B
-    
+
+  -- ν̅ 
   cast-gen : ∀{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → {occB : occurs zero B ≡ true}
     → WfTy Δ A

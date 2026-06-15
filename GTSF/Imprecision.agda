@@ -79,12 +79,12 @@ data _⊢_⊑_ (Φ : ImpCtx) : Ty → Ty → Set where
     → Φ ⊢ A₁ ⇒ A₂ ⊑ ★
 
   tagˣ_ : ∀ {X}
-    → X ˣ⊑★ ∈ Φ
+    → X ˣ⊑★ ∈ Φ                -- This X is an α
     ------------------
     → Φ ⊢ ＇ X ⊑ ★
 
   ν : ∀ {A B}
-    → occurs zero A ≡ true
+    → occurs zero A ≡ true      -- Phil: keep this, need for unique derivations
     → (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ ⊢ A ⊑ B
     -------------------------
     → Φ ⊢ (`∀ A) ⊑ B

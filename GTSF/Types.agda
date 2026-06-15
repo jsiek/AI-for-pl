@@ -41,8 +41,9 @@ data Base : Set where
 infixr 7 _⇒_
 infix 6 `∀
 
+-- Peter: Consider going intrinsically scoped
 data Ty : Set where
-  ＇_ : TyVar → Ty
+  ＇_ : TyVar → Ty   -- both X's and α's
   ‵_ : Base → Ty
   ★ : Ty
   _⇒_ : Ty → Ty → Ty
@@ -226,7 +227,7 @@ data WfTy : TyCtx → Ty → Set where
   wfBase : ∀ {Δ ι} → WfTy Δ (‵ ι)
   wf★ : ∀ {Δ} → WfTy Δ ★
   wf⇒ : ∀ {Δ A B} → WfTy Δ A → WfTy Δ B → WfTy Δ (A ⇒ B)
-  wf∀ : ∀ {Δ A} → {occ : occurs zero A ≡ true} →
+  wf∀ : ∀ {Δ A} → {occ : occurs zero A ≡ true} → -- Phil: recommend removing
     WfTy (suc Δ) A → WfTy Δ (`∀ A)
 
 ------------------------------------------------------------------------

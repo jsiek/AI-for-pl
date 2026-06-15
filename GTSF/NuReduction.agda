@@ -57,7 +57,7 @@ data _—→_ : Term → Term → Set where
     --------------------------------------
     → V ⟨ gen C c ⟩ • α —→ V ⟨ c [ α ]ᶜ ⟩
 
-  β-inst : ∀ {Σ : Store} {V B c}{α : TyVar}
+  β-inst : ∀ {Σ : Store} {V B c}
     → Value V
     ----------------------------------------------
     → V ⟨ inst B c ⟩ —→ ν ★ (((⇑ᵗᵐ V) • 0 ) ⟨ c ⟩)

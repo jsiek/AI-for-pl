@@ -767,3 +767,6 @@ data ForallTargetInv (Δ : TyCtx) : Ty → Ty → Set where
   idᵢ Δ ⊢ C ⊑ B →
   WfTy Δ C
 ~-lower-wf C⊑A C⊑B = ⊑-src-wf-idᵢ C⊑A
+
+
+

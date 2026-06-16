@@ -6,8 +6,14 @@ module proof.NuProgress where
 --   * Ports `proof.Progress` to the `NuTerms`/`NuReduction` formulation.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using ([])
+open import Data.Empty using (⊥)
+open import Data.List using ([]; _∷_)
+open import Data.List.Membership.Propositional using (_∈_; _∉_)
+open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (ℕ; zero)
+open import Data.Nat using (_<_; _≤_; _⊔_; suc; s≤s)
+open import Data.Nat.Properties
+  using (m≤m⊔n; m≤n⊔m; n≤1+n; <-≤-trans; <-irrefl; ≤-trans)
 open import Data.Product as Product using (_,_)
 open import Relation.Nullary using (yes; no)
 
@@ -17,6 +23,30 @@ open import Coercions
 open import Primitives
 open import NuTerms
 open import NuReduction
+
+------------------------------------------------------------------------
+-- Fresh seal choice for progress
+------------------------------------------------------------------------
+
+freshSeal : Store → TyVar
+freshSeal [] = zero
+freshSeal ((x , A) ∷ Σ) = suc (x ⊔ freshSeal Σ)
+
+dom<freshSeal :
+  ∀ Σ {α} →
+  α ∈ domˢ Σ →
+  α < freshSeal Σ
+dom<freshSeal ((x , A) ∷ Σ) (here refl) =
+  s≤s (m≤m⊔n x (freshSeal Σ))
+dom<freshSeal ((x , B) ∷ Σ) (there α∈Σ) =
+  <-≤-trans
+    (dom<freshSeal Σ α∈Σ)
+    (≤-trans (m≤n⊔m x (freshSeal Σ)) (n≤1+n (x ⊔ freshSeal Σ)))
+
+freshSeal∉ :
+  ∀ Σ →
+  freshSeal Σ ∉ domˢ Σ
+freshSeal∉ Σ fresh∈Σ = <-irrefl refl (dom<freshSeal Σ fresh∈Σ)
 
 ------------------------------------------------------------------------
 -- Progress witness
@@ -236,7 +266,8 @@ progress (⊢• {L = M} {B = B} {α = α} M⊢ α<Δ) | done vM
 progress {Σ = Σ} (⊢• {L = M} {B = B} {α = α} M⊢ α<Δ) | done vM
     | av-gen vW refl =
   step (pure-step (β-gen {Σ = Σ} vW))
-progress (⊢ν {A = A} hA N⊢) = step (ν-step {A = A} {α = zero})
+progress {Σ = Σ} (⊢ν {A = A} hA N⊢) =
+  step (ν-step {A = A} {α = freshSeal Σ} (freshSeal∉ Σ))
 progress (⊢$ κ) = done ($ κ)
 progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) with progress L⊢
 progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | step L→L′ =

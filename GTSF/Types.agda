@@ -156,6 +156,10 @@ Store = List (TyVar × Ty)
 extendˢ : Store → TyVar → Ty → Store
 extendˢ Σ α A = (α , A) ∷ Σ
 
+domˢ : Store → List TyVar
+domˢ [] = []
+domˢ ((X , A) ∷ Σ) = X ∷ domˢ Σ
+
 ------------------------------------------------------------------------
 -- Type-variable substitution (de Bruijn X)
 ------------------------------------------------------------------------

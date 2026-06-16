@@ -1,11 +1,14 @@
 module NuReduction where
 
-open import Data.List using (length; _∷_)
+open import Data.List using (_∷_)
 open import Data.Nat using (ℕ; _+_)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Data.Sum using (_⊎_)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
+open import Data.List.Membership.Propositional using (_∈_; _∉_)
+
+
 
 open import Types
 open import Coercions
@@ -110,10 +113,12 @@ data _∣_—→_∣_ : Store → Term → Store → Term → Set where
     -----------------
     → Σ ∣ M —→ Σ ∣ M′
 
+  -- Allow non-deterministic choice of α here so that in the proof of the
+  -- Gradual Guarantee, we can choose a matching α in the simulating program.
   ν-step : ∀ {Σ : Store} {N : Term} {A : Ty} {α : TyVar}
+   → α ∉ domˢ Σ
     -------------------------------------
-   → let α = length Σ in
-     Σ ∣ ν A N —→ (α , A) ∷ Σ ∣ N [ α ]ᵀ
+   → Σ ∣ ν A N —→ (α , A) ∷ Σ ∣ N [ α ]ᵀ
 
   ξ-·₁ : ∀ {Σ Σ′ : Store} {L M L′ : Term} →
     Σ ∣ L —→ Σ′ ∣ L′ →

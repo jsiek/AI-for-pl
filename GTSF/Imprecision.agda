@@ -83,7 +83,7 @@ data _⊢_⊑_ (Φ : ImpCtx) : Ty → Ty → Set where
 
   ν : ∀ {A B}
     → occurs zero A ≡ true      -- Phil: keep this, need for unique derivations
-    → (0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ ⊢ A ⊑ B
+    → (0 ˣ⊑★) ∷ ⇑ᵢ Φ ⊢ A ⊑ ⇑ᵗ B
     -------------------------
     → Φ ⊢ (`∀ A) ⊑ B
 

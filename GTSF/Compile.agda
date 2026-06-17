@@ -2,7 +2,7 @@ module Compile where
 
 -- File Charter:
 --   * Compilation from source gradual GTSF terms to target explicit-coercion terms.
---   * Exports the maximal-lower-bound cast-plan specification, `compile`, and
+--   * Exports the common-lower-bound cast-plan specification, `compile`, and
 --     `compile-value`.
 --   * The store is empty at compile time; target reduction allocates store cells
 --     later for polymorphic/seal behavior.
@@ -20,16 +20,6 @@ open import Primitives using (Const; Prim; constTy)
 open import proof.CompileCoercions using (coerce-up; coerce-down; realizes-idᵢ)
 open import proof.ImprecisionProperties
   using (⊑-src-wf-idᵢ; ⊑-tgt-wf-idᵢ; ~-sym)
-open import proof.MaximalLowerBounds public using
-  ( CommonLowerBound
-  ; StrictlyBelow
-  ; MaximalLowerBound
-  ; lower
-  ; lower-left
-  ; lower-right
-  ; maximal
-  ; choose-mlb
-  )
 open import proof.TermProperties using (CtxWf-⤊)
 
 open import GradualTerms
@@ -82,13 +72,12 @@ open import Terms
 
 record CastPlan (Δ : TyCtx) (Σ : Store) (A B : Ty) : Set₁ where
   field
-    mlb : MaximalLowerBound Δ A B
-
+    lower : Ty
     down : Coercion
-    down⊢ : Δ ∣ Σ ⊢ down ∶ A =⇒ lower mlb
+    down⊢ : Δ ∣ Σ ⊢ down ∶ A =⇒ lower
 
     up : Coercion
-    up⊢ : Δ ∣ Σ ⊢ up ∶ lower mlb =⇒ B
+    up⊢ : Δ ∣ Σ ⊢ up ∶ lower =⇒ B
 
 open CastPlan public
 
@@ -97,21 +86,21 @@ consistency-cast-plan :
   Label →
   Δ ⊢ A ~ B →
   CastPlan Δ [] A B
-consistency-cast-plan {Δ = Δ} ℓ A~B with choose-mlb A~B
-consistency-cast-plan {Δ = Δ} ℓ A~B | mlb
+consistency-cast-plan {Δ = Δ} ℓ (C , C⊑A , C⊑B)
     with coerce-down ℓ
-           (⊑-src-wf-idᵢ (lower-left mlb))
-           (⊑-tgt-wf-idᵢ (lower-left mlb))
+           (⊑-src-wf-idᵢ C⊑A)
+           (⊑-tgt-wf-idᵢ C⊑A)
            (realizes-idᵢ Δ)
-           (lower-left mlb)
+           C⊑A
        | coerce-up ℓ
-           (⊑-src-wf-idᵢ (lower-right mlb))
-           (⊑-tgt-wf-idᵢ (lower-right mlb))
+           (⊑-src-wf-idᵢ C⊑B)
+           (⊑-tgt-wf-idᵢ C⊑B)
            (realizes-idᵢ Δ)
-           (lower-right mlb)
-consistency-cast-plan {Δ = Δ} ℓ A~B | mlb | down , down⊢ | up , up⊢ =
+           C⊑B
+consistency-cast-plan {Δ = Δ} ℓ (C , C⊑A , C⊑B)
+    | down , down⊢ | up , up⊢ =
   record
-    { mlb = mlb
+    { lower = C
     ; down = down
     ; down⊢ = down⊢
     ; up = up

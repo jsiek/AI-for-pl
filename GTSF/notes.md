@@ -18,9 +18,9 @@ The notes express this by side conditions such as:
 * ``id_α`` is not allowed when ``α`` is in the store.
 * ``tag_α`` and ``-tag_α`` are not allowed when ``α`` is in the store.
 * ``seal_α`` and ``-seal_α`` require ``α`` to be in the store.
-* In ``να.c[α]``, all occurrences of the bound ``α`` should be tag-like,
-  written ``c[tag_α]``.
-* In ``-να.c[α]``, all occurrences of the bound ``α`` should be
+* In ``ν α. c[α]``, all occurrences of the bound ``α`` should be
+  tag-like, written ``c[tag_α]``.
+* In ``-ν α. c[α]``, all occurrences of the bound ``α`` should be
   seal-like, written ``c[seal_α]``.
 
 Those side conditions are natural for a static description of coercions,
@@ -36,6 +36,17 @@ uses de Bruijn indices: a named binder ``β`` below corresponds to index
 ``zero`` in the mechanization, ``Δ, β`` corresponds to ``suc Δ``, and
 ``Σ↑`` corresponds to the lifted store ``⟰ᵗ Σ``.
 
+The nominal notation below writes binders explicitly in each syntactic
+form that binds a type variable:
+
+    ∀X. c[X]
+    gen β. A c[β]
+    inst β. B c[β]
+
+These correspond to the Agda constructors ``∀``, ``gen A c``, and
+``inst B c``; the displayed variable marks the scope that Agda handles
+with ``extᵗ`` in renaming and substitution.
+
 Concrete preservation problem: ``gen``
 -------------------------------------
 
@@ -45,7 +56,7 @@ Consider the body coercion
 
 under a ``gen`` coercion:
 
-    gen ★ c[β]
+    gen β. ★ c[β]
 
 In the body of ``gen``, the newly bound variable ``β`` is intended to be
 tag-like.  The body coercion has shape
@@ -55,15 +66,15 @@ tag-like.  The body coercion has shape
 because ``β`` is bound by the coercion and is not a store seal in
 ``Σ↑``.  Thus
 
-    Δ ∣ Σ ⊢ gen ★ c[β] ∶ ★ =⇒ ∀β.β
+    Δ ∣ Σ ⊢ gen β. ★ c[β] ∶ ★ =⇒ ∀β.β
 
 The Nu reduction rule for ``gen`` is
 
-    V ⟨ gen C c[β] ⟩ • α  —→  V ⟨ c[α] ⟩
+    V ⟨ gen β. C c[β] ⟩ • α  —→  V ⟨ c[α] ⟩
 
 so the example reduces to
 
-    V ⟨ gen ★ c[β] ⟩ • α
+    V ⟨ gen β. ★ c[β] ⟩ • α
       —→
     V ⟨ c[α] ⟩
       =
@@ -81,7 +92,7 @@ tracking whether the occurrence came from the tag-like ``gen`` binder.
 
 The same issue appears in the older store-allocating reduction rule:
 
-    Σ ∣ V ⟨ gen C c ⟩ ⦂∀ B • A
+    Σ ∣ V ⟨ gen β. C c[β] ⟩ ⦂∀ B • A
       —→
     (α , A) ∷ Σ ∣ V ⟨ c[α] ⟩ ⟨ reveal B[α] α A ⟩
 
@@ -99,7 +110,7 @@ abstract runtime representation.  For example:
 
     d[β] = seal ★ β ︔ unseal β ★
 
-    inst ★ d[β]
+    inst β. ★ d[β]
 
 The body coercion is typed under a store extended with the new
 ``β`` seal:
@@ -109,7 +120,7 @@ The body coercion is typed under a store extended with the new
 
 The Nu reduction rule is
 
-    V ⟨ inst B c[β] ⟩
+    V ⟨ inst β. B c[β] ⟩
       —→
     ν β := ★. (((V↑) • β) ⟨ c[β] ⟩)
 
@@ -166,16 +177,16 @@ store-domain side condition:
 
     extᵈ μ ∣ Δ, X ∣ Σ↑ ⊢ c[X] ∶ A[X] =⇒ B[X]
     ------------------------------------------------
-    μ ∣ Δ ∣ Σ ⊢ ∀X.c[X] ∶ ∀X.A[X] =⇒ ∀X.B[X]
+    μ ∣ Δ ∣ Σ ⊢ ∀X. c[X] ∶ ∀X.A[X] =⇒ ∀X.B[X]
 
     genᵈ μ ∣ Δ, β ∣ Σ↑ ⊢ c[β] ∶ A↑ =⇒ B[β]
     ------------------------------------------------
-    μ ∣ Δ ∣ Σ ⊢ gen A c[β] ∶ A =⇒ ∀β.B[β]
+    μ ∣ Δ ∣ Σ ⊢ gen β. A c[β] ∶ A =⇒ ∀β.B[β]
 
     instᵈ μ ∣ Δ, β ∣ (β , ★) ∷ Σ↑
       ⊢ c[β] ∶ A[β] =⇒ B↑
     ------------------------------------------------
-    μ ∣ Δ ∣ Σ ⊢ inst B c[β] ∶ ∀β.A[β] =⇒ B
+    μ ∣ Δ ∣ Σ ⊢ inst β. B c[β] ∶ ∀β.A[β] =⇒ B
 
 Here ``A↑`` and ``B↑`` mean the outer type has been weakened under the
 new binder.
@@ -239,7 +250,7 @@ from ``A`` to ``B``, then its dual is well typed from ``B`` to ``A``:
 
 The theorem is false for raw coercions.  For example, the raw coercion
 
-    gen ★ (seal (‵ `ℕ) β)
+    gen β. ★ (seal (‵ `ℕ) β)
 
 is not well typed, and indeed duality is not an involution on that raw
 term.  The typing discipline is what makes duality meaningful.
@@ -257,13 +268,13 @@ swaps the representation of the bound variable:
 
 For the concrete typed coercion
 
-    inst ★ (seal ★ β ︔ unseal β ★)
-      : ∀X.★ =⇒ ★
+    inst β. ★ (seal ★ β ︔ unseal β ★)
+      : ∀β.★ =⇒ ★
 
 the dual is
 
-    gen ★ (((＇ β) ？) ︔ ((＇ β) !))
-      : ★ =⇒ ∀X.★
+    gen β. ★ (((＇ β) ？) ︔ ((＇ β) !))
+      : ★ =⇒ ∀β.★
 
 The source body is legal because ``β`` is in ``seal-to-tag`` mode and
 the store contains ``(β , ★)``.  The dual body is legal because ``β``
@@ -324,13 +335,14 @@ that is not specially bound by a coercion rule is ordinary:
 The mode context only records how variables bound by coercion structure
 may be used inside the body coercion:
 
-    μ, X : normal   -- the variable bound by ∀X.c[X]
+    μ, X : normal   -- the variable bound by ∀X. c[X]
     μ, α : tag      -- α may occur as tag_α or -tag_α
     μ, α : seal     -- α may occur as seal_α or -seal_α
 
 Equivalently, the existing informal annotations
 ``c[tag_α]`` and ``c[seal_α]`` become tracked side conditions rather
-than comments.  In ``c[tag_α]``, the bound ``α`` may occur as
+than comments on the binding forms ``ν α. c[tag_α]`` and
+``-ν α. c[seal_α]``.  In ``c[tag_α]``, the bound ``α`` may occur as
 ``tag_α`` or ``-tag_α``, but not as an ordinary type endpoint and not
 as a seal.  In ``c[seal_α]``, the bound ``α`` may occur as
 ``seal_α`` or ``-seal_α``, but not as an ordinary type endpoint and not
@@ -346,7 +358,8 @@ replaced by mode admissibility checks:
 ``TyOK_μ(A)`` says that no variable currently in tag mode or seal mode
 appears as an ordinary type endpoint in ``A``.  Thus ``TyOK_μ(α)``
 holds when ``α`` is normal, and fails when ``α`` is the special
-variable of an enclosing ``c[tag_α]`` or ``c[seal_α]`` annotation.
+variable of an enclosing ``ν α. c[tag_α]`` or ``-ν α. c[seal_α]``
+annotation.
 
 ``TagOK_μ(G)`` says that ``G`` is legal in ``tag_G`` and ``-tag_G``.
 For variable ground types, ``TagOK_μ(α)`` holds when ``α`` is normal or
@@ -405,21 +418,21 @@ thread the mode context through their premises.  For example:
 
     μ, X : normal ⊢ c[X] : A[X] =⇒_Σ B[X]
     ------------------------------------
-    μ ⊢ (∀X.c[X]) : (∀X.A[X]) =⇒_Σ (∀X.B[X])
+    μ ⊢ (∀X. c[X]) : (∀X.A[X]) =⇒_Σ (∀X.B[X])
 
 The two ``ν`` rules are where the mode annotations matter most:
 
     μ, α : tag ⊢ c[tag_α] : A =⇒_Σ B[α]
     ---------------------------- α ∉ fv(A), α ∈ fv(B[α])
-    μ ⊢ (να.c[tag_α]) : A =⇒_Σ (∀X.B[X])
+    μ ⊢ (ν α. c[tag_α]) : A =⇒_Σ (∀X.B[X])
 
     μ, α : seal ⊢ c[seal_α] : A[α] =⇒_{Σ,α:=⋆} B
     ----------------------------- α ∈ fv(A[α]), α ∉ fv(B)
-    μ ⊢ (-να.c[seal_α]) : (∀X.A[X]) =⇒_Σ B
+    μ ⊢ (-ν α. c[seal_α]) : (∀X.A[X]) =⇒_Σ B
 
 This keeps the cambridge22 presentation intact while making explicit
-the invariant already suggested by the notation: ``να.c[tag_α]`` opens
-the body with tag-like occurrences, while ``-να.c[seal_α]`` opens the
+the invariant already suggested by the notation: ``ν α. c[tag_α]`` opens
+the body with tag-like occurrences, while ``-ν α. c[seal_α]`` opens the
 body with seal-like occurrences.  The preservation benefit is that
 opening no longer depends on whether the opened variable happens to be
 absent from ``dom(Σ)``; legality follows from the mode assigned by the

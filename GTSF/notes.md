@@ -40,48 +40,43 @@ The nominal notation below writes binders explicitly in each syntactic
 form that binds a type variable:
 
     ∀X. c[X]
-    gen β. A c[β]
-    inst β. B c[β]
+    gen β. c[β]
+    inst β. c[β]
 
-These correspond to the Agda constructors ``∀``, ``gen A c``, and
-``inst B c``; the displayed variable marks the scope that Agda handles
-with ``extᵗ`` in renaming and substitution.
+These correspond to the Agda constructors ``∀``, ``gen``, and
+``inst``; the displayed variable marks the scope that Agda handles
+with ``extᵗ`` in renaming and substitution.  The informal forms omit
+the endpoint annotations carried by the Agda constructors.
 
 Concrete preservation problem: ``gen``
 -------------------------------------
 
-Consider the body coercion
+Consider a ``gen`` coercion whose body is ``β ？``:
 
-    c[β] = (＇ β) ？
-
-under a ``gen`` coercion:
-
-    gen β. ★ c[β]
+    gen β. (β ？)
 
 In the body of ``gen``, the newly bound variable ``β`` is intended to be
 tag-like.  The body coercion has shape
 
-    Δ, β ∣ Σ ⊢ (＇ β) ？ ∶ ★ =⇒ β
+    Δ, β ∣ Σ ⊢ β ？ ∶ ★ =⇒ β
 
 because ``β`` is bound by the coercion and is not a store seal in
 ``Σ``.  Thus
 
-    Δ ∣ Σ ⊢ gen β. ★ c[β] ∶ ★ =⇒ ∀β.β
+    Δ ∣ Σ ⊢ gen β. (β ？) ∶ ★ =⇒ ∀β.β
 
 The Nu reduction rule for ``gen`` is
 
-    V ⟨ gen β. C c[β] ⟩ • α  —→  V ⟨ c[α] ⟩
+    V ⟨ gen β. c[β] ⟩ • α  —→  V ⟨ c[α] ⟩
 
 so the example reduces to
 
-    V ⟨ gen β. ★ c[β] ⟩ • α
+    V ⟨ gen β. (β ？) ⟩ • α
       —→
-    V ⟨ c[α] ⟩
-      =
-    V ⟨ (＇ α) ？ ⟩
+    V ⟨ α ？ ⟩
 
 If ``α`` is already in the store, the cambridge22 side condition for
-``tag_α``/``-tag_α`` rejects the reduct coercion ``(＇ α) ？``.  But the
+``tag_α``/``-tag_α`` rejects the reduct coercion ``α ？``.  But the
 source term can be well typed: the ``gen`` body only mentioned the
 bound variable ``β`` in its tag-like role.  Preservation would need
 to show that opening a tag-like bound variable at an arbitrary in-scope
@@ -92,13 +87,13 @@ tracking whether the occurrence came from the tag-like ``gen`` binder.
 
 The same issue appears in the older store-allocating reduction rule:
 
-    Σ ∣ V ⟨ gen β. C c[β] ⟩ ⦂∀ B • A
+    Σ ∣ V ⟨ gen β. c[β] ⟩ ⦂∀ B • A
       —→
     (α , A) ∷ Σ ∣ V ⟨ c[α] ⟩ ⟨ reveal B[α] α A ⟩
 
 Here ``α`` is fresh for the old store ``Σ``, but the reduct is typed in
 the new store ``(α , A) ∷ Σ``.  Thus a reduct coercion such as
-``(＇ α) ？`` is again rejected by the side condition precisely because
+``α ？`` is again rejected by the side condition precisely because
 preservation has moved to the store that now contains ``α``.
 
 Concrete preservation problem: ``inst``
@@ -108,9 +103,7 @@ Now consider the opposite binder.  In an ``inst`` coercion, the freshly
 bound variable is seal-like, because type instantiation creates an
 abstract runtime representation.  For example:
 
-    d[β] = seal ★ β ︔ unseal β ★
-
-    inst β. ★ d[β]
+    inst β. (seal ★ β ︔ unseal β ★)
 
 The body coercion is typed under a store extended with the new
 ``β`` seal:
@@ -120,7 +113,7 @@ The body coercion is typed under a store extended with the new
 
 The Nu reduction rule is
 
-    V ⟨ inst β. B c[β] ⟩
+    V ⟨ inst β. c[β] ⟩
       —→
     ν β := ★. ((V • β) ⟨ c[β] ⟩)
 
@@ -148,7 +141,7 @@ Why the mode context solves preservation
 ----------------------------------------
 
 The mode-based design replaces the global store-domain side condition
-with a local mode context:
+with a local mode context μ:
 
     μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
 
@@ -181,24 +174,33 @@ store-domain side condition:
 
     genᵈ μ ∣ Δ, β ∣ Σ ⊢ c[β] ∶ A =⇒ B[β]
     ------------------------------------------------
-    μ ∣ Δ ∣ Σ ⊢ gen β. A c[β] ∶ A =⇒ ∀β.B[β]
+    μ ∣ Δ ∣ Σ ⊢ gen β. c[β] ∶ A =⇒ ∀β.B[β]
 
     instᵈ μ ∣ Δ, β ∣ (β , ★) ∷ Σ
       ⊢ c[β] ∶ A[β] =⇒ B
     ------------------------------------------------
-    μ ∣ Δ ∣ Σ ⊢ inst β. B c[β] ∶ ∀β.A[β] =⇒ B
+    μ ∣ Δ ∣ Σ ⊢ inst β. c[β] ∶ ∀β.A[β] =⇒ B
 
 Here ``β`` is chosen fresh, so types from the surrounding scope can be
 used under the binder without writing an explicit shift.
 
-The side checks are now mode checks:
+The side checks are now mode checks.  Writing ``TyOK_μ``,
+``TagOK_μ``, and ``SealOK_μ`` for the corresponding Agda checks
+``tyAllowed μ``, ``tagTyAllowed μ``, and ``sealModeAllowed ∘ μ``:
 
-* ``tyAllowed μ A`` says that endpoint type ``A`` does not mention a
-  currently special variable in an ordinary way.
-* ``tagTyAllowed μ G`` permits a variable ground type only in ``normal``
-  or ``tag-to-seal`` mode.
-* ``sealModeAllowed (μ α)`` permits ``seal``/``unseal`` only in ``normal``
-  or ``seal-to-tag`` mode.
+    TyOK_μ(＇ α)       ≜  μ(α) = normal
+    TyOK_μ(‵ ι)       ≜  ⊤
+    TyOK_μ(★)         ≜  ⊤
+    TyOK_μ(A ⇒ B)     ≜  TyOK_μ(A) ∧ TyOK_μ(B)
+    TyOK_μ(∀X. A[X])  ≜  TyOK_{μ, X : normal}(A[X])
+
+    TagOK_μ(＇ α)       ≜  μ(α) = normal ∨ μ(α) = tag-to-seal
+    TagOK_μ(‵ ι)       ≜  ⊤
+    TagOK_μ(★)         ≜  ⊤
+    TagOK_μ(A ⇒ B)     ≜  TyOK_μ(A) ∧ TyOK_μ(B)
+    TagOK_μ(∀X. A[X])  ≜  TyOK_{μ, X : normal}(A[X])
+
+    SealOK_μ(α)  ≜  μ(α) = normal ∨ μ(α) = seal-to-tag
 
 This is enough for preservation because opening and mode-renaming now
 have mode-aware lemmas.
@@ -250,7 +252,7 @@ from ``A`` to ``B``, then its dual is well typed from ``B`` to ``A``:
 
 The theorem is false for raw coercions.  For example, the raw coercion
 
-    gen β. ★ (seal (‵ `ℕ) β)
+    gen β. (seal (‵ `ℕ) β)
 
 is not well typed, and indeed duality is not an involution on that raw
 term.  The typing discipline is what makes duality meaningful.
@@ -268,12 +270,12 @@ swaps the representation of the bound variable:
 
 For the concrete typed coercion
 
-    inst β. ★ (seal ★ β ︔ unseal β ★)
+    inst β. (seal ★ β ︔ unseal β ★)
       : ∀β.★ =⇒ ★
 
 the dual is
 
-    gen β. ★ (((＇ β) ？) ︔ ((＇ β) !))
+    gen β. ((β ？) ︔ (β !))
       : ★ =⇒ ∀β.★
 
 The source body is legal because ``β`` is in ``seal-to-tag`` mode and
@@ -314,30 +316,30 @@ proved structurally over the coercion typing derivation.
 Suggested changes to the cambridge22 coercion typing presentation
 ----------------------------------------------------------------
 
-The cambridge22 notes should keep the existing coercion typing shape:
+The cambridge22 notes have this coercion typing shape:
 
     c : A =⇒_Σ B
 
-The only suggested presentation change is to refine this judgment with
-a mode context when stating the side conditions:
+The suggested change is to refine this judgment with a mode context
+when stating the side conditions:
 
     μ ⊢ c : A =⇒_Σ B
 
-The store ``Σ`` stays as the subscript on the arrow, and no separate
-type-variable context needs to be introduced.  The unqualified judgment
-can be read as the normal-mode instance, where every free type variable
-that is not specially bound by a coercion rule is ordinary:
+The unqualified judgment can be read as the normal-mode instance,
+where every free type variable that is not specially bound by a
+coercion rule is ordinary:
 
     c : A =⇒_Σ B
       means
     normal ⊢ c : A =⇒_Σ B
 
-The mode context only records how variables bound by coercion structure
-may be used inside the body coercion:
+The mode context records how variables bound by coercion structure may
+be used inside the body coercion:
 
-    μ, X : normal   -- the variable bound by ∀X. c[X]
-    μ, α : tag      -- α may occur as tag_α or -tag_α
-    μ, α : seal     -- α may occur as seal_α or -seal_α
+    μ, X : normal   -- the variable bound by ∀X. c[X],
+                    --    may occur in id, tags, and seals
+    μ, α : tag      -- α may occur in tags, but not in seals and id
+    μ, α : seal     -- α may occur in seals, but not in tags and id
 
 Equivalently, the existing informal annotations
 ``c[tag_α]`` and ``c[seal_α]`` become tracked side conditions rather
@@ -349,25 +351,34 @@ as a seal.  In ``c[seal_α]``, the bound ``α`` may occur as
 as a tag.
 
 The side conditions that currently mention ``dom(Σ)`` should be
-replaced by mode admissibility checks:
+replaced by mode admissibility checks.  In this informal presentation,
+write ``tag`` for Agda's ``tag-to-seal`` mode and ``seal`` for Agda's
+``seal-to-tag`` mode.
 
     TyOK_μ(A)
     TagOK_μ(G)
     SealOK_μ(α)
 
-``TyOK_μ(A)`` says that no variable currently in tag mode or seal mode
-appears as an ordinary type endpoint in ``A``.  Thus ``TyOK_μ(α)``
-holds when ``α`` is normal, and fails when ``α`` is the special
-variable of an enclosing ``ν α. c[tag_α]`` or ``-ν α. c[seal_α]``
-annotation.
+The admissibility checks are defined by:
 
-``TagOK_μ(G)`` says that ``G`` is legal in ``tag_G`` and ``-tag_G``.
-For variable ground types, ``TagOK_μ(α)`` holds when ``α`` is normal or
-in tag mode, and fails when ``α`` is in seal mode.
+    TyOK_μ(α)          ≜  μ(α) = normal
+    TyOK_μ(ι)          ≜  ⊤
+    TyOK_μ(★)          ≜  ⊤
+    TyOK_μ(A → B)      ≜  TyOK_μ(A) ∧ TyOK_μ(B)
+    TyOK_μ(∀X. A[X])   ≜  TyOK_{μ, X : normal}(A[X])
 
-``SealOK_μ(α)`` says that ``α`` is legal in ``seal_α`` and
-``-seal_α``.  It holds when ``α`` is normal or in seal mode, and fails
-when ``α`` is in tag mode.
+    TagOK_μ(α)         ≜  μ(α) = normal ∨ μ(α) = tag
+    TagOK_μ(ι)         ≜  ⊤
+    TagOK_μ(★)         ≜  ⊤
+    TagOK_μ(A → B)     ≜  TyOK_μ(A) ∧ TyOK_μ(B)
+    TagOK_μ(∀X. A[X])  ≜  TyOK_{μ, X : normal}(A[X])
+
+    SealOK_μ(α)        ≜  μ(α) = normal ∨ μ(α) = seal
+
+Only the ground-type instances of ``TagOK_μ`` are used by the tag and
+untag rules.  Thus ``TagOK_μ(α)`` allows ``tag_α`` exactly when ``α`` is
+normal or tag-like, and ``SealOK_μ(α)`` allows ``seal_α`` exactly when
+``α`` is normal or seal-like.
 
 With those predicates, the rules whose side conditions change are:
 

@@ -70,23 +70,23 @@ pure-preservation wfΣ hΓ
     (⊢· (⊢up (cast-fun p⊢ q⊢) hV) hW)
     (β-↦ vV vW) =
   ⊢up q⊢ (⊢· hV (⊢up p⊢ hW))
-pure-preservation wfΣ hΓ (⊢up (cast-id hA) hV) (β-id vV) =
+pure-preservation wfΣ hΓ (⊢up (cast-id hA _) hV) (β-id vV) =
   hV
 pure-preservation wfΣ hΓ (⊢up (cast-seq p⊢ q⊢) hV) (β-seq vV) =
   ⊢up q⊢ (⊢up p⊢ hV)
 pure-preservation wfΣ hΓ
-    (⊢up (cast-unseal hB αB∈Σ)
-      (⊢up (cast-seal hA αA∈Σ) hV))
+    (⊢up (cast-unseal hB αB∈Σ _ _)
+      (⊢up (cast-seal hA αA∈Σ _ _) hV))
     (seal-unseal vV) =
   subst (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
         (unique wfΣ αA∈Σ αB∈Σ)
         hV
 pure-preservation wfΣ hΓ
-    (⊢up (cast-untag hG gG) (⊢up (cast-tag hG′ gG′) hV))
+    (⊢up (cast-untag hG gG _) (⊢up (cast-tag hG′ gG′ _) hV))
     (tag-untag-ok vV) =
   hV
 pure-preservation wfΣ hΓ
-    (⊢up (cast-untag hH gH) (⊢up (cast-tag hG gG) hV))
+    (⊢up (cast-untag hH gH _) (⊢up (cast-tag hG gG _) hV))
     (tag-untag-bad vV G≢H) =
   ⊢blame hH
 pure-preservation wfΣ hΓ
@@ -157,7 +157,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     (⊢up
       (reveal-fresh-typing hT hB)
       (⊢up
-        (coercion-open (n<1+n Δ) c⊢)
+        (coercion-openᵐ (n<1+n Δ) c⊢)
         app-src⊢))
   where
     hB : WfTy (suc Δ) B
@@ -166,14 +166,14 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
 
     src-open-eq :
       (src c) [ ＇ Δ ]ᵗ ≡ _ [ Δ ]ᴿ
-    src-open-eq with coercion-src-tgt c⊢
+    src-open-eq with coercion-src-tgtᵐ c⊢
     src-open-eq | src-eq , tgt-eq =
       trans (cong (λ T → T [ ＇ Δ ]ᵗ) src-eq)
             (subst-var-rename Δ _)
 
     V-src⊢ :
       Δ ∣ Σ ∣ Γ ⊢ V ⦂ `∀ (src c)
-    V-src⊢ with coercion-src-tgt c⊢
+    V-src⊢ with coercion-src-tgtᵐ c⊢
     V-src⊢ | src-eq , tgt-eq =
       subst (λ U → Δ ∣ Σ ∣ Γ ⊢ V ⦂ `∀ U) (sym src-eq) V⊢
 
@@ -187,7 +187,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
              (wfVar (n<1+n Δ)))
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     (⊢• {B = B} {A = T}
-      (⊢up (gen⊢@(cast-gen hC c⊢)) V⊢)
+      (⊢up (gen⊢@(cast-gen hC _ c⊢)) V⊢)
       hT)
     (β-down-ν vV)
     rewrite len wfΣ =
@@ -200,7 +200,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     (⊢up
       (reveal-fresh-typing hT hB)
       (⊢up
-        (coercion-open (n<1+n Δ) c⊢)
+        (coercion-openᵐ (n<1+n Δ) c⊢)
         (subst
           (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
           (sym (renameᵗ-single-suc-cancel Δ _))
@@ -210,7 +210,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     hB with typing-wf (at wfΣ) hΓ (⊢up gen⊢ V⊢)
     hB | wf∀ hB′ = hB′
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
-    (⊢up {M = V} (cast-inst {s = c} hB c⊢) V⊢)
+    (⊢up {M = V} (cast-inst {s = c} hB _ c⊢) V⊢)
     (β-up-ν vV)
     rewrite len wfΣ =
   preserve
@@ -223,19 +223,19 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
       (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
       (renameᵗ-single-suc-cancel Δ _)
       (⊢up
-        (coercion-open-head (n<1+n Δ) c⊢)
+        (coercion-open-headᵐ (n<1+n Δ) c⊢)
         app-src⊢))
   where
     src-open-eq :
       (src c) [ ＇ Δ ]ᵗ ≡ _ [ Δ ]ᴿ
-    src-open-eq with coercion-src-tgt c⊢
+    src-open-eq with coercion-src-tgtᵐ c⊢
     src-open-eq | src-eq , tgt-eq =
       trans (cong (λ T → T [ ＇ Δ ]ᵗ) src-eq)
             (subst-var-rename Δ _)
 
     V-src⊢ :
       Δ ∣ Σ ∣ Γ ⊢ V ⦂ `∀ (src c)
-    V-src⊢ with coercion-src-tgt c⊢
+    V-src⊢ with coercion-src-tgtᵐ c⊢
     V-src⊢ | src-eq , tgt-eq =
       subst (λ U → Δ ∣ Σ ∣ Γ ⊢ V ⦂ `∀ U) (sym src-eq) V⊢
 

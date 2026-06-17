@@ -8,11 +8,12 @@ module proof.CompileCoercions where
 --     turns a chosen imprecision witness into typed target coercions.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (true; false)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (zero; suc; z<s)
-open import Data.Nat.Properties using (n≤1+n; ≤-refl)
+open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (Σ-syntax; _,_)
 
 open import Types
@@ -20,8 +21,18 @@ open import Store using (StoreIncl; StoreIncl-drop)
 open import Coercions
   using
     ( Coercion
+    ; DualEnv
+    ; normal
+    ; tag-to-seal
+    ; seal-to-tag
+    ; normalᵈ
+    ; extᵈ
+    ; genᵈ
+    ; instᵈ
     ; Label
+    ; _∣_∣_⊢_∶_=⇒_
     ; _∣_⊢_∶_=⇒_
+    ; tyAllowed
     ; cast-id
     ; cast-seq
     ; cast-tag
@@ -46,38 +57,92 @@ open import Coercions
     ; gen to genᶜ
     )
 open import Imprecision
-open import proof.CoercionProperties using (coercion-renameᵗ; coercion-weaken)
+open import proof.CoercionProperties
+  using
+    ( ModeRename
+    ; coercion-renameᵗᵐ
+    ; coercion-weakenᵐ
+    ; modeRename-tyAllowed
+    ; tyAllowed-normal
+    )
 open import proof.TypeProperties
-  using (TyRenameWf-suc; WfTy-weakenᵗ; renameᵗ-preserves-WfTy)
+  using (TyRenameWf-suc; renameᵗ-preserves-WfTy)
 
 ------------------------------------------------------------------------
 -- Realizing imprecision assumptions as target coercions
 ------------------------------------------------------------------------
 
-data Realizes (Δ : TyCtx) (Σ : Store) : ImpCtx → Set₁ where
+ModeRename-suc-ext :
+  ∀ {μ} →
+  ModeRename suc μ (extᵈ μ)
+ModeRename-suc-ext {μ} X with μ X
+ModeRename-suc-ext X | normal = refl
+ModeRename-suc-ext X | tag-to-seal = refl
+ModeRename-suc-ext X | seal-to-tag = refl
+
+ModeRename-suc-gen :
+  ∀ {μ} →
+  ModeRename suc μ (genᵈ μ)
+ModeRename-suc-gen {μ} X with μ X
+ModeRename-suc-gen X | normal = refl
+ModeRename-suc-gen X | tag-to-seal = refl
+ModeRename-suc-gen X | seal-to-tag = refl
+
+ModeRename-suc-inst :
+  ∀ {μ} →
+  ModeRename suc μ (instᵈ μ)
+ModeRename-suc-inst {μ} X with μ X
+ModeRename-suc-inst X | normal = refl
+ModeRename-suc-inst X | tag-to-seal = refl
+ModeRename-suc-inst X | seal-to-tag = refl
+
+ModeRename-suc-normal :
+  ModeRename suc normalᵈ normalᵈ
+ModeRename-suc-normal X = refl
+
+tyAllowed-shift-gen :
+  ∀ {μ B} →
+  tyAllowed μ B ≡ true →
+  tyAllowed (genᵈ μ) (⇑ᵗ B) ≡ true
+tyAllowed-shift-gen {μ = μ} {B = B} ok =
+  modeRename-tyAllowed {ρ = suc} {μ = μ} {ν = genᵈ μ} {A = B}
+    ModeRename-suc-gen ok
+
+tyAllowed-shift-inst :
+  ∀ {μ B} →
+  tyAllowed μ B ≡ true →
+  tyAllowed (instᵈ μ) (⇑ᵗ B) ≡ true
+tyAllowed-shift-inst {μ = μ} {B = B} ok =
+  modeRename-tyAllowed {ρ = suc} {μ = μ} {ν = instᵈ μ} {A = B}
+    ModeRename-suc-inst ok
+
+data Realizesᵐ (μ : DualEnv) (Δ : TyCtx) (Σ : Store) : ImpCtx → Set₁ where
   real-[] :
-    Realizes Δ Σ []
+    Realizesᵐ μ Δ Σ []
 
   real-xx : ∀ {Φ X Y c d} →
     WfTy Δ (＇ X) →
     WfTy Δ (＇ Y) →
-    Δ ∣ Σ ⊢ c ∶ ＇ X =⇒ ＇ Y →
-    Δ ∣ Σ ⊢ d ∶ ＇ Y =⇒ ＇ X →
-    Realizes Δ Σ Φ →
-    Realizes Δ Σ ((X ˣ⊑ˣ Y) ∷ Φ)
+    μ ∣ Δ ∣ Σ ⊢ c ∶ ＇ X =⇒ ＇ Y →
+    μ ∣ Δ ∣ Σ ⊢ d ∶ ＇ Y =⇒ ＇ X →
+    Realizesᵐ μ Δ Σ Φ →
+    Realizesᵐ μ Δ Σ ((X ˣ⊑ˣ Y) ∷ Φ)
 
   real-star : ∀ {Φ X c d} →
     WfTy Δ (＇ X) →
-    Δ ∣ Σ ⊢ c ∶ ＇ X =⇒ ★ →
-    Δ ∣ Σ ⊢ d ∶ ★ =⇒ ＇ X →
-    Realizes Δ Σ Φ →
-    Realizes Δ Σ ((X ˣ⊑★) ∷ Φ)
+    μ ∣ Δ ∣ Σ ⊢ c ∶ ＇ X =⇒ ★ →
+    μ ∣ Δ ∣ Σ ⊢ d ∶ ★ =⇒ ＇ X →
+    Realizesᵐ μ Δ Σ Φ →
+    Realizesᵐ μ Δ Σ ((X ˣ⊑★) ∷ Φ)
+
+Realizes : TyCtx → Store → ImpCtx → Set₁
+Realizes Δ Σ Φ = Realizesᵐ normalᵈ Δ Σ Φ
 
 realizes-xx-up :
-  ∀ {Δ Σ Φ X Y} →
-  Realizes Δ Σ Φ →
+  ∀ {μ Δ Σ Φ X Y} →
+  Realizesᵐ μ Δ Σ Φ →
   (X ˣ⊑ˣ Y) ∈ Φ →
-  Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ∶ ＇ X =⇒ ＇ Y
+  Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ ＇ X =⇒ ＇ Y
 realizes-xx-up (real-xx hX hY c⊢ d⊢ r) (here refl) = _ , c⊢
 realizes-xx-up (real-xx hX hY c⊢ d⊢ r) (there x∈) =
   realizes-xx-up r x∈
@@ -86,10 +151,10 @@ realizes-xx-up (real-star hX c⊢ d⊢ r) (there x∈) =
   realizes-xx-up r x∈
 
 realizes-xx-down :
-  ∀ {Δ Σ Φ X Y} →
-  Realizes Δ Σ Φ →
+  ∀ {μ Δ Σ Φ X Y} →
+  Realizesᵐ μ Δ Σ Φ →
   (X ˣ⊑ˣ Y) ∈ Φ →
-  Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ∶ ＇ Y =⇒ ＇ X
+  Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ ＇ Y =⇒ ＇ X
 realizes-xx-down (real-xx hX hY c⊢ d⊢ r) (here refl) = _ , d⊢
 realizes-xx-down (real-xx hX hY c⊢ d⊢ r) (there x∈) =
   realizes-xx-down r x∈
@@ -98,10 +163,10 @@ realizes-xx-down (real-star hX c⊢ d⊢ r) (there x∈) =
   realizes-xx-down r x∈
 
 realizes-star-up :
-  ∀ {Δ Σ Φ X} →
-  Realizes Δ Σ Φ →
+  ∀ {μ Δ Σ Φ X} →
+  Realizesᵐ μ Δ Σ Φ →
   (X ˣ⊑★) ∈ Φ →
-  Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ∶ ＇ X =⇒ ★
+  Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ ＇ X =⇒ ★
 realizes-star-up (real-xx hX hY c⊢ d⊢ r) (here ())
 realizes-star-up (real-xx hX hY c⊢ d⊢ r) (there x∈) =
   realizes-star-up r x∈
@@ -110,10 +175,10 @@ realizes-star-up (real-star hX c⊢ d⊢ r) (there x∈) =
   realizes-star-up r x∈
 
 realizes-star-down :
-  ∀ {Δ Σ Φ X} →
-  Realizes Δ Σ Φ →
+  ∀ {μ Δ Σ Φ X} →
+  Realizesᵐ μ Δ Σ Φ →
   (X ˣ⊑★) ∈ Φ →
-  Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ∶ ★ =⇒ ＇ X
+  Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ ★ =⇒ ＇ X
 realizes-star-down (real-xx hX hY c⊢ d⊢ r) (here ())
 realizes-star-down (real-xx hX hY c⊢ d⊢ r) (there x∈) =
   realizes-star-down r x∈
@@ -122,124 +187,89 @@ realizes-star-down (real-star hX c⊢ d⊢ r) (there x∈) =
   realizes-star-down r x∈
 
 Realizes-store-weaken :
-  ∀ {Δ Σ Σ′ Φ} →
+  ∀ {μ Δ Σ Σ′ Φ} →
   StoreIncl Σ Σ′ →
-  Realizes Δ Σ Φ →
-  Realizes Δ Σ′ Φ
+  Realizesᵐ μ Δ Σ Φ →
+  Realizesᵐ μ Δ Σ′ Φ
 Realizes-store-weaken incl real-[] = real-[]
 Realizes-store-weaken incl (real-xx hX hY c⊢ d⊢ r) =
   real-xx
     hX
     hY
-    (coercion-weaken ≤-refl incl c⊢)
-    (coercion-weaken ≤-refl incl d⊢)
+    (coercion-weakenᵐ ≤-refl incl c⊢)
+    (coercion-weakenᵐ ≤-refl incl d⊢)
     (Realizes-store-weaken incl r)
 Realizes-store-weaken incl (real-star hX c⊢ d⊢ r) =
   real-star
     hX
-    (coercion-weaken ≤-refl incl c⊢)
-    (coercion-weaken ≤-refl incl d⊢)
+    (coercion-weakenᵐ ≤-refl incl c⊢)
+    (coercion-weakenᵐ ≤-refl incl d⊢)
     (Realizes-store-weaken incl r)
 
-Realizes-⇑ᵢ :
-  ∀ {Δ Σ Φ} →
-  Realizes Δ Σ Φ →
-  Realizes (suc Δ) (⟰ᵗ Σ) (⇑ᵢ Φ)
-Realizes-⇑ᵢ real-[] = real-[]
-Realizes-⇑ᵢ (real-xx hX hY c⊢ d⊢ r) =
+Realizes-rename-suc :
+  ∀ {μ ν Δ Σ Φ} →
+  ModeRename suc μ ν →
+  Realizesᵐ μ Δ Σ Φ →
+  Realizesᵐ ν (suc Δ) (⟰ᵗ Σ) (⇑ᵢ Φ)
+Realizes-rename-suc rel real-[] = real-[]
+Realizes-rename-suc rel (real-xx hX hY c⊢ d⊢ r) =
   real-xx
     (renameᵗ-preserves-WfTy hX TyRenameWf-suc)
     (renameᵗ-preserves-WfTy hY TyRenameWf-suc)
-    (coercion-renameᵗ TyRenameWf-suc c⊢)
-    (coercion-renameᵗ TyRenameWf-suc d⊢)
-    (Realizes-⇑ᵢ r)
-Realizes-⇑ᵢ (real-star hX c⊢ d⊢ r) =
+    (coercion-renameᵗᵐ TyRenameWf-suc rel c⊢)
+    (coercion-renameᵗᵐ TyRenameWf-suc rel d⊢)
+    (Realizes-rename-suc rel r)
+Realizes-rename-suc rel (real-star hX c⊢ d⊢ r) =
   real-star
     (renameᵗ-preserves-WfTy hX TyRenameWf-suc)
-    (coercion-renameᵗ TyRenameWf-suc c⊢)
-    (coercion-renameᵗ TyRenameWf-suc d⊢)
-    (Realizes-⇑ᵢ r)
+    (coercion-renameᵗᵐ TyRenameWf-suc rel c⊢)
+    (coercion-renameᵗᵐ TyRenameWf-suc rel d⊢)
+    (Realizes-rename-suc rel r)
 
-var-to-shift :
-  ∀ {Δ Σ X} →
-  (ℓ : Label) →
-  WfTy Δ (＇ X) →
-  Σ[ c ∈ Coercion ] suc Δ ∣ Σ ⊢ c ∶ ＇ X =⇒ ＇ suc X
-var-to-shift {Δ = Δ} {X = X} ℓ hX =
-  (((＇ X) !ᶜ) ︔ᶜ ((＇ (suc X)) ？ᶜ)) ,
-  cast-seq
-    (cast-tag (WfTy-weakenᵗ hX (n≤1+n Δ)) (＇ X))
-    (cast-untag (renameᵗ-preserves-WfTy hX TyRenameWf-suc) (＇ (suc X)))
-
-var-from-shift :
-  ∀ {Δ Σ X} →
-  (ℓ : Label) →
-  WfTy Δ (＇ X) →
-  Σ[ c ∈ Coercion ] suc Δ ∣ Σ ⊢ c ∶ ＇ suc X =⇒ ＇ X
-var-from-shift {Δ = Δ} {X = X} ℓ hX =
-  (((＇ (suc X)) !ᶜ) ︔ᶜ ((＇ X) ？ᶜ)) ,
-  cast-seq
-    (cast-tag (renameᵗ-preserves-WfTy hX TyRenameWf-suc) (＇ (suc X)))
-    (cast-untag (WfTy-weakenᵗ hX (n≤1+n Δ)) (＇ X))
-
-Realizes-⇑ᴸᵢ :
-  ∀ {Δ Σ Φ} →
-  (ℓ : Label) →
-  Realizes Δ Σ Φ →
-  Realizes (suc Δ) (⟰ᵗ Σ) (⇑ᴸᵢ Φ)
-Realizes-⇑ᴸᵢ ℓ real-[] = real-[]
-Realizes-⇑ᴸᵢ {Δ = Δ} ℓ (real-xx hX hY c⊢ d⊢ r)
-    with var-from-shift ℓ hY | var-to-shift ℓ hY
-Realizes-⇑ᴸᵢ {Δ = Δ} ℓ (real-xx hX hY c⊢ d⊢ r)
-    | y↓ , y↓⊢ | y↑ , y↑⊢ =
-  real-xx
-    (renameᵗ-preserves-WfTy hX TyRenameWf-suc)
-    (WfTy-weakenᵗ hY (n≤1+n Δ))
-    (cast-seq (coercion-renameᵗ TyRenameWf-suc c⊢) y↓⊢)
-    (cast-seq y↑⊢ (coercion-renameᵗ TyRenameWf-suc d⊢))
-    (Realizes-⇑ᴸᵢ ℓ r)
-Realizes-⇑ᴸᵢ ℓ (real-star hX c⊢ d⊢ r) =
-  real-star
-    (renameᵗ-preserves-WfTy hX TyRenameWf-suc)
-    (coercion-renameᵗ TyRenameWf-suc c⊢)
-    (coercion-renameᵗ TyRenameWf-suc d⊢)
-    (Realizes-⇑ᴸᵢ ℓ r)
+Realizes-⇑ᵢ :
+  ∀ {μ Δ Σ Φ} →
+  Realizesᵐ μ Δ Σ Φ →
+  Realizesᵐ (extᵈ μ) (suc Δ) (⟰ᵗ Σ) (⇑ᵢ Φ)
+Realizes-⇑ᵢ = Realizes-rename-suc ModeRename-suc-ext
 
 Realizes-∀ⁱ :
-  ∀ {Δ Σ Φ} →
-  Realizes Δ Σ Φ →
-  Realizes (suc Δ) (⟰ᵗ Σ) ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+  ∀ {μ Δ Σ Φ} →
+  Realizesᵐ μ Δ Σ Φ →
+  Realizesᵐ (extᵈ μ) (suc Δ) (⟰ᵗ Σ)
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
 Realizes-∀ⁱ r =
   real-xx
     (wfVar z<s)
     (wfVar z<s)
-    (cast-id (wfVar z<s))
-    (cast-id (wfVar z<s))
+    (cast-id (wfVar z<s) refl)
+    (cast-id (wfVar z<s) refl)
     (Realizes-⇑ᵢ r)
 
 Realizes-ν-inst :
-  ∀ {Δ Σ Φ} →
+  ∀ {μ Δ Σ Φ} →
   (ℓ : Label) →
-  Realizes Δ Σ Φ →
-  Realizes (suc Δ) ((zero , ★) ∷ ⟰ᵗ Σ) ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+  Realizesᵐ μ Δ Σ Φ →
+  Realizesᵐ (instᵈ μ) (suc Δ) ((zero , ★) ∷ ⟰ᵗ Σ)
+    ((zero ˣ⊑★) ∷ ⇑ᵢ Φ)
 Realizes-ν-inst ℓ r =
   real-star
     (wfVar z<s)
-    (cast-unseal wf★ (here refl))
-    (cast-seal wf★ (here refl))
-    (Realizes-store-weaken StoreIncl-drop (Realizes-⇑ᴸᵢ ℓ r))
+    (cast-unseal wf★ (here refl) refl refl)
+    (cast-seal wf★ (here refl) refl refl)
+    (Realizes-store-weaken StoreIncl-drop
+      (Realizes-rename-suc ModeRename-suc-inst r))
 
 Realizes-ν-gen :
-  ∀ {Δ Σ Φ} →
+  ∀ {μ Δ Σ Φ} →
   (ℓ : Label) →
-  Realizes Δ Σ Φ →
-  Realizes (suc Δ) (⟰ᵗ Σ) ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+  Realizesᵐ μ Δ Σ Φ →
+  Realizesᵐ (genᵈ μ) (suc Δ) (⟰ᵗ Σ) ((zero ˣ⊑★) ∷ ⇑ᵢ Φ)
 Realizes-ν-gen ℓ r =
   real-star
     (wfVar z<s)
-    (cast-tag (wfVar z<s) (＇ zero))
-    (cast-untag (wfVar z<s) (＇ zero))
-    (Realizes-⇑ᴸᵢ ℓ r)
+    (cast-tag (wfVar z<s) (＇ zero) refl)
+    (cast-untag (wfVar z<s) (＇ zero) refl)
+    (Realizes-rename-suc ModeRename-suc-gen r)
 
 realizes-idᵢ :
   ∀ Δ →
@@ -249,99 +279,151 @@ realizes-idᵢ (suc Δ) =
   real-xx
     (wfVar z<s)
     (wfVar z<s)
-    (cast-id (wfVar z<s))
-    (cast-id (wfVar z<s))
-    (Realizes-⇑ᵢ (realizes-idᵢ Δ))
+    (cast-id (wfVar z<s) (tyAllowed-normal (＇ zero)))
+    (cast-id (wfVar z<s) (tyAllowed-normal (＇ zero)))
+    (Realizes-rename-suc ModeRename-suc-normal (realizes-idᵢ Δ))
 
 ------------------------------------------------------------------------
 -- Coercion synthesis from imprecision
 ------------------------------------------------------------------------
 
 mutual
-  coerce-up :
-    ∀ {Δ Σ Φ C A} →
+  coerce-upᵐ :
+    ∀ {μ Δ Σ Φ C A} →
     (ℓ : Label) →
     WfTy Δ C →
     WfTy Δ A →
-    Realizes Δ Σ Φ →
+    tyAllowed μ A ≡ true →
+    Realizesᵐ μ Δ Σ Φ →
     Φ ⊢ C ⊑ A →
-    Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ∶ C =⇒ A
-  coerce-up ℓ wf★ wf★ r id★ =
-    idᶜ ★ , cast-id wf★
-  coerce-up {C = ＇ X} {A = ＇ Y} ℓ hX hY r (idˣ X⊑Y) =
+    Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ C =⇒ A
+  coerce-upᵐ ℓ wf★ wf★ ok r id★ =
+    idᶜ ★ , cast-id wf★ refl
+  coerce-upᵐ {C = ＇ X} {A = ＇ Y} ℓ hX hY ok r (idˣ X⊑Y) =
     realizes-xx-up r X⊑Y
-  coerce-up {C = ‵ ι} ℓ wfBase wfBase r idι =
-    idᶜ (‵ ι) , cast-id wfBase
-  coerce-up ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) r (p ↦ q)
-      with coerce-down ℓ hA hA′ r p | coerce-up ℓ hB hB′ r q
-  coerce-up ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) r (p ↦ q)
-      | s , s⊢ | t , t⊢ =
+  coerce-upᵐ {C = ‵ ι} ℓ wfBase wfBase ok r idι =
+    idᶜ (‵ ι) , cast-id wfBase refl
+  coerce-upᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
+      (wf⇒ hA hB) (wf⇒ hA′ hB′) ok r (p ↦ q)
+      with tyAllowed μ A′ in okA′ | tyAllowed μ B′ in okB′
+  coerce-upᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
+      (wf⇒ hA hB) (wf⇒ hA′ hB′) ok r (p ↦ q)
+      | true | true
+      with coerce-downᵐ ℓ hA hA′ okA′ r p
+         | coerce-upᵐ ℓ hB hB′ okB′ r q
+  coerce-upᵐ ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) ok r (p ↦ q)
+      | true | true | s , s⊢ | t , t⊢ =
     (s ↦ᶜ t) , cast-fun s⊢ t⊢
-  coerce-up ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
-      with coerce-up ℓ hA hB (Realizes-∀ⁱ r) p
-  coerce-up ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
+  coerce-upᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
+      (wf⇒ hA hB) (wf⇒ hA′ hB′) () r (p ↦ q)
+      | false | b
+  coerce-upᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
+      (wf⇒ hA hB) (wf⇒ hA′ hB′) () r (p ↦ q)
+      | true | false
+  coerce-upᵐ ℓ (wf∀ hA) (wf∀ hB) ok r (∀ⁱ p)
+      with coerce-upᵐ ℓ hA hB ok (Realizes-∀ⁱ r) p
+  coerce-upᵐ ℓ (wf∀ hA) (wf∀ hB) ok r (∀ⁱ p)
       | c , c⊢ =
     `∀ᶜ c , cast-all c⊢
-  coerce-up {C = ‵ ι} ℓ wfBase wf★ r (tag ι) =
-    ((‵ ι) !ᶜ) , cast-tag wfBase (‵ ι)
-  coerce-up ℓ (wf⇒ hA hB) wf★ r (tag_⇒_ p q)
-      with coerce-down ℓ hA wf★ r p | coerce-up ℓ hB wf★ r q
-  coerce-up ℓ (wf⇒ hA hB) wf★ r (tag_⇒_ p q)
+  coerce-upᵐ {C = ‵ ι} ℓ wfBase wf★ ok r (tag ι) =
+    ((‵ ι) !ᶜ) , cast-tag wfBase (‵ ι) refl
+  coerce-upᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇒_ p q)
+      with coerce-downᵐ ℓ hA wf★ refl r p
+         | coerce-upᵐ ℓ hB wf★ refl r q
+  coerce-upᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇒_ p q)
       | s , s⊢ | t , t⊢ =
     ((s ↦ᶜ t) ︔ᶜ ((★ ⇒ ★) !ᶜ)) ,
-    cast-seq (cast-fun s⊢ t⊢) (cast-tag (wf⇒ wf★ wf★) ★⇒★)
-  coerce-up {C = ＇ X} ℓ hX wf★ r (tagˣ X⊑★) =
+    cast-seq (cast-fun s⊢ t⊢) (cast-tag (wf⇒ wf★ wf★) ★⇒★ refl)
+  coerce-upᵐ {C = ＇ X} ℓ hX wf★ ok r (tagˣ X⊑★) =
     realizes-star-up r X⊑★
-  coerce-up {A = B} ℓ (wf∀ hA) hB r (ν occ p)
-      with coerce-up ℓ
+  coerce-upᵐ {μ = μ} {A = B} ℓ (wf∀ hA) hB ok r (ν occ p)
+      with coerce-upᵐ ℓ
              hA
              (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
+             (tyAllowed-shift-inst {μ = μ} {B = B} ok)
              (Realizes-ν-inst ℓ r)
              p
-  coerce-up {A = B} ℓ (wf∀ hA) hB r (ν occ p)
+  coerce-upᵐ {μ = μ} {A = B} ℓ (wf∀ hA) hB ok r (ν occ p)
       | c , c⊢ =
-    instᶜ B c , cast-inst hB c⊢
+    instᶜ B c , cast-inst hB ok c⊢
 
-  coerce-down :
-    ∀ {Δ Σ Φ C A} →
+  coerce-downᵐ :
+    ∀ {μ Δ Σ Φ C A} →
     (ℓ : Label) →
     WfTy Δ C →
     WfTy Δ A →
-    Realizes Δ Σ Φ →
+    tyAllowed μ A ≡ true →
+    Realizesᵐ μ Δ Σ Φ →
     Φ ⊢ C ⊑ A →
-    Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ∶ A =⇒ C
-  coerce-down ℓ wf★ wf★ r id★ =
-    idᶜ ★ , cast-id wf★
-  coerce-down {C = ＇ X} {A = ＇ Y} ℓ hX hY r (idˣ X⊑Y) =
+    Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ C
+  coerce-downᵐ ℓ wf★ wf★ ok r id★ =
+    idᶜ ★ , cast-id wf★ refl
+  coerce-downᵐ {C = ＇ X} {A = ＇ Y} ℓ hX hY ok r (idˣ X⊑Y) =
     realizes-xx-down r X⊑Y
-  coerce-down {C = ‵ ι} ℓ wfBase wfBase r idι =
-    idᶜ (‵ ι) , cast-id wfBase
-  coerce-down ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) r (p ↦ q)
-      with coerce-up ℓ hA hA′ r p | coerce-down ℓ hB hB′ r q
-  coerce-down ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) r (p ↦ q)
-      | s , s⊢ | t , t⊢ =
+  coerce-downᵐ {C = ‵ ι} ℓ wfBase wfBase ok r idι =
+    idᶜ (‵ ι) , cast-id wfBase refl
+  coerce-downᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
+      (wf⇒ hA hB) (wf⇒ hA′ hB′) ok r (p ↦ q)
+      with tyAllowed μ A′ in okA′ | tyAllowed μ B′ in okB′
+  coerce-downᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
+      (wf⇒ hA hB) (wf⇒ hA′ hB′) ok r (p ↦ q)
+      | true | true
+      with coerce-upᵐ ℓ hA hA′ okA′ r p
+         | coerce-downᵐ ℓ hB hB′ okB′ r q
+  coerce-downᵐ ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) ok r (p ↦ q)
+      | true | true | s , s⊢ | t , t⊢ =
     (s ↦ᶜ t) , cast-fun s⊢ t⊢
-  coerce-down ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
-      with coerce-down ℓ hA hB (Realizes-∀ⁱ r) p
-  coerce-down ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
+  coerce-downᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
+      (wf⇒ hA hB) (wf⇒ hA′ hB′) () r (p ↦ q)
+      | false | b
+  coerce-downᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
+      (wf⇒ hA hB) (wf⇒ hA′ hB′) () r (p ↦ q)
+      | true | false
+  coerce-downᵐ ℓ (wf∀ hA) (wf∀ hB) ok r (∀ⁱ p)
+      with coerce-downᵐ ℓ hA hB ok (Realizes-∀ⁱ r) p
+  coerce-downᵐ ℓ (wf∀ hA) (wf∀ hB) ok r (∀ⁱ p)
       | c , c⊢ =
     `∀ᶜ c , cast-all c⊢
-  coerce-down {C = ‵ ι} ℓ wfBase wf★ r (tag ι) =
-    ((‵ ι) ？ᶜ) , cast-untag wfBase (‵ ι)
-  coerce-down ℓ (wf⇒ hA hB) wf★ r (tag_⇒_ p q)
-      with coerce-up ℓ hA wf★ r p | coerce-down ℓ hB wf★ r q
-  coerce-down ℓ (wf⇒ hA hB) wf★ r (tag_⇒_ p q)
+  coerce-downᵐ {C = ‵ ι} ℓ wfBase wf★ ok r (tag ι) =
+    ((‵ ι) ？ᶜ) , cast-untag wfBase (‵ ι) refl
+  coerce-downᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇒_ p q)
+      with coerce-upᵐ ℓ hA wf★ refl r p
+         | coerce-downᵐ ℓ hB wf★ refl r q
+  coerce-downᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇒_ p q)
       | s , s⊢ | t , t⊢ =
     (((★ ⇒ ★) ？ᶜ) ︔ᶜ (s ↦ᶜ t)) ,
-    cast-seq (cast-untag (wf⇒ wf★ wf★) ★⇒★) (cast-fun s⊢ t⊢)
-  coerce-down {C = ＇ X} ℓ hX wf★ r (tagˣ X⊑★) =
+    cast-seq (cast-untag (wf⇒ wf★ wf★) ★⇒★ refl) (cast-fun s⊢ t⊢)
+  coerce-downᵐ {C = ＇ X} ℓ hX wf★ ok r (tagˣ X⊑★) =
     realizes-star-down r X⊑★
-  coerce-down {A = B} ℓ (wf∀ hA) hB r (ν occ p)
-      with coerce-down ℓ
+  coerce-downᵐ {μ = μ} {A = B} ℓ (wf∀ hA) hB ok r (ν occ p)
+      with coerce-downᵐ ℓ
              hA
              (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
+             (tyAllowed-shift-gen {μ = μ} {B = B} ok)
              (Realizes-ν-gen ℓ r)
              p
-  coerce-down {A = B} ℓ (wf∀ hA) hB r (ν occ p)
+  coerce-downᵐ {μ = μ} {A = B} ℓ (wf∀ hA) hB ok r (ν occ p)
       | c , c⊢ =
-    genᶜ B c , cast-gen hB c⊢
+    genᶜ B c , cast-gen hB ok c⊢
+
+coerce-up :
+  ∀ {Δ Σ Φ C A} →
+  (ℓ : Label) →
+  WfTy Δ C →
+  WfTy Δ A →
+  Realizes Δ Σ Φ →
+  Φ ⊢ C ⊑ A →
+  Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ∶ C =⇒ A
+coerce-up {A = A} ℓ hC hA r p =
+  coerce-upᵐ ℓ hC hA (tyAllowed-normal A) r p
+
+coerce-down :
+  ∀ {Δ Σ Φ C A} →
+  (ℓ : Label) →
+  WfTy Δ C →
+  WfTy Δ A →
+  Realizes Δ Σ Φ →
+  Φ ⊢ C ⊑ A →
+  Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ∶ A =⇒ C
+coerce-down {A = A} ℓ hC hA r p =
+  coerce-downᵐ ℓ hC hA (tyAllowed-normal A) r p

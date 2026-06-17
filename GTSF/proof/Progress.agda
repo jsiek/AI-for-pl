@@ -95,7 +95,7 @@ canonical-∀ (_⟨_⟩ {V = W} vW (seal A α)) (⊢up () hW)
 canonical-∀ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢up () hW)
 canonical-∀ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢up (cast-all cwt) hW) =
   av-∀ vW refl
-canonical-∀ (_⟨_⟩ {V = W} vW (gen A c)) (⊢up (cast-gen _ cwt) hW) =
+canonical-∀ (_⟨_⟩ {V = W} vW (gen A c)) (⊢up (cast-gen _ _ cwt) hW) =
   av-gen vW refl
 
 data NatView (V : Term) : Set where
@@ -133,7 +133,7 @@ canonical-★ :
 canonical-★ (ƛ N) ()
 canonical-★ (Λ vV) ()
 canonical-★ ($ (κℕ n)) ()
-canonical-★ (_⟨_⟩ {V = W} vW (G !)) (⊢up (cast-tag _ _) hW) =
+canonical-★ (_⟨_⟩ {V = W} vW (G !)) (⊢up (cast-tag _ _ _) hW) =
   sv-tag vW refl
 canonical-★ (_⟨_⟩ {V = W} vW (seal A α)) (⊢up () hW)
 canonical-★ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢up () hW)
@@ -156,7 +156,7 @@ canonical-＇ (ƛ N) ()
 canonical-＇ (Λ vV) ()
 canonical-＇ ($ (κℕ n)) ()
 canonical-＇ (_⟨_⟩ {V = W} vW (G !)) (⊢up () hW)
-canonical-＇ (_⟨_⟩ {V = W} vW (seal A α)) (⊢up (cast-seal _ _) hW) =
+canonical-＇ (_⟨_⟩ {V = W} vW (seal A α)) (⊢up (cast-seal _ _ _ _) hW) =
   sv-seal vW refl
 canonical-＇ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢up () hW)
 canonical-＇ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢up () hW)
@@ -257,29 +257,29 @@ progress (⊢up {M = M} {c = c} c⊢ M⊢) | step M→M′ =
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | crash refl =
   step (pure-step blame-⟨⟩)
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM with c⊢
-progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-id hA =
+progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-id hA _ =
   step (pure-step (β-id vM))
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM
-    | cast-seal hA hα =
+    | cast-seal hA hα _ _ =
   done (vM ⟨ seal _ _ ⟩)
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM
-    | cast-unseal hA hα =
+    | cast-unseal hA hα _ _ =
   unseal-progress vM M⊢
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM
     | cast-seq p⊢ q⊢ =
   step (pure-step (β-seq vM))
-progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-tag hG gG =
+progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-tag hG gG _ =
   done (vM ⟨ _ ! ⟩)
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM
-    | cast-untag hG gG =
+    | cast-untag hG gG _ =
   untag-progress vM M⊢
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM
     | cast-fun p⊢ q⊢ =
   done (vM ⟨ _ ↦ _ ⟩)
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-all cwt =
   done (vM ⟨ `∀ _ ⟩)
-progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-inst _ cwt =
+progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-inst _ _ cwt =
   step (β-up-ν vM)
-progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-gen _ cwt =
+progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-gen _ _ cwt =
   done (vM ⟨ gen _ _ ⟩)
 progress (⊢blame hA) = crash refl

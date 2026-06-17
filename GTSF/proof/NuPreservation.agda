@@ -46,15 +46,18 @@ record PreservationResult
 open PreservationResult public
 
 coercion-open-existing :
-  ∀ {Δ Σ c A B α} →
+  ∀ {μ Δ Σ c A B α} →
   α < Δ →
-  suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ A =⇒ B →
+  μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ A =⇒ B →
   Δ ∣ Σ ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
-coercion-open-existing {Σ = Σ} {α = α} α<Δ c⊢ =
+coercion-open-existing {μ = μ} {Σ = Σ} {α = α} α<Δ c⊢ =
   subst
     (λ Σ′ → _ ∣ Σ′ ⊢ _ ∶ _ =⇒ _)
     (renameStoreᵗ-single-suc-cancel α Σ)
-    (coercion-renameᵗ (singleRenameᵗ-Wf-< α<Δ) c⊢)
+    (coercion-renameᵗᵐ
+      (singleRenameᵗ-Wf-< α<Δ)
+      (ModeRename-to-normal {ρ = singleRenameᵗ α} {μ = μ})
+      c⊢)
 
 ------------------------------------------------------------------------
 -- Raw redex preservation
@@ -77,7 +80,7 @@ pure-preservation wfΣ hΓ
     (⊢• {B = B} (⊢Λ {A = B′} vV V⊢) α<Δ)
     β-Λ =
   typing-open-existingᵀ α<Δ V⊢
-pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-id hA) hV) (β-id vV) =
+pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-id hA _) hV) (β-id vV) =
   hV
 pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-seq p⊢ q⊢) hV) (β-seq vV) =
   ⊢⟨⟩ q⊢ (⊢⟨⟩ p⊢ hV)
@@ -96,13 +99,13 @@ pure-preservation wfΣ hΓ
   where
     src-open-eq :
       (src c) [ α ]ᴿ ≡ A₀ [ α ]ᴿ
-    src-open-eq with coercion-src-tgt c⊢
+    src-open-eq with coercion-src-tgtᵐ c⊢
     src-open-eq | src-eq , tgt-eq =
       cong (λ T → T [ α ]ᴿ) src-eq
 
     V-src⊢ :
       _ ∣ _ ∣ _ ⊢ V ⦂ `∀ (src c)
-    V-src⊢ with coercion-src-tgt c⊢
+    V-src⊢ with coercion-src-tgtᵐ c⊢
     V-src⊢ | src-eq , tgt-eq =
       subst (λ U → _ ∣ _ ∣ _ ⊢ V ⦂ `∀ U) (sym src-eq) V⊢
 
@@ -115,7 +118,7 @@ pure-preservation wfΣ hΓ
         (⊢• V-src⊢ α<Δ)
 pure-preservation wfΣ hΓ
     (⊢• {α = α}
-      (⊢⟨⟩ (gen⊢@(cast-gen {s = c} hC c⊢)) V⊢)
+      (⊢⟨⟩ (gen⊢@(cast-gen {s = c} hC _ c⊢)) V⊢)
       α<Δ)
     (β-gen vV) =
   ⊢⟨⟩
@@ -125,11 +128,11 @@ pure-preservation wfΣ hΓ
       (coercion-open-existing α<Δ c⊢))
     V⊢
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ {M = V} (cast-inst {A = A} {B = B} {s = c} hB c⊢) V⊢)
+    (⊢⟨⟩ {M = V} (cast-inst {A = A} {B = B} {s = c} hB _ c⊢) V⊢)
     (β-inst vV) =
   ⊢ν
     wf★
-    (⊢⟨⟩ c⊢ app-src⊢)
+    (⊢⟨⟩ (coercion-mode-relax modeIncl-normal c⊢) app-src⊢)
   where
     app-src-eq :
       (renameᵗ (extᵗ suc) A) [ zero ]ᴿ ≡ A
@@ -156,18 +159,18 @@ pure-preservation wfΣ hΓ
         app-src-eq
         (⊢• shifted-V⊢ z<s)
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ (cast-unseal hB αB∈Σ)
-      (⊢⟨⟩ (cast-seal hA αA∈Σ) hV))
+    (⊢⟨⟩ (cast-unseal hB αB∈Σ _ _)
+      (⊢⟨⟩ (cast-seal hA αA∈Σ _ _) hV))
     (seal-unseal vV) =
   subst (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
         (unique wfΣ αA∈Σ αB∈Σ)
         hV
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ (cast-untag hG gG) (⊢⟨⟩ (cast-tag hG′ gG′) hV))
+    (⊢⟨⟩ (cast-untag hG gG _) (⊢⟨⟩ (cast-tag hG′ gG′ _) hV))
     (tag-untag-ok vV) =
   hV
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ (cast-untag hH gH) (⊢⟨⟩ (cast-tag hG gG) hV))
+    (⊢⟨⟩ (cast-untag hH gH _) (⊢⟨⟩ (cast-tag hG gG _) hV))
     (tag-untag-bad vV G≢H) =
   ⊢blame hH
 pure-preservation wfΣ hΓ (⊢· (⊢blame (wf⇒ hA hB)) hM) blame-·₁ =

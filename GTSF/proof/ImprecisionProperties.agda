@@ -140,9 +140,9 @@ WfImpCtx-to² hΦ {a = X ˣ⊑ˣ Y} a∈ = hΦ a∈
 νᵢ-wf :
   ∀ {Δ Φ} →
   WfImpCtx Δ Φ →
-  WfImpCtx (suc Δ) ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+  WfImpCtx (suc Δ) ((zero ˣ⊑★) ∷ ⇑ᵢ Φ)
 νᵢ-wf hΦ (here refl) = z<s
-νᵢ-wf hΦ (there a∈) = ⇑ᴸᵢ-wf hΦ a∈
+νᵢ-wf hΦ (there a∈) = ⇑ᵢ-wf hΦ a∈
 
 ⇑ᵢ-wf² :
   ∀ {Δᴸ Δᴿ Φ} →
@@ -182,9 +182,9 @@ WfImpCtx-to² hΦ {a = X ˣ⊑ˣ Y} a∈ = hΦ a∈
 νᵢ-wf² :
   ∀ {Δᴸ Δᴿ Φ} →
   WfImpCtx² Δᴸ Δᴿ Φ →
-  WfImpCtx² (suc Δᴸ) Δᴿ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+  WfImpCtx² (suc Δᴸ) (suc Δᴿ) ((zero ˣ⊑★) ∷ ⇑ᵢ Φ)
 νᵢ-wf² hΦ (here refl) = z<s
-νᵢ-wf² hΦ (there a∈) = ⇑ᴸᵢ-wf² hΦ a∈
+νᵢ-wf² hΦ (there a∈) = ⇑ᵢ-wf² hΦ a∈
 
 idᵢ-wf :
   ∀ Δ →
@@ -381,7 +381,7 @@ mutual
   imp? Φ (`∀ A) (＇ X) | no ¬occA =
     no λ { (ν occ A⊑X) → ¬occA occ }
   imp? Φ (`∀ A) (＇ X) | yes occA
-      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (＇ X)
+      with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (＇ X))
   imp? Φ (`∀ A) (＇ X) | yes occA | yes A⊑X = yes (ν occA A⊑X)
   imp? Φ (`∀ A) (＇ X) | yes occA | no A⋢X =
     no λ { (ν occ A⊑X) → A⋢X A⊑X }
@@ -389,7 +389,7 @@ mutual
   imp? Φ (`∀ A) (‵ ι) | no ¬occA =
     no λ { (ν occ A⊑ι) → ¬occA occ }
   imp? Φ (`∀ A) (‵ ι) | yes occA
-      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (‵ ι)
+      with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (‵ ι))
   imp? Φ (`∀ A) (‵ ι) | yes occA | yes A⊑ι = yes (ν occA A⊑ι)
   imp? Φ (`∀ A) (‵ ι) | yes occA | no A⋢ι =
     no λ { (ν occ A⊑ι) → A⋢ι A⊑ι }
@@ -397,7 +397,7 @@ mutual
   imp? Φ (`∀ A) ★ | no ¬occA =
     no λ { (ν occ A⊑★) → ¬occA occ }
   imp? Φ (`∀ A) ★ | yes occA
-      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A ★
+      with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ ★)
   imp? Φ (`∀ A) ★ | yes occA | yes A⊑★ = yes (ν occA A⊑★)
   imp? Φ (`∀ A) ★ | yes occA | no A⋢★ =
     no λ { (ν occ A⊑★) → A⋢★ A⊑★ }
@@ -405,7 +405,7 @@ mutual
   imp? Φ (`∀ A) (B₁ ⇒ B₂) | no ¬occA =
     no λ { (ν occ A⊑B) → ¬occA occ }
   imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes occA
-      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (B₁ ⇒ B₂)
+      with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (B₁ ⇒ B₂))
   imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes occA | yes A⊑B =
     yes (ν occA A⊑B)
   imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes occA | no A⋢B =
@@ -420,7 +420,7 @@ mutual
       ; (ν occ A⊑∀B) → ¬occA occ
       }
   imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes occA
-      with imp? ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) A (`∀ B)
+      with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (`∀ B))
   imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes occA | yes A⊑∀B =
     yes (ν occA A⊑∀B)
   imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes occA | no A⋢∀B =
@@ -470,7 +470,8 @@ mutual
   ⊑-tgt-wf² hΦ (tag ι) = wf★
   ⊑-tgt-wf² hΦ (tag_⇒_ p q) = wf★
   ⊑-tgt-wf² hΦ (tagˣ X⊑★∈) = wf★
-  ⊑-tgt-wf² hΦ (ν occA p) = ⊑-tgt-wf² (νᵢ-wf² hΦ) p
+  ⊑-tgt-wf² hΦ (ν occA p) =
+    WfTy-un⇑ᵗ (⊑-tgt-wf² (νᵢ-wf² hΦ) p)
 
 ⊑-src-wf :
   ∀ {Δ Φ A B} →
@@ -539,14 +540,17 @@ no-⇑ᴸᵢ-zero-left {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
 
 νctx-no-var-left-zero :
   ∀ {Φ} →
-  NoVarLeft ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) zero
-νctx-no-var-left-zero (there x∈) = no-⇑ᴸᵢ-zero-left x∈
+  NoVarLeft ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) zero
+νctx-no-var-left-zero (there x∈) = no-⇑ᵢ-zero-left x∈
 
 νctx-no-var-left-suc :
   ∀ {Φ X} →
   NoVarLeft Φ X →
-  NoVarLeft ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc X)
-νctx-no-var-left-suc noX (there x∈) = noX (un⇑ᴸᵢ-ˣ∈ x∈)
+  NoVarLeft ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) (suc X)
+νctx-no-var-left-suc noX {Y = zero} (there x∈) =
+  no-⇑ᵢ-zero-right x∈
+νctx-no-var-left-suc noX {Y = suc Y} (there x∈) =
+  noX (un⇑ᵢ-ˣ∈ x∈)
 
 ⊑-to-var-occurs-false :
   ∀ {Φ C X} Y →
@@ -602,7 +606,7 @@ data ArrowTargetInv (Δ : TyCtx) : Ty → Ty → Ty → Set where
   arrow-target-ν :
     ∀ {A B C} →
     (occ : occurs zero C ≡ true) →
-    (zero ˣ⊑★) ∷ ⇑ᴸᵢ (idᵢ Δ) ⊢ C ⊑ A ⇒ B →
+    (zero ˣ⊑★) ∷ ⇑ᵢ (idᵢ Δ) ⊢ C ⊑ ⇑ᵗ (A ⇒ B) →
     ArrowTargetInv Δ (`∀ C) A B
 
 ⊑-arrow-inv-idᵢ :
@@ -621,7 +625,7 @@ data ForallTargetInv (Δ : TyCtx) : Ty → Ty → Set where
   forall-target-ν :
     ∀ {A C} →
     (occ : occurs zero C ≡ true) →
-    (zero ˣ⊑★) ∷ ⇑ᴸᵢ (idᵢ Δ) ⊢ C ⊑ `∀ A →
+    (zero ˣ⊑★) ∷ ⇑ᵢ (idᵢ Δ) ⊢ C ⊑ ⇑ᵗ (`∀ A) →
     ForallTargetInv Δ (`∀ C) A
 
 ⊑-forall-inv-idᵢ :
@@ -767,6 +771,4 @@ data ForallTargetInv (Δ : TyCtx) : Ty → Ty → Set where
   idᵢ Δ ⊢ C ⊑ B →
   WfTy Δ C
 ~-lower-wf C⊑A C⊑B = ⊑-src-wf-idᵢ C⊑A
-
-
 

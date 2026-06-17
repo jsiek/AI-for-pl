@@ -65,40 +65,40 @@ data _—→_ : Term → Term → Set where
     ----------------------------------------------
     → V ⟨ inst B c ⟩ —→ ν ★ (((⇑ᵗᵐ V) • 0 ) ⟨ c ⟩)
 
-  tag-untag-ok : ∀ {V G}{ℓ}
+  tag-untag-ok : ∀ {V G}
     → Value V
     ------------------------------
-    → V ⟨ G ! ⟩ ⟨ G ？ ℓ ⟩  —→  V
+    → V ⟨ G ! ⟩ ⟨ G ？ ⟩  —→  V
 
-  tag-untag-bad : ∀ {V G H} {ℓ : Label}
+  tag-untag-bad : ∀ {V G H}
     → Value V → G ≢ H
     ----------------------------------------
-    → V ⟨ G ! ⟩ ⟨ H ？ ℓ ⟩ —→  blame ℓ
+    → V ⟨ G ! ⟩ ⟨ H ？ ⟩ —→  blame
 
   seal-unseal : ∀ {α V A B}
     → Value V
     ------------------------------------
     → V ⟨ seal A α ⟩ ⟨ unseal α B ⟩ —→ V
 
-  blame-·₁ : ∀ {ℓ : Label} {M : Term} →
-    (blame ℓ · M) —→ blame ℓ
+  blame-·₁ : ∀ {M : Term} →
+    (blame · M) —→ blame
 
-  blame-·₂ : ∀ {ℓ : Label} {V : Term} →
+  blame-·₂ : ∀ {V : Term} →
     Value V →
-    (V · blame ℓ) —→ blame ℓ
+    (V · blame) —→ blame
 
-  blame-·α : ∀ {ℓ : Label} {α : TyVar} →
-    (blame ℓ • α) —→ blame ℓ
+  blame-·α : ∀ {α : TyVar} →
+    (blame • α) —→ blame
 
-  blame-⟨⟩ : ∀ {c : Coercion} {ℓ : Label} →
-    ((blame ℓ) ⟨ c ⟩) —→ blame ℓ
+  blame-⟨⟩ : ∀ {c : Coercion} →
+    (blame ⟨ c ⟩) —→ blame
 
-  blame-⊕₁ : ∀ {ℓ : Label} {M : Term} {op : Prim} →
-    (blame ℓ ⊕[ op ] M) —→ blame ℓ
+  blame-⊕₁ : ∀ {M : Term} {op : Prim} →
+    (blame ⊕[ op ] M) —→ blame
 
-  blame-⊕₂ : ∀ {ℓ : Label} {L : Term} {op : Prim} →
+  blame-⊕₂ : ∀ {L : Term} {op : Prim} →
     Value L →
-    (L ⊕[ op ] blame ℓ) —→ blame ℓ
+    (L ⊕[ op ] blame) —→ blame
 
 
 --------------------------------------------------------------------------------

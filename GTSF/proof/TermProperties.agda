@@ -155,8 +155,8 @@ term-weaken Δ≤Δ′ incl (⊢⊕ hL op hM) =
   ⊢⊕ (term-weaken Δ≤Δ′ incl hL) op (term-weaken Δ≤Δ′ incl hM)
 term-weaken Δ≤Δ′ incl (⊢up c⊢ hM) =
   ⊢up (coercion-weaken Δ≤Δ′ incl c⊢) (term-weaken Δ≤Δ′ incl hM)
-term-weaken Δ≤Δ′ incl (⊢blame hA ℓ) =
-  ⊢blame (WfTy-weakenᵗ hA Δ≤Δ′) ℓ
+term-weaken Δ≤Δ′ incl (⊢blame hA) =
+  ⊢blame (WfTy-weakenᵗ hA Δ≤Δ′)
 
 term-weaken-suc :
   ∀ {Δ Σ Γ M A α C} →
@@ -210,8 +210,8 @@ typing-renameᵀ hρ (⊢⊕ hL op hM) =
   ⊢⊕ (typing-renameᵀ hρ hL) op (typing-renameᵀ hρ hM)
 typing-renameᵀ hρ (⊢up c⊢ hM) =
   ⊢up (coercion-renameᵗ hρ c⊢) (typing-renameᵀ hρ hM)
-typing-renameᵀ hρ (⊢blame hA ℓ) =
-  ⊢blame (renameᵗ-preserves-WfTy hA hρ) ℓ
+typing-renameᵀ hρ (⊢blame hA) =
+  ⊢blame (renameᵗ-preserves-WfTy hA hρ)
 
 typing-openᵀ :
   ∀ {Δ Σ Γ M A α C} →
@@ -258,7 +258,7 @@ typing-wf wfΣ hΓ (⊢$ κ) = constTy-wf κ
 typing-wf wfΣ hΓ (⊢⊕ hL op hM) = wfBase
 typing-wf wfΣ hΓ (⊢up c⊢ hM) with coercion-wf wfΣ c⊢
 typing-wf wfΣ hΓ (⊢up c⊢ hM) | hA , hB = hB
-typing-wf wfΣ hΓ (⊢blame hA ℓ) = hA
+typing-wf wfΣ hΓ (⊢blame hA) = hA
 
 ------------------------------------------------------------------------
 -- Renaming and substituting term variables
@@ -309,7 +309,7 @@ typing-renameˣ hρ (⊢⊕ hL op hM) =
   ⊢⊕ (typing-renameˣ hρ hL) op (typing-renameˣ hρ hM)
 typing-renameˣ hρ (⊢up c⊢ hM) =
   ⊢up c⊢ (typing-renameˣ hρ hM)
-typing-renameˣ hρ (⊢blame hA ℓ) = ⊢blame hA ℓ
+typing-renameˣ hρ (⊢blame hA) = ⊢blame hA
 
 typing-renameˣ-shift :
   ∀ {Δ Σ Γ M A B} →
@@ -357,7 +357,7 @@ typing-substˣ hσ (⊢⊕ hL op hM) =
   ⊢⊕ (typing-substˣ hσ hL) op (typing-substˣ hσ hM)
 typing-substˣ hσ (⊢up c⊢ hM) =
   ⊢up c⊢ (typing-substˣ hσ hM)
-typing-substˣ hσ (⊢blame hA ℓ) = ⊢blame hA ℓ
+typing-substˣ hσ (⊢blame hA) = ⊢blame hA
 
 singleSubstWf :
   ∀ {Δ Σ Γ A V} →

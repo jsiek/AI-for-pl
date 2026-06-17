@@ -238,27 +238,27 @@ mutual
   nrw-fun s t ⨟ⁿ nrw-fun s′ t′
       with s′ ⨟ʷ s | t ⨟ⁿ t′
   ... | _ , s″ | _ , t″ = _ , nrw-fun s″ t″
-  nrw-untag {ℓ = ℓ} wfG gG s ⨟ⁿ q@(nrw-fun s′ t′)
+  nrw-untag wfG gG s ⨟ⁿ q@(nrw-fun s′ t′)
       with s ⨟ⁿ q
-  ... | _ , s″ = _ , nrw-untag {ℓ = ℓ} wfG gG s″
+  ... | _ , s″ = _ , nrw-untag wfG gG s″
   nrw-all s ⨟ⁿ nrw-all t
       with s ⨟ⁿ t
   ... | _ , s′ = _ , nrw-all s′
   nrw-gen wfA s ⨟ⁿ nrw-all t
       with s ⨟ⁿ t
   ... | _ , s′ = _ , nrw-gen wfA s′
-  nrw-untag {ℓ = ℓ} wfG gG s ⨟ⁿ q@(nrw-all t)
+  nrw-untag wfG gG s ⨟ⁿ q@(nrw-all t)
       with s ⨟ⁿ q
-  ... | _ , s′ = _ , nrw-untag {ℓ = ℓ} wfG gG s′
+  ... | _ , s′ = _ , nrw-untag wfG gG s′
   s ⨟ⁿ nrw-gen wfB t
       with narrow-⇑ᵗ s ⨟ⁿ t
   ... | _ , s′ = _ , nrw-gen (narrow-src-wf s) s′
-  nrw-id wf★ at★ ⨟ⁿ nrw-untag {ℓ = ℓ} wfG gG t =
-    _ , nrw-untag {ℓ = ℓ} wfG gG t
-  nrw-untag {ℓ = ℓ′} wfG′ gG′ s
-      ⨟ⁿ q@(nrw-untag {ℓ = ℓ} wfG gG t)
+  nrw-id wf★ at★ ⨟ⁿ nrw-untag wfG gG t =
+    _ , nrw-untag wfG gG t
+  nrw-untag wfG′ gG′ s
+      ⨟ⁿ q@(nrw-untag wfG gG t)
       with s ⨟ⁿ q
-  ... | _ , s′ = _ , nrw-untag {ℓ = ℓ′} wfG′ gG′ s′
+  ... | _ , s′ = _ , nrw-untag wfG′ gG′ s′
   s ⨟ⁿ nrw-seal wfA′ ∈Σ t
       with s ⨟ⁿ t
   ... | _ , s′ = _ , nrw-seal wfA′ ∈Σ s′

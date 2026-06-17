@@ -10,7 +10,6 @@ module proof.Progress where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([])
 open import Data.Nat using (ℕ)
-open import Data.Product as Product using (_,_)
 open import Relation.Nullary using (yes; no)
 
 open import Types
@@ -31,7 +30,7 @@ data Progress {Σ : Store} (M : Term) : Set where
     Σ ∣ M —→ Σ′ ∣ N →
     Progress M
   crash :
-    Product.Σ Label (λ ℓ → M ≡ blame ℓ) →
+    M ≡ blame →
     Progress M
 
 ------------------------------------------------------------------------
@@ -168,17 +167,17 @@ canonical-＇ (_⟨_⟩ {V = W} vW (gen A c)) (⊢up () hW)
 ------------------------------------------------------------------------
 
 untag-progress :
-  ∀ {Δ : TyCtx}{Σ : Store}{M : Term}{G : Ty}{ℓ : Label} →
+  ∀ {Δ : TyCtx}{Σ : Store}{M : Term}{G : Ty} →
   Value M →
   Δ ∣ Σ ∣ [] ⊢ M ⦂ ★ →
-  Progress {Σ = Σ} (M ⟨ G ？ ℓ ⟩)
-untag-progress {G = G} {ℓ = ℓ} vM M⊢ with canonical-★ vM M⊢
-untag-progress {G = G} {ℓ = ℓ} vM M⊢
+  Progress {Σ = Σ} (M ⟨ G ？ ⟩)
+untag-progress {G = G} vM M⊢ with canonical-★ vM M⊢
+untag-progress {G = G} vM M⊢
     | sv-tag {G = H} vW refl with H ≟Ty G
-untag-progress {G = G} {ℓ = ℓ} vM M⊢
+untag-progress {G = G} vM M⊢
     | sv-tag {G = .G} vW refl | yes refl =
   step (pure-step (tag-untag-ok vW))
-untag-progress {G = G} {ℓ = ℓ} vM M⊢
+untag-progress {G = G} vM M⊢
     | sv-tag {G = H} vW refl | no H≢G =
   step (pure-step (tag-untag-bad vW H≢G))
 
@@ -204,13 +203,12 @@ progress (⊢ƛ hA hM) = done (ƛ _)
 progress (⊢· {L = L} {M = M} L⊢ M⊢) with progress L⊢
 progress (⊢· {L = L} {M = M} L⊢ M⊢) | step L→L′ =
   step (ξ-·₁ L→L′)
-progress (⊢· {L = L} {M = M} L⊢ M⊢) | crash (ℓ , refl) =
+progress (⊢· {L = L} {M = M} L⊢ M⊢) | crash refl =
   step (pure-step blame-·₁)
 progress (⊢· {L = L} {M = M} L⊢ M⊢) | done vL with progress M⊢
 progress (⊢· {L = L} {M = M} L⊢ M⊢) | done vL | step M→M′ =
   step (ξ-·₂ vL M→M′)
-progress (⊢· {L = L} {M = M} L⊢ M⊢) | done vL
-    | crash (ℓ , refl) =
+progress (⊢· {L = L} {M = M} L⊢ M⊢) | done vL | crash refl =
   step (pure-step (blame-·₂ vL))
 progress (⊢· {L = L} {M = M} L⊢ M⊢) | done vL | done vM
     with canonical-⇒ vL L⊢
@@ -224,7 +222,7 @@ progress (⊢Λ vM hM) = done (Λ vM)
 progress (⊢• {M = M} {B = B} {A = A} M⊢ hA) with progress M⊢
 progress (⊢• {M = M} {B = B} {A = A} M⊢ hA) | step M→M′ =
   step (ξ-·α M→M′)
-progress (⊢• {M = M} {B = B} {A = A} M⊢ hA) | crash (ℓ , refl) =
+progress (⊢• {M = M} {B = B} {A = A} M⊢ hA) | crash refl =
   step (pure-step blame-·α)
 progress (⊢• {M = M} {B = B} {A = A} M⊢ hA) | done vM
     with canonical-∀ vM M⊢
@@ -241,13 +239,12 @@ progress (⊢$ κ) = done ($ κ)
 progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) with progress L⊢
 progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | step L→L′ =
   step (ξ-⊕₁ L→L′)
-progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | crash (ℓ , refl) =
+progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | crash refl =
   step (pure-step blame-⊕₁)
 progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | done vL with progress M⊢
 progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | done vL | step M→M′ =
   step (ξ-⊕₂ vL M→M′)
-progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | done vL
-    | crash (ℓ , refl) =
+progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | done vL | crash refl =
   step (pure-step (blame-⊕₂ vL))
 progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | done vL | done vM
     with canonical-ℕ vL L⊢ | canonical-ℕ vM M⊢
@@ -257,7 +254,7 @@ progress (⊢⊕ {L = L} {M = M} L⊢ addℕ M⊢)
 progress (⊢up {M = M} {c = c} c⊢ M⊢) with progress M⊢
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | step M→M′ =
   step (ξ-⟨⟩ M→M′)
-progress (⊢up {M = M} {c = c} c⊢ M⊢) | crash (ℓ , refl) =
+progress (⊢up {M = M} {c = c} c⊢ M⊢) | crash refl =
   step (pure-step blame-⟨⟩)
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM with c⊢
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-id hA =
@@ -285,4 +282,4 @@ progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-inst _ cwt =
   step (β-up-ν vM)
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-gen _ cwt =
   done (vM ⟨ gen _ _ ⟩)
-progress (⊢blame hA ℓ) = crash (ℓ , refl)
+progress (⊢blame hA) = crash refl

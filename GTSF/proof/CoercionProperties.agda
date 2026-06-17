@@ -97,6 +97,323 @@ coercion-weaken-suc {Δ = Δ} c⊢ =
   coercion-weaken (n≤1+n Δ) StoreIncl-drop c⊢
 
 ------------------------------------------------------------------------
+-- The inst/gen-bound dual swaps bound seals with bound tags
+------------------------------------------------------------------------
+
+dual-inst-example⊢ :
+  zero ∣ [] ⊢ inst ★ (seal ★ zero ︔ unseal zero ★) ∶ `∀ ★ =⇒ ★
+dual-inst-example⊢ =
+  cast-inst wf★
+    (cast-seq (cast-seal wf★ (here refl)) (cast-unseal wf★ (here refl)))
+
+dual-inst-example-dual≡ :
+  - inst ★ (seal ★ zero ︔ unseal zero ★)
+    ≡ gen ★ (((＇ zero) ？) ︔ ((＇ zero) !))
+dual-inst-example-dual≡ = refl
+
+dual-inst-example-dual⊢ :
+  zero ∣ [] ⊢ - inst ★ (seal ★ zero ︔ unseal zero ★) ∶ ★ =⇒ `∀ ★
+dual-inst-example-dual⊢ =
+  cast-gen wf★
+    (cast-seq (cast-untag (wfVar z<s) (＇ zero))
+              (cast-tag (wfVar z<s) (＇ zero)))
+
+dual-inst-tag-counterexample⊢ :
+  zero ∣ [] ⊢ inst ★ ((＇ zero) !) ∶ `∀ (＇ zero) =⇒ ★
+dual-inst-tag-counterexample⊢ =
+  cast-inst wf★ (cast-tag (wfVar z<s) (＇ zero))
+
+dual-inst-tag-counterexample-dual≡ :
+  - inst ★ ((＇ zero) !) ≡ gen ★ (seal ★ zero)
+dual-inst-tag-counterexample-dual≡ = refl
+
+dual-inst-tag-counterexample-dual-not-typable :
+  zero ∣ [] ⊢ - inst ★ ((＇ zero) !) ∶ ★ =⇒ `∀ (＇ zero) →
+  ⊥
+dual-inst-tag-counterexample-dual-not-typable (cast-gen h★ (cast-seal hA ()))
+
+------------------------------------------------------------------------
+-- Duality as an involution
+------------------------------------------------------------------------
+
+data OppMode : DualMode → DualMode → Set where
+  opp-normal : OppMode normal normal
+  opp-gen-inst : OppMode tag-to-seal seal-to-tag
+  opp-inst-gen : OppMode seal-to-tag tag-to-seal
+
+Oppᵈ : DualEnv → DualEnv → Set
+Oppᵈ μ ν = ∀ X → OppMode (μ X) (ν X)
+
+opp-normalᵈ : Oppᵈ normalᵈ normalᵈ
+opp-normalᵈ X = opp-normal
+
+opp-extᵈ :
+  ∀ {μ ν} →
+  Oppᵈ μ ν →
+  Oppᵈ (extᵈ μ) (extᵈ ν)
+opp-extᵈ opp zero = opp-normal
+opp-extᵈ opp (suc X) = opp X
+
+opp-gen-instᵈ :
+  ∀ {μ ν} →
+  Oppᵈ μ ν →
+  Oppᵈ (genᵈ μ) (instᵈ ν)
+opp-gen-instᵈ opp zero = opp-gen-inst
+opp-gen-instᵈ opp (suc X) = opp X
+
+opp-inst-genᵈ :
+  ∀ {μ ν} →
+  Oppᵈ μ ν →
+  Oppᵈ (instᵈ μ) (genᵈ ν)
+opp-inst-genᵈ opp zero = opp-inst-gen
+opp-inst-genᵈ opp (suc X) = opp X
+
+data SealOk (μ : DualEnv) (A : Ty) (α : TyVar) : Set where
+  seal-ok-normal : μ α ≡ normal → SealOk μ A α
+  seal-ok-★ : A ≡ ★ → SealOk μ A α
+
+tag-to-seal≢normal : tag-to-seal ≢ normal
+tag-to-seal≢normal ()
+
+seal-to-tag≢normal : seal-to-tag ≢ normal
+seal-to-tag≢normal ()
+
+data DualSafe (μ : DualEnv) : Coercion → Set where
+  safe-id : ∀ {A} → DualSafe μ (id A)
+  safe-seq : ∀ {c d} → DualSafe μ c → DualSafe μ d →
+    DualSafe μ (c ︔ d)
+  safe-fun : ∀ {c d} → DualSafe μ c → DualSafe μ d →
+    DualSafe μ (c ↦ d)
+  safe-all : ∀ {c} → DualSafe (extᵈ μ) c → DualSafe μ (`∀ c)
+  safe-tag : ∀ {G} → DualSafe μ (G !)
+  safe-untag : ∀ {G} → DualSafe μ (G ？)
+  safe-seal : ∀ {A α} → SealOk μ A α → DualSafe μ (seal A α)
+  safe-unseal : ∀ {α A} → SealOk μ A α → DualSafe μ (unseal α A)
+  safe-gen : ∀ {A c} → DualSafe (genᵈ μ) c →
+    DualSafe μ (gen A c)
+  safe-inst : ∀ {B c} → DualSafe (instᵈ μ) c →
+    DualSafe μ (inst B c)
+
+StoreDualSafe : DualEnv → Store → Set
+StoreDualSafe μ Σ =
+  ∀ {α A} →
+  (α , A) ∈ Σ →
+  SealOk μ A α
+
+store-dual-safe-normal :
+  ∀ {Σ} →
+  StoreDualSafe normalᵈ Σ
+store-dual-safe-normal α∈Σ = seal-ok-normal refl
+
+seal-ok-extᵈ :
+  ∀ {μ A α} →
+  SealOk μ A α →
+  SealOk (extᵈ μ) (renameᵗ suc A) (suc α)
+seal-ok-extᵈ (seal-ok-normal eq) = seal-ok-normal eq
+seal-ok-extᵈ (seal-ok-★ refl) = seal-ok-★ refl
+
+seal-ok-genᵈ :
+  ∀ {μ A α} →
+  SealOk μ A α →
+  SealOk (genᵈ μ) (renameᵗ suc A) (suc α)
+seal-ok-genᵈ (seal-ok-normal eq) = seal-ok-normal eq
+seal-ok-genᵈ (seal-ok-★ refl) = seal-ok-★ refl
+
+seal-ok-instᵈ :
+  ∀ {μ A α} →
+  SealOk μ A α →
+  SealOk (instᵈ μ) (renameᵗ suc A) (suc α)
+seal-ok-instᵈ (seal-ok-normal eq) = seal-ok-normal eq
+seal-ok-instᵈ (seal-ok-★ refl) = seal-ok-★ refl
+
+store-dual-safe-⟰ᵗ-extᵈ :
+  ∀ {μ Σ} →
+  StoreDualSafe μ Σ →
+  StoreDualSafe (extᵈ μ) (⟰ᵗ Σ)
+store-dual-safe-⟰ᵗ-extᵈ {Σ = []} safeΣ ()
+store-dual-safe-⟰ᵗ-extᵈ {Σ = (α , A) ∷ Σ} safeΣ (here refl) =
+  seal-ok-extᵈ (safeΣ (here refl))
+store-dual-safe-⟰ᵗ-extᵈ {Σ = (α , A) ∷ Σ} safeΣ (there α∈Σ) =
+  store-dual-safe-⟰ᵗ-extᵈ (λ β∈Σ → safeΣ (there β∈Σ)) α∈Σ
+
+store-dual-safe-⟰ᵗ-genᵈ :
+  ∀ {μ Σ} →
+  StoreDualSafe μ Σ →
+  StoreDualSafe (genᵈ μ) (⟰ᵗ Σ)
+store-dual-safe-⟰ᵗ-genᵈ {Σ = []} safeΣ ()
+store-dual-safe-⟰ᵗ-genᵈ {Σ = (α , A) ∷ Σ} safeΣ (here refl) =
+  seal-ok-genᵈ (safeΣ (here refl))
+store-dual-safe-⟰ᵗ-genᵈ {Σ = (α , A) ∷ Σ} safeΣ (there α∈Σ) =
+  store-dual-safe-⟰ᵗ-genᵈ (λ β∈Σ → safeΣ (there β∈Σ)) α∈Σ
+
+store-dual-safe-⟰ᵗ-instᵈ :
+  ∀ {μ Σ} →
+  StoreDualSafe μ Σ →
+  StoreDualSafe (instᵈ μ) (⟰ᵗ Σ)
+store-dual-safe-⟰ᵗ-instᵈ {Σ = []} safeΣ ()
+store-dual-safe-⟰ᵗ-instᵈ {Σ = (α , A) ∷ Σ} safeΣ (here refl) =
+  seal-ok-instᵈ (safeΣ (here refl))
+store-dual-safe-⟰ᵗ-instᵈ {Σ = (α , A) ∷ Σ} safeΣ (there α∈Σ) =
+  store-dual-safe-⟰ᵗ-instᵈ (λ β∈Σ → safeΣ (there β∈Σ)) α∈Σ
+
+store-dual-safe-instᵈ :
+  ∀ {μ Σ} →
+  StoreDualSafe μ Σ →
+  StoreDualSafe (instᵈ μ) ((zero , ★) ∷ ⟰ᵗ Σ)
+store-dual-safe-instᵈ safeΣ (here refl) = seal-ok-★ refl
+store-dual-safe-instᵈ safeΣ (there α∈Σ) =
+  store-dual-safe-⟰ᵗ-instᵈ safeΣ α∈Σ
+
+coercion-dual-safe :
+  ∀ {Δ Σ c A B μ} →
+  StoreDualSafe μ Σ →
+  Δ ∣ Σ ⊢ c ∶ A =⇒ B →
+  DualSafe μ c
+coercion-dual-safe safeΣ (cast-id hA) = safe-id
+coercion-dual-safe safeΣ (cast-seal hA α∈Σ) =
+  safe-seal (safeΣ α∈Σ)
+coercion-dual-safe safeΣ (cast-unseal hA α∈Σ) =
+  safe-unseal (safeΣ α∈Σ)
+coercion-dual-safe safeΣ (cast-seq c⊢ d⊢) =
+  safe-seq (coercion-dual-safe safeΣ c⊢)
+           (coercion-dual-safe safeΣ d⊢)
+coercion-dual-safe safeΣ (cast-tag hG gG) = safe-tag
+coercion-dual-safe safeΣ (cast-untag hH gH) = safe-untag
+coercion-dual-safe safeΣ (cast-fun c⊢ d⊢) =
+  safe-fun (coercion-dual-safe safeΣ c⊢)
+           (coercion-dual-safe safeΣ d⊢)
+coercion-dual-safe safeΣ (cast-all c⊢) =
+  safe-all (coercion-dual-safe (store-dual-safe-⟰ᵗ-extᵈ safeΣ) c⊢)
+coercion-dual-safe safeΣ (cast-inst hB c⊢) =
+  safe-inst (coercion-dual-safe (store-dual-safe-instᵈ safeΣ) c⊢)
+coercion-dual-safe safeΣ (cast-gen hA c⊢) =
+  safe-gen (coercion-dual-safe (store-dual-safe-⟰ᵗ-genᵈ safeΣ) c⊢)
+
+dualTag-involutive :
+  ∀ {μ ν G} →
+  Oppᵈ μ ν →
+  dualWith ν (dualTag μ G) ≡ G !
+dualTag-involutive {μ = μ} {ν = ν} {G = ＇ α} opp
+    with μ α in μα | ν α in να | opp α
+dualTag-involutive {G = ＇ α} opp | normal | normal | opp-normal
+    rewrite μα | να = refl
+dualTag-involutive {G = ＇ α} opp
+    | tag-to-seal | seal-to-tag | opp-gen-inst
+    rewrite μα | να = refl
+dualTag-involutive {G = ＇ α} opp
+    | seal-to-tag | tag-to-seal | opp-inst-gen
+    rewrite μα | να = refl
+dualTag-involutive {G = ‵ ι} opp = refl
+dualTag-involutive {G = ★} opp = refl
+dualTag-involutive {G = A ⇒ B} opp = refl
+dualTag-involutive {G = `∀ A} opp = refl
+
+dualUntag-involutive :
+  ∀ {μ ν G} →
+  Oppᵈ μ ν →
+  dualWith ν (dualUntag μ G) ≡ G ？
+dualUntag-involutive {μ = μ} {ν = ν} {G = ＇ α} opp
+    with μ α in μα | ν α in να | opp α
+dualUntag-involutive {G = ＇ α} opp | normal | normal | opp-normal
+    rewrite μα | να = refl
+dualUntag-involutive {G = ＇ α} opp
+    | tag-to-seal | seal-to-tag | opp-gen-inst
+    rewrite μα | να = refl
+dualUntag-involutive {G = ＇ α} opp
+    | seal-to-tag | tag-to-seal | opp-inst-gen
+    rewrite μα | να = refl
+dualUntag-involutive {G = ‵ ι} opp = refl
+dualUntag-involutive {G = ★} opp = refl
+dualUntag-involutive {G = A ⇒ B} opp = refl
+dualUntag-involutive {G = `∀ A} opp = refl
+
+dualSeal-involutive :
+  ∀ {μ ν A α} →
+  Oppᵈ μ ν →
+  SealOk μ A α →
+  dualWith ν (dualSeal μ A α) ≡ seal A α
+dualSeal-involutive {μ = μ} {ν = ν} {A = A} {α = α} opp ok
+    with μ α in μα | ν α in να | opp α | ok
+dualSeal-involutive opp ok | normal | normal | opp-normal | _
+    rewrite μα | να = refl
+dualSeal-involutive opp ok
+    | tag-to-seal | seal-to-tag | opp-gen-inst | seal-ok-normal eq =
+  ⊥-elim (tag-to-seal≢normal (trans (sym μα) eq))
+dualSeal-involutive opp ok
+    | tag-to-seal | seal-to-tag | opp-gen-inst | seal-ok-★ refl
+    rewrite μα | να = refl
+dualSeal-involutive opp ok
+    | seal-to-tag | tag-to-seal | opp-inst-gen | seal-ok-normal eq =
+  ⊥-elim (seal-to-tag≢normal (trans (sym μα) eq))
+dualSeal-involutive opp ok
+    | seal-to-tag | tag-to-seal | opp-inst-gen | seal-ok-★ refl
+    rewrite μα | να = refl
+
+dualUnseal-involutive :
+  ∀ {μ ν α A} →
+  Oppᵈ μ ν →
+  SealOk μ A α →
+  dualWith ν (dualUnseal μ α A) ≡ unseal α A
+dualUnseal-involutive {μ = μ} {ν = ν} {α = α} {A = A} opp ok
+    with μ α in μα | ν α in να | opp α | ok
+dualUnseal-involutive opp ok | normal | normal | opp-normal | _
+    rewrite μα | να = refl
+dualUnseal-involutive opp ok
+    | tag-to-seal | seal-to-tag | opp-gen-inst | seal-ok-normal eq =
+  ⊥-elim (tag-to-seal≢normal (trans (sym μα) eq))
+dualUnseal-involutive opp ok
+    | tag-to-seal | seal-to-tag | opp-gen-inst | seal-ok-★ refl
+    rewrite μα | να = refl
+dualUnseal-involutive opp ok
+    | seal-to-tag | tag-to-seal | opp-inst-gen | seal-ok-normal eq =
+  ⊥-elim (seal-to-tag≢normal (trans (sym μα) eq))
+dualUnseal-involutive opp ok
+    | seal-to-tag | tag-to-seal | opp-inst-gen | seal-ok-★ refl
+    rewrite μα | να = refl
+
+dualWith-involutive :
+  ∀ {μ ν c} →
+  Oppᵈ μ ν →
+  DualSafe μ c →
+  dualWith ν (dualWith μ c) ≡ c
+dualWith-involutive opp safe-id = refl
+dualWith-involutive opp (safe-seq safe-c safe-d) =
+  cong₂ _︔_ (dualWith-involutive opp safe-c)
+             (dualWith-involutive opp safe-d)
+dualWith-involutive opp (safe-fun safe-c safe-d) =
+  cong₂ _↦_ (dualWith-involutive opp safe-c)
+             (dualWith-involutive opp safe-d)
+dualWith-involutive opp (safe-all safe-c) =
+  cong `∀ (dualWith-involutive (opp-extᵈ opp) safe-c)
+dualWith-involutive opp safe-tag = dualTag-involutive opp
+dualWith-involutive opp safe-untag = dualUntag-involutive opp
+dualWith-involutive opp (safe-seal ok) = dualSeal-involutive opp ok
+dualWith-involutive opp (safe-unseal ok) = dualUnseal-involutive opp ok
+dualWith-involutive opp (safe-gen safe-c) =
+  cong (gen _) (dualWith-involutive (opp-gen-instᵈ opp) safe-c)
+dualWith-involutive opp (safe-inst safe-c) =
+  cong (inst _) (dualWith-involutive (opp-inst-genᵈ opp) safe-c)
+
+dual-involutive :
+  ∀ {Δ Σ c A B} →
+  Δ ∣ Σ ⊢ c ∶ A =⇒ B →
+  - (- c) ≡ c
+dual-involutive c⊢ =
+  dualWith-involutive opp-normalᵈ
+    (coercion-dual-safe store-dual-safe-normal c⊢)
+
+dual-raw-involutive-counterexample :
+  - (- gen ★ (seal (‵ `ℕ) zero)) ≡ gen ★ (seal (‵ `ℕ) zero) →
+  ⊥
+dual-raw-involutive-counterexample ()
+
+dual-raw-involutive-counterexample-not-typable :
+  ∀ {Δ Σ A B} →
+  Δ ∣ Σ ⊢ gen ★ (seal (‵ `ℕ) zero) ∶ A =⇒ B →
+  ⊥
+dual-raw-involutive-counterexample-not-typable (cast-gen h★ ())
+
+------------------------------------------------------------------------
 -- Coercion typing under type renaming
 ------------------------------------------------------------------------
 

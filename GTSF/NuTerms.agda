@@ -32,7 +32,7 @@ data Term : Set where
   $       : Const → Term
   _⊕[_]_  : Term → Prim → Term → Term
   _⟨_⟩    : Term → Coercion → Term
-  blame   : Label → Term
+  blame   : Term
 
 ------------------------------------------------------------------------
 -- Values
@@ -58,7 +58,7 @@ renameᵗᵐ ρ (ν A N) = ν (renameᵗ ρ A) (renameᵗᵐ (extᵗ ρ) N)
 renameᵗᵐ ρ ($ κ) = $ κ
 renameᵗᵐ ρ (L ⊕[ op ] M) = renameᵗᵐ ρ L ⊕[ op ] renameᵗᵐ ρ M
 renameᵗᵐ ρ (M ⟨ c ⟩) = renameᵗᵐ ρ M ⟨ renameᶜ ρ c ⟩
-renameᵗᵐ ρ (blame ℓ) = blame ℓ
+renameᵗᵐ ρ blame = blame
 
 ⇑ᵗᵐ : Term → Term
 ⇑ᵗᵐ = renameᵗᵐ suc
@@ -91,7 +91,7 @@ renameˣᵐ ρ (ν A N) = ν A (renameˣᵐ ρ N)
 renameˣᵐ ρ ($ κ) = $ κ
 renameˣᵐ ρ (L ⊕[ op ] M) = renameˣᵐ ρ L ⊕[ op ] renameˣᵐ ρ M
 renameˣᵐ ρ (M ⟨ c ⟩) = renameˣᵐ ρ M ⟨ c ⟩
-renameˣᵐ ρ (blame ℓ) = blame ℓ
+renameˣᵐ ρ blame = blame
 
 extˢˣ : Substˣ → Substˣ
 extˢˣ σ zero = ` zero
@@ -110,7 +110,7 @@ substˣᵐ σ (ν A N) = ν A (substˣᵐ (↑ᵗᵐ σ) N)
 substˣᵐ σ ($ κ) = $ κ
 substˣᵐ σ (L ⊕[ op ] M) = substˣᵐ σ L ⊕[ op ] substˣᵐ σ M
 substˣᵐ σ (M ⟨ c ⟩) = substˣᵐ σ M ⟨ c ⟩
-substˣᵐ σ (blame ℓ) = blame ℓ
+substˣᵐ σ blame = blame
 
 singleEnv : Term → Substˣ
 singleEnv N zero = N
@@ -182,6 +182,5 @@ data _∣_∣_⊢_⦂_ (Δ : TyCtx) (Σ : Store) (Γ : Ctx) : Term → Ty → Se
 
   ⊢blame : ∀ {A}
       → WfTy Δ A
-      → (ℓ : Label)
       ----------------------------
-      → Δ ∣ Σ ∣ Γ ⊢ (blame ℓ) ⦂ A
+      → Δ ∣ Σ ∣ Γ ⊢ blame ⦂ A

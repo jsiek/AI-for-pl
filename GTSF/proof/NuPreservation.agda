@@ -169,25 +169,25 @@ pure-preservation wfΣ hΓ
 pure-preservation wfΣ hΓ
     (⊢⟨⟩ (cast-untag hH gH) (⊢⟨⟩ (cast-tag hG gG) hV))
     (tag-untag-bad vV G≢H) =
-  ⊢blame hH _
-pure-preservation wfΣ hΓ (⊢· (⊢blame (wf⇒ hA hB) ℓ) hM) blame-·₁ =
-  ⊢blame hB ℓ
-pure-preservation wfΣ hΓ (⊢· hV (⊢blame hA ℓ)) (blame-·₂ vV)
+  ⊢blame hH
+pure-preservation wfΣ hΓ (⊢· (⊢blame (wf⇒ hA hB)) hM) blame-·₁ =
+  ⊢blame hB
+pure-preservation wfΣ hΓ (⊢· hV (⊢blame hA)) (blame-·₂ vV)
     with typing-wf (at wfΣ) hΓ hV
-pure-preservation wfΣ hΓ (⊢· hV (⊢blame hA ℓ)) (blame-·₂ vV)
+pure-preservation wfΣ hΓ (⊢· hV (⊢blame hA)) (blame-·₂ vV)
     | wf⇒ hA′ hB =
-  ⊢blame hB ℓ
-pure-preservation wfΣ hΓ (⊢• (⊢blame (wf∀ hB) ℓ) α<Δ) blame-·α =
-  ⊢blame (renameᵗ-preserves-WfTy hB (singleRenameᵗ-Wf-< α<Δ)) ℓ
-pure-preservation wfΣ hΓ (⊢⟨⟩ c⊢ (⊢blame hA ℓ)) blame-⟨⟩
+  ⊢blame hB
+pure-preservation wfΣ hΓ (⊢• (⊢blame (wf∀ hB)) α<Δ) blame-·α =
+  ⊢blame (renameᵗ-preserves-WfTy hB (singleRenameᵗ-Wf-< α<Δ))
+pure-preservation wfΣ hΓ (⊢⟨⟩ c⊢ (⊢blame hA)) blame-⟨⟩
     with coercion-wf (at wfΣ) c⊢
-pure-preservation wfΣ hΓ (⊢⟨⟩ c⊢ (⊢blame hA ℓ)) blame-⟨⟩
+pure-preservation wfΣ hΓ (⊢⟨⟩ c⊢ (⊢blame hA)) blame-⟨⟩
     | hA′ , hB =
-  ⊢blame hB ℓ
-pure-preservation wfΣ hΓ (⊢⊕ (⊢blame hA ℓ) op hM) blame-⊕₁ =
-  ⊢blame wfBase ℓ
-pure-preservation wfΣ hΓ (⊢⊕ hL op (⊢blame hA ℓ)) (blame-⊕₂ vL) =
-  ⊢blame wfBase ℓ
+  ⊢blame hB
+pure-preservation wfΣ hΓ (⊢⊕ (⊢blame hA) op hM) blame-⊕₁ =
+  ⊢blame wfBase
+pure-preservation wfΣ hΓ (⊢⊕ hL op (⊢blame hA)) (blame-⊕₂ vL) =
+  ⊢blame wfBase
 
 ------------------------------------------------------------------------
 -- Store-threaded preservation

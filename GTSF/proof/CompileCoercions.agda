@@ -39,7 +39,7 @@ open import Coercions
     ; _↦_ to _↦ᶜ_
     ; `∀ to `∀ᶜ
     ; _! to _!ᶜ
-    ; _？_ to _？ᶜ_
+    ; _？ to _？ᶜ
     ; seal to sealᶜ
     ; unseal to unsealᶜ
     ; inst to instᶜ
@@ -166,7 +166,7 @@ var-to-shift :
   WfTy Δ (＇ X) →
   Σ[ c ∈ Coercion ] suc Δ ∣ Σ ⊢ c ∶ ＇ X =⇒ ＇ suc X
 var-to-shift {Δ = Δ} {X = X} ℓ hX =
-  (((＇ X) !ᶜ) ︔ᶜ ((＇ (suc X)) ？ᶜ ℓ)) ,
+  (((＇ X) !ᶜ) ︔ᶜ ((＇ (suc X)) ？ᶜ)) ,
   cast-seq
     (cast-tag (WfTy-weakenᵗ hX (n≤1+n Δ)) (＇ X))
     (cast-untag (renameᵗ-preserves-WfTy hX TyRenameWf-suc) (＇ (suc X)))
@@ -177,7 +177,7 @@ var-from-shift :
   WfTy Δ (＇ X) →
   Σ[ c ∈ Coercion ] suc Δ ∣ Σ ⊢ c ∶ ＇ suc X =⇒ ＇ X
 var-from-shift {Δ = Δ} {X = X} ℓ hX =
-  (((＇ (suc X)) !ᶜ) ︔ᶜ ((＇ X) ？ᶜ ℓ)) ,
+  (((＇ (suc X)) !ᶜ) ︔ᶜ ((＇ X) ？ᶜ)) ,
   cast-seq
     (cast-tag (renameᵗ-preserves-WfTy hX TyRenameWf-suc) (＇ (suc X)))
     (cast-untag (WfTy-weakenᵗ hX (n≤1+n Δ)) (＇ X))
@@ -238,7 +238,7 @@ Realizes-ν-gen ℓ r =
   real-star
     (wfVar z<s)
     (cast-tag (wfVar z<s) (＇ zero))
-    (cast-untag {ℓ = ℓ} (wfVar z<s) (＇ zero))
+    (cast-untag (wfVar z<s) (＇ zero))
     (Realizes-⇑ᴸᵢ ℓ r)
 
 realizes-idᵢ :
@@ -327,12 +327,12 @@ mutual
       | c , c⊢ =
     `∀ᶜ c , cast-all c⊢
   coerce-down {C = ‵ ι} ℓ wfBase wf★ r (tag ι) =
-    ((‵ ι) ？ᶜ ℓ) , cast-untag wfBase (‵ ι)
+    ((‵ ι) ？ᶜ) , cast-untag wfBase (‵ ι)
   coerce-down ℓ (wf⇒ hA hB) wf★ r (tag_⇒_ p q)
       with coerce-up ℓ hA wf★ r p | coerce-down ℓ hB wf★ r q
   coerce-down ℓ (wf⇒ hA hB) wf★ r (tag_⇒_ p q)
       | s , s⊢ | t , t⊢ =
-    (((★ ⇒ ★) ？ᶜ ℓ) ︔ᶜ (s ↦ᶜ t)) ,
+    (((★ ⇒ ★) ？ᶜ) ︔ᶜ (s ↦ᶜ t)) ,
     cast-seq (cast-untag (wf⇒ wf★ wf★) ★⇒★) (cast-fun s⊢ t⊢)
   coerce-down {C = ＇ X} ℓ hX wf★ r (tagˣ X⊑★) =
     realizes-star-down r X⊑★

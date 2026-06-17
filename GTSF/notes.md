@@ -197,7 +197,7 @@ The side checks are now mode checks:
   currently special variable in an ordinary way.
 * ``tagTyAllowed μ G`` permits a variable ground type only in ``normal``
   or ``tag-to-seal`` mode.
-* ``sealTyAllowed μ α`` permits ``seal``/``unseal`` only in ``normal``
+* ``sealModeAllowed (μ α)`` permits ``seal``/``unseal`` only in ``normal``
   or ``seal-to-tag`` mode.
 
 This is enough for preservation because opening and mode-renaming now
@@ -437,16 +437,6 @@ body with seal-like occurrences.  The preservation benefit is that
 opening no longer depends on whether the opened variable happens to be
 absent from ``dom(Σ)``; legality follows from the mode assigned by the
 binder.
-
-Open cleanup notes
-------------------
-
-Inline and remove sealTyAllowed. It's too short.
-
-Rename dualWith to dual.
-
-In the coercion typing relation, change the new side conditions
-to be explicit parameters instead of implicit.
 
 --------------------------------------------------------------------------------
 Maximal Lower Bounds

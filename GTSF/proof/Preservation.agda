@@ -70,23 +70,23 @@ pure-preservation wfΣ hΓ
     (⊢· (⊢up (cast-fun p⊢ q⊢) hV) hW)
     (β-↦ vV vW) =
   ⊢up q⊢ (⊢· hV (⊢up p⊢ hW))
-pure-preservation wfΣ hΓ (⊢up (cast-id hA) hV) (β-id vV) =
+pure-preservation wfΣ hΓ (⊢up (cast-id hA _) hV) (β-id vV) =
   hV
 pure-preservation wfΣ hΓ (⊢up (cast-seq p⊢ q⊢) hV) (β-seq vV) =
   ⊢up q⊢ (⊢up p⊢ hV)
 pure-preservation wfΣ hΓ
-    (⊢up (cast-unseal hB αB∈Σ)
-      (⊢up (cast-seal hA αA∈Σ) hV))
+    (⊢up (cast-unseal hB αB∈Σ _ _)
+      (⊢up (cast-seal hA αA∈Σ _ _) hV))
     (seal-unseal vV) =
   subst (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
         (unique wfΣ αA∈Σ αB∈Σ)
         hV
 pure-preservation wfΣ hΓ
-    (⊢up (cast-untag hG gG) (⊢up (cast-tag hG′ gG′) hV))
+    (⊢up (cast-untag hG gG _) (⊢up (cast-tag hG′ gG′ _) hV))
     (tag-untag-ok vV) =
   hV
 pure-preservation wfΣ hΓ
-    (⊢up (cast-untag hH gH) (⊢up (cast-tag hG gG) hV))
+    (⊢up (cast-untag hH gH _) (⊢up (cast-tag hG gG _) hV))
     (tag-untag-bad vV G≢H) =
   ⊢blame hH
 pure-preservation wfΣ hΓ
@@ -187,7 +187,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
              (wfVar (n<1+n Δ)))
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     (⊢• {B = B} {A = T}
-      (⊢up (gen⊢@(cast-gen hC c⊢)) V⊢)
+      (⊢up (gen⊢@(cast-gen hC _ c⊢)) V⊢)
       hT)
     (β-down-ν vV)
     rewrite len wfΣ =
@@ -210,7 +210,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     hB with typing-wf (at wfΣ) hΓ (⊢up gen⊢ V⊢)
     hB | wf∀ hB′ = hB′
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
-    (⊢up {M = V} (cast-inst {s = c} hB c⊢) V⊢)
+    (⊢up {M = V} (cast-inst {s = c} hB _ c⊢) V⊢)
     (β-up-ν vV)
     rewrite len wfΣ =
   preserve

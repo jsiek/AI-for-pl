@@ -186,9 +186,6 @@ mutual
   tagTyAllowed μ (A ⇒ B) = tyAllowed μ A ∧ tyAllowed μ B
   tagTyAllowed μ (`∀ A) = tyAllowed (extᵈ μ) A
 
-sealTyAllowed : DualEnv → TyVar → Bool
-sealTyAllowed μ α = sealModeAllowed (μ α)
-
 dualTag : DualEnv → Ty → Coercion
 dualTag μ (＇ α) with μ α
 dualTag μ (＇ α) | tag-to-seal = seal ★ α
@@ -223,20 +220,20 @@ dualUnseal μ α A | tag-to-seal = (＇ α) ？
 
 infix 8 -_
 
-dualWith : DualEnv → Coercion → Coercion
-dualWith μ (id A) = id A
-dualWith μ (c ︔ d) = dualWith μ d ︔ dualWith μ c
-dualWith μ (c ↦ d) = dualWith μ c ↦ dualWith μ d
-dualWith μ (`∀ c) = `∀ (dualWith (extᵈ μ) c)
-dualWith μ (G !) = dualTag μ G
-dualWith μ (G ？) = dualUntag μ G
-dualWith μ (seal A α) = dualSeal μ A α
-dualWith μ (unseal α A) = dualUnseal μ α A
-dualWith μ (gen A c) = inst A (dualWith (genᵈ μ) c)
-dualWith μ (inst B c) = gen B (dualWith (instᵈ μ) c)
+dual : DualEnv → Coercion → Coercion
+dual μ (id A) = id A
+dual μ (c ︔ d) = dual μ d ︔ dual μ c
+dual μ (c ↦ d) = dual μ c ↦ dual μ d
+dual μ (`∀ c) = `∀ (dual (extᵈ μ) c)
+dual μ (G !) = dualTag μ G
+dual μ (G ？) = dualUntag μ G
+dual μ (seal A α) = dualSeal μ A α
+dual μ (unseal α A) = dualUnseal μ α A
+dual μ (gen A c) = inst A (dual (genᵈ μ) c)
+dual μ (inst B c) = gen B (dual (instᵈ μ) c)
 
 -_ : Coercion → Coercion
--_ = dualWith normalᵈ
+-_ = dual normalᵈ
 
 ⇑ᶜ : Coercion → Coercion
 ⇑ᶜ = renameᶜ suc
@@ -254,7 +251,7 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
 
   cast-id : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A : Ty}
     → WfTy Δ A
-    → {ok : tyAllowed μ A ≡ true}
+    → tyAllowed μ A ≡ true
     -- fvs(A) ∩ dom(Σ) = ∅
      -------------------
     → μ ∣ Δ ∣ Σ ⊢ id A ∶ A =⇒ A
@@ -262,16 +259,16 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
   cast-seal : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{α : TyVar}{A : Ty}
     → WfTy Δ A
     → (α , A) ∈ Σ
-    → {A-ok : tyAllowed μ A ≡ true}
-    → {α-ok : sealTyAllowed μ α ≡ true}
+    → tyAllowed μ A ≡ true
+    → sealModeAllowed (μ α) ≡ true
      ---------------------------
     → μ ∣ Δ ∣ Σ ⊢ seal A α ∶ A =⇒ (＇ α)
 
   cast-unseal : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{α : TyVar}{A : Ty}
     → WfTy Δ A
     → (α , A) ∈ Σ
-    → {A-ok : tyAllowed μ A ≡ true}
-    → {α-ok : sealTyAllowed μ α ≡ true}
+    → tyAllowed μ A ≡ true
+    → sealModeAllowed (μ α) ≡ true
      -----------------------------
     → μ ∣ Δ ∣ Σ ⊢ unseal α A ∶ (＇ α) =⇒ A
 
@@ -285,7 +282,7 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
   cast-tag : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{G : Ty}
     → WfTy Δ G
     → Ground G
-    → {ok : tagTyAllowed μ G ≡ true}
+    → tagTyAllowed μ G ≡ true
     -- If G is α, then α ∉ dom(Σ)
      ---------------------
     → μ ∣ Δ ∣ Σ ⊢ G ! ∶ G =⇒ ★
@@ -293,7 +290,7 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
   cast-untag : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{H : Ty}
     → WfTy Δ H
     → Ground H
-    → {ok : tagTyAllowed μ H ≡ true}
+    → tagTyAllowed μ H ≡ true
      -----------------------
     → μ ∣ Δ ∣ Σ ⊢ H ？ ∶ ★ =⇒ H
 
@@ -311,7 +308,7 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
   -- ν̅ 
   cast-inst : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → WfTy Δ B
-    → {B-ok : tyAllowed μ B ≡ true}
+    → tyAllowed μ B ≡ true
     → instᵈ μ ∣ suc Δ ∣ (0 , ★) ∷ ⟰ᵗ Σ ⊢ s ∶ A =⇒ ⇑ᵗ B
      ----------------------------------------
     → μ ∣ Δ ∣ Σ ⊢ (inst B s) ∶ (`∀ A) =⇒ B
@@ -319,7 +316,7 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
   -- ν
   cast-gen : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → WfTy Δ A
-    → {A-ok : tyAllowed μ A ≡ true}
+    → tyAllowed μ A ≡ true
     → genᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ s ∶ ⇑ᵗ A =⇒ B
      ----------------------------------
     → μ ∣ Δ ∣ Σ ⊢ (gen A s) ∶ A =⇒ (`∀ B)

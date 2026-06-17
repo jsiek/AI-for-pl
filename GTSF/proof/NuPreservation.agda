@@ -80,7 +80,7 @@ pure-preservation wfΣ hΓ
     (⊢• {B = B} (⊢Λ {A = B′} vV V⊢) α<Δ)
     β-Λ =
   typing-open-existingᵀ α<Δ V⊢
-pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-id hA) hV) (β-id vV) =
+pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-id hA _) hV) (β-id vV) =
   hV
 pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-seq p⊢ q⊢) hV) (β-seq vV) =
   ⊢⟨⟩ q⊢ (⊢⟨⟩ p⊢ hV)
@@ -118,7 +118,7 @@ pure-preservation wfΣ hΓ
         (⊢• V-src⊢ α<Δ)
 pure-preservation wfΣ hΓ
     (⊢• {α = α}
-      (⊢⟨⟩ (gen⊢@(cast-gen {s = c} hC c⊢)) V⊢)
+      (⊢⟨⟩ (gen⊢@(cast-gen {s = c} hC _ c⊢)) V⊢)
       α<Δ)
     (β-gen vV) =
   ⊢⟨⟩
@@ -128,7 +128,7 @@ pure-preservation wfΣ hΓ
       (coercion-open-existing α<Δ c⊢))
     V⊢
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ {M = V} (cast-inst {A = A} {B = B} {s = c} hB c⊢) V⊢)
+    (⊢⟨⟩ {M = V} (cast-inst {A = A} {B = B} {s = c} hB _ c⊢) V⊢)
     (β-inst vV) =
   ⊢ν
     wf★
@@ -159,18 +159,18 @@ pure-preservation wfΣ hΓ
         app-src-eq
         (⊢• shifted-V⊢ z<s)
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ (cast-unseal hB αB∈Σ)
-      (⊢⟨⟩ (cast-seal hA αA∈Σ) hV))
+    (⊢⟨⟩ (cast-unseal hB αB∈Σ _ _)
+      (⊢⟨⟩ (cast-seal hA αA∈Σ _ _) hV))
     (seal-unseal vV) =
   subst (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
         (unique wfΣ αA∈Σ αB∈Σ)
         hV
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ (cast-untag hG gG) (⊢⟨⟩ (cast-tag hG′ gG′) hV))
+    (⊢⟨⟩ (cast-untag hG gG _) (⊢⟨⟩ (cast-tag hG′ gG′ _) hV))
     (tag-untag-ok vV) =
   hV
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ (cast-untag hH gH) (⊢⟨⟩ (cast-tag hG gG) hV))
+    (⊢⟨⟩ (cast-untag hH gH _) (⊢⟨⟩ (cast-tag hG gG _) hV))
     (tag-untag-bad vV G≢H) =
   ⊢blame hH
 pure-preservation wfΣ hΓ (⊢· (⊢blame (wf⇒ hA hB)) hM) blame-·₁ =

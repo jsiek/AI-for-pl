@@ -32,9 +32,9 @@ rejected after the reduction, even though the reduction is exactly the
 one that creates the store entry needed by the operational semantics.
 
 This note uses named type variables informally.  The Agda development
-uses de Bruijn indices: a named binder ``β`` below corresponds to index
-``zero`` in the mechanization, ``Δ, β`` corresponds to ``suc Δ``, and
-``Σ↑`` corresponds to the lifted store ``⟰ᵗ Σ``.
+uses de Bruijn indices internally, so the mechanization uses shifting
+when it goes under binders.  The nominal presentation below does not
+write those shifts; it assumes bound variables are chosen fresh.
 
 The nominal notation below writes binders explicitly in each syntactic
 form that binds a type variable:
@@ -61,10 +61,10 @@ under a ``gen`` coercion:
 In the body of ``gen``, the newly bound variable ``β`` is intended to be
 tag-like.  The body coercion has shape
 
-    Δ, β ∣ Σ↑ ⊢ (＇ β) ？ ∶ ★ =⇒ β
+    Δ, β ∣ Σ ⊢ (＇ β) ？ ∶ ★ =⇒ β
 
 because ``β`` is bound by the coercion and is not a store seal in
-``Σ↑``.  Thus
+``Σ``.  Thus
 
     Δ ∣ Σ ⊢ gen β. ★ c[β] ∶ ★ =⇒ ∀β.β
 
@@ -115,14 +115,14 @@ abstract runtime representation.  For example:
 The body coercion is typed under a store extended with the new
 ``β`` seal:
 
-    instᵈ normalᵈ ∣ Δ, β ∣ (β , ★) ∷ Σ↑
+    instᵈ normalᵈ ∣ Δ, β ∣ (β , ★) ∷ Σ
       ⊢ seal ★ β ︔ unseal β ★ ∶ ★ =⇒ ★
 
 The Nu reduction rule is
 
     V ⟨ inst β. B c[β] ⟩
       —→
-    ν β := ★. (((V↑) • β) ⟨ c[β] ⟩)
+    ν β := ★. ((V • β) ⟨ c[β] ⟩)
 
 Inside the body of ``ν β := ★``, the term typing rule supplies the
 matching store entry ``(β , ★)``.  So the reduct is operationally
@@ -175,21 +175,21 @@ but it is an abbreviation for normal mode:
 The binder rules change the mode context instead of relying on a
 store-domain side condition:
 
-    extᵈ μ ∣ Δ, X ∣ Σ↑ ⊢ c[X] ∶ A[X] =⇒ B[X]
+    extᵈ μ ∣ Δ, X ∣ Σ ⊢ c[X] ∶ A[X] =⇒ B[X]
     ------------------------------------------------
     μ ∣ Δ ∣ Σ ⊢ ∀X. c[X] ∶ ∀X.A[X] =⇒ ∀X.B[X]
 
-    genᵈ μ ∣ Δ, β ∣ Σ↑ ⊢ c[β] ∶ A↑ =⇒ B[β]
+    genᵈ μ ∣ Δ, β ∣ Σ ⊢ c[β] ∶ A =⇒ B[β]
     ------------------------------------------------
     μ ∣ Δ ∣ Σ ⊢ gen β. A c[β] ∶ A =⇒ ∀β.B[β]
 
-    instᵈ μ ∣ Δ, β ∣ (β , ★) ∷ Σ↑
-      ⊢ c[β] ∶ A[β] =⇒ B↑
+    instᵈ μ ∣ Δ, β ∣ (β , ★) ∷ Σ
+      ⊢ c[β] ∶ A[β] =⇒ B
     ------------------------------------------------
     μ ∣ Δ ∣ Σ ⊢ inst β. B c[β] ∶ ∀β.A[β] =⇒ B
 
-Here ``A↑`` and ``B↑`` mean the outer type has been weakened under the
-new binder.
+Here ``β`` is chosen fresh, so types from the surrounding scope can be
+used under the binder without writing an explicit shift.
 
 The side checks are now mode checks:
 
@@ -200,12 +200,12 @@ The side checks are now mode checks:
 * ``sealTyAllowed μ α`` permits ``seal``/``unseal`` only in ``normal``
   or ``seal-to-tag`` mode.
 
-This is enough for preservation because opening and weakening now have
-mode-aware lemmas.
+This is enough for preservation because opening and mode-renaming now
+have mode-aware lemmas.
 
 For the ``gen`` example, preservation uses a lemma of this form:
 
-    μ ∣ Δ, β ∣ Σ↑ ⊢ c[β] ∶ A[β] =⇒ B[β]
+    μ ∣ Δ, β ∣ Σ ⊢ c[β] ∶ A[β] =⇒ B[β]
     ------------------------------------------------
     Δ ∣ Σ ⊢ c[α] ∶ A[α] =⇒ B[α]
 
@@ -297,13 +297,13 @@ source mode/store and target mode/store.  Its important clauses are:
 
 The binder cases extend this relation in the way duality requires:
 
-    genᵈ μ over Σ↑
+    genᵈ μ over Σ
       flips to
-    instᵈ ν over (β , ★) ∷ Π↑
+    instᵈ ν over (β , ★) ∷ Π
 
-    instᵈ μ over (β , ★) ∷ Σ↑
+    instᵈ μ over (β , ★) ∷ Σ
       flips to
-    genᵈ ν over Π↑
+    genᵈ ν over Π
 
 Thus the proof does not need to guess after the fact whether a variable
 should be a tag or a seal.  The mode context records that information

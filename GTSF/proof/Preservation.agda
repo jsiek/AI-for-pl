@@ -157,7 +157,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     (⊢up
       (reveal-fresh-typing hT hB)
       (⊢up
-        (coercion-open (n<1+n Δ) c⊢)
+        (coercion-openᵐ (n<1+n Δ) c⊢)
         app-src⊢))
   where
     hB : WfTy (suc Δ) B
@@ -166,14 +166,14 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
 
     src-open-eq :
       (src c) [ ＇ Δ ]ᵗ ≡ _ [ Δ ]ᴿ
-    src-open-eq with coercion-src-tgt c⊢
+    src-open-eq with coercion-src-tgtᵐ c⊢
     src-open-eq | src-eq , tgt-eq =
       trans (cong (λ T → T [ ＇ Δ ]ᵗ) src-eq)
             (subst-var-rename Δ _)
 
     V-src⊢ :
       Δ ∣ Σ ∣ Γ ⊢ V ⦂ `∀ (src c)
-    V-src⊢ with coercion-src-tgt c⊢
+    V-src⊢ with coercion-src-tgtᵐ c⊢
     V-src⊢ | src-eq , tgt-eq =
       subst (λ U → Δ ∣ Σ ∣ Γ ⊢ V ⦂ `∀ U) (sym src-eq) V⊢
 
@@ -200,7 +200,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     (⊢up
       (reveal-fresh-typing hT hB)
       (⊢up
-        (coercion-open (n<1+n Δ) c⊢)
+        (coercion-openᵐ (n<1+n Δ) c⊢)
         (subst
           (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
           (sym (renameᵗ-single-suc-cancel Δ _))
@@ -223,19 +223,19 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
       (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
       (renameᵗ-single-suc-cancel Δ _)
       (⊢up
-        (coercion-open-head (n<1+n Δ) c⊢)
+        (coercion-open-headᵐ (n<1+n Δ) c⊢)
         app-src⊢))
   where
     src-open-eq :
       (src c) [ ＇ Δ ]ᵗ ≡ _ [ Δ ]ᴿ
-    src-open-eq with coercion-src-tgt c⊢
+    src-open-eq with coercion-src-tgtᵐ c⊢
     src-open-eq | src-eq , tgt-eq =
       trans (cong (λ T → T [ ＇ Δ ]ᵗ) src-eq)
             (subst-var-rename Δ _)
 
     V-src⊢ :
       Δ ∣ Σ ∣ Γ ⊢ V ⦂ `∀ (src c)
-    V-src⊢ with coercion-src-tgt c⊢
+    V-src⊢ with coercion-src-tgtᵐ c⊢
     V-src⊢ | src-eq , tgt-eq =
       subst (λ U → Δ ∣ Σ ∣ Γ ⊢ V ⦂ `∀ U) (sym src-eq) V⊢
 

@@ -66,6 +66,15 @@ data Ground : Ty → Set where
   ‵_ : (ι : Base) → Ground (‵ ι)
   ★⇒★ : Ground (★ ⇒ ★)
 
+data Star : Ty → Set where
+  ★ : Star ★
+
+data Gnd : Ty → Set where
+  ＇_ : (α : TyVar) → Gnd (＇ α)
+  ‵_ : (ι : Base) → Gnd (‵ ι)
+  _⇒_ : ∀{A B} → Star A → Star B → Gnd (A ⇒ B)
+
+
 data Non∀ : Ty → Set where
   non∀-＇ : ∀ {X} → Non∀ (＇ X)
   non∀-‵ : ∀ {ι} → Non∀ (‵ ι)

@@ -86,13 +86,13 @@ canonical-⇒ :
 canonical-⇒ (ƛ N) (⊢ƛ hA hN) = fv-ƛ refl
 canonical-⇒ (Λ vV) ()
 canonical-⇒ ($ (κℕ n)) ()
-canonical-⇒ (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ () hW)
-canonical-⇒ (_⟨_⟩ {V = W} vW (seal A α)) (⊢⟨⟩ () hW)
+canonical-⇒ (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ d () hW)
+canonical-⇒ (_⟨_⟩ {V = W} vW (seal A α)) (⊢⟨⟩ d () hW)
 canonical-⇒ (_⟨_⟩ {V = W} vW (c ↦ d))
-    (⊢⟨⟩ (cast-fun cwt dwt) hW) =
+    (⊢⟨⟩ sub (cast-fun cwt dwt) hW) =
   fv-↦ vW refl
-canonical-⇒ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ () hW)
-canonical-⇒ (_⟨_⟩ {V = W} vW (gen A c)) (⊢⟨⟩ () hW)
+canonical-⇒ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ d () hW)
+canonical-⇒ (_⟨_⟩ {V = W} vW (gen A c)) (⊢⟨⟩ d () hW)
 
 data AllView (V : Term) : Set where
   av-Λ :
@@ -120,12 +120,13 @@ canonical-∀ :
 canonical-∀ (ƛ N) ()
 canonical-∀ (Λ vV) (⊢Λ _ hV) = av-Λ refl
 canonical-∀ ($ (κℕ n)) ()
-canonical-∀ (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ () hW)
-canonical-∀ (_⟨_⟩ {V = W} vW (seal A α)) (⊢⟨⟩ () hW)
-canonical-∀ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ () hW)
-canonical-∀ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ (cast-all cwt) hW) =
+canonical-∀ (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ d () hW)
+canonical-∀ (_⟨_⟩ {V = W} vW (seal A α)) (⊢⟨⟩ d () hW)
+canonical-∀ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ sub () hW)
+canonical-∀ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ d (cast-all cwt) hW) =
   av-∀ vW refl
-canonical-∀ (_⟨_⟩ {V = W} vW (gen A c)) (⊢⟨⟩ (cast-gen _ _ cwt) hW) =
+canonical-∀ (_⟨_⟩ {V = W} vW (gen A c))
+    (⊢⟨⟩ d (cast-gen _ _ cwt) hW) =
   av-gen vW refl
 
 data NatView (V : Term) : Set where
@@ -142,11 +143,11 @@ canonical-ℕ :
 canonical-ℕ (ƛ N) ()
 canonical-ℕ (Λ vV) ()
 canonical-ℕ ($ (κℕ n)) (⊢$ (κℕ .n)) = nv-const refl
-canonical-ℕ (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ () hW)
-canonical-ℕ (_⟨_⟩ {V = W} vW (seal A α)) (⊢⟨⟩ () hW)
-canonical-ℕ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ () hW)
-canonical-ℕ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ () hW)
-canonical-ℕ (_⟨_⟩ {V = W} vW (gen A c)) (⊢⟨⟩ () hW)
+canonical-ℕ (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ d () hW)
+canonical-ℕ (_⟨_⟩ {V = W} vW (seal A α)) (⊢⟨⟩ d () hW)
+canonical-ℕ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ sub () hW)
+canonical-ℕ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ d () hW)
+canonical-ℕ (_⟨_⟩ {V = W} vW (gen A c)) (⊢⟨⟩ d () hW)
 
 data StarView (V : Term) : Set where
   sv-tag :
@@ -163,12 +164,12 @@ canonical-★ :
 canonical-★ (ƛ N) ()
 canonical-★ (Λ vV) ()
 canonical-★ ($ (κℕ n)) ()
-canonical-★ (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ (cast-tag _ _ _) hW) =
+canonical-★ (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ d (cast-tag _ _ _) hW) =
   sv-tag vW refl
-canonical-★ (_⟨_⟩ {V = W} vW (seal A α)) (⊢⟨⟩ () hW)
-canonical-★ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ () hW)
-canonical-★ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ () hW)
-canonical-★ (_⟨_⟩ {V = W} vW (gen A c)) (⊢⟨⟩ () hW)
+canonical-★ (_⟨_⟩ {V = W} vW (seal A α)) (⊢⟨⟩ d () hW)
+canonical-★ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ sub () hW)
+canonical-★ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ d () hW)
+canonical-★ (_⟨_⟩ {V = W} vW (gen A c)) (⊢⟨⟩ d () hW)
 
 data SealView {α : TyVar} (V : Term) : Set where
   sv-seal :
@@ -185,12 +186,13 @@ canonical-＇ :
 canonical-＇ (ƛ N) ()
 canonical-＇ (Λ vV) ()
 canonical-＇ ($ (κℕ n)) ()
-canonical-＇ (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ () hW)
-canonical-＇ (_⟨_⟩ {V = W} vW (seal A α)) (⊢⟨⟩ (cast-seal _ _ _ _) hW) =
+canonical-＇ (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ d () hW)
+canonical-＇ (_⟨_⟩ {V = W} vW (seal A α))
+    (⊢⟨⟩ d (cast-seal _ _) hW) =
   sv-seal vW refl
-canonical-＇ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ () hW)
-canonical-＇ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ () hW)
-canonical-＇ (_⟨_⟩ {V = W} vW (gen A c)) (⊢⟨⟩ () hW)
+canonical-＇ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ sub () hW)
+canonical-＇ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ d () hW)
+canonical-＇ (_⟨_⟩ {V = W} vW (gen A c)) (⊢⟨⟩ d () hW)
 
 ------------------------------------------------------------------------
 -- Progress helpers
@@ -283,36 +285,36 @@ progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | done vL | done vM
 progress (⊢⊕ {L = L} {M = M} L⊢ addℕ M⊢)
     | done vL | done vM | nv-const refl | nv-const refl =
   step (pure-step δ-⊕)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) with progress M⊢
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | step M→M′ =
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) with progress M⊢
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | step M→M′ =
   step (ξ-⟨⟩ M→M′)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | crash refl =
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | crash refl =
   step (pure-step blame-⟨⟩)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM with c⊢
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-id hA _ =
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | done vM with c⊢
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | done vM | cast-id hA =
   step (pure-step (β-id vM))
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
-    | cast-seal hA hα _ _ =
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | done vM
+    | cast-seal hA hα =
   done (vM ⟨ seal _ _ ⟩)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
-    | cast-unseal hA hα _ _ =
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | done vM
+    | cast-unseal hA hα =
   unseal-progress vM M⊢
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | done vM
     | cast-seq p⊢ q⊢ =
   step (pure-step (β-seq vM))
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-tag hG gG _ =
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | done vM | cast-tag hG gG _ =
   done (vM ⟨ _ ! ⟩)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | done vM
     | cast-untag hG gG _ =
   untag-progress vM M⊢
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | done vM
     | cast-fun p⊢ q⊢ =
   done (vM ⟨ _ ↦ _ ⟩)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-all cwt =
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | done vM | cast-all cwt =
   done (vM ⟨ `∀ _ ⟩)
-progress {Σ = Σ} (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢)
+progress {Σ = Σ} (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢)
     | done vM | cast-inst _ _ cwt =
   step (pure-step (β-inst {Σ = Σ} vM))
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-gen _ _ cwt =
+progress (⊢⟨⟩ {M = M} {c = c} d c⊢ M⊢) | done vM | cast-gen _ _ cwt =
   done (vM ⟨ gen _ _ ⟩)
 progress (⊢blame hA) = crash refl

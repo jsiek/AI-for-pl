@@ -8,7 +8,7 @@ module Store where
 --     of this public surface.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using (_∷_; length)
+open import Data.List using (List; []; _∷_; length)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (_<_)
@@ -17,28 +17,38 @@ open import Data.Product using (_,_)
 open import Types
 
 ------------------------------------------------------------------------
--- Store inclusion
+-- Store subsequence
 ------------------------------------------------------------------------
 
+open import Data.List.Relation.Binary.Sublist.Propositional
+  using (_⊆_; []; _∷_; _∷ʳ_; ⊆-refl; ⊆-trans; lookup) public
+-- See Data/List/Relation/Binary/Sublist/Heterogeneous/Core.agda
+
 StoreIncl : Store → Store → Set
-StoreIncl Σ Σ′ = ∀ {x} → x ∈ Σ → x ∈ Σ′
+StoreIncl = _⊆_
 
 StoreIncl-refl :
   ∀ {Σ} →
   StoreIncl Σ Σ
-StoreIncl-refl x∈ = x∈
+StoreIncl-refl = ⊆-refl
 
 StoreIncl-drop :
   ∀ {Σ α A} →
   StoreIncl Σ ((α , A) ∷ Σ)
-StoreIncl-drop x∈ = there x∈
+StoreIncl-drop {α = α} {A = A} = (α , A) ∷ʳ ⊆-refl
 
 StoreIncl-cons :
   ∀ {Σ Σ′ x} →
   StoreIncl Σ Σ′ →
   StoreIncl (x ∷ Σ) (x ∷ Σ′)
-StoreIncl-cons incl (here refl) = here refl
-StoreIncl-cons incl (there x∈) = there (incl x∈)
+StoreIncl-cons incl = refl ∷ incl
+
+complement : ∀{A : Set}{Σ : List A}{Π} → Σ ⊆ Π → List A
+complement [] = []
+complement (y ∷ʳ d) = y ∷ (complement d) 
+complement (x ∷ d) = complement d
+
+
 
 ------------------------------------------------------------------------
 -- Store well-formedness

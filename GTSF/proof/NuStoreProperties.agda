@@ -12,6 +12,9 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_; _∉_)
 open import Data.List.Relation.Unary.Any using (here; there)
+open import Data.List.Relation.Binary.Sublist.Propositional
+  renaming ([] to []⊆; _∷_ to _∷⊆_; _∷ʳ_ to _∷ʳ⊆_)
+  using ()
 open import Data.Nat using (suc; _<_; _≤_)
 open import Data.Nat.Properties using (<-≤-trans)
 open import Data.Product using (_,_)
@@ -137,8 +140,7 @@ renameStoreᵗ-incl :
   ∀ ρ {Σ Σ′} →
   StoreIncl Σ Σ′ →
   StoreIncl (renameStoreᵗ ρ Σ) (renameStoreᵗ ρ Σ′)
-renameStoreᵗ-incl ρ {Σ = []} incl ()
-renameStoreᵗ-incl ρ {Σ = (α , A) ∷ Σ} incl (here refl) =
-  ∈-renameStoreᵗ ρ (incl (here refl))
-renameStoreᵗ-incl ρ {Σ = (α , A) ∷ Σ} incl (there x∈) =
-  renameStoreᵗ-incl ρ (λ y∈ → incl (there y∈)) x∈
+renameStoreᵗ-incl ρ []⊆ = []⊆
+renameStoreᵗ-incl ρ ((α , A) ∷ʳ⊆ incl) =
+  (ρ α , renameᵗ ρ A) ∷ʳ⊆ renameStoreᵗ-incl ρ incl
+renameStoreᵗ-incl ρ (refl ∷⊆ incl) = refl ∷⊆ renameStoreᵗ-incl ρ incl

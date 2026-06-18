@@ -7,6 +7,7 @@ open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃; ∃-syntax)
 
 open import Types
 open import Ctx
+open import Store using (_⊆_; complement)
 open import Coercions
 open import Primitives
 
@@ -174,8 +175,9 @@ data _∣_∣_⊢_⦂_ (Δ : TyCtx) (Σ : Store) (Γ : Ctx) : Term → Ty → Se
       -----------------------------------
      → Δ ∣ Σ ∣ Γ ⊢ (L ⊕[ op ] M) ⦂ (‵ `ℕ)
 
-  ⊢⟨⟩ : ∀ {M A B c}
-      → Δ ∣ Σ ⊢ c ∶ A =⇒ B  -- Phil: should be Π, and Π ⊆ Σ to distinguish 
+  ⊢⟨⟩ : ∀ {M A B c Π}
+      → (d : Π ⊆ Σ)
+      → Δ ∣ complement d ∣ Π ⊢ c ∶ A =⇒ B
       → Δ ∣ Σ ∣ Γ ⊢ M ⦂ A
       -------------------------
       → Δ ∣ Σ ∣ Γ ⊢ M ⟨ c ⟩ ⦂ B

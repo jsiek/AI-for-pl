@@ -18,6 +18,7 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import Ctx
 open import NuStore
+open import Store using (⊆-trans; lookup)
 open import Coercions
 open import Primitives
 open import NuTerms
@@ -46,18 +47,32 @@ record PreservationResult
 open PreservationResult public
 
 coercion-open-existing :
-  ∀ {μ Δ Σ c A B α} →
+  ∀ {Δ Σ Π c A B α} →
   α < Δ →
-  μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ A =⇒ B →
-  Δ ∣ Σ ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
-coercion-open-existing {μ = μ} {Σ = Σ} {α = α} α<Δ c⊢ =
+  suc Δ ∣ ⟰ᵗ Σ ∣ ⟰ᵗ Π ⊢ c ∶ A =⇒ B →
+  Δ ∣ Σ ∣ Π ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
+coercion-open-existing {Σ = Σ} {Π = Π} {α = α} α<Δ c⊢ =
   subst
-    (λ Σ′ → _ ∣ Σ′ ⊢ _ ∶ _ =⇒ _)
-    (renameStoreᵗ-single-suc-cancel α Σ)
-    (coercion-renameᵗᵐ
-      (singleRenameᵗ-Wf-< α<Δ)
-      (ModeRename-to-normal {ρ = singleRenameᵗ α} {μ = μ})
-      c⊢)
+    (λ Π′ → _ ∣ Σ ∣ Π′ ⊢ _ ∶ _ =⇒ _)
+    (renameStoreᵗ-single-suc-cancel α Π)
+    (subst
+      (λ Σ′ →
+        _ ∣ Σ′ ∣ renameStoreᵗ (singleRenameᵗ α) (⟰ᵗ Π)
+          ⊢ _ ∶ _ =⇒ _)
+      (renameStoreᵗ-single-suc-cancel α Σ)
+      (coercion-renameᵗ (singleRenameᵗ-Wf-< α<Δ) c⊢))
+
+-- The two-store side conditions make the `gen`/type-application redex expose
+-- one missing invariant: substituting an arbitrary existing type variable for
+-- the bound tag-allowed variable requires that existing variable to be
+-- tag-allowed for this cast split. The current `⊢•` rule only provides `α < Δ`,
+-- so this lemma records the needed bridge explicitly.
+postulate
+  coercion-open-gen-existing :
+    ∀ {Δ Σ Π c A B α} →
+    α < Δ →
+    suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ ∣ ⟰ᵗ Π ⊢ c ∶ ⇑ᵗ A =⇒ B →
+    Δ ∣ Σ ∣ Π ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ
 
 ------------------------------------------------------------------------
 -- Raw redex preservation
@@ -80,20 +95,21 @@ pure-preservation wfΣ hΓ
     (⊢• {B = B} (⊢Λ {A = B′} vV V⊢) α<Δ)
     β-Λ =
   typing-open-existingᵀ α<Δ V⊢
-pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-id hA _) hV) (β-id vV) =
+pure-preservation wfΣ hΓ (⊢⟨⟩ d (cast-id hA) hV) (β-id vV) =
   hV
-pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-seq p⊢ q⊢) hV) (β-seq vV) =
-  ⊢⟨⟩ q⊢ (⊢⟨⟩ p⊢ hV)
+pure-preservation wfΣ hΓ (⊢⟨⟩ d (cast-seq p⊢ q⊢) hV) (β-seq vV) =
+  ⊢⟨⟩ d q⊢ (⊢⟨⟩ d p⊢ hV)
 pure-preservation wfΣ hΓ
-    (⊢· (⊢⟨⟩ (cast-fun p⊢ q⊢) hV) hW)
+    (⊢· (⊢⟨⟩ d (cast-fun p⊢ q⊢) hV) hW)
     (β-↦ vV vW) =
-  ⊢⟨⟩ q⊢ (⊢· hV (⊢⟨⟩ p⊢ hW))
+  ⊢⟨⟩ d q⊢ (⊢· hV (⊢⟨⟩ d p⊢ hW))
 pure-preservation wfΣ hΓ
     (⊢• {α = α}
-      (⊢⟨⟩ {M = V} (`∀⊢@(cast-all {A = A₀} {s = c} c⊢)) V⊢)
+      (⊢⟨⟩ {M = V} d (`∀⊢@(cast-all {A = A₀} {s = c} c⊢)) V⊢)
       α<Δ)
     (β-∀ vV) =
   ⊢⟨⟩
+    d
     (coercion-open-existing α<Δ c⊢)
     app-src⊢
   where
@@ -118,21 +134,22 @@ pure-preservation wfΣ hΓ
         (⊢• V-src⊢ α<Δ)
 pure-preservation wfΣ hΓ
     (⊢• {α = α}
-      (⊢⟨⟩ (gen⊢@(cast-gen {s = c} hC _ c⊢)) V⊢)
+      (⊢⟨⟩ d (gen⊢@(cast-gen {s = c} hC _ c⊢)) V⊢)
       α<Δ)
     (β-gen vV) =
-  ⊢⟨⟩
-    (subst
-      (λ T → _ ∣ _ ⊢ c [ _ ]ᶜ ∶ T =⇒ _)
-      (renameᵗ-single-suc-cancel _ _)
-      (coercion-open-existing α<Δ c⊢))
-    V⊢
+  ⊢⟨⟩ d (coercion-open-gen-existing α<Δ c⊢) V⊢
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ {M = V} (cast-inst {A = A} {B = B} {s = c} hB _ c⊢) V⊢)
+    (⊢⟨⟩ {M = V} d (cast-inst {A = A} {B = B} {s = c} hB _ c⊢) V⊢)
     (β-inst vV) =
   ⊢ν
     wf★
-    (⊢⟨⟩ (coercion-mode-relax modeIncl-normal c⊢) app-src⊢)
+    (⊢⟨⟩
+      (StoreIncl-cons (renameStoreᵗ-incl suc d))
+      (subst
+        (λ Σ′ → _ ∣ Σ′ ∣ _ ⊢ c ∶ _ =⇒ _)
+        (complement-rename suc d)
+        c⊢)
+      app-src⊢)
   where
     app-src-eq :
       (renameᵗ (extᵗ suc) A) [ zero ]ᴿ ≡ A
@@ -159,18 +176,18 @@ pure-preservation wfΣ hΓ
         app-src-eq
         (⊢• shifted-V⊢ z<s)
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ (cast-unseal hB αB∈Σ _ _)
-      (⊢⟨⟩ (cast-seal hA αA∈Σ _ _) hV))
+    (⊢⟨⟩ dB (cast-unseal hB αB∈Σ)
+      (⊢⟨⟩ dA (cast-seal hA αA∈Σ) hV))
     (seal-unseal vV) =
   subst (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
-        (unique wfΣ αA∈Σ αB∈Σ)
+        (unique wfΣ (lookup dA αA∈Σ) (lookup dB αB∈Σ))
         hV
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ (cast-untag hG gG _) (⊢⟨⟩ (cast-tag hG′ gG′ _) hV))
+    (⊢⟨⟩ dH (cast-untag hG gG _) (⊢⟨⟩ dG (cast-tag hG′ gG′ _) hV))
     (tag-untag-ok vV) =
   hV
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ (cast-untag hH gH _) (⊢⟨⟩ (cast-tag hG gG _) hV))
+    (⊢⟨⟩ dH (cast-untag hH gH _) (⊢⟨⟩ dG (cast-tag hG gG _) hV))
     (tag-untag-bad vV G≢H) =
   ⊢blame hH
 pure-preservation wfΣ hΓ (⊢· (⊢blame (wf⇒ hA hB)) hM) blame-·₁ =
@@ -182,9 +199,9 @@ pure-preservation wfΣ hΓ (⊢· hV (⊢blame hA)) (blame-·₂ vV)
   ⊢blame hB
 pure-preservation wfΣ hΓ (⊢• (⊢blame (wf∀ hB)) α<Δ) blame-·α =
   ⊢blame (renameᵗ-preserves-WfTy hB (singleRenameᵗ-Wf-< α<Δ))
-pure-preservation wfΣ hΓ (⊢⟨⟩ c⊢ (⊢blame hA)) blame-⟨⟩
-    with coercion-wf (at wfΣ) c⊢
-pure-preservation wfΣ hΓ (⊢⟨⟩ c⊢ (⊢blame hA)) blame-⟨⟩
+pure-preservation wfΣ hΓ (⊢⟨⟩ d c⊢ (⊢blame hA)) blame-⟨⟩
+    with coercion-wf (at wfΣ) d c⊢
+pure-preservation wfΣ hΓ (⊢⟨⟩ d c⊢ (⊢blame hA)) blame-⟨⟩
     | hA′ , hB =
   ⊢blame hB
 pure-preservation wfΣ hΓ (⊢⊕ (⊢blame hA) op hM) blame-⊕₁ =
@@ -241,12 +258,15 @@ preservation wfΣ hΓ (⊢• M⊢ α<Δ) (ξ-·α red)
     | preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′ M′⊢ =
   preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′
     (⊢• M′⊢ (<-≤-trans α<Δ Δ≤Δ′))
-preservation wfΣ hΓ (⊢⟨⟩ c⊢ M⊢) (ξ-⟨⟩ red)
+preservation wfΣ hΓ (⊢⟨⟩ d c⊢ M⊢) (ξ-⟨⟩ red)
     with preservation wfΣ hΓ M⊢ red
-preservation wfΣ hΓ (⊢⟨⟩ c⊢ M⊢) (ξ-⟨⟩ red)
+preservation wfΣ hΓ (⊢⟨⟩ d c⊢ M⊢) (ξ-⟨⟩ red)
     | preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′ M′⊢ =
   preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′
-    (⊢⟨⟩ (coercion-weaken Δ≤Δ′ incl c⊢) M′⊢)
+    (⊢⟨⟩
+      (⊆-trans d incl)
+      (coercion-weaken Δ≤Δ′ (complement-incl d incl) StoreIncl-refl c⊢)
+      M′⊢)
 preservation wfΣ hΓ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
     with preservation wfΣ hΓ L⊢ red
 preservation wfΣ hΓ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)

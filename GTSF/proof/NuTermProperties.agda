@@ -22,8 +22,9 @@ open import Coercions
 open import Primitives
 open import NuTerms
 open import proof.TypeProperties
-open import proof.StoreProperties
+open import proof.NuStoreProperties
 open import proof.CoercionProperties
+  hiding (renameStoreᵗ-ext-suc-cons-comm)
 
 ------------------------------------------------------------------------
 -- Context lookup under mapped contexts
@@ -221,9 +222,10 @@ term-weaken Δ≤Δ′ incl (⊢ν hA hN) =
 term-weaken Δ≤Δ′ incl (⊢$ κ) = ⊢$ κ
 term-weaken Δ≤Δ′ incl (⊢⊕ hL op hM) =
   ⊢⊕ (term-weaken Δ≤Δ′ incl hL) op (term-weaken Δ≤Δ′ incl hM)
-term-weaken Δ≤Δ′ incl (⊢⟨⟩ c⊢ hM) =
+term-weaken Δ≤Δ′ incl (⊢⟨⟩ d c⊢ hM) =
   ⊢⟨⟩
-    (coercion-weaken Δ≤Δ′ incl c⊢)
+    (⊆-trans d incl)
+    (coercion-weaken Δ≤Δ′ (complement-incl d incl) StoreIncl-refl c⊢)
     (term-weaken Δ≤Δ′ incl hM)
 term-weaken Δ≤Δ′ incl (⊢blame hA) =
   ⊢blame (WfTy-weakenᵗ hA Δ≤Δ′)
@@ -299,8 +301,14 @@ typing-renameᵀ {ρ = ρ} hρ (⊢$ κ) =
         (⊢$ κ)
 typing-renameᵀ hρ (⊢⊕ hL op hM) =
   ⊢⊕ (typing-renameᵀ hρ hL) op (typing-renameᵀ hρ hM)
-typing-renameᵀ hρ (⊢⟨⟩ c⊢ hM) =
-  ⊢⟨⟩ (coercion-renameᵗ hρ c⊢) (typing-renameᵀ hρ hM)
+typing-renameᵀ {ρ = ρ} hρ (⊢⟨⟩ d c⊢ hM) =
+  ⊢⟨⟩
+    (renameStoreᵗ-incl ρ d)
+    (subst
+      (λ Σ′ → _ ∣ Σ′ ∣ _ ⊢ _ ∶ _ =⇒ _)
+      (complement-rename ρ d)
+      (coercion-renameᵗ hρ c⊢))
+    (typing-renameᵀ hρ hM)
 typing-renameᵀ hρ (⊢blame hA) =
   ⊢blame (renameᵗ-preserves-WfTy hA hρ)
 
@@ -401,8 +409,8 @@ typing-wf wfΣ hΓ (⊢ν hA hN) =
       hN)
 typing-wf wfΣ hΓ (⊢$ κ) = constTy-wf κ
 typing-wf wfΣ hΓ (⊢⊕ hL op hM) = wfBase
-typing-wf wfΣ hΓ (⊢⟨⟩ c⊢ hM) with coercion-wf wfΣ c⊢
-typing-wf wfΣ hΓ (⊢⟨⟩ c⊢ hM) | hA , hB = hB
+typing-wf wfΣ hΓ (⊢⟨⟩ d c⊢ hM) with coercion-wf wfΣ d c⊢
+typing-wf wfΣ hΓ (⊢⟨⟩ d c⊢ hM) | hA , hB = hB
 typing-wf wfΣ hΓ (⊢blame hA) = hA
 
 ------------------------------------------------------------------------
@@ -454,8 +462,8 @@ typing-renameˣ hρ (⊢ν hA hN) =
 typing-renameˣ hρ (⊢$ κ) = ⊢$ κ
 typing-renameˣ hρ (⊢⊕ hL op hM) =
   ⊢⊕ (typing-renameˣ hρ hL) op (typing-renameˣ hρ hM)
-typing-renameˣ hρ (⊢⟨⟩ c⊢ hM) =
-  ⊢⟨⟩ c⊢ (typing-renameˣ hρ hM)
+typing-renameˣ hρ (⊢⟨⟩ d c⊢ hM) =
+  ⊢⟨⟩ d c⊢ (typing-renameˣ hρ hM)
 typing-renameˣ hρ (⊢blame hA) = ⊢blame hA
 
 typing-renameˣ-shift :
@@ -522,8 +530,8 @@ typing-substˣ hσ (⊢ν hA hN) =
 typing-substˣ hσ (⊢$ κ) = ⊢$ κ
 typing-substˣ hσ (⊢⊕ hL op hM) =
   ⊢⊕ (typing-substˣ hσ hL) op (typing-substˣ hσ hM)
-typing-substˣ hσ (⊢⟨⟩ c⊢ hM) =
-  ⊢⟨⟩ c⊢ (typing-substˣ hσ hM)
+typing-substˣ hσ (⊢⟨⟩ d c⊢ hM) =
+  ⊢⟨⟩ d c⊢ (typing-substˣ hσ hM)
 typing-substˣ hσ (⊢blame hA) = ⊢blame hA
 
 singleSubstWf :

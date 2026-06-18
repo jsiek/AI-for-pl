@@ -45,12 +45,15 @@ drop0ᵉ [] = []
 drop0ᵉ (zero ∷ E) = drop0ᵉ E
 drop0ᵉ (suc α ∷ E) = α ∷ drop0ᵉ E
 
+openᴱ : Effect → TyVar → Effect
+openᴱ E α = renameᴱ (singleRenameᵗ α) E
+
 data EffTy : Set where
   ty-var  : TyVar → EffTy
   ty-base : Base → EffTy
   ty-star : EffTy
   _⇒[_]_  : EffTy → Effect → EffTy → EffTy
-  ty-all  : EffTy → EffTy
+  ty-all  : Effect → EffTy → EffTy
 
 infixr 7 _⇒[_]_
 
@@ -59,14 +62,14 @@ eraseᵉ (ty-var α) = ＇ α
 eraseᵉ (ty-base ι) = ‵ ι
 eraseᵉ ty-star = ★
 eraseᵉ (A ⇒[ E ] B) = eraseᵉ A ⇒ eraseᵉ B
-eraseᵉ (ty-all A) = `∀ (eraseᵉ A)
+eraseᵉ (ty-all E A) = `∀ (eraseᵉ A)
 
 plainᵉ : Ty → EffTy
 plainᵉ (＇ α) = ty-var α
 plainᵉ (‵ ι) = ty-base ι
 plainᵉ ★ = ty-star
 plainᵉ (A ⇒ B) = plainᵉ A ⇒[ [] ] plainᵉ B
-plainᵉ (`∀ A) = ty-all (plainᵉ A)
+plainᵉ (`∀ A) = ty-all [] (plainᵉ A)
 
 erase-plainᵉ :
   ∀ A →
@@ -84,7 +87,8 @@ renameᵉ ρ (ty-var α) = ty-var (ρ α)
 renameᵉ ρ (ty-base ι) = ty-base ι
 renameᵉ ρ ty-star = ty-star
 renameᵉ ρ (A ⇒[ E ] B) = renameᵉ ρ A ⇒[ renameᴱ ρ E ] renameᵉ ρ B
-renameᵉ ρ (ty-all A) = ty-all (renameᵉ (extᵗ ρ) A)
+renameᵉ ρ (ty-all E A) =
+  ty-all (renameᴱ (extᵗ ρ) E) (renameᵉ (extᵗ ρ) A)
 
 _[_]ᵉ : EffTy → TyVar → EffTy
 A [ α ]ᵉ = renameᵉ (singleRenameᵗ α) A
@@ -97,7 +101,7 @@ erase-renameᵉ ρ (ty-base ι) = refl
 erase-renameᵉ ρ ty-star = refl
 erase-renameᵉ ρ (A ⇒[ E ] B) =
   cong₂ _⇒_ (erase-renameᵉ ρ A) (erase-renameᵉ ρ B)
-erase-renameᵉ ρ (ty-all A) =
+erase-renameᵉ ρ (ty-all E A) =
   cong `∀ (erase-renameᵉ (extᵗ ρ) A)
 
 erase-openᵉ :
@@ -127,9 +131,10 @@ data WfEffTy : TyCtx → EffTy → Set where
     WfEffTy Δ (A ⇒[ E ] B)
 
   wf-eff-all :
-    ∀ {Δ A} →
+    ∀ {Δ E A} →
+    WfEffect (suc Δ) E →
     WfEffTy (suc Δ) A →
-    WfEffTy Δ (ty-all A)
+    WfEffTy Δ (ty-all E A)
 
 forget-wf-eff :
   ∀ {Δ A} →
@@ -140,7 +145,7 @@ forget-wf-eff wf-eff-base = wfBase
 forget-wf-eff wf-eff-star = wf★
 forget-wf-eff (wf-eff-fun hA wfE hB) =
   wf⇒ (forget-wf-eff hA) (forget-wf-eff hB)
-forget-wf-eff (wf-eff-all hA) = wf∀ (forget-wf-eff hA)
+forget-wf-eff (wf-eff-all wfE hA) = wf∀ (forget-wf-eff hA)
 
 ------------------------------------------------------------------------
 -- Effect contexts
@@ -237,15 +242,15 @@ data _∣_∣_⊢_⦂_▷_
      → Value M
      → suc Δ ∣ ⟰ᵗ Σ ∣ renameCtxᵉ suc Ξ ⊢ M ⦂ A ▷ E
       ----------------------------
-     → Δ ∣ Σ ∣ Ξ ⊢ (Λ M) ⦂ (ty-all A) ▷ drop0ᵉ E
+     → Δ ∣ Σ ∣ Ξ ⊢ (Λ M) ⦂ (ty-all E A) ▷ drop0ᵉ E
 
-  eff-tyapp : ∀ {L B α E}
-     → Δ ∣ Σ ∣ Ξ ⊢ L ⦂ (ty-all B) ▷ E
+  eff-tyapp : ∀ {L B α E Ebody}
+     → Δ ∣ Σ ∣ Ξ ⊢ L ⦂ (ty-all Ebody B) ▷ E
      → α < Δ
      → α ∉ E
      → occurs (suc α) (eraseᵉ B) ≡ false
       ----------------------------
-     → Δ ∣ Σ ∣ Ξ ⊢ (L • α) ⦂ B [ α ]ᵉ ▷ E
+     → Δ ∣ Σ ∣ Ξ ⊢ (L • α) ⦂ B [ α ]ᵉ ▷ E ++ openᴱ Ebody α
 
   eff-nu : ∀ {N A B E}
      → WfTy Δ A

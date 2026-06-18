@@ -187,6 +187,27 @@ with erasure back to the ordinary GTSF type `erase(A) ⇒ erase(B)`. This keeps 
 core `Types.agda` grammar unchanged while making the latent effect available to
 the preservation proof.
 
+The same reasoning applies to type abstraction. If the body of `ΛX. V` has an
+effect mentioning the bound variable `X`, then applying the value at `α` opens
+that latent effect to mention `α`. Therefore the prototype also annotates
+universal types:
+
+    ∀[ Ebody ] A
+
+The term effect of `ΛX. V` is still `drop0(Ebody)`, because `X` is locally
+bound in the value. The type application rule adds the opened latent effect:
+
+    Δ ∣ Σ ∣ Γ ⊢ L ⦂ ∀[Ebody] B ▷ EL
+    α < Δ
+    α ∉ EL
+    α ∉ FV(B)
+    -------------------------------------------------
+    Δ ∣ Σ ∣ Γ ⊢ L α ⦂ B[α] ▷ EL ∪ Ebody[α]
+
+This makes `β-Λ` preservation possible: the reduct `V[α]` is typed with
+effect `Ebody[α]`, and that effect is included in the source effect
+`drop0(Ebody) ∪ Ebody[α]`.
+
 The same preservation attempt also suggests that effects should be treated as
 upper bounds rather than exact lists. β-substitution can duplicate an argument,
 so an exact list effect is not stable. The metatheory should use an inclusion

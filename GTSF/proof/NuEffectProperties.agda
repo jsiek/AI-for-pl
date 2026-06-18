@@ -10,25 +10,29 @@ module proof.NuEffectProperties where
 open import Data.List using ([]; _∷_; _++_)
 open import Data.List.Membership.Propositional using (_∈_; _∉_)
 open import Data.List.Relation.Unary.Any using (here; there)
+open import Data.Bool using (false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (_≤_; zero; suc; z<s; s<s; s≤s)
-open import Data.Nat.Properties using (<-≤-trans; suc-injective)
+open import Data.Nat.Properties using (_≟_; <-≤-trans; suc-injective)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; cong₂; subst; sym; trans)
+open import Relation.Nullary using (yes; no)
 
 open import Types
 open import Store
-  using (StoreIncl; StoreIncl-cons; StoreIncl-refl; _⊆_; ⊆-trans)
+  using (StoreIncl; StoreIncl-cons; StoreIncl-refl; _⊆_; complement; ⊆-trans)
 open import Coercions
 open import NuTerms
 open import NuEffectTyping
+open import Primitives using (constTy; constTy-renameᵗ)
 open import proof.CoercionProperties
   using
     ( coercion-weaken
     ; coercion-renameᵗ
     ; complement-incl
     ; complement-rename
+    ; renameStoreᵗ-ext-suc-cons-comm
     ; renameᶜ-preserves-Inert
     )
 open import proof.NuStoreProperties using (renameStoreᵗ-incl)
@@ -44,6 +48,8 @@ open import proof.TypeProperties
     ; raise-ext
     ; raiseVarFrom-injective
     ; rename-cong
+    ; renameStoreᵗ-ext-suc-comm
+    ; renameᵗ-ext-suc-comm
     ; renameᵗ-compose
     ; renameᵗ-preserves-WfTy
     )
@@ -94,6 +100,45 @@ open import proof.TypeProperties
   ρ α ∈ renameᴱ ρ E
 ∈-renameᴱ ρ (here refl) = here refl
 ∈-renameᴱ ρ (there α∈E) = there (∈-renameᴱ ρ α∈E)
+
+RenameInjective : Renameᵗ → Set
+RenameInjective ρ = ∀ {α β} → ρ α ≡ ρ β → α ≡ β
+
+RenameInjective-ext :
+  ∀ {ρ} →
+  RenameInjective ρ →
+  RenameInjective (extᵗ ρ)
+RenameInjective-ext inj {zero} {zero} eq = refl
+RenameInjective-ext inj {zero} {suc β} ()
+RenameInjective-ext inj {suc α} {zero} ()
+RenameInjective-ext inj {suc α} {suc β} eq =
+  cong suc (inj (suc-injective eq))
+
+suc-RenameInjective : RenameInjective suc
+suc-RenameInjective eq = suc-injective eq
+
+raiseVarFrom-RenameInjective :
+  ∀ k →
+  RenameInjective (raiseVarFrom k)
+raiseVarFrom-RenameInjective k eq = raiseVarFrom-injective k eq
+
+∈-renameᴱ-inv :
+  ∀ {ρ E α} →
+  RenameInjective ρ →
+  ρ α ∈ renameᴱ ρ E →
+  α ∈ E
+∈-renameᴱ-inv {E = []} inj ()
+∈-renameᴱ-inv {E = β ∷ E} inj (here eq) = here (inj eq)
+∈-renameᴱ-inv {E = β ∷ E} inj (there ρα∈) =
+  there (∈-renameᴱ-inv inj ρα∈)
+
+∉-renameᴱ :
+  ∀ {ρ E α} →
+  RenameInjective ρ →
+  α ∉ E →
+  ρ α ∉ renameᴱ ρ E
+∉-renameᴱ inj α∉E ρα∈ =
+  α∉E (∈-renameᴱ-inv inj ρα∈)
 
 renameᴱ-cong :
   ∀ {ρ τ} →
@@ -151,6 +196,25 @@ sealUsesᶜ-rename ρ (gen A c)
 sealUsesᶜ-rename ρ (inst B c)
   rewrite sealUsesᶜ-rename (extᵗ ρ) c =
   drop0ᵉ-rename ρ (sealUsesᶜ c)
+
+SealSideExact-rename :
+  ∀ ρ {c Π} →
+  SealSideExact c Π →
+  SealSideExact (renameᶜ ρ c) (renameStoreᵗ ρ Π)
+SealSideExact-rename ρ {c = c} {Π = []} exact ()
+SealSideExact-rename ρ {c = c} {Π = (α , A) ∷ Π} exact
+    (here refl) =
+  subst
+    (λ E → ρ α ∈ E)
+    (sym (sealUsesᶜ-rename ρ c))
+    (∈-renameᴱ ρ (exact (here refl)))
+SealSideExact-rename ρ {c = c} {Π = (β , B) ∷ Π} exact
+    (there h) =
+  SealSideExact-rename ρ
+    {c = c}
+    {Π = Π}
+    (λ β∈Π → exact (there β∈Π))
+    h
 
 SealSideExact-rename-raise :
   ∀ k {c Π} →
@@ -210,6 +274,28 @@ renameᴱ-open-raise k E α =
       ∀ β →
       raiseVarFrom k (singleRenameᵗ α β) ≡
       singleRenameᵗ (raiseVarFrom k α) (extᵗ (raiseVarFrom k) β)
+    env-eq zero = refl
+    env-eq (suc β) = refl
+
+renameᴱ-open :
+  ∀ ρ E α →
+  renameᴱ ρ (openᴱ E α) ≡
+  openᴱ (renameᴱ (extᵗ ρ) E) (ρ α)
+renameᴱ-open ρ E α =
+  trans
+    (renameᴱ-compose (singleRenameᵗ α) ρ E)
+    (trans
+      (renameᴱ-cong env-eq E)
+      (sym
+        (renameᴱ-compose
+          (extᵗ ρ)
+          (singleRenameᵗ (ρ α))
+          E)))
+  where
+    env-eq :
+      ∀ β →
+      ρ (singleRenameᵗ α β) ≡
+      singleRenameᵗ (ρ α) (extᵗ ρ β)
     env-eq zero = refl
     env-eq (suc β) = refl
 
@@ -404,6 +490,37 @@ renameᵉ-open-raise k A α =
     env-eq zero = refl
     env-eq (suc β) = refl
 
+renameᵉ-open :
+  ∀ ρ A α →
+  renameᵉ ρ (A [ α ]ᵉ) ≡
+  renameᵉ (extᵗ ρ) A [ ρ α ]ᵉ
+renameᵉ-open ρ A α =
+  trans
+    (renameᵉ-compose (singleRenameᵗ α) ρ A)
+    (trans
+      (renameᵉ-cong env-eq A)
+      (sym
+        (renameᵉ-compose
+          (extᵗ ρ)
+          (singleRenameᵗ (ρ α))
+          A)))
+  where
+    env-eq :
+      ∀ β →
+      ρ (singleRenameᵗ α β) ≡
+      singleRenameᵗ (ρ α) (extᵗ ρ β)
+    env-eq zero = refl
+    env-eq (suc β) = refl
+
+renameᵉ-ext-suc-comm :
+  ∀ ρ A →
+  renameᵉ (extᵗ ρ) (renameᵉ suc A) ≡
+  renameᵉ suc (renameᵉ ρ A)
+renameᵉ-ext-suc-comm ρ A =
+  trans
+    (renameᵉ-compose suc (extᵗ ρ) A)
+    (sym (renameᵉ-compose ρ suc A))
+
 renameᴱ-raise-ext :
   ∀ k E →
   renameᴱ (extᵗ (raiseVarFrom k)) E ≡
@@ -459,6 +576,41 @@ occurs-erase-renameᵉ-tyapp-raise :
 occurs-erase-renameᵉ-tyapp-raise k α A
   rewrite renameᵉ-raise-ext k A =
   occurs-erase-renameᵉ-raise (suc k) (suc α) A
+
+occurs-rename-injective :
+  ∀ {ρ} →
+  RenameInjective ρ →
+  ∀ α A →
+  occurs (ρ α) (renameᵗ ρ A) ≡ occurs α A
+occurs-rename-injective {ρ = ρ} inj α (＇ β)
+    with α ≟ β | ρ α ≟ ρ β
+occurs-rename-injective inj α (＇ .α)
+    | yes refl | yes refl = refl
+occurs-rename-injective inj α (＇ .α)
+    | yes refl | no neq =
+  ⊥-elim (neq refl)
+occurs-rename-injective inj α (＇ β)
+    | no neq | yes eq =
+  ⊥-elim (neq (inj eq))
+occurs-rename-injective inj α (＇ β)
+    | no neq | no neq′ = refl
+occurs-rename-injective inj α (‵ ι) = refl
+occurs-rename-injective inj α ★ = refl
+occurs-rename-injective inj α (A ⇒ B)
+  rewrite occurs-rename-injective inj α A
+        | occurs-rename-injective inj α B = refl
+occurs-rename-injective inj α (`∀ A) =
+  occurs-rename-injective (RenameInjective-ext inj) (suc α) A
+
+occurs-erase-renameᵉ-injective :
+  ∀ {ρ} →
+  RenameInjective ρ →
+  ∀ α A →
+  occurs (ρ α) (eraseᵉ (renameᵉ ρ A)) ≡
+  occurs α (eraseᵉ A)
+occurs-erase-renameᵉ-injective {ρ = ρ} inj α A
+  rewrite erase-renameᵉ ρ A =
+  occurs-rename-injective inj α (eraseᵉ A)
 
 ------------------------------------------------------------------------
 -- Term-variable renaming
@@ -573,6 +725,22 @@ renameCtxᵉ-compose ρ τ ((A , E) ∷ Ξ)
         | renameᴱ-compose ρ τ E
         | renameCtxᵉ-compose ρ τ Ξ = refl
 
+renameCtxᵉ-ext-suc-comm :
+  ∀ ρ Ξ →
+  renameCtxᵉ (extᵗ ρ) (renameCtxᵉ suc Ξ) ≡
+  renameCtxᵉ suc (renameCtxᵉ ρ Ξ)
+renameCtxᵉ-ext-suc-comm ρ Ξ =
+  trans
+    (renameCtxᵉ-compose suc (extᵗ ρ) Ξ)
+    (trans
+      (renameCtxᵉ-cong env-eq Ξ)
+      (sym (renameCtxᵉ-compose ρ suc Ξ)))
+  where
+    env-eq :
+      ∀ α →
+      extᵗ ρ (suc α) ≡ suc (ρ α)
+    env-eq α = refl
+
 renameCtxᵉ-raise-suc-comm :
   ∀ k Ξ →
   renameCtxᵉ (raiseVarFrom (suc k)) (renameCtxᵉ suc Ξ) ≡
@@ -598,6 +766,228 @@ RenameEffWf-renameCtxᵉ {Ξ = Ξ} τ hρ h
 RenameEffWf-renameCtxᵉ {Ξ = Ξ} τ hρ h
     | A , E , hΞ , refl , refl =
   lookup-renameCtxᵉ τ (hρ hΞ)
+
+------------------------------------------------------------------------
+-- Type-variable renaming
+------------------------------------------------------------------------
+
+plainᵉ-rename :
+  ∀ ρ A →
+  plainᵉ (renameᵗ ρ A) ≡ renameᵉ ρ (plainᵉ A)
+plainᵉ-rename ρ (＇ α) = refl
+plainᵉ-rename ρ (‵ ι) = refl
+plainᵉ-rename ρ ★ = refl
+plainᵉ-rename ρ (A ⇒ B)
+  rewrite plainᵉ-rename ρ A
+        | plainᵉ-rename ρ B = refl
+plainᵉ-rename ρ (`∀ A)
+  rewrite plainᵉ-rename (extᵗ ρ) A = refl
+
+plainᵉ-const-rename :
+  ∀ ρ κ →
+  plainᵉ (constTy κ) ≡ renameᵉ ρ (plainᵉ (constTy κ))
+plainᵉ-const-rename ρ κ =
+  trans (cong plainᵉ (constTy-renameᵗ ρ κ))
+        (plainᵉ-rename ρ (constTy κ))
+
+typing-renameᵀ :
+  ∀ {Δ Δ′ Σ Ξ M A E ρ} →
+  TyRenameWf Δ Δ′ ρ →
+  RenameInjective ρ →
+  Δ ∣ Σ ∣ Ξ ⊢ M ⦂ A ▷ E →
+  Δ′ ∣ renameStoreᵗ ρ Σ ∣ renameCtxᵉ ρ Ξ
+    ⊢ renameᵗᵐ ρ M ⦂ renameᵉ ρ A ▷ renameᴱ ρ E
+typing-renameᵀ hρ inj (eff-var hΞ) =
+  eff-var (lookup-renameCtxᵉ _ hΞ)
+typing-renameᵀ hρ inj (eff-lam hA hM) =
+  eff-lam
+    (WfEffTy-rename hρ hA)
+    (typing-renameᵀ hρ inj hM)
+typing-renameᵀ {ρ = ρ} hρ inj
+    (eff-app {L = L} {M = M} {B = B} {EL = EL} {EM = EM}
+      hL hM EM⊆Earg) =
+  subst
+    (λ F → _ ∣ _ ∣ _
+      ⊢ renameᵗᵐ ρ L · renameᵗᵐ ρ M ⦂ renameᵉ ρ B ▷ F)
+    (sym (renameᴱ-++ ρ EL EM))
+    (eff-app
+      (typing-renameᵀ hρ inj hL)
+      (typing-renameᵀ hρ inj hM)
+      (renameᴱ-mono ρ EM⊆Earg))
+typing-renameᵀ {Δ′ = Δ′} {Σ = Σ} {Ξ = Ξ} {ρ = ρ}
+    hρ inj (eff-tylam {M = M} {A = A} {E = E} vM hM) =
+  subst
+    (λ F → Δ′ ∣ renameStoreᵗ ρ Σ ∣ renameCtxᵉ ρ Ξ
+      ⊢ Λ renameᵗᵐ (extᵗ ρ) M
+      ⦂ renameᵉ ρ (ty-all E A) ▷ F)
+    (drop0ᵉ-rename ρ E)
+    (eff-tylam
+      (renameᵗᵐ-preserves-Value (extᵗ ρ) vM)
+      (subst
+        (λ Ξ′ → suc Δ′ ∣ ⟰ᵗ (renameStoreᵗ ρ Σ) ∣ Ξ′
+          ⊢ renameᵗᵐ (extᵗ ρ) M
+          ⦂ renameᵉ (extᵗ ρ) A ▷ renameᴱ (extᵗ ρ) E)
+        (renameCtxᵉ-ext-suc-comm ρ Ξ)
+        (subst
+          (λ Σ′ → suc Δ′ ∣ Σ′
+            ∣ renameCtxᵉ (extᵗ ρ) (renameCtxᵉ suc Ξ)
+            ⊢ renameᵗᵐ (extᵗ ρ) M
+            ⦂ renameᵉ (extᵗ ρ) A ▷ renameᴱ (extᵗ ρ) E)
+          (renameStoreᵗ-ext-suc-comm ρ Σ)
+          (typing-renameᵀ
+            (TyRenameWf-ext hρ)
+            (RenameInjective-ext inj)
+            hM))))
+typing-renameᵀ {ρ = ρ} hρ inj
+    (eff-tyapp {L = L} {B = B} {α = α} {E = E}
+      {Ebody = Ebody} hL α<Δ α∉E noαB) =
+  subst
+    (λ T → _ ∣ _ ∣ _ ⊢ renameᵗᵐ ρ L • ρ α ⦂ T
+      ▷ renameᴱ ρ (E ++ openᴱ Ebody α))
+    (sym (renameᵉ-open ρ B α))
+    (subst
+      (λ F → _ ∣ _ ∣ _ ⊢ renameᵗᵐ ρ L • ρ α
+        ⦂ renameᵉ (extᵗ ρ) B [ ρ α ]ᵉ ▷ F)
+      (sym eff-eq)
+      (eff-tyapp
+        (typing-renameᵀ hρ inj hL)
+        (hρ α<Δ)
+        (∉-renameᴱ inj α∉E)
+        (trans
+          (occurs-erase-renameᵉ-injective
+            (RenameInjective-ext inj)
+            (suc α)
+            B)
+          noαB)))
+  where
+    eff-eq :
+      renameᴱ ρ (E ++ openᴱ Ebody α) ≡
+      renameᴱ ρ E ++ openᴱ (renameᴱ (extᵗ ρ) Ebody) (ρ α)
+    eff-eq =
+      trans
+        (renameᴱ-++ ρ E (openᴱ Ebody α))
+        (cong (λ F → renameᴱ ρ E ++ F)
+          (renameᴱ-open ρ Ebody α))
+typing-renameᵀ {Δ′ = Δ′} {Σ = Σ} {Ξ = Ξ} {ρ = ρ}
+    hρ inj (eff-nu {N = N} {A = A} {B = B} {E = E} hA hN) =
+  subst
+    (λ F → Δ′ ∣ renameStoreᵗ ρ Σ ∣ renameCtxᵉ ρ Ξ
+      ⊢ ν (renameᵗ ρ A) (renameᵗᵐ (extᵗ ρ) N)
+      ⦂ renameᵉ ρ B ▷ F)
+    (drop0ᵉ-rename ρ E)
+    (eff-nu
+      (renameᵗ-preserves-WfTy hA hρ)
+      (subst
+        (λ T → suc Δ′
+          ∣ (zero , ⇑ᵗ (renameᵗ ρ A)) ∷ ⟰ᵗ (renameStoreᵗ ρ Σ)
+          ∣ renameCtxᵉ suc (renameCtxᵉ ρ Ξ)
+          ⊢ renameᵗᵐ (extᵗ ρ) N ⦂ T ▷ renameᴱ (extᵗ ρ) E)
+        (renameᵉ-ext-suc-comm ρ B)
+        (subst
+          (λ Ξ′ → suc Δ′
+            ∣ (zero , ⇑ᵗ (renameᵗ ρ A)) ∷ ⟰ᵗ (renameStoreᵗ ρ Σ)
+            ∣ Ξ′
+            ⊢ renameᵗᵐ (extᵗ ρ) N
+            ⦂ renameᵉ (extᵗ ρ) (renameᵉ suc B)
+            ▷ renameᴱ (extᵗ ρ) E)
+          (renameCtxᵉ-ext-suc-comm ρ Ξ)
+          (subst
+            (λ Σ′ → suc Δ′ ∣ Σ′
+              ∣ renameCtxᵉ (extᵗ ρ) (renameCtxᵉ suc Ξ)
+              ⊢ renameᵗᵐ (extᵗ ρ) N
+              ⦂ renameᵉ (extᵗ ρ) (renameᵉ suc B)
+              ▷ renameᴱ (extᵗ ρ) E)
+            (renameStoreᵗ-ext-suc-cons-comm ρ Σ A)
+            (typing-renameᵀ
+              (TyRenameWf-ext hρ)
+              (RenameInjective-ext inj)
+              hN)))))
+typing-renameᵀ {ρ = ρ} hρ inj (eff-const κ) =
+  subst
+    (λ T → _ ∣ _ ∣ _ ⊢ $ κ ⦂ T ▷ [])
+    (plainᵉ-const-rename ρ κ)
+    (eff-const κ)
+typing-renameᵀ {ρ = ρ} hρ inj
+    (eff-prim {L = L} {M = M} {EL = EL} {EM = EM} hL op hM) =
+  subst
+    (λ F → _ ∣ _ ∣ _
+      ⊢ renameᵗᵐ ρ L ⊕[ op ] renameᵗᵐ ρ M
+      ⦂ ty-base `ℕ ▷ F)
+    (sym (renameᴱ-++ ρ EL EM))
+    (eff-prim
+      (typing-renameᵀ hρ inj hL)
+      op
+      (typing-renameᵀ hρ inj hM))
+typing-renameᵀ {ρ = ρ} hρ inj
+    (eff-cast {M = M} {A = A} {B = B} {c = c} {Π = Π}
+      {E = E} d c⊢ exact hM) =
+  subst
+    (λ F → _ ∣ _ ∣ _ ⊢ renameᵗᵐ ρ M ⟨ renameᶜ ρ c ⟩
+      ⦂ renameᵉ ρ B ▷ F)
+    (sym eff-eq)
+    (eff-cast
+      (renameStoreᵗ-incl ρ d)
+      c⊢′
+      (SealSideExact-rename ρ {c = c} {Π = Π} exact)
+      (typing-renameᵀ hρ inj hM))
+  where
+    c⊢′ :
+      _ ∣ complement (renameStoreᵗ-incl ρ d) ∣ renameStoreᵗ ρ Π
+        ⊢ renameᶜ ρ c ∶ eraseᵉ (renameᵉ ρ A) =⇒ eraseᵉ (renameᵉ ρ B)
+    c⊢′ =
+      subst
+        (λ T → _ ∣ complement (renameStoreᵗ-incl ρ d)
+          ∣ renameStoreᵗ ρ Π
+          ⊢ renameᶜ ρ c ∶ T =⇒ eraseᵉ (renameᵉ ρ B))
+        (sym (erase-renameᵉ ρ A))
+        (subst
+          (λ T → _ ∣ complement (renameStoreᵗ-incl ρ d)
+            ∣ renameStoreᵗ ρ Π
+            ⊢ renameᶜ ρ c ∶ renameᵗ ρ (eraseᵉ A) =⇒ T)
+          (sym (erase-renameᵉ ρ B))
+          (subst
+            (λ Σ′ → _ ∣ Σ′ ∣ renameStoreᵗ ρ Π
+              ⊢ renameᶜ ρ c
+              ∶ renameᵗ ρ (eraseᵉ A) =⇒ renameᵗ ρ (eraseᵉ B))
+            (complement-rename ρ d)
+            (coercion-renameᵗ hρ c⊢)))
+
+    eff-eq :
+      renameᴱ ρ (E ++ sealUsesᶜ c) ≡
+      renameᴱ ρ E ++ sealUsesᶜ (renameᶜ ρ c)
+    eff-eq =
+      trans
+        (renameᴱ-++ ρ E (sealUsesᶜ c))
+        (cong (λ F → renameᴱ ρ E ++ F)
+          (sym (sealUsesᶜ-rename ρ c)))
+typing-renameᵀ hρ inj (eff-blame hA) =
+  eff-blame (WfEffTy-rename hρ hA)
+typing-renameᵀ {ρ = ρ} hρ inj (eff-sub hM E⊆F) =
+  eff-sub
+    (typing-renameᵀ hρ inj hM)
+    (renameᴱ-mono ρ E⊆F)
+
+typing-renameᵀ-suc :
+  ∀ {Δ Σ Ξ M A E} →
+  Δ ∣ Σ ∣ Ξ ⊢ M ⦂ A ▷ E →
+  suc Δ ∣ renameStoreᵗ suc Σ ∣ renameCtxᵉ suc Ξ
+    ⊢ renameᵗᵐ suc M ⦂ renameᵉ suc A ▷ renameᴱ suc E
+typing-renameᵀ-suc =
+  typing-renameᵀ TyRenameWf-suc suc-RenameInjective
+
+typing-renameᵀ-raise :
+  ∀ k {Δ Σ Ξ M A E} →
+  k ≤ Δ →
+  Δ ∣ Σ ∣ Ξ ⊢ M ⦂ A ▷ E →
+  suc Δ ∣ renameStoreᵗ (raiseVarFrom k) Σ
+        ∣ renameCtxᵉ (raiseVarFrom k) Ξ
+    ⊢ renameᵗᵐ (raiseVarFrom k) M
+      ⦂ renameᵉ (raiseVarFrom k) A
+      ▷ renameᴱ (raiseVarFrom k) E
+typing-renameᵀ-raise k k≤Δ =
+  typing-renameᵀ
+    (TyRenameWf-raise k k≤Δ)
+    (raiseVarFrom-RenameInjective k)
 
 typing-renameˣ :
   ∀ {Δ Σ Ξ Ξ′ M A E ρ} →

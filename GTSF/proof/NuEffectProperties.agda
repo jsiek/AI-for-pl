@@ -14,27 +14,37 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (_≤_; zero; suc; z<s; s<s; s≤s)
 open import Data.Nat.Properties using (<-≤-trans; suc-injective)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; sym; trans)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; cong; cong₂; subst; sym; trans)
 
 open import Types
 open import Store
   using (StoreIncl; StoreIncl-cons; StoreIncl-refl; _⊆_; ⊆-trans)
+open import Coercions
 open import NuTerms
 open import NuEffectTyping
 open import proof.CoercionProperties
   using
     ( coercion-weaken
+    ; coercion-renameᵗ
     ; complement-incl
+    ; complement-rename
     ; renameᶜ-preserves-Inert
     )
 open import proof.NuStoreProperties using (renameStoreᵗ-incl)
-open import proof.NuTermProperties using (renameˣᵐ-preserves-Value)
+open import proof.NuTermProperties
+  using (renameˣᵐ-preserves-Value; renameᵗᵐ-preserves-Value)
 open import proof.TypeProperties
   using
     ( TyRenameWf
     ; TyRenameWf-ext
     ; TyRenameWf-suc
     ; WfTy-weakenᵗ
+    ; occurs-raise
+    ; raise-ext
+    ; raiseVarFrom-injective
+    ; rename-cong
+    ; renameᵗ-compose
     ; renameᵗ-preserves-WfTy
     )
 
@@ -101,6 +111,68 @@ renameᴱ-compose ρ τ [] = refl
 renameᴱ-compose ρ τ (α ∷ E) =
   cong₂ _∷_ refl (renameᴱ-compose ρ τ E)
 
+renameᴱ-++ :
+  ∀ ρ E F →
+  renameᴱ ρ (E ++ F) ≡ renameᴱ ρ E ++ renameᴱ ρ F
+renameᴱ-++ ρ [] F = refl
+renameᴱ-++ ρ (α ∷ E) F =
+  cong (_∷_ (ρ α)) (renameᴱ-++ ρ E F)
+
+drop0ᵉ-rename :
+  ∀ ρ E →
+  drop0ᵉ (renameᴱ (extᵗ ρ) E) ≡ renameᴱ ρ (drop0ᵉ E)
+drop0ᵉ-rename ρ [] = refl
+drop0ᵉ-rename ρ (zero ∷ E) = drop0ᵉ-rename ρ E
+drop0ᵉ-rename ρ (suc α ∷ E) =
+  cong (_∷_ (ρ α)) (drop0ᵉ-rename ρ E)
+
+sealUsesᶜ-rename :
+  ∀ ρ c →
+  sealUsesᶜ (renameᶜ ρ c) ≡ renameᴱ ρ (sealUsesᶜ c)
+sealUsesᶜ-rename ρ (id A) = refl
+sealUsesᶜ-rename ρ (c ︔ d)
+  rewrite sealUsesᶜ-rename ρ c
+        | sealUsesᶜ-rename ρ d
+        | renameᴱ-++ ρ (sealUsesᶜ c) (sealUsesᶜ d) = refl
+sealUsesᶜ-rename ρ (c ↦ d)
+  rewrite sealUsesᶜ-rename ρ c
+        | sealUsesᶜ-rename ρ d
+        | renameᴱ-++ ρ (sealUsesᶜ c) (sealUsesᶜ d) = refl
+sealUsesᶜ-rename ρ (`∀ c)
+  rewrite sealUsesᶜ-rename (extᵗ ρ) c =
+  drop0ᵉ-rename ρ (sealUsesᶜ c)
+sealUsesᶜ-rename ρ (G !) = refl
+sealUsesᶜ-rename ρ (G ？) = refl
+sealUsesᶜ-rename ρ (seal A α) = refl
+sealUsesᶜ-rename ρ (unseal α A) = refl
+sealUsesᶜ-rename ρ (gen A c)
+  rewrite sealUsesᶜ-rename (extᵗ ρ) c =
+  drop0ᵉ-rename ρ (sealUsesᶜ c)
+sealUsesᶜ-rename ρ (inst B c)
+  rewrite sealUsesᶜ-rename (extᵗ ρ) c =
+  drop0ᵉ-rename ρ (sealUsesᶜ c)
+
+SealSideExact-rename-raise :
+  ∀ k {c Π} →
+  SealSideExact c Π →
+  SealSideExact
+    (renameᶜ (raiseVarFrom k) c)
+    (renameStoreᵗ (raiseVarFrom k) Π)
+SealSideExact-rename-raise k {c = c} {Π = []} exact ()
+SealSideExact-rename-raise k {c = c} {Π = (α , A) ∷ Π} exact
+    (here refl) =
+  subst
+    (λ E → raiseVarFrom k α ∈ E)
+    (sym (sealUsesᶜ-rename (raiseVarFrom k) c))
+    (∈-renameᴱ (raiseVarFrom k) (exact (here refl)))
+SealSideExact-rename-raise k {c = c} {Π = (β , B) ∷ Π} exact
+    (there h) =
+  SealSideExact-rename-raise k
+    {c = c}
+    {Π = Π}
+    (λ β∈Π → exact (there β∈Π))
+    h
+
 renameᴱ-open-suc :
   ∀ E α →
   renameᴱ suc (openᴱ E α) ≡
@@ -116,6 +188,28 @@ renameᴱ-open-suc E α =
       ∀ β →
       suc (singleRenameᵗ α β) ≡
       singleRenameᵗ (suc α) (extᵗ suc β)
+    env-eq zero = refl
+    env-eq (suc β) = refl
+
+renameᴱ-open-raise :
+  ∀ k E α →
+  renameᴱ (raiseVarFrom k) (openᴱ E α) ≡
+  openᴱ (renameᴱ (extᵗ (raiseVarFrom k)) E) (raiseVarFrom k α)
+renameᴱ-open-raise k E α =
+  trans
+    (renameᴱ-compose (singleRenameᵗ α) (raiseVarFrom k) E)
+    (trans
+      (renameᴱ-cong env-eq E)
+      (sym
+        (renameᴱ-compose
+          (extᵗ (raiseVarFrom k))
+          (singleRenameᵗ (raiseVarFrom k α))
+          E)))
+  where
+    env-eq :
+      ∀ β →
+      raiseVarFrom k (singleRenameᵗ α β) ≡
+      singleRenameᵗ (raiseVarFrom k α) (extᵗ (raiseVarFrom k) β)
     env-eq zero = refl
     env-eq (suc β) = refl
 
@@ -189,6 +283,15 @@ WfEffTy-suc :
   WfEffTy Δ A →
   WfEffTy (suc Δ) (renameᵉ suc A)
 WfEffTy-suc = WfEffTy-rename TyRenameWf-suc
+
+TyRenameWf-raise :
+  ∀ k {Δ} →
+  k ≤ Δ →
+  TyRenameWf Δ (suc Δ) (raiseVarFrom k)
+TyRenameWf-raise zero k≤Δ X<Δ = s<s X<Δ
+TyRenameWf-raise (suc k) (s≤s k≤Δ) {zero} z<s = z<s
+TyRenameWf-raise (suc k) (s≤s k≤Δ) {suc X} (s<s X<Δ) =
+  s<s (TyRenameWf-raise k k≤Δ X<Δ)
 
 WfEffect-weaken :
   ∀ {Δ Δ′ E} →
@@ -279,6 +382,84 @@ renameᵉ-open-suc A α =
     env-eq zero = refl
     env-eq (suc β) = refl
 
+renameᵉ-open-raise :
+  ∀ k A α →
+  renameᵉ (raiseVarFrom k) (A [ α ]ᵉ) ≡
+  renameᵉ (extᵗ (raiseVarFrom k)) A [ raiseVarFrom k α ]ᵉ
+renameᵉ-open-raise k A α =
+  trans
+    (renameᵉ-compose (singleRenameᵗ α) (raiseVarFrom k) A)
+    (trans
+      (renameᵉ-cong env-eq A)
+      (sym
+        (renameᵉ-compose
+          (extᵗ (raiseVarFrom k))
+          (singleRenameᵗ (raiseVarFrom k α))
+          A)))
+  where
+    env-eq :
+      ∀ β →
+      raiseVarFrom k (singleRenameᵗ α β) ≡
+      singleRenameᵗ (raiseVarFrom k α) (extᵗ (raiseVarFrom k) β)
+    env-eq zero = refl
+    env-eq (suc β) = refl
+
+renameᴱ-raise-ext :
+  ∀ k E →
+  renameᴱ (extᵗ (raiseVarFrom k)) E ≡
+  renameᴱ (raiseVarFrom (suc k)) E
+renameᴱ-raise-ext k E = renameᴱ-cong (raise-ext k) E
+
+drop0ᵉ-rename-raise :
+  ∀ k E →
+  drop0ᵉ (renameᴱ (raiseVarFrom (suc k)) E) ≡
+  renameᴱ (raiseVarFrom k) (drop0ᵉ E)
+drop0ᵉ-rename-raise k E =
+  trans
+    (cong drop0ᵉ (sym (renameᴱ-raise-ext k E)))
+    (drop0ᵉ-rename (raiseVarFrom k) E)
+
+renameᵉ-raise-ext :
+  ∀ k A →
+  renameᵉ (extᵗ (raiseVarFrom k)) A ≡
+  renameᵉ (raiseVarFrom (suc k)) A
+renameᵉ-raise-ext k A = renameᵉ-cong (raise-ext k) A
+
+∈-renameᴱ-raise-inv :
+  ∀ k {E α} →
+  raiseVarFrom k α ∈ renameᴱ (raiseVarFrom k) E →
+  α ∈ E
+∈-renameᴱ-raise-inv k {E = []} ()
+∈-renameᴱ-raise-inv k {E = β ∷ E} (here eq) =
+  here (raiseVarFrom-injective k eq)
+∈-renameᴱ-raise-inv k {E = β ∷ E} (there α∈E) =
+  there (∈-renameᴱ-raise-inv k α∈E)
+
+∉-renameᴱ-raise :
+  ∀ k {E α} →
+  α ∉ E →
+  raiseVarFrom k α ∉ renameᴱ (raiseVarFrom k) E
+∉-renameᴱ-raise k α∉E raised∈ =
+  α∉E (∈-renameᴱ-raise-inv k raised∈)
+
+occurs-erase-renameᵉ-raise :
+  ∀ k α A →
+  occurs (raiseVarFrom k α) (eraseᵉ (renameᵉ (raiseVarFrom k) A)) ≡
+  occurs α (eraseᵉ A)
+occurs-erase-renameᵉ-raise k α A
+  rewrite erase-renameᵉ (raiseVarFrom k) A =
+  occurs-raise k α (eraseᵉ A)
+
+occurs-erase-renameᵉ-tyapp-raise :
+  ∀ k α A →
+  occurs
+    (suc (raiseVarFrom k α))
+    (eraseᵉ (renameᵉ (extᵗ (raiseVarFrom k)) A))
+    ≡ occurs (suc α) (eraseᵉ A)
+occurs-erase-renameᵉ-tyapp-raise k α A
+  rewrite renameᵉ-raise-ext k A =
+  occurs-erase-renameᵉ-raise (suc k) (suc α) A
+
 ------------------------------------------------------------------------
 -- Term-variable renaming
 ------------------------------------------------------------------------
@@ -333,6 +514,55 @@ renameCtxᵉ-cong eq ((A , E) ∷ Ξ) =
     (cong₂ _,_ (renameᵉ-cong eq A) (renameᴱ-cong eq E))
     (renameCtxᵉ-cong eq Ξ)
 
+renameCtxᵉ-raise-ext :
+  ∀ k Ξ →
+  renameCtxᵉ (extᵗ (raiseVarFrom k)) Ξ ≡
+  renameCtxᵉ (raiseVarFrom (suc k)) Ξ
+renameCtxᵉ-raise-ext k Ξ = renameCtxᵉ-cong (raise-ext k) Ξ
+
+renameStoreᵗ-cong :
+  ∀ {ρ τ} →
+  (∀ α → ρ α ≡ τ α) →
+  ∀ Σ →
+  renameStoreᵗ ρ Σ ≡ renameStoreᵗ τ Σ
+renameStoreᵗ-cong eq [] = refl
+renameStoreᵗ-cong eq ((α , A) ∷ Σ) =
+  cong₂
+    _∷_
+    (cong₂ _,_ (eq α) (rename-cong eq A))
+    (renameStoreᵗ-cong eq Σ)
+
+renameStoreᵗ-raise-ext :
+  ∀ k Σ →
+  renameStoreᵗ (extᵗ (raiseVarFrom k)) Σ ≡
+  renameStoreᵗ (raiseVarFrom (suc k)) Σ
+renameStoreᵗ-raise-ext k Σ = renameStoreᵗ-cong (raise-ext k) Σ
+
+renameStoreᵗ-compose :
+  ∀ ρ τ Σ →
+  renameStoreᵗ τ (renameStoreᵗ ρ Σ) ≡
+  renameStoreᵗ (λ α → τ (ρ α)) Σ
+renameStoreᵗ-compose ρ τ [] = refl
+renameStoreᵗ-compose ρ τ ((α , A) ∷ Σ)
+  rewrite renameᵗ-compose ρ τ A
+        | renameStoreᵗ-compose ρ τ Σ = refl
+
+renameStoreᵗ-raise-suc-comm :
+  ∀ k Σ →
+  renameStoreᵗ (raiseVarFrom (suc k)) (⟰ᵗ Σ) ≡
+  ⟰ᵗ (renameStoreᵗ (raiseVarFrom k) Σ)
+renameStoreᵗ-raise-suc-comm k Σ =
+  trans
+    (renameStoreᵗ-compose suc (raiseVarFrom (suc k)) Σ)
+    (trans
+      (renameStoreᵗ-cong env-eq Σ)
+      (sym (renameStoreᵗ-compose (raiseVarFrom k) suc Σ)))
+  where
+    env-eq :
+      ∀ α →
+      raiseVarFrom (suc k) (suc α) ≡ suc (raiseVarFrom k α)
+    env-eq α = refl
+
 renameCtxᵉ-compose :
   ∀ ρ τ Ξ →
   renameCtxᵉ τ (renameCtxᵉ ρ Ξ) ≡
@@ -342,6 +572,22 @@ renameCtxᵉ-compose ρ τ ((A , E) ∷ Ξ)
   rewrite renameᵉ-compose ρ τ A
         | renameᴱ-compose ρ τ E
         | renameCtxᵉ-compose ρ τ Ξ = refl
+
+renameCtxᵉ-raise-suc-comm :
+  ∀ k Ξ →
+  renameCtxᵉ (raiseVarFrom (suc k)) (renameCtxᵉ suc Ξ) ≡
+  renameCtxᵉ suc (renameCtxᵉ (raiseVarFrom k) Ξ)
+renameCtxᵉ-raise-suc-comm k Ξ =
+  trans
+    (renameCtxᵉ-compose suc (raiseVarFrom (suc k)) Ξ)
+    (trans
+      (renameCtxᵉ-cong env-eq Ξ)
+      (sym (renameCtxᵉ-compose (raiseVarFrom k) suc Ξ)))
+  where
+    env-eq :
+      ∀ α →
+      raiseVarFrom (suc k) (suc α) ≡ suc (raiseVarFrom k α)
+    env-eq α = refl
 
 RenameEffWf-renameCtxᵉ :
   ∀ {Ξ Ξ′ ρ} τ →

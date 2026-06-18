@@ -8,17 +8,20 @@ module proof.CoercionProperties where
 --     here; side conditions are represented by the tag/seal stores.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (false; true; _∨_)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.List.Relation.Binary.Sublist.Propositional
   renaming ([] to []⊆; _∷_ to _∷⊆_; _∷ʳ_ to _∷ʳ⊆_)
   using ()
-open import Data.Nat using (zero; suc; _<_; _≤_; z<s; s≤s)
-open import Data.Nat.Properties using (n≤1+n)
+open import Data.Nat using (zero; suc; _<_; _≤_; z<s; s<s; s≤s)
+open import Data.Nat.Properties using (_≟_; n≤1+n; suc-injective)
 open import Data.Product using (_×_; _,_)
+open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality
-  using (cong; cong₂; subst; sym; trans)
+  using (_≢_; cong; cong₂; subst; sym; trans)
 
 open import Types
 open import Store
@@ -33,6 +36,7 @@ open import Store
     ; complement
     ; lookup
     ; _⊆_
+    ; ⊆-refl
     ; ⊆-trans
     )
 open import Coercions
@@ -84,6 +88,80 @@ tagAllowed-rename :
 tagAllowed-rename ρ (tagAlpha α∈Σ) = tagAlpha (domˢ-rename ρ α∈Σ)
 tagAllowed-rename ρ tagIota = tagIota
 tagAllowed-rename ρ tagFun = tagFun
+
+data TagStoreIncl : Store → Store → Set where
+  tag-[] : TagStoreIncl [] []
+  tag-drop :
+    ∀ {Σ Σ′ β B} →
+    TagStoreIncl Σ Σ′ →
+    TagStoreIncl Σ ((β , B) ∷ Σ′)
+  tag-keep :
+    ∀ {Σ Σ′ α A B} →
+    TagStoreIncl Σ Σ′ →
+    TagStoreIncl ((α , A) ∷ Σ) ((α , B) ∷ Σ′)
+
+tagStoreIncl-refl :
+  ∀ {Σ} →
+  TagStoreIncl Σ Σ
+tagStoreIncl-refl {Σ = []} = tag-[]
+tagStoreIncl-refl {Σ = (α , A) ∷ Σ} = tag-keep tagStoreIncl-refl
+
+tagStoreIncl-rename :
+  ∀ ρ {Σ Σ′} →
+  TagStoreIncl Σ Σ′ →
+  TagStoreIncl (renameStoreᵗ ρ Σ) (renameStoreᵗ ρ Σ′)
+tagStoreIncl-rename ρ tag-[] = tag-[]
+tagStoreIncl-rename ρ (tag-drop incl) =
+  tag-drop (tagStoreIncl-rename ρ incl)
+tagStoreIncl-rename ρ (tag-keep incl) =
+  tag-keep (tagStoreIncl-rename ρ incl)
+
+tagStoreIncl-lookup :
+  ∀ {Σ Σ′ α} →
+  TagStoreIncl Σ Σ′ →
+  α ∈ domˢ Σ →
+  α ∈ domˢ Σ′
+tagStoreIncl-lookup tag-[] ()
+tagStoreIncl-lookup (tag-drop incl) α∈Σ =
+  there (tagStoreIncl-lookup incl α∈Σ)
+tagStoreIncl-lookup (tag-keep incl) (here refl) = here refl
+tagStoreIncl-lookup (tag-keep incl) (there α∈Σ) =
+  there (tagStoreIncl-lookup incl α∈Σ)
+
+tagAllowed-store-incl :
+  ∀ {G Σ Σ′} →
+  TagStoreIncl Σ Σ′ →
+  tagAllowed G Σ →
+  tagAllowed G Σ′
+tagAllowed-store-incl incl (tagAlpha α∈Σ) =
+  tagAlpha (tagStoreIncl-lookup incl α∈Σ)
+tagAllowed-store-incl incl tagIota = tagIota
+tagAllowed-store-incl incl tagFun = tagFun
+
+coercion-retag :
+  ∀ {Δ Σ Σ′ Π c A B} →
+  TagStoreIncl Σ Σ′ →
+  Δ ∣ Σ ∣ Π ⊢ c ∶ A =⇒ B →
+  Δ ∣ Σ′ ∣ Π ⊢ c ∶ A =⇒ B
+coercion-retag incl (cast-id hA) = cast-id hA
+coercion-retag incl (cast-seal hA α∈Π) = cast-seal hA α∈Π
+coercion-retag incl (cast-unseal hA α∈Π) = cast-unseal hA α∈Π
+coercion-retag incl (cast-seq c⊢ d⊢) =
+  cast-seq (coercion-retag incl c⊢) (coercion-retag incl d⊢)
+coercion-retag incl (cast-tag hG gG ok) =
+  cast-tag hG gG (tagAllowed-store-incl incl ok)
+coercion-retag incl (cast-untag hH gH ok) =
+  cast-untag hH gH (tagAllowed-store-incl incl ok)
+coercion-retag incl (cast-fun c⊢ d⊢) =
+  cast-fun (coercion-retag incl c⊢) (coercion-retag incl d⊢)
+coercion-retag incl (cast-all c⊢) =
+  cast-all (coercion-retag (tagStoreIncl-rename suc incl) c⊢)
+coercion-retag incl (cast-inst hB B-ok c⊢) =
+  cast-inst hB B-ok
+    (coercion-retag (tagStoreIncl-rename suc incl) c⊢)
+coercion-retag incl (cast-gen hA A-ok c⊢) =
+  cast-gen hA A-ok
+    (coercion-retag (tag-keep (tagStoreIncl-rename suc incl)) c⊢)
 
 complement-lookup :
   ∀ {A : Set}{xs ys : List A}{x : A} →
@@ -403,6 +481,341 @@ coercion-renameᵗ {Δ′ = Δ′} {Σ = Σ} {Π = Π} {ρ = ρ} hρ
               ∶ ⇑ᵗ (renameᵗ ρ A) =⇒ renameᵗ (extᵗ ρ) B)
         (renameStoreᵗ-ext-suc-comm ρ Π)
         typedTag
+
+renameStoreᵗ-single-suc-tag-cons-cancel :
+  ∀ α Σ →
+  renameStoreᵗ (singleRenameᵗ α) ((zero , ★) ∷ ⟰ᵗ Σ) ≡
+  (α , ★) ∷ Σ
+renameStoreᵗ-single-suc-tag-cons-cancel α Σ =
+  cong₂ _∷_ refl (renameStoreᵗ-single-suc-cancel α Σ)
+
+coercion-open-gen-fresh :
+  ∀ {Δ Δ′ Σ Π c A B β C} →
+  TyRenameWf (suc Δ) Δ′ (singleRenameᵗ β) →
+  suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ ∣ ⟰ᵗ Π ⊢ c ∶ ⇑ᵗ A =⇒ B →
+  Δ′ ∣ (β , C) ∷ Σ ∣ Π ⊢ c [ β ]ᶜ ∶ A =⇒ B [ β ]ᴿ
+coercion-open-gen-fresh {Δ′ = Δ′} {Σ = Σ} {Π = Π} {c = c}
+    {A = A} {B = B} {β = β} {C = C} hρ c⊢ =
+  coercion-retag (tag-keep tagStoreIncl-refl) typedTag
+  where
+    raw :
+      Δ′ ∣ renameStoreᵗ (singleRenameᵗ β) ((zero , ★) ∷ ⟰ᵗ Σ)
+        ∣ renameStoreᵗ (singleRenameᵗ β) (⟰ᵗ Π)
+        ⊢ c [ β ]ᶜ
+          ∶ renameᵗ (singleRenameᵗ β) (⇑ᵗ A) =⇒ B [ β ]ᴿ
+    raw = coercion-renameᵗ hρ c⊢
+
+    typedSource :
+      Δ′ ∣ renameStoreᵗ (singleRenameᵗ β) ((zero , ★) ∷ ⟰ᵗ Σ)
+        ∣ renameStoreᵗ (singleRenameᵗ β) (⟰ᵗ Π)
+        ⊢ c [ β ]ᶜ ∶ A =⇒ B [ β ]ᴿ
+    typedSource =
+      subst
+        (λ T →
+          Δ′ ∣ renameStoreᵗ (singleRenameᵗ β) ((zero , ★) ∷ ⟰ᵗ Σ)
+            ∣ renameStoreᵗ (singleRenameᵗ β) (⟰ᵗ Π)
+            ⊢ c [ β ]ᶜ ∶ T =⇒ B [ β ]ᴿ)
+        (renameᵗ-single-suc-cancel β A)
+        raw
+
+    typedSeal :
+      Δ′ ∣ renameStoreᵗ (singleRenameᵗ β) ((zero , ★) ∷ ⟰ᵗ Σ)
+        ∣ Π
+        ⊢ c [ β ]ᶜ ∶ A =⇒ B [ β ]ᴿ
+    typedSeal =
+      subst
+        (λ Π′ →
+          Δ′ ∣ renameStoreᵗ (singleRenameᵗ β) ((zero , ★) ∷ ⟰ᵗ Σ)
+            ∣ Π′
+            ⊢ c [ β ]ᶜ ∶ A =⇒ B [ β ]ᴿ)
+        (renameStoreᵗ-single-suc-cancel β Π)
+        typedSource
+
+    typedTag :
+      Δ′ ∣ (β , ★) ∷ Σ ∣ Π ⊢ c [ β ]ᶜ ∶ A =⇒ B [ β ]ᴿ
+    typedTag =
+      subst
+        (λ Σ′ → Δ′ ∣ Σ′ ∣ Π ⊢ c [ β ]ᶜ ∶ A =⇒ B [ β ]ᴿ)
+        (renameStoreᵗ-single-suc-tag-cons-cancel β Σ)
+        typedSeal
+
+------------------------------------------------------------------------
+-- Typing the reveal/conceal coercions generated after fresh allocation
+------------------------------------------------------------------------
+
+true≢false : true ≢ false
+true≢false ()
+
+occurs-var-self :
+  ∀ X →
+  occurs X (＇ X) ≡ true
+occurs-var-self X with X ≟ X
+occurs-var-self X | yes refl = refl
+occurs-var-self X | no X≢X = ⊥-elim (X≢X refl)
+
+∨-false-left :
+  ∀ {a b} →
+  a ∨ b ≡ false →
+  a ≡ false
+∨-false-left {false} {false} refl = refl
+∨-false-left {false} {true} ()
+∨-false-left {true} {false} ()
+∨-false-left {true} {true} ()
+
+∨-false-right :
+  ∀ {a b} →
+  a ∨ b ≡ false →
+  b ≡ false
+∨-false-right {false} {false} refl = refl
+∨-false-right {false} {true} ()
+∨-false-right {true} {false} ()
+∨-false-right {true} {true} ()
+
+data RevealVar
+    (α : TyVar) (C : Ty) (ρ : Renameᵗ) (σ : Substᵗ)
+    (X : TyVar) : Set where
+  rv-hit :
+    ρ X ≡ α →
+    σ X ≡ C →
+    RevealVar α C ρ σ X
+
+  rv-miss :
+    ρ X ≢ α →
+    σ X ≡ ＇ (ρ X) →
+    RevealVar α C ρ σ X
+
+RevealMiss :
+  TyCtx → TyVar → Renameᵗ → Substᵗ → TyVar → Set
+RevealMiss Θ α ρ σ hit =
+  ∀ {X} →
+  X < Θ →
+  X ≢ hit →
+  X ≢ suc α →
+  ρ X ≢ α × σ X ≡ ＇ (ρ X)
+
+RevealMiss-ext :
+  ∀ {Θ α ρ σ hit} →
+  RevealMiss Θ α ρ σ hit →
+  RevealMiss (suc Θ) (suc α) (extᵗ ρ) (extsᵗ σ) (suc hit)
+RevealMiss-ext miss {X = zero} z<s X≢hit X≢bad =
+  (λ ()) , refl
+RevealMiss-ext miss {X = suc X} (s<s X<Θ) X≢hit X≢bad
+    with miss X<Θ
+      (λ X≡hit → X≢hit (cong suc X≡hit))
+      (λ X≡bad → X≢bad (cong suc X≡bad))
+RevealMiss-ext miss {X = suc X} (s<s X<Θ) X≢hit X≢bad
+    | ρX≢α , σX≡var =
+  (λ eq → ρX≢α (suc-injective eq)) ,
+  cong (renameᵗ suc) σX≡var
+
+reveal-var-hit :
+  ∀ {Δ Σ Π α C} →
+  WfTy Δ C →
+  (α , C) ∈ Π →
+  Δ ∣ Σ ∣ Π ⊢ reveal (＇ α) α C ∶ ＇ α =⇒ C
+reveal-var-hit {α = α} hC α∈Π with α ≟ α
+reveal-var-hit {α = α} hC α∈Π | yes refl =
+  cast-unseal hC α∈Π
+reveal-var-hit {α = α} hC α∈Π | no α≢α =
+  ⊥-elim (α≢α refl)
+
+conceal-var-hit :
+  ∀ {Δ Σ Π α C} →
+  WfTy Δ C →
+  (α , C) ∈ Π →
+  Δ ∣ Σ ∣ Π ⊢ conceal (＇ α) α C ∶ C =⇒ ＇ α
+conceal-var-hit {α = α} hC α∈Π with α ≟ α
+conceal-var-hit {α = α} hC α∈Π | yes refl =
+  cast-seal hC α∈Π
+conceal-var-hit {α = α} hC α∈Π | no α≢α =
+  ⊥-elim (α≢α refl)
+
+reveal-var-miss :
+  ∀ {Δ Σ Π α C Y} →
+  Y ≢ α →
+  WfTy Δ (＇ Y) →
+  Δ ∣ Σ ∣ Π ⊢ reveal (＇ Y) α C ∶ ＇ Y =⇒ ＇ Y
+reveal-var-miss {α = α} {Y = Y} Y≢α hY with α ≟ Y
+reveal-var-miss {α = α} {Y = Y} Y≢α hY | yes α≡Y =
+  ⊥-elim (Y≢α (sym α≡Y))
+reveal-var-miss {α = α} {Y = Y} Y≢α hY | no α≢Y =
+  cast-id hY
+
+conceal-var-miss :
+  ∀ {Δ Σ Π α C Y} →
+  Y ≢ α →
+  WfTy Δ (＇ Y) →
+  Δ ∣ Σ ∣ Π ⊢ conceal (＇ Y) α C ∶ ＇ Y =⇒ ＇ Y
+conceal-var-miss {α = α} {Y = Y} Y≢α hY with α ≟ Y
+conceal-var-miss {α = α} {Y = Y} Y≢α hY | yes α≡Y =
+  ⊥-elim (Y≢α (sym α≡Y))
+conceal-var-miss {α = α} {Y = Y} Y≢α hY | no α≢Y =
+  cast-id hY
+
+bad-var-absurd :
+  ∀ α →
+  occurs (suc α) (＇ suc α) ≡ false →
+  ⊥
+bad-var-absurd α noBad =
+  true≢false (trans (sym (occurs-var-self (suc α))) noBad)
+
+mutual
+  reveal-typing-fresh :
+    ∀ {Θ Δ Σ Π B α C ρ σ hit} →
+    WfTy Θ B →
+    TyRenameWf Θ Δ ρ →
+    TySubstWf Θ Δ σ →
+    ρ hit ≡ α →
+    σ hit ≡ C →
+    RevealMiss Θ α ρ σ hit →
+    occurs (suc α) B ≡ false →
+    WfTy Δ C →
+    (α , C) ∈ Π →
+    Δ ∣ Σ ∣ Π ⊢ reveal (renameᵗ ρ B) α C
+      ∶ renameᵗ ρ B =⇒ substᵗ σ B
+  reveal-typing-fresh {B = ＇ X} {α = α} {hit = hit} (wfVar X<Θ)
+      hρ hσ ρhit σhit miss noBad hC α∈Π
+      with X ≟ suc α | X ≟ hit
+  reveal-typing-fresh {B = ＇ .(suc α)} {α = α} (wfVar X<Θ)
+      hρ hσ ρhit σhit miss noBad hC α∈Π
+      | yes refl | _ =
+    ⊥-elim (bad-var-absurd α noBad)
+  reveal-typing-fresh {B = ＇ X} {α = α} (wfVar X<Θ)
+      hρ hσ ρhit σhit miss noBad hC α∈Π
+      | no X≢bad | yes refl
+      rewrite ρhit | σhit =
+    reveal-var-hit hC α∈Π
+  reveal-typing-fresh {B = ＇ X} {α = α} (wfVar X<Θ)
+      hρ hσ ρhit σhit miss noBad hC α∈Π
+      | no X≢bad | no X≢hit
+      with miss X<Θ X≢hit X≢bad
+  reveal-typing-fresh {B = ＇ X} {α = α} (wfVar X<Θ)
+      hρ hσ ρhit σhit miss noBad hC α∈Π
+      | no X≢bad | no X≢hit | ρX≢α , σX≡var
+      rewrite σX≡var =
+    reveal-var-miss ρX≢α (wfVar (hρ X<Θ))
+  reveal-typing-fresh wfBase hρ hσ ρhit σhit miss noBad hC α∈Π =
+    cast-id wfBase
+  reveal-typing-fresh wf★ hρ hσ ρhit σhit miss noBad hC α∈Π =
+    cast-id wf★
+  reveal-typing-fresh (wf⇒ hA hB) hρ hσ ρhit σhit miss
+      noBad hC α∈Π =
+    cast-fun
+      (conceal-typing-fresh hA hρ hσ ρhit σhit miss
+        (∨-false-left noBad) hC α∈Π)
+      (reveal-typing-fresh hB hρ hσ ρhit σhit miss
+        (∨-false-right noBad) hC α∈Π)
+  reveal-typing-fresh {B = `∀ B} (wf∀ hB) hρ hσ
+      ρhit σhit miss noBad hC α∈Π =
+    cast-all
+      (reveal-typing-fresh
+        hB
+        (TyRenameWf-ext hρ)
+        (TySubstWf-exts hσ)
+        (cong suc ρhit)
+        (cong (renameᵗ suc) σhit)
+        (RevealMiss-ext miss)
+        noBad
+        (renameᵗ-preserves-WfTy hC TyRenameWf-suc)
+        (∈-renameStoreᵗ suc α∈Π))
+
+  conceal-typing-fresh :
+    ∀ {Θ Δ Σ Π B α C ρ σ hit} →
+    WfTy Θ B →
+    TyRenameWf Θ Δ ρ →
+    TySubstWf Θ Δ σ →
+    ρ hit ≡ α →
+    σ hit ≡ C →
+    RevealMiss Θ α ρ σ hit →
+    occurs (suc α) B ≡ false →
+    WfTy Δ C →
+    (α , C) ∈ Π →
+    Δ ∣ Σ ∣ Π ⊢ conceal (renameᵗ ρ B) α C
+      ∶ substᵗ σ B =⇒ renameᵗ ρ B
+  conceal-typing-fresh {B = ＇ X} {α = α} {hit = hit} (wfVar X<Θ)
+      hρ hσ ρhit σhit miss noBad hC α∈Π
+      with X ≟ suc α | X ≟ hit
+  conceal-typing-fresh {B = ＇ .(suc α)} {α = α} (wfVar X<Θ)
+      hρ hσ ρhit σhit miss noBad hC α∈Π
+      | yes refl | _ =
+    ⊥-elim (bad-var-absurd α noBad)
+  conceal-typing-fresh {B = ＇ X} {α = α} (wfVar X<Θ)
+      hρ hσ ρhit σhit miss noBad hC α∈Π
+      | no X≢bad | yes refl
+      rewrite ρhit | σhit =
+    conceal-var-hit hC α∈Π
+  conceal-typing-fresh {B = ＇ X} {α = α} (wfVar X<Θ)
+      hρ hσ ρhit σhit miss noBad hC α∈Π
+      | no X≢bad | no X≢hit
+      with miss X<Θ X≢hit X≢bad
+  conceal-typing-fresh {B = ＇ X} {α = α} (wfVar X<Θ)
+      hρ hσ ρhit σhit miss noBad hC α∈Π
+      | no X≢bad | no X≢hit | ρX≢α , σX≡var
+      rewrite σX≡var =
+    conceal-var-miss ρX≢α (wfVar (hρ X<Θ))
+  conceal-typing-fresh wfBase hρ hσ ρhit σhit miss noBad hC α∈Π =
+    cast-id wfBase
+  conceal-typing-fresh wf★ hρ hσ ρhit σhit miss noBad hC α∈Π =
+    cast-id wf★
+  conceal-typing-fresh (wf⇒ hA hB) hρ hσ ρhit σhit miss
+      noBad hC α∈Π =
+    cast-fun
+      (reveal-typing-fresh hA hρ hσ ρhit σhit miss
+        (∨-false-left noBad) hC α∈Π)
+      (conceal-typing-fresh hB hρ hσ ρhit σhit miss
+        (∨-false-right noBad) hC α∈Π)
+  conceal-typing-fresh {B = `∀ B} (wf∀ hB) hρ hσ
+      ρhit σhit miss noBad hC α∈Π =
+    cast-all
+      (conceal-typing-fresh
+        hB
+        (TyRenameWf-ext hρ)
+        (TySubstWf-exts hσ)
+        (cong suc ρhit)
+        (cong (renameᵗ suc) σhit)
+        (RevealMiss-ext miss)
+        noBad
+        (renameᵗ-preserves-WfTy hC TyRenameWf-suc)
+        (∈-renameStoreᵗ suc α∈Π))
+
+singleTyEnv-open-Wf :
+  ∀ {Δ Δ′ β C} →
+  TyRenameWf (suc Δ) Δ′ (singleRenameᵗ β) →
+  WfTy Δ′ C →
+  TySubstWf (suc Δ) Δ′ (singleTyEnv C)
+singleTyEnv-open-Wf hρ hC {zero} z<s = hC
+singleTyEnv-open-Wf hρ hC {suc X} (s<s X<Δ) =
+  wfVar (hρ (s<s X<Δ))
+
+singleRevealMiss :
+  ∀ {Δ Δ′ β C} →
+  TyRenameWf (suc Δ) Δ′ (singleRenameᵗ β) →
+  RevealMiss (suc Δ) β (singleRenameᵗ β) (singleTyEnv C) zero
+singleRevealMiss hρ {X = zero} X<Θ X≢hit X≢bad =
+  ⊥-elim (X≢hit refl)
+singleRevealMiss {β = β} hρ {X = suc X} X<Θ X≢hit X≢bad =
+  (λ X≡β → X≢bad (cong suc X≡β)) , refl
+
+reveal-open-typing :
+  ∀ {Δ Δ′ Σ Π B β C} →
+  WfTy (suc Δ) B →
+  TyRenameWf (suc Δ) Δ′ (singleRenameᵗ β) →
+  occurs (suc β) B ≡ false →
+  WfTy Δ′ C →
+  (β , C) ∈ Π →
+  Δ′ ∣ Σ ∣ Π ⊢ reveal (B [ β ]ᴿ) β C
+    ∶ B [ β ]ᴿ =⇒ B [ C ]ᵗ
+reveal-open-typing hB hρ noBad hC β∈Π =
+  reveal-typing-fresh
+    hB
+    hρ
+    (singleTyEnv-open-Wf hρ hC)
+    refl
+    refl
+    (singleRevealMiss hρ)
+    noBad
+    hC
+    β∈Π
 
 ------------------------------------------------------------------------
 -- Coercion endpoint well-formedness

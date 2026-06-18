@@ -7,8 +7,14 @@ module proof.NuPreservation where
 --   * Uses the type/coercion/term metatheory factored into sibling proof files.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using (_∷_)
-open import Data.Nat using (suc; _<_; _≤_; _⊔_; zero; z<s; s≤s)
+open import Data.Bool using (false)
+open import Data.List using ([]; _∷_)
+open import Data.List.Membership.Propositional using (_∉_)
+open import Data.List.Relation.Unary.Any using (here)
+open import Data.List.Relation.Binary.Sublist.Propositional
+  renaming ([] to []⊆; _∷_ to _∷⊆_; _∷ʳ_ to _∷ʳ⊆_)
+  using ()
+open import Data.Nat using (suc; _<_; _≤_; _⊔_; zero; z<s; s<s; s≤s)
 open import Data.Nat.Properties
   using (≤-refl; n≤1+n; <-≤-trans; ≤-trans; m≤m⊔n; m≤n⊔m)
 open import Data.Product using (_×_; _,_)
@@ -18,7 +24,7 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import Ctx
 open import NuStore
-open import Store using (⊆-trans; lookup)
+open import Store using (⊆-trans; complement; lookup)
 open import Coercions
 open import Primitives
 open import NuTerms
@@ -46,6 +52,18 @@ record PreservationResult
 
 open PreservationResult public
 
+structural-refl :
+  ∀ {Σ} →
+  StoreIncl Σ Σ
+structural-refl {Σ = []} = []⊆
+structural-refl {Σ = x ∷ Σ} = refl ∷⊆ structural-refl
+
+structural-refl-complement :
+  ∀ Σ →
+  complement (structural-refl {Σ = Σ}) ≡ []
+structural-refl-complement [] = refl
+structural-refl-complement (x ∷ Σ) = structural-refl-complement Σ
+
 coercion-open-existing :
   ∀ {Δ Σ Π c A B α} →
   α < Δ →
@@ -61,18 +79,6 @@ coercion-open-existing {Σ = Σ} {Π = Π} {α = α} α<Δ c⊢ =
           ⊢ _ ∶ _ =⇒ _)
       (renameStoreᵗ-single-suc-cancel α Σ)
       (coercion-renameᵗ (singleRenameᵗ-Wf-< α<Δ) c⊢))
-
--- The two-store side conditions make the `gen`/type-application redex expose
--- one missing invariant: substituting an arbitrary existing type variable for
--- the bound tag-allowed variable requires that existing variable to be
--- tag-allowed for this cast split. The current `⊢•` rule only provides `α < Δ`,
--- so this lemma records the needed bridge explicitly.
-postulate
-  coercion-open-gen-existing :
-    ∀ {Δ Σ Π c A B α} →
-    α < Δ →
-    suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ ∣ ⟰ᵗ Π ⊢ c ∶ ⇑ᵗ A =⇒ B →
-    Δ ∣ Σ ∣ Π ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ
 
 ------------------------------------------------------------------------
 -- Raw redex preservation
@@ -132,12 +138,6 @@ pure-preservation wfΣ hΓ
         (λ U → _ ∣ _ ∣ _ ⊢ V • α ⦂ U)
         src-open-eq
         (⊢• V-src⊢ α<Δ)
-pure-preservation wfΣ hΓ
-    (⊢• {α = α}
-      (⊢⟨⟩ d (gen⊢@(cast-gen {s = c} hC _ c⊢)) V⊢)
-      α<Δ)
-    (β-gen vV) =
-  ⊢⟨⟩ d (coercion-open-gen-existing α<Δ c⊢) V⊢
 pure-preservation wfΣ hΓ
     (⊢⟨⟩ {M = V} d (cast-inst {A = A} {B = B} {s = c} hB _ c⊢) V⊢)
     (β-inst vV) =
@@ -218,14 +218,14 @@ preservation :
   StoreWf Δ Σ →
   CtxWf Δ Γ →
   Δ ∣ Σ ∣ Γ ⊢ M ⦂ A →
-  Σ ∣ M —→ Σ′ ∣ N →
+  Δ ∣ Σ ∣ M —→ Σ′ ∣ N →
   PreservationResult Δ Σ Γ Σ′ N A
 preservation wfΣ hΓ M⊢ (pure-step red) =
   preserve _ wfΣ ≤-refl StoreIncl-refl hΓ
     (pure-preservation wfΣ hΓ M⊢ red)
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     (⊢ν {A = A} hA hN)
-    (ν-step {α = α} α∉Σ) =
+    (ν-step {α = α} Δ≤α) =
   preserve
     (suc (α ⊔ Δ))
     (StoreWf-fresh-ext
@@ -233,13 +233,138 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
       (≤-trans (m≤n⊔m α Δ) (n≤1+n (α ⊔ Δ)))
       (s≤s (m≤m⊔n α Δ))
       hA
-      α∉Σ)
+      (StoreWfAt-≥-fresh (at wfΣ) Δ≤α))
     (≤-trans (m≤n⊔m α Δ) (n≤1+n (α ⊔ Δ)))
     StoreIncl-drop
     (CtxWf-weaken hΓ (≤-trans (m≤n⊔m α Δ) (n≤1+n (α ⊔ Δ))))
     (typing-open-headᵀ
       (s≤s (m≤m⊔n α Δ))
       (term-weaken (s≤s (m≤n⊔m α Δ)) StoreIncl-refl hN))
+preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
+    (⊢• {α = α}
+      (⊢⟨⟩ {M = V} {Π = Π} d
+        (cast-gen {A = C} {B = B} {s = c} hC _ c⊢)
+        V⊢)
+      α<Δ)
+    (gen-step {β = β₀} vV Δ≤β) =
+  preserve
+    Δ₁
+    wfΣ′
+    Δ≤Δ₁
+    StoreIncl-drop
+    (CtxWf-weaken hΓ Δ≤Δ₁)
+    reduct⊢
+  where
+    Δ₁ : TyCtx
+    Δ₁ = suc (β₀ ⊔ Δ)
+
+    Δ≤Δ₁ : Δ ≤ Δ₁
+    Δ≤Δ₁ = ≤-trans (m≤n⊔m β₀ Δ) (n≤1+n (β₀ ⊔ Δ))
+
+    β<Δ₁ : β₀ < Δ₁
+    β<Δ₁ = s≤s (m≤m⊔n β₀ Δ)
+
+    α<Δ₁ : α < Δ₁
+    α<Δ₁ = <-≤-trans α<Δ Δ≤Δ₁
+
+    β∉Σ : β₀ ∉ domˢ Σ
+    β∉Σ = StoreWfAt-≥-fresh (at wfΣ) Δ≤β
+
+    hρ : TyRenameWf (suc Δ) Δ₁ (singleRenameᵗ β₀)
+    hρ {zero} z<s = β<Δ₁
+    hρ {suc X} (s<s X<Δ) = <-≤-trans X<Δ Δ≤Δ₁
+
+    wfΣ′ : StoreWf Δ₁ ((β₀ , ＇ α) ∷ Σ)
+    wfΣ′ =
+      StoreWf-fresh-ext wfΣ Δ≤Δ₁ β<Δ₁ (wfVar α<Δ) β∉Σ
+
+    d′ : StoreIncl Π ((β₀ , ＇ α) ∷ Σ)
+    d′ = (β₀ , ＇ α) ∷ʳ⊆ d
+
+    V⊢′ : Δ₁ ∣ (β₀ , ＇ α) ∷ Σ ∣ Γ ⊢ V ⦂ C
+    V⊢′ = term-weaken Δ≤Δ₁ StoreIncl-drop V⊢
+
+    cβ⊢ :
+      Δ₁ ∣ (β₀ , ＇ α) ∷ complement d ∣ Π
+        ⊢ c [ β₀ ]ᶜ ∶ C =⇒ B [ β₀ ]ᴿ
+    cβ⊢ = coercion-open-gen-fresh hρ c⊢
+
+    casted⊢ :
+      Δ₁ ∣ (β₀ , ＇ α) ∷ Σ ∣ Γ
+        ⊢ V ⟨ c [ β₀ ]ᶜ ⟩ ⦂ B [ β₀ ]ᴿ
+    casted⊢ = ⊢⟨⟩ d′ cβ⊢ V⊢′
+
+    tagWf :
+      StoreWfAt (suc Δ) ((zero , ★) ∷ ⟰ᵗ (complement d))
+    tagWf =
+      StoreWfAt-cons z<s wf★
+        (StoreWfAt-⟰ᵗ (StoreWfAt-complement (at wfΣ) d))
+
+    sealWf : StoreWfAt (suc Δ) (⟰ᵗ Π)
+    sealWf = StoreWfAt-⟰ᵗ (StoreWfAt-⊆ (at wfΣ) d)
+
+    hTgt : WfTy (suc Δ) (tgt c)
+    hTgt with coercion-wf-stores tagWf sealWf c⊢ | coercion-src-tgtᵐ c⊢
+    hTgt | hSrc , hB | src-eq , tgt-eq =
+      subst (WfTy (suc Δ)) (sym tgt-eq) hB
+
+    noβ : occurs (suc β₀) (tgt c) ≡ false
+    noβ = occurs-above-WfTy hTgt (s≤s Δ≤β)
+
+    tgt-eq : tgt c ≡ B
+    tgt-eq with coercion-src-tgtᵐ c⊢
+    tgt-eq | src-eq , tgt-eq′ = tgt-eq′
+
+    revealRaw :
+      Δ₁ ∣ [] ∣ (β₀ , ＇ α) ∷ Σ
+        ⊢ reveal ((tgt c) [ β₀ ]ᴿ) β₀ (＇ α)
+          ∶ (tgt c) [ β₀ ]ᴿ =⇒ (tgt c) [ ＇ α ]ᵗ
+    revealRaw =
+      reveal-open-typing hTgt hρ noβ (wfVar α<Δ₁) (here refl)
+
+    reveal-src-eq : (tgt c) [ β₀ ]ᴿ ≡ B [ β₀ ]ᴿ
+    reveal-src-eq = cong (λ T → T [ β₀ ]ᴿ) tgt-eq
+
+    reveal-tgt-eq : (tgt c) [ ＇ α ]ᵗ ≡ B [ α ]ᴿ
+    reveal-tgt-eq =
+      trans (subst-var-rename α (tgt c))
+            (cong (λ T → T [ α ]ᴿ) tgt-eq)
+
+    reveal⊢ :
+      Δ₁ ∣ [] ∣ (β₀ , ＇ α) ∷ Σ
+        ⊢ reveal ((tgt c) [ β₀ ]ᴿ) β₀ (＇ α)
+          ∶ B [ β₀ ]ᴿ =⇒ B [ α ]ᴿ
+    reveal⊢ =
+      subst
+        (λ T →
+          Δ₁ ∣ [] ∣ (β₀ , ＇ α) ∷ Σ
+            ⊢ reveal ((tgt c) [ β₀ ]ᴿ) β₀ (＇ α)
+              ∶ B [ β₀ ]ᴿ =⇒ T)
+        reveal-tgt-eq
+        (subst
+          (λ S →
+            Δ₁ ∣ [] ∣ (β₀ , ＇ α) ∷ Σ
+              ⊢ reveal ((tgt c) [ β₀ ]ᴿ) β₀ (＇ α)
+                ∶ S =⇒ (tgt c) [ ＇ α ]ᵗ)
+          reveal-src-eq
+          revealRaw)
+
+    reduct⊢ :
+      Δ₁ ∣ (β₀ , ＇ α) ∷ Σ ∣ Γ
+        ⊢ V ⟨ c [ β₀ ]ᶜ ⟩
+            ⟨ reveal ((tgt c) [ β₀ ]ᴿ) β₀ (＇ α) ⟩
+          ⦂ B [ α ]ᴿ
+    reduct⊢ =
+      ⊢⟨⟩
+        structural-refl
+        (subst
+          (λ Σtag →
+            Δ₁ ∣ Σtag ∣ (β₀ , ＇ α) ∷ Σ
+              ⊢ reveal ((tgt c) [ β₀ ]ᴿ) β₀ (＇ α)
+                ∶ B [ β₀ ]ᴿ =⇒ B [ α ]ᴿ)
+          (sym (structural-refl-complement ((β₀ , ＇ α) ∷ Σ)))
+          reveal⊢)
+        casted⊢
 preservation wfΣ hΓ (⊢· L⊢ M⊢) (ξ-·₁ red)
     with preservation wfΣ hΓ L⊢ red
 preservation wfΣ hΓ (⊢· L⊢ M⊢) (ξ-·₁ red)

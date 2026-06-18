@@ -1,7 +1,7 @@
 module NuReduction where
 
 open import Data.List using (_∷_)
-open import Data.Nat using (ℕ; _+_)
+open import Data.Nat using (ℕ; _+_; _≤_)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Data.Sum using (_⊎_)
 open import Relation.Nullary using (¬_)
@@ -55,11 +55,6 @@ data _—→_ : Term → Term → Set where
     ----------------------------------------
     → V ⟨ `∀ c ⟩ • α —→ (V • α) ⟨ c [ α ]ᶜ ⟩
 
-  β-gen : ∀ {Σ : Store} {C V c α}
-    → Value V
-    --------------------------------------
-    → V ⟨ gen C c ⟩ • α —→ V ⟨ c [ α ]ᶜ ⟩
-
   β-inst : ∀ {Σ : Store} {V B c}
     → Value V
     ----------------------------------------------
@@ -105,43 +100,54 @@ data _—→_ : Term → Term → Set where
 -- Store-threaded one-step reduction
 --------------------------------------------------------------------------------
 
-infix 2 _∣_—→_∣_
-data _∣_—→_∣_ : Store → Term → Store → Term → Set where
+infix 2 _∣_∣_—→_∣_
+data _∣_∣_—→_∣_ : TyCtx → Store → Term → Store → Term → Set where
 
-  pure-step : ∀ {Σ : Store} {M M′ : Term}
+  pure-step : ∀ {Δ : TyCtx} {Σ : Store} {M M′ : Term}
     → M —→ M′
     -----------------
-    → Σ ∣ M —→ Σ ∣ M′
+    → Δ ∣ Σ ∣ M —→ Σ ∣ M′
 
   -- Allow non-deterministic choice of α here so that in the proof of the
   -- Gradual Guarantee, we can choose a matching α in the simulating program.
-  ν-step : ∀ {Σ : Store} {N : Term} {A : Ty} {α : TyVar}
-   → α ∉ domˢ Σ
+  ν-step : ∀ {Δ : TyCtx} {Σ : Store} {N : Term} {A : Ty} {α : TyVar}
+   → Δ ≤ α
     -------------------------------------
-   → Σ ∣ ν A N —→ (α , A) ∷ Σ ∣ N [ α ]ᵀ
+   → Δ ∣ Σ ∣ ν A N —→ (α , A) ∷ Σ ∣ N [ α ]ᵀ
 
-  ξ-·₁ : ∀ {Σ Σ′ : Store} {L M L′ : Term} →
-    Σ ∣ L —→ Σ′ ∣ L′ →
-    Σ ∣ (L · M) —→ Σ′ ∣ (L′ · M)
+  --  Δ ∣ Σ ⊢ (V ⟨ νγ.c[γ] ⟩) α
+  --    —→
+  --  Δ ∣ (β := α) , Σ ⊢ V ⟨ c[β] ⟩ ⟨ (tgt c)[-seal_β] ⟩
+  --  where β ∉ Δ
+  gen-step : ∀ {Δ : TyCtx} {Σ : Store} {C V c α β}
+   → Value V
+   → Δ ≤ β
+    ----------------------------------------------------------
+   → Δ ∣ Σ ∣ V ⟨ gen C c ⟩ • α —→ (β , ＇ α) ∷ Σ ∣
+         V ⟨ c [ β ]ᶜ ⟩ ⟨ reveal ((tgt c) [ β ]ᴿ) β (＇ α) ⟩
 
-  ξ-·₂ : ∀ {Σ Σ′ : Store} {V M M′ : Term} →
+  ξ-·₁ : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {L M L′ : Term} →
+    Δ ∣ Σ ∣ L —→ Σ′ ∣ L′ →
+    Δ ∣ Σ ∣ (L · M) —→ Σ′ ∣ (L′ · M)
+
+  ξ-·₂ : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {V M M′ : Term} →
     Value V →
-    Σ ∣ M —→ Σ′ ∣ M′ →
-    Σ ∣ (V · M) —→ Σ′ ∣ (V · M′)
+    Δ ∣ Σ ∣ M —→ Σ′ ∣ M′ →
+    Δ ∣ Σ ∣ (V · M) —→ Σ′ ∣ (V · M′)
 
-  ξ-·α : ∀ {Σ Σ′ : Store} {M M′ : Term} {α : TyVar} →
-    Σ ∣ M —→ Σ′ ∣ M′ →
-    Σ ∣ (M • α) —→ Σ′ ∣ (M′ • α)
+  ξ-·α : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {M M′ : Term} {α : TyVar} →
+    Δ ∣ Σ ∣ M —→ Σ′ ∣ M′ →
+    Δ ∣ Σ ∣ (M • α) —→ Σ′ ∣ (M′ • α)
 
-  ξ-⟨⟩ : ∀ {Σ Σ′ : Store} {c : Coercion} {M M′ : Term} →
-    Σ ∣ M —→ Σ′ ∣ M′ →
-    Σ ∣ (M ⟨ c ⟩) —→ Σ′ ∣ (M′ ⟨ c ⟩)
+  ξ-⟨⟩ : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {c : Coercion} {M M′ : Term} →
+    Δ ∣ Σ ∣ M —→ Σ′ ∣ M′ →
+    Δ ∣ Σ ∣ (M ⟨ c ⟩) —→ Σ′ ∣ (M′ ⟨ c ⟩)
 
-  ξ-⊕₁ : ∀ {Σ Σ′ : Store} {L M L′ : Term} {op : Prim} →
-    Σ ∣ L —→ Σ′ ∣ L′ →
-    Σ ∣ (L ⊕[ op ] M) —→ Σ′ ∣ (L′ ⊕[ op ] M)
+  ξ-⊕₁ : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {L M L′ : Term} {op : Prim} →
+    Δ ∣ Σ ∣ L —→ Σ′ ∣ L′ →
+    Δ ∣ Σ ∣ (L ⊕[ op ] M) —→ Σ′ ∣ (L′ ⊕[ op ] M)
 
-  ξ-⊕₂ : ∀ {Σ Σ′ : Store} {L M M′ : Term} {op : Prim} →
+  ξ-⊕₂ : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {L M M′ : Term} {op : Prim} →
     Value L →
-    Σ ∣ M —→ Σ′ ∣ M′ →
-    Σ ∣ (L ⊕[ op ] M) —→ Σ′ ∣ (L ⊕[ op ] M′)
+    Δ ∣ Σ ∣ M —→ Σ′ ∣ M′ →
+    Δ ∣ Σ ∣ (L ⊕[ op ] M) —→ Σ′ ∣ (L ⊕[ op ] M′)

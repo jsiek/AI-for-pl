@@ -12,7 +12,7 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; z<s; s<s; z≤n; s≤s)
 open import Data.Nat.Properties
-  using (_≟_; <-≤-trans; m<n⇒m<1+n; suc-injective)
+  using (_≟_; <-≤-trans; <-irrefl; m<n⇒m<1+n; suc-injective)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; sym; trans)
@@ -213,6 +213,25 @@ occurs-zero-subst-exts :
   occurs zero (substᵗ (extsᵗ σ) A) ≡ occurs zero A
 occurs-zero-subst-exts σ A =
   occurs-extsNᵗ-below 1 σ zero A z<s
+
+occurs-above-WfTy :
+  ∀ {Δ A X} →
+  WfTy Δ A →
+  Δ ≤ X →
+  occurs X A ≡ false
+occurs-above-WfTy {X = X} (wfVar {X = Y} Y<Δ) Δ≤X with X ≟ Y
+occurs-above-WfTy {X = X} (wfVar {X = .X} Y<Δ) Δ≤X | yes refl =
+  ⊥-elim (<-irrefl refl (<-≤-trans Y<Δ Δ≤X))
+occurs-above-WfTy {X = X} (wfVar {X = Y} Y<Δ) Δ≤X | no X≢Y =
+  refl
+occurs-above-WfTy wfBase Δ≤X = refl
+occurs-above-WfTy wf★ Δ≤X = refl
+occurs-above-WfTy (wf⇒ hA hB) Δ≤X
+  rewrite occurs-above-WfTy hA Δ≤X
+        | occurs-above-WfTy hB Δ≤X =
+  refl
+occurs-above-WfTy (wf∀ hA) Δ≤X =
+  occurs-above-WfTy hA (s≤s Δ≤X)
 
 ------------------------------------------------------------------------
 -- Type well-formedness under renaming and substitution

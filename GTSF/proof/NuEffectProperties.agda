@@ -13,7 +13,7 @@ open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Bool using (false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (_≤_; zero; suc; z<s; s<s; s≤s)
-open import Data.Nat.Properties using (_≟_; <-≤-trans; suc-injective)
+open import Data.Nat.Properties using (_≟_; ≤-refl; <-≤-trans; suc-injective)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; cong₂; subst; sym; trans)
@@ -21,7 +21,15 @@ open import Relation.Nullary using (yes; no)
 
 open import Types
 open import Store
-  using (StoreIncl; StoreIncl-cons; StoreIncl-refl; _⊆_; complement; ⊆-trans)
+  using
+    ( StoreIncl
+    ; StoreIncl-cons
+    ; StoreIncl-drop
+    ; StoreIncl-refl
+    ; _⊆_
+    ; complement
+    ; ⊆-trans
+    )
 open import Coercions
 open import NuTerms
 open import NuEffectTyping
@@ -37,7 +45,11 @@ open import proof.CoercionProperties
     )
 open import proof.NuStoreProperties using (renameStoreᵗ-incl)
 open import proof.NuTermProperties
-  using (renameˣᵐ-preserves-Value; renameᵗᵐ-preserves-Value)
+  using
+    ( renameˣᵐ-preserves-Value
+    ; renameᵗᵐ-preserves-Value
+    ; substˣᵐ-preserves-Value
+    )
 open import proof.TypeProperties
   using
     ( TyRenameWf
@@ -1094,6 +1106,63 @@ SubstEffWf-exts :
 SubstEffWf-exts hσ Zᵉ = eff-var Zᵉ
 SubstEffWf-exts hσ (Sᵉ h) = typing-renameˣ-shift (hσ h)
 
+SubstEffWf-⇑ :
+  ∀ {Δ Σ Ξ Ξ′ σ} →
+  SubstEffWf Δ Σ Ξ Ξ′ σ →
+  SubstEffWf
+    (suc Δ)
+    (⟰ᵗ Σ)
+    (renameCtxᵉ suc Ξ)
+    (renameCtxᵉ suc Ξ′)
+    (↑ᵗᵐ σ)
+SubstEffWf-⇑ {Ξ = Ξ} hσ h
+    with lookup-renameCtxᵉ-inv suc Ξ h
+SubstEffWf-⇑ {Ξ = Ξ} hσ h
+    | A , E , hΞ , refl , refl =
+  typing-renameᵀ-suc (hσ hΞ)
+
+SubstEffWf-⇑ν :
+  ∀ {Δ Σ Ξ Ξ′ σ A} →
+  SubstEffWf Δ Σ Ξ Ξ′ σ →
+  SubstEffWf
+    (suc Δ)
+    ((zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ)
+    (renameCtxᵉ suc Ξ)
+    (renameCtxᵉ suc Ξ′)
+    (↑ᵗᵐ σ)
+SubstEffWf-⇑ν {Ξ = Ξ} hσ h
+    with lookup-renameCtxᵉ-inv suc Ξ h
+SubstEffWf-⇑ν {Ξ = Ξ} hσ h
+    | A , E , hΞ , refl , refl =
+  typing-weaken ≤-refl StoreIncl-drop (typing-renameᵀ-suc (hσ hΞ))
+
+typing-substˣ :
+  ∀ {Δ Σ Ξ Ξ′ M A E σ} →
+  SubstEffWf Δ Σ Ξ Ξ′ σ →
+  Δ ∣ Σ ∣ Ξ ⊢ M ⦂ A ▷ E →
+  Δ ∣ Σ ∣ Ξ′ ⊢ substˣᵐ σ M ⦂ A ▷ E
+typing-substˣ hσ (eff-var hΞ) = hσ hΞ
+typing-substˣ hσ (eff-lam hA hM) =
+  eff-lam hA (typing-substˣ (SubstEffWf-exts hσ) hM)
+typing-substˣ hσ (eff-app hL hM EM⊆Earg) =
+  eff-app (typing-substˣ hσ hL) (typing-substˣ hσ hM) EM⊆Earg
+typing-substˣ hσ (eff-tylam vM hM) =
+  eff-tylam
+    (substˣᵐ-preserves-Value _ vM)
+    (typing-substˣ (SubstEffWf-⇑ hσ) hM)
+typing-substˣ hσ (eff-tyapp hL α<Δ α∉E noαB) =
+  eff-tyapp (typing-substˣ hσ hL) α<Δ α∉E noαB
+typing-substˣ hσ (eff-nu hA hN) =
+  eff-nu hA (typing-substˣ (SubstEffWf-⇑ν hσ) hN)
+typing-substˣ hσ (eff-const κ) = eff-const κ
+typing-substˣ hσ (eff-prim hL op hM) =
+  eff-prim (typing-substˣ hσ hL) op (typing-substˣ hσ hM)
+typing-substˣ hσ (eff-cast d c⊢ exact hM) =
+  eff-cast d c⊢ exact (typing-substˣ hσ hM)
+typing-substˣ hσ (eff-blame hA) = eff-blame hA
+typing-substˣ hσ (eff-sub hM E⊆F) =
+  eff-sub (typing-substˣ hσ hM) E⊆F
+
 singleSubstEffWf :
   ∀ {Δ Σ Ξ A E V EV} →
   Δ ∣ Σ ∣ Ξ ⊢ V ⦂ A ▷ EV →
@@ -1101,3 +1170,12 @@ singleSubstEffWf :
   SubstEffWf Δ Σ ((A , E) ∷ Ξ) Ξ (singleEnv V)
 singleSubstEffWf hV EV⊆E Zᵉ = eff-sub hV EV⊆E
 singleSubstEffWf hV EV⊆E (Sᵉ h) = eff-var h
+
+typing-single-subst :
+  ∀ {Δ Σ Ξ N V A B Earg Ebody EV} →
+  Δ ∣ Σ ∣ ((A , Earg) ∷ Ξ) ⊢ N ⦂ B ▷ Ebody →
+  Δ ∣ Σ ∣ Ξ ⊢ V ⦂ A ▷ EV →
+  EV ⊆ᵉ Earg →
+  Δ ∣ Σ ∣ Ξ ⊢ N [ V ] ⦂ B ▷ Ebody
+typing-single-subst hN hV EV⊆Earg =
+  typing-substˣ (singleSubstEffWf hV EV⊆Earg) hN

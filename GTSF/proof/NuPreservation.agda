@@ -63,10 +63,11 @@ coercion-open-existing {Σ = Σ} {Π = Π} {α = α} α<Δ c⊢ =
       (coercion-renameᵗ (singleRenameᵗ-Wf-< α<Δ) c⊢))
 
 -- The two-store side conditions make the `gen`/type-application redex expose
--- one missing invariant: substituting an arbitrary existing type variable for
--- the bound tag-allowed variable requires that existing variable to be
--- tag-allowed for this cast split. The current `⊢•` rule only provides `α < Δ`,
--- so this lemma records the needed bridge explicitly.
+-- one missing invariant: the function being applied at α must not carry a
+-- suspended coercion that uses α on the seal side. A strengthened `⊢•` should
+-- preserve that effect information after `ν-step`, then choose a split where
+-- α is tag-allowed before opening the `gen` body. The current `⊢•` rule only
+-- provides `α < Δ`, so this bridge is still postulated.
 postulate
   coercion-open-gen-existing :
     ∀ {Δ Σ Π c A B α} →
@@ -218,14 +219,14 @@ preservation :
   StoreWf Δ Σ →
   CtxWf Δ Γ →
   Δ ∣ Σ ∣ Γ ⊢ M ⦂ A →
-  Σ ∣ M —→ Σ′ ∣ N →
+  Δ ∣ Σ ∣ M —→ Σ′ ∣ N →
   PreservationResult Δ Σ Γ Σ′ N A
 preservation wfΣ hΓ M⊢ (pure-step red) =
   preserve _ wfΣ ≤-refl StoreIncl-refl hΓ
     (pure-preservation wfΣ hΓ M⊢ red)
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     (⊢ν {A = A} hA hN)
-    (ν-step {α = α} α∉Σ) =
+    (ν-step {α = α} Δ≤α) =
   preserve
     (suc (α ⊔ Δ))
     (StoreWf-fresh-ext
@@ -233,7 +234,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
       (≤-trans (m≤n⊔m α Δ) (n≤1+n (α ⊔ Δ)))
       (s≤s (m≤m⊔n α Δ))
       hA
-      α∉Σ)
+      (StoreWfAt-≥-fresh (at wfΣ) Δ≤α))
     (≤-trans (m≤n⊔m α Δ) (n≤1+n (α ⊔ Δ)))
     StoreIncl-drop
     (CtxWf-weaken hΓ (≤-trans (m≤n⊔m α Δ) (n≤1+n (α ⊔ Δ))))

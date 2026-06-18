@@ -7,4 +7,5 @@ module All where
 
 import Compile
 import MetaTheory
+import NuEffectTyping
 import NuMetaTheory

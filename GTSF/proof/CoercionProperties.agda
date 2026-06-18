@@ -85,6 +85,75 @@ tagAllowed-rename ρ (tagAlpha α∈Σ) = tagAlpha (domˢ-rename ρ α∈Σ)
 tagAllowed-rename ρ tagIota = tagIota
 tagAllowed-rename ρ tagFun = tagFun
 
+TagDomIncl : Store → Store → Set
+TagDomIncl Σ Σ′ = ∀ {α} → α ∈ domˢ Σ → α ∈ domˢ Σ′
+
+TagDomIncl-cons :
+  ∀ {Σ Σ′ α A} →
+  TagDomIncl Σ Σ′ →
+  TagDomIncl ((α , A) ∷ Σ) ((α , A) ∷ Σ′)
+TagDomIncl-cons incl (here refl) = here refl
+TagDomIncl-cons incl (there α∈Σ) = there (incl α∈Σ)
+
+TagDomIncl-⟰ᵗ :
+  ∀ {Σ Σ′} →
+  TagDomIncl Σ Σ′ →
+  TagDomIncl (⟰ᵗ Σ) (⟰ᵗ Σ′)
+TagDomIncl-⟰ᵗ {Σ = []} incl ()
+TagDomIncl-⟰ᵗ {Σ = (α , A) ∷ Σ} incl (here refl) =
+  domˢ-rename suc (incl (here refl))
+TagDomIncl-⟰ᵗ {Σ = (α , A) ∷ Σ} incl (there β∈Σ) =
+  TagDomIncl-⟰ᵗ (λ γ∈Σ → incl (there γ∈Σ)) β∈Σ
+
+TagDomIncl-drop-head :
+  ∀ {Σ α A} →
+  α ∈ domˢ Σ →
+  TagDomIncl ((α , A) ∷ Σ) Σ
+TagDomIncl-drop-head α∈Σ (here refl) = α∈Σ
+TagDomIncl-drop-head α∈Σ (there β∈Σ) = β∈Σ
+
+tagAllowed-dom-incl :
+  ∀ {G Σ Σ′} →
+  TagDomIncl Σ Σ′ →
+  tagAllowed G Σ →
+  tagAllowed G Σ′
+tagAllowed-dom-incl incl (tagAlpha α∈Σ) = tagAlpha (incl α∈Σ)
+tagAllowed-dom-incl incl tagIota = tagIota
+tagAllowed-dom-incl incl tagFun = tagFun
+
+coercion-retag-dom-incl :
+  ∀ {Δ Σ Σ′ Π c A B} →
+  TagDomIncl Σ Σ′ →
+  Δ ∣ Σ ∣ Π ⊢ c ∶ A =⇒ B →
+  Δ ∣ Σ′ ∣ Π ⊢ c ∶ A =⇒ B
+coercion-retag-dom-incl incl (cast-id hA) = cast-id hA
+coercion-retag-dom-incl incl (cast-seal hA α∈Π) =
+  cast-seal hA α∈Π
+coercion-retag-dom-incl incl (cast-unseal hA α∈Π) =
+  cast-unseal hA α∈Π
+coercion-retag-dom-incl incl (cast-seq c⊢ d⊢) =
+  cast-seq
+    (coercion-retag-dom-incl incl c⊢)
+    (coercion-retag-dom-incl incl d⊢)
+coercion-retag-dom-incl incl (cast-tag hG gG ok) =
+  cast-tag hG gG (tagAllowed-dom-incl incl ok)
+coercion-retag-dom-incl incl (cast-untag hH gH ok) =
+  cast-untag hH gH (tagAllowed-dom-incl incl ok)
+coercion-retag-dom-incl incl (cast-fun c⊢ d⊢) =
+  cast-fun
+    (coercion-retag-dom-incl incl c⊢)
+    (coercion-retag-dom-incl incl d⊢)
+coercion-retag-dom-incl incl (cast-all c⊢) =
+  cast-all (coercion-retag-dom-incl (TagDomIncl-⟰ᵗ incl) c⊢)
+coercion-retag-dom-incl incl (cast-inst hB B-ok c⊢) =
+  cast-inst hB B-ok
+    (coercion-retag-dom-incl (TagDomIncl-⟰ᵗ incl) c⊢)
+coercion-retag-dom-incl incl (cast-gen hA A-ok c⊢) =
+  cast-gen hA A-ok
+    (coercion-retag-dom-incl
+      (TagDomIncl-cons {α = zero} {A = ★} (TagDomIncl-⟰ᵗ incl))
+      c⊢)
+
 complement-lookup :
   ∀ {A : Set}{xs ys : List A}{x : A} →
   (d : xs ⊆ ys) →
@@ -403,6 +472,72 @@ coercion-renameᵗ {Δ′ = Δ′} {Σ = Σ} {Π = Π} {ρ = ρ} hρ
               ∶ ⇑ᵗ (renameᵗ ρ A) =⇒ renameᵗ (extᵗ ρ) B)
         (renameStoreᵗ-ext-suc-comm ρ Π)
         typedTag
+
+singleRenameᵗ-Wf-existing :
+  ∀ {Δ α} →
+  α < Δ →
+  TyRenameWf (suc Δ) Δ (singleRenameᵗ α)
+singleRenameᵗ-Wf-existing α<Δ {zero} z<s = α<Δ
+singleRenameᵗ-Wf-existing α<Δ {suc X} (s≤s X<Δ) = X<Δ
+
+renameStoreᵗ-single-suc-tag-cons-cancel :
+  ∀ α Σ →
+  renameStoreᵗ (singleRenameᵗ α) ((zero , ★) ∷ ⟰ᵗ Σ) ≡
+  (α , ★) ∷ Σ
+renameStoreᵗ-single-suc-tag-cons-cancel α Σ =
+  cong₂ _∷_ refl (renameStoreᵗ-single-suc-cancel α Σ)
+
+coercion-open-gen-tagged :
+  ∀ {Δ Σ Π c A B α} →
+  α < Δ →
+  α ∈ domˢ Σ →
+  suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ ∣ ⟰ᵗ Π ⊢ c ∶ ⇑ᵗ A =⇒ B →
+  Δ ∣ Σ ∣ Π ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ
+coercion-open-gen-tagged
+    {Δ = Δ} {Σ = Σ} {Π = Π} {c = c} {A = A} {B = B} {α = α}
+    α<Δ α∈Σ c⊢ =
+  coercion-retag-dom-incl (TagDomIncl-drop-head {A = ★} α∈Σ) typedTag
+  where
+    raw :
+      Δ ∣ renameStoreᵗ (singleRenameᵗ α) ((zero , ★) ∷ ⟰ᵗ Σ)
+        ∣ renameStoreᵗ (singleRenameᵗ α) (⟰ᵗ Π)
+        ⊢ c [ α ]ᶜ ∶ renameᵗ (singleRenameᵗ α) (⇑ᵗ A)
+          =⇒ B [ α ]ᴿ
+    raw = coercion-renameᵗ (singleRenameᵗ-Wf-existing α<Δ) c⊢
+
+    typedSource :
+      Δ ∣ renameStoreᵗ (singleRenameᵗ α) ((zero , ★) ∷ ⟰ᵗ Σ)
+        ∣ renameStoreᵗ (singleRenameᵗ α) (⟰ᵗ Π)
+        ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ
+    typedSource =
+      subst
+        (λ T →
+          Δ ∣ renameStoreᵗ (singleRenameᵗ α) ((zero , ★) ∷ ⟰ᵗ Σ)
+            ∣ renameStoreᵗ (singleRenameᵗ α) (⟰ᵗ Π)
+            ⊢ c [ α ]ᶜ ∶ T =⇒ B [ α ]ᴿ)
+        (renameᵗ-single-suc-cancel α A)
+        raw
+
+    typedSeal :
+      Δ ∣ renameStoreᵗ (singleRenameᵗ α) ((zero , ★) ∷ ⟰ᵗ Σ)
+        ∣ Π
+        ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ
+    typedSeal =
+      subst
+        (λ Π′ →
+          Δ ∣ renameStoreᵗ (singleRenameᵗ α) ((zero , ★) ∷ ⟰ᵗ Σ)
+            ∣ Π′
+            ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ)
+        (renameStoreᵗ-single-suc-cancel α Π)
+        typedSource
+
+    typedTag :
+      Δ ∣ (α , ★) ∷ Σ ∣ Π ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ
+    typedTag =
+      subst
+        (λ Σ′ → Δ ∣ Σ′ ∣ Π ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ)
+        (renameStoreᵗ-single-suc-tag-cons-cancel α Σ)
+        typedSeal
 
 ------------------------------------------------------------------------
 -- Coercion endpoint well-formedness

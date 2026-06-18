@@ -16,7 +16,7 @@ open import Data.List.Relation.Binary.Sublist.Propositional
   renaming ([] to []⊆; _∷_ to _∷⊆_; _∷ʳ_ to _∷ʳ⊆_)
   using ()
 open import Data.Nat using (suc; _<_; _≤_)
-open import Data.Nat.Properties using (<-≤-trans)
+open import Data.Nat.Properties using (<-≤-trans; <-irrefl)
 open import Data.Product using (_,_)
 
 open import Types
@@ -99,6 +99,32 @@ StoreWfAt-⟰ᵗ = StoreWfAt-rename TyRenameWf-suc
   α ∈ domˢ Σ
 ∈-domˢ (here refl) = here refl
 ∈-domˢ (there α∈Σ) = there (∈-domˢ α∈Σ)
+
+domˢ-bound :
+  ∀ {Δ Σ α} →
+  StoreWfAt Δ Σ →
+  α ∈ domˢ Σ →
+  α < Δ
+domˢ-bound {Σ = []} wfΣ ()
+domˢ-bound {Σ = (β , B) ∷ Σ} wfΣ (here refl) =
+  bound wfΣ (here refl)
+domˢ-bound {Σ = (β , B) ∷ Σ} wfΣ (there α∈Σ) =
+  domˢ-bound wfTail α∈Σ
+  where
+    wfTail : StoreWfAt _ Σ
+    wfTail =
+      record
+        { bound = λ β∈Σ → bound wfΣ (there β∈Σ)
+        ; wfTy = λ β∈Σ → wfTy wfΣ (there β∈Σ)
+        }
+
+StoreWfAt-≥-fresh :
+  ∀ {Δ Σ α} →
+  StoreWfAt Δ Σ →
+  Δ ≤ α →
+  α ∉ domˢ Σ
+StoreWfAt-≥-fresh wfΣ Δ≤α α∈Σ =
+  <-irrefl refl (<-≤-trans (domˢ-bound wfΣ α∈Σ) Δ≤α)
 
 StoreWf-fresh-ext :
   ∀ {Δ Δ′ Σ α A} →

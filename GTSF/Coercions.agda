@@ -241,6 +241,10 @@ dual μ (inst B c) = gen B (dual (instᵈ μ) c)
 _[_]ᶜ : Coercion → TyVar → Coercion
 c [ X ]ᶜ = renameᶜ (singleRenameᵗ X) c
 
+
+-- Phil: What about the restriction that we don't allow
+--  X to ★ casts.
+
 ------------------------------------------------------------------------
 -- Typing
 ------------------------------------------------------------------------

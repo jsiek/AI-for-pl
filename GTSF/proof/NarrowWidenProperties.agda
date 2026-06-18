@@ -1,5 +1,10 @@
 module proof.NarrowWidenProperties where
 
+-- File Charter:
+--   * Structural lemmas for narrowing/widening coercion judgments.
+--   * Provides proof-level composition witnesses `_⨟ⁿ_` and `_⨟ʷ_`.
+--   * Depends on the public definitions in `NarrowWiden`.
+
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List using (List; []; _∷_; _++_; length; replicate; map)

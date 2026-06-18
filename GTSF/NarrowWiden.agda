@@ -6,10 +6,15 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.List using (List; []; _∷_; _++_; length; replicate; map)
-open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
-open import Data.Nat.Properties using (_≟_)
+open import Data.Nat using
+  (ℕ; _<_; _≤_; _+_; _∸_; zero; suc; z<s; s<s; z≤n; s≤s;
+   s≤s⁻¹)
+open import Data.Nat.Properties using
+  (_≟_; ≤-refl; ≤-trans; +-assoc; +-comm; +-mono-≤; +-monoʳ-≤;
+   +-monoˡ-≤; +-suc; m+[n∸m]≡n; m≤m+n; m≤n+m; n≤1+n)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃; ∃-syntax)
-open import Relation.Binary.PropositionalEquality using (subst)
+open import Relation.Binary.PropositionalEquality using
+  (subst; cong; cong₂; sym; trans)
 open import Relation.Nullary using (Dec; yes; no)
 
 open import Types
@@ -115,6 +120,331 @@ mutual
       → Δ ∣ Σ ⊢ s ∶ A′ ⊑ B
        ---------------------------------------
       → Δ ∣ Σ ⊢ (unseal α A′ ︔ s) ∶ (＇ α) ⊑ B
+
+------------------------------------------------------------------------
+-- Coercion composition
+------------------------------------------------------------------------
+
+infixr 7 _⨟_
+
+sizeᶜ : Coercion → ℕ
+sizeᶜ (id A) = suc zero
+sizeᶜ (c ︔ d) = suc (sizeᶜ c + sizeᶜ d)
+sizeᶜ (c ↦ d) = suc (sizeᶜ c + sizeᶜ d)
+sizeᶜ (`∀ c) = suc (sizeᶜ c)
+sizeᶜ (G !) = suc zero
+sizeᶜ (G ？) = suc zero
+sizeᶜ (seal A α) = suc zero
+sizeᶜ (unseal α A) = suc zero
+sizeᶜ (gen A c) = suc (sizeᶜ c)
+sizeᶜ (inst B c) = suc (sizeᶜ c)
+
+sizeᶜ-renameᶜ : ∀ ρ c → sizeᶜ (renameᶜ ρ c) ≡ sizeᶜ c
+sizeᶜ-renameᶜ ρ (id A) = refl
+sizeᶜ-renameᶜ ρ (c ︔ d) =
+  cong suc (cong₂ _+_ (sizeᶜ-renameᶜ ρ c) (sizeᶜ-renameᶜ ρ d))
+sizeᶜ-renameᶜ ρ (c ↦ d) =
+  cong suc (cong₂ _+_ (sizeᶜ-renameᶜ ρ c) (sizeᶜ-renameᶜ ρ d))
+sizeᶜ-renameᶜ ρ (`∀ c) = cong suc (sizeᶜ-renameᶜ (extᵗ ρ) c)
+sizeᶜ-renameᶜ ρ (G !) = refl
+sizeᶜ-renameᶜ ρ (G ？) = refl
+sizeᶜ-renameᶜ ρ (seal A α) = refl
+sizeᶜ-renameᶜ ρ (unseal α A) = refl
+sizeᶜ-renameᶜ ρ (gen A c) =
+  cong suc (sizeᶜ-renameᶜ (extᵗ ρ) c)
+sizeᶜ-renameᶜ ρ (inst B c) =
+  cong suc (sizeᶜ-renameᶜ (extᵗ ρ) c)
+
+sizeᶜ-⇑ᶜ : ∀ c → sizeᶜ (⇑ᶜ c) ≡ sizeᶜ c
+sizeᶜ-⇑ᶜ = sizeᶜ-renameᶜ suc
+
+≤-step : ∀ {m n} → m ≤ n → m ≤ suc n
+≤-step {n = n} m≤n = ≤-trans m≤n (n≤1+n n)
+
+seq-fuel≤ : ∀ a b e → a + b ≤ a + (b + e)
+seq-fuel≤ a b e = +-monoʳ-≤ a (m≤m+n b e)
+
+arrow-left-fuel≤ :
+  ∀ a b c d → c + a ≤ (a + b) + suc (c + d)
+arrow-left-fuel≤ a b c d =
+  ≤-trans c+a≤a+c a+c≤target
+  where
+    c≤target : c ≤ b + suc (c + d)
+    c≤target =
+      ≤-trans (m≤m+n c d)
+        (≤-trans (n≤1+n (c + d)) (m≤n+m (suc (c + d)) b))
+
+    a+c≤target : a + c ≤ (a + b) + suc (c + d)
+    a+c≤target =
+      subst
+        (λ x → a + c ≤ x)
+        (sym (+-assoc a b (suc (c + d))))
+        (+-monoʳ-≤ a c≤target)
+
+    c+a≤a+c : c + a ≤ a + c
+    c+a≤a+c = subst (λ x → c + a ≤ x) (+-comm c a) ≤-refl
+
+arrow-right-fuel≤ :
+  ∀ a b c d → b + d ≤ (a + b) + suc (c + d)
+arrow-right-fuel≤ a b c d =
+  ≤-trans b+d≤b+suc-c+d b+suc-c+d≤target
+  where
+    d≤suc-c+d : d ≤ suc (c + d)
+    d≤suc-c+d = ≤-trans (m≤n+m d c) (n≤1+n (c + d))
+
+    b+d≤b+suc-c+d : b + d ≤ b + suc (c + d)
+    b+d≤b+suc-c+d = +-monoʳ-≤ b d≤suc-c+d
+
+    b+suc-c+d≤a+b+suc-c+d :
+      b + suc (c + d) ≤ a + (b + suc (c + d))
+    b+suc-c+d≤a+b+suc-c+d =
+      m≤n+m (b + suc (c + d)) a
+
+    b+suc-c+d≤target :
+      b + suc (c + d) ≤ (a + b) + suc (c + d)
+    b+suc-c+d≤target =
+      subst
+        (λ x → b + suc (c + d) ≤ x)
+        (sym (+-assoc a b (suc (c + d))))
+        b+suc-c+d≤a+b+suc-c+d
+
+left-seq-fuel≤ : ∀ a b e → a + e ≤ (b + a) + e
+left-seq-fuel≤ a b e = +-monoˡ-≤ e (m≤n+m a b)
+
+data ComposeView : Coercion → Coercion → Set where
+  view-idʳ : ∀ c A → ComposeView c (id A)
+  view-genʳ : ∀ c B d → ComposeView c (gen B d)
+  view-sealʳ : ∀ c d A α → ComposeView c (d ︔ seal A α)
+  view-tagʳ : ∀ c d G → ComposeView c (d ︔ (G !))
+  view-idˡ : ∀ A d → ComposeView (id A) d
+  view-fun : ∀ c d c′ d′ → ComposeView (c ↦ d) (c′ ↦ d′)
+  view-all : ∀ c d → ComposeView (`∀ c) (`∀ d)
+  view-gen-all : ∀ A c d → ComposeView (gen A c) (`∀ d)
+  view-all-inst : ∀ c B d → ComposeView (`∀ c) (inst B d)
+  view-instˡ : ∀ A c d → ComposeView (inst A c) d
+  view-untagˡ : ∀ G c d → ComposeView ((G ？) ︔ c) d
+  view-unsealˡ : ∀ α A c d → ComposeView (unseal α A ︔ c) d
+  view-default : ∀ c d → ComposeView c d
+
+composeView : ∀ c d → ComposeView c d
+composeView c (id A) = view-idʳ c A
+composeView c (gen B d) = view-genʳ c B d
+composeView c (d ︔ seal A α) = view-sealʳ c d A α
+composeView c (d ︔ (G !)) = view-tagʳ c d G
+composeView (id A) d = view-idˡ A d
+composeView (c ↦ d) (c′ ↦ d′) = view-fun c d c′ d′
+composeView (`∀ c) (`∀ d) = view-all c d
+composeView (gen A c) (`∀ d) = view-gen-all A c d
+composeView (`∀ c) (inst B d) = view-all-inst c B d
+composeView (inst A c) d = view-instˡ A c d
+composeView ((G ？) ︔ c) d = view-untagˡ G c d
+composeView (unseal α A ︔ c) d = view-unsealˡ α A c d
+composeView c d = view-default c d
+
+composeᶜ : ℕ → Coercion → Coercion → Coercion
+composeᶜ zero c d = c ︔ d
+composeᶜ (suc n) c d with composeView c d
+composeᶜ (suc n) c .(id A) | view-idʳ .c A = c
+composeᶜ (suc n) c .(gen B d) | view-genʳ .c B d =
+  gen (src c) (composeᶜ n (⇑ᶜ c) d)
+composeᶜ (suc n) c .(d ︔ seal A α) | view-sealʳ .c d A α =
+  composeᶜ n c d ︔ seal A α
+composeᶜ (suc n) c .(d ︔ (G !)) | view-tagʳ .c d G =
+  composeᶜ n c d ︔ (G !)
+composeᶜ (suc n) .(id A) d | view-idˡ A .d = d
+composeᶜ (suc n) .(c ↦ d) .(c′ ↦ d′) | view-fun c d c′ d′ =
+  composeᶜ n c′ c ↦ composeᶜ n d d′
+composeᶜ (suc n) .(`∀ c) .(`∀ d) | view-all c d =
+  `∀ (composeᶜ n c d)
+composeᶜ (suc n) .(gen A c) .(`∀ d) | view-gen-all A c d =
+  gen A (composeᶜ n c d)
+composeᶜ (suc n) .(`∀ c) .(inst B d) | view-all-inst c B d =
+  inst B (composeᶜ n c d)
+composeᶜ (suc n) .(inst A c) d | view-instˡ A c .d =
+  inst (tgt d) (composeᶜ n c (⇑ᶜ d))
+composeᶜ (suc n) .((G ？) ︔ c) d | view-untagˡ G c .d =
+  (G ？) ︔ composeᶜ n c d
+composeᶜ (suc n) .(unseal α A ︔ c) d | view-unsealˡ α A c .d =
+  unseal α A ︔ composeᶜ n c d
+composeᶜ (suc n) c d | view-default .c .d = c ︔ d
+
+_⨟_ : Coercion → Coercion → Coercion
+c ⨟ d = composeᶜ (sizeᶜ c + sizeᶜ d) c d
+
+composeᶜ-idʳ : ∀ n c {A} → composeᶜ (suc n) c (id A) ≡ c
+composeᶜ-idʳ n c = refl
+
+⨟-idʳ : ∀ c {A} → c ⨟ id A ≡ c
+⨟-idʳ (id A) = refl
+⨟-idʳ (c ︔ d) = refl
+⨟-idʳ (c ↦ d) = refl
+⨟-idʳ (`∀ c) = refl
+⨟-idʳ (G !) = refl
+⨟-idʳ (G ？) = refl
+⨟-idʳ (seal A α) = refl
+⨟-idʳ (unseal α A) = refl
+⨟-idʳ (gen A c) = refl
+⨟-idʳ (inst B c) = refl
+
+composeᶜ-mono :
+  ∀ n c d →
+  sizeᶜ c + sizeᶜ d ≤ n →
+  composeᶜ (suc n) c d ≡ composeᶜ n c d
+composeᶜ-mono zero (id A) d ()
+composeᶜ-mono zero (c ︔ d) e ()
+composeᶜ-mono zero (c ↦ d) e ()
+composeᶜ-mono zero (`∀ c) d ()
+composeᶜ-mono zero (G !) d ()
+composeᶜ-mono zero (G ？) d ()
+composeᶜ-mono zero (seal A α) d ()
+composeᶜ-mono zero (unseal α A) d ()
+composeᶜ-mono zero (gen A c) d ()
+composeᶜ-mono zero (inst B c) d ()
+composeᶜ-mono (suc n) c d h with composeView c d
+composeᶜ-mono (suc n) c .(id A) h | view-idʳ .c A = refl
+composeᶜ-mono (suc n) c .(gen B d) h | view-genʳ .c B d
+    rewrite +-suc (sizeᶜ c) (sizeᶜ d) =
+  cong (gen (src c))
+    (composeᶜ-mono n (⇑ᶜ c) d
+      (subst (λ m → m + sizeᶜ d ≤ n) (sym (sizeᶜ-⇑ᶜ c))
+        (s≤s⁻¹ h)))
+composeᶜ-mono (suc n) c .(d ︔ seal A α) h | view-sealʳ .c d A α
+    rewrite +-suc (sizeᶜ c) (sizeᶜ d + suc zero) =
+  cong (λ q → q ︔ seal A α)
+    (composeᶜ-mono n c d
+      (≤-trans (seq-fuel≤ (sizeᶜ c) (sizeᶜ d) (suc zero))
+        (s≤s⁻¹ h)))
+composeᶜ-mono (suc n) c .(d ︔ (G !)) h | view-tagʳ .c d G
+    rewrite +-suc (sizeᶜ c) (sizeᶜ d + suc zero) =
+  cong (λ q → q ︔ (G !))
+    (composeᶜ-mono n c d
+      (≤-trans (seq-fuel≤ (sizeᶜ c) (sizeᶜ d) (suc zero))
+        (s≤s⁻¹ h)))
+composeᶜ-mono (suc n) .(id A) d h | view-idˡ A .d = refl
+composeᶜ-mono (suc n) .(c ↦ d) .(c′ ↦ d′) h
+    | view-fun c d c′ d′ =
+  cong₂ _↦_
+    (composeᶜ-mono n c′ c
+      (≤-trans
+        (arrow-left-fuel≤ (sizeᶜ c) (sizeᶜ d) (sizeᶜ c′) (sizeᶜ d′))
+        (s≤s⁻¹ h)))
+    (composeᶜ-mono n d d′
+      (≤-trans
+        (arrow-right-fuel≤ (sizeᶜ c) (sizeᶜ d) (sizeᶜ c′) (sizeᶜ d′))
+        (s≤s⁻¹ h)))
+composeᶜ-mono (suc n) .(`∀ c) .(`∀ d) h | view-all c d =
+  cong `∀
+    (composeᶜ-mono n c d
+      (≤-trans (+-monoʳ-≤ (sizeᶜ c) (n≤1+n (sizeᶜ d)))
+        (s≤s⁻¹ h)))
+composeᶜ-mono (suc n) .(gen A c) .(`∀ d) h
+    | view-gen-all A c d =
+  cong (gen A)
+    (composeᶜ-mono n c d
+      (≤-trans (+-monoʳ-≤ (sizeᶜ c) (n≤1+n (sizeᶜ d)))
+        (s≤s⁻¹ h)))
+composeᶜ-mono (suc n) .(`∀ c) .(inst B d) h
+    | view-all-inst c B d =
+  cong (inst B)
+    (composeᶜ-mono n c d
+      (≤-trans (+-monoʳ-≤ (sizeᶜ c) (n≤1+n (sizeᶜ d)))
+        (s≤s⁻¹ h)))
+composeᶜ-mono (suc n) .(inst A c) d h | view-instˡ A c .d =
+  cong (inst (tgt d))
+    (composeᶜ-mono n c (⇑ᶜ d)
+      (subst (λ m → sizeᶜ c + m ≤ n) (sym (sizeᶜ-⇑ᶜ d))
+        (s≤s⁻¹ h)))
+composeᶜ-mono (suc n) .((G ？) ︔ c) d h | view-untagˡ G c .d =
+  cong ((G ？) ︔_)
+    (composeᶜ-mono n c d
+      (≤-trans (left-seq-fuel≤ (sizeᶜ c) (suc zero) (sizeᶜ d))
+        (s≤s⁻¹ h)))
+composeᶜ-mono (suc n) .(unseal α A ︔ c) d h
+    | view-unsealˡ α A c .d =
+  cong (unseal α A ︔_)
+    (composeᶜ-mono n c d
+      (≤-trans (left-seq-fuel≤ (sizeᶜ c) (suc zero) (sizeᶜ d))
+        (s≤s⁻¹ h)))
+composeᶜ-mono (suc n) c d h | view-default .c .d = refl
+
+composeᶜ-extra :
+  ∀ k c d →
+  composeᶜ (k + (sizeᶜ c + sizeᶜ d)) c d ≡ c ⨟ d
+composeᶜ-extra zero c d = refl
+composeᶜ-extra (suc k) c d =
+  trans
+    (composeᶜ-mono (k + (sizeᶜ c + sizeᶜ d)) c d
+      (m≤n+m (sizeᶜ c + sizeᶜ d) k))
+    (composeᶜ-extra k c d)
+
+composeᶜ-sufficient :
+  ∀ n c d →
+  sizeᶜ c + sizeᶜ d ≤ n →
+  composeᶜ n c d ≡ c ⨟ d
+composeᶜ-sufficient n c d h =
+  subst
+    (λ m → composeᶜ m c d ≡ c ⨟ d)
+    n≡extra+need
+    (composeᶜ-extra (n ∸ need) c d)
+  where
+    need = sizeᶜ c + sizeᶜ d
+
+    n≡extra+need : (n ∸ need) + need ≡ n
+    n≡extra+need =
+      trans (+-comm (n ∸ need) need) (m+[n∸m]≡n h)
+
+⨟-genʳ : ∀ c B d → c ⨟ gen B d ≡ gen (src c) (⇑ᶜ c ⨟ d)
+⨟-genʳ c B d rewrite +-suc (sizeᶜ c) (sizeᶜ d) =
+  cong (gen (src c))
+    (composeᶜ-sufficient (sizeᶜ c + sizeᶜ d) (⇑ᶜ c) d
+      (subst (λ m → m + sizeᶜ d ≤ sizeᶜ c + sizeᶜ d)
+        (sym (sizeᶜ-⇑ᶜ c)) ≤-refl))
+
+⨟-sealʳ :
+  ∀ c d A α →
+  c ⨟ (d ︔ seal A α) ≡ (c ⨟ d) ︔ seal A α
+⨟-sealʳ c d A α rewrite +-suc (sizeᶜ c) (sizeᶜ d + suc zero) =
+  cong (λ q → q ︔ seal A α)
+    (composeᶜ-sufficient (sizeᶜ c + (sizeᶜ d + suc zero)) c d
+      (seq-fuel≤ (sizeᶜ c) (sizeᶜ d) (suc zero)))
+
+⨟-tagʳ :
+  ∀ c d G →
+  c ⨟ (d ︔ (G !)) ≡ (c ⨟ d) ︔ (G !)
+⨟-tagʳ c d G rewrite +-suc (sizeᶜ c) (sizeᶜ d + suc zero) =
+  cong (λ q → q ︔ (G !))
+    (composeᶜ-sufficient (sizeᶜ c + (sizeᶜ d + suc zero)) c d
+      (seq-fuel≤ (sizeᶜ c) (sizeᶜ d) (suc zero)))
+
+⨟-↦ :
+  ∀ c d c′ d′ →
+  (c ↦ d) ⨟ (c′ ↦ d′) ≡ (c′ ⨟ c) ↦ (d ⨟ d′)
+⨟-↦ c d c′ d′ =
+  cong₂ _↦_
+    (composeᶜ-sufficient
+      (sizeᶜ c + sizeᶜ d + sizeᶜ (c′ ↦ d′)) c′ c
+      (arrow-left-fuel≤ (sizeᶜ c) (sizeᶜ d) (sizeᶜ c′) (sizeᶜ d′)))
+    (composeᶜ-sufficient
+      (sizeᶜ c + sizeᶜ d + sizeᶜ (c′ ↦ d′)) d d′
+      (arrow-right-fuel≤ (sizeᶜ c) (sizeᶜ d) (sizeᶜ c′) (sizeᶜ d′)))
+
+⨟-∀ : ∀ c d → (`∀ c) ⨟ (`∀ d) ≡ `∀ (c ⨟ d)
+⨟-∀ c d =
+  cong `∀
+    (composeᶜ-sufficient (sizeᶜ c + sizeᶜ (`∀ d)) c d
+      (+-monoʳ-≤ (sizeᶜ c) (n≤1+n (sizeᶜ d))))
+
+⨟-gen-∀ : ∀ A c d → gen A c ⨟ (`∀ d) ≡ gen A (c ⨟ d)
+⨟-gen-∀ A c d =
+  cong (gen A)
+    (composeᶜ-sufficient (sizeᶜ c + sizeᶜ (`∀ d)) c d
+      (+-monoʳ-≤ (sizeᶜ c) (n≤1+n (sizeᶜ d))))
+
+⨟-∀-inst : ∀ c B d → (`∀ c) ⨟ inst B d ≡ inst B (c ⨟ d)
+⨟-∀-inst c B d =
+  cong (inst B)
+    (composeᶜ-sufficient (sizeᶜ c + sizeᶜ (inst B d)) c d
+      (+-monoʳ-≤ (sizeᶜ c) (n≤1+n (sizeᶜ d))))
 
 
 ------------------------------------------------------------------------

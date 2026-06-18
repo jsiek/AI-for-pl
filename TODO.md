@@ -2,6 +2,11 @@
 
 ## TODO items
 
+[ ] Update `GTSF/proof/NarrowWidenProperties.agda` so proof-level
+    composition `_⨟ⁿ_` / `_⨟ʷ_` concludes directly about the raw
+    composition operator `_⨟_` instead of returning an existential coercion.
+    Use the fuel monotonicity/sufficiency equations in `GTSF/NarrowWiden.agda`.
+
 ## In progress TODO items
 
 ## Completed TODO items
@@ -171,6 +176,5 @@
     if you can't finish.
 
   Blocker: The remaining `⊑upL` and `⊑downL` `wt-↦` branches require a cast-argument catch-up lemma (GTLC-analogous to `cast-left-id-val`) to obtain a value from `W down p` / `W up p` and a corresponding precision witness before recursive `sim-left-beta` can proceed. That helper is not available in this file, so the proof cannot be completed here without introducing new supporting lemmas or postulates.
-
 
 

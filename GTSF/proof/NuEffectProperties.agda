@@ -17,7 +17,7 @@ open import Data.Bool using (false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (_<_; _≤_; zero; suc; z<s; s<s; s≤s)
 open import Data.Nat.Properties using (_≟_; ≤-refl; <-≤-trans; suc-injective)
-open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
+open import Data.Product using (_×_; _,_; ∃; ∃-syntax; proj₁; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; cong₂; subst; sym; trans)
@@ -45,6 +45,7 @@ open import proof.CoercionProperties
     ( coercion-weaken
     ; coercion-open-gen-tagged
     ; coercion-renameᵗ
+    ; coercion-src-tgtᵐ
     ; complement-incl
     ; complement-rename
     ; domˢ-incl
@@ -653,6 +654,17 @@ renameᴱ-open ρ E α =
     env-eq zero = refl
     env-eq (suc β) = refl
 
+renameᴱ-ext-suc-comm :
+  ∀ ρ E →
+  renameᴱ (extᵗ ρ) (renameᴱ suc E) ≡
+  renameᴱ suc (renameᴱ ρ E)
+renameᴱ-ext-suc-comm ρ E =
+  trans
+    (renameᴱ-compose suc (extᵗ ρ) E)
+    (trans
+      (renameᴱ-cong (λ α → refl) E)
+      (sym (renameᴱ-compose ρ suc E)))
+
 ∈-renameᴱ-suc-inv :
   ∀ {E α} →
   suc α ∈ renameᴱ suc E →
@@ -669,6 +681,27 @@ renameᴱ-open ρ E α =
   suc α ∉ renameᴱ suc E
 ∉-renameᴱ-suc α∉E sucα∈ =
   α∉E (∈-renameᴱ-suc-inv sucα∈)
+
+zero∉-renameᴱ-ext :
+  ∀ ρ {E} →
+  zero ∉ E →
+  zero ∉ renameᴱ (extᵗ ρ) E
+zero∉-renameᴱ-ext ρ {E = []} zero∉E ()
+zero∉-renameᴱ-ext ρ {E = zero ∷ E} zero∉E (here refl) =
+  zero∉E (here refl)
+zero∉-renameᴱ-ext ρ {E = zero ∷ E} zero∉E (there zero∈E) =
+  zero∉E (here refl)
+zero∉-renameᴱ-ext ρ {E = suc α ∷ E} zero∉E (here ())
+zero∉-renameᴱ-ext ρ {E = suc α ∷ E} zero∉E (there zero∈E) =
+  zero∉-renameᴱ-ext ρ (λ h → zero∉E (there h)) zero∈E
+
+zero∉-sealUsesᶜ-rename-ext :
+  ∀ ρ {c} →
+  zero ∉ sealUsesᶜ c →
+  zero ∉ sealUsesᶜ (renameᶜ (extᵗ ρ) c)
+zero∉-sealUsesᶜ-rename-ext ρ {c = c} zero∉c zero∈ =
+  zero∉-renameᴱ-ext ρ zero∉c
+    (subst (λ E → zero ∈ E) (sealUsesᶜ-rename (extᵗ ρ) c) zero∈)
 
 WfEffect-drop0 :
   ∀ {Δ E r} →
@@ -1344,17 +1377,27 @@ complement-inclᵉ (refl ∷⊆ d) (refl ∷⊆ e) =
   complement-inclᵉ d e
 
 CastEndpoint-rename :
-  ∀ ρ {Π c F A B} →
-  CastEndpoint Π c F A B →
-  CastEndpoint (renameStoreᵉ ρ Π) (renameᶜ ρ c)
+  ∀ ρ {Δ Δ′ Π c F A B} →
+  TyRenameWf ⌊ Δ ⌋ ⌊ Δ′ ⌋ ρ →
+  RuntimeRenameWf Δ Δ′ ρ →
+  CastEndpoint Δ Π c F A B →
+  CastEndpoint Δ′ (renameStoreᵉ ρ Π) (renameᶜ ρ c)
     (renameᴱ ρ F) (renameᵉ ρ A) (renameᵉ ρ B)
-CastEndpoint-rename ρ end-id = end-id
-CastEndpoint-rename ρ (end-seq hp hq) =
-  end-seq (CastEndpoint-rename ρ hp) (CastEndpoint-rename ρ hq)
-CastEndpoint-rename ρ (end-fun {F = F} {E = E} {E′ = E′} hp hq incl) =
+CastEndpoint-rename ρ hTy hρ (end-id {A = A}) =
+  subst
+    (λ T → CastEndpoint _ _ (id T) _ (renameᵉ ρ A) (renameᵉ ρ A))
+    (erase-renameᵉ ρ A)
+    end-id
+CastEndpoint-rename ρ hTy hρ (end-seq hB hp hq) =
+  end-seq
+    (WfEffTy-rename hTy hρ hB)
+    (CastEndpoint-rename ρ hTy hρ hp)
+    (CastEndpoint-rename ρ hTy hρ hq)
+CastEndpoint-rename ρ hTy hρ
+    (end-fun {F = F} {E = E} {E′ = E′} hp hq incl) =
   end-fun
-    (CastEndpoint-rename ρ hp)
-    (CastEndpoint-rename ρ hq)
+    (CastEndpoint-rename ρ hTy hρ hp)
+    (CastEndpoint-rename ρ hTy hρ hq)
     incl′
   where
     eq :
@@ -1366,25 +1409,27 @@ CastEndpoint-rename ρ (end-fun {F = F} {E = E} {E′ = E′} hp hq incl) =
       renameᴱ ρ E′ ++ renameᴱ ρ F ⊆ᵉ renameᴱ ρ E
     incl′ h =
       renameᴱ-mono ρ incl (subst (λ F → _ ∈ F) (sym eq) h)
-CastEndpoint-rename ρ {Π = Π}
-    (end-all {c = c} {G = G} {F = F} {A = A} {B = B} {E = E}
-      {E′ = E′} hc castIncl tyIncl) =
+CastEndpoint-rename ρ {Δ′ = Δ′} {Π = Π} hTy hρ
+    (end-all {c = c} {F = F} {A = A} {B = B} {E = E}
+      {E′ = E′} hc tyIncl) =
   end-all
     (subst
-      (λ Π′ → CastEndpoint Π′ (renameᶜ (extᵗ ρ) c)
-        (renameᴱ (extᵗ ρ) G)
+      (λ G → CastEndpoint (ordinary ∷ Δ′) (⟰ᵉ (renameStoreᵉ ρ Π))
+        (renameᶜ (extᵗ ρ) c) G
         (renameᵉ (extᵗ ρ) A) (renameᵉ (extᵗ ρ) B))
-      (renameStoreᵉ-ext-suc-comm ρ Π)
-      (CastEndpoint-rename (extᵗ ρ) hc))
-    castIncl′
+      (renameᴱ-ext-suc-comm ρ F)
+      (subst
+        (λ Π′ → CastEndpoint (ordinary ∷ Δ′) Π′
+          (renameᶜ (extᵗ ρ) c) (renameᴱ (extᵗ ρ) (renameᴱ suc F))
+          (renameᵉ (extᵗ ρ) A) (renameᵉ (extᵗ ρ) B))
+        (renameStoreᵉ-ext-suc-comm ρ Π)
+        (CastEndpoint-rename
+          (extᵗ ρ)
+          (TyRenameWf-ext hTy)
+          (RuntimeRenameWf-ext ordinary hρ)
+          hc)))
     tyIncl′
   where
-    castIncl′ :
-      drop0ᵉ (renameᴱ (extᵗ ρ) G) ⊆ᵉ renameᴱ ρ F
-    castIncl′ h =
-      renameᴱ-mono ρ castIncl
-        (subst (λ H → _ ∈ H) (drop0ᵉ-rename ρ G) h)
-
     tyIncl′ :
       drop0ᵉ (renameᴱ (extᵗ ρ) E) ⊆ᵉ
       drop0ᵉ (renameᴱ (extᵗ ρ) E′)
@@ -1394,53 +1439,526 @@ CastEndpoint-rename ρ {Π = Π}
         (sym (drop0ᵉ-rename ρ E′))
         (renameᴱ-mono ρ tyIncl
           (subst (λ G → _ ∈ G) (drop0ᵉ-rename ρ E) h))
-CastEndpoint-rename ρ end-tag = end-tag
-CastEndpoint-rename ρ end-untag = end-untag
-CastEndpoint-rename ρ (end-seal h) = end-seal (∈-renameStoreᵉ ρ h)
-CastEndpoint-rename ρ (end-unseal h) = end-unseal (∈-renameStoreᵉ ρ h)
-CastEndpoint-rename ρ {Π = Π}
-    (end-gen {c = c} {G = G} {F = F} {A = A} {B = B} hc incl) =
-  end-gen
-    (subst
-      (λ A′ → CastEndpoint (⟰ᵉ (renameStoreᵉ ρ Π))
-        (renameᶜ (extᵗ ρ) c) (renameᴱ (extᵗ ρ) G)
-        A′ (renameᵉ (extᵗ ρ) B))
-      (renameᵉ-ext-suc-comm ρ A)
+CastEndpoint-rename ρ hTy hρ (end-tag {A = A}) =
+  subst
+    (λ T → CastEndpoint _ _ (T !) _ (renameᵉ ρ A) ty-star)
+    (erase-renameᵉ ρ A)
+    end-tag
+CastEndpoint-rename ρ hTy hρ (end-untag {A = A}) =
+  subst
+    (λ T → CastEndpoint _ _ (T ？) _ ty-star (renameᵉ ρ A))
+    (erase-renameᵉ ρ A)
+    end-untag
+CastEndpoint-rename ρ hTy hρ (end-seal {A = A} h) =
+  subst
+    (λ T → CastEndpoint _ _ (seal T _) _ (renameᵉ ρ A) (ty-var _))
+    (erase-renameᵉ ρ A)
+    (end-seal (∈-renameStoreᵉ ρ h))
+CastEndpoint-rename ρ hTy hρ (end-unseal {A = A} h) =
+  subst
+    (λ T → CastEndpoint _ _ (unseal _ T) _ (ty-var _) (renameᵉ ρ A))
+    (erase-renameᵉ ρ A)
+    (end-unseal (∈-renameStoreᵉ ρ h))
+CastEndpoint-rename ρ {Δ′ = Δ′} {Π = Π} hTy hρ
+    (end-gen {c = c} {F = F} {A = A} {B = B} {E = E}
+      hc zero∉c) =
+  subst
+    (λ T → CastEndpoint Δ′ (renameStoreᵉ ρ Π)
+      (gen T (renameᶜ (extᵗ ρ) c)) (renameᴱ ρ F)
+      (renameᵉ ρ A) (ty-all (renameᴱ (extᵗ ρ) E) (renameᵉ (extᵗ ρ) B)))
+    (erase-renameᵉ ρ A)
+    (end-gen
       (subst
-        (λ Π′ → CastEndpoint Π′ (renameᶜ (extᵗ ρ) c)
-          (renameᴱ (extᵗ ρ) G)
-          (renameᵉ (extᵗ ρ) (renameᵉ suc A))
-          (renameᵉ (extᵗ ρ) B))
-        (renameStoreᵉ-ext-suc-comm ρ Π)
-        (CastEndpoint-rename (extᵗ ρ) hc)))
-    incl′
+        (λ A′ → CastEndpoint (runtime ∷ Δ′) (⟰ᵉ (renameStoreᵉ ρ Π))
+          (renameᶜ (extᵗ ρ) c) (renameᴱ suc (renameᴱ ρ F))
+          A′ (renameᵉ (extᵗ ρ) B))
+        (renameᵉ-ext-suc-comm ρ A)
+        (subst
+          (λ G → CastEndpoint (runtime ∷ Δ′) (⟰ᵉ (renameStoreᵉ ρ Π))
+            (renameᶜ (extᵗ ρ) c) G
+            (renameᵉ (extᵗ ρ) (renameᵉ suc A))
+            (renameᵉ (extᵗ ρ) B))
+          (renameᴱ-ext-suc-comm ρ F)
+          (subst
+            (λ Π′ → CastEndpoint (runtime ∷ Δ′) Π′
+              (renameᶜ (extᵗ ρ) c) (renameᴱ (extᵗ ρ) (renameᴱ suc F))
+              (renameᵉ (extᵗ ρ) (renameᵉ suc A))
+              (renameᵉ (extᵗ ρ) B))
+            (renameStoreᵉ-ext-suc-comm ρ Π)
+            (CastEndpoint-rename
+              (extᵗ ρ)
+              (TyRenameWf-ext hTy)
+              (RuntimeRenameWf-ext runtime hρ)
+              hc))))
+      (zero∉-sealUsesᶜ-rename-ext ρ {c = c} zero∉c))
+CastEndpoint-rename ρ {Δ′ = Δ′} {Π = Π} hTy hρ
+    (end-inst {c = c} {G = G} {F = F} {A = A} {B = B} {E = E}
+      hc incl) =
+  subst
+    (λ T → CastEndpoint Δ′ (renameStoreᵉ ρ Π)
+      (inst T (renameᶜ (extᵗ ρ) c)) (renameᴱ ρ F)
+      (ty-all (renameᴱ (extᵗ ρ) E) (renameᵉ (extᵗ ρ) A))
+      (renameᵉ ρ B))
+    (erase-renameᵉ ρ B)
+    (end-inst
+      (subst
+        (λ B′ → CastEndpoint (runtime ∷ Δ′)
+          ((zero , ty-star) ∷ ⟰ᵉ (renameStoreᵉ ρ Π))
+          (renameᶜ (extᵗ ρ) c) (renameᴱ (extᵗ ρ) G)
+          (renameᵉ (extᵗ ρ) A) B′)
+        (renameᵉ-ext-suc-comm ρ B)
+        (subst
+          (λ Π′ → CastEndpoint (runtime ∷ Δ′) Π′ (renameᶜ (extᵗ ρ) c)
+            (renameᴱ (extᵗ ρ) G)
+            (renameᵉ (extᵗ ρ) A) (renameᵉ (extᵗ ρ) (renameᵉ suc B)))
+          (renameStoreᵉ-ext-suc-cons-comm ρ Π ty-star)
+          (CastEndpoint-rename
+            (extᵗ ρ)
+            (TyRenameWf-ext hTy)
+            (RuntimeRenameWf-ext runtime hρ)
+            hc)))
+      incl′)
   where
     incl′ :
       drop0ᵉ (renameᴱ (extᵗ ρ) G) ⊆ᵉ renameᴱ ρ F
     incl′ h =
       renameᴱ-mono ρ incl
         (subst (λ H → _ ∈ H) (drop0ᵉ-rename ρ G) h)
-CastEndpoint-rename ρ {Π = Π}
-    (end-inst {c = c} {G = G} {F = F} {A = A} {B = B} hc incl) =
-  end-inst
-    (subst
-      (λ B′ → CastEndpoint ((zero , ty-star) ∷ ⟰ᵉ (renameStoreᵉ ρ Π))
-        (renameᶜ (extᵗ ρ) c) (renameᴱ (extᵗ ρ) G)
-        (renameᵉ (extᵗ ρ) A) B′)
-      (renameᵉ-ext-suc-comm ρ B)
-      (subst
-        (λ Π′ → CastEndpoint Π′ (renameᶜ (extᵗ ρ) c)
-          (renameᴱ (extᵗ ρ) G)
-          (renameᵉ (extᵗ ρ) A) (renameᵉ (extᵗ ρ) (renameᵉ suc B)))
-        (renameStoreᵉ-ext-suc-cons-comm ρ Π ty-star)
-        (CastEndpoint-rename (extᵗ ρ) hc)))
-    incl′
+
+coercion-renameᵉ :
+  ∀ ρ {Δ Δ′ Σ c A B F} →
+  TyRenameWf ⌊ Δ ⌋ ⌊ Δ′ ⌋ ρ →
+  RuntimeRenameWf Δ Δ′ ρ →
+  Δ ∣ Σ ⊢ᶜ c ∶ A =⇒ B ▷ F →
+  Δ′ ∣ renameStoreᵉ ρ Σ ⊢ᶜ renameᶜ ρ c
+    ∶ renameᵉ ρ A =⇒ renameᵉ ρ B ▷ renameᴱ ρ F
+coercion-renameᵉ ρ {c = c} {A = A} {B = B} {F = F} hTy hρ
+    (eff-coercion Π d c⊢ roles side hF hA hB endpoint) =
+  eff-coercion
+    (renameStoreᵉ ρ Π)
+    (renameStoreᵉ-incl ρ d)
+    c⊢′
+    (CoercionRoles-rename hρ roles)
+    (SealSideEffect-rename ρ {c = c} {Π = Π} {F = F} side)
+    (WfEffect-rename hρ hF)
+    (WfEffTy-rename hTy hρ hA)
+    (WfEffTy-rename hTy hρ hB)
+    (CastEndpoint-rename ρ hTy hρ endpoint)
   where
-    incl′ :
-      drop0ᵉ (renameᴱ (extᵗ ρ) G) ⊆ᵉ renameᴱ ρ F
-    incl′ h =
-      renameᴱ-mono ρ incl
-        (subst (λ H → _ ∈ H) (drop0ᵉ-rename ρ G) h)
+    c⊢′ :
+      _ ∣ complement (eraseStore-incl (renameStoreᵉ-incl ρ d))
+        ∣ eraseStoreᵉ (renameStoreᵉ ρ Π)
+        ⊢ renameᶜ ρ c ∶ eraseᵉ (renameᵉ ρ A) =⇒ eraseᵉ (renameᵉ ρ B)
+    c⊢′ =
+      subst
+        (λ T → _ ∣ complement (eraseStore-incl (renameStoreᵉ-incl ρ d))
+          ∣ eraseStoreᵉ (renameStoreᵉ ρ Π)
+          ⊢ renameᶜ ρ c ∶ T =⇒ eraseᵉ (renameᵉ ρ B))
+        (sym (erase-renameᵉ ρ A))
+        (subst
+          (λ T → _ ∣ complement (eraseStore-incl (renameStoreᵉ-incl ρ d))
+            ∣ eraseStoreᵉ (renameStoreᵉ ρ Π)
+            ⊢ renameᶜ ρ c ∶ renameᵗ ρ (eraseᵉ A) =⇒ T)
+          (sym (erase-renameᵉ ρ B))
+          (subst
+            (λ Σ′ → _ ∣ Σ′ ∣ eraseStoreᵉ (renameStoreᵉ ρ Π)
+              ⊢ renameᶜ ρ c
+              ∶ renameᵗ ρ (eraseᵉ A) =⇒ renameᵗ ρ (eraseᵉ B))
+            (complement-renameᵉ ρ d)
+            (subst
+              (λ Π′ → _ ∣ renameStoreᵗ ρ (complement (eraseStore-incl d))
+                ∣ Π′
+                ⊢ renameᶜ ρ c
+                ∶ renameᵗ ρ (eraseᵉ A) =⇒ renameᵗ ρ (eraseᵉ B))
+              (sym (eraseStore-renameᵉ ρ Π))
+              (coercion-renameᵗ hTy c⊢))))
+
+coercion-store-weakenᵉ :
+  ∀ {Δ Σ Σ′ c A B F} →
+  Σ ⊆ Σ′ →
+  Δ ∣ Σ ⊢ᶜ c ∶ A =⇒ B ▷ F →
+  Δ ∣ Σ′ ⊢ᶜ c ∶ A =⇒ B ▷ F
+coercion-store-weakenᵉ incl
+    (eff-coercion Π d c⊢ roles side hF hA hB endpoint) =
+  eff-coercion
+    Π
+    (⊆-trans d incl)
+    (coercion-weaken ≤-refl (complement-inclᵉ d incl) StoreIncl-refl c⊢)
+    roles
+    side
+    hF
+    hA
+    hB
+    endpoint
+
+CastEndpoint-src-tgt :
+  ∀ {Δ Π c F A B} →
+  CastEndpoint Δ Π c F A B →
+  src c ≡ eraseᵉ A × tgt c ≡ eraseᵉ B
+CastEndpoint-src-tgt (end-id {A = A}) = refl , refl
+CastEndpoint-src-tgt (end-seq hB hp hq)
+    with CastEndpoint-src-tgt hp | CastEndpoint-src-tgt hq
+CastEndpoint-src-tgt (end-seq hB hp hq)
+    | src-p , tgt-p | src-q , tgt-q =
+  src-p , tgt-q
+CastEndpoint-src-tgt (end-fun hp hq incl)
+    with CastEndpoint-src-tgt hp | CastEndpoint-src-tgt hq
+CastEndpoint-src-tgt (end-fun hp hq incl)
+    | src-p , tgt-p | src-q , tgt-q =
+  cong₂ _⇒_ tgt-p src-q , cong₂ _⇒_ src-p tgt-q
+CastEndpoint-src-tgt (end-all hc tyIncl)
+    with CastEndpoint-src-tgt hc
+CastEndpoint-src-tgt (end-all hc tyIncl) | src-c , tgt-c =
+  cong `∀ src-c , cong `∀ tgt-c
+CastEndpoint-src-tgt end-tag = refl , refl
+CastEndpoint-src-tgt end-untag = refl , refl
+CastEndpoint-src-tgt (end-seal h) = refl , refl
+CastEndpoint-src-tgt (end-unseal h) = refl , refl
+CastEndpoint-src-tgt (end-gen hc zero∉c)
+    with CastEndpoint-src-tgt hc
+CastEndpoint-src-tgt (end-gen hc zero∉c) | src-c , tgt-c =
+  refl , cong `∀ tgt-c
+CastEndpoint-src-tgt (end-inst hc incl)
+    with CastEndpoint-src-tgt hc
+CastEndpoint-src-tgt (end-inst hc incl) | src-c , tgt-c =
+  cong `∀ src-c , refl
+
+coercion-align-rawᵉ :
+  ∀ {Δ Π Σᵗ Πᵗ c A₀ B₀ A B F} →
+  ⌊ Δ ⌋ ∣ Σᵗ ∣ Πᵗ ⊢ c ∶ A₀ =⇒ B₀ →
+  CastEndpoint Δ Π c F A B →
+  ⌊ Δ ⌋ ∣ Σᵗ ∣ Πᵗ ⊢ c ∶ eraseᵉ A =⇒ eraseᵉ B
+coercion-align-rawᵉ {c = c} {A₀ = A₀} {B₀ = B₀}
+    {A = A} {B = B} c⊢ ep =
+  subst
+    (λ S′ → _ ∣ _ ∣ _ ⊢ c ∶ S′ =⇒ eraseᵉ B)
+    src-eq
+    (subst
+      (λ T′ → _ ∣ _ ∣ _ ⊢ c ∶ A₀ =⇒ T′)
+      tgt-eq
+      c⊢)
+  where
+    raw-src : src c ≡ A₀
+    raw-tgt : tgt c ≡ B₀
+    raw-src = proj₁ (coercion-src-tgtᵐ c⊢)
+    raw-tgt = proj₂ (coercion-src-tgtᵐ c⊢)
+
+    end-src : src c ≡ eraseᵉ A
+    end-tgt : tgt c ≡ eraseᵉ B
+    end-src = proj₁ (CastEndpoint-src-tgt ep)
+    end-tgt = proj₂ (CastEndpoint-src-tgt ep)
+
+    src-eq : A₀ ≡ eraseᵉ A
+    src-eq = trans (sym raw-src) end-src
+
+    tgt-eq : B₀ ≡ eraseᵉ B
+    tgt-eq = trans (sym raw-tgt) end-tgt
+
+SealSideEffect-seq-left :
+  ∀ {p q Π F} →
+  SealSideEffect (p ︔ q) Π F →
+  SealSideEffect p Π F
+SealSideEffect-seq-left {p = p} {q = q} (seal⊆ , store⊆) =
+  (λ h → seal⊆ (∈-++ˡ h)) , store⊆
+
+SealSideEffect-seq-right :
+  ∀ {p q Π F} →
+  SealSideEffect (p ︔ q) Π F →
+  SealSideEffect q Π F
+SealSideEffect-seq-right {p = p} {q = q} (seal⊆ , store⊆) =
+  (λ h → seal⊆ (∈-++ʳ (sealUsesᶜ p) h)) , store⊆
+
+SealSideEffect-fun-left :
+  ∀ {p q Π F} →
+  SealSideEffect (p ↦ q) Π F →
+  SealSideEffect p Π F
+SealSideEffect-fun-left {p = p} {q = q} (seal⊆ , store⊆) =
+  (λ h → seal⊆ (∈-++ˡ h)) , store⊆
+
+SealSideEffect-fun-right :
+  ∀ {p q Π F} →
+  SealSideEffect (p ↦ q) Π F →
+  SealSideEffect q Π F
+SealSideEffect-fun-right {p = p} {q = q} (seal⊆ , store⊆) =
+  (λ h → seal⊆ (∈-++ʳ (sealUsesᶜ p) h)) , store⊆
+
+coercion-seq-partsᵉ :
+  ∀ {Δ Σ p q A C F} →
+  Δ ∣ Σ ⊢ᶜ (p ︔ q) ∶ A =⇒ C ▷ F →
+  ∃[ B ] (Δ ∣ Σ ⊢ᶜ p ∶ A =⇒ B ▷ F ×
+          Δ ∣ Σ ⊢ᶜ q ∶ B =⇒ C ▷ F)
+coercion-seq-partsᵉ {p = p} {q = q} {A = A} {C = C}
+    (eff-coercion Π d (cast-seq p⊢ q⊢)
+      (roles-seq rp rq) side hF hA hC (end-seq hB ep eq)) =
+  _ ,
+  eff-coercion Π d (coercion-align-rawᵉ {A = A} p⊢ ep)
+    rp (SealSideEffect-seq-left {p = p} {q = q} side) hF hA hB ep ,
+  eff-coercion Π d (coercion-align-rawᵉ {B = C} q⊢ eq)
+    rq (SealSideEffect-seq-right {p = p} {q = q} side) hF hB hC eq
+
+coercion-fun-argᵉ :
+  ∀ {Δ Σ p q A A′ B B′ E E′ F} →
+  Δ ∣ Σ ⊢ᶜ (p ↦ q) ∶ (A ⇒[ E ] B) =⇒ (A′ ⇒[ E′ ] B′) ▷ F →
+  Δ ∣ Σ ⊢ᶜ p ∶ A′ =⇒ A ▷ F
+coercion-fun-argᵉ {p = p} {q = q} {A = A} {A′ = A′}
+    (eff-coercion Π d (cast-fun p⊢ q⊢)
+      (roles-fun rp rq) side hF
+      (wf-eff-fun hA hE hB)
+      (wf-eff-fun hA′ hE′ hB′)
+      (end-fun ep eq incl)) =
+  eff-coercion Π d (coercion-align-rawᵉ {A = A′} {B = A} p⊢ ep)
+    rp (SealSideEffect-fun-left {p = p} {q = q} side) hF hA′ hA ep
+
+coercion-fun-resultᵉ :
+  ∀ {Δ Σ p q A A′ B B′ E E′ F} →
+  Δ ∣ Σ ⊢ᶜ (p ↦ q) ∶ (A ⇒[ E ] B) =⇒ (A′ ⇒[ E′ ] B′) ▷ F →
+  Δ ∣ Σ ⊢ᶜ q ∶ B =⇒ B′ ▷ F
+coercion-fun-resultᵉ {p = p} {q = q} {B = B} {B′ = B′}
+    (eff-coercion Π d (cast-fun p⊢ q⊢)
+      (roles-fun rp rq) side hF
+      (wf-eff-fun hA hE hB)
+      (wf-eff-fun hA′ hE′ hB′)
+      (end-fun ep eq incl)) =
+  eff-coercion Π d (coercion-align-rawᵉ {A = B} {B = B′} q⊢ eq)
+    rq (SealSideEffect-fun-right {p = p} {q = q} side) hF hB hB′ eq
+
+coercion-fun-effectᵉ :
+  ∀ {Δ Σ p q A A′ B B′ E E′ F} →
+  Δ ∣ Σ ⊢ᶜ (p ↦ q) ∶ (A ⇒[ E ] B) =⇒ (A′ ⇒[ E′ ] B′) ▷ F →
+  E′ ++ F ⊆ᵉ E
+coercion-fun-effectᵉ
+    (eff-coercion Π d (cast-fun p⊢ q⊢)
+      (roles-fun rp rq) side hF
+      (wf-eff-fun hA hE hB)
+      (wf-eff-fun hA′ hE′ hB′)
+      (end-fun ep eq incl)) =
+  incl
+
+coercion-open-existing-rawᵉ :
+  ∀ {Δ Σ Π c A B α} →
+  Δ ∋ᵣ α ⦂ runtime →
+  ⌊ ordinary ∷ Δ ⌋ ∣ ⟰ᵗ Σ ∣ ⟰ᵗ Π ⊢ c ∶ A =⇒ B →
+  ⌊ Δ ⌋ ∣ Σ ∣ Π ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
+coercion-open-existing-rawᵉ {Σ = Σ} {Π = Π} {α = α} hα c⊢ =
+  subst
+    (λ Π′ → _ ∣ Σ ∣ Π′ ⊢ _ ∶ _ =⇒ _)
+    (renameStoreᵗ-single-suc-cancel α Π)
+    (subst
+      (λ Σ′ →
+        _ ∣ Σ′ ∣ renameStoreᵗ (singleRenameᵗ α) (⟰ᵗ Π)
+          ⊢ _ ∶ _ =⇒ _)
+      (renameStoreᵗ-single-suc-cancel α Σ)
+      (coercion-renameᵗ (singleRenameᵗ-Wf-role hα) c⊢))
+
+coercion-open-allᵉ :
+  ∀ {Δ Σ c A B E E′ F α} →
+  Δ ∋ᵣ α ⦂ runtime →
+  Δ ∣ Σ ⊢ᶜ `∀ c ∶ ty-all E A =⇒ ty-all E′ B ▷ F →
+  Δ ∣ Σ ⊢ᶜ c [ α ]ᶜ ∶ A [ α ]ᵉ =⇒ B [ α ]ᵉ ▷ F
+coercion-open-allᵉ {Δ = Δ} {c = c} {A = A} {B = B} {F = F}
+    {α = α} hα
+    (eff-coercion Π d (cast-all c⊢) (roles-all rc)
+      (seal⊆ , store⊆) hF
+      (wf-eff-all hE hA) (wf-eff-all hE′ hB)
+      (end-all hc tyIncl)) =
+  eff-coercion
+    Π
+    d
+    raw′
+    (CoercionRoles-rename RuntimeRenameWf-open-ordinary rc)
+    side′
+    hF
+    (WfEffTy-open-ordinary hα hA)
+    (WfEffTy-open-ordinary hα hB)
+    endpoint′
+  where
+    openρ : Renameᵗ
+    openρ = singleRenameᵗ α
+
+    raw-open :
+      _ ∣ complement (eraseStore-incl d) ∣ eraseStoreᵉ Π
+        ⊢ c [ α ]ᶜ
+        ∶ renameᵗ openρ (eraseᵉ A) =⇒ renameᵗ openρ (eraseᵉ B)
+    raw-open =
+      coercion-open-existing-rawᵉ hα (coercion-align-rawᵉ c⊢ hc)
+
+    raw′ :
+      _ ∣ complement (eraseStore-incl d) ∣ eraseStoreᵉ Π
+        ⊢ c [ α ]ᶜ ∶ eraseᵉ (A [ α ]ᵉ) =⇒ eraseᵉ (B [ α ]ᵉ)
+    raw′ =
+      subst
+        (λ S → _ ∣ complement (eraseStore-incl d) ∣ eraseStoreᵉ Π
+          ⊢ c [ α ]ᶜ ∶ S =⇒ eraseᵉ (B [ α ]ᵉ))
+        (sym (erase-renameᵉ openρ A))
+        (subst
+          (λ T → _ ∣ complement (eraseStore-incl d) ∣ eraseStoreᵉ Π
+            ⊢ c [ α ]ᶜ ∶ renameᵗ openρ (eraseᵉ A) =⇒ T)
+          (sym (erase-renameᵉ openρ B))
+          raw-open)
+
+    seal⊆′ :
+      sealUsesᶜ (c [ α ]ᶜ) ⊆ᵉ F
+    seal⊆′ h =
+      seal⊆
+        (openᴱ-drop0-ordinary (CoercionRoles-wf-sealUses rc)
+          (subst (λ G → _ ∈ G) (sealUsesᶜ-rename openρ c) h))
+
+    side′ : SealSideEffect (c [ α ]ᶜ) Π F
+    side′ = seal⊆′ , store⊆
+
+    endpoint-open :
+      CastEndpoint Δ (renameStoreᵉ openρ (⟰ᵉ Π)) (c [ α ]ᶜ)
+        (renameᴱ openρ (renameᴱ suc F)) (A [ α ]ᵉ) (B [ α ]ᵉ)
+    endpoint-open =
+      CastEndpoint-rename
+        openρ
+        (singleRenameᵗ-Wf-role hα)
+        RuntimeRenameWf-open-ordinary
+        hc
+
+    endpoint′ :
+      CastEndpoint Δ Π (c [ α ]ᶜ) F (A [ α ]ᵉ) (B [ α ]ᵉ)
+    endpoint′ =
+      subst
+        (λ G → CastEndpoint Δ Π (c [ α ]ᶜ) G
+          (A [ α ]ᵉ) (B [ α ]ᵉ))
+        (renameᴱ-single-suc-cancel α F)
+        (subst
+          (λ Π′ → CastEndpoint Δ Π′ (c [ α ]ᶜ)
+            (renameᴱ openρ (renameᴱ suc F))
+            (A [ α ]ᵉ) (B [ α ]ᵉ))
+          (renameStoreᵉ-single-suc-cancel α Π)
+          endpoint-open)
+
+RuntimeRenameWf-open-runtime :
+  ∀ {Δ α} →
+  Δ ∋ᵣ α ⦂ runtime →
+  RuntimeRenameWf (runtime ∷ Δ) Δ (singleRenameᵗ α)
+RuntimeRenameWf-open-runtime hα Zᵣ = hα
+RuntimeRenameWf-open-runtime hα (Sᵣ hβ) = hβ
+
+eraseStoreᵉ-side-effect :
+  ∀ {Π F α} →
+  (∀ {β A} → (β , A) ∈ Π → β ∈ F) →
+  ∀ {A} →
+  (α , A) ∈ eraseStoreᵉ Π →
+  α ∈ F
+eraseStoreᵉ-side-effect {Π = []} store⊆ ()
+eraseStoreᵉ-side-effect {Π = (α , A) ∷ Π} store⊆ (here refl) =
+  store⊆ (here refl)
+eraseStoreᵉ-side-effect {Π = (β , B) ∷ Π} store⊆ (there h) =
+  eraseStoreᵉ-side-effect (λ hΠ → store⊆ (there hΠ)) h
+
+openᴱ-zero∉-drop0 :
+  ∀ {E α} →
+  zero ∉ E →
+  openᴱ E α ⊆ᵉ drop0ᵉ E
+openᴱ-zero∉-drop0 {E = []} zero∉E ()
+openᴱ-zero∉-drop0 {E = zero ∷ E} zero∉E h =
+  ⊥-elim (zero∉E (here refl))
+openᴱ-zero∉-drop0 {E = suc β ∷ E} zero∉E (here refl) = here refl
+openᴱ-zero∉-drop0 {E = suc β ∷ E} zero∉E (there h) =
+  there (openᴱ-zero∉-drop0 (λ z∈ → zero∉E (there z∈)) h)
+
+coercion-open-genᵉ :
+  ∀ {Δ Σ c A B E F α} →
+  RoleStoreWf Δ (eraseStoreᵉ Σ) →
+  Δ ∋ᵣ α ⦂ runtime →
+  α ∉ F →
+  Δ ∣ Σ ⊢ᶜ gen (eraseᵉ A) c ∶ A =⇒ ty-all E B ▷ F →
+  Δ ∣ Σ ⊢ᶜ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᵉ ▷ F
+coercion-open-genᵉ {Δ = Δ} {Σ = Σ} {c = c} {A = A} {B = B}
+    {F = F} {α = α} wfΣ hα α∉F
+    (eff-coercion Π d (cast-gen hAraw occurs c⊢) (roles-gen hArole rc)
+      (seal⊆ , store⊆) hF hA (wf-eff-all hE hB)
+      (end-gen hc zero∉c)) =
+  eff-coercion
+    Π
+    d
+    raw′
+    (CoercionRoles-rename (RuntimeRenameWf-open-runtime hα) rc)
+    side′
+    hF
+    hA
+    (WfEffTy-open-ordinary hα hB)
+    endpoint′
+  where
+    openρ : Renameᵗ
+    openρ = singleRenameᵗ α
+
+    α∈tag :
+      α ∈ domˢ (complement (eraseStore-incl d))
+    α∈tag =
+      domˢ-complement
+        (eraseStore-incl d)
+        (wfΣ hα)
+        (λ h → α∉F (eraseStoreᵉ-side-effect store⊆ h))
+
+    raw-aligned :
+      _ ∣ (zero , ★) ∷ ⟰ᵗ (complement (eraseStore-incl d))
+        ∣ ⟰ᵗ (eraseStoreᵉ Π)
+        ⊢ c ∶ ⇑ᵗ (eraseᵉ A) =⇒ eraseᵉ B
+    raw-aligned =
+      subst
+        (λ S → _ ∣ (zero , ★) ∷ ⟰ᵗ (complement (eraseStore-incl d))
+          ∣ ⟰ᵗ (eraseStoreᵉ Π)
+          ⊢ c ∶ S =⇒ eraseᵉ B)
+        (erase-renameᵉ suc A)
+        (coercion-align-rawᵉ c⊢ hc)
+
+    raw-open :
+      _ ∣ complement (eraseStore-incl d) ∣ eraseStoreᵉ Π
+        ⊢ c [ α ]ᶜ ∶ eraseᵉ A =⇒ renameᵗ openρ (eraseᵉ B)
+    raw-open =
+      coercion-open-gen-tagged (role-< hα) α∈tag raw-aligned
+
+    raw′ :
+      _ ∣ complement (eraseStore-incl d) ∣ eraseStoreᵉ Π
+        ⊢ c [ α ]ᶜ ∶ eraseᵉ A =⇒ eraseᵉ (B [ α ]ᵉ)
+    raw′ =
+      subst
+        (λ T → _ ∣ complement (eraseStore-incl d) ∣ eraseStoreᵉ Π
+          ⊢ c [ α ]ᶜ ∶ eraseᵉ A =⇒ T)
+        (sym (erase-renameᵉ openρ B))
+        raw-open
+
+    seal⊆′ :
+      sealUsesᶜ (c [ α ]ᶜ) ⊆ᵉ F
+    seal⊆′ h =
+      seal⊆
+        (openᴱ-zero∉-drop0 zero∉c
+          (subst (λ G → _ ∈ G) (sealUsesᶜ-rename openρ c) h))
+
+    side′ : SealSideEffect (c [ α ]ᶜ) Π F
+    side′ = seal⊆′ , store⊆
+
+    endpoint-open :
+      CastEndpoint Δ (renameStoreᵉ openρ (⟰ᵉ Π)) (c [ α ]ᶜ)
+        (renameᴱ openρ (renameᴱ suc F))
+        (renameᵉ openρ (renameᵉ suc A)) (B [ α ]ᵉ)
+    endpoint-open =
+      CastEndpoint-rename
+        openρ
+        (singleRenameᵗ-Wf-role hα)
+        (RuntimeRenameWf-open-runtime hα)
+        hc
+
+    endpoint′ :
+      CastEndpoint Δ Π (c [ α ]ᶜ) F A (B [ α ]ᵉ)
+    endpoint′ =
+      subst
+        (λ S → CastEndpoint Δ Π (c [ α ]ᶜ) F S (B [ α ]ᵉ))
+        (renameᵉ-single-suc-cancel α A)
+        (subst
+          (λ G → CastEndpoint Δ Π (c [ α ]ᶜ) G
+            (renameᵉ openρ (renameᵉ suc A)) (B [ α ]ᵉ))
+          (renameᴱ-single-suc-cancel α F)
+          (subst
+            (λ Π′ → CastEndpoint Δ Π′ (c [ α ]ᶜ)
+              (renameᴱ openρ (renameᴱ suc F))
+              (renameᵉ openρ (renameᵉ suc A)) (B [ α ]ᵉ))
+            (renameStoreᵉ-single-suc-cancel α Π)
+            endpoint-open))
 
 renameCtxᵉ-ext-suc-comm :
   ∀ ρ Ξ →
@@ -1559,10 +2077,10 @@ typing-wf wfΞ (eff-prim hL op hM)
     with typing-wf wfΞ hL | typing-wf wfΞ hM
 typing-wf wfΞ (eff-prim hL op hM) | hLty , hEL | hMty , hEM =
   wf-eff-base , WfEffect-++ hEL hEM
-typing-wf wfΞ (eff-cast d c⊢ roles side hS hB endpoint hM)
+typing-wf wfΞ (eff-cast c⊢ hM)
     with typing-wf wfΞ hM
-typing-wf wfΞ (eff-cast d c⊢ roles side hS hB endpoint hM) | hA , hE =
-  hB , WfEffect-++ hE hS
+typing-wf wfΞ (eff-cast c⊢ hM) | hA , hE =
+  wf-target c⊢ , WfEffect-++ hE (wf-effect c⊢)
 typing-wf wfΞ (eff-blame hA) = hA , WfEffect-[]
 typing-wf wfΞ (eff-sub hM E⊆F hF)
     with typing-wf wfΞ hM
@@ -1709,50 +2227,15 @@ typing-renameᵀ {ρ = ρ} hTy hρ rinj wfΞ
       op
       (typing-renameᵀ hTy hρ rinj wfΞ hM))
 typing-renameᵀ {ρ = ρ} hTy hρ rinj wfΞ
-    (eff-cast {M = M} {A = A} {B = B} {c = c} {Π = Π}
-      {E = E} {F = F} d c⊢ roles side hF hB endpoint hM) =
+    (eff-cast {M = M} {B = B} {c = c} {E = E} {F = F} c⊢ hM) =
   subst
     (λ F → _ ∣ _ ∣ _ ⊢ renameᵗᵐ ρ M ⟨ renameᶜ ρ c ⟩
       ⦂ renameᵉ ρ B ▷ F)
     (sym eff-eq)
     (eff-cast
-      (renameStoreᵉ-incl ρ d)
-      c⊢′
-      (CoercionRoles-rename hρ roles)
-      (SealSideEffect-rename ρ {c = c} {Π = Π} {F = F} side)
-      (WfEffect-rename hρ hF)
-      (WfEffTy-rename hTy hρ hB)
-      (CastEndpoint-rename ρ endpoint)
+      (coercion-renameᵉ ρ hTy hρ c⊢)
       (typing-renameᵀ hTy hρ rinj wfΞ hM))
   where
-    c⊢′ :
-      _ ∣ complement (eraseStore-incl (renameStoreᵉ-incl ρ d))
-        ∣ eraseStoreᵉ (renameStoreᵉ ρ Π)
-        ⊢ renameᶜ ρ c ∶ eraseᵉ (renameᵉ ρ A) =⇒ eraseᵉ (renameᵉ ρ B)
-    c⊢′ =
-      subst
-        (λ T → _ ∣ complement (eraseStore-incl (renameStoreᵉ-incl ρ d))
-          ∣ eraseStoreᵉ (renameStoreᵉ ρ Π)
-          ⊢ renameᶜ ρ c ∶ T =⇒ eraseᵉ (renameᵉ ρ B))
-        (sym (erase-renameᵉ ρ A))
-        (subst
-          (λ T → _ ∣ complement (eraseStore-incl (renameStoreᵉ-incl ρ d))
-            ∣ eraseStoreᵉ (renameStoreᵉ ρ Π)
-            ⊢ renameᶜ ρ c ∶ renameᵗ ρ (eraseᵉ A) =⇒ T)
-          (sym (erase-renameᵉ ρ B))
-          (subst
-            (λ Σ′ → _ ∣ Σ′ ∣ eraseStoreᵉ (renameStoreᵉ ρ Π)
-              ⊢ renameᶜ ρ c
-              ∶ renameᵗ ρ (eraseᵉ A) =⇒ renameᵗ ρ (eraseᵉ B))
-            (complement-renameᵉ ρ d)
-            (subst
-              (λ Π′ → _ ∣ renameStoreᵗ ρ (complement (eraseStore-incl d))
-                ∣ Π′
-                ⊢ renameᶜ ρ c
-                ∶ renameᵗ ρ (eraseᵉ A) =⇒ renameᵗ ρ (eraseᵉ B))
-              (sym (eraseStore-renameᵉ ρ Π))
-              (coercion-renameᵗ hTy c⊢))))
-
     eff-eq :
       renameᴱ ρ (E ++ F) ≡ renameᴱ ρ E ++ renameᴱ ρ F
     eff-eq = renameᴱ-++ ρ E F
@@ -1833,8 +2316,8 @@ typing-renameˣ hρ (eff-nu hAᵉ eqA hB hN) =
 typing-renameˣ hρ (eff-const κ) = eff-const κ
 typing-renameˣ hρ (eff-prim hL op hM) =
   eff-prim (typing-renameˣ hρ hL) op (typing-renameˣ hρ hM)
-typing-renameˣ hρ (eff-cast d c⊢ roles side hS hB endpoint hM) =
-  eff-cast d c⊢ roles side hS hB endpoint (typing-renameˣ hρ hM)
+typing-renameˣ hρ (eff-cast c⊢ hM) =
+  eff-cast c⊢ (typing-renameˣ hρ hM)
 typing-renameˣ hρ (eff-blame hA) = eff-blame hA
 typing-renameˣ hρ (eff-sub hM E⊆F hF) =
   eff-sub (typing-renameˣ hρ hM) E⊆F hF
@@ -1886,15 +2369,9 @@ typing-store-weaken incl (eff-prim hL op hM) =
     (typing-store-weaken incl hL)
     op
     (typing-store-weaken incl hM)
-typing-store-weaken incl (eff-cast d c⊢ roles side hS hB endpoint hM) =
+typing-store-weaken incl (eff-cast c⊢ hM) =
   eff-cast
-    (⊆-trans d incl)
-    (coercion-weaken ≤-refl (complement-inclᵉ d incl) StoreIncl-refl c⊢)
-    roles
-    side
-    hS
-    hB
-    endpoint
+    (coercion-store-weakenᵉ incl c⊢)
     (typing-store-weaken incl hM)
 typing-store-weaken incl (eff-blame hA) = eff-blame hA
 typing-store-weaken incl (eff-sub hM E⊆F hF) =
@@ -2001,8 +2478,8 @@ typing-substˣ hσ (eff-nu hAᵉ eqA hB hN) =
 typing-substˣ hσ (eff-const κ) = eff-const κ
 typing-substˣ hσ (eff-prim hL op hM) =
   eff-prim (typing-substˣ hσ hL) op (typing-substˣ hσ hM)
-typing-substˣ hσ (eff-cast d c⊢ roles side hS hB endpoint hM) =
-  eff-cast d c⊢ roles side hS hB endpoint (typing-substˣ hσ hM)
+typing-substˣ hσ (eff-cast c⊢ hM) =
+  eff-cast c⊢ (typing-substˣ hσ hM)
 typing-substˣ hσ (eff-blame hA) = eff-blame hA
 typing-substˣ hσ (eff-sub hM E⊆F hF) =
   eff-sub (typing-substˣ hσ hM) E⊆F hF
@@ -2034,3 +2511,18 @@ typing-single-subst :
   Δ ∣ Σ ∣ Ξ ⊢ N [ V ] ⦂ B ▷ Ebody
 typing-single-subst wfΞ hN hV EV⊆Earg hEarg =
   typing-substˣ (singleSubstEffWf wfΞ hV EV⊆Earg hEarg) hN
+
+------------------------------------------------------------------------
+-- Pure preservation
+------------------------------------------------------------------------
+
+record PurePreservationResult
+    (Δ : RoleCtx) (Σ : EffStore) (Ξ : EffCtx)
+    (N : Term) (A : EffTy) (E : Effect) : Set₁ where
+  constructor preserve-pure
+  field
+    effect : Effect
+    typed : Δ ∣ Σ ∣ Ξ ⊢ N ⦂ A ▷ effect
+    effect⊆ : effect ⊆ᵉ E
+
+open PurePreservationResult public

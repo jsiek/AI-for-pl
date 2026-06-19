@@ -387,60 +387,83 @@ SealSideEffect c Π E =
   sealUsesᶜ c ⊆ᵉ E ×
   (∀ {α A} → (α , A) ∈ Π → α ∈ E)
 
-data CastEndpoint : EffStore → Coercion → Effect → EffTy → EffTy → Set where
+data CastEndpoint :
+    RoleCtx → EffStore → Coercion → Effect → EffTy → EffTy → Set where
   end-id :
-    ∀ {Π F A T} →
-    CastEndpoint Π (id T) F A A
+    ∀ {Δ Π F A} →
+    CastEndpoint Δ Π (id (eraseᵉ A)) F A A
 
   end-seq :
-    ∀ {Π c d F A B C} →
-    CastEndpoint Π c F A B →
-    CastEndpoint Π d F B C →
-    CastEndpoint Π (c ︔ d) F A C
+    ∀ {Δ Π c d F A B C} →
+    WfEffTy Δ B →
+    CastEndpoint Δ Π c F A B →
+    CastEndpoint Δ Π d F B C →
+    CastEndpoint Δ Π (c ︔ d) F A C
 
   end-fun :
-    ∀ {Π p q F A A′ B B′ E E′} →
-    CastEndpoint Π p F A′ A →
-    CastEndpoint Π q F B B′ →
+    ∀ {Δ Π p q F A A′ B B′ E E′} →
+    CastEndpoint Δ Π p F A′ A →
+    CastEndpoint Δ Π q F B B′ →
     E′ ++ F ⊆ᵉ E →
-    CastEndpoint Π (p ↦ q) F (A ⇒[ E ] B) (A′ ⇒[ E′ ] B′)
+    CastEndpoint Δ Π (p ↦ q) F (A ⇒[ E ] B) (A′ ⇒[ E′ ] B′)
 
   end-all :
-    ∀ {Π c G F A B E E′} →
-    CastEndpoint (⟰ᵉ Π) c G A B →
-    drop0ᵉ G ⊆ᵉ F →
+    ∀ {Δ Π c F A B E E′} →
+    CastEndpoint (ordinary ∷ Δ) (⟰ᵉ Π) c (renameᴱ suc F) A B →
     drop0ᵉ E ⊆ᵉ drop0ᵉ E′ →
-    CastEndpoint Π (`∀ c) F (ty-all E A) (ty-all E′ B)
+    CastEndpoint Δ Π (`∀ c) F (ty-all E A) (ty-all E′ B)
 
   end-tag :
-    ∀ {Π F G A} →
-    CastEndpoint Π (G !) F A ty-star
+    ∀ {Δ Π F A} →
+    CastEndpoint Δ Π (eraseᵉ A !) F A ty-star
 
   end-untag :
-    ∀ {Π F G A} →
-    CastEndpoint Π (G ？) F ty-star A
+    ∀ {Δ Π F A} →
+    CastEndpoint Δ Π (eraseᵉ A ？) F ty-star A
 
   end-seal :
-    ∀ {Π F α A T} →
+    ∀ {Δ Π F α A} →
     (α , A) ∈ Π →
-    CastEndpoint Π (seal T α) F A (ty-var α)
+    CastEndpoint Δ Π (seal (eraseᵉ A) α) F A (ty-var α)
 
   end-unseal :
-    ∀ {Π F α A T} →
+    ∀ {Δ Π F α A} →
     (α , A) ∈ Π →
-    CastEndpoint Π (unseal α T) F (ty-var α) A
+    CastEndpoint Δ Π (unseal α (eraseᵉ A)) F (ty-var α) A
 
   end-gen :
-    ∀ {Π c G F A B E T} →
-    CastEndpoint (⟰ᵉ Π) c G (renameᵉ suc A) B →
-    drop0ᵉ G ⊆ᵉ F →
-    CastEndpoint Π (gen T c) F A (ty-all E B)
+    ∀ {Δ Π c F A B E} →
+    CastEndpoint (runtime ∷ Δ) (⟰ᵉ Π) c (renameᴱ suc F)
+      (renameᵉ suc A) B →
+    zero ∉ sealUsesᶜ c →
+    CastEndpoint Δ Π (gen (eraseᵉ A) c) F A (ty-all E B)
 
   end-inst :
-    ∀ {Π c G F A B E T} →
-    CastEndpoint ((zero , ty-star) ∷ ⟰ᵉ Π) c G A (renameᵉ suc B) →
+    ∀ {Δ Π c G F A B E} →
+    CastEndpoint (runtime ∷ Δ) ((zero , ty-star) ∷ ⟰ᵉ Π)
+      c G A (renameᵉ suc B) →
     drop0ᵉ G ⊆ᵉ F →
-    CastEndpoint Π (inst T c) F (ty-all E A) B
+    CastEndpoint Δ Π (inst (eraseᵉ B) c) F (ty-all E A) B
+
+infix 4 _∣_⊢ᶜ_∶_=⇒_▷_
+record _∣_⊢ᶜ_∶_=⇒_▷_
+    (Δ : RoleCtx) (Σ : EffStore)
+    (c : Coercion) (A B : EffTy) (F : Effect) : Set₁ where
+  constructor eff-coercion
+  field
+    sealStore : EffStore
+    split : sealStore ⊆ Σ
+    raw :
+      ⌊ Δ ⌋ ∣ complement (eraseStore-incl split) ∣ eraseStoreᵉ sealStore
+        ⊢ c ∶ eraseᵉ A =⇒ eraseᵉ B
+    roles : CoercionRoles Δ c
+    side : SealSideEffect c sealStore F
+    wf-effect : WfEffect Δ F
+    wf-source : WfEffTy Δ A
+    wf-target : WfEffTy Δ B
+    endpoint : CastEndpoint Δ sealStore c F A B
+
+open _∣_⊢ᶜ_∶_=⇒_▷_ public
 
 ------------------------------------------------------------------------
 -- Effect typing
@@ -505,15 +528,8 @@ data _∣_∣_⊢_⦂_▷_
       -----------------------------------
      → Δ ∣ Σ ∣ Ξ ⊢ (L ⊕[ op ] M) ⦂ ty-base `ℕ ▷ EL ++ EM
 
-  eff-cast : ∀ {M A B c Π E F}
-      → (d : Π ⊆ Σ)
-      → ⌊ Δ ⌋ ∣ complement (eraseStore-incl d) ∣ eraseStoreᵉ Π
-          ⊢ c ∶ eraseᵉ A =⇒ eraseᵉ B
-      → CoercionRoles Δ c
-      → SealSideEffect c Π F
-      → WfEffect Δ F
-      → WfEffTy Δ B
-      → CastEndpoint Π c F A B
+  eff-cast : ∀ {M A B c E F}
+      → Δ ∣ Σ ⊢ᶜ c ∶ A =⇒ B ▷ F
       → Δ ∣ Σ ∣ Ξ ⊢ M ⦂ A ▷ E
       -------------------------
       → Δ ∣ Σ ∣ Ξ ⊢ M ⟨ c ⟩ ⦂ B ▷ E ++ F
@@ -591,7 +607,7 @@ forget-effect (eff-const κ) =
     (⊢$ κ)
 forget-effect (eff-prim hL op hM) =
   ⊢⊕ (forget-effect hL) op (forget-effect hM)
-forget-effect (eff-cast d c⊢ roles side hS hB endpoint hM) =
-  ⊢⟨⟩ (eraseStore-incl d) c⊢ (forget-effect hM)
+forget-effect (eff-cast c⊢ hM) =
+  ⊢⟨⟩ (eraseStore-incl (split c⊢)) (raw c⊢) (forget-effect hM)
 forget-effect (eff-blame hA) = ⊢blame (forget-wf-eff hA)
 forget-effect (eff-sub hM E⊆F hF) = forget-effect hM

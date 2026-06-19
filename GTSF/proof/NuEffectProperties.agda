@@ -39,7 +39,7 @@ open import Coercions
 open import NuTerms
 open import NuReduction renaming (β to β-ƛ)
 open import NuEffectTyping
-open import Primitives using (κℕ; constTy; constTy-renameᵗ)
+open import Primitives using (Prim; κℕ; constTy; constTy-renameᵗ)
 open import proof.CoercionProperties
   using
     ( coercion-weaken
@@ -2511,6 +2511,203 @@ typing-single-subst :
   Δ ∣ Σ ∣ Ξ ⊢ N [ V ] ⦂ B ▷ Ebody
 typing-single-subst wfΞ hN hV EV⊆Earg hEarg =
   typing-substˣ (singleSubstEffWf wfΞ hV EV⊆Earg hEarg) hN
+
+------------------------------------------------------------------------
+-- Syntax-directed inversions for effect typing
+------------------------------------------------------------------------
+
+⊆ᵉ-[]ˡ :
+  ∀ {E : Effect} →
+  [] ⊆ᵉ E
+⊆ᵉ-[]ˡ ()
+
+record LamInversion
+    (Δ : RoleCtx) (Σ : EffStore) (Ξ : EffCtx)
+    (M : Term) (A B : EffTy) (Earg E : Effect) : Set₁ where
+  constructor lam-inv
+  field
+    lam-body-effect : Effect
+    lam-wf-arg : WfEffTy Δ A
+    lam-wf-arg-effect : WfEffect Δ Earg
+    lam-body :
+      Δ ∣ Σ ∣ ((A , Earg) ∷ Ξ) ⊢ M ⦂ B ▷ lam-body-effect
+    lam-effect⊆ : lam-body-effect ⊆ᵉ E
+
+open LamInversion public
+
+invert-lam :
+  ∀ {Δ Σ Ξ M A B Earg E} →
+  Δ ∣ Σ ∣ Ξ ⊢ ƛ M ⦂ A ⇒[ Earg ] B ▷ E →
+  LamInversion Δ Σ Ξ M A B Earg E
+invert-lam (eff-lam hA hEarg hM) =
+  lam-inv _ hA hEarg hM ⊆ᵉ-refl
+invert-lam (eff-sub hM E⊆F hF)
+    with invert-lam hM
+invert-lam (eff-sub hM E⊆F hF)
+    | lam-inv Ebody hA hEarg hBody Ebody⊆E =
+  lam-inv Ebody hA hEarg hBody (⊆ᵉ-trans Ebody⊆E E⊆F)
+
+record TyLamInversion
+    (Δ : RoleCtx) (Σ : EffStore) (Ξ : EffCtx)
+    (M : Term) (A : EffTy) (Ebody E : Effect) : Set₁ where
+  constructor tylam-inv
+  field
+    tylam-value : Value M
+    tylam-body :
+      ordinary ∷ Δ ∣ ⟰ᵉ Σ ∣ renameCtxᵉ suc Ξ ⊢ M ⦂ A ▷ Ebody
+    tylam-effect⊆ : drop0ᵉ Ebody ⊆ᵉ E
+
+open TyLamInversion public
+
+invert-tylam :
+  ∀ {Δ Σ Ξ M A Ebody E} →
+  Δ ∣ Σ ∣ Ξ ⊢ Λ M ⦂ ty-all Ebody A ▷ E →
+  TyLamInversion Δ Σ Ξ M A Ebody E
+invert-tylam (eff-tylam vM hM) =
+  tylam-inv vM hM ⊆ᵉ-refl
+invert-tylam (eff-sub hM E⊆F hF)
+    with invert-tylam hM
+invert-tylam (eff-sub hM E⊆F hF)
+    | tylam-inv vM hBody Ebody⊆E =
+  tylam-inv vM hBody (⊆ᵉ-trans Ebody⊆E E⊆F)
+
+record AppInversion
+    (Δ : RoleCtx) (Σ : EffStore) (Ξ : EffCtx)
+    (L M : Term) (B : EffTy) (E : Effect) : Set₁ where
+  constructor app-inv
+  field
+    app-arg-type : EffTy
+    app-arg-effect-bound : Effect
+    app-fun-effect : Effect
+    app-arg-effect : Effect
+    app-fun :
+      Δ ∣ Σ ∣ Ξ
+        ⊢ L ⦂ app-arg-type ⇒[ app-arg-effect-bound ] B
+        ▷ app-fun-effect
+    app-arg : Δ ∣ Σ ∣ Ξ ⊢ M ⦂ app-arg-type ▷ app-arg-effect
+    app-arg⊆ : app-arg-effect ⊆ᵉ app-arg-effect-bound
+    app-effect⊆ : app-fun-effect ++ app-arg-effect ⊆ᵉ E
+
+open AppInversion public
+
+invert-app :
+  ∀ {Δ Σ Ξ L M B E} →
+  Δ ∣ Σ ∣ Ξ ⊢ L · M ⦂ B ▷ E →
+  AppInversion Δ Σ Ξ L M B E
+invert-app (eff-app hL hM EM⊆Earg) =
+  app-inv _ _ _ _ hL hM EM⊆Earg ⊆ᵉ-refl
+invert-app (eff-sub hM E⊆F hF)
+    with invert-app hM
+invert-app (eff-sub hM E⊆F hF)
+    | app-inv A Earg EL EM hL hArg EM⊆Earg EL++EM⊆E =
+  app-inv A Earg EL EM hL hArg EM⊆Earg
+    (⊆ᵉ-trans EL++EM⊆E E⊆F)
+
+record TyAppInversion
+    (Δ : RoleCtx) (Σ : EffStore) (Ξ : EffCtx)
+    (L : Term) (α : TyVar) (A : EffTy) (E : Effect) : Set₁ where
+  constructor tyapp-inv
+  field
+    tyapp-body-type : EffTy
+    tyapp-body-effect : Effect
+    tyapp-term-effect : Effect
+    tyapp-term :
+      Δ ∣ Σ ∣ Ξ
+        ⊢ L ⦂ ty-all tyapp-body-effect tyapp-body-type
+        ▷ tyapp-term-effect
+    tyapp-runtime : Δ ∋ᵣ α ⦂ runtime
+    tyapp-fresh : α ∉ tyapp-term-effect
+    tyapp-target : tyapp-body-type [ α ]ᵉ ≡ A
+    tyapp-effect⊆ :
+      tyapp-term-effect ++ drop0ᵉ tyapp-body-effect ⊆ᵉ E
+
+open TyAppInversion public
+
+invert-tyapp :
+  ∀ {Δ Σ Ξ L α A E} →
+  Δ ∣ Σ ∣ Ξ ⊢ L • α ⦂ A ▷ E →
+  TyAppInversion Δ Σ Ξ L α A E
+invert-tyapp (eff-tyapp hL hα α∉E) =
+  tyapp-inv _ _ _ hL hα α∉E refl ⊆ᵉ-refl
+invert-tyapp (eff-sub hM E⊆F hF)
+    with invert-tyapp hM
+invert-tyapp (eff-sub hM E⊆F hF)
+    | tyapp-inv B Ebody EL hL hα α∉EL refl EL++drop⊆E =
+  tyapp-inv B Ebody EL hL hα α∉EL refl
+    (⊆ᵉ-trans EL++drop⊆E E⊆F)
+
+record CastInversion
+    (Δ : RoleCtx) (Σ : EffStore) (Ξ : EffCtx)
+    (M : Term) (c : Coercion) (B : EffTy) (E : Effect) : Set₁ where
+  constructor cast-inv
+  field
+    cast-source : EffTy
+    cast-term-effect : Effect
+    cast-effect : Effect
+    cast-coercion : Δ ∣ Σ ⊢ᶜ c ∶ cast-source =⇒ B ▷ cast-effect
+    cast-term : Δ ∣ Σ ∣ Ξ ⊢ M ⦂ cast-source ▷ cast-term-effect
+    cast-effect⊆ : cast-term-effect ++ cast-effect ⊆ᵉ E
+
+open CastInversion public
+
+invert-cast :
+  ∀ {Δ Σ Ξ M c B E} →
+  Δ ∣ Σ ∣ Ξ ⊢ M ⟨ c ⟩ ⦂ B ▷ E →
+  CastInversion Δ Σ Ξ M c B E
+invert-cast (eff-cast c⊢ hM) =
+  cast-inv _ _ _ c⊢ hM ⊆ᵉ-refl
+invert-cast (eff-sub hM E⊆F hF)
+    with invert-cast hM
+invert-cast (eff-sub hM E⊆F hF)
+    | cast-inv A EM F c⊢ hCast EM++F⊆E =
+  cast-inv A EM F c⊢ hCast (⊆ᵉ-trans EM++F⊆E E⊆F)
+
+record PrimInversion
+    (Δ : RoleCtx) (Σ : EffStore) (Ξ : EffCtx)
+    (L M : Term) (op : Prim) (E : Effect) : Set₁ where
+  constructor prim-inv
+  field
+    prim-left-effect : Effect
+    prim-right-effect : Effect
+    prim-left : Δ ∣ Σ ∣ Ξ ⊢ L ⦂ ty-base `ℕ ▷ prim-left-effect
+    prim-right : Δ ∣ Σ ∣ Ξ ⊢ M ⦂ ty-base `ℕ ▷ prim-right-effect
+    prim-effect⊆ : prim-left-effect ++ prim-right-effect ⊆ᵉ E
+
+open PrimInversion public
+
+invert-prim :
+  ∀ {Δ Σ Ξ L M op E} →
+  Δ ∣ Σ ∣ Ξ ⊢ L ⊕[ op ] M ⦂ ty-base `ℕ ▷ E →
+  PrimInversion Δ Σ Ξ L M op E
+invert-prim (eff-prim hL op hM) =
+  prim-inv _ _ hL hM ⊆ᵉ-refl
+invert-prim (eff-sub hM E⊆F hF)
+    with invert-prim hM
+invert-prim (eff-sub hM E⊆F hF)
+    | prim-inv EL EM hL hR EL++EM⊆E =
+  prim-inv EL EM hL hR (⊆ᵉ-trans EL++EM⊆E E⊆F)
+
+record BlameInversion
+    (Δ : RoleCtx) (Σ : EffStore) (Ξ : EffCtx)
+    (A : EffTy) (E : Effect) : Set₁ where
+  constructor blame-inv
+  field
+    blame-wf : WfEffTy Δ A
+    blame-effect⊆ : [] ⊆ᵉ E
+
+open BlameInversion public
+
+invert-blame :
+  ∀ {Δ Σ Ξ A E} →
+  Δ ∣ Σ ∣ Ξ ⊢ blame ⦂ A ▷ E →
+  BlameInversion Δ Σ Ξ A E
+invert-blame (eff-blame hA) =
+  blame-inv hA ⊆ᵉ-[]ˡ
+invert-blame (eff-sub hM E⊆F hF)
+    with invert-blame hM
+invert-blame (eff-sub hM E⊆F hF)
+    | blame-inv hA []⊆E =
+  blame-inv hA (⊆ᵉ-trans []⊆E E⊆F)
 
 ------------------------------------------------------------------------
 -- Pure preservation

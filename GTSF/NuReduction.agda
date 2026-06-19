@@ -1,14 +1,9 @@
 module NuReduction where
 
-open import Data.List using (_∷_)
-open import Data.Nat using (ℕ; _+_; _≤_)
-open import Data.Product using (_×_; _,_; ∃-syntax)
-open import Data.Sum using (_⊎_)
-open import Relation.Nullary using (¬_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
-open import Data.List.Membership.Propositional using (_∈_; _∉_)
-
-
+open import Agda.Builtin.Equality using (_≡_)
+open import Data.List using ([]; _∷_)
+open import Data.Nat using (ℕ; _+_; zero; suc)
+open import Relation.Binary.PropositionalEquality using (_≢_)
 
 open import Types
 open import Coercions
@@ -31,7 +26,7 @@ data _—→_ : Term → Term → Set where
     ---------------------
     → (ƛ N) · V —→ N [ V ]
 
-  β-Λ : ∀ {α : TyVar} {V : Term} 
+  β-Λ : ∀ {α : SealVar} {V : Term}
     ------------------------
     → (Λ V) • α  —→ V [ α ]ᵀ
 
@@ -50,104 +45,158 @@ data _—→_ : Term → Term → Set where
     --------------------------------------------
     → V ⟨ p ↦ q ⟩ · W  —→  (V · (W ⟨ p ⟩)) ⟨ q ⟩
 
-  β-∀ : ∀ {V : Term}{c : Coercion}{α : TyVar}
+  β-∀ : ∀ {V : Term}{c : Coercion}{α : SealVar}
     → Value V
     ----------------------------------------
-    → V ⟨ `∀ c ⟩ • α —→ (V • α) ⟨ c [ α ]ᶜ ⟩
+    → V ⟨ `∀ c ⟩ • α —→ (V • α) ⟨ c [ α ]ᵀᶜ ⟩
 
-  β-inst : ∀ {Σ : Store} {V B c}
+  β-gen : ∀ {V c α}
+    → Value V
+    --------------------------------------
+    → V ⟨ gen c ⟩ • α —→ V ⟨ c [ α ]ᶜ ⟩
+
+  β-inst : ∀ {V c}
     → Value V
     ----------------------------------------------
-    → V ⟨ inst B c ⟩ —→ ν ★ (((⇑ᵗᵐ V) • 0 ) ⟨ c ⟩)
+    → V ⟨ inst c ⟩ —→ ν ★ (((⇑ˢᵐ V) • zero) ⟨ c ⟩)
 
-  tag-untag-ok : ∀ {V G}
-    → Value V
+  tag-untag-ok : ∀ {V G H}
+    → Value V → G ≡ H
     ------------------------------
-    → V ⟨ G ! ⟩ ⟨ G ？ ⟩  —→  V
+    → V ⟨ G ! ⟩ ⟨ H ？ ⟩  —→  V
 
   tag-untag-bad : ∀ {V G H}
     → Value V → G ≢ H
     ----------------------------------------
     → V ⟨ G ! ⟩ ⟨ H ？ ⟩ —→  blame
 
-  seal-unseal : ∀ {α V A B}
-    → Value V
+  seal-unseal : ∀ {α β V A B}
+    → Value V → α ≡ β
     ------------------------------------
-    → V ⟨ seal A α ⟩ ⟨ unseal α B ⟩ —→ V
+    → V ⟨ seal A α ⟩ ⟨ unseal β B ⟩ —→ V
 
-  blame-·₁ : ∀ {M : Term} →
-    (blame · M) —→ blame
+  blame-·₁ : ∀ {L M : Term} →
+    L ≡ blame →
+    (L · M) —→ blame
 
-  blame-·₂ : ∀ {V : Term} →
-    Value V →
-    (V · blame) —→ blame
+  blame-·₂ : ∀ {V M : Term} →
+    Value V → M ≡ blame →
+    (V · M) —→ blame
 
-  blame-·α : ∀ {α : TyVar} →
-    (blame • α) —→ blame
+  blame-·α : ∀ {M : Term}{α : SealVar} →
+    M ≡ blame →
+    (M • α) —→ blame
 
-  blame-⟨⟩ : ∀ {c : Coercion} →
-    (blame ⟨ c ⟩) —→ blame
+  blame-⟨⟩ : ∀ {M : Term}{c : Coercion} →
+    M ≡ blame →
+    (M ⟨ c ⟩) —→ blame
 
-  blame-⊕₁ : ∀ {M : Term} {op : Prim} →
-    (blame ⊕[ op ] M) —→ blame
+  blame-⊕₁ : ∀ {L M : Term} {op : Prim} →
+    L ≡ blame →
+    (L ⊕[ op ] M) —→ blame
 
-  blame-⊕₂ : ∀ {L : Term} {op : Prim} →
-    Value L →
-    (L ⊕[ op ] blame) —→ blame
+  blame-⊕₂ : ∀ {L M : Term} {op : Prim} →
+    Value L → M ≡ blame →
+    (L ⊕[ op ] M) —→ blame
 
 
 --------------------------------------------------------------------------------
--- Store-threaded one-step reduction
+-- Telescope-threaded one-step reduction
 --------------------------------------------------------------------------------
 
-infix 2 _∣_∣_—→_∣_
-data _∣_∣_—→_∣_ : TyCtx → Store → Term → Store → Term → Set where
+-- Runtime states are ordinary telescopes that contain only seal entries.  The
+-- old `Store` is therefore represented as a predicate on the same telescope
+-- object used by typing, rather than as a second structure that must be
+-- injected into a telescope with a function call.
+data RuntimeTelescope : Telescope → Set where
+  rt∅ : RuntimeTelescope []
 
-  pure-step : ∀ {Δ : TyCtx} {Σ : Store} {M M′ : Term}
+  rtSeal : ∀ {Γ A}
+    → RuntimeTelescope Γ
+    → WfTy Γ A
+    → RuntimeTelescope (sealᵉ A ∷ Γ)
+
+-- A single reduction step either preserves the telescope or allocates one fresh
+-- head seal.  When allocation happens below an evaluation frame, the unchanged
+-- parts of the frame must be raised over the new head seal.
+data StepExt : Telescope → Telescope → Set where
+  ext-refl : ∀ {Γ} →
+    StepExt Γ Γ
+
+  ext-seal : ∀ {Γ A} →
+    StepExt Γ (sealᵉ A ∷ Γ)
+
+weakenSeal : ∀ {Γ Γ′} → StepExt Γ Γ′ → SealVar → SealVar
+weakenSeal ext-refl α = α
+weakenSeal ext-seal α = suc α
+
+weakenTerm : ∀ {Γ Γ′} → StepExt Γ Γ′ → Term → Term
+weakenTerm ext-refl M = M
+weakenTerm ext-seal M = ⇑ˢᵐ M
+
+weakenCoercion : ∀ {Γ Γ′} → StepExt Γ Γ′ → Coercion → Coercion
+weakenCoercion ext-refl c = c
+weakenCoercion ext-seal c = ⇑ˢᶜ c
+
+infix 2 _∣_—→_∣_
+data _∣_—→_∣_ : Telescope → Term → Telescope → Term → Set where
+
+  pure-step : ∀ {Γ M M′}
     → M —→ M′
     -----------------
-    → Δ ∣ Σ ∣ M —→ Σ ∣ M′
+    → Γ ∣ M —→ Γ ∣ M′
 
-  -- Allow non-deterministic choice of α here so that in the proof of the
-  -- Gradual Guarantee, we can choose a matching α in the simulating program.
-  ν-step : ∀ {Δ : TyCtx} {Σ : Store} {N : Term} {A : Ty} {α : TyVar}
-   → Δ ≤ α
+  ν-step : ∀ {Γ N A}
     -------------------------------------
-   → Δ ∣ Σ ∣ ν A N —→ (α , A) ∷ Σ ∣ N [ α ]ᵀ
+    → Γ ∣ ν A N —→ sealᵉ A ∷ Γ ∣ N
 
-  --  Δ ∣ Σ ⊢ (V ⟨ νγ.c[γ] ⟩) α
-  --    —→
-  --  Δ ∣ (β := α) , Σ ⊢ V ⟨ c[β] ⟩ ⟨ (tgt c)[-seal_β] ⟩
-  --  where β ∉ Δ
-  gen-step : ∀ {Δ : TyCtx} {Σ : Store} {C V c α β}
-   → Value V
-   → Δ ≤ β
-    ----------------------------------------------------------
-   → Δ ∣ Σ ∣ V ⟨ gen C c ⟩ • α —→ (β , ＇ α) ∷ Σ ∣
-         V ⟨ c [ β ]ᶜ ⟩ ⟨ reveal ((tgt c) [ β ]ᴿ) β (＇ α) ⟩
+  ξ-·₁ : ∀ {Γ Γ′ L M L′ M↑}
+    → (ext : StepExt Γ Γ′)
+    → Γ ∣ L —→ Γ′ ∣ L′
+    → M↑ ≡ weakenTerm ext M
+    → Γ ∣ (L · M) —→ Γ′ ∣ (L′ · M↑)
 
-  ξ-·₁ : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {L M L′ : Term} →
-    Δ ∣ Σ ∣ L —→ Σ′ ∣ L′ →
-    Δ ∣ Σ ∣ (L · M) —→ Σ′ ∣ (L′ · M)
+  ξ-·₂ : ∀ {Γ Γ′ V V↑ M M′}
+    → Value V
+    → (ext : StepExt Γ Γ′)
+    → Γ ∣ M —→ Γ′ ∣ M′
+    → V↑ ≡ weakenTerm ext V
+    → Γ ∣ (V · M) —→ Γ′ ∣ (V↑ · M′)
 
-  ξ-·₂ : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {V M M′ : Term} →
-    Value V →
-    Δ ∣ Σ ∣ M —→ Σ′ ∣ M′ →
-    Δ ∣ Σ ∣ (V · M) —→ Σ′ ∣ (V · M′)
+  ξ-·α : ∀ {Γ Γ′ M M′ α α↑}
+    → (ext : StepExt Γ Γ′)
+    → Γ ∣ M —→ Γ′ ∣ M′
+    → α↑ ≡ weakenSeal ext α
+    → Γ ∣ (M • α) —→ Γ′ ∣ (M′ • α↑)
 
-  ξ-·α : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {M M′ : Term} {α : TyVar} →
-    Δ ∣ Σ ∣ M —→ Σ′ ∣ M′ →
-    Δ ∣ Σ ∣ (M • α) —→ Σ′ ∣ (M′ • α)
+  ξ-⟨⟩ : ∀ {Γ Γ′ c c↑ M M′}
+    → (ext : StepExt Γ Γ′)
+    → Γ ∣ M —→ Γ′ ∣ M′
+    → c↑ ≡ weakenCoercion ext c
+    → Γ ∣ (M ⟨ c ⟩) —→ Γ′ ∣ (M′ ⟨ c↑ ⟩)
 
-  ξ-⟨⟩ : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {c : Coercion} {M M′ : Term} →
-    Δ ∣ Σ ∣ M —→ Σ′ ∣ M′ →
-    Δ ∣ Σ ∣ (M ⟨ c ⟩) —→ Σ′ ∣ (M′ ⟨ c ⟩)
+  ξ-⊕₁ : ∀ {Γ Γ′ L M L′ M↑ op}
+    → (ext : StepExt Γ Γ′)
+    → Γ ∣ L —→ Γ′ ∣ L′
+    → M↑ ≡ weakenTerm ext M
+    → Γ ∣ (L ⊕[ op ] M) —→ Γ′ ∣ (L′ ⊕[ op ] M↑)
 
-  ξ-⊕₁ : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {L M L′ : Term} {op : Prim} →
-    Δ ∣ Σ ∣ L —→ Σ′ ∣ L′ →
-    Δ ∣ Σ ∣ (L ⊕[ op ] M) —→ Σ′ ∣ (L′ ⊕[ op ] M)
+  ξ-⊕₂ : ∀ {Γ Γ′ L L↑ M M′ op}
+    → Value L
+    → (ext : StepExt Γ Γ′)
+    → Γ ∣ M —→ Γ′ ∣ M′
+    → L↑ ≡ weakenTerm ext L
+    → Γ ∣ (L ⊕[ op ] M) —→ Γ′ ∣ (L↑ ⊕[ op ] M′)
 
-  ξ-⊕₂ : ∀ {Δ : TyCtx} {Σ Σ′ : Store} {L M M′ : Term} {op : Prim} →
-    Value L →
-    Δ ∣ Σ ∣ M —→ Σ′ ∣ M′ →
-    Δ ∣ Σ ∣ (L ⊕[ op ] M) —→ Σ′ ∣ (L ⊕[ op ] M′)
+stepExt :
+  ∀ {Γ Γ′ M M′} →
+  Γ ∣ M —→ Γ′ ∣ M′ →
+  StepExt Γ Γ′
+stepExt (pure-step red) = ext-refl
+stepExt ν-step = ext-seal
+stepExt (ξ-·₁ ext red eq) = ext
+stepExt (ξ-·₂ vV ext red eq) = ext
+stepExt (ξ-·α ext red eq) = ext
+stepExt (ξ-⟨⟩ ext red eq) = ext
+stepExt (ξ-⊕₁ ext red eq) = ext
+stepExt (ξ-⊕₂ vL ext red eq) = ext

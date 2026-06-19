@@ -1,506 +1,586 @@
 module proof.TypeProperties where
 
 -- File Charter:
---   * Proof-only metatheory for GTSF type operations.
---   * Well-formedness preservation, occurrence bookkeeping for type binders,
---     and store-renaming equalities used by coercion and term preservation.
---   * No coercion-specific or term-typing lemmas live here.
+--   * Proof-only metatheory for the redesigned GTSF type layer.
+--   * Establishes congruence/identity laws and well-formedness preservation
+--     for telescope-aware renaming and substitution.
+--   * Dense-context arithmetic lemmas from the previous design are intentionally
+--     absent: regular type variables and seals now live in separate de Bruijn
+--     namespaces inside one telescope.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (false)
-open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using (List; []; _∷_)
-open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; z<s; s<s; z≤n; s≤s)
-open import Data.Nat.Properties
-  using (_≟_; <-≤-trans; <-irrefl; m<n⇒m<1+n; suc-injective)
-open import Data.Product using (_,_)
+open import Data.Bool using (_∨_)
+open import Data.Empty using (⊥-elim)
+open import Data.List using (_∷_)
+open import Data.Nat using (zero; suc)
+open import Data.Nat.Properties using (_≟_; suc-injective)
+import Relation.Binary.PropositionalEquality as Eq
 open import Relation.Binary.PropositionalEquality
-  using (cong; cong₂; sym; trans)
+  using (_≢_; cong; cong₂; sym; trans)
 open import Relation.Nullary using (yes; no)
 
 open import Types
 
 ------------------------------------------------------------------------
--- Occurrence bookkeeping for binders
+-- Congruence and identity for raw renaming/substitution
 ------------------------------------------------------------------------
 
 rename-cong :
-  ∀ {ρ ρ′ : Renameᵗ} →
+  ∀ {ρ ρ′ : Renameᵗ} {σ σ′ : Renameˢ} →
   (∀ X → ρ X ≡ ρ′ X) →
+  (∀ α → σ α ≡ σ′ α) →
   (A : Ty) →
-  renameᵗ ρ A ≡ renameᵗ ρ′ A
-rename-cong eq (＇ X) = cong ＇_ (eq X)
-rename-cong eq (‵ ι) = refl
-rename-cong eq ★ = refl
-rename-cong eq (A ⇒ B) =
-  cong₂ _⇒_ (rename-cong eq A) (rename-cong eq B)
-rename-cong eq (`∀ A) =
+  rename ρ σ A ≡ rename ρ′ σ′ A
+rename-cong eqᵗ eqˢ (`X X) = cong `X_ (eqᵗ X)
+rename-cong eqᵗ eqˢ (`α α) = cong `α_ (eqˢ α)
+rename-cong eqᵗ eqˢ (‵ ι) = refl
+rename-cong eqᵗ eqˢ ★ = refl
+rename-cong eqᵗ eqˢ (A ⇒ B) =
+  cong₂ _⇒_ (rename-cong eqᵗ eqˢ A) (rename-cong eqᵗ eqˢ B)
+rename-cong eqᵗ eqˢ (`∀ A) =
   cong `∀
     (rename-cong
       (λ { zero → refl
-         ; (suc X) → cong suc (eq X)})
+         ; (suc X) → cong suc (eqᵗ X)})
+      eqˢ
       A)
 
-extNᵗ : ℕ → Renameᵗ → Renameᵗ
-extNᵗ zero ρ = ρ
-extNᵗ (suc n) ρ = extᵗ (extNᵗ n ρ)
-
-extNᵗ-below :
-  ∀ n {ρ X} →
-  X < n →
-  extNᵗ n ρ X ≡ X
-extNᵗ-below zero ()
-extNᵗ-below (suc n) {X = zero} z<s = refl
-extNᵗ-below (suc n) {X = suc X} (s<s X<n) =
-  cong suc (extNᵗ-below n X<n)
-
-extNᵗ-inv-below :
-  ∀ n {ρ X Y} →
-  X < n →
-  extNᵗ n ρ Y ≡ X →
-  Y ≡ X
-extNᵗ-inv-below zero ()
-extNᵗ-inv-below (suc n) {X = zero} {Y = zero} z<s eq = refl
-extNᵗ-inv-below (suc n) {X = zero} {Y = suc Y} z<s ()
-extNᵗ-inv-below (suc n) {X = suc X} {Y = zero} (s<s X<n) ()
-extNᵗ-inv-below (suc n) {X = suc X} {Y = suc Y} (s<s X<n) eq =
-  cong suc (extNᵗ-inv-below n X<n (suc-injective eq))
-
-occurs-extNᵗ-below :
-  ∀ n ρ X A →
-  X < n →
-  occurs X (renameᵗ (extNᵗ n ρ) A) ≡ occurs X A
-occurs-extNᵗ-below n ρ X (＇ Y) X<n
-    with X ≟ Y | X ≟ extNᵗ n ρ Y
-occurs-extNᵗ-below n ρ X (＇ .X) X<n
-    | yes refl | yes X≡ρX = refl
-occurs-extNᵗ-below n ρ X (＇ .X) X<n
-    | yes refl | no X≢ρX =
-  ⊥-elim (X≢ρX (sym (extNᵗ-below n X<n)))
-occurs-extNᵗ-below n ρ X (＇ Y) X<n
-    | no X≢Y | yes X≡ρY =
-  ⊥-elim (X≢Y (sym (extNᵗ-inv-below n X<n (sym X≡ρY))))
-occurs-extNᵗ-below n ρ X (＇ Y) X<n
-    | no X≢Y | no X≢ρY = refl
-occurs-extNᵗ-below n ρ X (‵ ι) X<n = refl
-occurs-extNᵗ-below n ρ X ★ X<n = refl
-occurs-extNᵗ-below n ρ X (A ⇒ B) X<n
-  rewrite occurs-extNᵗ-below n ρ X A X<n
-        | occurs-extNᵗ-below n ρ X B X<n = refl
-occurs-extNᵗ-below n ρ X (`∀ A) X<n =
-  occurs-extNᵗ-below (suc n) ρ (suc X) A (s<s X<n)
-
-occurs-zero-rename-ext :
-  ∀ ρ A →
-  occurs zero (renameᵗ (extᵗ ρ) A) ≡ occurs zero A
-occurs-zero-rename-ext ρ A =
-  occurs-extNᵗ-below 1 ρ zero A z<s
-
-raiseVarFrom-≢ :
-  ∀ k X →
-  raiseVarFrom k X ≡ k →
-  ⊥
-raiseVarFrom-≢ zero X ()
-raiseVarFrom-≢ (suc k) zero ()
-raiseVarFrom-≢ (suc k) (suc X) eq =
-  raiseVarFrom-≢ k X (suc-injective eq)
-
-raiseVarFrom-injective :
-  ∀ k {X Y} →
-  raiseVarFrom k X ≡ raiseVarFrom k Y →
-  X ≡ Y
-raiseVarFrom-injective zero eq = suc-injective eq
-raiseVarFrom-injective (suc k) {zero} {zero} eq = refl
-raiseVarFrom-injective (suc k) {zero} {suc Y} ()
-raiseVarFrom-injective (suc k) {suc X} {zero} ()
-raiseVarFrom-injective (suc k) {suc X} {suc Y} eq =
-  cong suc (raiseVarFrom-injective k (suc-injective eq))
-
-raise-ext :
-  ∀ k X →
-  extᵗ (raiseVarFrom k) X ≡ raiseVarFrom (suc k) X
-raise-ext k zero = refl
-raise-ext k (suc X) = refl
-
-rename-raise-ext :
-  ∀ k A →
-  renameᵗ (extᵗ (raiseVarFrom k)) A ≡
-  renameᵗ (raiseVarFrom (suc k)) A
-rename-raise-ext k A = rename-cong (raise-ext k) A
-
-occurs-raise :
-  ∀ k X A →
-  occurs (raiseVarFrom k X) (renameᵗ (raiseVarFrom k) A) ≡
-  occurs X A
-occurs-raise k X (＇ Y)
-    with X ≟ Y | raiseVarFrom k X ≟ raiseVarFrom k Y
-occurs-raise k X (＇ .X) | yes refl | yes refl = refl
-occurs-raise k X (＇ .X) | yes refl | no neq =
-  ⊥-elim (neq refl)
-occurs-raise k X (＇ Y) | no neq | yes eq =
-  ⊥-elim (neq (raiseVarFrom-injective k eq))
-occurs-raise k X (＇ Y) | no neq | no neq′ = refl
-occurs-raise k X (‵ ι) = refl
-occurs-raise k X ★ = refl
-occurs-raise k X (A ⇒ B)
-  rewrite occurs-raise k X A
-        | occurs-raise k X B = refl
-occurs-raise k X (`∀ A)
-  rewrite rename-raise-ext k A =
-  occurs-raise (suc k) (suc X) A
-
-occurs-raise-fresh :
-  ∀ k A →
-  occurs k (renameᵗ (raiseVarFrom k) A) ≡ false
-occurs-raise-fresh k (＇ X) with k ≟ raiseVarFrom k X
-occurs-raise-fresh k (＇ X) | yes eq =
-  ⊥-elim (raiseVarFrom-≢ k X (sym eq))
-occurs-raise-fresh k (＇ X) | no neq = refl
-occurs-raise-fresh k (‵ ι) = refl
-occurs-raise-fresh k ★ = refl
-occurs-raise-fresh k (A ⇒ B)
-  rewrite occurs-raise-fresh k A
-        | occurs-raise-fresh k B = refl
-occurs-raise-fresh k (`∀ A)
-  rewrite rename-raise-ext k A =
-  occurs-raise-fresh (suc k) A
-
-occurs-suc-var :
-  ∀ X Y →
-  occurs X (＇ Y) ≡ occurs (suc X) (＇ suc Y)
-occurs-suc-var X Y with X ≟ Y | suc X ≟ suc Y
-occurs-suc-var X .X | yes refl | yes refl = refl
-occurs-suc-var X .X | yes refl | no neq =
-  ⊥-elim (neq refl)
-occurs-suc-var X Y | no neq | yes eq =
-  ⊥-elim (neq (suc-injective eq))
-occurs-suc-var X Y | no neq | no neq′ = refl
-
-extsNᵗ : ℕ → Substᵗ → Substᵗ
-extsNᵗ zero σ = σ
-extsNᵗ (suc n) σ = extsᵗ (extsNᵗ n σ)
-
-occurs-extsNᵗ-below-var :
-  ∀ n σ X Y →
-  X < n →
-  occurs X (extsNᵗ n σ Y) ≡ occurs X (＇ Y)
-occurs-extsNᵗ-below-var zero σ X Y ()
-occurs-extsNᵗ-below-var (suc n) σ zero zero z<s = refl
-occurs-extsNᵗ-below-var (suc n) σ zero (suc Y) z<s
-  rewrite occurs-raise-fresh zero (extsNᵗ n σ Y) = refl
-occurs-extsNᵗ-below-var (suc n) σ (suc X) zero (s<s X<n) = refl
-occurs-extsNᵗ-below-var (suc n) σ (suc X) (suc Y) (s<s X<n)
-  rewrite occurs-raise zero X (extsNᵗ n σ Y)
-        | occurs-extsNᵗ-below-var n σ X Y X<n =
-  occurs-suc-var X Y
-
-occurs-extsNᵗ-below :
-  ∀ n σ X A →
-  X < n →
-  occurs X (substᵗ (extsNᵗ n σ) A) ≡ occurs X A
-occurs-extsNᵗ-below n σ X (＇ Y) X<n =
-  occurs-extsNᵗ-below-var n σ X Y X<n
-occurs-extsNᵗ-below n σ X (‵ ι) X<n = refl
-occurs-extsNᵗ-below n σ X ★ X<n = refl
-occurs-extsNᵗ-below n σ X (A ⇒ B) X<n
-  rewrite occurs-extsNᵗ-below n σ X A X<n
-        | occurs-extsNᵗ-below n σ X B X<n = refl
-occurs-extsNᵗ-below n σ X (`∀ A) X<n =
-  occurs-extsNᵗ-below (suc n) σ (suc X) A (s<s X<n)
-
-occurs-zero-subst-exts :
-  ∀ σ A →
-  occurs zero (substᵗ (extsᵗ σ) A) ≡ occurs zero A
-occurs-zero-subst-exts σ A =
-  occurs-extsNᵗ-below 1 σ zero A z<s
-
-occurs-above-WfTy :
-  ∀ {Δ A X} →
-  WfTy Δ A →
-  Δ ≤ X →
-  occurs X A ≡ false
-occurs-above-WfTy {X = X} (wfVar {X = Y} Y<Δ) Δ≤X with X ≟ Y
-occurs-above-WfTy {X = X} (wfVar {X = .X} Y<Δ) Δ≤X | yes refl =
-  ⊥-elim (<-irrefl refl (<-≤-trans Y<Δ Δ≤X))
-occurs-above-WfTy {X = X} (wfVar {X = Y} Y<Δ) Δ≤X | no X≢Y =
-  refl
-occurs-above-WfTy wfBase Δ≤X = refl
-occurs-above-WfTy wf★ Δ≤X = refl
-occurs-above-WfTy (wf⇒ hA hB) Δ≤X
-  rewrite occurs-above-WfTy hA Δ≤X
-        | occurs-above-WfTy hB Δ≤X =
-  refl
-occurs-above-WfTy (wf∀ hA) Δ≤X =
-  occurs-above-WfTy hA (s≤s Δ≤X)
-
-------------------------------------------------------------------------
--- Type well-formedness under renaming and substitution
-------------------------------------------------------------------------
-
-TyRenameWf : TyCtx → TyCtx → Renameᵗ → Set
-TyRenameWf Δ Δ′ ρ = ∀ {X} → X < Δ → ρ X < Δ′
-
-TyRenameWf-ext :
-  ∀ {Δ Δ′ ρ} →
-  TyRenameWf Δ Δ′ ρ →
-  TyRenameWf (suc Δ) (suc Δ′) (extᵗ ρ)
-TyRenameWf-ext hρ {zero} z<s = z<s
-TyRenameWf-ext hρ {suc X} (s<s X<Δ) = s<s (hρ X<Δ)
-
-TyRenameWf-suc :
-  ∀ {Δ} →
-  TyRenameWf Δ (suc Δ) suc
-TyRenameWf-suc X<Δ = s<s X<Δ
-
-singleRenameᵗ-Wf :
-  ∀ {Δ α} →
-  α < suc Δ →
-  TyRenameWf (suc Δ) (suc Δ) (singleRenameᵗ α)
-singleRenameᵗ-Wf α<sucΔ {zero} z<s = α<sucΔ
-singleRenameᵗ-Wf α<sucΔ {suc X} (s<s X<Δ) =
-  m<n⇒m<1+n X<Δ
-
-renameᵗ-ground :
-  ∀ ρ {G} →
-  Ground G →
-  Ground (renameᵗ ρ G)
-renameᵗ-ground ρ (＇ α) = ＇ (ρ α)
-renameᵗ-ground ρ (‵ ι) = ‵ ι
-renameᵗ-ground ρ ★⇒★ = ★⇒★
-
-renameᵗ-preserves-WfTy :
-  ∀ {Δ Δ′ A ρ} →
-  WfTy Δ A →
-  TyRenameWf Δ Δ′ ρ →
-  WfTy Δ′ (renameᵗ ρ A)
-renameᵗ-preserves-WfTy (wfVar X<Δ) hρ = wfVar (hρ X<Δ)
-renameᵗ-preserves-WfTy wfBase hρ = wfBase
-renameᵗ-preserves-WfTy wf★ hρ = wf★
-renameᵗ-preserves-WfTy (wf⇒ hA hB) hρ =
-  wf⇒ (renameᵗ-preserves-WfTy hA hρ)
-      (renameᵗ-preserves-WfTy hB hρ)
-renameᵗ-preserves-WfTy (wf∀ hA) hρ =
-  wf∀ (renameᵗ-preserves-WfTy hA (TyRenameWf-ext hρ))
-
-TySubstWf : TyCtx → TyCtx → Substᵗ → Set
-TySubstWf Δ Δ′ σ = ∀ {X} → X < Δ → WfTy Δ′ (σ X)
-
-TySubstWf-exts :
-  ∀ {Δ Δ′ σ} →
-  TySubstWf Δ Δ′ σ →
-  TySubstWf (suc Δ) (suc Δ′) (extsᵗ σ)
-TySubstWf-exts hσ {zero} z<s = wfVar z<s
-TySubstWf-exts hσ {suc X} (s<s X<Δ) =
-  renameᵗ-preserves-WfTy (hσ X<Δ) TyRenameWf-suc
-
-substᵗ-preserves-WfTy :
-  ∀ {Δ Δ′ A σ} →
-  WfTy Δ A →
-  TySubstWf Δ Δ′ σ →
-  WfTy Δ′ (substᵗ σ A)
-substᵗ-preserves-WfTy (wfVar X<Δ) hσ = hσ X<Δ
-substᵗ-preserves-WfTy wfBase hσ = wfBase
-substᵗ-preserves-WfTy wf★ hσ = wf★
-substᵗ-preserves-WfTy (wf⇒ hA hB) hσ =
-  wf⇒ (substᵗ-preserves-WfTy hA hσ)
-      (substᵗ-preserves-WfTy hB hσ)
-substᵗ-preserves-WfTy (wf∀ hA) hσ =
-  wf∀ (substᵗ-preserves-WfTy hA (TySubstWf-exts hσ))
-
-singleTyEnv-Wf :
-  ∀ {Δ B} →
-  WfTy Δ B →
-  TySubstWf (suc Δ) Δ (singleTyEnv B)
-singleTyEnv-Wf hB {zero} z<s = hB
-singleTyEnv-Wf hB {suc X} (s<s X<Δ) = wfVar X<Δ
-
-WfTy-weakenᵗ :
-  ∀ {Δ Δ′ A} →
-  WfTy Δ A →
-  Δ ≤ Δ′ →
-  WfTy Δ′ A
-WfTy-weakenᵗ (wfVar X<Δ) Δ≤Δ′ = wfVar (<-≤-trans X<Δ Δ≤Δ′)
-WfTy-weakenᵗ wfBase Δ≤Δ′ = wfBase
-WfTy-weakenᵗ wf★ Δ≤Δ′ = wf★
-WfTy-weakenᵗ (wf⇒ hA hB) Δ≤Δ′ =
-  wf⇒ (WfTy-weakenᵗ hA Δ≤Δ′) (WfTy-weakenᵗ hB Δ≤Δ′)
-WfTy-weakenᵗ (wf∀ hA) Δ≤Δ′ =
-  wf∀ (WfTy-weakenᵗ hA (s≤s Δ≤Δ′))
-
-------------------------------------------------------------------------
--- Renaming cancellation and store-map equalities
-------------------------------------------------------------------------
-
-renameᵗ-id :
-  ∀ A →
-  renameᵗ (λ X → X) A ≡ A
-renameᵗ-id (＇ X) = refl
-renameᵗ-id (‵ ι) = refl
-renameᵗ-id ★ = refl
-renameᵗ-id (A ⇒ B) =
-  cong₂ _⇒_ (renameᵗ-id A) (renameᵗ-id B)
-renameᵗ-id (`∀ A) =
-  cong `∀
-    (trans
-      (rename-cong
-        (λ { zero → refl
-           ; (suc X) → refl})
-        A)
-      (renameᵗ-id A))
-
-renameᵗ-compose :
-  ∀ ρ τ A →
-  renameᵗ τ (renameᵗ ρ A) ≡ renameᵗ (λ X → τ (ρ X)) A
-renameᵗ-compose ρ τ (＇ X) = refl
-renameᵗ-compose ρ τ (‵ ι) = refl
-renameᵗ-compose ρ τ ★ = refl
-renameᵗ-compose ρ τ (A ⇒ B) =
-  cong₂ _⇒_ (renameᵗ-compose ρ τ A) (renameᵗ-compose ρ τ B)
-renameᵗ-compose ρ τ (`∀ A) =
-  cong `∀
-    (trans
-      (renameᵗ-compose (extᵗ ρ) (extᵗ τ) A)
-      (rename-cong
-        (λ { zero → refl
-           ; (suc X) → refl})
-        A))
-
 subst-cong :
-  ∀ {σ τ : Substᵗ} →
-  (∀ X → σ X ≡ τ X) →
+  ∀ {σ σ′ : Substᵗ} {τ τ′ : Substˢ} →
+  (∀ X → σ X ≡ σ′ X) →
+  (∀ α → τ α ≡ τ′ α) →
   (A : Ty) →
-  substᵗ σ A ≡ substᵗ τ A
-subst-cong eq (＇ X) = eq X
-subst-cong eq (‵ ι) = refl
-subst-cong eq ★ = refl
-subst-cong eq (A ⇒ B) =
-  cong₂ _⇒_ (subst-cong eq A) (subst-cong eq B)
-subst-cong eq (`∀ A) =
+  subst σ τ A ≡ subst σ′ τ′ A
+subst-cong eqᵗ eqˢ (`X X) = eqᵗ X
+subst-cong eqᵗ eqˢ (`α α) = eqˢ α
+subst-cong eqᵗ eqˢ (‵ ι) = refl
+subst-cong eqᵗ eqˢ ★ = refl
+subst-cong eqᵗ eqˢ (A ⇒ B) =
+  cong₂ _⇒_ (subst-cong eqᵗ eqˢ A) (subst-cong eqᵗ eqˢ B)
+subst-cong eqᵗ eqˢ (`∀ A) =
   cong `∀
     (subst-cong
       (λ { zero → refl
-         ; (suc X) → cong (renameᵗ suc) (eq X)})
+         ; (suc X) → cong ⇑ᵗ (eqᵗ X)})
+      (λ α → cong ⇑ᵗ (eqˢ α))
       A)
 
-exts-ext-comp :
-  ∀ ρ σ X →
-  extsᵗ σ (extᵗ ρ X) ≡ extsᵗ (λ Y → σ (ρ Y)) X
-exts-ext-comp ρ σ zero = refl
-exts-ext-comp ρ σ (suc X) = refl
-
-rename-subst-commute :
-  ∀ ρ σ A →
-  substᵗ σ (renameᵗ ρ A) ≡ substᵗ (λ X → σ (ρ X)) A
-rename-subst-commute ρ σ (＇ X) = refl
-rename-subst-commute ρ σ (‵ ι) = refl
-rename-subst-commute ρ σ ★ = refl
-rename-subst-commute ρ σ (A ⇒ B) =
-  cong₂ _⇒_ (rename-subst-commute ρ σ A)
-             (rename-subst-commute ρ σ B)
-rename-subst-commute ρ σ (`∀ A) =
-  trans
-    (cong `∀ (rename-subst-commute (extᵗ ρ) (extsᵗ σ) A))
-    (cong `∀ (subst-cong (exts-ext-comp ρ σ) A))
-
-ext-exts-comp :
-  ∀ ρ σ X →
-  renameᵗ (extᵗ ρ) (extsᵗ σ X) ≡
-  extsᵗ (λ Y → renameᵗ ρ (σ Y)) X
-ext-exts-comp ρ σ zero = refl
-ext-exts-comp ρ σ (suc X) =
-  trans (renameᵗ-compose suc (extᵗ ρ) (σ X))
-        (sym (renameᵗ-compose ρ suc (σ X)))
-
-rename-subst :
-  ∀ ρ σ A →
-  renameᵗ ρ (substᵗ σ A) ≡ substᵗ (λ X → renameᵗ ρ (σ X)) A
-rename-subst ρ σ (＇ X) = refl
-rename-subst ρ σ (‵ ι) = refl
-rename-subst ρ σ ★ = refl
-rename-subst ρ σ (A ⇒ B) =
-  cong₂ _⇒_ (rename-subst ρ σ A) (rename-subst ρ σ B)
-rename-subst ρ σ (`∀ A) =
-  trans
-    (cong `∀ (rename-subst (extᵗ ρ) (extsᵗ σ) A))
-    (cong `∀ (subst-cong (ext-exts-comp ρ σ) A))
-
-rename-[]ᵗ-commute :
-  ∀ ρ A B →
-  renameᵗ ρ (A [ B ]ᵗ) ≡
-  (renameᵗ (extᵗ ρ) A) [ renameᵗ ρ B ]ᵗ
-rename-[]ᵗ-commute ρ A B =
-  trans
-    (rename-subst ρ (singleTyEnv B) A)
-    (trans
-      (subst-cong env-eq A)
-      (sym (rename-subst-commute (extᵗ ρ)
-             (singleTyEnv (renameᵗ ρ B)) A)))
-  where
-    env-eq :
-      ∀ X →
-      renameᵗ ρ (singleTyEnv B X) ≡
-      singleTyEnv (renameᵗ ρ B) (extᵗ ρ X)
-    env-eq zero = refl
-    env-eq (suc X) = refl
-
-renameᵗ-ext-suc-comm :
-  ∀ ρ A →
-  renameᵗ (extᵗ ρ) (⇑ᵗ A) ≡ ⇑ᵗ (renameᵗ ρ A)
-renameᵗ-ext-suc-comm ρ A =
-  trans (renameᵗ-compose suc (extᵗ ρ) A)
-        (sym (renameᵗ-compose ρ suc A))
-
-renameᵗ-single-suc-cancel :
-  ∀ α A →
-  renameᵗ (singleRenameᵗ α) (⇑ᵗ A) ≡ A
-renameᵗ-single-suc-cancel α A =
-  trans (renameᵗ-compose suc (singleRenameᵗ α) A)
-        (renameᵗ-id A)
-
-subst-ren-var :
-  ∀ ρ A →
-  substᵗ (λ X → ＇ (ρ X)) A ≡ renameᵗ ρ A
-subst-ren-var ρ (＇ X) = refl
-subst-ren-var ρ (‵ ι) = refl
-subst-ren-var ρ ★ = refl
-subst-ren-var ρ (A ⇒ B) =
-  cong₂ _⇒_ (subst-ren-var ρ A) (subst-ren-var ρ B)
-subst-ren-var ρ (`∀ A) =
+rename-id :
+  ∀ A →
+  rename idᵗ idˢ A ≡ A
+rename-id (`X X) = refl
+rename-id (`α α) = refl
+rename-id (‵ ι) = refl
+rename-id ★ = refl
+rename-id (A ⇒ B) = cong₂ _⇒_ (rename-id A) (rename-id B)
+rename-id (`∀ A) =
   cong `∀
     (trans
-      (subst-cong env-eq A)
-      (subst-ren-var (extᵗ ρ) A))
+      (rename-cong
+        (λ { zero → refl
+           ; (suc X) → refl})
+        (λ α → refl)
+        A)
+      (rename-id A))
+
+subst-id :
+  ∀ A →
+  subst `X_ `α_ A ≡ A
+subst-id (`X X) = refl
+subst-id (`α α) = refl
+subst-id (‵ ι) = refl
+subst-id ★ = refl
+subst-id (A ⇒ B) = cong₂ _⇒_ (subst-id A) (subst-id B)
+subst-id (`∀ A) =
+  cong `∀
+    (trans
+      (subst-cong
+        (λ { zero → refl
+           ; (suc X) → refl})
+        (λ α → refl)
+        A)
+      (subst-id A))
+
+rename-compose :
+  ∀ ρ ρ′ σ σ′ A →
+  rename ρ′ σ′ (rename ρ σ A) ≡
+  rename (λ X → ρ′ (ρ X)) (λ α → σ′ (σ α)) A
+rename-compose ρ ρ′ σ σ′ (`X X) = refl
+rename-compose ρ ρ′ σ σ′ (`α α) = refl
+rename-compose ρ ρ′ σ σ′ (‵ ι) = refl
+rename-compose ρ ρ′ σ σ′ ★ = refl
+rename-compose ρ ρ′ σ σ′ (A ⇒ B) =
+  cong₂ _⇒_ (rename-compose ρ ρ′ σ σ′ A)
+             (rename-compose ρ ρ′ σ σ′ B)
+rename-compose ρ ρ′ σ σ′ (`∀ A) =
+  cong `∀
+    (trans
+      (rename-compose (extᵗ ρ) (extᵗ ρ′) σ σ′ A)
+      (rename-cong
+        (λ { zero → refl
+           ; (suc X) → refl})
+        (λ α → refl)
+        A))
+
+rename-shiftᵗ-comm :
+  ∀ ρ σ A →
+  ⇑ᵗ (rename ρ σ A) ≡ rename (extᵗ ρ) σ (⇑ᵗ A)
+rename-shiftᵗ-comm ρ σ A =
+  trans
+    (rename-compose ρ suc σ idˢ A)
+    (trans
+      (rename-cong (λ X → refl) (λ α → refl) A)
+      (sym (rename-compose suc (extᵗ ρ) idˢ σ A)))
+
+rename-shiftˢ-comm :
+  ∀ ρ σ A →
+  ⇑ˢ (rename ρ σ A) ≡ rename ρ (extˢ σ) (⇑ˢ A)
+rename-shiftˢ-comm ρ σ A =
+  trans
+    (rename-compose ρ idᵗ σ suc A)
+    (trans
+      (rename-cong (λ X → refl) (λ α → refl) A)
+      (sym (rename-compose idᵗ ρ suc (extˢ σ) A)))
+
+rename-drop-shiftᵗ :
+  ∀ A →
+  (⇑ᵗ A) [ zero ]ᴿ ≡ A
+rename-drop-shiftᵗ A =
+  trans
+    (rename-compose suc (singleRenameᵗ zero) idˢ idˢ A)
+    (trans (rename-cong (λ X → refl) (λ α → refl) A) (rename-id A))
+
+protectᵗ : TyVar → Renameᵗ → Renameᵗ
+protectᵗ zero ρ = extᵗ ρ
+protectᵗ (suc X) ρ = extᵗ (protectᵗ X ρ)
+
+protectᵗ-self :
+  ∀ X ρ →
+  protectᵗ X ρ X ≡ X
+protectᵗ-self zero ρ = refl
+protectᵗ-self (suc X) ρ = cong suc (protectᵗ-self X ρ)
+
+protectᵗ-hit :
+  ∀ X ρ Y →
+  X ≡ Y →
+  X ≡ protectᵗ X ρ Y
+protectᵗ-hit X ρ .X refl = sym (protectᵗ-self X ρ)
+
+protectᵗ-miss :
+  ∀ X ρ Y →
+  X ≢ Y →
+  X ≢ protectᵗ X ρ Y
+protectᵗ-miss zero ρ zero X≢Y eq = X≢Y refl
+protectᵗ-miss zero ρ (suc Y) X≢Y ()
+protectᵗ-miss (suc X) ρ zero X≢Y ()
+protectᵗ-miss (suc X) ρ (suc Y) X≢Y eq =
+  protectᵗ-miss X ρ Y (λ X≡Y → X≢Y (cong suc X≡Y)) (suc-injective eq)
+
+occursᵗ-var-protect :
+  ∀ X ρ Y →
+  occursᵗ X (`X (protectᵗ X ρ Y)) ≡ occursᵗ X (`X Y)
+occursᵗ-var-protect X ρ Y with X ≟ protectᵗ X ρ Y | X ≟ Y
+occursᵗ-var-protect X ρ Y | yes eq-hit | yes eq = refl
+occursᵗ-var-protect X ρ Y | yes eq-hit | no neq =
+  ⊥-elim (protectᵗ-miss X ρ Y neq eq-hit)
+occursᵗ-var-protect X ρ Y | no neq-hit | yes eq =
+  ⊥-elim (neq-hit (protectᵗ-hit X ρ Y eq))
+occursᵗ-var-protect X ρ Y | no neq-hit | no neq = refl
+
+occursᵗ-protect :
+  ∀ X ρ σ A →
+  occursᵗ X (rename (protectᵗ X ρ) σ A) ≡ occursᵗ X A
+occursᵗ-protect X ρ σ (`X Y) = occursᵗ-var-protect X ρ Y
+occursᵗ-protect X ρ σ (`α α) = refl
+occursᵗ-protect X ρ σ (‵ ι) = refl
+occursᵗ-protect X ρ σ ★ = refl
+occursᵗ-protect X ρ σ (A ⇒ B) =
+  cong₂ _∨_ (occursᵗ-protect X ρ σ A) (occursᵗ-protect X ρ σ B)
+occursᵗ-protect X ρ σ (`∀ A) = occursᵗ-protect (suc X) ρ σ A
+
+occursᵗ-zero-rename-ext :
+  ∀ ρ σ A →
+  occursᵗ zero (rename (extᵗ ρ) σ A) ≡ occursᵗ zero A
+occursᵗ-zero-rename-ext ρ σ A = occursᵗ-protect zero ρ σ A
+
+------------------------------------------------------------------------
+-- Well-typed renamings
+------------------------------------------------------------------------
+
+idᵗ-renaming :
+  ∀ {Γ} →
+  TyRenaming Γ Γ
+idᵗ-renaming = ty-ren idᵗ (λ h → h)
+
+idˢ-renaming :
+  ∀ {Γ} →
+  SealRenaming (idᵗ-renaming {Γ})
+idˢ-renaming =
+  seal-ren idˢ (λ h → h) ren-α
   where
-    env-eq :
-      ∀ X →
-      extsᵗ (λ Y → ＇ (ρ Y)) X ≡ ＇ (extᵗ ρ X)
-    env-eq zero = refl
-    env-eq (suc X) = refl
+    ren-α :
+      ∀ {Γ α A} →
+      Γ ∋α α ⦂ A →
+      Γ ∋α α ⦂ rename idᵗ idˢ A
+    ren-α {Γ} {α} {A} h =
+      Eq.subst (λ B → Γ ∋α α ⦂ B) (sym (rename-id A)) h
 
-subst-var-rename :
-  ∀ α A →
-  A [ ＇ α ]ᵗ ≡ A [ α ]ᴿ
-subst-var-rename α A =
-  trans (subst-cong env-eq A) (subst-ren-var (singleRenameᵗ α) A)
+shiftᵗ-ty-renaming :
+  ∀ {Γ} →
+  TyRenaming Γ (tyᵉ ∷ Γ)
+shiftᵗ-ty-renaming = ty-ren suc Sᵗ-ty
+
+shiftᵗ-seal-renaming :
+  ∀ {Γ} →
+  SealRenaming (shiftᵗ-ty-renaming {Γ})
+shiftᵗ-seal-renaming = seal-ren idˢ Sˢ-ty Sα-ty
+
+shiftˢ-ty-renaming :
+  ∀ {Γ A} →
+  TyRenaming Γ (sealᵉ A ∷ Γ)
+shiftˢ-ty-renaming = ty-ren idᵗ Sᵗ-seal
+
+shiftˢ-seal-renaming :
+  ∀ {Γ A} →
+  SealRenaming (shiftˢ-ty-renaming {Γ} {A})
+shiftˢ-seal-renaming = seal-ren suc Sˢ-seal Sα-seal
+
+shiftˣ-ty-renaming :
+  ∀ {Γ A} →
+  TyRenaming Γ (termᵉ A ∷ Γ)
+shiftˣ-ty-renaming = ty-ren idᵗ Sᵗ-term
+
+shiftˣ-seal-renaming :
+  ∀ {Γ A} →
+  SealRenaming (shiftˣ-ty-renaming {Γ} {A})
+shiftˣ-seal-renaming {Γ} {A} =
+  seal-ren idˢ Sˢ-term ren-α
   where
-    env-eq : ∀ X → singleTyEnv (＇ α) X ≡ ＇ (singleRenameᵗ α X)
-    env-eq zero = refl
-    env-eq (suc X) = refl
+    ren-α :
+      ∀ {α B} →
+      Γ ∋α α ⦂ B →
+      (termᵉ A ∷ Γ) ∋α α ⦂ rename idᵗ idˢ B
+    ren-α {α} {B} h =
+      Eq.subst (λ C → (termᵉ A ∷ Γ) ∋α α ⦂ C)
+        (sym (rename-id B))
+        (Sα-term h)
 
-renameStoreᵗ-ext-suc-comm :
-  ∀ ρ Σ →
-  renameStoreᵗ (extᵗ ρ) (⟰ᵗ Σ) ≡ ⟰ᵗ (renameStoreᵗ ρ Σ)
-renameStoreᵗ-ext-suc-comm ρ [] = refl
-renameStoreᵗ-ext-suc-comm ρ ((α , A) ∷ Σ) =
-  cong₂ _∷_
-    (cong₂ _,_ refl (renameᵗ-ext-suc-comm ρ A))
-    (renameStoreᵗ-ext-suc-comm ρ Σ)
+extᵗ-ty-renaming :
+  ∀ {Γ Γ′} →
+  TyRenaming Γ Γ′ →
+  TyRenaming (tyᵉ ∷ Γ) (tyᵉ ∷ Γ′)
+extᵗ-ty-renaming ρ =
+  ty-ren
+    (extᵗ (renᵗ ρ))
+    ren-ty
+  where
+    ren-ty : ∀ {X} → (tyᵉ ∷ _) ∋ᵗ X → (tyᵉ ∷ _) ∋ᵗ extᵗ (renᵗ ρ) X
+    ren-ty Zᵗ = Zᵗ
+    ren-ty (Sᵗ-ty h) = Sᵗ-ty (renᵗ-wf ρ h)
 
-renameStoreᵗ-single-suc-cancel :
-  ∀ α Σ →
-  renameStoreᵗ (singleRenameᵗ α) (⟰ᵗ Σ) ≡ Σ
-renameStoreᵗ-single-suc-cancel α [] = refl
-renameStoreᵗ-single-suc-cancel α ((β , A) ∷ Σ) =
-  cong₂ _∷_
-    (cong₂ _,_ refl (renameᵗ-single-suc-cancel α A))
-    (renameStoreᵗ-single-suc-cancel α Σ)
+extᵗ-seal-renaming :
+  ∀ {Γ Γ′} {ρ : TyRenaming Γ Γ′} →
+  SealRenaming ρ →
+  SealRenaming (extᵗ-ty-renaming ρ)
+extᵗ-seal-renaming {ρ = ρ} τ =
+  seal-ren
+    (renˢ τ)
+    ren-seal
+    ren-α
+  where
+    ren-seal : ∀ {α} → (tyᵉ ∷ _) ∋ˢ α → (tyᵉ ∷ _) ∋ˢ renˢ τ α
+    ren-seal (Sˢ-ty h) = Sˢ-ty (renˢ-wf τ h)
+
+    ren-α :
+      ∀ {α A} →
+      (tyᵉ ∷ _) ∋α α ⦂ A →
+      (tyᵉ ∷ _) ∋α renˢ τ α ⦂ rename (extᵗ (renᵗ ρ)) (renˢ τ) A
+    ren-α {α} (Sα-ty {A = A} h) =
+      Eq.subst
+        (λ B → (tyᵉ ∷ _) ∋α renˢ τ α ⦂ B)
+        (rename-shiftᵗ-comm (renᵗ ρ) (renˢ τ) A)
+        (Sα-ty (renα-wf τ h))
+
+extˢ-ty-renaming :
+  ∀ {Γ Γ′ A} →
+  (ρ : TyRenaming Γ Γ′) →
+  (τ : SealRenaming ρ) →
+  TyRenaming (sealᵉ A ∷ Γ) (sealᵉ (renameʳ ρ τ A) ∷ Γ′)
+extˢ-ty-renaming ρ τ =
+  ty-ren
+    (renᵗ ρ)
+    ren-ty
+  where
+    ren-ty : ∀ {X} → (sealᵉ _ ∷ _) ∋ᵗ X → (sealᵉ _ ∷ _) ∋ᵗ renᵗ ρ X
+    ren-ty (Sᵗ-seal h) = Sᵗ-seal (renᵗ-wf ρ h)
+
+extˢ-seal-renaming :
+  ∀ {Γ Γ′ A} →
+  (ρ : TyRenaming Γ Γ′) →
+  (τ : SealRenaming ρ) →
+  SealRenaming (extˢ-ty-renaming ρ τ)
+extˢ-seal-renaming {Γ} {Γ′} {A} ρ τ =
+  seal-ren
+    (extˢ (renˢ τ))
+    ren-seal
+    ren-α
+  where
+    ren-seal :
+      ∀ {α} →
+      (sealᵉ A ∷ Γ) ∋ˢ α →
+      (sealᵉ (renameʳ ρ τ A) ∷ Γ′) ∋ˢ extˢ (renˢ τ) α
+    ren-seal Zˢ = Zˢ
+    ren-seal (Sˢ-seal h) = Sˢ-seal (renˢ-wf τ h)
+
+    ren-α :
+      ∀ {α B} →
+      (sealᵉ A ∷ Γ) ∋α α ⦂ B →
+      (sealᵉ (renameʳ ρ τ A) ∷ Γ′) ∋α extˢ (renˢ τ) α
+        ⦂ rename (renᵗ ρ) (extˢ (renˢ τ)) B
+    ren-α Zα =
+      Eq.subst
+        (λ B → (sealᵉ (renameʳ ρ τ A) ∷ Γ′) ∋α zero ⦂ B)
+        (rename-shiftˢ-comm (renᵗ ρ) (renˢ τ) A)
+        Zα
+    ren-α {suc α} (Sα-seal {A = B} h) =
+      Eq.subst
+        (λ C → (sealᵉ (renameʳ ρ τ A) ∷ Γ′) ∋α suc (renˢ τ α) ⦂ C)
+        (rename-shiftˢ-comm (renᵗ ρ) (renˢ τ) B)
+        (Sα-seal (renα-wf τ h))
+
+extˣ-ty-renaming :
+  ∀ {Γ Γ′ A} →
+  (ρ : TyRenaming Γ Γ′) →
+  (τ : SealRenaming ρ) →
+  TyRenaming (termᵉ A ∷ Γ) (termᵉ (renameʳ ρ τ A) ∷ Γ′)
+extˣ-ty-renaming ρ τ =
+  ty-ren
+    (renᵗ ρ)
+    ren-ty
+  where
+    ren-ty : ∀ {X} → (termᵉ _ ∷ _) ∋ᵗ X → (termᵉ _ ∷ _) ∋ᵗ renᵗ ρ X
+    ren-ty (Sᵗ-term h) = Sᵗ-term (renᵗ-wf ρ h)
+
+extˣ-seal-renaming :
+  ∀ {Γ Γ′ A} →
+  (ρ : TyRenaming Γ Γ′) →
+  (τ : SealRenaming ρ) →
+  SealRenaming (extˣ-ty-renaming ρ τ)
+extˣ-seal-renaming {Γ} {Γ′} {A} ρ τ =
+  seal-ren
+    (renˢ τ)
+    ren-seal
+    ren-α
+  where
+    ren-seal :
+      ∀ {α} →
+      (termᵉ A ∷ Γ) ∋ˢ α →
+      (termᵉ (renameʳ ρ τ A) ∷ Γ′) ∋ˢ renˢ τ α
+    ren-seal (Sˢ-term h) = Sˢ-term (renˢ-wf τ h)
+
+    ren-α :
+      ∀ {α B} →
+      (termᵉ A ∷ Γ) ∋α α ⦂ B →
+      (termᵉ (renameʳ ρ τ A) ∷ Γ′) ∋α renˢ τ α
+        ⦂ rename (renᵗ ρ) (renˢ τ) B
+    ren-α (Sα-term h) = Sα-term (renα-wf τ h)
+
+rename-preserves-WfTy :
+  ∀ {Γ Γ′ A} →
+  (ρ : TyRenaming Γ Γ′) →
+  (τ : SealRenaming ρ) →
+  WfTy Γ A →
+  WfTy Γ′ (renameʳ ρ τ A)
+rename-preserves-WfTy ρ τ (wfX h) = wfX (renᵗ-wf ρ h)
+rename-preserves-WfTy ρ τ (wfα h) = wfα (renˢ-wf τ h)
+rename-preserves-WfTy ρ τ wfBase = wfBase
+rename-preserves-WfTy ρ τ wf★ = wf★
+rename-preserves-WfTy ρ τ (wf⇒ hA hB) =
+  wf⇒ (rename-preserves-WfTy ρ τ hA)
+      (rename-preserves-WfTy ρ τ hB)
+rename-preserves-WfTy ρ τ (wf∀ hA) =
+  wf∀
+    (rename-preserves-WfTy
+      (extᵗ-ty-renaming ρ)
+      (extᵗ-seal-renaming τ)
+      hA)
+
+rename-ground :
+  ∀ ρ σ {G} →
+  Ground G →
+  Ground (rename ρ σ G)
+rename-ground ρ σ (`α α) = `α (σ α)
+rename-ground ρ σ (‵ ι) = ‵ ι
+rename-ground ρ σ ★⇒★ = ★⇒★
+
+rename-atom :
+  ∀ ρ σ {A} →
+  Atom A →
+  Atom (rename ρ σ A)
+rename-atom ρ σ (`X X) = `X (ρ X)
+rename-atom ρ σ (`α α) = `α (σ α)
+rename-atom ρ σ (‵ ι) = ‵ ι
+rename-atom ρ σ ★ = ★
+
+rename-non∀ :
+  ∀ ρ σ {A} →
+  Non∀ A →
+  Non∀ (rename ρ σ A)
+rename-non∀ ρ σ non∀-X = non∀-X
+rename-non∀ ρ σ non∀-α = non∀-α
+rename-non∀ ρ σ non∀-‵ = non∀-‵
+rename-non∀ ρ σ non∀-★ = non∀-★
+rename-non∀ ρ σ non∀-⇒ = non∀-⇒
+
+------------------------------------------------------------------------
+-- Well-typed substitutions
+------------------------------------------------------------------------
+
+renaming-ty-substitution :
+  ∀ {Γ Γ′} →
+  TyRenaming Γ Γ′ →
+  TySubstitution Γ Γ′
+renaming-ty-substitution ρ =
+  ty-sub
+    (λ X → `X (renᵗ ρ X))
+    (λ h → wfX (renᵗ-wf ρ h))
+
+renaming-seal-substitution :
+  ∀ {Γ Γ′} {ρ : TyRenaming Γ Γ′} →
+  SealRenaming ρ →
+  SealSubstitution Γ Γ′
+renaming-seal-substitution τ =
+  seal-sub
+    (λ α → `α (renˢ τ α))
+    (λ h → wfα (renˢ-wf τ h))
+
+extᵗ-ty-substitution :
+  ∀ {Γ Γ′} →
+  TySubstitution Γ Γ′ →
+  TySubstitution (tyᵉ ∷ Γ) (tyᵉ ∷ Γ′)
+extᵗ-ty-substitution σ =
+  ty-sub
+    (extSubstᵗ (subᵗ σ))
+    sub-ty
+  where
+    sub-ty : ∀ {X} → (tyᵉ ∷ _) ∋ᵗ X → WfTy (tyᵉ ∷ _) (extSubstᵗ (subᵗ σ) X)
+    sub-ty Zᵗ = wfX Zᵗ
+    sub-ty (Sᵗ-ty h) =
+      rename-preserves-WfTy shiftᵗ-ty-renaming shiftᵗ-seal-renaming
+        (subᵗ-wf σ h)
+
+extᵗ-seal-substitution :
+  ∀ {Γ Γ′} →
+  SealSubstitution Γ Γ′ →
+  SealSubstitution (tyᵉ ∷ Γ) (tyᵉ ∷ Γ′)
+extᵗ-seal-substitution τ =
+  seal-sub
+    (liftSubstˢOverTy (subˢ τ))
+    sub-seal
+  where
+    sub-seal :
+      ∀ {α} → (tyᵉ ∷ _) ∋ˢ α → WfTy (tyᵉ ∷ _) (liftSubstˢOverTy (subˢ τ) α)
+    sub-seal (Sˢ-ty h) =
+      rename-preserves-WfTy shiftᵗ-ty-renaming shiftᵗ-seal-renaming
+        (subˢ-wf τ h)
+
+extˢ-ty-substitution :
+  ∀ {Γ Γ′ A} →
+  (σ : TySubstitution Γ Γ′) →
+  (τ : SealSubstitution Γ Γ′) →
+  TySubstitution (sealᵉ A ∷ Γ) (sealᵉ (substˢᵘᵇ σ τ A) ∷ Γ′)
+extˢ-ty-substitution σ τ =
+  ty-sub
+    (λ X → ⇑ˢ (subᵗ σ X))
+    sub-ty
+  where
+    sub-ty :
+      ∀ {X} → (sealᵉ _ ∷ _) ∋ᵗ X → WfTy (sealᵉ _ ∷ _) (⇑ˢ (subᵗ σ X))
+    sub-ty (Sᵗ-seal h) =
+      rename-preserves-WfTy shiftˢ-ty-renaming shiftˢ-seal-renaming
+        (subᵗ-wf σ h)
+
+extˢ-seal-substitution :
+  ∀ {Γ Γ′ A} →
+  (σ : TySubstitution Γ Γ′) →
+  (τ : SealSubstitution Γ Γ′) →
+  SealSubstitution (sealᵉ A ∷ Γ) (sealᵉ (substˢᵘᵇ σ τ A) ∷ Γ′)
+extˢ-seal-substitution σ τ =
+  seal-sub
+    (extSubstˢ (subˢ τ))
+    sub-seal
+  where
+    sub-seal :
+      ∀ {α} → (sealᵉ _ ∷ _) ∋ˢ α → WfTy (sealᵉ _ ∷ _) (extSubstˢ (subˢ τ) α)
+    sub-seal Zˢ = wfα Zˢ
+    sub-seal (Sˢ-seal h) =
+      rename-preserves-WfTy shiftˢ-ty-renaming shiftˢ-seal-renaming
+        (subˢ-wf τ h)
+
+subst-preserves-WfTy :
+  ∀ {Γ Γ′ A} →
+  (σ : TySubstitution Γ Γ′) →
+  (τ : SealSubstitution Γ Γ′) →
+  WfTy Γ A →
+  WfTy Γ′ (substˢᵘᵇ σ τ A)
+subst-preserves-WfTy σ τ (wfX h) = subᵗ-wf σ h
+subst-preserves-WfTy σ τ (wfα h) = subˢ-wf τ h
+subst-preserves-WfTy σ τ wfBase = wfBase
+subst-preserves-WfTy σ τ wf★ = wf★
+subst-preserves-WfTy σ τ (wf⇒ hA hB) =
+  wf⇒ (subst-preserves-WfTy σ τ hA)
+      (subst-preserves-WfTy σ τ hB)
+subst-preserves-WfTy σ τ (wf∀ hA) =
+  wf∀
+    (subst-preserves-WfTy
+      (extᵗ-ty-substitution σ)
+      (extᵗ-seal-substitution τ)
+      hA)
+
+singleTySubstitution :
+  ∀ {Γ B} →
+  WfTy Γ B →
+  TySubstitution (tyᵉ ∷ Γ) Γ
+singleTySubstitution hB =
+  ty-sub
+    (singleTyEnv _)
+    sub-ty
+  where
+    sub-ty : ∀ {X} → (tyᵉ ∷ _) ∋ᵗ X → WfTy _ (singleTyEnv _ X)
+    sub-ty Zᵗ = hB
+    sub-ty (Sᵗ-ty h) = wfX h
+
+dropTySealSubstitution :
+  ∀ {Γ} →
+  SealSubstitution (tyᵉ ∷ Γ) Γ
+dropTySealSubstitution =
+  seal-sub
+    `α_
+    sub-seal
+  where
+    sub-seal : ∀ {α} → (tyᵉ ∷ _) ∋ˢ α → WfTy _ (`α α)
+    sub-seal (Sˢ-ty h) = wfα h
+
+dropSealTySubstitution :
+  ∀ {Γ A} →
+  TySubstitution (sealᵉ A ∷ Γ) Γ
+dropSealTySubstitution =
+  ty-sub
+    `X_
+    sub-ty
+  where
+    sub-ty : ∀ {X} → (sealᵉ _ ∷ _) ∋ᵗ X → WfTy _ (`X X)
+    sub-ty (Sᵗ-seal h) = wfX h
+
+singleSealSubstitution :
+  ∀ {Γ A B} →
+  WfTy Γ B →
+  SealSubstitution (sealᵉ A ∷ Γ) Γ
+singleSealSubstitution hB =
+  seal-sub
+    (singleSealEnv _)
+    sub-seal
+  where
+    sub-seal : ∀ {α} → (sealᵉ _ ∷ _) ∋ˢ α → WfTy _ (singleSealEnv _ α)
+    sub-seal Zˢ = hB
+    sub-seal (Sˢ-seal h) = wfα h

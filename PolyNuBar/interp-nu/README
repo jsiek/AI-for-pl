@@ -1,0 +1,34 @@
+
+The main file is regression-test.ss.
+
+To run all the tests, do the following.
+Start Petite Chez Scheme:
+
+./petite
+
+Petite Chez Scheme Version 7.4
+Copyright (c) 1985-2007 Cadence Research Systems
+
+> (load "regression-test.ss")
+beta0 passed
+untyped-primitive passed
+...
+
+
+If the log variable in test.ss is set to #t, then latex files
+are generated for every test. The latex file contains the
+trace of execution. The file name is the
+name of the test (the first argument to the test function)
+with .tex added to the end.
+
+Here's a summary of what's in all the files:
+
+regression-test.ss	Lots of examples with expected output to test the system.
+test.ss			Infrastructure for testing.
+simulation.ss		Testing the simulation for the Jack-of-All-Trades principle.
+reduce.ss		The reduction rules.
+type-check.ss		The type checker, well-formedness checker, and untyped function.
+subst.ss		Various kinds of substitution and the uniquify function.
+type-rel.ss		Relations on types, such as equality, consistency, etc.
+match.ss		The match macro for doing case analysis.
+pretty-print.ss		Latex output of types and terms.

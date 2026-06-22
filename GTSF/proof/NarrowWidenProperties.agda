@@ -48,24 +48,27 @@ mutual
     ∀ {Δ Σ A B c} →
     Δ ∣ Σ ⊢ c ∶ A ⊒ B →
     WfTy Δ A
-  narrow-src-wf (nrw-id hA atA) = hA
+  narrow-src-wf (nrw-id hA) = hA
   narrow-src-wf (nrw-fun s t) =
     wf⇒ (widen-tgt-wf s) (narrow-src-wf t)
   narrow-src-wf (nrw-all s) = wf∀ (narrow-src-wf s)
   narrow-src-wf (nrw-gen hA s) = hA
   narrow-src-wf (nrw-untag hG gG s) = wf★
+  narrow-src-wf (nrw-untagˢ hA α∈Σ s) = wf★
   narrow-src-wf (nrw-seal hA′ α∈Σ s) = narrow-src-wf s
 
   widen-tgt-wf :
     ∀ {Δ Σ A B c} →
     Δ ∣ Σ ⊢ c ∶ A ⊑ B →
     WfTy Δ B
-  widen-tgt-wf (wid-id hA atA) = hA
+  widen-tgt-wf (wid-id hA) = hA
   widen-tgt-wf (wid-fun s t) =
     wf⇒ (narrow-src-wf s) (widen-tgt-wf t)
   widen-tgt-wf (wid-all s) = wf∀ (widen-tgt-wf s)
   widen-tgt-wf (wid-inst hB s) = hB
   widen-tgt-wf (wid-tag hG gG s) = wf★
+  widen-tgt-wf (wid-tagˢ hA α∈Σ s) = wf★
+  widen-tgt-wf (wid-tagˢ-comp hA α∈Σ s t) = wf★
   widen-tgt-wf (wid-unseal hA′ α∈Σ s) = widen-tgt-wf s
 
 mutual
@@ -75,8 +78,8 @@ mutual
     StoreIncl Σ Σ′ →
     Δ ∣ Σ ⊢ c ∶ A ⊒ B →
     Δ′ ∣ Σ′ ⊢ c ∶ A ⊒ B
-  narrow-weaken Δ≤Δ′ incl (nrw-id hA atA) =
-    nrw-id (WfTy-weakenᵗ hA Δ≤Δ′) atA
+  narrow-weaken Δ≤Δ′ incl (nrw-id hA) =
+    nrw-id (WfTy-weakenᵗ hA Δ≤Δ′)
   narrow-weaken Δ≤Δ′ incl (nrw-fun s t) =
     nrw-fun (widen-weaken Δ≤Δ′ incl s) (narrow-weaken Δ≤Δ′ incl t)
   narrow-weaken Δ≤Δ′ incl (nrw-all s) =
@@ -95,6 +98,9 @@ mutual
   narrow-weaken Δ≤Δ′ incl (nrw-untag hG gG s) =
     nrw-untag (WfTy-weakenᵗ hG Δ≤Δ′) gG
       (narrow-weaken Δ≤Δ′ incl s)
+  narrow-weaken Δ≤Δ′ incl (nrw-untagˢ hA α∈Σ s) =
+    nrw-untagˢ (WfTy-weakenᵗ hA Δ≤Δ′) (incl α∈Σ)
+      (narrow-weaken Δ≤Δ′ incl s)
   narrow-weaken Δ≤Δ′ incl (nrw-seal hA′ α∈Σ s) =
     nrw-seal (WfTy-weakenᵗ hA′ Δ≤Δ′) (incl α∈Σ)
       (narrow-weaken Δ≤Δ′ incl s)
@@ -105,8 +111,8 @@ mutual
     StoreIncl Σ Σ′ →
     Δ ∣ Σ ⊢ c ∶ A ⊑ B →
     Δ′ ∣ Σ′ ⊢ c ∶ A ⊑ B
-  widen-weaken Δ≤Δ′ incl (wid-id hA atA) =
-    wid-id (WfTy-weakenᵗ hA Δ≤Δ′) atA
+  widen-weaken Δ≤Δ′ incl (wid-id hA) =
+    wid-id (WfTy-weakenᵗ hA Δ≤Δ′)
   widen-weaken Δ≤Δ′ incl (wid-fun s t) =
     wid-fun (narrow-weaken Δ≤Δ′ incl s) (widen-weaken Δ≤Δ′ incl t)
   widen-weaken Δ≤Δ′ incl (wid-all s) =
@@ -125,6 +131,13 @@ mutual
   widen-weaken Δ≤Δ′ incl (wid-tag hG gG s) =
     wid-tag (WfTy-weakenᵗ hG Δ≤Δ′) gG
       (widen-weaken Δ≤Δ′ incl s)
+  widen-weaken Δ≤Δ′ incl (wid-tagˢ hA α∈Σ s) =
+    wid-tagˢ (WfTy-weakenᵗ hA Δ≤Δ′) (incl α∈Σ)
+      (widen-weaken Δ≤Δ′ incl s)
+  widen-weaken Δ≤Δ′ incl (wid-tagˢ-comp hA α∈Σ s t) =
+    wid-tagˢ-comp (WfTy-weakenᵗ hA Δ≤Δ′) (incl α∈Σ)
+      (widen-weaken Δ≤Δ′ incl s)
+      (widen-weaken Δ≤Δ′ incl t)
   widen-weaken Δ≤Δ′ incl (wid-unseal hA′ α∈Σ s) =
     wid-unseal (WfTy-weakenᵗ hA′ Δ≤Δ′) (incl α∈Σ)
       (widen-weaken Δ≤Δ′ incl s)
@@ -136,8 +149,8 @@ mutual
     Δ ∣ Σ ⊢ c ∶ A ⊒ B →
     Δ′ ∣ renameStoreᵗ ρ Σ
       ⊢ renameᶜ ρ c ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
-  narrow-renameᵗ hρ (nrw-id hA atA) =
-    nrw-id (renameᵗ-preserves-WfTy hA hρ) (renameᵗ-atom _ atA)
+  narrow-renameᵗ hρ (nrw-id hA) =
+    nrw-id (renameᵗ-preserves-WfTy hA hρ)
   narrow-renameᵗ hρ (nrw-fun s t) =
     nrw-fun (widen-renameᵗ hρ s) (narrow-renameᵗ hρ t)
   narrow-renameᵗ {Δ′ = Δ′} {Σ = Σ} {ρ = ρ} hρ (nrw-all s) =
@@ -165,6 +178,11 @@ mutual
       (renameᵗ-preserves-WfTy hG hρ)
       (renameᵗ-ground _ gG)
       (narrow-renameᵗ hρ s)
+  narrow-renameᵗ hρ (nrw-untagˢ hA α∈Σ s) =
+    nrw-untagˢ
+      (renameᵗ-preserves-WfTy hA hρ)
+      (∈-renameStoreᵗ _ α∈Σ)
+      (narrow-renameᵗ hρ s)
   narrow-renameᵗ hρ (nrw-seal hA′ α∈Σ s) =
     nrw-seal
       (renameᵗ-preserves-WfTy hA′ hρ)
@@ -177,8 +195,8 @@ mutual
     Δ ∣ Σ ⊢ c ∶ A ⊑ B →
     Δ′ ∣ renameStoreᵗ ρ Σ
       ⊢ renameᶜ ρ c ∶ renameᵗ ρ A ⊑ renameᵗ ρ B
-  widen-renameᵗ hρ (wid-id hA atA) =
-    wid-id (renameᵗ-preserves-WfTy hA hρ) (renameᵗ-atom _ atA)
+  widen-renameᵗ hρ (wid-id hA) =
+    wid-id (renameᵗ-preserves-WfTy hA hρ)
   widen-renameᵗ hρ (wid-fun s t) =
     wid-fun (narrow-renameᵗ hρ s) (widen-renameᵗ hρ t)
   widen-renameᵗ {Δ′ = Δ′} {Σ = Σ} {ρ = ρ} hρ (wid-all s) =
@@ -207,6 +225,17 @@ mutual
       (renameᵗ-preserves-WfTy hG hρ)
       (renameᵗ-ground _ gG)
       (widen-renameᵗ hρ s)
+  widen-renameᵗ hρ (wid-tagˢ hA α∈Σ s) =
+    wid-tagˢ
+      (renameᵗ-preserves-WfTy hA hρ)
+      (∈-renameStoreᵗ _ α∈Σ)
+      (widen-renameᵗ hρ s)
+  widen-renameᵗ hρ (wid-tagˢ-comp hA α∈Σ s t) =
+    wid-tagˢ-comp
+      (renameᵗ-preserves-WfTy hA hρ)
+      (∈-renameStoreᵗ _ α∈Σ)
+      (widen-renameᵗ hρ s)
+      (widen-renameᵗ hρ t)
   widen-renameᵗ hρ (wid-unseal hA′ α∈Σ s) =
     wid-unseal
       (renameᵗ-preserves-WfTy hA′ hρ)
@@ -236,10 +265,15 @@ widen-⇑ᵗ-cons p =
 -- Composition (aka. transitivity)
 ------------------------------------------------------------------------
 
+{-# TERMINATING #-}
 mutual 
   _⨟ⁿ_ : ∀{Δ Σ A B C}{s t : Coercion} → (Δ ∣ Σ ⊢ s ∶ A ⊒ B) → (Δ ∣ Σ ⊢ t ∶ B ⊒ C)
         → ∃[ u ] (Δ ∣ Σ ⊢ u ∶ A ⊒ C)
-  s ⨟ⁿ nrw-id wfB atB = _ , s
+  s ⨟ⁿ nrw-id wfB = _ , s
+  nrw-id (wf⇒ wfA wfB) ⨟ⁿ nrw-fun s t =
+    _ , nrw-fun s t
+  nrw-id (wf∀ wfA) ⨟ⁿ nrw-all t =
+    _ , nrw-all t
   nrw-fun s t ⨟ⁿ nrw-fun s′ t′
       with s′ ⨟ʷ s | t ⨟ⁿ t′
   ... | _ , s″ | _ , t″ = _ , nrw-fun s″ t″
@@ -258,19 +292,28 @@ mutual
   s ⨟ⁿ nrw-gen wfB t
       with narrow-⇑ᵗ s ⨟ⁿ t
   ... | _ , s′ = _ , nrw-gen (narrow-src-wf s) s′
-  nrw-id wf★ at★ ⨟ⁿ nrw-untag wfG gG t =
+  nrw-id wf★ ⨟ⁿ nrw-untag wfG gG t =
     _ , nrw-untag wfG gG t
   nrw-untag wfG′ gG′ s
       ⨟ⁿ q@(nrw-untag wfG gG t)
       with s ⨟ⁿ q
   ... | _ , s′ = _ , nrw-untag wfG′ gG′ s′
+  s ⨟ⁿ nrw-untagˢ wfA′ α∈Σ t
+      with s ⨟ⁿ t
+  ... | _ , s′ = _ , nrw-seal wfA′ α∈Σ s′
   s ⨟ⁿ nrw-seal wfA′ ∈Σ t
       with s ⨟ⁿ t
   ... | _ , s′ = _ , nrw-seal wfA′ ∈Σ s′
 
   _⨟ʷ_ : ∀{Δ Σ A B C}{s t : Coercion} → (Δ ∣ Σ ⊢ s ∶ A ⊑ B) → (Δ ∣ Σ ⊢ t ∶ B ⊑ C)
         → ∃[ u ] (Δ ∣ Σ ⊢ u ∶ A ⊑ C)
-  s ⨟ʷ wid-id wfB atB = _ , s
+  s ⨟ʷ wid-id wfB = _ , s
+  wid-id (wf⇒ wfA wfB) ⨟ʷ wid-fun s t =
+    _ , wid-fun s t
+  wid-id (wf∀ wfA) ⨟ʷ wid-all t =
+    _ , wid-all t
+  wid-id (wf∀ wfA) ⨟ʷ wid-inst wfB t =
+    _ , wid-inst wfB t
   wid-fun s t ⨟ʷ wid-fun s′ t′
       with s′ ⨟ⁿ s | t ⨟ʷ t′
   ... | _ , s″ | _ , t″ = _ , wid-fun s″ t″
@@ -301,7 +344,12 @@ mutual
   s ⨟ʷ wid-tag wfG gG t
       with s ⨟ʷ t
   ... | _ , s′ = _ , wid-tag wfG gG s′
-  wid-id wfA atA ⨟ʷ wid-unseal wfA′ α∈Σ t =
+  s ⨟ʷ wid-tagˢ wfA′ α∈Σ t =
+    _ , wid-tagˢ-comp wfA′ α∈Σ s t
+  s ⨟ʷ wid-tagˢ-comp wfA′ α∈Σ t u
+      with s ⨟ʷ t
+  ... | _ , s′ = _ , wid-tagˢ-comp wfA′ α∈Σ s′ u
+  wid-id wfA ⨟ʷ wid-unseal wfA′ α∈Σ t =
     _ , wid-unseal wfA′ α∈Σ t
   wid-inst wfB s ⨟ʷ q@(wid-unseal wfA′ α∈Σ t)
       with s ⨟ʷ widen-⇑ᵗ-cons q

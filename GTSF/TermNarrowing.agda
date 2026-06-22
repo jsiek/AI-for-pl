@@ -1,10 +1,10 @@
 {-
   Term imprecision for the Nu syntax.
 
-  This file mechanizes the term-imprecision relation from
-  cambridge22.lagda.md.  The paper presentation uses a combined environment
-  for term variables and seal assumptions; here we split it into the store
-  widening context from NarrowWiden and a term-variable context of coercions.
+  This file mechanizes the term-imprecision relation from the cambridge22/23
+  notes.  The paper presentation uses a combined environment for term variables
+  and seal assumptions; here we split it into the store widening context from
+  NarrowWiden and a term-variable context of coercions.
 
   Freshness side conditions from the paper are not reified here.  The paper's
   +/- cast notation is represented using NuTerms' single raw cast form and the
@@ -81,18 +81,16 @@ data _∣_∣_⊢_⊒_∶_
       ------------------------------------
     → Δ ∣ σ ∣ γ ⊢ Λ V ⊒ Λ V′ ∶ `∀ p
 
-  -- cambridge22 says (zero ꞉= ★ ⊑) instead of (zero ꞉ id ★).  -Jeremy
-  ⊒Λ : ∀ {N V′ p}
-    → suc Δ ∣ (zero ꞉ id ★) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ ⇑ᵗᵐ N ⊒ V′ ∶ p
+  ⊒Λ : ∀ {A N V′ p}
+    → suc Δ ∣ (zero ꞉= ★ ⊑) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ ⇑ᵗᵐ N ⊒ V′ ∶ p
       --------------------------------------------------------
-    → Δ ∣ σ ∣ γ ⊢ N ⊒ Λ V′ ∶ gen ★ p
+    → Δ ∣ σ ∣ γ ⊢ N ⊒ Λ V′ ∶ gen A p
 
-  -- cambridge22 says (zero ꞉= ★ ⊑) instead of (zero ꞉ id ★).  -Jeremy
-  ⊒⟨ν⟩ : ∀ {N V′ p s}
-    → suc Δ ∣ (zero ꞉ id ★) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+  ⊒⟨ν⟩ : ∀ {A N V′ p s}
+    → suc Δ ∣ (zero ꞉= ★ ⊑) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
         ⊢ ⇑ᵗᵐ N ⊒ V′ ⟨ s ⟩ ∶ p
       ----------------------------------------------------
-    → Δ ∣ σ ∣ γ ⊢ N ⊒ V′ ⟨ gen ★ s ⟩ ∶ gen ★ p
+    → Δ ∣ σ ∣ γ ⊢ N ⊒ V′ ⟨ gen A s ⟩ ∶ gen A p
 
   α⊒α : ∀ {L L′ p q α}
     → Δ ∣ σ ∣ γ ⊢ L ⊒ L′ ∶ `∀ p
@@ -132,25 +130,25 @@ data _∣_∣_⊢_⊒_∶_
     → Δ ∣ σ ∣ γ ⊢ M ⊕[ addℕ ] N ⊒ M′ ⊕[ addℕ ] N′ ∶ id (‵ `ℕ)
 
   ⊒cast+ : ∀ {M M′ q r s A B}
-    → Δ ∣ σ ⊢ q ⨟ s ≈ r ∶ A ⊑ B
+    → Δ ∣ σ ⊢ q ⨟ s ≈ᵗ r ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r
       ----------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ⟨ - s ⟩ ∶ q
 
   ⊒cast- : ∀ {M M′ q r s A B}
-    → Δ ∣ σ ⊢ q ⨟ s ≈ r ∶ A ⊑ B
+    → Δ ∣ σ ⊢ q ⨟ s ≈ᵗ r ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ q
       ----------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ⟨ s ⟩ ∶ r
 
   cast+⊒ : ∀ {M M′ p r t A B}
-    → Δ ∣ σ ⊢ r ≈ t ⨟ p ∶ A ⊑ B
+    → Δ ∣ σ ⊢ r ≈ᵗ t ⨟ p ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p
       ----------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⟨ - t ⟩ ⊒ M′ ∶ r
 
   cast-⊒ : ∀ {M M′ p r t A B}
-    → Δ ∣ σ ⊢ r ≈ t ⨟ p ∶ A ⊑ B
+    → Δ ∣ σ ⊢ r ≈ᵗ t ⨟ p ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r
       ----------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⟨ t ⟩ ⊒ M′ ∶ p

@@ -1464,8 +1464,8 @@ Duality is an involution. For any c : A =⇒_Σ B, we have --c = c.
     Γ ⊢ V E : Γ ⊢ C ~~> B
 
     Γ ⊢ E : C ~~> ∀X.B[X]
-    --------------------- α ∈ dom(Γ)
-    Γ ⊢ E α : C ~~> B[α]
+    ----------------------
+    Γ, α:=A ⊢ E α : C ~~> B[α]
 
     Γ ⊢ E : C ~~> ι    Γ ⊢ M : ι′
     ----------------------------- tp(⊕) = ι → ι′ → ι″
@@ -1903,7 +1903,10 @@ Duality is an involution. For any c : A =⇒_Σ B, we have --c = c.
         -------------------------------------------
         Σ, α:=A ⊢ E[N[α]] : C
 
-        [Needs weakening lemma for contexts]
+        [Needs weakening lemma for contexts. In the E = E′ α case,
+        invert the allocating context rule for E′ α, weaken the context
+        derivation across the newly allocated seal, then rebuild/weaken
+        the type-application context.]
 
     -------------------------
     Σ ⊢ E[blame]  —→_∅  blame

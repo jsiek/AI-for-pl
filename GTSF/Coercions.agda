@@ -3,7 +3,7 @@
 module Coercions where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (Bool; false; true; _∧_)
+open import Data.Bool using (Bool; false; true)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List using (List; []; _∷_; _++_; length; replicate; map)
 open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
@@ -112,16 +112,19 @@ renameᶜ ρ (gen A p) = gen (renameᵗ ρ A) (renameᶜ (extᵗ ρ) p)
 renameᶜ ρ (inst B p) = inst (renameᵗ ρ B) (renameᶜ (extᵗ ρ) p)
 
 data DualMode : Set where
-  normal tag-to-seal seal-to-tag : DualMode
+  tag-to-seal seal-to-tag : DualMode
 
 DualEnv : Set
 DualEnv = TyVar → DualMode
 
-normalᵈ : DualEnv
-normalᵈ X = normal
+tag-to-sealᵈ : DualEnv
+tag-to-sealᵈ X = tag-to-seal
+
+seal-to-tagᵈ : DualEnv
+seal-to-tagᵈ X = seal-to-tag
 
 extᵈ : DualEnv → DualEnv
-extᵈ μ zero = normal
+extᵈ μ zero = tag-to-seal
 extᵈ μ (suc X) = μ X
 
 genᵈ : DualEnv → DualEnv
@@ -133,13 +136,8 @@ instᵈ μ zero = seal-to-tag
 instᵈ μ (suc X) = μ X
 
 mode≤ : DualMode → DualMode → Bool
-mode≤ normal normal = true
-mode≤ normal tag-to-seal = false
-mode≤ normal seal-to-tag = false
-mode≤ tag-to-seal normal = true
 mode≤ tag-to-seal tag-to-seal = true
 mode≤ tag-to-seal seal-to-tag = false
-mode≤ seal-to-tag normal = true
 mode≤ seal-to-tag tag-to-seal = false
 mode≤ seal-to-tag seal-to-tag = true
 
@@ -148,75 +146,43 @@ ModeIncl μ ν = ∀ X → mode≤ (μ X) (ν X) ≡ true
 
 modeIncl-refl : ∀ {μ} → ModeIncl μ μ
 modeIncl-refl {μ} X with μ X
-modeIncl-refl X | normal = refl
 modeIncl-refl X | tag-to-seal = refl
 modeIncl-refl X | seal-to-tag = refl
 
-modeIncl-normal : ∀ {μ} → ModeIncl μ normalᵈ
-modeIncl-normal {μ = μ} X with μ X
-modeIncl-normal X | normal = refl
-modeIncl-normal X | tag-to-seal = refl
-modeIncl-normal X | seal-to-tag = refl
-
 tagModeAllowed : DualMode → Bool
-tagModeAllowed normal = true
 tagModeAllowed tag-to-seal = true
 tagModeAllowed seal-to-tag = false
 
 sealModeAllowed : DualMode → Bool
-sealModeAllowed normal = true
 sealModeAllowed tag-to-seal = false
 sealModeAllowed seal-to-tag = true
 
-mutual
-  tyAllowed : DualEnv → Ty → Bool
-  tyAllowed μ (＇ α) with μ α
-  tyAllowed μ (＇ α) | normal = true
-  tyAllowed μ (＇ α) | tag-to-seal = false
-  tyAllowed μ (＇ α) | seal-to-tag = false
-  tyAllowed μ (‵ ι) = true
-  tyAllowed μ ★ = true
-  tyAllowed μ (A ⇒ B) = tyAllowed μ A ∧ tyAllowed μ B
-  tyAllowed μ (`∀ A) = tyAllowed (extᵈ μ) A
-
-  tagTyAllowed : DualEnv → Ty → Bool
-  tagTyAllowed μ (＇ α) = tagModeAllowed (μ α)
-  tagTyAllowed μ (‵ ι) = true
-  tagTyAllowed μ ★ = true
-  tagTyAllowed μ (A ⇒ B) = tyAllowed μ A ∧ tyAllowed μ B
-  tagTyAllowed μ (`∀ A) = tyAllowed (extᵈ μ) A
+tagTyAllowed : DualEnv → Ty → Bool
+tagTyAllowed μ (＇ α) = tagModeAllowed (μ α)
+tagTyAllowed μ (‵ ι) = true
+tagTyAllowed μ ★ = true
+tagTyAllowed μ (A ⇒ B) = true
+tagTyAllowed μ (`∀ A) = true
 
 dualTag : DualEnv → Ty → Coercion
-dualTag μ (＇ α) with μ α
-dualTag μ (＇ α) | tag-to-seal = seal ★ α
-dualTag μ (＇ α) | normal = (＇ α) ？
-dualTag μ (＇ α) | seal-to-tag = seal ★ α
+dualTag μ (＇ α) = seal ★ α
 dualTag μ (‵ ι) = (‵ ι) ？
 dualTag μ ★ = ★ ？
 dualTag μ (A ⇒ B) = (A ⇒ B) ？
 dualTag μ (`∀ A) = (`∀ A) ？
 
 dualUntag : DualEnv → Ty → Coercion
-dualUntag μ (＇ α) with μ α
-dualUntag μ (＇ α) | tag-to-seal = unseal α ★
-dualUntag μ (＇ α) | normal = (＇ α) !
-dualUntag μ (＇ α) | seal-to-tag = unseal α ★
+dualUntag μ (＇ α) = unseal α ★
 dualUntag μ (‵ ι) = (‵ ι) !
 dualUntag μ ★ = ★ !
 dualUntag μ (A ⇒ B) = (A ⇒ B) !
 dualUntag μ (`∀ A) = (`∀ A) !
 
 dualSeal : DualEnv → Ty → TyVar → Coercion
-dualSeal μ A α with μ α
-dualSeal μ A α | seal-to-tag = (＇ α) !
-dualSeal μ A α | normal = unseal α A
-dualSeal μ A α | tag-to-seal = (＇ α) !
+dualSeal μ A α = (＇ α) !
 
 dualUnseal : DualEnv → TyVar → Ty → Coercion
-dualUnseal μ α A with μ α
-dualUnseal μ α A | seal-to-tag = (＇ α) ？
-dualUnseal μ α A | normal = seal A α
-dualUnseal μ α A | tag-to-seal = (＇ α) ？
+dualUnseal μ α A = (＇ α) ？
 
 infix 8 -_
 
@@ -233,7 +199,7 @@ dual μ (gen A c) = inst A (dual (genᵈ μ) c)
 dual μ (inst B c) = gen B (dual (instᵈ μ) c)
 
 -_ : Coercion → Coercion
--_ = dual normalᵈ
+-_ = dual tag-to-sealᵈ
 
 ⇑ᶜ : Coercion → Coercion
 ⇑ᶜ = renameᶜ suc
@@ -255,7 +221,6 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
 
   cast-id : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A : Ty}
     → WfTy Δ A
-    → tyAllowed μ A ≡ true
     -- fvs(A) ∩ dom(Σ) = ∅
      -------------------
     → μ ∣ Δ ∣ Σ ⊢ id A ∶ A =⇒ A
@@ -263,7 +228,6 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
   cast-seal : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{α : TyVar}{A : Ty}
     → WfTy Δ A
     → (α , A) ∈ Σ
-    → tyAllowed μ A ≡ true
     → sealModeAllowed (μ α) ≡ true
      ---------------------------
     → μ ∣ Δ ∣ Σ ⊢ seal A α ∶ A =⇒ (＇ α)
@@ -271,7 +235,6 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
   cast-unseal : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{α : TyVar}{A : Ty}
     → WfTy Δ A
     → (α , A) ∈ Σ
-    → tyAllowed μ A ≡ true
     → sealModeAllowed (μ α) ≡ true
      -----------------------------
     → μ ∣ Δ ∣ Σ ⊢ unseal α A ∶ (＇ α) =⇒ A
@@ -312,7 +275,6 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
   -- ν̅ 
   cast-inst : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → WfTy Δ B
-    → tyAllowed μ B ≡ true
     → instᵈ μ ∣ suc Δ ∣ (0 , ★) ∷ ⟰ᵗ Σ ⊢ s ∶ A =⇒ ⇑ᵗ B
      ----------------------------------------
     → μ ∣ Δ ∣ Σ ⊢ (inst B s) ∶ (`∀ A) =⇒ B
@@ -320,7 +282,6 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
   -- ν
   cast-gen : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → WfTy Δ A
-    → tyAllowed μ A ≡ true
     → genᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ s ∶ ⇑ᵗ A =⇒ B
      ----------------------------------
     → μ ∣ Δ ∣ Σ ⊢ (gen A s) ∶ A =⇒ (`∀ B)
@@ -328,6 +289,6 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
 infix 4 _∣_⊢_∶_=⇒_
 
 _∣_⊢_∶_=⇒_ : TyCtx → Store → Coercion → Ty → Ty → Set
-Δ ∣ Σ ⊢ c ∶ A =⇒ B = normalᵈ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
+Δ ∣ Σ ⊢ c ∶ A =⇒ B = ∃[ μ ] μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
 
   

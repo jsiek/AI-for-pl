@@ -7,7 +7,8 @@ module proof.NuPreservation where
 --   * Uses the type/coercion/term metatheory factored into sibling proof files.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using (_∷_)
+open import Data.List using (List; []; _∷_)
+open import Data.List.Membership.Propositional using (_∉_)
 open import Data.Nat using (suc; _<_; _≤_; _⊔_; zero; z<s; s≤s)
 open import Data.Nat.Properties
   using (≤-refl; n≤1+n; <-≤-trans; ≤-trans; m≤m⊔n; m≤n⊔m)
@@ -32,11 +33,10 @@ open import proof.NuTermProperties
 ------------------------------------------------------------------------
 
 record PreservationResult
-    (Δ : TyCtx) (Σ : Store) (Γ : Ctx)
+    (Δ : TyCtx) (Σ : Store) (Γ : Ctx) (Δ′ : TyCtx)
     (Σ′ : Store) (N : Term) (A : Ty) : Set₁ where
   constructor preserve
   field
-    Δ′ : TyCtx
     storeWf : StoreWf Δ′ Σ′
     ctx≤ : Δ ≤ Δ′
     storeIncl : StoreIncl Σ Σ′
@@ -45,19 +45,158 @@ record PreservationResult
 
 open PreservationResult public
 
-coercion-open-existing :
-  ∀ {μ Δ Σ c A B α} →
-  α < Δ →
-  μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ A =⇒ B →
-  Δ ∣ Σ ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
-coercion-open-existing {μ = μ} {Σ = Σ} {α = α} α<Δ c⊢ =
-  subst
-    (λ Σ′ → _ ∣ Σ′ ⊢ _ ∶ _ =⇒ _)
-    (renameStoreᵗ-single-suc-cancel α Σ)
-    (coercion-renameᵗᵐ
-      (singleRenameᵗ-Wf-< α<Δ)
-      (ModeRename-to-normal {ρ = singleRenameᵗ α} {μ = μ})
-      c⊢)
+------------------------------------------------------------------------
+-- Typing the type-application machine
+------------------------------------------------------------------------
+
+data CastStack (Δ : TyCtx) (Σ : Store) :
+    List Coercion → Ty → Ty → Set₁ where
+
+  stack[] : ∀ {A} →
+      --------------------
+      CastStack Δ Σ [] A A
+
+  stack∷ : ∀ {μ c cs A B C}
+    → μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
+    → CastStack Δ Σ cs B C
+      -------------------------------
+    → CastStack Δ Σ (c ∷ cs) A C
+
+applyCoercions-typing :
+  ∀ {Δ Σ Γ M cs A B} →
+  CastStack Δ Σ cs A B →
+  Δ ∣ Σ ∣ Γ ⊢ M ⦂ A →
+  Δ ∣ Σ ∣ Γ ⊢ applyCoercions M cs ⦂ B
+applyCoercions-typing stack[] M⊢ = M⊢
+applyCoercions-typing (stack∷ c⊢ cs⊢) M⊢ =
+  applyCoercions-typing cs⊢ (⊢⟨⟩ c⊢ M⊢)
+
+data TypeAppTyping
+    (Δ₀ Δ′ : TyCtx) (Σ : Store) (Γ : Ctx) (α : TyVar)
+    (Aν : Ty) :
+    TypeApp → Ty → Set₁ where
+
+  app⊢ : ∀ {L C cs B}
+    → Δ₀ ∣ Σ ∣ Γ ⊢ L ⦂ `∀ C
+    → CastStack Δ′ ((α , Aν) ∷ Σ) cs (C [ α ]ᴿ) B
+      ------------------------------------
+    → TypeAppTyping Δ₀ Δ′ Σ Γ α Aν (app L α cs) B
+
+  val⊢ : ∀ {V cs A B}
+    → Δ′ ∣ (α , Aν) ∷ Σ ∣ Γ ⊢ V ⦂ A
+    → CastStack Δ′ ((α , Aν) ∷ Σ) cs A B
+      ------------------------------------
+    → TypeAppTyping Δ₀ Δ′ Σ Γ α Aν (val V cs) B
+
+type-app-preservation-step :
+  ∀ {Δ Δ′ Σ Γ α A S T B} →
+  StoreWfAt Δ Σ →
+  CtxWf Δ Γ →
+  Δ ≤ Δ′ →
+  Δ ≤ α →
+  α < Δ′ →
+  α ∉ domˢ Σ →
+  StoreWf Δ′ ((α , A) ∷ Σ) →
+  CtxWf Δ′ Γ →
+  TypeAppTyping Δ Δ′ Σ Γ α A S B →
+  S —→ᵀ T →
+  TypeAppTyping Δ Δ′ Σ Γ α A T B
+type-app-preservation-step wfΣ hΓ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ hΓ′
+    (app⊢ (⊢Λ vV V⊢) stack⊢)
+    (β-Λᵀ vV′) =
+  val⊢
+    (typing-open-freshᵀ wfΣ hΓ Δ≤Δ′ Δ≤α α<Δ′ V⊢)
+    stack⊢
+type-app-preservation-step wfΣ hΓ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ hΓ′
+    (app⊢ (⊢⟨⟩ (cast-all c⊢) V⊢) stack⊢)
+    (β-∀ᵀ vV)
+    with coercion-open-store-fresh wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢
+... | μ′ , cα⊢ =
+  app⊢ V⊢ (stack∷ cα⊢ stack⊢)
+type-app-preservation-step wfΣ hΓ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ hΓ′
+    (app⊢ (⊢⟨⟩ (cast-gen hA c⊢) V⊢) stack⊢)
+    (β-genᵀ vV)
+    with coercion-open-shift-fresh wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢
+... | μ′ , cα⊢ =
+  val⊢
+    (term-weaken Δ≤Δ′ StoreIncl-drop V⊢)
+    (stack∷ cα⊢ stack⊢)
+
+type-app-preservation-closure :
+  ∀ {Δ Δ′ Σ Γ α A S T B} →
+  StoreWfAt Δ Σ →
+  CtxWf Δ Γ →
+  Δ ≤ Δ′ →
+  Δ ≤ α →
+  α < Δ′ →
+  α ∉ domˢ Σ →
+  StoreWf Δ′ ((α , A) ∷ Σ) →
+  CtxWf Δ′ Γ →
+  TypeAppTyping Δ Δ′ Σ Γ α A S B →
+  S —↠ᵀ T →
+  TypeAppTyping Δ Δ′ Σ Γ α A T B
+type-app-preservation-closure
+    wfΣ hΓ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ hΓ′ S⊢ doneᵀ = S⊢
+type-app-preservation-closure
+    wfΣ hΓ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ hΓ′ S⊢ (stepᵀ S→T T↠U) =
+  type-app-preservation-closure
+    wfΣ hΓ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ hΓ′
+    (type-app-preservation-step
+      wfΣ hΓ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ hΓ′ S⊢ S→T)
+    T↠U
+
+type-app-initial :
+  ∀ {Δ Δ′ Σ Γ A B C L c α μ} →
+  StoreWfAt Δ Σ →
+  Δ ≤ Δ′ →
+  Δ ≤ α →
+  α < Δ′ →
+  α ∉ domˢ Σ →
+  StoreWf Δ′ ((α , A) ∷ Σ) →
+  CtxWf Δ′ Γ →
+  WfTy Δ A →
+  Δ ∣ Σ ∣ Γ ⊢ L ⦂ `∀ C →
+  μ ∣ suc Δ ∣ (zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ ⊢ c ∶ C =⇒ ⇑ᵗ B →
+  TypeAppTyping Δ Δ′ Σ Γ α A
+    (app L α ((c [ α ]ᶜ) ∷ [])) B
+type-app-initial wfΣ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ hΓ′ hA hL c⊢
+    with coercion-open-fresh wfΣ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ hA c⊢
+... | μ′ , cα⊢ =
+  app⊢
+    hL
+    (stack∷ cα⊢ stack[])
+
+type-app-preservation :
+  ∀ {Δ Δ′ Σ Γ A B C L c V cs α μ} →
+  StoreWfAt Δ Σ →
+  Δ ≤ Δ′ →
+  Δ ≤ α →
+  α < Δ′ →
+  α ∉ domˢ Σ →
+  StoreWf Δ′ ((α , A) ∷ Σ) →
+  CtxWf Δ Γ →
+  CtxWf Δ′ Γ →
+  WfTy Δ A →
+  Δ ∣ Σ ∣ Γ ⊢ L ⦂ `∀ C →
+  μ ∣ suc Δ ∣ (zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ ⊢ c ∶ C =⇒ ⇑ᵗ B →
+  app L α ((c [ α ]ᶜ) ∷ []) —↠ᵀ val V cs →
+  Δ′ ∣ (α , A) ∷ Σ ∣ Γ ⊢ applyCoercions V cs ⦂ B
+type-app-preservation {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {A = A}
+    {B = B} {C = C} {L = L} {c = c} {V = V} {cs = cs}
+    {α = α} wfΣ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ hΓ hΓ′ hA hL c⊢ L↠V
+    with type-app-preservation-closure
+      wfΣ
+      hΓ
+      Δ≤Δ′
+      Δ≤α
+      α<Δ′
+      α∉Σ
+      wfΣ′
+      hΓ′
+      (type-app-initial
+        wfΣ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ hΓ′ hA hL c⊢)
+      L↠V
+... | val⊢ V⊢ stack⊢ = applyCoercions-typing stack⊢ V⊢
 
 ------------------------------------------------------------------------
 -- Raw redex preservation
@@ -76,11 +215,7 @@ pure-preservation wfΣ hΓ
   ⊢$ _
 pure-preservation wfΣ hΓ (⊢· (⊢ƛ hA hN) hV) (β vV) =
   typing-single-subst hN hV
-pure-preservation wfΣ hΓ
-    (⊢• {B = B} (⊢Λ {A = B′} vV V⊢) α<Δ)
-    β-Λ =
-  typing-open-existingᵀ α<Δ V⊢
-pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-id hA _) hV) (β-id vV) =
+pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-id hA) hV) (β-id vV) =
   hV
 pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-seq p⊢ q⊢) hV) (β-seq vV) =
   ⊢⟨⟩ q⊢ (⊢⟨⟩ p⊢ hV)
@@ -89,78 +224,12 @@ pure-preservation wfΣ hΓ
     (β-↦ vV vW) =
   ⊢⟨⟩ q⊢ (⊢· hV (⊢⟨⟩ p⊢ hW))
 pure-preservation wfΣ hΓ
-    (⊢• {α = α}
-      (⊢⟨⟩ {M = V} (`∀⊢@(cast-all {A = A₀} {s = c} c⊢)) V⊢)
-      α<Δ)
-    (β-∀ vV) =
-  ⊢⟨⟩
-    (coercion-open-existing α<Δ c⊢)
-    app-src⊢
-  where
-    src-open-eq :
-      (src c) [ α ]ᴿ ≡ A₀ [ α ]ᴿ
-    src-open-eq with coercion-src-tgtᵐ c⊢
-    src-open-eq | src-eq , tgt-eq =
-      cong (λ T → T [ α ]ᴿ) src-eq
-
-    V-src⊢ :
-      _ ∣ _ ∣ _ ⊢ V ⦂ `∀ (src c)
-    V-src⊢ with coercion-src-tgtᵐ c⊢
-    V-src⊢ | src-eq , tgt-eq =
-      subst (λ U → _ ∣ _ ∣ _ ⊢ V ⦂ `∀ U) (sym src-eq) V⊢
-
-    app-src⊢ :
-      _ ∣ _ ∣ _ ⊢ V • α ⦂ A₀ [ α ]ᴿ
-    app-src⊢ =
-      subst
-        (λ U → _ ∣ _ ∣ _ ⊢ V • α ⦂ U)
-        src-open-eq
-        (⊢• V-src⊢ α<Δ)
-pure-preservation wfΣ hΓ
-    (⊢• {α = α}
-      (⊢⟨⟩ (gen⊢@(cast-gen {s = c} hC _ c⊢)) V⊢)
-      α<Δ)
-    (β-gen vV) =
-  ⊢⟨⟩
-    (subst
-      (λ T → _ ∣ _ ⊢ c [ _ ]ᶜ ∶ T =⇒ _)
-      (renameᵗ-single-suc-cancel _ _)
-      (coercion-open-existing α<Δ c⊢))
-    V⊢
-pure-preservation wfΣ hΓ
-    (⊢⟨⟩ {M = V} (cast-inst {A = A} {B = B} {s = c} hB _ c⊢) V⊢)
+    (⊢⟨⟩ {M = V} (cast-inst {A = A} {B = B} {s = c} hB c⊢) V⊢)
     (β-inst vV) =
-  ⊢ν
-    wf★
-    (⊢⟨⟩ (coercion-mode-relax modeIncl-normal c⊢) app-src⊢)
-  where
-    app-src-eq :
-      (renameᵗ (extᵗ suc) A) [ zero ]ᴿ ≡ A
-    app-src-eq =
-      trans
-        (renameᵗ-compose (extᵗ suc) (singleRenameᵗ zero) A)
-        (trans
-          (rename-cong
-            (λ { zero → refl
-               ; (suc X) → refl})
-            A)
-          (renameᵗ-id A))
-
-    shifted-V⊢ :
-      _ ∣ _ ∣ _ ⊢ ⇑ᵗᵐ V ⦂ `∀ (renameᵗ (extᵗ suc) A)
-    shifted-V⊢ =
-      term-weaken ≤-refl StoreIncl-drop (typing-renameᵀ TyRenameWf-suc V⊢)
-
-    app-src⊢ :
-      _ ∣ _ ∣ _ ⊢ ⇑ᵗᵐ V • zero ⦂ A
-    app-src⊢ =
-      subst
-        (λ T → _ ∣ _ ∣ _ ⊢ ⇑ᵗᵐ V • zero ⦂ T)
-        app-src-eq
-        (⊢• shifted-V⊢ z<s)
+  ⊢ν wf★ V⊢ c⊢
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ (cast-unseal hB αB∈Σ _ _)
-      (⊢⟨⟩ (cast-seal hA αA∈Σ _ _) hV))
+    (⊢⟨⟩ (cast-unseal hB αB∈Σ _)
+      (⊢⟨⟩ (cast-seal hA αA∈Σ _) hV))
     (seal-unseal vV) =
   subst (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
         (unique wfΣ αA∈Σ αB∈Σ)
@@ -180,10 +249,8 @@ pure-preservation wfΣ hΓ (⊢· hV (⊢blame hA)) (blame-·₂ vV)
 pure-preservation wfΣ hΓ (⊢· hV (⊢blame hA)) (blame-·₂ vV)
     | wf⇒ hA′ hB =
   ⊢blame hB
-pure-preservation wfΣ hΓ (⊢• (⊢blame (wf∀ hB)) α<Δ) blame-·α =
-  ⊢blame (renameᵗ-preserves-WfTy hB (singleRenameᵗ-Wf-< α<Δ))
 pure-preservation wfΣ hΓ (⊢⟨⟩ c⊢ (⊢blame hA)) blame-⟨⟩
-    with coercion-wf (at wfΣ) c⊢
+    with coercion-wfᵐ (at wfΣ) c⊢
 pure-preservation wfΣ hΓ (⊢⟨⟩ c⊢ (⊢blame hA)) blame-⟨⟩
     | hA′ , hB =
   ⊢blame hB
@@ -197,65 +264,84 @@ pure-preservation wfΣ hΓ (⊢⊕ hL op (⊢blame hA)) (blame-⊕₂ vL) =
 ------------------------------------------------------------------------
 
 preservation :
-  ∀ {Δ Σ Σ′ Γ M N A} →
+  ∀ {Δ Δ′ Σ Σ′ Γ M N A} →
   StoreWf Δ Σ →
   CtxWf Δ Γ →
   Δ ∣ Σ ∣ Γ ⊢ M ⦂ A →
-  Σ ∣ M —→ Σ′ ∣ N →
-  PreservationResult Δ Σ Γ Σ′ N A
+  Δ ∣ Σ ∣ M —→ Δ′ ∣ Σ′ ∣ N →
+  PreservationResult Δ Σ Γ Δ′ Σ′ N A
 preservation wfΣ hΓ M⊢ (pure-step red) =
-  preserve _ wfΣ ≤-refl StoreIncl-refl hΓ
+  preserve wfΣ ≤-refl StoreIncl-refl hΓ
     (pure-preservation wfΣ hΓ M⊢ red)
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
-    (⊢ν {A = A} hA hN)
-    (ν-step {α = α} α∉Σ) =
+    (⊢ν {A = A} hA hL c⊢)
+    (ν-step {α = α} Δ≤α α∉Σ L↠V) =
+  let
+    Δ≤sα = ≤-trans Δ≤α (n≤1+n α)
+    α<sα = s≤s ≤-refl
+    wfΣ′ = StoreWf-fresh-ext wfΣ Δ≤sα α<sα hA α∉Σ
+    hΓ′ = CtxWf-weaken hΓ Δ≤sα
+  in
   preserve
-    (suc (α ⊔ Δ))
-    (StoreWf-fresh-ext
-      wfΣ
-      (≤-trans (m≤n⊔m α Δ) (n≤1+n (α ⊔ Δ)))
-      (s≤s (m≤m⊔n α Δ))
-      hA
-      α∉Σ)
-    (≤-trans (m≤n⊔m α Δ) (n≤1+n (α ⊔ Δ)))
+    wfΣ′
+    Δ≤sα
     StoreIncl-drop
-    (CtxWf-weaken hΓ (≤-trans (m≤n⊔m α Δ) (n≤1+n (α ⊔ Δ))))
-    (typing-open-headᵀ
-      (s≤s (m≤m⊔n α Δ))
-      (term-weaken (s≤s (m≤n⊔m α Δ)) StoreIncl-refl hN))
+    hΓ′
+    (type-app-preservation
+      (at wfΣ)
+      Δ≤sα
+      Δ≤α
+      α<sα
+      α∉Σ
+      wfΣ′
+      hΓ
+      hΓ′
+      hA
+      hL
+      c⊢
+      L↠V)
 preservation wfΣ hΓ (⊢· L⊢ M⊢) (ξ-·₁ red)
     with preservation wfΣ hΓ L⊢ red
 preservation wfΣ hΓ (⊢· L⊢ M⊢) (ξ-·₁ red)
-    | preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′ L′⊢ =
-  preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′
+    | preserve wfΣ′ Δ≤Δ′ incl hΓ′ L′⊢ =
+  preserve wfΣ′ Δ≤Δ′ incl hΓ′
     (⊢· L′⊢ (term-weaken Δ≤Δ′ incl M⊢))
 preservation wfΣ hΓ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
     with preservation wfΣ hΓ M⊢ red
 preservation wfΣ hΓ (⊢· L⊢ M⊢) (ξ-·₂ vV red)
-    | preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′ M′⊢ =
-  preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′
+    | preserve wfΣ′ Δ≤Δ′ incl hΓ′ M′⊢ =
+  preserve wfΣ′ Δ≤Δ′ incl hΓ′
     (⊢· (term-weaken Δ≤Δ′ incl L⊢) M′⊢)
-preservation wfΣ hΓ (⊢• M⊢ α<Δ) (ξ-·α red)
-    with preservation wfΣ hΓ M⊢ red
-preservation wfΣ hΓ (⊢• M⊢ α<Δ) (ξ-·α red)
-    | preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′ M′⊢ =
-  preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′
-    (⊢• M′⊢ (<-≤-trans α<Δ Δ≤Δ′))
 preservation wfΣ hΓ (⊢⟨⟩ c⊢ M⊢) (ξ-⟨⟩ red)
     with preservation wfΣ hΓ M⊢ red
 preservation wfΣ hΓ (⊢⟨⟩ c⊢ M⊢) (ξ-⟨⟩ red)
-    | preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′ M′⊢ =
-  preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′
-    (⊢⟨⟩ (coercion-weaken Δ≤Δ′ incl c⊢) M′⊢)
+    | preserve wfΣ′ Δ≤Δ′ incl hΓ′ M′⊢ =
+  preserve wfΣ′ Δ≤Δ′ incl hΓ′
+    (⊢⟨⟩ (coercion-weakenᵐ Δ≤Δ′ incl c⊢) M′⊢)
+preservation wfΣ hΓ (⊢ν hA hL c⊢) (ξ-ν red)
+    with preservation wfΣ hΓ hL red
+preservation wfΣ hΓ (⊢ν hA hL c⊢) (ξ-ν red)
+    | preserve wfΣ′ Δ≤Δ′ incl hΓ′ L′⊢ =
+  preserve wfΣ′ Δ≤Δ′ incl hΓ′
+    (⊢ν
+      (WfTy-weakenᵗ hA Δ≤Δ′)
+      L′⊢
+      (coercion-weakenᵐ
+        (s≤s Δ≤Δ′)
+        (StoreIncl-cons (renameStoreᵗ-incl suc incl))
+        c⊢))
+preservation wfΣ hΓ (⊢ν hA (⊢blame (wf∀ hC)) c⊢) blame-ν =
+  preserve wfΣ ≤-refl StoreIncl-refl hΓ
+    (⊢blame (typing-wf (at wfΣ) hΓ (⊢ν hA (⊢blame (wf∀ hC)) c⊢)))
 preservation wfΣ hΓ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
     with preservation wfΣ hΓ L⊢ red
 preservation wfΣ hΓ (⊢⊕ L⊢ op M⊢) (ξ-⊕₁ red)
-    | preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′ L′⊢ =
-  preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′
+    | preserve wfΣ′ Δ≤Δ′ incl hΓ′ L′⊢ =
+  preserve wfΣ′ Δ≤Δ′ incl hΓ′
     (⊢⊕ L′⊢ op (term-weaken Δ≤Δ′ incl M⊢))
 preservation wfΣ hΓ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
     with preservation wfΣ hΓ M⊢ red
 preservation wfΣ hΓ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red)
-    | preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′ M′⊢ =
-  preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′
+    | preserve wfΣ′ Δ≤Δ′ incl hΓ′ M′⊢ =
+  preserve wfΣ′ Δ≤Δ′ incl hΓ′
     (⊢⊕ (term-weaken Δ≤Δ′ incl L⊢) op M′⊢)

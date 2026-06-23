@@ -23,19 +23,19 @@ import proof.NuPreservation as PreservationProof
 progress :
   ∀ {Δ : TyCtx}{Σ : Store}{M : Term}{A : Ty} →
   Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
-  ProgressProof.Progress {Σ = Σ} M
+  ProgressProof.Progress {Δ = Δ} {Σ = Σ} M
 progress = ProgressProof.progress
 
 preservation :
-  ∀ {Δ : TyCtx}{Σ Σ′ : Store}{Γ : Ctx}{M N : Term}{A : Ty} →
+  ∀ {Δ Δ′ : TyCtx}{Σ Σ′ : Store}{Γ : Ctx}{M N : Term}{A : Ty} →
   StoreWf Δ Σ →
   CtxWf Δ Γ →
   Δ ∣ Σ ∣ Γ ⊢ M ⦂ A →
-  Σ ∣ M —→ Σ′ ∣ N →
-  ∃[ Δ′ ] StoreWf Δ′ Σ′ × Δ ≤ Δ′ × StoreIncl Σ Σ′ ×
-           CtxWf Δ′ Γ × Δ′ ∣ Σ′ ∣ Γ ⊢ N ⦂ A
+  Δ ∣ Σ ∣ M —→ Δ′ ∣ Σ′ ∣ N →
+  StoreWf Δ′ Σ′ × Δ ≤ Δ′ × StoreIncl Σ Σ′ ×
+  CtxWf Δ′ Γ × Δ′ ∣ Σ′ ∣ Γ ⊢ N ⦂ A
 preservation wfΣ hΓ M⊢ red
     with PreservationProof.preservation wfΣ hΓ M⊢ red
 preservation wfΣ hΓ M⊢ red
-    | PreservationProof.preserve Δ′ wfΣ′ Δ≤Δ′ incl hΓ′ N⊢ =
-  Δ′ , wfΣ′ , Δ≤Δ′ , incl , hΓ′ , N⊢
+    | PreservationProof.preserve wfΣ′ Δ≤Δ′ incl hΓ′ N⊢ =
+  wfΣ′ , Δ≤Δ′ , incl , hΓ′ , N⊢

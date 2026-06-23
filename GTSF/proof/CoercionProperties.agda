@@ -12,7 +12,7 @@ open import Data.Bool using (true; false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_; length)
 open import Data.List.Relation.Unary.Any using (here; there)
-open import Data.List.Membership.Propositional using (_∈_)
+open import Data.List.Membership.Propositional using (_∈_; _∉_)
 open import Data.Nat using (zero; suc; _<_; _≤_; z<s; s<s; z≤n; s≤s)
 open import Data.Nat.Properties
   using (_≟_; ≤-refl; n≤1+n; n<1+n; <-≤-trans; <-irrefl;
@@ -53,14 +53,14 @@ coercion-weakenᵐ :
   StoreIncl Σ Σ′ →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   μ ∣ Δ′ ∣ Σ′ ⊢ c ∶ A =⇒ B
-coercion-weakenᵐ Δ≤Δ′ incl (cast-id hA ok) =
-  cast-id (WfTy-weakenᵗ hA Δ≤Δ′) ok
+coercion-weakenᵐ Δ≤Δ′ incl (cast-id hA) =
+  cast-id (WfTy-weakenᵗ hA Δ≤Δ′)
 coercion-weakenᵐ Δ≤Δ′ incl
-    (cast-seal hA α∈Σ A-ok α-ok) =
-  cast-seal (WfTy-weakenᵗ hA Δ≤Δ′) (incl α∈Σ) A-ok α-ok
+    (cast-seal hA α∈Σ α-ok) =
+  cast-seal (WfTy-weakenᵗ hA Δ≤Δ′) (incl α∈Σ) α-ok
 coercion-weakenᵐ Δ≤Δ′ incl
-    (cast-unseal hA α∈Σ A-ok α-ok) =
-  cast-unseal (WfTy-weakenᵗ hA Δ≤Δ′) (incl α∈Σ) A-ok α-ok
+    (cast-unseal hA α∈Σ α-ok) =
+  cast-unseal (WfTy-weakenᵗ hA Δ≤Δ′) (incl α∈Σ) α-ok
 coercion-weakenᵐ Δ≤Δ′ incl (cast-seq c⊢ d⊢) =
   cast-seq (coercion-weakenᵐ Δ≤Δ′ incl c⊢)
            (coercion-weakenᵐ Δ≤Δ′ incl d⊢)
@@ -77,18 +77,16 @@ coercion-weakenᵐ Δ≤Δ′ incl (cast-all c⊢) =
       (s≤s Δ≤Δ′)
       (renameStoreᵗ-incl suc incl)
       c⊢)
-coercion-weakenᵐ Δ≤Δ′ incl (cast-inst hB B-ok c⊢) =
+coercion-weakenᵐ Δ≤Δ′ incl (cast-inst hB c⊢) =
   cast-inst
     (WfTy-weakenᵗ hB Δ≤Δ′)
-    B-ok
     (coercion-weakenᵐ
       (s≤s Δ≤Δ′)
       (StoreIncl-cons (renameStoreᵗ-incl suc incl))
       c⊢)
-coercion-weakenᵐ Δ≤Δ′ incl (cast-gen hA A-ok c⊢) =
+coercion-weakenᵐ Δ≤Δ′ incl (cast-gen hA c⊢) =
   cast-gen
     (WfTy-weakenᵗ hA Δ≤Δ′)
-    A-ok
     (coercion-weakenᵐ
       (s≤s Δ≤Δ′)
       (renameStoreᵗ-incl suc incl)
@@ -100,7 +98,8 @@ coercion-weaken :
   StoreIncl Σ Σ′ →
   Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   Δ′ ∣ Σ′ ⊢ c ∶ A =⇒ B
-coercion-weaken = coercion-weakenᵐ
+coercion-weaken Δ≤Δ′ incl (μ , c⊢) =
+  μ , coercion-weakenᵐ Δ≤Δ′ incl c⊢
 
 coercion-weaken-suc :
   ∀ {Δ Σ c A B α C} →
@@ -116,9 +115,10 @@ coercion-weaken-suc {Δ = Δ} c⊢ =
 dual-inst-example⊢ :
   zero ∣ [] ⊢ inst ★ (seal ★ zero ︔ unseal zero ★) ∶ `∀ ★ =⇒ ★
 dual-inst-example⊢ =
-  cast-inst wf★ refl
-    (cast-seq (cast-seal wf★ (here refl) refl refl)
-              (cast-unseal wf★ (here refl) refl refl))
+  tag-to-sealᵈ ,
+    cast-inst wf★
+      (cast-seq (cast-seal wf★ (here refl) refl)
+                (cast-unseal wf★ (here refl) refl))
 
 dual-inst-example-dual≡ :
   - inst ★ (seal ★ zero ︔ unseal zero ★)
@@ -128,15 +128,16 @@ dual-inst-example-dual≡ = refl
 dual-inst-example-dual⊢ :
   zero ∣ [] ⊢ - inst ★ (seal ★ zero ︔ unseal zero ★) ∶ ★ =⇒ `∀ ★
 dual-inst-example-dual⊢ =
-  cast-gen wf★ refl
-    (cast-seq (cast-untag (wfVar z<s) (＇ zero) refl)
-              (cast-tag (wfVar z<s) (＇ zero) refl))
+  tag-to-sealᵈ ,
+    cast-gen wf★
+      (cast-seq (cast-untag (wfVar z<s) (＇ zero) refl)
+                (cast-tag (wfVar z<s) (＇ zero) refl))
 
 dual-inst-tag-counterexample-not-typable :
   zero ∣ [] ⊢ inst ★ ((＇ zero) !) ∶ `∀ (＇ zero) =⇒ ★ →
   ⊥
 dual-inst-tag-counterexample-not-typable
-    (cast-inst h★ _ (cast-tag hα (＇ zero) ()))
+    (μ , cast-inst h★ (cast-tag hα (＇ zero) ()))
 
 dual-inst-tag-counterexample-dual≡ :
   - inst ★ ((＇ zero) !) ≡ gen ★ (seal ★ zero)
@@ -146,288 +147,7 @@ dual-inst-tag-counterexample-dual-not-typable :
   zero ∣ [] ⊢ - inst ★ ((＇ zero) !) ∶ ★ =⇒ `∀ (＇ zero) →
   ⊥
 dual-inst-tag-counterexample-dual-not-typable
-    (cast-gen h★ _ (cast-seal hA () _ _))
-
-------------------------------------------------------------------------
--- Duality as an involution
-------------------------------------------------------------------------
-
-data OppMode : DualMode → DualMode → Set where
-  opp-normal : OppMode normal normal
-  opp-gen-inst : OppMode tag-to-seal seal-to-tag
-  opp-inst-gen : OppMode seal-to-tag tag-to-seal
-
-Oppᵈ : DualEnv → DualEnv → Set
-Oppᵈ μ ν = ∀ X → OppMode (μ X) (ν X)
-
-opp-normalᵈ : Oppᵈ normalᵈ normalᵈ
-opp-normalᵈ X = opp-normal
-
-opp-extᵈ :
-  ∀ {μ ν} →
-  Oppᵈ μ ν →
-  Oppᵈ (extᵈ μ) (extᵈ ν)
-opp-extᵈ opp zero = opp-normal
-opp-extᵈ opp (suc X) = opp X
-
-opp-gen-instᵈ :
-  ∀ {μ ν} →
-  Oppᵈ μ ν →
-  Oppᵈ (genᵈ μ) (instᵈ ν)
-opp-gen-instᵈ opp zero = opp-gen-inst
-opp-gen-instᵈ opp (suc X) = opp X
-
-opp-inst-genᵈ :
-  ∀ {μ ν} →
-  Oppᵈ μ ν →
-  Oppᵈ (instᵈ μ) (genᵈ ν)
-opp-inst-genᵈ opp zero = opp-inst-gen
-opp-inst-genᵈ opp (suc X) = opp X
-
-data SealOk (μ : DualEnv) (A : Ty) (α : TyVar) : Set where
-  seal-ok-normal : μ α ≡ normal → SealOk μ A α
-  seal-ok-★ : A ≡ ★ → SealOk μ A α
-
-tag-to-seal≢normal : tag-to-seal ≢ normal
-tag-to-seal≢normal ()
-
-seal-to-tag≢normal : seal-to-tag ≢ normal
-seal-to-tag≢normal ()
-
-data DualSafe (μ : DualEnv) : Coercion → Set where
-  safe-id : ∀ {A} → DualSafe μ (id A)
-  safe-seq : ∀ {c d} → DualSafe μ c → DualSafe μ d →
-    DualSafe μ (c ︔ d)
-  safe-fun : ∀ {c d} → DualSafe μ c → DualSafe μ d →
-    DualSafe μ (c ↦ d)
-  safe-all : ∀ {c} → DualSafe (extᵈ μ) c → DualSafe μ (`∀ c)
-  safe-tag : ∀ {G} → DualSafe μ (G !)
-  safe-untag : ∀ {G} → DualSafe μ (G ？)
-  safe-seal : ∀ {A α} → SealOk μ A α → DualSafe μ (seal A α)
-  safe-unseal : ∀ {α A} → SealOk μ A α → DualSafe μ (unseal α A)
-  safe-gen : ∀ {A c} → DualSafe (genᵈ μ) c →
-    DualSafe μ (gen A c)
-  safe-inst : ∀ {B c} → DualSafe (instᵈ μ) c →
-    DualSafe μ (inst B c)
-
-StoreDualSafe : DualEnv → Store → Set
-StoreDualSafe μ Σ =
-  ∀ {α A} →
-  (α , A) ∈ Σ →
-  SealOk μ A α
-
-store-dual-safe-normal :
-  ∀ {Σ} →
-  StoreDualSafe normalᵈ Σ
-store-dual-safe-normal α∈Σ = seal-ok-normal refl
-
-seal-ok-extᵈ :
-  ∀ {μ A α} →
-  SealOk μ A α →
-  SealOk (extᵈ μ) (renameᵗ suc A) (suc α)
-seal-ok-extᵈ (seal-ok-normal eq) = seal-ok-normal eq
-seal-ok-extᵈ (seal-ok-★ refl) = seal-ok-★ refl
-
-seal-ok-genᵈ :
-  ∀ {μ A α} →
-  SealOk μ A α →
-  SealOk (genᵈ μ) (renameᵗ suc A) (suc α)
-seal-ok-genᵈ (seal-ok-normal eq) = seal-ok-normal eq
-seal-ok-genᵈ (seal-ok-★ refl) = seal-ok-★ refl
-
-seal-ok-instᵈ :
-  ∀ {μ A α} →
-  SealOk μ A α →
-  SealOk (instᵈ μ) (renameᵗ suc A) (suc α)
-seal-ok-instᵈ (seal-ok-normal eq) = seal-ok-normal eq
-seal-ok-instᵈ (seal-ok-★ refl) = seal-ok-★ refl
-
-store-dual-safe-⟰ᵗ-extᵈ :
-  ∀ {μ Σ} →
-  StoreDualSafe μ Σ →
-  StoreDualSafe (extᵈ μ) (⟰ᵗ Σ)
-store-dual-safe-⟰ᵗ-extᵈ {Σ = []} safeΣ ()
-store-dual-safe-⟰ᵗ-extᵈ {Σ = (α , A) ∷ Σ} safeΣ (here refl) =
-  seal-ok-extᵈ (safeΣ (here refl))
-store-dual-safe-⟰ᵗ-extᵈ {Σ = (α , A) ∷ Σ} safeΣ (there α∈Σ) =
-  store-dual-safe-⟰ᵗ-extᵈ (λ β∈Σ → safeΣ (there β∈Σ)) α∈Σ
-
-store-dual-safe-⟰ᵗ-genᵈ :
-  ∀ {μ Σ} →
-  StoreDualSafe μ Σ →
-  StoreDualSafe (genᵈ μ) (⟰ᵗ Σ)
-store-dual-safe-⟰ᵗ-genᵈ {Σ = []} safeΣ ()
-store-dual-safe-⟰ᵗ-genᵈ {Σ = (α , A) ∷ Σ} safeΣ (here refl) =
-  seal-ok-genᵈ (safeΣ (here refl))
-store-dual-safe-⟰ᵗ-genᵈ {Σ = (α , A) ∷ Σ} safeΣ (there α∈Σ) =
-  store-dual-safe-⟰ᵗ-genᵈ (λ β∈Σ → safeΣ (there β∈Σ)) α∈Σ
-
-store-dual-safe-⟰ᵗ-instᵈ :
-  ∀ {μ Σ} →
-  StoreDualSafe μ Σ →
-  StoreDualSafe (instᵈ μ) (⟰ᵗ Σ)
-store-dual-safe-⟰ᵗ-instᵈ {Σ = []} safeΣ ()
-store-dual-safe-⟰ᵗ-instᵈ {Σ = (α , A) ∷ Σ} safeΣ (here refl) =
-  seal-ok-instᵈ (safeΣ (here refl))
-store-dual-safe-⟰ᵗ-instᵈ {Σ = (α , A) ∷ Σ} safeΣ (there α∈Σ) =
-  store-dual-safe-⟰ᵗ-instᵈ (λ β∈Σ → safeΣ (there β∈Σ)) α∈Σ
-
-store-dual-safe-instᵈ :
-  ∀ {μ Σ} →
-  StoreDualSafe μ Σ →
-  StoreDualSafe (instᵈ μ) ((zero , ★) ∷ ⟰ᵗ Σ)
-store-dual-safe-instᵈ safeΣ (here refl) = seal-ok-★ refl
-store-dual-safe-instᵈ safeΣ (there α∈Σ) =
-  store-dual-safe-⟰ᵗ-instᵈ safeΣ α∈Σ
-
-coercion-dual-safe :
-  ∀ {Δ Σ c A B μ} →
-  StoreDualSafe μ Σ →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
-  DualSafe μ c
-coercion-dual-safe safeΣ (cast-id hA _) = safe-id
-coercion-dual-safe safeΣ (cast-seal hA α∈Σ _ _) =
-  safe-seal (safeΣ α∈Σ)
-coercion-dual-safe safeΣ (cast-unseal hA α∈Σ _ _) =
-  safe-unseal (safeΣ α∈Σ)
-coercion-dual-safe safeΣ (cast-seq c⊢ d⊢) =
-  safe-seq (coercion-dual-safe safeΣ c⊢)
-           (coercion-dual-safe safeΣ d⊢)
-coercion-dual-safe safeΣ (cast-tag hG gG _) = safe-tag
-coercion-dual-safe safeΣ (cast-untag hH gH _) = safe-untag
-coercion-dual-safe safeΣ (cast-fun c⊢ d⊢) =
-  safe-fun (coercion-dual-safe safeΣ c⊢)
-           (coercion-dual-safe safeΣ d⊢)
-coercion-dual-safe safeΣ (cast-all c⊢) =
-  safe-all (coercion-dual-safe (store-dual-safe-⟰ᵗ-extᵈ safeΣ) c⊢)
-coercion-dual-safe safeΣ (cast-inst hB _ c⊢) =
-  safe-inst (coercion-dual-safe (store-dual-safe-instᵈ safeΣ) c⊢)
-coercion-dual-safe safeΣ (cast-gen hA _ c⊢) =
-  safe-gen (coercion-dual-safe (store-dual-safe-⟰ᵗ-genᵈ safeΣ) c⊢)
-
-dualTag-involutive :
-  ∀ {μ ν G} →
-  Oppᵈ μ ν →
-  dual ν (dualTag μ G) ≡ G !
-dualTag-involutive {μ = μ} {ν = ν} {G = ＇ α} opp
-    with μ α in μα | ν α in να | opp α
-dualTag-involutive {G = ＇ α} opp | normal | normal | opp-normal
-    rewrite μα | να = refl
-dualTag-involutive {G = ＇ α} opp
-    | tag-to-seal | seal-to-tag | opp-gen-inst
-    rewrite μα | να = refl
-dualTag-involutive {G = ＇ α} opp
-    | seal-to-tag | tag-to-seal | opp-inst-gen
-    rewrite μα | να = refl
-dualTag-involutive {G = ‵ ι} opp = refl
-dualTag-involutive {G = ★} opp = refl
-dualTag-involutive {G = A ⇒ B} opp = refl
-dualTag-involutive {G = `∀ A} opp = refl
-
-dualUntag-involutive :
-  ∀ {μ ν G} →
-  Oppᵈ μ ν →
-  dual ν (dualUntag μ G) ≡ G ？
-dualUntag-involutive {μ = μ} {ν = ν} {G = ＇ α} opp
-    with μ α in μα | ν α in να | opp α
-dualUntag-involutive {G = ＇ α} opp | normal | normal | opp-normal
-    rewrite μα | να = refl
-dualUntag-involutive {G = ＇ α} opp
-    | tag-to-seal | seal-to-tag | opp-gen-inst
-    rewrite μα | να = refl
-dualUntag-involutive {G = ＇ α} opp
-    | seal-to-tag | tag-to-seal | opp-inst-gen
-    rewrite μα | να = refl
-dualUntag-involutive {G = ‵ ι} opp = refl
-dualUntag-involutive {G = ★} opp = refl
-dualUntag-involutive {G = A ⇒ B} opp = refl
-dualUntag-involutive {G = `∀ A} opp = refl
-
-dualSeal-involutive :
-  ∀ {μ ν A α} →
-  Oppᵈ μ ν →
-  SealOk μ A α →
-  dual ν (dualSeal μ A α) ≡ seal A α
-dualSeal-involutive {μ = μ} {ν = ν} {A = A} {α = α} opp ok
-    with μ α in μα | ν α in να | opp α | ok
-dualSeal-involutive opp ok | normal | normal | opp-normal | _
-    rewrite μα | να = refl
-dualSeal-involutive opp ok
-    | tag-to-seal | seal-to-tag | opp-gen-inst | seal-ok-normal eq =
-  ⊥-elim (tag-to-seal≢normal (trans (sym μα) eq))
-dualSeal-involutive opp ok
-    | tag-to-seal | seal-to-tag | opp-gen-inst | seal-ok-★ refl
-    rewrite μα | να = refl
-dualSeal-involutive opp ok
-    | seal-to-tag | tag-to-seal | opp-inst-gen | seal-ok-normal eq =
-  ⊥-elim (seal-to-tag≢normal (trans (sym μα) eq))
-dualSeal-involutive opp ok
-    | seal-to-tag | tag-to-seal | opp-inst-gen | seal-ok-★ refl
-    rewrite μα | να = refl
-
-dualUnseal-involutive :
-  ∀ {μ ν α A} →
-  Oppᵈ μ ν →
-  SealOk μ A α →
-  dual ν (dualUnseal μ α A) ≡ unseal α A
-dualUnseal-involutive {μ = μ} {ν = ν} {α = α} {A = A} opp ok
-    with μ α in μα | ν α in να | opp α | ok
-dualUnseal-involutive opp ok | normal | normal | opp-normal | _
-    rewrite μα | να = refl
-dualUnseal-involutive opp ok
-    | tag-to-seal | seal-to-tag | opp-gen-inst | seal-ok-normal eq =
-  ⊥-elim (tag-to-seal≢normal (trans (sym μα) eq))
-dualUnseal-involutive opp ok
-    | tag-to-seal | seal-to-tag | opp-gen-inst | seal-ok-★ refl
-    rewrite μα | να = refl
-dualUnseal-involutive opp ok
-    | seal-to-tag | tag-to-seal | opp-inst-gen | seal-ok-normal eq =
-  ⊥-elim (seal-to-tag≢normal (trans (sym μα) eq))
-dualUnseal-involutive opp ok
-    | seal-to-tag | tag-to-seal | opp-inst-gen | seal-ok-★ refl
-    rewrite μα | να = refl
-
-dualᵐ-involutive :
-  ∀ {μ ν c} →
-  Oppᵈ μ ν →
-  DualSafe μ c →
-  dual ν (dual μ c) ≡ c
-dualᵐ-involutive opp safe-id = refl
-dualᵐ-involutive opp (safe-seq safe-c safe-d) =
-  cong₂ _︔_ (dualᵐ-involutive opp safe-c)
-             (dualᵐ-involutive opp safe-d)
-dualᵐ-involutive opp (safe-fun safe-c safe-d) =
-  cong₂ _↦_ (dualᵐ-involutive opp safe-c)
-             (dualᵐ-involutive opp safe-d)
-dualᵐ-involutive opp (safe-all safe-c) =
-  cong `∀ (dualᵐ-involutive (opp-extᵈ opp) safe-c)
-dualᵐ-involutive opp safe-tag = dualTag-involutive opp
-dualᵐ-involutive opp safe-untag = dualUntag-involutive opp
-dualᵐ-involutive opp (safe-seal ok) = dualSeal-involutive opp ok
-dualᵐ-involutive opp (safe-unseal ok) = dualUnseal-involutive opp ok
-dualᵐ-involutive opp (safe-gen safe-c) =
-  cong (gen _) (dualᵐ-involutive (opp-gen-instᵈ opp) safe-c)
-dualᵐ-involutive opp (safe-inst safe-c) =
-  cong (inst _) (dualᵐ-involutive (opp-inst-genᵈ opp) safe-c)
-
-dual-involutive :
-  ∀ {Δ Σ c A B} →
-  Δ ∣ Σ ⊢ c ∶ A =⇒ B →
-  - (- c) ≡ c
-dual-involutive c⊢ =
-  dualᵐ-involutive opp-normalᵈ
-    (coercion-dual-safe store-dual-safe-normal c⊢)
-
-dual-raw-involutive-counterexample :
-  - (- gen ★ (seal (‵ `ℕ) zero)) ≡ gen ★ (seal (‵ `ℕ) zero) →
-  ⊥
-dual-raw-involutive-counterexample ()
-
-dual-raw-involutive-counterexample-not-typable :
-  ∀ {Δ Σ A B} →
-  Δ ∣ Σ ⊢ gen ★ (seal (‵ `ℕ) zero) ∶ A =⇒ B →
-  ⊥
-dual-raw-involutive-counterexample-not-typable (cast-gen h★ _ ())
+    (μ , cast-gen h★ (cast-seal hA () _))
 
 ------------------------------------------------------------------------
 -- Coercion typing under type renaming
@@ -435,19 +155,6 @@ dual-raw-involutive-counterexample-not-typable (cast-gen h★ _ ())
 
 ModeRename : Renameᵗ → DualEnv → DualEnv → Set
 ModeRename ρ μ ν = ∀ X → mode≤ (μ X) (ν (ρ X)) ≡ true
-
-ModeRename-normal :
-  ∀ {ρ} →
-  ModeRename ρ normalᵈ normalᵈ
-ModeRename-normal X = refl
-
-ModeRename-to-normal :
-  ∀ {ρ μ} →
-  ModeRename ρ μ normalᵈ
-ModeRename-to-normal {μ = μ} X with μ X
-ModeRename-to-normal X | normal = refl
-ModeRename-to-normal X | tag-to-seal = refl
-ModeRename-to-normal X | seal-to-tag = refl
 
 ModeRename-ext :
   ∀ {ρ μ ν} →
@@ -470,18 +177,38 @@ ModeRename-inst :
 ModeRename-inst rel zero = refl
 ModeRename-inst rel (suc X) = rel X
 
+ScopedModeRename : TyCtx → Renameᵗ → DualEnv → DualEnv → Set
+ScopedModeRename Δ ρ μ ν =
+  ∀ {X} → X < Δ → mode≤ (μ X) (ν (ρ X)) ≡ true
+
+ScopedModeRename-ext :
+  ∀ {Δ ρ μ ν} →
+  ScopedModeRename Δ ρ μ ν →
+  ScopedModeRename (suc Δ) (extᵗ ρ) (extᵈ μ) (extᵈ ν)
+ScopedModeRename-ext rel {zero} z<s = refl
+ScopedModeRename-ext rel {suc X} (s<s X<Δ) = rel X<Δ
+
+ScopedModeRename-gen :
+  ∀ {Δ ρ μ ν} →
+  ScopedModeRename Δ ρ μ ν →
+  ScopedModeRename (suc Δ) (extᵗ ρ) (genᵈ μ) (genᵈ ν)
+ScopedModeRename-gen rel {zero} z<s = refl
+ScopedModeRename-gen rel {suc X} (s<s X<Δ) = rel X<Δ
+
+ScopedModeRename-inst :
+  ∀ {Δ ρ μ ν} →
+  ScopedModeRename Δ ρ μ ν →
+  ScopedModeRename (suc Δ) (extᵗ ρ) (instᵈ μ) (instᵈ ν)
+ScopedModeRename-inst rel {zero} z<s = refl
+ScopedModeRename-inst rel {suc X} (s<s X<Δ) = rel X<Δ
+
 mode≤-tag :
   ∀ {m n} →
   mode≤ m n ≡ true →
   tagModeAllowed m ≡ true →
   tagModeAllowed n ≡ true
-mode≤-tag {normal} {normal} rel ok = refl
-mode≤-tag {normal} {tag-to-seal} () ok
-mode≤-tag {normal} {seal-to-tag} () ok
-mode≤-tag {tag-to-seal} {normal} rel ok = refl
 mode≤-tag {tag-to-seal} {tag-to-seal} rel ok = refl
 mode≤-tag {tag-to-seal} {seal-to-tag} () ok
-mode≤-tag {seal-to-tag} {normal} rel ()
 mode≤-tag {seal-to-tag} {tag-to-seal} () ok
 mode≤-tag {seal-to-tag} {seal-to-tag} rel ()
 
@@ -490,44 +217,10 @@ mode≤-seal :
   mode≤ m n ≡ true →
   sealModeAllowed m ≡ true →
   sealModeAllowed n ≡ true
-mode≤-seal {normal} {normal} rel ok = refl
-mode≤-seal {normal} {tag-to-seal} () ok
-mode≤-seal {normal} {seal-to-tag} () ok
-mode≤-seal {tag-to-seal} {normal} rel ()
 mode≤-seal {tag-to-seal} {tag-to-seal} rel ()
 mode≤-seal {tag-to-seal} {seal-to-tag} () ok
-mode≤-seal {seal-to-tag} {normal} rel ok = refl
 mode≤-seal {seal-to-tag} {tag-to-seal} () ok
 mode≤-seal {seal-to-tag} {seal-to-tag} rel ok = refl
-
-modeRename-tyAllowed :
-  ∀ {ρ μ ν A} →
-  ModeRename ρ μ ν →
-  tyAllowed μ A ≡ true →
-  tyAllowed ν (renameᵗ ρ A) ≡ true
-modeRename-tyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = ＇ α} rel ok
-    with μ α | ν (ρ α) | rel α | ok
-modeRename-tyAllowed rel ok | normal | normal | relα | okα = refl
-modeRename-tyAllowed rel ok | normal | tag-to-seal | () | okα
-modeRename-tyAllowed rel ok | normal | seal-to-tag | () | okα
-modeRename-tyAllowed rel ok | tag-to-seal | n | relα | ()
-modeRename-tyAllowed rel ok | seal-to-tag | n | relα | ()
-modeRename-tyAllowed {A = ‵ ι} rel ok = refl
-modeRename-tyAllowed {A = ★} rel ok = refl
-modeRename-tyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = A ⇒ B} rel ok
-    with tyAllowed μ A in okA | tyAllowed μ B in okB
-modeRename-tyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = A ⇒ B} rel ok
-    | true | true
-    with modeRename-tyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = A} rel okA
-       | modeRename-tyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = B} rel okB
-modeRename-tyAllowed {A = A ⇒ B} rel ok | true | true | okA′ | okB′
-    rewrite okA′ | okB′ = refl
-modeRename-tyAllowed rel () | false | b
-modeRename-tyAllowed rel () | true | false
-modeRename-tyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = `∀ A} rel ok =
-  modeRename-tyAllowed
-    {ρ = extᵗ ρ} {μ = extᵈ μ} {ν = extᵈ ν} {A = A}
-    (ModeRename-ext rel) ok
 
 modeRename-tagTyAllowed :
   ∀ {ρ μ ν G} →
@@ -538,20 +231,9 @@ modeRename-tagTyAllowed {ρ = ρ} {μ = μ} {ν = ν} {G = ＇ α} rel ok =
   mode≤-tag (rel α) ok
 modeRename-tagTyAllowed {G = ‵ ι} rel ok = refl
 modeRename-tagTyAllowed {G = ★} rel ok = refl
-modeRename-tagTyAllowed {ρ = ρ} {μ = μ} {ν = ν} {G = A ⇒ B} rel ok
-    with tyAllowed μ A in okA | tyAllowed μ B in okB
-modeRename-tagTyAllowed {ρ = ρ} {μ = μ} {ν = ν} {G = A ⇒ B} rel ok
-    | true | true
-    with modeRename-tyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = A} rel okA
-       | modeRename-tyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = B} rel okB
-modeRename-tagTyAllowed {G = A ⇒ B} rel ok | true | true | okA′ | okB′
-    rewrite okA′ | okB′ = refl
-modeRename-tagTyAllowed rel () | false | b
-modeRename-tagTyAllowed rel () | true | false
+modeRename-tagTyAllowed {G = A ⇒ B} rel ok = refl
 modeRename-tagTyAllowed {ρ = ρ} {μ = μ} {ν = ν} {G = `∀ A} rel ok =
-  modeRename-tyAllowed
-    {ρ = extᵗ ρ} {μ = extᵈ μ} {ν = extᵈ ν} {A = A}
-    (ModeRename-ext rel) ok
+  refl
 
 modeRename-sealModeAllowed :
   ∀ {ρ μ ν α} →
@@ -561,62 +243,27 @@ modeRename-sealModeAllowed :
 modeRename-sealModeAllowed {α = α} rel ok =
   mode≤-seal (rel α) ok
 
-ModeAllNormal : DualEnv → Set
-ModeAllNormal μ = ∀ X → μ X ≡ normal
+scopedModeRename-tagTyAllowed :
+  ∀ {Δ ρ μ ν G} →
+  WfTy Δ G →
+  ScopedModeRename Δ ρ μ ν →
+  tagTyAllowed μ G ≡ true →
+  tagTyAllowed ν (renameᵗ ρ G) ≡ true
+scopedModeRename-tagTyAllowed (wfVar X<Δ) rel ok =
+  mode≤-tag (rel X<Δ) ok
+scopedModeRename-tagTyAllowed wfBase rel ok = refl
+scopedModeRename-tagTyAllowed wf★ rel ok = refl
+scopedModeRename-tagTyAllowed (wf⇒ hA hB) rel ok = refl
+scopedModeRename-tagTyAllowed (wf∀ hA) rel ok = refl
 
-ModeAllNormal-normal :
-  ModeAllNormal normalᵈ
-ModeAllNormal-normal X = refl
-
-ModeAllNormal-ext :
-  ∀ {μ} →
-  ModeAllNormal μ →
-  ModeAllNormal (extᵈ μ)
-ModeAllNormal-ext all zero = refl
-ModeAllNormal-ext all (suc X) = all X
-
-tyAllowed-allNormal :
-  ∀ {μ} →
-  ModeAllNormal μ →
-  ∀ A →
-  tyAllowed μ A ≡ true
-tyAllowed-allNormal all (＇ α) rewrite all α = refl
-tyAllowed-allNormal all (‵ ι) = refl
-tyAllowed-allNormal all ★ = refl
-tyAllowed-allNormal all (A ⇒ B)
-  rewrite tyAllowed-allNormal all A
-        | tyAllowed-allNormal all B = refl
-tyAllowed-allNormal all (`∀ A) =
-  tyAllowed-allNormal (ModeAllNormal-ext all) A
-
-tagTyAllowed-allNormal :
-  ∀ {μ} →
-  ModeAllNormal μ →
-  ∀ G →
-  tagTyAllowed μ G ≡ true
-tagTyAllowed-allNormal all (＇ α) rewrite all α = refl
-tagTyAllowed-allNormal all (‵ ι) = refl
-tagTyAllowed-allNormal all ★ = refl
-tagTyAllowed-allNormal all (A ⇒ B)
-  rewrite tyAllowed-allNormal all A
-        | tyAllowed-allNormal all B = refl
-tagTyAllowed-allNormal all (`∀ A) =
-  tyAllowed-allNormal (ModeAllNormal-ext all) A
-
-tyAllowed-normal :
-  ∀ A →
-  tyAllowed normalᵈ A ≡ true
-tyAllowed-normal = tyAllowed-allNormal ModeAllNormal-normal
-
-tagTyAllowed-normal :
-  ∀ G →
-  tagTyAllowed normalᵈ G ≡ true
-tagTyAllowed-normal = tagTyAllowed-allNormal ModeAllNormal-normal
-
-sealModeAllowed-normal :
-  ∀ α →
-  sealModeAllowed (normalᵈ α) ≡ true
-sealModeAllowed-normal α = refl
+scopedModeRename-sealModeAllowed :
+  ∀ {Δ ρ μ ν α} →
+  ScopedModeRename Δ ρ μ ν →
+  α < Δ →
+  sealModeAllowed (μ α) ≡ true →
+  sealModeAllowed (ν (ρ α)) ≡ true
+scopedModeRename-sealModeAllowed rel α<Δ ok =
+  mode≤-seal (rel α<Δ) ok
 
 ModeIncl-ext :
   ∀ {μ ν} →
@@ -638,18 +285,6 @@ ModeIncl-inst :
   ModeIncl (instᵈ μ) (instᵈ ν)
 ModeIncl-inst incl zero = refl
 ModeIncl-inst incl (suc X) = incl X
-
-modeIncl-tyAllowed :
-  ∀ {μ ν A} →
-  ModeIncl μ ν →
-  tyAllowed μ A ≡ true →
-  tyAllowed ν A ≡ true
-modeIncl-tyAllowed {μ = μ} {ν = ν} {A = A} incl ok =
-  subst
-    (λ T → tyAllowed ν T ≡ true)
-    (renameᵗ-id A)
-    (modeRename-tyAllowed
-      {ρ = λ X → X} {μ = μ} {ν = ν} {A = A} incl ok)
 
 modeIncl-tagTyAllowed :
   ∀ {μ ν G} →
@@ -677,17 +312,15 @@ coercion-mode-relax :
   ModeIncl μ ν →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   ν ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
-coercion-mode-relax incl (cast-id {A = A} hA ok) =
-  cast-id hA (modeIncl-tyAllowed {A = A} incl ok)
+coercion-mode-relax incl (cast-id hA) =
+  cast-id hA
 coercion-mode-relax incl
-    (cast-seal {α = α} {A = A} hA α∈Σ A-ok α-ok) =
+    (cast-seal {α = α} hA α∈Σ α-ok) =
   cast-seal hA α∈Σ
-    (modeIncl-tyAllowed {A = A} incl A-ok)
     (modeIncl-sealModeAllowed {α = α} incl α-ok)
 coercion-mode-relax incl
-    (cast-unseal {α = α} {A = A} hA α∈Σ A-ok α-ok) =
+    (cast-unseal {α = α} hA α∈Σ α-ok) =
   cast-unseal hA α∈Σ
-    (modeIncl-tyAllowed {A = A} incl A-ok)
     (modeIncl-sealModeAllowed {α = α} incl α-ok)
 coercion-mode-relax incl (cast-seq c⊢ d⊢) =
   cast-seq (coercion-mode-relax incl c⊢)
@@ -701,13 +334,11 @@ coercion-mode-relax incl (cast-fun c⊢ d⊢) =
            (coercion-mode-relax incl d⊢)
 coercion-mode-relax incl (cast-all c⊢) =
   cast-all (coercion-mode-relax (ModeIncl-ext incl) c⊢)
-coercion-mode-relax incl (cast-inst {B = B} hB B-ok c⊢) =
+coercion-mode-relax incl (cast-inst hB c⊢) =
   cast-inst hB
-    (modeIncl-tyAllowed {A = B} incl B-ok)
     (coercion-mode-relax (ModeIncl-inst incl) c⊢)
-coercion-mode-relax incl (cast-gen {A = A} hA A-ok c⊢) =
+coercion-mode-relax incl (cast-gen hA c⊢) =
   cast-gen hA
-    (modeIncl-tyAllowed {A = A} incl A-ok)
     (coercion-mode-relax (ModeIncl-gen incl) c⊢)
 
 coercion-renameᵗᵐ :
@@ -717,25 +348,20 @@ coercion-renameᵗᵐ :
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   ν ∣ Δ′ ∣ renameStoreᵗ ρ Σ ⊢ renameᶜ ρ c
     ∶ renameᵗ ρ A =⇒ renameᵗ ρ B
-coercion-renameᵗᵐ hρ rel (cast-id {A = A} hA ok) =
+coercion-renameᵗᵐ hρ rel (cast-id hA) =
   cast-id (renameᵗ-preserves-WfTy hA hρ)
-    (modeRename-tyAllowed {A = A} rel ok)
 coercion-renameᵗᵐ {ρ = ρ} {μ = μ} {ν = ν} hρ rel
-    (cast-seal {α = α} {A = A} hA α∈Σ A-ok α-ok) =
+    (cast-seal {α = α} hA α∈Σ α-ok) =
   cast-seal
     (renameᵗ-preserves-WfTy hA hρ)
     (∈-renameStoreᵗ _ α∈Σ)
-    (modeRename-tyAllowed
-      {ρ = ρ} {μ = μ} {ν = ν} {A = A} rel A-ok)
     (modeRename-sealModeAllowed
       {ρ = ρ} {μ = μ} {ν = ν} {α = α} rel α-ok)
 coercion-renameᵗᵐ {ρ = ρ} {μ = μ} {ν = ν} hρ rel
-    (cast-unseal {α = α} {A = A} hA α∈Σ A-ok α-ok) =
+    (cast-unseal {α = α} hA α∈Σ α-ok) =
   cast-unseal
     (renameᵗ-preserves-WfTy hA hρ)
     (∈-renameStoreᵗ _ α∈Σ)
-    (modeRename-tyAllowed
-      {ρ = ρ} {μ = μ} {ν = ν} {A = A} rel A-ok)
     (modeRename-sealModeAllowed
       {ρ = ρ} {μ = μ} {ν = ν} {α = α} rel α-ok)
 coercion-renameᵗᵐ hρ rel (cast-seq c⊢ d⊢) =
@@ -763,10 +389,9 @@ coercion-renameᵗᵐ {ρ = ρ} hρ rel
       (coercion-renameᵗᵐ (TyRenameWf-ext hρ)
         (ModeRename-ext rel) c⊢))
 coercion-renameᵗᵐ {ρ = ρ} hρ rel
-    (cast-inst {B = B} hB B-ok c⊢) =
+    (cast-inst {B = B} hB c⊢) =
   cast-inst
     (renameᵗ-preserves-WfTy hB hρ)
-    (modeRename-tyAllowed {A = B} rel B-ok)
     (subst
       (λ T → _ ∣ _ ∣ _ ⊢ renameᶜ (extᵗ ρ) _ ∶ _ =⇒ T)
       (renameᵗ-ext-suc-comm ρ B)
@@ -777,10 +402,9 @@ coercion-renameᵗᵐ {ρ = ρ} hρ rel
         (coercion-renameᵗᵐ (TyRenameWf-ext hρ)
           (ModeRename-inst rel) c⊢)))
 coercion-renameᵗᵐ {ρ = ρ} hρ rel
-    (cast-gen {A = A} hA A-ok c⊢) =
+    (cast-gen {A = A} hA c⊢) =
   cast-gen
     (renameᵗ-preserves-WfTy hA hρ)
-    (modeRename-tyAllowed {A = A} rel A-ok)
     (subst
       (λ T → _ ∣ _ ∣ _ ⊢ renameᶜ (extᵗ ρ) _ ∶ T =⇒ _)
       (renameᵗ-ext-suc-comm ρ A)
@@ -790,500 +414,279 @@ coercion-renameᵗᵐ {ρ = ρ} hρ rel
         (coercion-renameᵗᵐ (TyRenameWf-ext hρ)
           (ModeRename-gen rel) c⊢)))
 
-coercion-renameᵗ :
-  ∀ {Δ Δ′ Σ c A B ρ} →
+coercion-renameᵗᵐ-scoped :
+  ∀ {Δ Δ′ Σ c A B ρ μ ν} →
+  StoreWfAt Δ Σ →
   TyRenameWf Δ Δ′ ρ →
-  Δ ∣ Σ ⊢ c ∶ A =⇒ B →
-  Δ′ ∣ renameStoreᵗ ρ Σ ⊢ renameᶜ ρ c
-    ∶ renameᵗ ρ A =⇒ renameᵗ ρ B
-coercion-renameᵗ {ρ = ρ} hρ c⊢ =
-  coercion-renameᵗᵐ hρ (ModeRename-normal {ρ = ρ}) c⊢
-
-coercion-openᵐ :
-  ∀ {μ Δ Σ c A B α C} →
-  α < suc Δ →
-  μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ A =⇒ B →
-  suc Δ ∣ (α , C) ∷ Σ ⊢ c [ α ]ᶜ
-    ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
-coercion-openᵐ {μ = μ} {Σ = Σ} {α = α} α<sucΔ c⊢ =
-  coercion-weaken ≤-refl StoreIncl-drop
-    (subst
-      (λ Σ′ → _ ∣ Σ′ ⊢ _ ∶ _ =⇒ _)
-      (renameStoreᵗ-single-suc-cancel α Σ)
-      (coercion-renameᵗᵐ
-        (singleRenameᵗ-Wf α<sucΔ)
-        (ModeRename-to-normal {ρ = singleRenameᵗ α} {μ = μ})
-        c⊢))
-
-coercion-open :
-  ∀ {Δ Σ c A B α C} →
-  α < suc Δ →
-  suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ A =⇒ B →
-  suc Δ ∣ (α , C) ∷ Σ ⊢ c [ α ]ᶜ
-    ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
-coercion-open = coercion-openᵐ
-
-coercion-open-headᵐ :
-  ∀ {μ Δ Σ c A B α C} →
-  α < suc Δ →
-  μ ∣ suc Δ ∣ (0 , C) ∷ ⟰ᵗ Σ ⊢ c ∶ A =⇒ B →
-  suc Δ ∣ (α , renameᵗ (singleRenameᵗ α) C) ∷ Σ
-    ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
-coercion-open-headᵐ
-    {μ = μ} {Δ = Δ} {Σ = Σ} {c = c} {A = A} {B = B} {α = α}
-    α<sucΔ c⊢ =
-  subst
-    (λ Σ′ → suc Δ ∣ Σ′ ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ)
-    (cong₂ _∷_ refl (renameStoreᵗ-single-suc-cancel α Σ))
-    (coercion-renameᵗᵐ
-      (singleRenameᵗ-Wf α<sucΔ)
-      (ModeRename-to-normal {ρ = singleRenameᵗ α} {μ = μ})
-      c⊢)
-
-coercion-open-head :
-  ∀ {Δ Σ c A B α C} →
-  α < suc Δ →
-  suc Δ ∣ (0 , C) ∷ ⟰ᵗ Σ ⊢ c ∶ A =⇒ B →
-  suc Δ ∣ (α , renameᵗ (singleRenameᵗ α) C) ∷ Σ
-    ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
-coercion-open-head = coercion-open-headᵐ
-
-------------------------------------------------------------------------
--- Coercion duality flips typed endpoints
-------------------------------------------------------------------------
-
-zero∉-⟰ᵗ :
-  ∀ {Σ A} →
-  (zero , A) ∈ ⟰ᵗ Σ →
-  ⊥
-zero∉-⟰ᵗ {Σ = []} ()
-zero∉-⟰ᵗ {Σ = (α , A) ∷ Σ} (here ())
-zero∉-⟰ᵗ {Σ = (α , A) ∷ Σ} (there x∈) =
-  zero∉-⟰ᵗ x∈
-
-suc∈-cons-zero-tail :
-  ∀ {Σ α A C} →
-  (suc α , A) ∈ ((zero , C) ∷ ⟰ᵗ Σ) →
-  (suc α , A) ∈ ⟰ᵗ Σ
-suc∈-cons-zero-tail (here ())
-suc∈-cons-zero-tail (there x∈) = x∈
-
-∈-⟰ᵗ-inv :
-  ∀ {Σ α A} →
-  (suc α , A) ∈ ⟰ᵗ Σ →
-  ∃[ B ] ((α , B) ∈ Σ × A ≡ renameᵗ suc B)
-∈-⟰ᵗ-inv {Σ = []} ()
-∈-⟰ᵗ-inv {Σ = (α , A) ∷ Σ} (here refl) =
-  A , here refl , refl
-∈-⟰ᵗ-inv {Σ = (β , C) ∷ Σ} (there x∈) with ∈-⟰ᵗ-inv x∈
-∈-⟰ᵗ-inv {Σ = (β , C) ∷ Σ} (there x∈) | A , αA∈Σ , eq =
-  A , there αA∈Σ , eq
-
-record DualStore
-    (μ : DualEnv) (Σ : Store) (ν : DualEnv) (Π : Store) : Set where
-  field
-    tagSeal∈ :
-      ∀ {α} →
-      μ α ≡ tag-to-seal →
-      (α , ★) ∈ Π
-    sealTag∈ :
-      ∀ {α} →
-      μ α ≡ seal-to-tag →
-      (α , ★) ∈ Σ
-    sealTag★ :
-      ∀ {α A} →
-      μ α ≡ seal-to-tag →
-      (α , A) ∈ Σ →
-      A ≡ ★
-    normal∈ :
-      ∀ {α A} →
-      μ α ≡ normal →
-      (α , A) ∈ Σ →
-      (α , A) ∈ Π
-
-open DualStore
-
-dualStore-normal :
-  ∀ {Σ} →
-  DualStore normalᵈ Σ normalᵈ Σ
-dualStore-normal =
-  record
-    { tagSeal∈ = λ ()
-    ; sealTag∈ = λ ()
-    ; sealTag★ = λ ()
-    ; normal∈ = λ eq αA∈Σ → αA∈Σ
-    }
-
-dualStore-ext :
-  ∀ {μ ν Σ Π} →
-  DualStore μ Σ ν Π →
-  DualStore (extᵈ μ) (⟰ᵗ Σ) (extᵈ ν) (⟰ᵗ Π)
-dualStore-ext ds =
-  record
-    { tagSeal∈ = tag
-    ; sealTag∈ = sealCase
-    ; sealTag★ = seal★Case
-    ; normal∈ = norm
-    }
-  where
-    tag :
-      ∀ {α} →
-      extᵈ _ α ≡ tag-to-seal →
-      (α , ★) ∈ ⟰ᵗ _
-    tag {zero} ()
-    tag {suc α} eq = ∈-renameStoreᵗ suc (tagSeal∈ ds eq)
-
-    sealCase :
-      ∀ {α} →
-      extᵈ _ α ≡ seal-to-tag →
-      (α , ★) ∈ ⟰ᵗ _
-    sealCase {zero} ()
-    sealCase {suc α} eq = ∈-renameStoreᵗ suc (sealTag∈ ds eq)
-
-    seal★Case :
-      ∀ {α A} →
-      extᵈ _ α ≡ seal-to-tag →
-      (α , A) ∈ ⟰ᵗ _ →
-      A ≡ ★
-    seal★Case {zero} () αA∈Σ
-    seal★Case {suc α} {A} eq αA∈Σ with ∈-⟰ᵗ-inv αA∈Σ
-    seal★Case {suc α} eq αA∈Σ | B , αB∈Σ , refl
-      rewrite sealTag★ ds eq αB∈Σ = refl
-
-    norm :
-      ∀ {α A} →
-      extᵈ _ α ≡ normal →
-      (α , A) ∈ ⟰ᵗ _ →
-      (α , A) ∈ ⟰ᵗ _
-    norm {zero} eq αA∈Σ = ⊥-elim (zero∉-⟰ᵗ αA∈Σ)
-    norm {suc α} {A} eq αA∈Σ with ∈-⟰ᵗ-inv αA∈Σ
-    norm {suc α} eq αA∈Σ | B , αB∈Σ , refl =
-      ∈-renameStoreᵗ suc (normal∈ ds eq αB∈Σ)
-
-dualStore-gen-inst :
-  ∀ {μ ν Σ Π} →
-  DualStore μ Σ ν Π →
-  DualStore (genᵈ μ) (⟰ᵗ Σ) (instᵈ ν) ((zero , ★) ∷ ⟰ᵗ Π)
-dualStore-gen-inst ds =
-  record
-    { tagSeal∈ = tag
-    ; sealTag∈ = sealCase
-    ; sealTag★ = seal★Case
-    ; normal∈ = norm
-    }
-  where
-    tag :
-      ∀ {α} →
-      genᵈ _ α ≡ tag-to-seal →
-      (α , ★) ∈ ((zero , ★) ∷ ⟰ᵗ _)
-    tag {zero} eq = here refl
-    tag {suc α} eq = there (∈-renameStoreᵗ suc (tagSeal∈ ds eq))
-
-    sealCase :
-      ∀ {α} →
-      genᵈ _ α ≡ seal-to-tag →
-      (α , ★) ∈ ⟰ᵗ _
-    sealCase {zero} ()
-    sealCase {suc α} eq = ∈-renameStoreᵗ suc (sealTag∈ ds eq)
-
-    seal★Case :
-      ∀ {α A} →
-      genᵈ _ α ≡ seal-to-tag →
-      (α , A) ∈ ⟰ᵗ _ →
-      A ≡ ★
-    seal★Case {zero} () αA∈Σ
-    seal★Case {suc α} {A} eq αA∈Σ with ∈-⟰ᵗ-inv αA∈Σ
-    seal★Case {suc α} eq αA∈Σ | B , αB∈Σ , refl
-      rewrite sealTag★ ds eq αB∈Σ = refl
-
-    norm :
-      ∀ {α A} →
-      genᵈ _ α ≡ normal →
-      (α , A) ∈ ⟰ᵗ _ →
-      (α , A) ∈ ((zero , ★) ∷ ⟰ᵗ _)
-    norm {zero} () αA∈Σ
-    norm {suc α} {A} eq αA∈Σ with ∈-⟰ᵗ-inv αA∈Σ
-    norm {suc α} eq αA∈Σ | B , αB∈Σ , refl =
-      there (∈-renameStoreᵗ suc (normal∈ ds eq αB∈Σ))
-
-dualStore-inst-gen :
-  ∀ {μ ν Σ Π} →
-  DualStore μ Σ ν Π →
-  DualStore (instᵈ μ) ((zero , ★) ∷ ⟰ᵗ Σ) (genᵈ ν) (⟰ᵗ Π)
-dualStore-inst-gen ds =
-  record
-    { tagSeal∈ = tag
-    ; sealTag∈ = sealCase
-    ; sealTag★ = seal★Case
-    ; normal∈ = norm
-    }
-  where
-    tag :
-      ∀ {α} →
-      instᵈ _ α ≡ tag-to-seal →
-      (α , ★) ∈ ⟰ᵗ _
-    tag {zero} ()
-    tag {suc α} eq = ∈-renameStoreᵗ suc (tagSeal∈ ds eq)
-
-    sealCase :
-      ∀ {α} →
-      instᵈ _ α ≡ seal-to-tag →
-      (α , ★) ∈ ((zero , ★) ∷ ⟰ᵗ _)
-    sealCase {zero} eq = here refl
-    sealCase {suc α} eq = there (∈-renameStoreᵗ suc (sealTag∈ ds eq))
-
-    seal★Case :
-      ∀ {α A} →
-      instᵈ _ α ≡ seal-to-tag →
-      (α , A) ∈ ((zero , ★) ∷ ⟰ᵗ _) →
-      A ≡ ★
-    seal★Case {zero} eq (here refl) = refl
-    seal★Case {zero} eq (there αA∈Σ) = ⊥-elim (zero∉-⟰ᵗ αA∈Σ)
-    seal★Case {suc α} {A} eq αA∈Σ
-        with ∈-⟰ᵗ-inv (suc∈-cons-zero-tail αA∈Σ)
-    seal★Case {suc α} eq αA∈Σ | B , αB∈Σ , refl
-      rewrite sealTag★ ds eq αB∈Σ = refl
-
-    norm :
-      ∀ {α A} →
-      instᵈ _ α ≡ normal →
-      (α , A) ∈ ((zero , ★) ∷ ⟰ᵗ _) →
-      (α , A) ∈ ⟰ᵗ _
-    norm {zero} () αA∈Σ
-    norm {suc α} {A} eq αA∈Σ
-        with ∈-⟰ᵗ-inv (suc∈-cons-zero-tail αA∈Σ)
-    norm {suc α} eq αA∈Σ | B , αB∈Σ , refl =
-      ∈-renameStoreᵗ suc (normal∈ ds eq αB∈Σ)
-
-opp-tyAllowed :
-  ∀ {μ ν A} →
-  Oppᵈ μ ν →
-  tyAllowed μ A ≡ true →
-  tyAllowed ν A ≡ true
-opp-tyAllowed {μ = μ} {ν = ν} {A = ＇ α} opp ok
-    with μ α | ν α | opp α | ok
-opp-tyAllowed opp ok | normal | normal | opp-normal | okα = refl
-opp-tyAllowed opp ok | tag-to-seal | seal-to-tag | opp-gen-inst | ()
-opp-tyAllowed opp ok | seal-to-tag | tag-to-seal | opp-inst-gen | ()
-opp-tyAllowed {A = ‵ ι} opp ok = refl
-opp-tyAllowed {A = ★} opp ok = refl
-opp-tyAllowed {μ = μ} {ν = ν} {A = A ⇒ B} opp ok
-    with tyAllowed μ A in okA | tyAllowed μ B in okB
-opp-tyAllowed {μ = μ} {ν = ν} {A = A ⇒ B} opp ok
-    | true | true
-    with opp-tyAllowed {μ = μ} {ν = ν} {A = A} opp okA
-       | opp-tyAllowed {μ = μ} {ν = ν} {A = B} opp okB
-opp-tyAllowed {A = A ⇒ B} opp ok | true | true | okA′ | okB′
-    rewrite okA′ | okB′ = refl
-opp-tyAllowed opp () | false | b
-opp-tyAllowed opp () | true | false
-opp-tyAllowed {A = `∀ A} opp ok =
-  opp-tyAllowed {A = A} (opp-extᵈ opp) ok
-
-tagTyAllowed-var-normal :
-  ∀ {ν α} →
-  ν α ≡ normal →
-  tagTyAllowed ν (＇ α) ≡ true
-tagTyAllowed-var-normal eq rewrite eq = refl
-
-tagTyAllowed-var-tag :
-  ∀ {ν α} →
-  ν α ≡ tag-to-seal →
-  tagTyAllowed ν (＇ α) ≡ true
-tagTyAllowed-var-tag eq rewrite eq = refl
-
-sealModeAllowed-var-normal :
-  ∀ {ν : DualEnv}{α : TyVar} →
-  ν α ≡ normal →
-  sealModeAllowed (ν α) ≡ true
-sealModeAllowed-var-normal eq rewrite eq = refl
-
-sealModeAllowed-var-seal :
-  ∀ {ν : DualEnv}{α : TyVar} →
-  ν α ≡ seal-to-tag →
-  sealModeAllowed (ν α) ≡ true
-sealModeAllowed-var-seal eq rewrite eq = refl
-
-dualTag-typing :
-  ∀ {μ ν Δ Σ Π G} →
-  Oppᵈ μ ν →
-  DualStore μ Σ ν Π →
-  WfTy Δ G →
-  Ground G →
-  tagTyAllowed μ G ≡ true →
-  ν ∣ Δ ∣ Π ⊢ dualTag μ G ∶ ★ =⇒ G
-dualTag-typing {μ = μ} {ν = ν} {G = ＇ α} opp ds hG gG ok
-    with μ α in μα | ν α in να | opp α | ok
-dualTag-typing {ν = ν} {G = ＇ α} opp ds hG gG ok
-    | normal | normal | opp-normal | okα
-    rewrite μα | να =
-  cast-untag {μ = ν} hG gG
-    (tagTyAllowed-var-normal {ν = ν} {α = α} να)
-dualTag-typing {ν = ν} {G = ＇ α} opp ds hG gG ok
-    | tag-to-seal | seal-to-tag | opp-gen-inst | okα
-    rewrite μα | να =
-  cast-seal {μ = ν} wf★ (tagSeal∈ ds μα)
-    refl
-    (sealModeAllowed-var-seal {ν = ν} {α = α} να)
-dualTag-typing {G = ＇ α} opp ds hG gG ok
-    | seal-to-tag | tag-to-seal | opp-inst-gen | ()
-dualTag-typing {ν = ν} {G = ‵ ι} opp ds hG gG ok =
-  cast-untag {μ = ν} hG gG refl
-dualTag-typing {ν = ν} {G = ★ ⇒ ★} opp ds hG gG ok =
-  cast-untag {μ = ν} hG gG refl
-
-dualUntag-typing :
-  ∀ {μ ν Δ Σ Π G} →
-  Oppᵈ μ ν →
-  DualStore μ Σ ν Π →
-  WfTy Δ G →
-  Ground G →
-  tagTyAllowed μ G ≡ true →
-  ν ∣ Δ ∣ Π ⊢ dualUntag μ G ∶ G =⇒ ★
-dualUntag-typing {μ = μ} {ν = ν} {G = ＇ α} opp ds hG gG ok
-    with μ α in μα | ν α in να | opp α | ok
-dualUntag-typing {ν = ν} {G = ＇ α} opp ds hG gG ok
-    | normal | normal | opp-normal | okα
-    rewrite μα | να =
-  cast-tag {μ = ν} hG gG
-    (tagTyAllowed-var-normal {ν = ν} {α = α} να)
-dualUntag-typing {ν = ν} {G = ＇ α} opp ds hG gG ok
-    | tag-to-seal | seal-to-tag | opp-gen-inst | okα
-    rewrite μα | να =
-  cast-unseal {μ = ν} wf★ (tagSeal∈ ds μα)
-    refl
-    (sealModeAllowed-var-seal {ν = ν} {α = α} να)
-dualUntag-typing {G = ＇ α} opp ds hG gG ok
-    | seal-to-tag | tag-to-seal | opp-inst-gen | ()
-dualUntag-typing {ν = ν} {G = ‵ ι} opp ds hG gG ok =
-  cast-tag {μ = ν} hG gG refl
-dualUntag-typing {ν = ν} {G = ★ ⇒ ★} opp ds hG gG ok =
-  cast-tag {μ = ν} hG gG refl
-
-dualSeal-typing :
-  ∀ {μ ν Δ Σ Π A α} →
-  Oppᵈ μ ν →
-  DualStore μ Σ ν Π →
-  StoreWfAt Δ Σ →
-  WfTy Δ A →
-  (α , A) ∈ Σ →
-  tyAllowed μ A ≡ true →
-  sealModeAllowed (μ α) ≡ true →
-  ν ∣ Δ ∣ Π ⊢ dualSeal μ A α ∶ ＇ α =⇒ A
-dualSeal-typing {μ = μ} {ν = ν} {A = A} {α = α}
-    opp ds wfΣ hA αA∈Σ A-ok α-ok
-    with μ α in μα | ν α in να | opp α | α-ok
-dualSeal-typing {μ = μ} {ν = ν} {A = A} {α = α}
-    opp ds wfΣ hA αA∈Σ A-ok α-ok
-    | normal | normal | opp-normal | okα
-    rewrite μα | να =
-  cast-unseal {μ = ν} hA (normal∈ ds μα αA∈Σ)
-    (opp-tyAllowed {μ = μ} {ν = ν} {A = A} opp A-ok)
-    (sealModeAllowed-var-normal {ν = ν} {α = α} να)
-dualSeal-typing {A = A} {α = α} opp ds wfΣ hA αA∈Σ A-ok α-ok
-    | tag-to-seal | seal-to-tag | opp-gen-inst | ()
-dualSeal-typing {ν = ν} {A = A} {α = α}
-    opp ds wfΣ hA αA∈Σ A-ok α-ok
-    | seal-to-tag | tag-to-seal | opp-inst-gen | okα
-    rewrite sealTag★ ds μα αA∈Σ | μα | να =
-  cast-tag {μ = ν} (wfVar (bound wfΣ αA∈Σ)) (＇ α)
-    (tagTyAllowed-var-tag {ν = ν} {α = α} να)
-
-dualUnseal-typing :
-  ∀ {μ ν Δ Σ Π A α} →
-  Oppᵈ μ ν →
-  DualStore μ Σ ν Π →
-  StoreWfAt Δ Σ →
-  WfTy Δ A →
-  (α , A) ∈ Σ →
-  tyAllowed μ A ≡ true →
-  sealModeAllowed (μ α) ≡ true →
-  ν ∣ Δ ∣ Π ⊢ dualUnseal μ α A ∶ A =⇒ ＇ α
-dualUnseal-typing {μ = μ} {ν = ν} {A = A} {α = α}
-    opp ds wfΣ hA αA∈Σ A-ok α-ok
-    with μ α in μα | ν α in να | opp α | α-ok
-dualUnseal-typing {μ = μ} {ν = ν} {A = A} {α = α}
-    opp ds wfΣ hA αA∈Σ A-ok α-ok
-    | normal | normal | opp-normal | okα
-    rewrite μα | να =
-  cast-seal {μ = ν} hA (normal∈ ds μα αA∈Σ)
-    (opp-tyAllowed {μ = μ} {ν = ν} {A = A} opp A-ok)
-    (sealModeAllowed-var-normal {ν = ν} {α = α} να)
-dualUnseal-typing {A = A} {α = α} opp ds wfΣ hA αA∈Σ A-ok α-ok
-    | tag-to-seal | seal-to-tag | opp-gen-inst | ()
-dualUnseal-typing {ν = ν} {A = A} {α = α}
-    opp ds wfΣ hA αA∈Σ A-ok α-ok
-    | seal-to-tag | tag-to-seal | opp-inst-gen | okα
-    rewrite sealTag★ ds μα αA∈Σ | μα | να =
-  cast-untag {μ = ν} (wfVar (bound wfΣ αA∈Σ)) (＇ α)
-    (tagTyAllowed-var-tag {ν = ν} {α = α} να)
-
-coercion-dual-flipᵐ :
-  ∀ {μ ν Δ Σ Π c A B} →
-  Oppᵈ μ ν →
-  DualStore μ Σ ν Π →
-  StoreWfAt Δ Σ →
+  ScopedModeRename Δ ρ μ ν →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
-  ν ∣ Δ ∣ Π ⊢ dual μ c ∶ B =⇒ A
-coercion-dual-flipᵐ {μ = μ} {ν = ν} opp ds wfΣ
-    (cast-id {A = A} hA ok) =
-  cast-id hA (opp-tyAllowed {μ = μ} {ν = ν} {A = A} opp ok)
-coercion-dual-flipᵐ opp ds wfΣ
-    (cast-seal hA αA∈Σ A-ok α-ok) =
-  dualSeal-typing opp ds wfΣ hA αA∈Σ A-ok α-ok
-coercion-dual-flipᵐ opp ds wfΣ
-    (cast-unseal hA αA∈Σ A-ok α-ok) =
-  dualUnseal-typing opp ds wfΣ hA αA∈Σ A-ok α-ok
-coercion-dual-flipᵐ opp ds wfΣ (cast-seq c⊢ d⊢) =
-  cast-seq (coercion-dual-flipᵐ opp ds wfΣ d⊢)
-           (coercion-dual-flipᵐ opp ds wfΣ c⊢)
-coercion-dual-flipᵐ opp ds wfΣ (cast-tag hG gG ok) =
-  dualTag-typing opp ds hG gG ok
-coercion-dual-flipᵐ opp ds wfΣ (cast-untag hG gG ok) =
-  dualUntag-typing opp ds hG gG ok
-coercion-dual-flipᵐ opp ds wfΣ (cast-fun c⊢ d⊢) =
-  cast-fun (coercion-dual-flipᵐ opp ds wfΣ c⊢)
-           (coercion-dual-flipᵐ opp ds wfΣ d⊢)
-coercion-dual-flipᵐ opp ds wfΣ (cast-all c⊢) =
+  ν ∣ Δ′ ∣ renameStoreᵗ ρ Σ ⊢ renameᶜ ρ c
+    ∶ renameᵗ ρ A =⇒ renameᵗ ρ B
+coercion-renameᵗᵐ-scoped wfΣ hρ rel (cast-id hA) =
+  cast-id (renameᵗ-preserves-WfTy hA hρ)
+coercion-renameᵗᵐ-scoped {Δ = Δ} {ρ = ρ} {μ = μ} {ν = ν} wfΣ hρ rel
+    (cast-seal {α = α} hA α∈Σ α-ok) =
+  cast-seal
+    (renameᵗ-preserves-WfTy hA hρ)
+    (∈-renameStoreᵗ _ α∈Σ)
+    (scopedModeRename-sealModeAllowed
+      {Δ = Δ} {ρ = ρ} {μ = μ} {ν = ν} {α = α}
+      rel (bound wfΣ α∈Σ) α-ok)
+coercion-renameᵗᵐ-scoped {Δ = Δ} {ρ = ρ} {μ = μ} {ν = ν} wfΣ hρ rel
+    (cast-unseal {α = α} hA α∈Σ α-ok) =
+  cast-unseal
+    (renameᵗ-preserves-WfTy hA hρ)
+    (∈-renameStoreᵗ _ α∈Σ)
+    (scopedModeRename-sealModeAllowed
+      {Δ = Δ} {ρ = ρ} {μ = μ} {ν = ν} {α = α}
+      rel (bound wfΣ α∈Σ) α-ok)
+coercion-renameᵗᵐ-scoped wfΣ hρ rel (cast-seq c⊢ d⊢) =
+  cast-seq (coercion-renameᵗᵐ-scoped wfΣ hρ rel c⊢)
+           (coercion-renameᵗᵐ-scoped wfΣ hρ rel d⊢)
+coercion-renameᵗᵐ-scoped wfΣ hρ rel (cast-tag {G = G} hG gG ok) =
+  cast-tag
+    (renameᵗ-preserves-WfTy hG hρ)
+    (renameᵗ-ground _ gG)
+    (scopedModeRename-tagTyAllowed hG rel ok)
+coercion-renameᵗᵐ-scoped wfΣ hρ rel (cast-untag {H = H} hH gH ok) =
+  cast-untag
+    (renameᵗ-preserves-WfTy hH hρ)
+    (renameᵗ-ground _ gH)
+    (scopedModeRename-tagTyAllowed hH rel ok)
+coercion-renameᵗᵐ-scoped wfΣ hρ rel (cast-fun c⊢ d⊢) =
+  cast-fun (coercion-renameᵗᵐ-scoped wfΣ hρ rel c⊢)
+           (coercion-renameᵗᵐ-scoped wfΣ hρ rel d⊢)
+coercion-renameᵗᵐ-scoped {ρ = ρ} wfΣ hρ rel
+    (cast-all {A = A} {B = B} c⊢) =
   cast-all
-    (coercion-dual-flipᵐ
-      (opp-extᵈ opp)
-      (dualStore-ext ds)
-      (StoreWfAt-⟰ᵗ wfΣ)
-      c⊢)
-coercion-dual-flipᵐ {μ = μ} {ν = ν} opp ds wfΣ
-    (cast-inst {B = B} hB B-ok c⊢) =
-  cast-gen hB
-    (opp-tyAllowed {μ = μ} {ν = ν} {A = B} opp B-ok)
-    (coercion-dual-flipᵐ
-      (opp-inst-genᵈ opp)
-      (dualStore-inst-gen ds)
-      (StoreWfAt-cons z<s wf★ (StoreWfAt-⟰ᵗ wfΣ))
-      c⊢)
-coercion-dual-flipᵐ {μ = μ} {ν = ν} opp ds wfΣ
-    (cast-gen {A = A} hA A-ok c⊢) =
-  cast-inst hA
-    (opp-tyAllowed {μ = μ} {ν = ν} {A = A} opp A-ok)
-    (coercion-dual-flipᵐ
-      (opp-gen-instᵈ opp)
-      (dualStore-gen-inst ds)
-      (StoreWfAt-⟰ᵗ wfΣ)
-      c⊢)
+    (subst
+      (λ Σ′ → _ ∣ _ ∣ Σ′ ⊢ renameᶜ (extᵗ ρ) _ ∶ _ =⇒ _)
+      (renameStoreᵗ-ext-suc-comm ρ _)
+      (coercion-renameᵗᵐ-scoped
+        (StoreWfAt-⟰ᵗ wfΣ)
+        (TyRenameWf-ext hρ)
+        (ScopedModeRename-ext rel)
+        c⊢))
+coercion-renameᵗᵐ-scoped {ρ = ρ} wfΣ hρ rel
+    (cast-inst {B = B} hB c⊢) =
+  cast-inst
+    (renameᵗ-preserves-WfTy hB hρ)
+    (subst
+      (λ T → _ ∣ _ ∣ _ ⊢ renameᶜ (extᵗ ρ) _ ∶ _ =⇒ T)
+      (renameᵗ-ext-suc-comm ρ B)
+      (subst
+        (λ Σ′ → _ ∣ _ ∣ (0 , ★) ∷ Σ′
+          ⊢ renameᶜ (extᵗ ρ) _ ∶ _ =⇒ _)
+        (renameStoreᵗ-ext-suc-comm ρ _)
+        (coercion-renameᵗᵐ-scoped
+          (StoreWfAt-cons z<s wf★ (StoreWfAt-⟰ᵗ wfΣ))
+          (TyRenameWf-ext hρ)
+          (ScopedModeRename-inst rel)
+          c⊢)))
+coercion-renameᵗᵐ-scoped {ρ = ρ} wfΣ hρ rel
+    (cast-gen {A = A} hA c⊢) =
+  cast-gen
+    (renameᵗ-preserves-WfTy hA hρ)
+    (subst
+      (λ T → _ ∣ _ ∣ _ ⊢ renameᶜ (extᵗ ρ) _ ∶ T =⇒ _)
+      (renameᵗ-ext-suc-comm ρ A)
+      (subst
+        (λ Σ′ → _ ∣ _ ∣ Σ′ ⊢ renameᶜ (extᵗ ρ) _ ∶ _ =⇒ _)
+        (renameStoreᵗ-ext-suc-comm ρ _)
+        (coercion-renameᵗᵐ-scoped
+          (StoreWfAt-⟰ᵗ wfΣ)
+          (TyRenameWf-ext hρ)
+          (ScopedModeRename-gen rel)
+          c⊢)))
 
-coercion-dual-flip :
-  ∀ {Δ Σ c A B} →
-  StoreWfAt Δ Σ →
-  Δ ∣ Σ ⊢ c ∶ A =⇒ B →
-  Δ ∣ Σ ⊢ - c ∶ B =⇒ A
-coercion-dual-flip wfΣ c⊢ =
-  coercion-dual-flipᵐ opp-normalᵈ dualStore-normal wfΣ c⊢
+openᵈ : DualEnv → TyVar → DualEnv
+openᵈ μ α X with X ≟ α
+openᵈ μ α X | yes eq = μ zero
+openᵈ μ α X | no neq = μ (suc X)
 
-dual-flips-typing :
-  ∀ {Δ Σ c A B} →
+singleRenameᵗ-Wf≤ :
+  ∀ {Δ Δ′ α} →
+  Δ ≤ Δ′ →
+  α < Δ′ →
+  TyRenameWf (suc Δ) Δ′ (singleRenameᵗ α)
+singleRenameᵗ-Wf≤ Δ≤Δ′ α<Δ′ {zero} z<s = α<Δ′
+singleRenameᵗ-Wf≤ Δ≤Δ′ α<Δ′ {suc X} (s<s X<Δ) =
+  <-≤-trans X<Δ Δ≤Δ′
+
+openᵈ-scoped :
+  ∀ {Δ α μ} →
+  Δ ≤ α →
+  ScopedModeRename (suc Δ) (singleRenameᵗ α) μ (openᵈ μ α)
+openᵈ-scoped {α = α} {μ = μ} Δ≤α {zero} z<s
+    with α ≟ α
+openᵈ-scoped {α = α} {μ = μ} Δ≤α {zero} z<s
+    | yes refl =
+  modeIncl-refl {μ = μ} zero
+openᵈ-scoped {α = α} Δ≤α {zero} z<s
+    | no α≢α =
+  ⊥-elim (α≢α refl)
+openᵈ-scoped {Δ = Δ} {α = α} {μ = μ} Δ≤α {suc X} (s<s X<Δ)
+    with X ≟ α
+openᵈ-scoped {Δ = Δ} {α = α} {μ = μ} Δ≤α {suc X} (s<s X<Δ)
+    | yes X≡α =
+  ⊥-elim
+    (<-irrefl refl
+      (subst (λ Y → Y < α) X≡α (<-≤-trans X<Δ Δ≤α)))
+openᵈ-scoped {Δ = Δ} {α = α} {μ = μ} Δ≤α {suc X} (s<s X<Δ)
+    | no X≢α =
+  modeIncl-refl {μ = μ} (suc X)
+
+renameStoreᵗ-openν-cancel :
+  ∀ α Σ A →
+  renameStoreᵗ (singleRenameᵗ α) ((zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ) ≡
+  (α , A) ∷ Σ
+renameStoreᵗ-openν-cancel α Σ A =
+  cong₂ _∷_
+    (cong₂ _,_ refl (renameᵗ-single-suc-cancel α A))
+    (renameStoreᵗ-single-suc-cancel α Σ)
+
+coercion-open-freshᵐ :
+  ∀ {μ Δ Δ′ Σ c A C B α} →
   StoreWfAt Δ Σ →
-  Δ ∣ Σ ⊢ c ∶ A =⇒ B →
-  Δ ∣ Σ ⊢ - c ∶ B =⇒ A
-dual-flips-typing = coercion-dual-flip
+  Δ ≤ Δ′ →
+  Δ ≤ α →
+  α < Δ′ →
+  α ∉ domˢ Σ →
+  WfTy Δ A →
+  μ ∣ suc Δ ∣ (zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ ⊢ c ∶ C =⇒ ⇑ᵗ B →
+  openᵈ μ α ∣ Δ′ ∣ (α , A) ∷ Σ ⊢ c [ α ]ᶜ
+    ∶ C [ α ]ᴿ =⇒ B
+coercion-open-freshᵐ {μ = μ} {Δ = Δ} {Δ′ = Δ′} {Σ = Σ}
+    {c = c} {A = A} {C = C} {B = B} {α = α}
+    wfΣ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ hA c⊢ =
+  subst
+    (λ T → openᵈ μ α ∣ Δ′ ∣ (α , A) ∷ Σ ⊢ c [ α ]ᶜ
+      ∶ C [ α ]ᴿ =⇒ T)
+    (renameᵗ-single-suc-cancel α B)
+    opened-store
+  where
+    sourceWf : StoreWfAt (suc Δ) ((zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ)
+    sourceWf =
+      StoreWfAt-cons
+        z<s
+        (renameᵗ-preserves-WfTy hA TyRenameWf-suc)
+        (StoreWfAt-⟰ᵗ wfΣ)
+
+    opened-renamed :
+      openᵈ μ α ∣ Δ′
+      ∣ renameStoreᵗ (singleRenameᵗ α) ((zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ)
+      ⊢ c [ α ]ᶜ ∶ C [ α ]ᴿ
+      =⇒ renameᵗ (singleRenameᵗ α) (⇑ᵗ B)
+    opened-renamed =
+      coercion-renameᵗᵐ-scoped
+        sourceWf
+        (singleRenameᵗ-Wf≤ Δ≤Δ′ α<Δ′)
+        (openᵈ-scoped Δ≤α)
+        c⊢
+
+    opened-store :
+      openᵈ μ α ∣ Δ′ ∣ (α , A) ∷ Σ ⊢ c [ α ]ᶜ ∶ C [ α ]ᴿ
+      =⇒ renameᵗ (singleRenameᵗ α) (⇑ᵗ B)
+    opened-store =
+      subst
+        (λ Σ′ → openᵈ μ α ∣ Δ′ ∣ Σ′ ⊢ c [ α ]ᶜ
+          ∶ C [ α ]ᴿ =⇒ renameᵗ (singleRenameᵗ α) (⇑ᵗ B))
+        (renameStoreᵗ-openν-cancel α Σ A)
+        opened-renamed
+
+coercion-open-fresh :
+  ∀ {μ Δ Δ′ Σ c A C B α} →
+  StoreWfAt Δ Σ →
+  Δ ≤ Δ′ →
+  Δ ≤ α →
+  α < Δ′ →
+  α ∉ domˢ Σ →
+  WfTy Δ A →
+  μ ∣ suc Δ ∣ (zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ ⊢ c ∶ C =⇒ ⇑ᵗ B →
+  Δ′ ∣ (α , A) ∷ Σ ⊢ c [ α ]ᶜ ∶ C [ α ]ᴿ =⇒ B
+coercion-open-fresh {μ = μ} {α = α}
+    wfΣ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ hA c⊢ =
+  openᵈ μ α ,
+    coercion-open-freshᵐ
+      wfΣ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ hA c⊢
+
+coercion-open-store-freshᵐ :
+  ∀ {μ Δ Δ′ Σ c A B α Aν} →
+  StoreWfAt Δ Σ →
+  Δ ≤ Δ′ →
+  Δ ≤ α →
+  α < Δ′ →
+  μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ A =⇒ B →
+  openᵈ μ α ∣ Δ′ ∣ (α , Aν) ∷ Σ ⊢ c [ α ]ᶜ
+    ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
+coercion-open-store-freshᵐ {μ = μ} {Δ′ = Δ′} {Σ = Σ}
+    {c = c} {A = A} {B = B} {α = α} {Aν = Aν}
+    wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢ =
+  coercion-weakenᵐ ≤-refl StoreIncl-drop opened-store
+  where
+    opened-renamed :
+      openᵈ μ α ∣ Δ′ ∣ renameStoreᵗ (singleRenameᵗ α) (⟰ᵗ Σ)
+      ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
+    opened-renamed =
+      coercion-renameᵗᵐ-scoped
+        (StoreWfAt-⟰ᵗ wfΣ)
+        (singleRenameᵗ-Wf≤ Δ≤Δ′ α<Δ′)
+        (openᵈ-scoped Δ≤α)
+        c⊢
+
+    opened-store :
+      openᵈ μ α ∣ Δ′ ∣ Σ
+      ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
+    opened-store =
+      subst
+        (λ Σ′ → openᵈ μ α ∣ Δ′ ∣ Σ′ ⊢ c [ α ]ᶜ
+          ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ)
+        (renameStoreᵗ-single-suc-cancel α Σ)
+        opened-renamed
+
+coercion-open-store-fresh :
+  ∀ {μ Δ Δ′ Σ c A B α Aν} →
+  StoreWfAt Δ Σ →
+  Δ ≤ Δ′ →
+  Δ ≤ α →
+  α < Δ′ →
+  μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ A =⇒ B →
+  Δ′ ∣ (α , Aν) ∷ Σ ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ =⇒ B [ α ]ᴿ
+coercion-open-store-fresh {μ = μ} {α = α}
+    wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢ =
+  openᵈ μ α ,
+    coercion-open-store-freshᵐ wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢
+
+coercion-open-shift-freshᵐ :
+  ∀ {μ Δ Δ′ Σ c A B α Aν} →
+  StoreWfAt Δ Σ →
+  Δ ≤ Δ′ →
+  Δ ≤ α →
+  α < Δ′ →
+  μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ ⇑ᵗ A =⇒ B →
+  openᵈ μ α ∣ Δ′ ∣ (α , Aν) ∷ Σ ⊢ c [ α ]ᶜ
+    ∶ A =⇒ B [ α ]ᴿ
+coercion-open-shift-freshᵐ {μ = μ} {Δ = Δ} {Δ′ = Δ′}
+    {Σ = Σ} {c = c} {A = A} {B = B} {α = α} {Aν = Aν}
+    wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢ =
+  subst
+    (λ T → openᵈ μ α ∣ Δ′ ∣ (α , Aν) ∷ Σ ⊢ c [ α ]ᶜ
+      ∶ T =⇒ B [ α ]ᴿ)
+    (renameᵗ-single-suc-cancel α A)
+    (coercion-open-store-freshᵐ wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢)
+
+coercion-open-shift-fresh :
+  ∀ {μ Δ Δ′ Σ c A B α Aν} →
+  StoreWfAt Δ Σ →
+  Δ ≤ Δ′ →
+  Δ ≤ α →
+  α < Δ′ →
+  μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ ⇑ᵗ A =⇒ B →
+  Δ′ ∣ (α , Aν) ∷ Σ ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ
+coercion-open-shift-fresh {μ = μ} {α = α}
+    wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢ =
+  openᵈ μ α ,
+    coercion-open-shift-freshᵐ wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢
 
 ------------------------------------------------------------------------
 -- Coercion endpoint well-formedness
@@ -1294,10 +697,10 @@ coercion-wfᵐ :
   StoreWfAt Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   WfTy Δ A × WfTy Δ B
-coercion-wfᵐ wfΣ (cast-id hA _) = hA , hA
-coercion-wfᵐ wfΣ (cast-seal hA α∈Σ _ _) =
+coercion-wfᵐ wfΣ (cast-id hA) = hA , hA
+coercion-wfᵐ wfΣ (cast-seal hA α∈Σ _) =
   hA , wfVar (bound wfΣ α∈Σ)
-coercion-wfᵐ wfΣ (cast-unseal hA α∈Σ _ _) =
+coercion-wfᵐ wfΣ (cast-unseal hA α∈Σ _) =
   wfVar (bound wfΣ α∈Σ) , hA
 coercion-wfᵐ wfΣ (cast-seq c⊢ d⊢)
     with coercion-wfᵐ wfΣ c⊢ | coercion-wfᵐ wfΣ d⊢
@@ -1315,15 +718,15 @@ coercion-wfᵐ wfΣ (cast-all c⊢)
     with coercion-wfᵐ (StoreWfAt-⟰ᵗ wfΣ) c⊢
 coercion-wfᵐ wfΣ (cast-all c⊢) | hA , hB =
   wf∀ hA , wf∀ hB
-coercion-wfᵐ wfΣ (cast-inst hB _ c⊢)
+coercion-wfᵐ wfΣ (cast-inst hB c⊢)
     with coercion-wfᵐ
       (StoreWfAt-cons z<s wf★ (StoreWfAt-⟰ᵗ wfΣ))
       c⊢
-coercion-wfᵐ wfΣ (cast-inst hB _ c⊢) | hA , hB′ =
+coercion-wfᵐ wfΣ (cast-inst hB c⊢) | hA , hB′ =
   wf∀ hA , hB
-coercion-wfᵐ wfΣ (cast-gen hA _ c⊢)
+coercion-wfᵐ wfΣ (cast-gen hA c⊢)
     with coercion-wfᵐ (StoreWfAt-⟰ᵗ wfΣ) c⊢
-coercion-wfᵐ wfΣ (cast-gen hA _ c⊢) | hA′ , hB =
+coercion-wfᵐ wfΣ (cast-gen hA c⊢) | hA′ , hB =
   hA , wf∀ hB
 
 coercion-wf :
@@ -1331,7 +734,7 @@ coercion-wf :
   StoreWfAt Δ Σ →
   Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   WfTy Δ A × WfTy Δ B
-coercion-wf = coercion-wfᵐ
+coercion-wf wfΣ (μ , c⊢) = coercion-wfᵐ wfΣ c⊢
 
 ------------------------------------------------------------------------
 -- Typing the reveal/conceal coercions generated after fresh allocation
@@ -1382,135 +785,133 @@ singleRevealEnv {Δ = Δ} {X = suc X} (s<s X<Δ) =
       <-irrefl refl (subst (λ Y → Y < Δ) X≡Δ X<Δ)
 
 reveal-var-hit :
-  ∀ {Δ Σ α C} →
+  ∀ {μ Δ Σ α C} →
   WfTy Δ C →
   (α , C) ∈ Σ →
-  Δ ∣ Σ ⊢ reveal (＇ α) α C ∶ ＇ α =⇒ C
-reveal-var-hit {α = α} hC α∈Σ with α ≟ α
-reveal-var-hit {α = α} {C = C} hC α∈Σ | yes refl =
-  cast-unseal hC α∈Σ
-    (tyAllowed-normal C)
-    (sealModeAllowed-normal α)
-reveal-var-hit {α = α} hC α∈Σ | no α≢α =
+  sealModeAllowed (μ α) ≡ true →
+  μ ∣ Δ ∣ Σ ⊢ reveal (＇ α) α C ∶ ＇ α =⇒ C
+reveal-var-hit {α = α} hC α∈Σ α-ok with α ≟ α
+reveal-var-hit {α = α} {C = C} hC α∈Σ α-ok | yes refl =
+  cast-unseal hC α∈Σ α-ok
+reveal-var-hit {α = α} hC α∈Σ α-ok | no α≢α =
   ⊥-elim (α≢α refl)
 
 conceal-var-hit :
-  ∀ {Δ Σ α C} →
+  ∀ {μ Δ Σ α C} →
   WfTy Δ C →
   (α , C) ∈ Σ →
-  Δ ∣ Σ ⊢ conceal (＇ α) α C ∶ C =⇒ ＇ α
-conceal-var-hit {α = α} hC α∈Σ with α ≟ α
-conceal-var-hit {α = α} {C = C} hC α∈Σ | yes refl =
-  cast-seal hC α∈Σ
-    (tyAllowed-normal C)
-    (sealModeAllowed-normal α)
-conceal-var-hit {α = α} hC α∈Σ | no α≢α =
+  sealModeAllowed (μ α) ≡ true →
+  μ ∣ Δ ∣ Σ ⊢ conceal (＇ α) α C ∶ C =⇒ ＇ α
+conceal-var-hit {α = α} hC α∈Σ α-ok with α ≟ α
+conceal-var-hit {α = α} {C = C} hC α∈Σ α-ok | yes refl =
+  cast-seal hC α∈Σ α-ok
+conceal-var-hit {α = α} hC α∈Σ α-ok | no α≢α =
   ⊥-elim (α≢α refl)
 
 reveal-var-miss :
-  ∀ {Δ Σ α C Y} →
+  ∀ {μ Δ Σ α C Y} →
   Y ≢ α →
   WfTy Δ (＇ Y) →
-  Δ ∣ Σ ⊢ reveal (＇ Y) α C ∶ ＇ Y =⇒ ＇ Y
+  μ ∣ Δ ∣ Σ ⊢ reveal (＇ Y) α C ∶ ＇ Y =⇒ ＇ Y
 reveal-var-miss {α = α} {Y = Y} Y≢α hY with α ≟ Y
 reveal-var-miss {α = α} {Y = Y} Y≢α hY | yes α≡Y =
   ⊥-elim (Y≢α (sym α≡Y))
 reveal-var-miss {α = α} {Y = Y} Y≢α hY | no α≢Y =
-  cast-id hY refl
+  cast-id hY
 
 conceal-var-miss :
-  ∀ {Δ Σ α C Y} →
+  ∀ {μ Δ Σ α C Y} →
   Y ≢ α →
   WfTy Δ (＇ Y) →
-  Δ ∣ Σ ⊢ conceal (＇ Y) α C ∶ ＇ Y =⇒ ＇ Y
+  μ ∣ Δ ∣ Σ ⊢ conceal (＇ Y) α C ∶ ＇ Y =⇒ ＇ Y
 conceal-var-miss {α = α} {Y = Y} Y≢α hY with α ≟ Y
 conceal-var-miss {α = α} {Y = Y} Y≢α hY | yes α≡Y =
   ⊥-elim (Y≢α (sym α≡Y))
 conceal-var-miss {α = α} {Y = Y} Y≢α hY | no α≢Y =
-  cast-id hY refl
+  cast-id hY
 
 mutual
   reveal-typing-env :
-    ∀ {Θ Δ Σ B α C ρ σ} →
+    ∀ {μ Θ Δ Σ B α C ρ σ} →
     WfTy Θ B →
     TyRenameWf Θ Δ ρ →
     TySubstWf Θ Δ σ →
     RevealEnv Θ α C ρ σ →
     WfTy Δ C →
     (α , C) ∈ Σ →
-    Δ ∣ Σ ⊢ reveal (renameᵗ ρ B) α C
+    sealModeAllowed (μ α) ≡ true →
+    μ ∣ Δ ∣ Σ ⊢ reveal (renameᵗ ρ B) α C
       ∶ renameᵗ ρ B =⇒ substᵗ σ B
-  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ
+  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
       with env X<Θ
-  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ
+  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
       | rv-hit ρX≡α σX≡C
       rewrite ρX≡α | σX≡C =
-    reveal-var-hit hC α∈Σ
-  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ
+    reveal-var-hit hC α∈Σ α-ok
+  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
       | rv-miss ρX≢α σX≡var
       rewrite σX≡var =
     reveal-var-miss ρX≢α (wfVar (hρ X<Θ))
-  reveal-typing-env wfBase hρ hσ env hC α∈Σ =
-    cast-id wfBase refl
-  reveal-typing-env wf★ hρ hσ env hC α∈Σ =
-    cast-id wf★ refl
-  reveal-typing-env (wf⇒ hA hB) hρ hσ env hC α∈Σ =
+  reveal-typing-env wfBase hρ hσ env hC α∈Σ α-ok =
+    cast-id wfBase
+  reveal-typing-env wf★ hρ hσ env hC α∈Σ α-ok =
+    cast-id wf★
+  reveal-typing-env (wf⇒ hA hB) hρ hσ env hC α∈Σ α-ok =
     cast-fun
-      (conceal-typing-env hA hρ hσ env hC α∈Σ)
-      (reveal-typing-env hB hρ hσ env hC α∈Σ)
+      (conceal-typing-env hA hρ hσ env hC α∈Σ α-ok)
+      (reveal-typing-env hB hρ hσ env hC α∈Σ α-ok)
   reveal-typing-env {B = `∀ B} {ρ = ρ} {σ = σ}
-      (wf∀ hB) hρ hσ env hC α∈Σ =
+      (wf∀ hB) hρ hσ env hC α∈Σ α-ok =
     cast-all
-      (coercion-mode-relax
-        (λ { zero → refl ; (suc X) → refl })
-        (reveal-typing-env
-          hB
-          (TyRenameWf-ext hρ)
-          (TySubstWf-exts hσ)
-          (RevealEnv-ext env)
-          (renameᵗ-preserves-WfTy hC TyRenameWf-suc)
-          (∈-renameStoreᵗ suc α∈Σ)))
+      (reveal-typing-env
+        hB
+        (TyRenameWf-ext hρ)
+        (TySubstWf-exts hσ)
+        (RevealEnv-ext env)
+        (renameᵗ-preserves-WfTy hC TyRenameWf-suc)
+        (∈-renameStoreᵗ suc α∈Σ)
+        α-ok)
 
   conceal-typing-env :
-    ∀ {Θ Δ Σ B α C ρ σ} →
+    ∀ {μ Θ Δ Σ B α C ρ σ} →
     WfTy Θ B →
     TyRenameWf Θ Δ ρ →
     TySubstWf Θ Δ σ →
     RevealEnv Θ α C ρ σ →
     WfTy Δ C →
     (α , C) ∈ Σ →
-    Δ ∣ Σ ⊢ conceal (renameᵗ ρ B) α C
+    sealModeAllowed (μ α) ≡ true →
+    μ ∣ Δ ∣ Σ ⊢ conceal (renameᵗ ρ B) α C
       ∶ substᵗ σ B =⇒ renameᵗ ρ B
-  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ
+  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
       with env X<Θ
-  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ
+  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
       | rv-hit ρX≡α σX≡C
       rewrite ρX≡α | σX≡C =
-    conceal-var-hit hC α∈Σ
-  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ
+    conceal-var-hit hC α∈Σ α-ok
+  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
       | rv-miss ρX≢α σX≡var
       rewrite σX≡var =
     conceal-var-miss ρX≢α (wfVar (hρ X<Θ))
-  conceal-typing-env wfBase hρ hσ env hC α∈Σ =
-    cast-id wfBase refl
-  conceal-typing-env wf★ hρ hσ env hC α∈Σ =
-    cast-id wf★ refl
-  conceal-typing-env (wf⇒ hA hB) hρ hσ env hC α∈Σ =
+  conceal-typing-env wfBase hρ hσ env hC α∈Σ α-ok =
+    cast-id wfBase
+  conceal-typing-env wf★ hρ hσ env hC α∈Σ α-ok =
+    cast-id wf★
+  conceal-typing-env (wf⇒ hA hB) hρ hσ env hC α∈Σ α-ok =
     cast-fun
-      (reveal-typing-env hA hρ hσ env hC α∈Σ)
-      (conceal-typing-env hB hρ hσ env hC α∈Σ)
+      (reveal-typing-env hA hρ hσ env hC α∈Σ α-ok)
+      (conceal-typing-env hB hρ hσ env hC α∈Σ α-ok)
   conceal-typing-env {B = `∀ B} {ρ = ρ} {σ = σ}
-      (wf∀ hB) hρ hσ env hC α∈Σ =
+      (wf∀ hB) hρ hσ env hC α∈Σ α-ok =
     cast-all
-      (coercion-mode-relax
-        (λ { zero → refl ; (suc X) → refl })
-        (conceal-typing-env
-          hB
-          (TyRenameWf-ext hρ)
-          (TySubstWf-exts hσ)
-          (RevealEnv-ext env)
-          (renameᵗ-preserves-WfTy hC TyRenameWf-suc)
-          (∈-renameStoreᵗ suc α∈Σ)))
+      (conceal-typing-env
+        hB
+        (TyRenameWf-ext hρ)
+        (TySubstWf-exts hσ)
+        (RevealEnv-ext env)
+        (renameᵗ-preserves-WfTy hC TyRenameWf-suc)
+        (∈-renameStoreᵗ suc α∈Σ)
+        α-ok)
 
 reveal-fresh-typing :
   ∀ {Δ Σ A B} →
@@ -1519,13 +920,15 @@ reveal-fresh-typing :
   suc Δ ∣ (Δ , A) ∷ Σ ⊢ reveal (B [ Δ ]ᴿ) Δ A
     ∶ B [ Δ ]ᴿ =⇒ B [ A ]ᵗ
 reveal-fresh-typing {Δ = Δ} hA hB =
-  reveal-typing-env
-    hB
-    (singleRenameᵗ-Wf (n<1+n Δ))
-    singleTyEnv-Wf-suc
-    singleRevealEnv
-    (WfTy-weakenᵗ hA (n≤1+n Δ))
-    (here refl)
+  seal-to-tagᵈ ,
+    reveal-typing-env
+      hB
+      (singleRenameᵗ-Wf (n<1+n Δ))
+      singleTyEnv-Wf-suc
+      singleRevealEnv
+      (WfTy-weakenᵗ hA (n≤1+n Δ))
+      (here refl)
+      refl
   where
     singleTyEnv-Wf-suc :
       TySubstWf (suc Δ) (suc Δ) (singleTyEnv _)
@@ -1541,13 +944,15 @@ conceal-fresh-typing :
   suc Δ ∣ (Δ , A) ∷ Σ ⊢ conceal (B [ Δ ]ᴿ) Δ A
     ∶ B [ A ]ᵗ =⇒ B [ Δ ]ᴿ
 conceal-fresh-typing {Δ = Δ} hA hB =
-  conceal-typing-env
-    hB
-    (singleRenameᵗ-Wf (n<1+n Δ))
-    singleTyEnv-Wf-suc
-    singleRevealEnv
-    (WfTy-weakenᵗ hA (n≤1+n Δ))
-    (here refl)
+  seal-to-tagᵈ ,
+    conceal-typing-env
+      hB
+      (singleRenameᵗ-Wf (n<1+n Δ))
+      singleTyEnv-Wf-suc
+      singleRevealEnv
+      (WfTy-weakenᵗ hA (n≤1+n Δ))
+      (here refl)
+      refl
   where
     singleTyEnv-Wf-suc :
       TySubstWf (suc Δ) (suc Δ) (singleTyEnv _)
@@ -1564,9 +969,9 @@ coercion-src-tgtᵐ :
   ∀ {μ Δ Σ c A B} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   src c ≡ A × tgt c ≡ B
-coercion-src-tgtᵐ (cast-id hA _) = refl , refl
-coercion-src-tgtᵐ (cast-seal hA α∈Σ _ _) = refl , refl
-coercion-src-tgtᵐ (cast-unseal hA α∈Σ _ _) = refl , refl
+coercion-src-tgtᵐ (cast-id hA) = refl , refl
+coercion-src-tgtᵐ (cast-seal hA α∈Σ _) = refl , refl
+coercion-src-tgtᵐ (cast-unseal hA α∈Σ _) = refl , refl
 coercion-src-tgtᵐ (cast-seq c⊢ d⊢)
     with coercion-src-tgtᵐ c⊢ | coercion-src-tgtᵐ d⊢
 coercion-src-tgtᵐ (cast-seq c⊢ d⊢)
@@ -1583,17 +988,17 @@ coercion-src-tgtᵐ (cast-all c⊢)
     with coercion-src-tgtᵐ c⊢
 coercion-src-tgtᵐ (cast-all c⊢) | src-c , tgt-c rewrite src-c | tgt-c =
   refl , refl
-coercion-src-tgtᵐ (cast-inst hB _ c⊢)
+coercion-src-tgtᵐ (cast-inst hB c⊢)
     with coercion-src-tgtᵐ c⊢
-coercion-src-tgtᵐ (cast-inst hB _ c⊢) | src-c , tgt-c rewrite src-c =
+coercion-src-tgtᵐ (cast-inst hB c⊢) | src-c , tgt-c rewrite src-c =
   refl , refl
-coercion-src-tgtᵐ (cast-gen hA _ c⊢)
+coercion-src-tgtᵐ (cast-gen hA c⊢)
     with coercion-src-tgtᵐ c⊢
-coercion-src-tgtᵐ (cast-gen hA _ c⊢) | src-c , tgt-c rewrite tgt-c =
+coercion-src-tgtᵐ (cast-gen hA c⊢) | src-c , tgt-c rewrite tgt-c =
   refl , refl
 
 coercion-src-tgt :
   ∀ {Δ Σ c A B} →
   Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   src c ≡ A × tgt c ≡ B
-coercion-src-tgt = coercion-src-tgtᵐ
+coercion-src-tgt (μ , c⊢) = coercion-src-tgtᵐ c⊢

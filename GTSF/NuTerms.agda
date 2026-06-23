@@ -17,7 +17,6 @@ open import Primitives
 infix  5 ƛ_
 infix  5 Λ_
 infixl 7 _·_
-infixl 7 _•_
 infixl 7 _⟨_⟩
 infixl 6 _⊕[_]_
 infix  9 `_
@@ -27,8 +26,7 @@ data Term : Set where
   ƛ_      : Term → Term
   _·_     : Term → Term → Term
   Λ_      : Term → Term
-  _•_     : Term → TyVar → Term
-  ν       : Ty → Term → Term
+  ν       : Ty → Term → Coercion → Term
   $       : Const → Term
   _⊕[_]_  : Term → Prim → Term → Term
   _⟨_⟩    : Term → Coercion → Term
@@ -53,8 +51,8 @@ renameᵗᵐ ρ (` x) = ` x
 renameᵗᵐ ρ (ƛ M) = ƛ renameᵗᵐ ρ M
 renameᵗᵐ ρ (L · M) = renameᵗᵐ ρ L · renameᵗᵐ ρ M
 renameᵗᵐ ρ (Λ M) = Λ (renameᵗᵐ (extᵗ ρ) M)
-renameᵗᵐ ρ (L • α) = renameᵗᵐ ρ L • ρ α
-renameᵗᵐ ρ (ν A N) = ν (renameᵗ ρ A) (renameᵗᵐ (extᵗ ρ) N)
+renameᵗᵐ ρ (ν A L c) =
+  ν (renameᵗ ρ A) (renameᵗᵐ ρ L) (renameᶜ (extᵗ ρ) c)
 renameᵗᵐ ρ ($ κ) = $ κ
 renameᵗᵐ ρ (L ⊕[ op ] M) = renameᵗᵐ ρ L ⊕[ op ] renameᵗᵐ ρ M
 renameᵗᵐ ρ (M ⟨ c ⟩) = renameᵗᵐ ρ M ⟨ renameᶜ ρ c ⟩
@@ -86,8 +84,7 @@ renameˣᵐ ρ (` x) = ` (ρ x)
 renameˣᵐ ρ (ƛ M) = ƛ renameˣᵐ (extʳ ρ) M
 renameˣᵐ ρ (L · M) = renameˣᵐ ρ L · renameˣᵐ ρ M
 renameˣᵐ ρ (Λ M) = Λ (renameˣᵐ ρ M)
-renameˣᵐ ρ (L • α) = renameˣᵐ ρ L • α
-renameˣᵐ ρ (ν A N) = ν A (renameˣᵐ ρ N)
+renameˣᵐ ρ (ν A L c) = ν A (renameˣᵐ ρ L) c
 renameˣᵐ ρ ($ κ) = $ κ
 renameˣᵐ ρ (L ⊕[ op ] M) = renameˣᵐ ρ L ⊕[ op ] renameˣᵐ ρ M
 renameˣᵐ ρ (M ⟨ c ⟩) = renameˣᵐ ρ M ⟨ c ⟩
@@ -105,8 +102,7 @@ substˣᵐ σ (` x) = σ x
 substˣᵐ σ (ƛ M) = ƛ substˣᵐ (extˢˣ σ) M
 substˣᵐ σ (L · M) = substˣᵐ σ L · substˣᵐ σ M
 substˣᵐ σ (Λ M) = Λ (substˣᵐ (↑ᵗᵐ σ) M)
-substˣᵐ σ (L • α) = substˣᵐ σ L • α
-substˣᵐ σ (ν A N) = ν A (substˣᵐ (↑ᵗᵐ σ) N)
+substˣᵐ σ (ν A L c) = ν A (substˣᵐ σ L) c
 substˣᵐ σ ($ κ) = $ κ
 substˣᵐ σ (L ⊕[ op ] M) = substˣᵐ σ L ⊕[ op ] substˣᵐ σ M
 substˣᵐ σ (M ⟨ c ⟩) = substˣᵐ σ M ⟨ c ⟩
@@ -151,17 +147,12 @@ data _∣_∣_⊢_⦂_ (Δ : TyCtx) (Σ : Store) (Γ : Ctx) : Term → Ty → Se
       ----------------------------
      → Δ ∣ Σ ∣ Γ ⊢ (Λ M) ⦂ (`∀ A)
 
-  ⊢• : ∀ {L B α}
-     → Δ ∣ Σ ∣ Γ ⊢ L ⦂ (`∀ B)
-     → α < Δ
-      ----------------------------
-     → Δ ∣ Σ ∣ Γ ⊢ (L • α) ⦂ B [ α ]ᴿ
-
-  ⊢ν : ∀ {N A B}
+  ⊢ν : ∀ {L A B C c μ}
      → WfTy Δ A
-     → suc Δ ∣ (0 , ⇑ᵗ A) ∷ ⟰ᵗ Σ ∣ ⤊ᵗ Γ ⊢ N ⦂ ⇑ᵗ B
+     → Δ ∣ Σ ∣ Γ ⊢ L ⦂ `∀ C
+     → μ ∣ suc Δ ∣ (0 , ⇑ᵗ A) ∷ ⟰ᵗ Σ ⊢ c ∶ C =⇒ ⇑ᵗ B
       --------------------------------------------
-     → Δ ∣ Σ ∣ Γ ⊢ (ν A N) ⦂ B
+     → Δ ∣ Σ ∣ Γ ⊢ ν A L c ⦂ B
 
   ⊢$ : ∀ (κ : Const)
       -------------------------------
@@ -174,8 +165,8 @@ data _∣_∣_⊢_⦂_ (Δ : TyCtx) (Σ : Store) (Γ : Ctx) : Term → Ty → Se
       -----------------------------------
      → Δ ∣ Σ ∣ Γ ⊢ (L ⊕[ op ] M) ⦂ (‵ `ℕ)
 
-  ⊢⟨⟩ : ∀ {M A B c}
-      → Δ ∣ Σ ⊢ c ∶ A =⇒ B  -- Phil: should be Π, and Π ⊆ Σ to distinguish 
+  ⊢⟨⟩ : ∀ {M A B c μ}
+      → μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
       → Δ ∣ Σ ∣ Γ ⊢ M ⦂ A
       -------------------------
       → Δ ∣ Σ ∣ Γ ⊢ M ⟨ c ⟩ ⦂ B

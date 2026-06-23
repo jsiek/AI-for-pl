@@ -1,7 +1,7 @@
 module NuReduction where
 
-open import Data.List using (_∷_)
-open import Data.Nat using (ℕ; _+_)
+open import Data.List using (List; []; _∷_)
+open import Data.Nat using (ℕ; _+_; _≤_; suc)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Data.Sum using (_⊎_)
 open import Relation.Nullary using (¬_)
@@ -14,6 +14,50 @@ open import Types
 open import Coercions
 open import NuTerms
 open import Primitives
+
+--------------------------------------------------------------------------------
+-- Type-application reduction
+--------------------------------------------------------------------------------
+
+applyCoercions : Term → List Coercion → Term
+applyCoercions M [] = M
+applyCoercions M (c ∷ cs) = applyCoercions (M ⟨ c ⟩) cs
+
+data TypeApp : Set where
+  app : Term → TyVar → List Coercion → TypeApp
+  val : Term → List Coercion → TypeApp
+
+infix 2 _—→ᵀ_
+data _—→ᵀ_ : TypeApp → TypeApp → Set where
+
+  β-Λᵀ : ∀ {V : Term}{α : TyVar}{cs : List Coercion}
+    → Value V
+    ---------------------------------------------
+    → app (Λ V) α cs —→ᵀ val (V [ α ]ᵀ) cs
+
+  β-∀ᵀ : ∀ {V : Term}{c : Coercion}{α : TyVar}{cs : List Coercion}
+    → Value V
+    ----------------------------------------------------------------
+    → app (V ⟨ `∀ c ⟩) α cs —→ᵀ app V α ((c [ α ]ᶜ) ∷ cs)
+
+  β-genᵀ : ∀ {A : Ty}{V : Term}{c : Coercion}{α : TyVar}
+      {cs : List Coercion}
+    → Value V
+    ---------------------------------------------------------------
+    → app (V ⟨ gen A c ⟩) α cs —→ᵀ val V ((c [ α ]ᶜ) ∷ cs)
+
+infix 2 _—↠ᵀ_
+data _—↠ᵀ_ : TypeApp → TypeApp → Set where
+
+  doneᵀ : ∀ {S : TypeApp}
+      ------------
+    → S —↠ᵀ S
+
+  stepᵀ : ∀ {S T U : TypeApp}
+    → S —→ᵀ T
+    → T —↠ᵀ U
+      ------------
+    → S —↠ᵀ U
 
 --------------------------------------------------------------------------------
 -- One-step reduction
@@ -31,10 +75,6 @@ data _—→_ : Term → Term → Set where
     ---------------------
     → (ƛ N) · V —→ N [ V ]
 
-  β-Λ : ∀ {α : TyVar} {V : Term} 
-    ------------------------
-    → (Λ V) • α  —→ V [ α ]ᵀ
-
   β-id : ∀ {V}{A}
     → Value V
     -------------------
@@ -50,20 +90,10 @@ data _—→_ : Term → Term → Set where
     --------------------------------------------
     → V ⟨ p ↦ q ⟩ · W  —→  (V · (W ⟨ p ⟩)) ⟨ q ⟩
 
-  β-∀ : ∀ {V : Term}{c : Coercion}{α : TyVar}
-    → Value V
-    ----------------------------------------
-    → V ⟨ `∀ c ⟩ • α —→ (V • α) ⟨ c [ α ]ᶜ ⟩
-
-  β-gen : ∀ {Σ : Store} {C V c α}
-    → Value V
-    --------------------------------------
-    → V ⟨ gen C c ⟩ • α —→ V ⟨ c [ α ]ᶜ ⟩
-
-  β-inst : ∀ {Σ : Store} {V B c}
+  β-inst : ∀ {V B c}
     → Value V
     ----------------------------------------------
-    → V ⟨ inst B c ⟩ —→ ν ★ (((⇑ᵗᵐ V) • 0 ) ⟨ c ⟩)
+    → V ⟨ inst B c ⟩ —→ ν ★ V c
 
   tag-untag-ok : ∀ {V G}
     → Value V
@@ -87,9 +117,6 @@ data _—→_ : Term → Term → Set where
     Value V →
     (V · blame) —→ blame
 
-  blame-·α : ∀ {α : TyVar} →
-    (blame • α) —→ blame
-
   blame-⟨⟩ : ∀ {c : Coercion} →
     (blame ⟨ c ⟩) —→ blame
 
@@ -105,43 +132,55 @@ data _—→_ : Term → Term → Set where
 -- Store-threaded one-step reduction
 --------------------------------------------------------------------------------
 
-infix 2 _∣_—→_∣_
-data _∣_—→_∣_ : Store → Term → Store → Term → Set where
+infix 2 _∣_∣_—→_∣_∣_
+data _∣_∣_—→_∣_∣_ :
+    TyCtx → Store → Term → TyCtx → Store → Term → Set where
 
-  pure-step : ∀ {Σ : Store} {M M′ : Term}
+  pure-step : ∀ {Δ : TyCtx} {Σ : Store} {M M′ : Term}
     → M —→ M′
     -----------------
-    → Σ ∣ M —→ Σ ∣ M′
+    → Δ ∣ Σ ∣ M —→ Δ ∣ Σ ∣ M′
 
   -- Allow non-deterministic choice of α here so that in the proof of the
   -- Gradual Guarantee, we can choose a matching α in the simulating program.
-  ν-step : ∀ {Σ : Store} {N : Term} {A : Ty} {α : TyVar}
+  ν-step : ∀ {Δ : TyCtx} {Σ : Store} {A : Ty} {L V : Term}
+      {c : Coercion} {α : TyVar} {cs : List Coercion}
+   → Δ ≤ α
    → α ∉ domˢ Σ
+   → app L α ((c [ α ]ᶜ) ∷ []) —↠ᵀ val V cs
     -------------------------------------
-   → Σ ∣ ν A N —→ (α , A) ∷ Σ ∣ N [ α ]ᵀ
+   → Δ ∣ Σ ∣ ν A L c —→ suc α ∣ (α , A) ∷ Σ
+       ∣ applyCoercions V cs
 
-  ξ-·₁ : ∀ {Σ Σ′ : Store} {L M L′ : Term} →
-    Σ ∣ L —→ Σ′ ∣ L′ →
-    Σ ∣ (L · M) —→ Σ′ ∣ (L′ · M)
+  ξ-·₁ : ∀ {Δ Δ′ : TyCtx} {Σ Σ′ : Store} {L M L′ : Term} →
+    Δ ∣ Σ ∣ L —→ Δ′ ∣ Σ′ ∣ L′ →
+    Δ ∣ Σ ∣ (L · M) —→ Δ′ ∣ Σ′ ∣ (L′ · M)
 
-  ξ-·₂ : ∀ {Σ Σ′ : Store} {V M M′ : Term} →
+  ξ-·₂ : ∀ {Δ Δ′ : TyCtx} {Σ Σ′ : Store} {V M M′ : Term} →
     Value V →
-    Σ ∣ M —→ Σ′ ∣ M′ →
-    Σ ∣ (V · M) —→ Σ′ ∣ (V · M′)
+    Δ ∣ Σ ∣ M —→ Δ′ ∣ Σ′ ∣ M′ →
+    Δ ∣ Σ ∣ (V · M) —→ Δ′ ∣ Σ′ ∣ (V · M′)
 
-  ξ-·α : ∀ {Σ Σ′ : Store} {M M′ : Term} {α : TyVar} →
-    Σ ∣ M —→ Σ′ ∣ M′ →
-    Σ ∣ (M • α) —→ Σ′ ∣ (M′ • α)
+  ξ-⟨⟩ : ∀ {Δ Δ′ : TyCtx} {Σ Σ′ : Store}
+      {c : Coercion} {M M′ : Term} →
+    Δ ∣ Σ ∣ M —→ Δ′ ∣ Σ′ ∣ M′ →
+    Δ ∣ Σ ∣ (M ⟨ c ⟩) —→ Δ′ ∣ Σ′ ∣ (M′ ⟨ c ⟩)
 
-  ξ-⟨⟩ : ∀ {Σ Σ′ : Store} {c : Coercion} {M M′ : Term} →
-    Σ ∣ M —→ Σ′ ∣ M′ →
-    Σ ∣ (M ⟨ c ⟩) —→ Σ′ ∣ (M′ ⟨ c ⟩)
+  ξ-ν : ∀ {Δ Δ′ : TyCtx} {Σ Σ′ : Store}
+      {A : Ty} {L L′ : Term} {c : Coercion} →
+    Δ ∣ Σ ∣ L —→ Δ′ ∣ Σ′ ∣ L′ →
+    Δ ∣ Σ ∣ ν A L c —→ Δ′ ∣ Σ′ ∣ ν A L′ c
 
-  ξ-⊕₁ : ∀ {Σ Σ′ : Store} {L M L′ : Term} {op : Prim} →
-    Σ ∣ L —→ Σ′ ∣ L′ →
-    Σ ∣ (L ⊕[ op ] M) —→ Σ′ ∣ (L′ ⊕[ op ] M)
+  blame-ν : ∀ {Δ : TyCtx} {Σ : Store} {A : Ty} {c : Coercion} →
+    Δ ∣ Σ ∣ ν A blame c —→ Δ ∣ Σ ∣ blame
 
-  ξ-⊕₂ : ∀ {Σ Σ′ : Store} {L M M′ : Term} {op : Prim} →
+  ξ-⊕₁ : ∀ {Δ Δ′ : TyCtx} {Σ Σ′ : Store}
+      {L M L′ : Term} {op : Prim} →
+    Δ ∣ Σ ∣ L —→ Δ′ ∣ Σ′ ∣ L′ →
+    Δ ∣ Σ ∣ (L ⊕[ op ] M) —→ Δ′ ∣ Σ′ ∣ (L′ ⊕[ op ] M)
+
+  ξ-⊕₂ : ∀ {Δ Δ′ : TyCtx} {Σ Σ′ : Store}
+      {L M M′ : Term} {op : Prim} →
     Value L →
-    Σ ∣ M —→ Σ′ ∣ M′ →
-    Σ ∣ (L ⊕[ op ] M) —→ Σ′ ∣ (L ⊕[ op ] M′)
+    Δ ∣ Σ ∣ M —→ Δ′ ∣ Σ′ ∣ M′ →
+    Δ ∣ Σ ∣ (L ⊕[ op ] M) —→ Δ′ ∣ Σ′ ∣ (L ⊕[ op ] M′)

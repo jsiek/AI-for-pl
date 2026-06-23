@@ -13,7 +13,7 @@ open import Data.Nat using (zero; suc; _<_; _≤_; z<s; s<s; z≤n; s≤s)
 open import Data.Nat.Properties using (≤-refl; n≤1+n; <-≤-trans)
 open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality as Eq
-  using (cong₂; subst; sym; trans)
+  using (cong; cong₂; subst; sym; trans)
 
 open import Types
 open import Ctx
@@ -209,21 +209,20 @@ term-weaken Δ≤Δ′ incl (⊢· hL hM) =
 term-weaken Δ≤Δ′ incl (⊢Λ vV hV) =
   ⊢Λ vV
     (term-weaken (s≤s Δ≤Δ′) (renameStoreᵗ-incl suc incl) hV)
-term-weaken Δ≤Δ′ incl (⊢• hM α<Δ) =
-  ⊢• (term-weaken Δ≤Δ′ incl hM) (<-≤-trans α<Δ Δ≤Δ′)
-term-weaken Δ≤Δ′ incl (⊢ν hA hN) =
+term-weaken Δ≤Δ′ incl (⊢ν hA hL c⊢) =
   ⊢ν
     (WfTy-weakenᵗ hA Δ≤Δ′)
-    (term-weaken
+    (term-weaken Δ≤Δ′ incl hL)
+    (coercion-weakenᵐ
       (s≤s Δ≤Δ′)
       (StoreIncl-cons (renameStoreᵗ-incl suc incl))
-      hN)
+      c⊢)
 term-weaken Δ≤Δ′ incl (⊢$ κ) = ⊢$ κ
 term-weaken Δ≤Δ′ incl (⊢⊕ hL op hM) =
   ⊢⊕ (term-weaken Δ≤Δ′ incl hL) op (term-weaken Δ≤Δ′ incl hM)
 term-weaken Δ≤Δ′ incl (⊢⟨⟩ c⊢ hM) =
   ⊢⟨⟩
-    (coercion-weaken Δ≤Δ′ incl c⊢)
+    (coercion-weakenᵐ Δ≤Δ′ incl c⊢)
     (term-weaken Δ≤Δ′ incl hM)
 term-weaken Δ≤Δ′ incl (⊢blame hA) =
   ⊢blame (WfTy-weakenᵗ hA Δ≤Δ′)
@@ -239,20 +238,77 @@ term-weaken-suc {Δ = Δ} hM =
 -- Renaming type variables in typing derivations
 ------------------------------------------------------------------------
 
-typing-renameᵀ :
+RenameLeftInverse : Renameᵗ → Renameᵗ → Set
+RenameLeftInverse ρ ψ = ∀ X → ψ (ρ X) ≡ X
+
+RenameLeftInverse-ext :
+  ∀ {ρ ψ} →
+  RenameLeftInverse ρ ψ →
+  RenameLeftInverse (extᵗ ρ) (extᵗ ψ)
+RenameLeftInverse-ext inv zero = refl
+RenameLeftInverse-ext inv (suc X) = cong suc (inv X)
+
+predᵗ : Renameᵗ
+predᵗ zero = zero
+predᵗ (suc X) = X
+
+RenameLeftInverse-suc : RenameLeftInverse suc predᵗ
+RenameLeftInverse-suc X = refl
+
+modeRename-left-inverse :
+  ∀ {ρ ψ μ} →
+  RenameLeftInverse ρ ψ →
+  ModeRename ρ μ (λ Y → μ (ψ Y))
+modeRename-left-inverse {μ = μ} inv X rewrite inv X with μ X
+modeRename-left-inverse inv X | tag-to-seal = refl
+modeRename-left-inverse inv X | seal-to-tag = refl
+
+ModeRenamer : TyCtx → Renameᵗ → Set
+ModeRenamer Δ ρ =
+  ∀ μ → Sigma.Σ DualEnv (λ target → ScopedModeRename Δ ρ μ target)
+
+extModeᵈ : DualEnv → DualEnv → DualEnv
+extModeᵈ μ target zero = μ zero
+extModeᵈ μ target (suc X) = target X
+
+ModeRenamer-ext :
+  ∀ {Δ ρ} →
+  ModeRenamer Δ ρ →
+  ModeRenamer (suc Δ) (extᵗ ρ)
+ModeRenamer-ext {Δ = Δ} {ρ = ρ} η μ with η (λ X → μ (suc X))
+ModeRenamer-ext {Δ = Δ} {ρ = ρ} η μ | target , rel =
+  extModeᵈ μ target , rel′
+  where
+    rel′ : ScopedModeRename (suc Δ) (extᵗ ρ) μ (extModeᵈ μ target)
+    rel′ {zero} z<s = modeIncl-refl {μ = μ} zero
+    rel′ {suc X} (s<s X<Δ) = rel X<Δ
+
+openModeRenamer :
+  ∀ {Δ α} →
+  Δ ≤ α →
+  ModeRenamer (suc Δ) (singleRenameᵗ α)
+openModeRenamer Δ≤α μ = openᵈ μ _ , openᵈ-scoped Δ≤α
+
+typing-renameᵀ-scoped :
   ∀ {Δ Δ′ Σ Γ M A ρ} →
+  StoreWfAt Δ Σ →
+  CtxWf Δ Γ →
   TyRenameWf Δ Δ′ ρ →
+  ModeRenamer Δ ρ →
   Δ ∣ Σ ∣ Γ ⊢ M ⦂ A →
   Δ′ ∣ renameStoreᵗ ρ Σ ∣ map (renameᵗ ρ) Γ
     ⊢ renameᵗᵐ ρ M ⦂ renameᵗ ρ A
-typing-renameᵀ hρ (⊢` h) =
+typing-renameᵀ-scoped wfΣ hΓ hρ η (⊢` h) =
   ⊢` (lookup-map-renameᵗ h)
-typing-renameᵀ hρ (⊢ƛ hA hM) =
-  ⊢ƛ (renameᵗ-preserves-WfTy hA hρ) (typing-renameᵀ hρ hM)
-typing-renameᵀ hρ (⊢· hL hM) =
-  ⊢· (typing-renameᵀ hρ hL) (typing-renameᵀ hρ hM)
-typing-renameᵀ {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
-    hρ (⊢Λ {M = M} {A = A} vM hM) =
+typing-renameᵀ-scoped wfΣ hΓ hρ η (⊢ƛ hA hM) =
+  ⊢ƛ (renameᵗ-preserves-WfTy hA hρ)
+      (typing-renameᵀ-scoped
+        wfΣ (ctxWf-∷ hA hΓ) hρ η hM)
+typing-renameᵀ-scoped wfΣ hΓ hρ η (⊢· hL hM) =
+  ⊢· (typing-renameᵀ-scoped wfΣ hΓ hρ η hL)
+     (typing-renameᵀ-scoped wfΣ hΓ hρ η hM)
+typing-renameᵀ-scoped {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
+    wfΣ hΓ hρ η (⊢Λ {M = M} {A = A} vM hM) =
   ⊢Λ
     (renameᵗᵐ-preserves-Value (extᵗ ρ) vM)
     (subst
@@ -264,106 +320,167 @@ typing-renameᵀ {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
           suc Δ′ ∣ Σ′ ∣ map (renameᵗ (extᵗ ρ)) (⤊ᵗ Γ)
           ⊢ renameᵗᵐ (extᵗ ρ) M ⦂ renameᵗ (extᵗ ρ) A)
         (renameStoreᵗ-ext-suc-comm ρ Σ)
-        (typing-renameᵀ (TyRenameWf-ext hρ) hM)))
-typing-renameᵀ {ρ = ρ} hρ (⊢• {L = L} {B = B} {α = α} hL α<Δ) =
-  subst
-    (λ T → _ ∣ _ ∣ _ ⊢ renameᵗᵐ ρ L • ρ α ⦂ T)
-    (sym (rename-[]ᴿ-commute ρ B α))
-    (⊢• (typing-renameᵀ hρ hL) (hρ α<Δ))
-typing-renameᵀ {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
-    hρ (⊢ν {N = N} {A = A} {B = B} hA hN) =
-  ⊢ν
+        (typing-renameᵀ-scoped
+          (StoreWfAt-⟰ᵗ wfΣ)
+          (CtxWf-⤊ hΓ)
+          (TyRenameWf-ext hρ)
+          (ModeRenamer-ext η)
+          hM)))
+typing-renameᵀ-scoped {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
+    wfΣ hΓ hρ η
+    (⊢ν {L = L} {A = A} {B = B} {C = C} {c = c} {μ = μ}
+      hA hL c⊢)
+    with ModeRenamer-ext η μ
+typing-renameᵀ-scoped {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
+    wfΣ hΓ hρ η
+    (⊢ν {L = L} {A = A} {B = B} {C = C} {c = c} {μ = μ}
+      hA hL c⊢)
+    | target , rel =
+  ⊢ν {μ = target}
     (renameᵗ-preserves-WfTy hA hρ)
+    (typing-renameᵀ-scoped wfΣ hΓ hρ η hL)
     (subst
       (λ T →
-        suc Δ′
+        target ∣ suc Δ′
           ∣ (zero , ⇑ᵗ (renameᵗ ρ A)) ∷ ⟰ᵗ (renameStoreᵗ ρ Σ)
-          ∣ ⤊ᵗ (map (renameᵗ ρ) Γ)
-        ⊢ renameᵗᵐ (extᵗ ρ) N ⦂ T)
+          ⊢ renameᶜ (extᵗ ρ) c
+          ∶ renameᵗ (extᵗ ρ) C =⇒ T)
       (renameᵗ-ext-suc-comm ρ B)
       (subst
-        (λ Γ′ →
-          suc Δ′ ∣ (zero , ⇑ᵗ (renameᵗ ρ A))
-            ∷ ⟰ᵗ (renameStoreᵗ ρ Σ) ∣ Γ′
-          ⊢ renameᵗᵐ (extᵗ ρ) N ⦂ renameᵗ (extᵗ ρ) (⇑ᵗ B))
-        (map-renameᵗ-⤊ ρ Γ)
-        (subst
-          (λ Σ′ →
-            suc Δ′ ∣ Σ′ ∣ map (renameᵗ (extᵗ ρ)) (⤊ᵗ Γ)
-            ⊢ renameᵗᵐ (extᵗ ρ) N ⦂ renameᵗ (extᵗ ρ) (⇑ᵗ B))
-          (renameStoreᵗ-ext-suc-cons-comm ρ Σ A)
-          (typing-renameᵀ (TyRenameWf-ext hρ) hN))))
-typing-renameᵀ {ρ = ρ} hρ (⊢$ κ) =
+        (λ Σ′ →
+          target ∣ suc Δ′ ∣ Σ′
+            ⊢ renameᶜ (extᵗ ρ) c
+            ∶ renameᵗ (extᵗ ρ) C =⇒ renameᵗ (extᵗ ρ) (⇑ᵗ B))
+        (renameStoreᵗ-ext-suc-cons-comm ρ Σ A)
+        (coercion-renameᵗᵐ-scoped
+          (StoreWfAt-cons
+            z<s
+            (renameᵗ-preserves-WfTy hA TyRenameWf-suc)
+            (StoreWfAt-⟰ᵗ wfΣ))
+          (TyRenameWf-ext hρ)
+          rel
+          c⊢)))
+typing-renameᵀ-scoped {ρ = ρ} wfΣ hΓ hρ η (⊢$ κ) =
   subst (λ T → _ ∣ _ ∣ _ ⊢ $ κ ⦂ T)
         (constTy-renameᵗ ρ κ)
         (⊢$ κ)
-typing-renameᵀ hρ (⊢⊕ hL op hM) =
-  ⊢⊕ (typing-renameᵀ hρ hL) op (typing-renameᵀ hρ hM)
-typing-renameᵀ hρ (⊢⟨⟩ c⊢ hM) =
-  ⊢⟨⟩ (coercion-renameᵗ hρ c⊢) (typing-renameᵀ hρ hM)
-typing-renameᵀ hρ (⊢blame hA) =
+typing-renameᵀ-scoped wfΣ hΓ hρ η (⊢⊕ hL op hM) =
+  ⊢⊕ (typing-renameᵀ-scoped wfΣ hΓ hρ η hL) op
+      (typing-renameᵀ-scoped wfΣ hΓ hρ η hM)
+typing-renameᵀ-scoped {ρ = ρ} wfΣ hΓ hρ η
+    (⊢⟨⟩ {μ = μ} c⊢ hM)
+    with η μ
+typing-renameᵀ-scoped {ρ = ρ} wfΣ hΓ hρ η
+    (⊢⟨⟩ {μ = μ} c⊢ hM)
+    | target , rel =
+  ⊢⟨⟩ {μ = target}
+    (coercion-renameᵗᵐ-scoped wfΣ hρ rel c⊢)
+    (typing-renameᵀ-scoped wfΣ hΓ hρ η hM)
+typing-renameᵀ-scoped wfΣ hΓ hρ η (⊢blame hA) =
   ⊢blame (renameᵗ-preserves-WfTy hA hρ)
 
-typing-openᵀ :
-  ∀ {Δ Σ Γ M A α C} →
-  α < suc Δ →
+typing-open-freshᵀ :
+  ∀ {Δ Δ′ Σ Γ M A α C} →
+  StoreWfAt Δ Σ →
+  CtxWf Δ Γ →
+  Δ ≤ Δ′ →
+  Δ ≤ α →
+  α < Δ′ →
   suc Δ ∣ ⟰ᵗ Σ ∣ ⤊ᵗ Γ ⊢ M ⦂ A →
-  suc Δ ∣ (α , C) ∷ Σ ∣ Γ ⊢ M [ α ]ᵀ ⦂ A [ α ]ᴿ
-typing-openᵀ {Σ = Σ} {Γ = Γ} {α = α} α<sucΔ hM =
+  Δ′ ∣ (α , C) ∷ Σ ∣ Γ ⊢ M [ α ]ᵀ ⦂ A [ α ]ᴿ
+typing-open-freshᵀ {Σ = Σ} {Γ = Γ} {M = M} {A = A} {α = α}
+    {C = C} wfΣ hΓ Δ≤Δ′ Δ≤α α<Δ′ M⊢ =
   term-weaken ≤-refl StoreIncl-drop
     (subst
-      (λ Γ′ → _ ∣ Σ ∣ Γ′ ⊢ _ ⦂ _)
+      (λ Γ′ → _ ∣ Σ ∣ Γ′ ⊢ M [ α ]ᵀ ⦂ A [ α ]ᴿ)
       (map-singleRenameᵗ-⤊-cancel α Γ)
       (subst
-        (λ Σ′ →
-          _ ∣ Σ′ ∣ map (renameᵗ (singleRenameᵗ α)) (⤊ᵗ Γ)
-          ⊢ _ ⦂ _)
+        (λ Σ′ → _ ∣ Σ′ ∣ map (renameᵗ (singleRenameᵗ α)) (⤊ᵗ Γ)
+          ⊢ M [ α ]ᵀ ⦂ A [ α ]ᴿ)
         (renameStoreᵗ-single-suc-cancel α Σ)
-        (typing-renameᵀ (singleRenameᵗ-Wf α<sucΔ) hM)))
+        (typing-renameᵀ-scoped
+          (StoreWfAt-⟰ᵗ wfΣ)
+          (CtxWf-⤊ hΓ)
+          (singleRenameᵗ-Wf≤ Δ≤Δ′ α<Δ′)
+          (openModeRenamer Δ≤α)
+          M⊢)))
 
-typing-open-existingᵀ :
-  ∀ {Δ Σ Γ M A α} →
-  α < Δ →
-  suc Δ ∣ ⟰ᵗ Σ ∣ ⤊ᵗ Γ ⊢ M ⦂ A →
-  Δ ∣ Σ ∣ Γ ⊢ M [ α ]ᵀ ⦂ A [ α ]ᴿ
-typing-open-existingᵀ {Σ = Σ} {Γ = Γ} {M = M} {A = A} {α = α}
-    α<Δ hM =
-  subst
-    (λ Γ′ → _ ∣ Σ ∣ Γ′ ⊢ M [ α ]ᵀ ⦂ A [ α ]ᴿ)
-    (map-singleRenameᵗ-⤊-cancel α Γ)
+typing-renameᵀ :
+  ∀ {Δ Δ′ Σ Γ M A ρ ψ} →
+  TyRenameWf Δ Δ′ ρ →
+  RenameLeftInverse ρ ψ →
+  Δ ∣ Σ ∣ Γ ⊢ M ⦂ A →
+  Δ′ ∣ renameStoreᵗ ρ Σ ∣ map (renameᵗ ρ) Γ
+    ⊢ renameᵗᵐ ρ M ⦂ renameᵗ ρ A
+typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv (⊢` h) =
+  ⊢` (lookup-map-renameᵗ h)
+typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv (⊢ƛ hA hM) =
+  ⊢ƛ (renameᵗ-preserves-WfTy hA hρ)
+      (typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv hM)
+typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv (⊢· hL hM) =
+  ⊢· (typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv hL)
+     (typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv hM)
+typing-renameᵀ {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
+    {ψ = ψ} hρ inv (⊢Λ {M = M} {A = A} vM hM) =
+  ⊢Λ
+    (renameᵗᵐ-preserves-Value (extᵗ ρ) vM)
     (subst
-      (λ Σ′ →
-        _ ∣ Σ′ ∣ map (renameᵗ (singleRenameᵗ α)) (⤊ᵗ Γ)
-        ⊢ M [ α ]ᵀ ⦂ A [ α ]ᴿ)
-      (renameStoreᵗ-single-suc-cancel α Σ)
-      (typing-renameᵀ (singleRenameᵗ-Wf-< α<Δ) hM))
-
-typing-open-headᵀ :
-  ∀ {Δ Σ Γ M A B α} →
-  α < suc Δ →
-  suc Δ ∣ (zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ ∣ ⤊ᵗ Γ
-    ⊢ M ⦂ ⇑ᵗ B →
-  suc Δ ∣ (α , A) ∷ Σ ∣ Γ ⊢ M [ α ]ᵀ ⦂ B
-typing-open-headᵀ {Δ = Δ} {Σ = Σ} {Γ = Γ} {M = M}
-    {A = A} {B = B} {α = α} α<sucΔ hM =
-  subst
-    (λ T →
-      suc Δ ∣ (α , A) ∷ Σ ∣ Γ
-        ⊢ renameᵗᵐ (singleRenameᵗ α) M ⦂ T)
-    (renameᵗ-single-suc-cancel α B)
-    (subst
-      (λ Γ′ →
-        suc Δ ∣ (α , A) ∷ Σ ∣ Γ′
-          ⊢ renameᵗᵐ (singleRenameᵗ α) M
-          ⦂ renameᵗ (singleRenameᵗ α) (⇑ᵗ B))
-      (map-singleRenameᵗ-⤊-cancel α Γ)
+      (λ Γ′ → suc Δ′ ∣ ⟰ᵗ (renameStoreᵗ ρ Σ) ∣ Γ′
+        ⊢ renameᵗᵐ (extᵗ ρ) M ⦂ renameᵗ (extᵗ ρ) A)
+      (map-renameᵗ-⤊ ρ Γ)
       (subst
         (λ Σ′ →
-          suc Δ ∣ Σ′ ∣ map (renameᵗ (singleRenameᵗ α)) (⤊ᵗ Γ)
-          ⊢ renameᵗᵐ (singleRenameᵗ α) M
-          ⦂ renameᵗ (singleRenameᵗ α) (⇑ᵗ B))
-        (renameStoreᵗ-single-suc-cons-cancel α Σ A)
-        (typing-renameᵀ (singleRenameᵗ-Wf α<sucΔ) hM)))
+          suc Δ′ ∣ Σ′ ∣ map (renameᵗ (extᵗ ρ)) (⤊ᵗ Γ)
+          ⊢ renameᵗᵐ (extᵗ ρ) M ⦂ renameᵗ (extᵗ ρ) A)
+        (renameStoreᵗ-ext-suc-comm ρ Σ)
+        (typing-renameᵀ
+          {ρ = extᵗ ρ} {ψ = extᵗ ψ}
+          (TyRenameWf-ext hρ)
+          (RenameLeftInverse-ext inv)
+          hM)))
+typing-renameᵀ {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
+    {ψ = ψ} hρ inv
+    (⊢ν {L = L} {A = A} {B = B} {C = C} {c = c} {μ = μ}
+      hA hL c⊢) =
+  ⊢ν {μ = λ Y → μ (extᵗ ψ Y)}
+    (renameᵗ-preserves-WfTy hA hρ)
+    (typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv hL)
+    (subst
+      (λ T →
+        (λ Y → μ (extᵗ ψ Y)) ∣ suc Δ′
+          ∣ (zero , ⇑ᵗ (renameᵗ ρ A)) ∷ ⟰ᵗ (renameStoreᵗ ρ Σ)
+          ⊢ renameᶜ (extᵗ ρ) c
+          ∶ renameᵗ (extᵗ ρ) C =⇒ T)
+      (renameᵗ-ext-suc-comm ρ B)
+      (subst
+        (λ Σ′ →
+          (λ Y → μ (extᵗ ψ Y)) ∣ suc Δ′ ∣ Σ′
+            ⊢ renameᶜ (extᵗ ρ) c
+            ∶ renameᵗ (extᵗ ρ) C =⇒ renameᵗ (extᵗ ρ) (⇑ᵗ B))
+        (renameStoreᵗ-ext-suc-cons-comm ρ Σ A)
+        (coercion-renameᵗᵐ (TyRenameWf-ext hρ)
+          (modeRename-left-inverse
+            {ρ = extᵗ ρ} {ψ = extᵗ ψ} (RenameLeftInverse-ext inv))
+          c⊢)))
+typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv (⊢$ κ) =
+  subst (λ T → _ ∣ _ ∣ _ ⊢ $ κ ⦂ T)
+        (constTy-renameᵗ ρ κ)
+        (⊢$ κ)
+typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv (⊢⊕ hL op hM) =
+  ⊢⊕ (typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv hL) op
+      (typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv hM)
+typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv (⊢⟨⟩ {μ = μ} c⊢ hM) =
+  ⊢⟨⟩ {μ = λ Y → μ (ψ Y)}
+        (coercion-renameᵗᵐ hρ
+          (modeRename-left-inverse {ρ = ρ} {ψ = ψ} inv) c⊢)
+        (typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv hM)
+typing-renameᵀ {ρ = ρ} {ψ = ψ} hρ inv (⊢blame hA) =
+  ⊢blame (renameᵗ-preserves-WfTy hA hρ)
+
+-- The old unrestricted opening lemmas used `singleRenameᵗ`, which is
+-- non-injective.  They are intentionally on hold until the preservation proof
+-- can pass the freshness invariant from `ν-step` into freshness-indexed
+-- opening lemmas.
 
 ------------------------------------------------------------------------
 -- Typing derivations produce well-formed result types
@@ -387,21 +504,18 @@ typing-wf wfΣ hΓ (⊢· hL hM) with typing-wf wfΣ hΓ hL
 typing-wf wfΣ hΓ (⊢· hL hM) | wf⇒ hA hB = hB
 typing-wf wfΣ hΓ (⊢Λ vM hM) =
   wf∀ (typing-wf (StoreWfAt-⟰ᵗ wfΣ) (CtxWf-⤊ hΓ) hM)
-typing-wf wfΣ hΓ (⊢• hM α<Δ) with typing-wf wfΣ hΓ hM
-typing-wf wfΣ hΓ (⊢• hM α<Δ) | wf∀ hB =
-  renameᵗ-preserves-WfTy hB (singleRenameᵗ-Wf-< α<Δ)
-typing-wf wfΣ hΓ (⊢ν hA hN) =
-  WfTy-raise-inv zero z≤n
-    (typing-wf
+typing-wf wfΣ hΓ (⊢ν hA hL c⊢)
+    with coercion-wfᵐ
       (StoreWfAt-cons
         z<s
         (renameᵗ-preserves-WfTy hA TyRenameWf-suc)
         (StoreWfAt-⟰ᵗ wfΣ))
-      (CtxWf-⤊ hΓ)
-      hN)
+      c⊢
+typing-wf wfΣ hΓ (⊢ν hA hL c⊢) | hC , hB =
+  WfTy-raise-inv zero z≤n hB
 typing-wf wfΣ hΓ (⊢$ κ) = constTy-wf κ
 typing-wf wfΣ hΓ (⊢⊕ hL op hM) = wfBase
-typing-wf wfΣ hΓ (⊢⟨⟩ c⊢ hM) with coercion-wf wfΣ c⊢
+typing-wf wfΣ hΓ (⊢⟨⟩ c⊢ hM) with coercion-wfᵐ wfΣ c⊢
 typing-wf wfΣ hΓ (⊢⟨⟩ c⊢ hM) | hA , hB = hB
 typing-wf wfΣ hΓ (⊢blame hA) = hA
 
@@ -447,10 +561,8 @@ typing-renameˣ {Γ = Γ} {Γ′ = Γ′} {ρ = ρ} hρ
     (⊢Λ vM hM) =
   ⊢Λ (renameˣᵐ-preserves-Value ρ vM)
     (typing-renameˣ (RenameWf-⤊ hρ) hM)
-typing-renameˣ hρ (⊢• hM hA) =
-  ⊢• (typing-renameˣ hρ hM) hA
-typing-renameˣ hρ (⊢ν hA hN) =
-  ⊢ν hA (typing-renameˣ (RenameWf-⤊ hρ) hN)
+typing-renameˣ hρ (⊢ν hA hL c⊢) =
+  ⊢ν hA (typing-renameˣ hρ hL) c⊢
 typing-renameˣ hρ (⊢$ κ) = ⊢$ κ
 typing-renameˣ hρ (⊢⊕ hL op hM) =
   ⊢⊕ (typing-renameˣ hρ hL) op (typing-renameˣ hρ hM)
@@ -481,7 +593,8 @@ SubstWf-⇑ hσ h =
     (λ hA eq →
       subst (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
             (sym eq)
-            (typing-renameᵀ TyRenameWf-suc (hσ hA)))
+            (typing-renameᵀ {ρ = suc} {ψ = predᵗ}
+              TyRenameWf-suc RenameLeftInverse-suc (hσ hA)))
     h
 
 SubstWf-⇑ν :
@@ -499,7 +612,8 @@ SubstWf-⇑ν hσ h =
       subst (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
             (sym eq)
             (term-weaken ≤-refl StoreIncl-drop
-              (typing-renameᵀ TyRenameWf-suc (hσ hA))))
+              (typing-renameᵀ {ρ = suc} {ψ = predᵗ}
+                TyRenameWf-suc RenameLeftInverse-suc (hσ hA))))
     h
 
 typing-substˣ :
@@ -515,10 +629,8 @@ typing-substˣ hσ (⊢· hL hM) =
 typing-substˣ hσ (⊢Λ vM hM) =
   ⊢Λ (substˣᵐ-preserves-Value _ vM)
     (typing-substˣ (SubstWf-⇑ hσ) hM)
-typing-substˣ hσ (⊢• hM hA) =
-  ⊢• (typing-substˣ hσ hM) hA
-typing-substˣ hσ (⊢ν hA hN) =
-  ⊢ν hA (typing-substˣ (SubstWf-⇑ν hσ) hN)
+typing-substˣ hσ (⊢ν hA hL c⊢) =
+  ⊢ν hA (typing-substˣ hσ hL) c⊢
 typing-substˣ hσ (⊢$ κ) = ⊢$ κ
 typing-substˣ hσ (⊢⊕ hL op hM) =
   ⊢⊕ (typing-substˣ hσ hL) op (typing-substˣ hσ hM)

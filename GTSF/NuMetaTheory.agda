@@ -7,18 +7,37 @@ module NuMetaTheory where
 --   * The theorem statements are restated here explicitly; this module is not
 --     a compatibility re-export of the proof modules.
 
+open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using ([])
 open import Data.Nat using (_≤_)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 
 open import Types
 open import Ctx
+open import Coercions
 open import NuStore using (StoreIncl; StoreWf)
 open import NuTerms
 open import NuReduction
 
+import proof.CoercionProperties as CoercionProof
 import proof.NuProgress as ProgressProof
 import proof.NuPreservation as PreservationProof
+
+coercion-endpoints-uniqueᵐ :
+  ∀ {μ Δ Σ c A B A′ B′} →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A′ =⇒ B′ →
+  A ≡ A′ × B ≡ B′
+coercion-endpoints-uniqueᵐ =
+  CoercionProof.coercion-endpoints-uniqueᵐ
+
+coercion-endpoints-unique :
+  ∀ {Δ Σ c A B A′ B′} →
+  Δ ∣ Σ ⊢ c ∶ A =⇒ B →
+  Δ ∣ Σ ⊢ c ∶ A′ =⇒ B′ →
+  A ≡ A′ × B ≡ B′
+coercion-endpoints-unique =
+  CoercionProof.coercion-endpoints-unique
 
 progress :
   ∀ {Δ : TyCtx}{Σ : Store}{M : Term}{A : Ty} →

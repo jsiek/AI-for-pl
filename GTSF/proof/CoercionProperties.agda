@@ -1002,3 +1002,23 @@ coercion-src-tgt :
   Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   src c ≡ A × tgt c ≡ B
 coercion-src-tgt (μ , c⊢) = coercion-src-tgtᵐ c⊢
+
+coercion-endpoints-uniqueᵐ :
+  ∀ {μ Δ Σ c A B A′ B′} →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A′ =⇒ B′ →
+  A ≡ A′ × B ≡ B′
+coercion-endpoints-uniqueᵐ c⊢ c⊢′
+    with coercion-src-tgtᵐ c⊢ | coercion-src-tgtᵐ c⊢′
+... | src-c , tgt-c | src-c′ , tgt-c′ =
+  trans (sym src-c) src-c′ , trans (sym tgt-c) tgt-c′
+
+coercion-endpoints-unique :
+  ∀ {Δ Σ c A B A′ B′} →
+  Δ ∣ Σ ⊢ c ∶ A =⇒ B →
+  Δ ∣ Σ ⊢ c ∶ A′ =⇒ B′ →
+  A ≡ A′ × B ≡ B′
+coercion-endpoints-unique (μ , c⊢) (ν , c⊢′)
+    with coercion-src-tgtᵐ c⊢ | coercion-src-tgtᵐ c⊢′
+... | src-c , tgt-c | src-c′ , tgt-c′ =
+  trans (sym src-c) src-c′ , trans (sym tgt-c) tgt-c′

@@ -111,34 +111,34 @@ renameᶜ ρ (`∀ p) = `∀ (renameᶜ (extᵗ ρ) p)
 renameᶜ ρ (gen A p) = gen (renameᵗ ρ A) (renameᶜ (extᵗ ρ) p)
 renameᶜ ρ (inst B p) = inst (renameᵗ ρ B) (renameᶜ (extᵗ ρ) p)
 
-data DualMode : Set where
-  id-only tag-or-id seal-or-id : DualMode
+data Mode : Set where
+  id-only tag-or-id seal-or-id : Mode
 
-DualEnv : Set
-DualEnv = TyVar → DualMode
+ModeEnv : Set
+ModeEnv = TyVar → Mode
 
-id-onlyᵈ : DualEnv
+id-onlyᵈ : ModeEnv
 id-onlyᵈ X = id-only
 
-tag-or-idᵈ : DualEnv
+tag-or-idᵈ : ModeEnv
 tag-or-idᵈ X = tag-or-id
 
-seal-or-idᵈ : DualEnv
+seal-or-idᵈ : ModeEnv
 seal-or-idᵈ X = seal-or-id
 
-extᵈ : DualEnv → DualEnv
+extᵈ : ModeEnv → ModeEnv
 extᵈ μ zero = id-only
 extᵈ μ (suc X) = μ X
 
-genᵈ : DualEnv → DualEnv
+genᵈ : ModeEnv → ModeEnv
 genᵈ μ zero = tag-or-id
 genᵈ μ (suc X) = μ X
 
-instᵈ : DualEnv → DualEnv
+instᵈ : ModeEnv → ModeEnv
 instᵈ μ zero = seal-or-id
 instᵈ μ (suc X) = μ X
 
-mode≤ : DualMode → DualMode → Bool
+mode≤ : Mode → Mode → Bool
 mode≤ id-only id-only = true
 mode≤ id-only tag-or-id = true
 mode≤ id-only seal-or-id = true
@@ -149,7 +149,7 @@ mode≤ seal-or-id id-only = false
 mode≤ seal-or-id tag-or-id = false
 mode≤ seal-or-id seal-or-id = true
 
-ModeIncl : DualEnv → DualEnv → Set
+ModeIncl : ModeEnv → ModeEnv → Set
 ModeIncl μ ν = ∀ X → mode≤ (μ X) (ν X) ≡ true
 
 modeIncl-refl : ∀ {μ} → ModeIncl μ μ
@@ -158,58 +158,58 @@ modeIncl-refl X | id-only = refl
 modeIncl-refl X | tag-or-id = refl
 modeIncl-refl X | seal-or-id = refl
 
-idModeAllowed : DualMode → Bool
+idModeAllowed : Mode → Bool
 idModeAllowed id-only = true
 idModeAllowed tag-or-id = true
 idModeAllowed seal-or-id = true
 
-tagModeAllowed : DualMode → Bool
+tagModeAllowed : Mode → Bool
 tagModeAllowed id-only = false
 tagModeAllowed tag-or-id = true
 tagModeAllowed seal-or-id = false
 
-sealModeAllowed : DualMode → Bool
+sealModeAllowed : Mode → Bool
 sealModeAllowed id-only = false
 sealModeAllowed tag-or-id = false
 sealModeAllowed seal-or-id = true
 
-idTyAllowed : DualEnv → Ty → Bool
+idTyAllowed : ModeEnv → Ty → Bool
 idTyAllowed μ (＇ α) = idModeAllowed (μ α)
 idTyAllowed μ (‵ ι) = true
 idTyAllowed μ ★ = true
 idTyAllowed μ (A ⇒ B) = idTyAllowed μ A ∧ idTyAllowed μ B
 idTyAllowed μ (`∀ A) = idTyAllowed (extᵈ μ) A
 
-tagTyAllowed : DualEnv → Ty → Bool
+tagTyAllowed : ModeEnv → Ty → Bool
 tagTyAllowed μ (＇ α) = tagModeAllowed (μ α)
 tagTyAllowed μ (‵ ι) = true
 tagTyAllowed μ ★ = true
 tagTyAllowed μ (A ⇒ B) = true
 tagTyAllowed μ (`∀ A) = true
 
-dualTag : DualEnv → Ty → Coercion
+dualTag : ModeEnv → Ty → Coercion
 dualTag μ (＇ α) = seal ★ α
 dualTag μ (‵ ι) = (‵ ι) ？
 dualTag μ ★ = ★ ？
 dualTag μ (A ⇒ B) = (A ⇒ B) ？
 dualTag μ (`∀ A) = (`∀ A) ？
 
-dualUntag : DualEnv → Ty → Coercion
+dualUntag : ModeEnv → Ty → Coercion
 dualUntag μ (＇ α) = unseal α ★
 dualUntag μ (‵ ι) = (‵ ι) !
 dualUntag μ ★ = ★ !
 dualUntag μ (A ⇒ B) = (A ⇒ B) !
 dualUntag μ (`∀ A) = (`∀ A) !
 
-dualSeal : DualEnv → Ty → TyVar → Coercion
+dualSeal : ModeEnv → Ty → TyVar → Coercion
 dualSeal μ A α = (＇ α) !
 
-dualUnseal : DualEnv → TyVar → Ty → Coercion
+dualUnseal : ModeEnv → TyVar → Ty → Coercion
 dualUnseal μ α A = (＇ α) ？
 
 infix 8 -_
 
-dual : DualEnv → Coercion → Coercion
+dual : ModeEnv → Coercion → Coercion
 dual μ (id A) = id A
 dual μ (c ︔ d) = dual μ d ︔ dual μ c
 dual μ (c ↦ d) = dual μ c ↦ dual μ d
@@ -240,22 +240,22 @@ c [ X ]ᶜ = renameᶜ (singleRenameᵗ X) c
 
 infix 4 _∣_∣_⊢_∶_=⇒_
 
-data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty → Ty → Set where
+data _∣_∣_⊢_∶_=⇒_ : ModeEnv → TyCtx → Store → Coercion → Ty → Ty → Set where
 
-  cast-id : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A : Ty}
+  cast-id : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : Store}{A : Ty}
     → WfTy Δ A
     → idTyAllowed μ A ≡ true
      -------------------
     → μ ∣ Δ ∣ Σ ⊢ id A ∶ A =⇒ A
 
-  cast-seal : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{α : TyVar}{A : Ty}
+  cast-seal : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : Store}{α : TyVar}{A : Ty}
     → WfTy Δ A
     → (α , A) ∈ Σ
     → sealModeAllowed (μ α) ≡ true
      ---------------------------
     → μ ∣ Δ ∣ Σ ⊢ seal A α ∶ A =⇒ (＇ α)
 
-  cast-unseal : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{α : TyVar}{A : Ty}
+  cast-unseal : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : Store}{α : TyVar}{A : Ty}
     → WfTy Δ A
     → (α , A) ∈ Σ
     → sealModeAllowed (μ α) ≡ true
@@ -263,13 +263,13 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
     → μ ∣ Δ ∣ Σ ⊢ unseal α A ∶ (＇ α) =⇒ A
 
   -- Phil: s and t have different Σ's, they combine, with side condition
-  cast-seq : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A B C : Ty}{s t : Coercion}
+  cast-seq : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : Store}{A B C : Ty}{s t : Coercion}
     → μ ∣ Δ ∣ Σ ⊢ s ∶ A =⇒ B
     → μ ∣ Δ ∣ Σ ⊢ t ∶ B =⇒ C
      -------------------------
     → μ ∣ Δ ∣ Σ ⊢ (s ︔ t) ∶ A =⇒ C
 
-  cast-tag : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{G : Ty}
+  cast-tag : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : Store}{G : Ty}
     → WfTy Δ G
     → Ground G
     → tagTyAllowed μ G ≡ true
@@ -277,26 +277,26 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
      ---------------------
     → μ ∣ Δ ∣ Σ ⊢ G ! ∶ G =⇒ ★
 
-  cast-untag : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{H : Ty}
+  cast-untag : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : Store}{H : Ty}
     → WfTy Δ H
     → Ground H
     → tagTyAllowed μ H ≡ true
      -----------------------
     → μ ∣ Δ ∣ Σ ⊢ H ？ ∶ ★ =⇒ H
 
-  cast-fun : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A A′ B B′ : Ty}{s t : Coercion}
+  cast-fun : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : Store}{A A′ B B′ : Ty}{s t : Coercion}
     → μ ∣ Δ ∣ Σ ⊢ s ∶ A′ =⇒ A
     → μ ∣ Δ ∣ Σ ⊢ t ∶ B =⇒ B′
      ---------------------------------------
     → μ ∣ Δ ∣ Σ ⊢ (s ↦ t) ∶ (A ⇒ B) =⇒ (A′ ⇒ B′)
 
-  cast-all : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
+  cast-all : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → extᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ s ∶ A =⇒ B
      ----------------------------------
     → μ ∣ Δ ∣ Σ ⊢ (`∀ s) ∶ (`∀ A) =⇒ (`∀ B)
 
   -- ν̅ 
-  cast-inst : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
+  cast-inst : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → WfTy Δ B
     → occurs zero A ≡ true
     → instᵈ μ ∣ suc Δ ∣ (0 , ★) ∷ ⟰ᵗ Σ ⊢ s ∶ A =⇒ ⇑ᵗ B
@@ -304,7 +304,7 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
     → μ ∣ Δ ∣ Σ ⊢ (inst B s) ∶ (`∀ A) =⇒ B
 
   -- ν
-  cast-gen : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
+  cast-gen : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → WfTy Δ A
     → occurs zero B ≡ true
     → genᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ s ∶ ⇑ᵗ A =⇒ B

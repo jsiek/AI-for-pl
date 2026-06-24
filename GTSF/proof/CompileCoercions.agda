@@ -21,7 +21,7 @@ open import Store using (StoreIncl; StoreIncl-drop)
 open import Coercions
   using
     ( Coercion
-    ; DualEnv
+    ; ModeEnv
     ; id-only
     ; tag-or-id
     ; seal-or-id
@@ -99,7 +99,7 @@ ModeRename-suc-id-only :
   ModeRename suc id-onlyᵈ id-onlyᵈ
 ModeRename-suc-id-only X = refl
 
-AllIdMode : DualEnv → Set
+AllIdMode : ModeEnv → Set
 AllIdMode μ = ∀ X → μ X ≡ id-only
 
 AllIdMode-ext :
@@ -144,7 +144,7 @@ idTyAllowed-shift-inst {μ = μ} {B = B} ok =
   modeRename-idTyAllowed {ρ = suc} {μ = μ} {ν = instᵈ μ} {A = B}
     ModeRename-suc-inst ok
 
-data Realizesᵐ (μ : DualEnv) (Δ : TyCtx) (Σ : Store) : ImpCtx → Set₁ where
+data Realizesᵐ (μ : ModeEnv) (Δ : TyCtx) (Σ : Store) : ImpCtx → Set₁ where
   real-[] :
     Realizesᵐ μ Δ Σ []
 

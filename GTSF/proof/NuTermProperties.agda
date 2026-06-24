@@ -266,9 +266,9 @@ modeRename-left-inverse inv X | seal-or-id = refl
 
 ModeRenamer : TyCtx → Renameᵗ → Set
 ModeRenamer Δ ρ =
-  ∀ μ → Sigma.Σ DualEnv (λ target → ScopedModeRename Δ ρ μ target)
+  ∀ μ → Sigma.Σ ModeEnv (λ target → ScopedModeRename Δ ρ μ target)
 
-extModeᵈ : DualEnv → DualEnv → DualEnv
+extModeᵈ : ModeEnv → ModeEnv → ModeEnv
 extModeᵈ μ target zero = μ zero
 extModeᵈ μ target (suc X) = target X
 

@@ -393,7 +393,7 @@ id-only-seal-conflict :
 id-only-seal-conflict refl ()
 
 id-only-ground-tag-occurs⊥ :
-  ∀ {μ : DualEnv} {α : TyVar} {G : Ty} →
+  ∀ {μ : ModeEnv} {α : TyVar} {G : Ty} →
   μ α ≡ id-only →
   Ground G →
   tagTyAllowed μ G ≡ true →
@@ -409,7 +409,7 @@ id-only-ground-tag-occurs⊥ α-id (‵ ι) tag-ok ()
 id-only-ground-tag-occurs⊥ α-id ★⇒★ tag-ok ()
 
 id-only-seal-var-occurs⊥ :
-  ∀ {μ : DualEnv} {α β : TyVar} →
+  ∀ {μ : ModeEnv} {α β : TyVar} →
   μ α ≡ id-only →
   sealModeAllowed (μ β) ≡ true →
   occurs α (＇ β) ≡ true →
@@ -862,7 +862,7 @@ widening-cross-ground-source-seal-var⊥ wfΣ gG tag-ok
     α∈Σ seal-ok (() , cw-all gʷ)
 
 tag-or-id-seal-conflict :
-  ∀ {μ : DualEnv} {α} →
+  ∀ {μ : ModeEnv} {α} →
   μ α ≡ tag-or-id →
   sealModeAllowed (μ α) ≡ true →
   ⊥
@@ -870,7 +870,7 @@ tag-or-id-seal-conflict tag-ok seal-ok rewrite tag-ok =
   false≢true seal-ok
 
 seal-or-id-tag-conflict :
-  ∀ {μ : DualEnv} {α} →
+  ∀ {μ : ModeEnv} {α} →
   μ α ≡ seal-or-id →
   tagModeAllowed (μ α) ≡ true →
   ⊥

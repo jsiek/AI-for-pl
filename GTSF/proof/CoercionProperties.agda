@@ -166,7 +166,7 @@ dual-inst-tag-counterexample-dual-not-typable
 -- Coercion typing under type renaming
 ------------------------------------------------------------------------
 
-ModeRename : Renameᵗ → DualEnv → DualEnv → Set
+ModeRename : Renameᵗ → ModeEnv → ModeEnv → Set
 ModeRename ρ μ ν = ∀ X → mode≤ (μ X) (ν (ρ X)) ≡ true
 
 ModeRename-ext :
@@ -190,7 +190,7 @@ ModeRename-inst :
 ModeRename-inst rel zero = refl
 ModeRename-inst rel (suc X) = rel X
 
-ScopedModeRename : TyCtx → Renameᵗ → DualEnv → DualEnv → Set
+ScopedModeRename : TyCtx → Renameᵗ → ModeEnv → ModeEnv → Set
 ScopedModeRename Δ ρ μ ν =
   ∀ {X} → X < Δ → mode≤ (μ X) (ν (ρ X)) ≡ true
 
@@ -593,7 +593,7 @@ coercion-renameᵗᵐ-scoped {ρ = ρ} wfΣ hρ rel
           (ScopedModeRename-gen rel)
           c⊢)))
 
-openᵈ : DualEnv → TyVar → DualEnv
+openᵈ : ModeEnv → TyVar → ModeEnv
 openᵈ μ α X with X ≟ α
 openᵈ μ α X | yes eq = μ zero
 openᵈ μ α X | no neq = μ (suc X)
@@ -878,7 +878,7 @@ singleRevealEnv {Δ = Δ} {X = suc X} (s<s X<Δ) =
     X≢Δ X≡Δ =
       <-irrefl refl (subst (λ Y → Y < Δ) X≡Δ X<Δ)
 
-RevealMode : DualEnv → TyVar → Set
+RevealMode : ModeEnv → TyVar → Set
 RevealMode μ α =
   sealModeAllowed (μ α) ≡ true ×
   (∀ {Y} → Y ≢ α → idModeAllowed (μ Y) ≡ true)
@@ -894,7 +894,7 @@ RevealMode-ext mode =
         proj₂ mode (λ Y≡α → sY≢sα (cong suc Y≡α))
     }
 
-singleSealᵈ : TyVar → DualEnv
+singleSealᵈ : TyVar → ModeEnv
 singleSealᵈ α X with X ≟ α
 singleSealᵈ α X | yes eq = seal-or-id
 singleSealᵈ α X | no neq = id-only

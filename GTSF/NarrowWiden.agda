@@ -228,11 +228,11 @@ mutual
 infix 4 _∣_∣_⊢_∶_⊒_
 infix 4 _∣_∣_⊢_∶_⊑_
 
-_∣_∣_⊢_∶_⊒_ : DualEnv → TyCtx → Store → Coercion → Ty → Ty → Set
+_∣_∣_⊢_∶_⊒_ : ModeEnv → TyCtx → Store → Coercion → Ty → Ty → Set
 μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B =
   (μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B) × Narrowing c
 
-_∣_∣_⊢_∶_⊑_ : DualEnv → TyCtx → Store → Coercion → Ty → Ty → Set
+_∣_∣_⊢_∶_⊑_ : ModeEnv → TyCtx → Store → Coercion → Ty → Ty → Set
 μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B =
   (μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B) × Widening c
 

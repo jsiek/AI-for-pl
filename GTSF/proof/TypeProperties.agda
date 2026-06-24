@@ -7,12 +7,12 @@ module proof.TypeProperties where
 --   * No coercion-specific or term-typing lemmas live here.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (false)
+open import Data.Bool using (false; _∨_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; z<s; s<s; z≤n; s≤s)
 open import Data.Nat.Properties
-  using (_≟_; <-≤-trans; m<n⇒m<1+n; suc-injective)
+  using (_≟_; <-≤-trans; <-irrefl; m<n⇒m<1+n; suc-injective)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; sym; trans)
@@ -23,6 +23,24 @@ open import Types
 ------------------------------------------------------------------------
 -- Occurrence bookkeeping for binders
 ------------------------------------------------------------------------
+
+WfTy-occurs-boundary-false :
+  ∀ {Δ A} →
+  WfTy Δ A →
+  occurs Δ A ≡ false
+WfTy-occurs-boundary-false {Δ = Δ} (wfVar {X = X} X<Δ)
+    with Δ ≟ X
+WfTy-occurs-boundary-false (wfVar X<Δ) | yes refl =
+  ⊥-elim (<-irrefl refl X<Δ)
+WfTy-occurs-boundary-false (wfVar X<Δ) | no Δ≢X = refl
+WfTy-occurs-boundary-false wfBase = refl
+WfTy-occurs-boundary-false wf★ = refl
+WfTy-occurs-boundary-false (wf⇒ hA hB)
+    rewrite WfTy-occurs-boundary-false hA
+          | WfTy-occurs-boundary-false hB =
+  refl
+WfTy-occurs-boundary-false (wf∀ hA) =
+  WfTy-occurs-boundary-false hA
 
 rename-cong :
   ∀ {ρ ρ′ : Renameᵗ} →

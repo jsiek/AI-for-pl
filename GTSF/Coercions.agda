@@ -112,7 +112,7 @@ renameᶜ ρ (gen A p) = gen (renameᵗ ρ A) (renameᶜ (extᵗ ρ) p)
 renameᶜ ρ (inst B p) = inst (renameᵗ ρ B) (renameᶜ (extᵗ ρ) p)
 
 data DualMode : Set where
-  id-only tag-only seal-only : DualMode
+  id-only tag-or-id seal-or-id : DualMode
 
 DualEnv : Set
 DualEnv = TyVar → DualMode
@@ -120,34 +120,34 @@ DualEnv = TyVar → DualMode
 id-onlyᵈ : DualEnv
 id-onlyᵈ X = id-only
 
-tag-onlyᵈ : DualEnv
-tag-onlyᵈ X = tag-only
+tag-or-idᵈ : DualEnv
+tag-or-idᵈ X = tag-or-id
 
-seal-onlyᵈ : DualEnv
-seal-onlyᵈ X = seal-only
+seal-or-idᵈ : DualEnv
+seal-or-idᵈ X = seal-or-id
 
 extᵈ : DualEnv → DualEnv
 extᵈ μ zero = id-only
 extᵈ μ (suc X) = μ X
 
 genᵈ : DualEnv → DualEnv
-genᵈ μ zero = tag-only
+genᵈ μ zero = tag-or-id
 genᵈ μ (suc X) = μ X
 
 instᵈ : DualEnv → DualEnv
-instᵈ μ zero = seal-only
+instᵈ μ zero = seal-or-id
 instᵈ μ (suc X) = μ X
 
 mode≤ : DualMode → DualMode → Bool
 mode≤ id-only id-only = true
-mode≤ id-only tag-only = false
-mode≤ id-only seal-only = false
-mode≤ tag-only id-only = false
-mode≤ tag-only tag-only = true
-mode≤ tag-only seal-only = false
-mode≤ seal-only id-only = false
-mode≤ seal-only tag-only = false
-mode≤ seal-only seal-only = true
+mode≤ id-only tag-or-id = true
+mode≤ id-only seal-or-id = true
+mode≤ tag-or-id id-only = false
+mode≤ tag-or-id tag-or-id = true
+mode≤ tag-or-id seal-or-id = false
+mode≤ seal-or-id id-only = false
+mode≤ seal-or-id tag-or-id = false
+mode≤ seal-or-id seal-or-id = true
 
 ModeIncl : DualEnv → DualEnv → Set
 ModeIncl μ ν = ∀ X → mode≤ (μ X) (ν X) ≡ true
@@ -155,23 +155,23 @@ ModeIncl μ ν = ∀ X → mode≤ (μ X) (ν X) ≡ true
 modeIncl-refl : ∀ {μ} → ModeIncl μ μ
 modeIncl-refl {μ} X with μ X
 modeIncl-refl X | id-only = refl
-modeIncl-refl X | tag-only = refl
-modeIncl-refl X | seal-only = refl
+modeIncl-refl X | tag-or-id = refl
+modeIncl-refl X | seal-or-id = refl
 
 idModeAllowed : DualMode → Bool
 idModeAllowed id-only = true
-idModeAllowed tag-only = false
-idModeAllowed seal-only = false
+idModeAllowed tag-or-id = true
+idModeAllowed seal-or-id = true
 
 tagModeAllowed : DualMode → Bool
 tagModeAllowed id-only = false
-tagModeAllowed tag-only = true
-tagModeAllowed seal-only = false
+tagModeAllowed tag-or-id = true
+tagModeAllowed seal-or-id = false
 
 sealModeAllowed : DualMode → Bool
 sealModeAllowed id-only = false
-sealModeAllowed tag-only = false
-sealModeAllowed seal-only = true
+sealModeAllowed tag-or-id = false
+sealModeAllowed seal-or-id = true
 
 idTyAllowed : DualEnv → Ty → Bool
 idTyAllowed μ (＇ α) = idModeAllowed (μ α)
@@ -222,7 +222,7 @@ dual μ (gen A c) = inst A (dual (genᵈ μ) c)
 dual μ (inst B c) = gen B (dual (instᵈ μ) c)
 
 -_ : Coercion → Coercion
--_ = dual tag-onlyᵈ
+-_ = dual tag-or-idᵈ
 
 ⇑ᶜ : Coercion → Coercion
 ⇑ᶜ = renameᶜ suc

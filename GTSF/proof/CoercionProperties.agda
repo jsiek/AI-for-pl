@@ -133,7 +133,7 @@ coercion-weaken-suc {Δ = Δ} c⊢ =
 dual-inst-example⊢ :
   zero ∣ [] ⊢ inst ★ (unseal zero ★) ∶ `∀ (＇ zero) =⇒ ★
 dual-inst-example⊢ =
-  tag-onlyᵈ ,
+  tag-or-idᵈ ,
     cast-inst wf★ refl (cast-unseal wf★ (here refl) refl)
 
 dual-inst-example-dual≡ :
@@ -143,7 +143,7 @@ dual-inst-example-dual≡ = refl
 dual-inst-example-dual⊢ :
   zero ∣ [] ⊢ - inst ★ (unseal zero ★) ∶ ★ =⇒ `∀ (＇ zero)
 dual-inst-example-dual⊢ =
-  tag-onlyᵈ ,
+  tag-or-idᵈ ,
     cast-gen wf★ refl (cast-untag (wfVar z<s) (＇ zero) refl)
 
 dual-inst-tag-counterexample-not-typable :
@@ -221,14 +221,14 @@ mode≤-id :
   idModeAllowed m ≡ true →
   idModeAllowed n ≡ true
 mode≤-id {id-only} {id-only} rel ok = refl
-mode≤-id {id-only} {tag-only} () ok
-mode≤-id {id-only} {seal-only} () ok
-mode≤-id {tag-only} {id-only} () ok
-mode≤-id {tag-only} {tag-only} rel ()
-mode≤-id {tag-only} {seal-only} () ok
-mode≤-id {seal-only} {id-only} () ok
-mode≤-id {seal-only} {tag-only} () ok
-mode≤-id {seal-only} {seal-only} rel ()
+mode≤-id {id-only} {tag-or-id} rel ok = refl
+mode≤-id {id-only} {seal-or-id} rel ok = refl
+mode≤-id {tag-or-id} {id-only} () ok
+mode≤-id {tag-or-id} {tag-or-id} rel ok = refl
+mode≤-id {tag-or-id} {seal-or-id} () ok
+mode≤-id {seal-or-id} {id-only} () ok
+mode≤-id {seal-or-id} {tag-or-id} () ok
+mode≤-id {seal-or-id} {seal-or-id} rel ok = refl
 
 mode≤-tag :
   ∀ {m n} →
@@ -236,14 +236,14 @@ mode≤-tag :
   tagModeAllowed m ≡ true →
   tagModeAllowed n ≡ true
 mode≤-tag {id-only} {id-only} rel ()
-mode≤-tag {id-only} {tag-only} () ok
-mode≤-tag {id-only} {seal-only} () ok
-mode≤-tag {tag-only} {id-only} () ok
-mode≤-tag {tag-only} {tag-only} rel ok = refl
-mode≤-tag {tag-only} {seal-only} () ok
-mode≤-tag {seal-only} {id-only} () ok
-mode≤-tag {seal-only} {tag-only} () ok
-mode≤-tag {seal-only} {seal-only} rel ()
+mode≤-tag {id-only} {tag-or-id} rel ()
+mode≤-tag {id-only} {seal-or-id} rel ()
+mode≤-tag {tag-or-id} {id-only} () ok
+mode≤-tag {tag-or-id} {tag-or-id} rel ok = refl
+mode≤-tag {tag-or-id} {seal-or-id} () ok
+mode≤-tag {seal-or-id} {id-only} () ok
+mode≤-tag {seal-or-id} {tag-or-id} () ok
+mode≤-tag {seal-or-id} {seal-or-id} rel ()
 
 mode≤-seal :
   ∀ {m n} →
@@ -251,14 +251,14 @@ mode≤-seal :
   sealModeAllowed m ≡ true →
   sealModeAllowed n ≡ true
 mode≤-seal {id-only} {id-only} rel ()
-mode≤-seal {id-only} {tag-only} () ok
-mode≤-seal {id-only} {seal-only} () ok
-mode≤-seal {tag-only} {id-only} () ok
-mode≤-seal {tag-only} {tag-only} rel ()
-mode≤-seal {tag-only} {seal-only} () ok
-mode≤-seal {seal-only} {id-only} () ok
-mode≤-seal {seal-only} {tag-only} () ok
-mode≤-seal {seal-only} {seal-only} rel ok = refl
+mode≤-seal {id-only} {tag-or-id} rel ()
+mode≤-seal {id-only} {seal-or-id} rel ()
+mode≤-seal {tag-or-id} {id-only} () ok
+mode≤-seal {tag-or-id} {tag-or-id} rel ()
+mode≤-seal {tag-or-id} {seal-or-id} () ok
+mode≤-seal {seal-or-id} {id-only} () ok
+mode≤-seal {seal-or-id} {tag-or-id} () ok
+mode≤-seal {seal-or-id} {seal-or-id} rel ok = refl
 
 modeRename-idTyAllowed :
   ∀ {ρ μ ν A} →
@@ -896,7 +896,7 @@ RevealMode-ext mode =
 
 singleSealᵈ : TyVar → DualEnv
 singleSealᵈ α X with X ≟ α
-singleSealᵈ α X | yes eq = seal-only
+singleSealᵈ α X | yes eq = seal-or-id
 singleSealᵈ α X | no neq = id-only
 
 singleSealMode :

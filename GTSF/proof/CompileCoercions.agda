@@ -22,17 +22,17 @@ open import Coercions
   using
     ( Coercion
     ; DualEnv
-    ; normal
-    ; tag-only
-    ; seal-only
-    ; normalᵈ
+    ; id-only
+    ; tag-or-id
+    ; seal-or-id
+    ; id-onlyᵈ
     ; extᵈ
     ; genᵈ
     ; instᵈ
     ; Label
     ; _∣_∣_⊢_∶_=⇒_
     ; _∣_⊢_∶_=⇒_
-    ; tyAllowed
+    ; idTyAllowed
     ; cast-id
     ; cast-seq
     ; cast-tag
@@ -62,8 +62,7 @@ open import proof.CoercionProperties
     ( ModeRename
     ; coercion-renameᵗᵐ
     ; coercion-weakenᵐ
-    ; modeRename-tyAllowed
-    ; tyAllowed-normal
+    ; modeRename-idTyAllowed
     )
 open import proof.TypeProperties
   using (TyRenameWf-suc; renameᵗ-preserves-WfTy)
@@ -76,44 +75,73 @@ ModeRename-suc-ext :
   ∀ {μ} →
   ModeRename suc μ (extᵈ μ)
 ModeRename-suc-ext {μ} X with μ X
-ModeRename-suc-ext X | normal = refl
-ModeRename-suc-ext X | tag-only = refl
-ModeRename-suc-ext X | seal-only = refl
+ModeRename-suc-ext X | id-only = refl
+ModeRename-suc-ext X | tag-or-id = refl
+ModeRename-suc-ext X | seal-or-id = refl
 
 ModeRename-suc-gen :
   ∀ {μ} →
   ModeRename suc μ (genᵈ μ)
 ModeRename-suc-gen {μ} X with μ X
-ModeRename-suc-gen X | normal = refl
-ModeRename-suc-gen X | tag-only = refl
-ModeRename-suc-gen X | seal-only = refl
+ModeRename-suc-gen X | id-only = refl
+ModeRename-suc-gen X | tag-or-id = refl
+ModeRename-suc-gen X | seal-or-id = refl
 
 ModeRename-suc-inst :
   ∀ {μ} →
   ModeRename suc μ (instᵈ μ)
 ModeRename-suc-inst {μ} X with μ X
-ModeRename-suc-inst X | normal = refl
-ModeRename-suc-inst X | tag-only = refl
-ModeRename-suc-inst X | seal-only = refl
+ModeRename-suc-inst X | id-only = refl
+ModeRename-suc-inst X | tag-or-id = refl
+ModeRename-suc-inst X | seal-or-id = refl
 
-ModeRename-suc-normal :
-  ModeRename suc normalᵈ normalᵈ
-ModeRename-suc-normal X = refl
+ModeRename-suc-id-only :
+  ModeRename suc id-onlyᵈ id-onlyᵈ
+ModeRename-suc-id-only X = refl
 
-tyAllowed-shift-gen :
+AllIdMode : DualEnv → Set
+AllIdMode μ = ∀ X → μ X ≡ id-only
+
+AllIdMode-ext :
+  ∀ {μ} →
+  AllIdMode μ →
+  AllIdMode (extᵈ μ)
+AllIdMode-ext all-id zero = refl
+AllIdMode-ext all-id (suc X) = all-id X
+
+idTyAllowed-all-id :
+  ∀ {μ A} →
+  AllIdMode μ →
+  idTyAllowed μ A ≡ true
+idTyAllowed-all-id {A = ＇ α} all-id rewrite all-id α = refl
+idTyAllowed-all-id {A = ‵ ι} all-id = refl
+idTyAllowed-all-id {A = ★} all-id = refl
+idTyAllowed-all-id {A = A ⇒ B} all-id
+    rewrite idTyAllowed-all-id {A = A} all-id
+          | idTyAllowed-all-id {A = B} all-id =
+  refl
+idTyAllowed-all-id {A = `∀ A} all-id =
+  idTyAllowed-all-id {A = A} (AllIdMode-ext all-id)
+
+idTyAllowed-id-only :
+  ∀ A →
+  idTyAllowed id-onlyᵈ A ≡ true
+idTyAllowed-id-only A = idTyAllowed-all-id {A = A} (λ X → refl)
+
+idTyAllowed-shift-gen :
   ∀ {μ B} →
-  tyAllowed μ B ≡ true →
-  tyAllowed (genᵈ μ) (⇑ᵗ B) ≡ true
-tyAllowed-shift-gen {μ = μ} {B = B} ok =
-  modeRename-tyAllowed {ρ = suc} {μ = μ} {ν = genᵈ μ} {A = B}
+  idTyAllowed μ B ≡ true →
+  idTyAllowed (genᵈ μ) (⇑ᵗ B) ≡ true
+idTyAllowed-shift-gen {μ = μ} {B = B} ok =
+  modeRename-idTyAllowed {ρ = suc} {μ = μ} {ν = genᵈ μ} {A = B}
     ModeRename-suc-gen ok
 
-tyAllowed-shift-inst :
+idTyAllowed-shift-inst :
   ∀ {μ B} →
-  tyAllowed μ B ≡ true →
-  tyAllowed (instᵈ μ) (⇑ᵗ B) ≡ true
-tyAllowed-shift-inst {μ = μ} {B = B} ok =
-  modeRename-tyAllowed {ρ = suc} {μ = μ} {ν = instᵈ μ} {A = B}
+  idTyAllowed μ B ≡ true →
+  idTyAllowed (instᵈ μ) (⇑ᵗ B) ≡ true
+idTyAllowed-shift-inst {μ = μ} {B = B} ok =
+  modeRename-idTyAllowed {ρ = suc} {μ = μ} {ν = instᵈ μ} {A = B}
     ModeRename-suc-inst ok
 
 data Realizesᵐ (μ : DualEnv) (Δ : TyCtx) (Σ : Store) : ImpCtx → Set₁ where
@@ -136,7 +164,7 @@ data Realizesᵐ (μ : DualEnv) (Δ : TyCtx) (Σ : Store) : ImpCtx → Set₁ wh
     Realizesᵐ μ Δ Σ ((X ˣ⊑★) ∷ Φ)
 
 Realizes : TyCtx → Store → ImpCtx → Set₁
-Realizes Δ Σ Φ = Realizesᵐ normalᵈ Δ Σ Φ
+Realizes Δ Σ Φ = Realizesᵐ id-onlyᵈ Δ Σ Φ
 
 realizes-xx-up :
   ∀ {μ Δ Σ Φ X Y} →
@@ -254,8 +282,8 @@ Realizes-ν-inst :
 Realizes-ν-inst ℓ r =
   real-star
     (wfVar z<s)
-    (cast-unseal wf★ (here refl) refl refl)
-    (cast-seal wf★ (here refl) refl refl)
+    (cast-unseal wf★ (here refl) refl)
+    (cast-seal wf★ (here refl) refl)
     (Realizes-store-weaken StoreIncl-drop
       (Realizes-rename-suc ModeRename-suc-inst r))
 
@@ -279,9 +307,9 @@ realizes-idᵢ (suc Δ) =
   real-xx
     (wfVar z<s)
     (wfVar z<s)
-    (cast-id (wfVar z<s) (tyAllowed-normal (＇ zero)))
-    (cast-id (wfVar z<s) (tyAllowed-normal (＇ zero)))
-    (Realizes-rename-suc ModeRename-suc-normal (realizes-idᵢ Δ))
+    (cast-id (wfVar z<s) (idTyAllowed-id-only (＇ zero)))
+    (cast-id (wfVar z<s) (idTyAllowed-id-only (＇ zero)))
+    (Realizes-rename-suc ModeRename-suc-id-only (realizes-idᵢ Δ))
 
 ------------------------------------------------------------------------
 -- Coercion synthesis from imprecision
@@ -293,7 +321,7 @@ mutual
     (ℓ : Label) →
     WfTy Δ C →
     WfTy Δ A →
-    tyAllowed μ A ≡ true →
+    idTyAllowed μ A ≡ true →
     Realizesᵐ μ Δ Σ Φ →
     Φ ⊢ C ⊑ A →
     Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ C =⇒ A
@@ -305,7 +333,7 @@ mutual
     idᶜ (‵ ι) , cast-id wfBase refl
   coerce-upᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
       (wf⇒ hA hB) (wf⇒ hA′ hB′) ok r (p ↦ q)
-      with tyAllowed μ A′ in okA′ | tyAllowed μ B′ in okB′
+      with idTyAllowed μ A′ in okA′ | idTyAllowed μ B′ in okB′
   coerce-upᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
       (wf⇒ hA hB) (wf⇒ hA′ hB′) ok r (p ↦ q)
       | true | true
@@ -340,19 +368,19 @@ mutual
       with coerce-upᵐ ℓ
              hA
              (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
-             (tyAllowed-shift-inst {μ = μ} {B = B} ok)
+             (idTyAllowed-shift-inst {μ = μ} {B = B} ok)
              (Realizes-ν-inst ℓ r)
              p
   coerce-upᵐ {μ = μ} {A = B} ℓ (wf∀ hA) hB ok r (ν occ p)
       | c , c⊢ =
-    instᶜ B c , cast-inst hB ok c⊢
+    instᶜ B c , cast-inst hB occ c⊢
 
   coerce-downᵐ :
     ∀ {μ Δ Σ Φ C A} →
     (ℓ : Label) →
     WfTy Δ C →
     WfTy Δ A →
-    tyAllowed μ A ≡ true →
+    idTyAllowed μ A ≡ true →
     Realizesᵐ μ Δ Σ Φ →
     Φ ⊢ C ⊑ A →
     Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ C
@@ -364,7 +392,7 @@ mutual
     idᶜ (‵ ι) , cast-id wfBase refl
   coerce-downᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
       (wf⇒ hA hB) (wf⇒ hA′ hB′) ok r (p ↦ q)
-      with tyAllowed μ A′ in okA′ | tyAllowed μ B′ in okB′
+      with idTyAllowed μ A′ in okA′ | idTyAllowed μ B′ in okB′
   coerce-downᵐ {μ = μ} {A = A′ ⇒ B′} ℓ
       (wf⇒ hA hB) (wf⇒ hA′ hB′) ok r (p ↦ q)
       | true | true
@@ -399,12 +427,12 @@ mutual
       with coerce-downᵐ ℓ
              hA
              (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
-             (tyAllowed-shift-gen {μ = μ} {B = B} ok)
+             (idTyAllowed-shift-gen {μ = μ} {B = B} ok)
              (Realizes-ν-gen ℓ r)
              p
   coerce-downᵐ {μ = μ} {A = B} ℓ (wf∀ hA) hB ok r (ν occ p)
       | c , c⊢ =
-    genᶜ B c , cast-gen hB ok c⊢
+    genᶜ B c , cast-gen hB occ c⊢
 
 coerce-up :
   ∀ {Δ Σ Φ C A} →
@@ -415,7 +443,11 @@ coerce-up :
   Φ ⊢ C ⊑ A →
   Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ∶ C =⇒ A
 coerce-up {A = A} ℓ hC hA r p =
-  coerce-upᵐ ℓ hC hA (tyAllowed-normal A) r p
+  result
+  where
+    result : Σ[ c ∈ Coercion ] _ ∣ _ ⊢ c ∶ _ =⇒ A
+    result with coerce-upᵐ ℓ hC hA (idTyAllowed-id-only A) r p
+    result | c , c⊢ = c , id-onlyᵈ , c⊢
 
 coerce-down :
   ∀ {Δ Σ Φ C A} →
@@ -426,4 +458,8 @@ coerce-down :
   Φ ⊢ C ⊑ A →
   Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ∶ A =⇒ C
 coerce-down {A = A} ℓ hC hA r p =
-  coerce-downᵐ ℓ hC hA (tyAllowed-normal A) r p
+  result
+  where
+    result : Σ[ c ∈ Coercion ] _ ∣ _ ⊢ c ∶ A =⇒ _
+    result with coerce-downᵐ ℓ hC hA (idTyAllowed-id-only A) r p
+    result | c , c⊢ = c , id-onlyᵈ , c⊢

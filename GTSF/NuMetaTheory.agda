@@ -15,11 +15,13 @@ open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Types
 open import Ctx
 open import Coercions
-open import NuStore using (StoreIncl; StoreWf)
+open import NarrowWiden using (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
+open import NuStore using (StoreIncl; StoreWf; unique)
 open import NuTerms
 open import NuReduction
 
 import proof.CoercionProperties as CoercionProof
+import proof.NarrowWidenProperties as NarrowWidenProof
 import proof.NuProgress as ProgressProof
 import proof.NuPreservation as PreservationProof
 
@@ -43,16 +45,14 @@ preservation wfΣ hΓ M⊢ red
     | PreservationProof.preserve wfΣ′ Δ≤Δ′ incl hΓ′ N⊢ =
   wfΣ′ , Δ≤Δ′ , incl , hΓ′ , N⊢
 
-{-
-  UNDER CONSTRUCTION in proof/NarrowWidenProperties.agda
-
 narrowing-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
   StoreWf Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊒ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ B →
   s ≡ t
-narrowing-determinedᵐ wfΣ = ?
+narrowing-determinedᵐ wfΣ =
+  NarrowWidenProof.narrowing-determinedᵐ-unique (unique wfΣ)
 
 widening-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
@@ -60,9 +60,8 @@ widening-determinedᵐ :
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊑ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊑ B →
   s ≡ t
-widening-determinedᵐ wfΣ = ?
-
--}
+widening-determinedᵐ wfΣ =
+  NarrowWidenProof.widening-determinedᵐ-unique (unique wfΣ)
 
 coercion-endpoints-unique :
   ∀ {Δ Σ c A B A′ B′} →
@@ -71,4 +70,3 @@ coercion-endpoints-unique :
   A ≡ A′ × B ≡ B′
 coercion-endpoints-unique =
   CoercionProof.coercion-endpoints-unique
-

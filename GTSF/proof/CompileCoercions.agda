@@ -23,8 +23,8 @@ open import Coercions
     ( Coercion
     ; DualEnv
     ; normal
-    ; tag-to-seal
-    ; seal-to-tag
+    ; tag-only
+    ; seal-only
     ; normalᵈ
     ; extᵈ
     ; genᵈ
@@ -77,24 +77,24 @@ ModeRename-suc-ext :
   ModeRename suc μ (extᵈ μ)
 ModeRename-suc-ext {μ} X with μ X
 ModeRename-suc-ext X | normal = refl
-ModeRename-suc-ext X | tag-to-seal = refl
-ModeRename-suc-ext X | seal-to-tag = refl
+ModeRename-suc-ext X | tag-only = refl
+ModeRename-suc-ext X | seal-only = refl
 
 ModeRename-suc-gen :
   ∀ {μ} →
   ModeRename suc μ (genᵈ μ)
 ModeRename-suc-gen {μ} X with μ X
 ModeRename-suc-gen X | normal = refl
-ModeRename-suc-gen X | tag-to-seal = refl
-ModeRename-suc-gen X | seal-to-tag = refl
+ModeRename-suc-gen X | tag-only = refl
+ModeRename-suc-gen X | seal-only = refl
 
 ModeRename-suc-inst :
   ∀ {μ} →
   ModeRename suc μ (instᵈ μ)
 ModeRename-suc-inst {μ} X with μ X
 ModeRename-suc-inst X | normal = refl
-ModeRename-suc-inst X | tag-to-seal = refl
-ModeRename-suc-inst X | seal-to-tag = refl
+ModeRename-suc-inst X | tag-only = refl
+ModeRename-suc-inst X | seal-only = refl
 
 ModeRename-suc-normal :
   ModeRename suc normalᵈ normalᵈ

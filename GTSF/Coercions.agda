@@ -3,7 +3,7 @@
 module Coercions where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (Bool; false; true)
+open import Data.Bool using (Bool; false; true; _∧_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List using (List; []; _∷_; _++_; length; replicate; map)
 open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
@@ -112,50 +112,73 @@ renameᶜ ρ (gen A p) = gen (renameᵗ ρ A) (renameᶜ (extᵗ ρ) p)
 renameᶜ ρ (inst B p) = inst (renameᵗ ρ B) (renameᶜ (extᵗ ρ) p)
 
 data DualMode : Set where
-  tag-to-seal seal-to-tag : DualMode
+  id-only tag-only seal-only : DualMode
 
 DualEnv : Set
 DualEnv = TyVar → DualMode
 
-tag-to-sealᵈ : DualEnv
-tag-to-sealᵈ X = tag-to-seal
+id-onlyᵈ : DualEnv
+id-onlyᵈ X = id-only
 
-seal-to-tagᵈ : DualEnv
-seal-to-tagᵈ X = seal-to-tag
+tag-onlyᵈ : DualEnv
+tag-onlyᵈ X = tag-only
+
+seal-onlyᵈ : DualEnv
+seal-onlyᵈ X = seal-only
 
 extᵈ : DualEnv → DualEnv
-extᵈ μ zero = tag-to-seal
+extᵈ μ zero = id-only
 extᵈ μ (suc X) = μ X
 
 genᵈ : DualEnv → DualEnv
-genᵈ μ zero = tag-to-seal
+genᵈ μ zero = tag-only
 genᵈ μ (suc X) = μ X
 
 instᵈ : DualEnv → DualEnv
-instᵈ μ zero = seal-to-tag
+instᵈ μ zero = seal-only
 instᵈ μ (suc X) = μ X
 
 mode≤ : DualMode → DualMode → Bool
-mode≤ tag-to-seal tag-to-seal = true
-mode≤ tag-to-seal seal-to-tag = false
-mode≤ seal-to-tag tag-to-seal = false
-mode≤ seal-to-tag seal-to-tag = true
+mode≤ id-only id-only = true
+mode≤ id-only tag-only = false
+mode≤ id-only seal-only = false
+mode≤ tag-only id-only = false
+mode≤ tag-only tag-only = true
+mode≤ tag-only seal-only = false
+mode≤ seal-only id-only = false
+mode≤ seal-only tag-only = false
+mode≤ seal-only seal-only = true
 
 ModeIncl : DualEnv → DualEnv → Set
 ModeIncl μ ν = ∀ X → mode≤ (μ X) (ν X) ≡ true
 
 modeIncl-refl : ∀ {μ} → ModeIncl μ μ
 modeIncl-refl {μ} X with μ X
-modeIncl-refl X | tag-to-seal = refl
-modeIncl-refl X | seal-to-tag = refl
+modeIncl-refl X | id-only = refl
+modeIncl-refl X | tag-only = refl
+modeIncl-refl X | seal-only = refl
+
+idModeAllowed : DualMode → Bool
+idModeAllowed id-only = true
+idModeAllowed tag-only = false
+idModeAllowed seal-only = false
 
 tagModeAllowed : DualMode → Bool
-tagModeAllowed tag-to-seal = true
-tagModeAllowed seal-to-tag = false
+tagModeAllowed id-only = false
+tagModeAllowed tag-only = true
+tagModeAllowed seal-only = false
 
 sealModeAllowed : DualMode → Bool
-sealModeAllowed tag-to-seal = false
-sealModeAllowed seal-to-tag = true
+sealModeAllowed id-only = false
+sealModeAllowed tag-only = false
+sealModeAllowed seal-only = true
+
+idTyAllowed : DualEnv → Ty → Bool
+idTyAllowed μ (＇ α) = idModeAllowed (μ α)
+idTyAllowed μ (‵ ι) = true
+idTyAllowed μ ★ = true
+idTyAllowed μ (A ⇒ B) = idTyAllowed μ A ∧ idTyAllowed μ B
+idTyAllowed μ (`∀ A) = idTyAllowed (extᵈ μ) A
 
 tagTyAllowed : DualEnv → Ty → Bool
 tagTyAllowed μ (＇ α) = tagModeAllowed (μ α)
@@ -199,7 +222,7 @@ dual μ (gen A c) = inst A (dual (genᵈ μ) c)
 dual μ (inst B c) = gen B (dual (instᵈ μ) c)
 
 -_ : Coercion → Coercion
--_ = dual tag-to-sealᵈ
+-_ = dual tag-onlyᵈ
 
 ⇑ᶜ : Coercion → Coercion
 ⇑ᶜ = renameᶜ suc
@@ -221,7 +244,7 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
 
   cast-id : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A : Ty}
     → WfTy Δ A
-    -- fvs(A) ∩ dom(Σ) = ∅
+    → idTyAllowed μ A ≡ true
      -------------------
     → μ ∣ Δ ∣ Σ ⊢ id A ∶ A =⇒ A
 
@@ -275,6 +298,7 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
   -- ν̅ 
   cast-inst : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → WfTy Δ B
+    → occurs zero A ≡ true
     → instᵈ μ ∣ suc Δ ∣ (0 , ★) ∷ ⟰ᵗ Σ ⊢ s ∶ A =⇒ ⇑ᵗ B
      ----------------------------------------
     → μ ∣ Δ ∣ Σ ⊢ (inst B s) ∶ (`∀ A) =⇒ B
@@ -282,6 +306,7 @@ data _∣_∣_⊢_∶_=⇒_ : DualEnv → TyCtx → Store → Coercion → Ty �
   -- ν
   cast-gen : ∀{μ : DualEnv}{Δ : TyCtx}{Σ : Store}{A B : Ty}{s : Coercion}
     → WfTy Δ A
+    → occurs zero B ≡ true
     → genᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ s ∶ ⇑ᵗ A =⇒ B
      ----------------------------------
     → μ ∣ Δ ∣ Σ ⊢ (gen A s) ∶ A =⇒ (`∀ B)

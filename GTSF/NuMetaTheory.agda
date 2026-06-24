@@ -23,22 +23,6 @@ import proof.CoercionProperties as CoercionProof
 import proof.NuProgress as ProgressProof
 import proof.NuPreservation as PreservationProof
 
-coercion-endpoints-uniqueᵐ :
-  ∀ {μ Δ Σ c A B A′ B′} →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A′ =⇒ B′ →
-  A ≡ A′ × B ≡ B′
-coercion-endpoints-uniqueᵐ =
-  CoercionProof.coercion-endpoints-uniqueᵐ
-
-coercion-endpoints-unique :
-  ∀ {Δ Σ c A B A′ B′} →
-  Δ ∣ Σ ⊢ c ∶ A =⇒ B →
-  Δ ∣ Σ ⊢ c ∶ A′ =⇒ B′ →
-  A ≡ A′ × B ≡ B′
-coercion-endpoints-unique =
-  CoercionProof.coercion-endpoints-unique
-
 progress :
   ∀ {Δ : TyCtx}{Σ : Store}{M : Term}{A : Ty} →
   Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
@@ -58,3 +42,33 @@ preservation wfΣ hΓ M⊢ red
 preservation wfΣ hΓ M⊢ red
     | PreservationProof.preserve wfΣ′ Δ≤Δ′ incl hΓ′ N⊢ =
   wfΣ′ , Δ≤Δ′ , incl , hΓ′ , N⊢
+
+{-
+  UNDER CONSTRUCTION in proof/NarrowWidenProperties.agda
+
+narrowing-determinedᵐ :
+  ∀ {μ Δ Σ A B s t} →
+  StoreWf Δ Σ →
+  μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊒ B →
+  μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ B →
+  s ≡ t
+narrowing-determinedᵐ wfΣ = ?
+
+widening-determinedᵐ :
+  ∀ {μ Δ Σ A B s t} →
+  StoreWf Δ Σ →
+  μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊑ B →
+  μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊑ B →
+  s ≡ t
+widening-determinedᵐ wfΣ = ?
+
+-}
+
+coercion-endpoints-unique :
+  ∀ {Δ Σ c A B A′ B′} →
+  Δ ∣ Σ ⊢ c ∶ A =⇒ B →
+  Δ ∣ Σ ⊢ c ∶ A′ =⇒ B′ →
+  A ≡ A′ × B ≡ B′
+coercion-endpoints-unique =
+  CoercionProof.coercion-endpoints-unique
+

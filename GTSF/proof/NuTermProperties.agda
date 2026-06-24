@@ -260,8 +260,9 @@ modeRename-left-inverse :
   RenameLeftInverse ρ ψ →
   ModeRename ρ μ (λ Y → μ (ψ Y))
 modeRename-left-inverse {μ = μ} inv X rewrite inv X with μ X
-modeRename-left-inverse inv X | tag-to-seal = refl
-modeRename-left-inverse inv X | seal-to-tag = refl
+modeRename-left-inverse inv X | id-only = refl
+modeRename-left-inverse inv X | tag-only = refl
+modeRename-left-inverse inv X | seal-only = refl
 
 ModeRenamer : TyCtx → Renameᵗ → Set
 ModeRenamer Δ ρ =

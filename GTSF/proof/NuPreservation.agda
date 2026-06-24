@@ -114,7 +114,7 @@ type-app-preservation-step wfΣ hΓ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ 
 ... | μ′ , cα⊢ =
   app⊢ V⊢ (stack∷ cα⊢ stack⊢)
 type-app-preservation-step wfΣ hΓ Δ≤Δ′ Δ≤α α<Δ′ α∉Σ wfΣ′ hΓ′
-    (app⊢ (⊢⟨⟩ (cast-gen hA c⊢) V⊢) stack⊢)
+    (app⊢ (⊢⟨⟩ (cast-gen hA occ c⊢) V⊢) stack⊢)
     (β-genᵀ vV)
     with coercion-open-shift-fresh wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢
 ... | μ′ , cα⊢ =
@@ -215,7 +215,7 @@ pure-preservation wfΣ hΓ
   ⊢$ _
 pure-preservation wfΣ hΓ (⊢· (⊢ƛ hA hN) hV) (β vV) =
   typing-single-subst hN hV
-pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-id hA) hV) (β-id vV) =
+pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-id hA _) hV) (β-id vV) =
   hV
 pure-preservation wfΣ hΓ (⊢⟨⟩ (cast-seq p⊢ q⊢) hV) (β-seq vV) =
   ⊢⟨⟩ q⊢ (⊢⟨⟩ p⊢ hV)
@@ -224,7 +224,8 @@ pure-preservation wfΣ hΓ
     (β-↦ vV vW) =
   ⊢⟨⟩ q⊢ (⊢· hV (⊢⟨⟩ p⊢ hW))
 pure-preservation wfΣ hΓ
-    (⊢⟨⟩ {M = V} (cast-inst {A = A} {B = B} {s = c} hB c⊢) V⊢)
+    (⊢⟨⟩ {M = V}
+      (cast-inst {A = A} {B = B} {s = c} hB occ c⊢) V⊢)
     (β-inst vV) =
   ⊢ν wf★ V⊢ c⊢
 pure-preservation wfΣ hΓ
@@ -279,7 +280,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
   let
     Δ≤sα = ≤-trans Δ≤α (n≤1+n α)
     α<sα = s≤s ≤-refl
-    wfΣ′ = StoreWf-fresh-ext wfΣ Δ≤sα α<sα hA α∉Σ
+    wfΣ′ = StoreWf-fresh-ext wfΣ Δ≤sα Δ≤α α<sα hA α∉Σ
     hΓ′ = CtxWf-weaken hΓ Δ≤sα
   in
   preserve

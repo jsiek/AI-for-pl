@@ -8,7 +8,7 @@ module proof.CoercionProperties where
 --   * Term substitution/renaming lemmas belong in `proof.TermProperties`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (true; false)
+open import Data.Bool using (true; false; _∧_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_; length)
 open import Data.List.Relation.Unary.Any using (here; there)
@@ -17,7 +17,7 @@ open import Data.Nat using (zero; suc; _<_; _≤_; z<s; s<s; z≤n; s≤s)
 open import Data.Nat.Properties
   using (_≟_; ≤-refl; n≤1+n; n<1+n; <-≤-trans; <-irrefl;
          m<n⇒m<1+n; suc-injective)
-open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
+open import Data.Product using (_×_; _,_; ∃; ∃-syntax; proj₁; proj₂)
 open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality
   using (_≢_; cong; cong₂; subst; sym; trans)
@@ -31,6 +31,22 @@ open import proof.StoreProperties
 ------------------------------------------------------------------------
 -- Inert coercions
 ------------------------------------------------------------------------
+
+∧-trueˡ :
+  ∀ {b c} →
+  b ∧ c ≡ true →
+  b ≡ true
+∧-trueˡ {true} {true} refl = refl
+∧-trueˡ {true} {false} ()
+∧-trueˡ {false} {c} ()
+
+∧-trueʳ :
+  ∀ {b c} →
+  b ∧ c ≡ true →
+  c ≡ true
+∧-trueʳ {true} {true} refl = refl
+∧-trueʳ {true} {false} ()
+∧-trueʳ {false} {c} ()
 
 renameᶜ-preserves-Inert :
   ∀ ρ {c} →
@@ -53,8 +69,8 @@ coercion-weakenᵐ :
   StoreIncl Σ Σ′ →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   μ ∣ Δ′ ∣ Σ′ ⊢ c ∶ A =⇒ B
-coercion-weakenᵐ Δ≤Δ′ incl (cast-id hA) =
-  cast-id (WfTy-weakenᵗ hA Δ≤Δ′)
+coercion-weakenᵐ Δ≤Δ′ incl (cast-id hA ok) =
+  cast-id (WfTy-weakenᵗ hA Δ≤Δ′) ok
 coercion-weakenᵐ Δ≤Δ′ incl
     (cast-seal hA α∈Σ α-ok) =
   cast-seal (WfTy-weakenᵗ hA Δ≤Δ′) (incl α∈Σ) α-ok
@@ -77,16 +93,18 @@ coercion-weakenᵐ Δ≤Δ′ incl (cast-all c⊢) =
       (s≤s Δ≤Δ′)
       (renameStoreᵗ-incl suc incl)
       c⊢)
-coercion-weakenᵐ Δ≤Δ′ incl (cast-inst hB c⊢) =
+coercion-weakenᵐ Δ≤Δ′ incl (cast-inst hB occ c⊢) =
   cast-inst
     (WfTy-weakenᵗ hB Δ≤Δ′)
+    occ
     (coercion-weakenᵐ
       (s≤s Δ≤Δ′)
       (StoreIncl-cons (renameStoreᵗ-incl suc incl))
       c⊢)
-coercion-weakenᵐ Δ≤Δ′ incl (cast-gen hA c⊢) =
+coercion-weakenᵐ Δ≤Δ′ incl (cast-gen hA occ c⊢) =
   cast-gen
     (WfTy-weakenᵗ hA Δ≤Δ′)
+    occ
     (coercion-weakenᵐ
       (s≤s Δ≤Δ′)
       (renameStoreᵗ-incl suc incl)
@@ -113,31 +131,26 @@ coercion-weaken-suc {Δ = Δ} c⊢ =
 ------------------------------------------------------------------------
 
 dual-inst-example⊢ :
-  zero ∣ [] ⊢ inst ★ (seal ★ zero ︔ unseal zero ★) ∶ `∀ ★ =⇒ ★
+  zero ∣ [] ⊢ inst ★ (unseal zero ★) ∶ `∀ (＇ zero) =⇒ ★
 dual-inst-example⊢ =
-  tag-to-sealᵈ ,
-    cast-inst wf★
-      (cast-seq (cast-seal wf★ (here refl) refl)
-                (cast-unseal wf★ (here refl) refl))
+  tag-onlyᵈ ,
+    cast-inst wf★ refl (cast-unseal wf★ (here refl) refl)
 
 dual-inst-example-dual≡ :
-  - inst ★ (seal ★ zero ︔ unseal zero ★)
-    ≡ gen ★ (((＇ zero) ？) ︔ ((＇ zero) !))
+  - inst ★ (unseal zero ★) ≡ gen ★ ((＇ zero) ？)
 dual-inst-example-dual≡ = refl
 
 dual-inst-example-dual⊢ :
-  zero ∣ [] ⊢ - inst ★ (seal ★ zero ︔ unseal zero ★) ∶ ★ =⇒ `∀ ★
+  zero ∣ [] ⊢ - inst ★ (unseal zero ★) ∶ ★ =⇒ `∀ (＇ zero)
 dual-inst-example-dual⊢ =
-  tag-to-sealᵈ ,
-    cast-gen wf★
-      (cast-seq (cast-untag (wfVar z<s) (＇ zero) refl)
-                (cast-tag (wfVar z<s) (＇ zero) refl))
+  tag-onlyᵈ ,
+    cast-gen wf★ refl (cast-untag (wfVar z<s) (＇ zero) refl)
 
 dual-inst-tag-counterexample-not-typable :
   zero ∣ [] ⊢ inst ★ ((＇ zero) !) ∶ `∀ (＇ zero) =⇒ ★ →
   ⊥
 dual-inst-tag-counterexample-not-typable
-    (μ , cast-inst h★ (cast-tag hα (＇ zero) ()))
+    (μ , cast-inst h★ occ (cast-tag hα (＇ zero) ()))
 
 dual-inst-tag-counterexample-dual≡ :
   - inst ★ ((＇ zero) !) ≡ gen ★ (seal ★ zero)
@@ -147,7 +160,7 @@ dual-inst-tag-counterexample-dual-not-typable :
   zero ∣ [] ⊢ - inst ★ ((＇ zero) !) ∶ ★ =⇒ `∀ (＇ zero) →
   ⊥
 dual-inst-tag-counterexample-dual-not-typable
-    (μ , cast-gen h★ (cast-seal hA () _))
+    (μ , cast-gen h★ occ (cast-seal hA () _))
 
 ------------------------------------------------------------------------
 -- Coercion typing under type renaming
@@ -202,25 +215,69 @@ ScopedModeRename-inst :
 ScopedModeRename-inst rel {zero} z<s = refl
 ScopedModeRename-inst rel {suc X} (s<s X<Δ) = rel X<Δ
 
+mode≤-id :
+  ∀ {m n} →
+  mode≤ m n ≡ true →
+  idModeAllowed m ≡ true →
+  idModeAllowed n ≡ true
+mode≤-id {id-only} {id-only} rel ok = refl
+mode≤-id {id-only} {tag-only} () ok
+mode≤-id {id-only} {seal-only} () ok
+mode≤-id {tag-only} {id-only} () ok
+mode≤-id {tag-only} {tag-only} rel ()
+mode≤-id {tag-only} {seal-only} () ok
+mode≤-id {seal-only} {id-only} () ok
+mode≤-id {seal-only} {tag-only} () ok
+mode≤-id {seal-only} {seal-only} rel ()
+
 mode≤-tag :
   ∀ {m n} →
   mode≤ m n ≡ true →
   tagModeAllowed m ≡ true →
   tagModeAllowed n ≡ true
-mode≤-tag {tag-to-seal} {tag-to-seal} rel ok = refl
-mode≤-tag {tag-to-seal} {seal-to-tag} () ok
-mode≤-tag {seal-to-tag} {tag-to-seal} () ok
-mode≤-tag {seal-to-tag} {seal-to-tag} rel ()
+mode≤-tag {id-only} {id-only} rel ()
+mode≤-tag {id-only} {tag-only} () ok
+mode≤-tag {id-only} {seal-only} () ok
+mode≤-tag {tag-only} {id-only} () ok
+mode≤-tag {tag-only} {tag-only} rel ok = refl
+mode≤-tag {tag-only} {seal-only} () ok
+mode≤-tag {seal-only} {id-only} () ok
+mode≤-tag {seal-only} {tag-only} () ok
+mode≤-tag {seal-only} {seal-only} rel ()
 
 mode≤-seal :
   ∀ {m n} →
   mode≤ m n ≡ true →
   sealModeAllowed m ≡ true →
   sealModeAllowed n ≡ true
-mode≤-seal {tag-to-seal} {tag-to-seal} rel ()
-mode≤-seal {tag-to-seal} {seal-to-tag} () ok
-mode≤-seal {seal-to-tag} {tag-to-seal} () ok
-mode≤-seal {seal-to-tag} {seal-to-tag} rel ok = refl
+mode≤-seal {id-only} {id-only} rel ()
+mode≤-seal {id-only} {tag-only} () ok
+mode≤-seal {id-only} {seal-only} () ok
+mode≤-seal {tag-only} {id-only} () ok
+mode≤-seal {tag-only} {tag-only} rel ()
+mode≤-seal {tag-only} {seal-only} () ok
+mode≤-seal {seal-only} {id-only} () ok
+mode≤-seal {seal-only} {tag-only} () ok
+mode≤-seal {seal-only} {seal-only} rel ok = refl
+
+modeRename-idTyAllowed :
+  ∀ {ρ μ ν A} →
+  ModeRename ρ μ ν →
+  idTyAllowed μ A ≡ true →
+  idTyAllowed ν (renameᵗ ρ A) ≡ true
+modeRename-idTyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = ＇ α} rel ok =
+  mode≤-id (rel α) ok
+modeRename-idTyAllowed {A = ‵ ι} rel ok = refl
+modeRename-idTyAllowed {A = ★} rel ok = refl
+modeRename-idTyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = A ⇒ B} rel ok
+    rewrite modeRename-idTyAllowed {ρ = ρ} {μ = μ} {ν = ν}
+              {A = A} rel (∧-trueˡ ok)
+          | modeRename-idTyAllowed {ρ = ρ} {μ = μ} {ν = ν}
+              {A = B} rel (∧-trueʳ ok) = refl
+modeRename-idTyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = `∀ A} rel ok =
+  modeRename-idTyAllowed
+    {ρ = extᵗ ρ} {μ = extᵈ μ} {ν = extᵈ ν} {A = A}
+    (ModeRename-ext rel) ok
 
 modeRename-tagTyAllowed :
   ∀ {ρ μ ν G} →
@@ -242,6 +299,25 @@ modeRename-sealModeAllowed :
   sealModeAllowed (ν (ρ α)) ≡ true
 modeRename-sealModeAllowed {α = α} rel ok =
   mode≤-seal (rel α) ok
+
+scopedModeRename-idTyAllowed :
+  ∀ {Δ ρ μ ν A} →
+  WfTy Δ A →
+  ScopedModeRename Δ ρ μ ν →
+  idTyAllowed μ A ≡ true →
+  idTyAllowed ν (renameᵗ ρ A) ≡ true
+scopedModeRename-idTyAllowed (wfVar X<Δ) rel ok =
+  mode≤-id (rel X<Δ) ok
+scopedModeRename-idTyAllowed wfBase rel ok = refl
+scopedModeRename-idTyAllowed wf★ rel ok = refl
+scopedModeRename-idTyAllowed {ρ = ρ} {μ = μ} {ν = ν} {A = A ⇒ B}
+    (wf⇒ hA hB) rel ok
+    rewrite scopedModeRename-idTyAllowed
+              {ρ = ρ} {μ = μ} {ν = ν} hA rel (∧-trueˡ ok)
+          | scopedModeRename-idTyAllowed
+              {ρ = ρ} {μ = μ} {ν = ν} hB rel (∧-trueʳ ok) = refl
+scopedModeRename-idTyAllowed (wf∀ hA) rel ok =
+  scopedModeRename-idTyAllowed hA (ScopedModeRename-ext rel) ok
 
 scopedModeRename-tagTyAllowed :
   ∀ {Δ ρ μ ν G} →
@@ -286,6 +362,18 @@ ModeIncl-inst :
 ModeIncl-inst incl zero = refl
 ModeIncl-inst incl (suc X) = incl X
 
+modeIncl-idTyAllowed :
+  ∀ {μ ν A} →
+  ModeIncl μ ν →
+  idTyAllowed μ A ≡ true →
+  idTyAllowed ν A ≡ true
+modeIncl-idTyAllowed {μ = μ} {ν = ν} {A = A} incl ok =
+  subst
+    (λ T → idTyAllowed ν T ≡ true)
+    (renameᵗ-id A)
+    (modeRename-idTyAllowed
+      {ρ = λ X → X} {μ = μ} {ν = ν} {A = A} incl ok)
+
 modeIncl-tagTyAllowed :
   ∀ {μ ν G} →
   ModeIncl μ ν →
@@ -312,8 +400,8 @@ coercion-mode-relax :
   ModeIncl μ ν →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   ν ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
-coercion-mode-relax incl (cast-id hA) =
-  cast-id hA
+coercion-mode-relax incl (cast-id {A = A} hA ok) =
+  cast-id hA (modeIncl-idTyAllowed {A = A} incl ok)
 coercion-mode-relax incl
     (cast-seal {α = α} hA α∈Σ α-ok) =
   cast-seal hA α∈Σ
@@ -334,11 +422,11 @@ coercion-mode-relax incl (cast-fun c⊢ d⊢) =
            (coercion-mode-relax incl d⊢)
 coercion-mode-relax incl (cast-all c⊢) =
   cast-all (coercion-mode-relax (ModeIncl-ext incl) c⊢)
-coercion-mode-relax incl (cast-inst hB c⊢) =
-  cast-inst hB
+coercion-mode-relax incl (cast-inst hB occ c⊢) =
+  cast-inst hB occ
     (coercion-mode-relax (ModeIncl-inst incl) c⊢)
-coercion-mode-relax incl (cast-gen hA c⊢) =
-  cast-gen hA
+coercion-mode-relax incl (cast-gen hA occ c⊢) =
+  cast-gen hA occ
     (coercion-mode-relax (ModeIncl-gen incl) c⊢)
 
 coercion-renameᵗᵐ :
@@ -348,8 +436,9 @@ coercion-renameᵗᵐ :
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   ν ∣ Δ′ ∣ renameStoreᵗ ρ Σ ⊢ renameᶜ ρ c
     ∶ renameᵗ ρ A =⇒ renameᵗ ρ B
-coercion-renameᵗᵐ hρ rel (cast-id hA) =
+coercion-renameᵗᵐ hρ rel (cast-id {A = A} hA ok) =
   cast-id (renameᵗ-preserves-WfTy hA hρ)
+    (modeRename-idTyAllowed {A = A} rel ok)
 coercion-renameᵗᵐ {ρ = ρ} {μ = μ} {ν = ν} hρ rel
     (cast-seal {α = α} hA α∈Σ α-ok) =
   cast-seal
@@ -389,9 +478,10 @@ coercion-renameᵗᵐ {ρ = ρ} hρ rel
       (coercion-renameᵗᵐ (TyRenameWf-ext hρ)
         (ModeRename-ext rel) c⊢))
 coercion-renameᵗᵐ {ρ = ρ} hρ rel
-    (cast-inst {B = B} hB c⊢) =
+    (cast-inst {A = A} {B = B} hB occ c⊢) =
   cast-inst
     (renameᵗ-preserves-WfTy hB hρ)
+    (trans (occurs-zero-rename-ext ρ A) occ)
     (subst
       (λ T → _ ∣ _ ∣ _ ⊢ renameᶜ (extᵗ ρ) _ ∶ _ =⇒ T)
       (renameᵗ-ext-suc-comm ρ B)
@@ -402,9 +492,10 @@ coercion-renameᵗᵐ {ρ = ρ} hρ rel
         (coercion-renameᵗᵐ (TyRenameWf-ext hρ)
           (ModeRename-inst rel) c⊢)))
 coercion-renameᵗᵐ {ρ = ρ} hρ rel
-    (cast-gen {A = A} hA c⊢) =
+    (cast-gen {A = A} {B = B} hA occ c⊢) =
   cast-gen
     (renameᵗ-preserves-WfTy hA hρ)
+    (trans (occurs-zero-rename-ext ρ B) occ)
     (subst
       (λ T → _ ∣ _ ∣ _ ⊢ renameᶜ (extᵗ ρ) _ ∶ T =⇒ _)
       (renameᵗ-ext-suc-comm ρ A)
@@ -422,8 +513,9 @@ coercion-renameᵗᵐ-scoped :
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   ν ∣ Δ′ ∣ renameStoreᵗ ρ Σ ⊢ renameᶜ ρ c
     ∶ renameᵗ ρ A =⇒ renameᵗ ρ B
-coercion-renameᵗᵐ-scoped wfΣ hρ rel (cast-id hA) =
+coercion-renameᵗᵐ-scoped wfΣ hρ rel (cast-id {A = A} hA ok) =
   cast-id (renameᵗ-preserves-WfTy hA hρ)
+    (scopedModeRename-idTyAllowed hA rel ok)
 coercion-renameᵗᵐ-scoped {Δ = Δ} {ρ = ρ} {μ = μ} {ν = ν} wfΣ hρ rel
     (cast-seal {α = α} hA α∈Σ α-ok) =
   cast-seal
@@ -468,9 +560,10 @@ coercion-renameᵗᵐ-scoped {ρ = ρ} wfΣ hρ rel
         (ScopedModeRename-ext rel)
         c⊢))
 coercion-renameᵗᵐ-scoped {ρ = ρ} wfΣ hρ rel
-    (cast-inst {B = B} hB c⊢) =
+    (cast-inst {A = A} {B = B} hB occ c⊢) =
   cast-inst
     (renameᵗ-preserves-WfTy hB hρ)
+    (trans (occurs-zero-rename-ext ρ A) occ)
     (subst
       (λ T → _ ∣ _ ∣ _ ⊢ renameᶜ (extᵗ ρ) _ ∶ _ =⇒ T)
       (renameᵗ-ext-suc-comm ρ B)
@@ -484,9 +577,10 @@ coercion-renameᵗᵐ-scoped {ρ = ρ} wfΣ hρ rel
           (ScopedModeRename-inst rel)
           c⊢)))
 coercion-renameᵗᵐ-scoped {ρ = ρ} wfΣ hρ rel
-    (cast-gen {A = A} hA c⊢) =
+    (cast-gen {A = A} {B = B} hA occ c⊢) =
   cast-gen
     (renameᵗ-preserves-WfTy hA hρ)
+    (trans (occurs-zero-rename-ext ρ B) occ)
     (subst
       (λ T → _ ∣ _ ∣ _ ⊢ renameᶜ (extᵗ ρ) _ ∶ T =⇒ _)
       (renameᵗ-ext-suc-comm ρ A)
@@ -697,7 +791,7 @@ coercion-wfᵐ :
   StoreWfAt Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   WfTy Δ A × WfTy Δ B
-coercion-wfᵐ wfΣ (cast-id hA) = hA , hA
+coercion-wfᵐ wfΣ (cast-id hA ok) = hA , hA
 coercion-wfᵐ wfΣ (cast-seal hA α∈Σ _) =
   hA , wfVar (bound wfΣ α∈Σ)
 coercion-wfᵐ wfΣ (cast-unseal hA α∈Σ _) =
@@ -718,15 +812,15 @@ coercion-wfᵐ wfΣ (cast-all c⊢)
     with coercion-wfᵐ (StoreWfAt-⟰ᵗ wfΣ) c⊢
 coercion-wfᵐ wfΣ (cast-all c⊢) | hA , hB =
   wf∀ hA , wf∀ hB
-coercion-wfᵐ wfΣ (cast-inst hB c⊢)
+coercion-wfᵐ wfΣ (cast-inst hB occ c⊢)
     with coercion-wfᵐ
       (StoreWfAt-cons z<s wf★ (StoreWfAt-⟰ᵗ wfΣ))
       c⊢
-coercion-wfᵐ wfΣ (cast-inst hB c⊢) | hA , hB′ =
+coercion-wfᵐ wfΣ (cast-inst hB occ c⊢) | hA , hB′ =
   wf∀ hA , hB
-coercion-wfᵐ wfΣ (cast-gen hA c⊢)
+coercion-wfᵐ wfΣ (cast-gen hA occ c⊢)
     with coercion-wfᵐ (StoreWfAt-⟰ᵗ wfΣ) c⊢
-coercion-wfᵐ wfΣ (cast-gen hA c⊢) | hA′ , hB =
+coercion-wfᵐ wfΣ (cast-gen hA occ c⊢) | hA′ , hB =
   hA , wf∀ hB
 
 coercion-wf :
@@ -784,6 +878,41 @@ singleRevealEnv {Δ = Δ} {X = suc X} (s<s X<Δ) =
     X≢Δ X≡Δ =
       <-irrefl refl (subst (λ Y → Y < Δ) X≡Δ X<Δ)
 
+RevealMode : DualEnv → TyVar → Set
+RevealMode μ α =
+  sealModeAllowed (μ α) ≡ true ×
+  (∀ {Y} → Y ≢ α → idModeAllowed (μ Y) ≡ true)
+
+RevealMode-ext :
+  ∀ {μ α} →
+  RevealMode μ α →
+  RevealMode (extᵈ μ) (suc α)
+RevealMode-ext mode =
+  proj₁ mode ,
+  λ { {zero} zero≢sα → refl
+    ; {suc Y} sY≢sα →
+        proj₂ mode (λ Y≡α → sY≢sα (cong suc Y≡α))
+    }
+
+singleSealᵈ : TyVar → DualEnv
+singleSealᵈ α X with X ≟ α
+singleSealᵈ α X | yes eq = seal-only
+singleSealᵈ α X | no neq = id-only
+
+singleSealMode :
+  ∀ {α} →
+  RevealMode (singleSealᵈ α) α
+singleSealMode {α = α} with α ≟ α
+singleSealMode {α = α} | yes refl =
+  refl , λ {Y} Y≢α → miss Y Y≢α
+  where
+    miss : ∀ Y → Y ≢ α → idModeAllowed (singleSealᵈ α Y) ≡ true
+    miss Y Y≢α with Y ≟ α
+    miss Y Y≢α | yes Y≡α = ⊥-elim (Y≢α Y≡α)
+    miss Y Y≢α | no Y≢α′ = refl
+singleSealMode {α = α} | no α≢α =
+  ⊥-elim (α≢α refl)
+
 reveal-var-hit :
   ∀ {μ Δ Σ α C} →
   WfTy Δ C →
@@ -812,23 +941,25 @@ reveal-var-miss :
   ∀ {μ Δ Σ α C Y} →
   Y ≢ α →
   WfTy Δ (＇ Y) →
+  idModeAllowed (μ Y) ≡ true →
   μ ∣ Δ ∣ Σ ⊢ reveal (＇ Y) α C ∶ ＇ Y =⇒ ＇ Y
-reveal-var-miss {α = α} {Y = Y} Y≢α hY with α ≟ Y
-reveal-var-miss {α = α} {Y = Y} Y≢α hY | yes α≡Y =
+reveal-var-miss {α = α} {Y = Y} Y≢α hY Y-id with α ≟ Y
+reveal-var-miss {α = α} {Y = Y} Y≢α hY Y-id | yes α≡Y =
   ⊥-elim (Y≢α (sym α≡Y))
-reveal-var-miss {α = α} {Y = Y} Y≢α hY | no α≢Y =
-  cast-id hY
+reveal-var-miss {α = α} {Y = Y} Y≢α hY Y-id | no α≢Y =
+  cast-id hY Y-id
 
 conceal-var-miss :
   ∀ {μ Δ Σ α C Y} →
   Y ≢ α →
   WfTy Δ (＇ Y) →
+  idModeAllowed (μ Y) ≡ true →
   μ ∣ Δ ∣ Σ ⊢ conceal (＇ Y) α C ∶ ＇ Y =⇒ ＇ Y
-conceal-var-miss {α = α} {Y = Y} Y≢α hY with α ≟ Y
-conceal-var-miss {α = α} {Y = Y} Y≢α hY | yes α≡Y =
+conceal-var-miss {α = α} {Y = Y} Y≢α hY Y-id with α ≟ Y
+conceal-var-miss {α = α} {Y = Y} Y≢α hY Y-id | yes α≡Y =
   ⊥-elim (Y≢α (sym α≡Y))
-conceal-var-miss {α = α} {Y = Y} Y≢α hY | no α≢Y =
-  cast-id hY
+conceal-var-miss {α = α} {Y = Y} Y≢α hY Y-id | no α≢Y =
+  cast-id hY Y-id
 
 mutual
   reveal-typing-env :
@@ -839,29 +970,29 @@ mutual
     RevealEnv Θ α C ρ σ →
     WfTy Δ C →
     (α , C) ∈ Σ →
-    sealModeAllowed (μ α) ≡ true →
+    RevealMode μ α →
     μ ∣ Δ ∣ Σ ⊢ reveal (renameᵗ ρ B) α C
       ∶ renameᵗ ρ B =⇒ substᵗ σ B
-  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
+  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ mode
       with env X<Θ
-  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
+  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ mode
       | rv-hit ρX≡α σX≡C
       rewrite ρX≡α | σX≡C =
-    reveal-var-hit hC α∈Σ α-ok
-  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
+    reveal-var-hit hC α∈Σ (proj₁ mode)
+  reveal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ mode
       | rv-miss ρX≢α σX≡var
       rewrite σX≡var =
-    reveal-var-miss ρX≢α (wfVar (hρ X<Θ))
-  reveal-typing-env wfBase hρ hσ env hC α∈Σ α-ok =
-    cast-id wfBase
-  reveal-typing-env wf★ hρ hσ env hC α∈Σ α-ok =
-    cast-id wf★
-  reveal-typing-env (wf⇒ hA hB) hρ hσ env hC α∈Σ α-ok =
+    reveal-var-miss ρX≢α (wfVar (hρ X<Θ)) (proj₂ mode ρX≢α)
+  reveal-typing-env wfBase hρ hσ env hC α∈Σ mode =
+    cast-id wfBase refl
+  reveal-typing-env wf★ hρ hσ env hC α∈Σ mode =
+    cast-id wf★ refl
+  reveal-typing-env (wf⇒ hA hB) hρ hσ env hC α∈Σ mode =
     cast-fun
-      (conceal-typing-env hA hρ hσ env hC α∈Σ α-ok)
-      (reveal-typing-env hB hρ hσ env hC α∈Σ α-ok)
+      (conceal-typing-env hA hρ hσ env hC α∈Σ mode)
+      (reveal-typing-env hB hρ hσ env hC α∈Σ mode)
   reveal-typing-env {B = `∀ B} {ρ = ρ} {σ = σ}
-      (wf∀ hB) hρ hσ env hC α∈Σ α-ok =
+      (wf∀ hB) hρ hσ env hC α∈Σ mode =
     cast-all
       (reveal-typing-env
         hB
@@ -870,7 +1001,7 @@ mutual
         (RevealEnv-ext env)
         (renameᵗ-preserves-WfTy hC TyRenameWf-suc)
         (∈-renameStoreᵗ suc α∈Σ)
-        α-ok)
+        (RevealMode-ext mode))
 
   conceal-typing-env :
     ∀ {μ Θ Δ Σ B α C ρ σ} →
@@ -880,29 +1011,29 @@ mutual
     RevealEnv Θ α C ρ σ →
     WfTy Δ C →
     (α , C) ∈ Σ →
-    sealModeAllowed (μ α) ≡ true →
+    RevealMode μ α →
     μ ∣ Δ ∣ Σ ⊢ conceal (renameᵗ ρ B) α C
       ∶ substᵗ σ B =⇒ renameᵗ ρ B
-  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
+  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ mode
       with env X<Θ
-  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
+  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ mode
       | rv-hit ρX≡α σX≡C
       rewrite ρX≡α | σX≡C =
-    conceal-var-hit hC α∈Σ α-ok
-  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ α-ok
+    conceal-var-hit hC α∈Σ (proj₁ mode)
+  conceal-typing-env {B = ＇ X} (wfVar X<Θ) hρ hσ env hC α∈Σ mode
       | rv-miss ρX≢α σX≡var
       rewrite σX≡var =
-    conceal-var-miss ρX≢α (wfVar (hρ X<Θ))
-  conceal-typing-env wfBase hρ hσ env hC α∈Σ α-ok =
-    cast-id wfBase
-  conceal-typing-env wf★ hρ hσ env hC α∈Σ α-ok =
-    cast-id wf★
-  conceal-typing-env (wf⇒ hA hB) hρ hσ env hC α∈Σ α-ok =
+    conceal-var-miss ρX≢α (wfVar (hρ X<Θ)) (proj₂ mode ρX≢α)
+  conceal-typing-env wfBase hρ hσ env hC α∈Σ mode =
+    cast-id wfBase refl
+  conceal-typing-env wf★ hρ hσ env hC α∈Σ mode =
+    cast-id wf★ refl
+  conceal-typing-env (wf⇒ hA hB) hρ hσ env hC α∈Σ mode =
     cast-fun
-      (reveal-typing-env hA hρ hσ env hC α∈Σ α-ok)
-      (conceal-typing-env hB hρ hσ env hC α∈Σ α-ok)
+      (reveal-typing-env hA hρ hσ env hC α∈Σ mode)
+      (conceal-typing-env hB hρ hσ env hC α∈Σ mode)
   conceal-typing-env {B = `∀ B} {ρ = ρ} {σ = σ}
-      (wf∀ hB) hρ hσ env hC α∈Σ α-ok =
+      (wf∀ hB) hρ hσ env hC α∈Σ mode =
     cast-all
       (conceal-typing-env
         hB
@@ -911,7 +1042,7 @@ mutual
         (RevealEnv-ext env)
         (renameᵗ-preserves-WfTy hC TyRenameWf-suc)
         (∈-renameStoreᵗ suc α∈Σ)
-        α-ok)
+        (RevealMode-ext mode))
 
 reveal-fresh-typing :
   ∀ {Δ Σ A B} →
@@ -920,7 +1051,7 @@ reveal-fresh-typing :
   suc Δ ∣ (Δ , A) ∷ Σ ⊢ reveal (B [ Δ ]ᴿ) Δ A
     ∶ B [ Δ ]ᴿ =⇒ B [ A ]ᵗ
 reveal-fresh-typing {Δ = Δ} hA hB =
-  seal-to-tagᵈ ,
+  singleSealᵈ Δ ,
     reveal-typing-env
       hB
       (singleRenameᵗ-Wf (n<1+n Δ))
@@ -928,7 +1059,7 @@ reveal-fresh-typing {Δ = Δ} hA hB =
       singleRevealEnv
       (WfTy-weakenᵗ hA (n≤1+n Δ))
       (here refl)
-      refl
+      singleSealMode
   where
     singleTyEnv-Wf-suc :
       TySubstWf (suc Δ) (suc Δ) (singleTyEnv _)
@@ -944,7 +1075,7 @@ conceal-fresh-typing :
   suc Δ ∣ (Δ , A) ∷ Σ ⊢ conceal (B [ Δ ]ᴿ) Δ A
     ∶ B [ A ]ᵗ =⇒ B [ Δ ]ᴿ
 conceal-fresh-typing {Δ = Δ} hA hB =
-  seal-to-tagᵈ ,
+  singleSealᵈ Δ ,
     conceal-typing-env
       hB
       (singleRenameᵗ-Wf (n<1+n Δ))
@@ -952,7 +1083,7 @@ conceal-fresh-typing {Δ = Δ} hA hB =
       singleRevealEnv
       (WfTy-weakenᵗ hA (n≤1+n Δ))
       (here refl)
-      refl
+      singleSealMode
   where
     singleTyEnv-Wf-suc :
       TySubstWf (suc Δ) (suc Δ) (singleTyEnv _)
@@ -969,7 +1100,7 @@ coercion-src-tgtᵐ :
   ∀ {μ Δ Σ c A B} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   src c ≡ A × tgt c ≡ B
-coercion-src-tgtᵐ (cast-id hA) = refl , refl
+coercion-src-tgtᵐ (cast-id hA ok) = refl , refl
 coercion-src-tgtᵐ (cast-seal hA α∈Σ _) = refl , refl
 coercion-src-tgtᵐ (cast-unseal hA α∈Σ _) = refl , refl
 coercion-src-tgtᵐ (cast-seq c⊢ d⊢)
@@ -988,13 +1119,13 @@ coercion-src-tgtᵐ (cast-all c⊢)
     with coercion-src-tgtᵐ c⊢
 coercion-src-tgtᵐ (cast-all c⊢) | src-c , tgt-c rewrite src-c | tgt-c =
   refl , refl
-coercion-src-tgtᵐ (cast-inst hB c⊢)
+coercion-src-tgtᵐ (cast-inst hB occ c⊢)
     with coercion-src-tgtᵐ c⊢
-coercion-src-tgtᵐ (cast-inst hB c⊢) | src-c , tgt-c rewrite src-c =
+coercion-src-tgtᵐ (cast-inst hB occ c⊢) | src-c , tgt-c rewrite src-c =
   refl , refl
-coercion-src-tgtᵐ (cast-gen hA c⊢)
+coercion-src-tgtᵐ (cast-gen hA occ c⊢)
     with coercion-src-tgtᵐ c⊢
-coercion-src-tgtᵐ (cast-gen hA c⊢) | src-c , tgt-c rewrite tgt-c =
+coercion-src-tgtᵐ (cast-gen hA occ c⊢) | src-c , tgt-c rewrite tgt-c =
   refl , refl
 
 coercion-src-tgt :

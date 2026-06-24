@@ -187,7 +187,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
              (wfVar (n<1+n Δ)))
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     (⊢• {B = B} {A = T}
-      (⊢up (gen⊢@(cast-gen hC _ c⊢)) V⊢)
+      (⊢up (gen⊢@(cast-gen hC _ _ c⊢)) V⊢)
       hT)
     (β-down-ν vV)
     rewrite len wfΣ =
@@ -210,7 +210,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
     hB with typing-wf (at wfΣ) hΓ (⊢up gen⊢ V⊢)
     hB | wf∀ hB′ = hB′
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ} wfΣ hΓ
-    (⊢up {M = V} (cast-inst {s = c} hB _ c⊢) V⊢)
+    (⊢up {M = V} (cast-inst {s = c} hB _ _ c⊢) V⊢)
     (β-up-ν vV)
     rewrite len wfΣ =
   preserve

@@ -137,7 +137,8 @@ canonical-∀ (_⟨_⟩ {V = W} vW (seal A α)) (⊢⟨⟩ () hW)
 canonical-∀ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ () hW)
 canonical-∀ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ (cast-all cwt) hW) =
   av-∀ vW refl
-canonical-∀ (_⟨_⟩ {V = W} vW (gen A c)) (⊢⟨⟩ (cast-gen _ cwt) hW) =
+canonical-∀ (_⟨_⟩ {V = W} vW (gen A c))
+    (⊢⟨⟩ (cast-gen _ _ cwt) hW) =
   av-gen vW refl
 
 data NatView (V : Term) : Set where
@@ -259,7 +260,7 @@ type-app-progress (_⟨_⟩ {V = W} vW (`∀ c))
     | tap W↠V =
   tap (stepᵀ (β-∀ᵀ vW) W↠V)
 type-app-progress (_⟨_⟩ {V = W} vW (gen A c))
-    (⊢⟨⟩ (cast-gen _ c⊢) hW) =
+    (⊢⟨⟩ (cast-gen _ _ c⊢) hW) =
   tap (stepᵀ (β-genᵀ vW) doneᵀ)
 
 ------------------------------------------------------------------------
@@ -338,7 +339,7 @@ progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | step M→M′ =
 progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | crash refl =
   step (pure-step blame-⟨⟩)
 progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM with c⊢
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-id hA =
+progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-id hA _ =
   step (pure-step (β-id vM))
 progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
     | cast-seal hA hα _ =
@@ -360,8 +361,9 @@ progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
 progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-all cwt =
   done (vM ⟨ `∀ _ ⟩)
 progress {Σ = Σ} (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢)
-    | done vM | cast-inst _ cwt =
+    | done vM | cast-inst _ _ cwt =
   step (pure-step (β-inst vM))
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-gen _ cwt =
+progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢)
+    | done vM | cast-gen _ _ cwt =
   done (vM ⟨ gen _ _ ⟩)
 progress (⊢blame hA) = crash refl

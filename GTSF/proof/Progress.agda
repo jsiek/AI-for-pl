@@ -95,7 +95,7 @@ canonical-∀ (_⟨_⟩ {V = W} vW (seal A α)) (⊢up () hW)
 canonical-∀ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢up () hW)
 canonical-∀ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢up (cast-all cwt) hW) =
   av-∀ vW refl
-canonical-∀ (_⟨_⟩ {V = W} vW (gen A c)) (⊢up (cast-gen _ _ cwt) hW) =
+canonical-∀ (_⟨_⟩ {V = W} vW (gen A c)) (⊢up (cast-gen _ _ _ cwt) hW) =
   av-gen vW refl
 
 data NatView (V : Term) : Set where
@@ -278,8 +278,8 @@ progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM
   done (vM ⟨ _ ↦ _ ⟩)
 progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-all cwt =
   done (vM ⟨ `∀ _ ⟩)
-progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-inst _ _ cwt =
+progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-inst _ _ _ cwt =
   step (β-up-ν vM)
-progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-gen _ _ cwt =
+progress (⊢up {M = M} {c = c} c⊢ M⊢) | done vM | cast-gen _ _ _ cwt =
   done (vM ⟨ gen _ _ ⟩)
 progress (⊢blame hA) = crash refl

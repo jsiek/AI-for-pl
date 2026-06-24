@@ -40,7 +40,7 @@ infix 4 _∣_⊢_∶_⊑_
 mutual
   data _∣_⊢_∶_⊒_ : TyCtx → Store → Coercion → Ty → Ty → Set where
 
-    nrw-id : ∀{Δ : TyCtx}{Σ : Store}{A : Ty}
+    nrw-id : ∀{Δ : TyCtx}{Σ : Store}{A : Ty}{aA : Atom A}
       → WfTy Δ A
        ---------------------
       → Δ ∣ Σ ⊢ id A ∶ A ⊒ A
@@ -88,7 +88,7 @@ mutual
 
   data _∣_⊢_∶_⊑_ : TyCtx → Store → Coercion → Ty → Ty → Set where
 
-    wid-id : ∀{Δ : TyCtx}{Σ : Store}{A : Ty}
+    wid-id : ∀{Δ : TyCtx}{Σ : Store}{A : Ty}{aA : Atom A}
       → WfTy Δ A
        ---------------------
       → Δ ∣ Σ ⊢ id A ∶ A ⊑ A
@@ -141,6 +141,100 @@ mutual
       → Δ ∣ Σ ⊢ s ∶ A′ ⊑ B
        ---------------------------------------
       → Δ ∣ Σ ⊢ (unseal α A′ ︔ s) ∶ (＇ α) ⊑ B
+
+------------------------------------------------------------------------
+-- Narrowing and Widening Grammar
+------------------------------------------------------------------------
+
+mutual
+  data CrossNarrowing : Coercion → Set where
+    cn-id-var : ∀ {α} →
+      CrossNarrowing (id (＇ α))
+
+    cn-id-base : ∀ {ι} →
+      CrossNarrowing (id (‵ ι))
+
+    cn-fun : ∀ {s t} →
+      Widening s →
+      Narrowing t →
+      CrossNarrowing (s ↦ t)
+
+    cn-all : ∀ {s} →
+      Narrowing s →
+      CrossNarrowing (`∀ s)
+
+  data Narrowing : Coercion → Set where
+    n-cross : ∀ {g} →
+      CrossNarrowing g →
+      Narrowing g
+
+    n-id★ :
+      Narrowing (id ★)
+
+    n-gen : ∀ {A s} →
+      Narrowing s →
+      Narrowing (gen A s)
+
+    n-untag : ∀ {G g} →
+      Ground G →
+      CrossNarrowing g →
+      Narrowing ((G ？) ︔ g)
+
+    n-seal : ∀ {A α s} →
+      Narrowing s →
+      Narrowing (s ︔ seal A α)
+
+  data CrossWidening : Coercion → Set where
+    cw-id-var : ∀ {α} →
+      CrossWidening (id (＇ α))
+
+    cw-id-base : ∀ {ι} →
+      CrossWidening (id (‵ ι))
+
+    cw-fun : ∀ {s t} →
+      Narrowing s →
+      Widening t →
+      CrossWidening (s ↦ t)
+
+    cw-all : ∀ {s} →
+      Widening s →
+      CrossWidening (`∀ s)
+
+  data Widening : Coercion → Set where
+    w-cross : ∀ {g} →
+      CrossWidening g →
+      Widening g
+
+    w-id★ :
+      Widening (id ★)
+
+    w-inst : ∀ {B s} →
+      Widening s →
+      Widening (inst B s)
+
+    w-tag : ∀ {G g} →
+      Ground G →
+      CrossWidening g →
+      Widening (g ︔ (G !))
+
+    w-unseal : ∀ {α A s} →
+      Widening s →
+      Widening (unseal α A ︔ s)
+
+------------------------------------------------------------------------
+-- Well-Typed Mode-Indexed Narrowing and Widening
+------------------------------------------------------------------------
+
+infix 4 _∣_∣_⊢_∶_⊒_
+infix 4 _∣_∣_⊢_∶_⊑_
+
+_∣_∣_⊢_∶_⊒_ : DualEnv → TyCtx → Store → Coercion → Ty → Ty → Set
+μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B =
+  (μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B) × Narrowing c
+
+_∣_∣_⊢_∶_⊑_ : DualEnv → TyCtx → Store → Coercion → Ty → Ty → Set
+μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B =
+  (μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B) × Widening c
 
 ------------------------------------------------------------------------
 -- Coercion composition
@@ -561,8 +655,9 @@ private
       Δ ∣ Σ ⊢ c ∶ A ⊒ B →
       Δ′ ∣ renameStoreᵗ ρ Σ
         ⊢ renameᶜ ρ c ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
-    narrow-renameᵗ hρ (nrw-id hA) =
-      nrw-id (renameᵗ-preserves-WfTy hA hρ)
+    narrow-renameᵗ hρ (nrw-id {aA = aA} hA) =
+      nrw-id {aA = renameᵗ-atom _ aA}
+        (renameᵗ-preserves-WfTy hA hρ)
     narrow-renameᵗ hρ (nrw-fun s t) =
       nrw-fun (widen-renameᵗ hρ s) (narrow-renameᵗ hρ t)
     narrow-renameᵗ {Δ′ = Δ′} {Σ = Σ} {ρ = ρ} hρ (nrw-all s) =
@@ -607,8 +702,9 @@ private
       Δ ∣ Σ ⊢ c ∶ A ⊑ B →
       Δ′ ∣ renameStoreᵗ ρ Σ
         ⊢ renameᶜ ρ c ∶ renameᵗ ρ A ⊑ renameᵗ ρ B
-    widen-renameᵗ hρ (wid-id hA) =
-      wid-id (renameᵗ-preserves-WfTy hA hρ)
+    widen-renameᵗ hρ (wid-id {aA = aA} hA) =
+      wid-id {aA = renameᵗ-atom _ aA}
+        (renameᵗ-preserves-WfTy hA hρ)
     widen-renameᵗ hρ (wid-fun s t) =
       wid-fun (narrow-renameᵗ hρ s) (widen-renameᵗ hρ t)
     widen-renameᵗ {Δ′ = Δ′} {Σ = Σ} {ρ = ρ} hρ (wid-all s) =
@@ -727,7 +823,7 @@ mutual
   data _∣_⊢_≈_∶_⊒_ :
       TyCtx → StoreWid → Coercion → Coercion → Ty → Ty → Set where
 
-    id≈idⁿ : ∀{Δ σ A}
+    id≈idⁿ : ∀{Δ σ A}{aA : Atom A}
       → WfTy Δ A
        -------------------------------
       → Δ ∣ σ ⊢ id A ≈ id A ∶ A ⊒ A
@@ -768,7 +864,7 @@ mutual
       → Δ ∣ σ ⊢ (id ★ ︔ seal ★ α)
           ≈ (((＇ α) ？) ︔ id (＇ α)) ∶ ★ ⊒ ＇ α
 
-    ?≈sealGⁿ : ∀{Δ σ α G}
+    ?≈sealGⁿ : ∀{Δ σ α G}{aG : Atom G}
       → WfTy Δ G
       → Ground G
       → (α ꞉ id G) ∈ σ
@@ -776,7 +872,7 @@ mutual
       → Δ ∣ σ ⊢ (((＇ α) ？) ︔ id (＇ α))
           ≈ (((G ？) ︔ id G) ︔ seal G α) ∶ ★ ⊒ ＇ α
 
-    sealG≈?ⁿ : ∀{Δ σ α G}
+    sealG≈?ⁿ : ∀{Δ σ α G}{aG : Atom G}
       → WfTy Δ G
       → Ground G
       → (α ꞉ id G) ∈ σ
@@ -787,7 +883,7 @@ mutual
   data _∣_⊢_≈_∶_⊑_ :
       TyCtx → StoreWid → Coercion → Coercion → Ty → Ty → Set where
 
-    id≈id : ∀{Δ σ A}
+    id≈id : ∀{Δ σ A}{aA : Atom A}
       → WfTy Δ A
        ------------------------------
       → Δ ∣ σ ⊢ id A ≈ id A ∶ A ⊑ A
@@ -811,7 +907,7 @@ mutual
       → Δ ∣ σ ⊢ (unseal α ★ ︔ id ★)
           ≈ (id (＇ α) ︔ ((＇ α) !)) ∶ ＇ α ⊑ ★
 
-    !≈unsealG : ∀{Δ σ α G}
+    !≈unsealG : ∀{Δ σ α G}{aG : Atom G}
       → WfTy Δ G
       → Ground G
       → (α ꞉ id G) ∈ σ
@@ -819,7 +915,7 @@ mutual
       → Δ ∣ σ ⊢ (id (＇ α) ︔ ((＇ α) !))
           ≈ ((unseal α G ︔ id G) ︔ (G !)) ∶ ＇ α ⊑ ★
 
-    unsealG≈! : ∀{Δ σ α G}
+    unsealG≈! : ∀{Δ σ α G}{aG : Atom G}
       → WfTy Δ G
       → Ground G
       → (α ꞉ id G) ∈ σ
@@ -850,8 +946,8 @@ mutual
     → Δ ⊢ σ ꞉ Σ ⊑ˢ Σ′
     → Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B
     → Δ ∣ Σ ⊢ s ∶ A ⊒ B × Δ ∣ Σ′ ⊢ t ∶ A ⊒ B
-  ≈ⁿ-sound σ⊢ (id≈idⁿ hA) =
-    nrw-id hA , nrw-id hA
+  ≈ⁿ-sound σ⊢ (id≈idⁿ {aA = aA} hA) =
+    nrw-id {aA = aA} hA , nrw-id {aA = aA} hA
   ≈ⁿ-sound σ⊢ (↦≈↦ⁿ s≈ t≈) with ≈-sound σ⊢ s≈ | ≈ⁿ-sound σ⊢ t≈
   ≈ⁿ-sound σ⊢ (↦≈↦ⁿ s≈ t≈) | s⊢ , s′⊢ | t⊢ , t′⊢ =
     nrw-fun s⊢ t⊢ , nrw-fun s′⊢ t′⊢
@@ -866,47 +962,51 @@ mutual
     nrw-untag hG gG s⊢ , nrw-untag hG gG t⊢
   ≈ⁿ-sound σ⊢ (?≈seal★ⁿ α∈σ) with StoreWid-id∈ σ⊢ α∈σ
   ≈ⁿ-sound σ⊢ (?≈seal★ⁿ α∈σ) | α∈Σ , α∈Σ′ =
-    nrw-untagˢ wf★ α∈Σ (nrw-id wf★) ,
-    nrw-seal wf★ α∈Σ′ (nrw-id wf★)
+    nrw-untagˢ wf★ α∈Σ (nrw-id {aA = ★} wf★) ,
+    nrw-seal wf★ α∈Σ′ (nrw-id {aA = ★} wf★)
   ≈ⁿ-sound σ⊢ (seal★≈?ⁿ α∈σ) with StoreWid-id∈ σ⊢ α∈σ
   ≈ⁿ-sound σ⊢ (seal★≈?ⁿ α∈σ) | α∈Σ , α∈Σ′ =
-    nrw-seal wf★ α∈Σ (nrw-id wf★) ,
-    nrw-untagˢ wf★ α∈Σ′ (nrw-id wf★)
+    nrw-seal wf★ α∈Σ (nrw-id {aA = ★} wf★) ,
+    nrw-untagˢ wf★ α∈Σ′ (nrw-id {aA = ★} wf★)
   ≈ⁿ-sound σ⊢ (?≈sealGⁿ hG gG α∈σ) with StoreWid-id∈ σ⊢ α∈σ
-  ≈ⁿ-sound σ⊢ (?≈sealGⁿ hG gG α∈σ) | α∈Σ , α∈Σ′ =
-    nrw-untagˢ hG α∈Σ (nrw-untag hG gG (nrw-id hG)) ,
-    nrw-seal hG α∈Σ′ (nrw-untag hG gG (nrw-id hG))
+  ≈ⁿ-sound σ⊢ (?≈sealGⁿ {aG = aG} hG gG α∈σ) | α∈Σ , α∈Σ′ =
+    nrw-untagˢ hG α∈Σ
+      (nrw-untag hG gG (nrw-id {aA = aG} hG)) ,
+    nrw-seal hG α∈Σ′
+      (nrw-untag hG gG (nrw-id {aA = aG} hG))
   ≈ⁿ-sound σ⊢ (sealG≈?ⁿ hG gG α∈σ) with StoreWid-id∈ σ⊢ α∈σ
-  ≈ⁿ-sound σ⊢ (sealG≈?ⁿ hG gG α∈σ) | α∈Σ , α∈Σ′ =
-    nrw-seal hG α∈Σ (nrw-untag hG gG (nrw-id hG)) ,
-    nrw-untagˢ hG α∈Σ′ (nrw-untag hG gG (nrw-id hG))
+  ≈ⁿ-sound σ⊢ (sealG≈?ⁿ {aG = aG} hG gG α∈σ) | α∈Σ , α∈Σ′ =
+    nrw-seal hG α∈Σ
+      (nrw-untag hG gG (nrw-id {aA = aG} hG)) ,
+    nrw-untagˢ hG α∈Σ′
+      (nrw-untag hG gG (nrw-id {aA = aG} hG))
 
   ≈-sound :
     ∀{Δ}{σ : StoreWid}{Σ Σ′ : Store}{s t : Coercion}{A B : Ty}
     → Δ ⊢ σ ꞉ Σ ⊑ˢ Σ′
     → Δ ∣ σ ⊢ s ≈ t ∶ A ⊑ B
     → Δ ∣ Σ ⊢ s ∶ A ⊑ B × Δ ∣ Σ′ ⊢ t ∶ A ⊑ B
-  ≈-sound σ⊢ (id≈id hA) =
-    wid-id hA , wid-id hA
+  ≈-sound σ⊢ (id≈id {aA = aA} hA) =
+    wid-id {aA = aA} hA , wid-id {aA = aA} hA
   ≈-sound σ⊢ (!≈! hG gG g≈) with ≈-sound σ⊢ g≈
   ≈-sound σ⊢ (!≈! hG gG g≈) | g⊢ , g′⊢ =
     wid-tag hG gG g⊢ , wid-tag hG gG g′⊢
   ≈-sound σ⊢ (!≈unseal★ α∈σ) with StoreWid-id∈ σ⊢ α∈σ
   ≈-sound σ⊢ (!≈unseal★ α∈σ) | α∈Σ , α∈Σ′ =
-    wid-tagˢ wf★ α∈Σ (wid-id wf★) ,
-    wid-unseal wf★ α∈Σ′ (wid-id wf★)
+    wid-tagˢ wf★ α∈Σ (wid-id {aA = ★} wf★) ,
+    wid-unseal wf★ α∈Σ′ (wid-id {aA = ★} wf★)
   ≈-sound σ⊢ (unseal★≈! α∈σ) with StoreWid-id∈ σ⊢ α∈σ
   ≈-sound σ⊢ (unseal★≈! α∈σ) | α∈Σ , α∈Σ′ =
-    wid-unseal wf★ α∈Σ (wid-id wf★) ,
-    wid-tagˢ wf★ α∈Σ′ (wid-id wf★)
+    wid-unseal wf★ α∈Σ (wid-id {aA = ★} wf★) ,
+    wid-tagˢ wf★ α∈Σ′ (wid-id {aA = ★} wf★)
   ≈-sound σ⊢ (!≈unsealG hG gG α∈σ) with StoreWid-id∈ σ⊢ α∈σ
-  ≈-sound σ⊢ (!≈unsealG hG gG α∈σ) | α∈Σ , α∈Σ′ =
-    wid-tagˢ hG α∈Σ (wid-tag hG gG (wid-id hG)) ,
-    wid-tag hG gG (wid-unseal hG α∈Σ′ (wid-id hG))
+  ≈-sound σ⊢ (!≈unsealG {aG = aG} hG gG α∈σ) | α∈Σ , α∈Σ′ =
+    wid-tagˢ hG α∈Σ (wid-tag hG gG (wid-id {aA = aG} hG)) ,
+    wid-tag hG gG (wid-unseal hG α∈Σ′ (wid-id {aA = aG} hG))
   ≈-sound σ⊢ (unsealG≈! hG gG α∈σ) with StoreWid-id∈ σ⊢ α∈σ
-  ≈-sound σ⊢ (unsealG≈! hG gG α∈σ) | α∈Σ , α∈Σ′ =
-    wid-tag hG gG (wid-unseal hG α∈Σ (wid-id hG)) ,
-    wid-tagˢ hG α∈Σ′ (wid-tag hG gG (wid-id hG))
+  ≈-sound σ⊢ (unsealG≈! {aG = aG} hG gG α∈σ) | α∈Σ , α∈Σ′ =
+    wid-tag hG gG (wid-unseal hG α∈Σ (wid-id {aA = aG} hG)) ,
+    wid-tagˢ hG α∈Σ′ (wid-tag hG gG (wid-id {aA = aG} hG))
   ≈-sound σ⊢ (↦≈↦ s≈ t≈) with ≈ⁿ-sound σ⊢ s≈ | ≈-sound σ⊢ t≈
   ≈-sound σ⊢ (↦≈↦ s≈ t≈) | s⊢ , s′⊢ | t⊢ , t′⊢ =
     wid-fun s⊢ t⊢ , wid-fun s′⊢ t′⊢
@@ -915,7 +1015,7 @@ mutual
     wid-all s⊢ , wid-all t⊢
   ≈-sound σ⊢ (ν≈ν hB s≈)
       with ≈-sound
-        (⊑ˢ-both wf★ wf★ (wid-id wf★) (StoreWid-⇑ˢ σ⊢))
+        (⊑ˢ-both wf★ wf★ (wid-id {aA = ★} wf★) (StoreWid-⇑ˢ σ⊢))
         s≈
   ≈-sound σ⊢ (ν≈ν hB s≈) | s⊢ , t⊢ =
     wid-inst hB s⊢ , wid-inst hB t⊢

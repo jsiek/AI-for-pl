@@ -15,7 +15,7 @@ open import Data.Nat using (suc; _<_; _≤_)
 open import Data.Nat.Properties
   using (n≤1+n; n<1+n; <-≤-trans; <-irrefl)
 open import Data.Product using (_,_)
-open import Relation.Binary.PropositionalEquality using (cong)
+open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
 
 open import Types
 open import Store
@@ -108,12 +108,21 @@ StoreWf-fresh-ext {Δ = Δ} {Σ = Σ} wfΣ hA =
   record
     { at = StoreWfAt-cons fresh< (WfTy-weakenᵗ hA (n≤1+n Δ))
              (StoreWfAt-weaken (n≤1+n Δ) (at wfΣ))
+    ; wfOlder = wfOlder′
     ; unique = unique′
     ; len = cong suc (len wfΣ)
     }
   where
     fresh< : length Σ < suc Δ
     fresh< rewrite len wfΣ = n<1+n Δ
+
+    wfOlder′ :
+      ∀ {α A} →
+      (α , A) ∈ ((length Σ , _) ∷ Σ) →
+      WfTy α A
+    wfOlder′ (here refl) =
+      subst (λ Θ → WfTy Θ _) (sym (len wfΣ)) hA
+    wfOlder′ (there hA) = wfOlder wfΣ hA
 
     unique′ :
       ∀ {α A B} →

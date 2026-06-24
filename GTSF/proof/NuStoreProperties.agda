@@ -101,17 +101,26 @@ StoreWf-fresh-ext :
   ∀ {Δ Δ′ Σ α A} →
   StoreWf Δ Σ →
   Δ ≤ Δ′ →
+  Δ ≤ α →
   α < Δ′ →
   WfTy Δ A →
   α ∉ domˢ Σ →
   StoreWf Δ′ ((α , A) ∷ Σ)
-StoreWf-fresh-ext wfΣ Δ≤Δ′ α<Δ′ hA α∉Σ =
+StoreWf-fresh-ext wfΣ Δ≤Δ′ Δ≤α α<Δ′ hA α∉Σ =
   record
     { at = StoreWfAt-cons α<Δ′ (WfTy-weakenᵗ hA Δ≤Δ′)
              (StoreWfAt-weaken Δ≤Δ′ (at wfΣ))
+    ; wfOlder = wfOlder′
     ; unique = unique′
     }
   where
+    wfOlder′ :
+      ∀ {β B} →
+      (β , B) ∈ ((_ , _) ∷ _) →
+      WfTy β B
+    wfOlder′ (here refl) = WfTy-weakenᵗ hA Δ≤α
+    wfOlder′ (there hB) = wfOlder wfΣ hB
+
     unique′ :
       ∀ {β B C} →
       (β , B) ∈ ((_ , _) ∷ _) →

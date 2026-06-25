@@ -9,7 +9,6 @@ module NuMetaTheory where
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using ([])
-open import Data.Nat using (_≤_)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 
 open import Types
@@ -17,7 +16,7 @@ open import Ctx
 open import Coercions
 open import NarrowWiden
   using (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_; dualⁿ; dualʷ)
-open import NuStore using (StoreIncl; StoreWf)
+open import NuStore using (StoreWf)
 open import NuTerms
 open import NuReduction
 
@@ -28,27 +27,34 @@ import proof.NuPreservation as PreservationProof
 
 progress :
   ∀ {Δ : TyCtx}{Σ : Store}{M : Term}{A : Ty} →
+  RuntimeOK M →
   Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
   ProgressProof.Progress {Δ = Δ} {Σ = Σ} M
 progress = ProgressProof.progress
 
 preservation :
-  ∀ {Δ Δ′ : TyCtx}{Σ Σ′ : Store}{Γ : Ctx}{M N : Term}{A : Ty} →
+  ∀ {Δ : TyCtx}{Σ : Store}{M N : Term}{A : Ty}
+    {χ : StoreChange} →
   StoreWf Δ Σ →
-  CtxWf Δ Γ →
-  Δ ∣ Σ ∣ Γ ⊢ M ⦂ A →
-  Δ ∣ Σ ∣ M —→ Δ′ ∣ Σ′ ∣ N →
-  StoreWf Δ′ Σ′ × Δ ≤ Δ′ × StoreIncl Σ Σ′ ×
-  CtxWf Δ′ Γ × Δ′ ∣ Σ′ ∣ Γ ⊢ N ⦂ A
-preservation wfΣ hΓ M⊢ red
-    with PreservationProof.preservation wfΣ hΓ M⊢ red
-preservation wfΣ hΓ M⊢ red
-    | PreservationProof.preserve wfΣ′ Δ≤Δ′ incl hΓ′ N⊢ =
-  wfΣ′ , Δ≤Δ′ , incl , hΓ′ , N⊢
+  RuntimeOK M →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  M —→[ χ ] N →
+  applyTyCtx χ Δ ∣ applyStore χ Σ ∣ [] ⊢ N ⦂ applyTy χ A
+preservation = PreservationProof.preservation
+
+multi-preservation :
+  ∀ {Δ : TyCtx}{Σ : Store}{M N : Term}{A : Ty}
+    {χs : StoreChanges} →
+  StoreWf Δ Σ →
+  RuntimeOK M →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  M —↠[ χs ] N →
+  applyTyCtxs χs Δ ∣ applyStores χs Σ ∣ [] ⊢ N ⦂ applyTys χs A
+multi-preservation = PreservationProof.multi-preservation
 
 narrowing-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
-  StoreWf Δ Σ →
+  NarrowWidenProof.StoreDetWf Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊒ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ B →
   s ≡ t
@@ -57,7 +63,7 @@ narrowing-determinedᵐ =
 
 widening-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
-  StoreWf Δ Σ →
+  NarrowWidenProof.StoreDetWf Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊑ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊑ B →
   s ≡ t

@@ -12,9 +12,10 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_; _∉_)
 open import Data.List.Relation.Unary.Any using (here; there)
-open import Data.Nat using (suc; _<_; _≤_)
+open import Data.Nat using (zero; suc; _<_; _≤_; z<s)
 open import Data.Nat.Properties using (<-≤-trans)
-open import Data.Product using (_,_)
+open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
+open import Relation.Binary.PropositionalEquality using (cong; sym; trans)
 
 open import Types
 open import NuStore
@@ -110,17 +111,9 @@ StoreWf-fresh-ext wfΣ Δ≤Δ′ Δ≤α α<Δ′ hA α∉Σ =
   record
     { at = StoreWfAt-cons α<Δ′ (WfTy-weakenᵗ hA Δ≤Δ′)
              (StoreWfAt-weaken Δ≤Δ′ (at wfΣ))
-    ; wfOlder = wfOlder′
     ; unique = unique′
     }
   where
-    wfOlder′ :
-      ∀ {β B} →
-      (β , B) ∈ ((_ , _) ∷ _) →
-      WfTy β B
-    wfOlder′ (here refl) = WfTy-weakenᵗ hA Δ≤α
-    wfOlder′ (there hB) = wfOlder wfΣ hB
-
     unique′ :
       ∀ {β B C} →
       (β , B) ∈ ((_ , _) ∷ _) →
@@ -130,6 +123,65 @@ StoreWf-fresh-ext wfΣ Δ≤Δ′ Δ≤α α<Δ′ hA α∉Σ =
     unique′ (here refl) (there hB) = ⊥-elim (α∉Σ (∈-domˢ hB))
     unique′ (there hA) (here refl) = ⊥-elim (α∉Σ (∈-domˢ hA))
     unique′ (there hA) (there hB) = unique wfΣ hA hB
+
+∈-⟰ᵗ-inv :
+  ∀ {Σ α B} →
+  (suc α , B) ∈ ⟰ᵗ Σ →
+  ∃[ A ] (B ≡ ⇑ᵗ A × (α , A) ∈ Σ)
+∈-⟰ᵗ-inv {Σ = (α , A) ∷ Σ} (here refl) =
+  A , refl , here refl
+∈-⟰ᵗ-inv {Σ = (β , C) ∷ Σ} (there h)
+    with ∈-⟰ᵗ-inv h
+∈-⟰ᵗ-inv {Σ = (β , C) ∷ Σ} (there h)
+    | A , eq , h′ =
+  A , eq , there h′
+
+∈-⟰ᵗ-zero :
+  ∀ {Σ A} →
+  (zero , A) ∈ ⟰ᵗ Σ →
+  ⊥
+∈-⟰ᵗ-zero {Σ = (α , B) ∷ Σ} (there h) =
+  ∈-⟰ᵗ-zero h
+
+StoreUnique-⟰ᵗ :
+  ∀ {Σ} →
+  (∀ {α A B} → (α , A) ∈ Σ → (α , B) ∈ Σ → A ≡ B) →
+  ∀ {α A B} → (α , A) ∈ ⟰ᵗ Σ → (α , B) ∈ ⟰ᵗ Σ → A ≡ B
+StoreUnique-⟰ᵗ uniqueΣ {α = zero} h₁ h₂ =
+  ⊥-elim (∈-⟰ᵗ-zero h₁)
+StoreUnique-⟰ᵗ uniqueΣ {α = suc α} h₁ h₂
+    with ∈-⟰ᵗ-inv h₁ | ∈-⟰ᵗ-inv h₂
+StoreUnique-⟰ᵗ uniqueΣ {α = suc α} h₁ h₂
+    | A , eq₁ , h₁′ | B , eq₂ , h₂′ =
+  trans eq₁ (trans (cong ⇑ᵗ (uniqueΣ h₁′ h₂′)) (sym eq₂))
+
+StoreUnique-bind :
+  ∀ {Σ Aν} →
+  (∀ {α A B} → (α , A) ∈ Σ → (α , B) ∈ Σ → A ≡ B) →
+  ∀ {α A B} →
+  (α , A) ∈ ((zero , Aν) ∷ ⟰ᵗ Σ) →
+  (α , B) ∈ ((zero , Aν) ∷ ⟰ᵗ Σ) →
+  A ≡ B
+StoreUnique-bind uniqueΣ (here refl) (here refl) = refl
+StoreUnique-bind uniqueΣ (here refl) (there h) =
+  ⊥-elim (∈-⟰ᵗ-zero h)
+StoreUnique-bind uniqueΣ (there h) (here refl) =
+  ⊥-elim (∈-⟰ᵗ-zero h)
+StoreUnique-bind uniqueΣ (there h₁) (there h₂) =
+  StoreUnique-⟰ᵗ uniqueΣ h₁ h₂
+
+StoreWf-bind :
+  ∀ {Δ Σ A} →
+  StoreWf Δ Σ →
+  WfTy Δ A →
+  StoreWf (suc Δ) ((zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ)
+StoreWf-bind wfΣ hA =
+  record
+    { at = StoreWfAt-cons z<s
+             (renameᵗ-preserves-WfTy hA TyRenameWf-suc)
+             (StoreWfAt-⟰ᵗ (at wfΣ))
+    ; unique = StoreUnique-bind (unique wfΣ)
+    }
 
 ------------------------------------------------------------------------
 -- Store membership transport

@@ -161,17 +161,6 @@ StoreWf⇒det wfΣ =
     ; unique = Store.unique wfΣ
     }
 
-nuStoreWf⇒det :
-  ∀ {Δ Σ} →
-  NuStore.StoreWf Δ Σ →
-  StoreDetWf Δ Σ
-nuStoreWf⇒det wfΣ =
-  record
-    { at = NuStore.at wfΣ
-    ; wfOlder = NuStore.wfOlder wfΣ
-    ; unique = NuStore.unique wfΣ
-    }
-
 ∈-⟰ᵗ-inv :
   ∀ {Σ α B} →
   (suc α , B) ∈ ⟰ᵗ Σ →
@@ -2749,18 +2738,18 @@ store-widening-determinedᵐ wfΣ =
 
 narrowing-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
-  NuStore.StoreWf Δ Σ →
+  StoreDetWf Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊒ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ B →
   s ≡ t
 narrowing-determinedᵐ wfΣ =
-  narrowing-determinedᵐ-det (nuStoreWf⇒det wfΣ)
+  narrowing-determinedᵐ-det wfΣ
 
 widening-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
-  NuStore.StoreWf Δ Σ →
+  StoreDetWf Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊑ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊑ B →
   s ≡ t
 widening-determinedᵐ wfΣ =
-  widening-determinedᵐ-det (nuStoreWf⇒det wfΣ)
+  widening-determinedᵐ-det wfΣ

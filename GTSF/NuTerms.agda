@@ -17,6 +17,7 @@ open import Primitives
 infix  5 ƛ_
 infix  5 Λ_
 infixl 7 _·_
+infixl 7 _•
 infixl 7 _⟨_⟩
 infixl 6 _⊕[_]_
 infix  9 `_
@@ -26,6 +27,7 @@ data Term : Set where
   ƛ_      : Term → Term
   _·_     : Term → Term → Term
   Λ_      : Term → Term
+  _•      : Term → Term
   ν       : Ty → Term → Coercion → Term
   $       : Const → Term
   _⊕[_]_  : Term → Prim → Term → Term
@@ -43,6 +45,36 @@ data Value : Term → Set where
   _⟨_⟩ : {V : Term}{c : Coercion} → Value V → Inert c → Value (V ⟨ c ⟩)
 
 ------------------------------------------------------------------------
+-- Runtime-bullet invariants
+------------------------------------------------------------------------
+
+data No• : Term → Set where
+  no•-` : ∀ {x} → No• (` x)
+  no•-ƛ : ∀ {M} → No• M → No• (ƛ M)
+  no•-· : ∀ {L M} → No• L → No• M → No• (L · M)
+  no•-Λ : ∀ {M} → No• M → No• (Λ M)
+  no•-ν : ∀ {A L c} → No• L → No• (ν A L c)
+  no•-$ : ∀ {κ} → No• ($ κ)
+  no•-⊕ : ∀ {L op M} → No• L → No• M → No• (L ⊕[ op ] M)
+  no•-⟨⟩ : ∀ {M c} → No• M → No• (M ⟨ c ⟩)
+  no•-blame : No• blame
+
+data One• : Term → Set where
+  one•-here : ∀ {M} → No• M → One• (M •)
+  one•-ƛ : ∀ {M} → One• M → One• (ƛ M)
+  one•-·₁ : ∀ {L M} → One• L → No• M → One• (L · M)
+  one•-·₂ : ∀ {L M} → No• L → One• M → One• (L · M)
+  one•-Λ : ∀ {M} → One• M → One• (Λ M)
+  one•-ν : ∀ {A L c} → One• L → One• (ν A L c)
+  one•-⊕₁ : ∀ {L op M} → One• L → No• M → One• (L ⊕[ op ] M)
+  one•-⊕₂ : ∀ {L op M} → No• L → One• M → One• (L ⊕[ op ] M)
+  one•-⟨⟩ : ∀ {M c} → One• M → One• (M ⟨ c ⟩)
+
+data AtMostOne• : Term → Set where
+  zero• : ∀ {M} → No• M → AtMostOne• M
+  one• : ∀ {M} → One• M → AtMostOne• M
+
+------------------------------------------------------------------------
 -- Type-variable substitution
 ------------------------------------------------------------------------
 
@@ -51,6 +83,7 @@ renameᵗᵐ ρ (` x) = ` x
 renameᵗᵐ ρ (ƛ M) = ƛ renameᵗᵐ ρ M
 renameᵗᵐ ρ (L · M) = renameᵗᵐ ρ L · renameᵗᵐ ρ M
 renameᵗᵐ ρ (Λ M) = Λ (renameᵗᵐ (extᵗ ρ) M)
+renameᵗᵐ ρ (M •) = renameᵗᵐ ρ M •
 renameᵗᵐ ρ (ν A L c) =
   ν (renameᵗ ρ A) (renameᵗᵐ ρ L) (renameᶜ (extᵗ ρ) c)
 renameᵗᵐ ρ ($ κ) = $ κ
@@ -60,6 +93,17 @@ renameᵗᵐ ρ blame = blame
 
 ⇑ᵗᵐ : Term → Term
 ⇑ᵗᵐ = renameᵗᵐ suc
+
+data RuntimeOK : Term → Set where
+  ok-no : ∀ {M} → No• M → RuntimeOK M
+  ok-• : ∀ {V} → Value V → No• V → RuntimeOK ((⇑ᵗᵐ V) •)
+  ok-·₁ : ∀ {L M} → RuntimeOK L → No• M → RuntimeOK (L · M)
+  ok-·₂ : ∀ {V M} → Value V → No• V → RuntimeOK M → RuntimeOK (V · M)
+  ok-ν : ∀ {A L c} → RuntimeOK L → RuntimeOK (ν A L c)
+  ok-⊕₁ : ∀ {L op M} → RuntimeOK L → No• M → RuntimeOK (L ⊕[ op ] M)
+  ok-⊕₂ : ∀ {L op M} → Value L → No• L → RuntimeOK M
+    → RuntimeOK (L ⊕[ op ] M)
+  ok-⟨⟩ : ∀ {M c} → RuntimeOK M → RuntimeOK (M ⟨ c ⟩)
 
 infixl 8 _[_]ᵀ
 _[_]ᵀ : Term → TyVar → Term
@@ -84,6 +128,7 @@ renameˣᵐ ρ (` x) = ` (ρ x)
 renameˣᵐ ρ (ƛ M) = ƛ renameˣᵐ (extʳ ρ) M
 renameˣᵐ ρ (L · M) = renameˣᵐ ρ L · renameˣᵐ ρ M
 renameˣᵐ ρ (Λ M) = Λ (renameˣᵐ ρ M)
+renameˣᵐ ρ (M •) = renameˣᵐ ρ M •
 renameˣᵐ ρ (ν A L c) = ν A (renameˣᵐ ρ L) c
 renameˣᵐ ρ ($ κ) = $ κ
 renameˣᵐ ρ (L ⊕[ op ] M) = renameˣᵐ ρ L ⊕[ op ] renameˣᵐ ρ M
@@ -102,6 +147,7 @@ substˣᵐ σ (` x) = σ x
 substˣᵐ σ (ƛ M) = ƛ substˣᵐ (extˢˣ σ) M
 substˣᵐ σ (L · M) = substˣᵐ σ L · substˣᵐ σ M
 substˣᵐ σ (Λ M) = Λ (substˣᵐ (↑ᵗᵐ σ) M)
+substˣᵐ σ (M •) = substˣᵐ σ M •
 substˣᵐ σ (ν A L c) = ν A (substˣᵐ σ L) c
 substˣᵐ σ ($ κ) = $ κ
 substˣᵐ σ (L ⊕[ op ] M) = substˣᵐ σ L ⊕[ op ] substˣᵐ σ M
@@ -146,6 +192,16 @@ data _∣_∣_⊢_⦂_ (Δ : TyCtx) (Σ : Store) (Γ : Ctx) : Term → Ty → Se
      → suc Δ ∣ ⟰ᵗ Σ ∣ ⤊ᵗ Γ ⊢ M ⦂ A
       ----------------------------
      → Δ ∣ Σ ∣ Γ ⊢ (Λ M) ⦂ (`∀ A)
+
+  ⊢• : ∀ {Δ₀ Σ₀ V A C}
+     → Δ ≡ suc Δ₀
+     → Σ ≡ (zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ₀
+     → WfTy (suc Δ₀) C
+     → Value V
+     → No• V
+     → Δ₀ ∣ Σ₀ ∣ Γ ⊢ V ⦂ `∀ C
+      ----------------------------------------
+     → Δ ∣ Σ ∣ Γ ⊢ (⇑ᵗᵐ V) • ⦂ C
 
   ⊢ν : ∀ {L A B C c μ}
      → WfTy Δ A

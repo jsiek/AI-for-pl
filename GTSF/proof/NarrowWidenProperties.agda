@@ -1,8 +1,8 @@
 module proof.NarrowWidenProperties where
 
 -- File Charter:
---   * Structural lemmas for narrowing/widening coercion judgments.
---   * Provides proof-level composition witnesses `_⨟ⁿ_` and `_⨟ʷ_`.
+--   * Structural lemmas for mode-indexed narrowing/widening coercion judgments.
+--   * Determinacy and dual endpoint-flipping theorems for narrowing/widening.
 --   * Depends on the public definitions in `NarrowWiden`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -21,10 +21,30 @@ open import Relation.Nullary using (Dec; yes; no)
 
 open import Types
 open import Store
+import NuStore as NuStore
 open import Coercions
 open import NarrowWiden
+import proof.CoercionProperties as CoercionProof
 open import proof.CoercionProperties
-  using (coercion-src-tgtᵐ)
+  using
+    ( DualActionOk
+    ; DualStoreAt
+    ; coercion-src-tgtᵐ
+    ; dma-id
+    ; dma-tag
+    ; dma-seal
+    ; dma-tag-seal
+    ; dma-seal-tag
+    ; dualActionOk-ext
+    ; dualActionOk-gen-inst
+    ; dualActionOk-idTyAllowed
+    ; dualActionOk-inst-gen
+    ; dualStoreAt-ext
+    ; dualStoreAt-gen-inst
+    ; dualStoreAt-inst-gen
+    ; sealModeAllowed-var-seal
+    ; tagModeAllowed-var-tag
+    )
 open import proof.StoreProperties
   using
     ( StoreWfAt-cons
@@ -61,6 +81,13 @@ renameᵗ-atom :
 renameᵗ-atom ρ (＇ α) = ＇ (ρ α)
 renameᵗ-atom ρ (‵ ι) = ‵ ι
 renameᵗ-atom ρ ★ = ★
+
+idModeAllowed-any :
+  ∀ m →
+  idModeAllowed m ≡ true
+idModeAllowed-any id-only = refl
+idModeAllowed-any tag-or-id = refl
+idModeAllowed-any seal-or-id = refl
 
 ------------------------------------------------------------------------
 -- Well-typed narrowing/widening projections
@@ -132,6 +159,17 @@ StoreWf⇒det wfΣ =
     { at = Store.at wfΣ
     ; wfOlder = Store.wfOlder wfΣ
     ; unique = Store.unique wfΣ
+    }
+
+nuStoreWf⇒det :
+  ∀ {Δ Σ} →
+  NuStore.StoreWf Δ Σ →
+  StoreDetWf Δ Σ
+nuStoreWf⇒det wfΣ =
+  record
+    { at = NuStore.at wfΣ
+    ; wfOlder = NuStore.wfOlder wfΣ
+    ; unique = NuStore.unique wfΣ
     }
 
 ∈-⟰ᵗ-inv :
@@ -239,56 +277,32 @@ mutual
     μ ∣ Δ ∣ Σ ⊢ c ∶ (＇ α) ⊒ B →
     ⊥
   narrowing-var-to-older⊥ wfΣ (wfVar α<α)
-      (cast-id hA id-ok , n-cross cn-id-var) =
+      (cast-id hA id-ok , cross id-＇) =
     <-irrefl refl α<α
   narrowing-var-to-older⊥ wfΣ wfBase
-      (() , n-cross cn-id-base)
+      (() , cross id-‵)
   narrowing-var-to-older⊥ {c = unseal β A} wfΣ wfBase
-      (c⊢ , n-cross ())
-  narrowing-var-to-older⊥ wfΣ wfBase
-      (cast-seq () s⊢ , n-untag gG′ sⁿ)
-  narrowing-var-to-older⊥ wfΣ wfBase
-      (cast-seq s⊢ () , n-seal sⁿ)
-  narrowing-var-to-older⊥ wfΣ wf★
-      (() , n-id★)
-  narrowing-var-to-older⊥ wfΣ wf★
-      (() , n-cross cn-id-var)
-  narrowing-var-to-older⊥ wfΣ wf★
-      (() , n-cross cn-id-base)
-  narrowing-var-to-older⊥ wfΣ wf★
-      (() , n-cross (cn-fun sʷ tⁿ))
-  narrowing-var-to-older⊥ wfΣ wf★
-      (() , n-cross (cn-all sⁿ))
-  narrowing-var-to-older⊥ wfΣ wf★
-      (cast-seq () s⊢ , n-untag gG′ sⁿ)
-  narrowing-var-to-older⊥ wfΣ wf★
-      (cast-seq s⊢ () , n-seal sⁿ)
+      (c⊢ , cross ())
+  narrowing-var-to-older⊥ {c = G !} wfΣ wf★
+      (c⊢ , cross ())
+  narrowing-var-to-older⊥ {c = unseal β A} wfΣ wf★
+      (c⊢ , cross ())
   narrowing-var-to-older⊥ wfΣ (wf⇒ hB hC)
-      (() , n-cross (cn-fun sʷ tⁿ))
+      (() , cross (_↦_ sʷ tⁿ))
   narrowing-var-to-older⊥ {c = unseal β A} wfΣ (wf⇒ hB hC)
-      (c⊢ , n-cross ())
-  narrowing-var-to-older⊥ wfΣ (wf⇒ hB hC)
-      (cast-seq () s⊢ , n-untag gG′ sⁿ)
-  narrowing-var-to-older⊥ wfΣ (wf⇒ hB hC)
-      (cast-seq s⊢ () , n-seal sⁿ)
+      (c⊢ , cross ())
   narrowing-var-to-older⊥ wfΣ (wf∀ hB)
-      (() , n-cross (cn-all sⁿ))
-  narrowing-var-to-older⊥ wfΣ (wf∀ hB)
-      (cast-gen hA occ s⊢ , n-gen sⁿ) =
+      (cast-gen hA occ s⊢ , gen sⁿ) =
     narrowing-var-to-older⊥
       (StoreDetWf-⟰ᵗ wfΣ)
       hB
       (s⊢ , sⁿ)
   narrowing-var-to-older⊥ {c = unseal β A} wfΣ (wf∀ hB)
-      (c⊢ , n-cross ())
-  narrowing-var-to-older⊥ wfΣ (wf∀ hB)
-      (cast-seq () s⊢ , n-untag gG′ sⁿ)
-  narrowing-var-to-older⊥ wfΣ (wf∀ hB)
-      (cast-seq s⊢ () , n-seal sⁿ)
+      (c⊢ , cross ())
+  narrowing-var-to-older⊥ wfΣ hB
+      (cast-seq () s⊢ , _？︔_ gG′ sⁿ)
   narrowing-var-to-older⊥ wfΣ (wfVar β<α)
-      (cast-seq () s⊢ , n-untag gG′ sⁿ)
-  narrowing-var-to-older⊥ wfΣ (wfVar β<α)
-      (cast-seq s⊢ (cast-seal hA β∈Σ seal-ok) , n-seal sⁿ) =
+      (cast-seq s⊢ (cast-seal hA β∈Σ seal-ok) , _︔seal sⁿ) =
     narrowing-var-to-older⊥
       wfΣ
       (WfTy-weakenᵗ (wfOlder wfΣ β∈Σ) (≤-from-< β<α))
@@ -301,56 +315,32 @@ mutual
     μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ (＇ α) →
     ⊥
   widening-older-to-var⊥ wfΣ (wfVar α<α)
-      (cast-id hA id-ok , w-cross cw-id-var) =
+      (cast-id hA id-ok , cross id-＇) =
     <-irrefl refl α<α
   widening-older-to-var⊥ wfΣ wfBase
-      (() , w-cross cw-id-base)
+      (() , cross id-‵)
   widening-older-to-var⊥ {c = seal A β} wfΣ wfBase
-      (c⊢ , w-cross ())
-  widening-older-to-var⊥ wfΣ wfBase
-      (cast-seq s⊢ () , w-tag gG′ sʷ)
-  widening-older-to-var⊥ wfΣ wfBase
-      (cast-seq () s⊢ , w-unseal sʷ)
-  widening-older-to-var⊥ wfΣ wf★
-      (() , w-id★)
-  widening-older-to-var⊥ wfΣ wf★
-      (() , w-cross cw-id-var)
-  widening-older-to-var⊥ wfΣ wf★
-      (() , w-cross cw-id-base)
-  widening-older-to-var⊥ wfΣ wf★
-      (() , w-cross (cw-fun sⁿ tʷ))
-  widening-older-to-var⊥ wfΣ wf★
-      (() , w-cross (cw-all sʷ))
-  widening-older-to-var⊥ wfΣ wf★
-      (cast-seq s⊢ () , w-tag gG′ sʷ)
-  widening-older-to-var⊥ wfΣ wf★
-      (cast-seq () s⊢ , w-unseal sʷ)
+      (c⊢ , cross ())
+  widening-older-to-var⊥ {c = G ？} wfΣ wf★
+      (c⊢ , cross ())
+  widening-older-to-var⊥ {c = seal A β} wfΣ wf★
+      (c⊢ , cross ())
   widening-older-to-var⊥ wfΣ (wf⇒ hA hB)
-      (() , w-cross (cw-fun sⁿ tʷ))
+      (() , cross (_↦_ sⁿ tʷ))
   widening-older-to-var⊥ {c = seal A β} wfΣ (wf⇒ hA hB)
-      (c⊢ , w-cross ())
-  widening-older-to-var⊥ wfΣ (wf⇒ hA hB)
-      (cast-seq s⊢ () , w-tag gG′ sʷ)
-  widening-older-to-var⊥ wfΣ (wf⇒ hA hB)
-      (cast-seq () s⊢ , w-unseal sʷ)
+      (c⊢ , cross ())
   widening-older-to-var⊥ wfΣ (wf∀ hA)
-      (() , w-cross (cw-all sʷ))
-  widening-older-to-var⊥ wfΣ (wf∀ hA)
-      (cast-inst hB occ s⊢ , w-inst sʷ) =
+      (cast-inst hB occ s⊢ , inst sʷ) =
     widening-older-to-var⊥
       (StoreDetWf-inst wfΣ)
       hA
       (s⊢ , sʷ)
   widening-older-to-var⊥ {c = seal A β} wfΣ (wf∀ hA)
-      (c⊢ , w-cross ())
-  widening-older-to-var⊥ wfΣ (wf∀ hA)
-      (cast-seq s⊢ () , w-tag gG′ sʷ)
-  widening-older-to-var⊥ wfΣ (wf∀ hA)
-      (cast-seq () s⊢ , w-unseal sʷ)
+      (c⊢ , cross ())
+  widening-older-to-var⊥ wfΣ hA
+      (cast-seq s⊢ () , ((sʷ ︔ gG′ !)))
   widening-older-to-var⊥ wfΣ (wfVar β<α)
-      (cast-seq s⊢ () , w-tag gG′ sʷ)
-  widening-older-to-var⊥ wfΣ (wfVar β<α)
-      (cast-seq (cast-unseal hA β∈Σ seal-ok) s⊢ , w-unseal sʷ) =
+      (cast-seq (cast-unseal hA β∈Σ seal-ok) s⊢ , unseal︔_ sʷ) =
     widening-older-to-var⊥
       wfΣ
       (WfTy-weakenᵗ (wfOlder wfΣ β∈Σ) (≤-from-< β<α))
@@ -546,15 +536,15 @@ mutual
     μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
     Occurs α B →
     NarrowPath α A B
-  narrowing-target-path-id-only α-id (c⊢ , n-cross cⁿ) occ =
+  narrowing-target-path-id-only α-id (c⊢ , cross cⁿ) occ =
     narrowing-cross-target-path-id-only α-id (c⊢ , cⁿ) occ
-  narrowing-target-path-id-only α-id (cast-id wf★ ok , n-id★) ()
+  narrowing-target-path-id-only α-id (cast-id wf★ ok , id★) ()
   narrowing-target-path-id-only {α = α} α-id
-      (cast-gen {A = A} hA occB c⊢ , n-gen cⁿ) (occ-all occ) =
+      (cast-gen {A = A} hA occB c⊢ , gen cⁿ) (occ-all occ) =
     np-gen
       (narrowing-target-path-id-only {α = suc α} α-id (c⊢ , cⁿ) occ)
   narrowing-target-path-id-only α-id
-      (cast-seq (cast-untag hG gG tag-ok) c⊢ , n-untag gG′ cⁿ)
+      (cast-seq (cast-untag hG gG tag-ok) c⊢ , _？︔_ gG′ cⁿ)
       occ =
     ⊥-elim
       (id-only-ground-tag-occurs⊥
@@ -563,7 +553,7 @@ mutual
           α-id (c⊢ , cⁿ) (Occurs→occurs-true occ)))
   narrowing-target-path-id-only α-id
       (cast-seq c⊢ (cast-seal {α = β} hA β∈Σ seal-ok) ,
-       n-seal cⁿ)
+       _︔seal cⁿ)
       occ =
     ⊥-elim
       (id-only-seal-var-occurs⊥
@@ -576,18 +566,18 @@ mutual
     Occurs α B →
     NarrowPath α A B
   narrowing-cross-target-path-id-only α-id
-      (cast-id {A = ＇ β} hA id-ok , cn-id-var) occ-var =
+      (cast-id {A = ＇ β} hA id-ok , id-＇) occ-var =
     np-var
   narrowing-cross-target-path-id-only α-id
-      (cast-id {A = ‵ ι} hA id-ok , cn-id-base) ()
+      (cast-id {A = ‵ ι} hA id-ok , id-‵) ()
   narrowing-cross-target-path-id-only α-id
-      (cast-fun s⊢ t⊢ , cn-fun sʷ tⁿ) (occ-fun₁ occ) =
+      (cast-fun s⊢ t⊢ , _↦_ sʷ tⁿ) (occ-fun₁ occ) =
     np-fun₁ (widening-source-path-id-only α-id (s⊢ , sʷ) occ)
   narrowing-cross-target-path-id-only α-id
-      (cast-fun s⊢ t⊢ , cn-fun sʷ tⁿ) (occ-fun₂ occ) =
+      (cast-fun s⊢ t⊢ , _↦_ sʷ tⁿ) (occ-fun₂ occ) =
     np-fun₂ (narrowing-target-path-id-only α-id (t⊢ , tⁿ) occ)
   narrowing-cross-target-path-id-only {α = α} α-id
-      (cast-all c⊢ , cn-all cⁿ) (occ-all occ) =
+      (cast-all c⊢ , `∀ cⁿ) (occ-all occ) =
     np-all
       (narrowing-target-path-id-only {α = suc α} α-id (c⊢ , cⁿ) occ)
 
@@ -597,15 +587,15 @@ mutual
     μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B →
     Occurs α A →
     WidenPath α A B
-  widening-source-path-id-only α-id (c⊢ , w-cross cʷ) occ =
+  widening-source-path-id-only α-id (c⊢ , cross cʷ) occ =
     widening-cross-source-path-id-only α-id (c⊢ , cʷ) occ
-  widening-source-path-id-only α-id (cast-id wf★ ok , w-id★) ()
+  widening-source-path-id-only α-id (cast-id wf★ ok , id★) ()
   widening-source-path-id-only {α = α} α-id
-      (cast-inst {B = B} hB occA c⊢ , w-inst cʷ) (occ-all occ) =
+      (cast-inst {B = B} hB occA c⊢ , inst cʷ) (occ-all occ) =
     wp-inst
       (widening-source-path-id-only {α = suc α} α-id (c⊢ , cʷ) occ)
   widening-source-path-id-only α-id
-      (cast-seq c⊢ (cast-tag hG gG tag-ok) , w-tag gG′ cʷ)
+      (cast-seq c⊢ (cast-tag hG gG tag-ok) , ((cʷ ︔ gG′ !)))
       occ =
     ⊥-elim
       (id-only-ground-tag-occurs⊥
@@ -614,7 +604,7 @@ mutual
           α-id (c⊢ , cʷ) (Occurs→occurs-true occ)))
   widening-source-path-id-only α-id
       (cast-seq (cast-unseal {α = β} hA β∈Σ seal-ok) c⊢ ,
-       w-unseal cʷ)
+       unseal︔_ cʷ)
       occ =
     ⊥-elim
       (id-only-seal-var-occurs⊥
@@ -627,18 +617,18 @@ mutual
     Occurs α A →
     WidenPath α A B
   widening-cross-source-path-id-only α-id
-      (cast-id {A = ＇ β} hA id-ok , cw-id-var) occ-var =
+      (cast-id {A = ＇ β} hA id-ok , id-＇) occ-var =
     wp-var
   widening-cross-source-path-id-only α-id
-      (cast-id {A = ‵ ι} hA id-ok , cw-id-base) ()
+      (cast-id {A = ‵ ι} hA id-ok , id-‵) ()
   widening-cross-source-path-id-only α-id
-      (cast-fun s⊢ t⊢ , cw-fun sⁿ tʷ) (occ-fun₁ occ) =
+      (cast-fun s⊢ t⊢ , _↦_ sⁿ tʷ) (occ-fun₁ occ) =
     wp-fun₁ (narrowing-target-path-id-only α-id (s⊢ , sⁿ) occ)
   widening-cross-source-path-id-only α-id
-      (cast-fun s⊢ t⊢ , cw-fun sⁿ tʷ) (occ-fun₂ occ) =
+      (cast-fun s⊢ t⊢ , _↦_ sⁿ tʷ) (occ-fun₂ occ) =
     wp-fun₂ (widening-source-path-id-only α-id (t⊢ , tʷ) occ)
   widening-cross-source-path-id-only {α = α} α-id
-      (cast-all c⊢ , cw-all cʷ) (occ-all occ) =
+      (cast-all c⊢ , `∀ cʷ) (occ-all occ) =
     wp-all
       (widening-source-path-id-only {α = suc α} α-id (c⊢ , cʷ) occ)
 
@@ -648,23 +638,23 @@ mutual
     μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
     occurs α B ≡ true →
     occurs α A ≡ true
-  narrowing-target-id-only α-id (c⊢ , n-cross cⁿ) occ =
+  narrowing-target-id-only α-id (c⊢ , cross cⁿ) occ =
     narrowing-cross-target-id-only α-id (c⊢ , cⁿ) occ
-  narrowing-target-id-only α-id (cast-id wf★ ok , n-id★) ()
+  narrowing-target-id-only α-id (cast-id wf★ ok , id★) ()
   narrowing-target-id-only {α = α} α-id
-      (cast-gen {A = A} hA occB c⊢ , n-gen cⁿ) occ =
+      (cast-gen {A = A} hA occB c⊢ , gen cⁿ) occ =
     trans
       (sym (occurs-raise zero α A))
       (narrowing-target-id-only {α = suc α} α-id (c⊢ , cⁿ) occ)
   narrowing-target-id-only α-id
-      (cast-seq (cast-untag hG gG tag-ok) c⊢ , n-untag gG′ cⁿ)
+      (cast-seq (cast-untag hG gG tag-ok) c⊢ , _？︔_ gG′ cⁿ)
       occ =
     ⊥-elim
       (id-only-ground-tag-occurs⊥
         α-id gG tag-ok
         (narrowing-cross-target-id-only α-id (c⊢ , cⁿ) occ))
   narrowing-target-id-only α-id
-      (cast-seq c⊢ (cast-seal {α = β} hA β∈Σ seal-ok) , n-seal cⁿ)
+      (cast-seq c⊢ (cast-seal {α = β} hA β∈Σ seal-ok) , _︔seal cⁿ)
       occ =
     ⊥-elim (id-only-seal-var-occurs⊥ α-id seal-ok occ)
 
@@ -675,29 +665,29 @@ mutual
     occurs α B ≡ true →
     occurs α A ≡ true
   narrowing-cross-target-id-only α-id
-      (cast-id {A = ＇ β} hA id-ok , cn-id-var) occ =
+      (cast-id {A = ＇ β} hA id-ok , id-＇) occ =
     occ
   narrowing-cross-target-id-only α-id
-      (cast-id {A = ‵ ι} hA id-ok , cn-id-base) ()
+      (cast-id {A = ‵ ι} hA id-ok , id-‵) ()
   narrowing-cross-target-id-only {α = α} α-id
       (cast-fun {A = A} {A′ = A′} {B = B} {B′ = B′} s⊢ t⊢ ,
-       cn-fun sʷ tⁿ)
+       _↦_ sʷ tⁿ)
       occ
       with occurs α A′ | inspect (occurs α) A′
   narrowing-cross-target-id-only {α = α} α-id
       (cast-fun {A = A} {A′ = A′} {B = B} {B′ = B′} s⊢ t⊢ ,
-       cn-fun sʷ tⁿ)
+       _↦_ sʷ tⁿ)
       occ | true | [ eqA′ ]
       rewrite widening-source-id-only α-id (s⊢ , sʷ) eqA′ =
     refl
   narrowing-cross-target-id-only {α = α} α-id
       (cast-fun {A = A} {A′ = A′} {B = B} {B′ = B′} s⊢ t⊢ ,
-       cn-fun sʷ tⁿ)
+       _↦_ sʷ tⁿ)
       occ | false | [ eqA′ ]
       rewrite narrowing-target-id-only α-id (t⊢ , tⁿ) occ =
     ∨-trueʳ (occurs α A)
   narrowing-cross-target-id-only {α = α} α-id
-      (cast-all c⊢ , cn-all cⁿ) occ =
+      (cast-all c⊢ , `∀ cⁿ) occ =
     narrowing-target-id-only {α = suc α} α-id (c⊢ , cⁿ) occ
 
   widening-source-id-only :
@@ -706,16 +696,16 @@ mutual
     μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B →
     occurs α A ≡ true →
     occurs α B ≡ true
-  widening-source-id-only α-id (c⊢ , w-cross cʷ) occ =
+  widening-source-id-only α-id (c⊢ , cross cʷ) occ =
     widening-cross-source-id-only α-id (c⊢ , cʷ) occ
-  widening-source-id-only α-id (cast-id wf★ ok , w-id★) ()
+  widening-source-id-only α-id (cast-id wf★ ok , id★) ()
   widening-source-id-only {α = α} α-id
-      (cast-inst {B = B} hB occA c⊢ , w-inst cʷ) occ =
+      (cast-inst {B = B} hB occA c⊢ , inst cʷ) occ =
     trans
       (sym (occurs-raise zero α B))
       (widening-source-id-only {α = suc α} α-id (c⊢ , cʷ) occ)
   widening-source-id-only α-id
-      (cast-seq c⊢ (cast-tag hG gG tag-ok) , w-tag gG′ cʷ)
+      (cast-seq c⊢ (cast-tag hG gG tag-ok) , ((cʷ ︔ gG′ !)))
       occ =
     ⊥-elim
       (id-only-ground-tag-occurs⊥
@@ -723,7 +713,7 @@ mutual
         (widening-cross-source-id-only α-id (c⊢ , cʷ) occ))
   widening-source-id-only α-id
       (cast-seq (cast-unseal {α = β} hA β∈Σ seal-ok) c⊢ ,
-       w-unseal cʷ)
+       unseal︔_ cʷ)
       occ =
     ⊥-elim (id-only-seal-var-occurs⊥ α-id seal-ok occ)
 
@@ -734,29 +724,29 @@ mutual
     occurs α A ≡ true →
     occurs α B ≡ true
   widening-cross-source-id-only α-id
-      (cast-id {A = ＇ β} hA id-ok , cw-id-var) occ =
+      (cast-id {A = ＇ β} hA id-ok , id-＇) occ =
     occ
   widening-cross-source-id-only α-id
-      (cast-id {A = ‵ ι} hA id-ok , cw-id-base) ()
+      (cast-id {A = ‵ ι} hA id-ok , id-‵) ()
   widening-cross-source-id-only {α = α} α-id
       (cast-fun {A = A} {A′ = A′} {B = B} {B′ = B′} s⊢ t⊢ ,
-       cw-fun sⁿ tʷ)
+       _↦_ sⁿ tʷ)
       occ
       with occurs α A | inspect (occurs α) A
   widening-cross-source-id-only {α = α} α-id
       (cast-fun {A = A} {A′ = A′} {B = B} {B′ = B′} s⊢ t⊢ ,
-       cw-fun sⁿ tʷ)
+       _↦_ sⁿ tʷ)
       occ | true | [ eqA ]
       rewrite narrowing-target-id-only α-id (s⊢ , sⁿ) eqA =
     refl
   widening-cross-source-id-only {α = α} α-id
       (cast-fun {A = A} {A′ = A′} {B = B} {B′ = B′} s⊢ t⊢ ,
-       cw-fun sⁿ tʷ)
+       _↦_ sⁿ tʷ)
       occ | false | [ eqA ]
       rewrite widening-source-id-only α-id (t⊢ , tʷ) occ =
     ∨-trueʳ (occurs α A′)
   widening-cross-source-id-only {α = α} α-id
-      (cast-all c⊢ , cw-all cʷ) occ =
+      (cast-all c⊢ , `∀ cʷ) occ =
     widening-source-id-only {α = suc α} α-id (c⊢ , cʷ) occ
 
 narrowing-cross-ground-target-star⊥ :
@@ -765,13 +755,13 @@ narrowing-cross-ground-target-star⊥ :
   (μ ∣ Δ ∣ Σ ⊢ g ∶ G =⇒ ★) × CrossNarrowing g →
   ⊥
 narrowing-cross-ground-target-star⊥ (＇ α)
-    (() , cn-id-var)
+    (() , id-＇)
 narrowing-cross-ground-target-star⊥ (‵ ι)
-    (() , cn-id-base)
+    (() , id-‵)
 narrowing-cross-ground-target-star⊥ ★⇒★
-    (() , cn-fun sʷ tⁿ)
+    (() , _↦_ sʷ tⁿ)
 narrowing-cross-ground-target-star⊥ gG
-    (() , cn-all gⁿ)
+    (() , `∀ gⁿ)
 
 widening-cross-ground-source-star⊥ :
   ∀ {μ Δ Σ G g} →
@@ -779,13 +769,352 @@ widening-cross-ground-source-star⊥ :
   (μ ∣ Δ ∣ Σ ⊢ g ∶ ★ =⇒ G) × CrossWidening g →
   ⊥
 widening-cross-ground-source-star⊥ (＇ α)
-    (() , cw-id-var)
+    (() , id-＇)
 widening-cross-ground-source-star⊥ (‵ ι)
-    (() , cw-id-base)
+    (() , id-‵)
 widening-cross-ground-source-star⊥ ★⇒★
-    (() , cw-fun sⁿ tʷ)
+    (() , _↦_ sⁿ tʷ)
 widening-cross-ground-source-star⊥ gG
-    (() , cw-all gʷ)
+    (() , `∀ gʷ)
+
+narrowing-target-star-source-star :
+  ∀ {μ Δ Σ c A} →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ ★ →
+  A ≡ ★
+narrowing-target-star-source-star (() , cross id-＇)
+narrowing-target-star-source-star (() , cross id-‵)
+narrowing-target-star-source-star (() , cross (_↦_ sʷ tⁿ))
+narrowing-target-star-source-star (() , cross (`∀ cⁿ))
+narrowing-target-star-source-star (cast-id hA ok , id★) = refl
+narrowing-target-star-source-star
+    (cast-seq (cast-untag hG gG okG) c⊢ , _？︔_ gG′ cⁿ) =
+  ⊥-elim (narrowing-cross-ground-target-star⊥ gG (c⊢ , cⁿ))
+narrowing-target-star-source-star
+    (cast-seq c⊢ () , _︔seal cⁿ)
+
+widening-source-star-target-star :
+  ∀ {μ Δ Σ c B} →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ ★ ⊑ B →
+  B ≡ ★
+widening-source-star-target-star (() , cross id-＇)
+widening-source-star-target-star (() , cross id-‵)
+widening-source-star-target-star (() , cross (_↦_ sⁿ tʷ))
+widening-source-star-target-star (() , cross (`∀ cʷ))
+widening-source-star-target-star (cast-id hA ok , id★) = refl
+widening-source-star-target-star
+    (cast-seq c⊢ (cast-tag hG gG okG) , ((cʷ ︔ gG′ !))) =
+  ⊥-elim (widening-cross-ground-source-star⊥ gG (c⊢ , cʷ))
+widening-source-star-target-star
+    (cast-seq () c⊢ , unseal︔_ cʷ)
+
+narrowing-cross-var-source-target :
+  ∀ {μ Δ Σ α B g} →
+  (μ ∣ Δ ∣ Σ ⊢ g ∶ (＇ α) =⇒ B) × CrossNarrowing g →
+  B ≡ ＇ α
+narrowing-cross-var-source-target (cast-id hA ok , id-＇) = refl
+
+widening-cross-var-target-source :
+  ∀ {μ Δ Σ α A g} →
+  (μ ∣ Δ ∣ Σ ⊢ g ∶ A =⇒ (＇ α)) × CrossWidening g →
+  A ≡ ＇ α
+widening-cross-var-target-source (cast-id hA ok , id-＇) = refl
+
+------------------------------------------------------------------------
+-- Grammar duality flips well-typed narrowing/widening endpoints
+------------------------------------------------------------------------
+
+mutual
+  dualCrossNarrowing-flips-coercionᵐ :
+    ∀ {μ η ν Δ Σ Π c A B} →
+    DualActionOk μ η ν →
+    DualStoreAt Δ μ η ν Σ Π →
+    StoreWfAt Δ Σ →
+    (p : (μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B) × CrossNarrowing c) →
+    ν ∣ Δ ∣ Π ⊢ proj₁ (dualCrossNarrowing η (proj₂ p)) ∶ B =⇒ A
+  dualCrossNarrowing-flips-coercionᵐ rel ds wfΣ
+      (cast-id {A = ＇ α} hA ok , id-＇ {α = .α}) =
+    cast-id {A = ＇ α} hA
+      (dualActionOk-idTyAllowed {A = ＇ α} rel ok)
+  dualCrossNarrowing-flips-coercionᵐ rel ds wfΣ
+      (cast-id {A = ‵ ι} hA ok , id-‵ {ι = .ι}) =
+    cast-id {A = ‵ ι} hA
+      (dualActionOk-idTyAllowed {A = ‵ ι} rel ok)
+  dualCrossNarrowing-flips-coercionᵐ rel ds wfΣ
+      (cast-fun s⊢ t⊢ , _↦_ sʷ tⁿ) =
+    cast-fun
+      (proj₁ (dualʷ-flips-typingᵐ rel ds wfΣ (s⊢ , sʷ)))
+      (proj₁ (dualⁿ-flips-typingᵐ rel ds wfΣ (t⊢ , tⁿ)))
+  dualCrossNarrowing-flips-coercionᵐ rel ds wfΣ
+      (cast-all c⊢ , `∀ cⁿ) =
+    cast-all
+      (proj₁
+        (dualⁿ-flips-typingᵐ
+          (dualActionOk-ext rel)
+          (dualStoreAt-ext ds)
+          (StoreWfAt-⟰ᵗ wfΣ)
+          (c⊢ , cⁿ)))
+
+  dualⁿ-flips-typingᵐ :
+    ∀ {μ η ν Δ Σ Π c A B} →
+    DualActionOk μ η ν →
+    DualStoreAt Δ μ η ν Σ Π →
+    StoreWfAt Δ Σ →
+    (p : μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B) →
+    ν ∣ Δ ∣ Π ⊢ proj₁ (dualⁿ η (proj₂ p)) ∶ B ⊑ A
+  dualⁿ-flips-typingᵐ {η = η} rel ds wfΣ
+      (c⊢ , cross cⁿ) =
+    dualCrossNarrowing-flips-coercionᵐ rel ds wfΣ (c⊢ , cⁿ) ,
+    cross (proj₂ (dualCrossNarrowing η cⁿ))
+  dualⁿ-flips-typingᵐ rel ds wfΣ
+      (cast-id {A = ★} hA ok , id★) =
+    cast-id {A = ★} hA
+      (dualActionOk-idTyAllowed {A = ★} rel ok) ,
+    id★
+  dualⁿ-flips-typingᵐ {η = η} rel ds wfΣ
+      (cast-gen hA occ c⊢ , gen cⁿ) =
+    cast-inst hA occ
+      (proj₁
+        (dualⁿ-flips-typingᵐ
+          (dualActionOk-gen-inst rel)
+          (dualStoreAt-gen-inst ds)
+          (StoreWfAt-⟰ᵗ wfΣ)
+          (c⊢ , cⁿ))) ,
+    inst (proj₂ (dualⁿ (genᵃ η) cⁿ))
+  dualⁿ-flips-typingᵐ {μ = μ} {η = η} {ν = ν}
+      rel ds wfΣ
+      (cast-seq (cast-untag (wfVar α<Δ) (＇ α) ok) g⊢ ,
+       _？︔_ (＇ .α) gⁿ)
+      with μ α in μα | η α in ηα | ν α in να | rel α | ok
+  dualⁿ-flips-typingᵐ rel ds wfΣ
+      (cast-seq (cast-untag (wfVar α<Δ) (＇ α) ok) g⊢ ,
+       _？︔_ (＇ .α) gⁿ)
+      | id-only | normal | id-only | dma-id | ()
+  dualⁿ-flips-typingᵐ {η = η} {ν = ν} rel ds wfΣ
+      (cast-seq (cast-untag (wfVar α<Δ) (＇ α) ok) g⊢ ,
+       _？︔_ (＇ .α) gⁿ)
+      | tag-or-id | normal | tag-or-id | dma-tag | refl =
+    cast-seq
+      (dualCrossNarrowing-flips-coercionᵐ rel ds wfΣ (g⊢ , gⁿ))
+      (cast-tag (wfVar α<Δ) (＇ α)
+        (tagModeAllowed-var-tag {ν = ν} {α = α} να)) ,
+    (proj₂ (dualCrossNarrowing η gⁿ) ︔ (＇ α) !)
+  dualⁿ-flips-typingᵐ rel ds wfΣ
+      (cast-seq (cast-untag (wfVar α<Δ) (＇ α) ok) g⊢ ,
+       _？︔_ (＇ .α) gⁿ)
+      | seal-or-id | normal | seal-or-id | dma-seal | ()
+  dualⁿ-flips-typingᵐ {η = η} {ν = ν} rel ds wfΣ
+      (cast-seq (cast-untag (wfVar α<Δ) (＇ α) ok) g⊢ ,
+       _？︔_ (＇ .α) gⁿ)
+      | tag-or-id | tag-to-seal | seal-or-id | dma-tag-seal | refl
+      rewrite narrowing-cross-var-source-target (g⊢ , gⁿ) =
+    cast-seq
+      (cast-unseal {μ = ν} wf★
+        (CoercionProof.DualStoreAt.tag★∈ ds α<Δ ηα)
+        (sealModeAllowed-var-seal {ν = ν} {α = α} να))
+      (cast-id wf★ refl) ,
+    unseal︔_ id★
+  dualⁿ-flips-typingᵐ rel ds wfΣ
+      (cast-seq (cast-untag (wfVar α<Δ) (＇ α) ok) g⊢ ,
+       _？︔_ (＇ .α) gⁿ)
+      | seal-or-id | seal-to-tag | tag-or-id | dma-seal-tag | ()
+  dualⁿ-flips-typingᵐ {η = η} rel ds wfΣ
+      (cast-seq (cast-untag hG (‵ ι) ok) g⊢ ,
+       _？︔_ (‵ .ι) gⁿ) =
+    cast-seq
+      (dualCrossNarrowing-flips-coercionᵐ rel ds wfΣ (g⊢ , gⁿ))
+      (cast-tag hG (‵ ι) refl) ,
+    (proj₂ (dualCrossNarrowing η gⁿ) ︔ (‵ ι) !)
+  dualⁿ-flips-typingᵐ {η = η} rel ds wfΣ
+      (cast-seq (cast-untag hG ★⇒★ ok) g⊢ ,
+       _？︔_ ★⇒★ gⁿ) =
+    cast-seq
+      (dualCrossNarrowing-flips-coercionᵐ rel ds wfΣ (g⊢ , gⁿ))
+      (cast-tag hG ★⇒★ refl) ,
+    (proj₂ (dualCrossNarrowing η gⁿ) ︔ ★⇒★ !)
+  dualⁿ-flips-typingᵐ {μ = μ} {η = η} {ν = ν}
+      rel ds wfΣ
+      (cast-seq s⊢ (cast-seal {α = α} hA αA∈Σ ok) ,
+       _︔seal {α = .α} sⁿ)
+      with μ α in μα | η α in ηα | ν α in να | rel α | ok
+  dualⁿ-flips-typingᵐ rel ds wfΣ
+      (cast-seq s⊢ (cast-seal hA αA∈Σ ok) ,
+       _︔seal sⁿ)
+      | id-only | normal | id-only | dma-id | ()
+  dualⁿ-flips-typingᵐ rel ds wfΣ
+      (cast-seq s⊢ (cast-seal hA αA∈Σ ok) ,
+       _︔seal sⁿ)
+      | tag-or-id | normal | tag-or-id | dma-tag | ()
+  dualⁿ-flips-typingᵐ {η = η} {ν = ν} rel ds wfΣ
+      (cast-seq s⊢ (cast-seal {α = α} hA αA∈Σ ok) ,
+       _︔seal sⁿ)
+      | seal-or-id | normal | seal-or-id | dma-seal | refl =
+    cast-seq
+      (cast-unseal {μ = ν} hA
+        (CoercionProof.DualStoreAt.seal∈ ds μα ηα να αA∈Σ)
+        (sealModeAllowed-var-seal {ν = ν} {α = α} να))
+      (proj₁ (dualⁿ-flips-typingᵐ rel ds wfΣ (s⊢ , sⁿ))) ,
+    unseal︔_ (proj₂ (dualⁿ η sⁿ))
+  dualⁿ-flips-typingᵐ rel ds wfΣ
+      (cast-seq s⊢ (cast-seal hA αA∈Σ ok) ,
+       _︔seal sⁿ)
+      | tag-or-id | tag-to-seal | seal-or-id | dma-tag-seal | ()
+  dualⁿ-flips-typingᵐ {ν = ν} rel ds wfΣ
+      (cast-seq s⊢ (cast-seal {α = α} hA αA∈Σ ok) ,
+       _︔seal sⁿ)
+      | seal-or-id | seal-to-tag | tag-or-id | dma-seal-tag | refl
+      rewrite CoercionProof.DualStoreAt.seal★ ds ηα αA∈Σ
+            | narrowing-target-star-source-star (s⊢ , sⁿ) =
+    cast-seq
+      (cast-id (wfVar (bound wfΣ αA∈Σ)) (idModeAllowed-any (ν α)))
+      (cast-tag (wfVar (bound wfΣ αA∈Σ)) (＇ α)
+        (tagModeAllowed-var-tag {ν = ν} {α = α} να)) ,
+    (id-＇ ︔ (＇ α) !)
+
+  dualCrossWidening-flips-coercionᵐ :
+    ∀ {μ η ν Δ Σ Π c A B} →
+    DualActionOk μ η ν →
+    DualStoreAt Δ μ η ν Σ Π →
+    StoreWfAt Δ Σ →
+    (p : (μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B) × CrossWidening c) →
+    ν ∣ Δ ∣ Π ⊢ proj₁ (dualCrossWidening η (proj₂ p)) ∶ B =⇒ A
+  dualCrossWidening-flips-coercionᵐ rel ds wfΣ
+      (cast-id {A = ＇ α} hA ok , id-＇ {α = .α}) =
+    cast-id {A = ＇ α} hA
+      (dualActionOk-idTyAllowed {A = ＇ α} rel ok)
+  dualCrossWidening-flips-coercionᵐ rel ds wfΣ
+      (cast-id {A = ‵ ι} hA ok , id-‵ {ι = .ι}) =
+    cast-id {A = ‵ ι} hA
+      (dualActionOk-idTyAllowed {A = ‵ ι} rel ok)
+  dualCrossWidening-flips-coercionᵐ rel ds wfΣ
+      (cast-fun s⊢ t⊢ , _↦_ sⁿ tʷ) =
+    cast-fun
+      (proj₁ (dualⁿ-flips-typingᵐ rel ds wfΣ (s⊢ , sⁿ)))
+      (proj₁ (dualʷ-flips-typingᵐ rel ds wfΣ (t⊢ , tʷ)))
+  dualCrossWidening-flips-coercionᵐ rel ds wfΣ
+      (cast-all c⊢ , `∀ cʷ) =
+    cast-all
+      (proj₁
+        (dualʷ-flips-typingᵐ
+          (dualActionOk-ext rel)
+          (dualStoreAt-ext ds)
+          (StoreWfAt-⟰ᵗ wfΣ)
+          (c⊢ , cʷ)))
+
+  dualʷ-flips-typingᵐ :
+    ∀ {μ η ν Δ Σ Π c A B} →
+    DualActionOk μ η ν →
+    DualStoreAt Δ μ η ν Σ Π →
+    StoreWfAt Δ Σ →
+    (p : μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B) →
+    ν ∣ Δ ∣ Π ⊢ proj₁ (dualʷ η (proj₂ p)) ∶ B ⊒ A
+  dualʷ-flips-typingᵐ {η = η} rel ds wfΣ
+      (c⊢ , cross cʷ) =
+    dualCrossWidening-flips-coercionᵐ rel ds wfΣ (c⊢ , cʷ) ,
+    cross (proj₂ (dualCrossWidening η cʷ))
+  dualʷ-flips-typingᵐ rel ds wfΣ
+      (cast-id {A = ★} hA ok , id★) =
+    cast-id {A = ★} hA
+      (dualActionOk-idTyAllowed {A = ★} rel ok) ,
+    id★
+  dualʷ-flips-typingᵐ {η = η} rel ds wfΣ
+      (cast-inst hB occ c⊢ , inst cʷ) =
+    cast-gen hB occ
+      (proj₁
+        (dualʷ-flips-typingᵐ
+          (dualActionOk-inst-gen rel)
+          (dualStoreAt-inst-gen ds)
+          (StoreWfAt-cons z<s wf★ (StoreWfAt-⟰ᵗ wfΣ))
+          (c⊢ , cʷ))) ,
+    gen (proj₂ (dualʷ (instᵃ η) cʷ))
+  dualʷ-flips-typingᵐ {μ = μ} {η = η} {ν = ν}
+      rel ds wfΣ
+      (cast-seq g⊢ (cast-tag (wfVar α<Δ) (＇ α) ok) ,
+       (gʷ ︔ (＇ .α) !))
+      with μ α in μα | η α in ηα | ν α in να | rel α | ok
+  dualʷ-flips-typingᵐ rel ds wfΣ
+      (cast-seq g⊢ (cast-tag (wfVar α<Δ) (＇ α) ok) ,
+       (gʷ ︔ (＇ .α) !))
+      | id-only | normal | id-only | dma-id | ()
+  dualʷ-flips-typingᵐ {η = η} {ν = ν} rel ds wfΣ
+      (cast-seq g⊢ (cast-tag (wfVar α<Δ) (＇ α) ok) ,
+       (gʷ ︔ (＇ .α) !))
+      | tag-or-id | normal | tag-or-id | dma-tag | refl =
+    cast-seq
+      (cast-untag (wfVar α<Δ) (＇ α)
+        (tagModeAllowed-var-tag {ν = ν} {α = α} να))
+      (dualCrossWidening-flips-coercionᵐ rel ds wfΣ (g⊢ , gʷ)) ,
+    _？︔_ (＇ α) (proj₂ (dualCrossWidening η gʷ))
+  dualʷ-flips-typingᵐ rel ds wfΣ
+      (cast-seq g⊢ (cast-tag (wfVar α<Δ) (＇ α) ok) ,
+       (gʷ ︔ (＇ .α) !))
+      | seal-or-id | normal | seal-or-id | dma-seal | ()
+  dualʷ-flips-typingᵐ {ν = ν} rel ds wfΣ
+      (cast-seq g⊢ (cast-tag (wfVar α<Δ) (＇ α) ok) ,
+       (gʷ ︔ (＇ .α) !))
+      | tag-or-id | tag-to-seal | seal-or-id | dma-tag-seal | refl
+      rewrite widening-cross-var-target-source (g⊢ , gʷ) =
+    cast-seq
+      (cast-id wf★ refl)
+      (cast-seal {μ = ν} wf★
+        (CoercionProof.DualStoreAt.tag★∈ ds α<Δ ηα)
+        (sealModeAllowed-var-seal {ν = ν} {α = α} να)) ,
+    _︔seal id★
+  dualʷ-flips-typingᵐ rel ds wfΣ
+      (cast-seq g⊢ (cast-tag (wfVar α<Δ) (＇ α) ok) ,
+       (gʷ ︔ (＇ .α) !))
+      | seal-or-id | seal-to-tag | tag-or-id | dma-seal-tag | ()
+  dualʷ-flips-typingᵐ {η = η} rel ds wfΣ
+      (cast-seq g⊢ (cast-tag hG (‵ ι) ok) ,
+       (gʷ ︔ (‵ .ι) !)) =
+    cast-seq
+      (cast-untag hG (‵ ι) refl)
+      (dualCrossWidening-flips-coercionᵐ rel ds wfΣ (g⊢ , gʷ)) ,
+    _？︔_ (‵ ι) (proj₂ (dualCrossWidening η gʷ))
+  dualʷ-flips-typingᵐ {η = η} rel ds wfΣ
+      (cast-seq g⊢ (cast-tag hG ★⇒★ ok) ,
+       ((gʷ ︔ ★⇒★ !))) =
+    cast-seq
+      (cast-untag hG ★⇒★ refl)
+      (dualCrossWidening-flips-coercionᵐ rel ds wfΣ (g⊢ , gʷ)) ,
+    _？︔_ ★⇒★ (proj₂ (dualCrossWidening η gʷ))
+  dualʷ-flips-typingᵐ {μ = μ} {η = η} {ν = ν}
+      rel ds wfΣ
+      (cast-seq (cast-unseal {α = α} hA αA∈Σ ok) s⊢ ,
+       unseal︔_ {α = .α} sʷ)
+      with μ α in μα | η α in ηα | ν α in να | rel α | ok
+  dualʷ-flips-typingᵐ rel ds wfΣ
+      (cast-seq (cast-unseal hA αA∈Σ ok) s⊢ ,
+       unseal︔_ sʷ)
+      | id-only | normal | id-only | dma-id | ()
+  dualʷ-flips-typingᵐ rel ds wfΣ
+      (cast-seq (cast-unseal hA αA∈Σ ok) s⊢ ,
+       unseal︔_ sʷ)
+      | tag-or-id | normal | tag-or-id | dma-tag | ()
+  dualʷ-flips-typingᵐ {η = η} {ν = ν} rel ds wfΣ
+      (cast-seq (cast-unseal {α = α} hA αA∈Σ ok) s⊢ ,
+       unseal︔_ sʷ)
+      | seal-or-id | normal | seal-or-id | dma-seal | refl =
+    cast-seq
+      (proj₁ (dualʷ-flips-typingᵐ rel ds wfΣ (s⊢ , sʷ)))
+      (cast-seal {μ = ν} hA
+        (CoercionProof.DualStoreAt.seal∈ ds μα ηα να αA∈Σ)
+        (sealModeAllowed-var-seal {ν = ν} {α = α} να)) ,
+    _︔seal (proj₂ (dualʷ η sʷ))
+  dualʷ-flips-typingᵐ rel ds wfΣ
+      (cast-seq (cast-unseal hA αA∈Σ ok) s⊢ ,
+       unseal︔_ sʷ)
+      | tag-or-id | tag-to-seal | seal-or-id | dma-tag-seal | ()
+  dualʷ-flips-typingᵐ {ν = ν} rel ds wfΣ
+      (cast-seq (cast-unseal {α = α} hA αA∈Σ ok) s⊢ ,
+       unseal︔_ sʷ)
+      | seal-or-id | seal-to-tag | tag-or-id | dma-seal-tag | refl
+      rewrite CoercionProof.DualStoreAt.seal★ ds ηα αA∈Σ
+            | widening-source-star-target-star (s⊢ , sʷ) =
+    cast-seq
+      (cast-untag (wfVar (bound wfΣ αA∈Σ)) (＇ α)
+        (tagModeAllowed-var-tag {ν = ν} {α = α} να))
+      (cast-id (wfVar (bound wfΣ αA∈Σ)) (idModeAllowed-any (ν α))) ,
+    _？︔_ (＇ α) id-＇
 
 widening-cross-ground-source-all⊥ :
   ∀ {μ Δ Σ A G g} →
@@ -793,17 +1122,17 @@ widening-cross-ground-source-all⊥ :
   (μ ∣ Δ ∣ Σ ⊢ g ∶ `∀ A =⇒ G) × CrossWidening g →
   ⊥
 widening-cross-ground-source-all⊥ (＇ α)
-    (() , cw-id-var)
+    (() , id-＇)
 widening-cross-ground-source-all⊥ (‵ ι)
-    (() , cw-id-base)
+    (() , id-‵)
 widening-cross-ground-source-all⊥ ★⇒★
-    (() , cw-fun sⁿ tʷ)
+    (() , _↦_ sⁿ tʷ)
 widening-cross-ground-source-all⊥ (＇ α)
-    (() , cw-all gʷ)
+    (() , `∀ gʷ)
 widening-cross-ground-source-all⊥ (‵ ι)
-    (() , cw-all gʷ)
+    (() , `∀ gʷ)
 widening-cross-ground-source-all⊥ ★⇒★
-    (() , cw-all gʷ)
+    (() , `∀ gʷ)
 
 narrowing-cross-ground-target-all⊥ :
   ∀ {μ Δ Σ A G g} →
@@ -811,17 +1140,17 @@ narrowing-cross-ground-target-all⊥ :
   (μ ∣ Δ ∣ Σ ⊢ g ∶ G =⇒ `∀ A) × CrossNarrowing g →
   ⊥
 narrowing-cross-ground-target-all⊥ (＇ α)
-    (() , cn-id-var)
+    (() , id-＇)
 narrowing-cross-ground-target-all⊥ (‵ ι)
-    (() , cn-id-base)
+    (() , id-‵)
 narrowing-cross-ground-target-all⊥ ★⇒★
-    (() , cn-fun sʷ tⁿ)
+    (() , _↦_ sʷ tⁿ)
 narrowing-cross-ground-target-all⊥ (＇ α)
-    (() , cn-all gⁿ)
+    (() , `∀ gⁿ)
 narrowing-cross-ground-target-all⊥ (‵ ι)
-    (() , cn-all gⁿ)
+    (() , `∀ gⁿ)
 narrowing-cross-ground-target-all⊥ ★⇒★
-    (() , cn-all gⁿ)
+    (() , `∀ gⁿ)
 
 narrowing-cross-ground-target-seal-var⊥ :
   ∀ {μ Δ Σ G A α g} →
@@ -833,14 +1162,14 @@ narrowing-cross-ground-target-seal-var⊥ :
   (μ ∣ Δ ∣ Σ ⊢ g ∶ G =⇒ (＇ α)) × CrossNarrowing g →
   ⊥
 narrowing-cross-ground-target-seal-var⊥ wfΣ (＇ α) tag-ok
-    α∈Σ seal-ok (cast-id hA id-ok , cn-id-var) =
+    α∈Σ seal-ok (cast-id hA id-ok , id-＇) =
   tag-seal-conflict tag-ok seal-ok
 narrowing-cross-ground-target-seal-var⊥ wfΣ (‵ ι) tag-ok
-    α∈Σ seal-ok (() , cn-id-base)
+    α∈Σ seal-ok (() , id-‵)
 narrowing-cross-ground-target-seal-var⊥ wfΣ ★⇒★ tag-ok
-    α∈Σ seal-ok (() , cn-fun sʷ tⁿ)
+    α∈Σ seal-ok (() , _↦_ sʷ tⁿ)
 narrowing-cross-ground-target-seal-var⊥ wfΣ gG tag-ok
-    α∈Σ seal-ok (() , cn-all gⁿ)
+    α∈Σ seal-ok (() , `∀ gⁿ)
 
 widening-cross-ground-source-seal-var⊥ :
   ∀ {μ Δ Σ G A α g} →
@@ -852,14 +1181,14 @@ widening-cross-ground-source-seal-var⊥ :
   (μ ∣ Δ ∣ Σ ⊢ g ∶ (＇ α) =⇒ G) × CrossWidening g →
   ⊥
 widening-cross-ground-source-seal-var⊥ wfΣ (＇ α) tag-ok
-    α∈Σ seal-ok (cast-id hA id-ok , cw-id-var) =
+    α∈Σ seal-ok (cast-id hA id-ok , id-＇) =
   tag-seal-conflict tag-ok seal-ok
 widening-cross-ground-source-seal-var⊥ wfΣ (‵ ι) tag-ok
-    α∈Σ seal-ok (() , cw-id-base)
+    α∈Σ seal-ok (() , id-‵)
 widening-cross-ground-source-seal-var⊥ wfΣ ★⇒★ tag-ok
-    α∈Σ seal-ok (() , cw-fun sⁿ tʷ)
+    α∈Σ seal-ok (() , _↦_ sⁿ tʷ)
 widening-cross-ground-source-seal-var⊥ wfΣ gG tag-ok
-    α∈Σ seal-ok (() , cw-all gʷ)
+    α∈Σ seal-ok (() , `∀ gʷ)
 
 tag-or-id-seal-conflict :
   ∀ {μ : ModeEnv} {α} →
@@ -882,56 +1211,56 @@ narrowing-all-to-var-tag⊥ :
   μ α ≡ tag-or-id →
   μ ∣ Δ ∣ Σ ⊢ c ∶ (`∀ A) ⊒ (＇ α) →
   ⊥
-narrowing-all-to-var-tag⊥ tag-ok (() , n-cross cn-id-var)
-narrowing-all-to-var-tag⊥ tag-ok (() , n-cross cn-id-base)
-narrowing-all-to-var-tag⊥ tag-ok (() , n-cross (cn-fun sʷ tⁿ))
-narrowing-all-to-var-tag⊥ tag-ok (() , n-cross (cn-all sⁿ))
-narrowing-all-to-var-tag⊥ tag-ok (() , n-id★)
-narrowing-all-to-var-tag⊥ tag-ok (() , n-gen sⁿ)
-narrowing-all-to-var-tag⊥ tag-ok (cast-seq () s⊢ , n-untag gG sⁿ)
+narrowing-all-to-var-tag⊥ tag-ok (() , cross id-＇)
+narrowing-all-to-var-tag⊥ tag-ok (() , cross id-‵)
+narrowing-all-to-var-tag⊥ tag-ok (() , cross (_↦_ sʷ tⁿ))
+narrowing-all-to-var-tag⊥ tag-ok (() , cross (`∀ sⁿ))
+narrowing-all-to-var-tag⊥ tag-ok (() , id★)
+narrowing-all-to-var-tag⊥ tag-ok (() , gen sⁿ)
+narrowing-all-to-var-tag⊥ tag-ok (cast-seq () s⊢ , _？︔_ gG sⁿ)
 narrowing-all-to-var-tag⊥ {μ = μ} {α = α} tag-ok
     (cast-seq s⊢ (cast-seal {α = .α} hA α∈Σ seal-ok) ,
-     n-seal sⁿ) =
+     _︔seal sⁿ) =
   tag-or-id-seal-conflict {μ = μ} {α = α} tag-ok seal-ok
 
 narrowing-all-to-fun⊥ :
   ∀ {μ Δ Σ A B C c} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ (`∀ A) ⊒ (B ⇒ C) →
   ⊥
-narrowing-all-to-fun⊥ (() , n-cross cn-id-var)
-narrowing-all-to-fun⊥ (() , n-cross cn-id-base)
-narrowing-all-to-fun⊥ (() , n-cross (cn-fun sʷ tⁿ))
-narrowing-all-to-fun⊥ (() , n-cross (cn-all sⁿ))
-narrowing-all-to-fun⊥ (() , n-id★)
-narrowing-all-to-fun⊥ (() , n-gen sⁿ)
-narrowing-all-to-fun⊥ (cast-seq () s⊢ , n-untag gG sⁿ)
-narrowing-all-to-fun⊥ (cast-seq s⊢ () , n-seal sⁿ)
+narrowing-all-to-fun⊥ (() , cross id-＇)
+narrowing-all-to-fun⊥ (() , cross id-‵)
+narrowing-all-to-fun⊥ (() , cross (_↦_ sʷ tⁿ))
+narrowing-all-to-fun⊥ (() , cross (`∀ sⁿ))
+narrowing-all-to-fun⊥ (() , id★)
+narrowing-all-to-fun⊥ (() , gen sⁿ)
+narrowing-all-to-fun⊥ (cast-seq () s⊢ , _？︔_ gG sⁿ)
+narrowing-all-to-fun⊥ (cast-seq s⊢ () , _︔seal sⁿ)
 
 narrowing-all-to-star⊥ :
   ∀ {μ Δ Σ A c} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ (`∀ A) ⊒ ★ →
   ⊥
-narrowing-all-to-star⊥ (() , n-cross cn-id-var)
-narrowing-all-to-star⊥ (() , n-cross cn-id-base)
-narrowing-all-to-star⊥ (() , n-cross (cn-fun sʷ tⁿ))
-narrowing-all-to-star⊥ (() , n-cross (cn-all sⁿ))
-narrowing-all-to-star⊥ (() , n-id★)
-narrowing-all-to-star⊥ (() , n-gen sⁿ)
-narrowing-all-to-star⊥ (cast-seq () s⊢ , n-untag gG sⁿ)
-narrowing-all-to-star⊥ (cast-seq s⊢ () , n-seal sⁿ)
+narrowing-all-to-star⊥ (() , cross id-＇)
+narrowing-all-to-star⊥ (() , cross id-‵)
+narrowing-all-to-star⊥ (() , cross (_↦_ sʷ tⁿ))
+narrowing-all-to-star⊥ (() , cross (`∀ sⁿ))
+narrowing-all-to-star⊥ (() , id★)
+narrowing-all-to-star⊥ (() , gen sⁿ)
+narrowing-all-to-star⊥ (cast-seq () s⊢ , _？︔_ gG sⁿ)
+narrowing-all-to-star⊥ (cast-seq s⊢ () , _︔seal sⁿ)
 
 narrowing-var-to-star⊥ :
   ∀ {μ Δ Σ α c} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ (＇ α) ⊒ ★ →
   ⊥
-narrowing-var-to-star⊥ (() , n-cross cn-id-var)
-narrowing-var-to-star⊥ (() , n-cross cn-id-base)
-narrowing-var-to-star⊥ (() , n-cross (cn-fun sʷ tⁿ))
-narrowing-var-to-star⊥ (() , n-cross (cn-all sⁿ))
-narrowing-var-to-star⊥ (() , n-id★)
-narrowing-var-to-star⊥ (() , n-gen sⁿ)
-narrowing-var-to-star⊥ (cast-seq () s⊢ , n-untag gG sⁿ)
-narrowing-var-to-star⊥ (cast-seq s⊢ () , n-seal sⁿ)
+narrowing-var-to-star⊥ (() , cross id-＇)
+narrowing-var-to-star⊥ (() , cross id-‵)
+narrowing-var-to-star⊥ (() , cross (_↦_ sʷ tⁿ))
+narrowing-var-to-star⊥ (() , cross (`∀ sⁿ))
+narrowing-var-to-star⊥ (() , id★)
+narrowing-var-to-star⊥ (() , gen sⁿ)
+narrowing-var-to-star⊥ (cast-seq () s⊢ , _？︔_ gG sⁿ)
+narrowing-var-to-star⊥ (cast-seq s⊢ () , _︔seal sⁿ)
 
 narrowing-var≢-to-var-tag⊥ :
   ∀ {μ Δ Σ α β c} →
@@ -940,21 +1269,13 @@ narrowing-var≢-to-var-tag⊥ :
   μ ∣ Δ ∣ Σ ⊢ c ∶ (＇ β) ⊒ (＇ α) →
   ⊥
 narrowing-var≢-to-var-tag⊥ β≢α tag-ok
-    (cast-id hA id-ok , n-cross cn-id-var) =
+    (cast-id hA id-ok , cross id-＇) =
   β≢α refl
 narrowing-var≢-to-var-tag⊥ β≢α tag-ok
-    (() , n-cross cn-id-base)
-narrowing-var≢-to-var-tag⊥ β≢α tag-ok
-    (() , n-cross (cn-fun sʷ tⁿ))
-narrowing-var≢-to-var-tag⊥ β≢α tag-ok
-    (() , n-cross (cn-all sⁿ))
-narrowing-var≢-to-var-tag⊥ β≢α tag-ok (() , n-id★)
-narrowing-var≢-to-var-tag⊥ β≢α tag-ok (() , n-gen sⁿ)
-narrowing-var≢-to-var-tag⊥ β≢α tag-ok
-    (cast-seq () s⊢ , n-untag gG sⁿ)
+    (cast-seq () s⊢ , _？︔_ gG sⁿ)
 narrowing-var≢-to-var-tag⊥ {μ = μ} {α = α} β≢α tag-ok
     (cast-seq s⊢ (cast-seal {α = .α} hA α∈Σ seal-ok) ,
-     n-seal sⁿ) =
+     _︔seal sⁿ) =
   tag-or-id-seal-conflict {μ = μ} {α = α} tag-ok seal-ok
 
 narrowing-skew-var-to-var-tag⊥ :
@@ -973,16 +1294,16 @@ widening-var-to-all-tag⊥ :
   μ α ≡ tag-or-id →
   μ ∣ Δ ∣ Σ ⊢ c ∶ (＇ α) ⊑ (`∀ B) →
   ⊥
-widening-var-to-all-tag⊥ tag-ok (() , w-cross cw-id-var)
-widening-var-to-all-tag⊥ tag-ok (() , w-cross cw-id-base)
-widening-var-to-all-tag⊥ tag-ok (() , w-cross (cw-fun sⁿ tʷ))
-widening-var-to-all-tag⊥ tag-ok (() , w-cross (cw-all sʷ))
-widening-var-to-all-tag⊥ tag-ok (() , w-id★)
-widening-var-to-all-tag⊥ tag-ok (() , w-inst sʷ)
-widening-var-to-all-tag⊥ tag-ok (cast-seq s⊢ () , w-tag gG sʷ)
+widening-var-to-all-tag⊥ tag-ok (() , cross id-＇)
+widening-var-to-all-tag⊥ tag-ok (() , cross id-‵)
+widening-var-to-all-tag⊥ tag-ok (() , cross (_↦_ sⁿ tʷ))
+widening-var-to-all-tag⊥ tag-ok (() , cross (`∀ sʷ))
+widening-var-to-all-tag⊥ tag-ok (() , id★)
+widening-var-to-all-tag⊥ tag-ok (() , inst sʷ)
+widening-var-to-all-tag⊥ tag-ok (cast-seq s⊢ () , ((sʷ ︔ gG !)))
 widening-var-to-all-tag⊥ {μ = μ} {α = α} tag-ok
     (cast-seq (cast-unseal {α = .α} hA α∈Σ seal-ok) s⊢ ,
-     w-unseal sʷ) =
+     unseal︔_ sʷ) =
   tag-or-id-seal-conflict {μ = μ} {α = α} tag-ok seal-ok
 
 widening-var≢-to-var-tag⊥ :
@@ -992,21 +1313,13 @@ widening-var≢-to-var-tag⊥ :
   μ ∣ Δ ∣ Σ ⊢ c ∶ (＇ α) ⊑ (＇ β) →
   ⊥
 widening-var≢-to-var-tag⊥ β≢α tag-ok
-    (cast-id hA id-ok , w-cross cw-id-var) =
+    (cast-id hA id-ok , cross id-＇) =
   β≢α refl
 widening-var≢-to-var-tag⊥ β≢α tag-ok
-    (() , w-cross cw-id-base)
-widening-var≢-to-var-tag⊥ β≢α tag-ok
-    (() , w-cross (cw-fun sⁿ tʷ))
-widening-var≢-to-var-tag⊥ β≢α tag-ok
-    (() , w-cross (cw-all sʷ))
-widening-var≢-to-var-tag⊥ β≢α tag-ok (() , w-id★)
-widening-var≢-to-var-tag⊥ β≢α tag-ok (() , w-inst sʷ)
-widening-var≢-to-var-tag⊥ β≢α tag-ok
-    (cast-seq s⊢ () , w-tag gG sʷ)
+    (cast-seq s⊢ () , ((sʷ ︔ gG !)))
 widening-var≢-to-var-tag⊥ {μ = μ} {α = α} β≢α tag-ok
     (cast-seq (cast-unseal {α = .α} hA α∈Σ seal-ok) s⊢ ,
-     w-unseal sʷ) =
+     unseal︔_ sʷ) =
   tag-or-id-seal-conflict {μ = μ} {α = α} tag-ok seal-ok
 
 widening-var-to-skew-var-tag⊥ :
@@ -1024,40 +1337,40 @@ widening-star-to-all⊥ :
   ∀ {μ Δ Σ B c} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ ★ ⊑ (`∀ B) →
   ⊥
-widening-star-to-all⊥ (() , w-cross cw-id-var)
-widening-star-to-all⊥ (() , w-cross cw-id-base)
-widening-star-to-all⊥ (() , w-cross (cw-fun sⁿ tʷ))
-widening-star-to-all⊥ (() , w-cross (cw-all sʷ))
-widening-star-to-all⊥ (() , w-id★)
-widening-star-to-all⊥ (() , w-inst sʷ)
-widening-star-to-all⊥ (cast-seq s⊢ () , w-tag gG sʷ)
-widening-star-to-all⊥ (cast-seq () s⊢ , w-unseal sʷ)
+widening-star-to-all⊥ (() , cross id-＇)
+widening-star-to-all⊥ (() , cross id-‵)
+widening-star-to-all⊥ (() , cross (_↦_ sⁿ tʷ))
+widening-star-to-all⊥ (() , cross (`∀ sʷ))
+widening-star-to-all⊥ (() , id★)
+widening-star-to-all⊥ (() , inst sʷ)
+widening-star-to-all⊥ (cast-seq s⊢ () , ((sʷ ︔ gG !)))
+widening-star-to-all⊥ (cast-seq () s⊢ , unseal︔_ sʷ)
 
 widening-fun-to-all⊥ :
   ∀ {μ Δ Σ A B C c} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ (A ⇒ B) ⊑ (`∀ C) →
   ⊥
-widening-fun-to-all⊥ (() , w-cross cw-id-var)
-widening-fun-to-all⊥ (() , w-cross cw-id-base)
-widening-fun-to-all⊥ (() , w-cross (cw-fun sⁿ tʷ))
-widening-fun-to-all⊥ (() , w-cross (cw-all sʷ))
-widening-fun-to-all⊥ (() , w-id★)
-widening-fun-to-all⊥ (() , w-inst sʷ)
-widening-fun-to-all⊥ (cast-seq s⊢ () , w-tag gG sʷ)
-widening-fun-to-all⊥ (cast-seq () s⊢ , w-unseal sʷ)
+widening-fun-to-all⊥ (() , cross id-＇)
+widening-fun-to-all⊥ (() , cross id-‵)
+widening-fun-to-all⊥ (() , cross (_↦_ sⁿ tʷ))
+widening-fun-to-all⊥ (() , cross (`∀ sʷ))
+widening-fun-to-all⊥ (() , id★)
+widening-fun-to-all⊥ (() , inst sʷ)
+widening-fun-to-all⊥ (cast-seq s⊢ () , ((sʷ ︔ gG !)))
+widening-fun-to-all⊥ (cast-seq () s⊢ , unseal︔_ sʷ)
 
 widening-star-to-var⊥ :
   ∀ {μ Δ Σ α c} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ ★ ⊑ (＇ α) →
   ⊥
-widening-star-to-var⊥ (() , w-cross cw-id-var)
-widening-star-to-var⊥ (() , w-cross cw-id-base)
-widening-star-to-var⊥ (() , w-cross (cw-fun sⁿ tʷ))
-widening-star-to-var⊥ (() , w-cross (cw-all sʷ))
-widening-star-to-var⊥ (() , w-id★)
-widening-star-to-var⊥ (() , w-inst sʷ)
-widening-star-to-var⊥ (cast-seq s⊢ () , w-tag gG sʷ)
-widening-star-to-var⊥ (cast-seq () s⊢ , w-unseal sʷ)
+widening-star-to-var⊥ (() , cross id-＇)
+widening-star-to-var⊥ (() , cross id-‵)
+widening-star-to-var⊥ (() , cross (_↦_ sⁿ tʷ))
+widening-star-to-var⊥ (() , cross (`∀ sʷ))
+widening-star-to-var⊥ (() , id★)
+widening-star-to-var⊥ (() , inst sʷ)
+widening-star-to-var⊥ (cast-seq s⊢ () , ((sʷ ︔ gG !)))
+widening-star-to-var⊥ (cast-seq () s⊢ , unseal︔_ sʷ)
 
 widening-var-to-all-seal⊥ :
   ∀ {μ Δ Σ α B c} →
@@ -1067,19 +1380,19 @@ widening-var-to-all-seal⊥ :
   μ ∣ Δ ∣ Σ ⊢ c ∶ (＇ α) ⊑ (`∀ B) →
   ⊥
 widening-var-to-all-seal⊥ wfΣ α↦★ seal-ok
-    (() , w-cross cw-id-var)
+    (() , cross id-＇)
 widening-var-to-all-seal⊥ wfΣ α↦★ seal-ok
-    (() , w-cross cw-id-base)
+    (() , cross id-‵)
 widening-var-to-all-seal⊥ wfΣ α↦★ seal-ok
-    (() , w-cross (cw-fun sⁿ tʷ))
+    (() , cross (_↦_ sⁿ tʷ))
 widening-var-to-all-seal⊥ wfΣ α↦★ seal-ok
-    (() , w-cross (cw-all sʷ))
-widening-var-to-all-seal⊥ wfΣ α↦★ seal-ok (() , w-id★)
-widening-var-to-all-seal⊥ wfΣ α↦★ seal-ok (() , w-inst sʷ)
+    (() , cross (`∀ sʷ))
+widening-var-to-all-seal⊥ wfΣ α↦★ seal-ok (() , id★)
+widening-var-to-all-seal⊥ wfΣ α↦★ seal-ok (() , inst sʷ)
 widening-var-to-all-seal⊥ wfΣ α↦★ seal-ok
-    (cast-seq s⊢ () , w-tag gG sʷ)
+    (cast-seq s⊢ () , ((sʷ ︔ gG !)))
 widening-var-to-all-seal⊥ wfΣ α↦★ seal-ok
-    (cast-seq (cast-unseal hA α∈Σ seal-ok′) t⊢ , w-unseal tʷ)
+    (cast-seq (cast-unseal hA α∈Σ seal-ok′) t⊢ , unseal︔_ tʷ)
     rewrite sym (unique wfΣ α↦★ α∈Σ) =
   widening-star-to-all⊥ (t⊢ , tʷ)
 
@@ -1092,20 +1405,12 @@ widening-var≢-to-var-seal⊥ :
   μ ∣ Δ ∣ Σ ⊢ c ∶ (＇ α) ⊑ (＇ β) →
   ⊥
 widening-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (cast-id hA id-ok , w-cross cw-id-var) =
+    (cast-id hA id-ok , cross id-＇) =
   β≢α refl
 widening-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (() , w-cross cw-id-base)
+    (cast-seq s⊢ () , ((sʷ ︔ gG !)))
 widening-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (() , w-cross (cw-fun sⁿ tʷ))
-widening-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (() , w-cross (cw-all sʷ))
-widening-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok (() , w-id★)
-widening-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok (() , w-inst sʷ)
-widening-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (cast-seq s⊢ () , w-tag gG sʷ)
-widening-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (cast-seq (cast-unseal hA α∈Σ seal-ok′) t⊢ , w-unseal tʷ)
+    (cast-seq (cast-unseal hA α∈Σ seal-ok′) t⊢ , unseal︔_ tʷ)
     rewrite sym (unique wfΣ α↦★ α∈Σ) =
   widening-star-to-var⊥ (t⊢ , tʷ)
 
@@ -1133,19 +1438,19 @@ narrowing-all-to-var-seal⊥ :
   μ ∣ Δ ∣ Σ ⊢ c ∶ (`∀ A) ⊒ (＇ α) →
   ⊥
 narrowing-all-to-var-seal⊥ wfΣ α↦★ seal-ok
-    (() , n-cross cn-id-var)
+    (() , cross id-＇)
 narrowing-all-to-var-seal⊥ wfΣ α↦★ seal-ok
-    (() , n-cross cn-id-base)
+    (() , cross id-‵)
 narrowing-all-to-var-seal⊥ wfΣ α↦★ seal-ok
-    (() , n-cross (cn-fun sʷ tⁿ))
+    (() , cross (_↦_ sʷ tⁿ))
 narrowing-all-to-var-seal⊥ wfΣ α↦★ seal-ok
-    (() , n-cross (cn-all sⁿ))
-narrowing-all-to-var-seal⊥ wfΣ α↦★ seal-ok (() , n-id★)
-narrowing-all-to-var-seal⊥ wfΣ α↦★ seal-ok (() , n-gen sⁿ)
+    (() , cross (`∀ sⁿ))
+narrowing-all-to-var-seal⊥ wfΣ α↦★ seal-ok (() , id★)
+narrowing-all-to-var-seal⊥ wfΣ α↦★ seal-ok (() , gen sⁿ)
 narrowing-all-to-var-seal⊥ wfΣ α↦★ seal-ok
-    (cast-seq () s⊢ , n-untag gG sⁿ)
+    (cast-seq () s⊢ , _？︔_ gG sⁿ)
 narrowing-all-to-var-seal⊥ wfΣ α↦★ seal-ok
-    (cast-seq s⊢ (cast-seal hA α∈Σ seal-ok′) , n-seal sⁿ)
+    (cast-seq s⊢ (cast-seal hA α∈Σ seal-ok′) , _︔seal sⁿ)
     rewrite sym (unique wfΣ α↦★ α∈Σ) =
   narrowing-all-to-star⊥ (s⊢ , sⁿ)
 
@@ -1158,20 +1463,12 @@ narrowing-var≢-to-var-seal⊥ :
   μ ∣ Δ ∣ Σ ⊢ c ∶ (＇ β) ⊒ (＇ α) →
   ⊥
 narrowing-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (cast-id hA id-ok , n-cross cn-id-var) =
+    (cast-id hA id-ok , cross id-＇) =
   β≢α refl
 narrowing-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (() , n-cross cn-id-base)
+    (cast-seq () s⊢ , _？︔_ gG sⁿ)
 narrowing-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (() , n-cross (cn-fun sʷ tⁿ))
-narrowing-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (() , n-cross (cn-all sⁿ))
-narrowing-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok (() , n-id★)
-narrowing-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok (() , n-gen sⁿ)
-narrowing-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (cast-seq () s⊢ , n-untag gG sⁿ)
-narrowing-var≢-to-var-seal⊥ wfΣ α↦★ β≢α seal-ok
-    (cast-seq s⊢ (cast-seal hA α∈Σ seal-ok′) , n-seal sⁿ)
+    (cast-seq s⊢ (cast-seal hA α∈Σ seal-ok′) , _︔seal sⁿ)
     rewrite sym (unique wfΣ α↦★ α∈Σ) =
   narrowing-var-to-star⊥ (s⊢ , sⁿ)
 
@@ -1520,36 +1817,36 @@ mutual
     narrowing-all-to-var-tag⊥ tag-ok t⊒
   narrowing-tag-spine-overlap⊥ tag-ok (np-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-fun s⊢ t⊢ , n-cross (cn-fun sʷ tⁿ)) =
+      (cast-fun s⊢ t⊢ , cross (_↦_ sʷ tⁿ)) =
     widening-tag-spine-overlap⊥ tag-ok p
       (spine-renamed {T = T₁} refl refl)
       (∨-falseˡ fresh)
       (s⊢ , sʷ)
   narrowing-tag-spine-overlap⊥ tag-ok (np-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-fun s⊢ t⊢ , n-cross (cn-fun sʷ tⁿ)) =
+      (cast-fun s⊢ t⊢ , cross (_↦_ sʷ tⁿ)) =
     narrowing-tag-spine-overlap⊥ tag-ok p
       (spine-renamed {T = T₂} refl refl)
       (∨-falseʳ {b = occurs _ (renameᵗ _ T₁)} fresh)
       (t⊢ , tⁿ)
   narrowing-tag-spine-overlap⊥ tag-ok (np-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-id hA ok , n-cross ())
+      (cast-id hA ok , cross ())
   narrowing-tag-spine-overlap⊥ tag-ok (np-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-id hA ok , n-cross ())
+      (cast-id hA ok , cross ())
   narrowing-tag-spine-overlap⊥ tag-ok (np-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq () t⊢ , n-untag gG tⁿ)
+      (cast-seq () t⊢ , _？︔_ gG tⁿ)
   narrowing-tag-spine-overlap⊥ tag-ok (np-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq () t⊢ , n-untag gG tⁿ)
+      (cast-seq () t⊢ , _？︔_ gG tⁿ)
   narrowing-tag-spine-overlap⊥ tag-ok (np-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq t⊢ () , n-seal tⁿ)
+      (cast-seq t⊢ () , _︔seal tⁿ)
   narrowing-tag-spine-overlap⊥ tag-ok (np-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq t⊢ () , n-seal tⁿ)
+      (cast-seq t⊢ () , _︔seal tⁿ)
   narrowing-tag-spine-overlap⊥ tag-ok (np-fun₁ p)
       (spine-right-all sp) fresh t⊒ =
     narrowing-all-to-fun⊥ t⊒
@@ -1557,11 +1854,11 @@ mutual
       (spine-right-all sp) fresh t⊒ =
     narrowing-all-to-fun⊥ t⊒
   narrowing-tag-spine-overlap⊥ {C = C} {α = α} tag-ok (np-all p)
-      sp fresh (cast-all t⊢ , n-cross (cn-all tⁿ)) =
+      sp fresh (cast-all t⊢ , cross (`∀ tⁿ)) =
     narrowing-tag-spine-overlap⊥
       tag-ok p (spine-strip-both sp) fresh (t⊢ , tⁿ)
   narrowing-tag-spine-overlap⊥ {C = C} {α = α} tag-ok (np-all p)
-      sp fresh (cast-gen hC occC t⊢ , n-gen tⁿ) =
+      sp fresh (cast-gen hC occC t⊢ , gen tⁿ) =
     narrowing-tag-spine-overlap⊥
       tag-ok
       p
@@ -1569,21 +1866,21 @@ mutual
       (trans (occurs-raise zero α C) fresh)
       (t⊢ , tⁿ)
   narrowing-tag-spine-overlap⊥ tag-ok (np-all p) sp fresh
-      (cast-seq (cast-untag hG gG okG) t⊢ , n-untag gG′ tⁿ) =
+      (cast-seq (cast-untag hG gG okG) t⊢ , _？︔_ gG′ tⁿ) =
     narrowing-cross-ground-target-all⊥ gG (t⊢ , tⁿ)
   narrowing-tag-spine-overlap⊥ tag-ok (np-all p) sp fresh
-      (cast-id hA ok , n-cross ())
+      (cast-id hA ok , cross ())
   narrowing-tag-spine-overlap⊥ tag-ok (np-all p) sp fresh
-      (cast-unseal hA α∈Σ ok , n-cross ())
+      (cast-unseal hA α∈Σ ok , cross ())
   narrowing-tag-spine-overlap⊥ tag-ok (np-all p) sp fresh
-      (cast-inst hA occ t⊢ , n-cross ())
+      (cast-inst hA occ t⊢ , cross ())
   narrowing-tag-spine-overlap⊥ {C = `∀ C} {α = α} tag-ok
       (np-gen p) sp fresh
-      (cast-all t⊢ , n-cross (cn-all tⁿ)) =
+      (cast-all t⊢ , cross (`∀ tⁿ)) =
     narrowing-tag-spine-overlap⊥
       tag-ok p (spine-peel-right suc sp) fresh (t⊢ , tⁿ)
   narrowing-tag-spine-overlap⊥ {C = C} {α = α} tag-ok
-      (np-gen p) sp fresh (cast-gen hC occC t⊢ , n-gen tⁿ) =
+      (np-gen p) sp fresh (cast-gen hC occC t⊢ , gen tⁿ) =
     narrowing-tag-spine-overlap⊥
       tag-ok
       p
@@ -1591,14 +1888,14 @@ mutual
       (trans (occurs-raise zero α C) fresh)
       (t⊢ , tⁿ)
   narrowing-tag-spine-overlap⊥ tag-ok (np-gen p) sp fresh
-      (cast-seq (cast-untag hG gG okG) t⊢ , n-untag gG′ tⁿ) =
+      (cast-seq (cast-untag hG gG okG) t⊢ , _？︔_ gG′ tⁿ) =
     narrowing-cross-ground-target-all⊥ gG (t⊢ , tⁿ)
   narrowing-tag-spine-overlap⊥ tag-ok (np-gen p) sp fresh
-      (cast-id hA ok , n-cross ())
+      (cast-id hA ok , cross ())
   narrowing-tag-spine-overlap⊥ tag-ok (np-gen p) sp fresh
-      (cast-unseal hA α∈Σ ok , n-cross ())
+      (cast-unseal hA α∈Σ ok , cross ())
   narrowing-tag-spine-overlap⊥ tag-ok (np-gen p) sp fresh
-      (cast-inst hA occ t⊢ , n-cross ())
+      (cast-inst hA occ t⊢ , cross ())
 
   widening-tag-spine-overlap⊥ :
     ∀ {μ Δ Σ A B C t α} →
@@ -1617,36 +1914,36 @@ mutual
     widening-var-to-all-tag⊥ tag-ok t⊑
   widening-tag-spine-overlap⊥ tag-ok (wp-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-fun s⊢ t⊢ , w-cross (cw-fun sⁿ tʷ)) =
+      (cast-fun s⊢ t⊢ , cross (_↦_ sⁿ tʷ)) =
     narrowing-tag-spine-overlap⊥ tag-ok p
       (spine-renamed {T = T₁} refl refl)
       (∨-falseˡ fresh)
       (s⊢ , sⁿ)
   widening-tag-spine-overlap⊥ tag-ok (wp-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-fun s⊢ t⊢ , w-cross (cw-fun sⁿ tʷ)) =
+      (cast-fun s⊢ t⊢ , cross (_↦_ sⁿ tʷ)) =
     widening-tag-spine-overlap⊥ tag-ok p
       (spine-renamed {T = T₂} refl refl)
       (∨-falseʳ {b = occurs _ (renameᵗ _ T₁)} fresh)
       (t⊢ , tʷ)
   widening-tag-spine-overlap⊥ tag-ok (wp-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-id hA ok , w-cross ())
+      (cast-id hA ok , cross ())
   widening-tag-spine-overlap⊥ tag-ok (wp-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-id hA ok , w-cross ())
+      (cast-id hA ok , cross ())
   widening-tag-spine-overlap⊥ tag-ok (wp-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq t⊢ () , w-tag gG tʷ)
+      (cast-seq t⊢ () , ((tʷ ︔ gG !)))
   widening-tag-spine-overlap⊥ tag-ok (wp-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq t⊢ () , w-tag gG tʷ)
+      (cast-seq t⊢ () , ((tʷ ︔ gG !)))
   widening-tag-spine-overlap⊥ tag-ok (wp-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq () t⊢ , w-unseal tʷ)
+      (cast-seq () t⊢ , unseal︔_ tʷ)
   widening-tag-spine-overlap⊥ tag-ok (wp-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq () t⊢ , w-unseal tʷ)
+      (cast-seq () t⊢ , unseal︔_ tʷ)
   widening-tag-spine-overlap⊥ tag-ok (wp-fun₁ p)
       (spine-right-all sp) fresh t⊑ =
     widening-fun-to-all⊥ t⊑
@@ -1654,11 +1951,11 @@ mutual
       (spine-right-all sp) fresh t⊑ =
     widening-fun-to-all⊥ t⊑
   widening-tag-spine-overlap⊥ {C = C} {α = α} tag-ok (wp-all p)
-      sp fresh (cast-all t⊢ , w-cross (cw-all tʷ)) =
+      sp fresh (cast-all t⊢ , cross (`∀ tʷ)) =
     widening-tag-spine-overlap⊥
       tag-ok p (spine-strip-both sp) fresh (t⊢ , tʷ)
   widening-tag-spine-overlap⊥ {C = C} {α = α} tag-ok (wp-all p)
-      sp fresh (cast-inst hC occC t⊢ , w-inst tʷ) =
+      sp fresh (cast-inst hC occC t⊢ , inst tʷ) =
     widening-tag-spine-overlap⊥
       tag-ok
       p
@@ -1666,20 +1963,20 @@ mutual
       (trans (occurs-raise zero α C) fresh)
       (t⊢ , tʷ)
   widening-tag-spine-overlap⊥ tag-ok (wp-all p) sp fresh
-      (cast-seq t⊢ (cast-tag hG gG okG) , w-tag gG′ tʷ) =
+      (cast-seq t⊢ (cast-tag hG gG okG) , ((tʷ ︔ gG′ !))) =
     widening-cross-ground-source-all⊥ gG (t⊢ , tʷ)
   widening-tag-spine-overlap⊥ tag-ok (wp-all p) sp fresh
-      (cast-id hA ok , w-cross ())
+      (cast-id hA ok , cross ())
   widening-tag-spine-overlap⊥ tag-ok (wp-all p) sp fresh
-      (cast-seal hA α∈Σ ok , w-cross ())
+      (cast-seal hA α∈Σ ok , cross ())
   widening-tag-spine-overlap⊥ tag-ok (wp-all p) sp fresh
-      (cast-gen hA occ t⊢ , w-cross ())
+      (cast-gen hA occ t⊢ , cross ())
   widening-tag-spine-overlap⊥ {C = `∀ C} tag-ok (wp-inst p) sp
-      fresh (cast-all t⊢ , w-cross (cw-all tʷ)) =
+      fresh (cast-all t⊢ , cross (`∀ tʷ)) =
     widening-tag-spine-overlap⊥
       tag-ok p (spine-peel-right suc sp) fresh (t⊢ , tʷ)
   widening-tag-spine-overlap⊥ {C = C} {α = α} tag-ok
-      (wp-inst p) sp fresh (cast-inst hC occC t⊢ , w-inst tʷ) =
+      (wp-inst p) sp fresh (cast-inst hC occC t⊢ , inst tʷ) =
     widening-tag-spine-overlap⊥
       tag-ok
       p
@@ -1687,14 +1984,14 @@ mutual
       (trans (occurs-raise zero α C) fresh)
       (t⊢ , tʷ)
   widening-tag-spine-overlap⊥ tag-ok (wp-inst p) sp fresh
-      (cast-seq t⊢ (cast-tag hG gG okG) , w-tag gG′ tʷ) =
+      (cast-seq t⊢ (cast-tag hG gG okG) , ((tʷ ︔ gG′ !))) =
     widening-cross-ground-source-all⊥ gG (t⊢ , tʷ)
   widening-tag-spine-overlap⊥ tag-ok (wp-inst p) sp fresh
-      (cast-id hA ok , w-cross ())
+      (cast-id hA ok , cross ())
   widening-tag-spine-overlap⊥ tag-ok (wp-inst p) sp fresh
-      (cast-seal hA α∈Σ ok , w-cross ())
+      (cast-seal hA α∈Σ ok , cross ())
   widening-tag-spine-overlap⊥ tag-ok (wp-inst p) sp fresh
-      (cast-gen hA occ t⊢ , w-cross ())
+      (cast-gen hA occ t⊢ , cross ())
 
   narrowing-seal-spine-overlap⊥ :
     ∀ {μ Δ Σ A B C t α} →
@@ -1715,36 +2012,36 @@ mutual
     narrowing-all-to-var-seal⊥ wfΣ α↦★ seal-ok t⊒
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-fun s⊢ t⊢ , n-cross (cn-fun sʷ tⁿ)) =
+      (cast-fun s⊢ t⊢ , cross (_↦_ sʷ tⁿ)) =
     widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok p
       (spine-renamed {T = T₁} refl refl)
       (∨-falseˡ fresh)
       (s⊢ , sʷ)
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-fun s⊢ t⊢ , n-cross (cn-fun sʷ tⁿ)) =
+      (cast-fun s⊢ t⊢ , cross (_↦_ sʷ tⁿ)) =
     narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok p
       (spine-renamed {T = T₂} refl refl)
       (∨-falseʳ {b = occurs _ (renameᵗ _ T₁)} fresh)
       (t⊢ , tⁿ)
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-id hA ok , n-cross ())
+      (cast-id hA ok , cross ())
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-id hA ok , n-cross ())
+      (cast-id hA ok , cross ())
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq () t⊢ , n-untag gG tⁿ)
+      (cast-seq () t⊢ , _？︔_ gG tⁿ)
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq () t⊢ , n-untag gG tⁿ)
+      (cast-seq () t⊢ , _？︔_ gG tⁿ)
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq t⊢ () , n-seal tⁿ)
+      (cast-seq t⊢ () , _︔seal tⁿ)
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq t⊢ () , n-seal tⁿ)
+      (cast-seq t⊢ () , _︔seal tⁿ)
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-fun₁ p)
       (spine-right-all sp) fresh t⊒ =
     narrowing-all-to-fun⊥ t⊒
@@ -1752,7 +2049,7 @@ mutual
       (spine-right-all sp) fresh t⊒ =
     narrowing-all-to-fun⊥ t⊒
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-all p)
-      sp fresh (cast-all t⊢ , n-cross (cn-all tⁿ)) =
+      sp fresh (cast-all t⊢ , cross (`∀ tⁿ)) =
     narrowing-seal-spine-overlap⊥
       (StoreDetWf-⟰ᵗ wfΣ)
       (∈-renameStoreᵗ suc α↦★)
@@ -1762,7 +2059,7 @@ mutual
       fresh
       (t⊢ , tⁿ)
   narrowing-seal-spine-overlap⊥ {C = C} {α = α} wfΣ α↦★
-      seal-ok (np-all p) sp fresh (cast-gen hC occC t⊢ , n-gen tⁿ) =
+      seal-ok (np-all p) sp fresh (cast-gen hC occC t⊢ , gen tⁿ) =
     narrowing-seal-spine-overlap⊥
       (StoreDetWf-⟰ᵗ wfΣ)
       (∈-renameStoreᵗ suc α↦★)
@@ -1773,16 +2070,16 @@ mutual
       (t⊢ , tⁿ)
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-all p)
       sp fresh (cast-seq (cast-untag hG gG okG) t⊢ ,
-                n-untag gG′ tⁿ) =
+                _？︔_ gG′ tⁿ) =
     narrowing-cross-ground-target-all⊥ gG (t⊢ , tⁿ)
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-all p)
-      sp fresh (cast-id hA ok , n-cross ())
+      sp fresh (cast-id hA ok , cross ())
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-all p)
-      sp fresh (cast-unseal hA α∈Σ ok , n-cross ())
+      sp fresh (cast-unseal hA α∈Σ ok , cross ())
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-all p)
-      sp fresh (cast-inst hA occ t⊢ , n-cross ())
+      sp fresh (cast-inst hA occ t⊢ , cross ())
   narrowing-seal-spine-overlap⊥ {C = `∀ C} wfΣ α↦★ seal-ok
-      (np-gen p) sp fresh (cast-all t⊢ , n-cross (cn-all tⁿ)) =
+      (np-gen p) sp fresh (cast-all t⊢ , cross (`∀ tⁿ)) =
     narrowing-seal-spine-overlap⊥
       (StoreDetWf-⟰ᵗ wfΣ)
       (∈-renameStoreᵗ suc α↦★)
@@ -1792,7 +2089,7 @@ mutual
       fresh
       (t⊢ , tⁿ)
   narrowing-seal-spine-overlap⊥ {C = C} {α = α} wfΣ α↦★
-      seal-ok (np-gen p) sp fresh (cast-gen hC occC t⊢ , n-gen tⁿ) =
+      seal-ok (np-gen p) sp fresh (cast-gen hC occC t⊢ , gen tⁿ) =
     narrowing-seal-spine-overlap⊥
       (StoreDetWf-⟰ᵗ wfΣ)
       (∈-renameStoreᵗ suc α↦★)
@@ -1803,14 +2100,14 @@ mutual
       (t⊢ , tⁿ)
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-gen p)
       sp fresh (cast-seq (cast-untag hG gG okG) t⊢ ,
-                n-untag gG′ tⁿ) =
+                _？︔_ gG′ tⁿ) =
     narrowing-cross-ground-target-all⊥ gG (t⊢ , tⁿ)
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-gen p)
-      sp fresh (cast-id hA ok , n-cross ())
+      sp fresh (cast-id hA ok , cross ())
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-gen p)
-      sp fresh (cast-unseal hA α∈Σ ok , n-cross ())
+      sp fresh (cast-unseal hA α∈Σ ok , cross ())
   narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (np-gen p)
-      sp fresh (cast-inst hA occ t⊢ , n-cross ())
+      sp fresh (cast-inst hA occ t⊢ , cross ())
 
   widening-seal-spine-overlap⊥ :
     ∀ {μ Δ Σ A B C t α} →
@@ -1831,36 +2128,36 @@ mutual
     widening-var-to-all-seal⊥ wfΣ α↦★ seal-ok t⊑
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-fun s⊢ t⊢ , w-cross (cw-fun sⁿ tʷ)) =
+      (cast-fun s⊢ t⊢ , cross (_↦_ sⁿ tʷ)) =
     narrowing-seal-spine-overlap⊥ wfΣ α↦★ seal-ok p
       (spine-renamed {T = T₁} refl refl)
       (∨-falseˡ fresh)
       (s⊢ , sⁿ)
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-fun s⊢ t⊢ , w-cross (cw-fun sⁿ tʷ)) =
+      (cast-fun s⊢ t⊢ , cross (_↦_ sⁿ tʷ)) =
     widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok p
       (spine-renamed {T = T₂} refl refl)
       (∨-falseʳ {b = occurs _ (renameᵗ _ T₁)} fresh)
       (t⊢ , tʷ)
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-id hA ok , w-cross ())
+      (cast-id hA ok , cross ())
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-id hA ok , w-cross ())
+      (cast-id hA ok , cross ())
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq t⊢ () , w-tag gG tʷ)
+      (cast-seq t⊢ () , ((tʷ ︔ gG !)))
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq t⊢ () , w-tag gG tʷ)
+      (cast-seq t⊢ () , ((tʷ ︔ gG !)))
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-fun₁ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq () t⊢ , w-unseal tʷ)
+      (cast-seq () t⊢ , unseal︔_ tʷ)
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-fun₂ p)
       (spine-renamed {T = T₁ ⇒ T₂} refl refl) fresh
-      (cast-seq () t⊢ , w-unseal tʷ)
+      (cast-seq () t⊢ , unseal︔_ tʷ)
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-fun₁ p)
       (spine-right-all sp) fresh t⊑ =
     widening-fun-to-all⊥ t⊑
@@ -1868,7 +2165,7 @@ mutual
       (spine-right-all sp) fresh t⊑ =
     widening-fun-to-all⊥ t⊑
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-all p)
-      sp fresh (cast-all t⊢ , w-cross (cw-all tʷ)) =
+      sp fresh (cast-all t⊢ , cross (`∀ tʷ)) =
     widening-seal-spine-overlap⊥
       (StoreDetWf-⟰ᵗ wfΣ)
       (∈-renameStoreᵗ suc α↦★)
@@ -1878,7 +2175,7 @@ mutual
       fresh
       (t⊢ , tʷ)
   widening-seal-spine-overlap⊥ {C = C} {α = α} wfΣ α↦★
-      seal-ok (wp-all p) sp fresh (cast-inst hC occC t⊢ , w-inst tʷ) =
+      seal-ok (wp-all p) sp fresh (cast-inst hC occC t⊢ , inst tʷ) =
     widening-seal-spine-overlap⊥
       (StoreDetWf-inst wfΣ)
       (there (∈-renameStoreᵗ suc α↦★))
@@ -1889,16 +2186,16 @@ mutual
       (t⊢ , tʷ)
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-all p)
       sp fresh (cast-seq t⊢ (cast-tag hG gG okG) ,
-                w-tag gG′ tʷ) =
+                ((tʷ ︔ gG′ !))) =
     widening-cross-ground-source-all⊥ gG (t⊢ , tʷ)
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-all p)
-      sp fresh (cast-id hA ok , w-cross ())
+      sp fresh (cast-id hA ok , cross ())
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-all p)
-      sp fresh (cast-seal hA α∈Σ ok , w-cross ())
+      sp fresh (cast-seal hA α∈Σ ok , cross ())
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-all p)
-      sp fresh (cast-gen hA occ t⊢ , w-cross ())
+      sp fresh (cast-gen hA occ t⊢ , cross ())
   widening-seal-spine-overlap⊥ {C = `∀ C} wfΣ α↦★ seal-ok
-      (wp-inst p) sp fresh (cast-all t⊢ , w-cross (cw-all tʷ)) =
+      (wp-inst p) sp fresh (cast-all t⊢ , cross (`∀ tʷ)) =
     widening-seal-spine-overlap⊥
       (StoreDetWf-⟰ᵗ wfΣ)
       (∈-renameStoreᵗ suc α↦★)
@@ -1908,7 +2205,7 @@ mutual
       fresh
       (t⊢ , tʷ)
   widening-seal-spine-overlap⊥ {C = C} {α = α} wfΣ α↦★
-      seal-ok (wp-inst p) sp fresh (cast-inst hC occC t⊢ , w-inst tʷ) =
+      seal-ok (wp-inst p) sp fresh (cast-inst hC occC t⊢ , inst tʷ) =
     widening-seal-spine-overlap⊥
       (StoreDetWf-inst wfΣ)
       (there (∈-renameStoreᵗ suc α↦★))
@@ -1919,14 +2216,14 @@ mutual
       (t⊢ , tʷ)
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-inst p)
       sp fresh (cast-seq t⊢ (cast-tag hG gG okG) ,
-                w-tag gG′ tʷ) =
+                ((tʷ ︔ gG′ !))) =
     widening-cross-ground-source-all⊥ gG (t⊢ , tʷ)
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-inst p)
-      sp fresh (cast-id hA ok , w-cross ())
+      sp fresh (cast-id hA ok , cross ())
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-inst p)
-      sp fresh (cast-seal hA α∈Σ ok , w-cross ())
+      sp fresh (cast-seal hA α∈Σ ok , cross ())
   widening-seal-spine-overlap⊥ wfΣ α↦★ seal-ok (wp-inst p)
-      sp fresh (cast-gen hA occ t⊢ , w-cross ())
+      sp fresh (cast-gen hA occ t⊢ , cross ())
 
 narrowing-tag-gap-overlap⊥ :
   ∀ {μ Δ Σ A B C t α} →
@@ -2040,138 +2337,138 @@ mutual
     μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ B →
     s ≡ t
   narrowing-determinedᵐ-det wfΣ
-      (cast-seal hA α∈Σ ok , n-cross ()) t⊒
+      (cast-seal hA α∈Σ ok , cross ()) t⊒
   narrowing-determinedᵐ-det wfΣ
-      (cast-unseal hA α∈Σ ok , n-cross ()) t⊒
+      (cast-unseal hA α∈Σ ok , cross ()) t⊒
   narrowing-determinedᵐ-det wfΣ
-      (cast-tag hG gG ok , n-cross ()) t⊒
+      (cast-tag hG gG ok , cross ()) t⊒
   narrowing-determinedᵐ-det wfΣ
-      (cast-untag hG gG ok , n-cross ()) t⊒
+      (cast-untag hG gG ok , cross ()) t⊒
   narrowing-determinedᵐ-det wfΣ
-      (cast-inst hB occ c⊢ , n-cross ()) t⊒
+      (cast-inst hB occ c⊢ , cross ()) t⊒
   narrowing-determinedᵐ-det wfΣ
-      (cast-seq s⊢ t⊢ , n-cross ()) u⊒
+      (cast-seq s⊢ t⊢ , cross ()) u⊒
   narrowing-determinedᵐ-det wfΣ
-      (cast-id {A = A ⇒ B} hA ok , n-cross ()) t⊒
+      (cast-id {A = A ⇒ B} hA ok , cross ()) t⊒
   narrowing-determinedᵐ-det wfΣ
-      (cast-id {A = `∀ A} hA ok , n-cross ()) t⊒
+      (cast-id {A = `∀ A} hA ok , cross ()) t⊒
   narrowing-determinedᵐ-det wfΣ s⊒
-      (cast-seal hA α∈Σ ok , n-cross ())
+      (cast-seal hA α∈Σ ok , cross ())
   narrowing-determinedᵐ-det wfΣ s⊒
-      (cast-unseal hA α∈Σ ok , n-cross ())
+      (cast-unseal hA α∈Σ ok , cross ())
   narrowing-determinedᵐ-det wfΣ s⊒
-      (cast-tag hG gG ok , n-cross ())
+      (cast-tag hG gG ok , cross ())
   narrowing-determinedᵐ-det wfΣ s⊒
-      (cast-untag hG gG ok , n-cross ())
+      (cast-untag hG gG ok , cross ())
   narrowing-determinedᵐ-det wfΣ s⊒
-      (cast-inst hB occ c⊢ , n-cross ())
+      (cast-inst hB occ c⊢ , cross ())
   narrowing-determinedᵐ-det wfΣ s⊒
-      (cast-seq t⊢ u⊢ , n-cross ())
+      (cast-seq t⊢ u⊢ , cross ())
   narrowing-determinedᵐ-det wfΣ s⊒
-      (cast-id {A = A ⇒ B} hA ok , n-cross ())
+      (cast-id {A = A ⇒ B} hA ok , cross ())
   narrowing-determinedᵐ-det wfΣ s⊒
-      (cast-id {A = `∀ A} hA ok , n-cross ())
+      (cast-id {A = `∀ A} hA ok , cross ())
   narrowing-determinedᵐ-det wfΣ
-      (cast-id hA ok , n-cross cn-id-var)
-      (cast-id hA′ ok′ , n-cross cn-id-var) =
+      (cast-id hA ok , cross id-＇)
+      (cast-id hA′ ok′ , cross id-＇) =
     refl
   narrowing-determinedᵐ-det wfΣ
-      (cast-id hA ok , n-cross cn-id-base)
-      (cast-id hA′ ok′ , n-cross cn-id-base) =
+      (cast-id hA ok , cross id-‵)
+      (cast-id hA′ ok′ , cross id-‵) =
     refl
   narrowing-determinedᵐ-det wfΣ
-      (cast-id hA ok , n-id★)
-      (cast-id hA′ ok′ , n-id★) =
+      (cast-id hA ok , id★)
+      (cast-id hA′ ok′ , id★) =
     refl
   narrowing-determinedᵐ-det wfΣ
-      (cast-id {A = ＇ α} hA id-ok , n-cross cn-id-var)
-      (cast-seq t⊢ (cast-seal hB α∈Σ seal-ok) , n-seal tⁿ) =
+      (cast-id {A = ＇ α} hA id-ok , cross id-＇)
+      (cast-seq t⊢ (cast-seal hB α∈Σ seal-ok) , _︔seal tⁿ) =
     ⊥-elim (narrowing-var-to-older⊥ wfΣ (wfOlder wfΣ α∈Σ) (t⊢ , tⁿ))
   narrowing-determinedᵐ-det wfΣ
-      (cast-id hA ok , n-id★)
-      (cast-seq (cast-untag hG gG okG) t⊢ , n-untag gG′ tᶜ) =
+      (cast-id hA ok , id★)
+      (cast-seq (cast-untag hG gG okG) t⊢ , _？︔_ gG′ tᶜ) =
     ⊥-elim (narrowing-cross-ground-target-star⊥ gG (t⊢ , tᶜ))
   narrowing-determinedᵐ-det wfΣ
-      (cast-fun s⊢ t⊢ , n-cross (cn-fun sʷ tⁿ))
-      (cast-fun s⊢′ t⊢′ , n-cross (cn-fun sʷ′ tⁿ′)) =
+      (cast-fun s⊢ t⊢ , cross (_↦_ sʷ tⁿ))
+      (cast-fun s⊢′ t⊢′ , cross (_↦_ sʷ′ tⁿ′)) =
     cong₂ _↦_
       (widening-determinedᵐ-det wfΣ (s⊢ , sʷ) (s⊢′ , sʷ′))
       (narrowing-determinedᵐ-det wfΣ (t⊢ , tⁿ) (t⊢′ , tⁿ′))
   narrowing-determinedᵐ-det wfΣ
-      (cast-all s⊢ , n-cross (cn-all sⁿ))
-      (cast-all t⊢ , n-cross (cn-all tⁿ)) =
+      (cast-all s⊢ , cross (`∀ sⁿ))
+      (cast-all t⊢ , cross (`∀ tⁿ)) =
     cong `∀
       (narrowing-determinedᵐ-det
         (StoreDetWf-⟰ᵗ wfΣ)
         (s⊢ , sⁿ)
         (t⊢ , tⁿ))
   narrowing-determinedᵐ-det wfΣ
-      (cast-all s⊢ , n-cross (cn-all sⁿ))
-      (cast-gen hA occ t⊢ , n-gen tⁿ) =
+      (cast-all s⊢ , cross (`∀ sⁿ))
+      (cast-gen hA occ t⊢ , gen tⁿ) =
     ⊥-elim (narrowing-all-gen-overlap⊥ wfΣ occ (s⊢ , sⁿ) (t⊢ , tⁿ))
   narrowing-determinedᵐ-det wfΣ
-      (cast-gen hA occ s⊢ , n-gen sⁿ)
-      (cast-all t⊢ , n-cross (cn-all tⁿ)) =
+      (cast-gen hA occ s⊢ , gen sⁿ)
+      (cast-all t⊢ , cross (`∀ tⁿ)) =
     ⊥-elim (narrowing-all-gen-overlap⊥ wfΣ occ (t⊢ , tⁿ) (s⊢ , sⁿ))
   narrowing-determinedᵐ-det wfΣ
-      (cast-gen hA occ s⊢ , n-gen sⁿ)
-      (cast-gen hA′ occ′ t⊢ , n-gen tⁿ) =
+      (cast-gen hA occ s⊢ , gen sⁿ)
+      (cast-gen hA′ occ′ t⊢ , gen tⁿ) =
     cong (gen _)
       (narrowing-determinedᵐ-det
         (StoreDetWf-⟰ᵗ wfΣ)
         (s⊢ , sⁿ)
         (t⊢ , tⁿ))
   narrowing-determinedᵐ-det wfΣ
-      (cast-seq (cast-untag hG gG okG) s⊢ , n-untag gG′ sᶜ)
-      (cast-seq (cast-untag hH gH okH) t⊢ , n-untag gH′ tᶜ)
+      (cast-seq (cast-untag hG gG okG) s⊢ , _？︔_ gG′ sᶜ)
+      (cast-seq (cast-untag hH gH okH) t⊢ , _？︔_ gH′ tᶜ)
       with narrowing-cross-ground-source-determinedᵐ-det
              wfΣ gG gH (s⊢ , sᶜ) (t⊢ , tᶜ)
   narrowing-determinedᵐ-det wfΣ
-      (cast-seq (cast-untag hG gG okG) s⊢ , n-untag gG′ sᶜ)
-      (cast-seq (cast-untag hH gH okH) t⊢ , n-untag gH′ tᶜ)
+      (cast-seq (cast-untag hG gG okG) s⊢ , _？︔_ gG′ sᶜ)
+      (cast-seq (cast-untag hH gH okH) t⊢ , _？︔_ gH′ tᶜ)
       | refl , eq =
     cong₂ _︔_ refl eq
   narrowing-determinedᵐ-det wfΣ
-      (cast-seq (cast-untag hG gG okG) s⊢ , n-untag gG′ sᶜ)
-      (cast-id hA ok , n-id★) =
+      (cast-seq (cast-untag hG gG okG) s⊢ , _？︔_ gG′ sᶜ)
+      (cast-id hA ok , id★) =
     ⊥-elim (narrowing-cross-ground-target-star⊥ gG (s⊢ , sᶜ))
   narrowing-determinedᵐ-det wfΣ
-      (cast-seq (cast-untag hG gG okG) s⊢ , n-untag gG′ sᶜ)
-      (cast-gen hA occ t⊢ , n-gen tⁿ) =
+      (cast-seq (cast-untag hG gG okG) s⊢ , _？︔_ gG′ sᶜ)
+      (cast-gen hA occ t⊢ , gen tⁿ) =
     ⊥-elim (narrowing-cross-ground-target-all⊥ gG (s⊢ , sᶜ))
   narrowing-determinedᵐ-det wfΣ
-      (cast-all s⊢ , n-cross (cn-all sⁿ))
-      (cast-seq () t⊢ , n-untag gG′ tᶜ)
+      (cast-all s⊢ , cross (`∀ sⁿ))
+      (cast-seq () t⊢ , _？︔_ gG′ tᶜ)
   narrowing-determinedᵐ-det wfΣ
-      (cast-all s⊢ , n-cross (cn-all sⁿ))
-      (cast-seq t⊢ () , n-seal tⁿ)
+      (cast-all s⊢ , cross (`∀ sⁿ))
+      (cast-seq t⊢ () , _︔seal tⁿ)
   narrowing-determinedᵐ-det wfΣ
-      (cast-gen hA occ s⊢ , n-gen sⁿ)
-      (cast-seq (cast-untag hG gG okG) t⊢ , n-untag gG′ tᶜ) =
+      (cast-gen hA occ s⊢ , gen sⁿ)
+      (cast-seq (cast-untag hG gG okG) t⊢ , _？︔_ gG′ tᶜ) =
     ⊥-elim (narrowing-cross-ground-target-all⊥ gG (t⊢ , tᶜ))
   narrowing-determinedᵐ-det wfΣ
-      (cast-gen hA occ s⊢ , n-gen sⁿ)
-      (cast-seq t⊢ () , n-seal tⁿ)
+      (cast-gen hA occ s⊢ , gen sⁿ)
+      (cast-seq t⊢ () , _︔seal tⁿ)
   narrowing-determinedᵐ-det wfΣ
-      (cast-seq (cast-untag hG gG okG) s⊢ , n-untag gG′ sᶜ)
-      (cast-seq t⊢ (cast-seal hA α∈Σ seal-ok) , n-seal tⁿ) =
+      (cast-seq (cast-untag hG gG okG) s⊢ , _？︔_ gG′ sᶜ)
+      (cast-seq t⊢ (cast-seal hA α∈Σ seal-ok) , _︔seal tⁿ) =
     ⊥-elim
       (narrowing-cross-ground-target-seal-var⊥
         wfΣ gG okG α∈Σ seal-ok (s⊢ , sᶜ))
   narrowing-determinedᵐ-det wfΣ
-      (cast-seq s⊢ (cast-seal hA α∈Σ α-ok) , n-seal sⁿ)
-      (cast-seq t⊢ (cast-seal hB β∈Σ β-ok) , n-seal tⁿ)
+      (cast-seq s⊢ (cast-seal hA α∈Σ α-ok) , _︔seal sⁿ)
+      (cast-seq t⊢ (cast-seal hB β∈Σ β-ok) , _︔seal tⁿ)
       rewrite unique wfΣ α∈Σ β∈Σ =
     cong₂ _︔_
       (narrowing-determinedᵐ-det wfΣ (s⊢ , sⁿ) (t⊢ , tⁿ))
       refl
   narrowing-determinedᵐ-det wfΣ
-      (cast-seq s⊢ (cast-seal hA α∈Σ seal-ok) , n-seal sⁿ)
-      (cast-id {A = ＇ α} hB id-ok , n-cross cn-id-var) =
+      (cast-seq s⊢ (cast-seal hA α∈Σ seal-ok) , _︔seal sⁿ)
+      (cast-id {A = ＇ α} hB id-ok , cross id-＇) =
     ⊥-elim (narrowing-var-to-older⊥ wfΣ (wfOlder wfΣ α∈Σ) (s⊢ , sⁿ))
   narrowing-determinedᵐ-det wfΣ
-      (cast-seq s⊢ (cast-seal hA α∈Σ seal-ok) , n-seal sⁿ)
-      (cast-seq (cast-untag hG gG okG) t⊢ , n-untag gG′ tᶜ) =
+      (cast-seq s⊢ (cast-seal hA α∈Σ seal-ok) , _︔seal sⁿ)
+      (cast-seq (cast-untag hG gG okG) t⊢ , _？︔_ gG′ tᶜ) =
     ⊥-elim
       (narrowing-cross-ground-target-seal-var⊥
         wfΣ gG okG α∈Σ seal-ok (t⊢ , tᶜ))
@@ -2183,22 +2480,22 @@ mutual
     (μ ∣ Δ ∣ Σ ⊢ t ∶ A =⇒ B) × CrossNarrowing t →
     s ≡ t
   narrowing-cross-determinedᵐ-det wfΣ
-      (cast-id hA ok , cn-id-var)
-      (cast-id hA′ ok′ , cn-id-var) =
+      (cast-id hA ok , id-＇)
+      (cast-id hA′ ok′ , id-＇) =
     refl
   narrowing-cross-determinedᵐ-det wfΣ
-      (cast-id hA ok , cn-id-base)
-      (cast-id hA′ ok′ , cn-id-base) =
+      (cast-id hA ok , id-‵)
+      (cast-id hA′ ok′ , id-‵) =
     refl
   narrowing-cross-determinedᵐ-det wfΣ
-      (cast-fun s⊢ t⊢ , cn-fun sʷ tⁿ)
-      (cast-fun s⊢′ t⊢′ , cn-fun sʷ′ tⁿ′) =
+      (cast-fun s⊢ t⊢ , _↦_ sʷ tⁿ)
+      (cast-fun s⊢′ t⊢′ , _↦_ sʷ′ tⁿ′) =
     cong₂ _↦_
       (widening-determinedᵐ-det wfΣ (s⊢ , sʷ) (s⊢′ , sʷ′))
       (narrowing-determinedᵐ-det wfΣ (t⊢ , tⁿ) (t⊢′ , tⁿ′))
   narrowing-cross-determinedᵐ-det wfΣ
-      (cast-all s⊢ , cn-all sⁿ)
-      (cast-all t⊢ , cn-all tⁿ) =
+      (cast-all s⊢ , `∀ sⁿ)
+      (cast-all t⊢ , `∀ tⁿ) =
     cong `∀
       (narrowing-determinedᵐ-det
         (StoreDetWf-⟰ᵗ wfΣ)
@@ -2215,18 +2512,18 @@ mutual
     G ≡ H × s ≡ t
   narrowing-cross-ground-source-determinedᵐ-det wfΣ
       (＇ α) (＇ .α)
-      (cast-id hA ok , cn-id-var)
-      (cast-id hA′ ok′ , cn-id-var) =
+      (cast-id hA ok , id-＇)
+      (cast-id hA′ ok′ , id-＇) =
     refl , refl
   narrowing-cross-ground-source-determinedᵐ-det wfΣ
       (‵ ι) (‵ .ι)
-      (cast-id hA ok , cn-id-base)
-      (cast-id hA′ ok′ , cn-id-base) =
+      (cast-id hA ok , id-‵)
+      (cast-id hA′ ok′ , id-‵) =
     refl , refl
   narrowing-cross-ground-source-determinedᵐ-det wfΣ
       ★⇒★ ★⇒★
-      (cast-fun s⊢ t⊢ , cn-fun sʷ tⁿ)
-      (cast-fun s⊢′ t⊢′ , cn-fun sʷ′ tⁿ′) =
+      (cast-fun s⊢ t⊢ , _↦_ sʷ tⁿ)
+      (cast-fun s⊢′ t⊢′ , _↦_ sʷ′ tⁿ′) =
     refl ,
     cong₂ _↦_
       (widening-determinedᵐ-det wfΣ (s⊢ , sʷ) (s⊢′ , sʷ′))
@@ -2239,142 +2536,142 @@ mutual
     μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊑ B →
     s ≡ t
   widening-determinedᵐ-det wfΣ
-      (cast-seal hA α∈Σ ok , w-cross ()) t⊑
+      (cast-seal hA α∈Σ ok , cross ()) t⊑
   widening-determinedᵐ-det wfΣ
-      (cast-unseal hA α∈Σ ok , w-cross ()) t⊑
+      (cast-unseal hA α∈Σ ok , cross ()) t⊑
   widening-determinedᵐ-det wfΣ
-      (cast-tag hG gG ok , w-cross ()) t⊑
+      (cast-tag hG gG ok , cross ()) t⊑
   widening-determinedᵐ-det wfΣ
-      (cast-untag hG gG ok , w-cross ()) t⊑
+      (cast-untag hG gG ok , cross ()) t⊑
   widening-determinedᵐ-det wfΣ
-      (cast-gen hA occ c⊢ , w-cross ()) t⊑
+      (cast-gen hA occ c⊢ , cross ()) t⊑
   widening-determinedᵐ-det wfΣ
-      (cast-seq s⊢ t⊢ , w-cross ()) u⊑
+      (cast-seq s⊢ t⊢ , cross ()) u⊑
   widening-determinedᵐ-det wfΣ
-      (cast-id {A = A ⇒ B} hA ok , w-cross ()) t⊑
+      (cast-id {A = A ⇒ B} hA ok , cross ()) t⊑
   widening-determinedᵐ-det wfΣ
-      (cast-id {A = `∀ A} hA ok , w-cross ()) t⊑
+      (cast-id {A = `∀ A} hA ok , cross ()) t⊑
   widening-determinedᵐ-det wfΣ s⊑
-      (cast-seal hA α∈Σ ok , w-cross ())
+      (cast-seal hA α∈Σ ok , cross ())
   widening-determinedᵐ-det wfΣ s⊑
-      (cast-unseal hA α∈Σ ok , w-cross ())
+      (cast-unseal hA α∈Σ ok , cross ())
   widening-determinedᵐ-det wfΣ s⊑
-      (cast-tag hG gG ok , w-cross ())
+      (cast-tag hG gG ok , cross ())
   widening-determinedᵐ-det wfΣ s⊑
-      (cast-untag hG gG ok , w-cross ())
+      (cast-untag hG gG ok , cross ())
   widening-determinedᵐ-det wfΣ s⊑
-      (cast-gen hA occ c⊢ , w-cross ())
+      (cast-gen hA occ c⊢ , cross ())
   widening-determinedᵐ-det wfΣ s⊑
-      (cast-seq t⊢ u⊢ , w-cross ())
+      (cast-seq t⊢ u⊢ , cross ())
   widening-determinedᵐ-det wfΣ s⊑
-      (cast-id {A = A ⇒ B} hA ok , w-cross ())
+      (cast-id {A = A ⇒ B} hA ok , cross ())
   widening-determinedᵐ-det wfΣ s⊑
-      (cast-id {A = `∀ A} hA ok , w-cross ())
+      (cast-id {A = `∀ A} hA ok , cross ())
   widening-determinedᵐ-det wfΣ
-      (cast-id hA ok , w-cross cw-id-var)
-      (cast-id hA′ ok′ , w-cross cw-id-var) =
+      (cast-id hA ok , cross id-＇)
+      (cast-id hA′ ok′ , cross id-＇) =
     refl
   widening-determinedᵐ-det wfΣ
-      (cast-id hA ok , w-cross cw-id-base)
-      (cast-id hA′ ok′ , w-cross cw-id-base) =
+      (cast-id hA ok , cross id-‵)
+      (cast-id hA′ ok′ , cross id-‵) =
     refl
   widening-determinedᵐ-det wfΣ
-      (cast-id hA ok , w-id★)
-      (cast-id hA′ ok′ , w-id★) =
+      (cast-id hA ok , id★)
+      (cast-id hA′ ok′ , id★) =
     refl
   widening-determinedᵐ-det wfΣ
-      (cast-id {A = ＇ α} hA id-ok , w-cross cw-id-var)
-      (cast-seq (cast-unseal hB α∈Σ seal-ok) t⊢ , w-unseal tʷ) =
+      (cast-id {A = ＇ α} hA id-ok , cross id-＇)
+      (cast-seq (cast-unseal hB α∈Σ seal-ok) t⊢ , unseal︔_ tʷ) =
     ⊥-elim (widening-older-to-var⊥ wfΣ (wfOlder wfΣ α∈Σ) (t⊢ , tʷ))
   widening-determinedᵐ-det wfΣ
-      (cast-id hA ok , w-id★)
-      (cast-seq t⊢ (cast-tag hG gG okG) , w-tag gG′ tᶜ) =
+      (cast-id hA ok , id★)
+      (cast-seq t⊢ (cast-tag hG gG okG) , ((tᶜ ︔ gG′ !))) =
     ⊥-elim (widening-cross-ground-source-star⊥ gG (t⊢ , tᶜ))
   widening-determinedᵐ-det wfΣ
-      (cast-fun s⊢ t⊢ , w-cross (cw-fun sⁿ tʷ))
-      (cast-fun s⊢′ t⊢′ , w-cross (cw-fun sⁿ′ tʷ′)) =
+      (cast-fun s⊢ t⊢ , cross (_↦_ sⁿ tʷ))
+      (cast-fun s⊢′ t⊢′ , cross (_↦_ sⁿ′ tʷ′)) =
     cong₂ _↦_
       (narrowing-determinedᵐ-det wfΣ (s⊢ , sⁿ) (s⊢′ , sⁿ′))
       (widening-determinedᵐ-det wfΣ (t⊢ , tʷ) (t⊢′ , tʷ′))
   widening-determinedᵐ-det wfΣ
-      (cast-all s⊢ , w-cross (cw-all sʷ))
-      (cast-all t⊢ , w-cross (cw-all tʷ)) =
+      (cast-all s⊢ , cross (`∀ sʷ))
+      (cast-all t⊢ , cross (`∀ tʷ)) =
     cong `∀
       (widening-determinedᵐ-det
         (StoreDetWf-⟰ᵗ wfΣ)
         (s⊢ , sʷ)
         (t⊢ , tʷ))
   widening-determinedᵐ-det wfΣ
-      (cast-all s⊢ , w-cross (cw-all sʷ))
-      (cast-inst hB occ t⊢ , w-inst tʷ) =
+      (cast-all s⊢ , cross (`∀ sʷ))
+      (cast-inst hB occ t⊢ , inst tʷ) =
     ⊥-elim
       (widening-all-inst-overlap-det⊥ wfΣ occ (s⊢ , sʷ) (t⊢ , tʷ))
   widening-determinedᵐ-det wfΣ
-      (cast-all s⊢ , w-cross (cw-all sʷ))
-      (cast-seq t⊢ () , w-tag gG′ tᶜ)
+      (cast-all s⊢ , cross (`∀ sʷ))
+      (cast-seq t⊢ () , ((tᶜ ︔ gG′ !)))
   widening-determinedᵐ-det wfΣ
-      (cast-all s⊢ , w-cross (cw-all sʷ))
-      (cast-seq () t⊢ , w-unseal tʷ)
+      (cast-all s⊢ , cross (`∀ sʷ))
+      (cast-seq () t⊢ , unseal︔_ tʷ)
   widening-determinedᵐ-det wfΣ
-      (cast-inst hB occ s⊢ , w-inst sʷ)
-      (cast-inst hB′ occ′ t⊢ , w-inst tʷ) =
+      (cast-inst hB occ s⊢ , inst sʷ)
+      (cast-inst hB′ occ′ t⊢ , inst tʷ) =
     cong (inst _)
       (widening-determinedᵐ-det
         (StoreDetWf-inst wfΣ)
         (s⊢ , sʷ)
         (t⊢ , tʷ))
   widening-determinedᵐ-det wfΣ
-      (cast-inst hB occ s⊢ , w-inst sʷ)
-      (cast-all t⊢ , w-cross (cw-all tʷ)) =
+      (cast-inst hB occ s⊢ , inst sʷ)
+      (cast-all t⊢ , cross (`∀ tʷ)) =
     ⊥-elim
       (widening-all-inst-overlap-det⊥ wfΣ occ (t⊢ , tʷ) (s⊢ , sʷ))
   widening-determinedᵐ-det wfΣ
-      (cast-seq s⊢ (cast-tag hG gG okG) , w-tag gG′ sᶜ)
-      (cast-seq t⊢ (cast-tag hH gH okH) , w-tag gH′ tᶜ)
+      (cast-seq s⊢ (cast-tag hG gG okG) , ((sᶜ ︔ gG′ !)))
+      (cast-seq t⊢ (cast-tag hH gH okH) , ((tᶜ ︔ gH′ !)))
       with widening-cross-ground-target-determinedᵐ-det
              wfΣ gG gH (s⊢ , sᶜ) (t⊢ , tᶜ)
   widening-determinedᵐ-det wfΣ
-      (cast-seq s⊢ (cast-tag hG gG okG) , w-tag gG′ sᶜ)
-      (cast-seq t⊢ (cast-tag hH gH okH) , w-tag gH′ tᶜ)
+      (cast-seq s⊢ (cast-tag hG gG okG) , ((sᶜ ︔ gG′ !)))
+      (cast-seq t⊢ (cast-tag hH gH okH) , ((tᶜ ︔ gH′ !)))
       | refl , eq =
     cong₂ _︔_ eq refl
   widening-determinedᵐ-det wfΣ
-      (cast-seq s⊢ (cast-tag hG gG okG) , w-tag gG′ sᶜ)
-      (cast-id hA ok , w-id★) =
+      (cast-seq s⊢ (cast-tag hG gG okG) , ((sᶜ ︔ gG′ !)))
+      (cast-id hA ok , id★) =
     ⊥-elim (widening-cross-ground-source-star⊥ gG (s⊢ , sᶜ))
   widening-determinedᵐ-det wfΣ
-      (cast-seq s⊢ (cast-tag hG gG okG) , w-tag gG′ sᶜ)
-      (cast-seq (cast-unseal hA α∈Σ seal-ok) t⊢ , w-unseal tʷ) =
+      (cast-seq s⊢ (cast-tag hG gG okG) , ((sᶜ ︔ gG′ !)))
+      (cast-seq (cast-unseal hA α∈Σ seal-ok) t⊢ , unseal︔_ tʷ) =
     ⊥-elim
       (widening-cross-ground-source-seal-var⊥
         wfΣ gG okG α∈Σ seal-ok (s⊢ , sᶜ))
   widening-determinedᵐ-det wfΣ
-      (cast-seq s⊢ (cast-tag hG gG okG) , w-tag gG′ sᶜ)
-      (cast-inst hB occ t⊢ , w-inst tʷ) =
+      (cast-seq s⊢ (cast-tag hG gG okG) , ((sᶜ ︔ gG′ !)))
+      (cast-inst hB occ t⊢ , inst tʷ) =
     ⊥-elim (widening-cross-ground-source-all⊥ gG (s⊢ , sᶜ))
   widening-determinedᵐ-det wfΣ
-      (cast-seq (cast-unseal hA α∈Σ α-ok) s⊢ , w-unseal sʷ)
-      (cast-seq (cast-unseal hB β∈Σ β-ok) t⊢ , w-unseal tʷ)
+      (cast-seq (cast-unseal hA α∈Σ α-ok) s⊢ , unseal︔_ sʷ)
+      (cast-seq (cast-unseal hB β∈Σ β-ok) t⊢ , unseal︔_ tʷ)
       rewrite unique wfΣ α∈Σ β∈Σ =
     cong₂ _︔_ refl
       (widening-determinedᵐ-det wfΣ (s⊢ , sʷ) (t⊢ , tʷ))
   widening-determinedᵐ-det wfΣ
-      (cast-seq (cast-unseal hA α∈Σ seal-ok) s⊢ , w-unseal sʷ)
-      (cast-id {A = ＇ α} hB id-ok , w-cross cw-id-var) =
+      (cast-seq (cast-unseal hA α∈Σ seal-ok) s⊢ , unseal︔_ sʷ)
+      (cast-id {A = ＇ α} hB id-ok , cross id-＇) =
     ⊥-elim (widening-older-to-var⊥ wfΣ (wfOlder wfΣ α∈Σ) (s⊢ , sʷ))
   widening-determinedᵐ-det wfΣ
-      (cast-seq (cast-unseal hA α∈Σ seal-ok) s⊢ , w-unseal sʷ)
-      (cast-seq t⊢ (cast-tag hG gG okG) , w-tag gG′ tᶜ) =
+      (cast-seq (cast-unseal hA α∈Σ seal-ok) s⊢ , unseal︔_ sʷ)
+      (cast-seq t⊢ (cast-tag hG gG okG) , ((tᶜ ︔ gG′ !))) =
     ⊥-elim
       (widening-cross-ground-source-seal-var⊥
         wfΣ gG okG α∈Σ seal-ok (t⊢ , tᶜ))
   widening-determinedᵐ-det wfΣ
-      (cast-inst hB occ s⊢ , w-inst sʷ)
-      (cast-seq t⊢ (cast-tag hG gG okG) , w-tag gG′ tᶜ) =
+      (cast-inst hB occ s⊢ , inst sʷ)
+      (cast-seq t⊢ (cast-tag hG gG okG) , ((tᶜ ︔ gG′ !))) =
     ⊥-elim (widening-cross-ground-source-all⊥ gG (t⊢ , tᶜ))
   widening-determinedᵐ-det wfΣ
-      (cast-inst hB occ s⊢ , w-inst sʷ)
-      (cast-seq () t⊢ , w-unseal tʷ)
+      (cast-inst hB occ s⊢ , inst sʷ)
+      (cast-seq () t⊢ , unseal︔_ tʷ)
 
   widening-cross-determinedᵐ-det :
     ∀ {μ Δ Σ A B s t} →
@@ -2383,22 +2680,22 @@ mutual
     (μ ∣ Δ ∣ Σ ⊢ t ∶ A =⇒ B) × CrossWidening t →
     s ≡ t
   widening-cross-determinedᵐ-det wfΣ
-      (cast-id hA ok , cw-id-var)
-      (cast-id hA′ ok′ , cw-id-var) =
+      (cast-id hA ok , id-＇)
+      (cast-id hA′ ok′ , id-＇) =
     refl
   widening-cross-determinedᵐ-det wfΣ
-      (cast-id hA ok , cw-id-base)
-      (cast-id hA′ ok′ , cw-id-base) =
+      (cast-id hA ok , id-‵)
+      (cast-id hA′ ok′ , id-‵) =
     refl
   widening-cross-determinedᵐ-det wfΣ
-      (cast-fun s⊢ t⊢ , cw-fun sⁿ tʷ)
-      (cast-fun s⊢′ t⊢′ , cw-fun sⁿ′ tʷ′) =
+      (cast-fun s⊢ t⊢ , _↦_ sⁿ tʷ)
+      (cast-fun s⊢′ t⊢′ , _↦_ sⁿ′ tʷ′) =
     cong₂ _↦_
       (narrowing-determinedᵐ-det wfΣ (s⊢ , sⁿ) (s⊢′ , sⁿ′))
       (widening-determinedᵐ-det wfΣ (t⊢ , tʷ) (t⊢′ , tʷ′))
   widening-cross-determinedᵐ-det wfΣ
-      (cast-all s⊢ , cw-all sʷ)
-      (cast-all t⊢ , cw-all tʷ) =
+      (cast-all s⊢ , `∀ sʷ)
+      (cast-all t⊢ , `∀ tʷ) =
     cong `∀
       (widening-determinedᵐ-det
         (StoreDetWf-⟰ᵗ wfΣ)
@@ -2415,343 +2712,55 @@ mutual
     G ≡ H × s ≡ t
   widening-cross-ground-target-determinedᵐ-det wfΣ
       (＇ α) (＇ .α)
-      (cast-id hA ok , cw-id-var)
-      (cast-id hA′ ok′ , cw-id-var) =
+      (cast-id hA ok , id-＇)
+      (cast-id hA′ ok′ , id-＇) =
     refl , refl
   widening-cross-ground-target-determinedᵐ-det wfΣ
       (‵ ι) (‵ .ι)
-      (cast-id hA ok , cw-id-base)
-      (cast-id hA′ ok′ , cw-id-base) =
+      (cast-id hA ok , id-‵)
+      (cast-id hA′ ok′ , id-‵) =
     refl , refl
   widening-cross-ground-target-determinedᵐ-det wfΣ
       ★⇒★ ★⇒★
-      (cast-fun s⊢ t⊢ , cw-fun sⁿ tʷ)
-      (cast-fun s⊢′ t⊢′ , cw-fun sⁿ′ tʷ′) =
+      (cast-fun s⊢ t⊢ , _↦_ sⁿ tʷ)
+      (cast-fun s⊢′ t⊢′ , _↦_ sⁿ′ tʷ′) =
     refl ,
     cong₂ _↦_
       (narrowing-determinedᵐ-det wfΣ (s⊢ , sⁿ) (s⊢′ , sⁿ′))
       (widening-determinedᵐ-det wfΣ (t⊢ , tʷ) (t⊢′ , tʷ′))
 
-narrowing-determinedᵐ :
+store-narrowing-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
   StoreWf Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊒ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ B →
   s ≡ t
-narrowing-determinedᵐ wfΣ =
+store-narrowing-determinedᵐ wfΣ =
   narrowing-determinedᵐ-det (StoreWf⇒det wfΣ)
 
-widening-determinedᵐ :
+store-widening-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
   StoreWf Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊑ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊑ B →
   s ≡ t
-widening-determinedᵐ wfΣ =
+store-widening-determinedᵐ wfΣ =
   widening-determinedᵐ-det (StoreWf⇒det wfΣ)
-mutual
-  narrow-src-wf :
-    ∀ {Δ Σ A B c} →
-    Δ ∣ Σ ⊢ c ∶ A ⊒ B →
-    WfTy Δ A
-  narrow-src-wf (nrw-id hA) = hA
-  narrow-src-wf (nrw-fun s t) =
-    wf⇒ (widen-tgt-wf s) (narrow-src-wf t)
-  narrow-src-wf (nrw-all s) = wf∀ (narrow-src-wf s)
-  narrow-src-wf (nrw-gen hA s) = hA
-  narrow-src-wf (nrw-untag hG gG s) = wf★
-  narrow-src-wf (nrw-untagˢ hA α∈Σ s) = wf★
-  narrow-src-wf (nrw-seal hA′ α∈Σ s) = narrow-src-wf s
 
-  widen-tgt-wf :
-    ∀ {Δ Σ A B c} →
-    Δ ∣ Σ ⊢ c ∶ A ⊑ B →
-    WfTy Δ B
-  widen-tgt-wf (wid-id hA) = hA
-  widen-tgt-wf (wid-fun s t) =
-    wf⇒ (narrow-src-wf s) (widen-tgt-wf t)
-  widen-tgt-wf (wid-all s) = wf∀ (widen-tgt-wf s)
-  widen-tgt-wf (wid-inst hB s) = hB
-  widen-tgt-wf (wid-tag hG gG s) = wf★
-  widen-tgt-wf (wid-tagˢ hA α∈Σ s) = wf★
-  widen-tgt-wf (wid-tagˢ-comp hA α∈Σ s t) = wf★
-  widen-tgt-wf (wid-unseal hA′ α∈Σ s) = widen-tgt-wf s
+narrowing-determinedᵐ :
+  ∀ {μ Δ Σ A B s t} →
+  NuStore.StoreWf Δ Σ →
+  μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊒ B →
+  μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ B →
+  s ≡ t
+narrowing-determinedᵐ wfΣ =
+  narrowing-determinedᵐ-det (nuStoreWf⇒det wfΣ)
 
-mutual
-  narrow-weaken :
-    ∀ {Δ Δ′ Σ Σ′ A B c} →
-    Δ ≤ Δ′ →
-    StoreIncl Σ Σ′ →
-    Δ ∣ Σ ⊢ c ∶ A ⊒ B →
-    Δ′ ∣ Σ′ ⊢ c ∶ A ⊒ B
-  narrow-weaken Δ≤Δ′ incl (nrw-id {aA = aA} hA) =
-    nrw-id {aA = aA} (WfTy-weakenᵗ hA Δ≤Δ′)
-  narrow-weaken Δ≤Δ′ incl (nrw-fun s t) =
-    nrw-fun (widen-weaken Δ≤Δ′ incl s) (narrow-weaken Δ≤Δ′ incl t)
-  narrow-weaken Δ≤Δ′ incl (nrw-all s) =
-    nrw-all
-      (narrow-weaken
-        (s≤s Δ≤Δ′)
-        (renameStoreᵗ-incl suc incl)
-        s)
-  narrow-weaken Δ≤Δ′ incl (nrw-gen hA s) =
-    nrw-gen
-      (WfTy-weakenᵗ hA Δ≤Δ′)
-      (narrow-weaken
-        (s≤s Δ≤Δ′)
-        (renameStoreᵗ-incl suc incl)
-        s)
-  narrow-weaken Δ≤Δ′ incl (nrw-untag hG gG s) =
-    nrw-untag (WfTy-weakenᵗ hG Δ≤Δ′) gG
-      (narrow-weaken Δ≤Δ′ incl s)
-  narrow-weaken Δ≤Δ′ incl (nrw-untagˢ hA α∈Σ s) =
-    nrw-untagˢ (WfTy-weakenᵗ hA Δ≤Δ′) (incl α∈Σ)
-      (narrow-weaken Δ≤Δ′ incl s)
-  narrow-weaken Δ≤Δ′ incl (nrw-seal hA′ α∈Σ s) =
-    nrw-seal (WfTy-weakenᵗ hA′ Δ≤Δ′) (incl α∈Σ)
-      (narrow-weaken Δ≤Δ′ incl s)
-
-  widen-weaken :
-    ∀ {Δ Δ′ Σ Σ′ A B c} →
-    Δ ≤ Δ′ →
-    StoreIncl Σ Σ′ →
-    Δ ∣ Σ ⊢ c ∶ A ⊑ B →
-    Δ′ ∣ Σ′ ⊢ c ∶ A ⊑ B
-  widen-weaken Δ≤Δ′ incl (wid-id {aA = aA} hA) =
-    wid-id {aA = aA} (WfTy-weakenᵗ hA Δ≤Δ′)
-  widen-weaken Δ≤Δ′ incl (wid-fun s t) =
-    wid-fun (narrow-weaken Δ≤Δ′ incl s) (widen-weaken Δ≤Δ′ incl t)
-  widen-weaken Δ≤Δ′ incl (wid-all s) =
-    wid-all
-      (widen-weaken
-        (s≤s Δ≤Δ′)
-        (renameStoreᵗ-incl suc incl)
-        s)
-  widen-weaken Δ≤Δ′ incl (wid-inst hB s) =
-    wid-inst
-      (WfTy-weakenᵗ hB Δ≤Δ′)
-      (widen-weaken
-        (s≤s Δ≤Δ′)
-        (StoreIncl-cons (renameStoreᵗ-incl suc incl))
-        s)
-  widen-weaken Δ≤Δ′ incl (wid-tag hG gG s) =
-    wid-tag (WfTy-weakenᵗ hG Δ≤Δ′) gG
-      (widen-weaken Δ≤Δ′ incl s)
-  widen-weaken Δ≤Δ′ incl (wid-tagˢ hA α∈Σ s) =
-    wid-tagˢ (WfTy-weakenᵗ hA Δ≤Δ′) (incl α∈Σ)
-      (widen-weaken Δ≤Δ′ incl s)
-  widen-weaken Δ≤Δ′ incl (wid-tagˢ-comp hA α∈Σ s t) =
-    wid-tagˢ-comp (WfTy-weakenᵗ hA Δ≤Δ′) (incl α∈Σ)
-      (widen-weaken Δ≤Δ′ incl s)
-      (widen-weaken Δ≤Δ′ incl t)
-  widen-weaken Δ≤Δ′ incl (wid-unseal hA′ α∈Σ s) =
-    wid-unseal (WfTy-weakenᵗ hA′ Δ≤Δ′) (incl α∈Σ)
-      (widen-weaken Δ≤Δ′ incl s)
-
-mutual
-  narrow-renameᵗ :
-    ∀ {Δ Δ′ Σ A B c ρ} →
-    TyRenameWf Δ Δ′ ρ →
-    Δ ∣ Σ ⊢ c ∶ A ⊒ B →
-    Δ′ ∣ renameStoreᵗ ρ Σ
-      ⊢ renameᶜ ρ c ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
-  narrow-renameᵗ hρ (nrw-id {aA = aA} hA) =
-    nrw-id {aA = renameᵗ-atom _ aA}
-      (renameᵗ-preserves-WfTy hA hρ)
-  narrow-renameᵗ hρ (nrw-fun s t) =
-    nrw-fun (widen-renameᵗ hρ s) (narrow-renameᵗ hρ t)
-  narrow-renameᵗ {Δ′ = Δ′} {Σ = Σ} {ρ = ρ} hρ (nrw-all s) =
-    nrw-all
-      (subst
-        (λ Σ′ → suc Δ′ ∣ Σ′
-          ⊢ renameᶜ (extᵗ ρ) _ ∶ _ ⊒ _)
-        (renameStoreᵗ-ext-suc-comm ρ Σ)
-        (narrow-renameᵗ (TyRenameWf-ext hρ) s))
-  narrow-renameᵗ {Δ′ = Δ′} {Σ = Σ} {A = A} {ρ = ρ}
-      hρ (nrw-gen hA s) =
-    nrw-gen
-      (renameᵗ-preserves-WfTy hA hρ)
-      (subst
-        (λ T → suc Δ′ ∣ ⟰ᵗ (renameStoreᵗ ρ Σ)
-          ⊢ renameᶜ (extᵗ ρ) _ ∶ T ⊒ _)
-        (renameᵗ-ext-suc-comm ρ A)
-        (subst
-          (λ Σ′ → suc Δ′ ∣ Σ′
-            ⊢ renameᶜ (extᵗ ρ) _ ∶ _ ⊒ _)
-          (renameStoreᵗ-ext-suc-comm ρ Σ)
-          (narrow-renameᵗ (TyRenameWf-ext hρ) s)))
-  narrow-renameᵗ hρ (nrw-untag hG gG s) =
-    nrw-untag
-      (renameᵗ-preserves-WfTy hG hρ)
-      (renameᵗ-ground _ gG)
-      (narrow-renameᵗ hρ s)
-  narrow-renameᵗ hρ (nrw-untagˢ hA α∈Σ s) =
-    nrw-untagˢ
-      (renameᵗ-preserves-WfTy hA hρ)
-      (∈-renameStoreᵗ _ α∈Σ)
-      (narrow-renameᵗ hρ s)
-  narrow-renameᵗ hρ (nrw-seal hA′ α∈Σ s) =
-    nrw-seal
-      (renameᵗ-preserves-WfTy hA′ hρ)
-      (∈-renameStoreᵗ _ α∈Σ)
-      (narrow-renameᵗ hρ s)
-
-  widen-renameᵗ :
-    ∀ {Δ Δ′ Σ A B c ρ} →
-    TyRenameWf Δ Δ′ ρ →
-    Δ ∣ Σ ⊢ c ∶ A ⊑ B →
-    Δ′ ∣ renameStoreᵗ ρ Σ
-      ⊢ renameᶜ ρ c ∶ renameᵗ ρ A ⊑ renameᵗ ρ B
-  widen-renameᵗ hρ (wid-id {aA = aA} hA) =
-    wid-id {aA = renameᵗ-atom _ aA}
-      (renameᵗ-preserves-WfTy hA hρ)
-  widen-renameᵗ hρ (wid-fun s t) =
-    wid-fun (narrow-renameᵗ hρ s) (widen-renameᵗ hρ t)
-  widen-renameᵗ {Δ′ = Δ′} {Σ = Σ} {ρ = ρ} hρ (wid-all s) =
-    wid-all
-      (subst
-        (λ Σ′ → suc Δ′ ∣ Σ′
-          ⊢ renameᶜ (extᵗ ρ) _ ∶ _ ⊑ _)
-        (renameStoreᵗ-ext-suc-comm ρ Σ)
-        (widen-renameᵗ (TyRenameWf-ext hρ) s))
-  widen-renameᵗ {Δ′ = Δ′} {Σ = Σ} {B = B} {ρ = ρ}
-      hρ (wid-inst hB s) =
-    wid-inst
-      (renameᵗ-preserves-WfTy hB hρ)
-      (subst
-        (λ T → suc Δ′
-          ∣ (zero , ★) ∷ ⟰ᵗ (renameStoreᵗ ρ Σ)
-          ⊢ renameᶜ (extᵗ ρ) _ ∶ _ ⊑ T)
-        (renameᵗ-ext-suc-comm ρ B)
-        (subst
-          (λ Σ′ → suc Δ′ ∣ (zero , ★) ∷ Σ′
-            ⊢ renameᶜ (extᵗ ρ) _ ∶ _ ⊑ _)
-          (renameStoreᵗ-ext-suc-comm ρ Σ)
-          (widen-renameᵗ (TyRenameWf-ext hρ) s)))
-  widen-renameᵗ hρ (wid-tag hG gG s) =
-    wid-tag
-      (renameᵗ-preserves-WfTy hG hρ)
-      (renameᵗ-ground _ gG)
-      (widen-renameᵗ hρ s)
-  widen-renameᵗ hρ (wid-tagˢ hA α∈Σ s) =
-    wid-tagˢ
-      (renameᵗ-preserves-WfTy hA hρ)
-      (∈-renameStoreᵗ _ α∈Σ)
-      (widen-renameᵗ hρ s)
-  widen-renameᵗ hρ (wid-tagˢ-comp hA α∈Σ s t) =
-    wid-tagˢ-comp
-      (renameᵗ-preserves-WfTy hA hρ)
-      (∈-renameStoreᵗ _ α∈Σ)
-      (widen-renameᵗ hρ s)
-      (widen-renameᵗ hρ t)
-  widen-renameᵗ hρ (wid-unseal hA′ α∈Σ s) =
-    wid-unseal
-      (renameᵗ-preserves-WfTy hA′ hρ)
-      (∈-renameStoreᵗ _ α∈Σ)
-      (widen-renameᵗ hρ s)
-
-narrow-⇑ᵗ :
-  ∀ {Δ Σ A B c} →
-  Δ ∣ Σ ⊢ c ∶ A ⊒ B →
-  suc Δ ∣ ⟰ᵗ Σ ⊢ ⇑ᶜ c ∶ ⇑ᵗ A ⊒ ⇑ᵗ B
-narrow-⇑ᵗ = narrow-renameᵗ TyRenameWf-suc
-
-widen-⇑ᵗ :
-  ∀ {Δ Σ A B c} →
-  Δ ∣ Σ ⊢ c ∶ A ⊑ B →
-  suc Δ ∣ ⟰ᵗ Σ ⊢ ⇑ᶜ c ∶ ⇑ᵗ A ⊑ ⇑ᵗ B
-widen-⇑ᵗ = widen-renameᵗ TyRenameWf-suc
-
-widen-⇑ᵗ-cons :
-  ∀ {Δ Σ A B c} →
-  Δ ∣ Σ ⊢ c ∶ A ⊑ B →
-  suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ ⊢ ⇑ᶜ c ∶ ⇑ᵗ A ⊑ ⇑ᵗ B
-widen-⇑ᵗ-cons p =
-  widen-weaken ≤-refl StoreIncl-drop (widen-⇑ᵗ p)
-
-------------------------------------------------------------------------
--- Composition (aka. transitivity)
-------------------------------------------------------------------------
-
-{-# TERMINATING #-}
-mutual 
-  _⨟ⁿ_ : ∀{Δ Σ A B C}{s t : Coercion} → (Δ ∣ Σ ⊢ s ∶ A ⊒ B) → (Δ ∣ Σ ⊢ t ∶ B ⊒ C)
-        → ∃[ u ] (Δ ∣ Σ ⊢ u ∶ A ⊒ C)
-  s ⨟ⁿ nrw-id wfB = _ , s
-  nrw-fun s t ⨟ⁿ nrw-fun s′ t′
-      with s′ ⨟ʷ s | t ⨟ⁿ t′
-  ... | _ , s″ | _ , t″ = _ , nrw-fun s″ t″
-  nrw-untag wfG gG s ⨟ⁿ q@(nrw-fun s′ t′)
-      with s ⨟ⁿ q
-  ... | _ , s″ = _ , nrw-untag wfG gG s″
-  nrw-all s ⨟ⁿ nrw-all t
-      with s ⨟ⁿ t
-  ... | _ , s′ = _ , nrw-all s′
-  nrw-gen wfA s ⨟ⁿ nrw-all t
-      with s ⨟ⁿ t
-  ... | _ , s′ = _ , nrw-gen wfA s′
-  nrw-untag wfG gG s ⨟ⁿ q@(nrw-all t)
-      with s ⨟ⁿ q
-  ... | _ , s′ = _ , nrw-untag wfG gG s′
-  s ⨟ⁿ nrw-gen wfB t
-      with narrow-⇑ᵗ s ⨟ⁿ t
-  ... | _ , s′ = _ , nrw-gen (narrow-src-wf s) s′
-  nrw-id wf★ ⨟ⁿ nrw-untag wfG gG t =
-    _ , nrw-untag wfG gG t
-  nrw-untag wfG′ gG′ s
-      ⨟ⁿ q@(nrw-untag wfG gG t)
-      with s ⨟ⁿ q
-  ... | _ , s′ = _ , nrw-untag wfG′ gG′ s′
-  s ⨟ⁿ nrw-untagˢ wfA′ α∈Σ t
-      with s ⨟ⁿ t
-  ... | _ , s′ = _ , nrw-seal wfA′ α∈Σ s′
-  s ⨟ⁿ nrw-seal wfA′ ∈Σ t
-      with s ⨟ⁿ t
-  ... | _ , s′ = _ , nrw-seal wfA′ ∈Σ s′
-
-  _⨟ʷ_ : ∀{Δ Σ A B C}{s t : Coercion} → (Δ ∣ Σ ⊢ s ∶ A ⊑ B) → (Δ ∣ Σ ⊢ t ∶ B ⊑ C)
-        → ∃[ u ] (Δ ∣ Σ ⊢ u ∶ A ⊑ C)
-  s ⨟ʷ wid-id wfB = _ , s
-  wid-fun s t ⨟ʷ wid-fun s′ t′
-      with s′ ⨟ⁿ s | t ⨟ʷ t′
-  ... | _ , s″ | _ , t″ = _ , wid-fun s″ t″
-  wid-inst wfB s ⨟ʷ q@(wid-fun s′ t′)
-      with s ⨟ʷ widen-⇑ᵗ-cons q
-  ... | _ , s″ = _ , wid-inst (widen-tgt-wf q) s″
-  wid-unseal wfA′ α∈Σ s ⨟ʷ q@(wid-fun s′ t′)
-      with s ⨟ʷ q
-  ... | _ , s″ = _ , wid-unseal wfA′ α∈Σ s″
-  wid-all s ⨟ʷ wid-all t
-      with s ⨟ʷ t
-  ... | _ , s′ = _ , wid-all s′
-  wid-inst wfB s ⨟ʷ q@(wid-all t)
-      with s ⨟ʷ widen-⇑ᵗ-cons q
-  ... | _ , s″ = _ , wid-inst (widen-tgt-wf q) s″
-  wid-unseal wfA′ α∈Σ s ⨟ʷ q@(wid-all t)
-      with s ⨟ʷ q
-  ... | _ , s″ = _ , wid-unseal wfA′ α∈Σ s″
-  wid-all s ⨟ʷ wid-inst wfC t
-      with widen-weaken ≤-refl StoreIncl-drop s ⨟ʷ t
-  ... | _ , s′ = _ , wid-inst wfC s′
-  wid-inst wfB s ⨟ʷ q@(wid-inst wfC t)
-      with s ⨟ʷ widen-⇑ᵗ-cons q
-  ... | _ , s′ = _ , wid-inst wfC s′
-  wid-unseal wfA′ α∈Σ s ⨟ʷ q@(wid-inst wfC t)
-      with s ⨟ʷ q
-  ... | _ , s′ = _ , wid-unseal wfA′ α∈Σ s′
-  s ⨟ʷ wid-tag wfG gG t
-      with s ⨟ʷ t
-  ... | _ , s′ = _ , wid-tag wfG gG s′
-  s ⨟ʷ wid-tagˢ wfA′ α∈Σ t =
-    _ , wid-tagˢ-comp wfA′ α∈Σ s t
-  s ⨟ʷ wid-tagˢ-comp wfA′ α∈Σ t u
-      with s ⨟ʷ t
-  ... | _ , s′ = _ , wid-tagˢ-comp wfA′ α∈Σ s′ u
-  wid-id wfA ⨟ʷ wid-unseal wfA′ α∈Σ t =
-    _ , wid-unseal wfA′ α∈Σ t
-  wid-inst wfB s ⨟ʷ q@(wid-unseal wfA′ α∈Σ t)
-      with s ⨟ʷ widen-⇑ᵗ-cons q
-  ... | _ , s′ = _ , wid-inst (widen-tgt-wf q) s′
-  wid-unseal wfA′ α∈Σ s ⨟ʷ q@(wid-unseal wfA″ β∈Σ t)
-      with s ⨟ʷ q
-  ... | _ , s′ = _ , wid-unseal wfA′ α∈Σ s′
+widening-determinedᵐ :
+  ∀ {μ Δ Σ A B s t} →
+  NuStore.StoreWf Δ Σ →
+  μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊑ B →
+  μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊑ B →
+  s ≡ t
+widening-determinedᵐ wfΣ =
+  widening-determinedᵐ-det (nuStoreWf⇒det wfΣ)

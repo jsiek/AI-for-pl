@@ -7,20 +7,48 @@ module Compile where
 --   * The store is empty at compile time; target reduction allocates store cells
 --     later for polymorphic/seal behavior.
 
-open import Agda.Builtin.Equality using (_≡_)
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
-open import Data.List using ([])
+open import Data.List using ([]; _∷_)
+open import Data.List.Relation.Unary.Any using (here)
+open import Data.Nat using (zero; suc; z<s; s<s)
 open import Data.Product using (Σ-syntax; _,_; proj₁)
+open import Relation.Binary.PropositionalEquality using (subst; sym; trans)
 
 open import Types
 open import Ctx using (CtxWf; ctxWf-∷; ⤊ᵗ)
-open import Coercions using (Label; Coercion; _∣_⊢_∶_=⇒_)
+open import Coercions
+  using
+    ( Label
+    ; Coercion
+    ; _∣_⊢_∶_=⇒_
+    ; _∣_∣_⊢_∶_=⇒_
+    ; reveal
+    )
 open import Imprecision using (_⊢_~_; id★; _↦_; tag_⇒_)
 open import Primitives using (Const; Prim; constTy)
 open import proof.CompileCoercions using (coerce-up; coerce-down; realizes-idᵢ)
+open import proof.CoercionProperties
+  using
+    ( RevealEnv
+    ; reveal-typing-env
+    ; rv-hit
+    ; rv-miss
+    ; singleSealᵈ
+    ; singleSealMode
+    )
 open import proof.ImprecisionProperties
   using (⊑-src-wf-idᵢ; ⊑-tgt-wf-idᵢ; ~-sym)
-open import proof.TermProperties using (CtxWf-⤊)
+open import proof.NuTermProperties using (CtxWf-⤊)
+open import proof.TypeProperties
+  using
+    ( TySubstWf
+    ; TyRenameWf-suc
+    ; renameᵗ-id
+    ; rename-subst
+    ; renameᵗ-preserves-WfTy
+    ; subst-cong
+    )
 
 open import GradualTerms
   using (GTerm)
@@ -43,14 +71,14 @@ open import GradualTerms
     ; ⊢$ to ⊢ᴳ$
     ; ⊢⊕ to ⊢ᴳ⊕
     )
-open import Terms
+open import NuTerms
   using (Term)
   renaming
     ( `_ to `ᵀ_
     ; ƛ_ to ƛᵀ_
     ; _·_ to _·ᵀ_
     ; Λ_ to Λᵀ_
-    ; _⦂∀_•_ to _⦂∀ᵀ_•_
+    ; ν to νᵀ
     ; $ to $ᵀ
     ; _⊕[_]_ to _⊕ᵀ[_]_
     ; _⟨_⟩ to _⟨ᵀ_⟩
@@ -60,11 +88,89 @@ open import Terms
     ; ⊢ƛ to ⊢ᵀƛ
     ; ⊢· to ⊢ᵀ·
     ; ⊢Λ to ⊢ᵀΛ
-    ; ⊢• to ⊢ᵀ•
+    ; ⊢ν to ⊢ᵀν
     ; ⊢$ to ⊢ᵀ$
     ; ⊢⊕ to ⊢ᵀ⊕
-    ; ⊢up to ⊢ᵀup
+    ; ⊢⟨⟩ to ⊢ᵀ⟨⟩
     )
+
+------------------------------------------------------------------------
+-- Nu coercion for source type application
+------------------------------------------------------------------------
+
+ν-subst : Ty → Substᵗ
+ν-subst A zero = ⇑ᵗ A
+ν-subst A (suc X) = ＇ suc X
+
+ν-subst-target :
+  ∀ A B →
+  substᵗ (ν-subst A) B ≡ ⇑ᵗ (B [ A ]ᵗ)
+ν-subst-target A B =
+  trans
+    (sym (subst-cong env-eq B))
+    (sym (rename-subst suc (singleTyEnv A) B))
+  where
+    env-eq :
+      ∀ X →
+      renameᵗ suc (singleTyEnv A X) ≡ ν-subst A X
+    env-eq zero = refl
+    env-eq (suc X) = refl
+
+ν-subst-wf :
+  ∀ {Δ A} →
+  WfTy Δ A →
+  TySubstWf (suc Δ) (suc Δ) (ν-subst A)
+ν-subst-wf hA {zero} z<s =
+  renameᵗ-preserves-WfTy hA TyRenameWf-suc
+ν-subst-wf hA {suc X} (s<s X<Δ) =
+  wfVar (s<s X<Δ)
+
+ν-reveal-env :
+  ∀ {Δ A} →
+  RevealEnv (suc Δ) zero (⇑ᵗ A) (λ X → X) (ν-subst A)
+ν-reveal-env {X = zero} z<s =
+  rv-hit refl refl
+ν-reveal-env {X = suc X} (s<s X<Δ) =
+  rv-miss (λ ()) refl
+
+ν-reveal-typing :
+  ∀ {Δ A B} →
+  WfTy Δ A →
+  WfTy (suc Δ) B →
+  singleSealᵈ zero ∣ suc Δ ∣ (zero , ⇑ᵗ A) ∷ []
+    ⊢ reveal B zero (⇑ᵗ A) ∶ B =⇒ ⇑ᵗ (B [ A ]ᵗ)
+ν-reveal-typing {A = A} {B = B} hA hB =
+  subst
+    (λ T →
+      singleSealᵈ zero ∣ _ ∣ _ ⊢ reveal B zero (⇑ᵗ A)
+        ∶ B =⇒ T)
+    (ν-subst-target A B)
+    revealed
+  where
+    revealed′ :
+      singleSealᵈ zero ∣ _ ∣ _ ⊢
+        reveal (renameᵗ (λ X → X) B) zero (⇑ᵗ A)
+        ∶ renameᵗ (λ X → X) B =⇒ substᵗ (ν-subst A) B
+    revealed′ =
+      reveal-typing-env
+        hB
+        (λ X<Δ → X<Δ)
+        (ν-subst-wf hA)
+        ν-reveal-env
+        (renameᵗ-preserves-WfTy hA TyRenameWf-suc)
+        (here refl)
+        singleSealMode
+
+    revealed :
+      singleSealᵈ zero ∣ _ ∣ _ ⊢ reveal B zero (⇑ᵗ A)
+        ∶ B =⇒ substᵗ (ν-subst A) B
+    revealed =
+      subst
+        (λ S →
+          singleSealᵈ zero ∣ _ ∣ _ ⊢ reveal S zero (⇑ᵗ A)
+            ∶ S =⇒ substᵗ (ν-subst A) B)
+        (renameᵗ-id B)
+        revealed′
 
 ------------------------------------------------------------------------
 -- Cast plans for compiling consistency
@@ -127,8 +233,9 @@ cast⊢ :
   (plan : CastPlan Δ [] A B) →
   Δ ∣ [] ∣ Γ ⊢ᵀ M ⦂ A →
   Δ ∣ [] ∣ Γ ⊢ᵀ cast plan M ⦂ B
-cast⊢ plan M⊢ =
-  ⊢ᵀup (up⊢ plan) (⊢ᵀup (down⊢ plan) M⊢)
+cast⊢ plan M⊢ with down⊢ plan | up⊢ plan
+cast⊢ plan M⊢ | _ , down⊢ᵐ | _ , up⊢ᵐ =
+  ⊢ᵀ⟨⟩ up⊢ᵐ (⊢ᵀ⟨⟩ down⊢ᵐ M⊢)
 
 ------------------------------------------------------------------------
 -- Compilation
@@ -172,11 +279,12 @@ compile ℓ hΓ (⊢ᴳΛ {occ = occ} vM M⊢)
     with compile ℓ (CtxWf-⤊ hΓ) M⊢
        | compile-value ℓ (CtxWf-⤊ hΓ) vM M⊢
 compile ℓ hΓ (⊢ᴳΛ {occ = occ} vM M⊢) | N , N⊢ | vN =
-  Λᵀ N , ⊢ᵀΛ {occ = occ} vN N⊢
+  Λᵀ N , ⊢ᵀΛ vN N⊢
 compile ℓ hΓ (⊢ᴳ• {B = B} {A = A} M⊢ wfB wfA)
     with compile ℓ hΓ M⊢
 compile ℓ hΓ (⊢ᴳ• {B = B} {A = A} M⊢ wfB wfA) | M′ , M′⊢ =
-  M′ ⦂∀ᵀ B • A , ⊢ᵀ• M′⊢ wfA
+  νᵀ A M′ (reveal B zero (⇑ᵗ A)) ,
+  ⊢ᵀν wfA M′⊢ (ν-reveal-typing wfA wfB)
 compile ℓ hΓ (⊢ᴳ$ κ) =
   $ᵀ κ , ⊢ᵀ$ κ
 compile ℓ hΓ (⊢ᴳ⊕ L⊢ A~ℕ op M⊢ B~ℕ)

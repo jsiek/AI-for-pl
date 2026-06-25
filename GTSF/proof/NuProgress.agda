@@ -3,7 +3,7 @@ module proof.NuProgress where
 -- File Charter:
 --   * Canonical-form lemmas and progress for closed Nu GTSF terms.
 --   * Produces values, blame crashes, or one store-threaded reduction step.
---   * Ports `proof.Progress` to the `NuTerms`/`NuReduction` formulation.
+--   * Uses the `NuTerms`/`NuReduction` formulation of the dynamic semantics.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥)

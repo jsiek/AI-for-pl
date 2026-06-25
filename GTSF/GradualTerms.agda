@@ -4,7 +4,7 @@ module GradualTerms where
 --   * Source-language gradual term syntax and typing for GTSF.
 --   * This layer uses the type consistency relation from `Imprecision`.
 --   * These terms are intended to compile to the intermediate language in
---     `Terms.agda`; no target coercions appear in this source syntax.
+--     `NuTerms.agda`; no target coercions appear in this source syntax.
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.Bool using (true)

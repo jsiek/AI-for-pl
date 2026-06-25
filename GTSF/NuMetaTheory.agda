@@ -15,12 +15,12 @@ open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Types
 open import Ctx
 open import Coercions
-open import NarrowWiden using (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
+open import NarrowWiden
+  using (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_; dualⁿ; dualʷ)
 open import NuStore using (StoreIncl; StoreWf)
 open import NuTerms
 open import NuReduction
 
-import NuStore as NuStore
 import proof.CoercionProperties as CoercionProof
 import proof.NarrowWidenProperties as NarrowWidenProof
 import proof.NuProgress as ProgressProof
@@ -46,25 +46,14 @@ preservation wfΣ hΓ M⊢ red
     | PreservationProof.preserve wfΣ′ Δ≤Δ′ incl hΓ′ N⊢ =
   wfΣ′ , Δ≤Δ′ , incl , hΓ′ , N⊢
 
-nuStoreWf⇒det :
-  ∀ {Δ Σ} →
-  StoreWf Δ Σ →
-  NarrowWidenProof.StoreDetWf Δ Σ
-nuStoreWf⇒det wfΣ =
-  record
-    { at = NuStore.at wfΣ
-    ; wfOlder = NuStore.wfOlder wfΣ
-    ; unique = NuStore.unique wfΣ
-    }
-
 narrowing-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
   StoreWf Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊒ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ B →
   s ≡ t
-narrowing-determinedᵐ wfΣ =
-  NarrowWidenProof.narrowing-determinedᵐ-det (nuStoreWf⇒det wfΣ)
+narrowing-determinedᵐ =
+  NarrowWidenProof.narrowing-determinedᵐ
 
 widening-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
@@ -72,8 +61,8 @@ widening-determinedᵐ :
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊑ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊑ B →
   s ≡ t
-widening-determinedᵐ wfΣ =
-  NarrowWidenProof.widening-determinedᵐ-det (nuStoreWf⇒det wfΣ)
+widening-determinedᵐ =
+  NarrowWidenProof.widening-determinedᵐ
 
 coercion-endpoints-unique :
   ∀ {Δ Σ c A B A′ B′} →

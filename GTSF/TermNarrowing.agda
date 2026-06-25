@@ -16,6 +16,7 @@ module TermNarrowing where
 
 open import Data.List using (_∷_; map)
 open import Data.Nat using (zero; suc)
+open import Data.Product using (∃-syntax)
 
 open import Types
 open import Coercions
@@ -37,20 +38,25 @@ variable
 ⇑ᵍ : CtxWid → CtxWid
 ⇑ᵍ = map ⇑ᶜ
 
+infixl 7 _•_
+
+_•_ : Term → TyVar → Term
+L • α = ν (＇ α) L (id (＇ zero))
+
 infix 4 _∣_∣_⊢_⊒_∶_
 
 data _∣_∣_⊢_⊒_∶_
     : TyCtx → StoreWid → CtxWid → Term → Term → Coercion → Set₁ where
 
   extend : ∀ {M N′ p q A B α Σ}
-    → Δ ∣ Σ ⊢ q ∶ B ⊒ A
+    → ∃[ μ ] μ ∣ Δ ∣ Σ ⊢ q ∶ B ⊒ A
     → Δ ∣ (α ꞉= A ⊑) ∷ σ ∣ γ
         ⊢ M ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ
       ------------------------------------------------------
     → Δ ∣ (α ꞉ q) ∷ σ ∣ γ ⊢ M ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ
 
   split : ∀ {N N′ p q A α αᵢ Σ}
-    → Δ ∣ Σ ⊢ q ∶ ★ ⊒ A
+    → ∃[ μ ] μ ∣ Δ ∣ Σ ⊢ q ∶ ★ ⊒ A
     → Δ ∣ (α ꞉ q) ∷ σ ∣ γ
         ⊢ N [ α ]ᵀ ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ
       ----------------------------------------------------------
@@ -105,19 +111,19 @@ data _∣_∣_⊢_⊒_∶_
   ν⊒ν : ∀ {A A′ N N′ p}
     → suc Δ ∣ (zero ꞉ ⇑ᶜ p) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ N ⊒ N′ ∶ ⇑ᶜ p
       ------------------------------------------------------
-    → Δ ∣ σ ∣ γ ⊢ ν A N ⊒ ν A′ N′ ∶ p
+    → Δ ∣ σ ∣ γ ⊢ ν A N (⇑ᶜ p) ⊒ ν A′ N′ (⇑ᶜ p) ∶ p
 
   ⊒ν : ∀ {A N N′ p}
     → suc Δ ∣ (zero ꞉= ⇑ᵗ A ⊑) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
         ⊢ ⇑ᵗᵐ N ⊒ N′ ∶ ⇑ᶜ p
       ---------------------------------------
-    → Δ ∣ σ ∣ γ ⊢ N ⊒ ν A N′ ∶ p
+    → Δ ∣ σ ∣ γ ⊢ N ⊒ ν A N′ (⇑ᶜ p) ∶ p
 
   ν⊒ : ∀ {N N′ p}
     → suc Δ ∣ (⊑ zero ꞉=☆) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
         ⊢ N ⊒ ⇑ᵗᵐ N′ ∶ ⇑ᶜ p
       ----------------------------------
-    → Δ ∣ σ ∣ γ ⊢ ν ★ N ⊒ N′ ∶ p
+    → Δ ∣ σ ∣ γ ⊢ ν ★ N (⇑ᶜ p) ⊒ N′ ∶ p
 
   κ⊒κ : ∀ κ
       -------------------------------------------

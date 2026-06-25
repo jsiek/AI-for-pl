@@ -14,6 +14,7 @@ open import Relation.Binary.PropositionalEquality using
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here)
 open import Data.Nat using (z<s)
+open import Data.Product using (_,_)
 
 open import Types
 open import Coercions
@@ -73,8 +74,10 @@ ex1-line272-≈ :
 ex1-line272-≈ rewrite ex1-line272-⨟ =
   ν≈νⁿ (wf⇒ wf★ wf★)
     (↦≈↦ⁿ
-      (!≈! (wfVar z<s) (＇ 0) (id≈id (wfVar z<s)))
-      (?≈?ⁿ (wfVar z<s) (＇ 0) (id≈idⁿ (wfVar z<s))))
+      (!≈! {G = ＇ 0} (wfVar z<s) (＇ 0)
+        (id≈id {A = ＇ 0} {aA = ＇ 0} (wfVar z<s)))
+      (?≈?ⁿ {G = ＇ 0} (wfVar z<s) (＇ 0)
+        (id≈idⁿ {A = ＇ 0} {aA = ＇ 0} (wfVar z<s))))
 
 ex1-cast- :
   0 ∣ [] ∣ []
@@ -123,8 +126,10 @@ ex1-line293-≈ :
       ∶ (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
 ex1-line293-≈ rewrite ex1-line293-⨟ =
   ↦≈↦ⁿ
-    (!≈! (wfVar z<s) (＇ 0) (id≈id (wfVar z<s)))
-    (?≈?ⁿ (wfVar z<s) (＇ 0) (id≈idⁿ (wfVar z<s)))
+    (!≈! {G = ＇ 0} (wfVar z<s) (＇ 0)
+      (id≈id {A = ＇ 0} {aA = ＇ 0} (wfVar z<s)))
+    (?≈?ⁿ {G = ＇ 0} (wfVar z<s) (＇ 0)
+      (id≈idⁿ {A = ＇ 0} {aA = ＇ 0} (wfVar z<s)))
 
 ex1-line294-⨟ :
   ((unseal 0 ★ ︔ id ★) ↦ (id ★ ︔ seal ★ 0))
@@ -196,7 +201,7 @@ ex1-split =
     {α = 0}
     {αᵢ = 1}
     {Σ = []}
-    (nrw-id wf★)
+    (id-onlyᵈ , (cast-id wf★ refl , id★))
     ex1-inner-cast+
 
 -- cambridge23 line 291: this is after three reduction steps from
@@ -250,8 +255,10 @@ ex2-line307-≈ :
 ex2-line307-≈ rewrite ex2-line307-left-⨟ | ex1-line272-⨟ =
   ν≈νⁿ (wf⇒ wf★ wf★)
     (↦≈↦ⁿ
-      (!≈! (wfVar z<s) (＇ 0) (id≈id (wfVar z<s)))
-      (?≈?ⁿ (wfVar z<s) (＇ 0) (id≈idⁿ (wfVar z<s))))
+      (!≈! {G = ＇ 0} (wfVar z<s) (＇ 0)
+        (id≈id {A = ＇ 0} {aA = ＇ 0} (wfVar z<s)))
+      (?≈?ⁿ {G = ＇ 0} (wfVar z<s) (＇ 0)
+        (id≈idⁿ {A = ＇ 0} {aA = ＇ 0} (wfVar z<s))))
 
 ex2-line303-right-≈ :
   0 ∣ [] ⊢
@@ -264,8 +271,10 @@ ex2-line303-right-≈ :
 ex2-line303-right-≈ rewrite ex2-line307-left-⨟ =
   ν≈νⁿ (wf⇒ wf★ wf★)
     (↦≈↦ⁿ
-      (!≈! (wfVar z<s) (＇ 0) (id≈id (wfVar z<s)))
-      (?≈?ⁿ (wfVar z<s) (＇ 0) (id≈idⁿ (wfVar z<s))))
+      (!≈! {G = ＇ 0} (wfVar z<s) (＇ 0)
+        (id≈id {A = ＇ 0} {aA = ＇ 0} (wfVar z<s)))
+      (?≈?ⁿ {G = ＇ 0} (wfVar z<s) (＇ 0)
+        (id≈idⁿ {A = ＇ 0} {aA = ＇ 0} (wfVar z<s))))
 
 ex2-right-cast :
   0 ∣ [] ∣ []
@@ -333,8 +342,10 @@ ex2-line316-right-≈ :
       ∶ (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
 ex2-line316-right-≈ rewrite ex2-line316-left-⨟ =
   ↦≈↦ⁿ
-    (!≈! (wfVar z<s) (＇ 0) (id≈id (wfVar z<s)))
-    (?≈?ⁿ (wfVar z<s) (＇ 0) (id≈idⁿ (wfVar z<s)))
+    (!≈! {G = ＇ 0} (wfVar z<s) (＇ 0)
+      (id≈id {A = ＇ 0} {aA = ＇ 0} (wfVar z<s)))
+    (?≈?ⁿ {G = ＇ 0} (wfVar z<s) (＇ 0)
+      (id≈idⁿ {A = ＇ 0} {aA = ＇ 0} (wfVar z<s)))
 
 ex2-inner-right-cast :
   1 ∣ (0 ꞉ id ★) ∷ [] ∣ []
@@ -392,7 +403,7 @@ ex2-split =
     {α = 0}
     {αᵢ = 1}
     {Σ = []}
-    (nrw-id wf★)
+    (id-onlyᵈ , (cast-id wf★ refl , id★))
     ex2-line318
 
 -- cambridge23 line 320: as with Example 1, this is after the catch-up
@@ -440,7 +451,7 @@ ex3-line329-extend =
     {B = ‵ `ℕ}
     {α = 0}
     {Σ = []}
-    (nrw-id wfBase)
+    (id-onlyᵈ , (cast-id wfBase refl , cross id-‵))
     ex3-line329
 
 ex3-line331-⨟ :
@@ -474,8 +485,10 @@ ex3-line331-≈ :
       ∶ (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
 ex3-line331-≈ rewrite ex3-line331-⨟ =
   ↦≈↦ⁿ
-    (unsealG≈! wfBase (‵ `ℕ) (here refl))
-    (sealG≈?ⁿ wfBase (‵ `ℕ) (here refl))
+    (unsealG≈! {G = ‵ `ℕ} {aG = ‵ `ℕ} wfBase (‵ `ℕ)
+      (here refl))
+    (sealG≈?ⁿ {G = ‵ `ℕ} {aG = ‵ `ℕ} wfBase (‵ `ℕ)
+      (here refl))
 
 ex3-line331 :
   0 ∣ (0 ꞉ id (‵ `ℕ)) ∷ [] ∣ []
@@ -560,7 +573,7 @@ ex4-split =
     {α = 0}
     {αᵢ = 1}
     {Σ = []}
-    (nrw-id wf★)
+    (id-onlyᵈ , (cast-id wf★ refl , id★))
     ex4-line353
 
 -- cambridge23 Example 4, final displayed derivation after the ν̅ reduction
@@ -606,8 +619,10 @@ ex5-line380-≈ :
       ∶ (★ ⇒ ★) ⊒ (‵ `𝔹 ⇒ ‵ `𝔹)
 ex5-line380-≈ rewrite ex5-line380-⨟ =
   ↦≈↦ⁿ
-    (!≈! wfBase (‵ `𝔹) (id≈id wfBase))
-    (?≈?ⁿ wfBase (‵ `𝔹) (id≈idⁿ wfBase))
+    (!≈! {G = ‵ `𝔹} wfBase (‵ `𝔹)
+      (id≈id {A = ‵ `𝔹} {aA = ‵ `𝔹} wfBase))
+    (?≈?ⁿ {G = ‵ `𝔹} wfBase (‵ `𝔹)
+      (id≈idⁿ {A = ‵ `𝔹} {aA = ‵ `𝔹} wfBase))
 
 ex5-function-base :
   0 ∣ [] ∣ []
@@ -648,8 +663,12 @@ ex5-c★ =
     {r = ((‵ `ℕ) ？) ︔ id (‵ `ℕ)}
     {s = ((‵ `ℕ) ？) ︔ id (‵ `ℕ)}
     {t = ((‵ `ℕ) ？) ︔ id (‵ `ℕ)}
-    (≈ᵗ-oldⁿ (?≈?ⁿ wfBase (‵ `ℕ) (id≈idⁿ wfBase)))
-    (≈ᵗ-oldⁿ (?≈?ⁿ wfBase (‵ `ℕ) (id≈idⁿ wfBase)))
+    (≈ᵗ-oldⁿ
+      (?≈?ⁿ {G = ‵ `ℕ} wfBase (‵ `ℕ)
+        (id≈idⁿ {A = ‵ `ℕ} {aA = ‵ `ℕ} wfBase)))
+    (≈ᵗ-oldⁿ
+      (?≈?ⁿ {G = ‵ `ℕ} wfBase (‵ `ℕ)
+        (id≈idⁿ {A = ‵ `ℕ} {aA = ‵ `ℕ} wfBase)))
     (κ⊒κ (κℕ 0))
 
 -- cambridge23 Example 5, initial displayed derivation.
@@ -754,6 +773,8 @@ ex6-line407-ν :
             ⟨ -
               ((unseal 0 (‵ `𝔹) ︔ id (‵ `𝔹))
                 ↦ (id (‵ `𝔹) ︔ seal (‵ `𝔹) 0)) ⟩)
+          (⇑ᶜ ((id (‵ `𝔹) ︔ ((‵ `𝔹) !))
+            ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹))))
     ∶ (id (‵ `𝔹) ︔ ((‵ `𝔹) !)) ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹))
 ex6-line407-ν = ⊒ν ex6-line405
 
@@ -765,7 +786,9 @@ ex6-line407 :
           (((Λ (ƛ (` 0))) • 0)
             ⟨ -
               ((unseal 0 (‵ `𝔹) ︔ id (‵ `𝔹))
-                ↦ (id (‵ `𝔹) ︔ seal (‵ `𝔹) 0)) ⟩))
+                ↦ (id (‵ `𝔹) ︔ seal (‵ `𝔹) 0)) ⟩)
+          (⇑ᶜ ((id (‵ `𝔹) ︔ ((‵ `𝔹) !))
+            ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹)))))
           ⟨ -
             ((id (‵ `𝔹) ︔ ((‵ `𝔹) !))
               ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹))) ⟩
@@ -789,7 +812,9 @@ ex6-initial :
           (((Λ (ƛ (` 0))) • 0)
             ⟨ -
               ((unseal 0 (‵ `𝔹) ︔ id (‵ `𝔹))
-                ↦ (id (‵ `𝔹) ︔ seal (‵ `𝔹) 0)) ⟩))
+                ↦ (id (‵ `𝔹) ︔ seal (‵ `𝔹) 0)) ⟩)
+          (⇑ᶜ ((id (‵ `𝔹) ︔ ((‵ `𝔹) !))
+            ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹)))))
           ⟨ -
             ((id (‵ `𝔹) ︔ ((‵ `𝔹) !))
               ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹))) ⟩)

@@ -7,6 +7,8 @@ module All where
 
 import Compile
 import Types
+import GradualTypeCheck
+import GradualTypeCheckExamples
 import Coercions
 import NarrowWiden
 import NuTerms

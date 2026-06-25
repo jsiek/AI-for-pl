@@ -10,6 +10,8 @@ import Types
 import Coercions
 import NarrowWiden
 import NuTerms
+import TypeCheck
+import NuExamplesFresh
 import NuReduction
 import TermNarrowing
 import NuMetaTheory

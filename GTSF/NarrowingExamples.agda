@@ -71,9 +71,9 @@ base-store-det =
     ; unique = λ { (here refl) (here refl) → refl }
     }
 
-empty-store-widening : ∀ {Δ} →
-  Δ ⊢ [] ꞉ [] ⊑ˢ []
-empty-store-widening = ⊑ˢ-nil
+empty-store-narrowing : ∀ {Δ} →
+  Δ ⊢ [] ꞉ [] ⊒ˢ []
+empty-store-narrowing = ⊒ˢ-nil
 
 empty-store-det : ∀ {Δ} →
   StoreDetWf Δ []
@@ -87,10 +87,10 @@ empty-store-det =
     ; unique = λ ()
     }
 
-id★-store-widening : ∀ {Δ} →
-  Δ ⊢ (0 ꞉ id ★) ∷ [] ꞉ ((0 , ★) ∷ []) ⊑ˢ ((0 , ★) ∷ [])
-id★-store-widening =
-  ⊑ˢ-both wf★ wf★ (id-onlyᵈ , (cast-id wf★ refl , id★)) ⊑ˢ-nil
+id★-store-narrowing : ∀ {Δ} →
+  Δ ⊢ (0 ꞉ id ★) ∷ [] ꞉ ((0 , ★) ∷ []) ⊒ˢ ((0 , ★) ∷ [])
+id★-store-narrowing =
+  ⊒ˢ-both wf★ wf★ (id-onlyᵈ , (cast-id wf★ refl , id★)) ⊒ˢ-nil
 
 star-store-det : StoreDetWf 1 ((0 , ★) ∷ [])
 star-store-det =
@@ -103,18 +103,28 @@ star-store-det =
     ; unique = λ { (here refl) (here refl) → refl }
     }
 
-idBase-store-widening : ∀ {Δ ι} →
+idBase-store-narrowing : ∀ {Δ ι} →
   Δ ⊢ (0 ꞉ id (‵ ι)) ∷ [] ꞉
-      ((0 , ‵ ι) ∷ []) ⊑ˢ ((0 , ‵ ι) ∷ [])
-idBase-store-widening {ι = ι} =
-  ⊑ˢ-both wfBase wfBase
+      ((0 , ‵ ι) ∷ []) ⊒ˢ ((0 , ‵ ι) ∷ [])
+idBase-store-narrowing {ι = ι} =
+  ⊒ˢ-both wfBase wfBase
     (id-onlyᵈ , (cast-id wfBase refl , cross (id-‵ ι)))
-    ⊑ˢ-nil
+    ⊒ˢ-nil
 
-base-left-store-widening : ∀ {Δ ι} →
-  Δ ⊢ (0 ꞉= ‵ ι ⊑) ∷ [] ꞉ ((0 , ‵ ι) ∷ []) ⊑ˢ []
-base-left-store-widening =
-  ⊑ˢ-left wfBase ⊑ˢ-nil
+base-untag-store-narrowing : ∀ {Δ ι} →
+  Δ ⊢ (0 ꞉ base-untag ι) ∷ [] ꞉
+      ((0 , ★) ∷ []) ⊒ˢ ((0 , ‵ ι) ∷ [])
+base-untag-store-narrowing {ι = ι} =
+  ⊒ˢ-both wf★ wfBase
+    (tag-or-idᵈ ,
+      (cast-seq (cast-untag wfBase (‵ ι) refl) (cast-id wfBase refl) ,
+       (‵ ι) ？︔ id-‵ ι))
+    ⊒ˢ-nil
+
+base-right-store-narrowing : ∀ {Δ ι} →
+  Δ ⊢ (0 ꞉= ‵ ι ⊒) ∷ [] ꞉ [] ⊒ˢ ((0 , ‵ ι) ∷ [])
+base-right-store-narrowing =
+  ⊒ˢ-right wfBase ⊒ˢ-nil
 
 wf★⇒★ˢ : ∀ {Δ Σ} →
   WfTyˢ Δ Σ (★ ⇒ ★)
@@ -351,7 +361,7 @@ ex1-line272-≈ : ∀ {Δ} →
 ex1-line272-≈ =
   compose-rightⁿ empty-store-det poly-fun⊒ forall-id-var0-fun⊒
     (endpointsⁿ refl refl refl refl
-      empty-store-widening
+      empty-store-narrowing
       wf-poly-fun-endpoints
       wf-poly-fun-endpoints
       poly-fun-narrowing
@@ -411,7 +421,7 @@ ex1-line293-≈ :
 ex1-line293-≈ =
   compose-rightⁿ star-store-det var0-fun⊒ id-var0-fun⊒
     (endpointsⁿ refl refl refl refl
-      id★-store-widening
+      id★-store-narrowing
       wf-var-fun-endpoints
       wf-var-fun-endpoints
       var0-fun-narrowing
@@ -442,7 +452,7 @@ ex1-line294-≈ :
 ex1-line294-≈ =
   compose-rightⁿ star-store-det star-seal-fun⊒ id-var0-fun⊒
     (endpointsⁿ refl refl refl refl
-      id★-store-widening
+      id★-store-narrowing
       wf-var-fun-endpoints
       wf-var-fun-endpoints
       var0-fun-narrowing
@@ -484,7 +494,7 @@ ex1-inner-cast+ =
     ex1-line294-≈ ex1-inner-cast-
 
 ex1-split :
-  1 ∣ (0 ꞉= ★ ⊑) ∷ (⊑ 1 ꞉=☆) ∷ [] ∣ []
+  1 ∣ (0 ꞉= ★ ⊒) ∷ (⊒ 1 ꞉=☆) ∷ [] ∣ []
     ⊢ (ƛ (` 0))
         ⟨ (id (＇ 1) ︔ ((＇ 1) !)) ↦ (((＇ 1) ？) ︔ id (＇ 1)) ⟩
         ⟨ - ((unseal 1 ★ ︔ id ★) ↦ (id ★ ︔ seal ★ 1)) ⟩
@@ -509,7 +519,7 @@ ex1-split =
 -- cambridge23 line 291: this is after three reduction steps from
 -- `ex1-initial`, not after the first reduction step.
 ex1-after-reduction :
-  0 ∣ (⊑ 0 ꞉=☆) ∷ [] ∣ []
+  0 ∣ (⊒ 0 ꞉=☆) ∷ [] ∣ []
     ⊢ (ƛ (` 0))
         ⟨ (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)) ⟩
         ⟨ - ((unseal 0 ★ ︔ id ★) ↦ (id ★ ︔ seal ★ 0)) ⟩
@@ -556,7 +566,7 @@ ex2-line307-≈ :
       ∶ (★ ⇒ ★) ⊒ `∀ (＇ 0 ⇒ ＇ 0)
 ex2-line307-≈ rewrite ex2-line307-left-⨟ | ex1-line272-⨟ =
   endpointsⁿ refl refl refl refl
-    empty-store-widening
+    empty-store-narrowing
     wf-poly-fun-endpoints
     wf-poly-fun-endpoints
     poly-fun-narrowing
@@ -573,7 +583,7 @@ ex2-line303-right-≈ :
 ex2-line303-right-≈ =
   compose-leftⁿ empty-store-det id★-fun⊒ poly-fun⊒
     (endpointsⁿ refl refl refl refl
-      empty-store-widening
+      empty-store-narrowing
       wf-poly-fun-endpoints
       wf-poly-fun-endpoints
       (_ , proj₂ (_⨟ⁿ_ {wfΣ = empty-store-det}
@@ -651,7 +661,7 @@ ex2-line316-right-≈ :
 ex2-line316-right-≈ =
   compose-leftⁿ star-store-det id★-fun⊒ var0-fun⊒
     (endpointsⁿ refl refl refl refl
-      id★-store-widening
+      id★-store-narrowing
       wf-var-fun-endpoints
       wf-var-fun-endpoints
       (_ , proj₂ (_⨟ⁿ_ {wfΣ = star-store-det}
@@ -696,7 +706,7 @@ ex2-line318 =
     ex1-line294-≈ ex2-line316
 
 ex2-split :
-  1 ∣ (0 ꞉= ★ ⊑) ∷ (⊑ 1 ꞉=☆) ∷ [] ∣ []
+  1 ∣ (0 ꞉= ★ ⊒) ∷ (⊒ 1 ꞉=☆) ∷ [] ∣ []
     ⊢ (ƛ (` 0))
         ⟨ (id (＇ 1) ︔ ((＇ 1) !)) ↦ (((＇ 1) ？) ︔ id (＇ 1)) ⟩
         ⟨ - ((unseal 1 ★ ︔ id ★) ↦ (id ★ ︔ seal ★ 1)) ⟩
@@ -724,7 +734,7 @@ ex2-split =
 -- cambridge23 line 320: as with Example 1, this is after the catch-up
 -- reductions, not after the first reduction step.
 ex2-after-reduction :
-  0 ∣ (⊑ 0 ꞉=☆) ∷ [] ∣ []
+  0 ∣ (⊒ 0 ꞉=☆) ∷ [] ∣ []
     ⊢ (ƛ (` 0))
         ⟨ (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)) ⟩
         ⟨ - ((unseal 0 ★ ︔ id ★) ↦ (id ★ ︔ seal ★ 0)) ⟩
@@ -740,7 +750,7 @@ ex2-after-reduction = ⊒⟨ν⟩ ex2-split
 ------------------------------------------------------------------------
 
 ex3-line329 :
-  1 ∣ (0 ꞉= ‵ `ℕ ⊑) ∷ [] ∣ []
+  1 ∣ (0 ꞉= ‵ `ℕ ⊒) ∷ [] ∣ []
     ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) • 0
     ∶ (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))
 ex3-line329 =
@@ -798,7 +808,7 @@ ex3-line331-≈ :
 ex3-line331-≈ =
   compose-leftⁿ base-store-det base-fun⊒ base-seal-step-fun⊒
     (endpointsⁿ refl refl refl refl
-      idBase-store-widening
+      idBase-store-narrowing
       wf-store-var-fun-endpoints
       wf-store-var-fun-endpoints
       (_ , proj₂ (_⨟ⁿ_ {wfΣ = base-store-det}
@@ -877,7 +887,7 @@ ex4-line353 =
     ex1-line294-≈ ex4-line352
 
 ex4-split :
-  1 ∣ (0 ꞉= ★ ⊑) ∷ (⊑ 1 ꞉=☆) ∷ [] ∣ []
+  1 ∣ (0 ꞉= ★ ⊒) ∷ (⊒ 1 ꞉=☆) ∷ [] ∣ []
     ⊢ (ƛ (` 0))
         ⟨ - ((unseal 1 ★ ︔ id ★) ↦ (id ★ ︔ seal ★ 1)) ⟩
       ⊒ ƛ (` 0)
@@ -900,7 +910,7 @@ ex4-split =
 -- cambridge23 Example 4, final displayed derivation after the ν̅ reduction
 -- exposes the fresh seal variable.
 ex4-after-reduction :
-  0 ∣ (⊑ 0 ꞉=☆) ∷ [] ∣ []
+  0 ∣ (⊒ 0 ꞉=☆) ∷ [] ∣ []
     ⊢ (ƛ (` 0))
         ⟨ - ((unseal 0 ★ ︔ id ★) ↦ (id ★ ︔ seal ★ 0)) ⟩
       ⊒ Λ (ƛ (` 0))
@@ -941,7 +951,7 @@ ex5-line380-≈ :
 ex5-line380-≈ =
   compose-leftⁿ empty-store-det id★-fun⊒ base-fun⊒
     (endpointsⁿ refl refl refl refl
-      empty-store-widening
+      empty-store-narrowing
       wf-base-fun-endpoints
       wf-base-fun-endpoints
       (_ , proj₂ (_⨟ⁿ_ {wfΣ = empty-store-det}
@@ -993,14 +1003,14 @@ ex5-c★ =
     {t = ((‵ `ℕ) ？) ︔ id (‵ `ℕ)}
     (compose-leftⁿ empty-store-det id★⊒ base-untag⊒
       (endpointsⁿ refl refl refl refl
-        empty-store-widening
+        empty-store-narrowing
         wf★-base-endpoints
         wf★-base-endpoints
         (_ , proj₂ (_⨟ⁿ_ {wfΣ = empty-store-det} id★⊒ base-untag⊒))
         base-untag-narrowing))
     (compose-rightⁿ empty-store-det base-untag⊒ id-base⊒
       (endpointsⁿ refl refl refl refl
-        empty-store-widening
+        empty-store-narrowing
         wf★-base-endpoints
         wf★-base-endpoints
         base-untag-narrowing
@@ -1038,7 +1048,7 @@ ex5-after-reduction = ⊒blame
 
 -- cambridge23 Example 6, line 403.
 ex6-open-ν𝔹 :
-  1 ∣ (0 ꞉= ‵ `𝔹 ⊑) ∷ [] ∣ []
+  1 ∣ (0 ꞉= ‵ `𝔹 ⊒) ∷ [] ∣ []
     ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) • 0
     ∶ (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))
 ex6-open-ν𝔹 =
@@ -1076,13 +1086,13 @@ ex6-line405-⨟ =
 -- result `ι!→ι?`.  The seal/tag bridge reads identity-like evidence from the
 -- exact `α:=ι` assumption.
 ex6-line405-≈ :
-  1 ∣ (0 ꞉= ‵ `𝔹 ⊑) ∷ [] ⊢
+  1 ∣ (0 ꞉= ‵ `𝔹 ⊒) ∷ [] ⊢
     base-fun `𝔹 ⨾ⁿ base-seal-step-fun `𝔹 ≈ var0-fun
       ∶ (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
 ex6-line405-≈ =
   compose-leftⁿ base-store-det base-fun⊒ base-seal-step-fun⊒
     (endpointsⁿ refl refl refl refl
-      base-left-store-widening
+      base-right-store-narrowing
       wf-var-fun-endpoints
       wf-var-fun-endpoints
       (_ , proj₂ (_⨟ⁿ_ {wfΣ = base-store-det}
@@ -1097,7 +1107,7 @@ ex6-line405-≈ =
 
 -- cambridge23 Example 6, line 405.
 ex6-line405 :
-  1 ∣ (0 ꞉= ‵ `𝔹 ⊑) ∷ [] ∣ []
+  1 ∣ (0 ꞉= ‵ `𝔹 ⊒) ∷ [] ∣ []
     ⊢ ƛ (` 0)
       ⊒ ((Λ (ƛ (` 0))) • 0)
           ⟨ -
@@ -1175,7 +1185,7 @@ ex6-initial = ·⊒· ex6-line407 ex5-c★
 -- cambridge23 line 473.  This endpoint is independent of the casted
 -- derivation above it because `⊒blame` relates any left term to blame.
 ex6-blame :
-  0 ∣ (0 ꞉= ‵ `ℕ ⊑) ∷ [] ∣ []
+  0 ∣ (0 ꞉= ‵ `ℕ ⊒) ∷ [] ∣ []
     ⊢ (ƛ (` 0)) · c★ ⊒ blame ∶ id ★
 ex6-blame = ⊒blame
 
@@ -1227,7 +1237,7 @@ ex7-downcast-left-≈ : ∀ {ι} →
 ex7-downcast-left-≈ {ι = ι} =
   compose-leftⁿ base-store-det id-base-fun⊒ base-seal-step-fun⊒
     (endpointsⁿ refl refl refl refl
-      idBase-store-widening
+      idBase-store-narrowing
       wf-base-store-var-fun-endpoints
       wf-base-store-var-fun-endpoints
       (_ , proj₂ (_⨟ⁿ_ {wfΣ = base-store-det}
@@ -1247,7 +1257,7 @@ ex7-downcast-right-≈ : ∀ {ι} →
 ex7-downcast-right-≈ {ι = ι} =
   compose-rightⁿ base-store-det base-seal-step-fun⊒ id-var0-fun⊒
     (endpointsⁿ refl refl refl refl
-      idBase-store-widening
+      idBase-store-narrowing
       wf-base-store-var-fun-endpoints
       wf-base-store-var-fun-endpoints
       (seal-or-idᵈ , base-seal-step-fun⊒)
@@ -1321,7 +1331,7 @@ ex7-line720-≈ : ∀ {ι} →
 ex7-line720-≈ =
   compose-rightⁿ base-store-det var0-fun⊒ id-var0-fun⊒
     (endpointsⁿ refl refl refl refl
-      idBase-store-widening
+      idBase-store-narrowing
       wf-store-var-fun-endpoints
       wf-store-var-fun-endpoints
       var0-fun-narrowing
@@ -1364,3 +1374,118 @@ ex7-line723 {ι = ι} =
     ex7-downcast-left-≈
     ex7-downcast-right-≈
     ex7-line721
+
+------------------------------------------------------------------------
+-- Example 8
+------------------------------------------------------------------------
+
+-- cambridge25 Example 8, line 820 side condition (i), left half:
+-- `(ι!→ι?) ⨾ (α♯→α♭) ≈ α!→α?`.
+ex8-line820-left-≈ :
+  1 ∣ (0 ꞉ base-untag `ℕ) ∷ [] ⊢
+    base-fun `ℕ ⨾ⁿ base-seal-step-fun `ℕ ≈ var0-fun
+      ∶ (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
+ex8-line820-left-≈ =
+  compose-leftⁿ base-store-det base-fun⊒ base-seal-step-fun⊒
+    (endpointsⁿ refl refl refl refl
+      base-untag-store-narrowing
+      wf-store-var-fun-endpoints
+      wf-store-var-fun-endpoints
+      (_ , proj₂ (_⨟ⁿ_ {wfΣ = base-store-det}
+        base-fun⊒ base-seal-step-fun⊒))
+      var0-fun-narrowing)
+  where
+    base-fun⊒ =
+      base-fun-narrowingᵐ {μ = seal-or-idᵈ} {ι = `ℕ}
+
+    base-seal-step-fun⊒ =
+      base-seal-step-fun-narrowingᵐ {ι = `ℕ}
+
+-- cambridge25 Example 8, line 820 side condition (i), right half:
+-- `α!→α? ≈ (α!→α?) ⨾ (id_α→id_α)`.
+ex8-line820-right-≈ :
+  1 ∣ (0 ꞉ base-untag `ℕ) ∷ [] ⊢
+    var0-fun ≈ var0-fun ⨾ⁿ (id (＇ 0) ↦ id (＇ 0))
+      ∶ (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
+ex8-line820-right-≈ =
+  compose-rightⁿ star-store-det var0-fun⊒ id-var0-fun⊒
+    (endpointsⁿ refl refl refl refl
+      base-untag-store-narrowing
+      wf-store-var-fun-endpoints
+      wf-store-var-fun-endpoints
+      var0-fun-narrowing
+      (_ , proj₂ (_⨟ⁿ_ {wfΣ = star-store-det}
+        var0-fun⊒ id-var0-fun⊒)))
+  where
+    var0-fun⊒ = var0-fun-narrowingᵐ
+
+    id-var0-fun⊒ =
+      id-var0-fun-narrowingᵐ {μ = tag-or-idᵈ} refl
+
+-- cambridge25 Example 8, line 818.
+ex8-idα :
+  1 ∣ (0 ꞉ base-untag `ℕ) ∷ [] ∣ []
+    ⊢ ƛ (` 0) ⊒ ƛ (` 0)
+    ∶ id (＇ 0) ↦ id (＇ 0)
+ex8-idα = ƛ⊒ƛ (x⊒x Z)
+
+-- cambridge25 Example 8, line 820.
+ex8-line820 :
+  1 ∣ (0 ꞉ base-untag `ℕ) ∷ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ - var0-fun ⟩
+      ⊒ (ƛ (` 0)) ⟨ - base-seal-step-fun `ℕ ⟩
+    ∶ base-fun `ℕ
+ex8-line820 =
+  cast+⊒cast+
+    {p = id (＇ 0) ↦ id (＇ 0)}
+    {q = base-fun `ℕ}
+    {r = var0-fun}
+    {s = base-seal-step-fun `ℕ}
+    {t = var0-fun}
+    {A = ★ ⇒ ★}
+    {B = ＇ 0 ⇒ ＇ 0}
+    ex8-line820-left-≈
+    ex8-line820-right-≈
+    ex8-idα
+
+-- cambridge25 Example 8, line 821 argument premise.
+ex8-c★⊒c-right-≈ :
+  1 ∣ (0 ꞉ base-untag `ℕ) ∷ [] ⊢
+    base-untag `ℕ ≈ base-untag `ℕ ⨾ⁿ id (‵ `ℕ)
+      ∶ ★ ⊒ ‵ `ℕ
+ex8-c★⊒c-right-≈ =
+  compose-rightⁿ star-store-det base-untag⊒ id-base⊒
+    (endpointsⁿ refl refl refl refl
+      base-untag-store-narrowing
+      wf★-base-endpoints
+      wf★-base-endpoints
+      base-untag-narrowing
+      (_ , proj₂ (_⨟ⁿ_ {wfΣ = star-store-det}
+        base-untag⊒ id-base⊒)))
+  where
+    base-untag⊒ =
+      base-untag-narrowingᵐ {μ = tag-or-idᵈ} {ι = `ℕ}
+
+    id-base⊒ =
+      id-base-narrowingᵐ {μ = tag-or-idᵈ} {ι = `ℕ}
+
+ex8-c★⊒c :
+  1 ∣ (0 ꞉ base-untag `ℕ) ∷ [] ∣ []
+    ⊢ c★ ⊒ $ (κℕ 0) ∶ base-untag `ℕ
+ex8-c★⊒c =
+  cast+⊒
+    {p = id (‵ `ℕ)}
+    {r = base-untag `ℕ}
+    {t = base-untag `ℕ}
+    {A = ★}
+    {B = ‵ `ℕ}
+    ex8-c★⊒c-right-≈
+    (κ⊒κ (κℕ 0))
+
+-- cambridge25 Example 8, line 823.
+ex8-line823 :
+  1 ∣ (0 ꞉ base-untag `ℕ) ∷ [] ∣ []
+    ⊢ ((ƛ (` 0)) ⟨ - var0-fun ⟩) · c★
+      ⊒ ((ƛ (` 0)) ⟨ - base-seal-step-fun `ℕ ⟩) · $ (κℕ 0)
+    ∶ base-untag `ℕ
+ex8-line823 = ·⊒· ex8-line820 ex8-c★⊒c

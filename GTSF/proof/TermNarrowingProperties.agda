@@ -15,8 +15,8 @@ open import TermNarrowing using
 
 variable
   Δ : TyCtx
-  σ : StoreWid
-  γ : CtxWid
+  σ : StoreNrw
+  γ : CtxNrw
   A B : Ty
   p q r s t : Coercion
   M M′ : Term

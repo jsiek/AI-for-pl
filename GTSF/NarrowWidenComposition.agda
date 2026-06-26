@@ -372,7 +372,7 @@ infix 4 _∣_⊢_⨾ⁿ_≈_∶_⊒_
 infix 4 _∣_⊢_≈_⨾ⁿ_∶_⊒_
 
 data _∣_⊢_⨾ⁿ_≈_∶_⊒_ :
-    TyCtx → StoreWid → Coercion → Coercion → Coercion →
+    TyCtx → StoreNrw → Coercion → Coercion → Coercion →
     Ty → Ty → Set₁ where
 
   compose-leftⁿ : ∀ {Δ σ Σ μ A B C q s r}
@@ -384,7 +384,7 @@ data _∣_⊢_⨾ⁿ_≈_∶_⊒_ :
     → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
 
 data _∣_⊢_≈_⨾ⁿ_∶_⊒_ :
-    TyCtx → StoreWid → Coercion → Coercion → Coercion →
+    TyCtx → StoreNrw → Coercion → Coercion → Coercion →
     Ty → Ty → Set₁ where
 
   compose-rightⁿ : ∀ {Δ σ Σ μ A B C r t p}

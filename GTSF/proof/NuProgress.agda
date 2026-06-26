@@ -2,7 +2,7 @@ module proof.NuProgress where
 
 -- File Charter:
 --   * Canonical-form lemmas and progress for closed Nu GTSF terms.
---   * Produces values, blame crashes, or one store-threaded reduction step.
+--   * Produces values, blame crashes, or one store-change reduction step.
 --   * Uses the `NuTerms`/`NuReduction` formulation of the dynamic semantics.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -23,6 +23,7 @@ open import Coercions
 open import Primitives
 open import NuTerms
 open import NuReduction
+open import proof.NuTermProperties using (renameᵗᵐ-preserves-Value)
 
 ------------------------------------------------------------------------
 -- Fresh seal choice for progress
@@ -67,8 +68,8 @@ freshSealAbove∉ Δ Σ fresh∈Σ =
 data Progress {Δ : TyCtx}{Σ : Store} (M : Term) : Set where
   done : Value M → Progress M
   step :
-    ∀ {Δ′ : TyCtx}{Σ′ : Store}{N : Term} →
-    Δ ∣ Σ ∣ M —→ Δ′ ∣ Σ′ ∣ N →
+    ∀ {χ : StoreChange}{N : Term} →
+    M —→[ χ ] N →
     Progress M
   crash :
     M ≡ blame →
@@ -233,137 +234,202 @@ unseal-progress vM M⊢ with canonical-＇ vM M⊢
 unseal-progress vM M⊢ | sv-seal vW refl =
   step (pure-step (seal-unseal vW))
 
-data TypeAppProgress (S : TypeApp) : Set where
-  tap :
-    ∀ {V : Term}{cs : List Coercion} →
-    S —↠ᵀ val V cs →
-    TypeAppProgress S
-
 type-app-progress :
-  ∀ {Δ : TyCtx}{Σ : Store}{L : Term}{C : Ty}{α : TyVar}
-    {cs : List Coercion} →
-  Value L →
-  Δ ∣ Σ ∣ [] ⊢ L ⦂ `∀ C →
-  TypeAppProgress (app L α cs)
-type-app-progress (ƛ N) ()
-type-app-progress (Λ vV) (⊢Λ _ hV) =
-  tap (stepᵀ (β-Λᵀ vV) doneᵀ)
-type-app-progress ($ (κℕ n)) ()
-type-app-progress (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ () hW)
-type-app-progress (_⟨_⟩ {V = W} vW (seal A α)) (⊢⟨⟩ () hW)
-type-app-progress (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ () hW)
-type-app-progress (_⟨_⟩ {V = W} vW (`∀ c))
-    (⊢⟨⟩ (cast-all c⊢) hW)
-    with type-app-progress vW hW
-type-app-progress (_⟨_⟩ {V = W} vW (`∀ c))
-    (⊢⟨⟩ (cast-all c⊢) hW)
-    | tap W↠V =
-  tap (stepᵀ (β-∀ᵀ vW) W↠V)
-type-app-progress (_⟨_⟩ {V = W} vW (gen A c))
+  ∀ {Δ : TyCtx}{Σ : Store}{V : Term}{A C : Ty} →
+  Value V →
+  No• V →
+  Δ ∣ Σ ∣ [] ⊢ V ⦂ `∀ C →
+  Progress {Δ = suc Δ} {Σ = (zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ} ((⇑ᵗᵐ V) •)
+type-app-progress (ƛ N) noV ()
+type-app-progress (Λ vV) (no•-Λ noV) (⊢Λ _ hV) =
+  step (pure-step (β-Λ• (renameᵗᵐ-preserves-Value (extᵗ suc) vV)))
+type-app-progress ($ (κℕ n)) noV ()
+type-app-progress (_⟨_⟩ {V = W} vW (G !)) noV (⊢⟨⟩ () hW)
+type-app-progress (_⟨_⟩ {V = W} vW (seal A α)) noV (⊢⟨⟩ () hW)
+type-app-progress (_⟨_⟩ {V = W} vW (c ↦ d)) noV (⊢⟨⟩ () hW)
+type-app-progress (_⟨_⟩ {V = W} vW (`∀ c)) (no•-⟨⟩ noW)
+    (⊢⟨⟩ (cast-all c⊢) hW) =
+  step (pure-step (β-∀• (renameᵗᵐ-preserves-Value suc vW)))
+type-app-progress (_⟨_⟩ {V = W} vW (gen A c)) (no•-⟨⟩ noW)
     (⊢⟨⟩ (cast-gen _ _ c⊢) hW) =
-  tap (stepᵀ (β-genᵀ vW) doneᵀ)
+  step (pure-step (β-gen• (renameᵗᵐ-preserves-Value suc vW)))
+
+shiftable-no :
+  ∀ {χ : StoreChange}{M : Term} →
+  No• M →
+  Shiftable χ M
+shiftable-no {χ = keep} noM = shift-keep
+shiftable-no {χ = bind A} noM = shift-bind noM
+
+runtime-value-no• :
+  ∀ {V : Term} →
+  RuntimeOK V →
+  Value V →
+  No• V
+runtime-value-no• (ok-no noV) vV = noV
+runtime-value-no• (ok-• vV noV) ()
+runtime-value-no• (ok-·₁ okL noM) ()
+runtime-value-no• (ok-·₂ vV noV okM) ()
+runtime-value-no• (ok-ν okL) ()
+runtime-value-no• (ok-⊕₁ okL noM) ()
+runtime-value-no• (ok-⊕₂ vL noL okM) ()
+runtime-value-no• (ok-⟨⟩ okM) (vM ⟨ i ⟩) =
+  no•-⟨⟩ (runtime-value-no• okM vM)
 
 ------------------------------------------------------------------------
 -- Progress
 ------------------------------------------------------------------------
 
-progress :
-  ∀ {Δ : TyCtx}{Σ : Store}{M : Term}{A : Ty} →
-  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
-  Progress {Δ = Δ} {Σ = Σ} M
-progress (⊢` ())
-progress (⊢ƛ hA hM) = done (ƛ _)
-progress (⊢· {L = L} {M = M} L⊢ M⊢) with progress L⊢
-progress (⊢· {L = L} {M = M} L⊢ M⊢) | step L→L′ =
-  step (ξ-·₁ L→L′)
-progress (⊢· {L = L} {M = M} L⊢ M⊢) | crash refl =
-  step (pure-step blame-·₁)
-progress (⊢· {L = L} {M = M} L⊢ M⊢) | done vL with progress M⊢
-progress (⊢· {L = L} {M = M} L⊢ M⊢) | done vL | step M→M′ =
-  step (ξ-·₂ vL M→M′)
-progress (⊢· {L = L} {M = M} L⊢ M⊢) | done vL | crash refl =
-  step (pure-step (blame-·₂ vL))
-progress (⊢· {L = L} {M = M} L⊢ M⊢) | done vL | done vM
-    with canonical-⇒ vL L⊢
-progress (⊢· {L = L} {M = M} L⊢ M⊢) | done vL | done vM
-    | fv-ƛ refl =
-  step (pure-step (β vM))
-progress (⊢· {L = L} {M = M} L⊢ M⊢) | done vL | done vM
-    | fv-↦ vW refl =
-  step (pure-step (β-↦ vW vM))
-progress (⊢Λ vM hM) = done (Λ vM)
-progress {Δ = Δ} {Σ = Σ}
-    (⊢ν {L = L} {A = A} {c = c} hA L⊢ c⊢)
-    with progress L⊢
-progress {Δ = Δ} {Σ = Σ}
-    (⊢ν {L = L} {A = A} {c = c} hA L⊢ c⊢)
-    | step L→L′ =
-  step (ξ-ν L→L′)
-progress {Δ = Δ} {Σ = Σ}
-    (⊢ν {L = L} {A = A} {c = c} hA L⊢ c⊢)
-    | crash refl =
-  step blame-ν
-progress {Δ = Δ} {Σ = Σ}
-    (⊢ν {L = L} {A = A} {c = c} hA L⊢ c⊢)
-    | done vL with type-app-progress
-        {α = freshSealAbove Δ Σ}
-        {cs = (c [ freshSealAbove Δ Σ ]ᶜ) ∷ []}
-        vL L⊢
-progress {Δ = Δ} {Σ = Σ}
-    (⊢ν {L = L} {A = A} {c = c} hA L⊢ c⊢)
-    | done vL | tap L↠V =
-  step
-    (ν-step {A = A} {α = freshSealAbove Δ Σ}
-      (m≤m⊔n Δ (freshSeal Σ))
-      (freshSealAbove∉ Δ Σ)
-      L↠V)
-progress (⊢$ κ) = done ($ κ)
-progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) with progress L⊢
-progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | step L→L′ =
-  step (ξ-⊕₁ L→L′)
-progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | crash refl =
-  step (pure-step blame-⊕₁)
-progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | done vL with progress M⊢
-progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | done vL | step M→M′ =
-  step (ξ-⊕₂ vL M→M′)
-progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | done vL | crash refl =
-  step (pure-step (blame-⊕₂ vL))
-progress (⊢⊕ {L = L} {M = M} L⊢ op M⊢) | done vL | done vM
-    with canonical-ℕ vL L⊢ | canonical-ℕ vM M⊢
-progress (⊢⊕ {L = L} {M = M} L⊢ addℕ M⊢)
-    | done vL | done vM | nv-const refl | nv-const refl =
-  step (pure-step δ-⊕)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) with progress M⊢
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | step M→M′ =
-  step (ξ-⟨⟩ M→M′)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | crash refl =
-  step (pure-step blame-⟨⟩)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM with c⊢
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-id hA _ =
-  step (pure-step (β-id vM))
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
-    | cast-seal hA hα _ =
-  done (vM ⟨ seal _ _ ⟩)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
-    | cast-unseal hA hα _ =
-  unseal-progress vM M⊢
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
-    | cast-seq p⊢ q⊢ =
-  step (pure-step (β-seq vM))
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-tag hG gG _ =
-  done (vM ⟨ _ ! ⟩)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
-    | cast-untag hG gG _ =
-  untag-progress vM M⊢
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM
-    | cast-fun p⊢ q⊢ =
-  done (vM ⟨ _ ↦ _ ⟩)
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢) | done vM | cast-all cwt =
-  done (vM ⟨ `∀ _ ⟩)
-progress {Σ = Σ} (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢)
-    | done vM | cast-inst _ _ cwt =
-  step (pure-step (β-inst vM))
-progress (⊢⟨⟩ {M = M} {c = c} c⊢ M⊢)
-    | done vM | cast-gen _ _ cwt =
-  done (vM ⟨ gen _ _ ⟩)
-progress (⊢blame hA) = crash refl
+mutual
+
+  progress :
+    ∀ {Δ : TyCtx}{Σ : Store}{M : Term}{A : Ty} →
+    RuntimeOK M →
+    Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+    Progress {Δ = Δ} {Σ = Σ} M
+  progress ok (⊢` ())
+  progress ok (⊢ƛ hA hM) = done (ƛ _)
+  progress (ok-no (no•-· noL noM)) (⊢· L⊢ M⊢) =
+    progress-·₁ (ok-no noL) noM L⊢ M⊢
+  progress (ok-·₁ okL noM) (⊢· L⊢ M⊢) =
+    progress-·₁ okL noM L⊢ M⊢
+  progress (ok-·₂ vL noL okM) (⊢· L⊢ M⊢) =
+    progress-·₂ vL noL okM L⊢ M⊢
+  progress ok (⊢Λ vM hM) = done (Λ vM)
+  progress ok (⊢• refl refl hC vV noV hV) =
+    type-app-progress vV noV hV
+  progress (ok-no (no•-ν noL)) (⊢ν hA L⊢ c⊢) =
+    progress-ν (ok-no noL) hA L⊢ c⊢
+  progress (ok-ν okL) (⊢ν hA L⊢ c⊢) =
+    progress-ν okL hA L⊢ c⊢
+  progress ok (⊢$ κ) = done ($ κ)
+  progress (ok-no (no•-⊕ noL noM)) (⊢⊕ L⊢ op M⊢) =
+    progress-⊕₁ (ok-no noL) noM L⊢ M⊢
+  progress (ok-⊕₁ okL noM) (⊢⊕ L⊢ op M⊢) =
+    progress-⊕₁ okL noM L⊢ M⊢
+  progress (ok-⊕₂ vL noL okM) (⊢⊕ L⊢ op M⊢) =
+    progress-⊕₂ vL noL okM L⊢ M⊢
+  progress (ok-no (no•-⟨⟩ noM)) (⊢⟨⟩ c⊢ M⊢) =
+    progress-cast (ok-no noM) c⊢ M⊢
+  progress (ok-⟨⟩ okM) (⊢⟨⟩ c⊢ M⊢) =
+    progress-cast okM c⊢ M⊢
+  progress ok (⊢blame hA) = crash refl
+
+  progress-·₁ :
+    ∀ {Δ : TyCtx}{Σ : Store}{L M : Term}{A B : Ty} →
+    RuntimeOK L →
+    No• M →
+    Δ ∣ Σ ∣ [] ⊢ L ⦂ A ⇒ B →
+    Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+    Progress {Δ = Δ} {Σ = Σ} (L · M)
+  progress-·₁ okL noM L⊢ M⊢ with progress okL L⊢
+  progress-·₁ okL noM L⊢ M⊢ | step L→L′ =
+    step (ξ-·₁ L→L′ (shiftable-no noM))
+  progress-·₁ okL noM L⊢ M⊢ | crash refl =
+    step (pure-step blame-·₁)
+  progress-·₁ okL noM L⊢ M⊢ | done vL =
+    progress-·₂ vL (runtime-value-no• okL vL) (ok-no noM) L⊢ M⊢
+
+  progress-·₂ :
+    ∀ {Δ : TyCtx}{Σ : Store}{V M : Term}{A B : Ty} →
+    Value V →
+    No• V →
+    RuntimeOK M →
+    Δ ∣ Σ ∣ [] ⊢ V ⦂ A ⇒ B →
+    Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+    Progress {Δ = Δ} {Σ = Σ} (V · M)
+  progress-·₂ vV noV okM V⊢ M⊢ with progress okM M⊢
+  progress-·₂ vV noV okM V⊢ M⊢ | step M→M′ =
+    step (ξ-·₂ vV (shiftable-no noV) M→M′)
+  progress-·₂ vV noV okM V⊢ M⊢ | crash refl =
+    step (pure-step (blame-·₂ vV))
+  progress-·₂ vV noV okM V⊢ M⊢ | done vM
+      with canonical-⇒ vV V⊢
+  progress-·₂ vV noV okM V⊢ M⊢ | done vM | fv-ƛ refl =
+    step (pure-step (β vM))
+  progress-·₂ vV noV okM V⊢ M⊢ | done vM | fv-↦ vW refl =
+    step (pure-step (β-↦ vW vM))
+
+  progress-ν :
+    ∀ {Δ : TyCtx}{Σ : Store}{A B C : Ty}{L : Term}
+      {c : Coercion}{μ : ModeEnv} →
+    RuntimeOK L →
+    WfTy Δ A →
+    Δ ∣ Σ ∣ [] ⊢ L ⦂ `∀ C →
+    μ ∣ suc Δ ∣ (0 , ⇑ᵗ A) ∷ ⟰ᵗ Σ ⊢ c ∶ C =⇒ ⇑ᵗ B →
+    Progress {Δ = Δ} {Σ = Σ} (ν A L c)
+  progress-ν okL hA L⊢ c⊢ with progress okL L⊢
+  progress-ν okL hA L⊢ c⊢ | step L→L′ =
+    step (ξ-ν L→L′)
+  progress-ν okL hA L⊢ c⊢ | crash refl =
+    step blame-ν
+  progress-ν okL hA L⊢ c⊢ | done vL =
+    step (ν-step vL (runtime-value-no• okL vL))
+
+  progress-⊕₁ :
+    ∀ {Δ : TyCtx}{Σ : Store}{L M : Term}{op : Prim} →
+    RuntimeOK L →
+    No• M →
+    Δ ∣ Σ ∣ [] ⊢ L ⦂ ‵ `ℕ →
+    Δ ∣ Σ ∣ [] ⊢ M ⦂ ‵ `ℕ →
+    Progress {Δ = Δ} {Σ = Σ} (L ⊕[ op ] M)
+  progress-⊕₁ okL noM L⊢ M⊢ with progress okL L⊢
+  progress-⊕₁ okL noM L⊢ M⊢ | step L→L′ =
+    step (ξ-⊕₁ L→L′ (shiftable-no noM))
+  progress-⊕₁ okL noM L⊢ M⊢ | crash refl =
+    step (pure-step blame-⊕₁)
+  progress-⊕₁ okL noM L⊢ M⊢ | done vL =
+    progress-⊕₂ vL (runtime-value-no• okL vL) (ok-no noM) L⊢ M⊢
+
+  progress-⊕₂ :
+    ∀ {Δ : TyCtx}{Σ : Store}{L M : Term}{op : Prim} →
+    Value L →
+    No• L →
+    RuntimeOK M →
+    Δ ∣ Σ ∣ [] ⊢ L ⦂ ‵ `ℕ →
+    Δ ∣ Σ ∣ [] ⊢ M ⦂ ‵ `ℕ →
+    Progress {Δ = Δ} {Σ = Σ} (L ⊕[ op ] M)
+  progress-⊕₂ vL noL okM L⊢ M⊢ with progress okM M⊢
+  progress-⊕₂ vL noL okM L⊢ M⊢ | step M→M′ =
+    step (ξ-⊕₂ vL (shiftable-no noL) M→M′)
+  progress-⊕₂ vL noL okM L⊢ M⊢ | crash refl =
+    step (pure-step (blame-⊕₂ vL))
+  progress-⊕₂ {op = addℕ} vL noL okM L⊢ M⊢ | done vM
+      with canonical-ℕ vL L⊢ | canonical-ℕ vM M⊢
+  progress-⊕₂ {op = addℕ} vL noL okM L⊢ M⊢
+      | done vM | nv-const refl | nv-const refl =
+    step (pure-step δ-⊕)
+
+  progress-cast :
+    ∀ {Δ : TyCtx}{Σ : Store}{M : Term}{A B : Ty}
+      {c : Coercion}{μ : ModeEnv} →
+    RuntimeOK M →
+    μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
+    Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+    Progress {Δ = Δ} {Σ = Σ} (M ⟨ c ⟩)
+  progress-cast okM c⊢ M⊢ with progress okM M⊢
+  progress-cast okM c⊢ M⊢ | step M→M′ =
+    step (ξ-⟨⟩ M→M′)
+  progress-cast okM c⊢ M⊢ | crash refl =
+    step (pure-step blame-⟨⟩)
+  progress-cast okM c⊢ M⊢ | done vM with c⊢
+  progress-cast okM c⊢ M⊢ | done vM | cast-id hA _ =
+    step (pure-step (β-id vM))
+  progress-cast okM c⊢ M⊢ | done vM | cast-seal hA hα _ =
+    done (vM ⟨ seal _ _ ⟩)
+  progress-cast okM c⊢ M⊢ | done vM | cast-unseal hA hα _ =
+    unseal-progress vM M⊢
+  progress-cast okM c⊢ M⊢ | done vM | cast-seq p⊢ q⊢ =
+    step (pure-step (β-seq vM))
+  progress-cast okM c⊢ M⊢ | done vM | cast-tag hG gG _ =
+    done (vM ⟨ _ ! ⟩)
+  progress-cast okM c⊢ M⊢ | done vM | cast-untag hG gG _ =
+    untag-progress vM M⊢
+  progress-cast okM c⊢ M⊢ | done vM | cast-fun p⊢ q⊢ =
+    done (vM ⟨ _ ↦ _ ⟩)
+  progress-cast okM c⊢ M⊢ | done vM | cast-all cwt =
+    done (vM ⟨ `∀ _ ⟩)
+  progress-cast okM c⊢ M⊢ | done vM | cast-inst _ _ cwt =
+    step (pure-step (β-inst vM))
+  progress-cast okM c⊢ M⊢ | done vM | cast-gen _ _ cwt =
+    done (vM ⟨ gen _ _ ⟩)

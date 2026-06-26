@@ -127,6 +127,7 @@ value? (L · M) = nothing
 value? (Λ M) with value? M
 ... | just vM = just (Λ vM)
 ... | nothing = nothing
+value? (M •) = nothing
 value? (ν A L c) = nothing
 value? ($ κ) = just ($ κ)
 value? (L ⊕[ op ] M) = nothing
@@ -134,6 +135,30 @@ value? (M ⟨ c ⟩) with value? M | inert? c
 ... | just vM | just ic = just (vM ⟨ ic ⟩)
 ... | _ | _ = nothing
 value? blame = nothing
+
+no•? : (M : Term) → Maybe (No• M)
+no•? (` x) = just no•-`
+no•? (ƛ M) with no•? M
+... | just noM = just (no•-ƛ noM)
+... | nothing = nothing
+no•? (L · M) with no•? L | no•? M
+... | just noL | just noM = just (no•-· noL noM)
+... | _ | _ = nothing
+no•? (Λ M) with no•? M
+... | just noM = just (no•-Λ noM)
+... | nothing = nothing
+no•? (M •) = nothing
+no•? (ν A L c) with no•? L
+... | just noL = just (no•-ν noL)
+... | nothing = nothing
+no•? ($ κ) = just no•-$
+no•? (L ⊕[ op ] M) with no•? L | no•? M
+... | just noL | just noM = just (no•-⊕ noL noM)
+... | _ | _ = nothing
+no•? (M ⟨ c ⟩) with no•? M
+... | just noM = just (no•-⟨⟩ noM)
+... | nothing = nothing
+no•? blame = just no•-blame
 
 ------------------------------------------------------------------------
 -- Inverting `⇑ᵗ`
@@ -326,6 +351,8 @@ mutual
   ... | just vM with type-check (suc Δ) (⟰ᵗ Σ) (⤊ᵗ Γ) M
   ...   | just (A , M⊢) = just ((`∀ A) , ⊢Λ vM M⊢)
   ...   | nothing = nothing
+
+  type-check Δ Σ Γ (M •) = nothing
 
   type-check Δ Σ Γ (ν A L c) with wfTy? Δ A
   ... | nothing = nothing

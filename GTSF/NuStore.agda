@@ -26,7 +26,6 @@ open import Store public
 record StoreWf (Δ : TyCtx) (Σ : Store) : Set₁ where
   field
     at : StoreWfAt Δ Σ
-    wfOlder : ∀ {α A} → (α , A) ∈ Σ → WfTy α A
     unique : ∀ {α A B} → (α , A) ∈ Σ → (α , B) ∈ Σ → A ≡ B
 
 open StoreWf public

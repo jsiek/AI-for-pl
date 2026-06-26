@@ -290,7 +290,6 @@ term-weaken Δ≤Δ′ incl (no•-· noL noM) (⊢· hL hM) =
 term-weaken Δ≤Δ′ incl (no•-Λ noM) (⊢Λ vV hV) =
   ⊢Λ vV
     (term-weaken (s≤s Δ≤Δ′) (renameStoreᵗ-incl suc incl) noM hV)
-term-weaken Δ≤Δ′ incl () (⊢• eqΔ eqΣ hC vV noV hV)
 term-weaken Δ≤Δ′ incl (no•-ν noL) (⊢ν hA hL c⊢) =
   ⊢ν
     (WfTy-weakenᵗ hA Δ≤Δ′)
@@ -414,7 +413,6 @@ typing-renameᵀ-scoped {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
           (ModeRenamer-ext η)
           noM
           hM)))
-typing-renameᵀ-scoped wfΣ hΓ hρ η () (⊢• eqΔ eqΣ hC vV noV hV)
 typing-renameᵀ-scoped {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
     wfΣ hΓ hρ η
     (no•-ν noL)
@@ -538,7 +536,6 @@ typing-renameᵀ {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
           (RenameLeftInverse-ext inv)
           noM
           hM)))
-typing-renameᵀ hρ inv () (⊢• eqΔ eqΣ hC vV noV hV)
 typing-renameᵀ {Δ′ = Δ′} {Σ = Σ} {Γ = Γ} {ρ = ρ}
     {ψ = ψ} hρ inv
     (no•-ν noL)
@@ -769,7 +766,6 @@ substˣᵐ-preserves-No•-typed noσ (no•-· noL noM) (⊢· hL hM) =
 substˣᵐ-preserves-No•-typed noσ (no•-Λ noM) (⊢Λ vM hM) =
   no•-Λ
     (substˣᵐ-preserves-No•-typed (SubstNo•-⇑ noσ) noM hM)
-substˣᵐ-preserves-No•-typed noσ () (⊢• eqΔ eqΣ hC vV noV hV)
 substˣᵐ-preserves-No•-typed noσ (no•-ν noL) (⊢ν hA hL c⊢) =
   no•-ν (substˣᵐ-preserves-No•-typed noσ noL hL)
 substˣᵐ-preserves-No•-typed noσ no•-$ (⊢$ κ) = no•-$
@@ -800,7 +796,6 @@ typing-substˣ hσ noσ (no•-Λ noM) (⊢Λ vM hM) =
       (SubstNo•-⇑ noσ)
       noM
       hM)
-typing-substˣ hσ noσ () (⊢• eqΔ eqΣ hC vV noV hV)
 typing-substˣ hσ noσ (no•-ν noL) (⊢ν hA hL c⊢) =
   ⊢ν hA (typing-substˣ hσ noσ noL hL) c⊢
 typing-substˣ hσ noσ no•-$ (⊢$ κ) = ⊢$ κ

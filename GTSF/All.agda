@@ -16,4 +16,5 @@ import TypeCheck
 import NuExamplesFresh
 import NuReduction
 import TermNarrowing
+import NarrowingExamples
 import NuMetaTheory

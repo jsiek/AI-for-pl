@@ -1,4 +1,29 @@
 --------------------------------------------------------------------------------
+
+Alternative to the type application machine
+
+
+  Term                L,M,N      ::=  x | κ | M ⊕ N | λx.N[x] | L M | ΛX.V[X]
+                                    | να:=A.L α ⟨ c ⟩ | V α | M ⟨ c ⟩ | blame ℓ
+
+
+Γ ⊢ V : ∀X.B[X]
+---------------------
+Γ, α:=A ⊢ V α : B[α]
+
+Γ ⊢ L : ∀X.B[X]
+Γ, α:=C ⊢ c : B[α] ==⇒ A
+-------------------------- α ∉ fv(A)
+Γ ⊢ να:=C. L α ⟨ c ⟩ : A
+
+(keep ξ-ν)
+
+Use 0 for the fresh α at runtime, shift everything else up.
+
+
+Σ ∣ να:=C. V α ⟨ c ⟩ -→ Σ, α:=C ∣ V α ⟨ c ⟩
+
+--------------------------------------------------------------------------------
 Strict Coercions
 
 The cambridge22 notes use store-domain side conditions to keep the

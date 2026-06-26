@@ -1,8 +1,14 @@
+TODO:
+  Clean up definitions of typing and narrowing to conform to result of
+    meeting of Thu 25 Jun
+  Change ≈ to put same endpoints first and alternative defintion last
+
+
 Graduality, Parametricity, Interoperability:
 Together Again for the First Time
-(version 22)
+(version 25)
 
-8 June 2026
+25 June 2026
 
 Jeremy Siek, Indiana University
 Peter Thiemann, University of Freiburg
@@ -13,6 +19,72 @@ New in this version:
 cambridge20 casts relate terms, *except* upcasts and downcasts use full imprecision.
 cambridge21 has full draft proof, including ν upcast lemma.
 cambridge22 based on arbitrary casts (not up or down), plus widening and narrowing
+------------------------------------------------------------------------
+[Key changes in the syntax]
+
+                      L,M,N      ::=  ... | V α | ...
+                      E          ::=  ... | να:=A. E α ⟨ c[α] ⟩ | ...
+
+
+## Reduction with invariant, variation a: one big-step rule [Obsolete]
+
+    F  ::=  □ | F ⟨ c ⟩
+
+  Replace the rules marked (*) above by the following rules.
+
+  Type application reduction (F / V / α —→ N)
+
+    F / (ΛX.V[X]) / α        —→  F[V[α]]
+    F / (V ⟨ να.c[α] ⟩) / α  —→  F[V ⟨ c[α] ⟩]
+
+    F[□ ⟨ c[α] ⟩] / V —→ N
+    ------------------------
+    F / (V ⟨ ∀X.c[X] ⟩) —→ N
+
+    (□ ⟨ c[α] ⟩) / V / α —→ N
+    -------------------------
+    E[V α ⟨ c[α] ⟩] —→_∅ E[N]
+
+    -----------------------------------------------
+    E[να:=A.L α ⟨ c[α] ⟩] —→_{α:=A} E[L α ⟨ c[α] ⟩]
+
+    L —→_Σ L′
+    -------------------------------------
+    E[L α ⟨ c[α] ⟩] —→_Σ E[L′ α ⟨ c[α] ⟩]
+
+
+## Reduction with invariant, variation b: alter the grammar [Obsolete]
+
+Redefine the grammar of term by adding
+
+    L,M,N ::=  ... | να. L α ⟨ c[α] ⟩ | ⌈ P[α] ⌉ 
+    P[α]  ::=  L α | P[α] ⟨ c[α] ⟩
+
+and in the definition of term replace L α by P[α].
+Write ⌈P⌉ to indicate that a subterm is a P rather than an M.
+
+Replace the rules marked (*) above by the following rules.
+
+Add a type application reduction rule, of type M ——→ M′
+    
+    F ::= □ | F ⟨ c ⟩
+
+    ⌈ F[(ΛX.V[X]) α] ⌉ ——→ F[V[α]]
+
+    ⌈ F[(V ⟨ να.c[α] ⟩) α] ⌉ ——→ F[V ⟨ c[α] ⟩]
+
+    ⌈ F[(V ⟨ ∀X.c[X] ⟩) α] ⌉ ——→ ⌈ F[V α ⟨ c[α] ⟩] ⌉
+
+    ⌈ P[α] ⌉ ——→ M
+    ---------------------
+    E[⌈ P[α] ⌉] —→_∅ E[M]
+
+    L —→_Σ L′
+    -----------------------------
+    E[⌈F[L α]⌉] —→_Σ E[⌈F[L′ α]⌉]
+
+    -------------------------------------
+    E[να:=A.F[L α]] —→_{α:=A} E[⌈F[L α]⌉]
 ------------------------------------------------------------------------
 Jeremy and Peter,
 
@@ -89,7 +161,6 @@ False trail:
 ------------------------------------------------------------------------
 A simple problematic example:
 
-
 Jeremy's problematic example
 
     (ΛX.ΛY.N[X,Y]) A B
@@ -164,16 +235,10 @@ This is ruled out if no binding form can interpose between the introduction
 of α at να:=ι and it's use at (f α).
 
 ------------------------------------------------------------------------
-
-
 TODO:
-Look into factoring coercions into widenings and narrowings
 Explain c[α!,α?] as a context with two holes. Give example.
 In description of Figure 5, note Σ ⊆ Γ preserves order (to preserve wf)
 Make sure to mention System F embedding in text
-------------------------------------------------------------------------
-TODO: All instances of seals should be erasable at runtime.
-How do the imprecision rules look under the influence of erasure?
 ------------------------------------------------------------------------
 Max,
 
@@ -1514,18 +1579,21 @@ THE DEVELOPMENT
   Imprecision         c,d        ::=  id_A | c;d | c→d | ∀X.c[X] | να.c[α] | ν̅α.c[α]
                                     | G! | G?^ℓ | α♯ | α♭
   Term                L,M,N      ::=  x | κ | M ⊕ N | λx.N[x] | L M | ΛX.V[X]
-                                    | να:=A.P[α] | P[α] | M ⟨ c ⟩ | blame ℓ
-  Type application    P[α]       ::=  L α | P[α] ⟨ c[α] ⟩
+                                    | να:=A. L α ⟨ c[α] ⟩ | V α | M ⟨ c ⟩ | blame ℓ
   Value               V,W        ::=  λx.N[x] | ΛX.V[X] | κ | V ⟨ c→d ⟩ | V ⟨ ∀X.c[X] ⟩
                                     | V ⟨ να.c[α] ⟩ | V ⟨ G! ⟩ | V ⟨ α♯ ⟩
   Type context        Γ,Δ        ::=  ∅ | Γ, α:=A | Γ, X | Γ, x:A
   Store               Σ,Π        ::=  ∅ | Σ, α:=A
-  Evaluation context  E          ::=  □ | E ⊕ M | V ⊕ E | E M | V E | E α | E ⟨ c ⟩
+  Evaluation context  E          ::=  □ | E ⊕ M | V ⊕ E | E M | V E | E ⟨ c ⟩ | να.E α ⟨ c ⟩
+
+
+## Embedding System F
 
   We have the following embedding of System F into our system.
      Assume Γ ⊢ L : ∀X.B[X].
      (L A) ~> (να:=A. L α ⟨ B[α♯] ⟩
   where B[α♯] : B[α] ⊑_{α:=A} B[A].
+
 
 ## Coercions (c : A =⇒_Σ B)
 
@@ -1570,6 +1638,32 @@ THE DEVELOPMENT
   Lemma.  Derivation determines types and store.
     if c : A =⇒_Σ B and c : A′ =⇒_Σ′ B′ then
     types and stores agree: A = A′ and B = B′ and Σ = Σ′.
+
+## Discussion
+
+An example of a term that breaks the invariant on coercions if the body
+of ν bindings is not sufficiently restricted.
+
+    (να:=ι.(λz:(∀X.α→X). z α ⟨ α♯→α♭ ⟩) ((λx:α.κ ⟨ ι! ⟩) ⟨ νβ.(α♭→β?) ⟩)) κ
+  —→
+    α:=ι ⊢ ((λz:(∀X.α→X). z α ⟨ α♯→α♭ ⟩)((λx:α.κ ⟨ ι! ⟩) ⟨ νβ.(α♭→β?) ⟩)) κ
+  —→
+    α:=ι ⊢ (((λx:α.κ ⟨ ι! ⟩) ⟨ νβ.(α♭→β?) ⟩) α ⟨ α♯→α♭ ⟩) κ
+  —→
+    α:=ι ⊢ ((λx:α.κ ⟨ ι! ⟩) ⟨ (α♭→α?) ⟩ ⟨ α♯→α♭ ⟩) κ
+  —→
+    α:=ι ⊢ ((λx:α.κ ⟨ ι! ⟩) ⟨ (α♭→α?) ⟩) (κ ⟨ α♯ ⟩) ⟨ α♭ ⟩
+  —→
+    α:=ι ⊢ ((λx:α.κ ⟨ ι! ⟩) (κ ⟨ α♯ ⟩ ⟨ α♭ ⟩) ⟨ α? ⟩ ⟨ α♭ ⟩
+  —→
+    α:=ι ⊢ (λx:α.κ ⟨ ι! ⟩) κ  ⟨ α? ⟩ ⟨ α♭ ⟩
+  —→
+    α:=ι ⊢ κ ⟨ ι! ⟩ ⟨ α? ⟩ ⟨ α♭ ⟩
+  —→
+    α:=ι ⊢ blame
+
+The invariant gets broken but nothing else goes wrong. Do we
+need the invariant?
 
 
 ## Free type and store variables
@@ -1679,20 +1773,25 @@ THE DEVELOPMENT
     ---------------------
     Γ ⊢ ΛX.V[X] : ∀X.B[X]
 
-    Γ ⊢ L : ∀X.B[X]
-    --------------- (α:=A) ∈ Γ, α ∉ fv(L)
-    Γ ⊢ L α : B[α]
-
     Γ, α:=A ⊢ N[α] : B
     ------------------ α ∉ fv(B)
     Γ ⊢ να:=A.N[α] : B
 
-    Γ ⊢ M : A    c : A =⇒_Σ B
-    ------------------------- Σ ⊆ Γ
+    Γ ⊢ M : A    Γ ⊢ c : A =⇒_Σ B
+    ----------------------------- Σ ⊆ Γ
     Γ ⊢ M ⟨ c ⟩ : B
 
     ---------------
     Γ ⊢ blame ℓ : A
+
+    Γ ⊢ L : (∀X.A[X])    Γ, α:=C ⊢ c[α] : A[α] ==>_Σ B
+    -------------------------------------------------- Σ ⊆ (Γ, α:=C)
+    Γ ⊢ να:=C. L α ⟨ c[α] ⟩ : B
+
+    Γ ⊢ V : ∀X.B[X]
+    --------------------
+    Γ, α:=A ⊢ V α : B[α]
+
 
     Lemma (Substitution).
       If Γ, x:A, Δ ⊢ N[x] : B
@@ -1774,15 +1873,14 @@ THE DEVELOPMENT
     V ⟨ G! ⟩ ⟨ H?^ℓ ⟩  ⊢→  blame ℓ   if G ≠ H
     V ⟨ α♯ ⟩ ⟨ α♭ ⟩    ⊢→  V
 
-
   Reduction with store (M —→_Σ N)
 
     M ⊢→ N
     --------------
     E[M] —→_∅ E[N]
 
-    -------------------------------
-    E[να:=A.N[α]] —→_{α:=A} E[N[α]]
+    -----------------------------------------------
+    E[να:=A.V α ⟨ c[α] ⟩] —→_{α:=A} E[V α ⟨ c[α] ⟩]
 
     -------------------
     E[blame] —→_∅ blame
@@ -2520,6 +2618,15 @@ is always a value. Therefore, we modify the formation rule for
 
 ## Relating imprecisions: (γ ⊢ p ≈ q)
 
+    If γ | σ ⊢ p ≈ q holds iff
+      γ ⊇ σ
+      γ : Γ ⊒ Γ′
+      σ : Σ ⊒ Σ′
+      Γ | Σ ⊢ p : A ⊒ B
+      Γ′ | Σ′ ⊢ q : A ⊒ B
+      
+## Relating imprecisions [alternate definition] (γ ⊢ p ≈ q)
+
     X ∈ γ
     ---------------
     γ ⊢ id_X ≈ id_X
@@ -2554,15 +2661,6 @@ is always a value. Therefore, we modify the formation rule for
     ----------------------------
     γ ⊢ (να.p[α♯]) ≈ (να.p′[α♯])
 
-
-    Lemma (Sanity). If
-      γ ⊢ p ≈ q
-    then
-      γ : Γ ⊑ Δ
-      Γ | Φ ⊢ p : A ⊑ B
-      Δ | Ψ ⊢ q : A ⊑ B
-      for some Γ, Δ, Φ, Ψ A, B
-
   (More general rules. But perhaps I don't need these.)
 
     γ ⊢ r ≈ p ⨾ q
@@ -2573,9 +2671,9 @@ is always a value. Therefore, we modify the formation rule for
     --------------- (α:=p ∈ γ), γ : Γ ⊑ Γ′, Γ | ∅ ⊢ r : A ⊑ ★
     γ ⊢ α♯ ; q ≈ α!
 
-  (With the more general rules, the implication in the Sanity Lemma
-  becomes a bi-implication.)
-
+  (I believe the more general rules are equivalent to the
+  "same endpoints" definitions.)
+  
 
 ## Term narrowing (γ ⊢ M ⊒ M′ : r)
 
@@ -2634,17 +2732,17 @@ is always a value. Therefore, we modify the formation rule for
 
     (α⊒α)
       γ ⊢ L ⊒ L′ : ∀X.p[X]
-      --------------------- (α:=q) ∈ γ, α ∉ fv(L)
-      γ ⊢ L α ⊒ L′ α : p[α]
+      ---------------------------
+      γ, α:=q ⊢ L α ⊒ L′ α : p[α]
 
     (⊒α)
       γ ⊢ L ⊒ L′ : να.p[α]
-      -------------------- (α:=A) ∈ γ, α ∉ fv(L)
-      γ ⊢ L ⊒ L′ α : p[α]
+      -------------------------
+      γ, α:=A ⊢ L ⊒ L′ α : p[α]
 
     (ν⊒ν)
-      γ, α:=p ⊢ N[α] ⊒ N′[α] : p
-      --------------------------------- α ∉ fv(p)
+      γ, α:=q ⊢ N[α] ⊒ N′[α] : p    q : A ⊒ A′
+      ---------------------------------------- α ∉ fv(p)
       γ ⊢ να:=A.N[α] ⊒ να:=A′.N′[α] : p
 
     (⊒ν)

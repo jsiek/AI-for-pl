@@ -23,6 +23,7 @@ open import Coercions
 open import Primitives
 open import NuTerms
 open import NarrowWiden
+open import NarrowWidenComposition
 
 variable
   Δ : TyCtx
@@ -108,8 +109,9 @@ data _∣_∣_⊢_⊒_∶_
       -----------------------------------------------
     → Δ ∣ (α ꞉= A ⊑) ∷ σ ∣ γ ⊢ L ⊒ L′ • α ∶ p [ α ]ᶜ
 
-  ν⊒ν : ∀ {A A′ N N′ p}
-    → suc Δ ∣ (zero ꞉ ⇑ᶜ p) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ N ⊒ N′ ∶ ⇑ᶜ p
+  ν⊒ν : ∀ {A A′ N N′ p q Σ}
+    → ∃[ μ ] μ ∣ Δ ∣ Σ ⊢ q ∶ A ⊒ A′
+    → suc Δ ∣ (zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ N ⊒ N′ ∶ ⇑ᶜ p
       ------------------------------------------------------
     → Δ ∣ σ ∣ γ ⊢ ν A N (⇑ᶜ p) ⊒ ν A′ N′ (⇑ᶜ p) ∶ p
 
@@ -136,25 +138,25 @@ data _∣_∣_⊢_⊒_∶_
     → Δ ∣ σ ∣ γ ⊢ M ⊕[ addℕ ] N ⊒ M′ ⊕[ addℕ ] N′ ∶ id (‵ `ℕ)
 
   ⊒cast+ : ∀ {M M′ q r s A B}
-    → Δ ∣ σ ⊢ q ⨟ s ≈ᵗ r ∶ A ⊒ B
+    → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r
       ----------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ⟨ - s ⟩ ∶ q
 
   ⊒cast- : ∀ {M M′ q r s A B}
-    → Δ ∣ σ ⊢ q ⨟ s ≈ᵗ r ∶ A ⊒ B
+    → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ q
       ----------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ⟨ s ⟩ ∶ r
 
   cast+⊒ : ∀ {M M′ p r t A B}
-    → Δ ∣ σ ⊢ r ≈ᵗ t ⨟ p ∶ A ⊒ B
+    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p
       ----------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⟨ - t ⟩ ⊒ M′ ∶ r
 
   cast-⊒ : ∀ {M M′ p r t A B}
-    → Δ ∣ σ ⊢ r ≈ᵗ t ⨟ p ∶ A ⊒ B
+    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r
       ----------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⟨ t ⟩ ⊒ M′ ∶ p

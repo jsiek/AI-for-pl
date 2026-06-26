@@ -324,9 +324,6 @@ pure-preservation wfΣ (no•-⊕ noL noM)
 pure-preservation wfΣ (no•-· (no•-ƛ noN) noV)
     (⊢· (⊢ƛ hA hN) hV) (β vV) =
   typing-single-subst noN noV hN hV
-pure-preservation wfΣ () M⊢ (β-Λ• vV′)
-pure-preservation wfΣ () M⊢ (β-∀• vV′)
-pure-preservation wfΣ () M⊢ (β-gen• vV′)
 pure-preservation wfΣ (no•-⟨⟩ noV)
     (⊢⟨⟩ (cast-id hA _) hV) (β-id vV) =
   hV
@@ -367,7 +364,6 @@ pure-preservation wfΣ (no•-· noV noB)
     (⊢· hV (⊢blame hA)) (blame-·₂ vV)
     | wf⇒ hA′ hB =
   ⊢blame hB
-pure-preservation wfΣ () M⊢ blame-•
 pure-preservation wfΣ (no•-⟨⟩ noB)
     (⊢⟨⟩ c⊢ (⊢blame hA)) blame-⟨⟩
     with coercion-wfᵐ (at wfΣ) c⊢
@@ -396,9 +392,6 @@ pure-preserves-No•-typed wfΣ (no•-⊕ noL noM)
 pure-preserves-No•-typed wfΣ (no•-· (no•-ƛ noN) noV)
     (⊢· (⊢ƛ hA hN) hV) (β vV) =
   substˣᵐ-preserves-No•-typed (singleSubstNo• noV) noN hN
-pure-preserves-No•-typed wfΣ () M⊢ (β-Λ• vV)
-pure-preserves-No•-typed wfΣ () M⊢ (β-∀• vV)
-pure-preserves-No•-typed wfΣ () M⊢ (β-gen• vV)
 pure-preserves-No•-typed wfΣ (no•-⟨⟩ noV) M⊢ (β-id vV) =
   noV
 pure-preserves-No•-typed wfΣ (no•-⟨⟩ noV) M⊢ (β-seq vV) =
@@ -422,7 +415,6 @@ pure-preserves-No•-typed wfΣ (no•-· noB noM) M⊢ blame-·₁ =
 pure-preserves-No•-typed wfΣ (no•-· noV noB) M⊢
     (blame-·₂ vV) =
   no•-blame
-pure-preserves-No•-typed wfΣ () M⊢ blame-•
 pure-preserves-No•-typed wfΣ (no•-⟨⟩ noB) M⊢ blame-⟨⟩ =
   no•-blame
 pure-preserves-No•-typed wfΣ (no•-⊕ noB noM) M⊢ blame-⊕₁ =

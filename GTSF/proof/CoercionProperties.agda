@@ -67,9 +67,9 @@ renameᶜ-preserves-Inert ρ (gen A c) =
 coercion-weakenᵐ :
   ∀ {μ Δ Δ′ Σ Σ′ c A B} →
   Δ ≤ Δ′ →
-  StoreIncl Σ Σ′ →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
-  μ ∣ Δ′ ∣ Σ′ ⊢ c ∶ A =⇒ B
+  StoreIncl Σ Σ′
+  → μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
+  → μ ∣ Δ′ ∣ Σ′ ⊢ c ∶ A =⇒ B
 coercion-weakenᵐ Δ≤Δ′ incl (cast-id hA ok) =
   cast-id (WfTy-weakenᵗ hA Δ≤Δ′) ok
 coercion-weakenᵐ Δ≤Δ′ incl
@@ -741,10 +741,9 @@ coercion-open-shift-freshᵐ :
   StoreWfAt Δ Σ →
   Δ ≤ Δ′ →
   Δ ≤ α →
-  α < Δ′ →
-  μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ ⇑ᵗ A =⇒ B →
-  openᵈ μ α ∣ Δ′ ∣ (α , Aν) ∷ Σ ⊢ c [ α ]ᶜ
-    ∶ A =⇒ B [ α ]ᴿ
+  α < Δ′
+  → μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ ⇑ᵗ A =⇒ B
+  → openᵈ μ α ∣ Δ′ ∣ (α , Aν) ∷ Σ ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ
 coercion-open-shift-freshᵐ {μ = μ} {Δ = Δ} {Δ′ = Δ′}
     {Σ = Σ} {c = c} {A = A} {B = B} {α = α} {Aν = Aν}
     wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢ =
@@ -760,8 +759,9 @@ coercion-open-shift-fresh :
   Δ ≤ Δ′ →
   Δ ≤ α →
   α < Δ′ →
-  μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ ⇑ᵗ A =⇒ B →
-  Δ′ ∣ (α , Aν) ∷ Σ ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ
+  μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ ⇑ᵗ A =⇒ B
+    --------------------------------------------
+  → Δ′ ∣ (α , Aν) ∷ Σ ⊢ c [ α ]ᶜ ∶ A =⇒ B [ α ]ᴿ
 coercion-open-shift-fresh {μ = μ} {α = α}
     wfΣ Δ≤Δ′ Δ≤α α<Δ′ c⊢ =
   openᵈ μ α ,

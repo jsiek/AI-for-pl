@@ -5,6 +5,11 @@
   small canonical public surface over compatibility re-exports, aliases, or
   wrapper files. When consolidating APIs, delete obsolete shims instead of
   preserving them for hypothetical external users.
+- Do not introduce new named aliases merely for parts of lemma or theorem
+  statements. Inline existential witnesses, conjunctions, and other conclusion
+  structure in the statement itself so the full claim is readable at the use
+  site. Add a named definition only when it is a genuine reusable concept, not
+  just a shorthand for a proof obligation.
 
 ## Subagent launch notes
 

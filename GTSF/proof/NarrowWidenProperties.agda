@@ -119,7 +119,7 @@ widening⇒grammarᵐ = proj₂
 
 narrowing⇒coercion :
   ∀ {Δ Σ A B c} →
-  (∃[ μ ] μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B) →
+  Δ ∣ Σ ⊢ c ∶ A ⊒ B →
   Δ ∣ Σ ⊢ c ∶ A =⇒ B
 narrowing⇒coercion (μ , c⊢) =
   μ , narrowing⇒coercionᵐ c⊢

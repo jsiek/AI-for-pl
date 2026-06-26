@@ -2966,6 +2966,23 @@ Proof. By case analysis on the derivation of p.
 
   Cases for ⊑Λ and ⊒⟨ν⟩ can't occur because να.p[α♯] ≠ id_α.
 
+  [NEW] Case ⊒α
+
+    The last rule would have to look like
+
+      σ ⊢ L ⊒ L′ : νβ.p[β!]
+      ------------------------- ⊒α
+      σ, β:=A ⊢ L ⊒ L′ β : p[β?]
+
+    so the conclusion index id_α would force p[β?] = id_α. But in a
+    well-typed ν narrowing, the body p has shifted source endpoint:
+
+      p : C↑ ⊒ D[β]
+
+    No shifted source type is the newly bound variable β; and if p is 
+    an identity on a shifted variable, its target does not contain β,
+    contradicting the occurrence side condition for ν. So this case is
+    impossible.
 
 ## Tag Factoring
 

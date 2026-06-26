@@ -189,7 +189,7 @@ var0-fun-narrowingᵐ =
 
 var0-fun-narrowing :
   ∀ {Δ Σ} →
-  ∃[ μ ] μ ∣ suc Δ ∣ Σ ⊢ var0-fun ∶ (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
+  suc Δ ∣ Σ ⊢ var0-fun ∶ (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
 var0-fun-narrowing = tag-or-idᵈ , var0-fun-narrowingᵐ
 
 id★-fun-narrowingᵐ : ∀ {μ Δ Σ} →
@@ -247,7 +247,7 @@ poly-fun-narrowingᵐ =
   gen var0-fun-grammar
 
 poly-fun-narrowing : ∀ {Δ Σ} →
-  ∃[ μ ] μ ∣ Δ ∣ Σ ⊢ gen (★ ⇒ ★) var0-fun ∶
+  Δ ∣ Σ ⊢ gen (★ ⇒ ★) var0-fun ∶
     (★ ⇒ ★) ⊒ (`∀ (＇ 0 ⇒ ＇ 0))
 poly-fun-narrowing = id-onlyᵈ , poly-fun-narrowingᵐ
 
@@ -266,7 +266,7 @@ base-fun-narrowingᵐ {ι = ι} =
      base-fun-grammar)
 
 base-fun-narrowing : ∀ {Δ Σ ι} →
-  ∃[ μ ] μ ∣ Δ ∣ Σ ⊢ base-fun ι ∶ (★ ⇒ ★) ⊒ (‵ ι ⇒ ‵ ι)
+  Δ ∣ Σ ⊢ base-fun ι ∶ (★ ⇒ ★) ⊒ (‵ ι ⇒ ‵ ι)
 base-fun-narrowing =
   tag-or-idᵈ , base-fun-narrowingᵐ
 
@@ -299,7 +299,7 @@ star-seal-fun-narrowingᵐ =
   cross ((unseal︔_ 0 id★) ↦ (id★ ︔seal 0))
 
 star-seal-fun-narrowing : ∀ {Δ Σ} →
-  ∃[ μ ] μ ∣ Δ ∣ ((0 , ★) ∷ Σ) ⊢ star-seal-fun ∶
+  Δ ∣ ((0 , ★) ∷ Σ) ⊢ star-seal-fun ∶
     (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
 star-seal-fun-narrowing = seal-or-idᵈ , star-seal-fun-narrowingᵐ
 
@@ -315,8 +315,76 @@ base-untag-narrowingᵐ {ι = ι} =
   base-untag-grammar
 
 base-untag-narrowing : ∀ {Δ Σ ι} →
-  ∃[ μ ] μ ∣ Δ ∣ Σ ⊢ base-untag ι ∶ ★ ⊒ (‵ ι)
+  Δ ∣ Σ ⊢ base-untag ι ∶ ★ ⊒ (‵ ι)
 base-untag-narrowing = tag-or-idᵈ , base-untag-narrowingᵐ
+
+id★-cast : ∀ {Δ Σ} →
+  Δ ∣ Σ ⊢ id ★ ∶ᶜ ★ ⊒ ★
+id★-cast =
+  id★-narrowingᵐ {μ = tag-or-idᵈ}
+
+id-base-cast : ∀ {Δ Σ ι} →
+  Δ ∣ Σ ⊢ id (‵ ι) ∶ᶜ ‵ ι ⊒ ‵ ι
+id-base-cast =
+  id-base-narrowingᵐ {μ = tag-or-idᵈ}
+
+id-var0-cast : ∀ {Δ Σ} →
+  suc Δ ∣ Σ ⊢ id (＇ 0) ∶ᶜ ＇ 0 ⊒ ＇ 0
+id-var0-cast =
+  cast-id (wfVar z<s) refl , cross (id-＇ 0)
+
+var0-untag-cast : ∀ {Δ Σ} →
+  suc Δ ∣ Σ ⊢ ((＇ 0) ？) ︔ id (＇ 0) ∶ᶜ ★ ⊒ ＇ 0
+var0-untag-cast =
+  cast-seq (cast-untag (wfVar z<s) (＇ 0) refl)
+    (cast-id (wfVar z<s) refl) ,
+  (＇ 0) ？︔ id-＇ 0
+
+id★-fun-cast : ∀ {Δ Σ} →
+  Δ ∣ Σ ⊢ id ★ ↦ id ★ ∶ᶜ (★ ⇒ ★) ⊒ (★ ⇒ ★)
+id★-fun-cast =
+  id★-fun-narrowingᵐ {μ = tag-or-idᵈ}
+
+id-base-fun-cast : ∀ {Δ Σ ι} →
+  Δ ∣ Σ ⊢ id (‵ ι) ↦ id (‵ ι) ∶ᶜ
+    (‵ ι ⇒ ‵ ι) ⊒ (‵ ι ⇒ ‵ ι)
+id-base-fun-cast =
+  id-base-fun-narrowingᵐ {μ = tag-or-idᵈ}
+
+id-var0-fun-cast : ∀ {Δ Σ} →
+  suc Δ ∣ Σ ⊢ id (＇ 0) ↦ id (＇ 0) ∶ᶜ
+    (＇ 0 ⇒ ＇ 0) ⊒ (＇ 0 ⇒ ＇ 0)
+id-var0-fun-cast =
+  id-var0-fun-narrowingᵐ {μ = tag-or-idᵈ} refl
+
+var0-fun-cast : ∀ {Δ Σ} →
+  suc Δ ∣ Σ ⊢ var0-fun ∶ᶜ (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
+var0-fun-cast =
+  var0-fun-narrowingᵐ
+
+forall-id-var0-fun-cast : ∀ {Δ Σ} →
+  Δ ∣ Σ ⊢ `∀ (id (＇ 0) ↦ id (＇ 0)) ∶ᶜ
+    `∀ (＇ 0 ⇒ ＇ 0) ⊒ `∀ (＇ 0 ⇒ ＇ 0)
+forall-id-var0-fun-cast =
+  forall-id-var0-fun-narrowingᵐ {μ = tag-or-idᵈ}
+
+poly-fun-cast : ∀ {Δ Σ} →
+  Δ ∣ Σ ⊢ gen (★ ⇒ ★) var0-fun ∶ᶜ
+    (★ ⇒ ★) ⊒ `∀ (＇ 0 ⇒ ＇ 0)
+poly-fun-cast =
+  cast-gen (wf⇒ wf★ wf★) refl
+    (var0-fun-typing {μ = genᵈ tag-or-idᵈ} (wfVar z<s) refl refl) ,
+  gen var0-fun-grammar
+
+base-fun-cast : ∀ {Δ Σ ι} →
+  Δ ∣ Σ ⊢ base-fun ι ∶ᶜ (★ ⇒ ★) ⊒ (‵ ι ⇒ ‵ ι)
+base-fun-cast =
+  base-fun-narrowingᵐ {μ = tag-or-idᵈ}
+
+base-untag-cast : ∀ {Δ Σ ι} →
+  Δ ∣ Σ ⊢ base-untag ι ∶ᶜ ★ ⊒ ‵ ι
+base-untag-cast =
+  base-untag-narrowingᵐ {μ = tag-or-idᵈ}
 
 ------------------------------------------------------------------------
 -- Example 1
@@ -328,7 +396,9 @@ ex1-⊒Λ :
     ⊢ ƛ (` 0) ⊒ Λ (ƛ (` 0))
     ∶ gen (★ ⇒ ★)
         ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))
-ex1-⊒Λ = ⊒Λ (ƛ⊒ƛ (x⊒x Z))
+ex1-⊒Λ =
+  ⊒Λ poly-fun-cast
+    (ƛ⊒ƛ var0-fun-cast (x⊒x var0-untag-cast Z))
 
 -- cambridge23 line 272 side condition (i), at the raw-composition level.
 ex1-line272-⨟ :
@@ -380,7 +450,8 @@ ex1-cast- :
           ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))) ⟩
       ⊒ Λ (ƛ (` 0))
     ∶ `∀ (id (＇ 0) ↦ id (＇ 0))
-ex1-cast- = cast-⊒ ex1-line272-≈ ex1-⊒Λ
+ex1-cast- =
+  cast-⊒ forall-id-var0-fun-cast ex1-line272-≈ ex1-⊒Λ
 
 ex1-initial :
   0 ∣ [] ∣ []
@@ -399,7 +470,7 @@ ex1-initial =
       ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))}
     {t = gen (★ ⇒ ★)
       ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))}
-    ex1-line272-≈ ex1-cast-
+    forall-id-var0-fun-cast ex1-line272-≈ ex1-cast-
 
 -- cambridge23 line 293 side condition (iii), at the raw-composition level.
 ex1-line293-⨟ :
@@ -468,7 +539,8 @@ ex1-inner-⊒Λ-premise :
   1 ∣ (0 ꞉ id ★) ∷ [] ∣ []
     ⊢ ƛ (` 0) ⊒ ƛ (` 0)
     ∶ (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))
-ex1-inner-⊒Λ-premise = ƛ⊒ƛ (x⊒x Z)
+ex1-inner-⊒Λ-premise =
+  ƛ⊒ƛ var0-fun-cast (x⊒x var0-untag-cast Z)
 
 ex1-inner-cast- :
   1 ∣ (0 ꞉ id ★) ∷ [] ∣ []
@@ -477,7 +549,7 @@ ex1-inner-cast- :
       ⊒ ƛ (` 0)
     ∶ id (＇ 0) ↦ id (＇ 0)
 ex1-inner-cast- =
-  cast-⊒ ex1-line293-≈ ex1-inner-⊒Λ-premise
+  cast-⊒ id-var0-fun-cast ex1-line293-≈ ex1-inner-⊒Λ-premise
 
 ex1-inner-cast+ :
   1 ∣ (0 ꞉ id ★) ∷ [] ∣ []
@@ -491,7 +563,7 @@ ex1-inner-cast+ =
     {p = id (＇ 0) ↦ id (＇ 0)}
     {r = (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))}
     {t = (unseal 0 ★ ︔ id ★) ↦ (id ★ ︔ seal ★ 0)}
-    ex1-line294-≈ ex1-inner-cast-
+    id-var0-fun-cast ex1-line294-≈ ex1-inner-cast-
 
 ex1-split :
   1 ∣ (0 ꞉= ★ ⊒) ∷ (⊒ 1 ꞉=☆) ∷ [] ∣ []
@@ -512,8 +584,8 @@ ex1-split =
     {A = ★}
     {α = 0}
     {αᵢ = 1}
-    {Σ = []}
-    (id-onlyᵈ , (cast-id wf★ refl , id★))
+    id★-cast
+    var0-fun-cast
     ex1-inner-cast+
 
 -- cambridge23 line 291: this is after three reduction steps from
@@ -526,7 +598,8 @@ ex1-after-reduction :
       ⊒ Λ (ƛ (` 0))
     ∶ gen (★ ⇒ ★)
         ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))
-ex1-after-reduction = ⊒Λ ex1-split
+ex1-after-reduction =
+  ⊒Λ poly-fun-cast ex1-split
 
 ------------------------------------------------------------------------
 -- Example 2
@@ -536,7 +609,8 @@ ex2-id :
   0 ∣ [] ∣ []
     ⊢ ƛ (` 0) ⊒ ƛ (` 0)
     ∶ id ★ ↦ id ★
-ex2-id = ƛ⊒ƛ (x⊒x Z)
+ex2-id =
+  ƛ⊒ƛ id★-fun-cast (x⊒x id★-cast Z)
 
 -- cambridge23 line 307, left-hand raw composition.
 ex2-line307-left-⨟ :
@@ -602,7 +676,8 @@ ex2-right-cast :
             ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))) ⟩
     ∶ gen (★ ⇒ ★)
         ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))
-ex2-right-cast = ⊒cast- ex2-line303-right-≈ ex2-id
+ex2-right-cast =
+  ⊒cast- id★-fun-cast ex2-line303-right-≈ ex2-id
 
 ex2-line303 :
   0 ∣ [] ∣ []
@@ -613,7 +688,8 @@ ex2-line303 :
           ⟨ gen (★ ⇒ ★)
             ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))) ⟩
     ∶ `∀ (id (＇ 0) ↦ id (＇ 0))
-ex2-line303 = cast-⊒ ex1-line272-≈ ex2-right-cast
+ex2-line303 =
+  cast-⊒ forall-id-var0-fun-cast ex1-line272-≈ ex2-right-cast
 
 ex2-initial :
   0 ∣ [] ∣ []
@@ -634,13 +710,14 @@ ex2-initial =
       ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))}
     {t = gen (★ ⇒ ★)
       ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))}
-    ex1-line272-≈ ex2-line303
+    forall-id-var0-fun-cast ex1-line272-≈ ex2-line303
 
 ex2-inner-id :
   1 ∣ (0 ꞉ id ★) ∷ [] ∣ []
     ⊢ ƛ (` 0) ⊒ ƛ (` 0)
     ∶ id ★ ↦ id ★
-ex2-inner-id = ƛ⊒ƛ (x⊒x Z)
+ex2-inner-id =
+  ƛ⊒ƛ id★-fun-cast (x⊒x id★-cast Z)
 
 ex2-line316-left-⨟ :
   (id ★ ↦ id ★)
@@ -679,7 +756,7 @@ ex2-inner-right-cast :
           ⟨ (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)) ⟩
     ∶ (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))
 ex2-inner-right-cast =
-  ⊒cast- ex2-line316-right-≈ ex2-inner-id
+  ⊒cast- id★-fun-cast ex2-line316-right-≈ ex2-inner-id
 
 ex2-line316 :
   1 ∣ (0 ꞉ id ★) ∷ [] ∣ []
@@ -688,7 +765,8 @@ ex2-line316 :
       ⊒ (ƛ (` 0))
           ⟨ (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)) ⟩
     ∶ id (＇ 0) ↦ id (＇ 0)
-ex2-line316 = cast-⊒ ex1-line293-≈ ex2-inner-right-cast
+ex2-line316 =
+  cast-⊒ id-var0-fun-cast ex1-line293-≈ ex2-inner-right-cast
 
 ex2-line318 :
   1 ∣ (0 ꞉ id ★) ∷ [] ∣ []
@@ -703,7 +781,7 @@ ex2-line318 =
     {p = id (＇ 0) ↦ id (＇ 0)}
     {r = (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))}
     {t = (unseal 0 ★ ︔ id ★) ↦ (id ★ ︔ seal ★ 0)}
-    ex1-line294-≈ ex2-line316
+    id-var0-fun-cast ex1-line294-≈ ex2-line316
 
 ex2-split :
   1 ∣ (0 ꞉= ★ ⊒) ∷ (⊒ 1 ꞉=☆) ∷ [] ∣ []
@@ -727,8 +805,8 @@ ex2-split =
     {A = ★}
     {α = 0}
     {αᵢ = 1}
-    {Σ = []}
-    (id-onlyᵈ , (cast-id wf★ refl , id★))
+    id★-cast
+    var0-fun-cast
     ex2-line318
 
 -- cambridge23 line 320: as with Example 1, this is after the catch-up
@@ -743,7 +821,8 @@ ex2-after-reduction :
             ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))) ⟩
     ∶ gen (★ ⇒ ★)
         ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))
-ex2-after-reduction = ⊒⟨ν⟩ ex2-split
+ex2-after-reduction =
+  ⊒⟨ν⟩ poly-fun-cast ex2-split
 
 ------------------------------------------------------------------------
 -- Example 3
@@ -754,13 +833,14 @@ ex3-line329 :
     ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) • 0
     ∶ (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))
 ex3-line329 =
-  ⊒α {A = ‵ `ℕ} {α = 0}
+  ⊒α {A = ‵ `ℕ} {α = 0} var0-fun-cast
     (⊒Λ
-      {A = ‵ `ℕ}
+      {A = ★ ⇒ ★}
       {N = ƛ (` 0)}
       {V′ = ƛ (` 0)}
       {p = (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))}
-      (ƛ⊒ƛ (x⊒x Z)))
+      poly-fun-cast
+      (ƛ⊒ƛ var0-fun-cast (x⊒x var0-untag-cast Z)))
 
 ex3-line329-extend :
   1 ∣ (0 ꞉ id (‵ `ℕ)) ∷ [] ∣ []
@@ -775,8 +855,8 @@ ex3-line329-extend =
     {A = ‵ `ℕ}
     {B = ‵ `ℕ}
     {α = 0}
-    {Σ = []}
-    (id-onlyᵈ , (cast-id wfBase refl , cross (id-‵ `ℕ)))
+    id-base-cast
+    var0-fun-cast
     ex3-line329
 
 ex3-line331-⨟ :
@@ -837,6 +917,7 @@ ex3-line331 =
     {s =
       (unseal 0 (‵ `ℕ) ︔ id (‵ `ℕ))
         ↦ (id (‵ `ℕ) ︔ seal (‵ `ℕ) 0)}
+    base-fun-cast
     ex3-line331-≈
     ex3-line329-extend
 
@@ -848,7 +929,9 @@ ex4-poly-id :
   0 ∣ [] ∣ []
     ⊢ Λ (ƛ (` 0)) ⊒ Λ (ƛ (` 0))
     ∶ `∀ (id (＇ 0) ↦ id (＇ 0))
-ex4-poly-id = Λ⊒Λ (ƛ⊒ƛ (x⊒x Z))
+ex4-poly-id =
+  Λ⊒Λ forall-id-var0-fun-cast
+    (ƛ⊒ƛ id-var0-fun-cast (x⊒x id-var0-cast Z))
 
 ex4-initial :
   0 ∣ [] ∣ []
@@ -865,13 +948,14 @@ ex4-initial =
       ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))}
     {t = gen (★ ⇒ ★)
       ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))}
-    ex1-line272-≈ ex4-poly-id
+    forall-id-var0-fun-cast ex1-line272-≈ ex4-poly-id
 
 ex4-line352 :
   1 ∣ (0 ꞉ id ★) ∷ [] ∣ []
     ⊢ ƛ (` 0) ⊒ ƛ (` 0)
     ∶ id (＇ 0) ↦ id (＇ 0)
-ex4-line352 = ƛ⊒ƛ (x⊒x Z)
+ex4-line352 =
+  ƛ⊒ƛ id-var0-fun-cast (x⊒x id-var0-cast Z)
 
 ex4-line353 :
   1 ∣ (0 ꞉ id ★) ∷ [] ∣ []
@@ -884,7 +968,7 @@ ex4-line353 =
     {p = id (＇ 0) ↦ id (＇ 0)}
     {r = (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))}
     {t = (unseal 0 ★ ︔ id ★) ↦ (id ★ ︔ seal ★ 0)}
-    ex1-line294-≈ ex4-line352
+    id-var0-fun-cast ex1-line294-≈ ex4-line352
 
 ex4-split :
   1 ∣ (0 ꞉= ★ ⊒) ∷ (⊒ 1 ꞉=☆) ∷ [] ∣ []
@@ -903,8 +987,8 @@ ex4-split =
     {A = ★}
     {α = 0}
     {αᵢ = 1}
-    {Σ = []}
-    (id-onlyᵈ , (cast-id wf★ refl , id★))
+    id★-cast
+    var0-fun-cast
     ex4-line353
 
 -- cambridge23 Example 4, final displayed derivation after the ν̅ reduction
@@ -916,7 +1000,8 @@ ex4-after-reduction :
       ⊒ Λ (ƛ (` 0))
     ∶ gen (★ ⇒ ★)
         ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))
-ex4-after-reduction = ⊒Λ ex4-split
+ex4-after-reduction =
+  ⊒Λ poly-fun-cast ex4-split
 
 ------------------------------------------------------------------------
 -- Example 5
@@ -967,7 +1052,9 @@ ex5-function-base :
     ⊢ ƛ (` 0) ⊒ ƛ (` 0)
     ∶ (id (‵ `𝔹) ︔ ((‵ `𝔹) !))
       ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹))
-ex5-function-base = ƛ⊒ƛ (x⊒x Z)
+ex5-function-base =
+  ƛ⊒ƛ (base-fun-cast {ι = `𝔹})
+    (x⊒x (base-untag-cast {ι = `𝔹}) Z)
 
 -- cambridge23 Example 5, line 379, function-side premise.
 ex5-function-cast :
@@ -987,6 +1074,7 @@ ex5-function-cast =
       ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹))}
     {A = ★ ⇒ ★}
     {B = ‵ `𝔹 ⇒ ‵ `𝔹}
+    id★-fun-cast
     ex5-line380-≈ ex5-function-base
 
 -- cambridge23 Example 5, argument-side premise, using the barred two-sided
@@ -1001,6 +1089,8 @@ ex5-c★ =
     {r = ((‵ `ℕ) ？) ︔ id (‵ `ℕ)}
     {s = ((‵ `ℕ) ？) ︔ id (‵ `ℕ)}
     {t = ((‵ `ℕ) ？) ︔ id (‵ `ℕ)}
+    id-base-cast
+    id★-cast
     (compose-leftⁿ empty-store-det id★⊒ base-untag⊒
       (endpointsⁿ refl refl refl refl
         empty-store-narrowing
@@ -1034,13 +1124,15 @@ ex5-initial :
               ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹))) ⟩)
         · c★
     ∶ id ★
-ex5-initial = ·⊒· ex5-function-cast ex5-c★
+ex5-initial =
+  ·⊒· id★-cast ex5-function-cast ex5-c★
 
 -- cambridge23 Example 5, after the reductions to blame.
 ex5-after-reduction :
   0 ∣ [] ∣ []
     ⊢ (ƛ (` 0)) · c★ ⊒ blame ∶ id ★
-ex5-after-reduction = ⊒blame
+ex5-after-reduction =
+  ⊒blame id★-cast
 
 ------------------------------------------------------------------------
 -- Example 6
@@ -1052,13 +1144,14 @@ ex6-open-ν𝔹 :
     ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) • 0
     ∶ (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))
 ex6-open-ν𝔹 =
-  ⊒α {A = ‵ `𝔹} {α = 0}
+  ⊒α {A = ‵ `𝔹} {α = 0} var0-fun-cast
     (⊒Λ
-      {A = ‵ `𝔹}
+      {A = ★ ⇒ ★}
       {N = ƛ (` 0)}
       {V′ = ƛ (` 0)}
       {p = (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))}
-      (ƛ⊒ƛ (x⊒x Z)))
+      poly-fun-cast
+      (ƛ⊒ƛ var0-fun-cast (x⊒x var0-untag-cast Z)))
 
 ex6-line405-⨟ :
   ((id (‵ `𝔹) ︔ ((‵ `𝔹) !)) ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹)))
@@ -1122,6 +1215,7 @@ ex6-line405 =
     {s =
       (unseal 0 (‵ `𝔹) ︔ id (‵ `𝔹))
         ↦ (id (‵ `𝔹) ︔ seal (‵ `𝔹) 0)}
+    (base-fun-cast {ι = `𝔹})
     ex6-line405-≈
     ex6-open-ν𝔹
 
@@ -1136,7 +1230,8 @@ ex6-line407-ν :
           (⇑ᶜ ((id (‵ `𝔹) ︔ ((‵ `𝔹) !))
             ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹))))
     ∶ (id (‵ `𝔹) ︔ ((‵ `𝔹) !)) ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹))
-ex6-line407-ν = ⊒ν ex6-line405
+ex6-line407-ν =
+  ⊒ν (base-fun-cast {ι = `𝔹}) ex6-line405
 
 -- cambridge23 Example 6, line 407 side condition (ii).
 ex6-line407 :
@@ -1162,6 +1257,7 @@ ex6-line407 =
       ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹))}
     {A = ★ ⇒ ★}
     {B = ‵ `𝔹 ⇒ ‵ `𝔹}
+    id★-fun-cast
     ex5-line380-≈
     ex6-line407-ν
 
@@ -1180,14 +1276,16 @@ ex6-initial :
               ↦ (((‵ `𝔹) ？) ︔ id (‵ `𝔹))) ⟩)
         · c★
     ∶ id ★
-ex6-initial = ·⊒· ex6-line407 ex5-c★
+ex6-initial =
+  ·⊒· id★-cast ex6-line407 ex5-c★
 
 -- cambridge23 line 473.  This endpoint is independent of the casted
 -- derivation above it because `⊒blame` relates any left term to blame.
 ex6-blame :
   0 ∣ (0 ꞉= ‵ `ℕ ⊒) ∷ [] ∣ []
     ⊢ (ƛ (` 0)) · c★ ⊒ blame ∶ id ★
-ex6-blame = ⊒blame
+ex6-blame =
+  ⊒blame id★-cast
 
 ------------------------------------------------------------------------
 -- Example 7
@@ -1206,7 +1304,8 @@ ex7-line708 =
     {N = ƛ (` 0)}
     {V′ = ƛ (` 0)}
     {p = (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))}
-    (ƛ⊒ƛ (x⊒x Z))
+    poly-fun-cast
+    (ƛ⊒ƛ var0-fun-cast (x⊒x var0-untag-cast Z))
 
 -- cambridge25 Example 7, line 710.
 ex7-line710 :
@@ -1216,7 +1315,8 @@ ex7-line710 :
           ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))) ⟩
       ⊒ Λ (ƛ (` 0))
     ∶ `∀ (id (＇ 0) ↦ id (＇ 0))
-ex7-line710 = cast-⊒ ex1-line272-≈ ex7-line708
+ex7-line710 =
+  cast-⊒ forall-id-var0-fun-cast ex1-line272-≈ ex7-line708
 
 -- cambridge25 Example 7, line 712.
 ex7-line712 : ∀ {ι} →
@@ -1227,7 +1327,8 @@ ex7-line712 : ∀ {ι} →
       ⊒ (Λ (ƛ (` 0))) • 0
     ∶ id (＇ 0) ↦ id (＇ 0)
 ex7-line712 {ι = ι} =
-  α⊒α {q = id (‵ ι)} {α = 0} ex7-line710
+  α⊒α {q = id (‵ ι)} {α = 0}
+    id-base-cast id-var0-fun-cast ex7-line710
 
 ex7-downcast-left-≈ : ∀ {ι} →
   1 ∣ (0 ꞉ id (‵ ι)) ∷ [] ⊢
@@ -1289,6 +1390,8 @@ ex7-line714 {ι = ι} =
     {t = base-seal-step-fun ι}
     {A = ‵ ι ⇒ ‵ ι}
     {B = ＇ 0 ⇒ ＇ 0}
+    id-var0-fun-cast
+    id-base-fun-cast
     ex7-downcast-left-≈
     ex7-downcast-right-≈
     ex7-line712
@@ -1311,7 +1414,8 @@ ex7-line716 {ι = ι} =
   ν⊒ν {A = ‵ ι} {A′ = ‵ ι}
     {p = id (‵ ι) ↦ id (‵ ι)}
     {q = id (‵ ι)}
-    (id-onlyᵈ , id-base-narrowingᵐ {Σ = []} {ι = ι})
+    id-base-fun-cast
+    id-base-cast
     ex7-line714
 
 -- cambridge25 Example 7, line 719.
@@ -1319,7 +1423,8 @@ ex7-line719 : ∀ {ι} →
   1 ∣ (0 ꞉ id (‵ ι)) ∷ [] ∣ []
     ⊢ ƛ (` 0) ⊒ ƛ (` 0)
     ∶ (id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0))
-ex7-line719 = ƛ⊒ƛ (x⊒x Z)
+ex7-line719 =
+  ƛ⊒ƛ var0-fun-cast (x⊒x var0-untag-cast Z)
 
 -- cambridge25 Example 7, line 720.
 ex7-line720-≈ : ∀ {ι} →
@@ -1351,7 +1456,8 @@ ex7-line721 : ∀ {ι} →
           (((＇ 0) ？) ︔ id (＇ 0)) ⟩
       ⊒ ƛ (` 0)
     ∶ id (＇ 0) ↦ id (＇ 0)
-ex7-line721 = cast-⊒ ex7-line720-≈ ex7-line719
+ex7-line721 =
+  cast-⊒ id-var0-fun-cast ex7-line720-≈ ex7-line719
 
 -- cambridge25 Example 7, line 723.
 ex7-line723 : ∀ {ι} →
@@ -1371,6 +1477,8 @@ ex7-line723 {ι = ι} =
     {t = base-seal-step-fun ι}
     {A = ‵ ι ⇒ ‵ ι}
     {B = ＇ 0 ⇒ ＇ 0}
+    id-var0-fun-cast
+    id-base-fun-cast
     ex7-downcast-left-≈
     ex7-downcast-right-≈
     ex7-line721
@@ -1427,7 +1535,8 @@ ex8-idα :
   1 ∣ (0 ꞉ base-untag `ℕ) ∷ [] ∣ []
     ⊢ ƛ (` 0) ⊒ ƛ (` 0)
     ∶ id (＇ 0) ↦ id (＇ 0)
-ex8-idα = ƛ⊒ƛ (x⊒x Z)
+ex8-idα =
+  ƛ⊒ƛ id-var0-fun-cast (x⊒x id-var0-cast Z)
 
 -- cambridge25 Example 8, line 820.
 ex8-line820 :
@@ -1444,6 +1553,8 @@ ex8-line820 =
     {t = var0-fun}
     {A = ★ ⇒ ★}
     {B = ＇ 0 ⇒ ＇ 0}
+    id-var0-fun-cast
+    base-fun-cast
     ex8-line820-left-≈
     ex8-line820-right-≈
     ex8-idα
@@ -1479,6 +1590,7 @@ ex8-c★⊒c =
     {t = base-untag `ℕ}
     {A = ★}
     {B = ‵ `ℕ}
+    id-base-cast
     ex8-c★⊒c-right-≈
     (κ⊒κ (κℕ 0))
 
@@ -1488,4 +1600,5 @@ ex8-line823 :
     ⊢ ((ƛ (` 0)) ⟨ - var0-fun ⟩) · c★
       ⊒ ((ƛ (` 0)) ⟨ - base-seal-step-fun `ℕ ⟩) · $ (κℕ 0)
     ∶ base-untag `ℕ
-ex8-line823 = ·⊒· ex8-line820 ex8-c★⊒c
+ex8-line823 =
+  ·⊒· base-untag-cast ex8-line820 ex8-c★⊒c

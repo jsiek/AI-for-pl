@@ -33,24 +33,28 @@ variable
 -- equivalence has enough transitivity/reflexivity infrastructure to bridge
 -- `q ⨾ s ≈ r` and `r ≈ t ⨾ p` from `q ⨾ s ≈ t ⨾ p`.
 
-cast-⊒cast- : ∀ {M M′ p q r s t A B}
+cast-⊒cast- : ∀ {M M′ p q r s t A B Ap Bp Aq Bq}
+  → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ Ap ⊒ Bp
+  → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ Aq ⊒ Bq
   → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
   → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
   → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ q
     --------------------------------------
   → Δ ∣ σ ∣ γ ⊢ M ⟨ t ⟩ ⊒ M′ ⟨ s ⟩ ∶ p
 cast-⊒cast- {p = p} {q = q} {r = r} {s = s} {t = t}
-    q⨟s≈r r≈t⨟p M⊒M′ =
-  cast-⊒ {p = p} {r = r} {t = t} r≈t⨟p
-    (⊒cast- {q = q} {r = r} {s = s} q⨟s≈r M⊒M′)
+    pᶜ qᶜ q⨟s≈r r≈t⨟p M⊒M′ =
+  cast-⊒ {p = p} {r = r} {t = t} pᶜ r≈t⨟p
+    (⊒cast- {q = q} {r = r} {s = s} qᶜ q⨟s≈r M⊒M′)
 
-cast+⊒cast+ : ∀ {M M′ p q r s t A B}
+cast+⊒cast+ : ∀ {M M′ p q r s t A B Ap Bp Aq Bq}
+  → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ Ap ⊒ Bp
+  → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ Aq ⊒ Bq
   → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
   → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
   → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p
     ------------------------------------------
   → Δ ∣ σ ∣ γ ⊢ M ⟨ - t ⟩ ⊒ M′ ⟨ - s ⟩ ∶ q
 cast+⊒cast+ {p = p} {q = q} {r = r} {s = s} {t = t}
-    q⨟s≈r r≈t⨟p M⊒M′ =
-  ⊒cast+ {q = q} {r = r} {s = s} q⨟s≈r
-    (cast+⊒ {p = p} {r = r} {t = t} r≈t⨟p M⊒M′)
+    pᶜ qᶜ q⨟s≈r r≈t⨟p M⊒M′ =
+  ⊒cast+ {q = q} {r = r} {s = s} qᶜ q⨟s≈r
+    (cast+⊒ {p = p} {r = r} {t = t} pᶜ r≈t⨟p M⊒M′)

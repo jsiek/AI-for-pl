@@ -42,7 +42,10 @@ open import proof.CoercionProperties
     ; dualStoreAt-ext
     ; dualStoreAt-gen-inst
     ; dualStoreAt-inst-gen
+    ; ModeRename
+    ; renameᶜ-open-commute
     ; sealModeAllowed-var-seal
+    ; src-renameᶜ
     ; tagModeAllowed-var-tag
     )
 open import proof.StoreProperties
@@ -57,6 +60,7 @@ open import proof.TypeProperties
     ( TyRenameWf
     ; TyRenameWf-ext
     ; TyRenameWf-suc
+    ; TyRenameWf-suc-≤
     ; WfTy-weakenᵗ
     ; raiseVarFrom-≢
     ; occurs-raise
@@ -88,6 +92,201 @@ idModeAllowed-any :
 idModeAllowed-any id-only = refl
 idModeAllowed-any tag-or-id = refl
 idModeAllowed-any seal-or-id = refl
+
+srcStoreⁿ-⊒ˢ :
+  ∀ {Δ σ Σ Σ′} →
+  Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+  Σ ≡ srcStoreⁿ σ
+srcStoreⁿ-⊒ˢ ⊒ˢ-nil = refl
+srcStoreⁿ-⊒ˢ (⊒ˢ-right hA σ⊒) =
+  srcStoreⁿ-⊒ˢ σ⊒
+srcStoreⁿ-⊒ˢ (⊒ˢ-left {X = X} σ⊒) =
+  cong (λ Σ → (X , ★) ∷ Σ) (srcStoreⁿ-⊒ˢ σ⊒)
+srcStoreⁿ-⊒ˢ (⊒ˢ-both {X = X} hA hA′ (μ , s⊒) σ⊒) =
+  cong₂ _∷_
+    (cong (λ A → (X , A))
+      (sym (proj₁ (coercion-src-tgtᵐ (proj₁ s⊒)))))
+    (srcStoreⁿ-⊒ˢ σ⊒)
+
+srcStoreⁿ-⇑ˢ :
+  ∀ σ →
+  srcStoreⁿ (⇑ˢ σ) ≡ ⟰ᵗ (srcStoreⁿ σ)
+srcStoreⁿ-⇑ˢ [] = refl
+srcStoreⁿ-⇑ˢ ((X ꞉ p) ∷ σ) =
+  cong₂ _∷_
+    (cong (λ A → (suc X , A)) (src-renameᶜ suc p))
+    (srcStoreⁿ-⇑ˢ σ)
+srcStoreⁿ-⇑ˢ ((X ꞉= A ⊒) ∷ σ) = srcStoreⁿ-⇑ˢ σ
+srcStoreⁿ-⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
+  cong₂ _∷_ refl (srcStoreⁿ-⇑ˢ σ)
+
+modeRename-suc-tag-or-id :
+  ModeRename suc tag-or-idᵈ tag-or-idᵈ
+modeRename-suc-tag-or-id X = refl
+
+narrow-⇑ᵗ-ᶜ≤ :
+  ∀ {Δ Δ′ Σ c A B} →
+  suc Δ ≤ Δ′ →
+  Δ ∣ Σ ⊢ c ∶ᶜ A ⊒ B →
+  Δ′ ∣ ⟰ᵗ Σ ⊢ ⇑ᶜ c ∶ᶜ ⇑ᵗ A ⊒ ⇑ᵗ B
+narrow-⇑ᵗ-ᶜ≤ Δ≤ c⊒ =
+  narrow-renameᵗ (TyRenameWf-suc-≤ Δ≤) modeRename-suc-tag-or-id c⊒
+
+narrow-⇑ᵗ-ᶜ :
+  ∀ {Δ Σ c A B} →
+  Δ ∣ Σ ⊢ c ∶ᶜ A ⊒ B →
+  suc Δ ∣ ⟰ᵗ Σ ⊢ ⇑ᶜ c ∶ᶜ ⇑ᵗ A ⊒ ⇑ᵗ B
+narrow-⇑ᵗ-ᶜ = narrow-⇑ᵗ-ᶜ≤ ≤-refl
+
+narrow-⇑ᵗ-ᶜ-srcStoreⁿ≤ :
+  ∀ {Δ Δ′ σ c A B} →
+  suc Δ ≤ Δ′ →
+  Δ ∣ srcStoreⁿ σ ⊢ c ∶ᶜ A ⊒ B →
+  Δ′ ∣ srcStoreⁿ (⇑ˢ σ) ⊢ ⇑ᶜ c ∶ᶜ ⇑ᵗ A ⊒ ⇑ᵗ B
+narrow-⇑ᵗ-ᶜ-srcStoreⁿ≤ {σ = σ} Δ≤ c⊒ =
+  subst
+    (λ Σ₀ → _ ∣ Σ₀ ⊢ _ ∶ᶜ _ ⊒ _)
+    (sym (srcStoreⁿ-⇑ˢ σ))
+    (narrow-⇑ᵗ-ᶜ≤ Δ≤ c⊒)
+
+narrow-⇑ᵗ-ᶜ-srcStoreⁿ :
+  ∀ {Δ σ c A B} →
+  Δ ∣ srcStoreⁿ σ ⊢ c ∶ᶜ A ⊒ B →
+  suc Δ ∣ srcStoreⁿ (⇑ˢ σ) ⊢ ⇑ᶜ c ∶ᶜ ⇑ᵗ A ⊒ ⇑ᵗ B
+narrow-⇑ᵗ-ᶜ-srcStoreⁿ {σ = σ} =
+  narrow-⇑ᵗ-ᶜ-srcStoreⁿ≤ {σ = σ} ≤-refl
+
+narrow-⇑ᵗ-open-srcStoreⁿ :
+  ∀ {Δ σ α q p C D} →
+  Δ ∣ srcStoreⁿ ((α ꞉ q) ∷ σ) ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D →
+  suc Δ ∣ srcStoreⁿ ((suc α ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ)
+    ⊢ renameᶜ (extᵗ suc) p [ suc α ]ᶜ ∶ᶜ ⇑ᵗ C ⊒ ⇑ᵗ D
+narrow-⇑ᵗ-open-srcStoreⁿ {σ = σ} {α = α} {q = q} {p = p} pαᶜ =
+  subst
+    (λ c₀ → _ ∣ srcStoreⁿ ((suc α ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ)
+      ⊢ c₀ ∶ᶜ _ ⊒ _)
+    (renameᶜ-open-commute suc p α)
+    (narrow-⇑ᵗ-ᶜ-srcStoreⁿ≤ {σ = (α ꞉ q) ∷ σ} ≤-refl pαᶜ)
+
+narrow-⇑ᵗ-any :
+  ∀ {Δ Σ c A B} →
+  Δ ∣ Σ ⊢ c ∶ A ⊒ B →
+  suc Δ ∣ ⟰ᵗ Σ ⊢ ⇑ᶜ c ∶ ⇑ᵗ A ⊒ ⇑ᵗ B
+narrow-⇑ᵗ-any (μ , c⊒) = genᵈ μ , narrow-⇑ᵗ-gen c⊒
+
+narrow-drop-star-var :
+  ∀ X {Δ Σ c A B} →
+  Δ ∣ Σ ⊢ c ∶ A ⊒ B →
+  Δ ∣ (X , ★) ∷ Σ ⊢ c ∶ A ⊒ B
+narrow-drop-star-var X (μ , c⊒) =
+  μ , narrow-weaken ≤-refl StoreIncl-drop c⊒
+
+narrow-drop-star :
+  ∀ {Δ Σ c A B} →
+  Δ ∣ Σ ⊢ c ∶ A ⊒ B →
+  Δ ∣ (zero , ★) ∷ Σ ⊢ c ∶ A ⊒ B
+narrow-drop-star = narrow-drop-star-var zero
+
+srcStoreⁿ-++ :
+  ∀ ρ σ →
+  srcStoreⁿ (ρ ++ σ) ≡ srcStoreⁿ ρ ++ srcStoreⁿ σ
+srcStoreⁿ-++ [] σ = refl
+srcStoreⁿ-++ ((X ꞉ p) ∷ ρ) σ =
+  cong ((X , src p) ∷_) (srcStoreⁿ-++ ρ σ)
+srcStoreⁿ-++ ((X ꞉= A ⊒) ∷ ρ) σ = srcStoreⁿ-++ ρ σ
+srcStoreⁿ-++ ((⊒ X ꞉=☆) ∷ ρ) σ =
+  cong ((X , ★) ∷_) (srcStoreⁿ-++ ρ σ)
+
+⇑ˢ-++ :
+  ∀ ρ σ →
+  ⇑ˢ (ρ ++ σ) ≡ ⇑ˢ ρ ++ ⇑ˢ σ
+⇑ˢ-++ [] σ = refl
+⇑ˢ-++ (entry ∷ ρ) σ =
+  cong (⇑ʷ entry ∷_) (⇑ˢ-++ ρ σ)
+
+⊑ˢ-⇑ˢ :
+  ∀ {Δ σ Σ Σ′} →
+  Δ ⊢ σ ꞉ Σ ⊑ˢ Σ′ →
+  suc Δ ⊢ ⇑ˢ σ ꞉ ⟰ᵗ Σ ⊑ˢ ⟰ᵗ Σ′
+⊑ˢ-⇑ˢ ⊑ˢ-nil = ⊑ˢ-nil
+⊑ˢ-⇑ˢ (⊑ˢ-left hA σ⊑) =
+  ⊑ˢ-left (renameᵗ-preserves-WfTy hA TyRenameWf-suc) (⊑ˢ-⇑ˢ σ⊑)
+⊑ˢ-⇑ˢ (⊑ˢ-right σ⊑) =
+  ⊑ˢ-right (⊑ˢ-⇑ˢ σ⊑)
+⊑ˢ-⇑ˢ (⊑ˢ-both hA hA′ (μ , s⊑) σ⊑) =
+  ⊑ˢ-both
+    (renameᵗ-preserves-WfTy hA TyRenameWf-suc)
+    (renameᵗ-preserves-WfTy hA′ TyRenameWf-suc)
+    (instᵈ μ , widen-⇑ᵗ-inst s⊑)
+    (⊑ˢ-⇑ˢ σ⊑)
+
+⊒ˢ-⇑ˢ :
+  ∀ {Δ σ Σ Σ′} →
+  Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+  suc Δ ⊢ ⇑ˢ σ ꞉ ⟰ᵗ Σ ⊒ˢ ⟰ᵗ Σ′
+⊒ˢ-⇑ˢ ⊒ˢ-nil = ⊒ˢ-nil
+⊒ˢ-⇑ˢ (⊒ˢ-right hA σ⊒) =
+  ⊒ˢ-right (renameᵗ-preserves-WfTy hA TyRenameWf-suc) (⊒ˢ-⇑ˢ σ⊒)
+⊒ˢ-⇑ˢ (⊒ˢ-left σ⊒) =
+  ⊒ˢ-left (⊒ˢ-⇑ˢ σ⊒)
+⊒ˢ-⇑ˢ (⊒ˢ-both hA hA′ (μ , s⊒) σ⊒) =
+  ⊒ˢ-both
+    (renameᵗ-preserves-WfTy hA TyRenameWf-suc)
+    (renameᵗ-preserves-WfTy hA′ TyRenameWf-suc)
+    (genᵈ μ , narrow-⇑ᵗ-gen s⊒)
+    (⊒ˢ-⇑ˢ σ⊒)
+
+⊒ˢ-empty-⇑ˢ :
+  ∀ {Δ σ Σ} →
+  Δ ⊢ σ ꞉ Σ ⊒ˢ [] →
+  Δ ⊢ ⇑ˢ σ ꞉ ⟰ᵗ Σ ⊒ˢ []
+⊒ˢ-empty-⇑ˢ ⊒ˢ-nil = ⊒ˢ-nil
+⊒ˢ-empty-⇑ˢ (⊒ˢ-left σ⊒) =
+  ⊒ˢ-left (⊒ˢ-empty-⇑ˢ σ⊒)
+
+⊒ˢ-empty-anyᵗ :
+  ∀ Δ′ {Δ σ Σ} →
+  Δ ⊢ σ ꞉ Σ ⊒ˢ [] →
+  Δ′ ⊢ σ ꞉ Σ ⊒ˢ []
+⊒ˢ-empty-anyᵗ Δ′ ⊒ˢ-nil = ⊒ˢ-nil
+⊒ˢ-empty-anyᵗ Δ′ (⊒ˢ-left σ⊒) =
+  ⊒ˢ-left (⊒ˢ-empty-anyᵗ Δ′ σ⊒)
+
+WfTyˢ-rename :
+  ∀ {Δ Δ′ Σ A ρ} →
+  TyRenameWf Δ Δ′ ρ →
+  WfTyˢ Δ Σ A →
+  WfTyˢ Δ′ (renameStoreᵗ ρ Σ) (renameᵗ ρ A)
+WfTyˢ-rename hρ (wfVarᵗ X<Δ) = wfVarᵗ (hρ X<Δ)
+WfTyˢ-rename hρ (wfVarˢ α∈Σ) = wfVarˢ (∈-renameStoreᵗ _ α∈Σ)
+WfTyˢ-rename hρ wfBaseˢ = wfBaseˢ
+WfTyˢ-rename hρ wf★ˢ = wf★ˢ
+WfTyˢ-rename hρ (wf⇒ˢ hA hB) =
+  wf⇒ˢ (WfTyˢ-rename hρ hA) (WfTyˢ-rename hρ hB)
+WfTyˢ-rename {Σ = Σ} {ρ = ρ} hρ (wf∀ˢ hA) =
+  wf∀ˢ
+    (subst (λ Σ′ → WfTyˢ _ Σ′ _) (renameStoreᵗ-ext-suc-comm ρ Σ)
+      (WfTyˢ-rename (TyRenameWf-ext hρ) hA))
+
+WfTyˢ-⇑ᵗ :
+  ∀ {Δ Σ A} →
+  WfTyˢ Δ Σ A →
+  WfTyˢ (suc Δ) (⟰ᵗ Σ) (⇑ᵗ A)
+WfTyˢ-⇑ᵗ = WfTyˢ-rename TyRenameWf-suc
+
+WfTyˢ-store-weaken :
+  ∀ {Δ Σ Σ′ A} →
+  StoreIncl Σ Σ′ →
+  WfTyˢ Δ Σ A →
+  WfTyˢ Δ Σ′ A
+WfTyˢ-store-weaken incl (wfVarᵗ X<Δ) = wfVarᵗ X<Δ
+WfTyˢ-store-weaken incl (wfVarˢ α∈Σ) = wfVarˢ (incl α∈Σ)
+WfTyˢ-store-weaken incl wfBaseˢ = wfBaseˢ
+WfTyˢ-store-weaken incl wf★ˢ = wf★ˢ
+WfTyˢ-store-weaken incl (wf⇒ˢ hA hB) =
+  wf⇒ˢ (WfTyˢ-store-weaken incl hA) (WfTyˢ-store-weaken incl hB)
+WfTyˢ-store-weaken incl (wf∀ˢ hA) =
+  wf∀ˢ (WfTyˢ-store-weaken (renameStoreᵗ-incl suc incl) hA)
 
 ------------------------------------------------------------------------
 -- Well-typed narrowing/widening projections

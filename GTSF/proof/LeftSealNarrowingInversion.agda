@@ -25,22 +25,8 @@ open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; subst; sym)
 open import proof.CoercionProperties using (coercion-src-tgtᵐ)
+open import proof.NarrowWidenProperties using (srcStoreⁿ-⊒ˢ)
 open import proof.NuTermProperties using (renameᵗᵐ-preserves-Value)
-
-srcStoreⁿ-⊒ˢ :
-  ∀ {Δ σ Σ Σ′} →
-  Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
-  Σ ≡ srcStoreⁿ σ
-srcStoreⁿ-⊒ˢ ⊒ˢ-nil = refl
-srcStoreⁿ-⊒ˢ (⊒ˢ-right hA σ⊒) =
-  srcStoreⁿ-⊒ˢ σ⊒
-srcStoreⁿ-⊒ˢ (⊒ˢ-left {X = X} σ⊒) =
-  cong (λ Σ → (X , ★) ∷ Σ) (srcStoreⁿ-⊒ˢ σ⊒)
-srcStoreⁿ-⊒ˢ (⊒ˢ-both {X = X} hA hA′ (μ , s⊒) σ⊒) =
-  cong₂ _∷_
-    (cong (λ A → (X , A))
-      (sym (proj₁ (coercion-src-tgtᵐ (proj₁ s⊒)))))
-    (srcStoreⁿ-⊒ˢ σ⊒)
 
 ------------------------------------------------------------------------
 -- Left Seal Narrowing Inversion
@@ -175,11 +161,11 @@ termNarrowing-gen-open-id-var-aux⊥ refl
     (·⊒· qᶜ L⊒L′ M⊒M′) open-id =
   gen-open-id-var⊥ qᶜ open-id
 termNarrowing-gen-open-id-var-aux⊥ ()
-    (Λ⊒Λ allᶜ V⊒V′) open-id
+    (Λ⊒Λ allᶜ vV V⊒V′) open-id
 termNarrowing-gen-open-id-var-aux⊥ refl (⊒Λ pᶜ N⊒V′) open-id =
   gen-open-id-var⊥ pᶜ open-id
 termNarrowing-gen-open-id-var-aux⊥ refl
-    (⊒⟨ν⟩ pᶜ N⊒V′) open-id =
+    (⊒⟨ν⟩ pᶜ sᵢ N⊒V′) open-id =
   gen-open-id-var⊥ pᶜ open-id
 termNarrowing-gen-open-id-var-aux⊥ c≡gen
     (α⊒α qᶜ pαᶜ L⊒L′) open-id =

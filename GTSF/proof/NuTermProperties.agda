@@ -121,6 +121,153 @@ rename-[]ᴿ-commute ρ B α =
     env-eq zero = refl
     env-eq (suc X) = refl
 
+renameᵗᵐ-cong :
+  ∀ {ρ ρ′} →
+  (∀ X → ρ X ≡ ρ′ X) →
+  ∀ M → renameᵗᵐ ρ M ≡ renameᵗᵐ ρ′ M
+renameᵗᵐ-cong eq (` x) = refl
+renameᵗᵐ-cong eq (ƛ M) = cong ƛ_ (renameᵗᵐ-cong eq M)
+renameᵗᵐ-cong eq (L · M) =
+  cong₂ _·_ (renameᵗᵐ-cong eq L) (renameᵗᵐ-cong eq M)
+renameᵗᵐ-cong eq (Λ M) =
+  cong Λ_ (renameᵗᵐ-cong ext-eq M)
+  where
+    ext-eq : ∀ X → extᵗ _ X ≡ extᵗ _ X
+    ext-eq zero = refl
+    ext-eq (suc X) = cong suc (eq X)
+renameᵗᵐ-cong eq (M •) = cong _• (renameᵗᵐ-cong eq M)
+renameᵗᵐ-cong {ρ = ρ} {ρ′ = ρ′} eq (ν A L c) =
+  trans
+    (cong₂ (λ A′ L′ → ν A′ L′ (renameᶜ (extᵗ ρ) c))
+      (rename-cong eq A)
+      (renameᵗᵐ-cong eq L))
+    (cong (λ c′ → ν (renameᵗ ρ′ A) (renameᵗᵐ ρ′ L) c′)
+      (renameᶜ-cong ext-eq c))
+  where
+    ext-eq : ∀ X → extᵗ ρ X ≡ extᵗ ρ′ X
+    ext-eq zero = refl
+    ext-eq (suc X) = cong suc (eq X)
+renameᵗᵐ-cong eq ($ κ) = refl
+renameᵗᵐ-cong eq (L ⊕[ op ] M) =
+  cong₂ (λ L′ M′ → L′ ⊕[ op ] M′)
+    (renameᵗᵐ-cong eq L)
+    (renameᵗᵐ-cong eq M)
+renameᵗᵐ-cong {ρ = ρ} {ρ′ = ρ′} eq (M ⟨ c ⟩) =
+  trans
+    (cong (λ M′ → M′ ⟨ renameᶜ ρ c ⟩) (renameᵗᵐ-cong eq M))
+    (cong (λ c′ → renameᵗᵐ ρ′ M ⟨ c′ ⟩) (renameᶜ-cong eq c))
+renameᵗᵐ-cong eq blame = refl
+
+renameᵗᵐ-compose :
+  ∀ ρ τ M →
+  renameᵗᵐ τ (renameᵗᵐ ρ M) ≡
+    renameᵗᵐ (λ X → τ (ρ X)) M
+renameᵗᵐ-compose ρ τ (` x) = refl
+renameᵗᵐ-compose ρ τ (ƛ M) =
+  cong ƛ_ (renameᵗᵐ-compose ρ τ M)
+renameᵗᵐ-compose ρ τ (L · M) =
+  cong₂ _·_ (renameᵗᵐ-compose ρ τ L) (renameᵗᵐ-compose ρ τ M)
+renameᵗᵐ-compose ρ τ (Λ M) =
+  cong Λ_
+    (trans
+      (renameᵗᵐ-compose (extᵗ ρ) (extᵗ τ) M)
+      (renameᵗᵐ-cong (λ { zero → refl ; (suc X) → refl }) M))
+renameᵗᵐ-compose ρ τ (M •) =
+  cong _• (renameᵗᵐ-compose ρ τ M)
+renameᵗᵐ-compose ρ τ (ν A L c) =
+  trans
+    (cong₂ (λ A′ L′ → ν A′ L′
+      (renameᶜ (extᵗ τ) (renameᶜ (extᵗ ρ) c)))
+      (renameᵗ-compose ρ τ A)
+      (renameᵗᵐ-compose ρ τ L))
+    (cong (λ c′ → ν (renameᵗ (λ X → τ (ρ X)) A)
+      (renameᵗᵐ (λ X → τ (ρ X)) L) c′)
+      (trans
+        (renameᶜ-compose (extᵗ ρ) (extᵗ τ) c)
+        (renameᶜ-cong (λ { zero → refl ; (suc X) → refl }) c)))
+renameᵗᵐ-compose ρ τ ($ κ) = refl
+renameᵗᵐ-compose ρ τ (L ⊕[ op ] M) =
+  cong₂ (λ L′ M′ → L′ ⊕[ op ] M′)
+    (renameᵗᵐ-compose ρ τ L)
+    (renameᵗᵐ-compose ρ τ M)
+renameᵗᵐ-compose ρ τ (M ⟨ c ⟩) =
+  trans
+    (cong (λ M′ → M′ ⟨ renameᶜ τ (renameᶜ ρ c) ⟩)
+      (renameᵗᵐ-compose ρ τ M))
+    (cong (λ c′ → renameᵗᵐ (λ X → τ (ρ X)) M ⟨ c′ ⟩)
+      (renameᶜ-compose ρ τ c))
+renameᵗᵐ-compose ρ τ blame = refl
+
+renameᵗᵐ-left-inverse :
+  ∀ {ρ ψ} →
+  RenameLeftInverse ρ ψ →
+  ∀ M →
+  renameᵗᵐ ψ (renameᵗᵐ ρ M) ≡ M
+renameᵗᵐ-left-inverse inv (` x) = refl
+renameᵗᵐ-left-inverse inv (ƛ M) =
+  cong ƛ_ (renameᵗᵐ-left-inverse inv M)
+renameᵗᵐ-left-inverse inv (L · M) =
+  cong₂ _·_ (renameᵗᵐ-left-inverse inv L)
+             (renameᵗᵐ-left-inverse inv M)
+renameᵗᵐ-left-inverse inv (Λ M) =
+  cong Λ_ (renameᵗᵐ-left-inverse (RenameLeftInverse-ext inv) M)
+renameᵗᵐ-left-inverse inv (M •) =
+  cong _• (renameᵗᵐ-left-inverse inv M)
+renameᵗᵐ-left-inverse inv (ν A L c) =
+  trans
+    (cong₂ (λ A′ L′ →
+       ν A′ L′ (renameᶜ _ (renameᶜ _ c)))
+      (renameᵗ-left-inverse inv A)
+      (renameᵗᵐ-left-inverse inv L))
+    (cong (ν A L) (renameᶜ-left-inverse (RenameLeftInverse-ext inv) c))
+renameᵗᵐ-left-inverse inv ($ κ) = refl
+renameᵗᵐ-left-inverse inv (L ⊕[ op ] M) =
+  cong₂ (λ L′ M′ → L′ ⊕[ op ] M′)
+        (renameᵗᵐ-left-inverse inv L)
+        (renameᵗᵐ-left-inverse inv M)
+renameᵗᵐ-left-inverse inv (M ⟨ c ⟩) =
+  cong₂ _⟨_⟩ (renameᵗᵐ-left-inverse inv M)
+              (renameᶜ-left-inverse inv c)
+renameᵗᵐ-left-inverse inv blame = refl
+
+open0-ext-suc-cancelᵐ :
+  ∀ M →
+  renameᵗᵐ (singleRenameᵗ zero) (renameᵗᵐ (extᵗ suc) M) ≡ M
+open0-ext-suc-cancelᵐ = renameᵗᵐ-left-inverse open0-ext-suc-inv
+
+renameᵗᵐ-pred-suc :
+  ∀ M →
+  renameᵗᵐ predᵗ (⇑ᵗᵐ M) ≡ M
+renameᵗᵐ-pred-suc = renameᵗᵐ-left-inverse RenameLeftInverse-suc
+
+renameᵗᵐ-pred-ext-suc :
+  ∀ M →
+  renameᵗᵐ predᵗ (renameᵗᵐ (extᵗ suc) M) ≡ M
+renameᵗᵐ-pred-ext-suc =
+  renameᵗᵐ-left-inverse RenameLeftInverse-ext-suc-pred
+
+renameᵗᵐ-ext-suc-comm :
+  ∀ ρ M →
+  renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ M) ≡ ⇑ᵗᵐ (renameᵗᵐ ρ M)
+renameᵗᵐ-ext-suc-comm ρ M =
+  trans (renameᵗᵐ-compose suc (extᵗ ρ) M)
+        (sym (renameᵗᵐ-compose ρ suc M))
+
+renameᵗᵐ-open-commute :
+  ∀ ρ M α →
+  renameᵗᵐ ρ (M [ α ]ᵀ) ≡ renameᵗᵐ (extᵗ ρ) M [ ρ α ]ᵀ
+renameᵗᵐ-open-commute ρ M α =
+  trans (renameᵗᵐ-compose (singleRenameᵗ α) ρ M)
+    (trans
+      (renameᵗᵐ-cong env-eq M)
+      (sym (renameᵗᵐ-compose (extᵗ ρ) (singleRenameᵗ (ρ α)) M)))
+  where
+    env-eq :
+      ∀ X →
+      ρ (singleRenameᵗ α X) ≡ singleRenameᵗ (ρ α) (extᵗ ρ X)
+    env-eq zero = refl
+    env-eq (suc X) = refl
+
 WfTy-raise-inv :
   ∀ k {Δ A} →
   k ≤ Δ →
@@ -320,23 +467,6 @@ term-weaken-suc {Δ = Δ} noM hM =
 ------------------------------------------------------------------------
 -- Renaming type variables in typing derivations
 ------------------------------------------------------------------------
-
-RenameLeftInverse : Renameᵗ → Renameᵗ → Set
-RenameLeftInverse ρ ψ = ∀ X → ψ (ρ X) ≡ X
-
-RenameLeftInverse-ext :
-  ∀ {ρ ψ} →
-  RenameLeftInverse ρ ψ →
-  RenameLeftInverse (extᵗ ρ) (extᵗ ψ)
-RenameLeftInverse-ext inv zero = refl
-RenameLeftInverse-ext inv (suc X) = cong suc (inv X)
-
-predᵗ : Renameᵗ
-predᵗ zero = zero
-predᵗ (suc X) = X
-
-RenameLeftInverse-suc : RenameLeftInverse suc predᵗ
-RenameLeftInverse-suc X = refl
 
 modeRename-left-inverse :
   ∀ {ρ ψ μ} →

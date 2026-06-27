@@ -52,18 +52,6 @@ postulate
     Δ ∣ σ ∣ γ ⊢ V ⊒ V′ ∶ q →
     Δ ∣ σ ∣ γ ⊢ N [ V ] ⊒ N′ [ V′ ] ∶ p
 
-  function-application-simulation :
-    ∀ {Δ σ L M N′ V′ p q} →
-    Value V′ →
-    Δ ∣ σ ∣ [] ⊢ L ⊒ ƛ N′ ∶ p ↦ q →
-    Δ ∣ σ ∣ [] ⊢ M ⊒ V′ ∶ - p →
-    ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ q′ ]
-      (L · M —↠[ χs ] N) ×
-      (Π ≡ applyStores χs []) ×
-      (Π′ ≡ applyStore keep []) ×
-      Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
-      Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ N′ [ V′ ] ∶ q′
-
   right-tag-inversion₁ :
     ∀ {Δ σ γ M V q G} →
     Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ G ! ⟩ ∶ q →
@@ -129,10 +117,10 @@ postulate
 ------------------------------------------------------------------------
 
 function-application-simulation-ƛ⊒ƛ :
-  ∀ {Δ σ N N′ V V′ p q} →
+  ∀ {Δ σ N N′ V V′ a q} →
   Value V →
-  Δ ∣ σ ∣ (- p) ∷ [] ⊢ N ⊒ N′ ∶ q →
-  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ - p →
+  Δ ∣ σ ∣ a ∷ [] ⊢ N ⊒ N′ ∶ q →
+  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ a →
   ∃[ χs ] ∃[ P ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ q′ ]
     ((ƛ N) · V —↠[ χs ] P) ×
     (Π ≡ applyStores χs []) ×
@@ -146,6 +134,62 @@ function-application-simulation-ƛ⊒ƛ {N = N} {V = V} vV N⊒N′ V⊒V′ =
   refl ,
   ⊒ˢ-nil ,
   term-substitution-narrowing N⊒N′ V⊒V′
+
+function-application-simulation :
+  ∀ {Δ σ L L′ M N′ V′ r p q} →
+  Value V′ →
+  Δ ∣ σ ∣ [] ⊢ L ⊒ L′ ∶ r →
+  L′ ≡ ƛ N′ →
+  r ≡ p ↦ q →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ V′ ∶ - p →
+  ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ q′ ]
+    (L · M —↠[ χs ] N) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ N′ [ V′ ] ∶ q′
+function-application-simulation vV′ (extend qᶜ pαᶜ L⊒L′) eq eqr M⊒V′ =
+  {!!}
+function-application-simulation vV′ (split qᶜ pαᶜ L⊒L′) eq eqr M⊒V′ =
+  {!!}
+function-application-simulation vV′ (⊒blame pᶜ) () eqr M⊒V′
+function-application-simulation vV′ (x⊒x pᶜ x∋p) () eqr M⊒V′
+-- The direct λ/λ case reduces to the beta helper once the source argument is
+-- known to be a value.  The full proof should obtain that value by catchup.
+function-application-simulation vV′ (ƛ⊒ƛ {N = N} {N′ = N′} p↦qᶜ N⊒N′)
+    refl refl M⊒V′
+    with catchup-lemma vV′ M⊒V′
+function-application-simulation vV′ (ƛ⊒ƛ {N = N} {N′ = N′} p↦qᶜ N⊒N′)
+    refl refl M⊒V′
+    | χs , W , Δ′ , Π , Π′ , π , a ,
+      M↠W , Π≡ , Π′≡ , π⊒ , W⊒V′
+    with function-application-simulation-ƛ⊒ƛ
+           {N = N} {N′ = N′} {V = W} {V′ = _} {!!} {!!} W⊒V′
+function-application-simulation vV′ (ƛ⊒ƛ {N = N} {N′ = N′} p↦qᶜ N⊒N′)
+    refl refl M⊒V′
+    | χs , W , Δ′ , Π , Π′ , π , a ,
+      M↠W , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | χsβ , P , Δβ , Πβ , Πβ′ , πβ , qβ ,
+      β↠ , Πβ≡ , Πβ′≡ , πβ⊒ , P⊒N′ =
+  {!!}
+function-application-simulation vV′ (·⊒· qᶜ L⊒L′ M⊒M′) () eqr M⊒V′
+function-application-simulation vV′ (Λ⊒Λ allᶜ V⊒V′) () eqr M⊒V′
+function-application-simulation vV′ (⊒Λ pᶜ N⊒V′) () eqr M⊒V′
+function-application-simulation vV′ (⊒⟨ν⟩ pᶜ N⊒V′) () eqr M⊒V′
+function-application-simulation vV′ (α⊒α qᶜ pαᶜ L⊒L′) () eqr M⊒V′
+function-application-simulation vV′ (⊒α pαᶜ L⊒L′) () eqr M⊒V′
+function-application-simulation vV′ (ν⊒ν pᶜ qᶜ N⊒N′) () eqr M⊒V′
+function-application-simulation vV′ (⊒ν pᶜ L⊒L′) () eqr M⊒V′
+function-application-simulation vV′ (ν⊒ pᶜ L⊒L′) refl eqr M⊒V′ =
+  {!!}
+function-application-simulation vV′ (κ⊒κ κ) () eqr M⊒V′
+function-application-simulation vV′ (⊕⊒⊕ M⊒M′ N⊒N′) () eqr M⊒V′
+function-application-simulation vV′ (⊒cast+ qᶜ q⨟s≈r L⊒L′) () eqr M⊒V′
+function-application-simulation vV′ (⊒cast- qᶜ q⨟s≈r L⊒L′) () eqr M⊒V′
+function-application-simulation vV′ (cast+⊒ pᶜ r≈t⨟p L⊒L′) refl eqr M⊒V′ =
+  {!!}
+function-application-simulation vV′ (cast-⊒ pᶜ r≈t⨟p L⊒L′) refl eqr M⊒V′ =
+  {!!}
 
 ------------------------------------------------------------------------
 -- Dynamic gradual guarantee
@@ -186,7 +230,7 @@ dynamicGradualGuarantee (κ⊒κ κ) (pure-step ())
 -- casted-function redex is handled by the wrapping lemma.
 dynamicGradualGuarantee (ƛ⊒ƛ p↦qᶜ N⊒N′) (pure-step ())
 dynamicGradualGuarantee (·⊒· qᶜ L⊒L′ M⊒M′) (pure-step (β vV))
-  = function-application-simulation vV L⊒L′ M⊒M′
+  = function-application-simulation vV L⊒L′ refl refl M⊒M′
 dynamicGradualGuarantee (·⊒· qᶜ L⊒L′ M⊒M′)
     (pure-step (β-↦ vV vW)) =
   wrap-widening-lemma L⊒L′ M⊒M′

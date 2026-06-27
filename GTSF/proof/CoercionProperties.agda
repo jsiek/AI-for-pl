@@ -60,6 +60,169 @@ renameᶜ-preserves-Inert ρ (`∀ c) = `∀ (renameᶜ (extᵗ ρ) c)
 renameᶜ-preserves-Inert ρ (gen A c) =
   gen (renameᵗ ρ A) (renameᶜ (extᵗ ρ) c)
 
+mutual
+  src-renameᶜ :
+    ∀ ρ c →
+    src (renameᶜ ρ c) ≡ renameᵗ ρ (src c)
+  src-renameᶜ ρ (id A) = refl
+  src-renameᶜ ρ (c ︔ d) = src-renameᶜ ρ c
+  src-renameᶜ ρ (c ↦ d) =
+    cong₂ _⇒_ (tgt-renameᶜ ρ c) (src-renameᶜ ρ d)
+  src-renameᶜ ρ (`∀ c) = cong `∀ (src-renameᶜ (extᵗ ρ) c)
+  src-renameᶜ ρ (G !) = refl
+  src-renameᶜ ρ (G ？) = refl
+  src-renameᶜ ρ (seal A α) = refl
+  src-renameᶜ ρ (unseal α A) = refl
+  src-renameᶜ ρ (gen A c) = refl
+  src-renameᶜ ρ (inst B c) = cong `∀ (src-renameᶜ (extᵗ ρ) c)
+
+  tgt-renameᶜ :
+    ∀ ρ c →
+    tgt (renameᶜ ρ c) ≡ renameᵗ ρ (tgt c)
+  tgt-renameᶜ ρ (id A) = refl
+  tgt-renameᶜ ρ (c ︔ d) = tgt-renameᶜ ρ d
+  tgt-renameᶜ ρ (c ↦ d) =
+    cong₂ _⇒_ (src-renameᶜ ρ c) (tgt-renameᶜ ρ d)
+  tgt-renameᶜ ρ (`∀ c) = cong `∀ (tgt-renameᶜ (extᵗ ρ) c)
+  tgt-renameᶜ ρ (G !) = refl
+  tgt-renameᶜ ρ (G ？) = refl
+  tgt-renameᶜ ρ (seal A α) = refl
+  tgt-renameᶜ ρ (unseal α A) = refl
+  tgt-renameᶜ ρ (gen A c) = cong `∀ (tgt-renameᶜ (extᵗ ρ) c)
+  tgt-renameᶜ ρ (inst B c) = refl
+
+renameᶜ-cong :
+  ∀ {ρ ρ′} →
+  (∀ X → ρ X ≡ ρ′ X) →
+  ∀ c → renameᶜ ρ c ≡ renameᶜ ρ′ c
+renameᶜ-cong eq (id A) = cong id (rename-cong eq A)
+renameᶜ-cong eq (c ︔ d) =
+  cong₂ _︔_ (renameᶜ-cong eq c) (renameᶜ-cong eq d)
+renameᶜ-cong eq (c ↦ d) =
+  cong₂ _↦_ (renameᶜ-cong eq c) (renameᶜ-cong eq d)
+renameᶜ-cong eq (`∀ c) =
+  cong `∀ (renameᶜ-cong
+    (λ { zero → refl ; (suc X) → cong suc (eq X) })
+    c)
+renameᶜ-cong eq (G !) = cong _! (rename-cong eq G)
+renameᶜ-cong eq (G ？) = cong _？ (rename-cong eq G)
+renameᶜ-cong eq (seal A α) = cong₂ seal (rename-cong eq A) (eq α)
+renameᶜ-cong eq (unseal α A) =
+  cong₂ unseal (eq α) (rename-cong eq A)
+renameᶜ-cong eq (gen A c) =
+  cong₂ gen (rename-cong eq A)
+    (renameᶜ-cong
+      (λ { zero → refl ; (suc X) → cong suc (eq X) })
+      c)
+renameᶜ-cong eq (inst B c) =
+  cong₂ inst (rename-cong eq B)
+    (renameᶜ-cong
+      (λ { zero → refl ; (suc X) → cong suc (eq X) })
+      c)
+
+renameᶜ-compose :
+  ∀ ρ τ c →
+  renameᶜ τ (renameᶜ ρ c) ≡ renameᶜ (λ X → τ (ρ X)) c
+renameᶜ-compose ρ τ (id A) = cong id (renameᵗ-compose ρ τ A)
+renameᶜ-compose ρ τ (c ︔ d) =
+  cong₂ _︔_ (renameᶜ-compose ρ τ c) (renameᶜ-compose ρ τ d)
+renameᶜ-compose ρ τ (c ↦ d) =
+  cong₂ _↦_ (renameᶜ-compose ρ τ c) (renameᶜ-compose ρ τ d)
+renameᶜ-compose ρ τ (`∀ c) =
+  cong `∀
+    (trans
+      (renameᶜ-compose (extᵗ ρ) (extᵗ τ) c)
+      (renameᶜ-cong (λ { zero → refl ; (suc X) → refl }) c))
+renameᶜ-compose ρ τ (G !) = cong _! (renameᵗ-compose ρ τ G)
+renameᶜ-compose ρ τ (G ？) = cong _？ (renameᵗ-compose ρ τ G)
+renameᶜ-compose ρ τ (seal A α) =
+  cong₂ seal (renameᵗ-compose ρ τ A) refl
+renameᶜ-compose ρ τ (unseal α A) =
+  cong₂ unseal refl (renameᵗ-compose ρ τ A)
+renameᶜ-compose ρ τ (gen A c) =
+  cong₂ gen (renameᵗ-compose ρ τ A)
+    (trans
+      (renameᶜ-compose (extᵗ ρ) (extᵗ τ) c)
+      (renameᶜ-cong (λ { zero → refl ; (suc X) → refl }) c))
+renameᶜ-compose ρ τ (inst B c) =
+  cong₂ inst (renameᵗ-compose ρ τ B)
+    (trans
+      (renameᶜ-compose (extᵗ ρ) (extᵗ τ) c)
+      (renameᶜ-cong (λ { zero → refl ; (suc X) → refl }) c))
+
+renameᶜ-left-inverse :
+  ∀ {ρ ψ} →
+  RenameLeftInverse ρ ψ →
+  ∀ c →
+  renameᶜ ψ (renameᶜ ρ c) ≡ c
+renameᶜ-left-inverse inv (id A) =
+  cong id (renameᵗ-left-inverse inv A)
+renameᶜ-left-inverse inv (p ︔ q) =
+  cong₂ _︔_ (renameᶜ-left-inverse inv p)
+             (renameᶜ-left-inverse inv q)
+renameᶜ-left-inverse inv (A !) =
+  cong _! (renameᵗ-left-inverse inv A)
+renameᶜ-left-inverse inv (A ？) =
+  cong _？ (renameᵗ-left-inverse inv A)
+renameᶜ-left-inverse inv (unseal α A) =
+  cong₂ unseal (inv α) (renameᵗ-left-inverse inv A)
+renameᶜ-left-inverse inv (seal A α) =
+  cong₂ seal (renameᵗ-left-inverse inv A) (inv α)
+renameᶜ-left-inverse inv (p ↦ q) =
+  cong₂ _↦_ (renameᶜ-left-inverse inv p)
+             (renameᶜ-left-inverse inv q)
+renameᶜ-left-inverse inv (`∀ p) =
+  cong `∀ (renameᶜ-left-inverse (RenameLeftInverse-ext inv) p)
+renameᶜ-left-inverse inv (gen A p) =
+  cong₂ gen (renameᵗ-left-inverse inv A)
+             (renameᶜ-left-inverse (RenameLeftInverse-ext inv) p)
+renameᶜ-left-inverse inv (inst B p) =
+  cong₂ inst (renameᵗ-left-inverse inv B)
+              (renameᶜ-left-inverse (RenameLeftInverse-ext inv) p)
+
+open0-ext-suc-cancelᶜ :
+  ∀ c →
+  renameᶜ (singleRenameᵗ zero) (renameᶜ (extᵗ suc) c) ≡ c
+open0-ext-suc-cancelᶜ = renameᶜ-left-inverse open0-ext-suc-inv
+
+renameᶜ-pred-suc :
+  ∀ c →
+  renameᶜ predᵗ (⇑ᶜ c) ≡ c
+renameᶜ-pred-suc = renameᶜ-left-inverse RenameLeftInverse-suc
+
+renameᶜ-pred-ext-suc :
+  ∀ c →
+  renameᶜ predᵗ (renameᶜ (extᵗ suc) c) ≡ c
+renameᶜ-pred-ext-suc =
+  renameᶜ-left-inverse RenameLeftInverse-ext-suc-pred
+
+renameᶜ-ext-suc-comm :
+  ∀ ρ c →
+  renameᶜ (extᵗ ρ) (⇑ᶜ c) ≡ ⇑ᶜ (renameᶜ ρ c)
+renameᶜ-ext-suc-comm ρ c =
+  trans (renameᶜ-compose suc (extᵗ ρ) c)
+        (sym (renameᶜ-compose ρ suc c))
+
+renameᶜ-ext-suc-suc :
+  ∀ c →
+  renameᶜ (extᵗ suc) (⇑ᶜ c) ≡ ⇑ᶜ (⇑ᶜ c)
+renameᶜ-ext-suc-suc = renameᶜ-ext-suc-comm suc
+
+renameᶜ-open-commute :
+  ∀ ρ c α →
+  renameᶜ ρ (c [ α ]ᶜ) ≡ renameᶜ (extᵗ ρ) c [ ρ α ]ᶜ
+renameᶜ-open-commute ρ c α =
+  trans (renameᶜ-compose (singleRenameᵗ α) ρ c)
+    (trans
+      (renameᶜ-cong env-eq c)
+      (sym (renameᶜ-compose (extᵗ ρ) (singleRenameᵗ (ρ α)) c)))
+  where
+    env-eq :
+      ∀ X →
+      ρ (singleRenameᵗ α X) ≡ singleRenameᵗ (ρ α) (extᵗ ρ X)
+    env-eq zero = refl
+    env-eq (suc X) = refl
+
 ------------------------------------------------------------------------
 -- Coercion typing under store/type-context weakening
 ------------------------------------------------------------------------
@@ -146,6 +309,121 @@ dual-inst-example-dual⊢ :
 dual-inst-example-dual⊢ =
   tag-or-idᵈ ,
     cast-gen wf★ refl (cast-untag (wfVar z<s) (＇ zero) refl)
+
+------------------------------------------------------------------------
+-- Coercion duality under type renaming
+------------------------------------------------------------------------
+
+DualActionRename : Renameᵗ → DualActionEnv → DualActionEnv → Set
+DualActionRename ρ η θ = ∀ X → θ (ρ X) ≡ η X
+
+DualActionRename-ext :
+  ∀ {ρ η θ} →
+  DualActionRename ρ η θ →
+  DualActionRename (extᵗ ρ) (extᵃ η) (extᵃ θ)
+DualActionRename-ext rel zero = refl
+DualActionRename-ext rel (suc X) = rel X
+
+DualActionRename-gen :
+  ∀ {ρ η θ} →
+  DualActionRename ρ η θ →
+  DualActionRename (extᵗ ρ) (genᵃ η) (genᵃ θ)
+DualActionRename-gen rel zero = refl
+DualActionRename-gen rel (suc X) = rel X
+
+DualActionRename-inst :
+  ∀ {ρ η θ} →
+  DualActionRename ρ η θ →
+  DualActionRename (extᵗ ρ) (instᵃ η) (instᵃ θ)
+DualActionRename-inst rel zero = refl
+DualActionRename-inst rel (suc X) = rel X
+
+renameᶜ-dualTag :
+  ∀ {ρ η θ} →
+  DualActionRename ρ η θ →
+  ∀ G → renameᶜ ρ (dualTag η G) ≡ dualTag θ (renameᵗ ρ G)
+renameᶜ-dualTag {ρ = ρ} {η = η} {θ = θ} rel (＇ α)
+    with η α | θ (ρ α) | rel α
+renameᶜ-dualTag rel (＇ α) | normal | .normal | refl = refl
+renameᶜ-dualTag rel (＇ α) | tag-to-seal | .tag-to-seal | refl = refl
+renameᶜ-dualTag rel (＇ α) | seal-to-tag | .seal-to-tag | refl = refl
+renameᶜ-dualTag rel (‵ ι) = refl
+renameᶜ-dualTag rel ★ = refl
+renameᶜ-dualTag rel (A ⇒ B) = refl
+renameᶜ-dualTag rel (`∀ A) = refl
+
+renameᶜ-dualUntag :
+  ∀ {ρ η θ} →
+  DualActionRename ρ η θ →
+  ∀ G → renameᶜ ρ (dualUntag η G) ≡ dualUntag θ (renameᵗ ρ G)
+renameᶜ-dualUntag {ρ = ρ} {η = η} {θ = θ} rel (＇ α)
+    with η α | θ (ρ α) | rel α
+renameᶜ-dualUntag rel (＇ α) | normal | .normal | refl = refl
+renameᶜ-dualUntag rel (＇ α) | tag-to-seal | .tag-to-seal | refl = refl
+renameᶜ-dualUntag rel (＇ α) | seal-to-tag | .seal-to-tag | refl = refl
+renameᶜ-dualUntag rel (‵ ι) = refl
+renameᶜ-dualUntag rel ★ = refl
+renameᶜ-dualUntag rel (A ⇒ B) = refl
+renameᶜ-dualUntag rel (`∀ A) = refl
+
+renameᶜ-dualSeal :
+  ∀ {ρ η θ} →
+  DualActionRename ρ η θ →
+  ∀ A α →
+  renameᶜ ρ (dualSeal η A α) ≡
+    dualSeal θ (renameᵗ ρ A) (ρ α)
+renameᶜ-dualSeal {ρ = ρ} {η = η} {θ = θ} rel A α
+    with η α | θ (ρ α) | rel α
+renameᶜ-dualSeal rel A α | normal | .normal | refl = refl
+renameᶜ-dualSeal rel A α | tag-to-seal | .tag-to-seal | refl = refl
+renameᶜ-dualSeal rel A α | seal-to-tag | .seal-to-tag | refl = refl
+
+renameᶜ-dualUnseal :
+  ∀ {ρ η θ} →
+  DualActionRename ρ η θ →
+  ∀ α A →
+  renameᶜ ρ (dualUnseal η α A) ≡
+    dualUnseal θ (ρ α) (renameᵗ ρ A)
+renameᶜ-dualUnseal {ρ = ρ} {η = η} {θ = θ} rel α A
+    with η α | θ (ρ α) | rel α
+renameᶜ-dualUnseal rel α A | normal | .normal | refl = refl
+renameᶜ-dualUnseal rel α A | tag-to-seal | .tag-to-seal | refl = refl
+renameᶜ-dualUnseal rel α A | seal-to-tag | .seal-to-tag | refl = refl
+
+renameᶜ-dual :
+  ∀ {ρ η θ} →
+  DualActionRename ρ η θ →
+  ∀ c → renameᶜ ρ (dual η c) ≡ dual θ (renameᶜ ρ c)
+renameᶜ-dual rel (id A) = refl
+renameᶜ-dual rel (c ︔ d) =
+  cong₂ _︔_ (renameᶜ-dual rel d) (renameᶜ-dual rel c)
+renameᶜ-dual rel (c ↦ d) =
+  cong₂ _↦_ (renameᶜ-dual rel c) (renameᶜ-dual rel d)
+renameᶜ-dual {ρ = ρ} {η = η} {θ = θ} rel (`∀ c) =
+  cong `∀
+    (renameᶜ-dual {ρ = extᵗ ρ} {η = extᵃ η} {θ = extᵃ θ}
+      (DualActionRename-ext rel) c)
+renameᶜ-dual {ρ = ρ} {η = η} {θ = θ} rel (G !) =
+  renameᶜ-dualTag {ρ = ρ} {η = η} {θ = θ} rel G
+renameᶜ-dual {ρ = ρ} {η = η} {θ = θ} rel (G ？) =
+  renameᶜ-dualUntag {ρ = ρ} {η = η} {θ = θ} rel G
+renameᶜ-dual {ρ = ρ} {η = η} {θ = θ} rel (seal A α) =
+  renameᶜ-dualSeal {ρ = ρ} {η = η} {θ = θ} rel A α
+renameᶜ-dual {ρ = ρ} {η = η} {θ = θ} rel (unseal α A) =
+  renameᶜ-dualUnseal {ρ = ρ} {η = η} {θ = θ} rel α A
+renameᶜ-dual {ρ = ρ} {η = η} {θ = θ} rel (gen A c) =
+  cong (inst (renameᵗ ρ A))
+    (renameᶜ-dual {ρ = extᵗ ρ} {η = genᵃ η} {θ = genᵃ θ}
+      (DualActionRename-gen rel) c)
+renameᶜ-dual {ρ = ρ} {η = η} {θ = θ} rel (inst B c) =
+  cong (gen (renameᵗ ρ B))
+    (renameᶜ-dual {ρ = extᵗ ρ} {η = instᵃ η} {θ = instᵃ θ}
+      (DualActionRename-inst rel) c)
+
+renameᶜ-dual-normal :
+  ∀ ρ c →
+  renameᶜ ρ (- c) ≡ - renameᶜ ρ c
+renameᶜ-dual-normal ρ = renameᶜ-dual (λ X → refl)
 
 ------------------------------------------------------------------------
 -- Coercion typing under type renaming

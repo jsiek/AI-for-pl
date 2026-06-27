@@ -59,6 +59,32 @@ rename-cong eq (`∀ A) =
          ; (suc X) → cong suc (eq X)})
       A)
 
+RenameLeftInverse : Renameᵗ → Renameᵗ → Set
+RenameLeftInverse ρ ψ = ∀ X → ψ (ρ X) ≡ X
+
+RenameLeftInverse-ext :
+  ∀ {ρ ψ} →
+  RenameLeftInverse ρ ψ →
+  RenameLeftInverse (extᵗ ρ) (extᵗ ψ)
+RenameLeftInverse-ext inv zero = refl
+RenameLeftInverse-ext inv (suc X) = cong suc (inv X)
+
+predᵗ : Renameᵗ
+predᵗ zero = zero
+predᵗ (suc X) = X
+
+RenameLeftInverse-suc : RenameLeftInverse suc predᵗ
+RenameLeftInverse-suc X = refl
+
+RenameLeftInverse-ext-suc-pred : RenameLeftInverse (extᵗ suc) predᵗ
+RenameLeftInverse-ext-suc-pred zero = refl
+RenameLeftInverse-ext-suc-pred (suc X) = refl
+
+open0-ext-suc-inv :
+  RenameLeftInverse (extᵗ suc) (singleRenameᵗ zero)
+open0-ext-suc-inv zero = refl
+open0-ext-suc-inv (suc X) = refl
+
 extNᵗ : ℕ → Renameᵗ → Renameᵗ
 extNᵗ zero ρ = ρ
 extNᵗ (suc n) ρ = extᵗ (extNᵗ n ρ)
@@ -251,6 +277,12 @@ TyRenameWf-suc :
   TyRenameWf Δ (suc Δ) suc
 TyRenameWf-suc X<Δ = s<s X<Δ
 
+TyRenameWf-suc-≤ :
+  ∀ {Δ Δ′} →
+  suc Δ ≤ Δ′ →
+  TyRenameWf Δ Δ′ suc
+TyRenameWf-suc-≤ sucΔ≤Δ′ X<Δ = <-≤-trans (s<s X<Δ) sucΔ≤Δ′
+
 singleRenameᵗ-Wf :
   ∀ {Δ α} →
   α < suc Δ →
@@ -363,6 +395,41 @@ renameᵗ-compose ρ τ (`∀ A) =
         (λ { zero → refl
            ; (suc X) → refl})
         A))
+
+renameᵗ-left-inverse :
+  ∀ {ρ ψ} →
+  RenameLeftInverse ρ ψ →
+  ∀ A →
+  renameᵗ ψ (renameᵗ ρ A) ≡ A
+renameᵗ-left-inverse {ρ = ρ} {ψ = ψ} inv A =
+  trans (renameᵗ-compose ρ ψ A)
+        (trans (rename-cong inv A) (renameᵗ-id A))
+
+open0-ext-suc-cancel :
+  ∀ A →
+  renameᵗ (singleRenameᵗ zero) (renameᵗ (extᵗ suc) A) ≡ A
+open0-ext-suc-cancel = renameᵗ-left-inverse open0-ext-suc-inv
+
+renameᵗ-pred-suc :
+  ∀ A →
+  renameᵗ predᵗ (⇑ᵗ A) ≡ A
+renameᵗ-pred-suc = renameᵗ-left-inverse RenameLeftInverse-suc
+
+renameᵗ-pred-ext-suc :
+  ∀ A →
+  renameᵗ predᵗ (renameᵗ (extᵗ suc) A) ≡ A
+renameᵗ-pred-ext-suc =
+  renameᵗ-left-inverse RenameLeftInverse-ext-suc-pred
+
+renameStoreᵗ-compose :
+  ∀ ρ τ Σ →
+  renameStoreᵗ τ (renameStoreᵗ ρ Σ) ≡
+    renameStoreᵗ (λ X → τ (ρ X)) Σ
+renameStoreᵗ-compose ρ τ [] = refl
+renameStoreᵗ-compose ρ τ ((α , A) ∷ Σ) =
+  cong₂ _∷_
+    (cong₂ _,_ refl (renameᵗ-compose ρ τ A))
+    (renameStoreᵗ-compose ρ τ Σ)
 
 subst-cong :
   ∀ {σ τ : Substᵗ} →

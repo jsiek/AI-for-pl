@@ -822,7 +822,7 @@ ex2-after-reduction :
     ∶ gen (★ ⇒ ★)
         ((id (＇ 0) ︔ ((＇ 0) !)) ↦ (((＇ 0) ？) ︔ id (＇ 0)))
 ex2-after-reduction =
-  ⊒⟨ν⟩ poly-fun-cast ex2-split
+  ⊒⟨ν⟩ poly-fun-cast (_ ↦ _) ex2-split
 
 ------------------------------------------------------------------------
 -- Example 3
@@ -930,7 +930,7 @@ ex4-poly-id :
     ⊢ Λ (ƛ (` 0)) ⊒ Λ (ƛ (` 0))
     ∶ `∀ (id (＇ 0) ↦ id (＇ 0))
 ex4-poly-id =
-  Λ⊒Λ forall-id-var0-fun-cast
+  Λ⊒Λ forall-id-var0-fun-cast (ƛ (` 0))
     (ƛ⊒ƛ id-var0-fun-cast (x⊒x id-var0-cast Z))
 
 ex4-initial :

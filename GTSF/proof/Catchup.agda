@@ -130,6 +130,14 @@ open import proof.CatchupStore
 -- Catchup
 ------------------------------------------------------------------------
 
+-- Postulate audit:
+-- * `left-widening-lemma` and `left-narrowing-lemma` correspond to named
+--   cambridge25 lemmas.  The Agda statements add the emitted-store bookkeeping
+--   (`χs`, `π`, and `combineStoreNrw`) needed by this mechanization.
+-- * The other postulates in this file are not pre-existing named cambridge25
+--   lemmas.  They are newly documented proof obligations/cases in
+--   `cambridge25.lagda.md`, marked with `[New]`, and remain to be proved.
+
 postulate
   -- cambridge25 "Left Widening Lemma": the source before the left cast is
   -- already a value.  The catchup induction that produces that value remains
@@ -169,10 +177,16 @@ postulate
       Δ′ ∣ combineStoreNrw π σ ∣ []
         ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p
 
-  -- cambridge25 Catchup Lemma, shifted-source diagrams for the `⊒Λ`
-  -- case: peel a catchup of `⇑ᵗᵐ N` under `(zero := ★⊒) ∷ ⇑ˢ σ`
-  -- back to a catchup of `N`, retaining the fresh-star premise needed to
-  -- rebuild `⊒Λ`.
+  -- [New] Shifted-source catchup inversion for the `⊒Λ` case.
+  --
+  -- Attempted proof notes.  A direct recursive call in the `⊒Λ` case catches
+  -- up the shifted source `⇑ᵗᵐ N` under `(zero ꞉= ★ ⊒) ∷ ⇑ˢ σ`,
+  -- but the final catchup conclusion needs an unshifted reduction from `N`
+  -- under `σ`.  The useful next invariant is a reduction/store-prefix
+  -- inversion lemma: peel the fresh source-only star entry from the emitted
+  -- store changes, invert type-renamed source reductions, and rewrite target
+  -- terms/coercions with the under-binder `applyTerms`/`applyCoercions`
+  -- lemmas before rebuilding `⊒Λ`.
   shifted-source-catchup-Λ-inversion :
     ∀ {Δ σ χs W Δ′ Π Π′ π N V′ p} →
     Value W →
@@ -194,8 +208,12 @@ postulate
         ⊢ ⇑ᵗᵐ W′ ⊒ applyTermsUnderTyBinders χs′ V′
           ∶ applyCoercionUnderTyBinders χs′ p
 
-  -- Same shifted-source catchup diagram for the `⊒⟨ν⟩` wrapper, where
-  -- the target value remains outside the generated cast in the final result.
+  -- [New] Same shifted-source catchup inversion for the `⊒⟨ν⟩` wrapper,
+  -- where the target value remains outside the generated cast in the final
+  -- result.
+  -- The proof should share the same inversion lemma as `⊒Λ`; only the final
+  -- rebuild differs, using `⊒⟨ν⟩` and inertness preservation for the
+  -- under-binder coercion action.
   shifted-source-catchup-⟨ν⟩-inversion :
     ∀ {Δ σ χs W Δ′ Π Π′ π N V′ p s} →
     Value W →
@@ -745,10 +763,27 @@ catchup-compose-right-transport {χs = χs} r≈t⨟p Δ′≡ Π≡ Π′≡ π
     r≈t⨟p Δ′≡ Π≡ Π′≡ π⊒
 
 postulate
-  -- cambridge25 "Extend Prefix Transport" [New].  This is the paper-level
-  -- opened-target statement needed by the `extend` case of
-  -- catchup.  An earlier proof attempt showed that the arbitrary-target
-  -- variant is too broad, specifically in the `⊒α` case.
+  -- [New] Extend Prefix Transport.
+  --
+  -- This is not a pre-existing named cambridge25 lemma.  It is the
+  -- mechanization obligation created by the `extend` catchup case after the
+  -- recursive call emits a store-change prefix.
+  --
+  -- Attempted proof notes.  I first tried a generic emitted-prefix transport
+  -- lemma for arbitrary right-hand targets.  That statement is too broad: in
+  -- the `⊒α` case the old target has shape `L′ • α`, but rebuilding
+  -- `extend` requires an opened target `N′ [ α ]ᵀ`.  The rule does not imply
+  -- that `L′ • α` arose from such an opening.  I also tried to make the
+  -- transport depend only on source-store inclusion, but the recursive case
+  -- for a freshly emitted source-only star needs shifted typings for both `q`
+  -- and `p [ α ]ᶜ`; those shifted typings come from the emitted type-context
+  -- history, not from store inclusion alone.
+  --
+  -- Likely path forward: prove this by induction on the emitted store-change
+  -- prefix while carrying the opened-target shape and the shifted side
+  -- typings for `q` and `p [ α ]ᶜ` at each suffix.  The right-only and
+  -- both-side emitted entries should be impossible because catchup emits an
+  -- empty target store.
   catchup-extend-transport :
     ∀ {Δ Δ′ σ π Π Π′ χs W N′ α p q A B C D} →
     Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ B ⊒ A →
@@ -765,9 +800,20 @@ postulate
         ∶ applyCoercions χs (p [ α ]ᶜ)
 
 postulate
-  -- cambridge25 "Split Catchup Case" [New].  This case transports the
-  -- induction result for `N [ α ]ᵀ` across the split pair
-  -- `(α := A⊒, αᵢ := ★)` to obtain the source reduction from `N [ αᵢ ]ᵀ`.
+  -- [New] Split Catchup Case.
+  --
+  -- This is a new catchup case rather than a pre-existing named cambridge25
+  -- lemma.  The recursive call catches up the premise opened at `α` under
+  -- `(α ꞉ q) ∷ σ`, but the conclusion must reduce the source opened at the
+  -- new source-only variable `αᵢ` under
+  -- `(α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ`.
+  --
+  -- Attempted proof notes.  Reusing the `extend` transport shape is not enough:
+  -- the proof must also change the source opening from `N [ α ]ᵀ` to
+  -- `N [ αᵢ ]ᵀ` and move the emitted prefix through two fresh entries.  The
+  -- apparent next lemma is a split-specific reduction transport/opening
+  -- lemma for source type variables, paired with the same emitted-prefix
+  -- bookkeeping used by `catchup-extend-transport`.
   catchup-split-catchup :
     ∀ {Δ σ χs W Δ′ Π Π′ π N N′ α αᵢ p q A C D} →
     Value W →
@@ -915,10 +961,21 @@ catchup-⊒⟨ν⟩-catchup
       rebuilt)
 
 postulate
-  -- cambridge25 "Right ν Catchup Case" [New].  The proof uses the canonical
-  -- runtime shape of the caught-up polymorphic value to take the `ν` opening
-  -- step and then transports the emitted store prefix back out of the fresh
-  -- source-only star entry.
+  -- [New] Right ν Catchup Case.
+  --
+  -- This is a new catchup case, not a pre-existing named cambridge25 lemma.
+  -- The recursive call catches up the shifted premise under
+  -- `(⊒ zero ꞉=☆) ∷ ⇑ˢ σ`; the desired conclusion is for the
+  -- unshifted wrapper `ν ★ N (⇑ᶜ p)` under `σ`.
+  --
+  -- Attempted proof notes.  Lifting the recursive source reduction through the
+  -- `ν` wrapper is straightforward, but the remaining step needs more than a
+  -- plain transport: one has to use the canonical runtime shape of the
+  -- caught-up polymorphic value to take the `ν` store-opening step, then
+  -- remove the source-only star entry from the emitted prefix and unshift the
+  -- target relation.  This should probably be factored through the same
+  -- shifted-source inversion lemma needed by `⊒Λ`, plus a small reduction
+  -- lemma for `ν` opening and the corresponding store-prefix transport.
   catchup-ν⊒-catchup :
     ∀ {Δ σ χs W Δ′ Π Π′ π N V p A B} →
     Value V →

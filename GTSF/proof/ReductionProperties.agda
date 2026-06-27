@@ -40,19 +40,9 @@ open import proof.TypeProperties using (renameᵗ-ext-suc-comm)
 -- Store-change list views
 ------------------------------------------------------------------------
 
-data StoreChangesSnoc : StoreChanges → Set where
-  snoc-[] :
-    StoreChangesSnoc []
-  snoc-∷ʳ : ∀ χs χ →
-    StoreChangesSnoc (χs ++ χ ∷ [])
-
-storeChangesSnoc : ∀ χs → StoreChangesSnoc χs
-storeChangesSnoc [] = snoc-[]
-storeChangesSnoc (χ ∷ χs)
-    with storeChangesSnoc χs
-storeChangesSnoc (χ ∷ .[]) | snoc-[] = snoc-∷ʳ [] χ
-storeChangesSnoc (χ ∷ .(χs ++ χ′ ∷ [])) | snoc-∷ʳ χs χ′ =
-  snoc-∷ʳ (χ ∷ χs) χ′
+-- A plain snoc view was tried first for emitted store-change prefixes, but it
+-- loses the information catchup needs: whether the last non-keep change is a
+-- binder.  The surviving proofs use `StoreChangesLastBind` instead.
 
 data AllKeep : StoreChanges → Set where
   all-[] :
@@ -181,17 +171,6 @@ applyStores-++ [] χs′ Σ = refl
 applyStores-++ (χ ∷ χs) χs′ Σ =
   applyStores-++ χs χs′ (applyStore χ Σ)
 
-applyStores-snoc-keep :
-  ∀ χs Σ →
-  applyStores (χs ++ keep ∷ []) Σ ≡ applyStores χs Σ
-applyStores-snoc-keep χs Σ = applyStores-++ χs (keep ∷ []) Σ
-
-applyStores-snoc-bind :
-  ∀ χs A Σ →
-  applyStores (χs ++ bind A ∷ []) Σ ≡
-    (zero , ⇑ᵗ A) ∷ ⟰ᵗ (applyStores χs Σ)
-applyStores-snoc-bind χs A Σ = applyStores-++ χs (bind A ∷ []) Σ
-
 allKeep-applyStores-id :
   ∀ {χs} →
   AllKeep χs →
@@ -289,16 +268,6 @@ applyTyCtxs-++ [] χs′ Δ = refl
 applyTyCtxs-++ (χ ∷ χs) χs′ Δ =
   applyTyCtxs-++ χs χs′ (applyTyCtx χ Δ)
 
-applyTyCtxs-snoc-keep :
-  ∀ χs Δ →
-  applyTyCtxs (χs ++ keep ∷ []) Δ ≡ applyTyCtxs χs Δ
-applyTyCtxs-snoc-keep χs Δ = applyTyCtxs-++ χs (keep ∷ []) Δ
-
-applyTyCtxs-snoc-bind :
-  ∀ χs A Δ →
-  applyTyCtxs (χs ++ bind A ∷ []) Δ ≡ suc (applyTyCtxs χs Δ)
-applyTyCtxs-snoc-bind χs A Δ = applyTyCtxs-++ χs (bind A ∷ []) Δ
-
 allKeep-applyTyCtxs-id :
   ∀ {χs} →
   AllKeep χs →
@@ -330,16 +299,6 @@ applyTys-++ :
 applyTys-++ [] χs′ A = refl
 applyTys-++ (χ ∷ χs) χs′ A =
   applyTys-++ χs χs′ (applyTy χ A)
-
-applyTys-snoc-keep :
-  ∀ χs A →
-  applyTys (χs ++ keep ∷ []) A ≡ applyTys χs A
-applyTys-snoc-keep χs A = applyTys-++ χs (keep ∷ []) A
-
-applyTys-snoc-bind :
-  ∀ χs A B →
-  applyTys (χs ++ bind A ∷ []) B ≡ ⇑ᵗ (applyTys χs B)
-applyTys-snoc-bind χs A B = applyTys-++ χs (bind A ∷ []) B
 
 allKeep-applyTys-id :
   ∀ {χs} →
@@ -415,16 +374,6 @@ applyTerms-++ :
 applyTerms-++ [] χs′ M = refl
 applyTerms-++ (χ ∷ χs) χs′ M =
   applyTerms-++ χs χs′ (applyTerm χ M)
-
-applyTerms-snoc-keep :
-  ∀ χs M →
-  applyTerms (χs ++ keep ∷ []) M ≡ applyTerms χs M
-applyTerms-snoc-keep χs M = applyTerms-++ χs (keep ∷ []) M
-
-applyTerms-snoc-bind :
-  ∀ χs A M →
-  applyTerms (χs ++ bind A ∷ []) M ≡ ⇑ᵗᵐ (applyTerms χs M)
-applyTerms-snoc-bind χs A M = applyTerms-++ χs (bind A ∷ []) M
 
 allKeep-applyTerms-id :
   ∀ {χs} →
@@ -603,16 +552,6 @@ applyCoercions-++ :
 applyCoercions-++ [] χs′ c = refl
 applyCoercions-++ (χ ∷ χs) χs′ c =
   applyCoercions-++ χs χs′ (applyCoercion χ c)
-
-applyCoercions-snoc-keep :
-  ∀ χs c →
-  applyCoercions (χs ++ keep ∷ []) c ≡ applyCoercions χs c
-applyCoercions-snoc-keep χs c = applyCoercions-++ χs (keep ∷ []) c
-
-applyCoercions-snoc-bind :
-  ∀ χs A c →
-  applyCoercions (χs ++ bind A ∷ []) c ≡ ⇑ᶜ (applyCoercions χs c)
-applyCoercions-snoc-bind χs A c = applyCoercions-++ χs (bind A ∷ []) c
 
 allKeep-applyCoercions-id :
   ∀ {χs} →

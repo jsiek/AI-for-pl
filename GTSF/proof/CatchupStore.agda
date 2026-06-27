@@ -9,10 +9,8 @@ module proof.CatchupStore where
 --     store-change prefixes.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Empty using (⊥)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Product using (_×_)
 open import Relation.Binary.PropositionalEquality using
   (cong; cong₂; subst; sym; trans)
 
@@ -102,12 +100,6 @@ combineStoreNrw-empty-⊒ˢ ⊒ˢ-nil π₁⊒ =
 combineStoreNrw-empty-⊒ˢ (⊒ˢ-left π₂⊒) π₁⊒ =
   ⊒ˢ-left
     (combineStoreNrw-empty-⊒ˢ π₂⊒ (⊒ˢ-empty-⇑ˢ π₁⊒))
-
-store-cons≢[] :
-  ∀ {x : TyVar × Ty}{Σ : Store} →
-  x ∷ Σ ≡ [] →
-  ⊥
-store-cons≢[] ()
 
 shiftStoreNrw : ℕ → StoreNrw → StoreNrw
 shiftStoreNrw zero σ = σ

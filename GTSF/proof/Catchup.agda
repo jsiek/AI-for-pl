@@ -11,7 +11,6 @@ module proof.Catchup where
 --     store changes.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (≤-refl)
@@ -20,8 +19,7 @@ open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; subst; sym; trans)
 
 open import Types
-open import Store using
-  (StoreIncl; StoreIncl-refl; StoreIncl-cons; StoreIncl-drop)
+open import Store using (StoreIncl; StoreIncl-drop)
 open import Coercions
 open import NuTerms
 open import NuReduction
@@ -123,7 +121,6 @@ open import proof.CatchupStore
     ; combineStoreNrw-empty-⊒ˢ
     ; combineStoreNrw-applyStores
     ; combineStoreNrw-applyStores-store
-    ; store-cons≢[]
     )
 
 ------------------------------------------------------------------------
@@ -236,32 +233,9 @@ postulate
           ⊒ applyTerms χs′ V′ ⟨ applyCoercionUnderTyBinders χs′ s ⟩
           ∶ applyCoercionUnderTyBinders χs′ p
 
-applyMode : StoreChange → ModeEnv → ModeEnv
-applyMode keep μ = μ
-applyMode (bind A) μ = genᵈ μ
-
-applyModes : StoreChanges → ModeEnv → ModeEnv
-applyModes [] μ = μ
-applyModes (χ ∷ χs) μ = applyModes χs (applyMode χ μ)
-
-applyCoercion-narrowᵐ :
-  ∀ χ {μ Δ Σ c A B} →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
-  applyMode χ μ ∣ applyTyCtx χ Δ ∣ applyStore χ Σ
-    ⊢ applyCoercion χ c ∶ applyTy χ A ⊒ applyTy χ B
-applyCoercion-narrowᵐ keep c⊒ = c⊒
-applyCoercion-narrowᵐ (bind Aν) c⊒ =
-  narrow-weaken ≤-refl StoreIncl-drop (narrow-⇑ᵗ-gen c⊒)
-
-applyCoercions-narrowᵐ :
-  ∀ χs {μ Δ Σ c A B} →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
-  applyModes χs μ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ
-    ⊢ applyCoercions χs c ∶ applyTys χs A ⊒ applyTys χs B
-applyCoercions-narrowᵐ [] c⊒ = c⊒
-applyCoercions-narrowᵐ (χ ∷ χs) c⊒ =
-  applyCoercions-narrowᵐ χs (applyCoercion-narrowᵐ χ c⊒)
-
+-- A mode-polymorphic version of this transport was tried first, but the final
+-- catchup proof only needs coercions in `tag-or-idᵈ`; keeping the generic mode
+-- action obscured the actual side condition.
 gen-tag-or-id≤tag-or-id :
   ModeIncl (genᵈ tag-or-idᵈ) tag-or-idᵈ
 gen-tag-or-id≤tag-or-id zero = refl
@@ -371,12 +345,6 @@ catchup-gen-coercion-typing-transport {Δ′ = Δ′} {σ = σ} {π = π}
     s⊒
     (narrow-drop-star-var X t⊒)
 
-≈ⁿ-add-left-star :
-  ∀ {Δ σ s t A B} →
-  Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
-  Δ ∣ (⊒ zero ꞉=☆) ∷ σ ⊢ s ≈ t ∶ A ⊒ B
-≈ⁿ-add-left-star = ≈ⁿ-add-left-star-var zero
-
 compose-leftⁿ-⇑ˢ :
   ∀ {Δ σ q s r A B} →
   Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
@@ -406,12 +374,6 @@ compose-leftⁿ-add-left-star-var :
 compose-leftⁿ-add-left-star-var X (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
   compose-leftⁿ wfΣ q⊒ s⊒ (≈ⁿ-add-left-star-var X q⨟s≈r)
 
-compose-leftⁿ-add-left-star :
-  ∀ {Δ σ q s r A B} →
-  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
-  Δ ∣ (⊒ zero ꞉=☆) ∷ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
-compose-leftⁿ-add-left-star = compose-leftⁿ-add-left-star-var zero
-
 compose-rightⁿ-⇑ˢ :
   ∀ {Δ σ r t p A B} →
   Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
@@ -440,12 +402,6 @@ compose-rightⁿ-add-left-star-var :
   Δ ∣ (⊒ X ꞉=☆) ∷ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
 compose-rightⁿ-add-left-star-var X (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   compose-rightⁿ wfΣ t⊒ p⊒ (≈ⁿ-add-left-star-var X r≈t⨟p)
-
-compose-rightⁿ-add-left-star :
-  ∀ {Δ σ r t p A B} →
-  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
-  Δ ∣ (⊒ zero ꞉=☆) ∷ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
-compose-rightⁿ-add-left-star = compose-rightⁿ-add-left-star-var zero
 
 catchup-compose-left-transport-shifted :
   ∀ n {Δ Δ′ σ π Π Π′ χs q s r A B} →

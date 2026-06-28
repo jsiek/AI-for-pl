@@ -1332,6 +1332,29 @@ type-rename-step-⇑ᵗᵐ red =
 ↠-trans ↠-refl N↠P = N↠P
 ↠-trans (↠-step M→N N↠P) P↠Q = ↠-step M→N (↠-trans N↠P P↠Q)
 
+↠-split-++ :
+  ∀ {M W χs χs′} →
+  M —↠[ χs ++ χs′ ] W →
+  ∃[ P ] ((M —↠[ χs ] P) × (P —↠[ χs′ ] W))
+↠-split-++ {χs = []} M↠W =
+  _ , ↠-refl , M↠W
+↠-split-++ {χs = χ ∷ χs} (↠-step M→N N↠W)
+    with ↠-split-++ {χs = χs} N↠W
+↠-split-++ {χs = χ ∷ χs} (↠-step M→N N↠W)
+    | P , N↠P , P↠W =
+  P , ↠-step M→N N↠P , P↠W
+
+↠-split-last-bind :
+  ∀ {M W χs A keeps} →
+  M —↠[ χs ++ bind A ∷ keeps ] W →
+  ∃[ P ] ∃[ Q ]
+    ((M —↠[ χs ] P) × (P —→[ bind A ] Q) × (Q —↠[ keeps ] W))
+↠-split-last-bind {χs = χs} M↠W
+    with ↠-split-++ {χs = χs} M↠W
+↠-split-last-bind {χs = χs} M↠W
+    | P , M↠P , ↠-step P→Q Q↠W =
+  P , _ , M↠P , P→Q , Q↠W
+
 cast-↠ :
   ∀ {M N c χs} →
   M —↠[ χs ] N →

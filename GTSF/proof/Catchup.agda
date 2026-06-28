@@ -132,6 +132,7 @@ open import proof.ReductionProperties
     ; allKeep-ν-no-value
     ; applyTyCtxs-≤
     ; ↠-trans
+    ; ↠-split-last-bind
     ; cast-↠
     ; cast-dual-↠
     ; applyCoercionUnderTyBinders-⇑ᶜ
@@ -1746,6 +1747,15 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | last-bind χs₀ Aχ keeps keeps-ok
     | Aχ≡★
+    with ↠-split-last-bind {χs = χs₀} {A = Aχ} {keeps = keeps} ⇑N↠W
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-nu hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | last-bind χs₀ Aχ keeps keeps-ok
+    | Aχ≡★
+    | P , Q , ⇑N↠P , P→Q , Q↠W
     with nu-source-value-target-base-empty hist
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
@@ -1754,6 +1764,7 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | last-bind χs₀ Aχ keeps keeps-ok
     | Aχ≡★
+    | P , Q , ⇑N↠P , P→Q , Q↠W
     | nu-base-empty vBase pBaseᶜ bodyBase =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)

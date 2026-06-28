@@ -1058,3 +1058,34 @@ nested `with` abstraction, so the checked version keeps the equality as an
 explicit local witness.  This still does not prove the branch, but it makes the
 remaining replay obligation match the paper intuition: the final emitted bind
 is source-only star.
+
+## Attempt 34: split the reduction trace at the final bind
+
+Succeeded.  I added two multi-step decomposition lemmas in
+`proof.ReductionProperties`:
+
+`↠-split-++ :
+  M —↠[ χs ++ χs′ ] W →
+  ∃[ P ] ((M —↠[ χs ] P) × (P —↠[ χs′ ] W))`
+
+and
+
+`↠-split-last-bind :
+  M —↠[ χs ++ bind A ∷ keeps ] W →
+  ∃[ P ] ∃[ Q ]
+    ((M —↠[ χs ] P) × (P —→[ bind A ] Q) × (Q —↠[ keeps ] W))`.
+
+The live `remainder-nu`/`last-bind` branch now applies
+`↠-split-last-bind` to the recursive catchup trace, so the remaining delegated
+case has explicit local evidence
+
+`⇑N↠P : ⇑ᵗᵐ N —↠[ χs₀ ] P`,
+`P→Q : P —→[ bind Aχ ] Q`, and
+`Q↠W : Q —↠[ keeps ] W`.
+
+Together with Attempt 33, the same branch also has `Aχ≡★ : Aχ ≡ ★` and
+`AllKeep keeps`.  This still does not identify `P→Q` with the specific
+outer/base `ν-step`; a bind step can be nested under contexts after earlier
+emitted binds.  The next replay lemma needs to connect this isolated final
+star bind to the `nu-base-empty` history rather than analyzing the raw
+reduction trace alone.

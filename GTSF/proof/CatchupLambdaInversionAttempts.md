@@ -591,29 +591,40 @@ The checked direction is to invert the inner term-narrowing premise first.
 
 ## Attempt 19: package cast-source inversion with wrapper history
 
-Partially succeeded.  I first tried to make the cast-source classification
-return a fully dependent witness indexed by the exact term-narrowing derivation:
+Succeeded after making the constructor indices explicit.  I first tried to make
+the cast-source classification return a fully dependent witness indexed by the
+exact term-narrowing derivation:
 
 `CastSource M → Value V → Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p → Set₁`.
 
 The intended base constructors carried the exposed `cast+⊒` or `cast-⊒`
 premise, while recursive constructors recorded `extend`, `split`, `⊒Λ`,
-`⊒⟨ν⟩`, `⊒cast+`, and `⊒cast-` wrappers.  Agda rejected this version with many
-unsolved metas.  The failures were not from a single bad branch; the datatype
-constructors themselves left hidden stores, endpoints, and coercion indices
-underdetermined.  In particular, `extend`, `split`, `⊒Λ`, and cast-wrapper
-constructors all forced Agda to infer the source/target coercion endpoints of
-their premises from an indexed witness argument, which it would not solve.
+`⊒⟨ν⟩`, `⊒cast+`, and `⊒cast-` wrappers.  Agda rejected the first version with
+many unsolved metas.  The failures were not from a single bad branch; the
+datatype constructors themselves left hidden stores, endpoints, and coercion
+indices underdetermined.  In particular, `extend`, `split`, `⊒Λ`, and
+cast-wrapper constructors all forced Agda to infer the source/target coercion
+endpoints of their premises from an indexed witness argument, which it would
+not solve.
 
-The checked replacement in `proof.TermNarrowingProperties` is a lighter
-`CastSourceValueTarget` trace:
+The checked version in `proof.TermNarrowingProperties` fixes that by spelling
+out the hidden endpoints and premise derivations in each constructor.  One
+minor wrinkle was the `⊒⟨ν⟩` value proof: the target term is indexed by
+`gen A s`, but the caller's `Value` proof may contain any proof of
+`Inert (gen A s)`, so the constructor must preserve that inert proof instead
+of choosing the canonical `gen A s` proof.
 
-`CastSource M → Value V → Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p → CastSourceValueTarget`.
+This is now a real wrapper-history artifact, not just a coverage probe:
 
-It records the same constructor path and still checks that cast sources with
-value targets bottom out only at `cast+⊒` or `cast-⊒`, but it intentionally does
-not carry the base premises.  This is useful as a guide and regression check,
-but it is not strong enough to rebuild the `⊒Λ` catchup branch.
+`cast-source-value-target-inversion :
+  CastSource M → Value V → Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p →
+  CastSourceValueTarget src vV M⊒V`.
+
+It exposes that cast sources with value targets bottom out only at `cast+⊒` or
+`cast-⊒`, with the intervening wrappers recorded in the witness.  It still does
+not by itself rebuild the `⊒Λ` catchup branch; the next step is to consume this
+history and transport the exposed cast-base catchup result back through the
+recorded wrappers.
 
 ## Attempt 20: split the exact inner `⊒Λ` premise by remaining source shape
 

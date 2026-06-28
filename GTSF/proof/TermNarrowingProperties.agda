@@ -8,8 +8,9 @@ module proof.TermNarrowingProperties where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥)
+open import Data.List using (_∷_)
 open import Data.Maybe using (just; nothing)
-open import Data.Nat using (suc)
+open import Data.Nat using (suc; zero)
 
 open import Types
 open import Coercions
@@ -18,7 +19,8 @@ open import NarrowWiden
 open import NarrowWidenComposition
 open import TypeCheck using (inert?; value?)
 open import TermNarrowing using
-  ( _∣_∣_⊢_⊒_∶_
+  ( ⇑ᵍ
+  ; _∣_∣_⊢_⊒_∶_
   ; extend
   ; split
   ; ⊒blame
@@ -377,22 +379,118 @@ open-preserves-CastSource {M = M ⟨ c ⟩} cast-source =
   cast-source
 open-preserves-CastSource {M = blame} ()
 
-data CastSourceValueTarget : Set where
-  csvt-extend : CastSourceValueTarget → CastSourceValueTarget
-  csvt-split : CastSourceValueTarget → CastSourceValueTarget
-  csvt-⊒Λ : CastSourceValueTarget → CastSourceValueTarget
-  csvt-⊒⟨ν⟩ : CastSourceValueTarget → CastSourceValueTarget
-  csvt-⊒cast+ : CastSourceValueTarget → CastSourceValueTarget
-  csvt-⊒cast- : CastSourceValueTarget → CastSourceValueTarget
-  csvt-cast+⊒ : CastSourceValueTarget
-  csvt-cast-⊒ : CastSourceValueTarget
+data CastSourceValueTarget :
+  ∀ {Δ σ γ M V p} →
+  CastSource M →
+  Value V →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p →
+  Set₁ where
+
+  csvt-extend :
+    ∀ {Δ σ γ M N′ p q A B C D α}
+      {src : CastSource M}
+      {vV : Value (N′ [ α ]ᵀ)}
+      {qᶜ : Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ B ⊒ A}
+      {pαᶜ : Δ ∣ srcStoreⁿ ((α ꞉ q) ∷ σ)
+        ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D}
+      {M⊒V : Δ ∣ (α ꞉= A ⊒) ∷ σ ∣ γ
+        ⊢ M ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ}
+    → CastSourceValueTarget src vV M⊒V
+    → CastSourceValueTarget src vV (extend qᶜ pαᶜ M⊒V)
+
+  csvt-split :
+    ∀ {Δ σ γ N N′ p q A C D α αᵢ}
+      {src : CastSource (N [ αᵢ ]ᵀ)}
+      {vV : Value (N′ [ α ]ᵀ)}
+      {qᶜ : Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+        ⊢ q ∶ᶜ ★ ⊒ A}
+      {pαᶜ : Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+        ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D}
+      {M⊒V : Δ ∣ (α ꞉ q) ∷ σ ∣ γ
+        ⊢ N [ α ]ᵀ ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ}
+    → CastSourceValueTarget
+        (open-preserves-CastSource {M = N} {α = αᵢ} {β = α} src)
+        vV
+        M⊒V
+    → CastSourceValueTarget src vV (split qᶜ pαᶜ M⊒V)
+
+  csvt-⊒Λ :
+    ∀ {Δ σ γ A B N V′ p}
+      {src : CastSource N}
+      {vV : Value V′}
+      {pᶜ : Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B}
+      {N⊒V′ : suc Δ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+        ⊢ ⇑ᵗᵐ N ⊒ V′ ∶ p}
+    → CastSourceValueTarget
+        (renameᵗᵐ-preserves-CastSource suc src)
+        vV
+        N⊒V′
+    → CastSourceValueTarget src (Λ vV) (⊒Λ pᶜ N⊒V′)
+
+  csvt-⊒⟨ν⟩ :
+    ∀ {Δ σ γ A B N V′ p s}
+      {src : CastSource N}
+      {vV : Value V′}
+      {pᶜ : Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B}
+      {sᵢ : Inert s}
+      {i : Inert (gen A s)}
+      {N⊒V′s : suc Δ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+        ⊢ ⇑ᵗᵐ N ⊒ V′ ⟨ s ⟩ ∶ p}
+    → CastSourceValueTarget
+        (renameᵗᵐ-preserves-CastSource suc src)
+        (vV ⟨ sᵢ ⟩)
+        N⊒V′s
+    → CastSourceValueTarget src (vV ⟨ i ⟩)
+        (⊒⟨ν⟩ pᶜ sᵢ N⊒V′s)
+
+  csvt-⊒cast+ :
+    ∀ {Δ σ γ M M′ q r s A B C D}
+      {src : CastSource M}
+      {vV : Value M′}
+      {i : Inert (- s)}
+      {qᶜ : Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D}
+      {q⨟s≈r : Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B}
+      {M⊒M′ : Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r}
+    → CastSourceValueTarget src vV M⊒M′
+    → CastSourceValueTarget src (vV ⟨ i ⟩)
+        (⊒cast+ qᶜ q⨟s≈r M⊒M′)
+
+  csvt-⊒cast- :
+    ∀ {Δ σ γ M M′ q r s A B C D}
+      {src : CastSource M}
+      {vV : Value M′}
+      {i : Inert s}
+      {qᶜ : Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D}
+      {q⨟s≈r : Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B}
+      {M⊒M′ : Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ q}
+    → CastSourceValueTarget src vV M⊒M′
+    → CastSourceValueTarget src (vV ⟨ i ⟩)
+        (⊒cast- qᶜ q⨟s≈r M⊒M′)
+
+  csvt-cast+⊒ :
+    ∀ {Δ σ γ M M′ p r t A B C D}
+      {vV : Value M′}
+      {pᶜ : Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D}
+      {r≈t⨟p : Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B}
+      {M⊒M′ : Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p}
+    → CastSourceValueTarget cast-source vV
+        (cast+⊒ pᶜ r≈t⨟p M⊒M′)
+
+  csvt-cast-⊒ :
+    ∀ {Δ σ γ M M′ p r t A B C D}
+      {vV : Value M′}
+      {pᶜ : Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D}
+      {r≈t⨟p : Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B}
+      {M⊒M′ : Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r}
+    → CastSourceValueTarget cast-source vV
+        (cast-⊒ pᶜ r≈t⨟p M⊒M′)
 
 cast-source-value-target-inversion :
   ∀ {Δ σ γ M V p} →
   (src : CastSource M) →
   (vV : Value V) →
   (M⊒V : Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p) →
-  CastSourceValueTarget
+  CastSourceValueTarget src vV M⊒V
 cast-source-value-target-inversion src vV (extend qᶜ pαᶜ M⊒V) =
   csvt-extend (cast-source-value-target-inversion src vV M⊒V)
 cast-source-value-target-inversion src vV

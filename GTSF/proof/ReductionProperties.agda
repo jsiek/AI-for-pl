@@ -39,6 +39,271 @@ open import proof.NuTermProperties
 open import proof.TypeProperties using (predᵗ; renameᵗ-ext-suc-comm)
 
 ------------------------------------------------------------------------
+-- Source shapes that can catch up to values
+------------------------------------------------------------------------
+
+-- A value-target narrowing source is never an active elimination form at its
+-- reducible spine.  Values are leaves: applications and type applications
+-- under lambda bodies are not inspected by reduction until the value itself is
+-- eliminated by a surrounding context.
+data CatchupSafe : Term → Set where
+  safe-value :
+    ∀ {V} →
+    Value V →
+    CatchupSafe V
+
+  safe-ν :
+    ∀ {A L c} →
+    CatchupSafe L →
+    CatchupSafe (ν A L c)
+
+  safe-cast :
+    ∀ {M c} →
+    CatchupSafe M →
+    CatchupSafe (M ⟨ c ⟩)
+
+TermShiftImage : Term → Set
+TermShiftImage M = ∃[ N ] (M ≡ ⇑ᵗᵐ N)
+
+TyShiftImage : Ty → Set
+TyShiftImage A = ∃[ B ] (A ≡ ⇑ᵗ B)
+
+CoercionShiftImage : Coercion → Set
+CoercionShiftImage c = ∃[ d ] (c ≡ renameᶜ suc d)
+
+CoercionUnderShiftImage : Coercion → Set
+CoercionUnderShiftImage c = ∃[ d ] (c ≡ renameᶜ (extᵗ suc) d)
+
+shift-image-from-pre :
+  ∀ {M N} →
+  M ≡ ⇑ᵗᵐ N →
+  M ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ M)
+shift-image-from-pre {N = N} refl =
+  sym (cong ⇑ᵗᵐ (renameᵗᵐ-pred-suc N))
+
+term-shift-image-final :
+  ∀ {M} →
+  TermShiftImage M →
+  M ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ M)
+term-shift-image-final (N , M≡⇑N) =
+  shift-image-from-pre M≡⇑N
+
+cast-term-injective-left :
+  ∀ {M N : Term} {c d : Coercion} →
+  M ⟨ c ⟩ ≡ N ⟨ d ⟩ →
+  M ≡ N
+cast-term-injective-left refl = refl
+
+cast-term-injective-right :
+  ∀ {M N : Term} {c d : Coercion} →
+  M ⟨ c ⟩ ≡ N ⟨ d ⟩ →
+  c ≡ d
+cast-term-injective-right refl = refl
+
+ν-injective-ty :
+  ∀ {A B : Ty} {M N : Term} {c d : Coercion} →
+  ν A M c ≡ ν B N d →
+  A ≡ B
+ν-injective-ty refl = refl
+
+ν-injective-term :
+  ∀ {A B : Ty} {M N : Term} {c d : Coercion} →
+  ν A M c ≡ ν B N d →
+  M ≡ N
+ν-injective-term refl = refl
+
+ν-injective-coercion :
+  ∀ {A B : Ty} {M N : Term} {c d : Coercion} →
+  ν A M c ≡ ν B N d →
+  c ≡ d
+ν-injective-coercion refl = refl
+
+seq-injective-left :
+  ∀ {c d p q : Coercion} →
+  c ︔ d ≡ p ︔ q →
+  c ≡ p
+seq-injective-left refl = refl
+
+seq-injective-right :
+  ∀ {c d p q : Coercion} →
+  c ︔ d ≡ p ︔ q →
+  d ≡ q
+seq-injective-right refl = refl
+
+inst-injective-ty :
+  ∀ {A B : Ty} {c d : Coercion} →
+  inst A c ≡ inst B d →
+  A ≡ B
+inst-injective-ty refl = refl
+
+inst-injective-coercion :
+  ∀ {A B : Ty} {c d : Coercion} →
+  inst A c ≡ inst B d →
+  c ≡ d
+inst-injective-coercion refl = refl
+
+cast-term-image-left :
+  ∀ {M c} →
+  TermShiftImage (M ⟨ c ⟩) →
+  TermShiftImage M
+cast-term-image-left (` x , ())
+cast-term-image-left (ƛ P , ())
+cast-term-image-left (P · Q , ())
+cast-term-image-left (Λ P , ())
+cast-term-image-left (P • , ())
+cast-term-image-left (ν A P d , ())
+cast-term-image-left ($ κ , ())
+cast-term-image-left (P ⊕[ op ] Q , ())
+cast-term-image-left (P ⟨ d ⟩ , eq) =
+  P , cast-term-injective-left eq
+cast-term-image-left (blame , ())
+
+cast-coercion-image-right :
+  ∀ {M c} →
+  TermShiftImage (M ⟨ c ⟩) →
+  CoercionShiftImage c
+cast-coercion-image-right (` x , ())
+cast-coercion-image-right (ƛ P , ())
+cast-coercion-image-right (P · Q , ())
+cast-coercion-image-right (Λ P , ())
+cast-coercion-image-right (P • , ())
+cast-coercion-image-right (ν A P d , ())
+cast-coercion-image-right ($ κ , ())
+cast-coercion-image-right (P ⊕[ op ] Q , ())
+cast-coercion-image-right (P ⟨ d ⟩ , eq) =
+  d , cast-term-injective-right eq
+cast-coercion-image-right (blame , ())
+
+ν-ty-image :
+  ∀ {A M c} →
+  TermShiftImage (ν A M c) →
+  TyShiftImage A
+ν-ty-image (` x , ())
+ν-ty-image (ƛ P , ())
+ν-ty-image (P · Q , ())
+ν-ty-image (Λ P , ())
+ν-ty-image (P • , ())
+ν-ty-image (ν B P d , eq) =
+  B , ν-injective-ty eq
+ν-ty-image ($ κ , ())
+ν-ty-image (P ⊕[ op ] Q , ())
+ν-ty-image (P ⟨ d ⟩ , ())
+ν-ty-image (blame , ())
+
+ν-term-image :
+  ∀ {A M c} →
+  TermShiftImage (ν A M c) →
+  TermShiftImage M
+ν-term-image (` x , ())
+ν-term-image (ƛ P , ())
+ν-term-image (P · Q , ())
+ν-term-image (Λ P , ())
+ν-term-image (P • , ())
+ν-term-image (ν B P d , eq) =
+  P , ν-injective-term eq
+ν-term-image ($ κ , ())
+ν-term-image (P ⊕[ op ] Q , ())
+ν-term-image (P ⟨ d ⟩ , ())
+ν-term-image (blame , ())
+
+ν-coercion-under-image :
+  ∀ {A M c} →
+  TermShiftImage (ν A M c) →
+  CoercionUnderShiftImage c
+ν-coercion-under-image (` x , ())
+ν-coercion-under-image (ƛ P , ())
+ν-coercion-under-image (P · Q , ())
+ν-coercion-under-image (Λ P , ())
+ν-coercion-under-image (P • , ())
+ν-coercion-under-image (ν B P d , eq) =
+  d , ν-injective-coercion eq
+ν-coercion-under-image ($ κ , ())
+ν-coercion-under-image (P ⊕[ op ] Q , ())
+ν-coercion-under-image (P ⟨ d ⟩ , ())
+ν-coercion-under-image (blame , ())
+
+term-image-cast :
+  ∀ {M c} →
+  TermShiftImage M →
+  CoercionShiftImage c →
+  TermShiftImage (M ⟨ c ⟩)
+term-image-cast (P , refl) (d , refl) =
+  P ⟨ d ⟩ , refl
+
+term-image-ν :
+  ∀ {A M c} →
+  TyShiftImage A →
+  TermShiftImage M →
+  CoercionUnderShiftImage c →
+  TermShiftImage (ν A M c)
+term-image-ν (B , refl) (P , refl) (d , refl) =
+  ν B P d , refl
+
+seq-coercion-image-left :
+  ∀ {c d} →
+  CoercionShiftImage (c ︔ d) →
+  CoercionShiftImage c
+seq-coercion-image-left (id A , ())
+seq-coercion-image-left (p ︔ q , eq) =
+  p , seq-injective-left eq
+seq-coercion-image-left (p ↦ q , ())
+seq-coercion-image-left (`∀ p , ())
+seq-coercion-image-left (A ! , ())
+seq-coercion-image-left (A ？ , ())
+seq-coercion-image-left (seal A α , ())
+seq-coercion-image-left (unseal α A , ())
+seq-coercion-image-left (gen A p , ())
+seq-coercion-image-left (inst A p , ())
+
+seq-coercion-image-right :
+  ∀ {c d} →
+  CoercionShiftImage (c ︔ d) →
+  CoercionShiftImage d
+seq-coercion-image-right (id A , ())
+seq-coercion-image-right (p ︔ q , eq) =
+  q , seq-injective-right eq
+seq-coercion-image-right (p ↦ q , ())
+seq-coercion-image-right (`∀ p , ())
+seq-coercion-image-right (A ! , ())
+seq-coercion-image-right (A ？ , ())
+seq-coercion-image-right (seal A α , ())
+seq-coercion-image-right (unseal α A , ())
+seq-coercion-image-right (gen A p , ())
+seq-coercion-image-right (inst A p , ())
+
+inst-ty-image :
+  ∀ {A c} →
+  CoercionShiftImage (inst A c) →
+  TyShiftImage A
+inst-ty-image (id B , ())
+inst-ty-image (p ︔ q , ())
+inst-ty-image (p ↦ q , ())
+inst-ty-image (`∀ p , ())
+inst-ty-image (B ! , ())
+inst-ty-image (B ？ , ())
+inst-ty-image (seal B α , ())
+inst-ty-image (unseal α B , ())
+inst-ty-image (gen B p , ())
+inst-ty-image (inst B p , eq) =
+  B , inst-injective-ty eq
+
+inst-coercion-under-image :
+  ∀ {A c} →
+  CoercionShiftImage (inst A c) →
+  CoercionUnderShiftImage c
+inst-coercion-under-image (id B , ())
+inst-coercion-under-image (p ︔ q , ())
+inst-coercion-under-image (p ↦ q , ())
+inst-coercion-under-image (`∀ p , ())
+inst-coercion-under-image (B ! , ())
+inst-coercion-under-image (B ？ , ())
+inst-coercion-under-image (seal B α , ())
+inst-coercion-under-image (unseal α B , ())
+inst-coercion-under-image (gen B p , ())
+inst-coercion-under-image (inst B p , eq) =
+  p , inst-injective-coercion eq
+
+------------------------------------------------------------------------
 -- Store-change list views
 ------------------------------------------------------------------------
 
@@ -231,6 +496,96 @@ noValue-ν noM (↠-step (ξ-ν red) reds) vW =
   noValue-ν (λ redsM vM → noM (↠-step red redsM) vM) reds vW
 noValue-ν noM (↠-step blame-ν reds) vW =
   blame-no-↠-value reds vW
+
+data ImageStepView (N : Term) : Set where
+  image-step :
+    CatchupSafe N →
+    TermShiftImage N →
+    ImageStepView N
+  image-doomed :
+    NoValueReachable N →
+    ImageStepView N
+
+safe-pure-step-image-view :
+  ∀ {M N} →
+  CatchupSafe M →
+  TermShiftImage M →
+  M —→ N →
+  ImageStepView N
+safe-pure-step-image-view (safe-value vM) img red =
+  ⊥-elim (value-no-pure-step vM red)
+safe-pure-step-image-view (safe-cast safeM) img (β-id vV) =
+  image-step (safe-value vV) (cast-term-image-left img)
+safe-pure-step-image-view (safe-cast safeM) img (β-seq vV) =
+  image-step (safe-cast (safe-cast (safe-value vV)))
+    (term-image-cast
+      (term-image-cast (cast-term-image-left img)
+      (seq-coercion-image-left (cast-coercion-image-right img)))
+      (seq-coercion-image-right (cast-coercion-image-right img)))
+safe-pure-step-image-view (safe-cast safeM) img (β-inst vV) =
+  image-step (safe-ν (safe-value vV))
+    (term-image-ν (★ , refl) (cast-term-image-left img)
+      (inst-coercion-under-image (cast-coercion-image-right img)))
+safe-pure-step-image-view (safe-cast safeM) img (tag-untag-ok vV) =
+  image-step (safe-value vV)
+    (cast-term-image-left (cast-term-image-left img))
+safe-pure-step-image-view (safe-cast safeM) img (tag-untag-bad vV G≢H) =
+  image-doomed blame-no-↠-value
+safe-pure-step-image-view (safe-cast safeM) img (seal-unseal vV) =
+  image-step (safe-value vV)
+    (cast-term-image-left (cast-term-image-left img))
+safe-pure-step-image-view (safe-cast (safe-value vB)) img blame-⟨⟩ =
+  ⊥-elim (blame-not-value vB)
+
+safe-keep-step-image-view :
+  ∀ {M N} →
+  CatchupSafe M →
+  TermShiftImage M →
+  M —→[ keep ] N →
+  ImageStepView N
+safe-keep-step-image-view (safe-value vM) img red =
+  ⊥-elim (value-no-step vM red)
+safe-keep-step-image-view safeM img (pure-step red) =
+  safe-pure-step-image-view safeM img red
+safe-keep-step-image-view (safe-cast safeM) img (ξ-⟨⟩ red)
+    with safe-keep-step-image-view safeM (cast-term-image-left img) red
+safe-keep-step-image-view (safe-cast safeM) img (ξ-⟨⟩ red)
+    | image-step safeN imgN =
+  image-step (safe-cast safeN)
+    (term-image-cast imgN (cast-coercion-image-right img))
+safe-keep-step-image-view (safe-cast safeM) img (ξ-⟨⟩ red)
+    | image-doomed noN =
+  image-doomed (noValue-cast noN)
+safe-keep-step-image-view (safe-ν safeL) img (ξ-ν red)
+    with safe-keep-step-image-view safeL (ν-term-image img) red
+safe-keep-step-image-view (safe-ν safeL) img (ξ-ν red)
+    | image-step safeL′ imgL′ =
+  image-step (safe-ν safeL′)
+    (term-image-ν (ν-ty-image img) imgL′ (ν-coercion-under-image img))
+safe-keep-step-image-view (safe-ν safeL) img (ξ-ν red)
+    | image-doomed noL =
+  image-doomed (noValue-ν noL)
+safe-keep-step-image-view (safe-ν (safe-value vB)) img blame-ν =
+  ⊥-elim (blame-not-value vB)
+
+safe-allKeep-value-image :
+  ∀ {M W χs} →
+  CatchupSafe M →
+  TermShiftImage M →
+  AllKeep χs →
+  M —↠[ χs ] W →
+  Value W →
+  W ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+safe-allKeep-value-image safeM img all-[] ↠-refl vW =
+  term-shift-image-final img
+safe-allKeep-value-image safeM img (all-keep keeps) (↠-step red reds) vW
+    with safe-keep-step-image-view safeM img red
+safe-allKeep-value-image safeM img (all-keep keeps) (↠-step red reds) vW
+    | image-step safeN imgN =
+  safe-allKeep-value-image safeN imgN keeps reds vW
+safe-allKeep-value-image safeM img (all-keep keeps) (↠-step red reds) vW
+    | image-doomed noN =
+  ⊥-elim (noN reds vW)
 
 noValue-⊕₁ :
   ∀ {L M op} →

@@ -61,6 +61,7 @@ open import proof.NuTermProperties
     ( renameᵗᵐ-left-inverse
     ; renameᵗᵐ-preserves-Value
     )
+open import proof.TypeProperties using (predᵗ)
 open import proof.TermNarrowingProperties
   using
     ( neutral-blame
@@ -81,6 +82,7 @@ open import proof.TermNarrowingProperties
     ; type-app-source-no-value-target
     ; value?-none-no-value
     ; value-target-source-no-active
+    ; value-target-source-safe
     )
 open import proof.ReductionProperties
   using
@@ -138,6 +140,7 @@ open import proof.ReductionProperties
     ; last-bind
     ; allKeep-ν-no-value
     ; pure-pred-↠-shifted-value
+    ; safe-allKeep-value-image
     ; applyTyCtxs-≤
     ; ↠-trans
     ; ↠-split-last-bind
@@ -1866,13 +1869,13 @@ catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
     | nothing
     with shifted-source-remainder N valueN≡ vV′ N⊒V′
        | catchup-lemma vV′ N⊒V′
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
     | nothing
     | remainder-nu hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     with storeChangesLastBind χs
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
     | nothing
     | remainder-nu hist
     | χs , W , Δ′ , Π , Π′ , π ,
@@ -1934,7 +1937,8 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
        | allKeep-under-binder-value-id keeps vV′
        | allKeep-gen-under-binder-coercion-id keeps pᶜ
        | value-target-source-no-active vV′ N⊒V′
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | value-target-source-safe vV′ N⊒V′
+catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
     | nothing
     | remainder-cast hist
     | χs , W , Δ′ , Π , Π′ , π ,
@@ -1945,9 +1949,17 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | π≡[]
     | targetUnder≡
     | coercionUnder≡
-    | noActive⇑N =
-  catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | noActive⇑N
+    | safe⇑N =
+  catchup-⊒Λ-no-bind-shift-image keeps
+    (renameᵗᵐ-preserves-Value predᵗ vW)
+    N↠predW
+    Δ′≡
+    π≡[]
+    (safe-allKeep-value-image safe⇑N (N , refl) keeps ⇑N↠W vW)
+    pᶜ
+    W⊒V′
+catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
     | nothing
     | remainder-cast hist
     | χs , W , Δ′ , Π , Π′ , π ,
@@ -1958,8 +1970,16 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | π≡[]
     | targetUnder≡
     | coercionUnder≡
-    | noActive⇑N =
-  catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    | noActive⇑N
+    | safe⇑N =
+  catchup-⊒Λ-no-bind-shift-image keeps
+    (renameᵗᵐ-preserves-Value predᵗ vW)
+    N↠predW
+    Δ′≡
+    π≡[]
+    (safe-allKeep-value-image safe⇑N (N , refl) keeps ⇑N↠W vW)
+    pᶜ
+    W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
     | remainder-cast hist

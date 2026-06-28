@@ -43,6 +43,12 @@ open import TermNarrowing using
   ; cast-⊒
   )
 open import proof.NuTermProperties using (renameᵗᵐ-preserves-Value)
+open import proof.ReductionProperties using
+  ( CatchupSafe
+  ; safe-value
+  ; safe-ν
+  ; safe-cast
+  )
 
 variable
   Δ : TyCtx
@@ -1043,6 +1049,95 @@ value-target-source-no-active vV (cast+⊒ pᶜ r≈t⨟p M⊒M′) =
   no-active-⟨⟩ (value-target-source-no-active vV M⊒M′)
 value-target-source-no-active vV (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
   no-active-⟨⟩ (value-target-source-no-active vV M⊒M′)
+
+renameᵗᵐ-preserves-CatchupSafe :
+  ∀ ρ {M} →
+  CatchupSafe M →
+  CatchupSafe (renameᵗᵐ ρ M)
+renameᵗᵐ-preserves-CatchupSafe ρ (safe-value vV) =
+  safe-value (renameᵗᵐ-preserves-Value ρ vV)
+renameᵗᵐ-preserves-CatchupSafe ρ (safe-ν safeL) =
+  safe-ν (renameᵗᵐ-preserves-CatchupSafe ρ safeL)
+renameᵗᵐ-preserves-CatchupSafe ρ (safe-cast safeM) =
+  safe-cast (renameᵗᵐ-preserves-CatchupSafe ρ safeM)
+
+renameᵗᵐ-reflects-CatchupSafe :
+  ∀ ρ {M} →
+  CatchupSafe (renameᵗᵐ ρ M) →
+  CatchupSafe M
+renameᵗᵐ-reflects-CatchupSafe ρ {M = ` x} (safe-value ())
+renameᵗᵐ-reflects-CatchupSafe ρ {M = ƛ M} safeM =
+  safe-value (ƛ M)
+renameᵗᵐ-reflects-CatchupSafe ρ {M = L · M} (safe-value ())
+renameᵗᵐ-reflects-CatchupSafe ρ {M = Λ M} (safe-value (Λ vM)) =
+  safe-value (Λ (renameᵗᵐ-reflects-Value (extᵗ ρ) vM))
+renameᵗᵐ-reflects-CatchupSafe ρ {M = M •} (safe-value ())
+renameᵗᵐ-reflects-CatchupSafe ρ {M = ν A L c} (safe-value ())
+renameᵗᵐ-reflects-CatchupSafe ρ {M = ν A L c} (safe-ν safeL) =
+  safe-ν (renameᵗᵐ-reflects-CatchupSafe ρ safeL)
+renameᵗᵐ-reflects-CatchupSafe ρ {M = $ κ} safeM =
+  safe-value ($ κ)
+renameᵗᵐ-reflects-CatchupSafe ρ {M = L ⊕[ op ] M} (safe-value ())
+renameᵗᵐ-reflects-CatchupSafe ρ {M = M ⟨ c ⟩} (safe-value vM) =
+  safe-value (renameᵗᵐ-reflects-Value ρ vM)
+renameᵗᵐ-reflects-CatchupSafe ρ {M = M ⟨ c ⟩} (safe-cast safeM) =
+  safe-cast (renameᵗᵐ-reflects-CatchupSafe ρ safeM)
+renameᵗᵐ-reflects-CatchupSafe ρ {M = blame} (safe-value ())
+
+open-preserves-CatchupSafe :
+  ∀ {M α β} →
+  CatchupSafe (M [ α ]ᵀ) →
+  CatchupSafe (M [ β ]ᵀ)
+open-preserves-CatchupSafe {M = M} {α = α} {β = β} safeM =
+  renameᵗᵐ-preserves-CatchupSafe (singleRenameᵗ β)
+    (renameᵗᵐ-reflects-CatchupSafe (singleRenameᵗ α) safeM)
+
+value-target-source-safe :
+  ∀ {Δ σ γ M V p} →
+  Value V →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p →
+  CatchupSafe M
+value-target-source-safe vV (extend qᶜ pαᶜ M⊒V) =
+  value-target-source-safe vV M⊒V
+value-target-source-safe vV
+    (split {N = N} {α = α} {αᵢ = αᵢ} qᶜ pαᶜ M⊒V) =
+  open-preserves-CatchupSafe {M = N} {α = α} {β = αᵢ}
+    (value-target-source-safe vV M⊒V)
+value-target-source-safe () (⊒blame pᶜ)
+value-target-source-safe () (x⊒x pᶜ x∋p)
+value-target-source-safe vV (ƛ⊒ƛ p↦qᶜ N⊒N′) =
+  safe-value (ƛ _)
+value-target-source-safe () (·⊒· qᶜ L⊒L′ M⊒M′)
+value-target-source-safe (Λ vV) (Λ⊒Λ allᶜ vM M⊒V′) =
+  safe-value (Λ vM)
+value-target-source-safe (Λ vV) (⊒Λ pᶜ N⊒V′) =
+  renameᵗᵐ-reflects-CatchupSafe suc
+    (value-target-source-safe vV N⊒V′)
+value-target-source-safe (vV ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′s) =
+  renameᵗᵐ-reflects-CatchupSafe suc
+    (value-target-source-safe (vV ⟨ sᵢ ⟩) N⊒V′s)
+value-target-source-safe () (α⊒α qᶜ pαᶜ L⊒L′)
+value-target-source-safe () (⊒α pαᶜ L⊒L′)
+value-target-source-safe () (ν⊒ν pᶜ qᶜ N⊒N′)
+value-target-source-safe () (⊒ν pᶜ N⊒N′)
+value-target-source-safe vV (ν⊒ pᶜ N⊒N′) =
+  safe-ν
+    (value-target-source-safe
+      (renameᵗᵐ-preserves-Value suc vV)
+      N⊒N′)
+value-target-source-safe ($ κ) (κ⊒κ .κ) =
+  safe-value ($ κ)
+value-target-source-safe () (⊕⊒⊕ M⊒M′ N⊒N′)
+value-target-source-safe (vV ⟨ i ⟩)
+    (⊒cast+ qᶜ q⨟s≈r M⊒M′) =
+  value-target-source-safe vV M⊒M′
+value-target-source-safe (vV ⟨ i ⟩)
+    (⊒cast- qᶜ q⨟s≈r M⊒M′) =
+  value-target-source-safe vV M⊒M′
+value-target-source-safe vV (cast+⊒ pᶜ r≈t⨟p M⊒M′) =
+  safe-cast (value-target-source-safe vV M⊒M′)
+value-target-source-safe vV (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
+  safe-cast (value-target-source-safe vV M⊒M′)
 
 data NeutralSource : Term → Set where
   neutral-` : ∀ {x} → NeutralSource (` x)

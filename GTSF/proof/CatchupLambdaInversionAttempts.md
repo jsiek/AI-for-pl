@@ -1303,3 +1303,101 @@ the shifted source has no active runtime type application.  The next reduction
 lemma should use `NoActiveTypeApp (⇑ᵗᵐ N)`, `AllKeep χs`, and
 `⇑ᵗᵐ N —↠[ χs ] W` to prove that the value endpoint is still in the image of
 `⇑ᵗᵐ`, or produce the needed body relation directly.
+
+## Attempt 41: recurse on the extracted cast-base premise
+
+Failed by Agda termination checking.  I temporarily added
+
+`with catchup-lemma vBase bodyBase`
+
+to the `remainder-cast` / `no-bind` / `cast-base-empty+` branch, while still
+returning the old postulate-backed RHS.  Agda rejected `catchup-lemma` because
+the call
+
+`catchup-lemma vBase bodyBase`
+
+is not structurally visible as a subcall of the original
+
+`catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)`.
+
+This confirms an earlier suspicion: although the history inversion exposes a
+logically smaller value-target premise, that premise is obtained through a
+classifier after the recursive call on `N⊒V′`, so Agda cannot use it directly
+for structural recursion.  Reusing the ordinary cast catchup proof shape inside
+this branch would require a larger refactor to an explicit measure or a
+separate non-recursive lemma; it is not available as a local direct recursive
+call.
+
+## Attempt 42: factor a catchup-safe reducible-spine invariant
+
+Partly succeeded.  I added the checked syntactic predicate
+
+`CatchupSafe M`
+
+in `proof.ReductionProperties`.  It describes sources whose reducible spine can
+catch up to a value: values are leaves, and the only non-value spine forms are
+`ν A L c` and `M ⟨ c ⟩`.
+
+I then proved in `proof.TermNarrowingProperties`:
+
+`value-target-source-safe :
+  Value V →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p →
+  CatchupSafe M`.
+
+The proof mirrors `value-target-source-no-active`: value constructors close
+with `safe-value`, source `ν` and source cast constructors recurse under
+`safe-ν`/`safe-cast`, and the `⊒Λ`/`⊒⟨ν⟩` cases reflect the invariant through
+the shifted premise.  The live `remainder-cast` / `no-bind` branch now exposes
+
+`safe⇑N : CatchupSafe (⇑ᵗᵐ N)`.
+
+The next intended step was a reduction lemma saying that an all-keep reduction
+from a shifted `CatchupSafe` source to a value either remains in the image of
+`⇑ᵗᵐ` or reaches a doomed term.  That proof ran into the repo's
+"constructor form indices" pitfall.  In the `tag-untag-ok` and `seal-unseal`
+cases, Agda must match redexes such as
+
+`renameᵗᵐ suc M ⟨ renameᵗ suc H ？ ⟩`
+
+against constructors whose indices require the same tag on both casts.  The
+needed equality follows from injectivity of `renameᵗ suc`, but Agda's unifier
+does not use that injectivity when deciding whether the reduction constructor
+case is possible.  Splitting on the outer coercion, splitting on the inner
+preterm, and adding cast-constructor injectivity helpers still left Agda stuck
+on matching `tag-untag-ok`.
+
+So `CatchupSafe` is useful checked evidence, but the attempted shifted-image
+reduction proof should not be repeated in this direct pattern-matching form.
+Any future version needs a reduction view whose indices avoid defined
+functions, or a separate normalized redex view that carries the tag equality as
+an explicit proof rather than asking Agda's unifier to infer it.
+
+## Attempt 43: prove the no-bind shifted-image equality from `CatchupSafe`
+
+Succeeded for the live no-bind cast branches.  I avoided the failed direct
+pattern match on shifted reduction indices by carrying explicit image evidence:
+
+`TermShiftImage M = ∃[ N ] (M ≡ ⇑ᵗᵐ N)`.
+
+The checked helper decomposes shifted images of casts, `ν`, sequences, and
+instantiations by first inspecting the preimage syntax and then using ordinary
+constructor injectivity.  On top of that, `proof.ReductionProperties` now has:
+
+`safe-allKeep-value-image :
+  CatchupSafe M →
+  TermShiftImage M →
+  AllKeep χs →
+  M —↠[ χs ] W →
+  Value W →
+  W ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)`.
+
+The one-step view says a keep step from a shifted `CatchupSafe` source either
+remains safe and shifted or reaches a `NoValueReachable` term.  The bad tag
+case goes to the doomed branch; the final `Value W` eliminates it.
+
+The two live `remainder-cast` / `no-bind` branches now call
+`catchup-⊒Λ-no-bind-shift-image` with this checked equality instead of
+delegating to `catchup-⊒Λ-catchup`.  This does not solve the last-bind
+branches: there the final star bind still has to be replayed or erased, and
+the all-keep shifted-image invariant applies only after the last bind.

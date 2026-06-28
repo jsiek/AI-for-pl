@@ -1430,3 +1430,34 @@ binder-exchange replay: move the source-only star produced by the final bind
 under the fresh target-only `⊒Λ` binder while lowering the shifted prefix tail.
 They do not yet identify the pre-bind term `P` or transport the term relation,
 so the three live last-bind branches still delegate to `catchup-⊒Λ-catchup`.
+
+## Attempt 45: reuse `ExtendReplaceRel` for the final binder exchange
+
+Rejected after inspecting the checked replacement machinery.  `ExtendReplaceRel`
+is the right abstraction for the `extend` case: it changes one target-only
+entry
+
+`(α ꞉= A ⊒) ∷ σ`
+
+into a both-side coercion entry
+
+`(α ꞉ q) ∷ σ`
+
+and then recurses structurally under right, left, or both entries.  Its
+source-store inclusion goes in the corresponding weakening direction.
+
+The last-bind `⊒Λ` replay needs a different operation.  After Attempt 44, the
+store has the shape
+
+`(⊒ zero ꞉=☆) ∷ π₀`
+
+in front of the shifted fresh target-only binder.  The desired body store has
+the fresh target-only binder first, with the emitted source-only star moved
+under it and the prefix tail lowered.  That is an exchange/drop operation, not
+an endpoint replacement.  Forcing it through `ExtendReplaceRel` would lose the
+needed reindexing of terms/coercions under the binder and repeat the broad
+transport failures from Attempts 7 and 8.
+
+Next useful target: define a narrow exchange relation for this exact pair of
+store shapes, then prove only the term-imprecision clauses reachable from the
+last-bind replay instead of a generic source-transport theorem.

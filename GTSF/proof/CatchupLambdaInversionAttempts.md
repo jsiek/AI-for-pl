@@ -1266,3 +1266,40 @@ That equality is false in general, as the `proof.TraceProbe` counterexample to
 the standalone inversion shows.  A valid proof must derive it from the actual
 `⊒Λ` premise and cast-source history, or avoid it by producing the body relation
 directly.  Do not try to use this helper with a generic shifted-trace equality.
+
+## Attempt 40: derive a no-active-type-application source invariant
+
+Succeeded as a checked premise invariant.  I added a new predicate
+
+`NoActiveTypeApp M`
+
+in `proof.TermNarrowingProperties`.  It rules out runtime type applications in
+reducible positions, but deliberately permits bullets under lambda and type
+lambda values, since reduction does not inspect those bodies.
+
+The main checked lemma is
+
+`value-target-source-no-active :
+  Value V →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p →
+  NoActiveTypeApp M`.
+
+The proof follows the term-narrowing derivation:
+
+- value constructors such as `ƛ⊒ƛ`, `Λ⊒Λ`, and `κ⊒κ` close directly;
+- `⊒Λ`, `⊒⟨ν⟩`, and `ν⊒` recurse through their shifted premises;
+- source and target cast wrappers recurse to their bodies;
+- `extend` and `split` preserve the invariant through type-variable opening;
+- non-value target constructors are impossible by the supplied `Value` proof.
+
+The live `remainder-cast` / `no-bind` branches now expose
+
+`noActive⇑N : NoActiveTypeApp (⇑ᵗᵐ N)`.
+
+This is the first checked fact that distinguishes the real `⊒Λ` premise from
+the `proof.TraceProbe` counterexample: the counterexample's shifted source is
+a runtime type application, while the actual branch now carries evidence that
+the shifted source has no active runtime type application.  The next reduction
+lemma should use `NoActiveTypeApp (⇑ᵗᵐ N)`, `AllKeep χs`, and
+`⇑ᵗᵐ N —↠[ χs ] W` to prove that the value endpoint is still in the image of
+`⇑ᵗᵐ`, or produce the needed body relation directly.

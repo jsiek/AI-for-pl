@@ -914,6 +914,136 @@ type-app-source-no-value-target :
 type-app-source-no-value-target =
   runtime-type-app-source-no-value-target runtime-•
 
+data NoActiveTypeApp : Term → Set where
+  no-active-` : ∀ {x} → NoActiveTypeApp (` x)
+  no-active-ƛ : ∀ {M} → NoActiveTypeApp (ƛ M)
+  no-active-· :
+    ∀ {L M} →
+    NoActiveTypeApp L →
+    NoActiveTypeApp M →
+    NoActiveTypeApp (L · M)
+  no-active-Λ : ∀ {M} → NoActiveTypeApp (Λ M)
+  no-active-ν :
+    ∀ {A L c} →
+    NoActiveTypeApp L →
+    NoActiveTypeApp (ν A L c)
+  no-active-$ : ∀ {κ} → NoActiveTypeApp ($ κ)
+  no-active-⊕ :
+    ∀ {L op M} →
+    NoActiveTypeApp L →
+    NoActiveTypeApp M →
+    NoActiveTypeApp (L ⊕[ op ] M)
+  no-active-⟨⟩ :
+    ∀ {M c} →
+    NoActiveTypeApp M →
+    NoActiveTypeApp (M ⟨ c ⟩)
+  no-active-blame : NoActiveTypeApp blame
+
+renameᵗᵐ-preserves-NoActiveTypeApp :
+  ∀ ρ {M} →
+  NoActiveTypeApp M →
+  NoActiveTypeApp (renameᵗᵐ ρ M)
+renameᵗᵐ-preserves-NoActiveTypeApp ρ no-active-` = no-active-`
+renameᵗᵐ-preserves-NoActiveTypeApp ρ no-active-ƛ = no-active-ƛ
+renameᵗᵐ-preserves-NoActiveTypeApp ρ (no-active-· noL noM) =
+  no-active-·
+    (renameᵗᵐ-preserves-NoActiveTypeApp ρ noL)
+    (renameᵗᵐ-preserves-NoActiveTypeApp ρ noM)
+renameᵗᵐ-preserves-NoActiveTypeApp ρ no-active-Λ = no-active-Λ
+renameᵗᵐ-preserves-NoActiveTypeApp ρ (no-active-ν noL) =
+  no-active-ν (renameᵗᵐ-preserves-NoActiveTypeApp ρ noL)
+renameᵗᵐ-preserves-NoActiveTypeApp ρ no-active-$ = no-active-$
+renameᵗᵐ-preserves-NoActiveTypeApp ρ (no-active-⊕ noL noM) =
+  no-active-⊕
+    (renameᵗᵐ-preserves-NoActiveTypeApp ρ noL)
+    (renameᵗᵐ-preserves-NoActiveTypeApp ρ noM)
+renameᵗᵐ-preserves-NoActiveTypeApp ρ (no-active-⟨⟩ noM) =
+  no-active-⟨⟩ (renameᵗᵐ-preserves-NoActiveTypeApp ρ noM)
+renameᵗᵐ-preserves-NoActiveTypeApp ρ no-active-blame =
+  no-active-blame
+
+renameᵗᵐ-reflects-NoActiveTypeApp :
+  ∀ ρ {M} →
+  NoActiveTypeApp (renameᵗᵐ ρ M) →
+  NoActiveTypeApp M
+renameᵗᵐ-reflects-NoActiveTypeApp ρ {M = ` x} noM = no-active-`
+renameᵗᵐ-reflects-NoActiveTypeApp ρ {M = ƛ M} noM = no-active-ƛ
+renameᵗᵐ-reflects-NoActiveTypeApp ρ {M = L · M}
+    (no-active-· noL noM) =
+  no-active-·
+    (renameᵗᵐ-reflects-NoActiveTypeApp ρ noL)
+    (renameᵗᵐ-reflects-NoActiveTypeApp ρ noM)
+renameᵗᵐ-reflects-NoActiveTypeApp ρ {M = Λ M} noM = no-active-Λ
+renameᵗᵐ-reflects-NoActiveTypeApp ρ {M = M •} ()
+renameᵗᵐ-reflects-NoActiveTypeApp ρ {M = ν A L c} (no-active-ν noL) =
+  no-active-ν (renameᵗᵐ-reflects-NoActiveTypeApp ρ noL)
+renameᵗᵐ-reflects-NoActiveTypeApp ρ {M = $ κ} noM = no-active-$
+renameᵗᵐ-reflects-NoActiveTypeApp ρ {M = L ⊕[ op ] M}
+    (no-active-⊕ noL noM) =
+  no-active-⊕
+    (renameᵗᵐ-reflects-NoActiveTypeApp ρ noL)
+    (renameᵗᵐ-reflects-NoActiveTypeApp ρ noM)
+renameᵗᵐ-reflects-NoActiveTypeApp ρ {M = M ⟨ c ⟩}
+    (no-active-⟨⟩ noM) =
+  no-active-⟨⟩ (renameᵗᵐ-reflects-NoActiveTypeApp ρ noM)
+renameᵗᵐ-reflects-NoActiveTypeApp ρ {M = blame} noM =
+  no-active-blame
+
+open-preserves-NoActiveTypeApp :
+  ∀ {M α β} →
+  NoActiveTypeApp (M [ α ]ᵀ) →
+  NoActiveTypeApp (M [ β ]ᵀ)
+open-preserves-NoActiveTypeApp {M = M} {α = α} {β = β} noM =
+  renameᵗᵐ-preserves-NoActiveTypeApp (singleRenameᵗ β)
+    (renameᵗᵐ-reflects-NoActiveTypeApp (singleRenameᵗ α) noM)
+
+value-target-source-no-active :
+  ∀ {Δ σ γ M V p} →
+  Value V →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p →
+  NoActiveTypeApp M
+value-target-source-no-active vV (extend qᶜ pαᶜ M⊒V) =
+  value-target-source-no-active vV M⊒V
+value-target-source-no-active vV
+    (split {N = N} {α = α} {αᵢ = αᵢ} qᶜ pαᶜ M⊒V) =
+  open-preserves-NoActiveTypeApp {M = N} {α = α} {β = αᵢ}
+    (value-target-source-no-active vV M⊒V)
+value-target-source-no-active () (⊒blame pᶜ)
+value-target-source-no-active () (x⊒x pᶜ x∋p)
+value-target-source-no-active vV (ƛ⊒ƛ p↦qᶜ N⊒N′) =
+  no-active-ƛ
+value-target-source-no-active () (·⊒· qᶜ L⊒L′ M⊒M′)
+value-target-source-no-active (Λ vV) (Λ⊒Λ allᶜ vV₁ V⊒V′) =
+  no-active-Λ
+value-target-source-no-active (Λ vV) (⊒Λ pᶜ N⊒V′) =
+  renameᵗᵐ-reflects-NoActiveTypeApp suc
+    (value-target-source-no-active vV N⊒V′)
+value-target-source-no-active (vV ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′s) =
+  renameᵗᵐ-reflects-NoActiveTypeApp suc
+    (value-target-source-no-active (vV ⟨ sᵢ ⟩) N⊒V′s)
+value-target-source-no-active () (α⊒α qᶜ pαᶜ L⊒L′)
+value-target-source-no-active () (⊒α pαᶜ L⊒L′)
+value-target-source-no-active () (ν⊒ν pᶜ qᶜ N⊒N′)
+value-target-source-no-active () (⊒ν pᶜ N⊒N′)
+value-target-source-no-active vV (ν⊒ pᶜ N⊒N′) =
+  no-active-ν
+    (value-target-source-no-active
+      (renameᵗᵐ-preserves-Value suc vV)
+      N⊒N′)
+value-target-source-no-active ($ κ) (κ⊒κ .κ) =
+  no-active-$
+value-target-source-no-active () (⊕⊒⊕ M⊒M′ N⊒N′)
+value-target-source-no-active (vV ⟨ i ⟩)
+    (⊒cast+ qᶜ q⨟s≈r M⊒M′) =
+  value-target-source-no-active vV M⊒M′
+value-target-source-no-active (vV ⟨ i ⟩)
+    (⊒cast- qᶜ q⨟s≈r M⊒M′) =
+  value-target-source-no-active vV M⊒M′
+value-target-source-no-active vV (cast+⊒ pᶜ r≈t⨟p M⊒M′) =
+  no-active-⟨⟩ (value-target-source-no-active vV M⊒M′)
+value-target-source-no-active vV (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
+  no-active-⟨⟩ (value-target-source-no-active vV M⊒M′)
+
 data NeutralSource : Term → Set where
   neutral-` : ∀ {x} → NeutralSource (` x)
   neutral-· : ∀ {L M} → NeutralSource (L · M)

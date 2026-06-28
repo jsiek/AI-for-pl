@@ -80,6 +80,7 @@ open import proof.TermNarrowingProperties
     ; shifted-source-remainder
     ; type-app-source-no-value-target
     ; value?-none-no-value
+    ; value-target-source-no-active
     )
 open import proof.ReductionProperties
   using
@@ -1932,6 +1933,7 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
        | allKeep-empty-target-nil keeps Π≡ Π′≡ π⊒
        | allKeep-under-binder-value-id keeps vV′
        | allKeep-gen-under-binder-coercion-id keeps pᶜ
+       | value-target-source-no-active vV′ N⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
     | remainder-cast hist
@@ -1942,7 +1944,8 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | cast-base-empty+ vBase pBaseᶜ base≈ bodyBase
     | π≡[]
     | targetUnder≡
-    | coercionUnder≡ =
+    | coercionUnder≡
+    | noActive⇑N =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
@@ -1954,7 +1957,8 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | cast-base-empty- vBase pBaseᶜ base≈ bodyBase
     | π≡[]
     | targetUnder≡
-    | coercionUnder≡ =
+    | coercionUnder≡
+    | noActive⇑N =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing

@@ -655,3 +655,35 @@ So specializing the outer source shape is not enough.  The next viable route
 still needs an explicit source-shape witness threaded through `split`, or a
 split-specific transport that carries the opening evidence needed to rebuild
 the catchup result.
+
+## Attempt 21: package `ν`-source inversion with wrapper history
+
+Succeeded.  To match the checked cast-source wrapper history from Attempt 19,
+I added a dependent `ν`-source witness in `proof.TermNarrowingProperties`:
+
+`nu-source-value-target-inversion :
+  NuSource M → Value V → Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p →
+  NuSourceValueTarget src vV M⊒V`.
+
+The witness records the same wrapper constructors that can preserve a
+value-target source shape:
+
+- `extend` and `split`;
+- `⊒Λ` and `⊒⟨ν⟩`;
+- `⊒cast+` and `⊒cast-`.
+
+Its only genuine base constructor is `ν⊒`.  The other `ν`-shaped term
+constructors do not produce value targets here:
+
+- `ν⊒ν` and `⊒ν` have `ν` targets, so their value target is impossible;
+- `α⊒α` can have a syntactically `ν` source because `L • α` expands to a
+  `ν`, but its target is also a type-application encoding and hence not a
+  value.
+
+This closes the constructor-coverage gap for the remaining non-value source
+shapes in the live `⊒Λ` branch: `ν` sources now expose a `ν⊒` base and cast
+sources expose `cast+⊒`/`cast-⊒` bases.  It still does not finish the branch.
+The next proof obligation is a consumer for these histories: run the appropriate
+base catchup (`catchup-ν⊒-catchup`, `left-widening-lemma`, or
+`left-narrowing-lemma`) and replay the recorded wrappers while transporting the
+emitted store prefix and opening evidence back to the outer `⊒Λ` conclusion.

@@ -353,6 +353,157 @@ open-preserves-NuSource {M = L ⊕[ op ] M} ()
 open-preserves-NuSource {M = M ⟨ c ⟩} ()
 open-preserves-NuSource {M = blame} ()
 
+data NuSourceValueTarget :
+  ∀ {Δ σ γ M V p} →
+  NuSource M →
+  Value V →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p →
+  Set₁ where
+
+  nsvt-extend :
+    ∀ {Δ σ γ M N′ p q A B C D α}
+      {src : NuSource M}
+      {vV : Value (N′ [ α ]ᵀ)}
+      {qᶜ : Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ B ⊒ A}
+      {pαᶜ : Δ ∣ srcStoreⁿ ((α ꞉ q) ∷ σ)
+        ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D}
+      {M⊒V : Δ ∣ (α ꞉= A ⊒) ∷ σ ∣ γ
+        ⊢ M ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ}
+    → NuSourceValueTarget src vV M⊒V
+    → NuSourceValueTarget src vV (extend qᶜ pαᶜ M⊒V)
+
+  nsvt-split :
+    ∀ {Δ σ γ N N′ p q A C D α αᵢ}
+      {src : NuSource (N [ αᵢ ]ᵀ)}
+      {vV : Value (N′ [ α ]ᵀ)}
+      {qᶜ : Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+        ⊢ q ∶ᶜ ★ ⊒ A}
+      {pαᶜ : Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+        ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D}
+      {M⊒V : Δ ∣ (α ꞉ q) ∷ σ ∣ γ
+        ⊢ N [ α ]ᵀ ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ}
+    → NuSourceValueTarget
+        (open-preserves-NuSource {M = N} {α = αᵢ} {β = α} src)
+        vV
+        M⊒V
+    → NuSourceValueTarget src vV (split qᶜ pαᶜ M⊒V)
+
+  nsvt-⊒Λ :
+    ∀ {Δ σ γ A B N V′ p}
+      {src : NuSource N}
+      {vV : Value V′}
+      {pᶜ : Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B}
+      {N⊒V′ : suc Δ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+        ⊢ ⇑ᵗᵐ N ⊒ V′ ∶ p}
+    → NuSourceValueTarget
+        (renameᵗᵐ-preserves-NuSource suc src)
+        vV
+        N⊒V′
+    → NuSourceValueTarget src (Λ vV) (⊒Λ pᶜ N⊒V′)
+
+  nsvt-⊒⟨ν⟩ :
+    ∀ {Δ σ γ A B N V′ p s}
+      {src : NuSource N}
+      {vV : Value V′}
+      {pᶜ : Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B}
+      {sᵢ : Inert s}
+      {i : Inert (gen A s)}
+      {N⊒V′s : suc Δ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+        ⊢ ⇑ᵗᵐ N ⊒ V′ ⟨ s ⟩ ∶ p}
+    → NuSourceValueTarget
+        (renameᵗᵐ-preserves-NuSource suc src)
+        (vV ⟨ sᵢ ⟩)
+        N⊒V′s
+    → NuSourceValueTarget src (vV ⟨ i ⟩)
+        (⊒⟨ν⟩ pᶜ sᵢ N⊒V′s)
+
+  nsvt-⊒cast+ :
+    ∀ {Δ σ γ M M′ q r s A B C D}
+      {src : NuSource M}
+      {vV : Value M′}
+      {i : Inert (- s)}
+      {qᶜ : Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D}
+      {q⨟s≈r : Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B}
+      {M⊒M′ : Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r}
+    → NuSourceValueTarget src vV M⊒M′
+    → NuSourceValueTarget src (vV ⟨ i ⟩)
+        (⊒cast+ qᶜ q⨟s≈r M⊒M′)
+
+  nsvt-⊒cast- :
+    ∀ {Δ σ γ M M′ q r s A B C D}
+      {src : NuSource M}
+      {vV : Value M′}
+      {i : Inert s}
+      {qᶜ : Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D}
+      {q⨟s≈r : Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B}
+      {M⊒M′ : Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ q}
+    → NuSourceValueTarget src vV M⊒M′
+    → NuSourceValueTarget src (vV ⟨ i ⟩)
+        (⊒cast- qᶜ q⨟s≈r M⊒M′)
+
+  nsvt-ν⊒ :
+    ∀ {Δ σ γ N N′ p A B}
+      {vV : Value N′}
+      {pᶜ : Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B}
+      {N⊒N′ : suc Δ ∣ (⊒ zero ꞉=☆) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+        ⊢ N ⊒ ⇑ᵗᵐ N′ ∶ ⇑ᶜ p}
+    → NuSourceValueTarget nu-source vV (ν⊒ pᶜ N⊒N′)
+
+nu-source-value-target-inversion :
+  ∀ {Δ σ γ M V p} →
+  (src : NuSource M) →
+  (vV : Value V) →
+  (M⊒V : Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p) →
+  NuSourceValueTarget src vV M⊒V
+nu-source-value-target-inversion src vV (extend qᶜ pαᶜ M⊒V) =
+  nsvt-extend (nu-source-value-target-inversion src vV M⊒V)
+nu-source-value-target-inversion src vV
+    (split {N = N} {α = α} {αᵢ = αᵢ} qᶜ pαᶜ M⊒V) =
+  nsvt-split
+    (nu-source-value-target-inversion
+      (open-preserves-NuSource {M = N} {α = αᵢ} {β = α} src)
+      vV
+      M⊒V)
+nu-source-value-target-inversion src () (⊒blame pᶜ)
+nu-source-value-target-inversion src () (x⊒x pᶜ x∋p)
+nu-source-value-target-inversion () vV (ƛ⊒ƛ p↦qᶜ N⊒N′)
+nu-source-value-target-inversion () vV (·⊒· qᶜ L⊒L′ M⊒M′)
+nu-source-value-target-inversion () (Λ vV)
+    (Λ⊒Λ allᶜ vV₁ V⊒V′)
+nu-source-value-target-inversion src (Λ vV) (⊒Λ pᶜ N⊒V′) =
+  nsvt-⊒Λ
+    (nu-source-value-target-inversion
+      (renameᵗᵐ-preserves-NuSource suc src)
+      vV
+      N⊒V′)
+nu-source-value-target-inversion src (vV ⟨ i ⟩)
+    (⊒⟨ν⟩ pᶜ sᵢ N⊒V′s) =
+  nsvt-⊒⟨ν⟩
+    (nu-source-value-target-inversion
+      (renameᵗᵐ-preserves-NuSource suc src)
+      (vV ⟨ sᵢ ⟩)
+      N⊒V′s)
+nu-source-value-target-inversion src () (α⊒α qᶜ pαᶜ L⊒L′)
+nu-source-value-target-inversion src () (⊒α pαᶜ L⊒L′)
+nu-source-value-target-inversion src () (ν⊒ν pᶜ qᶜ N⊒N′)
+nu-source-value-target-inversion src () (⊒ν pᶜ N⊒N′)
+nu-source-value-target-inversion nu-source vV (ν⊒ pᶜ N⊒N′) =
+  nsvt-ν⊒
+nu-source-value-target-inversion () ($ κ) (κ⊒κ .κ)
+nu-source-value-target-inversion () vV (⊕⊒⊕ M⊒M′ N⊒N′)
+nu-source-value-target-inversion src (vV ⟨ i ⟩)
+    (⊒cast+ qᶜ q⨟s≈r M⊒M′) =
+  nsvt-⊒cast+
+    (nu-source-value-target-inversion src vV M⊒M′)
+nu-source-value-target-inversion src (vV ⟨ i ⟩)
+    (⊒cast- qᶜ q⨟s≈r M⊒M′) =
+  nsvt-⊒cast-
+    (nu-source-value-target-inversion src vV M⊒M′)
+nu-source-value-target-inversion () vV
+    (cast+⊒ pᶜ r≈t⨟p M⊒M′)
+nu-source-value-target-inversion () vV
+    (cast-⊒ pᶜ r≈t⨟p M⊒M′)
+
 data CastSource : Term → Set where
   cast-source : ∀ {M c} → CastSource (M ⟨ c ⟩)
 

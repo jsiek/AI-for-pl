@@ -1117,3 +1117,37 @@ To use `ν-bind-step-value-tail-inv`, the replay proof still has to show that
 the particular `P` obtained from the prefix reduction is a top-level `ν`.
 That fact should come from combining the prefix trace with the `nu-base-empty`
 history, not from raw reduction inversion alone.
+
+## Attempt 36: expose no-bind and last-bind structure in `remainder-cast`
+
+Succeeded as live scaffolding.  The `remainder-cast` branch of the actual
+`catchup-lemma` `⊒Λ` fallback now splits on `storeChangesLastBind χs`.
+
+In the `no-bind keeps` subcase, the branch calls
+
+`pure-pred-↠-shifted-value keeps ⇑N↠W vW`
+
+and therefore has the unshifted reduction half
+
+`N↠predW : N —↠[ χs ] renameᵗᵐ predᵗ W`
+
+available before exposing the cast base (`cast-base-empty+` or
+`cast-base-empty-`).  This still does not rebuild the relation half for
+`⊒Λ`; Attempt 32 explains why a generic relation transport would be too broad.
+
+In the `last-bind` subcase, the branch now mirrors the `remainder-nu` setup:
+it obtains
+
+`Aχ≡★ : Aχ ≡ ★`
+
+from `last-bind-empty-target-star`, and then splits the trace with
+`↠-split-last-bind`, exposing
+
+`⇑N↠P : ⇑ᵗᵐ N —↠[ χs₀ ] P`,
+`P→Q : P —→[ bind Aχ ] Q`, and
+`Q↠W : Q —↠[ keeps ] W`.
+
+Both subcases still delegate to `catchup-⊒Λ-catchup`, so this is not a proof
+of the cast branch.  It does make the live proof state match the two remaining
+proof obligations: all-`keep` relation replay for casts, and final star-bind
+replay for casts.

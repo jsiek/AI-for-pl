@@ -130,6 +130,7 @@ open import proof.ReductionProperties
     ; no-bind
     ; last-bind
     ; allKeep-ν-no-value
+    ; pure-pred-↠-shifted-value
     ; applyTyCtxs-≤
     ; ↠-trans
     ; ↠-split-last-bind
@@ -1772,12 +1773,22 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | remainder-cast hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    with cast-source-value-target-base-empty hist
+    with storeChangesLastBind χs
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
     | remainder-cast hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | no-bind keeps
+    with pure-pred-↠-shifted-value keeps ⇑N↠W vW
+       | cast-source-value-target-base-empty hist
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-cast hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | no-bind keeps
+    | N↠predW
     | cast-base-empty+ vBase pBaseᶜ base≈ bodyBase =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
@@ -1785,6 +1796,55 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | remainder-cast hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | no-bind keeps
+    | N↠predW
+    | cast-base-empty- vBase pBaseᶜ base≈ bodyBase =
+  catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-cast hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | last-bind χs₀ Aχ keeps keeps-ok
+    with last-bind-empty-target-star
+      {χs = χs₀} {A = Aχ} {keeps = keeps}
+      keeps-ok Π≡
+      (subst (λ Π₀ → Δ′ ⊢ π ꞉ Π ⊒ˢ Π₀) Π′≡ π⊒)
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-cast hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | last-bind χs₀ Aχ keeps keeps-ok
+    | Aχ≡★
+    with ↠-split-last-bind {χs = χs₀} {A = Aχ} {keeps = keeps} ⇑N↠W
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-cast hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | last-bind χs₀ Aχ keeps keeps-ok
+    | Aχ≡★
+    | P , Q , ⇑N↠P , P→Q , Q↠W
+    with cast-source-value-target-base-empty hist
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-cast hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | last-bind χs₀ Aχ keeps keeps-ok
+    | Aχ≡★
+    | P , Q , ⇑N↠P , P→Q , Q↠W
+    | cast-base-empty+ vBase pBaseᶜ base≈ bodyBase =
+  catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-cast hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | last-bind χs₀ Aχ keeps keeps-ok
+    | Aχ≡★
+    | P , Q , ⇑N↠P , P→Q , Q↠W
     | cast-base-empty- vBase pBaseᶜ base≈ bodyBase =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (vV′ ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)

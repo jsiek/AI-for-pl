@@ -11,6 +11,7 @@ module proof.Catchup where
 --     store changes.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; zero; suc)
@@ -59,6 +60,15 @@ open import proof.NuTermProperties
   using
     ( renameᵗᵐ-left-inverse
     ; renameᵗᵐ-preserves-Value
+    )
+open import proof.TermNarrowingProperties
+  using
+    ( neutral-blame
+    ; neutral-source-no-value-target
+    ; neutral-`
+    ; neutral-·
+    ; neutral-⊕
+    ; type-app-source-no-value-target
     )
 open import proof.ReductionProperties
   using
@@ -1623,6 +1633,21 @@ catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′) | just vN =
   refl ,
   ⊒ˢ-nil ,
   ⊒Λ pᶜ N⊒V′
+catchup-lemma (Λ vV′) (⊒Λ {N = L •} pᶜ N⊒V′)
+    | nothing =
+  ⊥-elim (type-app-source-no-value-target vV′ N⊒V′)
+catchup-lemma (Λ vV′) (⊒Λ {N = ` x} pᶜ N⊒V′)
+    | nothing =
+  ⊥-elim (neutral-source-no-value-target neutral-` vV′ N⊒V′)
+catchup-lemma (Λ vV′) (⊒Λ {N = L · M} pᶜ N⊒V′)
+    | nothing =
+  ⊥-elim (neutral-source-no-value-target neutral-· vV′ N⊒V′)
+catchup-lemma (Λ vV′) (⊒Λ {N = L ⊕[ op ] M} pᶜ N⊒V′)
+    | nothing =
+  ⊥-elim (neutral-source-no-value-target neutral-⊕ vV′ N⊒V′)
+catchup-lemma (Λ vV′) (⊒Λ {N = blame} pᶜ N⊒V′)
+    | nothing =
+  ⊥-elim (neutral-source-no-value-target neutral-blame vV′ N⊒V′)
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
     with catchup-lemma vV′ N⊒V′

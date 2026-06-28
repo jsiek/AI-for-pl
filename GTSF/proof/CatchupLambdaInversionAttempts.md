@@ -369,3 +369,67 @@ original premise
 Future proof work should replace the postulate with a premise-aware inversion
 or prove the `⊒Λ` branch directly by induction on that premise.  A
 reduction-only shifted-source inversion is now formally ruled out.
+
+## Attempt 13: check whether the beta probe satisfies the real inner premise
+
+Succeeded, and it explains why Attempt 12 is only a counterexample to the
+standalone helper.  `proof/TraceProbe.agda` now checks
+
+`no-probe-inner-premise :
+  1 ∣ (0 ꞉= ★ ⊒) ∷ [] ∣ []
+    ⊢ ⇑ᵗᵐ probe-N ⊒ probe-V′ ∶ probe-c → ⊥`.
+
+So the original beta probe cannot inhabit the actual premise carried by
+
+`catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)`.
+
+The reason is structural, not just an artifact of the chosen coercion:
+`⇑ᵗᵐ probe-N` is a runtime type application at the source.  I moved the
+general exclusion to `proof.TermNarrowingProperties`:
+
+`type-app-source-no-value-target :
+  Value V → Δ ∣ σ ∣ γ ⊢ L • ⊒ V ∶ p → ⊥`.
+
+Using this lemma, the `catchup-lemma` `⊒Λ` branch now discharges the
+`N = L •` and `value? N = nothing` subcase by contradiction before it can call
+the false shifted-source helper.
+
+This confirms the current proof search should keep using the real inner
+term-narrowing premise.  It also rules out reusing the Attempt 12 probe as a
+counterexample to the full catchup lemma.
+
+## Attempt 14: exclude neutral non-values from the live `⊒Λ` branch
+
+Succeeded.  I added another reusable source-shape lemma to
+`proof.TermNarrowingProperties`:
+
+`neutral-source-no-value-target :
+  NeutralSource M →
+  Value V →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p → ⊥`,
+
+where `NeutralSource` covers variables, applications, primitive additions, and
+`blame`.  The proof is by induction on the term-narrowing derivation.  The
+interesting cases are `extend`, `split`, `⊒Λ`, `⊒⟨ν⟩`, and target-cast
+wrappers; the source shape is preserved through type opening/renaming, and
+the target value is peeled when the target is an inert cast.
+
+`proof/Catchup.agda` now uses the lemma to close these additional
+`value? N = nothing` cases:
+
+the variable case, `N = L · M`, `N = L ⊕[ op ] M`, and `N = blame`.
+
+This is still not a full proof of the `⊒Λ` catchup case.  After these checked
+exclusions, the remaining non-value source shapes that can plausibly satisfy
+the real inner premise are:
+
+- `N = Λ M` where `M` is not syntactically a value,
+- `N = ν A L c`,
+- `N = M ⟨ c ⟩` where the cast is not already an inert value.
+
+The likely next route is a premise-aware helper by induction on the inner
+term-narrowing derivation.  The cast cases probably need generated-coercion
+composition lemmas, because an inner source cast
+`⇑ᵗᵐ M ⟨ ⇑ᶜ t ⟩ ⊒ V′` must be converted into an outer catchup source
+`M ⟨ t ⟩ ⊒ Λ V′` at a `gen` coercion.  I did not find an actual catchup-lemma
+counterexample among these remaining shapes.

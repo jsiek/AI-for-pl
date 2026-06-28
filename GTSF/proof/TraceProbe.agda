@@ -96,6 +96,12 @@ probe-red =
 probe-W-value : Value probe-W
 probe-W-value = (ƛ _) ⟨ _ ↦ _ ⟩
 
+no-probe-inner-premise :
+  1 ∣ (0 ꞉= ★ ⊒) ∷ [] ∣ []
+    ⊢ ⇑ᵗᵐ probe-N ⊒ probe-V′ ∶ probe-c →
+  ⊥
+no-probe-inner-premise ()
+
 no-wf-var1-empty :
   WfTyˢ 1 [] (＇ 1) →
   ⊥

@@ -480,7 +480,8 @@ or syntactic-value shapes.
 ## Attempt 16: classify value-target `ν` sources
 
 Partially succeeded as an exploratory Agda probe, then the temporary probe file
-was deleted.  I defined a local source-shape witness
+was deleted.  The reusable source-shape witness and preservation helpers are
+now kept in `proof.TermNarrowingProperties`:
 
 `NuSource M`
 
@@ -524,7 +525,8 @@ classification.
 
 ## Attempt 17: inspect the non-inert cast source route
 
-Partially explored.  The surrounding catchup proof already handles top-level
+Partially explored, then strengthened by a checked constructor-coverage probe
+in Attempt 18.  The surrounding catchup proof already handles top-level
 source casts with the pattern:
 
 1. recursively catch the cast body up to a source value;
@@ -550,3 +552,39 @@ It should first prove a small source-cast inversion lemma, using an explicit
 `CastSource` witness to get through `extend` and `split`, and decide whether
 the required coercion transport can be proved from the existing endpoint
 equivalence machinery.
+
+## Attempt 18: classify value-target cast sources
+
+Succeeded as a temporary Agda probe, then the probe file was deleted.  The
+reusable source-shape witness and preservation helpers are now kept in
+`proof.TermNarrowingProperties`.  I used the explicit-source-witness pattern
+again:
+
+`CastSource M`
+
+with preservation lemmas for type renaming and opening.  The checked probe had
+the shape
+
+`CastSource M → Value V → Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p → Set`.
+
+The useful fact is the accepted coverage split:
+
+- `extend` and `split` preserve the cast-source witness and recurse.
+- `⊒Λ` and `⊒⟨ν⟩` preserve the cast-source witness under `⇑ᵗᵐ` and recurse
+  into the inner premise.
+- `⊒cast+` and `⊒cast-` peel target inert casts and recurse.
+- the genuine source-cast bases are exactly `cast+⊒` and `cast-⊒`.
+- neutral, lambda, type-application, `ν`, primitive, and right-`ν` constructors
+  are ruled out by the cast-source witness or the value-target proof.
+
+This confirms the cast branch is not a constructor-search problem.  A useful
+next lemma should package the same coverage split with a nontrivial result,
+for example a `CastSourceValueTarget` datatype whose base constructors carry
+the exposed `cast+⊒`/`cast-⊒` premise and whose recursive constructors record
+the wrapper history.  That wrapper history is needed to rebuild the final
+outer `⊒Λ` catchup result after applying the existing left widening/narrowing
+catchup skeleton.
+
+Do not try to prove the cast branch by starting from the reduction
+`⇑ᵗᵐ (M ⟨ c ⟩) —↠ W`; that repeats the false standalone-inversion pattern.
+The checked direction is to invert the inner term-narrowing premise first.

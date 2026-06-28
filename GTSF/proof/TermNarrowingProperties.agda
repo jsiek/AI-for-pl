@@ -325,6 +325,58 @@ lambda-source-value-target-source-value vV M⊒V
 -- Source-shape exclusions
 ------------------------------------------------------------------------
 
+data NuSource : Term → Set where
+  nu-source : ∀ {A L c} → NuSource (ν A L c)
+
+renameᵗᵐ-preserves-NuSource :
+  ∀ ρ {M} →
+  NuSource M →
+  NuSource (renameᵗᵐ ρ M)
+renameᵗᵐ-preserves-NuSource ρ nu-source =
+  nu-source
+
+open-preserves-NuSource :
+  ∀ {M α β} →
+  NuSource (M [ α ]ᵀ) →
+  NuSource (M [ β ]ᵀ)
+open-preserves-NuSource {M = ` x} ()
+open-preserves-NuSource {M = ƛ M} ()
+open-preserves-NuSource {M = L · M} ()
+open-preserves-NuSource {M = Λ M} ()
+open-preserves-NuSource {M = M •} ()
+open-preserves-NuSource {M = ν A L c} nu-source =
+  nu-source
+open-preserves-NuSource {M = $ κ} ()
+open-preserves-NuSource {M = L ⊕[ op ] M} ()
+open-preserves-NuSource {M = M ⟨ c ⟩} ()
+open-preserves-NuSource {M = blame} ()
+
+data CastSource : Term → Set where
+  cast-source : ∀ {M c} → CastSource (M ⟨ c ⟩)
+
+renameᵗᵐ-preserves-CastSource :
+  ∀ ρ {M} →
+  CastSource M →
+  CastSource (renameᵗᵐ ρ M)
+renameᵗᵐ-preserves-CastSource ρ cast-source =
+  cast-source
+
+open-preserves-CastSource :
+  ∀ {M α β} →
+  CastSource (M [ α ]ᵀ) →
+  CastSource (M [ β ]ᵀ)
+open-preserves-CastSource {M = ` x} ()
+open-preserves-CastSource {M = ƛ M} ()
+open-preserves-CastSource {M = L · M} ()
+open-preserves-CastSource {M = Λ M} ()
+open-preserves-CastSource {M = M •} ()
+open-preserves-CastSource {M = ν A L c} ()
+open-preserves-CastSource {M = $ κ} ()
+open-preserves-CastSource {M = L ⊕[ op ] M} ()
+open-preserves-CastSource {M = M ⟨ c ⟩} cast-source =
+  cast-source
+open-preserves-CastSource {M = blame} ()
+
 data RuntimeTypeApp : Term → Set where
   runtime-• : ∀ {L} → RuntimeTypeApp (L •)
 

@@ -984,3 +984,24 @@ This is useful for the live `remainder-nu` branch: if
 value, the emitted store-change list cannot be all `keep`.  Therefore the
 remaining `ν` case genuinely requires a `bind`-aware inversion/replay argument;
 it cannot be discharged by the all-`keep` `predᵗ` simulation from Attempt 29.
+
+## Attempt 31: integrate the all-`keep` exclusion into `remainder-nu`
+
+Succeeded.  The live `catchup-lemma` `⊒Λ` fallback now splits the
+`remainder-nu` branch with `storeChangesLastBind χs`.
+
+The `no-bind keeps` subcase is discharged by
+
+`allKeep-ν-no-value keeps ⇑N↠W vW`.
+
+This works because the `remainder-nu` constructor preserves enough index
+information for Agda to know that the shifted source reduction really starts
+from a syntactic `ν` term.  The branch therefore cannot reach the recursive
+catchup value `W` without emitting a `bind`.
+
+The remaining live `remainder-nu` branch is now explicitly the
+
+`last-bind χs₀ Aχ keeps keeps-ok`
+
+subcase.  It still delegates to `catchup-⊒Λ-catchup`, so this is not the final
+proof, but the impossible no-bind path has been removed from the hard case.

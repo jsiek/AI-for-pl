@@ -128,6 +128,7 @@ open import proof.ReductionProperties
     ; StoreChangesLastBind
     ; no-bind
     ; last-bind
+    ; allKeep-ν-no-value
     ; applyTyCtxs-≤
     ; ↠-trans
     ; cast-↠
@@ -1688,12 +1689,27 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | remainder-nu hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    with storeChangesLastBind χs
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-nu hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | no-bind keeps =
+  ⊥-elim (allKeep-ν-no-value keeps ⇑N↠W vW)
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-nu hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | last-bind χs₀ Aχ keeps keeps-ok
     with nu-source-value-target-base-empty hist
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
     | remainder-nu hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | last-bind χs₀ Aχ keeps keeps-ok
     | nu-base-empty vBase pBaseᶜ bodyBase =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)

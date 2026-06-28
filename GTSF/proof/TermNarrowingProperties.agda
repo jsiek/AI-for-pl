@@ -8,7 +8,7 @@ module proof.TermNarrowingProperties where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using (_∷_)
+open import Data.List using ([]; _∷_)
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (suc; zero)
 
@@ -533,6 +533,35 @@ nu-source-value-target-base
     (nsvt-ν⊒ {vV = vV} {pᶜ = pᶜ} {N⊒N′ = N⊒N′}) =
   nu-base vV pᶜ N⊒N′
 
+data NuSourceBaseEmpty : Set₁ where
+  nu-base-empty :
+    ∀ {Δ σ N N′ p A B}
+    → Value N′
+    → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B
+    → suc Δ ∣ (⊒ zero ꞉=☆) ∷ ⇑ˢ σ ∣ []
+        ⊢ N ⊒ ⇑ᵗᵐ N′ ∶ ⇑ᶜ p
+    → NuSourceBaseEmpty
+
+nu-source-value-target-base-empty :
+  ∀ {Δ σ M V p src vV M⊒V} →
+  NuSourceValueTarget {Δ} {σ} {[]} {M} {V} {p} src vV M⊒V →
+  NuSourceBaseEmpty
+nu-source-value-target-base-empty (nsvt-extend hist) =
+  nu-source-value-target-base-empty hist
+nu-source-value-target-base-empty (nsvt-split hist) =
+  nu-source-value-target-base-empty hist
+nu-source-value-target-base-empty (nsvt-⊒Λ hist) =
+  nu-source-value-target-base-empty hist
+nu-source-value-target-base-empty (nsvt-⊒⟨ν⟩ hist) =
+  nu-source-value-target-base-empty hist
+nu-source-value-target-base-empty (nsvt-⊒cast+ hist) =
+  nu-source-value-target-base-empty hist
+nu-source-value-target-base-empty (nsvt-⊒cast- hist) =
+  nu-source-value-target-base-empty hist
+nu-source-value-target-base-empty
+    (nsvt-ν⊒ {vV = vV} {pᶜ = pᶜ} {N⊒N′ = N⊒N′}) =
+  nu-base-empty vV pᶜ N⊒N′
+
 data CastSource : Term → Set where
   cast-source : ∀ {M c} → CastSource (M ⟨ c ⟩)
 
@@ -762,6 +791,48 @@ cast-source-value-target-base
     (csvt-cast-⊒ {vV = vV} {pᶜ = pᶜ}
       {r≈t⨟p = r≈t⨟p} {M⊒M′ = M⊒M′}) =
   cast-base- vV pᶜ r≈t⨟p M⊒M′
+
+data CastSourceBaseEmpty : Set₁ where
+  cast-base-empty+ :
+    ∀ {Δ σ M M′ p r t A B C D}
+    → Value M′
+    → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D
+    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+    → Δ ∣ σ ∣ [] ⊢ M ⊒ M′ ∶ p
+    → CastSourceBaseEmpty
+
+  cast-base-empty- :
+    ∀ {Δ σ M M′ p r t A B C D}
+    → Value M′
+    → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D
+    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+    → Δ ∣ σ ∣ [] ⊢ M ⊒ M′ ∶ r
+    → CastSourceBaseEmpty
+
+cast-source-value-target-base-empty :
+  ∀ {Δ σ M V p src vV M⊒V} →
+  CastSourceValueTarget {Δ} {σ} {[]} {M} {V} {p} src vV M⊒V →
+  CastSourceBaseEmpty
+cast-source-value-target-base-empty (csvt-extend hist) =
+  cast-source-value-target-base-empty hist
+cast-source-value-target-base-empty (csvt-split hist) =
+  cast-source-value-target-base-empty hist
+cast-source-value-target-base-empty (csvt-⊒Λ hist) =
+  cast-source-value-target-base-empty hist
+cast-source-value-target-base-empty (csvt-⊒⟨ν⟩ hist) =
+  cast-source-value-target-base-empty hist
+cast-source-value-target-base-empty (csvt-⊒cast+ hist) =
+  cast-source-value-target-base-empty hist
+cast-source-value-target-base-empty (csvt-⊒cast- hist) =
+  cast-source-value-target-base-empty hist
+cast-source-value-target-base-empty
+    (csvt-cast+⊒ {vV = vV} {pᶜ = pᶜ}
+      {r≈t⨟p = r≈t⨟p} {M⊒M′ = M⊒M′}) =
+  cast-base-empty+ vV pᶜ r≈t⨟p M⊒M′
+cast-source-value-target-base-empty
+    (csvt-cast-⊒ {vV = vV} {pᶜ = pᶜ}
+      {r≈t⨟p = r≈t⨟p} {M⊒M′ = M⊒M′}) =
+  cast-base-empty- vV pᶜ r≈t⨟p M⊒M′
 
 data RuntimeTypeApp : Term → Set where
   runtime-• : ∀ {L} → RuntimeTypeApp (L •)

@@ -760,3 +760,51 @@ The next attempt should use these base premises directly:
 The remaining hard part is still wrapper replay: the base catchup result must be
 transported back through the `extend`, `split`, `⊒Λ`, `⊒⟨ν⟩`, and target-cast
 history while preserving the emitted store-prefix and opening evidence.
+
+## Attempt 24: expose empty-context bases and try direct base recursion
+
+Partly succeeded, but the direct proof route failed termination.
+
+The base views from Attempt 23 were too lossy for an actual base consumer: they
+hide the term context `γ`.  In the live `catchup-lemma` branch the relevant
+context is definitionally `[]`, but after erasing the wrapper path Agda sees the
+exposed `ν⊒` body under an arbitrary-looking context such as
+`Data.List.map ⇑ᶜ γ`, so a direct call to `catchup-lemma` does not type-check.
+
+I added checked empty-context variants:
+
+`nu-source-value-target-base-empty :
+  NuSourceValueTarget {γ = []} src vV M⊒V → NuSourceBaseEmpty`
+
+and
+
+`cast-source-value-target-base-empty :
+  CastSourceValueTarget {γ = []} src vV M⊒V → CastSourceBaseEmpty`.
+
+These variants recurse through `extend`, `split`, `⊒Λ`, `⊒⟨ν⟩`, `⊒cast+`,
+and `⊒cast-`, but keep the fact that all exposed base premises have context
+`[]`.  The live fallback now uses these empty-context views, so the remaining
+three base cases expose:
+
+- `nu-base-empty vBase pBaseᶜ bodyBase`;
+- `cast-base-empty+ vBase pBaseᶜ base≈ bodyBase`;
+- `cast-base-empty- vBase pBaseᶜ base≈ bodyBase`.
+
+I then probed the obvious next step in the `nu-base-empty` case:
+
+`catchup-lemma (renameᵗᵐ-preserves-Value suc vBase) bodyBase`.
+
+This type-checks far enough to show the empty-context view fixed the context
+problem and that Agda has refined the outer source to a syntactic `ν A L c`.
+However, the termination checker rejects the recursive call because `bodyBase`
+comes from the inversion/base-view computation on `hist`, not from a direct
+structural pattern match on the current `⊒Λ` premise.  So the base consumer
+cannot simply call `catchup-lemma` again on the exposed base body inside the
+same definition.
+
+Conclusion: the next viable route still needs a history-indexed replay or
+continuation that consumes the already-available recursive catchup result for
+`N⊒V′`, or a refactoring of `catchup-lemma` into a mutually recursive
+specialized helper whose recursive calls are structurally visible to Agda.  Do
+not repeat the direct base-recursive call unless the recursion structure has
+first been changed.

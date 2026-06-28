@@ -63,17 +63,17 @@ open import proof.NuTermProperties
     )
 open import proof.TermNarrowingProperties
   using
-    ( cast-base+
-    ; cast-base-
-    ; cast-source-value-target-base
-    ; neutral-blame
+    ( neutral-blame
     ; neutral-source-no-value-target
     ; neutral-`
     ; neutral-·
     ; neutral-⊕
+    ; cast-base-empty+
+    ; cast-base-empty-
+    ; cast-source-value-target-base-empty
     ; lambda-source-value-target-source-value
-    ; nu-base
-    ; nu-source-value-target-base
+    ; nu-base-empty
+    ; nu-source-value-target-base-empty
     ; remainder-cast
     ; remainder-nu
     ; renameᵗᵐ-reflects-Value
@@ -1688,33 +1688,33 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | remainder-nu hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    with nu-source-value-target-base hist
+    with nu-source-value-target-base-empty hist
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
     | remainder-nu hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | nu-base vBase pBaseᶜ bodyBase =
+    | nu-base-empty vBase pBaseᶜ bodyBase =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
     | remainder-cast hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    with cast-source-value-target-base hist
+    with cast-source-value-target-base-empty hist
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
     | remainder-cast hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | cast-base+ vBase pBaseᶜ base≈ bodyBase =
+    | cast-base-empty+ vBase pBaseᶜ base≈ bodyBase =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
     | remainder-cast hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | cast-base- vBase pBaseᶜ base≈ bodyBase =
+    | cast-base-empty- vBase pBaseᶜ base≈ bodyBase =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (vV′ ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)
     with catchup-lemma (vV′ ⟨ sᵢ ⟩) N⊒V′

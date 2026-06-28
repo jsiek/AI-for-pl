@@ -588,3 +588,59 @@ catchup skeleton.
 Do not try to prove the cast branch by starting from the reduction
 `⇑ᵗᵐ (M ⟨ c ⟩) —↠ W`; that repeats the false standalone-inversion pattern.
 The checked direction is to invert the inner term-narrowing premise first.
+
+## Attempt 19: package cast-source inversion with wrapper history
+
+Partially succeeded.  I first tried to make the cast-source classification
+return a fully dependent witness indexed by the exact term-narrowing derivation:
+
+`CastSource M → Value V → Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p → Set₁`.
+
+The intended base constructors carried the exposed `cast+⊒` or `cast-⊒`
+premise, while recursive constructors recorded `extend`, `split`, `⊒Λ`,
+`⊒⟨ν⟩`, `⊒cast+`, and `⊒cast-` wrappers.  Agda rejected this version with many
+unsolved metas.  The failures were not from a single bad branch; the datatype
+constructors themselves left hidden stores, endpoints, and coercion indices
+underdetermined.  In particular, `extend`, `split`, `⊒Λ`, and cast-wrapper
+constructors all forced Agda to infer the source/target coercion endpoints of
+their premises from an indexed witness argument, which it would not solve.
+
+The checked replacement in `proof.TermNarrowingProperties` is a lighter
+`CastSourceValueTarget` trace:
+
+`CastSource M → Value V → Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p → CastSourceValueTarget`.
+
+It records the same constructor path and still checks that cast sources with
+value targets bottom out only at `cast+⊒` or `cast-⊒`, but it intentionally does
+not carry the base premises.  This is useful as a guide and regression check,
+but it is not strong enough to rebuild the `⊒Λ` catchup branch.
+
+## Attempt 20: split the exact inner `⊒Λ` premise by remaining source shape
+
+Failed for the same constructor-form-index reason as earlier broad premise
+splits.  I tried a temporary probe over the exact inner premise shape
+
+`suc Δ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ ∣ []
+  ⊢ ⇑ᵗᵐ N ⊒ V′ ∶ p`
+
+and then specialized it to the remaining source forms
+
+`N = ν A L c`
+
+and
+
+`N = M ⟨ c ⟩`.
+
+Even in those specialized probes, Agda got stuck deciding whether the `split`
+constructor should be a case, because it had to solve equations of the form
+
+`N₀ [ αᵢ ]ᵀ ≟ ⇑ᵗᵐ (ν A L c)`
+
+or
+
+`N₀ [ αᵢ ]ᵀ ≟ ⇑ᵗᵐ (M ⟨ c ⟩)`.
+
+So specializing the outer source shape is not enough.  The next viable route
+still needs an explicit source-shape witness threaded through `split`, or a
+split-specific transport that carries the opening evidence needed to rebuild
+the catchup result.

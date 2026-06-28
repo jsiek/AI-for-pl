@@ -377,6 +377,72 @@ open-preserves-CastSource {M = M ⟨ c ⟩} cast-source =
   cast-source
 open-preserves-CastSource {M = blame} ()
 
+data CastSourceValueTarget : Set where
+  csvt-extend : CastSourceValueTarget → CastSourceValueTarget
+  csvt-split : CastSourceValueTarget → CastSourceValueTarget
+  csvt-⊒Λ : CastSourceValueTarget → CastSourceValueTarget
+  csvt-⊒⟨ν⟩ : CastSourceValueTarget → CastSourceValueTarget
+  csvt-⊒cast+ : CastSourceValueTarget → CastSourceValueTarget
+  csvt-⊒cast- : CastSourceValueTarget → CastSourceValueTarget
+  csvt-cast+⊒ : CastSourceValueTarget
+  csvt-cast-⊒ : CastSourceValueTarget
+
+cast-source-value-target-inversion :
+  ∀ {Δ σ γ M V p} →
+  (src : CastSource M) →
+  (vV : Value V) →
+  (M⊒V : Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p) →
+  CastSourceValueTarget
+cast-source-value-target-inversion src vV (extend qᶜ pαᶜ M⊒V) =
+  csvt-extend (cast-source-value-target-inversion src vV M⊒V)
+cast-source-value-target-inversion src vV
+    (split {N = N} {α = α} {αᵢ = αᵢ} qᶜ pαᶜ M⊒V) =
+  csvt-split
+    (cast-source-value-target-inversion
+      (open-preserves-CastSource {M = N} {α = αᵢ} {β = α} src)
+      vV
+      M⊒V)
+cast-source-value-target-inversion src () (⊒blame pᶜ)
+cast-source-value-target-inversion src () (x⊒x pᶜ x∋p)
+cast-source-value-target-inversion () vV (ƛ⊒ƛ p↦qᶜ N⊒N′)
+cast-source-value-target-inversion () vV (·⊒· qᶜ L⊒L′ M⊒M′)
+cast-source-value-target-inversion () (Λ vV)
+    (Λ⊒Λ allᶜ vV₁ V⊒V′)
+cast-source-value-target-inversion src (Λ vV) (⊒Λ pᶜ N⊒V′) =
+  csvt-⊒Λ
+    (cast-source-value-target-inversion
+      (renameᵗᵐ-preserves-CastSource suc src)
+      vV
+      N⊒V′)
+cast-source-value-target-inversion src (vV ⟨ i ⟩)
+    (⊒⟨ν⟩ pᶜ sᵢ N⊒V′s) =
+  csvt-⊒⟨ν⟩
+    (cast-source-value-target-inversion
+      (renameᵗᵐ-preserves-CastSource suc src)
+      (vV ⟨ sᵢ ⟩)
+      N⊒V′s)
+cast-source-value-target-inversion () vV (α⊒α qᶜ pαᶜ L⊒L′)
+cast-source-value-target-inversion src () (⊒α pαᶜ L⊒L′)
+cast-source-value-target-inversion () vV (ν⊒ν pᶜ qᶜ N⊒N′)
+cast-source-value-target-inversion src () (⊒ν pᶜ N⊒N′)
+cast-source-value-target-inversion () vV (ν⊒ pᶜ N⊒N′)
+cast-source-value-target-inversion () ($ κ) (κ⊒κ .κ)
+cast-source-value-target-inversion () vV (⊕⊒⊕ M⊒M′ N⊒N′)
+cast-source-value-target-inversion src (vV ⟨ i ⟩)
+    (⊒cast+ qᶜ q⨟s≈r M⊒M′) =
+  csvt-⊒cast+
+    (cast-source-value-target-inversion src vV M⊒M′)
+cast-source-value-target-inversion src (vV ⟨ i ⟩)
+    (⊒cast- qᶜ q⨟s≈r M⊒M′) =
+  csvt-⊒cast-
+    (cast-source-value-target-inversion src vV M⊒M′)
+cast-source-value-target-inversion cast-source vV
+    (cast+⊒ pᶜ r≈t⨟p M⊒M′) =
+  csvt-cast+⊒
+cast-source-value-target-inversion cast-source vV
+    (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
+  csvt-cast-⊒
+
 data RuntimeTypeApp : Term → Set where
   runtime-• : ∀ {L} → RuntimeTypeApp (L •)
 

@@ -68,7 +68,10 @@ open import proof.TermNarrowingProperties
     ; neutral-`
     ; neutral-·
     ; neutral-⊕
+    ; lambda-source-value-target-source-value
+    ; renameᵗᵐ-reflects-Value
     ; type-app-source-no-value-target
+    ; value?-none-no-value
     )
 open import proof.ReductionProperties
   using
@@ -1633,6 +1636,25 @@ catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′) | just vN =
   refl ,
   ⊒ˢ-nil ,
   ⊒Λ pᶜ N⊒V′
+catchup-lemma (Λ vV′) (⊒Λ {N = Λ M} pᶜ N⊒V′)
+    | nothing
+    with value? M in valueM≡
+catchup-lemma (Λ vV′) (⊒Λ {N = Λ M} pᶜ N⊒V′)
+    | nothing | just vM =
+  [] , Λ M , _ , [] , [] , [] ,
+  Λ vM ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  ⊒Λ pᶜ N⊒V′
+catchup-lemma (Λ vV′) (⊒Λ {N = Λ M} pᶜ N⊒V′)
+    | nothing | nothing =
+  ⊥-elim
+    (value?-none-no-value valueM≡
+      (renameᵗᵐ-reflects-Value (extᵗ suc)
+        (lambda-source-value-target-source-value vV′ N⊒V′)))
 catchup-lemma (Λ vV′) (⊒Λ {N = L •} pᶜ N⊒V′)
     | nothing =
   ⊥-elim (type-app-source-no-value-target vV′ N⊒V′)

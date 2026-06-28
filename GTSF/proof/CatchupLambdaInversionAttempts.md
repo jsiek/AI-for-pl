@@ -433,3 +433,46 @@ composition lemmas, because an inner source cast
 `⇑ᵗᵐ M ⟨ ⇑ᶜ t ⟩ ⊒ V′` must be converted into an outer catchup source
 `M ⟨ t ⟩ ⊒ Λ V′` at a `gen` coercion.  I did not find an actual catchup-lemma
 counterexample among these remaining shapes.
+
+## Attempt 15: exclude non-value source lambdas
+
+Succeeded.  The `N = Λ M` and `value? N = nothing` subcase is now closed in
+`proof/Catchup.agda`.
+
+The first direct lemma,
+
+`Value V → Δ ∣ σ ∣ γ ⊢ Λ M ⊒ V ∶ p → Value M`,
+
+ran into Agda's usual open-term unification problem in the `split` case:
+from a conclusion source `N [ αᵢ ]ᵀ` Agda would not infer that `N` must be a
+lambda just because the expected source was `Λ M`.
+
+The checked version uses explicit source-shape witnesses instead:
+
+- `LambdaSource M` records that the source has the form `Λ _`.
+- `LambdaBodyValue M` records that the source is `Λ M₀` and `M₀` is a value.
+- `lambda-source-value-target-body-value` proves that a lambda source related
+  to any value target has a value body, preserving the source-shape witness
+  through `extend`, `split`, `⊒Λ`, `⊒⟨ν⟩`, and target-cast wrappers.
+
+This required small value-reflection helpers:
+
+- `value?-none-no-value` turns a `value? M ≡ nothing` result into negative
+  value evidence.
+- `renameᵗᵐ-reflects-Value` and `renameᵗᵐ-reflects-LambdaBodyValue` invert
+  type renaming for value shape.
+
+In `Catchup.agda`, the branch for `N = Λ M` splits once more on `value? M`.
+The `just` subcase returns the ordinary zero-step catchup witness.  The
+`nothing` subcase reflects the value body out of the shifted inner premise and
+contradicts `value? M ≡ nothing`.
+
+After Attempts 13-15, the generic non-value fallback in the `⊒Λ` catchup
+branch should only be reachable for source terms of these forms:
+
+- `N = ν A L c`;
+- `N = M ⟨ c ⟩` where the cast is not an inert value.
+
+These are the real operational cases.  A full replacement for
+`shifted-source-catchup-Λ-inversion` should focus there rather than on neutral
+or syntactic-value shapes.

@@ -476,3 +476,77 @@ branch should only be reachable for source terms of these forms:
 These are the real operational cases.  A full replacement for
 `shifted-source-catchup-Λ-inversion` should focus there rather than on neutral
 or syntactic-value shapes.
+
+## Attempt 16: classify value-target `ν` sources
+
+Partially succeeded as an exploratory Agda probe, then the temporary probe file
+was deleted.  I defined a local source-shape witness
+
+`NuSource M`
+
+and checked a coverage proof for
+
+`NuSource M → Value V → Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p → Set`.
+
+The purpose was not the trivial `Set` conclusion; it was to ask Agda which
+term-narrowing constructors can actually match a `ν` source with a value
+target once the same explicit-source-witness style from Attempts 14-15 is used.
+
+The checked classification was:
+
+- `extend` and `split` preserve the `ν` source witness and recurse.
+- `⊒Λ`, `⊒⟨ν⟩`, `⊒cast+`, and `⊒cast-` peel target value wrappers and recurse.
+- `ν⊒` is the genuine base case.
+- `α⊒α` can have a `ν`-shaped source, because `L • α` is encoded as
+  `ν (＇ α) L (id (＇ zero))`, but it is impossible in the value-target setting
+  because its target is also a non-value type-application encoding.
+- `ν⊒ν` and `⊒ν` are impossible here because their targets are `ν` terms, not
+  values.
+
+So the remaining `N = ν A L c` branch is not blocked on constructor coverage:
+the inner premise should eventually expose a `ν⊒` base.  The real obstruction
+is later.  `catchup-ν⊒-catchup` produces a source reduction and relation for
+the opened target body, while the outer `⊒Λ` catchup conclusion needs a final
+relation to `Λ V′` at a generated coercion.  Bridging those requires the same
+under-binder shifted-source relation that the false standalone inversion tried
+to provide.
+
+Do not repeat a blind reduction-only inversion here.  A useful next lemma would
+either:
+
+- strengthen the `ν` classification to return the `ν⊒` base plus enough
+  wrapper history to rebuild the outer `⊒Λ` result, or
+- prove a focused premise-aware shifted-source inversion only for sources that
+  have already been classified down to `ν⊒`.
+
+No counterexample to the full `catchup-lemma` was found in the `ν` source
+classification.
+
+## Attempt 17: inspect the non-inert cast source route
+
+Partially explored.  The surrounding catchup proof already handles top-level
+source casts with the pattern:
+
+1. recursively catch the cast body up to a source value;
+2. lift the reduction through the cast;
+3. invoke `left-widening-lemma` or `left-narrowing-lemma`;
+4. compose emitted store prefixes.
+
+For the `⊒Λ` branch, however, the cast appears inside the inner shifted premise:
+
+`suc Δ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ ∣ []
+  ⊢ ⇑ᵗᵐ (M ⟨ c ⟩) ⊒ V′ ∶ p`.
+
+To reuse the existing cast catchup skeleton, the proof first needs inversion of
+that inner term-narrowing derivation to expose a `cast+⊒` or `cast-⊒` source
+cast premise, including its composition side condition.  This is the same kind
+of missing infrastructure called out in `proof.LeftSealNarrowingInversion`:
+that experiment gets stuck needing a transport principle like
+
+`termNarrowing-resp-≈`.
+
+So the next cast-focused step should not start by moving reductions around.
+It should first prove a small source-cast inversion lemma, using an explicit
+`CastSource` witness to get through `extend` and `split`, and decide whether
+the required coercion transport can be proved from the existing endpoint
+equivalence machinery.

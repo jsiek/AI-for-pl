@@ -719,3 +719,44 @@ the live code now exposes exactly two checked subgoals:
 This avoids repeating the source-shape exclusions and gives the next proof
 attempt a concrete entry point: replace the call to `catchup-⊒Λ-catchup` in
 each classified branch by a consumer for the corresponding history.
+
+## Attempt 23: expose the real base premises in the live fallback
+
+Succeeded.  The wrapper-history witnesses from Attempts 19 and 21 still left
+the live `⊒Λ` fallback one step away from the usable premises.  I added base
+views in `proof.TermNarrowingProperties`:
+
+`nu-source-value-target-base :
+  NuSourceValueTarget src vV M⊒V → NuSourceBase`
+
+and
+
+`cast-source-value-target-base :
+  CastSourceValueTarget src vV M⊒V → CastSourceBase`.
+
+These functions recurse through the recorded wrapper history and expose the
+genuine base constructor:
+
+- `nu-base`, carrying the `ν⊒` premise;
+- `cast-base+`, carrying the `cast+⊒` premise;
+- `cast-base-`, carrying the `cast-⊒` premise.
+
+I then threaded the base views into the actual `catchup-lemma` `⊒Λ` fallback.
+The branch still delegates to `catchup-⊒Λ-catchup`, so this is not a proof of
+the case yet, but the live code now presents the final missing work in three
+checked base cases:
+
+- `remainder-nu hist | nu-base vBase pBaseᶜ bodyBase`;
+- `remainder-cast hist | cast-base+ vBase pBaseᶜ base≈ bodyBase`;
+- `remainder-cast hist | cast-base- vBase pBaseᶜ base≈ bodyBase`.
+
+The next attempt should use these base premises directly:
+
+- for `nu-base`, apply `catchup-ν⊒-catchup` at the base and then replay the
+  recorded wrappers;
+- for `cast-base+` and `cast-base-`, use the existing left
+  widening/narrowing skeleton and then replay wrappers.
+
+The remaining hard part is still wrapper replay: the base catchup result must be
+transported back through the `extend`, `split`, `⊒Λ`, `⊒⟨ν⟩`, and target-cast
+history while preserving the emitted store-prefix and opening evidence.

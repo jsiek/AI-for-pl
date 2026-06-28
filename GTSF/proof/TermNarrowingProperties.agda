@@ -504,6 +504,35 @@ nu-source-value-target-inversion () vV
 nu-source-value-target-inversion () vV
     (cast-⊒ pᶜ r≈t⨟p M⊒M′)
 
+data NuSourceBase : Set₁ where
+  nu-base :
+    ∀ {Δ σ γ N N′ p A B}
+    → Value N′
+    → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B
+    → suc Δ ∣ (⊒ zero ꞉=☆) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+        ⊢ N ⊒ ⇑ᵗᵐ N′ ∶ ⇑ᶜ p
+    → NuSourceBase
+
+nu-source-value-target-base :
+  ∀ {Δ σ γ M V p src vV M⊒V} →
+  NuSourceValueTarget {Δ} {σ} {γ} {M} {V} {p} src vV M⊒V →
+  NuSourceBase
+nu-source-value-target-base (nsvt-extend hist) =
+  nu-source-value-target-base hist
+nu-source-value-target-base (nsvt-split hist) =
+  nu-source-value-target-base hist
+nu-source-value-target-base (nsvt-⊒Λ hist) =
+  nu-source-value-target-base hist
+nu-source-value-target-base (nsvt-⊒⟨ν⟩ hist) =
+  nu-source-value-target-base hist
+nu-source-value-target-base (nsvt-⊒cast+ hist) =
+  nu-source-value-target-base hist
+nu-source-value-target-base (nsvt-⊒cast- hist) =
+  nu-source-value-target-base hist
+nu-source-value-target-base
+    (nsvt-ν⊒ {vV = vV} {pᶜ = pᶜ} {N⊒N′ = N⊒N′}) =
+  nu-base vV pᶜ N⊒N′
+
 data CastSource : Term → Set where
   cast-source : ∀ {M c} → CastSource (M ⟨ c ⟩)
 
@@ -691,6 +720,48 @@ cast-source-value-target-inversion cast-source vV
 cast-source-value-target-inversion cast-source vV
     (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
   csvt-cast-⊒
+
+data CastSourceBase : Set₁ where
+  cast-base+ :
+    ∀ {Δ σ γ M M′ p r t A B C D}
+    → Value M′
+    → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D
+    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+    → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p
+    → CastSourceBase
+
+  cast-base- :
+    ∀ {Δ σ γ M M′ p r t A B C D}
+    → Value M′
+    → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D
+    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+    → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r
+    → CastSourceBase
+
+cast-source-value-target-base :
+  ∀ {Δ σ γ M V p src vV M⊒V} →
+  CastSourceValueTarget {Δ} {σ} {γ} {M} {V} {p} src vV M⊒V →
+  CastSourceBase
+cast-source-value-target-base (csvt-extend hist) =
+  cast-source-value-target-base hist
+cast-source-value-target-base (csvt-split hist) =
+  cast-source-value-target-base hist
+cast-source-value-target-base (csvt-⊒Λ hist) =
+  cast-source-value-target-base hist
+cast-source-value-target-base (csvt-⊒⟨ν⟩ hist) =
+  cast-source-value-target-base hist
+cast-source-value-target-base (csvt-⊒cast+ hist) =
+  cast-source-value-target-base hist
+cast-source-value-target-base (csvt-⊒cast- hist) =
+  cast-source-value-target-base hist
+cast-source-value-target-base
+    (csvt-cast+⊒ {vV = vV} {pᶜ = pᶜ}
+      {r≈t⨟p = r≈t⨟p} {M⊒M′ = M⊒M′}) =
+  cast-base+ vV pᶜ r≈t⨟p M⊒M′
+cast-source-value-target-base
+    (csvt-cast-⊒ {vV = vV} {pᶜ = pᶜ}
+      {r≈t⨟p = r≈t⨟p} {M⊒M′ = M⊒M′}) =
+  cast-base- vV pᶜ r≈t⨟p M⊒M′
 
 data RuntimeTypeApp : Term → Set where
   runtime-• : ∀ {L} → RuntimeTypeApp (L •)

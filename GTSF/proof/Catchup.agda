@@ -219,6 +219,49 @@ last-bind-empty-target-left-tail {χs = χs} {A = A} {keeps = keeps}
     (storeTail-∷≡ full≡)
     π⊒
 
+⊒ˢ-empty-shift-inv :
+  ∀ {Δ π Σ} →
+  Δ ⊢ π ꞉ ⟰ᵗ Σ ⊒ˢ [] →
+  ∃[ π′ ] (π ≡ ⇑ˢ π′) × Δ ⊢ π′ ꞉ Σ ⊒ˢ []
+⊒ˢ-empty-shift-inv {Σ = []} ⊒ˢ-nil =
+  [] , refl , ⊒ˢ-nil
+⊒ˢ-empty-shift-inv {Σ = (X , ＇ Y) ∷ Σ} ()
+⊒ˢ-empty-shift-inv {Σ = (X , ‵ ι) ∷ Σ} ()
+⊒ˢ-empty-shift-inv {Σ = (X , ★) ∷ Σ} (⊒ˢ-left π⊒)
+    with ⊒ˢ-empty-shift-inv π⊒
+⊒ˢ-empty-shift-inv {Σ = (X , ★) ∷ Σ} (⊒ˢ-left π⊒)
+    | π′ , π≡ , π′⊒ =
+  (⊒ X ꞉=☆) ∷ π′ , cong ((⊒ suc X ꞉=☆) ∷_) π≡ ,
+  ⊒ˢ-left π′⊒
+⊒ˢ-empty-shift-inv {Σ = (X , A ⇒ B) ∷ Σ} ()
+⊒ˢ-empty-shift-inv {Σ = (X , `∀ A) ∷ Σ} ()
+
+last-bind-empty-target-lowered-tail :
+  ∀ {Δ π Π χs A keeps} →
+  AllKeep keeps →
+  Π ≡ applyStores (χs ++ bind A ∷ keeps) [] →
+  Δ ⊢ π ꞉ Π ⊒ˢ [] →
+  ∃[ π₀ ] (π ≡ (⊒ zero ꞉=☆) ∷ ⇑ˢ π₀) ×
+    Δ ⊢ π₀ ꞉ applyStores χs [] ⊒ˢ []
+last-bind-empty-target-lowered-tail {χs = χs} {A = A} {keeps = keeps}
+    keeps-ok Π≡ π⊒
+    with last-bind-empty-target-left-tail
+      {χs = χs} {A = A} {keeps = keeps} keeps-ok Π≡ π⊒
+last-bind-empty-target-lowered-tail {χs = χs} keeps-ok Π≡ π⊒
+    | X , πtail , π≡ , X≡0 , πtail⊒
+    with ⊒ˢ-empty-shift-inv {Σ = applyStores χs []} πtail⊒
+last-bind-empty-target-lowered-tail {χs = χs} keeps-ok Π≡ π⊒
+    | X , πtail , π≡ , refl , πtail⊒
+    | π₀ , πtail≡ , π₀⊒ =
+  π₀ , trans π≡ (cong ((⊒ zero ꞉=☆) ∷_) πtail≡) , π₀⊒
+
+combineStoreNrw-source-star-shifted-tail :
+  ∀ π σ →
+  combineStoreNrw ((⊒ zero ꞉=☆) ∷ ⇑ˢ π) σ ≡
+    (⊒ zero ꞉=☆) ∷ ⇑ˢ (combineStoreNrw π σ)
+combineStoreNrw-source-star-shifted-tail π σ =
+  cong ((⊒ zero ꞉=☆) ∷_) (sym (combineStoreNrw-⇑ˢ π σ))
+
 ⊒ˢ-empty-empty-nil :
   ∀ {Δ π} →
   Δ ⊢ π ꞉ [] ⊒ˢ [] →
@@ -1923,6 +1966,18 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | last-bind χs₀ Aχ keeps keeps-ok
     | Aχ≡★
+    with last-bind-empty-target-lowered-tail
+      {χs = χs₀} {A = Aχ} {keeps = keeps}
+      keeps-ok Π≡
+      (subst (λ Π₀ → Δ′ ⊢ π ꞉ Π ⊒ˢ Π₀) Π′≡ π⊒)
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-nu hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | last-bind χs₀ Aχ keeps keeps-ok
+    | Aχ≡★
+    | π₀ , π≡ , π₀⊒
     with ↠-split-last-bind {χs = χs₀} {A = Aχ} {keeps = keeps} ⇑N↠W
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
@@ -1931,6 +1986,7 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | last-bind χs₀ Aχ keeps keeps-ok
     | Aχ≡★
+    | π₀ , π≡ , π₀⊒
     | P , Q , ⇑N↠P , P→Q , Q↠W
     with nu-source-value-target-base-empty hist
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
@@ -1940,6 +1996,7 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | last-bind χs₀ Aχ keeps keeps-ok
     | Aχ≡★
+    | π₀ , π≡ , π₀⊒
     | P , Q , ⇑N↠P , P→Q , Q↠W
     | nu-base-empty vBase pBaseᶜ bodyBase =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
@@ -2021,6 +2078,18 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | last-bind χs₀ Aχ keeps keeps-ok
     | Aχ≡★
+    with last-bind-empty-target-lowered-tail
+      {χs = χs₀} {A = Aχ} {keeps = keeps}
+      keeps-ok Π≡
+      (subst (λ Π₀ → Δ′ ⊢ π ꞉ Π ⊒ˢ Π₀) Π′≡ π⊒)
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-cast hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | last-bind χs₀ Aχ keeps keeps-ok
+    | Aχ≡★
+    | π₀ , π≡ , π₀⊒
     with ↠-split-last-bind {χs = χs₀} {A = Aχ} {keeps = keeps} ⇑N↠W
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
@@ -2029,6 +2098,7 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | last-bind χs₀ Aχ keeps keeps-ok
     | Aχ≡★
+    | π₀ , π≡ , π₀⊒
     | P , Q , ⇑N↠P , P→Q , Q↠W
     with cast-source-value-target-base-empty hist
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
@@ -2038,6 +2108,7 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | last-bind χs₀ Aχ keeps keeps-ok
     | Aχ≡★
+    | π₀ , π≡ , π₀⊒
     | P , Q , ⇑N↠P , P→Q , Q↠W
     | cast-base-empty+ vBase pBaseᶜ base≈ bodyBase =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
@@ -2048,6 +2119,7 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | last-bind χs₀ Aχ keeps keeps-ok
     | Aχ≡★
+    | π₀ , π≡ , π₀⊒
     | P , Q , ⇑N↠P , P→Q , Q↠W
     | cast-base-empty- vBase pBaseᶜ base≈ bodyBase =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′

@@ -1461,3 +1461,45 @@ transport failures from Attempts 7 and 8.
 Next useful target: define a narrow exchange relation for this exact pair of
 store shapes, then prove only the term-imprecision clauses reachable from the
 last-bind replay instead of a generic source-transport theorem.
+
+## Attempt 46: lower the shifted prefix tail after the final star bind
+
+Succeeded as checked store algebra.  The earlier last-bind fact exposed
+
+`π = (⊒ zero ꞉=☆) ∷ πtail`
+
+with
+
+`πtail : ⟰ᵗ (applyStores χs []) ⊒ˢ []`.
+
+I added a small inversion for empty-target shifted stores:
+
+`⊒ˢ-empty-shift-inv :
+  Δ ⊢ π ꞉ ⟰ᵗ Σ ⊒ˢ [] →
+  ∃[ π′ ] (π ≡ ⇑ˢ π′) × Δ ⊢ π′ ꞉ Σ ⊒ˢ []`.
+
+Combining it with Attempt 44 gives the sharper checked form
+
+`last-bind-empty-target-lowered-tail :
+  ∃[ π₀ ] (π ≡ (⊒ zero ꞉=☆) ∷ ⇑ˢ π₀) ×
+    Δ ⊢ π₀ ꞉ applyStores χs [] ⊒ˢ []`.
+
+I also added the corresponding append algebra:
+
+`combineStoreNrw-source-star-shifted-tail :
+  combineStoreNrw ((⊒ zero ꞉=☆) ∷ ⇑ˢ π) σ ≡
+    (⊒ zero ꞉=☆) ∷ ⇑ˢ (combineStoreNrw π σ)`.
+
+This is useful but not sufficient.  After substituting this shape, the live
+last-bind relation is under the store
+
+`(⊒ zero ꞉=☆) ∷ ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))`.
+
+The body required to rebuild `⊒Λ` wants the adjacent binders in the opposite
+order:
+
+`(zero ꞉= ★ ⊒) ∷ ⇑ˢ ((⊒ zero ꞉=☆) ∷ combineStoreNrw π₀ σ)`.
+
+So the remaining issue is not more tail inversion; it is an adjacent
+source-only/target-only binder exchange with the corresponding de Bruijn
+renaming of the term, target, and coercion indices.

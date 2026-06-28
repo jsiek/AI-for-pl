@@ -1225,3 +1225,44 @@ the live branch, `W′` would be `renameᵗᵐ predᵗ W`, and the missing premi
 exactly the premise-aware source bridge from Attempt 32.  The new finisher
 shows that no store, target, or coercion bookkeeping remains hidden in that
 subcase.
+
+## Attempt 39: reduce no-bind replay to a shifted-image equality
+
+Succeeded as another checked factoring step.  I added
+
+`catchup-⊒Λ-no-bind-shift-image`.
+
+This helper consumes the actual recursive catchup relation
+
+`Δ′ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+  ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p`
+
+and produces the full outer no-bind `⊒Λ` catchup conclusion, assuming:
+
+- `AllKeep χs`;
+- the unshifted reduction endpoint `W′`;
+- `N —↠[ χs ] W′`;
+- the context equality `Δ′ ≡ applyTyCtxs χs (suc Δ)`;
+- `π ≡ []`; and
+- the shifted-image equality `W ≡ ⇑ᵗᵐ W′`.
+
+The proof transports the recursive relation through:
+
+- `allKeep-applyTyCtxs-id`;
+- `combineStoreNrw [] σ ≡ σ`;
+- `allKeep-applyTerms-id`;
+- `allKeep-applyCoercions-id`; and
+- the source equality `W ≡ ⇑ᵗᵐ W′`,
+
+then calls `catchup-⊒Λ-no-bind-finish`.
+
+For the live no-bind cast branch, `W′` is already available as
+`renameᵗᵐ predᵗ W` via `pure-pred-↠-shifted-value`, so the branch is now
+isolated to proving
+
+`W ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)`.
+
+That equality is false in general, as the `proof.TraceProbe` counterexample to
+the standalone inversion shows.  A valid proof must derive it from the actual
+`⊒Λ` premise and cast-source history, or avoid it by producing the body relation
+directly.  Do not try to use this helper with a generic shifted-trace equality.

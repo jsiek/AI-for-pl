@@ -109,6 +109,7 @@ open import proof.ReductionProperties
     ; applyTerms-cast
     ; applyTerms-cast-dual
     ; applyTermsUnderTyBinders
+    ; allKeep-applyTerms-id
     ; allKeep-applyTermsUnderTyBinders-id
     ; applyTyVars
     ; applyTyCtxs-empty-id
@@ -121,6 +122,7 @@ open import proof.ReductionProperties
     ; applyTys-last-bind
     ; applyTys-★
     ; AllKeep
+    ; allKeep-applyCoercions-id
     ; allKeep-applyTyCtxs-id
     ; allKeep-applyStores-id
     ; allKeep-applyTys-id
@@ -1529,6 +1531,62 @@ catchup-⊒Λ-no-bind-finish {Δ = Δ} {σ = σ} {χs = χs}
       (λ T → Δ ∣ combineStoreNrw [] σ ∣ [] ⊢ W′ ⊒ T ∶ gen A p)
       (sym target≡)
       rebuilt)
+
+catchup-⊒Λ-no-bind-shift-image :
+  ∀ {Δ σ χs N W W′ Δ′ π A B V′ p} →
+  AllKeep χs →
+  Value W′ →
+  (N —↠[ χs ] W′) →
+  Δ′ ≡ applyTyCtxs χs (suc Δ) →
+  π ≡ [] →
+  W ≡ ⇑ᵗᵐ W′ →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+    ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p →
+  ∃[ χs′ ] ∃[ W″ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
+    Value W″ ×
+    (N —↠[ χs′ ] W″) ×
+    (Δ″ ≡ applyTyCtxs χs′ Δ) ×
+    (Π″ ≡ applyStores χs′ []) ×
+    (Π″′ ≡ applyStore keep []) ×
+    Δ″ ⊢ π′ ꞉ Π″ ⊒ˢ Π″′ ×
+    Δ″ ∣ combineStoreNrw π′ σ ∣ []
+      ⊢ W″ ⊒ applyTerms χs′ (Λ V′)
+        ∶ applyCoercions χs′ (gen A p)
+catchup-⊒Λ-no-bind-shift-image
+    {Δ = Δ} {σ = σ} {χs = χs} {W = W} {W′ = W′}
+    {Δ′ = Δ′} {π = π} {V′ = V′} {p = p}
+    keeps vW′ N↠W′ Δ′≡ π≡[] W≡⇑W′ pᶜ W⊒V′ =
+  catchup-⊒Λ-no-bind-finish keeps vW′ N↠W′ pᶜ body
+  where
+    σ★ = (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ
+    Δ′≡sucΔ = trans Δ′≡ (allKeep-applyTyCtxs-id keeps (suc Δ))
+    σ≡ = cong (λ π₀ → combineStoreNrw π₀ σ★) π≡[]
+    target≡ = allKeep-applyTerms-id keeps V′
+    coercion≡ = allKeep-applyCoercions-id keeps p
+
+    body :
+      suc Δ ∣ σ★ ∣ [] ⊢ ⇑ᵗᵐ W′ ⊒ V′ ∶ p
+    body =
+      subst
+        (λ Δ₀ → Δ₀ ∣ σ★ ∣ [] ⊢ ⇑ᵗᵐ W′ ⊒ V′ ∶ p)
+        Δ′≡sucΔ
+        (subst
+          (λ σ₀ → Δ′ ∣ σ₀ ∣ [] ⊢ ⇑ᵗᵐ W′ ⊒ V′ ∶ p)
+          σ≡
+          (subst
+            (λ c → Δ′ ∣ combineStoreNrw π σ★ ∣ []
+              ⊢ ⇑ᵗᵐ W′ ⊒ V′ ∶ c)
+            coercion≡
+            (subst
+              (λ T → Δ′ ∣ combineStoreNrw π σ★ ∣ []
+                ⊢ ⇑ᵗᵐ W′ ⊒ T ∶ applyCoercions χs p)
+              target≡
+              (subst
+                (λ S → Δ′ ∣ combineStoreNrw π σ★ ∣ []
+                  ⊢ S ⊒ applyTerms χs V′ ∶ applyCoercions χs p)
+                W≡⇑W′
+                W⊒V′))))
 
 catchup-⊒Λ-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p} →

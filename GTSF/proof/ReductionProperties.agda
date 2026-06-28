@@ -33,6 +33,7 @@ open import proof.NuTermProperties
     ; renameᵗᵐ-open-commute
     ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-preserves-No•
+    ; renameᵗᵐ-pred-suc
     ; renameᵗᵐ-single-subst
     )
 open import proof.TypeProperties using (predᵗ; renameᵗ-ext-suc-comm)
@@ -1162,6 +1163,18 @@ pure-pred-↠-value (all-keep keeps) (↠-step red reds) vV
   ⊥-elim
     (noN (pure-pred-↠-value keeps reds vV)
       (renameᵗᵐ-preserves-Value predᵗ vV))
+
+pure-pred-↠-shifted-value :
+  ∀ {M V χs} →
+  AllKeep χs →
+  ⇑ᵗᵐ M —↠[ χs ] V →
+  Value V →
+  M —↠[ χs ] renameᵗᵐ predᵗ V
+pure-pred-↠-shifted-value {M = M} {V = V} {χs = χs} keeps reds vV =
+  subst
+    (λ L → L —↠[ χs ] renameᵗᵐ predᵗ V)
+    (renameᵗᵐ-pred-suc M)
+    (pure-pred-↠-value keeps reds vV)
 
 allKeep-ν-no-value :
   ∀ {A M c χs V} →

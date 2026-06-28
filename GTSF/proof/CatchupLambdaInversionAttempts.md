@@ -1005,3 +1005,56 @@ The remaining live `remainder-nu` branch is now explicitly the
 
 subcase.  It still delegates to `catchup-⊒Λ-catchup`, so this is not the final
 proof, but the impossible no-bind path has been removed from the hard case.
+
+## Attempt 32: package the all-`keep` unshifted reduction
+
+Succeeded for the reduction half.  I added
+
+`pure-pred-↠-shifted-value :
+  AllKeep χs →
+  ⇑ᵗᵐ M —↠[ χs ] V →
+  Value V →
+  M —↠[ χs ] renameᵗᵐ predᵗ V`.
+
+This is just `pure-pred-↠-value` specialized to a shifted source, followed by
+`renameᵗᵐ-pred-suc` to rewrite the source back to `M`.
+
+This is useful but not a proof of any remaining `⊒Λ` fallback branch.  To
+rebuild the final `⊒Λ` relation, one needs an inner source relation for
+`⇑ᵗᵐ (renameᵗᵐ predᵗ V)`, while the recursive catchup result provides a
+relation for `V`.  Turning the latter into the former is exactly the
+source-relation part of the false standalone shifted-source inversion.  The
+all-`keep` reduction lemma is safe; a corresponding relation lemma must remain
+premise-aware or it will repeat the `TraceProbe` counterexample.
+
+## Attempt 33: mechanize the star-bind invariant for empty targets
+
+Succeeded.  I added two small store-shape lemmas in `proof.Catchup`:
+
+`⊒ˢ-empty-source-head-star :
+  Δ ⊢ π ꞉ (α , A) ∷ Σ ⊒ˢ [] →
+  A ≡ ★`
+
+and
+
+`last-bind-empty-target-star :
+  AllKeep keeps →
+  Π ≡ applyStores (χs ++ bind A ∷ keeps) [] →
+  Δ ⊢ π ꞉ Π ⊒ˢ [] →
+  A ≡ ★`.
+
+The first lemma is just inversion on store narrowing to the empty target store:
+the only possible nonempty constructor is `⊒ˢ-left`, whose source head is
+`★`.  The second combines that inversion with `applyStores-last-bind` and
+`⇑ᵗ-★-inv`.
+
+The live `remainder-nu`/`last-bind` branch now calls
+`last-bind-empty-target-star` and carries the local fact
+
+`Aχ≡★ : Aχ ≡ ★`.
+
+Trying to pattern-refine the branch directly with `refl` got stuck in Agda's
+nested `with` abstraction, so the checked version keeps the equality as an
+explicit local witness.  This still does not prove the branch, but it makes the
+remaining replay obligation match the paper intuition: the final emitted bind
+is source-only star.

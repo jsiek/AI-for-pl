@@ -118,6 +118,7 @@ open import proof.ReductionProperties
     ; applyTysUnderTyBinders
     ; applyTys-last-bind
     ; applyTys-★
+    ; AllKeep
     ; allKeep-applyStores-id
     ; applyStores-++
     ; ⟰ᵗ-empty-inv
@@ -150,6 +151,37 @@ open import proof.CatchupStore
     ; combineStoreNrw-applyStores
     ; combineStoreNrw-applyStores-store
     )
+
+⊒ˢ-empty-source-head-star :
+  ∀ {Δ π α A Σ} →
+  Δ ⊢ π ꞉ (α , A) ∷ Σ ⊒ˢ [] →
+  A ≡ ★
+⊒ˢ-empty-source-head-star (⊒ˢ-left π⊒) = refl
+
+⇑ᵗ-★-inv :
+  ∀ {A} →
+  ⇑ᵗ A ≡ ★ →
+  A ≡ ★
+⇑ᵗ-★-inv {A = ＇ X} ()
+⇑ᵗ-★-inv {A = ‵ ι} ()
+⇑ᵗ-★-inv {A = ★} refl = refl
+⇑ᵗ-★-inv {A = A ⇒ B} ()
+⇑ᵗ-★-inv {A = `∀ A} ()
+
+last-bind-empty-target-star :
+  ∀ {Δ π Π χs A keeps} →
+  AllKeep keeps →
+  Π ≡ applyStores (χs ++ bind A ∷ keeps) [] →
+  Δ ⊢ π ꞉ Π ⊒ˢ [] →
+  A ≡ ★
+last-bind-empty-target-star {χs = χs} {A = A} {keeps = keeps}
+    keeps-ok Π≡ π⊒ =
+  ⇑ᵗ-★-inv
+    (⊒ˢ-empty-source-head-star
+      (subst
+        (λ Π → _ ⊢ _ ꞉ Π ⊒ˢ [])
+        (trans Π≡ (applyStores-last-bind χs A keeps keeps-ok []))
+        π⊒))
 
 ------------------------------------------------------------------------
 -- Catchup
@@ -1703,6 +1735,17 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | last-bind χs₀ Aχ keeps keeps-ok
+    with last-bind-empty-target-star
+      {χs = χs₀} {A = Aχ} {keeps = keeps}
+      keeps-ok Π≡
+      (subst (λ Π₀ → Δ′ ⊢ π ꞉ Π ⊒ˢ Π₀) Π′≡ π⊒)
+catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
+    | remainder-nu hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+    | last-bind χs₀ Aχ keeps keeps-ok
+    | Aχ≡★
     with nu-source-value-target-base-empty hist
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
@@ -1710,6 +1753,7 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | last-bind χs₀ Aχ keeps keeps-ok
+    | Aχ≡★
     | nu-base-empty vBase pBaseᶜ bodyBase =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)

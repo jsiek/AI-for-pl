@@ -69,7 +69,10 @@ open import proof.TermNarrowingProperties
     ; neutral-·
     ; neutral-⊕
     ; lambda-source-value-target-source-value
+    ; remainder-cast
+    ; remainder-nu
     ; renameᵗᵐ-reflects-Value
+    ; shifted-source-remainder
     ; type-app-source-no-value-target
     ; value?-none-no-value
     )
@@ -1626,7 +1629,8 @@ catchup-lemma (Λ vV′) (Λ⊒Λ allᶜ vV V⊒V′) =
   refl ,
   ⊒ˢ-nil ,
   Λ⊒Λ allᶜ vV V⊒V′
-catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′) with value? N
+catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
+    with value? N in valueN≡
 catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′) | just vN =
   [] , N , _ , [] , [] , [] ,
   vN ,
@@ -1670,11 +1674,19 @@ catchup-lemma (Λ vV′) (⊒Λ {N = L ⊕[ op ] M} pᶜ N⊒V′)
 catchup-lemma (Λ vV′) (⊒Λ {N = blame} pᶜ N⊒V′)
     | nothing =
   ⊥-elim (neutral-source-no-value-target neutral-blame vV′ N⊒V′)
+catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
+    | nothing
+    with shifted-source-remainder N valueN≡ vV′ N⊒V′
+       | catchup-lemma vV′ N⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
-    with catchup-lemma vV′ N⊒V′
+    | remainder-nu hist
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′ =
+  catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
+    | remainder-cast hist
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′ =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′

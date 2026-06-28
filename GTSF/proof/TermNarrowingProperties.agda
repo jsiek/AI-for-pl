@@ -7,7 +7,7 @@ module proof.TermNarrowingProperties where
 --   * Depends on the public definitions in `TermNarrowing` and `NarrowWiden`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Empty using (⊥)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (_∷_)
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (suc; zero)
@@ -855,3 +855,82 @@ neutral-source-no-value-target neu (vV ⟨ i ⟩)
   neutral-source-no-value-target neu vV M⊒M′
 neutral-source-no-value-target () vV (cast+⊒ pᶜ r≈t⨟p M⊒M′)
 neutral-source-no-value-target () vV (cast-⊒ pᶜ r≈t⨟p M⊒M′)
+
+data ShiftedSourceRemainder :
+  ∀ {Δ σ γ N V p} →
+  Value V →
+  Δ ∣ σ ∣ γ ⊢ ⇑ᵗᵐ N ⊒ V ∶ p →
+  Set₁ where
+
+  remainder-nu :
+    ∀ {Δ σ γ A L c V p}
+      {vV : Value V}
+      {N⊒V : Δ ∣ σ ∣ γ
+        ⊢ ⇑ᵗᵐ (ν A L c) ⊒ V ∶ p}
+    → NuSourceValueTarget
+        (renameᵗᵐ-preserves-NuSource suc nu-source)
+        vV
+        N⊒V
+    → ShiftedSourceRemainder vV N⊒V
+
+  remainder-cast :
+    ∀ {Δ σ γ M c V p}
+      {vV : Value V}
+      {N⊒V : Δ ∣ σ ∣ γ
+        ⊢ ⇑ᵗᵐ (M ⟨ c ⟩) ⊒ V ∶ p}
+    → CastSourceValueTarget
+        (renameᵗᵐ-preserves-CastSource suc cast-source)
+        vV
+        N⊒V
+    → ShiftedSourceRemainder vV N⊒V
+
+shifted-source-remainder :
+  ∀ {Δ σ γ V p} N →
+  value? N ≡ nothing →
+  (vV : Value V) →
+  (N⊒V : Δ ∣ σ ∣ γ ⊢ ⇑ᵗᵐ N ⊒ V ∶ p) →
+  ShiftedSourceRemainder vV N⊒V
+shifted-source-remainder (` x) refl vV N⊒V =
+  ⊥-elim (neutral-source-no-value-target neutral-` vV N⊒V)
+shifted-source-remainder (ƛ M) () vV N⊒V
+shifted-source-remainder (L · M) refl vV N⊒V =
+  ⊥-elim (neutral-source-no-value-target neutral-· vV N⊒V)
+shifted-source-remainder (Λ M) eq vV N⊒V
+    with value? M in valueM≡
+shifted-source-remainder (Λ M) () vV N⊒V | just vM
+shifted-source-remainder (Λ M) refl vV N⊒V | nothing =
+  ⊥-elim
+    (value?-none-no-value valueM≡
+      (renameᵗᵐ-reflects-Value (extᵗ suc)
+        (lambda-source-value-target-source-value vV N⊒V)))
+shifted-source-remainder (M •) refl vV N⊒V =
+  ⊥-elim (type-app-source-no-value-target vV N⊒V)
+shifted-source-remainder (ν A L c) refl vV N⊒V =
+  remainder-nu
+    (nu-source-value-target-inversion
+      (renameᵗᵐ-preserves-NuSource suc nu-source)
+      vV
+      N⊒V)
+shifted-source-remainder ($ κ) () vV N⊒V
+shifted-source-remainder (L ⊕[ op ] M) refl vV N⊒V =
+  ⊥-elim (neutral-source-no-value-target neutral-⊕ vV N⊒V)
+shifted-source-remainder (M ⟨ c ⟩) eq vV N⊒V
+    with value? M | inert? c
+shifted-source-remainder (M ⟨ c ⟩) () vV N⊒V
+    | just vM | just i
+shifted-source-remainder (M ⟨ c ⟩) refl vV N⊒V
+    | just vM | nothing =
+  remainder-cast
+    (cast-source-value-target-inversion
+      (renameᵗᵐ-preserves-CastSource suc cast-source)
+      vV
+      N⊒V)
+shifted-source-remainder (M ⟨ c ⟩) refl vV N⊒V
+    | nothing | inert =
+  remainder-cast
+    (cast-source-value-target-inversion
+      (renameᵗᵐ-preserves-CastSource suc cast-source)
+      vV
+      N⊒V)
+shifted-source-remainder blame refl vV N⊒V =
+  ⊥-elim (neutral-source-no-value-target neutral-blame vV N⊒V)

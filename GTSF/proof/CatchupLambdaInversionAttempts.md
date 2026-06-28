@@ -687,3 +687,35 @@ The next proof obligation is a consumer for these histories: run the appropriate
 base catchup (`catchup-ν⊒-catchup`, `left-widening-lemma`, or
 `left-narrowing-lemma`) and replay the recorded wrappers while transporting the
 emitted store prefix and opening evidence back to the outer `⊒Λ` conclusion.
+
+## Attempt 22: classify the live non-value `⊒Λ` fallback
+
+Succeeded.  I packaged the hand-written source exclusions from Attempts 13-16
+into a reusable checked classifier:
+
+`shifted-source-remainder :
+  value? N ≡ nothing →
+  Value V →
+  Δ ∣ σ ∣ γ ⊢ ⇑ᵗᵐ N ⊒ V ∶ p →
+  ShiftedSourceRemainder vV N⊒V`.
+
+The classifier pattern matches on the original, unshifted `N`:
+
+- values are impossible from `value? N ≡ nothing`;
+- lambda sources use `lambda-source-value-target-source-value` to contradict
+  non-value bodies;
+- runtime type applications use `type-app-source-no-value-target`;
+- neutral sources use `neutral-source-no-value-target`;
+- `ν` sources return the `NuSourceValueTarget` history from Attempt 21;
+- cast sources return the `CastSourceValueTarget` history from Attempt 19.
+
+I then threaded this classifier into the actual `catchup-lemma` `⊒Λ` fallback.
+The branch still calls `catchup-⊒Λ-catchup`, so this is not the final proof, but
+the live code now exposes exactly two checked subgoals:
+
+- `remainder-nu hist`;
+- `remainder-cast hist`.
+
+This avoids repeating the source-shape exclusions and gives the next proof
+attempt a concrete entry point: replace the call to `catchup-⊒Λ-catchup` in
+each classified branch by a consumer for the corresponding history.

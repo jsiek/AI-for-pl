@@ -373,6 +373,95 @@ renameˣ-renameᵗᵐ ρ τ (M ⟨ c ⟩) =
   cong (λ M′ → M′ ⟨ renameᶜ τ c ⟩) (renameˣ-renameᵗᵐ ρ τ M)
 renameˣ-renameᵗᵐ ρ τ blame = refl
 
+substˣᵐ-cong :
+  ∀ {σ σ′ : Substˣ} →
+  (∀ x → σ x ≡ σ′ x) →
+  ∀ M →
+  substˣᵐ σ M ≡ substˣᵐ σ′ M
+substˣᵐ-cong eq (` x) = eq x
+substˣᵐ-cong {σ = σ} {σ′ = σ′} eq (ƛ M) =
+  cong ƛ_ (substˣᵐ-cong ext-eq M)
+  where
+    ext-eq : ∀ x → extˢˣ σ x ≡ extˢˣ σ′ x
+    ext-eq zero = refl
+    ext-eq (suc x) = cong (renameˣᵐ suc) (eq x)
+substˣᵐ-cong eq (L · M) =
+  cong₂ _·_ (substˣᵐ-cong eq L) (substˣᵐ-cong eq M)
+substˣᵐ-cong eq (Λ M) =
+  cong Λ_ (substˣᵐ-cong (λ x → cong (renameᵗᵐ suc) (eq x)) M)
+substˣᵐ-cong eq (M •) =
+  cong _• (substˣᵐ-cong eq M)
+substˣᵐ-cong eq (ν A L c) =
+  cong (λ L′ → ν A L′ c) (substˣᵐ-cong eq L)
+substˣᵐ-cong eq ($ κ) = refl
+substˣᵐ-cong eq (L ⊕[ op ] M) =
+  cong₂ (λ L′ M′ → L′ ⊕[ op ] M′)
+    (substˣᵐ-cong eq L)
+    (substˣᵐ-cong eq M)
+substˣᵐ-cong eq (M ⟨ c ⟩) =
+  cong (λ M′ → M′ ⟨ c ⟩) (substˣᵐ-cong eq M)
+substˣᵐ-cong eq blame = refl
+
+renameᵗᵐ-substˣᵐ :
+  ∀ ρ σ M →
+  renameᵗᵐ ρ (substˣᵐ σ M) ≡
+    substˣᵐ (λ x → renameᵗᵐ ρ (σ x)) (renameᵗᵐ ρ M)
+renameᵗᵐ-substˣᵐ ρ σ (` x) = refl
+renameᵗᵐ-substˣᵐ ρ σ (ƛ M) =
+  cong ƛ_
+    (trans
+      (renameᵗᵐ-substˣᵐ ρ (extˢˣ σ) M)
+      (substˣᵐ-cong ext-eq (renameᵗᵐ ρ M)))
+  where
+    ext-eq :
+      ∀ x →
+      renameᵗᵐ ρ (extˢˣ σ x) ≡
+        extˢˣ (λ y → renameᵗᵐ ρ (σ y)) x
+    ext-eq zero = refl
+    ext-eq (suc x) = sym (renameˣ-renameᵗᵐ suc ρ (σ x))
+renameᵗᵐ-substˣᵐ ρ σ (L · M) =
+  cong₂ _·_ (renameᵗᵐ-substˣᵐ ρ σ L)
+             (renameᵗᵐ-substˣᵐ ρ σ M)
+renameᵗᵐ-substˣᵐ ρ σ (Λ M) =
+  cong Λ_
+    (trans
+      (renameᵗᵐ-substˣᵐ (extᵗ ρ) (↑ᵗᵐ σ) M)
+      (substˣᵐ-cong env-eq (renameᵗᵐ (extᵗ ρ) M)))
+  where
+    env-eq :
+      ∀ x →
+      renameᵗᵐ (extᵗ ρ) (↑ᵗᵐ σ x) ≡
+        ↑ᵗᵐ (λ y → renameᵗᵐ ρ (σ y)) x
+    env-eq x = renameᵗᵐ-ext-suc-comm ρ (σ x)
+renameᵗᵐ-substˣᵐ ρ σ (M •) =
+  cong _• (renameᵗᵐ-substˣᵐ ρ σ M)
+renameᵗᵐ-substˣᵐ ρ σ (ν A L c) =
+  cong (λ L′ → ν (renameᵗ ρ A) L′ (renameᶜ (extᵗ ρ) c))
+    (renameᵗᵐ-substˣᵐ ρ σ L)
+renameᵗᵐ-substˣᵐ ρ σ ($ κ) = refl
+renameᵗᵐ-substˣᵐ ρ σ (L ⊕[ op ] M) =
+  cong₂ (λ L′ M′ → L′ ⊕[ op ] M′)
+    (renameᵗᵐ-substˣᵐ ρ σ L)
+    (renameᵗᵐ-substˣᵐ ρ σ M)
+renameᵗᵐ-substˣᵐ ρ σ (M ⟨ c ⟩) =
+  cong (λ M′ → M′ ⟨ renameᶜ ρ c ⟩)
+    (renameᵗᵐ-substˣᵐ ρ σ M)
+renameᵗᵐ-substˣᵐ ρ σ blame = refl
+
+renameᵗᵐ-single-subst :
+  ∀ ρ N V →
+  renameᵗᵐ ρ (N [ V ]) ≡ renameᵗᵐ ρ N [ renameᵗᵐ ρ V ]
+renameᵗᵐ-single-subst ρ N V =
+  trans
+    (renameᵗᵐ-substˣᵐ ρ (singleEnv V) N)
+    (substˣᵐ-cong env-eq (renameᵗᵐ ρ N))
+  where
+    env-eq :
+      ∀ x →
+      renameᵗᵐ ρ (singleEnv V x) ≡ singleEnv (renameᵗᵐ ρ V) x
+    env-eq zero = refl
+    env-eq (suc x) = refl
+
 renameᵗᵐ-preserves-No• :
   ∀ ρ {M} →
   No• M →

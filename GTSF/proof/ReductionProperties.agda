@@ -33,8 +33,9 @@ open import proof.NuTermProperties
     ; renameᵗᵐ-open-commute
     ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-preserves-No•
+    ; renameᵗᵐ-single-subst
     )
-open import proof.TypeProperties using (renameᵗ-ext-suc-comm)
+open import proof.TypeProperties using (predᵗ; renameᵗ-ext-suc-comm)
 
 ------------------------------------------------------------------------
 -- Store-change list views
@@ -984,6 +985,52 @@ extᵗ-injective inj {zero} {suc Y} ()
 extᵗ-injective inj {suc X} {zero} ()
 extᵗ-injective inj {suc X} {suc Y} eq =
   cong suc (inj (suc-injective eq))
+
+pred-β-step :
+  ∀ {N V} →
+  Value V →
+  renameᵗᵐ predᵗ ((ƛ N) · V) —→ renameᵗᵐ predᵗ (N [ V ])
+pred-β-step {N = N} {V = V} vV =
+  subst
+    (λ T → (ƛ renameᵗᵐ predᵗ N) · renameᵗᵐ predᵗ V —→ T)
+    (sym (renameᵗᵐ-single-subst predᵗ N V))
+    (β (renameᵗᵐ-preserves-Value predᵗ vV))
+
+pred-β-Λ•-step :
+  ∀ {V} →
+  Value V →
+  renameᵗᵐ predᵗ ((Λ V) •) —→ renameᵗᵐ predᵗ (V [ zero ]ᵀ)
+pred-β-Λ•-step {V = V} vV =
+  subst
+    (λ T → (Λ renameᵗᵐ (extᵗ predᵗ) V) • —→ T)
+    (sym (renameᵗᵐ-open-commute predᵗ V zero))
+    (β-Λ• (renameᵗᵐ-preserves-Value (extᵗ predᵗ) vV))
+
+pred-β-∀•-step :
+  ∀ {V c} →
+  Value V →
+  renameᵗᵐ predᵗ ((V ⟨ `∀ c ⟩) •) —→
+    renameᵗᵐ predᵗ ((V •) ⟨ c [ zero ]ᶜ ⟩)
+pred-β-∀•-step {V = V} {c = c} vV =
+  subst
+    (λ d →
+      (renameᵗᵐ predᵗ V ⟨ `∀ (renameᶜ (extᵗ predᵗ) c) ⟩) •
+      —→ (renameᵗᵐ predᵗ V •) ⟨ d ⟩)
+    (sym (renameᶜ-open-commute predᵗ c zero))
+    (β-∀• (renameᵗᵐ-preserves-Value predᵗ vV))
+
+pred-β-gen•-step :
+  ∀ {A V c} →
+  Value V →
+  renameᵗᵐ predᵗ ((V ⟨ gen A c ⟩) •) —→
+    renameᵗᵐ predᵗ (V ⟨ c [ zero ]ᶜ ⟩)
+pred-β-gen•-step {A = A} {V = V} {c = c} vV =
+  subst
+    (λ d → (renameᵗᵐ predᵗ V
+      ⟨ gen (renameᵗ predᵗ A) (renameᶜ (extᵗ predᵗ) c) ⟩) •
+      —→ renameᵗᵐ predᵗ V ⟨ d ⟩)
+    (sym (renameᶜ-open-commute predᵗ c zero))
+    (β-gen• (renameᵗᵐ-preserves-Value predᵗ vV))
 
 renameᵗ-injective :
   ∀ {ρ A B} →

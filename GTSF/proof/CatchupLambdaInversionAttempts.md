@@ -871,3 +871,26 @@ catchup premise's final `Value W`.
 The next reduction-inversion attempt can now cite `tag-untag-bad-noValue`
 lifted through the context-closure lemmas instead of re-proving bad-branch
 finality locally.
+
+## Attempt 27: β algebra for the value-final `predᵗ` simulation
+
+Succeeded.  The next one-step `predᵗ` simulation needs to rewrite β targets
+after applying a type-variable predecessor.  I added checked substitution
+algebra in `proof.NuTermProperties`:
+
+- `substˣᵐ-cong`;
+- `renameᵗᵐ-substˣᵐ`;
+- `renameᵗᵐ-single-subst`.
+
+Then I added checked redex-specific lemmas in `proof.ReductionProperties`:
+
+- `pred-β-step`;
+- `pred-β-Λ•-step`;
+- `pred-β-∀•-step`;
+- `pred-β-gen•-step`.
+
+These lemmas do not yet give the full shifted-source inversion.  They verify
+that the β and type-application redexes of a future value-final `predᵗ`
+one-step simulation have the right target equalities.  The remaining hard
+branch for that simulation is still the bad tag/untag collapse, now supported
+by Attempt 26's no-value-reachable lemmas.

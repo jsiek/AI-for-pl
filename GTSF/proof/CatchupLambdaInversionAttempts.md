@@ -1179,3 +1179,49 @@ It still does not rebuild the final `⊒Λ` relation.  The remaining obstruction
 is the one from Attempt 32: the recursive result gives an inner relation for
 `W`, while the unshifted reduction endpoint is `renameᵗᵐ predᵗ W`, and `W`
 need not be definitionally equal to `⇑ᵗᵐ (renameᵗᵐ predᵗ W)`.
+
+## Attempt 38: factor the all-`keep` no-bind `⊒Λ` bookkeeping
+
+Succeeded as a checked reduction of the no-bind administrative burden.  I added
+all-`keep` identities for the under-binder actions:
+
+`allKeep-applyTermsUnderTyBinders-id :
+  AllKeep χs →
+  applyTermsUnderTyBinders χs M ≡ M`
+
+and
+
+`allKeep-applyCoercionUnderTyBinders-id :
+  AllKeep χs →
+  applyCoercionUnderTyBinders χs p ≡ p`.
+
+The live `remainder-cast` / `no-bind` branches now also expose
+
+`targetUnder≡ : applyTermsUnderTyBinders χs V′ ≡ V′`
+
+and
+
+`coercionUnder≡ : applyCoercionUnderTyBinders χs p ≡ p`,
+
+with the hidden target body inferred from `vV′` and the hidden inner coercion
+inferred from the typed `gen A p` premise.
+
+I also added a checked finisher:
+
+`catchup-⊒Λ-no-bind-finish`.
+
+It proves the entire no-bind `⊒Λ` conclusion from:
+
+- `AllKeep χs`;
+- a value endpoint `W′`;
+- a reduction `N —↠[ χs ] W′`;
+- the original `gen A p` typing premise; and
+- the single missing body relation
+  `suc Δ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ ∣ []
+     ⊢ ⇑ᵗᵐ W′ ⊒ V′ ∶ p`.
+
+Thus the no-bind cast path is now isolated to one real mathematical gap.  For
+the live branch, `W′` would be `renameᵗᵐ predᵗ W`, and the missing premise is
+exactly the premise-aware source bridge from Attempt 32.  The new finisher
+shows that no store, target, or coercion bookkeeping remains hidden in that
+subcase.

@@ -95,6 +95,7 @@ open import proof.ReductionProperties
     ; applyCoercions-gen
     ; applyCoercions-inst
     ; applyCoercionUnderTyBinders
+    ; allKeep-applyCoercionUnderTyBinders-id
     ; applyCoercionUnderTyBinders-preserves-Inert
     ; applyStores-empty-id
     ; applyStores-last-bind
@@ -108,6 +109,7 @@ open import proof.ReductionProperties
     ; applyTerms-cast
     ; applyTerms-cast-dual
     ; applyTermsUnderTyBinders
+    ; allKeep-applyTermsUnderTyBinders-id
     ; applyTyVars
     ; applyTyCtxs-empty-id
     ; applyTyCtxs-last-bind
@@ -119,7 +121,9 @@ open import proof.ReductionProperties
     ; applyTys-last-bind
     ; applyTys-★
     ; AllKeep
+    ; allKeep-applyTyCtxs-id
     ; allKeep-applyStores-id
+    ; allKeep-applyTys-id
     ; applyStores-++
     ; ⟰ᵗ-empty-inv
     ; applyTyCtxs-++
@@ -204,6 +208,22 @@ allKeep-empty-target-nil {χs = χs} keeps Π≡ Π′≡ π⊒ =
       (λ Π₀ → _ ⊢ _ ꞉ Π₀ ⊒ˢ [])
       (trans Π≡ (allKeep-applyStores-id keeps []))
       (subst (λ Π₀ → _ ⊢ _ ꞉ _ ⊒ˢ Π₀) Π′≡ π⊒))
+
+allKeep-under-binder-value-id :
+  ∀ {χs V} →
+  AllKeep χs →
+  Value V →
+  applyTermsUnderTyBinders χs V ≡ V
+allKeep-under-binder-value-id keeps vV =
+  allKeep-applyTermsUnderTyBinders-id keeps _
+
+allKeep-gen-under-binder-coercion-id :
+  ∀ {χs Δ Σ A B p} →
+  AllKeep χs →
+  Δ ∣ Σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  applyCoercionUnderTyBinders χs p ≡ p
+allKeep-gen-under-binder-coercion-id keeps pᶜ =
+  allKeep-applyCoercionUnderTyBinders-id keeps _
 
 ------------------------------------------------------------------------
 -- Catchup
@@ -1461,6 +1481,55 @@ postulate
         ⊢ W′ ⊒ applyTerms χs′ (N′ [ α ]ᵀ)
           ∶ applyCoercions χs′ (p [ α ]ᶜ)
 
+catchup-⊒Λ-no-bind-finish :
+  ∀ {Δ σ χs N W′ A B V′ p} →
+  AllKeep χs →
+  Value W′ →
+  (N —↠[ χs ] W′) →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  suc Δ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ ∣ []
+    ⊢ ⇑ᵗᵐ W′ ⊒ V′ ∶ p →
+  ∃[ χs′ ] ∃[ W″ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
+    Value W″ ×
+    (N —↠[ χs′ ] W″) ×
+    (Δ″ ≡ applyTyCtxs χs′ Δ) ×
+    (Π″ ≡ applyStores χs′ []) ×
+    (Π″′ ≡ applyStore keep []) ×
+    Δ″ ⊢ π′ ꞉ Π″ ⊒ˢ Π″′ ×
+    Δ″ ∣ combineStoreNrw π′ σ ∣ []
+      ⊢ W″ ⊒ applyTerms χs′ (Λ V′)
+        ∶ applyCoercions χs′ (gen A p)
+catchup-⊒Λ-no-bind-finish {Δ = Δ} {σ = σ} {χs = χs}
+    {W′ = W′} {A = A} {V′ = V′} {p = p}
+    keeps vW′ N↠W′ pᶜ body =
+  let
+    Δ≡ = sym (allKeep-applyTyCtxs-id keeps Δ)
+    Π≡ = sym (allKeep-applyStores-id keeps [])
+    target≡ =
+      trans (applyTerms-Λ χs V′)
+        (cong Λ_ (allKeep-applyTermsUnderTyBinders-id keeps V′))
+    coercion≡ =
+      trans (applyCoercions-gen χs A p)
+        (cong₂ gen (allKeep-applyTys-id keeps A)
+          (allKeep-applyCoercionUnderTyBinders-id keeps p))
+    rebuilt = ⊒Λ pᶜ body
+  in
+  χs , W′ , Δ , [] , [] , [] ,
+  vW′ ,
+  N↠W′ ,
+  Δ≡ ,
+  Π≡ ,
+  refl ,
+  ⊒ˢ-nil ,
+  subst
+    (λ c → Δ ∣ combineStoreNrw [] σ ∣ []
+      ⊢ W′ ⊒ applyTerms χs (Λ V′) ∶ c)
+    (sym coercion≡)
+    (subst
+      (λ T → Δ ∣ combineStoreNrw [] σ ∣ [] ⊢ W′ ⊒ T ∶ gen A p)
+      (sym target≡)
+      rebuilt)
+
 catchup-⊒Λ-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p} →
   Value W →
@@ -1803,6 +1872,8 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     with pure-pred-↠-shifted-value keeps ⇑N↠W vW
        | cast-source-value-target-base-empty hist
        | allKeep-empty-target-nil keeps Π≡ Π′≡ π⊒
+       | allKeep-under-binder-value-id keeps vV′
+       | allKeep-gen-under-binder-coercion-id keeps pᶜ
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
     | remainder-cast hist
@@ -1811,7 +1882,9 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | no-bind keeps
     | N↠predW
     | cast-base-empty+ vBase pBaseᶜ base≈ bodyBase
-    | π≡[] =
+    | π≡[]
+    | targetUnder≡
+    | coercionUnder≡ =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
@@ -1821,7 +1894,9 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | no-bind keeps
     | N↠predW
     | cast-base-empty- vBase pBaseᶜ base≈ bodyBase
-    | π≡[] =
+    | π≡[]
+    | targetUnder≡
+    | coercionUnder≡ =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing

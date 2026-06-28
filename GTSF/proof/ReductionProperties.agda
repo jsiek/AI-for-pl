@@ -655,6 +655,14 @@ applyTermsUnderTyBinders-++ [] χs′ M = refl
 applyTermsUnderTyBinders-++ (χ ∷ χs) χs′ M =
   applyTermsUnderTyBinders-++ χs χs′ (applyTermUnderTyBinder χ M)
 
+allKeep-applyTermsUnderTyBinders-id :
+  ∀ {χs} →
+  AllKeep χs →
+  ∀ M → applyTermsUnderTyBinders χs M ≡ M
+allKeep-applyTermsUnderTyBinders-id all-[] M = refl
+allKeep-applyTermsUnderTyBinders-id (all-keep keeps) M =
+  allKeep-applyTermsUnderTyBinders-id keeps M
+
 applyTermUnderTyBinder-preserves-Value :
   ∀ χ {V} →
   Value V →
@@ -851,6 +859,14 @@ applyCoercionUnderTyBinders-++ [] χs′ c = refl
 applyCoercionUnderTyBinders-++ (χ ∷ χs) χs′ c =
   applyCoercionUnderTyBinders-++ χs χs′
     (applyCoercionUnderTyBinder χ c)
+
+allKeep-applyCoercionUnderTyBinders-id :
+  ∀ {χs} →
+  AllKeep χs →
+  ∀ c → applyCoercionUnderTyBinders χs c ≡ c
+allKeep-applyCoercionUnderTyBinders-id all-[] c = refl
+allKeep-applyCoercionUnderTyBinders-id (all-keep keeps) c =
+  allKeep-applyCoercionUnderTyBinders-id keeps c
 
 applyTerms-ν :
   ∀ χs A M c →

@@ -1151,3 +1151,31 @@ Both subcases still delegate to `catchup-⊒Λ-catchup`, so this is not a proof
 of the cast branch.  It does make the live proof state match the two remaining
 proof obligations: all-`keep` relation replay for casts, and final star-bind
 replay for casts.
+
+## Attempt 37: collapse all-`keep` empty store narrowing to `[]`
+
+Succeeded as checked bookkeeping.  I added
+
+`⊒ˢ-empty-empty-nil :
+  Δ ⊢ π ꞉ [] ⊒ˢ [] →
+  π ≡ []`
+
+and the all-`keep` specialization
+
+`allKeep-empty-target-nil :
+  AllKeep χs →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  π ≡ []`.
+
+The live `remainder-cast` / `no-bind` branches now carry
+
+`π≡[] : π ≡ []`.
+
+This removes one false degree of freedom: with only `keep` changes and empty
+target store, the emitted store-narrowing proof cannot hide a source prefix.
+It still does not rebuild the final `⊒Λ` relation.  The remaining obstruction
+is the one from Attempt 32: the recursive result gives an inner relation for
+`W`, while the unshifted reduction endpoint is `renameᵗᵐ predᵗ W`, and `W`
+need not be definitionally equal to `⇑ᵗᵐ (renameᵗᵐ predᵗ W)`.

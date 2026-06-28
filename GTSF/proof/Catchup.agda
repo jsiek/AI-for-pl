@@ -185,6 +185,26 @@ last-bind-empty-target-star {χs = χs} {A = A} {keeps = keeps}
         (trans Π≡ (applyStores-last-bind χs A keeps keeps-ok []))
         π⊒))
 
+⊒ˢ-empty-empty-nil :
+  ∀ {Δ π} →
+  Δ ⊢ π ꞉ [] ⊒ˢ [] →
+  π ≡ []
+⊒ˢ-empty-empty-nil ⊒ˢ-nil = refl
+
+allKeep-empty-target-nil :
+  ∀ {Δ π Π Π′ χs} →
+  AllKeep χs →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  π ≡ []
+allKeep-empty-target-nil {χs = χs} keeps Π≡ Π′≡ π⊒ =
+  ⊒ˢ-empty-empty-nil
+    (subst
+      (λ Π₀ → _ ⊢ _ ꞉ Π₀ ⊒ˢ [])
+      (trans Π≡ (allKeep-applyStores-id keeps []))
+      (subst (λ Π₀ → _ ⊢ _ ꞉ _ ⊒ˢ Π₀) Π′≡ π⊒))
+
 ------------------------------------------------------------------------
 -- Catchup
 ------------------------------------------------------------------------
@@ -1782,6 +1802,7 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | no-bind keeps
     with pure-pred-↠-shifted-value keeps ⇑N↠W vW
        | cast-source-value-target-base-empty hist
+       | allKeep-empty-target-nil keeps Π≡ Π′≡ π⊒
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
     | remainder-cast hist
@@ -1789,7 +1810,8 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | no-bind keeps
     | N↠predW
-    | cast-base-empty+ vBase pBaseᶜ base≈ bodyBase =
+    | cast-base-empty+ vBase pBaseᶜ base≈ bodyBase
+    | π≡[] =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing
@@ -1798,7 +1820,8 @@ catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | no-bind keeps
     | N↠predW
-    | cast-base-empty- vBase pBaseᶜ base≈ bodyBase =
+    | cast-base-empty- vBase pBaseᶜ base≈ bodyBase
+    | π≡[] =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | nothing

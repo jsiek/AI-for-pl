@@ -894,3 +894,93 @@ that the β and type-application redexes of a future value-final `predᵗ`
 one-step simulation have the right target equalities.  The remaining hard
 branch for that simulation is still the bad tag/untag collapse, now supported
 by Attempt 26's no-value-reachable lemmas.
+
+## Attempt 28: pure-step `predᵗ` simulation with a doomed branch
+
+Succeeded as a checked local reduction fact.  I added
+
+`PredPureStepView M N`
+
+to `proof.ReductionProperties`, with two outcomes for a pure step `M —→ N`:
+
+- `renameᵗᵐ predᵗ M —→ renameᵗᵐ predᵗ N`;
+- `NoValueReachable (renameᵗᵐ predᵗ N)`.
+
+The corresponding theorem
+
+`pure-pred-step-view : M —→ N → PredPureStepView M N`
+
+uses the beta algebra from Attempt 27 for the β and runtime type-application
+redexes.  All ordinary cast/blame redexes simulate directly after applying
+`predᵗ`.  The `tag-untag-bad` case takes the doomed branch by returning
+`blame-no-↠-value`, avoiding the false injectivity assumption for `predᵗ`.
+
+This is deliberately weaker than the rejected reduction-only inversion.  It
+does not handle `ν-step`, whose binder/coercion target is not a direct generic
+`predᵗ` image, and it does not replay the term-narrowing wrapper history needed
+by the live `⊒Λ` fallback.  The useful next reduction fact would have to be
+shift-aware or premise-aware: a generic store-change `predᵗ` simulation is still
+too broad, but a step literally arising under the original shifted source may be
+invertible after using `renameᵗᵐ-pred-suc` and
+`renameᶜ-pred-ext-suc`.
+
+## Attempt 29: value-final `predᵗ` simulation for all-`keep` traces
+
+Succeeded.  The first version of the trace lemma assumed that every `keep`
+step was literally a `pure-step`, but Agda correctly rejected the coverage:
+`ξ-·₁`, `ξ-·₂`, `ξ-⟨⟩`, `ξ-ν`, `blame-ν`, `ξ-⊕₁`, and `ξ-⊕₂` can also emit
+`keep`.
+
+I generalized the one-step view to
+
+`PredKeepStepView M N`
+
+and proved
+
+`keep-pred-step-view : M —→[ keep ] N → PredKeepStepView M N`.
+
+The contextual cases recurse on the inner `keep` step.  If the inner step
+simulates, the proof rebuilds the same evaluation-context step after applying
+`predᵗ`; if it is doomed, the proof lifts `NoValueReachable` through the
+corresponding context using `noValue-·₁`, `noValue-·₂`, `noValue-cast`,
+`noValue-ν`, `noValue-⊕₁`, or `noValue-⊕₂`.
+
+With that view, the all-`keep` multi-step theorem checks:
+
+`pure-pred-↠-value :
+  AllKeep χs →
+  M —↠[ χs ] V →
+  Value V →
+  renameᵗᵐ predᵗ M —↠[ χs ] renameᵗᵐ predᵗ V`.
+
+This closes the pure/contextual part of the value-final `predᵗ` route.  It
+still does not solve the live `⊒Λ` case, because the emitted catchup trace can
+contain `bind` entries from `ν-step`.  A generic `predᵗ` simulation for `bind`
+steps is not true without extra shifted-source invariants: the coercion under a
+`ν` binder uses `extᵗ`, while the cast left after the step is not a generic
+`predᵗ` image.  The next proof step must therefore either be a shift-aware
+`bind` inversion or a term-narrowing-history replay, not a generic extension of
+`keep-pred-step-view`.
+
+## Attempt 30: all-`keep` traces from `ν` cannot end in a value
+
+Succeeded.  I added
+
+`allKeep-ν-no-value :
+  AllKeep χs →
+  ν A M c —↠[ χs ] V →
+  Value V →
+  ⊥`
+
+to `proof.ReductionProperties`.
+
+The proof is by induction on the all-`keep` trace.  A `ν` source has only two
+possible `keep` steps: reducing under the `ν` with `ξ-ν`, or propagating
+`ν A blame c` to `blame`.  The `ξ-ν` case recurses on the tail; the
+`blame-ν` case uses `blame-no-↠-value`.
+
+This is useful for the live `remainder-nu` branch: if
+`⇑ᵗᵐ N` is a shifted `ν` source and the recursive catchup trace reaches a
+value, the emitted store-change list cannot be all `keep`.  Therefore the
+remaining `ν` case genuinely requires a `bind`-aware inversion/replay argument;
+it cannot be discharged by the all-`keep` `predᵗ` simulation from Attempt 29.

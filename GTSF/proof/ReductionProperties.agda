@@ -1032,6 +1032,149 @@ pred-β-gen•-step {A = A} {V = V} {c = c} vV =
     (sym (renameᶜ-open-commute predᵗ c zero))
     (β-gen• (renameᵗᵐ-preserves-Value predᵗ vV))
 
+data PredPureStepView (M N : Term) : Set where
+  pred-pure-step :
+    renameᵗᵐ predᵗ M —→ renameᵗᵐ predᵗ N →
+    PredPureStepView M N
+  pred-pure-doomed :
+    NoValueReachable (renameᵗᵐ predᵗ N) →
+    PredPureStepView M N
+
+pure-pred-step-view :
+  ∀ {M N} →
+  M —→ N →
+  PredPureStepView M N
+pure-pred-step-view δ-⊕ =
+  pred-pure-step δ-⊕
+pure-pred-step-view (β vV) =
+  pred-pure-step (pred-β-step vV)
+pure-pred-step-view (β-Λ• vV) =
+  pred-pure-step (pred-β-Λ•-step vV)
+pure-pred-step-view (β-∀• vV) =
+  pred-pure-step (pred-β-∀•-step vV)
+pure-pred-step-view (β-gen• vV) =
+  pred-pure-step (pred-β-gen•-step vV)
+pure-pred-step-view (β-id vV) =
+  pred-pure-step (β-id (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view (β-seq vV) =
+  pred-pure-step (β-seq (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view (β-↦ vV vW) =
+  pred-pure-step
+    (β-↦ (renameᵗᵐ-preserves-Value predᵗ vV)
+          (renameᵗᵐ-preserves-Value predᵗ vW))
+pure-pred-step-view (β-inst vV) =
+  pred-pure-step (β-inst (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view (tag-untag-ok vV) =
+  pred-pure-step (tag-untag-ok (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view (tag-untag-bad vV G≢H) =
+  pred-pure-doomed blame-no-↠-value
+pure-pred-step-view (seal-unseal vV) =
+  pred-pure-step (seal-unseal (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view blame-·₁ =
+  pred-pure-step blame-·₁
+pure-pred-step-view (blame-·₂ vV) =
+  pred-pure-step (blame-·₂ (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view blame-• =
+  pred-pure-step blame-•
+pure-pred-step-view blame-⟨⟩ =
+  pred-pure-step blame-⟨⟩
+pure-pred-step-view blame-⊕₁ =
+  pred-pure-step blame-⊕₁
+pure-pred-step-view (blame-⊕₂ vV) =
+  pred-pure-step (blame-⊕₂ (renameᵗᵐ-preserves-Value predᵗ vV))
+
+data PredKeepStepView (M N : Term) : Set where
+  pred-keep-step :
+    renameᵗᵐ predᵗ M —→[ keep ] renameᵗᵐ predᵗ N →
+    PredKeepStepView M N
+  pred-keep-doomed :
+    NoValueReachable (renameᵗᵐ predᵗ N) →
+    PredKeepStepView M N
+
+keep-pred-step-view :
+  ∀ {M N} →
+  M —→[ keep ] N →
+  PredKeepStepView M N
+keep-pred-step-view (pure-step red)
+    with pure-pred-step-view red
+keep-pred-step-view (pure-step red) | pred-pure-step red′ =
+  pred-keep-step (pure-step red′)
+keep-pred-step-view (pure-step red) | pred-pure-doomed noN =
+  pred-keep-doomed noN
+keep-pred-step-view (ξ-·₁ red shiftM)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-·₁ red shiftM) | pred-keep-step red′ =
+  pred-keep-step (ξ-·₁ red′ shift-keep)
+keep-pred-step-view (ξ-·₁ red shiftM) | pred-keep-doomed noL =
+  pred-keep-doomed (noValue-·₁ noL)
+keep-pred-step-view (ξ-·₂ vV shiftV red)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-·₂ vV shiftV red) | pred-keep-step red′ =
+  pred-keep-step
+    (ξ-·₂ (renameᵗᵐ-preserves-Value predᵗ vV) shift-keep red′)
+keep-pred-step-view (ξ-·₂ vV shiftV red) | pred-keep-doomed noM =
+  pred-keep-doomed
+    (noValue-·₂ (renameᵗᵐ-preserves-Value predᵗ vV) noM)
+keep-pred-step-view (ξ-⟨⟩ red)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-⟨⟩ red) | pred-keep-step red′ =
+  pred-keep-step (ξ-⟨⟩ red′)
+keep-pred-step-view (ξ-⟨⟩ red) | pred-keep-doomed noM =
+  pred-keep-doomed (noValue-cast noM)
+keep-pred-step-view (ξ-ν red)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-ν red) | pred-keep-step red′ =
+  pred-keep-step (ξ-ν red′)
+keep-pred-step-view (ξ-ν red) | pred-keep-doomed noM =
+  pred-keep-doomed (noValue-ν noM)
+keep-pred-step-view blame-ν =
+  pred-keep-step blame-ν
+keep-pred-step-view (ξ-⊕₁ red shiftM)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-⊕₁ red shiftM) | pred-keep-step red′ =
+  pred-keep-step (ξ-⊕₁ red′ shift-keep)
+keep-pred-step-view (ξ-⊕₁ red shiftM) | pred-keep-doomed noL =
+  pred-keep-doomed (noValue-⊕₁ noL)
+keep-pred-step-view (ξ-⊕₂ vV shiftV red)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-⊕₂ vV shiftV red) | pred-keep-step red′ =
+  pred-keep-step
+    (ξ-⊕₂ (renameᵗᵐ-preserves-Value predᵗ vV) shift-keep red′)
+keep-pred-step-view (ξ-⊕₂ vV shiftV red) | pred-keep-doomed noM =
+  pred-keep-doomed
+    (noValue-⊕₂ (renameᵗᵐ-preserves-Value predᵗ vV) noM)
+
+pure-pred-↠-value :
+  ∀ {M V χs} →
+  AllKeep χs →
+  M —↠[ χs ] V →
+  Value V →
+  renameᵗᵐ predᵗ M —↠[ χs ] renameᵗᵐ predᵗ V
+pure-pred-↠-value all-[] ↠-refl vV =
+  ↠-refl
+pure-pred-↠-value (all-keep keeps) (↠-step red reds) vV
+    with keep-pred-step-view red
+pure-pred-↠-value (all-keep keeps) (↠-step red reds) vV
+    | pred-keep-step red′ =
+  ↠-step red′ (pure-pred-↠-value keeps reds vV)
+pure-pred-↠-value (all-keep keeps) (↠-step red reds) vV
+    | pred-keep-doomed noN =
+  ⊥-elim
+    (noN (pure-pred-↠-value keeps reds vV)
+      (renameᵗᵐ-preserves-Value predᵗ vV))
+
+allKeep-ν-no-value :
+  ∀ {A M c χs V} →
+  AllKeep χs →
+  ν A M c —↠[ χs ] V →
+  Value V →
+  ⊥
+allKeep-ν-no-value all-[] ↠-refl ()
+allKeep-ν-no-value (all-keep keeps) (↠-step (ξ-ν red) reds) vV =
+  allKeep-ν-no-value keeps reds vV
+allKeep-ν-no-value (all-keep keeps) (↠-step blame-ν reds) vV =
+  blame-no-↠-value reds vV
+
 renameᵗ-injective :
   ∀ {ρ A B} →
   RenameInjective ρ →

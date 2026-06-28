@@ -808,3 +808,66 @@ continuation that consumes the already-available recursive catchup result for
 specialized helper whose recursive calls are structurally visible to Agda.  Do
 not repeat the direct base-recursive call unless the recursion structure has
 first been changed.
+
+## Attempt 25: direct inner-constructor clauses in `catchup-lemma`
+
+Failed.  I tried to avoid the indirect inversion/base-view termination problem
+by adding temporary direct clauses for the outer case
+
+`catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)`.
+
+The idea was to pattern match on the actual inner `N⊒V′` derivation, so a
+recursive call on a premise such as a `ν⊒`, `cast+⊒`, or `cast-⊒` body would be
+structurally visible to Agda.
+
+The unrestricted `ν⊒` clause failed because Agda could not decide whether the
+constructor should apply through the shifted-source index:
+
+`ν ★ N (⇑ᶜ p) ≟ ⇑ᵗᵐ N₁`.
+
+Specializing the outer source to a syntactic `ν ★ L c` did not help; the stuck
+equation became
+
+`ν ★ N (⇑ᶜ p) ≟ ⇑ᵗᵐ (ν ★ L c)`.
+
+The cast-source probes had the same shape.  A temporary `cast+⊒` clause for
+`N = M ⟨ c ⟩` got stuck on
+
+`M ⟨ - t ⟩ ≟ ⇑ᵗᵐ (M₁ ⟨ c ⟩)`,
+
+and a temporary `cast-⊒` clause caused coverage to get stuck on a possible
+`split` overlap:
+
+`N [ αᵢ ]ᵀ ≟ ⇑ᵗᵐ (M ⟨ x ⟩)`.
+
+So direct inner-constructor clauses do not make the recursive structure visible
+enough.  The source-shape histories from Attempts 21-24 are still needed to
+cross `split` and shifted coercion indices.  A viable structural refactor would
+need to recurse on those histories themselves, or define a separate
+well-founded measure for extracted premises; simply adding more direct
+`catchup-lemma` clauses repeats the same unification failure.
+
+## Attempt 26: restore value-final no-value-reachable infrastructure
+
+Succeeded.  The earlier notes from Attempt 5 referred to checked
+`NoValueReachable` helpers, but the current branch only had the smaller
+`value-no-step` facts in `proof.ReductionProperties`.  I restored the reusable
+finality toolbox needed by the value-final `predᵗ` simulation route:
+
+- `blame-not-value`, `blame-no-pure-step`, `blame-no-step`, and
+  `blame-no-↠-value`;
+- `NoValueReachable`;
+- closure through evaluation-context forms `noValue-·₁`, `noValue-·₂`,
+  `noValue-cast`, `noValue-ν`, `noValue-⊕₁`, and `noValue-⊕₂`;
+- the exact bad tag/untag lemma
+  `tag-untag-bad-noValue`.
+
+This does not by itself prove the shifted-source inversion.  Its purpose is to
+make the non-injective `predᵗ` branch usable: if a shifted bad tag/untag step
+would become an ok tag/untag step after applying `predᵗ`, the original shifted
+step produces a term from which no value is reachable, contradicting the
+catchup premise's final `Value W`.
+
+The next reduction-inversion attempt can now cite `tag-untag-bad-noValue`
+lifted through the context-closure lemmas instead of re-proving bad-branch
+finality locally.

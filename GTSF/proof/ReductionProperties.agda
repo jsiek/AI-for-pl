@@ -104,6 +104,173 @@ value-no-step vV (pure-step red) =
 value-no-step (vV ⟨ i ⟩) (ξ-⟨⟩ red) =
   value-no-step vV red
 
+blame-not-value :
+  Value blame →
+  ⊥
+blame-not-value ()
+
+blame-no-pure-step :
+  ∀ {N} →
+  blame —→ N →
+  ⊥
+blame-no-pure-step ()
+
+blame-no-step :
+  ∀ {χ N} →
+  blame —→[ χ ] N →
+  ⊥
+blame-no-step (pure-step red) =
+  blame-no-pure-step red
+
+NoValueReachable : Term → Set
+NoValueReachable M = ∀ {χs V} → M —↠[ χs ] V → Value V → ⊥
+
+blame-no-↠-value :
+  NoValueReachable blame
+blame-no-↠-value ↠-refl vV =
+  blame-not-value vV
+blame-no-↠-value (↠-step red reds) vV =
+  blame-no-step red
+
+noValue-·₁ :
+  ∀ {L M} →
+  NoValueReachable L →
+  NoValueReachable (L · M)
+noValue-·₁ noL ↠-refl ()
+noValue-·₁ noL (↠-step (pure-step (β vV)) reds) vW =
+  noL ↠-refl (ƛ _)
+noValue-·₁ noL
+    (↠-step (pure-step (β-↦ {p = p} {q = q} vV vW)) reds) vP =
+  noL ↠-refl (vV ⟨ p ↦ q ⟩)
+noValue-·₁ noL (↠-step (pure-step blame-·₁) reds) vW =
+  blame-no-↠-value reds vW
+noValue-·₁ noL (↠-step (pure-step (blame-·₂ vV)) reds) vW =
+  noL ↠-refl vV
+noValue-·₁ noL (↠-step (ξ-·₁ red shiftM) reds) vW =
+  noValue-·₁ (λ redsL vL → noL (↠-step red redsL) vL) reds vW
+noValue-·₁ noL (↠-step (ξ-·₂ vV shiftV red) reds) vW =
+  noL ↠-refl vV
+
+noValue-·₂ :
+  ∀ {V M} →
+  Value V →
+  NoValueReachable M →
+  NoValueReachable (V · M)
+noValue-·₂ vV noM ↠-refl ()
+noValue-·₂ vV noM (↠-step (pure-step (β vM)) reds) vW =
+  noM ↠-refl vM
+noValue-·₂ vV noM (↠-step (pure-step (β-↦ vF vM)) reds) vW =
+  noM ↠-refl vM
+noValue-·₂ vV noM (↠-step (pure-step (blame-·₂ vF)) reds) vW =
+  blame-no-↠-value reds vW
+noValue-·₂ vV noM (↠-step (ξ-·₁ red shiftM) reds) vW =
+  value-no-step vV red
+noValue-·₂ vV noM (↠-step (ξ-·₂ {χ = keep} vF shiftV red) reds) vW =
+  noValue-·₂ vV
+    (λ redsM vM → noM (↠-step red redsM) vM)
+    reds
+    vW
+noValue-·₂ vV noM
+    (↠-step (ξ-·₂ {χ = bind A} vF shiftV red) reds) vW =
+  noValue-·₂ (renameᵗᵐ-preserves-Value suc vV)
+    (λ redsM vM → noM (↠-step red redsM) vM)
+    reds
+    vW
+
+noValue-cast :
+  ∀ {M c} →
+  NoValueReachable M →
+  NoValueReachable (M ⟨ c ⟩)
+noValue-cast noM ↠-refl (vM ⟨ i ⟩) =
+  noM ↠-refl vM
+noValue-cast noM (↠-step (pure-step (β-id vV)) reds) vW =
+  noM ↠-refl vV
+noValue-cast noM (↠-step (pure-step (β-seq vV)) reds) vW =
+  noM ↠-refl vV
+noValue-cast noM (↠-step (pure-step (β-inst vV)) reds) vW =
+  noM ↠-refl vV
+noValue-cast noM
+    (↠-step (pure-step (tag-untag-ok {G = G} vV)) reds) vW =
+  noM ↠-refl (vV ⟨ G ! ⟩)
+noValue-cast noM
+    (↠-step (pure-step (tag-untag-bad {G = G} vV G≢H)) reds) vW =
+  noM ↠-refl (vV ⟨ G ! ⟩)
+noValue-cast noM
+    (↠-step (pure-step (seal-unseal {α = α} vV)) reds) vW =
+  noM ↠-refl (vV ⟨ seal _ α ⟩)
+noValue-cast noM (↠-step (pure-step blame-⟨⟩) reds) vW =
+  blame-no-↠-value reds vW
+noValue-cast noM (↠-step (ξ-⟨⟩ red) reds) vW =
+  noValue-cast (λ redsM vM → noM (↠-step red redsM) vM) reds vW
+
+tag-untag-bad-noValue :
+  ∀ {V G H} →
+  Value V →
+  G ≢ H →
+  NoValueReachable (V ⟨ G ! ⟩ ⟨ H ？ ⟩)
+tag-untag-bad-noValue vV G≢H ↠-refl (vVG ⟨ () ⟩)
+tag-untag-bad-noValue vV G≢H
+    (↠-step (pure-step (tag-untag-ok vV′)) reds) vW =
+  G≢H refl
+tag-untag-bad-noValue vV G≢H
+    (↠-step (pure-step (tag-untag-bad vV′ G≢H′)) reds) vW =
+  blame-no-↠-value reds vW
+tag-untag-bad-noValue vV G≢H (↠-step (ξ-⟨⟩ red) reds) vW =
+  value-no-step (vV ⟨ _ ! ⟩) red
+
+noValue-ν :
+  ∀ {A M c} →
+  NoValueReachable M →
+  NoValueReachable (ν A M c)
+noValue-ν noM ↠-refl ()
+noValue-ν noM (↠-step (ν-step vM no•M) reds) vW =
+  noM ↠-refl vM
+noValue-ν noM (↠-step (ξ-ν red) reds) vW =
+  noValue-ν (λ redsM vM → noM (↠-step red redsM) vM) reds vW
+noValue-ν noM (↠-step blame-ν reds) vW =
+  blame-no-↠-value reds vW
+
+noValue-⊕₁ :
+  ∀ {L M op} →
+  NoValueReachable L →
+  NoValueReachable (L ⊕[ op ] M)
+noValue-⊕₁ noL ↠-refl ()
+noValue-⊕₁ noL (↠-step (pure-step δ-⊕) reds) vW =
+  noL ↠-refl ($ _)
+noValue-⊕₁ noL (↠-step (pure-step blame-⊕₁) reds) vW =
+  blame-no-↠-value reds vW
+noValue-⊕₁ noL (↠-step (pure-step (blame-⊕₂ vL)) reds) vW =
+  noL ↠-refl vL
+noValue-⊕₁ noL (↠-step (ξ-⊕₁ red shiftM) reds) vW =
+  noValue-⊕₁ (λ redsL vL → noL (↠-step red redsL) vL) reds vW
+noValue-⊕₁ noL (↠-step (ξ-⊕₂ vL shiftL red) reds) vW =
+  noL ↠-refl vL
+
+noValue-⊕₂ :
+  ∀ {L M op} →
+  Value L →
+  NoValueReachable M →
+  NoValueReachable (L ⊕[ op ] M)
+noValue-⊕₂ vL noM ↠-refl ()
+noValue-⊕₂ vL noM (↠-step (pure-step δ-⊕) reds) vW =
+  noM ↠-refl ($ _)
+noValue-⊕₂ vL noM (↠-step (pure-step (blame-⊕₂ vL′)) reds) vW =
+  blame-no-↠-value reds vW
+noValue-⊕₂ vL noM (↠-step (ξ-⊕₁ red shiftM) reds) vW =
+  value-no-step vL red
+noValue-⊕₂ vL noM
+    (↠-step (ξ-⊕₂ {χ = keep} vL′ shiftL red) reds) vW =
+  noValue-⊕₂ vL
+    (λ redsM vM → noM (↠-step red redsM) vM)
+    reds
+    vW
+noValue-⊕₂ vL noM
+    (↠-step (ξ-⊕₂ {χ = bind A} vL′ shiftL red) reds) vW =
+  noValue-⊕₂ (renameᵗᵐ-preserves-Value suc vL)
+    (λ redsM vM → noM (↠-step red redsM) vM)
+    reds
+    vW
+
 applyTyCtx-≤ :
   ∀ χ Δ →
   Δ ≤ applyTyCtx χ Δ

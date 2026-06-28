@@ -1089,3 +1089,31 @@ outer/base `ν-step`; a bind step can be nested under contexts after earlier
 emitted binds.  The next replay lemma needs to connect this isolated final
 star bind to the `nu-base-empty` history rather than analyzing the raw
 reduction trace alone.
+
+## Attempt 35: invert a top-level `ν` final bind
+
+Succeeded as a checked local step-inversion lemma.  I added
+
+`ν-bind-step-value-tail-inv :
+  ν A L c —→[ bind B ] Q →
+  AllKeep keeps →
+  Q —↠[ keeps ] W →
+  Value W →
+  Value L × No• L × B ≡ A`
+
+to `proof.ReductionProperties`.
+
+The direct `ν-step` case returns the value and `No•` evidence.  The only other
+possible `bind` step from a top-level `ν` is `ξ-ν`; after that step the result
+is still a top-level `ν`, so an all-`keep` tail cannot reach a value by
+`allKeep-ν-no-value`.
+
+This is not yet enough to replace the `catchup-⊒Λ-catchup` call.  The live
+trace splitter exposes a generic
+
+`P→Q : P —→[ bind Aχ ] Q`.
+
+To use `ν-bind-step-value-tail-inv`, the replay proof still has to show that
+the particular `P` obtained from the prefix reduction is a top-level `ν`.
+That fact should come from combining the prefix trace with the `nu-base-empty`
+history, not from raw reduction inversion alone.

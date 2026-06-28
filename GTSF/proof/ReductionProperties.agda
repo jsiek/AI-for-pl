@@ -1188,6 +1188,18 @@ allKeep-ν-no-value (all-keep keeps) (↠-step (ξ-ν red) reds) vV =
 allKeep-ν-no-value (all-keep keeps) (↠-step blame-ν reds) vV =
   blame-no-↠-value reds vV
 
+ν-bind-step-value-tail-inv :
+  ∀ {A B L c Q keeps W} →
+  ν A L c —→[ bind B ] Q →
+  AllKeep keeps →
+  Q —↠[ keeps ] W →
+  Value W →
+  Value L × No• L × B ≡ A
+ν-bind-step-value-tail-inv (ν-step vL noL) keeps Q↠W vW =
+  vL , noL , refl
+ν-bind-step-value-tail-inv (ξ-ν red) keeps Q↠W vW =
+  ⊥-elim (allKeep-ν-no-value keeps Q↠W vW)
+
 renameᵗ-injective :
   ∀ {ρ A B} →
   RenameInjective ρ →

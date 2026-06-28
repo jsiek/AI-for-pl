@@ -12,6 +12,7 @@ module proof.Catchup where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_; _++_)
+open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
@@ -26,6 +27,7 @@ open import NuReduction
 open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing
+open import TypeCheck using (value?)
 open import Primitives using (κℕ; constTy)
 open import proof.NarrowWidenProperties
   using
@@ -179,6 +181,13 @@ postulate
         ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p
 
   -- [New] Shifted-source catchup inversion for the `⊒Λ` case.
+  --
+  -- Counterexample note.  `proof.TraceProbe` instantiates this standalone
+  -- statement and derives `⊥`, so the statement below is too broad as
+  -- written.
+  -- The actual `catchup-lemma` branch still has the original inner `⊒Λ`
+  -- premise; a sound replacement should keep that premise or prove the branch
+  -- directly from it.
   --
   -- Attempted proof notes.  A direct recursive call in the `⊒Λ` case catches
   -- up the shifted source `⇑ᵗᵐ N` under `(zero ꞉= ★ ⊒) ∷ ⇑ˢ σ`,
@@ -1604,9 +1613,21 @@ catchup-lemma (Λ vV′) (Λ⊒Λ allᶜ vV V⊒V′) =
   refl ,
   ⊒ˢ-nil ,
   Λ⊒Λ allᶜ vV V⊒V′
+catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′) with value? N
+catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′) | just vN =
+  [] , N , _ , [] , [] , [] ,
+  vN ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  ⊒Λ pᶜ N⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
     with catchup-lemma vV′ N⊒V′
 catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′ =
   catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′

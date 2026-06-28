@@ -8,7 +8,7 @@ module proof.ReductionProperties where
 --     corresponding proof modules.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (ℕ; _≤_; zero; suc)
 open import Data.Nat.Properties using (≤-refl; ≤-trans; n≤1+n; suc-injective)
@@ -75,6 +75,34 @@ storeChangesLastBind (bind A ∷ χs) | no-bind keeps =
 storeChangesLastBind (bind A ∷ .(χs ++ bind B ∷ keeps))
     | last-bind χs B keeps keeps-ok =
   last-bind (bind A ∷ χs) B keeps keeps-ok
+
+------------------------------------------------------------------------
+-- Finality facts
+------------------------------------------------------------------------
+
+value-no-pure-step :
+  ∀ {V N} →
+  Value V →
+  V —→ N →
+  ⊥
+value-no-pure-step (ƛ N) ()
+value-no-pure-step (Λ vV) ()
+value-no-pure-step ($ κ) ()
+value-no-pure-step (() ⟨ G ! ⟩) blame-⟨⟩
+value-no-pure-step (() ⟨ seal A α ⟩) blame-⟨⟩
+value-no-pure-step (() ⟨ c ↦ d ⟩) blame-⟨⟩
+value-no-pure-step (() ⟨ `∀ c ⟩) blame-⟨⟩
+value-no-pure-step (() ⟨ gen A c ⟩) blame-⟨⟩
+
+value-no-step :
+  ∀ {χ V N} →
+  Value V →
+  V —→[ χ ] N →
+  ⊥
+value-no-step vV (pure-step red) =
+  value-no-pure-step vV red
+value-no-step (vV ⟨ i ⟩) (ξ-⟨⟩ red) =
+  value-no-step vV red
 
 applyTyCtx-≤ :
   ∀ χ Δ →

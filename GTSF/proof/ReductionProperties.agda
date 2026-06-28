@@ -845,6 +845,17 @@ applyTyCtxs-suc [] Δ = refl
 applyTyCtxs-suc (keep ∷ χs) Δ = applyTyCtxs-suc χs Δ
 applyTyCtxs-suc (bind A ∷ χs) Δ = applyTyCtxs-suc χs (suc Δ)
 
+applyTyCtxs-last-bind-suc :
+  ∀ χs A keeps →
+  AllKeep keeps →
+  ∀ Δ →
+  applyTyCtxs (χs ++ bind A ∷ keeps) (suc Δ) ≡
+    suc (suc (applyTyCtxs χs Δ))
+applyTyCtxs-last-bind-suc χs A keeps keeps-ok Δ =
+  trans
+    (applyTyCtxs-last-bind χs A keeps keeps-ok (suc Δ))
+    (cong suc (applyTyCtxs-suc χs Δ))
+
 applyTys-++ :
   ∀ χs χs′ A →
   applyTys (χs ++ χs′) A ≡ applyTys χs′ (applyTys χs A)

@@ -1401,3 +1401,32 @@ The two live `remainder-cast` / `no-bind` branches now call
 delegating to `catchup-⊒Λ-catchup`.  This does not solve the last-bind
 branches: there the final star bind still has to be replayed or erased, and
 the all-keep shifted-image invariant applies only after the last bind.
+
+## Attempt 44: expose the store-tail shape of the final star bind
+
+Succeeded as checked last-bind scaffolding.  I added:
+
+`last-bind-empty-target-left-tail :
+  AllKeep keeps →
+  Π ≡ applyStores (χs ++ bind A ∷ keeps) [] →
+  Δ ⊢ π ꞉ Π ⊒ˢ [] →
+  ∃[ X ] ∃[ π₀ ] (π ≡ (⊒ X ꞉=☆) ∷ π₀) ×
+    (X ≡ zero) ×
+    Δ ⊢ π₀ ꞉ ⟰ᵗ (applyStores χs []) ⊒ˢ []`.
+
+This strengthens the earlier `last-bind-empty-target-star` fact.  The final
+emitted bind does not merely have type `★`; the empty-target store narrowing
+proof must begin with a source-only star at de Bruijn zero, and its tail is a
+proof for the shifted prefix source store.
+
+I also added the small context-index lemma
+
+`applyTyCtxs-last-bind-suc :
+  applyTyCtxs (χs ++ bind A ∷ keeps) (suc Δ) ≡
+    suc (suc (applyTyCtxs χs Δ))`.
+
+These facts are the store and context bookkeeping needed by the remaining
+binder-exchange replay: move the source-only star produced by the final bind
+under the fresh target-only `⊒Λ` binder while lowering the shifted prefix tail.
+They do not yet identify the pre-bind term `P` or transport the term relation,
+so the three live last-bind branches still delegate to `catchup-⊒Λ-catchup`.

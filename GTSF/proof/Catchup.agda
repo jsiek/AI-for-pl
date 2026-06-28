@@ -195,6 +195,30 @@ last-bind-empty-target-star {χs = χs} {A = A} {keeps = keeps}
         (trans Π≡ (applyStores-last-bind χs A keeps keeps-ok []))
         π⊒))
 
+last-bind-empty-target-left-tail :
+  ∀ {Δ π Π χs A keeps} →
+  AllKeep keeps →
+  Π ≡ applyStores (χs ++ bind A ∷ keeps) [] →
+  Δ ⊢ π ꞉ Π ⊒ˢ [] →
+  ∃[ X ] ∃[ π₀ ] (π ≡ (⊒ X ꞉=☆) ∷ π₀) ×
+    (X ≡ zero) ×
+    Δ ⊢ π₀ ꞉ ⟰ᵗ (applyStores χs []) ⊒ˢ []
+last-bind-empty-target-left-tail {χs = χs} {A = A} {keeps = keeps}
+    keeps-ok Π≡ ⊒ˢ-nil
+    with trans Π≡ (applyStores-last-bind χs A keeps keeps-ok [])
+last-bind-empty-target-left-tail keeps-ok Π≡ ⊒ˢ-nil | ()
+last-bind-empty-target-left-tail {χs = χs} {A = A} {keeps = keeps}
+    keeps-ok Π≡ (⊒ˢ-left {X = X} {σ = π₀} π⊒) =
+  let
+    full≡ = trans Π≡ (applyStores-last-bind χs A keeps keeps-ok [])
+  in
+  X , π₀ , refl ,
+  cong proj₁ (storeHead-∷≡ full≡) ,
+  subst
+    (λ Σ → _ ⊢ π₀ ꞉ Σ ⊒ˢ [])
+    (storeTail-∷≡ full≡)
+    π⊒
+
 ⊒ˢ-empty-empty-nil :
   ∀ {Δ π} →
   Δ ⊢ π ꞉ [] ⊒ˢ [] →

@@ -744,6 +744,26 @@ StoreDetWf-swap01-inst {Σ = Σ} wfΣ =
       (StoreDetWf-rename-ext-suc wfΣ)
       renameStoreᵗ-ext-suc-no-one)
 
+⨟ⁿ-renameᵗ-determined :
+  ∀ {ρ μ ν Δ Δ′ Σ A B C s t}
+    (hρ : TyRenameWf Δ Δ′ ρ) →
+  (hμ : ModeRename ρ μ ν) →
+  (wfΣ : StoreDetWf Δ Σ) →
+  (wfΣ′ : StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  (s⊒ : μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊒ B) →
+  (t⊒ : μ ∣ Δ ∣ Σ ⊢ t ∶ B ⊒ C) →
+  proj₁ (_⨟ⁿ_ {wfΣ = wfΣ′}
+    (narrow-renameᵗ {ν = ν} hρ hμ s⊒)
+    (narrow-renameᵗ {ν = ν} hρ hμ t⊒))
+  ≡ renameᶜ ρ (proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} s⊒ t⊒))
+⨟ⁿ-renameᵗ-determined {ν = νᵐ} hρ hμ wfΣ wfΣ′ s⊒ t⊒ =
+  narrowing-determinedᵐ wfΣ′
+    (proj₂ (_⨟ⁿ_ {wfΣ = wfΣ′}
+      (narrow-renameᵗ {ν = νᵐ} hρ hμ s⊒)
+      (narrow-renameᵗ {ν = νᵐ} hρ hμ t⊒)))
+    (narrow-renameᵗ {ν = νᵐ} hρ hμ
+      (proj₂ (_⨟ⁿ_ {wfΣ = wfΣ} s⊒ t⊒)))
+
 StoreDetWf-swap01-generic⊥ :
   StoreDetWf (suc (suc zero))
     (renameStoreᵗ swap01ᵗ ((suc zero , ＇ zero) ∷ [])) →
@@ -1115,6 +1135,75 @@ compose-rightⁿ-add-left-star-var :
   Δ ∣ (⊒ X ꞉=☆) ∷ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
 compose-rightⁿ-add-left-star-var X (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   compose-rightⁿ wfΣ t⊒ p⊒ (≈ⁿ-add-left-star-var X r≈t⨟p)
+
+compose-leftⁿ-rename-swap01ᵗ-components :
+  ∀ {Δ σ Σ μ q s r A B C} →
+  (wfΣ : StoreDetWf (suc (suc Δ)) Σ) →
+  (wfΣ′ : StoreDetWf (suc (suc Δ)) (renameStoreᵗ swap01ᵗ Σ)) →
+  (q⊒ : μ ∣ suc (suc Δ) ∣ Σ ⊢ q ∶ A ⊒ C) →
+  (s⊒ : μ ∣ suc (suc Δ) ∣ Σ ⊢ s ∶ C ⊒ B) →
+  suc (suc Δ) ∣ σ ⊢
+    proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒) ≈ r ∶ A ⊒ B →
+  suc (suc Δ) ∣ renameStoreNrw swap01ᵗ σ
+    ⊢ renameᶜ swap01ᵗ q ⨾ⁿ renameᶜ swap01ᵗ s
+      ≈ renameᶜ swap01ᵗ r ∶ renameᵗ swap01ᵗ A ⊒ renameᵗ swap01ᵗ B
+compose-leftⁿ-rename-swap01ᵗ-components
+    {μ = μ} wfΣ wfΣ′ q⊒ s⊒ q⨟s≈r =
+  compose-leftⁿ wfΣ′ q⊒′ s⊒′ eq′
+  where
+    rel = modeRename-swap01ᵗMode μ
+
+    q⊒′ =
+      narrow-renameᵗ {ν = swap01ᵗMode μ} TyRenameWf-swap01 rel q⊒
+
+    s⊒′ =
+      narrow-renameᵗ {ν = swap01ᵗMode μ} TyRenameWf-swap01 rel s⊒
+
+    u≡ =
+      ⨟ⁿ-renameᵗ-determined
+        {ν = swap01ᵗMode μ}
+        TyRenameWf-swap01 rel wfΣ wfΣ′ q⊒ s⊒
+
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ u ≈ renameᶜ swap01ᵗ _ ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-rename-swap01ᵗ q⨟s≈r)
+
+compose-rightⁿ-rename-swap01ᵗ-components :
+  ∀ {Δ σ Σ μ r t p A B C} →
+  (wfΣ : StoreDetWf (suc (suc Δ)) Σ) →
+  (wfΣ′ : StoreDetWf (suc (suc Δ)) (renameStoreᵗ swap01ᵗ Σ)) →
+  (t⊒ : μ ∣ suc (suc Δ) ∣ Σ ⊢ t ∶ A ⊒ C) →
+  (p⊒ : μ ∣ suc (suc Δ) ∣ Σ ⊢ p ∶ C ⊒ B) →
+  suc (suc Δ) ∣ σ ⊢
+    r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒) ∶ A ⊒ B →
+  suc (suc Δ) ∣ renameStoreNrw swap01ᵗ σ
+    ⊢ renameᶜ swap01ᵗ r
+      ≈ renameᶜ swap01ᵗ t ⨾ⁿ renameᶜ swap01ᵗ p
+        ∶ renameᵗ swap01ᵗ A ⊒ renameᵗ swap01ᵗ B
+compose-rightⁿ-rename-swap01ᵗ-components
+    {μ = μ} wfΣ wfΣ′ t⊒ p⊒ r≈t⨟p =
+  compose-rightⁿ wfΣ′ t⊒′ p⊒′ eq′
+  where
+    rel = modeRename-swap01ᵗMode μ
+
+    t⊒′ =
+      narrow-renameᵗ {ν = swap01ᵗMode μ} TyRenameWf-swap01 rel t⊒
+
+    p⊒′ =
+      narrow-renameᵗ {ν = swap01ᵗMode μ} TyRenameWf-swap01 rel p⊒
+
+    u≡ =
+      ⨟ⁿ-renameᵗ-determined
+        {ν = swap01ᵗMode μ}
+        TyRenameWf-swap01 rel wfΣ wfΣ′ t⊒ p⊒
+
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ renameᶜ swap01ᵗ _ ≈ u ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-rename-swap01ᵗ r≈t⨟p)
 
 catchup-compose-left-transport-shifted :
   ∀ n {Δ Δ′ σ π Π Π′ χs q s r A B} →

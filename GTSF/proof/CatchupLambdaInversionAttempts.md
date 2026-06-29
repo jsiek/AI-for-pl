@@ -2303,3 +2303,42 @@ be applied to the swapped instantiation-store shape, instead of requiring the
 false generic `StoreDetWf` renaming from Attempt 64.  It still does not prove
 the `⊒Λ` branch by itself, because the branch needs whole `TermNarrowing`
 replay across the emitted prefix, not just endpoint/coercion determinacy.
+
+## Attempt 67: avoid recursive composition-commutation with determinacy
+
+Accepted as a checked proof component.  Attempt 62 rejected a direct
+structural proof that `_⨟ⁿ_` commutes with renaming because it would require a
+mutual recursion through all narrowing/widening composition cases.  After
+Attempt 66 supplied the safe renamed-store determinant shape, I revisited this
+using determinacy instead of structural recursion.
+
+I added a generic checked lemma in `proof.Catchup`:
+
+`⨟ⁿ-renameᵗ-determined :
+  ...
+  proj₁ (_⨟ⁿ_ {wfΣ = wfΣ′}
+    (narrow-renameᵗ hρ hμ s⊒)
+    (narrow-renameᵗ hρ hμ t⊒))
+  ≡ renameᶜ ρ (proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} s⊒ t⊒))`
+
+The proof is one use of `narrowing-determinedᵐ`: both sides are typed
+narrowings between the same renamed endpoints under the same renamed store.
+So no case split over `_⨟ⁿ_` is needed.
+
+I then added the swap-specific component lemmas for composition side
+conditions:
+
+`compose-leftⁿ-rename-swap01ᵗ-components`
+
+`compose-rightⁿ-rename-swap01ᵗ-components`
+
+These take the original `StoreDetWf` witness, the renamed-store `StoreDetWf`
+witness, the two composition premises, and the endpoint equality premise, then
+rebuild the corresponding `compose-leftⁿ`/`compose-rightⁿ` side condition
+under `renameStoreNrw swap01ᵗ`.
+
+This directly addresses the composition-side-condition problem from Attempt
+62.  It still does not prove the `⊒Λ` branch by itself: a full exchange/replay
+proof must still provide the right renamed-store determinant witness at each
+side-condition site and, more importantly, recurse through the entire
+`TermNarrowing` derivation while changing the surrounding `StoreNrw` prefix.

@@ -892,6 +892,37 @@ SourceTargetSwapRel-compose-right rel
 -- result no longer has the `target-only, source-only` store shape required to
 -- rebuild `split`.  The safe relation for the `⊒Λ` branch must therefore be
 -- split-aware, not merely a closure of adjacent source/target swaps.
+data SplitSourceTargetSwapView :
+  ∀ {Δ α A αᵢ σ τ} →
+  SourceTargetSwapRel Δ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ) τ →
+  Set where
+
+  split-swap-safe :
+    ∀ {Δ α A αᵢ σ σ′}
+    (rel : SourceTargetSwapRel Δ σ σ′) →
+    SplitSourceTargetSwapView
+      {Δ = Δ} {α = α} {A = A} {αᵢ = αᵢ}
+      (swap-right (swap-left rel))
+
+  split-swap-unsafe :
+    ∀ {Δ α A αᵢ Y B σ} →
+    SplitSourceTargetSwapView
+      {Δ = Δ} {α = α} {A = A} {αᵢ = αᵢ}
+      (swap-right (swap-here {X = αᵢ} {Y = Y} {A = B} {σ = σ}))
+
+split-source-target-swap-view :
+  ∀ {Δ α A αᵢ σ τ}
+  (rel : SourceTargetSwapRel Δ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ) τ) →
+  SplitSourceTargetSwapView rel
+split-source-target-swap-view (swap-right swap-here) =
+  split-swap-unsafe
+split-source-target-swap-view (swap-right (swap-left rel)) =
+  split-swap-safe rel
+
+-- Attempt 75.  The split-shaped view above is the first usable split-aware
+-- refinement: safe steps can continue structural transport below the marker,
+-- while the unsafe case must be discharged by a split catchup/opening argument
+-- rather than by rebuilding `split` after a plain store exchange.
 
 data SourceTargetSwapRels : TyCtx → StoreNrw → StoreNrw → Set where
   swaps-refl :

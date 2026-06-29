@@ -1,150 +1,91 @@
 module proof.RightTagInversion where
 
 -- File Charter:
---   * Structural inversion lemmas for term narrowing whose target is a raw
+--   * Records why the old `right-tag-inversion₁` statement is not compatible
+--     with filled raw casts.
+--   * Provides a concrete term-narrowing derivation whose target is a raw
 --     right tag `V ⟨ G ! ⟩`.
---   * Proves `right-tag-inversion₁` used by the dynamic gradual guarantee.
 --   * Depends only on term narrowing, coercion grammar, and narrowing
 --     composition side conditions; it does not depend on catchup.
 
-open import Data.Empty using (⊥; ⊥-elim)
+open import Data.List using ([]; _∷_)
+open import Data.Nat using (zero)
 open import Data.Product using (_,_)
+open import Agda.Builtin.Equality using (refl)
 
 open import Types
 open import Coercions
+open import Primitives
 open import NuTerms
 open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing
+open import proof.NarrowWidenProperties using (StoreDetWf)
 
 ------------------------------------------------------------------------
 -- Proof-strategy log
 ------------------------------------------------------------------------
 
--- 1. Direct inversion on `⊒cast+` first looked promising: a target
---    `V ⟨ G ! ⟩` would have to come from `- s`, so `s` must be raw
---    `G ？`.  This fails as a productive branch because raw `G ？` is not
---    a narrowing grammar form; only `(G ？) ︔ g` is.
--- 2. The symmetric `⊒cast-` branch would need raw `G !` as a narrowing.
---    That fails for the same reason: tags live in the widening grammar, not
---    as bare narrowing spines.
--- 3. Left-cast and store-prefix constructors do not introduce the right tag;
---    they only preserve the target shape, so recurse through them.
---
--- The resulting proof is vacuous: no valid term-narrowing derivation can have
--- a raw right target tag `G !`.
+-- 1. Direct inversion on `⊒cast+` was vacuous before filled raw casts:
+--    a target `V ⟨ G ! ⟩` forced the source cast argument to be raw `G ？`,
+--    and raw `G ？` was not a narrowing grammar form.
+-- 2. Filling raw `G ？` with `id_G` changes that branch into a real case:
+--    the cast side condition can compose with `(G ？) ︔ id_G`.
+-- 3. Therefore the old conclusion `M ⊒ V ∶ G ？` is the wrong shape.  The
+--    right inversion needs to expose the filled/composed narrowing instead.
 
-raw-untag-narrowing⊥ :
-  ∀ {μ Δ Σ A B G} →
-  μ ∣ Δ ∣ Σ ⊢ G ？ ∶ A ⊒ B →
-  ⊥
-raw-untag-narrowing⊥ (_ , cross ())
+------------------------------------------------------------------------
+-- A concrete right-tag derivation via filled raw untag
+------------------------------------------------------------------------
 
-raw-tag-narrowing⊥ :
-  ∀ {μ Δ Σ A B G} →
-  μ ∣ Δ ∣ Σ ⊢ G ! ∶ A ⊒ B →
-  ⊥
-raw-tag-narrowing⊥ (_ , cross ())
+ℕᵗ : Ty
+ℕᵗ = ‵ `ℕ
 
-compose-raw-untag-right⊥ :
-  ∀ {Δ σ q r A B G} →
-  Δ ∣ σ ⊢ q ⨾ⁿ G ？ ≈ r ∶ A ⊒ B →
-  ⊥
-compose-raw-untag-right⊥ (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
-  raw-untag-narrowing⊥ s⊒
+ℕ? : Coercion
+ℕ? = ℕᵗ ？
 
-compose-raw-tag-right⊥ :
-  ∀ {Δ σ q r A B G} →
-  Δ ∣ σ ⊢ q ⨾ⁿ G ! ≈ r ∶ A ⊒ B →
-  ⊥
-compose-raw-tag-right⊥ (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
-  raw-tag-narrowing⊥ s⊒
+ℕ?ⁿ : Coercion
+ℕ?ⁿ = ℕ? ︔ id ℕᵗ
 
-data RawRightTag : Term → Set where
-  raw-right-tag : ∀ {V G} → RawRightTag (V ⟨ G ! ⟩)
+empty-store-det : ∀ {Δ} → StoreDetWf Δ []
+empty-store-det =
+  record
+    { at = record
+        { bound = λ ()
+        ; wfTy = λ ()
+        }
+    ; wfOlder = λ ()
+    ; unique = λ ()
+    }
 
-raw-right-tag-cast+⊥ :
-  ∀ {Δ σ q r A B M s} →
-  RawRightTag (M ⟨ - s ⟩) →
-  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
-  ⊥
-raw-right-tag-cast+⊥ {s = id A} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = s ︔ t} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = s ↦ t} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = `∀ s} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = (＇ α) !} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = (‵ ι) !} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = ★ !} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = (A ⇒ B) !} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = (`∀ A) !} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = (＇ α) ？} raw-right-tag q⨟s≈r =
-  compose-raw-untag-right⊥ q⨟s≈r
-raw-right-tag-cast+⊥ {s = (‵ ι) ？} raw-right-tag q⨟s≈r =
-  compose-raw-untag-right⊥ q⨟s≈r
-raw-right-tag-cast+⊥ {s = ★ ？} raw-right-tag q⨟s≈r =
-  compose-raw-untag-right⊥ q⨟s≈r
-raw-right-tag-cast+⊥ {s = (A ⇒ B) ？} raw-right-tag q⨟s≈r =
-  compose-raw-untag-right⊥ q⨟s≈r
-raw-right-tag-cast+⊥ {s = (`∀ A) ？} raw-right-tag q⨟s≈r =
-  compose-raw-untag-right⊥ q⨟s≈r
-raw-right-tag-cast+⊥ {s = seal A α} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = unseal α A} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = gen A s} () q⨟s≈r
-raw-right-tag-cast+⊥ {s = inst B s} () q⨟s≈r
+empty-store-narrowing : ∀ {Δ} → Δ ⊢ [] ꞉ [] ⊒ˢ []
+empty-store-narrowing = ⊒ˢ-nil
 
-raw-right-tag-cast-⊥ :
-  ∀ {Δ σ q r A B M s} →
-  RawRightTag (M ⟨ s ⟩) →
-  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
-  ⊥
-raw-right-tag-cast-⊥ {s = id A} () q⨟s≈r
-raw-right-tag-cast-⊥ {s = s ︔ t} () q⨟s≈r
-raw-right-tag-cast-⊥ {s = s ↦ t} () q⨟s≈r
-raw-right-tag-cast-⊥ {s = `∀ s} () q⨟s≈r
-raw-right-tag-cast-⊥ {s = G !} raw-right-tag q⨟s≈r =
-  compose-raw-tag-right⊥ q⨟s≈r
-raw-right-tag-cast-⊥ {s = G ？} () q⨟s≈r
-raw-right-tag-cast-⊥ {s = seal A α} () q⨟s≈r
-raw-right-tag-cast-⊥ {s = unseal α A} () q⨟s≈r
-raw-right-tag-cast-⊥ {s = gen A s} () q⨟s≈r
-raw-right-tag-cast-⊥ {s = inst B s} () q⨟s≈r
+id★⊒ : tag-or-idᵈ ∣ 0 ∣ [] ⊢ id ★ ∶ ★ ⊒ ★
+id★⊒ = cast-id wf★ refl , id★
 
-raw-right-tag-⇑ᵗᵐ :
-  ∀ {N} →
-  RawRightTag N →
-  RawRightTag (⇑ᵗᵐ N)
-raw-right-tag-⇑ᵗᵐ raw-right-tag = raw-right-tag
+ℕ?ⁿ⊒ : tag-or-idᵈ ∣ 0 ∣ [] ⊢ ℕ?ⁿ ∶ ★ ⊒ ℕᵗ
+ℕ?ⁿ⊒ =
+  cast-seq (cast-untag wfBase (‵ `ℕ) refl) (cast-id wfBase refl) ,
+  (‵ `ℕ) ？︔ id-‵ `ℕ
 
-raw-right-tag-target⊥ :
-  ∀ {Δ σ γ M N q} →
-  RawRightTag N →
-  Δ ∣ σ ∣ γ ⊢ M ⊒ N ∶ q →
-  ⊥
-raw-right-tag-target⊥ tag (extend qᶜ pαᶜ M⊒N) =
-  raw-right-tag-target⊥ tag M⊒N
-raw-right-tag-target⊥ tag (split qᶜ pαᶜ M⊒N) =
-  raw-right-tag-target⊥ tag M⊒N
-raw-right-tag-target⊥ tag (⊒cast+ qᶜ q⨟s≈r M⊒V) =
-  raw-right-tag-cast+⊥ tag q⨟s≈r
-raw-right-tag-target⊥ tag (⊒cast- qᶜ q⨟s≈r M⊒V) =
-  raw-right-tag-cast-⊥ tag q⨟s≈r
-raw-right-tag-target⊥ tag (ν⊒ pᶜ N⊒N′) =
-  raw-right-tag-target⊥ (raw-right-tag-⇑ᵗᵐ tag) N⊒N′
-raw-right-tag-target⊥ tag (cast+⊒ pᶜ r≈t⨾p M⊒N) =
-  raw-right-tag-target⊥ tag M⊒N
-raw-right-tag-target⊥ tag (cast-⊒ pᶜ r≈t⨾p M⊒N) =
-  raw-right-tag-target⊥ tag M⊒N
+ℕ?ⁿ≈ℕ?ⁿ : 0 ∣ [] ⊢ ℕ?ⁿ ≈ ℕ?ⁿ ∶ ★ ⊒ ℕᵗ
+ℕ?ⁿ≈ℕ?ⁿ =
+  endpointsⁿ refl refl refl refl
+    empty-store-narrowing
+    (wf★ˢ , wfBaseˢ)
+    (wf★ˢ , wfBaseˢ)
+    (tag-or-idᵈ , ℕ?ⁿ⊒)
+    (tag-or-idᵈ , ℕ?ⁿ⊒)
 
-right-tag-target⊥ :
-  ∀ {Δ σ γ M V q G} →
-  Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ G ! ⟩ ∶ q →
-  ⊥
-right-tag-target⊥ M⊒V! =
-  raw-right-tag-target⊥ raw-right-tag M⊒V!
-
-right-tag-inversion₁ :
-  ∀ {Δ σ γ M V q G} →
-  Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ G ! ⟩ ∶ q →
-  Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ G ？
-right-tag-inversion₁ M⊒V! =
-  ⊥-elim (right-tag-target⊥ M⊒V!)
+raw-right-tag-counterexample :
+  0 ∣ [] ∣ ℕ?ⁿ ∷ [] ⊢ ` zero ⊒ ` zero ⟨ ℕᵗ ! ⟩ ∶ id ★
+raw-right-tag-counterexample =
+  ⊒cast+ id★⊒
+    (compose-left-fillⁿ
+      empty-store-det
+      id★⊒
+      (fill-untag-id (‵ `ℕ))
+      ℕ?ⁿ⊒
+      ℕ?ⁿ≈ℕ?ⁿ)
+    (x⊒x ℕ?ⁿ⊒ Z)

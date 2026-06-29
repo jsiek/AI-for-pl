@@ -25,7 +25,6 @@ open import proof.Catchup using (catchup-lemma)
 open import proof.CatchupStore using (combineStoreNrw)
 open import proof.LeftSealNarrowingInversion using
   (LeftSealNarrowingInversion; leftSealNarrowingInversion)
-open import proof.RightTagInversion using (right-tag-inversion₁)
 open import proof.ReductionProperties using (type-rename-step-⇑ᵗᵐ)
 open import proof.TermSubstitutionNarrowing using
   (term-substitution-narrowing)
@@ -327,28 +326,10 @@ dynamicGradualGuarantee (⊒cast+ {s = id A} qᶜ q⨟s≈r M⊒M′)
       vN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , N⊒M′ =
   {!!}
 dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-ok vV))
-    with right-tag-inversion₂ (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
-dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-ok vV))
-    | M⊒V!
-    with right-tag-inversion₁ M⊒V!
-dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-ok vV))
-    | M⊒V!
-    | M⊒V =
+    (pure-step (tag-untag-ok vV)) =
   {!!}
 dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-bad vV H≢G))
-    with right-tag-inversion₂ (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
-dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-bad vV H≢G))
-    | M⊒V!
-    with right-tag-inversion₁ M⊒V!
-dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-bad vV H≢G))
-    | M⊒V!
-    | M⊒V =
+    (pure-step (tag-untag-bad vV H≢G)) =
   {!!}
 dynamicGradualGuarantee (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
     (pure-step (seal-unseal vV))
@@ -378,28 +359,10 @@ dynamicGradualGuarantee (⊒cast- {s = id A} qᶜ q⨟s≈r M⊒M′)
       vN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , N⊒M′ =
   {!!}
 dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-ok vV))
-    with right-tag-inversion₂ (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
-dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-ok vV))
-    | M⊒V!
-    with right-tag-inversion₁ M⊒V!
-dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-ok vV))
-    | M⊒V!
-    | M⊒V =
+    (pure-step (tag-untag-ok vV)) =
   {!!}
 dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-bad vV H≢G))
-    with right-tag-inversion₂ (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
-dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-bad vV H≢G))
-    | M⊒V!
-    with right-tag-inversion₁ M⊒V!
-dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (tag-untag-bad vV H≢G))
-    | M⊒V!
-    | M⊒V =
+    (pure-step (tag-untag-bad vV H≢G)) =
   {!!}
 dynamicGradualGuarantee (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
     (pure-step (seal-unseal vV))

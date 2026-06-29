@@ -2227,3 +2227,39 @@ transport `StoreDetWf` only for stores of the form `(zero , ★) ∷ ⟰ᵗ Σ` 
 corresponding shifted source store produced by the `⊒Λ` branch.  That shape may
 make the swap safe because the head moved from `zero` to `suc zero` stores only
 `★`, and the tail is already under a binder.
+
+## Attempt 65: split the missing theorem into reduction image and body exchange
+
+Rejected as two independent small lemmas; accepted as the next theorem shape.
+I rechecked the live `remainder-nu` and `remainder-cast` last-bind branches.
+They expose:
+
+1. `↠-split-last-bind`, giving
+   `⇑ᵗᵐ N —↠[ χs₀ ] P`,
+   `P —→[ bind ★ ] Q`, and `Q —↠[ keeps ] W`;
+2. `last-bind-source-first-body`, giving the caught-up body under
+
+   `(⊒ zero ꞉=☆) ∷
+     ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))`.
+
+The tempting reduction-only move is to apply `type-rename-bind-step-pred` to
+the final `P —→[ bind ★ ] Q`.  That still fails for the same reason as Attempt
+63: `P` is not known to be syntactically `⇑ᵗᵐ P₀`.  Earlier `bind` steps in
+`χs₀` may have already put the source into an under-binder image.  So the
+source-reduction side needs a prefix-indexed image invariant, not a last-step
+inversion.
+
+The tempting body-only move is to rename the source-first body by `swap01ᵗ`.
+Attempt 64 gives endpoint transport for this, but a full `TermNarrowing`
+renaming/exchange theorem is still missing.  There is no existing whole-term
+`TermNarrowing` type-renaming theorem in the repo, and the needed store change
+is not just renaming: the target-only `(zero ꞉= ★ ⊒)` entry has to move across
+the whole emitted source-only prefix, yielding the target-first shape
+
+`(zero ꞉= ★ ⊒) ∷
+  ⇑ˢ ((⊒ zero ꞉=☆) ∷ combineStoreNrw π₀ σ)`.
+
+Conclusion: the next useful statement should combine both sides as a
+prefix-aware replay/exchange theorem.  Proving only a store permutation, only a
+composition-renaming lemma, or only final-bind lowering repeats earlier dead
+ends.

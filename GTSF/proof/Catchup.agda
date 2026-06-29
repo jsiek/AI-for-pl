@@ -14,7 +14,7 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Maybe using (just; nothing)
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; z<s; s<s)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
@@ -52,6 +52,7 @@ open import proof.NarrowWidenProperties
 open import proof.CoercionProperties
   using
     ( coercion-src-tgtᵐ
+    ; ModeRename
     ; renameᶜ-compose
     ; renameᶜ-left-inverse
     ; src-renameᶜ
@@ -64,7 +65,7 @@ open import proof.NuTermProperties
     ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-reflects-Value
     )
-open import proof.TypeProperties using (predᵗ; renameᵗ-compose)
+open import proof.TypeProperties using (TyRenameWf; predᵗ; renameᵗ-compose)
 open import proof.TermNarrowingProperties
   using
     ( neutral-blame
@@ -362,6 +363,18 @@ applyCoercionUnderTyBinders-last-bind
 
 raise0ᵗ : Renameᵗ
 raise0ᵗ X = suc (predᵗ X)
+
+TyRenameWf-raise0 :
+  ∀ {Δ} →
+  TyRenameWf (suc (suc Δ)) (suc (suc Δ)) raise0ᵗ
+TyRenameWf-raise0 {X = zero} z<s = s<s z<s
+TyRenameWf-raise0 {X = suc zero} (s<s z<s) = s<s z<s
+TyRenameWf-raise0 {X = suc (suc X)} (s<s (s<s X<Δ)) =
+  s<s (s<s X<Δ)
+
+modeRename-raise0-tag-or-id :
+  ModeRename raise0ᵗ tag-or-idᵈ tag-or-idᵈ
+modeRename-raise0-tag-or-id X = refl
 
 renameᵗ-raise0-pred :
   ∀ A →

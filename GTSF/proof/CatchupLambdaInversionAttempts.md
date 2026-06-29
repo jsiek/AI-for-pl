@@ -1814,3 +1814,36 @@ lemmas such as `coercion-renameᵗᵐ` and `narrow-renameᵗ` require a
 `ModeRename`, so this non-injective raw renaming cannot be threaded through
 them directly.  The remaining theorem still needs a constrained exchange/replay
 argument, not just syntax renaming.
+
+## Attempt 56: make `raise0ᵗ` mode-valid in the two-binder context
+
+Partial progress, and a correction to the pessimistic part of Attempt 55.
+Although `raise0ᵗ` is non-injective, the public coercion premises used by
+term narrowing are in `tag-or-idᵈ`, and `ModeRename` only asks for a
+mode-inclusion into the renamed target environment.  For `tag-or-idᵈ`, the
+merged variable is still accepted.
+
+I added the checked facts:
+
+`TyRenameWf-raise0 :
+  TyRenameWf (suc (suc Δ)) (suc (suc Δ)) raise0ᵗ`
+
+and
+
+`modeRename-raise0-tag-or-id :
+  ModeRename raise0ᵗ tag-or-idᵈ tag-or-idᵈ`.
+
+So the raw renaming can be used with existing coercion-level lemmas such as
+`narrow-renameᵗ`, at least for `∶ᶜ` coercions in the live two-binder context.
+This is useful, but it still does not prove the branch.  Coercion renaming
+acts on ordinary source stores via `renameStoreᵗ`; the missing theorem is a
+whole `TermNarrowing` transport across the adjacent source-only/target-only
+store exchange.  Such a transport would need to rename source terms, target
+terms, coercion indices, `CtxNrw`, and the `StoreNrw` structure itself, with
+special handling for constructors such as `extend`, `split`, `⊒Λ`, `⊒⟨ν⟩`,
+`ν⊒ν`, `⊒ν`, and `ν⊒`.
+
+The next non-redundant proof target is therefore either a structural
+term-narrowing renaming/exchange lemma specialized to this two-binder
+`tag-or-idᵈ` situation, or a replay theorem that rebuilds the post-bind
+`split` premise before the final exchange is needed.

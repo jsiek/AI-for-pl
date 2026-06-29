@@ -17,13 +17,13 @@ open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; zero; suc; _<_; z<s; s<s)
-open import Data.Nat.Properties using (≤-refl)
+open import Data.Nat.Properties using (≤-refl; m<n⇒m<1+n; suc-injective)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; subst; sym; trans)
 
 open import Types
-open import Store using (StoreIncl; StoreIncl-cons; StoreIncl-drop)
+open import Store using (StoreIncl; StoreIncl-cons; StoreIncl-drop; StoreWfAt)
 open import Coercions
 open import NuTerms
 open import NuReduction
@@ -36,6 +36,7 @@ open import proof.NarrowWidenProperties
   using
     ( StoreDetWf
     ; StoreDetWf-⟰ᵗ
+    ; StoreUnique
     ; WfTyˢ-⇑ᵗ
     ; WfTyˢ-store-weaken
     ; narrowing-determinedᵐ
@@ -75,11 +76,19 @@ open import proof.NuTermProperties
 open import proof.TypeProperties
   using
     ( TyRenameWf
+    ; TyRenameWf-ext
+    ; TyRenameWf-suc
     ; predᵗ
     ; rename-cong
     ; renameᵗ-compose
     ; renameᵗ-ext-suc-comm
     ; renameᵗ-preserves-WfTy
+    ; renameStoreᵗ-compose
+    )
+open import proof.StoreProperties
+  using
+    ( StoreWfAt-cons
+    ; StoreWfAt-rename
     )
 open import proof.TermNarrowingProperties
   using
@@ -583,6 +592,157 @@ modeRename-swap01ᵗMode μ X
       swap01ᵗMode μ ,
       narrow-renameᵗ TyRenameWf-swap01
         (modeRename-swap01ᵗMode μ) (proj₂ t⊒))
+
+ext-suc-injective :
+  RenameInjective (extᵗ suc)
+ext-suc-injective {zero} {zero} refl = refl
+ext-suc-injective {zero} {suc Y} ()
+ext-suc-injective {suc X} {zero} ()
+ext-suc-injective {suc X} {suc Y} eq = suc-injective eq
+
+ext-suc-not-one :
+  ∀ X →
+  suc zero ≡ extᵗ suc X →
+  ⊥
+ext-suc-not-one zero ()
+ext-suc-not-one (suc X) ()
+
+TyRenameWf-ext-suc-bound :
+  ∀ {α} →
+  TyRenameWf α (extᵗ suc α) (extᵗ suc)
+TyRenameWf-ext-suc-bound {zero} ()
+TyRenameWf-ext-suc-bound {suc α} =
+  TyRenameWf-ext TyRenameWf-suc
+
+TyRenameWf-ext-suc-wide :
+  ∀ {Δ} →
+  TyRenameWf Δ (suc (suc Δ)) (extᵗ suc)
+TyRenameWf-ext-suc-wide {zero} ()
+TyRenameWf-ext-suc-wide {suc Δ} {zero} z<s = z<s
+TyRenameWf-ext-suc-wide {suc Δ} {suc X} (s<s X<Δ) =
+  s<s (s<s (m<n⇒m<1+n X<Δ))
+
+renameStoreᵗ-cong :
+  ∀ {ρ τ} →
+  (∀ X → ρ X ≡ τ X) →
+  ∀ Σ →
+  renameStoreᵗ ρ Σ ≡ renameStoreᵗ τ Σ
+renameStoreᵗ-cong rel [] = refl
+renameStoreᵗ-cong {ρ = ρ} {τ = τ} rel ((α , A) ∷ Σ) =
+  cong₂ _∷_
+    (cong₂ _,_ (rel α) (rename-cong rel A))
+    (renameStoreᵗ-cong rel Σ)
+
+∈-renameStoreᵗ-inv :
+  ∀ ρ {Σ β B} →
+  (β , B) ∈ renameStoreᵗ ρ Σ →
+  ∃[ α ] ∃[ A ]
+    (β ≡ ρ α × B ≡ renameᵗ ρ A × (α , A) ∈ Σ)
+∈-renameStoreᵗ-inv ρ {Σ = []} ()
+∈-renameStoreᵗ-inv ρ {Σ = (α , A) ∷ Σ} (here refl) =
+  α , A , refl , refl , here refl
+∈-renameStoreᵗ-inv ρ {Σ = (α , A) ∷ Σ} (there β∈Σ)
+    with ∈-renameStoreᵗ-inv ρ β∈Σ
+∈-renameStoreᵗ-inv ρ {Σ = (α , A) ∷ Σ} (there β∈Σ)
+    | γ , C , γ≡ , C≡ , γ∈Σ =
+  γ , C , γ≡ , C≡ , there γ∈Σ
+
+StoreUnique-renameᵗ :
+  ∀ {ρ Σ} →
+  RenameInjective ρ →
+  StoreUnique Σ →
+  StoreUnique (renameStoreᵗ ρ Σ)
+StoreUnique-renameᵗ {ρ = ρ} inj uniqueΣ α∈Σ β∈Σ
+    with ∈-renameStoreᵗ-inv ρ α∈Σ
+       | ∈-renameStoreᵗ-inv ρ β∈Σ
+StoreUnique-renameᵗ {ρ = ρ} inj uniqueΣ α∈Σ β∈Σ
+    | α , A , refl , refl , α∈Σ′
+    | γ , B , α≡γ , B≡ , γ∈Σ′ =
+  trans
+    (cong (renameᵗ ρ)
+      (uniqueΣ α∈Σ′
+        (subst (λ X → (X , B) ∈ _) (sym (inj α≡γ)) γ∈Σ′)))
+    (sym B≡)
+
+StoreDetWf-rename-ext-suc :
+  ∀ {Δ Σ} →
+  StoreDetWf Δ Σ →
+  StoreDetWf (suc (suc Δ)) (renameStoreᵗ (extᵗ suc) Σ)
+StoreDetWf-rename-ext-suc wfΣ =
+  record
+    { at = StoreWfAt-rename TyRenameWf-ext-suc-wide (StoreDetWf.at wfΣ)
+    ; wfOlder = wfOlder′
+    ; unique = StoreUnique-renameᵗ ext-suc-injective (StoreDetWf.unique wfΣ)
+    }
+  where
+    wfOlder′ :
+      ∀ {α A} →
+      (α , A) ∈ renameStoreᵗ (extᵗ suc) _ →
+      WfTy α A
+    wfOlder′ h
+        with ∈-renameStoreᵗ-inv (extᵗ suc) h
+    wfOlder′ h | α , A , refl , refl , α∈Σ =
+      renameᵗ-preserves-WfTy
+        (StoreDetWf.wfOlder wfΣ α∈Σ)
+        TyRenameWf-ext-suc-bound
+
+renameStoreᵗ-swap01-inst :
+  ∀ Σ →
+  renameStoreᵗ swap01ᵗ ((zero , ★) ∷ ⟰ᵗ Σ) ≡
+    (suc zero , ★) ∷ renameStoreᵗ (extᵗ suc) Σ
+renameStoreᵗ-swap01-inst Σ =
+  cong ((suc zero , ★) ∷_)
+    (trans
+      (renameStoreᵗ-compose suc swap01ᵗ Σ)
+      (renameStoreᵗ-cong swap01ᵗ-after-suc Σ))
+
+renameStoreᵗ-ext-suc-no-one :
+  ∀ {Σ A} →
+  (suc zero , A) ∈ renameStoreᵗ (extᵗ suc) Σ →
+  ⊥
+renameStoreᵗ-ext-suc-no-one h
+    with ∈-renameStoreᵗ-inv (extᵗ suc) h
+renameStoreᵗ-ext-suc-no-one h | α , A , eq , refl , α∈Σ =
+  ext-suc-not-one α eq
+
+StoreDetWf-cons-one-star :
+  ∀ {Δ Σ} →
+  StoreDetWf (suc (suc Δ)) Σ →
+  (∀ {A} → (suc zero , A) ∈ Σ → ⊥) →
+  StoreDetWf (suc (suc Δ)) ((suc zero , ★) ∷ Σ)
+StoreDetWf-cons-one-star wfΣ no-one =
+  record
+    { at = StoreWfAt-cons (s<s z<s) wf★ (StoreDetWf.at wfΣ)
+    ; wfOlder = wfOlder′
+    ; unique = unique′
+    }
+  where
+    wfOlder′ :
+      ∀ {α A} →
+      (α , A) ∈ ((suc zero , ★) ∷ _) →
+      WfTy α A
+    wfOlder′ (here refl) = wf★
+    wfOlder′ (there h) = StoreDetWf.wfOlder wfΣ h
+
+    unique′ :
+      StoreUnique ((suc zero , ★) ∷ _)
+    unique′ (here refl) (here refl) = refl
+    unique′ (here refl) (there h) = ⊥-elim (no-one h)
+    unique′ (there h) (here refl) = ⊥-elim (no-one h)
+    unique′ (there h₁) (there h₂) = StoreDetWf.unique wfΣ h₁ h₂
+
+StoreDetWf-swap01-inst :
+  ∀ {Δ Σ} →
+  StoreDetWf Δ Σ →
+  StoreDetWf (suc (suc Δ))
+    (renameStoreᵗ swap01ᵗ ((zero , ★) ∷ ⟰ᵗ Σ))
+StoreDetWf-swap01-inst {Σ = Σ} wfΣ =
+  subst
+    (StoreDetWf _)
+    (sym (renameStoreᵗ-swap01-inst Σ))
+    (StoreDetWf-cons-one-star
+      (StoreDetWf-rename-ext-suc wfΣ)
+      renameStoreᵗ-ext-suc-no-one)
 
 StoreDetWf-swap01-generic⊥ :
   StoreDetWf (suc (suc zero))

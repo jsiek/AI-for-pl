@@ -2263,3 +2263,43 @@ Conclusion: the next useful statement should combine both sides as a
 prefix-aware replay/exchange theorem.  Proving only a store permutation, only a
 composition-renaming lemma, or only final-bind lowering repeats earlier dead
 ends.
+
+## Attempt 66: use the strict-narrowing merge to recover swapped-store
+determinacy
+
+Partially accepted.  After pulling the strict narrowing/widening work from
+`main`, I checked whether the new determinacy lemmas changed the obstruction
+from Attempt 64.  They do not remove the need for a well-formed deterministic
+store after the adjacent `swap01ᵗ`; the generic store-renaming theorem is still
+false for the same reason as before.
+
+However, the shape-specific variant suggested in Attempt 64 is true for the
+instantiation store shape used by the `⊒Λ` branch.  I added checked helpers in
+`proof.Catchup`:
+
+`∈-renameStoreᵗ-inv`
+
+`StoreUnique-renameᵗ`
+
+`StoreDetWf-rename-ext-suc`
+
+`StoreDetWf-swap01-inst :
+  StoreDetWf Δ Σ →
+  StoreDetWf (suc (suc Δ))
+    (renameStoreᵗ swap01ᵗ ((zero , ★) ∷ ⟰ᵗ Σ))`
+
+The key point is that swapping `(zero , ★) ∷ ⟰ᵗ Σ` produces
+
+`(suc zero , ★) ∷ renameStoreᵗ (extᵗ suc) Σ`.
+
+The shifted tail under `extᵗ suc` never contains index `suc zero`, so the new
+head cannot collide with the tail.  The `wfOlder` field is also preserved:
+for each original entry `(α , A)`, the renamed entry needs
+`WfTy (extᵗ suc α) (renameᵗ (extᵗ suc) A)`, which follows from a
+bound-indexed `TyRenameWf` for `extᵗ suc`.
+
+This is useful for a future composition/exchange theorem: determinacy can now
+be applied to the swapped instantiation-store shape, instead of requiring the
+false generic `StoreDetWf` renaming from Attempt 64.  It still does not prove
+the `⊒Λ` branch by itself, because the branch needs whole `TermNarrowing`
+replay across the emitted prefix, not just endpoint/coercion determinacy.

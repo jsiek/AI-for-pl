@@ -640,6 +640,204 @@ compose-rightⁿ-source-target-swap
     (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   compose-rightⁿ wfΣ t⊒ p⊒ (≈ⁿ-source-target-swap r≈t⨟p)
 
+data SourceTargetSwapRel : TyCtx → StoreNrw → StoreNrw → Set where
+  swap-here :
+    ∀ {Δ X Y A σ} →
+    SourceTargetSwapRel Δ
+      ((⊒ X ꞉=☆) ∷ (Y ꞉= A ⊒) ∷ σ)
+      ((Y ꞉= A ⊒) ∷ (⊒ X ꞉=☆) ∷ σ)
+
+  swap-right :
+    ∀ {Δ X A σ σ′} →
+    SourceTargetSwapRel Δ σ σ′ →
+    SourceTargetSwapRel Δ
+      ((X ꞉= A ⊒) ∷ σ)
+      ((X ꞉= A ⊒) ∷ σ′)
+
+  swap-left :
+    ∀ {Δ X σ σ′} →
+    SourceTargetSwapRel Δ σ σ′ →
+    SourceTargetSwapRel Δ
+      ((⊒ X ꞉=☆) ∷ σ)
+      ((⊒ X ꞉=☆) ∷ σ′)
+
+  swap-both :
+    ∀ {Δ X q σ σ′} →
+    SourceTargetSwapRel Δ σ σ′ →
+    SourceTargetSwapRel Δ
+      ((X ꞉ q) ∷ σ)
+      ((X ꞉ q) ∷ σ′)
+
+SourceTargetSwapRel-⇑ˢ :
+  ∀ {Δ σ σ′} →
+  SourceTargetSwapRel Δ σ σ′ →
+  SourceTargetSwapRel (suc Δ) (⇑ˢ σ) (⇑ˢ σ′)
+SourceTargetSwapRel-⇑ˢ swap-here = swap-here
+SourceTargetSwapRel-⇑ˢ (swap-right rel) =
+  swap-right (SourceTargetSwapRel-⇑ˢ rel)
+SourceTargetSwapRel-⇑ˢ (swap-left rel) =
+  swap-left (SourceTargetSwapRel-⇑ˢ rel)
+SourceTargetSwapRel-⇑ˢ (swap-both rel) =
+  swap-both (SourceTargetSwapRel-⇑ˢ rel)
+
+SourceTargetSwapRel-src≡ :
+  ∀ {Δ σ σ′} →
+  SourceTargetSwapRel Δ σ σ′ →
+  srcStoreⁿ σ ≡ srcStoreⁿ σ′
+SourceTargetSwapRel-src≡ swap-here = refl
+SourceTargetSwapRel-src≡ (swap-right rel) =
+  SourceTargetSwapRel-src≡ rel
+SourceTargetSwapRel-src≡ (swap-left {X = X} rel) =
+  cong ((X , ★) ∷_) (SourceTargetSwapRel-src≡ rel)
+SourceTargetSwapRel-src≡ (swap-both {X = X} {q = q} rel) =
+  cong ((X , src q) ∷_) (SourceTargetSwapRel-src≡ rel)
+
+SourceTargetSwapRel-coercionᶜ :
+  ∀ {Δ σ σ′ c A B} →
+  SourceTargetSwapRel Δ σ σ′ →
+  Δ ∣ srcStoreⁿ σ ⊢ c ∶ᶜ A ⊒ B →
+  Δ ∣ srcStoreⁿ σ′ ⊢ c ∶ᶜ A ⊒ B
+SourceTargetSwapRel-coercionᶜ rel cᶜ =
+  subst
+    (λ Σ → _ ∣ Σ ⊢ _ ∶ᶜ _ ⊒ _)
+    (SourceTargetSwapRel-src≡ rel)
+    cᶜ
+
+SourceTargetSwapRel-⊒ˢ :
+  ∀ {Δ σ σ′ Σ Σ′} →
+  SourceTargetSwapRel Δ σ σ′ →
+  Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+  Δ ⊢ σ′ ꞉ Σ ⊒ˢ Σ′
+SourceTargetSwapRel-⊒ˢ swap-here
+    (⊒ˢ-left (⊒ˢ-right hA σ⊒)) =
+  ⊒ˢ-right hA (⊒ˢ-left σ⊒)
+SourceTargetSwapRel-⊒ˢ (swap-right rel) (⊒ˢ-right hA σ⊒) =
+  ⊒ˢ-right hA (SourceTargetSwapRel-⊒ˢ rel σ⊒)
+SourceTargetSwapRel-⊒ˢ (swap-left rel) (⊒ˢ-left σ⊒) =
+  ⊒ˢ-left (SourceTargetSwapRel-⊒ˢ rel σ⊒)
+SourceTargetSwapRel-⊒ˢ (swap-both rel)
+    (⊒ˢ-both hA hA′ s⊒ σ⊒) =
+  ⊒ˢ-both hA hA′ s⊒ (SourceTargetSwapRel-⊒ˢ rel σ⊒)
+
+SourceTargetSwapRel-≈ⁿ :
+  ∀ {Δ σ σ′ s t A B} →
+  SourceTargetSwapRel Δ σ σ′ →
+  Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
+  Δ ∣ σ′ ⊢ s ≈ t ∶ A ⊒ B
+SourceTargetSwapRel-≈ⁿ rel
+    (endpointsⁿ srcs tgts srct tgtt σ⊒ wfΣ wfΣ′ s⊒ t⊒) =
+  endpointsⁿ
+    srcs
+    tgts
+    srct
+    tgtt
+    (SourceTargetSwapRel-⊒ˢ rel σ⊒)
+    wfΣ
+    wfΣ′
+    s⊒
+    t⊒
+
+SourceTargetSwapRel-compose-left :
+  ∀ {Δ σ σ′ q s r A B} →
+  SourceTargetSwapRel Δ σ σ′ →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Δ ∣ σ′ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
+SourceTargetSwapRel-compose-left rel
+    (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
+  compose-leftⁿ wfΣ q⊒ s⊒
+    (SourceTargetSwapRel-≈ⁿ rel q⨟s≈r)
+
+SourceTargetSwapRel-compose-right :
+  ∀ {Δ σ σ′ r t p A B} →
+  SourceTargetSwapRel Δ σ σ′ →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  Δ ∣ σ′ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+SourceTargetSwapRel-compose-right rel
+    (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  compose-rightⁿ wfΣ t⊒ p⊒
+    (SourceTargetSwapRel-≈ⁿ rel r≈t⨟p)
+
+data SourceTargetSwapRels : TyCtx → StoreNrw → StoreNrw → Set where
+  swaps-refl :
+    ∀ {Δ σ} →
+    SourceTargetSwapRels Δ σ σ
+
+  swaps-step :
+    ∀ {Δ σ σ′ σ″} →
+    SourceTargetSwapRel Δ σ σ′ →
+    SourceTargetSwapRels Δ σ′ σ″ →
+    SourceTargetSwapRels Δ σ σ″
+
+SourceTargetSwapRels-⇑ˢ :
+  ∀ {Δ σ σ′} →
+  SourceTargetSwapRels Δ σ σ′ →
+  SourceTargetSwapRels (suc Δ) (⇑ˢ σ) (⇑ˢ σ′)
+SourceTargetSwapRels-⇑ˢ swaps-refl = swaps-refl
+SourceTargetSwapRels-⇑ˢ (swaps-step rel rels) =
+  swaps-step
+    (SourceTargetSwapRel-⇑ˢ rel)
+    (SourceTargetSwapRels-⇑ˢ rels)
+
+SourceTargetSwapRels-src≡ :
+  ∀ {Δ σ σ′} →
+  SourceTargetSwapRels Δ σ σ′ →
+  srcStoreⁿ σ ≡ srcStoreⁿ σ′
+SourceTargetSwapRels-src≡ swaps-refl = refl
+SourceTargetSwapRels-src≡ (swaps-step rel rels) =
+  trans (SourceTargetSwapRel-src≡ rel)
+    (SourceTargetSwapRels-src≡ rels)
+
+SourceTargetSwapRels-coercionᶜ :
+  ∀ {Δ σ σ′ c A B} →
+  SourceTargetSwapRels Δ σ σ′ →
+  Δ ∣ srcStoreⁿ σ ⊢ c ∶ᶜ A ⊒ B →
+  Δ ∣ srcStoreⁿ σ′ ⊢ c ∶ᶜ A ⊒ B
+SourceTargetSwapRels-coercionᶜ rels cᶜ =
+  subst
+    (λ Σ → _ ∣ Σ ⊢ _ ∶ᶜ _ ⊒ _)
+    (SourceTargetSwapRels-src≡ rels)
+    cᶜ
+
+SourceTargetSwapRels-⊒ˢ :
+  ∀ {Δ σ σ′ Σ Σ′} →
+  SourceTargetSwapRels Δ σ σ′ →
+  Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+  Δ ⊢ σ′ ꞉ Σ ⊒ˢ Σ′
+SourceTargetSwapRels-⊒ˢ swaps-refl σ⊒ = σ⊒
+SourceTargetSwapRels-⊒ˢ (swaps-step rel rels) σ⊒ =
+  SourceTargetSwapRels-⊒ˢ rels
+    (SourceTargetSwapRel-⊒ˢ rel σ⊒)
+
+SourceTargetSwapRels-≈ⁿ :
+  ∀ {Δ σ σ′ s t A B} →
+  SourceTargetSwapRels Δ σ σ′ →
+  Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
+  Δ ∣ σ′ ⊢ s ≈ t ∶ A ⊒ B
+SourceTargetSwapRels-≈ⁿ swaps-refl s≈t = s≈t
+SourceTargetSwapRels-≈ⁿ (swaps-step rel rels) s≈t =
+  SourceTargetSwapRels-≈ⁿ rels
+    (SourceTargetSwapRel-≈ⁿ rel s≈t)
+
+SourceTargetSwapRels-compose-left :
+  ∀ {Δ σ σ′ q s r A B} →
+  SourceTargetSwapRels Δ σ σ′ →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Δ ∣ σ′ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
+SourceTargetSwapRels-compose-left swaps-refl q⨟s≈r = q⨟s≈r
+SourceTargetSwapRels-compose-left (swaps-step rel rels) q⨟s≈r =
+  SourceTargetSwapRels-compose-left rels
+    (SourceTargetSwapRel-compose-left rel q⨟s≈r)
+
+SourceTargetSwapRels-compose-right :
+  ∀ {Δ σ σ′ r t p A B} →
+  SourceTargetSwapRels Δ σ σ′ →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  Δ ∣ σ′ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+SourceTargetSwapRels-compose-right swaps-refl r≈t⨟p = r≈t⨟p
+SourceTargetSwapRels-compose-right (swaps-step rel rels) r≈t⨟p =
+  SourceTargetSwapRels-compose-right rels
+    (SourceTargetSwapRel-compose-right rel r≈t⨟p)
+
 ext-suc-injective :
   RenameInjective (extᵗ suc)
 ext-suc-injective {zero} {zero} refl = refl

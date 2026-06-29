@@ -2430,3 +2430,69 @@ where the target-only entry is buried below the emitted prefix `π₀`.  So a fu
 solution must recursively bubble that target-only entry through the prefix,
 using this local exchange at each adjacent source/target crossing and the
 checked composition transport from Attempt 68 for cast side conditions.
+
+## Attempt 70: close adjacent source/target swaps under prefixes
+
+Accepted as checked support.  Attempt 69 only gave the head exchange
+
+`(⊒ X ꞉=☆) ∷ (Y ꞉= A ⊒) ∷ σ`
+
+to
+
+`(Y ꞉= A ⊒) ∷ (⊒ X ꞉=☆) ∷ σ`.
+
+The full emitted prefix needs the same adjacent crossing below arbitrary
+store-narrowing prefixes, and eventually a sequence of such crossings.  I
+added a checked relation:
+
+`SourceTargetSwapRel Δ σ σ′`
+
+with constructors for:
+
+`swap-here`
+
+`swap-right`
+
+`swap-left`
+
+`swap-both`
+
+This represents one adjacent source/target swap, possibly below a target-only,
+source-only, or both-entry prefix.  I also added:
+
+`SourceTargetSwapRel-⇑ˢ`
+
+`SourceTargetSwapRel-src≡`
+
+`SourceTargetSwapRel-coercionᶜ`
+
+`SourceTargetSwapRel-⊒ˢ`
+
+`SourceTargetSwapRel-≈ⁿ`
+
+`SourceTargetSwapRel-compose-left`
+
+`SourceTargetSwapRel-compose-right`
+
+The important invariant is `SourceTargetSwapRel-src≡`: this exchange preserves
+the source store exactly, so coercion-typing side conditions can be transported
+by equality rather than weakened.
+
+I then added the reflexive/transitive closure:
+
+`SourceTargetSwapRels Δ σ σ′`
+
+and lifted the same operations through the closure.  This is the right
+endpoint/composition-level infrastructure for "bubble this target-only entry
+through a source-only prefix" as a sequence of adjacent exchanges.
+
+This still does not prove the `⊒Λ` branch.  The closure preserves the source
+and target stores, so it cannot by itself account for the de Bruijn lowering
+that happens when a target-only entry is moved out from under a source-only
+binder.  The full replay theorem must combine each list exchange with the
+`swap01ᵗ` renaming support from Attempts 66-68.  I did not try to prove a
+generic term-level transport for `SourceTargetSwapRel`: in split-shaped
+derivations, swapping the distinguished source-only entry introduced by
+`split` past a following target-only entry would destroy the syntactic store
+shape required to rebuild `split`.  So a future term replay theorem should be
+more constrained than arbitrary source/target swapping.

@@ -928,6 +928,21 @@ SourceTargetSwapRels-compose-right (swaps-step rel rels) r≈t⨟p =
   SourceTargetSwapRels-compose-right rels
     (SourceTargetSwapRel-compose-right rel r≈t⨟p)
 
+source-target-bubble-empty :
+  ∀ {Δ σ} →
+  SourceTargetSwapRels Δ
+    (renameStoreNrw swap01ᵗ
+      ((⊒ zero ꞉=☆) ∷ ⇑ˢ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)))
+    ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ))
+source-target-bubble-empty {σ = σ} =
+  subst
+    (λ τ → SourceTargetSwapRels _
+      ((⊒ suc zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷
+        renameStoreNrw swap01ᵗ (⇑ˢ (⇑ˢ σ)))
+      ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ τ))
+    (renameStoreNrw-swap01-⇑ˢ⇑ˢ σ)
+    (swaps-step swap-here swaps-refl)
+
 ext-suc-injective :
   RenameInjective (extᵗ suc)
 ext-suc-injective {zero} {zero} refl = refl

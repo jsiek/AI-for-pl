@@ -1746,3 +1746,33 @@ coercion premises can be derived from the real `gen` premise even after an
 emitted prefix.  It still does not move the caught-up term relation from the
 source-first store to the target-first/source-only store, so the remaining
 obligation is still the term-level exchange/replay theorem.
+
+## Attempt 54: normalize under-binder targets at the last bind
+
+Partial progress.  While inspecting the last-bind exchange shape, I noticed
+that the target-first result should be stated with the under-binder actions
+rather than ordinary `applyTerms`/`applyCoercions`.  I added two checked
+normal forms:
+
+`applyTermsUnderTyBinders-last-bind :
+  AllKeep keeps →
+  applyTermsUnderTyBinders (χs ++ bind A ∷ keeps) M ≡
+    renameᵗᵐ (extᵗ suc) (applyTermsUnderTyBinders χs M)`
+
+and
+
+`applyCoercionUnderTyBinders-last-bind :
+  AllKeep keeps →
+  applyCoercionUnderTyBinders (χs ++ bind A ∷ keeps) p ≡
+    renameᶜ (extᵗ suc) (applyCoercionUnderTyBinders χs p)`.
+
+Both are immediate consequences of the existing append lemmas plus the
+all-keep identity lemmas for the tail after the last bind.  They are useful
+because the future exchange/replay theorem can now target the exact
+under-binder syntax expected by `applyTerms-Λ` and `applyCoercions-gen`.
+
+This does not solve the branch.  The recursive catchup body normalized in
+Attempt 51 is still phrased with ordinary shifted target/coercion syntax under
+the source-first store.  Attempt 54 only identifies the target-first side; a
+term-level exchange/replay theorem must still move the derivation itself and
+account for the ordinary-vs-under-binder index change.

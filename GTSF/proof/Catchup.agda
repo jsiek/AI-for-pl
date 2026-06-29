@@ -98,6 +98,7 @@ open import proof.ReductionProperties
     ; applyCoercions-gen
     ; applyCoercions-inst
     ; applyCoercionUnderTyBinders
+    ; applyCoercionUnderTyBinders-++
     ; allKeep-applyCoercionUnderTyBinders-id
     ; applyCoercionUnderTyBinders-preserves-Inert
     ; applyStores-empty-id
@@ -113,6 +114,7 @@ open import proof.ReductionProperties
     ; applyTerms-cast
     ; applyTerms-cast-dual
     ; applyTermsUnderTyBinders
+    ; applyTermsUnderTyBinders-++
     ; allKeep-applyTerms-id
     ; allKeep-applyTermsUnderTyBinders-id
     ; applyTyVars
@@ -331,6 +333,30 @@ allKeep-gen-under-binder-coercion-id :
   applyCoercionUnderTyBinders χs p ≡ p
 allKeep-gen-under-binder-coercion-id keeps pᶜ =
   allKeep-applyCoercionUnderTyBinders-id keeps _
+
+applyTermsUnderTyBinders-last-bind :
+  ∀ {χs A keeps M} →
+  AllKeep keeps →
+  applyTermsUnderTyBinders (χs ++ bind A ∷ keeps) M ≡
+    renameᵗᵐ (extᵗ suc) (applyTermsUnderTyBinders χs M)
+applyTermsUnderTyBinders-last-bind {χs = χs} {A = A} {keeps = keeps}
+    {M = M} keeps-ok =
+  trans
+    (applyTermsUnderTyBinders-++ χs (bind A ∷ keeps) M)
+    (allKeep-applyTermsUnderTyBinders-id keeps-ok
+      (renameᵗᵐ (extᵗ suc) (applyTermsUnderTyBinders χs M)))
+
+applyCoercionUnderTyBinders-last-bind :
+  ∀ {χs A keeps p} →
+  AllKeep keeps →
+  applyCoercionUnderTyBinders (χs ++ bind A ∷ keeps) p ≡
+    renameᶜ (extᵗ suc) (applyCoercionUnderTyBinders χs p)
+applyCoercionUnderTyBinders-last-bind
+    {χs = χs} {A = A} {keeps = keeps} {p = p} keeps-ok =
+  trans
+    (applyCoercionUnderTyBinders-++ χs (bind A ∷ keeps) p)
+    (allKeep-applyCoercionUnderTyBinders-id keeps-ok
+      (renameᶜ (extᵗ suc) (applyCoercionUnderTyBinders χs p)))
 
 ------------------------------------------------------------------------
 -- Catchup

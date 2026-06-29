@@ -9,14 +9,16 @@ module proof.TraceProbe where
 --   * The final theorem derives `⊥` from that postulate, showing the
 --     standalone statement is too broad.  This does not refute the original
 --     `⊒Λ` catchup-lemma case, because the probe does not satisfy its
---     premise-aware inner term-narrowing hypothesis.
+--     premise-aware inner term-narrowing hypothesis.  In particular,
+--     `no-probe-gen-premise` shows that `probe-c` cannot be used as the body
+--     of the real empty-context `gen` coercion premise.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc; z<s; s<s)
 open import Data.Product using (_,_; proj₂)
-open import Relation.Binary.PropositionalEquality using (cong)
+open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
 
 open import Types
 open import Coercions
@@ -26,8 +28,15 @@ open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing
 open import NarrowingExamples
-open import proof.NuTermProperties using (renameᵗᵐ-preserves-Value)
-open import proof.ReductionProperties using (value-no-step)
+open import proof.NuTermProperties using
+  ( open0-ext-suc-cancelᵐ
+  ; renameᵗᵐ-preserves-Value
+  )
+open import proof.ReductionProperties using
+  ( ⇒-injective-left
+  ; cast-term-injective-right
+  ; value-no-step
+  )
 open import proof.Catchup using (shifted-source-catchup-Λ-inversion)
 
 right-star-store-narrowing :
@@ -96,6 +105,9 @@ probe-red =
 probe-W-value : Value probe-W
 probe-W-value = (ƛ _) ⟨ _ ↦ _ ⟩
 
+probe-W≡body : probe-W ≡ probe-body
+probe-W≡body = open0-ext-suc-cancelᵐ probe-body
+
 no-probe-inner-premise :
   1 ∣ (0 ꞉= ★ ⊒) ∷ [] ∣ []
     ⊢ ⇑ᵗᵐ probe-N ⊒ probe-V′ ∶ probe-c →
@@ -113,6 +125,51 @@ no-wf-var1 :
   ⊥
 no-wf-var1 (wfVar (s<s ()))
 
+no-wf-var0 :
+  WfTy 0 (＇ 0) →
+  ⊥
+no-wf-var0 (wfVar ())
+
+no-shift-var0 :
+  ∀ {A} →
+  ⇑ᵗ A ≡ ＇ 0 →
+  ⊥
+no-shift-var0 {A = ＇ X} ()
+no-shift-var0 {A = ‵ ι} ()
+no-shift-var0 {A = ★} ()
+no-shift-var0 {A = A ⇒ B} ()
+no-shift-var0 {A = `∀ A} ()
+
+no-shift-var0-fun :
+  ∀ {A} →
+  ⇑ᵗ A ≡ ＇ 0 ⇒ ＇ 0 →
+  ⊥
+no-shift-var0-fun {A = ＇ X} ()
+no-shift-var0-fun {A = ‵ ι} ()
+no-shift-var0-fun {A = ★} ()
+no-shift-var0-fun {A = A ⇒ B} eq =
+  no-shift-var0 (⇒-injective-left eq)
+no-shift-var0-fun {A = `∀ A} ()
+
+no-shift-var0-fun-left :
+  ∀ {A B} →
+  ⇑ᵗ A ≡ ＇ 0 ⇒ B →
+  ⊥
+no-shift-var0-fun-left {A = ＇ X} ()
+no-shift-var0-fun-left {A = ‵ ι} ()
+no-shift-var0-fun-left {A = ★} ()
+no-shift-var0-fun-left {A = A ⇒ B} eq =
+  no-shift-var0 (⇒-injective-left eq)
+no-shift-var0-fun-left {A = `∀ A} ()
+
+no-probe-c-empty :
+  ∀ {μ Σ A B} →
+  μ ∣ 0 ∣ Σ ⊢ probe-c ∶ A ⊒ B →
+  ⊥
+no-probe-c-empty (cast-fun (cast-id h ok) t⊢ ,
+                   cross (sʷ ↦ tⁿ)) =
+  no-wf-var0 h
+
 no-shifted-probe-c :
   ∀ {μ Σ A B} →
   μ ∣ 1 ∣ Σ ⊢ ⇑ᶜ probe-c ∶ A ⊒ B →
@@ -127,6 +184,35 @@ no-probe-compose :
   ⊥
 no-probe-compose (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   no-shifted-probe-c t⊒
+
+no-probe-compose-empty :
+  ∀ {A B r p} →
+  0 ∣ [] ⊢ r ≈ probe-c ⨾ⁿ p ∶ A ⊒ B →
+  ⊥
+no-probe-compose-empty (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  no-probe-c-empty t⊒
+
+no-id-var0-fun-shift-source :
+  ∀ {μ S T A} →
+  μ ∣ 1 ∣ [] ⊢ id (＇ 0) ↦ id (＇ 0) ∶ S =⇒ T →
+  S ≡ ⇑ᵗ A →
+  ⊥
+no-id-var0-fun-shift-source (cast-fun (cast-id h ok) t⊢) eq =
+  no-shift-var0-fun-left (sym eq)
+
+no-probe-gen-body-source :
+  ∀ {μ A B} →
+  μ ∣ 1 ∣ [] ⊢ probe-c ∶ ⇑ᵗ A =⇒ B →
+  ⊥
+no-probe-gen-body-source body⊢ =
+  no-id-var0-fun-shift-source body⊢ refl
+
+no-probe-gen-premise :
+  ∀ {A B} →
+  0 ∣ [] ⊢ gen A probe-c ∶ᶜ A ⊒ `∀ B →
+  ⊥
+no-probe-gen-premise (cast-gen hA occ body⊢ , gen bodyⁿ) =
+  no-probe-gen-body-source body⊢
 
 fun-left : Coercion → Coercion
 fun-left (id A) = id A
@@ -165,6 +251,31 @@ no-dual-id-var1-widen {c = unseal α A} () c⊑
 no-dual-id-var1-widen {c = gen A c} () c⊑
 no-dual-id-var1-widen {c = inst B c} () c⊑
 
+no-dual-id-var0-widen :
+  ∀ {μ Σ c A B} →
+  - c ≡ id (＇ 0) →
+  μ ∣ 0 ∣ Σ ⊢ c ∶ A ⊑ B →
+  ⊥
+no-dual-id-var0-widen {c = id A} refl (cast-id h ok , cross (id-＇ .0)) =
+  no-wf-var0 h
+no-dual-id-var0-widen {c = c ︔ d} () c⊑
+no-dual-id-var0-widen {c = c ↦ d} () c⊑
+no-dual-id-var0-widen {c = `∀ c} () c⊑
+no-dual-id-var0-widen {c = (＇ X) !} () c⊑
+no-dual-id-var0-widen {c = (‵ ι) !} () c⊑
+no-dual-id-var0-widen {c = ★ !} () c⊑
+no-dual-id-var0-widen {c = (A ⇒ B) !} () c⊑
+no-dual-id-var0-widen {c = `∀ A !} () c⊑
+no-dual-id-var0-widen {c = (＇ X) ？} () c⊑
+no-dual-id-var0-widen {c = (‵ ι) ？} () c⊑
+no-dual-id-var0-widen {c = ★ ？} () c⊑
+no-dual-id-var0-widen {c = (A ⇒ B) ？} () c⊑
+no-dual-id-var0-widen {c = `∀ A ？} () c⊑
+no-dual-id-var0-widen {c = seal A α} () c⊑
+no-dual-id-var0-widen {c = unseal α A} () c⊑
+no-dual-id-var0-widen {c = gen A c} () c⊑
+no-dual-id-var0-widen {c = inst B c} () c⊑
+
 no-dual-shifted-probe-c :
   ∀ {μ Σ t A B} →
   - t ≡ ⇑ᶜ probe-c →
@@ -174,6 +285,15 @@ no-dual-shifted-probe-c {t = t₁ ↦ t₂} eq
     (cast-fun t₁⊢ t₂⊢ , cross (t₁ʷ ↦ t₂ⁿ)) =
   no-dual-id-var1-widen (cong fun-left eq) (t₁⊢ , t₁ʷ)
 
+no-dual-probe-c-empty :
+  ∀ {μ Σ t A B} →
+  - t ≡ probe-c →
+  μ ∣ 0 ∣ Σ ⊢ t ∶ A ⊒ B →
+  ⊥
+no-dual-probe-c-empty {t = t₁ ↦ t₂} eq
+    (cast-fun t₁⊢ t₂⊢ , cross (t₁ʷ ↦ t₂ⁿ)) =
+  no-dual-id-var0-widen (cong fun-left eq) (t₁⊢ , t₁ʷ)
+
 no-probe-compose-dual :
   ∀ {A B r t p} →
   - t ≡ ⇑ᶜ probe-c →
@@ -181,6 +301,14 @@ no-probe-compose-dual :
   ⊥
 no-probe-compose-dual eq (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   no-dual-shifted-probe-c eq t⊒
+
+no-probe-compose-dual-empty :
+  ∀ {A B r t p} →
+  - t ≡ probe-c →
+  0 ∣ [] ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  ⊥
+no-probe-compose-dual-empty eq (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  no-dual-probe-c-empty eq t⊒
 
 no-probe-conclusion-aux :
   ∀ {c} →
@@ -199,6 +327,49 @@ no-probe-conclusion :
   ⊥
 no-probe-conclusion =
   no-probe-conclusion-aux refl
+
+no-probe-outer-by-eq :
+  ∀ {M} →
+  M ≡ (ƛ (` 0)) ⟨ probe-c ⟩ →
+  0 ∣ [] ∣ [] ⊢ M ⊒ Λ probe-V′ ∶ gen (★ ⇒ ★) probe-c →
+  ⊥
+no-probe-outer-by-eq eq (⊒Λ pᶜ body) =
+  no-probe-conclusion
+    (subst
+      (λ S → 1 ∣ (0 ꞉= ★ ⊒) ∷ [] ∣ []
+        ⊢ ⇑ᵗᵐ S ⊒ probe-V′ ∶ probe-c)
+      eq
+      body)
+no-probe-outer-by-eq eq
+    (cast+⊒ {t = t} pᶜ r≈t⨟p M⊒M′) =
+  no-probe-compose-dual-empty (cast-term-injective-right eq) r≈t⨟p
+no-probe-outer-by-eq eq
+    (cast-⊒ {t = t} pᶜ r≈t⨟p M⊒M′) =
+  no-probe-compose-empty
+    (subst
+      (λ t₀ → 0 ∣ [] ⊢ _ ≈ t₀ ⨾ⁿ _ ∶ _ ⊒ _)
+      (cast-term-injective-right eq)
+      r≈t⨟p)
+
+no-probe-outer-explicit :
+  0 ∣ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ probe-c ⟩
+      ⊒ Λ probe-V′ ∶ gen (★ ⇒ ★) probe-c →
+  ⊥
+no-probe-outer-explicit =
+  no-probe-outer-by-eq refl
+
+no-probe-outer-conclusion :
+  0 ∣ [] ∣ []
+    ⊢ probe-W ⊒ Λ probe-V′ ∶ gen (★ ⇒ ★) probe-c →
+  ⊥
+no-probe-outer-conclusion body =
+  no-probe-outer-explicit
+    (subst
+      (λ S → 0 ∣ [] ∣ []
+        ⊢ S ⊒ Λ probe-V′ ∶ gen (★ ⇒ ★) probe-c)
+      probe-W≡body
+      body)
 
 shifted-source-catchup-Λ-inversion-counterexample : ⊥
 shifted-source-catchup-Λ-inversion-counterexample

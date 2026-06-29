@@ -1589,3 +1589,43 @@ either:
 The existing insertion/gap lemmas in `proof.NarrowWidenProperties` are aimed at
 coercion overlap/determinacy, not whole `TermNarrowing` transport, so they do
 not provide this exchange directly.
+
+## Attempt 50: lift the `TraceProbe` counterexample through the real `gen` premise
+
+Rejected as a counterexample to `catchup-⊒Λ-catchup`, but now checked as a
+diagnostic boundary.  I tried to reuse the standalone
+`shifted-source-catchup-Λ-inversion` counterexample to refute the helper that
+the `⊒Λ` branches currently call.
+
+The first observation is useful: after the shifted beta step, the proposed
+outer conclusion is also impossible if the helper ignored its `gen` premise:
+
+`no-probe-outer-conclusion :
+  0 ∣ [] ∣ []
+    ⊢ probe-W ⊒ Λ probe-V′ ∶ gen (★ ⇒ ★) probe-c →
+  ⊥`.
+
+However, the actual helper has the premise
+
+`Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B`.
+
+The old probe uses `probe-c = id (＇ 0) ↦ id (＇ 0)`, and this cannot be the
+body of such an empty-context `gen` coercion.  I added the checked lemma
+
+`no-probe-gen-premise :
+  0 ∣ [] ⊢ gen A probe-c ∶ᶜ A ⊒ `∀ B →
+  ⊥`.
+
+Mechanically, the body of a `gen` coercion is typed with source endpoint
+`⇑ᵗ A`, but `probe-c` has source endpoint headed by `＇ 0`; no shifted type can
+have `＇ 0` at the head.  This explains the earlier failed attempt to pass
+`poly-fun-cast`: that theorem types `gen (★ ⇒ ★) var0-fun`, not
+`gen (★ ⇒ ★) probe-c`.
+
+Conclusion: this does not refute `catchup-⊒Λ-catchup` or the main
+`catchup-lemma`.  The extra `gen` premise is doing real work, and any
+counterexample must use a legal `gen` body such as `var0-fun`.  With legal
+example bodies, the desired post-bind shape is exactly the `split` shape already
+visible in `NarrowingExamples`, so the remaining proof path is still either a
+history-preserving replay through the final `bind` or a structural adjacent
+source-only/target-only binder exchange theorem.

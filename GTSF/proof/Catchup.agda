@@ -44,6 +44,7 @@ open import proof.NarrowWidenProperties
     ; narrow-drop-star
     ; srcStoreⁿ-⊒ˢ
     ; srcStoreⁿ-⇑ˢ
+    ; WfTyˢ-rename
     ; ⇑ˢ-++
     ; ⊒ˢ-⇑ˢ
     ; ⊒ˢ-empty-⇑ˢ
@@ -75,6 +76,7 @@ open import proof.TypeProperties
     ; rename-cong
     ; renameᵗ-compose
     ; renameᵗ-ext-suc-comm
+    ; renameᵗ-preserves-WfTy
     )
 open import proof.TermNarrowingProperties
   using
@@ -518,6 +520,66 @@ modeRename-swap01-tag-or-id :
   ModeRename swap01ᵗ tag-or-idᵈ tag-or-idᵈ
 modeRename-swap01-tag-or-id =
   modeRename-tag-or-id swap01ᵗ
+
+swap01ᵗMode : ModeEnv → ModeEnv
+swap01ᵗMode μ X = μ (swap01ᵗ X)
+
+modeRename-swap01ᵗMode :
+  ∀ μ →
+  ModeRename swap01ᵗ μ (swap01ᵗMode μ)
+modeRename-swap01ᵗMode μ X
+    rewrite swap01ᵗ-involutive X
+    with μ X
+... | id-only = refl
+... | tag-or-id = refl
+... | seal-or-id = refl
+
+⊒ˢ-rename-swap01ᵗ :
+  ∀ {Δ σ Σ Σ′} →
+  suc (suc Δ) ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+  suc (suc Δ) ⊢ renameStoreNrw swap01ᵗ σ ꞉
+    renameStoreᵗ swap01ᵗ Σ ⊒ˢ renameStoreᵗ swap01ᵗ Σ′
+⊒ˢ-rename-swap01ᵗ ⊒ˢ-nil = ⊒ˢ-nil
+⊒ˢ-rename-swap01ᵗ (⊒ˢ-right hA σ⊒) =
+  ⊒ˢ-right (renameᵗ-preserves-WfTy hA TyRenameWf-swap01)
+    (⊒ˢ-rename-swap01ᵗ σ⊒)
+⊒ˢ-rename-swap01ᵗ (⊒ˢ-left σ⊒) =
+  ⊒ˢ-left (⊒ˢ-rename-swap01ᵗ σ⊒)
+⊒ˢ-rename-swap01ᵗ (⊒ˢ-both hA hA′ (μ , q⊒) σ⊒) =
+  ⊒ˢ-both
+    (renameᵗ-preserves-WfTy hA TyRenameWf-swap01)
+    (renameᵗ-preserves-WfTy hA′ TyRenameWf-swap01)
+    (swap01ᵗMode μ ,
+      narrow-renameᵗ TyRenameWf-swap01
+        (modeRename-swap01ᵗMode μ) q⊒)
+    (⊒ˢ-rename-swap01ᵗ σ⊒)
+
+≈ⁿ-rename-swap01ᵗ :
+  ∀ {Δ σ s t A B} →
+  suc (suc Δ) ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
+  suc (suc Δ) ∣ renameStoreNrw swap01ᵗ σ
+    ⊢ renameᶜ swap01ᵗ s ≈ renameᶜ swap01ᵗ t
+      ∶ renameᵗ swap01ᵗ A ⊒ renameᵗ swap01ᵗ B
+≈ⁿ-rename-swap01ᵗ {s = s} {t = t}
+    (endpointsⁿ srcs tgts srct tgtt σ⊒ wfΣ wfΣ′ s⊒ t⊒) =
+  endpointsⁿ
+    (trans (src-renameᶜ swap01ᵗ s) (cong (renameᵗ swap01ᵗ) srcs))
+    (trans (tgt-renameᶜ swap01ᵗ s) (cong (renameᵗ swap01ᵗ) tgts))
+    (trans (src-renameᶜ swap01ᵗ t) (cong (renameᵗ swap01ᵗ) srct))
+    (trans (tgt-renameᶜ swap01ᵗ t) (cong (renameᵗ swap01ᵗ) tgtt))
+    (⊒ˢ-rename-swap01ᵗ σ⊒)
+    (WfTyˢ-rename TyRenameWf-swap01 (proj₁ wfΣ) ,
+     WfTyˢ-rename TyRenameWf-swap01 (proj₂ wfΣ))
+    (WfTyˢ-rename TyRenameWf-swap01 (proj₁ wfΣ′) ,
+     WfTyˢ-rename TyRenameWf-swap01 (proj₂ wfΣ′))
+    (let μ = proj₁ s⊒ in
+      swap01ᵗMode μ ,
+      narrow-renameᵗ TyRenameWf-swap01
+        (modeRename-swap01ᵗMode μ) (proj₂ s⊒))
+    (let μ = proj₁ t⊒ in
+      swap01ᵗMode μ ,
+      narrow-renameᵗ TyRenameWf-swap01
+        (modeRename-swap01ᵗMode μ) (proj₂ t⊒))
 
 TyRenameWf-raise0 :
   ∀ {Δ} →

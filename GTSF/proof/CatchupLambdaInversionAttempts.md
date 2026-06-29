@@ -2174,3 +2174,46 @@ is not guaranteed to be a plain `⇑ᵗᵐ` image.  It may be an under-binder im
 created by prior `ν`/cast reductions.  Thus the last-bind split is useful
 evidence for a prefix-aware exchange/replay theorem, but it is not by itself a
 local proof of `catchup-⊒Λ-catchup`.
+
+## Attempt 64: transport non-mode endpoints across `swap01ᵗ`
+
+Partially accepted.  I extended the checked swap algebra from syntax to the
+existential, non-mode endpoint relation:
+
+`⊒ˢ-rename-swap01ᵗ :
+ suc (suc Δ) ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+ suc (suc Δ) ⊢ renameStoreNrw swap01ᵗ σ ꞉
+   renameStoreᵗ swap01ᵗ Σ ⊒ˢ renameStoreᵗ swap01ᵗ Σ′`
+
+and
+
+`≈ⁿ-rename-swap01ᵗ :
+ suc (suc Δ) ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
+ suc (suc Δ) ∣ renameStoreNrw swap01ᵗ σ
+   ⊢ renameᶜ swap01ᵗ s ≈ renameᶜ swap01ᵗ t
+     ∶ renameᵗ swap01ᵗ A ⊒ renameᵗ swap01ᵗ B`.
+
+The only non-obvious part was the mode environment inside the existential
+narrowing witnesses.  Defining `swap01ᵗMode μ X = μ (swap01ᵗ X)` and using
+`swap01ᵗ-involutive` gives a small checked `ModeRename` witness, so this route
+does not need a global mode convention.
+
+I then tested the more ambitious next shortcut: use narrowing determinacy to
+show that `_⨟ⁿ_` commutes with `swap01ᵗ`, avoiding a full structural replay of
+composition.  That needs a `StoreDetWf` witness for the swapped store.  The
+generic lemma
+
+`StoreDetWf (suc (suc Δ)) Σ →
+ StoreDetWf (suc (suc Δ)) (renameStoreᵗ swap01ᵗ Σ)`
+
+is false.  A store entry at index `suc zero` may contain a type mentioning
+variable `zero`; after the swap the entry is at index `zero` while the renamed
+type may mention `suc zero`, violating `wfOlder`.  This is not a counterexample
+to the catchup lemma, but it rules out using unconstrained store renaming as the
+composition-side-condition proof.
+
+The remaining promising variant is shape-specific rather than generic:
+transport `StoreDetWf` only for stores of the form `(zero , ★) ∷ ⟰ᵗ Σ` or the
+corresponding shifted source store produced by the `⊒Λ` branch.  That shape may
+make the swap safe because the head moved from `zero` to `suc zero` stores only
+`★`, and the tail is already under a binder.

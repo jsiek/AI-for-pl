@@ -146,6 +146,7 @@ open import proof.ReductionProperties
     ; allKeep-applyStores-id
     ; allKeep-applyTys-id
     ; applyStores-++
+    ; RenameInjective
     ; ⟰ᵗ-empty-inv
     ; applyTyCtxs-++
     ; storeHead-∷≡
@@ -381,6 +382,25 @@ swap01ᵗ-after-suc :
   swap01ᵗ (suc X) ≡ extᵗ suc X
 swap01ᵗ-after-suc zero = refl
 swap01ᵗ-after-suc (suc X) = refl
+
+swap01ᵗ-involutive :
+  ∀ X →
+  swap01ᵗ (swap01ᵗ X) ≡ X
+swap01ᵗ-involutive zero = refl
+swap01ᵗ-involutive (suc zero) = refl
+swap01ᵗ-involutive (suc (suc X)) = refl
+
+swap01ᵗ-injective :
+  RenameInjective swap01ᵗ
+swap01ᵗ-injective {zero} {zero} refl = refl
+swap01ᵗ-injective {zero} {suc zero} ()
+swap01ᵗ-injective {zero} {suc (suc Y)} ()
+swap01ᵗ-injective {suc zero} {zero} ()
+swap01ᵗ-injective {suc zero} {suc zero} refl = refl
+swap01ᵗ-injective {suc zero} {suc (suc Y)} ()
+swap01ᵗ-injective {suc (suc X)} {zero} ()
+swap01ᵗ-injective {suc (suc X)} {suc zero} ()
+swap01ᵗ-injective {suc (suc X)} {suc (suc .X)} refl = refl
 
 TyRenameWf-swap01 :
   ∀ {Δ} →

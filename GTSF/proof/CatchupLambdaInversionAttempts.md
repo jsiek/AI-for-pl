@@ -2058,3 +2058,48 @@ renaming route because the syntax renaming is injective; the hard part is now
 isolated to the `StoreNrw` permutation and the term-narrowing constructors
 that expose store entries (`extend`, `split`, `⊒Λ`, `⊒ν`, `ν⊒`, and the cast
 composition side conditions).
+
+## Attempt 61: check `swap01ᵗ` injectivity and inspect the store-prefix
+obstruction
+
+Checked progress plus a sharper obstruction.  I added:
+
+`swap01ᵗ-involutive :
+  swap01ᵗ (swap01ᵗ X) ≡ X`
+
+and
+
+`swap01ᵗ-injective :
+  RenameInjective swap01ᵗ`.
+
+This confirms the variable-swap part of the future exchange can use
+injective-renaming infrastructure; it should not have the `StoreDetWf`
+preservation problem that blocked the generic `raise0ᵗ` route.
+
+However, inspecting the store shapes shows that the remaining exchange is not
+just "rename by `swap01ᵗ` and swap two list heads".  The source-first body from
+Attempt 51 has the final source-only binder in front of
+
+`⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))`.
+
+The emitted prefix `π₀` was produced while the original `⊒Λ` target binder was
+already in scope.  After rebuilding the outer `⊒Λ`, the corresponding emitted
+prefix must live under both the target binder and the final source-only binder.
+So the exchange theorem must also transport/lower the prefix itself; it cannot
+be stated as a bare adjacent permutation of two fixed store entries.
+
+This makes the likely next theorem a prefix-aware exchange/replay:
+
+if the recursive body is under
+
+`(⊒ zero ꞉=☆) ∷
+  ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))`,
+
+then construct an emitted prefix for the unshifted source run and transport the
+body to the `⊒Λ` premise store
+
+`(zero ꞉= ★ ⊒) ∷ ⇑ˢ (combineStoreNrw π′ σ)`.
+
+The checked `swap01ᵗ` facts should handle the target/coercion syntax during
+this transport, but the theorem still has to describe how `π₀`, reductions,
+and the term-narrowing derivation move together.

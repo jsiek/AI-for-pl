@@ -2704,3 +2704,86 @@ the split-aware replay once a recursive transport of the split premise has
 already been obtained.  The remaining hard case is exactly the unsafe
 `swap-right swap-here` crossing, which must use split/opening catchup rather
 than structural reconstruction.
+
+## Attempt 79: package the normalized source-first body as `ν⊒`
+
+Accepted as checked support, but not a complete proof path.  The last-bind
+branches already expose a normalized body of the shape:
+
+`(⊒ zero ꞉=☆) ∷ ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))`
+
+This is exactly the premise store shape of `ν⊒`.  To make that observation
+usable, I added:
+
+`gen-body-coercionᶜ-tag`
+
+which relaxes the body of a `gen` coercion from `genᵈ tag-or-idᵈ` mode to
+ordinary `∶ᶜ` mode, and:
+
+`catchup-gen-body-ordinary-coercionᶜ`
+
+which transports that ordinary body coercion through the recursive emitted
+prefix under the outer `⊒Λ` target-only binder.
+
+With those side conditions available, I added:
+
+`source-first-body-ν⊒`
+
+This packages a normalized source-first body as:
+
+`ν ★ W (⇑ᶜ (applyCoercions χs p)) ⊒ applyTerms χs V′`
+
+under the store:
+
+`combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)`
+
+The limitation is important.  This bridge re-expresses the *already caught-up*
+body `W` as the premise of a new `ν⊒` derivation.  It does not prove that the
+original source `N` reduces to this newly packaged `ν ★ W ...` term.  Calling
+`catchup-ν⊒-catchup` on the packaged relation would therefore prove catchup for
+the wrong source unless it is paired with a separate history-preserving replay
+that connects the original `χs₀` prefix and final bind step to this `ν⊒`
+source.
+
+## Attempt 80: lower the final-bind tail context for the `ν⊒` bridge
+
+Accepted as checked support.  Attempt 79 packaged a normalized source-first
+body, but the live last-bind branches expose the tail narrowing `π₀` in the
+full post-bind type context:
+
+`Δ′ ⊢ π₀ ꞉ applyStores χs₀ [] ⊒ˢ []`
+
+where:
+
+`Δ′ ≡ applyTyCtxs (χs₀ ++ bind Aχ ∷ keeps) (suc Δ)`
+
+The `ν⊒` bridge needs `π₀` in the lowered tail context:
+
+`applyTyCtxs χs₀ (suc Δ)`
+
+This is valid because the target store is empty, so `π₀` contains only
+source-star entries and its typing is independent of the type context.  Rather
+than adding a new lowering lemma, I reused the existing:
+
+`⊒ˢ-empty-anyᵗ`
+
+I added:
+
+`last-bind-source-first-ν⊒`
+
+This consumes the actual branch facts:
+
+`π ≡ (⊒ zero ꞉=☆) ∷ ⇑ˢ π₀`
+
+`Δ′ ≡ applyTyCtxs (χs₀ ++ bind Aχ ∷ keeps) (suc Δ)`
+
+the original outer `gen` coercion typing, the full-context `π₀⊒`, and the
+caught-up body `W⊒V′`.  It uses `last-bind-source-first-body` plus
+`applyTyCtxs-last-bind` to transport the body to
+`suc (applyTyCtxs χs₀ (suc Δ))`, lowers `π₀⊒` with `⊒ˢ-empty-anyᵗ`, and then
+calls `source-first-body-ν⊒`.
+
+This is the first checked lemma that directly matches the live last-bind branch
+facts.  It still packages a new source `ν ★ W ...`; it does not yet replay the
+original source `N` to that package, so it cannot replace the remaining
+`catchup-⊒Λ-catchup` calls by itself.

@@ -1610,6 +1610,14 @@ gen-body-coercionᶜ :
 gen-body-coercionᶜ (cast-gen hA occ body⊢ , gen bodyⁿ) =
   body⊢ , bodyⁿ
 
+gen-body-coercionᶜ-tag :
+  ∀ {Δ Σ A B p} →
+  Δ ∣ Σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  suc Δ ∣ ⟰ᵗ Σ ⊢ p ∶ᶜ ⇑ᵗ A ⊒ B
+gen-body-coercionᶜ-tag pᶜ =
+  narrow-mode-relax gen-tag-or-id≤tag-or-id
+    (gen-body-coercionᶜ pᶜ)
+
 catchup-gen-body-coercionᶜ :
   ∀ {Δ Δ′ σ π Π Π′ χs A B p} →
   Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
@@ -1626,6 +1634,122 @@ catchup-gen-body-coercionᶜ {σ = σ} {π = π} {χs = χs}
   gen-body-coercionᶜ
     (catchup-gen-coercion-typing-transport
       {σ = σ} {χs = χs} pᶜ Δ′≡ Π≡ Π′≡ π⊒)
+
+catchup-gen-body-coercionᶜ-tag :
+  ∀ {Δ Δ′ σ π Π Π′ χs A B p} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ≡ applyTyCtxs χs Δ →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  suc Δ′ ∣
+    srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ (combineStoreNrw π σ))
+    ⊢ applyCoercionUnderTyBinders χs p
+      ∶ᶜ ⇑ᵗ (applyTys χs A) ⊒ applyTysUnderTyBinders χs B
+catchup-gen-body-coercionᶜ-tag {σ = σ} {π = π} {χs = χs}
+    pᶜ Δ′≡ Π≡ Π′≡ π⊒ =
+  subst
+    (λ Σ → _ ∣ Σ ⊢ _ ∶ᶜ _ ⊒ _)
+    (sym (srcStoreⁿ-⇑ˢ (combineStoreNrw π σ)))
+    (gen-body-coercionᶜ-tag
+      (catchup-gen-coercion-typing-transport
+        {σ = σ} {χs = χs} pᶜ Δ′≡ Π≡ Π′≡ π⊒))
+
+catchup-gen-body-ordinary-coercionᶜ :
+  ∀ {Δ Δ′ σ π Π Π′ χs A B p} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ≡ applyTyCtxs χs (suc Δ) →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  Δ′ ∣ srcStoreⁿ
+    (combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))
+    ⊢ applyCoercions χs p ∶ᶜ
+      applyTys χs (⇑ᵗ A) ⊒ applyTys χs B
+catchup-gen-body-ordinary-coercionᶜ {σ = σ} {π = π} {χs = χs}
+    pᶜ Δ′≡ Π≡ Π′≡ π⊒ =
+  catchup-coercion-typing-transport
+    {σ = (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ} {π = π} {χs = χs}
+    (subst
+      (λ Σ → _ ∣ Σ ⊢ _ ∶ᶜ _ ⊒ _)
+      (sym (srcStoreⁿ-⇑ˢ σ))
+      (gen-body-coercionᶜ-tag pᶜ))
+    Δ′≡
+    Π≡
+    Π′≡
+    π⊒
+
+source-first-body-ν⊒ :
+  ∀ {Δ Δ′ σ π Π Π′ χs A B p W V′} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ≡ applyTyCtxs χs (suc Δ) →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  suc Δ′ ∣
+    (⊒ zero ꞉=☆) ∷
+      ⇑ˢ (combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)) ∣ []
+    ⊢ W ⊒ ⇑ᵗᵐ (applyTerms χs V′) ∶ ⇑ᶜ (applyCoercions χs p) →
+  Δ′ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+    ⊢ ν ★ W (⇑ᶜ (applyCoercions χs p)) ⊒ applyTerms χs V′
+      ∶ applyCoercions χs p
+source-first-body-ν⊒ {χs = χs} pᶜ Δ′≡ Π≡ Π′≡ π⊒ body =
+  ν⊒
+    (catchup-gen-body-ordinary-coercionᶜ
+      {χs = χs} pᶜ Δ′≡ Π≡ Π′≡ π⊒)
+    body
+
+last-bind-source-first-ν⊒ :
+  ∀ {Δ Δ′ σ χs Aχ keeps π π₀ A B p W V′} →
+  (keeps-ok : AllKeep keeps) →
+  π ≡ (⊒ zero ꞉=☆) ∷ ⇑ˢ π₀ →
+  Δ′ ≡ applyTyCtxs (χs ++ bind Aχ ∷ keeps) (suc Δ) →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ⊢ π₀ ꞉ applyStores χs [] ⊒ˢ [] →
+  Δ′ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+    ⊢ W ⊒ applyTerms (χs ++ bind Aχ ∷ keeps) V′
+      ∶ applyCoercions (χs ++ bind Aχ ∷ keeps) p →
+  applyTyCtxs χs (suc Δ) ∣
+    combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+    ⊢ ν ★ W (⇑ᶜ (applyCoercions χs p)) ⊒ applyTerms χs V′
+      ∶ applyCoercions χs p
+last-bind-source-first-ν⊒
+    {Δ = Δ} {Δ′ = Δ′} {σ = σ} {χs = χs}
+    {Aχ = Aχ} {keeps = keeps} {π₀ = π₀}
+    {p = p} {W = W} {V′ = V′}
+    keeps-ok π≡ Δ′≡ pᶜ π₀⊒ W⊒V′ =
+  source-first-body-ν⊒
+    {χs = χs}
+    pᶜ
+    refl
+    refl
+    refl
+    (⊒ˢ-empty-anyᵗ (applyTyCtxs χs (suc Δ)) π₀⊒)
+    body
+  where
+    Δ′≡tail :
+      Δ′ ≡ suc (applyTyCtxs χs (suc Δ))
+    Δ′≡tail =
+      trans Δ′≡
+        (applyTyCtxs-last-bind χs Aχ keeps keeps-ok (suc Δ))
+
+    body :
+      suc (applyTyCtxs χs (suc Δ)) ∣
+        (⊒ zero ꞉=☆) ∷
+          ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)) ∣ []
+        ⊢ W ⊒ ⇑ᵗᵐ (applyTerms χs V′) ∶ ⇑ᶜ (applyCoercions χs p)
+    body =
+      subst
+        (λ Δ₀ → Δ₀ ∣
+          (⊒ zero ꞉=☆) ∷
+            ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)) ∣ []
+          ⊢ W ⊒ ⇑ᵗᵐ (applyTerms χs V′)
+            ∶ ⇑ᶜ (applyCoercions χs p))
+        Δ′≡tail
+        (last-bind-source-first-body
+          {σ = σ} {χs = χs} {A = Aχ} {keeps = keeps}
+          {V = V′} {p = p} {π₀ = π₀}
+          keeps-ok π≡ W⊒V′)
 
 ≈ⁿ-⇑ˢ :
   ∀ {Δ σ s t A B} →

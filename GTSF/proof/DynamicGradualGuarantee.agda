@@ -26,6 +26,12 @@ open import proof.CatchupStore using (combineStoreNrw)
 open import proof.LeftSealNarrowingInversion using
   (LeftSealNarrowingInversion; leftSealNarrowingInversion)
 open import proof.ReductionProperties using (type-rename-step-⇑ᵗᵐ)
+open import proof.RightTagSealInversion using
+  ( right-tag-inversion₁
+  ; right-tag-inversion₂
+  ; right-seal-inversion₁
+  ; right-seal-inversion₂
+  )
 open import proof.TermSubstitutionNarrowing using
   (term-substitution-narrowing)
 
@@ -34,26 +40,6 @@ open import proof.TermSubstitutionNarrowing using
 ------------------------------------------------------------------------
 
 postulate
-  right-tag-inversion₁ :
-    ∀ {Δ σ γ M V q G} →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ G ! ⟩ ∶ q →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ G ？
-
-  right-tag-inversion₂ :
-    ∀ {Δ σ γ M V r G} →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ G ？ ⟩ ∶ r →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ id ★
-
-  right-seal-inversion₁ :
-    ∀ {Δ σ γ M V r A α} →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
-    ∃[ q ] Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ q
-
-  right-seal-inversion₂ :
-    ∀ {Δ σ γ M V q A α} →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ unseal α A ⟩ ∶ q →
-    ∃[ r ] Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ r
-
   wrap-narrowing-lemma :
     ∀ {Δ σ V′ V W′ W p q s t} →
     Δ ∣ σ ∣ [] ⊢ V′ ⊒ V ⟨ - (s ↦ t) ⟩ ∶ p ↦ q →

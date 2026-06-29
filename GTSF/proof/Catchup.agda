@@ -104,6 +104,7 @@ open import proof.ReductionProperties
     ; applyStores-last-bind
     ; applyTerms-++
     ; applyTerms-empty-id
+    ; applyTerms-last-bind
     ; applyTerms-last-bind-open
     ; applyTerms-open
     ; applyTerms-Λ
@@ -261,6 +262,39 @@ combineStoreNrw-source-star-shifted-tail :
     (⊒ zero ꞉=☆) ∷ ⇑ˢ (combineStoreNrw π σ)
 combineStoreNrw-source-star-shifted-tail π σ =
   cong ((⊒ zero ꞉=☆) ∷_) (sym (combineStoreNrw-⇑ˢ π σ))
+
+last-bind-source-first-body :
+  ∀ {Δ σ χs A keeps W V p π π₀} →
+  AllKeep keeps →
+  π ≡ (⊒ zero ꞉=☆) ∷ ⇑ˢ π₀ →
+  Δ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+    ⊢ W ⊒ applyTerms (χs ++ bind A ∷ keeps) V
+      ∶ applyCoercions (χs ++ bind A ∷ keeps) p →
+  Δ ∣ (⊒ zero ꞉=☆) ∷
+      ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)) ∣ []
+    ⊢ W ⊒ ⇑ᵗᵐ (applyTerms χs V) ∶ ⇑ᶜ (applyCoercions χs p)
+last-bind-source-first-body {σ = σ} {χs = χs} {A = A}
+    {keeps = keeps} {V = V} {p = p} {π = π} {π₀ = π₀}
+    keeps-ok π≡ body =
+  subst
+    (λ c → _ ∣ _ ∣ [] ⊢ _ ⊒ ⇑ᵗᵐ (applyTerms χs V) ∶ c)
+    (applyCoercions-last-bind χs A keeps keeps-ok p)
+    (subst
+      (λ T → _ ∣ _ ∣ [] ⊢ _ ⊒ T ∶
+        applyCoercions (χs ++ bind A ∷ keeps) p)
+      (applyTerms-last-bind χs A keeps keeps-ok V)
+      (subst
+        (λ σ₀ → _ ∣ σ₀ ∣ [] ⊢ _ ⊒
+          applyTerms (χs ++ bind A ∷ keeps) V ∶
+          applyCoercions (χs ++ bind A ∷ keeps) p)
+        (trans
+          (cong
+            (λ π′ → combineStoreNrw π′
+              ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))
+            π≡)
+          (combineStoreNrw-source-star-shifted-tail π₀
+            ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)))
+        body))
 
 ⊒ˢ-empty-empty-nil :
   ∀ {Δ π} →

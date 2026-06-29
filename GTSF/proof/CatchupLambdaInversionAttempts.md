@@ -1629,3 +1629,37 @@ example bodies, the desired post-bind shape is exactly the `split` shape already
 visible in `NarrowingExamples`, so the remaining proof path is still either a
 history-preserving replay through the final `bind` or a structural adjacent
 source-only/target-only binder exchange theorem.
+
+## Attempt 51: normalize the last-bind body into source-first form
+
+Partial progress.  I added the checked transport lemma
+
+`last-bind-source-first-body :
+  AllKeep keeps →
+  π ≡ (⊒ zero ꞉=☆) ∷ ⇑ˢ π₀ →
+  Δ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+    ⊢ W ⊒ applyTerms (χs ++ bind A ∷ keeps) V
+      ∶ applyCoercions (χs ++ bind A ∷ keeps) p →
+  Δ ∣ (⊒ zero ꞉=☆) ∷
+      ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)) ∣ []
+    ⊢ W ⊒ ⇑ᵗᵐ (applyTerms χs V) ∶ ⇑ᶜ (applyCoercions χs p)`.
+
+This combines the lowered-tail store inversion from Attempt 46 with
+`applyTerms-last-bind` and `applyCoercions-last-bind`.  It removes some
+transport noise from the live last-bind branches: after the final `bind`, the
+caught-up body is explicitly under the source-first store
+
+`(⊒ zero ꞉=☆) ∷
+  ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))`
+
+and its target/coercion are explicitly shifted.
+
+This still does not rebuild `⊒Λ`.  The desired `⊒Λ` premise would need the
+target-first/source-only order
+
+`(zero ꞉= ★ ⊒) ∷
+  ⇑ˢ ((⊒ zero ꞉=☆) ∷ combineStoreNrw π₀ σ)`.
+
+So the remaining missing theorem is now isolated more cleanly: either transport
+this normalized source-first body across the adjacent binder exchange, or replay
+the source history up to a both-side premise and then use `split`.

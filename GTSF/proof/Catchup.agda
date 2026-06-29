@@ -1004,6 +1004,47 @@ open-shiftᶜ :
   (⇑ᶜ c) [ α ]ᶜ ≡ c
 open-shiftᶜ α c = renameᶜ-left-inverse (λ X → refl) c
 
+id★-coercionᶜ :
+  ∀ {Δ Σ} →
+  Δ ∣ Σ ⊢ id ★ ∶ᶜ ★ ⊒ ★
+id★-coercionᶜ = cast-id wf★ refl , id★
+
+gen-body-open-split-coercion :
+  ∀ {Δ σ A B p} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  suc Δ ∣
+    srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ σ)
+    ⊢ (⇑ᶜ p) [ zero ]ᶜ ∶ᶜ ⇑ᵗ A ⊒ B
+gen-body-open-split-coercion {σ = σ} {p = p}
+    (cast-gen hA occ body⊢ , gen bodyⁿ) =
+  subst
+    (λ c → _ ∣ _ ⊢ c ∶ᶜ _ ⊒ _)
+    (sym (open-shiftᶜ zero p))
+    (subst
+      (λ Σ → _ ∣ (suc zero , ★) ∷ Σ ⊢ p ∶ᶜ _ ⊒ _)
+      (sym (srcStoreⁿ-⇑ˢ σ))
+      (narrow-weaken ≤-refl StoreIncl-drop
+        (narrow-mode-relax gen-tag-or-id≤tag-or-id (body⊢ , bodyⁿ))))
+
+catchup-gen-body-open-split-coercion :
+  ∀ {Δ Δ′ σ π Π Π′ χs A B p} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ≡ applyTyCtxs χs Δ →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  suc Δ′ ∣
+    srcStoreⁿ
+      ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷
+        ⇑ˢ (combineStoreNrw π σ))
+    ⊢ (⇑ᶜ (applyCoercionUnderTyBinders χs p)) [ zero ]ᶜ
+      ∶ᶜ ⇑ᵗ (applyTys χs A) ⊒ applyTysUnderTyBinders χs B
+catchup-gen-body-open-split-coercion {σ = σ} {π = π} {χs = χs}
+    pᶜ Δ′≡ Π≡ Π′≡ π⊒ =
+  gen-body-open-split-coercion {σ = combineStoreNrw π σ}
+    (catchup-gen-coercion-typing-transport
+      {σ = σ} {χs = χs} pᶜ Δ′≡ Π≡ Π′≡ π⊒)
+
 extend-replace-here-term :
   ∀ {Δ α q A B σ γ M T c C D} →
   Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ B ⊒ A →

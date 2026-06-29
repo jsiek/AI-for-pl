@@ -1701,3 +1701,48 @@ final bind need not be a global type-shift image.  This confirms that the
 remaining proof still needs either a recursive replay theorem that performs the
 same binder exchange at each nested bind, or the adjacent source-only/target-only
 exchange theorem isolated in Attempts 47, 49, and 51.
+
+## Attempt 53: build the split coercion premises from the `gen` premise
+
+Partial progress.  The examples suggest that the post-bind `⊒Λ` body should
+eventually be rebuilt by a `split`: the target-only binder sits at `zero`, and
+the emitted source-only star sits at `suc zero`.  I therefore isolated the
+coercion premises needed by that future `split`.
+
+I added the checked helpers:
+
+`id★-coercionᶜ :
+  Δ ∣ Σ ⊢ id ★ ∶ᶜ ★ ⊒ ★`
+
+and
+
+`gen-body-open-split-coercion :
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  suc Δ ∣
+    srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ σ)
+    ⊢ (⇑ᶜ p) [ zero ]ᶜ ∶ᶜ ⇑ᵗ A ⊒ B`.
+
+The second helper inverts the `cast-gen` premise, relaxes the body mode from
+`genᵈ tag-or-idᵈ` back to `tag-or-idᵈ`, weakens the source store by the emitted
+star, and rewrites `(⇑ᶜ p) [ zero ]ᶜ` back to `p`.
+
+I also lifted it through emitted catchup prefixes:
+
+`catchup-gen-body-open-split-coercion :
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ≡ applyTyCtxs χs Δ →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  suc Δ′ ∣
+    srcStoreⁿ
+      ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷
+        ⇑ˢ (combineStoreNrw π σ))
+    ⊢ (⇑ᶜ (applyCoercionUnderTyBinders χs p)) [ zero ]ᶜ
+      ∶ᶜ ⇑ᵗ (applyTys χs A) ⊒ applyTysUnderTyBinders χs B`.
+
+This removes one uncertainty from the split-rebuild path: the required
+coercion premises can be derived from the real `gen` premise even after an
+emitted prefix.  It still does not move the caught-up term relation from the
+source-first store to the target-first/source-only store, so the remaining
+obligation is still the term-level exchange/replay theorem.

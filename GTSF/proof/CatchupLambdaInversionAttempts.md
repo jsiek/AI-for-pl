@@ -2387,3 +2387,46 @@ Attempt 66 already proves the relevant shape-specific determinant.  For an
 arbitrary `TermNarrowing` derivation under an emitted prefix, the remaining
 work is still to thread those shape facts through the changing `StoreNrw`
 prefix while replaying the term derivation.
+
+## Attempt 69: isolate the local source/target list exchange
+
+Accepted as checked support, not as the prefix-aware exchange theorem.  After
+re-reading Attempts 60-65, I confirmed that the `⊒Λ` last-bind branch still
+needs two separate movements:
+
+1. rename the two newest type variables with `swap01ᵗ`; and
+2. actually reorder a source-only store entry past a target-only store entry in
+   the `StoreNrw` list.
+
+Attempt 68 addressed the first movement through composition side conditions
+under `renameStoreNrw swap01ᵗ`.  It did not perform the list reordering.  I
+therefore added the local list-exchange primitive:
+
+`⊒ˢ-source-target-swap :
+  Δ ⊢ (⊒ X ꞉=☆) ∷ (Y ꞉= A ⊒) ∷ σ ꞉ Σ ⊒ˢ Σ′ →
+  Δ ⊢ (Y ꞉= A ⊒) ∷ (⊒ X ꞉=☆) ∷ σ ꞉ Σ ⊒ˢ Σ′`
+
+The proof is just the commutation of `⊒ˢ-left` and `⊒ˢ-right`:
+`⊒ˢ-left (⊒ˢ-right hA σ⊒)` becomes
+`⊒ˢ-right hA (⊒ˢ-left σ⊒)`.
+
+I lifted that through endpoint equivalence and the two composition
+side-condition forms:
+
+`≈ⁿ-source-target-swap`
+
+`compose-leftⁿ-source-target-swap`
+
+`compose-rightⁿ-source-target-swap`
+
+This gives the missing local list permutation for cast side conditions.  It is
+still only an adjacent exchange.  The live `⊒Λ` last-bind branch exposes a
+source-first body under
+
+`(⊒ zero ꞉=☆) ∷
+  ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))`,
+
+where the target-only entry is buried below the emitted prefix `π₀`.  So a full
+solution must recursively bubble that target-only entry through the prefix,
+using this local exchange at each adjacent source/target crossing and the
+checked composition transport from Attempt 68 for cast side conditions.

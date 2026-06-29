@@ -594,6 +594,52 @@ modeRename-swap01ᵗMode μ X
       narrow-renameᵗ TyRenameWf-swap01
         (modeRename-swap01ᵗMode μ) (proj₂ t⊒))
 
+⊒ˢ-source-target-swap :
+  ∀ {Δ σ Σ Σ′ X Y A} →
+  Δ ⊢ (⊒ X ꞉=☆) ∷ (Y ꞉= A ⊒) ∷ σ ꞉ Σ ⊒ˢ Σ′ →
+  Δ ⊢ (Y ꞉= A ⊒) ∷ (⊒ X ꞉=☆) ∷ σ ꞉ Σ ⊒ˢ Σ′
+⊒ˢ-source-target-swap (⊒ˢ-left (⊒ˢ-right hA σ⊒)) =
+  ⊒ˢ-right hA (⊒ˢ-left σ⊒)
+
+≈ⁿ-source-target-swap :
+  ∀ {Δ σ X Y A s t B C} →
+  Δ ∣ (⊒ X ꞉=☆) ∷ (Y ꞉= A ⊒) ∷ σ
+    ⊢ s ≈ t ∶ B ⊒ C →
+  Δ ∣ (Y ꞉= A ⊒) ∷ (⊒ X ꞉=☆) ∷ σ
+    ⊢ s ≈ t ∶ B ⊒ C
+≈ⁿ-source-target-swap
+    (endpointsⁿ srcs tgts srct tgtt σ⊒ wfΣ wfΣ′ s⊒ t⊒) =
+  endpointsⁿ
+    srcs
+    tgts
+    srct
+    tgtt
+    (⊒ˢ-source-target-swap σ⊒)
+    wfΣ
+    wfΣ′
+    s⊒
+    t⊒
+
+compose-leftⁿ-source-target-swap :
+  ∀ {Δ σ X Y E q s r A B} →
+  Δ ∣ (⊒ X ꞉=☆) ∷ (Y ꞉= E ⊒) ∷ σ
+    ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Δ ∣ (Y ꞉= E ⊒) ∷ (⊒ X ꞉=☆) ∷ σ
+    ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
+compose-leftⁿ-source-target-swap
+    (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
+  compose-leftⁿ wfΣ q⊒ s⊒ (≈ⁿ-source-target-swap q⨟s≈r)
+
+compose-rightⁿ-source-target-swap :
+  ∀ {Δ σ X Y E r t p A B} →
+  Δ ∣ (⊒ X ꞉=☆) ∷ (Y ꞉= E ⊒) ∷ σ
+    ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  Δ ∣ (Y ꞉= E ⊒) ∷ (⊒ X ꞉=☆) ∷ σ
+    ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+compose-rightⁿ-source-target-swap
+    (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  compose-rightⁿ wfΣ t⊒ p⊒ (≈ⁿ-source-target-swap r≈t⨟p)
+
 ext-suc-injective :
   RenameInjective (extᵗ suc)
 ext-suc-injective {zero} {zero} refl = refl

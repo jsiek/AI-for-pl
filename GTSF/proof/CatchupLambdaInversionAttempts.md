@@ -2342,3 +2342,48 @@ This directly addresses the composition-side-condition problem from Attempt
 proof must still provide the right renamed-store determinant witness at each
 side-condition site and, more importantly, recurse through the entire
 `TermNarrowing` derivation while changing the surrounding `StoreNrw` prefix.
+
+## Attempt 68: make composition transport symmetric and determinant-parametric
+
+Accepted as checked support, not as the final `⊒Λ` proof.  After confirming
+the branch already contained the latest `main` tip, I added the widening twin
+of the narrowing composition-renaming lemma:
+
+`⨟ʷ-renameᵗ-determined :
+  ...
+  proj₁ (_⨟ʷ_ {wfΣ = wfΣ′}
+    (widen-renameᵗ hρ hμ s⊑)
+    (widen-renameᵗ hρ hμ t⊑))
+  ≡ renameᶜ ρ (proj₁ (_⨟ʷ_ {wfΣ = wfΣ} s⊑ t⊑))`
+
+The proof is the same determinacy move as Attempt 67, using
+`widening-determinedᵐ`.  This rules out an asymmetry in the composition
+algebra: both `_⨟ⁿ_` and `_⨟ʷ_` commute with type renaming up to the existing
+determinacy theorems, provided the renamed store has a `StoreDetWf` witness.
+
+I then wrapped the component lemmas from Attempt 67 in checked side-condition
+transport rules:
+
+`compose-leftⁿ-rename-swap01ᵗ`
+
+`compose-rightⁿ-rename-swap01ᵗ`
+
+Both wrappers take an explicit argument
+
+`∀ {Σ} →
+  StoreDetWf (suc (suc Δ)) Σ →
+  StoreDetWf (suc (suc Δ)) (renameStoreᵗ swap01ᵗ Σ)`
+
+and then pattern-match on `compose-leftⁿ` or `compose-rightⁿ` to supply the
+hidden store determinant to the component lemma.
+
+This is intentionally not instantiated generically.  Attempt 64 and the
+checked `StoreDetWf-swap01-generic⊥` counterexample show that the generic
+determinant mapper is false.  The wrapper is still useful because it isolates
+the exact side-condition needed by a future whole-term replay/exchange theorem:
+the replay must provide a shape-specific determinant mapper at every
+composition side-condition site.  For the instantiation-store shape,
+Attempt 66 already proves the relevant shape-specific determinant.  For an
+arbitrary `TermNarrowing` derivation under an emitted prefix, the remaining
+work is still to thread those shape facts through the changing `StoreNrw`
+prefix while replaying the term derivation.

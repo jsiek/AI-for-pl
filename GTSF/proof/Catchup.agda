@@ -40,6 +40,7 @@ open import proof.NarrowWidenProperties
     ; WfTyˢ-⇑ᵗ
     ; WfTyˢ-store-weaken
     ; narrowing-determinedᵐ
+    ; widening-determinedᵐ
     ; narrow-⇑ᵗ-ᶜ
     ; narrow-⇑ᵗ-ᶜ-srcStoreⁿ
     ; narrow-⇑ᵗ-ᶜ-srcStoreⁿ≤
@@ -764,6 +765,26 @@ StoreDetWf-swap01-inst {Σ = Σ} wfΣ =
     (narrow-renameᵗ {ν = νᵐ} hρ hμ
       (proj₂ (_⨟ⁿ_ {wfΣ = wfΣ} s⊒ t⊒)))
 
+⨟ʷ-renameᵗ-determined :
+  ∀ {ρ μ ν Δ Δ′ Σ A B C s t}
+    (hρ : TyRenameWf Δ Δ′ ρ) →
+  (hμ : ModeRename ρ μ ν) →
+  (wfΣ : StoreDetWf Δ Σ) →
+  (wfΣ′ : StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  (s⊑ : μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊑ B) →
+  (t⊑ : μ ∣ Δ ∣ Σ ⊢ t ∶ B ⊑ C) →
+  proj₁ (_⨟ʷ_ {wfΣ = wfΣ′}
+    (widen-renameᵗ {ν = ν} hρ hμ s⊑)
+    (widen-renameᵗ {ν = ν} hρ hμ t⊑))
+  ≡ renameᶜ ρ (proj₁ (_⨟ʷ_ {wfΣ = wfΣ} s⊑ t⊑))
+⨟ʷ-renameᵗ-determined {ν = νᵐ} hρ hμ wfΣ wfΣ′ s⊑ t⊑ =
+  widening-determinedᵐ wfΣ′
+    (proj₂ (_⨟ʷ_ {wfΣ = wfΣ′}
+      (widen-renameᵗ {ν = νᵐ} hρ hμ s⊑)
+      (widen-renameᵗ {ν = νᵐ} hρ hμ t⊑)))
+    (widen-renameᵗ {ν = νᵐ} hρ hμ
+      (proj₂ (_⨟ʷ_ {wfΣ = wfΣ} s⊑ t⊑)))
+
 StoreDetWf-swap01-generic⊥ :
   StoreDetWf (suc (suc zero))
     (renameStoreᵗ swap01ᵗ ((suc zero , ＇ zero) ∷ [])) →
@@ -1204,6 +1225,35 @@ compose-rightⁿ-rename-swap01ᵗ-components
         (λ u → _ ∣ _ ⊢ renameᶜ swap01ᵗ _ ≈ u ∶ _ ⊒ _)
         (sym u≡)
         (≈ⁿ-rename-swap01ᵗ r≈t⨟p)
+
+compose-leftⁿ-rename-swap01ᵗ :
+  ∀ {Δ σ q s r A B} →
+  (∀ {Σ} →
+    StoreDetWf (suc (suc Δ)) Σ →
+    StoreDetWf (suc (suc Δ)) (renameStoreᵗ swap01ᵗ Σ)) →
+  suc (suc Δ) ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  suc (suc Δ) ∣ renameStoreNrw swap01ᵗ σ
+    ⊢ renameᶜ swap01ᵗ q ⨾ⁿ renameᶜ swap01ᵗ s
+      ≈ renameᶜ swap01ᵗ r ∶ renameᵗ swap01ᵗ A ⊒ renameᵗ swap01ᵗ B
+compose-leftⁿ-rename-swap01ᵗ detMap
+    (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
+  compose-leftⁿ-rename-swap01ᵗ-components
+    wfΣ (detMap wfΣ) q⊒ s⊒ q⨟s≈r
+
+compose-rightⁿ-rename-swap01ᵗ :
+  ∀ {Δ σ r t p A B} →
+  (∀ {Σ} →
+    StoreDetWf (suc (suc Δ)) Σ →
+    StoreDetWf (suc (suc Δ)) (renameStoreᵗ swap01ᵗ Σ)) →
+  suc (suc Δ) ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  suc (suc Δ) ∣ renameStoreNrw swap01ᵗ σ
+    ⊢ renameᶜ swap01ᵗ r
+      ≈ renameᶜ swap01ᵗ t ⨾ⁿ renameᶜ swap01ᵗ p
+        ∶ renameᵗ swap01ᵗ A ⊒ renameᵗ swap01ᵗ B
+compose-rightⁿ-rename-swap01ᵗ detMap
+    (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  compose-rightⁿ-rename-swap01ᵗ-components
+    wfΣ (detMap wfΣ) t⊒ p⊒ r≈t⨟p
 
 catchup-compose-left-transport-shifted :
   ∀ n {Δ Δ′ σ π Π Π′ χs q s r A B} →

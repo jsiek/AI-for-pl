@@ -26,18 +26,14 @@ open import proof.CatchupStore using (combineStoreNrw)
 open import proof.LeftSealNarrowingInversion using
   (LeftSealNarrowingInversion; leftSealNarrowingInversion)
 open import proof.ReductionProperties using (type-rename-step-⇑ᵗᵐ)
+open import proof.TermSubstitutionNarrowing using
+  (term-substitution-narrowing)
 
 ------------------------------------------------------------------------
 -- Lemmas used by the cambridge25 top-down proof
 ------------------------------------------------------------------------
 
 postulate
-  term-substitution-narrowing :
-    ∀ {Δ σ γ N N′ V V′ p q} →
-    Δ ∣ σ ∣ q ∷ γ ⊢ N ⊒ N′ ∶ p →
-    Δ ∣ σ ∣ γ ⊢ V ⊒ V′ ∶ q →
-    Δ ∣ σ ∣ γ ⊢ N [ V ] ⊒ N′ [ V′ ] ∶ p
-
   right-tag-inversion₁ :
     ∀ {Δ σ γ M V q G} →
     Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ G ! ⟩ ∶ q →
@@ -103,7 +99,7 @@ function-application-simulation-ƛ⊒ƛ {N = N} {V = V} vV N⊒N′ V⊒V′ =
   refl ,
   refl ,
   ⊒ˢ-nil ,
-  term-substitution-narrowing N⊒N′ V⊒V′
+  term-substitution-narrowing _ N⊒N′
 
 function-application-simulation :
   ∀ {Δ σ L L′ M N′ V′ r p q} →

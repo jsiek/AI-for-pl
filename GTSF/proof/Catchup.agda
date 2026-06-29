@@ -448,6 +448,32 @@ renameCtxNrw : Renameᵗ → CtxNrw → CtxNrw
 renameCtxNrw ρ [] = []
 renameCtxNrw ρ (p ∷ γ) = renameᶜ ρ p ∷ renameCtxNrw ρ γ
 
+renameStoreNrw-swap01-⇑ˢ :
+  ∀ σ →
+  renameStoreNrw swap01ᵗ (⇑ˢ σ) ≡
+    renameStoreNrw (extᵗ suc) σ
+renameStoreNrw-swap01-⇑ˢ [] = refl
+renameStoreNrw-swap01-⇑ˢ ((X ꞉ p) ∷ σ) =
+  cong₂ _∷_
+    (cong₂ _꞉_ (swap01ᵗ-after-suc X) (renameᶜ-swap01-⇑ p))
+    (renameStoreNrw-swap01-⇑ˢ σ)
+renameStoreNrw-swap01-⇑ˢ ((X ꞉= A ⊒) ∷ σ) =
+  cong₂ _∷_
+    (cong₂ _꞉=_⊒ (swap01ᵗ-after-suc X) (renameᵗ-swap01-⇑ A))
+    (renameStoreNrw-swap01-⇑ˢ σ)
+renameStoreNrw-swap01-⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
+  cong₂ _∷_
+    (cong (λ Y → ⊒ Y ꞉=☆) (swap01ᵗ-after-suc X))
+    (renameStoreNrw-swap01-⇑ˢ σ)
+
+renameCtxNrw-swap01-⇑ᵍ :
+  ∀ γ →
+  renameCtxNrw swap01ᵗ (⇑ᵍ γ) ≡
+    renameCtxNrw (extᵗ suc) γ
+renameCtxNrw-swap01-⇑ᵍ [] = refl
+renameCtxNrw-swap01-⇑ᵍ (p ∷ γ) =
+  cong₂ _∷_ (renameᶜ-swap01-⇑ p) (renameCtxNrw-swap01-⇑ᵍ γ)
+
 srcStoreⁿ-renameStoreNrw :
   ∀ ρ σ →
   srcStoreⁿ (renameStoreNrw ρ σ) ≡ renameStoreᵗ ρ (srcStoreⁿ σ)

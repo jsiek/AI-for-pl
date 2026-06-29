@@ -61,6 +61,7 @@ open import proof.CoercionProperties
     ; ModeRename
     ; renameᶜ-cong
     ; renameᶜ-compose
+    ; renameᶜ-dual-normal
     ; renameᶜ-ext-suc-comm
     ; renameᶜ-left-inverse
     ; src-renameᶜ
@@ -525,6 +526,27 @@ renameCtxNrw : Renameᵗ → CtxNrw → CtxNrw
 renameCtxNrw ρ [] = []
 renameCtxNrw ρ (p ∷ γ) = renameᶜ ρ p ∷ renameCtxNrw ρ γ
 
+lookup-renameCtxNrw :
+  ∀ {ρ γ x p} →
+  γ ∋ x ⦂ p →
+  renameCtxNrw ρ γ ∋ x ⦂ renameᶜ ρ p
+lookup-renameCtxNrw Z = Z
+lookup-renameCtxNrw (S x∋p) = S (lookup-renameCtxNrw x∋p)
+
+renameCtxNrw-dual-cons :
+  ∀ ρ p γ →
+  renameCtxNrw ρ ((- p) ∷ γ) ≡ (- renameᶜ ρ p) ∷ renameCtxNrw ρ γ
+renameCtxNrw-dual-cons ρ p γ =
+  cong (_∷ renameCtxNrw ρ γ) (renameᶜ-dual-normal ρ p)
+
+-- Attempt 73.  The useful bubble step must first rename a body derivation by
+-- `swap01ᵗ` and only then apply adjacent source/target swaps.  The full
+-- term-renaming transport is large because opened constructors (`extend`,
+-- `split`, `α⊒α`, and `⊒α`) need target/coercion open-commutation, while
+-- lambda bodies need the dual-context transport above.  The lookup, store, and
+-- dual-context pieces here isolate the non-recursive bookkeeping for that
+-- proof.
+
 renameStoreNrw-swap01-⇑ˢ :
   ∀ σ →
   renameStoreNrw swap01ᵗ (⇑ˢ σ) ≡
@@ -618,6 +640,18 @@ modeRename-tag-or-id :
   ∀ ρ →
   ModeRename ρ tag-or-idᵈ tag-or-idᵈ
 modeRename-tag-or-id ρ X = refl
+
+renameStoreNrw-coercionᶜ :
+  ∀ {Δ Δ′ σ c A B ρ} →
+  TyRenameWf Δ Δ′ ρ →
+  Δ ∣ srcStoreⁿ σ ⊢ c ∶ᶜ A ⊒ B →
+  Δ′ ∣ srcStoreⁿ (renameStoreNrw ρ σ)
+    ⊢ renameᶜ ρ c ∶ᶜ renameᵗ ρ A ⊒ renameᵗ ρ B
+renameStoreNrw-coercionᶜ {σ = σ} {ρ = ρ} hρ cᶜ =
+  subst
+    (λ Σ → _ ∣ Σ ⊢ _ ∶ᶜ _ ⊒ _)
+    (sym (srcStoreⁿ-renameStoreNrw ρ σ))
+    (narrow-renameᵗ hρ (modeRename-tag-or-id ρ) cᶜ)
 
 modeRename-swap01-tag-or-id :
   ModeRename swap01ᵗ tag-or-idᵈ tag-or-idᵈ

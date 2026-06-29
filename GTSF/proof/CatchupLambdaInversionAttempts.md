@@ -1909,3 +1909,48 @@ proofs.  So the next useful proof target is either composition-side-condition
 renaming, or a narrower exchange theorem that avoids the cast endpoint
 constructors by using the `NuSourceValueTarget`/`CastSourceValueTarget`
 history more directly.
+
+## Attempt 58: inspect main's substitution-narrowing proof and isolate the
+`gen` body invariant
+
+Main added `proof.TermSubstitutionNarrowing`, which is useful as a structural
+recursion template over `TermNarrowing`: it shows how to recurse through every
+term-narrowing constructor while threading a framed environment through
+binders.  It does not directly solve the `⊒Λ` obstruction, because the theorem
+keeps the `StoreNrw` fixed.  The stuck branch needs to change the store shape
+from source-first
+
+`(⊒ zero ꞉=☆) ∷ ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))`
+
+to the target-first/source-only shape needed by the final `⊒Λ` body.  So the
+new substitution theorem cannot be applied as a black box.
+
+I also checked whether Attempt 57's "composition-side-condition renaming"
+could be proved generically.  For injective renamings this looks plausible,
+but the intended `raise0ᵗ` map is non-injective: it merges `zero` and
+`suc zero`.  A generic composition-renaming theorem would have to rename the
+`StoreDetWf` witness in `compose-leftⁿ`/`compose-rightⁿ`, and `StoreDetWf` is
+not preserved by arbitrary non-injective renaming.  This explains why the
+plain `raise0ᵗ` structural-renaming route keeps getting stuck.
+
+The useful checked progress from this attempt is the small invariant that the
+TraceProbe counterexample lacks:
+
+`gen-body-coercionᶜ :
+  Δ ∣ Σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  genᵈ tag-or-idᵈ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ p ∶ ⇑ᵗ A ⊒ B`
+
+and its catchup-transported form
+
+`catchup-gen-body-coercionᶜ :
+  genᵈ tag-or-idᵈ ∣ suc Δ′ ∣
+    ⟰ᵗ (srcStoreⁿ (combineStoreNrw π σ))
+    ⊢ applyCoercionUnderTyBinders χs p
+      ∶ ⇑ᵗ (applyTys χs A) ⊒ applyTysUnderTyBinders χs B`.
+
+This pins down the sound side condition that distinguishes the real `⊒Λ`
+branch from the false standalone inversion: the body coercion of a valid
+`gen` has a shifted source endpoint.  The next non-redundant route is therefore
+not bare store renaming; it is a history-preserving replay or exchange theorem
+that uses this shifted-source endpoint invariant to move the source-only star
+under the target-only binder.

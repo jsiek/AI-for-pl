@@ -666,6 +666,30 @@ catchup-gen-coercion-typing-transport {Δ′ = Δ′} {σ = σ} {π = π}
         {A = A} {B = `∀ B}
         pᶜ Δ′≡ Π≡ Π′≡ π⊒))
 
+gen-body-coercionᶜ :
+  ∀ {Δ Σ A B p} →
+  Δ ∣ Σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  genᵈ tag-or-idᵈ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ p ∶ ⇑ᵗ A ⊒ B
+gen-body-coercionᶜ (cast-gen hA occ body⊢ , gen bodyⁿ) =
+  body⊢ , bodyⁿ
+
+catchup-gen-body-coercionᶜ :
+  ∀ {Δ Δ′ σ π Π Π′ χs A B p} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ≡ applyTyCtxs χs Δ →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  genᵈ tag-or-idᵈ ∣ suc Δ′ ∣
+    ⟰ᵗ (srcStoreⁿ (combineStoreNrw π σ))
+    ⊢ applyCoercionUnderTyBinders χs p
+      ∶ ⇑ᵗ (applyTys χs A) ⊒ applyTysUnderTyBinders χs B
+catchup-gen-body-coercionᶜ {σ = σ} {π = π} {χs = χs}
+    pᶜ Δ′≡ Π≡ Π′≡ π⊒ =
+  gen-body-coercionᶜ
+    (catchup-gen-coercion-typing-transport
+      {σ = σ} {χs = χs} pᶜ Δ′≡ Π≡ Π′≡ π⊒)
+
 ≈ⁿ-⇑ˢ :
   ∀ {Δ σ s t A B} →
   Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B →

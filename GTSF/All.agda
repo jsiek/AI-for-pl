@@ -15,6 +15,7 @@ import NuTerms
 import TypeCheck
 import NuExamplesFresh
 import NuReduction
+import proof.NWTermReduction
 import TermNarrowing
 import NarrowingExamples
 import NuMetaTheory

@@ -1020,6 +1020,63 @@ source-target-bubble-empty {σ = σ} =
     (renameStoreNrw-swap01-⇑ˢ⇑ˢ σ)
     (swaps-step swap-here swaps-refl)
 
+data SplitSourceTargetSwapsView :
+  ∀ {Δ α A αᵢ σ τ} →
+  SourceTargetSwapRels Δ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ) τ →
+  Set where
+
+  split-swaps-refl :
+    ∀ {Δ α A αᵢ σ} →
+    SplitSourceTargetSwapsView
+      {Δ = Δ} {α = α} {A = A} {αᵢ = αᵢ} {σ = σ}
+      swaps-refl
+
+  split-swaps-safe-step :
+    ∀ {Δ α A αᵢ σ σ′ τ}
+    (rel : SourceTargetSwapRel Δ σ σ′) →
+    (rels :
+      SourceTargetSwapRels Δ
+        ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ′)
+        τ) →
+    SplitSourceTargetSwapsView
+      {Δ = Δ} {α = α} {A = A} {αᵢ = αᵢ} {σ = σ}
+      (swaps-step (swap-right (swap-left rel)) rels)
+
+  split-swaps-unsafe-step :
+    ∀ {Δ α A αᵢ Y B σ τ}
+    (rels :
+      SourceTargetSwapRels Δ
+        ((α ꞉= A ⊒) ∷ (Y ꞉= B ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+        τ) →
+    SplitSourceTargetSwapsView
+      {Δ = Δ} {α = α} {A = A} {αᵢ = αᵢ}
+      (swaps-step
+        (swap-right (swap-here {X = αᵢ} {Y = Y} {A = B} {σ = σ}))
+        rels)
+
+split-source-target-swaps-view :
+  ∀ {Δ α A αᵢ σ τ}
+  (rels :
+    SourceTargetSwapRels Δ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ) τ) →
+  SplitSourceTargetSwapsView rels
+split-source-target-swaps-view swaps-refl =
+  split-swaps-refl
+split-source-target-swaps-view (swaps-step rel rels)
+    with split-source-target-swap-view rel
+split-source-target-swaps-view
+    (swaps-step .(swap-right (swap-left rel)) rels)
+    | split-swap-safe rel =
+  split-swaps-safe-step rel rels
+split-source-target-swaps-view
+    (swaps-step .(swap-right swap-here) rels)
+    | split-swap-unsafe =
+  split-swaps-unsafe-step rels
+
+-- Attempt 76.  Lifting the split view to closure form makes the next replay
+-- theorem structurally possible: it can consume zero swaps, continue below the
+-- split marker for a safe first step, or hand the unsafe first step to the
+-- split/opening catchup machinery before replaying the remaining swaps.
+
 ext-suc-injective :
   RenameInjective (extᵗ suc)
 ext-suc-injective {zero} {zero} refl = refl

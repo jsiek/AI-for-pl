@@ -42,7 +42,8 @@ open import TermNarrowing using
   ; cast+⊒
   ; cast-⊒
   )
-open import proof.NuTermProperties using (renameᵗᵐ-preserves-Value)
+open import proof.NuTermProperties
+  using (renameᵗᵐ-preserves-Value; renameᵗᵐ-reflects-Value)
 open import proof.ReductionProperties using
   ( CatchupSafe
   ; safe-value
@@ -144,45 +145,6 @@ value?-none-no-value {M = M ⟨ c ⟩} refl (vM ⟨ i ⟩)
     | just vM′ | nothing =
   inert?-none-no-inert inertc≡ i
 value?-none-no-value {M = blame} refl ()
-
-renameᶜ-reflects-Inert :
-  ∀ ρ {c} →
-  Inert (renameᶜ ρ c) →
-  Inert c
-renameᶜ-reflects-Inert ρ {c = id A} ()
-renameᶜ-reflects-Inert ρ {c = c ︔ d} ()
-renameᶜ-reflects-Inert ρ {c = c ↦ d} (c′ ↦ d′) =
-  c ↦ d
-renameᶜ-reflects-Inert ρ {c = `∀ c} (`∀ c′) =
-  `∀ c
-renameᶜ-reflects-Inert ρ {c = G !} (G′ !) =
-  G !
-renameᶜ-reflects-Inert ρ {c = G ？} ()
-renameᶜ-reflects-Inert ρ {c = seal A α} (seal A′ α′) =
-  seal A α
-renameᶜ-reflects-Inert ρ {c = unseal α A} ()
-renameᶜ-reflects-Inert ρ {c = gen A c} (gen A′ c′) =
-  gen A c
-renameᶜ-reflects-Inert ρ {c = inst B c} ()
-
-renameᵗᵐ-reflects-Value :
-  ∀ ρ {M} →
-  Value (renameᵗᵐ ρ M) →
-  Value M
-renameᵗᵐ-reflects-Value ρ {M = ` x} ()
-renameᵗᵐ-reflects-Value ρ {M = ƛ M} (ƛ M′) =
-  ƛ M
-renameᵗᵐ-reflects-Value ρ {M = L · M} ()
-renameᵗᵐ-reflects-Value ρ {M = Λ M} (Λ vM) =
-  Λ (renameᵗᵐ-reflects-Value (extᵗ ρ) vM)
-renameᵗᵐ-reflects-Value ρ {M = M •} ()
-renameᵗᵐ-reflects-Value ρ {M = ν A L c} ()
-renameᵗᵐ-reflects-Value ρ {M = $ κ} ($ .κ) =
-  $ κ
-renameᵗᵐ-reflects-Value ρ {M = L ⊕[ op ] M} ()
-renameᵗᵐ-reflects-Value ρ {M = M ⟨ c ⟩} (vM ⟨ i ⟩) =
-  renameᵗᵐ-reflects-Value ρ vM ⟨ renameᶜ-reflects-Inert ρ i ⟩
-renameᵗᵐ-reflects-Value ρ {M = blame} ()
 
 rerenameᵗᵐ-preserves-Value :
   ∀ ρ ρ′ {M} →

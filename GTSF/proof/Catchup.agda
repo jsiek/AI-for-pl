@@ -60,6 +60,7 @@ open import proof.NuTermProperties
   using
     ( renameᵗᵐ-left-inverse
     ; renameᵗᵐ-preserves-Value
+    ; renameᵗᵐ-reflects-Value
     )
 open import proof.TypeProperties using (predᵗ)
 open import proof.TermNarrowingProperties
@@ -77,7 +78,6 @@ open import proof.TermNarrowingProperties
     ; nu-source-value-target-base-empty
     ; remainder-cast
     ; remainder-nu
-    ; renameᵗᵐ-reflects-Value
     ; shifted-source-remainder
     ; type-app-source-no-value-target
     ; value?-none-no-value

@@ -1663,3 +1663,41 @@ target-first/source-only order
 So the remaining missing theorem is now isolated more cleanly: either transport
 this normalized source-first body across the adjacent binder exchange, or replay
 the source history up to a both-side premise and then use `split`.
+
+## Attempt 52: invert one shifted `bind` step with `predᵗ`
+
+Partial progress.  I added checked structural reflection lemmas:
+
+- `renameᶜ-reflects-Inert` in `proof.CoercionProperties`;
+- `renameᵗᵐ-reflects-Value` and `renameᵗᵐ-reflects-No•` in
+  `proof.NuTermProperties`.
+
+Then I proved the local reduction inverse:
+
+`type-rename-bind-step-pred :
+  ⇑ᵗᵐ M —→[ bind A ] N →
+  M —→[ bind (renameᵗ predᵗ A) ] renameᵗᵐ predᵗ N`.
+
+The proof needed explicit transports for the root `ν-step`, contextual `ν`,
+cast, application, and primitive-op contexts.  In particular, the root step
+normalizes
+
+`pred ((⇑ (⇑ L)) • ⟨ renameᶜ (extᵗ suc) c ⟩)`
+
+to
+
+`(⇑ L) • ⟨ c ⟩`,
+
+and the contextual `ν` case needs the under-binder cancellation
+
+`renameᶜ (extᵗ predᵗ) (renameᶜ (extᵗ suc) c) ≡ c`.
+
+This is a real replacement ingredient for replaying shifted reductions, but it
+does not by itself prove the last-bind `⊒Λ` branch.  The lemma applies only
+when the source of the `bind` step is visibly `⇑ᵗᵐ M`.  In the live last-bind
+branches, the prefix before the final `bind` can contain earlier nested binds
+inside the top-level `ν` or cast source, so the intermediate term before the
+final bind need not be a global type-shift image.  This confirms that the
+remaining proof still needs either a recursive replay theorem that performs the
+same binder exchange at each nested bind, or the adjacent source-only/target-only
+exchange theorem isolated in Attempts 47, 49, and 51.

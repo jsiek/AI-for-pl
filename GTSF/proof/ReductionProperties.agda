@@ -23,8 +23,11 @@ open import NuReduction
 open import proof.CoercionProperties
   using
     ( renameᶜ-dual-normal
+    ; renameᶜ-ext-pred-ext-suc
     ; renameᶜ-ext-suc-suc
     ; renameᶜ-open-commute
+    ; renameᶜ-pred-ext-suc
+    ; renameᶜ-pred-suc
     ; renameᶜ-preserves-Inert
     )
 open import proof.NuTermProperties
@@ -32,11 +35,14 @@ open import proof.NuTermProperties
     ( renameᵗᵐ-ext-suc-comm
     ; renameᵗᵐ-open-commute
     ; renameᵗᵐ-preserves-Value
+    ; renameᵗᵐ-reflects-Value
     ; renameᵗᵐ-preserves-No•
+    ; renameᵗᵐ-reflects-No•
     ; renameᵗᵐ-pred-suc
     ; renameᵗᵐ-single-subst
     )
-open import proof.TypeProperties using (predᵗ; renameᵗ-ext-suc-comm)
+open import proof.TypeProperties
+  using (predᵗ; renameᵗ-ext-suc-comm; renameᵗ-pred-suc)
 
 ------------------------------------------------------------------------
 -- Source shapes that can catch up to values
@@ -1326,6 +1332,13 @@ shiftable-⇑ᵗᵐ shift-keep = shift-keep
 shiftable-⇑ᵗᵐ (shift-bind noM) =
   shift-bind (renameᵗᵐ-preserves-No• suc noM)
 
+shiftable-pred-bind :
+  ∀ {A M} →
+  Shiftable (bind A) (⇑ᵗᵐ M) →
+  Shiftable (bind (renameᵗ predᵗ A)) M
+shiftable-pred-bind (shift-bind noM) =
+  shift-bind (renameᵗᵐ-reflects-No• suc noM)
+
 ＇-injective :
   ∀ {X Y : TyVar} →
   _≡_ {A = Ty} (＇ X) (＇ Y) →
@@ -1581,6 +1594,96 @@ allKeep-ν-no-value (all-keep keeps) (↠-step blame-ν reds) vV =
   vL , noL , refl
 ν-bind-step-value-tail-inv (ξ-ν red) keeps Q↠W vW =
   ⊥-elim (allKeep-ν-no-value keeps Q↠W vW)
+
+ν-step-target-pred-suc :
+  ∀ L c →
+  renameᵗᵐ predᵗ
+    ((⇑ᵗᵐ (⇑ᵗᵐ L) •) ⟨ renameᶜ (extᵗ suc) c ⟩) ≡
+  (⇑ᵗᵐ L •) ⟨ c ⟩
+ν-step-target-pred-suc L c =
+  cong₂ (λ M d → M ⟨ d ⟩)
+    (cong _• (renameᵗᵐ-pred-suc (⇑ᵗᵐ L)))
+    (renameᶜ-pred-ext-suc c)
+
+ν-context-target-pred-suc :
+  ∀ A L c →
+  renameᵗᵐ predᵗ
+    (ν (⇑ᵗ (⇑ᵗ A)) L
+      (renameᶜ (extᵗ suc) (renameᶜ (extᵗ suc) c))) ≡
+  ν (⇑ᵗ A) (renameᵗᵐ predᵗ L) (renameᶜ (extᵗ suc) c)
+ν-context-target-pred-suc A L c =
+  cong₂ (λ B d → ν B (renameᵗᵐ predᵗ L) d)
+    (renameᵗ-pred-suc (⇑ᵗ A))
+    (renameᶜ-ext-pred-ext-suc (renameᶜ (extᵗ suc) c))
+
+type-rename-bind-step-pred :
+  ∀ {M A N} →
+  ⇑ᵗᵐ M —→[ bind A ] N →
+  M —→[ bind (renameᵗ predᵗ A) ] renameᵗᵐ predᵗ N
+type-rename-bind-step-pred {M = ` x} ()
+type-rename-bind-step-pred {M = ƛ M} ()
+type-rename-bind-step-pred {M = L · M} {A = A}
+    (ξ-·₁ {L′ = L′} red shiftM) =
+  subst
+    (λ T →
+      L · M —→[ bind (renameᵗ predᵗ A) ]
+      renameᵗᵐ predᵗ L′ · T)
+    (sym (renameᵗᵐ-pred-suc (⇑ᵗᵐ M)))
+    (ξ-·₁ (type-rename-bind-step-pred red) (shiftable-pred-bind shiftM))
+type-rename-bind-step-pred {M = L · M} {A = A}
+    (ξ-·₂ {M′ = M′} vL shiftL red) =
+  subst
+    (λ T →
+      L · M —→[ bind (renameᵗ predᵗ A) ]
+      T · renameᵗᵐ predᵗ M′)
+    (sym (renameᵗᵐ-pred-suc (⇑ᵗᵐ L)))
+    (ξ-·₂ (renameᵗᵐ-reflects-Value suc vL)
+           (shiftable-pred-bind shiftL)
+           (type-rename-bind-step-pred red))
+type-rename-bind-step-pred {M = Λ M} ()
+type-rename-bind-step-pred {M = M •} ()
+type-rename-bind-step-pred {M = ν A L c} (ν-step vL noL) =
+  subst
+    (λ T → ν A L c —→[ bind (renameᵗ predᵗ (⇑ᵗ A)) ] T)
+    (sym (ν-step-target-pred-suc L c))
+    (subst
+      (λ B → ν A L c —→[ bind B ] (⇑ᵗᵐ L •) ⟨ c ⟩)
+      (sym (renameᵗ-pred-suc A))
+      (ν-step (renameᵗᵐ-reflects-Value suc vL)
+              (renameᵗᵐ-reflects-No• suc noL)))
+type-rename-bind-step-pred {M = ν A L c} {A = A′} (ξ-ν {L′ = L′} red) =
+  subst
+    (λ T → ν A L c —→[ bind (renameᵗ predᵗ A′) ] T)
+    (sym (ν-context-target-pred-suc A L′ c))
+    (ξ-ν (type-rename-bind-step-pred red))
+type-rename-bind-step-pred {M = $ κ} ()
+type-rename-bind-step-pred {M = L ⊕[ op ] M} {A = A}
+    (ξ-⊕₁ {L′ = L′} red shiftM) =
+  subst
+    (λ T →
+      L ⊕[ op ] M —→[ bind (renameᵗ predᵗ A) ]
+      renameᵗᵐ predᵗ L′ ⊕[ op ] T)
+    (sym (renameᵗᵐ-pred-suc (⇑ᵗᵐ M)))
+    (ξ-⊕₁ (type-rename-bind-step-pred red) (shiftable-pred-bind shiftM))
+type-rename-bind-step-pred {M = L ⊕[ op ] M} {A = A}
+    (ξ-⊕₂ {M′ = M′} vL shiftL red) =
+  subst
+    (λ T →
+      L ⊕[ op ] M —→[ bind (renameᵗ predᵗ A) ]
+      T ⊕[ op ] renameᵗᵐ predᵗ M′)
+    (sym (renameᵗᵐ-pred-suc (⇑ᵗᵐ L)))
+    (ξ-⊕₂ (renameᵗᵐ-reflects-Value suc vL)
+           (shiftable-pred-bind shiftL)
+           (type-rename-bind-step-pred red))
+type-rename-bind-step-pred {M = M ⟨ c ⟩} {A = A}
+    (ξ-⟨⟩ {M′ = M′} red) =
+  subst
+    (λ d →
+      M ⟨ c ⟩ —→[ bind (renameᵗ predᵗ A) ]
+      renameᵗᵐ predᵗ M′ ⟨ d ⟩)
+    (sym (renameᶜ-pred-suc (⇑ᶜ c)))
+    (ξ-⟨⟩ (type-rename-bind-step-pred red))
+type-rename-bind-step-pred {M = blame} ()
 
 renameᵗ-injective :
   ∀ {ρ A B} →

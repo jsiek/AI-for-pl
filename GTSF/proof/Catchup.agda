@@ -64,6 +64,8 @@ open import proof.CoercionProperties
     ; renameᶜ-dual-normal
     ; renameᶜ-ext-suc-comm
     ; renameᶜ-left-inverse
+    ; renameᶜ-open-commute
+    ; renameᶜ-preserves-Inert
     ; src-renameᶜ
     ; tgt-renameᶜ
     )
@@ -71,7 +73,9 @@ open import proof.NuTermProperties
   using
     ( renameᵗᵐ-cong
     ; renameᵗᵐ-compose
+    ; renameᵗᵐ-ext-suc-comm
     ; renameᵗᵐ-left-inverse
+    ; renameᵗᵐ-open-commute
     ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-reflects-Value
     )
@@ -880,6 +884,14 @@ SourceTargetSwapRel-compose-right rel
     (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   compose-rightⁿ wfΣ t⊒ p⊒
     (SourceTargetSwapRel-≈ⁿ rel r≈t⨟p)
+
+-- Attempt 74.  A structural term transport for arbitrary
+-- `SourceTargetSwapRel` almost works, but Agda exposes the unsound case:
+-- `swap-right swap-here` through `split`.  That case moves the distinguished
+-- source-only marker of a split past a following target-only entry, so the
+-- result no longer has the `target-only, source-only` store shape required to
+-- rebuild `split`.  The safe relation for the `⊒Λ` branch must therefore be
+-- split-aware, not merely a closure of adjacent source/target swaps.
 
 data SourceTargetSwapRels : TyCtx → StoreNrw → StoreNrw → Set where
   swaps-refl :

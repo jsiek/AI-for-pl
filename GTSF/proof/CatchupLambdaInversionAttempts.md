@@ -1776,3 +1776,41 @@ Attempt 51 is still phrased with ordinary shifted target/coercion syntax under
 the source-first store.  Attempt 54 only identifies the target-first side; a
 term-level exchange/replay theorem must still move the derivation itself and
 account for the ordinary-vs-under-binder index change.
+
+## Attempt 55: isolate the source-side `raise0ᵗ` algebra
+
+Partial progress.  I added the checked renaming
+
+`raise0ᵗ : Renameᵗ`
+
+with
+
+`raise0ᵗ X = suc (predᵗ X)`.
+
+This renaming maps the emitted source-only star at type variable `zero` to
+`suc zero`, while leaving positive variables fixed: `0 ↦ 1`, `1 ↦ 1`,
+`2 ↦ 2`, and so on.  I also added checked syntax equalities for types,
+coercions, and terms:
+
+`renameᵗ raise0ᵗ A ≡ ⇑ᵗ (renameᵗ predᵗ A)`,
+
+`renameᶜ raise0ᵗ c ≡ ⇑ᶜ (renameᶜ predᵗ c)`,
+
+and
+
+`renameᵗᵐ raise0ᵗ M ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ M)`.
+
+This packages one syntactic component of the source-first/target-first
+exchange.  Source-first catchup evidence talks about the final emitted
+source-only star at `zero`, but the target-first `⊒Λ` body needs the final
+source term under `⇑ᵗᵐ`, so that star must appear at `suc zero`.
+
+This is not enough to prove the branch.  The renaming is not injective: it
+merges `zero` and `suc zero`.  A direct structural transport of the term
+narrowing relation would therefore need mode-renaming or typing side
+conditions showing that the target-only variable being merged with the emitted
+source star is not used in the wrong place.  The existing relation-preservation
+lemmas such as `coercion-renameᵗᵐ` and `narrow-renameᵗ` require a
+`ModeRename`, so this non-injective raw renaming cannot be threaded through
+them directly.  The remaining theorem still needs a constrained exchange/replay
+argument, not just syntax renaming.

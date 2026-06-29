@@ -52,17 +52,19 @@ open import proof.NarrowWidenProperties
 open import proof.CoercionProperties
   using
     ( coercion-src-tgtᵐ
+    ; renameᶜ-compose
     ; renameᶜ-left-inverse
     ; src-renameᶜ
     ; tgt-renameᶜ
     )
 open import proof.NuTermProperties
   using
-    ( renameᵗᵐ-left-inverse
+    ( renameᵗᵐ-compose
+    ; renameᵗᵐ-left-inverse
     ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-reflects-Value
     )
-open import proof.TypeProperties using (predᵗ)
+open import proof.TypeProperties using (predᵗ; renameᵗ-compose)
 open import proof.TermNarrowingProperties
   using
     ( neutral-blame
@@ -357,6 +359,27 @@ applyCoercionUnderTyBinders-last-bind
     (applyCoercionUnderTyBinders-++ χs (bind A ∷ keeps) p)
     (allKeep-applyCoercionUnderTyBinders-id keeps-ok
       (renameᶜ (extᵗ suc) (applyCoercionUnderTyBinders χs p)))
+
+raise0ᵗ : Renameᵗ
+raise0ᵗ X = suc (predᵗ X)
+
+renameᵗ-raise0-pred :
+  ∀ A →
+  renameᵗ raise0ᵗ A ≡ ⇑ᵗ (renameᵗ predᵗ A)
+renameᵗ-raise0-pred A =
+  sym (renameᵗ-compose predᵗ suc A)
+
+renameᶜ-raise0-pred :
+  ∀ c →
+  renameᶜ raise0ᵗ c ≡ ⇑ᶜ (renameᶜ predᵗ c)
+renameᶜ-raise0-pred c =
+  sym (renameᶜ-compose predᵗ suc c)
+
+renameᵗᵐ-raise0-pred :
+  ∀ M →
+  renameᵗᵐ raise0ᵗ M ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ M)
+renameᵗᵐ-raise0-pred M =
+  sym (renameᵗᵐ-compose predᵗ suc M)
 
 ------------------------------------------------------------------------
 -- Catchup

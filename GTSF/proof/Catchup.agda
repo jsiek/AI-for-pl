@@ -54,6 +54,7 @@ open import proof.CoercionProperties
     ( coercion-src-tgtᵐ
     ; ModeRename
     ; renameᶜ-compose
+    ; renameᶜ-ext-suc-comm
     ; renameᶜ-left-inverse
     ; src-renameᶜ
     ; tgt-renameᶜ
@@ -65,7 +66,8 @@ open import proof.NuTermProperties
     ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-reflects-Value
     )
-open import proof.TypeProperties using (TyRenameWf; predᵗ; renameᵗ-compose)
+open import proof.TypeProperties
+  using (TyRenameWf; predᵗ; renameᵗ-compose; renameᵗ-ext-suc-comm)
 open import proof.TermNarrowingProperties
   using
     ( neutral-blame
@@ -364,6 +366,60 @@ applyCoercionUnderTyBinders-last-bind
 raise0ᵗ : Renameᵗ
 raise0ᵗ X = suc (predᵗ X)
 
+renameStNrw : Renameᵗ → StNrw → StNrw
+renameStNrw ρ (X ꞉ p) = ρ X ꞉ renameᶜ ρ p
+renameStNrw ρ (X ꞉= A ⊒) = ρ X ꞉= renameᵗ ρ A ⊒
+renameStNrw ρ (⊒ X ꞉=☆) = ⊒ ρ X ꞉=☆
+
+renameStoreNrw : Renameᵗ → StoreNrw → StoreNrw
+renameStoreNrw ρ [] = []
+renameStoreNrw ρ (entry ∷ σ) =
+  renameStNrw ρ entry ∷ renameStoreNrw ρ σ
+
+renameCtxNrw : Renameᵗ → CtxNrw → CtxNrw
+renameCtxNrw ρ [] = []
+renameCtxNrw ρ (p ∷ γ) = renameᶜ ρ p ∷ renameCtxNrw ρ γ
+
+srcStoreⁿ-renameStoreNrw :
+  ∀ ρ σ →
+  srcStoreⁿ (renameStoreNrw ρ σ) ≡ renameStoreᵗ ρ (srcStoreⁿ σ)
+srcStoreⁿ-renameStoreNrw ρ [] = refl
+srcStoreⁿ-renameStoreNrw ρ ((X ꞉ p) ∷ σ) =
+  cong₂ _∷_
+    (cong (λ A → (ρ X , A)) (src-renameᶜ ρ p))
+    (srcStoreⁿ-renameStoreNrw ρ σ)
+srcStoreⁿ-renameStoreNrw ρ ((X ꞉= A ⊒) ∷ σ) =
+  srcStoreⁿ-renameStoreNrw ρ σ
+srcStoreⁿ-renameStoreNrw ρ ((⊒ X ꞉=☆) ∷ σ) =
+  cong₂ _∷_ refl (srcStoreⁿ-renameStoreNrw ρ σ)
+
+renameStoreNrw-⇑ˢ :
+  ∀ ρ σ →
+  renameStoreNrw (extᵗ ρ) (⇑ˢ σ) ≡ ⇑ˢ (renameStoreNrw ρ σ)
+renameStoreNrw-⇑ˢ ρ [] = refl
+renameStoreNrw-⇑ˢ ρ ((X ꞉ p) ∷ σ) =
+  cong₂ _∷_
+    (cong (λ c → suc (ρ X) ꞉ c) (renameᶜ-ext-suc-comm ρ p))
+    (renameStoreNrw-⇑ˢ ρ σ)
+renameStoreNrw-⇑ˢ ρ ((X ꞉= A ⊒) ∷ σ) =
+  cong₂ _∷_
+    (cong (λ B → suc (ρ X) ꞉= B ⊒) (renameᵗ-ext-suc-comm ρ A))
+    (renameStoreNrw-⇑ˢ ρ σ)
+renameStoreNrw-⇑ˢ ρ ((⊒ X ꞉=☆) ∷ σ) =
+  cong₂ _∷_ refl (renameStoreNrw-⇑ˢ ρ σ)
+
+renameCtxNrw-⇑ᵍ :
+  ∀ ρ γ →
+  renameCtxNrw (extᵗ ρ) (⇑ᵍ γ) ≡ ⇑ᵍ (renameCtxNrw ρ γ)
+renameCtxNrw-⇑ᵍ ρ [] = refl
+renameCtxNrw-⇑ᵍ ρ (p ∷ γ) =
+  cong₂ _∷_ (renameᶜ-ext-suc-comm ρ p) (renameCtxNrw-⇑ᵍ ρ γ)
+
+modeRename-tag-or-id :
+  ∀ ρ →
+  ModeRename ρ tag-or-idᵈ tag-or-idᵈ
+modeRename-tag-or-id ρ X = refl
+
 TyRenameWf-raise0 :
   ∀ {Δ} →
   TyRenameWf (suc (suc Δ)) (suc (suc Δ)) raise0ᵗ
@@ -374,7 +430,8 @@ TyRenameWf-raise0 {X = suc (suc X)} (s<s (s<s X<Δ)) =
 
 modeRename-raise0-tag-or-id :
   ModeRename raise0ᵗ tag-or-idᵈ tag-or-idᵈ
-modeRename-raise0-tag-or-id X = refl
+modeRename-raise0-tag-or-id =
+  modeRename-tag-or-id raise0ᵗ
 
 renameᵗ-raise0-pred :
   ∀ A →
@@ -393,6 +450,28 @@ renameᵗᵐ-raise0-pred :
   renameᵗᵐ raise0ᵗ M ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ M)
 renameᵗᵐ-raise0-pred M =
   sym (renameᵗᵐ-compose predᵗ suc M)
+
+renameStoreNrw-raise0-pred :
+  ∀ σ →
+  renameStoreNrw raise0ᵗ σ ≡ ⇑ˢ (renameStoreNrw predᵗ σ)
+renameStoreNrw-raise0-pred [] = refl
+renameStoreNrw-raise0-pred ((X ꞉ p) ∷ σ) =
+  cong₂ _∷_
+    (cong (λ c → raise0ᵗ X ꞉ c) (renameᶜ-raise0-pred p))
+    (renameStoreNrw-raise0-pred σ)
+renameStoreNrw-raise0-pred ((X ꞉= A ⊒) ∷ σ) =
+  cong₂ _∷_
+    (cong (λ B → raise0ᵗ X ꞉= B ⊒) (renameᵗ-raise0-pred A))
+    (renameStoreNrw-raise0-pred σ)
+renameStoreNrw-raise0-pred ((⊒ X ꞉=☆) ∷ σ) =
+  cong₂ _∷_ refl (renameStoreNrw-raise0-pred σ)
+
+renameCtxNrw-raise0-pred :
+  ∀ γ →
+  renameCtxNrw raise0ᵗ γ ≡ ⇑ᵍ (renameCtxNrw predᵗ γ)
+renameCtxNrw-raise0-pred [] = refl
+renameCtxNrw-raise0-pred (p ∷ γ) =
+  cong₂ _∷_ (renameᶜ-raise0-pred p) (renameCtxNrw-raise0-pred γ)
 
 ------------------------------------------------------------------------
 -- Catchup

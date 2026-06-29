@@ -1847,3 +1847,65 @@ The next non-redundant proof target is therefore either a structural
 term-narrowing renaming/exchange lemma specialized to this two-binder
 `tag-or-idᵈ` situation, or a replay theorem that rebuilds the post-bind
 `split` premise before the final exchange is needed.
+
+## Attempt 57: extend the `raise0ᵗ` algebra to `StoreNrw` and `CtxNrw`
+
+Partial progress.  I started the structural exchange route by adding the
+syntax/index operations that a term-narrowing transport would need:
+
+`renameStNrw : Renameᵗ → StNrw → StNrw`,
+
+`renameStoreNrw : Renameᵗ → StoreNrw → StoreNrw`,
+
+and
+
+`renameCtxNrw : Renameᵗ → CtxNrw → CtxNrw`.
+
+The checked source-store commutation lemma is:
+
+`srcStoreⁿ-renameStoreNrw :
+  srcStoreⁿ (renameStoreNrw ρ σ) ≡ renameStoreᵗ ρ (srcStoreⁿ σ)`.
+
+I also added the checked shift commutation lemmas:
+
+`renameStoreNrw-⇑ˢ :
+  renameStoreNrw (extᵗ ρ) (⇑ˢ σ) ≡ ⇑ˢ (renameStoreNrw ρ σ)`
+
+and
+
+`renameCtxNrw-⇑ᵍ :
+  renameCtxNrw (extᵗ ρ) (⇑ᵍ γ) ≡ ⇑ᵍ (renameCtxNrw ρ γ)`.
+
+Finally, I lifted the `raise0ᵗ = suc ∘ predᵗ` syntax equations to stores and
+contexts:
+
+`renameStoreNrw-raise0-pred :
+  renameStoreNrw raise0ᵗ σ ≡ ⇑ˢ (renameStoreNrw predᵗ σ)`
+
+and
+
+`renameCtxNrw-raise0-pred :
+  renameCtxNrw raise0ᵗ γ ≡ ⇑ᵍ (renameCtxNrw predᵗ γ)`.
+
+These are the right index-level ingredients for a future structural
+`TermNarrowing` renaming/exchange theorem: they show how the source term,
+coercion index, store-narrowing context, and variable context should all move
+together under `raise0ᵗ`.
+
+This still does not close the `⊒Λ` branch.  Inspecting
+`NarrowWidenComposition` showed that the cast endpoint constructors in
+`TermNarrowing` depend on side conditions
+
+`Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B`
+
+and
+
+`Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B`.
+
+There is no existing type-renaming theorem for these composition relations.
+A full structural term-renaming theorem would need that layer too, including
+transport through `EndpointWf`, `StoreDetWf`, and the endpoint equality
+proofs.  So the next useful proof target is either composition-side-condition
+renaming, or a narrower exchange theorem that avoids the cast endpoint
+constructors by using the `NuSourceValueTarget`/`CastSourceValueTarget`
+history more directly.

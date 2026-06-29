@@ -2496,3 +2496,165 @@ derivations, swapping the distinguished source-only entry introduced by
 `split` past a following target-only entry would destroy the syntactic store
 shape required to rebuild `split`.  So a future term replay theorem should be
 more constrained than arbitrary source/target swapping.
+
+## Attempt 71: classify empty-target emitted prefixes
+
+Accepted as checked support.  I added a small source-prefix classifier:
+
+`SourceStarOnly`
+
+and proved:
+
+`⊒ˢ-empty-source-star-only :
+  Δ ⊢ π ꞉ Σ ⊒ˢ [] →
+  SourceStarOnly π`
+
+The live last-bind `⊒Λ` branches always have target store `[]`, so the emitted
+prefix contains only source-star entries.  This rules out a target-side case
+split as the missing ingredient: the remaining job is to move the outer
+target-only `⊒Λ` binder through a source-star prefix, not to discover hidden
+target entries in that prefix.
+
+## Attempt 72: test whether source-target swaps alone can bubble the prefix
+
+Rejected as insufficient.  For the empty prefix, renaming with `swap01ᵗ`
+makes the final source-only binder and target-only binder adjacent.  I added
+checked normalizations:
+
+`swap01ᵗ-after-suc-suc`
+
+`renameᵗ-swap01-⇑⇑`
+
+`renameᶜ-swap01-⇑⇑`
+
+`renameᵗᵐ-swap01-⇑⇑`
+
+`renameStoreNrw-swap01-⇑ˢ⇑ˢ`
+
+But for a nonempty emitted source prefix, a single closure of
+`SourceTargetSwapRel` is not enough.  Each crossing needs a local
+`swap01ᵗ` renaming before the adjacent list exchange.  A plain swap closure
+keeps the wrong de Bruijn levels.
+
+## Attempt 73: add the empty bubble base and term-renaming support
+
+Accepted as checked support.  I added:
+
+`source-target-bubble-empty`
+
+which proves the empty-prefix exchange:
+
+`SourceTargetSwapRels Δ
+  (renameStoreNrw swap01ᵗ
+    ((⊒ zero ꞉=☆) ∷ ⇑ˢ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)))
+  ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ))`
+
+I also added term-renaming bookkeeping that a future replay theorem will need:
+
+`lookup-renameCtxNrw`
+
+`renameCtxNrw-dual-cons`
+
+`renameStoreNrw-coercionᶜ`
+
+The useful bubble step must first rename a body derivation by `swap01ᵗ` and
+then perform adjacent source/target swaps.  The remaining obstacle is not the
+nonrecursive lookup/store bookkeeping; it is replaying every `TermNarrowing`
+constructor through the combined rename-and-swap step.
+
+## Attempt 74: reject arbitrary term transport across swaps
+
+Rejected.  I tried to revive a structural term transport for arbitrary
+`SourceTargetSwapRel`, using the renaming support from Attempt 73 and the
+composition-side lemmas from Attempts 67-70.  The proof gets stuck at:
+
+`SourceTargetSwapRel-term (swap-right swap-here) (split ...)`
+
+This is not just an Agda annoyance.  The step moves the distinguished
+source-only marker of `split` past a following target-only entry.  After that
+movement the store no longer has the syntactic
+`target-only, source-only` shape required by the `split` constructor.  A sound
+term replay theorem must be split-aware.
+
+## Attempt 75: classify split-shaped single swaps
+
+Accepted as checked support.  I added:
+
+`SplitSourceTargetSwapView`
+
+and:
+
+`split-source-target-swap-view`
+
+For a store of the form:
+
+`(α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ`
+
+the first swap is either:
+
+`split-swap-safe`, which happens below the split marker and can be replayed
+structurally, or
+
+`split-swap-unsafe`, the exact `swap-right swap-here` case from Attempt 74.
+
+This makes the split obstruction explicit instead of rediscovering it during
+whole-term replay.
+
+## Attempt 76: lift the split classification to swap closures
+
+Accepted as checked support.  I added:
+
+`SplitSourceTargetSwapsView`
+
+and:
+
+`split-source-target-swaps-view`
+
+The closure view has three cases:
+
+`split-swaps-refl`
+
+`split-swaps-safe-step`
+
+`split-swaps-unsafe-step`
+
+This is the right shape for a future replay theorem.  It can consume zero
+swaps, continue below the split marker for a safe first step, or stop at the
+unsafe first step and hand that case to split/opening catchup machinery.
+
+## Attempt 77: recheck after pulling `main` and revisit reduction-only unshift
+
+Rejected as a standalone path.  On 2026-06-29 I fetched `origin/main`; this
+branch was already up to date.  I reran:
+
+`agda -v0 proof/Catchup.agda`
+
+and the file still type-checks.
+
+I then revisited the reduction-only idea: invert the prefix reduction
+
+`⇑ᵗᵐ N —↠[ χs₀ ] P`
+
+and the final bind step from `P` by repeatedly applying `predᵗ`.
+The existing library has useful pieces:
+
+`keep-pred-step-view`
+
+`pure-pred-↠-shifted-value`
+
+`type-rename-bind-step-pred`
+
+However, this does not scale through earlier `bind` steps in `χs₀`.  A
+general bind step is not stable under plain `predᵗ`: the coercion under a
+runtime `ν` binder uses `extᵗ`, while the surrounding term shift uses `suc`.
+The one-step lemma `type-rename-bind-step-pred` works only when the source is
+known to be a global shift image.  After an earlier bind, the target may no
+longer be a global shift image, even though the later value-reaching trace is
+sound.
+
+So the remaining proof cannot be a reduction-only unshift.  It must keep the
+source/target binder-exchange invariant from Attempts 71-76 and replay the
+term-narrowing history while performing the local `swap01ᵗ` crossing at each
+emitted source-star binder.  The promising next target is a split-aware replay
+theorem that consumes `SplitSourceTargetSwapsView`; the unsafe branch should
+delegate to the same split/opening machinery needed by `catchup-split-catchup`.

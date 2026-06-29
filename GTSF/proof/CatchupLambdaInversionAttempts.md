@@ -2658,3 +2658,49 @@ term-narrowing history while performing the local `swap01ᵗ` crossing at each
 emitted source-star binder.  The promising next target is a split-aware replay
 theorem that consumes `SplitSourceTargetSwapsView`; the unsafe branch should
 delegate to the same split/opening machinery needed by `catchup-split-catchup`.
+
+## Attempt 78: turn the safe split view into a rebuild operation
+
+Accepted as checked support.  Attempt 76 classified swap closures at a split
+marker, but did not yet provide a way to use the safe case.  I added closure
+prefix lifts:
+
+`SourceTargetSwapRels-right`
+
+`SourceTargetSwapRels-left`
+
+`SourceTargetSwapRels-both`
+
+These are the closure-level counterparts of `swap-right`, `swap-left`, and
+`swap-both`.  They let a replay theorem keep a swap sequence aligned when it
+passes under a target-only entry, a source-only entry, or a both-side
+coercion entry.
+
+I then added:
+
+`split-source-target-safe-rebuild`
+
+This lemma rebuilds a `split` after a whole swap closure that stays below the
+split marker.  Its premise is the recursively transported body under
+`(α ꞉ q) ∷ σ′`; the lemma transports the two split side conditions through the
+lifted closure
+
+`SourceTargetSwapRels-right (SourceTargetSwapRels-left rels)`
+
+and reconstructs the outer split under
+
+`(α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ′`.
+
+Finally I added:
+
+`split-source-target-swaps-safe-view`
+
+which proves that every closure produced by `right (left rels)` is classified
+by `SplitSourceTargetSwapsView` as zero or safe-first-step, never as the
+unsafe split-marker crossing.
+
+This still does not prove the `⊒Λ` branch.  It discharges the safe branch of
+the split-aware replay once a recursive transport of the split premise has
+already been obtained.  The remaining hard case is exactly the unsafe
+`swap-right swap-here` crossing, which must use split/opening catchup rather
+than structural reconstruction.

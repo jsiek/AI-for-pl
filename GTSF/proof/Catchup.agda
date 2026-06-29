@@ -1005,6 +1005,75 @@ SourceTargetSwapRels-compose-right (swaps-step rel rels) r≈t⨟p =
   SourceTargetSwapRels-compose-right rels
     (SourceTargetSwapRel-compose-right rel r≈t⨟p)
 
+SourceTargetSwapRels-right :
+  ∀ {Δ X A σ σ′} →
+  SourceTargetSwapRels Δ σ σ′ →
+  SourceTargetSwapRels Δ
+    ((X ꞉= A ⊒) ∷ σ)
+    ((X ꞉= A ⊒) ∷ σ′)
+SourceTargetSwapRels-right swaps-refl = swaps-refl
+SourceTargetSwapRels-right (swaps-step rel rels) =
+  swaps-step (swap-right rel) (SourceTargetSwapRels-right rels)
+
+SourceTargetSwapRels-left :
+  ∀ {Δ X σ σ′} →
+  SourceTargetSwapRels Δ σ σ′ →
+  SourceTargetSwapRels Δ
+    ((⊒ X ꞉=☆) ∷ σ)
+    ((⊒ X ꞉=☆) ∷ σ′)
+SourceTargetSwapRels-left swaps-refl = swaps-refl
+SourceTargetSwapRels-left (swaps-step rel rels) =
+  swaps-step (swap-left rel) (SourceTargetSwapRels-left rels)
+
+SourceTargetSwapRels-both :
+  ∀ {Δ X q σ σ′} →
+  SourceTargetSwapRels Δ σ σ′ →
+  SourceTargetSwapRels Δ
+    ((X ꞉ q) ∷ σ)
+    ((X ꞉ q) ∷ σ′)
+SourceTargetSwapRels-both swaps-refl = swaps-refl
+SourceTargetSwapRels-both (swaps-step rel rels) =
+  swaps-step (swap-both rel) (SourceTargetSwapRels-both rels)
+
+split-source-target-safe-rebuild :
+  ∀ {Δ α A αᵢ σ σ′ γ N N′ p q C D} →
+  (rels : SourceTargetSwapRels Δ σ σ′) →
+  Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+    ⊢ q ∶ᶜ ★ ⊒ A →
+  Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+    ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D →
+  Δ ∣ (α ꞉ q) ∷ σ′ ∣ γ
+    ⊢ N [ α ]ᵀ ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ →
+  Δ ∣ (α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ′ ∣ γ
+    ⊢ N [ αᵢ ]ᵀ ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ
+split-source-target-safe-rebuild
+    {Δ = Δ} {α = α} {A = A} {αᵢ = αᵢ} {σ = σ} {σ′ = σ′}
+    rels qᶜ pαᶜ body =
+  split
+    (SourceTargetSwapRels-coercionᶜ
+      splitRels
+      qᶜ)
+    (SourceTargetSwapRels-coercionᶜ
+      splitRels
+      pαᶜ)
+    body
+  where
+    splitRels :
+      SourceTargetSwapRels Δ
+        ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+        ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ′)
+    splitRels =
+      SourceTargetSwapRels-right {X = α} {A = A}
+        (SourceTargetSwapRels-left {X = αᵢ} rels)
+
+-- Attempt 78.  The safe side of split-aware replay can now be rebuilt without
+-- reopening the full term derivation: once the recursive premise has been
+-- transported below the split marker, `split-source-target-safe-rebuild`
+-- moves the split side conditions through the lifted swap closure and
+-- reconstructs the outer `split`.  The unsafe first-step case from
+-- `SplitSourceTargetSwapsView` remains the part that must be handled by the
+-- split/opening catchup argument.
+
 source-target-bubble-empty :
   ∀ {Δ σ} →
   SourceTargetSwapRels Δ
@@ -1071,6 +1140,18 @@ split-source-target-swaps-view
     (swaps-step .(swap-right swap-here) rels)
     | split-swap-unsafe =
   split-swaps-unsafe-step rels
+
+split-source-target-swaps-safe-view :
+  ∀ {Δ α A αᵢ σ σ′}
+  (rels : SourceTargetSwapRels Δ σ σ′) →
+  SplitSourceTargetSwapsView
+    (SourceTargetSwapRels-right {X = α} {A = A}
+      (SourceTargetSwapRels-left {X = αᵢ} rels))
+split-source-target-swaps-safe-view swaps-refl =
+  split-swaps-refl
+split-source-target-swaps-safe-view (swaps-step rel rels) =
+  split-swaps-safe-step rel
+    (SourceTargetSwapRels-right (SourceTargetSwapRels-left rels))
 
 -- Attempt 76.  Lifting the split view to closure form makes the next replay
 -- theorem structurally possible: it can consume zero swaps, continue below the

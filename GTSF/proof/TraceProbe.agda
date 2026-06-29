@@ -281,18 +281,52 @@ no-dual-shifted-probe-c :
   - t ≡ ⇑ᶜ probe-c →
   μ ∣ 1 ∣ Σ ⊢ t ∶ A ⊒ B →
   ⊥
+no-dual-shifted-probe-c {t = id A} () t⊒
+no-dual-shifted-probe-c {t = t₁ ︔ t₂} () t⊒
 no-dual-shifted-probe-c {t = t₁ ↦ t₂} eq
     (cast-fun t₁⊢ t₂⊢ , cross (t₁ʷ ↦ t₂ⁿ)) =
   no-dual-id-var1-widen (cong fun-left eq) (t₁⊢ , t₁ʷ)
+no-dual-shifted-probe-c {t = `∀ t} () t⊒
+no-dual-shifted-probe-c {t = (＇ X) !} () t⊒
+no-dual-shifted-probe-c {t = (‵ ι) !} () t⊒
+no-dual-shifted-probe-c {t = ★ !} () t⊒
+no-dual-shifted-probe-c {t = (A ⇒ B) !} () t⊒
+no-dual-shifted-probe-c {t = `∀ A !} () t⊒
+no-dual-shifted-probe-c {t = (＇ X) ？} () t⊒
+no-dual-shifted-probe-c {t = (‵ ι) ？} () t⊒
+no-dual-shifted-probe-c {t = ★ ？} () t⊒
+no-dual-shifted-probe-c {t = (A ⇒ B) ？} () t⊒
+no-dual-shifted-probe-c {t = `∀ A ？} () t⊒
+no-dual-shifted-probe-c {t = seal A α} () t⊒
+no-dual-shifted-probe-c {t = unseal α A} () t⊒
+no-dual-shifted-probe-c {t = gen A t} () t⊒
+no-dual-shifted-probe-c {t = inst B t} () t⊒
 
 no-dual-probe-c-empty :
   ∀ {μ Σ t A B} →
   - t ≡ probe-c →
   μ ∣ 0 ∣ Σ ⊢ t ∶ A ⊒ B →
   ⊥
+no-dual-probe-c-empty {t = id A} () t⊒
+no-dual-probe-c-empty {t = t₁ ︔ t₂} () t⊒
 no-dual-probe-c-empty {t = t₁ ↦ t₂} eq
     (cast-fun t₁⊢ t₂⊢ , cross (t₁ʷ ↦ t₂ⁿ)) =
   no-dual-id-var0-widen (cong fun-left eq) (t₁⊢ , t₁ʷ)
+no-dual-probe-c-empty {t = `∀ t} () t⊒
+no-dual-probe-c-empty {t = (＇ X) !} () t⊒
+no-dual-probe-c-empty {t = (‵ ι) !} () t⊒
+no-dual-probe-c-empty {t = ★ !} () t⊒
+no-dual-probe-c-empty {t = (A ⇒ B) !} () t⊒
+no-dual-probe-c-empty {t = `∀ A !} () t⊒
+no-dual-probe-c-empty {t = (＇ X) ？} () t⊒
+no-dual-probe-c-empty {t = (‵ ι) ？} () t⊒
+no-dual-probe-c-empty {t = ★ ？} () t⊒
+no-dual-probe-c-empty {t = (A ⇒ B) ？} () t⊒
+no-dual-probe-c-empty {t = `∀ A ？} () t⊒
+no-dual-probe-c-empty {t = seal A α} () t⊒
+no-dual-probe-c-empty {t = unseal α A} () t⊒
+no-dual-probe-c-empty {t = gen A t} () t⊒
+no-dual-probe-c-empty {t = inst B t} () t⊒
 
 no-probe-compose-dual :
   ∀ {A B r t p} →

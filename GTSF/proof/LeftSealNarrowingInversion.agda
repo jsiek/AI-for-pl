@@ -217,7 +217,7 @@ LeftSealNarrowingInversion : Set₁
 LeftSealNarrowingInversion =
   ∀ {Δ σ γ V V′ α} →
   Value V →
-  Δ ∣ σ ∣ γ ⊢ V ⟨ id ★ ︔ seal ★ α ⟩ ⊒ V′ ∶ id (＇ α) →
+  Δ ∣ σ ∣ γ ⊢ V ⟨ seal ★ α ⟩ ⊒ V′ ∶ id (＇ α) →
   ∃[ r ] (Δ ∣ srcStoreⁿ σ ⊢ r ∶ ★ ⊒ ＇ α) ×
     Δ ∣ σ ∣ γ ⊢ V ⊒ V′ ∶ r
 
@@ -244,7 +244,7 @@ termNarrowing-resp-source p⊒ qᶜ M⊒M′ = {!!}
 
 leftSealNarrowingInversion-aux :
   ∀ {Δ σ γ M V V′ p α} →
-  M ≡ V ⟨ id ★ ︔ seal ★ α ⟩ →
+  M ≡ V ⟨ seal ★ α ⟩ →
   p ≡ id (＇ α) →
   Value V →
     Δ ∣ σ ∣ γ ⊢ M ⊒ V′ ∶ p →
@@ -288,13 +288,11 @@ leftSealNarrowingInversion-aux eq refl vV
       M⊒M′) = {!!}
 leftSealNarrowingInversion-aux refl refl vV
     (⊒blame (cast-id hα ok , cross (id-＇ α))) =
-  (((＇ α) ？) ︔ id (＇ α)) ,
+  (＇ α) ？ ,
   (tag-or-idᵈ ,
-    (cast-seq (cast-untag hα (＇ α) refl) (cast-id hα refl) ,
-     (＇ α) ？︔ id-＇ α)) ,
+    (cast-untag hα (＇ α) refl , untag (＇ α))) ,
   ⊒blame
-    (cast-seq (cast-untag hα (＇ α) refl) (cast-id hα refl) ,
-     (＇ α) ？︔ id-＇ α)
+    (cast-untag hα (＇ α) refl , untag (＇ α))
 -- Right cast cases: the paper says these recurse because the cast must be
 -- identity-like, but endpoint equivalence does not yet give that directly.
 leftSealNarrowingInversion-aux refl refl vV
@@ -310,8 +308,7 @@ leftSealNarrowingInversion-aux refl refl vV
 leftSealNarrowingInversion-aux refl refl vV
     (cast-⊒ {r = r} pᶜ
       (compose-rightⁿ wfΣ
-        t⊒@(cast-seq (cast-id h★ ok★) (cast-seal h★′ α∈Σ seal-ok) ,
-             id★ ︔seal α)
+        t⊒@(cast-seal h★′ α∈Σ seal-ok , sealⁿ ★ α)
         p⊒@(cast-id hα okα , cross (id-＇ α))
         (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
       M⊒M′) =

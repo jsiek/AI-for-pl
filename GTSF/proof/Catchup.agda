@@ -202,6 +202,27 @@ open import proof.CatchupStore
   A ≡ ★
 ⊒ˢ-empty-source-head-star (⊒ˢ-left π⊒) = refl
 
+data SourceStarOnly : StoreNrw → Set where
+  source-star-[] :
+    SourceStarOnly []
+  source-star-∷ :
+    ∀ {X π} →
+    SourceStarOnly π →
+    SourceStarOnly ((⊒ X ꞉=☆) ∷ π)
+
+-- Attempt 71.  The empty-target store evidence really does force the emitted
+-- prefix to contain only source-star entries.  This rules out a target-side
+-- case split as the missing ingredient for the `⊒Λ` last-bind branch: the
+-- unsolved step is exchanging the outer target-only binder with this
+-- source-star prefix while lowering the de Bruijn indices.
+⊒ˢ-empty-source-star-only :
+  ∀ {Δ π Σ} →
+  Δ ⊢ π ꞉ Σ ⊒ˢ [] →
+  SourceStarOnly π
+⊒ˢ-empty-source-star-only ⊒ˢ-nil = source-star-[]
+⊒ˢ-empty-source-star-only (⊒ˢ-left π⊒) =
+  source-star-∷ (⊒ˢ-empty-source-star-only π⊒)
+
 ⇑ᵗ-★-inv :
   ∀ {A} →
   ⇑ᵗ A ≡ ★ →
@@ -398,6 +419,11 @@ swap01ᵗ-after-suc :
 swap01ᵗ-after-suc zero = refl
 swap01ᵗ-after-suc (suc X) = refl
 
+swap01ᵗ-after-suc-suc :
+  ∀ X →
+  swap01ᵗ (suc (suc X)) ≡ suc (suc X)
+swap01ᵗ-after-suc-suc X = refl
+
 swap01ᵗ-involutive :
   ∀ X →
   swap01ᵗ (swap01ᵗ X) ≡ X
@@ -446,6 +472,42 @@ renameᵗᵐ-swap01-⇑ M =
   trans (renameᵗᵐ-compose suc swap01ᵗ M)
     (renameᵗᵐ-cong swap01ᵗ-after-suc M)
 
+renameᵗ-swap01-⇑⇑ :
+  ∀ A →
+  renameᵗ swap01ᵗ (⇑ᵗ (⇑ᵗ A)) ≡ ⇑ᵗ (⇑ᵗ A)
+renameᵗ-swap01-⇑⇑ A =
+  trans
+    (cong (renameᵗ swap01ᵗ) (renameᵗ-compose suc suc A))
+    (trans
+      (renameᵗ-compose (λ X → suc (suc X)) swap01ᵗ A)
+      (trans
+        (rename-cong swap01ᵗ-after-suc-suc A)
+        (sym (renameᵗ-compose suc suc A))))
+
+renameᶜ-swap01-⇑⇑ :
+  ∀ c →
+  renameᶜ swap01ᵗ (⇑ᶜ (⇑ᶜ c)) ≡ ⇑ᶜ (⇑ᶜ c)
+renameᶜ-swap01-⇑⇑ c =
+  trans
+    (cong (renameᶜ swap01ᵗ) (renameᶜ-compose suc suc c))
+    (trans
+      (renameᶜ-compose (λ X → suc (suc X)) swap01ᵗ c)
+      (trans
+        (renameᶜ-cong swap01ᵗ-after-suc-suc c)
+        (sym (renameᶜ-compose suc suc c))))
+
+renameᵗᵐ-swap01-⇑⇑ :
+  ∀ M →
+  renameᵗᵐ swap01ᵗ (⇑ᵗᵐ (⇑ᵗᵐ M)) ≡ ⇑ᵗᵐ (⇑ᵗᵐ M)
+renameᵗᵐ-swap01-⇑⇑ M =
+  trans
+    (cong (renameᵗᵐ swap01ᵗ) (renameᵗᵐ-compose suc suc M))
+    (trans
+      (renameᵗᵐ-compose (λ X → suc (suc X)) swap01ᵗ M)
+      (trans
+        (renameᵗᵐ-cong swap01ᵗ-after-suc-suc M)
+        (sym (renameᵗᵐ-compose suc suc M))))
+
 raise0ᵗ : Renameᵗ
 raise0ᵗ X = suc (predᵗ X)
 
@@ -480,6 +542,34 @@ renameStoreNrw-swap01-⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
   cong₂ _∷_
     (cong (λ Y → ⊒ Y ꞉=☆) (swap01ᵗ-after-suc X))
     (renameStoreNrw-swap01-⇑ˢ σ)
+
+renameStoreNrw-swap01-⇑ˢ⇑ˢ :
+  ∀ σ →
+  renameStoreNrw swap01ᵗ (⇑ˢ (⇑ˢ σ)) ≡ ⇑ˢ (⇑ˢ σ)
+renameStoreNrw-swap01-⇑ˢ⇑ˢ [] = refl
+renameStoreNrw-swap01-⇑ˢ⇑ˢ ((X ꞉ p) ∷ σ) =
+  cong₂ _∷_
+    (cong₂ _꞉_ (swap01ᵗ-after-suc-suc X) (renameᶜ-swap01-⇑⇑ p))
+    (renameStoreNrw-swap01-⇑ˢ⇑ˢ σ)
+renameStoreNrw-swap01-⇑ˢ⇑ˢ ((X ꞉= A ⊒) ∷ σ) =
+  cong₂ _∷_
+    (cong₂ _꞉=_⊒
+      (swap01ᵗ-after-suc-suc X)
+      (renameᵗ-swap01-⇑⇑ A))
+    (renameStoreNrw-swap01-⇑ˢ⇑ˢ σ)
+renameStoreNrw-swap01-⇑ˢ⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
+  cong₂ _∷_
+    (cong (λ Y → ⊒ Y ꞉=☆) (swap01ᵗ-after-suc-suc X))
+    (renameStoreNrw-swap01-⇑ˢ⇑ˢ σ)
+
+-- Attempt 72.  A full source-prefix bubble cannot be expressed by
+-- `SourceTargetSwapRels` alone.  For an empty prefix, `swap01ᵗ` makes the
+-- outer source-star and target-only entries adjacent and the lemma above
+-- normalizes the double-shifted tail.  For a nonempty prefix, however, the
+-- target-only entry is buried below the shifted prefix, so every crossing
+-- needs its own local `swap01ᵗ` renaming before the adjacent swap.  The next
+-- useful relation should combine the local renaming and the swap in one
+-- recursive step.
 
 renameCtxNrw-swap01-⇑ᵍ :
   ∀ γ →

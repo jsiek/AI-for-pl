@@ -11,10 +11,12 @@ module proof.Catchup where
 --     store changes.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
+open import Data.List.Membership.Propositional using (_∈_)
+open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Maybe using (just; nothing)
-open import Data.Nat using (ℕ; zero; suc; z<s; s<s)
+open import Data.Nat using (ℕ; zero; suc; _<_; z<s; s<s)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
@@ -32,7 +34,8 @@ open import TypeCheck using (value?)
 open import Primitives using (κℕ; constTy)
 open import proof.NarrowWidenProperties
   using
-    ( StoreDetWf-⟰ᵗ
+    ( StoreDetWf
+    ; StoreDetWf-⟰ᵗ
     ; WfTyˢ-⇑ᵗ
     ; WfTyˢ-store-weaken
     ; narrowing-determinedᵐ
@@ -580,6 +583,14 @@ modeRename-swap01ᵗMode μ X
       swap01ᵗMode μ ,
       narrow-renameᵗ TyRenameWf-swap01
         (modeRename-swap01ᵗMode μ) (proj₂ t⊒))
+
+StoreDetWf-swap01-generic⊥ :
+  StoreDetWf (suc (suc zero))
+    (renameStoreᵗ swap01ᵗ ((suc zero , ＇ zero) ∷ [])) →
+  ⊥
+StoreDetWf-swap01-generic⊥ wfΣ
+    with StoreDetWf.wfOlder wfΣ (here refl)
+... | wfVar ()
 
 TyRenameWf-raise0 :
   ∀ {Δ} →

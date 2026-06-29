@@ -2212,6 +2212,16 @@ type may mention `suc zero`, violating `wfOlder`.  This is not a counterexample
 to the catchup lemma, but it rules out using unconstrained store renaming as the
 composition-side-condition proof.
 
+I also checked the obstruction directly in Agda:
+
+`StoreDetWf-swap01-generic⊥ :
+ StoreDetWf (suc (suc zero))
+   (renameStoreᵗ swap01ᵗ ((suc zero , ＇ zero) ∷ [])) →
+ ⊥`.
+
+The impossible `wfOlder` obligation for the swapped singleton is
+`WfTy zero (＇ (suc zero))`.
+
 The remaining promising variant is shape-specific rather than generic:
 transport `StoreDetWf` only for stores of the form `(zero , ★) ∷ ⟰ᵗ Σ` or the
 corresponding shifted source store produced by the `⊒Λ` branch.  That shape may

@@ -25,6 +25,7 @@ open import proof.Catchup using (catchup-lemma)
 open import proof.CatchupStore using (combineStoreNrw)
 open import proof.LeftSealNarrowingInversion using
   (LeftSealNarrowingInversion; leftSealNarrowingInversion)
+open import proof.RightTagInversion using (right-tag-inversion₁)
 open import proof.ReductionProperties using (type-rename-step-⇑ᵗᵐ)
 open import proof.TermSubstitutionNarrowing using
   (term-substitution-narrowing)
@@ -34,11 +35,6 @@ open import proof.TermSubstitutionNarrowing using
 ------------------------------------------------------------------------
 
 postulate
-  right-tag-inversion₁ :
-    ∀ {Δ σ γ M V q G} →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ G ! ⟩ ∶ q →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ G ？
-
   right-tag-inversion₂ :
     ∀ {Δ σ γ M V r G} →
     Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ G ？ ⟩ ∶ r →

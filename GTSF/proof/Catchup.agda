@@ -53,6 +53,7 @@ open import proof.CoercionProperties
   using
     ( coercion-src-tgtᵐ
     ; ModeRename
+    ; renameᶜ-cong
     ; renameᶜ-compose
     ; renameᶜ-ext-suc-comm
     ; renameᶜ-left-inverse
@@ -61,13 +62,20 @@ open import proof.CoercionProperties
     )
 open import proof.NuTermProperties
   using
-    ( renameᵗᵐ-compose
+    ( renameᵗᵐ-cong
+    ; renameᵗᵐ-compose
     ; renameᵗᵐ-left-inverse
     ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-reflects-Value
     )
 open import proof.TypeProperties
-  using (TyRenameWf; predᵗ; renameᵗ-compose; renameᵗ-ext-suc-comm)
+  using
+    ( TyRenameWf
+    ; predᵗ
+    ; rename-cong
+    ; renameᵗ-compose
+    ; renameᵗ-ext-suc-comm
+    )
 open import proof.TermNarrowingProperties
   using
     ( neutral-blame
@@ -363,6 +371,46 @@ applyCoercionUnderTyBinders-last-bind
     (allKeep-applyCoercionUnderTyBinders-id keeps-ok
       (renameᶜ (extᵗ suc) (applyCoercionUnderTyBinders χs p)))
 
+swap01ᵗ : Renameᵗ
+swap01ᵗ zero = suc zero
+swap01ᵗ (suc zero) = zero
+swap01ᵗ (suc (suc X)) = suc (suc X)
+
+swap01ᵗ-after-suc :
+  ∀ X →
+  swap01ᵗ (suc X) ≡ extᵗ suc X
+swap01ᵗ-after-suc zero = refl
+swap01ᵗ-after-suc (suc X) = refl
+
+TyRenameWf-swap01 :
+  ∀ {Δ} →
+  TyRenameWf (suc (suc Δ)) (suc (suc Δ)) swap01ᵗ
+TyRenameWf-swap01 {X = zero} z<s = s<s z<s
+TyRenameWf-swap01 {X = suc zero} (s<s z<s) = z<s
+TyRenameWf-swap01 {X = suc (suc X)} (s<s (s<s X<Δ)) =
+  s<s (s<s X<Δ)
+
+renameᵗ-swap01-⇑ :
+  ∀ A →
+  renameᵗ swap01ᵗ (⇑ᵗ A) ≡ renameᵗ (extᵗ suc) A
+renameᵗ-swap01-⇑ A =
+  trans (renameᵗ-compose suc swap01ᵗ A)
+    (rename-cong swap01ᵗ-after-suc A)
+
+renameᶜ-swap01-⇑ :
+  ∀ c →
+  renameᶜ swap01ᵗ (⇑ᶜ c) ≡ renameᶜ (extᵗ suc) c
+renameᶜ-swap01-⇑ c =
+  trans (renameᶜ-compose suc swap01ᵗ c)
+    (renameᶜ-cong swap01ᵗ-after-suc c)
+
+renameᵗᵐ-swap01-⇑ :
+  ∀ M →
+  renameᵗᵐ swap01ᵗ (⇑ᵗᵐ M) ≡ renameᵗᵐ (extᵗ suc) M
+renameᵗᵐ-swap01-⇑ M =
+  trans (renameᵗᵐ-compose suc swap01ᵗ M)
+    (renameᵗᵐ-cong swap01ᵗ-after-suc M)
+
 raise0ᵗ : Renameᵗ
 raise0ᵗ X = suc (predᵗ X)
 
@@ -419,6 +467,11 @@ modeRename-tag-or-id :
   ∀ ρ →
   ModeRename ρ tag-or-idᵈ tag-or-idᵈ
 modeRename-tag-or-id ρ X = refl
+
+modeRename-swap01-tag-or-id :
+  ModeRename swap01ᵗ tag-or-idᵈ tag-or-idᵈ
+modeRename-swap01-tag-or-id =
+  modeRename-tag-or-id swap01ᵗ
 
 TyRenameWf-raise0 :
   ∀ {Δ} →

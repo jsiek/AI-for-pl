@@ -1954,3 +1954,107 @@ branch from the false standalone inversion: the body coercion of a valid
 not bare store renaming; it is a history-preserving replay or exchange theorem
 that uses this shifted-source endpoint invariant to move the source-only star
 under the target-only binder.
+
+## Attempt 59: reuse split catchup or a post-bind image view as a shortcut
+
+Rejected as a shortcut, but it narrows the remaining shared obligation.
+
+First, I rechecked whether the existing `catchup-split-catchup` postulate could
+be instantiated to finish the `⊒Λ` last-bind branches.  The shapes are close:
+the desired `⊒Λ` body needs the same target-first/source-only store order that
+`split` concludes with,
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ ...`.
+
+However, `catchup-split-catchup` transports an opening
+
+`N [ α ]ᵀ —↠[ χs ] W`
+
+to another opening
+
+`N [ αᵢ ]ᵀ —↠[ χs′ ] W′`.
+
+The live `⊒Λ` branch instead starts from a global shift:
+
+`⇑ᵗᵐ N —↠[ χs ] W`
+
+and must produce an unshifted run
+
+`N —↠[ χs′ ] W′`.
+
+Opening a uniformly shifted term cancels the shift for every choice of
+variable, so there is no direct instantiation that makes one side `⇑ᵗᵐ N` and
+the other side `N`.
+
+Second, I revisited the all-keep shifted-image route.  It succeeds in the
+no-bind branch because `safe-allKeep-value-image` only has to preserve a
+`TermShiftImage` invariant through keep steps after the source is already known
+to be in the image of `⇑ᵗᵐ`.  In a last-bind branch, splitting the reduction
+gives
+
+`⇑ᵗᵐ N —↠[ χs₀ ] P`, `P —→[ bind Aχ ] Q`, and
+`Q —↠[ keeps ] W`.
+
+Even if a local bind-step view proves that `Q` is safe and shifted-image, the
+final term-imprecision evidence remains under the source-first store
+
+`(⊒ zero ꞉=☆) ∷
+  ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))`.
+
+Rebuilding `⊒Λ` still needs the target-first/source-only order
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷
+  ⇑ˢ (combineStoreNrw π₀ σ)`.
+
+So the image view cannot avoid the adjacent exchange.  The split case and the
+`⊒Λ` last-bind case appear to need a common source-variable opening/exchange
+transport: one version changes `N [ α ]ᵀ` to `N [ αᵢ ]ᵀ`, while the `⊒Λ`
+version changes the source-first body to the target-first/source-only body and
+uses the checked `gen` body invariant for the split coercion premise.
+
+## Attempt 60: factor the injective variable swap inside the exchange
+
+Checked progress.  Attempts 57 and 58 framed the exchange in terms of
+`raise0ᵗ`, but `raise0ᵗ` is non-injective and therefore a poor fit for a
+generic structural transport through coercion-composition side conditions.
+The adjacent source-only/target-only exchange itself is better described in two
+steps:
+
+1. swap the two newest type variables with an injective renaming; then
+2. reorder the two corresponding `StoreNrw` entries.
+
+I added the checked renaming component:
+
+`swap01ᵗ zero = suc zero`
+
+`swap01ᵗ (suc zero) = zero`
+
+`swap01ᵗ (suc (suc X)) = suc (suc X)`.
+
+The following facts now type-check in `proof.Catchup`:
+
+`TyRenameWf-swap01 :
+  TyRenameWf (suc (suc Δ)) (suc (suc Δ)) swap01ᵗ`
+
+`modeRename-swap01-tag-or-id :
+  ModeRename swap01ᵗ tag-or-idᵈ tag-or-idᵈ`
+
+`renameᵗ-swap01-⇑ :
+  renameᵗ swap01ᵗ (⇑ᵗ A) ≡ renameᵗ (extᵗ suc) A`
+
+`renameᶜ-swap01-⇑ :
+  renameᶜ swap01ᵗ (⇑ᶜ c) ≡ renameᶜ (extᵗ suc) c`
+
+`renameᵗᵐ-swap01-⇑ :
+  renameᵗᵐ swap01ᵗ (⇑ᵗᵐ M) ≡ renameᵗᵐ (extᵗ suc) M`.
+
+This does not finish the `⊒Λ` branch because renaming alone does not reorder
+the `StoreNrw` list.  In particular, it changes the variables inside the
+source-first store but leaves the source-only entry syntactically before the
+target-only entry.  The remaining theorem is therefore not "rename by
+`raise0ᵗ`"; it is a list-level adjacent exchange whose renaming component is
+`swap01ᵗ`.  This looks more plausible than the earlier generic `raise0ᵗ`
+renaming route because the syntax renaming is injective; the hard part is now
+isolated to the `StoreNrw` permutation and the term-narrowing constructors
+that expose store entries (`extend`, `split`, `⊒Λ`, `⊒ν`, `ν⊒`, and the cast
+composition side conditions).

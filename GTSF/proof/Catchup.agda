@@ -588,6 +588,78 @@ renameᵗᵐ-swap01-⇑⇑ M =
 raise0ᵗ : Renameᵗ
 raise0ᵗ X = suc (predᵗ X)
 
+merge01ᵗ : Renameᵗ
+merge01ᵗ zero = zero
+merge01ᵗ (suc zero) = zero
+merge01ᵗ (suc (suc X)) = suc (suc X)
+
+close01ᵗ : Renameᵗ
+close01ᵗ zero = zero
+close01ᵗ (suc zero) = zero
+close01ᵗ (suc (suc X)) = suc (suc (suc X))
+
+close01-open0 :
+  ∀ X →
+  singleRenameᵗ zero (close01ᵗ X) ≡ merge01ᵗ X
+close01-open0 zero = refl
+close01-open0 (suc zero) = refl
+close01-open0 (suc (suc X)) = refl
+
+close01-open1 :
+  ∀ X →
+  singleRenameᵗ (suc zero) (close01ᵗ X) ≡ raise0ᵗ X
+close01-open1 zero = refl
+close01-open1 (suc zero) = refl
+close01-open1 (suc (suc X)) = refl
+
+renameᵗ-close01-open0 :
+  ∀ A →
+  renameᵗ (singleRenameᵗ zero) (renameᵗ close01ᵗ A) ≡
+  renameᵗ merge01ᵗ A
+renameᵗ-close01-open0 A =
+  trans (renameᵗ-compose close01ᵗ (singleRenameᵗ zero) A)
+    (rename-cong close01-open0 A)
+
+renameᶜ-close01-open0 :
+  ∀ c →
+  renameᶜ (singleRenameᵗ zero) (renameᶜ close01ᵗ c) ≡
+  renameᶜ merge01ᵗ c
+renameᶜ-close01-open0 c =
+  trans (renameᶜ-compose close01ᵗ (singleRenameᵗ zero) c)
+    (renameᶜ-cong close01-open0 c)
+
+renameᵗᵐ-close01-open0 :
+  ∀ M →
+  renameᵗᵐ (singleRenameᵗ zero) (renameᵗᵐ close01ᵗ M) ≡
+  renameᵗᵐ merge01ᵗ M
+renameᵗᵐ-close01-open0 M =
+  trans (renameᵗᵐ-compose close01ᵗ (singleRenameᵗ zero) M)
+    (renameᵗᵐ-cong close01-open0 M)
+
+renameᵗ-close01-open1 :
+  ∀ A →
+  renameᵗ (singleRenameᵗ (suc zero)) (renameᵗ close01ᵗ A) ≡
+  renameᵗ raise0ᵗ A
+renameᵗ-close01-open1 A =
+  trans (renameᵗ-compose close01ᵗ (singleRenameᵗ (suc zero)) A)
+    (rename-cong close01-open1 A)
+
+renameᶜ-close01-open1 :
+  ∀ c →
+  renameᶜ (singleRenameᵗ (suc zero)) (renameᶜ close01ᵗ c) ≡
+  renameᶜ raise0ᵗ c
+renameᶜ-close01-open1 c =
+  trans (renameᶜ-compose close01ᵗ (singleRenameᵗ (suc zero)) c)
+    (renameᶜ-cong close01-open1 c)
+
+renameᵗᵐ-close01-open1 :
+  ∀ M →
+  renameᵗᵐ (singleRenameᵗ (suc zero)) (renameᵗᵐ close01ᵗ M) ≡
+  renameᵗᵐ raise0ᵗ M
+renameᵗᵐ-close01-open1 M =
+  trans (renameᵗᵐ-compose close01ᵗ (singleRenameᵗ (suc zero)) M)
+    (renameᵗᵐ-cong close01-open1 M)
+
 raise0ᵗ-after-suc-suc :
   ∀ X →
   raise0ᵗ (suc (suc X)) ≡ suc (suc X)
@@ -920,6 +992,52 @@ compose-rightⁿ-source-target-swap :
 compose-rightⁿ-source-target-swap
     (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   compose-rightⁿ wfΣ t⊒ p⊒ (≈ⁿ-source-target-swap r≈t⨟p)
+
+⊒ˢ-source-target-merge-id★ :
+  ∀ {Δ σ Σ Σ′ X} →
+  Δ ⊢ (⊒ X ꞉=☆) ∷ (X ꞉= ★ ⊒) ∷ σ ꞉ Σ ⊒ˢ Σ′ →
+  Δ ⊢ (X ꞉ id ★) ∷ σ ꞉ Σ ⊒ˢ Σ′
+⊒ˢ-source-target-merge-id★ (⊒ˢ-left (⊒ˢ-right hA σ⊒)) =
+  ⊒ˢ-both wf★ wf★ (id-onlyᵈ , (cast-id wf★ refl , id★)) σ⊒
+
+≈ⁿ-source-target-merge-id★ :
+  ∀ {Δ σ X s t A B} →
+  Δ ∣ (⊒ X ꞉=☆) ∷ (X ꞉= ★ ⊒) ∷ σ
+    ⊢ s ≈ t ∶ A ⊒ B →
+  Δ ∣ (X ꞉ id ★) ∷ σ
+    ⊢ s ≈ t ∶ A ⊒ B
+≈ⁿ-source-target-merge-id★
+    (endpointsⁿ srcs tgts srct tgtt σ⊒ wfΣ wfΣ′ s⊒ t⊒) =
+  endpointsⁿ
+    srcs
+    tgts
+    srct
+    tgtt
+    (⊒ˢ-source-target-merge-id★ σ⊒)
+    wfΣ
+    wfΣ′
+    s⊒
+    t⊒
+
+compose-leftⁿ-source-target-merge-id★ :
+  ∀ {Δ σ X q s r A B} →
+  Δ ∣ (⊒ X ꞉=☆) ∷ (X ꞉= ★ ⊒) ∷ σ
+    ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Δ ∣ (X ꞉ id ★) ∷ σ
+    ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
+compose-leftⁿ-source-target-merge-id★
+    (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
+  compose-leftⁿ wfΣ q⊒ s⊒ (≈ⁿ-source-target-merge-id★ q⨟s≈r)
+
+compose-rightⁿ-source-target-merge-id★ :
+  ∀ {Δ σ X r t p A B} →
+  Δ ∣ (⊒ X ꞉=☆) ∷ (X ꞉= ★ ⊒) ∷ σ
+    ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  Δ ∣ (X ꞉ id ★) ∷ σ
+    ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+compose-rightⁿ-source-target-merge-id★
+    (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  compose-rightⁿ wfΣ t⊒ p⊒ (≈ⁿ-source-target-merge-id★ r≈t⨟p)
 
 data SourceTargetSwapRel : TyCtx → StoreNrw → StoreNrw → Set where
   swap-here :

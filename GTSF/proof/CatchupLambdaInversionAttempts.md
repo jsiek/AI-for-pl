@@ -4389,3 +4389,60 @@ not sufficient: a prefix-aware replay can use ordinary safe swaps for structural
 constructors, but the unsafe split crossing is still exactly the source-cast
 tag/untag branch from Attempts 120-122 and must be rebuilt by a real
 split/opening argument.
+
+## Attempt 124: split-oriented `merge01ᵗ` reconstruction
+
+Accepted as checked support.
+
+After pulling the latest `main`, I tried a different decomposition of the
+remaining source-first body replay.  Instead of replaying the whole body with
+mixed `raise0ᵗ`/`swap01ᵗ` renamings, the target-first source can be obtained by
+first closing over two binders and then opening at different variables:
+
+- opening the closed source at `zero` yields the source-premise renaming
+  `merge01ᵗ`, where the source-only `zero` and target-only `suc zero` are both
+  viewed as the same `zero`;
+- opening it at `suc zero` yields `raise0ᵗ`, hence
+  `⇑ᵗᵐ (renameᵗᵐ predᵗ W)` by `renameᵗᵐ-raise0-pred`.
+
+I added checked renamings and open equations:
+
+- `merge01ᵗ`;
+- `close01ᵗ`;
+- `renameᵗ-close01-open0`, `renameᶜ-close01-open0`,
+  `renameᵗᵐ-close01-open0`;
+- `renameᵗ-close01-open1`, `renameᶜ-close01-open1`,
+  `renameᵗᵐ-close01-open1`.
+
+I also added checked store/equivalence transports for the intermediate store
+created by renaming the source-first heads with `merge01ᵗ`:
+
+- `⊒ˢ-source-target-merge-id★`;
+- `≈ⁿ-source-target-merge-id★`;
+- `compose-leftⁿ-source-target-merge-id★`;
+- `compose-rightⁿ-source-target-merge-id★`.
+
+The intended replay now factors into:
+
+1. rename the source-first body by `merge01ᵗ`, which changes
+
+   `(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒)`
+
+   into
+
+   `(⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒)`;
+
+2. merge those adjacent heads into `(zero ꞉ id ★)` using the checked
+   `*-source-target-merge-id★` transports;
+3. rebuild a `split` whose premise opens the closed source at `zero` and whose
+   conclusion opens it at `suc zero`.
+
+This avoids the false generic `raise0ᵗ` composition theorem from Attempts
+93-100.  The remaining missing proof is now more precise: a specialized
+term-renaming replay for `merge01ᵗ` under the exact source-first split prefix,
+followed by the checked `close01ᵗ` opening equalities and a `split`
+reconstruction.  A generic term renaming theorem for `merge01ᵗ` is still not
+available and may be too broad because `merge01ᵗ` is non-injective; the next
+attempt should specialize the replay to the source-first prefix where the
+renamed store can immediately be merged to the deterministic `(zero ꞉ id ★)`
+store.

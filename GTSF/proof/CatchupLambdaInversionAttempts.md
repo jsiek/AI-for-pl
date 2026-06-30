@@ -3618,3 +3618,33 @@ Conclusion: the mixed replay cannot be a plain renaming theorem over arbitrary
 composition derivations.  It must either recover a mode restriction from the
 legal `gen` body and occurrence invariant, or avoid renaming arbitrary `t`
 components by using the value-level left-widening/left-narrowing route.
+
+## Attempt 101: erase the lowered tail in the last-bind source body
+
+Accepted as checked support in `proof.Catchup`.
+
+In the live last-bind branch, the prefix before the final `bind` is all `keep`
+and the target store for that prefix is empty.  Therefore the lowered source
+tail `π₀` in
+
+`Δ ⊢ π₀ ꞉ applyStores χs [] ⊒ˢ []`
+
+must itself be `[]`.  I added `source-first-body-empty-tail` and
+`last-bind-source-first-body-empty-tail` to turn the source-first body from
+Attempt 99 into the exact two-entry store
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+This removes the remaining `combineStoreNrw π₀ ...` noise from the body replay
+target.
+
+Limitation: the body is still source-first.  The desired `⊒Λ` finisher needs
+the target-first store
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ)`
+
+and source term `renameᵗᵐ raise0ᵗ W`.  Attempts 94-100 show why this cannot be
+obtained by a generic mixed composition renaming theorem.  The next replay
+target should be split-aware and should use the legal `gen` occurrence
+invariant, or else rebuild the body through the existing split-marker
+machinery.

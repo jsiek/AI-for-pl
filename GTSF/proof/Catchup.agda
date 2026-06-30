@@ -357,6 +357,16 @@ last-bind-source-first-body {σ = σ} {χs = χs} {A = A}
             ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)))
         body))
 
+source-first-body-empty-tail :
+  ∀ {Δ σ π₀ W V p} →
+  π₀ ≡ [] →
+  Δ ∣ (⊒ zero ꞉=☆) ∷
+      ⇑ˢ (combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)) ∣ []
+    ⊢ W ⊒ ⇑ᵗᵐ V ∶ ⇑ᶜ p →
+  Δ ∣ (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ W ⊒ ⇑ᵗᵐ V ∶ ⇑ᶜ p
+source-first-body-empty-tail refl body = body
+
 last-bind-pred-reduction :
   ∀ {χs Aχ keeps N P Q W} →
   AllKeep χs →
@@ -395,6 +405,30 @@ allKeep-empty-target-nil {χs = χs} keeps Π≡ Π′≡ π⊒ =
       (λ Π₀ → _ ⊢ _ ꞉ Π₀ ⊒ˢ [])
       (trans Π≡ (allKeep-applyStores-id keeps []))
       (subst (λ Π₀ → _ ⊢ _ ꞉ _ ⊒ˢ Π₀) Π′≡ π⊒))
+
+last-bind-source-first-body-empty-tail :
+  ∀ {Δ σ χs A keeps W V p π π₀ Π Π′} →
+  AllKeep χs →
+  AllKeep keeps →
+  π ≡ (⊒ zero ꞉=☆) ∷ ⇑ˢ π₀ →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ ⊢ π₀ ꞉ Π ⊒ˢ Π′ →
+  Δ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+    ⊢ W ⊒ applyTerms (χs ++ bind A ∷ keeps) V
+      ∶ applyCoercions (χs ++ bind A ∷ keeps) p →
+  Δ ∣ (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ W ⊒ ⇑ᵗᵐ (applyTerms χs V) ∶ ⇑ᶜ (applyCoercions χs p)
+last-bind-source-first-body-empty-tail
+    {σ = σ} {χs = χs} {A = A} {keeps = keeps}
+    {V = V} {p = p} {π₀ = π₀}
+    keepsχ keepsTail π≡ Π≡ Π′≡ π₀⊒ body =
+  source-first-body-empty-tail
+    (allKeep-empty-target-nil keepsχ Π≡ Π′≡ π₀⊒)
+    (last-bind-source-first-body
+      {σ = σ} {χs = χs} {A = A} {keeps = keeps}
+      {V = V} {p = p} {π₀ = π₀}
+      keepsTail π≡ body)
 
 allKeep-under-binder-value-id :
   ∀ {χs V} →

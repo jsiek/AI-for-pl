@@ -1,5 +1,27 @@
 # Dynamic Gradual Guarantee Proof Log
 
+## Typed DGG statement
+
+Correction:
+
+- The public `dynamicGradualGuarantee` statement now carries the source store
+  well-formedness, the explicit target store `Σ′`, source and target typing
+  derivations, and the typed coercion premise
+  `Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B`.
+- The store narrowing premise is fixed at
+  `Δ ⊢ σ ꞉ srcStoreⁿ σ ⊒ˢ Σ′`, so the term-narrowing witness and both typing
+  derivations talk about the same source/target stores.
+
+Old right-`ν` counterexample:
+
+- The checked example on `codex/gtsf-dgg-app-left-step` is useful evidence that
+  the earlier untyped skeleton was too weak.
+- It is not a semantic counterexample to typed DGG. Its source term uses
+  `ν ★ 0 idℕ`, but the `ν` typing rule requires the body to have a universal
+  type `∀X. A`; the constant `0` has type `ℕ`.
+- Under the typed statement there is no source typing derivation for that term,
+  so the example is rejected before the dynamic simulation obligation begins.
+
 ## Application blame cases
 
 Targets:
@@ -37,71 +59,60 @@ Strategies considered and avoided:
 
 Discovery:
 
-- The term-narrowing rules `α⊒α` and `⊒α` still used the older named-opening
-  presentation `L • α`, encoded as a `ν` term.
-- The typing rule for runtime type application now uses the actual unary
-  runtime bullet `M •`, so the narrowing conclusions must introduce that form
-  directly under a freshly bound type variable.
+- The attempted `α⊒α`/right-`ν-step` counterexample relied on the old
+  term-narrowing rules, where type application was encoded as a named opening
+  `L • α = ν (＇ α) L (id (＇ zero))`.
+- After the typing rule for `⊢•` changed, the narrowing rules also need to
+  introduce the runtime bullet directly:
+  `(⇑ᵗᵐ L) • ⊒ (⇑ᵗᵐ L′) •`.
+- With that correction, the old `RuntimeBulletTarget` counterexample is false:
+  `α⊒α` and `⊒α` are precisely the constructors that introduce runtime-bullet
+  targets.
 
 Implemented adjustment:
 
 - Removed the local binary `_•_` abbreviation from `TermNarrowing`.
 - Updated `α⊒α` to conclude in `suc Δ` under
-  `(zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ` and `⇑ᵍ γ`, with result
-  `(⇑ᵗᵐ L) • ⊒ (⇑ᵗᵐ L′) • ∶ p`.
+  `(zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ`, with coercion index `p` directly.
 - Updated `⊒α` similarly under `(zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ`.
+- Kept the shifted term-variable context out of the constructor result index:
+  both rules conclude at an explicit `γ′` and carry `γ′ ≡ ⇑ᵍ γ` as an
+  argument.  Directly indexing the result by `⇑ᵍ γ` made Agda unable to split
+  closed DGG goals because it had to solve `⇑ᵍ γ ≟ []`.
 
 Proof obligations exposed:
 
-- Generic catch-up replacement transport cannot treat a shifted tail as an
-  arbitrary store tail; replacing inside it must preserve the `⇑ˢ σ` shape.
-- Parallel term substitution has the analogous shifted-context obligation for
-  these two rules.
-- The DGG skeleton now needs runtime-bullet reduction cases rather than the old
-  `ν-step` cases for `α⊒α` and `⊒α`.
+- Generic catch-up replacement transport is now too broad: replacing an
+  arbitrary entry inside a shifted tail can destroy the invariant that the tail
+  is `⇑ˢ σ`.
+- Parallel term substitution has the same shifted-context issue for the two
+  corrected α rules.
+- The DGG skeleton now needs the real runtime-bullet reduction cases instead
+  of the old `ν-step` cases.
 
-## Right-`ν` counterexample after runtime-bullet repair
+## Runtime-bullet DGG cases
 
-The older `ν⊒ν` counterexample route is no longer valid after the
-runtime-bullet `α` rules landed: term narrowing now has constructors that can
-target `M •` under the fresh store entry.
+Working facts:
 
-The surviving obstruction is the asymmetric `⊒ν` case, mechanized in
-`proof.DynamicGradualGuaranteeCounterexample`.
+- `RuntimeOK ((⇑ᵗᵐ L) •)` does not invert by direct pattern matching because
+  Agda cannot infer through `⇑ᵗᵐ`.  The usable inversion first generalizes over
+  the whole term and an equality to `(⇑ᵗᵐ L) •`, then uses `•` injectivity and
+  `renameᵗᵐ-pred-suc`.
+- The helper facts are now in `proof.NuPreservation`:
+  `runtime-•-value`, `runtime-•-No•`, and `runtime-•`.
+- The `blame-•` cases for both corrected α rules are immediate: take zero
+  source steps and rebuild the final relation with `⊒blame pαᶜ`.
 
-Checked setup:
+Remaining β cases:
 
-- Source term: `ℕ0 = $ (κℕ 0)`.
-- Target term: `ν ★ ℕ0 (id (‵ `ℕ))`.
-- Narrowing premise:
-
-  `zero ∣ [] ∣ [] ⊢ ℕ0 ⊒ ν ★ ℕ0 (id (‵ `ℕ)) ∶ id (‵ `ℕ)`
-
-  by `⊒ν idℕᶜ (κ⊒κ (κℕ 0))`.
-- Target step:
-
-  `ν ★ ℕ0 (id (‵ `ℕ)) —→[ bind ★ ] ((ℕ0 •) ⟨ id (‵ `ℕ) ⟩)`
-
-  by `ν-step`.
-
-Why this refutes the current DGG statement:
-
-- The source `ℕ0` is a value, so any source multi-step in the DGG conclusion
-  must be `↠-refl`.
-- The final relation would therefore have to relate `ℕ0` to
-  `(ℕ0 •) ⟨ id (‵ `ℕ) ⟩` under the right-only store opening emitted by the
-  target.
-- The checked lemma `no-const-runtime-bullet-id-cast` proves this is
-  impossible.  Its only delicate case is `⊒α`: to target `ℕ0 •`, the premise
-  would need a relation `ℕ0 ⊒ ℕ0` at a `gen` coercion, and
-  `no-const-const-gen` rules that out.  The `extend` and `split` cases are
-  handled with syntactic shape predicates so Agda does not have to invert
-  type-opening functions in indices.
-
-Final artifact:
-
-`dynamicGradualGuarantee-counterexample :
-  DynamicGradualGuaranteeStatement → ⊥`
+- `β-Λ•`, `β-∀•`, and `β-gen•` are now explicit DGG branches for both
+  `α⊒α` and `⊒α`.
+- These are not catch-up-under-bullet problems.  There is no contextual
+  reduction under `_•`; the source must already be a runtime-bullet value by
+  `runtime-•-value`.
+- The next missing lemma should invert the value-shaped premise relation,
+  e.g. from `Value L` and `L ⊒ Λ V′ ∶ `∀ p`, recover the source shape needed
+  for the matching bullet step and the post-step term narrowing relation.
 
 ## Application left-context case
 

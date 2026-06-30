@@ -21,6 +21,7 @@ open import Types
 open import Coercions
 open import NuTerms
 open import NuReduction
+open import NuStore using (StoreWf)
 open import NarrowWiden
 open import NarrowWidenComposition using (_∣_⊢_⨾ⁿ_≈_∶_⊒_)
 open import TermNarrowing
@@ -36,7 +37,7 @@ open import proof.RightSealInversion2 using
 open import proof.TermSubstitutionNarrowing using
   (term-substitution-narrowing)
 open import proof.NuPreservation using
-  (runtime-·₁; runtime-⟨⟩; runtime-ν; runtime-⊕₁; value-no-step)
+  (runtime-·₁; runtime-•; runtime-⟨⟩; runtime-ν; runtime-⊕₁; value-no-step)
 open import proof.NuProgress using (shiftable-no)
 
 runtime-·₂-any :
@@ -181,8 +182,13 @@ function-application-simulation okM vV′ L⊒L′ eq eqr M⊒V′ = {!!}
 ------------------------------------------------------------------------
 
 dynamicGradualGuarantee :
-  ∀ {Δ σ M M′ N′ p χ′} →
+  ∀ {Δ σ Σ′ M M′ N′ A B p χ′} →
+  StoreWf Δ (srcStoreⁿ σ) →
   RuntimeOK M →
+  Δ ⊢ σ ꞉ srcStoreⁿ σ ⊒ˢ Σ′ →
+  Δ ∣ srcStoreⁿ σ ∣ [] ⊢ M ⦂ A →
+  Δ ∣ Σ′ ∣ [] ⊢ M′ ⦂ B →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
   Δ ∣ σ ∣ [] ⊢ M ⊒ M′ ∶ p →
   M′ —→[ χ′ ] N′ →
   ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ p′ ]
@@ -192,4 +198,50 @@ dynamicGradualGuarantee :
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
     Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ N′ ∶ p′
 
-dynamicGradualGuarantee okM M⊒M′ M′→N′ = {!!}
+dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+    (α⊒α {L′ = blame} γ′≡ qᶜ pαᶜ L⊒L′)
+    (pure-step blame-•) =
+  [] , _ , _ , [] , [] , [] , _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  ⊒blame pαᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+    (α⊒α {L′ = Λ V′} γ′≡ qᶜ pαᶜ L⊒L′)
+    (pure-step (β-Λ• vV′)) =
+  {!!}
+dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+    (α⊒α {L′ = V′ ⟨ `∀ c ⟩} γ′≡ qᶜ pαᶜ L⊒L′)
+    (pure-step (β-∀• vV′)) =
+  {!!}
+dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+    (α⊒α {L′ = V′ ⟨ gen A c ⟩} γ′≡ qᶜ pαᶜ L⊒L′)
+    (pure-step (β-gen• vV′)) =
+  {!!}
+dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+    (α⊒α γ′≡ qᶜ pαᶜ L⊒L′) red = {!!}
+dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+    (⊒α {L′ = blame} γ′≡ pαᶜ L⊒L′) (pure-step blame-•) =
+  [] , _ , _ , [] , [] , [] , _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  ⊒blame pαᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+    (⊒α {L′ = Λ V′} γ′≡ pαᶜ L⊒L′)
+    (pure-step (β-Λ• vV′)) =
+  {!!}
+dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+    (⊒α {L′ = V′ ⟨ `∀ c ⟩} γ′≡ pαᶜ L⊒L′)
+    (pure-step (β-∀• vV′)) =
+  {!!}
+dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+    (⊒α {L′ = V′ ⟨ gen A c ⟩} γ′≡ pαᶜ L⊒L′)
+    (pure-step (β-gen• vV′)) =
+  {!!}
+dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+    (⊒α γ′≡ pαᶜ L⊒L′) red =
+  {!!}
+dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ M⊒M′ M′→N′ = {!!}

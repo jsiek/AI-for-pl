@@ -7,7 +7,7 @@ module proof.TermNarrowingProperties where
 --   * Depends on the public definitions in `TermNarrowing` and `NarrowWiden`.
 
 open import Data.List using ([]; _∷_; map)
-open import Data.Nat using (suc)
+open import Data.Nat using (zero; suc)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; cong; cong₂; refl; subst; sym)
@@ -15,6 +15,7 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import Coercions
 open import NuTerms
+open import Primitives using (Const; addℕ; constTy; constTy-renameᵗ)
 open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing using
@@ -25,6 +26,9 @@ open import TermNarrowing using
   ; ƛ⊒ƛ
   ; ·⊒·
   ; Λ⊒Λ
+  ; ⊒Λ
+  ; κ⊒κ
+  ; ⊕⊒⊕
   ; ⊒cast+
   ; ⊒cast-
   ; cast+⊒
@@ -38,7 +42,8 @@ open import proof.CoercionProperties
     ; src-renameᶜ
     )
 open import proof.NarrowWidenProperties using (narrow-⇑ᵗ-ᶜ-srcStoreⁿ)
-open import proof.NuTermProperties using (renameᵗᵐ-preserves-Value)
+open import proof.NuTermProperties
+  using (renameᵗᵐ-ext-suc-comm; renameᵗᵐ-preserves-Value)
 open import proof.TypeProperties using (TyRenameWf; renameᵗ-ext-suc-comm)
 
 variable
@@ -47,6 +52,7 @@ variable
   σ : StoreNrw
   γ : CtxNrw
   A B : Ty
+  κ : Const
   p q r s t : Coercion
   M M′ : Term
 
@@ -87,6 +93,13 @@ renameStoreNrw-ext-suc-comm ρ (entry ∷ σ) =
   cong₂ _∷_
     (renameStNrw-ext-suc-comm ρ entry)
     (renameStoreNrw-ext-suc-comm ρ σ)
+
+renameStoreNrw-open-star-comm :
+  ∀ ρ σ →
+  renameStoreNrw (extᵗ ρ) ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ≡
+    (zero ꞉= ★ ⊒) ∷ ⇑ˢ (renameStoreNrw ρ σ)
+renameStoreNrw-open-star-comm ρ σ =
+  cong ((zero ꞉= ★ ⊒) ∷_) (renameStoreNrw-ext-suc-comm ρ σ)
 
 renameCtxNrw-ext-suc-comm :
   ∀ ρ γ →
@@ -229,6 +242,63 @@ rename-Λ {ρ = ρ} {Δ′ = Δ′} {σ = σ} {γ = γ} {V = V}
             ∶ renameᶜ (extᵗ ρ) p)
         (renameStoreNrw-ext-suc-comm ρ σ)
         V⊒V′))
+
+rename-⊒Λ :
+  ∀ {ρ Δ Δ′ σ γ A B N V′ p} →
+  TyRenameWf Δ Δ′ ρ →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  suc Δ′ ∣ renameStoreNrw (extᵗ ρ) ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)
+    ∣ renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+    ⊢ renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N)
+      ⊒ renameᵗᵐ (extᵗ ρ) V′ ∶ renameᶜ (extᵗ ρ) p →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ N ⊒ Λ (renameᵗᵐ (extᵗ ρ) V′)
+    ∶ renameᶜ ρ (gen A p)
+rename-⊒Λ {ρ = ρ} {Δ′ = Δ′} {σ = σ} {γ = γ} {N = N}
+    {V′ = V′} {p = p} hρ genpᶜ N⊒V′ =
+  ⊒Λ (rename-cast-srcStore {ρ = ρ} {σ = σ} hρ genpᶜ)
+    (subst
+      (λ L →
+        suc Δ′ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (renameStoreNrw ρ σ)
+          ∣ ⇑ᵍ (renameCtxNrw ρ γ)
+          ⊢ L ⊒ renameᵗᵐ (extᵗ ρ) V′ ∶ renameᶜ (extᵗ ρ) p)
+      (renameᵗᵐ-ext-suc-comm ρ N)
+      (subst
+        (λ γ′ →
+          suc Δ′ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (renameStoreNrw ρ σ) ∣ γ′
+            ⊢ renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N)
+              ⊒ renameᵗᵐ (extᵗ ρ) V′ ∶ renameᶜ (extᵗ ρ) p)
+        (renameCtxNrw-ext-suc-comm ρ γ)
+        (subst
+          (λ σ′ →
+            suc Δ′ ∣ σ′ ∣ renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+              ⊢ renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N)
+                ⊒ renameᵗᵐ (extᵗ ρ) V′ ∶ renameᶜ (extᵗ ρ) p)
+          (renameStoreNrw-open-star-comm ρ σ)
+          N⊒V′)))
+
+rename-κ :
+  ∀ {ρ Δ′ σ γ κ} →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ $ κ ⊒ $ κ ∶ renameᶜ ρ (id (constTy κ))
+rename-κ {ρ = ρ} {Δ′ = Δ′} {σ = σ} {γ = γ} {κ = κ} =
+  subst (λ c → Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+      ⊢ $ κ ⊒ $ κ ∶ c)
+    (cong id (constTy-renameᵗ ρ κ))
+    (κ⊒κ κ)
+
+rename-⊕ :
+  ∀ {ρ Δ′ σ γ M M′ N N′} →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ (id (‵ `ℕ)) →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ N ⊒ renameᵗᵐ ρ N′ ∶ renameᶜ ρ (id (‵ `ℕ)) →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊕[ addℕ ] renameᵗᵐ ρ N
+      ⊒ renameᵗᵐ ρ M′ ⊕[ addℕ ] renameᵗᵐ ρ N′
+    ∶ renameᶜ ρ (id (‵ `ℕ))
+rename-⊕ M⊒M′ N⊒N′ =
+  ⊕⊒⊕ M⊒M′ N⊒N′
 
 lookup-⇑ᵍ :
   ∀ {γ x p} →

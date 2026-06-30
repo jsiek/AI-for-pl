@@ -79,6 +79,10 @@ module proof.LeftWidening where
 --     `left-widening-seq-compose-package` combines that transport with the
 --     sequence reduction package, so the future sequence branch can focus on
 --     producing the two recursive component witnesses.
+--     The recursive component calls also need coercion typing transported
+--     through emitted store changes; `left-widening-coercion-typing-transport`
+--     factors the small part of `proof.Catchup`'s transport infrastructure
+--     needed here without importing `proof.Catchup` and its assumptions.
 --   * A direct suc-only induction for that weakening lemma is the wrong
 --     formulation: under `Λ`, the body is renamed by `extᵗ suc`, not plain
 --     `suc`.  The reusable pieces started in `proof.TermNarrowingProperties`
@@ -146,11 +150,13 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.List.Relation.Unary.Any using (here)
 open import Data.Nat using (zero; suc; z<s)
+open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_×_; _,_; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (cong; subst; sym; trans)
 
 open import Types
+open import Store using (StoreIncl-drop)
 open import Coercions
 open import NuTerms
 open import NuReduction
@@ -181,6 +187,7 @@ open import proof.CatchupStore
     ; combineStoreNrw-assoc
     ; combineStoreNrw-empty-⊒ˢ
     ; combineStoreNrw-applyStores
+    ; combineStoreNrw-applyStores-store
     )
 open import proof.ReductionProperties
   using
@@ -258,6 +265,58 @@ LeftWidening =
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
     Δ′ ∣ combineStoreNrw π σ ∣ []
       ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+
+left-widening-gen-tag-or-id≤tag-or-id :
+  ModeIncl (genᵈ tag-or-idᵈ) tag-or-idᵈ
+left-widening-gen-tag-or-id≤tag-or-id zero = refl
+left-widening-gen-tag-or-id≤tag-or-id (suc X) = refl
+
+left-widening-applyCoercion-narrow :
+  ∀ χ {Δ Σ c A B} →
+  Δ ∣ Σ ⊢ c ∶ᶜ A ⊒ B →
+  applyTyCtx χ Δ ∣ applyStore χ Σ
+    ⊢ applyCoercion χ c ∶ᶜ applyTy χ A ⊒ applyTy χ B
+left-widening-applyCoercion-narrow keep c⊒ = c⊒
+left-widening-applyCoercion-narrow (bind Aν) c⊒ =
+  narrow-mode-relax left-widening-gen-tag-or-id≤tag-or-id
+    (narrow-weaken ≤-refl StoreIncl-drop (narrow-⇑ᵗ-gen c⊒))
+
+left-widening-applyCoercions-narrow :
+  ∀ χs {Δ Σ c A B} →
+  Δ ∣ Σ ⊢ c ∶ᶜ A ⊒ B →
+  applyTyCtxs χs Δ ∣ applyStores χs Σ
+    ⊢ applyCoercions χs c ∶ᶜ applyTys χs A ⊒ applyTys χs B
+left-widening-applyCoercions-narrow [] c⊒ = c⊒
+left-widening-applyCoercions-narrow (χ ∷ χs) c⊒ =
+  left-widening-applyCoercions-narrow χs
+    (left-widening-applyCoercion-narrow χ c⊒)
+
+left-widening-coercion-typing-transport :
+  ∀ {Δ Δ′ σ π Π Π′ χs p A B} →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
+  Δ′ ≡ applyTyCtxs χs Δ →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  Δ′ ∣ srcStoreⁿ (combineStoreNrw π σ)
+    ⊢ applyCoercions χs p ∶ᶜ applyTys χs A ⊒ applyTys χs B
+left-widening-coercion-typing-transport
+    {Δ = Δ} {σ = σ} {π = π} {χs = χs}
+    {p = p} {A = A} {B = B} pᶜ Δ′≡ Π≡ Π′≡ π⊒ =
+  subst
+    (λ Δ₀ →
+      Δ₀ ∣ srcStoreⁿ (combineStoreNrw π σ)
+        ⊢ applyCoercions χs p ∶ᶜ applyTys χs A ⊒ applyTys χs B)
+    (sym Δ′≡)
+    (subst
+      (λ Σ →
+        applyTyCtxs χs Δ ∣ Σ
+          ⊢ applyCoercions χs p
+            ∶ᶜ applyTys χs A ⊒ applyTys χs B)
+      (sym
+        (combineStoreNrw-applyStores-store
+          {χs = χs} π⊒ Π≡ Π′≡ σ))
+      (left-widening-applyCoercions-narrow χs pᶜ))
 
 left-widening-inert :
   ∀ {Δ σ V V′ p r t A B C D} →

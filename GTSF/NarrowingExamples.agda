@@ -58,8 +58,8 @@ base-seal-step-fun ι =
 base-untag : Base → Coercion
 base-untag ι = (‵ ι) ？
 
-base-store-det : ∀ {ι} →
-  StoreDetWf 1 ((0 , ‵ ι) ∷ [])
+base-store-det : ∀ {Δ ι} →
+  StoreDetWf (suc Δ) ((0 , ‵ ι) ∷ [])
 base-store-det =
   record
     { at = record
@@ -770,10 +770,10 @@ ex2-after-reduction =
 
 ex3-line329 :
   1 ∣ (0 ꞉= ‵ `ℕ ⊒) ∷ [] ∣ []
-    ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) • 0
+    ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) •
     ∶ var0-fun
 ex3-line329 =
-  ⊒α {p = var0-fun} {A = ‵ `ℕ} {α = 0} var0-fun-cast
+  ⊒α {p = var0-fun} {A = ‵ `ℕ} var0-fun-cast
     (⊒Λ
       {A = ★ ⇒ ★}
       {N = ƛ (` 0)}
@@ -784,12 +784,12 @@ ex3-line329 =
 
 ex3-line329-extend :
   1 ∣ (0 ꞉ id (‵ `ℕ)) ∷ [] ∣ []
-    ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) • 0
+    ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) •
     ∶ var0-fun
 ex3-line329-extend =
   extend
     {M = ƛ (` 0)}
-    {N′ = (Λ (ƛ (` 0))) • 0}
+    {N′ = (Λ (ƛ (` 0))) •}
     {p = var0-fun}
     {q = id (‵ `ℕ)}
     {A = ‵ `ℕ}
@@ -832,7 +832,7 @@ ex3-line331-≈ =
 ex3-line331 :
   1 ∣ (0 ꞉ id (‵ `ℕ)) ∷ [] ∣ []
     ⊢ ƛ (` 0)
-      ⊒ ((Λ (ƛ (` 0))) • 0)
+      ⊒ ((Λ (ƛ (` 0))) •)
           ⟨ - base-seal-step-fun `ℕ ⟩
     ∶ base-fun `ℕ
 ex3-line331 =
@@ -1048,10 +1048,10 @@ ex5-after-reduction =
 -- cambridge23 Example 6, line 403.
 ex6-open-ν𝔹 :
   1 ∣ (0 ꞉= ‵ `𝔹 ⊒) ∷ [] ∣ []
-    ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) • 0
+    ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) •
     ∶ var0-fun
 ex6-open-ν𝔹 =
-  ⊒α {p = var0-fun} {A = ‵ `𝔹} {α = 0} var0-fun-cast
+  ⊒α {p = var0-fun} {A = ‵ `𝔹} var0-fun-cast
     (⊒Λ
       {A = ★ ⇒ ★}
       {N = ƛ (` 0)}
@@ -1097,7 +1097,7 @@ ex6-line405-≈ =
 ex6-line405 :
   1 ∣ (0 ꞉= ‵ `𝔹 ⊒) ∷ [] ∣ []
     ⊢ ƛ (` 0)
-      ⊒ ((Λ (ƛ (` 0))) • 0)
+      ⊒ ((Λ (ƛ (` 0))) •)
           ⟨ - base-seal-step-fun `𝔹 ⟩
     ∶ base-fun `𝔹
 ex6-line405 =
@@ -1113,7 +1113,7 @@ ex6-line407-ν :
   0 ∣ [] ∣ []
     ⊢ ƛ (` 0)
       ⊒ ν (‵ `𝔹)
-          (((Λ (ƛ (` 0))) • 0)
+          (((Λ (ƛ (` 0))) •)
             ⟨ - base-seal-step-fun `𝔹 ⟩)
           (⇑ᶜ (base-fun `𝔹))
     ∶ base-fun `𝔹
@@ -1125,7 +1125,7 @@ ex6-line407 :
   0 ∣ [] ∣ []
     ⊢ ƛ (` 0)
       ⊒ (ν (‵ `𝔹)
-          (((Λ (ƛ (` 0))) • 0)
+          (((Λ (ƛ (` 0))) •)
             ⟨ - base-seal-step-fun `𝔹 ⟩)
           (⇑ᶜ (base-fun `𝔹)))
           ⟨ - base-fun `𝔹 ⟩
@@ -1145,7 +1145,7 @@ ex6-initial :
   0 ∣ [] ∣ []
     ⊢ (ƛ (` 0)) · c★
       ⊒ ((ν (‵ `𝔹)
-          (((Λ (ƛ (` 0))) • 0)
+          (((Λ (ƛ (` 0))) •)
             ⟨ - base-seal-step-fun `𝔹 ⟩)
           (⇑ᶜ (base-fun `𝔹))
             ⟨ - base-fun `𝔹 ⟩)
@@ -1195,18 +1195,18 @@ ex7-line710 =
 
 -- cambridge25 Example 7, line 712.
 ex7-line712 : ∀ {ι} →
-  1 ∣ (0 ꞉ id (‵ ι)) ∷ [] ∣ []
-    ⊢ ((ƛ (` 0))
+  2 ∣ (0 ꞉ id (‵ ι)) ∷ [] ∣ []
+    ⊢ (⇑ᵗᵐ ((ƛ (` 0))
         ⟨ gen (★ ⇒ ★)
-          var0-fun ⟩) • 0
-      ⊒ (Λ (ƛ (` 0))) • 0
+          var0-fun ⟩)) •
+      ⊒ (⇑ᵗᵐ (Λ (ƛ (` 0)))) •
     ∶ id (＇ 0) ↦ id (＇ 0)
 ex7-line712 {ι = ι} =
-  α⊒α {q = id (‵ ι)} {α = 0}
+  α⊒α {q = id (‵ ι)}
     id-base-cast id-var0-fun-cast ex7-line710
 
-ex7-downcast-left-≈ : ∀ {ι} →
-  1 ∣ (0 ꞉ id (‵ ι)) ∷ [] ⊢
+ex7-downcast-left-≈ : ∀ {Δ ι} →
+  suc Δ ∣ (0 ꞉ id (‵ ι)) ∷ [] ⊢
     (id (‵ ι) ↦ id (‵ ι)) ⨾ⁿ base-seal-step-fun ι
       ≈ base-seal-step-fun ι
       ∶ (‵ ι ⇒ ‵ ι) ⊒ (＇ 0 ⇒ ＇ 0)
@@ -1225,8 +1225,8 @@ ex7-downcast-left-≈ {ι = ι} =
     base-seal-step-fun⊒ =
       base-seal-step-fun-narrowingᵐ {ι = ι}
 
-ex7-downcast-right-≈ : ∀ {ι} →
-  1 ∣ (0 ꞉ id (‵ ι)) ∷ [] ⊢
+ex7-downcast-right-≈ : ∀ {Δ ι} →
+  suc Δ ∣ (0 ꞉ id (‵ ι)) ∷ [] ⊢
     base-seal-step-fun ι
       ≈ base-seal-step-fun ι ⨾ⁿ (id (＇ 0) ↦ id (＇ 0))
       ∶ (‵ ι ⇒ ‵ ι) ⊒ (＇ 0 ⇒ ＇ 0)
@@ -1248,11 +1248,11 @@ ex7-downcast-right-≈ {ι = ι} =
 
 -- cambridge25 Example 7, line 714.
 ex7-line714 : ∀ {ι} →
-  1 ∣ (0 ꞉ id (‵ ι)) ∷ [] ∣ []
-    ⊢ (((ƛ (` 0))
-          ⟨ gen (★ ⇒ ★) var0-fun ⟩) • 0)
+  2 ∣ (0 ꞉ id (‵ ι)) ∷ [] ∣ []
+    ⊢ ((⇑ᵗᵐ ((ƛ (` 0))
+          ⟨ gen (★ ⇒ ★) var0-fun ⟩)) •)
         ⟨ - base-seal-step-fun ι ⟩
-      ⊒ ((Λ (ƛ (` 0))) • 0) ⟨ - base-seal-step-fun ι ⟩
+      ⊒ ((⇑ᵗᵐ (Λ (ƛ (` 0)))) •) ⟨ - base-seal-step-fun ι ⟩
     ∶ id (‵ ι) ↦ id (‵ ι)
 ex7-line714 {ι = ι} =
   cast+⊒cast+
@@ -1271,14 +1271,14 @@ ex7-line714 {ι = ι} =
 
 -- cambridge25 Example 7, line 716.
 ex7-line716 : ∀ {ι} →
-  0 ∣ [] ∣ []
+  1 ∣ [] ∣ []
     ⊢ ν (‵ ι)
-        ((((ƛ (` 0))
-            ⟨ gen (★ ⇒ ★) var0-fun ⟩) • 0)
+        (((⇑ᵗᵐ ((ƛ (` 0))
+            ⟨ gen (★ ⇒ ★) var0-fun ⟩)) •)
           ⟨ - base-seal-step-fun ι ⟩)
         (⇑ᶜ (id (‵ ι) ↦ id (‵ ι)))
       ⊒ ν (‵ ι)
-          (((Λ (ƛ (` 0))) • 0) ⟨ - base-seal-step-fun ι ⟩)
+          (((⇑ᵗᵐ (Λ (ƛ (` 0)))) •) ⟨ - base-seal-step-fun ι ⟩)
           (⇑ᶜ (id (‵ ι) ↦ id (‵ ι)))
     ∶ id (‵ ι) ↦ id (‵ ι)
 ex7-line716 {ι = ι} =

@@ -261,8 +261,7 @@ leftSealNarrowingInversion-aux eq idx-eq vV
 leftSealNarrowingInversion-aux () idx-eq vV
     (α⊒α qᶜ pαᶜ L⊒L′)
 leftSealNarrowingInversion-aux eq idx-eq vV
-    (⊒α pαᶜ L⊒L′) =
-  ⊥-elim (termNarrowing-gen-open-id-var⊥ L⊒L′ idx-eq)
+    (⊒α pαᶜ L⊒L′) = {!!}
 leftSealNarrowingInversion-aux eq refl vV
     (⊒ν {A = A} (cast-id hα ok , cross (id-＇ α)) N⊒N′)
     with leftSealNarrowingInversion-aux

@@ -1023,7 +1023,7 @@ runtime-type-app-source-no-value-target app (vV ⟨ i ⟩)
     (renameᵗᵐ-preserves-RuntimeTypeApp suc app)
     (vV ⟨ sᵢ ⟩)
     N⊒V′s
-runtime-type-app-source-no-value-target () vV (α⊒α qᶜ pαᶜ L⊒L′)
+runtime-type-app-source-no-value-target app () (α⊒α qᶜ pαᶜ L⊒L′)
 runtime-type-app-source-no-value-target app () (⊒α pαᶜ L⊒L′)
 runtime-type-app-source-no-value-target () vV (ν⊒ν pᶜ qᶜ N⊒N′)
 runtime-type-app-source-no-value-target app () (⊒ν pᶜ N⊒N′)

@@ -4710,3 +4710,74 @@ This narrows the remaining source-first replay obligation but does not finish
 it.  The next mechanized attempt should define a term-level guarded replay
 predicate whose cast-composition cases carry exactly these local readiness
 witnesses.
+
+## Attempt 131: term-level local readiness predicate
+
+Accepted as checked support.
+
+Attempt 130 still had a too-broad wrapper form that required a global
+deterministic-store map for the renaming.  I added the local version needed by
+the future term replay:
+
+- `ComposeLeftRenameLocalOk`;
+- `ComposeRightRenameLocalOk`;
+- `compose-leftⁿ-rename-local`;
+- `compose-rightⁿ-rename-local`.
+
+These wrappers carry the renamed endpoint-store determinacy proof for exactly
+the `StoreDetWf` hidden inside one composition derivation, instead of asking for
+a global map over all stores.
+
+I also added:
+
+- `⊤₁`, a `Set₁` unit needed because the readiness predicate lives in `Set₁`;
+- `TermRenameLocalOk`.
+
+`TermRenameLocalOk Δ′ ρ M⊒T` mirrors the term-narrowing derivation.  Ordinary
+constructors recurse structurally.  Type-binding constructors continue with
+`extᵗ ρ` and target context `suc Δ′`.  The four cast-composition constructors
+carry exactly the local readiness witnesses from this attempt.
+
+This is not yet the guarded replay theorem.  It is the checked shape of the
+remaining theorem's extra premise.  The next proof step is:
+
+if `hρ : TyRenameWf Δ Δ′ ρ`, `M⊒T : Δ ∣ σ ∣ γ ⊢ M ⊒ T ∶ c`, and
+`TermRenameLocalOk Δ′ ρ M⊒T`, then replay `M⊒T` under
+`renameStoreNrw ρ σ`, `renameCtxNrw ρ γ`, and the renamed source, target, and
+coercion.  The source-first `merge01ᵗ` branch should then instantiate this
+premise for the body obtained from `catchup-⊒Λ-no-earlier-bind-source-first`.
+
+## Attempt 132: merge `main` runtime-bullet α changes
+
+Merged the relevant `main` changes from PR #24.  That PR changes the α
+narrowing rules so `α⊒α` and `⊒α` conclude at a runtime type-application
+shape under `suc Δ`, with the term context index expressed as `⇑ᵍ γ`.
+
+Two compatibility fixes checked:
+
+- `runtime-type-app-source-no-value-target` now handles `α⊒α` by contradicting
+  the target value, not by claiming the source is not a runtime type
+  application.
+- The branch-local `SourceTargetMergeSafeFor` marks `α⊒α` and `⊒α` unsafe for
+  the source/target merge transport.  The previous recursive clauses attempted
+  to reuse a merge relation under the old constructor shape; with the new
+  `suc Δ`/`⇑ᵍ γ` conclusion they require a binder-lowering transport that has
+  not been proved.
+
+I tried to keep the expanded `catchup-lemma` clauses over the new rules, first
+by adding explicit α contradictions and then by using general source/target
+type-application contradictions.  Both routes made Agda split on indices
+containing defined functions such as `⇑ᵍ`, producing coverage-checker
+``not sure if there should be a case`` failures.  A final catch-all clause did
+not help because the earlier indexed clauses still forced the bad case tree.
+
+So the merged file keeps this branch's supporting lemmas, but `catchup-lemma`
+itself is back to `main`'s single unfinished clause:
+
+`catchup-lemma okM vV M⊒V = {!!}`
+
+This is not progress on the original `⊒Λ` proof; it records that the old
+expanded case split is no longer compatible with the runtime-bullet α rule
+indices.  Future attempts should avoid direct constructor splitting on
+`α⊒α`/`⊒α` under expected `γ = []` unless the `⇑ᵍ` index is refactored or a
+separate inversion lemma hides that coverage problem.

@@ -336,3 +336,90 @@ Attempt 8: prove the exact term-narrowing typing/index theorem from the handoff.
   current untyped term-narrowing relation plus external term typings.  The next
   proof route needs a typed/well-indexed term-narrowing relation or a restricted
   lemma excluding the arbitrary-index branches such as `⊒blame`.
+
+## Typed term-narrowing index, 2026-06-30
+
+Implemented staged typed relation:
+
+- Added `Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B` in `TermNarrowing`.
+- The new `·⊒·ᵗ` constructor stores the full function-index typing
+  `Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)`.
+- Added `typed-term-narrowing-index-typing`, which projects the typed coercion
+  evidence at the conclusion endpoints.
+- Added `typed-term-narrowing-erasure`, which forgets the endpoint indices back
+  to the legacy raw relation for existing catchup and example code.
+
+Counterexample documentation:
+
+- Added `proof.TermNarrowingTypingCounterexample`.
+- It checks the raw witness `$ 0 ⊒ blame ∶ id 𝔹`, while separately recording
+  `$ 0 : ℕ`, `blame : 𝔹`, and `ℕ ≢ 𝔹`.
+- This documents why endpoint recovery from the raw relation should not be
+  attempted.
+
+DGG integration:
+
+- The public `dynamicGradualGuarantee` premise now consumes the typed relation.
+- The application-left branch now inverts `·⊒·ᵗ` and the recursive call uses
+  the exposed `p ↦ q` typing evidence directly.
+
+Remaining alignment issue:
+
+- The application-left recursive call still has two typing-transport holes.
+  The separate application typing premises expose the source/target function
+  domains, while `·⊒·ᵗ` exposes the relation endpoints.  The staged typed
+  relation does not yet bundle source/target typing projections for subterms,
+  and this repo does not currently expose a term typing uniqueness lemma to
+  identify those domains.
+- Do not patch this by adding a postulate.  The next clean step is either to
+  bundle source/target typing evidence in the typed relation, or to prove a
+  focused typing-alignment lemma for typed term narrowing.
+
+Attempt 9: resume app-left after the typed term-narrowing merge.
+
+- Merged `origin/main`, which adds the well-indexed relation
+  `Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B`.
+- The original missing function-index typing is now available by inversion on
+  `·⊒·ᵗ` as:
+
+  `Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)`
+
+- Filled the recursive call probe with the subterm typings from application
+  typing:
+
+  `dynamicGradualGuarantee wfΣ (runtime-·₁ okM) σ⊒ L⊢ L′⊢ p↦qᶜ L⊒L′ L′→N′`
+
+  This still fails.  Agda reports the mismatch at `p↦qᶜ`:
+
+  `A != A₁ of type Ty`
+
+  when checking that `p↦qᶜ` has the function type expected by the recursive
+  call.
+
+- Interpretation: `⊢·` gives `L` and `L′` some function types, while `·⊒·ᵗ`
+  gives the narrowing relation its own endpoint function types.  The relation
+  now proves that the index is well typed at those relation endpoints, but it
+  does not prove that those endpoints are the same as the separately supplied
+  term typings.
+- Added a checked refutation in `proof.TermNarrowingTypingCounterexample`:
+  even the typed relation does not imply endpoint alignment with arbitrary
+  external term typings.  The example is still:
+
+  `0 : ℕ`
+
+  `blame : ℕ`
+
+  `0 ⊒ blame ∶ id 𝔹 ⦂ 𝔹 ⊒ 𝔹`
+
+  So a general endpoint-alignment theorem for the current typed relation is
+  also false.
+
+Conclusion:
+
+- The typed relation from main solves the old `p ↦ q` index-typing blocker.
+- The remaining blocker is source/target term typing alignment for subterms.
+  This cannot be recovered from the current relation by a general theorem,
+  because `⊒blameᵗ` remains intentionally permissive in the source term.
+- The durable next definition change is to make the proof-facing relation carry
+  source and target term typings, or to add a narrower DGG-specific relation
+  that exposes those typings for recursive subterms.

@@ -73,6 +73,12 @@ module proof.LeftWidening where
 --     relation witness.  A full sequence branch still needs recursive
 --     left-widening evidence for both component casts and the composition
 --     algebra relating their indices.
+--     The reusable `left-widening-compose-witnesses` proof factors the
+--     store/relation transport needed to combine two emitted source-only
+--     prefixes, following the existing algebra in `proof.Catchup`.
+--     `left-widening-seq-compose-package` combines that transport with the
+--     sequence reduction package, so the future sequence branch can focus on
+--     producing the two recursive component witnesses.
 --   * A direct suc-only induction for that weakening lemma is the wrong
 --     formulation: under `Λ`, the body is renamed by `extᵗ suc`, not plain
 --     `suc`.  The reusable pieces started in `proof.TermNarrowingProperties`
@@ -141,7 +147,8 @@ open import Data.List using ([]; _∷_; _++_)
 open import Data.List.Relation.Unary.Any using (here)
 open import Data.Nat using (zero; suc; z<s)
 open import Data.Product using (_×_; _,_; proj₂; ∃-syntax)
-open import Relation.Binary.PropositionalEquality using (subst)
+open import Relation.Binary.PropositionalEquality
+  using (cong; subst; sym; trans)
 
 open import Types
 open import Coercions
@@ -167,10 +174,23 @@ open import NarrowingExamples
     ; var0-fun-narrowing
     ; wf-var-fun-endpoints
     )
-open import proof.NarrowWidenProperties using (StoreDetWf)
-open import proof.CatchupStore using (combineStoreNrw)
+open import proof.NarrowWidenProperties using (StoreDetWf; ⊒ˢ-empty-anyᵗ)
+open import proof.CatchupStore
+  using
+    ( combineStoreNrw
+    ; combineStoreNrw-assoc
+    ; combineStoreNrw-empty-⊒ˢ
+    ; combineStoreNrw-applyStores
+    )
 open import proof.ReductionProperties
-  using (applyCoercions; cast-dual-↠; ↠-trans)
+  using
+    ( applyCoercions
+    ; applyCoercions-++
+    ; applyTerms-++
+    ; applyTyCtxs-++
+    ; cast-dual-↠
+    ; ↠-trans
+    )
 open import proof.NuTermProperties
   using (open0-ext-suc-cancelᵐ; renameᵗᵐ-preserves-Value)
 open import proof.CoercionProperties using (renameᶜ-preserves-Inert)
@@ -442,6 +462,130 @@ left-widening-seq-package {Δ = Δ} {σ = σ} {V = V}
   refl ,
   π⊒ ,
   U⊒V′
+
+left-widening-compose-witnesses :
+  ∀ {Δ σ V′ r χs₁ χs₂ W₂ Δ₁ Δ₂ Π₁ Π₁′}
+    {Π₂ Π₂′ π₁ π₂} →
+  Δ₁ ≡ applyTyCtxs χs₁ Δ →
+  Π₁ ≡ applyStores χs₁ [] →
+  Π₁′ ≡ applyStore keep [] →
+  Δ₁ ⊢ π₁ ꞉ Π₁ ⊒ˢ Π₁′ →
+  Δ₂ ≡ applyTyCtxs χs₂ Δ₁ →
+  Π₂ ≡ applyStores χs₂ [] →
+  Π₂′ ≡ applyStore keep [] →
+  Δ₂ ⊢ π₂ ꞉ Π₂ ⊒ˢ Π₂′ →
+  Δ₂ ∣ combineStoreNrw π₂ (combineStoreNrw π₁ σ) ∣ []
+    ⊢ W₂ ⊒ applyTerms χs₂ (applyTerms χs₁ V′)
+      ∶ applyCoercions χs₂ (applyCoercions χs₁ r) →
+  ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    (Δ′ ≡ applyTyCtxs (χs₁ ++ χs₂) Δ) ×
+    (Π ≡ applyStores (χs₁ ++ χs₂) []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W₂ ⊒ applyTerms (χs₁ ++ χs₂) V′
+        ∶ applyCoercions (χs₁ ++ χs₂) r
+left-widening-compose-witnesses {Δ = Δ} {σ = σ} {V′ = V′}
+    {r = r} {χs₁ = χs₁} {χs₂ = χs₂} {W₂ = W₂}
+    {Δ₁ = Δ₁} {Δ₂ = Δ₂} {π₁ = π₁} {π₂ = π₂}
+    Δ₁≡ Π₁≡ Π₁′≡ π₁⊒
+    Δ₂≡ Π₂≡ Π₂′≡ π₂⊒ W₂⊒V′ =
+  Δ₂ ,
+  srcStoreⁿ (combineStoreNrw π₂ π₁) ,
+  [] ,
+  combineStoreNrw π₂ π₁ ,
+  trans Δ₂≡
+    (trans (cong (applyTyCtxs χs₂) Δ₁≡)
+      (sym (applyTyCtxs-++ χs₁ χs₂ Δ))) ,
+  combineStoreNrw-applyStores
+    {χs₂ = χs₂} {χs₁ = χs₁}
+    π₂⊒ Π₂≡ Π₂′≡ π₁⊒ Π₁≡ Π₁′≡ ,
+  refl ,
+  combineStoreNrw-empty-⊒ˢ
+    (subst (λ Π′ → _ ⊢ π₂ ꞉ _ ⊒ˢ Π′) Π₂′≡ π₂⊒)
+    (⊒ˢ-empty-anyᵗ Δ₂
+      (subst
+        (λ Π′ → _ ⊢ π₁ ꞉ _ ⊒ˢ Π′)
+        Π₁′≡
+        π₁⊒)) ,
+  subst
+    (λ c → Δ₂ ∣ combineStoreNrw (combineStoreNrw π₂ π₁) σ ∣ []
+      ⊢ W₂ ⊒ applyTerms (χs₁ ++ χs₂) V′ ∶ c)
+    (sym (applyCoercions-++ χs₁ χs₂ r))
+    (subst
+      (λ T →
+        Δ₂ ∣ combineStoreNrw (combineStoreNrw π₂ π₁) σ ∣ []
+          ⊢ W₂ ⊒ T ∶ applyCoercions χs₂ (applyCoercions χs₁ r))
+      (sym (applyTerms-++ χs₁ χs₂ V′))
+      (subst
+        (λ τ → Δ₂ ∣ τ ∣ [] ⊢ W₂
+          ⊒ applyTerms χs₂ (applyTerms χs₁ V′) ∶
+            applyCoercions χs₂ (applyCoercions χs₁ r))
+        (sym (combineStoreNrw-assoc π₂ π₁ σ))
+        W₂⊒V′))
+
+left-widening-seq-compose-package :
+  ∀ {Δ σ V V′ c d r χs₁ χs₂ W U
+      Δ₁ Δ₂ Π₁ Π₁′ Π₂ Π₂′ π₁ π₂} →
+  Value V →
+  V ⟨ - d ⟩ —↠[ χs₁ ] W →
+  W ⟨ - applyCoercions χs₁ c ⟩ —↠[ χs₂ ] U →
+  Value U →
+  No• U →
+  Δ₁ ≡ applyTyCtxs χs₁ Δ →
+  Π₁ ≡ applyStores χs₁ [] →
+  Π₁′ ≡ applyStore keep [] →
+  Δ₁ ⊢ π₁ ꞉ Π₁ ⊒ˢ Π₁′ →
+  Δ₂ ≡ applyTyCtxs χs₂ Δ₁ →
+  Π₂ ≡ applyStores χs₂ [] →
+  Π₂′ ≡ applyStore keep [] →
+  Δ₂ ⊢ π₂ ꞉ Π₂ ⊒ˢ Π₂′ →
+  Δ₂ ∣ combineStoreNrw π₂ (combineStoreNrw π₁ σ) ∣ []
+    ⊢ U ⊒ applyTerms χs₂ (applyTerms χs₁ V′)
+      ∶ applyCoercions χs₂ (applyCoercions χs₁ r) →
+  ∃[ χs″ ] ∃[ W′ ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W′ ×
+    No• W′ ×
+    (V ⟨ - (c ︔ d) ⟩ —↠[ χs″ ] W′) ×
+    (Δ′ ≡ applyTyCtxs χs″ Δ) ×
+    (Π ≡ applyStores χs″ []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W′ ⊒ applyTerms χs″ V′ ∶ applyCoercions χs″ r
+left-widening-seq-compose-package {Δ = Δ} {σ = σ} {V = V}
+    {V′ = V′} {c = c} {d = d} {r = r} {χs₁ = χs₁}
+    {χs₂ = χs₂} {W = W} {U = U} vV Vd↠W Wc↠U vU noU
+    Δ₁≡ Π₁≡ Π₁′≡ π₁⊒
+    Δ₂≡ Π₂≡ Π₂′≡ π₂⊒ U⊒V′ =
+  let
+    composed =
+      left-widening-compose-witnesses
+        {Δ = Δ} {σ = σ} {V′ = V′} {r = r}
+        {χs₁ = χs₁} {χs₂ = χs₂} {W₂ = U}
+        Δ₁≡ Π₁≡ Π₁′≡ π₁⊒
+        Δ₂≡ Π₂≡ Π₂′≡ π₂⊒ U⊒V′
+
+    Δ′ , Π , Π′ , π ,
+      Δ′≡ , Π≡ , Π′≡ , π⊒ , U⊒V′′ =
+      composed
+  in
+  keep ∷ (χs₁ ++ χs₂) ,
+  U ,
+  Δ′ ,
+  Π ,
+  Π′ ,
+  π ,
+  vU ,
+  noU ,
+  ↠-trans
+    (left-widening-seq-inner-reduction {c = c} {d = d} vV Vd↠W)
+    Wc↠U ,
+  Δ′≡ ,
+  Π≡ ,
+  Π′≡ ,
+  π⊒ ,
+  U⊒V′′
 
 left-widening-gen-reduction :
   ∀ {A c V} →

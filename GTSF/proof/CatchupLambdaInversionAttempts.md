@@ -4289,3 +4289,27 @@ the source to be a value.  It does not require a source-store key for
 Conclusion: any final lambda replay proof must handle the shifted tag/untag
 source-cast branch.  The no-key strategy is useful only for pruning seal-shaped
 branches.
+
+## Attempt 121: replay the diagnostic tag branch with `split`
+
+Accepted as a checked diagnostic witness in `proof.TraceProbe`.
+
+The tag branch from Attempt 120 is not a counterexample by itself.  I added a
+target-first replay for the same concrete source cast:
+
+`target-first-var1-replay⊒ :
+  2 ∣ (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ - var1-fun ⟩ ⊒ ƛ (` 0) ∶ var0-fun`.
+
+The proof does not use a direct `cast+⊒` replay.  Instead it rebuilds with
+`split`, using the body under
+
+`2 ∣ (zero ꞉ id ★) ∷ [] ∣ []
+  ⊢ (ƛ (` 0)) ⟨ - var0-fun ⟩ ⊒ ƛ (` 0) ∶ var0-fun`.
+
+Conclusion: the general replay theorem probably cannot be a uniform
+source-term rename plus store swap.  The source-side tag/untag cast branch
+needs to be recognized as a split/opening reconstruction in the target-first
+store.  This also explains why the earlier arbitrary `SourceTargetSwapRel`
+structural replay ran into unsafe split cases: the unsafe case is not
+impossible, it is exactly where `split` should be introduced.

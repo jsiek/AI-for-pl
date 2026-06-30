@@ -233,6 +233,51 @@ source-first-var1-source-cast⊒ =
     source-first-var1-fun-right-≈
     (ƛ⊒ƛ id-var1-fun-cast (x⊒x id-var1-cast Z))
 
+target-first-var0-fun-right-≈ :
+  2 ∣ (zero ꞉ id ★) ∷ [] ⊢
+    var0-fun ≈ var0-fun ⨾ⁿ (id (＇ 0) ↦ id (＇ 0))
+      ∶ (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
+target-first-var0-fun-right-≈ =
+  compose-rightⁿ star0-store-det2
+    var0-fun-narrowingᵐ
+    (id-var0-fun-narrowingᵐ {μ = tag-or-idᵈ} refl)
+    (endpointsⁿ refl refl refl refl
+      id★-store-narrowing
+      wf-var-fun-endpoints
+      wf-var-fun-endpoints
+      var0-fun-narrowing
+      (_ , proj₂ (_⨟ⁿ_ {wfΣ = star0-store-det2}
+        var0-fun-narrowingᵐ
+        (id-var0-fun-narrowingᵐ {μ = tag-or-idᵈ} refl))))
+
+target-first-var0-body⊒ :
+  2 ∣ (zero ꞉ id ★) ∷ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ - var0-fun ⟩ ⊒ ƛ (` 0) ∶ var0-fun
+target-first-var0-body⊒ =
+  cast+⊒
+    {p = id (＇ 0) ↦ id (＇ 0)}
+    {r = var0-fun}
+    {t = var0-fun}
+    id-var0-fun-cast
+    target-first-var0-fun-right-≈
+    (ƛ⊒ƛ id-var0-fun-cast (x⊒x id-var0-cast Z))
+
+target-first-var1-replay⊒ :
+  2 ∣ (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ - var1-fun ⟩ ⊒ ƛ (` 0) ∶ var0-fun
+target-first-var1-replay⊒ =
+  split
+    {N = (ƛ (` 0)) ⟨ - var0-fun ⟩}
+    {N′ = ƛ (` 0)}
+    {p = var0-fun}
+    {q = id ★}
+    {A = ★}
+    {α = zero}
+    {αᵢ = suc zero}
+    id★-narrowingᵐ
+    var0-fun-cast
+    target-first-var0-body⊒
+
 target-first-id-var1-probe-compose⊥ :
   ∀ {A B r} →
   2 ∣ (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ [] ⊢

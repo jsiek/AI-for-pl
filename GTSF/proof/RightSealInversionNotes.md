@@ -776,8 +776,76 @@ seal coercion.  Agda rejects this shape for the DGG premises: `ν⊒` requires i
 index premise to be cast-like, and `∶ᶜ` is `tag-or-idᵈ`, so literal seals are
 excluded by `tag-or-id-seal-conflict`.
 
-No exact counterexample to the DGG redex was found.  The checked
-factorization counterexample only refutes a tempting zero-step proof strategy:
-it does not refute the dynamic branch, because DGG may still reduce the source
-side through the problematic left cast before relating it to the unsealed
-target.
+Before the source-left tag candidate below, no exact counterexample to the DGG
+redex had been found.  The checked factorization counterexample only refutes a
+tempting zero-step proof strategy: it does not refute the dynamic branch,
+because DGG may still reduce the source side through the problematic left cast
+before relating it to the unsealed target.
+
+### Attempt 10. Broad exact source-left tag candidate
+
+The broad algebraic witness
+
+```agda
+id ★ ⨾ⁿ seal ★ 0 ≈ (＇ 0) ？
+```
+
+is term-realizable.  `proof.ExactSealUnsealCounterexample` first checks the
+benign direct premise
+
+```agda
+c★ ⊒ c★ ⟨ seal ★ 0 ⟩ ⟨ unseal 0 ★ ⟩ ∶ id ★
+```
+
+where `c★ = ($ 0) ⟨ (‵ `ℕ) ! ⟩`.  This is not a counterexample, because
+after the right `seal-unseal` step the source and target are both `c★`, and
+the existing two-sided cast example gives `c★ ⊒ c★ ∶ id ★`.
+
+A more dangerous exact premise adds a real source-side tag:
+
+```agda
+c★ ⟨ seal ★ 0 ⟩ ⟨ (＇ 0) ! ⟩
+  ⊒ c★ ⟨ seal ★ 0 ⟩ ⟨ unseal 0 ★ ⟩ ∶ id ★
+```
+
+This also type-checks in `proof.ExactSealUnsealCounterexample`.  It uses
+`c★ ⟨ seal ★ 0 ⟩ ⊒ c★ ⟨ seal ★ 0 ⟩ ∶ id (＇ 0)`, then a source-left
+`cast+⊒` with `t = (＇ 0) ？`, and finally the broad right-seal composition
+above.  The source is a value, so any counterexample proof reduces to the
+post-step impossibility
+
+```agda
+∀ Δ p →
+  Δ ∣ (0 ꞉ id ★) ∷ [] ∣ []
+    ⊢ c★ ⟨ seal ★ 0 ⟩ ⟨ (＇ 0) ! ⟩ ⊒ c★ ∶ p →
+  ⊥ .
+```
+
+The inversion discharges the outer right-cast and source `cast-⊒` tag cases
+using term-cast injectivity plus
+`compose-left-tag-factor⊥`/`compose-right-tag-factor⊥`.  The source-left
+`cast+⊒` branch peels the tag and then proves
+`c★ ⟨ seal ★ 0 ⟩ ⊒ c★` impossible by a second inversion: the only productive
+route would force either a tag factor in the wrong composition position or a
+seal/untag endpoint contradiction.
+
+The final checked theorem is
+
+```agda
+exact-seal-unseal-dgg-result⊥ :
+  ExactSealUnsealDGGResult → ⊥
+```
+
+where `ExactSealUnsealDGGResult` is the DGG conclusion instantiated with the
+checked premise
+
+```agda
+c★ ⟨ seal ★ 0 ⟩ ⟨ (＇ 0) ! ⟩
+  ⊒ c★ ⟨ seal ★ 0 ⟩ ⟨ unseal 0 ★ ⟩ ∶ id ★
+```
+
+and the target step `seal-unseal`.  The conclusion is refuted after
+`value-multistep-refl` forces the source reduction to be zero steps.  The
+post-step contradiction is generalized over the existentially chosen `Δ′`;
+otherwise the DGG result could hide behind an arbitrary context choice even
+though the source and target stores are both empty after the step.

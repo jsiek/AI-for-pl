@@ -20,4 +20,5 @@ import TermNarrowing
 import NarrowingExamples
 import NuMetaTheory
 import proof.RightSealBroadCounterexample
+import proof.ExactSealUnsealCounterexample
 import proof.DynamicGradualGuarantee

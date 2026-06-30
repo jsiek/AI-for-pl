@@ -3,8 +3,8 @@
 module proof.TermSubstitutionNarrowing where
 
 -- File Charter:
---   * Term-variable substitution for the GTSF term-narrowing judgment.
---   * Provides the single-variable substitution theorem used by
+--   * Term-variable substitution for the GTSF typed term-narrowing judgment.
+--   * Provides the typed single-variable substitution theorem used by
 --     `proof.DynamicGradualGuarantee`.
 --   * Kept separate from the top-down dynamic gradual guarantee skeleton so
 --     substitution proof engineering stays local to term narrowing.
@@ -20,7 +20,7 @@ open import NuTerms
 open import NarrowWiden
 open import TermNarrowing
 open import proof.CoercionProperties using (coercion-endpoints-uniqueᵐ)
-open import proof.Catchup using (extend-replace-here-term; open-shiftᵐ)
+open import proof.Catchup using (open-shiftᵐ)
 open import proof.NuTermProperties using
   ( renameˣ-renameᵗᵐ
   ; renameᵗᵐ-ext-suc-comm
@@ -82,16 +82,8 @@ substˣᵐ-open τ M α =
     (λ x → sym (open-shiftᵐ α (τ x)))
 
 ------------------------------------------------------------------------
--- Parallel substitution
+-- Substitution frames
 ------------------------------------------------------------------------
-
-SubstNrw :
-  TyCtx → StoreNrw → CtxNrw → CtxNrw → Substˣ → Substˣ → Set₁
-SubstNrw Δ σ γ γ′ τ τ′ =
-  ∀ {x p A B} →
-  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
-  γ ∋ x ⦂ p →
-  Δ ∣ σ ∣ γ′ ⊢ τ x ⊒ τ′ x ∶ p
 
 data SubstFrame
     (γ₀ γ₀′ : CtxNrw) (τ₀ τ₀′ : Substˣ) :
@@ -125,154 +117,6 @@ data SubstFrame
     ∀ {γ γ′ τ τ′} →
     SubstFrame γ₀ γ₀′ τ₀ τ₀′ γ γ′ τ τ′ →
     SubstFrame γ₀ γ₀′ τ₀ τ₀′ (⇑ᵍ γ) (⇑ᵍ γ′) τ (↑ᵗᵐ τ′)
-
-SubstNrwFamily : CtxNrw → CtxNrw → Substˣ → Substˣ → Set₁
-SubstNrwFamily γ₀ γ₀′ τ₀ τ₀′ =
-  ∀ {Δ σ γ γ′ τ τ′} →
-  SubstFrame γ₀ γ₀′ τ₀ τ₀′ γ γ′ τ τ′ →
-  SubstNrw Δ σ γ γ′ τ τ′
-
-term-parallel-substitution-narrowing-framed :
-  ∀ {γ₀ γ₀′ τ₀ τ₀′ Δ σ γ γ′ M M′ p τ τ′} →
-  SubstNrwFamily γ₀ γ₀′ τ₀ τ₀′ →
-  SubstFrame γ₀ γ₀′ τ₀ τ₀′ γ γ′ τ τ′ →
-  Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p →
-  Δ ∣ σ ∣ γ′ ⊢ substˣᵐ τ M ⊒ substˣᵐ τ′ M′ ∶ p
-term-parallel-substitution-narrowing-framed env frame (extend qᶜ pαᶜ M⊒N′) =
-  extend-replace-here-term qᶜ pαᶜ
-    (term-parallel-substitution-narrowing-framed env frame M⊒N′)
-term-parallel-substitution-narrowing-framed env frame
-    (split {N = N} {N′ = N′} {α = α} {αᵢ = αᵢ} qᶜ pαᶜ N⊒N′) =
-  subst
-    (λ L → _ ∣ _ ∣ _ ⊢ L ⊒ _ ∶ _)
-    (sym (substˣᵐ-open _ N αᵢ))
-    (subst
-      (λ R → _ ∣ _ ∣ _ ⊢ _ ⊒ R ∶ _)
-      (sym (substˣᵐ-open _ N′ α))
-      (split qᶜ pαᶜ premise))
-  where
-    rec =
-      term-parallel-substitution-narrowing-framed env frame N⊒N′
-
-    premise =
-      subst
-        (λ L → _ ∣ _ ∣ _ ⊢ L ⊒ _ ∶ _)
-        (substˣᵐ-open _ N α)
-        (subst
-          (λ R → _ ∣ _ ∣ _ ⊢ _ ⊒ R ∶ _)
-          (substˣᵐ-open _ N′ α)
-          rec)
-term-parallel-substitution-narrowing-framed env frame (⊒blame pᶜ) =
-  ⊒blame pᶜ
-term-parallel-substitution-narrowing-framed env frame (x⊒x pᶜ x∋p) =
-  env frame pᶜ x∋p
-term-parallel-substitution-narrowing-framed env frame
-    (ƛ⊒ƛ {p = p} p↦qᶜ N⊒N′) =
-  ƛ⊒ƛ p↦qᶜ
-    (term-parallel-substitution-narrowing-framed
-      env (frame-ƛ {p = p} frame) N⊒N′)
-term-parallel-substitution-narrowing-framed env frame
-    (·⊒· qᶜ L⊒L′ M⊒M′) =
-  ·⊒· qᶜ
-    (term-parallel-substitution-narrowing-framed env frame L⊒L′)
-    (term-parallel-substitution-narrowing-framed env frame M⊒M′)
-term-parallel-substitution-narrowing-framed env frame
-    (Λ⊒Λ allᶜ vV V⊒V′) =
-  Λ⊒Λ allᶜ (substˣᵐ-preserves-Value _ vV)
-    (term-parallel-substitution-narrowing-framed
-      env (frame-Λ frame) V⊒V′)
-term-parallel-substitution-narrowing-framed env frame
-    (⊒Λ {N = N} pᶜ N⊒V′) =
-  ⊒Λ pᶜ
-    (subst
-      (λ L → _ ∣ _ ∣ _ ⊢ L ⊒ _ ∶ _)
-      (substˣᵐ-shift _ N)
-      (term-parallel-substitution-narrowing-framed
-        env (frame-Λ frame) N⊒V′))
-term-parallel-substitution-narrowing-framed env frame
-    (⊒⟨ν⟩ {N = N} pᶜ i N⊒V′s) =
-  ⊒⟨ν⟩ pᶜ i
-    (subst
-      (λ L → _ ∣ _ ∣ _ ⊢ L ⊒ _ ∶ _)
-      (substˣᵐ-shift _ N)
-      (term-parallel-substitution-narrowing-framed
-        env (frame-src⇑ frame) N⊒V′s))
-term-parallel-substitution-narrowing-framed env frame
-    (α⊒α γ′≡ qᶜ pαᶜ L⊒L′) =
-  {!!}
-term-parallel-substitution-narrowing-framed env frame
-    (⊒α γ′≡ pαᶜ L⊒L′) =
-  {!!}
-term-parallel-substitution-narrowing-framed env frame
-    (ν⊒ν pᶜ qᶜ N⊒N′) =
-  ν⊒ν pᶜ qᶜ
-    (term-parallel-substitution-narrowing-framed
-      env (frame-νν frame) N⊒N′)
-term-parallel-substitution-narrowing-framed env frame
-    (⊒ν {N = N} pᶜ N⊒N′) =
-  ⊒ν pᶜ
-    (subst
-      (λ L → _ ∣ _ ∣ _ ⊢ L ⊒ _ ∶ _)
-      (substˣᵐ-shift _ N)
-      (term-parallel-substitution-narrowing-framed
-        env (frame-src⇑ frame) N⊒N′))
-term-parallel-substitution-narrowing-framed env frame
-    (ν⊒ {N′ = N′} pᶜ N⊒N′) =
-  ν⊒ pᶜ
-    (subst
-      (λ R → _ ∣ _ ∣ _ ⊢ _ ⊒ R ∶ _)
-      (substˣᵐ-shift _ N′)
-      (term-parallel-substitution-narrowing-framed
-        env (frame-tgt⇑ frame) N⊒N′))
-term-parallel-substitution-narrowing-framed env frame (κ⊒κ κ) = κ⊒κ κ
-term-parallel-substitution-narrowing-framed env frame
-    (⊕⊒⊕ M⊒M′ N⊒N′) =
-  ⊕⊒⊕
-    (term-parallel-substitution-narrowing-framed env frame M⊒M′)
-    (term-parallel-substitution-narrowing-framed env frame N⊒N′)
-term-parallel-substitution-narrowing-framed env frame
-    (⊒cast+ qᶜ q⨟s≈r M⊒M′) =
-  ⊒cast+ qᶜ q⨟s≈r
-    (term-parallel-substitution-narrowing-framed env frame M⊒M′)
-term-parallel-substitution-narrowing-framed env frame
-    (⊒cast- qᶜ q⨟s≈r M⊒M′) =
-  ⊒cast- qᶜ q⨟s≈r
-    (term-parallel-substitution-narrowing-framed env frame M⊒M′)
-term-parallel-substitution-narrowing-framed env frame
-    (cast+⊒ pᶜ r≈t⨟p M⊒M′) =
-  cast+⊒ pᶜ r≈t⨟p
-    (term-parallel-substitution-narrowing-framed env frame M⊒M′)
-term-parallel-substitution-narrowing-framed env frame
-    (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
-  cast-⊒ pᶜ r≈t⨟p
-    (term-parallel-substitution-narrowing-framed env frame M⊒M′)
-
-term-parallel-substitution-narrowing :
-  ∀ {Δ σ γ γ′ M M′ p τ τ′} →
-  SubstNrwFamily γ γ′ τ τ′ →
-  Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p →
-  Δ ∣ σ ∣ γ′ ⊢ substˣᵐ τ M ⊒ substˣᵐ τ′ M′ ∶ p
-term-parallel-substitution-narrowing env =
-  term-parallel-substitution-narrowing-framed env frame-id
-
-singleSubstNrw :
-  ∀ {Δ σ γ V V′ q} →
-  Δ ∣ σ ∣ γ ⊢ V ⊒ V′ ∶ q →
-  SubstNrw Δ σ (q ∷ γ) γ (singleEnv V) (singleEnv V′)
-singleSubstNrw V⊒V′ pᶜ Z = V⊒V′
-singleSubstNrw V⊒V′ pᶜ (S x∋p) = x⊒x pᶜ x∋p
-
-------------------------------------------------------------------------
--- Single-variable substitution
-------------------------------------------------------------------------
-
-term-substitution-narrowing :
-  ∀ {Δ σ γ N N′ V V′ p q} →
-  SubstNrwFamily (q ∷ γ) γ (singleEnv V) (singleEnv V′) →
-  Δ ∣ σ ∣ q ∷ γ ⊢ N ⊒ N′ ∶ p →
-  Δ ∣ σ ∣ γ ⊢ N [ V ] ⊒ N′ [ V′ ] ∶ p
-term-substitution-narrowing env N⊒N′ =
-  term-parallel-substitution-narrowing env N⊒N′
 
 ------------------------------------------------------------------------
 -- Typed parallel substitution

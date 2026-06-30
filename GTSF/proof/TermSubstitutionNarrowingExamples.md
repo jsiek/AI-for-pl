@@ -1,293 +1,149 @@
-# Term substitution narrowing: induction-hypothesis examples
+# Typed term substitution narrowing: induction-hypothesis shape
 
-These are schematic examples for choosing the induction hypothesis for
-`term-parallel-substitution-narrowing`.
+These notes record why `proof.TermSubstitutionNarrowing` uses a frame-indexed
+substitution premise for the typed term-narrowing theorem
+`term-parallel-substitution-narrowingᵗ`.
 
-The current one-store environment premise is:
+The exported environment premise is:
 
 ```agda
-SubstNrw Δ σ γ γ′ τ τ′ =
+TypedSubstNrw Δ σ γ γ′ τ τ′ =
   ∀ {x p A B} →
   Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
   γ ∋ x ⦂ p →
-  Δ ∣ σ ∣ γ′ ⊢ τ x ⊒ τ′ x ∶ p
+  Δ ∣ σ ∣ γ′ ⊢ τ x ⊒ τ′ x ∶ p ⦂ A ⊒ B
 ```
 
-The examples below show where this premise is too narrow.
+The examples below explain why the theorem quantifies over a family of such
+premises instead of a single store and context.
 
 ## Same-store cases
 
-For `x⊒x`, `⊒blame`, application, constants, primitive operations, and casts,
+For `x⊒xᵗ`, `⊒blameᵗ`, application, constants, primitive operations, and casts,
 the recursive premises stay at the same store and type context.
 
 Example:
 
 ```agda
-·⊒· qᶜ L⊒L′ M⊒M′
+·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′
 ```
 
-After substitution the direct recursive calls need exactly the same
-substitution environment at the same `Δ`, `σ`, `γ`, and `γ′`.
-
+After substitution, both recursive calls use the same `Δ`, `σ`, `γ`, and `γ′`.
 The variable case fixes the lookup shape:
 
 ```agda
-x⊒x pᶜ x∋p
+x⊒xᵗ pᶜ x∋p
 ```
 
 The proof obligation is:
 
 ```agda
-Δ ∣ σ ∣ γ′ ⊢ τ x ⊒ τ′ x ∶ p
+Δ ∣ σ ∣ γ′ ⊢ τ x ⊒ τ′ x ∶ p ⦂ A ⊒ B
 ```
 
-So the environment premise must still be lookup-indexed by a coercion typing
-proof for the current store.
+So the environment premise remains lookup-indexed by a coercion typing proof
+for the current store, and it also carries the endpoint types needed by the
+typed relation.
 
-## `extend`
+## Store-changing cases
 
-Input shape:
+The `extendᵗ` and `splitᵗ` constructors change the store shape around their
+recursive premises.
+
+For `extendᵗ`, the recursive premise lives under the open store entry:
 
 ```agda
-extend qᶜ pαᶜ M⊒N′α
-
-M⊒N′α :
-  Δ ∣ (α ꞉= A ⊒) ∷ σ ∣ γ
-    ⊢ M ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ
+Δ ∣ (α ꞉= A ⊒) ∷ σ ∣ γ
+  ⊢ M ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ ⦂ _ ⊒ _
 ```
 
-The conclusion store is `(α ꞉ q) ∷ σ`, but the recursive premise store is
-`(α ꞉= A ⊒) ∷ σ`.  If `M` contains a variable, the recursive substitution proof
-needs:
+but the conclusion is rebuilt under `(α ꞉ q) ∷ σ`.  If `M` contains a variable,
+the recursive substitution call needs the environment premise at the recursive
+store, not only at the conclusion store.
+
+For `splitᵗ`, the recursive premise lives under `(α ꞉ q) ∷ σ`, while the
+conclusion is rebuilt under:
 
 ```agda
-Δ ∣ (α ꞉= A ⊒) ∷ σ ∣ γ′ ⊢ τ x ⊒ τ′ x ∶ r
+(α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ
 ```
 
-The current premise only gives the corresponding fact at `(α ꞉ q) ∷ σ`.
-
-There is also an opened-target obligation.  The recursive call on
-`M⊒N′α` gives a right term of the form:
+Both cases also need the opening/substitution equation:
 
 ```agda
-substˣᵐ τ′ (N′ [ α ]ᵀ)
-```
-
-but `extend` wants an opened right term:
-
-```agda
-N₂ [ α ]ᵀ
-```
-
-The useful witness is:
-
-```agda
-N₂ = substˣᵐ (↑ᵗᵐ τ′) N′
-```
-
-so this case also needs a commutation lemma:
-
-```agda
-substˣᵐ τ′ (N′ [ α ]ᵀ) ≡
-  (substˣᵐ (↑ᵗᵐ τ′) N′) [ α ]ᵀ
-```
-
-## `split`
-
-Input shape:
-
-```agda
-split qᶜ pαᶜ Nα⊒N′α
-
-Nα⊒N′α :
-  Δ ∣ (α ꞉ q) ∷ σ ∣ γ
-    ⊢ N [ α ]ᵀ ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ
-```
-
-The conclusion store is `(α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ`, but the recursive
-premise store is `(α ꞉ q) ∷ σ`.  So the substitution environment must also be
-available at that normal-head store.
-
-Both sides of the recursive result have opened terms, so the same opening
-commutation lemma is needed on each side, with witnesses:
-
-```agda
-substˣᵐ (↑ᵗᵐ τ)  N
-substˣᵐ (↑ᵗᵐ τ′) N′
+substˣᵐ τ (N [ α ]ᵀ) ≡ (substˣᵐ (↑ᵗᵐ τ) N) [ α ]ᵀ
 ```
 
 ## Store-dropping cases
 
-The `α⊒α` and `⊒α` cases recurse on the tail store.
+The `α⊒αᵗ` and `⊒αᵗ` cases recurse on the tail store.
 
 Example:
 
 ```agda
-α⊒α qᶜ pαᶜ L⊒L′
-
-L⊒L′ :
-  Δ ∣ σ ∣ γ ⊢ L ⊒ L′ ∶ `∀ p
+α⊒αᵗ γ′≡ qᶜ pαᶜ L⊒L′
 ```
 
 The conclusion store is `(α ꞉ q) ∷ σ`, but the recursive premise is at `σ`.
-The current one-store premise cannot supply substitution entries at this tail
-store.
+The substitution environment therefore has to be available at the tail store
+as well.
 
-The `⊒α` case has the same shape, except the conclusion store is
-`(α ꞉= A ⊒) ∷ σ`.
+## Binders
 
-## Term binder
-
-Input shape:
-
-```agda
-ƛ⊒ƛ p↦qᶜ N⊒N′
-
-N⊒N′ :
-  Δ ∣ σ ∣ (- p) ∷ γ ⊢ N ⊒ N′ ∶ q
-```
-
-The recursive substitution environment must extend over the term variable:
+For `ƛ⊒ƛᵗ`, the recursive substitution environments are:
 
 ```agda
 extˢˣ τ
 extˢˣ τ′
 ```
 
-The `S` lookup case needs a term-variable weakening lemma for term narrowing:
-
-```agda
-Δ ∣ σ ∣ γ′ ⊢ τ x ⊒ τ′ x ∶ r
--------------------------------------------------
-Δ ∣ σ ∣ s ∷ γ′
-  ⊢ renameˣᵐ suc (τ x) ⊒ renameˣᵐ suc (τ′ x) ∶ r
-```
-
-The `Z` lookup case needs `x⊒x` at `- p`; that requires an arrow-coercion
-inversion/dual lemma from `p ↦ q`.
-
-## Type binder
-
-Input shape:
-
-```agda
-Λ⊒Λ allᶜ vV V⊒V′
-
-V⊒V′ :
-  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ V ⊒ V′ ∶ p
-```
-
-The recursive substitution environment must be lifted:
+For `Λ⊒Λᵗ`, they are:
 
 ```agda
 ↑ᵗᵐ τ
 ↑ᵗᵐ τ′
 ```
 
-This needs a type-renaming lemma for term narrowing:
-
-```agda
-Δ ∣ σ ∣ γ′ ⊢ τ x ⊒ τ′ x ∶ r
--------------------------------------------------
-suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ′
-  ⊢ renameᵗᵐ suc (τ x) ⊒ renameᵗᵐ suc (τ′ x) ∶ ⇑ᶜ r
-```
-
-The same lifted environment is needed for the recursive premise of `⊒Λ`, with
-the additional head store:
-
-```agda
-(zero ꞉= ★ ⊒) ∷ ⇑ˢ σ
-```
-
-Those cases also need the shift/substitution equation:
+The type-binder cases also rely on:
 
 ```agda
 substˣᵐ (↑ᵗᵐ τ) (⇑ᵗᵐ N) ≡ ⇑ᵗᵐ (substˣᵐ τ N)
 ```
 
-## `ν` and source/target-shift cases
+## `ν` and asymmetric shift cases
 
-The `ν`-related cases are sharper than the ordinary type-binder cases because
-the side that appears as `⇑ᵗᵐ _` determines which substitution environment must
-be lifted.
+The `ν`-related constructors determine which side of the substitution
+environment must be lifted.
 
-Example:
-
-```agda
-ν⊒ν pᶜ qᶜ N⊒N′
-
-N⊒N′ :
-  suc Δ ∣ (zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
-    ⊢ N ⊒ N′ ∶ ⇑ᶜ p
-```
-
-To use the IH on `N⊒N′`, the natural lifted environment is:
+For `ν⊒νᵗ`, term substitution descends under `ν` without changing the
+substitution environments, so the frame only shifts the contexts:
 
 ```agda
-τ
-τ′
+frame-νν
 ```
 
-This matches the definition of term substitution:
+For `⊒νᵗ` and `⊒⟨ν⟩ᵗ`, the source side is shifted, so the frame uses
+`↑ᵗᵐ τ` on the source and keeps `τ′` on the target:
 
 ```agda
-substˣᵐ τ (ν A N c) = ν A (substˣᵐ τ N) c
+frame-src⇑
 ```
 
-So `ν⊒ν` needs a frame that shifts the term-variable contexts to `⇑ᵍ γ` and
-`⇑ᵍ γ′`, but keeps both substitution environments unchanged.
-
-The asymmetric cases are different:
+For `ν⊒ᵗ`, the target side is shifted:
 
 ```agda
-⊒ν :
-  suc Δ ∣ (zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
-    ⊢ ⇑ᵗᵐ N ⊒ N′ ∶ ⇑ᶜ p
-
-ν⊒ :
-  suc Δ ∣ (⊒ zero ꞉=☆) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
-    ⊢ N ⊒ ⇑ᵗᵐ N′ ∶ ⇑ᶜ p
+frame-tgt⇑
 ```
 
-For `⊒ν`, the source side appears as `⇑ᵗᵐ N`, so the IH must use source
-environment `↑ᵗᵐ τ` and target environment `τ′`.  The reconstruction uses:
+## Checked IH shape
 
-```agda
-substˣᵐ (↑ᵗᵐ τ) (⇑ᵗᵐ N) ≡ ⇑ᵗᵐ (substˣᵐ τ N)
-```
-
-For `ν⊒`, the target side appears as `⇑ᵗᵐ N′`, so the IH must use source
-environment `τ` and target environment `↑ᵗᵐ τ′`.
-
-The `⊒⟨ν⟩` case has the same source-lift shape as `⊒ν`: its source premise is
-`⇑ᵗᵐ N`, but its target is a casted term `V′ ⟨ s ⟩`, so the target environment
-stays `τ′`.
-
-The head stores involved are:
-
-```agda
-(zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ
-(zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ
-(⊒ zero ꞉=☆) ∷ ⇑ˢ σ
-```
-
-This is not a problem with the definition of `substˣᵐ`; it is a problem with a
-one-store, one-context substitution premise.  The induction needs to know which
-recursive frames use `τ`, `τ′`, `↑ᵗᵐ τ`, and `↑ᵗᵐ τ′`.
-
-## Candidate IH shape
-
-The examples point to a frame-indexed substitution premise rather than a
-single-store premise.
-
-The checked Agda formulation uses frames of the following shape:
+The checked Agda formulation uses:
 
 ```agda
 SubstFrame γ₀ γ₀′ τ₀ τ₀′ γ γ′ τ τ′
 ```
 
-with constructors for:
+with constructors:
 
 ```agda
 frame-id
@@ -298,26 +154,24 @@ frame-src⇑
 frame-tgt⇑
 ```
 
-The environment premise is then:
+The family premise is:
 
 ```agda
-SubstNrwFamily γ₀ γ₀′ τ₀ τ₀′ =
+TypedSubstNrwFamily γ₀ γ₀′ τ₀ τ₀′ =
   ∀ {Δ σ γ γ′ τ τ′} →
   SubstFrame γ₀ γ₀′ τ₀ τ₀′ γ γ′ τ τ′ →
-  SubstNrw Δ σ γ γ′ τ τ′
+  TypedSubstNrw Δ σ γ γ′ τ τ′
 ```
 
 This premise is intentionally store-polymorphic: store-changing constructors
-such as `extend`, `split`, `α⊒α`, and `⊒α` simply invoke the family at the
+such as `extendᵗ`, `splitᵗ`, `α⊒αᵗ`, and `⊒αᵗ` invoke the family at the
 recursive store.
 
-The important consequence is that the old single-substitution corollary cannot
-be instantiated from only:
+The single-substitution corollary is:
 
 ```agda
-Δ ∣ σ ∣ γ ⊢ V ⊒ V′ ∶ q
+term-substitution-narrowingᵗ :
+  TypedSubstNrwFamily (q ∷ γ) γ (singleEnv V) (singleEnv V′) →
+  Δ ∣ σ ∣ q ∷ γ ⊢ N ⊒ N′ ∶ p ⦂ A ⊒ B →
+  Δ ∣ σ ∣ γ ⊢ N [ V ] ⊒ N′ [ V′ ] ∶ p ⦂ A ⊒ B
 ```
-
-unless there is an additional lemma or side condition showing that `V ⊒ V′` is
-available for all recursive frames, including the asymmetric source/target
-shift frames.

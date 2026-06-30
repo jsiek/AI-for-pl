@@ -593,7 +593,7 @@ widening-cross-ground-source-seal-var⊥
 
 The expected reusable corollary is not just a raw syntax fact.  It must combine
 the endpoint stores from `endpointsⁿ`, `srcStoreⁿ-⊒ˢ`/`tgtStoreⁿ-⊒ˢ`, and mode
-conflicts such as `tag-or-id-seal-conflict`.  An over-broad first statement
+conflicts such as `tag-or-id-seal-conflict`.  The over-broad first statement
 
 ```agda
 right-seal-compose-castlike-result⊥ :
@@ -602,10 +602,40 @@ right-seal-compose-castlike-result⊥ :
   ⊥
 ```
 
-was accepted as a scratch goal but not proved directly; its proof needs to
-expose the `endpointsⁿ` stores and compare the cast-like typing of `p` with
-the right-seal composite typing in the correct endpoint store.  This is the
-next concrete algebraic lemma to mechanize before returning to the DGG branch.
+is false.  The checked module `proof.RightSealBroadCounterexample` gives the
+witness
+
+```agda
+p = (＇ 0) ？
+q = id ★
+B = ★
+α = 0
+```
+
+and proves
+
+```agda
+right-seal-compose-to-untag :
+  1 ∣ (0 ꞉ id ★) ∷ []
+    ⊢ id ★ ⨾ⁿ seal ★ 0 ≈ (＇ 0) ？ ∶ src (id ★) ⊒ ＇ 0
+```
+
+The reason is that `∶ᶜ` uses `tag-or-idᵈ`, while the computed right-seal
+composite is typed under `seal-or-idᵈ`; `endpointsⁿ` relates the endpoints
+without requiring the same mode witness on both sides.
+
+The same checked module proves the narrower source-endpoint contradiction:
+
+```agda
+right-seal-compose-source-var⊥ :
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ ＇ α ⊒ ＇ α →
+  ⊥
+```
+
+This is the useful algebraic boundary for the old closed
+`right-seal-inversion₁` counterexample: that counterexample's stripped index is
+`id (＇ α)`, and an exact DGG outer premise would force precisely the impossible
+source endpoint `＇ α ⊒ ＇ α`.
 
 ### Counterexample search
 

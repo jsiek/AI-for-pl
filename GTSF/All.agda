@@ -19,4 +19,5 @@ import proof.NWTermReduction
 import TermNarrowing
 import NarrowingExamples
 import NuMetaTheory
+import proof.RightSealBroadCounterexample
 import proof.DynamicGradualGuarantee

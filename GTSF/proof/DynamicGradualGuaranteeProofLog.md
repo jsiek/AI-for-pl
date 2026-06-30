@@ -278,3 +278,35 @@ Attempt 6: force the exact Agda obligations with a constructor probe.
 - This rules out a proof that only adds a coercion-typing transport or only
   pattern-matches on `p′`.  The application frame needs all three pieces
   coordinated by the same emitted store-change history.
+
+Attempt 7: re-run the app-left probe after typed DGG landed on main.
+
+- A temporary `proof.AppLeftProbe` file specialized the recursive call:
+
+  `dynamicGradualGuarantee wfΣ (runtime-·₁ okM) σ⊒ L⊢ L′⊢ ? L⊒L′ L′→N′`
+
+- The hole is not the application result coercion.  Filling it with the
+  available `qᶜ` fails because the recursive call needs coercion typing for
+  the function-shaped left index:
+
+  `Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ A ⇒ B ⊒ A′ ⇒ B′`
+
+  Agda reports the mismatch as `C != (A ⇒ A₁)` when checking `qᶜ`.
+- The current typed DGG premises type the whole application result, so in this
+  branch they provide `qᶜ`; they do not by themselves provide the missing
+  typing derivation for `p ↦ q`.
+- The promising algebraic route is not to add an ad hoc DGG premise.  Prove a
+  reusable term-narrowing typing/index lemma:
+
+  if the store narrowing, variable-context narrowing, source typing, target
+  typing, and term narrowing `M ⊒ M′ ∶ p` all hold, then
+  `p` is a well-typed narrowing coercion at the source and target types.
+
+- In the application case, that lemma can recover `p ↦ q` typing from
+  `L⊒L′`.  Alternatively, the domain half can be assembled from the argument
+  relation `M⊒M′ ∶ - p` by first deriving typing for `- p`, using the existing
+  duality lemma `dualⁿ-flips-typingᵐ`, and combining the resulting widening
+  for `p` with `qᶜ` via `cast-fun`.
+- This is an additional blocker before the older frame-transport blockers:
+  even a perfectly strengthened DGG conclusion cannot call the induction
+  hypothesis on `L⊒L′` until the function coercion typing is available.

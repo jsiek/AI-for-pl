@@ -83,6 +83,10 @@ module proof.LeftWidening where
 --     branch interface directly: once the recursive witnesses for `d` and the
 --     transported `c` are produced, the remaining reduction/store bookkeeping
 --     is discharged.
+--     `left-widening-seq-from-components` adds the next layer: assuming a
+--     recursive `LeftWidening` call is available, it performs the first call
+--     for `d`, transports the typing/composition side conditions, performs the
+--     second call for `c`, and then invokes the recursive-witness package.
 --     The recursive component calls also need coercion typing transported
 --     through emitted store changes; `left-widening-coercion-typing-transport`
 --     factors the small part of `proof.Catchup`'s transport infrastructure
@@ -1163,6 +1167,82 @@ left-widening-seq-recursive-witness-package
     Π₂′≡
     π₂⊒
     U⊒V′
+
+left-widening-seq-from-components :
+  LeftWidening →
+  ∀ {Δ σ V V′ p q r c d A B C D E F G H} →
+  Value V →
+  No• V →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ E ⊒ F →
+  Δ ∣ σ ⊢ q ≈ d ⨾ⁿ p ∶ A ⊒ B →
+  Δ ∣ σ ⊢ r ≈ c ⨾ⁿ q ∶ G ⊒ H →
+  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
+  ∃[ χs ] ∃[ U ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value U ×
+    No• U ×
+    (V ⟨ - (c ︔ d) ⟩ —↠[ χs ] U) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ U ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+left-widening-seq-from-components left-widening
+    {Δ = Δ} {σ = σ} {V = V} {V′ = V′} {p = p}
+    {q = q} {r = r} {c = c} {d = d}
+    vV noV pᶜ qᶜ q≈d⨟p r≈c⨟q V⊒V′
+    with left-widening
+           {Δ = Δ} {σ = σ} {V = V} {V′ = V′}
+           {p = p} {r = q} {t = d}
+           vV
+           noV
+           pᶜ
+           q≈d⨟p
+           V⊒V′
+left-widening-seq-from-components left-widening
+    {Δ = Δ} {σ = σ} {V = V} {V′ = V′} {p = p}
+    {q = q} {r = r} {c = c} {d = d}
+    vV noV pᶜ qᶜ q≈d⨟p r≈c⨟q V⊒V′
+    | χs₁ , W , Δ₁ , Π₁ , Π₁′ , π₁ ,
+      vW , noW , Vd↠W , Δ₁≡ , Π₁≡ , Π₁′≡ ,
+      π₁⊒ , W⊒V′
+    with left-widening
+           {Δ = Δ₁} {σ = combineStoreNrw π₁ σ}
+           {V = W} {V′ = applyTerms χs₁ V′}
+           {p = applyCoercions χs₁ q}
+           {r = applyCoercions χs₁ r}
+           {t = applyCoercions χs₁ c}
+           vW
+           noW
+           (left-widening-coercion-typing-transport
+             {σ = σ} {π = π₁} {χs = χs₁} {p = q}
+             qᶜ Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
+           (left-widening-compose-right-transport
+             {σ = σ} {π = π₁} {χs = χs₁}
+             {r = r} {t = c} {p = q}
+             r≈c⨟q Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
+           W⊒V′
+left-widening-seq-from-components left-widening
+    {Δ = Δ} {σ = σ} {V = V} {V′ = V′} {p = p}
+    {q = q} {r = r} {c = c} {d = d}
+    vV noV pᶜ qᶜ q≈d⨟p r≈c⨟q V⊒V′
+    | χs₁ , W , Δ₁ , Π₁ , Π₁′ , π₁ ,
+      vW , noW , Vd↠W , Δ₁≡ , Π₁≡ , Π₁′≡ ,
+      π₁⊒ , W⊒V′
+    | χs₂ , U , Δ₂ , Π₂ , Π₂′ , π₂ ,
+      vU , noU , Wc↠U , Δ₂≡ , Π₂≡ , Π₂′≡ ,
+      π₂⊒ , U⊒V′ =
+  left-widening-seq-recursive-witness-package
+    {Δ = Δ} {σ = σ} {V = V} {V′ = V′} {c = c} {d = d}
+    {q = q} {r = r}
+    vV
+    (χs₁ , W , Δ₁ , Π₁ , Π₁′ , π₁ ,
+      vW , noW , Vd↠W , Δ₁≡ , Π₁≡ , Π₁′≡ ,
+      π₁⊒ , W⊒V′ ,
+      χs₂ , U , Δ₂ , Π₂ , Π₂′ , π₂ ,
+      vU , noU , Wc↠U , Δ₂≡ , Π₂≡ , Π₂′≡ ,
+      π₂⊒ , U⊒V′)
 
 left-widening-gen-reduction :
   ∀ {A c V} →

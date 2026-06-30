@@ -4446,3 +4446,67 @@ available and may be too broad because `merge01ᵗ` is non-injective; the next
 attempt should specialize the replay to the source-first prefix where the
 renamed store can immediately be merged to the deterministic `(zero ꞉ id ★)`
 store.
+
+## Attempt 125: factor the checked split rebuild after `merge01ᵗ`
+
+Accepted as checked support.
+
+I pushed Attempt 124 one step further by proving the target-first half after the
+hypothetical merged premise.  The new checked algebra is:
+
+- `merge01ᵗ-after-suc`;
+- `renameᵗ-merge01-⇑`, `renameᶜ-merge01-⇑`,
+  `renameᵗᵐ-merge01-⇑`;
+- `renameᵗ-merge01-⇑⇑`, `renameᶜ-merge01-⇑⇑`,
+  `renameᵗᵐ-merge01-⇑⇑`;
+- `renameStoreNrw-merge01-⇑ˢ⇑ˢ`;
+- `source-first-merge01-srcStore`;
+- `source-first-merge01-coercionᶜ`.
+
+These show that `merge01ᵗ` behaves like `extᵗ suc` on the target/coercion side
+of the source-first body, while leaving the double-shifted store tail unchanged.
+
+I then factored the split reconstruction:
+
+- `merge01-split-rebuild`;
+- `merge01-split-rebuild-pred`;
+- `gen-body-target-first-coercionᶜ`;
+- `merge01-split-rebuild-gen`.
+
+The important final shape is:
+
+`suc (suc Δ) ∣ (zero ꞉ id ★) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+  ⊢ renameᵗᵐ merge01ᵗ W
+    ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p`
+
+implies, using the original `gen A p` typing, the exact replay body needed by
+`catchup-⊒Λ-no-earlier-bind-catchup`:
+
+`suc (suc Δ) ∣
+  (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+  ⊢ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+    ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p`.
+
+This confirms that the remaining problem is not the `split` reconstruction
+itself.  The remaining gap is precisely the premise above: transform the
+source-first body
+
+`suc (suc Δ) ∣
+  (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+  ⊢ W ⊒ ⇑ᵗᵐ V′ ∶ ⇑ᶜ p`
+
+first by the `merge01ᵗ` syntax action and then from
+
+`(⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`
+
+to
+
+`(zero ꞉ id ★) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+A two-head-only term lemma would repeat Attempt 123's mistake under binders.
+The next plausible checked object is a prefix-aware `SourceTargetMergeRel`,
+analogous to `ExtendReplaceRel`, whose head case merges
+`(⊒ X ꞉=☆) ∷ (X ꞉= ★ ⊒)` into `(X ꞉ id ★)` and whose recursive cases push that
+merge under `right`, `left`, and `both` store-prefix constructors.  Its term
+transport should reuse the checked `*-source-target-merge-id★` endpoint and
+composition transports from Attempt 124.

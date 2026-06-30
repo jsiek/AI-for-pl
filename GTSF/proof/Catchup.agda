@@ -593,6 +593,25 @@ merge01ᵗ zero = zero
 merge01ᵗ (suc zero) = zero
 merge01ᵗ (suc (suc X)) = suc (suc X)
 
+merge01ᵗ-after-suc-suc :
+  ∀ X →
+  merge01ᵗ (suc (suc X)) ≡ suc (suc X)
+merge01ᵗ-after-suc-suc X = refl
+
+TyRenameWf-merge01 :
+  ∀ {Δ} →
+  TyRenameWf (suc (suc Δ)) (suc (suc Δ)) merge01ᵗ
+TyRenameWf-merge01 {X = zero} z<s = z<s
+TyRenameWf-merge01 {X = suc zero} (s<s z<s) = z<s
+TyRenameWf-merge01 {X = suc (suc X)} (s<s (s<s X<Δ)) =
+  s<s (s<s X<Δ)
+
+merge01ᵗ-after-suc :
+  ∀ X →
+  merge01ᵗ (suc X) ≡ extᵗ suc X
+merge01ᵗ-after-suc zero = refl
+merge01ᵗ-after-suc (suc X) = refl
+
 close01ᵗ : Renameᵗ
 close01ᵗ zero = zero
 close01ᵗ (suc zero) = zero
@@ -659,6 +678,63 @@ renameᵗᵐ-close01-open1 :
 renameᵗᵐ-close01-open1 M =
   trans (renameᵗᵐ-compose close01ᵗ (singleRenameᵗ (suc zero)) M)
     (renameᵗᵐ-cong close01-open1 M)
+
+renameᵗ-merge01-⇑ :
+  ∀ A →
+  renameᵗ merge01ᵗ (⇑ᵗ A) ≡ renameᵗ (extᵗ suc) A
+renameᵗ-merge01-⇑ A =
+  trans (renameᵗ-compose suc merge01ᵗ A)
+    (rename-cong merge01ᵗ-after-suc A)
+
+renameᶜ-merge01-⇑ :
+  ∀ c →
+  renameᶜ merge01ᵗ (⇑ᶜ c) ≡ renameᶜ (extᵗ suc) c
+renameᶜ-merge01-⇑ c =
+  trans (renameᶜ-compose suc merge01ᵗ c)
+    (renameᶜ-cong merge01ᵗ-after-suc c)
+
+renameᵗᵐ-merge01-⇑ :
+  ∀ M →
+  renameᵗᵐ merge01ᵗ (⇑ᵗᵐ M) ≡ renameᵗᵐ (extᵗ suc) M
+renameᵗᵐ-merge01-⇑ M =
+  trans (renameᵗᵐ-compose suc merge01ᵗ M)
+    (renameᵗᵐ-cong merge01ᵗ-after-suc M)
+
+renameᵗ-merge01-⇑⇑ :
+  ∀ A →
+  renameᵗ merge01ᵗ (⇑ᵗ (⇑ᵗ A)) ≡ ⇑ᵗ (⇑ᵗ A)
+renameᵗ-merge01-⇑⇑ A =
+  trans
+    (cong (renameᵗ merge01ᵗ) (renameᵗ-compose suc suc A))
+    (trans
+      (renameᵗ-compose (λ X → suc (suc X)) merge01ᵗ A)
+      (trans
+        (rename-cong merge01ᵗ-after-suc-suc A)
+        (sym (renameᵗ-compose suc suc A))))
+
+renameᶜ-merge01-⇑⇑ :
+  ∀ c →
+  renameᶜ merge01ᵗ (⇑ᶜ (⇑ᶜ c)) ≡ ⇑ᶜ (⇑ᶜ c)
+renameᶜ-merge01-⇑⇑ c =
+  trans
+    (cong (renameᶜ merge01ᵗ) (renameᶜ-compose suc suc c))
+    (trans
+      (renameᶜ-compose (λ X → suc (suc X)) merge01ᵗ c)
+      (trans
+        (renameᶜ-cong merge01ᵗ-after-suc-suc c)
+        (sym (renameᶜ-compose suc suc c))))
+
+renameᵗᵐ-merge01-⇑⇑ :
+  ∀ M →
+  renameᵗᵐ merge01ᵗ (⇑ᵗᵐ (⇑ᵗᵐ M)) ≡ ⇑ᵗᵐ (⇑ᵗᵐ M)
+renameᵗᵐ-merge01-⇑⇑ M =
+  trans
+    (cong (renameᵗᵐ merge01ᵗ) (renameᵗᵐ-compose suc suc M))
+    (trans
+      (renameᵗᵐ-compose (λ X → suc (suc X)) merge01ᵗ M)
+      (trans
+        (renameᵗᵐ-cong merge01ᵗ-after-suc-suc M)
+        (sym (renameᵗᵐ-compose suc suc M))))
 
 raise0ᵗ-after-suc-suc :
   ∀ X →
@@ -793,6 +869,25 @@ renameStoreNrw-swap01-⇑ˢ⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
   cong₂ _∷_
     (cong (λ Y → ⊒ Y ꞉=☆) (swap01ᵗ-after-suc-suc X))
     (renameStoreNrw-swap01-⇑ˢ⇑ˢ σ)
+
+renameStoreNrw-merge01-⇑ˢ⇑ˢ :
+  ∀ σ →
+  renameStoreNrw merge01ᵗ (⇑ˢ (⇑ˢ σ)) ≡ ⇑ˢ (⇑ˢ σ)
+renameStoreNrw-merge01-⇑ˢ⇑ˢ [] = refl
+renameStoreNrw-merge01-⇑ˢ⇑ˢ ((X ꞉ p) ∷ σ) =
+  cong₂ _∷_
+    (cong₂ _꞉_ (merge01ᵗ-after-suc-suc X) (renameᶜ-merge01-⇑⇑ p))
+    (renameStoreNrw-merge01-⇑ˢ⇑ˢ σ)
+renameStoreNrw-merge01-⇑ˢ⇑ˢ ((X ꞉= A ⊒) ∷ σ) =
+  cong₂ _∷_
+    (cong₂ (λ Y B → Y ꞉= B ⊒)
+      (merge01ᵗ-after-suc-suc X)
+      (renameᵗ-merge01-⇑⇑ A))
+    (renameStoreNrw-merge01-⇑ˢ⇑ˢ σ)
+renameStoreNrw-merge01-⇑ˢ⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
+  cong₂ _∷_
+    (cong (λ Y → ⊒ Y ꞉=☆) (merge01ᵗ-after-suc-suc X))
+    (renameStoreNrw-merge01-⇑ˢ⇑ˢ σ)
 
 renameStoreNrw-raise0-⇑ˢ⇑ˢ :
   ∀ σ →
@@ -1683,6 +1778,42 @@ modeRename-raise0-tag-or-id :
 modeRename-raise0-tag-or-id =
   modeRename-tag-or-id raise0ᵗ
 
+modeRename-merge01-tag-or-id :
+  ModeRename merge01ᵗ tag-or-idᵈ tag-or-idᵈ
+modeRename-merge01-tag-or-id =
+  modeRename-tag-or-id merge01ᵗ
+
+source-first-merge01-srcStore :
+  ∀ σ →
+  srcStoreⁿ
+    (renameStoreNrw merge01ᵗ
+      ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)))
+  ≡
+  srcStoreⁿ ((⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ))
+source-first-merge01-srcStore σ =
+  cong ((zero , ★) ∷_)
+    (cong srcStoreⁿ (renameStoreNrw-merge01-⇑ˢ⇑ˢ σ))
+
+source-first-merge01-coercionᶜ :
+  ∀ {Δ σ c A B} →
+  suc (suc Δ) ∣
+    srcStoreⁿ ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ))
+    ⊢ c ∶ᶜ A ⊒ B →
+  suc (suc Δ) ∣
+    srcStoreⁿ ((⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ))
+    ⊢ renameᶜ merge01ᵗ c
+      ∶ᶜ renameᵗ merge01ᵗ A ⊒ renameᵗ merge01ᵗ B
+source-first-merge01-coercionᶜ
+    {Δ = Δ} {σ = σ} {c = c} {A = A} {B = B} cᶜ =
+  subst
+    (λ Σ → suc (suc Δ) ∣ Σ ⊢ renameᶜ merge01ᵗ c
+      ∶ᶜ renameᵗ merge01ᵗ A ⊒ renameᵗ merge01ᵗ B)
+    (source-first-merge01-srcStore σ)
+    (renameStoreNrw-coercionᶜ
+      {σ = (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)}
+      TyRenameWf-merge01
+      cᶜ)
+
 source-target-raise0-coercionᶜ :
   ∀ {Δ σ c A B} →
   suc (suc Δ) ∣
@@ -2128,6 +2259,47 @@ gen-body-coercionᶜ-tag :
 gen-body-coercionᶜ-tag pᶜ =
   narrow-mode-relax gen-tag-or-id≤tag-or-id
     (gen-body-coercionᶜ pᶜ)
+
+gen-body-target-first-coercionᶜ :
+  ∀ {Δ σ A B p} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  suc (suc Δ) ∣
+    srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ))
+    ⊢ renameᶜ (extᵗ suc) p
+      ∶ᶜ renameᵗ swap01ᵗ (⇑ᵗ (⇑ᵗ A)) ⊒ renameᵗ swap01ᵗ (⇑ᵗ B)
+gen-body-target-first-coercionᶜ
+    {Δ = Δ} {σ = σ} {A = A} {B = B} {p = p} pᶜ =
+  subst
+    (λ c → suc (suc Δ) ∣
+      srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ))
+      ⊢ c ∶ᶜ
+        renameᵗ swap01ᵗ (⇑ᵗ (⇑ᵗ A)) ⊒ renameᵗ swap01ᵗ (⇑ᵗ B))
+    (renameᶜ-swap01-⇑ p)
+    (source-target-bubble-empty-coercionᶜ {σ = σ} sourceFirst)
+  where
+    base :
+      suc Δ ∣ srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)
+        ⊢ p ∶ᶜ ⇑ᵗ A ⊒ B
+    base =
+      subst
+        (λ Σ → suc Δ ∣ Σ ⊢ p ∶ᶜ ⇑ᵗ A ⊒ B)
+        (sym (srcStoreⁿ-⇑ˢ σ))
+        (gen-body-coercionᶜ-tag pᶜ)
+
+    shifted :
+      suc (suc Δ) ∣ srcStoreⁿ (⇑ˢ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ))
+        ⊢ ⇑ᶜ p ∶ᶜ ⇑ᵗ (⇑ᵗ A) ⊒ ⇑ᵗ B
+    shifted =
+      narrow-⇑ᵗ-ᶜ-srcStoreⁿ
+        {σ = (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ}
+        base
+
+    sourceFirst :
+      suc (suc Δ) ∣
+        srcStoreⁿ ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ))
+        ⊢ ⇑ᶜ p ∶ᶜ ⇑ᵗ (⇑ᵗ A) ⊒ ⇑ᵗ B
+    sourceFirst =
+      narrow-weaken ≤-refl StoreIncl-drop shifted
 
 catchup-gen-body-coercionᶜ :
   ∀ {Δ Δ′ σ π Π Π′ χs A B p} →
@@ -2857,6 +3029,117 @@ id★-coercionᶜ :
   ∀ {Δ Σ} →
   Δ ∣ Σ ⊢ id ★ ∶ᶜ ★ ⊒ ★
 id★-coercionᶜ = cast-id wf★ refl , id★
+
+merge01-split-rebuild :
+  ∀ {Δ σ W V′ p C D} →
+  suc (suc Δ) ∣
+    srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ))
+    ⊢ renameᶜ (extᵗ suc) p ∶ᶜ C ⊒ D →
+  suc (suc Δ) ∣ (zero ꞉ id ★) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ renameᵗᵐ merge01ᵗ W
+      ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p →
+  suc (suc Δ) ∣
+    (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ renameᵗᵐ raise0ᵗ W
+      ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p
+merge01-split-rebuild
+    {Δ = Δ} {σ = σ} {W = W} {V′ = V′} {p = p} {C = C} {D = D}
+    pᶜ body =
+  subst
+    (λ c → _ ∣ splitStore ∣ []
+      ⊢ renameᵗᵐ raise0ᵗ W
+        ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ c)
+    (open-shiftᶜ zero (renameᶜ (extᵗ suc) p))
+    (subst
+      (λ T → _ ∣ splitStore ∣ []
+        ⊢ renameᵗᵐ raise0ᵗ W ⊒ T
+          ∶ (⇑ᶜ (renameᶜ (extᵗ suc) p)) [ zero ]ᶜ)
+      (open-shiftᵐ zero (renameᵗᵐ (extᵗ suc) V′))
+      (subst
+        (λ S → _ ∣ splitStore ∣ []
+          ⊢ S ⊒ (⇑ᵗᵐ (renameᵗᵐ (extᵗ suc) V′)) [ zero ]ᵀ
+            ∶ (⇑ᶜ (renameᶜ (extᵗ suc) p)) [ zero ]ᶜ)
+        (renameᵗᵐ-close01-open1 W)
+        raw))
+  where
+    splitStore =
+      (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ)
+
+    premise :
+      suc (suc Δ) ∣ (zero ꞉ id ★) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+        ⊢ (renameᵗᵐ close01ᵗ W) [ zero ]ᵀ
+          ⊒ (⇑ᵗᵐ (renameᵗᵐ (extᵗ suc) V′)) [ zero ]ᵀ
+          ∶ (⇑ᶜ (renameᶜ (extᵗ suc) p)) [ zero ]ᶜ
+    premise =
+      subst
+        (λ c → _ ∣ (zero ꞉ id ★) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+          ⊢ (renameᵗᵐ close01ᵗ W) [ zero ]ᵀ
+            ⊒ (⇑ᵗᵐ (renameᵗᵐ (extᵗ suc) V′)) [ zero ]ᵀ ∶ c)
+        (sym (open-shiftᶜ zero (renameᶜ (extᵗ suc) p)))
+        (subst
+          (λ T → _ ∣ (zero ꞉ id ★) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+            ⊢ (renameᵗᵐ close01ᵗ W) [ zero ]ᵀ ⊒ T
+              ∶ renameᶜ (extᵗ suc) p)
+          (sym (open-shiftᵐ zero (renameᵗᵐ (extᵗ suc) V′)))
+          (subst
+            (λ S → _ ∣ (zero ꞉ id ★) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+              ⊢ S ⊒ renameᵗᵐ (extᵗ suc) V′
+                ∶ renameᶜ (extᵗ suc) p)
+            (sym (renameᵗᵐ-close01-open0 W))
+            body))
+
+    pᶜ-open :
+      suc (suc Δ) ∣ srcStoreⁿ splitStore
+        ⊢ (⇑ᶜ (renameᶜ (extᵗ suc) p)) [ zero ]ᶜ ∶ᶜ C ⊒ D
+    pᶜ-open =
+      subst
+        (λ c → _ ∣ srcStoreⁿ splitStore ⊢ c ∶ᶜ C ⊒ D)
+        (sym (open-shiftᶜ zero (renameᶜ (extᵗ suc) p)))
+        pᶜ
+
+    raw :
+      suc (suc Δ) ∣ splitStore ∣ []
+        ⊢ (renameᵗᵐ close01ᵗ W) [ suc zero ]ᵀ
+          ⊒ (⇑ᵗᵐ (renameᵗᵐ (extᵗ suc) V′)) [ zero ]ᵀ
+          ∶ (⇑ᶜ (renameᶜ (extᵗ suc) p)) [ zero ]ᶜ
+    raw =
+      split id★-coercionᶜ pᶜ-open premise
+
+merge01-split-rebuild-pred :
+  ∀ {Δ σ W V′ p C D} →
+  suc (suc Δ) ∣
+    srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ))
+    ⊢ renameᶜ (extᵗ suc) p ∶ᶜ C ⊒ D →
+  suc (suc Δ) ∣ (zero ꞉ id ★) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ renameᵗᵐ merge01ᵗ W
+      ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p →
+  suc (suc Δ) ∣
+    (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+      ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p
+merge01-split-rebuild-pred {W = W} pᶜ body =
+  subst
+    (λ S → _ ∣ _ ∣ []
+      ⊢ S ⊒ _ ∶ _)
+    (renameᵗᵐ-raise0-pred W)
+    (merge01-split-rebuild pᶜ body)
+
+merge01-split-rebuild-gen :
+  ∀ {Δ σ W V′ A B p} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  suc (suc Δ) ∣ (zero ꞉ id ★) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ renameᵗᵐ merge01ᵗ W
+      ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p →
+  suc (suc Δ) ∣
+    (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+      ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p
+merge01-split-rebuild-gen
+    {σ = σ} {A = A} {B = B} {p = p} pᶜ body =
+  merge01-split-rebuild-pred
+    {σ = σ} {p = p}
+    (gen-body-target-first-coercionᶜ {σ = σ} {A = A} {B = B} pᶜ)
+    body
 
 gen-body-open-split-coercion :
   ∀ {Δ σ A B p} →

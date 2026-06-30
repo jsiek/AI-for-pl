@@ -3556,3 +3556,37 @@ itself.  It does not move a `compose-rightⁿ` proof across the source/target
 binder swap.  The next target is a restricted replay theorem for
 `compose-rightⁿ` whose right component has a double-shifted source endpoint,
 rather than the false arbitrary theorem refuted by the earlier probes.
+
+## Attempt 99: split off the last-bind reduction inversion
+
+Accepted as checked support in `proof.Catchup`.
+
+The broad shifted-source postulate bundles two different jobs:
+
+1. invert the reduction from `⇑ᵗᵐ N` so the unshifted source `N` reaches
+   `renameᵗᵐ predᵗ W`, and
+2. replay the final body relation under the target-first store prefix.
+
+The first job is already supported by `safe-allKeep-bind-pred-↠-shifted` from
+`proof.ReductionProperties`.  I added the small local wrapper
+`last-bind-pred-reduction`, specialized to the `bind ★` shape forced by
+`last-bind-empty-target-star`:
+
+`N —↠[ χs ++ bind ★ ∷ keeps ] renameᵗᵐ predᵗ W`.
+
+This uses `value-target-source-safe` as the intended source of the
+`CatchupSafe (⇑ᵗᵐ N)` premise in the live `⊒Λ` last-bind branch.
+
+Limitation: this does not construct the body relation required by
+`catchup-⊒Λ-single-bind-finish`.  The remaining obligation is now isolated as
+the mixed target-first replay:
+
+`⇑ᵗᵐ (renameᵗᵐ predᵗ W) ⊒ renameᵗᵐ (extᵗ suc) V′
+  ∶ renameᶜ (extᵗ suc) p`.
+
+The source-first relation from `last-bind-source-first-body` is still
+
+`W ⊒ ⇑ᵗᵐ (...) ∶ ⇑ᶜ (...)`,
+
+so source-side cast branches still need the mixed `raise0ᵗ`/`swap01ᵗ`
+composition argument or a different value-level route.

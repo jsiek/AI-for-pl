@@ -188,6 +188,8 @@ open import proof.ReductionProperties
     ; applyCoercionUnderTyBinders-⇑ᶜ
     ; ν-↠
     ; shiftStore
+    ; CatchupSafe
+    ; safe-allKeep-bind-pred-↠-shifted
     ; shiftStore-empty
     ; shiftStore-empty-inv
     ; shiftStore-cons
@@ -354,6 +356,25 @@ last-bind-source-first-body {σ = σ} {χs = χs} {A = A}
           (combineStoreNrw-source-star-shifted-tail π₀
             ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)))
         body))
+
+last-bind-pred-reduction :
+  ∀ {χs Aχ keeps N P Q W} →
+  AllKeep χs →
+  AllKeep keeps →
+  Aχ ≡ ★ →
+  CatchupSafe (⇑ᵗᵐ N) →
+  (⇑ᵗᵐ N —↠[ χs ] P) →
+  (P —→[ bind Aχ ] Q) →
+  (Q —↠[ keeps ] W) →
+  Value W →
+  N —↠[ χs ++ bind ★ ∷ keeps ] renameᵗᵐ predᵗ W
+last-bind-pred-reduction {χs = χs} {Aχ = Aχ} {keeps = keeps}
+    keepsχ keepsTail Aχ≡★ safe⇑N ⇑N↠P P→Q Q↠W vW =
+  subst
+    (λ X → _ —↠[ χs ++ bind X ∷ keeps ] _)
+    (cong (renameᵗ predᵗ) Aχ≡★)
+    (safe-allKeep-bind-pred-↠-shifted
+      safe⇑N keepsχ keepsTail ⇑N↠P P→Q Q↠W vW)
 
 ⊒ˢ-empty-empty-nil :
   ∀ {Δ π} →

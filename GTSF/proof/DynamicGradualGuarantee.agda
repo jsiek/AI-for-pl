@@ -21,13 +21,32 @@ open import NuTerms
 open import NuReduction
 open import NarrowWiden
 open import TermNarrowing
-open import proof.Catchup using (catchup-lemma)
+open import proof.Catchup
+  using (catchup-lemma; runtime-open-change; runtime-⇑ᵗᵐ)
 open import proof.CatchupStore using (combineStoreNrw)
 open import proof.LeftSealNarrowingInversion using
   (LeftSealNarrowingInversion; leftSealNarrowingInversion)
 open import proof.ReductionProperties using (type-rename-step-⇑ᵗᵐ)
 open import proof.TermSubstitutionNarrowing using
   (term-substitution-narrowing)
+open import proof.NuPreservation using
+  (runtime-·₁; runtime-⟨⟩; runtime-ν; runtime-⊕₁)
+
+runtime-·₂-any :
+  ∀ {L M} →
+  RuntimeOK (L · M) →
+  RuntimeOK M
+runtime-·₂-any (ok-no (no•-· noL noM)) = ok-no noM
+runtime-·₂-any (ok-·₁ okL noM) = ok-no noM
+runtime-·₂-any (ok-·₂ vL noL okM) = okM
+
+runtime-⊕₂-any :
+  ∀ {L op M} →
+  RuntimeOK (L ⊕[ op ] M) →
+  RuntimeOK M
+runtime-⊕₂-any (ok-no (no•-⊕ noL noM)) = ok-no noM
+runtime-⊕₂-any (ok-⊕₁ okL noM) = ok-no noM
+runtime-⊕₂-any (ok-⊕₂ vL noL okM) = okM
 
 ------------------------------------------------------------------------
 -- Lemmas used by the cambridge25 top-down proof
@@ -104,6 +123,7 @@ function-application-simulation-ƛ⊒ƛ {N = N} {V = V} vV N⊒N′ V⊒V′ =
 
 function-application-simulation :
   ∀ {Δ σ L L′ M N′ V′ r p q} →
+  RuntimeOK M →
   Value V′ →
   Δ ∣ σ ∣ [] ⊢ L ⊒ L′ ∶ r →
   L′ ≡ ƛ N′ →
@@ -115,47 +135,63 @@ function-application-simulation :
     (Π′ ≡ applyStore keep []) ×
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
     Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ N′ [ V′ ] ∶ q′
-function-application-simulation vV′ (extend qᶜ pαᶜ L⊒L′) eq eqr M⊒V′ =
+function-application-simulation okM vV′
+    (extend qᶜ pαᶜ L⊒L′) eq eqr M⊒V′ =
   {!!}
-function-application-simulation vV′ (split qᶜ pαᶜ L⊒L′) eq eqr M⊒V′ =
+function-application-simulation okM vV′
+    (split qᶜ pαᶜ L⊒L′) eq eqr M⊒V′ =
   {!!}
-function-application-simulation vV′ (⊒blame pᶜ) () eqr M⊒V′
-function-application-simulation vV′ (x⊒x pᶜ x∋p) () eqr M⊒V′
+function-application-simulation okM vV′ (⊒blame pᶜ) () eqr M⊒V′
+function-application-simulation okM vV′ (x⊒x pᶜ x∋p) () eqr M⊒V′
 -- The direct λ/λ case reduces to the beta helper once the source argument is
 -- known to be a value.  The full proof should obtain that value by catchup.
-function-application-simulation vV′ (ƛ⊒ƛ {N = N} {N′ = N′} p↦qᶜ N⊒N′)
+function-application-simulation okM vV′
+    (ƛ⊒ƛ {N = N} {N′ = N′} p↦qᶜ N⊒N′)
     refl refl M⊒V′
-    with catchup-lemma vV′ M⊒V′
-function-application-simulation vV′ (ƛ⊒ƛ {N = N} {N′ = N′} p↦qᶜ N⊒N′)
+    with catchup-lemma okM vV′ M⊒V′
+function-application-simulation okM vV′
+    (ƛ⊒ƛ {N = N} {N′ = N′} p↦qᶜ N⊒N′)
     refl refl M⊒V′
     | χs , W , Δ′ , Π , Π′ , π ,
-      vW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     with function-application-simulation-ƛ⊒ƛ
            {N = N} {N′ = N′} {V = W} {V′ = _} vW {!!} W⊒V′
-function-application-simulation vV′ (ƛ⊒ƛ {N = N} {N′ = N′} p↦qᶜ N⊒N′)
+function-application-simulation okM vV′
+    (ƛ⊒ƛ {N = N} {N′ = N′} p↦qᶜ N⊒N′)
     refl refl M⊒V′
     | χs , W , Δ′ , Π , Π′ , π ,
-      vW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
+      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
     | χsβ , P , Δβ , Πβ , Πβ′ , πβ , qβ ,
       β↠ , Πβ≡ , Πβ′≡ , πβ⊒ , P⊒N′ =
   {!!}
-function-application-simulation vV′ (·⊒· qᶜ L⊒L′ M⊒M′) () eqr M⊒V′
-function-application-simulation vV′ (Λ⊒Λ allᶜ vV V⊒V′) () eqr M⊒V′
-function-application-simulation vV′ (⊒Λ pᶜ N⊒V′) () eqr M⊒V′
-function-application-simulation vV′ (⊒⟨ν⟩ pᶜ sᵢ N⊒V′) () eqr M⊒V′
-function-application-simulation vV′ (α⊒α qᶜ pαᶜ L⊒L′) () eqr M⊒V′
-function-application-simulation vV′ (⊒α pαᶜ L⊒L′) () eqr M⊒V′
-function-application-simulation vV′ (ν⊒ν pᶜ qᶜ N⊒N′) () eqr M⊒V′
-function-application-simulation vV′ (⊒ν pᶜ L⊒L′) () eqr M⊒V′
-function-application-simulation vV′ (ν⊒ pᶜ L⊒L′) refl eqr M⊒V′ =
+function-application-simulation okM vV′
+    (·⊒· qᶜ L⊒L′ M⊒M′) () eqr M⊒V′
+function-application-simulation okM vV′
+    (Λ⊒Λ allᶜ vV V⊒V′) () eqr M⊒V′
+function-application-simulation okM vV′ (⊒Λ pᶜ N⊒V′) () eqr M⊒V′
+function-application-simulation okM vV′ (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)
+    () eqr M⊒V′
+function-application-simulation okM vV′
+    (α⊒α qᶜ pαᶜ L⊒L′) () eqr M⊒V′
+function-application-simulation okM vV′ (⊒α pαᶜ L⊒L′)
+    () eqr M⊒V′
+function-application-simulation okM vV′ (ν⊒ν pᶜ qᶜ N⊒N′)
+    () eqr M⊒V′
+function-application-simulation okM vV′ (⊒ν pᶜ L⊒L′) () eqr M⊒V′
+function-application-simulation okM vV′ (ν⊒ pᶜ L⊒L′) refl eqr M⊒V′ =
   {!!}
-function-application-simulation vV′ (κ⊒κ κ) () eqr M⊒V′
-function-application-simulation vV′ (⊕⊒⊕ M⊒M′ N⊒N′) () eqr M⊒V′
-function-application-simulation vV′ (⊒cast+ qᶜ q⨟s≈r L⊒L′) () eqr M⊒V′
-function-application-simulation vV′ (⊒cast- qᶜ q⨟s≈r L⊒L′) () eqr M⊒V′
-function-application-simulation vV′ (cast+⊒ pᶜ r≈t⨟p L⊒L′) refl eqr M⊒V′ =
+function-application-simulation okM vV′ (κ⊒κ κ) () eqr M⊒V′
+function-application-simulation okM vV′ (⊕⊒⊕ M⊒M′ N⊒N′)
+    () eqr M⊒V′
+function-application-simulation okM vV′
+    (⊒cast+ qᶜ q⨟s≈r L⊒L′) () eqr M⊒V′
+function-application-simulation okM vV′
+    (⊒cast- qᶜ q⨟s≈r L⊒L′) () eqr M⊒V′
+function-application-simulation okM vV′
+    (cast+⊒ pᶜ r≈t⨟p L⊒L′) refl eqr M⊒V′ =
   {!!}
-function-application-simulation vV′ (cast-⊒ pᶜ r≈t⨟p L⊒L′) refl eqr M⊒V′ =
+function-application-simulation okM vV′
+    (cast-⊒ pᶜ r≈t⨟p L⊒L′) refl eqr M⊒V′ =
   {!!}
 
 ------------------------------------------------------------------------
@@ -164,6 +200,7 @@ function-application-simulation vV′ (cast-⊒ pᶜ r≈t⨟p L⊒L′) refl eq
 
 dynamicGradualGuarantee :
   ∀ {Δ σ M M′ N′ p χ′} →
+  RuntimeOK M →
   Δ ∣ σ ∣ [] ⊢ M ⊒ M′ ∶ p →
   M′ —→[ χ′ ] N′ →
   ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ p′ ]
@@ -176,116 +213,117 @@ dynamicGradualGuarantee :
 -- Store/context-shaping rules.  The recursive call is on the contained term
 -- narrowing derivation; the missing part is transport through the de Bruijn
 -- type-variable opening/substitution used by the store rule.
-dynamicGradualGuarantee (extend qᶜ pαᶜ M⊒N′) red
-    with dynamicGradualGuarantee M⊒N′ red
-dynamicGradualGuarantee (extend qᶜ pαᶜ M⊒N′) red
+dynamicGradualGuarantee okM (extend qᶜ pαᶜ M⊒N′) red
+    with dynamicGradualGuarantee okM M⊒N′ red
+dynamicGradualGuarantee okM (extend qᶜ pαᶜ M⊒N′) red
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒N′ =
   {!!}
-dynamicGradualGuarantee (split qᶜ pαᶜ N⊒N′) red
-    with dynamicGradualGuarantee N⊒N′ red
-dynamicGradualGuarantee (split qᶜ pαᶜ N⊒N′) red
+dynamicGradualGuarantee okM (split qᶜ pαᶜ N⊒N′) red
+    with dynamicGradualGuarantee (runtime-open-change okM) N⊒N′ red
+dynamicGradualGuarantee okM (split qᶜ pαᶜ N⊒N′) red
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒N′′ =
   {!!}
 
 -- Atomic right-hand terms cannot step.
-dynamicGradualGuarantee (⊒blame pᶜ) (pure-step ())
-dynamicGradualGuarantee (x⊒x pᶜ x∋p) (pure-step ())
-dynamicGradualGuarantee (κ⊒κ κ) (pure-step ())
+dynamicGradualGuarantee okM (⊒blame pᶜ) (pure-step ())
+dynamicGradualGuarantee okM (x⊒x pᶜ x∋p) (pure-step ())
+dynamicGradualGuarantee okM (κ⊒κ κ) (pure-step ())
 
 -- Lambda application.  Contextual right reduction recurses on the matching
 -- subderivation; the β redex uses function-application simulation, and the
 -- casted-function redex is handled by the wrapping lemma.
-dynamicGradualGuarantee (ƛ⊒ƛ p↦qᶜ N⊒N′) (pure-step ())
-dynamicGradualGuarantee (·⊒· qᶜ L⊒L′ M⊒M′) (pure-step (β vV))
-  = function-application-simulation vV L⊒L′ refl refl M⊒M′
-dynamicGradualGuarantee (·⊒· qᶜ L⊒L′ M⊒M′)
+dynamicGradualGuarantee okM (ƛ⊒ƛ p↦qᶜ N⊒N′) (pure-step ())
+dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (pure-step (β vV))
+  = function-application-simulation
+      (runtime-·₂-any okM) vV L⊒L′ refl refl M⊒M′
+dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′)
     (pure-step (β-↦ vV vW)) =
   wrap-widening-lemma L⊒L′ M⊒M′
-dynamicGradualGuarantee (·⊒· qᶜ L⊒L′ M⊒M′) (pure-step blame-·₁) =
+dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (pure-step blame-·₁) =
   {!!}
-dynamicGradualGuarantee (·⊒· qᶜ L⊒L′ M⊒M′) (pure-step (blame-·₂ vV)) =
+dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (pure-step (blame-·₂ vV)) =
   {!!}
-dynamicGradualGuarantee (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₁ L′→N′ shiftM)
-    with dynamicGradualGuarantee L⊒L′ L′→N′
-dynamicGradualGuarantee (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₁ L′→N′ shiftM)
+dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₁ L′→N′ shiftM)
+    with dynamicGradualGuarantee (runtime-·₁ okM) L⊒L′ L′→N′
+dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₁ L′→N′ shiftM)
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒N′ =
   {!!}
-dynamicGradualGuarantee (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₂ vV shiftV M′→N′)
-    with dynamicGradualGuarantee M⊒M′ M′→N′
-dynamicGradualGuarantee (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₂ vV shiftV M′→N′)
+dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₂ vV shiftV M′→N′)
+    with dynamicGradualGuarantee (runtime-·₂-any okM) M⊒M′ M′→N′
+dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₂ vV shiftV M′→N′)
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒N′ =
   {!!}
 
 -- Universal introduction and elimination.  The pure type-application redexes
 -- use the α/ν cases from the paper; contextual ν steps recurse under the
 -- stored body.
-dynamicGradualGuarantee (Λ⊒Λ allᶜ vV V⊒V′) (pure-step ())
-dynamicGradualGuarantee (⊒Λ pᶜ N⊒V′) (pure-step ())
-dynamicGradualGuarantee (⊒⟨ν⟩ pᶜ sᵢ N⊒V′) (pure-step red) =
+dynamicGradualGuarantee okM (Λ⊒Λ allᶜ vV V⊒V′) (pure-step ())
+dynamicGradualGuarantee okM (⊒Λ pᶜ N⊒V′) (pure-step ())
+dynamicGradualGuarantee okM (⊒⟨ν⟩ pᶜ sᵢ N⊒V′) (pure-step red) =
   {!!}
-dynamicGradualGuarantee (⊒⟨ν⟩ pᶜ sᵢ N⊒V′) (ξ-⟨⟩ V′→N′) =
+dynamicGradualGuarantee okM (⊒⟨ν⟩ pᶜ sᵢ N⊒V′) (ξ-⟨⟩ V′→N′) =
   {!!}
-dynamicGradualGuarantee (α⊒α qᶜ pαᶜ L⊒L′) (ν-step vV noV)
-    with catchup-lemma vV L⊒L′
-dynamicGradualGuarantee (α⊒α qᶜ pαᶜ L⊒L′) (ν-step vV noV)
+dynamicGradualGuarantee okM (α⊒α qᶜ pαᶜ L⊒L′) (ν-step vV noV)
+    with catchup-lemma (runtime-ν okM) vV L⊒L′
+dynamicGradualGuarantee okM (α⊒α qᶜ pαᶜ L⊒L′) (ν-step vV noV)
     | χs , N , Δ′ , Π , Π′ , π ,
-      vN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , N⊒L′ =
+      vN , noN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , N⊒L′ =
   {!!}
-dynamicGradualGuarantee (α⊒α qᶜ pαᶜ L⊒L′) (ξ-ν L′→N′)
-    with dynamicGradualGuarantee L⊒L′ L′→N′
-dynamicGradualGuarantee (α⊒α qᶜ pαᶜ L⊒L′) (ξ-ν L′→N′)
+dynamicGradualGuarantee okM (α⊒α qᶜ pαᶜ L⊒L′) (ξ-ν L′→N′)
+    with dynamicGradualGuarantee (runtime-ν okM) L⊒L′ L′→N′
+dynamicGradualGuarantee okM (α⊒α qᶜ pαᶜ L⊒L′) (ξ-ν L′→N′)
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒N′ =
   {!!}
-dynamicGradualGuarantee (α⊒α qᶜ pαᶜ L⊒L′) blame-ν =
+dynamicGradualGuarantee okM (α⊒α qᶜ pαᶜ L⊒L′) blame-ν =
   {!!}
-dynamicGradualGuarantee (⊒α pαᶜ L⊒L′) (ν-step vV noV)
-    with catchup-lemma vV L⊒L′
-dynamicGradualGuarantee (⊒α pαᶜ L⊒L′) (ν-step vV noV)
+dynamicGradualGuarantee okM (⊒α pαᶜ L⊒L′) (ν-step vV noV)
+    with catchup-lemma okM vV L⊒L′
+dynamicGradualGuarantee okM (⊒α pαᶜ L⊒L′) (ν-step vV noV)
     | χs , N , Δ′ , Π , Π′ , π ,
-      vN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , N⊒L′ =
+      vN , noN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , N⊒L′ =
   {!!}
-dynamicGradualGuarantee (⊒α pαᶜ L⊒L′) (ξ-ν L′→N′)
-    with dynamicGradualGuarantee L⊒L′ L′→N′
-dynamicGradualGuarantee (⊒α pαᶜ L⊒L′) (ξ-ν L′→N′)
+dynamicGradualGuarantee okM (⊒α pαᶜ L⊒L′) (ξ-ν L′→N′)
+    with dynamicGradualGuarantee okM L⊒L′ L′→N′
+dynamicGradualGuarantee okM (⊒α pαᶜ L⊒L′) (ξ-ν L′→N′)
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒N′ =
   {!!}
-dynamicGradualGuarantee (⊒α pαᶜ L⊒L′) blame-ν =
+dynamicGradualGuarantee okM (⊒α pαᶜ L⊒L′) blame-ν =
   {!!}
 
 -- ν cases.  The `ν⊒ν` and `ν⊒` bind steps are the direct store-extension
 -- cases at the end of the cambridge25 proof.  Contextual body steps recurse.
-dynamicGradualGuarantee (ν⊒ν pᶜ qᶜ N⊒N′) (ν-step vV noV)
-    with catchup-lemma vV N⊒N′
-dynamicGradualGuarantee (ν⊒ν pᶜ qᶜ N⊒N′) (ν-step vV noV)
+dynamicGradualGuarantee okM (ν⊒ν pᶜ qᶜ N⊒N′) (ν-step vV noV)
+    with catchup-lemma (runtime-ν okM) vV N⊒N′
+dynamicGradualGuarantee okM (ν⊒ν pᶜ qᶜ N⊒N′) (ν-step vV noV)
     | χs , N , Δ′ , Π , Π′ , π ,
-      vN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒N′ =
+      vN , noN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒N′ =
   {!!}
-dynamicGradualGuarantee (ν⊒ν pᶜ qᶜ N⊒N′) (ξ-ν N′→P′)
-    with dynamicGradualGuarantee N⊒N′ N′→P′
-dynamicGradualGuarantee (ν⊒ν pᶜ qᶜ N⊒N′) (ξ-ν N′→P′)
+dynamicGradualGuarantee okM (ν⊒ν pᶜ qᶜ N⊒N′) (ξ-ν N′→P′)
+    with dynamicGradualGuarantee (runtime-ν okM) N⊒N′ N′→P′
+dynamicGradualGuarantee okM (ν⊒ν pᶜ qᶜ N⊒N′) (ξ-ν N′→P′)
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒P′ =
   {!!}
-dynamicGradualGuarantee (ν⊒ν pᶜ qᶜ N⊒N′) blame-ν =
+dynamicGradualGuarantee okM (ν⊒ν pᶜ qᶜ N⊒N′) blame-ν =
   {!!}
-dynamicGradualGuarantee (⊒ν pᶜ N⊒N′) (ν-step vV noV)
-    with catchup-lemma vV N⊒N′
-dynamicGradualGuarantee (⊒ν pᶜ N⊒N′) (ν-step vV noV)
+dynamicGradualGuarantee okM (⊒ν pᶜ N⊒N′) (ν-step vV noV)
+    with catchup-lemma (runtime-⇑ᵗᵐ okM) vV N⊒N′
+dynamicGradualGuarantee okM (⊒ν pᶜ N⊒N′) (ν-step vV noV)
     | χs , N , Δ′ , Π , Π′ , π ,
-      vN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒N′ =
+      vN , noN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒N′ =
   {!!}
-dynamicGradualGuarantee (⊒ν pᶜ N⊒N′) (ξ-ν N′→P′)
-    with dynamicGradualGuarantee N⊒N′ N′→P′
-dynamicGradualGuarantee (⊒ν pᶜ N⊒N′) (ξ-ν N′→P′)
+dynamicGradualGuarantee okM (⊒ν pᶜ N⊒N′) (ξ-ν N′→P′)
+    with dynamicGradualGuarantee (runtime-⇑ᵗᵐ okM) N⊒N′ N′→P′
+dynamicGradualGuarantee okM (⊒ν pᶜ N⊒N′) (ξ-ν N′→P′)
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒P′ =
   {!!}
-dynamicGradualGuarantee (⊒ν pᶜ N⊒N′) blame-ν =
+dynamicGradualGuarantee okM (⊒ν pᶜ N⊒N′) blame-ν =
   {!!}
-dynamicGradualGuarantee (ν⊒ pᶜ N⊒N′) red
+dynamicGradualGuarantee okM (ν⊒ pᶜ N⊒N′) red
     with type-rename-step-⇑ᵗᵐ red
-dynamicGradualGuarantee (ν⊒ pᶜ N⊒N′) red
+dynamicGradualGuarantee okM (ν⊒ pᶜ N⊒N′) red
     | χ′ , P′ , red′
-    with dynamicGradualGuarantee N⊒N′ red′
-dynamicGradualGuarantee (ν⊒ pᶜ N⊒N′) red
+    with dynamicGradualGuarantee (runtime-ν okM) N⊒N′ red′
+dynamicGradualGuarantee okM (ν⊒ pᶜ N⊒N′) red
     | χ′ , P′ , red′
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒P′ =
   {!!}
@@ -293,133 +331,134 @@ dynamicGradualGuarantee (ν⊒ pᶜ N⊒N′) red
 -- Primitive arithmetic.  The pure δ case first catches both source operands up
 -- to the right-hand constants; contextual substeps recurse on the corresponding
 -- premise.
-dynamicGradualGuarantee (⊕⊒⊕ M⊒M′ N⊒N′) (pure-step δ-⊕)
-    with catchup-lemma ($ _) M⊒M′ | catchup-lemma ($ _) N⊒N′
-dynamicGradualGuarantee (⊕⊒⊕ M⊒M′ N⊒N′) (pure-step δ-⊕)
+dynamicGradualGuarantee okM (⊕⊒⊕ M⊒M′ N⊒N′) (pure-step δ-⊕)
+    with catchup-lemma (runtime-⊕₁ okM) ($ _) M⊒M′
+       | catchup-lemma (runtime-⊕₂-any okM) ($ _) N⊒N′
+dynamicGradualGuarantee okM (⊕⊒⊕ M⊒M′ N⊒N′) (pure-step δ-⊕)
     | χsM , M , ΔM , ΠM , ΠM′ , πM ,
-      vM , M↠ , ΔM≡ , ΠM≡ , ΠM′≡ , πM⊒ , W⊒M′
+      vM , noM , M↠ , ΔM≡ , ΠM≡ , ΠM′≡ , πM⊒ , W⊒M′
     | χsN , N , ΔN , ΠN , ΠN′ , πN ,
-      vN , N↠ , ΔN≡ , ΠN≡ , ΠN′≡ , πN⊒ , W⊒N′ =
+      vN , noN , N↠ , ΔN≡ , ΠN≡ , ΠN′≡ , πN⊒ , W⊒N′ =
   {!!}
-dynamicGradualGuarantee (⊕⊒⊕ M⊒M′ N⊒N′) (pure-step blame-⊕₁) =
+dynamicGradualGuarantee okM (⊕⊒⊕ M⊒M′ N⊒N′) (pure-step blame-⊕₁) =
   {!!}
-dynamicGradualGuarantee (⊕⊒⊕ M⊒M′ N⊒N′) (pure-step (blame-⊕₂ vV)) =
+dynamicGradualGuarantee okM (⊕⊒⊕ M⊒M′ N⊒N′) (pure-step (blame-⊕₂ vV)) =
   {!!}
-dynamicGradualGuarantee (⊕⊒⊕ M⊒M′ N⊒N′) (ξ-⊕₁ M′→P′ shiftN)
-    with dynamicGradualGuarantee M⊒M′ M′→P′
-dynamicGradualGuarantee (⊕⊒⊕ M⊒M′ N⊒N′) (ξ-⊕₁ M′→P′ shiftN)
+dynamicGradualGuarantee okM (⊕⊒⊕ M⊒M′ N⊒N′) (ξ-⊕₁ M′→P′ shiftN)
+    with dynamicGradualGuarantee (runtime-⊕₁ okM) M⊒M′ M′→P′
+dynamicGradualGuarantee okM (⊕⊒⊕ M⊒M′ N⊒N′) (ξ-⊕₁ M′→P′ shiftN)
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒P′ =
   {!!}
-dynamicGradualGuarantee (⊕⊒⊕ M⊒M′ N⊒N′) (ξ-⊕₂ vV shiftM N′→P′)
-    with dynamicGradualGuarantee N⊒N′ N′→P′
-dynamicGradualGuarantee (⊕⊒⊕ M⊒M′ N⊒N′) (ξ-⊕₂ vV shiftM N′→P′)
+dynamicGradualGuarantee okM (⊕⊒⊕ M⊒M′ N⊒N′) (ξ-⊕₂ vV shiftM N′→P′)
+    with dynamicGradualGuarantee (runtime-⊕₂-any okM) N⊒N′ N′→P′
+dynamicGradualGuarantee okM (⊕⊒⊕ M⊒M′ N⊒N′) (ξ-⊕₂ vV shiftM N′→P′)
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒P′ =
   {!!}
 
 -- Right-cast reductions.  The ξ case recurses; the redex cases invoke the
 -- right-tag, right-seal, sequence, ν-widening, and catch-up lemmas.
-dynamicGradualGuarantee (⊒cast+ qᶜ q⨟s≈r M⊒M′) (ξ-⟨⟩ M′→N′)
-    with dynamicGradualGuarantee M⊒M′ M′→N′
-dynamicGradualGuarantee (⊒cast+ qᶜ q⨟s≈r M⊒M′) (ξ-⟨⟩ M′→N′)
+dynamicGradualGuarantee okM (⊒cast+ qᶜ q⨟s≈r M⊒M′) (ξ-⟨⟩ M′→N′)
+    with dynamicGradualGuarantee okM M⊒M′ M′→N′
+dynamicGradualGuarantee okM (⊒cast+ qᶜ q⨟s≈r M⊒M′) (ξ-⟨⟩ M′→N′)
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒N′ =
   {!!}
-dynamicGradualGuarantee (⊒cast+ {s = id A} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast+ {s = id A} qᶜ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
-    with catchup-lemma vV M⊒M′
-dynamicGradualGuarantee (⊒cast+ {s = id A} qᶜ q⨟s≈r M⊒M′)
+    with catchup-lemma okM vV M⊒M′
+dynamicGradualGuarantee okM (⊒cast+ {s = id A} qᶜ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
     | χs , N , Δ′ , Π , Π′ , π ,
-      vN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , N⊒M′ =
+      vN , noN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , N⊒M′ =
   {!!}
-dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-ok vV))
     with right-tag-inversion₂ (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
-dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-ok vV))
     | M⊒V!
     with right-tag-inversion₁ M⊒V!
-dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-ok vV))
     | M⊒V!
     | M⊒V =
   {!!}
-dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-bad vV H≢G))
     with right-tag-inversion₂ (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
-dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-bad vV H≢G))
     | M⊒V!
     with right-tag-inversion₁ M⊒V!
-dynamicGradualGuarantee (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast+ {s = (‵ ι) !} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-bad vV H≢G))
     | M⊒V!
     | M⊒V =
   {!!}
-dynamicGradualGuarantee (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
     (pure-step (seal-unseal vV))
     with right-seal-inversion₂ (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
-dynamicGradualGuarantee (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
     (pure-step (seal-unseal vV))
     | r , M⊒Vseal
   = {!!}
-dynamicGradualGuarantee (⊒cast+ qᶜ q⨟s≈r M⊒M′) (pure-step red) =
+dynamicGradualGuarantee okM (⊒cast+ qᶜ q⨟s≈r M⊒M′) (pure-step red) =
   {!!}
-dynamicGradualGuarantee (⊒cast- qᶜ q⨟s≈r M⊒M′) (ξ-⟨⟩ M′→N′)
-    with dynamicGradualGuarantee M⊒M′ M′→N′
-dynamicGradualGuarantee (⊒cast- qᶜ q⨟s≈r M⊒M′) (ξ-⟨⟩ M′→N′)
+dynamicGradualGuarantee okM (⊒cast- qᶜ q⨟s≈r M⊒M′) (ξ-⟨⟩ M′→N′)
+    with dynamicGradualGuarantee okM M⊒M′ M′→N′
+dynamicGradualGuarantee okM (⊒cast- qᶜ q⨟s≈r M⊒M′) (ξ-⟨⟩ M′→N′)
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒N′ =
   {!!}
-dynamicGradualGuarantee (⊒cast- {s = id A} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast- {s = id A} qᶜ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
-    with catchup-lemma vV M⊒M′
-dynamicGradualGuarantee (⊒cast- {s = id A} qᶜ q⨟s≈r M⊒M′)
+    with catchup-lemma okM vV M⊒M′
+dynamicGradualGuarantee okM (⊒cast- {s = id A} qᶜ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
     | χs , N , Δ′ , Π , Π′ , π ,
-      vN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , N⊒M′ =
+      vN , noN , N↠ , Δ′≡ , Π≡ , Π′≡ , π⊒ , N⊒M′ =
   {!!}
-dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-ok vV))
     with right-tag-inversion₂ (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
-dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-ok vV))
     | M⊒V!
     with right-tag-inversion₁ M⊒V!
-dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-ok vV))
     | M⊒V!
     | M⊒V =
   {!!}
-dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-bad vV H≢G))
     with right-tag-inversion₂ (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
-dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-bad vV H≢G))
     | M⊒V!
     with right-tag-inversion₁ M⊒V!
-dynamicGradualGuarantee (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast- {s = G ？} qᶜ q⨟s≈r M⊒M′)
     (pure-step (tag-untag-bad vV H≢G))
     | M⊒V!
     | M⊒V =
   {!!}
-dynamicGradualGuarantee (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
     (pure-step (seal-unseal vV))
     with right-seal-inversion₂ (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
-dynamicGradualGuarantee (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
+dynamicGradualGuarantee okM (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
     (pure-step (seal-unseal vV))
     | r , M⊒Vseal
   = {!!}
-dynamicGradualGuarantee (⊒cast- qᶜ q⨟s≈r M⊒M′) (pure-step red) =
+dynamicGradualGuarantee okM (⊒cast- qᶜ q⨟s≈r M⊒M′) (pure-step red) =
   {!!}
 
 -- Left-cast administrative cases recurse on the premise, then move the cast
 -- across the resulting multi-step evidence.
-dynamicGradualGuarantee (cast+⊒ {t = t} pᶜ r≈t⨟p M⊒M′) red
-    with dynamicGradualGuarantee M⊒M′ red
-dynamicGradualGuarantee (cast+⊒ {t = t} pᶜ r≈t⨟p M⊒M′) red
+dynamicGradualGuarantee okM (cast+⊒ {t = t} pᶜ r≈t⨟p M⊒M′) red
+    with dynamicGradualGuarantee (runtime-⟨⟩ okM) M⊒M′ red
+dynamicGradualGuarantee okM (cast+⊒ {t = t} pᶜ r≈t⨟p M⊒M′) red
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒N′ =
   {!!}
-dynamicGradualGuarantee (cast-⊒ {t = t} pᶜ r≈t⨟p M⊒M′) red
-    with dynamicGradualGuarantee M⊒M′ red
-dynamicGradualGuarantee (cast-⊒ {t = t} pᶜ r≈t⨟p M⊒M′) red
+dynamicGradualGuarantee okM (cast-⊒ {t = t} pᶜ r≈t⨟p M⊒M′) red
+    with dynamicGradualGuarantee (runtime-⟨⟩ okM) M⊒M′ red
+dynamicGradualGuarantee okM (cast-⊒ {t = t} pᶜ r≈t⨟p M⊒M′) red
     | χs , N , Δ′ , Π , Π′ , π , p′ , N↠ , Π≡ , Π′≡ , π⊒ , N⊒N′ =
   {!!}

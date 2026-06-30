@@ -17,9 +17,18 @@ module proof.LeftWidening where
 --     universal, tag, and generated-function/all inert cases.
 --     The function, universal, and tag/untag forms below are now mechanized
 --     as zero-step branches through `left-widening-inert`.
---   * Reducing identity casts requires turning the endpoint-equivalence
---     premise into a syntactic index equality.  The intended route is the
---     existing mode-indexed narrowing determinacy theorem.
+--   * The exact identity branch, where the result index is syntactically `p`,
+--     is mechanized below by one `β-id` step.  The general identity branch
+--     still requires turning the endpoint-equivalence premise
+--     `r ≈ id A ⨾ⁿ p` into a term-narrowing derivation at `r`.  A broad
+--     `termNarrowing-resp-≈` principle was checked in
+--     `proof.LeftSealNarrowingInversion`, but it is too strong as stated:
+--     constructors such as `⊒blame` require a cast-like index, not only an
+--     endpoint-equivalent narrowing.
+--     A candidate counterexample using
+--     `(unseal α (＇ α)) ↦ (seal (＇ α) α)` also fails: the store invariant
+--     requires a seal store entry `(α , A)` to have `WfTy α A`, so the
+--     self-reference `A = ＇ α` is not well formed.
 --   * The seal/unseal and inst/gen branches are not mere congruence cases:
 --     the paper handles them with right-seal/nu-specific reasoning.  These
 --     branches are the first place to look for either a missing algebraic
@@ -34,7 +43,7 @@ module proof.LeftWidening where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using ([])
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 
@@ -192,6 +201,34 @@ left-widening-untag :
 left-widening-untag gG vV noV pᶜ r≈t⨟p V⊒V′ =
   left-widening-inert (dual-untag-inert gG)
     vV noV pᶜ r≈t⨟p V⊒V′
+
+left-widening-id-exact :
+  ∀ {Δ σ V V′ p A C D} →
+  Value V →
+  No• V →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    (V ⟨ - id A ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p
+left-widening-id-exact {Δ = Δ} {σ = σ} {V = V}
+    vV noV pᶜ V⊒V′ =
+  keep ∷ [] , V , Δ , [] , [] , [] ,
+  vV ,
+  noV ,
+  ↠-step (pure-step (β-id vV)) ↠-refl ,
+  refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  V⊒V′
 
 badBody : Term
 badBody = ƛ ((` zero) •)

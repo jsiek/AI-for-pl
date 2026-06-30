@@ -559,6 +559,27 @@ renameᵗᵐ-raise0-⇑⇑ M =
         (renameᵗᵐ-cong raise0ᵗ-after-suc-suc M)
         (sym (renameᵗᵐ-compose suc suc M))))
 
+renameᵗ-raise0-swap01-⇑⇑ :
+  ∀ A →
+  renameᵗ raise0ᵗ (⇑ᵗ (⇑ᵗ A)) ≡
+  renameᵗ swap01ᵗ (⇑ᵗ (⇑ᵗ A))
+renameᵗ-raise0-swap01-⇑⇑ A =
+  trans (renameᵗ-raise0-⇑⇑ A) (sym (renameᵗ-swap01-⇑⇑ A))
+
+renameᶜ-raise0-swap01-⇑⇑ :
+  ∀ c →
+  renameᶜ raise0ᵗ (⇑ᶜ (⇑ᶜ c)) ≡
+  renameᶜ swap01ᵗ (⇑ᶜ (⇑ᶜ c))
+renameᶜ-raise0-swap01-⇑⇑ c =
+  trans (renameᶜ-raise0-⇑⇑ c) (sym (renameᶜ-swap01-⇑⇑ c))
+
+renameᵗᵐ-raise0-swap01-⇑⇑ :
+  ∀ M →
+  renameᵗᵐ raise0ᵗ (⇑ᵗᵐ (⇑ᵗᵐ M)) ≡
+  renameᵗᵐ swap01ᵗ (⇑ᵗᵐ (⇑ᵗᵐ M))
+renameᵗᵐ-raise0-swap01-⇑⇑ M =
+  trans (renameᵗᵐ-raise0-⇑⇑ M) (sym (renameᵗᵐ-swap01-⇑⇑ M))
+
 renameStNrw : Renameᵗ → StNrw → StNrw
 renameStNrw ρ (X ꞉ p) = ρ X ꞉ renameᶜ ρ p
 renameStNrw ρ (X ꞉= A ⊒) = ρ X ꞉= renameᵗ ρ A ⊒

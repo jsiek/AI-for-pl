@@ -3529,3 +3529,30 @@ non-forall function coercion.  The next proof attempt has to either:
    overlap case once the legal `gen` body is tracked with its mode, or
 2. avoid structural replay of source-side casts and instead use the
    value-level left-widening/left-narrowing route on the smaller base witness.
+
+## Attempt 98: isolate the double-shift endpoint where `raise0ᵗ` and `swap01ᵗ` agree
+
+Accepted as checked support in `proof.Catchup`.
+
+The generic mixed-composition replay from Attempts 94 and 96 is false because
+the right component can have an arbitrary source endpoint.  Rechecking the live
+last-bind `⊒Λ` branch shows an extra invariant: the body coercion supplied by
+the real `gen` premise is opened under two type binders, so the relevant source
+endpoint has shape `⇑ᵗ (⇑ᵗ A)`.
+
+On that restricted syntax, the two renamings used by the desired replay agree.
+I added the direct equalities:
+
+`renameᵗ-raise0-swap01-⇑⇑`,
+`renameᶜ-raise0-swap01-⇑⇑`, and
+`renameᵗᵐ-raise0-swap01-⇑⇑`.
+
+These are immediate consequences of the existing `rename*-raise0-⇑⇑` and
+`rename*-swap01-⇑⇑` lemmas, but naming the bridge makes the next proof target
+more explicit.
+
+Limitation: this is still algebra on syntax, not the mixed-composition replay
+itself.  It does not move a `compose-rightⁿ` proof across the source/target
+binder swap.  The next target is a restricted replay theorem for
+`compose-rightⁿ` whose right component has a double-shifted source endpoint,
+rather than the false arbitrary theorem refuted by the earlier probes.

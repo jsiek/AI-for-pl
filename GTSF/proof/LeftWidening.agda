@@ -108,6 +108,10 @@ module proof.LeftWidening where
 --     `renameᶜ-reflects-Inert`, `renameᵗᵐ-reflects-Value`, and
 --     `renameᵗᵐ-reflects-No•`.  They should help peel `⇑ᵗᵐ` values and
 --     no-bullet evidence in the shifted-source inversion lemmas.
+--     `proof.ReductionProperties` now lifts those to emitted store-change
+--     actions as `applyTerms-reflects-Value`, `applyTerms-reflects-No•`,
+--     `applyTermsUnderTyBinders-reflects-Value`, and
+--     `applyTermsUnderTyBinders-reflects-No•`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)

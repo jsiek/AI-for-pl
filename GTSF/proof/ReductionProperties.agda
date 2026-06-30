@@ -33,6 +33,8 @@ open import proof.NuTermProperties
     ; renameᵗᵐ-open-commute
     ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-preserves-No•
+    ; renameᵗᵐ-reflects-Value
+    ; renameᵗᵐ-reflects-No•
     )
 open import proof.TypeProperties using (renameᵗ-ext-suc-comm)
 
@@ -415,6 +417,23 @@ applyTerms-preserves-Value [] vV = vV
 applyTerms-preserves-Value (χ ∷ χs) vV =
   applyTerms-preserves-Value χs (applyTerm-preserves-Value χ vV)
 
+applyTerm-reflects-Value :
+  ∀ χ M →
+  Value (applyTerm χ M) →
+  Value M
+applyTerm-reflects-Value keep M vM = vM
+applyTerm-reflects-Value (bind A) M vM =
+  renameᵗᵐ-reflects-Value suc M vM
+
+applyTerms-reflects-Value :
+  ∀ χs M →
+  Value (applyTerms χs M) →
+  Value M
+applyTerms-reflects-Value [] M vM = vM
+applyTerms-reflects-Value (χ ∷ χs) M vM =
+  applyTerm-reflects-Value χ M
+    (applyTerms-reflects-Value χs (applyTerm χ M) vM)
+
 applyTerm-preserves-No• :
   ∀ χ {M} →
   No• M →
@@ -429,6 +448,23 @@ applyTerms-preserves-No• :
 applyTerms-preserves-No• [] noM = noM
 applyTerms-preserves-No• (χ ∷ χs) noM =
   applyTerms-preserves-No• χs (applyTerm-preserves-No• χ noM)
+
+applyTerm-reflects-No• :
+  ∀ χ M →
+  No• (applyTerm χ M) →
+  No• M
+applyTerm-reflects-No• keep M noM = noM
+applyTerm-reflects-No• (bind A) M noM =
+  renameᵗᵐ-reflects-No• suc M noM
+
+applyTerms-reflects-No• :
+  ∀ χs M →
+  No• (applyTerms χs M) →
+  No• M
+applyTerms-reflects-No• [] M noM = noM
+applyTerms-reflects-No• (χ ∷ χs) M noM =
+  applyTerm-reflects-No• χ M
+    (applyTerms-reflects-No• χs (applyTerm χ M) noM)
 
 applyTermUnderTyBinder : StoreChange → Term → Term
 applyTermUnderTyBinder keep M = M
@@ -475,6 +511,24 @@ applyTermsUnderTyBinders-preserves-Value (χ ∷ χs) vV =
   applyTermsUnderTyBinders-preserves-Value χs
     (applyTermUnderTyBinder-preserves-Value χ vV)
 
+applyTermUnderTyBinder-reflects-Value :
+  ∀ χ M →
+  Value (applyTermUnderTyBinder χ M) →
+  Value M
+applyTermUnderTyBinder-reflects-Value keep M vM = vM
+applyTermUnderTyBinder-reflects-Value (bind A) M vM =
+  renameᵗᵐ-reflects-Value (extᵗ suc) M vM
+
+applyTermsUnderTyBinders-reflects-Value :
+  ∀ χs M →
+  Value (applyTermsUnderTyBinders χs M) →
+  Value M
+applyTermsUnderTyBinders-reflects-Value [] M vM = vM
+applyTermsUnderTyBinders-reflects-Value (χ ∷ χs) M vM =
+  applyTermUnderTyBinder-reflects-Value χ M
+    (applyTermsUnderTyBinders-reflects-Value χs
+      (applyTermUnderTyBinder χ M) vM)
+
 applyTermUnderTyBinder-preserves-No• :
   ∀ χ {M} →
   No• M →
@@ -491,6 +545,24 @@ applyTermsUnderTyBinders-preserves-No• [] noM = noM
 applyTermsUnderTyBinders-preserves-No• (χ ∷ χs) noM =
   applyTermsUnderTyBinders-preserves-No• χs
     (applyTermUnderTyBinder-preserves-No• χ noM)
+
+applyTermUnderTyBinder-reflects-No• :
+  ∀ χ M →
+  No• (applyTermUnderTyBinder χ M) →
+  No• M
+applyTermUnderTyBinder-reflects-No• keep M noM = noM
+applyTermUnderTyBinder-reflects-No• (bind A) M noM =
+  renameᵗᵐ-reflects-No• (extᵗ suc) M noM
+
+applyTermsUnderTyBinders-reflects-No• :
+  ∀ χs M →
+  No• (applyTermsUnderTyBinders χs M) →
+  No• M
+applyTermsUnderTyBinders-reflects-No• [] M noM = noM
+applyTermsUnderTyBinders-reflects-No• (χ ∷ χs) M noM =
+  applyTermUnderTyBinder-reflects-No• χ M
+    (applyTermsUnderTyBinders-reflects-No• χs
+      (applyTermUnderTyBinder χ M) noM)
 
 applyTerms-open :
   ∀ χs M α →

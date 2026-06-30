@@ -64,11 +64,23 @@ module proof.LeftWidening where
 --     and `rename-⊕`.
 --   * Trying to make that renaming theorem fully arbitrary runs into the
 --     composition witnesses used by cast constructors: their internal mode
---     environment is existential, so a non-injective type renaming does not
---     obviously preserve it.  The `suc`-specific cast cases are still
---     mechanized in `proof.TermNarrowingProperties` via `≈ⁿ-⇑ˢ`,
+--     environment is existential, and `TyRenameWf` alone permits renamings
+--     that collapse or reorder store variables.  Such renamings do not
+--     preserve the `StoreDetWf` uniqueness/older-variable invariants needed by
+--     composition determinacy.  The surviving algebraic shape is therefore:
+--     carry an `AllModeRename` witness for existential mode environments and
+--     an explicit `StoreDetWf` transport for the renaming.  This is now
+--     mechanized in `proof.TermNarrowingProperties` as `narrow-renameᵗ-any`,
+--     `⊒ˢ-rename`, `≈ⁿ-rename`, `compose-leftⁿ-rename`,
+--     and `compose-rightⁿ-rename`.
+--     The `suc`-specific cast cases are still mechanized there via `≈ⁿ-⇑ˢ`,
 --     `compose-leftⁿ-⇑ˢ`, `compose-rightⁿ-⇑ˢ`, `shift-⊒cast+`,
 --     `shift-⊒cast-`, `shift-cast+⊒`, and `shift-cast-⊒`.
+--   * The cast constructors can also be renamed once the composition
+--     side-condition has already been transported.  The constructor-level
+--     lemmas `rename-⊒cast+`, `rename-⊒cast-`, `rename-cast+⊒`, and
+--     `rename-cast-⊒` avoid rebuilding the dual-cast transports by hand in
+--     the eventual induction.
 --   * The `ν` renaming helpers are intentionally stated in constructor-native
 --     form rather than as pointwise renamings of whole `ν` terms: `ν` renames
 --     its term body with `ρ`, while the narrowing premises under the fresh

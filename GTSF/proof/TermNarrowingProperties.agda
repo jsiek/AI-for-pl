@@ -9,7 +9,7 @@ module proof.TermNarrowingProperties where
 
 open import Data.List using ([]; _∷_; map)
 open import Data.Nat using (zero; suc)
-open import Data.Product using (_,_; proj₂)
+open import Data.Product using (_,_; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; cong; cong₂; refl; subst; sym; trans)
 
@@ -54,7 +54,9 @@ open import proof.CoercionProperties
     )
 open import proof.NarrowWidenProperties
   using
-    ( StoreDetWf-⟰ᵗ
+    ( StoreDetWf
+    ; StoreDetWf-⟰ᵗ
+    ; WfTyˢ-rename
     ; WfTyˢ-⇑ᵗ
     ; narrowing-determinedᵐ
     ; narrow-⇑ᵗ-ᶜ-srcStoreⁿ
@@ -63,7 +65,13 @@ open import proof.NarrowWidenProperties
     )
 open import proof.NuTermProperties
   using (renameᵗᵐ-ext-suc-comm; renameᵗᵐ-preserves-Value)
-open import proof.TypeProperties using (TyRenameWf; renameᵗ-ext-suc-comm)
+open import proof.TypeProperties
+  using
+    ( TyRenameWf
+    ; TyRenameWf-ext
+    ; renameᵗ-ext-suc-comm
+    ; renameᵗ-preserves-WfTy
+    )
 
 variable
   Δ : TyCtx
@@ -83,6 +91,45 @@ modeRename-tag-or-id :
   ∀ {ρ} →
   ModeRename ρ tag-or-idᵈ tag-or-idᵈ
 modeRename-tag-or-id X = refl
+
+tailᵈ : ModeEnv → ModeEnv
+tailᵈ μ X = μ (suc X)
+
+consᵈ : Mode → ModeEnv → ModeEnv
+consᵈ m ν′ zero = m
+consᵈ m ν′ (suc X) = ν′ X
+
+AllModeRename : Renameᵗ → Set
+AllModeRename ρ = ∀ μ → ∃[ ν′ ] ModeRename ρ μ ν′
+
+allModeRename-suc :
+  AllModeRename suc
+allModeRename-suc μ = genᵈ μ , modeRename-suc-gen
+
+allModeRename-ext :
+  ∀ {ρ} →
+  AllModeRename ρ →
+  AllModeRename (extᵗ ρ)
+allModeRename-ext all μ
+    with all (tailᵈ μ)
+allModeRename-ext all μ | ν′ , rel =
+  consᵈ (μ zero) ν′ , rel′
+  where
+    rel′ : ModeRename (extᵗ _) μ (consᵈ (μ zero) ν′)
+    rel′ zero = modeIncl-refl {μ = μ} zero
+    rel′ (suc X) = rel X
+
+narrow-renameᵗ-any :
+  ∀ {ρ Δ Δ′ Σ A B c} →
+  TyRenameWf Δ Δ′ ρ →
+  AllModeRename ρ →
+  Δ ∣ Σ ⊢ c ∶ A ⊒ B →
+  Δ′ ∣ renameStoreᵗ ρ Σ
+    ⊢ renameᶜ ρ c ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
+narrow-renameᵗ-any hρ all (μ , c⊒)
+    with all μ
+narrow-renameᵗ-any hρ all (μ , c⊒) | ν′ , rel =
+  ν′ , narrow-renameᵗ hρ rel c⊒
 
 renameStNrw : Renameᵗ → StNrw → StNrw
 renameStNrw ρ (X ꞉ p) = ρ X ꞉ renameᶜ ρ p
@@ -166,6 +213,113 @@ srcStoreⁿ-renameStoreNrw ρ ((X ꞉= A ⊒) ∷ σ) =
   srcStoreⁿ-renameStoreNrw ρ σ
 srcStoreⁿ-renameStoreNrw ρ ((⊒ X ꞉=☆) ∷ σ) =
   cong₂ _∷_ refl (srcStoreⁿ-renameStoreNrw ρ σ)
+
+⊒ˢ-rename :
+  ∀ {ρ Δ Δ′ σ Σ Σ′} →
+  TyRenameWf Δ Δ′ ρ →
+  AllModeRename ρ →
+  Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+  Δ′ ⊢ renameStoreNrw ρ σ
+    ꞉ renameStoreᵗ ρ Σ ⊒ˢ renameStoreᵗ ρ Σ′
+⊒ˢ-rename hρ all ⊒ˢ-nil = ⊒ˢ-nil
+⊒ˢ-rename {ρ = ρ} hρ all (⊒ˢ-right hA σ⊒) =
+  ⊒ˢ-right
+    (renameᵗ-preserves-WfTy hA hρ)
+    (⊒ˢ-rename hρ all σ⊒)
+⊒ˢ-rename hρ all (⊒ˢ-left σ⊒) =
+  ⊒ˢ-left (⊒ˢ-rename hρ all σ⊒)
+⊒ˢ-rename hρ all (⊒ˢ-both hA hA′ s⊒ σ⊒) =
+  ⊒ˢ-both
+    (renameᵗ-preserves-WfTy hA hρ)
+    (renameᵗ-preserves-WfTy hA′ hρ)
+    (narrow-renameᵗ-any hρ all s⊒)
+    (⊒ˢ-rename hρ all σ⊒)
+
+≈ⁿ-rename :
+  ∀ {ρ Δ Δ′ σ s t A B} →
+  TyRenameWf Δ Δ′ ρ →
+  AllModeRename ρ →
+  Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ s ≈ renameᶜ ρ t ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
+≈ⁿ-rename {ρ = ρ} hρ all (endpointsⁿ {s = s} {t = t}
+    srcs tgts srct tgtt σ⊒ (hA , hB) (hA′ , hB′) s⊒ t⊒) =
+  endpointsⁿ
+    (trans (src-renameᶜ ρ s) (cong (renameᵗ ρ) srcs))
+    (trans (tgt-renameᶜ ρ s) (cong (renameᵗ ρ) tgts))
+    (trans (src-renameᶜ ρ t) (cong (renameᵗ ρ) srct))
+    (trans (tgt-renameᶜ ρ t) (cong (renameᵗ ρ) tgtt))
+    (⊒ˢ-rename hρ all σ⊒)
+    (WfTyˢ-rename hρ hA , WfTyˢ-rename hρ hB)
+    (WfTyˢ-rename hρ hA′ , WfTyˢ-rename hρ hB′)
+    (narrow-renameᵗ-any hρ all s⊒)
+    (narrow-renameᵗ-any hρ all t⊒)
+
+compose-leftⁿ-rename :
+  ∀ {ρ Δ Δ′ σ q s r A B} →
+  TyRenameWf Δ Δ′ ρ →
+  AllModeRename ρ →
+  (∀ {Σ} → StoreDetWf Δ Σ → StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ q ⨾ⁿ renameᶜ ρ s ≈ renameᶜ ρ r
+    ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
+compose-leftⁿ-rename {ρ = ρ} hρ all det
+    (compose-leftⁿ {μ = μ} wfΣ q⊒ s⊒ q⨟s≈r)
+    with all μ
+compose-leftⁿ-rename {ρ = ρ} hρ all det
+    (compose-leftⁿ {μ = μ} wfΣ q⊒ s⊒ q⨟s≈r)
+    | ν′ , rel =
+  let
+    wfΣ′ = det wfΣ
+    q⊒′ = narrow-renameᵗ {ν = ν′} {ρ = ρ} hρ rel q⊒
+    s⊒′ = narrow-renameᵗ {ν = ν′} {ρ = ρ} hρ rel s⊒
+    old = _⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒
+    new = _⨟ⁿ_ {wfΣ = wfΣ′} q⊒′ s⊒′
+    u≡ =
+      narrowing-determinedᵐ wfΣ′
+        (proj₂ new)
+        (narrow-renameᵗ {ν = ν′} {ρ = ρ} hρ rel (proj₂ old))
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ u ≈ renameᶜ ρ _ ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-rename hρ all q⨟s≈r)
+  in
+  compose-leftⁿ wfΣ′ q⊒′ s⊒′ eq′
+
+compose-rightⁿ-rename :
+  ∀ {ρ Δ Δ′ σ r t p A B} →
+  TyRenameWf Δ Δ′ ρ →
+  AllModeRename ρ →
+  (∀ {Σ} → StoreDetWf Δ Σ → StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ r ≈ renameᶜ ρ t ⨾ⁿ renameᶜ ρ p
+    ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
+compose-rightⁿ-rename {ρ = ρ} hρ all det
+    (compose-rightⁿ {μ = μ} wfΣ t⊒ p⊒ r≈t⨟p)
+    with all μ
+compose-rightⁿ-rename {ρ = ρ} hρ all det
+    (compose-rightⁿ {μ = μ} wfΣ t⊒ p⊒ r≈t⨟p)
+    | ν′ , rel =
+  let
+    wfΣ′ = det wfΣ
+    t⊒′ = narrow-renameᵗ {ν = ν′} {ρ = ρ} hρ rel t⊒
+    p⊒′ = narrow-renameᵗ {ν = ν′} {ρ = ρ} hρ rel p⊒
+    old = _⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒
+    new = _⨟ⁿ_ {wfΣ = wfΣ′} t⊒′ p⊒′
+    u≡ =
+      narrowing-determinedᵐ wfΣ′
+        (proj₂ new)
+        (narrow-renameᵗ {ν = ν′} {ρ = ρ} hρ rel (proj₂ old))
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ renameᶜ ρ _ ≈ u ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-rename hρ all r≈t⨟p)
+  in
+  compose-rightⁿ wfΣ′ t⊒′ p⊒′ eq′
 
 lookup-renameCtxNrw :
   ∀ ρ {γ x p} →
@@ -600,6 +754,87 @@ rename-⊕ :
     ∶ renameᶜ ρ (id (‵ `ℕ))
 rename-⊕ M⊒M′ N⊒N′ =
   ⊕⊒⊕ M⊒M′ N⊒N′
+
+rename-⊒cast+ :
+  ∀ {ρ Δ Δ′ σ γ M M′ q r s A B C D} →
+  TyRenameWf Δ Δ′ ρ →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ q ⨾ⁿ renameᶜ ρ s ≈ renameᶜ ρ r
+    ∶ renameᵗ ρ A ⊒ renameᵗ ρ B →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ r →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ (M′ ⟨ - s ⟩) ∶ renameᶜ ρ q
+rename-⊒cast+ {ρ = ρ} {Δ′ = Δ′} {σ = σ} {γ = γ}
+    {M = M} {M′ = M′} {q = q} {s = s} hρ qᶜ q⨟s≈r M⊒M′ =
+  subst
+    (λ T → Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+      ⊢ renameᵗᵐ ρ M ⊒ T ∶ renameᶜ ρ q)
+    (sym (cong (λ c → renameᵗᵐ ρ M′ ⟨ c ⟩)
+               (renameᶜ-dual-normal ρ s)))
+    (⊒cast+
+      (rename-cast-srcStore {ρ = ρ} {σ = σ} hρ qᶜ)
+      q⨟s≈r
+      M⊒M′)
+
+rename-⊒cast- :
+  ∀ {ρ Δ Δ′ σ γ M M′ q r s A B C D} →
+  TyRenameWf Δ Δ′ ρ →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ q ⨾ⁿ renameᶜ ρ s ≈ renameᶜ ρ r
+    ∶ renameᵗ ρ A ⊒ renameᵗ ρ B →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ q →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ (M′ ⟨ s ⟩) ∶ renameᶜ ρ r
+rename-⊒cast- {ρ = ρ} {σ = σ} hρ qᶜ q⨟s≈r M⊒M′ =
+  ⊒cast-
+    (rename-cast-srcStore {ρ = ρ} {σ = σ} hρ qᶜ)
+    q⨟s≈r
+    M⊒M′
+
+rename-cast+⊒ :
+  ∀ {ρ Δ Δ′ σ γ M M′ p r t A B C D} →
+  TyRenameWf Δ Δ′ ρ →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ r ≈ renameᶜ ρ t ⨾ⁿ renameᶜ ρ p
+    ∶ renameᵗ ρ A ⊒ renameᵗ ρ B →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ p →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ (M ⟨ - t ⟩) ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ r
+rename-cast+⊒ {ρ = ρ} {Δ′ = Δ′} {σ = σ} {γ = γ}
+    {M = M} {M′ = M′} {p = p} {r = r} {t = t}
+    hρ pᶜ r≈t⨟p M⊒M′ =
+  subst
+    (λ T → Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+      ⊢ T ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ r)
+    (sym (cong (λ c → renameᵗᵐ ρ M ⟨ c ⟩)
+               (renameᶜ-dual-normal ρ t)))
+    (cast+⊒
+      (rename-cast-srcStore {ρ = ρ} {σ = σ} hρ pᶜ)
+      r≈t⨟p
+      M⊒M′)
+
+rename-cast-⊒ :
+  ∀ {ρ Δ Δ′ σ γ M M′ p r t A B C D} →
+  TyRenameWf Δ Δ′ ρ →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ r ≈ renameᶜ ρ t ⨾ⁿ renameᶜ ρ p
+    ∶ renameᵗ ρ A ⊒ renameᵗ ρ B →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ r →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ (M ⟨ t ⟩) ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ p
+rename-cast-⊒ {ρ = ρ} {σ = σ} hρ pᶜ r≈t⨟p M⊒M′ =
+  cast-⊒
+    (rename-cast-srcStore {ρ = ρ} {σ = σ} hρ pᶜ)
+    r≈t⨟p
+    M⊒M′
 
 lookup-⇑ᵍ :
   ∀ {γ x p} →

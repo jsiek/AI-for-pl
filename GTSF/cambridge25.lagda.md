@@ -3340,66 +3340,20 @@ Proof by induction on the derivation.
 
 Right Seal Inversion 2.
 
-If σ ⊢ M ⊒ V ⟨ α♭ ⟩ : q
-then there exists a r such that
-q ⨾ α♯ ≈ r and σ ⊢ M ⊒ V : r.
+If
 
-Proof by induction on the derivation.
+    σ ⊢ M ⊒ V ⟨ α♯ ⟩ : r
+    --------------------------- ⊒+  r ≈ q ⨾ α♯
+    σ ⊢ M ⊒ V ⟨ α♯ ⟩ ⟨ α♭ ⟩ : q
 
-  Case ⊒+
+then there exists a u such that
+q ⨾ α♯ ≈ u and σ ⊢ M ⊒ V ⟨ α♯ ⟩ : u.
 
-      σ ⊢ M ⊒ V : r
-      -------------------- ⊒+  r ≈ q ⨾ α♯
-      σ ⊢ M ⊒ V ⟨ α♭ ⟩ : q
+Proof.  Immediate, taking u = r.
 
-    Immediate.
-
-  Case +⊒
-
-      σ ⊢ M ⊒ V ⟨ α♭ ⟩ : q₀
-      --------------------------- +⊒  s ⨾ q₀ ≈ q
-      σ ⊢ M ⟨ s̅ ⟩ ⊒ V ⟨ α♭ ⟩ : q
-
-    By induction
-
-      σ ⊢ M ⊒ V : r₀
-      -------------------- ⊒+  r₀ ≈ q₀ ⨾ α♯
-      σ ⊢ M ⊒ V ⟨ α♭ ⟩ : q₀
-
-    So we have
-
-      σ ⊢ M ⊒ V : r₀
-      ------------------- +⊒  s ⨾ r₀ ≈ r
-      σ ⊢ M ⟨ s̅ ⟩ ⊒ V : r
-      -------------------------- ⊒+  r ≈ q ⨾ α♯
-      σ ⊢ M ⟨ s̅ ⟩ ⊒ V ⟨ α♭ ⟩ : q
-
-    (We know r exists because we can take r = q ⨾ α♯.
-    Then s ⨾ r₀ ≈ s ⨾ q₀ ⨾ α♯ ≈ q ⨾ α♯ = r.)
-
-
-  Case -⊒
-
-      σ ⊢ M ⊒ V ⟨ α♭ ⟩ : q₀
-      --------------------------- -⊒  s ⨾ q ≈ q₀
-      σ ⊢ M ⟨ s ⟩ ⊒ V ⟨ α♭ ⟩ : q
-
-    By induction
-
-      σ ⊢ M ⊒ V : r₀
-      -------------------- ⊒+  r₀ ≈ q₀ ⨾ α♯
-      σ ⊢ M ⊒ V ⟨ α♭ ⟩ : q₀
-
-    So we have
-
-      σ ⊢ M ⊒ V : r₀
-      ------------------- -⊒  s ⨾ r ≈ r₀
-      σ ⊢ M ⟨ s ⟩ ⊒ V : r
-      -------------------------- ⊒+  r ≈ q ⨾ α♯
-      σ ⊢ M ⟨ s ⟩ ⊒ V ⟨ α♭ ⟩ : q
-
-    (We know r exists because we can take r = q ⨾ α♯.
-    Then r₀ ≈ q₀ ⨾ α♯ ≈ s ⨾ q ⨾ α♯ = s ⨾ r.)
+The corresponding `⊒-` case with a right α♭ cast is impossible, since
+composition on the right side of a narrowing judgment requires the composed
+coercion to be a narrowing, but α♭ is a widening.
 
 
 

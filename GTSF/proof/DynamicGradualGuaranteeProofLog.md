@@ -33,55 +33,46 @@ Strategies considered and avoided:
   coercion, so both blame-producing application reductions have immediate
   simulations.
 
-## `ν⊒ν` / `ν-step`
+## Runtime-bullet `α` rules
 
-Target:
+Discovery:
 
-`dynamicGradualGuarantee okM (ν⊒ν pᶜ qᶜ N⊒N′) (ν-step vV noV)`
+- The term-narrowing rules `α⊒α` and `⊒α` still used the older named-opening
+  presentation `L • α`, encoded as a `ν` term.
+- The typing rule for runtime type application now uses the actual unary
+  runtime bullet `M •`, so the narrowing conclusions must introduce that form
+  directly under a freshly bound type variable.
 
-Result: counterexample found for the current theorem statement.
+Implemented adjustment:
 
-Direct proof strategy tried:
+- Removed the local binary `_•_` abbreviation from `TermNarrowing`.
+- Updated `α⊒α` to conclude in `suc Δ` under
+  `(zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ` and `⇑ᵍ γ`, with result
+  `(⇑ᵗᵐ L) • ⊒ (⇑ᵗᵐ L′) • ∶ p`.
+- Updated `⊒α` similarly under `(zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ`.
 
-- Use `catchup-lemma (runtime-ν okM) vV N⊒N′` to reduce the source body:
-  `N —↠[ χs ] W`.
-- Lift those steps through the source `ν` with `ν-↠`.
-- Append the source-side bind step:
-  `ν (applyTys χs A) W ... —→[ bind (applyTys χs A) ]`
-  `((⇑ᵗᵐ W) •) ⟨ ... ⟩`.
-- The natural emitted source store prefix is
-  `χs ++ bind (applyTys χs A) ∷ []`.
-- The natural final store narrowing is the catch-up prefix `π` followed by the
-  fresh `ν` head, i.e. the de Bruijn shape
-  `combineStoreNrw π ((zero ꞉ ⇑ᶜ q) ∷ [])`.
+Proof obligations exposed:
 
-Why it fails:
+- Generic catch-up replacement transport cannot treat a shifted tail as an
+  arbitrary store tail; replacing inside it must preserve the `⇑ˢ σ` shape.
+- Parallel term substitution has the analogous shifted-context obligation for
+  these two rules.
+- The DGG skeleton now needs runtime-bullet reduction cases rather than the old
+  `ν-step` cases for `α⊒α` and `⊒α`.
 
-- After the right-hand `ν-step`, the target term is a runtime-bullet term under
-  a cast:
+## Superseded `ν⊒ν` / `ν-step` counterexample attempt
+
+The old counterexample attempt used the absence of any term-narrowing
+constructor targeting the runtime bullet form `V •`.  The direct simulation
+shape was:
+
+- catch up the source body with `catchup-lemma (runtime-ν okM) vV N⊒N′`;
+- lift those steps through the source `ν` with `ν-↠`;
+- append the source-side bind step;
+- try to relate the final source to the right target
   `((⇑ᵗᵐ N′) •) ⟨ ⇑ᶜ p ⟩`.
-- The current `TermNarrowing` relation has no constructor whose target is the
-  runtime bullet form `V •`.
-- Target-cast constructors can peel the cast, but then their premise still
-  needs a derivation targeting the bare runtime bullet.
 
-Mechanized evidence:
-
-- `proof.DynamicGradualGuaranteeCounterexample.no-runtime-bullet-target`
-  proves that no term-narrowing derivation can target `V •`.
-- `proof.DynamicGradualGuaranteeCounterexample.no-runtime-bullet-id-cast-target`
-  proves the corresponding fact for `(V •) ⟨ id A ⟩`.
-- `proof.DynamicGradualGuaranteeCounterexample.ν⊒ν-step-example` gives a
-  simple `ν⊒ν` derivation for
-  `ν ★ ($ (κℕ 0)) (id (‵ `ℕ))`.
-- `proof.DynamicGradualGuaranteeCounterexample.ν-step-example` steps its right
-  side to `(($ (κℕ 0) •) ⟨ id (‵ `ℕ) ⟩)`.
-- `proof.DynamicGradualGuaranteeCounterexample.ν-step-example-target-not-narrowable`
-  proves that no possible source result can be related to that target.
-
-Consequence:
-
-The current `dynamicGradualGuarantee` statement cannot be proved for this case
-without changing the relation or the theorem. Plausible repairs are to add a
-runtime-bullet target rule to `TermNarrowing`, or to state DGG with a target
-closure/equivalence that accounts for store-opening runtime terms.
+After the runtime-bullet `α` rule update, that obstruction no longer holds in
+this simple form: the relation can now produce target runtime-bullet terms via
+the updated `α⊒α` and `⊒α` rules.  The DGG case still needs a positive proof,
+but the old no-target-bullet counterexample should not be reused.

@@ -2984,3 +2984,67 @@ counterexample under the target-only `⊒Λ` body store.  It still does not prov
 the live last-bind branch: the real branch may create the source-side marker
 through the emitted bind/split path, and the remaining theorem still needs a
 replay/lowering argument for that emitted source-star prefix.
+
+## Attempt 87: inspect the live `remainder-nu` last-bind goal
+
+I added a temporary hole in the live
+
+`remainder-nu / last-bind / nu-base-empty`
+
+branch after splitting the final bind.  Agda's expected type refined the source
+of the outer catchup goal to the original `ν` source:
+
+`ν A L c —↠[ χs₁ ] W₁`
+
+and the final relation still targets the outer lambda:
+
+`W₁ ⊒ applyTerms χs₁ (Λ V) ∶ applyCoercions χs₁ (gen A₁ p)`.
+
+So the rich `NuSourceValueTarget` history has not lost the fact that the source
+is a `ν`; the erasure only happens when the branch immediately collapses the
+history with `nu-source-value-target-base-empty`.
+
+I then checked whether this suggests a direct use of the existing
+`catchup-ν⊒-catchup` postulate.  It does not directly fit.  That postulate
+catches up a `ν ★ N (⇑ᶜ p)` source to the body target `V`, whereas this branch
+must catch up the original `ν A L c` source to `Λ V` under `gen A₁ p`.  A
+separate rebuild would still be needed to turn a body-target catchup into the
+outer `⊒Λ` conclusion.  The no-bind helper can do such a rebuild only when the
+final value is known to be a type-shift image; the last-bind path is precisely
+where that image invariant can fail because the emitted source-star marker may
+be introduced by the final `ν-step`.
+
+This rules out the naive "use the rich history, then call `catchup-ν⊒-catchup`"
+route.  The useful fact retained from the probe is narrower: branch-specific
+helpers can assume the concrete original source shape (`ν A L c` or a cast),
+but they still need the same prefix replay/lowering argument to rebuild the
+outer lambda target.
+
+## Attempt 88: recursively catch up the extracted `ν` base body
+
+Rejected by Agda's termination checker.  Since Attempt 87 showed that the live
+`remainder-nu` branch refines the original source to `ν A L c`, I tested
+whether we could use the base body exposed by
+`nu-source-value-target-base-empty hist`:
+
+`bodyBase :
+  suc Δ₀ ∣ (⊒ zero ꞉=☆) ∷ ⇑ˢ σ₀ ∣ []
+    ⊢ N₀ ⊒ ⇑ᵗᵐ V₀ ∶ ⇑ᶜ p₀`
+
+and make a second recursive call:
+
+`catchup-lemma (renameᵗᵐ-preserves-Value suc vBase) bodyBase`.
+
+Agda rejects the resulting definition for `catchup-lemma` termination.  The
+problem is expected: `bodyBase` is extracted through the computed
+`ShiftedSourceRemainder`/`NuSourceValueTarget` history, so the termination
+checker no longer recognizes it as a syntactic subderivation of the original
+`N⊒V′` argument.  This rules out the simple base-recursion strategy unless the
+whole proof is refactored into an explicitly structural recursion over the
+history, which would be a much larger change and would still have to replay all
+wrappers (`extend`, `split`, `⊒Λ`, casts) back to the outer target.
+
+So the live branch should continue to use the already accepted recursive call
+on the immediate subderivation `N⊒V′`; any additional reasoning must transform
+that catchup package rather than making a hidden second recursive call on the
+erased base.

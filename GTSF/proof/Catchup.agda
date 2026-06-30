@@ -11,7 +11,7 @@ module proof.Catchup where
 --     store changes.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (true)
+open import Data.Bool using (false; true)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.List.Membership.Propositional using (_∈_)
@@ -50,6 +50,8 @@ open import proof.NarrowWidenProperties
     ; narrow-drop-star
     ; srcStoreⁿ-⊒ˢ
     ; srcStoreⁿ-⇑ˢ
+    ; occurs-one-⇑⇑-false
+    ; srcStoreⁿ-source-first-one-fresh
     ; WfTyˢ-rename
     ; narrowing-all-gen-overlap⊥
     ; ⇑ˢ-++
@@ -1955,6 +1957,41 @@ gen-target-occursᶜ :
   Δ ∣ Σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
   occurs zero B ≡ true
 gen-target-occursᶜ (cast-gen hA occ body⊢ , gen bodyⁿ) = occ
+
+gen-shifted-body-source-one-fresh :
+  ∀ {Δ Σ A B p} →
+  Δ ∣ Σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  occurs (suc zero) (src (⇑ᶜ p)) ≡ false
+gen-shifted-body-source-one-fresh {A = A} {p = p} pᶜ =
+  trans
+    (cong (occurs (suc zero)) (src-renameᶜ suc p))
+    (trans
+      (cong (λ T → occurs (suc zero) (⇑ᵗ T)) src-p)
+      (occurs-one-⇑⇑-false A))
+  where
+    src-p :
+      src p ≡ ⇑ᵗ A
+    src-p =
+      proj₁ (coercion-src-tgtᵐ (proj₁ (gen-body-coercionᶜ pᶜ)))
+
+compose-right-gen-shift-left-source-fresh :
+  ∀ {Δ₀ Δ Σ σ A B p r t q C D} →
+  Δ₀ ∣ Σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ q ∶ C ⊒ D →
+  r ≡ ⇑ᶜ p →
+  occurs (suc zero) (src t) ≡ false
+compose-right-gen-shift-left-source-fresh pᶜ
+    (compose-rightⁿ wfΣ t⊒ q⊒
+      (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
+    r≡⇑p =
+  trans
+    (cong (occurs (suc zero))
+      (proj₁ (coercion-src-tgtᵐ (proj₁ t⊒))))
+    (trans
+      (cong (occurs (suc zero)) (sym src-r))
+      (trans
+        (cong (occurs (suc zero)) (cong src r≡⇑p))
+        (gen-shifted-body-source-one-fresh pᶜ)))
 
 gen-source-all-overlap⊥ :
   ∀ {Δ Σ A B p s} →

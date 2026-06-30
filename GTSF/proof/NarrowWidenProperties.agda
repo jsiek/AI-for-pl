@@ -120,6 +120,39 @@ srcStoreⁿ-⇑ˢ ((X ꞉= A ⊒) ∷ σ) = srcStoreⁿ-⇑ˢ σ
 srcStoreⁿ-⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
   cong₂ _∷_ refl (srcStoreⁿ-⇑ˢ σ)
 
+occurs-one-⇑⇑-false :
+  ∀ A →
+  occurs (suc zero) (⇑ᵗ (⇑ᵗ A)) ≡ false
+occurs-one-⇑⇑-false A =
+  trans (occurs-raise zero zero (⇑ᵗ A)) (occurs-raise-fresh zero A)
+
+StoreNoOccurs-one-⟰ᵗ⟰ᵗ :
+  ∀ {Σ} →
+  StoreNoOccurs (suc zero) (⟰ᵗ (⟰ᵗ Σ))
+StoreNoOccurs-one-⟰ᵗ⟰ᵗ =
+  StoreNoOccurs-⟰ᵗ StoreNoOccurs-zero-⟰ᵗ
+
+srcStoreⁿ-source-first-one-fresh :
+  ∀ σ →
+  StoreNoOccurs (suc zero)
+    (srcStoreⁿ ((⊒ zero ꞉=☆) ∷
+      (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)))
+srcStoreⁿ-source-first-one-fresh σ (here refl) = refl
+srcStoreⁿ-source-first-one-fresh σ (there α∈Σ) =
+  tailFresh α∈Σ
+  where
+    eq-tail :
+      srcStoreⁿ (⇑ˢ (⇑ˢ σ)) ≡ ⟰ᵗ (⟰ᵗ (srcStoreⁿ σ))
+    eq-tail =
+      trans (srcStoreⁿ-⇑ˢ (⇑ˢ σ))
+        (cong ⟰ᵗ (srcStoreⁿ-⇑ˢ σ))
+
+    tailFresh :
+      StoreNoOccurs (suc zero) (srcStoreⁿ (⇑ˢ (⇑ˢ σ)))
+    tailFresh =
+      subst (StoreNoOccurs (suc zero)) (sym eq-tail)
+        StoreNoOccurs-one-⟰ᵗ⟰ᵗ
+
 modeRename-suc-tag-or-id :
   ModeRename suc tag-or-idᵈ tag-or-idᵈ
 modeRename-suc-tag-or-id X = refl

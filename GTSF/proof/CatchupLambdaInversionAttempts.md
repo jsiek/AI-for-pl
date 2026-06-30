@@ -4171,3 +4171,35 @@ therefore be replayed through the same store swap as the target/coercion side.
 Limitation: this only gives type-endpoint freshness.  It does not yet prove
 term-level freshness for `W`, nor does it convert the source renaming from
 `raise0ᵗ` to `swap01ᵗ` in the live body relation.
+
+## Attempt 117: legal `gen` source-endpoint freshness for source casts
+
+Accepted as checked support, but still not a replay proof.
+
+Added the following checked helpers:
+
+- `occurs-one-⇑⇑-false`;
+- `StoreNoOccurs-one-⟰ᵗ⟰ᵗ`;
+- `srcStoreⁿ-source-first-one-fresh`;
+- `gen-shifted-body-source-one-fresh`;
+- `compose-right-gen-shift-left-source-fresh`.
+
+The key fact is that if `p` is the body coercion of a legal
+
+`gen A p : A ⊒ `∀ B`,
+
+then the source endpoint of `⇑ᶜ p` is `⇑ᵗ (⇑ᵗ A)`, so it is fresh for the
+target-only variable `suc zero`.  For a source-side cast branch
+
+`r ≈ t ⨾ⁿ q`
+
+whose result `r` is `⇑ᶜ p`, the new composition lemma propagates that
+freshness to the source endpoint of `t`.  This rules out the old bad
+`id-var1`-style left cast as a possible decomposition of a legal shifted
+`gen` body.
+
+Limitation: for narrowing, source-endpoint freshness does not imply
+target-endpoint freshness.  A narrowing can introduce a store variable on the
+target side, for example through a seal.  So this prunes the old counterexample
+shape but does not yet prove that the whole source-side cast branch replays
+through the `source-first` to `target-first` store exchange.

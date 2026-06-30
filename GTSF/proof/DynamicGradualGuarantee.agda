@@ -245,7 +245,12 @@ dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (pure-step blame-·
   ⊒ˢ-nil ,
   ⊒blame qᶜ
 dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (pure-step (blame-·₂ vV)) =
-  {!!}
+  [] , _ , _ , [] , [] , [] , _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  ⊒blame qᶜ
 dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₁ L′→N′ shiftM)
     with dynamicGradualGuarantee (runtime-·₁ okM) L⊒L′ L′→N′
 dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₁ L′→N′ shiftM)

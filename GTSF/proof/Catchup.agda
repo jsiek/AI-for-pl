@@ -1043,6 +1043,92 @@ modeRename-swap01ᵗMode μ X
       narrow-renameᵗ TyRenameWf-swap01
         (modeRename-swap01ᵗMode μ) (proj₂ t⊒))
 
+StoreRenameOk :
+  ∀ {Δ σ Σ Σ′} →
+  Renameᵗ →
+  Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+  Set
+StoreRenameOk ρ ⊒ˢ-nil = ⊤
+StoreRenameOk ρ (⊒ˢ-right hA σ⊒) = StoreRenameOk ρ σ⊒
+StoreRenameOk ρ (⊒ˢ-left σ⊒) = StoreRenameOk ρ σ⊒
+StoreRenameOk ρ (⊒ˢ-both hA hA′ (μ , s⊒) σ⊒) =
+  ∃[ ν ] ModeRename ρ μ ν × StoreRenameOk ρ σ⊒
+
+⊒ˢ-rename-guarded :
+  ∀ {Δ Δ′ σ Σ Σ′ ρ} →
+  TyRenameWf Δ Δ′ ρ →
+  (σ⊒ : Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′) →
+  StoreRenameOk ρ σ⊒ →
+  Δ′ ⊢ renameStoreNrw ρ σ ꞉
+    renameStoreᵗ ρ Σ ⊒ˢ renameStoreᵗ ρ Σ′
+⊒ˢ-rename-guarded hρ ⊒ˢ-nil ok = ⊒ˢ-nil
+⊒ˢ-rename-guarded hρ (⊒ˢ-right hA σ⊒) ok =
+  ⊒ˢ-right (renameᵗ-preserves-WfTy hA hρ)
+    (⊒ˢ-rename-guarded hρ σ⊒ ok)
+⊒ˢ-rename-guarded hρ (⊒ˢ-left σ⊒) ok =
+  ⊒ˢ-left (⊒ˢ-rename-guarded hρ σ⊒ ok)
+⊒ˢ-rename-guarded hρ (⊒ˢ-both hA hA′ (μ , s⊒) σ⊒)
+    (target , hμ , ok) =
+  ⊒ˢ-both
+    (renameᵗ-preserves-WfTy hA hρ)
+    (renameᵗ-preserves-WfTy hA′ hρ)
+    (target , narrow-renameᵗ hρ hμ s⊒)
+    (⊒ˢ-rename-guarded hρ σ⊒ ok)
+
+NarrowingRenameOk :
+  ∀ {Δ Σ c A B} →
+  Renameᵗ →
+  Δ ∣ Σ ⊢ c ∶ A ⊒ B →
+  Set
+NarrowingRenameOk ρ (μ , c⊒) =
+  ∃[ ν ] ModeRename ρ μ ν
+
+narrow-rename-guarded :
+  ∀ {Δ Δ′ Σ c A B ρ} →
+  TyRenameWf Δ Δ′ ρ →
+  (c⊒ : Δ ∣ Σ ⊢ c ∶ A ⊒ B) →
+  NarrowingRenameOk ρ c⊒ →
+  Δ′ ∣ renameStoreᵗ ρ Σ ⊢ renameᶜ ρ c
+    ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
+narrow-rename-guarded hρ (μ , c⊒) (target , hμ) =
+  target , narrow-renameᵗ hρ hμ c⊒
+
+≈ⁿRenameOk :
+  ∀ {Δ σ s t A B} →
+  Renameᵗ →
+  Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
+  Set
+≈ⁿRenameOk ρ
+    (endpointsⁿ srcs tgts srct tgtt σ⊒ wfΣ wfΣ′ s⊒ t⊒) =
+  StoreRenameOk ρ σ⊒ ×
+  NarrowingRenameOk ρ s⊒ ×
+  NarrowingRenameOk ρ t⊒
+
+≈ⁿ-rename-guarded :
+  ∀ {Δ Δ′ σ s t A B ρ} →
+  TyRenameWf Δ Δ′ ρ →
+  (s≈t : Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B) →
+  ≈ⁿRenameOk ρ s≈t →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ s ≈ renameᶜ ρ t
+      ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
+≈ⁿ-rename-guarded {ρ = ρ} hρ
+    (endpointsⁿ {s = s} {t = t}
+      srcs tgts srct tgtt σ⊒ wfΣ wfΣ′ s⊒ t⊒)
+    (okΣ , oks , okt) =
+  endpointsⁿ
+    (trans (src-renameᶜ ρ s) (cong (renameᵗ ρ) srcs))
+    (trans (tgt-renameᶜ ρ s) (cong (renameᵗ ρ) tgts))
+    (trans (src-renameᶜ ρ t) (cong (renameᵗ ρ) srct))
+    (trans (tgt-renameᶜ ρ t) (cong (renameᵗ ρ) tgtt))
+    (⊒ˢ-rename-guarded hρ σ⊒ okΣ)
+    (WfTyˢ-rename hρ (proj₁ wfΣ) ,
+     WfTyˢ-rename hρ (proj₂ wfΣ))
+    (WfTyˢ-rename hρ (proj₁ wfΣ′) ,
+     WfTyˢ-rename hρ (proj₂ wfΣ′))
+    (narrow-rename-guarded hρ s⊒ oks)
+    (narrow-rename-guarded hρ t⊒ okt)
+
 ⊒ˢ-source-target-swap :
   ∀ {Δ σ Σ Σ′ X Y A} →
   Δ ⊢ (⊒ X ꞉=☆) ∷ (Y ꞉= A ⊒) ∷ σ ꞉ Σ ⊒ˢ Σ′ →
@@ -2119,6 +2205,126 @@ StoreDetWf-swap01-inst {Σ = Σ} wfΣ =
     (widen-renameᵗ {ν = νᵐ} hρ hμ
       (proj₂ (_⨟ʷ_ {wfΣ = wfΣ} s⊑ t⊑)))
 
+ComposeLeftRenameOk :
+  ∀ {Δ σ q s r A B} →
+  Renameᵗ →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Set
+ComposeLeftRenameOk ρ (compose-leftⁿ {μ = μ} wfΣ q⊒ s⊒ q⨟s≈r) =
+  ∃[ target ] ModeRename ρ μ target × ≈ⁿRenameOk ρ q⨟s≈r
+
+ComposeRightRenameOk :
+  ∀ {Δ σ r t p A B} →
+  Renameᵗ →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  Set
+ComposeRightRenameOk ρ (compose-rightⁿ {μ = μ} wfΣ t⊒ p⊒ r≈t⨟p) =
+  ∃[ target ] ModeRename ρ μ target × ≈ⁿRenameOk ρ r≈t⨟p
+
+compose-leftⁿ-rename-guarded-components :
+  ∀ {Δ Δ′ σ Σ μ q s r A B C ρ} →
+  (hρ : TyRenameWf Δ Δ′ ρ) →
+  (wfΣ : StoreDetWf Δ Σ) →
+  (wfΣ′ : StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  (q⊒ : μ ∣ Δ ∣ Σ ⊢ q ∶ A ⊒ C) →
+  (s⊒ : μ ∣ Δ ∣ Σ ⊢ s ∶ C ⊒ B) →
+  (q⨟s≈r : Δ ∣ σ ⊢
+    proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒) ≈ r ∶ A ⊒ B) →
+  (∃[ target ] ModeRename ρ μ target × ≈ⁿRenameOk ρ q⨟s≈r) →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ q ⨾ⁿ renameᶜ ρ s
+      ≈ renameᶜ ρ r ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
+compose-leftⁿ-rename-guarded-components
+    {ρ = ρ} hρ wfΣ wfΣ′ q⊒ s⊒ q⨟s≈r
+    (target , hμ , ok≈) =
+  compose-leftⁿ wfΣ′ q⊒′ s⊒′ eq′
+  where
+    q⊒′ =
+      narrow-renameᵗ {ν = target} hρ hμ q⊒
+
+    s⊒′ =
+      narrow-renameᵗ {ν = target} hρ hμ s⊒
+
+    u≡ =
+      ⨟ⁿ-renameᵗ-determined
+        {ν = target}
+        hρ hμ wfΣ wfΣ′ q⊒ s⊒
+
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ u ≈ renameᶜ ρ _ ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-rename-guarded hρ q⨟s≈r ok≈)
+
+compose-rightⁿ-rename-guarded-components :
+  ∀ {Δ Δ′ σ Σ μ r t p A B C ρ} →
+  (hρ : TyRenameWf Δ Δ′ ρ) →
+  (wfΣ : StoreDetWf Δ Σ) →
+  (wfΣ′ : StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  (t⊒ : μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ C) →
+  (p⊒ : μ ∣ Δ ∣ Σ ⊢ p ∶ C ⊒ B) →
+  (r≈t⨟p : Δ ∣ σ ⊢
+    r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒) ∶ A ⊒ B) →
+  (∃[ target ] ModeRename ρ μ target × ≈ⁿRenameOk ρ r≈t⨟p) →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ r
+      ≈ renameᶜ ρ t ⨾ⁿ renameᶜ ρ p
+        ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
+compose-rightⁿ-rename-guarded-components
+    {ρ = ρ} hρ wfΣ wfΣ′ t⊒ p⊒ r≈t⨟p
+    (target , hμ , ok≈) =
+  compose-rightⁿ wfΣ′ t⊒′ p⊒′ eq′
+  where
+    t⊒′ =
+      narrow-renameᵗ {ν = target} hρ hμ t⊒
+
+    p⊒′ =
+      narrow-renameᵗ {ν = target} hρ hμ p⊒
+
+    u≡ =
+      ⨟ⁿ-renameᵗ-determined
+        {ν = target}
+        hρ hμ wfΣ wfΣ′ t⊒ p⊒
+
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ renameᶜ ρ _ ≈ u ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-rename-guarded hρ r≈t⨟p ok≈)
+
+compose-leftⁿ-rename-guarded :
+  ∀ {Δ Δ′ σ q s r A B ρ} →
+  (hρ : TyRenameWf Δ Δ′ ρ) →
+  (∀ {Σ} →
+    StoreDetWf Δ Σ →
+    StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  (q⨟s≈r : Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B) →
+  ComposeLeftRenameOk ρ q⨟s≈r →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ q ⨾ⁿ renameᶜ ρ s
+      ≈ renameᶜ ρ r ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
+compose-leftⁿ-rename-guarded hρ detMap
+    (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) ok =
+  compose-leftⁿ-rename-guarded-components
+    hρ wfΣ (detMap wfΣ) q⊒ s⊒ q⨟s≈r ok
+
+compose-rightⁿ-rename-guarded :
+  ∀ {Δ Δ′ σ r t p A B ρ} →
+  (hρ : TyRenameWf Δ Δ′ ρ) →
+  (∀ {Σ} →
+    StoreDetWf Δ Σ →
+    StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  (r≈t⨟p : Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B) →
+  ComposeRightRenameOk ρ r≈t⨟p →
+  Δ′ ∣ renameStoreNrw ρ σ
+    ⊢ renameᶜ ρ r
+      ≈ renameᶜ ρ t ⨾ⁿ renameᶜ ρ p
+        ∶ renameᵗ ρ A ⊒ renameᵗ ρ B
+compose-rightⁿ-rename-guarded hρ detMap
+    (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) ok =
+  compose-rightⁿ-rename-guarded-components
+    hρ wfΣ (detMap wfΣ) t⊒ p⊒ r≈t⨟p ok
+
 StoreDetWf-swap01-generic⊥ :
   StoreDetWf (suc (suc zero))
     (renameStoreᵗ swap01ᵗ ((suc zero , ＇ zero) ∷ [])) →
@@ -2126,6 +2332,15 @@ StoreDetWf-swap01-generic⊥ :
 StoreDetWf-swap01-generic⊥ wfΣ
     with StoreDetWf.wfOlder wfΣ (here refl)
 ... | wfVar ()
+
+StoreDetWf-merge01-different⊥ :
+  StoreDetWf (suc (suc zero))
+    (renameStoreᵗ merge01ᵗ
+      ((zero , ★) ∷ (suc zero , ＇ zero) ∷ [])) →
+  ⊥
+StoreDetWf-merge01-different⊥ wfΣ
+    with StoreDetWf.unique wfΣ (here refl) (there (here refl))
+... | ()
 
 TyRenameWf-raise0 :
   ∀ {Δ} →

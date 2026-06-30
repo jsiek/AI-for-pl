@@ -4662,3 +4662,51 @@ the visible `∶ᶜ` side premises, which are already `tag-or-idᵈ`, but also f
 store-narrowing/equivalence/composition endpoints that carry existential mode
 environments.  A proof that tracks only the term structure but ignores those
 hidden endpoint modes would repeat the false generic-renaming attempt.
+
+## Attempt 130: guarded endpoint and composition renaming
+
+Accepted as checked support.
+
+I turned the compatibility lesson from Attempts 128-129 into guarded transport
+lemmas.  These do not assert that a renaming is always valid; they take the
+missing evidence as an explicit premise.
+
+New checked definitions:
+
+- `StoreRenameOk`;
+- `⊒ˢ-rename-guarded`;
+- `NarrowingRenameOk`;
+- `narrow-rename-guarded`;
+- `≈ⁿRenameOk`;
+- `≈ⁿ-rename-guarded`;
+- `ComposeLeftRenameOk`;
+- `ComposeRightRenameOk`;
+- `compose-leftⁿ-rename-guarded-components`;
+- `compose-rightⁿ-rename-guarded-components`;
+- `compose-leftⁿ-rename-guarded`;
+- `compose-rightⁿ-rename-guarded`.
+
+This packages the part of a future `merge01ᵗ` term replay that was previously
+too implicit: store narrowing and coercion equivalence can be renamed if every
+hidden coercion endpoint provides a compatible target mode environment, and if
+the endpoint store remains deterministic after renaming.
+
+The wrapper form also revealed another checked obstruction:
+
+- `StoreDetWf-merge01-different⊥`.
+
+This proves that a global deterministic-store map for `merge01ᵗ` is too broad:
+renaming a store containing both `(zero , ★)` and `(suc zero , ＇ zero)` merges
+the keys and forces `★ ≡ ＇ zero`.  Therefore the next replay theorem cannot
+take a global
+
+`∀ {Σ} → StoreDetWf Δ Σ → StoreDetWf Δ′ (renameStoreᵗ merge01ᵗ Σ)`
+
+premise.  It needs a local readiness predicate at each composition branch that
+records both the compatible endpoint modes and the particular renamed endpoint
+store determinacy proof.
+
+This narrows the remaining source-first replay obligation but does not finish
+it.  The next mechanized attempt should define a term-level guarded replay
+predicate whose cast-composition cases carry exactly these local readiness
+witnesses.

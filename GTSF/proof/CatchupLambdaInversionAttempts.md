@@ -2867,3 +2867,32 @@ rather than the original unshifted source `N`.  So this isolates the remaining
 gap more sharply: after the recursive catchup evidence has been replayed through
 the split marker, the proof still needs a history-lowering/replay lemma that
 connects the shifted-source catchup package back to the original source term.
+
+## Attempt 83: use the packaged `ν⊒` relation as the branch result
+
+Rejected by a focused Agda probe.  I temporarily replaced the live
+`remainder-nu` / last-bind / `nu-base-empty` branch result with:
+
+`last-bind-source-first-ν⊒ keeps-ok π≡ Δ′≡ pᶜ π₀⊒ W⊒V′`
+
+Agda inferred exactly the expected package from Attempts 79 and 80:
+
+`ν ★ W (⇑ᶜ (applyCoercions χs₀ p)) ⊒ applyTerms χs₀ V′`
+
+under:
+
+`combineStoreNrw π₀ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)`
+
+The branch goal, however, is a full catchup package whose reduction component
+starts from the original source:
+
+`ν A L c —↠[ χs₁ ] W₁`
+
+and whose final relation targets:
+
+`applyTerms χs₁ (Λ V′) ∶ applyCoercions χs₁ (gen A p)`.
+
+So the `ν⊒` package is still the wrong source term.  It may be a useful
+intermediate once a replay theorem connects the original prefix/final bind to
+that packaged `ν` source, but by itself it cannot replace the remaining
+`catchup-⊒Λ-catchup` call.

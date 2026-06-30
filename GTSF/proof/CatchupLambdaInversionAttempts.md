@@ -4839,3 +4839,40 @@ one recurring transport nest from the eventual proof and confirms that the
 outer `⊒Λ` reconstruction itself is not the blocker; the remaining blocker is
 obtaining the recursively renamed body, including the local cast-composition
 readiness witnesses.
+
+## Attempt 135: factor `Λ⊒Λ` and `⊒⟨ν⟩` replay constructors
+
+Accepted as checked support.
+
+I added two more constructor builders for the future guarded term-replay
+theorem:
+
+- `term-rename-local-Λ⊒Λ-build`;
+- `term-rename-local-⊒⟨ν⟩-build`.
+
+Both follow the same pattern as `term-rename-local-⊒Λ-build`.  They take the
+renamed recursive body under `extᵗ ρ`, then use:
+
+- `renameStoreNrw-⇑ˢ` for the shifted store;
+- `renameCtxNrw-⇑ᵍ` for the shifted term context;
+- `renameStoreNrw-coercionᶜ` for the outer coercion premise;
+- `renameᵗᵐ-preserves-Value` in the `Λ⊒Λ` case;
+- `renameᶜ-preserves-Inert` in the `⊒⟨ν⟩` case.
+
+This confirms that the type-abstraction/value cases and the target-inert
+variant are transport bookkeeping, not conceptual blockers.
+
+I deliberately did not add the analogous ν builders yet.  The ν constructors
+are subtler than `Λ`: in the term syntax,
+
+`renameᵗᵐ ρ (ν A L c) = ν (renameᵗ ρ A) (renameᵗᵐ ρ L)
+  (renameᶜ (extᵗ ρ) c)`
+
+so the term body is renamed with `ρ`, while the narrowing premises for
+`ν⊒ν`, `⊒ν`, and `ν⊒` live under `suc Δ` and therefore naturally recurse with
+`extᵗ ρ`.  A direct copy of the `Λ` builder pattern would therefore produce a
+body whose source is renamed by `extᵗ ρ`, but the rebuilt outer ν term wants the
+source body renamed by `ρ`.  The next ν work needs either an invariant showing
+the body is insensitive to the fresh type variable, or a ν-specific replay
+statement with the right renaming shape.  Do not repeat the naive `extᵗ ρ`
+builder attempt for ν.

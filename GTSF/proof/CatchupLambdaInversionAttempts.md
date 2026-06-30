@@ -5068,3 +5068,37 @@ not replayable for the bare `merge01ᵗ` head, but it is replayable in the
 recursive branches where the renaming is visibly under a type binder.  A future
 guarded replay theorem should carry enough renaming-shape information to use
 these builders instead of globally rejecting α.
+
+## Attempt 141: split the local replay invariant by renaming shape
+
+Accepted as checked support.
+
+I added a shape-aware version of the local readiness predicate:
+
+- `TermRenameLocalShape`;
+- `TermRenameLocalShapeOk`.
+
+The shape index distinguishes the bare source-first replay renaming from
+recursive branches:
+
+- `shape-merge01` describes the initial `merge01ᵗ` replay point;
+- `shape-ext` records that replay has moved under an explicit type binder.
+
+The α clauses now state the precise lesson from Attempt 140:
+
+- at `shape-merge01`, `α⊒α` and `⊒α` remain impossible;
+- under `shape-ext shape`, `α⊒α` and `⊒α` recurse with the predecessor
+  `shape`, matching the premise shape required by
+  `term-rename-local-α⊒α-build` and `term-rename-local-⊒α-build`.
+
+This does not replace `TermRenameLocalOk` yet and does not prove the
+`bodyRaw` replay theorem.  It is a checked statement of the invariant the next
+term-replay induction needs.
+
+Important caveat: do not read this as solving the ν constructors.  The
+shape-aware readiness predicate can recurse under `ν⊒ν`, `⊒ν`, and `ν⊒`, but
+the actual replay proof still faces the mismatch recorded in Attempt 135:
+the term syntax of `ν A L c` renames `L` with the outer renaming, while the
+term-narrowing premise is indexed under the fresh type variable.  A replay
+theorem will need either a framed renaming statement for ν bodies or a
+freshness/insensitivity invariant for those bodies.

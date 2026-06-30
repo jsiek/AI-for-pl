@@ -2451,6 +2451,74 @@ TermRenameLocalOk Δ′ ρ (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
   ComposeRightRenameLocalOk Δ′ ρ r≈t⨟p ×
   TermRenameLocalOk Δ′ ρ M⊒M′
 
+data TermRenameLocalShape : TyCtx → Renameᵗ → Set where
+  shape-merge01 :
+    ∀ {Δ} →
+    TermRenameLocalShape (suc (suc Δ)) merge01ᵗ
+
+  shape-ext :
+    ∀ {Δ′ ρ} →
+    TermRenameLocalShape Δ′ ρ →
+    TermRenameLocalShape (suc Δ′) (extᵗ ρ)
+
+TermRenameLocalShapeOk :
+  ∀ {Δ σ γ M T c Δ′ ρ} →
+  TermRenameLocalShape Δ′ ρ →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ T ∶ c →
+  Set₁
+TermRenameLocalShapeOk shape (extend qᶜ pαᶜ M⊒T) =
+  TermRenameLocalShapeOk shape M⊒T
+TermRenameLocalShapeOk shape (split qᶜ pαᶜ M⊒T) =
+  TermRenameLocalShapeOk shape M⊒T
+TermRenameLocalShapeOk shape (⊒blame pᶜ) = ⊤₁
+TermRenameLocalShapeOk shape (x⊒x pᶜ x∋p) = ⊤₁
+TermRenameLocalShapeOk shape (ƛ⊒ƛ p↦qᶜ N⊒N′) =
+  TermRenameLocalShapeOk shape N⊒N′
+TermRenameLocalShapeOk shape (·⊒· qᶜ L⊒L′ M⊒M′) =
+  TermRenameLocalShapeOk shape L⊒L′ ×
+  TermRenameLocalShapeOk shape M⊒M′
+TermRenameLocalShapeOk shape (Λ⊒Λ allᶜ vV V⊒V′) =
+  TermRenameLocalShapeOk (shape-ext shape) V⊒V′
+TermRenameLocalShapeOk shape (⊒Λ pᶜ N⊒V′) =
+  TermRenameLocalShapeOk (shape-ext shape) N⊒V′
+TermRenameLocalShapeOk shape (⊒⟨ν⟩ pᶜ i N⊒V′s) =
+  TermRenameLocalShapeOk (shape-ext shape) N⊒V′s
+TermRenameLocalShapeOk shape-merge01 (α⊒α γ′≡ qᶜ pαᶜ L⊒L′) =
+  ⊥₁
+TermRenameLocalShapeOk (shape-ext shape)
+    (α⊒α γ′≡ qᶜ pαᶜ L⊒L′) =
+  TermRenameLocalShapeOk shape L⊒L′
+TermRenameLocalShapeOk shape-merge01 (⊒α γ′≡ pαᶜ L⊒L′) =
+  ⊥₁
+TermRenameLocalShapeOk (shape-ext shape) (⊒α γ′≡ pαᶜ L⊒L′) =
+  TermRenameLocalShapeOk shape L⊒L′
+TermRenameLocalShapeOk shape (ν⊒ν pᶜ qᶜ N⊒N′) =
+  TermRenameLocalShapeOk (shape-ext shape) N⊒N′
+TermRenameLocalShapeOk shape (⊒ν pᶜ N⊒N′) =
+  TermRenameLocalShapeOk (shape-ext shape) N⊒N′
+TermRenameLocalShapeOk shape (ν⊒ pᶜ N⊒N′) =
+  TermRenameLocalShapeOk (shape-ext shape) N⊒N′
+TermRenameLocalShapeOk shape (κ⊒κ κ) = ⊤₁
+TermRenameLocalShapeOk shape (⊕⊒⊕ M⊒M′ N⊒N′) =
+  TermRenameLocalShapeOk shape M⊒M′ ×
+  TermRenameLocalShapeOk shape N⊒N′
+TermRenameLocalShapeOk {Δ′ = Δ′} {ρ = ρ} shape
+    (⊒cast+ qᶜ q⨟s≈r M⊒M′) =
+  ComposeLeftRenameLocalOk Δ′ ρ q⨟s≈r ×
+  TermRenameLocalShapeOk shape M⊒M′
+TermRenameLocalShapeOk {Δ′ = Δ′} {ρ = ρ} shape
+    (⊒cast- qᶜ q⨟s≈r M⊒M′) =
+  ComposeLeftRenameLocalOk Δ′ ρ q⨟s≈r ×
+  TermRenameLocalShapeOk shape M⊒M′
+TermRenameLocalShapeOk {Δ′ = Δ′} {ρ = ρ} shape
+    (cast+⊒ pᶜ r≈t⨟p M⊒M′) =
+  ComposeRightRenameLocalOk Δ′ ρ r≈t⨟p ×
+  TermRenameLocalShapeOk shape M⊒M′
+TermRenameLocalShapeOk {Δ′ = Δ′} {ρ = ρ} shape
+    (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
+  ComposeRightRenameLocalOk Δ′ ρ r≈t⨟p ×
+  TermRenameLocalShapeOk shape M⊒M′
+
 term-rename-local-⊒Λ-build :
   ∀ {Δ Δ′ σ γ A B N V′ p ρ} →
   (hρ : TyRenameWf Δ Δ′ ρ) →

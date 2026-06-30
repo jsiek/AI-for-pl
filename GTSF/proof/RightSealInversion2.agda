@@ -11,10 +11,14 @@ module proof.RightSealInversion2 where
 --     the proof obligations that arise from store-shaping and left-cast cases.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.List using ([]; _∷_)
+open import Data.List.Relation.Unary.Any using (here; there)
+open import Data.Nat using (z<s; s<s)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
 
 open import Types
 open import Coercions
+open import Primitives
 open import NuTerms
 open import NarrowWiden
 open import NarrowWidenComposition
@@ -25,6 +29,7 @@ open import proof.Catchup using
   ; extendReplaceRel-term
   )
 open import proof.CoercionProperties using (coercion-src-tgtᵐ)
+open import proof.NarrowWidenProperties using (StoreDetWf)
 
 RightSealInversion2 : Set₁
 RightSealInversion2 =
@@ -141,11 +146,12 @@ rightSealInversion2-aux () (α⊒α qᶜ pαᶜ L⊒L′)
 rightSealInversion2-aux () (⊒α pαᶜ L⊒L′)
 rightSealInversion2-aux () (ν⊒ν pᶜ qᶜ N⊒N′)
 rightSealInversion2-aux () (⊒ν pᶜ N⊒N′)
--- The `ν⊒` case is a left wrapper: the right term is unconstrained, so
--- the proof should recurse under `⇑ᵗᵐ` and then rebuild `ν⊒`.  The attempted
--- recursive call produces a shifted composition
--- `⇑ᶜ p ⨾ⁿ seal (⇑ᵗ A) (suc α) ≈ r`; rebuilding needs an unshifting
--- lemma that factors this through a witness for `p ⨾ⁿ seal A α`.
+-- The `ν⊒` case is a left wrapper: the right term is unconstrained, so the
+-- proof should recurse under `⇑ᵗᵐ` and then rebuild `ν⊒`.
+-- The attempted recursive call produces a shifted composition
+-- `⇑ᶜ p ⨾ⁿ seal (⇑ᵗ A) (suc α) ≈ r`; rebuilding needs an
+-- unshifting lemma that factors this through a witness for
+-- `p ⨾ⁿ seal A α`.
 rightSealInversion2-aux eq (ν⊒ pᶜ N⊒N′) = {!!}
 rightSealInversion2-aux () (κ⊒κ κ)
 rightSealInversion2-aux () (⊕⊒⊕ M⊒M′ N⊒N′)
@@ -189,3 +195,191 @@ rightSealInversion2 M⊒Vunseal =
 
 right-seal-inversion₂ : RightSealInversion2
 right-seal-inversion₂ = rightSealInversion2
+
+------------------------------------------------------------------------
+-- Counterexample search: ν-wrapped right unseal
+------------------------------------------------------------------------
+
+private
+  NatTy : Ty
+  NatTy = ‵ `ℕ
+
+  alpha0 : TyVar
+  alpha0 = 0
+
+  alpha1 : TyVar
+  alpha1 = 1
+
+  k0 : Const
+  k0 = κℕ 0
+
+  Store0 : Store
+  Store0 = (alpha0 , NatTy) ∷ []
+
+  Sigma0 : StoreNrw
+  Sigma0 = (alpha0 ꞉ id NatTy) ∷ []
+
+  Store1Target : Store
+  Store1Target = (alpha1 , NatTy) ∷ []
+
+  Store1Source : Store
+  Store1Source = (0 , ★) ∷ Store1Target
+
+  Sigma1 : StoreNrw
+  Sigma1 = (⊒ 0 ꞉=☆) ∷ (alpha1 ꞉ id NatTy) ∷ []
+
+  seal0 : Coercion
+  seal0 = seal NatTy alpha0
+
+  seal1 : Coercion
+  seal1 = seal NatTy alpha1
+
+  unseal0 : Coercion
+  unseal0 = unseal alpha0 NatTy
+
+  wfStore0 : StoreDetWf 1 Store0
+  wfStore0 =
+    record
+      { at = record
+          { bound = λ { (here refl) → z<s }
+          ; wfTy = λ { (here refl) → wfBase }
+          }
+      ; wfOlder = λ { (here refl) → wfBase }
+      ; unique = λ { (here refl) (here refl) → refl }
+      }
+
+  wfStore1Target : StoreDetWf 2 Store1Target
+  wfStore1Target =
+    record
+      { at = record
+          { bound = λ { (here refl) → s<s z<s }
+          ; wfTy = λ { (here refl) → wfBase }
+          }
+      ; wfOlder = λ { (here refl) → wfBase }
+      ; unique = λ { (here refl) (here refl) → refl }
+      }
+
+  wfStore1Source : StoreDetWf 2 Store1Source
+  wfStore1Source =
+    record
+      { at = record
+          { bound = λ { (here refl) → z<s ; (there (here refl)) → s<s z<s }
+          ; wfTy = λ { (here refl) → wf★ ; (there (here refl)) → wfBase }
+          }
+      ; wfOlder = λ
+          { (here refl) → wf★
+          ; (there (here refl)) → wfBase
+          }
+      ; unique = λ
+          { (here refl) (here refl) → refl
+          ; (here refl) (there (here ()))
+          ; (there (here ())) (here refl)
+          ; (there (here refl)) (there (here refl)) → refl
+          }
+      }
+
+  Sigma0⊒ : 1 ⊢ Sigma0 ꞉ Store0 ⊒ˢ Store0
+  Sigma0⊒ =
+    ⊒ˢ-both wfBase wfBase
+      (id-onlyᵈ , (cast-id wfBase refl , cross (id-‵ `ℕ)))
+      ⊒ˢ-nil
+
+  Sigma1⊒ : 2 ⊢ Sigma1 ꞉ Store1Source ⊒ˢ Store1Target
+  Sigma1⊒ =
+    ⊒ˢ-left
+      (⊒ˢ-both wfBase wfBase
+        (id-onlyᵈ , (cast-id wfBase refl , cross (id-‵ `ℕ)))
+        ⊒ˢ-nil)
+
+  endpoints0 : EndpointWf 1 Store0 NatTy (＇ alpha0)
+  endpoints0 = wfBaseˢ , wfVarˢ (here refl)
+
+  endpoints1Target : EndpointWf 2 Store1Target NatTy (＇ alpha1)
+  endpoints1Target = wfBaseˢ , wfVarˢ (here refl)
+
+  endpoints1Source : EndpointWf 2 Store1Source NatTy (＇ alpha1)
+  endpoints1Source = wfBaseˢ , wfVarˢ (there (here refl))
+
+  idNatᶜ : ∀ {Δ Σ} → Δ ∣ Σ ⊢ id NatTy ∶ᶜ NatTy ⊒ NatTy
+  idNatᶜ = cast-id wfBase refl , cross (id-‵ `ℕ)
+
+  idNat⊒ : ∀ {Δ Σ} →
+    seal-or-idᵈ ∣ Δ ∣ Σ ⊢ id NatTy ∶ NatTy ⊒ NatTy
+  idNat⊒ = cast-id wfBase refl , cross (id-‵ `ℕ)
+
+  seal0⊒ : seal-or-idᵈ ∣ 1 ∣ Store0 ⊢ seal0 ∶ NatTy ⊒ ＇ alpha0
+  seal0⊒ = cast-seal wfBase (here refl) refl , sealⁿ NatTy alpha0
+
+  seal1⊒Target :
+    seal-or-idᵈ ∣ 2 ∣ Store1Target ⊢ seal1 ∶ NatTy ⊒ ＇ alpha1
+  seal1⊒Target =
+    cast-seal wfBase (here refl) refl , sealⁿ NatTy alpha1
+
+  seal1⊒Source :
+    seal-or-idᵈ ∣ 2 ∣ Store1Source ⊢ seal1 ∶ NatTy ⊒ ＇ alpha1
+  seal1⊒Source =
+    cast-seal wfBase (there (here refl)) refl , sealⁿ NatTy alpha1
+
+  right-seal-compose0 :
+    1 ∣ Sigma0 ⊢ id NatTy ⨾ⁿ seal0 ≈ seal0 ∶ NatTy ⊒ ＇ alpha0
+  right-seal-compose0 =
+    compose-leftⁿ wfStore0 idNat⊒ seal0⊒
+      (endpointsⁿ refl refl refl refl Sigma0⊒ endpoints0 endpoints0
+        (seal-or-idᵈ , proj₂ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒))
+        (seal-or-idᵈ , seal0⊒))
+
+  right-seal-compose1 :
+    2 ∣ Sigma1 ⊢ id NatTy ⨾ⁿ seal1 ≈ seal1 ∶ NatTy ⊒ ＇ alpha1
+  right-seal-compose1 =
+    compose-leftⁿ wfStore1Target idNat⊒ seal1⊒Target
+      (endpointsⁿ refl refl refl refl
+        Sigma1⊒
+        endpoints1Target
+        endpoints1Source
+        (seal-or-idᵈ ,
+          proj₂ (_⨟ⁿ_ {wfΣ = wfStore1Target} idNat⊒ seal1⊒Target))
+        (seal-or-idᵈ , seal1⊒Source))
+
+  right-sealed-constant1 :
+    2 ∣ Sigma1 ∣ [] ⊢ $ k0 ⊒ ($ k0) ⟨ seal1 ⟩ ∶ seal1
+  right-sealed-constant1 =
+    ⊒cast- idNatᶜ right-seal-compose1 (κ⊒κ k0)
+
+  right-unsealed-constant1 :
+    2 ∣ Sigma1 ∣ []
+      ⊢ $ k0 ⊒ (($ k0) ⟨ seal1 ⟩) ⟨ unseal alpha1 NatTy ⟩
+      ∶ id NatTy
+  right-unsealed-constant1 =
+    ⊒cast+ idNatᶜ right-seal-compose1 right-sealed-constant1
+
+  right-seal-inversion₂-counterexample-premise :
+    1 ∣ Sigma0 ∣ []
+      ⊢ ν ★ ($ k0) (⇑ᶜ (id NatTy))
+        ⊒ (($ k0) ⟨ seal0 ⟩) ⟨ unseal0 ⟩
+      ∶ id NatTy
+  right-seal-inversion₂-counterexample-premise =
+    ν⊒ idNatᶜ right-unsealed-constant1
+
+  -- This was the first ν-shaped counterexample candidate.  It fails: the
+  -- stripped conclusion is rebuilt by relating the ν term to the bare constant
+  -- at `id Nat`, then adding the right seal with `⊒cast-`.
+  right-seal-inversion₂-ν-candidate-stripped :
+    1 ∣ Sigma0 ∣ []
+      ⊢ ν ★ ($ k0) (⇑ᶜ (id NatTy)) ⊒ ($ k0) ⟨ seal0 ⟩
+      ∶ seal0
+  right-seal-inversion₂-ν-candidate-stripped =
+    ⊒cast-
+      idNatᶜ
+      right-seal-compose0
+      (ν⊒ idNatᶜ (κ⊒κ k0))
+
+right-seal-inversion₂-ν-candidate-result :
+  ∃[ r ]
+    (1 ∣ Sigma0
+      ⊢ id NatTy ⨾ⁿ seal0 ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0) ×
+    1 ∣ Sigma0 ∣ []
+      ⊢ ν ★ ($ k0) (⇑ᶜ (id NatTy)) ⊒ ($ k0) ⟨ seal0 ⟩ ∶ r
+right-seal-inversion₂-ν-candidate-result =
+  seal0 ,
+  right-seal-compose-endpoints right-seal-compose0 ,
+  right-seal-inversion₂-ν-candidate-stripped

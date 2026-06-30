@@ -60,6 +60,21 @@ renameᶜ-preserves-Inert ρ (`∀ c) = `∀ (renameᶜ (extᵗ ρ) c)
 renameᶜ-preserves-Inert ρ (gen A c) =
   gen (renameᵗ ρ A) (renameᶜ (extᵗ ρ) c)
 
+renameᶜ-reflects-Inert :
+  ∀ ρ c →
+  Inert (renameᶜ ρ c) →
+  Inert c
+renameᶜ-reflects-Inert ρ (id A) ()
+renameᶜ-reflects-Inert ρ (c ︔ d) ()
+renameᶜ-reflects-Inert ρ (c ↦ d) (c′ ↦ d′) = c ↦ d
+renameᶜ-reflects-Inert ρ (`∀ c) (`∀ c′) = `∀ c
+renameᶜ-reflects-Inert ρ (G !) (H !) = G !
+renameᶜ-reflects-Inert ρ (G ？) ()
+renameᶜ-reflects-Inert ρ (seal A α) (seal B β) = seal A α
+renameᶜ-reflects-Inert ρ (unseal α A) ()
+renameᶜ-reflects-Inert ρ (gen A c) (gen B d) = gen A c
+renameᶜ-reflects-Inert ρ (inst B c) ()
+
 mutual
   src-renameᶜ :
     ∀ ρ c →

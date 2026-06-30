@@ -95,6 +95,19 @@ module proof.LeftWidening where
 --     `rename-extend` and `rename-split` are now mechanized in
 --     `proof.TermNarrowingProperties`, using the parallel type-renaming/opening
 --     commutation lemmas for terms and coercions.
+--   * A full pointwise theorem
+--     `M ⊒ M′ ∶ p -> renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ p`
+--     is too strong for the current relation.  The `⊒⟨ν⟩` constructor exposes
+--     the mismatch: its recursive premise renames the target value under
+--     `extᵗ ρ`, but pointwise renaming of the conclusion
+--     `V′ ⟨ gen A s ⟩` renames `V′` under plain `ρ`.  The eventual reusable
+--     theorem needs a proof-directed target translation or a more local
+--     statement for the gen/nu cases, not ordinary whole-term renaming.
+--     The useful local support lemmas from this failed attempt are now in
+--     `proof.CoercionProperties` and `proof.NuTermProperties`:
+--     `renameᶜ-reflects-Inert`, `renameᵗᵐ-reflects-Value`, and
+--     `renameᵗᵐ-reflects-No•`.  They should help peel `⇑ᵗᵐ` values and
+--     no-bullet evidence in the shifted-source inversion lemmas.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)

@@ -4348,3 +4348,44 @@ still rebuild the target-first term with a `split`/opening reconstruction.  Usin
 the existing `⊒Λ-body-split-marker-catchup` shortcut would still rely on the
 postulated `catchup-split-catchup`, so this attempt is support for the remaining
 case split rather than a proof of `catchup-⊒Λ-catchup`.
+
+## Attempt 123: top-level value replay is not general enough
+
+Rejected before coding a large lemma.
+
+The tempting next statement was a value-level replay specialized to the two
+visible store heads produced by `last-bind-source-first-body`:
+
+`suc (suc Δ) ∣
+  (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+  ⊢ W ⊒ ⇑ᵗᵐ V′ ∶ ⇑ᶜ p`
+
+to
+
+`suc (suc Δ) ∣
+  (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+  ⊢ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+    ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p`.
+
+Equivalently, this tries to rename the source side with `raise0ᵗ` and the
+target/coercion side with `swap01ᵗ`.  At the outermost store heads this matches
+the desired conclusion exactly: `swap01ᵗ` moves the target-only marker to
+`zero` and the source-only marker to `suc zero`, while `raise0ᵗ` keeps the
+caught-up source value opened at the source-only marker.
+
+The problem is that the proof cannot recurse through all value-producing term
+imprecision constructors with only this top-level shape.  In a `Λ⊒Λ` premise,
+the distinguished entries are shifted under the type binder, so the recursive
+renamings must become `extᵗ raise0ᵗ` and `extᵗ swap01ᵗ`.  In a nested `⊒Λ`
+premise, the body store gains an additional target-only `zero` entry before the
+shifted distinguished pair.  Thus the replay theorem must be parameterized by a
+store prefix or by an indexed pair of renamings (`raiseAt n`/`swapAt n`) plus a
+split-aware store-transport relation.  A lemma that only recognizes the two
+visible heads would immediately get stuck under type abstraction or nested
+polymorphic imprecision.
+
+This also explains why the existing `SourceTargetSwapRels` work is close but
+not sufficient: a prefix-aware replay can use ordinary safe swaps for structural
+constructors, but the unsafe split crossing is still exactly the source-cast
+tag/untag branch from Attempts 120-122 and must be rebuilt by a real
+split/opening argument.

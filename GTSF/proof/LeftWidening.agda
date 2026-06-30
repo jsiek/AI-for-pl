@@ -85,7 +85,9 @@ module proof.LeftWidening where
 --     needed here without importing `proof.Catchup` and its assumptions.  The
 --     `gen`-specific wrapper
 --     `left-widening-gen-coercion-typing-transport` exposes the constructor
---     form expected by the `⊒Λ`/`⊒⟨ν⟩` package lemmas.
+--     form expected by the `⊒Λ`/`⊒⟨ν⟩` package lemmas.  The source-facing
+--     gen package wrappers compose that transport with the existing packages;
+--     Example 4 now uses the `⊒Λ` source wrapper directly.
 --   * A direct suc-only induction for that weakening lemma is the wrong
 --     formulation: under `Λ`, the body is renamed by `extᵗ suc`, not plain
 --     `suc`.  The reusable pieces started in `proof.TermNarrowingProperties`
@@ -353,6 +355,23 @@ left-widening-gen-coercion-typing-transport
         {σ = σ} {π = π} {χs = χs} {p = gen A p}
         {A = A} {B = `∀ B}
         pᶜ Δ′≡ Π≡ Π′≡ π⊒))
+
+left-widening-gen-spine-coercion-typing :
+  ∀ {Δ σ A B c} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A c ∶ᶜ A ⊒ `∀ B →
+  suc Δ ∣ srcStoreⁿ (combineStoreNrw ((⊒ zero ꞉=☆) ∷ []) σ)
+    ⊢ gen (⇑ᵗ A) (renameᶜ (extᵗ suc) c)
+      ∶ᶜ ⇑ᵗ A
+      ⊒ `∀ (applyTysUnderTyBinders (keep ∷ bind ★ ∷ keep ∷ []) B)
+left-widening-gen-spine-coercion-typing {σ = σ} pᶜ =
+  left-widening-gen-coercion-typing-transport
+    {σ = σ}
+    {χs = keep ∷ bind ★ ∷ keep ∷ []}
+    pᶜ
+    refl
+    refl
+    refl
+    (⊒ˢ-left ⊒ˢ-nil)
 
 left-widening-inert :
   ∀ {Δ σ V V′ p r t A B C D} →
@@ -791,6 +810,41 @@ left-widening-gen-inert-⊒Λ-package {Δ = Δ} {σ = σ} {N = N}
     (no•-⟨⟩ noN)
     (⊒Λ genᶜ body⊒)
 
+left-widening-gen-inert-⊒Λ-source-package :
+  ∀ {Δ σ N V′ A B c} →
+  Value N →
+  No• N →
+  Inert (dual (genᵃ normalᵃ) c) →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A c ∶ᶜ A ⊒ `∀ B →
+  suc (suc Δ) ∣ (zero ꞉= ★ ⊒)
+      ∷ ⇑ˢ (combineStoreNrw ((⊒ zero ꞉=☆) ∷ []) σ) ∣ []
+    ⊢ ⇑ᵗᵐ (N ⟨ dual (genᵃ normalᵃ) c ⟩)
+      ⊒ renameᵗᵐ (extᵗ suc) V′
+      ∶ renameᶜ (extᵗ suc) c →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    ((Λ N) ⟨ - (gen A c) ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs (Λ V′)
+        ∶ applyCoercions χs (gen A c)
+left-widening-gen-inert-⊒Λ-source-package
+    {Δ = Δ} {σ = σ} {A = A} {B = B} {c = c}
+    vN noN inert-c genᶜ body⊒ =
+  left-widening-gen-inert-⊒Λ-package
+    {Δ = Δ} {σ = σ} {A = A}
+    {B = applyTysUnderTyBinders (keep ∷ bind ★ ∷ keep ∷ []) B}
+    {c = c}
+    vN
+    noN
+    inert-c
+    (left-widening-gen-spine-coercion-typing {σ = σ} genᶜ)
+    body⊒
+
 left-widening-gen-inert-⊒⟨ν⟩-package :
   ∀ {Δ σ N V′ A B c s} →
   Value N →
@@ -828,6 +882,43 @@ left-widening-gen-inert-⊒⟨ν⟩-package
     (⊒⟨ν⟩ genᶜ
       (renameᶜ-preserves-Inert (extᵗ suc) inert-s)
       body⊒)
+
+left-widening-gen-inert-⊒⟨ν⟩-source-package :
+  ∀ {Δ σ N V′ A B c s} →
+  Value N →
+  No• N →
+  Inert (dual (genᵃ normalᵃ) c) →
+  Inert s →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A c ∶ᶜ A ⊒ `∀ B →
+  suc (suc Δ) ∣ (zero ꞉= ★ ⊒)
+      ∷ ⇑ˢ (combineStoreNrw ((⊒ zero ꞉=☆) ∷ []) σ) ∣ []
+    ⊢ ⇑ᵗᵐ (N ⟨ dual (genᵃ normalᵃ) c ⟩)
+      ⊒ ⇑ᵗᵐ V′ ⟨ renameᶜ (extᵗ suc) s ⟩
+      ∶ renameᶜ (extᵗ suc) c →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    ((Λ N) ⟨ - (gen A c) ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs (V′ ⟨ gen A s ⟩)
+        ∶ applyCoercions χs (gen A c)
+left-widening-gen-inert-⊒⟨ν⟩-source-package
+    {Δ = Δ} {σ = σ} {A = A} {B = B} {c = c}
+    vN noN inert-c inert-s genᶜ body⊒ =
+  left-widening-gen-inert-⊒⟨ν⟩-package
+    {Δ = Δ} {σ = σ} {A = A}
+    {B = applyTysUnderTyBinders (keep ∷ bind ★ ∷ keep ∷ []) B}
+    {c = c}
+    vN
+    noN
+    inert-c
+    inert-s
+    (left-widening-gen-spine-coercion-typing {σ = σ} genᶜ)
+    body⊒
 
 left-widening-id-exact :
   ∀ {Δ σ V V′ p A C D} →
@@ -1079,7 +1170,7 @@ left-widening-ex4-gen :
       ⊢ W ⊒ applyTerms χs goodPoly
       ∶ applyCoercions χs (gen (★ ⇒ ★) var0-fun)
 left-widening-ex4-gen =
-  left-widening-gen-inert-⊒Λ-package
+  left-widening-gen-inert-⊒Λ-source-package
     {Δ = 0} {σ = []} {N = ƛ (` zero)} {V′ = ƛ (` zero)}
     {A = ★ ⇒ ★} {B = ＇ zero ⇒ ＇ zero} {c = var0-fun}
     (ƛ (` zero))

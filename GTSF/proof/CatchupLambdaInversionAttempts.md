@@ -4781,3 +4781,28 @@ expanded case split is no longer compatible with the runtime-bullet α rule
 indices.  Future attempts should avoid direct constructor splitting on
 `α⊒α`/`⊒α` under expected `γ = []` unless the `⇑ᵍ` index is refactored or a
 separate inversion lemma hides that coverage problem.
+
+## Attempt 133: make α runtime-bullet cases replay-unsafe
+
+Accepted as checked support.
+
+Attempt 131 had `TermRenameLocalOk` recurse through `α⊒α` and `⊒α`.  After
+the runtime-bullet α rule merge, that was too optimistic.  Those constructors
+conclude under a fresh type binder and produce target terms ending in type
+application, so a generic term-renaming replay would need extra evidence that
+the renaming is an `extᵗ`-shaped binder-preserving renaming.  The `merge01ᵗ`
+renaming needed by the source-first `⊒Λ` branch is not of that shape.
+
+I changed the readiness predicate so both α runtime-bullet constructors require
+a `Set₁` contradiction:
+
+- added local `⊥₁`;
+- `TermRenameLocalOk Δ′ ρ (α⊒α qᶜ pαᶜ L⊒L′) = ⊥₁`;
+- `TermRenameLocalOk Δ′ ρ (⊒α pαᶜ L⊒L′) = ⊥₁`.
+
+This aligns the guarded replay path with the actual `⊒Λ` body obligation.  In
+that branch the target is `⇑ᵗᵐ V′`, and `V′` is a value; the α runtime-bullet
+constructors target type applications and are not part of the replay-ready
+fragment.  The future replay theorem should therefore handle α by an impossible
+readiness premise, not by recursively replaying the underlying `L ⊒ L′`
+derivation.

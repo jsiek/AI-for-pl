@@ -2335,6 +2335,8 @@ compose-rightⁿ-rename-local hρ
 record ⊤₁ : Set₁ where
   constructor tt₁
 
+data ⊥₁ : Set₁ where
+
 TermRenameLocalOk :
   ∀ {Δ σ γ M T c} →
   TyCtx →
@@ -2358,10 +2360,8 @@ TermRenameLocalOk Δ′ ρ (⊒Λ pᶜ N⊒V′) =
   TermRenameLocalOk (suc Δ′) (extᵗ ρ) N⊒V′
 TermRenameLocalOk Δ′ ρ (⊒⟨ν⟩ pᶜ i N⊒V′s) =
   TermRenameLocalOk (suc Δ′) (extᵗ ρ) N⊒V′s
-TermRenameLocalOk Δ′ ρ (α⊒α qᶜ pαᶜ L⊒L′) =
-  TermRenameLocalOk Δ′ ρ L⊒L′
-TermRenameLocalOk Δ′ ρ (⊒α pαᶜ L⊒L′) =
-  TermRenameLocalOk Δ′ ρ L⊒L′
+TermRenameLocalOk Δ′ ρ (α⊒α qᶜ pαᶜ L⊒L′) = ⊥₁
+TermRenameLocalOk Δ′ ρ (⊒α pαᶜ L⊒L′) = ⊥₁
 TermRenameLocalOk Δ′ ρ (ν⊒ν pᶜ qᶜ N⊒N′) =
   TermRenameLocalOk (suc Δ′) (extᵗ ρ) N⊒N′
 TermRenameLocalOk Δ′ ρ (⊒ν pᶜ N⊒N′) =

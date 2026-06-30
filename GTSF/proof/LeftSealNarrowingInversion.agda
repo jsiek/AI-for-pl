@@ -195,8 +195,22 @@ termNarrowing-gen-open-id-var-aux⊥ refl
     open-id =
   gen-open-id-var∃⊥ r⊒ open-id
 termNarrowing-gen-open-id-var-aux⊥ refl
+    (⊒cast- qᶜ
+      (compose-left-fillⁿ wfΣ q⊒ s⇝ s′⊒
+        (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
+      M⊒M′)
+    open-id =
+  gen-open-id-var∃⊥ r⊒ open-id
+termNarrowing-gen-open-id-var-aux⊥ refl
     (cast+⊒ pᶜ
       (compose-rightⁿ wfΣ t⊒ p⊒
+        (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
+      M⊒M′)
+    open-id =
+  gen-open-id-var∃⊥ r⊒ open-id
+termNarrowing-gen-open-id-var-aux⊥ refl
+    (cast+⊒ pᶜ
+      (compose-right-fillⁿ wfΣ t⇝ t′⊒ p⊒
         (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
       M⊒M′)
     open-id =
@@ -286,6 +300,11 @@ leftSealNarrowingInversion-aux eq refl vV
       (compose-rightⁿ wfΣ t⊒ p⊒
         (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
       M⊒M′) = {!!}
+leftSealNarrowingInversion-aux eq refl vV
+    (cast+⊒ pᶜ
+      (compose-right-fillⁿ wfΣ t⇝ t′⊒ p⊒
+        (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
+      M⊒M′) = {!!}
 leftSealNarrowingInversion-aux refl refl vV
     (⊒blame (cast-id hα ok , cross (id-＇ α))) =
   (＇ α) ？ ,
@@ -301,8 +320,18 @@ leftSealNarrowingInversion-aux refl refl vV
         (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
       M⊒M′) = {!!}
 leftSealNarrowingInversion-aux refl refl vV
+    (⊒cast+ (cast-id hα okα , cross (id-＇ α))
+      (compose-left-fillⁿ wfΣ q⊒ s⇝ s′⊒
+        (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
+      M⊒M′) = {!!}
+leftSealNarrowingInversion-aux refl refl vV
     (⊒cast- qᶜ
       (compose-leftⁿ wfΣ q⊒ s⊒
+        (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
+      M⊒M′) = {!!}
+leftSealNarrowingInversion-aux refl refl vV
+    (⊒cast- qᶜ
+      (compose-left-fillⁿ wfΣ q⊒ s⇝ s′⊒
         (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
       M⊒M′) = {!!}
 leftSealNarrowingInversion-aux refl refl vV
@@ -324,6 +353,11 @@ leftSealNarrowingInversion-aux refl refl vV
   termNarrowing-resp-≈
     (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒)
     M⊒M′
+leftSealNarrowingInversion-aux refl refl vV
+    (cast-⊒ pᶜ
+      (compose-right-fillⁿ wfΣ t⇝ t′⊒ p⊒
+        (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
+      M⊒M′) = {!!}
 
 leftSealNarrowingInversion : LeftSealNarrowingInversion
 leftSealNarrowingInversion vV M⊒V′ =

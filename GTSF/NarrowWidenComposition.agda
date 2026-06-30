@@ -729,6 +729,15 @@ data _∣_⊢_⨾ⁿ_≈_∶_⊒_ :
      --------------------------------
     → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
 
+  compose-left-fillⁿ : ∀ {Δ σ Σ μ A B C q s s′ r}
+    → (wfΣ : StoreDetWf Δ Σ)
+    → (q⊒ : μ ∣ Δ ∣ Σ ⊢ q ∶ A ⊒ C)
+    → FillNarrowing s s′
+    → (s′⊒ : μ ∣ Δ ∣ Σ ⊢ s′ ∶ C ⊒ B)
+    → Δ ∣ σ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ s′⊒) ≈ r ∶ A ⊒ B
+     --------------------------------
+    → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
+
 data _∣_⊢_≈_⨾ⁿ_∶_⊒_ :
     TyCtx → StoreNrw → Coercion → Coercion → Coercion →
     Ty → Ty → Set₁ where
@@ -738,5 +747,14 @@ data _∣_⊢_≈_⨾ⁿ_∶_⊒_ :
     → (t⊒ : μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ C)
     → (p⊒ : μ ∣ Δ ∣ Σ ⊢ p ∶ C ⊒ B)
     → Δ ∣ σ ⊢ r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒) ∶ A ⊒ B
+     --------------------------------
+    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+
+  compose-right-fillⁿ : ∀ {Δ σ Σ μ A B C r t t′ p}
+    → (wfΣ : StoreDetWf Δ Σ)
+    → FillNarrowing t t′
+    → (t′⊒ : μ ∣ Δ ∣ Σ ⊢ t′ ∶ A ⊒ C)
+    → (p⊒ : μ ∣ Δ ∣ Σ ⊢ p ∶ C ⊒ B)
+    → Δ ∣ σ ⊢ r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t′⊒ p⊒) ∶ A ⊒ B
      --------------------------------
     → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B

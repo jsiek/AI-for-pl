@@ -8,8 +8,9 @@
 
   Freshness side conditions from the paper are not reified here.  The paper's
   +/- cast notation is represented using NuTerms' single raw cast form and the
-  coercion dual operator `-_`, with the corresponding coercion-equivalence
-  premise made explicit.
+  coercion dual operator `-_`.  Cast rules compose through the side-condition
+  relations from NarrowWidenComposition, which first fill raw identity/tag/seal
+  coercions into canonical narrowings before applying canonical composition.
 -}
 
 module TermNarrowing where

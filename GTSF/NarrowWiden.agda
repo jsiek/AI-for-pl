@@ -265,6 +265,268 @@ mutual
   strictʷ→widen (strict-unseal-seq α sˢ) = unseal︔_ α sˢ
 
 ------------------------------------------------------------------------
+-- Filling raw identities into canonical narrowings and widenings
+------------------------------------------------------------------------
+
+mutual
+  idⁿᶜ : Ty → Coercion
+  idⁿᶜ (＇ α) = id (＇ α)
+  idⁿᶜ (‵ ι) = id (‵ ι)
+  idⁿᶜ ★ = id ★
+  idⁿᶜ (A ⇒ B) = idʷᶜ A ↦ idⁿᶜ B
+  idⁿᶜ (`∀ A) = `∀ (idⁿᶜ A)
+
+  idʷᶜ : Ty → Coercion
+  idʷᶜ (＇ α) = id (＇ α)
+  idʷᶜ (‵ ι) = id (‵ ι)
+  idʷᶜ ★ = id ★
+  idʷᶜ (A ⇒ B) = idⁿᶜ A ↦ idʷᶜ B
+  idʷᶜ (`∀ A) = `∀ (idʷᶜ A)
+
+mutual
+  idⁿ : (A : Ty) → Narrowing (idⁿᶜ A)
+  idⁿ (＇ α) = cross (id-＇ α)
+  idⁿ (‵ ι) = cross (id-‵ ι)
+  idⁿ ★ = id★
+  idⁿ (A ⇒ B) = cross (idʷ A ↦ idⁿ B)
+  idⁿ (`∀ A) = cross (`∀ (idⁿ A))
+
+  idʷ : (A : Ty) → Widening (idʷᶜ A)
+  idʷ (＇ α) = cross (id-＇ α)
+  idʷ (‵ ι) = cross (id-‵ ι)
+  idʷ ★ = id★
+  idʷ (A ⇒ B) = cross (idⁿ A ↦ idʷ B)
+  idʷ (`∀ A) = cross (`∀ (idʷ A))
+
+mutual
+  idⁿᶜ-rename : ∀ ρ A → renameᶜ ρ (idⁿᶜ A) ≡ idⁿᶜ (renameᵗ ρ A)
+  idⁿᶜ-rename ρ (＇ α) = refl
+  idⁿᶜ-rename ρ (‵ ι) = refl
+  idⁿᶜ-rename ρ ★ = refl
+  idⁿᶜ-rename ρ (A ⇒ B)
+      rewrite idʷᶜ-rename ρ A | idⁿᶜ-rename ρ B =
+    refl
+  idⁿᶜ-rename ρ (`∀ A) rewrite idⁿᶜ-rename (extᵗ ρ) A = refl
+
+  idʷᶜ-rename : ∀ ρ A → renameᶜ ρ (idʷᶜ A) ≡ idʷᶜ (renameᵗ ρ A)
+  idʷᶜ-rename ρ (＇ α) = refl
+  idʷᶜ-rename ρ (‵ ι) = refl
+  idʷᶜ-rename ρ ★ = refl
+  idʷᶜ-rename ρ (A ⇒ B)
+      rewrite idⁿᶜ-rename ρ A | idʷᶜ-rename ρ B =
+    refl
+  idʷᶜ-rename ρ (`∀ A) rewrite idʷᶜ-rename (extᵗ ρ) A = refl
+
+idTyAllowed-any : ∀ μ A → idTyAllowed μ A ≡ true
+idTyAllowed-any μ (＇ α) with μ α
+idTyAllowed-any μ (＇ α) | id-only = refl
+idTyAllowed-any μ (＇ α) | tag-or-id = refl
+idTyAllowed-any μ (＇ α) | seal-or-id = refl
+idTyAllowed-any μ (‵ ι) = refl
+idTyAllowed-any μ ★ = refl
+idTyAllowed-any μ (A ⇒ B)
+    rewrite idTyAllowed-any μ A | idTyAllowed-any μ B =
+  refl
+idTyAllowed-any μ (`∀ A) = idTyAllowed-any (extᵈ μ) A
+
+mutual
+  idⁿ-typed :
+    ∀ {μ Δ Σ A} →
+    WfTy Δ A →
+    (μ ∣ Δ ∣ Σ ⊢ idⁿᶜ A ∶ A =⇒ A) × Narrowing (idⁿᶜ A)
+  idⁿ-typed {μ = μ} {A = ＇ α} (wfVar α<Δ) =
+    cast-id (wfVar α<Δ) (idTyAllowed-any μ (＇ α)) , cross (id-＇ α)
+  idⁿ-typed {μ = μ} {A = ‵ ι} wfBase =
+    cast-id wfBase (idTyAllowed-any μ (‵ ι)) , cross (id-‵ ι)
+  idⁿ-typed {μ = μ} {A = ★} wf★ =
+    cast-id wf★ (idTyAllowed-any μ ★) , id★
+  idⁿ-typed {μ = μ} {Δ = Δ} {Σ = Σ} {A = A ⇒ B} (wf⇒ hA hB) =
+    cast-fun (proj₁ s⊑) (proj₁ t⊒) , cross (proj₂ s⊑ ↦ proj₂ t⊒)
+    where
+      s⊑ = idʷ-typed {μ = μ} {Δ = Δ} {Σ = Σ} {A = A} hA
+      t⊒ = idⁿ-typed {μ = μ} {Δ = Δ} {Σ = Σ} {A = B} hB
+  idⁿ-typed {μ = μ} {Δ = Δ} {Σ = Σ} {A = `∀ A} (wf∀ hA) =
+    cast-all (proj₁ s⊒) , cross (`∀ (proj₂ s⊒))
+    where
+      s⊒ = idⁿ-typed {μ = extᵈ μ} {Δ = suc Δ} {Σ = ⟰ᵗ Σ}
+                      {A = A} hA
+
+  idʷ-typed :
+    ∀ {μ Δ Σ A} →
+    WfTy Δ A →
+    (μ ∣ Δ ∣ Σ ⊢ idʷᶜ A ∶ A =⇒ A) × Widening (idʷᶜ A)
+  idʷ-typed {μ = μ} {A = ＇ α} (wfVar α<Δ) =
+    cast-id (wfVar α<Δ) (idTyAllowed-any μ (＇ α)) , cross (id-＇ α)
+  idʷ-typed {μ = μ} {A = ‵ ι} wfBase =
+    cast-id wfBase (idTyAllowed-any μ (‵ ι)) , cross (id-‵ ι)
+  idʷ-typed {μ = μ} {A = ★} wf★ =
+    cast-id wf★ (idTyAllowed-any μ ★) , id★
+  idʷ-typed {μ = μ} {Δ = Δ} {Σ = Σ} {A = A ⇒ B} (wf⇒ hA hB) =
+    cast-fun (proj₁ s⊒) (proj₁ t⊑) , cross (proj₂ s⊒ ↦ proj₂ t⊑)
+    where
+      s⊒ = idⁿ-typed {μ = μ} {Δ = Δ} {Σ = Σ} {A = A} hA
+      t⊑ = idʷ-typed {μ = μ} {Δ = Δ} {Σ = Σ} {A = B} hB
+  idʷ-typed {μ = μ} {Δ = Δ} {Σ = Σ} {A = `∀ A} (wf∀ hA) =
+    cast-all (proj₁ s⊑) , cross (`∀ (proj₂ s⊑))
+    where
+      s⊑ = idʷ-typed {μ = extᵈ μ} {Δ = suc Δ} {Σ = ⟰ᵗ Σ}
+                      {A = A} hA
+
+mutual
+  data FillCrossNarrowing : Coercion → Coercion → Set where
+    fill-crossⁿ : ∀ {g} →
+      CrossNarrowing g →
+      FillCrossNarrowing g g
+
+    fill-↦ⁿ : ∀ {s s′ t t′} →
+      FillWidening s s′ →
+      FillNarrowing t t′ →
+      FillCrossNarrowing (s ↦ t) (s′ ↦ t′)
+
+    fill-∀ⁿ : ∀ {s s′} →
+      FillNarrowing s s′ →
+      FillCrossNarrowing (`∀ s) (`∀ s′)
+
+  data FillNarrowing : Coercion → Coercion → Set where
+    fill-narrowing : ∀ {s} →
+      Narrowing s →
+      FillNarrowing s s
+
+    fill-idⁿ : ∀ A →
+      FillNarrowing (id A) (idⁿᶜ A)
+
+    fill-cross : ∀ {g g′} →
+      FillCrossNarrowing g g′ →
+      FillNarrowing g g′
+
+    fill-gen : ∀ {s s′ A} →
+      FillNarrowing s s′ →
+      FillNarrowing (gen A s) (gen A s′)
+
+    fill-untag-id : ∀ {G} →
+      Ground G →
+      FillNarrowing (G ？) ((G ？) ︔ idⁿᶜ G)
+
+    fill-untag : ∀ {G g g′} →
+      Ground G →
+      FillCrossNarrowing g g′ →
+      FillNarrowing ((G ？) ︔ g) ((G ？) ︔ g′)
+
+    fill-seal-id : ∀ A α →
+      FillNarrowing (seal A α) (idⁿᶜ A ︔ seal A α)
+
+    fill-seal : ∀ {s s′ A α} →
+      FillNarrowing s s′ →
+      FillNarrowing (s ︔ seal A α) (s′ ︔ seal A α)
+
+  data FillCrossWidening : Coercion → Coercion → Set where
+    fill-crossʷ : ∀ {g} →
+      CrossWidening g →
+      FillCrossWidening g g
+
+    fill-↦ʷ : ∀ {s s′ t t′} →
+      FillNarrowing s s′ →
+      FillWidening t t′ →
+      FillCrossWidening (s ↦ t) (s′ ↦ t′)
+
+    fill-∀ʷ : ∀ {s s′} →
+      FillWidening s s′ →
+      FillCrossWidening (`∀ s) (`∀ s′)
+
+  data FillWidening : Coercion → Coercion → Set where
+    fill-widening : ∀ {s} →
+      Widening s →
+      FillWidening s s
+
+    fill-idʷ : ∀ A →
+      FillWidening (id A) (idʷᶜ A)
+
+    fill-crossʷ′ : ∀ {g g′} →
+      FillCrossWidening g g′ →
+      FillWidening g g′
+
+    fill-inst : ∀ {s s′ B} →
+      FillWidening s s′ →
+      FillWidening (inst B s) (inst B s′)
+
+    fill-tag-id : ∀ {G} →
+      Ground G →
+      FillWidening (G !) (idʷᶜ G ︔ (G !))
+
+    fill-tag : ∀ {G g g′} →
+      FillCrossWidening g g′ →
+      Ground G →
+      FillWidening (g ︔ (G !)) (g′ ︔ (G !))
+
+    fill-unseal-id : ∀ α A →
+      FillWidening (unseal α A) (unseal α A ︔ idʷᶜ A)
+
+    fill-unseal : ∀ {s s′ A α} →
+      FillWidening s s′ →
+      FillWidening (unseal α A ︔ s) (unseal α A ︔ s′)
+
+mutual
+  fillCrossNarrowing-narrowing :
+    ∀ {g g′} →
+    FillCrossNarrowing g g′ →
+    CrossNarrowing g′
+  fillCrossNarrowing-narrowing (fill-crossⁿ gⁿ) = gⁿ
+  fillCrossNarrowing-narrowing (fill-↦ⁿ s⇝ t⇝) =
+    fillWidening-widening s⇝ ↦ fillNarrowing-narrowing t⇝
+  fillCrossNarrowing-narrowing (fill-∀ⁿ s⇝) =
+    `∀ (fillNarrowing-narrowing s⇝)
+
+  fillNarrowing-narrowing :
+    ∀ {s s′} →
+    FillNarrowing s s′ →
+    Narrowing s′
+  fillNarrowing-narrowing (fill-narrowing sⁿ) = sⁿ
+  fillNarrowing-narrowing (fill-idⁿ A) = idⁿ A
+  fillNarrowing-narrowing (fill-cross g⇝) =
+    cross (fillCrossNarrowing-narrowing g⇝)
+  fillNarrowing-narrowing (fill-gen s⇝) =
+    gen (fillNarrowing-narrowing s⇝)
+  fillNarrowing-narrowing (fill-untag-id (＇ α)) = (＇ α) ？︔ id-＇ α
+  fillNarrowing-narrowing (fill-untag-id (‵ ι)) = (‵ ι) ？︔ id-‵ ι
+  fillNarrowing-narrowing (fill-untag-id ★⇒★) = ★⇒★ ？︔ (idʷ ★ ↦ idⁿ ★)
+  fillNarrowing-narrowing (fill-untag gG g⇝) =
+    gG ？︔ fillCrossNarrowing-narrowing g⇝
+  fillNarrowing-narrowing (fill-seal-id A α) =
+    fillNarrowing-narrowing (fill-idⁿ A) ︔seal α
+  fillNarrowing-narrowing (fill-seal s⇝) =
+    fillNarrowing-narrowing s⇝ ︔seal _
+
+  fillCrossWidening-widening :
+    ∀ {g g′} →
+    FillCrossWidening g g′ →
+    CrossWidening g′
+  fillCrossWidening-widening (fill-crossʷ gʷ) = gʷ
+  fillCrossWidening-widening (fill-↦ʷ s⇝ t⇝) =
+    fillNarrowing-narrowing s⇝ ↦ fillWidening-widening t⇝
+  fillCrossWidening-widening (fill-∀ʷ s⇝) =
+    `∀ (fillWidening-widening s⇝)
+
+  fillWidening-widening :
+    ∀ {s s′} →
+    FillWidening s s′ →
+    Widening s′
+  fillWidening-widening (fill-widening sʷ) = sʷ
+  fillWidening-widening (fill-idʷ A) = idʷ A
+  fillWidening-widening (fill-crossʷ′ g⇝) =
+    cross (fillCrossWidening-widening g⇝)
+  fillWidening-widening (fill-inst s⇝) =
+    inst (fillWidening-widening s⇝)
+  fillWidening-widening (fill-tag-id (＇ α)) = id-＇ α ︔ (＇ α) !
+  fillWidening-widening (fill-tag-id (‵ ι)) = id-‵ ι ︔ (‵ ι) !
+  fillWidening-widening (fill-tag-id ★⇒★) = (idⁿ ★ ↦ idʷ ★) ︔ ★⇒★ !
+  fillWidening-widening (fill-tag g⇝ gG) =
+    fillCrossWidening-widening g⇝ ︔ gG !
+  fillWidening-widening (fill-unseal-id α A) =
+    unseal︔_ α (fillWidening-widening (fill-idʷ A))
+  fillWidening-widening (fill-unseal s⇝) =
+    unseal︔_ _ (fillWidening-widening s⇝)
+
+------------------------------------------------------------------------
 -- Grammar-directed duality for narrowing and widening
 ------------------------------------------------------------------------
 
@@ -750,6 +1012,81 @@ mutual
     strict-unseal (ρ α) (renameᵗ ρ A)
   renameStrictʷ ρ (strict-unseal-seq α sʷ) =
     strict-unseal-seq (ρ α) (renameStrictʷ ρ sʷ)
+
+mutual
+  renameFillCrossNarrowing :
+    ∀ ρ {c c′} →
+    FillCrossNarrowing c c′ →
+    FillCrossNarrowing (renameᶜ ρ c) (renameᶜ ρ c′)
+  renameFillCrossNarrowing ρ (fill-crossⁿ cⁿ) =
+    fill-crossⁿ (renameCrossNarrowing ρ cⁿ)
+  renameFillCrossNarrowing ρ (fill-↦ⁿ s⇝ t⇝) =
+    fill-↦ⁿ (renameFillWidening ρ s⇝) (renameFillNarrowing ρ t⇝)
+  renameFillCrossNarrowing ρ (fill-∀ⁿ s⇝) =
+    fill-∀ⁿ (renameFillNarrowing (extᵗ ρ) s⇝)
+
+  renameFillNarrowing :
+    ∀ ρ {c c′} →
+    FillNarrowing c c′ →
+    FillNarrowing (renameᶜ ρ c) (renameᶜ ρ c′)
+  renameFillNarrowing ρ (fill-narrowing cⁿ) =
+    fill-narrowing (renameⁿ ρ cⁿ)
+  renameFillNarrowing ρ (fill-idⁿ A) rewrite idⁿᶜ-rename ρ A =
+    fill-idⁿ (renameᵗ ρ A)
+  renameFillNarrowing ρ (fill-cross c⇝) =
+    fill-cross (renameFillCrossNarrowing ρ c⇝)
+  renameFillNarrowing ρ (fill-gen c⇝) =
+    fill-gen (renameFillNarrowing (extᵗ ρ) c⇝)
+  renameFillNarrowing ρ (fill-untag-id (＇ α)) =
+    fill-untag-id (＇ ρ α)
+  renameFillNarrowing ρ (fill-untag-id (‵ ι)) =
+    fill-untag-id (‵ ι)
+  renameFillNarrowing ρ (fill-untag-id ★⇒★) =
+    fill-untag-id ★⇒★
+  renameFillNarrowing ρ (fill-untag gG c⇝) =
+    fill-untag (renameᵗ-ground ρ gG) (renameFillCrossNarrowing ρ c⇝)
+  renameFillNarrowing ρ (fill-seal-id A α)
+      rewrite idⁿᶜ-rename ρ A =
+    fill-seal-id (renameᵗ ρ A) (ρ α)
+  renameFillNarrowing ρ (fill-seal c⇝) =
+    fill-seal (renameFillNarrowing ρ c⇝)
+
+  renameFillCrossWidening :
+    ∀ ρ {c c′} →
+    FillCrossWidening c c′ →
+    FillCrossWidening (renameᶜ ρ c) (renameᶜ ρ c′)
+  renameFillCrossWidening ρ (fill-crossʷ cʷ) =
+    fill-crossʷ (renameCrossWidening ρ cʷ)
+  renameFillCrossWidening ρ (fill-↦ʷ s⇝ t⇝) =
+    fill-↦ʷ (renameFillNarrowing ρ s⇝) (renameFillWidening ρ t⇝)
+  renameFillCrossWidening ρ (fill-∀ʷ s⇝) =
+    fill-∀ʷ (renameFillWidening (extᵗ ρ) s⇝)
+
+  renameFillWidening :
+    ∀ ρ {c c′} →
+    FillWidening c c′ →
+    FillWidening (renameᶜ ρ c) (renameᶜ ρ c′)
+  renameFillWidening ρ (fill-widening cʷ) =
+    fill-widening (renameʷ ρ cʷ)
+  renameFillWidening ρ (fill-idʷ A) rewrite idʷᶜ-rename ρ A =
+    fill-idʷ (renameᵗ ρ A)
+  renameFillWidening ρ (fill-crossʷ′ c⇝) =
+    fill-crossʷ′ (renameFillCrossWidening ρ c⇝)
+  renameFillWidening ρ (fill-inst c⇝) =
+    fill-inst (renameFillWidening (extᵗ ρ) c⇝)
+  renameFillWidening ρ (fill-tag-id (＇ α)) =
+    fill-tag-id (＇ ρ α)
+  renameFillWidening ρ (fill-tag-id (‵ ι)) =
+    fill-tag-id (‵ ι)
+  renameFillWidening ρ (fill-tag-id ★⇒★) =
+    fill-tag-id ★⇒★
+  renameFillWidening ρ (fill-tag c⇝ gG) =
+    fill-tag (renameFillCrossWidening ρ c⇝) (renameᵗ-ground ρ gG)
+  renameFillWidening ρ (fill-unseal-id α A)
+      rewrite idʷᶜ-rename ρ A =
+    fill-unseal-id (ρ α) (renameᵗ ρ A)
+  renameFillWidening ρ (fill-unseal c⇝) =
+    fill-unseal (renameFillWidening ρ c⇝)
 
 narrow-mode-relax :
   ∀ {μ ν Δ Σ A B c} →

@@ -370,6 +370,28 @@ compose-leftⁿ-⇑ˢ (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
         (≈ⁿ-⇑ˢ q⨟s≈r)
   in
   compose-leftⁿ (StoreDetWf-⟰ᵗ wfΣ) q⊒′ s⊒′ eq′
+compose-leftⁿ-⇑ˢ (compose-left-fillⁿ wfΣ q⊒ s⇝ s′⊒ q⨟s≈r) =
+  let
+    q⊒′ = narrow-⇑ᵗ-gen q⊒
+    s′⊒′ = narrow-⇑ᵗ-gen s′⊒
+    old = _⨟ⁿ_ {wfΣ = wfΣ} q⊒ s′⊒
+    new = _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ} q⊒′ s′⊒′
+    u≡ =
+      narrowing-determinedᵐ (StoreDetWf-⟰ᵗ wfΣ)
+        (proj₂ new)
+        (narrow-⇑ᵗ-gen (proj₂ old))
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ u ≈ ⇑ᶜ _ ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-⇑ˢ q⨟s≈r)
+  in
+  compose-left-fillⁿ
+    (StoreDetWf-⟰ᵗ wfΣ)
+    q⊒′
+    (renameFillNarrowing suc s⇝)
+    s′⊒′
+    eq′
 
 compose-leftⁿ-add-left-star-var :
   ∀ X {Δ σ q s r A B} →
@@ -377,6 +399,10 @@ compose-leftⁿ-add-left-star-var :
   Δ ∣ (⊒ X ꞉=☆) ∷ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
 compose-leftⁿ-add-left-star-var X (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
   compose-leftⁿ wfΣ q⊒ s⊒ (≈ⁿ-add-left-star-var X q⨟s≈r)
+compose-leftⁿ-add-left-star-var X
+    (compose-left-fillⁿ wfΣ q⊒ s⇝ s′⊒ q⨟s≈r) =
+  compose-left-fillⁿ wfΣ q⊒ s⇝ s′⊒
+    (≈ⁿ-add-left-star-var X q⨟s≈r)
 
 compose-rightⁿ-⇑ˢ :
   ∀ {Δ σ r t p A B} →
@@ -399,6 +425,28 @@ compose-rightⁿ-⇑ˢ (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
         (≈ⁿ-⇑ˢ r≈t⨟p)
   in
   compose-rightⁿ (StoreDetWf-⟰ᵗ wfΣ) t⊒′ p⊒′ eq′
+compose-rightⁿ-⇑ˢ (compose-right-fillⁿ wfΣ t⇝ t′⊒ p⊒ r≈t⨟p) =
+  let
+    t′⊒′ = narrow-⇑ᵗ-gen t′⊒
+    p⊒′ = narrow-⇑ᵗ-gen p⊒
+    old = _⨟ⁿ_ {wfΣ = wfΣ} t′⊒ p⊒
+    new = _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ} t′⊒′ p⊒′
+    u≡ =
+      narrowing-determinedᵐ (StoreDetWf-⟰ᵗ wfΣ)
+        (proj₂ new)
+        (narrow-⇑ᵗ-gen (proj₂ old))
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ ⇑ᶜ _ ≈ u ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-⇑ˢ r≈t⨟p)
+  in
+  compose-right-fillⁿ
+    (StoreDetWf-⟰ᵗ wfΣ)
+    (renameFillNarrowing suc t⇝)
+    t′⊒′
+    p⊒′
+    eq′
 
 compose-rightⁿ-add-left-star-var :
   ∀ X {Δ σ r t p A B} →
@@ -406,6 +454,10 @@ compose-rightⁿ-add-left-star-var :
   Δ ∣ (⊒ X ꞉=☆) ∷ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
 compose-rightⁿ-add-left-star-var X (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   compose-rightⁿ wfΣ t⊒ p⊒ (≈ⁿ-add-left-star-var X r≈t⨟p)
+compose-rightⁿ-add-left-star-var X
+    (compose-right-fillⁿ wfΣ t⇝ t′⊒ p⊒ r≈t⨟p) =
+  compose-right-fillⁿ wfΣ t⇝ t′⊒ p⊒
+    (≈ⁿ-add-left-star-var X r≈t⨟p)
 
 catchup-compose-left-transport-shifted :
   ∀ n {Δ Δ′ σ π Π Π′ χs q s r A B} →
@@ -907,6 +959,10 @@ extendReplaceRel-compose-left :
 extendReplaceRel-compose-left rel
     (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
   compose-leftⁿ wfΣ q⊒ s⊒ (extendReplaceRel-≈ⁿ rel q⨟s≈r)
+extendReplaceRel-compose-left rel
+    (compose-left-fillⁿ wfΣ q⊒ s⇝ s′⊒ q⨟s≈r) =
+  compose-left-fillⁿ wfΣ q⊒ s⇝ s′⊒
+    (extendReplaceRel-≈ⁿ rel q⨟s≈r)
 
 extendReplaceRel-compose-right :
   ∀ {Δ σ σ′ r t p A B} →
@@ -916,6 +972,10 @@ extendReplaceRel-compose-right :
 extendReplaceRel-compose-right rel
     (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   compose-rightⁿ wfΣ t⊒ p⊒ (extendReplaceRel-≈ⁿ rel r≈t⨟p)
+extendReplaceRel-compose-right rel
+    (compose-right-fillⁿ wfΣ t⇝ t′⊒ p⊒ r≈t⨟p) =
+  compose-right-fillⁿ wfΣ t⇝ t′⊒ p⊒
+    (extendReplaceRel-≈ⁿ rel r≈t⨟p)
 
 id-constᶜ :
   ∀ {Δ Σ} κ →

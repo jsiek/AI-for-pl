@@ -20,10 +20,10 @@ open import NuTerms
 open import NarrowWiden
 open import TermNarrowing
 open import proof.CoercionProperties using (coercion-endpoints-uniqueᵐ)
-open import proof.Catchup using (open-shiftᵐ)
 open import proof.NuTermProperties using
   ( renameˣ-renameᵗᵐ
   ; renameᵗᵐ-ext-suc-comm
+  ; renameᵗᵐ-left-inverse
   ; substˣᵐ-preserves-Value
   )
 
@@ -73,6 +73,11 @@ substˣᵐ-shift :
   ∀ τ M →
   substˣᵐ (↑ᵗᵐ τ) (⇑ᵗᵐ M) ≡ ⇑ᵗᵐ (substˣᵐ τ M)
 substˣᵐ-shift τ M = substˣᵐ-renameᵗᵐ suc (↑ᵗᵐ τ) τ M (λ x → refl)
+
+open-shiftᵐ :
+  ∀ α M →
+  (⇑ᵗᵐ M) [ α ]ᵀ ≡ M
+open-shiftᵐ α M = renameᵗᵐ-left-inverse (λ X → refl) M
 
 substˣᵐ-open :
   ∀ τ M α →

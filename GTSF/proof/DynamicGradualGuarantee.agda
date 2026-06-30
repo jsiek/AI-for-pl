@@ -23,14 +23,8 @@ open import NuStore using (StoreWf)
 open import NarrowWiden
 open import NarrowWidenComposition using (_∣_⊢_⨾ⁿ_≈_∶_⊒_)
 open import TermNarrowing
-open import proof.Catchup
-  using (catchup-lemma; runtime-open-change; runtime-⇑ᵗᵐ)
 open import proof.CatchupStore using (combineStoreNrw)
-open import proof.LeftSealNarrowingInversion using
-  (LeftSealNarrowingInversion; leftSealNarrowingInversion)
 open import proof.ReductionProperties using (type-rename-step-⇑ᵗᵐ)
-open import proof.RightSealInversion2 using
-  (right-seal-inversion₂; right-seal-inversion₂-cast-unseal⊥)
 open import proof.TermSubstitutionNarrowing using
   (term-substitution-narrowingᵗ)
 open import proof.NuPreservation using

@@ -4014,3 +4014,42 @@ scratch file was deleted.  The next viable direct route is still a
 split-aware source/target replay theorem that handles the unsafe split step
 with real opening/catchup reasoning, not an arbitrary value-only structural
 renaming theorem.
+
+## Attempt 112: move the checked `gen` open-id exclusion out of the holey file
+
+Accepted as checked support in `proof.TermNarrowingProperties`.
+
+The new `main` branch contains useful lemmas near the top of
+`proof.LeftSealNarrowingInversion`, but that file has
+`--allow-unsolved-metas` for later unfinished inversion work.  Importing it
+directly would be the wrong dependency for the catchup proof.
+
+I ported only the completed exclusion prefix into the fully checked
+`proof.TermNarrowingProperties` module:
+
+`⇑ᵗ≢＇0`
+
+`narrowing-open-id-var-endpoints⊥`
+
+`gen-body-open-id-var⊥`
+
+`gen-open-id-var⊥`
+
+`gen-open-id-var∃⊥`
+
+`castLike-gen-open-id-var⊥`
+
+`narrowing-gen-open-id-var∃-eq⊥`
+
+`termNarrowing-gen-open-id-var⊥`
+
+The key reusable fact is:
+
+`Δ ∣ σ ∣ γ ⊢ L ⊒ L′ ∶ gen A p →
+ p [ β ]ᶜ ≡ id (＇ α) → ⊥`.
+
+This is not the lambda replay proof, but it gives the remaining proof search a
+checked way to use the real `cast-gen` occurrence premise without depending on
+the unfinished left-seal inversion file.  It should be useful for ruling out
+source-side cast branches that would force the legal `gen` body to open to an
+identity variable.

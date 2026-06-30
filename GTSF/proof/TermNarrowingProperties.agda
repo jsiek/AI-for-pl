@@ -7,10 +7,13 @@ module proof.TermNarrowingProperties where
 --   * Depends on the public definitions in `TermNarrowing` and `NarrowWiden`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (true)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (suc; zero)
+open import Data.Product using (_,_; proj₁; proj₂)
+open import Relation.Binary.PropositionalEquality using (sym)
 
 open import Types
 open import Coercions
@@ -44,6 +47,7 @@ open import TermNarrowing using
   )
 open import proof.NuTermProperties
   using (renameᵗᵐ-preserves-Value; renameᵗᵐ-reflects-Value)
+open import proof.CoercionProperties using (coercion-src-tgtᵐ)
 open import proof.ReductionProperties using
   ( CatchupSafe
   ; safe-value
@@ -53,11 +57,172 @@ open import proof.ReductionProperties using
 
 variable
   Δ : TyCtx
+  Σ : Store
   σ : StoreNrw
   γ : CtxNrw
   A B : Ty
   p q r s t : Coercion
   M M′ : Term
+
+------------------------------------------------------------------------
+-- Legal `gen` body exclusions
+------------------------------------------------------------------------
+
+⇑ᵗ≢＇0 :
+  ∀ {A} →
+  ⇑ᵗ A ≡ ＇ zero →
+  ⊥
+⇑ᵗ≢＇0 {A = ＇ X} ()
+⇑ᵗ≢＇0 {A = ‵ ι} ()
+⇑ᵗ≢＇0 {A = ★} ()
+⇑ᵗ≢＇0 {A = A ⇒ B} ()
+⇑ᵗ≢＇0 {A = `∀ A} ()
+
+narrowing-open-id-var-endpoints⊥ :
+  ∀ {A B p α β} →
+  Narrowing p →
+  src p ≡ ⇑ᵗ A →
+  tgt p ≡ B →
+  occurs zero B ≡ true →
+  p [ β ]ᶜ ≡ id (＇ α) →
+  ⊥
+narrowing-open-id-var-endpoints⊥ {A = A}
+    (cross (id-＇ zero)) src-p tgt-p occ open-id =
+  ⇑ᵗ≢＇0 {A = A} (sym src-p)
+narrowing-open-id-var-endpoints⊥
+    (cross (id-＇ (suc X))) src-p refl () open-id
+narrowing-open-id-var-endpoints⊥
+    (cross (id-‵ ι)) src-p tgt-p occ ()
+narrowing-open-id-var-endpoints⊥
+    (cross (sʷ ↦ tⁿ)) src-p tgt-p occ ()
+narrowing-open-id-var-endpoints⊥
+    (cross (`∀ sⁿ)) src-p tgt-p occ ()
+narrowing-open-id-var-endpoints⊥ id★ src-p tgt-p occ ()
+narrowing-open-id-var-endpoints⊥ (gen sⁿ) src-p tgt-p occ ()
+narrowing-open-id-var-endpoints⊥ (gG ？︔ sⁿ) src-p tgt-p occ ()
+narrowing-open-id-var-endpoints⊥ (sⁿ ︔seal β) src-p tgt-p occ ()
+
+gen-body-open-id-var⊥ :
+  ∀ {μ Δ Σ A B p α β} →
+  genᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ p ∶ ⇑ᵗ A =⇒ B →
+  Narrowing p →
+  occurs zero B ≡ true →
+  p [ β ]ᶜ ≡ id (＇ α) →
+  ⊥
+gen-body-open-id-var⊥ p⊢ pⁿ occ open-id =
+  narrowing-open-id-var-endpoints⊥ pⁿ
+    (proj₁ (coercion-src-tgtᵐ p⊢))
+    (proj₂ (coercion-src-tgtᵐ p⊢))
+    occ
+    open-id
+
+gen-open-id-var⊥ :
+  ∀ {μ Δ Σ A C D p α β} →
+  μ ∣ Δ ∣ Σ ⊢ gen A p ∶ C ⊒ D →
+  p [ β ]ᶜ ≡ id (＇ α) →
+  ⊥
+gen-open-id-var⊥ (cast-gen hA occ p⊢ , gen pⁿ) open-id =
+  gen-body-open-id-var⊥ p⊢ pⁿ occ open-id
+
+gen-open-id-var∃⊥ :
+  ∀ {Δ Σ A C D p α β} →
+  Δ ∣ Σ ⊢ gen A p ∶ C ⊒ D →
+  p [ β ]ᶜ ≡ id (＇ α) →
+  ⊥
+gen-open-id-var∃⊥ (μ , p⊒) open-id =
+  gen-open-id-var⊥ p⊒ open-id
+
+castLike-gen-open-id-var⊥ :
+  ∀ {Δ Σ C D c A p α β} →
+  c ≡ gen A p →
+  Δ ∣ Σ ⊢ c ∶ᶜ C ⊒ D →
+  p [ β ]ᶜ ≡ id (＇ α) →
+  ⊥
+castLike-gen-open-id-var⊥ refl cᶜ open-id =
+  gen-open-id-var⊥ cᶜ open-id
+
+narrowing-gen-open-id-var∃-eq⊥ :
+  ∀ {Δ Σ C D c A p α β} →
+  c ≡ gen A p →
+  Δ ∣ Σ ⊢ c ∶ C ⊒ D →
+  p [ β ]ᶜ ≡ id (＇ α) →
+  ⊥
+narrowing-gen-open-id-var∃-eq⊥ refl c⊒ open-id =
+  gen-open-id-var∃⊥ c⊒ open-id
+
+termNarrowing-gen-open-id-var-aux⊥ :
+  ∀ {Δ σ γ L L′ c A p α β} →
+  c ≡ gen A p →
+  Δ ∣ σ ∣ γ ⊢ L ⊒ L′ ∶ c →
+  p [ β ]ᶜ ≡ id (＇ α) →
+  ⊥
+termNarrowing-gen-open-id-var-aux⊥ c≡gen
+    (extend qᶜ pαᶜ M⊒N′) open-id =
+  termNarrowing-gen-open-id-var-aux⊥ c≡gen M⊒N′ open-id
+termNarrowing-gen-open-id-var-aux⊥ c≡gen
+    (split qᶜ pαᶜ N⊒N′) open-id =
+  termNarrowing-gen-open-id-var-aux⊥ c≡gen N⊒N′ open-id
+termNarrowing-gen-open-id-var-aux⊥ refl (⊒blame pᶜ) open-id =
+  gen-open-id-var⊥ pᶜ open-id
+termNarrowing-gen-open-id-var-aux⊥ refl (x⊒x pᶜ x∋p) open-id =
+  gen-open-id-var⊥ pᶜ open-id
+termNarrowing-gen-open-id-var-aux⊥ ()
+    (ƛ⊒ƛ p↦qᶜ N⊒N′) open-id
+termNarrowing-gen-open-id-var-aux⊥ refl
+    (·⊒· qᶜ L⊒L′ M⊒M′) open-id =
+  gen-open-id-var⊥ qᶜ open-id
+termNarrowing-gen-open-id-var-aux⊥ ()
+    (Λ⊒Λ allᶜ vV V⊒V′) open-id
+termNarrowing-gen-open-id-var-aux⊥ refl (⊒Λ pᶜ N⊒V′) open-id =
+  gen-open-id-var⊥ pᶜ open-id
+termNarrowing-gen-open-id-var-aux⊥ refl
+    (⊒⟨ν⟩ pᶜ sᵢ N⊒V′) open-id =
+  gen-open-id-var⊥ pᶜ open-id
+termNarrowing-gen-open-id-var-aux⊥ c≡gen
+    (α⊒α qᶜ pαᶜ L⊒L′) open-id =
+  castLike-gen-open-id-var⊥ c≡gen pαᶜ open-id
+termNarrowing-gen-open-id-var-aux⊥ c≡gen
+    (⊒α pαᶜ L⊒L′) open-id =
+  castLike-gen-open-id-var⊥ c≡gen pαᶜ open-id
+termNarrowing-gen-open-id-var-aux⊥ refl
+    (ν⊒ν pᶜ qᶜ N⊒N′) open-id =
+  gen-open-id-var⊥ pᶜ open-id
+termNarrowing-gen-open-id-var-aux⊥ refl (⊒ν pᶜ N⊒N′) open-id =
+  gen-open-id-var⊥ pᶜ open-id
+termNarrowing-gen-open-id-var-aux⊥ refl (ν⊒ pᶜ N⊒N′) open-id =
+  gen-open-id-var⊥ pᶜ open-id
+termNarrowing-gen-open-id-var-aux⊥ ()
+    (κ⊒κ κ) open-id
+termNarrowing-gen-open-id-var-aux⊥ ()
+    (⊕⊒⊕ M⊒M′ N⊒N′) open-id
+termNarrowing-gen-open-id-var-aux⊥ refl (⊒cast+ qᶜ q⨟s≈r M⊒M′)
+    open-id =
+  gen-open-id-var⊥ qᶜ open-id
+termNarrowing-gen-open-id-var-aux⊥ refl
+    (⊒cast- qᶜ
+      (compose-leftⁿ wfΣ q⊒ s⊒
+        (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
+      M⊒M′)
+    open-id =
+  gen-open-id-var∃⊥ r⊒ open-id
+termNarrowing-gen-open-id-var-aux⊥ refl
+    (cast+⊒ pᶜ
+      (compose-rightⁿ wfΣ t⊒ p⊒
+        (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
+      M⊒M′)
+    open-id =
+  gen-open-id-var∃⊥ r⊒ open-id
+termNarrowing-gen-open-id-var-aux⊥ refl (cast-⊒ pᶜ r≈t⨟p M⊒M′)
+    open-id =
+  gen-open-id-var⊥ pᶜ open-id
+
+termNarrowing-gen-open-id-var⊥ :
+  ∀ {Δ σ γ L L′ A p α β} →
+  Δ ∣ σ ∣ γ ⊢ L ⊒ L′ ∶ gen A p →
+  p [ β ]ᶜ ≡ id (＇ α) →
+  ⊥
+termNarrowing-gen-open-id-var⊥ L⊒L′ open-id =
+  termNarrowing-gen-open-id-var-aux⊥ refl L⊒L′ open-id
 
 ------------------------------------------------------------------------
 -- Derived cast rules

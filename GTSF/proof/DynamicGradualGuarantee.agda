@@ -65,86 +65,31 @@ typed-term-narrowing-target-typing :
   Δ ∣ Σ′ ∣ [] ⊢ M′ ⦂ B
 typed-term-narrowing-target-typing wfΣ σ⊒ M⊒M′ = {!!}
 
-postulate
-  right-tag-inversion₁ :
-    ∀ {Δ σ γ M V q G} →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ G ! ⟩ ∶ q →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ G ？
-
-  right-tag-inversion₂ :
-    ∀ {Δ σ γ M V r G} →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ G ？ ⟩ ∶ r →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ id ★
-
-  -- Refuted by `proof.RightSealInversionCounterexample`.
-  -- right-seal-inversion₁ :
-  --   ∀ {Δ σ γ M V r A α} →
-  --   Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
-  --   ∃[ q ] Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ q
-
-  wrap-narrowing-lemma :
-    ∀ {Δ σ V′ V W′ W p q s t} →
-    Δ ∣ σ ∣ [] ⊢ V′ ⊒ V ⟨ - (s ↦ t) ⟩ ∶ p ↦ q →
-    Δ ∣ σ ∣ [] ⊢ W′ ⊒ W ∶ - p →
-    ∃[ χs ] ∃[ N′ ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ q′ ]
-      (V′ · W′ —↠[ χs ] N′) ×
-      (Π ≡ applyStores χs []) ×
-      (Π′ ≡ applyStore keep []) ×
-      Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
-      Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N′
-        ⊒ V · (W ⟨ - s ⟩) ⟨ - t ⟩ ∶ q′
-
-  wrap-widening-lemma :
-    ∀ {Δ σ V′ V W′ W p q s t} →
-    Δ ∣ σ ∣ [] ⊢ V′ ⊒ V ⟨ s ↦ t ⟩ ∶ p ↦ q →
-    Δ ∣ σ ∣ [] ⊢ W′ ⊒ W ∶ - p →
-    ∃[ χs ] ∃[ N′ ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ q′ ]
-      (V′ · W′ —↠[ χs ] N′) ×
-      (Π ≡ applyStores χs []) ×
-      (Π′ ≡ applyStore keep []) ×
-      Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
-      Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N′
-        ⊒ V · (W ⟨ s ⟩) ⟨ t ⟩ ∶ q′
-
 ------------------------------------------------------------------------
 -- Function application simulation
 ------------------------------------------------------------------------
 
-function-application-simulation-ƛ⊒ƛ :
+function-application-simulation-ƛ⊒ƛᵗ :
   ∀ {Δ σ N N′ V V′ a q A B C D} →
   Value V →
   Δ ∣ srcStoreⁿ σ ⊢ a ∶ᶜ A ⊒ B →
   Δ ∣ σ ∣ a ∷ [] ⊢ N ⊒ N′ ∶ q ⦂ C ⊒ D →
   Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ a ⦂ A ⊒ B →
-  ∃[ χs ] ∃[ P ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ q′ ]
+  ∃[ χs ] ∃[ P ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+  ∃[ C′ ] ∃[ D′ ] ∃[ q′ ]
     ((ƛ N) · V —↠[ χs ] P) ×
     (Π ≡ applyStores χs []) ×
     (Π′ ≡ applyStore keep []) ×
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
-    Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ P ⊒ N′ [ V′ ] ∶ q′
-function-application-simulation-ƛ⊒ƛ {N = N} {V = V} vV aᶜ N⊒N′ V⊒V′ =
-  keep ∷ [] , N [ V ] , _ , [] , [] , [] , _ ,
+    Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ P ⊒ N′ [ V′ ] ∶ q′ ⦂ C′ ⊒ D′
+function-application-simulation-ƛ⊒ƛᵗ {N = N} {V = V}
+    vV aᶜ N⊒N′ V⊒V′ =
+  keep ∷ [] , N [ V ] , _ , [] , [] , [] , _ , _ , _ ,
   ↠-step (pure-step (β vV)) ↠-refl ,
   refl ,
   refl ,
   ⊒ˢ-nil ,
-  typed-term-narrowing-erasure (term-substitution-narrowingᵗ _ N⊒N′)
-
-function-application-simulation :
-  ∀ {Δ σ L L′ M N′ V′ r p q} →
-  RuntimeOK M →
-  Value V′ →
-  Δ ∣ σ ∣ [] ⊢ L ⊒ L′ ∶ r →
-  L′ ≡ ƛ N′ →
-  r ≡ p ↦ q →
-  Δ ∣ σ ∣ [] ⊢ M ⊒ V′ ∶ - p →
-  ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ q′ ]
-    (L · M —↠[ χs ] N) ×
-    (Π ≡ applyStores χs []) ×
-    (Π′ ≡ applyStore keep []) ×
-    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
-    Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ N′ [ V′ ] ∶ q′
-function-application-simulation okM vV′ L⊒L′ eq eqr M⊒V′ = {!!}
+  term-substitution-narrowingᵗ _ N⊒N′
 
 ------------------------------------------------------------------------
 -- Dynamic gradual guarantee
@@ -160,22 +105,23 @@ dynamicGradualGuarantee :
   Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
   Δ ∣ σ ∣ [] ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B →
   M′ —→[ χ′ ] N′ →
-  ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ p′ ]
+  ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+  ∃[ A′ ] ∃[ B′ ] ∃[ p′ ]
     (M —↠[ χs ] N) ×
     (Π ≡ applyStores χs []) ×
     (Π′ ≡ applyStore χ′ []) ×
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
-    Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ N′ ∶ p′
+    Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ N′ ∶ p′ ⦂ A′ ⊒ B′
 
 dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
     (α⊒αᵗ {L′ = blame} γ′≡ qᶜ pαᶜ L⊒L′)
     (pure-step blame-•) =
-  [] , _ , _ , [] , [] , [] , _ ,
+  [] , _ , _ , [] , [] , [] , _ , _ , _ ,
   ↠-refl ,
   refl ,
   refl ,
   ⊒ˢ-nil ,
-  ⊒blame pαᶜ
+  ⊒blameᵗ pαᶜ
 dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
     (α⊒αᵗ {L′ = Λ V′} γ′≡ qᶜ pαᶜ L⊒L′)
     (pure-step (β-Λ• vV′)) =
@@ -192,12 +138,12 @@ dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
     (α⊒αᵗ γ′≡ qᶜ pαᶜ L⊒L′) red = {!!}
 dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
     (⊒αᵗ {L′ = blame} γ′≡ pαᶜ L⊒L′) (pure-step blame-•) =
-  [] , _ , _ , [] , [] , [] , _ ,
+  [] , _ , _ , [] , [] , [] , _ , _ , _ ,
   ↠-refl ,
   refl ,
   refl ,
   ⊒ˢ-nil ,
-  ⊒blame pαᶜ
+  ⊒blameᵗ pαᶜ
 dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
     (⊒αᵗ {L′ = Λ V′} γ′≡ pαᶜ L⊒L′)
     (pure-step (β-Λ• vV′)) =

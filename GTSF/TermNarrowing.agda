@@ -49,9 +49,8 @@ fun-narrow-codomainᶜ (cast-fun p⊢ q⊢ , cross (p⊑ ↦ q⊒)) =
 infix 4 _∣_∣_⊢_⊒_∶_
 infix 4 _∣_∣_⊢_⊒_∶_⦂_⊒_
 
--- Legacy/raw term narrowing.  New proof code should consume the typed
--- relation below and use `typed-term-narrowing-erasure` only at boundaries
--- that still require the raw judgment.
+-- Legacy/raw term narrowing.  Remaining users should be ported to the typed
+-- relation below.
 data _∣_∣_⊢_⊒_∶_
     : TyCtx → StoreNrw → CtxNrw → Term → Term → Coercion → Set₁ where
 
@@ -355,50 +354,6 @@ data _∣_∣_⊢_⊒_∶_⦂_⊒_
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r ⦂ A ⊒ B
       -------------------------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⟨ t ⟩ ⊒ M′ ∶ p ⦂ C ⊒ D
-
-typed-term-narrowing-erasure :
-  Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B →
-  Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p
-typed-term-narrowing-erasure (extendᵗ qᶜ pαᶜ M⊒N′) =
-  extend qᶜ pαᶜ (typed-term-narrowing-erasure M⊒N′)
-typed-term-narrowing-erasure (splitᵗ qᶜ pαᶜ N⊒N′) =
-  split qᶜ pαᶜ (typed-term-narrowing-erasure N⊒N′)
-typed-term-narrowing-erasure (⊒blameᵗ pᶜ) = ⊒blame pᶜ
-typed-term-narrowing-erasure (x⊒xᵗ pᶜ x∋p) = x⊒x pᶜ x∋p
-typed-term-narrowing-erasure (ƛ⊒ƛᵗ p↦qᶜ N⊒N′) =
-  ƛ⊒ƛ p↦qᶜ (typed-term-narrowing-erasure N⊒N′)
-typed-term-narrowing-erasure (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′) =
-  ·⊒· (fun-narrow-codomainᶜ p↦qᶜ)
-       (typed-term-narrowing-erasure L⊒L′)
-       (typed-term-narrowing-erasure M⊒M′)
-typed-term-narrowing-erasure (Λ⊒Λᵗ allᶜ vV V⊒V′) =
-  Λ⊒Λ allᶜ vV (typed-term-narrowing-erasure V⊒V′)
-typed-term-narrowing-erasure (⊒Λᵗ pᶜ N⊒V′) =
-  ⊒Λ pᶜ (typed-term-narrowing-erasure N⊒V′)
-typed-term-narrowing-erasure (⊒⟨ν⟩ᵗ pᶜ i N⊒V′s) =
-  ⊒⟨ν⟩ pᶜ i (typed-term-narrowing-erasure N⊒V′s)
-typed-term-narrowing-erasure (α⊒αᵗ γ′≡ qᶜ pαᶜ L⊒L′) =
-  α⊒α γ′≡ qᶜ pαᶜ (typed-term-narrowing-erasure L⊒L′)
-typed-term-narrowing-erasure (⊒αᵗ γ′≡ pαᶜ L⊒L′) =
-  ⊒α γ′≡ pαᶜ (typed-term-narrowing-erasure L⊒L′)
-typed-term-narrowing-erasure (ν⊒νᵗ pᶜ qᶜ N⊒N′) =
-  ν⊒ν pᶜ qᶜ (typed-term-narrowing-erasure N⊒N′)
-typed-term-narrowing-erasure (⊒νᵗ pᶜ N⊒N′) =
-  ⊒ν pᶜ (typed-term-narrowing-erasure N⊒N′)
-typed-term-narrowing-erasure (ν⊒ᵗ pᶜ N⊒N′) =
-  ν⊒ pᶜ (typed-term-narrowing-erasure N⊒N′)
-typed-term-narrowing-erasure (κ⊒κᵗ κ) = κ⊒κ κ
-typed-term-narrowing-erasure (⊕⊒⊕ᵗ M⊒M′ N⊒N′) =
-  ⊕⊒⊕ (typed-term-narrowing-erasure M⊒M′)
-       (typed-term-narrowing-erasure N⊒N′)
-typed-term-narrowing-erasure (⊒cast+ᵗ qᶜ q⨟s≈r M⊒M′) =
-  ⊒cast+ qᶜ q⨟s≈r (typed-term-narrowing-erasure M⊒M′)
-typed-term-narrowing-erasure (⊒cast-ᵗ qᶜ rᶜ q⨟s≈r M⊒M′) =
-  ⊒cast- qᶜ q⨟s≈r (typed-term-narrowing-erasure M⊒M′)
-typed-term-narrowing-erasure (cast+⊒ᵗ pᶜ rᶜ r≈t⨟p M⊒M′) =
-  cast+⊒ pᶜ r≈t⨟p (typed-term-narrowing-erasure M⊒M′)
-typed-term-narrowing-erasure (cast-⊒ᵗ pᶜ r≈t⨟p M⊒M′) =
-  cast-⊒ pᶜ r≈t⨟p (typed-term-narrowing-erasure M⊒M′)
 
 typed-term-narrowing-index-typing :
   Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B →

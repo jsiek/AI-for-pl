@@ -60,6 +60,13 @@ module proof.LeftWidening where
 --     available.  These lemmas do not by themselves build that final
 --     term-narrowing relation or prove the result is a value when the exposed
 --     body cast is active rather than inert.
+--     The relation-side wrappers
+--     The `⊒Λ` and `⊒⟨ν⟩` relation-side wrappers cover the two
+--     term-narrowing constructors that can consume an inert exposed body cast;
+--     Example 4 now goes through the `⊒Λ` wrapper.
+--     For sequence variants, `dual-seq` and `left-widening-seq-prefix` factor
+--     only the initial `β-seq` step; the remaining recursive catchup/left-
+--     widening obligations are deliberately left explicit.
 --   * A direct suc-only induction for that weakening lemma is the wrong
 --     formulation: under `Λ`, the body is renamed by `extᵗ suc`, not plain
 --     `suc`.  The reusable pieces started in `proof.TermNarrowingProperties`
@@ -159,6 +166,7 @@ open import proof.CatchupStore using (combineStoreNrw)
 open import proof.ReductionProperties using (applyCoercions; ↠-trans)
 open import proof.NuTermProperties
   using (open0-ext-suc-cancelᵐ; renameᵗᵐ-preserves-Value)
+open import proof.CoercionProperties using (renameᶜ-preserves-Inert)
 
 dual-untag-inert :
   ∀ {G} →
@@ -182,6 +190,11 @@ dual-gen :
   ∀ A c →
   - (gen A c) ≡ inst A (dual (genᵃ normalᵃ) c)
 dual-gen A c = refl
+
+dual-seq :
+  ∀ c d →
+  - (c ︔ d) ≡ (- d) ︔ (- c)
+dual-seq c d = refl
 
 LeftWideningWithoutNo• : Set₁
 LeftWideningWithoutNo• =
@@ -354,6 +367,24 @@ left-widening-inst {B = B} {c = c} vV noV pᶜ r≈t⨟p V⊒V′ =
   left-widening-inert (dual-inst-inert {B = B} {c = c})
     vV noV pᶜ r≈t⨟p V⊒V′
 
+left-widening-seq-reduction :
+  ∀ {c d V} →
+  Value V →
+  V ⟨ - (c ︔ d) ⟩
+    —↠[ keep ∷ [] ]
+    (V ⟨ - d ⟩) ⟨ - c ⟩
+left-widening-seq-reduction {c = c} {d = d} vV
+    rewrite dual-seq c d =
+  ↠-step (pure-step (β-seq vV)) ↠-refl
+
+left-widening-seq-prefix :
+  ∀ {c d V χs W} →
+  Value V →
+  (V ⟨ - d ⟩) ⟨ - c ⟩ —↠[ χs ] W →
+  V ⟨ - (c ︔ d) ⟩ —↠[ keep ∷ χs ] W
+left-widening-seq-prefix {c = c} {d = d} vV V↠W =
+  ↠-trans (left-widening-seq-reduction {c = c} {d = d} vV) V↠W
+
 left-widening-gen-reduction :
   ∀ {A c V} →
   Value V →
@@ -428,6 +459,78 @@ left-widening-gen-spine-package {Δ = Δ} {σ = σ} {N = N}
   refl ,
   ⊒ˢ-left ⊒ˢ-nil ,
   W⊒V′
+
+left-widening-gen-inert-⊒Λ-package :
+  ∀ {Δ σ N V′ A B c} →
+  Value N →
+  No• N →
+  Inert (dual (genᵃ normalᵃ) c) →
+  suc Δ ∣ srcStoreⁿ (combineStoreNrw ((⊒ zero ꞉=☆) ∷ []) σ)
+    ⊢ gen (⇑ᵗ A) (renameᶜ (extᵗ suc) c) ∶ᶜ ⇑ᵗ A ⊒ `∀ B →
+  suc (suc Δ) ∣ (zero ꞉= ★ ⊒)
+      ∷ ⇑ˢ (combineStoreNrw ((⊒ zero ꞉=☆) ∷ []) σ) ∣ []
+    ⊢ ⇑ᵗᵐ (N ⟨ dual (genᵃ normalᵃ) c ⟩)
+      ⊒ renameᵗᵐ (extᵗ suc) V′
+      ∶ renameᶜ (extᵗ suc) c →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    ((Λ N) ⟨ - (gen A c) ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs (Λ V′)
+        ∶ applyCoercions χs (gen A c)
+left-widening-gen-inert-⊒Λ-package {Δ = Δ} {σ = σ} {N = N}
+    {V′ = V′} {A = A} {c = c} vN noN inert-c genᶜ body⊒ =
+  left-widening-gen-spine-package
+    {Δ = Δ} {σ = σ} {N = N} {V′ = Λ V′}
+    {A = A} {c = c} {r = gen A c}
+    vN
+    noN
+    (vN ⟨ inert-c ⟩)
+    (no•-⟨⟩ noN)
+    (⊒Λ genᶜ body⊒)
+
+left-widening-gen-inert-⊒⟨ν⟩-package :
+  ∀ {Δ σ N V′ A B c s} →
+  Value N →
+  No• N →
+  Inert (dual (genᵃ normalᵃ) c) →
+  Inert s →
+  suc Δ ∣ srcStoreⁿ (combineStoreNrw ((⊒ zero ꞉=☆) ∷ []) σ)
+    ⊢ gen (⇑ᵗ A) (renameᶜ (extᵗ suc) c) ∶ᶜ ⇑ᵗ A ⊒ `∀ B →
+  suc (suc Δ) ∣ (zero ꞉= ★ ⊒)
+      ∷ ⇑ˢ (combineStoreNrw ((⊒ zero ꞉=☆) ∷ []) σ) ∣ []
+    ⊢ ⇑ᵗᵐ (N ⟨ dual (genᵃ normalᵃ) c ⟩)
+      ⊒ ⇑ᵗᵐ V′ ⟨ renameᶜ (extᵗ suc) s ⟩
+      ∶ renameᶜ (extᵗ suc) c →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    ((Λ N) ⟨ - (gen A c) ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs (V′ ⟨ gen A s ⟩)
+        ∶ applyCoercions χs (gen A c)
+left-widening-gen-inert-⊒⟨ν⟩-package
+    {Δ = Δ} {σ = σ} {N = N} {V′ = V′} {A = A} {c = c}
+    {s = s} vN noN inert-c inert-s genᶜ body⊒ =
+  left-widening-gen-spine-package
+    {Δ = Δ} {σ = σ} {N = N} {V′ = V′ ⟨ gen A s ⟩}
+    {A = A} {c = c} {r = gen A c}
+    vN
+    noN
+    (vN ⟨ inert-c ⟩)
+    (no•-⟨⟩ noN)
+    (⊒⟨ν⟩ genᶜ
+      (renameᶜ-preserves-Inert (extᵗ suc) inert-s)
+      body⊒)
 
 left-widening-id-exact :
   ∀ {Δ σ V V′ p A C D} →
@@ -679,11 +782,11 @@ left-widening-ex4-gen :
       ⊢ W ⊒ applyTerms χs goodPoly
       ∶ applyCoercions χs (gen (★ ⇒ ★) var0-fun)
 left-widening-ex4-gen =
-  left-widening-gen-spine-package
-    {Δ = 0} {σ = []} {N = ƛ (` zero)} {V′ = goodPoly}
-    {A = ★ ⇒ ★} {c = var0-fun} {r = gen (★ ⇒ ★) var0-fun}
+  left-widening-gen-inert-⊒Λ-package
+    {Δ = 0} {σ = []} {N = ƛ (` zero)} {V′ = ƛ (` zero)}
+    {A = ★ ⇒ ★} {B = ＇ zero ⇒ ＇ zero} {c = var0-fun}
     (ƛ (` zero))
     (no•-ƛ no•-`)
-    ((ƛ (` zero)) ⟨ _ ↦ _ ⟩)
-    (no•-⟨⟩ (no•-ƛ no•-`))
-    ex4-after-reduction-Δ1
+    (_ ↦ _)
+    poly-fun-cast
+    ex4-split-Δ2

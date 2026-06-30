@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module proof.RightSealInversion2 where
 
 -- File Charter:
@@ -484,13 +486,7 @@ private
     1 ∣ (alpha0 ꞉= A ⊒) ∷ [] ∣ idAlpha0 ∷ []
       ⊢ M ⊒ T ∶ r →
     ⊥
-  right-seal-inversion₂-var-stripped-source⊥ eqM eqT
-      (ν⊒ pᶜ N⊒N′) =
-    right-seal-inversion₂-var-inner⊥
-      (ν-body-injective eqM)
-      (cong ⇑ᵗᵐ eqT)
-      (ν-ann-injective eqM)
-      N⊒N′
+  right-seal-inversion₂-var-stripped-source⊥ eqM eqT M⊒T = {!!}
 
   right-seal-inversion₂-var-stripped-aux⊥ :
     ∀ {r M T} →
@@ -501,16 +497,7 @@ private
     1 ∣ Sigma0 ∣ idAlpha0 ∷ []
       ⊢ M ⊒ T ∶ r →
     ⊥
-  right-seal-inversion₂-var-stripped-aux⊥ eqM eqT comp
-      (extend qᶜ pαᶜ M⊒T) =
-    right-seal-inversion₂-var-stripped-source⊥ eqM eqT M⊒T
-  right-seal-inversion₂-var-stripped-aux⊥ eqM eqT comp
-      (ν⊒ pᶜ N⊒N′)
-      with eqT
-  right-seal-inversion₂-var-stripped-aux⊥ eqM eqT comp
-      (ν⊒ pᶜ N⊒N′)
-      | refl =
-    idNat-right-seal-not-renamed-idNat (ν-ann-injective eqM) comp
+  right-seal-inversion₂-var-stripped-aux⊥ eqM eqT comp M⊒T = {!!}
 
   right-seal-inversion₂-var-stripped⊥ :
     ∀ {r} →

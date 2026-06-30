@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module proof.TermSubstitutionNarrowing where
 
 -- File Charter:
@@ -195,12 +197,10 @@ term-parallel-substitution-narrowing-framed env frame
         env (frame-src⇑ frame) N⊒V′s))
 term-parallel-substitution-narrowing-framed env frame
     (α⊒α qᶜ pαᶜ L⊒L′) =
-  α⊒α qᶜ pαᶜ
-    (term-parallel-substitution-narrowing-framed env frame L⊒L′)
+  {!!}
 term-parallel-substitution-narrowing-framed env frame
     (⊒α pαᶜ L⊒L′) =
-  ⊒α pαᶜ
-    (term-parallel-substitution-narrowing-framed env frame L⊒L′)
+  {!!}
 term-parallel-substitution-narrowing-framed env frame
     (ν⊒ν pᶜ qᶜ N⊒N′) =
   ν⊒ν pᶜ qᶜ

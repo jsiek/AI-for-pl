@@ -2923,3 +2923,30 @@ counterexample still cannot be lifted to a legal `catchup-⊒Λ-catchup`
 counterexample by simply replacing `probe-c` with `var0-fun`; a stronger
 counterexample would need a different final-body derivation, not just this
 nearby example.
+
+## Attempt 85: make the legal helper counterexample use a casted body
+
+Rejected, and the failure points to a possible invariant.  I tried to build the
+legal analogue of `TraceProbe` directly under the target-only store:
+
+`1 ∣ (0 ꞉= ★ ⊒) ∷ [] ∣ []
+  ⊢ (ƛ (` 0)) ⟨ var0-fun ⟩ ⊒ ƛ (` 0) ∶ var0-fun`
+
+The first repair was to use the target-only store narrowing in the endpoint
+equivalence but keep the composition determinant over the source store `[]`.
+That part is consistent.  The proof then fails at the `cast-⊒` constructor:
+the outer cast is `var0-fun`, but the easy composition side condition gives a
+result coercion `id (＇ 0) ↦ id (＇ 0)`, not `var0-fun`.
+
+The existing way to recover result coercion `var0-fun` is the
+`ex1-inner-cast+` shape, which adds a second cast by `- star-seal-fun`.
+That requires a source-side marker/both-side `id ★` store; it is not available
+under `(0 ꞉= ★ ⊒) ∷ []`.
+
+So the legal `gen` premise is doing more than excluding the old `probe-c`.
+It also seems to block the non-shift-image casted final value under the
+target-only store.  A promising next invariant is:
+
+if `gen A p` is well typed and a value `W` is related to `V′` by `p` under the
+target-only `⊒Λ` store, then `W` is a type-shift image (or can be caught up to
+one through the emitted source-star prefix).

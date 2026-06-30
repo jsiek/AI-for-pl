@@ -2896,3 +2896,29 @@ So the `ν⊒` package is still the wrong source term.  It may be a useful
 intermediate once a replay theorem connects the original prefix/final bind to
 that packaged `ν` source, but by itself it cannot replace the remaining
 `catchup-⊒Λ-catchup` call.
+
+## Attempt 84: repair the `TraceProbe` counterexample with legal `var0-fun`
+
+Rejected as a counterexample family.  The old `TraceProbe` counterexample uses
+the illegal body coercion `probe-c`; Attempt 50 showed that it cannot satisfy a
+real empty-context `gen` premise.  I tested the obvious legal replacement:
+
+`p = var0-fun`
+
+and tried to build the shifted final-body premise:
+
+`1 ∣ (0 ꞉= ★ ⊒) ∷ [] ∣ []
+  ⊢ (ƛ (` 0)) ⟨ var0-fun ⟩ ⊒ ƛ (` 0) ∶ var0-fun`
+
+The nearby checked example witness `ex1-inner-cast+` does not fit this store;
+Agda reports the head entry mismatch:
+
+`0 ꞉ id ★ != 0 ꞉= ★ ⊒`
+
+This is not just a syntax mismatch.  The legal `var0-fun` example needs a
+source-side marker/both-side `id ★` store before the final cast can be typed.
+That marker is exactly what the last-bind/split path creates.  So the
+standalone `TraceProbe` counterexample still cannot be lifted to a legal
+`catchup-⊒Λ-catchup` counterexample by simply replacing `probe-c` with
+`var0-fun`; the legal shape pushes the proof back to the source-marker replay
+problem.

@@ -5102,3 +5102,41 @@ the term syntax of `ν A L c` renames `L` with the outer renaming, while the
 term-narrowing premise is indexed under the fresh type variable.  A replay
 theorem will need either a framed renaming statement for ν bodies or a
 freshness/insensitivity invariant for those bodies.
+
+## Attempt 142: compare replay frames with substitution frames
+
+Rejected as too simple.
+
+I compared the needed term-renaming replay theorem with
+`proof.TermSubstitutionNarrowing`'s `SubstFrame` machinery:
+
+- `frame-Λ` shifts both source and target substitutions under a type binder;
+- `frame-νν` keeps both term substitutions fixed while the context/coercion
+  side moves under the fresh ν variable;
+- `frame-src⇑` shifts only the source substitution;
+- `frame-tgt⇑` shifts only the target substitution.
+
+That is the right conceptual clue for the ν constructors, but it does not
+directly give a term-renaming theorem.  Term substitution does not rewrite
+coercions embedded in terms, while type renaming does.  In particular, the
+`⊒⟨ν⟩` replay target wants a mixed shape:
+
+`renameᵗᵐ ρ V′ ⟨ renameᶜ (extᵗ ρ) s ⟩`
+
+as the premise target for rebuilding
+
+`renameᵗᵐ ρ (V′ ⟨ gen A s ⟩)`.
+
+No single whole-term action `renameᵗᵐ τ (V′ ⟨ s ⟩)` expresses that: choosing
+`τ = ρ` renames `s` too weakly, and choosing `τ = extᵗ ρ` renames the term
+part `V′` too strongly.
+
+So the next replay theorem should not just index a source-term renaming, a
+target-term renaming, and a coercion renaming uniformly over whole terms.  It
+needs constructor-specific endpoint actions, or specialized builders for the
+mixed constructors such as `⊒⟨ν⟩`, `ν⊒ν`, `⊒ν`, and `ν⊒`.
+
+The ν/mixed cases are also not avoidable from the source-first `bodyRaw`
+obligation.  Top-level `α⊒α`, `⊒α`, `ν⊒ν`, `⊒ν`, and `ν⊒` are excluded by
+the value/no-bullet endpoints, but they can occur under `ƛ⊒ƛ`, because lambda
+values do not require their bodies to be values or `No•`.

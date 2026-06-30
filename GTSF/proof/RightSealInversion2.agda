@@ -15,6 +15,7 @@ open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (zero; suc; z<s; s<s)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
+open import Relation.Binary.PropositionalEquality using (cong)
 
 open import Types
 open import Coercions
@@ -172,9 +173,16 @@ rightSealInversion2-aux eq (extend qᶜ pαᶜ M⊒T)
   extendReplaceRel-compose-left (replace-here qᶜ) q⨟seal≈r ,
   extendReplaceRel-term (replace-here qᶜ) M⊒V
 -- The `split` case changes both the store and the left term's opened type
--- variable.  The same store replacement lemmas handle the store component,
--- but the proof still needs an opening-transport lemma for the stripped term.
-rightSealInversion2-aux eq (split qᶜ pαᶜ M⊒T) = {!!}
+-- variable.  The recursive inversion strips the target cast under
+-- `(α ꞉ q) ∷ σ`; the remaining step must transport both the composition
+-- evidence and the stripped relation to
+-- `(α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ`, changing the source
+-- opening from `N [ α ]ᵀ` to `N [ αᵢ ]ᵀ`.
+rightSealInversion2-aux eq (split qᶜ pαᶜ M⊒T)
+    with rightSealInversion2-aux eq M⊒T
+rightSealInversion2-aux eq (split qᶜ pαᶜ M⊒T)
+    | r , pα⨟seal≈r , Nα⊒V =
+  {!!}
 rightSealInversion2-aux () (⊒blame pᶜ)
 rightSealInversion2-aux () (x⊒x pᶜ x∋p)
 rightSealInversion2-aux () (ƛ⊒ƛ p↦qᶜ N⊒N′)
@@ -192,7 +200,11 @@ rightSealInversion2-aux () (⊒ν pᶜ N⊒N′)
 -- `⇑ᶜ p ⨾ⁿ seal (⇑ᵗ A) (suc α) ≈ r`; rebuilding needs an
 -- unshifting lemma that factors this through a witness for
 -- `p ⨾ⁿ seal A α`.
-rightSealInversion2-aux eq (ν⊒ pᶜ N⊒N′) = {!!}
+rightSealInversion2-aux {V = V} eq (ν⊒ pᶜ N⊒N′)
+    with rightSealInversion2-aux (cong ⇑ᵗᵐ eq) N⊒N′
+rightSealInversion2-aux {V = V} eq (ν⊒ pᶜ N⊒N′)
+    | r , ⇑p⨟seal≈r , N⊒⇑V =
+  {!!}
 rightSealInversion2-aux () (κ⊒κ κ)
 rightSealInversion2-aux () (⊕⊒⊕ M⊒M′ N⊒N′)
 -- Direct right-positive seal cast.  Here the syntax of `- (seal A α)` is
@@ -226,8 +238,16 @@ rightSealInversion2-aux eq (⊒cast- qᶜ q⨟s≈r M⊒M′) =
 -- typing for the witness, or a derived left-cast transport lemma that produces
 -- the stripped term relation without exposing that `∶ᶜ` requirement at the
 -- call site.
-rightSealInversion2-aux eq (cast+⊒ pᶜ r≈t⨟p M⊒M′) = {!!}
-rightSealInversion2-aux eq (cast-⊒ pᶜ r≈t⨟p M⊒M′) = {!!}
+rightSealInversion2-aux eq (cast+⊒ pᶜ r≈t⨟p M⊒M′)
+    with rightSealInversion2-aux eq M⊒M′
+rightSealInversion2-aux eq (cast+⊒ pᶜ r≈t⨟p M⊒M′)
+    | u , p⨟seal≈u , M⊒V =
+  {!!}
+rightSealInversion2-aux eq (cast-⊒ pᶜ r≈t⨟p M⊒M′)
+    with rightSealInversion2-aux eq M⊒M′
+rightSealInversion2-aux eq (cast-⊒ pᶜ r≈t⨟p M⊒M′)
+    | u , r⨟seal≈u , M⊒V =
+  {!!}
 
 rightSealInversion2 : RightSealInversion2
 rightSealInversion2 M⊒Vunseal =

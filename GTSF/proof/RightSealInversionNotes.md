@@ -353,6 +353,88 @@ from the outer composition in `(α ꞉ q) ∷ σ` to a composition premise in
 `(α ꞉= A ⊒) ∷ σ`.  Reusing the existing transport directly therefore repeats
 the wrong-direction mistake.
 
+### Attempt 6. Existential strip goals after exposing Agda holes
+
+The equality-indexed scratch theorem was checked far enough to expose the exact
+remaining goals for
+
+```agda
+right-seal-strip-some :
+  Value V →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ E ⊒ F →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
+  ∃[ p ] Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ p
+```
+
+The easy cases are:
+
+- direct `⊒cast-`: return the premise relation to `V`;
+- right `⊒cast+` with `unseal`: impossible by
+  `right-seal-inversion₂-cast-unseal⊥`;
+- right `⊒cast+` with tag/untag: syntactically impossible after exposing
+  small dual-shape contradictions for `-(G !)` and `-(G ？)` versus `seal`.
+
+The remaining Agda goals are exactly the structural and source-left wrappers:
+
+```agda
+∃[ p ] Δ ∣ (α ꞉ q) ∷ σ ∣ γ ⊢ M ⊒ V ∶ p
+∃[ p ] Δ ∣ (α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ ∣ γ
+  ⊢ N [ αᵢ ]ᵀ ⊒ V ∶ p
+∃[ p ] Δ ∣ σ ∣ γ ⊢ ν ★ N (⇑ᶜ r) ⊒ V ∶ p
+∃[ p ] Δ ∣ σ ∣ γ ⊢ M ⟨ - t ⟩ ⊒ V ∶ p
+∃[ p ] Δ ∣ σ ∣ γ ⊢ M ⟨ t ⟩ ⊒ V ∶ p
+```
+
+This rules out a purely local fix to the DGG hole.  The source-left goals need
+the factorization that cambridge25 calls out in the erratum:
+
+```agda
+q ⨾ⁿ seal B α ≈ r
+r ≈ t ⨾ⁿ p
+```
+
+must decompose so the induction can strip the premise and rebuild `cast+⊒`.
+Similarly, the `cast-⊒` branch needs a decomposition of
+
+```agda
+q ⨾ⁿ seal B α ≈ p
+r ≈ t ⨾ⁿ p .
+```
+
+No existing lemma proves either factorization.  The raw coercion lemma
+`⨟-sealʳ` suggests the intended trailing-seal algebra, but the typed
+`_⨟ⁿ_` composition only exposes the computed composite inside
+`compose-leftⁿ`/`compose-rightⁿ`.
+
+The most direct factorization for the `cast+⊒` source-left case is false.  The
+module `proof.RightSealFactorCounterexample` proves
+
+```agda
+case1-factorization-is-false :
+  Case1Factorization →
+  ⊥
+```
+
+using the exact premises
+
+```agda
+id (‵ `ℕ) ⨾ⁿ seal (‵ `ℕ) 0 ≈ seal (‵ `ℕ) 0
+seal (‵ `ℕ) 0 ≈ seal (‵ `ℕ) 0 ⨾ⁿ id (＇ 0)
+```
+
+and showing that no `q′` can satisfy
+
+```agda
+q′ ⨾ⁿ seal (‵ `ℕ) 0 ≈ id (＇ 0) .
+```
+
+So the DGG proof cannot proceed by simply decomposing every source-left cast
+into a smaller right-seal composite.  The next proof attempt should instead be
+a genuinely dynamic helper that lets source-left casts take their own source
+steps, probably using the existing value-level `left-widening-lemma` and
+`left-narrowing-lemma`, rather than trying to prove a zero-step strip theorem.
+
 ### Counterexample search
 
 The known `right-seal-inversion₁` counterexample does not satisfy the exact DGG
@@ -390,7 +472,8 @@ seal coercion.  Agda rejects this shape for the DGG premises: `ν⊒` requires i
 index premise to be cast-like, and `∶ᶜ` is `tag-or-idᵈ`, so literal seals are
 excluded by `tag-or-id-seal-conflict`.
 
-No exact counterexample was found.  The next productive proof step appears to
-be an algebraic package for right-seal composition cancellation/factorization,
-paired with a term-narrowing reindexing lemma and the split-specific
-source-opening transport already identified by `catchup-split-catchup`.
+No exact counterexample to the DGG redex was found.  The checked
+factorization counterexample only refutes a tempting zero-step proof strategy:
+it does not refute the dynamic branch, because DGG may still reduce the source
+side through the problematic left cast before relating it to the unsealed
+target.

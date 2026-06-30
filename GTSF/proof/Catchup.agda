@@ -3837,6 +3837,55 @@ catchup-⊒Λ-no-earlier-bind-source-first
             target≡
             body₀))
 
+catchup-⊒Λ-no-earlier-bind-catchup :
+  ∀ {Δ σ χs keeps Aχ W Δ′ Π Π′ π A B N V′ p} →
+  AllKeep χs →
+  AllKeep keeps →
+  Value W →
+  No• W →
+  CatchupSafe (⇑ᵗᵐ N) →
+  (⇑ᵗᵐ N —↠[ χs ++ bind Aχ ∷ keeps ] W) →
+  Δ′ ≡ applyTyCtxs (χs ++ bind Aχ ∷ keeps) (suc Δ) →
+  Π ≡ applyStores (χs ++ bind Aχ ∷ keeps) [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+    ⊢ W ⊒ applyTerms (χs ++ bind Aχ ∷ keeps) V′
+      ∶ applyCoercions (χs ++ bind Aχ ∷ keeps) p →
+  suc (suc Δ) ∣
+    (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+      ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p →
+  ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
+    Value W′ ×
+    No• W′ ×
+    (N —↠[ χs′ ] W′) ×
+    (Δ″ ≡ applyTyCtxs χs′ Δ) ×
+    (Π″ ≡ applyStores χs′ []) ×
+    (Π″′ ≡ applyStore keep []) ×
+    Δ″ ⊢ π′ ꞉ Π″ ⊒ˢ Π″′ ×
+    Δ″ ∣ combineStoreNrw π′ σ ∣ []
+      ⊢ W′ ⊒ applyTerms χs′ (Λ V′)
+        ∶ applyCoercions χs′ (gen A p)
+catchup-⊒Λ-no-earlier-bind-catchup
+    keepsχ keepsTail vW noW safe⇑N ⇑N↠W
+    Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′ replay =
+  catchup-⊒Λ-single-bind-finish
+    keepsχ
+    keepsTail
+    (renameᵗᵐ-preserves-Value predᵗ vW)
+    (renameᵗᵐ-preserves-No• predᵗ noW)
+    N↠W′
+    pᶜ
+    replay
+  where
+    N↠W′ =
+      proj₁
+        (catchup-⊒Λ-no-earlier-bind-source-first
+          keepsχ keepsTail vW safe⇑N ⇑N↠W
+          Δ′≡ Π≡ Π′≡ π⊒ W⊒V′)
+
 catchup-⊒Λ-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p} →
   Value W →

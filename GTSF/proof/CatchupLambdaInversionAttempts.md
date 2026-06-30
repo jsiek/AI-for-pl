@@ -3911,3 +3911,30 @@ needed by `catchup-⊒Λ-single-bind-finish`:
 Limitation: this still does not prove the replay itself.  It deliberately
 keeps the source-first body as the output so the remaining obligation cannot
 silently re-expand into the false generic `raise0ᵗ`/composition transport.
+
+## Attempt 109: package the no-earlier-bind final finisher
+
+Accepted as checked support in `proof.Catchup`.
+
+I added:
+
+`catchup-⊒Λ-no-earlier-bind-catchup`
+
+This wraps Attempt 108 with the existing `catchup-⊒Λ-single-bind-finish`.
+Its only extra input is exactly the missing target-first replay body:
+
+`suc (suc Δ) ∣
+  (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+  ⊢ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+    ⊒ renameᵗᵐ (extᵗ suc) V′
+    ∶ renameᶜ (extᵗ suc) p`.
+
+Given that replay body, the helper now constructs the full catchup existential
+for the outer `⊒Λ` case, using Attempt 108 to get the lowered reduction and
+then `catchup-⊒Λ-single-bind-finish` to normalize the lambda target and
+`gen` coercion.
+
+So the no-earlier-bind last-bind subcase is now factored into a single
+remaining proof obligation: source-first body replay to the target-first body
+above.  There is no remaining reduction or existential-packaging work in that
+subcase.

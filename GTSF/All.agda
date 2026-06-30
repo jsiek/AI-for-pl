@@ -18,5 +18,6 @@ import NuReduction
 import proof.NWTermReduction
 import TermNarrowing
 import NarrowingExamples
+import proof.LeftWidening
 import NuMetaTheory
 import proof.DynamicGradualGuarantee

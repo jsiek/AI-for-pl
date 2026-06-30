@@ -175,6 +175,13 @@ postulate
 -- * `left-widening-lemma` and `left-narrowing-lemma` correspond to named
 --   cambridge25 lemmas.  The Agda statements add the emitted-store bookkeeping
 --   (`χs`, `π`, and `combineStoreNrw`) needed by this mechanization.
+--   `proof.LeftWidening` shows that the older `left-widening-lemma`
+--   statement was false without the runtime/no-bullet premise: the
+--   `gen`/`inst` branch can reduce to a stuck `ν`.
+--   It also contains `left-widening-current-seal-counterexample`, which shows
+--   that the current `No•`-strengthened statement is still false: the
+--   `seal`/`unseal` branch can get stuck on a bare source value related to
+--   `blame`.
 -- * The other postulates in this file are not pre-existing named cambridge25
 --   lemmas.  They are newly documented proof obligations/cases in
 --   `cambridge25.lagda.md`, marked with `[New]`, and remain to be proved.

@@ -326,6 +326,23 @@ renameᵗᵐ-preserves-Value ρ ($ κ) = $ κ
 renameᵗᵐ-preserves-Value ρ (vV ⟨ i ⟩) =
   renameᵗᵐ-preserves-Value ρ vV ⟨ renameᶜ-preserves-Inert ρ i ⟩
 
+renameᵗᵐ-reflects-Value :
+  ∀ ρ M →
+  Value (renameᵗᵐ ρ M) →
+  Value M
+renameᵗᵐ-reflects-Value ρ (` x) ()
+renameᵗᵐ-reflects-Value ρ (ƛ M) (ƛ N) = ƛ M
+renameᵗᵐ-reflects-Value ρ (L · M) ()
+renameᵗᵐ-reflects-Value ρ (Λ M) (Λ vM) =
+  Λ (renameᵗᵐ-reflects-Value (extᵗ ρ) M vM)
+renameᵗᵐ-reflects-Value ρ (M •) ()
+renameᵗᵐ-reflects-Value ρ (ν A L c) ()
+renameᵗᵐ-reflects-Value ρ ($ κ) ($ k) = $ κ
+renameᵗᵐ-reflects-Value ρ (L ⊕[ op ] M) ()
+renameᵗᵐ-reflects-Value ρ (M ⟨ c ⟩) (vM ⟨ i ⟩) =
+  renameᵗᵐ-reflects-Value ρ M vM ⟨ renameᶜ-reflects-Inert ρ c i ⟩
+renameᵗᵐ-reflects-Value ρ blame ()
+
 renameˣᵐ-preserves-Value :
   ∀ ρ {V} →
   Value V →
@@ -394,6 +411,29 @@ renameᵗᵐ-preserves-No• ρ (no•-⊕ hL hM) =
 renameᵗᵐ-preserves-No• ρ (no•-⟨⟩ hM) =
   no•-⟨⟩ (renameᵗᵐ-preserves-No• ρ hM)
 renameᵗᵐ-preserves-No• ρ no•-blame = no•-blame
+
+renameᵗᵐ-reflects-No• :
+  ∀ ρ M →
+  No• (renameᵗᵐ ρ M) →
+  No• M
+renameᵗᵐ-reflects-No• ρ (` x) no•-` = no•-`
+renameᵗᵐ-reflects-No• ρ (ƛ M) (no•-ƛ noM) =
+  no•-ƛ (renameᵗᵐ-reflects-No• ρ M noM)
+renameᵗᵐ-reflects-No• ρ (L · M) (no•-· noL noM) =
+  no•-· (renameᵗᵐ-reflects-No• ρ L noL)
+        (renameᵗᵐ-reflects-No• ρ M noM)
+renameᵗᵐ-reflects-No• ρ (Λ M) (no•-Λ noM) =
+  no•-Λ (renameᵗᵐ-reflects-No• (extᵗ ρ) M noM)
+renameᵗᵐ-reflects-No• ρ (M •) ()
+renameᵗᵐ-reflects-No• ρ (ν A L c) (no•-ν noL) =
+  no•-ν (renameᵗᵐ-reflects-No• ρ L noL)
+renameᵗᵐ-reflects-No• ρ ($ κ) no•-$ = no•-$
+renameᵗᵐ-reflects-No• ρ (L ⊕[ op ] M) (no•-⊕ noL noM) =
+  no•-⊕ (renameᵗᵐ-reflects-No• ρ L noL)
+         (renameᵗᵐ-reflects-No• ρ M noM)
+renameᵗᵐ-reflects-No• ρ (M ⟨ c ⟩) (no•-⟨⟩ noM) =
+  no•-⟨⟩ (renameᵗᵐ-reflects-No• ρ M noM)
+renameᵗᵐ-reflects-No• ρ blame no•-blame = no•-blame
 
 renameˣᵐ-preserves-No• :
   ∀ ρ {M} →

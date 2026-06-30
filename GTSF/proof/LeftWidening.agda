@@ -67,6 +67,12 @@ module proof.LeftWidening where
 --     For sequence variants, `dual-seq` and `left-widening-seq-prefix` factor
 --     only the initial `β-seq` step; the remaining recursive catchup/left-
 --     widening obligations are deliberately left explicit.
+--     `left-widening-seq-inner-reduction` adds the emitted-store action on
+--     the outer dual cast while the inner dual cast reduces, and
+--     `left-widening-seq-package` packages the two-stage reduction plus final
+--     relation witness.  A full sequence branch still needs recursive
+--     left-widening evidence for both component casts and the composition
+--     algebra relating their indices.
 --   * A direct suc-only induction for that weakening lemma is the wrong
 --     formulation: under `Λ`, the body is renamed by `extᵗ suc`, not plain
 --     `suc`.  The reusable pieces started in `proof.TermNarrowingProperties`
@@ -131,7 +137,7 @@ module proof.LeftWidening where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using ([]; _∷_)
+open import Data.List using ([]; _∷_; _++_)
 open import Data.List.Relation.Unary.Any using (here)
 open import Data.Nat using (zero; suc; z<s)
 open import Data.Product using (_×_; _,_; proj₂; ∃-syntax)
@@ -163,7 +169,8 @@ open import NarrowingExamples
     )
 open import proof.NarrowWidenProperties using (StoreDetWf)
 open import proof.CatchupStore using (combineStoreNrw)
-open import proof.ReductionProperties using (applyCoercions; ↠-trans)
+open import proof.ReductionProperties
+  using (applyCoercions; cast-dual-↠; ↠-trans)
 open import proof.NuTermProperties
   using (open0-ext-suc-cancelᵐ; renameᵗᵐ-preserves-Value)
 open import proof.CoercionProperties using (renameᶜ-preserves-Inert)
@@ -384,6 +391,57 @@ left-widening-seq-prefix :
   V ⟨ - (c ︔ d) ⟩ —↠[ keep ∷ χs ] W
 left-widening-seq-prefix {c = c} {d = d} vV V↠W =
   ↠-trans (left-widening-seq-reduction {c = c} {d = d} vV) V↠W
+
+left-widening-seq-inner-reduction :
+  ∀ {c d V χs W} →
+  Value V →
+  V ⟨ - d ⟩ —↠[ χs ] W →
+  V ⟨ - (c ︔ d) ⟩ —↠[ keep ∷ χs ] W ⟨ - applyCoercions χs c ⟩
+left-widening-seq-inner-reduction {c = c} {d = d} vV Vd↠W =
+  left-widening-seq-prefix {c = c} {d = d} vV
+    (cast-dual-↠ {c = c} Vd↠W)
+
+left-widening-seq-package :
+  ∀ {Δ σ V V′ c d r χs χs′ W U π} →
+  Value V →
+  V ⟨ - d ⟩ —↠[ χs ] W →
+  W ⟨ - applyCoercions χs c ⟩ —↠[ χs′ ] U →
+  Value U →
+  No• U →
+  applyTyCtxs (keep ∷ (χs ++ χs′)) Δ
+    ⊢ π ꞉ applyStores (keep ∷ (χs ++ χs′)) []
+      ⊒ˢ applyStore keep [] →
+  applyTyCtxs (keep ∷ (χs ++ χs′)) Δ ∣ combineStoreNrw π σ ∣ []
+    ⊢ U ⊒ applyTerms (keep ∷ (χs ++ χs′)) V′
+      ∶ applyCoercions (keep ∷ (χs ++ χs′)) r →
+  ∃[ χs″ ] ∃[ W′ ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π′ ]
+    Value W′ ×
+    No• W′ ×
+    (V ⟨ - (c ︔ d) ⟩ —↠[ χs″ ] W′) ×
+    (Δ′ ≡ applyTyCtxs χs″ Δ) ×
+    (Π ≡ applyStores χs″ []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π′ ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π′ σ ∣ []
+      ⊢ W′ ⊒ applyTerms χs″ V′ ∶ applyCoercions χs″ r
+left-widening-seq-package {Δ = Δ} {σ = σ} {V = V}
+    {c = c} {d = d} {χs = χs} {χs′ = χs′} {U = U} {π = π}
+    vV Vd↠W Wc↠U vU noU π⊒ U⊒V′ =
+  keep ∷ (χs ++ χs′) ,
+  U ,
+  applyTyCtxs (keep ∷ (χs ++ χs′)) Δ ,
+  applyStores (keep ∷ (χs ++ χs′)) [] ,
+  applyStore keep [] ,
+  π ,
+  vU ,
+  noU ,
+  ↠-trans (left-widening-seq-inner-reduction {c = c} {d = d} vV Vd↠W)
+          Wc↠U ,
+  refl ,
+  refl ,
+  refl ,
+  π⊒ ,
+  U⊒V′
 
 left-widening-gen-reduction :
   ∀ {A c V} →

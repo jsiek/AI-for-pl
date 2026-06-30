@@ -20,6 +20,7 @@ open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; zero; suc; _<_; z<s; s<s)
 open import Data.Nat.Properties using (≤-refl; m<n⇒m<1+n; suc-injective)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
+open import Data.Unit using (⊤; tt)
 open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; subst; sym; trans)
 
@@ -1133,6 +1134,367 @@ compose-rightⁿ-source-target-merge-id★ :
 compose-rightⁿ-source-target-merge-id★
     (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   compose-rightⁿ wfΣ t⊒ p⊒ (≈ⁿ-source-target-merge-id★ r≈t⨟p)
+
+data SourceTargetMergeRel : TyCtx → StoreNrw → StoreNrw → Set where
+  merge-here :
+    ∀ {Δ X σ} →
+    SourceTargetMergeRel Δ
+      ((⊒ X ꞉=☆) ∷ (X ꞉= ★ ⊒) ∷ σ)
+      ((X ꞉ id ★) ∷ σ)
+
+  merge-right :
+    ∀ {Δ X A σ σ′} →
+    SourceTargetMergeRel Δ σ σ′ →
+    SourceTargetMergeRel Δ
+      ((X ꞉= A ⊒) ∷ σ)
+      ((X ꞉= A ⊒) ∷ σ′)
+
+  merge-left :
+    ∀ {Δ X σ σ′} →
+    SourceTargetMergeRel Δ σ σ′ →
+    SourceTargetMergeRel Δ
+      ((⊒ X ꞉=☆) ∷ σ)
+      ((⊒ X ꞉=☆) ∷ σ′)
+
+  merge-both :
+    ∀ {Δ X q σ σ′} →
+    SourceTargetMergeRel Δ σ σ′ →
+    SourceTargetMergeRel Δ
+      ((X ꞉ q) ∷ σ)
+      ((X ꞉ q) ∷ σ′)
+
+SourceTargetMergeRel-⇑ˢ :
+  ∀ {Δ σ σ′} →
+  SourceTargetMergeRel Δ σ σ′ →
+  SourceTargetMergeRel (suc Δ) (⇑ˢ σ) (⇑ˢ σ′)
+SourceTargetMergeRel-⇑ˢ merge-here = merge-here
+SourceTargetMergeRel-⇑ˢ (merge-right rel) =
+  merge-right (SourceTargetMergeRel-⇑ˢ rel)
+SourceTargetMergeRel-⇑ˢ (merge-left rel) =
+  merge-left (SourceTargetMergeRel-⇑ˢ rel)
+SourceTargetMergeRel-⇑ˢ (merge-both rel) =
+  merge-both (SourceTargetMergeRel-⇑ˢ rel)
+
+SourceTargetMergeRel-src≡ :
+  ∀ {Δ σ σ′} →
+  SourceTargetMergeRel Δ σ σ′ →
+  srcStoreⁿ σ ≡ srcStoreⁿ σ′
+SourceTargetMergeRel-src≡ merge-here = refl
+SourceTargetMergeRel-src≡ (merge-right rel) =
+  SourceTargetMergeRel-src≡ rel
+SourceTargetMergeRel-src≡ (merge-left {X = X} rel) =
+  cong ((X , ★) ∷_) (SourceTargetMergeRel-src≡ rel)
+SourceTargetMergeRel-src≡ (merge-both {X = X} {q = q} rel) =
+  cong ((X , src q) ∷_) (SourceTargetMergeRel-src≡ rel)
+
+SourceTargetMergeRel-coercionᶜ :
+  ∀ {Δ σ σ′ c A B} →
+  SourceTargetMergeRel Δ σ σ′ →
+  Δ ∣ srcStoreⁿ σ ⊢ c ∶ᶜ A ⊒ B →
+  Δ ∣ srcStoreⁿ σ′ ⊢ c ∶ᶜ A ⊒ B
+SourceTargetMergeRel-coercionᶜ rel cᶜ =
+  subst
+    (λ Σ → _ ∣ Σ ⊢ _ ∶ᶜ _ ⊒ _)
+    (SourceTargetMergeRel-src≡ rel)
+    cᶜ
+
+SourceTargetMergeRel-⊒ˢ :
+  ∀ {Δ σ σ′ Σ Σ′} →
+  SourceTargetMergeRel Δ σ σ′ →
+  Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+  Δ ⊢ σ′ ꞉ Σ ⊒ˢ Σ′
+SourceTargetMergeRel-⊒ˢ merge-here σ⊒ =
+  ⊒ˢ-source-target-merge-id★ σ⊒
+SourceTargetMergeRel-⊒ˢ (merge-right rel) (⊒ˢ-right hA σ⊒) =
+  ⊒ˢ-right hA (SourceTargetMergeRel-⊒ˢ rel σ⊒)
+SourceTargetMergeRel-⊒ˢ (merge-left rel) (⊒ˢ-left σ⊒) =
+  ⊒ˢ-left (SourceTargetMergeRel-⊒ˢ rel σ⊒)
+SourceTargetMergeRel-⊒ˢ (merge-both rel)
+    (⊒ˢ-both hA hA′ s⊒ σ⊒) =
+  ⊒ˢ-both hA hA′ s⊒ (SourceTargetMergeRel-⊒ˢ rel σ⊒)
+
+SourceTargetMergeRel-≈ⁿ :
+  ∀ {Δ σ σ′ s t A B} →
+  SourceTargetMergeRel Δ σ σ′ →
+  Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
+  Δ ∣ σ′ ⊢ s ≈ t ∶ A ⊒ B
+SourceTargetMergeRel-≈ⁿ rel
+    (endpointsⁿ srcs tgts srct tgtt σ⊒ wfΣ wfΣ′ s⊒ t⊒) =
+  endpointsⁿ
+    srcs
+    tgts
+    srct
+    tgtt
+    (SourceTargetMergeRel-⊒ˢ rel σ⊒)
+    wfΣ
+    wfΣ′
+    s⊒
+    t⊒
+
+SourceTargetMergeRel-compose-left :
+  ∀ {Δ σ σ′ q s r A B} →
+  SourceTargetMergeRel Δ σ σ′ →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Δ ∣ σ′ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
+SourceTargetMergeRel-compose-left rel
+    (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
+  compose-leftⁿ wfΣ q⊒ s⊒ (SourceTargetMergeRel-≈ⁿ rel q⨟s≈r)
+
+SourceTargetMergeRel-compose-right :
+  ∀ {Δ σ σ′ r t p A B} →
+  SourceTargetMergeRel Δ σ σ′ →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  Δ ∣ σ′ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+SourceTargetMergeRel-compose-right rel
+    (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  compose-rightⁿ wfΣ t⊒ p⊒ (SourceTargetMergeRel-≈ⁿ rel r≈t⨟p)
+
+split-source-target-merge-safe-rebuild :
+  ∀ {Δ α A αᵢ σ σ′ γ N N′ p q C D} →
+  (rel : SourceTargetMergeRel Δ σ σ′) →
+  Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+    ⊢ q ∶ᶜ ★ ⊒ A →
+  Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+    ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D →
+  Δ ∣ (α ꞉ q) ∷ σ′ ∣ γ
+    ⊢ N [ α ]ᵀ ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ →
+  Δ ∣ (α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ′ ∣ γ
+    ⊢ N [ αᵢ ]ᵀ ⊒ N′ [ α ]ᵀ ∶ p [ α ]ᶜ
+split-source-target-merge-safe-rebuild
+    {Δ = Δ} {α = α} {A = A} {αᵢ = αᵢ} {σ = σ} {σ′ = σ′}
+    rel qᶜ pαᶜ body =
+  split
+    (SourceTargetMergeRel-coercionᶜ splitRel qᶜ)
+    (SourceTargetMergeRel-coercionᶜ splitRel pαᶜ)
+    body
+  where
+    splitRel :
+      SourceTargetMergeRel Δ
+        ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+        ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ′)
+    splitRel =
+      merge-right (merge-left rel)
+
+data SplitSourceTargetMergeView :
+  ∀ {Δ α A αᵢ σ τ} →
+  SourceTargetMergeRel Δ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ) τ →
+  Set where
+
+  split-merge-safe :
+    ∀ {Δ α A αᵢ σ σ′}
+    (rel : SourceTargetMergeRel Δ σ σ′) →
+    SplitSourceTargetMergeView
+      {Δ = Δ} {α = α} {A = A} {αᵢ = αᵢ} {σ = σ}
+      (merge-right (merge-left rel))
+
+  split-merge-unsafe :
+    ∀ {Δ α A αᵢ σ} →
+    SplitSourceTargetMergeView
+      {Δ = Δ} {α = α} {A = A} {αᵢ = αᵢ}
+      {σ = (αᵢ ꞉= ★ ⊒) ∷ σ}
+      (merge-right merge-here)
+
+split-source-target-merge-view :
+  ∀ {Δ α A αᵢ σ τ}
+  (rel : SourceTargetMergeRel Δ
+    ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ) τ) →
+  SplitSourceTargetMergeView rel
+split-source-target-merge-view (merge-right merge-here) =
+  split-merge-unsafe
+split-source-target-merge-view (merge-right (merge-left rel)) =
+  split-merge-safe rel
+
+SourceTargetMergeSafeFor :
+  ∀ {Δ σ σ′ γ M T c} →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ T ∶ c →
+  SourceTargetMergeRel Δ σ σ′ →
+  Set
+SourceTargetMergeSafeFor (extend qᶜ pαᶜ M⊒T) (merge-both rel) =
+  SourceTargetMergeSafeFor M⊒T (merge-right rel)
+SourceTargetMergeSafeFor (split qᶜ pαᶜ M⊒T) (merge-right merge-here) =
+  ⊥
+SourceTargetMergeSafeFor (split {q = q} qᶜ pαᶜ M⊒T)
+    (merge-right (merge-left rel)) =
+  SourceTargetMergeSafeFor M⊒T (merge-both {q = q} rel)
+SourceTargetMergeSafeFor (⊒blame pᶜ) rel = ⊤
+SourceTargetMergeSafeFor (x⊒x pᶜ x∋p) rel = ⊤
+SourceTargetMergeSafeFor {γ = γ} (ƛ⊒ƛ {p = p} p↦qᶜ N⊒N′) rel =
+  SourceTargetMergeSafeFor {γ = (- p) ∷ γ} N⊒N′ rel
+SourceTargetMergeSafeFor (·⊒· qᶜ L⊒L′ M⊒M′) rel =
+  SourceTargetMergeSafeFor L⊒L′ rel ×
+  SourceTargetMergeSafeFor M⊒M′ rel
+SourceTargetMergeSafeFor {γ = γ} (Λ⊒Λ allᶜ vV V⊒V′) rel =
+  SourceTargetMergeSafeFor {γ = ⇑ᵍ γ} V⊒V′
+    (SourceTargetMergeRel-⇑ˢ rel)
+SourceTargetMergeSafeFor {γ = γ} (⊒Λ pᶜ N⊒V′) rel =
+  SourceTargetMergeSafeFor {γ = ⇑ᵍ γ} N⊒V′
+    (merge-right (SourceTargetMergeRel-⇑ˢ rel))
+SourceTargetMergeSafeFor {γ = γ} (⊒⟨ν⟩ pᶜ i N⊒V′s) rel =
+  SourceTargetMergeSafeFor {γ = ⇑ᵍ γ} N⊒V′s
+    (merge-right (SourceTargetMergeRel-⇑ˢ rel))
+SourceTargetMergeSafeFor (α⊒α qᶜ pαᶜ L⊒L′) (merge-both rel) =
+  SourceTargetMergeSafeFor L⊒L′ rel
+SourceTargetMergeSafeFor (⊒α pαᶜ L⊒L′) (merge-right rel) =
+  SourceTargetMergeSafeFor L⊒L′ rel
+SourceTargetMergeSafeFor {γ = γ} (ν⊒ν {q = q} pᶜ qᶜ N⊒N′) rel =
+  SourceTargetMergeSafeFor {γ = ⇑ᵍ γ} N⊒N′
+    (merge-both {q = ⇑ᶜ q} (SourceTargetMergeRel-⇑ˢ rel))
+SourceTargetMergeSafeFor {γ = γ} (⊒ν pᶜ N⊒N′) rel =
+  SourceTargetMergeSafeFor {γ = ⇑ᵍ γ} N⊒N′
+    (merge-right (SourceTargetMergeRel-⇑ˢ rel))
+SourceTargetMergeSafeFor {γ = γ} (ν⊒ pᶜ N⊒N′) rel =
+  SourceTargetMergeSafeFor {γ = ⇑ᵍ γ} N⊒N′
+    (merge-left (SourceTargetMergeRel-⇑ˢ rel))
+SourceTargetMergeSafeFor (κ⊒κ κ) rel = ⊤
+SourceTargetMergeSafeFor (⊕⊒⊕ M⊒M′ N⊒N′) rel =
+  SourceTargetMergeSafeFor M⊒M′ rel ×
+  SourceTargetMergeSafeFor N⊒N′ rel
+SourceTargetMergeSafeFor (⊒cast+ qᶜ q⨟s≈r M⊒M′) rel =
+  SourceTargetMergeSafeFor M⊒M′ rel
+SourceTargetMergeSafeFor (⊒cast- qᶜ q⨟s≈r M⊒M′) rel =
+  SourceTargetMergeSafeFor M⊒M′ rel
+SourceTargetMergeSafeFor (cast+⊒ pᶜ r≈t⨟p M⊒M′) rel =
+  SourceTargetMergeSafeFor M⊒M′ rel
+SourceTargetMergeSafeFor (cast-⊒ pᶜ r≈t⨟p M⊒M′) rel =
+  SourceTargetMergeSafeFor M⊒M′ rel
+
+SourceTargetMergeSafe :
+  ∀ {Δ σ σ′ γ M T c} →
+  SourceTargetMergeRel Δ σ σ′ →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ T ∶ c →
+  Set
+SourceTargetMergeSafe rel M⊒T =
+  SourceTargetMergeSafeFor M⊒T rel
+
+SourceTargetMergeRel-term-safe :
+  ∀ {Δ σ σ′ γ M T c}
+  (rel : SourceTargetMergeRel Δ σ σ′)
+  (M⊒T : Δ ∣ σ ∣ γ ⊢ M ⊒ T ∶ c) →
+  SourceTargetMergeSafe rel M⊒T →
+  Δ ∣ σ′ ∣ γ ⊢ M ⊒ T ∶ c
+SourceTargetMergeRel-term-safe (merge-both rel)
+    (extend {q = q} qᶜ pαᶜ M⊒T) safe =
+  extend
+    (SourceTargetMergeRel-coercionᶜ rel qᶜ)
+    (SourceTargetMergeRel-coercionᶜ (merge-both {q = q} rel) pαᶜ)
+    (SourceTargetMergeRel-term-safe (merge-right rel) M⊒T safe)
+SourceTargetMergeRel-term-safe (merge-right merge-here)
+    (split qᶜ pαᶜ M⊒T) ()
+SourceTargetMergeRel-term-safe (merge-right (merge-left rel))
+    (split {q = q} qᶜ pαᶜ M⊒T) safe =
+  split-source-target-merge-safe-rebuild rel qᶜ pαᶜ
+    (SourceTargetMergeRel-term-safe
+      (merge-both {q = q} rel)
+      M⊒T
+      safe)
+SourceTargetMergeRel-term-safe rel (⊒blame pᶜ) safe =
+  ⊒blame (SourceTargetMergeRel-coercionᶜ rel pᶜ)
+SourceTargetMergeRel-term-safe rel (x⊒x pᶜ x∋p) safe =
+  x⊒x (SourceTargetMergeRel-coercionᶜ rel pᶜ) x∋p
+SourceTargetMergeRel-term-safe {γ = γ} rel
+    (ƛ⊒ƛ {p = p} p↦qᶜ N⊒N′) safe =
+  ƛ⊒ƛ
+    (SourceTargetMergeRel-coercionᶜ rel p↦qᶜ)
+    (SourceTargetMergeRel-term-safe {γ = (- p) ∷ γ}
+      rel N⊒N′ safe)
+SourceTargetMergeRel-term-safe rel
+    (·⊒· qᶜ L⊒L′ M⊒M′) (safeL , safeM) =
+  ·⊒·
+    (SourceTargetMergeRel-coercionᶜ rel qᶜ)
+    (SourceTargetMergeRel-term-safe rel L⊒L′ safeL)
+    (SourceTargetMergeRel-term-safe rel M⊒M′ safeM)
+SourceTargetMergeRel-term-safe {γ = γ} rel
+    (Λ⊒Λ allᶜ vV V⊒V′) safe =
+  Λ⊒Λ
+    (SourceTargetMergeRel-coercionᶜ rel allᶜ)
+    vV
+    (SourceTargetMergeRel-term-safe {γ = ⇑ᵍ γ}
+      (SourceTargetMergeRel-⇑ˢ rel)
+      V⊒V′
+      safe)
+SourceTargetMergeRel-term-safe {γ = γ} rel (⊒Λ pᶜ N⊒V′) safe =
+  ⊒Λ
+    (SourceTargetMergeRel-coercionᶜ rel pᶜ)
+    (SourceTargetMergeRel-term-safe {γ = ⇑ᵍ γ}
+      (merge-right (SourceTargetMergeRel-⇑ˢ rel))
+      N⊒V′
+      safe)
+SourceTargetMergeRel-term-safe {γ = γ} rel
+    (⊒⟨ν⟩ pᶜ i N⊒V′s) safe =
+  ⊒⟨ν⟩
+    (SourceTargetMergeRel-coercionᶜ rel pᶜ)
+    i
+    (SourceTargetMergeRel-term-safe {γ = ⇑ᵍ γ}
+      (merge-right (SourceTargetMergeRel-⇑ˢ rel))
+      N⊒V′s
+      safe)
+SourceTargetMergeRel-term-safe (merge-both rel)
+    (α⊒α {q = q} qᶜ pαᶜ L⊒L′) safe =
+  α⊒α
+    (SourceTargetMergeRel-coercionᶜ rel qᶜ)
+    (SourceTargetMergeRel-coercionᶜ (merge-both {q = q} rel) pαᶜ)
+    (SourceTargetMergeRel-term-safe rel L⊒L′ safe)
+SourceTargetMergeRel-term-safe (merge-right {X = α} {A = A} rel)
+    (⊒α pαᶜ L⊒L′) safe =
+  ⊒α
+    (SourceTargetMergeRel-coercionᶜ
+      (merge-right {X = α} {A = A} rel)
+      pαᶜ)
+    (SourceTargetMergeRel-term-safe rel L⊒L′ safe)
+SourceTargetMergeRel-term-safe {γ = γ} rel
+    (ν⊒ν {q = q} pᶜ qᶜ N⊒N′) safe =
+  ν⊒ν
+    (SourceTargetMergeRel-coercionᶜ rel pᶜ)
+    (SourceTargetMergeRel-coercionᶜ rel qᶜ)
+    (SourceTargetMergeRel-term-safe {γ = ⇑ᵍ γ}
+      (merge-both {q = ⇑ᶜ q} (SourceTargetMergeRel-⇑ˢ rel))
+      N⊒N′
+      safe)
+SourceTargetMergeRel-term-safe {γ = γ} rel (⊒ν pᶜ N⊒N′) safe =
+  ⊒ν
+    (SourceTargetMergeRel-coercionᶜ rel pᶜ)
+    (SourceTargetMergeRel-term-safe {γ = ⇑ᵍ γ}
+      (merge-right (SourceTargetMergeRel-⇑ˢ rel))
+      N⊒N′
+      safe)
+SourceTargetMergeRel-term-safe {γ = γ} rel (ν⊒ pᶜ N⊒N′) safe =
+  ν⊒
+    (SourceTargetMergeRel-coercionᶜ rel pᶜ)
+    (SourceTargetMergeRel-term-safe {γ = ⇑ᵍ γ}
+      (merge-left (SourceTargetMergeRel-⇑ˢ rel))
+      N⊒N′
+      safe)
+SourceTargetMergeRel-term-safe rel (κ⊒κ κ) safe =
+  κ⊒κ κ
+SourceTargetMergeRel-term-safe rel
+    (⊕⊒⊕ M⊒M′ N⊒N′) (safeM , safeN) =
+  ⊕⊒⊕
+    (SourceTargetMergeRel-term-safe rel M⊒M′ safeM)
+    (SourceTargetMergeRel-term-safe rel N⊒N′ safeN)
+SourceTargetMergeRel-term-safe rel
+    (⊒cast+ qᶜ q⨟s≈r M⊒M′) safe =
+  ⊒cast+
+    (SourceTargetMergeRel-coercionᶜ rel qᶜ)
+    (SourceTargetMergeRel-compose-left rel q⨟s≈r)
+    (SourceTargetMergeRel-term-safe rel M⊒M′ safe)
+SourceTargetMergeRel-term-safe rel
+    (⊒cast- qᶜ q⨟s≈r M⊒M′) safe =
+  ⊒cast-
+    (SourceTargetMergeRel-coercionᶜ rel qᶜ)
+    (SourceTargetMergeRel-compose-left rel q⨟s≈r)
+    (SourceTargetMergeRel-term-safe rel M⊒M′ safe)
+SourceTargetMergeRel-term-safe rel
+    (cast+⊒ pᶜ r≈t⨟p M⊒M′) safe =
+  cast+⊒
+    (SourceTargetMergeRel-coercionᶜ rel pᶜ)
+    (SourceTargetMergeRel-compose-right rel r≈t⨟p)
+    (SourceTargetMergeRel-term-safe rel M⊒M′ safe)
+SourceTargetMergeRel-term-safe rel
+    (cast-⊒ pᶜ r≈t⨟p M⊒M′) safe =
+  cast-⊒
+    (SourceTargetMergeRel-coercionᶜ rel pᶜ)
+    (SourceTargetMergeRel-compose-right rel r≈t⨟p)
+    (SourceTargetMergeRel-term-safe rel M⊒M′ safe)
 
 data SourceTargetSwapRel : TyCtx → StoreNrw → StoreNrw → Set where
   swap-here :

@@ -4510,3 +4510,102 @@ analogous to `ExtendReplaceRel`, whose head case merges
 merge under `right`, `left`, and `both` store-prefix constructors.  Its term
 transport should reuse the checked `*-source-target-merge-id★` endpoint and
 composition transports from Attempt 124.
+
+## Attempt 126: prefix-aware `SourceTargetMergeRel`
+
+Accepted as checked support.
+
+I added the prefix-aware merge relation promised at the end of Attempt 125:
+
+- `SourceTargetMergeRel`;
+- `SourceTargetMergeRel-⇑ˢ`;
+- `SourceTargetMergeRel-src≡`;
+- `SourceTargetMergeRel-coercionᶜ`;
+- `SourceTargetMergeRel-⊒ˢ`;
+- `SourceTargetMergeRel-≈ⁿ`;
+- `SourceTargetMergeRel-compose-left`;
+- `SourceTargetMergeRel-compose-right`.
+
+The head case is exactly the wanted store change:
+
+`(⊒ X ꞉=☆) ∷ (X ꞉= ★ ⊒) ∷ σ`
+
+to
+
+`(X ꞉ id ★) ∷ σ`.
+
+The checked endpoint/equivalence transports reuse the one-step
+`*-source-target-merge-id★` facts from Attempt 124 and push the merge through
+ordinary store prefixes.  This packages the store side of the remaining replay
+without adding trust.
+
+I also added the split-specific support:
+
+- `split-source-target-merge-safe-rebuild`;
+- `SplitSourceTargetMergeView`;
+- `split-source-target-merge-view`.
+
+This classifies a single merge under a split marker into:
+
+1. safe: the merge is strictly below the split marker, so `split` can be rebuilt
+   after transporting the side coercions; or
+2. unsafe: the merge consumes the split source marker itself:
+
+   `(α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ (αᵢ ꞉= ★ ⊒) ∷ σ`
+
+   becomes
+
+   `(α ꞉= A ⊒) ∷ (αᵢ ꞉ id ★) ∷ σ`.
+
+This explains why a fully general `SourceTargetMergeRel-term` cannot simply be
+the same structural recursion as `ExtendReplaceRel-term`: the unsafe split
+case is real and its output store is no longer split-shaped.  The next proof
+step should either:
+
+- show that this unsafe split case cannot arise in the replay needed by
+  `catchup-⊒Λ-no-earlier-bind-source-first`; or
+- give a dedicated reconstruction for this unsafe case, likely using the
+  `close01ᵗ`/opening equations from Attempts 124-125 rather than trying to
+  rebuild a plain `split`.
+
+## Attempt 127: safe merge transport for term narrowing
+
+Accepted as checked support.
+
+I tried to push the `SourceTargetMergeRel` idea from Attempt 126 through the
+term-narrowing relation itself.  A fully general theorem still cannot work
+without handling the unsafe `split` case, but the safe part is now mechanized.
+
+New checked definitions:
+
+- `SourceTargetMergeSafeFor`;
+- `SourceTargetMergeSafe`;
+- `SourceTargetMergeRel-term-safe`.
+
+The safety predicate is computed from the term-narrowing derivation first.  It
+recurses through all ordinary constructors and returns `⊥` exactly for the bad
+case:
+
+`merge-right merge-here` through `split`.
+
+The transport theorem says that any derivation satisfying this predicate can be
+moved across a `SourceTargetMergeRel`.  The safe `split` branch uses
+`split-source-target-merge-safe-rebuild`; endpoint and cast-composition branches
+use the `SourceTargetMergeRel-coercionᶜ`, `SourceTargetMergeRel-compose-left`,
+and `SourceTargetMergeRel-compose-right` helpers from Attempt 126.
+
+This is useful but does not finish the `⊒Λ` case.  The replay path now has two
+separate remaining obligations:
+
+1. get the `merge01ᵗ`-renamed source-first body, i.e. a term-renaming transport
+   from
+
+   `(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`
+
+   to
+
+   `(⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`;
+
+2. either prove `SourceTargetMergeSafe merge-here` for that renamed replay body,
+   or give a special reconstruction for the unsafe split.  Attempt 127 only
+   solves the safe transport side.

@@ -12,8 +12,10 @@ module proof.DynamicGradualGuarantee where
 --     catch-up, inversion, wrapping, and cast movement.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.Product using (_×_; _,_; ∃-syntax)
+open import Relation.Binary.PropositionalEquality using (cong; trans)
 
 open import Types
 open import Coercions
@@ -28,13 +30,15 @@ open import proof.Catchup
 open import proof.CatchupStore using (combineStoreNrw)
 open import proof.LeftSealNarrowingInversion using
   (LeftSealNarrowingInversion; leftSealNarrowingInversion)
-open import proof.ReductionProperties using (type-rename-step-⇑ᵗᵐ)
+open import proof.ReductionProperties using
+  (applyCoercions; applyTerm-preserves-No•; type-rename-step-⇑ᵗᵐ)
 open import proof.RightSealInversion2 using
   (right-seal-inversion₂; right-seal-inversion₂-cast-unseal⊥)
 open import proof.TermSubstitutionNarrowing using
   (term-substitution-narrowing)
 open import proof.NuPreservation using
-  (runtime-·₁; runtime-•; runtime-⟨⟩; runtime-ν; runtime-⊕₁)
+  (runtime-·₁; runtime-•; runtime-⟨⟩; runtime-ν; runtime-⊕₁; value-no-step)
+open import proof.NuProgress using (shiftable-no)
 
 runtime-·₂-any :
   ∀ {L M} →
@@ -51,6 +55,43 @@ runtime-⊕₂-any :
 runtime-⊕₂-any (ok-no (no•-⊕ noL noM)) = ok-no noM
 runtime-⊕₂-any (ok-⊕₁ okL noM) = ok-no noM
 runtime-⊕₂-any (ok-⊕₂ vL noL okM) = okM
+
+app-left-↠-no :
+  ∀ {L N M χs} →
+  No• M →
+  L —↠[ χs ] N →
+  L · M —↠[ χs ] N · applyTerms χs M
+app-left-↠-no noM ↠-refl = ↠-refl
+app-left-↠-no noM (↠-step {χ = χ} red reds) =
+  ↠-step (ξ-·₁ red (shiftable-no noM))
+    (app-left-↠-no (applyTerm-preserves-No• χ noM) reds)
+
+app-left-↠-runtime :
+  ∀ {L N M χs} →
+  RuntimeOK (L · M) →
+  L —↠[ χs ] N →
+  L · M —↠[ χs ] N · applyTerms χs M
+app-left-↠-runtime (ok-no (no•-· noL noM)) L↠N =
+  app-left-↠-no noM L↠N
+app-left-↠-runtime (ok-·₁ okL noM) L↠N =
+  app-left-↠-no noM L↠N
+app-left-↠-runtime (ok-·₂ vL noL okM) ↠-refl = ↠-refl
+app-left-↠-runtime (ok-·₂ vL noL okM) (↠-step red reds) =
+  ⊥-elim (value-no-step vL red)
+
+applyCoercion-↦ :
+  ∀ χ p q →
+  applyCoercion χ (p ↦ q) ≡ applyCoercion χ p ↦ applyCoercion χ q
+applyCoercion-↦ keep p q = refl
+applyCoercion-↦ (bind A) p q = refl
+
+applyCoercions-↦ :
+  ∀ χs p q →
+  applyCoercions χs (p ↦ q) ≡ applyCoercions χs p ↦ applyCoercions χs q
+applyCoercions-↦ [] p q = refl
+applyCoercions-↦ (χ ∷ χs) p q =
+  trans (cong (applyCoercions χs) (applyCoercion-↦ χ p q))
+        (applyCoercions-↦ χs (applyCoercion χ p) (applyCoercion χ q))
 
 ------------------------------------------------------------------------
 -- Lemmas used by the cambridge25 top-down proof

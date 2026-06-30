@@ -679,6 +679,33 @@ source-left `cast+⊒` and `cast-⊒` branches are the places where a source val
 may need to reduce through the inert cast before the post-step relation to `V`
 can be built.
 
+One source-left branch is now especially concrete.  In
+
+```agda
+cast-⊒ {t = seal A β} pᶜ r≈seal⨟p M⊒Vseal₀
+```
+
+the exact outer premise has result `p`:
+
+```agda
+q⨾seal≈p : Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ p ∶ src q ⊒ ＇ α
+```
+
+The branch would close by `right-seal-compose-source-var⊥` if the endpoints can
+be rewritten to `＇ α ⊒ ＇ α`.  The missing algebraic fact is a cast-like
+variable-to-variable endpoint inversion:
+
+```agda
+castlike-var-var-endpoints :
+  Δ ∣ Σ ⊢ p ∶ᶜ ＇ β ⊒ ＇ α →
+  β ≡ α
+```
+
+Equivalently, prove that a tag-or-id-mode narrowing from one type variable to
+another must be an identity variable narrowing.  Then `p`'s source `＇ β` from
+the left `seal A β` composition rewrites to `＇ α`, and the outer exact
+right-seal premise contradicts `right-seal-compose-source-var⊥`.
+
 ### Counterexample search
 
 The known `right-seal-inversion₁` counterexample does not satisfy the exact DGG

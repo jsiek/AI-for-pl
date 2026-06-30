@@ -32,3 +32,44 @@ Strategies considered and avoided:
   the rule `⊒blame` intentionally permits any left source term at the typed
   coercion, so both blame-producing application reductions have immediate
   simulations.
+
+## `α⊒α` right `ν-step`
+
+Target:
+
+`dynamicGradualGuarantee okM (α⊒α qᶜ pαᶜ L⊒L′) (ν-step vV noV)`
+
+Result: counterexample obstruction recorded in
+`proof.DynamicGradualGuaranteeCounterexample`.
+
+Working strategy tried:
+
+- Use `catchup-lemma (runtime-ν okM) vV L⊒L′` to catch the source `L` up to a
+  value `N` related to `L′`.
+- Lift the catch-up sequence through the source abbreviation
+  `L • α = ν (＇ α) L (id (＇ zero))`.
+- Take the matching source `ν-step`, producing
+  `((⇑ᵗᵐ N) •) ⟨ ... ⟩`.
+- Compose the store-change prefix as `χs ++ bind ... ∷ []` using the existing
+  multi-step append algebra.
+
+Why it fails:
+
+- The right-hand `ν-step` target is
+  `((⇑ᵗᵐ L′) •) ⟨ id (＇ zero) ⟩`, a runtime-bullet term under a cast.
+- The current `TermNarrowing` grammar has no constructor that can introduce a
+  runtime-bullet target. Cast-target constructors can only wrap an existing
+  target premise, and the only constructor with an arbitrary target (`ν⊒`)
+  recurses to the shifted target, preserving the same obstruction.
+- This is independent of the store-prefix algebra: even if the emitted source
+  and target stores are aligned, the final term-narrowing witness demanded by
+  `dynamicGradualGuarantee` cannot be built.
+
+Mechanized check:
+
+- `RuntimeBulletTarget` classifies target terms of the form `V •` and
+  `(V •) ⟨ c ⟩`.
+- `no-runtime-bullet-target` proves by induction on term narrowing that no
+  derivation can target a `RuntimeBulletTarget`.
+- `α⊒α-ν-step-target-impossible` instantiates that result to the exact target
+  produced by the right-hand `ν-step`.

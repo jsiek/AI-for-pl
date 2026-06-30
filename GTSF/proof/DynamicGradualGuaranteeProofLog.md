@@ -37,25 +37,57 @@ Strategies considered and avoided:
 
 Discovery:
 
-- The term-narrowing rules `α⊒α` and `⊒α` still used the older named-opening
-  presentation `L • α`, encoded as a `ν` term.
-- The typing rule for runtime type application now uses the actual unary
-  runtime bullet `M •`, so the narrowing conclusions must introduce that form
-  directly under a freshly bound type variable.
+- The attempted `α⊒α`/right-`ν-step` counterexample relied on the old
+  term-narrowing rules, where type application was encoded as a named opening
+  `L • α = ν (＇ α) L (id (＇ zero))`.
+- After the typing rule for `⊢•` changed, the narrowing rules also need to
+  introduce the runtime bullet directly:
+  `(⇑ᵗᵐ L) • ⊒ (⇑ᵗᵐ L′) •`.
+- With that correction, the old `RuntimeBulletTarget` counterexample is false:
+  `α⊒α` and `⊒α` are precisely the constructors that introduce runtime-bullet
+  targets.
 
 Implemented adjustment:
 
 - Removed the local binary `_•_` abbreviation from `TermNarrowing`.
 - Updated `α⊒α` to conclude in `suc Δ` under
-  `(zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ` and `⇑ᵍ γ`, with result
-  `(⇑ᵗᵐ L) • ⊒ (⇑ᵗᵐ L′) • ∶ p`.
+  `(zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ`, with coercion index `p` directly.
 - Updated `⊒α` similarly under `(zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ`.
+- Kept the shifted term-variable context out of the constructor result index:
+  both rules conclude at an explicit `γ′` and carry `γ′ ≡ ⇑ᵍ γ` as an
+  argument.  Directly indexing the result by `⇑ᵍ γ` made Agda unable to split
+  closed DGG goals because it had to solve `⇑ᵍ γ ≟ []`.
 
 Proof obligations exposed:
 
-- Generic catch-up replacement transport cannot treat a shifted tail as an
-  arbitrary store tail; replacing inside it must preserve the `⇑ˢ σ` shape.
-- Parallel term substitution has the analogous shifted-context obligation for
-  these two rules.
-- The DGG skeleton now needs runtime-bullet reduction cases rather than the old
-  `ν-step` cases for `α⊒α` and `⊒α`.
+- Generic catch-up replacement transport is now too broad: replacing an
+  arbitrary entry inside a shifted tail can destroy the invariant that the tail
+  is `⇑ˢ σ`.
+- Parallel term substitution has the same shifted-context issue for the two
+  corrected α rules.
+- The DGG skeleton now needs the real runtime-bullet reduction cases instead
+  of the old `ν-step` cases.
+
+## Runtime-bullet DGG cases
+
+Working facts:
+
+- `RuntimeOK ((⇑ᵗᵐ L) •)` does not invert by direct pattern matching because
+  Agda cannot infer through `⇑ᵗᵐ`.  The usable inversion first generalizes over
+  the whole term and an equality to `(⇑ᵗᵐ L) •`, then uses `•` injectivity and
+  `renameᵗᵐ-pred-suc`.
+- The helper facts are now in `proof.NuPreservation`:
+  `runtime-•-value`, `runtime-•-No•`, and `runtime-•`.
+- The `blame-•` cases for both corrected α rules are immediate: take zero
+  source steps and rebuild the final relation with `⊒blame pαᶜ`.
+
+Remaining β cases:
+
+- `β-Λ•`, `β-∀•`, and `β-gen•` are now explicit DGG branches for both
+  `α⊒α` and `⊒α`.
+- These are not catch-up-under-bullet problems.  There is no contextual
+  reduction under `_•`; the source must already be a runtime-bullet value by
+  `runtime-•-value`.
+- The next missing lemma should invert the value-shaped premise relation,
+  e.g. from `Value L` and `L ⊒ Λ V′ ∶ `∀ p`, recover the source shape needed
+  for the matching bullet step and the post-step term narrowing relation.

@@ -773,7 +773,7 @@ ex3-line329 :
     ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) •
     ∶ var0-fun
 ex3-line329 =
-  ⊒α {p = var0-fun} {A = ‵ `ℕ} var0-fun-cast
+  ⊒α {p = var0-fun} {A = ‵ `ℕ} refl var0-fun-cast
     (⊒Λ
       {A = ★ ⇒ ★}
       {N = ƛ (` 0)}
@@ -1051,7 +1051,7 @@ ex6-open-ν𝔹 :
     ⊢ ƛ (` 0) ⊒ (Λ (ƛ (` 0))) •
     ∶ var0-fun
 ex6-open-ν𝔹 =
-  ⊒α {p = var0-fun} {A = ‵ `𝔹} var0-fun-cast
+  ⊒α {p = var0-fun} {A = ‵ `𝔹} refl var0-fun-cast
     (⊒Λ
       {A = ★ ⇒ ★}
       {N = ƛ (` 0)}
@@ -1202,7 +1202,7 @@ ex7-line712 : ∀ {ι} →
       ⊒ (⇑ᵗᵐ (Λ (ƛ (` 0)))) •
     ∶ id (＇ 0) ↦ id (＇ 0)
 ex7-line712 {ι = ι} =
-  α⊒α {q = id (‵ ι)}
+  α⊒α {q = id (‵ ι)} refl
     id-base-cast id-var0-fun-cast ex7-line710
 
 ex7-downcast-left-≈ : ∀ {Δ ι} →

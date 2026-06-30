@@ -414,6 +414,65 @@ value-runtime-No• vV (ok-no noV) = noV
 value-runtime-No• (vV ⟨ i ⟩) (ok-⟨⟩ okV) =
   no•-⟨⟩ (value-runtime-No• vV okV)
 
+•-injective :
+  ∀ {M N} →
+  M • ≡ N • →
+  M ≡ N
+•-injective refl = refl
+
+no•-bullet-impossible :
+  ∀ {M} →
+  No• (M •) →
+  ⊥
+no•-bullet-impossible ()
+
+⇑ᵗᵐ-injective :
+  ∀ {M N} →
+  ⇑ᵗᵐ M ≡ ⇑ᵗᵐ N →
+  M ≡ N
+⇑ᵗᵐ-injective {M = M} {N = N} eq =
+  trans (sym (renameᵗᵐ-pred-suc M))
+    (trans (cong (renameᵗᵐ predᵗ) eq)
+      (renameᵗᵐ-pred-suc N))
+
+runtime-•-value :
+  ∀ {M L} →
+  RuntimeOK M →
+  M ≡ (⇑ᵗᵐ L) • →
+  Value L
+runtime-•-value (ok-no noM) refl =
+  ⊥-elim (no•-bullet-impossible noM)
+runtime-•-value (ok-• {V = V} vV noV) eq =
+  subst Value (⇑ᵗᵐ-injective (•-injective eq)) vV
+runtime-•-value (ok-·₁ okL noM) ()
+runtime-•-value (ok-·₂ vV noV okM) ()
+runtime-•-value (ok-ν okL) ()
+runtime-•-value (ok-⊕₁ okL noM) ()
+runtime-•-value (ok-⊕₂ vL noL okM) ()
+runtime-•-value (ok-⟨⟩ okM) ()
+
+runtime-•-No• :
+  ∀ {M L} →
+  RuntimeOK M →
+  M ≡ (⇑ᵗᵐ L) • →
+  No• L
+runtime-•-No• (ok-no noM) refl =
+  ⊥-elim (no•-bullet-impossible noM)
+runtime-•-No• (ok-• {V = V} vV noV) eq =
+  subst No• (⇑ᵗᵐ-injective (•-injective eq)) noV
+runtime-•-No• (ok-·₁ okL noM) ()
+runtime-•-No• (ok-·₂ vV noV okM) ()
+runtime-•-No• (ok-ν okL) ()
+runtime-•-No• (ok-⊕₁ okL noM) ()
+runtime-•-No• (ok-⊕₂ vL noL okM) ()
+runtime-•-No• (ok-⟨⟩ okM) ()
+
+runtime-• :
+  ∀ {L} →
+  RuntimeOK ((⇑ᵗᵐ L) •) →
+  RuntimeOK L
+runtime-• okM = ok-no (runtime-•-No• okM refl)
+
 pure-runtime-preservation :
   ∀ {Δ Σ M N A} →
   StoreWf Δ Σ →

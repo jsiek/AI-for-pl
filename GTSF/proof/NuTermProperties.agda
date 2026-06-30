@@ -326,6 +326,25 @@ renameᵗᵐ-preserves-Value ρ ($ κ) = $ κ
 renameᵗᵐ-preserves-Value ρ (vV ⟨ i ⟩) =
   renameᵗᵐ-preserves-Value ρ vV ⟨ renameᶜ-preserves-Inert ρ i ⟩
 
+renameᵗᵐ-reflects-Value :
+  ∀ ρ {M} →
+  Value (renameᵗᵐ ρ M) →
+  Value M
+renameᵗᵐ-reflects-Value ρ {M = ` x} ()
+renameᵗᵐ-reflects-Value ρ {M = ƛ M} (ƛ M′) =
+  ƛ M
+renameᵗᵐ-reflects-Value ρ {M = L · M} ()
+renameᵗᵐ-reflects-Value ρ {M = Λ M} (Λ vM) =
+  Λ (renameᵗᵐ-reflects-Value (extᵗ ρ) vM)
+renameᵗᵐ-reflects-Value ρ {M = M •} ()
+renameᵗᵐ-reflects-Value ρ {M = ν A L c} ()
+renameᵗᵐ-reflects-Value ρ {M = $ κ} ($ .κ) =
+  $ κ
+renameᵗᵐ-reflects-Value ρ {M = L ⊕[ op ] M} ()
+renameᵗᵐ-reflects-Value ρ {M = M ⟨ c ⟩} (vM ⟨ i ⟩) =
+  renameᵗᵐ-reflects-Value ρ vM ⟨ renameᶜ-reflects-Inert ρ i ⟩
+renameᵗᵐ-reflects-Value ρ {M = blame} ()
+
 renameˣᵐ-preserves-Value :
   ∀ ρ {V} →
   Value V →
@@ -373,6 +392,95 @@ renameˣ-renameᵗᵐ ρ τ (M ⟨ c ⟩) =
   cong (λ M′ → M′ ⟨ renameᶜ τ c ⟩) (renameˣ-renameᵗᵐ ρ τ M)
 renameˣ-renameᵗᵐ ρ τ blame = refl
 
+substˣᵐ-cong :
+  ∀ {σ σ′ : Substˣ} →
+  (∀ x → σ x ≡ σ′ x) →
+  ∀ M →
+  substˣᵐ σ M ≡ substˣᵐ σ′ M
+substˣᵐ-cong eq (` x) = eq x
+substˣᵐ-cong {σ = σ} {σ′ = σ′} eq (ƛ M) =
+  cong ƛ_ (substˣᵐ-cong ext-eq M)
+  where
+    ext-eq : ∀ x → extˢˣ σ x ≡ extˢˣ σ′ x
+    ext-eq zero = refl
+    ext-eq (suc x) = cong (renameˣᵐ suc) (eq x)
+substˣᵐ-cong eq (L · M) =
+  cong₂ _·_ (substˣᵐ-cong eq L) (substˣᵐ-cong eq M)
+substˣᵐ-cong eq (Λ M) =
+  cong Λ_ (substˣᵐ-cong (λ x → cong (renameᵗᵐ suc) (eq x)) M)
+substˣᵐ-cong eq (M •) =
+  cong _• (substˣᵐ-cong eq M)
+substˣᵐ-cong eq (ν A L c) =
+  cong (λ L′ → ν A L′ c) (substˣᵐ-cong eq L)
+substˣᵐ-cong eq ($ κ) = refl
+substˣᵐ-cong eq (L ⊕[ op ] M) =
+  cong₂ (λ L′ M′ → L′ ⊕[ op ] M′)
+    (substˣᵐ-cong eq L)
+    (substˣᵐ-cong eq M)
+substˣᵐ-cong eq (M ⟨ c ⟩) =
+  cong (λ M′ → M′ ⟨ c ⟩) (substˣᵐ-cong eq M)
+substˣᵐ-cong eq blame = refl
+
+renameᵗᵐ-substˣᵐ :
+  ∀ ρ σ M →
+  renameᵗᵐ ρ (substˣᵐ σ M) ≡
+    substˣᵐ (λ x → renameᵗᵐ ρ (σ x)) (renameᵗᵐ ρ M)
+renameᵗᵐ-substˣᵐ ρ σ (` x) = refl
+renameᵗᵐ-substˣᵐ ρ σ (ƛ M) =
+  cong ƛ_
+    (trans
+      (renameᵗᵐ-substˣᵐ ρ (extˢˣ σ) M)
+      (substˣᵐ-cong ext-eq (renameᵗᵐ ρ M)))
+  where
+    ext-eq :
+      ∀ x →
+      renameᵗᵐ ρ (extˢˣ σ x) ≡
+        extˢˣ (λ y → renameᵗᵐ ρ (σ y)) x
+    ext-eq zero = refl
+    ext-eq (suc x) = sym (renameˣ-renameᵗᵐ suc ρ (σ x))
+renameᵗᵐ-substˣᵐ ρ σ (L · M) =
+  cong₂ _·_ (renameᵗᵐ-substˣᵐ ρ σ L)
+             (renameᵗᵐ-substˣᵐ ρ σ M)
+renameᵗᵐ-substˣᵐ ρ σ (Λ M) =
+  cong Λ_
+    (trans
+      (renameᵗᵐ-substˣᵐ (extᵗ ρ) (↑ᵗᵐ σ) M)
+      (substˣᵐ-cong env-eq (renameᵗᵐ (extᵗ ρ) M)))
+  where
+    env-eq :
+      ∀ x →
+      renameᵗᵐ (extᵗ ρ) (↑ᵗᵐ σ x) ≡
+        ↑ᵗᵐ (λ y → renameᵗᵐ ρ (σ y)) x
+    env-eq x = renameᵗᵐ-ext-suc-comm ρ (σ x)
+renameᵗᵐ-substˣᵐ ρ σ (M •) =
+  cong _• (renameᵗᵐ-substˣᵐ ρ σ M)
+renameᵗᵐ-substˣᵐ ρ σ (ν A L c) =
+  cong (λ L′ → ν (renameᵗ ρ A) L′ (renameᶜ (extᵗ ρ) c))
+    (renameᵗᵐ-substˣᵐ ρ σ L)
+renameᵗᵐ-substˣᵐ ρ σ ($ κ) = refl
+renameᵗᵐ-substˣᵐ ρ σ (L ⊕[ op ] M) =
+  cong₂ (λ L′ M′ → L′ ⊕[ op ] M′)
+    (renameᵗᵐ-substˣᵐ ρ σ L)
+    (renameᵗᵐ-substˣᵐ ρ σ M)
+renameᵗᵐ-substˣᵐ ρ σ (M ⟨ c ⟩) =
+  cong (λ M′ → M′ ⟨ renameᶜ ρ c ⟩)
+    (renameᵗᵐ-substˣᵐ ρ σ M)
+renameᵗᵐ-substˣᵐ ρ σ blame = refl
+
+renameᵗᵐ-single-subst :
+  ∀ ρ N V →
+  renameᵗᵐ ρ (N [ V ]) ≡ renameᵗᵐ ρ N [ renameᵗᵐ ρ V ]
+renameᵗᵐ-single-subst ρ N V =
+  trans
+    (renameᵗᵐ-substˣᵐ ρ (singleEnv V) N)
+    (substˣᵐ-cong env-eq (renameᵗᵐ ρ N))
+  where
+    env-eq :
+      ∀ x →
+      renameᵗᵐ ρ (singleEnv V x) ≡ singleEnv (renameᵗᵐ ρ V) x
+    env-eq zero = refl
+    env-eq (suc x) = refl
+
 renameᵗᵐ-preserves-No• :
   ∀ ρ {M} →
   No• M →
@@ -394,6 +502,29 @@ renameᵗᵐ-preserves-No• ρ (no•-⊕ hL hM) =
 renameᵗᵐ-preserves-No• ρ (no•-⟨⟩ hM) =
   no•-⟨⟩ (renameᵗᵐ-preserves-No• ρ hM)
 renameᵗᵐ-preserves-No• ρ no•-blame = no•-blame
+
+renameᵗᵐ-reflects-No• :
+  ∀ ρ {M} →
+  No• (renameᵗᵐ ρ M) →
+  No• M
+renameᵗᵐ-reflects-No• ρ {M = ` x} noM = no•-`
+renameᵗᵐ-reflects-No• ρ {M = ƛ M} (no•-ƛ noM) =
+  no•-ƛ (renameᵗᵐ-reflects-No• ρ noM)
+renameᵗᵐ-reflects-No• ρ {M = L · M} (no•-· noL noM) =
+  no•-· (renameᵗᵐ-reflects-No• ρ noL)
+        (renameᵗᵐ-reflects-No• ρ noM)
+renameᵗᵐ-reflects-No• ρ {M = Λ M} (no•-Λ noM) =
+  no•-Λ (renameᵗᵐ-reflects-No• (extᵗ ρ) noM)
+renameᵗᵐ-reflects-No• ρ {M = M •} ()
+renameᵗᵐ-reflects-No• ρ {M = ν A L c} (no•-ν noL) =
+  no•-ν (renameᵗᵐ-reflects-No• ρ noL)
+renameᵗᵐ-reflects-No• ρ {M = $ κ} noM = no•-$
+renameᵗᵐ-reflects-No• ρ {M = L ⊕[ op ] M} (no•-⊕ noL noM) =
+  no•-⊕ (renameᵗᵐ-reflects-No• ρ noL)
+         (renameᵗᵐ-reflects-No• ρ noM)
+renameᵗᵐ-reflects-No• ρ {M = M ⟨ c ⟩} (no•-⟨⟩ noM) =
+  no•-⟨⟩ (renameᵗᵐ-reflects-No• ρ noM)
+renameᵗᵐ-reflects-No• ρ {M = blame} noM = no•-blame
 
 renameˣᵐ-preserves-No• :
   ∀ ρ {M} →

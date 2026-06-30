@@ -60,6 +60,26 @@ renameᶜ-preserves-Inert ρ (`∀ c) = `∀ (renameᶜ (extᵗ ρ) c)
 renameᶜ-preserves-Inert ρ (gen A c) =
   gen (renameᵗ ρ A) (renameᶜ (extᵗ ρ) c)
 
+renameᶜ-reflects-Inert :
+  ∀ ρ {c} →
+  Inert (renameᶜ ρ c) →
+  Inert c
+renameᶜ-reflects-Inert ρ {c = id A} ()
+renameᶜ-reflects-Inert ρ {c = c ︔ d} ()
+renameᶜ-reflects-Inert ρ {c = c ↦ d} (c′ ↦ d′) =
+  c ↦ d
+renameᶜ-reflects-Inert ρ {c = `∀ c} (`∀ c′) =
+  `∀ c
+renameᶜ-reflects-Inert ρ {c = G !} (G′ !) =
+  G !
+renameᶜ-reflects-Inert ρ {c = G ？} ()
+renameᶜ-reflects-Inert ρ {c = seal A α} (seal A′ α′) =
+  seal A α
+renameᶜ-reflects-Inert ρ {c = unseal α A} ()
+renameᶜ-reflects-Inert ρ {c = gen A c} (gen A′ c′) =
+  gen A c
+renameᶜ-reflects-Inert ρ {c = inst B c} ()
+
 mutual
   src-renameᶜ :
     ∀ ρ c →
@@ -195,6 +215,12 @@ renameᶜ-pred-ext-suc :
   renameᶜ predᵗ (renameᶜ (extᵗ suc) c) ≡ c
 renameᶜ-pred-ext-suc =
   renameᶜ-left-inverse RenameLeftInverse-ext-suc-pred
+
+renameᶜ-ext-pred-ext-suc :
+  ∀ c →
+  renameᶜ (extᵗ predᵗ) (renameᶜ (extᵗ suc) c) ≡ c
+renameᶜ-ext-pred-ext-suc =
+  renameᶜ-left-inverse (RenameLeftInverse-ext RenameLeftInverse-suc)
 
 renameᶜ-ext-suc-comm :
   ∀ ρ c →

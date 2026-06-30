@@ -8,7 +8,7 @@ module proof.ReductionProperties where
 --     corresponding proof modules.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (ℕ; _≤_; zero; suc)
 open import Data.Nat.Properties using (≤-refl; ≤-trans; n≤1+n; suc-injective)
@@ -23,8 +23,11 @@ open import NuReduction
 open import proof.CoercionProperties
   using
     ( renameᶜ-dual-normal
+    ; renameᶜ-ext-pred-ext-suc
     ; renameᶜ-ext-suc-suc
     ; renameᶜ-open-commute
+    ; renameᶜ-pred-ext-suc
+    ; renameᶜ-pred-suc
     ; renameᶜ-preserves-Inert
     )
 open import proof.NuTermProperties
@@ -32,9 +35,279 @@ open import proof.NuTermProperties
     ( renameᵗᵐ-ext-suc-comm
     ; renameᵗᵐ-open-commute
     ; renameᵗᵐ-preserves-Value
+    ; renameᵗᵐ-reflects-Value
     ; renameᵗᵐ-preserves-No•
+    ; renameᵗᵐ-reflects-No•
+    ; renameᵗᵐ-pred-suc
+    ; renameᵗᵐ-single-subst
     )
-open import proof.TypeProperties using (renameᵗ-ext-suc-comm)
+open import proof.TypeProperties
+  using (predᵗ; renameᵗ-ext-suc-comm; renameᵗ-pred-suc)
+
+------------------------------------------------------------------------
+-- Source shapes that can catch up to values
+------------------------------------------------------------------------
+
+-- A value-target narrowing source is never an active elimination form at its
+-- reducible spine.  Values are leaves: applications and type applications
+-- under lambda bodies are not inspected by reduction until the value itself is
+-- eliminated by a surrounding context.
+data CatchupSafe : Term → Set where
+  safe-value :
+    ∀ {V} →
+    Value V →
+    CatchupSafe V
+
+  safe-ν :
+    ∀ {A L c} →
+    CatchupSafe L →
+    CatchupSafe (ν A L c)
+
+  safe-cast :
+    ∀ {M c} →
+    CatchupSafe M →
+    CatchupSafe (M ⟨ c ⟩)
+
+TermShiftImage : Term → Set
+TermShiftImage M = ∃[ N ] (M ≡ ⇑ᵗᵐ N)
+
+TyShiftImage : Ty → Set
+TyShiftImage A = ∃[ B ] (A ≡ ⇑ᵗ B)
+
+CoercionShiftImage : Coercion → Set
+CoercionShiftImage c = ∃[ d ] (c ≡ renameᶜ suc d)
+
+CoercionUnderShiftImage : Coercion → Set
+CoercionUnderShiftImage c = ∃[ d ] (c ≡ renameᶜ (extᵗ suc) d)
+
+shift-image-from-pre :
+  ∀ {M N} →
+  M ≡ ⇑ᵗᵐ N →
+  M ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ M)
+shift-image-from-pre {N = N} refl =
+  sym (cong ⇑ᵗᵐ (renameᵗᵐ-pred-suc N))
+
+term-shift-image-final :
+  ∀ {M} →
+  TermShiftImage M →
+  M ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ M)
+term-shift-image-final (N , M≡⇑N) =
+  shift-image-from-pre M≡⇑N
+
+cast-term-injective-left :
+  ∀ {M N : Term} {c d : Coercion} →
+  M ⟨ c ⟩ ≡ N ⟨ d ⟩ →
+  M ≡ N
+cast-term-injective-left refl = refl
+
+cast-term-injective-right :
+  ∀ {M N : Term} {c d : Coercion} →
+  M ⟨ c ⟩ ≡ N ⟨ d ⟩ →
+  c ≡ d
+cast-term-injective-right refl = refl
+
+ν-injective-ty :
+  ∀ {A B : Ty} {M N : Term} {c d : Coercion} →
+  ν A M c ≡ ν B N d →
+  A ≡ B
+ν-injective-ty refl = refl
+
+ν-injective-term :
+  ∀ {A B : Ty} {M N : Term} {c d : Coercion} →
+  ν A M c ≡ ν B N d →
+  M ≡ N
+ν-injective-term refl = refl
+
+ν-injective-coercion :
+  ∀ {A B : Ty} {M N : Term} {c d : Coercion} →
+  ν A M c ≡ ν B N d →
+  c ≡ d
+ν-injective-coercion refl = refl
+
+seq-injective-left :
+  ∀ {c d p q : Coercion} →
+  c ︔ d ≡ p ︔ q →
+  c ≡ p
+seq-injective-left refl = refl
+
+seq-injective-right :
+  ∀ {c d p q : Coercion} →
+  c ︔ d ≡ p ︔ q →
+  d ≡ q
+seq-injective-right refl = refl
+
+inst-injective-ty :
+  ∀ {A B : Ty} {c d : Coercion} →
+  inst A c ≡ inst B d →
+  A ≡ B
+inst-injective-ty refl = refl
+
+inst-injective-coercion :
+  ∀ {A B : Ty} {c d : Coercion} →
+  inst A c ≡ inst B d →
+  c ≡ d
+inst-injective-coercion refl = refl
+
+cast-term-image-left :
+  ∀ {M c} →
+  TermShiftImage (M ⟨ c ⟩) →
+  TermShiftImage M
+cast-term-image-left (` x , ())
+cast-term-image-left (ƛ P , ())
+cast-term-image-left (P · Q , ())
+cast-term-image-left (Λ P , ())
+cast-term-image-left (P • , ())
+cast-term-image-left (ν A P d , ())
+cast-term-image-left ($ κ , ())
+cast-term-image-left (P ⊕[ op ] Q , ())
+cast-term-image-left (P ⟨ d ⟩ , eq) =
+  P , cast-term-injective-left eq
+cast-term-image-left (blame , ())
+
+cast-coercion-image-right :
+  ∀ {M c} →
+  TermShiftImage (M ⟨ c ⟩) →
+  CoercionShiftImage c
+cast-coercion-image-right (` x , ())
+cast-coercion-image-right (ƛ P , ())
+cast-coercion-image-right (P · Q , ())
+cast-coercion-image-right (Λ P , ())
+cast-coercion-image-right (P • , ())
+cast-coercion-image-right (ν A P d , ())
+cast-coercion-image-right ($ κ , ())
+cast-coercion-image-right (P ⊕[ op ] Q , ())
+cast-coercion-image-right (P ⟨ d ⟩ , eq) =
+  d , cast-term-injective-right eq
+cast-coercion-image-right (blame , ())
+
+ν-ty-image :
+  ∀ {A M c} →
+  TermShiftImage (ν A M c) →
+  TyShiftImage A
+ν-ty-image (` x , ())
+ν-ty-image (ƛ P , ())
+ν-ty-image (P · Q , ())
+ν-ty-image (Λ P , ())
+ν-ty-image (P • , ())
+ν-ty-image (ν B P d , eq) =
+  B , ν-injective-ty eq
+ν-ty-image ($ κ , ())
+ν-ty-image (P ⊕[ op ] Q , ())
+ν-ty-image (P ⟨ d ⟩ , ())
+ν-ty-image (blame , ())
+
+ν-term-image :
+  ∀ {A M c} →
+  TermShiftImage (ν A M c) →
+  TermShiftImage M
+ν-term-image (` x , ())
+ν-term-image (ƛ P , ())
+ν-term-image (P · Q , ())
+ν-term-image (Λ P , ())
+ν-term-image (P • , ())
+ν-term-image (ν B P d , eq) =
+  P , ν-injective-term eq
+ν-term-image ($ κ , ())
+ν-term-image (P ⊕[ op ] Q , ())
+ν-term-image (P ⟨ d ⟩ , ())
+ν-term-image (blame , ())
+
+ν-coercion-under-image :
+  ∀ {A M c} →
+  TermShiftImage (ν A M c) →
+  CoercionUnderShiftImage c
+ν-coercion-under-image (` x , ())
+ν-coercion-under-image (ƛ P , ())
+ν-coercion-under-image (P · Q , ())
+ν-coercion-under-image (Λ P , ())
+ν-coercion-under-image (P • , ())
+ν-coercion-under-image (ν B P d , eq) =
+  d , ν-injective-coercion eq
+ν-coercion-under-image ($ κ , ())
+ν-coercion-under-image (P ⊕[ op ] Q , ())
+ν-coercion-under-image (P ⟨ d ⟩ , ())
+ν-coercion-under-image (blame , ())
+
+term-image-cast :
+  ∀ {M c} →
+  TermShiftImage M →
+  CoercionShiftImage c →
+  TermShiftImage (M ⟨ c ⟩)
+term-image-cast (P , refl) (d , refl) =
+  P ⟨ d ⟩ , refl
+
+term-image-ν :
+  ∀ {A M c} →
+  TyShiftImage A →
+  TermShiftImage M →
+  CoercionUnderShiftImage c →
+  TermShiftImage (ν A M c)
+term-image-ν (B , refl) (P , refl) (d , refl) =
+  ν B P d , refl
+
+seq-coercion-image-left :
+  ∀ {c d} →
+  CoercionShiftImage (c ︔ d) →
+  CoercionShiftImage c
+seq-coercion-image-left (id A , ())
+seq-coercion-image-left (p ︔ q , eq) =
+  p , seq-injective-left eq
+seq-coercion-image-left (p ↦ q , ())
+seq-coercion-image-left (`∀ p , ())
+seq-coercion-image-left (A ! , ())
+seq-coercion-image-left (A ？ , ())
+seq-coercion-image-left (seal A α , ())
+seq-coercion-image-left (unseal α A , ())
+seq-coercion-image-left (gen A p , ())
+seq-coercion-image-left (inst A p , ())
+
+seq-coercion-image-right :
+  ∀ {c d} →
+  CoercionShiftImage (c ︔ d) →
+  CoercionShiftImage d
+seq-coercion-image-right (id A , ())
+seq-coercion-image-right (p ︔ q , eq) =
+  q , seq-injective-right eq
+seq-coercion-image-right (p ↦ q , ())
+seq-coercion-image-right (`∀ p , ())
+seq-coercion-image-right (A ! , ())
+seq-coercion-image-right (A ？ , ())
+seq-coercion-image-right (seal A α , ())
+seq-coercion-image-right (unseal α A , ())
+seq-coercion-image-right (gen A p , ())
+seq-coercion-image-right (inst A p , ())
+
+inst-ty-image :
+  ∀ {A c} →
+  CoercionShiftImage (inst A c) →
+  TyShiftImage A
+inst-ty-image (id B , ())
+inst-ty-image (p ︔ q , ())
+inst-ty-image (p ↦ q , ())
+inst-ty-image (`∀ p , ())
+inst-ty-image (B ! , ())
+inst-ty-image (B ？ , ())
+inst-ty-image (seal B α , ())
+inst-ty-image (unseal α B , ())
+inst-ty-image (gen B p , ())
+inst-ty-image (inst B p , eq) =
+  B , inst-injective-ty eq
+
+inst-coercion-under-image :
+  ∀ {A c} →
+  CoercionShiftImage (inst A c) →
+  CoercionUnderShiftImage c
+inst-coercion-under-image (id B , ())
+inst-coercion-under-image (p ︔ q , ())
+inst-coercion-under-image (p ↦ q , ())
+inst-coercion-under-image (`∀ p , ())
+inst-coercion-under-image (B ! , ())
+inst-coercion-under-image (B ？ , ())
+inst-coercion-under-image (seal B α , ())
+inst-coercion-under-image (unseal α B , ())
+inst-coercion-under-image (gen B p , ())
+inst-coercion-under-image (inst B p , eq) =
+  p , inst-injective-coercion eq
 
 ------------------------------------------------------------------------
 -- Store-change list views
@@ -75,6 +348,291 @@ storeChangesLastBind (bind A ∷ χs) | no-bind keeps =
 storeChangesLastBind (bind A ∷ .(χs ++ bind B ∷ keeps))
     | last-bind χs B keeps keeps-ok =
   last-bind (bind A ∷ χs) B keeps keeps-ok
+
+------------------------------------------------------------------------
+-- Finality facts
+------------------------------------------------------------------------
+
+value-no-pure-step :
+  ∀ {V N} →
+  Value V →
+  V —→ N →
+  ⊥
+value-no-pure-step (ƛ N) ()
+value-no-pure-step (Λ vV) ()
+value-no-pure-step ($ κ) ()
+value-no-pure-step (() ⟨ G ! ⟩) blame-⟨⟩
+value-no-pure-step (() ⟨ seal A α ⟩) blame-⟨⟩
+value-no-pure-step (() ⟨ c ↦ d ⟩) blame-⟨⟩
+value-no-pure-step (() ⟨ `∀ c ⟩) blame-⟨⟩
+value-no-pure-step (() ⟨ gen A c ⟩) blame-⟨⟩
+
+value-no-step :
+  ∀ {χ V N} →
+  Value V →
+  V —→[ χ ] N →
+  ⊥
+value-no-step vV (pure-step red) =
+  value-no-pure-step vV red
+value-no-step (vV ⟨ i ⟩) (ξ-⟨⟩ red) =
+  value-no-step vV red
+
+blame-not-value :
+  Value blame →
+  ⊥
+blame-not-value ()
+
+blame-no-pure-step :
+  ∀ {N} →
+  blame —→ N →
+  ⊥
+blame-no-pure-step ()
+
+blame-no-step :
+  ∀ {χ N} →
+  blame —→[ χ ] N →
+  ⊥
+blame-no-step (pure-step red) =
+  blame-no-pure-step red
+
+NoValueReachable : Term → Set
+NoValueReachable M = ∀ {χs V} → M —↠[ χs ] V → Value V → ⊥
+
+blame-no-↠-value :
+  NoValueReachable blame
+blame-no-↠-value ↠-refl vV =
+  blame-not-value vV
+blame-no-↠-value (↠-step red reds) vV =
+  blame-no-step red
+
+noValue-·₁ :
+  ∀ {L M} →
+  NoValueReachable L →
+  NoValueReachable (L · M)
+noValue-·₁ noL ↠-refl ()
+noValue-·₁ noL (↠-step (pure-step (β vV)) reds) vW =
+  noL ↠-refl (ƛ _)
+noValue-·₁ noL
+    (↠-step (pure-step (β-↦ {p = p} {q = q} vV vW)) reds) vP =
+  noL ↠-refl (vV ⟨ p ↦ q ⟩)
+noValue-·₁ noL (↠-step (pure-step blame-·₁) reds) vW =
+  blame-no-↠-value reds vW
+noValue-·₁ noL (↠-step (pure-step (blame-·₂ vV)) reds) vW =
+  noL ↠-refl vV
+noValue-·₁ noL (↠-step (ξ-·₁ red shiftM) reds) vW =
+  noValue-·₁ (λ redsL vL → noL (↠-step red redsL) vL) reds vW
+noValue-·₁ noL (↠-step (ξ-·₂ vV shiftV red) reds) vW =
+  noL ↠-refl vV
+
+noValue-·₂ :
+  ∀ {V M} →
+  Value V →
+  NoValueReachable M →
+  NoValueReachable (V · M)
+noValue-·₂ vV noM ↠-refl ()
+noValue-·₂ vV noM (↠-step (pure-step (β vM)) reds) vW =
+  noM ↠-refl vM
+noValue-·₂ vV noM (↠-step (pure-step (β-↦ vF vM)) reds) vW =
+  noM ↠-refl vM
+noValue-·₂ vV noM (↠-step (pure-step (blame-·₂ vF)) reds) vW =
+  blame-no-↠-value reds vW
+noValue-·₂ vV noM (↠-step (ξ-·₁ red shiftM) reds) vW =
+  value-no-step vV red
+noValue-·₂ vV noM (↠-step (ξ-·₂ {χ = keep} vF shiftV red) reds) vW =
+  noValue-·₂ vV
+    (λ redsM vM → noM (↠-step red redsM) vM)
+    reds
+    vW
+noValue-·₂ vV noM
+    (↠-step (ξ-·₂ {χ = bind A} vF shiftV red) reds) vW =
+  noValue-·₂ (renameᵗᵐ-preserves-Value suc vV)
+    (λ redsM vM → noM (↠-step red redsM) vM)
+    reds
+    vW
+
+noValue-cast :
+  ∀ {M c} →
+  NoValueReachable M →
+  NoValueReachable (M ⟨ c ⟩)
+noValue-cast noM ↠-refl (vM ⟨ i ⟩) =
+  noM ↠-refl vM
+noValue-cast noM (↠-step (pure-step (β-id vV)) reds) vW =
+  noM ↠-refl vV
+noValue-cast noM (↠-step (pure-step (β-seq vV)) reds) vW =
+  noM ↠-refl vV
+noValue-cast noM (↠-step (pure-step (β-inst vV)) reds) vW =
+  noM ↠-refl vV
+noValue-cast noM
+    (↠-step (pure-step (tag-untag-ok {G = G} vV)) reds) vW =
+  noM ↠-refl (vV ⟨ G ! ⟩)
+noValue-cast noM
+    (↠-step (pure-step (tag-untag-bad {G = G} vV G≢H)) reds) vW =
+  noM ↠-refl (vV ⟨ G ! ⟩)
+noValue-cast noM
+    (↠-step (pure-step (seal-unseal {α = α} vV)) reds) vW =
+  noM ↠-refl (vV ⟨ seal _ α ⟩)
+noValue-cast noM (↠-step (pure-step blame-⟨⟩) reds) vW =
+  blame-no-↠-value reds vW
+noValue-cast noM (↠-step (ξ-⟨⟩ red) reds) vW =
+  noValue-cast (λ redsM vM → noM (↠-step red redsM) vM) reds vW
+
+tag-untag-bad-noValue :
+  ∀ {V G H} →
+  Value V →
+  G ≢ H →
+  NoValueReachable (V ⟨ G ! ⟩ ⟨ H ？ ⟩)
+tag-untag-bad-noValue vV G≢H ↠-refl (vVG ⟨ () ⟩)
+tag-untag-bad-noValue vV G≢H
+    (↠-step (pure-step (tag-untag-ok vV′)) reds) vW =
+  G≢H refl
+tag-untag-bad-noValue vV G≢H
+    (↠-step (pure-step (tag-untag-bad vV′ G≢H′)) reds) vW =
+  blame-no-↠-value reds vW
+tag-untag-bad-noValue vV G≢H (↠-step (ξ-⟨⟩ red) reds) vW =
+  value-no-step (vV ⟨ _ ! ⟩) red
+
+noValue-ν :
+  ∀ {A M c} →
+  NoValueReachable M →
+  NoValueReachable (ν A M c)
+noValue-ν noM ↠-refl ()
+noValue-ν noM (↠-step (ν-step vM no•M) reds) vW =
+  noM ↠-refl vM
+noValue-ν noM (↠-step (ξ-ν red) reds) vW =
+  noValue-ν (λ redsM vM → noM (↠-step red redsM) vM) reds vW
+noValue-ν noM (↠-step blame-ν reds) vW =
+  blame-no-↠-value reds vW
+
+data ImageStepView (N : Term) : Set where
+  image-step :
+    CatchupSafe N →
+    TermShiftImage N →
+    ImageStepView N
+  image-doomed :
+    NoValueReachable N →
+    ImageStepView N
+
+safe-pure-step-image-view :
+  ∀ {M N} →
+  CatchupSafe M →
+  TermShiftImage M →
+  M —→ N →
+  ImageStepView N
+safe-pure-step-image-view (safe-value vM) img red =
+  ⊥-elim (value-no-pure-step vM red)
+safe-pure-step-image-view (safe-cast safeM) img (β-id vV) =
+  image-step (safe-value vV) (cast-term-image-left img)
+safe-pure-step-image-view (safe-cast safeM) img (β-seq vV) =
+  image-step (safe-cast (safe-cast (safe-value vV)))
+    (term-image-cast
+      (term-image-cast (cast-term-image-left img)
+      (seq-coercion-image-left (cast-coercion-image-right img)))
+      (seq-coercion-image-right (cast-coercion-image-right img)))
+safe-pure-step-image-view (safe-cast safeM) img (β-inst vV) =
+  image-step (safe-ν (safe-value vV))
+    (term-image-ν (★ , refl) (cast-term-image-left img)
+      (inst-coercion-under-image (cast-coercion-image-right img)))
+safe-pure-step-image-view (safe-cast safeM) img (tag-untag-ok vV) =
+  image-step (safe-value vV)
+    (cast-term-image-left (cast-term-image-left img))
+safe-pure-step-image-view (safe-cast safeM) img (tag-untag-bad vV G≢H) =
+  image-doomed blame-no-↠-value
+safe-pure-step-image-view (safe-cast safeM) img (seal-unseal vV) =
+  image-step (safe-value vV)
+    (cast-term-image-left (cast-term-image-left img))
+safe-pure-step-image-view (safe-cast (safe-value vB)) img blame-⟨⟩ =
+  ⊥-elim (blame-not-value vB)
+
+safe-keep-step-image-view :
+  ∀ {M N} →
+  CatchupSafe M →
+  TermShiftImage M →
+  M —→[ keep ] N →
+  ImageStepView N
+safe-keep-step-image-view (safe-value vM) img red =
+  ⊥-elim (value-no-step vM red)
+safe-keep-step-image-view safeM img (pure-step red) =
+  safe-pure-step-image-view safeM img red
+safe-keep-step-image-view (safe-cast safeM) img (ξ-⟨⟩ red)
+    with safe-keep-step-image-view safeM (cast-term-image-left img) red
+safe-keep-step-image-view (safe-cast safeM) img (ξ-⟨⟩ red)
+    | image-step safeN imgN =
+  image-step (safe-cast safeN)
+    (term-image-cast imgN (cast-coercion-image-right img))
+safe-keep-step-image-view (safe-cast safeM) img (ξ-⟨⟩ red)
+    | image-doomed noN =
+  image-doomed (noValue-cast noN)
+safe-keep-step-image-view (safe-ν safeL) img (ξ-ν red)
+    with safe-keep-step-image-view safeL (ν-term-image img) red
+safe-keep-step-image-view (safe-ν safeL) img (ξ-ν red)
+    | image-step safeL′ imgL′ =
+  image-step (safe-ν safeL′)
+    (term-image-ν (ν-ty-image img) imgL′ (ν-coercion-under-image img))
+safe-keep-step-image-view (safe-ν safeL) img (ξ-ν red)
+    | image-doomed noL =
+  image-doomed (noValue-ν noL)
+safe-keep-step-image-view (safe-ν (safe-value vB)) img blame-ν =
+  ⊥-elim (blame-not-value vB)
+
+safe-allKeep-value-image :
+  ∀ {M W χs} →
+  CatchupSafe M →
+  TermShiftImage M →
+  AllKeep χs →
+  M —↠[ χs ] W →
+  Value W →
+  W ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+safe-allKeep-value-image safeM img all-[] ↠-refl vW =
+  term-shift-image-final img
+safe-allKeep-value-image safeM img (all-keep keeps) (↠-step red reds) vW
+    with safe-keep-step-image-view safeM img red
+safe-allKeep-value-image safeM img (all-keep keeps) (↠-step red reds) vW
+    | image-step safeN imgN =
+  safe-allKeep-value-image safeN imgN keeps reds vW
+safe-allKeep-value-image safeM img (all-keep keeps) (↠-step red reds) vW
+    | image-doomed noN =
+  ⊥-elim (noN reds vW)
+
+noValue-⊕₁ :
+  ∀ {L M op} →
+  NoValueReachable L →
+  NoValueReachable (L ⊕[ op ] M)
+noValue-⊕₁ noL ↠-refl ()
+noValue-⊕₁ noL (↠-step (pure-step δ-⊕) reds) vW =
+  noL ↠-refl ($ _)
+noValue-⊕₁ noL (↠-step (pure-step blame-⊕₁) reds) vW =
+  blame-no-↠-value reds vW
+noValue-⊕₁ noL (↠-step (pure-step (blame-⊕₂ vL)) reds) vW =
+  noL ↠-refl vL
+noValue-⊕₁ noL (↠-step (ξ-⊕₁ red shiftM) reds) vW =
+  noValue-⊕₁ (λ redsL vL → noL (↠-step red redsL) vL) reds vW
+noValue-⊕₁ noL (↠-step (ξ-⊕₂ vL shiftL red) reds) vW =
+  noL ↠-refl vL
+
+noValue-⊕₂ :
+  ∀ {L M op} →
+  Value L →
+  NoValueReachable M →
+  NoValueReachable (L ⊕[ op ] M)
+noValue-⊕₂ vL noM ↠-refl ()
+noValue-⊕₂ vL noM (↠-step (pure-step δ-⊕) reds) vW =
+  noM ↠-refl ($ _)
+noValue-⊕₂ vL noM (↠-step (pure-step (blame-⊕₂ vL′)) reds) vW =
+  blame-no-↠-value reds vW
+noValue-⊕₂ vL noM (↠-step (ξ-⊕₁ red shiftM) reds) vW =
+  value-no-step vL red
+noValue-⊕₂ vL noM
+    (↠-step (ξ-⊕₂ {χ = keep} vL′ shiftL red) reds) vW =
+  noValue-⊕₂ vL
+    (λ redsM vM → noM (↠-step red redsM) vM)
+    reds
+    vW
+noValue-⊕₂ vL noM
+    (↠-step (ξ-⊕₂ {χ = bind A} vL′ shiftL red) reds) vW =
+  noValue-⊕₂ (renameᵗᵐ-preserves-Value suc vL)
+    (λ redsM vM → noM (↠-step red redsM) vM)
+    reds
+    vW
 
 applyTyCtx-≤ :
   ∀ χ Δ →
@@ -293,6 +851,17 @@ applyTyCtxs-suc [] Δ = refl
 applyTyCtxs-suc (keep ∷ χs) Δ = applyTyCtxs-suc χs Δ
 applyTyCtxs-suc (bind A ∷ χs) Δ = applyTyCtxs-suc χs (suc Δ)
 
+applyTyCtxs-last-bind-suc :
+  ∀ χs A keeps →
+  AllKeep keeps →
+  ∀ Δ →
+  applyTyCtxs (χs ++ bind A ∷ keeps) (suc Δ) ≡
+    suc (suc (applyTyCtxs χs Δ))
+applyTyCtxs-last-bind-suc χs A keeps keeps-ok Δ =
+  trans
+    (applyTyCtxs-last-bind χs A keeps keeps-ok (suc Δ))
+    (cong suc (applyTyCtxs-suc χs Δ))
+
 applyTys-++ :
   ∀ χs χs′ A →
   applyTys (χs ++ χs′) A ≡ applyTys χs′ (applyTys χs A)
@@ -457,6 +1026,14 @@ applyTermsUnderTyBinders-++ :
 applyTermsUnderTyBinders-++ [] χs′ M = refl
 applyTermsUnderTyBinders-++ (χ ∷ χs) χs′ M =
   applyTermsUnderTyBinders-++ χs χs′ (applyTermUnderTyBinder χ M)
+
+allKeep-applyTermsUnderTyBinders-id :
+  ∀ {χs} →
+  AllKeep χs →
+  ∀ M → applyTermsUnderTyBinders χs M ≡ M
+allKeep-applyTermsUnderTyBinders-id all-[] M = refl
+allKeep-applyTermsUnderTyBinders-id (all-keep keeps) M =
+  allKeep-applyTermsUnderTyBinders-id keeps M
 
 applyTermUnderTyBinder-preserves-Value :
   ∀ χ {V} →
@@ -655,6 +1232,14 @@ applyCoercionUnderTyBinders-++ (χ ∷ χs) χs′ c =
   applyCoercionUnderTyBinders-++ χs χs′
     (applyCoercionUnderTyBinder χ c)
 
+allKeep-applyCoercionUnderTyBinders-id :
+  ∀ {χs} →
+  AllKeep χs →
+  ∀ c → applyCoercionUnderTyBinders χs c ≡ c
+allKeep-applyCoercionUnderTyBinders-id all-[] c = refl
+allKeep-applyCoercionUnderTyBinders-id (all-keep keeps) c =
+  allKeep-applyCoercionUnderTyBinders-id keeps c
+
 applyTerms-ν :
   ∀ χs A M c →
   applyTerms χs (ν A M c) ≡
@@ -747,6 +1332,13 @@ shiftable-⇑ᵗᵐ shift-keep = shift-keep
 shiftable-⇑ᵗᵐ (shift-bind noM) =
   shift-bind (renameᵗᵐ-preserves-No• suc noM)
 
+shiftable-pred-bind :
+  ∀ {A M} →
+  Shiftable (bind A) (⇑ᵗᵐ M) →
+  Shiftable (bind (renameᵗ predᵗ A)) M
+shiftable-pred-bind (shift-bind noM) =
+  shift-bind (renameᵗᵐ-reflects-No• suc noM)
+
 ＇-injective :
   ∀ {X Y : TyVar} →
   _≡_ {A = Ty} (＇ X) (＇ Y) →
@@ -789,6 +1381,309 @@ extᵗ-injective inj {zero} {suc Y} ()
 extᵗ-injective inj {suc X} {zero} ()
 extᵗ-injective inj {suc X} {suc Y} eq =
   cong suc (inj (suc-injective eq))
+
+pred-β-step :
+  ∀ {N V} →
+  Value V →
+  renameᵗᵐ predᵗ ((ƛ N) · V) —→ renameᵗᵐ predᵗ (N [ V ])
+pred-β-step {N = N} {V = V} vV =
+  subst
+    (λ T → (ƛ renameᵗᵐ predᵗ N) · renameᵗᵐ predᵗ V —→ T)
+    (sym (renameᵗᵐ-single-subst predᵗ N V))
+    (β (renameᵗᵐ-preserves-Value predᵗ vV))
+
+pred-β-Λ•-step :
+  ∀ {V} →
+  Value V →
+  renameᵗᵐ predᵗ ((Λ V) •) —→ renameᵗᵐ predᵗ (V [ zero ]ᵀ)
+pred-β-Λ•-step {V = V} vV =
+  subst
+    (λ T → (Λ renameᵗᵐ (extᵗ predᵗ) V) • —→ T)
+    (sym (renameᵗᵐ-open-commute predᵗ V zero))
+    (β-Λ• (renameᵗᵐ-preserves-Value (extᵗ predᵗ) vV))
+
+pred-β-∀•-step :
+  ∀ {V c} →
+  Value V →
+  renameᵗᵐ predᵗ ((V ⟨ `∀ c ⟩) •) —→
+    renameᵗᵐ predᵗ ((V •) ⟨ c [ zero ]ᶜ ⟩)
+pred-β-∀•-step {V = V} {c = c} vV =
+  subst
+    (λ d →
+      (renameᵗᵐ predᵗ V ⟨ `∀ (renameᶜ (extᵗ predᵗ) c) ⟩) •
+      —→ (renameᵗᵐ predᵗ V •) ⟨ d ⟩)
+    (sym (renameᶜ-open-commute predᵗ c zero))
+    (β-∀• (renameᵗᵐ-preserves-Value predᵗ vV))
+
+pred-β-gen•-step :
+  ∀ {A V c} →
+  Value V →
+  renameᵗᵐ predᵗ ((V ⟨ gen A c ⟩) •) —→
+    renameᵗᵐ predᵗ (V ⟨ c [ zero ]ᶜ ⟩)
+pred-β-gen•-step {A = A} {V = V} {c = c} vV =
+  subst
+    (λ d → (renameᵗᵐ predᵗ V
+      ⟨ gen (renameᵗ predᵗ A) (renameᶜ (extᵗ predᵗ) c) ⟩) •
+      —→ renameᵗᵐ predᵗ V ⟨ d ⟩)
+    (sym (renameᶜ-open-commute predᵗ c zero))
+    (β-gen• (renameᵗᵐ-preserves-Value predᵗ vV))
+
+data PredPureStepView (M N : Term) : Set where
+  pred-pure-step :
+    renameᵗᵐ predᵗ M —→ renameᵗᵐ predᵗ N →
+    PredPureStepView M N
+  pred-pure-doomed :
+    NoValueReachable (renameᵗᵐ predᵗ N) →
+    PredPureStepView M N
+
+pure-pred-step-view :
+  ∀ {M N} →
+  M —→ N →
+  PredPureStepView M N
+pure-pred-step-view δ-⊕ =
+  pred-pure-step δ-⊕
+pure-pred-step-view (β vV) =
+  pred-pure-step (pred-β-step vV)
+pure-pred-step-view (β-Λ• vV) =
+  pred-pure-step (pred-β-Λ•-step vV)
+pure-pred-step-view (β-∀• vV) =
+  pred-pure-step (pred-β-∀•-step vV)
+pure-pred-step-view (β-gen• vV) =
+  pred-pure-step (pred-β-gen•-step vV)
+pure-pred-step-view (β-id vV) =
+  pred-pure-step (β-id (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view (β-seq vV) =
+  pred-pure-step (β-seq (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view (β-↦ vV vW) =
+  pred-pure-step
+    (β-↦ (renameᵗᵐ-preserves-Value predᵗ vV)
+          (renameᵗᵐ-preserves-Value predᵗ vW))
+pure-pred-step-view (β-inst vV) =
+  pred-pure-step (β-inst (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view (tag-untag-ok vV) =
+  pred-pure-step (tag-untag-ok (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view (tag-untag-bad vV G≢H) =
+  pred-pure-doomed blame-no-↠-value
+pure-pred-step-view (seal-unseal vV) =
+  pred-pure-step (seal-unseal (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view blame-·₁ =
+  pred-pure-step blame-·₁
+pure-pred-step-view (blame-·₂ vV) =
+  pred-pure-step (blame-·₂ (renameᵗᵐ-preserves-Value predᵗ vV))
+pure-pred-step-view blame-• =
+  pred-pure-step blame-•
+pure-pred-step-view blame-⟨⟩ =
+  pred-pure-step blame-⟨⟩
+pure-pred-step-view blame-⊕₁ =
+  pred-pure-step blame-⊕₁
+pure-pred-step-view (blame-⊕₂ vV) =
+  pred-pure-step (blame-⊕₂ (renameᵗᵐ-preserves-Value predᵗ vV))
+
+data PredKeepStepView (M N : Term) : Set where
+  pred-keep-step :
+    renameᵗᵐ predᵗ M —→[ keep ] renameᵗᵐ predᵗ N →
+    PredKeepStepView M N
+  pred-keep-doomed :
+    NoValueReachable (renameᵗᵐ predᵗ N) →
+    PredKeepStepView M N
+
+keep-pred-step-view :
+  ∀ {M N} →
+  M —→[ keep ] N →
+  PredKeepStepView M N
+keep-pred-step-view (pure-step red)
+    with pure-pred-step-view red
+keep-pred-step-view (pure-step red) | pred-pure-step red′ =
+  pred-keep-step (pure-step red′)
+keep-pred-step-view (pure-step red) | pred-pure-doomed noN =
+  pred-keep-doomed noN
+keep-pred-step-view (ξ-·₁ red shiftM)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-·₁ red shiftM) | pred-keep-step red′ =
+  pred-keep-step (ξ-·₁ red′ shift-keep)
+keep-pred-step-view (ξ-·₁ red shiftM) | pred-keep-doomed noL =
+  pred-keep-doomed (noValue-·₁ noL)
+keep-pred-step-view (ξ-·₂ vV shiftV red)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-·₂ vV shiftV red) | pred-keep-step red′ =
+  pred-keep-step
+    (ξ-·₂ (renameᵗᵐ-preserves-Value predᵗ vV) shift-keep red′)
+keep-pred-step-view (ξ-·₂ vV shiftV red) | pred-keep-doomed noM =
+  pred-keep-doomed
+    (noValue-·₂ (renameᵗᵐ-preserves-Value predᵗ vV) noM)
+keep-pred-step-view (ξ-⟨⟩ red)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-⟨⟩ red) | pred-keep-step red′ =
+  pred-keep-step (ξ-⟨⟩ red′)
+keep-pred-step-view (ξ-⟨⟩ red) | pred-keep-doomed noM =
+  pred-keep-doomed (noValue-cast noM)
+keep-pred-step-view (ξ-ν red)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-ν red) | pred-keep-step red′ =
+  pred-keep-step (ξ-ν red′)
+keep-pred-step-view (ξ-ν red) | pred-keep-doomed noM =
+  pred-keep-doomed (noValue-ν noM)
+keep-pred-step-view blame-ν =
+  pred-keep-step blame-ν
+keep-pred-step-view (ξ-⊕₁ red shiftM)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-⊕₁ red shiftM) | pred-keep-step red′ =
+  pred-keep-step (ξ-⊕₁ red′ shift-keep)
+keep-pred-step-view (ξ-⊕₁ red shiftM) | pred-keep-doomed noL =
+  pred-keep-doomed (noValue-⊕₁ noL)
+keep-pred-step-view (ξ-⊕₂ vV shiftV red)
+    with keep-pred-step-view red
+keep-pred-step-view (ξ-⊕₂ vV shiftV red) | pred-keep-step red′ =
+  pred-keep-step
+    (ξ-⊕₂ (renameᵗᵐ-preserves-Value predᵗ vV) shift-keep red′)
+keep-pred-step-view (ξ-⊕₂ vV shiftV red) | pred-keep-doomed noM =
+  pred-keep-doomed
+    (noValue-⊕₂ (renameᵗᵐ-preserves-Value predᵗ vV) noM)
+
+pure-pred-↠-value :
+  ∀ {M V χs} →
+  AllKeep χs →
+  M —↠[ χs ] V →
+  Value V →
+  renameᵗᵐ predᵗ M —↠[ χs ] renameᵗᵐ predᵗ V
+pure-pred-↠-value all-[] ↠-refl vV =
+  ↠-refl
+pure-pred-↠-value (all-keep keeps) (↠-step red reds) vV
+    with keep-pred-step-view red
+pure-pred-↠-value (all-keep keeps) (↠-step red reds) vV
+    | pred-keep-step red′ =
+  ↠-step red′ (pure-pred-↠-value keeps reds vV)
+pure-pred-↠-value (all-keep keeps) (↠-step red reds) vV
+    | pred-keep-doomed noN =
+  ⊥-elim
+    (noN (pure-pred-↠-value keeps reds vV)
+      (renameᵗᵐ-preserves-Value predᵗ vV))
+
+pure-pred-↠-shifted-value :
+  ∀ {M V χs} →
+  AllKeep χs →
+  ⇑ᵗᵐ M —↠[ χs ] V →
+  Value V →
+  M —↠[ χs ] renameᵗᵐ predᵗ V
+pure-pred-↠-shifted-value {M = M} {V = V} {χs = χs} keeps reds vV =
+  subst
+    (λ L → L —↠[ χs ] renameᵗᵐ predᵗ V)
+    (renameᵗᵐ-pred-suc M)
+    (pure-pred-↠-value keeps reds vV)
+
+allKeep-ν-no-value :
+  ∀ {A M c χs V} →
+  AllKeep χs →
+  ν A M c —↠[ χs ] V →
+  Value V →
+  ⊥
+allKeep-ν-no-value all-[] ↠-refl ()
+allKeep-ν-no-value (all-keep keeps) (↠-step (ξ-ν red) reds) vV =
+  allKeep-ν-no-value keeps reds vV
+allKeep-ν-no-value (all-keep keeps) (↠-step blame-ν reds) vV =
+  blame-no-↠-value reds vV
+
+ν-bind-step-value-tail-inv :
+  ∀ {A B L c Q keeps W} →
+  ν A L c —→[ bind B ] Q →
+  AllKeep keeps →
+  Q —↠[ keeps ] W →
+  Value W →
+  Value L × No• L × B ≡ A
+ν-bind-step-value-tail-inv (ν-step vL noL) keeps Q↠W vW =
+  vL , noL , refl
+ν-bind-step-value-tail-inv (ξ-ν red) keeps Q↠W vW =
+  ⊥-elim (allKeep-ν-no-value keeps Q↠W vW)
+
+ν-step-target-pred-suc :
+  ∀ L c →
+  renameᵗᵐ predᵗ
+    ((⇑ᵗᵐ (⇑ᵗᵐ L) •) ⟨ renameᶜ (extᵗ suc) c ⟩) ≡
+  (⇑ᵗᵐ L •) ⟨ c ⟩
+ν-step-target-pred-suc L c =
+  cong₂ (λ M d → M ⟨ d ⟩)
+    (cong _• (renameᵗᵐ-pred-suc (⇑ᵗᵐ L)))
+    (renameᶜ-pred-ext-suc c)
+
+ν-context-target-pred-suc :
+  ∀ A L c →
+  renameᵗᵐ predᵗ
+    (ν (⇑ᵗ (⇑ᵗ A)) L
+      (renameᶜ (extᵗ suc) (renameᶜ (extᵗ suc) c))) ≡
+  ν (⇑ᵗ A) (renameᵗᵐ predᵗ L) (renameᶜ (extᵗ suc) c)
+ν-context-target-pred-suc A L c =
+  cong₂ (λ B d → ν B (renameᵗᵐ predᵗ L) d)
+    (renameᵗ-pred-suc (⇑ᵗ A))
+    (renameᶜ-ext-pred-ext-suc (renameᶜ (extᵗ suc) c))
+
+type-rename-bind-step-pred :
+  ∀ {M A N} →
+  ⇑ᵗᵐ M —→[ bind A ] N →
+  M —→[ bind (renameᵗ predᵗ A) ] renameᵗᵐ predᵗ N
+type-rename-bind-step-pred {M = ` x} ()
+type-rename-bind-step-pred {M = ƛ M} ()
+type-rename-bind-step-pred {M = L · M} {A = A}
+    (ξ-·₁ {L′ = L′} red shiftM) =
+  subst
+    (λ T →
+      L · M —→[ bind (renameᵗ predᵗ A) ]
+      renameᵗᵐ predᵗ L′ · T)
+    (sym (renameᵗᵐ-pred-suc (⇑ᵗᵐ M)))
+    (ξ-·₁ (type-rename-bind-step-pred red) (shiftable-pred-bind shiftM))
+type-rename-bind-step-pred {M = L · M} {A = A}
+    (ξ-·₂ {M′ = M′} vL shiftL red) =
+  subst
+    (λ T →
+      L · M —→[ bind (renameᵗ predᵗ A) ]
+      T · renameᵗᵐ predᵗ M′)
+    (sym (renameᵗᵐ-pred-suc (⇑ᵗᵐ L)))
+    (ξ-·₂ (renameᵗᵐ-reflects-Value suc vL)
+           (shiftable-pred-bind shiftL)
+           (type-rename-bind-step-pred red))
+type-rename-bind-step-pred {M = Λ M} ()
+type-rename-bind-step-pred {M = M •} ()
+type-rename-bind-step-pred {M = ν A L c} (ν-step vL noL) =
+  subst
+    (λ T → ν A L c —→[ bind (renameᵗ predᵗ (⇑ᵗ A)) ] T)
+    (sym (ν-step-target-pred-suc L c))
+    (subst
+      (λ B → ν A L c —→[ bind B ] (⇑ᵗᵐ L •) ⟨ c ⟩)
+      (sym (renameᵗ-pred-suc A))
+      (ν-step (renameᵗᵐ-reflects-Value suc vL)
+              (renameᵗᵐ-reflects-No• suc noL)))
+type-rename-bind-step-pred {M = ν A L c} {A = A′} (ξ-ν {L′ = L′} red) =
+  subst
+    (λ T → ν A L c —→[ bind (renameᵗ predᵗ A′) ] T)
+    (sym (ν-context-target-pred-suc A L′ c))
+    (ξ-ν (type-rename-bind-step-pred red))
+type-rename-bind-step-pred {M = $ κ} ()
+type-rename-bind-step-pred {M = L ⊕[ op ] M} {A = A}
+    (ξ-⊕₁ {L′ = L′} red shiftM) =
+  subst
+    (λ T →
+      L ⊕[ op ] M —→[ bind (renameᵗ predᵗ A) ]
+      renameᵗᵐ predᵗ L′ ⊕[ op ] T)
+    (sym (renameᵗᵐ-pred-suc (⇑ᵗᵐ M)))
+    (ξ-⊕₁ (type-rename-bind-step-pred red) (shiftable-pred-bind shiftM))
+type-rename-bind-step-pred {M = L ⊕[ op ] M} {A = A}
+    (ξ-⊕₂ {M′ = M′} vL shiftL red) =
+  subst
+    (λ T →
+      L ⊕[ op ] M —→[ bind (renameᵗ predᵗ A) ]
+      T ⊕[ op ] renameᵗᵐ predᵗ M′)
+    (sym (renameᵗᵐ-pred-suc (⇑ᵗᵐ L)))
+    (ξ-⊕₂ (renameᵗᵐ-reflects-Value suc vL)
+           (shiftable-pred-bind shiftL)
+           (type-rename-bind-step-pred red))
+type-rename-bind-step-pred {M = M ⟨ c ⟩} {A = A}
+    (ξ-⟨⟩ {M′ = M′} red) =
+  subst
+    (λ d →
+      M ⟨ c ⟩ —→[ bind (renameᵗ predᵗ A) ]
+      renameᵗᵐ predᵗ M′ ⟨ d ⟩)
+    (sym (renameᶜ-pred-suc (⇑ᶜ c)))
+    (ξ-⟨⟩ (type-rename-bind-step-pred red))
+type-rename-bind-step-pred {M = blame} ()
 
 renameᵗ-injective :
   ∀ {ρ A B} →
@@ -933,6 +1828,108 @@ type-rename-step-⇑ᵗᵐ red =
   M —↠[ χs ++ χs′ ] P
 ↠-trans ↠-refl N↠P = N↠P
 ↠-trans (↠-step M→N N↠P) P↠Q = ↠-step M→N (↠-trans N↠P P↠Q)
+
+↠-split-++ :
+  ∀ {M W χs χs′} →
+  M —↠[ χs ++ χs′ ] W →
+  ∃[ P ] ((M —↠[ χs ] P) × (P —↠[ χs′ ] W))
+↠-split-++ {χs = []} M↠W =
+  _ , ↠-refl , M↠W
+↠-split-++ {χs = χ ∷ χs} (↠-step M→N N↠W)
+    with ↠-split-++ {χs = χs} N↠W
+↠-split-++ {χs = χ ∷ χs} (↠-step M→N N↠W)
+    | P , N↠P , P↠W =
+  P , ↠-step M→N N↠P , P↠W
+
+↠-split-last-bind :
+  ∀ {M W χs A keeps} →
+  M —↠[ χs ++ bind A ∷ keeps ] W →
+  ∃[ P ] ∃[ Q ]
+    ((M —↠[ χs ] P) × (P —→[ bind A ] Q) × (Q —↠[ keeps ] W))
+↠-split-last-bind {χs = χs} M↠W
+    with ↠-split-++ {χs = χs} M↠W
+↠-split-last-bind {χs = χs} M↠W
+    | P , M↠P , ↠-step P→Q Q↠W =
+  P , _ , M↠P , P→Q , Q↠W
+
+shift-image-bind-step-pred :
+  ∀ {M A N} →
+  TermShiftImage M →
+  M —→[ bind A ] N →
+  renameᵗᵐ predᵗ M —→[ bind (renameᵗ predᵗ A) ] renameᵗᵐ predᵗ N
+shift-image-bind-step-pred {A = A} {N = N} (M′ , refl) M→N =
+  subst
+    (λ S → S —→[ bind (renameᵗ predᵗ A) ] renameᵗᵐ predᵗ N)
+    (sym (renameᵗᵐ-pred-suc M′))
+    (type-rename-bind-step-pred M→N)
+
+safe-allKeep-bind-pred-↠ :
+  ∀ {M P Q W χs keeps A} →
+  CatchupSafe M →
+  TermShiftImage M →
+  AllKeep χs →
+  AllKeep keeps →
+  M —↠[ χs ] P →
+  P —→[ bind A ] Q →
+  Q —↠[ keeps ] W →
+  Value W →
+  renameᵗᵐ predᵗ M
+    —↠[ χs ++ bind (renameᵗ predᵗ A) ∷ keeps ]
+    renameᵗᵐ predᵗ W
+safe-allKeep-bind-pred-↠ safeM img all-[] keeps ↠-refl P→Q Q↠W vW =
+  ↠-step (shift-image-bind-step-pred img P→Q)
+    (pure-pred-↠-value keeps Q↠W vW)
+safe-allKeep-bind-pred-↠ safeM img (all-keep keeps₀) keeps
+    (↠-step M→N N↠P) P→Q Q↠W vW
+    with safe-keep-step-image-view safeM img M→N
+       | keep-pred-step-view M→N
+safe-allKeep-bind-pred-↠ safeM img (all-keep keeps₀) keeps
+    (↠-step M→N N↠P) P→Q Q↠W vW
+    | image-step safeN imgN
+    | pred-keep-step M→N′ =
+  ↠-step M→N′
+    (safe-allKeep-bind-pred-↠ safeN imgN keeps₀ keeps
+      N↠P P→Q Q↠W vW)
+safe-allKeep-bind-pred-↠ safeM img (all-keep keeps₀) keeps
+    (↠-step M→N N↠P) P→Q Q↠W vW
+    | image-step safeN imgN
+    | pred-keep-doomed noN =
+  ⊥-elim
+    (noN
+      (safe-allKeep-bind-pred-↠ safeN imgN keeps₀ keeps
+        N↠P P→Q Q↠W vW)
+      (renameᵗᵐ-preserves-Value predᵗ vW))
+safe-allKeep-bind-pred-↠ safeM img (all-keep keeps₀) keeps
+    (↠-step M→N N↠P) P→Q Q↠W vW
+    | image-doomed noN
+    | pred-keep-step M→N′ =
+  ⊥-elim (noN (↠-trans N↠P (↠-step P→Q Q↠W)) vW)
+safe-allKeep-bind-pred-↠ safeM img (all-keep keeps₀) keeps
+    (↠-step M→N N↠P) P→Q Q↠W vW
+    | image-doomed noN
+    | pred-keep-doomed noN′ =
+  ⊥-elim (noN (↠-trans N↠P (↠-step P→Q Q↠W)) vW)
+
+safe-allKeep-bind-pred-↠-shifted :
+  ∀ {M P Q W χs keeps A} →
+  CatchupSafe (⇑ᵗᵐ M) →
+  AllKeep χs →
+  AllKeep keeps →
+  ⇑ᵗᵐ M —↠[ χs ] P →
+  P —→[ bind A ] Q →
+  Q —↠[ keeps ] W →
+  Value W →
+  M —↠[ χs ++ bind (renameᵗ predᵗ A) ∷ keeps ]
+    renameᵗᵐ predᵗ W
+safe-allKeep-bind-pred-↠-shifted
+    {M = M} {W = W} {χs = χs} {keeps = keeps} {A = A}
+    safeM keeps₀ keeps-ok ⇑M↠P P→Q Q↠W vW =
+  subst
+    (λ S → S —↠[ χs ++ bind (renameᵗ predᵗ A) ∷ keeps ]
+      renameᵗᵐ predᵗ W)
+    (renameᵗᵐ-pred-suc M)
+    (safe-allKeep-bind-pred-↠ safeM (M , refl) keeps₀ keeps-ok
+      ⇑M↠P P→Q Q↠W vW)
 
 cast-↠ :
   ∀ {M N c χs} →

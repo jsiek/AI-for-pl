@@ -1,10 +1,14 @@
 module proof.RightSealInversion2 where
 
 -- File Charter:
---   * Counterexample for the cambridge25 Right Seal Inversion 2 lemma.
---   * The refuted statement keeps the composition equation in the conclusion:
---     stripping a right `unseal α A` should produce both a witness coercion
---     and evidence that the original index composes with `seal A α`.
+--   * Revised target statement for Right Seal Inversion 2, specialized to the
+--     seal-unseal redex shape available at the DGG call sites.
+--   * The old general statement is kept as `GeneralRightSealInversion2`; its
+--     counterexample documents why arbitrary `V ⟨ unseal α A ⟩` is too
+--     broad.
+--   * The exported call-site statement takes the right-cast premises that DGG
+--     already has: the composition `q ⨾ seal B α ≈ r` and the premise
+--     narrowing to the sealed value `V ⟨ seal A α ⟩`.
 --   * The counterexample uses `ν⊒` and a context variable: inside the fresh
 --     source-only store, the variable can be unsealed on the left and then
 --     re-sealed/unsealed on the right; after the outer `ν⊒`, the stripped
@@ -27,24 +31,28 @@ open import NuTerms
 open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing
-open import proof.Catchup using
-  ( replace-here
-  ; compose-leftⁿ-⇑ˢ
-  ; compose-leftⁿ-add-left-star-var
-  ; extendReplaceRel-compose-left
-  ; extendReplaceRel-term
-  )
 open import proof.CoercionProperties using (coercion-src-tgtᵐ)
 open import proof.NarrowWidenProperties using
   (StoreDetWf; narrowing-var-to-older⊥)
 
-RightSealInversion2 : Set₁
-RightSealInversion2 =
+GeneralRightSealInversion2 : Set₁
+GeneralRightSealInversion2 =
   ∀ {Δ σ γ M V q A α} →
   Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ unseal α A ⟩ ∶ q →
   ∃[ r ]
     (Δ ∣ σ ⊢ q ⨾ⁿ seal A α ≈ r ∶ src q ⊒ ＇ α) ×
     Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ r
+
+RightSealInversion2 : Set₁
+RightSealInversion2 =
+  ∀ {Δ σ M V q r A B C D α} →
+  Value V →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ A ⊒ ＇ α →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
+  ∃[ u ]
+    (Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ u ∶ src q ⊒ ＇ α) ×
+    Δ ∣ σ ∣ [] ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ u
 
 right-seal-compose-endpoints :
   ∀ {Δ σ q r A B A₀ α} →
@@ -58,116 +66,29 @@ right-seal-compose-endpoints
   compose-leftⁿ wfΣ q⊒ seal⊒
     (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒)
 
-right-seal-compose-ν-lift :
-  ∀ {Δ σ p r A α} →
-  Δ ∣ σ ⊢ p ⨾ⁿ seal A α ≈ r ∶ src p ⊒ ＇ α →
-  suc Δ ∣ (⊒ zero ꞉=☆) ∷ ⇑ˢ σ
-    ⊢ ⇑ᶜ p ⨾ⁿ seal (⇑ᵗ A) (suc α) ≈ ⇑ᶜ r
-      ∶ ⇑ᵗ (src p) ⊒ ＇ suc α
-right-seal-compose-ν-lift p⨟seal≈r =
-  compose-leftⁿ-add-left-star-var zero
-    (compose-leftⁿ-⇑ˢ p⨟seal≈r)
+rightSealInversion2 : RightSealInversion2
+rightSealInversion2 _ _ q⨟seal≈r M⊒Vseal =
+  _ , right-seal-compose-endpoints q⨟seal≈r , M⊒Vseal
 
-rightSealInversion2-ν⊒-right-sealed :
-  ∀ {Δ σ γ N W p r A B A₀ α} →
-  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
-  Δ ∣ σ ⊢ p ⨾ⁿ seal A₀ α ≈ r ∶ src p ⊒ ＇ α →
-  suc Δ ∣ (⊒ zero ꞉=☆) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
-    ⊢ N ⊒ ⇑ᵗᵐ W ∶ ⇑ᶜ p →
-  ∃[ u ]
-    (Δ ∣ σ ⊢ p ⨾ⁿ seal A₀ α ≈ u ∶ src p ⊒ ＇ α) ×
-    Δ ∣ σ ∣ γ ⊢ ν ★ N (⇑ᶜ p) ⊒ W ⟨ seal A₀ α ⟩ ∶ u
-rightSealInversion2-ν⊒-right-sealed pᶜ p⨟seal≈r N⊒W =
-  _ , p⨟seal≈r , ⊒cast- pᶜ p⨟seal≈r (ν⊒ pᶜ N⊒W)
+right-seal-inversion₂ : RightSealInversion2
+right-seal-inversion₂ = rightSealInversion2
 
-rightSealInversion2-cast+ :
-  ∀ {Δ σ γ M M′ V q r s A B C D A₀ α} →
-  M′ ⟨ - s ⟩ ≡ V ⟨ unseal α A₀ ⟩ →
+right-seal-inversion₂-cast-unseal⊥ :
+  ∀ {Δ σ q r A B C D α} →
   Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
-  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
-  Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r →
-  ∃[ u ]
-    (Δ ∣ σ ⊢ q ⨾ⁿ seal A₀ α ≈ u ∶ src q ⊒ ＇ α) ×
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ u
-rightSealInversion2-cast+ {s = id A} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = c ︔ d} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = c ↦ d} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = `∀ c} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = (＇ β) !} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = (‵ ι) !} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = ★ !} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = (A ⇒ B) !} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = (`∀ A) !} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = (＇ β) ？} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = (‵ ι) ？} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = ★ ？} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = (A ⇒ B) ？} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = (`∀ A) ？} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = seal A α} refl
-    qᶜ q⨟seal≈r M⊒V =
-  _ , right-seal-compose-endpoints q⨟seal≈r , M⊒V
-rightSealInversion2-cast+ {s = unseal α A} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = gen A c} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = inst B c} ()
-    qᶜ q⨟s≈r M⊒M′
+  Δ ∣ σ ⊢ q ⨾ⁿ unseal α B ≈ r ∶ A ⊒ B →
+  ⊥
+right-seal-inversion₂-cast-unseal⊥ qᶜ
+    (compose-leftⁿ wfΣ q⊒ (cast-unseal hB α∈Σ ok , cross ())
+      q⨟unseal≈r)
 
-rightSealInversion2-cast- :
-  ∀ {Δ σ γ M M′ V q r s A B C D A₀ α} →
-  M′ ⟨ s ⟩ ≡ V ⟨ unseal α A₀ ⟩ →
-  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
-  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
-  Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ q →
-  ∃[ u ]
-    (Δ ∣ σ ⊢ r ⨾ⁿ seal A₀ α ≈ u ∶ src r ⊒ ＇ α) ×
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ u
-rightSealInversion2-cast- {s = id A} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast- {s = c ︔ d} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast- {s = c ↦ d} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast- {s = `∀ c} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast- {s = G !} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast- {s = G ？} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast- {s = seal A α} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast- {s = unseal α A} refl
-    qᶜ
-    (compose-leftⁿ wfΣ q⊒ (cast-unseal hA α∈Σ ok , cross ())
-      q⨟s≈r)
-    M⊒M′
-rightSealInversion2-cast- {s = gen A c} ()
-    qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast- {s = inst B c} ()
-    qᶜ q⨟s≈r M⊒M′
-
--- Failed proof-search note.  The direct induction can strip right-positive
--- casts, but the `ν⊒` branch reveals the false premise: a recursive call
--- under the fresh source-only store gives a shifted composition index,
--- while the outer `ν⊒` source annotation remains fixed at the original
--- index.  The variable counterexample below isolates that mismatch.
+-- Failed proof-search note for `GeneralRightSealInversion2`.  The direct
+-- induction can strip the direct right-positive cast, but the `ν⊒`, `split`,
+-- and left-cast branches require facts that the DGG call sites do not need.
+-- The variable counterexample below isolates the false general premise.
 
 ------------------------------------------------------------------------
--- Counterexample search: ν-wrapped right unseal
+-- General-statement counterexample search: ν-wrapped right unseal
 ------------------------------------------------------------------------
 
 private
@@ -603,7 +524,7 @@ private
     right-seal-inversion₂-var-stripped-aux⊥ refl refl comp M⊒T
 
 right-seal-inversion₂-var-counterexample :
-  RightSealInversion2 →
+  GeneralRightSealInversion2 →
   ⊥
 right-seal-inversion₂-var-counterexample right-seal-inversion₂′
     with right-seal-inversion₂′

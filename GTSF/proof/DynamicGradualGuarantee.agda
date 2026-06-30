@@ -238,9 +238,19 @@ dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′)
     (pure-step (β-↦ vV vW)) =
   wrap-widening-lemma L⊒L′ M⊒M′
 dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (pure-step blame-·₁) =
-  {!!}
+  [] , _ , _ , [] , [] , [] , _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  ⊒blame qᶜ
 dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (pure-step (blame-·₂ vV)) =
-  {!!}
+  [] , _ , _ , [] , [] , [] , _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  ⊒blame qᶜ
 dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₁ L′→N′ shiftM)
     with dynamicGradualGuarantee (runtime-·₁ okM) L⊒L′ L′→N′
 dynamicGradualGuarantee okM (·⊒· qᶜ L⊒L′ M⊒M′) (ξ-·₁ L′→N′ shiftM)

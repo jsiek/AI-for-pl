@@ -3120,3 +3120,83 @@ The missing piece is therefore now isolated on the term-narrowing side: a
 split-aware source/target marker replay or store-swap transport for the final
 body relation.  The reduction component for the single-bind/no-earlier-bind
 case no longer requires the false shifted-source inversion.
+
+## Attempt 90: instantiate the single-bind lowering in the live `ν` branch
+
+Accepted as a diagnostic probe, then reverted.  I temporarily split `χs₀` in
+the live
+
+`remainder-nu / last-bind / nu-base-empty`
+
+branch and considered the subcase:
+
+`storeChangesLastBind χs₀ = no-bind keeps₀`.
+
+Using Attempt 89, Agda accepted the reduction component of the natural
+candidate package:
+
+`χs′ = χs₀ ++ bind (renameᵗ predᵗ Aχ) ∷ keeps`
+
+`W′ = renameᵗᵐ predᵗ W`
+
+`N —↠[ χs′ ] W′`
+
+where the reduction proof was:
+
+`safe-allKeep-bind-pred-↠-shifted
+  (value-target-source-safe vV′ N⊒V′)
+  keeps₀ keeps-ok ⇑N↠P P→Q Q↠W vW`.
+
+After also choosing the emitted store narrowing:
+
+`π′ = (⊒ zero ꞉=☆) ∷ []`
+
+Agda reduced the remaining obligation to the final term relation:
+
+`Δ′′ ∣ combineStoreNrw ((⊒ zero ꞉=☆) ∷ []) σ ∣ []
+  ⊢ renameᵗᵐ predᵗ W
+    ⊒ applyTerms (χs₀ ++ bind (renameᵗ predᵗ Aχ) ∷ keeps) (Λ V)
+    ∶ applyCoercions (χs₀ ++ bind (renameᵗ predᵗ Aχ) ∷ keeps)
+        (gen A p)`.
+
+Trying to rebuild that relation with `⊒Λ` first exposed only the expected
+normalization mismatch:
+
+`Λ _` versus
+
+`applyTerms (χs₀ ++ bind (renameᵗ predᵗ Aχ) ∷ keeps) (Λ V)`.
+
+The existing all-keep/last-bind normalization lemmas should rewrite this target
+to:
+
+`Λ (renameᵗᵐ (extᵗ suc) V)`,
+
+and similarly rewrite the coercion to:
+
+`gen (⇑ᵗ A) (renameᶜ (extᵗ suc) p)`.
+
+The body relation that would remain is the real blocker:
+
+`⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+  ⊒ renameᵗᵐ (extᵗ suc) V
+  ∶ renameᶜ (extᵗ suc) p`
+
+under the target-first split-marker store
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+The recursive catchup body instead gives:
+
+`W ⊒ ⇑ᵗᵐ V ∶ ⇑ᶜ p`
+
+under the source-first store
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+So the reduction lowering from Attempt 89 is usable in the live branch.  The
+remaining no-earlier-bind obstruction is specifically a term-narrowing replay:
+rename the source-first body relation by `swap01ᵗ`, rewrite
+`renameᵗᵐ swap01ᵗ (⇑ᵗᵐ V)` to `renameᵗᵐ (extᵗ suc) V` and
+`renameᶜ swap01ᵗ (⇑ᶜ p)` to `renameᶜ (extᵗ suc) p`, then perform the adjacent
+source/target store swap.  This is the term-level counterpart of the
+store/coercion/equivalence swap lemmas already present from Attempts 72-78.

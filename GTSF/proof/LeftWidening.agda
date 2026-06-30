@@ -43,12 +43,19 @@ module proof.LeftWidening where
 --     reaches a stuck non-value `ν ★ V c`.
 --   * After main added the `No• V` premise, this particular counterexample is
 --     blocked: `badPoly-no-No•` proves the bad value cannot satisfy it.
+--   * The guarded sibling of that counterexample is positive:
+--     `left-widening-ex4-gen` follows the Example 4 `gen` branch through
+--     `β-inst`, `ν-step`, and `β-Λ•`.  The bookkeeping mismatch it exposed is
+--     that emitted `bind` steps raise `Δ`; for now the small Example 4
+--     derivation is replayed at the raised context.  A general `gen` proof
+--     should use a reusable term-narrowing type-context weakening lemma.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (zero)
-open import Data.Product using (_×_; _,_; ∃-syntax)
+open import Data.List.Relation.Unary.Any using (here)
+open import Data.Nat using (zero; z<s)
+open import Data.Product using (_×_; _,_; proj₂; ∃-syntax)
 
 open import Types
 open import Coercions
@@ -61,10 +68,20 @@ open import NarrowingExamples
   using
     ( ex1-line272-≈
     ; forall-id-var0-fun-cast
+    ; id★-cast
+    ; id★-store-narrowing
     ; id-var0-cast
     ; id-var0-fun-cast
+    ; id-var0-fun-narrowingᵐ
+    ; poly-fun-cast
+    ; star-seal-fun
+    ; star-seal-fun-narrowingᵐ
     ; var0-fun
+    ; var0-fun-cast
+    ; var0-fun-narrowing
+    ; wf-var-fun-endpoints
     )
+open import proof.NarrowWidenProperties using (StoreDetWf)
 open import proof.CatchupStore using (combineStoreNrw)
 open import proof.ReductionProperties using (applyCoercions)
 
@@ -390,3 +407,125 @@ left-widening-counterexample-prevented :
   ⊥
 left-widening-counterexample-prevented =
   badPoly-no-No•
+
+goodPoly : Term
+goodPoly = Λ (ƛ (` zero))
+
+goodPoly-value : Value goodPoly
+goodPoly-value = Λ (ƛ (` zero))
+
+goodPoly-no• : No• goodPoly
+goodPoly-no• = no•-Λ (no•-ƛ no•-`)
+
+star-store-det-2 :
+  StoreDetWf 2 ((0 , ★) ∷ [])
+star-store-det-2 =
+  record
+    { at = record
+        { bound = λ { (here refl) → z<s }
+        ; wfTy = λ { (here refl) → wf★ }
+        }
+    ; wfOlder = λ { (here refl) → wf★ }
+    ; unique = λ { (here refl) (here refl) → refl }
+    }
+
+ex4-line294-≈-Δ2 :
+  2 ∣ (0 ꞉ id ★) ∷ [] ⊢
+    var0-fun ≈ star-seal-fun ⨾ⁿ (id (＇ 0) ↦ id (＇ 0))
+      ∶ (★ ⇒ ★) ⊒ (＇ 0 ⇒ ＇ 0)
+ex4-line294-≈-Δ2 =
+  compose-rightⁿ star-store-det-2 star-seal-fun⊒ id-var0-fun⊒
+    (endpointsⁿ refl refl refl refl
+      id★-store-narrowing
+      wf-var-fun-endpoints
+      wf-var-fun-endpoints
+      var0-fun-narrowing
+      (_ , proj₂ (_⨟ⁿ_ {wfΣ = star-store-det-2}
+        star-seal-fun⊒ id-var0-fun⊒)))
+  where
+    star-seal-fun⊒ = star-seal-fun-narrowingᵐ
+
+    id-var0-fun⊒ =
+      id-var0-fun-narrowingᵐ {μ = seal-or-idᵈ} refl
+
+ex4-line352-Δ2 :
+  2 ∣ (0 ꞉ id ★) ∷ [] ∣ []
+    ⊢ ƛ (` 0) ⊒ ƛ (` 0)
+    ∶ id (＇ 0) ↦ id (＇ 0)
+ex4-line352-Δ2 =
+  ƛ⊒ƛ id-var0-fun-cast (x⊒x id-var0-cast Z)
+
+ex4-line353-Δ2 :
+  2 ∣ (0 ꞉ id ★) ∷ [] ∣ []
+    ⊢ (ƛ (` 0))
+        ⟨ - star-seal-fun ⟩
+      ⊒ ƛ (` 0)
+    ∶ var0-fun
+ex4-line353-Δ2 =
+  cast+⊒
+    {p = id (＇ 0) ↦ id (＇ 0)}
+    {r = var0-fun}
+    {t = star-seal-fun}
+    id-var0-fun-cast ex4-line294-≈-Δ2 ex4-line352-Δ2
+
+ex4-split-Δ2 :
+  2 ∣ (0 ꞉= ★ ⊒) ∷ (⊒ 1 ꞉=☆) ∷ [] ∣ []
+    ⊢ (ƛ (` 0))
+        ⟨ - ((unseal 1 ★) ↦ (seal ★ 1)) ⟩
+      ⊒ ƛ (` 0)
+    ∶ var0-fun
+ex4-split-Δ2 =
+  split
+    {N =
+      (ƛ (` 0))
+        ⟨ - star-seal-fun ⟩}
+    {N′ = ƛ (` 0)}
+    {p = var0-fun}
+    {q = id ★}
+    {A = ★}
+    {α = 0}
+    {αᵢ = 1}
+    id★-cast
+    var0-fun-cast
+    ex4-line353-Δ2
+
+ex4-after-reduction-Δ1 :
+  1 ∣ (⊒ 0 ꞉=☆) ∷ [] ∣ []
+    ⊢ (ƛ (` 0))
+        ⟨ - star-seal-fun ⟩
+      ⊒ Λ (ƛ (` 0))
+    ∶ gen (★ ⇒ ★)
+        var0-fun
+ex4-after-reduction-Δ1 =
+  ⊒Λ poly-fun-cast ex4-split-Δ2
+
+left-widening-ex4-gen :
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    (goodPoly ⟨ - gen (★ ⇒ ★) var0-fun ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs 0) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π [] ∣ []
+      ⊢ W ⊒ applyTerms χs goodPoly
+      ∶ applyCoercions χs (gen (★ ⇒ ★) var0-fun)
+left-widening-ex4-gen =
+  keep ∷ bind ★ ∷ keep ∷ [] ,
+  (ƛ (` zero)) ⟨ - star-seal-fun ⟩ ,
+  1 ,
+  (zero , ★) ∷ [] ,
+  [] ,
+  (⊒ zero ꞉=☆) ∷ [] ,
+  (ƛ (` zero)) ⟨ _ ↦ _ ⟩ ,
+  no•-⟨⟩ (no•-ƛ no•-`) ,
+  ↠-step (pure-step (β-inst goodPoly-value))
+    (↠-step (ν-step goodPoly-value goodPoly-no•)
+      (↠-step (ξ-⟨⟩ (pure-step (β-Λ• (ƛ (` zero)))))
+        ↠-refl)) ,
+  refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-left ⊒ˢ-nil ,
+  ex4-after-reduction-Δ1

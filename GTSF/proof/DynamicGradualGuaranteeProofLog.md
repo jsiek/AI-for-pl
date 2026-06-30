@@ -1,5 +1,27 @@
 # Dynamic Gradual Guarantee Proof Log
 
+## Typed DGG statement
+
+Correction:
+
+- The public `dynamicGradualGuarantee` statement now carries the source store
+  well-formedness, the explicit target store `Σ′`, source and target typing
+  derivations, and the typed coercion premise
+  `Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B`.
+- The store narrowing premise is fixed at
+  `Δ ⊢ σ ꞉ srcStoreⁿ σ ⊒ˢ Σ′`, so the term-narrowing witness and both typing
+  derivations talk about the same source/target stores.
+
+Old right-`ν` counterexample:
+
+- The checked example on `codex/gtsf-dgg-app-left-step` is useful evidence that
+  the earlier untyped skeleton was too weak.
+- It is not a semantic counterexample to typed DGG. Its source term uses
+  `ν ★ 0 idℕ`, but the `ν` typing rule requires the body to have a universal
+  type `∀X. A`; the constant `0` has type `ℕ`.
+- Under the typed statement there is no source typing derivation for that term,
+  so the example is rejected before the dynamic simulation obligation begins.
+
 ## Application blame cases
 
 Targets:

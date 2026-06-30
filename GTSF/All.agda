@@ -20,3 +20,4 @@ import TermNarrowing
 import NarrowingExamples
 import NuMetaTheory
 import proof.DynamicGradualGuarantee
+import proof.TermNarrowingTypingCounterexample

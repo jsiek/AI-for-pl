@@ -20,9 +20,10 @@ The app case currently has only the result coercion typing `qᶜ`.  A temporary
 probe confirmed that passing `qᶜ` to the recursive call fails before any frame
 transport issues arise.
 
-## Recommended Lemma
+## Refuted Lemma
 
-Add a reusable typing/index lemma for term narrowing.  A good general shape is:
+The initially recommended reusable typing/index lemma for arbitrary term
+narrowing is false.  The tempting shape was:
 
 if `Δ ⊢ σ ꞉ srcStoreⁿ σ ⊒ˢ Σ′`, a typed variable-context narrowing relates
 source context `Γ` to target context `Γ′`, source typing gives
@@ -31,8 +32,37 @@ source context `Γ` to target context `Γ′`, source typing gives
 `Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p`, then
 `Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B`.
 
-This requires a real context-narrowing judgment for `γ`; it is a reusable
-concept, not just an alias for one proof obligation.
+The checked counterexample is in
+`proof.TermNarrowingTypingCounterexample`.  It uses:
+
+`0 : ℕ`
+
+`blame : ℕ`
+
+`0 ⊒ blame ∶ id 𝔹`
+
+The last relation is admitted by `⊒blame` using the independently well-typed
+coercion `id 𝔹 ∶ᶜ 𝔹 ⊒ 𝔹`.  The proposed lemma would require
+`id 𝔹 ∶ᶜ ℕ ⊒ ℕ`, which is impossible.
+
+The branch now adds the missing context-narrowing judgment
+`Δ ∣ Σ ⊢ γ ꞉ Γ ⊒ᵍ Γ′`, but that premise is not enough to make the exact
+typing/index theorem true.
+
+## Replacement Direction
+
+Do not try to prove the refuted arbitrary theorem.  The next durable route is
+one of:
+
+- introduce a typed/well-indexed term-narrowing judgment whose constructors
+  carry endpoint-aligned coercion typings by construction;
+- strengthen the existing relation constructors so every stored coercion typing
+  is tied to the source and target term typings;
+- prove a restricted lemma for non-blame, non-arbitrary-index branches that is
+  strong enough for the app-left case where the target function actually steps.
+
+The first option is the cleanest for DGG: the induction hypothesis would expose
+the function-shaped coercion typing for `L⊒L′` directly.
 
 ## App Case Use
 
@@ -40,8 +70,8 @@ For `·⊒·`:
 
 - Invert source and target application typing to get typings for `L`, `L′`,
   `M`, and `M′`.
-- Apply the term-narrowing typing lemma to `L⊒L′` to obtain the missing
-  `p ↦ q` coercion typing for the recursive DGG call.
+- Apply the typed/well-indexed term-narrowing invariant to `L⊒L′` to obtain
+  the missing `p ↦ q` coercion typing for the recursive DGG call.
 - The argument relation can also justify the contravariant domain half:
   derive typing for `- p`, use `dualⁿ-flips-typingᵐ`, then combine that
   widening for `p` with `qᶜ` using `cast-fun`.

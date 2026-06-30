@@ -310,3 +310,29 @@ Attempt 7: re-run the app-left probe after typed DGG landed on main.
 - This is an additional blocker before the older frame-transport blockers:
   even a perfectly strengthened DGG conclusion cannot call the induction
   hypothesis on `L⊒L′` until the function coercion typing is available.
+
+Attempt 8: prove the exact term-narrowing typing/index theorem from the handoff.
+
+- Added the missing context-narrowing judgment:
+
+  `Δ ∣ Σ ⊢ γ ꞉ Γ ⊒ᵍ Γ′`
+
+- The exact theorem is false for arbitrary term narrowing.  The checked module
+  `proof.TermNarrowingTypingCounterexample` refutes the statement with a
+  well-typed source and target:
+
+  `0 : ℕ`
+
+  `blame : ℕ`
+
+  `0 ⊒ blame ∶ id 𝔹`
+
+- The relation is legal because `⊒blame` only asks for the index coercion to be
+  well typed at some endpoints, here `id 𝔹 ∶ᶜ 𝔹 ⊒ 𝔹`.  It does not tie those
+  endpoints to the actual source and target typings.
+- The proposed theorem would force `id 𝔹 ∶ᶜ ℕ ⊒ ℕ`, which is impossible by
+  inversion on coercion typing.
+- Conclusion: the app-left proof cannot recover `p ↦ q` typing from the
+  current untyped term-narrowing relation plus external term typings.  The next
+  proof route needs a typed/well-indexed term-narrowing relation or a restricted
+  lemma excluding the arbitrary-index branches such as `⊒blame`.

@@ -117,6 +117,9 @@ open import proof.TermNarrowingProperties
     ; nu-source-value-target-base-empty
     ; remainder-cast
     ; remainder-nu
+    ; RuntimeTypeApp
+    ; renameᵗᵐ-preserves-RuntimeTypeApp
+    ; runtime-type-app-source-no-value-target
     ; shifted-source-remainder
     ; type-app-source-no-value-target
     ; value?-none-no-value
@@ -1719,6 +1722,18 @@ runtime-⇑ᵗᵐ (ok-⊕₂ vL noL okM) =
         (renameᵗᵐ-preserves-No• suc noL)
         (runtime-⇑ᵗᵐ okM)
 runtime-⇑ᵗᵐ (ok-⟨⟩ okM) = ok-⟨⟩ (runtime-⇑ᵗᵐ okM)
+
+shifted-runtime-type-app-source-no-value-target :
+  ∀ {Δ σ γ N V p} →
+  RuntimeTypeApp N →
+  Value V →
+  Δ ∣ σ ∣ γ ⊢ ⇑ᵗᵐ N ⊒ V ∶ p →
+  ⊥
+shifted-runtime-type-app-source-no-value-target app vV N⊒V =
+  runtime-type-app-source-no-value-target
+    (renameᵗᵐ-preserves-RuntimeTypeApp suc app)
+    vV
+    N⊒V
 
 postulate
   -- `split` changes which fresh type variable the source term is opened at.
@@ -3958,6 +3973,8 @@ catchup-lemma okM (Λ vV′) (Λ⊒Λ allᶜ vV V⊒V′) =
   refl ,
   ⊒ˢ-nil ,
   Λ⊒Λ allᶜ vV V⊒V′
+catchup-lemma (ok-• vV noV) (Λ vV′) (⊒Λ pᶜ N⊒V′) =
+  ⊥-elim (type-app-source-no-value-target vV′ N⊒V′)
 catchup-lemma okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
     with catchup-lemma (runtime-⇑ᵗᵐ okM) vV′ N⊒V′
 catchup-lemma okM (Λ vV′) (⊒Λ pᶜ N⊒V′)

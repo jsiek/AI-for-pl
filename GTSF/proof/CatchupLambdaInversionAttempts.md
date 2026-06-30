@@ -3734,3 +3734,29 @@ The first records the exact full-store collapse:
 The second and third remove the corresponding double-shift noise from term
 contexts and terms.  They do not prove the replay, but they make the pred-lower
 half of a future split-aware replay theorem explicit and reusable.
+
+## Attempt 104: rule out the active type-application `RuntimeOK` source
+
+Accepted as checked support in `proof.Catchup`.
+
+The RuntimeOK merge gives the outer `catchup-lemma` branch an extra source
+invariant.  I used the existing no-value-target theorem for runtime type
+applications to split off the `ok-•` case:
+
+`catchup-lemma (ok-• vV noV) (Λ vV′) (⊒Λ pᶜ N⊒V′)`.
+
+In that case the recursive premise source is definitionally still a type
+application after `⇑ᵗᵐ`, so `type-app-source-no-value-target` contradicts the
+fact that the target is the value `V′`.  I also added the reusable bridge
+`shifted-runtime-type-app-source-no-value-target`, which packages the same
+argument for any source with `RuntimeTypeApp N`.
+
+This explains why the old `TraceProbe` witness is not a counterexample to the
+real `catchup-lemma`: it uses an active type application source, but such a
+source cannot satisfy the real inner `⊒Λ` premise against a value target.
+
+Limitation: this only removes the active bullet shape.  The general
+`catchup-lemma okM (Λ vV′) (⊒Λ pᶜ N⊒V′)` clause still delegates to
+`catchup-⊒Λ-catchup`, which still depends on the too-broad
+`shifted-source-catchup-Λ-inversion` postulate for the remaining RuntimeOK
+forms.

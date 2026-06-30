@@ -5207,3 +5207,133 @@ Attempt 142 now exist locally.  This still does not prove
 `catchup-⊒Λ-catchup`; the next proof obligation is to package these builders
 into the source-first replay induction, likely replacing the too-coarse
 `TermRenameLocalOk` theorem with the shape-aware invariant from Attempt 141.
+
+## Attempt 145: merge main's typed narrowing cleanup
+
+Accepted as repository maintenance, but it does not advance the Λ inversion.
+
+Main retired the raw term narrowing relation from `GTSF/TermNarrowing.agda`
+and kept only the typed endpoint-indexed relation.  `proof.Catchup`, however,
+still imports and uses the raw constructors while it is not part of `All`.
+During the merge I restored the raw relation as local proof support and kept
+main's typed relation below it.  I also resolved
+`proof.TermNarrowingProperties` to keep the raw source-shape lemmas used by
+`proof.Catchup`.
+
+Checks after the merge resolution:
+
+- `agda -v0 TermNarrowing.agda`
+- `agda -v0 proof/TermNarrowingProperties.agda`
+- `agda -v0 proof/Catchup.agda`
+
+This confirms that the main-branch cleanup is compatible with the current
+catchup proof script after restoring the raw support layer, but it does not
+remove `shifted-source-catchup-Λ-inversion`.
+
+## Attempt 146: reuse the existing split-marker catchup helpers
+
+Rejected.
+
+A subagent checked the route through `catchup-split-catchup`,
+`⊒Λ-body-split-marker-catchup`, and the no-earlier-bind finish helpers.  The
+existing split helpers can insert/reorder the source and target split markers,
+but they do not lower the shifted source:
+
+`⇑ᵗᵐ N —↠[ χs′ ] W′`
+
+remains shifted, with
+
+`Δ″ ≡ applyTyCtxs χs′ (suc Δ)`.
+
+The needed Λ catchup conclusion instead requires:
+
+`N —↠[ χs′ ] W′`
+
+and
+
+`Δ″ ≡ applyTyCtxs χs′ Δ`.
+
+The no-earlier-bind helper also requires `AllKeep χs`, but
+`storeChangesLastBind` only gives `AllKeep keeps` for the tail after the last
+bind.  Thus these helpers cover only a stricter one-bind subcase and do not
+replace the shifted-source inversion in the general last-bind branch.
+
+## Attempt 147: rule out the unsafe `⊒Λ`/`split` replay by safety facts
+
+Rejected.
+
+A subagent isolated the exact unsafe source-first replay shape rejected by
+`SourceTargetMergeSafeFor`:
+
+`⊒Λ pᶜ (split {α = zero} {αᵢ = suc zero} qᶜ pαᶜ inner)`.
+
+The safety predicate reaches this shape because the `⊒Λ` case recurses with
+`merge-right (SourceTargetMergeRel-⇑ˢ merge-here)`, which is definitionally the
+bad `merge-right merge-here` split case.
+
+The obvious exclusions are too weak:
+
+- `runtime-type-app-source-no-value-target` only rules out an active
+  type-application source, but the bad split can have a value-shaped source.
+- `value-target-source-no-active` and `value-target-source-safe` pass through
+  both `⊒Λ` and `split`.
+- `Value W`, `Value V′`, `No• W`, and `CatchupSafe (⇑ᵗᵐ N)` are compatible
+  with this shape.
+
+So the missing invariant is not merely source safety.  It must either forbid
+the immediate shifted `⊒Λ`/`split` arrangement produced by this branch, or prove
+a split-aware replay lemma for that arrangement directly.
+
+## Attempt 148: package `TermRenameLocalShapeOk` as a uniform replay theorem
+
+Rejected in this uniform form.
+
+I tested a disposable probe theorem of the form:
+
+`TermRenameLocalShapeOk shape body → rename body by ρ`.
+
+The base cases such as `⊒blame` and `x⊒x` are straightforward; `x⊒x` uses the
+existing `lookup-renameCtxNrw` helper.  However, the uniform theorem is the
+wrong induction principle for the ν constructors.  In `ν⊒ν`, `⊒ν`, and `ν⊒`,
+the recursive store and coercion live under `extᵗ ρ`, but the ν body terms in
+the conclusion are renamed by `ρ`, not by `extᵗ ρ`.
+
+This is exactly why Attempts 143 and 144 added constructor-specific mixed
+builders.  A viable replay theorem must carry constructor-specific endpoint
+actions through the induction; a plain “rename every term endpoint by ρ after
+each recursive descent” theorem cannot state the ν cases.
+
+## Attempt 149: mechanize a counterexample to the shifted-source postulate
+
+Accepted as a checked counterexample to the postulate statement.
+
+The current postulate does not assume `No• W` or source safety.  Instantiate it
+with:
+
+``N = ƛ ((` zero) •)``
+
+`W = ⇑ᵗᵐ N = N`
+
+`V′ = ƛ blame`
+
+`χs = []`, `π = []`, and `σ = []`.
+
+The body premise is inhabited by `ƛ⊒ƛ` and `⊒blame`: the lambda source is a
+value even though its body contains a runtime type application, and `⊒blame`
+places no restriction on the source term.  The postulate then returns an
+unshifted catchup result:
+
+`N —↠[ χs′ ] W′`
+
+with `No• W′`.
+
+But there is no reduction rule under lambda, so every reduction from this `N`
+to a value is the reflexive one, and `No• N` is impossible because the body is
+``(` zero) •``.  The checked module
+`proof.CatchupShiftedSourceCounterexample` derives `⊥` from the postulate using
+exactly this instance.
+
+This does not by itself refute the narrower `catchup-⊒Λ-catchup` use site,
+which additionally has `No• W` and `CatchupSafe (⇑ᵗᵐ N)`.  It does show that
+`shifted-source-catchup-Λ-inversion` cannot be proved as currently stated; any
+replacement must strengthen its assumptions or avoid this standalone lemma.

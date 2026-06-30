@@ -1095,6 +1095,12 @@ srcStoreⁿ ((X ꞉ p) ∷ σ) = (X , src p) ∷ srcStoreⁿ σ
 srcStoreⁿ ((X ꞉= A ⊒) ∷ σ) = srcStoreⁿ σ
 srcStoreⁿ ((⊒ X ꞉=☆) ∷ σ) = (X , ★) ∷ srcStoreⁿ σ
 
+tgtStoreⁿ : StoreNrw → Store
+tgtStoreⁿ [] = []
+tgtStoreⁿ ((X ꞉ p) ∷ σ) = (X , tgt p) ∷ tgtStoreⁿ σ
+tgtStoreⁿ ((X ꞉= A ⊒) ∷ σ) = (X , A) ∷ tgtStoreⁿ σ
+tgtStoreⁿ ((⊒ X ꞉=☆) ∷ σ) = tgtStoreⁿ σ
+
 ⇑ʷ : StNrw → StNrw
 ⇑ʷ (X ꞉ p) = suc X ꞉ ⇑ᶜ p
 ⇑ʷ (X ꞉= A ⊒) = suc X ꞉= ⇑ᵗ A ⊒

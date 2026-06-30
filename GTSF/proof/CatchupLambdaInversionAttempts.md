@@ -3276,3 +3276,61 @@ shape, plus the invariant that source terms under the source-first store cannot
 mention the target-only variable `suc zero`.  A generic `swap01ᵗ` term-renaming
 theorem remains suspect because arbitrary determinant stores are not preserved
 by the swap (`StoreDetWf-swap01-generic⊥`).
+
+## Attempt 92: refine the replay target to an asymmetric transport
+
+Reasoning step, not yet checked as code.
+
+Attempt 91 originally described the missing body replay as a symmetric
+`swap01ᵗ` transport plus a separate invariant saying that the source term cannot
+mention the target-only variable `suc zero`.  That invariant is too naive:
+source-side casts can mention target-only type variables through the coercions
+used by cast rules, as in the old `TraceProbe` examples.  So a proof should not
+try to show:
+
+`renameᵗᵐ swap01ᵗ W = ⇑ᵗᵐ (renameᵗᵐ predᵗ W)`
+
+by syntactic absence of variable `suc zero`.
+
+The exact source term required by Attempt 91 is instead already represented by
+the existing `raise0ᵗ` helpers:
+
+`raise0ᵗ X = suc (predᵗ X)`
+
+and
+
+`renameᵗᵐ-raise0-pred :
+  renameᵗᵐ raise0ᵗ W ≡ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)`.
+
+So the next replay theorem should be asymmetric:
+
+source side:
+
+`W ↦ renameᵗᵐ raise0ᵗ W`
+
+target/coercion side:
+
+`⇑ᵗᵐ V ↦ renameᵗᵐ swap01ᵗ (⇑ᵗᵐ V)
+        = renameᵗᵐ (extᵗ suc) V`
+
+`⇑ᶜ p ↦ renameᶜ swap01ᵗ (⇑ᶜ p)
+      = renameᶜ (extᵗ suc) p`.
+
+Store side:
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`
+
+should map to
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+This is not an ordinary type-variable renaming theorem.  It collapses the
+source marker `zero` to source marker `suc zero` on the left, while moving the
+target marker `suc zero` to target marker `zero` on the right.  That shape looks
+closer to a split-aware source/target retagging theorem than to the symmetric
+`SourceTargetSwapRels` replay from Attempts 72-78.
+
+This also explains why a generic `swap01ᵗ` term transport is the wrong target
+for the single-bind branch: it produces `renameᵗᵐ swap01ᵗ W`, but the lowered
+reduction from Attempt 89 produces `renameᵗᵐ predᵗ W`, and the outer `⊒Λ`
+requires `⇑ᵗᵐ (renameᵗᵐ predᵗ W)`, i.e. `renameᵗᵐ raise0ᵗ W`.

@@ -3334,3 +3334,47 @@ This also explains why a generic `swap01ᵗ` term transport is the wrong target
 for the single-bind branch: it produces `renameᵗᵐ swap01ᵗ W`, but the lowered
 reduction from Attempt 89 produces `renameᵗᵐ predᵗ W`, and the outer `⊒Λ`
 requires `⇑ᵗᵐ (renameᵗᵐ predᵗ W)`, i.e. `renameᵗᵐ raise0ᵗ W`.
+
+## Attempt 93: factor checked retagging infrastructure
+
+Accepted as checked support in `proof.Catchup`.
+
+I added the first reusable pieces for the asymmetric replay target from
+Attempt 92:
+
+`source-target-bubble-empty-coercionᶜ`
+
+`source-target-bubble-empty-≈ⁿ`
+
+These show that ordinary coercion typing and plain coercion equivalence can be
+renamed by `swap01ᵗ` and then moved from the source-first store
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`
+
+to the target-first store
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+I also added the `raise0ᵗ` double-shift stability lemmas and
+
+`source-target-raise0-coercionᶜ`.
+
+This proves the source-side half needed by source casts: if a coercion is typed
+against the source-first source store, then renaming it by `raise0ᵗ` is typed
+against the target-first source store.
+
+This narrows the unsolved part.  The missing theorem is not basic coercion
+typing or plain equivalence transport.  It is the mixed composition transport
+needed by source-side cast constructors in the asymmetric term replay.  In a
+`cast-⊒` branch, the desired output has the shape
+
+`renameᶜ swap01ᵗ r ≈ renameᶜ raise0ᵗ t ⨾ⁿ renameᶜ swap01ᵗ p`.
+
+The existing symmetric composition transport gives
+
+`renameᶜ swap01ᵗ r ≈ renameᶜ swap01ᵗ t ⨾ⁿ renameᶜ swap01ᵗ p`
+
+when the determinant-store side condition is available.  That is not enough:
+the source term produced by the lowered reduction contains
+`renameᶜ raise0ᵗ t`, not `renameᶜ swap01ᵗ t`.  Proving, refuting, or avoiding
+that mixed composition statement is now the concrete next obstruction.

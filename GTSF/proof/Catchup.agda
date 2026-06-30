@@ -516,6 +516,47 @@ renameᵗᵐ-swap01-⇑⇑ M =
 raise0ᵗ : Renameᵗ
 raise0ᵗ X = suc (predᵗ X)
 
+raise0ᵗ-after-suc-suc :
+  ∀ X →
+  raise0ᵗ (suc (suc X)) ≡ suc (suc X)
+raise0ᵗ-after-suc-suc X = refl
+
+renameᵗ-raise0-⇑⇑ :
+  ∀ A →
+  renameᵗ raise0ᵗ (⇑ᵗ (⇑ᵗ A)) ≡ ⇑ᵗ (⇑ᵗ A)
+renameᵗ-raise0-⇑⇑ A =
+  trans
+    (cong (renameᵗ raise0ᵗ) (renameᵗ-compose suc suc A))
+    (trans
+      (renameᵗ-compose (λ X → suc (suc X)) raise0ᵗ A)
+      (trans
+        (rename-cong raise0ᵗ-after-suc-suc A)
+        (sym (renameᵗ-compose suc suc A))))
+
+renameᶜ-raise0-⇑⇑ :
+  ∀ c →
+  renameᶜ raise0ᵗ (⇑ᶜ (⇑ᶜ c)) ≡ ⇑ᶜ (⇑ᶜ c)
+renameᶜ-raise0-⇑⇑ c =
+  trans
+    (cong (renameᶜ raise0ᵗ) (renameᶜ-compose suc suc c))
+    (trans
+      (renameᶜ-compose (λ X → suc (suc X)) raise0ᵗ c)
+      (trans
+        (renameᶜ-cong raise0ᵗ-after-suc-suc c)
+        (sym (renameᶜ-compose suc suc c))))
+
+renameᵗᵐ-raise0-⇑⇑ :
+  ∀ M →
+  renameᵗᵐ raise0ᵗ (⇑ᵗᵐ (⇑ᵗᵐ M)) ≡ ⇑ᵗᵐ (⇑ᵗᵐ M)
+renameᵗᵐ-raise0-⇑⇑ M =
+  trans
+    (cong (renameᵗᵐ raise0ᵗ) (renameᵗᵐ-compose suc suc M))
+    (trans
+      (renameᵗᵐ-compose (λ X → suc (suc X)) raise0ᵗ M)
+      (trans
+        (renameᵗᵐ-cong raise0ᵗ-after-suc-suc M)
+        (sym (renameᵗᵐ-compose suc suc M))))
+
 renameStNrw : Renameᵗ → StNrw → StNrw
 renameStNrw ρ (X ꞉ p) = ρ X ꞉ renameᶜ ρ p
 renameStNrw ρ (X ꞉= A ⊒) = ρ X ꞉= renameᵗ ρ A ⊒
@@ -587,6 +628,25 @@ renameStoreNrw-swap01-⇑ˢ⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
   cong₂ _∷_
     (cong (λ Y → ⊒ Y ꞉=☆) (swap01ᵗ-after-suc-suc X))
     (renameStoreNrw-swap01-⇑ˢ⇑ˢ σ)
+
+renameStoreNrw-raise0-⇑ˢ⇑ˢ :
+  ∀ σ →
+  renameStoreNrw raise0ᵗ (⇑ˢ (⇑ˢ σ)) ≡ ⇑ˢ (⇑ˢ σ)
+renameStoreNrw-raise0-⇑ˢ⇑ˢ [] = refl
+renameStoreNrw-raise0-⇑ˢ⇑ˢ ((X ꞉ p) ∷ σ) =
+  cong₂ _∷_
+    (cong₂ _꞉_ (raise0ᵗ-after-suc-suc X) (renameᶜ-raise0-⇑⇑ p))
+    (renameStoreNrw-raise0-⇑ˢ⇑ˢ σ)
+renameStoreNrw-raise0-⇑ˢ⇑ˢ ((X ꞉= A ⊒) ∷ σ) =
+  cong₂ _∷_
+    (cong₂ _꞉=_⊒
+      (raise0ᵗ-after-suc-suc X)
+      (renameᵗ-raise0-⇑⇑ A))
+    (renameStoreNrw-raise0-⇑ˢ⇑ˢ σ)
+renameStoreNrw-raise0-⇑ˢ⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
+  cong₂ _∷_
+    (cong (λ Y → ⊒ Y ꞉=☆) (raise0ᵗ-after-suc-suc X))
+    (renameStoreNrw-raise0-⇑ˢ⇑ˢ σ)
 
 -- Attempt 72.  A full source-prefix bubble cannot be expressed by
 -- `SourceTargetSwapRels` alone.  For an empty prefix, `swap01ᵗ` makes the
@@ -1089,6 +1149,48 @@ source-target-bubble-empty {σ = σ} =
     (renameStoreNrw-swap01-⇑ˢ⇑ˢ σ)
     (swaps-step swap-here swaps-refl)
 
+source-target-bubble-empty-coercionᶜ :
+  ∀ {Δ σ c A B} →
+  suc (suc Δ) ∣
+    srcStoreⁿ ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ))
+    ⊢ c ∶ᶜ A ⊒ B →
+  suc (suc Δ) ∣
+    srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ))
+    ⊢ renameᶜ swap01ᵗ c
+      ∶ᶜ renameᵗ swap01ᵗ A ⊒ renameᵗ swap01ᵗ B
+source-target-bubble-empty-coercionᶜ {σ = σ} cᶜ =
+  SourceTargetSwapRels-coercionᶜ
+    (source-target-bubble-empty {σ = σ})
+    (renameStoreNrw-coercionᶜ
+      {σ = (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)}
+      TyRenameWf-swap01
+      cᶜ)
+
+source-target-bubble-empty-≈ⁿ :
+  ∀ {Δ σ s t A B} →
+  suc (suc Δ) ∣
+    (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)
+    ⊢ s ≈ t ∶ A ⊒ B →
+  suc (suc Δ) ∣
+    (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ)
+    ⊢ renameᶜ swap01ᵗ s ≈ renameᶜ swap01ᵗ t
+      ∶ renameᵗ swap01ᵗ A ⊒ renameᵗ swap01ᵗ B
+source-target-bubble-empty-≈ⁿ {σ = σ} s≈t =
+  SourceTargetSwapRels-≈ⁿ
+    (source-target-bubble-empty {σ = σ})
+    (≈ⁿ-rename-swap01ᵗ s≈t)
+
+source-target-raise0-srcStore :
+  ∀ σ →
+  srcStoreⁿ
+    (renameStoreNrw raise0ᵗ
+      ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)))
+  ≡
+  srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ))
+source-target-raise0-srcStore σ =
+  cong ((suc zero , ★) ∷_)
+    (cong srcStoreⁿ (renameStoreNrw-raise0-⇑ˢ⇑ˢ σ))
+
 data SplitSourceTargetSwapsView :
   ∀ {Δ α A αᵢ σ τ} →
   SourceTargetSwapRels Δ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ) τ →
@@ -1369,6 +1471,26 @@ modeRename-raise0-tag-or-id :
   ModeRename raise0ᵗ tag-or-idᵈ tag-or-idᵈ
 modeRename-raise0-tag-or-id =
   modeRename-tag-or-id raise0ᵗ
+
+source-target-raise0-coercionᶜ :
+  ∀ {Δ σ c A B} →
+  suc (suc Δ) ∣
+    srcStoreⁿ ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ))
+    ⊢ c ∶ᶜ A ⊒ B →
+  suc (suc Δ) ∣
+    srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ))
+    ⊢ renameᶜ raise0ᵗ c
+      ∶ᶜ renameᵗ raise0ᵗ A ⊒ renameᵗ raise0ᵗ B
+source-target-raise0-coercionᶜ
+    {Δ = Δ} {σ = σ} {c = c} {A = A} {B = B} cᶜ =
+  subst
+    (λ Σ → suc (suc Δ) ∣ Σ ⊢ renameᶜ raise0ᵗ c
+      ∶ᶜ renameᵗ raise0ᵗ A ⊒ renameᵗ raise0ᵗ B)
+    (source-target-raise0-srcStore σ)
+    (renameStoreNrw-coercionᶜ
+      {σ = (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)}
+      TyRenameWf-raise0
+      cᶜ)
 
 renameᵗ-raise0-pred :
   ∀ A →

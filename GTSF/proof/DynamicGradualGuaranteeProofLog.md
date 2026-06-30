@@ -123,8 +123,6 @@ Implemented staged typed relation:
   `Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)`.
 - Added `typed-term-narrowing-index-typing`, which projects the typed coercion
   evidence at the conclusion endpoints.
-- Added `typed-term-narrowing-erasure`, which forgets the endpoint indices back
-  to the legacy raw relation for existing catchup and example code.
 
 Counterexample documentation:
 
@@ -140,9 +138,10 @@ DGG integration:
 - The application-left branch now inverts `·⊒·ᵗ` and the recursive call uses
   the exposed `p ↦ q` typing evidence directly.
 
-Remaining alignment issue:
+Previous alignment issue from the staged typed-index PR:
 
-- The application-left recursive call still has two typing-transport holes.
+- At this point, the application-left recursive call still had two anonymous
+  typing-transport holes.
   The separate application typing premises expose the source/target function
   domains, while `·⊒·ᵗ` exposes the relation endpoints.  The staged typed
   relation does not yet bundle source/target typing projections for subterms,
@@ -151,3 +150,63 @@ Remaining alignment issue:
 - Do not patch this by adding a postulate.  The next clean step is either to
   bundle source/target typing evidence in the typed relation, or to prove a
   focused typing-alignment lemma for typed term narrowing.
+
+## Typed term-narrowing users, 2026-06-30
+
+Ported DGG-facing support to the typed relation:
+
+- Added typed two-sided cast rules directly to `TermNarrowing`.  They preserve
+  endpoint indices without requiring the intermediate coercion `r` to be a
+  canonical `∶ᶜ` index, which matters for seal-mode examples.
+- Added typed parallel substitution in `proof.TermSubstitutionNarrowing`,
+  reusing the existing substitution frames.  The single-variable transport uses
+  `coercion-endpoints-uniqueᵐ` to align the endpoint indices supplied by the
+  variable lookup with the endpoint indices of the substituted value relation.
+- Updated `function-application-simulation-ƛ⊒ƛ` to consume typed body and
+  argument narrowing.  The DGG conclusion now remains typed instead of erasing
+  back to the legacy raw relation.
+- Removed the temporary erasure layer and other raw-relation imports from
+  DGG-facing support.
+
+## Typed term-narrowing endpoints, 2026-06-30
+
+Issue #31 exposed that the staged typed relation had coercion endpoint evidence
+but not term typing evidence at those same endpoints.  The application-left DGG
+recursive call needs the `L`/`L′` typings aligned with the endpoints exposed by
+`·⊒·ᵗ`; the separate application typing premises are not enough to recover that
+alignment.
+
+Implemented adjustment:
+
+- Added `tgtStoreⁿ` as the target-store projection dual to `srcStoreⁿ`.
+- Added `srcCtxⁿ` and `tgtCtxⁿ` as the source and target context projections
+  for term-variable narrowing contexts.
+- Added `TermTypingEndpoints`, bundling
+  `Δ ∣ srcStoreⁿ σ ∣ srcCtxⁿ γ ⊢ M ⦂ A` and
+  `Δ ∣ tgtStoreⁿ σ ∣ tgtCtxⁿ γ ⊢ M′ ⦂ B`.
+- Strengthened every typed term-narrowing constructor with hidden endpoint
+  evidence, including the permissive `⊒blameᵗ` case that motivated the issue.
+- Added `typed-term-narrowing-source-typing` and
+  `typed-term-narrowing-target-typing` as direct projections from typed term
+  narrowing.
+- Added `tgtStoreⁿ-⊒ˢ`; DGG uses it to transport target term typing from
+  `tgtStoreⁿ σ` to the explicit `Σ′` carried by the theorem premise.
+- Tightened the example-facing typed cast surface so final endpoint witnesses
+  are explicit rather than left as fresh metas.
+
+## Raw term-narrowing retirement, 2026-06-30
+
+Implemented cleanup:
+
+- Ported `NarrowingExamples` to the typed relation and typed constructors.
+- Corrected the `·⊒·ᵗ` argument endpoint order to use `- p ⦂ A ⊒ A′`,
+  matching the source and target function domains.
+- Deleted the legacy raw term-narrowing data declaration from `TermNarrowing`.
+- Reduced `proof.TermNarrowingProperties` to a placeholder for future typed
+  structural lemmas; the two-sided cast rules are now canonical constructors.
+
+Current validation target:
+
+- `All.agda` passes with the raw relation deleted.  Historical proof
+  experiments and prose notes may still mention raw constructor names, but they
+  are outside the active aggregate checker.

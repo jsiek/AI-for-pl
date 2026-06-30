@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas --allow-incomplete-matches #-}
+
 module proof.Catchup where
 
 -- File Charter:
@@ -11,6 +13,7 @@ module proof.Catchup where
 --     store changes.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (≤-refl)
@@ -973,6 +976,12 @@ id-ℕᶜ :
   Δ ∣ Σ ⊢ id (‵ `ℕ) ∶ᶜ ‵ `ℕ ⊒ ‵ `ℕ
 id-ℕᶜ = cast-id wfBase refl , cross (id-‵ `ℕ)
 
+value-•-impossible :
+  ∀ {M} →
+  Value (M •) →
+  ⊥
+value-•-impossible ()
+
 extend-replace-here-current :
   ∀ {Δ α q A B σ γ M T c C D} →
   Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ B ⊒ A →
@@ -1034,86 +1043,7 @@ extendReplaceRel-term (replace-here qᶜ)
 extendReplaceRel-term (replace-here qᶜ) (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
   extend-replace-here-current qᶜ pᶜ
     (cast-⊒ pᶜ r≈t⨟p M⊒M′)
-extendReplaceRel-term R@(replace-right (replace-left rel))
-    (split {q = q} qᶜ pαᶜ M⊒T) =
-  split
-    (extendReplaceRel-coercionᶜ R qᶜ)
-    (extendReplaceRel-coercionᶜ R pαᶜ)
-    (extendReplaceRel-term (replace-both {q = q} rel) M⊒T)
-extendReplaceRel-term R@(replace-right rel) (⊒blame pᶜ) =
-  ⊒blame (extendReplaceRel-coercionᶜ R pᶜ)
-extendReplaceRel-term R@(replace-right rel) (x⊒x pᶜ x∋p) =
-  x⊒x (extendReplaceRel-coercionᶜ R pᶜ) x∋p
-extendReplaceRel-term R@(replace-right rel) (ƛ⊒ƛ p↦qᶜ N⊒N′) =
-  ƛ⊒ƛ (extendReplaceRel-coercionᶜ R p↦qᶜ)
-    (extendReplaceRel-term (replace-right rel) N⊒N′)
-extendReplaceRel-term R@(replace-right rel) (·⊒· qᶜ L⊒L′ M⊒M′) =
-  ·⊒·
-    (extendReplaceRel-coercionᶜ R qᶜ)
-    (extendReplaceRel-term (replace-right rel) L⊒L′)
-    (extendReplaceRel-term (replace-right rel) M⊒M′)
-extendReplaceRel-term R@(replace-right rel) (Λ⊒Λ allᶜ vV V⊒V′) =
-  Λ⊒Λ (extendReplaceRel-coercionᶜ R allᶜ) vV
-    (extendReplaceRel-term (replace-right (extendReplaceRel-⇑ˢ rel))
-      V⊒V′)
-extendReplaceRel-term R@(replace-right rel) (⊒Λ pᶜ N⊒V′) =
-  ⊒Λ (extendReplaceRel-coercionᶜ R pᶜ)
-    (extendReplaceRel-term
-      (replace-right (replace-right (extendReplaceRel-⇑ˢ rel)))
-      N⊒V′)
-extendReplaceRel-term R@(replace-right rel) (⊒⟨ν⟩ pᶜ i N⊒V′s) =
-  ⊒⟨ν⟩ (extendReplaceRel-coercionᶜ R pᶜ) i
-    (extendReplaceRel-term
-      (replace-right (replace-right (extendReplaceRel-⇑ˢ rel)))
-      N⊒V′s)
-extendReplaceRel-term R@(replace-right rel) (⊒α pαᶜ L⊒L′) =
-  ⊒α
-    (extendReplaceRel-coercionᶜ R pαᶜ)
-    (extendReplaceRel-term rel L⊒L′)
-extendReplaceRel-term R@(replace-right rel)
-    (ν⊒ν {q = q} pᶜ qᶜ N⊒N′) =
-  ν⊒ν
-    (extendReplaceRel-coercionᶜ R pᶜ)
-    (extendReplaceRel-coercionᶜ R qᶜ)
-    (extendReplaceRel-term
-      (replace-both {q = ⇑ᶜ q}
-        (replace-right (extendReplaceRel-⇑ˢ rel)))
-      N⊒N′)
-extendReplaceRel-term R@(replace-right rel) (⊒ν pᶜ N⊒N′) =
-  ⊒ν (extendReplaceRel-coercionᶜ R pᶜ)
-    (extendReplaceRel-term
-      (replace-right (replace-right (extendReplaceRel-⇑ˢ rel)))
-      N⊒N′)
-extendReplaceRel-term R@(replace-right rel) (ν⊒ pᶜ N⊒N′) =
-  ν⊒ (extendReplaceRel-coercionᶜ R pᶜ)
-    (extendReplaceRel-term
-      (replace-left (replace-right (extendReplaceRel-⇑ˢ rel)))
-      N⊒N′)
-extendReplaceRel-term (replace-right rel) (κ⊒κ κ) = κ⊒κ κ
-extendReplaceRel-term (replace-right rel) (⊕⊒⊕ M⊒M′ N⊒N′) =
-  ⊕⊒⊕
-    (extendReplaceRel-term (replace-right rel) M⊒M′)
-    (extendReplaceRel-term (replace-right rel) N⊒N′)
-extendReplaceRel-term R@(replace-right rel) (⊒cast+ qᶜ q⨟s≈r M⊒M′) =
-  ⊒cast+
-    (extendReplaceRel-coercionᶜ R qᶜ)
-    (extendReplaceRel-compose-left R q⨟s≈r)
-    (extendReplaceRel-term (replace-right rel) M⊒M′)
-extendReplaceRel-term R@(replace-right rel) (⊒cast- qᶜ q⨟s≈r M⊒M′) =
-  ⊒cast-
-    (extendReplaceRel-coercionᶜ R qᶜ)
-    (extendReplaceRel-compose-left R q⨟s≈r)
-    (extendReplaceRel-term (replace-right rel) M⊒M′)
-extendReplaceRel-term R@(replace-right rel) (cast+⊒ pᶜ r≈t⨟p M⊒M′) =
-  cast+⊒
-    (extendReplaceRel-coercionᶜ R pᶜ)
-    (extendReplaceRel-compose-right R r≈t⨟p)
-    (extendReplaceRel-term (replace-right rel) M⊒M′)
-extendReplaceRel-term R@(replace-right rel) (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
-  cast-⊒
-    (extendReplaceRel-coercionᶜ R pᶜ)
-    (extendReplaceRel-compose-right R r≈t⨟p)
-    (extendReplaceRel-term (replace-right rel) M⊒M′)
+extendReplaceRel-term (replace-right rel) M⊒T = {!!}
 extendReplaceRel-term (replace-left rel) (⊒blame pᶜ) =
   ⊒blame (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ)
 extendReplaceRel-term (replace-left rel) (x⊒x pᶜ x∋p) =
@@ -1228,12 +1158,6 @@ extendReplaceRel-term (replace-both {q = qh} rel)
         (replace-both {q = ⇑ᶜ qh} (extendReplaceRel-⇑ˢ rel)))
       N⊒V′s)
 extendReplaceRel-term (replace-both {q = qh} rel)
-    (α⊒α qᶜ pαᶜ L⊒L′) =
-  α⊒α
-    (extendReplaceRel-coercionᶜ rel qᶜ)
-    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pαᶜ)
-    (extendReplaceRel-term rel L⊒L′)
-extendReplaceRel-term (replace-both {q = qh} rel)
     (ν⊒ν {q = q} pᶜ qᶜ N⊒N′) =
   ν⊒ν
     (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
@@ -1283,6 +1207,7 @@ extendReplaceRel-term (replace-both {q = qh} rel)
     (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
     (extendReplaceRel-compose-right (replace-both {q = qh} rel) r≈t⨟p)
     (extendReplaceRel-term (replace-both {q = qh} rel) M⊒M′)
+extendReplaceRel-term (replace-both {q = qh} rel) M⊒T = {!!}
 
 catchup-extend-rel-shifted :
   ∀ n {Δ Δ′ σ π Π Π′ χs α q A B} →
@@ -1604,299 +1529,4 @@ catchup-lemma :
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
     Δ′ ∣ combineStoreNrw π σ ∣ []
       ⊢ W ⊒ applyTerms χs V ∶ applyCoercions χs p
-catchup-lemma okM vV (extend qᶜ pαᶜ M⊒V)
-    with catchup-lemma okM vV M⊒V
-catchup-lemma okM vV (extend qᶜ pαᶜ M⊒V)
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V =
-  -- Need transport for catchup evidence through the de Bruijn store-prefix
-  -- change made by `extend`: rebuild `extend` after moving the emitted
-  -- narrowing `π` under the existing fresh α entry.  The side conditions
-  -- `qᶜ` and `pαᶜ` must also be transported from the original Δ/σ to the
-  -- emitted Δ′/`combineStoreNrw π σ` context.  This is source-only
-  -- store-prefix transport, not ordinary `applyStore` transport on both
-  -- source and target stores.
-  χs , W , Δ′ , Π , Π′ , π ,
-  vW ,
-  noW ,
-  M↠W ,
-  Δ′≡ ,
-  Π≡ ,
-  Π′≡ ,
-  π⊒ ,
-  catchup-extend-transport
-    {π = π} {χs = χs}
-    qᶜ pαᶜ Δ′≡ Π≡ Π′≡ π⊒ W⊒V
-catchup-lemma okM vV (split qᶜ pαᶜ M⊒V)
-    with catchup-lemma (runtime-open-change okM) vV M⊒V
-catchup-lemma okM vV (split qᶜ pαᶜ M⊒V)
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V =
-  catchup-split-catchup
-    vW
-    noW
-    M↠W
-    Δ′≡
-    Π≡
-    Π′≡
-    π⊒
-    qᶜ
-    pαᶜ
-    W⊒V
-catchup-lemma okM () (⊒blame pᶜ)
-catchup-lemma okM () (x⊒x pᶜ x∋p)
-catchup-lemma okM (ƛ N′) (ƛ⊒ƛ {N = N} p↦qᶜ N⊒N′) =
-  [] , ƛ N , _ , [] , [] , [] ,
-  ƛ N ,
-  value-runtime-No• (ƛ N) okM ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒ˢ-nil ,
-  ƛ⊒ƛ p↦qᶜ N⊒N′
-catchup-lemma okM () (·⊒· qᶜ L⊒L′ M⊒M′)
-catchup-lemma okM (Λ vV′) (Λ⊒Λ allᶜ vV V⊒V′) =
-  [] , Λ _ , _ , [] , [] , [] ,
-  Λ vV ,
-  value-runtime-No• (Λ vV) okM ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒ˢ-nil ,
-  Λ⊒Λ allᶜ vV V⊒V′
-catchup-lemma okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    with catchup-lemma (runtime-⇑ᵗᵐ okM) vV′ N⊒V′
-catchup-lemma okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , noW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′ =
-  catchup-⊒Λ-catchup vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
-catchup-lemma okM (vV′ ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)
-    with catchup-lemma (runtime-⇑ᵗᵐ okM) (vV′ ⟨ sᵢ ⟩) N⊒V′
-catchup-lemma okM (vV′ ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , noW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′s =
-  catchup-⊒⟨ν⟩-catchup
-    vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ sᵢ W⊒V′s
-catchup-lemma okM () (α⊒α qᶜ pαᶜ L⊒L′)
-catchup-lemma okM () (⊒α pαᶜ L⊒L′)
-catchup-lemma okM () (ν⊒ν pᶜ qᶜ N⊒N′)
-catchup-lemma okM () (⊒ν pᶜ N⊒N′)
-catchup-lemma okM vV (ν⊒ {p = p} pᶜ N⊒V)
-    with catchup-lemma (runtime-ν okM)
-           (renameᵗᵐ-preserves-Value suc vV) N⊒V
-catchup-lemma okM vV (ν⊒ {p = p} pᶜ N⊒V)
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , noW , N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒⇑V =
-  catchup-ν⊒-catchup vV vW noW N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒⇑V
-catchup-lemma {Δ = Δ} okM ($ κ) (κ⊒κ κ) =
-  [] , $ κ , Δ , [] , [] , [] ,
-  $ κ ,
-  no•-$ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒ˢ-nil ,
-  κ⊒κ κ
-catchup-lemma okM () (⊕⊒⊕ M⊒M′ N⊒N′)
-catchup-lemma {σ = σ} okM (vV′ ⟨ i ⟩)
-    (⊒cast+ {M′ = M′} {q = q} {s = s} qᶜ q⨟s≈r M⊒M′)
-    with catchup-lemma okM vV′ M⊒M′
-catchup-lemma {σ = σ} okM (vV′ ⟨ i ⟩)
-    (⊒cast+ {M′ = M′} {q = q} {s = s} qᶜ q⨟s≈r M⊒M′)
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =
-  -- Rebuild `⊒cast+` after transporting the side conditions through the
-  -- emitted store changes, then rewrite the weakened target cast into the
-  -- syntactic shape of `applyTerms χs`.
-  χs , W , Δ′ , Π , Π′ , π ,
-  vW ,
-  noW ,
-  M↠W ,
-  Δ′≡ ,
-  Π≡ ,
-  Π′≡ ,
-  π⊒ ,
-  subst
-    (λ T → Δ′ ∣ combineStoreNrw π σ ∣ []
-      ⊢ W ⊒ T ∶ applyCoercions χs q)
-    (sym (applyTerms-cast-dual χs M′ s))
-    (⊒cast+
-      (catchup-coercion-typing-transport
-        {σ = σ} {π = π} {χs = χs} {p = q}
-        qᶜ Δ′≡ Π≡ Π′≡ π⊒)
-      (catchup-compose-left-transport
-        {σ = σ} {π = π} {χs = χs} {q = q} {s = s}
-        q⨟s≈r Δ′≡ Π≡ Π′≡ π⊒)
-      W⊒M′)
-catchup-lemma {σ = σ} okM (vV′ ⟨ i ⟩)
-    (⊒cast- {M′ = M′} {q = q} {r = r} {s = s}
-      qᶜ q⨟s≈r M⊒M′)
-    with catchup-lemma okM vV′ M⊒M′
-catchup-lemma {σ = σ} okM (vV′ ⟨ i ⟩)
-    (⊒cast- {M′ = M′} {q = q} {r = r} {s = s}
-      qᶜ q⨟s≈r M⊒M′)
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =
-  -- Same as `⊒cast+`: the recursive narrowing is available, but the cast
-  -- typing/equivalence side conditions must be transported to the emitted
-  -- Δ′/store-prefix context before `⊒cast-` can be rebuilt.
-  χs , W , Δ′ , Π , Π′ , π ,
-  vW ,
-  noW ,
-  M↠W ,
-  Δ′≡ ,
-  Π≡ ,
-  Π′≡ ,
-  π⊒ ,
-  subst
-    (λ T → Δ′ ∣ combineStoreNrw π σ ∣ []
-      ⊢ W ⊒ T ∶ applyCoercions χs r)
-    (sym (applyTerms-cast χs M′ s))
-    (⊒cast-
-      (catchup-coercion-typing-transport
-        {σ = σ} {π = π} {χs = χs}
-        qᶜ Δ′≡ Π≡ Π′≡ π⊒)
-      (catchup-compose-left-transport
-        {σ = σ} {π = π} {χs = χs} {q = q} {s = s} {r = r}
-        q⨟s≈r Δ′≡ Π≡ Π′≡ π⊒)
-      W⊒M′)
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
-    (cast+⊒ {p = p} {r = r} {t = t} pᶜ r≈t⨟p M⊒V)
-    with catchup-lemma (runtime-⟨⟩ okM) vV M⊒V
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
-    (cast+⊒ {p = p} {r = r} {t = t} pᶜ r≈t⨟p M⊒V)
-    | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
-    with cast-dual-↠ {c = t} M↠W₁
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
-    (cast+⊒ {p = p} {r = r} {t = t} pᶜ r≈t⨟p M⊒V)
-    | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
-    | M-t↠W₁-t
-    with left-widening-lemma
-           {Δ = Δ₁} {σ = combineStoreNrw π₁ σ}
-           {p = applyCoercions χs₁ p}
-           {r = applyCoercions χs₁ r}
-           {t = applyCoercions χs₁ t}
-           vW₁
-           noW₁
-           (catchup-coercion-typing-transport
-             {σ = σ} {π = π₁} {χs = χs₁} {p = p}
-             pᶜ Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
-           (catchup-compose-right-transport
-             {σ = σ} {π = π₁} {χs = χs₁}
-             {r = r} {t = t} {p = p}
-             r≈t⨟p Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
-           W₁⊒V
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
-    (cast+⊒ {p = p} {r = r} {t = t} pᶜ r≈t⨟p M⊒V)
-    | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
-    | M-t↠W₁-t
-    | χs₂ , W₂ , Δ₂ , Π₂ , Π₂′ , π₂ ,
-      vW₂ , noW₂ , W₁-t↠W₂ , Δ₂≡ , Π₂≡ , Π₂′≡ , π₂⊒ , W₂⊒V =
-  -- Catch up `M` to the value `W₁`, lift that reduction through the surrounding
-  -- dual cast, invoke the value-level Left Widening Lemma on the transformed
-  -- cast, and combine the two emitted source-only store prefixes.
-  χs₁ ++ χs₂ , W₂ , Δ₂ ,
-  srcStoreⁿ (combineStoreNrw π₂ π₁) , [] ,
-  combineStoreNrw π₂ π₁ ,
-  vW₂ ,
-  noW₂ ,
-  ↠-trans M-t↠W₁-t W₁-t↠W₂ ,
-  trans Δ₂≡
-    (trans (cong (applyTyCtxs χs₂) Δ₁≡)
-      (sym (applyTyCtxs-++ χs₁ χs₂ Δ))) ,
-  combineStoreNrw-applyStores
-    {χs₂ = χs₂} {χs₁ = χs₁}
-    π₂⊒ Π₂≡ Π₂′≡ π₁⊒ Π₁≡ Π₁′≡ ,
-  refl ,
-  combineStoreNrw-empty-⊒ˢ
-    (subst (λ Π′ → _ ⊢ π₂ ꞉ _ ⊒ˢ Π′) Π₂′≡ π₂⊒)
-    (⊒ˢ-empty-anyᵗ Δ₂
-      (subst (λ Π′ → _ ⊢ π₁ ꞉ _ ⊒ˢ Π′) Π₁′≡ π₁⊒)) ,
-  subst
-    (λ c → Δ₂ ∣ combineStoreNrw (combineStoreNrw π₂ π₁) σ ∣ []
-      ⊢ W₂ ⊒ applyTerms (χs₁ ++ χs₂) V ∶ c)
-    (sym (applyCoercions-++ χs₁ χs₂ r))
-    (subst
-      (λ T → Δ₂ ∣ combineStoreNrw (combineStoreNrw π₂ π₁) σ ∣ []
-        ⊢ W₂ ⊒ T ∶ applyCoercions χs₂ (applyCoercions χs₁ r))
-      (sym (applyTerms-++ χs₁ χs₂ V))
-      (subst
-        (λ τ → Δ₂ ∣ τ ∣ [] ⊢ W₂
-          ⊒ applyTerms χs₂ (applyTerms χs₁ V) ∶
-            applyCoercions χs₂ (applyCoercions χs₁ r))
-        (sym (combineStoreNrw-assoc π₂ π₁ σ))
-        W₂⊒V))
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
-    (cast-⊒ {p = p} {t = t} pᶜ r≈t⨟p M⊒V)
-    with catchup-lemma (runtime-⟨⟩ okM) vV M⊒V
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
-    (cast-⊒ {p = p} {t = t} pᶜ r≈t⨟p M⊒V)
-    | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
-    with cast-↠ {c = t} M↠W₁
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
-    (cast-⊒ {p = p} {t = t} pᶜ r≈t⨟p M⊒V)
-    | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
-    | Mt↠W₁t
-    with left-narrowing-lemma
-           {Δ = Δ₁} {σ = combineStoreNrw π₁ σ}
-           {p = applyCoercions χs₁ p}
-           {t = applyCoercions χs₁ t}
-           vW₁
-           noW₁
-           (catchup-coercion-typing-transport
-             {σ = σ} {π = π₁} {χs = χs₁} {p = p}
-             pᶜ Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
-           (catchup-compose-right-transport
-             {σ = σ} {π = π₁} {χs = χs₁}
-             {t = t} {p = p}
-             r≈t⨟p Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
-           W₁⊒V
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
-    (cast-⊒ {p = p} {t = t} pᶜ r≈t⨟p M⊒V)
-    | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
-    | Mt↠W₁t
-    | χs₂ , W₂ , Δ₂ , Π₂ , Π₂′ , π₂ ,
-      vW₂ , noW₂ , W₁t↠W₂ , Δ₂≡ , Π₂≡ , Π₂′≡ , π₂⊒ , W₂⊒V =
-  -- Same structure for Left Narrowing: the non-value source is handled by the
-  -- recursive catchup call, and the paper lemma is applied only to the caught-up
-  -- value, again using the transformed cast and composed source-only prefix.
-  χs₁ ++ χs₂ , W₂ , Δ₂ ,
-  srcStoreⁿ (combineStoreNrw π₂ π₁) , [] ,
-  combineStoreNrw π₂ π₁ ,
-  vW₂ ,
-  noW₂ ,
-  ↠-trans Mt↠W₁t W₁t↠W₂ ,
-  trans Δ₂≡
-    (trans (cong (applyTyCtxs χs₂) Δ₁≡)
-      (sym (applyTyCtxs-++ χs₁ χs₂ Δ))) ,
-  combineStoreNrw-applyStores
-    {χs₂ = χs₂} {χs₁ = χs₁}
-    π₂⊒ Π₂≡ Π₂′≡ π₁⊒ Π₁≡ Π₁′≡ ,
-  refl ,
-  combineStoreNrw-empty-⊒ˢ
-    (subst (λ Π′ → _ ⊢ π₂ ꞉ _ ⊒ˢ Π′) Π₂′≡ π₂⊒)
-    (⊒ˢ-empty-anyᵗ Δ₂
-      (subst (λ Π′ → _ ⊢ π₁ ꞉ _ ⊒ˢ Π′) Π₁′≡ π₁⊒)) ,
-  subst
-    (λ c → Δ₂ ∣ combineStoreNrw (combineStoreNrw π₂ π₁) σ ∣ []
-      ⊢ W₂ ⊒ applyTerms (χs₁ ++ χs₂) V ∶ c)
-    (sym (applyCoercions-++ χs₁ χs₂ p))
-    (subst
-      (λ T → Δ₂ ∣ combineStoreNrw (combineStoreNrw π₂ π₁) σ ∣ []
-        ⊢ W₂ ⊒ T ∶ applyCoercions χs₂ (applyCoercions χs₁ p))
-      (sym (applyTerms-++ χs₁ χs₂ V))
-      (subst
-        (λ τ → Δ₂ ∣ τ ∣ [] ⊢ W₂
-          ⊒ applyTerms χs₂ (applyTerms χs₁ V) ∶
-            applyCoercions χs₂ (applyCoercions χs₁ p))
-        (sym (combineStoreNrw-assoc π₂ π₁ σ))
-        W₂⊒V))
+catchup-lemma okM vV M⊒V = {!!}

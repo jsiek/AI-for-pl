@@ -39,11 +39,6 @@ variable
 ⇑ᵍ : CtxNrw → CtxNrw
 ⇑ᵍ = map ⇑ᶜ
 
-infixl 7 _•_
-
-_•_ : Term → TyVar → Term
-L • α = ν (＇ α) L (id (＇ zero))
-
 infix 4 _∣_∣_⊢_⊒_∶_
 
 data _∣_∣_⊢_⊒_∶_
@@ -112,18 +107,20 @@ data _∣_∣_⊢_⊒_∶_
       ----------------------------------------------------
     → Δ ∣ σ ∣ γ ⊢ N ⊒ V′ ⟨ gen A s ⟩ ∶ gen A p
 
-  α⊒α : ∀ {L L′ p q A B C D α}
+  α⊒α : ∀ {L L′ p q A B C D}
     → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ A ⊒ B
-    → Δ ∣ srcStoreⁿ ((α ꞉ q) ∷ σ) ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D
+    → suc Δ ∣ srcStoreⁿ ((zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ) ⊢ p ∶ᶜ C ⊒ D
     → Δ ∣ σ ∣ γ ⊢ L ⊒ L′ ∶ `∀ p
       ------------------------------------------------
-    → Δ ∣ (α ꞉ q) ∷ σ ∣ γ ⊢ L • α ⊒ L′ • α ∶ p [ α ]ᶜ
+    → suc Δ ∣ (zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+        ⊢ (⇑ᵗᵐ L) • ⊒ (⇑ᵗᵐ L′) • ∶ p
 
-  ⊒α : ∀ {L L′ p A B C D α}
-    → Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ σ) ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D
+  ⊒α : ∀ {L L′ p A B C D}
+    → suc Δ ∣ srcStoreⁿ ((zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ) ⊢ p ∶ᶜ C ⊒ D
     → Δ ∣ σ ∣ γ ⊢ L ⊒ L′ ∶ gen B p
       -----------------------------------------------
-    → Δ ∣ (α ꞉= A ⊒) ∷ σ ∣ γ ⊢ L ⊒ L′ • α ∶ p [ α ]ᶜ
+    → suc Δ ∣ (zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+        ⊢ ⇑ᵗᵐ L ⊒ (⇑ᵗᵐ L′) • ∶ p
 
   ν⊒ν : ∀ {A A′ B B′ N N′ p q}
     → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ B ⊒ B′

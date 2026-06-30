@@ -32,3 +32,30 @@ Strategies considered and avoided:
   the rule `⊒blame` intentionally permits any left source term at the typed
   coercion, so both blame-producing application reductions have immediate
   simulations.
+
+## Runtime-bullet `α` rules
+
+Discovery:
+
+- The term-narrowing rules `α⊒α` and `⊒α` still used the older named-opening
+  presentation `L • α`, encoded as a `ν` term.
+- The typing rule for runtime type application now uses the actual unary
+  runtime bullet `M •`, so the narrowing conclusions must introduce that form
+  directly under a freshly bound type variable.
+
+Implemented adjustment:
+
+- Removed the local binary `_•_` abbreviation from `TermNarrowing`.
+- Updated `α⊒α` to conclude in `suc Δ` under
+  `(zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ` and `⇑ᵍ γ`, with result
+  `(⇑ᵗᵐ L) • ⊒ (⇑ᵗᵐ L′) • ∶ p`.
+- Updated `⊒α` similarly under `(zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ`.
+
+Proof obligations exposed:
+
+- Generic catch-up replacement transport cannot treat a shifted tail as an
+  arbitrary store tail; replacing inside it must preserve the `⇑ˢ σ` shape.
+- Parallel term substitution has the analogous shifted-context obligation for
+  these two rules.
+- The DGG skeleton now needs runtime-bullet reduction cases rather than the old
+  `ν-step` cases for `α⊒α` and `⊒α`.

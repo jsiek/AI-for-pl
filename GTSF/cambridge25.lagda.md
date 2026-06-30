@@ -3293,6 +3293,50 @@ Proof by induction on the derivation.
     Or r = α?, in which case α:=A and q : ★ ⊒ A exists.
     (Because A is typed under σ, it has no X's.)
 
+    Erratum.  This last case analysis is incomplete.  It assumes a
+    cancellation/decomposition property for
+
+        s ⨾ r ≈ q₀ ⨾ α♯
+
+    that fails when the left cast itself is the seal α♯.
+
+    Counterexample.  Let ι = ℕ, let 0 : ι, and let
+
+        σ = α:=id_ι.
+
+    Then the following derivation is valid:
+
+        σ ⊢ 0 ⊒ 0 : id_ι
+        ------------------------------ ⊒-    id_ι ⨾ α♯ ≈ α♯
+        σ ⊢ 0 ⊒ 0⟨α♯⟩ : α♯
+        ------------------------------ -⊒    α♯ ⨾ id_α ≈ α♯
+        σ ⊢ 0⟨α♯⟩ ⊒ 0⟨α♯⟩ : id_α
+
+    Thus Right Seal Inversion 1 would have to produce some q such that
+
+        σ ⊢ 0⟨α♯⟩ ⊒ 0 : q
+
+    and, in the stated strengthened form,
+
+        q ⨾ α♯ ≈ id_α.
+
+    No such q exists.  To derive the stripped judgment, the last rule would
+    have to introduce the visible left seal.
+
+    In the +⊒ case, matching 0⟨s̅⟩ with 0⟨α♯⟩ forces s̅ = α♯, hence
+    s = α♭.  But s must be a narrowing, and α♭ is a widening.
+
+    In the -⊒ case, the premise relates bare constants, so its index is
+    id_ι.  The side condition therefore requires
+
+        α♯ ⨾ q ≈ id_ι,
+
+    so q would have to be a narrowing q : α ⊒ ι.  The only coercion that
+    goes from α back to ι is α♭, which is again a widening, not a narrowing.
+
+    The missing case in the proof is r = id_α with s = α♯.  It is neither
+    r = q′ ⨾ α♯ for any narrowing q′, nor r = α?.
+
 
 Right Seal Inversion 2.
 

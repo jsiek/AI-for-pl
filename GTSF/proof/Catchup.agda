@@ -892,6 +892,26 @@ renameStoreNrw-merge01-⇑ˢ⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
     (cong (λ Y → ⊒ Y ꞉=☆) (merge01ᵗ-after-suc-suc X))
     (renameStoreNrw-merge01-⇑ˢ⇑ˢ σ)
 
+renameStoreᵗ-merge01-⟰ᵗ⟰ᵗ :
+  ∀ Σ →
+  renameStoreᵗ merge01ᵗ (⟰ᵗ (⟰ᵗ Σ)) ≡ ⟰ᵗ (⟰ᵗ Σ)
+renameStoreᵗ-merge01-⟰ᵗ⟰ᵗ [] = refl
+renameStoreᵗ-merge01-⟰ᵗ⟰ᵗ ((X , A) ∷ Σ) =
+  cong₂ _∷_
+    (cong₂ _,_ (merge01ᵗ-after-suc-suc X)
+      (renameᵗ-merge01-⇑⇑ A))
+    (renameStoreᵗ-merge01-⟰ᵗ⟰ᵗ Σ)
+
+StoreDetWf-merge01-⟰ᵗ⟰ᵗ :
+  ∀ {Δ Σ} →
+  StoreDetWf Δ Σ →
+  StoreDetWf (suc (suc Δ)) (renameStoreᵗ merge01ᵗ (⟰ᵗ (⟰ᵗ Σ)))
+StoreDetWf-merge01-⟰ᵗ⟰ᵗ {Σ = Σ} wfΣ =
+  subst
+    (StoreDetWf _)
+    (sym (renameStoreᵗ-merge01-⟰ᵗ⟰ᵗ Σ))
+    (StoreDetWf-⟰ᵗ (StoreDetWf-⟰ᵗ wfΣ))
+
 renameStoreNrw-raise0-⇑ˢ⇑ˢ :
   ∀ σ →
   renameStoreNrw raise0ᵗ (⇑ˢ (⇑ˢ σ)) ≡ ⇑ˢ (⇑ˢ σ)
@@ -1045,6 +1065,14 @@ modeRename-swap01ᵗMode μ X
       narrow-renameᵗ TyRenameWf-swap01
         (modeRename-swap01ᵗMode μ) (proj₂ t⊒))
 
+modeRename-merge01-gen-gen :
+  ∀ {μ : ModeEnv} →
+  ModeRename merge01ᵗ (genᵈ (genᵈ μ)) (genᵈ (genᵈ μ))
+modeRename-merge01-gen-gen zero = refl
+modeRename-merge01-gen-gen (suc zero) = refl
+modeRename-merge01-gen-gen (suc (suc X)) =
+  modeIncl-refl {μ = _} (suc (suc X))
+
 StoreRenameOk :
   ∀ {Δ σ Σ Σ′} →
   Renameᵗ →
@@ -1055,6 +1083,20 @@ StoreRenameOk ρ (⊒ˢ-right hA σ⊒) = StoreRenameOk ρ σ⊒
 StoreRenameOk ρ (⊒ˢ-left σ⊒) = StoreRenameOk ρ σ⊒
 StoreRenameOk ρ (⊒ˢ-both hA hA′ (μ , s⊒) σ⊒) =
   ∃[ ν ] ModeRename ρ μ ν × StoreRenameOk ρ σ⊒
+
+StoreRenameOk-merge01-⇑ˢ⇑ˢ :
+  ∀ {Δ σ Σ Σ′} →
+  (σ⊒ : Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′) →
+  StoreRenameOk merge01ᵗ (⊒ˢ-⇑ˢ (⊒ˢ-⇑ˢ σ⊒))
+StoreRenameOk-merge01-⇑ˢ⇑ˢ ⊒ˢ-nil = tt
+StoreRenameOk-merge01-⇑ˢ⇑ˢ (⊒ˢ-right hA σ⊒) =
+  StoreRenameOk-merge01-⇑ˢ⇑ˢ σ⊒
+StoreRenameOk-merge01-⇑ˢ⇑ˢ (⊒ˢ-left σ⊒) =
+  StoreRenameOk-merge01-⇑ˢ⇑ˢ σ⊒
+StoreRenameOk-merge01-⇑ˢ⇑ˢ (⊒ˢ-both hA hA′ (μ , s⊒) σ⊒) =
+  genᵈ (genᵈ μ) ,
+  modeRename-merge01-gen-gen ,
+  StoreRenameOk-merge01-⇑ˢ⇑ˢ σ⊒
 
 ⊒ˢ-rename-guarded :
   ∀ {Δ Δ′ σ Σ Σ′ ρ} →
@@ -1105,6 +1147,24 @@ narrow-rename-guarded hρ (μ , c⊒) (target , hμ) =
   StoreRenameOk ρ σ⊒ ×
   NarrowingRenameOk ρ s⊒ ×
   NarrowingRenameOk ρ t⊒
+
+≈ⁿRenameOk-subst-left :
+  ∀ {ρ Δ σ s s′ t A B} →
+  (eq : s ≡ s′) →
+  (s≈t : Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B) →
+  ≈ⁿRenameOk ρ s≈t →
+  ≈ⁿRenameOk ρ
+    (subst (λ u → Δ ∣ σ ⊢ u ≈ t ∶ A ⊒ B) eq s≈t)
+≈ⁿRenameOk-subst-left refl s≈t ok = ok
+
+≈ⁿRenameOk-subst-right :
+  ∀ {ρ Δ σ s t t′ A B} →
+  (eq : t ≡ t′) →
+  (s≈t : Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B) →
+  ≈ⁿRenameOk ρ s≈t →
+  ≈ⁿRenameOk ρ
+    (subst (λ u → Δ ∣ σ ⊢ s ≈ u ∶ A ⊒ B) eq s≈t)
+≈ⁿRenameOk-subst-right refl s≈t ok = ok
 
 ≈ⁿ-rename-guarded :
   ∀ {Δ Δ′ σ s t A B ρ} →
@@ -3314,6 +3374,17 @@ last-bind-source-first-ν⊒
     (narrow-⇑ᵗ-any s⊒)
     (narrow-⇑ᵗ-any t⊒)
 
+≈ⁿRenameOk-merge01-⇑ˢ⇑ˢ :
+  ∀ {Δ σ s t A B} →
+  (s≈t : Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B) →
+  ≈ⁿRenameOk merge01ᵗ (≈ⁿ-⇑ˢ (≈ⁿ-⇑ˢ s≈t))
+≈ⁿRenameOk-merge01-⇑ˢ⇑ˢ
+    (endpointsⁿ srcs tgts srct tgtt σ⊒ wfΣ wfΣ′
+      (μs , s⊒) (μt , t⊒)) =
+  StoreRenameOk-merge01-⇑ˢ⇑ˢ σ⊒ ,
+  (genᵈ (genᵈ μs) , modeRename-merge01-gen-gen) ,
+  (genᵈ (genᵈ μt) , modeRename-merge01-gen-gen)
+
 ≈ⁿ-add-left-star-var :
   ∀ X {Δ σ s t A B} →
   Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
@@ -3383,6 +3454,106 @@ compose-rightⁿ-⇑ˢ (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
         (≈ⁿ-⇑ˢ r≈t⨟p)
   in
   compose-rightⁿ (StoreDetWf-⟰ᵗ wfΣ) t⊒′ p⊒′ eq′
+
+compose-leftⁿ-⇑ˢ⇑ˢ :
+  ∀ {Δ σ q s r A B} →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  suc (suc Δ) ∣ ⇑ˢ (⇑ˢ σ)
+    ⊢ ⇑ᶜ (⇑ᶜ q) ⨾ⁿ ⇑ᶜ (⇑ᶜ s) ≈ ⇑ᶜ (⇑ᶜ r)
+      ∶ ⇑ᵗ (⇑ᵗ A) ⊒ ⇑ᵗ (⇑ᵗ B)
+compose-leftⁿ-⇑ˢ⇑ˢ {r = r}
+    (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
+  let
+    wfΣ′ = StoreDetWf-⟰ᵗ (StoreDetWf-⟰ᵗ wfΣ)
+    q⊒′ = narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen q⊒)
+    s⊒′ = narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen s⊒)
+    old = _⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒
+    new = _⨟ⁿ_ {wfΣ = wfΣ′} q⊒′ s⊒′
+    u≡ =
+      narrowing-determinedᵐ wfΣ′
+        (proj₂ new)
+        (narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen (proj₂ old)))
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ u ≈ ⇑ᶜ (⇑ᶜ r) ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-⇑ˢ (≈ⁿ-⇑ˢ q⨟s≈r))
+  in
+  compose-leftⁿ wfΣ′ q⊒′ s⊒′ eq′
+
+compose-rightⁿ-⇑ˢ⇑ˢ :
+  ∀ {Δ σ r t p A B} →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  suc (suc Δ) ∣ ⇑ˢ (⇑ˢ σ)
+    ⊢ ⇑ᶜ (⇑ᶜ r) ≈ ⇑ᶜ (⇑ᶜ t) ⨾ⁿ ⇑ᶜ (⇑ᶜ p)
+      ∶ ⇑ᵗ (⇑ᵗ A) ⊒ ⇑ᵗ (⇑ᵗ B)
+compose-rightⁿ-⇑ˢ⇑ˢ {r = r}
+    (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  let
+    wfΣ′ = StoreDetWf-⟰ᵗ (StoreDetWf-⟰ᵗ wfΣ)
+    t⊒′ = narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen t⊒)
+    p⊒′ = narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen p⊒)
+    old = _⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒
+    new = _⨟ⁿ_ {wfΣ = wfΣ′} t⊒′ p⊒′
+    u≡ =
+      narrowing-determinedᵐ wfΣ′
+        (proj₂ new)
+        (narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen (proj₂ old)))
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ ⇑ᶜ (⇑ᶜ r) ≈ u ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-⇑ˢ (≈ⁿ-⇑ˢ r≈t⨟p))
+  in
+  compose-rightⁿ wfΣ′ t⊒′ p⊒′ eq′
+
+compose-leftⁿ-local-ok-merge01-⇑ˢ⇑ˢ :
+  ∀ {Δ σ q s r A B} →
+  (q⨟s≈r : Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B) →
+  ComposeLeftRenameLocalOk (suc (suc Δ)) merge01ᵗ
+    (compose-leftⁿ-⇑ˢ⇑ˢ q⨟s≈r)
+compose-leftⁿ-local-ok-merge01-⇑ˢ⇑ˢ {r = r}
+    (compose-leftⁿ {μ = μ} wfΣ q⊒ s⊒ q⨟s≈r) =
+  StoreDetWf-merge01-⟰ᵗ⟰ᵗ wfΣ ,
+  genᵈ (genᵈ μ) ,
+  modeRename-merge01-gen-gen ,
+  ≈ⁿRenameOk-subst-left (sym u≡)
+    (≈ⁿ-⇑ˢ (≈ⁿ-⇑ˢ q⨟s≈r))
+    (≈ⁿRenameOk-merge01-⇑ˢ⇑ˢ q⨟s≈r)
+  where
+    wfΣ′ = StoreDetWf-⟰ᵗ (StoreDetWf-⟰ᵗ wfΣ)
+    q⊒′ = narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen q⊒)
+    s⊒′ = narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen s⊒)
+    old = _⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒
+    new = _⨟ⁿ_ {wfΣ = wfΣ′} q⊒′ s⊒′
+    u≡ =
+      narrowing-determinedᵐ wfΣ′
+        (proj₂ new)
+        (narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen (proj₂ old)))
+
+compose-rightⁿ-local-ok-merge01-⇑ˢ⇑ˢ :
+  ∀ {Δ σ r t p A B} →
+  (r≈t⨟p : Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B) →
+  ComposeRightRenameLocalOk (suc (suc Δ)) merge01ᵗ
+    (compose-rightⁿ-⇑ˢ⇑ˢ r≈t⨟p)
+compose-rightⁿ-local-ok-merge01-⇑ˢ⇑ˢ {r = r}
+    (compose-rightⁿ {μ = μ} wfΣ t⊒ p⊒ r≈t⨟p) =
+  StoreDetWf-merge01-⟰ᵗ⟰ᵗ wfΣ ,
+  genᵈ (genᵈ μ) ,
+  modeRename-merge01-gen-gen ,
+  ≈ⁿRenameOk-subst-right (sym u≡)
+    (≈ⁿ-⇑ˢ (≈ⁿ-⇑ˢ r≈t⨟p))
+    (≈ⁿRenameOk-merge01-⇑ˢ⇑ˢ r≈t⨟p)
+  where
+    wfΣ′ = StoreDetWf-⟰ᵗ (StoreDetWf-⟰ᵗ wfΣ)
+    t⊒′ = narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen t⊒)
+    p⊒′ = narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen p⊒)
+    old = _⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒
+    new = _⨟ⁿ_ {wfΣ = wfΣ′} t⊒′ p⊒′
+    u≡ =
+      narrowing-determinedᵐ wfΣ′
+        (proj₂ new)
+        (narrow-⇑ᵗ-gen (narrow-⇑ᵗ-gen (proj₂ old)))
 
 compose-rightⁿ-add-left-star-var :
   ∀ X {Δ σ r t p A B} →

@@ -51,6 +51,15 @@ module proof.LeftWidening where
 --     that emitted `bind` steps raise `Δ`; for now the small Example 4
 --     derivation is replayed at the raised context.  A general `gen` proof
 --     should use a reusable term-narrowing type-context weakening lemma.
+--     The common operational spine is now factored as
+--     `left-widening-gen-reduction`, and `left-widening-gen-prefix` lets later
+--     reductions from the exposed body cast be prefixed by that spine.  This
+--     removes the old counterexample's only stuck step.  The wrapper
+--     `left-widening-gen-spine-package` also factors the emitted-store
+--     existential bookkeeping once a relation for the exposed body cast is
+--     available.  These lemmas do not by themselves build that final
+--     term-narrowing relation or prove the result is a value when the exposed
+--     body cast is active rather than inert.
 --   * A direct suc-only induction for that weakening lemma is the wrong
 --     formulation: under `Λ`, the body is renamed by `extᵗ suc`, not plain
 --     `suc`.  The reusable pieces started in `proof.TermNarrowingProperties`
@@ -117,8 +126,9 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here)
-open import Data.Nat using (zero; z<s)
+open import Data.Nat using (zero; suc; z<s)
 open import Data.Product using (_×_; _,_; proj₂; ∃-syntax)
+open import Relation.Binary.PropositionalEquality using (subst)
 
 open import Types
 open import Coercions
@@ -146,7 +156,9 @@ open import NarrowingExamples
     )
 open import proof.NarrowWidenProperties using (StoreDetWf)
 open import proof.CatchupStore using (combineStoreNrw)
-open import proof.ReductionProperties using (applyCoercions)
+open import proof.ReductionProperties using (applyCoercions; ↠-trans)
+open import proof.NuTermProperties
+  using (open0-ext-suc-cancelᵐ; renameᵗᵐ-preserves-Value)
 
 dual-untag-inert :
   ∀ {G} →
@@ -165,6 +177,11 @@ dual-inst-inert :
   ∀ {B c} →
   Inert (- inst B c)
 dual-inst-inert {B = B} {c = c} = gen B (dual (instᵃ normalᵃ) c)
+
+dual-gen :
+  ∀ A c →
+  - (gen A c) ≡ inst A (dual (genᵃ normalᵃ) c)
+dual-gen A c = refl
 
 LeftWideningWithoutNo• : Set₁
 LeftWideningWithoutNo• =
@@ -337,6 +354,81 @@ left-widening-inst {B = B} {c = c} vV noV pᶜ r≈t⨟p V⊒V′ =
   left-widening-inert (dual-inst-inert {B = B} {c = c})
     vV noV pᶜ r≈t⨟p V⊒V′
 
+left-widening-gen-reduction :
+  ∀ {A c V} →
+  Value V →
+  No• V →
+  (Λ V) ⟨ - (gen A c) ⟩
+    —↠[ keep ∷ bind ★ ∷ keep ∷ [] ]
+    V ⟨ dual (genᵃ normalᵃ) c ⟩
+left-widening-gen-reduction {A = A} {c = c} {V = V} vV noV
+    rewrite dual-gen A c =
+  subst
+    (λ T →
+      (Λ V) ⟨ inst A (dual (genᵃ normalᵃ) c) ⟩
+        —↠[ keep ∷ bind ★ ∷ keep ∷ [] ]
+        T ⟨ dual (genᵃ normalᵃ) c ⟩)
+    (open0-ext-suc-cancelᵐ V)
+    (↠-step
+      (pure-step
+        (β-inst {V = Λ V} {B = A} {c = dual (genᵃ normalᵃ) c}
+          (Λ vV)))
+      (↠-step (ν-step (Λ vV) (no•-Λ noV))
+        (↠-step
+          (ξ-⟨⟩
+            (pure-step
+              (β-Λ•
+                (renameᵗᵐ-preserves-Value (extᵗ suc) vV))))
+          ↠-refl)))
+
+left-widening-gen-prefix :
+  ∀ {A c V χs W} →
+  Value V →
+  No• V →
+  V ⟨ dual (genᵃ normalᵃ) c ⟩ —↠[ χs ] W →
+  (Λ V) ⟨ - (gen A c) ⟩
+    —↠[ keep ∷ bind ★ ∷ keep ∷ χs ]
+    W
+left-widening-gen-prefix {A = A} {c = c} vV noV V↠W =
+  ↠-trans (left-widening-gen-reduction {A = A} {c = c} vV noV) V↠W
+
+left-widening-gen-spine-package :
+  ∀ {Δ σ N V′ A c r} →
+  Value N →
+  No• N →
+  Value (N ⟨ dual (genᵃ normalᵃ) c ⟩) →
+  No• (N ⟨ dual (genᵃ normalᵃ) c ⟩) →
+  suc Δ ∣ combineStoreNrw ((⊒ zero ꞉=☆) ∷ []) σ ∣ []
+    ⊢ N ⟨ dual (genᵃ normalᵃ) c ⟩
+      ⊒ applyTerms (keep ∷ bind ★ ∷ keep ∷ []) V′
+      ∶ applyCoercions (keep ∷ bind ★ ∷ keep ∷ []) r →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    ((Λ N) ⟨ - (gen A c) ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+left-widening-gen-spine-package {Δ = Δ} {σ = σ} {N = N}
+    {A = A} {c = c} vN noN vW noW W⊒V′ =
+  keep ∷ bind ★ ∷ keep ∷ [] ,
+  N ⟨ dual (genᵃ normalᵃ) c ⟩ ,
+  suc Δ ,
+  (zero , ★) ∷ [] ,
+  [] ,
+  (⊒ zero ꞉=☆) ∷ [] ,
+  vW ,
+  noW ,
+  left-widening-gen-reduction {A = A} {c = c} vN noN ,
+  refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-left ⊒ˢ-nil ,
+  W⊒V′
+
 left-widening-id-exact :
   ∀ {Δ σ V V′ p A C D} →
   Value V →
@@ -415,7 +507,7 @@ badPoly-no-RuntimeOK (ok-no no-bullet) =
   badPoly-no-No• no-bullet
 
 badInstCast-no-value :
-  Value (badPoly ⟨ - gen (★ ⇒ ★) var0-fun ⟩) →
+  Value (badPoly ⟨ - (gen (★ ⇒ ★) var0-fun) ⟩) →
   ⊥
 badInstCast-no-value (badPoly-value ⟨ () ⟩)
 
@@ -446,7 +538,7 @@ badNu-no-value-after (↠-step step steps) vW =
 
 badInstCast-no-value-after :
   ∀ {χs W} →
-  badPoly ⟨ - gen (★ ⇒ ★) var0-fun ⟩ —↠[ χs ] W →
+  badPoly ⟨ - (gen (★ ⇒ ★) var0-fun) ⟩ —↠[ χs ] W →
   Value W →
   ⊥
 badInstCast-no-value-after ↠-refl vW =
@@ -578,7 +670,7 @@ left-widening-ex4-gen :
   ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
     Value W ×
     No• W ×
-    (goodPoly ⟨ - gen (★ ⇒ ★) var0-fun ⟩ —↠[ χs ] W) ×
+    (goodPoly ⟨ - (gen (★ ⇒ ★) var0-fun) ⟩ —↠[ χs ] W) ×
     (Δ′ ≡ applyTyCtxs χs 0) ×
     (Π ≡ applyStores χs []) ×
     (Π′ ≡ applyStore keep []) ×
@@ -587,20 +679,11 @@ left-widening-ex4-gen :
       ⊢ W ⊒ applyTerms χs goodPoly
       ∶ applyCoercions χs (gen (★ ⇒ ★) var0-fun)
 left-widening-ex4-gen =
-  keep ∷ bind ★ ∷ keep ∷ [] ,
-  (ƛ (` zero)) ⟨ - star-seal-fun ⟩ ,
-  1 ,
-  (zero , ★) ∷ [] ,
-  [] ,
-  (⊒ zero ꞉=☆) ∷ [] ,
-  (ƛ (` zero)) ⟨ _ ↦ _ ⟩ ,
-  no•-⟨⟩ (no•-ƛ no•-`) ,
-  ↠-step (pure-step (β-inst goodPoly-value))
-    (↠-step (ν-step goodPoly-value goodPoly-no•)
-      (↠-step (ξ-⟨⟩ (pure-step (β-Λ• (ƛ (` zero)))))
-        ↠-refl)) ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒ˢ-left ⊒ˢ-nil ,
-  ex4-after-reduction-Δ1
+  left-widening-gen-spine-package
+    {Δ = 0} {σ = []} {N = ƛ (` zero)} {V′ = goodPoly}
+    {A = ★ ⇒ ★} {c = var0-fun} {r = gen (★ ⇒ ★) var0-fun}
+    (ƛ (` zero))
+    (no•-ƛ no•-`)
+    ((ƛ (` zero)) ⟨ _ ↦ _ ⟩)
+    (no•-⟨⟩ (no•-ƛ no•-`))
+    ex4-after-reduction-Δ1

@@ -44,6 +44,7 @@ postulate
     Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ G ？ ⟩ ∶ r →
     Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ id ★
 
+  -- Refuted by `proof.RightSealInversionCounterexample`.
   right-seal-inversion₁ :
     ∀ {Δ σ γ M V r A α} →
     Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →

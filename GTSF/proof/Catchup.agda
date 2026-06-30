@@ -11,6 +11,7 @@ module proof.Catchup where
 --     store changes.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (true)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.List.Membership.Propositional using (_∈_)
@@ -50,6 +51,7 @@ open import proof.NarrowWidenProperties
     ; srcStoreⁿ-⊒ˢ
     ; srcStoreⁿ-⇑ˢ
     ; WfTyˢ-rename
+    ; narrowing-all-gen-overlap⊥
     ; ⇑ˢ-++
     ; ⊒ˢ-⇑ˢ
     ; ⊒ˢ-empty-⇑ˢ
@@ -1732,6 +1734,22 @@ gen-body-coercionᶜ :
 gen-body-coercionᶜ (cast-gen hA occ body⊢ , gen bodyⁿ) =
   body⊢ , bodyⁿ
 
+gen-target-occursᶜ :
+  ∀ {Δ Σ A B p} →
+  Δ ∣ Σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  occurs zero B ≡ true
+gen-target-occursᶜ (cast-gen hA occ body⊢ , gen bodyⁿ) = occ
+
+gen-source-all-overlap⊥ :
+  ∀ {Δ Σ A B p s} →
+  StoreDetWf Δ Σ →
+  Δ ∣ Σ ⊢ gen (`∀ A) p ∶ᶜ `∀ A ⊒ `∀ B →
+  extᵈ tag-or-idᵈ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ s ∶ A ⊒ B →
+  ⊥
+gen-source-all-overlap⊥ wfΣ pᶜ s⊒ =
+  narrowing-all-gen-overlap⊥
+    wfΣ (gen-target-occursᶜ pᶜ) s⊒ (gen-body-coercionᶜ pᶜ)
+
 gen-body-coercionᶜ-tag :
   ∀ {Δ Σ A B p} →
   Δ ∣ Σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
@@ -1754,6 +1772,20 @@ catchup-gen-body-coercionᶜ :
 catchup-gen-body-coercionᶜ {σ = σ} {π = π} {χs = χs}
     pᶜ Δ′≡ Π≡ Π′≡ π⊒ =
   gen-body-coercionᶜ
+    (catchup-gen-coercion-typing-transport
+      {σ = σ} {χs = χs} pᶜ Δ′≡ Π≡ Π′≡ π⊒)
+
+catchup-gen-target-occursᶜ :
+  ∀ {Δ Δ′ σ π Π Π′ χs A B p} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ≡ applyTyCtxs χs Δ →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  occurs zero (applyTysUnderTyBinders χs B) ≡ true
+catchup-gen-target-occursᶜ {σ = σ} {π = π} {χs = χs}
+    pᶜ Δ′≡ Π≡ Π′≡ π⊒ =
+  gen-target-occursᶜ
     (catchup-gen-coercion-typing-transport
       {σ = σ} {χs = χs} pᶜ Δ′≡ Π≡ Π′≡ π⊒)
 

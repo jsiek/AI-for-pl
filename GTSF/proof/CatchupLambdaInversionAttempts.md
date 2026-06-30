@@ -3488,3 +3488,44 @@ fact that the caught-up source `W` is a `Value`.  The next restriction really
 must use the provenance of the body relation from the legal `gen` premise
 (`occurs zero B ≡ true`), or avoid replaying source-side cast constructors
 altogether.
+
+## Attempt 97: expose the legal `gen` occurrence invariant in `Catchup`
+
+Accepted as checked support in `proof.Catchup`.
+
+I added the direct inversion helper:
+
+`gen-target-occursᶜ :
+  Δ ∣ Σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  occurs zero B ≡ true`
+
+and its catchup-transported form:
+
+`catchup-gen-target-occursᶜ :
+  ...
+  occurs zero (applyTysUnderTyBinders χs B) ≡ true`.
+
+These make the side condition from `cast-gen` available without redoing the
+coercion inversion at each later proof site.
+
+I also wrapped the existing determinacy overlap lemma in the surface shape
+needed when a legal `gen` source is itself a forall:
+
+`gen-source-all-overlap⊥ :
+  StoreDetWf Δ Σ →
+  Δ ∣ Σ ⊢ gen (`∀ A) p ∶ᶜ `∀ A ⊒ `∀ B →
+  extᵈ tag-or-idᵈ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ s ∶ A ⊒ B →
+  ⊥`.
+
+This packages `narrowing-all-gen-overlap⊥` using the occurrence proof from the
+real `gen` premise and the `genᵈ` body typing from `gen-body-coercionᶜ`.
+
+Limitation: this proves exactly the all/gen overlap exclusion used by
+coercion determinacy.  It does not by itself solve the arbitrary source-side
+cast replay from Attempt 96, because a casted source value can still use a
+non-forall function coercion.  The next proof attempt has to either:
+
+1. show that the live last-bind source-cast replay only needs the all/gen
+   overlap case once the legal `gen` body is tracked with its mode, or
+2. avoid structural replay of source-side casts and instead use the
+   value-level left-widening/left-narrowing route on the smaller base witness.

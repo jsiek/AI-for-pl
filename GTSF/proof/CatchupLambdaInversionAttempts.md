@@ -3648,3 +3648,39 @@ obtained by a generic mixed composition renaming theorem.  The next replay
 target should be split-aware and should use the legal `gen` occurrence
 invariant, or else rebuild the body through the existing split-marker
 machinery.
+
+## Attempt 102: lower source-first side conditions to the split premise store
+
+Accepted as checked support in `proof.Catchup`.
+
+After Attempt 101, the remaining source-first body has the exact store
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+I added the lowering/collapse bookkeeping for the split route:
+
+`TyRenameWf-pred-lower`
+
+`renameStoreNrw-pred-⇑ˢ⇑ˢ`
+
+`source-first-pred-both-srcStore`
+
+`source-first-pred-both-coercionᶜ`
+
+The key fact is that renaming this source-first store by `predᵗ` has the same
+source store as the single both-side entry used by the `split` premise:
+
+`srcStoreⁿ (renameStoreNrw predᵗ ((⊒ zero ꞉=☆) ∷
+  (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)))
+  ≡ srcStoreⁿ ((zero ꞉ id ★) ∷ ⇑ˢ σ)`.
+
+This gives a reusable way to transport ordinary `∶ᶜ` side conditions from the
+source-first body down to the `(zero ꞉ id ★) ∷ ⇑ˢ σ` context that
+`split`/`⊒Λ-body-add-split-marker` use internally.
+
+Limitation: I intentionally did not generalize this to a term-imprecision
+renaming theorem.  A generic term theorem would again need a non-injective
+mode rename for hidden composition witnesses.  The next proof step must use
+this side-condition transport only inside a split-aware replay, where the bad
+source-cast composition branches are rebuilt through `split` or ruled out with
+the legal `gen` occurrence invariant.

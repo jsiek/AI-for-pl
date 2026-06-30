@@ -67,6 +67,7 @@ open import proof.CoercionProperties
     ; renameᶜ-ext-suc-comm
     ; renameᶜ-left-inverse
     ; renameᶜ-open-commute
+    ; renameᶜ-pred-suc
     ; renameᶜ-preserves-Inert
     ; src-renameᶜ
     ; tgt-renameᶜ
@@ -90,6 +91,7 @@ open import proof.TypeProperties
     ; rename-cong
     ; renameᵗ-compose
     ; renameᵗ-ext-suc-comm
+    ; renameᵗ-pred-suc
     ; renameᵗ-preserves-WfTy
     ; renameStoreᵗ-compose
     )
@@ -1568,6 +1570,59 @@ source-target-raise0-coercionᶜ
     (renameStoreNrw-coercionᶜ
       {σ = (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)}
       TyRenameWf-raise0
+      cᶜ)
+
+TyRenameWf-pred-lower :
+  ∀ {Δ} →
+  TyRenameWf (suc (suc Δ)) (suc Δ) predᵗ
+TyRenameWf-pred-lower {X = zero} z<s = z<s
+TyRenameWf-pred-lower {X = suc zero} (s<s z<s) = z<s
+TyRenameWf-pred-lower {X = suc (suc X)} (s<s (s<s X<Δ)) =
+  s<s X<Δ
+
+renameStoreNrw-pred-⇑ˢ⇑ˢ :
+  ∀ σ →
+  renameStoreNrw predᵗ (⇑ˢ (⇑ˢ σ)) ≡ ⇑ˢ σ
+renameStoreNrw-pred-⇑ˢ⇑ˢ [] = refl
+renameStoreNrw-pred-⇑ˢ⇑ˢ ((X ꞉ p) ∷ σ) =
+  cong₂ _∷_
+    (cong₂ _꞉_ refl (renameᶜ-pred-suc (⇑ᶜ p)))
+    (renameStoreNrw-pred-⇑ˢ⇑ˢ σ)
+renameStoreNrw-pred-⇑ˢ⇑ˢ ((X ꞉= A ⊒) ∷ σ) =
+  cong₂ _∷_
+    (cong₂ _꞉=_⊒ refl (renameᵗ-pred-suc (⇑ᵗ A)))
+    (renameStoreNrw-pred-⇑ˢ⇑ˢ σ)
+renameStoreNrw-pred-⇑ˢ⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
+  cong₂ _∷_ refl (renameStoreNrw-pred-⇑ˢ⇑ˢ σ)
+
+source-first-pred-both-srcStore :
+  ∀ σ →
+  srcStoreⁿ
+    (renameStoreNrw predᵗ
+      ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)))
+  ≡
+  srcStoreⁿ ((zero ꞉ id ★) ∷ ⇑ˢ σ)
+source-first-pred-both-srcStore σ =
+  cong ((zero , ★) ∷_)
+    (cong srcStoreⁿ (renameStoreNrw-pred-⇑ˢ⇑ˢ σ))
+
+source-first-pred-both-coercionᶜ :
+  ∀ {Δ σ c A B} →
+  suc (suc Δ) ∣
+    srcStoreⁿ ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ))
+    ⊢ c ∶ᶜ A ⊒ B →
+  suc Δ ∣ srcStoreⁿ ((zero ꞉ id ★) ∷ ⇑ˢ σ)
+    ⊢ renameᶜ predᵗ c
+      ∶ᶜ renameᵗ predᵗ A ⊒ renameᵗ predᵗ B
+source-first-pred-both-coercionᶜ {Δ = Δ} {σ = σ} {c = c}
+    {A = A} {B = B} cᶜ =
+  subst
+    (λ Σ → suc Δ ∣ Σ ⊢ renameᶜ predᵗ c
+      ∶ᶜ renameᵗ predᵗ A ⊒ renameᵗ predᵗ B)
+    (source-first-pred-both-srcStore σ)
+    (renameStoreNrw-coercionᶜ
+      {σ = (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)}
+      TyRenameWf-pred-lower
       cᶜ)
 
 renameᵗ-raise0-pred :

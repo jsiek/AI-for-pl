@@ -2,15 +2,16 @@ module proof.TermNarrowingProperties where
 
 -- File Charter:
 --   * Admissible rules and structural lemmas for term narrowing.
---   * Provides constructor-level type-context shifting helpers and the two
---     cambridge23 two-sided cast derived rules.
+--   * Provides constructor-level type-context shifting helpers, composition
+--     shifting for cast side conditions, and the two cambridge23 two-sided
+--     cast derived rules.
 --   * Depends on the public definitions in `TermNarrowing` and `NarrowWiden`.
 
 open import Data.List using ([]; _∷_; map)
 open import Data.Nat using (zero; suc)
-open import Data.Product using (_,_)
+open import Data.Product using (_,_; proj₂)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; cong; cong₂; refl; subst; sym)
+  using (_≡_; cong; cong₂; refl; subst; sym; trans)
 
 open import Types
 open import Coercions
@@ -40,8 +41,17 @@ open import proof.CoercionProperties
     ; renameᶜ-dual-normal
     ; renameᶜ-ext-suc-comm
     ; src-renameᶜ
+    ; tgt-renameᶜ
     )
-open import proof.NarrowWidenProperties using (narrow-⇑ᵗ-ᶜ-srcStoreⁿ)
+open import proof.NarrowWidenProperties
+  using
+    ( StoreDetWf-⟰ᵗ
+    ; WfTyˢ-⇑ᵗ
+    ; narrowing-determinedᵐ
+    ; narrow-⇑ᵗ-ᶜ-srcStoreⁿ
+    ; narrow-⇑ᵗ-any
+    ; ⊒ˢ-⇑ˢ
+    )
 open import proof.NuTermProperties
   using (renameᵗᵐ-ext-suc-comm; renameᵗᵐ-preserves-Value)
 open import proof.TypeProperties using (TyRenameWf; renameᵗ-ext-suc-comm)
@@ -368,6 +378,127 @@ shift-· {σ = σ} {p = p} qᶜ L⊒L′ M⊒M′ =
   ·⊒· (narrow-⇑ᵗ-ᶜ-srcStoreⁿ {σ = σ} qᶜ)
     L⊒L′
     (shift-dual-index {p = p} M⊒M′)
+
+≈ⁿ-⇑ˢ :
+  ∀ {Δ σ s t A B} →
+  Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
+  suc Δ ∣ ⇑ˢ σ ⊢ ⇑ᶜ s ≈ ⇑ᶜ t ∶ ⇑ᵗ A ⊒ ⇑ᵗ B
+≈ⁿ-⇑ˢ (endpointsⁿ {s = s} {t = t}
+    srcs tgts srct tgtt σ⊒ (hA , hB) (hA′ , hB′) s⊒ t⊒) =
+  endpointsⁿ
+    (trans (src-renameᶜ suc s) (cong ⇑ᵗ srcs))
+    (trans (tgt-renameᶜ suc s) (cong ⇑ᵗ tgts))
+    (trans (src-renameᶜ suc t) (cong ⇑ᵗ srct))
+    (trans (tgt-renameᶜ suc t) (cong ⇑ᵗ tgtt))
+    (⊒ˢ-⇑ˢ σ⊒)
+    (WfTyˢ-⇑ᵗ hA , WfTyˢ-⇑ᵗ hB)
+    (WfTyˢ-⇑ᵗ hA′ , WfTyˢ-⇑ᵗ hB′)
+    (narrow-⇑ᵗ-any s⊒)
+    (narrow-⇑ᵗ-any t⊒)
+
+compose-leftⁿ-⇑ˢ :
+  ∀ {Δ σ q s r A B} →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  suc Δ ∣ ⇑ˢ σ ⊢ ⇑ᶜ q ⨾ⁿ ⇑ᶜ s ≈ ⇑ᶜ r ∶ ⇑ᵗ A ⊒ ⇑ᵗ B
+compose-leftⁿ-⇑ˢ (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
+  let
+    q⊒′ = narrow-⇑ᵗ-gen q⊒
+    s⊒′ = narrow-⇑ᵗ-gen s⊒
+    old = _⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒
+    new = _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ} q⊒′ s⊒′
+    u≡ =
+      narrowing-determinedᵐ (StoreDetWf-⟰ᵗ wfΣ)
+        (proj₂ new)
+        (narrow-⇑ᵗ-gen (proj₂ old))
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ u ≈ ⇑ᶜ _ ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-⇑ˢ q⨟s≈r)
+  in
+  compose-leftⁿ (StoreDetWf-⟰ᵗ wfΣ) q⊒′ s⊒′ eq′
+
+compose-rightⁿ-⇑ˢ :
+  ∀ {Δ σ r t p A B} →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  suc Δ ∣ ⇑ˢ σ ⊢ ⇑ᶜ r ≈ ⇑ᶜ t ⨾ⁿ ⇑ᶜ p ∶ ⇑ᵗ A ⊒ ⇑ᵗ B
+compose-rightⁿ-⇑ˢ (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  let
+    t⊒′ = narrow-⇑ᵗ-gen t⊒
+    p⊒′ = narrow-⇑ᵗ-gen p⊒
+    old = _⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒
+    new = _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ} t⊒′ p⊒′
+    u≡ =
+      narrowing-determinedᵐ (StoreDetWf-⟰ᵗ wfΣ)
+        (proj₂ new)
+        (narrow-⇑ᵗ-gen (proj₂ old))
+    eq′ =
+      subst
+        (λ u → _ ∣ _ ⊢ ⇑ᶜ _ ≈ u ∶ _ ⊒ _)
+        (sym u≡)
+        (≈ⁿ-⇑ˢ r≈t⨟p)
+  in
+  compose-rightⁿ (StoreDetWf-⟰ᵗ wfΣ) t⊒′ p⊒′ eq′
+
+shift-⊒cast+ :
+  ∀ {Δ σ γ M M′ q r s A B C D} →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ ⇑ᵗᵐ M ⊒ ⇑ᵗᵐ M′ ∶ ⇑ᶜ r →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ
+    ⊢ ⇑ᵗᵐ M ⊒ ⇑ᵗᵐ (M′ ⟨ - s ⟩) ∶ ⇑ᶜ q
+shift-⊒cast+ {Δ = Δ} {σ = σ} {γ = γ} {M = M} {M′ = M′}
+    {q = q} {s = s} qᶜ q⨟s≈r M⊒M′ =
+  subst
+    (λ T → suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ ⇑ᵗᵐ M ⊒ T ∶ ⇑ᶜ q)
+    (sym (cong (λ c → ⇑ᵗᵐ M′ ⟨ c ⟩) (renameᶜ-dual-normal suc s)))
+    (⊒cast+
+      (narrow-⇑ᵗ-ᶜ-srcStoreⁿ {σ = σ} qᶜ)
+      (compose-leftⁿ-⇑ˢ q⨟s≈r)
+      M⊒M′)
+
+shift-⊒cast- :
+  ∀ {Δ σ γ M M′ q r s A B C D} →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ ⇑ᵗᵐ M ⊒ ⇑ᵗᵐ M′ ∶ ⇑ᶜ q →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ
+    ⊢ ⇑ᵗᵐ M ⊒ ⇑ᵗᵐ (M′ ⟨ s ⟩) ∶ ⇑ᶜ r
+shift-⊒cast- {σ = σ} qᶜ q⨟s≈r M⊒M′ =
+  ⊒cast-
+    (narrow-⇑ᵗ-ᶜ-srcStoreⁿ {σ = σ} qᶜ)
+    (compose-leftⁿ-⇑ˢ q⨟s≈r)
+    M⊒M′
+
+shift-cast+⊒ :
+  ∀ {Δ σ γ M M′ p r t A B C D} →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ ⇑ᵗᵐ M ⊒ ⇑ᵗᵐ M′ ∶ ⇑ᶜ p →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ
+    ⊢ ⇑ᵗᵐ (M ⟨ - t ⟩) ⊒ ⇑ᵗᵐ M′ ∶ ⇑ᶜ r
+shift-cast+⊒ {Δ = Δ} {σ = σ} {γ = γ} {M = M} {M′ = M′}
+    {p = p} {r = r} {t = t} pᶜ r≈t⨟p M⊒M′ =
+  subst
+    (λ T → suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ T ⊒ ⇑ᵗᵐ M′ ∶ ⇑ᶜ r)
+    (sym (cong (λ c → ⇑ᵗᵐ M ⟨ c ⟩) (renameᶜ-dual-normal suc t)))
+    (cast+⊒
+      (narrow-⇑ᵗ-ᶜ-srcStoreⁿ {σ = σ} pᶜ)
+      (compose-rightⁿ-⇑ˢ r≈t⨟p)
+      M⊒M′)
+
+shift-cast-⊒ :
+  ∀ {Δ σ γ M M′ p r t A B C D} →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ ⊢ ⇑ᵗᵐ M ⊒ ⇑ᵗᵐ M′ ∶ ⇑ᶜ r →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ
+    ⊢ ⇑ᵗᵐ (M ⟨ t ⟩) ⊒ ⇑ᵗᵐ M′ ∶ ⇑ᶜ p
+shift-cast-⊒ {σ = σ} pᶜ r≈t⨟p M⊒M′ =
+  cast-⊒
+    (narrow-⇑ᵗ-ᶜ-srcStoreⁿ {σ = σ} pᶜ)
+    (compose-rightⁿ-⇑ˢ r≈t⨟p)
+    M⊒M′
 
 ------------------------------------------------------------------------
 -- Derived cast rules

@@ -60,6 +60,13 @@ module proof.LeftWidening where
 --     Current progress in that direction includes `renameStoreNrw`,
 --     `renameCtxNrw`, `rename-var`, `rename-blame`, `rename-ƛ`, `rename-·`,
 --     `rename-Λ`, `rename-⊒Λ`, `rename-κ`, and `rename-⊕`.
+--   * Trying to make that renaming theorem fully arbitrary runs into the
+--     composition witnesses used by cast constructors: their internal mode
+--     environment is existential, so a non-injective type renaming does not
+--     obviously preserve it.  The `suc`-specific cast cases are still
+--     mechanized in `proof.TermNarrowingProperties` via `≈ⁿ-⇑ˢ`,
+--     `compose-leftⁿ-⇑ˢ`, `compose-rightⁿ-⇑ˢ`, `shift-⊒cast+`,
+--     `shift-⊒cast-`, `shift-cast+⊒`, and `shift-cast-⊒`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)

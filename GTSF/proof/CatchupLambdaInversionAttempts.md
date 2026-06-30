@@ -5140,3 +5140,70 @@ The ν/mixed cases are also not avoidable from the source-first `bodyRaw`
 obligation.  Top-level `α⊒α`, `⊒α`, `ν⊒ν`, `⊒ν`, and `ν⊒` are excluded by
 the value/no-bullet endpoints, but they can occur under `ƛ⊒ƛ`, because lambda
 values do not require their bodies to be values or `No•`.
+
+## Attempt 143: factor ν mixed-premise replay builders
+
+Accepted as checked support.
+
+Attempt 142 said a uniform whole-term renaming frame is too simple.  I tested
+the constructive part by adding three ν constructor builders:
+
+- `term-rename-local-ν⊒ν-build`;
+- `term-rename-local-⊒ν-build`;
+- `term-rename-local-ν⊒-build`.
+
+These builders do not ask the recursive premise to rename every endpoint with
+`extᵗ ρ`.  Instead they use the mixed endpoint shapes that the ν syntax
+requires:
+
+- `ν⊒ν`: store/context/coercion under `extᵗ ρ`, but both body terms renamed by
+  `ρ`;
+- `⊒ν`: source premise term is the shifted source renamed by `extᵗ ρ`, target
+  body term renamed by `ρ`;
+- `ν⊒`: source body term renamed by `ρ`, target premise term is the shifted
+  target renamed by `extᵗ ρ`.
+
+Each proof is transport around `renameStoreNrw-⇑ˢ`, `renameCtxNrw-⇑ᵍ`,
+`renameᶜ-ext-suc-comm`, and `renameᵗᵐ-ext-suc-comm`, followed by the original
+ν constructor.
+
+I also ran `agda --no-allow-unsolved-metas -v0 proof/Catchup.agda`, so these
+helpers are not merely accepted because the file normally allows unsolved
+metas.
+
+This narrows the remaining replay theorem shape: it needs mixed
+constructor-specific premise actions for ν, but those actions are now checked
+locally.  The remaining mixed constructor still needing the same treatment is
+`⊒⟨ν⟩`, whose premise target should be
+`renameᵗᵐ ρ V′ ⟨ renameᶜ (extᵗ ρ) s ⟩`, not a uniform
+`renameᵗᵐ (extᵗ ρ) (V′ ⟨ s ⟩)`.
+
+## Attempt 144: add the mixed `⊒⟨ν⟩` replay builder
+
+Accepted as checked support.
+
+Attempt 143 left `⊒⟨ν⟩` as the remaining constructor-specific mixed action.
+I added `term-rename-local-⊒⟨ν⟩-mixed-build` without replacing the older
+uniform `term-rename-local-⊒⟨ν⟩-build`.
+
+The new premise target is exactly the shape Attempt 142 predicted:
+
+`renameᵗᵐ ρ V′ ⟨ renameᶜ (extᵗ ρ) s ⟩`
+
+This lets the value part stay under the outer replay renaming while the cast
+coercion is renamed under the fresh type variable introduced by the constructor
+premise.  The proof only transports the source term and the store/context:
+
+- `renameStoreNrw-⇑ˢ` for the shifted store;
+- `renameCtxNrw-⇑ᵍ` for the shifted term context;
+- `renameᵗᵐ-ext-suc-comm` for the shifted source term.
+
+Then it rebuilds the conclusion with `⊒⟨ν⟩` and
+`renameᶜ-preserves-Inert (extᵗ ρ)`.  The ordinary
+`agda -v0 proof/Catchup.agda` check accepts this helper.
+
+Together with Attempt 143, all mixed constructor builders called out by
+Attempt 142 now exist locally.  This still does not prove
+`catchup-⊒Λ-catchup`; the next proof obligation is to package these builders
+into the source-first replay induction, likely replacing the too-coarse
+`TermRenameLocalOk` theorem with the shape-aware invariant from Attempt 141.

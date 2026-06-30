@@ -2647,6 +2647,66 @@ term-rename-local-⊒⟨ν⟩-build {σ = σ} {γ = γ} {N = N} {ρ = ρ}
       renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N) ≡ ⇑ᵗᵐ (renameᵗᵐ ρ N)
     src≡ = renameᵗᵐ-ext-suc-comm ρ N
 
+term-rename-local-⊒⟨ν⟩-mixed-build :
+  ∀ {Δ Δ′ σ γ A B N V′ p s ρ} →
+  (hρ : TyRenameWf Δ Δ′ ρ) →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Inert s →
+  suc Δ′ ∣
+    renameStoreNrw (extᵗ ρ) ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣
+    renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+    ⊢ renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N)
+      ⊒ renameᵗᵐ ρ V′ ⟨ renameᶜ (extᵗ ρ) s ⟩
+      ∶ renameᶜ (extᵗ ρ) p →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ N ⊒ renameᵗᵐ ρ (V′ ⟨ gen A s ⟩)
+      ∶ renameᶜ ρ (gen A p)
+term-rename-local-⊒⟨ν⟩-mixed-build {Δ′ = Δ′} {σ = σ} {γ = γ}
+    {N = N} {V′ = V′} {p = p} {s = s} {ρ = ρ} hρ pᶜ i body =
+  ⊒⟨ν⟩
+    (renameStoreNrw-coercionᶜ hρ pᶜ)
+    (renameᶜ-preserves-Inert (extᵗ ρ) i)
+    body′
+  where
+    store≡ :
+      renameStoreNrw (extᵗ ρ) ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ≡
+      (zero ꞉= ★ ⊒) ∷ ⇑ˢ (renameStoreNrw ρ σ)
+    store≡ = cong ((zero ꞉= ★ ⊒) ∷_) (renameStoreNrw-⇑ˢ ρ σ)
+
+    ctx≡ :
+      renameCtxNrw (extᵗ ρ) (⇑ᵍ γ) ≡ ⇑ᵍ (renameCtxNrw ρ γ)
+    ctx≡ = renameCtxNrw-⇑ᵍ ρ γ
+
+    src≡ :
+      renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N) ≡ ⇑ᵗᵐ (renameᵗᵐ ρ N)
+    src≡ = renameᵗᵐ-ext-suc-comm ρ N
+
+    body′ :
+      suc Δ′ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (renameStoreNrw ρ σ) ∣
+        ⇑ᵍ (renameCtxNrw ρ γ)
+        ⊢ ⇑ᵗᵐ (renameᵗᵐ ρ N)
+          ⊒ renameᵗᵐ ρ V′ ⟨ renameᶜ (extᵗ ρ) s ⟩
+          ∶ renameᶜ (extᵗ ρ) p
+    body′ =
+      subst
+        (λ S → _ ∣ S ∣ ⇑ᵍ (renameCtxNrw ρ γ)
+          ⊢ ⇑ᵗᵐ (renameᵗᵐ ρ N)
+            ⊒ renameᵗᵐ ρ V′ ⟨ renameᶜ (extᵗ ρ) s ⟩ ∶ _)
+        store≡
+        (subst
+          (λ Γ → _ ∣ renameStoreNrw (extᵗ ρ)
+            ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ Γ
+            ⊢ ⇑ᵗᵐ (renameᵗᵐ ρ N)
+              ⊒ renameᵗᵐ ρ V′ ⟨ renameᶜ (extᵗ ρ) s ⟩ ∶ _)
+          ctx≡
+          (subst
+            (λ M → _ ∣ renameStoreNrw (extᵗ ρ)
+              ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣
+              renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+              ⊢ M ⊒ renameᵗᵐ ρ V′ ⟨ renameᶜ (extᵗ ρ) s ⟩ ∶ _)
+            src≡
+            body))
+
 term-rename-local-α⊒α-build :
   ∀ {Δ Δ′ σ γ γ′ L L′ p q A B C D ρ} →
   (hρ : TyRenameWf Δ Δ′ ρ) →
@@ -2807,6 +2867,246 @@ term-rename-local-⊒α-build {Δ′ = Δ′} {σ = σ} {γ = γ}
           ⊒ (⇑ᵗᵐ (renameᵗᵐ ρ L′)) •
           ∶ renameᶜ (extᵗ ρ) p
     raw = ⊒α refl pᶜ′ body
+
+term-rename-local-ν⊒ν-build :
+  ∀ {Δ Δ′ σ γ A A′ B B′ N N′ p q ρ} →
+  (hρ : TyRenameWf Δ Δ′ ρ) →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ B ⊒ B′ →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ A ⊒ A′ →
+  suc Δ′ ∣
+    renameStoreNrw (extᵗ ρ) ((zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ) ∣
+    renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+    ⊢ renameᵗᵐ ρ N ⊒ renameᵗᵐ ρ N′
+      ∶ renameᶜ (extᵗ ρ) (⇑ᶜ p) →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ (ν A N (⇑ᶜ p))
+      ⊒ renameᵗᵐ ρ (ν A′ N′ (⇑ᶜ p)) ∶ renameᶜ ρ p
+term-rename-local-ν⊒ν-build {Δ′ = Δ′} {σ = σ} {γ = γ}
+    {A = A} {A′ = A′} {N = N} {N′ = N′} {p = p} {q = q}
+    {ρ = ρ} hρ pᶜ qᶜ body =
+  subst
+    (λ M → _ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+      ⊢ M ⊒ renameᵗᵐ ρ (ν A′ N′ (⇑ᶜ p)) ∶ _)
+    (sym src≡)
+    (subst
+      (λ T → _ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+        ⊢ ν (renameᵗ ρ A) (renameᵗᵐ ρ N) (⇑ᶜ (renameᶜ ρ p))
+          ⊒ T ∶ _)
+      (sym tgt≡)
+      raw)
+  where
+    store′ =
+      (zero ꞉ ⇑ᶜ (renameᶜ ρ q)) ∷ ⇑ˢ (renameStoreNrw ρ σ)
+
+    store≡ :
+      renameStoreNrw (extᵗ ρ) ((zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ) ≡ store′
+    store≡ =
+      cong₂ _∷_
+        (cong₂ _꞉_ refl (renameᶜ-ext-suc-comm ρ q))
+        (renameStoreNrw-⇑ˢ ρ σ)
+
+    ctx≡ :
+      renameCtxNrw (extᵗ ρ) (⇑ᵍ γ) ≡ ⇑ᵍ (renameCtxNrw ρ γ)
+    ctx≡ = renameCtxNrw-⇑ᵍ ρ γ
+
+    c≡ :
+      renameᶜ (extᵗ ρ) (⇑ᶜ p) ≡ ⇑ᶜ (renameᶜ ρ p)
+    c≡ = renameᶜ-ext-suc-comm ρ p
+
+    body′ :
+      suc Δ′ ∣ store′ ∣ ⇑ᵍ (renameCtxNrw ρ γ)
+        ⊢ renameᵗᵐ ρ N ⊒ renameᵗᵐ ρ N′
+          ∶ ⇑ᶜ (renameᶜ ρ p)
+    body′ =
+      subst
+        (λ c → _ ∣ store′ ∣ ⇑ᵍ (renameCtxNrw ρ γ)
+          ⊢ renameᵗᵐ ρ N ⊒ renameᵗᵐ ρ N′ ∶ c)
+        c≡
+        (subst
+          (λ Γ → _ ∣ store′ ∣ Γ
+            ⊢ renameᵗᵐ ρ N ⊒ renameᵗᵐ ρ N′ ∶ _)
+          ctx≡
+          (subst
+            (λ S → _ ∣ S ∣ renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+              ⊢ renameᵗᵐ ρ N ⊒ renameᵗᵐ ρ N′ ∶ _)
+            store≡
+            body))
+
+    raw :
+      Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+        ⊢ ν (renameᵗ ρ A) (renameᵗᵐ ρ N) (⇑ᶜ (renameᶜ ρ p))
+          ⊒ ν (renameᵗ ρ A′) (renameᵗᵐ ρ N′) (⇑ᶜ (renameᶜ ρ p))
+          ∶ renameᶜ ρ p
+    raw =
+      ν⊒ν
+        (renameStoreNrw-coercionᶜ hρ pᶜ)
+        (renameStoreNrw-coercionᶜ hρ qᶜ)
+        body′
+
+    src≡ :
+      renameᵗᵐ ρ (ν A N (⇑ᶜ p)) ≡
+      ν (renameᵗ ρ A) (renameᵗᵐ ρ N) (⇑ᶜ (renameᶜ ρ p))
+    src≡ = cong (ν (renameᵗ ρ A) (renameᵗᵐ ρ N)) c≡
+
+    tgt≡ :
+      renameᵗᵐ ρ (ν A′ N′ (⇑ᶜ p)) ≡
+      ν (renameᵗ ρ A′) (renameᵗᵐ ρ N′) (⇑ᶜ (renameᶜ ρ p))
+    tgt≡ = cong (ν (renameᵗ ρ A′) (renameᵗᵐ ρ N′)) c≡
+
+term-rename-local-⊒ν-build :
+  ∀ {Δ Δ′ σ γ A B B′ N N′ p ρ} →
+  (hρ : TyRenameWf Δ Δ′ ρ) →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ B ⊒ B′ →
+  suc Δ′ ∣
+    renameStoreNrw (extᵗ ρ) ((zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ) ∣
+    renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+    ⊢ renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N)
+      ⊒ renameᵗᵐ ρ N′ ∶ renameᶜ (extᵗ ρ) (⇑ᶜ p) →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ N ⊒ renameᵗᵐ ρ (ν A N′ (⇑ᶜ p))
+      ∶ renameᶜ ρ p
+term-rename-local-⊒ν-build {Δ′ = Δ′} {σ = σ} {γ = γ}
+    {A = A} {N = N} {N′ = N′} {p = p} {ρ = ρ}
+    hρ pᶜ body =
+  subst
+    (λ T → _ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+      ⊢ renameᵗᵐ ρ N ⊒ T ∶ _)
+    (sym tgt≡)
+    raw
+  where
+    store′ =
+      (zero ꞉= ⇑ᵗ (renameᵗ ρ A) ⊒) ∷ ⇑ˢ (renameStoreNrw ρ σ)
+
+    store≡ :
+      renameStoreNrw (extᵗ ρ) ((zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ) ≡ store′
+    store≡ =
+      cong₂ _∷_
+        (cong₂ _꞉=_⊒ refl (renameᵗ-ext-suc-comm ρ A))
+        (renameStoreNrw-⇑ˢ ρ σ)
+
+    ctx≡ :
+      renameCtxNrw (extᵗ ρ) (⇑ᵍ γ) ≡ ⇑ᵍ (renameCtxNrw ρ γ)
+    ctx≡ = renameCtxNrw-⇑ᵍ ρ γ
+
+    c≡ :
+      renameᶜ (extᵗ ρ) (⇑ᶜ p) ≡ ⇑ᶜ (renameᶜ ρ p)
+    c≡ = renameᶜ-ext-suc-comm ρ p
+
+    src≡ :
+      renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N) ≡ ⇑ᵗᵐ (renameᵗᵐ ρ N)
+    src≡ = renameᵗᵐ-ext-suc-comm ρ N
+
+    body′ :
+      suc Δ′ ∣ store′ ∣ ⇑ᵍ (renameCtxNrw ρ γ)
+        ⊢ ⇑ᵗᵐ (renameᵗᵐ ρ N) ⊒ renameᵗᵐ ρ N′
+          ∶ ⇑ᶜ (renameᶜ ρ p)
+    body′ =
+      subst
+        (λ c → _ ∣ store′ ∣ ⇑ᵍ (renameCtxNrw ρ γ)
+          ⊢ ⇑ᵗᵐ (renameᵗᵐ ρ N) ⊒ renameᵗᵐ ρ N′ ∶ c)
+        c≡
+        (subst
+          (λ M → _ ∣ store′ ∣ ⇑ᵍ (renameCtxNrw ρ γ)
+            ⊢ M ⊒ renameᵗᵐ ρ N′ ∶ _)
+          src≡
+          (subst
+            (λ Γ → _ ∣ store′ ∣ Γ
+              ⊢ renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N)
+                ⊒ renameᵗᵐ ρ N′ ∶ _)
+            ctx≡
+            (subst
+              (λ S → _ ∣ S ∣ renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+                ⊢ renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N)
+                  ⊒ renameᵗᵐ ρ N′ ∶ _)
+              store≡
+              body)))
+
+    raw :
+      Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+        ⊢ renameᵗᵐ ρ N
+          ⊒ ν (renameᵗ ρ A) (renameᵗᵐ ρ N′) (⇑ᶜ (renameᶜ ρ p))
+          ∶ renameᶜ ρ p
+    raw = ⊒ν (renameStoreNrw-coercionᶜ hρ pᶜ) body′
+
+    tgt≡ :
+      renameᵗᵐ ρ (ν A N′ (⇑ᶜ p)) ≡
+      ν (renameᵗ ρ A) (renameᵗᵐ ρ N′) (⇑ᶜ (renameᶜ ρ p))
+    tgt≡ = cong (ν (renameᵗ ρ A) (renameᵗᵐ ρ N′)) c≡
+
+term-rename-local-ν⊒-build :
+  ∀ {Δ Δ′ σ γ N N′ p A B ρ} →
+  (hρ : TyRenameWf Δ Δ′ ρ) →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
+  suc Δ′ ∣
+    renameStoreNrw (extᵗ ρ) ((⊒ zero ꞉=☆) ∷ ⇑ˢ σ) ∣
+    renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+    ⊢ renameᵗᵐ ρ N
+      ⊒ renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N′)
+      ∶ renameᶜ (extᵗ ρ) (⇑ᶜ p) →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ (ν ★ N (⇑ᶜ p)) ⊒ renameᵗᵐ ρ N′
+      ∶ renameᶜ ρ p
+term-rename-local-ν⊒-build {Δ′ = Δ′} {σ = σ} {γ = γ}
+    {N = N} {N′ = N′} {p = p} {ρ = ρ} hρ pᶜ body =
+  subst
+    (λ M → _ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+      ⊢ M ⊒ renameᵗᵐ ρ N′ ∶ _)
+    (sym src≡)
+    raw
+  where
+    store′ = (⊒ zero ꞉=☆) ∷ ⇑ˢ (renameStoreNrw ρ σ)
+
+    store≡ :
+      renameStoreNrw (extᵗ ρ) ((⊒ zero ꞉=☆) ∷ ⇑ˢ σ) ≡ store′
+    store≡ = cong₂ _∷_ refl (renameStoreNrw-⇑ˢ ρ σ)
+
+    ctx≡ :
+      renameCtxNrw (extᵗ ρ) (⇑ᵍ γ) ≡ ⇑ᵍ (renameCtxNrw ρ γ)
+    ctx≡ = renameCtxNrw-⇑ᵍ ρ γ
+
+    c≡ :
+      renameᶜ (extᵗ ρ) (⇑ᶜ p) ≡ ⇑ᶜ (renameᶜ ρ p)
+    c≡ = renameᶜ-ext-suc-comm ρ p
+
+    tgt≡ :
+      renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N′) ≡ ⇑ᵗᵐ (renameᵗᵐ ρ N′)
+    tgt≡ = renameᵗᵐ-ext-suc-comm ρ N′
+
+    body′ :
+      suc Δ′ ∣ store′ ∣ ⇑ᵍ (renameCtxNrw ρ γ)
+        ⊢ renameᵗᵐ ρ N ⊒ ⇑ᵗᵐ (renameᵗᵐ ρ N′)
+          ∶ ⇑ᶜ (renameᶜ ρ p)
+    body′ =
+      subst
+        (λ c → _ ∣ store′ ∣ ⇑ᵍ (renameCtxNrw ρ γ)
+          ⊢ renameᵗᵐ ρ N ⊒ ⇑ᵗᵐ (renameᵗᵐ ρ N′) ∶ c)
+        c≡
+        (subst
+          (λ T → _ ∣ store′ ∣ ⇑ᵍ (renameCtxNrw ρ γ)
+            ⊢ renameᵗᵐ ρ N ⊒ T ∶ _)
+          tgt≡
+          (subst
+            (λ Γ → _ ∣ store′ ∣ Γ
+              ⊢ renameᵗᵐ ρ N
+                ⊒ renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N′) ∶ _)
+            ctx≡
+            (subst
+              (λ S → _ ∣ S ∣ renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+                ⊢ renameᵗᵐ ρ N
+                  ⊒ renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N′) ∶ _)
+              store≡
+              body)))
+
+    raw :
+      Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+        ⊢ ν ★ (renameᵗᵐ ρ N) (⇑ᶜ (renameᶜ ρ p))
+          ⊒ renameᵗᵐ ρ N′ ∶ renameᶜ ρ p
+    raw = ν⊒ (renameStoreNrw-coercionᶜ hρ pᶜ) body′
+
+    src≡ :
+      renameᵗᵐ ρ (ν ★ N (⇑ᶜ p)) ≡
+      ν ★ (renameᵗᵐ ρ N) (⇑ᶜ (renameᶜ ρ p))
+    src≡ = cong (ν ★ (renameᵗᵐ ρ N)) c≡
 
 compose-leftⁿ-rename-guarded :
   ∀ {Δ Δ′ σ q s r A B ρ} →

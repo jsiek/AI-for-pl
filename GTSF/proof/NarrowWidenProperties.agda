@@ -120,6 +120,57 @@ srcStoreⁿ-⇑ˢ ((X ꞉= A ⊒) ∷ σ) = srcStoreⁿ-⇑ˢ σ
 srcStoreⁿ-⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
   cong₂ _∷_ refl (srcStoreⁿ-⇑ˢ σ)
 
+StoreNoKey : TyVar → Store → Set
+StoreNoKey α Σ =
+  ∀ {A} →
+  (α , A) ∈ Σ →
+  ⊥
+
+StoreNoKey-⟰ᵗ :
+  ∀ {α Σ} →
+  StoreNoKey α Σ →
+  StoreNoKey (suc α) (⟰ᵗ Σ)
+StoreNoKey-⟰ᵗ {Σ = []} noKey ()
+StoreNoKey-⟰ᵗ {α = α} {Σ = (α , A) ∷ Σ} noKey (here refl) =
+  noKey (here refl)
+StoreNoKey-⟰ᵗ {Σ = (β , A) ∷ Σ} noKey (there α∈Σ) =
+  StoreNoKey-⟰ᵗ (λ β∈Σ → noKey (there β∈Σ)) α∈Σ
+
+StoreNoKey-zero-⟰ᵗ :
+  ∀ {Σ} →
+  StoreNoKey zero (⟰ᵗ Σ)
+StoreNoKey-zero-⟰ᵗ {Σ = []} ()
+StoreNoKey-zero-⟰ᵗ {Σ = (β , A) ∷ Σ} (here ())
+StoreNoKey-zero-⟰ᵗ {Σ = (β , A) ∷ Σ} (there α∈Σ) =
+  StoreNoKey-zero-⟰ᵗ α∈Σ
+
+StoreNoKey-one-⟰ᵗ⟰ᵗ :
+  ∀ {Σ} →
+  StoreNoKey (suc zero) (⟰ᵗ (⟰ᵗ Σ))
+StoreNoKey-one-⟰ᵗ⟰ᵗ =
+  StoreNoKey-⟰ᵗ StoreNoKey-zero-⟰ᵗ
+
+srcStoreⁿ-source-first-one-no-key :
+  ∀ σ →
+  StoreNoKey (suc zero)
+    (srcStoreⁿ ((⊒ zero ꞉=☆) ∷
+      (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)))
+srcStoreⁿ-source-first-one-no-key σ (here ())
+srcStoreⁿ-source-first-one-no-key σ (there α∈Σ) =
+  tailNoKey α∈Σ
+  where
+    eq-tail :
+      srcStoreⁿ (⇑ˢ (⇑ˢ σ)) ≡ ⟰ᵗ (⟰ᵗ (srcStoreⁿ σ))
+    eq-tail =
+      trans (srcStoreⁿ-⇑ˢ (⇑ˢ σ))
+        (cong ⟰ᵗ (srcStoreⁿ-⇑ˢ σ))
+
+    tailNoKey :
+      StoreNoKey (suc zero) (srcStoreⁿ (⇑ˢ (⇑ˢ σ)))
+    tailNoKey =
+      subst (StoreNoKey (suc zero)) (sym eq-tail)
+        StoreNoKey-one-⟰ᵗ⟰ᵗ
+
 occurs-one-⇑⇑-false :
   ∀ A →
   occurs (suc zero) (⇑ᵗ (⇑ᵗ A)) ≡ false

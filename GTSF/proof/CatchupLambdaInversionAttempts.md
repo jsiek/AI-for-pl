@@ -4203,3 +4203,27 @@ target-endpoint freshness.  A narrowing can introduce a store variable on the
 target side, for example through a seal.  So this prunes the old counterexample
 shape but does not yet prove that the whole source-side cast branch replays
 through the `source-first` to `target-first` store exchange.
+
+## Attempt 118: distinguish seal from untag with source-store no-key
+
+Accepted as checked support, but still not the replay proof.
+
+Added `StoreNoKey` support in `proof.NarrowWidenProperties`, including:
+
+- `StoreNoKey-⟰ᵗ`;
+- `StoreNoKey-zero-⟰ᵗ`;
+- `StoreNoKey-one-⟰ᵗ⟰ᵗ`;
+- `srcStoreⁿ-source-first-one-no-key`.
+
+The point is sharper than occurrence freshness.  In the source-first body store
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`,
+
+the source store has no key for the target-only variable `suc zero`.  That
+means a narrowing step cannot introduce target variable `suc zero` through a
+`seal` case on the source side, since `seal` needs an actual source-store key.
+
+Limitation: this does not eliminate `untag (＇ suc zero)`, which can introduce a
+target ground variable without a store key.  Thus the no-key fact separates the
+old seal-shaped obstruction from the remaining tag-shaped branch, but it still
+does not supply the source-side replay through the swapped store.

@@ -637,6 +637,48 @@ This is the useful algebraic boundary for the old closed
 `id (＇ α)`, and an exact DGG outer premise would force precisely the impossible
 source endpoint `＇ α ⊒ ＇ α`.
 
+### Attempt 9. Use the source-endpoint contradiction on source-left casts
+
+The checked lemma `right-seal-compose-source-var⊥` is too narrow to close all
+of the inert source-left branches by itself.  It applies when the exact outer
+right-seal premise has endpoints
+
+```agda
+＇ α ⊒ ＇ α
+```
+
+That is exactly why the old closed `right-seal-inversion₁` counterexample cannot
+be wrapped in the DGG `⊒cast+ {s = seal B α}` branch.  It does not by itself
+cover source-left casts whose post-cast index has source endpoint `★`, a base
+type, a function type, or a different store variable.
+
+So the next helper should be DGG-shaped rather than a blanket contradiction:
+first expose the right-seal exactness, then handle the source-left branches with
+the value-level left widening/narrowing lemmas that already appear in
+`catchup-lemma`.  A useful target statement is:
+
+```agda
+right-seal-unseal-catchup :
+  RuntimeOK M →
+  Value V →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ E ⊒ F →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
+  ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ p′ ]
+    (M —↠[ χs ] N) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ V ∶ p′
+```
+
+The direct `⊒cast-` branch of this helper should strip the target seal with
+zero source steps.  The `⊒cast+` branch whose hidden target cast is `unseal`
+is contradictory by `right-seal-inversion₂-cast-unseal⊥`.  The remaining
+source-left `cast+⊒` and `cast-⊒` branches are the places where a source value
+may need to reduce through the inert cast before the post-step relation to `V`
+can be built.
+
 ### Counterexample search
 
 The known `right-seal-inversion₁` counterexample does not satisfy the exact DGG

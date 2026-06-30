@@ -4145,3 +4145,29 @@ split-marker work.
 Conclusion: this helper is not an alternative to the false inversion postulate.
 It may become useful after the shifted-source lowering is proved, but it cannot
 replace that proof.
+
+## Attempt 116: endpoint freshness by occurrence contraposition
+
+Accepted as checked support, but not a complete replay proof.
+
+Added two lemmas to `proof.NarrowWidenProperties`:
+
+- `narrowing-target-fresh-source-fresh`;
+- `widening-source-fresh-target-fresh`.
+
+They are boolean contrapositives of the existing occurrence-preservation
+lemmas in `NarrowWiden`.  The immediate motivation is the remaining `⊒Λ`
+last-bind replay obligation: the target-only variable `suc zero` is absent
+from the source store
+
+`srcStoreⁿ ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ))`.
+
+For source-side composition branches, if the right endpoint of the source-side
+narrowing piece is known fresh for `suc zero`, the new lemma pushes that
+freshness backward to the source endpoint.  This is a useful bridge toward
+showing that the source term cannot depend on the target-only variable and may
+therefore be replayed through the same store swap as the target/coercion side.
+
+Limitation: this only gives type-endpoint freshness.  It does not yet prove
+term-level freshness for `W`, nor does it convert the source renaming from
+`raise0ᵗ` to `swap01ᵗ` in the live body relation.

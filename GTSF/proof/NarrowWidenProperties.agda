@@ -690,6 +690,42 @@ Occurs→occurs-true {α = α} {A = A ⇒ B} (occ-fun₂ occ)
 Occurs→occurs-true (occ-all occ) =
   Occurs→occurs-true occ
 
+narrowing-target-fresh-source-fresh :
+  ∀ {μ Δ Σ A B c α} →
+  StoreNoOccurs α Σ →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
+  occurs α B ≡ false →
+  occurs α A ≡ false
+narrowing-target-fresh-source-fresh {A = A} {α = α} noOcc c⊒ freshB
+    with occurs α A | inspect (occurs α) A
+narrowing-target-fresh-source-fresh noOcc c⊒ freshB
+    | false | [ freshA ] =
+  refl
+narrowing-target-fresh-source-fresh noOcc c⊒ freshB
+    | true | [ occA ] =
+  ⊥-elim
+    (occurs-true-false⊥
+      (narrowing-source-occurs noOcc c⊒ occA)
+      freshB)
+
+widening-source-fresh-target-fresh :
+  ∀ {μ Δ Σ A B c α} →
+  StoreNoOccurs α Σ →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B →
+  occurs α A ≡ false →
+  occurs α B ≡ false
+widening-source-fresh-target-fresh {B = B} {α = α} noOcc c⊑ freshA
+    with occurs α B | inspect (occurs α) B
+widening-source-fresh-target-fresh noOcc c⊑ freshA
+    | false | [ freshB ] =
+  refl
+widening-source-fresh-target-fresh noOcc c⊑ freshA
+    | true | [ occB ] =
+  ⊥-elim
+    (occurs-true-false⊥
+      (widening-target-occurs noOcc c⊑ occB)
+      freshA)
+
 mutual
   data NarrowPath (α : TyVar) : Ty → Ty → Set where
     np-var :

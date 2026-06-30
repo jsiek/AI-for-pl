@@ -5337,3 +5337,230 @@ This does not by itself refute the narrower `catchup-⊒Λ-catchup` use site,
 which additionally has `No• W` and `CatchupSafe (⇑ᵗᵐ N)`.  It does show that
 `shifted-source-catchup-Λ-inversion` cannot be proved as currently stated; any
 replacement must strengthen its assumptions or avoid this standalone lemma.
+
+## Attempt 150: refresh main and recheck live counterexamples
+
+Rejected as a counterexample route.
+
+After fetching `origin/main`, the branch was still already at the latest main
+commit merged into this work.  I then asked a subagent to search for a live
+counterexample to the full `catchup-⊒Λ-catchup` assumptions, not merely to the
+standalone shifted-source postulate.
+
+The checked counterexample from Attempt 149 is blocked first by the live
+`No• W` premise:
+
+``N = ƛ ((` zero) •)``
+
+`W = N`
+
+The existing `badNo•⊥` in `proof.CatchupShiftedSourceCounterexample` proves
+that premise impossible.  The old `TraceProbe` type-application probe is blocked
+by `CatchupSafe (⇑ᵗᵐ N)`, because its shifted source is an active type
+application.  The legal `var0-fun` repair still fails in the same place, and
+also hits the checked `no-legal-target-cast-body` obstruction in
+`proof.TraceProbe`.
+
+So the standalone postulate is false, but the full live lemma still has no
+small counterexample from the known probes.  The remaining problem is still the
+last-bind replay invariant.
+
+## Attempt 151: strengthen the shifted-source postulate with live assumptions
+
+Rejected as a proof route.
+
+The smallest sound-looking replacement for the false postulate is to add exactly
+the live assumptions from `catchup-⊒Λ-catchup`:
+
+`Value V′`
+
+`No• W`
+
+`CatchupSafe (⇑ᵗᵐ N)`
+
+``Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B``
+
+This blocks the checked counterexample from Attempt 149 and the older
+`TraceProbe` probes.  However, it does not explain the missing construction.
+In the `last-bind` branch we still need to turn the source-first body
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`
+
+into the target-first replay body
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+The existing `source-first-merge01-renamed-safe-replay-gen` could finish this
+if we had a `SourceTargetMergeSafe` proof, but the immediate
+`⊒Λ (split ...)` shape remains definitionally unsafe:
+
+`SourceTargetMergeSafeFor (split ...) (merge-right merge-here) = ⊥`
+
+The live value, no-bullet, and `CatchupSafe` facts rule out the known bad
+programs, but they do not by themselves produce the term-narrowing replay
+through that split/opening case.  A strengthened postulate with those premises
+would therefore just hide the same missing invariant.
+
+## Attempt 152: force the last-bind prefix to be all `keep`
+
+Rejected.
+
+The existing checked helper
+`catchup-⊒Λ-no-earlier-bind-source-first` solves the reduction lowering when the
+prefix before the final `bind` is all `keep`.  I checked whether the empty target
+store evidence at the live call site can force that prefix condition.
+
+It cannot.  The already-checked facts
+
+`⊒ˢ-empty-source-star-only`
+
+and
+
+`last-bind-empty-target-lowered-tail`
+
+only show that the emitted narrowing store contains source-star entries and
+that the tail after the final source-star can be lowered.  They do not imply
+`AllKeep χs`; earlier `bind ★` steps remain compatible with the empty target
+store because they contribute more source-star entries.  Thus
+`storeChangesLastBind` genuinely leaves a general prefix, and the proof needs an
+indexed lowering/replay invariant rather than a way to reuse the no-earlier-bind
+helper everywhere.
+
+## Attempt 153: derive merge replay safety from live value/no-bullet facts
+
+Rejected.
+
+I revisited `TermRenameLocalShapeOk` as the possible replacement invariant for
+`SourceTargetMergeSafe`.  At top level, `Value W` and `No• W` rule out obvious
+active source cases, but this does not recurse through all constructors strongly
+enough.
+
+For example, under `ƛ⊒ƛ` the source lambda can be a value while the body still
+contains term-imprecision constructors that the merge replay must classify.
+`No• W` rules out body bullets on the source side, but the problematic
+`⊒α` constructor has a non-bullet source and a target type application, so it is
+not excluded by source no-bullet alone.  Under nested `⊒Λ`, the distinguished
+source/target markers are shifted under an additional target marker, which is
+exactly the unsafe split/opening arrangement from Attempt 147.
+
+So a direct lemma of the form
+
+`Value W → No• W → TermRenameLocalShapeOk shape-merge01 body`
+
+is too weakly justified.  The replay theorem still needs a relation that tracks
+the distinguished marker pair through binders and handles the unsafe
+`split`/opening case directly, rather than trying to prove the existing merge
+safety predicate after the fact.
+
+## Attempt 154: lower a last-bind reduction with a non-keep prefix
+
+Rejected in this direct form.
+
+I investigated whether the reduction side of the last-bind branch could be
+generalized from
+
+```
+AllKeep χs →
+AllKeep keeps →
+CatchupSafe (⇑ᵗᵐ N) →
+⇑ᵗᵐ N —↠[ χs ] P →
+P —→[ bind Aχ ] Q →
+Q —↠[ keeps ] W →
+Value W →
+N —↠[ χs ++ bind ★ ∷ keeps ] renameᵗᵐ predᵗ W
+```
+
+to a version where `χs` may contain earlier binds, using the live empty-target
+store evidence.  The store evidence does establish the right static facts:
+`⊒ˢ-empty-source-star-only` says the emitted narrowing store is source-star
+only, and the existing `last-bind-empty-target-star` argument forces the final
+bind type to be `★`.  The same kind of inversion should force earlier bind
+types to be `★` as well, because each earlier bind contributes another shifted
+source-star entry.
+
+That is not enough for the current reduction induction.  The proof of
+`safe-allKeep-bind-pred-↠` depends on recursing through the prefix one `keep`
+step at a time:
+
+```
+safe-keep-step-image-view :
+  CatchupSafe M →
+  TermShiftImage M →
+  M —→[ keep ] N →
+  ImageStepView N
+```
+
+This gives either a shifted safe successor, or proves the successor cannot
+reach a value.  For a prior `bind` step, the available inverse is only the
+single-step lemma
+
+```
+type-rename-bind-step-pred :
+  ⇑ᵗᵐ M —→[ bind A ] N →
+  M —→[ bind (renameᵗ predᵗ A) ] renameᵗᵐ predᵗ N
+```
+
+It lowers that one step, but it does not give the recursive hypotheses needed
+for the rest of the prefix: no `CatchupSafe N` and no `TermShiftImage N`.
+For the `ν-step` case this is a real shape issue, not just missing
+bookkeeping.  A bind step produces
+
+```
+((⇑ᵗᵐ V) •) ⟨ c ⟩
+```
+
+which is an active type-application under a cast.  It is not `CatchupSafe`, and
+it is not generally a `TermShiftImage` unless the coercion happens to commute
+with the outer shift in the stronger under-binder way needed by `ν`.
+
+So an indexed lowering lemma is feasible only if it tracks a stronger dynamic
+invariant through the whole prefix: at every later bind source, the current term
+must again be known to be a shift image, or the prefix must be split into
+segments where each bind is immediately followed by enough keep reduction to
+restore a usable shifted/safe shape.  The source-star-only store evidence and
+the fact that all bind types are `★` do not provide that dynamic invariant.
+
+## Attempt 155: direct `raise0ᵗ` and shape-aware replay probes
+
+Rejected as direct replay routes.
+
+A subagent ran bounded temporary proof experiments in `proof.Catchup` and then
+reverted them after checking the blockers.
+
+First, a direct `raise0ᵗ` helper was tried: rename the source-first body so that
+the source side becomes
+
+`renameᵗᵐ raise0ᵗ W = ⇑ᵗᵐ (renameᵗᵐ predᵗ W)`
+
+and then normalize to the target-first replay.  The first Agda error was:
+
+```text
+Data.Product.Σ TyVar (λ x → Ty) != StNrw of type Set
+when checking that source-target-raise0-srcStore σ
+has type _ ≡ (zero ꞉= ★ ⊒) ∷ ⊒ 1 ꞉=☆ ∷ ⇑ˢ (⇑ˢ σ)
+```
+
+This identifies a real mismatch: `source-target-raise0-srcStore` only aligns
+the deterministic source store `srcStoreⁿ`, but term narrowing needs the full
+`StoreNrw`.  A plain `raise0ᵗ` renaming does not reorder the source-first store
+into the target-first store.
+
+Second, the experiment tried to use `TermRenameLocalShapeOk shape-merge01`
+directly on the unsafe nested shape
+
+`⊒Λ pᶜ (split qᶜ pαᶜ inner)`.
+
+Agda refused the direct split with:
+
+```text
+I'm not sure if there should be a case for the constructor split
+...
+N [ αᵢ ]ᵀ ≟ ⇑ᵗᵐ M
+N′ [ α ]ᵀ ≟ V′
+p [ α ]ᶜ ≟ p₁
+```
+
+So even a constructor-specific replay cannot simply pattern match on the inner
+`split` at the needed type.  The proof needs an explicit opening/inversion
+bridge that exposes how `N [ αᵢ ]ᵀ`, `N′ [ α ]ᵀ`, and `p [ α ]ᶜ` line up with
+the shifted source premise before the shape-aware replay can proceed.

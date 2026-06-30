@@ -5,6 +5,9 @@ module proof.LeftWidening where
 --     `proof.Catchup`.
 --   * The target statement matches the current `left-widening-lemma`
 --     postulate in `proof.Catchup`.
+--   * The old statement is kept as `LeftWideningWithoutNo•` because it was
+--     false; the current statement adds the missing source/result `No•`
+--     invariants.
 --   * The proof search is kept here to avoid obscuring the larger catchup
 --     proof and to make failed strategies explicit.
 --
@@ -24,6 +27,8 @@ module proof.LeftWidening where
 --     `No• V`.
 --     A lambda value can hide a runtime bullet in its body, so the reduction
 --     reaches a stuck non-value `ν ★ V c`.
+--   * After main added the `No• V` premise, this particular counterexample is
+--     blocked: `badPoly-no-No•` proves the bad value cannot satisfy it.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -57,8 +62,8 @@ dual-untag-inert (＇ α) = (＇ α) !
 dual-untag-inert (‵ ι) = (‵ ι) !
 dual-untag-inert ★⇒★ = (★ ⇒ ★) !
 
-LeftWidening : Set₁
-LeftWidening =
+LeftWideningWithoutNo• : Set₁
+LeftWideningWithoutNo• =
   ∀ {Δ σ V V′ p r t A B C D} →
   Value V →
   Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
@@ -74,15 +79,36 @@ LeftWidening =
     Δ′ ∣ combineStoreNrw π σ ∣ []
       ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
 
-left-widening-inert :
+LeftWidening : Set₁
+LeftWidening =
   ∀ {Δ σ V V′ p r t A B C D} →
-  Inert (- t) →
   Value V →
+  No• V →
   Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
   Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
   Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
   ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
     Value W ×
+    No• W ×
+    (V ⟨ - t ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+
+left-widening-inert :
+  ∀ {Δ σ V V′ p r t A B C D} →
+  Inert (- t) →
+  Value V →
+  No• V →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
     (V ⟨ - t ⟩ —↠[ χs ] W) ×
     (Δ′ ≡ applyTyCtxs χs Δ) ×
     (Π ≡ applyStores χs []) ×
@@ -91,9 +117,10 @@ left-widening-inert :
     Δ′ ∣ combineStoreNrw π σ ∣ []
       ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
 left-widening-inert {Δ = Δ} {σ = σ} {V = V} {V′ = V′}
-    {p = p} {r = r} {t = t} inert-t vV pᶜ r≈t⨟p V⊒V′ =
+    {p = p} {r = r} {t = t} inert-t vV noV pᶜ r≈t⨟p V⊒V′ =
   [] , V ⟨ - t ⟩ , Δ , [] , [] , [] ,
   vV ⟨ inert-t ⟩ ,
+  no•-⟨⟩ noV ,
   ↠-refl ,
   refl ,
   refl ,
@@ -187,16 +214,22 @@ badInstCast-no-value-after (↠-step (pure-step (β-inst badPoly-value)) steps)
 badInstCast-no-value-after (↠-step (ξ-⟨⟩ badPoly-step) steps) vW =
   ⊥-elim (badPoly-no-step badPoly-step)
 
-left-widening-counterexample :
-  LeftWidening →
+left-widening-without-No•-counterexample :
+  LeftWideningWithoutNo• →
   ⊥
-left-widening-counterexample left-widening
+left-widening-without-No•-counterexample left-widening
     with left-widening
            badPoly-value
            forall-id-var0-fun-cast
            ex1-line272-≈
            badPoly-narrow
-left-widening-counterexample left-widening
+left-widening-without-No•-counterexample left-widening
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , bad↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′ =
   badInstCast-no-value-after bad↠W vW
+
+left-widening-counterexample-prevented :
+  No• badPoly →
+  ⊥
+left-widening-counterexample-prevented =
+  badPoly-no-No•

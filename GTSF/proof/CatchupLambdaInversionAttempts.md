@@ -2915,10 +2915,11 @@ Agda reports the head entry mismatch:
 
 `0 ꞉ id ★ != 0 ꞉= ★ ⊒`
 
-This is not just a syntax mismatch.  The legal `var0-fun` example needs a
-source-side marker/both-side `id ★` store before the final cast can be typed.
-That marker is exactly what the last-bind/split path creates.  So the
-standalone `TraceProbe` counterexample still cannot be lifted to a legal
-`catchup-⊒Λ-catchup` counterexample by simply replacing `probe-c` with
-`var0-fun`; the legal shape pushes the proof back to the source-marker replay
-problem.
+This blocks the direct lift of the checked example witness.  The legal
+`var0-fun` examples in `NarrowingExamples` use a source-side marker/both-side
+`id ★` store before the final cast is typed, and that marker is exactly what
+the last-bind/split path creates.  So the standalone `TraceProbe`
+counterexample still cannot be lifted to a legal `catchup-⊒Λ-catchup`
+counterexample by simply replacing `probe-c` with `var0-fun`; a stronger
+counterexample would need a different final-body derivation, not just this
+nearby example.

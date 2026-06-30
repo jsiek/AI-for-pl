@@ -195,6 +195,20 @@ counterexample-premise :
 counterexample-premise =
   cast-⊒ idAlphaᶜ left-seal-compose right-sealed-constant
 
+old-counterexample-revised-premise⊥ :
+  ∀ {q C} →
+  1 ∣ (0 ꞉ id (‵ `ℕ)) ∷ []
+    ⊢ q ⨾ⁿ seal (‵ `ℕ) 0 ≈ id (＇ 0) ∶ C ⊒ ＇ 0 →
+  ⊥
+old-counterexample-revised-premise⊥
+    (compose-leftⁿ wfΣ q⊒
+      (cast-seal hNat α∈Σ seal-ok , sealⁿ .NatTy .alpha0)
+      (endpointsⁿ src-u tgt-u src-id tgt-id σ⊒ wfΣ₁ wfΣ₂ u⊒ id⊒)) =
+  let
+    q⊒Nat = subst (λ A → _ ∣ _ ∣ _ ⊢ _ ∶ A ⊒ NatTy) (sym src-id) q⊒
+  in
+  narrowing-var-to-older⊥ wfΣ wfBase q⊒Nat
+
 stripped-impossible :
   ∀ {q} →
   1 ∣ (0 ꞉ id (‵ `ℕ)) ∷ [] ∣ []

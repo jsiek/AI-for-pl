@@ -634,26 +634,26 @@ shifted-source-catchup-Λ-inversion-counterexample
       probe-body⊒
 shifted-source-catchup-Λ-inversion-counterexample
     | χs′ , W′ , Δ″ , Π″ , Π″′ , π′ ,
-      vW′ , N↠W′ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body
+      vW′ , noW′ , N↠W′ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body
     with N↠W′
 shifted-source-catchup-Λ-inversion-counterexample
     | χs′ , .probe-N , Δ″ , Π″ , Π″′ , π′ ,
-      () , _ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body
+      () , _ , _ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body
     | ↠-refl
 shifted-source-catchup-Λ-inversion-counterexample
     | χs″ , W′ , Δ″ , Π″ , Π″′ , π′ ,
-      vW′ , _ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body
+      vW′ , noW′ , _ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body
     | ↠-step (pure-step (β-Λ• vBody)) body↠W′
     with body↠W′
 shifted-source-catchup-Λ-inversion-counterexample
     | .(keep ∷ []) , .probe-W , .0 , .[] , .[] , .[] ,
-      vW′ , _ , refl , refl , refl , ⊒ˢ-nil , body
+      vW′ , noW′ , _ , refl , refl , refl , ⊒ˢ-nil , body
     | ↠-step (pure-step (β-Λ• vBody)) body↠W′
     | ↠-refl =
   no-probe-conclusion body
 shifted-source-catchup-Λ-inversion-counterexample
     | χs″ , W′ , Δ″ , Π″ , Π″′ , π′ ,
-      vW′ , _ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body
+      vW′ , noW′ , _ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body
     | ↠-step (pure-step (β-Λ• vBody)) body↠W′
     | ↠-step body→N N↠W′ =
   ⊥-elim (value-no-step probe-W-value body→N)

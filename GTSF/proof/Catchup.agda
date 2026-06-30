@@ -80,6 +80,7 @@ open import proof.NuTermProperties
     ; renameᵗᵐ-left-inverse
     ; renameᵗᵐ-open-commute
     ; renameᵗᵐ-pred-suc
+    ; renameᵗᵐ-preserves-No•
     ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-reflects-Value
     )
@@ -121,6 +122,12 @@ open import proof.TermNarrowingProperties
     ; value?-none-no-value
     ; value-target-source-no-active
     ; value-target-source-safe
+    )
+open import proof.NuPreservation
+  using
+    ( runtime-⟨⟩
+    ; runtime-ν
+    ; value-runtime-No•
     )
 open import proof.ReductionProperties
   using
@@ -1689,6 +1696,38 @@ renameCtxNrw-raise0-pred :
 renameCtxNrw-raise0-pred [] = refl
 renameCtxNrw-raise0-pred (p ∷ γ) =
   cong₂ _∷_ (renameᶜ-raise0-pred p) (renameCtxNrw-raise0-pred γ)
+runtime-⇑ᵗᵐ :
+  ∀ {M} →
+  RuntimeOK M →
+  RuntimeOK (⇑ᵗᵐ M)
+runtime-⇑ᵗᵐ (ok-no noM) =
+  ok-no (renameᵗᵐ-preserves-No• suc noM)
+runtime-⇑ᵗᵐ (ok-• vV noV) =
+  ok-• (renameᵗᵐ-preserves-Value suc vV)
+       (renameᵗᵐ-preserves-No• suc noV)
+runtime-⇑ᵗᵐ (ok-·₁ okL noM) =
+  ok-·₁ (runtime-⇑ᵗᵐ okL) (renameᵗᵐ-preserves-No• suc noM)
+runtime-⇑ᵗᵐ (ok-·₂ vV noV okM) =
+  ok-·₂ (renameᵗᵐ-preserves-Value suc vV)
+        (renameᵗᵐ-preserves-No• suc noV)
+        (runtime-⇑ᵗᵐ okM)
+runtime-⇑ᵗᵐ (ok-ν okL) = ok-ν (runtime-⇑ᵗᵐ okL)
+runtime-⇑ᵗᵐ (ok-⊕₁ okL noM) =
+  ok-⊕₁ (runtime-⇑ᵗᵐ okL) (renameᵗᵐ-preserves-No• suc noM)
+runtime-⇑ᵗᵐ (ok-⊕₂ vL noL okM) =
+  ok-⊕₂ (renameᵗᵐ-preserves-Value suc vL)
+        (renameᵗᵐ-preserves-No• suc noL)
+        (runtime-⇑ᵗᵐ okM)
+runtime-⇑ᵗᵐ (ok-⟨⟩ okM) = ok-⟨⟩ (runtime-⇑ᵗᵐ okM)
+
+postulate
+  -- `split` changes which fresh type variable the source term is opened at.
+  -- This should follow from `RuntimeOK` depending on the term/bullet shape
+  -- rather than the particular type-variable names in casts and annotations.
+  runtime-open-change :
+    ∀ {N α β} →
+    RuntimeOK (N [ α ]ᵀ) →
+    RuntimeOK (N [ β ]ᵀ)
 
 ------------------------------------------------------------------------
 -- Catchup
@@ -1710,11 +1749,13 @@ postulate
   left-widening-lemma :
     ∀ {Δ σ V V′ p r t A B C D} →
     Value V →
+    No• V →
     Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
     Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
     Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
     ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
       Value W ×
+      No• W ×
       (V ⟨ - t ⟩ —↠[ χs ] W) ×
       (Δ′ ≡ applyTyCtxs χs Δ) ×
       (Π ≡ applyStores χs []) ×
@@ -1728,11 +1769,13 @@ postulate
   left-narrowing-lemma :
     ∀ {Δ σ V V′ p r t A B C D} →
     Value V →
+    No• V →
     Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
     Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
     Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ r →
     ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
       Value W ×
+      No• W ×
       (V ⟨ t ⟩ —↠[ χs ] W) ×
       (Δ′ ≡ applyTyCtxs χs Δ) ×
       (Π ≡ applyStores χs []) ×
@@ -1770,6 +1813,7 @@ postulate
       ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p →
     ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
       Value W′ ×
+      No• W′ ×
       (N —↠[ χs′ ] W′) ×
       (Δ″ ≡ applyTyCtxs χs′ Δ) ×
       (Π″ ≡ applyStores χs′ []) ×
@@ -1797,6 +1841,7 @@ postulate
       ⊢ W ⊒ applyTerms χs (V′ ⟨ s ⟩) ∶ applyCoercions χs p →
     ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
       Value W′ ×
+      No• W′ ×
       (N —↠[ χs′ ] W′) ×
       (Δ″ ≡ applyTyCtxs χs′ Δ) ×
       (Π″ ≡ applyStores χs′ []) ×
@@ -3310,6 +3355,7 @@ postulate
   catchup-split-catchup :
     ∀ {Δ σ χs W Δ′ Π Π′ π N N′ α αᵢ p q A C D} →
     Value W →
+    No• W →
     (N [ α ]ᵀ —↠[ χs ] W) →
     Δ′ ≡ applyTyCtxs χs Δ →
     Π ≡ applyStores χs [] →
@@ -3324,6 +3370,7 @@ postulate
         ∶ applyCoercions χs (p [ α ]ᶜ) →
     ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
       Value W′ ×
+      No• W′ ×
       (N [ αᵢ ]ᵀ —↠[ χs′ ] W′) ×
       (Δ″ ≡ applyTyCtxs χs′ Δ) ×
       (Π″ ≡ applyStores χs′ []) ×
@@ -3337,6 +3384,7 @@ postulate
 ⊒Λ-body-split-marker-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p} →
   Value W →
+  No• W →
   (⇑ᵗᵐ N —↠[ χs ] W) →
   Δ′ ≡ applyTyCtxs χs (suc Δ) →
   Π ≡ applyStores χs [] →
@@ -3347,6 +3395,7 @@ postulate
     ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p →
   ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
     Value W′ ×
+    No• W′ ×
     (⇑ᵗᵐ N —↠[ χs′ ] W′) ×
     (Δ″ ≡ applyTyCtxs χs′ (suc Δ)) ×
     (Π″ ≡ applyStores χs′ []) ×
@@ -3358,12 +3407,13 @@ postulate
 ⊒Λ-body-split-marker-catchup
     {Δ = Δ} {σ = σ} {χs = χs} {W = W} {π = π}
     {A = A} {B = B} {N = N} {V′ = V′} {p = p}
-    vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
     with catchup-split-catchup
       {Δ = suc Δ} {σ = ⇑ˢ σ} {χs = χs}
       {W = W} {α = zero} {αᵢ = suc zero}
       {p = ⇑ᶜ p} {q = id ★} {A = ★}
       vW
+      noW
       (subst
         (λ S → S —↠[ χs ] W)
         (sym (open-shiftᵐ zero (⇑ᵗᵐ N)))
@@ -3405,11 +3455,12 @@ postulate
             W⊒V′)))
 ⊒Λ-body-split-marker-catchup
     {Δ = Δ} {σ = σ} {χs = χs} {W = W} {N = N} {V′ = V′} {p = p}
-    vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
     | χs′ , W′ , Δ″ , Π″ , Π″′ , π′ ,
-      vW′ , source↠′ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body′ =
+      vW′ , noW′ , source↠′ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body′ =
   χs′ , W′ , Δ″ , Π″ , Π″′ , π′ ,
   vW′ ,
+  noW′ ,
   subst
     (λ S → S —↠[ χs′ ] W′)
     (open-shiftᵐ (suc zero) (⇑ᵗᵐ N))
@@ -3435,12 +3486,14 @@ catchup-⊒Λ-no-bind-finish :
   ∀ {Δ σ χs N W′ A B V′ p} →
   AllKeep χs →
   Value W′ →
+  No• W′ →
   (N —↠[ χs ] W′) →
   Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
   suc Δ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ ∣ []
     ⊢ ⇑ᵗᵐ W′ ⊒ V′ ∶ p →
   ∃[ χs′ ] ∃[ W″ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
     Value W″ ×
+    No• W″ ×
     (N —↠[ χs′ ] W″) ×
     (Δ″ ≡ applyTyCtxs χs′ Δ) ×
     (Π″ ≡ applyStores χs′ []) ×
@@ -3451,7 +3504,7 @@ catchup-⊒Λ-no-bind-finish :
         ∶ applyCoercions χs′ (gen A p)
 catchup-⊒Λ-no-bind-finish {Δ = Δ} {σ = σ} {χs = χs}
     {W′ = W′} {A = A} {V′ = V′} {p = p}
-    keeps vW′ N↠W′ pᶜ body =
+    keeps vW′ noW′ N↠W′ pᶜ body =
   let
     Δ≡ = sym (allKeep-applyTyCtxs-id keeps Δ)
     Π≡ = sym (allKeep-applyStores-id keeps [])
@@ -3466,6 +3519,7 @@ catchup-⊒Λ-no-bind-finish {Δ = Δ} {σ = σ} {χs = χs}
   in
   χs , W′ , Δ , [] , [] , [] ,
   vW′ ,
+  noW′ ,
   N↠W′ ,
   Δ≡ ,
   Π≡ ,
@@ -3484,6 +3538,7 @@ catchup-⊒Λ-no-bind-shift-image :
   ∀ {Δ σ χs N W W′ Δ′ π A B V′ p} →
   AllKeep χs →
   Value W′ →
+  No• W′ →
   (N —↠[ χs ] W′) →
   Δ′ ≡ applyTyCtxs χs (suc Δ) →
   π ≡ [] →
@@ -3493,6 +3548,7 @@ catchup-⊒Λ-no-bind-shift-image :
     ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p →
   ∃[ χs′ ] ∃[ W″ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
     Value W″ ×
+    No• W″ ×
     (N —↠[ χs′ ] W″) ×
     (Δ″ ≡ applyTyCtxs χs′ Δ) ×
     (Π″ ≡ applyStores χs′ []) ×
@@ -3504,8 +3560,8 @@ catchup-⊒Λ-no-bind-shift-image :
 catchup-⊒Λ-no-bind-shift-image
     {Δ = Δ} {σ = σ} {χs = χs} {W = W} {W′ = W′}
     {Δ′ = Δ′} {π = π} {V′ = V′} {p = p}
-    keeps vW′ N↠W′ Δ′≡ π≡[] W≡⇑W′ pᶜ W⊒V′ =
-  catchup-⊒Λ-no-bind-finish keeps vW′ N↠W′ pᶜ body
+    keeps vW′ noW′ N↠W′ Δ′≡ π≡[] W≡⇑W′ pᶜ W⊒V′ =
+  catchup-⊒Λ-no-bind-finish keeps vW′ noW′ N↠W′ pᶜ body
   where
     σ★ = (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ
     Δ′≡sucΔ = trans Δ′≡ (allKeep-applyTyCtxs-id keeps (suc Δ))
@@ -3541,6 +3597,7 @@ catchup-⊒Λ-single-bind-finish :
   AllKeep χs →
   AllKeep keeps →
   Value W′ →
+  No• W′ →
   (N —↠[ χs ++ bind ★ ∷ keeps ] W′) →
   Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
   suc (suc Δ) ∣
@@ -3549,6 +3606,7 @@ catchup-⊒Λ-single-bind-finish :
       ∶ renameᶜ (extᵗ suc) p →
   ∃[ χs′ ] ∃[ W″ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
     Value W″ ×
+    No• W″ ×
     (N —↠[ χs′ ] W″) ×
     (Δ″ ≡ applyTyCtxs χs′ Δ) ×
     (Π″ ≡ applyStores χs′ []) ×
@@ -3560,9 +3618,10 @@ catchup-⊒Λ-single-bind-finish :
 catchup-⊒Λ-single-bind-finish
     {Δ = Δ} {σ = σ} {χs = χs} {keeps = keeps}
     {W′ = W′} {A = A} {B = B} {V′ = V′} {p = p}
-    keepsχ keepsTail vW′ N↠W′ pᶜ body =
+    keepsχ keepsTail vW′ noW′ N↠W′ pᶜ body =
   χs′ , W′ , suc Δ , (zero , ★) ∷ [] , [] , π′ ,
   vW′ ,
+  noW′ ,
   N↠W′ ,
   Δ≡ ,
   Π≡ ,
@@ -3660,6 +3719,7 @@ catchup-⊒Λ-single-bind-finish
 catchup-⊒Λ-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p} →
   Value W →
+  No• W →
   (⇑ᵗᵐ N —↠[ χs ] W) →
   Δ′ ≡ applyTyCtxs χs (suc Δ) →
   Π ≡ applyStores χs [] →
@@ -3670,6 +3730,7 @@ catchup-⊒Λ-catchup :
     ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p →
   ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
     Value W′ ×
+    No• W′ ×
     (N —↠[ χs′ ] W′) ×
     (Δ″ ≡ applyTyCtxs χs′ Δ) ×
     (Π″ ≡ applyStores χs′ []) ×
@@ -3679,13 +3740,13 @@ catchup-⊒Λ-catchup :
       ⊢ W′ ⊒ applyTerms χs′ (Λ V′)
         ∶ applyCoercions χs′ (gen A p)
 catchup-⊒Λ-catchup {σ = σ} {A = A} {B = B} {V′ = V′} {p = p}
-    vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
     with shifted-source-catchup-Λ-inversion
       vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ W⊒V′
 catchup-⊒Λ-catchup {σ = σ} {A = A} {B = B} {V′ = V′} {p = p}
-    vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
     | χs′ , W′ , Δ″ , Π″ , Π″′ , π′ ,
-      vW′ , N↠W′ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body =
+      vW′ , noW′ , N↠W′ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body =
   let
     pᶜ′ =
       catchup-gen-coercion-typing-transport
@@ -3697,6 +3758,7 @@ catchup-⊒Λ-catchup {σ = σ} {A = A} {B = B} {V′ = V′} {p = p}
   in
   χs′ , W′ , Δ″ , Π″ , Π″′ , π′ ,
   vW′ ,
+  noW′ ,
   N↠W′ ,
   Δ″≡ ,
   Π″≡ ,
@@ -3716,6 +3778,7 @@ catchup-⊒Λ-catchup {σ = σ} {A = A} {B = B} {V′ = V′} {p = p}
 catchup-⊒⟨ν⟩-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p s} →
   Value W →
+  No• W →
   (⇑ᵗᵐ N —↠[ χs ] W) →
   Δ′ ≡ applyTyCtxs χs (suc Δ) →
   Π ≡ applyStores χs [] →
@@ -3727,6 +3790,7 @@ catchup-⊒⟨ν⟩-catchup :
     ⊢ W ⊒ applyTerms χs (V′ ⟨ s ⟩) ∶ applyCoercions χs p →
   ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
     Value W′ ×
+    No• W′ ×
     (N —↠[ χs′ ] W′) ×
     (Δ″ ≡ applyTyCtxs χs′ Δ) ×
     (Π″ ≡ applyStores χs′ []) ×
@@ -3737,14 +3801,14 @@ catchup-⊒⟨ν⟩-catchup :
         ∶ applyCoercions χs′ (gen A p)
 catchup-⊒⟨ν⟩-catchup
     {σ = σ} {A = A} {B = B} {V′ = V′} {p = p} {s = s}
-    vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ i W⊒V′s
+    vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ i W⊒V′s
     with shifted-source-catchup-⟨ν⟩-inversion
       vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ W⊒V′s
 catchup-⊒⟨ν⟩-catchup
     {σ = σ} {A = A} {B = B} {V′ = V′} {p = p} {s = s}
-    vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ i W⊒V′s
+    vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ i W⊒V′s
     | χs′ , W′ , Δ″ , Π″ , Π″′ , π′ ,
-      vW′ , N↠W′ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body =
+      vW′ , noW′ , N↠W′ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body =
   let
     pᶜ′ =
       catchup-gen-coercion-typing-transport
@@ -3760,6 +3824,7 @@ catchup-⊒⟨ν⟩-catchup
   in
   χs′ , W′ , Δ″ , Π″ , Π″′ , π′ ,
   vW′ ,
+  noW′ ,
   N↠W′ ,
   Δ″≡ ,
   Π″≡ ,
@@ -3796,6 +3861,7 @@ postulate
     ∀ {Δ σ χs W Δ′ Π Π′ π N V p A B} →
     Value V →
     Value W →
+    No• W →
     (N —↠[ χs ] W) →
     Δ′ ≡ applyTyCtxs χs (suc Δ) →
     Π ≡ applyStores χs [] →
@@ -3806,6 +3872,7 @@ postulate
       ⊢ W ⊒ applyTerms χs (⇑ᵗᵐ V) ∶ applyCoercions χs (⇑ᶜ p) →
     ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
       Value W′ ×
+      No• W′ ×
       (ν ★ N (⇑ᶜ p) —↠[ χs′ ] W′) ×
       (Δ″ ≡ applyTyCtxs χs′ Δ) ×
       (Π″ ≡ applyStores χs′ []) ×
@@ -3816,10 +3883,12 @@ postulate
 
 catchup-lemma :
   ∀ {Δ σ M V p} →
+  RuntimeOK M →
   Value V →
   Δ ∣ σ ∣ [] ⊢ M ⊒ V ∶ p →
   ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
     Value W ×
+    No• W ×
     (M —↠[ χs ] W) ×
     (Δ′ ≡ applyTyCtxs χs Δ) ×
     (Π ≡ applyStores χs []) ×
@@ -3827,11 +3896,11 @@ catchup-lemma :
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
     Δ′ ∣ combineStoreNrw π σ ∣ []
       ⊢ W ⊒ applyTerms χs V ∶ applyCoercions χs p
-catchup-lemma vV (extend qᶜ pαᶜ M⊒V)
-    with catchup-lemma vV M⊒V
-catchup-lemma vV (extend qᶜ pαᶜ M⊒V)
+catchup-lemma okM vV (extend qᶜ pαᶜ M⊒V)
+    with catchup-lemma okM vV M⊒V
+catchup-lemma okM vV (extend qᶜ pαᶜ M⊒V)
     | χs , W , Δ′ , Π , Π′ , π ,
-      vW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V =
+      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V =
   -- Need transport for catchup evidence through the de Bruijn store-prefix
   -- change made by `extend`: rebuild `extend` after moving the emitted
   -- narrowing `π` under the existing fresh α entry.  The side conditions
@@ -3841,6 +3910,7 @@ catchup-lemma vV (extend qᶜ pαᶜ M⊒V)
   -- source and target stores.
   χs , W , Δ′ , Π , Π′ , π ,
   vW ,
+  noW ,
   M↠W ,
   Δ′≡ ,
   Π≡ ,
@@ -3849,13 +3919,14 @@ catchup-lemma vV (extend qᶜ pαᶜ M⊒V)
   catchup-extend-transport
     {π = π} {χs = χs}
     qᶜ pαᶜ Δ′≡ Π≡ Π′≡ π⊒ W⊒V
-catchup-lemma vV (split qᶜ pαᶜ M⊒V)
-    with catchup-lemma vV M⊒V
-catchup-lemma vV (split qᶜ pαᶜ M⊒V)
+catchup-lemma okM vV (split qᶜ pαᶜ M⊒V)
+    with catchup-lemma (runtime-open-change okM) vV M⊒V
+catchup-lemma okM vV (split qᶜ pαᶜ M⊒V)
     | χs , W , Δ′ , Π , Π′ , π ,
-      vW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V =
+      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V =
   catchup-split-catchup
     vW
+    noW
     M↠W
     Δ′≡
     Π≡
@@ -3864,301 +3935,77 @@ catchup-lemma vV (split qᶜ pαᶜ M⊒V)
     qᶜ
     pαᶜ
     W⊒V
-catchup-lemma () (⊒blame pᶜ)
-catchup-lemma () (x⊒x pᶜ x∋p)
-catchup-lemma (ƛ N′) (ƛ⊒ƛ {N = N} p↦qᶜ N⊒N′) =
+catchup-lemma okM () (⊒blame pᶜ)
+catchup-lemma okM () (x⊒x pᶜ x∋p)
+catchup-lemma okM (ƛ N′) (ƛ⊒ƛ {N = N} p↦qᶜ N⊒N′) =
   [] , ƛ N , _ , [] , [] , [] ,
   ƛ N ,
+  value-runtime-No• (ƛ N) okM ,
   ↠-refl ,
   refl ,
   refl ,
   refl ,
   ⊒ˢ-nil ,
   ƛ⊒ƛ p↦qᶜ N⊒N′
-catchup-lemma () (·⊒· qᶜ L⊒L′ M⊒M′)
-catchup-lemma (Λ vV′) (Λ⊒Λ allᶜ vV V⊒V′) =
+catchup-lemma okM () (·⊒· qᶜ L⊒L′ M⊒M′)
+catchup-lemma okM (Λ vV′) (Λ⊒Λ allᶜ vV V⊒V′) =
   [] , Λ _ , _ , [] , [] , [] ,
   Λ vV ,
+  value-runtime-No• (Λ vV) okM ,
   ↠-refl ,
   refl ,
   refl ,
   refl ,
   ⊒ˢ-nil ,
   Λ⊒Λ allᶜ vV V⊒V′
-catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
-    with value? N in valueN≡
-catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′) | just vN =
-  [] , N , _ , [] , [] , [] ,
-  vN ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒ˢ-nil ,
-  ⊒Λ pᶜ N⊒V′
-catchup-lemma (Λ vV′) (⊒Λ {N = Λ M} pᶜ N⊒V′)
-    | nothing
-    with value? M in valueM≡
-catchup-lemma (Λ vV′) (⊒Λ {N = Λ M} pᶜ N⊒V′)
-    | nothing | just vM =
-  [] , Λ M , _ , [] , [] , [] ,
-  Λ vM ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒ˢ-nil ,
-  ⊒Λ pᶜ N⊒V′
-catchup-lemma (Λ vV′) (⊒Λ {N = Λ M} pᶜ N⊒V′)
-    | nothing | nothing =
-  ⊥-elim
-    (value?-none-no-value valueM≡
-      (renameᵗᵐ-reflects-Value (extᵗ suc)
-        (lambda-source-value-target-source-value vV′ N⊒V′)))
-catchup-lemma (Λ vV′) (⊒Λ {N = L •} pᶜ N⊒V′)
-    | nothing =
-  ⊥-elim (type-app-source-no-value-target vV′ N⊒V′)
-catchup-lemma (Λ vV′) (⊒Λ {N = ` x} pᶜ N⊒V′)
-    | nothing =
-  ⊥-elim (neutral-source-no-value-target neutral-` vV′ N⊒V′)
-catchup-lemma (Λ vV′) (⊒Λ {N = L · M} pᶜ N⊒V′)
-    | nothing =
-  ⊥-elim (neutral-source-no-value-target neutral-· vV′ N⊒V′)
-catchup-lemma (Λ vV′) (⊒Λ {N = L ⊕[ op ] M} pᶜ N⊒V′)
-    | nothing =
-  ⊥-elim (neutral-source-no-value-target neutral-⊕ vV′ N⊒V′)
-catchup-lemma (Λ vV′) (⊒Λ {N = blame} pᶜ N⊒V′)
-    | nothing =
-  ⊥-elim (neutral-source-no-value-target neutral-blame vV′ N⊒V′)
-catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
-    | nothing
-    with shifted-source-remainder N valueN≡ vV′ N⊒V′
-       | catchup-lemma vV′ N⊒V′
-catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
-    | nothing
-    | remainder-nu hist
+catchup-lemma okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    with catchup-lemma (runtime-⇑ᵗᵐ okM) vV′ N⊒V′
+catchup-lemma okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    with storeChangesLastBind χs
-catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
-    | nothing
-    | remainder-nu hist
+      vW , noW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′ =
+  catchup-⊒Λ-catchup vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+catchup-lemma okM (vV′ ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)
+    with catchup-lemma (runtime-⇑ᵗᵐ okM) (vV′ ⟨ sᵢ ⟩) N⊒V′
+catchup-lemma okM (vV′ ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)
     | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | no-bind keeps =
-  ⊥-elim (allKeep-ν-no-value keeps ⇑N↠W vW)
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-nu hist
+      vW , noW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′s =
+  catchup-⊒⟨ν⟩-catchup
+    vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ sᵢ W⊒V′s
+catchup-lemma okM () (α⊒α qᶜ pαᶜ L⊒L′)
+catchup-lemma okM () (⊒α pαᶜ L⊒L′)
+catchup-lemma okM () (ν⊒ν pᶜ qᶜ N⊒N′)
+catchup-lemma okM () (⊒ν pᶜ N⊒N′)
+catchup-lemma okM vV (ν⊒ {p = p} pᶜ N⊒V)
+    with catchup-lemma (runtime-ν okM)
+           (renameᵗᵐ-preserves-Value suc vV) N⊒V
+catchup-lemma okM vV (ν⊒ {p = p} pᶜ N⊒V)
     | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | last-bind χs₀ Aχ keeps keeps-ok
-    with last-bind-empty-target-star
-      {χs = χs₀} {A = Aχ} {keeps = keeps}
-      keeps-ok Π≡
-      (subst (λ Π₀ → Δ′ ⊢ π ꞉ Π ⊒ˢ Π₀) Π′≡ π⊒)
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-nu hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | last-bind χs₀ Aχ keeps keeps-ok
-    | Aχ≡★
-    with last-bind-empty-target-lowered-tail
-      {χs = χs₀} {A = Aχ} {keeps = keeps}
-      keeps-ok Π≡
-      (subst (λ Π₀ → Δ′ ⊢ π ꞉ Π ⊒ˢ Π₀) Π′≡ π⊒)
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-nu hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | last-bind χs₀ Aχ keeps keeps-ok
-    | Aχ≡★
-    | π₀ , π≡ , π₀⊒
-    with ↠-split-last-bind {χs = χs₀} {A = Aχ} {keeps = keeps} ⇑N↠W
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-nu hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | last-bind χs₀ Aχ keeps keeps-ok
-    | Aχ≡★
-    | π₀ , π≡ , π₀⊒
-    | P , Q , ⇑N↠P , P→Q , Q↠W
-    with nu-source-value-target-base-empty hist
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-nu hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | last-bind χs₀ Aχ keeps keeps-ok
-    | Aχ≡★
-    | π₀ , π≡ , π₀⊒
-    | P , Q , ⇑N↠P , P→Q , Q↠W
-    | nu-base-empty vBase pBaseᶜ bodyBase =
-  catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-cast hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    with storeChangesLastBind χs
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-cast hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | no-bind keeps
-    with pure-pred-↠-shifted-value keeps ⇑N↠W vW
-       | cast-source-value-target-base-empty hist
-       | allKeep-empty-target-nil keeps Π≡ Π′≡ π⊒
-       | allKeep-under-binder-value-id keeps vV′
-       | allKeep-gen-under-binder-coercion-id keeps pᶜ
-       | value-target-source-no-active vV′ N⊒V′
-    | value-target-source-safe vV′ N⊒V′
-catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
-    | nothing
-    | remainder-cast hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | no-bind keeps
-    | N↠predW
-    | cast-base-empty+ vBase pBaseᶜ base≈ bodyBase
-    | π≡[]
-    | targetUnder≡
-    | coercionUnder≡
-    | noActive⇑N
-    | safe⇑N =
-  catchup-⊒Λ-no-bind-shift-image keeps
-    (renameᵗᵐ-preserves-Value predᵗ vW)
-    N↠predW
-    Δ′≡
-    π≡[]
-    (safe-allKeep-value-image safe⇑N (N , refl) keeps ⇑N↠W vW)
-    pᶜ
-    W⊒V′
-catchup-lemma (Λ vV′) (⊒Λ {N = N} pᶜ N⊒V′)
-    | nothing
-    | remainder-cast hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | no-bind keeps
-    | N↠predW
-    | cast-base-empty- vBase pBaseᶜ base≈ bodyBase
-    | π≡[]
-    | targetUnder≡
-    | coercionUnder≡
-    | noActive⇑N
-    | safe⇑N =
-  catchup-⊒Λ-no-bind-shift-image keeps
-    (renameᵗᵐ-preserves-Value predᵗ vW)
-    N↠predW
-    Δ′≡
-    π≡[]
-    (safe-allKeep-value-image safe⇑N (N , refl) keeps ⇑N↠W vW)
-    pᶜ
-    W⊒V′
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-cast hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | last-bind χs₀ Aχ keeps keeps-ok
-    with last-bind-empty-target-star
-      {χs = χs₀} {A = Aχ} {keeps = keeps}
-      keeps-ok Π≡
-      (subst (λ Π₀ → Δ′ ⊢ π ꞉ Π ⊒ˢ Π₀) Π′≡ π⊒)
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-cast hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | last-bind χs₀ Aχ keeps keeps-ok
-    | Aχ≡★
-    with last-bind-empty-target-lowered-tail
-      {χs = χs₀} {A = Aχ} {keeps = keeps}
-      keeps-ok Π≡
-      (subst (λ Π₀ → Δ′ ⊢ π ꞉ Π ⊒ˢ Π₀) Π′≡ π⊒)
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-cast hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | last-bind χs₀ Aχ keeps keeps-ok
-    | Aχ≡★
-    | π₀ , π≡ , π₀⊒
-    with ↠-split-last-bind {χs = χs₀} {A = Aχ} {keeps = keeps} ⇑N↠W
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-cast hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | last-bind χs₀ Aχ keeps keeps-ok
-    | Aχ≡★
-    | π₀ , π≡ , π₀⊒
-    | P , Q , ⇑N↠P , P→Q , Q↠W
-    with cast-source-value-target-base-empty hist
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-cast hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | last-bind χs₀ Aχ keeps keeps-ok
-    | Aχ≡★
-    | π₀ , π≡ , π₀⊒
-    | P , Q , ⇑N↠P , P→Q , Q↠W
-    | cast-base-empty+ vBase pBaseᶜ base≈ bodyBase =
-  catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
-catchup-lemma (Λ vV′) (⊒Λ pᶜ N⊒V′)
-    | nothing
-    | remainder-cast hist
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′
-    | last-bind χs₀ Aχ keeps keeps-ok
-    | Aχ≡★
-    | π₀ , π≡ , π₀⊒
-    | P , Q , ⇑N↠P , P→Q , Q↠W
-    | cast-base-empty- vBase pBaseᶜ base≈ bodyBase =
-  catchup-⊒Λ-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
-catchup-lemma (vV′ ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)
-    with catchup-lemma (vV′ ⟨ sᵢ ⟩) N⊒V′
-catchup-lemma (vV′ ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′s =
-  catchup-⊒⟨ν⟩-catchup vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ sᵢ W⊒V′s
-catchup-lemma () (α⊒α qᶜ pαᶜ L⊒L′)
-catchup-lemma () (⊒α pαᶜ L⊒L′)
-catchup-lemma () (ν⊒ν pᶜ qᶜ N⊒N′)
-catchup-lemma () (⊒ν pᶜ N⊒N′)
-catchup-lemma vV (ν⊒ {p = p} pᶜ N⊒V)
-    with catchup-lemma (renameᵗᵐ-preserves-Value suc vV) N⊒V
-catchup-lemma vV (ν⊒ {p = p} pᶜ N⊒V)
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒⇑V =
-  catchup-ν⊒-catchup vV vW N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒⇑V
-catchup-lemma {Δ = Δ} ($ κ) (κ⊒κ κ) =
+      vW , noW , N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒⇑V =
+  catchup-ν⊒-catchup vV vW noW N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒⇑V
+catchup-lemma {Δ = Δ} okM ($ κ) (κ⊒κ κ) =
   [] , $ κ , Δ , [] , [] , [] ,
   $ κ ,
+  no•-$ ,
   ↠-refl ,
   refl ,
   refl ,
   refl ,
   ⊒ˢ-nil ,
   κ⊒κ κ
-catchup-lemma () (⊕⊒⊕ M⊒M′ N⊒N′)
-catchup-lemma {σ = σ} (vV′ ⟨ i ⟩)
+catchup-lemma okM () (⊕⊒⊕ M⊒M′ N⊒N′)
+catchup-lemma {σ = σ} okM (vV′ ⟨ i ⟩)
     (⊒cast+ {M′ = M′} {q = q} {s = s} qᶜ q⨟s≈r M⊒M′)
-    with catchup-lemma vV′ M⊒M′
-catchup-lemma {σ = σ} (vV′ ⟨ i ⟩)
+    with catchup-lemma okM vV′ M⊒M′
+catchup-lemma {σ = σ} okM (vV′ ⟨ i ⟩)
     (⊒cast+ {M′ = M′} {q = q} {s = s} qᶜ q⨟s≈r M⊒M′)
     | χs , W , Δ′ , Π , Π′ , π ,
-      vW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =
+      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =
   -- Rebuild `⊒cast+` after transporting the side conditions through the
   -- emitted store changes, then rewrite the weakened target cast into the
   -- syntactic shape of `applyTerms χs`.
   χs , W , Δ′ , Π , Π′ , π ,
   vW ,
+  noW ,
   M↠W ,
   Δ′≡ ,
   Π≡ ,
@@ -4176,20 +4023,21 @@ catchup-lemma {σ = σ} (vV′ ⟨ i ⟩)
         {σ = σ} {π = π} {χs = χs} {q = q} {s = s}
         q⨟s≈r Δ′≡ Π≡ Π′≡ π⊒)
       W⊒M′)
-catchup-lemma {σ = σ} (vV′ ⟨ i ⟩)
+catchup-lemma {σ = σ} okM (vV′ ⟨ i ⟩)
     (⊒cast- {M′ = M′} {q = q} {r = r} {s = s}
       qᶜ q⨟s≈r M⊒M′)
-    with catchup-lemma vV′ M⊒M′
-catchup-lemma {σ = σ} (vV′ ⟨ i ⟩)
+    with catchup-lemma okM vV′ M⊒M′
+catchup-lemma {σ = σ} okM (vV′ ⟨ i ⟩)
     (⊒cast- {M′ = M′} {q = q} {r = r} {s = s}
       qᶜ q⨟s≈r M⊒M′)
     | χs , W , Δ′ , Π , Π′ , π ,
-      vW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =
+      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =
   -- Same as `⊒cast+`: the recursive narrowing is available, but the cast
   -- typing/equivalence side conditions must be transported to the emitted
   -- Δ′/store-prefix context before `⊒cast-` can be rebuilt.
   χs , W , Δ′ , Π , Π′ , π ,
   vW ,
+  noW ,
   M↠W ,
   Δ′≡ ,
   Π≡ ,
@@ -4207,18 +4055,18 @@ catchup-lemma {σ = σ} (vV′ ⟨ i ⟩)
         {σ = σ} {π = π} {χs = χs} {q = q} {s = s} {r = r}
         q⨟s≈r Δ′≡ Π≡ Π′≡ π⊒)
       W⊒M′)
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
+catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
     (cast+⊒ {p = p} {r = r} {t = t} pᶜ r≈t⨟p M⊒V)
-    with catchup-lemma vV M⊒V
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
+    with catchup-lemma (runtime-⟨⟩ okM) vV M⊒V
+catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
     (cast+⊒ {p = p} {r = r} {t = t} pᶜ r≈t⨟p M⊒V)
     | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
+      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
     with cast-dual-↠ {c = t} M↠W₁
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
+catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
     (cast+⊒ {p = p} {r = r} {t = t} pᶜ r≈t⨟p M⊒V)
     | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
+      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
     | M-t↠W₁-t
     with left-widening-lemma
            {Δ = Δ₁} {σ = combineStoreNrw π₁ σ}
@@ -4226,6 +4074,7 @@ catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
            {r = applyCoercions χs₁ r}
            {t = applyCoercions χs₁ t}
            vW₁
+           noW₁
            (catchup-coercion-typing-transport
              {σ = σ} {π = π₁} {χs = χs₁} {p = p}
              pᶜ Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
@@ -4234,13 +4083,13 @@ catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
              {r = r} {t = t} {p = p}
              r≈t⨟p Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
            W₁⊒V
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
+catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
     (cast+⊒ {p = p} {r = r} {t = t} pᶜ r≈t⨟p M⊒V)
     | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
+      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
     | M-t↠W₁-t
     | χs₂ , W₂ , Δ₂ , Π₂ , Π₂′ , π₂ ,
-      vW₂ , W₁-t↠W₂ , Δ₂≡ , Π₂≡ , Π₂′≡ , π₂⊒ , W₂⊒V =
+      vW₂ , noW₂ , W₁-t↠W₂ , Δ₂≡ , Π₂≡ , Π₂′≡ , π₂⊒ , W₂⊒V =
   -- Catch up `M` to the value `W₁`, lift that reduction through the surrounding
   -- dual cast, invoke the value-level Left Widening Lemma on the transformed
   -- cast, and combine the two emitted source-only store prefixes.
@@ -4248,6 +4097,7 @@ catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
   srcStoreⁿ (combineStoreNrw π₂ π₁) , [] ,
   combineStoreNrw π₂ π₁ ,
   vW₂ ,
+  noW₂ ,
   ↠-trans M-t↠W₁-t W₁-t↠W₂ ,
   trans Δ₂≡
     (trans (cong (applyTyCtxs χs₂) Δ₁≡)
@@ -4274,24 +4124,25 @@ catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
             applyCoercions χs₂ (applyCoercions χs₁ r))
         (sym (combineStoreNrw-assoc π₂ π₁ σ))
         W₂⊒V))
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
+catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
     (cast-⊒ {p = p} {t = t} pᶜ r≈t⨟p M⊒V)
-    with catchup-lemma vV M⊒V
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
+    with catchup-lemma (runtime-⟨⟩ okM) vV M⊒V
+catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
     (cast-⊒ {p = p} {t = t} pᶜ r≈t⨟p M⊒V)
     | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
+      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
     with cast-↠ {c = t} M↠W₁
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
+catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
     (cast-⊒ {p = p} {t = t} pᶜ r≈t⨟p M⊒V)
     | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
+      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
     | Mt↠W₁t
     with left-narrowing-lemma
            {Δ = Δ₁} {σ = combineStoreNrw π₁ σ}
            {p = applyCoercions χs₁ p}
            {t = applyCoercions χs₁ t}
            vW₁
+           noW₁
            (catchup-coercion-typing-transport
              {σ = σ} {π = π₁} {χs = χs₁} {p = p}
              pᶜ Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
@@ -4300,13 +4151,13 @@ catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
              {t = t} {p = p}
              r≈t⨟p Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
            W₁⊒V
-catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
+catchup-lemma {Δ = Δ} {σ = σ} {V = V} okM vV
     (cast-⊒ {p = p} {t = t} pᶜ r≈t⨟p M⊒V)
     | χs₁ , W₁ , Δ₁ , Π₁ , Π₁′ , π₁ ,
-      vW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
+      vW₁ , noW₁ , M↠W₁ , Δ₁≡ , Π₁≡ , Π₁′≡ , π₁⊒ , W₁⊒V
     | Mt↠W₁t
     | χs₂ , W₂ , Δ₂ , Π₂ , Π₂′ , π₂ ,
-      vW₂ , W₁t↠W₂ , Δ₂≡ , Π₂≡ , Π₂′≡ , π₂⊒ , W₂⊒V =
+      vW₂ , noW₂ , W₁t↠W₂ , Δ₂≡ , Π₂≡ , Π₂′≡ , π₂⊒ , W₂⊒V =
   -- Same structure for Left Narrowing: the non-value source is handled by the
   -- recursive catchup call, and the paper lemma is applied only to the caught-up
   -- value, again using the transformed cast and composed source-only prefix.
@@ -4314,6 +4165,7 @@ catchup-lemma {Δ = Δ} {σ = σ} {V = V} vV
   srcStoreⁿ (combineStoreNrw π₂ π₁) , [] ,
   combineStoreNrw π₂ π₁ ,
   vW₂ ,
+  noW₂ ,
   ↠-trans Mt↠W₁t W₁t↠W₂ ,
   trans Δ₂≡
     (trans (cong (applyTyCtxs χs₂) Δ₁≡)

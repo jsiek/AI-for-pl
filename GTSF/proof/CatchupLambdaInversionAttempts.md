@@ -2787,3 +2787,45 @@ This is the first checked lemma that directly matches the live last-bind branch
 facts.  It still packages a new source `ν ★ W ...`; it does not yet replay the
 original source `N` to that package, so it cannot replace the remaining
 `catchup-⊒Λ-catchup` calls by itself.
+
+## Attempt 81: add the split marker to an inner `⊒Λ` body
+
+Accepted as checked support.  The final bind creates a source-star marker that
+the existing `split` machinery knows how to reason about, but the original
+inner `⊒Λ` body has only the target-only binder:
+
+`(zero ꞉= ★ ⊒) ∷ ⇑ˢ σ`
+
+I added:
+
+`⊒Λ-body-add-split-marker`
+
+This proves that an inner body:
+
+`⇑ᵗᵐ N ⊒ V′ ∶ p`
+
+under the target-only store can be transported to the split-shaped store:
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ σ`
+
+without changing the visible source, target, or coercion.
+
+The proof first uses `extend-replace-here-current` with `id ★` to move the body
+from the target-only entry to a both-side entry.  Then it applies `split` to the
+double-shifted source/target/coercion:
+
+`⇑ᵗᵐ (⇑ᵗᵐ N)`
+
+`⇑ᵗᵐ V′`
+
+`⇑ᶜ p`
+
+and uses `open-shiftᵐ` / `open-shiftᶜ` to rewrite both openings back to the
+original body shape.
+
+This gives a checked bridge from the `⊒Λ` premise to the split/opening
+machinery needed for the unsafe marker crossing.  It does not by itself prove
+the live last-bind branch: instantiated at the inner `suc Δ` context, the
+result still reduces the shifted source `⇑ᵗᵐ N`, not the unshifted source `N`.
+So the remaining missing piece is still the history-preserving replay that
+moves the emitted source-star marker outward while lowering the source term.

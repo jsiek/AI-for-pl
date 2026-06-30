@@ -2514,6 +2514,77 @@ extend-replace-here-current qᶜ cᶜ =
   extend-replace-here-term qᶜ
     (narrow-weaken ≤-refl StoreIncl-drop cᶜ)
 
+⊒Λ-body-add-split-marker :
+  ∀ {Δ σ A B N V′ p} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  suc Δ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ ∣ []
+    ⊢ ⇑ᵗᵐ N ⊒ V′ ∶ p →
+  suc Δ ∣ (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ σ ∣ []
+    ⊢ ⇑ᵗᵐ N ⊒ V′ ∶ p
+⊒Λ-body-add-split-marker
+    {Δ = Δ} {σ = σ} {A = A} {B = B} {N = N} {V′ = V′} {p = p}
+    pᶜ body =
+  subst
+    (λ c → suc Δ ∣ splitStore ∣ [] ⊢ ⇑ᵗᵐ N ⊒ V′ ∶ c)
+    (open-shiftᶜ zero p)
+    (subst
+      (λ T → suc Δ ∣ splitStore ∣ [] ⊢ ⇑ᵗᵐ N ⊒ T
+        ∶ (⇑ᶜ p) [ zero ]ᶜ)
+      (open-shiftᵐ zero V′)
+      (subst
+        (λ S → suc Δ ∣ splitStore ∣ [] ⊢ S
+          ⊒ (⇑ᵗᵐ V′) [ zero ]ᵀ ∶ (⇑ᶜ p) [ zero ]ᶜ)
+        (open-shiftᵐ (suc zero) (⇑ᵗᵐ N))
+        raw))
+  where
+    splitStore = (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ σ
+
+    pInnerᶜ :
+      suc Δ ∣ srcStoreⁿ ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)
+        ⊢ p ∶ᶜ ⇑ᵗ A ⊒ B
+    pInnerᶜ =
+      subst
+        (λ Σ → suc Δ ∣ Σ ⊢ p ∶ᶜ ⇑ᵗ A ⊒ B)
+        (sym (srcStoreⁿ-⇑ˢ σ))
+        (gen-body-coercionᶜ-tag pᶜ)
+
+    bothBody :
+      suc Δ ∣ (zero ꞉ id ★) ∷ ⇑ˢ σ ∣ []
+        ⊢ ⇑ᵗᵐ N ⊒ V′ ∶ p
+    bothBody =
+      extend-replace-here-current id★-coercionᶜ pInnerᶜ body
+
+    premise :
+      suc Δ ∣ (zero ꞉ id ★) ∷ ⇑ˢ σ ∣ []
+        ⊢ (⇑ᵗᵐ (⇑ᵗᵐ N)) [ zero ]ᵀ
+          ⊒ (⇑ᵗᵐ V′) [ zero ]ᵀ
+          ∶ (⇑ᶜ p) [ zero ]ᶜ
+    premise =
+      subst
+        (λ c → suc Δ ∣ (zero ꞉ id ★) ∷ ⇑ˢ σ ∣ []
+          ⊢ (⇑ᵗᵐ (⇑ᵗᵐ N)) [ zero ]ᵀ
+          ⊒ (⇑ᵗᵐ V′) [ zero ]ᵀ ∶ c)
+        (sym (open-shiftᶜ zero p))
+        (subst
+          (λ T → suc Δ ∣ (zero ꞉ id ★) ∷ ⇑ˢ σ ∣ []
+            ⊢ (⇑ᵗᵐ (⇑ᵗᵐ N)) [ zero ]ᵀ ⊒ T ∶ p)
+          (sym (open-shiftᵐ zero V′))
+          (subst
+            (λ S → suc Δ ∣ (zero ꞉ id ★) ∷ ⇑ˢ σ ∣ []
+              ⊢ S ⊒ V′ ∶ p)
+            (sym (open-shiftᵐ zero (⇑ᵗᵐ N)))
+            bothBody))
+
+    raw :
+      suc Δ ∣ splitStore ∣ []
+        ⊢ (⇑ᵗᵐ (⇑ᵗᵐ N)) [ suc zero ]ᵀ
+          ⊒ (⇑ᵗᵐ V′) [ zero ]ᵀ
+          ∶ (⇑ᶜ p) [ zero ]ᶜ
+    raw =
+      split id★-coercionᶜ
+        (gen-body-open-split-coercion {σ = σ} pᶜ)
+        premise
+
 extendReplaceRel-term :
   ∀ {Δ σ σ′ γ M T c} →
   ExtendReplaceRel Δ σ σ′ →

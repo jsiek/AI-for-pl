@@ -82,7 +82,10 @@ module proof.LeftWidening where
 --     The recursive component calls also need coercion typing transported
 --     through emitted store changes; `left-widening-coercion-typing-transport`
 --     factors the small part of `proof.Catchup`'s transport infrastructure
---     needed here without importing `proof.Catchup` and its assumptions.
+--     needed here without importing `proof.Catchup` and its assumptions.  The
+--     `gen`-specific wrapper
+--     `left-widening-gen-coercion-typing-transport` exposes the constructor
+--     form expected by the `⊒Λ`/`⊒⟨ν⟩` package lemmas.
 --   * A direct suc-only induction for that weakening lemma is the wrong
 --     formulation: under `Λ`, the body is renamed by `extᵗ suc`, not plain
 --     `suc`.  The reusable pieces started in `proof.TermNarrowingProperties`
@@ -193,8 +196,12 @@ open import proof.ReductionProperties
   using
     ( applyCoercions
     ; applyCoercions-++
+    ; applyCoercions-gen
+    ; applyCoercionUnderTyBinders
     ; applyTerms-++
     ; applyTyCtxs-++
+    ; applyTys-∀
+    ; applyTysUnderTyBinders
     ; cast-dual-↠
     ; ↠-trans
     )
@@ -317,6 +324,35 @@ left-widening-coercion-typing-transport
         (combineStoreNrw-applyStores-store
           {χs = χs} π⊒ Π≡ Π′≡ σ))
       (left-widening-applyCoercions-narrow χs pᶜ))
+
+left-widening-gen-coercion-typing-transport :
+  ∀ {Δ Δ′ σ π Π Π′ χs p A B} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ≡ applyTyCtxs χs Δ →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  Δ′ ∣ srcStoreⁿ (combineStoreNrw π σ)
+    ⊢ gen (applyTys χs A) (applyCoercionUnderTyBinders χs p)
+      ∶ᶜ applyTys χs A ⊒ `∀ (applyTysUnderTyBinders χs B)
+left-widening-gen-coercion-typing-transport
+    {Δ′ = Δ′} {σ = σ} {π = π} {χs = χs}
+    {p = p} {A = A} {B = B} pᶜ Δ′≡ Π≡ Π′≡ π⊒ =
+  subst
+    (λ B₀ →
+      Δ′ ∣ srcStoreⁿ (combineStoreNrw π σ)
+        ⊢ gen (applyTys χs A) (applyCoercionUnderTyBinders χs p)
+          ∶ᶜ applyTys χs A ⊒ B₀)
+    (applyTys-∀ χs B)
+    (subst
+      (λ p₀ →
+        Δ′ ∣ srcStoreⁿ (combineStoreNrw π σ)
+          ⊢ p₀ ∶ᶜ applyTys χs A ⊒ applyTys χs (`∀ B))
+      (applyCoercions-gen χs A p)
+      (left-widening-coercion-typing-transport
+        {σ = σ} {π = π} {χs = χs} {p = gen A p}
+        {A = A} {B = `∀ B}
+        pᶜ Δ′≡ Π≡ Π′≡ π⊒))
 
 left-widening-inert :
   ∀ {Δ σ V V′ p r t A B C D} →

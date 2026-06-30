@@ -45,10 +45,10 @@ postulate
     Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ id ★
 
   -- Refuted by `proof.RightSealInversionCounterexample`.
-  right-seal-inversion₁ :
-    ∀ {Δ σ γ M V r A α} →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
-    ∃[ q ] Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ q
+  -- right-seal-inversion₁ :
+  --   ∀ {Δ σ γ M V r A α} →
+  --   Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
+  --   ∃[ q ] Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ q
 
   right-seal-inversion₂ :
     ∀ {Δ σ γ M V q A α} →
@@ -361,12 +361,7 @@ dynamicGradualGuarantee (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
 dynamicGradualGuarantee (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
     (pure-step (seal-unseal vV))
     | r , M⊒Vseal
-    with right-seal-inversion₁ M⊒Vseal
-dynamicGradualGuarantee (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (seal-unseal vV))
-    | r , M⊒Vseal
-    | q , M⊒V =
-  {!!}
+  = {!!}
 dynamicGradualGuarantee (⊒cast+ qᶜ q⨟s≈r M⊒M′) (pure-step red) =
   {!!}
 dynamicGradualGuarantee (⊒cast- qᶜ q⨟s≈r M⊒M′) (ξ-⟨⟩ M′→N′)
@@ -412,12 +407,7 @@ dynamicGradualGuarantee (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
 dynamicGradualGuarantee (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
     (pure-step (seal-unseal vV))
     | r , M⊒Vseal
-    with right-seal-inversion₁ M⊒Vseal
-dynamicGradualGuarantee (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
-    (pure-step (seal-unseal vV))
-    | r , M⊒Vseal
-    | q , M⊒V =
-  {!!}
+  = {!!}
 dynamicGradualGuarantee (⊒cast- qᶜ q⨟s≈r M⊒M′) (pure-step red) =
   {!!}
 

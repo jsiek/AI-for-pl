@@ -3760,3 +3760,44 @@ Limitation: this only removes the active bullet shape.  The general
 `catchup-⊒Λ-catchup`, which still depends on the too-broad
 `shifted-source-catchup-Λ-inversion` postulate for the remaining RuntimeOK
 forms.
+
+## Attempt 105: prove the all-keep `catchup-⊒Λ-catchup` branch
+
+Accepted as checked support in `proof.Catchup`.
+
+I threaded the original source-shape evidence from the real inner `⊒Λ` premise
+into `catchup-⊒Λ-catchup`:
+
+`value-target-source-safe vV′ N⊒V′ : CatchupSafe (⇑ᵗᵐ N)`.
+
+That is enough to prove the `storeChangesLastBind χs = no-bind keeps` branch
+without the false shifted-source inversion postulate.  The proof uses:
+
+`pure-pred-↠-shifted-value keeps ⇑N↠W vW`
+
+to turn the all-keep shifted reduction
+
+`⇑ᵗᵐ N —↠[ χs ] W`
+
+into the unshifted reduction
+
+`N —↠[ χs ] renameᵗᵐ predᵗ W`,
+
+and uses
+
+`safe-allKeep-value-image (value-target-source-safe vV′ N⊒V′) (_ , refl)
+  keeps ⇑N↠W vW`
+
+to recover the equation
+
+`W = ⇑ᵗᵐ (renameᵗᵐ predᵗ W)`.
+
+The emitted store narrowing collapses with
+`allKeep-empty-target-nil keeps Π≡ Π′≡ π⊒`, so the existing
+`catchup-⊒Λ-no-bind-shift-image` finisher rebuilds the final `⊒Λ` result.
+
+Limitation: the `last-bind` branch still falls back to
+`shifted-source-catchup-Λ-inversion`.  The remaining work is exactly the
+source-first to target-first replay from Attempts 101-103, or a way to show
+that the live branch cannot have an earlier non-keep prefix before the final
+source-only bind.

@@ -3735,6 +3735,7 @@ catchup-⊒Λ-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p} →
   Value W →
   No• W →
+  CatchupSafe (⇑ᵗᵐ N) →
   (⇑ᵗᵐ N —↠[ χs ] W) →
   Δ′ ≡ applyTyCtxs χs (suc Δ) →
   Π ≡ applyStores χs [] →
@@ -3754,12 +3755,30 @@ catchup-⊒Λ-catchup :
     Δ″ ∣ combineStoreNrw π′ σ ∣ []
       ⊢ W′ ⊒ applyTerms χs′ (Λ V′)
         ∶ applyCoercions χs′ (gen A p)
+catchup-⊒Λ-catchup
+    vW noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    with storeChangesLastBind _
+catchup-⊒Λ-catchup
+    vW noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    | no-bind keeps =
+  catchup-⊒Λ-no-bind-shift-image
+    keeps
+    (renameᵗᵐ-preserves-Value predᵗ vW)
+    (renameᵗᵐ-preserves-No• predᵗ noW)
+    (pure-pred-↠-shifted-value keeps ⇑N↠W vW)
+    Δ′≡
+    (allKeep-empty-target-nil keeps Π≡ Π′≡ π⊒)
+    (safe-allKeep-value-image safe⇑N (_ , refl) keeps ⇑N↠W vW)
+    pᶜ
+    W⊒V′
 catchup-⊒Λ-catchup {σ = σ} {A = A} {B = B} {V′ = V′} {p = p}
-    vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    vW noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    | last-bind χs Aχ keeps keeps-ok
     with shifted-source-catchup-Λ-inversion
       vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ W⊒V′
 catchup-⊒Λ-catchup {σ = σ} {A = A} {B = B} {V′ = V′} {p = p}
-    vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    vW noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    | last-bind χs Aχ keeps keeps-ok
     | χs′ , W′ , Δ″ , Π″ , Π″′ , π′ ,
       vW′ , noW′ , N↠W′ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body =
   let
@@ -3980,7 +3999,9 @@ catchup-lemma okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
 catchup-lemma okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′ =
-  catchup-⊒Λ-catchup vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+  catchup-⊒Λ-catchup
+    vW noW (value-target-source-safe vV′ N⊒V′)
+    ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
 catchup-lemma okM (vV′ ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)
     with catchup-lemma (runtime-⇑ᵗᵐ okM) (vV′ ⟨ sᵢ ⟩) N⊒V′
 catchup-lemma okM (vV′ ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)

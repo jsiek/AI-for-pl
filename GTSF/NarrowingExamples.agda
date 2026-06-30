@@ -25,7 +25,6 @@ open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing
 open import proof.NarrowWidenProperties using (StoreDetWf)
-open import proof.TermNarrowingProperties
 
 ------------------------------------------------------------------------
 -- Shared syntax from cambridge23 Examples 1 and 6
@@ -993,13 +992,10 @@ ex5-c★ :
   0 ∣ [] ∣ []
     ⊢ c★ ⊒ c★ ∶ id ★
 ex5-c★ =
-  cast+⊒cast+
-    {p = id (‵ `ℕ)}
+  ⊒cast+
     {q = id ★}
     {r = base-untag `ℕ}
     {s = base-untag `ℕ}
-    {t = base-untag `ℕ}
-    id-base-cast
     id★-cast
     (compose-leftⁿ empty-store-det id★⊒ base-untag⊒
       (endpointsⁿ refl refl refl refl
@@ -1008,15 +1004,20 @@ ex5-c★ =
         wf★-base-endpoints
         (_ , proj₂ (_⨟ⁿ_ {wfΣ = empty-store-det} id★⊒ base-untag⊒))
         base-untag-narrowing))
-    (compose-rightⁿ empty-store-det base-untag⊒ id-base⊒
-      (endpointsⁿ refl refl refl refl
-        empty-store-narrowing
-        wf★-base-endpoints
-        wf★-base-endpoints
-        base-untag-narrowing
-        (_ , proj₂ (_⨟ⁿ_ {wfΣ = empty-store-det}
-          base-untag⊒ id-base⊒))))
-    (κ⊒κ (κℕ 0))
+    (cast+⊒
+      {p = id (‵ `ℕ)}
+      {r = base-untag `ℕ}
+      {t = base-untag `ℕ}
+      id-base-cast
+      (compose-rightⁿ empty-store-det base-untag⊒ id-base⊒
+        (endpointsⁿ refl refl refl refl
+          empty-store-narrowing
+          wf★-base-endpoints
+          wf★-base-endpoints
+          base-untag-narrowing
+          (_ , proj₂ (_⨟ⁿ_ {wfΣ = empty-store-det}
+            base-untag⊒ id-base⊒))))
+      (κ⊒κ (κℕ 0)))
   where
     id★⊒ = id★-narrowingᵐ {μ = tag-or-idᵈ}
 
@@ -1255,19 +1256,19 @@ ex7-line714 : ∀ {ι} →
       ⊒ ((⇑ᵗᵐ (Λ (ƛ (` 0)))) •) ⟨ - base-seal-step-fun ι ⟩
     ∶ id (‵ ι) ↦ id (‵ ι)
 ex7-line714 {ι = ι} =
-  cast+⊒cast+
-    {p = id (＇ 0) ↦ id (＇ 0)}
+  ⊒cast+
     {q = id (‵ ι) ↦ id (‵ ι)}
     {r = base-seal-step-fun ι}
     {s = base-seal-step-fun ι}
-    {t = base-seal-step-fun ι}
-    {A = ‵ ι ⇒ ‵ ι}
-    {B = ＇ 0 ⇒ ＇ 0}
-    id-var0-fun-cast
     id-base-fun-cast
     ex7-downcast-left-≈
-    ex7-downcast-right-≈
-    ex7-line712
+    (cast+⊒
+      {p = id (＇ 0) ↦ id (＇ 0)}
+      {r = base-seal-step-fun ι}
+      {t = base-seal-step-fun ι}
+      id-var0-fun-cast
+      ex7-downcast-right-≈
+      ex7-line712)
 
 -- cambridge25 Example 7, line 716.
 ex7-line716 : ∀ {ι} →
@@ -1336,19 +1337,19 @@ ex7-line723 : ∀ {ι} →
       ⊒ (ƛ (` 0)) ⟨ - base-seal-step-fun ι ⟩
     ∶ id (‵ ι) ↦ id (‵ ι)
 ex7-line723 {ι = ι} =
-  cast+⊒cast+
-    {p = id (＇ 0) ↦ id (＇ 0)}
+  ⊒cast+
     {q = id (‵ ι) ↦ id (‵ ι)}
     {r = base-seal-step-fun ι}
     {s = base-seal-step-fun ι}
-    {t = base-seal-step-fun ι}
-    {A = ‵ ι ⇒ ‵ ι}
-    {B = ＇ 0 ⇒ ＇ 0}
-    id-var0-fun-cast
     id-base-fun-cast
     ex7-downcast-left-≈
-    ex7-downcast-right-≈
-    ex7-line721
+    (cast+⊒
+      {p = id (＇ 0) ↦ id (＇ 0)}
+      {r = base-seal-step-fun ι}
+      {t = base-seal-step-fun ι}
+      id-var0-fun-cast
+      ex7-downcast-right-≈
+      ex7-line721)
 
 ------------------------------------------------------------------------
 -- Example 8
@@ -1412,19 +1413,19 @@ ex8-line820 :
       ⊒ (ƛ (` 0)) ⟨ - base-seal-step-fun `ℕ ⟩
     ∶ base-fun `ℕ
 ex8-line820 =
-  cast+⊒cast+
-    {p = id (＇ 0) ↦ id (＇ 0)}
+  ⊒cast+
     {q = base-fun `ℕ}
     {r = var0-fun}
     {s = base-seal-step-fun `ℕ}
-    {t = var0-fun}
-    {A = ★ ⇒ ★}
-    {B = ＇ 0 ⇒ ＇ 0}
-    id-var0-fun-cast
     base-fun-cast
     ex8-line820-left-≈
-    ex8-line820-right-≈
-    ex8-idα
+    (cast+⊒
+      {p = id (＇ 0) ↦ id (＇ 0)}
+      {r = var0-fun}
+      {t = var0-fun}
+      id-var0-fun-cast
+      ex8-line820-right-≈
+      ex8-idα)
 
 -- cambridge25 Example 8, line 821 argument premise.
 ex8-c★⊒c-right-≈ :

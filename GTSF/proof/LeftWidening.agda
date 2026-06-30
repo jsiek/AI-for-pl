@@ -15,6 +15,8 @@ module proof.LeftWidening where
 --   * Directly reusing `cast+⊒` works only when the dual cast is inert, since
 --     then `V ⟨ - t ⟩` is already a value.  This should cover function,
 --     universal, tag, and generated-function/all inert cases.
+--     The function, universal, and tag/untag forms below are now mechanized
+--     as zero-step branches through `left-widening-inert`.
 --   * Reducing identity casts requires turning the endpoint-equivalence
 --     premise into a syntactic index equality.  The intended route is the
 --     existing mode-indexed narrowing determinacy theorem.
@@ -127,6 +129,69 @@ left-widening-inert {Δ = Δ} {σ = σ} {V = V} {V′ = V′}
   refl ,
   ⊒ˢ-nil ,
   cast+⊒ pᶜ r≈t⨟p V⊒V′
+
+left-widening-fun :
+  ∀ {Δ σ V V′ p r s t A B C D} →
+  Value V →
+  No• V →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ (s ↦ t) ⨾ⁿ p ∶ A ⊒ B →
+  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    (V ⟨ - (s ↦ t) ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+left-widening-fun {s = s} {t = t} vV noV pᶜ r≈t⨟p V⊒V′ =
+  left-widening-inert ((- s) ↦ (- t)) vV noV pᶜ r≈t⨟p V⊒V′
+
+left-widening-∀ :
+  ∀ {Δ σ V V′ p r s A B C D} →
+  Value V →
+  No• V →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ (`∀ s) ⨾ⁿ p ∶ A ⊒ B →
+  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    (V ⟨ - (`∀ s) ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+left-widening-∀ {s = s} vV noV pᶜ r≈t⨟p V⊒V′ =
+  left-widening-inert (`∀ (dual (extᵃ normalᵃ) s))
+    vV noV pᶜ r≈t⨟p V⊒V′
+
+left-widening-untag :
+  ∀ {Δ σ V V′ p r G A B C D} →
+  Ground G →
+  Value V →
+  No• V →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ (G ？) ⨾ⁿ p ∶ A ⊒ B →
+  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    (V ⟨ - (G ？) ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+left-widening-untag gG vV noV pᶜ r≈t⨟p V⊒V′ =
+  left-widening-inert (dual-untag-inert gG)
+    vV noV pᶜ r≈t⨟p V⊒V′
 
 badBody : Term
 badBody = ƛ ((` zero) •)

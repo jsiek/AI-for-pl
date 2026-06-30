@@ -19,6 +19,11 @@ open import NuTerms
 open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing
+open import proof.Catchup using
+  ( replace-here
+  ; extendReplaceRel-compose-left
+  ; extendReplaceRel-term
+  )
 open import proof.CoercionProperties using (coercion-src-tgtᵐ)
 
 RightSealInversion2 : Set₁
@@ -112,11 +117,18 @@ rightSealInversion2-aux :
   ∃[ r ]
     (Δ ∣ σ ⊢ q ⨾ⁿ seal A α ≈ r ∶ src q ⊒ ＇ α) ×
     Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ r
--- Store/context-shaping cases: the right term is exposed only after
--- type-variable substitution.  The proof should recurse below the store
--- transformation and then transport both the composition equation and the term
--- narrowing witness back through the same substitution.
-rightSealInversion2-aux eq (extend qᶜ pαᶜ M⊒T) = {!!}
+-- The `extend` case is a direct store-replacement transport: recurse in the
+-- exact-store premise, then replace the head store entry with its narrowing.
+rightSealInversion2-aux eq (extend qᶜ pαᶜ M⊒T)
+    with rightSealInversion2-aux eq M⊒T
+rightSealInversion2-aux eq (extend qᶜ pαᶜ M⊒T)
+    | r , q⨟seal≈r , M⊒V =
+  r ,
+  extendReplaceRel-compose-left (replace-here qᶜ) q⨟seal≈r ,
+  extendReplaceRel-term (replace-here qᶜ) M⊒V
+-- The `split` case changes both the store and the left term's opened type
+-- variable.  The same store replacement lemmas handle the store component,
+-- but the proof still needs an opening-transport lemma for the stripped term.
 rightSealInversion2-aux eq (split qᶜ pαᶜ M⊒T) = {!!}
 rightSealInversion2-aux () (⊒blame pᶜ)
 rightSealInversion2-aux () (x⊒x pᶜ x∋p)

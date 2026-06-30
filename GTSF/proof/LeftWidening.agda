@@ -45,6 +45,12 @@ module proof.LeftWidening where
 --     counterexample is blocked: `badPoly-no-No•` proves the bad value cannot
 --     satisfy the `No• V` premise, and `badPoly-no-RuntimeOK` proves the same
 --     term cannot arise from a `RuntimeOK` source at value shape.
+--   * The strengthened statement is still false.  A new checked
+--     counterexample uses the `seal` head and `⊒blame`: a bare constant is a
+--     `Value` and satisfies `No•`, and `⊒blame` relates it at `id α`, but
+--     casting that constant by the dual `unseal α Nat` is stuck.  The theorem
+--     `left-widening-current-seal-counterexample` derives `⊥` from any proof
+--     of the current `LeftWidening` statement.
 --   * The guarded sibling of that counterexample is positive:
 --     `left-widening-ex4-gen` follows the Example 4 `gen` branch through
 --     `β-inst`, `ν-step`, and `β-Λ•`.  The bookkeeping mismatch it exposed is
@@ -192,6 +198,7 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import Store using (StoreIncl-drop)
 open import Coercions
+open import Primitives
 open import NuTerms
 open import NuReduction
 open import NarrowWiden
@@ -1674,6 +1681,130 @@ left-widening-id-exact {Δ = Δ} {σ = σ} {V = V}
   refl ,
   ⊒ˢ-nil ,
   V⊒V′
+
+sealBadNatTy : Ty
+sealBadNatTy = ‵ `ℕ
+
+sealBadα : TyVar
+sealBadα = 0
+
+sealBadConst : Const
+sealBadConst = κℕ 0
+
+sealBadStore : Store
+sealBadStore = (sealBadα , sealBadNatTy) ∷ []
+
+sealBadσ : StoreNrw
+sealBadσ = (sealBadα ꞉ id sealBadNatTy) ∷ []
+
+sealBadSeal : Coercion
+sealBadSeal = seal sealBadNatTy sealBadα
+
+sealBadIdα : Coercion
+sealBadIdα = id (＇ sealBadα)
+
+sealBadStoreDet : StoreDetWf 1 sealBadStore
+sealBadStoreDet =
+  record
+    { at = record
+        { bound = λ { (here refl) → z<s }
+        ; wfTy = λ { (here refl) → wfBase }
+        }
+    ; wfOlder = λ { (here refl) → wfBase }
+    ; unique = λ { (here refl) (here refl) → refl }
+    }
+
+sealBadσ⊒ : 1 ⊢ sealBadσ ꞉ sealBadStore ⊒ˢ sealBadStore
+sealBadσ⊒ =
+  ⊒ˢ-both wfBase wfBase
+    (id-onlyᵈ , (cast-id wfBase refl , cross (id-‵ `ℕ)))
+    ⊒ˢ-nil
+
+sealBadEndpoints : EndpointWf 1 sealBadStore sealBadNatTy (＇ sealBadα)
+sealBadEndpoints = wfBaseˢ , wfVarˢ (here refl)
+
+sealBadIdαᶜ :
+  1 ∣ sealBadStore ⊢ sealBadIdα ∶ᶜ ＇ sealBadα ⊒ ＇ sealBadα
+sealBadIdαᶜ =
+  cast-id (wfVar z<s) refl , cross (id-＇ sealBadα)
+
+sealBadIdα⊒ :
+  seal-or-idᵈ ∣ 1 ∣ sealBadStore
+    ⊢ sealBadIdα ∶ ＇ sealBadα ⊒ ＇ sealBadα
+sealBadIdα⊒ =
+  cast-id (wfVar z<s) refl , cross (id-＇ sealBadα)
+
+sealBadSeal⊒ :
+  seal-or-idᵈ ∣ 1 ∣ sealBadStore
+    ⊢ sealBadSeal ∶ sealBadNatTy ⊒ ＇ sealBadα
+sealBadSeal⊒ =
+  cast-seal wfBase (here refl) refl , sealⁿ sealBadNatTy sealBadα
+
+sealBadCompose :
+  1 ∣ sealBadσ ⊢ sealBadSeal ≈ sealBadSeal ⨾ⁿ sealBadIdα
+    ∶ sealBadNatTy ⊒ ＇ sealBadα
+sealBadCompose =
+  compose-rightⁿ sealBadStoreDet sealBadSeal⊒ sealBadIdα⊒
+    (endpointsⁿ refl refl refl refl
+      sealBadσ⊒
+      sealBadEndpoints
+      sealBadEndpoints
+      (seal-or-idᵈ , sealBadSeal⊒)
+      (seal-or-idᵈ ,
+        proj₂ (_⨟ⁿ_ {wfΣ = sealBadStoreDet}
+          sealBadSeal⊒ sealBadIdα⊒)))
+
+sealBadPremise :
+  1 ∣ sealBadσ ∣ [] ⊢ $ sealBadConst ⊒ blame ∶ sealBadIdα
+sealBadPremise =
+  ⊒blame sealBadIdαᶜ
+
+sealBadCast-no-value :
+  Value (($ sealBadConst) ⟨ - sealBadSeal ⟩) →
+  ⊥
+sealBadCast-no-value (($ sealBadConst) ⟨ () ⟩)
+
+sealBadConst-no-step :
+  ∀ {χ M} →
+  $ sealBadConst —→[ χ ] M →
+  ⊥
+sealBadConst-no-step (pure-step ())
+
+sealBadCast-no-step :
+  ∀ {χ M} →
+  ($ sealBadConst) ⟨ - sealBadSeal ⟩ —→[ χ ] M →
+  ⊥
+sealBadCast-no-step (pure-step ())
+sealBadCast-no-step (ξ-⟨⟩ step) =
+  sealBadConst-no-step step
+
+sealBadCast-no-value-after :
+  ∀ {χs W} →
+  ($ sealBadConst) ⟨ - sealBadSeal ⟩ —↠[ χs ] W →
+  Value W →
+  ⊥
+sealBadCast-no-value-after ↠-refl vW =
+  sealBadCast-no-value vW
+sealBadCast-no-value-after (↠-step step steps) vW =
+  ⊥-elim (sealBadCast-no-step step)
+
+left-widening-current-seal-counterexample :
+  LeftWidening →
+  ⊥
+left-widening-current-seal-counterexample left-widening
+    with left-widening
+           {Δ = 1} {σ = sealBadσ}
+           {V = $ sealBadConst} {V′ = blame}
+           {p = sealBadIdα} {r = sealBadSeal} {t = sealBadSeal}
+           ($ sealBadConst)
+           no•-$
+           sealBadIdαᶜ
+           sealBadCompose
+           sealBadPremise
+left-widening-current-seal-counterexample left-widening
+    | χs , W , Δ′ , Π , Π′ , π ,
+      vW , noW , bad↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′ =
+  sealBadCast-no-value-after bad↠W vW
 
 badBody : Term
 badBody = ƛ ((` zero) •)

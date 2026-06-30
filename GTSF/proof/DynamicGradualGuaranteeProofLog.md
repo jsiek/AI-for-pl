@@ -113,3 +113,41 @@ Remaining β cases:
 - The next missing lemma should invert the value-shaped premise relation,
   e.g. from `Value L` and `L ⊒ Λ V′ ∶ `∀ p`, recover the source shape needed
   for the matching bullet step and the post-step term narrowing relation.
+
+## Typed term-narrowing index, 2026-06-30
+
+Implemented staged typed relation:
+
+- Added `Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B` in `TermNarrowing`.
+- The new `·⊒·ᵗ` constructor stores the full function-index typing
+  `Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)`.
+- Added `typed-term-narrowing-index-typing`, which projects the typed coercion
+  evidence at the conclusion endpoints.
+- Added `typed-term-narrowing-erasure`, which forgets the endpoint indices back
+  to the legacy raw relation for existing catchup and example code.
+
+Counterexample documentation:
+
+- Added `proof.TermNarrowingTypingCounterexample`.
+- It checks the raw witness `$ 0 ⊒ blame ∶ id 𝔹`, while separately recording
+  `$ 0 : ℕ`, `blame : 𝔹`, and `ℕ ≢ 𝔹`.
+- This documents why endpoint recovery from the raw relation should not be
+  attempted.
+
+DGG integration:
+
+- The public `dynamicGradualGuarantee` premise now consumes the typed relation.
+- The application-left branch now inverts `·⊒·ᵗ` and the recursive call uses
+  the exposed `p ↦ q` typing evidence directly.
+
+Remaining alignment issue:
+
+- The application-left recursive call still has two typing-transport holes.
+  The separate application typing premises expose the source/target function
+  domains, while `·⊒·ᵗ` exposes the relation endpoints.  The staged typed
+  relation does not yet bundle source/target typing projections for subterms,
+  and this repo does not currently expose a term typing uniqueness lemma to
+  identify those domains.
+- Do not patch this by adding a postulate.  The next clean step is either to
+  bundle source/target typing evidence in the typed relation, or to prove a
+  focused typing-alignment lemma for typed term narrowing.

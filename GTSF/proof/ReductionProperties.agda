@@ -1852,6 +1852,85 @@ type-rename-step-⇑ᵗᵐ red =
     | P , M↠P , ↠-step P→Q Q↠W =
   P , _ , M↠P , P→Q , Q↠W
 
+shift-image-bind-step-pred :
+  ∀ {M A N} →
+  TermShiftImage M →
+  M —→[ bind A ] N →
+  renameᵗᵐ predᵗ M —→[ bind (renameᵗ predᵗ A) ] renameᵗᵐ predᵗ N
+shift-image-bind-step-pred {A = A} {N = N} (M′ , refl) M→N =
+  subst
+    (λ S → S —→[ bind (renameᵗ predᵗ A) ] renameᵗᵐ predᵗ N)
+    (sym (renameᵗᵐ-pred-suc M′))
+    (type-rename-bind-step-pred M→N)
+
+safe-allKeep-bind-pred-↠ :
+  ∀ {M P Q W χs keeps A} →
+  CatchupSafe M →
+  TermShiftImage M →
+  AllKeep χs →
+  AllKeep keeps →
+  M —↠[ χs ] P →
+  P —→[ bind A ] Q →
+  Q —↠[ keeps ] W →
+  Value W →
+  renameᵗᵐ predᵗ M
+    —↠[ χs ++ bind (renameᵗ predᵗ A) ∷ keeps ]
+    renameᵗᵐ predᵗ W
+safe-allKeep-bind-pred-↠ safeM img all-[] keeps ↠-refl P→Q Q↠W vW =
+  ↠-step (shift-image-bind-step-pred img P→Q)
+    (pure-pred-↠-value keeps Q↠W vW)
+safe-allKeep-bind-pred-↠ safeM img (all-keep keeps₀) keeps
+    (↠-step M→N N↠P) P→Q Q↠W vW
+    with safe-keep-step-image-view safeM img M→N
+       | keep-pred-step-view M→N
+safe-allKeep-bind-pred-↠ safeM img (all-keep keeps₀) keeps
+    (↠-step M→N N↠P) P→Q Q↠W vW
+    | image-step safeN imgN
+    | pred-keep-step M→N′ =
+  ↠-step M→N′
+    (safe-allKeep-bind-pred-↠ safeN imgN keeps₀ keeps
+      N↠P P→Q Q↠W vW)
+safe-allKeep-bind-pred-↠ safeM img (all-keep keeps₀) keeps
+    (↠-step M→N N↠P) P→Q Q↠W vW
+    | image-step safeN imgN
+    | pred-keep-doomed noN =
+  ⊥-elim
+    (noN
+      (safe-allKeep-bind-pred-↠ safeN imgN keeps₀ keeps
+        N↠P P→Q Q↠W vW)
+      (renameᵗᵐ-preserves-Value predᵗ vW))
+safe-allKeep-bind-pred-↠ safeM img (all-keep keeps₀) keeps
+    (↠-step M→N N↠P) P→Q Q↠W vW
+    | image-doomed noN
+    | pred-keep-step M→N′ =
+  ⊥-elim (noN (↠-trans N↠P (↠-step P→Q Q↠W)) vW)
+safe-allKeep-bind-pred-↠ safeM img (all-keep keeps₀) keeps
+    (↠-step M→N N↠P) P→Q Q↠W vW
+    | image-doomed noN
+    | pred-keep-doomed noN′ =
+  ⊥-elim (noN (↠-trans N↠P (↠-step P→Q Q↠W)) vW)
+
+safe-allKeep-bind-pred-↠-shifted :
+  ∀ {M P Q W χs keeps A} →
+  CatchupSafe (⇑ᵗᵐ M) →
+  AllKeep χs →
+  AllKeep keeps →
+  ⇑ᵗᵐ M —↠[ χs ] P →
+  P —→[ bind A ] Q →
+  Q —↠[ keeps ] W →
+  Value W →
+  M —↠[ χs ++ bind (renameᵗ predᵗ A) ∷ keeps ]
+    renameᵗᵐ predᵗ W
+safe-allKeep-bind-pred-↠-shifted
+    {M = M} {W = W} {χs = χs} {keeps = keeps} {A = A}
+    safeM keeps₀ keeps-ok ⇑M↠P P→Q Q↠W vW =
+  subst
+    (λ S → S —↠[ χs ++ bind (renameᵗ predᵗ A) ∷ keeps ]
+      renameᵗᵐ predᵗ W)
+    (renameᵗᵐ-pred-suc M)
+    (safe-allKeep-bind-pred-↠ safeM (M , refl) keeps₀ keeps-ok
+      ⇑M↠P P→Q Q↠W vW)
+
 cast-↠ :
   ∀ {M N c χs} →
   M —↠[ χs ] N →

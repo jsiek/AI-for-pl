@@ -3048,3 +3048,75 @@ So the live branch should continue to use the already accepted recursive call
 on the immediate subderivation `N⊒V′`; any additional reasoning must transform
 that catchup package rather than making a hidden second recursive call on the
 erased base.
+
+## Attempt 89: prove reduction lowering for an all-keep prefix plus one bind
+
+Accepted as checked reduction infrastructure in `proof.ReductionProperties`.
+The remaining last-bind branches split the recursive reduction as:
+
+`⇑ᵗᵐ N —↠[ χs₀ ] P`
+
+`P —→[ bind Aχ ] Q`
+
+`Q —↠[ keeps ] W`
+
+where `keeps` is all `keep`.  If `χs₀` is also all `keep`, then the reduction
+part can be lowered without using the false shifted-source inversion.  I added:
+
+`shift-image-bind-step-pred`
+
+This lowers a single `bind` step out of a known type-shift image:
+
+`M —→[ bind A ] N`
+
+to:
+
+`renameᵗᵐ predᵗ M —→[ bind (renameᵗ predᵗ A) ] renameᵗᵐ predᵗ N`.
+
+The proof uses the existing `type-rename-bind-step-pred` after exposing the
+`TermShiftImage M` witness.
+
+I then added:
+
+`safe-allKeep-bind-pred-↠`
+
+This lowers an all-keep prefix followed by one `bind` and an all-keep tail:
+
+`M —↠[ χs ] P`
+
+`P —→[ bind A ] Q`
+
+`Q —↠[ keeps ] W`
+
+to:
+
+`renameᵗᵐ predᵗ M
+  —↠[ χs ++ bind (renameᵗ predᵗ A) ∷ keeps ]
+  renameᵗᵐ predᵗ W`
+
+provided `M` is both `CatchupSafe` and a `TermShiftImage`, and both `χs` and
+`keeps` are all `keep`.  The proof uses `safe-keep-step-image-view` to keep
+each intermediate prefix term in the shift-image fragment.  If a prefix step
+falls into the doomed branch, its continuation through the remaining prefix,
+the `bind`, and the tail reaches the value `W`, contradiction.
+
+Finally I added the exact corollary needed at shifted sources:
+
+`safe-allKeep-bind-pred-↠-shifted`
+
+which starts from `⇑ᵗᵐ M` and returns a reduction from the original `M`.
+
+This is genuine progress on the last-bind case, but it does not by itself
+replace `catchup-⊒Λ-catchup`.  Even in the no-earlier-bind subcase, the final
+body relation produced by the recursive call lives under the source-first store:
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ...`
+
+whereas rebuilding the outer `⊒Λ` needs the target-first split-marker store:
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ...`
+
+The missing piece is therefore now isolated on the term-narrowing side: a
+split-aware source/target marker replay or store-swap transport for the final
+body relation.  The reduction component for the single-bind/no-earlier-bind
+case no longer requires the false shifted-source inversion.

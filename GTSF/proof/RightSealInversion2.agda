@@ -1,21 +1,24 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
 module proof.RightSealInversion2 where
 
 -- File Charter:
---   * Attempts to prove the cambridge25 Right Seal Inversion 2 lemma.
---   * The theorem keeps the composition equation in the conclusion: stripping
---     a right `unseal α A` produces both a witness coercion and evidence that
---     the original index composes with `seal A α`.
---   * The direct `⊒cast+` seal case is immediate.  The remaining holes record
---     the proof obligations that arise from store-shaping and left-cast cases.
+--   * Counterexample for the cambridge25 Right Seal Inversion 2 lemma.
+--   * The refuted statement keeps the composition equation in the conclusion:
+--     stripping a right `unseal α A` should produce both a witness coercion
+--     and evidence that the original index composes with `seal A α`.
+--   * The counterexample uses `ν⊒` and a context variable: inside the fresh
+--     source-only store, the variable can be unsealed on the left and then
+--     re-sealed/unsealed on the right; after the outer `ν⊒`, the stripped
+--     conclusion would have to relate the ν source to the bare variable at a
+--     seal index, which is impossible.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Empty using (⊥)
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (zero; suc; z<s; s<s)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
-open import Relation.Binary.PropositionalEquality using (cong)
+open import Relation.Binary.PropositionalEquality
+  using (cong; subst; sym; trans)
 
 open import Types
 open import Coercions
@@ -32,7 +35,8 @@ open import proof.Catchup using
   ; extendReplaceRel-term
   )
 open import proof.CoercionProperties using (coercion-src-tgtᵐ)
-open import proof.NarrowWidenProperties using (StoreDetWf)
+open import proof.NarrowWidenProperties using
+  (StoreDetWf; narrowing-var-to-older⊥)
 
 RightSealInversion2 : Set₁
 RightSealInversion2 =
@@ -156,105 +160,11 @@ rightSealInversion2-cast- {s = gen A c} ()
 rightSealInversion2-cast- {s = inst B c} ()
     qᶜ q⨟s≈r M⊒M′
 
-rightSealInversion2-aux :
-  ∀ {Δ σ γ M T V q A α} →
-  T ≡ V ⟨ unseal α A ⟩ →
-  Δ ∣ σ ∣ γ ⊢ M ⊒ T ∶ q →
-  ∃[ r ]
-    (Δ ∣ σ ⊢ q ⨾ⁿ seal A α ≈ r ∶ src q ⊒ ＇ α) ×
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ r
--- The `extend` case is a direct store-replacement transport: recurse in the
--- exact-store premise, then replace the head store entry with its narrowing.
-rightSealInversion2-aux eq (extend qᶜ pαᶜ M⊒T)
-    with rightSealInversion2-aux eq M⊒T
-rightSealInversion2-aux eq (extend qᶜ pαᶜ M⊒T)
-    | r , q⨟seal≈r , M⊒V =
-  r ,
-  extendReplaceRel-compose-left (replace-here qᶜ) q⨟seal≈r ,
-  extendReplaceRel-term (replace-here qᶜ) M⊒V
--- The `split` case changes both the store and the left term's opened type
--- variable.  The recursive inversion strips the target cast under
--- `(α ꞉ q) ∷ σ`; the remaining step must transport both the composition
--- evidence and the stripped relation to
--- `(α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ`, changing the source
--- opening from `N [ α ]ᵀ` to `N [ αᵢ ]ᵀ`.
-rightSealInversion2-aux eq (split qᶜ pαᶜ M⊒T)
-    with rightSealInversion2-aux eq M⊒T
-rightSealInversion2-aux eq (split qᶜ pαᶜ M⊒T)
-    | r , pα⨟seal≈r , Nα⊒V =
-  {!!}
-rightSealInversion2-aux () (⊒blame pᶜ)
-rightSealInversion2-aux () (x⊒x pᶜ x∋p)
-rightSealInversion2-aux () (ƛ⊒ƛ p↦qᶜ N⊒N′)
-rightSealInversion2-aux () (·⊒· qᶜ L⊒L′ M⊒M′)
-rightSealInversion2-aux () (Λ⊒Λ allᶜ vV V⊒V′)
-rightSealInversion2-aux () (⊒Λ pᶜ N⊒V′)
-rightSealInversion2-aux () (⊒⟨ν⟩ pᶜ sᵢ N⊒V′)
-rightSealInversion2-aux () (α⊒α qᶜ pαᶜ L⊒L′)
-rightSealInversion2-aux () (⊒α pαᶜ L⊒L′)
-rightSealInversion2-aux () (ν⊒ν pᶜ qᶜ N⊒N′)
-rightSealInversion2-aux () (⊒ν pᶜ N⊒N′)
--- The `ν⊒` case is a left wrapper: the right term is unconstrained, so the
--- proof should recurse under `⇑ᵗᵐ` and then rebuild `ν⊒`.
--- The attempted recursive call produces a shifted composition
--- `⇑ᶜ p ⨾ⁿ seal (⇑ᵗ A) (suc α) ≈ r`; rebuilding needs an
--- unshifting lemma that factors this through a witness for
--- `p ⨾ⁿ seal A α`.
-rightSealInversion2-aux {V = V} eq (ν⊒ pᶜ N⊒N′)
-    with rightSealInversion2-aux (cong ⇑ᵗᵐ eq) N⊒N′
-rightSealInversion2-aux {V = V} eq (ν⊒ pᶜ N⊒N′)
-    | r , ⇑p⨟seal≈r , N⊒⇑V =
-  {!!}
-rightSealInversion2-aux () (κ⊒κ κ)
-rightSealInversion2-aux () (⊕⊒⊕ M⊒M′ N⊒N′)
--- Direct right-positive seal cast.  Here the syntax of `- (seal A α)` is
--- exactly `unseal α A`, so the constructor already carries the desired
--- composition evidence and the stripped premise.
--- Other right-positive casts can only reach `V ⟨ unseal α A ⟩` when the
--- dual of their cast is definitionally an unseal.  The non-seal cases are
--- expected to be syntactically impossible; they are left split out while the
--- exact dual-action refinements are worked through.
-rightSealInversion2-aux eq (⊒cast+ qᶜ q⨟s≈r M⊒M′) =
-  rightSealInversion2-cast+ eq qᶜ q⨟s≈r M⊒M′
--- Right-negative casts would require the cast itself to be `unseal α A`, but
--- the composition side condition classifies that cast as a narrowing.  Since
--- `unseal` is a widening constructor, the main branch should close by the
--- impossible narrowing evidence.
-rightSealInversion2-aux eq (⊒cast- qᶜ q⨟s≈r M⊒M′) =
-  rightSealInversion2-cast- eq qᶜ q⨟s≈r M⊒M′
--- Left cast cases recurse on the premise.  After the recursive inversion, the
--- first missing algebra is an associativity/factoring lemma for narrowing
--- composition:
---
---   r ≈ t ⨾ⁿ p
---   r ⨾ⁿ seal A α ≈ u
---   --------------------
---   ∃[ v ] p ⨾ⁿ seal A α ≈ v × u ≈ t ⨾ⁿ v
---
--- The direct rebuild attempt then hits a second obligation: `cast+⊒` and
--- `cast-⊒` require the premise index to be cast-like (`∶ᶜ`), but the
--- recursive inversion only returns a term relation at the composed witness.
--- A complete proof needs either a strengthened IH that also returns enough
--- typing for the witness, or a derived left-cast transport lemma that produces
--- the stripped term relation without exposing that `∶ᶜ` requirement at the
--- call site.
-rightSealInversion2-aux eq (cast+⊒ pᶜ r≈t⨟p M⊒M′)
-    with rightSealInversion2-aux eq M⊒M′
-rightSealInversion2-aux eq (cast+⊒ pᶜ r≈t⨟p M⊒M′)
-    | u , p⨟seal≈u , M⊒V =
-  {!!}
-rightSealInversion2-aux eq (cast-⊒ pᶜ r≈t⨟p M⊒M′)
-    with rightSealInversion2-aux eq M⊒M′
-rightSealInversion2-aux eq (cast-⊒ pᶜ r≈t⨟p M⊒M′)
-    | u , r⨟seal≈u , M⊒V =
-  {!!}
-
-rightSealInversion2 : RightSealInversion2
-rightSealInversion2 M⊒Vunseal =
-  rightSealInversion2-aux refl M⊒Vunseal
-
-right-seal-inversion₂ : RightSealInversion2
-right-seal-inversion₂ = rightSealInversion2
+-- Failed proof-search note.  The direct induction can strip right-positive
+-- casts, but the `ν⊒` branch reveals the false premise: a recursive call
+-- under the fresh source-only store gives a shifted composition index,
+-- while the outer `ν⊒` source annotation remains fixed at the original
+-- index.  The variable counterexample below isolates that mismatch.
 
 ------------------------------------------------------------------------
 -- Counterexample search: ν-wrapped right unseal
@@ -296,6 +206,9 @@ private
 
   unseal0 : Coercion
   unseal0 = unseal alpha0 NatTy
+
+  unseal1 : Coercion
+  unseal1 = unseal alpha1 NatTy
 
   wfStore0 : StoreDetWf 1 Store0
   wfStore0 =
@@ -367,6 +280,27 @@ private
     seal-or-idᵈ ∣ Δ ∣ Σ ⊢ id NatTy ∶ NatTy ⊒ NatTy
   idNat⊒ = cast-id wfBase refl , cross (id-‵ `ℕ)
 
+  idAlpha0 : Coercion
+  idAlpha0 = id (＇ alpha0)
+
+  idAlpha1 : Coercion
+  idAlpha1 = id (＇ alpha1)
+
+  idAlpha0ᶜ : 1 ∣ Store0 ⊢ idAlpha0 ∶ᶜ ＇ alpha0 ⊒ ＇ alpha0
+  idAlpha0ᶜ =
+    cast-id (wfVar z<s) refl , cross (id-＇ alpha0)
+
+  idAlpha1ᶜSource :
+    2 ∣ Store1Source ⊢ idAlpha1 ∶ᶜ ＇ alpha1 ⊒ ＇ alpha1
+  idAlpha1ᶜSource =
+    cast-id (wfVar (s<s z<s)) refl , cross (id-＇ alpha1)
+
+  idAlpha1⊒Target :
+    seal-or-idᵈ ∣ 2 ∣ Store1Target
+      ⊢ idAlpha1 ∶ ＇ alpha1 ⊒ ＇ alpha1
+  idAlpha1⊒Target =
+    cast-id (wfVar (s<s z<s)) refl , cross (id-＇ alpha1)
+
   seal0⊒ : seal-or-idᵈ ∣ 1 ∣ Store0 ⊢ seal0 ∶ NatTy ⊒ ＇ alpha0
   seal0⊒ = cast-seal wfBase (here refl) refl , sealⁿ NatTy alpha0
 
@@ -400,6 +334,17 @@ private
           proj₂ (_⨟ⁿ_ {wfΣ = wfStore1Target} idNat⊒ seal1⊒Target))
         (seal-or-idᵈ , seal1⊒Source))
 
+  left-seal-compose1 :
+    2 ∣ Sigma1 ⊢ seal1 ≈ seal1 ⨾ⁿ idAlpha1 ∶ NatTy ⊒ ＇ alpha1
+  left-seal-compose1 =
+    compose-rightⁿ wfStore1Target seal1⊒Target idAlpha1⊒Target
+      (endpointsⁿ refl refl refl refl
+        Sigma1⊒
+        endpoints1Target
+        endpoints1Source
+        (seal-or-idᵈ , seal1⊒Target)
+        (seal-or-idᵈ , seal1⊒Source))
+
   right-sealed-constant1 :
     2 ∣ Sigma1 ∣ [] ⊢ $ k0 ⊒ ($ k0) ⟨ seal1 ⟩ ∶ seal1
   right-sealed-constant1 =
@@ -412,6 +357,23 @@ private
   right-unsealed-constant1 =
     ⊒cast+ idNatᶜ right-seal-compose1 right-sealed-constant1
 
+  alpha-var1 :
+    2 ∣ Sigma1 ∣ idAlpha1 ∷ [] ⊢ ` zero ⊒ ` zero ∶ idAlpha1
+  alpha-var1 =
+    x⊒x idAlpha1ᶜSource Z
+
+  left-unsealed-alpha-var1 :
+    2 ∣ Sigma1 ∣ idAlpha1 ∷ []
+      ⊢ (` zero) ⟨ unseal1 ⟩ ⊒ ` zero ∶ seal1
+  left-unsealed-alpha-var1 =
+    cast+⊒ idAlpha1ᶜSource left-seal-compose1 alpha-var1
+
+  right-unsealed-alpha-var1 :
+    2 ∣ Sigma1 ∣ idAlpha1 ∷ []
+      ⊢ (` zero) ⟨ unseal1 ⟩ ⊒ (` zero) ⟨ unseal1 ⟩ ∶ id NatTy
+  right-unsealed-alpha-var1 =
+    ⊒cast+ idNatᶜ right-seal-compose1 left-unsealed-alpha-var1
+
   right-seal-inversion₂-counterexample-premise :
     1 ∣ Sigma0 ∣ []
       ⊢ ν ★ ($ k0) (⇑ᶜ (id NatTy))
@@ -419,6 +381,14 @@ private
       ∶ id NatTy
   right-seal-inversion₂-counterexample-premise =
     ν⊒ idNatᶜ right-unsealed-constant1
+
+  right-seal-inversion₂-var-counterexample-premise :
+    1 ∣ Sigma0 ∣ idAlpha0 ∷ []
+      ⊢ ν ★ ((` zero) ⟨ unseal1 ⟩) (⇑ᶜ (id NatTy))
+        ⊒ (` zero) ⟨ unseal0 ⟩
+      ∶ id NatTy
+  right-seal-inversion₂-var-counterexample-premise =
+    ν⊒ idNatᶜ right-unsealed-alpha-var1
 
   -- This was the first ν-shaped counterexample candidate.  It fails: the
   -- stripped conclusion is rebuilt by relating the ν term to the bare constant
@@ -443,3 +413,201 @@ right-seal-inversion₂-ν-candidate-result =
   seal0 ,
   right-seal-compose-endpoints right-seal-compose0 ,
   right-seal-inversion₂-ν-candidate-stripped
+
+private
+  ν-ann-injective :
+    ∀ {A N N′ c c′} →
+    ν A N c ≡ ν A N′ c′ →
+    c ≡ c′
+  ν-ann-injective refl = refl
+
+  ν-body-injective :
+    ∀ {A N N′ c c′} →
+    ν A N c ≡ ν A N′ c′ →
+    N ≡ N′
+  ν-body-injective refl = refl
+
+  renamed-idNat-tgt-alpha0⊥ :
+    ∀ {r} →
+    renameᶜ suc r ≡ id NatTy →
+    tgt r ≡ ＇ alpha0 →
+    ⊥
+  renamed-idNat-tgt-alpha0⊥ {r = id (＇ X)} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = id (‵ `ℕ)} eq ()
+  renamed-idNat-tgt-alpha0⊥ {r = id (‵ `𝔹)} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = id ★} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = id (A ⇒ B)} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = id (`∀ A)} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = c ︔ d} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = c ↦ d} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = `∀ c} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = G !} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = G ？} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = seal A α} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = unseal α A} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = gen A c} () tgt-r
+  renamed-idNat-tgt-alpha0⊥ {r = inst B c} () tgt-r
+
+  idNat-right-seal-not-idNat :
+    1 ∣ Sigma0
+      ⊢ id NatTy ⨾ⁿ seal0 ≈ id NatTy ∶ NatTy ⊒ ＇ alpha0 →
+    ⊥
+  idNat-right-seal-not-idNat
+      (compose-leftⁿ wfΣ q⊒ seal⊒
+        (endpointsⁿ src-u tgt-u src-r () σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
+
+  idNat-right-seal-not-renamed-idNat :
+    ∀ {r} →
+    renameᶜ suc r ≡ id NatTy →
+    1 ∣ Sigma0
+      ⊢ id NatTy ⨾ⁿ seal0 ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0 →
+    ⊥
+  idNat-right-seal-not-renamed-idNat r≡idNat
+      (compose-leftⁿ wfΣ q⊒ seal⊒
+        (endpointsⁿ src-u tgt-u src-r tgt-r
+          σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒)) =
+    renamed-idNat-tgt-alpha0⊥ r≡idNat tgt-r
+
+  idNat-target :
+    ∀ {r B} →
+    r ≡ id NatTy →
+    tgt r ≡ B →
+    B ≡ NatTy
+  idNat-target r≡idNat tgt-r =
+    trans (sym tgt-r) (cong tgt r≡idNat)
+
+  inner-cast+⊥ :
+    ∀ {Δ σ γ M M′ q p t A B C D} →
+    M ⟨ - t ⟩ ≡ (` zero) ⟨ unseal1 ⟩ →
+    M′ ≡ ` zero →
+    q ≡ id NatTy →
+    Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+    Δ ∣ σ ⊢ q ≈ t ⨾ⁿ p ∶ A ⊒ B →
+    Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p →
+    ⊥
+  inner-cast+⊥ {t = id A} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = c ︔ d} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = c ↦ d} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = `∀ c} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (＇ β) !} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (‵ ι) !} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = ★ !} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (A ⇒ B) !} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (`∀ A) !} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (＇ β) ？} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (‵ ι) ？} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = ★ ？} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (A ⇒ B) ？} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (`∀ A) ？} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = seal .NatTy .alpha1} refl eqT q≡id pᶜ
+      (compose-rightⁿ wfΣ
+        (cast-seal hNat α∈Σ seal-ok , sealⁿ .NatTy .alpha1)
+        p⊒
+        (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
+      M⊒M′ =
+    let
+      B≡Nat = idNat-target q≡id tgt-r
+      p⊒Nat =
+        subst (λ B → _ ∣ _ ∣ _ ⊢ _ ∶ ＇ alpha1 ⊒ B) B≡Nat p⊒
+    in
+    narrowing-var-to-older⊥ wfΣ wfBase p⊒Nat
+  inner-cast+⊥ {t = unseal α A} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = gen A c} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = inst B c} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+
+  inner-cast-⊥ :
+    ∀ {Δ σ γ M M′ q r t A B C D} →
+    M ⟨ t ⟩ ≡ (` zero) ⟨ unseal1 ⟩ →
+    M′ ≡ ` zero →
+    q ≡ id NatTy →
+    Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+    Δ ∣ σ ⊢ r ≈ t ⨾ⁿ q ∶ A ⊒ B →
+    Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r →
+    ⊥
+  inner-cast-⊥ {t = id A} () eqT q≡id qᶜ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = c ︔ d} () eqT q≡id qᶜ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = c ↦ d} () eqT q≡id qᶜ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = `∀ c} () eqT q≡id qᶜ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = G !} () eqT q≡id qᶜ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = G ？} () eqT q≡id qᶜ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = seal A α} () eqT q≡id qᶜ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = unseal α A} refl eqT q≡id qᶜ
+      (compose-rightⁿ wfΣ
+        (cast-unseal hA α∈Σ ok , cross ())
+        q⊒
+        r≈t⨟q)
+      M⊒M′
+  inner-cast-⊥ {t = gen A c} () eqT q≡id qᶜ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = inst B c} () eqT q≡id qᶜ r≈t⨟q M⊒M′
+
+  right-seal-inversion₂-var-inner⊥ :
+    ∀ {A q M T} →
+    M ≡ (` zero) ⟨ unseal1 ⟩ →
+    T ≡ ` zero →
+    q ≡ id NatTy →
+    2 ∣ (⊒ zero ꞉=☆) ∷ (alpha1 ꞉= ⇑ᵗ A ⊒) ∷ []
+      ∣ idAlpha1 ∷ []
+      ⊢ M ⊒ T ∶ q →
+    ⊥
+  right-seal-inversion₂-var-inner⊥ eqM eqT q≡id
+      (cast+⊒ pᶜ q≈t⨟p M⊒M′) =
+    inner-cast+⊥ eqM eqT q≡id pᶜ q≈t⨟p M⊒M′
+  right-seal-inversion₂-var-inner⊥ eqM eqT q≡id
+      (cast-⊒ qᶜ r≈t⨟q M⊒M′) =
+    inner-cast-⊥ eqM eqT q≡id qᶜ r≈t⨟q M⊒M′
+
+  right-seal-inversion₂-var-stripped-source⊥ :
+    ∀ {A r M T} →
+    M ≡ ν ★ ((` zero) ⟨ unseal1 ⟩) (⇑ᶜ (id NatTy)) →
+    T ≡ ` zero →
+    1 ∣ (alpha0 ꞉= A ⊒) ∷ [] ∣ idAlpha0 ∷ []
+      ⊢ M ⊒ T ∶ r →
+    ⊥
+  right-seal-inversion₂-var-stripped-source⊥ eqM eqT
+      (ν⊒ pᶜ N⊒N′) =
+    right-seal-inversion₂-var-inner⊥
+      (ν-body-injective eqM)
+      (cong ⇑ᵗᵐ eqT)
+      (ν-ann-injective eqM)
+      N⊒N′
+
+  right-seal-inversion₂-var-stripped-aux⊥ :
+    ∀ {r M T} →
+    M ≡ ν ★ ((` zero) ⟨ unseal1 ⟩) (⇑ᶜ (id NatTy)) →
+    T ≡ ` zero →
+    1 ∣ Sigma0
+      ⊢ id NatTy ⨾ⁿ seal0 ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0 →
+    1 ∣ Sigma0 ∣ idAlpha0 ∷ []
+      ⊢ M ⊒ T ∶ r →
+    ⊥
+  right-seal-inversion₂-var-stripped-aux⊥ eqM eqT comp
+      (extend qᶜ pαᶜ M⊒T) =
+    right-seal-inversion₂-var-stripped-source⊥ eqM eqT M⊒T
+  right-seal-inversion₂-var-stripped-aux⊥ eqM eqT comp
+      (ν⊒ pᶜ N⊒N′)
+      with eqT
+  right-seal-inversion₂-var-stripped-aux⊥ eqM eqT comp
+      (ν⊒ pᶜ N⊒N′)
+      | refl =
+    idNat-right-seal-not-renamed-idNat (ν-ann-injective eqM) comp
+
+  right-seal-inversion₂-var-stripped⊥ :
+    ∀ {r} →
+    1 ∣ Sigma0
+      ⊢ id NatTy ⨾ⁿ seal0 ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0 →
+    1 ∣ Sigma0 ∣ idAlpha0 ∷ []
+      ⊢ ν ★ ((` zero) ⟨ unseal1 ⟩) (⇑ᶜ (id NatTy))
+        ⊒ ` zero ∶ r →
+    ⊥
+  right-seal-inversion₂-var-stripped⊥ comp M⊒T =
+    right-seal-inversion₂-var-stripped-aux⊥ refl refl comp M⊒T
+
+right-seal-inversion₂-var-counterexample :
+  RightSealInversion2 →
+  ⊥
+right-seal-inversion₂-var-counterexample right-seal-inversion₂′
+    with right-seal-inversion₂′
+      right-seal-inversion₂-var-counterexample-premise
+right-seal-inversion₂-var-counterexample right-seal-inversion₂′
+    | r , id⨟seal≈r , stripped =
+  right-seal-inversion₂-var-stripped⊥ id⨟seal≈r stripped

@@ -108,6 +108,27 @@ srcStoreⁿ-⊒ˢ (⊒ˢ-both {X = X} hA hA′ (μ , s⊒) σ⊒) =
       (sym (proj₁ (coercion-src-tgtᵐ (proj₁ s⊒)))))
     (srcStoreⁿ-⊒ˢ σ⊒)
 
+tgtStoreⁿ : StoreNrw → Store
+tgtStoreⁿ [] = []
+tgtStoreⁿ ((X ꞉ p) ∷ σ) = (X , tgt p) ∷ tgtStoreⁿ σ
+tgtStoreⁿ ((X ꞉= A ⊒) ∷ σ) = (X , A) ∷ tgtStoreⁿ σ
+tgtStoreⁿ ((⊒ X ꞉=☆) ∷ σ) = tgtStoreⁿ σ
+
+tgtStoreⁿ-⊒ˢ :
+  ∀ {Δ σ Σ Σ′} →
+  Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+  Σ′ ≡ tgtStoreⁿ σ
+tgtStoreⁿ-⊒ˢ ⊒ˢ-nil = refl
+tgtStoreⁿ-⊒ˢ (⊒ˢ-right hA σ⊒) =
+  cong (_∷_ _) (tgtStoreⁿ-⊒ˢ σ⊒)
+tgtStoreⁿ-⊒ˢ (⊒ˢ-left σ⊒) =
+  tgtStoreⁿ-⊒ˢ σ⊒
+tgtStoreⁿ-⊒ˢ (⊒ˢ-both {X = X} hA hA′ (μ , s⊒) σ⊒) =
+  cong₂ _∷_
+    (cong (λ A → (X , A))
+      (sym (proj₂ (coercion-src-tgtᵐ (proj₁ s⊒)))))
+    (tgtStoreⁿ-⊒ˢ σ⊒)
+
 srcStoreⁿ-⇑ˢ :
   ∀ σ →
   srcStoreⁿ (⇑ˢ σ) ≡ ⟰ᵗ (srcStoreⁿ σ)
@@ -1812,6 +1833,17 @@ narrowing-var≢-to-var-tag⊥ {μ = μ} {α = α} β≢α tag-ok
     (cast-seq s⊢ (cast-seal {α = .α} hA α∈Σ seal-ok) ,
      sⁿ ︔seal _) =
   tag-or-id-seal-conflict {μ = μ} {α = α} tag-ok seal-ok
+
+castlike-var-var-endpoints :
+  ∀ {Δ Σ α β c} →
+  Δ ∣ Σ ⊢ c ∶ᶜ (＇ β) ⊒ (＇ α) →
+  β ≡ α
+castlike-var-var-endpoints {α = α} {β = β} cᶜ with β ≟ α
+castlike-var-var-endpoints cᶜ | yes β≡α = β≡α
+castlike-var-var-endpoints {α = α} cᶜ | no β≢α =
+  ⊥-elim
+    (narrowing-var≢-to-var-tag⊥ {α = α}
+      β≢α refl cᶜ)
 
 narrowing-skew-var-to-var-tag⊥ :
   ∀ {μ Δ Σ α β c} →

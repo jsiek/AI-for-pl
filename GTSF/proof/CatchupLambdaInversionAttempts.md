@@ -3970,3 +3970,47 @@ real `gen` premise is enforcing the relevant endpoint freshness/occurrence
 invariant.  The remaining replay proof still needs to exploit that invariant in
 the cast-composition cases, rather than replaying a generic mixed
 `raise0ᵗ`/`swap01ᵗ` composition theorem.
+
+## Attempt 111: probe direct value replay and the split-shaped target
+
+Rejected as a direct small proof; useful as a shape check.
+
+After pulling `origin/main` again, Git reported that this branch was already up
+to date with `origin/main`.  I then tried a temporary scratch lemma with the
+exact remaining no-earlier-bind replay statement:
+
+`W ⊒ ⇑ᵗᵐ V′ ∶ ⇑ᶜ p`
+
+under
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`
+
+should imply
+
+`⇑ᵗᵐ (renameᵗᵐ predᵗ W) ⊒ renameᵗᵐ (extᵗ suc) V′
+  ∶ renameᶜ (extᵗ suc) p`
+
+under
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+The target store is exactly split-shaped, with `α = zero` and
+`αᵢ = suc zero`.  That confirms the earlier split-marker intuition: the final
+body should be obtainable by crossing the source-only star past the target-only
+star and rebuilding a split-shaped target-first body.
+
+However, direct structural recursion over the value-target relation is not a
+small proof.  In Agda, even the first constructor probes require exposing the
+hidden shapes of the defined indices `⇑ᶜ p` and `⇑ᵗᵐ V′`; otherwise Agda gets
+stuck deciding whether constructors such as `ƛ⊒ƛ`, `κ⊒κ`, and cast rules can
+apply.  Exposing those shapes just brings the proof back to the existing
+split-aware replay problem: recursive `⊒Λ`/`⊒⟨ν⟩` branches can put a
+`swap-right swap-here` exchange underneath a split marker, which is the unsafe
+case already isolated by Attempts 74-78.
+
+Conclusion: the value assumption removes many impossible top-level shapes, but
+it does not eliminate the split-aware transport requirement.  The temporary
+scratch file was deleted.  The next viable direct route is still a
+split-aware source/target replay theorem that handles the unsafe split step
+with real opening/catchup reasoning, not an arbitrary value-only structural
+renaming theorem.

@@ -3024,6 +3024,103 @@ postulate
         ⊢ W′ ⊒ applyTerms χs′ (N′ [ α ]ᵀ)
           ∶ applyCoercions χs′ (p [ α ]ᶜ)
 
+⊒Λ-body-split-marker-catchup :
+  ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p} →
+  Value W →
+  (⇑ᵗᵐ N —↠[ χs ] W) →
+  Δ′ ≡ applyTyCtxs χs (suc Δ) →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  Δ′ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+    ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p →
+  ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
+    Value W′ ×
+    (⇑ᵗᵐ N —↠[ χs′ ] W′) ×
+    (Δ″ ≡ applyTyCtxs χs′ (suc Δ)) ×
+    (Π″ ≡ applyStores χs′ []) ×
+    (Π″′ ≡ applyStore keep []) ×
+    Δ″ ⊢ π′ ꞉ Π″ ⊒ˢ Π″′ ×
+    Δ″ ∣ combineStoreNrw π′
+      ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ σ) ∣ []
+      ⊢ W′ ⊒ applyTerms χs′ V′ ∶ applyCoercions χs′ p
+⊒Λ-body-split-marker-catchup
+    {Δ = Δ} {σ = σ} {χs = χs} {W = W} {π = π}
+    {A = A} {B = B} {N = N} {V′ = V′} {p = p}
+    vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    with catchup-split-catchup
+      {Δ = suc Δ} {σ = ⇑ˢ σ} {χs = χs}
+      {W = W} {α = zero} {αᵢ = suc zero}
+      {p = ⇑ᶜ p} {q = id ★} {A = ★}
+      vW
+      (subst
+        (λ S → S —↠[ χs ] W)
+        (sym (open-shiftᵐ zero (⇑ᵗᵐ N)))
+        ⇑N↠W)
+      Δ′≡
+      Π≡
+      Π′≡
+      π⊒
+      id★-coercionᶜ
+      (gen-body-open-split-coercion {σ = σ} pᶜ)
+      (catchup-extend-transport
+        {σ = ⇑ˢ σ} {π = π} {χs = χs}
+        {α = zero} {q = id ★} {A = ★}
+        id★-coercionᶜ
+        (subst
+          (λ c → suc Δ ∣ srcStoreⁿ ((zero ꞉ id ★) ∷ ⇑ˢ σ)
+            ⊢ c ∶ᶜ ⇑ᵗ A ⊒ B)
+          (sym (open-shiftᶜ zero p))
+          (subst
+            (λ Σ → suc Δ ∣ (zero , ★) ∷ Σ ⊢ p ∶ᶜ ⇑ᵗ A ⊒ B)
+            (sym (srcStoreⁿ-⇑ˢ σ))
+            (narrow-weaken ≤-refl StoreIncl-drop
+              (gen-body-coercionᶜ-tag pᶜ))))
+        Δ′≡
+        Π≡
+        Π′≡
+        π⊒
+        (subst
+          (λ c → _ ∣ combineStoreNrw π
+            ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+            ⊢ W ⊒ applyTerms χs ((⇑ᵗᵐ V′) [ zero ]ᵀ)
+              ∶ applyCoercions χs c)
+          (sym (open-shiftᶜ zero p))
+          (subst
+            (λ T → _ ∣ combineStoreNrw π
+              ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+              ⊢ W ⊒ applyTerms χs T ∶ applyCoercions χs p)
+            (sym (open-shiftᵐ zero V′))
+            W⊒V′)))
+⊒Λ-body-split-marker-catchup
+    {Δ = Δ} {σ = σ} {χs = χs} {W = W} {N = N} {V′ = V′} {p = p}
+    vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    | χs′ , W′ , Δ″ , Π″ , Π″′ , π′ ,
+      vW′ , source↠′ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body′ =
+  χs′ , W′ , Δ″ , Π″ , Π″′ , π′ ,
+  vW′ ,
+  subst
+    (λ S → S —↠[ χs′ ] W′)
+    (open-shiftᵐ (suc zero) (⇑ᵗᵐ N))
+    source↠′ ,
+  Δ″≡ ,
+  Π″≡ ,
+  Π″′≡ ,
+  π′⊒ ,
+  subst
+    (λ c → Δ″ ∣ combineStoreNrw π′
+      ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ σ) ∣ []
+      ⊢ W′ ⊒ applyTerms χs′ V′ ∶ applyCoercions χs′ c)
+    (open-shiftᶜ zero p)
+    (subst
+      (λ T → Δ″ ∣ combineStoreNrw π′
+        ((zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ σ) ∣ []
+        ⊢ W′ ⊒ applyTerms χs′ T ∶
+          applyCoercions χs′ ((⇑ᶜ p) [ zero ]ᶜ))
+      (open-shiftᵐ zero V′)
+      body′)
+
 catchup-⊒Λ-no-bind-finish :
   ∀ {Δ σ χs N W′ A B V′ p} →
   AllKeep χs →

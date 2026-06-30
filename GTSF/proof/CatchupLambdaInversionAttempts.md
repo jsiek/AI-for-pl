@@ -2829,3 +2829,41 @@ the live last-bind branch: instantiated at the inner `suc Δ` context, the
 result still reduces the shifted source `⇑ᵗᵐ N`, not the unshifted source `N`.
 So the remaining missing piece is still the history-preserving replay that
 moves the emitted source-star marker outward while lowering the source term.
+
+## Attempt 82: add the split marker to caught-up body evidence
+
+Accepted as checked support.  Attempt 81 changes a direct body relation, but
+the live `catchup-lemma` branch has the stronger package produced by the
+recursive call:
+
+`⇑ᵗᵐ N —↠[ χs ] W`
+
+`W ⊒ applyTerms χs V′ ∶ applyCoercions χs p`
+
+I added:
+
+`⊒Λ-body-split-marker-catchup`
+
+This factors the same split-marker move through `catchup-split-catchup`.  The
+proof opens the shifted source as:
+
+`(⇑ᵗᵐ (⇑ᵗᵐ N)) [ zero ]ᵀ`
+
+and uses `catchup-extend-transport` to move the final body relation from the
+target-only entry to the temporary `(zero ꞉ id ★)` entry expected by
+`catchup-split-catchup`.  The opened `gen` body coercion is weakened under that
+temporary source-store entry with `StoreIncl-drop`, matching the shape already
+used by `gen-body-open-split-coercion`.
+
+The result is a catchup package for the split-shaped store:
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ σ`
+
+It still reduces the shifted source:
+
+`⇑ᵗᵐ N —↠[ χs′ ] W′`
+
+rather than the original unshifted source `N`.  So this isolates the remaining
+gap more sharply: after the recursive catchup evidence has been replayed through
+the split marker, the proof still needs a history-lowering/replay lemma that
+connects the shifted-source catchup package back to the original source term.

@@ -3378,3 +3378,42 @@ when the determinant-store side condition is available.  That is not enough:
 the source term produced by the lowered reduction contains
 `renameᶜ raise0ᵗ t`, not `renameᶜ swap01ᵗ t`.  Proving, refuting, or avoiding
 that mixed composition statement is now the concrete next obstruction.
+
+## Attempt 94: checked counterprobe for generic mixed composition
+
+Accepted as checked support in `proof.TraceProbe`.
+
+I added a small no-postulate probe around the mixed composition target from
+Attempt 93.  In the source-first store
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ []`
+
+the identity coercion on type variable `1`,
+
+`id (＇ 1) ↦ id (＇ 1)`,
+
+can compose with itself on the right:
+
+`id-var1-fun ≈ id-var1-fun ⨾ⁿ id-var1-fun`.
+
+But after moving to the target-first store
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ []`
+
+the analogous mixed target
+
+`probe-c ≈ id-var1-fun ⨾ⁿ probe-c`
+
+is impossible, because the left component of the composition would need source
+type `＇ 0 ⇒ ＇ 0`, while `id-var1-fun` has source type `＇ 1 ⇒ ＇ 1`.
+
+So the fully generic mixed-composition replay is false.  This does not yet
+refute the actual `catchup-lemma`, because the probe is still not known to arise
+from the real `⊒Λ`/`gen` premise.  It does rule out the tempting theorem that
+would replay arbitrary source-first `compose-rightⁿ` derivations by changing
+only the first source-side coercion to `renameᶜ raise0ᵗ`.
+
+Next restriction to investigate: prove or refute the mixed-composition replay
+under the additional invariant supplied by the real `gen` premise, or avoid
+that replay entirely by deriving the single-bind body relation through
+catchup/left-narrowing rather than by structural retagging of every constructor.

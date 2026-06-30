@@ -16,6 +16,7 @@ module proof.TraceProbe where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
+open import Data.List.Relation.Unary.Any using (here)
 open import Data.Nat using (zero; suc; z<s; s<s)
 open import Data.Product using (_,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (cong; subst; sym; trans)
@@ -29,6 +30,7 @@ open import NarrowWidenComposition
 open import TermNarrowing
 open import NarrowingExamples
 open import proof.CoercionProperties using (coercion-src-tgtᵐ)
+open import proof.NarrowWidenProperties using (StoreDetWf)
 open import proof.NuTermProperties using
   ( open0-ext-suc-cancelᵐ
   ; renameᵗᵐ-preserves-Value
@@ -77,6 +79,78 @@ id-var0-fun-right-≈ =
 
 probe-c : Coercion
 probe-c = id (＇ 0) ↦ id (＇ 0)
+
+id-var1-fun : Coercion
+id-var1-fun = id (＇ 1) ↦ id (＇ 1)
+
+var1-fun≢var0-fun :
+  ＇ 1 ⇒ ＇ 1 ≡ ＇ 0 ⇒ ＇ 0 →
+  ⊥
+var1-fun≢var0-fun eq
+    with ⇒-injective-left eq
+... | ()
+
+source-first-star-narrowing :
+  2 ⊢ ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ []) ꞉
+    ((zero , ★) ∷ []) ⊒ˢ ((suc zero , ★) ∷ [])
+source-first-star-narrowing =
+  ⊒ˢ-left (⊒ˢ-right wf★ ⊒ˢ-nil)
+
+star0-store-det2 :
+  StoreDetWf 2 ((zero , ★) ∷ [])
+star0-store-det2 =
+  record
+    { at = record
+        { bound = λ { (here refl) → z<s }
+        ; wfTy = λ { (here refl) → wf★ }
+        }
+    ; wfOlder = λ { (here refl) → wf★ }
+    ; unique = λ { (here refl) (here refl) → refl }
+    }
+
+wf-var1-fun :
+  ∀ {Σ} →
+  EndpointWf 2 Σ (＇ 1 ⇒ ＇ 1) (＇ 1 ⇒ ＇ 1)
+wf-var1-fun =
+  ( wf⇒ˢ (wfVarᵗ (s<s z<s)) (wfVarᵗ (s<s z<s))
+  , wf⇒ˢ (wfVarᵗ (s<s z<s)) (wfVarᵗ (s<s z<s))
+  )
+
+id-var1-fun-narrowingᵐ :
+  ∀ {Σ} →
+  tag-or-idᵈ ∣ 2 ∣ Σ ⊢ id-var1-fun ∶
+    (＇ 1 ⇒ ＇ 1) ⊒ (＇ 1 ⇒ ＇ 1)
+id-var1-fun-narrowingᵐ =
+  cast-fun
+    (cast-id (wfVar (s<s z<s)) refl)
+    (cast-id (wfVar (s<s z<s)) refl) ,
+  cross (cross (id-＇ 1) ↦ cross (id-＇ 1))
+
+source-first-id-var1-right-≈ :
+  2 ∣ (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ [] ⊢
+    id-var1-fun ≈ id-var1-fun ⨾ⁿ id-var1-fun
+      ∶ (＇ 1 ⇒ ＇ 1) ⊒ (＇ 1 ⇒ ＇ 1)
+source-first-id-var1-right-≈ =
+  compose-rightⁿ star0-store-det2
+    id-var1-fun-narrowingᵐ
+    id-var1-fun-narrowingᵐ
+    (endpointsⁿ refl refl refl refl
+      source-first-star-narrowing
+      wf-var1-fun
+      wf-var1-fun
+      (tag-or-idᵈ , id-var1-fun-narrowingᵐ)
+      (_ , proj₂ (_⨟ⁿ_ {wfΣ = star0-store-det2}
+        id-var1-fun-narrowingᵐ
+        id-var1-fun-narrowingᵐ)))
+
+mixed-id-var1-target-compose⊥ :
+  2 ∣ (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ [] ⊢
+    probe-c ≈ id-var1-fun ⨾ⁿ probe-c
+      ∶ (＇ 0 ⇒ ＇ 0) ⊒ (＇ 0 ⇒ ＇ 0) →
+  ⊥
+mixed-id-var1-target-compose⊥
+    (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  var1-fun≢var0-fun (proj₁ (coercion-src-tgtᵐ (proj₁ t⊒)))
 
 probe-body : Term
 probe-body = (ƛ (` 0)) ⟨ probe-c ⟩

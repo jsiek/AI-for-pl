@@ -3590,3 +3590,31 @@ The source-first relation from `last-bind-source-first-body` is still
 
 so source-side cast branches still need the mixed `raise0ᵗ`/`swap01ᵗ`
 composition argument or a different value-level route.
+
+## Attempt 100: reject a generic `raise0ᵗ` mode-renaming transport
+
+Rejected as too broad.
+
+A tempting way to prove the source-side cast replay is to reuse
+`narrow-renameᵗ` with `raise0ᵗ` for the left component `t` and the source-side
+composition result.  This would require a generic target mode environment `ν`
+such that
+
+`ModeRename raise0ᵗ μ ν`.
+
+But `raise0ᵗ zero = suc zero` and `raise0ᵗ (suc zero) = suc zero`.  Therefore
+`ν (suc zero)` would have to admit both `μ zero` and `μ (suc zero)`.
+The mode lattice has no common top for `tag-or-id` and `seal-or-id`, so this is
+impossible for arbitrary `μ`.
+
+This matters because the hidden mode in
+
+`Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B`
+
+is existential inside `compose-rightⁿ`; the term-level source-cast constructor
+does not expose a `tag-or-idᵈ`-only mode for `t`.
+
+Conclusion: the mixed replay cannot be a plain renaming theorem over arbitrary
+composition derivations.  It must either recover a mode restriction from the
+legal `gen` body and occurrence invariant, or avoid renaming arbitrary `t`
+components by using the value-level left-widening/left-narrowing route.

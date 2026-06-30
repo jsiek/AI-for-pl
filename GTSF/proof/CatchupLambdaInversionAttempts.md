@@ -5036,3 +5036,35 @@ constructs safety as it goes, or a special reconstruction for the unsafe split
 case.  Do not try to finish Attempt 136 by proving a generic
 `Value → SourceTargetMergeSafe` or `CatchupSafe → SourceTargetMergeSafe`
 lemma; that implication is not the right invariant.
+
+## Attempt 140: replay α constructors under an extended renaming
+
+Accepted as checked support.
+
+Attempt 133 correctly made α runtime-bullet constructors impossible for the
+bare local replay predicate: an arbitrary renaming such as `merge01ᵗ` is not
+shape-preserving for the fresh type binder introduced by `α⊒α`/`⊒α`.
+
+However, recursive replay under a polymorphic binder uses an explicitly
+extended renaming `extᵗ ρ`, and that shape can rebuild the α constructors.  I
+added:
+
+- `term-rename-local-α⊒α-build`;
+- `term-rename-local-⊒α-build`.
+
+Both helpers take the recursively replayed body under `ρ` and rebuild the α
+constructor under `extᵗ ρ`.  The proof is transport bookkeeping:
+
+- `renameStoreNrw-⇑ˢ` and `renameCtxNrw-⇑ᵍ` normalize the shifted store and
+  term context;
+- `renameᶜ-ext-suc-comm`, `renameᵗ-ext-suc-comm`, and
+  `renameᵗᵐ-ext-suc-comm` align the opened coercions/terms;
+- `renameStoreNrw-coercionᶜ (TyRenameWf-ext hρ)` transports the α coercion
+  premise.
+
+This does not yet change `TermRenameLocalOk`, which still marks α constructors
+as impossible for the broad local predicate.  The lesson is more precise: α is
+not replayable for the bare `merge01ᵗ` head, but it is replayable in the
+recursive branches where the renaming is visibly under a type binder.  A future
+guarded replay theorem should carry enough renaming-shape information to use
+these builders instead of globally rejecting α.

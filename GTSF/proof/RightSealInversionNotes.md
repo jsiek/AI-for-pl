@@ -691,9 +691,9 @@ the exact outer premise has result `p`:
 q⨾seal≈p : Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ p ∶ src q ⊒ ＇ α
 ```
 
-The branch would close by `right-seal-compose-source-var⊥` if the endpoints can
-be rewritten to `＇ α ⊒ ＇ α`.  The missing algebraic fact is a cast-like
-variable-to-variable endpoint inversion:
+The branch closes by `right-seal-compose-source-var⊥` once the endpoints are
+rewritten to `＇ α ⊒ ＇ α`.  The algebraic fact needed for this rewrite is a
+cast-like variable-to-variable endpoint inversion:
 
 ```agda
 castlike-var-var-endpoints :
@@ -701,10 +701,20 @@ castlike-var-var-endpoints :
   β ≡ α
 ```
 
-Equivalently, prove that a tag-or-id-mode narrowing from one type variable to
-another must be an identity variable narrowing.  Then `p`'s source `＇ β` from
-the left `seal A β` composition rewrites to `＇ α`, and the outer exact
-right-seal premise contradicts `right-seal-compose-source-var⊥`.
+This is now proved in `proof.NarrowWidenProperties` using
+`narrowing-var≢-to-var-tag⊥`.  The branch packaging is also checked:
+
+```agda
+right-seal-compose-left-seal-factor⊥ :
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ p ∶ src q ⊒ ＇ α →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ seal A β ⨾ⁿ p ∶ E ⊒ F →
+  ⊥
+```
+
+The proof transports the cast-like typing of `p` to endpoints
+`＇ β ⊒ ＇ α`, applies `castlike-var-var-endpoints`, and then transports the
+outer right-seal composition to the impossible endpoint `＇ α ⊒ ＇ α`.
 
 ### Counterexample search
 

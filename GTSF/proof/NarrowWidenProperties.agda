@@ -1834,6 +1834,17 @@ narrowing-var≢-to-var-tag⊥ {μ = μ} {α = α} β≢α tag-ok
      sⁿ ︔seal _) =
   tag-or-id-seal-conflict {μ = μ} {α = α} tag-ok seal-ok
 
+castlike-var-var-endpoints :
+  ∀ {Δ Σ α β c} →
+  Δ ∣ Σ ⊢ c ∶ᶜ (＇ β) ⊒ (＇ α) →
+  β ≡ α
+castlike-var-var-endpoints {α = α} {β = β} cᶜ with β ≟ α
+castlike-var-var-endpoints cᶜ | yes β≡α = β≡α
+castlike-var-var-endpoints {α = α} cᶜ | no β≢α =
+  ⊥-elim
+    (narrowing-var≢-to-var-tag⊥ {α = α}
+      β≢α refl cᶜ)
+
 narrowing-skew-var-to-var-tag⊥ :
   ∀ {μ Δ Σ α β c} →
   μ α ≡ tag-or-id →

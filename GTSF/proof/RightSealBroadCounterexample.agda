@@ -9,19 +9,22 @@ module proof.RightSealBroadCounterexample where
 --   * Uses only existing coercion/narrowing infrastructure and adds no
 --     postulates.
 
-open import Agda.Builtin.Equality using (refl)
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥)
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here)
 open import Data.Nat using (z<s)
-open import Data.Product using (_,_; proj₂)
+open import Data.Product using (_,_; proj₁; proj₂)
+open import Relation.Binary.PropositionalEquality
+  using (cong; subst; sym; trans)
 
 open import Types
 open import Coercions
 open import NarrowWiden
 open import NarrowWidenComposition
+open import proof.CoercionProperties using (coercion-src-tgtᵐ)
 open import proof.NarrowWidenProperties
-  using (StoreDetWf; narrowing-var-to-older⊥)
+  using (StoreDetWf; castlike-var-var-endpoints; narrowing-var-to-older⊥)
 
 alpha0 : TyVar
 alpha0 = 0
@@ -100,3 +103,58 @@ right-seal-compose-source-var⊥
       (cast-seal hB α∈Σ seal-ok , sealⁿ B α)
       q⨟seal≈r) =
   narrowing-var-to-older⊥ wfΣ (StoreDetWf.wfOlder wfΣ α∈Σ) q⊒
+
+right-seal-compose-left-seal-factor⊥ :
+  ∀ {Δ σ q p r A B C D E F α β} →
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ p ∶ src q ⊒ ＇ α →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ seal A β ⨾ⁿ p ∶ E ⊒ F →
+  ⊥
+right-seal-compose-left-seal-factor⊥
+    {Δ = Δ} {σ = σ} {q = q} {p = p} {B = B}
+    {C = C} {D = D} {α = α} {β = β}
+    outer@(compose-leftⁿ wfΣ₀ q⊒ seal⊒
+      (endpointsⁿ src-u tgt-u src-p tgt-p
+        σ⊒ wfΣ₁ wfΣ₂ u⊒ p⊒outer))
+    pᶜ
+    (compose-rightⁿ wfΣ
+      (cast-seal hA β∈Σ seal-ok , sealⁿ A β)
+      p⊒
+      r≈seal⨟p) =
+  right-seal-compose-source-var⊥
+    (subst
+      (λ S → Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ p ∶ S ⊒ ＇ α)
+      src-q≡＇α
+      outer)
+  where
+    pᶜ-src : src p ≡ C
+    pᶜ-src = proj₁ (coercion-src-tgtᵐ (proj₁ pᶜ))
+
+    pᶜ-tgt : tgt p ≡ D
+    pᶜ-tgt = proj₂ (coercion-src-tgtᵐ (proj₁ pᶜ))
+
+    p-src-β : src p ≡ ＇ β
+    p-src-β = proj₁ (coercion-src-tgtᵐ (proj₁ p⊒))
+
+    pᶜ-var-src :
+      Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ ＇ β ⊒ D
+    pᶜ-var-src =
+      subst
+        (λ S → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ S ⊒ D)
+        (trans (sym pᶜ-src) p-src-β)
+        pᶜ
+
+    pᶜ-var :
+      Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ ＇ β ⊒ ＇ α
+    pᶜ-var =
+      subst
+        (λ T → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ ＇ β ⊒ T)
+        (trans (sym pᶜ-tgt) tgt-p)
+        pᶜ-var-src
+
+    β≡α : β ≡ α
+    β≡α = castlike-var-var-endpoints pᶜ-var
+
+    src-q≡＇α : src q ≡ ＇ α
+    src-q≡＇α =
+      trans (sym src-p) (trans p-src-β (cong ＇_ β≡α))

@@ -14,6 +14,7 @@
 
 module TermNarrowing where
 
+open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using (_∷_; map)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (∃-syntax)
@@ -29,7 +30,7 @@ variable
   Δ : TyCtx
   Σ : Store
   σ : StoreNrw
-  γ : CtxNrw
+  γ γ′ : CtxNrw
   A A′ B B′ C D : Ty
   p q r s t : Coercion
   M M′ N N′ L L′ V V′ : Term
@@ -108,18 +109,20 @@ data _∣_∣_⊢_⊒_∶_
     → Δ ∣ σ ∣ γ ⊢ N ⊒ V′ ⟨ gen A s ⟩ ∶ gen A p
 
   α⊒α : ∀ {L L′ p q A B C D}
+    → γ′ ≡ ⇑ᵍ γ
     → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ A ⊒ B
     → suc Δ ∣ srcStoreⁿ ((zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ) ⊢ p ∶ᶜ C ⊒ D
     → Δ ∣ σ ∣ γ ⊢ L ⊒ L′ ∶ `∀ p
       ------------------------------------------------
-    → suc Δ ∣ (zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+    → suc Δ ∣ (zero ꞉ ⇑ᶜ q) ∷ ⇑ˢ σ ∣ γ′
         ⊢ (⇑ᵗᵐ L) • ⊒ (⇑ᵗᵐ L′) • ∶ p
 
   ⊒α : ∀ {L L′ p A B C D}
+    → γ′ ≡ ⇑ᵍ γ
     → suc Δ ∣ srcStoreⁿ ((zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ) ⊢ p ∶ᶜ C ⊒ D
     → Δ ∣ σ ∣ γ ⊢ L ⊒ L′ ∶ gen B p
       -----------------------------------------------
-    → suc Δ ∣ (zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+    → suc Δ ∣ (zero ꞉= ⇑ᵗ A ⊒) ∷ ⇑ˢ σ ∣ γ′
         ⊢ ⇑ᵗᵐ L ⊒ (⇑ᵗᵐ L′) • ∶ p
 
   ν⊒ν : ∀ {A A′ B B′ N N′ p q}

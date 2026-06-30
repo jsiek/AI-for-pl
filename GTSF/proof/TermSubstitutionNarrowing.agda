@@ -196,10 +196,10 @@ term-parallel-substitution-narrowing-framed env frame
       (term-parallel-substitution-narrowing-framed
         env (frame-src⇑ frame) N⊒V′s))
 term-parallel-substitution-narrowing-framed env frame
-    (α⊒α qᶜ pαᶜ L⊒L′) =
+    (α⊒α γ′≡ qᶜ pαᶜ L⊒L′) =
   {!!}
 term-parallel-substitution-narrowing-framed env frame
-    (⊒α pαᶜ L⊒L′) =
+    (⊒α γ′≡ pαᶜ L⊒L′) =
   {!!}
 term-parallel-substitution-narrowing-framed env frame
     (ν⊒ν pᶜ qᶜ N⊒N′) =

@@ -716,6 +716,29 @@ The proof transports the cast-like typing of `p` to endpoints
 `＇ β ⊒ ＇ α`, applies `castlike-var-var-endpoints`, and then transports the
 outer right-seal composition to the impossible endpoint `＇ α ⊒ ＇ α`.
 
+Three other source-left inert shapes are impossible before using the outer
+right-seal premise, because `compose-rightⁿ` requires its left factor to be a
+narrowing:
+
+```agda
+compose-right-unseal-factor⊥ :
+  Δ ∣ σ ⊢ r ≈ unseal β A ⨾ⁿ p ∶ E ⊒ F →
+  ⊥
+
+compose-right-inst-factor⊥ :
+  Δ ∣ σ ⊢ r ≈ inst B c ⨾ⁿ p ∶ E ⊒ F →
+  ⊥
+
+compose-right-tag-factor⊥ :
+  Δ ∣ σ ⊢ r ≈ G ! ⨾ⁿ p ∶ E ⊒ F →
+  ⊥
+```
+
+These remove the `cast+⊒` branches with `t = unseal β A` and `t = inst B c`,
+and the `cast-⊒` branch with `t = G !`.  The remaining source-left branches
+are therefore the dynamically meaningful function, universal, ground untag,
+and generic `gen` cases, plus any endpoint-specific refinements of those.
+
 ### Counterexample search
 
 The known `right-seal-inversion₁` counterexample does not satisfy the exact DGG

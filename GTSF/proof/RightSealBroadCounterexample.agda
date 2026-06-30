@@ -158,3 +158,30 @@ right-seal-compose-left-seal-factor⊥
     src-q≡＇α : src q ≡ ＇ α
     src-q≡＇α =
       trans (sym src-p) (trans p-src-β (cong ＇_ β≡α))
+
+compose-right-unseal-factor⊥ :
+  ∀ {Δ σ r p A E F β} →
+  Δ ∣ σ ⊢ r ≈ unseal β A ⨾ⁿ p ∶ E ⊒ F →
+  ⊥
+compose-right-unseal-factor⊥
+    (compose-rightⁿ wfΣ
+      (cast-unseal hA β∈Σ seal-ok , cross ())
+      p⊒ r≈unseal⨟p)
+
+compose-right-inst-factor⊥ :
+  ∀ {Δ σ r p B c E F} →
+  Δ ∣ σ ⊢ r ≈ inst B c ⨾ⁿ p ∶ E ⊒ F →
+  ⊥
+compose-right-inst-factor⊥
+    (compose-rightⁿ wfΣ
+      (cast-inst hB occ c⊢ , cross ())
+      p⊒ r≈inst⨟p)
+
+compose-right-tag-factor⊥ :
+  ∀ {Δ σ r p G E F} →
+  Δ ∣ σ ⊢ r ≈ G ! ⨾ⁿ p ∶ E ⊒ F →
+  ⊥
+compose-right-tag-factor⊥
+    (compose-rightⁿ wfΣ
+      (cast-tag hG gG tag-ok , cross ())
+      p⊒ r≈tag⨟p)

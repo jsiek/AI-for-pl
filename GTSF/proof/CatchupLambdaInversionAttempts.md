@@ -4053,3 +4053,95 @@ checked way to use the real `cast-gen` occurrence premise without depending on
 the unfinished left-seal inversion file.  It should be useful for ruling out
 source-side cast branches that would force the legal `gen` body to open to an
 identity variable.
+
+## Attempt 113: add value evidence to the replay scratch goal
+
+Rejected as a direct proof, but it sharpened the remaining obstruction.
+
+I temporarily tested the exact no-earlier-bind replay statement with the extra
+facts that the real caller knows:
+
+`Value W`
+
+`Value V′`
+
+`No• W`
+
+from
+
+`suc (suc Δ) ∣
+  (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+  ⊢ W ⊒ ⇑ᵗᵐ V′ ∶ ⇑ᶜ p`
+
+to
+
+`suc (suc Δ) ∣
+  (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+  ⊢ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+    ⊒ renameᵗᵐ (extᵗ suc) V′
+    ∶ renameᶜ (extᵗ suc) p`.
+
+The goal is well-formed, but the value evidence does not collapse the proof to
+simple constructor replay.  The surviving top-level shapes still include the
+same hard cases:
+
+- `split`;
+- source-side casts, where composition needs mixed `raise0ᵗ`/`extᵗ suc`;
+- target-side casts;
+- recursive `⊒Λ` and `⊒⟨ν⟩` wrappers.
+
+So carrying `Value V′` into `catchup-⊒Λ-catchup` may still be useful, but it is
+not a standalone shortcut.  The temporary scratch module was deleted.
+
+## Attempt 114: wrap the source-first body through `ν⊒`
+
+Rejected as a postulate-trading route.
+
+The source-first body has exactly the premise shape of `ν⊒`.  Instantiating
+`ν⊒` with
+
+`σ₀ = (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ`
+
+would turn the source-first body
+
+`suc (suc Δ) ∣ (⊒ zero ꞉=☆) ∷ ⇑ˢ σ₀ ∣ []
+  ⊢ W ⊒ ⇑ᵗᵐ V′ ∶ ⇑ᶜ p`
+
+into a relation under the target-only store
+
+`suc Δ ∣ σ₀ ∣ [] ⊢ ν ★ W (⇑ᶜ p) ⊒ V′ ∶ p`.
+
+This explains the operational intuition: the source-only binder in the replay
+is the binder that a `ν ★ _` source would emit.  However, using this to finish
+the body would require catching up that `ν` source to the lowered value.  The
+available lemma for that is currently `catchup-ν⊒-catchup`, which is another
+existing postulate.  Relying on it would remove the false
+`shifted-source-catchup-Λ-inversion` call only by moving trust to a different
+unfinished catchup case.
+
+Conclusion: the `ν⊒` wrapping is useful explanatory structure, but it should
+not be the final proof unless `catchup-ν⊒-catchup` is proved first or the proof
+is refactored into a mutual recursion accepted by Agda.
+
+## Attempt 115: use `⊒Λ-body-split-marker-catchup` as the last-bind shortcut
+
+Rejected as insufficient.
+
+`⊒Λ-body-split-marker-catchup` is tempting because it already invokes the
+split-catchup machinery and returns a body under
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ σ`.
+
+But its source reduction conclusion is still rooted at the shifted source:
+
+`⇑ᵗᵐ N —↠[ χs′ ] W′`.
+
+The final `⊒Λ` catchup result needs a reduction from `N`, not from `⇑ᵗᵐ N`.
+Thus the helper can add the split marker to a shifted-source catchup result, but
+it does not solve the hard lowering step.  Applying it in the live last-bind
+branch would simply recreate the need for a shifted-source inversion after the
+split-marker work.
+
+Conclusion: this helper is not an alternative to the false inversion postulate.
+It may become useful after the shifted-source lowering is proved, but it cannot
+replace that proof.

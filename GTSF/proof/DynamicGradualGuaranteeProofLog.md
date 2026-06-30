@@ -155,9 +155,9 @@ Previous alignment issue from the staged typed-index PR:
 
 Ported DGG-facing support to the typed relation:
 
-- Added typed versions of the two derived two-sided cast rules in
-  `proof.TermNarrowingProperties`.  They preserve endpoint indices and require
-  explicit typing evidence for the intermediate coercion `r`.
+- Added typed two-sided cast rules directly to `TermNarrowing`.  They preserve
+  endpoint indices without requiring the intermediate coercion `r` to be a
+  canonical `∶ᶜ` index, which matters for seal-mode examples.
 - Added typed parallel substitution in `proof.TermSubstitutionNarrowing`,
   reusing the existing substitution frames.  The single-variable transport uses
   `coercion-endpoints-uniqueᵐ` to align the endpoint indices supplied by the
@@ -191,5 +191,22 @@ Implemented adjustment:
   narrowing.
 - Added `tgtStoreⁿ-⊒ˢ`; DGG uses it to transport target term typing from
   `tgtStoreⁿ σ` to the explicit `Σ′` carried by the theorem premise.
-- Tightened the derived typed cast rules so their final and intermediate
-  endpoint witnesses are explicit rather than left as fresh metas.
+- Tightened the example-facing typed cast surface so final endpoint witnesses
+  are explicit rather than left as fresh metas.
+
+## Raw term-narrowing retirement, 2026-06-30
+
+Implemented cleanup:
+
+- Ported `NarrowingExamples` to the typed relation and typed constructors.
+- Corrected the `·⊒·ᵗ` argument endpoint order to use `- p ⦂ A ⊒ A′`,
+  matching the source and target function domains.
+- Deleted the legacy raw term-narrowing data declaration from `TermNarrowing`.
+- Reduced `proof.TermNarrowingProperties` to a placeholder for future typed
+  structural lemmas; the two-sided cast rules are now canonical constructors.
+
+Current validation target:
+
+- `All.agda` passes with the raw relation deleted.  Historical proof
+  experiments and prose notes may still mention raw constructor names, but they
+  are outside the active aggregate checker.

@@ -41,8 +41,10 @@ module proof.LeftWidening where
 --     `No• V`.
 --     A lambda value can hide a runtime bullet in its body, so the reduction
 --     reaches a stuck non-value `ν ★ V c`.
---   * After main added the `No• V` premise, this particular counterexample is
---     blocked: `badPoly-no-No•` proves the bad value cannot satisfy it.
+--   * After main added the `RuntimeOK`/`No•` premises, this particular
+--     counterexample is blocked: `badPoly-no-No•` proves the bad value cannot
+--     satisfy the `No• V` premise, and `badPoly-no-RuntimeOK` proves the same
+--     term cannot arise from a `RuntimeOK` source at value shape.
 --   * The guarded sibling of that counterexample is positive:
 --     `left-widening-ex4-gen` follows the Example 4 `gen` branch through
 --     `β-inst`, `ν-step`, and `β-Λ•`.  The bookkeeping mismatch it exposed is
@@ -57,7 +59,7 @@ module proof.LeftWidening where
 --     store-narrowing renamer and mode-renamer premise.
 --     Current progress in that direction includes `renameStoreNrw`,
 --     `renameCtxNrw`, `rename-var`, `rename-blame`, `rename-ƛ`, `rename-·`,
---     and `rename-Λ`.
+--     `rename-Λ`, `rename-⊒Λ`, `rename-κ`, and `rename-⊕`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -354,6 +356,12 @@ badPoly-no-No• :
   ⊥
 badPoly-no-No• (no•-Λ (no•-ƛ ()))
 
+badPoly-no-RuntimeOK :
+  RuntimeOK badPoly →
+  ⊥
+badPoly-no-RuntimeOK (ok-no no-bullet) =
+  badPoly-no-No• no-bullet
+
 badInstCast-no-value :
   Value (badPoly ⟨ - gen (★ ⇒ ★) var0-fun ⟩) →
   ⊥
@@ -416,6 +424,12 @@ left-widening-counterexample-prevented :
   ⊥
 left-widening-counterexample-prevented =
   badPoly-no-No•
+
+left-widening-counterexample-prevented-runtime :
+  RuntimeOK badPoly →
+  ⊥
+left-widening-counterexample-prevented-runtime =
+  badPoly-no-RuntimeOK
 
 goodPoly : Term
 goodPoly = Λ (ƛ (` zero))

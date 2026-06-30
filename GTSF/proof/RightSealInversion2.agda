@@ -45,10 +45,10 @@ GeneralRightSealInversion2 =
 
 RightSealInversion2 : Set₁
 RightSealInversion2 =
-  ∀ {Δ σ M V q r A B C D α} →
+  ∀ {Δ σ M V q r A B C D E F α} →
   Value V →
   Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
-  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ A ⊒ ＇ α →
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ E ⊒ F →
   Δ ∣ σ ∣ [] ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
   ∃[ u ]
     (Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ u ∶ src q ⊒ ＇ α) ×
@@ -74,9 +74,9 @@ right-seal-inversion₂ : RightSealInversion2
 right-seal-inversion₂ = rightSealInversion2
 
 right-seal-inversion₂-cast-unseal⊥ :
-  ∀ {Δ σ q r A B C D α} →
+  ∀ {Δ σ q r B C D E F α} →
   Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
-  Δ ∣ σ ⊢ q ⨾ⁿ unseal α B ≈ r ∶ A ⊒ B →
+  Δ ∣ σ ⊢ q ⨾ⁿ unseal α B ≈ r ∶ E ⊒ F →
   ⊥
 right-seal-inversion₂-cast-unseal⊥ qᶜ
     (compose-leftⁿ wfΣ q⊒ (cast-unseal hB α∈Σ ok , cross ())

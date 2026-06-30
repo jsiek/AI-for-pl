@@ -578,6 +578,26 @@ applyCoercions-⇑ᶜ [] c = refl
 applyCoercions-⇑ᶜ (keep ∷ χs) c = applyCoercions-⇑ᶜ χs c
 applyCoercions-⇑ᶜ (bind A ∷ χs) c = applyCoercions-⇑ᶜ χs (⇑ᶜ c)
 
+applyCoercions-seal :
+  ∀ χs A α →
+  applyCoercions χs (seal A α) ≡
+    seal (applyTys χs A) (applyTyVars χs α)
+applyCoercions-seal [] A α = refl
+applyCoercions-seal (keep ∷ χs) A α =
+  applyCoercions-seal χs A α
+applyCoercions-seal (bind B ∷ χs) A α =
+  applyCoercions-seal χs (⇑ᵗ A) (suc α)
+
+applyCoercions-unseal :
+  ∀ χs α A →
+  applyCoercions χs (unseal α A) ≡
+    unseal (applyTyVars χs α) (applyTys χs A)
+applyCoercions-unseal [] α A = refl
+applyCoercions-unseal (keep ∷ χs) α A =
+  applyCoercions-unseal χs α A
+applyCoercions-unseal (bind B ∷ χs) α A =
+  applyCoercions-unseal χs (suc α) (⇑ᵗ A)
+
 applyCoercion-preserves-Inert :
   ∀ χ {c} →
   Inert c →
@@ -730,6 +750,24 @@ applyTerms-cast-dual :
 applyTerms-cast-dual χs M c =
   trans (applyTerms-cast χs M (- c))
     (cong (λ d → applyTerms χs M ⟨ d ⟩) (applyCoercions-dual χs c))
+
+applyTerms-cast-seal :
+  ∀ χs M A α →
+  applyTerms χs (M ⟨ seal A α ⟩) ≡
+    applyTerms χs M ⟨ seal (applyTys χs A) (applyTyVars χs α) ⟩
+applyTerms-cast-seal χs M A α =
+  trans (applyTerms-cast χs M (seal A α))
+    (cong (λ c → applyTerms χs M ⟨ c ⟩)
+      (applyCoercions-seal χs A α))
+
+applyTerms-cast-unseal :
+  ∀ χs M α A →
+  applyTerms χs (M ⟨ unseal α A ⟩) ≡
+    applyTerms χs M ⟨ unseal (applyTyVars χs α) (applyTys χs A) ⟩
+applyTerms-cast-unseal χs M α A =
+  trans (applyTerms-cast χs M (unseal α A))
+    (cong (λ c → applyTerms χs M ⟨ c ⟩)
+      (applyCoercions-unseal χs α A))
 
 ------------------------------------------------------------------------
 -- Multi-step reduction

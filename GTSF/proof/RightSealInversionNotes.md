@@ -435,6 +435,178 @@ a genuinely dynamic helper that lets source-left casts take their own source
 steps, probably using the existing value-level `left-widening-lemma` and
 `left-narrowing-lemma`, rather than trying to prove a zero-step strip theorem.
 
+### Attempt 7. Value-restricted right-seal continuation
+
+The next scratch theorem restricted the strip to source values:
+
+```agda
+rightSealValueStrip :
+  Value W →
+  Value V →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ E ⊒ F →
+  Δ ∣ σ ∣ [] ⊢ W ⊒ V ⟨ seal A α ⟩ ∶ r →
+  ∃[ p ] Δ ∣ σ ∣ [] ⊢ W ⊒ V ∶ p
+```
+
+This restriction is meaningful: the checked
+`proof.RightSealFactorCounterexample` uses a source-left `cast+⊒` whose source
+cast is `- seal`, i.e. `unseal`, so the source term is not a value.  The
+value-restricted theorem therefore avoids that exact counterexample.
+
+The equality-indexed scratch version closed these cases:
+
+- all target-shape contradictions (`⊒blame`, variables, lambdas, applications,
+  `Λ`, `⊒Λ`, `⊒⟨ν⟩`, `⊒α`, `⊒ν`, constants, and primitive operations);
+- right `⊒cast+`: cast-term injectivity gives the premise target `V`, so the
+  premise relation is the witness;
+- right `⊒cast-`: the same cast-term injectivity argument gives the premise
+  relation.
+
+The remaining value-restricted goals are:
+
+```agda
+extend
+split
+ν⊒
+cast+⊒
+cast-⊒
+```
+
+This is a better target than the original zero-step strip, but it still does
+not directly fill the DGG hole after a `catchup-lemma` call.  Catchup relates
+the source value to `applyTerms χs (V ⟨ seal A α ⟩)`, so the continuation must
+be stated over the renamed target value and transported through the emitted
+store prefix.  The likely DGG-shaped helper has final right side
+`applyTerms χs V`:
+
+```agda
+right-seal-unseal-catchup :
+  RuntimeOK M →
+  Value V →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ E ⊒ F →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
+  ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ p′ ]
+    (M —↠[ χs ] N) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ N ⊒ applyTerms χs V ∶ p′
+```
+
+The literal `dynamicGradualGuarantee` conclusion currently wants bare `V`, so
+after this helper there is still a global target-transport issue unless the
+helper can prove that the emitted source changes leave `V` unchanged in the
+needed cases.
+
+A dynamic scratch probe confirmed this mismatch mechanically: after
+`catchup-lemma okM (vV ⟨ seal A α ⟩) M⊒Vseal`, the available relation is to
+the sealed target, not to `V`; attempting to finish the branch with a reflexive
+placeholder fails at exactly the required term-narrowing derivation
+`W ⊒ V`.
+
+As a small checked algebraic step toward the renamed continuation,
+`proof.ReductionProperties` now proves
+
+```agda
+applyCoercions-seal :
+  ∀ χs A α →
+  applyCoercions χs (seal A α) ≡
+    seal (applyTys χs A) (applyTyVars χs α)
+
+applyCoercions-unseal :
+  ∀ χs α A →
+  applyCoercions χs (unseal α A) ≡
+    unseal (applyTyVars χs α) (applyTys χs A)
+
+applyTerms-cast-seal :
+  ∀ χs M A α →
+  applyTerms χs (M ⟨ seal A α ⟩) ≡
+    applyTerms χs M ⟨ seal (applyTys χs A) (applyTyVars χs α) ⟩
+
+applyTerms-cast-unseal :
+  ∀ χs M α A →
+  applyTerms χs (M ⟨ unseal α A ⟩) ≡
+    applyTerms χs M ⟨ unseal (applyTyVars χs α) (applyTys χs A) ⟩
+```
+
+These lemmas remove the coercion-shape ambiguity after rewriting the
+store-changed sealed or unsealed target term.
+
+### Attempt 8. Refine the value-source strip by source cast shape
+
+A follow-up scratch proof tightened Attempt 7 by pattern matching on the source
+`Value` evidence.  This closed the `ν⊒` branch: its source is syntactically
+`ν ★ N (⇑ᶜ p)`, and `ν` is not a `Value` constructor.  The ordinary right-cast
+branches remained as before:
+
+- right `⊒cast+` is either syntactically impossible or, for the hidden
+  `unseal`, contradictory by `right-seal-inversion₂-cast-unseal⊥`;
+- right `⊒cast-` strips directly to its premise relation.
+
+After splitting source-left casts against `Inert`, the only remaining
+source-left shapes are the ones whose visible source cast can be a value:
+
+```agda
+cast+⊒ with t = c ↦ d
+cast+⊒ with t = `∀ c
+cast+⊒ with t = G ？
+cast+⊒ with t = unseal β A
+cast+⊒ with t = inst B c
+
+cast-⊒ with t = c ↦ d
+cast-⊒ with t = `∀ c
+cast-⊒ with t = G !
+cast-⊒ with t = seal A β
+cast-⊒ with t = gen B c
+```
+
+So the value-source strip is not blocked by arbitrary source-left casts; it is
+blocked by exactly the inert cast forms.  These are also exactly the forms that
+would require either typed endpoint contradictions or a dynamic move via
+`left-widening-lemma`/`left-narrowing-lemma`.
+
+The typed composition code points at the likely algebraic boundary.  In
+`_⨟ⁿ_`, composing any narrowing on the right with a seal goes through
+`wrap-sealⁿ`, yielding either a literal `seal A α` or a strict narrowing
+followed by `︔ seal A α`.  A useful next algebraic lemma would expose this
+trailing-seal shape for the computed composite in `compose-leftⁿ`; the existing
+raw coercion lemma `⨟-sealʳ` is the untyped analogue.
+
+A read-only algebra pass narrowed the source-left obligations further.  The
+existing library already has the endpoint facts that most of these branches
+need:
+
+```agda
+narrowing-cross-var-source-target
+widening-cross-var-target-source
+narrowing-target-star-source-star
+widening-source-star-target-star
+narrowing-var-to-star⊥
+widening-star-to-var⊥
+narrowing-cross-ground-target-seal-var⊥
+widening-cross-ground-source-seal-var⊥
+```
+
+The expected reusable corollary is not just a raw syntax fact.  It must combine
+the endpoint stores from `endpointsⁿ`, `srcStoreⁿ-⊒ˢ`/`tgtStoreⁿ-⊒ˢ`, and mode
+conflicts such as `tag-or-id-seal-conflict`.  An over-broad first statement
+
+```agda
+right-seal-compose-castlike-result⊥ :
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ p ∶ src q ⊒ ＇ α →
+  ⊥
+```
+
+was accepted as a scratch goal but not proved directly; its proof needs to
+expose the `endpointsⁿ` stores and compare the cast-like typing of `p` with
+the right-seal composite typing in the correct endpoint store.  This is the
+next concrete algebraic lemma to mechanize before returning to the DGG branch.
+
 ### Counterexample search
 
 The known `right-seal-inversion₁` counterexample does not satisfy the exact DGG

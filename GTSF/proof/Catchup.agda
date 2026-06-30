@@ -193,7 +193,7 @@ postulate
     No• V →
     Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
     Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
-    Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
+    Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p ⦂ C ⊒ D →
     ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
       Value W ×
       No• W ×
@@ -204,6 +204,7 @@ postulate
       Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
       Δ′ ∣ combineStoreNrw π σ ∣ []
         ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+          ⦂ applyTys χs A ⊒ applyTys χs B
 
   -- cambridge25 "Left Narrowing Lemma", likewise value-level, with the same
   -- emitted-context bookkeeping.
@@ -213,7 +214,7 @@ postulate
     No• V →
     Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
     Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
-    Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ r →
+    Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ r ⦂ A ⊒ B →
     ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
       Value W ×
       No• W ×
@@ -224,6 +225,7 @@ postulate
       Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
       Δ′ ∣ combineStoreNrw π σ ∣ []
         ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p
+          ⦂ applyTys χs C ⊒ applyTys χs D
 
   -- [New] Shifted-source catchup inversion for the `⊒Λ` case.
   --
@@ -236,7 +238,7 @@ postulate
   -- terms/coercions with the under-binder `applyTerms`/`applyCoercions`
   -- lemmas before rebuilding `⊒Λ`.
   shifted-source-catchup-Λ-inversion :
-    ∀ {Δ σ χs W Δ′ Π Π′ π N V′ p} →
+    ∀ {Δ σ χs W Δ′ Π Π′ π N V′ p A B} →
     Value W →
     (⇑ᵗᵐ N —↠[ χs ] W) →
     Δ′ ≡ applyTyCtxs χs (suc Δ) →
@@ -244,7 +246,8 @@ postulate
     Π′ ≡ [] →
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
     Δ′ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
-      ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p →
+      ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p
+        ⦂ applyTys χs (⇑ᵗ A) ⊒ applyTys χs B →
     ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
       Value W′ ×
       No• W′ ×
@@ -256,6 +259,7 @@ postulate
       suc Δ″ ∣ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (combineStoreNrw π′ σ) ∣ []
         ⊢ ⇑ᵗᵐ W′ ⊒ applyTermsUnderTyBinders χs′ V′
           ∶ applyCoercionUnderTyBinders χs′ p
+            ⦂ ⇑ᵗ (applyTys χs′ A) ⊒ applyTysUnderTyBinders χs′ B
 
   -- [New] Same shifted-source catchup inversion for the `⊒⟨ν⟩` wrapper,
   -- where the target value remains outside the generated cast in the final
@@ -264,7 +268,7 @@ postulate
   -- rebuild differs, using `⊒⟨ν⟩` and inertness preservation for the
   -- under-binder coercion action.
   shifted-source-catchup-⟨ν⟩-inversion :
-    ∀ {Δ σ χs W Δ′ Π Π′ π N V′ p s} →
+    ∀ {Δ σ χs W Δ′ Π Π′ π N V′ p s A B} →
     Value W →
     (⇑ᵗᵐ N —↠[ χs ] W) →
     Δ′ ≡ applyTyCtxs χs (suc Δ) →
@@ -272,7 +276,8 @@ postulate
     Π′ ≡ [] →
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
     Δ′ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
-      ⊢ W ⊒ applyTerms χs (V′ ⟨ s ⟩) ∶ applyCoercions χs p →
+      ⊢ W ⊒ applyTerms χs (V′ ⟨ s ⟩) ∶ applyCoercions χs p
+        ⦂ applyTys χs (⇑ᵗ A) ⊒ applyTys χs B →
     ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
       Value W′ ×
       No• W′ ×
@@ -285,6 +290,7 @@ postulate
         ⊢ ⇑ᵗᵐ W′
           ⊒ applyTerms χs′ V′ ⟨ applyCoercionUnderTyBinders χs′ s ⟩
           ∶ applyCoercionUnderTyBinders χs′ p
+            ⦂ ⇑ᵗ (applyTys χs′ A) ⊒ applyTysUnderTyBinders χs′ B
 
 -- A mode-polymorphic version of this transport was tried first, but the final
 -- catchup proof only needs coercions in `tag-or-idᵈ`; keeping the generic mode
@@ -1209,6 +1215,307 @@ extendReplaceRel-term (replace-both {q = qh} rel)
     (extendReplaceRel-term (replace-both {q = qh} rel) M⊒M′)
 extendReplaceRel-term (replace-both {q = qh} rel) M⊒T = {!!}
 
+extend-replace-here-typed-term :
+  ∀ {Δ α q A B σ γ M T c C D} →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ B ⊒ A →
+  Δ ∣ srcStoreⁿ ((α ꞉ q) ∷ σ) ⊢ c ∶ᶜ C ⊒ D →
+  Δ ∣ (α ꞉= A ⊒) ∷ σ ∣ γ ⊢ M ⊒ T ∶ c ⦂ C ⊒ D →
+  Δ ∣ (α ꞉ q) ∷ σ ∣ γ ⊢ M ⊒ T ∶ c ⦂ C ⊒ D
+extend-replace-here-typed-term {α = α} {q = q} {A = A} {σ = σ}
+    {γ = γ} {M = M} {T = T} {c = c} {C = C} {D = D}
+    qᶜ cᶜ M⊒T =
+  let
+    T≡ = open-shiftᵐ α T
+    c≡ = open-shiftᶜ α c
+    cᶜ′ =
+      subst
+        (λ c₀ → _ ∣ srcStoreⁿ ((α ꞉ q) ∷ σ)
+          ⊢ c₀ ∶ᶜ C ⊒ D)
+        (sym c≡)
+        cᶜ
+    premise =
+      subst
+        (λ c₀ → _ ∣ (α ꞉= A ⊒) ∷ σ ∣ γ
+          ⊢ M ⊒ (⇑ᵗᵐ T) [ α ]ᵀ ∶ c₀ ⦂ C ⊒ D)
+        (sym c≡)
+        (subst
+          (λ T₀ → _ ∣ (α ꞉= A ⊒) ∷ σ ∣ γ
+            ⊢ M ⊒ T₀ ∶ c ⦂ C ⊒ D)
+          (sym T≡)
+          M⊒T)
+    rebuilt = extendᵗ qᶜ cᶜ′ premise
+  in
+  subst
+    (λ T₀ → _ ∣ (α ꞉ q) ∷ σ ∣ γ
+      ⊢ M ⊒ T₀ ∶ c ⦂ C ⊒ D)
+    T≡
+    (subst
+      (λ c₀ → _ ∣ (α ꞉ q) ∷ σ ∣ γ
+        ⊢ M ⊒ (⇑ᵗᵐ T) [ α ]ᵀ ∶ c₀ ⦂ C ⊒ D)
+      c≡
+      rebuilt)
+
+extend-replace-here-typed-current :
+  ∀ {Δ α q A B σ γ M T c C D} →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ B ⊒ A →
+  Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ σ) ⊢ c ∶ᶜ C ⊒ D →
+  Δ ∣ (α ꞉= A ⊒) ∷ σ ∣ γ ⊢ M ⊒ T ∶ c ⦂ C ⊒ D →
+  Δ ∣ (α ꞉ q) ∷ σ ∣ γ ⊢ M ⊒ T ∶ c ⦂ C ⊒ D
+extend-replace-here-typed-current qᶜ cᶜ =
+  extend-replace-here-typed-term qᶜ
+    (narrow-weaken ≤-refl StoreIncl-drop cᶜ)
+
+extendReplaceRel-typed-term :
+  ∀ {Δ σ σ′ γ M T c A B} →
+  ExtendReplaceRel Δ σ σ′ →
+  Δ ∣ σ ∣ γ ⊢ M ⊒ T ∶ c ⦂ A ⊒ B →
+  Δ ∣ σ′ ∣ γ ⊢ M ⊒ T ∶ c ⦂ A ⊒ B
+extendReplaceRel-typed-term (replace-here qᶜ)
+    (splitᵗ q₀ᶜ pαᶜ M⊒T) =
+  extend-replace-here-typed-current qᶜ pαᶜ
+    (splitᵗ q₀ᶜ pαᶜ M⊒T)
+extendReplaceRel-typed-term (replace-here qᶜ) (⊒blameᵗ pᶜ) =
+  extend-replace-here-typed-current qᶜ pᶜ (⊒blameᵗ pᶜ)
+extendReplaceRel-typed-term (replace-here qᶜ) (x⊒xᵗ pᶜ x∋p) =
+  extend-replace-here-typed-current qᶜ pᶜ (x⊒xᵗ pᶜ x∋p)
+extendReplaceRel-typed-term (replace-here qᶜ) (ƛ⊒ƛᵗ p↦qᶜ N⊒N′) =
+  extend-replace-here-typed-current qᶜ p↦qᶜ (ƛ⊒ƛᵗ p↦qᶜ N⊒N′)
+extendReplaceRel-typed-term (replace-here qᶜ)
+    (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′) =
+  extend-replace-here-typed-current qᶜ (fun-narrow-codomainᶜ p↦qᶜ)
+    (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′)
+extendReplaceRel-typed-term (replace-here qᶜ)
+    (Λ⊒Λᵗ allᶜ vV V⊒V′) =
+  extend-replace-here-typed-current qᶜ allᶜ (Λ⊒Λᵗ allᶜ vV V⊒V′)
+extendReplaceRel-typed-term (replace-here qᶜ) (⊒Λᵗ pᶜ N⊒V′) =
+  extend-replace-here-typed-current qᶜ pᶜ (⊒Λᵗ pᶜ N⊒V′)
+extendReplaceRel-typed-term (replace-here qᶜ)
+    (⊒⟨ν⟩ᵗ pᶜ i N⊒V′s) =
+  extend-replace-here-typed-current qᶜ pᶜ (⊒⟨ν⟩ᵗ pᶜ i N⊒V′s)
+extendReplaceRel-typed-term (replace-here qᶜ)
+    (⊒αᵗ γ′≡ pαᶜ L⊒L′) =
+  extend-replace-here-typed-current qᶜ pαᶜ
+    (⊒αᵗ γ′≡ pαᶜ L⊒L′)
+extendReplaceRel-typed-term (replace-here qᶜ)
+    (ν⊒νᵗ pᶜ q₀ᶜ N⊒N′) =
+  extend-replace-here-typed-current qᶜ pᶜ (ν⊒νᵗ pᶜ q₀ᶜ N⊒N′)
+extendReplaceRel-typed-term (replace-here qᶜ) (⊒νᵗ pᶜ N⊒N′) =
+  extend-replace-here-typed-current qᶜ pᶜ (⊒νᵗ pᶜ N⊒N′)
+extendReplaceRel-typed-term (replace-here qᶜ) (ν⊒ᵗ pᶜ N⊒N′) =
+  extend-replace-here-typed-current qᶜ pᶜ (ν⊒ᵗ pᶜ N⊒N′)
+extendReplaceRel-typed-term (replace-here qᶜ) (κ⊒κᵗ κ) =
+  extend-replace-here-typed-current qᶜ (id-constᶜ κ) (κ⊒κᵗ κ)
+extendReplaceRel-typed-term (replace-here qᶜ)
+    (⊕⊒⊕ᵗ M⊒M′ N⊒N′) =
+  extend-replace-here-typed-current qᶜ id-ℕᶜ
+    (⊕⊒⊕ᵗ M⊒M′ N⊒N′)
+extendReplaceRel-typed-term (replace-here qᶜ)
+    (⊒cast+ᵗ q₀ᶜ q⨟s≈r M⊒M′) =
+  extend-replace-here-typed-current qᶜ q₀ᶜ
+    (⊒cast+ᵗ q₀ᶜ q⨟s≈r M⊒M′)
+extendReplaceRel-typed-term (replace-here qᶜ)
+    (⊒cast-ᵗ q₀ᶜ rᶜ q⨟s≈r M⊒M′) =
+  ⊒cast-ᵗ
+    (narrow-weaken ≤-refl StoreIncl-drop q₀ᶜ)
+    (narrow-weaken ≤-refl StoreIncl-drop rᶜ)
+    (extendReplaceRel-compose-left (replace-here qᶜ) q⨟s≈r)
+    (extendReplaceRel-typed-term (replace-here qᶜ) M⊒M′)
+extendReplaceRel-typed-term (replace-here qᶜ)
+    (cast+⊒ᵗ pᶜ rᶜ r≈t⨟p M⊒M′) =
+  cast+⊒ᵗ
+    (narrow-weaken ≤-refl StoreIncl-drop pᶜ)
+    (narrow-weaken ≤-refl StoreIncl-drop rᶜ)
+    (extendReplaceRel-compose-right (replace-here qᶜ) r≈t⨟p)
+    (extendReplaceRel-typed-term (replace-here qᶜ) M⊒M′)
+extendReplaceRel-typed-term (replace-here qᶜ)
+    (cast-⊒ᵗ pᶜ r≈t⨟p M⊒M′) =
+  extend-replace-here-typed-current qᶜ pᶜ
+    (cast-⊒ᵗ pᶜ r≈t⨟p M⊒M′)
+extendReplaceRel-typed-term (replace-right rel) M⊒T = {!!}
+extendReplaceRel-typed-term (replace-left rel) (⊒blameᵗ pᶜ) =
+  ⊒blameᵗ (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ)
+extendReplaceRel-typed-term (replace-left rel) (x⊒xᵗ pᶜ x∋p) =
+  x⊒xᵗ (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ) x∋p
+extendReplaceRel-typed-term (replace-left rel) (ƛ⊒ƛᵗ p↦qᶜ N⊒N′) =
+  ƛ⊒ƛᵗ (extendReplaceRel-coercionᶜ (replace-left rel) p↦qᶜ)
+    (extendReplaceRel-typed-term (replace-left rel) N⊒N′)
+extendReplaceRel-typed-term (replace-left rel)
+    (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′) =
+  ·⊒·ᵗ
+    (extendReplaceRel-coercionᶜ (replace-left rel) p↦qᶜ)
+    (extendReplaceRel-typed-term (replace-left rel) L⊒L′)
+    (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
+extendReplaceRel-typed-term (replace-left rel) (Λ⊒Λᵗ allᶜ vV V⊒V′) =
+  Λ⊒Λᵗ (extendReplaceRel-coercionᶜ (replace-left rel) allᶜ) vV
+    (extendReplaceRel-typed-term (replace-left (extendReplaceRel-⇑ˢ rel))
+      V⊒V′)
+extendReplaceRel-typed-term (replace-left rel) (⊒Λᵗ pᶜ N⊒V′) =
+  ⊒Λᵗ (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ)
+    (extendReplaceRel-typed-term
+      (replace-right (replace-left (extendReplaceRel-⇑ˢ rel)))
+      N⊒V′)
+extendReplaceRel-typed-term (replace-left rel)
+    (⊒⟨ν⟩ᵗ pᶜ i N⊒V′s) =
+  ⊒⟨ν⟩ᵗ (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ) i
+    (extendReplaceRel-typed-term
+      (replace-right (replace-left (extendReplaceRel-⇑ˢ rel)))
+      N⊒V′s)
+extendReplaceRel-typed-term (replace-left rel)
+    (ν⊒νᵗ {q = q} pᶜ qᶜ N⊒N′) =
+  ν⊒νᵗ
+    (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ)
+    (extendReplaceRel-coercionᶜ (replace-left rel) qᶜ)
+    (extendReplaceRel-typed-term
+      (replace-both {q = ⇑ᶜ q}
+        (replace-left (extendReplaceRel-⇑ˢ rel)))
+      N⊒N′)
+extendReplaceRel-typed-term (replace-left rel) (⊒νᵗ pᶜ N⊒N′) =
+  ⊒νᵗ (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ)
+    (extendReplaceRel-typed-term
+      (replace-right (replace-left (extendReplaceRel-⇑ˢ rel)))
+      N⊒N′)
+extendReplaceRel-typed-term (replace-left rel) (ν⊒ᵗ pᶜ N⊒N′) =
+  ν⊒ᵗ (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ)
+    (extendReplaceRel-typed-term
+      (replace-left (replace-left (extendReplaceRel-⇑ˢ rel)))
+      N⊒N′)
+extendReplaceRel-typed-term (replace-left rel) (κ⊒κᵗ κ) = κ⊒κᵗ κ
+extendReplaceRel-typed-term (replace-left rel)
+    (⊕⊒⊕ᵗ M⊒M′ N⊒N′) =
+  ⊕⊒⊕ᵗ
+    (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
+    (extendReplaceRel-typed-term (replace-left rel) N⊒N′)
+extendReplaceRel-typed-term (replace-left rel)
+    (⊒cast+ᵗ qᶜ q⨟s≈r M⊒M′) =
+  ⊒cast+ᵗ
+    (extendReplaceRel-coercionᶜ (replace-left rel) qᶜ)
+    (extendReplaceRel-compose-left (replace-left rel) q⨟s≈r)
+    (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
+extendReplaceRel-typed-term (replace-left rel)
+    (⊒cast-ᵗ qᶜ rᶜ q⨟s≈r M⊒M′) =
+  ⊒cast-ᵗ
+    (extendReplaceRel-coercionᶜ (replace-left rel) qᶜ)
+    (extendReplaceRel-coercionᶜ (replace-left rel) rᶜ)
+    (extendReplaceRel-compose-left (replace-left rel) q⨟s≈r)
+    (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
+extendReplaceRel-typed-term (replace-left rel)
+    (cast+⊒ᵗ pᶜ rᶜ r≈t⨟p M⊒M′) =
+  cast+⊒ᵗ
+    (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ)
+    (extendReplaceRel-coercionᶜ (replace-left rel) rᶜ)
+    (extendReplaceRel-compose-right (replace-left rel) r≈t⨟p)
+    (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
+extendReplaceRel-typed-term (replace-left rel)
+    (cast-⊒ᵗ pᶜ r≈t⨟p M⊒M′) =
+  cast-⊒ᵗ
+    (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ)
+    (extendReplaceRel-compose-right (replace-left rel) r≈t⨟p)
+    (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (extendᵗ qᶜ pαᶜ M⊒T) =
+  extendᵗ
+    (extendReplaceRel-coercionᶜ rel qᶜ)
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pαᶜ)
+    (extendReplaceRel-typed-term (replace-right rel) M⊒T)
+extendReplaceRel-typed-term (replace-both {q = qh} rel) (⊒blameᵗ pᶜ) =
+  ⊒blameᵗ
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (x⊒xᵗ pᶜ x∋p) =
+  x⊒xᵗ
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
+    x∋p
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (ƛ⊒ƛᵗ p↦qᶜ N⊒N′) =
+  ƛ⊒ƛᵗ
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) p↦qᶜ)
+    (extendReplaceRel-typed-term (replace-both {q = qh} rel) N⊒N′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′) =
+  ·⊒·ᵗ
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) p↦qᶜ)
+    (extendReplaceRel-typed-term (replace-both {q = qh} rel) L⊒L′)
+    (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (Λ⊒Λᵗ allᶜ vV V⊒V′) =
+  Λ⊒Λᵗ
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) allᶜ) vV
+    (extendReplaceRel-typed-term
+      (replace-both {q = ⇑ᶜ qh} (extendReplaceRel-⇑ˢ rel))
+      V⊒V′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (⊒Λᵗ pᶜ N⊒V′) =
+  ⊒Λᵗ (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
+    (extendReplaceRel-typed-term
+      (replace-right
+        (replace-both {q = ⇑ᶜ qh} (extendReplaceRel-⇑ˢ rel)))
+      N⊒V′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (⊒⟨ν⟩ᵗ pᶜ i N⊒V′s) =
+  ⊒⟨ν⟩ᵗ
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ) i
+    (extendReplaceRel-typed-term
+      (replace-right
+        (replace-both {q = ⇑ᶜ qh} (extendReplaceRel-⇑ˢ rel)))
+      N⊒V′s)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (ν⊒νᵗ {q = q} pᶜ qᶜ N⊒N′) =
+  ν⊒νᵗ
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) qᶜ)
+    (extendReplaceRel-typed-term
+      (replace-both {q = ⇑ᶜ q}
+        (replace-both {q = ⇑ᶜ qh} (extendReplaceRel-⇑ˢ rel)))
+      N⊒N′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (⊒νᵗ pᶜ N⊒N′) =
+  ⊒νᵗ (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
+    (extendReplaceRel-typed-term
+      (replace-right
+        (replace-both {q = ⇑ᶜ qh} (extendReplaceRel-⇑ˢ rel)))
+      N⊒N′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (ν⊒ᵗ pᶜ N⊒N′) =
+  ν⊒ᵗ (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
+    (extendReplaceRel-typed-term
+      (replace-left
+        (replace-both {q = ⇑ᶜ qh} (extendReplaceRel-⇑ˢ rel)))
+      N⊒N′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel) (κ⊒κᵗ κ) =
+  κ⊒κᵗ κ
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (⊕⊒⊕ᵗ M⊒M′ N⊒N′) =
+  ⊕⊒⊕ᵗ
+    (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
+    (extendReplaceRel-typed-term (replace-both {q = qh} rel) N⊒N′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (⊒cast+ᵗ qᶜ q⨟s≈r M⊒M′) =
+  ⊒cast+ᵗ
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) qᶜ)
+    (extendReplaceRel-compose-left (replace-both {q = qh} rel) q⨟s≈r)
+    (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (⊒cast-ᵗ qᶜ rᶜ q⨟s≈r M⊒M′) =
+  ⊒cast-ᵗ
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) qᶜ)
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) rᶜ)
+    (extendReplaceRel-compose-left (replace-both {q = qh} rel) q⨟s≈r)
+    (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (cast+⊒ᵗ pᶜ rᶜ r≈t⨟p M⊒M′) =
+  cast+⊒ᵗ
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) rᶜ)
+    (extendReplaceRel-compose-right (replace-both {q = qh} rel) r≈t⨟p)
+    (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel)
+    (cast-⊒ᵗ pᶜ r≈t⨟p M⊒M′) =
+  cast-⊒ᵗ
+    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
+    (extendReplaceRel-compose-right (replace-both {q = qh} rel) r≈t⨟p)
+    (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
+extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒T = {!!}
+
 catchup-extend-rel-shifted :
   ∀ n {Δ Δ′ σ π Π Π′ χs α q A B} →
   Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ B ⊒ A →
@@ -1295,12 +1602,15 @@ catchup-extend-transport :
   Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
   Δ′ ∣ combineStoreNrw π ((α ꞉= A ⊒) ∷ σ) ∣ []
     ⊢ W ⊒ applyTerms χs (N′ [ α ]ᵀ)
-      ∶ applyCoercions χs (p [ α ]ᶜ) →
+      ∶ applyCoercions χs (p [ α ]ᶜ)
+        ⦂ applyTys χs C ⊒ applyTys χs D →
   Δ′ ∣ combineStoreNrw π ((α ꞉ q) ∷ σ) ∣ []
     ⊢ W ⊒ applyTerms χs (N′ [ α ]ᵀ)
       ∶ applyCoercions χs (p [ α ]ᶜ)
-catchup-extend-transport {χs = χs} qᶜ pαᶜ Δ′≡ Π≡ Π′≡ π⊒ W⊒V =
-  extendReplaceRel-term
+        ⦂ applyTys χs C ⊒ applyTys χs D
+catchup-extend-transport {χs = χs}
+    qᶜ pαᶜ Δ′≡ Π≡ Π′≡ π⊒ W⊒V =
+  extendReplaceRel-typed-term
     (catchup-extend-rel-shifted zero {χs = χs}
       qᶜ Δ′≡ Π≡ Π′≡ π⊒)
     W⊒V
@@ -1335,7 +1645,8 @@ postulate
       ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D →
     Δ′ ∣ combineStoreNrw π ((α ꞉ q) ∷ σ) ∣ []
       ⊢ W ⊒ applyTerms χs (N′ [ α ]ᵀ)
-        ∶ applyCoercions χs (p [ α ]ᶜ) →
+        ∶ applyCoercions χs (p [ α ]ᶜ)
+          ⦂ applyTys χs C ⊒ applyTys χs D →
     ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
       Value W′ ×
       No• W′ ×
@@ -1348,6 +1659,7 @@ postulate
         ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ) ∣ []
         ⊢ W′ ⊒ applyTerms χs′ (N′ [ α ]ᵀ)
           ∶ applyCoercions χs′ (p [ α ]ᶜ)
+            ⦂ applyTys χs′ C ⊒ applyTys χs′ D
 
 catchup-⊒Λ-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p} →
@@ -1360,7 +1672,8 @@ catchup-⊒Λ-catchup :
   Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
   Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
   Δ′ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
-    ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p →
+    ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs p
+      ⦂ applyTys χs (⇑ᵗ A) ⊒ applyTys χs B →
   ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
     Value W′ ×
     No• W′ ×
@@ -1372,6 +1685,7 @@ catchup-⊒Λ-catchup :
     Δ″ ∣ combineStoreNrw π′ σ ∣ []
       ⊢ W′ ⊒ applyTerms χs′ (Λ V′)
         ∶ applyCoercions χs′ (gen A p)
+          ⦂ applyTys χs′ A ⊒ applyTys χs′ (`∀ B)
 catchup-⊒Λ-catchup {σ = σ} {A = A} {B = B} {V′ = V′} {p = p}
     vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
     with shifted-source-catchup-Λ-inversion
@@ -1385,7 +1699,7 @@ catchup-⊒Λ-catchup {σ = σ} {A = A} {B = B} {V′ = V′} {p = p}
       catchup-gen-coercion-typing-transport
         {σ = σ} {π = π′} {χs = χs′} {p = p} {A = A} {B = B}
         pᶜ Δ″≡ Π″≡ Π″′≡ π′⊒
-    rebuilt = ⊒Λ pᶜ′ body
+    rebuilt = ⊒Λᵗ pᶜ′ body
     target≡ = applyTerms-Λ χs′ V′
     coercion≡ = applyCoercions-gen χs′ A p
   in
@@ -1399,14 +1713,23 @@ catchup-⊒Λ-catchup {σ = σ} {A = A} {B = B} {V′ = V′} {p = p}
   π′⊒ ,
   subst
     (λ c → Δ″ ∣ combineStoreNrw π′ σ ∣ []
-      ⊢ W′ ⊒ applyTerms χs′ (Λ V′) ∶ c)
+      ⊢ W′ ⊒ applyTerms χs′ (Λ V′) ∶ c
+        ⦂ applyTys χs′ A ⊒ applyTys χs′ (`∀ B))
     (sym coercion≡)
     (subst
-      (λ T → Δ″ ∣ combineStoreNrw π′ σ ∣ []
-        ⊢ W′ ⊒ T ∶ gen (applyTys χs′ A)
-          (applyCoercionUnderTyBinders χs′ p))
-      (sym target≡)
-      rebuilt)
+      (λ B₀ → Δ″ ∣ combineStoreNrw π′ σ ∣ []
+        ⊢ W′ ⊒ applyTerms χs′ (Λ V′)
+          ∶ gen (applyTys χs′ A) (applyCoercionUnderTyBinders χs′ p)
+          ⦂ applyTys χs′ A ⊒ B₀)
+      (sym (applyTys-∀ χs′ B))
+      (subst
+        (λ T → Δ″ ∣ combineStoreNrw π′ σ ∣ []
+          ⊢ W′ ⊒ T
+            ∶ gen (applyTys χs′ A) (applyCoercionUnderTyBinders χs′ p)
+            ⦂ applyTys χs′ A
+              ⊒ `∀ (applyTysUnderTyBinders χs′ B))
+        (sym target≡)
+        rebuilt))
 
 catchup-⊒⟨ν⟩-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p s} →
@@ -1420,7 +1743,8 @@ catchup-⊒⟨ν⟩-catchup :
   Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
   Inert s →
   Δ′ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
-    ⊢ W ⊒ applyTerms χs (V′ ⟨ s ⟩) ∶ applyCoercions χs p →
+    ⊢ W ⊒ applyTerms χs (V′ ⟨ s ⟩) ∶ applyCoercions χs p
+      ⦂ applyTys χs (⇑ᵗ A) ⊒ applyTys χs B →
   ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
     Value W′ ×
     No• W′ ×
@@ -1432,6 +1756,7 @@ catchup-⊒⟨ν⟩-catchup :
     Δ″ ∣ combineStoreNrw π′ σ ∣ []
       ⊢ W′ ⊒ applyTerms χs′ (V′ ⟨ gen A s ⟩)
         ∶ applyCoercions χs′ (gen A p)
+          ⦂ applyTys χs′ A ⊒ applyTys χs′ (`∀ B)
 catchup-⊒⟨ν⟩-catchup
     {σ = σ} {A = A} {B = B} {V′ = V′} {p = p} {s = s}
     vW noW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ i W⊒V′s
@@ -1448,7 +1773,7 @@ catchup-⊒⟨ν⟩-catchup
         {σ = σ} {π = π′} {χs = χs′} {p = p} {A = A} {B = B}
         pᶜ Δ″≡ Π″≡ Π″′≡ π′⊒
     i′ = applyCoercionUnderTyBinders-preserves-Inert χs′ i
-    rebuilt = ⊒⟨ν⟩ pᶜ′ i′ body
+    rebuilt = ⊒⟨ν⟩ᵗ pᶜ′ i′ body
     target≡ =
       trans (applyTerms-cast χs′ V′ (gen A s))
         (cong (λ c → applyTerms χs′ V′ ⟨ c ⟩)
@@ -1465,14 +1790,23 @@ catchup-⊒⟨ν⟩-catchup
   π′⊒ ,
   subst
     (λ c → Δ″ ∣ combineStoreNrw π′ σ ∣ []
-      ⊢ W′ ⊒ applyTerms χs′ (V′ ⟨ gen A s ⟩) ∶ c)
+      ⊢ W′ ⊒ applyTerms χs′ (V′ ⟨ gen A s ⟩) ∶ c
+        ⦂ applyTys χs′ A ⊒ applyTys χs′ (`∀ B))
     (sym coercion≡)
     (subst
-      (λ T → Δ″ ∣ combineStoreNrw π′ σ ∣ []
-        ⊢ W′ ⊒ T ∶ gen (applyTys χs′ A)
-          (applyCoercionUnderTyBinders χs′ p))
-      (sym target≡)
-      rebuilt)
+      (λ B₀ → Δ″ ∣ combineStoreNrw π′ σ ∣ []
+        ⊢ W′ ⊒ applyTerms χs′ (V′ ⟨ gen A s ⟩)
+          ∶ gen (applyTys χs′ A) (applyCoercionUnderTyBinders χs′ p)
+          ⦂ applyTys χs′ A ⊒ B₀)
+      (sym (applyTys-∀ χs′ B))
+      (subst
+        (λ T → Δ″ ∣ combineStoreNrw π′ σ ∣ []
+          ⊢ W′ ⊒ T
+            ∶ gen (applyTys χs′ A) (applyCoercionUnderTyBinders χs′ p)
+            ⦂ applyTys χs′ A
+              ⊒ `∀ (applyTysUnderTyBinders χs′ B))
+        (sym target≡)
+        rebuilt))
 
 postulate
   -- [New] Right ν Catchup Case.
@@ -1502,7 +1836,8 @@ postulate
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
     Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
     Δ′ ∣ combineStoreNrw π ((⊒ zero ꞉=☆) ∷ ⇑ˢ σ) ∣ []
-      ⊢ W ⊒ applyTerms χs (⇑ᵗᵐ V) ∶ applyCoercions χs (⇑ᶜ p) →
+      ⊢ W ⊒ applyTerms χs (⇑ᵗᵐ V) ∶ applyCoercions χs (⇑ᶜ p)
+        ⦂ applyTys χs (⇑ᵗ A) ⊒ applyTys χs (⇑ᵗ B) →
     ∃[ χs′ ] ∃[ W′ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
       Value W′ ×
       No• W′ ×
@@ -1513,12 +1848,13 @@ postulate
       Δ″ ⊢ π′ ꞉ Π″ ⊒ˢ Π″′ ×
       Δ″ ∣ combineStoreNrw π′ σ ∣ []
         ⊢ W′ ⊒ applyTerms χs′ V ∶ applyCoercions χs′ p
+          ⦂ applyTys χs′ A ⊒ applyTys χs′ B
 
 catchup-lemma :
-  ∀ {Δ σ M V p} →
+  ∀ {Δ σ M V p A B} →
   RuntimeOK M →
   Value V →
-  Δ ∣ σ ∣ [] ⊢ M ⊒ V ∶ p →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ V ∶ p ⦂ A ⊒ B →
   ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
     Value W ×
     No• W ×
@@ -1529,4 +1865,5 @@ catchup-lemma :
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
     Δ′ ∣ combineStoreNrw π σ ∣ []
       ⊢ W ⊒ applyTerms χs V ∶ applyCoercions χs p
+        ⦂ applyTys χs A ⊒ applyTys χs B
 catchup-lemma okM vV M⊒V = {!!}

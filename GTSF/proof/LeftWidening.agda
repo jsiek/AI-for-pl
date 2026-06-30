@@ -88,11 +88,12 @@ module proof.LeftWidening where
 --     form expected by the `⊒Λ`/`⊒⟨ν⟩` package lemmas.  The source-facing
 --     gen package wrappers compose that transport with the existing packages;
 --     Example 4 now uses the `⊒Λ` source wrapper directly.
---   * The same no-`proof.Catchup` rule now applies to right-composition
---     witnesses: `left-widening-compose-right-transport` transports
---     `r ≈ t ⨾ⁿ p` through emitted source-only store changes.  This is
---     the algebra needed after the first recursive value-level catchup in
---     cast and sequence branches.
+--   * The same no-`proof.Catchup` rule now applies to composition witnesses:
+--     `left-widening-compose-left-transport` and
+--     `left-widening-compose-right-transport` transport the two composition
+--     orientations through emitted source-only store changes.  This is the
+--     algebra needed after recursive value-level catchup in cast and sequence
+--     branches.
 --   * A direct suc-only induction for that weakening lemma is the wrong
 --     formulation: under `Λ`, the body is renamed by `extᵗ suc`, not plain
 --     `suc`.  The reusable pieces started in `proof.TermNarrowingProperties`
@@ -241,7 +242,8 @@ open import proof.ReductionProperties
 open import proof.NuTermProperties
   using (open0-ext-suc-cancelᵐ; renameᵗᵐ-preserves-Value)
 open import proof.CoercionProperties using (renameᶜ-preserves-Inert)
-open import proof.TermNarrowingProperties using (compose-rightⁿ-⇑ˢ)
+open import proof.TermNarrowingProperties
+  using (compose-leftⁿ-⇑ˢ; compose-rightⁿ-⇑ˢ)
 
 dual-untag-inert :
   ∀ {G} →
@@ -432,6 +434,174 @@ left-widening-compose-rightⁿ-add-left-star-var X
     (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   compose-rightⁿ wfΣ t⊒ p⊒
     (left-widening-≈ⁿ-add-left-star-var X r≈t⨟p)
+
+left-widening-compose-leftⁿ-add-left-star-var :
+  ∀ X {Δ σ q s r A B} →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Δ ∣ (⊒ X ꞉=☆) ∷ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
+left-widening-compose-leftⁿ-add-left-star-var X
+    (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
+  compose-leftⁿ wfΣ q⊒ s⊒
+    (left-widening-≈ⁿ-add-left-star-var X q⨟s≈r)
+
+left-widening-compose-left-transport-shifted :
+  ∀ n {Δ Δ′ σ π Π Π′ χs q s r A B} →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Δ′ ≡ applyTyCtxs χs Δ →
+  Π ≡ shiftStore n (applyStores χs []) →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  Δ′ ∣ combineStoreNrw π σ
+    ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
+      ≈ applyCoercions χs r ∶ applyTys χs A ⊒ applyTys χs B
+left-widening-compose-left-transport-shifted n
+    {Δ = Δ} {Δ′ = Δ′} {σ = σ}
+    {χs = χs} {q = q} {s = s} {r = r} {A = A} {B = B}
+    q⨟s≈r Δ′≡ Π≡ Π′≡ ⊒ˢ-nil =
+  let
+    empty≡ = shiftStore-empty-inv n (sym Π≡)
+    Δ′≡Δ = trans Δ′≡ (applyTyCtxs-empty-id χs empty≡ Δ)
+    q≡ = applyCoercions-empty-id χs empty≡ q
+    s≡ = applyCoercions-empty-id χs empty≡ s
+    r≡ = applyCoercions-empty-id χs empty≡ r
+    A≡ = applyTys-empty-id χs empty≡ A
+    B≡ = applyTys-empty-id χs empty≡ B
+  in
+  subst
+    (λ Δ₀ → Δ₀ ∣ σ
+      ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
+        ≈ applyCoercions χs r ∶ applyTys χs A ⊒ applyTys χs B)
+    (sym Δ′≡Δ)
+    (subst
+      (λ B₀ → Δ ∣ σ
+        ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
+          ≈ applyCoercions χs r ∶ applyTys χs A ⊒ B₀)
+      (sym B≡)
+      (subst
+        (λ A₀ → Δ ∣ σ
+          ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
+            ≈ applyCoercions χs r ∶ A₀ ⊒ B)
+        (sym A≡)
+        (subst
+          (λ r₀ → Δ ∣ σ
+            ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
+              ≈ r₀ ∶ A ⊒ B)
+          (sym r≡)
+          (subst
+            (λ s₀ → Δ ∣ σ
+              ⊢ applyCoercions χs q ⨾ⁿ s₀ ≈ r ∶ A ⊒ B)
+            (sym s≡)
+            (subst
+              (λ q₀ → Δ ∣ σ ⊢ q₀ ⨾ⁿ s ≈ r ∶ A ⊒ B)
+              (sym q≡)
+              q⨟s≈r)))))
+left-widening-compose-left-transport-shifted n
+    q⨟s≈r Δ′≡ Π≡ () (⊒ˢ-right hA π⊒)
+left-widening-compose-left-transport-shifted n {χs = χs}
+    q⨟s≈r Δ′≡ Π≡ Π′≡ (⊒ˢ-left π⊒)
+    with storeChangesLastBind χs
+left-widening-compose-left-transport-shifted n {χs = χs}
+    q⨟s≈r Δ′≡ Π≡ Π′≡ (⊒ˢ-left π⊒)
+    | no-bind keeps
+    with trans Π≡
+      (trans (cong (shiftStore n) (allKeep-applyStores-id keeps []))
+        (shiftStore-empty n))
+left-widening-compose-left-transport-shifted n {χs = χs}
+    q⨟s≈r Δ′≡ Π≡ Π′≡ (⊒ˢ-left π⊒)
+    | no-bind keeps | ()
+left-widening-compose-left-transport-shifted n
+    {Δ = Δ} {σ = σ}
+    {χs = .(χs ++ bind Aχ ∷ keeps)}
+    {q = q} {s = s} {r = r} {A = A} {B = B}
+    q⨟s≈r Δ′≡ Π≡ Π′≡ (⊒ˢ-left {X = X} π⊒)
+    | last-bind χs Aχ keeps keeps-ok =
+  let
+    Δtail≡ =
+      trans Δ′≡
+        (trans (applyTyCtxs-last-bind χs Aχ keeps keeps-ok Δ)
+          (sym (applyTyCtxs-suc χs Δ)))
+    Π-last≡ =
+      trans Π≡
+        (cong (shiftStore n)
+          (applyStores-last-bind χs Aχ keeps keeps-ok []))
+    Π-last-normal≡ =
+      trans Π-last≡
+        (shiftStore-cons n zero (⇑ᵗ Aχ) (⟰ᵗ (applyStores χs [])))
+    Πtail≡ =
+      trans (storeTail-∷≡ Π-last-normal≡)
+        (shiftStore-⟰ᵗ n (applyStores χs []))
+    tail =
+      left-widening-compose-left-transport-shifted (suc n)
+        {χs = χs}
+        (compose-leftⁿ-⇑ˢ q⨟s≈r)
+        Δtail≡
+        Πtail≡
+        Π′≡
+        π⊒
+    lifted = left-widening-compose-leftⁿ-add-left-star-var X tail
+    q≡ =
+      trans (applyCoercions-⇑ᶜ χs q)
+        (sym (applyCoercions-last-bind χs Aχ keeps keeps-ok q))
+    s≡ =
+      trans (applyCoercions-⇑ᶜ χs s)
+        (sym (applyCoercions-last-bind χs Aχ keeps keeps-ok s))
+    r≡ =
+      trans (applyCoercions-⇑ᶜ χs r)
+        (sym (applyCoercions-last-bind χs Aχ keeps keeps-ok r))
+    A≡ =
+      trans (applyTys-⇑ᵗ χs A)
+        (sym (applyTys-last-bind χs Aχ keeps keeps-ok A))
+    B≡ =
+      trans (applyTys-⇑ᵗ χs B)
+        (sym (applyTys-last-bind χs Aχ keeps keeps-ok B))
+  in
+  subst
+    (λ B₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) q
+      ⨾ⁿ applyCoercions (χs ++ bind Aχ ∷ keeps) s
+      ≈ applyCoercions (χs ++ bind Aχ ∷ keeps) r
+      ∶ applyTys (χs ++ bind Aχ ∷ keeps) A ⊒ B₀)
+    B≡
+    (subst
+      (λ A₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) q
+        ⨾ⁿ applyCoercions (χs ++ bind Aχ ∷ keeps) s
+        ≈ applyCoercions (χs ++ bind Aχ ∷ keeps) r
+        ∶ A₀ ⊒ applyTys χs (⇑ᵗ B))
+      A≡
+      (subst
+        (λ r₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) q
+          ⨾ⁿ applyCoercions (χs ++ bind Aχ ∷ keeps) s
+          ≈ r₀ ∶ applyTys χs (⇑ᵗ A) ⊒ applyTys χs (⇑ᵗ B))
+        r≡
+        (subst
+          (λ s₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) q
+            ⨾ⁿ s₀ ≈ applyCoercions χs (⇑ᶜ r)
+            ∶ applyTys χs (⇑ᵗ A) ⊒ applyTys χs (⇑ᵗ B))
+          s≡
+          (subst
+            (λ q₀ → _ ∣ _ ⊢ q₀
+              ⨾ⁿ applyCoercions χs (⇑ᶜ s)
+              ≈ applyCoercions χs (⇑ᶜ r)
+              ∶ applyTys χs (⇑ᵗ A) ⊒ applyTys χs (⇑ᵗ B))
+            q≡
+            lifted))))
+left-widening-compose-left-transport-shifted n
+    q⨟s≈r Δ′≡ Π≡ () (⊒ˢ-both hA hA′ s⊒ π⊒)
+
+left-widening-compose-left-transport :
+  ∀ {Δ Δ′ σ π Π Π′ χs q s r A B} →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Δ′ ≡ applyTyCtxs χs Δ →
+  Π ≡ applyStores χs [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  Δ′ ∣ combineStoreNrw π σ
+    ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
+      ≈ applyCoercions χs r ∶ applyTys χs A ⊒ applyTys χs B
+left-widening-compose-left-transport {χs = χs}
+    q⨟s≈r Δ′≡ Π≡ Π′≡ π⊒ =
+  left-widening-compose-left-transport-shifted zero
+    {χs = χs}
+    q⨟s≈r Δ′≡ Π≡ Π′≡ π⊒
 
 left-widening-compose-right-transport-shifted :
   ∀ n {Δ Δ′ σ π Π Π′ χs r t p A B} →

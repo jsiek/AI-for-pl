@@ -92,9 +92,25 @@ rightSealInversion2-cast+ {s = c ↦ d} ()
     qᶜ q⨟s≈r M⊒M′
 rightSealInversion2-cast+ {s = `∀ c} ()
     qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = G !} ()
+rightSealInversion2-cast+ {s = (＇ β) !} ()
     qᶜ q⨟s≈r M⊒M′
-rightSealInversion2-cast+ {s = G ？} ()
+rightSealInversion2-cast+ {s = (‵ ι) !} ()
+    qᶜ q⨟s≈r M⊒M′
+rightSealInversion2-cast+ {s = ★ !} ()
+    qᶜ q⨟s≈r M⊒M′
+rightSealInversion2-cast+ {s = (A ⇒ B) !} ()
+    qᶜ q⨟s≈r M⊒M′
+rightSealInversion2-cast+ {s = (`∀ A) !} ()
+    qᶜ q⨟s≈r M⊒M′
+rightSealInversion2-cast+ {s = (＇ β) ？} ()
+    qᶜ q⨟s≈r M⊒M′
+rightSealInversion2-cast+ {s = (‵ ι) ？} ()
+    qᶜ q⨟s≈r M⊒M′
+rightSealInversion2-cast+ {s = ★ ？} ()
+    qᶜ q⨟s≈r M⊒M′
+rightSealInversion2-cast+ {s = (A ⇒ B) ？} ()
+    qᶜ q⨟s≈r M⊒M′
+rightSealInversion2-cast+ {s = (`∀ A) ？} ()
     qᶜ q⨟s≈r M⊒M′
 rightSealInversion2-cast+ {s = seal A α} refl
     qᶜ q⨟seal≈r M⊒V =

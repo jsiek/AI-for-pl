@@ -2950,3 +2950,37 @@ target-only store.  A promising next invariant is:
 if `gen A p` is well typed and a value `W` is related to `V′` by `p` under the
 target-only `⊒Λ` store, then `W` is a type-shift image (or can be caught up to
 one through the emitted source-star prefix).
+
+## Attempt 86: prove the legal target-only casted body impossible
+
+Accepted as checked diagnostic support in `proof.TraceProbe`.  After pulling
+the newer `main`, I reused the counterexample style from
+`proof.RightSealInversionCounterexample`: avoid coverage getting stuck on the
+defined dual operation by proving an equality-indexed auxiliary.
+
+The checked theorem is:
+
+`no-legal-target-cast-body :
+  1 ∣ (0 ꞉= ★ ⊒) ∷ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ var0-fun ⟩ ⊒ ƛ (` 0) ∶ var0-fun →
+  ⊥`
+
+There are two possible left-cast shapes.
+
+In the `cast+⊒` case, the visible cast requires `- t ≡ var0-fun`.  The helper
+`no-dual-var0-fun-narrow` shows this impossible: the domain component would
+make `(＇ 0) ？` a widening, but the widening grammar has no such case.
+
+In the `cast-⊒` case, the composition side condition would have to type:
+
+`r ≈ var0-fun ⨾ⁿ var0-fun`
+
+The helper `no-var0-fun-self-compose` extracts endpoints from the two
+`var0-fun` typings with `coercion-src-tgtᵐ`, forcing the shared middle type to
+be both `★ ⇒ ★` and `＇ 0 ⇒ ＇ 0`.
+
+This rules out the direct legal replacement for the old `probe-c`
+counterexample under the target-only `⊒Λ` body store.  It still does not prove
+the live last-bind branch: the real branch may create the source-side marker
+through the emitted bind/split path, and the remaining theorem still needs a
+replay/lowering argument for that emitted source-star prefix.

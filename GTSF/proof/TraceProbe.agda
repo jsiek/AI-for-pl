@@ -17,8 +17,8 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc; z<s; s<s)
-open import Data.Product using (_,_; proj₂)
-open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
+open import Data.Product using (_,_; proj₁; proj₂)
+open import Relation.Binary.PropositionalEquality using (cong; subst; sym; trans)
 
 open import Types
 open import Coercions
@@ -28,6 +28,7 @@ open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing
 open import NarrowingExamples
+open import proof.CoercionProperties using (coercion-src-tgtᵐ)
 open import proof.NuTermProperties using
   ( open0-ext-suc-cancelᵐ
   ; renameᵗᵐ-preserves-Value
@@ -225,6 +226,103 @@ fun-left (seal A α) = seal A α
 fun-left (unseal α A) = unseal α A
 fun-left (gen A c) = gen A c
 fun-left (inst B c) = inst B c
+
+no-widen-var0-untag :
+  ∀ {μ Δ Σ A B} →
+  μ ∣ Δ ∣ Σ ⊢ (＇ 0) ？ ∶ A ⊑ B →
+  ⊥
+no-widen-var0-untag ((cast-untag hG gG ok) , cross ())
+
+no-dual-var0-tag-widen :
+  ∀ {μ Δ Σ c A B} →
+  - c ≡ (＇ 0) ! →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B →
+  ⊥
+no-dual-var0-tag-widen {c = id A} () c⊑
+no-dual-var0-tag-widen {c = c ︔ d} () c⊑
+no-dual-var0-tag-widen {c = c ↦ d} () c⊑
+no-dual-var0-tag-widen {c = `∀ c} () c⊑
+no-dual-var0-tag-widen {c = (＇ X) !} () c⊑
+no-dual-var0-tag-widen {c = (‵ ι) !} () c⊑
+no-dual-var0-tag-widen {c = ★ !} () c⊑
+no-dual-var0-tag-widen {c = (A ⇒ B) !} () c⊑
+no-dual-var0-tag-widen {c = `∀ A !} () c⊑
+no-dual-var0-tag-widen {c = (＇ X) ？} refl c⊑ =
+  no-widen-var0-untag c⊑
+no-dual-var0-tag-widen {c = (‵ ι) ？} () c⊑
+no-dual-var0-tag-widen {c = ★ ？} () c⊑
+no-dual-var0-tag-widen {c = (A ⇒ B) ？} () c⊑
+no-dual-var0-tag-widen {c = `∀ A ？} () c⊑
+no-dual-var0-tag-widen {c = seal A α} () c⊑
+no-dual-var0-tag-widen {c = unseal α A} () c⊑
+no-dual-var0-tag-widen {c = gen A c} () c⊑
+no-dual-var0-tag-widen {c = inst B c} () c⊑
+
+no-dual-var0-fun-narrow :
+  ∀ {μ Δ Σ t A B} →
+  - t ≡ var0-fun →
+  μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ B →
+  ⊥
+no-dual-var0-fun-narrow {t = id A} () t⊒
+no-dual-var0-fun-narrow {t = t₁ ︔ t₂} () t⊒
+no-dual-var0-fun-narrow {t = t₁ ↦ t₂} eq
+    (cast-fun t₁⊢ t₂⊢ , cross (t₁ʷ ↦ t₂ⁿ)) =
+  no-dual-var0-tag-widen (cong fun-left eq) (t₁⊢ , t₁ʷ)
+no-dual-var0-fun-narrow {t = `∀ t} () t⊒
+no-dual-var0-fun-narrow {t = (＇ X) !} () t⊒
+no-dual-var0-fun-narrow {t = (‵ ι) !} () t⊒
+no-dual-var0-fun-narrow {t = ★ !} () t⊒
+no-dual-var0-fun-narrow {t = (A ⇒ B) !} () t⊒
+no-dual-var0-fun-narrow {t = `∀ A !} () t⊒
+no-dual-var0-fun-narrow {t = (＇ X) ？} () t⊒
+no-dual-var0-fun-narrow {t = (‵ ι) ？} () t⊒
+no-dual-var0-fun-narrow {t = ★ ？} () t⊒
+no-dual-var0-fun-narrow {t = (A ⇒ B) ？} () t⊒
+no-dual-var0-fun-narrow {t = `∀ A ？} () t⊒
+no-dual-var0-fun-narrow {t = seal A α} () t⊒
+no-dual-var0-fun-narrow {t = unseal α A} () t⊒
+no-dual-var0-fun-narrow {t = gen A t} () t⊒
+no-dual-var0-fun-narrow {t = inst B t} () t⊒
+
+star-fun≢var0-fun :
+  ★ ⇒ ★ ≡ ＇ 0 ⇒ ＇ 0 →
+  ⊥
+star-fun≢var0-fun ()
+
+no-var0-fun-self-compose :
+  ∀ {A B r} →
+  1 ∣ (0 ꞉= ★ ⊒) ∷ [] ⊢
+    r ≈ var0-fun ⨾ⁿ var0-fun ∶ A ⊒ B →
+  ⊥
+no-var0-fun-self-compose
+    (compose-rightⁿ wfΣ
+      (t⊢@(cast-fun t₁⊢ t₂⊢) , cross (t₁ʷ ↦ t₂ⁿ))
+      (p⊢@(cast-fun p₁⊢ p₂⊢) , cross (p₁ʷ ↦ p₂ⁿ))
+      r≈t⨟p) =
+  star-fun≢var0-fun
+    (trans (proj₁ (coercion-src-tgtᵐ p⊢))
+      (sym (proj₂ (coercion-src-tgtᵐ t⊢))))
+
+no-legal-target-cast-body-aux :
+  ∀ {c} →
+  c ≡ var0-fun →
+  1 ∣ (0 ꞉= ★ ⊒) ∷ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ c ⟩ ⊒ ƛ (` 0) ∶ var0-fun →
+  ⊥
+no-legal-target-cast-body-aux eq
+    (cast+⊒ {t = t} pᶜ
+      (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) M⊒M′) =
+  no-dual-var0-fun-narrow eq t⊒
+no-legal-target-cast-body-aux refl
+    (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
+  no-var0-fun-self-compose r≈t⨟p
+
+no-legal-target-cast-body :
+  1 ∣ (0 ꞉= ★ ⊒) ∷ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ var0-fun ⟩ ⊒ ƛ (` 0) ∶ var0-fun →
+  ⊥
+no-legal-target-cast-body =
+  no-legal-target-cast-body-aux refl
 
 no-dual-id-var1-widen :
   ∀ {μ Σ c A B} →

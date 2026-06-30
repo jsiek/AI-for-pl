@@ -59,7 +59,9 @@ module proof.LeftWidening where
 --     store-narrowing renamer and mode-renamer premise.
 --     Current progress in that direction includes `renameStoreNrw`,
 --     `renameCtxNrw`, `rename-var`, `rename-blame`, `rename-ƛ`, `rename-·`,
---     `rename-Λ`, `rename-⊒Λ`, `rename-κ`, and `rename-⊕`.
+--     `rename-Λ`, `rename-⊒Λ`, `rename-⊒⟨ν⟩`, `rename-α⊒α`,
+--     `rename-⊒α`, `rename-ν⊒ν`, `rename-⊒ν`, `rename-ν⊒`, `rename-κ`,
+--     and `rename-⊕`.
 --   * Trying to make that renaming theorem fully arbitrary runs into the
 --     composition witnesses used by cast constructors: their internal mode
 --     environment is existential, so a non-injective type renaming does not
@@ -67,6 +69,11 @@ module proof.LeftWidening where
 --     mechanized in `proof.TermNarrowingProperties` via `≈ⁿ-⇑ˢ`,
 --     `compose-leftⁿ-⇑ˢ`, `compose-rightⁿ-⇑ˢ`, `shift-⊒cast+`,
 --     `shift-⊒cast-`, `shift-cast+⊒`, and `shift-cast-⊒`.
+--   * The `ν` renaming helpers are intentionally stated in constructor-native
+--     form rather than as pointwise renamings of whole `ν` terms: `ν` renames
+--     its term body with `ρ`, while the narrowing premises under the fresh
+--     store entry need `extᵗ ρ`.  Keeping that mismatch explicit avoids a
+--     false "obvious" helper.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)

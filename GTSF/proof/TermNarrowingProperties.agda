@@ -179,10 +179,10 @@ termNarrowing-gen-open-id-var-aux⊥ refl
     (⊒⟨ν⟩ pᶜ sᵢ N⊒V′) open-id =
   gen-open-id-var⊥ pᶜ open-id
 termNarrowing-gen-open-id-var-aux⊥ c≡gen
-    (α⊒α qᶜ pαᶜ L⊒L′) open-id =
+    (α⊒α γ′≡ qᶜ pαᶜ L⊒L′) open-id =
   castLike-gen-open-id-var⊥ c≡gen pαᶜ open-id
 termNarrowing-gen-open-id-var-aux⊥ c≡gen
-    (⊒α pαᶜ L⊒L′) open-id =
+    (⊒α γ′≡ pαᶜ L⊒L′) open-id =
   castLike-gen-open-id-var⊥ c≡gen pαᶜ open-id
 termNarrowing-gen-open-id-var-aux⊥ refl
     (ν⊒ν pᶜ qᶜ N⊒N′) open-id =
@@ -427,8 +427,8 @@ lambda-source-value-target-body-value src (vV ⟨ i ⟩)
       (renameᵗᵐ-preserves-LambdaSource suc src)
       (vV ⟨ sᵢ ⟩)
       N⊒V′s)
-lambda-source-value-target-body-value () vV (α⊒α qᶜ pαᶜ L⊒L′)
-lambda-source-value-target-body-value src () (⊒α pαᶜ L⊒L′)
+lambda-source-value-target-body-value () vV (α⊒α γ′≡ qᶜ pαᶜ L⊒L′)
+lambda-source-value-target-body-value src () (⊒α γ′≡ pαᶜ L⊒L′)
 lambda-source-value-target-body-value () vV (ν⊒ν pᶜ qᶜ N⊒N′)
 lambda-source-value-target-body-value src () (⊒ν pᶜ N⊒N′)
 lambda-source-value-target-body-value () vV (ν⊒ pᶜ N⊒N′)
@@ -616,8 +616,8 @@ nu-source-value-target-inversion src (vV ⟨ i ⟩)
       (renameᵗᵐ-preserves-NuSource suc src)
       (vV ⟨ sᵢ ⟩)
       N⊒V′s)
-nu-source-value-target-inversion src () (α⊒α qᶜ pαᶜ L⊒L′)
-nu-source-value-target-inversion src () (⊒α pαᶜ L⊒L′)
+nu-source-value-target-inversion src () (α⊒α γ′≡ qᶜ pαᶜ L⊒L′)
+nu-source-value-target-inversion src () (⊒α γ′≡ pαᶜ L⊒L′)
 nu-source-value-target-inversion src () (ν⊒ν pᶜ qᶜ N⊒N′)
 nu-source-value-target-inversion src () (⊒ν pᶜ N⊒N′)
 nu-source-value-target-inversion nu-source vV (ν⊒ pᶜ N⊒N′) =
@@ -861,8 +861,8 @@ cast-source-value-target-inversion src (vV ⟨ i ⟩)
       (renameᵗᵐ-preserves-CastSource suc src)
       (vV ⟨ sᵢ ⟩)
       N⊒V′s)
-cast-source-value-target-inversion () vV (α⊒α qᶜ pαᶜ L⊒L′)
-cast-source-value-target-inversion src () (⊒α pαᶜ L⊒L′)
+cast-source-value-target-inversion () vV (α⊒α γ′≡ qᶜ pαᶜ L⊒L′)
+cast-source-value-target-inversion src () (⊒α γ′≡ pαᶜ L⊒L′)
 cast-source-value-target-inversion () vV (ν⊒ν pᶜ qᶜ N⊒N′)
 cast-source-value-target-inversion src () (⊒ν pᶜ N⊒N′)
 cast-source-value-target-inversion () vV (ν⊒ pᶜ N⊒N′)
@@ -1023,8 +1023,8 @@ runtime-type-app-source-no-value-target app (vV ⟨ i ⟩)
     (renameᵗᵐ-preserves-RuntimeTypeApp suc app)
     (vV ⟨ sᵢ ⟩)
     N⊒V′s
-runtime-type-app-source-no-value-target app () (α⊒α qᶜ pαᶜ L⊒L′)
-runtime-type-app-source-no-value-target app () (⊒α pαᶜ L⊒L′)
+runtime-type-app-source-no-value-target app () (α⊒α γ′≡ qᶜ pαᶜ L⊒L′)
+runtime-type-app-source-no-value-target app () (⊒α γ′≡ pαᶜ L⊒L′)
 runtime-type-app-source-no-value-target () vV (ν⊒ν pᶜ qᶜ N⊒N′)
 runtime-type-app-source-no-value-target app () (⊒ν pᶜ N⊒N′)
 runtime-type-app-source-no-value-target () vV (ν⊒ pᶜ N⊒N′)
@@ -1154,8 +1154,8 @@ value-target-source-no-active (Λ vV) (⊒Λ pᶜ N⊒V′) =
 value-target-source-no-active (vV ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′s) =
   renameᵗᵐ-reflects-NoActiveTypeApp suc
     (value-target-source-no-active (vV ⟨ sᵢ ⟩) N⊒V′s)
-value-target-source-no-active () (α⊒α qᶜ pαᶜ L⊒L′)
-value-target-source-no-active () (⊒α pαᶜ L⊒L′)
+value-target-source-no-active () (α⊒α γ′≡ qᶜ pαᶜ L⊒L′)
+value-target-source-no-active () (⊒α γ′≡ pαᶜ L⊒L′)
 value-target-source-no-active () (ν⊒ν pᶜ qᶜ N⊒N′)
 value-target-source-no-active () (⊒ν pᶜ N⊒N′)
 value-target-source-no-active vV (ν⊒ pᶜ N⊒N′) =
@@ -1243,8 +1243,8 @@ value-target-source-safe (Λ vV) (⊒Λ pᶜ N⊒V′) =
 value-target-source-safe (vV ⟨ i ⟩) (⊒⟨ν⟩ pᶜ sᵢ N⊒V′s) =
   renameᵗᵐ-reflects-CatchupSafe suc
     (value-target-source-safe (vV ⟨ sᵢ ⟩) N⊒V′s)
-value-target-source-safe () (α⊒α qᶜ pαᶜ L⊒L′)
-value-target-source-safe () (⊒α pαᶜ L⊒L′)
+value-target-source-safe () (α⊒α γ′≡ qᶜ pαᶜ L⊒L′)
+value-target-source-safe () (⊒α γ′≡ pαᶜ L⊒L′)
 value-target-source-safe () (ν⊒ν pᶜ qᶜ N⊒N′)
 value-target-source-safe () (⊒ν pᶜ N⊒N′)
 value-target-source-safe vV (ν⊒ pᶜ N⊒N′) =
@@ -1334,8 +1334,8 @@ neutral-source-no-value-target neu (vV ⟨ i ⟩)
     (renameᵗᵐ-preserves-NeutralSource suc neu)
     (vV ⟨ sᵢ ⟩)
     N⊒V′s
-neutral-source-no-value-target () vV (α⊒α qᶜ pαᶜ L⊒L′)
-neutral-source-no-value-target neu () (⊒α pαᶜ L⊒L′)
+neutral-source-no-value-target () vV (α⊒α γ′≡ qᶜ pαᶜ L⊒L′)
+neutral-source-no-value-target neu () (⊒α γ′≡ pαᶜ L⊒L′)
 neutral-source-no-value-target () vV (ν⊒ν pᶜ qᶜ N⊒N′)
 neutral-source-no-value-target neu () (⊒ν pᶜ N⊒N′)
 neutral-source-no-value-target () vV (ν⊒ pᶜ N⊒N′)

@@ -1420,8 +1420,8 @@ SourceTargetMergeSafeFor {γ = γ} (⊒Λ pᶜ N⊒V′) rel =
 SourceTargetMergeSafeFor {γ = γ} (⊒⟨ν⟩ pᶜ i N⊒V′s) rel =
   SourceTargetMergeSafeFor {γ = ⇑ᵍ γ} N⊒V′s
     (merge-right (SourceTargetMergeRel-⇑ˢ rel))
-SourceTargetMergeSafeFor (α⊒α qᶜ pαᶜ L⊒L′) rel = ⊥
-SourceTargetMergeSafeFor (⊒α pαᶜ L⊒L′) rel = ⊥
+SourceTargetMergeSafeFor (α⊒α γ′≡ qᶜ pαᶜ L⊒L′) rel = ⊥
+SourceTargetMergeSafeFor (⊒α γ′≡ pαᶜ L⊒L′) rel = ⊥
 SourceTargetMergeSafeFor {γ = γ} (ν⊒ν {q = q} pᶜ qᶜ N⊒N′) rel =
   SourceTargetMergeSafeFor {γ = ⇑ᵍ γ} N⊒N′
     (merge-both {q = ⇑ᶜ q} (SourceTargetMergeRel-⇑ˢ rel))
@@ -1458,8 +1458,8 @@ SourceTargetMergeRel-term-safe :
   (M⊒T : Δ ∣ σ ∣ γ ⊢ M ⊒ T ∶ c) →
   SourceTargetMergeSafe rel M⊒T →
   Δ ∣ σ′ ∣ γ ⊢ M ⊒ T ∶ c
-SourceTargetMergeRel-term-safe rel (α⊒α qᶜ pαᶜ L⊒L′) ()
-SourceTargetMergeRel-term-safe rel (⊒α pαᶜ L⊒L′) ()
+SourceTargetMergeRel-term-safe rel (α⊒α γ′≡ qᶜ pαᶜ L⊒L′) ()
+SourceTargetMergeRel-term-safe rel (⊒α γ′≡ pαᶜ L⊒L′) ()
 SourceTargetMergeRel-term-safe (merge-both rel)
     (extend {q = q} qᶜ pαᶜ M⊒T) safe =
   extend
@@ -2366,8 +2366,8 @@ TermRenameLocalOk Δ′ ρ (⊒Λ pᶜ N⊒V′) =
   TermRenameLocalOk (suc Δ′) (extᵗ ρ) N⊒V′
 TermRenameLocalOk Δ′ ρ (⊒⟨ν⟩ pᶜ i N⊒V′s) =
   TermRenameLocalOk (suc Δ′) (extᵗ ρ) N⊒V′s
-TermRenameLocalOk Δ′ ρ (α⊒α qᶜ pαᶜ L⊒L′) = ⊥₁
-TermRenameLocalOk Δ′ ρ (⊒α pαᶜ L⊒L′) = ⊥₁
+TermRenameLocalOk Δ′ ρ (α⊒α γ′≡ qᶜ pαᶜ L⊒L′) = ⊥₁
+TermRenameLocalOk Δ′ ρ (⊒α γ′≡ pαᶜ L⊒L′) = ⊥₁
 TermRenameLocalOk Δ′ ρ (ν⊒ν pᶜ qᶜ N⊒N′) =
   TermRenameLocalOk (suc Δ′) (extᵗ ρ) N⊒N′
 TermRenameLocalOk Δ′ ρ (⊒ν pᶜ N⊒N′) =

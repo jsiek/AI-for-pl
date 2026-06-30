@@ -3226,6 +3226,127 @@ catchup-⊒Λ-no-bind-shift-image
                 W≡⇑W′
                 W⊒V′))))
 
+catchup-⊒Λ-single-bind-finish :
+  ∀ {Δ σ χs keeps N W′ A B V′ p} →
+  AllKeep χs →
+  AllKeep keeps →
+  Value W′ →
+  (N —↠[ χs ++ bind ★ ∷ keeps ] W′) →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  suc (suc Δ) ∣
+    (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ ⇑ᵗᵐ W′ ⊒ renameᵗᵐ (extᵗ suc) V′
+      ∶ renameᶜ (extᵗ suc) p →
+  ∃[ χs′ ] ∃[ W″ ] ∃[ Δ″ ] ∃[ Π″ ] ∃[ Π″′ ] ∃[ π′ ]
+    Value W″ ×
+    (N —↠[ χs′ ] W″) ×
+    (Δ″ ≡ applyTyCtxs χs′ Δ) ×
+    (Π″ ≡ applyStores χs′ []) ×
+    (Π″′ ≡ applyStore keep []) ×
+    Δ″ ⊢ π′ ꞉ Π″ ⊒ˢ Π″′ ×
+    Δ″ ∣ combineStoreNrw π′ σ ∣ []
+      ⊢ W″ ⊒ applyTerms χs′ (Λ V′)
+        ∶ applyCoercions χs′ (gen A p)
+catchup-⊒Λ-single-bind-finish
+    {Δ = Δ} {σ = σ} {χs = χs} {keeps = keeps}
+    {W′ = W′} {A = A} {B = B} {V′ = V′} {p = p}
+    keepsχ keepsTail vW′ N↠W′ pᶜ body =
+  χs′ , W′ , suc Δ , (zero , ★) ∷ [] , [] , π′ ,
+  vW′ ,
+  N↠W′ ,
+  Δ≡ ,
+  Π≡ ,
+  refl ,
+  π′⊒ ,
+  subst
+    (λ c → suc Δ ∣ combineStoreNrw π′ σ ∣ []
+      ⊢ W′ ⊒ applyTerms χs′ (Λ V′) ∶ c)
+    (sym coercion≡)
+    (subst
+      (λ T → suc Δ ∣ combineStoreNrw π′ σ ∣ []
+        ⊢ W′ ⊒ T ∶ gen (⇑ᵗ A) (renameᶜ (extᵗ suc) p))
+      (sym target≡)
+      (⊒Λ pᶜ′ body))
+  where
+    χs′ = χs ++ bind ★ ∷ keeps
+    π′ = (⊒ zero ꞉=☆) ∷ []
+
+    Δ≡ :
+      suc Δ ≡ applyTyCtxs χs′ Δ
+    Δ≡ =
+      sym
+        (trans
+          (applyTyCtxs-last-bind χs ★ keeps keepsTail Δ)
+          (cong suc (allKeep-applyTyCtxs-id keepsχ Δ)))
+
+    Π≡ :
+      (zero , ★) ∷ [] ≡ applyStores χs′ []
+    Π≡ =
+      sym
+        (trans
+          (applyStores-last-bind χs ★ keeps keepsTail [])
+          (cong (applyStore (bind ★))
+            (allKeep-applyStores-id keepsχ [])))
+
+    π′⊒ :
+      suc Δ ⊢ π′ ꞉ (zero , ★) ∷ [] ⊒ˢ []
+    π′⊒ = ⊒ˢ-left ⊒ˢ-nil
+
+    A≡ :
+      applyTys χs′ A ≡ ⇑ᵗ A
+    A≡ =
+      trans
+        (applyTys-last-bind χs ★ keeps keepsTail A)
+        (cong ⇑ᵗ (allKeep-applyTys-id keepsχ A))
+
+    pUnder≡ :
+      applyCoercionUnderTyBinders χs′ p ≡ renameᶜ (extᵗ suc) p
+    pUnder≡ =
+      trans
+        (applyCoercionUnderTyBinders-last-bind
+          {χs = χs} {A = ★} {keeps = keeps} keepsTail)
+        (cong (renameᶜ (extᵗ suc))
+          (allKeep-applyCoercionUnderTyBinders-id keepsχ p))
+
+    pᶜ′ :
+      suc Δ ∣ srcStoreⁿ (combineStoreNrw π′ σ)
+        ⊢ gen (⇑ᵗ A) (renameᶜ (extᵗ suc) p)
+          ∶ᶜ ⇑ᵗ A ⊒ `∀ (applyTysUnderTyBinders χs′ B)
+    pᶜ′ =
+      subst
+        (λ q → suc Δ ∣ srcStoreⁿ (combineStoreNrw π′ σ)
+          ⊢ gen (⇑ᵗ A) q ∶ᶜ ⇑ᵗ A ⊒
+            `∀ (applyTysUnderTyBinders χs′ B))
+        pUnder≡
+        (subst
+          (λ C → suc Δ ∣ srcStoreⁿ (combineStoreNrw π′ σ)
+            ⊢ gen C (applyCoercionUnderTyBinders χs′ p)
+              ∶ᶜ C ⊒ `∀ (applyTysUnderTyBinders χs′ B))
+          A≡
+          (catchup-gen-coercion-typing-transport
+            {σ = σ} {π = π′} {χs = χs′} {p = p} {A = A}
+            pᶜ Δ≡ Π≡ refl π′⊒))
+
+    target≡ :
+      applyTerms χs′ (Λ V′) ≡ Λ (renameᵗᵐ (extᵗ suc) V′)
+    target≡ =
+      trans
+        (applyTerms-Λ χs′ V′)
+        (cong Λ_
+          (trans
+            (applyTermsUnderTyBinders-last-bind
+              {χs = χs} {A = ★} {keeps = keeps} keepsTail)
+            (cong (renameᵗᵐ (extᵗ suc))
+              (allKeep-applyTermsUnderTyBinders-id keepsχ V′))))
+
+    coercion≡ :
+      applyCoercions χs′ (gen A p) ≡
+        gen (⇑ᵗ A) (renameᶜ (extᵗ suc) p)
+    coercion≡ =
+      trans
+        (applyCoercions-gen χs′ A p)
+        (cong₂ gen A≡ pUnder≡)
+
 catchup-⊒Λ-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p} →
   Value W →

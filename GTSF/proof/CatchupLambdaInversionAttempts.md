@@ -3200,3 +3200,79 @@ rename the source-first body relation by `swap01ᵗ`, rewrite
 `renameᶜ swap01ᵗ (⇑ᶜ p)` to `renameᶜ (extᵗ suc) p`, then perform the adjacent
 source/target store swap.  This is the term-level counterpart of the
 store/coercion/equivalence swap lemmas already present from Attempts 72-78.
+
+## Attempt 91: factor the single-bind `⊒Λ` packaging
+
+Accepted as checked support in `proof.Catchup`.
+
+I added:
+
+`catchup-⊒Λ-single-bind-finish`
+
+The lemma packages the no-earlier-bind candidate once the remaining target-first
+body relation is available.  Its inputs are:
+
+`AllKeep χs`
+
+`AllKeep keeps`
+
+`N —↠[ χs ++ bind ★ ∷ keeps ] W′`
+
+and the body relation
+
+`suc (suc Δ) ∣
+  (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+  ⊢ ⇑ᵗᵐ W′ ⊒ renameᵗᵐ (extᵗ suc) V′
+    ∶ renameᶜ (extᵗ suc) p`.
+
+It returns the full catchup existential for
+
+`Δ ∣ σ ∣ [] ⊢ N ⊒ Λ V′ ∶ gen A p`
+
+with witnesses
+
+`χs′ = χs ++ bind ★ ∷ keeps`
+
+`Δ″ = suc Δ`
+
+`Π″ = (zero , ★) ∷ []`
+
+`Π″′ = []`
+
+`π′ = (⊒ zero ꞉=☆) ∷ []`.
+
+The proof discharges the previously noisy target/coercion normalization:
+
+`applyTerms χs′ (Λ V′)
+  = Λ (renameᵗᵐ (extᵗ suc) V′)`
+
+and
+
+`applyCoercions χs′ (gen A p)
+  = gen (⇑ᵗ A) (renameᶜ (extᵗ suc) p)`.
+
+This confirms that the final packaging is not another hidden blocker.  After
+Attempt 89 supplies the lowered reduction, the only missing proof obligation in
+the no-earlier-bind last-bind branch is still the target-first body replay:
+
+`W ⊒ ⇑ᵗᵐ V ∶ ⇑ᶜ p`
+
+under
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`
+
+must be transported to
+
+`⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+  ⊒ renameᵗᵐ (extᵗ suc) V
+  ∶ renameᶜ (extᵗ suc) p`
+
+under
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+This replay likely needs a split-aware term-renaming theorem for the safe store
+shape, plus the invariant that source terms under the source-first store cannot
+mention the target-only variable `suc zero`.  A generic `swap01ᵗ` term-renaming
+theorem remains suspect because arbitrary determinant stores are not preserved
+by the swap (`StoreDetWf-swap01-generic⊥`).

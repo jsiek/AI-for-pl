@@ -2145,6 +2145,51 @@ modeRename-merge01-tag-or-id :
 modeRename-merge01-tag-or-id =
   modeRename-tag-or-id merge01ᵗ
 
+modeRename-merge01-from-pieces :
+  ∀ {μ ν : ModeEnv} →
+  mode≤ (μ zero) (ν zero) ≡ true →
+  mode≤ (μ (suc zero)) (ν zero) ≡ true →
+  (∀ X → mode≤ (μ (suc (suc X))) (ν (suc (suc X))) ≡ true) →
+  ModeRename merge01ᵗ μ ν
+modeRename-merge01-from-pieces zero≤ν₀ one≤ν₀ tail zero = zero≤ν₀
+modeRename-merge01-from-pieces zero≤ν₀ one≤ν₀ tail (suc zero) =
+  one≤ν₀
+modeRename-merge01-from-pieces zero≤ν₀ one≤ν₀ tail (suc (suc X)) =
+  tail X
+
+modeRename-merge01-head-equal :
+  ∀ {μ : ModeEnv} →
+  μ zero ≡ μ (suc zero) →
+  ModeRename merge01ᵗ μ μ
+modeRename-merge01-head-equal {μ = μ} eq =
+  modeRename-merge01-from-pieces {ν = μ}
+    (modeIncl-refl {μ = μ} zero)
+    (subst (λ m → mode≤ (μ (suc zero)) m ≡ true)
+      (sym eq)
+      (modeIncl-refl {μ = μ} (suc zero)))
+    (λ X → modeIncl-refl {μ = μ} (suc (suc X)))
+
+tag-seal01ᵈ : ModeEnv
+tag-seal01ᵈ zero = tag-or-id
+tag-seal01ᵈ (suc zero) = seal-or-id
+tag-seal01ᵈ (suc (suc X)) = id-only
+
+tag-seal-mode≤⊥ :
+  ∀ m →
+  mode≤ tag-or-id m ≡ true →
+  mode≤ seal-or-id m ≡ true →
+  ⊥
+tag-seal-mode≤⊥ id-only () _
+tag-seal-mode≤⊥ tag-or-id _ ()
+tag-seal-mode≤⊥ seal-or-id () _
+
+merge01ᵗ-tag-seal-mode-rename⊥ :
+  ∀ {ν : ModeEnv} →
+  ModeRename merge01ᵗ tag-seal01ᵈ ν →
+  ⊥
+merge01ᵗ-tag-seal-mode-rename⊥ rel =
+  tag-seal-mode≤⊥ _ (rel zero) (rel (suc zero))
+
 source-first-merge01-srcStore :
   ∀ σ →
   srcStoreⁿ

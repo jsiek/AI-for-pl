@@ -4609,3 +4609,56 @@ separate remaining obligations:
 2. either prove `SourceTargetMergeSafe merge-here` for that renamed replay body,
    or give a special reconstruction for the unsafe split.  Attempt 127 only
    solves the safe transport side.
+
+## Attempt 128: generic `merge01ᵗ` term renaming is blocked by modes
+
+Accepted as checked negative evidence.
+
+The next obvious move after Attempt 127 was to try a generic term-renaming
+transport for `merge01ᵗ`.  That cannot be right: `merge01ᵗ` identifies type
+variables `zero` and `suc zero`, but a source derivation may allow tagging at
+one variable and sealing at the other.  No single target mode can satisfy both.
+
+New checked definitions:
+
+- `tag-seal01ᵈ`;
+- `tag-seal-mode≤⊥`;
+- `merge01ᵗ-tag-seal-mode-rename⊥`.
+
+The last lemma proves:
+
+`ModeRename merge01ᵗ tag-seal01ᵈ ν → ⊥`.
+
+So a general replay theorem of the form "rename any term-narrowing derivation by
+`merge01ᵗ`" is a dead end unless it carries a real compatibility condition on
+the modes.  The remaining `⊒Λ` route therefore has to exploit the specific
+source-first body produced from the `gen` coercion premise, or prove a
+specialized replay theorem with an invariant strong enough to exclude the
+tag/seal clash.
+
+## Attempt 129: positive mode condition for `merge01ᵗ`
+
+Accepted as checked support.
+
+Attempt 128 says that an unrestricted `ModeRename merge01ᵗ μ ν` can fail.  I
+added the positive counterpart:
+
+- `modeRename-merge01-from-pieces`;
+- `modeRename-merge01-head-equal`.
+
+The first lemma decomposes a `merge01ᵗ` mode renaming into exactly the needed
+facts:
+
+1. `μ zero` is allowed by the target mode at `zero`;
+2. `μ (suc zero)` is also allowed by that same target mode;
+3. the tail variables, which `merge01ᵗ` leaves unchanged, are allowed pointwise.
+
+The second lemma is the simple sufficient case where the two merged source
+heads have the same mode.
+
+This does not yet replay the source-first body.  It refines the shape of the
+next theorem: a guarded `merge01ᵗ` replay must carry compatibility not only for
+the visible `∶ᶜ` side premises, which are already `tag-or-idᵈ`, but also for
+store-narrowing/equivalence/composition endpoints that carry existential mode
+environments.  A proof that tracks only the term structure but ignores those
+hidden endpoint modes would repeat the false generic-renaming attempt.

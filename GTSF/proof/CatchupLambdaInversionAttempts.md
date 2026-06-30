@@ -4313,3 +4313,38 @@ needs to be recognized as a split/opening reconstruction in the target-first
 store.  This also explains why the earlier arbitrary `SourceTargetSwapRel`
 structural replay ran into unsafe split cases: the unsafe case is not
 impossible, it is exactly where `split` should be introduced.
+
+## Attempt 122: classify the no-key tag/untag function spine
+
+Accepted as checked support in `proof.NarrowWidenProperties`.
+
+After pulling the latest `main` into the branch, I refined the no-key approach
+from Attempts 118-121.  The goal was not to rule out the shifted tag branch,
+which Attempt 120 showed is real, but to classify it exactly when the source
+store has no key for the target-only variable.
+
+I added three checked coercion inversions:
+
+- `narrowing-target-var-fresh-no-key-untag`;
+- `widening-source-var-target-star-no-key-tag`;
+- `narrowing-starfun-to-varfun-no-key`.
+
+The last one proves that under `StoreNoKey α Σ`, any narrowing coercion
+
+`μ ∣ Δ ∣ Σ ⊢ c ∶ (★ ⇒ ★) ⊒ (＇ α ⇒ ＇ α)`
+
+is exactly
+
+`((＇ α) !) ↦ ((＇ α) ？)`.
+
+This is the reusable version of the concrete `var1-fun` diagnostic from
+Attempts 120-121.  It rules out the possibility that the remaining source-cast
+branch hides a different coercion shape, while preserving the fact that the
+tag/untag branch is admissible.
+
+Limitation: this is still a coercion-spine result, not the term-level replay.
+Once `CastSourceValueTarget` exposes a source-cast base, the final proof must
+still rebuild the target-first term with a `split`/opening reconstruction.  Using
+the existing `⊒Λ-body-split-marker-catchup` shortcut would still rely on the
+postulated `catchup-split-catchup`, so this attempt is support for the remaining
+case split rather than a proof of `catchup-⊒Λ-catchup`.

@@ -2490,6 +2490,101 @@ occurs-var-false≢ {α = α} fresh refl
     | no α≢α =
   α≢α refl
 
+narrowing-target-var-fresh-no-key-untag :
+  ∀ {μ Δ Σ c A α} →
+  StoreNoKey α Σ →
+  occurs α A ≡ false →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ ＇ α →
+  c ≡ (＇ α) ？
+narrowing-target-var-fresh-no-key-untag noKey fresh
+    (cast-id {A = ＇ α} hA ok , cross (id-＇ .α)) =
+  ⊥-elim (occurs-var-false≢ fresh refl)
+narrowing-target-var-fresh-no-key-untag noKey fresh
+    (cast-untag hG (＇ α) tag-ok , untag (＇ .α)) =
+  refl
+narrowing-target-var-fresh-no-key-untag noKey fresh
+    (cast-seq (cast-untag hG gG tag-ok) () ,
+     _？︔_ gG′ (cn-funˡ sʷ tⁿ))
+narrowing-target-var-fresh-no-key-untag noKey fresh
+    (cast-seq (cast-untag hG gG tag-ok) () ,
+     _？︔_ gG′ (cn-funʳ sʷ tⁿ))
+narrowing-target-var-fresh-no-key-untag noKey fresh
+    (cast-seq (cast-untag hG gG tag-ok) () ,
+     _？︔_ gG′ (cn-all tⁿ))
+narrowing-target-var-fresh-no-key-untag noKey fresh
+    (cast-seal hA α∈Σ seal-ok , sealⁿ A α) =
+  ⊥-elim (noKey α∈Σ)
+narrowing-target-var-fresh-no-key-untag noKey fresh
+    (cast-seq c⊢ (cast-seal hA α∈Σ seal-ok) ,
+     cⁿ ︔seal α) =
+  ⊥-elim (noKey α∈Σ)
+
+widening-source-var-target-star-no-key-tag :
+  ∀ {μ Δ Σ c α} →
+  StoreNoKey α Σ →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ ＇ α ⊑ ★ →
+  c ≡ (＇ α) !
+widening-source-var-target-star-no-key-tag noKey
+    (() , cross (id-＇ α))
+widening-source-var-target-star-no-key-tag noKey
+    (() , cross (id-‵ ι))
+widening-source-var-target-star-no-key-tag noKey
+    (() , cross (sⁿ ↦ tʷ))
+widening-source-var-target-star-no-key-tag noKey
+    (() , cross (`∀ tʷ))
+widening-source-var-target-star-no-key-tag noKey
+    (() , id★)
+widening-source-var-target-star-no-key-tag noKey
+    (() , inst tʷ)
+widening-source-var-target-star-no-key-tag noKey
+    (cast-tag hG (＇ α) tag-ok , tag (＇ .α)) =
+  refl
+widening-source-var-target-star-no-key-tag noKey
+    (cast-seq () (cast-tag hG gG tag-ok) ,
+     (cw-funˡ sⁿ tʷ ︔ gG′ !))
+widening-source-var-target-star-no-key-tag noKey
+    (cast-seq () (cast-tag hG gG tag-ok) ,
+     (cw-funʳ sⁿ tʷ ︔ gG′ !))
+widening-source-var-target-star-no-key-tag noKey
+    (cast-seq () (cast-tag hG gG tag-ok) ,
+     (cw-all tʷ ︔ gG′ !))
+widening-source-var-target-star-no-key-tag noKey
+    (cast-unseal hA α∈Σ seal-ok , unsealʷ α A) =
+  ⊥-elim (noKey α∈Σ)
+widening-source-var-target-star-no-key-tag noKey
+    (cast-seq (cast-unseal hA α∈Σ seal-ok) c⊢ ,
+     unseal︔_ α cʷ) =
+  ⊥-elim (noKey α∈Σ)
+
+narrowing-starfun-to-varfun-no-key :
+  ∀ {μ Δ Σ c α} →
+  StoreNoKey α Σ →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ (★ ⇒ ★) ⊒ (＇ α ⇒ ＇ α) →
+  c ≡ ((＇ α) !) ↦ ((＇ α) ？)
+narrowing-starfun-to-varfun-no-key noKey
+    (() , cross (id-＇ α))
+narrowing-starfun-to-varfun-no-key noKey
+    (() , cross (id-‵ ι))
+narrowing-starfun-to-varfun-no-key noKey
+    (cast-fun s⊢ t⊢ , cross (sʷ ↦ tⁿ)) =
+  cong₂ _↦_
+    (widening-source-var-target-star-no-key-tag noKey (s⊢ , sʷ))
+    (narrowing-target-var-fresh-no-key-untag noKey refl (t⊢ , tⁿ))
+narrowing-starfun-to-varfun-no-key noKey
+    (() , cross (`∀ tⁿ))
+narrowing-starfun-to-varfun-no-key noKey
+    (() , id★)
+narrowing-starfun-to-varfun-no-key noKey
+    (() , gen tⁿ)
+narrowing-starfun-to-varfun-no-key noKey
+    (() , untag gG)
+narrowing-starfun-to-varfun-no-key noKey
+    (cast-seq () c⊢ , _？︔_ gG tⁿ)
+narrowing-starfun-to-varfun-no-key noKey
+    (() , sealⁿ A α)
+narrowing-starfun-to-varfun-no-key noKey
+    (cast-seq c⊢ () , tⁿ ︔seal α)
+
 mutual
   narrowing-tag-spine-overlap⊥ :
     ∀ {μ Δ Σ A B C t α} →

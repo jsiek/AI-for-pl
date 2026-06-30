@@ -3866,3 +3866,48 @@ Conclusion: the remaining branch still needs a split-aware replay that uses the
 legal `gen A p` occurrence invariant to handle cast composition cases, or a
 structural refactor that recurses on the ν/cast source-history witnesses
 without hiding the recursive call from Agda's termination checker.
+
+## Attempt 108: package the no-earlier-bind source-first residue
+
+Accepted as checked support in `proof.Catchup`.
+
+I added:
+
+`catchup-⊒Λ-no-earlier-bind-source-first`
+
+This helper handles the subcase where the prefix before the final `bind` is
+also all `keep`.  From the live last-bind data it now packages two checked
+facts:
+
+1. the lowered source reduction
+
+   `N —↠[ χs ++ bind ★ ∷ keeps ] renameᵗᵐ predᵗ W`;
+
+2. the exact source-first body relation
+
+   `suc (suc Δ) ∣
+      (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+      ⊢ W ⊒ ⇑ᵗᵐ V′ ∶ ⇑ᶜ p`.
+
+The proof combines existing pieces:
+
+- `↠-split-last-bind`;
+- `last-bind-empty-target-star`;
+- `last-bind-pred-reduction`;
+- `last-bind-empty-target-lowered-tail`;
+- `last-bind-source-first-body-empty-tail`;
+- all-keep normalization for the prefix.
+
+This is useful because the remaining no-earlier-bind problem is now precisely a
+single replay theorem from the source-first body above to the target-first body
+needed by `catchup-⊒Λ-single-bind-finish`:
+
+`suc (suc Δ) ∣
+  (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+  ⊢ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+    ⊒ renameᵗᵐ (extᵗ suc) V′
+    ∶ renameᶜ (extᵗ suc) p`.
+
+Limitation: this still does not prove the replay itself.  It deliberately
+keeps the source-first body as the output so the remaining obligation cannot
+silently re-expand into the false generic `raise0ᵗ`/composition transport.

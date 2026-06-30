@@ -3731,6 +3731,112 @@ catchup-⊒Λ-single-bind-finish
         (applyCoercions-gen χs′ A p)
         (cong₂ gen A≡ pUnder≡)
 
+catchup-⊒Λ-no-earlier-bind-source-first :
+  ∀ {Δ σ χs keeps Aχ W Δ′ Π Π′ π N V′ p} →
+  AllKeep χs →
+  AllKeep keeps →
+  Value W →
+  CatchupSafe (⇑ᵗᵐ N) →
+  (⇑ᵗᵐ N —↠[ χs ++ bind Aχ ∷ keeps ] W) →
+  Δ′ ≡ applyTyCtxs (χs ++ bind Aχ ∷ keeps) (suc Δ) →
+  Π ≡ applyStores (χs ++ bind Aχ ∷ keeps) [] →
+  Π′ ≡ [] →
+  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
+  Δ′ ∣ combineStoreNrw π ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣ []
+    ⊢ W ⊒ applyTerms (χs ++ bind Aχ ∷ keeps) V′
+      ∶ applyCoercions (χs ++ bind Aχ ∷ keeps) p →
+  (N —↠[ χs ++ bind ★ ∷ keeps ] renameᵗᵐ predᵗ W) ×
+  (suc (suc Δ) ∣
+    (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ W ⊒ ⇑ᵗᵐ V′ ∶ ⇑ᶜ p)
+catchup-⊒Λ-no-earlier-bind-source-first
+    {Δ = Δ} {σ = σ} {χs = χs} {keeps = keeps}
+    {Aχ = Aχ} {W = W} {Δ′ = Δ′} {Π = Π} {Π′ = Π′}
+    {π = π} {N = N₀} {V′ = V′} {p = p}
+    keepsχ keepsTail vW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ W⊒V′
+    with ↠-split-last-bind ⇑N↠W
+       | last-bind-empty-target-lowered-tail
+           {π = π} {Π = Π} {χs = χs} {A = Aχ} {keeps = keeps}
+           keepsTail Π≡
+           (subst (λ Π₀ → _ ⊢ _ ꞉ _ ⊒ˢ Π₀) Π′≡ π⊒)
+catchup-⊒Λ-no-earlier-bind-source-first
+    {Δ = Δ} {σ = σ} {χs = χs} {keeps = keeps}
+    {Aχ = Aχ} {W = W} {Δ′ = Δ′} {Π = Π} {Π′ = Π′}
+    {π = π} {N = N₀} {V′ = V′} {p = p}
+    keepsχ keepsTail vW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ W⊒V′
+    | P , Q , ⇑N↠P , P→Q , Q↠W
+    | π₀ , π≡ , π₀⊒ =
+  N↠W′ , body
+  where
+    Aχ≡★ : Aχ ≡ ★
+    Aχ≡★ =
+      last-bind-empty-target-star
+        {π = π} {Π = Π} {χs = χs} {A = Aχ} {keeps = keeps}
+        keepsTail Π≡
+        (subst (λ Π₀ → _ ⊢ _ ꞉ _ ⊒ˢ Π₀) Π′≡ π⊒)
+
+    N↠W′ : N₀ —↠[ χs ++ bind ★ ∷ keeps ] renameᵗᵐ predᵗ W
+    N↠W′ =
+      last-bind-pred-reduction
+        {N = N₀}
+        keepsχ keepsTail Aχ≡★ safe⇑N ⇑N↠P P→Q Q↠W vW
+
+    Δ′≡tail :
+      Δ′ ≡ suc (applyTyCtxs χs (suc Δ))
+    Δ′≡tail =
+      trans Δ′≡
+        (applyTyCtxs-last-bind χs Aχ keeps keepsTail (suc Δ))
+
+    Δ′≡sucsuc :
+      Δ′ ≡ suc (suc Δ)
+    Δ′≡sucsuc =
+      trans Δ′≡tail
+        (cong suc (allKeep-applyTyCtxs-id keepsχ (suc Δ)))
+
+    target≡ :
+      ⇑ᵗᵐ (applyTerms χs V′) ≡ ⇑ᵗᵐ V′
+    target≡ = cong ⇑ᵗᵐ (allKeep-applyTerms-id keepsχ V′)
+
+    coercion≡ :
+      ⇑ᶜ (applyCoercions χs p) ≡ ⇑ᶜ p
+    coercion≡ = cong ⇑ᶜ (allKeep-applyCoercions-id keepsχ p)
+
+    body₀ :
+      Δ′ ∣
+        (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+        ⊢ W ⊒ ⇑ᵗᵐ (applyTerms χs V′)
+          ∶ ⇑ᶜ (applyCoercions χs p)
+    body₀ =
+      last-bind-source-first-body-empty-tail
+        {σ = σ} {χs = χs} {A = Aχ} {keeps = keeps}
+        {V = V′} {p = p} {π₀ = π₀}
+        {Π = applyStores χs []} {Π′ = []}
+        keepsχ keepsTail π≡ refl refl π₀⊒ W⊒V′
+
+    body :
+      suc (suc Δ) ∣
+        (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+        ⊢ W ⊒ ⇑ᵗᵐ V′ ∶ ⇑ᶜ p
+    body =
+      subst
+        (λ Δ₀ → Δ₀ ∣
+          (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+          ⊢ W ⊒ ⇑ᵗᵐ V′ ∶ ⇑ᶜ p)
+        Δ′≡sucsuc
+        (subst
+          (λ c → Δ′ ∣
+            (⊒ zero ꞉=☆) ∷
+              (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+            ⊢ W ⊒ ⇑ᵗᵐ V′ ∶ c)
+          coercion≡
+          (subst
+            (λ T → Δ′ ∣
+              (⊒ zero ꞉=☆) ∷
+                (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+              ⊢ W ⊒ T ∶ ⇑ᶜ (applyCoercions χs p))
+            target≡
+            body₀))
+
 catchup-⊒Λ-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p} →
   Value W →

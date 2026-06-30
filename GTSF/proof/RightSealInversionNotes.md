@@ -302,6 +302,57 @@ stripping/contraction fact to obtain a relation to `applyTerms χs V`.  The
 existing left widening/narrowing lemmas move casts on the source side; they do
 not remove this remaining right seal.
 
+### Attempt 5. Cancel two right-seal compositions
+
+The direct `⊒cast-` strip branch first suggested the algebraic cancellation
+
+```agda
+right-seal-compose-cancelᶜ :
+  Δ ∣ srcStoreⁿ σ ⊢ q  ∶ᶜ C  ⊒ D →
+  Δ ∣ srcStoreⁿ σ ⊢ q₀ ∶ᶜ C₀ ⊒ D₀ →
+  Δ ∣ σ ⊢ q  ⨾ⁿ seal B  α ≈ r ∶ E  ⊒ F →
+  Δ ∣ σ ⊢ q₀ ⨾ⁿ seal A₀ α ≈ r ∶ E₀ ⊒ F₀ →
+  q₀ ≡ q .
+```
+
+A first proof tried to use the `StoreDetWf` carried by `compose-leftⁿ` and the
+seal memberships from the internal composition.  This is not sufficient:
+`endpointsⁿ` has its own target store for the computed composite, and that
+store is the one constrained by the store narrowing `σ`.  The internal
+composition store and the endpoint target store are related only through the
+fact that both type the computed composite.
+
+The useful algebraic fact added during this attempt is the dual of
+`srcStoreⁿ-⊒ˢ`:
+
+```agda
+tgtStoreⁿ-⊒ˢ :
+  Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+  Σ′ ≡ tgtStoreⁿ σ .
+```
+
+The next cancellation attempt should first prove a shape lemma for the computed
+composite `proj₁ (_⨟ⁿ_ q⊒ seal⊒)`: any endpoint typing of that computed
+coercion must expose the final seal membership in the endpoint target store.
+Only after extracting those endpoint-store memberships can `tgtStoreⁿ-⊒ˢ` and
+store uniqueness force the two seal payloads to agree.  Trying to use the
+internal `cast-seal` memberships repeats the wrong-store mistake.
+
+For the DGG redex itself this cancellation is less central than it first
+appeared, because the theorem conclusion existentially chooses the post-step
+index `p′`.  In the direct `⊒cast-` branch the proof can return the inner
+relation at its original index.  The cancellation lemma would still be useful
+for a stronger exact-index strip theorem, but the DGG-oriented strip theorem
+mainly needs the store-shaping cases (`extend` and `split`) and a way to handle
+or exclude remaining left-cast wrappers after catchup.
+
+For `extend`, `extendReplaceRel-term` and `extendReplaceRel-compose-left`
+transport from the source-only store `(α ꞉= A ⊒) ∷ σ` to the ordinary store
+`(α ꞉ q) ∷ σ`.  The recursive strip premise would need the opposite direction:
+from the outer composition in `(α ꞉ q) ∷ σ` to a composition premise in
+`(α ꞉= A ⊒) ∷ σ`.  Reusing the existing transport directly therefore repeats
+the wrong-direction mistake.
+
 ### Counterexample search
 
 The known `right-seal-inversion₁` counterexample does not satisfy the exact DGG

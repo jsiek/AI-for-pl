@@ -64,6 +64,21 @@ module proof.LeftWidening where
 --     The `⊒Λ` and `⊒⟨ν⟩` relation-side wrappers cover the two
 --     term-narrowing constructors that can consume an inert exposed body cast;
 --     Example 4 now goes through the `⊒Λ` wrapper.
+--     For the `seal` head, the dual `unseal` is active, so the inert helper
+--     cannot apply.  The checked helper `left-widening-seal-redex-package`
+--     packages the part that should remain after a left-seal inversion:
+--     when the source value is already visibly sealed, `seal-unseal` provides
+--     the reduction and the `No•` result follows by inversion on the casted
+--     value.
+--     `left-widening-seq-from-seal-redex-components` plugs that package into
+--     the actual narrowing sequence shape `s ︔ seal A α`: after inversion
+--     supplies the intermediate relation for the unsealed body, the helper
+--     performs the seal/unseal step, recursively widens through `s`, and
+--     reuses the existing sequence bookkeeping.
+--     `left-widening-seq-from-untag-components` does the analogous factoring
+--     for the other grammar sequence form, `G ？︔ g`: only the `g` component
+--     needs a recursive left-widening call, while the trailing `G ？` component
+--     is discharged by the inert `left-widening-untag` branch.
 --     For sequence variants, `dual-seq` and `left-widening-seq-prefix` factor
 --     only the initial `β-seq` step; the remaining recursive catchup/left-
 --     widening obligations are deliberately left explicit.
@@ -217,7 +232,9 @@ open import proof.CatchupStore
 open import proof.ReductionProperties
   using
     ( applyCoercions
+    ; applyCoercions-dual
     ; applyCoercions-empty-id
+    ; applyCoercions-preserves-Inert
     ; applyCoercions-++
     ; applyCoercions-⇑ᶜ
     ; applyCoercions-gen
@@ -868,6 +885,14 @@ left-widening-untag gG vV noV pᶜ r≈t⨟p V⊒V′ =
   left-widening-inert (dual-untag-inert gG)
     vV noV pᶜ r≈t⨟p V⊒V′
 
+left-widening-applyCoercions-dual-untag-inert :
+  ∀ χs {G} →
+  Ground G →
+  Inert (- applyCoercions χs (G ？))
+left-widening-applyCoercions-dual-untag-inert χs gG =
+  subst Inert (applyCoercions-dual χs (_ ？))
+    (applyCoercions-preserves-Inert χs (dual-untag-inert gG))
+
 left-widening-unseal :
   ∀ {Δ σ V V′ p r α A A₀ B C D} →
   Value V →
@@ -909,6 +934,33 @@ left-widening-inst :
 left-widening-inst {B = B} {c = c} vV noV pᶜ r≈t⨟p V⊒V′ =
   left-widening-inert (dual-inst-inert {B = B} {c = c})
     vV noV pᶜ r≈t⨟p V⊒V′
+
+left-widening-seal-redex-package :
+  ∀ {Δ σ W V′ r A α} →
+  Value W →
+  No• (W ⟨ seal A α ⟩) →
+  Δ ∣ σ ∣ [] ⊢ W ⊒ V′ ∶ r →
+  ∃[ χs ] ∃[ U ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value U ×
+    No• U ×
+    ((W ⟨ seal A α ⟩) ⟨ - seal A α ⟩ —↠[ χs ] U) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ U ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+left-widening-seal-redex-package {Δ = Δ} {W = W}
+    vW (no•-⟨⟩ noW) W⊒V′ =
+  keep ∷ [] , W , Δ , [] , [] , [] ,
+  vW ,
+  noW ,
+  ↠-step (pure-step (seal-unseal vW)) ↠-refl ,
+  refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  W⊒V′
 
 left-widening-seq-reduction :
   ∀ {c d V} →
@@ -1167,6 +1219,138 @@ left-widening-seq-recursive-witness-package
     Π₂′≡
     π₂⊒
     U⊒V′
+
+left-widening-seq-from-seal-redex-components :
+  LeftWidening →
+  ∀ {Δ σ W V′ q r s A α E F G H} →
+  Value W →
+  No• (W ⟨ seal A α ⟩) →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ E ⊒ F →
+  Δ ∣ σ ⊢ r ≈ s ⨾ⁿ q ∶ G ⊒ H →
+  Δ ∣ σ ∣ [] ⊢ W ⊒ V′ ∶ q →
+  ∃[ χs ] ∃[ U ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value U ×
+    No• U ×
+    ((W ⟨ seal A α ⟩) ⟨ - (s ︔ seal A α) ⟩ —↠[ χs ] U) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ U ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+left-widening-seq-from-seal-redex-components left-widening
+    {Δ = Δ} {σ = σ} {W = W} {V′ = V′}
+    {q = q} {r = r} {s = s} {A = A} {α = α}
+    vW (no•-⟨⟩ noW) qᶜ r≈s⨟q W⊒V′
+    with left-widening
+           {Δ = Δ} {σ = σ} {V = W} {V′ = V′}
+           {p = q} {r = r} {t = s}
+           vW
+           noW
+           qᶜ
+           r≈s⨟q
+           W⊒V′
+left-widening-seq-from-seal-redex-components left-widening
+    {Δ = Δ} {σ = σ} {W = W} {V′ = V′}
+    {q = q} {r = r} {s = s} {A = A} {α = α}
+    vW (no•-⟨⟩ noW) qᶜ r≈s⨟q W⊒V′
+    | χs₂ , U , Δ₂ , Π₂ , Π₂′ , π₂ ,
+      vU , noU , Ws↠U , Δ₂≡ , Π₂≡ , Π₂′≡ ,
+      π₂⊒ , U⊒V′ =
+  left-widening-seq-recursive-witness-package
+    {Δ = Δ} {σ = σ} {V = W ⟨ seal A α ⟩} {V′ = V′}
+    {c = s} {d = seal A α} {q = q} {r = r}
+    (vW ⟨ seal A α ⟩)
+    (keep ∷ [] , W , Δ , [] , [] , [] ,
+      vW ,
+      noW ,
+      ↠-step (pure-step (seal-unseal vW)) ↠-refl ,
+      refl ,
+      refl ,
+      refl ,
+      ⊒ˢ-nil ,
+      W⊒V′ ,
+      χs₂ , U , Δ₂ , Π₂ , Π₂′ , π₂ ,
+      vU , noU , Ws↠U , Δ₂≡ , Π₂≡ , Π₂′≡ ,
+      π₂⊒ , U⊒V′)
+
+left-widening-seq-from-untag-components :
+  LeftWidening →
+  ∀ {Δ σ V V′ p q r g G A B C D E F G₀ H} →
+  Ground G →
+  Value V →
+  No• V →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ E ⊒ F →
+  Δ ∣ σ ⊢ q ≈ g ⨾ⁿ p ∶ A ⊒ B →
+  Δ ∣ σ ⊢ r ≈ (G ？) ⨾ⁿ q ∶ G₀ ⊒ H →
+  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
+  ∃[ χs ] ∃[ U ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value U ×
+    No• U ×
+    (V ⟨ - ((G ？) ︔ g) ⟩ —↠[ χs ] U) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ U ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+left-widening-seq-from-untag-components left-widening
+    {Δ = Δ} {σ = σ} {V = V} {V′ = V′} {p = p}
+    {q = q} {r = r} {g = g} {G = G}
+    gG vV noV pᶜ qᶜ q≈g⨟p r≈untag⨟q V⊒V′
+    with left-widening
+           {Δ = Δ} {σ = σ} {V = V} {V′ = V′}
+           {p = p} {r = q} {t = g}
+           vV
+           noV
+           pᶜ
+           q≈g⨟p
+           V⊒V′
+left-widening-seq-from-untag-components left-widening
+    {Δ = Δ} {σ = σ} {V = V} {V′ = V′} {p = p}
+    {q = q} {r = r} {g = g} {G = G}
+    gG vV noV pᶜ qᶜ q≈g⨟p r≈untag⨟q V⊒V′
+    | χs₁ , W , Δ₁ , Π₁ , Π₁′ , π₁ ,
+      vW , noW , Vg↠W , Δ₁≡ , Π₁≡ , Π₁′≡ ,
+      π₁⊒ , W⊒V′
+    with left-widening-inert
+           {Δ = Δ₁} {σ = combineStoreNrw π₁ σ}
+           {V = W} {V′ = applyTerms χs₁ V′}
+           {p = applyCoercions χs₁ q}
+           {r = applyCoercions χs₁ r}
+           {t = applyCoercions χs₁ (G ？)}
+           (left-widening-applyCoercions-dual-untag-inert χs₁ gG)
+           vW
+           noW
+           (left-widening-coercion-typing-transport
+             {σ = σ} {π = π₁} {χs = χs₁} {p = q}
+             qᶜ Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
+           (left-widening-compose-right-transport
+             {σ = σ} {π = π₁} {χs = χs₁}
+             {r = r} {t = G ？} {p = q}
+             r≈untag⨟q Δ₁≡ Π₁≡ Π₁′≡ π₁⊒)
+           W⊒V′
+left-widening-seq-from-untag-components left-widening
+    {Δ = Δ} {σ = σ} {V = V} {V′ = V′} {p = p}
+    {q = q} {r = r} {g = g} {G = G}
+    gG vV noV pᶜ qᶜ q≈g⨟p r≈untag⨟q V⊒V′
+    | χs₁ , W , Δ₁ , Π₁ , Π₁′ , π₁ ,
+      vW , noW , Vg↠W , Δ₁≡ , Π₁≡ , Π₁′≡ ,
+      π₁⊒ , W⊒V′
+    | χs₂ , U , Δ₂ , Π₂ , Π₂′ , π₂ ,
+      vU , noU , Wuntag↠U , Δ₂≡ , Π₂≡ , Π₂′≡ ,
+      π₂⊒ , U⊒V′ =
+  left-widening-seq-recursive-witness-package
+    {Δ = Δ} {σ = σ} {V = V} {V′ = V′}
+    {c = G ？} {d = g} {q = q} {r = r}
+    vV
+    (χs₁ , W , Δ₁ , Π₁ , Π₁′ , π₁ ,
+      vW , noW , Vg↠W , Δ₁≡ , Π₁≡ , Π₁′≡ ,
+      π₁⊒ , W⊒V′ ,
+      χs₂ , U , Δ₂ , Π₂ , Π₂′ , π₂ ,
+      vU , noU , Wuntag↠U , Δ₂≡ , Π₂≡ , Π₂′≡ ,
+      π₂⊒ , U⊒V′)
 
 left-widening-seq-from-components :
   LeftWidening →

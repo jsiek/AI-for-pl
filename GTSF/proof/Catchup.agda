@@ -3994,9 +3994,24 @@ catchup-lemma okM (Λ vV′) (Λ⊒Λ allᶜ vV V⊒V′) =
   Λ⊒Λ allᶜ vV V⊒V′
 catchup-lemma (ok-• vV noV) (Λ vV′) (⊒Λ pᶜ N⊒V′) =
   ⊥-elim (type-app-source-no-value-target vV′ N⊒V′)
-catchup-lemma okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
+catchup-lemma {M = N} okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    with value? N
+catchup-lemma {M = N} okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | just vN =
+  [] , N , _ , [] , [] , [] ,
+  vN ,
+  value-runtime-No• vN okM ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  ⊒Λ pᶜ N⊒V′
+catchup-lemma {M = N} okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
     with catchup-lemma (runtime-⇑ᵗᵐ okM) vV′ N⊒V′
-catchup-lemma okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
+catchup-lemma {M = N} okM (Λ vV′) (⊒Λ pᶜ N⊒V′)
+    | nothing
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , ⇑N↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′ =
   catchup-⊒Λ-catchup

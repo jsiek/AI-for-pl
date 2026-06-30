@@ -3801,3 +3801,22 @@ Limitation: the `last-bind` branch still falls back to
 source-first to target-first replay from Attempts 101-103, or a way to show
 that the live branch cannot have an earlier non-keep prefix before the final
 source-only bind.
+
+## Attempt 106: short-circuit value sources in the outer `⊒Λ` case
+
+Accepted as checked support in `proof.Catchup`.
+
+Before making the recursive call on the shifted source, the outer
+`catchup-lemma` now checks `value? N`.  If `N` is already a value, the original
+constructor
+
+`⊒Λ pᶜ N⊒V′`
+
+is already the desired final relation, so the proof returns `χs = []`,
+`W = N`, `π = []`, and `↠-refl`.  The `No• N` witness comes from
+`value-runtime-No• vN okM`.
+
+This is not the missing inversion, but it removes a non-problematic source
+shape from the recursive path.  The remaining non-value path is exactly where
+`shifted-source-remainder` reduces the source to ν/cast histories and where the
+last-bind replay problem still lives.

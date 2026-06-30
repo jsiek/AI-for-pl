@@ -849,3 +849,27 @@ and the target step `seal-unseal`.  The conclusion is refuted after
 post-step contradiction is generalized over the existentially chosen `Δ′`;
 otherwise the DGG result could hide behind an arbitrary context choice even
 though the source and target stores are both empty after the step.
+
+The module also checks the stronger refutation
+
+```agda
+dynamic-gradual-guarantee-statement⊥ :
+  DynamicGradualGuaranteeStatement → ⊥
+```
+
+where `DynamicGradualGuaranteeStatement` is the current theorem statement of
+`dynamicGradualGuarantee`.  Thus the obstruction is not only the local proof
+script for the seal-unseal branch: any proof of the current statement would
+produce the impossible `ExactSealUnsealDGGResult` on this instance.
+
+Consequently, the missing algebra for the original proof cannot be a
+right-seal cancellation lemma that excludes the source-left tag case.  Such a
+lemma would contradict the checked algebraic witness
+
+```agda
+id ★ ⨾ⁿ seal ★ 0 ≈ (＇ 0) ？
+```
+
+and the checked term-level premise built from it.  A repair must change the
+statement or one of the relations/operational rules so this exact
+source-left-tag value is no longer an admissible premise for DGG.

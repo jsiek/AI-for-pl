@@ -814,3 +814,23 @@ exact-seal-unseal-dgg-result⊥
     rewrite χs≡[] | N≡badSource | Π≡ | Π′≡
     with π⊒
 ... | ⊒ˢ-nil = badSource⊒c★⊥ N⊒c★
+
+DynamicGradualGuaranteeStatement : Set₁
+DynamicGradualGuaranteeStatement =
+  ∀ {Δ σ M M′ N′ p χ′} →
+  RuntimeOK M →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ M′ ∶ p →
+  M′ —→[ χ′ ] N′ →
+  ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ p′ ]
+    (M —↠[ χs ] N) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore χ′ []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ N′ ∶ p′
+
+dynamic-gradual-guarantee-statement⊥ :
+  DynamicGradualGuaranteeStatement → ⊥
+dynamic-gradual-guarantee-statement⊥ dgg =
+  exact-seal-unseal-dgg-result⊥
+    (dgg badSource-runtime-ok exact-tagged-sealed-source-premise′
+      sealedTarget-step)

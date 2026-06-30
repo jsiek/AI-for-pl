@@ -3417,3 +3417,34 @@ Next restriction to investigate: prove or refute the mixed-composition replay
 under the additional invariant supplied by the real `gen` premise, or avoid
 that replay entirely by deriving the single-bind body relation through
 catchup/left-narrowing rather than by structural retagging of every constructor.
+
+## Attempt 95: check whether the mixed counterprobe can be a `gen` body
+
+Accepted as checked support in `proof.TraceProbe`, and rejected as a
+counterexample to the live `⊒Λ` case.
+
+The Attempt 94 mixed-composition counterprobe uses
+
+`id-var1-fun = id (＇ 1) ↦ id (＇ 1)`.
+
+Trying to make this the body coercion of a legal `gen` premise runs into the
+side condition of `cast-gen`:
+
+`occurs zero B ≡ true`.
+
+For the probe target `B = ＇ 1 ⇒ ＇ 1`, this side condition reduces to `false ≡
+true`, so no such `gen` premise can be constructed.  The new checked lemma is:
+
+`no-id-var1-fun-gen-target :
+  Δ ∣ Σ ⊢ gen A id-var1-fun ∶ᶜ A ⊒ `∀ (＇ 1 ⇒ ＇ 1) → ⊥`
+
+This explains why the generic replay theorem is false while the actual
+`catchup-lemma` branch may still be sound: the real premise deliberately
+inserts a target occurrence of the freshly bound variable.  The relevant
+existing infrastructure is `narrowing-all-gen-overlap⊥`, which packages this
+occurrence gap as an impossible overlap between an ordinary shifted `∀` body
+and a legal `gen` body.
+
+Next step: use the `cast-gen` occurrence invariant, or
+`narrowing-all-gen-overlap⊥` directly, to rule out the bad source-cast replay
+branches instead of proving a free-standing mixed-composition theorem.

@@ -289,6 +289,12 @@ no-probe-gen-premise :
 no-probe-gen-premise (cast-gen hA occ body⊢ , gen bodyⁿ) =
   no-probe-gen-body-source body⊢
 
+no-id-var1-fun-gen-target :
+  ∀ {Δ Σ A} →
+  Δ ∣ Σ ⊢ gen A id-var1-fun ∶ᶜ A ⊒ `∀ (＇ 1 ⇒ ＇ 1) →
+  ⊥
+no-id-var1-fun-gen-target (cast-gen hA () body⊢ , gen bodyⁿ)
+
 fun-left : Coercion → Coercion
 fun-left (id A) = id A
 fun-left (c ︔ d) = c ︔ d

@@ -5,11 +5,15 @@ module proof.TermNarrowingProperties where
 --   * Provides constructor-level type-context shifting helpers, composition
 --     shifting for cast side conditions, and the two cambridge23 two-sided
 --     cast derived rules.
+--   * Includes the store-determinacy transport needed by composition renaming
+--     under strict/injective type renamings.
 --   * Depends on the public definitions in `TermNarrowing` and `NarrowWiden`.
 
 open import Data.List using ([]; _∷_; map)
-open import Data.Nat using (zero; suc)
-open import Data.Product using (_,_; proj₂; ∃-syntax)
+open import Data.List.Membership.Propositional using (_∈_)
+open import Data.List.Relation.Unary.Any using (here; there)
+open import Data.Nat using (_<_; zero; suc; z<s; s<s)
+open import Data.Product using (_×_; _,_; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; cong; cong₂; refl; subst; sym; trans)
 
@@ -65,10 +69,16 @@ open import proof.NarrowWidenProperties
     )
 open import proof.NuTermProperties
   using (renameᵗᵐ-ext-suc-comm; renameᵗᵐ-preserves-Value)
+open import proof.StoreProperties using (StoreWfAt-rename)
 open import proof.TypeProperties
   using
-    ( TyRenameWf
+    ( RenameLeftInverse
+    ; RenameLeftInverse-ext-suc-pred
+    ; RenameLeftInverse-suc
+    ; TyRenameWf
     ; TyRenameWf-ext
+    ; TyRenameWf-suc
+    ; predᵗ
     ; renameᵗ-ext-suc-comm
     ; renameᵗ-preserves-WfTy
     )
@@ -91,6 +101,39 @@ modeRename-tag-or-id :
   ∀ {ρ} →
   ModeRename ρ tag-or-idᵈ tag-or-idᵈ
 modeRename-tag-or-id X = refl
+
+TyRenameStrict : Renameᵗ → Set
+TyRenameStrict ρ = ∀ {X Y} → X < Y → ρ X < ρ Y
+
+TyRenameStrict-suc :
+  TyRenameStrict suc
+TyRenameStrict-suc X<Y = s<s X<Y
+
+TyRenameStrict-ext :
+  ∀ {ρ} →
+  TyRenameStrict ρ →
+  TyRenameStrict (extᵗ ρ)
+TyRenameStrict-ext strict {zero} {zero} ()
+TyRenameStrict-ext strict {zero} {suc Y} z<s = z<s
+TyRenameStrict-ext strict {suc X} {zero} ()
+TyRenameStrict-ext strict {suc X} {suc Y} (s<s X<Y) =
+  s<s (strict X<Y)
+
+TyRenameWf-ext-suc :
+  ∀ {Δ} →
+  TyRenameWf Δ (suc Δ) (extᵗ suc)
+TyRenameWf-ext-suc {Δ = zero} ()
+TyRenameWf-ext-suc {Δ = suc Δ} {zero} z<s = z<s
+TyRenameWf-ext-suc {Δ = suc Δ} {suc X} (s<s X<Δ) =
+  s<s (TyRenameWf-suc X<Δ)
+
+rename-injective :
+  ∀ {ρ ψ X Y} →
+  RenameLeftInverse ρ ψ →
+  ρ X ≡ ρ Y →
+  X ≡ Y
+rename-injective {ρ = ρ} {ψ = ψ} {X = X} {Y = Y} inv eq =
+  trans (sym (inv X)) (trans (cong ψ eq) (inv Y))
 
 tailᵈ : ModeEnv → ModeEnv
 tailᵈ μ X = μ (suc X)
@@ -214,6 +257,76 @@ srcStoreⁿ-renameStoreNrw ρ ((X ꞉= A ⊒) ∷ σ) =
 srcStoreⁿ-renameStoreNrw ρ ((⊒ X ꞉=☆) ∷ σ) =
   cong₂ _∷_ refl (srcStoreⁿ-renameStoreNrw ρ σ)
 
+renameStoreᵗ-inv :
+  ∀ ρ {Σ β B} →
+  (β , B) ∈ renameStoreᵗ ρ Σ →
+  ∃[ α ] ∃[ A ] (β ≡ ρ α × B ≡ renameᵗ ρ A × (α , A) ∈ Σ)
+renameStoreᵗ-inv ρ {Σ = (α , A) ∷ Σ} (here refl) =
+  α , A , refl , refl , here refl
+renameStoreᵗ-inv ρ {Σ = (α , A) ∷ Σ} (there h)
+    with renameStoreᵗ-inv ρ h
+renameStoreᵗ-inv ρ {Σ = (α , A) ∷ Σ} (there h)
+    | β , B , eqβ , eqB , mem =
+  β , B , eqβ , eqB , there mem
+
+StoreDetWf-rename :
+  ∀ {ρ ψ Δ Δ′ Σ} →
+  TyRenameWf Δ Δ′ ρ →
+  TyRenameStrict ρ →
+  RenameLeftInverse ρ ψ →
+  StoreDetWf Δ Σ →
+  StoreDetWf Δ′ (renameStoreᵗ ρ Σ)
+StoreDetWf-rename {ρ = ρ} {ψ = ψ} hρ strict inv wfΣ =
+  record
+    { at = StoreWfAt-rename hρ (StoreDetWf.at wfΣ)
+    ; wfOlder = wfOlder′
+    ; unique = unique′
+    }
+  where
+    wfOlder′ :
+      ∀ {β B} →
+      (β , B) ∈ renameStoreᵗ ρ _ →
+      WfTy β B
+    wfOlder′ {β = β} {B = B} h
+        with renameStoreᵗ-inv ρ h
+    wfOlder′ {β = β} {B = B} h
+        | α , A , eqβ , eqB , mem =
+      subst (λ X → WfTy X B) (sym eqβ)
+        (subst (WfTy (ρ α)) (sym eqB)
+          (renameᵗ-preserves-WfTy (StoreDetWf.wfOlder wfΣ mem)
+            (λ X<α → strict X<α)))
+
+    unique′ :
+      ∀ {β A B} →
+      (β , A) ∈ renameStoreᵗ ρ _ →
+      (β , B) ∈ renameStoreᵗ ρ _ →
+      A ≡ B
+    unique′ h₁ h₂
+        with renameStoreᵗ-inv ρ h₁ | renameStoreᵗ-inv ρ h₂
+    unique′ h₁ h₂
+        | α₁ , A₁ , eqβ₁ , eqA₁ , mem₁
+        | α₂ , A₂ , eqβ₂ , eqA₂ , mem₂ =
+      trans eqA₁
+        (trans
+          (cong (renameᵗ ρ)
+            (StoreDetWf.unique wfΣ mem₁
+              (subst (λ X → (X , A₂) ∈ _) (sym α₁≡α₂) mem₂)))
+          (sym eqA₂))
+      where
+        α₁≡α₂ : α₁ ≡ α₂
+        α₁≡α₂ =
+          rename-injective {ψ = ψ} inv (trans (sym eqβ₁) eqβ₂)
+
+StoreDetWf-ext-suc :
+  ∀ {Δ Σ} →
+  StoreDetWf Δ Σ →
+  StoreDetWf (suc Δ) (renameStoreᵗ (extᵗ suc) Σ)
+StoreDetWf-ext-suc =
+  StoreDetWf-rename {ρ = extᵗ suc} {ψ = predᵗ}
+    TyRenameWf-ext-suc
+    (TyRenameStrict-ext TyRenameStrict-suc)
+    RenameLeftInverse-ext-suc-pred
+
 ⊒ˢ-rename :
   ∀ {ρ Δ Δ′ σ Σ Σ′} →
   TyRenameWf Δ Δ′ ρ →
@@ -320,6 +433,41 @@ compose-rightⁿ-rename {ρ = ρ} hρ all det
         (≈ⁿ-rename hρ all r≈t⨟p)
   in
   compose-rightⁿ wfΣ′ t⊒′ p⊒′ eq′
+
+≈ⁿ-ext-suc :
+  ∀ {Δ σ s t A B} →
+  Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
+  suc Δ ∣ renameStoreNrw (extᵗ suc) σ
+    ⊢ renameᶜ (extᵗ suc) s ≈ renameᶜ (extᵗ suc) t
+    ∶ renameᵗ (extᵗ suc) A ⊒ renameᵗ (extᵗ suc) B
+≈ⁿ-ext-suc =
+  ≈ⁿ-rename TyRenameWf-ext-suc (allModeRename-ext allModeRename-suc)
+
+compose-leftⁿ-ext-suc :
+  ∀ {Δ σ q s r A B} →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  suc Δ ∣ renameStoreNrw (extᵗ suc) σ
+    ⊢ renameᶜ (extᵗ suc) q ⨾ⁿ renameᶜ (extᵗ suc) s
+      ≈ renameᶜ (extᵗ suc) r
+    ∶ renameᵗ (extᵗ suc) A ⊒ renameᵗ (extᵗ suc) B
+compose-leftⁿ-ext-suc =
+  compose-leftⁿ-rename
+    TyRenameWf-ext-suc
+    (allModeRename-ext allModeRename-suc)
+    StoreDetWf-ext-suc
+
+compose-rightⁿ-ext-suc :
+  ∀ {Δ σ r t p A B} →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  suc Δ ∣ renameStoreNrw (extᵗ suc) σ
+    ⊢ renameᶜ (extᵗ suc) r
+      ≈ renameᶜ (extᵗ suc) t ⨾ⁿ renameᶜ (extᵗ suc) p
+    ∶ renameᵗ (extᵗ suc) A ⊒ renameᵗ (extᵗ suc) B
+compose-rightⁿ-ext-suc =
+  compose-rightⁿ-rename
+    TyRenameWf-ext-suc
+    (allModeRename-ext allModeRename-suc)
+    StoreDetWf-ext-suc
 
 lookup-renameCtxNrw :
   ∀ ρ {γ x p} →
@@ -834,6 +982,70 @@ rename-cast-⊒ {ρ = ρ} {σ = σ} hρ pᶜ r≈t⨟p M⊒M′ =
   cast-⊒
     (rename-cast-srcStore {ρ = ρ} {σ = σ} hρ pᶜ)
     r≈t⨟p
+    M⊒M′
+
+rename-⊒cast+-det :
+  ∀ {ρ Δ Δ′ σ γ M M′ q r s A B C D} →
+  TyRenameWf Δ Δ′ ρ →
+  AllModeRename ρ →
+  (∀ {Σ} → StoreDetWf Δ Σ → StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ r →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ (M′ ⟨ - s ⟩) ∶ renameᶜ ρ q
+rename-⊒cast+-det hρ all det qᶜ q⨟s≈r M⊒M′ =
+  rename-⊒cast+ hρ qᶜ
+    (compose-leftⁿ-rename hρ all det q⨟s≈r)
+    M⊒M′
+
+rename-⊒cast--det :
+  ∀ {ρ Δ Δ′ σ γ M M′ q r s A B C D} →
+  TyRenameWf Δ Δ′ ρ →
+  AllModeRename ρ →
+  (∀ {Σ} → StoreDetWf Δ Σ → StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ q →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ (M′ ⟨ s ⟩) ∶ renameᶜ ρ r
+rename-⊒cast--det hρ all det qᶜ q⨟s≈r M⊒M′ =
+  rename-⊒cast- hρ qᶜ
+    (compose-leftⁿ-rename hρ all det q⨟s≈r)
+    M⊒M′
+
+rename-cast+⊒-det :
+  ∀ {ρ Δ Δ′ σ γ M M′ p r t A B C D} →
+  TyRenameWf Δ Δ′ ρ →
+  AllModeRename ρ →
+  (∀ {Σ} → StoreDetWf Δ Σ → StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ p →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ (M ⟨ - t ⟩) ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ r
+rename-cast+⊒-det hρ all det pᶜ r≈t⨟p M⊒M′ =
+  rename-cast+⊒ hρ pᶜ
+    (compose-rightⁿ-rename hρ all det r≈t⨟p)
+    M⊒M′
+
+rename-cast-⊒-det :
+  ∀ {ρ Δ Δ′ σ γ M M′ p r t A B C D} →
+  TyRenameWf Δ Δ′ ρ →
+  AllModeRename ρ →
+  (∀ {Σ} → StoreDetWf Δ Σ → StoreDetWf Δ′ (renameStoreᵗ ρ Σ)) →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ r →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ (M ⟨ t ⟩) ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ p
+rename-cast-⊒-det hρ all det pᶜ r≈t⨟p M⊒M′ =
+  rename-cast-⊒ hρ pᶜ
+    (compose-rightⁿ-rename hρ all det r≈t⨟p)
     M⊒M′
 
 lookup-⇑ᵍ :

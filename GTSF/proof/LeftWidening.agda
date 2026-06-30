@@ -73,14 +73,19 @@ module proof.LeftWidening where
 --     mechanized in `proof.TermNarrowingProperties` as `narrow-renameᵗ-any`,
 --     `⊒ˢ-rename`, `≈ⁿ-rename`, `compose-leftⁿ-rename`,
 --     and `compose-rightⁿ-rename`.
+--     A usable `StoreDetWf` transport has to assume both order preservation
+--     and injectivity.  That refinement is mechanized as `TyRenameStrict`,
+--     `StoreDetWf-rename`, and the binder-preserving `StoreDetWf-ext-suc`,
+--     with direct `≈ⁿ-ext-suc`, `compose-leftⁿ-ext-suc`, and
+--     `compose-rightⁿ-ext-suc` corollaries.
 --     The `suc`-specific cast cases are still mechanized there via `≈ⁿ-⇑ˢ`,
 --     `compose-leftⁿ-⇑ˢ`, `compose-rightⁿ-⇑ˢ`, `shift-⊒cast+`,
 --     `shift-⊒cast-`, `shift-cast+⊒`, and `shift-cast-⊒`.
 --   * The cast constructors can also be renamed once the composition
 --     side-condition has already been transported.  The constructor-level
 --     lemmas `rename-⊒cast+`, `rename-⊒cast-`, `rename-cast+⊒`, and
---     `rename-cast-⊒` avoid rebuilding the dual-cast transports by hand in
---     the eventual induction.
+--     `rename-cast-⊒`, plus their `-det` wrappers, avoid rebuilding the
+--     dual-cast and composition transports by hand in the eventual induction.
 --   * The `ν` renaming helpers are intentionally stated in constructor-native
 --     form rather than as pointwise renamings of whole `ν` terms: `ν` renames
 --     its term body with `ρ`, while the narrowing premises under the fresh

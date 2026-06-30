@@ -4806,3 +4806,36 @@ constructors target type applications and are not part of the replay-ready
 fragment.  The future replay theorem should therefore handle α by an impossible
 readiness premise, not by recursively replaying the underlying `L ⊒ L′`
 derivation.
+
+## Attempt 134: factor the renamed `⊒Λ` replay constructor
+
+Accepted as checked support.
+
+I added `term-rename-local-⊒Λ-build`, the `⊒Λ` constructor step needed by the
+future guarded term-replay theorem.  It takes:
+
+- `hρ : TyRenameWf Δ Δ′ ρ`;
+- the original `gen` coercion typing premise;
+- the recursively renamed premise body under
+  `renameStoreNrw (extᵗ ρ) ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)` and
+  `renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)`.
+
+It rebuilds:
+
+`Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+  ⊢ renameᵗᵐ ρ N ⊒ renameᵗᵐ ρ (Λ V′) ∶ renameᶜ ρ (gen A p)`
+
+The proof is only transport bookkeeping:
+
+- `renameStoreNrw-⇑ˢ` moves the recursively renamed store into the store shape
+  expected by `⊒Λ`;
+- `renameCtxNrw-⇑ᵍ` does the same for the term context;
+- `renameᵗᵐ-ext-suc-comm` turns the recursively renamed shifted source into
+  `⇑ᵗᵐ (renameᵗᵐ ρ N)`;
+- `renameStoreNrw-coercionᶜ` renames the `gen` coercion typing premise.
+
+This does not yet prove the replay theorem or the catchup case.  It removes
+one recurring transport nest from the eventual proof and confirms that the
+outer `⊒Λ` reconstruction itself is not the blocker; the remaining blocker is
+obtaining the recursively renamed body, including the local cast-composition
+readiness witnesses.

@@ -2337,6 +2337,12 @@ record ⊤₁ : Set₁ where
 
 data ⊥₁ : Set₁ where
 
+⊥₁-elim :
+  ∀ {A : Set₁} →
+  ⊥₁ →
+  A
+⊥₁-elim ()
+
 TermRenameLocalOk :
   ∀ {Δ σ γ M T c} →
   TyCtx →
@@ -2384,6 +2390,50 @@ TermRenameLocalOk Δ′ ρ (cast+⊒ pᶜ r≈t⨟p M⊒M′) =
 TermRenameLocalOk Δ′ ρ (cast-⊒ pᶜ r≈t⨟p M⊒M′) =
   ComposeRightRenameLocalOk Δ′ ρ r≈t⨟p ×
   TermRenameLocalOk Δ′ ρ M⊒M′
+
+term-rename-local-⊒Λ-build :
+  ∀ {Δ Δ′ σ γ A B N V′ p ρ} →
+  (hρ : TyRenameWf Δ Δ′ ρ) →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  suc Δ′ ∣
+    renameStoreNrw (extᵗ ρ) ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣
+    renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+    ⊢ renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N)
+      ⊒ renameᵗᵐ (extᵗ ρ) V′ ∶ renameᶜ (extᵗ ρ) p →
+  Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ N ⊒ renameᵗᵐ ρ (Λ V′) ∶ renameᶜ ρ (gen A p)
+term-rename-local-⊒Λ-build {σ = σ} {γ = γ} {N = N} {ρ = ρ}
+    hρ pᶜ body =
+  ⊒Λ
+    (renameStoreNrw-coercionᶜ hρ pᶜ)
+    (subst
+      (λ S → _ ∣ S ∣ ⇑ᵍ (renameCtxNrw _ γ)
+        ⊢ ⇑ᵗᵐ (renameᵗᵐ ρ N) ⊒ _ ∶ _)
+      store≡
+      (subst
+        (λ Γ → _ ∣ renameStoreNrw (extᵗ ρ) ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ)
+          ∣ Γ ⊢ ⇑ᵗᵐ (renameᵗᵐ ρ N) ⊒ _ ∶ _)
+        ctx≡
+        (subst
+          (λ M → _ ∣ renameStoreNrw (extᵗ ρ)
+            ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ∣
+            renameCtxNrw (extᵗ ρ) (⇑ᵍ γ)
+            ⊢ M ⊒ _ ∶ _)
+          src≡
+          body)))
+  where
+    store≡ :
+      renameStoreNrw (extᵗ ρ) ((zero ꞉= ★ ⊒) ∷ ⇑ˢ σ) ≡
+      (zero ꞉= ★ ⊒) ∷ ⇑ˢ (renameStoreNrw ρ σ)
+    store≡ = cong ((zero ꞉= ★ ⊒) ∷_) (renameStoreNrw-⇑ˢ ρ σ)
+
+    ctx≡ :
+      renameCtxNrw (extᵗ ρ) (⇑ᵍ γ) ≡ ⇑ᵍ (renameCtxNrw ρ γ)
+    ctx≡ = renameCtxNrw-⇑ᵍ ρ γ
+
+    src≡ :
+      renameᵗᵐ (extᵗ ρ) (⇑ᵗᵐ N) ≡ ⇑ᵗᵐ (renameᵗᵐ ρ N)
+    src≡ = renameᵗᵐ-ext-suc-comm ρ N
 
 compose-leftⁿ-rename-guarded :
   ∀ {Δ Δ′ σ q s r A B ρ} →

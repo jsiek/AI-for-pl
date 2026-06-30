@@ -162,3 +162,184 @@ right-seal-inversion₁-counterexample :
 So `right-seal-inversion₁` is false as currently stated.  Any replacement
 lemma must exclude left-cast wrappers like this example, or return a weaker
 conclusion that permits a compensating left seal.
+
+## Exact DGG `seal-unseal` case search
+
+The DGG redex case is narrower than `right-seal-inversion₁`.  The local goal is
+the branch
+
+```agda
+dynamicGradualGuarantee okM
+    (⊒cast+ {s = seal B α} qᶜ q⨟seal≈r M⊒Vseal)
+    (pure-step (seal-unseal vV))
+```
+
+where `M⊒Vseal` relates `M` to `V ⟨ seal A α ⟩` and the outer
+`⊒cast+` supplies the side condition
+
+```agda
+Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ E ⊒ F .
+```
+
+The paper proof uses zero source steps and contracts the relation itself:
+
+```agda
+σ ⊢ M ⊒ V ⟨ α♯ ⟩ ⟨ α♭ ⟩ : q
+=/⊢→
+σ ⊢ M ⊒ V : q .
+```
+
+### Attempt 1. Reuse `right-seal-inversion₂`
+
+The current mechanized lemma `right-seal-inversion₂` is intentionally weak.  It
+only re-exposes the premise relation at endpoint-normalized composition:
+
+```agda
+∃[ u ]
+  (Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ u ∶ src q ⊒ ＇ α) ×
+  Δ ∣ σ ∣ [] ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ u
+```
+
+This is enough to document that the right redex was introduced by the exact
+outer cast, but it does not strip the remaining right seal.  Returning
+`M⊒Vseal` in DGG therefore gives a relation to the pre-step term, not the
+right-hand reduct `V`.
+
+### Attempt 2. Prove a `q`-specific zero-step contraction
+
+The strongest DGG-shaped helper is:
+
+```agda
+right-seal-strip-zero :
+  ∀ {Δ σ M V q r A B C D E F α} →
+  Value V →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ E ⊒ F →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ V ∶ q
+```
+
+The direct `⊒cast-` branch exposes a premise
+`M ⊒ V ∶ q₀`.  To return exactly `q`, the proof must cancel two right-seal
+compositions:
+
+```agda
+q  ⨾ⁿ seal B α ≈ r
+q₀ ⨾ⁿ seal A α ≈ r
+```
+
+and then reindex the term-narrowing derivation from `q₀` to `q`.  No such
+right-seal cancellation lemma currently exists.  Even after cancellation, the
+needed reindexing resembles the unfinished `termNarrowing-resp-≈` hole in
+`proof.LeftSealNarrowingInversion`.
+
+Left-cast cases need more than cancellation.  For example, a branch shaped by
+`cast+⊒` requires a factorization lemma turning
+
+```agda
+q ⨾ⁿ seal B α ≈ p
+r ≈ t ⨾ⁿ p
+```
+
+into some `u` such that
+
+```agda
+u ⨾ⁿ seal B α ≈ r
+u ≈ t ⨾ⁿ q .
+```
+
+The current composition API packages `_⨟ⁿ_` and endpoint equivalence, but it
+does not provide this associativity/factorization principle.
+
+### Attempt 3. Weaken the final index existentially
+
+DGG only existentially quantifies the final index, so the branch could use the
+weaker helper:
+
+```agda
+right-seal-strip-some :
+  ∀ {Δ σ M V q r A B C D E F α} →
+  Value V →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ E ⊒ F →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
+  ∃[ p ] Δ ∣ σ ∣ [] ⊢ M ⊒ V ∶ p
+```
+
+This removes the `q₀ ≡ q` cancellation obligation in the direct `⊒cast-`
+branch, but it still gets stuck before the proof reaches that branch.  Agda's
+coverage checker exposes `extend`:
+
+```text
+N′ [ α ]ᵀ ≟ V ⟨ seal A α₁ ⟩
+p [ α ]ᶜ ≟ r
+```
+
+An equality-indexed auxiliary can expose `extend`, and the output can move from
+the source-only store to the ordinary store with `extendReplaceRel-term`.  The
+corresponding `split` branch still needs the same source-opening transport that
+is called out by `catchup-split-catchup`: the proof must change the source term
+from `N [ α ]ᵀ` to `N [ αᵢ ]ᵀ` while preserving or reconstructing the stripped
+right term and index.
+
+### Attempt 4. Catch up the source first
+
+Another route catches `M` up to a source value using
+
+```agda
+catchup-lemma okM (vV ⟨ seal A α ⟩) M⊒Vseal .
+```
+
+This produces a value `W` with
+
+```agda
+W ⊒ applyTerms χs (V ⟨ seal A α ⟩)
+  ∶ applyCoercions χs r .
+```
+
+However, this route still needs a value-level version of the same right-seal
+stripping/contraction fact to obtain a relation to `applyTerms χs V`.  The
+existing left widening/narrowing lemmas move casts on the source side; they do
+not remove this remaining right seal.
+
+### Counterexample search
+
+The known `right-seal-inversion₁` counterexample does not satisfy the exact DGG
+outer-cast premise.  In that example the sealed relation has index
+`id (＇ 0)`, but the DGG branch would require some `q` with
+
+```agda
+q ⨾ⁿ seal (‵ `ℕ) 0 ≈ id (＇ 0) .
+```
+
+`proof.RightSealInversionCounterexample` already proves this impossible in
+`old-counterexample-revised-premise⊥`.
+
+The `right-seal-inversion₂` variable counterexample is also not an exact DGG
+counterexample: its right-side core is a variable rather than a `Value`, the
+term context is nonempty, and the top-level derivation is `ν⊒`, not the exact
+outer `⊒cast+` redex used by DGG.
+
+The closed exact candidates that do type check are harmless.  The basic
+constant case
+
+```agda
+$ 0 ⊒ (($ 0) ⟨ seal (‵ `ℕ) 0 ⟩) ⟨ unseal 0 (‵ `ℕ) ⟩
+```
+
+has the expected post-step relation `$ 0 ⊒ $ 0`.  The closed `ν⊒` candidate
+with an admissible identity annotation also has a post-step relation:
+
+```agda
+ν ★ ($ 0) (⇑ᶜ (id (‵ `ℕ))) ⊒ $ 0 .
+```
+
+The tempting `ν⊒` counterexample would annotate the source `ν` with a shifted
+seal coercion.  Agda rejects this shape for the DGG premises: `ν⊒` requires its
+index premise to be cast-like, and `∶ᶜ` is `tag-or-idᵈ`, so literal seals are
+excluded by `tag-or-id-seal-conflict`.
+
+No exact counterexample was found.  The next productive proof step appears to
+be an algebraic package for right-seal composition cancellation/factorization,
+paired with a term-narrowing reindexing lemma and the split-specific
+source-opening transport already identified by `catchup-split-catchup`.

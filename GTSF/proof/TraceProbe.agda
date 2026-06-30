@@ -143,6 +143,42 @@ source-first-id-var1-right-≈ =
         id-var1-fun-narrowingᵐ
         id-var1-fun-narrowingᵐ)))
 
+id-var1-cast :
+  ∀ {Σ} →
+  2 ∣ Σ ⊢ id (＇ 1) ∶ᶜ ＇ 1 ⊒ ＇ 1
+id-var1-cast =
+  cast-id (wfVar (s<s z<s)) refl , cross (id-＇ 1)
+
+id-var1-fun-cast :
+  ∀ {Σ} →
+  2 ∣ Σ ⊢ id-var1-fun ∶ᶜ
+    (＇ 1 ⇒ ＇ 1) ⊒ (＇ 1 ⇒ ＇ 1)
+id-var1-fun-cast =
+  id-var1-fun-narrowingᵐ
+
+source-first-id-var1-cast-value :
+  Value ((ƛ (` 0)) ⟨ id-var1-fun ⟩)
+source-first-id-var1-cast-value =
+  (ƛ (` 0)) ⟨ id (＇ 1) ↦ id (＇ 1) ⟩
+
+source-first-id-var1-cast⊒ :
+  2 ∣ (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ id-var1-fun ⟩ ⊒ ƛ (` 0) ∶ id-var1-fun
+source-first-id-var1-cast⊒ =
+  cast-⊒ id-var1-fun-cast source-first-id-var1-right-≈
+    (ƛ⊒ƛ id-var1-fun-cast (x⊒x id-var1-cast Z))
+
+target-first-id-var1-probe-compose⊥ :
+  ∀ {A B r} →
+  2 ∣ (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ [] ⊢
+    r ≈ id-var1-fun ⨾ⁿ probe-c ∶ A ⊒ B →
+  ⊥
+target-first-id-var1-probe-compose⊥
+    (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  var1-fun≢var0-fun
+    (trans (proj₂ (coercion-src-tgtᵐ (proj₁ t⊒)))
+      (sym (proj₁ (coercion-src-tgtᵐ (proj₁ p⊒)))))
+
 mixed-id-var1-target-compose⊥ :
   2 ∣ (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ [] ⊢
     probe-c ≈ id-var1-fun ⨾ⁿ probe-c

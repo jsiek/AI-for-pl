@@ -3448,3 +3448,43 @@ and a legal `gen` body.
 Next step: use the `cast-gen` occurrence invariant, or
 `narrowing-all-gen-overlap⊥` directly, to rule out the bad source-cast replay
 branches instead of proving a free-standing mixed-composition theorem.
+
+## Attempt 96: check whether `Value W` rules out the bad mixed replay
+
+Accepted as checked support in `proof.TraceProbe`, and rejected as a sufficient
+invariant.
+
+I lifted the Attempt 94 coercion-level obstruction to a term-level source that
+is already a value.  The new checked relation is:
+
+`source-first-id-var1-cast⊒ :
+  2 ∣ (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ id-var1-fun ⟩ ⊒ ƛ (` 0) ∶ id-var1-fun`
+
+with the separate checked value witness:
+
+`source-first-id-var1-cast-value :
+  Value ((ƛ (` 0)) ⟨ id-var1-fun ⟩)`.
+
+So the source-first body relation can have a value source and still use the
+bad `cast-⊒` shape.  Replaying that branch asymmetrically would need the
+target-first mixed composition
+
+`r ≈ id-var1-fun ⨾ⁿ probe-c`
+
+under
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ []`,
+
+and the new checked lemma
+
+`target-first-id-var1-probe-compose⊥`
+
+rules that out by comparing the target endpoint of `id-var1-fun` with the
+source endpoint of `probe-c`.
+
+Conclusion: the no-earlier-bind body replay cannot be justified merely by the
+fact that the caught-up source `W` is a `Value`.  The next restriction really
+must use the provenance of the body relation from the legal `gen` premise
+(`occurs zero B ≡ true`), or avoid replaying source-side cast constructors
+altogether.

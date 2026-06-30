@@ -14,9 +14,12 @@ module proof.LeftWidening where
 -- Strategy log:
 --   * Directly reusing `cast+⊒` works only when the dual cast is inert, since
 --     then `V ⟨ - t ⟩` is already a value.  This should cover function,
---     universal, tag, and generated-function/all inert cases.
---     The function, universal, and tag/untag forms below are now mechanized
---     as zero-step branches through `left-widening-inert`.
+--     universal, and tag/untag cases.  The raw `unseal` and `inst` forms also
+--     have inert duals, and are included below as zero-step edge cases, but the
+--     `r ≈ t ⨾ⁿ p` premise carries a narrowing proof for `t`, so the reachable
+--     hard heads are still `seal`, `s ︔ seal`, `gen`, and sequence variants.
+--     The function, universal, and tag/untag forms below are mechanized as
+--     zero-step branches through `left-widening-inert`.
 --   * The exact identity branch, where the result index is syntactically `p`,
 --     is mechanized below by one `β-id` step.  The general identity branch
 --     still requires turning the endpoint-equivalence premise
@@ -72,6 +75,16 @@ dual-untag-inert :
 dual-untag-inert (＇ α) = (＇ α) !
 dual-untag-inert (‵ ι) = (‵ ι) !
 dual-untag-inert ★⇒★ = (★ ⇒ ★) !
+
+dual-unseal-inert :
+  ∀ {α A} →
+  Inert (- unseal α A)
+dual-unseal-inert {α = α} {A = A} = seal A α
+
+dual-inst-inert :
+  ∀ {B c} →
+  Inert (- inst B c)
+dual-inst-inert {B = B} {c = c} = gen B (dual (instᵃ normalᵃ) c)
 
 LeftWideningWithoutNo• : Set₁
 LeftWideningWithoutNo• =
@@ -200,6 +213,48 @@ left-widening-untag :
       ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
 left-widening-untag gG vV noV pᶜ r≈t⨟p V⊒V′ =
   left-widening-inert (dual-untag-inert gG)
+    vV noV pᶜ r≈t⨟p V⊒V′
+
+left-widening-unseal :
+  ∀ {Δ σ V V′ p r α A A₀ B C D} →
+  Value V →
+  No• V →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ unseal α A ⨾ⁿ p ∶ A₀ ⊒ B →
+  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    (V ⟨ - unseal α A ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+left-widening-unseal {α = α} {A = A} vV noV pᶜ r≈t⨟p V⊒V′ =
+  left-widening-inert (dual-unseal-inert {α = α} {A = A})
+    vV noV pᶜ r≈t⨟p V⊒V′
+
+left-widening-inst :
+  ∀ {Δ σ V V′ p r B c A₀ B₀ C D} →
+  Value V →
+  No• V →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
+  Δ ∣ σ ⊢ r ≈ inst B c ⨾ⁿ p ∶ A₀ ⊒ B₀ →
+  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p →
+  ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+    Value W ×
+    No• W ×
+    (V ⟨ - inst B c ⟩ —↠[ χs ] W) ×
+    (Δ′ ≡ applyTyCtxs χs Δ) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ W ⊒ applyTerms χs V′ ∶ applyCoercions χs r
+left-widening-inst {B = B} {c = c} vV noV pᶜ r≈t⨟p V⊒V′ =
+  left-widening-inert (dual-inst-inert {B = B} {c = c})
     vV noV pᶜ r≈t⨟p V⊒V′
 
 left-widening-id-exact :

@@ -4185,8 +4185,8 @@ extendReplaceRel-term (replace-here qᶜ) (⊒Λ pᶜ N⊒V′) =
   extend-replace-here-current qᶜ pᶜ (⊒Λ pᶜ N⊒V′)
 extendReplaceRel-term (replace-here qᶜ) (⊒⟨ν⟩ pᶜ i N⊒V′s) =
   extend-replace-here-current qᶜ pᶜ (⊒⟨ν⟩ pᶜ i N⊒V′s)
-extendReplaceRel-term (replace-here qᶜ) (⊒α pαᶜ L⊒L′) =
-  extend-replace-here-current qᶜ pαᶜ (⊒α pαᶜ L⊒L′)
+extendReplaceRel-term (replace-here qᶜ) (⊒α γ′≡ pαᶜ L⊒L′) =
+  extend-replace-here-current qᶜ pαᶜ (⊒α γ′≡ pαᶜ L⊒L′)
 extendReplaceRel-term (replace-here qᶜ) (ν⊒ν pᶜ q₀ᶜ N⊒N′) =
   extend-replace-here-current qᶜ pᶜ (ν⊒ν pᶜ q₀ᶜ N⊒N′)
 extendReplaceRel-term (replace-here qᶜ) (⊒ν pᶜ N⊒N′) =

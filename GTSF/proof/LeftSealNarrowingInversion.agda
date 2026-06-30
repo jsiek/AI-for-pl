@@ -168,10 +168,10 @@ termNarrowing-gen-open-id-var-aux⊥ refl
     (⊒⟨ν⟩ pᶜ sᵢ N⊒V′) open-id =
   gen-open-id-var⊥ pᶜ open-id
 termNarrowing-gen-open-id-var-aux⊥ c≡gen
-    (α⊒α qᶜ pαᶜ L⊒L′) open-id =
+    (α⊒α γ′≡ qᶜ pαᶜ L⊒L′) open-id =
   castLike-gen-open-id-var⊥ c≡gen pαᶜ open-id
 termNarrowing-gen-open-id-var-aux⊥ c≡gen
-    (⊒α pαᶜ L⊒L′) open-id =
+    (⊒α γ′≡ pαᶜ L⊒L′) open-id =
   castLike-gen-open-id-var⊥ c≡gen pαᶜ open-id
 termNarrowing-gen-open-id-var-aux⊥ refl
     (ν⊒ν pᶜ qᶜ N⊒N′) open-id =
@@ -259,9 +259,9 @@ leftSealNarrowingInversion-aux eq idx-eq vV
 -- Type-application/ν-opening cases: `⊒α` is impossible by the gen/open
 -- endpoint-shifting lemma above; `⊒ν` still has the substitution issue.
 leftSealNarrowingInversion-aux () idx-eq vV
-    (α⊒α qᶜ pαᶜ L⊒L′)
+    (α⊒α γ′≡ qᶜ pαᶜ L⊒L′)
 leftSealNarrowingInversion-aux eq idx-eq vV
-    (⊒α pαᶜ L⊒L′) = {!!}
+    (⊒α γ′≡ pαᶜ L⊒L′) = {!!}
 leftSealNarrowingInversion-aux eq refl vV
     (⊒ν {A = A} (cast-id hα ok , cross (id-＇ α)) N⊒N′)
     with leftSealNarrowingInversion-aux

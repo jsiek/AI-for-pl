@@ -33,7 +33,7 @@ open import proof.RightSealInversion2 using
 open import proof.TermSubstitutionNarrowing using
   (term-substitution-narrowing)
 open import proof.NuPreservation using
-  (runtime-·₁; runtime-⟨⟩; runtime-ν; runtime-⊕₁)
+  (runtime-·₁; runtime-•; runtime-⟨⟩; runtime-ν; runtime-⊕₁)
 
 runtime-·₂-any :
   ∀ {L M} →
@@ -151,4 +151,48 @@ dynamicGradualGuarantee :
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
     Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ N′ ∶ p′
 
+dynamicGradualGuarantee okM
+    (α⊒α {L′ = blame} γ′≡ qᶜ pαᶜ L⊒L′)
+    (pure-step blame-•) =
+  [] , _ , _ , [] , [] , [] , _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  ⊒blame pαᶜ
+dynamicGradualGuarantee okM
+    (α⊒α {L′ = Λ V′} γ′≡ qᶜ pαᶜ L⊒L′)
+    (pure-step (β-Λ• vV′)) =
+  {!!}
+dynamicGradualGuarantee okM
+    (α⊒α {L′ = V′ ⟨ `∀ c ⟩} γ′≡ qᶜ pαᶜ L⊒L′)
+    (pure-step (β-∀• vV′)) =
+  {!!}
+dynamicGradualGuarantee okM
+    (α⊒α {L′ = V′ ⟨ gen A c ⟩} γ′≡ qᶜ pαᶜ L⊒L′)
+    (pure-step (β-gen• vV′)) =
+  {!!}
+dynamicGradualGuarantee okM
+    (α⊒α γ′≡ qᶜ pαᶜ L⊒L′) red = {!!}
+dynamicGradualGuarantee okM
+    (⊒α {L′ = blame} γ′≡ pαᶜ L⊒L′) (pure-step blame-•) =
+  [] , _ , _ , [] , [] , [] , _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  ⊒blame pαᶜ
+dynamicGradualGuarantee okM
+    (⊒α {L′ = Λ V′} γ′≡ pαᶜ L⊒L′)
+    (pure-step (β-Λ• vV′)) =
+  {!!}
+dynamicGradualGuarantee okM
+    (⊒α {L′ = V′ ⟨ `∀ c ⟩} γ′≡ pαᶜ L⊒L′)
+    (pure-step (β-∀• vV′)) =
+  {!!}
+dynamicGradualGuarantee okM
+    (⊒α {L′ = V′ ⟨ gen A c ⟩} γ′≡ pαᶜ L⊒L′)
+    (pure-step (β-gen• vV′)) =
+  {!!}
+dynamicGradualGuarantee okM (⊒α γ′≡ pαᶜ L⊒L′) red = {!!}
 dynamicGradualGuarantee okM M⊒M′ M′→N′ = {!!}

@@ -4261,3 +4261,31 @@ current split of the source-side cast obstruction: source-side seal cases for
 the target-only variable `suc zero` are impossible in the source-first source
 store, while tag/untag cases still remain and must be replayed rather than
 discarded.
+
+## Attempt 120: check that the shifted tag branch is genuinely admissible
+
+Accepted as a diagnostic witness in `proof.TraceProbe`.
+
+After adding no-key seal exclusions, I tested the tempting next claim:
+
+`StoreNoKey (suc zero)` might rule out every source-side cast that mentions the
+target-only variable.
+
+That claim is false.  I added a checked source-first witness using the shifted
+legal `var0-fun` coercion:
+
+`var1-fun = ((＇ 1) !) ↦ ((＇ 1) ？)`.
+
+The new witness is:
+
+`source-first-var1-source-cast⊒ :
+  2 ∣ (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ - var1-fun ⟩ ⊒ ƛ (` 0) ∶ var1-fun`.
+
+This branch uses `cast+⊒` with `t = var1-fun`, whose dual is inert enough for
+the source to be a value.  It does not require a source-store key for
+`suc zero`; it only uses tag/untag typing for the type-context variable.
+
+Conclusion: any final lambda replay proof must handle the shifted tag/untag
+source-cast branch.  The no-key strategy is useful only for pruning seal-shaped
+branches.

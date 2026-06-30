@@ -12,6 +12,8 @@ module proof.TraceProbe where
 --     premise-aware inner term-narrowing hypothesis.  In particular,
 --     `no-probe-gen-premise` shows that `probe-c` cannot be used as the body
 --     of the real empty-context `gen` coercion premise.
+--   * Also includes small checked witnesses/exclusions that fence off failed
+--     proof strategies for the real `⊒Λ` replay branch.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -83,6 +85,10 @@ probe-c = id (＇ 0) ↦ id (＇ 0)
 id-var1-fun : Coercion
 id-var1-fun = id (＇ 1) ↦ id (＇ 1)
 
+var1-fun : Coercion
+var1-fun =
+  ((＇ 1) !) ↦ ((＇ 1) ？)
+
 var1-fun≢var0-fun :
   ＇ 1 ⇒ ＇ 1 ≡ ＇ 0 ⇒ ＇ 0 →
   ⊥
@@ -121,6 +127,14 @@ wf-var1-fun =
   , wf⇒ˢ (wfVarᵗ (s<s z<s)) (wfVarᵗ (s<s z<s))
   )
 
+wf-star-var1-fun :
+  ∀ {Σ} →
+  EndpointWf 2 Σ (★ ⇒ ★) (＇ 1 ⇒ ＇ 1)
+wf-star-var1-fun =
+  ( wf⇒ˢ wf★ˢ wf★ˢ
+  , wf⇒ˢ (wfVarᵗ (s<s z<s)) (wfVarᵗ (s<s z<s))
+  )
+
 id-var1-fun-narrowingᵐ :
   ∀ {Σ} →
   tag-or-idᵈ ∣ 2 ∣ Σ ⊢ id-var1-fun ∶
@@ -130,6 +144,16 @@ id-var1-fun-narrowingᵐ =
     (cast-id (wfVar (s<s z<s)) refl)
     (cast-id (wfVar (s<s z<s)) refl) ,
   cross (cross (id-＇ 1) ↦ cross (id-＇ 1))
+
+var1-fun-narrowingᵐ :
+  ∀ {Σ} →
+  tag-or-idᵈ ∣ 2 ∣ Σ ⊢ var1-fun ∶
+    (★ ⇒ ★) ⊒ (＇ 1 ⇒ ＇ 1)
+var1-fun-narrowingᵐ =
+  cast-fun
+    (cast-tag (wfVar (s<s z<s)) (＇ 1) refl)
+    (cast-untag (wfVar (s<s z<s)) (＇ 1) refl) ,
+  cross (tag (＇ 1) ↦ untag (＇ 1))
 
 source-first-id-var1-right-≈ :
   2 ∣ (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ [] ⊢
@@ -161,6 +185,30 @@ id-var1-fun-cast :
 id-var1-fun-cast =
   id-var1-fun-narrowingᵐ
 
+var1-fun-cast :
+  ∀ {Σ} →
+  2 ∣ Σ ⊢ var1-fun ∶ᶜ
+    (★ ⇒ ★) ⊒ (＇ 1 ⇒ ＇ 1)
+var1-fun-cast =
+  var1-fun-narrowingᵐ
+
+source-first-var1-fun-right-≈ :
+  2 ∣ (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ [] ⊢
+    var1-fun ≈ var1-fun ⨾ⁿ id-var1-fun
+      ∶ (★ ⇒ ★) ⊒ (＇ 1 ⇒ ＇ 1)
+source-first-var1-fun-right-≈ =
+  compose-rightⁿ star0-store-det2
+    var1-fun-narrowingᵐ
+    id-var1-fun-narrowingᵐ
+    (endpointsⁿ refl refl refl refl
+      source-first-star-narrowing
+      wf-star-var1-fun
+      wf-star-var1-fun
+      (tag-or-idᵈ , var1-fun-narrowingᵐ)
+      (_ , proj₂ (_⨟ⁿ_ {wfΣ = star0-store-det2}
+        var1-fun-narrowingᵐ
+        id-var1-fun-narrowingᵐ)))
+
 source-first-id-var1-cast-value :
   Value ((ƛ (` 0)) ⟨ id-var1-fun ⟩)
 source-first-id-var1-cast-value =
@@ -171,6 +219,18 @@ source-first-id-var1-cast⊒ :
     ⊢ (ƛ (` 0)) ⟨ id-var1-fun ⟩ ⊒ ƛ (` 0) ∶ id-var1-fun
 source-first-id-var1-cast⊒ =
   cast-⊒ id-var1-fun-cast source-first-id-var1-right-≈
+    (ƛ⊒ƛ id-var1-fun-cast (x⊒x id-var1-cast Z))
+
+source-first-var1-source-cast⊒ :
+  2 ∣ (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ [] ∣ []
+    ⊢ (ƛ (` 0)) ⟨ - var1-fun ⟩ ⊒ ƛ (` 0) ∶ var1-fun
+source-first-var1-source-cast⊒ =
+  cast+⊒
+    {p = id-var1-fun}
+    {r = var1-fun}
+    {t = var1-fun}
+    id-var1-fun-cast
+    source-first-var1-fun-right-≈
     (ƛ⊒ƛ id-var1-fun-cast (x⊒x id-var1-cast Z))
 
 target-first-id-var1-probe-compose⊥ :

@@ -79,6 +79,7 @@ open import proof.NuTermProperties
     ; renameᵗᵐ-ext-suc-comm
     ; renameᵗᵐ-left-inverse
     ; renameᵗᵐ-open-commute
+    ; renameᵗᵐ-pred-suc
     ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-reflects-Value
     )
@@ -1594,6 +1595,30 @@ renameStoreNrw-pred-⇑ˢ⇑ˢ ((X ꞉= A ⊒) ∷ σ) =
     (renameStoreNrw-pred-⇑ˢ⇑ˢ σ)
 renameStoreNrw-pred-⇑ˢ⇑ˢ ((⊒ X ꞉=☆) ∷ σ) =
   cong₂ _∷_ refl (renameStoreNrw-pred-⇑ˢ⇑ˢ σ)
+
+renameStoreNrw-pred-source-first :
+  ∀ σ →
+  renameStoreNrw predᵗ
+    ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ))
+  ≡ (⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ
+renameStoreNrw-pred-source-first σ =
+  cong₂ _∷_ refl
+    (cong₂ _∷_ refl (renameStoreNrw-pred-⇑ˢ⇑ˢ σ))
+
+renameCtxNrw-pred-⇑ᵍ⇑ᵍ :
+  ∀ γ →
+  renameCtxNrw predᵗ (⇑ᵍ (⇑ᵍ γ)) ≡ ⇑ᵍ γ
+renameCtxNrw-pred-⇑ᵍ⇑ᵍ [] = refl
+renameCtxNrw-pred-⇑ᵍ⇑ᵍ (p ∷ γ) =
+  cong₂ _∷_
+    (renameᶜ-pred-suc (⇑ᶜ p))
+    (renameCtxNrw-pred-⇑ᵍ⇑ᵍ γ)
+
+renameᵗᵐ-pred-⇑ᵗᵐ⇑ᵗᵐ :
+  ∀ M →
+  renameᵗᵐ predᵗ (⇑ᵗᵐ (⇑ᵗᵐ M)) ≡ ⇑ᵗᵐ M
+renameᵗᵐ-pred-⇑ᵗᵐ⇑ᵗᵐ M =
+  renameᵗᵐ-pred-suc (⇑ᵗᵐ M)
 
 source-first-pred-both-srcStore :
   ∀ σ →

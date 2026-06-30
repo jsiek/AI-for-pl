@@ -3684,3 +3684,53 @@ mode rename for hidden composition witnesses.  The next proof step must use
 this side-condition transport only inside a split-aware replay, where the bad
 source-cast composition branches are rebuilt through `split` or ruled out with
 the legal `gen` occurrence invariant.
+
+## Attempt 103: probe the legal-gen body replay and keep pred-collapse facts
+
+Accepted as checked support in `proof.Catchup`; the larger replay theorem is
+still open.
+
+I temporarily stated the core no-earlier-bind body replay:
+
+`W ⊒ ⇑ᵗᵐ V′ ∶ ⇑ᶜ p`
+
+under the source-first store
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`
+
+should imply
+
+`⇑ᵗᵐ (renameᵗᵐ predᵗ W) ⊒ renameᵗᵐ (extᵗ suc) V′
+  ∶ renameᶜ (extᵗ suc) p`
+
+under the target-first store
+
+`(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ)`,
+
+with the real `gen A p` premise in scope.
+
+This is not refuted by the existing `TraceProbe` counterexample, because that
+counterexample still fails the legal `gen` premise (`no-probe-gen-premise` /
+`no-id-var1-fun-gen-target`).  However, the replay theorem is too large to add
+as an unchecked hole: the difficult source-side cast cases still need to carry
+the `cast-gen` occurrence invariant through the hidden composition mode, or be
+rebuilt by a value-level left-narrowing/widening route.
+
+I removed the temporary hole and kept the checked algebra that the replay will
+need:
+
+`renameStoreNrw-pred-source-first`
+
+`renameCtxNrw-pred-⇑ᵍ⇑ᵍ`
+
+`renameᵗᵐ-pred-⇑ᵗᵐ⇑ᵗᵐ`
+
+The first records the exact full-store collapse:
+
+`renameStoreNrw predᵗ ((⊒ zero ꞉=☆) ∷
+  (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ))
+  ≡ (⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ σ`.
+
+The second and third remove the corresponding double-shift noise from term
+contexts and terms.  They do not prove the replay, but they make the pred-lower
+half of a future split-aware replay theorem explicit and reusable.

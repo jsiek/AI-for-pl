@@ -20,12 +20,14 @@ open import Coercions
 open import NuTerms
 open import NuReduction
 open import NarrowWiden
+open import NarrowWidenComposition using (_∣_⊢_⨾ⁿ_≈_∶_⊒_)
 open import TermNarrowing
 open import proof.Catchup using (catchup-lemma)
 open import proof.CatchupStore using (combineStoreNrw)
 open import proof.LeftSealNarrowingInversion using
   (LeftSealNarrowingInversion; leftSealNarrowingInversion)
 open import proof.ReductionProperties using (type-rename-step-⇑ᵗᵐ)
+open import proof.RightSealInversion2 using (right-seal-inversion₂)
 open import proof.TermSubstitutionNarrowing using
   (term-substitution-narrowing)
 
@@ -49,11 +51,6 @@ postulate
   --   ∀ {Δ σ γ M V r A α} →
   --   Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
   --   ∃[ q ] Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ q
-
-  right-seal-inversion₂ :
-    ∀ {Δ σ γ M V q A α} →
-    Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ unseal α A ⟩ ∶ q →
-    ∃[ r ] Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ r
 
   wrap-narrowing-lemma :
     ∀ {Δ σ V′ V W′ W p q s t} →
@@ -360,7 +357,7 @@ dynamicGradualGuarantee (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
     with right-seal-inversion₂ (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
 dynamicGradualGuarantee (⊒cast+ {s = seal B α} qᶜ q⨟s≈r M⊒M′)
     (pure-step (seal-unseal vV))
-    | r , M⊒Vseal
+    | r , q⨟seal≈r , M⊒Vseal
   = {!!}
 dynamicGradualGuarantee (⊒cast+ qᶜ q⨟s≈r M⊒M′) (pure-step red) =
   {!!}
@@ -406,7 +403,7 @@ dynamicGradualGuarantee (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
     with right-seal-inversion₂ (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
 dynamicGradualGuarantee (⊒cast- {s = unseal α B} qᶜ q⨟s≈r M⊒M′)
     (pure-step (seal-unseal vV))
-    | r , M⊒Vseal
+    | r , q⨟seal≈r , M⊒Vseal
   = {!!}
 dynamicGradualGuarantee (⊒cast- qᶜ q⨟s≈r M⊒M′) (pure-step red) =
   {!!}

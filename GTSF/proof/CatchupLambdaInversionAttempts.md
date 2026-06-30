@@ -4876,3 +4876,57 @@ source body renamed by `ρ`.  The next ν work needs either an invariant showing
 the body is insensitive to the fresh type variable, or a ν-specific replay
 statement with the right renaming shape.  Do not repeat the naive `extᵗ ρ`
 builder attempt for ν.
+
+## Attempt 136: bridge raw `merge01ᵗ` replay to the split rebuild
+
+Accepted as checked support.
+
+The last-bind `⊒Λ` branch should eventually proceed from the source-first body:
+
+`W ⊒ ⇑ᵗᵐ V′ ∶ ⇑ᶜ p`
+
+under
+
+`(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+After a future guarded term replay by `merge01ᵗ`, the raw body has the store
+and endpoint shapes produced directly by syntax renaming:
+
+`renameStoreNrw merge01ᵗ
+  ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ))`
+
+and
+
+`renameᵗᵐ merge01ᵗ (⇑ᵗᵐ V′)`,
+`renameᶜ merge01ᵗ (⇑ᶜ p)`.
+
+I added:
+
+- `source-first-merge01-store≡`;
+- `source-first-merge01-normalize-body`;
+- `source-first-merge01-safe-replay-gen`;
+- `source-first-merge01-renamed-safe-replay-gen`.
+
+The normalizer rewrites the raw replay output to:
+
+`(⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`
+
+with target/coercion endpoints
+
+`renameᵗᵐ (extᵗ suc) V′`,
+`renameᶜ (extᵗ suc) p`.
+
+The safe replay bridge then applies:
+
+1. `SourceTargetMergeRel-term-safe merge-here` to merge the two adjacent heads
+   into `(zero ꞉ id ★)`;
+2. `merge01-split-rebuild-gen` to rebuild the final target-first split body.
+
+So the remaining source-first replay obligation is now exactly:
+
+- construct the raw `merge01ᵗ` replay body; and
+- prove `SourceTargetMergeSafe merge-here` for its normalized form.
+
+This avoids repeating the unsafe direct source/target swap attempts: the split
+rebuild is already factored, and the only store merge demanded by this bridge
+is guarded by the existing `SourceTargetMergeSafe` predicate.

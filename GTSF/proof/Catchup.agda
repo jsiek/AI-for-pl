@@ -3990,6 +3990,84 @@ merge01-split-rebuild-gen
     (gen-body-target-first-coercionᶜ {σ = σ} {A = A} {B = B} pᶜ)
     body
 
+source-first-merge01-store≡ :
+  ∀ σ →
+  renameStoreNrw merge01ᵗ
+    ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)) ≡
+  (⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)
+source-first-merge01-store≡ σ =
+  cong₂ _∷_ refl
+    (cong₂ _∷_ refl (renameStoreNrw-merge01-⇑ˢ⇑ˢ σ))
+
+source-first-merge01-normalize-body :
+  ∀ {Δ σ W V′ p} →
+  suc (suc Δ) ∣
+    renameStoreNrw merge01ᵗ
+      ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)) ∣ []
+    ⊢ renameᵗᵐ merge01ᵗ W
+      ⊒ renameᵗᵐ merge01ᵗ (⇑ᵗᵐ V′) ∶ renameᶜ merge01ᵗ (⇑ᶜ p) →
+  suc (suc Δ) ∣
+    (⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ renameᵗᵐ merge01ᵗ W
+      ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p
+source-first-merge01-normalize-body {σ = σ} {V′ = V′} {p = p}
+    body =
+  subst
+    (λ c → _ ∣
+      (⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+      ⊢ _ ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ c)
+    (renameᶜ-merge01-⇑ p)
+    (subst
+      (λ T → _ ∣
+        (⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+        ⊢ _ ⊒ T ∶ renameᶜ merge01ᵗ (⇑ᶜ p))
+      (renameᵗᵐ-merge01-⇑ V′)
+      (subst
+        (λ S → _ ∣ S ∣ []
+          ⊢ _ ⊒ renameᵗᵐ merge01ᵗ (⇑ᵗᵐ V′)
+            ∶ renameᶜ merge01ᵗ (⇑ᶜ p))
+        (source-first-merge01-store≡ σ)
+        body))
+
+source-first-merge01-safe-replay-gen :
+  ∀ {Δ σ W V′ A B p} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  (body :
+    suc (suc Δ) ∣
+      (⊒ zero ꞉=☆) ∷ (zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+      ⊢ renameᵗᵐ merge01ᵗ W
+        ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p) →
+  SourceTargetMergeSafe merge-here body →
+  suc (suc Δ) ∣
+    (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+      ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p
+source-first-merge01-safe-replay-gen pᶜ body safe =
+  merge01-split-rebuild-gen pᶜ
+    (SourceTargetMergeRel-term-safe merge-here body safe)
+
+source-first-merge01-renamed-safe-replay-gen :
+  ∀ {Δ σ W V′ A B p} →
+  Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →
+  (body :
+    suc (suc Δ) ∣
+      renameStoreNrw merge01ᵗ
+        ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)) ∣ []
+      ⊢ renameᵗᵐ merge01ᵗ W
+        ⊒ renameᵗᵐ merge01ᵗ (⇑ᵗᵐ V′)
+        ∶ renameᶜ merge01ᵗ (⇑ᶜ p)) →
+  SourceTargetMergeSafe merge-here
+    (source-first-merge01-normalize-body body) →
+  suc (suc Δ) ∣
+    (zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ) ∣ []
+    ⊢ ⇑ᵗᵐ (renameᵗᵐ predᵗ W)
+      ⊒ renameᵗᵐ (extᵗ suc) V′ ∶ renameᶜ (extᵗ suc) p
+source-first-merge01-renamed-safe-replay-gen pᶜ body safe =
+  source-first-merge01-safe-replay-gen
+    pᶜ
+    (source-first-merge01-normalize-body body)
+    safe
+
 gen-body-open-split-coercion :
   ∀ {Δ σ A B p} →
   Δ ∣ srcStoreⁿ σ ⊢ gen A p ∶ᶜ A ⊒ `∀ B →

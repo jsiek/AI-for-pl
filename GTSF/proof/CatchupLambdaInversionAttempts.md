@@ -4993,3 +4993,46 @@ relation.  The local-ok witnesses then use the new transport lemmas to move
 term-replay induction ready-made evidence for composition side conditions that
 arise below two type binders, without reviving the false global `merge01ᵗ`
 renaming claim.
+
+## Attempt 138: carry the target Λ body value into the helper
+
+Accepted as checked support.
+
+I strengthened `catchup-⊒Λ-catchup` with an explicit `Value V′` argument.
+The only intended call site is the `catchup-lemma` case for target `Λ vV′`,
+so this evidence is already available there.  The old helper statement only
+carried `Value W`, which is enough for the final reduction package but not for
+the replay work inside the shifted body.
+
+This matters for the current `merge01ᵗ`/source-first replay route because a
+value-to-value replay can rule out top-level α runtime-bullet and ν-source
+constructors by matching on the source and target `Value` evidence.  Without
+`Value V′`, the target of the source-first body is only syntactically
+`⇑ᵗᵐ V′`; proving it is a value each time would require reconstructing exactly
+the evidence that the outer `Λ` branch already has.
+
+This does not prove the replay theorem.  It merely makes the needed invariant
+available at the helper boundary, so later attempts can avoid threading target
+valuehood through unrelated store/reduction bookkeeping.
+
+## Attempt 139: derive merge safety from value/CatchupSafe evidence
+
+Rejected as too weak.
+
+I rechecked whether the normalized source-first body could satisfy
+`SourceTargetMergeSafe merge-here` merely because both endpoints are values, or
+because `value-target-source-safe` gives `CatchupSafe` for the source.
+
+This does not work.  `SourceTargetMergeSafe` is a property of the narrowing
+derivation and the exact store-marker position, not just of the endpoint terms.
+A value-target derivation may pass through `⊒Λ`, `⊒⟨ν⟩`, or target-cast
+wrappers before reaching the body where an unsafe `split` sits under
+`merge-right merge-here`.  `CatchupSafe` likewise classifies source syntax as a
+value/ν/cast catchup shape; it does not remember whether a split marker crossing
+is safe.
+
+So the replay proof still needs either a premise-aware `merge01ᵗ` replay that
+constructs safety as it goes, or a special reconstruction for the unsafe split
+case.  Do not try to finish Attempt 136 by proving a generic
+`Value → SourceTargetMergeSafe` or `CatchupSafe → SourceTargetMergeSafe`
+lemma; that implication is not the right invariant.

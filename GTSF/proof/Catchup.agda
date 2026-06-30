@@ -5347,6 +5347,7 @@ catchup-⊒Λ-no-earlier-bind-catchup
 catchup-⊒Λ-catchup :
   ∀ {Δ σ χs W Δ′ Π Π′ π A B N V′ p} →
   Value W →
+  Value V′ →
   No• W →
   CatchupSafe (⇑ᵗᵐ N) →
   (⇑ᵗᵐ N —↠[ χs ] W) →
@@ -5369,10 +5370,10 @@ catchup-⊒Λ-catchup :
       ⊢ W′ ⊒ applyTerms χs′ (Λ V′)
         ∶ applyCoercions χs′ (gen A p)
 catchup-⊒Λ-catchup
-    vW noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    vW vV′ noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
     with storeChangesLastBind _
 catchup-⊒Λ-catchup
-    vW noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    vW vV′ noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
     | no-bind keeps =
   catchup-⊒Λ-no-bind-shift-image
     keeps
@@ -5385,12 +5386,12 @@ catchup-⊒Λ-catchup
     pᶜ
     W⊒V′
 catchup-⊒Λ-catchup {σ = σ} {A = A} {B = B} {V′ = V′} {p = p}
-    vW noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    vW vV′ noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
     | last-bind χs Aχ keeps keeps-ok
     with shifted-source-catchup-Λ-inversion
       vW ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ W⊒V′
 catchup-⊒Λ-catchup {σ = σ} {A = A} {B = B} {V′ = V′} {p = p}
-    vW noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
+    vW vV′ noW safe⇑N ⇑N↠W Δ′≡ Π≡ Π′≡ π⊒ pᶜ W⊒V′
     | last-bind χs Aχ keeps keeps-ok
     | χs′ , W′ , Δ″ , Π″ , Π″′ , π′ ,
       vW′ , noW′ , N↠W′ , Δ″≡ , Π″≡ , Π″′≡ , π′⊒ , body =

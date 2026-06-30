@@ -3820,3 +3820,49 @@ This is not the missing inversion, but it removes a non-problematic source
 shape from the recursive path.  The remaining non-value path is exactly where
 `shifted-source-remainder` reduces the source to ν/cast histories and where the
 last-bind replay problem still lives.
+
+## Attempt 107: recheck the remaining last-bind replay after RuntimeOK
+
+Inspection only; no Agda code kept.
+
+After Attempts 104-106, the only live use of
+`shifted-source-catchup-Λ-inversion` in `catchup-⊒Λ-catchup` is the
+`storeChangesLastBind χs = last-bind χs₀ Aχ keeps keeps-ok` branch.
+
+I rechecked the tempting replay route:
+
+1. split the final bind with `↠-split-last-bind`;
+2. use `last-bind-empty-target-star` to get `Aχ = ★`;
+3. use `last-bind-source-first-body-empty-tail` to obtain the exact
+   source-first body
+
+   `(⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ ⇑ˢ (⇑ˢ σ)`;
+
+4. replay that body to the target-first store
+
+   `(zero ꞉= ★ ⊒) ∷ (⊒ suc zero ꞉=☆) ∷ ⇑ˢ (⇑ˢ σ)`.
+
+The replay still wants `raise0ᵗ`, because the desired source term is
+
+`⇑ᵗᵐ (renameᵗᵐ predᵗ W)`,
+
+and `renameᵗᵐ-raise0-pred` gives exactly
+
+`renameᵗᵐ raise0ᵗ W = ⇑ᵗᵐ (renameᵗᵐ predᵗ W)`.
+
+The existing code has `source-target-raise0-coercionᶜ`, which is enough for
+ordinary `∶ᶜ` side conditions over `srcStoreⁿ`, but there is no corresponding
+`≈ⁿ`/composition transport for `raise0ᵗ`.  That absence is not accidental:
+`raise0ᵗ` is non-injective and collapses the source-only variable, so generic
+cast-composition replay repeats the failure from Attempts 94-100.
+
+I also rechecked `last-bind-source-first-ν⊒`.  It can wrap a source-first body
+back into a `ν⊒` relation at the prefix level, but it wraps the final caught-up
+term `W`; it does not by itself produce a reachable source value for the
+original `N`.  Using it directly would repeat the old base-history recursion
+problem from Attempts 21-25.
+
+Conclusion: the remaining branch still needs a split-aware replay that uses the
+legal `gen A p` occurrence invariant to handle cast composition cases, or a
+structural refactor that recurses on the ν/cast source-history witnesses
+without hiding the recursive call from Agda's termination checker.

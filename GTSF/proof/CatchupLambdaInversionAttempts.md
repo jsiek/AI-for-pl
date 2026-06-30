@@ -4227,3 +4227,37 @@ Limitation: this does not eliminate `untag (＇ suc zero)`, which can introduce 
 target ground variable without a store key.  Thus the no-key fact separates the
 old seal-shaped obstruction from the remaining tag-shaped branch, but it still
 does not supply the source-side replay through the swapped store.
+
+## Attempt 119: exact no-key seal exclusions and the uniform-renaming detour
+
+Accepted as small checked support, but not a complete replay proof.
+
+I first considered factoring the replay through a uniform term-narrowing
+renaming lemma:
+
+`Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p`
+
+to
+
+`Δ′ ∣ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+  ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ M′ ∶ renameᶜ ρ p`.
+
+This is plausible for a fixed renaming such as `swap01ᵗ`, but the arbitrary
+version is not a lightweight shortcut: the composition constructors expose
+mode-indexed coercion derivations, so generic composition transport must carry
+an explicit `ModeRename ρ μ ν` target mode environment.  The existing
+`swap01ᵗ` transport works because `swap01ᵗ` is invertible and has a bespoke
+mode map; a general lemma would be a real proof project, not bookkeeping.
+
+Instead I added checked no-key exclusions for the syntactically exposed seal
+cases:
+
+- `narrowing-seal-no-key`;
+- `narrowing-seq-seal-no-key`.
+
+These close exact `seal A α` and `s ︔ seal A α` narrowing derivations whenever
+`StoreNoKey α Σ` is available.  For the lambda replay, this supports the
+current split of the source-side cast obstruction: source-side seal cases for
+the target-only variable `suc zero` are impossible in the source-first source
+store, while tag/untag cases still remain and must be replayed rather than
+discarded.

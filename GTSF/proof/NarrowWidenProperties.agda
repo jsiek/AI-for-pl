@@ -150,6 +150,24 @@ StoreNoKey-one-⟰ᵗ⟰ᵗ :
 StoreNoKey-one-⟰ᵗ⟰ᵗ =
   StoreNoKey-⟰ᵗ StoreNoKey-zero-⟰ᵗ
 
+narrowing-seal-no-key :
+  ∀ {μ Δ Σ A B C α} →
+  StoreNoKey α Σ →
+  μ ∣ Δ ∣ Σ ⊢ seal A α ∶ B ⊒ C →
+  ⊥
+narrowing-seal-no-key noKey
+    (cast-seal hA α∈Σ seal-ok , sealⁿ A α) =
+  noKey α∈Σ
+
+narrowing-seq-seal-no-key :
+  ∀ {μ Δ Σ c A B C α} →
+  StoreNoKey α Σ →
+  μ ∣ Δ ∣ Σ ⊢ c ︔ seal A α ∶ B ⊒ C →
+  ⊥
+narrowing-seq-seal-no-key noKey
+    (cast-seq c⊢ (cast-seal hA α∈Σ seal-ok) , cⁿ ︔seal α) =
+  noKey α∈Σ
+
 srcStoreⁿ-source-first-one-no-key :
   ∀ σ →
   StoreNoKey (suc zero)

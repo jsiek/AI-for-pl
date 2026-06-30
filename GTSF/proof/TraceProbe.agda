@@ -90,6 +90,11 @@ var1-fun≢var0-fun eq
     with ⇒-injective-left eq
 ... | ()
 
+var1-fun≢star-fun :
+  ＇ 1 ⇒ ＇ 1 ≡ ★ ⇒ ★ →
+  ⊥
+var1-fun≢star-fun ()
+
 source-first-star-narrowing :
   2 ⊢ ((⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ []) ꞉
     ((zero , ★) ∷ []) ⊒ˢ ((suc zero , ★) ∷ [])
@@ -187,6 +192,17 @@ mixed-id-var1-target-compose⊥ :
 mixed-id-var1-target-compose⊥
     (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
   var1-fun≢var0-fun (proj₁ (coercion-src-tgtᵐ (proj₁ t⊒)))
+
+no-id-var1-shifted-var0-compose :
+  ∀ {A B r} →
+  2 ∣ (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ [] ⊢
+    r ≈ id-var1-fun ⨾ⁿ ⇑ᶜ var0-fun ∶ A ⊒ B →
+  ⊥
+no-id-var1-shifted-var0-compose
+    (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
+  var1-fun≢star-fun
+    (trans (proj₂ (coercion-src-tgtᵐ (proj₁ t⊒)))
+      (sym (proj₁ (coercion-src-tgtᵐ (proj₁ p⊒)))))
 
 probe-body : Term
 probe-body = (ƛ (` 0)) ⟨ probe-c ⟩

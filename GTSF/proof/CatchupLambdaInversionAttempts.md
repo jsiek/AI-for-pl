@@ -3938,3 +3938,35 @@ So the no-earlier-bind last-bind subcase is now factored into a single
 remaining proof obligation: source-first body replay to the target-first body
 above.  There is no remaining reduction or existential-packaging work in that
 subcase.
+
+## Attempt 110: test the legal `var0-fun` replay with the old `id-var1` cast
+
+Rejected as a counterexample, with a checked endpoint obstruction in
+`proof.TraceProbe`.
+
+After Attempts 94-96, the most attractive remaining counterexample shape was:
+
+1. keep the outer `gen (★ ⇒ ★) var0-fun` premise legal;
+2. use a source-first body cast by `id (＇ 1) ↦ id (＇ 1)`;
+3. hope the target-first replay would fail in the same way as the old illegal
+   `probe-c` counterexample.
+
+I added the checked lemma:
+
+`no-id-var1-shifted-var0-compose`
+
+which proves that even the source-first cast side condition cannot be formed:
+
+`2 ∣ (⊒ zero ꞉=☆) ∷ (suc zero ꞉= ★ ⊒) ∷ [] ⊢
+  r ≈ id-var1-fun ⨾ⁿ ⇑ᶜ var0-fun ∶ A ⊒ B → ⊥`.
+
+The reason is simple but important: the left cast `id-var1-fun` targets
+`＇ 1 ⇒ ＇ 1`, while the shifted legal body coercion `⇑ᶜ var0-fun` has source
+`★ ⇒ ★`.  Composition would force `＇ 1 ⇒ ＇ 1 ≡ ★ ⇒ ★`.
+
+Conclusion: the legal `var0-fun` repair of the old `id-var1` counterexample
+does not produce a source-first body at all.  This supports the idea that the
+real `gen` premise is enforcing the relevant endpoint freshness/occurrence
+invariant.  The remaining replay proof still needs to exploit that invariant in
+the cast-composition cases, rather than replaying a generic mixed
+`raise0ᵗ`/`swap01ᵗ` composition theorem.

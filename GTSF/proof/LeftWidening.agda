@@ -55,6 +55,9 @@ module proof.LeftWidening where
 --     (`shift-var`, `shift-blame`, `shift-ƛ`, `shift-·`) should therefore be
 --     generalized to a parallel type-renaming theorem with an explicit
 --     store-narrowing renamer and mode-renamer premise.
+--     Current progress in that direction includes `renameStoreNrw`,
+--     `renameCtxNrw`, `rename-var`, `rename-blame`, `rename-ƛ`, `rename-·`,
+--     and `rename-Λ`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)

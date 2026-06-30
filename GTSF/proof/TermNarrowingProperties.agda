@@ -12,6 +12,7 @@ open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing using
   ( _∣_∣_⊢_⊒_∶_⦂_⊒_
+  ; TermTypingEndpoints
   ; ⊒cast+ᵗ
   ; ⊒cast-ᵗ
   ; cast+⊒ᵗ
@@ -39,6 +40,10 @@ variable
 -- `q ⨾ s ≈ r` and `r ≈ t ⨾ p` from `q ⨾ s ≈ t ⨾ p`.
 
 cast-⊒cast-ᵗ : ∀ {M M′ p q r s t A B Ap Bp Aq Bq}
+  → {typing :
+      TermTypingEndpoints Δ σ γ (M ⟨ t ⟩) (M′ ⟨ s ⟩) Ap Bp}
+  → {innerTyping :
+      TermTypingEndpoints Δ σ γ M (M′ ⟨ s ⟩) A B}
   → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ Ap ⊒ Bp
   → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ Aq ⊒ Bq
   → Δ ∣ srcStoreⁿ σ ⊢ r ∶ᶜ A ⊒ B
@@ -48,11 +53,17 @@ cast-⊒cast-ᵗ : ∀ {M M′ p q r s t A B Ap Bp Aq Bq}
     --------------------------------------------------
   → Δ ∣ σ ∣ γ ⊢ M ⟨ t ⟩ ⊒ M′ ⟨ s ⟩ ∶ p ⦂ Ap ⊒ Bp
 cast-⊒cast-ᵗ {p = p} {q = q} {r = r} {s = s} {t = t}
+    {typing = typing} {innerTyping = innerTyping}
     pᶜ qᶜ rᶜ q⨟s≈r r≈t⨟p M⊒M′ =
-  cast-⊒ᵗ {p = p} {r = r} {t = t} pᶜ r≈t⨟p
-    (⊒cast-ᵗ {q = q} {r = r} {s = s} qᶜ rᶜ q⨟s≈r M⊒M′)
+  cast-⊒ᵗ {p = p} {r = r} {t = t} {typing = typing} pᶜ r≈t⨟p
+    (⊒cast-ᵗ {q = q} {r = r} {s = s} {typing = innerTyping}
+      qᶜ rᶜ q⨟s≈r M⊒M′)
 
 cast+⊒cast+ᵗ : ∀ {M M′ p q r s t A B Ap Bp Aq Bq}
+  → {typing :
+      TermTypingEndpoints Δ σ γ (M ⟨ - t ⟩) (M′ ⟨ - s ⟩) Aq Bq}
+  → {innerTyping :
+      TermTypingEndpoints Δ σ γ (M ⟨ - t ⟩) M′ A B}
   → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ Ap ⊒ Bp
   → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ Aq ⊒ Bq
   → Δ ∣ srcStoreⁿ σ ⊢ r ∶ᶜ A ⊒ B
@@ -62,6 +73,8 @@ cast+⊒cast+ᵗ : ∀ {M M′ p q r s t A B Ap Bp Aq Bq}
     ------------------------------------------------------
   → Δ ∣ σ ∣ γ ⊢ M ⟨ - t ⟩ ⊒ M′ ⟨ - s ⟩ ∶ q ⦂ Aq ⊒ Bq
 cast+⊒cast+ᵗ {p = p} {q = q} {r = r} {s = s} {t = t}
+    {typing = typing} {innerTyping = innerTyping}
     pᶜ qᶜ rᶜ q⨟s≈r r≈t⨟p M⊒M′ =
-  ⊒cast+ᵗ {q = q} {r = r} {s = s} qᶜ q⨟s≈r
-    (cast+⊒ᵗ {p = p} {r = r} {t = t} pᶜ rᶜ r≈t⨟p M⊒M′)
+  ⊒cast+ᵗ {q = q} {r = r} {s = s} {typing = typing} qᶜ q⨟s≈r
+    (cast+⊒ᵗ {p = p} {r = r} {t = t} {typing = innerTyping}
+      pᶜ rᶜ r≈t⨟p M⊒M′)

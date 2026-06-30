@@ -123,8 +123,6 @@ Implemented staged typed relation:
   `Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)`.
 - Added `typed-term-narrowing-index-typing`, which projects the typed coercion
   evidence at the conclusion endpoints.
-- Added `typed-term-narrowing-erasure`, which forgets the endpoint indices back
-  to the legacy raw relation for existing catchup and example code.
 
 Counterexample documentation:
 
@@ -165,16 +163,33 @@ Ported DGG-facing support to the typed relation:
   `coercion-endpoints-uniqueᵐ` to align the endpoint indices supplied by the
   variable lookup with the endpoint indices of the substituted value relation.
 - Updated `function-application-simulation-ƛ⊒ƛ` to consume typed body and
-  argument narrowing, then erase only the final substituted relation because
-  the DGG conclusion is still the legacy raw relation.
-- Replaced the anonymous application-left recursive-call typing holes with
-  named obligations:
-  `typed-term-narrowing-source-typing` and
-  `typed-term-narrowing-target-typing`.
+  argument narrowing.  The DGG conclusion now remains typed instead of erasing
+  back to the legacy raw relation.
+- Removed the temporary erasure layer and other raw-relation imports from
+  DGG-facing support.
 
-Remaining projection obligation:
+## Typed term-narrowing endpoints, 2026-06-30
 
-- The two typed source/target typing projections are intentionally local named
-  proof obligations, not postulates.  They are the next API to move down into
-  the canonical typed term-narrowing support once the proof is filled or the
-  typed relation is changed to bundle source/target typing evidence directly.
+Issue #31 exposed that the staged typed relation had coercion endpoint evidence
+but not term typing evidence at those same endpoints.  The application-left DGG
+recursive call needs the `L`/`L′` typings aligned with the endpoints exposed by
+`·⊒·ᵗ`; the separate application typing premises are not enough to recover that
+alignment.
+
+Implemented adjustment:
+
+- Added `tgtStoreⁿ` as the target-store projection dual to `srcStoreⁿ`.
+- Added `srcCtxⁿ` and `tgtCtxⁿ` as the source and target context projections
+  for term-variable narrowing contexts.
+- Added `TermTypingEndpoints`, bundling
+  `Δ ∣ srcStoreⁿ σ ∣ srcCtxⁿ γ ⊢ M ⦂ A` and
+  `Δ ∣ tgtStoreⁿ σ ∣ tgtCtxⁿ γ ⊢ M′ ⦂ B`.
+- Strengthened every typed term-narrowing constructor with hidden endpoint
+  evidence, including the permissive `⊒blameᵗ` case that motivated the issue.
+- Added `typed-term-narrowing-source-typing` and
+  `typed-term-narrowing-target-typing` as direct projections from typed term
+  narrowing.
+- Added `tgtStoreⁿ-⊒ˢ`; DGG uses it to transport target term typing from
+  `tgtStoreⁿ σ` to the explicit `Σ′` carried by the theorem premise.
+- Tightened the derived typed cast rules so their final and intermediate
+  endpoint witnesses are explicit rather than left as fresh metas.

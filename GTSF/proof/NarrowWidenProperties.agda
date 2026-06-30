@@ -108,6 +108,21 @@ srcStoreⁿ-⊒ˢ (⊒ˢ-both {X = X} hA hA′ (μ , s⊒) σ⊒) =
       (sym (proj₁ (coercion-src-tgtᵐ (proj₁ s⊒)))))
     (srcStoreⁿ-⊒ˢ σ⊒)
 
+tgtStoreⁿ-⊒ˢ :
+  ∀ {Δ σ Σ Σ′} →
+  Δ ⊢ σ ꞉ Σ ⊒ˢ Σ′ →
+  Σ′ ≡ tgtStoreⁿ σ
+tgtStoreⁿ-⊒ˢ ⊒ˢ-nil = refl
+tgtStoreⁿ-⊒ˢ (⊒ˢ-right {A = A} {X = X} hA σ⊒) =
+  cong (λ Σ′ → (X , A) ∷ Σ′) (tgtStoreⁿ-⊒ˢ σ⊒)
+tgtStoreⁿ-⊒ˢ (⊒ˢ-left σ⊒) =
+  tgtStoreⁿ-⊒ˢ σ⊒
+tgtStoreⁿ-⊒ˢ (⊒ˢ-both {X = X} hA hA′ (μ , s⊒) σ⊒) =
+  cong₂ _∷_
+    (cong (λ B → (X , B))
+      (sym (proj₂ (coercion-src-tgtᵐ (proj₁ s⊒)))))
+    (tgtStoreⁿ-⊒ˢ σ⊒)
+
 srcStoreⁿ-⇑ˢ :
   ∀ σ →
   srcStoreⁿ (⇑ˢ σ) ≡ ⟰ᵗ (srcStoreⁿ σ)

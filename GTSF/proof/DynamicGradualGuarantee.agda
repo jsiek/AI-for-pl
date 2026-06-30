@@ -12,6 +12,7 @@ module proof.DynamicGradualGuarantee where
 --     catch-up, inversion, wrapping, and cast movement.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import Data.List using ([]; _∷_)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 
@@ -24,6 +25,7 @@ open import NarrowWiden
 open import NarrowWidenComposition using (_∣_⊢_⨾ⁿ_≈_∶_⊒_)
 open import TermNarrowing
 open import proof.CatchupStore using (combineStoreNrw)
+open import proof.NarrowWidenProperties using (tgtStoreⁿ-⊒ˢ)
 open import proof.ReductionProperties using (type-rename-step-⇑ᵗᵐ)
 open import proof.TermSubstitutionNarrowing using
   (term-substitution-narrowingᵗ)
@@ -50,20 +52,17 @@ runtime-⊕₂-any (ok-⊕₂ vL noL okM) = okM
 -- Lemmas used by the cambridge25 top-down proof
 ------------------------------------------------------------------------
 
-typed-term-narrowing-source-typing :
-  ∀ {Δ σ M M′ p A B} →
-  StoreWf Δ (srcStoreⁿ σ) →
-  Δ ∣ σ ∣ [] ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B →
-  Δ ∣ srcStoreⁿ σ ∣ [] ⊢ M ⦂ A
-typed-term-narrowing-source-typing wfΣ M⊒M′ = {!!}
-
-typed-term-narrowing-target-typing :
+typed-term-narrowing-target-typing-⊒ˢ :
   ∀ {Δ σ Σ′ M M′ p A B} →
-  StoreWf Δ (srcStoreⁿ σ) →
   Δ ⊢ σ ꞉ srcStoreⁿ σ ⊒ˢ Σ′ →
   Δ ∣ σ ∣ [] ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B →
   Δ ∣ Σ′ ∣ [] ⊢ M′ ⦂ B
-typed-term-narrowing-target-typing wfΣ σ⊒ M⊒M′ = {!!}
+typed-term-narrowing-target-typing-⊒ˢ {Δ = Δ} {σ = σ} {Σ′ = Σ′}
+    {M′ = M′} {B = B} σ⊒ M⊒M′ =
+  subst
+    (λ Σ₀ → Δ ∣ Σ₀ ∣ [] ⊢ M′ ⦂ B)
+    (sym (tgtStoreⁿ-⊒ˢ σ⊒))
+    (typed-term-narrowing-target-typing M⊒M′)
 
 ------------------------------------------------------------------------
 -- Function application simulation
@@ -169,8 +168,8 @@ dynamicGradualGuarantee wfΣ okM σ⊒
         wfΣ
         (runtime-·₁ okM)
         σ⊒
-        (typed-term-narrowing-source-typing wfΣ L⊒L′)
-        (typed-term-narrowing-target-typing wfΣ σ⊒ L⊒L′)
+        (typed-term-narrowing-source-typing L⊒L′)
+        (typed-term-narrowing-target-typing-⊒ˢ σ⊒ L⊒L′)
         p↦qᶜ
         L⊒L′
         L′→N′

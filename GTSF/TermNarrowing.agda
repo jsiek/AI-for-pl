@@ -49,6 +49,9 @@ fun-narrow-codomainᶜ (cast-fun p⊢ q⊢ , cross (p⊑ ↦ q⊒)) =
 infix 4 _∣_∣_⊢_⊒_∶_
 infix 4 _∣_∣_⊢_⊒_∶_⦂_⊒_
 
+-- Legacy/raw term narrowing.  New proof code should consume the typed
+-- relation below and use `typed-term-narrowing-erasure` only at boundaries
+-- that still require the raw judgment.
 data _∣_∣_⊢_⊒_∶_
     : TyCtx → StoreNrw → CtxNrw → Term → Term → Coercion → Set₁ where
 

@@ -11,7 +11,17 @@ open import NuTerms
 open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing using
-  (_∣_∣_⊢_⊒_∶_; ⊒cast+; ⊒cast-; cast+⊒; cast-⊒)
+  ( _∣_∣_⊢_⊒_∶_
+  ; _∣_∣_⊢_⊒_∶_⦂_⊒_
+  ; ⊒cast+
+  ; ⊒cast-
+  ; cast+⊒
+  ; cast-⊒
+  ; ⊒cast+ᵗ
+  ; ⊒cast-ᵗ
+  ; cast+⊒ᵗ
+  ; cast-⊒ᵗ
+  )
 
 variable
   Δ : TyCtx
@@ -58,3 +68,31 @@ cast+⊒cast+ {p = p} {q = q} {r = r} {s = s} {t = t}
     pᶜ qᶜ q⨟s≈r r≈t⨟p M⊒M′ =
   ⊒cast+ {q = q} {r = r} {s = s} qᶜ q⨟s≈r
     (cast+⊒ {p = p} {r = r} {t = t} pᶜ r≈t⨟p M⊒M′)
+
+cast-⊒cast-ᵗ : ∀ {M M′ p q r s t A B Ap Bp Aq Bq}
+  → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ Ap ⊒ Bp
+  → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ Aq ⊒ Bq
+  → Δ ∣ srcStoreⁿ σ ⊢ r ∶ᶜ A ⊒ B
+  → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
+  → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+  → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ q ⦂ Aq ⊒ Bq
+    --------------------------------------------------
+  → Δ ∣ σ ∣ γ ⊢ M ⟨ t ⟩ ⊒ M′ ⟨ s ⟩ ∶ p ⦂ Ap ⊒ Bp
+cast-⊒cast-ᵗ {p = p} {q = q} {r = r} {s = s} {t = t}
+    pᶜ qᶜ rᶜ q⨟s≈r r≈t⨟p M⊒M′ =
+  cast-⊒ᵗ {p = p} {r = r} {t = t} pᶜ r≈t⨟p
+    (⊒cast-ᵗ {q = q} {r = r} {s = s} qᶜ rᶜ q⨟s≈r M⊒M′)
+
+cast+⊒cast+ᵗ : ∀ {M M′ p q r s t A B Ap Bp Aq Bq}
+  → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ Ap ⊒ Bp
+  → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ Aq ⊒ Bq
+  → Δ ∣ srcStoreⁿ σ ⊢ r ∶ᶜ A ⊒ B
+  → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
+  → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+  → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ Ap ⊒ Bp
+    ------------------------------------------------------
+  → Δ ∣ σ ∣ γ ⊢ M ⟨ - t ⟩ ⊒ M′ ⟨ - s ⟩ ∶ q ⦂ Aq ⊒ Bq
+cast+⊒cast+ᵗ {p = p} {q = q} {r = r} {s = s} {t = t}
+    pᶜ qᶜ rᶜ q⨟s≈r r≈t⨟p M⊒M′ =
+  ⊒cast+ᵗ {q = q} {r = r} {s = s} qᶜ q⨟s≈r
+    (cast+⊒ᵗ {p = p} {r = r} {t = t} pᶜ rᶜ r≈t⨟p M⊒M′)

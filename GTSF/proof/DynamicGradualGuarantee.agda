@@ -32,7 +32,7 @@ open import proof.ReductionProperties using (type-rename-step-⇑ᵗᵐ)
 open import proof.RightSealInversion2 using
   (right-seal-inversion₂; right-seal-inversion₂-cast-unseal⊥)
 open import proof.TermSubstitutionNarrowing using
-  (term-substitution-narrowing)
+  (term-substitution-narrowingᵗ)
 open import proof.NuPreservation using
   (runtime-·₁; runtime-•; runtime-⟨⟩; runtime-ν; runtime-⊕₁)
 
@@ -55,6 +55,21 @@ runtime-⊕₂-any (ok-⊕₂ vL noL okM) = okM
 ------------------------------------------------------------------------
 -- Lemmas used by the cambridge25 top-down proof
 ------------------------------------------------------------------------
+
+typed-term-narrowing-source-typing :
+  ∀ {Δ σ M M′ p A B} →
+  StoreWf Δ (srcStoreⁿ σ) →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B →
+  Δ ∣ srcStoreⁿ σ ∣ [] ⊢ M ⦂ A
+typed-term-narrowing-source-typing wfΣ M⊒M′ = {!!}
+
+typed-term-narrowing-target-typing :
+  ∀ {Δ σ Σ′ M M′ p A B} →
+  StoreWf Δ (srcStoreⁿ σ) →
+  Δ ⊢ σ ꞉ srcStoreⁿ σ ⊒ˢ Σ′ →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B →
+  Δ ∣ Σ′ ∣ [] ⊢ M′ ⦂ B
+typed-term-narrowing-target-typing wfΣ σ⊒ M⊒M′ = {!!}
 
 postulate
   right-tag-inversion₁ :
@@ -102,23 +117,24 @@ postulate
 ------------------------------------------------------------------------
 
 function-application-simulation-ƛ⊒ƛ :
-  ∀ {Δ σ N N′ V V′ a q} →
+  ∀ {Δ σ N N′ V V′ a q A B C D} →
   Value V →
-  Δ ∣ σ ∣ a ∷ [] ⊢ N ⊒ N′ ∶ q →
-  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ a →
+  Δ ∣ srcStoreⁿ σ ⊢ a ∶ᶜ A ⊒ B →
+  Δ ∣ σ ∣ a ∷ [] ⊢ N ⊒ N′ ∶ q ⦂ C ⊒ D →
+  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ a ⦂ A ⊒ B →
   ∃[ χs ] ∃[ P ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ] ∃[ q′ ]
     ((ƛ N) · V —↠[ χs ] P) ×
     (Π ≡ applyStores χs []) ×
     (Π′ ≡ applyStore keep []) ×
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
     Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ P ⊒ N′ [ V′ ] ∶ q′
-function-application-simulation-ƛ⊒ƛ {N = N} {V = V} vV N⊒N′ V⊒V′ =
+function-application-simulation-ƛ⊒ƛ {N = N} {V = V} vV aᶜ N⊒N′ V⊒V′ =
   keep ∷ [] , N [ V ] , _ , [] , [] , [] , _ ,
   ↠-step (pure-step (β vV)) ↠-refl ,
   refl ,
   refl ,
   ⊒ˢ-nil ,
-  term-substitution-narrowing _ N⊒N′
+  typed-term-narrowing-erasure (term-substitution-narrowingᵗ _ N⊒N′)
 
 function-application-simulation :
   ∀ {Δ σ L L′ M N′ V′ r p q} →
@@ -213,8 +229,8 @@ dynamicGradualGuarantee wfΣ okM σ⊒
         wfΣ
         (runtime-·₁ okM)
         σ⊒
-        {!!}
-        {!!}
+        (typed-term-narrowing-source-typing wfΣ L⊒L′)
+        (typed-term-narrowing-target-typing wfΣ σ⊒ L⊒L′)
         p↦qᶜ
         L⊒L′
         L′→N′

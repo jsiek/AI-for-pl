@@ -91,6 +91,10 @@ module proof.LeftWidening where
 --     its term body with `ρ`, while the narrowing premises under the fresh
 --     store entry need `extᵗ ρ`.  Keeping that mismatch explicit avoids a
 --     false "obvious" helper.
+--   * The bindery store constructors need the same constructor-native shape:
+--     `rename-extend` and `rename-split` are now mechanized in
+--     `proof.TermNarrowingProperties`, using the parallel type-renaming/opening
+--     commutation lemmas for terms and coercions.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)

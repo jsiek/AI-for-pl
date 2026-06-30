@@ -27,6 +27,8 @@ open import TermNarrowing using
   ( _∣_∣_⊢_⊒_∶_
   ; _•_
   ; ⇑ᵍ
+  ; extend
+  ; split
   ; ⊒blame
   ; x⊒x
   ; ƛ⊒ƛ
@@ -68,7 +70,11 @@ open import proof.NarrowWidenProperties
     ; ⊒ˢ-⇑ˢ
     )
 open import proof.NuTermProperties
-  using (renameᵗᵐ-ext-suc-comm; renameᵗᵐ-preserves-Value)
+  using
+    ( renameᵗᵐ-ext-suc-comm
+    ; renameᵗᵐ-open-commute
+    ; renameᵗᵐ-preserves-Value
+    )
 open import proof.StoreProperties using (StoreWfAt-rename)
 open import proof.TypeProperties
   using
@@ -831,6 +837,114 @@ rename-open-widen-cast-srcStore {ρ = ρ} {σ = σ} {α = α}
       ∷ renameStoreNrw ρ σ) ⊢ c ∶ᶜ _ ⊒ _)
     (renameᶜ-open-commute ρ p α)
     (rename-cast-srcStore {ρ = ρ} {σ = (α ꞉= A ⊒) ∷ σ} hρ pαᶜ)
+
+rename-extend :
+  ∀ {ρ Δ Δ′ σ γ M N′ p q A B C D α} →
+  TyRenameWf Δ Δ′ ρ →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ B ⊒ A →
+  Δ ∣ srcStoreⁿ ((α ꞉ q) ∷ σ) ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D →
+  Δ′ ∣ (ρ α ꞉= renameᵗ ρ A ⊒) ∷ renameStoreNrw ρ σ
+    ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ (N′ [ α ]ᵀ)
+    ∶ renameᶜ ρ (p [ α ]ᶜ) →
+  Δ′ ∣ (ρ α ꞉ renameᶜ ρ q) ∷ renameStoreNrw ρ σ
+    ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ (N′ [ α ]ᵀ)
+    ∶ renameᶜ ρ (p [ α ]ᶜ)
+rename-extend {ρ = ρ} {σ = σ} {γ = γ} {M = M} {N′ = N′}
+    {p = p} {q = q} {A = A} {α = α} hρ qᶜ pαᶜ M⊒N′ =
+  subst
+    (λ T → _ ∣ (ρ α ꞉ renameᶜ ρ q) ∷ renameStoreNrw ρ σ
+      ∣ renameCtxNrw ρ γ
+      ⊢ renameᵗᵐ ρ M ⊒ T ∶ renameᶜ ρ (p [ α ]ᶜ))
+    (sym (renameᵗᵐ-open-commute ρ N′ α))
+    (subst
+      (λ c → _ ∣ (ρ α ꞉ renameᶜ ρ q) ∷ renameStoreNrw ρ σ
+        ∣ renameCtxNrw ρ γ
+        ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ (extᵗ ρ) N′ [ ρ α ]ᵀ
+        ∶ c)
+      (sym (renameᶜ-open-commute ρ p α))
+      (extend
+        (rename-cast-srcStore {ρ = ρ} {σ = σ} hρ qᶜ)
+        (rename-open-cast-srcStore
+          {ρ = ρ} {σ = σ} {α = α} {q = q} {p = p} hρ pαᶜ)
+        (subst
+          (λ T → _ ∣ (ρ α ꞉= renameᵗ ρ A ⊒) ∷ renameStoreNrw ρ σ
+            ∣ renameCtxNrw ρ γ
+            ⊢ renameᵗᵐ ρ M ⊒ T
+            ∶ renameᶜ (extᵗ ρ) p [ ρ α ]ᶜ)
+          (renameᵗᵐ-open-commute ρ N′ α)
+          (subst
+            (λ c → _ ∣ (ρ α ꞉= renameᵗ ρ A ⊒)
+              ∷ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+              ⊢ renameᵗᵐ ρ M ⊒ renameᵗᵐ ρ (N′ [ α ]ᵀ) ∶ c)
+            (renameᶜ-open-commute ρ p α)
+            M⊒N′))))
+
+rename-split :
+  ∀ {ρ Δ Δ′ σ γ N N′ p q A C D α αᵢ} →
+  TyRenameWf Δ Δ′ ρ →
+  Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+    ⊢ q ∶ᶜ ★ ⊒ A →
+  Δ ∣ srcStoreⁿ ((α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ)
+    ⊢ p [ α ]ᶜ ∶ᶜ C ⊒ D →
+  Δ′ ∣ (ρ α ꞉ renameᶜ ρ q) ∷ renameStoreNrw ρ σ
+    ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ (N [ α ]ᵀ) ⊒ renameᵗᵐ ρ (N′ [ α ]ᵀ)
+    ∶ renameᶜ ρ (p [ α ]ᶜ) →
+  Δ′ ∣ (ρ α ꞉= renameᵗ ρ A ⊒)
+      ∷ (⊒ ρ αᵢ ꞉=☆) ∷ renameStoreNrw ρ σ
+    ∣ renameCtxNrw ρ γ
+    ⊢ renameᵗᵐ ρ (N [ αᵢ ]ᵀ) ⊒ renameᵗᵐ ρ (N′ [ α ]ᵀ)
+    ∶ renameᶜ ρ (p [ α ]ᶜ)
+rename-split {ρ = ρ} {σ = σ} {γ = γ} {N = N} {N′ = N′}
+    {p = p} {q = q} {A = A} {α = α} {αᵢ = αᵢ} hρ qᶜ pαᶜ N⊒N′ =
+  subst
+    (λ S → _ ∣ (ρ α ꞉= renameᵗ ρ A ⊒)
+        ∷ (⊒ ρ αᵢ ꞉=☆) ∷ renameStoreNrw ρ σ
+      ∣ renameCtxNrw ρ γ
+      ⊢ S ⊒ renameᵗᵐ ρ (N′ [ α ]ᵀ) ∶ renameᶜ ρ (p [ α ]ᶜ))
+    (sym (renameᵗᵐ-open-commute ρ N αᵢ))
+    (subst
+      (λ T → _ ∣ (ρ α ꞉= renameᵗ ρ A ⊒)
+          ∷ (⊒ ρ αᵢ ꞉=☆) ∷ renameStoreNrw ρ σ
+        ∣ renameCtxNrw ρ γ
+        ⊢ renameᵗᵐ (extᵗ ρ) N [ ρ αᵢ ]ᵀ ⊒ T
+        ∶ renameᶜ ρ (p [ α ]ᶜ))
+      (sym (renameᵗᵐ-open-commute ρ N′ α))
+      (subst
+        (λ c → _ ∣ (ρ α ꞉= renameᵗ ρ A ⊒)
+            ∷ (⊒ ρ αᵢ ꞉=☆) ∷ renameStoreNrw ρ σ
+          ∣ renameCtxNrw ρ γ
+          ⊢ renameᵗᵐ (extᵗ ρ) N [ ρ αᵢ ]ᵀ
+            ⊒ renameᵗᵐ (extᵗ ρ) N′ [ ρ α ]ᵀ ∶ c)
+        (sym (renameᶜ-open-commute ρ p α))
+        (split
+          (rename-cast-srcStore
+            {ρ = ρ} {σ = (α ꞉= A ⊒) ∷ (⊒ αᵢ ꞉=☆) ∷ σ}
+            hρ qᶜ)
+          (rename-open-widen-cast-srcStore
+            {ρ = ρ} {σ = (⊒ αᵢ ꞉=☆) ∷ σ} {α = α}
+            {A = A} {p = p} hρ pαᶜ)
+          (subst
+            (λ T → _ ∣ (ρ α ꞉ renameᶜ ρ q) ∷ renameStoreNrw ρ σ
+              ∣ renameCtxNrw ρ γ
+              ⊢ renameᵗᵐ (extᵗ ρ) N [ ρ α ]ᵀ ⊒ T
+              ∶ renameᶜ (extᵗ ρ) p [ ρ α ]ᶜ)
+            (renameᵗᵐ-open-commute ρ N′ α)
+            (subst
+              (λ S → _ ∣ (ρ α ꞉ renameᶜ ρ q) ∷ renameStoreNrw ρ σ
+                ∣ renameCtxNrw ρ γ
+                ⊢ S ⊒ renameᵗᵐ ρ (N′ [ α ]ᵀ)
+                ∶ renameᶜ (extᵗ ρ) p [ ρ α ]ᶜ)
+              (renameᵗᵐ-open-commute ρ N α)
+              (subst
+                (λ c → _ ∣ (ρ α ꞉ renameᶜ ρ q)
+                  ∷ renameStoreNrw ρ σ ∣ renameCtxNrw ρ γ
+                  ⊢ renameᵗᵐ ρ (N [ α ]ᵀ)
+                    ⊒ renameᵗᵐ ρ (N′ [ α ]ᵀ) ∶ c)
+                (renameᶜ-open-commute ρ p α)
+                N⊒N′))))))
 
 rename-α⊒α :
   ∀ {ρ Δ Δ′ σ γ L L′ p q A B C D α} →

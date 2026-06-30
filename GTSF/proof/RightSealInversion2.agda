@@ -13,7 +13,7 @@ module proof.RightSealInversion2 where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here; there)
-open import Data.Nat using (z<s; s<s)
+open import Data.Nat using (zero; suc; z<s; s<s)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
 
 open import Types
@@ -25,6 +25,8 @@ open import NarrowWidenComposition
 open import TermNarrowing
 open import proof.Catchup using
   ( replace-here
+  ; compose-leftⁿ-⇑ˢ
+  ; compose-leftⁿ-add-left-star-var
   ; extendReplaceRel-compose-left
   ; extendReplaceRel-term
   )
@@ -50,6 +52,28 @@ right-seal-compose-endpoints
           | proj₂ (coercion-src-tgtᵐ (proj₁ seal⊒)) =
   compose-leftⁿ wfΣ q⊒ seal⊒
     (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒)
+
+right-seal-compose-ν-lift :
+  ∀ {Δ σ p r A α} →
+  Δ ∣ σ ⊢ p ⨾ⁿ seal A α ≈ r ∶ src p ⊒ ＇ α →
+  suc Δ ∣ (⊒ zero ꞉=☆) ∷ ⇑ˢ σ
+    ⊢ ⇑ᶜ p ⨾ⁿ seal (⇑ᵗ A) (suc α) ≈ ⇑ᶜ r
+      ∶ ⇑ᵗ (src p) ⊒ ＇ suc α
+right-seal-compose-ν-lift p⨟seal≈r =
+  compose-leftⁿ-add-left-star-var zero
+    (compose-leftⁿ-⇑ˢ p⨟seal≈r)
+
+rightSealInversion2-ν⊒-right-sealed :
+  ∀ {Δ σ γ N W p r A B A₀ α} →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
+  Δ ∣ σ ⊢ p ⨾ⁿ seal A₀ α ≈ r ∶ src p ⊒ ＇ α →
+  suc Δ ∣ (⊒ zero ꞉=☆) ∷ ⇑ˢ σ ∣ ⇑ᵍ γ
+    ⊢ N ⊒ ⇑ᵗᵐ W ∶ ⇑ᶜ p →
+  ∃[ u ]
+    (Δ ∣ σ ⊢ p ⨾ⁿ seal A₀ α ≈ u ∶ src p ⊒ ＇ α) ×
+    Δ ∣ σ ∣ γ ⊢ ν ★ N (⇑ᶜ p) ⊒ W ⟨ seal A₀ α ⟩ ∶ u
+rightSealInversion2-ν⊒-right-sealed pᶜ p⨟seal≈r N⊒W =
+  _ , p⨟seal≈r , ⊒cast- pᶜ p⨟seal≈r (ν⊒ pᶜ N⊒W)
 
 rightSealInversion2-cast+ :
   ∀ {Δ σ γ M M′ V q r s A B C D A₀ α} →

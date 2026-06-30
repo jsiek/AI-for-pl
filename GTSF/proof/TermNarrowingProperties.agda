@@ -2,8 +2,13 @@ module proof.TermNarrowingProperties where
 
 -- File Charter:
 --   * Admissible rules and structural lemmas for term narrowing.
---   * Currently provides the two cambridge23 two-sided cast derived rules.
+--   * Provides constructor-level type-context shifting helpers and the two
+--     cambridge23 two-sided cast derived rules.
 --   * Depends on the public definitions in `TermNarrowing` and `NarrowWiden`.
+
+open import Data.List using (_∷_)
+open import Data.Nat using (suc)
+open import Relation.Binary.PropositionalEquality using (cong; subst)
 
 open import Types
 open import Coercions
@@ -11,7 +16,19 @@ open import NuTerms
 open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing using
-  (_∣_∣_⊢_⊒_∶_; ⊒cast+; ⊒cast-; cast+⊒; cast-⊒)
+  ( _∣_∣_⊢_⊒_∶_
+  ; ⇑ᵍ
+  ; ⊒blame
+  ; x⊒x
+  ; ƛ⊒ƛ
+  ; ·⊒·
+  ; ⊒cast+
+  ; ⊒cast-
+  ; cast+⊒
+  ; cast-⊒
+  )
+open import proof.CoercionProperties using (renameᶜ-dual-normal)
+open import proof.NarrowWidenProperties using (narrow-⇑ᵗ-ᶜ-srcStoreⁿ)
 
 variable
   Δ : TyCtx
@@ -20,6 +37,79 @@ variable
   A B : Ty
   p q r s t : Coercion
   M M′ : Term
+
+------------------------------------------------------------------------
+-- Type-context shifting
+------------------------------------------------------------------------
+
+lookup-⇑ᵍ :
+  ∀ {γ x p} →
+  γ ∋ x ⦂ p →
+  ⇑ᵍ γ ∋ x ⦂ ⇑ᶜ p
+lookup-⇑ᵍ Z = Z
+lookup-⇑ᵍ (S h) = S (lookup-⇑ᵍ h)
+
+shift-blame :
+  ∀ {Δ σ γ M p A B} →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ
+    ⊢ ⇑ᵗᵐ M ⊒ blame ∶ ⇑ᶜ p
+shift-blame {σ = σ} pᶜ =
+  ⊒blame (narrow-⇑ᵗ-ᶜ-srcStoreⁿ {σ = σ} pᶜ)
+
+shift-var :
+  ∀ {Δ σ γ x p A B} →
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
+  γ ∋ x ⦂ p →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ
+    ⊢ ` x ⊒ ` x ∶ ⇑ᶜ p
+shift-var {σ = σ} pᶜ h =
+  x⊒x (narrow-⇑ᵗ-ᶜ-srcStoreⁿ {σ = σ} pᶜ) (lookup-⇑ᵍ h)
+
+shift-dual-index :
+  ∀ {Δ σ γ M M′ p} →
+  suc Δ ∣ ⇑ˢ σ ∣ γ ⊢ M ⊒ M′ ∶ ⇑ᶜ (- p) →
+  suc Δ ∣ ⇑ˢ σ ∣ γ ⊢ M ⊒ M′ ∶ - ⇑ᶜ p
+shift-dual-index {Δ = Δ} {σ = σ} {γ = γ} {M = M} {M′ = M′}
+    {p = p} M⊒M′ =
+  subst (λ c → suc Δ ∣ ⇑ˢ σ ∣ γ ⊢ M ⊒ M′ ∶ c)
+    (renameᶜ-dual-normal suc p)
+    M⊒M′
+
+shift-dual-context :
+  ∀ {Δ σ γ M M′ p q} →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ ((- p) ∷ γ) ⊢ M ⊒ M′ ∶ q →
+  suc Δ ∣ ⇑ˢ σ ∣ (- ⇑ᶜ p) ∷ ⇑ᵍ γ ⊢ M ⊒ M′ ∶ q
+shift-dual-context {Δ = Δ} {σ = σ} {γ = γ} {M = M} {M′ = M′}
+    {p = p} {q = q} M⊒M′ =
+  subst (λ γ′ → suc Δ ∣ ⇑ˢ σ ∣ γ′ ⊢ M ⊒ M′ ∶ q)
+    (cong (λ c → c ∷ ⇑ᵍ γ) (renameᶜ-dual-normal suc p))
+    M⊒M′
+
+shift-ƛ :
+  ∀ {Δ σ γ N N′ p q A A′ B B′} →
+  Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′) →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ ((- p) ∷ γ)
+    ⊢ ⇑ᵗᵐ N ⊒ ⇑ᵗᵐ N′ ∶ ⇑ᶜ q →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ
+    ⊢ ƛ ⇑ᵗᵐ N ⊒ ƛ ⇑ᵗᵐ N′ ∶ ⇑ᶜ (p ↦ q)
+shift-ƛ {σ = σ} {p = p} p↦qᶜ N⊒N′ =
+  ƛ⊒ƛ (narrow-⇑ᵗ-ᶜ-srcStoreⁿ {σ = σ} p↦qᶜ)
+    (shift-dual-context {p = p} N⊒N′)
+
+shift-· :
+  ∀ {Δ σ γ L L′ M M′ p q A B} →
+  Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ A ⊒ B →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ
+    ⊢ ⇑ᵗᵐ L ⊒ ⇑ᵗᵐ L′ ∶ ⇑ᶜ (p ↦ q) →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ
+    ⊢ ⇑ᵗᵐ M ⊒ ⇑ᵗᵐ M′ ∶ ⇑ᶜ (- p) →
+  suc Δ ∣ ⇑ˢ σ ∣ ⇑ᵍ γ
+    ⊢ ⇑ᵗᵐ L · ⇑ᵗᵐ M ⊒ ⇑ᵗᵐ L′ · ⇑ᵗᵐ M′ ∶ ⇑ᶜ q
+shift-· {σ = σ} {p = p} qᶜ L⊒L′ M⊒M′ =
+  ·⊒· (narrow-⇑ᵗ-ᶜ-srcStoreⁿ {σ = σ} qᶜ)
+    L⊒L′
+    (shift-dual-index {p = p} M⊒M′)
 
 ------------------------------------------------------------------------
 -- Derived cast rules

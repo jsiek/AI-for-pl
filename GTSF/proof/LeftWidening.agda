@@ -49,6 +49,12 @@ module proof.LeftWidening where
 --     that emitted `bind` steps raise `Δ`; for now the small Example 4
 --     derivation is replayed at the raised context.  A general `gen` proof
 --     should use a reusable term-narrowing type-context weakening lemma.
+--   * A direct suc-only induction for that weakening lemma is the wrong
+--     formulation: under `Λ`, the body is renamed by `extᵗ suc`, not plain
+--     `suc`.  The reusable pieces started in `proof.TermNarrowingProperties`
+--     (`shift-var`, `shift-blame`, `shift-ƛ`, `shift-·`) should therefore be
+--     generalized to a parallel type-renaming theorem with an explicit
+--     store-narrowing renamer and mode-renamer premise.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)

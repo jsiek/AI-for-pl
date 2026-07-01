@@ -326,6 +326,23 @@ renameᵗᵐ-preserves-Value ρ ($ κ) = $ κ
 renameᵗᵐ-preserves-Value ρ (vV ⟨ i ⟩) =
   renameᵗᵐ-preserves-Value ρ vV ⟨ renameᶜ-preserves-Inert ρ i ⟩
 
+renameᵗᵐ-reflects-Value :
+  ∀ ρ V →
+  Value (renameᵗᵐ ρ V) →
+  Value V
+renameᵗᵐ-reflects-Value ρ (` x) ()
+renameᵗᵐ-reflects-Value ρ (ƛ N) vV = ƛ N
+renameᵗᵐ-reflects-Value ρ (L · M) ()
+renameᵗᵐ-reflects-Value ρ (Λ V) (Λ vV) =
+  Λ (renameᵗᵐ-reflects-Value (extᵗ ρ) V vV)
+renameᵗᵐ-reflects-Value ρ (M •) ()
+renameᵗᵐ-reflects-Value ρ (ν A L c) ()
+renameᵗᵐ-reflects-Value ρ ($ κ) vV = $ κ
+renameᵗᵐ-reflects-Value ρ (L ⊕[ op ] M) ()
+renameᵗᵐ-reflects-Value ρ (V ⟨ c ⟩) (vV ⟨ i ⟩) =
+  renameᵗᵐ-reflects-Value ρ V vV ⟨ renameᶜ-reflects-Inert ρ c i ⟩
+renameᵗᵐ-reflects-Value ρ blame ()
+
 renameˣᵐ-preserves-Value :
   ∀ ρ {V} →
   Value V →

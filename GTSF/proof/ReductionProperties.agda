@@ -12,12 +12,13 @@ open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (ℕ; _≤_; zero; suc)
 open import Data.Nat.Properties using (≤-refl; ≤-trans; n≤1+n; suc-injective)
-open import Data.Product using (_×_; _,_; ∃-syntax)
+open import Data.Product using (Σ; _×_; _,_; ∃-syntax; proj₁)
 open import Relation.Binary.PropositionalEquality
   using (_≢_; cong; cong₂; subst; sym; trans)
 
 open import Types
 open import Coercions
+open import Primitives using (Const)
 open import NuTerms
 open import NuReduction
 open import proof.CoercionProperties
@@ -251,6 +252,24 @@ applyTys-★ :
 applyTys-★ [] = refl
 applyTys-★ (χ ∷ χs) rewrite applyTy-★ χ = applyTys-★ χs
 
+applyTy-ℕ :
+  ∀ χ →
+  applyTy χ (‵ `ℕ) ≡ ‵ `ℕ
+applyTy-ℕ keep = refl
+applyTy-ℕ (bind A) = refl
+
+applyTys-ℕ :
+  ∀ χs →
+  applyTys χs (‵ `ℕ) ≡ ‵ `ℕ
+applyTys-ℕ [] = refl
+applyTys-ℕ (χ ∷ χs) rewrite applyTy-ℕ χ = applyTys-ℕ χs
+
+applyTys-ℕ-applyTys :
+  ∀ χs χs′ →
+  applyTys χs′ (applyTys χs (‵ `ℕ)) ≡ ‵ `ℕ
+applyTys-ℕ-applyTys χs χs′ =
+  trans (cong (applyTys χs′) (applyTys-ℕ χs)) (applyTys-ℕ χs′)
+
 applyTerms-empty-id :
   ∀ χs →
   applyStores χs [] ≡ [] →
@@ -429,6 +448,13 @@ applyTerms-preserves-No• :
 applyTerms-preserves-No• [] noM = noM
 applyTerms-preserves-No• (χ ∷ χs) noM =
   applyTerms-preserves-No• χs (applyTerm-preserves-No• χ noM)
+
+applyTerms-const :
+  ∀ χs κ →
+  applyTerms χs ($ κ) ≡ $ κ
+applyTerms-const [] κ = refl
+applyTerms-const (keep ∷ χs) κ = applyTerms-const χs κ
+applyTerms-const (bind A ∷ χs) κ = applyTerms-const χs κ
 
 applyTermUnderTyBinder : StoreChange → Term → Term
 applyTermUnderTyBinder keep M = M
@@ -933,6 +959,141 @@ type-rename-step-⇑ᵗᵐ red =
   M —↠[ χs ++ χs′ ] P
 ↠-trans ↠-refl N↠P = N↠P
 ↠-trans (↠-step M→N N↠P) P↠Q = ↠-step M→N (↠-trans N↠P P↠Q)
+
+applyFrameChanges :
+  ∀ {Frame : Set} →
+  (StoreChange → Frame → Frame) →
+  StoreChanges →
+  Frame →
+  Frame
+applyFrameChanges applyFrame [] F = F
+applyFrameChanges applyFrame (χ ∷ χs) F =
+  applyFrameChanges applyFrame χs (applyFrame χ F)
+
+frame-↠ :
+  ∀ {Frame : Set}
+    (plug : Frame → Term → Term)
+    (applyFrame : StoreChange → Frame → Frame) →
+  (∀ {F M N χ} →
+    M —→[ χ ] N →
+    plug F M —→[ χ ] plug (applyFrame χ F) N) →
+  ∀ {F M N χs} →
+  M —↠[ χs ] N →
+  plug F M —↠[ χs ] plug (applyFrameChanges applyFrame χs F) N
+frame-↠ plug applyFrame lift-step ↠-refl = ↠-refl
+frame-↠ plug applyFrame lift-step (↠-step red reds) =
+  ↠-step (lift-step red) (frame-↠ plug applyFrame lift-step reds)
+
+shiftable-No• :
+  ∀ {χ M} →
+  No• M →
+  Shiftable χ M
+shiftable-No• {χ = keep} noM = shift-keep
+shiftable-No• {χ = bind A} noM = shift-bind noM
+
+No•Frame : Set
+No•Frame = Σ Term No•
+
+applyNo•Frame : StoreChange → No•Frame → No•Frame
+applyNo•Frame χ (M , noM) =
+  applyTerm χ M , applyTerm-preserves-No• χ noM
+
+applyNo•Frame-term :
+  ∀ χs F →
+  proj₁ (applyFrameChanges applyNo•Frame χs F) ≡
+    applyTerms χs (proj₁ F)
+applyNo•Frame-term [] F = refl
+applyNo•Frame-term (χ ∷ χs) (M , noM) =
+  applyNo•Frame-term χs
+    (applyTerm χ M , applyTerm-preserves-No• χ noM)
+
+ValueFrame : Set
+ValueFrame = Σ Term (λ V → Value V × No• V)
+
+applyValueFrame : StoreChange → ValueFrame → ValueFrame
+applyValueFrame χ (V , vV , noV) =
+  applyTerm χ V ,
+  applyTerm-preserves-Value χ vV ,
+  applyTerm-preserves-No• χ noV
+
+applyValueFrame-term :
+  ∀ χs F →
+  proj₁ (applyFrameChanges applyValueFrame χs F) ≡
+    applyTerms χs (proj₁ F)
+applyValueFrame-term [] F = refl
+applyValueFrame-term (χ ∷ χs) (V , vV , noV) =
+  applyValueFrame-term χs
+    (applyTerm χ V ,
+     applyTerm-preserves-Value χ vV ,
+     applyTerm-preserves-No• χ noV)
+
+·₁-↠ :
+  ∀ {L W M χs} →
+  No• M →
+  L —↠[ χs ] W →
+  L · M —↠[ χs ] W · applyTerms χs M
+·₁-↠ {L = L} {W = W} {M = M} {χs = χs} noM L↠W =
+  subst
+    (λ M′ → L · M —↠[ χs ] W · M′)
+    (applyNo•Frame-term χs (M , noM))
+    (frame-↠
+      (λ { (M′ , noM′) L′ → L′ · M′ })
+      applyNo•Frame
+      (λ { {F = M′ , noM′} red → ξ-·₁ red (shiftable-No• noM′) })
+      {F = M , noM}
+      L↠W)
+
+·₂-↠ :
+  ∀ {V M W χs} →
+  Value V →
+  No• V →
+  M —↠[ χs ] W →
+  V · M —↠[ χs ] applyTerms χs V · W
+·₂-↠ {V = V} {M = M} {W = W} {χs = χs} vV noV M↠W =
+  subst
+    (λ V′ → V · M —↠[ χs ] V′ · W)
+    (applyValueFrame-term χs (V , vV , noV))
+    (frame-↠
+      (λ { (V′ , vV′ , noV′) M′ → V′ · M′ })
+      applyValueFrame
+      (λ { {F = V′ , vV′ , noV′} red →
+        ξ-·₂ vV′ (shiftable-No• noV′) red })
+      {F = V , vV , noV}
+      M↠W)
+
+⊕₁-↠ :
+  ∀ {L W M op χs} →
+  No• M →
+  L —↠[ χs ] W →
+  L ⊕[ op ] M —↠[ χs ] W ⊕[ op ] applyTerms χs M
+⊕₁-↠ {L = L} {W = W} {M = M} {op = op} {χs = χs} noM L↠W =
+  subst
+    (λ M′ → L ⊕[ op ] M —↠[ χs ] W ⊕[ op ] M′)
+    (applyNo•Frame-term χs (M , noM))
+    (frame-↠
+      (λ { (M′ , noM′) L′ → L′ ⊕[ op ] M′ })
+      applyNo•Frame
+      (λ { {F = M′ , noM′} red → ξ-⊕₁ red (shiftable-No• noM′) })
+      {F = M , noM}
+      L↠W)
+
+⊕₂-↠ :
+  ∀ {V M W op χs} →
+  Value V →
+  No• V →
+  M —↠[ χs ] W →
+  V ⊕[ op ] M —↠[ χs ] applyTerms χs V ⊕[ op ] W
+⊕₂-↠ {V = V} {M = M} {W = W} {op = op} {χs = χs} vV noV M↠W =
+  subst
+    (λ V′ → V ⊕[ op ] M —↠[ χs ] V′ ⊕[ op ] W)
+    (applyValueFrame-term χs (V , vV , noV))
+    (frame-↠
+      (λ { (V′ , vV′ , noV′) M′ → V′ ⊕[ op ] M′ })
+      applyValueFrame
+      (λ { {F = V′ , vV′ , noV′} red →
+        ξ-⊕₂ vV′ (shiftable-No• noV′) red })
+      {F = V , vV , noV}
+      M↠W)
 
 cast-↠ :
   ∀ {M N c χs} →

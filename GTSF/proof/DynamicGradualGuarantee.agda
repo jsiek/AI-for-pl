@@ -120,8 +120,6 @@ dynamicGradualGuarantee :
   StoreWf Δ (srcStoreⁿ σ) →
   RuntimeOK M →
   Δ ⊢ σ ꞉ srcStoreⁿ σ ⊒ˢ Σ′ →
-  Δ ∣ srcStoreⁿ σ ∣ [] ⊢ M ⦂ A →
-  Δ ∣ Σ′ ∣ [] ⊢ M′ ⦂ B →
   Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
   Δ ∣ σ ∣ [] ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B →
   M′ —→[ χ′ ] N′ →
@@ -132,8 +130,7 @@ dynamicGradualGuarantee :
     (Π′ ≡ applyStore χ′ []) ×
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
     Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ N′ ∶ p′ ⦂ A′ ⊒ B′
-
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (α⊒αᵗ {L′ = blame} γ′≡ qᶜ pαᶜ L⊒L′)
     (pure-step blame-•) =
   [] , _ , _ , [] , [] , [] , _ , _ , _ ,
@@ -142,39 +139,39 @@ dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
   refl ,
   ⊒ˢ-nil ,
   ⊒blameᵗ pαᶜ
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (α⊒αᵗ {γ = []} {L′ = Λ V′} γ′≡ qᶜ pαᶜ L⊒L′)
     (pure-step (β-Λ• vV′))
     with catchup-lemma (runtime-• okM) {!!} L⊒L′
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (α⊒αᵗ {γ = []} {L′ = Λ V′} γ′≡ qᶜ pαᶜ L⊒L′)
     (pure-step (β-Λ• vV′))
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , L↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒Λ =
   {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (α⊒αᵗ {γ = []} {L′ = V′ ⟨ `∀ c ⟩} γ′≡ qᶜ pαᶜ L⊒L′)
     (pure-step (β-∀• vV′))
     with catchup-lemma (runtime-• okM) {!!} L⊒L′
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (α⊒αᵗ {γ = []} {L′ = V′ ⟨ `∀ c ⟩} γ′≡ qᶜ pαᶜ L⊒L′)
     (pure-step (β-∀• vV′))
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , L↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒∀ =
   {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (α⊒αᵗ {γ = []} {L′ = V′ ⟨ gen A c ⟩} γ′≡ qᶜ pαᶜ L⊒L′)
     (pure-step (β-gen• vV′))
     with catchup-lemma (runtime-• okM) {!!} L⊒L′
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (α⊒αᵗ {γ = []} {L′ = V′ ⟨ gen A c ⟩} γ′≡ qᶜ pαᶜ L⊒L′)
     (pure-step (β-gen• vV′))
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , L↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒gen =
   {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (α⊒αᵗ γ′≡ qᶜ pαᶜ L⊒L′) red = {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (⊒αᵗ {L′ = blame} γ′≡ pαᶜ L⊒L′) (pure-step blame-•) =
   [] , _ , _ , [] , [] , [] , _ , _ , _ ,
   ↠-refl ,
@@ -182,46 +179,44 @@ dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
   refl ,
   ⊒ˢ-nil ,
   ⊒blameᵗ pαᶜ
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (⊒αᵗ {γ = []} {L′ = Λ V′} γ′≡ pαᶜ L⊒L′)
     (pure-step (β-Λ• vV′))
     with catchup-lemma {!!} {!!} L⊒L′
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (⊒αᵗ {γ = []} {L′ = Λ V′} γ′≡ pαᶜ L⊒L′)
     (pure-step (β-Λ• vV′))
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , L↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒Λ =
   {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (⊒αᵗ {γ = []} {L′ = V′ ⟨ `∀ c ⟩} γ′≡ pαᶜ L⊒L′)
     (pure-step (β-∀• vV′))
     with catchup-lemma {!!} {!!} L⊒L′
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (⊒αᵗ {γ = []} {L′ = V′ ⟨ `∀ c ⟩} γ′≡ pαᶜ L⊒L′)
     (pure-step (β-∀• vV′))
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , L↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒∀ =
   {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (⊒αᵗ {γ = []} {L′ = V′ ⟨ gen A c ⟩} γ′≡ pαᶜ L⊒L′)
     (pure-step (β-gen• vV′))
     with catchup-lemma {!!} {!!} L⊒L′
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (⊒αᵗ {γ = []} {L′ = V′ ⟨ gen A c ⟩} γ′≡ pαᶜ L⊒L′)
     (pure-step (β-gen• vV′))
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , L↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒gen =
   {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (⊒αᵗ γ′≡ pαᶜ L⊒L′) red =
   {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒
-    (⊢· L⊢ M⊢) (⊢· L′⊢ M′⊢) qᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
     (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′)
     (pure-step (β vV)) =
   function-application-simulation (runtime-·₂-any okM) vV L⊒L′ M⊒M′
-dynamicGradualGuarantee wfΣ okM σ⊒
-    (⊢· L⊢ M⊢) (⊢· L′⊢ M′⊢) qᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
     (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′)
     (ξ-·₁ L′→N′ shiftM) =
   let
@@ -230,21 +225,17 @@ dynamicGradualGuarantee wfΣ okM σ⊒
         wfΣ
         (runtime-·₁ okM)
         σ⊒
-        (typed-term-narrowing-source-typing L⊒L′)
-        (typed-term-narrowing-target-typing-⊒ˢ σ⊒ L⊒L′)
         p↦qᶜ
         L⊒L′
         L′→N′
   in
   {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒
-    (⊢⊕ M⊢ op N⊢) (⊢⊕ M′⊢ .op N′⊢) qᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
     (⊕⊒⊕ᵗ M⊒M′ N⊒N′)
     (pure-step δ-⊕)
     with catchup-lemma (runtime-⊕₁ okM) ($ _) M⊒M′
        | catchup-lemma (runtime-⊕₂-any okM) ($ _) N⊒N′
-dynamicGradualGuarantee wfΣ okM σ⊒
-    (⊢⊕ M⊢ op N⊢) (⊢⊕ M′⊢ .op N′⊢) qᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
     (⊕⊒⊕ᵗ M⊒M′ N⊒N′)
     (pure-step δ-⊕)
     | χsM , WM , ΔM , ΠM , ΠM′ , πM ,
@@ -252,28 +243,24 @@ dynamicGradualGuarantee wfΣ okM σ⊒
     | χsN , WN , ΔN , ΠN , ΠN′ , πN ,
       vWN , noWN , N↠WN , ΔN≡ , ΠN≡ , ΠN′≡ , πN⊒ , WN⊒N′ =
   {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒
-    M⊢ M′⊢ qᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
     (⊒cast+ᵗ {s = id A} q₀ᶜ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
     with catchup-lemma okM vV M⊒M′
-dynamicGradualGuarantee wfΣ okM σ⊒
-    M⊢ M′⊢ qᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
     (⊒cast+ᵗ {s = id A} q₀ᶜ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =
   {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒
-    M⊢ (⊢⟨⟩ c⊢ M′⊢) qᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
     (⊒cast-ᵗ {s = id A} q₀ᶜ rᶜ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
     with catchup-lemma okM vV M⊒M′
-dynamicGradualGuarantee wfΣ okM σ⊒
-    M⊢ (⊢⟨⟩ c⊢ M′⊢) qᶜ
+dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
     (⊒cast-ᵗ {s = id A} q₀ᶜ rᶜ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =
   {!!}
-dynamicGradualGuarantee wfΣ okM σ⊒ M⊢ M′⊢ pᶜ M⊒M′ M′→N′ = {!!}
+dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ M⊒M′ M′→N′ = {!!}

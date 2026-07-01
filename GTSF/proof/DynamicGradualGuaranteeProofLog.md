@@ -82,13 +82,32 @@ Implemented adjustment:
 
 Proof obligations exposed:
 
-- Generic catch-up replacement transport is now too broad: replacing an
-  arbitrary entry inside a shifted tail can destroy the invariant that the tail
-  is `⇑ˢ σ`.
-- Parallel term substitution has the same shifted-context issue for the two
-  corrected α rules.
-- The DGG skeleton now needs the real runtime-bullet reduction cases instead
-  of the old `ν-step` cases.
+- Generic catch-up replacement transport cannot treat a shifted tail as an
+  arbitrary store tail; replacing inside it must preserve the `⇑ˢ σ` shape.
+- Parallel term substitution has the analogous shifted-context obligation for
+  these two rules.
+- The DGG skeleton now needs runtime-bullet reduction cases rather than the old
+  `ν-step` cases for `α⊒α` and `⊒α`.
+- The corrected α rules avoid indexing their conclusions directly by `⇑ᵍ γ`;
+  they carry an equality for the shifted context instead, so closed DGG goals
+  can still split.
+
+## Superseded `ν⊒ν` / `ν-step` counterexample attempt
+
+The old counterexample attempt used the absence of any term-narrowing
+constructor targeting the runtime bullet form `V •`.  The direct simulation
+shape was:
+
+- catch up the source body with `catchup-lemma (runtime-ν okM) vV N⊒N′`;
+- lift those steps through the source `ν` with `ν-↠`;
+- append the source-side bind step;
+- try to relate the final source to the right target
+  `((⇑ᵗᵐ N′) •) ⟨ ⇑ᶜ p ⟩`.
+
+After the runtime-bullet `α` rule update, that obstruction no longer holds in
+this simple form: the relation can now produce target runtime-bullet terms via
+the updated `α⊒α` and `⊒α` rules.  The DGG case still needs a positive proof,
+but the old no-target-bullet counterexample should not be reused.
 
 ## Runtime-bullet DGG cases
 

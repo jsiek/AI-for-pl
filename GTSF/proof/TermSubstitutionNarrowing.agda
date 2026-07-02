@@ -263,28 +263,20 @@ term-parallel-substitution-narrowingᵗ-framed env frame
     (term-parallel-substitution-narrowingᵗ-framed env frame M⊒M′)
     (term-parallel-substitution-narrowingᵗ-framed env frame N⊒N′)
 term-parallel-substitution-narrowingᵗ-framed env frame
-    (⊒cast+ᵗ qᶜ q⨟s≈r M⊒M′) =
-  ⊒cast+ᵗ qᶜ q⨟s≈r
+    (⊒cast+ᵗ qᶜ wfΣ q⊒ s⊒ q⨟s≈r M⊒M′) =
+  ⊒cast+ᵗ qᶜ wfΣ q⊒ s⊒ q⨟s≈r
     (term-parallel-substitution-narrowingᵗ-framed env frame M⊒M′)
 term-parallel-substitution-narrowingᵗ-framed env frame
-    (⊒cast-ᵗ qᶜ rᶜ q⨟s≈r M⊒M′) =
-  ⊒cast-ᵗ qᶜ rᶜ q⨟s≈r
+    (⊒cast-ᵗ qᶜ rᶜ wfΣ q⊒ s⊒ q⨟s≈r M⊒M′) =
+  ⊒cast-ᵗ qᶜ rᶜ wfΣ q⊒ s⊒ q⨟s≈r
     (term-parallel-substitution-narrowingᵗ-framed env frame M⊒M′)
 term-parallel-substitution-narrowingᵗ-framed env frame
-    (cast+⊒ᵗ pᶜ rᶜ r≈t⨟p M⊒M′) =
-  cast+⊒ᵗ pᶜ rᶜ r≈t⨟p
+    (cast+⊒ᵗ pᶜ rᶜ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
+  cast+⊒ᵗ pᶜ rᶜ wfΣ t⊒ p⊒ r≈t⨟p
     (term-parallel-substitution-narrowingᵗ-framed env frame M⊒M′)
 term-parallel-substitution-narrowingᵗ-framed env frame
-    (cast-⊒ᵗ pᶜ r≈t⨟p M⊒M′) =
-  cast-⊒ᵗ pᶜ r≈t⨟p
-    (term-parallel-substitution-narrowingᵗ-framed env frame M⊒M′)
-term-parallel-substitution-narrowingᵗ-framed env frame
-    (cast-⊒cast-ᵗ pᶜ qᶜ q⨟s≈r r≈t⨟p M⊒M′) =
-  cast-⊒cast-ᵗ pᶜ qᶜ q⨟s≈r r≈t⨟p
-    (term-parallel-substitution-narrowingᵗ-framed env frame M⊒M′)
-term-parallel-substitution-narrowingᵗ-framed env frame
-    (cast+⊒cast+ᵗ pᶜ qᶜ q⨟s≈r r≈t⨟p M⊒M′) =
-  cast+⊒cast+ᵗ pᶜ qᶜ q⨟s≈r r≈t⨟p
+    (cast-⊒ᵗ pᶜ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
+  cast-⊒ᵗ pᶜ wfΣ t⊒ p⊒ r≈t⨟p
     (term-parallel-substitution-narrowingᵗ-framed env frame M⊒M′)
 
 term-parallel-substitution-narrowingᵗ :

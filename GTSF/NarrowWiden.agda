@@ -593,6 +593,7 @@ _∣_⊢_∶_⊒_ : TyCtx → Store → Coercion → Ty → Ty → Set
 Δ ∣ Σ ⊢ c ∶ A ⊒ B =
   ∃[ μ ] μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B
 
+-- For p's and q's
 infix 4 _∣_⊢_∶ᶜ_⊒_
 
 _∣_⊢_∶ᶜ_⊒_ : TyCtx → Store → Coercion → Ty → Ty → Set

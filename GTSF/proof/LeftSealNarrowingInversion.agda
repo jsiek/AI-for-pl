@@ -188,16 +188,14 @@ termNarrowing-gen-open-id-var-aux⊥ refl (⊒cast+ qᶜ q⨟s≈r M⊒M′)
     open-id =
   gen-open-id-var⊥ qᶜ open-id
 termNarrowing-gen-open-id-var-aux⊥ refl
-    (⊒cast- qᶜ
-      (compose-leftⁿ wfΣ q⊒ s⊒
-        (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
+    (⊒cast- qᶜ wfΣ q⊒ s⊒
+      (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒)
       M⊒M′)
     open-id =
   gen-open-id-var∃⊥ r⊒ open-id
 termNarrowing-gen-open-id-var-aux⊥ refl
-    (cast+⊒ pᶜ
-      (compose-rightⁿ wfΣ t⊒ p⊒
-        (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
+    (cast+⊒ pᶜ wfΣ t⊒ p⊒
+      (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒)
       M⊒M′)
     open-id =
   gen-open-id-var∃⊥ r⊒ open-id
@@ -281,9 +279,8 @@ leftSealNarrowingInversion-aux eq refl vV
 -- Left positive cast: Agda can expose this case with the equality-indexed
 -- helper, but the proof still needs inversion of the dual coercion `- t`.
 leftSealNarrowingInversion-aux eq refl vV
-    (cast+⊒ pᶜ
-      (compose-rightⁿ wfΣ t⊒ p⊒
-        (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
+    (cast+⊒ pᶜ wfΣ t⊒ p⊒
+      (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒)
       M⊒M′) = {!!}
 leftSealNarrowingInversion-aux refl refl vV
     (⊒blame (cast-id hα ok , cross (id-＇ α))) =
@@ -295,21 +292,18 @@ leftSealNarrowingInversion-aux refl refl vV
 -- Right cast cases: the paper says these recurse because the cast must be
 -- identity-like, but endpoint equivalence does not yet give that directly.
 leftSealNarrowingInversion-aux refl refl vV
-    (⊒cast+ (cast-id hα okα , cross (id-＇ α))
-      (compose-leftⁿ wfΣ q⊒ s⊒
-        (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
+    (⊒cast+ (cast-id hα okα , cross (id-＇ α)) wfΣ q⊒ s⊒
+      (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒)
       M⊒M′) = {!!}
 leftSealNarrowingInversion-aux refl refl vV
-    (⊒cast- qᶜ
-      (compose-leftⁿ wfΣ q⊒ s⊒
-        (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
+    (⊒cast- qᶜ wfΣ q⊒ s⊒
+      (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒)
       M⊒M′) = {!!}
 leftSealNarrowingInversion-aux refl refl vV
-    (cast-⊒ {r = r} pᶜ
-      (compose-rightⁿ wfΣ
-        t⊒@(cast-seal h★′ α∈Σ seal-ok , sealⁿ ★ α)
-        p⊒@(cast-id hα okα , cross (id-＇ α))
-        (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
+    (cast-⊒ {r = r} pᶜ wfΣ
+      t⊒@(cast-seal h★′ α∈Σ seal-ok , sealⁿ ★ α)
+      p⊒@(cast-id hα okα , cross (id-＇ α))
+      (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒)
       M⊒M′) =
   -- Direct left negative cast: the typed `★`-to-`α` witness comes from the
   -- composed coercion at the source endpoint store.  The remaining work is

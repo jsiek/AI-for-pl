@@ -1510,6 +1510,51 @@ dual-flips-typingᵐ :
 dual-flips-typingᵐ {μ = μ} =
   coercion-dual-flipᵐ (dualActionOkᵈ {μ = μ})
 
+dualActionOk-normal :
+  ∀ {μ} →
+  DualActionOk μ normalᵃ μ
+dualActionOk-normal {μ = μ} X with μ X
+dualActionOk-normal X | id-only = dma-id
+dualActionOk-normal X | tag-or-id = dma-tag
+dualActionOk-normal X | seal-or-id = dma-seal
+
+dualStoreAt-normal :
+  ∀ {Δ μ Σ} →
+  DualStoreAt Δ μ normalᵃ μ Σ Σ
+dualStoreAt-normal {Δ = Δ} {μ = μ} {Σ = Σ} =
+  record { tag★∈ = tag ; seal∈ = sealMember ; seal★ = sealStar }
+  where
+    tag :
+      ∀ {α} →
+      α < Δ →
+      normalᵃ α ≡ tag-to-seal →
+      (α , ★) ∈ Σ
+    tag α<Δ ()
+
+    sealMember :
+      ∀ {α A} →
+      μ α ≡ seal-or-id →
+      normalᵃ α ≡ normal →
+      μ α ≡ seal-or-id →
+      (α , A) ∈ Σ →
+      (α , A) ∈ Σ
+    sealMember μα ηα να αA∈Σ = αA∈Σ
+
+    sealStar :
+      ∀ {α A} →
+      normalᵃ α ≡ seal-to-tag →
+      (α , A) ∈ Σ →
+      A ≡ ★
+    sealStar () αA∈Σ
+
+minus-flips-typingᵐ :
+  ∀ {μ Δ Σ c A B} →
+  StoreWfAt Δ Σ →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
+  μ ∣ Δ ∣ Σ ⊢ - c ∶ B =⇒ A
+minus-flips-typingᵐ wfΣ c⊢ =
+  coercion-dual-flipᵐ dualActionOk-normal dualStoreAt-normal wfΣ c⊢
+
 ------------------------------------------------------------------------
 -- Coercion endpoint well-formedness
 ------------------------------------------------------------------------
@@ -1855,6 +1900,22 @@ coercion-src-tgtᵐ (cast-gen hA occ c⊢)
     with coercion-src-tgtᵐ c⊢
 coercion-src-tgtᵐ (cast-gen hA occ c⊢) | src-c , tgt-c rewrite tgt-c =
   refl , refl
+
+minus-src-tgtᵐ :
+  ∀ {μ Δ Σ c A B} →
+  StoreWfAt Δ Σ →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
+  src (- c) ≡ B
+minus-src-tgtᵐ wfΣ c⊢ =
+  proj₁ (coercion-src-tgtᵐ (minus-flips-typingᵐ wfΣ c⊢))
+
+minus-tgt-srcᵐ :
+  ∀ {μ Δ Σ c A B} →
+  StoreWfAt Δ Σ →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
+  tgt (- c) ≡ A
+minus-tgt-srcᵐ wfΣ c⊢ =
+  proj₂ (coercion-src-tgtᵐ (minus-flips-typingᵐ wfΣ c⊢))
 
 coercion-src-tgt :
   ∀ {Δ Σ c A B} →

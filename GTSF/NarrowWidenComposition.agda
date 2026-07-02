@@ -2,7 +2,8 @@
 
 -- File Charter:
 --   * Public composition operators for well-typed narrowings and widenings.
---   * Exposes term-narrowing side conditions for narrowing composition.
+--   * Exposes raw narrowing/widening composition witnesses used directly by
+--     term-narrowing side conditions.
 --   * Depends on `NarrowWiden` plus proof-only exclusion lemmas needed for
 --     coverage under the `StoreDetWf` invariant.
 --   * The positive strict grammar needs explicit indexed-impossible coverage
@@ -709,34 +710,3 @@ mutual
   _⨟ᶜʷ_ {wfΣ = wfΣ}
       (cast-all s⊢ , `∀ sʷ) (cast-all t⊢ , `∀ tʷ) | u , u⊑ =
     _ , (cast-all (proj₁ u⊑) , `∀ (proj₂ u⊑))
-
-------------------------------------------------------------------------
--- Term-narrowing cast side-condition composition
-------------------------------------------------------------------------
-
-infix 4 _∣_⊢_⨾ⁿ_≈_∶_⊒_
-infix 4 _∣_⊢_≈_⨾ⁿ_∶_⊒_
-
-data _∣_⊢_⨾ⁿ_≈_∶_⊒_ :
-    TyCtx → StoreNrw → Coercion → Coercion → Coercion →
-    Ty → Ty → Set₁ where
-
-  compose-leftⁿ : ∀ {Δ σ Σ μ A B C q s r}
-    → (wfΣ : StoreDetWf Δ Σ)
-    → (q⊒ : μ ∣ Δ ∣ Σ ⊢ q ∶ A ⊒ C)
-    → (s⊒ : μ ∣ Δ ∣ Σ ⊢ s ∶ C ⊒ B)
-    → Δ ∣ σ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒) ≈ r ∶ A ⊒ B
-     --------------------------------
-    → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
-
-data _∣_⊢_≈_⨾ⁿ_∶_⊒_ :
-    TyCtx → StoreNrw → Coercion → Coercion → Coercion →
-    Ty → Ty → Set₁ where
-
-  compose-rightⁿ : ∀ {Δ σ Σ μ A B C r t p}
-    → (wfΣ : StoreDetWf Δ Σ)
-    → (t⊒ : μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ C)
-    → (p⊒ : μ ∣ Δ ∣ Σ ⊢ p ∶ C ⊒ B)
-    → Δ ∣ σ ⊢ r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒) ∶ A ⊒ B
-     --------------------------------
-    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B

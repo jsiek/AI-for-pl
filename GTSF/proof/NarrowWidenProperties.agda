@@ -123,6 +123,58 @@ tgtStoreⁿ-⊒ˢ (⊒ˢ-both {X = X} hA hA′ (μ , s⊒) σ⊒) =
       (sym (proj₂ (coercion-src-tgtᵐ (proj₁ s⊒)))))
     (tgtStoreⁿ-⊒ˢ σ⊒)
 
+⊑ˢ-target-unique :
+  ∀ {Δ σ Σ Σ′ Π Π′} →
+  Δ ⊢ σ ꞉ Σ ⊑ˢ Σ′ →
+  Δ ⊢ σ ꞉ Π ⊑ˢ Π′ →
+  Σ′ ≡ Π′
+⊑ˢ-target-unique ⊑ˢ-nil ⊑ˢ-nil = refl
+⊑ˢ-target-unique (⊑ˢ-left hA σ⊑) (⊑ˢ-left hB π⊑) =
+  ⊑ˢ-target-unique σ⊑ π⊑
+⊑ˢ-target-unique (⊑ˢ-right {X = X} σ⊑) (⊑ˢ-right π⊑) =
+  cong (λ Σ′ → (X , ★) ∷ Σ′) (⊑ˢ-target-unique σ⊑ π⊑)
+⊑ˢ-target-unique
+    (⊑ˢ-both {X = X} hA hA′ (μ , s⊑) σ⊑)
+    (⊑ˢ-both hB hB′ (ν , t⊑) π⊑) =
+  cong₂ _∷_
+    (cong (λ A → (X , A))
+      (trans
+        (sym (proj₂ (coercion-src-tgtᵐ (proj₁ s⊑))))
+        (proj₂ (coercion-src-tgtᵐ (proj₁ t⊑)))))
+    (⊑ˢ-target-unique σ⊑ π⊑)
+
+≈ⁿ-trans :
+  ∀ {Δ σ r s t A B} →
+  Δ ∣ σ ⊢ r ≈ s ∶ A ⊒ B →
+  Δ ∣ σ ⊢ s ≈ t ∶ A ⊒ B →
+  Δ ∣ σ ⊢ r ≈ t ∶ A ⊒ B
+≈ⁿ-trans {Δ = Δ} {t = t} {A = A} {B = B}
+    (endpointsⁿ {Σ = Σ} {Σ′ = Σ′}
+      srcr tgtr srcs tgts σ⊒ wfΣ wfΣ′ r⊒ s⊒)
+    (endpointsⁿ {Σ = Π} {Σ′ = Π′}
+      srcs′ tgts′ srct tgtt π⊒ wfΠ wfΠ′ s⊒′ t⊒) =
+  endpointsⁿ srcr tgtr srct tgtt σ⊒ wfΣ wfΣ′ r⊒
+    (subst
+      (λ Σ₀ → Δ ∣ Σ₀ ⊢ t ∶ A ⊒ B)
+      (trans (srcStoreⁿ-⊒ˢ π⊒) (sym (srcStoreⁿ-⊒ˢ σ⊒)))
+      t⊒)
+
+≈ʷ-trans :
+  ∀ {Δ σ r s t A B} →
+  Δ ∣ σ ⊢ r ≈ s ∶ A ⊑ B →
+  Δ ∣ σ ⊢ s ≈ t ∶ A ⊑ B →
+  Δ ∣ σ ⊢ r ≈ t ∶ A ⊑ B
+≈ʷ-trans {Δ = Δ} {t = t} {A = A} {B = B}
+    (endpoints {Σ = Σ} {Σ′ = Σ′}
+      srcr tgtr srcs tgts σ⊑ wfΣ wfΣ′ r⊑ s⊑)
+    (endpoints {Σ = Π} {Σ′ = Π′}
+      srcs′ tgts′ srct tgtt π⊑ wfΠ wfΠ′ s⊑′ t⊑) =
+  endpoints srcr tgtr srct tgtt σ⊑ wfΣ wfΣ′ r⊑
+    (subst
+      (λ Σ₀ → ∃[ μ ] μ ∣ Δ ∣ Σ₀ ⊢ t ∶ A ⊑ B)
+      (⊑ˢ-target-unique π⊑ σ⊑)
+      t⊑)
+
 srcStoreⁿ-⇑ˢ :
   ∀ σ →
   srcStoreⁿ (⇑ˢ σ) ≡ ⟰ᵗ (srcStoreⁿ σ)

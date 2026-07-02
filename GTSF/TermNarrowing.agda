@@ -17,7 +17,7 @@ module TermNarrowing where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using (_∷_; map)
 open import Data.Nat using (zero; suc)
-open import Data.Product using (_,_; ∃-syntax)
+open import Data.Product using (_,_; proj₁; ∃-syntax)
 
 open import Types
 open import Coercions
@@ -25,6 +25,7 @@ open import Primitives
 open import NuTerms
 open import NarrowWiden
 open import NarrowWidenComposition
+open import proof.NarrowWidenProperties using (StoreDetWf)
 
 variable
   Δ : TyCtx
@@ -227,62 +228,51 @@ data _∣_∣_⊢_⊒_∶_⦂_⊒_
     → Δ ∣ σ ∣ γ ⊢ M ⊕[ addℕ ] N ⊒ M′ ⊕[ addℕ ] N′
         ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ
 
-  ⊒cast+ᵗ : ∀ {M M′ q r s A B C D}
+  ⊒cast+ᵗ : ∀ {M M′ q r s A B C D E Σ μ}
     → {typing : TermTypingEndpoints Δ σ γ M (M′ ⟨ - s ⟩) C D}
     → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D
-    → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
+    → (wfΣ : StoreDetWf Δ Σ)
+    → (q⊒ : μ ∣ Δ ∣ Σ ⊢ q ∶ A ⊒ E)
+    → (s⊒ : μ ∣ Δ ∣ Σ ⊢ s ∶ E ⊒ B)
+    → Δ ∣ σ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒) ≈ r ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r ⦂ A ⊒ B
       -------------------------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ⟨ - s ⟩ ∶ q ⦂ C ⊒ D
 
-  ⊒cast-ᵗ : ∀ {M M′ q r s A B C D}
+  ⊒cast-ᵗ : ∀ {M M′ q r s A B C D E Σ μ ν}
     → {typing : TermTypingEndpoints Δ σ γ M (M′ ⟨ s ⟩) A B}
     → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D
-    → Δ ∣ srcStoreⁿ σ ⊢ r ∶ᶜ A ⊒ B
-    → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
+    → μ ∣ Δ ∣ srcStoreⁿ σ ⊢ r ∶ A ⊒ B
+    → (wfΣ : StoreDetWf Δ Σ)
+    → (q⊒ : ν ∣ Δ ∣ Σ ⊢ q ∶ A ⊒ E)
+    → (s⊒ : ν ∣ Δ ∣ Σ ⊢ s ∶ E ⊒ B)
+    → Δ ∣ σ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒) ≈ r ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ q ⦂ C ⊒ D
       -------------------------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ⟨ s ⟩ ∶ r ⦂ A ⊒ B
 
-  cast+⊒ᵗ : ∀ {M M′ p r t A B C D}
+  cast+⊒ᵗ : ∀ {M M′ p r t A B C D E Σ μ ν}
     → {typing : TermTypingEndpoints Δ σ γ (M ⟨ - t ⟩) M′ A B}
     → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D
-    → Δ ∣ srcStoreⁿ σ ⊢ r ∶ᶜ A ⊒ B
-    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+    → μ ∣ Δ ∣ srcStoreⁿ σ ⊢ r ∶ A ⊒ B
+    → (wfΣ : StoreDetWf Δ Σ)
+    → (t⊒ : ν ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ E)
+    → (p⊒ : ν ∣ Δ ∣ Σ ⊢ p ∶ E ⊒ B)
+    → Δ ∣ σ ⊢ r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒) ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ C ⊒ D
       -------------------------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⟨ - t ⟩ ⊒ M′ ∶ r ⦂ A ⊒ B
 
-  cast-⊒ᵗ : ∀ {M M′ p r t A B C D}
+  cast-⊒ᵗ : ∀ {M M′ p r t A B C D E Σ μ}
     → {typing : TermTypingEndpoints Δ σ γ (M ⟨ t ⟩) M′ C D}
     → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D
-    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
+    → (wfΣ : StoreDetWf Δ Σ)
+    → (t⊒ : μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ E)
+    → (p⊒ : μ ∣ Δ ∣ Σ ⊢ p ∶ E ⊒ B)
+    → Δ ∣ σ ⊢ r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒) ∶ A ⊒ B
     → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r ⦂ A ⊒ B
       -------------------------------------------------
     → Δ ∣ σ ∣ γ ⊢ M ⟨ t ⟩ ⊒ M′ ∶ p ⦂ C ⊒ D
-
-  cast-⊒cast-ᵗ : ∀ {M M′ p q r s t A B Ap Bp Aq Bq}
-    → {typing :
-        TermTypingEndpoints Δ σ γ (M ⟨ t ⟩) (M′ ⟨ s ⟩) Ap Bp}
-    → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ Ap ⊒ Bp
-    → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ Aq ⊒ Bq
-    → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
-    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
-    → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ q ⦂ Aq ⊒ Bq
-      --------------------------------------------------
-    → Δ ∣ σ ∣ γ ⊢ M ⟨ t ⟩ ⊒ M′ ⟨ s ⟩ ∶ p ⦂ Ap ⊒ Bp
-
-  cast+⊒cast+ᵗ : ∀ {M M′ p q r s t A B Ap Bp Aq Bq}
-    → {typing :
-        TermTypingEndpoints Δ σ γ
-          (M ⟨ - t ⟩) (M′ ⟨ - s ⟩) Aq Bq}
-    → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ Ap ⊒ Bp
-    → Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ Aq ⊒ Bq
-    → Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
-    → Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
-    → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ Ap ⊒ Bp
-      ------------------------------------------------------
-    → Δ ∣ σ ∣ γ ⊢ M ⟨ - t ⟩ ⊒ M′ ⟨ - s ⟩ ∶ q ⦂ Aq ⊒ Bq
 
 typed-term-narrowing-term-typing :
   Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B →
@@ -328,22 +318,16 @@ typed-term-narrowing-term-typing
     (⊕⊒⊕ᵗ {typing = typing} M⊒M′ N⊒N′) =
   typing
 typed-term-narrowing-term-typing
-    (⊒cast+ᵗ {typing = typing} qᶜ q⨟s≈r M⊒M′) =
+    (⊒cast+ᵗ {typing = typing} qᶜ wfΣ q⊒ s⊒ q⨟s≈r M⊒M′) =
   typing
 typed-term-narrowing-term-typing
-    (⊒cast-ᵗ {typing = typing} qᶜ rᶜ q⨟s≈r M⊒M′) =
+    (⊒cast-ᵗ {typing = typing} qᶜ rᶜ wfΣ q⊒ s⊒ q⨟s≈r M⊒M′) =
   typing
 typed-term-narrowing-term-typing
-    (cast+⊒ᵗ {typing = typing} pᶜ rᶜ r≈t⨟p M⊒M′) =
+    (cast+⊒ᵗ {typing = typing} pᶜ rᶜ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
   typing
 typed-term-narrowing-term-typing
-    (cast-⊒ᵗ {typing = typing} pᶜ r≈t⨟p M⊒M′) =
-  typing
-typed-term-narrowing-term-typing
-    (cast-⊒cast-ᵗ {typing = typing} pᶜ qᶜ q⨟s≈r r≈t⨟p M⊒M′) =
-  typing
-typed-term-narrowing-term-typing
-    (cast+⊒cast+ᵗ {typing = typing} pᶜ qᶜ q⨟s≈r r≈t⨟p M⊒M′) =
+    (cast-⊒ᵗ {typing = typing} pᶜ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
   typing
 
 typed-term-narrowing-source-typing :
@@ -360,39 +344,47 @@ typed-term-narrowing-target-typing M⊒M′ =
 
 typed-term-narrowing-index-typing :
   Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B →
-  Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B
-typed-term-narrowing-index-typing (extendᵗ qᶜ pαᶜ M⊒N′) = pαᶜ
-typed-term-narrowing-index-typing (splitᵗ qᶜ pαᶜ N⊒N′) = pαᶜ
-typed-term-narrowing-index-typing (⊒blameᵗ pᶜ) = pᶜ
-typed-term-narrowing-index-typing (x⊒xᵗ pᶜ x∋p) = pᶜ
-typed-term-narrowing-index-typing (ƛ⊒ƛᵗ p↦qᶜ N⊒N′) = p↦qᶜ
+  Δ ∣ srcStoreⁿ σ ⊢ p ∶ A ⊒ B
+typed-term-narrowing-index-typing (extendᵗ qᶜ pαᶜ M⊒N′) =
+  tag-or-idᵈ , pαᶜ
+typed-term-narrowing-index-typing (splitᵗ qᶜ pαᶜ N⊒N′) =
+  tag-or-idᵈ , pαᶜ
+typed-term-narrowing-index-typing (⊒blameᵗ pᶜ) =
+  tag-or-idᵈ , pᶜ
+typed-term-narrowing-index-typing (x⊒xᵗ pᶜ x∋p) =
+  tag-or-idᵈ , pᶜ
+typed-term-narrowing-index-typing (ƛ⊒ƛᵗ p↦qᶜ N⊒N′) =
+  tag-or-idᵈ , p↦qᶜ
 typed-term-narrowing-index-typing (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′) =
-  fun-narrow-codomainᶜ p↦qᶜ
-typed-term-narrowing-index-typing (Λ⊒Λᵗ allᶜ vV V⊒V′) = allᶜ
-typed-term-narrowing-index-typing (⊒Λᵗ pᶜ N⊒V′) = pᶜ
-typed-term-narrowing-index-typing (⊒⟨ν⟩ᵗ pᶜ i N⊒V′s) = pᶜ
+  tag-or-idᵈ , fun-narrow-codomainᶜ p↦qᶜ
+typed-term-narrowing-index-typing (Λ⊒Λᵗ allᶜ vV V⊒V′) =
+  tag-or-idᵈ , allᶜ
+typed-term-narrowing-index-typing (⊒Λᵗ pᶜ N⊒V′) =
+  tag-or-idᵈ , pᶜ
+typed-term-narrowing-index-typing (⊒⟨ν⟩ᵗ pᶜ i N⊒V′s) =
+  tag-or-idᵈ , pᶜ
 typed-term-narrowing-index-typing
     (α⊒αᵗ γ′≡ qᶜ pαᶜ L⊒L′) =
-  pαᶜ
-typed-term-narrowing-index-typing (⊒αᵗ γ′≡ pαᶜ L⊒L′) = pαᶜ
-typed-term-narrowing-index-typing (ν⊒νᵗ pᶜ qᶜ N⊒N′) = pᶜ
-typed-term-narrowing-index-typing (⊒νᵗ pᶜ N⊒N′) = pᶜ
-typed-term-narrowing-index-typing (ν⊒ᵗ pᶜ N⊒N′) = pᶜ
+  tag-or-idᵈ , pαᶜ
+typed-term-narrowing-index-typing (⊒αᵗ γ′≡ pαᶜ L⊒L′) =
+  tag-or-idᵈ , pαᶜ
+typed-term-narrowing-index-typing (ν⊒νᵗ pᶜ qᶜ N⊒N′) =
+  tag-or-idᵈ , pᶜ
+typed-term-narrowing-index-typing (⊒νᵗ pᶜ N⊒N′) =
+  tag-or-idᵈ , pᶜ
+typed-term-narrowing-index-typing (ν⊒ᵗ pᶜ N⊒N′) =
+  tag-or-idᵈ , pᶜ
 typed-term-narrowing-index-typing (κ⊒κᵗ (κℕ n)) =
-  cast-id wfBase refl , cross (id-‵ `ℕ)
+  tag-or-idᵈ , cast-id wfBase refl , cross (id-‵ `ℕ)
 typed-term-narrowing-index-typing (⊕⊒⊕ᵗ M⊒M′ N⊒N′) =
-  cast-id wfBase refl , cross (id-‵ `ℕ)
-typed-term-narrowing-index-typing (⊒cast+ᵗ qᶜ q⨟s≈r M⊒M′) = qᶜ
+  tag-or-idᵈ , cast-id wfBase refl , cross (id-‵ `ℕ)
+typed-term-narrowing-index-typing (⊒cast+ᵗ qᶜ wfΣ q⊒ s⊒ q⨟s≈r M⊒M′) =
+  tag-or-idᵈ , qᶜ
 typed-term-narrowing-index-typing
-    (⊒cast-ᵗ qᶜ rᶜ q⨟s≈r M⊒M′) =
-  rᶜ
+    (⊒cast-ᵗ {μ = μ} qᶜ r⊒ wfΣ q⊒ s⊒ q⨟s≈r M⊒M′) =
+  μ , r⊒
 typed-term-narrowing-index-typing
-    (cast+⊒ᵗ pᶜ rᶜ r≈t⨟p M⊒M′) =
-  rᶜ
-typed-term-narrowing-index-typing (cast-⊒ᵗ pᶜ r≈t⨟p M⊒M′) = pᶜ
-typed-term-narrowing-index-typing
-    (cast-⊒cast-ᵗ pᶜ qᶜ q⨟s≈r r≈t⨟p M⊒M′) =
-  pᶜ
-typed-term-narrowing-index-typing
-    (cast+⊒cast+ᵗ pᶜ qᶜ q⨟s≈r r≈t⨟p M⊒M′) =
-  qᶜ
+    (cast+⊒ᵗ {μ = μ} pᶜ r⊒ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
+  μ , r⊒
+typed-term-narrowing-index-typing (cast-⊒ᵗ pᶜ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
+  tag-or-idᵈ , pᶜ

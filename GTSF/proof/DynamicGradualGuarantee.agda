@@ -24,7 +24,6 @@ open import NuTerms
 open import NuReduction
 open import NuStore using (StoreWf; at)
 open import NarrowWiden
-open import NarrowWidenComposition using (_∣_⊢_⨾ⁿ_≈_∶_⊒_)
 open import TermNarrowing
 open import proof.CoercionProperties using (coercion-wf)
 open import proof.Catchup using (catchup-lemma)
@@ -270,6 +269,567 @@ function-application-simulation okM vV′ L⊒L′ M⊒V′
       vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′ =
   {! ? !}
 
+⊕-δ-left-first :
+  ∀ {Δ σ M N m′ n′} →
+  RuntimeOK M →
+  No• N →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ $ (κℕ m′)
+    ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ →
+  Δ ∣ σ ∣ [] ⊢ N ⊒ $ (κℕ n′)
+    ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ →
+  ∃[ χs ] ∃[ P ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+  ∃[ A′ ] ∃[ B′ ] ∃[ p′ ]
+    (M ⊕[ addℕ ] N —↠[ χs ] P) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ P ⊒ $ (κℕ (m′ + n′)) ∶ p′ ⦂ A′ ⊒ B′
+⊕-δ-left-first {σ = σ} {M = M} {N = N} {m′ = m′} {n′ = n′}
+    okM noN M⊒M′ N⊒N′
+    with catchup-lemma okM ($ (κℕ m′)) M⊒M′
+⊕-δ-left-first {σ = σ} {M = M} {N = N} {m′ = m′} {n′ = n′}
+    okM noN M⊒M′ N⊒N′
+    | χsM , WM , ΔM , ΠM , ΠM′ , πM ,
+      vWM , noWM , M↠WM , ΔM≡ , ΠM≡ , ΠM′≡ , πM⊒ , WM⊒M′ =
+  let
+    left-steps :
+      M ⊕[ addℕ ] N —↠[ χsM ] WM ⊕[ addℕ ] applyTerms χsM N
+    left-steps = ⊕₁-↠ noN M↠WM
+
+    N⊒N′L :
+      ΔM ∣ combineStoreNrw πM σ ∣ []
+        ⊢ applyTerms χsM N ⊒ applyTerms χsM ($ (κℕ n′))
+          ∶ applyCoercions χsM (id (‵ `ℕ))
+            ⦂ applyTys χsM (‵ `ℕ) ⊒ applyTys χsM (‵ `ℕ)
+    N⊒N′L = {! ? !}
+
+    right :
+      ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+        Value W ×
+        No• W ×
+        (applyTerms χsM N —↠[ χs ] W) ×
+        (Δ′ ≡ applyTyCtxs χs ΔM) ×
+        (Π ≡ applyStores χs []) ×
+        (Π′ ≡ applyStore keep []) ×
+        Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+        Δ′ ∣ combineStoreNrw π (combineStoreNrw πM σ) ∣ []
+          ⊢ W ⊒ applyTerms χs (applyTerms χsM ($ (κℕ n′)))
+            ∶ applyCoercions χs (applyCoercions χsM (id (‵ `ℕ)))
+              ⦂ applyTys χs (applyTys χsM (‵ `ℕ))
+                ⊒ applyTys χs (applyTys χsM (‵ `ℕ))
+    right =
+      catchup-lemma
+        (ok-no (applyTerms-preserves-No• χsM noN))
+        (applyTerms-preserves-Value χsM ($ (κℕ n′)))
+        N⊒N′L
+
+    χsR : StoreChanges
+    χsR = proj₁ right
+
+    W : Term
+    W = proj₁ (proj₂ right)
+
+    ΔR : TyCtx
+    ΔR = proj₁ (proj₂ (proj₂ right))
+
+    ΠR : Store
+    ΠR =
+      proj₁ (proj₂ (proj₂ (proj₂ right)))
+
+    ΠR′ : Store
+    ΠR′ =
+      proj₁ (proj₂ (proj₂ (proj₂ (proj₂ right))))
+
+    πR : StoreNrw
+    πR =
+      proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ right)))))
+
+    tail :
+      Value W ×
+      No• W ×
+      (applyTerms χsM N —↠[ χsR ] W) ×
+      (ΔR ≡ applyTyCtxs χsR ΔM) ×
+      (ΠR ≡ applyStores χsR []) ×
+      (ΠR′ ≡ applyStore keep []) ×
+      (ΔR ⊢ πR ꞉
+        ΠR ⊒ˢ ΠR′) ×
+      ΔR
+        ∣ combineStoreNrw πR (combineStoreNrw πM σ) ∣ []
+        ⊢ W ⊒ applyTerms χsR (applyTerms χsM ($ (κℕ n′)))
+          ∶ applyCoercions χsR
+              (applyCoercions χsM (id (‵ `ℕ)))
+            ⦂ applyTys χsR (applyTys χsM (‵ `ℕ))
+              ⊒ applyTys χsR (applyTys χsM (‵ `ℕ))
+    tail =
+      proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ right)))))
+
+    ΠR≡ : ΠR ≡ applyStores χsR []
+    ΠR≡ =
+      proj₁
+        (proj₂
+          (proj₂
+            (proj₂
+              (proj₂ tail))))
+
+    ΠR′≡ : ΠR′ ≡ applyStore keep []
+    ΠR′≡ =
+      proj₁
+        (proj₂
+          (proj₂
+            (proj₂
+              (proj₂
+                (proj₂ tail)))))
+
+    πR⊒ :
+      ΔR ⊢ πR ꞉
+        ΠR ⊒ˢ ΠR′
+    πR⊒ =
+      proj₁
+        (proj₂
+          (proj₂
+            (proj₂
+              (proj₂
+                (proj₂
+                  (proj₂ tail))))))
+
+    vW : Value W
+    vW = proj₁ tail
+
+    N↠W :
+      applyTerms χsM N —↠[ χsR ] W
+    N↠W =
+      proj₁
+        (proj₂
+          (proj₂ tail))
+
+    operands-term : Term
+    operands-term =
+      applyTerms χsR WM ⊕[ addℕ ] W
+
+    right-steps :
+      WM ⊕[ addℕ ] applyTerms χsM N —↠[ χsR ] operands-term
+    right-steps = ⊕₂-↠ vWM noWM N↠W
+
+    operands-ready :
+      M ⊕[ addℕ ] N —↠[ χsM ++ χsR ] operands-term
+    operands-ready = ↠-trans left-steps right-steps
+
+    WM⊢ℕ :
+      _ ∣ _ ∣ [] ⊢ WM ⦂ ‵ `ℕ
+    WM⊢ℕ = source-nat-typing (applyTys-ℕ χsM) WM⊒M′
+
+    W⊒N′ :
+      ΔR
+        ∣ combineStoreNrw πR (combineStoreNrw πM σ) ∣ []
+        ⊢ W ⊒ applyTerms χsR (applyTerms χsM ($ (κℕ n′)))
+          ∶ applyCoercions χsR
+              (applyCoercions χsM (id (‵ `ℕ)))
+            ⦂ applyTys χsR (applyTys χsM (‵ `ℕ))
+              ⊒ applyTys χsR (applyTys χsM (‵ `ℕ))
+    W⊒N′ =
+      proj₂
+        (proj₂
+          (proj₂
+            (proj₂
+              (proj₂
+                (proj₂
+                  (proj₂ tail))))))
+
+    W⊢ℕ :
+      _ ∣ _ ∣ [] ⊢ W ⦂ ‵ `ℕ
+    W⊢ℕ =
+      source-nat-typing
+        (applyTys-ℕ-applyTys χsM χsR)
+        W⊒N′
+
+    WM≡target : WM ≡ $ (κℕ m′)
+    WM≡target =
+      value-normalized-id-ℕ-target-const
+        vWM
+        (applyTerms-const χsM (κℕ m′))
+        (applyCoercions-id-ℕ χsM)
+        (applyTys-ℕ χsM)
+        (applyTys-ℕ χsM)
+        WM⊒M′
+
+    W≡target : W ≡ $ (κℕ n′)
+    W≡target =
+      value-normalized-id-ℕ-target-const
+        vW
+        (trans
+          (cong (applyTerms χsR)
+            (applyTerms-const χsM (κℕ n′)))
+          (applyTerms-const χsR (κℕ n′)))
+        (applyCoercions-id-ℕ-applyCoercions χsM χsR)
+        (applyTys-ℕ-applyTys χsM χsR)
+        (applyTys-ℕ-applyTys χsM χsR)
+        W⊒N′
+
+    source-δ :
+      operands-term —↠[ keep ∷ [] ] $ (κℕ (m′ + n′))
+    source-δ =
+      constant-⊕-δ-step
+        {χsL = χsR} {χsR = []}
+        WM≡target
+        W≡target
+
+    χs : StoreChanges
+    χs = (χsM ++ χsR) ++ keep ∷ []
+
+    Δ′ : TyCtx
+    Δ′ = ΔR
+
+    Π : Store
+    Π = srcStoreⁿ (combineStoreNrw πR πM)
+
+    Π′ : Store
+    Π′ = []
+
+    π : StoreNrw
+    π = combineStoreNrw πR πM
+
+    source-steps :
+      M ⊕[ addℕ ] N —↠[ χs ] $ (κℕ (m′ + n′))
+    source-steps = ↠-trans operands-ready source-δ
+
+    Π≡ : Π ≡ applyStores χs []
+    Π≡ =
+      trans
+        (combineStoreNrw-applyStores
+          {χs₂ = χsR} {χs₁ = χsM}
+          πR⊒
+          ΠR≡
+          ΠR′≡
+          πM⊒
+          ΠM≡
+          ΠM′≡)
+        (sym (applyStores-++ (χsM ++ χsR) (keep ∷ []) []))
+
+    Π′≡ : Π′ ≡ applyStore keep []
+    Π′≡ = refl
+
+    πM⊒-empty : Δ′ ⊢ πM ꞉ ΠM ⊒ˢ []
+    πM⊒-empty =
+      ⊒ˢ-empty-anyᵗ Δ′
+        (subst (λ Π₀ → ΔM ⊢ πM ꞉ ΠM ⊒ˢ Π₀) ΠM′≡ πM⊒)
+
+    πR⊒-empty :
+      Δ′ ⊢ πR ꞉ ΠR ⊒ˢ []
+    πR⊒-empty =
+      subst
+        (λ Π₀ → Δ′ ⊢ πR ꞉ ΠR ⊒ˢ Π₀)
+        ΠR′≡
+        πR⊒
+
+    π⊒ : Δ′ ⊢ π ꞉ Π ⊒ˢ Π′
+    π⊒ =
+      combineStoreNrw-empty-⊒ˢ
+        πR⊒-empty
+        πM⊒-empty
+
+    result⊒ :
+      Δ′ ∣ combineStoreNrw π σ ∣ []
+        ⊢ $ (κℕ (m′ + n′)) ⊒ $ (κℕ (m′ + n′))
+          ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ
+    result⊒ =
+      κ⊒κᵗ
+        (κℕ (m′ + n′))
+        {typing =
+          term-typing-endpoints
+            (⊢$ (κℕ (m′ + n′)))
+            (⊢$ (κℕ (m′ + n′)))}
+  in
+  χs , $ (κℕ (m′ + n′)) , Δ′ , Π , Π′ , π ,
+  ‵ `ℕ , ‵ `ℕ , id (‵ `ℕ) ,
+  source-steps ,
+  Π≡ ,
+  Π′≡ ,
+  π⊒ ,
+  result⊒
+
+⊕-δ-right-first :
+  ∀ {Δ σ M N m′ n′} →
+  Value M →
+  No• M →
+  RuntimeOK N →
+  Δ ∣ σ ∣ [] ⊢ M ⊒ $ (κℕ m′)
+    ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ →
+  Δ ∣ σ ∣ [] ⊢ N ⊒ $ (κℕ n′)
+    ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ →
+  ∃[ χs ] ∃[ P ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+  ∃[ A′ ] ∃[ B′ ] ∃[ p′ ]
+    (M ⊕[ addℕ ] N —↠[ χs ] P) ×
+    (Π ≡ applyStores χs []) ×
+    (Π′ ≡ applyStore keep []) ×
+    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ P ⊒ $ (κℕ (m′ + n′)) ∶ p′ ⦂ A′ ⊒ B′
+⊕-δ-right-first {σ = σ} {M = M} {N = N} {m′ = m′} {n′ = n′}
+    vM noM okN M⊒M′ N⊒N′
+    with catchup-lemma okN ($ (κℕ n′)) N⊒N′
+⊕-δ-right-first {σ = σ} {M = M} {N = N} {m′ = m′} {n′ = n′}
+    vM noM okN M⊒M′ N⊒N′
+    | χsN , WN , ΔN , ΠN , ΠN′ , πN ,
+      vWN , noWN , N↠WN , ΔN≡ , ΠN≡ , ΠN′≡ , πN⊒ , WN⊒N′ =
+  let
+    right-steps :
+      M ⊕[ addℕ ] N —↠[ χsN ] applyTerms χsN M ⊕[ addℕ ] WN
+    right-steps = ⊕₂-↠ vM noM N↠WN
+
+    M⊒M′R :
+      ΔN ∣ combineStoreNrw πN σ ∣ []
+        ⊢ applyTerms χsN M ⊒ applyTerms χsN ($ (κℕ m′))
+          ∶ applyCoercions χsN (id (‵ `ℕ))
+            ⦂ applyTys χsN (‵ `ℕ) ⊒ applyTys χsN (‵ `ℕ)
+    M⊒M′R = {! ? !}
+
+    left :
+      ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+        Value W ×
+        No• W ×
+        (applyTerms χsN M —↠[ χs ] W) ×
+        (Δ′ ≡ applyTyCtxs χs ΔN) ×
+        (Π ≡ applyStores χs []) ×
+        (Π′ ≡ applyStore keep []) ×
+        Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+        Δ′ ∣ combineStoreNrw π (combineStoreNrw πN σ) ∣ []
+          ⊢ W ⊒ applyTerms χs (applyTerms χsN ($ (κℕ m′)))
+            ∶ applyCoercions χs (applyCoercions χsN (id (‵ `ℕ)))
+              ⦂ applyTys χs (applyTys χsN (‵ `ℕ))
+                ⊒ applyTys χs (applyTys χsN (‵ `ℕ))
+    left =
+      catchup-lemma
+        (ok-no (applyTerms-preserves-No• χsN noM))
+        (applyTerms-preserves-Value χsN ($ (κℕ m′)))
+        M⊒M′R
+
+    χsL : StoreChanges
+    χsL = proj₁ left
+
+    W : Term
+    W = proj₁ (proj₂ left)
+
+    ΔL : TyCtx
+    ΔL = proj₁ (proj₂ (proj₂ left))
+
+    ΠL : Store
+    ΠL =
+      proj₁ (proj₂ (proj₂ (proj₂ left)))
+
+    ΠL′ : Store
+    ΠL′ =
+      proj₁ (proj₂ (proj₂ (proj₂ (proj₂ left))))
+
+    πL : StoreNrw
+    πL =
+      proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ left)))))
+
+    tail :
+      Value W ×
+      No• W ×
+      (applyTerms χsN M —↠[ χsL ] W) ×
+      (ΔL ≡ applyTyCtxs χsL ΔN) ×
+      (ΠL ≡ applyStores χsL []) ×
+      (ΠL′ ≡ applyStore keep []) ×
+      (ΔL ⊢ πL ꞉
+        ΠL ⊒ˢ ΠL′) ×
+      ΔL
+        ∣ combineStoreNrw πL (combineStoreNrw πN σ) ∣ []
+        ⊢ W ⊒
+          applyTerms χsL (applyTerms χsN ($ (κℕ m′)))
+          ∶ applyCoercions χsL
+              (applyCoercions χsN (id (‵ `ℕ)))
+            ⦂ applyTys χsL (applyTys χsN (‵ `ℕ))
+              ⊒ applyTys χsL (applyTys χsN (‵ `ℕ))
+    tail =
+      proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ left)))))
+
+    ΠL≡ : ΠL ≡ applyStores χsL []
+    ΠL≡ =
+      proj₁
+        (proj₂
+          (proj₂
+            (proj₂
+              (proj₂ tail))))
+
+    ΠL′≡ : ΠL′ ≡ applyStore keep []
+    ΠL′≡ =
+      proj₁
+        (proj₂
+          (proj₂
+            (proj₂
+              (proj₂
+                (proj₂ tail)))))
+
+    πL⊒ :
+      ΔL ⊢ πL ꞉
+        ΠL ⊒ˢ ΠL′
+    πL⊒ =
+      proj₁
+        (proj₂
+          (proj₂
+            (proj₂
+              (proj₂
+                (proj₂
+                  (proj₂ tail))))))
+
+    vW : Value W
+    vW = proj₁ tail
+
+    M↠W :
+      applyTerms χsN M —↠[ χsL ] W
+    M↠W =
+      proj₁
+        (proj₂
+          (proj₂ tail))
+
+    operands-term : Term
+    operands-term =
+      W ⊕[ addℕ ] applyTerms χsL WN
+
+    left-steps :
+      applyTerms χsN M ⊕[ addℕ ] WN
+        —↠[ χsL ] operands-term
+    left-steps = ⊕₁-↠ noWN M↠W
+
+    operands-ready :
+      M ⊕[ addℕ ] N —↠[ χsN ++ χsL ] operands-term
+    operands-ready = ↠-trans right-steps left-steps
+
+    W⊒M′ :
+      ΔL
+        ∣ combineStoreNrw πL (combineStoreNrw πN σ) ∣ []
+        ⊢ W ⊒ applyTerms χsL (applyTerms χsN ($ (κℕ m′)))
+          ∶ applyCoercions χsL
+              (applyCoercions χsN (id (‵ `ℕ)))
+            ⦂ applyTys χsL (applyTys χsN (‵ `ℕ))
+              ⊒ applyTys χsL (applyTys χsN (‵ `ℕ))
+    W⊒M′ =
+      proj₂
+        (proj₂
+          (proj₂
+            (proj₂
+              (proj₂
+                (proj₂
+                  (proj₂ tail))))))
+
+    W⊢ℕ :
+      _ ∣ _ ∣ [] ⊢ W ⦂ ‵ `ℕ
+    W⊢ℕ =
+      source-nat-typing
+        (applyTys-ℕ-applyTys χsN χsL)
+        W⊒M′
+
+    WN⊢ℕ :
+      _ ∣ _ ∣ [] ⊢ WN ⦂ ‵ `ℕ
+    WN⊢ℕ = source-nat-typing (applyTys-ℕ χsN) WN⊒N′
+
+    W≡target : W ≡ $ (κℕ m′)
+    W≡target =
+      value-normalized-id-ℕ-target-const
+        vW
+        (trans
+          (cong (applyTerms χsL)
+            (applyTerms-const χsN (κℕ m′)))
+          (applyTerms-const χsL (κℕ m′)))
+        (applyCoercions-id-ℕ-applyCoercions χsN χsL)
+        (applyTys-ℕ-applyTys χsN χsL)
+        (applyTys-ℕ-applyTys χsN χsL)
+        W⊒M′
+
+    WN≡target : WN ≡ $ (κℕ n′)
+    WN≡target =
+      value-normalized-id-ℕ-target-const
+        vWN
+        (applyTerms-const χsN (κℕ n′))
+        (applyCoercions-id-ℕ χsN)
+        (applyTys-ℕ χsN)
+        (applyTys-ℕ χsN)
+        WN⊒N′
+
+    source-δ :
+      operands-term —↠[ keep ∷ [] ] $ (κℕ (m′ + n′))
+    source-δ =
+      constant-⊕-δ-step
+        {χsL = []} {χsR = χsL}
+        W≡target
+        WN≡target
+
+    χs : StoreChanges
+    χs = (χsN ++ χsL) ++ keep ∷ []
+
+    Δ′ : TyCtx
+    Δ′ = ΔL
+
+    Π : Store
+    Π = srcStoreⁿ (combineStoreNrw πL πN)
+
+    Π′ : Store
+    Π′ = []
+
+    π : StoreNrw
+    π = combineStoreNrw πL πN
+
+    source-steps :
+      M ⊕[ addℕ ] N —↠[ χs ] $ (κℕ (m′ + n′))
+    source-steps = ↠-trans operands-ready source-δ
+
+    Π≡ : Π ≡ applyStores χs []
+    Π≡ =
+      trans
+        (combineStoreNrw-applyStores
+          {χs₂ = χsL} {χs₁ = χsN}
+          πL⊒
+          ΠL≡
+          ΠL′≡
+          πN⊒
+          ΠN≡
+          ΠN′≡)
+        (sym (applyStores-++ (χsN ++ χsL) (keep ∷ []) []))
+
+    Π′≡ : Π′ ≡ applyStore keep []
+    Π′≡ = refl
+
+    πN⊒-empty : Δ′ ⊢ πN ꞉ ΠN ⊒ˢ []
+    πN⊒-empty =
+      ⊒ˢ-empty-anyᵗ Δ′
+        (subst (λ Π₀ → ΔN ⊢ πN ꞉ ΠN ⊒ˢ Π₀) ΠN′≡ πN⊒)
+
+    πL⊒-empty :
+      Δ′ ⊢ πL ꞉ ΠL ⊒ˢ []
+    πL⊒-empty =
+      subst
+        (λ Π₀ → Δ′ ⊢ πL ꞉ ΠL ⊒ˢ Π₀)
+        ΠL′≡
+        πL⊒
+
+    π⊒ : Δ′ ⊢ π ꞉ Π ⊒ˢ Π′
+    π⊒ =
+      combineStoreNrw-empty-⊒ˢ
+        πL⊒-empty
+        πN⊒-empty
+
+    result⊒ :
+      Δ′ ∣ combineStoreNrw π σ ∣ []
+        ⊢ $ (κℕ (m′ + n′)) ⊒ $ (κℕ (m′ + n′))
+          ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ
+    result⊒ =
+      κ⊒κᵗ
+        (κℕ (m′ + n′))
+        {typing =
+          term-typing-endpoints
+            (⊢$ (κℕ (m′ + n′)))
+            (⊢$ (κℕ (m′ + n′)))}
+  in
+  χs , $ (κℕ (m′ + n′)) , Δ′ , Π , Π′ , π ,
+  ‵ `ℕ , ‵ `ℕ , id (‵ `ℕ) ,
+  source-steps ,
+  Π≡ ,
+  Π′≡ ,
+  π⊒ ,
+  result⊒
+
 ------------------------------------------------------------------------
 -- Dynamic gradual guarantee
 ------------------------------------------------------------------------
@@ -404,821 +964,39 @@ dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
   in
   {! ? !}
 dynamicGradualGuarantee {σ = σ} wfΣ (ok-no (no•-⊕ noM noN)) σ⊒ qᶜ
-    (⊕⊒⊕ᵗ {M = M} {M′ = M′} {N = N} {N′ = N′} M⊒M′ N⊒N′)
-    (pure-step δ-⊕)
-    with catchup-lemma (ok-no noM) ($ _) M⊒M′
-       | catchup-lemma (ok-no noN) ($ _) N⊒N′
-dynamicGradualGuarantee {σ = σ} wfΣ (ok-no (no•-⊕ noM noN)) σ⊒ qᶜ
-    (⊕⊒⊕ᵗ {M = M} {M′ = M′} {N = N} {N′ = N′} M⊒M′ N⊒N′)
-    (pure-step (δ-⊕ {m = m′} {n = n′}))
-    | χsM , WM , ΔM , ΠM , ΠM′ , πM ,
-      vWM , noWM , M↠WM , ΔM≡ , ΠM≡ , ΠM′≡ , πM⊒ , WM⊒M′
-    | χsN , WN , ΔN , ΠN , ΠN′ , πN ,
-      vWN , noWN , N↠WN , ΔN≡ , ΠN≡ , ΠN′≡ , πN⊒ , WN⊒N′ =
-  let
-    left-steps :
-      M ⊕[ addℕ ] N —↠[ χsM ] WM ⊕[ addℕ ] applyTerms χsM N
-    left-steps = ⊕₁-↠ noN M↠WM
-
-    N⊒N′L :
-      ΔM ∣ combineStoreNrw πM σ ∣ []
-        ⊢ applyTerms χsM N ⊒ applyTerms χsM N′
-          ∶ applyCoercions χsM (id (‵ `ℕ))
-            ⦂ applyTys χsM (‵ `ℕ) ⊒ applyTys χsM (‵ `ℕ)
-    N⊒N′L = {! ? !}
-
-    right :
-      ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
-        Value W ×
-        No• W ×
-        (applyTerms χsM N —↠[ χs ] W) ×
-        (Δ′ ≡ applyTyCtxs χs ΔM) ×
-        (Π ≡ applyStores χs []) ×
-        (Π′ ≡ applyStore keep []) ×
-        Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
-        Δ′ ∣ combineStoreNrw π (combineStoreNrw πM σ) ∣ []
-          ⊢ W ⊒ applyTerms χs (applyTerms χsM N′)
-            ∶ applyCoercions χs (applyCoercions χsM (id (‵ `ℕ)))
-              ⦂ applyTys χs (applyTys χsM (‵ `ℕ))
-                ⊒ applyTys χs (applyTys χsM (‵ `ℕ))
-    right =
-      catchup-lemma
-        (ok-no (applyTerms-preserves-No• χsM noN))
-        (applyTerms-preserves-Value χsM ($ (κℕ n′)))
-        N⊒N′L
-
-    χsR : StoreChanges
-    χsR = proj₁ right
-
-    W : Term
-    W = proj₁ (proj₂ right)
-
-    ΔR : TyCtx
-    ΔR = proj₁ (proj₂ (proj₂ right))
-
-    ΠR : Store
-    ΠR =
-      proj₁ (proj₂ (proj₂ (proj₂ right)))
-
-    ΠR′ : Store
-    ΠR′ =
-      proj₁ (proj₂ (proj₂ (proj₂ (proj₂ right))))
-
-    πR : StoreNrw
-    πR =
-      proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ right)))))
-
-    tail :
-      Value W ×
-      No• W ×
-      (applyTerms χsM N —↠[ χsR ] W) ×
-      (ΔR ≡ applyTyCtxs χsR ΔM) ×
-      (ΠR ≡ applyStores χsR []) ×
-      (ΠR′ ≡ applyStore keep []) ×
-      (ΔR ⊢ πR ꞉
-        ΠR ⊒ˢ ΠR′) ×
-      ΔR
-        ∣ combineStoreNrw πR (combineStoreNrw πM σ) ∣ []
-        ⊢ W ⊒ applyTerms χsR (applyTerms χsM N′)
-          ∶ applyCoercions χsR
-              (applyCoercions χsM (id (‵ `ℕ)))
-            ⦂ applyTys χsR (applyTys χsM (‵ `ℕ))
-              ⊒ applyTys χsR (applyTys χsM (‵ `ℕ))
-    tail =
-      proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ right)))))
-
-    ΠR≡ : ΠR ≡ applyStores χsR []
-    ΠR≡ =
-      proj₁
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂ tail))))
-
-    ΠR′≡ : ΠR′ ≡ applyStore keep []
-    ΠR′≡ =
-      proj₁
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂
-                (proj₂ tail)))))
-
-    πR⊒ :
-      ΔR ⊢ πR ꞉
-        ΠR ⊒ˢ ΠR′
-    πR⊒ =
-      proj₁
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂
-                (proj₂
-                  (proj₂ tail))))))
-
-    vW : Value W
-    vW = proj₁ tail
-
-    N↠W :
-      applyTerms χsM N —↠[ χsR ] W
-    N↠W =
-      proj₁
-        (proj₂
-          (proj₂ tail))
-
-    operands-term : Term
-    operands-term =
-      applyTerms χsR WM ⊕[ addℕ ] W
-
-    right-steps :
-      WM ⊕[ addℕ ] applyTerms χsM N —↠[ χsR ] operands-term
-    right-steps = ⊕₂-↠ vWM noWM N↠W
-
-    operands-ready :
-      M ⊕[ addℕ ] N —↠[ χsM ++ χsR ] operands-term
-    operands-ready = ↠-trans left-steps right-steps
-
-    WM⊢ℕ :
-      _ ∣ _ ∣ [] ⊢ WM ⦂ ‵ `ℕ
-    WM⊢ℕ = source-nat-typing (applyTys-ℕ χsM) WM⊒M′
-
-    W⊒N′ :
-      ΔR
-        ∣ combineStoreNrw πR (combineStoreNrw πM σ) ∣ []
-        ⊢ W ⊒ applyTerms χsR (applyTerms χsM N′)
-          ∶ applyCoercions χsR
-              (applyCoercions χsM (id (‵ `ℕ)))
-            ⦂ applyTys χsR (applyTys χsM (‵ `ℕ))
-              ⊒ applyTys χsR (applyTys χsM (‵ `ℕ))
-    W⊒N′ =
-      proj₂
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂
-                (proj₂
-                  (proj₂ tail))))))
-
-    W⊢ℕ :
-      _ ∣ _ ∣ [] ⊢ W ⦂ ‵ `ℕ
-    W⊢ℕ =
-      source-nat-typing
-        (applyTys-ℕ-applyTys χsM χsR)
-        W⊒N′
-
-    WM≡target : WM ≡ $ (κℕ m′)
-    WM≡target =
-      value-normalized-id-ℕ-target-const
-        vWM
-        (applyTerms-const χsM (κℕ m′))
-        (applyCoercions-id-ℕ χsM)
-        (applyTys-ℕ χsM)
-        (applyTys-ℕ χsM)
-        WM⊒M′
-
-    W≡target : W ≡ $ (κℕ n′)
-    W≡target =
-      value-normalized-id-ℕ-target-const
-        vW
-        (trans
-          (cong (applyTerms χsR)
-            (applyTerms-const χsM (κℕ n′)))
-          (applyTerms-const χsR (κℕ n′)))
-        (applyCoercions-id-ℕ-applyCoercions χsM χsR)
-        (applyTys-ℕ-applyTys χsM χsR)
-        (applyTys-ℕ-applyTys χsM χsR)
-        W⊒N′
-
-    source-δ :
-      operands-term —↠[ keep ∷ [] ] $ (κℕ (m′ + n′))
-    source-δ =
-      constant-⊕-δ-step
-        {χsL = χsR} {χsR = []}
-        WM≡target
-        W≡target
-
-    χs : StoreChanges
-    χs = (χsM ++ χsR) ++ keep ∷ []
-
-    Δ′ : TyCtx
-    Δ′ = ΔR
-
-    Π : Store
-    Π = srcStoreⁿ (combineStoreNrw πR πM)
-
-    Π′ : Store
-    Π′ = []
-
-    π : StoreNrw
-    π = combineStoreNrw πR πM
-
-    source-steps :
-      M ⊕[ addℕ ] N —↠[ χs ] $ (κℕ (m′ + n′))
-    source-steps = ↠-trans operands-ready source-δ
-
-    Π≡ : Π ≡ applyStores χs []
-    Π≡ =
-      trans
-        (combineStoreNrw-applyStores
-          {χs₂ = χsR} {χs₁ = χsM}
-          πR⊒
-          ΠR≡
-          ΠR′≡
-          πM⊒
-          ΠM≡
-          ΠM′≡)
-        (sym (applyStores-++ (χsM ++ χsR) (keep ∷ []) []))
-
-    Π′≡ : Π′ ≡ applyStore keep []
-    Π′≡ = refl
-
-    πM⊒-empty : Δ′ ⊢ πM ꞉ ΠM ⊒ˢ []
-    πM⊒-empty =
-      ⊒ˢ-empty-anyᵗ Δ′
-        (subst (λ Π₀ → ΔM ⊢ πM ꞉ ΠM ⊒ˢ Π₀) ΠM′≡ πM⊒)
-
-    πR⊒-empty :
-      Δ′ ⊢ πR ꞉ ΠR ⊒ˢ []
-    πR⊒-empty =
-      subst
-        (λ Π₀ → Δ′ ⊢ πR ꞉ ΠR ⊒ˢ Π₀)
-        ΠR′≡
-        πR⊒
-
-    π⊒ : Δ′ ⊢ π ꞉ Π ⊒ˢ Π′
-    π⊒ =
-      combineStoreNrw-empty-⊒ˢ
-        πR⊒-empty
-        πM⊒-empty
-
-    result⊒ :
-      Δ′ ∣ combineStoreNrw π σ ∣ []
-        ⊢ $ (κℕ (m′ + n′)) ⊒ $ (κℕ (m′ + n′))
-          ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ
-    result⊒ =
-      κ⊒κᵗ
-        (κℕ (m′ + n′))
-        {typing =
-          term-typing-endpoints
-            (⊢$ (κℕ (m′ + n′)))
-            (⊢$ (κℕ (m′ + n′)))}
-  in
-  χs , $ (κℕ (m′ + n′)) , Δ′ , Π , Π′ , π ,
-  ‵ `ℕ , ‵ `ℕ , id (‵ `ℕ) ,
-  source-steps ,
-  Π≡ ,
-  Π′≡ ,
-  π⊒ ,
-  result⊒
+    (⊕⊒⊕ᵗ {M = M} {N = N} M⊒M′ N⊒N′)
+    (pure-step (δ-⊕ {m = m′} {n = n′})) =
+  ⊕-δ-left-first {σ = σ} {M = M} {N = N}
+    {m′ = m′} {n′ = n′}
+    (ok-no noM) noN M⊒M′ N⊒N′
 dynamicGradualGuarantee {σ = σ} wfΣ (ok-⊕₁ okM noN) σ⊒ qᶜ
-    (⊕⊒⊕ᵗ {M = M} {M′ = M′} {N = N} {N′ = N′} M⊒M′ N⊒N′)
-    (pure-step δ-⊕)
-    with catchup-lemma okM ($ _) M⊒M′
-       | catchup-lemma (ok-no noN) ($ _) N⊒N′
-dynamicGradualGuarantee {σ = σ} wfΣ (ok-⊕₁ okM noN) σ⊒ qᶜ
-    (⊕⊒⊕ᵗ {M = M} {M′ = M′} {N = N} {N′ = N′} M⊒M′ N⊒N′)
-    (pure-step (δ-⊕ {m = m′} {n = n′}))
-    | χsM , WM , ΔM , ΠM , ΠM′ , πM ,
-      vWM , noWM , M↠WM , ΔM≡ , ΠM≡ , ΠM′≡ , πM⊒ , WM⊒M′
-    | χsN , WN , ΔN , ΠN , ΠN′ , πN ,
-      vWN , noWN , N↠WN , ΔN≡ , ΠN≡ , ΠN′≡ , πN⊒ , WN⊒N′ =
-  let
-    left-steps :
-      M ⊕[ addℕ ] N —↠[ χsM ] WM ⊕[ addℕ ] applyTerms χsM N
-    left-steps = ⊕₁-↠ noN M↠WM
-
-    N⊒N′L :
-      ΔM ∣ combineStoreNrw πM σ ∣ []
-        ⊢ applyTerms χsM N ⊒ applyTerms χsM N′
-          ∶ applyCoercions χsM (id (‵ `ℕ))
-            ⦂ applyTys χsM (‵ `ℕ) ⊒ applyTys χsM (‵ `ℕ)
-    N⊒N′L = {! ? !}
-
-    right :
-      ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
-        Value W ×
-        No• W ×
-        (applyTerms χsM N —↠[ χs ] W) ×
-        (Δ′ ≡ applyTyCtxs χs ΔM) ×
-        (Π ≡ applyStores χs []) ×
-        (Π′ ≡ applyStore keep []) ×
-        Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
-        Δ′ ∣ combineStoreNrw π (combineStoreNrw πM σ) ∣ []
-          ⊢ W ⊒ applyTerms χs (applyTerms χsM N′)
-            ∶ applyCoercions χs (applyCoercions χsM (id (‵ `ℕ)))
-              ⦂ applyTys χs (applyTys χsM (‵ `ℕ))
-                ⊒ applyTys χs (applyTys χsM (‵ `ℕ))
-    right =
-      catchup-lemma
-        (ok-no (applyTerms-preserves-No• χsM noN))
-        (applyTerms-preserves-Value χsM ($ (κℕ n′)))
-        N⊒N′L
-
-    χsR : StoreChanges
-    χsR = proj₁ right
-
-    W : Term
-    W = proj₁ (proj₂ right)
-
-    ΔR : TyCtx
-    ΔR = proj₁ (proj₂ (proj₂ right))
-
-    ΠR : Store
-    ΠR =
-      proj₁ (proj₂ (proj₂ (proj₂ right)))
-
-    ΠR′ : Store
-    ΠR′ =
-      proj₁ (proj₂ (proj₂ (proj₂ (proj₂ right))))
-
-    πR : StoreNrw
-    πR =
-      proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ right)))))
-
-    tail :
-      Value W ×
-      No• W ×
-      (applyTerms χsM N —↠[ χsR ] W) ×
-      (ΔR ≡ applyTyCtxs χsR ΔM) ×
-      (ΠR ≡ applyStores χsR []) ×
-      (ΠR′ ≡ applyStore keep []) ×
-      (ΔR ⊢ πR ꞉
-        ΠR ⊒ˢ ΠR′) ×
-      ΔR
-        ∣ combineStoreNrw πR (combineStoreNrw πM σ) ∣ []
-        ⊢ W ⊒ applyTerms χsR (applyTerms χsM N′)
-          ∶ applyCoercions χsR
-              (applyCoercions χsM (id (‵ `ℕ)))
-            ⦂ applyTys χsR (applyTys χsM (‵ `ℕ))
-              ⊒ applyTys χsR (applyTys χsM (‵ `ℕ))
-    tail =
-      proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ right)))))
-
-    ΠR≡ : ΠR ≡ applyStores χsR []
-    ΠR≡ =
-      proj₁
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂ tail))))
-
-    ΠR′≡ : ΠR′ ≡ applyStore keep []
-    ΠR′≡ =
-      proj₁
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂
-                (proj₂ tail)))))
-
-    πR⊒ :
-      ΔR ⊢ πR ꞉
-        ΠR ⊒ˢ ΠR′
-    πR⊒ =
-      proj₁
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂
-                (proj₂
-                  (proj₂ tail))))))
-
-    vW : Value W
-    vW = proj₁ tail
-
-    N↠W :
-      applyTerms χsM N —↠[ χsR ] W
-    N↠W =
-      proj₁
-        (proj₂
-          (proj₂ tail))
-
-    operands-term : Term
-    operands-term =
-      applyTerms χsR WM ⊕[ addℕ ] W
-
-    right-steps :
-      WM ⊕[ addℕ ] applyTerms χsM N —↠[ χsR ] operands-term
-    right-steps = ⊕₂-↠ vWM noWM N↠W
-
-    operands-ready :
-      M ⊕[ addℕ ] N —↠[ χsM ++ χsR ] operands-term
-    operands-ready = ↠-trans left-steps right-steps
-
-    WM⊢ℕ :
-      _ ∣ _ ∣ [] ⊢ WM ⦂ ‵ `ℕ
-    WM⊢ℕ = source-nat-typing (applyTys-ℕ χsM) WM⊒M′
-
-    W⊒N′ :
-      ΔR
-        ∣ combineStoreNrw πR (combineStoreNrw πM σ) ∣ []
-        ⊢ W ⊒ applyTerms χsR (applyTerms χsM N′)
-          ∶ applyCoercions χsR
-              (applyCoercions χsM (id (‵ `ℕ)))
-            ⦂ applyTys χsR (applyTys χsM (‵ `ℕ))
-              ⊒ applyTys χsR (applyTys χsM (‵ `ℕ))
-    W⊒N′ =
-      proj₂
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂
-                (proj₂
-                  (proj₂ tail))))))
-
-    W⊢ℕ :
-      _ ∣ _ ∣ [] ⊢ W ⦂ ‵ `ℕ
-    W⊢ℕ =
-      source-nat-typing
-        (applyTys-ℕ-applyTys χsM χsR)
-        W⊒N′
-
-    WM≡target : WM ≡ $ (κℕ m′)
-    WM≡target =
-      value-normalized-id-ℕ-target-const
-        vWM
-        (applyTerms-const χsM (κℕ m′))
-        (applyCoercions-id-ℕ χsM)
-        (applyTys-ℕ χsM)
-        (applyTys-ℕ χsM)
-        WM⊒M′
-
-    W≡target : W ≡ $ (κℕ n′)
-    W≡target =
-      value-normalized-id-ℕ-target-const
-        vW
-        (trans
-          (cong (applyTerms χsR)
-            (applyTerms-const χsM (κℕ n′)))
-          (applyTerms-const χsR (κℕ n′)))
-        (applyCoercions-id-ℕ-applyCoercions χsM χsR)
-        (applyTys-ℕ-applyTys χsM χsR)
-        (applyTys-ℕ-applyTys χsM χsR)
-        W⊒N′
-
-    source-δ :
-      operands-term —↠[ keep ∷ [] ] $ (κℕ (m′ + n′))
-    source-δ =
-      constant-⊕-δ-step
-        {χsL = χsR} {χsR = []}
-        WM≡target
-        W≡target
-
-    χs : StoreChanges
-    χs = (χsM ++ χsR) ++ keep ∷ []
-
-    Δ′ : TyCtx
-    Δ′ = ΔR
-
-    Π : Store
-    Π = srcStoreⁿ (combineStoreNrw πR πM)
-
-    Π′ : Store
-    Π′ = []
-
-    π : StoreNrw
-    π = combineStoreNrw πR πM
-
-    source-steps :
-      M ⊕[ addℕ ] N —↠[ χs ] $ (κℕ (m′ + n′))
-    source-steps = ↠-trans operands-ready source-δ
-
-    Π≡ : Π ≡ applyStores χs []
-    Π≡ =
-      trans
-        (combineStoreNrw-applyStores
-          {χs₂ = χsR} {χs₁ = χsM}
-          πR⊒
-          ΠR≡
-          ΠR′≡
-          πM⊒
-          ΠM≡
-          ΠM′≡)
-        (sym (applyStores-++ (χsM ++ χsR) (keep ∷ []) []))
-
-    Π′≡ : Π′ ≡ applyStore keep []
-    Π′≡ = refl
-
-    πM⊒-empty : Δ′ ⊢ πM ꞉ ΠM ⊒ˢ []
-    πM⊒-empty =
-      ⊒ˢ-empty-anyᵗ Δ′
-        (subst (λ Π₀ → ΔM ⊢ πM ꞉ ΠM ⊒ˢ Π₀) ΠM′≡ πM⊒)
-
-    πR⊒-empty :
-      Δ′ ⊢ πR ꞉ ΠR ⊒ˢ []
-    πR⊒-empty =
-      subst
-        (λ Π₀ → Δ′ ⊢ πR ꞉ ΠR ⊒ˢ Π₀)
-        ΠR′≡
-        πR⊒
-
-    π⊒ : Δ′ ⊢ π ꞉ Π ⊒ˢ Π′
-    π⊒ =
-      combineStoreNrw-empty-⊒ˢ
-        πR⊒-empty
-        πM⊒-empty
-
-    result⊒ :
-      Δ′ ∣ combineStoreNrw π σ ∣ []
-        ⊢ $ (κℕ (m′ + n′)) ⊒ $ (κℕ (m′ + n′))
-          ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ
-    result⊒ =
-      κ⊒κᵗ
-        (κℕ (m′ + n′))
-        {typing =
-          term-typing-endpoints
-            (⊢$ (κℕ (m′ + n′)))
-            (⊢$ (κℕ (m′ + n′)))}
-  in
-  χs , $ (κℕ (m′ + n′)) , Δ′ , Π , Π′ , π ,
-  ‵ `ℕ , ‵ `ℕ , id (‵ `ℕ) ,
-  source-steps ,
-  Π≡ ,
-  Π′≡ ,
-  π⊒ ,
-  result⊒
+    (⊕⊒⊕ᵗ {M = M} {N = N} M⊒M′ N⊒N′)
+    (pure-step (δ-⊕ {m = m′} {n = n′})) =
+  ⊕-δ-left-first {σ = σ} {M = M} {N = N}
+    {m′ = m′} {n′ = n′}
+    okM noN M⊒M′ N⊒N′
 dynamicGradualGuarantee {σ = σ} wfΣ (ok-⊕₂ vM noM okN) σ⊒ qᶜ
-    (⊕⊒⊕ᵗ {M = M} {M′ = M′} {N = N} {N′ = N′} M⊒M′ N⊒N′)
-    (pure-step δ-⊕)
-    with catchup-lemma okN ($ _) N⊒N′
-dynamicGradualGuarantee {σ = σ} wfΣ (ok-⊕₂ vM noM okN) σ⊒ qᶜ
-    (⊕⊒⊕ᵗ {M = M} {M′ = M′} {N = N} {N′ = N′} M⊒M′ N⊒N′)
-    (pure-step (δ-⊕ {m = m′} {n = n′}))
-    | χsN , WN , ΔN , ΠN , ΠN′ , πN ,
-      vWN , noWN , N↠WN , ΔN≡ , ΠN≡ , ΠN′≡ , πN⊒ , WN⊒N′ =
-  let
-    right-steps :
-      M ⊕[ addℕ ] N —↠[ χsN ] applyTerms χsN M ⊕[ addℕ ] WN
-    right-steps = ⊕₂-↠ vM noM N↠WN
-
-    M⊒M′R :
-      ΔN ∣ combineStoreNrw πN σ ∣ []
-        ⊢ applyTerms χsN M ⊒ applyTerms χsN M′
-          ∶ applyCoercions χsN (id (‵ `ℕ))
-            ⦂ applyTys χsN (‵ `ℕ) ⊒ applyTys χsN (‵ `ℕ)
-    M⊒M′R = {! ? !}
-
-    left :
-      ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
-        Value W ×
-        No• W ×
-        (applyTerms χsN M —↠[ χs ] W) ×
-        (Δ′ ≡ applyTyCtxs χs ΔN) ×
-        (Π ≡ applyStores χs []) ×
-        (Π′ ≡ applyStore keep []) ×
-        Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
-        Δ′ ∣ combineStoreNrw π (combineStoreNrw πN σ) ∣ []
-          ⊢ W ⊒ applyTerms χs (applyTerms χsN M′)
-            ∶ applyCoercions χs (applyCoercions χsN (id (‵ `ℕ)))
-              ⦂ applyTys χs (applyTys χsN (‵ `ℕ))
-                ⊒ applyTys χs (applyTys χsN (‵ `ℕ))
-    left =
-      catchup-lemma
-        (ok-no (applyTerms-preserves-No• χsN noM))
-        (applyTerms-preserves-Value χsN ($ (κℕ m′)))
-        M⊒M′R
-
-    χsL : StoreChanges
-    χsL = proj₁ left
-
-    W : Term
-    W = proj₁ (proj₂ left)
-
-    ΔL : TyCtx
-    ΔL = proj₁ (proj₂ (proj₂ left))
-
-    ΠL : Store
-    ΠL =
-      proj₁ (proj₂ (proj₂ (proj₂ left)))
-
-    ΠL′ : Store
-    ΠL′ =
-      proj₁ (proj₂ (proj₂ (proj₂ (proj₂ left))))
-
-    πL : StoreNrw
-    πL =
-      proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ left)))))
-
-    tail :
-      Value W ×
-      No• W ×
-      (applyTerms χsN M —↠[ χsL ] W) ×
-      (ΔL ≡ applyTyCtxs χsL ΔN) ×
-      (ΠL ≡ applyStores χsL []) ×
-      (ΠL′ ≡ applyStore keep []) ×
-      (ΔL ⊢ πL ꞉
-        ΠL ⊒ˢ ΠL′) ×
-      ΔL
-        ∣ combineStoreNrw πL (combineStoreNrw πN σ) ∣ []
-        ⊢ W ⊒
-          applyTerms χsL (applyTerms χsN M′)
-          ∶ applyCoercions χsL
-              (applyCoercions χsN (id (‵ `ℕ)))
-            ⦂ applyTys χsL (applyTys χsN (‵ `ℕ))
-              ⊒ applyTys χsL (applyTys χsN (‵ `ℕ))
-    tail =
-      proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ left)))))
-
-    ΠL≡ : ΠL ≡ applyStores χsL []
-    ΠL≡ =
-      proj₁
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂ tail))))
-
-    ΠL′≡ : ΠL′ ≡ applyStore keep []
-    ΠL′≡ =
-      proj₁
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂
-                (proj₂ tail)))))
-
-    πL⊒ :
-      ΔL ⊢ πL ꞉
-        ΠL ⊒ˢ ΠL′
-    πL⊒ =
-      proj₁
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂
-                (proj₂
-                  (proj₂ tail))))))
-
-    vW : Value W
-    vW = proj₁ tail
-
-    M↠W :
-      applyTerms χsN M —↠[ χsL ] W
-    M↠W =
-      proj₁
-        (proj₂
-          (proj₂ tail))
-
-    operands-term : Term
-    operands-term =
-      W ⊕[ addℕ ] applyTerms χsL WN
-
-    left-steps :
-      applyTerms χsN M ⊕[ addℕ ] WN
-        —↠[ χsL ] operands-term
-    left-steps = ⊕₁-↠ noWN M↠W
-
-    operands-ready :
-      M ⊕[ addℕ ] N —↠[ χsN ++ χsL ] operands-term
-    operands-ready = ↠-trans right-steps left-steps
-
-    W⊒M′ :
-      ΔL
-        ∣ combineStoreNrw πL (combineStoreNrw πN σ) ∣ []
-        ⊢ W ⊒ applyTerms χsL (applyTerms χsN M′)
-          ∶ applyCoercions χsL
-              (applyCoercions χsN (id (‵ `ℕ)))
-            ⦂ applyTys χsL (applyTys χsN (‵ `ℕ))
-              ⊒ applyTys χsL (applyTys χsN (‵ `ℕ))
-    W⊒M′ =
-      proj₂
-        (proj₂
-          (proj₂
-            (proj₂
-              (proj₂
-                (proj₂
-                  (proj₂ tail))))))
-
-    W⊢ℕ :
-      _ ∣ _ ∣ [] ⊢ W ⦂ ‵ `ℕ
-    W⊢ℕ =
-      source-nat-typing
-        (applyTys-ℕ-applyTys χsN χsL)
-        W⊒M′
-
-    WN⊢ℕ :
-      _ ∣ _ ∣ [] ⊢ WN ⦂ ‵ `ℕ
-    WN⊢ℕ = source-nat-typing (applyTys-ℕ χsN) WN⊒N′
-
-    W≡target : W ≡ $ (κℕ m′)
-    W≡target =
-      value-normalized-id-ℕ-target-const
-        vW
-        (trans
-          (cong (applyTerms χsL)
-            (applyTerms-const χsN (κℕ m′)))
-          (applyTerms-const χsL (κℕ m′)))
-        (applyCoercions-id-ℕ-applyCoercions χsN χsL)
-        (applyTys-ℕ-applyTys χsN χsL)
-        (applyTys-ℕ-applyTys χsN χsL)
-        W⊒M′
-
-    WN≡target : WN ≡ $ (κℕ n′)
-    WN≡target =
-      value-normalized-id-ℕ-target-const
-        vWN
-        (applyTerms-const χsN (κℕ n′))
-        (applyCoercions-id-ℕ χsN)
-        (applyTys-ℕ χsN)
-        (applyTys-ℕ χsN)
-        WN⊒N′
-
-    source-δ :
-      operands-term —↠[ keep ∷ [] ] $ (κℕ (m′ + n′))
-    source-δ =
-      constant-⊕-δ-step
-        {χsL = []} {χsR = χsL}
-        W≡target
-        WN≡target
-
-    χs : StoreChanges
-    χs = (χsN ++ χsL) ++ keep ∷ []
-
-    Δ′ : TyCtx
-    Δ′ = ΔL
-
-    Π : Store
-    Π = srcStoreⁿ (combineStoreNrw πL πN)
-
-    Π′ : Store
-    Π′ = []
-
-    π : StoreNrw
-    π = combineStoreNrw πL πN
-
-    source-steps :
-      M ⊕[ addℕ ] N —↠[ χs ] $ (κℕ (m′ + n′))
-    source-steps = ↠-trans operands-ready source-δ
-
-    Π≡ : Π ≡ applyStores χs []
-    Π≡ =
-      trans
-        (combineStoreNrw-applyStores
-          {χs₂ = χsL} {χs₁ = χsN}
-          πL⊒
-          ΠL≡
-          ΠL′≡
-          πN⊒
-          ΠN≡
-          ΠN′≡)
-        (sym (applyStores-++ (χsN ++ χsL) (keep ∷ []) []))
-
-    Π′≡ : Π′ ≡ applyStore keep []
-    Π′≡ = refl
-
-    πN⊒-empty : Δ′ ⊢ πN ꞉ ΠN ⊒ˢ []
-    πN⊒-empty =
-      ⊒ˢ-empty-anyᵗ Δ′
-        (subst (λ Π₀ → ΔN ⊢ πN ꞉ ΠN ⊒ˢ Π₀) ΠN′≡ πN⊒)
-
-    πL⊒-empty :
-      Δ′ ⊢ πL ꞉ ΠL ⊒ˢ []
-    πL⊒-empty =
-      subst
-        (λ Π₀ → Δ′ ⊢ πL ꞉ ΠL ⊒ˢ Π₀)
-        ΠL′≡
-        πL⊒
-
-    π⊒ : Δ′ ⊢ π ꞉ Π ⊒ˢ Π′
-    π⊒ =
-      combineStoreNrw-empty-⊒ˢ
-        πL⊒-empty
-        πN⊒-empty
-
-    result⊒ :
-      Δ′ ∣ combineStoreNrw π σ ∣ []
-        ⊢ $ (κℕ (m′ + n′)) ⊒ $ (κℕ (m′ + n′))
-          ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ
-    result⊒ =
-      κ⊒κᵗ
-        (κℕ (m′ + n′))
-        {typing =
-          term-typing-endpoints
-            (⊢$ (κℕ (m′ + n′)))
-            (⊢$ (κℕ (m′ + n′)))}
-  in
-  χs , $ (κℕ (m′ + n′)) , Δ′ , Π , Π′ , π ,
-  ‵ `ℕ , ‵ `ℕ , id (‵ `ℕ) ,
-  source-steps ,
-  Π≡ ,
-  Π′≡ ,
-  π⊒ ,
-  result⊒
+    (⊕⊒⊕ᵗ {M = M} {N = N} M⊒M′ N⊒N′)
+    (pure-step (δ-⊕ {m = m′} {n = n′})) =
+  ⊕-δ-right-first {σ = σ} {M = M} {N = N}
+    {m′ = m′} {n′ = n′}
+    vM noM okN M⊒M′ N⊒N′
 dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
-    (⊒cast+ᵗ {s = id A} q₀ᶜ q⨟s≈r M⊒M′)
+    (⊒cast+ᵗ {s = id A} q₀ᶜ wfΠ q⊒ s⊒ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
     with catchup-lemma okM vV M⊒M′
 dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
-    (⊒cast+ᵗ {s = id A} q₀ᶜ q⨟s≈r M⊒M′)
+    (⊒cast+ᵗ {s = id A} q₀ᶜ wfΠ q⊒ s⊒ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =
   {! ? !}
 dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
-    (⊒cast-ᵗ {s = id A} q₀ᶜ rᶜ q⨟s≈r M⊒M′)
+    (⊒cast-ᵗ {s = id A} q₀ᶜ rᶜ wfΠ q⊒ s⊒ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
     with catchup-lemma okM vV M⊒M′
 dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
-    (⊒cast-ᵗ {s = id A} q₀ᶜ rᶜ q⨟s≈r M⊒M′)
+    (⊒cast-ᵗ {s = id A} q₀ᶜ rᶜ wfΠ q⊒ s⊒ q⨟s≈r M⊒M′)
     (pure-step (β-id vV))
     | χs , W , Δ′ , Π , Π′ , π ,
       vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =

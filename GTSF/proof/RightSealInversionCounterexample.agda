@@ -12,7 +12,7 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here)
 open import Data.Nat using (zero; z<s)
-open import Data.Product using (_,_; proj₂; ∃-syntax)
+open import Data.Product using (_,_; proj₁; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (cong; sym; trans; subst)
 
 open import Types
@@ -83,25 +83,29 @@ private
   seal0⊒ = cast-seal wfBase (here refl) refl , sealⁿ NatTy alpha0
 
   right-seal-compose :
-    1 ∣ Sigma0 ⊢ id NatTy ⨾ⁿ seal0 ≈ seal0 ∶ NatTy ⊒ ＇ alpha0
+    1 ∣ Sigma0 ⊢
+      proj₁ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒)
+        ≈ seal0 ∶ NatTy ⊒ ＇ alpha0
   right-seal-compose =
-    compose-leftⁿ wfStore0 idNat⊒ seal0⊒
-      (endpointsⁿ refl refl refl refl Sigma0⊒ endpoints0 endpoints0
-        (seal-or-idᵈ , proj₂ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒))
-        (seal-or-idᵈ , seal0⊒))
+    endpointsⁿ refl refl refl refl Sigma0⊒ endpoints0 endpoints0
+      (seal-or-idᵈ , proj₂ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒))
+      (seal-or-idᵈ , seal0⊒)
 
   left-seal-compose :
-    1 ∣ Sigma0 ⊢ seal0 ≈ seal0 ⨾ⁿ idAlpha0 ∶ NatTy ⊒ ＇ alpha0
+    1 ∣ Sigma0 ⊢
+      seal0
+        ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfStore0} seal0⊒ idAlpha⊒)
+        ∶ NatTy ⊒ ＇ alpha0
   left-seal-compose =
-    compose-rightⁿ wfStore0 seal0⊒ idAlpha⊒
-      (endpointsⁿ refl refl refl refl Sigma0⊒ endpoints0 endpoints0
-        (seal-or-idᵈ , seal0⊒)
-        (seal-or-idᵈ , proj₂ (_⨟ⁿ_ {wfΣ = wfStore0} seal0⊒ idAlpha⊒)))
+    endpointsⁿ refl refl refl refl Sigma0⊒ endpoints0 endpoints0
+      (seal-or-idᵈ , seal0⊒)
+      (seal-or-idᵈ , proj₂ (_⨟ⁿ_ {wfΣ = wfStore0} seal0⊒ idAlpha⊒))
 
   right-sealed-constant :
     1 ∣ Sigma0 ∣ [] ⊢ $ k0 ⊒ ($ k0) ⟨ seal0 ⟩ ∶ seal0
   right-sealed-constant =
-    ⊒cast- idNatᶜ right-seal-compose (κ⊒κ k0)
+    ⊒cast- idNatᶜ wfStore0 idNat⊒ seal0⊒
+      right-seal-compose (κ⊒κ k0)
 
   bare-constant-index-source :
     ∀ {A q M M′} →
@@ -146,14 +150,13 @@ private
     1 ∣ (alpha0 ꞉= A ⊒) ∷ [] ∣ [] ⊢ M ⊒ M′ ∶ q →
     ⊥
   stripped-impossible-source eqM eqM′
-      (cast+⊒ pᶜ (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) M⊒M′) =
+      (cast+⊒ pᶜ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
     left-cast-plus-seal⊥ eqM t⊒
   stripped-impossible-source refl refl
-      (cast-⊒ pᶜ
-        (compose-rightⁿ wfΣ
-          t⊒@(cast-seal hNat α∈Σ seal-ok , sealⁿ .NatTy .alpha0)
-          p⊒
-          (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
+      (cast-⊒ pᶜ wfΣ
+        t⊒@(cast-seal hNat α∈Σ seal-ok , sealⁿ .NatTy .alpha0)
+        p⊒
+        (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒)
         M⊒M′) =
     let
       r≡idNat = bare-constant-index-source refl refl M⊒M′
@@ -171,14 +174,13 @@ private
   stripped-impossible-aux eqM eqM′ (extend qᶜ pαᶜ M⊒M′) =
     stripped-impossible-source eqM eqM′ M⊒M′
   stripped-impossible-aux eqM eqM′
-      (cast+⊒ pᶜ (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) M⊒M′) =
+      (cast+⊒ pᶜ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
     left-cast-plus-seal⊥ eqM t⊒
   stripped-impossible-aux refl refl
-      (cast-⊒ pᶜ
-        (compose-rightⁿ wfΣ
-          t⊒@(cast-seal hNat α∈Σ seal-ok , sealⁿ .NatTy .alpha0)
-          p⊒
-          (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
+      (cast-⊒ pᶜ wfΣ
+        t⊒@(cast-seal hNat α∈Σ seal-ok , sealⁿ .NatTy .alpha0)
+        p⊒
+        (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒)
         M⊒M′) =
     let
       r≡idNat = bare-constant-index refl refl M⊒M′
@@ -193,17 +195,21 @@ counterexample-premise :
       ⊒ ($ (κℕ 0)) ⟨ seal (‵ `ℕ) 0 ⟩
     ∶ id (＇ 0)
 counterexample-premise =
-  cast-⊒ idAlphaᶜ left-seal-compose right-sealed-constant
+  cast-⊒ idAlphaᶜ wfStore0 seal0⊒ idAlpha⊒
+    left-seal-compose right-sealed-constant
 
 old-counterexample-revised-premise⊥ :
-  ∀ {q C} →
+  ∀ {q C E Σ μ} →
+  (wfΣ : StoreDetWf 1 Σ) →
+  (q⊒ : μ ∣ 1 ∣ Σ ⊢ q ∶ C ⊒ E) →
+  (seal⊒ : μ ∣ 1 ∣ Σ ⊢ seal (‵ `ℕ) 0 ∶ E ⊒ ＇ 0) →
   1 ∣ (0 ꞉ id (‵ `ℕ)) ∷ []
-    ⊢ q ⨾ⁿ seal (‵ `ℕ) 0 ≈ id (＇ 0) ∶ C ⊒ ＇ 0 →
+    ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ seal⊒)
+      ≈ id (＇ 0) ∶ C ⊒ ＇ 0 →
   ⊥
-old-counterexample-revised-premise⊥
-    (compose-leftⁿ wfΣ q⊒
-      (cast-seal hNat α∈Σ seal-ok , sealⁿ .NatTy .alpha0)
-      (endpointsⁿ src-u tgt-u src-id tgt-id σ⊒ wfΣ₁ wfΣ₂ u⊒ id⊒)) =
+old-counterexample-revised-premise⊥ wfΣ q⊒
+    (cast-seal hNat α∈Σ seal-ok , sealⁿ .NatTy .alpha0)
+    (endpointsⁿ src-u tgt-u src-id tgt-id σ⊒ wfΣ₁ wfΣ₂ u⊒ id⊒) =
   let
     q⊒Nat = subst (λ A → _ ∣ _ ∣ _ ⊢ _ ∶ A ⊒ NatTy) (sym src-id) q⊒
   in

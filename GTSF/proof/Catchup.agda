@@ -32,7 +32,8 @@ open import TermNarrowing
 open import Primitives using (κℕ; constTy)
 open import proof.NarrowWidenProperties
   using
-    ( StoreDetWf-⟰ᵗ
+    ( StoreDetWf
+    ; StoreDetWf-⟰ᵗ
     ; WfTyˢ-⇑ᵗ
     ; WfTyˢ-store-weaken
     ; narrowing-determinedᵐ
@@ -188,11 +189,14 @@ postulate
   -- in `catchup-lemma`.  The Δ′ equality is Agda bookkeeping for the emitted
   -- store-change sequence.
   left-widening-lemma :
-    ∀ {Δ σ V V′ p r t A B C D} →
+    ∀ {Δ σ V V′ p r t A B C D E Σ μ} →
     Value V →
     No• V →
     Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
-    Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+    (wfΣ : StoreDetWf Δ Σ) →
+    (t⊒ : μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ E) →
+    (p⊒ : μ ∣ Δ ∣ Σ ⊢ p ∶ E ⊒ B) →
+    Δ ∣ σ ⊢ r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒) ∶ A ⊒ B →
     Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ p ⦂ C ⊒ D →
     ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
       Value W ×
@@ -209,11 +213,14 @@ postulate
   -- cambridge25 "Left Narrowing Lemma", likewise value-level, with the same
   -- emitted-context bookkeeping.
   left-narrowing-lemma :
-    ∀ {Δ σ V V′ p r t A B C D} →
+    ∀ {Δ σ V V′ p r t A B C D E Σ μ} →
     Value V →
     No• V →
     Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
-    Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
+    (wfΣ : StoreDetWf Δ Σ) →
+    (t⊒ : μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ E) →
+    (p⊒ : μ ∣ Δ ∣ Σ ⊢ p ∶ E ⊒ B) →
+    Δ ∣ σ ⊢ r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒) ∶ A ⊒ B →
     Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ r ⦂ A ⊒ B →
     ∃[ χs ] ∃[ W ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
       Value W ×
@@ -404,379 +411,6 @@ catchup-gen-coercion-typing-transport {Δ′ = Δ′} {σ = σ} {π = π}
     s⊒
     (narrow-drop-star-var X t⊒)
 
-compose-leftⁿ-⇑ˢ :
-  ∀ {Δ σ q s r A B} →
-  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
-  suc Δ ∣ ⇑ˢ σ ⊢ ⇑ᶜ q ⨾ⁿ ⇑ᶜ s ≈ ⇑ᶜ r ∶ ⇑ᵗ A ⊒ ⇑ᵗ B
-compose-leftⁿ-⇑ˢ (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
-  let
-    q⊒′ = narrow-⇑ᵗ-gen q⊒
-    s⊒′ = narrow-⇑ᵗ-gen s⊒
-    old = _⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒
-    new = _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ} q⊒′ s⊒′
-    u≡ =
-      narrowing-determinedᵐ (StoreDetWf-⟰ᵗ wfΣ)
-        (proj₂ new)
-        (narrow-⇑ᵗ-gen (proj₂ old))
-    eq′ =
-      subst
-        (λ u → _ ∣ _ ⊢ u ≈ ⇑ᶜ _ ∶ _ ⊒ _)
-        (sym u≡)
-        (≈ⁿ-⇑ˢ q⨟s≈r)
-  in
-  compose-leftⁿ (StoreDetWf-⟰ᵗ wfΣ) q⊒′ s⊒′ eq′
-
-compose-leftⁿ-add-left-star-var :
-  ∀ X {Δ σ q s r A B} →
-  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
-  Δ ∣ (⊒ X ꞉=☆) ∷ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
-compose-leftⁿ-add-left-star-var X (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
-  compose-leftⁿ wfΣ q⊒ s⊒ (≈ⁿ-add-left-star-var X q⨟s≈r)
-
-compose-rightⁿ-⇑ˢ :
-  ∀ {Δ σ r t p A B} →
-  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
-  suc Δ ∣ ⇑ˢ σ ⊢ ⇑ᶜ r ≈ ⇑ᶜ t ⨾ⁿ ⇑ᶜ p ∶ ⇑ᵗ A ⊒ ⇑ᵗ B
-compose-rightⁿ-⇑ˢ (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
-  let
-    t⊒′ = narrow-⇑ᵗ-gen t⊒
-    p⊒′ = narrow-⇑ᵗ-gen p⊒
-    old = _⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒
-    new = _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ} t⊒′ p⊒′
-    u≡ =
-      narrowing-determinedᵐ (StoreDetWf-⟰ᵗ wfΣ)
-        (proj₂ new)
-        (narrow-⇑ᵗ-gen (proj₂ old))
-    eq′ =
-      subst
-        (λ u → _ ∣ _ ⊢ ⇑ᶜ _ ≈ u ∶ _ ⊒ _)
-        (sym u≡)
-        (≈ⁿ-⇑ˢ r≈t⨟p)
-  in
-  compose-rightⁿ (StoreDetWf-⟰ᵗ wfΣ) t⊒′ p⊒′ eq′
-
-compose-rightⁿ-add-left-star-var :
-  ∀ X {Δ σ r t p A B} →
-  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
-  Δ ∣ (⊒ X ꞉=☆) ∷ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
-compose-rightⁿ-add-left-star-var X (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
-  compose-rightⁿ wfΣ t⊒ p⊒ (≈ⁿ-add-left-star-var X r≈t⨟p)
-
-catchup-compose-left-transport-shifted :
-  ∀ n {Δ Δ′ σ π Π Π′ χs q s r A B} →
-  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
-  Δ′ ≡ applyTyCtxs χs Δ →
-  Π ≡ shiftStore n (applyStores χs []) →
-  Π′ ≡ [] →
-  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
-  Δ′ ∣ combineStoreNrw π σ
-    ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
-      ≈ applyCoercions χs r ∶ applyTys χs A ⊒ applyTys χs B
-catchup-compose-left-transport-shifted n {Δ = Δ} {Δ′ = Δ′} {σ = σ}
-    {χs = χs} {q = q} {s = s} {r = r} {A = A} {B = B}
-    q⨟s≈r Δ′≡ Π≡ Π′≡ ⊒ˢ-nil =
-  let
-    empty≡ = shiftStore-empty-inv n (sym Π≡)
-    Δ′≡Δ = trans Δ′≡ (applyTyCtxs-empty-id χs empty≡ Δ)
-    q≡ = applyCoercions-empty-id χs empty≡ q
-    s≡ = applyCoercions-empty-id χs empty≡ s
-    r≡ = applyCoercions-empty-id χs empty≡ r
-    A≡ = applyTys-empty-id χs empty≡ A
-    B≡ = applyTys-empty-id χs empty≡ B
-  in
-  subst
-    (λ Δ₀ → Δ₀ ∣ σ
-      ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
-        ≈ applyCoercions χs r ∶ applyTys χs A ⊒ applyTys χs B)
-    (sym Δ′≡Δ)
-    (subst
-      (λ B₀ → Δ ∣ σ
-        ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
-          ≈ applyCoercions χs r ∶ applyTys χs A ⊒ B₀)
-      (sym B≡)
-      (subst
-        (λ A₀ → Δ ∣ σ
-          ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
-            ≈ applyCoercions χs r ∶ A₀ ⊒ B)
-        (sym A≡)
-        (subst
-          (λ r₀ → Δ ∣ σ
-            ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
-              ≈ r₀ ∶ A ⊒ B)
-          (sym r≡)
-          (subst
-            (λ s₀ → Δ ∣ σ
-              ⊢ applyCoercions χs q ⨾ⁿ s₀ ≈ r ∶ A ⊒ B)
-            (sym s≡)
-            (subst
-              (λ q₀ → Δ ∣ σ ⊢ q₀ ⨾ⁿ s ≈ r ∶ A ⊒ B)
-              (sym q≡)
-              q⨟s≈r)))))
-catchup-compose-left-transport-shifted n
-    q⨟s≈r Δ′≡ Π≡ () (⊒ˢ-right hA π⊒)
-catchup-compose-left-transport-shifted n {χs = χs}
-    q⨟s≈r Δ′≡ Π≡ Π′≡ (⊒ˢ-left π⊒)
-    with storeChangesLastBind χs
-catchup-compose-left-transport-shifted n {χs = χs}
-    q⨟s≈r Δ′≡ Π≡ Π′≡ (⊒ˢ-left π⊒)
-    | no-bind keeps
-    with trans Π≡
-      (trans (cong (shiftStore n) (allKeep-applyStores-id keeps []))
-        (shiftStore-empty n))
-catchup-compose-left-transport-shifted n {χs = χs}
-    q⨟s≈r Δ′≡ Π≡ Π′≡ (⊒ˢ-left π⊒)
-    | no-bind keeps | ()
-catchup-compose-left-transport-shifted n {Δ = Δ} {σ = σ}
-    {χs = .(χs ++ bind Aχ ∷ keeps)}
-    {q = q} {s = s} {r = r} {A = A} {B = B}
-    q⨟s≈r Δ′≡ Π≡ Π′≡ (⊒ˢ-left {X = X} π⊒)
-    | last-bind χs Aχ keeps keeps-ok =
-  let
-    Δtail≡ =
-      trans Δ′≡
-        (trans (applyTyCtxs-last-bind χs Aχ keeps keeps-ok Δ)
-          (sym (applyTyCtxs-suc χs Δ)))
-    Π-last≡ =
-      trans Π≡
-        (cong (shiftStore n)
-          (applyStores-last-bind χs Aχ keeps keeps-ok []))
-    Π-last-normal≡ =
-      trans Π-last≡
-        (shiftStore-cons n zero (⇑ᵗ Aχ) (⟰ᵗ (applyStores χs [])))
-    Πtail≡ =
-      trans (storeTail-∷≡ Π-last-normal≡)
-        (shiftStore-⟰ᵗ n (applyStores χs []))
-    tail =
-      catchup-compose-left-transport-shifted (suc n) {χs = χs}
-        (compose-leftⁿ-⇑ˢ q⨟s≈r)
-        Δtail≡
-        Πtail≡
-        Π′≡
-        π⊒
-    lifted = compose-leftⁿ-add-left-star-var X tail
-    q≡ =
-      trans (applyCoercions-⇑ᶜ χs q)
-        (sym (applyCoercions-last-bind χs Aχ keeps keeps-ok q))
-    s≡ =
-      trans (applyCoercions-⇑ᶜ χs s)
-        (sym (applyCoercions-last-bind χs Aχ keeps keeps-ok s))
-    r≡ =
-      trans (applyCoercions-⇑ᶜ χs r)
-        (sym (applyCoercions-last-bind χs Aχ keeps keeps-ok r))
-    A≡ =
-      trans (applyTys-⇑ᵗ χs A)
-        (sym (applyTys-last-bind χs Aχ keeps keeps-ok A))
-    B≡ =
-      trans (applyTys-⇑ᵗ χs B)
-        (sym (applyTys-last-bind χs Aχ keeps keeps-ok B))
-  in
-  subst
-    (λ B₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) q
-      ⨾ⁿ applyCoercions (χs ++ bind Aχ ∷ keeps) s
-      ≈ applyCoercions (χs ++ bind Aχ ∷ keeps) r
-      ∶ applyTys (χs ++ bind Aχ ∷ keeps) A ⊒ B₀)
-    B≡
-    (subst
-      (λ A₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) q
-        ⨾ⁿ applyCoercions (χs ++ bind Aχ ∷ keeps) s
-        ≈ applyCoercions (χs ++ bind Aχ ∷ keeps) r
-        ∶ A₀ ⊒ applyTys χs (⇑ᵗ B))
-      A≡
-      (subst
-        (λ r₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) q
-          ⨾ⁿ applyCoercions (χs ++ bind Aχ ∷ keeps) s
-          ≈ r₀ ∶ applyTys χs (⇑ᵗ A) ⊒ applyTys χs (⇑ᵗ B))
-        r≡
-        (subst
-          (λ s₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) q
-            ⨾ⁿ s₀ ≈ applyCoercions χs (⇑ᶜ r)
-            ∶ applyTys χs (⇑ᵗ A) ⊒ applyTys χs (⇑ᵗ B))
-          s≡
-          (subst
-            (λ q₀ → _ ∣ _ ⊢ q₀
-              ⨾ⁿ applyCoercions χs (⇑ᶜ s)
-              ≈ applyCoercions χs (⇑ᶜ r)
-              ∶ applyTys χs (⇑ᵗ A) ⊒ applyTys χs (⇑ᵗ B))
-            q≡
-            lifted))))
-catchup-compose-left-transport-shifted n
-    q⨟s≈r Δ′≡ Π≡ () (⊒ˢ-both hA hA′ s⊒ π⊒)
-
-catchup-compose-left-transport :
-  ∀ {Δ Δ′ σ π Π Π′ χs q s r A B} →
-  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
-  Δ′ ≡ applyTyCtxs χs Δ →
-  Π ≡ applyStores χs [] →
-  Π′ ≡ [] →
-  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
-  Δ′ ∣ combineStoreNrw π σ
-    ⊢ applyCoercions χs q ⨾ⁿ applyCoercions χs s
-      ≈ applyCoercions χs r ∶ applyTys χs A ⊒ applyTys χs B
-catchup-compose-left-transport {χs = χs} q⨟s≈r Δ′≡ Π≡ Π′≡ π⊒ =
-  catchup-compose-left-transport-shifted zero
-    {χs = χs}
-    q⨟s≈r Δ′≡ Π≡ Π′≡ π⊒
-
-catchup-compose-right-transport-shifted :
-  ∀ n {Δ Δ′ σ π Π Π′ χs r t p A B} →
-  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
-  Δ′ ≡ applyTyCtxs χs Δ →
-  Π ≡ shiftStore n (applyStores χs []) →
-  Π′ ≡ [] →
-  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
-  Δ′ ∣ combineStoreNrw π σ
-    ⊢ applyCoercions χs r
-      ≈ applyCoercions χs t ⨾ⁿ applyCoercions χs p
-      ∶ applyTys χs A ⊒ applyTys χs B
-catchup-compose-right-transport-shifted n {Δ = Δ} {Δ′ = Δ′} {σ = σ}
-    {χs = χs} {r = r} {t = t} {p = p} {A = A} {B = B}
-    r≈t⨟p Δ′≡ Π≡ Π′≡ ⊒ˢ-nil =
-  let
-    empty≡ = shiftStore-empty-inv n (sym Π≡)
-    Δ′≡Δ = trans Δ′≡ (applyTyCtxs-empty-id χs empty≡ Δ)
-    r≡ = applyCoercions-empty-id χs empty≡ r
-    t≡ = applyCoercions-empty-id χs empty≡ t
-    p≡ = applyCoercions-empty-id χs empty≡ p
-    A≡ = applyTys-empty-id χs empty≡ A
-    B≡ = applyTys-empty-id χs empty≡ B
-  in
-  subst
-    (λ Δ₀ → Δ₀ ∣ σ
-      ⊢ applyCoercions χs r
-        ≈ applyCoercions χs t ⨾ⁿ applyCoercions χs p
-        ∶ applyTys χs A ⊒ applyTys χs B)
-    (sym Δ′≡Δ)
-    (subst
-      (λ B₀ → Δ ∣ σ
-        ⊢ applyCoercions χs r
-          ≈ applyCoercions χs t ⨾ⁿ applyCoercions χs p
-          ∶ applyTys χs A ⊒ B₀)
-      (sym B≡)
-      (subst
-        (λ A₀ → Δ ∣ σ
-          ⊢ applyCoercions χs r
-            ≈ applyCoercions χs t ⨾ⁿ applyCoercions χs p
-            ∶ A₀ ⊒ B)
-        (sym A≡)
-        (subst
-          (λ p₀ → Δ ∣ σ
-            ⊢ applyCoercions χs r
-              ≈ applyCoercions χs t ⨾ⁿ p₀ ∶ A ⊒ B)
-          (sym p≡)
-          (subst
-            (λ t₀ → Δ ∣ σ
-              ⊢ applyCoercions χs r ≈ t₀ ⨾ⁿ p ∶ A ⊒ B)
-            (sym t≡)
-            (subst
-              (λ r₀ → Δ ∣ σ ⊢ r₀ ≈ t ⨾ⁿ p ∶ A ⊒ B)
-              (sym r≡)
-              r≈t⨟p)))))
-catchup-compose-right-transport-shifted n
-    r≈t⨟p Δ′≡ Π≡ () (⊒ˢ-right hA π⊒)
-catchup-compose-right-transport-shifted n {χs = χs}
-    r≈t⨟p Δ′≡ Π≡ Π′≡ (⊒ˢ-left π⊒)
-    with storeChangesLastBind χs
-catchup-compose-right-transport-shifted n {χs = χs}
-    r≈t⨟p Δ′≡ Π≡ Π′≡ (⊒ˢ-left π⊒)
-    | no-bind keeps
-    with trans Π≡
-      (trans (cong (shiftStore n) (allKeep-applyStores-id keeps []))
-        (shiftStore-empty n))
-catchup-compose-right-transport-shifted n {χs = χs}
-    r≈t⨟p Δ′≡ Π≡ Π′≡ (⊒ˢ-left π⊒)
-    | no-bind keeps | ()
-catchup-compose-right-transport-shifted n {Δ = Δ} {σ = σ}
-    {χs = .(χs ++ bind Aχ ∷ keeps)}
-    {r = r} {t = t} {p = p} {A = A} {B = B}
-    r≈t⨟p Δ′≡ Π≡ Π′≡ (⊒ˢ-left {X = X} π⊒)
-    | last-bind χs Aχ keeps keeps-ok =
-  let
-    Δtail≡ =
-      trans Δ′≡
-        (trans (applyTyCtxs-last-bind χs Aχ keeps keeps-ok Δ)
-          (sym (applyTyCtxs-suc χs Δ)))
-    Π-last≡ =
-      trans Π≡
-        (cong (shiftStore n)
-          (applyStores-last-bind χs Aχ keeps keeps-ok []))
-    Π-last-normal≡ =
-      trans Π-last≡
-        (shiftStore-cons n zero (⇑ᵗ Aχ) (⟰ᵗ (applyStores χs [])))
-    Πtail≡ =
-      trans (storeTail-∷≡ Π-last-normal≡)
-        (shiftStore-⟰ᵗ n (applyStores χs []))
-    tail =
-      catchup-compose-right-transport-shifted (suc n) {χs = χs}
-        (compose-rightⁿ-⇑ˢ r≈t⨟p)
-        Δtail≡
-        Πtail≡
-        Π′≡
-        π⊒
-    lifted = compose-rightⁿ-add-left-star-var X tail
-    r≡ =
-      trans (applyCoercions-⇑ᶜ χs r)
-        (sym (applyCoercions-last-bind χs Aχ keeps keeps-ok r))
-    t≡ =
-      trans (applyCoercions-⇑ᶜ χs t)
-        (sym (applyCoercions-last-bind χs Aχ keeps keeps-ok t))
-    p≡ =
-      trans (applyCoercions-⇑ᶜ χs p)
-        (sym (applyCoercions-last-bind χs Aχ keeps keeps-ok p))
-    A≡ =
-      trans (applyTys-⇑ᵗ χs A)
-        (sym (applyTys-last-bind χs Aχ keeps keeps-ok A))
-    B≡ =
-      trans (applyTys-⇑ᵗ χs B)
-        (sym (applyTys-last-bind χs Aχ keeps keeps-ok B))
-  in
-  subst
-    (λ B₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) r
-      ≈ applyCoercions (χs ++ bind Aχ ∷ keeps) t
-        ⨾ⁿ applyCoercions (χs ++ bind Aχ ∷ keeps) p
-      ∶ applyTys (χs ++ bind Aχ ∷ keeps) A ⊒ B₀)
-    B≡
-    (subst
-      (λ A₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) r
-        ≈ applyCoercions (χs ++ bind Aχ ∷ keeps) t
-          ⨾ⁿ applyCoercions (χs ++ bind Aχ ∷ keeps) p
-        ∶ A₀ ⊒ applyTys χs (⇑ᵗ B))
-      A≡
-      (subst
-        (λ p₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) r
-          ≈ applyCoercions (χs ++ bind Aχ ∷ keeps) t
-            ⨾ⁿ p₀ ∶ applyTys χs (⇑ᵗ A) ⊒ applyTys χs (⇑ᵗ B))
-        p≡
-        (subst
-          (λ t₀ → _ ∣ _ ⊢ applyCoercions (χs ++ bind Aχ ∷ keeps) r
-            ≈ t₀ ⨾ⁿ applyCoercions χs (⇑ᶜ p)
-            ∶ applyTys χs (⇑ᵗ A) ⊒ applyTys χs (⇑ᵗ B))
-          t≡
-          (subst
-            (λ r₀ → _ ∣ _ ⊢ r₀
-              ≈ applyCoercions χs (⇑ᶜ t)
-                ⨾ⁿ applyCoercions χs (⇑ᶜ p)
-              ∶ applyTys χs (⇑ᵗ A) ⊒ applyTys χs (⇑ᵗ B))
-            r≡
-            lifted))))
-catchup-compose-right-transport-shifted n
-    r≈t⨟p Δ′≡ Π≡ () (⊒ˢ-both hA hA′ s⊒ π⊒)
-
-catchup-compose-right-transport :
-  ∀ {Δ Δ′ σ π Π Π′ χs r t p A B} →
-  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
-  Δ′ ≡ applyTyCtxs χs Δ →
-  Π ≡ applyStores χs [] →
-  Π′ ≡ [] →
-  Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ →
-  Δ′ ∣ combineStoreNrw π σ
-    ⊢ applyCoercions χs r
-      ≈ applyCoercions χs t ⨾ⁿ applyCoercions χs p
-      ∶ applyTys χs A ⊒ applyTys χs B
-catchup-compose-right-transport {χs = χs} r≈t⨟p Δ′≡ Π≡ Π′≡ π⊒ =
-  catchup-compose-right-transport-shifted zero
-    {χs = χs}
-    r≈t⨟p Δ′≡ Π≡ Π′≡ π⊒
-
 data ExtendReplaceRel : TyCtx → StoreNrw → StoreNrw → Set where
   replace-here :
     ∀ {Δ α q A B σ} →
@@ -918,23 +552,35 @@ extendReplaceRel-coercionᶜ :
 extendReplaceRel-coercionᶜ rel cᶜ =
   narrow-weaken ≤-refl (extendReplaceRel-src-incl rel) cᶜ
 
-extendReplaceRel-compose-left :
-  ∀ {Δ σ σ′ q s r A B} →
+extendReplaceRel-coercion :
+  ∀ {Δ σ σ′ μ c A B} →
   ExtendReplaceRel Δ σ σ′ →
-  Δ ∣ σ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B →
-  Δ ∣ σ′ ⊢ q ⨾ⁿ s ≈ r ∶ A ⊒ B
-extendReplaceRel-compose-left rel
-    (compose-leftⁿ wfΣ q⊒ s⊒ q⨟s≈r) =
-  compose-leftⁿ wfΣ q⊒ s⊒ (extendReplaceRel-≈ⁿ rel q⨟s≈r)
+  μ ∣ Δ ∣ srcStoreⁿ σ ⊢ c ∶ A ⊒ B →
+  μ ∣ Δ ∣ srcStoreⁿ σ′ ⊢ c ∶ A ⊒ B
+extendReplaceRel-coercion rel c⊒ =
+  narrow-weaken ≤-refl (extendReplaceRel-src-incl rel) c⊒
+
+extendReplaceRel-compose-left :
+  ∀ {Δ σ σ′ q s r A B C Σ μ} →
+  ExtendReplaceRel Δ σ σ′ →
+  (wfΣ : StoreDetWf Δ Σ) →
+  (q⊒ : μ ∣ Δ ∣ Σ ⊢ q ∶ A ⊒ C) →
+  (s⊒ : μ ∣ Δ ∣ Σ ⊢ s ∶ C ⊒ B) →
+  Δ ∣ σ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒) ≈ r ∶ A ⊒ B →
+  Δ ∣ σ′ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ s⊒) ≈ r ∶ A ⊒ B
+extendReplaceRel-compose-left rel wfΣ q⊒ s⊒ q⨟s≈r =
+  extendReplaceRel-≈ⁿ rel q⨟s≈r
 
 extendReplaceRel-compose-right :
-  ∀ {Δ σ σ′ r t p A B} →
+  ∀ {Δ σ σ′ r t p A B C Σ μ} →
   ExtendReplaceRel Δ σ σ′ →
-  Δ ∣ σ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B →
-  Δ ∣ σ′ ⊢ r ≈ t ⨾ⁿ p ∶ A ⊒ B
-extendReplaceRel-compose-right rel
-    (compose-rightⁿ wfΣ t⊒ p⊒ r≈t⨟p) =
-  compose-rightⁿ wfΣ t⊒ p⊒ (extendReplaceRel-≈ⁿ rel r≈t⨟p)
+  (wfΣ : StoreDetWf Δ Σ) →
+  (t⊒ : μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ C) →
+  (p⊒ : μ ∣ Δ ∣ Σ ⊢ p ∶ C ⊒ B) →
+  Δ ∣ σ ⊢ r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒) ∶ A ⊒ B →
+  Δ ∣ σ′ ⊢ r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒) ∶ A ⊒ B
+extendReplaceRel-compose-right rel wfΣ t⊒ p⊒ r≈t⨟p =
+  extendReplaceRel-≈ⁿ rel r≈t⨟p
 
 id-constᶜ :
   ∀ {Δ Σ} κ →
@@ -1007,10 +653,57 @@ extendReplaceRel-typed-term :
   ExtendReplaceRel Δ σ σ′ →
   Δ ∣ σ ∣ γ ⊢ M ⊒ T ∶ c ⦂ A ⊒ B →
   Δ ∣ σ′ ∣ γ ⊢ M ⊒ T ∶ c ⦂ A ⊒ B
-extendReplaceRel-typed-term (replace-here qᶜ) M⊒T =
-  extend-replace-here-typed-current qᶜ
-    (typed-term-narrowing-index-typing M⊒T)
-    M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ)
+    M⊒T@(splitᵗ _ pαᶜ _) =
+  extend-replace-here-typed-current qᶜ pαᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(⊒blameᵗ pᶜ) =
+  extend-replace-here-typed-current qᶜ pᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(x⊒xᵗ pᶜ _) =
+  extend-replace-here-typed-current qᶜ pᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(ƛ⊒ƛᵗ p↦qᶜ _) =
+  extend-replace-here-typed-current qᶜ p↦qᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(·⊒·ᵗ p↦qᶜ _ _) =
+  extend-replace-here-typed-current qᶜ (fun-narrow-codomainᶜ p↦qᶜ) M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(Λ⊒Λᵗ allᶜ _ _) =
+  extend-replace-here-typed-current qᶜ allᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(⊒Λᵗ pᶜ _) =
+  extend-replace-here-typed-current qᶜ pᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(⊒⟨ν⟩ᵗ pᶜ _ _) =
+  extend-replace-here-typed-current qᶜ pᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(⊒αᵗ _ pαᶜ _) =
+  extend-replace-here-typed-current qᶜ pαᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(ν⊒νᵗ pᶜ _ _) =
+  extend-replace-here-typed-current qᶜ pᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(⊒νᵗ pᶜ _) =
+  extend-replace-here-typed-current qᶜ pᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(ν⊒ᵗ pᶜ _) =
+  extend-replace-here-typed-current qᶜ pᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(κ⊒κᵗ κ) =
+  extend-replace-here-typed-current qᶜ (id-constᶜ κ) M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ) M⊒T@(⊕⊒⊕ᵗ _ _) =
+  extend-replace-here-typed-current qᶜ id-ℕᶜ M⊒T
+extendReplaceRel-typed-term (replace-here qᶜ)
+    M⊒T@(⊒cast+ᵗ q₀ᶜ _ _ _ _ _) =
+  extend-replace-here-typed-current qᶜ q₀ᶜ M⊒T
+extendReplaceRel-typed-term rel@(replace-here qᶜ)
+    (⊒cast-ᵗ q₀ᶜ r⊒ wfΣ q⊒ s⊒ q⨟s≈r M⊒M′) =
+  ⊒cast-ᵗ
+    (extendReplaceRel-coercionᶜ rel q₀ᶜ)
+    (extendReplaceRel-coercion rel r⊒)
+    wfΣ q⊒ s⊒
+    (extendReplaceRel-compose-left rel wfΣ q⊒ s⊒ q⨟s≈r)
+    (extend-replace-here-typed-current qᶜ q₀ᶜ M⊒M′)
+extendReplaceRel-typed-term rel@(replace-here qᶜ)
+    (cast+⊒ᵗ pᶜ r⊒ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
+  cast+⊒ᵗ
+    (extendReplaceRel-coercionᶜ rel pᶜ)
+    (extendReplaceRel-coercion rel r⊒)
+    wfΣ t⊒ p⊒
+    (extendReplaceRel-compose-right rel wfΣ t⊒ p⊒ r≈t⨟p)
+    (extend-replace-here-typed-current qᶜ pᶜ M⊒M′)
+extendReplaceRel-typed-term (replace-here qᶜ)
+    M⊒T@(cast-⊒ᵗ pᶜ _ _ _ _ _) =
+  extend-replace-here-typed-current qᶜ pᶜ M⊒T
 extendReplaceRel-typed-term (replace-right rel) M⊒T = {!!}
 extendReplaceRel-typed-term (replace-left rel) (⊒blameᵗ pᶜ) =
   ⊒blameᵗ (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ)
@@ -1066,30 +759,38 @@ extendReplaceRel-typed-term (replace-left rel)
     (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
     (extendReplaceRel-typed-term (replace-left rel) N⊒N′)
 extendReplaceRel-typed-term (replace-left rel)
-    (⊒cast+ᵗ qᶜ q⨟s≈r M⊒M′) =
+    (⊒cast+ᵗ qᶜ wfΣ q⊒ s⊒ q⨟s≈r M⊒M′) =
   ⊒cast+ᵗ
     (extendReplaceRel-coercionᶜ (replace-left rel) qᶜ)
-    (extendReplaceRel-compose-left (replace-left rel) q⨟s≈r)
+    wfΣ q⊒ s⊒
+    (extendReplaceRel-compose-left
+      (replace-left rel) wfΣ q⊒ s⊒ q⨟s≈r)
     (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
 extendReplaceRel-typed-term (replace-left rel)
-    (⊒cast-ᵗ qᶜ rᶜ q⨟s≈r M⊒M′) =
+    (⊒cast-ᵗ qᶜ rᶜ wfΣ q⊒ s⊒ q⨟s≈r M⊒M′) =
   ⊒cast-ᵗ
     (extendReplaceRel-coercionᶜ (replace-left rel) qᶜ)
-    (extendReplaceRel-coercionᶜ (replace-left rel) rᶜ)
-    (extendReplaceRel-compose-left (replace-left rel) q⨟s≈r)
+    (extendReplaceRel-coercion (replace-left rel) rᶜ)
+    wfΣ q⊒ s⊒
+    (extendReplaceRel-compose-left
+      (replace-left rel) wfΣ q⊒ s⊒ q⨟s≈r)
     (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
 extendReplaceRel-typed-term (replace-left rel)
-    (cast+⊒ᵗ pᶜ rᶜ r≈t⨟p M⊒M′) =
+    (cast+⊒ᵗ pᶜ rᶜ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
   cast+⊒ᵗ
     (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ)
-    (extendReplaceRel-coercionᶜ (replace-left rel) rᶜ)
-    (extendReplaceRel-compose-right (replace-left rel) r≈t⨟p)
+    (extendReplaceRel-coercion (replace-left rel) rᶜ)
+    wfΣ t⊒ p⊒
+    (extendReplaceRel-compose-right
+      (replace-left rel) wfΣ t⊒ p⊒ r≈t⨟p)
     (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
 extendReplaceRel-typed-term (replace-left rel)
-    (cast-⊒ᵗ pᶜ r≈t⨟p M⊒M′) =
+    (cast-⊒ᵗ pᶜ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
   cast-⊒ᵗ
     (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ)
-    (extendReplaceRel-compose-right (replace-left rel) r≈t⨟p)
+    wfΣ t⊒ p⊒
+    (extendReplaceRel-compose-right
+      (replace-left rel) wfΣ t⊒ p⊒ r≈t⨟p)
     (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
 extendReplaceRel-typed-term (replace-both {q = qh} rel)
     (extendᵗ qᶜ pαᶜ M⊒T) =
@@ -1169,30 +870,38 @@ extendReplaceRel-typed-term (replace-both {q = qh} rel)
     (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
     (extendReplaceRel-typed-term (replace-both {q = qh} rel) N⊒N′)
 extendReplaceRel-typed-term (replace-both {q = qh} rel)
-    (⊒cast+ᵗ qᶜ q⨟s≈r M⊒M′) =
+    (⊒cast+ᵗ qᶜ wfΣ q⊒ s⊒ q⨟s≈r M⊒M′) =
   ⊒cast+ᵗ
     (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) qᶜ)
-    (extendReplaceRel-compose-left (replace-both {q = qh} rel) q⨟s≈r)
+    wfΣ q⊒ s⊒
+    (extendReplaceRel-compose-left
+      (replace-both {q = qh} rel) wfΣ q⊒ s⊒ q⨟s≈r)
     (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
 extendReplaceRel-typed-term (replace-both {q = qh} rel)
-    (⊒cast-ᵗ qᶜ rᶜ q⨟s≈r M⊒M′) =
+    (⊒cast-ᵗ qᶜ rᶜ wfΣ q⊒ s⊒ q⨟s≈r M⊒M′) =
   ⊒cast-ᵗ
     (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) qᶜ)
-    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) rᶜ)
-    (extendReplaceRel-compose-left (replace-both {q = qh} rel) q⨟s≈r)
+    (extendReplaceRel-coercion (replace-both {q = qh} rel) rᶜ)
+    wfΣ q⊒ s⊒
+    (extendReplaceRel-compose-left
+      (replace-both {q = qh} rel) wfΣ q⊒ s⊒ q⨟s≈r)
     (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
 extendReplaceRel-typed-term (replace-both {q = qh} rel)
-    (cast+⊒ᵗ pᶜ rᶜ r≈t⨟p M⊒M′) =
+    (cast+⊒ᵗ pᶜ rᶜ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
   cast+⊒ᵗ
     (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
-    (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) rᶜ)
-    (extendReplaceRel-compose-right (replace-both {q = qh} rel) r≈t⨟p)
+    (extendReplaceRel-coercion (replace-both {q = qh} rel) rᶜ)
+    wfΣ t⊒ p⊒
+    (extendReplaceRel-compose-right
+      (replace-both {q = qh} rel) wfΣ t⊒ p⊒ r≈t⨟p)
     (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
 extendReplaceRel-typed-term (replace-both {q = qh} rel)
-    (cast-⊒ᵗ pᶜ r≈t⨟p M⊒M′) =
+    (cast-⊒ᵗ pᶜ wfΣ t⊒ p⊒ r≈t⨟p M⊒M′) =
   cast-⊒ᵗ
     (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) pᶜ)
-    (extendReplaceRel-compose-right (replace-both {q = qh} rel) r≈t⨟p)
+    wfΣ t⊒ p⊒
+    (extendReplaceRel-compose-right
+      (replace-both {q = qh} rel) wfΣ t⊒ p⊒ r≈t⨟p)
     (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
 extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒T = {!!}
 

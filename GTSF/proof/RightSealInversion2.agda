@@ -9,7 +9,7 @@ module proof.RightSealInversion2 where
 --     counterexample documents why arbitrary `V ⟨ unseal α A ⟩` is too
 --     broad.
 --   * The exported call-site statement takes the right-cast premises that DGG
---     already has: the composition `q ⨾ seal B α ≈ r` and the premise
+--     already has: the explicit composition of `q` with `seal B α` and the premise
 --     narrowing to the sealed value `V ⟨ seal A α ⟩`.
 --   * The counterexample uses `ν⊒` and a context variable: inside the fresh
 --     source-only store, the variable can be unsealed on the left and then
@@ -39,50 +39,63 @@ open import proof.NarrowWidenProperties using
 
 GeneralRightSealInversion2 : Set₁
 GeneralRightSealInversion2 =
-  ∀ {Δ σ γ M V q A α} →
+  ∀ {Δ σ γ M V q A α E Σ μ} →
+  (wfΣ : StoreDetWf Δ Σ) →
+  (q⊒ : μ ∣ Δ ∣ Σ ⊢ q ∶ src q ⊒ E) →
+  (seal⊒ : μ ∣ Δ ∣ Σ ⊢ seal A α ∶ E ⊒ ＇ α) →
   Δ ∣ σ ∣ γ ⊢ M ⊒ V ⟨ unseal α A ⟩ ∶ q →
   ∃[ r ]
-    (Δ ∣ σ ⊢ q ⨾ⁿ seal A α ≈ r ∶ src q ⊒ ＇ α) ×
+    (Δ ∣ σ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ seal⊒)
+      ≈ r ∶ src q ⊒ ＇ α) ×
     Δ ∣ σ ∣ γ ⊢ M ⊒ V ∶ r
 
 RightSealInversion2 : Set₁
 RightSealInversion2 =
-  ∀ {Δ σ M V q r A B C D E F α} →
+  ∀ {Δ σ M V q r A B C D E F G α Σ μ} →
   Value V →
   Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
-  Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ r ∶ E ⊒ F →
+  (wfΣ : StoreDetWf Δ Σ) →
+  (q⊒ : μ ∣ Δ ∣ Σ ⊢ q ∶ E ⊒ G) →
+  (seal⊒ : μ ∣ Δ ∣ Σ ⊢ seal B α ∶ G ⊒ F) →
+  Δ ∣ σ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ seal⊒) ≈ r ∶ E ⊒ F →
   Δ ∣ σ ∣ [] ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ r →
   ∃[ u ]
-    (Δ ∣ σ ⊢ q ⨾ⁿ seal B α ≈ u ∶ src q ⊒ ＇ α) ×
+    (Δ ∣ σ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ seal⊒)
+      ≈ u ∶ src q ⊒ ＇ α) ×
     Δ ∣ σ ∣ [] ⊢ M ⊒ V ⟨ seal A α ⟩ ∶ u
 
 right-seal-compose-endpoints :
-  ∀ {Δ σ q r A B A₀ α} →
-  Δ ∣ σ ⊢ q ⨾ⁿ seal A₀ α ≈ r ∶ A ⊒ B →
-  Δ ∣ σ ⊢ q ⨾ⁿ seal A₀ α ≈ r ∶ src q ⊒ ＇ α
-right-seal-compose-endpoints
-    (compose-leftⁿ wfΣ q⊒ seal⊒
-      (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
+  ∀ {Δ σ q r A B A₀ α E Σ μ} →
+  (wfΣ : StoreDetWf Δ Σ) →
+  (q⊒ : μ ∣ Δ ∣ Σ ⊢ q ∶ A ⊒ E) →
+  (seal⊒ : μ ∣ Δ ∣ Σ ⊢ seal A₀ α ∶ E ⊒ B) →
+  Δ ∣ σ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ seal⊒) ≈ r ∶ A ⊒ B →
+  Δ ∣ σ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ seal⊒) ≈ r
+    ∶ src q ⊒ ＇ α
+right-seal-compose-endpoints wfΣ q⊒ seal⊒
+    (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒)
     rewrite proj₁ (coercion-src-tgtᵐ (proj₁ q⊒))
           | proj₂ (coercion-src-tgtᵐ (proj₁ seal⊒)) =
-  compose-leftⁿ wfΣ q⊒ seal⊒
-    (endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒)
+  endpointsⁿ src-u tgt-u src-r tgt-r σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒
 
 rightSealInversion2 : RightSealInversion2
-rightSealInversion2 _ _ q⨟seal≈r M⊒Vseal =
-  _ , right-seal-compose-endpoints q⨟seal≈r , M⊒Vseal
+rightSealInversion2 _ _ wfΣ q⊒ seal⊒ q⨟seal≈r M⊒Vseal =
+  _ , right-seal-compose-endpoints wfΣ q⊒ seal⊒ q⨟seal≈r , M⊒Vseal
 
 right-seal-inversion₂ : RightSealInversion2
 right-seal-inversion₂ = rightSealInversion2
 
 right-seal-inversion₂-cast-unseal⊥ :
-  ∀ {Δ σ q r B C D E F α} →
+  ∀ {Δ σ q r B C D E F G α Σ μ} →
   Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
-  Δ ∣ σ ⊢ q ⨾ⁿ unseal α B ≈ r ∶ E ⊒ F →
+  (wfΣ : StoreDetWf Δ Σ) →
+  (q⊒ : μ ∣ Δ ∣ Σ ⊢ q ∶ E ⊒ G) →
+  (unseal⊒ : μ ∣ Δ ∣ Σ ⊢ unseal α B ∶ G ⊒ F) →
+  Δ ∣ σ ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} q⊒ unseal⊒) ≈ r ∶ E ⊒ F →
   ⊥
-right-seal-inversion₂-cast-unseal⊥ qᶜ
-    (compose-leftⁿ wfΣ q⊒ (cast-unseal hB α∈Σ ok , cross ())
-      q⨟unseal≈r)
+right-seal-inversion₂-cast-unseal⊥ qᶜ wfΣ q⊒
+    (cast-unseal hB α∈Σ ok , cross ())
+    q⨟unseal≈r
 
 -- Failed proof-search note for `GeneralRightSealInversion2`.  The direct
 -- induction can strip the direct right-positive cast, but the `ν⊒`, `split`,
@@ -238,47 +251,54 @@ private
     cast-seal wfBase (there (here refl)) refl , sealⁿ NatTy alpha1
 
   right-seal-compose0 :
-    1 ∣ Sigma0 ⊢ id NatTy ⨾ⁿ seal0 ≈ seal0 ∶ NatTy ⊒ ＇ alpha0
+    1 ∣ Sigma0 ⊢
+      proj₁ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒)
+        ≈ seal0 ∶ NatTy ⊒ ＇ alpha0
   right-seal-compose0 =
-    compose-leftⁿ wfStore0 idNat⊒ seal0⊒
-      (endpointsⁿ refl refl refl refl Sigma0⊒ endpoints0 endpoints0
-        (seal-or-idᵈ , proj₂ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒))
-        (seal-or-idᵈ , seal0⊒))
+    endpointsⁿ refl refl refl refl Sigma0⊒ endpoints0 endpoints0
+      (seal-or-idᵈ , proj₂ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒))
+      (seal-or-idᵈ , seal0⊒)
 
   right-seal-compose1 :
-    2 ∣ Sigma1 ⊢ id NatTy ⨾ⁿ seal1 ≈ seal1 ∶ NatTy ⊒ ＇ alpha1
+    2 ∣ Sigma1 ⊢
+      proj₁ (_⨟ⁿ_ {wfΣ = wfStore1Target} idNat⊒ seal1⊒Target)
+        ≈ seal1 ∶ NatTy ⊒ ＇ alpha1
   right-seal-compose1 =
-    compose-leftⁿ wfStore1Target idNat⊒ seal1⊒Target
-      (endpointsⁿ refl refl refl refl
-        Sigma1⊒
-        endpoints1Target
-        endpoints1Source
-        (seal-or-idᵈ ,
-          proj₂ (_⨟ⁿ_ {wfΣ = wfStore1Target} idNat⊒ seal1⊒Target))
-        (seal-or-idᵈ , seal1⊒Source))
+    endpointsⁿ refl refl refl refl
+      Sigma1⊒
+      endpoints1Target
+      endpoints1Source
+      (seal-or-idᵈ ,
+        proj₂ (_⨟ⁿ_ {wfΣ = wfStore1Target} idNat⊒ seal1⊒Target))
+      (seal-or-idᵈ , seal1⊒Source)
 
   left-seal-compose1 :
-    2 ∣ Sigma1 ⊢ seal1 ≈ seal1 ⨾ⁿ idAlpha1 ∶ NatTy ⊒ ＇ alpha1
+    2 ∣ Sigma1 ⊢
+      seal1
+        ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfStore1Target}
+            seal1⊒Target idAlpha1⊒Target)
+        ∶ NatTy ⊒ ＇ alpha1
   left-seal-compose1 =
-    compose-rightⁿ wfStore1Target seal1⊒Target idAlpha1⊒Target
-      (endpointsⁿ refl refl refl refl
-        Sigma1⊒
-        endpoints1Target
-        endpoints1Source
-        (seal-or-idᵈ , seal1⊒Target)
-        (seal-or-idᵈ , seal1⊒Source))
+    endpointsⁿ refl refl refl refl
+      Sigma1⊒
+      endpoints1Target
+      endpoints1Source
+      (seal-or-idᵈ , seal1⊒Target)
+      (seal-or-idᵈ , seal1⊒Source)
 
   right-sealed-constant1 :
     2 ∣ Sigma1 ∣ [] ⊢ $ k0 ⊒ ($ k0) ⟨ seal1 ⟩ ∶ seal1
   right-sealed-constant1 =
-    ⊒cast- idNatᶜ right-seal-compose1 (κ⊒κ k0)
+    ⊒cast- idNatᶜ wfStore1Target idNat⊒ seal1⊒Target
+      right-seal-compose1 (κ⊒κ k0)
 
   right-unsealed-constant1 :
     2 ∣ Sigma1 ∣ []
       ⊢ $ k0 ⊒ (($ k0) ⟨ seal1 ⟩) ⟨ unseal alpha1 NatTy ⟩
       ∶ id NatTy
   right-unsealed-constant1 =
-    ⊒cast+ idNatᶜ right-seal-compose1 right-sealed-constant1
+    ⊒cast+ idNatᶜ wfStore1Target idNat⊒ seal1⊒Target
+      right-seal-compose1 right-sealed-constant1
 
   alpha-var1 :
     2 ∣ Sigma1 ∣ idAlpha1 ∷ [] ⊢ ` zero ⊒ ` zero ∶ idAlpha1
@@ -289,13 +309,15 @@ private
     2 ∣ Sigma1 ∣ idAlpha1 ∷ []
       ⊢ (` zero) ⟨ unseal1 ⟩ ⊒ ` zero ∶ seal1
   left-unsealed-alpha-var1 =
-    cast+⊒ idAlpha1ᶜSource left-seal-compose1 alpha-var1
+    cast+⊒ idAlpha1ᶜSource wfStore1Target
+      seal1⊒Target idAlpha1⊒Target left-seal-compose1 alpha-var1
 
   right-unsealed-alpha-var1 :
     2 ∣ Sigma1 ∣ idAlpha1 ∷ []
       ⊢ (` zero) ⟨ unseal1 ⟩ ⊒ (` zero) ⟨ unseal1 ⟩ ∶ id NatTy
   right-unsealed-alpha-var1 =
-    ⊒cast+ idNatᶜ right-seal-compose1 left-unsealed-alpha-var1
+    ⊒cast+ idNatᶜ wfStore1Target idNat⊒ seal1⊒Target
+      right-seal-compose1 left-unsealed-alpha-var1
 
   right-seal-inversion₂-counterexample-premise :
     1 ∣ Sigma0 ∣ []
@@ -323,18 +345,22 @@ private
   right-seal-inversion₂-ν-candidate-stripped =
     ⊒cast-
       idNatᶜ
+      wfStore0
+      idNat⊒
+      seal0⊒
       right-seal-compose0
       (ν⊒ idNatᶜ (κ⊒κ k0))
 
 right-seal-inversion₂-ν-candidate-result :
   ∃[ r ]
     (1 ∣ Sigma0
-      ⊢ id NatTy ⨾ⁿ seal0 ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0) ×
+      ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒)
+        ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0) ×
     1 ∣ Sigma0 ∣ []
       ⊢ ν ★ ($ k0) (⇑ᶜ (id NatTy)) ⊒ ($ k0) ⟨ seal0 ⟩ ∶ r
 right-seal-inversion₂-ν-candidate-result =
   seal0 ,
-  right-seal-compose-endpoints right-seal-compose0 ,
+  right-seal-compose-endpoints wfStore0 idNat⊒ seal0⊒ right-seal-compose0 ,
   right-seal-inversion₂-ν-candidate-stripped
 
 private
@@ -373,22 +399,22 @@ private
 
   idNat-right-seal-not-idNat :
     1 ∣ Sigma0
-      ⊢ id NatTy ⨾ⁿ seal0 ≈ id NatTy ∶ NatTy ⊒ ＇ alpha0 →
+      ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒)
+        ≈ id NatTy ∶ NatTy ⊒ ＇ alpha0 →
     ⊥
   idNat-right-seal-not-idNat
-      (compose-leftⁿ wfΣ q⊒ seal⊒
-        (endpointsⁿ src-u tgt-u src-r () σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒))
+      (endpointsⁿ src-u tgt-u src-r () σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒)
 
   idNat-right-seal-not-renamed-idNat :
     ∀ {r} →
     renameᶜ suc r ≡ id NatTy →
     1 ∣ Sigma0
-      ⊢ id NatTy ⨾ⁿ seal0 ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0 →
+      ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒)
+        ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0 →
     ⊥
   idNat-right-seal-not-renamed-idNat r≡idNat
-      (compose-leftⁿ wfΣ q⊒ seal⊒
-        (endpointsⁿ src-u tgt-u src-r tgt-r
-          σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒)) =
+      (endpointsⁿ src-u tgt-u src-r tgt-r
+        σ⊒ wfΣ₁ wfΣ₂ u⊒ r⊒) =
     renamed-idNat-tgt-alpha0⊥ r≡idNat tgt-r
 
   idNat-target :
@@ -400,33 +426,36 @@ private
     trans (sym tgt-r) (cong tgt r≡idNat)
 
   inner-cast+⊥ :
-    ∀ {Δ σ γ M M′ q p t A B C D} →
+    ∀ {Δ σ γ M M′ q p t A B C D E Σ μ} →
     M ⟨ - t ⟩ ≡ (` zero) ⟨ unseal1 ⟩ →
     M′ ≡ ` zero →
     q ≡ id NatTy →
     Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ C ⊒ D →
-    Δ ∣ σ ⊢ q ≈ t ⨾ⁿ p ∶ A ⊒ B →
+    (wfΣ : StoreDetWf Δ Σ) →
+    (t⊒ : μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ E) →
+    (p⊒ : μ ∣ Δ ∣ Σ ⊢ p ∶ E ⊒ B) →
+    Δ ∣ σ ⊢ q ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ p⊒) ∶ A ⊒ B →
     Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ p →
     ⊥
-  inner-cast+⊥ {t = id A} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = c ︔ d} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = c ↦ d} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = `∀ c} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = (＇ β) !} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = (‵ ι) !} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = ★ !} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = (A ⇒ B) !} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = (`∀ A) !} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = (＇ β) ？} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = (‵ ι) ？} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = ★ ？} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = (A ⇒ B) ？} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = (`∀ A) ？} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = id A} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = c ︔ d} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = c ↦ d} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = `∀ c} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (＇ β) !} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (‵ ι) !} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = ★ !} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (A ⇒ B) !} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (`∀ A) !} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (＇ β) ？} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (‵ ι) ？} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = ★ ？} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (A ⇒ B) ？} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = (`∀ A) ？} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
   inner-cast+⊥ {t = seal .NatTy .alpha1} refl eqT q≡id pᶜ
-      (compose-rightⁿ wfΣ
-        (cast-seal hNat α∈Σ seal-ok , sealⁿ .NatTy .alpha1)
-        p⊒
-        (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒))
+      wfΣ
+      (cast-seal hNat α∈Σ seal-ok , sealⁿ .NatTy .alpha1)
+      p⊒
+      (endpointsⁿ src-r tgt-r src-u tgt-u σ⊒ wfΣ₁ wfΣ₂ r⊒ u⊒)
       M⊒M′ =
     let
       B≡Nat = idNat-target q≡id tgt-r
@@ -434,34 +463,36 @@ private
         subst (λ B → _ ∣ _ ∣ _ ⊢ _ ∶ ＇ alpha1 ⊒ B) B≡Nat p⊒
     in
     narrowing-var-to-older⊥ wfΣ wfBase p⊒Nat
-  inner-cast+⊥ {t = unseal α A} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = gen A c} () eqT q≡id pᶜ q≈t⨟p M⊒M′
-  inner-cast+⊥ {t = inst B c} () eqT q≡id pᶜ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = unseal α A} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = gen A c} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
+  inner-cast+⊥ {t = inst B c} () eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
 
   inner-cast-⊥ :
-    ∀ {Δ σ γ M M′ q r t A B C D} →
+    ∀ {Δ σ γ M M′ q r t A B C D E Σ μ} →
     M ⟨ t ⟩ ≡ (` zero) ⟨ unseal1 ⟩ →
     M′ ≡ ` zero →
     q ≡ id NatTy →
     Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ C ⊒ D →
-    Δ ∣ σ ⊢ r ≈ t ⨾ⁿ q ∶ A ⊒ B →
+    (wfΣ : StoreDetWf Δ Σ) →
+    (t⊒ : μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ E) →
+    (q⊒ : μ ∣ Δ ∣ Σ ⊢ q ∶ E ⊒ B) →
+    Δ ∣ σ ⊢ r ≈ proj₁ (_⨟ⁿ_ {wfΣ = wfΣ} t⊒ q⊒) ∶ A ⊒ B →
     Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ r →
     ⊥
-  inner-cast-⊥ {t = id A} () eqT q≡id qᶜ r≈t⨟q M⊒M′
-  inner-cast-⊥ {t = c ︔ d} () eqT q≡id qᶜ r≈t⨟q M⊒M′
-  inner-cast-⊥ {t = c ↦ d} () eqT q≡id qᶜ r≈t⨟q M⊒M′
-  inner-cast-⊥ {t = `∀ c} () eqT q≡id qᶜ r≈t⨟q M⊒M′
-  inner-cast-⊥ {t = G !} () eqT q≡id qᶜ r≈t⨟q M⊒M′
-  inner-cast-⊥ {t = G ？} () eqT q≡id qᶜ r≈t⨟q M⊒M′
-  inner-cast-⊥ {t = seal A α} () eqT q≡id qᶜ r≈t⨟q M⊒M′
-  inner-cast-⊥ {t = unseal α A} refl eqT q≡id qᶜ
-      (compose-rightⁿ wfΣ
-        (cast-unseal hA α∈Σ ok , cross ())
-        q⊒
-        r≈t⨟q)
+  inner-cast-⊥ {t = id A} () eqT q≡id qᶜ wfΣ t⊒ q⊒ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = c ︔ d} () eqT q≡id qᶜ wfΣ t⊒ q⊒ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = c ↦ d} () eqT q≡id qᶜ wfΣ t⊒ q⊒ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = `∀ c} () eqT q≡id qᶜ wfΣ t⊒ q⊒ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = G !} () eqT q≡id qᶜ wfΣ t⊒ q⊒ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = G ？} () eqT q≡id qᶜ wfΣ t⊒ q⊒ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = seal A α} () eqT q≡id qᶜ wfΣ t⊒ q⊒ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = unseal α A} refl eqT q≡id qᶜ wfΣ
+      (cast-unseal hA α∈Σ ok , cross ())
+      q⊒
+      r≈t⨟q
       M⊒M′
-  inner-cast-⊥ {t = gen A c} () eqT q≡id qᶜ r≈t⨟q M⊒M′
-  inner-cast-⊥ {t = inst B c} () eqT q≡id qᶜ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = gen A c} () eqT q≡id qᶜ wfΣ t⊒ q⊒ r≈t⨟q M⊒M′
+  inner-cast-⊥ {t = inst B c} () eqT q≡id qᶜ wfΣ t⊒ q⊒ r≈t⨟q M⊒M′
 
   right-seal-inversion₂-var-inner⊥ :
     ∀ {A q M T} →
@@ -473,11 +504,11 @@ private
       ⊢ M ⊒ T ∶ q →
     ⊥
   right-seal-inversion₂-var-inner⊥ eqM eqT q≡id
-      (cast+⊒ pᶜ q≈t⨟p M⊒M′) =
-    inner-cast+⊥ eqM eqT q≡id pᶜ q≈t⨟p M⊒M′
+      (cast+⊒ pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′) =
+    inner-cast+⊥ eqM eqT q≡id pᶜ wfΣ t⊒ p⊒ q≈t⨟p M⊒M′
   right-seal-inversion₂-var-inner⊥ eqM eqT q≡id
-      (cast-⊒ qᶜ r≈t⨟q M⊒M′) =
-    inner-cast-⊥ eqM eqT q≡id qᶜ r≈t⨟q M⊒M′
+      (cast-⊒ qᶜ wfΣ t⊒ q⊒ r≈t⨟q M⊒M′) =
+    inner-cast-⊥ eqM eqT q≡id qᶜ wfΣ t⊒ q⊒ r≈t⨟q M⊒M′
 
   right-seal-inversion₂-var-stripped-source⊥ :
     ∀ {A r M T} →
@@ -493,7 +524,8 @@ private
     M ≡ ν ★ ((` zero) ⟨ unseal1 ⟩) (⇑ᶜ (id NatTy)) →
     T ≡ ` zero →
     1 ∣ Sigma0
-      ⊢ id NatTy ⨾ⁿ seal0 ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0 →
+      ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒)
+        ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0 →
     1 ∣ Sigma0 ∣ idAlpha0 ∷ []
       ⊢ M ⊒ T ∶ r →
     ⊥
@@ -502,7 +534,8 @@ private
   right-seal-inversion₂-var-stripped⊥ :
     ∀ {r} →
     1 ∣ Sigma0
-      ⊢ id NatTy ⨾ⁿ seal0 ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0 →
+      ⊢ proj₁ (_⨟ⁿ_ {wfΣ = wfStore0} idNat⊒ seal0⊒)
+        ≈ r ∶ src (id NatTy) ⊒ ＇ alpha0 →
     1 ∣ Sigma0 ∣ idAlpha0 ∷ []
       ⊢ ν ★ ((` zero) ⟨ unseal1 ⟩) (⇑ᶜ (id NatTy))
         ⊒ ` zero ∶ r →

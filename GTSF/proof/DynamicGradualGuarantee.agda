@@ -13,9 +13,9 @@ module proof.DynamicGradualGuarantee where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Relation.Binary.PropositionalEquality using (cong; subst; sym; trans)
-open import Data.List using ([]; _∷_; _++_)
+open import Data.List using (List;[]; _∷_; _++_)
 open import Data.Nat using (ℕ; suc; _+_)
-open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
+open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax) renaming (Σ to ΣΣ)
 
 open import Types
 open import Coercions
@@ -35,6 +35,7 @@ open import proof.CatchupStore using
 open import proof.NarrowWidenProperties using
   ( tgtStoreⁿ-⊒ˢ
   ; ⊒ˢ-empty-anyᵗ
+  ; StoreDetWf
   )
 open import proof.ReductionProperties using
   ( applyCoercions
@@ -983,22 +984,22 @@ dynamicGradualGuarantee {σ = σ} wfΣ (ok-⊕₂ vM noM okN) σ⊒ qᶜ
     vM noM okN M⊒M′ N⊒N′
 dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
     (⊒cast+ᵗ {s = id A} q₀ᶜ wfΠ q⊒ s⊒ q⨟s≈r M⊒M′)
-    (pure-step (β-id vV))
-    with catchup-lemma okM vV M⊒M′
-dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
-    (⊒cast+ᵗ {s = id A} q₀ᶜ wfΠ q⊒ s⊒ q⨟s≈r M⊒M′)
-    (pure-step (β-id vV))
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =
-  {! ? !}
-dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
-    (⊒cast-ᵗ {s = id A} q₀ᶜ rᶜ wfΠ q⊒ s⊒ q⨟s≈r M⊒M′)
-    (pure-step (β-id vV))
-    with catchup-lemma okM vV M⊒M′
+    (pure-step (β-id vV)) =
+  [] , _ , _ , [] , [] , [] ,
+  _ , _ , _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  M⊒M′
 dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
     (⊒cast-ᵗ {s = id A} q₀ᶜ rᶜ wfΠ q⊒ s⊒ q⨟s≈r M⊒M′)
-    (pure-step (β-id vV))
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒M′ =
-  {! ? !}
+    (pure-step (β-id vV)) =
+  [] , _ , _ , [] , [] , [] ,
+  _ , _ , _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  ⊒ˢ-nil ,
+  M⊒M′
 dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ M⊒M′ M′→N′ = {! ? !}

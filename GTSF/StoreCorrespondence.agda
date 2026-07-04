@@ -8,12 +8,13 @@ module StoreCorrespondence where
 --     so proofs can be migrated one surface at a time.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Empty using (⊥)
 open import Data.List using (List; []; _∷_; map)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
-open import Data.Nat using (_<_; suc)
+open import Data.Nat using (_<_; zero; suc)
 open import Data.Product using (_,_)
-open import Relation.Binary.PropositionalEquality using (cong; sym)
+open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
 
 open import Types
 open import Store using (StoreWfAt)
@@ -373,3 +374,76 @@ rightStore-⇑ʳᶜorr (left-only α A ∷ ρ) =
   rightStore-⇑ʳᶜorr ρ
 rightStore-⇑ʳᶜorr (right-only β B ∷ ρ) =
   cong ((suc β , ⇑ᵗ B) ∷_) (rightStore-⇑ʳᶜorr ρ)
+
+leftStore-⇑ˡᶜorr-zero∉ :
+  ∀ {ρ A} →
+  (zero , A) ∈ leftStore (⇑ˡᶜorr ρ) →
+  ⊥
+leftStore-⇑ˡᶜorr-zero∉ {ρ = []} ()
+leftStore-⇑ˡᶜorr-zero∉ {ρ = matched α A β B ∷ ρ} (here ())
+leftStore-⇑ˡᶜorr-zero∉ {ρ = matched α A β B ∷ ρ} (there h) =
+  leftStore-⇑ˡᶜorr-zero∉ {ρ = ρ} h
+leftStore-⇑ˡᶜorr-zero∉ {ρ = left-only α A ∷ ρ} (here ())
+leftStore-⇑ˡᶜorr-zero∉ {ρ = left-only α A ∷ ρ} (there h) =
+  leftStore-⇑ˡᶜorr-zero∉ {ρ = ρ} h
+leftStore-⇑ˡᶜorr-zero∉ {ρ = right-only β B ∷ ρ} h =
+  leftStore-⇑ˡᶜorr-zero∉ {ρ = ρ} h
+
+rightStore-⇑ʳᶜorr-zero∉ :
+  ∀ {ρ A} →
+  (zero , A) ∈ rightStore (⇑ʳᶜorr ρ) →
+  ⊥
+rightStore-⇑ʳᶜorr-zero∉ {ρ = []} ()
+rightStore-⇑ʳᶜorr-zero∉ {ρ = matched α A β B ∷ ρ} (here ())
+rightStore-⇑ʳᶜorr-zero∉ {ρ = matched α A β B ∷ ρ} (there h) =
+  rightStore-⇑ʳᶜorr-zero∉ {ρ = ρ} h
+rightStore-⇑ʳᶜorr-zero∉ {ρ = left-only α A ∷ ρ} h =
+  rightStore-⇑ʳᶜorr-zero∉ {ρ = ρ} h
+rightStore-⇑ʳᶜorr-zero∉ {ρ = right-only β B ∷ ρ} (here ())
+rightStore-⇑ʳᶜorr-zero∉ {ρ = right-only β B ∷ ρ} (there h) =
+  rightStore-⇑ʳᶜorr-zero∉ {ρ = ρ} h
+
+corr-⇑ᶜorr :
+  ∀ {ΔL ΔR ρ} →
+  StoreCorr ΔL ΔR ρ →
+  StoreCorr (suc ΔL) (suc ΔR) (⇑ᶜorr ρ)
+corr-⇑ᶜorr {ρ = ρ} corr =
+  store-corr
+    (subst
+      (λ Σ → StoreDetWf _ Σ)
+      (sym (leftStore-⇑ᶜorr ρ))
+      (NWP.StoreDetWf-⟰ᵗ (leftStore-det corr)))
+    (subst
+      (λ Σ → StoreDetWf _ Σ)
+      (sym (rightStore-⇑ᶜorr ρ))
+      (NWP.StoreDetWf-⟰ᵗ (rightStore-det corr)))
+
+corr-⇑ˡᶜorr :
+  ∀ {ΔL ΔR ρ} →
+  StoreCorr ΔL ΔR ρ →
+  StoreCorr (suc ΔL) ΔR (⇑ˡᶜorr ρ)
+corr-⇑ˡᶜorr {ρ = ρ} corr =
+  store-corr
+    (subst
+      (λ Σ → StoreDetWf _ Σ)
+      (sym (leftStore-⇑ˡᶜorr ρ))
+      (NWP.StoreDetWf-⟰ᵗ (leftStore-det corr)))
+    (subst
+      (λ Σ → StoreDetWf _ Σ)
+      (sym (rightStore-⇑ˡᶜorr ρ))
+      (rightStore-det corr))
+
+corr-⇑ʳᶜorr :
+  ∀ {ΔL ΔR ρ} →
+  StoreCorr ΔL ΔR ρ →
+  StoreCorr ΔL (suc ΔR) (⇑ʳᶜorr ρ)
+corr-⇑ʳᶜorr {ρ = ρ} corr =
+  store-corr
+    (subst
+      (λ Σ → StoreDetWf _ Σ)
+      (sym (leftStore-⇑ʳᶜorr ρ))
+      (leftStore-det corr))
+    (subst
+      (λ Σ → StoreDetWf _ Σ)
+      (sym (rightStore-⇑ʳᶜorr ρ))
+      (NWP.StoreDetWf-⟰ᵗ (rightStore-det corr)))

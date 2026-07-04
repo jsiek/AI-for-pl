@@ -10,8 +10,9 @@ module proof.CatchupSeparated where
 --   * States the left catchup lemma with an unchanged target term.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
-open import Data.Nat using (zero)
+open import Data.Nat using (zero; suc; z<s)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (cong; trans)
 
@@ -25,6 +26,7 @@ open import NuReduction using
   ; bind
   ; applyStore
   ; applyStores
+  ; applyTyCtx
   ; applyTys
   ; applyTyCtxs
   ; _—↠[_]_
@@ -98,6 +100,14 @@ applyRightChanges [] ρ = ρ
 applyRightChanges (χ ∷ χs) ρ =
   applyRightChanges χs (applyRightChange χ ρ)
 
+applyRightChanges-++ :
+  ∀ χs χs′ ρ →
+  applyRightChanges (χs ++ χs′) ρ ≡
+    applyRightChanges χs′ (applyRightChanges χs ρ)
+applyRightChanges-++ [] χs′ ρ = refl
+applyRightChanges-++ (χ ∷ χs) χs′ ρ =
+  applyRightChanges-++ χs χs′ (applyRightChange χ ρ)
+
 leftStore-applyRightChange :
   ∀ χ ρ →
   leftStore (applyRightChange χ ρ) ≡ leftStore ρ
@@ -128,6 +138,40 @@ rightStore-applyRightChanges (χ ∷ χs) ρ =
   trans
     (rightStore-applyRightChanges χs (applyRightChange χ ρ))
     (cong (applyStores χs) (rightStore-applyRightChange χ ρ))
+
+store-corr-applyLeftKeep :
+  ∀ {ΔL ΔR ρ} →
+  StoreCorr ΔL ΔR ρ →
+  StoreCorr (applyTyCtx keep ΔL) ΔR (applyLeftChange keep ρ)
+store-corr-applyLeftKeep corr = corr
+
+store-corr-applyLeftBind :
+  ∀ {ΔL ΔR ρ A} →
+  WfTy (suc ΔL) (⇑ᵗ A) →
+  WfTy zero (⇑ᵗ A) →
+  StoreCorr ΔL ΔR ρ →
+  StoreCorr (applyTyCtx (bind A) ΔL) ΔR (applyLeftChange (bind A) ρ)
+store-corr-applyLeftBind hA hA-old corr =
+  corr-left z<s hA hA-old
+    (λ h → ⊥-elim (leftStore-⇑ˡᶜorr-zero∉ h))
+    (corr-⇑ˡᶜorr corr)
+
+store-corr-applyRightKeep :
+  ∀ {ΔL ΔR ρ} →
+  StoreCorr ΔL ΔR ρ →
+  StoreCorr ΔL (applyTyCtx keep ΔR) (applyRightChange keep ρ)
+store-corr-applyRightKeep corr = corr
+
+store-corr-applyRightBind :
+  ∀ {ΔL ΔR ρ A} →
+  WfTy (suc ΔR) (⇑ᵗ A) →
+  WfTy zero (⇑ᵗ A) →
+  StoreCorr ΔL ΔR ρ →
+  StoreCorr ΔL (applyTyCtx (bind A) ΔR) (applyRightChange (bind A) ρ)
+store-corr-applyRightBind hA hA-old corr =
+  corr-right z<s hA hA-old
+    (λ h → ⊥-elim (rightStore-⇑ʳᶜorr-zero∉ h))
+    (corr-⇑ʳᶜorr corr)
 
 ------------------------------------------------------------------------
 -- Separated left catchup

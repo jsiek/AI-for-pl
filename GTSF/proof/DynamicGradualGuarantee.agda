@@ -26,7 +26,7 @@ open import NuStore using (StoreWf; at)
 open import NarrowWiden
 open import TermNarrowing
 open import proof.CoercionProperties using (coercion-wf)
-open import proof.Catchup using (catchup-lemma)
+open import proof.Catchup using (catchup-lemma; runtime-⇑ᵗᵐ)
 open import proof.CatchupStore using
   ( combineStoreNrw
   ; combineStoreNrw-empty-⊒ˢ
@@ -38,6 +38,7 @@ open import proof.NarrowWidenProperties using
   )
 open import proof.ReductionProperties using
   ( applyCoercions
+  ; applyCoercions-dual
   ; applyStores-++
   ; applyTerms-const
   ; applyTerms-preserves-No•
@@ -46,6 +47,7 @@ open import proof.ReductionProperties using
   ; applyTys-ℕ-applyTys
   ; type-rename-step-⇑ᵗᵐ
   ; ↠-trans
+  ; ·₂-↠
   ; ⊕₁-↠
   ; ⊕₂-↠
   )
@@ -63,6 +65,21 @@ runtime-·₂-any :
 runtime-·₂-any (ok-no (no•-· noL noM)) = ok-no noM
 runtime-·₂-any (ok-·₁ okL noM) = ok-no noM
 runtime-·₂-any (ok-·₂ vL noL okM) = okM
+
+applyTerm-preserves-RuntimeOK :
+  ∀ χ {M} →
+  RuntimeOK M →
+  RuntimeOK (applyTerm χ M)
+applyTerm-preserves-RuntimeOK keep okM = okM
+applyTerm-preserves-RuntimeOK (bind A) okM = runtime-⇑ᵗᵐ okM
+
+applyTerms-preserves-RuntimeOK :
+  ∀ χs {M} →
+  RuntimeOK M →
+  RuntimeOK (applyTerms χs M)
+applyTerms-preserves-RuntimeOK [] okM = okM
+applyTerms-preserves-RuntimeOK (χ ∷ χs) okM =
+  applyTerms-preserves-RuntimeOK χs (applyTerm-preserves-RuntimeOK χ okM)
 
 runtime-⊕₂-any :
   ∀ {L op M} →
@@ -227,47 +244,57 @@ value-normalized-id-ℕ-target-const target-value T≡ p≡ A≡ B≡ W⊒ =
 -- Function application simulation
 ------------------------------------------------------------------------
 
-function-application-simulation-ƛ⊒ƛᵗ :
-  ∀ {Δ σ N N′ V V′ a q A B C D} →
-  Value V →
-  Δ ∣ srcStoreⁿ σ ⊢ a ∶ᶜ A ⊒ B →
-  Δ ∣ σ ∣ a ∷ [] ⊢ N ⊒ N′ ∶ q ⦂ C ⊒ D →
-  Δ ∣ σ ∣ [] ⊢ V ⊒ V′ ∶ a ⦂ A ⊒ B →
-  ∃[ χs ] ∃[ P ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
-  ∃[ C′ ] ∃[ D′ ] ∃[ q′ ]
-    ((ƛ N) · V —↠[ χs ] P) ×
-    (Π ≡ applyStores χs []) ×
-    (Π′ ≡ applyStore keep []) ×
-    Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
-    Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ P ⊒ N′ [ V′ ] ∶ q′ ⦂ C′ ⊒ D′
-function-application-simulation-ƛ⊒ƛᵗ {N = N} {V = V}
-    vV aᶜ N⊒N′ V⊒V′ =
-  keep ∷ [] , N [ V ] , _ , [] , [] , [] , _ , _ , _ ,
-  ↠-step (pure-step (β vV)) ↠-refl ,
-  refl ,
-  refl ,
-  ⊒ˢ-nil ,
-  term-substitution-narrowingᵗ {! ? !} N⊒N′
+applyTerms-ƛ :
+  ∀ χs N →
+  applyTerms χs (ƛ N) ≡ ƛ applyTerms χs N
+applyTerms-ƛ [] N = refl
+applyTerms-ƛ (keep ∷ χs) N = applyTerms-ƛ χs N
+applyTerms-ƛ (bind A ∷ χs) N = applyTerms-ƛ χs (⇑ᵗᵐ N)
 
-function-application-simulation :
-  ∀ {Δ σ L M N′ V′ p q A A′ B B′} →
-  RuntimeOK M →
-  Value V′ →
-  Δ ∣ σ ∣ [] ⊢ L ⊒ ƛ N′ ∶ p ↦ q ⦂ A ⇒ B ⊒ A′ ⇒ B′ →
-  Δ ∣ σ ∣ [] ⊢ M ⊒ V′ ∶ - p ⦂ A ⊒ A′ →
+applyCoercions-↦ :
+  ∀ χs p q →
+  applyCoercions χs (p ↦ q) ≡ applyCoercions χs p ↦ applyCoercions χs q
+applyCoercions-↦ [] p q = refl
+applyCoercions-↦ (keep ∷ χs) p q = applyCoercions-↦ χs p q
+applyCoercions-↦ (bind A ∷ χs) p q =
+  applyCoercions-↦ χs (⇑ᶜ p) (⇑ᶜ q)
+
+applyCoercions-dual-applyCoercions :
+  ∀ χs χs′ p →
+  applyCoercions χs′ (applyCoercions χs (- p)) ≡
+    - applyCoercions χs′ (applyCoercions χs p)
+applyCoercions-dual-applyCoercions χs χs′ p =
+  trans
+    (cong (applyCoercions χs′) (applyCoercions-dual χs p))
+    (applyCoercions-dual χs′ (applyCoercions χs p))
+
+sim-beta :
+  ∀ {σ WL NL WR VR}
+    {ΔL σL pL qL AL BL}
+    {ΔR σR AR BR} →
+  ΔL ∣ σL ∣ [] ⊢ WL ⊒ ƛ NL ∶ pL ↦ qL ⦂ AL ⊒ BL →
+  Value WL →
+  No• WL →
+  ΔR ∣ σR ∣ [] ⊢ WR ⊒ VR ∶ - pL ⦂ AR ⊒ BR →
+  Value WR →
+  No• WR →
+  Value VR →
   ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
-  ∃[ C′ ] ∃[ D′ ] ∃[ q′ ]
-    (L · M —↠[ χs ] N) ×
+  ∃[ C ] ∃[ D ] ∃[ r ]
+    (WL · WR —↠[ χs ] N) ×
     (Π ≡ applyStores χs []) ×
-    (Π′ ≡ applyStore keep []) ×
+    (Π′ ≡ []) ×
     Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
-    Δ′ ∣ combineStoreNrw π σ ∣ [] ⊢ N ⊒ N′ [ V′ ] ∶ q′ ⦂ C′ ⊒ D′
-function-application-simulation okM vV′ L⊒L′ M⊒V′
-    with catchup-lemma okM vV′ M⊒V′
-function-application-simulation okM vV′ L⊒L′ M⊒V′
-    | χs , W , Δ′ , Π , Π′ , π ,
-      vW , noW , M↠W , Δ′≡ , Π≡ , Π′≡ , π⊒ , W⊒V′ =
+    Δ′ ∣ combineStoreNrw π σ ∣ []
+      ⊢ N ⊒ NL [ VR ] ∶ r ⦂ C ⊒ D
+sim-beta
+    WL⊒ƛ vWL noWL
+    WR⊒VR vWR noWR vVR =
   {! ? !}
+
+------------------------------------------------------------------------
+-- Primitive application
+------------------------------------------------------------------------
 
 ⊕-δ-left-first :
   ∀ {Δ σ M N m′ n′} →
@@ -945,10 +972,116 @@ dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
 dynamicGradualGuarantee wfΣ okM σ⊒ pᶜ
     (⊒αᵗ γ′≡ pαᶜ L⊒L′) red =
   {! ? !}
-dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
+dynamicGradualGuarantee {Δ = Δ} {σ = σ}
+    {M = L · R} {M′ = (ƛ N′) · V′}
+    wfΣ okM σ⊒ qᶜ
     (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′)
     (pure-step (β vV)) =
-  function-application-simulation (runtime-·₂-any okM) vV L⊒L′ M⊒M′
+  let
+    χsL , WL , ΔL , _ , _ , πL ,
+      vWL , noWL , L↠WL , _ , _ , _ , _ , WL⊒ƛraw =
+      catchup-lemma
+        (runtime-·₁ okM)
+        (ƛ N′)
+        L⊒L′
+
+    WL⊒ƛ :
+      ΔL ∣ combineStoreNrw πL σ ∣ []
+        ⊢ WL ⊒ ƛ applyTerms χsL N′
+          ∶ applyCoercions χsL _ ↦ applyCoercions χsL _
+            ⦂ applyTys χsL _ ⊒ applyTys χsL _
+    WL⊒ƛ =
+      subst
+        (λ c →
+          ΔL ∣ combineStoreNrw πL σ ∣ []
+            ⊢ WL ⊒ ƛ applyTerms χsL N′ ∶ c
+              ⦂ applyTys χsL _ ⊒ applyTys χsL _)
+        (applyCoercions-↦ χsL _ _)
+        (subst
+          (λ T →
+            ΔL ∣ combineStoreNrw πL σ ∣ []
+              ⊢ WL ⊒ T ∶ applyCoercions χsL _
+                ⦂ applyTys χsL _ ⊒ applyTys χsL _)
+          (applyTerms-ƛ χsL N′)
+          WL⊒ƛraw)
+
+    R⊒V′L :
+      ΔL ∣ combineStoreNrw πL σ ∣ []
+        ⊢ applyTerms χsL R ⊒ applyTerms χsL V′
+          ∶ applyCoercions χsL _
+            ⦂ applyTys χsL _ ⊒ applyTys χsL _
+    R⊒V′L = {! ? !}
+
+    χsR , WR , ΔR , _ , _ , πR ,
+      vWR , noWR , R↠WR , _ , _ , _ , _ , WR⊒V′raw =
+      catchup-lemma
+        (applyTerms-preserves-RuntimeOK χsL (runtime-·₂-any okM))
+        (applyTerms-preserves-Value χsL vV)
+        R⊒V′L
+
+    WLF⊒ƛ :
+      ΔR ∣ combineStoreNrw πR (combineStoreNrw πL σ) ∣ []
+        ⊢ applyTerms χsR WL
+          ⊒ ƛ applyTerms χsR (applyTerms χsL N′)
+          ∶ applyCoercions χsR (applyCoercions χsL _)
+              ↦ applyCoercions χsR (applyCoercions χsL _)
+            ⦂ applyTys χsR (applyTys χsL _)
+              ⊒ applyTys χsR (applyTys χsL _)
+    WLF⊒ƛ = {! ? !}
+
+    WR⊒V′ :
+      ΔR ∣ combineStoreNrw πR (combineStoreNrw πL σ) ∣ []
+        ⊢ WR ⊒ applyTerms χsR (applyTerms χsL V′)
+          ∶ - applyCoercions χsR (applyCoercions χsL _)
+            ⦂ applyTys χsR (applyTys χsL _)
+              ⊒ applyTys χsR (applyTys χsL _)
+    WR⊒V′ =
+      subst
+        (λ c →
+          ΔR ∣ combineStoreNrw πR (combineStoreNrw πL σ) ∣ []
+            ⊢ WR ⊒ applyTerms χsR (applyTerms χsL V′) ∶ c
+              ⦂ applyTys χsR (applyTys χsL _)
+                ⊒ applyTys χsR (applyTys χsL _))
+        (applyCoercions-dual-applyCoercions χsL χsR _)
+        WR⊒V′raw
+
+    left-ready :
+      L · R —↠[ χsL ] WL · applyTerms χsL R
+    left-ready = {! ? !}
+
+    right-ready :
+      WL · applyTerms χsL R —↠[ χsR ] applyTerms χsR WL · WR
+    right-ready = ·₂-↠ vWL noWL R↠WR
+
+    ready :
+      ∃[ χs₀ ] (L · R —↠[ χs₀ ] applyTerms χsR WL · WR)
+    ready = χsL ++ χsR , ↠-trans left-ready right-ready
+
+    tail :
+      ∃[ χs ] ∃[ N ] ∃[ Δ′ ] ∃[ Π ] ∃[ Π′ ] ∃[ π ]
+      ∃[ C ] ∃[ D ] ∃[ r ]
+        (applyTerms χsR WL · WR —↠[ χs ] N) ×
+        (Π ≡ applyStores χs []) ×
+        (Π′ ≡ []) ×
+        Δ′ ⊢ π ꞉ Π ⊒ˢ Π′ ×
+        Δ′ ∣ combineStoreNrw π
+               (combineStoreNrw πR (combineStoreNrw πL σ)) ∣ []
+          ⊢ N ⊒
+              (applyTerms χsR (applyTerms χsL N′))
+              [ applyTerms χsR (applyTerms χsL V′) ]
+            ∶ r ⦂ C ⊒ D
+    tail =
+      sim-beta
+        WLF⊒ƛ
+        (applyTerms-preserves-Value χsR vWL)
+        (applyTerms-preserves-No• χsR noWL)
+        WR⊒V′
+        vWR
+        noWR
+        (applyTerms-preserves-Value χsR
+          (applyTerms-preserves-Value χsL vV))
+  in
+  {! ? !}
 dynamicGradualGuarantee wfΣ okM σ⊒ qᶜ
     (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′)
     (ξ-·₁ L′→N′ shiftM) =

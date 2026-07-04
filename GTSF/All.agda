@@ -11,13 +11,17 @@ import GradualTypeCheck
 import GradualTypeCheckExamples
 import Coercions
 import NarrowWiden
+import StoreCorrespondence
 import NuTerms
 import TypeCheck
+import TermNarrowingSeparated
 import NuExamplesFresh
 import NuReduction
 import proof.NWTermReduction
 import TermNarrowing
 import proof.TermNarrowingProperties
+--import proof.CatchupSeparated
+--import proof.DynamicGradualGuaranteeSeparated
 import NarrowingExamples
 import NuMetaTheory
 import proof.DynamicGradualGuarantee

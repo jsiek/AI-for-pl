@@ -127,6 +127,16 @@ Current named obligations in `proof.DynamicGradualGuaranteeSeparated`:
   and at the *same mode env* as the IH's existential coercion typing —
   either a cross-mode determinacy corollary for seal-variable-free
   endpoints or mode tracking through the theorem.
+- The theorem no longer takes a separate coercion premise. The old
+  `∶ᶜ` premise was inherited from the shared-store statement, was
+  consumed only by the `⊒blameᵗ` reconstructions, and made the theorem
+  stricter than the relation: recursive calls on the general-mode inner
+  relations of `⊒cast+ᵗ` and `cast-⊒ᵗ` had no `∶ᶜ` evidence to supply.
+  `⊒blameᵗ` now carries general-mode coercion evidence (matching the
+  other cast-composed positions), the blame cases recover it from the
+  relation via `typed-term-narrowing-coercion`, and the two former
+  `target-cast-plus-inner-step-simulation` /
+  `source-cast-minus-inner-simulation` holes are genuine recursive calls.
 - `applyLeftChanges-++` is now available from `proof.CatchupSeparated`.
   Both beta caller helpers use it with `applyTyCtxs-++` and `↠-trans` to
   return a single composed source reduction after the call to `sim-beta`.

@@ -327,3 +327,42 @@ right-side transport surface is still missing), and its evidence is at
 Cross-mode determinacy should hold at seal-variable-free endpoints —
 modes only arbitrate the tag-versus-seal mediation at `＇α` — but that
 corollary is not yet stated.
+
+## Dropping the DGG coercion premise, 2026-07-05
+
+The separated `dynamicGradualGuarantee` demanded
+`ΔL ∣ ΔR ∣ ρ ⊢ p ∶ᶜ A ⊒ B` alongside the relation `⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B`.
+Investigation confirmed the premise was inherited from the shared-store
+statement and is both redundant and harmful:
+
+- Redundant: `typed-term-narrowing-coercion` recovers (general-mode)
+  typing evidence for the relation's own index from the relation itself,
+  and the premise's only genuine consumers were the six `⊒blameᵗ`
+  reconstructions.
+- Harmful: it made the theorem stricter than the relation.  The inner
+  relations of `⊒cast+ᵗ` (and the premise relation of `cast-⊒ᵗ`) are
+  indexed by coercions with only general-`μ` typing, so the recursive
+  calls in the `ξ-⟨⟩` case for `⊒cast+ᵗ` and in the `cast-⊒ᵗ` source-cast
+  case could not be made at all — those were the
+  `target-cast-plus-inner-step-simulation` and
+  `source-cast-minus-inner-simulation` holes.
+
+Changes:
+
+- `⊒blameᵗ` in `TermNarrowingSeparated` now takes
+  `μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ p ∶ A ⊒ B` for an implicit `μ` instead of `∶ᶜ`;
+  blame is the target of any well-typed narrowing index.  All existing
+  constructions (which supply `∶ᶜ` evidence) still check, since
+  `tag-or-idᵈ` is an instance.  `typed-term-narrowing-coercion` returns
+  the constructor's `μ`.
+- The theorem premise is gone.  Blame reconstructions use
+  `proj₂ (typed-term-narrowing-coercion rel)`.  The `∶ᶜ`-transport
+  bindings that existed only to feed recursive calls
+  (`p-domain-Lᶜ`, `pℕMᶜ`) are deleted.
+- The two former inner-simulation holes are now literal recursive calls
+  (structural on the relation argument), closing them.
+
+The remaining mode question is confined to the frame-reconstruction
+holes: determinacy-based coercion recovery needs the transported frame
+coercion and the IH's coercion typed at one common mode env.  That is
+now the only place where `∶ᶜ`-versus-`μ` matters in the theorem.

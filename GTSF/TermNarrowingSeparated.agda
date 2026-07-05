@@ -290,9 +290,14 @@ data _∣_∣_∣_⊢_⊒_∶_⦂_⊒_
   -- typing.  The separated rules below keep that naming convention visible:
   -- p/q premises use `_⊢_∶ᶜ_⊒_`, while r premises use `_∣_∣_∣_⊢_∶_⊒_`.
 
-  ⊒blameᵗ : ∀ {ΔL ΔR ρ γ M p A B}
+  -- The coercion evidence is deliberately general-mode: blame sits on the
+  -- target side of any well-typed narrowing index, not only tag-or-id
+  -- ones.  (The `∶ᶜ` restriction here previously forced the separated DGG
+  -- theorem to demand `∶ᶜ` evidence for the relation index, which the
+  -- `⊒cast+ᵗ` inner relations cannot supply.)
+  ⊒blameᵗ : ∀ {ΔL ΔR ρ γ M p A B μ}
     → ΔL ∣ leftStore ρ ∣ leftCtx γ ⊢ M ⦂ A
-    → ΔL ∣ ΔR ∣ ρ ⊢ p ∶ᶜ A ⊒ B
+    → μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ p ∶ A ⊒ B
       ------------------------------------------------------------
     → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ blame ∶ p ⦂ A ⊒ B
 
@@ -464,8 +469,8 @@ typed-term-narrowing-coercion :
   ∀ {ΔL ΔR ρ γ M M′ p A B} →
   ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B →
   ∃[ μ ] μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ p ∶ A ⊒ B
-typed-term-narrowing-coercion (⊒blameᵗ M⊢ pᶜ) =
-  tag-or-idᵈ , pᶜ
+typed-term-narrowing-coercion (⊒blameᵗ {μ = μ} M⊢ p⊒) =
+  μ , p⊒
 typed-term-narrowing-coercion (x⊒xᵗ pᶜ x∋p) =
   tag-or-idᵈ , pᶜ
 typed-term-narrowing-coercion (ƛ⊒ƛᵗ p↦qᶜ N⊒N′) =

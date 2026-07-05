@@ -27,6 +27,7 @@ open import NuReduction
 open import StoreCorrespondence
 open import TermNarrowingSeparated
 open import proof.NuProgress using (canonical-ℕ; nv-const)
+open import proof.NarrowWidenProperties using (narrowing-determinedᵐ)
 open import proof.ReductionProperties using
   ( applyCoercions
   ; applyTerms-const
@@ -166,3 +167,38 @@ value-normalized-id-ℕ-target-constᶜ target-value T≡ p≡ A≡ B≡ W⊒ =
             (λ B → _ ∣ _ ∣ _ ∣ [] ⊢ _ ⊒ _ ∶ _ ⦂ _ ⊒ B)
             B≡
             W⊒))))
+
+-- Any narrowing relation whose endpoints are `ℕ` on both sides is a
+-- relation at the identity coercion: normal coercions are determined by
+-- mode and endpoints (`narrowing-determinedᵐ`), `cast-id` types
+-- `id (‵ ℕ)` in every mode (`idTyAllowed μ (‵ ι) = true`), so the
+-- relation's own coercion evidence pins its index to `id (‵ ℕ)`.
+nat-endpoints-id-coercionᶜ :
+  ∀ {ΔL ΔR ρ γ M M′ r C D} →
+  C ≡ ‵ `ℕ →
+  D ≡ ‵ `ℕ →
+  ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ r ⦂ C ⊒ D →
+  ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ
+nat-endpoints-id-coercionᶜ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {γ = γ}
+    {M = M} {M′ = M′} {r = r} C≡ D≡ M⊒M′ =
+  let
+    M⊒M′ℕ :
+      ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ r ⦂ ‵ `ℕ ⊒ ‵ `ℕ
+    M⊒M′ℕ = typed-term-narrowing-endpointsᶜ C≡ D≡ M⊒M′
+
+    μ , r⊒ = typed-term-narrowing-coercion M⊒M′ℕ
+
+    stores , _ , _ , _ , _ , r⊒L , _ = r⊒
+
+    r≡id : r ≡ id (‵ `ℕ)
+    r≡id =
+      narrowing-determinedᵐ
+        (leftStore-det stores)
+        r⊒L
+        (cast-id wfBase refl , cross (id-‵ `ℕ))
+  in
+  subst
+    (λ c →
+      ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ c ⦂ ‵ `ℕ ⊒ ‵ `ℕ)
+    r≡id
+    M⊒M′ℕ

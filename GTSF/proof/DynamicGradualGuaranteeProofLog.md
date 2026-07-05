@@ -294,3 +294,36 @@ Remaining gap for the frame cases: the resulting coercion `r` is still
 unlinked.  See the checklist entry — coercion-index preservation is false
 at `β-id`, so the fix must be a relation-level design change, not another
 conclusion equation.
+
+## Coercion recovery via determinacy, 2026-07-05
+
+The "coercion tracking" gap in the separated DGG frames is not a missing
+conclusion component: normal coercions are already canonical.
+`narrowing-determinedᵐ` (`proof.NarrowWidenProperties`) says a normal
+coercion is determined by its mode env, contexts, and endpoints, so the
+endpoint equalities added to the theorem's conclusion determine the result
+coercion as well.
+
+Implemented:
+
+- `nat-endpoints-id-coercionᶜ` (`proof.DGGPrimitiveSeparated`): any
+  separated narrowing relation whose endpoints equal `‵ ℕ` on both sides
+  is a relation at `id (‵ ℕ)`.  The proof rewrites the endpoints with
+  `typed-term-narrowing-endpointsᶜ`, extracts the relation's own coercion
+  typing with `typed-term-narrowing-coercion`, types `id (‵ ℕ)` at the
+  same (existential) mode env — `idTyAllowed μ (‵ ι) = true` for every
+  `μ`, so `cast-id` needs no mode assumption — and closes with
+  `narrowing-determinedᵐ` against the `leftStore-det` field of the
+  relation's `StoreCorr`.
+- The three `ξ-⊕`-IH holes (`ξ-⊕₁` twice, `ξ-⊕₂` once) are closed by the
+  lemma applied to the tracked equalities composed with `applyTys-ℕ` and
+  `applyTy-ℕ`.
+
+Not yet transferable to the application frames: the same recipe needs a
+comparison coercion typed in the changed stores at the IH's mode env.
+The transported `p ↦ q` is typed only in the pre-right-change stores (the
+right-side transport surface is still missing), and its evidence is at
+`tag-or-idᵈ` while the IH's coercion typing carries an existential mode.
+Cross-mode determinacy should hold at seal-variable-free endpoints —
+modes only arbitrate the tag-versus-seal mediation at `＇α` — but that
+corollary is not yet stated.

@@ -106,6 +106,7 @@ open import proof.DGGPrimitiveSeparated using
   ; const-narrowing-targetᶜ
   ; value-id-ℕ-narrowing-target-constᶜ
   ; value-normalized-id-ℕ-target-constᶜ
+  ; nat-endpoints-id-coercionᶜ
   )
 open import proof.DGGBetaSeparated using (separated-dgg-beta)
 open import proof.DGGBetaCastSeparated using (separated-dgg-beta-cast)
@@ -933,11 +934,10 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
             ⊢ P ⊒ S′
               ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ
         P⊒P′ℕ =
-          let
-            ih : ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ P ⊒ S′ ∶ r ⦂ C ⊒ D
-            ih = P⊒P′
-          in
-          {! ξ-⊕₁-IH-result-nat !}
+          nat-endpoints-id-coercionᶜ
+            (trans C≡ (applyTys-ℕ χs))
+            (trans D≡ (applyTy-ℕ χ′))
+            P⊒P′
       in
       ⊕⊒⊕ᵗ pℕ′ P⊒P′ℕ N⊒N′′
 
@@ -999,11 +999,10 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
           ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
             ⊢ P ⊒ S′ ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ
         P⊒P′ℕ =
-          let
-            ih : ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ P ⊒ S′ ∶ r ⦂ C ⊒ D
-            ih = P⊒P′
-          in
-          {! ξ-⊕₁-IH-result-nat !}
+          nat-endpoints-id-coercionᶜ
+            (trans C≡ (applyTys-ℕ χs))
+            (trans D≡ (applyTy-ℕ χ′))
+            P⊒P′
       in
       ⊕⊒⊕ᵗ pℕ′ P⊒P′ℕ N⊒N′′
 
@@ -1352,11 +1351,10 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
           ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
             ⊢ P ⊒ S′ ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ ‵ `ℕ
         P⊒P′ℕ =
-          let
-            ih : ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ P ⊒ S′ ∶ r ⦂ C ⊒ D
-            ih = P⊒P′
-          in
-          {! ξ-⊕₂-IH-result-nat !}
+          nat-endpoints-id-coercionᶜ
+            (trans C≡ (applyTys-ℕ χs))
+            (trans D≡ (applyTy-ℕ χ′))
+            P⊒P′
       in
       ⊕⊒⊕ᵗ pℕ′ M⊒M′′ P⊒P′ℕ
 

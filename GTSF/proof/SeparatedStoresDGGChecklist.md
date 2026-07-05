@@ -115,10 +115,18 @@ Current named obligations in `proof.DynamicGradualGuaranteeSeparated`:
   false — the `β-id` clauses return the inner relation at its `∶ᶜ`
   coercion, not the incoming index — so the application/`⊕` frames need
   either a coercion-conversion rule in the relation or `∶ᶜ` evidence in the
-  conclusion, which `⊒cast+ᵗ` inner relations cannot supply. With endpoint
-  tracking in place, the `ξ-⊕`-IH holes can now fix their *types* to
-  `‵ ℕ ⊒ ‵ ℕ` via `typed-term-narrowing-endpointsᶜ`; only the coercion
-  index remains unrecoverable.
+  conclusion, which `⊒cast+ᵗ` inner relations cannot supply.
+- The coercion-recovery story is now: endpoint tracking + normal-form
+  determinacy (`narrowing-determinedᵐ` in `proof.NarrowWidenProperties`)
+  determine the result coercion from the endpoints, one mode env at a
+  time. `nat-endpoints-id-coercionᶜ` in `proof.DGGPrimitiveSeparated`
+  packages the recipe at `‵ ℕ ⊒ ‵ ℕ` (where `cast-id` types `id (‵ ℕ)` in
+  every mode), and the three `ξ-⊕`-IH holes are closed with it. The
+  application-frame analogue needs the transported function coercion typed
+  in the *changed* stores (blocked on the right-side transport surface)
+  and at the *same mode env* as the IH's existential coercion typing —
+  either a cross-mode determinacy corollary for seal-variable-free
+  endpoints or mode tracking through the theorem.
 - `applyLeftChanges-++` is now available from `proof.CatchupSeparated`.
   Both beta caller helpers use it with `applyTyCtxs-++` and `↠-trans` to
   return a single composed source reduction after the call to `sim-beta`.

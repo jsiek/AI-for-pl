@@ -366,3 +366,31 @@ The remaining mode question is confined to the frame-reconstruction
 holes: determinacy-based coercion recovery needs the transported frame
 coercion and the IH's coercion typed at one common mode env.  That is
 now the only place where `∶ᶜ`-versus-`μ` matters in the theorem.
+
+## Cross-mode determinacy, 2026-07-05
+
+Unrestricted cross-mode determinacy is false: with `Δ = 1` and
+`Σ = (0 , ★) ∷ []`, the endpoints `★ ⊒ ＇ 0` are inhabited by `＇ 0 ？`
+(normal in `tag-or-idᵈ`) and by `seal ★ 0` (normal in `seal-or-idᵈ`),
+which differ.  The failure requires the two mode environments to
+disagree tag-versus-seal at a variable.
+
+`proof.NarrowWidenProperties` now proves the restricted version:
+
+- `modeCompat`/`ModeEnvCompat`: pointwise absence of tag/seal
+  disagreement.
+- `modeEnvJoin` with `modeIncl-joinˡ`/`modeIncl-joinʳ`: compatible
+  environments have a pointwise `mode≤` upper bound.
+- `compatible-narrowing-determinedᵐ` (and the `⊑` twin): relax both
+  typings into the join with `coercion-mode-relax`, then apply the
+  single-environment `narrowing-determinedᵐ`.
+- `seal-free-compat-tagᵈ`: a seal-free environment is compatible with
+  `tag-or-idᵈ` — the instance the DGG frames need, since they compare a
+  coercion at an unknown environment against a transported `∶ᶜ` one.
+
+For the frames this reduces the mode pinch to a residual fact about the
+relation: that the IH's existential mode environment can be chosen
+seal-free (or pointwise compatible with `tag-or-idᵈ`) at the frame's
+endpoints.  Where that fails, the counterexample shape (`★ ⊒ ＇ α` with
+`(α , ★)` in the store) shows tag- and seal-mediated evidence genuinely
+diverge, which is a relation-design fact, not a provability gap.

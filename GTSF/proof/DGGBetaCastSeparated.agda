@@ -283,6 +283,9 @@ separated-source-cast-plus-result {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         (sym (applyTys-++ χsA χsT Bₒ))
         N-cast⊒T))
 
+-- Temporarily TERMINATING for the same reason as `sim-beta`: the recursive
+-- call goes through catchup projections that Agda cannot see as structural.
+{-# TERMINATING #-}
 separated-dgg-beta-cast-value-shape :
   ∀ {ΔL ΔR ρ L R T V′ W′ c d pᵈ p q A A′ B B′} →
   Value L →
@@ -402,6 +405,37 @@ separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
     (⊒cast+ᵗ {t = inst A t} pᶜ rᶜ t⊒ L⊒F′)
     () p-domainᶜ R⊒W′
+separated-dgg-beta-cast-value-shape
+    vL noL vR noR vV′ vW′
+    (⊒cast+ᵗ {r = id P} {t = cₜ ↦ dₜ} pᶜ rᶜ t⊒ L⊒F′)
+    T≡V′cd p-domainᶜ R⊒W′ =
+  {! separated-dgg-beta-cast-target-plus-id-inner-coercion !}
+separated-dgg-beta-cast-value-shape
+    vL noL vR noR vV′ vW′
+    (⊒cast+ᵗ {r = r₁ ︔ r₂} {t = cₜ ↦ dₜ} pᶜ rᶜ t⊒ L⊒F′)
+    T≡V′cd p-domainᶜ R⊒W′ =
+  {! separated-dgg-beta-cast-target-plus-seq-inner-coercion !}
+separated-dgg-beta-cast-value-shape
+    vL noL vR noR vV′ vW′
+    (⊒cast+ᵗ {r = G !} {t = cₜ ↦ dₜ} pᶜ
+      (_ , _ , refl , _ , _ , _ , _)
+      (_ , _ , () , _ , _ , _ , _)
+      L⊒F′)
+    T≡V′cd p-domainᶜ R⊒W′
+separated-dgg-beta-cast-value-shape
+    vL noL vR noR vV′ vW′
+    (⊒cast+ᵗ {r = seal P α} {t = cₜ ↦ dₜ} pᶜ
+      (_ , _ , refl , _ , _ , _ , _)
+      (_ , _ , () , _ , _ , _ , _)
+      L⊒F′)
+    T≡V′cd p-domainᶜ R⊒W′
+separated-dgg-beta-cast-value-shape
+    vL noL vR noR vV′ vW′
+    (⊒cast+ᵗ {r = gen P r} {t = cₜ ↦ dₜ} pᶜ
+      (_ , _ , refl , _ , _ , _ , _)
+      (_ , _ , () , _ , _ , _ , _)
+      L⊒F′)
+    T≡V′cd p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d} {A′ = A′} {B′ = B′}
@@ -881,6 +915,14 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
+    sourceCast@(cast+⊒ᵗ {M = F₀} qᶜ rᶜ s⊒ F₀⊒T)
+    T≡V′cd p-domainᶜ R⊒W′
+    | fv-↦ vF L≡Fcd =
+  {! separated-dgg-beta-cast-source-plus-noncanonical-inner-coercion !}
+separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
+    {d = d}
+    vL noL vR noR vV′ vW′
     sourceCast@(cast-⊒ᵗ {M = F₀} {q = pₒ ↦ qₒ} {r = pᵢ ↦ qᵢ}
       {s = c₀ ↦ d₀} {A = AL ⇒ BL} {C = Aₒ ⇒ Bₒ}
       {η = ηCast}
@@ -1288,6 +1330,14 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     sourceCast@(cast-⊒ᵗ {M = F₀} {s = inst A s} qᶜ rᶜ s⊒ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF ()
+separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
+    {d = d}
+    vL noL vR noR vV′ vW′
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = s₁ ↦ s₂} qᶜ rᶜ s⊒ F₀⊒T)
+    T≡V′cd p-domainᶜ R⊒W′
+    | fv-↦ vF L≡Fcd =
+  {! separated-dgg-beta-cast-source-minus-general-fun-cast !}
 
 separated-dgg-beta-cast-value :
   ∀ {ΔL ΔR ρ L R V′ W′ c d pᵈ p q A A′ B B′} →

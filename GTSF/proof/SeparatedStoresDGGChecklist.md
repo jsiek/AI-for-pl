@@ -22,6 +22,17 @@
 - [x] State `catchup-lemmaˡ` with the target term unchanged.
 - [x] Add the new separated-store modules to `All.agda`.
 - [x] Add the separated DGG beta proof surface to `All.agda`.
+- [x] Restore `proof.CatchupSeparated` and
+  `proof.DynamicGradualGuaranteeSeparated` to `All.agda` (they had been
+  commented out while `proof.DGGBetaCastSeparated` failed to check).
+- [x] Repair `proof.DGGBetaCastSeparated`:
+  `separated-dgg-beta-cast-value-shape` is marked `TERMINATING` (same
+  catchup-projection recursion as `sim-beta`), the missing `⊒cast+ᵗ`
+  inner-coercion branches for a function-shaped target cast are covered
+  (`G !`, `seal`, and `gen` are refuted through their `tgt` equations
+  against the arrow-typed cast; `id` and `_︔_` are explicit holes), and
+  the source-cast `with`-groups have explicit fallback holes for the
+  non-canonical inner-coercion shapes.
 
 ## Track A. Back To DGG Beta
 
@@ -72,10 +83,33 @@ Current named obligations in `proof.DynamicGradualGuaranteeSeparated`:
 - The application and primitive congruence cases already invoke the recursive
   `dynamicGradualGuarantee` call before their reconstruction holes, preserving
   the induction-hypothesis opportunity in the skeleton.
-- The two target-cast constructors currently remain constructor-level holes in
-  the full skeleton. Splitting their target reductions exhaustively requires
-  first inverting the shape of the target cast coercion, because Agda cannot
-  decide redexes like `β-id` under an unknown `- s`.
+- The `⊒cast-ᵗ` target-step coverage is now split exhaustively, because its
+  cast coercion is a raw index: `blame-⟨⟩`, `β-id`, and `tag-untag-bad` are
+  proved (the latter blames, so `⊒blameᵗ` closes it), and `β-seq`, `β-inst`,
+  `tag-untag-ok`, and `seal-unseal` are now four named relation holes with
+  zero source steps. Only `⊒cast+ᵗ` retains a constructor-level catch-all:
+  its target cast is `narrowing-dual t⊒`, and Agda cannot decide redexes
+  like `β-id` or `blame-⟨⟩` under that projection without first matching the
+  `t⊒` witness shape (adding a generic `blame-⟨⟩` clause for `⊒cast+ᵗ` fails
+  with a stuck unification on `narrowing-dual`).
+- The remaining `⊒cast-ᵗ` step holes need: a seq-component story for
+  `β-seq` (an `∶ᶜ`-typed intermediate coercion to stack two `⊒cast-ᵗ`
+  layers), a target-cast-stripping inversion for `tag-untag-ok` and
+  `seal-unseal` (a right-side analogue of catchup), and separated `ν`
+  constructors for `β-inst` (Track B).
+- Every ξ-frame reconstruction hole is blocked on two structural gaps:
+  (a) there is no right-side store-change transport surface (the mirror of
+  the postulated `left-change-term-narrowing` family) to advance the
+  untouched subterm across `applyRightChange χ′` / `applyTerm χ′`; and
+  (b) the theorem's conclusion existentially quantifies `C`, `D`, `r` with
+  no link back to the inputs, so the IH cannot be reframed. The natural
+  strengthening returns `C ≡ applyTys χs A` and `D ≡ applyTy χ′ B` (true in
+  all current completed cases, including `β-id` via the `src`/`tgt`
+  components of the id-cast typing), but coercion-index tracking is false
+  (`β-id` swaps the relation to the inner `∶ᶜ` coercion), so the
+  application/`⊕` frames additionally need either a coercion-conversion
+  rule in the relation or `∶ᶜ` evidence in the conclusion, which `⊒cast+ᵗ`
+  inner relations cannot supply.
 - `applyLeftChanges-++` is now available from `proof.CatchupSeparated`.
   Both beta caller helpers use it with `applyTyCtxs-++` and `↠-trans` to
   return a single composed source reduction after the call to `sim-beta`.

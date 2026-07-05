@@ -1476,6 +1476,24 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M}
     okM pᶜ
+    castRel@(⊒cast-ᵗ p′ᶜ rᶜ t⊒ M⊒M′)
+    (pure-step (tag-untag-bad vV′ G≢H)) =
+  [] ,
+  M ,
+  ΔL ,
+  ΔR ,
+  ρ ,
+  _ ,
+  _ ,
+  _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  refl ,
+  ⊒blameᵗ (typed-term-narrowing-source-typingᶜ castRel) pᶜ
+dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M}
+    okM pᶜ
     (⊒cast+ᵗ p′ᶜ rᶜ
       (_ , _ , _ , _ , _ , (cast-id _ _ , cross (id-‵ ι)) , _)
       M⊒M′)
@@ -1701,55 +1719,77 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   in
   obligation
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
-    {M = M} {N′ = N′} {χ′ = χ′}
+    {M = M}
     okM pᶜ
-    castRel@(⊒cast-ᵗ {M′ = M′} {t = t} p′ᶜ rᶜ t⊒ M⊒M′)
-    M′⟨s⟩→N′ =
-  let
-    relation-obligation :
-      ΔL ∣ applyTyCtx χ′ ΔR ∣ applyRightChange χ′ ρ ∣ []
-        ⊢ M ⊒ N′ ∶ _ ⦂ _ ⊒ _
-    relation-obligation =
-      let
-        source-relation :
-          ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ M ⊒ M′ ⟨ t ⟩
-            ∶ _ ⦂ _ ⊒ _
-        source-relation = castRel
-
-        target-cast-step : M′ ⟨ t ⟩ —→[ χ′ ] N′
-        target-cast-step = M′⟨s⟩→N′
-
-        obligation :
-          ΔL ∣ applyTyCtx χ′ ΔR ∣ applyRightChange χ′ ρ ∣ []
-            ⊢ M ⊒ N′ ∶ _ ⦂ _ ⊒ _
-        obligation = {! target-cast-minus-simulation-relation !}
-      in
-      obligation
-
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ N′ ∶ r ⦂ C ⊒ D
-    obligation =
-      [] ,
-      M ,
-      ΔL ,
-      applyTyCtx χ′ ΔR ,
-      applyRightChange χ′ ρ ,
-      _ ,
-      _ ,
-      _ ,
-      ↠-refl ,
-      refl ,
-      refl ,
-      refl ,
-      relation-obligation
-  in
-  obligation
+    castRel@(⊒cast-ᵗ {M′ = V′} {t = t₁ ︔ t₂} p′ᶜ rᶜ t⊒ M⊒V′)
+    (pure-step (β-seq vV′)) =
+  [] ,
+  M ,
+  ΔL ,
+  ΔR ,
+  ρ ,
+  _ ,
+  _ ,
+  _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  refl ,
+  {! target-cast-minus-seq-split-relation !}
+dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M}
+    okM pᶜ
+    castRel@(⊒cast-ᵗ {M′ = V′} {t = inst B₁ t₁} p′ᶜ rᶜ t⊒ M⊒V′)
+    (pure-step (β-inst vV′)) =
+  [] ,
+  M ,
+  ΔL ,
+  ΔR ,
+  ρ ,
+  _ ,
+  _ ,
+  _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  refl ,
+  {! target-cast-minus-inst-nu-relation !}
+dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M}
+    okM pᶜ
+    castRel@(⊒cast-ᵗ {t = G ？} p′ᶜ rᶜ t⊒ M⊒V′tag)
+    (pure-step (tag-untag-ok vV′)) =
+  [] ,
+  M ,
+  ΔL ,
+  ΔR ,
+  ρ ,
+  _ ,
+  _ ,
+  _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  refl ,
+  {! target-cast-minus-tag-untag-collapse-relation !}
+dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M}
+    okM pᶜ
+    castRel@(⊒cast-ᵗ {t = unseal α B₁} p′ᶜ rᶜ t⊒ M⊒V′seal)
+    (pure-step (seal-unseal vV′)) =
+  [] ,
+  M ,
+  ΔL ,
+  ΔR ,
+  ρ ,
+  _ ,
+  _ ,
+  _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  refl ,
+  {! target-cast-minus-seal-unseal-collapse-relation !}
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⟨ c ⟩} {N′ = N′} {χ′ = χ′}
     okM pᶜ

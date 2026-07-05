@@ -210,3 +210,47 @@ Current validation target:
 - `All.agda` passes with the raw relation deleted.  Historical proof
   experiments and prose notes may still mention raw constructor names, but they
   are outside the active aggregate checker.
+
+## Separated DGG skeleton back in the aggregate, 2026-07-05
+
+Repairs:
+
+- `proof.DGGBetaCastSeparated` had been committed in a non-checking state:
+  `separated-dgg-beta-cast-value-shape` failed coverage in three places and
+  failed the termination checker.  It now checks.  The recursion through
+  catchup projections is marked `TERMINATING`, matching the existing
+  `sim-beta` precedent.  For a function-shaped target cast, the `⊒cast+ᵗ`
+  inner coercions `G \!`, `seal`, and `gen` are refuted by matching `refl` in
+  the inner coercion's `tgt` equation and `()` in the cast typing's `tgt`
+  equation (an arrow type cannot be `★`, `＇α`, or `∀`).  The `id` and `_︔_`
+  inner coercions are genuine open branches and hold explicit holes, as do
+  the non-canonical inner-coercion shapes of the two source-cast
+  `with`-groups.
+- With that module checking, `proof.CatchupSeparated` and
+  `proof.DynamicGradualGuaranteeSeparated` are imported by `All.agda` again.
+
+Progress on `dynamicGradualGuarantee` in
+`proof.DynamicGradualGuaranteeSeparated`:
+
+- New proved clause: `⊒cast-ᵗ` with `pure-step (tag-untag-bad _ _)`.  The
+  target blames, so zero source steps and `⊒blameᵗ` with the source typing
+  projection close it.
+- The `⊒cast-ᵗ` catch-all clause is gone.  Because `⊒cast-ᵗ` stores the raw
+  cast coercion as an index, Agda can split the target reduction
+  exhaustively; the remaining shapes are four named holes (`β-seq`,
+  `β-inst`, `tag-untag-ok`, `seal-unseal`), each with zero source steps.
+- The same split does not work for `⊒cast+ᵗ`: its target cast is the
+  projection `narrowing-dual t⊒`, and a clause for `pure-step blame-⟨⟩`
+  gets Agda stuck deciding whether `β-id` could also apply under the
+  unknown dual.  A generic `blame-⟨⟩` clause was attempted and reverted;
+  handling these requires matching the `t⊒` witness first, as the three
+  existing `β-id` clauses do.
+
+Blockers recorded for the frame cases (see the checklist for detail): the
+missing right-side store-change transport surface, and the loss of the
+`C`/`D`/`r` link in the theorem's existential conclusion.  Type-endpoint
+tracking (`C ≡ applyTys χs A`, `D ≡ applyTy χ′ B`) looks provable in every
+current completed clause, but coercion-index tracking is falsified by the
+`β-id` clauses, so the application and `⊕` frames also need either a
+coercion-conversion rule or `∶ᶜ` result evidence, which `⊒cast+ᵗ` inner
+relations cannot supply.

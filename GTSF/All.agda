@@ -20,8 +20,8 @@ import NuReduction
 import proof.NWTermReduction
 import TermNarrowing
 import proof.TermNarrowingProperties
---import proof.CatchupSeparated
---import proof.DynamicGradualGuaranteeSeparated
+import proof.CatchupSeparated
+import proof.DynamicGradualGuaranteeSeparated
 import NarrowingExamples
 import NuMetaTheory
 import proof.DynamicGradualGuarantee

@@ -120,6 +120,8 @@ separated-⊕-δ-left-first :
     (M ⊕[ addℕ ] N —↠[ χs ] P) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
     (ρ′ ≡ applyLeftChanges χs ρ) ×
+    (C ≡ applyTys χs (‵ `ℕ)) ×
+    (D ≡ ‵ `ℕ) ×
     ΔL′ ∣ ΔR ∣ ρ′ ∣ []
       ⊢ P ⊒ $ (κℕ (m′ + n′)) ∶ r ⦂ C ⊒ D
 separated-⊕-δ-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
@@ -238,6 +240,8 @@ separated-⊕-δ-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   source-steps ,
   ΔN≡total ,
   ρN≡total ,
+  sym (applyTys-ℕ χs) ,
+  refl ,
   result⊒
 
 separated-⊕-δ-right-first :
@@ -253,6 +257,8 @@ separated-⊕-δ-right-first :
     (M ⊕[ addℕ ] N —↠[ χs ] P) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
     (ρ′ ≡ applyLeftChanges χs ρ) ×
+    (C ≡ applyTys χs (‵ `ℕ)) ×
+    (D ≡ ‵ `ℕ) ×
     ΔL′ ∣ ΔR ∣ ρ′ ∣ []
       ⊢ P ⊒ $ (κℕ (m′ + n′)) ∶ r ⦂ C ⊒ D
 separated-⊕-δ-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
@@ -371,4 +377,6 @@ separated-⊕-δ-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   source-steps ,
   ΔM≡total ,
   ρM≡total ,
+  sym (applyTys-ℕ χs) ,
+  refl ,
   result⊒

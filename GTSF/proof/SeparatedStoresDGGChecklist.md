@@ -97,19 +97,28 @@ Current named obligations in `proof.DynamicGradualGuaranteeSeparated`:
   layers), a target-cast-stripping inversion for `tag-untag-ok` and
   `seal-unseal` (a right-side analogue of catchup), and separated `ν`
   constructors for `β-inst` (Track B).
-- Every ξ-frame reconstruction hole is blocked on two structural gaps:
-  (a) there is no right-side store-change transport surface (the mirror of
-  the postulated `left-change-term-narrowing` family) to advance the
-  untouched subterm across `applyRightChange χ′` / `applyTerm χ′`; and
-  (b) the theorem's conclusion existentially quantifies `C`, `D`, `r` with
-  no link back to the inputs, so the IH cannot be reframed. The natural
-  strengthening returns `C ≡ applyTys χs A` and `D ≡ applyTy χ′ B` (true in
-  all current completed cases, including `β-id` via the `src`/`tgt`
-  components of the id-cast typing), but coercion-index tracking is false
-  (`β-id` swaps the relation to the inner `∶ᶜ` coercion), so the
-  application/`⊕` frames additionally need either a coercion-conversion
-  rule in the relation or `∶ᶜ` evidence in the conclusion, which `⊒cast+ᵗ`
-  inner relations cannot supply.
+- The theorem conclusion now tracks the endpoint types: it returns
+  `(C ≡ applyTys χs A) × (D ≡ applyTy χ′ B)` alongside the final relation.
+  Every completed clause proves these directly — the `β-id` clauses derive
+  the target-type equation from the `src`/`tgt` components of the id-cast
+  typing tuple, the `⊕` frames use `applyTys-ℕ`/`applyTy-ℕ`, and the
+  `separated-⊕-δ` helpers were extended to return the equalities. Only the
+  two beta helper delegation sites carry endpoint-tracking holes, pending
+  the same extension through `separated-dgg-beta`/`separated-dgg-beta-cast`
+  and `sim-beta`.
+- Every ξ-frame reconstruction hole is still blocked on two structural
+  gaps: (a) there is no right-side store-change transport surface (the
+  mirror of the postulated `left-change-term-narrowing` family) to advance
+  the untouched subterm across `applyRightChange χ′` / `applyTerm χ′`; and
+  (b) the resulting *coercion* `r` has no link back to the input coercion.
+  Coercion-index tracking (`r ≡ applyCoercion χ′ (applyCoercions χs p)`) is
+  false — the `β-id` clauses return the inner relation at its `∶ᶜ`
+  coercion, not the incoming index — so the application/`⊕` frames need
+  either a coercion-conversion rule in the relation or `∶ᶜ` evidence in the
+  conclusion, which `⊒cast+ᵗ` inner relations cannot supply. With endpoint
+  tracking in place, the `ξ-⊕`-IH holes can now fix their *types* to
+  `‵ ℕ ⊒ ‵ ℕ` via `typed-term-narrowing-endpointsᶜ`; only the coercion
+  index remains unrecoverable.
 - `applyLeftChanges-++` is now available from `proof.CatchupSeparated`.
   Both beta caller helpers use it with `applyTyCtxs-++` and `↠-trans` to
   return a single composed source reduction after the call to `sim-beta`.

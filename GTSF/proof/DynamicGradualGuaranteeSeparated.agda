@@ -56,6 +56,7 @@ open import proof.ReductionProperties using
   ; applyCoercions-++
   ; applyCoercions-dual
   ; applyTys-++
+  ; applyTy-ℕ
   ; applyTys-ℕ
   ; applyTys-ℕ-applyTys
   ; applyTyCtxs-++
@@ -129,6 +130,8 @@ dynamicGradualGuarantee :
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
     (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
     (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
+    (C ≡ applyTys χs A) ×
+    (D ≡ applyTy χ′ B) ×
     ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ N′ ∶ r ⦂ C ⊒ D
 dynamicGradualGuarantee okM pᶜ (⊒blameᵗ M⊢ qᶜ)
     (pure-step ())
@@ -168,6 +171,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   ΔL′≡ ,
   refl ,
   ρ′≡ ,
+  {! β-source-endpoint-tracking !} ,
+  {! β-target-endpoint-tracking !} ,
   N⊒N′[V′]
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}
@@ -200,6 +205,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   ΔL′≡ ,
   refl ,
   ρ′≡ ,
+  {! β-cast-source-endpoint-tracking !} ,
+  {! β-cast-target-endpoint-tracking !} ,
   N⊒target
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}
@@ -215,6 +222,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   _ ,
   _ ,
   ↠-refl ,
+  refl ,
+  refl ,
   refl ,
   refl ,
   refl ,
@@ -236,6 +245,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   refl ,
   refl ,
   refl ,
+  refl ,
+  refl ,
   ⊒blameᵗ (typed-term-narrowing-source-typingᶜ app) qᶜ
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R} {M′ = L′ · R′} {χ′ = χ′}
@@ -252,7 +263,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χs , N , ΔL′ , ΔR′ , ρ′ ,
       C , D , r ,
-      L↠N , ΔL′≡ , ΔR′≡ , ρ′≡ , N⊒N′ = rec
+      L↠N , ΔL′≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , N⊒N′ = rec
 
     framed⊒ :
       ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
@@ -281,15 +292,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       ·⊒·ᵗ p↦q′ N⊒S′-fun R⊒R′′
 
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (L · R —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
-          ⊢ N ⊒ S′ · applyTerm χ′ R′ ∶ r ⦂ C ⊒ D
     obligation =
       χs ,
       N · applyTerms χs R ,
@@ -303,6 +305,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL′≡ ,
       ΔR′≡ ,
       ρ′≡ ,
+      refl ,
+      refl ,
       framed⊒
   in
   obligation
@@ -321,7 +325,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χs , N , ΔL′ , ΔR′ , ρ′ ,
       C , D , r ,
-      L↠N , ΔL′≡ , ΔR′≡ , ρ′≡ , N⊒N′ = rec
+      L↠N , ΔL′≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , N⊒N′ = rec
 
     framed⊒ :
       ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
@@ -350,15 +354,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       ·⊒·ᵗ p↦q′ N⊒S′-fun R⊒R′′
 
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (L · R —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
-          ⊢ N ⊒ S′ · applyTerm χ′ R′ ∶ r ⦂ C ⊒ D
     obligation =
       χs ,
       N · applyTerms χs R ,
@@ -372,6 +367,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL′≡ ,
       ΔR′≡ ,
       ρ′≡ ,
+      refl ,
+      refl ,
       framed⊒
   in
   obligation
@@ -404,15 +401,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       obligation
 
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (L · R —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
-          ⊢ N ⊒ S′ · applyTerm χ′ R′ ∶ r ⦂ C ⊒ D
     obligation =
       [] ,
       L · R ,
@@ -423,6 +411,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       _ ,
       _ ,
       ↠-refl ,
+      refl ,
+      refl ,
       refl ,
       refl ,
       refl ,
@@ -492,7 +482,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χsR , P , ΔL₂ , ΔR′ , ρ′ ,
       C , D , r ,
-      R↠P , ΔL₂≡ , ΔR′≡ , ρ′≡ , P⊒S′ = rec
+      R↠P , ΔL₂≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , P⊒S′ = rec
 
     source-left :
       L · R —↠[ χsL ] WL · applyTerms χsL R
@@ -545,15 +535,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       obligation
 
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (L · R —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
-          ⊢ N ⊒ applyTerm χ′ L′ · S′ ∶ r ⦂ C ⊒ D
     obligation =
       χsL ++ χsR ,
       applyTerms χsR WL · P ,
@@ -567,6 +548,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL₂≡total ,
       ΔR′≡ ,
       ρ′≡total ,
+      refl ,
+      refl ,
       framed⊒
   in
   obligation
@@ -633,7 +616,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χsR , P , ΔL₂ , ΔR′ , ρ′ ,
       C , D , r ,
-      R↠P , ΔL₂≡ , ΔR′≡ , ρ′≡ , P⊒S′ = rec
+      R↠P , ΔL₂≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , P⊒S′ = rec
 
     source-left :
       L · R —↠[ χsL ] WL · applyTerms χsL R
@@ -686,15 +669,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       obligation
 
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (L · R —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
-          ⊢ N ⊒ applyTerm χ′ L′ · S′ ∶ r ⦂ C ⊒ D
     obligation =
       χsL ++ χsR ,
       applyTerms χsR WL · P ,
@@ -708,6 +682,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL₂≡total ,
       ΔR′≡ ,
       ρ′≡total ,
+      refl ,
+      refl ,
       framed⊒
   in
   obligation
@@ -729,7 +705,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χs , N , ΔL′ , ΔR′ , ρ′ ,
       C , D , r ,
-      R↠N , ΔL′≡ , ΔR′≡ , ρ′≡ , N⊒N′ = rec
+      R↠N , ΔL′≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , N⊒N′ = rec
 
     framed⊒ :
       ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
@@ -759,14 +735,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       ·⊒·ᵗ p↦q′ L⊒L′′ N⊒S′-arg
 
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (L · R —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ T′ ∶ r ⦂ C ⊒ D
     obligation =
       χs ,
       applyTerms χs L · N ,
@@ -780,6 +748,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL′≡ ,
       ΔR′≡ ,
       ρ′≡ ,
+      refl ,
+      refl ,
       framed⊒
   in
   obligation
@@ -802,7 +772,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         N⊒N′
 
     χs , P , ΔL′ , ρ′ , C , D , r ,
-      source-steps , ΔL′≡ , ρ′≡ , P⊒P′ = rec
+      source-steps , ΔL′≡ , ρ′≡ , C≡ℕ , D≡ℕ , P⊒P′ = rec
   in
   χs ,
   P ,
@@ -816,6 +786,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   ΔL′≡ ,
   refl ,
   ρ′≡ ,
+  C≡ℕ ,
+  D≡ℕ ,
   P⊒P′
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N}
@@ -831,7 +803,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         N⊒N′
 
     χs , P , ΔL′ , ρ′ , C , D , r ,
-      source-steps , ΔL′≡ , ρ′≡ , P⊒P′ = rec
+      source-steps , ΔL′≡ , ρ′≡ , C≡ℕ , D≡ℕ , P⊒P′ = rec
   in
   χs ,
   P ,
@@ -845,6 +817,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   ΔL′≡ ,
   refl ,
   ρ′≡ ,
+  C≡ℕ ,
+  D≡ℕ ,
   P⊒P′
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N}
@@ -861,7 +835,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         N⊒N′
 
     χs , P , ΔL′ , ρ′ , C , D , r ,
-      source-steps , ΔL′≡ , ρ′≡ , P⊒P′ = rec
+      source-steps , ΔL′≡ , ρ′≡ , C≡ℕ , D≡ℕ , P⊒P′ = rec
   in
   χs ,
   P ,
@@ -875,6 +849,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   ΔL′≡ ,
   refl ,
   ρ′≡ ,
+  C≡ℕ ,
+  D≡ℕ ,
   P⊒P′
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N}
@@ -890,6 +866,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   _ ,
   _ ,
   ↠-refl ,
+  refl ,
+  refl ,
   refl ,
   refl ,
   refl ,
@@ -911,6 +889,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   refl ,
   refl ,
   refl ,
+  refl ,
+  refl ,
   ⊒blameᵗ (typed-term-narrowing-source-typingᶜ add) pᶜ
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
@@ -928,7 +908,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χs , P , ΔL′ , ΔR′ , ρ′ ,
       C , D , r ,
-      M↠P , ΔL′≡ , ΔR′≡ , ρ′≡ , P⊒P′ = rec
+      M↠P , ΔL′≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , P⊒P′ = rec
 
     framed⊒ :
       ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
@@ -961,14 +941,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       ⊕⊒⊕ᵗ pℕ′ P⊒P′ℕ N⊒N′′
 
-    obligation :
-      ∃[ χs ] ∃[ P ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M ⊕[ addℕ ] N —↠[ χs ] P) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ P ⊒ P′ ∶ r ⦂ C ⊒ D
     obligation =
       χs ,
       P ⊕[ addℕ ] applyTerms χs N ,
@@ -982,6 +954,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL′≡ ,
       ΔR′≡ ,
       ρ′≡ ,
+      sym (applyTys-ℕ χs) ,
+      sym (applyTy-ℕ χ′) ,
       framed⊒
   in
   obligation
@@ -1001,7 +975,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χs , P , ΔL′ , ΔR′ , ρ′ ,
       C , D , r ,
-      M↠P , ΔL′≡ , ΔR′≡ , ρ′≡ , P⊒P′ = rec
+      M↠P , ΔL′≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , P⊒P′ = rec
 
     framed⊒ :
       ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
@@ -1033,14 +1007,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       ⊕⊒⊕ᵗ pℕ′ P⊒P′ℕ N⊒N′′
 
-    obligation :
-      ∃[ χs ] ∃[ P ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M ⊕[ addℕ ] N —↠[ χs ] P) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ P ⊒ P′ ∶ r ⦂ C ⊒ D
     obligation =
       χs ,
       P ⊕[ addℕ ] applyTerms χs N ,
@@ -1054,6 +1020,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL′≡ ,
       ΔR′≡ ,
       ρ′≡ ,
+      sym (applyTys-ℕ χs) ,
+      sym (applyTy-ℕ χ′) ,
       framed⊒
   in
   obligation
@@ -1089,15 +1057,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       obligation
 
-    obligation :
-      ∃[ χs ] ∃[ P ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M ⊕[ addℕ ] N —↠[ χs ] P) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
-          ⊢ P ⊒ S′ ⊕[ addℕ ] applyTerm χ′ N′ ∶ r ⦂ C ⊒ D
     obligation =
       [] ,
       M ⊕[ addℕ ] N ,
@@ -1111,6 +1070,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       refl ,
       refl ,
       refl ,
+      refl ,
+      sym (applyTy-ℕ χ′) ,
       relation-obligation
   in
   obligation
@@ -1157,7 +1118,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χsN , P , ΔL₂ , ΔR′ , ρ′ ,
       C , D , r ,
-      N↠P , ΔL₂≡ , ΔR′≡ , ρ′≡ , P⊒S′ = rec
+      N↠P , ΔL₂≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , P⊒S′ = rec
 
     source-left :
       M ⊕[ addℕ ] N
@@ -1213,15 +1174,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       obligation
 
-    obligation :
-      ∃[ χs ] ∃[ P ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M ⊕[ addℕ ] N —↠[ χs ] P) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
-          ⊢ P ⊒ applyTerm χ′ M′ ⊕[ addℕ ] S′ ∶ r ⦂ C ⊒ D
     obligation =
       χsM ++ χsN ,
       applyTerms χsN WM ⊕[ addℕ ] P ,
@@ -1235,6 +1187,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL₂≡total ,
       ΔR′≡ ,
       ρ′≡total ,
+      sym (applyTys-ℕ (χsM ++ χsN)) ,
+      sym (applyTy-ℕ χ′) ,
       framed⊒
   in
   obligation
@@ -1281,7 +1235,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χsN , P , ΔL₂ , ΔR′ , ρ′ ,
       C , D , r ,
-      N↠P , ΔL₂≡ , ΔR′≡ , ρ′≡ , P⊒S′ = rec
+      N↠P , ΔL₂≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , P⊒S′ = rec
 
     source-left :
       M ⊕[ addℕ ] N
@@ -1337,15 +1291,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       obligation
 
-    obligation :
-      ∃[ χs ] ∃[ P ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M ⊕[ addℕ ] N —↠[ χs ] P) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
-          ⊢ P ⊒ applyTerm χ′ M′ ⊕[ addℕ ] S′ ∶ r ⦂ C ⊒ D
     obligation =
       χsM ++ χsN ,
       applyTerms χsN WM ⊕[ addℕ ] P ,
@@ -1359,6 +1304,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL₂≡total ,
       ΔR′≡ ,
       ρ′≡total ,
+      sym (applyTys-ℕ (χsM ++ χsN)) ,
+      sym (applyTy-ℕ χ′) ,
       framed⊒
   in
   obligation
@@ -1381,7 +1328,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χs , P , ΔL′ , ΔR′ , ρ′ ,
       C , D , r ,
-      N↠P , ΔL′≡ , ΔR′≡ , ρ′≡ , P⊒P′ = rec
+      N↠P , ΔL′≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , P⊒P′ = rec
 
     framed⊒ :
       ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
@@ -1413,14 +1360,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       ⊕⊒⊕ᵗ pℕ′ M⊒M′′ P⊒P′ℕ
 
-    obligation :
-      ∃[ χs ] ∃[ P ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M ⊕[ addℕ ] N —↠[ χs ] P) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ P ⊒ P′ ∶ r ⦂ C ⊒ D
     obligation =
       χs ,
       applyTerms χs M ⊕[ addℕ ] P ,
@@ -1434,6 +1373,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL′≡ ,
       ΔR′≡ ,
       ρ′≡ ,
+      sym (applyTys-ℕ χs) ,
+      sym (applyTy-ℕ χ′) ,
       framed⊒
   in
   obligation
@@ -1454,11 +1395,15 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   refl ,
   refl ,
   refl ,
+  refl ,
+  refl ,
   ⊒blameᵗ (typed-term-narrowing-source-typingᶜ castRel) pᶜ
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M}
     okM pᶜ
-    (⊒cast-ᵗ p′ᶜ rᶜ t⊒ M⊒M′)
+    (⊒cast-ᵗ p′ᶜ rᶜ
+      (_ , t-src≡ , t-tgt≡ , _ , _ , _ , _)
+      M⊒M′)
     (pure-step (β-id vV)) =
   [] ,
   M ,
@@ -1472,6 +1417,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   refl ,
   refl ,
   refl ,
+  refl ,
+  trans (sym t-src≡) t-tgt≡ ,
   M⊒M′
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M}
@@ -1490,12 +1437,15 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   refl ,
   refl ,
   refl ,
+  refl ,
+  refl ,
   ⊒blameᵗ (typed-term-narrowing-source-typingᶜ castRel) pᶜ
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M}
     okM pᶜ
     (⊒cast+ᵗ p′ᶜ rᶜ
-      (_ , _ , _ , _ , _ , (cast-id _ _ , cross (id-‵ ι)) , _)
+      (_ , t-src≡ , t-tgt≡ , _ , _ ,
+        (cast-id _ _ , cross (id-‵ ι)) , _)
       M⊒M′)
     (pure-step (β-id vV)) =
   [] ,
@@ -1510,12 +1460,15 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   refl ,
   refl ,
   refl ,
+  refl ,
+  trans (sym t-tgt≡) t-src≡ ,
   M⊒M′
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M}
     okM pᶜ
     (⊒cast+ᵗ p′ᶜ rᶜ
-      (_ , _ , _ , _ , _ , (cast-id _ _ , cross (id-＇ α)) , _)
+      (_ , t-src≡ , t-tgt≡ , _ , _ ,
+        (cast-id _ _ , cross (id-＇ α)) , _)
       M⊒M′)
     (pure-step (β-id vV)) =
   [] ,
@@ -1530,12 +1483,15 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   refl ,
   refl ,
   refl ,
+  refl ,
+  trans (sym t-tgt≡) t-src≡ ,
   M⊒M′
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M}
     okM pᶜ
     (⊒cast+ᵗ p′ᶜ rᶜ
-      (_ , _ , _ , _ , _ , (cast-id _ _ , id★) , _)
+      (_ , t-src≡ , t-tgt≡ , _ , _ ,
+        (cast-id _ _ , id★) , _)
       M⊒M′)
     (pure-step (β-id vV)) =
   [] ,
@@ -1550,11 +1506,13 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   refl ,
   refl ,
   refl ,
+  refl ,
+  trans (sym t-tgt≡) t-src≡ ,
   M⊒M′
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M} {χ′ = χ′}
     okM pᶜ
-    (⊒cast+ᵗ {M′ = M′} {t = t} p′ᶜ rᶜ t⊒ M⊒M′)
+    (⊒cast+ᵗ {M′ = M′} {t = t} {A = A} {B = Bᵢ} p′ᶜ rᶜ t⊒ M⊒M′)
     (ξ-⟨⟩ {M′ = S′} M′→S′) =
   let
     rec :
@@ -1564,6 +1522,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         (ΔL′ ≡ applyTyCtxs χs ΔL) ×
         (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
         (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
+        (C ≡ applyTys χs A) ×
+        (D ≡ applyTy χ′ Bᵢ) ×
         ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ S′ ∶ r ⦂ C ⊒ D
     rec =
       let
@@ -1581,7 +1541,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χs , N , ΔL′ , ΔR′ , ρ′ ,
       C , D , r ,
-      source-steps , ΔL′≡ , ΔR′≡ , ρ′≡ , N⊒S′ = rec
+      source-steps , ΔL′≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , N⊒S′ = rec
 
     cast-result⊒ :
       ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
@@ -1594,16 +1554,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       {! target-cast-plus-inner-step-result !}
 
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
-          ⊢ N ⊒ S′ ⟨ applyCoercion χ′ (narrowing-dual t⊒) ⟩
-            ∶ r ⦂ C ⊒ D
     obligation =
       χs ,
       N ,
@@ -1617,6 +1567,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL′≡ ,
       ΔR′≡ ,
       ρ′≡ ,
+      refl ,
+      refl ,
       cast-result⊒
   in
   obligation
@@ -1647,14 +1599,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       obligation
 
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ N′ ∶ r ⦂ C ⊒ D
     obligation =
       [] ,
       M ,
@@ -1665,6 +1609,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       _ ,
       _ ,
       ↠-refl ,
+      refl ,
+      refl ,
       refl ,
       refl ,
       refl ,
@@ -1681,7 +1627,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χs , N , ΔL′ , ΔR′ , ρ′ ,
       C , D , r ,
-      source-steps , ΔL′≡ , ΔR′≡ , ρ′≡ , N⊒S′ = rec
+      source-steps , ΔL′≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , N⊒S′ = rec
 
     cast-result⊒ :
       ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
@@ -1693,15 +1639,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       {! target-cast-minus-inner-step-result !}
 
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
-          ⊢ N ⊒ S′ ⟨ applyCoercion χ′ t ⟩ ∶ r ⦂ C ⊒ D
     obligation =
       χs ,
       N ,
@@ -1715,6 +1652,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL′≡ ,
       ΔR′≡ ,
       ρ′≡ ,
+      refl ,
+      refl ,
       cast-result⊒
   in
   obligation
@@ -1732,6 +1671,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   _ ,
   _ ,
   ↠-refl ,
+  refl ,
+  refl ,
   refl ,
   refl ,
   refl ,
@@ -1753,6 +1694,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   refl ,
   refl ,
   refl ,
+  refl ,
+  refl ,
   {! target-cast-minus-inst-nu-relation !}
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M}
@@ -1768,6 +1711,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   _ ,
   _ ,
   ↠-refl ,
+  refl ,
+  refl ,
   refl ,
   refl ,
   refl ,
@@ -1789,6 +1734,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   refl ,
   refl ,
   refl ,
+  refl ,
+  refl ,
   {! target-cast-minus-seal-unseal-collapse-relation !}
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⟨ c ⟩} {N′ = N′} {χ′ = χ′}
@@ -1799,7 +1746,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χs , N , ΔL′ , ΔR′ , ρ′ ,
       C , D , r ,
-      source-steps , ΔL′≡ , ΔR′≡ , ρ′≡ , N⊒N′ = rec
+      source-steps , ΔL′≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , N⊒N′ = rec
 
     cast-result⊒ :
       ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
@@ -1820,14 +1767,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       obligation
 
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M ⟨ c ⟩ —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ N′ ∶ r ⦂ C ⊒ D
     obligation =
       χs ,
       N ⟨ applyCoercions χs c ⟩ ,
@@ -1841,13 +1780,15 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL′≡ ,
       ΔR′≡ ,
       ρ′≡ ,
+      refl ,
+      refl ,
       cast-result⊒
   in
   obligation
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⟨ c ⟩} {N′ = N′} {χ′ = χ′}
     okM pᶜ
-    (cast-⊒ᵗ {M′ = M′} qᶜ rᶜ s⊒ M⊒M′) M′→N′ =
+    (cast-⊒ᵗ {M′ = M′} {A = Aᵢ} {B = Bᵢ} qᶜ rᶜ s⊒ M⊒M′) M′→N′ =
   let
     rec :
       ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
@@ -1856,6 +1797,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         (ΔL′ ≡ applyTyCtxs χs ΔL) ×
         (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
         (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
+        (C ≡ applyTys χs Aᵢ) ×
+        (D ≡ applyTy χ′ Bᵢ) ×
         ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ N′ ∶ r ⦂ C ⊒ D
     rec =
       let
@@ -1873,7 +1816,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 
     χs , N , ΔL′ , ΔR′ , ρ′ ,
       C , D , r ,
-      source-steps , ΔL′≡ , ΔR′≡ , ρ′≡ , N⊒N′ = rec
+      source-steps , ΔL′≡ , ΔR′≡ , ρ′≡ , C≡ , D≡ , N⊒N′ = rec
 
     cast-result⊒ :
       ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
@@ -1885,14 +1828,6 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       in
       {! source-cast-minus-result-narrowing !}
 
-    obligation :
-      ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
-      ∃[ C ] ∃[ D ] ∃[ r ]
-        (M ⟨ c ⟩ —↠[ χs ] N) ×
-        (ΔL′ ≡ applyTyCtxs χs ΔL) ×
-        (ΔR′ ≡ applyTyCtx χ′ ΔR) ×
-        (ρ′ ≡ applyRightChange χ′ (applyLeftChanges χs ρ)) ×
-        ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ N′ ∶ r ⦂ C ⊒ D
     obligation =
       χs ,
       N ⟨ applyCoercions χs c ⟩ ,
@@ -1906,6 +1841,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ΔL′≡ ,
       ΔR′≡ ,
       ρ′≡ ,
+      refl ,
+      refl ,
       cast-result⊒
   in
   obligation

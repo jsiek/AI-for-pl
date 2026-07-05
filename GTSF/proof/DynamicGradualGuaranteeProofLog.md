@@ -254,3 +254,43 @@ current completed clause, but coercion-index tracking is falsified by the
 `β-id` clauses, so the application and `⊕` frames also need either a
 coercion-conversion rule or `∶ᶜ` result evidence, which `⊒cast+ᵗ` inner
 relations cannot supply.
+
+## Endpoint-type tracking in the separated DGG conclusion, 2026-07-05
+
+The separated `dynamicGradualGuarantee` conclusion now returns
+`(C ≡ applyTys χs A) × (D ≡ applyTy χ′ B)` between the store-correspondence
+equation and the final narrowing relation.  This restores the link between
+the recursive call's existential endpoints and the inputs, which the
+ξ-frame reconstruction holes need.
+
+Proof notes:
+
+- Most clauses discharge both equalities with `refl`, either definitionally
+  (`χs = []`, `χ′ = keep`) or by letting `refl` pin the existential
+  endpoint metas of a frame hole to the tracked values.
+- The four `β-id` clauses return the inner relation at the inner target
+  type, so the target equation is not definitional.  It follows from the
+  id-cast typing tuple: with `t = id A₀`, the `src`/`tgt` components give
+  `A₀ ≡ C` and `A₀ ≡ B`, and `trans`/`sym` produce the needed equation.
+  This confirms endpoint tracking is genuinely true in the `β-id` cases,
+  where coercion-index tracking fails.
+- The `⊕` congruence frames use `sym (applyTys-ℕ χs)` and
+  `sym (applyTy-ℕ χ′)` because `⊕⊒⊕ᵗ` forces concrete `‵ ℕ` endpoints.
+- `separated-⊕-δ-left-first`/`-right-first` in `proof.DGGDeltaSeparated`
+  were extended to return `(C ≡ applyTys χs (‵ ℕ)) × (D ≡ ‵ ℕ)`; their
+  results are literal `κ⊒κᵗ` relations at `id (‵ ℕ)`, so the equalities
+  are `sym (applyTys-ℕ χs)` and `refl`.
+- The beta delegation sites (`separated-dgg-beta`,
+  `separated-dgg-beta-cast`) do not yet track endpoints; the two clauses
+  carry `β-*-endpoint-tracking` holes until the extension is threaded
+  through those helpers and `sim-beta`.
+- The local `obligation` tuple ascriptions that duplicated the theorem's
+  ∃-type were removed where the tuple is immediately returned; the clause
+  type determines them, and the duplicated ascriptions could not name the
+  per-clause endpoint instantiations without binding more constructor
+  implicits.
+
+Remaining gap for the frame cases: the resulting coercion `r` is still
+unlinked.  See the checklist entry — coercion-index preservation is false
+at `β-id`, so the fix must be a relation-level design change, not another
+conclusion equation.

@@ -8,7 +8,7 @@ module All where
 import Compile
 import Types
 import GradualTypeCheck
-import GradualTypeCheckExamples
+import GradualExamples
 import Coercions
 import NarrowWiden
 import StoreCorrespondence

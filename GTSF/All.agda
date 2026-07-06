@@ -18,6 +18,7 @@ import TermNarrowingSeparated
 import NuExamplesFresh
 import NuReduction
 import Eval
+import Run
 import proof.NWTermReduction
 import TermNarrowing
 import proof.TermNarrowingProperties

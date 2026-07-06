@@ -600,6 +600,19 @@ _∣_⊢_∶ᶜ_⊒_ : TyCtx → Store → Coercion → Ty → Ty → Set
 Δ ∣ Σ ⊢ c ∶ᶜ A ⊒ B =
   tag-or-idᵈ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B
 
+fun-narrow-domain-dual :
+  ∀ {Δ Σ p q A A′ B B′} →
+  Δ ∣ Σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′) →
+  Coercion
+fun-narrow-domain-dual (cast-fun p⊢ q⊢ , cross (pʷ ↦ qⁿ)) =
+  proj₁ (dualʷ normalᵃ pʷ)
+
+fun-narrow-domain-dualᶜ :
+  ∀ {Δ Σ p q A A′ B B′} →
+  Δ ∣ Σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′) →
+  Coercion
+fun-narrow-domain-dualᶜ = fun-narrow-domain-dual
+
 infix 4 _∣_∣_⊢ᶜ_∶_⊒_
 infix 4 _∣_∣_⊢ᶜ_∶_⊑_
 
@@ -1165,8 +1178,17 @@ data _⊢_꞉_⊒ˢ_ : TyCtx → StoreNrw → Store → Store → Set where
 
 -- γ
 
+record CtxNrwEntry : Set where
+  constructor ctx-nrw
+  field
+    srcTy : Ty
+    tgtTy : Ty
+    coercion : Coercion
+
+open CtxNrwEntry public
+
 CtxNrw : Set
-CtxNrw = List Coercion
+CtxNrw = List CtxNrwEntry
 
 -- Γ ⊑ Γ′
 
@@ -1177,7 +1199,7 @@ data _∣_⊢_꞉_⊑ᵍ_ : TyCtx → Store → CtxNrw → Ctx → Ctx → Set w
     → ∃[ μ ] μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊑ B
     → Δ ∣ Σ ⊢ γ ꞉ Γ ⊑ᵍ Γ′
      -------------------------------------
-    → Δ ∣ Σ ⊢ (s ∷ γ)꞉ (A ∷ Γ) ⊑ᵍ (B ∷ Γ′)
+    → Δ ∣ Σ ⊢ (ctx-nrw A B s ∷ γ)꞉ (A ∷ Γ) ⊑ᵍ (B ∷ Γ′)
 
 
 ------------------------------------------------------------------------

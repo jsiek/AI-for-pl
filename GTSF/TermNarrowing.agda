@@ -1,6 +1,10 @@
 {-
   Term imprecision for the Nu syntax.
 
+  Legacy note: this shared-store relation is obsolete for new work.  New
+  proofs should target MediatedNarrowing; this module remains only because
+  older DGG files in the umbrella development still import it.
+
   This file mechanizes the term-imprecision relation from the cambridge22/23
   notes.  The paper presentation uses a combined environment for term variables
   and seal assumptions; here we split it into the store narrowing context from
@@ -38,14 +42,17 @@ variable
   x : Var
   α αᵢ : TyVar
 
+⇑ᵍ-entry : CtxNrwEntry → CtxNrwEntry
+⇑ᵍ-entry (ctx-nrw A B p) = ctx-nrw (⇑ᵗ A) (⇑ᵗ B) (⇑ᶜ p)
+
 ⇑ᵍ : CtxNrw → CtxNrw
-⇑ᵍ = map ⇑ᶜ
+⇑ᵍ = map ⇑ᵍ-entry
 
 srcCtxⁿ : CtxNrw → Ctx
-srcCtxⁿ = map src
+srcCtxⁿ = map srcTy
 
 tgtCtxⁿ : CtxNrw → Ctx
-tgtCtxⁿ = map tgt
+tgtCtxⁿ = map tgtTy
 
 fun-narrow-codomainᶜ :
   Δ ∣ Σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′) →
@@ -107,14 +114,15 @@ data _∣_∣_⊢_⊒_∶_⦂_⊒_
   x⊒xᵗ : ∀ {x p A B}
     → {typing : TermTypingEndpoints Δ σ γ (` x) (` x) A B}
     → Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B
-    → γ ∋ x ⦂ p
+    → γ ∋ x ⦂ ctx-nrw A B p
       --------------------------------
     → Δ ∣ σ ∣ γ ⊢ ` x ⊒ ` x ∶ p ⦂ A ⊒ B
 
   ƛ⊒ƛᵗ : ∀ {N N′ p q A A′ B B′}
     → {typing : TermTypingEndpoints Δ σ γ (ƛ N) (ƛ N′) (A ⇒ B) (A′ ⇒ B′)}
-    → Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)
-    → Δ ∣ σ ∣ ((- p) ∷ γ) ⊢ N ⊒ N′ ∶ q ⦂ B ⊒ B′
+    → (p↦qᶜ : Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′))
+    → Δ ∣ σ ∣ ctx-nrw A A′ (fun-narrow-domain-dualᶜ p↦qᶜ) ∷ γ
+        ⊢ N ⊒ N′ ∶ q ⦂ B ⊒ B′
       ----------------------------------------------------
     → Δ ∣ σ ∣ γ ⊢ ƛ N ⊒ ƛ N′ ∶ p ↦ q
         ⦂ A ⇒ B ⊒ A′ ⇒ B′
@@ -122,10 +130,11 @@ data _∣_∣_⊢_⊒_∶_⦂_⊒_
   ·⊒·ᵗ : ∀ {L L′ M M′ p q A A′ B B′}
     → {typing :
         TermTypingEndpoints Δ σ γ (L · M) (L′ · M′) B B′}
-    → Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)
+    → (p↦qᶜ : Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′))
     → Δ ∣ σ ∣ γ ⊢ L ⊒ L′ ∶ p ↦ q
         ⦂ A ⇒ B ⊒ A′ ⇒ B′
-    → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ - p ⦂ A ⊒ A′
+    → Δ ∣ σ ∣ γ ⊢ M ⊒ M′ ∶ fun-narrow-domain-dualᶜ p↦qᶜ
+        ⦂ A ⊒ A′
       -------------------------------------------------------
     → Δ ∣ σ ∣ γ ⊢ L · M ⊒ L′ · M′ ∶ q ⦂ B ⊒ B′
 

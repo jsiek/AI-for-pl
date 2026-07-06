@@ -97,10 +97,10 @@ data SubstFrame
     SubstFrame γ₀ γ₀′ τ₀ τ₀′ γ₀ γ₀′ τ₀ τ₀′
 
   frame-ƛ :
-    ∀ {γ γ′ τ τ′ p} →
+    ∀ {γ γ′ τ τ′ entry} →
     SubstFrame γ₀ γ₀′ τ₀ τ₀′ γ γ′ τ τ′ →
     SubstFrame γ₀ γ₀′ τ₀ τ₀′
-      ((- p) ∷ γ) ((- p) ∷ γ′) (extˢˣ τ) (extˢˣ τ′)
+      (entry ∷ γ) (entry ∷ γ′) (extˢˣ τ) (extˢˣ τ′)
 
   frame-Λ :
     ∀ {γ γ′ τ τ′} →
@@ -140,7 +140,7 @@ TypedSubstNrw :
 TypedSubstNrw Δ σ γ γ′ τ τ′ =
   ∀ {x p A B} →
   Δ ∣ srcStoreⁿ σ ⊢ p ∶ᶜ A ⊒ B →
-  γ ∋ x ⦂ p →
+  γ ∋ x ⦂ ctx-nrw A B p →
   Δ ∣ σ ∣ γ′ ⊢ τ x ⊒ τ′ x ∶ p ⦂ A ⊒ B
 
 TypedSubstNrwFamily : CtxNrw → CtxNrw → Substˣ → Substˣ → Set₁
@@ -201,7 +201,7 @@ term-parallel-substitution-narrowingᵗ-framed env frame
     (ƛ⊒ƛᵗ {p = p} p↦qᶜ N⊒N′) =
   ƛ⊒ƛᵗ p↦qᶜ
     (term-parallel-substitution-narrowingᵗ-framed
-      env (frame-ƛ {p = p} frame) N⊒N′)
+      env (frame-ƛ frame) N⊒N′)
 term-parallel-substitution-narrowingᵗ-framed env frame
     (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′) =
   ·⊒·ᵗ p↦qᶜ
@@ -291,7 +291,8 @@ singleSubstNrwᵗ :
   ∀ {Δ σ γ V V′ q A B} →
   (qᶜ : Δ ∣ srcStoreⁿ σ ⊢ q ∶ᶜ A ⊒ B) →
   Δ ∣ σ ∣ γ ⊢ V ⊒ V′ ∶ q ⦂ A ⊒ B →
-  TypedSubstNrw Δ σ (q ∷ γ) γ (singleEnv V) (singleEnv V′)
+  TypedSubstNrw Δ σ (ctx-nrw A B q ∷ γ) γ
+    (singleEnv V) (singleEnv V′)
 singleSubstNrwᵗ qᶜ V⊒V′ pᶜ Z =
   typed-term-narrowing-endpoints
     (proj₁ endpoints≡)
@@ -303,8 +304,9 @@ singleSubstNrwᵗ qᶜ V⊒V′ pᶜ (S x∋p) = x⊒xᵗ pᶜ x∋p
 
 term-substitution-narrowingᵗ :
   ∀ {Δ σ γ N N′ V V′ p q A B} →
-  TypedSubstNrwFamily (q ∷ γ) γ (singleEnv V) (singleEnv V′) →
-  Δ ∣ σ ∣ q ∷ γ ⊢ N ⊒ N′ ∶ p ⦂ A ⊒ B →
+  TypedSubstNrwFamily (ctx-nrw A B q ∷ γ) γ
+    (singleEnv V) (singleEnv V′) →
+  Δ ∣ σ ∣ ctx-nrw A B q ∷ γ ⊢ N ⊒ N′ ∶ p ⦂ A ⊒ B →
   Δ ∣ σ ∣ γ ⊢ N [ V ] ⊒ N′ [ V′ ] ∶ p ⦂ A ⊒ B
 term-substitution-narrowingᵗ env N⊒N′ =
   term-parallel-substitution-narrowingᵗ env N⊒N′

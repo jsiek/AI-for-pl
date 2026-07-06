@@ -21,9 +21,18 @@ open import Relation.Binary.PropositionalEquality using
 open import Types
 open import Coercions
 open import NarrowWiden using (Narrowing; _∣_∣_⊢_∶_⊒_)
+open import NuReduction using
+  (StoreChange; keep; bind; StoreChanges;
+   applyTy; applyTys; applyTyCtx; applyTyCtxs; applyCoercion)
 open import StoreCorrespondence
 open import Mediation
 open import MediatedNarrowing
+open import proof.CatchupSeparated using
+  ( applyLeftChange
+  ; applyLeftChanges
+  ; applyRightChange
+  ; rightStore-applyLeftChange
+  )
 
 ------------------------------------------------------------------------
 -- The crux lemma
@@ -186,3 +195,78 @@ right-alloc-transportᵐ {μ = μ} {ρ = ρ} {r = r} {A = A} {B = B} {X = X}
   --   (0 , ⇑ᵗ X) ∷ ⟰ᵗ (rightStore ρ)  (rightStore-⇑ʳᶜorr).
   -- Ordinary one-store weakening in the base language, independent of
   -- the mediation design.
+
+------------------------------------------------------------------------
+-- The mediated left-change family
+------------------------------------------------------------------------
+
+-- These are the ⊒ᵐ replacements for the postulated `left-change-*`
+-- transports of the old two-store judgment.  The decisive difference:
+-- the index raw is typed against the right store only, so a source
+-- store change never touches it — the transport is component-wise and
+-- needs no intermediate store correspondences, only the final one for
+-- the output package.
+
+wfTy-applyTys :
+  ∀ χs {Δ A} → WfTy Δ A → WfTy (applyTyCtxs χs Δ) (applyTys χs A)
+wfTy-applyTys [] wf = wf
+wfTy-applyTys (keep ∷ χs) wf = wfTy-applyTys χs wf
+wfTy-applyTys (bind X ∷ χs) wf = wfTy-applyTys χs (wfTy-⇑ wf)
+
+medTy-applyLeftChanges :
+  ∀ χs {ρ A Aʳ} →
+  MedTy (MatchedVar ρ) A Aʳ →
+  MedTy (MatchedVar (applyLeftChanges χs ρ)) (applyTys χs A) Aʳ
+medTy-applyLeftChanges [] med = med
+medTy-applyLeftChanges (keep ∷ χs) med =
+  medTy-applyLeftChanges χs med
+medTy-applyLeftChanges (bind X ∷ χs) med =
+  medTy-applyLeftChanges χs (medTy-mapˡ suc mv-left-alloc med)
+
+rightStore-applyLeftChanges :
+  ∀ χs ρ →
+  rightStore (applyLeftChanges χs ρ) ≡ rightStore ρ
+rightStore-applyLeftChanges [] ρ = refl
+rightStore-applyLeftChanges (χ ∷ χs) ρ =
+  trans
+    (rightStore-applyLeftChanges χs (applyLeftChange χ ρ))
+    (rightStore-applyLeftChange χ ρ)
+
+-- The whole-chain transport: raw untouched, target endpoint
+-- untouched, source endpoint and mediation move with the source
+-- store.  Compare `left-change-coercion-narrowing` (postulated, old
+-- judgment), whose conclusion had to rewrite the raw to
+-- `applyCoercions χs c`.
+left-changes-transportᵐ :
+  ∀ χs {μ ΔL ΔR ρ r A B} →
+  StoreCorr (applyTyCtxs χs ΔL) ΔR (applyLeftChanges χs ρ) →
+  μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ r ∶ A ⊒ᵐ B →
+  μ ∣ applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ
+    ⊢ r ∶ applyTys χs A ⊒ᵐ B
+left-changes-transportᵐ χs {ρ = ρ} {r = r} {B = B}
+    corr′ (corr , wfA , wfB , Aʳ , med , r⊒) =
+  corr′ ,
+  wfTy-applyTys χs wfA ,
+  wfB ,
+  Aʳ ,
+  medTy-applyLeftChanges χs med ,
+  subst
+    (λ Σ → _ ∣ _ ∣ Σ ⊢ r ∶ Aʳ ⊒ B)
+    (sym (rightStore-applyLeftChanges χs ρ))
+    r⊒
+
+-- The single-target-change transport (the shape the DGG theorem's χ′
+-- introduces): `keep` is the identity, `bind` is the home-side
+-- allocation.
+right-change-transportᵐ :
+  ∀ χ′ {μ ΔL ΔR ρ r A B} →
+  StoreCorr ΔL (applyTyCtx χ′ ΔR) (applyRightChange χ′ ρ) →
+  μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ r ∶ A ⊒ᵐ B →
+  ∃[ μ′ ]
+    μ′ ∣ ΔL ∣ applyTyCtx χ′ ΔR ∣ applyRightChange χ′ ρ
+      ⊢ applyCoercion χ′ r ∶ A ⊒ᵐ applyTy χ′ B
+right-change-transportᵐ keep {μ = μ}
+    corr′ (corr , wfA , wfB , Aʳ , med , r⊒) =
+  μ , (corr′ , wfA , wfB , Aʳ , med , r⊒)
+right-change-transportᵐ (bind X) {μ = μ} corr′ ev =
+  instᵈ μ , right-alloc-transportᵐ corr′ ev

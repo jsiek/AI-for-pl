@@ -1,3 +1,6 @@
+-- OBSOLETE
+-- Replaced by MediatedNarrowing
+
 module TermNarrowingSeparated where
 
 -- File Charter:

@@ -1,3 +1,6 @@
+-- OBSOLETE
+-- Replaced by MediatedNarrowing
+
 {-
   Term imprecision for the Nu syntax.
 

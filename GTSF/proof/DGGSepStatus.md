@@ -33,6 +33,10 @@ Notes:
   target-cast inner-step holes are closed by calls into
   `proof.InnerStepCastSeparated`. The affected cases still inherit
   `partial/holes` from the helper's transport/canonicity holes.
+- On `codex/issue-43` after merging `origin/main` at `b54acbd5`, the
+  `α⊒αᵗ` pure-step case is split on `β-gen•` and routed through
+  `matched-α-beta-gen-left-ν-widening-call` in
+  `proof.LeftNuWideningSeparated`.
 
 ## `dynamicGradualGuarantee`
 
@@ -76,24 +80,59 @@ Cambridge25 analogue: `Gradual Guarantee` (`close match`).
 | 1540 | `⊒cast+ᵗ` | general target cast step | `partial/holes` | Hole `target-cast-plus-simulation-relation`. |
 | 1585 | `⊒cast-ᵗ` | `ξ-⟨⟩` | `partial/holes` | Theorem clause now calls `target-cast-minus-inner-step-result`; helper has store-change transport and canonicity holes. |
 | 1638 | `⊒cast-ᵗ` | `pure-step (β-seq vV′)` | `partial/holes` | Hole `target-cast-minus-seq-split-relation`. |
-| 1658 | `⊒cast-ᵗ` | `pure-step (β-inst vV′)` | `partial/holes` | Hole `target-cast-minus-inst-nu-relation`. |
+| 1658 | `⊒cast-ᵗ` | `pure-step (β-inst vV′)` | `partial/holes` | Still `target-cast-minus-inst-nu-relation`; checked as the standalone target-cast-minus ν obligation, not the outer matched-α redex. |
 | 1678 | `⊒cast-ᵗ` | `pure-step (tag-untag-ok vV′)` | `partial/holes` | Hole `target-cast-minus-tag-untag-collapse-relation`. |
 | 1698 | `⊒cast-ᵗ` | `pure-step (seal-unseal vV′)` | `partial/holes` | Hole `target-cast-minus-seal-unseal-collapse-relation`. |
 | 1718 | `cast+⊒ᵗ` | target step under source cast | `partial/holes` | Hole `source-cast-plus-result-narrowing`. |
 | 1766 | `cast-⊒ᵗ` | target step under source cast | `partial/holes` | Hole `source-cast-minus-result-narrowing`. |
 | 1819 | `⊒⟨ν⟩ᵗ` | `pure-step st` | `todo` | Body is only `target-gen-cast-pure-step-simulation`. |
 | 1821 | `⊒⟨ν⟩ᵗ` | `ξ-⟨⟩ st` | `todo` | Body is only `target-gen-cast-inner-step-simulation`. |
-| 1823 | `α⊒αᵗ` | `pure-step st` | `todo` | Body is only `matched-seal-pure-step-simulation`. |
-| 1825 | `⊒αᵗ` | `pure-step st` | `todo` | Body is only `target-seal-pure-step-simulation`. |
-| 1827 | `ν⊒νᵗ` | `ν-step st₁ st₂` | `todo` | Body is only `nu-nu-allocation-simulation`. |
-| 1829 | `ν⊒νᵗ` | `ξ-ν st` | `todo` | Body is only `nu-nu-inner-step-simulation`. |
-| 1831 | `ν⊒νᵗ` | `blame-ν` | `todo` | Body is only `nu-nu-blame-simulation`. |
-| 1833 | `⊒νᵗ` | `ν-step st₁ st₂` | `todo` | Body is only `target-nu-allocation-simulation`. |
-| 1835 | `⊒νᵗ` | `ξ-ν st` | `todo` | Body is only `target-nu-inner-step-simulation`. |
-| 1837 | `⊒νᵗ` | `blame-ν` | `todo` | Body is only `target-nu-blame-simulation`. |
+| 1826 | `α⊒αᵗ` | `pure-step (β-gen• vV′)` | `partial/holes` | Calls `matched-α-beta-gen-left-ν-widening-call`, exposing the separated Left ν Widening use site. |
+| 1838 | `α⊒αᵗ` | other `pure-step st` | `todo` | Body is only `matched-seal-other-pure-step-simulation`. |
+| 1840 | `⊒αᵗ` | `pure-step st` | `todo` | Still `target-seal-pure-step-simulation`; target-only case should use a corollary or separate transport, not the current matched-α call directly. |
+| 1842 | `ν⊒νᵗ` | `ν-step st₁ st₂` | `todo` | Body is only `nu-nu-allocation-simulation`. |
+| 1844 | `ν⊒νᵗ` | `ξ-ν st` | `todo` | Body is only `nu-nu-inner-step-simulation`. |
+| 1846 | `ν⊒νᵗ` | `blame-ν` | `todo` | Body is only `nu-nu-blame-simulation`. |
+| 1848 | `⊒νᵗ` | `ν-step st₁ st₂` | `todo` | Body is only `target-nu-allocation-simulation`. |
+| 1850 | `⊒νᵗ` | `ξ-ν st` | `todo` | Body is only `target-nu-inner-step-simulation`. |
+| 1852 | `⊒νᵗ` | `blame-ν` | `todo` | Body is only `target-nu-blame-simulation`. |
 
 There is no explicit `⊒Λᵗ` DGG clause in this file. The target is `Λ V′`, so
 there is no target step for Agda to cover.
+
+## Left ν Widening Lemma Surface
+
+File: `GTSF/proof/LeftNuWideningSeparated.agda`.
+
+Cambridge25 analogue: `Left ν Widening Lemma`, mutually recursive with the
+ordinary `Left Widening Lemma` and `Left Narrowing Lemma` (`close match`).
+
+The separated statement keeps the Cambridge25 value-level shape: from a
+polymorphic value relation ``V ⊒ V′ ∶ `∀ p`` and composition witness
+``t ⨟ `∀ p ≈ r``, it reduces the source value under the dual left-widening
+cast `V ⟨ - t ⟩`.  The conclusion exposes the emitted source store changes
+`χs`, advanced left and right type contexts, updated separated store
+correspondence, endpoint equalities, and the transported result coercion.
+
+The DGG-specific helper `matched-α-beta-gen-left-ν-widening-call` is the
+call site for the `α⊒αᵗ` / `β-gen•` redex.  Its remaining holes are the
+inversions that extract the value-level relation, ν-widening cast, and
+composition witness needed to call the general lemma.
+
+| Surface/case | Status | Notes |
+| --- | --- | --- |
+| `left-widening-lemma-separated` | `todo` | Companion ordinary left-widening surface; body is `left-widening-lemma-separated-proof`. |
+| `left-narrowing-lemma-separated` | `todo` | Companion ordinary left-narrowing surface; body is `left-narrowing-lemma-separated-proof`. |
+| `left-ν-widening-lemma`, `Λ⊒Λᵗ` | `partial/holes` | Contains recursive call to `left-widening-lemma-separated` for the body relation. |
+| `left-ν-widening-lemma`, `⊒cast+ᵗ` | `partial/holes` | Contains recursive call to `left-widening-lemma-separated` for the target cast-wrapper case. |
+| `left-ν-widening-lemma`, `⊒cast-ᵗ` | `partial/holes` | Contains recursive call to `left-widening-lemma-separated` for the non-dual target cast-wrapper case. |
+| `left-ν-widening-lemma`, `cast+⊒ᵗ` | `partial/holes` | Contains recursive call to `left-narrowing-lemma-separated` for the source cast-wrapper / `⊒Λ/-⊒` shape. |
+| `left-ν-widening-lemma`, `cast-⊒ᵗ` | `partial/holes` | Contains recursive call to `left-narrowing-lemma-separated` for the non-dual source cast-wrapper shape. |
+| `left-ν-widening-lemma`, `⊒αᵗ` | `partial/holes` | Target-only constructor exposed separately; binds `left-ν-widening-induction-skeleton L⊒L′` for the recursive premise and leaves the transport/corollary obligation as `leftν-⊒α-target-only-case`. |
+| `left-ν-widening-lemma`, `⊒νᵗ` | `partial/holes` | Target-only ν constructor exposed separately; binds `left-ν-widening-induction-skeleton N⊒N′` for the recursive premise and leaves `leftν-⊒ν-target-only-case`. |
+| `left-ν-widening-lemma`, `⊒blameᵗ` | `partial/holes` | Nonrecursive base case, now explicit as `leftν-⊒blame-base-case`. |
+| `matched-α-beta-gen-left-ν-widening-call` | `partial/holes` | Bridges the separated DGG redex to the general `left-ν-widening-lemma`. |
+| `left-ν-widening-induction-skeleton` | `partial/holes` | Auxiliary structural map over every separated constructor; recursive premises are explicit rather than hidden behind a catch-all. |
 
 ## Major Separated Term-Narrowing Lemmas
 

@@ -26,6 +26,7 @@ import MediatedNarrowing
 import proof.MediationProperties
 import proof.CatchupMediated
 import proof.SimBetaMediated
+import proof.LeftNuWideningSeparated
 import proof.DynamicGradualGuaranteeSeparated
 import NarrowingExamples
 import NuMetaTheory

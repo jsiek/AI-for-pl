@@ -150,6 +150,42 @@ fun-narrow-codomainᵐᶜ
       (cast-fun p⊢ q⊢ , cross (pʷ ↦ⁿʷ qⁿ))) =
   stores , hB , hB′ , _ , medB , (q⊢ , qⁿ)
 
+-- Mode-generic variants of the two projections above, for the cast
+-- evidences the sim-beta cast branches project (their mode is the
+-- cast rule's implicit, not tag-or-idᵈ).
+fun-narrow-domain-dual-typingᵐ :
+  ∀ {μ ΔL ΔR ρ p q A A′ B B′} →
+  (p↦q⊒ : μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q
+             ∶ (A ⇒ B) ⊒ᵐ (A′ ⇒ B′)) →
+  μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ fun-narrow-domain-dualᵐ p↦q⊒ ∶ A ⊒ᵐ A′
+fun-narrow-domain-dual-typingᵐ {μ = μ}
+    (stores , wf⇒ hA hB , wf⇒ hA′ hB′ , _ ,
+      med-⇒ medA medB ,
+      (cast-fun p⊢ q⊢ , cross (pʷ ↦ⁿʷ qⁿ))) =
+  stores ,
+  hA ,
+  hA′ ,
+  _ ,
+  medA ,
+  dualʷ-flips-typingᵐ
+    {μ = μ}
+    {η = normalᵃ}
+    {ν = μ}
+    dualActionOk-normal
+    dualStoreAt-normal
+    (rightStore-wf stores)
+    (p⊢ , pʷ)
+
+fun-narrow-codomainᵐ :
+  ∀ {μ ΔL ΔR ρ p q A A′ B B′} →
+  μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q ∶ (A ⇒ B) ⊒ᵐ (A′ ⇒ B′) →
+  μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ q ∶ B ⊒ᵐ B′
+fun-narrow-codomainᵐ
+    (stores , wf⇒ hA hB , wf⇒ hA′ hB′ , _ ,
+      med-⇒ medA medB ,
+      (cast-fun p⊢ q⊢ , cross (pʷ ↦ⁿʷ qⁿ))) =
+  stores , hB , hB′ , _ , medB , (q⊢ , qⁿ)
+
 ------------------------------------------------------------------------
 -- Composition side conditions
 ------------------------------------------------------------------------

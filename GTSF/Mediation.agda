@@ -197,6 +197,43 @@ medTy-⇑ :
   ∀ {V A B} → MedTy V A B → MedTy (ExtVar V) (⇑ᵗ A) (⇑ᵗ B)
 medTy-⇑ = medTy-map² suc suc ev-suc
 
+-- The binder extension of a left-sided variable-correspondence map,
+-- hoisted from the `where` blocks above for reuse by `medCo-mapˡ`.
+extVar-mapˡ :
+  ∀ {V W : VarCorr} (r : Renameᵗ) →
+  (∀ {α β} → V α β → W (r α) β) →
+  ∀ {α β} → ExtVar V α β → ExtVar W (extᵗ r α) β
+extVar-mapˡ r f ev-zero = ev-zero
+extVar-mapˡ r f (ev-suc v) = ev-suc (f v)
+
+-- The coercion sibling of `medTy-mapˡ`: renaming the left raw of a
+-- mediated coercion pair along a variable-correspondence map.
+medCo-mapˡ :
+  ∀ {V W : VarCorr} (r : Renameᵗ) →
+  (∀ {α β} → V α β → W (r α) β) →
+  ∀ {c c′} → MedCo V c c′ → MedCo W (renameᶜ r c) c′
+medCo-mapˡ r f (medc-id med) = medc-id (medTy-mapˡ r f med)
+medCo-mapˡ r f (medc-seq ms mt) =
+  medc-seq (medCo-mapˡ r f ms) (medCo-mapˡ r f mt)
+medCo-mapˡ r f (medc-fun ms mt) =
+  medc-fun (medCo-mapˡ r f ms) (medCo-mapˡ r f mt)
+medCo-mapˡ {V} {W} r f (medc-all ms) =
+  medc-all (medCo-mapˡ (extᵗ r) (extVar-mapˡ {V} {W} r f) ms)
+medCo-mapˡ r f (medc-tag med) = medc-tag (medTy-mapˡ r f med)
+medCo-mapˡ r f (medc-untag med) = medc-untag (medTy-mapˡ r f med)
+medCo-mapˡ r f (medc-seal v med) =
+  medc-seal (f v) (medTy-mapˡ r f med)
+medCo-mapˡ r f (medc-unseal v med) =
+  medc-unseal (f v) (medTy-mapˡ r f med)
+medCo-mapˡ {V} {W} r f (medc-gen med ms) =
+  medc-gen
+    (medTy-mapˡ r f med)
+    (medCo-mapˡ (extᵗ r) (extVar-mapˡ {V} {W} r f) ms)
+medCo-mapˡ {V} {W} r f (medc-inst med ms) =
+  medc-inst
+    (medTy-mapˡ r f med)
+    (medCo-mapˡ (extᵗ r) (extVar-mapˡ {V} {W} r f) ms)
+
 ------------------------------------------------------------------------
 -- Allocation-shaped inclusions on MatchedVar
 ------------------------------------------------------------------------

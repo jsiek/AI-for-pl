@@ -6,43 +6,50 @@ module proof.MediationProperties where
 --   * Store-typing properties of the mediated judgment: its
 --     store-change transports, the one-store and composition-record
 --     arrow projections, and the left-change transport family.
---   * Holes: the one-store left-change transports (base-language
---     lemmas, independent of mediation), the mediated term-relation
---     left-change transport, and the one-store weakening used by the
---     home-side allocation transport.
+--   * One hole: the mediated term-relation left-change transport
+--     (`left-changes-term-narrowingᵐ`), pending a left-insertion
+--     weakening of the relation — see the proof-design note at the
+--     hole.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Nat using (zero; suc; _<_; s≤s; z≤n)
+open import Data.Nat.Properties using (≤-refl)
 open import Data.List using ([]; _∷_)
 open import Data.Product using
-  (_×_; _,_; proj₁; ∃-syntax)
+  (_×_; _,_; proj₁; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using
-  (subst; sym; trans)
+  (cong; subst; sym; trans)
 
 open import Types
 open import Coercions
-open import Store using (StoreWfAt)
+open import Store using (StoreWfAt; StoreIncl-drop)
 open import NarrowWiden using
   ( cross
   ; dualʷ
+  ; renameⁿ
+  ; modeRename-suc-inst
   ; _∣_∣_⊢_∶_⊒_
   )
   renaming (_↦_ to _↦ⁿʷ_)
 open import NuReduction using
   (StoreChange; keep; bind; StoreChanges;
    applyTy; applyTys; applyTyCtx; applyTyCtxs; applyCoercion;
-   applyStores; applyTerms)
+   applyStore; applyStores; applyTerms)
 open import StoreCorrespondence
 open import Mediation
 open import MediatedNarrowing
-open import proof.TypeProperties using (predᵗ)
+open import proof.TypeProperties using
+  (predᵗ; TyRenameWf-suc; RenameLeftInverse-suc)
 open import proof.CoercionProperties using
   ( dualActionOk-normal
   ; dualStoreAt-normal
+  ; coercion-weakenᵐ
+  ; coercion-renameᵗᵐ
   )
 open import proof.NarrowWidenProperties using
   ( dualʷ-flips-typingᵐ
   )
+open import proof.NuTermProperties using (modeRename-left-inverse)
 open import proof.ReductionProperties using (applyCoercions)
 open import proof.CatchupSeparated using
   ( applyLeftChange
@@ -51,8 +58,11 @@ open import proof.CatchupSeparated using
   ; rightStore-applyLeftChange
   ; leftStore-applyLeftChanges
   )
-open import proof.LeftChangeNarrowingSeparated using
-  ( dualʷ-raw-determined
+open import proof.DualRawProperties using
+  ( dualRawⁿ
+  ; dualⁿ-raw
+  ; dualʷ-raw-determined
+  ; dualRawⁿ-renameᶜ
   )
 
 ------------------------------------------------------------------------
@@ -101,8 +111,11 @@ left-alloc-transportᵐ {ρ = ρ} {r = r} {B = B}
 
 -- Home (right) store allocation: the home raw and its endpoints shift
 -- together with the home store, exactly as ξ-⟨⟩ rewrites the coercion
--- it steps under.  The mediation side is proved; the one-store
--- weakening of the home typing is a base-language lemma.
+-- it steps under.  The home typing weakens by the same
+-- shift-then-drop composition as `applyCoercion-typing`'s bind case,
+-- except at mode `instᵈ μ` — which agrees with `μ` on all shifted
+-- variables, so `modeRename-suc-inst` discharges the mode-renaming
+-- side condition.
 right-alloc-transportᵐ :
   ∀ {μ ΔL ΔR ρ r A B X} →
   StoreCorr ΔL (suc ΔR) (right-only zero (⇑ᵗ X) ∷ ⇑ʳᶜorr ρ) →
@@ -110,21 +123,23 @@ right-alloc-transportᵐ :
   instᵈ μ ∣ ΔL ∣ suc ΔR ∣ (right-only zero (⇑ᵗ X) ∷ ⇑ʳᶜorr ρ)
     ⊢ ⇑ᶜ r ∶ A ⊒ᵐ ⇑ᵗ B
 right-alloc-transportᵐ {μ = μ} {ρ = ρ} {r = r} {A = A} {B = B} {X = X}
-    corr′ (corr , wfA , wfB , Aʳ , med , r⊒) =
+    corr′ (corr , wfA , wfB , Aʳ , med , (r⊢ , rⁿ)) =
   corr′ ,
   wfA ,
   wfTy-⇑ wfB ,
   ⇑ᵗ Aʳ ,
   medTy-mapʳ suc mv-right-alloc med ,
-  {! right-store-shift-weakening !}
-  -- needed:
-  --   instᵈ μ ∣ suc ΔR ∣ (0 , ⇑ᵗ X) ∷ ⟰ᵗ (rightStore ρ)
-  --     ⊢ ⇑ᶜ r ∶ ⇑ᵗ Aʳ ⊒ ⇑ᵗ B
-  -- from r⊒ : μ ∣ ΔR ∣ rightStore ρ ⊢ r ∶ Aʳ ⊒ B, modulo
-  -- rightStore (right-only zero (⇑ᵗ X) ∷ ⇑ʳᶜorr ρ) ≡
-  --   (0 , ⇑ᵗ X) ∷ ⟰ᵗ (rightStore ρ)  (rightStore-⇑ʳᶜorr).
-  -- Ordinary one-store weakening in the base language, independent of
-  -- the mediation design.
+  subst
+    (λ Σ →
+      instᵈ μ ∣ suc _ ∣ (zero , ⇑ᵗ X) ∷ Σ ⊢ ⇑ᶜ r ∶ ⇑ᵗ Aʳ ⊒ ⇑ᵗ B)
+    (sym (rightStore-⇑ʳᶜorr ρ))
+    ( coercion-weakenᵐ ≤-refl StoreIncl-drop
+        (coercion-renameᵗᵐ
+          {ρ = suc} {μ = μ} {ν = instᵈ μ}
+          TyRenameWf-suc
+          (modeRename-suc-inst {μ = μ})
+          r⊢)
+    , renameⁿ suc rⁿ )
 
 ------------------------------------------------------------------------
 -- The mediated left-change family
@@ -218,18 +233,65 @@ applyModeEnvs : StoreChanges → ModeEnv → ModeEnv
 applyModeEnvs [] μ = μ
 applyModeEnvs (χ ∷ χs) μ = applyModeEnvs χs (applyModeEnv χ μ)
 
+-- Single-step transport of a left-store narrowing judgment: `keep`
+-- is the identity; `bind` weakens the typing by the same
+-- shift-then-drop composition as `applyCoercion-typing`'s bind case
+-- and renames the witness.  No store well-formedness is needed — the
+-- underlying weakening lemmas (`coercion-renameᵗᵐ`,
+-- `coercion-weakenᵐ`) never were, so the store-wf chaining question
+-- recorded in the checklist dissolves.
+left-change-narrowing¹ :
+  ∀ χ {μ Δ Σ c A B} →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
+  applyModeEnv χ μ ∣ applyTyCtx χ Δ ∣ applyStore χ Σ
+    ⊢ applyCoercion χ c ∶ applyTy χ A ⊒ applyTy χ B
+left-change-narrowing¹ keep e = e
+left-change-narrowing¹ (bind X) {μ = μ} (c⊢ , cⁿ) =
+  coercion-weakenᵐ ≤-refl StoreIncl-drop
+    (coercion-renameᵗᵐ
+      {ρ = suc} {μ = μ} {ν = applyModeEnv (bind X) μ}
+      TyRenameWf-suc
+      (modeRename-left-inverse
+        {ρ = suc} {ψ = predᵗ}
+        RenameLeftInverse-suc)
+      c⊢) ,
+  renameⁿ suc cⁿ
+
 -- One-store transport of a left-store narrowing judgment across
 -- emitted left store changes: raw, endpoints, and store shift
 -- together (contrast `left-changes-transportᵐ`, where the home raw
--- is untouched).  Base-language plumbing — `applyCoercion-typing`
--- shapes plus the `renameⁿ` witness renaming; hole-bodied pending
--- the store-wf chaining question recorded in the checklist.
+-- is untouched).
 left-changes-narrowingˡ :
   ∀ χs {μ Δ Σ c A B} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
   applyModeEnvs χs μ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ
     ⊢ applyCoercions χs c ∶ applyTys χs A ⊒ applyTys χs B
-left-changes-narrowingˡ χs c⊒ = {! left-changes-narrowingˡ !}
+left-changes-narrowingˡ [] e = e
+left-changes-narrowingˡ (χ ∷ χs) e =
+  left-changes-narrowingˡ χs (left-change-narrowing¹ χ e)
+
+-- The dual raw of a narrowing witness is `dualRawⁿ` of the raw — in
+-- particular, independent of the witness and of everything else in
+-- the judgment.
+narrowing-dual¹-raw :
+  ∀ {μ Δ Σ c A B} →
+  (e : μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B) →
+  narrowing-dual¹ e ≡ dualRawⁿ normalᵃ c
+narrowing-dual¹-raw (_ , cⁿ) = dualⁿ-raw normalᵃ cⁿ
+
+-- The raw dual commutes with the store-change shifts (each `bind` is
+-- a `suc` renaming, and `normalᵃ` renames to itself).
+dualRawⁿ-applyCoercions :
+  ∀ χs c →
+  dualRawⁿ normalᵃ (applyCoercions χs c)
+    ≡ applyCoercions χs (dualRawⁿ normalᵃ c)
+dualRawⁿ-applyCoercions [] c = refl
+dualRawⁿ-applyCoercions (keep ∷ χs) c = dualRawⁿ-applyCoercions χs c
+dualRawⁿ-applyCoercions (bind X ∷ χs) c =
+  trans
+    (dualRawⁿ-applyCoercions χs (⇑ᶜ c))
+    (cong (applyCoercions χs)
+      (dualRawⁿ-renameᶜ suc normalᵃ normalᵃ (λ α → refl) c))
 
 -- The dual raw of a narrowing is determined by the raw alone and
 -- commutes with the store-change shifts.  Stated over two
@@ -240,8 +302,12 @@ narrowing-dual¹-applyCoercions :
   (e : μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B) →
   (e′ : μ′ ∣ Δ′ ∣ Σ′ ⊢ applyCoercions χs c ∶ A′ ⊒ B′) →
   narrowing-dual¹ e′ ≡ applyCoercions χs (narrowing-dual¹ e)
-narrowing-dual¹-applyCoercions χs e e′ =
-  {! narrowing-dual¹-applyCoercions !}
+narrowing-dual¹-applyCoercions χs {c = c} e e′ =
+  trans
+    (narrowing-dual¹-raw e′)
+    (trans
+      (dualRawⁿ-applyCoercions χs c)
+      (cong (applyCoercions χs) (sym (narrowing-dual¹-raw e))))
 
 ------------------------------------------------------------------------
 -- One-store arrow projections
@@ -398,9 +464,23 @@ left-changes-comp-srcᵐ χs {ΔL = ΔL} {ρ = ρ} corr′
 -- The mediated term-relation transport across left store changes:
 -- the ⊒ᵐ replacement for the old postulated
 -- `left-change-term-narrowing`.  Note the index raw `p` is untouched
--- — the point of the mediated design.  Structural induction over the
--- relation (binder cases shift the correspondence); hole-bodied, to
--- be discharged with the rest of the mediated left-change family.
+-- — the point of the mediated design.
+--
+-- Proof design (recorded 2026-07-06, with the rest of the family
+-- discharged): reduce to a single `bind`, which is a LEFT-ONLY
+-- INSERTION WEAKENING of the relation — the statement as given
+-- cannot be proved by direct induction, because the type-binder
+-- constructors (Λ⊒Λᵗ, ⊒Λᵗ, ⊒⟨ν⟩ᵗ, α⊒αᵗ, ⊒αᵗ, ν⊒νᵗ, ⊒νᵗ) put their
+-- sub-derivations (and for α⊒αᵗ/⊒αᵗ their conclusions) at
+-- `entry ∷ ⇑ᶜorr ρ`-shaped correspondences, where the outer change
+-- must land BELOW the binder entry, while `applyLeftChange` only
+-- inserts at position zero.  The single-bind lemma therefore needs
+-- the standard weakening generalization: an insertion renaming of
+-- the left side at arbitrary depth (a left sibling of `mv-lockstep`
+-- for `MatchedVar`, `medTy-mapˡ` for the mediation, renameⁿ/
+-- `coercion-renameᵗᵐ` for the left one-store evidence, and
+-- `shift-left-term-typing` for the term typings).  That is its own
+-- work item; hole-bodied until then.
 left-changes-term-narrowingᵐ :
   ∀ χs {ΔL ΔR ρ M M′ p A B} →
   StoreCorr (applyTyCtxs χs ΔL) ΔR (applyLeftChanges χs ρ) →

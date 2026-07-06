@@ -494,6 +494,47 @@ no coercion mediation at all:
   the "left-mediability" open question is dissolved rather than
   answered.
 
+Migration step 4 (2026-07-06, mediated plumbing holes): three of the
+four `MediationProperties` holes are discharged; one remains.
+
+- New module `proof/DualRawProperties.agda` (hole-free): the raw
+  computed by the witness-directed duals equals the total raw-level
+  functions `dualRawⁿ`/`dualRawʷ`, which mirror the witness duals'
+  case tree by raw shape — including the collapsing
+  tag-to-seal/seal-to-tag branches, which is why the mirror is NOT
+  the `Coercions.dual` operator.  One function per polarity covers
+  all four witness sorts, so determinacy across witnesses of ANY
+  sorts is a two-line corollary — in particular
+  `dualʷ-raw-determined`, which the old surface postulates, is now
+  proved, and the mediated surface imports the proved one.  Dual raws
+  also commute with type renaming over an `ActionRename` relation
+  between action environments (explicit-environment formulation:
+  the environments only ever occur applied, so they cannot stay
+  implicit).
+- `left-changes-narrowingˡ` proved via a single-change
+  `left-change-narrowing¹`: `bind` is the same shift-then-drop
+  composition as `applyCoercion-typing`'s bind case plus `renameⁿ`
+  on the witness.  The recorded store-wf chaining question
+  DISSOLVES: the underlying weakening lemmas (`coercion-renameᵗᵐ`,
+  `coercion-weakenᵐ`) never needed store well-formedness —
+  `applyCoercion-typing`'s `StoreWfAt` premise is vestigial.
+- `narrowing-dual¹-applyCoercions` proved as a corollary:
+  `narrowing-dual¹ ≡ dualRawⁿ normalᵃ` kills the witness dependence,
+  and `dualRawⁿ-renameᶜ` iterates over the changes.
+- `right-store-shift-weakening` discharged inside
+  `right-alloc-transportᵐ`: the mode-renaming side condition at
+  `instᵈ μ` is `modeRename-suc-inst` (`instᵈ μ` agrees with `μ` on
+  all shifted variables).
+- REMAINING: `left-changes-term-narrowingᵐ`, now with a recorded
+  proof design — a single `bind` is a left-only insertion weakening
+  of the relation, and the type-binder constructors force the
+  standard generalization over an insertion renaming at arbitrary
+  depth (the outer change lands BELOW `entry ∷ ⇑ᶜorr ρ`-shaped
+  extensions, while `applyLeftChange` only inserts at position
+  zero).  Ingredients: an insertion sibling of `mv-lockstep`,
+  `medTy-mapˡ`, `renameⁿ`/`coercion-renameᵗᵐ`,
+  `shift-left-term-typing`.
+
 ## Track C. Catchup Proof
 
 - [x] Add right-side store-change operations.

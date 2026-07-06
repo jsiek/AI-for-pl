@@ -6,7 +6,7 @@ module proof.NarrowWidenProperties where
 --   * Depends on the public definitions in `NarrowWiden`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (false; true; _∨_)
+open import Data.Bool using (Bool; false; true; _∨_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
@@ -29,6 +29,7 @@ open import proof.CoercionProperties
   using
     ( DualActionOk
     ; DualStoreAt
+    ; coercion-mode-relax
     ; coercion-src-tgtᵐ
     ; dma-id
     ; dma-tag
@@ -3821,3 +3822,113 @@ widening-determinedᵐ :
   s ≡ t
 widening-determinedᵐ wfΣ =
   widening-determinedᵐ-det wfΣ
+
+------------------------------------------------------------------------
+-- Cross-mode determinacy for compatible mode environments
+------------------------------------------------------------------------
+
+-- Determinacy across two DIFFERENT mode environments is false in
+-- general: with Δ = 1 and Σ = (0 , ★) ∷ [], both `＇ 0 ？` (normal in
+-- tag-or-idᵈ, by cast-untag and the witness `untag`) and `seal ★ 0`
+-- (normal in seal-or-idᵈ, by cast-seal and the witness `sealⁿ`) inhabit
+-- the endpoints ★ ⊒ ＇ 0.  The failure requires the two environments to
+-- disagree tag-versus-seal at a variable, so we restrict to pointwise
+-- compatible environments.  Compatible modes have a join in the mode≤
+-- order, both typings relax into the join (`coercion-mode-relax`), and
+-- the single-environment determinacy theorem closes the argument.
+
+modeCompat : Mode → Mode → Bool
+modeCompat id-only id-only = true
+modeCompat id-only tag-or-id = true
+modeCompat id-only seal-or-id = true
+modeCompat tag-or-id id-only = true
+modeCompat tag-or-id tag-or-id = true
+modeCompat tag-or-id seal-or-id = false
+modeCompat seal-or-id id-only = true
+modeCompat seal-or-id tag-or-id = false
+modeCompat seal-or-id seal-or-id = true
+
+ModeEnvCompat : ModeEnv → ModeEnv → Set
+ModeEnvCompat μ ν = ∀ X → modeCompat (μ X) (ν X) ≡ true
+
+-- The (tag , seal) and (seal , tag) results below are junk values;
+-- those inputs are excluded by ModeEnvCompat wherever the join is used.
+modeJoin : Mode → Mode → Mode
+modeJoin id-only id-only = id-only
+modeJoin id-only tag-or-id = tag-or-id
+modeJoin id-only seal-or-id = seal-or-id
+modeJoin tag-or-id id-only = tag-or-id
+modeJoin tag-or-id tag-or-id = tag-or-id
+modeJoin tag-or-id seal-or-id = tag-or-id
+modeJoin seal-or-id id-only = seal-or-id
+modeJoin seal-or-id tag-or-id = seal-or-id
+modeJoin seal-or-id seal-or-id = seal-or-id
+
+modeEnvJoin : ModeEnv → ModeEnv → ModeEnv
+modeEnvJoin μ ν X = modeJoin (μ X) (ν X)
+
+modeIncl-joinˡ :
+  ∀ {μ ν} →
+  ModeEnvCompat μ ν →
+  ModeIncl μ (modeEnvJoin μ ν)
+modeIncl-joinˡ {μ} {ν} compat X with μ X | ν X | compat X
+modeIncl-joinˡ {μ} {ν} compat X | id-only | id-only | _ = refl
+modeIncl-joinˡ {μ} {ν} compat X | id-only | tag-or-id | _ = refl
+modeIncl-joinˡ {μ} {ν} compat X | id-only | seal-or-id | _ = refl
+modeIncl-joinˡ {μ} {ν} compat X | tag-or-id | id-only | _ = refl
+modeIncl-joinˡ {μ} {ν} compat X | tag-or-id | tag-or-id | _ = refl
+modeIncl-joinˡ {μ} {ν} compat X | tag-or-id | seal-or-id | ()
+modeIncl-joinˡ {μ} {ν} compat X | seal-or-id | id-only | _ = refl
+modeIncl-joinˡ {μ} {ν} compat X | seal-or-id | tag-or-id | ()
+modeIncl-joinˡ {μ} {ν} compat X | seal-or-id | seal-or-id | _ = refl
+
+modeIncl-joinʳ :
+  ∀ {μ ν} →
+  ModeEnvCompat μ ν →
+  ModeIncl ν (modeEnvJoin μ ν)
+modeIncl-joinʳ {μ} {ν} compat X with μ X | ν X | compat X
+modeIncl-joinʳ {μ} {ν} compat X | id-only | id-only | _ = refl
+modeIncl-joinʳ {μ} {ν} compat X | id-only | tag-or-id | _ = refl
+modeIncl-joinʳ {μ} {ν} compat X | id-only | seal-or-id | _ = refl
+modeIncl-joinʳ {μ} {ν} compat X | tag-or-id | id-only | _ = refl
+modeIncl-joinʳ {μ} {ν} compat X | tag-or-id | tag-or-id | _ = refl
+modeIncl-joinʳ {μ} {ν} compat X | tag-or-id | seal-or-id | ()
+modeIncl-joinʳ {μ} {ν} compat X | seal-or-id | id-only | _ = refl
+modeIncl-joinʳ {μ} {ν} compat X | seal-or-id | tag-or-id | ()
+modeIncl-joinʳ {μ} {ν} compat X | seal-or-id | seal-or-id | _ = refl
+
+compatible-narrowing-determinedᵐ :
+  ∀ {μ ν Δ Σ A B s t} →
+  ModeEnvCompat μ ν →
+  StoreDetWf Δ Σ →
+  μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊒ B →
+  ν ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ B →
+  s ≡ t
+compatible-narrowing-determinedᵐ compat wfΣ (s⊢ , sⁿ) (t⊢ , tⁿ) =
+  narrowing-determinedᵐ wfΣ
+    (coercion-mode-relax (modeIncl-joinˡ compat) s⊢ , sⁿ)
+    (coercion-mode-relax (modeIncl-joinʳ compat) t⊢ , tⁿ)
+
+compatible-widening-determinedᵐ :
+  ∀ {μ ν Δ Σ A B s t} →
+  ModeEnvCompat μ ν →
+  StoreDetWf Δ Σ →
+  μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊑ B →
+  ν ∣ Δ ∣ Σ ⊢ t ∶ A ⊑ B →
+  s ≡ t
+compatible-widening-determinedᵐ compat wfΣ (s⊢ , sʷ) (t⊢ , tʷ) =
+  widening-determinedᵐ wfΣ
+    (coercion-mode-relax (modeIncl-joinˡ compat) s⊢ , sʷ)
+    (coercion-mode-relax (modeIncl-joinʳ compat) t⊢ , tʷ)
+
+-- The DGG frames compare a coercion typed at an unknown mode
+-- environment against one typed at tag-or-idᵈ; seal-freeness of the
+-- unknown side is exactly compatibility with tag-or-idᵈ.
+seal-free-compat-tagᵈ :
+  ∀ {μ} →
+  (∀ X → sealModeAllowed (μ X) ≡ false) →
+  ModeEnvCompat μ tag-or-idᵈ
+seal-free-compat-tagᵈ {μ} seal-free X with μ X | seal-free X
+seal-free-compat-tagᵈ {μ} seal-free X | id-only | _ = refl
+seal-free-compat-tagᵈ {μ} seal-free X | tag-or-id | _ = refl
+seal-free-compat-tagᵈ {μ} seal-free X | seal-or-id | ()

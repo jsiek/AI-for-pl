@@ -9,9 +9,9 @@ module proof.LeftChangeNarrowingSeparated where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_; map)
-open import Data.Product using (_,_; proj₁; proj₂)
+open import Data.Product using (Σ-syntax; _,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality
-  using (cong; subst; trans)
+  using (cong; subst; sym; trans)
 
 open import Types
 open import Coercions
@@ -225,6 +225,43 @@ postulate
     ∀ {c} (cʷ : Widening c) →
     proj₁ (dualⁿ normalᵃ (proj₂ (dualʷ normalᵃ cʷ))) ≡ c
 
+  -- Sibling of `left-change-source-coercion-narrowing-dual` for the
+  -- function-domain dual: transporting an arrow coercion across left
+  -- store changes commutes with taking its domain dual.  Packaged with
+  -- the arrow-reshaped transported typing so the `sim-beta` recursion
+  -- sites can consume both at once.  Approved as an extension of this
+  -- postulate family (2026-07-05); to be discharged together with the
+  -- rest of the family.
+  left-change-fun-coercion-narrowing :
+    ∀ χs {ΔL ΔL′ ΔR ρ p q A A′ B B′ μ}
+      (ΔL′≡ : ΔL′ ≡ applyTyCtxs χs ΔL)
+      (ρ′-corr : StoreCorr ΔL′ ΔR (applyLeftChanges χs ρ))
+      (p↦q⊒ : μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q
+                ∶ (A ⇒ B) ⊒ (A′ ⇒ B′)) →
+    Σ[ e ∈ (μ ∣ ΔL′ ∣ ΔR ∣ applyLeftChanges χs ρ
+              ⊢ applyCoercions χs p ↦ applyCoercions χs q
+                ∶ (applyTys χs A ⇒ applyTys χs B)
+                  ⊒ (A′ ⇒ B′)) ]
+      fun-narrow-domain-dual e ≡
+        applyCoercions χs (fun-narrow-domain-dual p↦q⊒)
+
+-- The raw domain dual is independent of which typing evidence (and
+-- which mode environment) it is computed from: it only inspects the
+-- left widening witness, and `dualʷ-raw-determined` identifies the
+-- dual across witnesses.
+fun-narrow-domain-dual-determined :
+  ∀ {μ₁ μ₂ ΔL₁ ΔR₁ ρ₁ ΔL₂ ΔR₂ ρ₂ p q
+     A₁ A₁′ B₁ B₁′ A₂ A₂′ B₂ B₂′} →
+  (e₁ : μ₁ ∣ ΔL₁ ∣ ΔR₁ ∣ ρ₁ ⊢ p ↦ q
+          ∶ (A₁ ⇒ B₁) ⊒ (A₁′ ⇒ B₁′)) →
+  (e₂ : μ₂ ∣ ΔL₂ ∣ ΔR₂ ∣ ρ₂ ⊢ p ↦ q
+          ∶ (A₂ ⇒ B₂) ⊒ (A₂′ ⇒ B₂′)) →
+  fun-narrow-domain-dual e₁ ≡ fun-narrow-domain-dual e₂
+fun-narrow-domain-dual-determined
+    (_ , _ , _ , _ , _ , (_ , cross (pʷ₁ ↦ⁿʷ _)) , _)
+    (_ , _ , _ , _ , _ , (_ , cross (pʷ₂ ↦ⁿʷ _)) , _) =
+  dualʷ-raw-determined normalᵃ pʷ₁ pʷ₂
+
 separated-fun-domain-dual :
   ∀ {μ ΔL ΔR ρ p q A A′ B B′} →
   (p↦q : μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q ∶ A ⇒ B ⊒ A′ ⇒ B′) →
@@ -320,3 +357,226 @@ advance-left-lambda-narrowing χs {p = p} {q = q} {A = A} {B = B}
           ⦂ C ⊒ _)
       (applyTys-⇒ χs A B)
       (advance-left-term-narrowing χs ΔL′≡ ρ′-corr W⊒ƛ))
+
+------------------------------------------------------------------------
+-- Composition-witness helpers
+------------------------------------------------------------------------
+
+-- Rewrite the three raw coercion indices of a composition witness in a
+-- single step; keeps the `sim-beta` clause bodies small so Agda does
+-- not carry three nested subst motives over the record type.
+composed-index-raws-≡ :
+  ∀ {ΔL ΔR ρ s t r s′ t′ r′ A B} →
+  s ≡ s′ →
+  t ≡ t′ →
+  r ≡ r′ →
+  ΔL ∣ ΔR ∣ ρ ⊢ s ⨟ t ≈ r ∶ A ⊒ B →
+  ΔL ∣ ΔR ∣ ρ ⊢ s′ ⨟ t′ ≈ r′ ∶ A ⊒ B
+composed-index-raws-≡ refl refl refl comp = comp
+
+-- Domain-dual projection of an arrow-level composition: the three
+-- factor typings of an incoming composition record, once pinned to
+-- arrow endpoints, yield the composition of their domain duals at the
+-- same shared mode environment.
+fun-domain-dual-composed :
+  ∀ {ν ΔL ΔR ρ cₛ dₛ pᵢ qᵢ pₒ qₒ Aₒ Bₒ AL BL AR BR} →
+  (s⊒ : ν ∣ ΔL ∣ ΔR ∣ ρ ⊢ cₛ ↦ dₛ
+          ∶ (Aₒ ⇒ Bₒ) ⊒ (AL ⇒ BL)) →
+  (t⊒ : ν ∣ ΔL ∣ ΔR ∣ ρ ⊢ pᵢ ↦ qᵢ
+          ∶ (AL ⇒ BL) ⊒ (AR ⇒ BR)) →
+  (r⊒ : ν ∣ ΔL ∣ ΔR ∣ ρ ⊢ pₒ ↦ qₒ
+          ∶ (Aₒ ⇒ Bₒ) ⊒ (AR ⇒ BR)) →
+  ΔL ∣ ΔR ∣ ρ
+    ⊢ fun-narrow-domain-dual s⊒ ⨟ fun-narrow-domain-dual t⊒
+      ≈ fun-narrow-domain-dual r⊒ ∶ Aₒ ⊒ AR
+fun-domain-dual-composed s⊒ t⊒ r⊒ =
+  composed-index
+    (separated-fun-domain-dual s⊒)
+    (separated-fun-domain-dual t⊒)
+    (separated-fun-domain-dual r⊒)
+
+-- The full site witness for wrapping a `sim-beta` argument in the
+-- source function cast's domain: the incoming arrow-level composition
+-- record of the matched cast constructor, projected to domain duals.
+-- Hoisted out of the `sim-beta` clause bodies deliberately — matching
+-- the record and normalizing the dual equations inside those huge
+-- clause contexts made elaboration blow past a 14G heap.
+cast-fun-comp-domain-dual :
+  ∀ {μ η ΔL ΔR ρ cₛ dₛ pᵢ qᵢ pₒ qₒ Aₒ Bₒ AL BL AR BR c d} →
+  ΔL ∣ ΔR ∣ ρ ⊢ (cₛ ↦ dₛ) ⨟ (pᵢ ↦ qᵢ) ≈ (pₒ ↦ qₒ)
+    ∶ (Aₒ ⇒ Bₒ) ⊒ (AR ⇒ BR) →
+  (t⊒ : η ∣ ΔL ∣ ΔR ∣ ρ ⊢ cₛ ↦ dₛ
+          ∶ (Aₒ ⇒ Bₒ) ⊒ (AL ⇒ BL)) →
+  narrowing-dual t⊒ ≡ c ↦ d →
+  (pᵢ↦qᵢᶜ : ΔL ∣ ΔR ∣ ρ ⊢ pᵢ ↦ qᵢ
+              ∶ᶜ (AL ⇒ BL) ⊒ (AR ⇒ BR)) →
+  (p↦q⊒ : μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ pₒ ↦ qₒ
+            ∶ (Aₒ ⇒ Bₒ) ⊒ (AR ⇒ BR)) →
+  ΔL ∣ ΔR ∣ ρ
+    ⊢ c ⨟ fun-narrow-domain-dualᶜ pᵢ↦qᵢᶜ
+      ≈ fun-narrow-domain-dual p↦q⊒ ∶ Aₒ ⊒ AR
+-- A composition witness transports across left store changes
+-- field-wise: the source-side transport for the first factor (its
+-- target is the composition's middle type) and the plain transport for
+-- the second factor and the composite.
+left-change-composed-index :
+  ∀ χs {ΔL ΔL′ ΔR ρ s t r A B} →
+  ΔL′ ≡ applyTyCtxs χs ΔL →
+  StoreCorr ΔL′ ΔR (applyLeftChanges χs ρ) →
+  ΔL ∣ ΔR ∣ ρ ⊢ s ⨟ t ≈ r ∶ A ⊒ B →
+  ΔL′ ∣ ΔR ∣ applyLeftChanges χs ρ
+    ⊢ applyCoercions χs s ⨟ applyCoercions χs t
+      ≈ applyCoercions χs r ∶ applyTys χs A ⊒ B
+left-change-composed-index χs ΔL′≡ corr
+    (composed-index s⊒ t⊒ r⊒) =
+  composed-index
+    (left-change-source-coercion-narrowing χs ΔL′≡ corr s⊒)
+    (left-change-coercion-narrowing χs ΔL′≡ corr t⊒)
+    (left-change-coercion-narrowing χs ΔL′≡ corr r⊒)
+
+-- Codomain projection of an arrow-level composition: unlike the
+-- domain-dual case, the raw indices are syntactic codomains, so no
+-- witness bridging is needed.  The middle type of the incoming record
+-- is pinned from the s-factor's target equation.
+cast-fun-comp-codomain :
+  ∀ {η ΔL ΔR ρ cₛ dₛ pᵢ qᵢ pₒ qₒ A₀ B₀ A₁ B₁ A₂ B₂} →
+  ΔL ∣ ΔR ∣ ρ ⊢ (cₛ ↦ dₛ) ⨟ (pᵢ ↦ qᵢ) ≈ (pₒ ↦ qₒ)
+    ∶ (A₀ ⇒ B₀) ⊒ (A₂ ⇒ B₂) →
+  (s⊒ : η ∣ ΔL ∣ ΔR ∣ ρ ⊢ cₛ ↦ dₛ
+          ∶ (A₀ ⇒ B₀) ⊒ (A₁ ⇒ B₁)) →
+  ΔL ∣ ΔR ∣ ρ ⊢ dₛ ⨟ qᵢ ≈ qₒ ∶ B₀ ⊒ B₂
+cast-fun-comp-codomain {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {cₛ = cₛ} {dₛ = dₛ} {pᵢ = pᵢ} {qᵢ = qᵢ}
+    {A₀ = A₀} {B₀ = B₀} {A₁ = A₁} {B₁ = B₁}
+    {A₂ = A₂} {B₂ = B₂}
+    (composed-index {midTy = midᵏ} {νᶜᵒᵐᵖ = νᵏ} s⊒ᵏ t⊒ᵏ r⊒ᵏ)
+    s⊒ =
+  let
+    midᵏ≡ : midᵏ ≡ A₁ ⇒ B₁
+    midᵏ≡ =
+      let
+        _ , _ , sᵏtgt , _ , _ , _ , _ = s⊒ᵏ
+        _ , _ , stgt , _ , _ , _ , _ = s⊒
+      in
+      trans (sym sᵏtgt) stgt
+
+    s⊒ᵏ′ :
+      νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ cₛ ↦ dₛ
+        ∶ (A₀ ⇒ B₀) ⊒ (A₁ ⇒ B₁)
+    s⊒ᵏ′ =
+      subst
+        (λ X → νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ cₛ ↦ dₛ ∶ (A₀ ⇒ B₀) ⊒ X)
+        midᵏ≡
+        s⊒ᵏ
+
+    t⊒ᵏ′ :
+      νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ pᵢ ↦ qᵢ
+        ∶ (A₁ ⇒ B₁) ⊒ (A₂ ⇒ B₂)
+    t⊒ᵏ′ =
+      subst
+        (λ X → νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ pᵢ ↦ qᵢ ∶ X ⊒ (A₂ ⇒ B₂))
+        midᵏ≡
+        t⊒ᵏ
+  in
+  composed-index
+    (separated-fun-codomain s⊒ᵏ′)
+    (separated-fun-codomain t⊒ᵏ′)
+    (separated-fun-codomain r⊒ᵏ)
+
+-- Variant for the other wrap direction: all three output raw indices
+-- are `fun-narrow-domain-dual` of caller-supplied arrow evidence, so
+-- no term-level cast equation is needed.  The middle type of the
+-- incoming record is pinned from the s-factor's target equation.
+cast-fun-comp-domain-dual₂ :
+  ∀ {μ₁ μ₂ η ΔL ΔR ρ c d pₒ qₒ pᵢ qᵢ AL BL Aₒ Bₒ AR BR} →
+  ΔL ∣ ΔR ∣ ρ ⊢ (c ↦ d) ⨟ (pₒ ↦ qₒ) ≈ (pᵢ ↦ qᵢ)
+    ∶ (AL ⇒ BL) ⊒ (AR ⇒ BR) →
+  (s⊒ : η ∣ ΔL ∣ ΔR ∣ ρ ⊢ c ↦ d
+          ∶ (AL ⇒ BL) ⊒ (Aₒ ⇒ Bₒ)) →
+  (t⊒ : μ₁ ∣ ΔL ∣ ΔR ∣ ρ ⊢ pₒ ↦ qₒ
+          ∶ (Aₒ ⇒ Bₒ) ⊒ (AR ⇒ BR)) →
+  (r⊒ : μ₂ ∣ ΔL ∣ ΔR ∣ ρ ⊢ pᵢ ↦ qᵢ
+          ∶ (AL ⇒ BL) ⊒ (AR ⇒ BR)) →
+  ΔL ∣ ΔR ∣ ρ
+    ⊢ fun-narrow-domain-dual s⊒ ⨟ fun-narrow-domain-dual t⊒
+      ≈ fun-narrow-domain-dual r⊒ ∶ AL ⊒ AR
+cast-fun-comp-domain-dual₂ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {c = c} {d = d} {pₒ = pₒ} {qₒ = qₒ}
+    {AL = AL} {BL = BL} {Aₒ = Aₒ} {Bₒ = Bₒ}
+    {AR = AR} {BR = BR}
+    (composed-index {midTy = midᵏ} {νᶜᵒᵐᵖ = νᵏ} s⊒ᵏ t⊒ᵏ r⊒ᵏ)
+    s⊒ t⊒ r⊒ =
+  let
+    midᵏ≡ : midᵏ ≡ Aₒ ⇒ Bₒ
+    midᵏ≡ =
+      let
+        _ , _ , sᵏtgt , _ , _ , _ , _ = s⊒ᵏ
+        _ , _ , stgt , _ , _ , _ , _ = s⊒
+      in
+      trans (sym sᵏtgt) stgt
+
+    s⊒ᵏ′ :
+      νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ c ↦ d
+        ∶ (AL ⇒ BL) ⊒ (Aₒ ⇒ Bₒ)
+    s⊒ᵏ′ =
+      subst
+        (λ X → νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ c ↦ d ∶ (AL ⇒ BL) ⊒ X)
+        midᵏ≡
+        s⊒ᵏ
+
+    t⊒ᵏ′ :
+      νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ pₒ ↦ qₒ
+        ∶ (Aₒ ⇒ Bₒ) ⊒ (AR ⇒ BR)
+    t⊒ᵏ′ =
+      subst
+        (λ X → νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ pₒ ↦ qₒ ∶ X ⊒ (AR ⇒ BR))
+        midᵏ≡
+        t⊒ᵏ
+  in
+  composed-index-raws-≡
+    (fun-narrow-domain-dual-determined s⊒ᵏ′ s⊒)
+    (fun-narrow-domain-dual-determined t⊒ᵏ′ t⊒)
+    (fun-narrow-domain-dual-determined r⊒ᵏ r⊒)
+    (fun-domain-dual-composed s⊒ᵏ′ t⊒ᵏ′ r⊒ᵏ)
+
+cast-fun-comp-domain-dual {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {cₛ = cₛ} {dₛ = dₛ} {pᵢ = pᵢ} {qᵢ = qᵢ}
+    {Aₒ = Aₒ} {Bₒ = Bₒ} {AL = AL} {BL = BL}
+    {AR = AR} {BR = BR}
+    (composed-index {midTy = midᵏ} {νᶜᵒᵐᵖ = νᵏ} s⊒ᵏ t⊒ᵏ r⊒ᵏ)
+    t⊒@(_ , _ , _ , _ , _ , (_ , cross (cₛʷ ↦ⁿʷ _)) , _)
+    cast-eq pᵢ↦qᵢᶜ p↦q⊒ =
+  let
+    midᵏ≡ : midᵏ ≡ AL ⇒ BL
+    midᵏ≡ =
+      let
+        _ , tᵏsrc , _ , _ , _ , _ , _ = t⊒ᵏ
+        _ , pᵢsrc , _ , _ , _ , _ , _ = pᵢ↦qᵢᶜ
+      in
+      trans (sym tᵏsrc) pᵢsrc
+
+    s⊒ᵏ′ :
+      νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ cₛ ↦ dₛ
+        ∶ (Aₒ ⇒ Bₒ) ⊒ (AL ⇒ BL)
+    s⊒ᵏ′ =
+      subst
+        (λ X → νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ cₛ ↦ dₛ ∶ (Aₒ ⇒ Bₒ) ⊒ X)
+        midᵏ≡
+        s⊒ᵏ
+
+    t⊒ᵏ′ :
+      νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ pᵢ ↦ qᵢ
+        ∶ (AL ⇒ BL) ⊒ (AR ⇒ BR)
+    t⊒ᵏ′ =
+      subst
+        (λ X → νᵏ ∣ ΔL ∣ ΔR ∣ ρ ⊢ pᵢ ↦ qᵢ ∶ X ⊒ (AR ⇒ BR))
+        midᵏ≡
+        t⊒ᵏ
+  in
+  composed-index-raws-≡
+    (trans
+      (fun-narrow-domain-dual-determined s⊒ᵏ′ t⊒)
+      (↦-left-injective cast-eq))
+    (fun-narrow-domain-dual-determined t⊒ᵏ′ pᵢ↦qᵢᶜ)
+    (fun-narrow-domain-dual-determined r⊒ᵏ p↦q⊒)
+    (fun-domain-dual-composed s⊒ᵏ′ t⊒ᵏ′ r⊒ᵏ)

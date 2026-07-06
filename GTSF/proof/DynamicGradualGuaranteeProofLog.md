@@ -220,7 +220,7 @@ Repairs:
   failed the termination checker.  It now checks.  The recursion through
   catchup projections is marked `TERMINATING`, matching the existing
   `sim-beta` precedent.  For a function-shaped target cast, the `⊒cast+ᵗ`
-  inner coercions `G \!`, `seal`, and `gen` are refuted by matching `refl` in
+  inner coercions `G !`, `seal`, and `gen` are refuted by matching `refl` in
   the inner coercion's `tgt` equation and `()` in the cast typing's `tgt`
   equation (an arrow type cannot be `★`, `＇α`, or `∀`).  The `id` and `_︔_`
   inner coercions are genuine open branches and hold explicit holes, as do
@@ -254,3 +254,199 @@ current completed clause, but coercion-index tracking is falsified by the
 `β-id` clauses, so the application and `⊕` frames also need either a
 coercion-conversion rule or `∶ᶜ` result evidence, which `⊒cast+ᵗ` inner
 relations cannot supply.
+
+## Endpoint-type tracking in the separated DGG conclusion, 2026-07-05
+
+The separated `dynamicGradualGuarantee` conclusion now returns
+`(C ≡ applyTys χs A) × (D ≡ applyTy χ′ B)` between the store-correspondence
+equation and the final narrowing relation.  This restores the link between
+the recursive call's existential endpoints and the inputs, which the
+ξ-frame reconstruction holes need.
+
+Proof notes:
+
+- Most clauses discharge both equalities with `refl`, either definitionally
+  (`χs = []`, `χ′ = keep`) or by letting `refl` pin the existential
+  endpoint metas of a frame hole to the tracked values.
+- The four `β-id` clauses return the inner relation at the inner target
+  type, so the target equation is not definitional.  It follows from the
+  id-cast typing tuple: with `t = id A₀`, the `src`/`tgt` components give
+  `A₀ ≡ C` and `A₀ ≡ B`, and `trans`/`sym` produce the needed equation.
+  This confirms endpoint tracking is genuinely true in the `β-id` cases,
+  where coercion-index tracking fails.
+- The `⊕` congruence frames use `sym (applyTys-ℕ χs)` and
+  `sym (applyTy-ℕ χ′)` because `⊕⊒⊕ᵗ` forces concrete `‵ ℕ` endpoints.
+- `separated-⊕-δ-left-first`/`-right-first` in `proof.DGGDeltaSeparated`
+  were extended to return `(C ≡ applyTys χs (‵ ℕ)) × (D ≡ ‵ ℕ)`; their
+  results are literal `κ⊒κᵗ` relations at `id (‵ ℕ)`, so the equalities
+  are `sym (applyTys-ℕ χs)` and `refl`.
+- The beta delegation sites (`separated-dgg-beta`,
+  `separated-dgg-beta-cast`) do not yet track endpoints; the two clauses
+  carry `β-*-endpoint-tracking` holes until the extension is threaded
+  through those helpers and `sim-beta`.
+- The local `obligation` tuple ascriptions that duplicated the theorem's
+  ∃-type were removed where the tuple is immediately returned; the clause
+  type determines them, and the duplicated ascriptions could not name the
+  per-clause endpoint instantiations without binding more constructor
+  implicits.
+
+Remaining gap for the frame cases: the resulting coercion `r` is still
+unlinked.  See the checklist entry — coercion-index preservation is false
+at `β-id`, so the fix must be a relation-level design change, not another
+conclusion equation.
+
+## Coercion recovery via determinacy, 2026-07-05
+
+The "coercion tracking" gap in the separated DGG frames is not a missing
+conclusion component: normal coercions are already canonical.
+`narrowing-determinedᵐ` (`proof.NarrowWidenProperties`) says a normal
+coercion is determined by its mode env, contexts, and endpoints, so the
+endpoint equalities added to the theorem's conclusion determine the result
+coercion as well.
+
+Implemented:
+
+- `nat-endpoints-id-coercionᶜ` (`proof.DGGPrimitiveSeparated`): any
+  separated narrowing relation whose endpoints equal `‵ ℕ` on both sides
+  is a relation at `id (‵ ℕ)`.  The proof rewrites the endpoints with
+  `typed-term-narrowing-endpointsᶜ`, extracts the relation's own coercion
+  typing with `typed-term-narrowing-coercion`, types `id (‵ ℕ)` at the
+  same (existential) mode env — `idTyAllowed μ (‵ ι) = true` for every
+  `μ`, so `cast-id` needs no mode assumption — and closes with
+  `narrowing-determinedᵐ` against the `leftStore-det` field of the
+  relation's `StoreCorr`.
+- The three `ξ-⊕`-IH holes (`ξ-⊕₁` twice, `ξ-⊕₂` once) are closed by the
+  lemma applied to the tracked equalities composed with `applyTys-ℕ` and
+  `applyTy-ℕ`.
+
+Not yet transferable to the application frames: the same recipe needs a
+comparison coercion typed in the changed stores at the IH's mode env.
+The transported `p ↦ q` is typed only in the pre-right-change stores (the
+right-side transport surface is still missing), and its evidence is at
+`tag-or-idᵈ` while the IH's coercion typing carries an existential mode.
+Cross-mode determinacy should hold at seal-variable-free endpoints —
+modes only arbitrate the tag-versus-seal mediation at `＇α` — but that
+corollary is not yet stated.
+
+## Dropping the DGG coercion premise, 2026-07-05
+
+The separated `dynamicGradualGuarantee` demanded
+`ΔL ∣ ΔR ∣ ρ ⊢ p ∶ᶜ A ⊒ B` alongside the relation `⊢ M ⊒ M′ ∶ p ⦂ A ⊒ B`.
+Investigation confirmed the premise was inherited from the shared-store
+statement and is both redundant and harmful:
+
+- Redundant: `typed-term-narrowing-coercion` recovers (general-mode)
+  typing evidence for the relation's own index from the relation itself,
+  and the premise's only genuine consumers were the six `⊒blameᵗ`
+  reconstructions.
+- Harmful: it made the theorem stricter than the relation.  The inner
+  relations of `⊒cast+ᵗ` (and the premise relation of `cast-⊒ᵗ`) are
+  indexed by coercions with only general-`μ` typing, so the recursive
+  calls in the `ξ-⟨⟩` case for `⊒cast+ᵗ` and in the `cast-⊒ᵗ` source-cast
+  case could not be made at all — those were the
+  `target-cast-plus-inner-step-simulation` and
+  `source-cast-minus-inner-simulation` holes.
+
+Changes:
+
+- `⊒blameᵗ` in `TermNarrowingSeparated` now takes
+  `μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ p ∶ A ⊒ B` for an implicit `μ` instead of `∶ᶜ`;
+  blame is the target of any well-typed narrowing index.  All existing
+  constructions (which supply `∶ᶜ` evidence) still check, since
+  `tag-or-idᵈ` is an instance.  `typed-term-narrowing-coercion` returns
+  the constructor's `μ`.
+- The theorem premise is gone.  Blame reconstructions use
+  `proj₂ (typed-term-narrowing-coercion rel)`.  The `∶ᶜ`-transport
+  bindings that existed only to feed recursive calls
+  (`p-domain-Lᶜ`, `pℕMᶜ`) are deleted.
+- The two former inner-simulation holes are now literal recursive calls
+  (structural on the relation argument), closing them.
+
+The remaining mode question is confined to the frame-reconstruction
+holes: determinacy-based coercion recovery needs the transported frame
+coercion and the IH's coercion typed at one common mode env.  That is
+now the only place where `∶ᶜ`-versus-`μ` matters in the theorem.
+
+## Cross-mode determinacy, 2026-07-05
+
+Unrestricted cross-mode determinacy is false: with `Δ = 1` and
+`Σ = (0 , ★) ∷ []`, the endpoints `★ ⊒ ＇ 0` are inhabited by `＇ 0 ？`
+(normal in `tag-or-idᵈ`) and by `seal ★ 0` (normal in `seal-or-idᵈ`),
+which differ.  The failure requires the two mode environments to
+disagree tag-versus-seal at a variable.
+
+`proof.NarrowWidenProperties` now proves the restricted version:
+
+- `modeCompat`/`ModeEnvCompat`: pointwise absence of tag/seal
+  disagreement.
+- `modeEnvJoin` with `modeIncl-joinˡ`/`modeIncl-joinʳ`: compatible
+  environments have a pointwise `mode≤` upper bound.
+- `compatible-narrowing-determinedᵐ` (and the `⊑` twin): relax both
+  typings into the join with `coercion-mode-relax`, then apply the
+  single-environment `narrowing-determinedᵐ`.
+- `seal-free-compat-tagᵈ`: a seal-free environment is compatible with
+  `tag-or-idᵈ` — the instance the DGG frames need, since they compare a
+  coercion at an unknown environment against a transported `∶ᶜ` one.
+
+For the frames this reduces the mode pinch to a residual fact about the
+relation: that the IH's existential mode environment can be chosen
+seal-free (or pointwise compatible with `tag-or-idᵈ`) at the frame's
+endpoints.  Where that fails, the counterexample shape (`★ ⊒ ＇ α` with
+`(α , ★)` in the store) shows tag- and seal-mediated evidence genuinely
+diverge, which is a relation-design fact, not a provability gap.
+
+## Composition side conditions and the six missing rules, 2026-07-05
+
+Comparing `TermNarrowingSeparated` with the cambridge25 term-narrowing
+rules exposed a partial port: the polymorphism/ν rules were absent and
+all four cast rules had dropped their composition side conditions.
+Both are now restored; see the checklist for the design details.
+Highlights:
+
+- New mixfix judgment `ΔL ∣ ΔR ∣ ρ ⊢ s ⨟ t ≈ r ∶ A ⊒ B` mirroring the
+  paper's `s ⨾ t ≈ r`.  It stores cross-store typings of `s`, `t`, `r`
+  at one shared mode environment; canonicity (`narrowing-determinedᵐ`)
+  then pins `r` to the `_⨟ⁿ_` composite (`composite-determinedˡ/ʳ`,
+  proved).  Stored-composite forms were tried first and abandoned:
+  they do not transport across the postulated store-change surfaces.
+- Six constructors ported: `⊒Λᵗ`, `⊒⟨ν⟩ᵗ`, `α⊒αᵗ`, `⊒αᵗ`, `ν⊒νᵗ`,
+  `⊒νᵗ`, with explicit endpoint-typing premises.
+- `sim-beta` reworked: mode-generic function-coercion evidence plus the
+  `∶ᶜ` typing of its domain dual, argument relation indexed by that
+  dual.  `fun-narrow-domain-dual-determined` (proved) replaces
+  determinacy-based re-indexing; the two recursion sites consume the
+  new (approved) postulate `left-change-fun-coercion-narrowing`.
+- The composition witnesses at the `sim-beta` cast branches are real
+  proofs assembled from the matched constructor's own composition
+  record: `separated-fun-domain-dual` of its fields at the shared
+  environment, raw indices bridged by
+  `fun-narrow-domain-dual-determined`.
+- Checking-time note: `GTSF/Makefile` now runs Agda with
+  `+RTS -A128M -M8G -RTS`; one unflagged check of `SimBetaSeparated`
+  was killed by the OS (exit 137, memory pressure).
+
+## Downstream sweep of the composition premises, 2026-07-06
+
+- The last two `sim-beta` composition sites (the codomain sides of
+  `sim-beta-cast+-result` and `sim-beta-cast-tail`) are filled.  Both
+  helpers gained a codomain composition premise
+  `ΔL ∣ ΔR ∣ ρ ⊢ d ⨟ q ≈ q′ ∶ B ⊒ BR`, produced at the call sites by
+  `cast-fun-comp-codomain` (projects a codomain composition out of an
+  arrow-level record, pinning the middle type with the s-factor's
+  target equations) and transported through the two catchup
+  store-change layers with `left-change-composed-index` (both proved,
+  `LeftChangeNarrowingSeparated`).  `sim-beta` has no remaining holes.
+- `separated-dgg-beta{,-left-first,-right-first}` re-based on the new
+  `sim-beta` arity.  The generic `pᵈ` premise is gone: the argument
+  relation is now stated at `fun-narrow-domain-dualᶜ p↦qᶜ`, which is
+  what `·⊒·ᵗ` inversion hands the main theorem, so
+  `DynamicGradualGuaranteeSeparated`'s β case needed no change.
+  Inside, `left-change-fun-coercion-narrowing` transports the arrow
+  `∶ᶜ` typing along each catchup χs-chain and its dual equality
+  re-indexes the caught-up argument relation (one `subst` per layer).
+- `DGGBetaCastSeparated` and `DynamicGradualGuaranteeSeparated`
+  patterns arity-bumped (`_` for the new composition premise).  The
+  six cast constructions in `DGGBetaCastSeparated` carry named
+  `{! …-composition !}` holes mirroring the discharged `sim-beta`
+  sites; filling them needs the same compᵏ-threading surgery on that
+  file's local helpers.

@@ -74,6 +74,7 @@ open import proof.SimBetaSeparated using
   ; ⟨⟩-coercion-injective
   ; left-change-coercion-narrowing
   ; left-change-source-coercion-narrowing
+  ; left-change-fun-coercion-narrowing
   ; advance-left-term-narrowing
   ; advance-left-function-term-narrowing
   ; advance-left-lambda-narrowing
@@ -109,16 +110,17 @@ open import proof.DGGPrimitiveSeparated using
 ------------------------------------------------------------------------
 
 separated-dgg-beta-left-first :
-  ∀ {ΔL ΔR ρ L R N′ V′ pᵈ p q A A′ B B′} →
+  ∀ {ΔL ΔR ρ L R N′ V′ p q A A′ B B′} →
   RuntimeOK L →
   RuntimeOK R →
   No• R →
   Value V′ →
-  ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q ∶ᶜ A ⇒ B ⊒ A′ ⇒ B′ →
-  ΔL ∣ ΔR ∣ ρ ⊢ pᵈ ∶ᶜ A ⊒ A′ →
+  (p↦qᶜ : ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q ∶ᶜ A ⇒ B ⊒ A′ ⇒ B′) →
+  ΔL ∣ ΔR ∣ ρ ⊢ fun-narrow-domain-dualᶜ p↦qᶜ ∶ᶜ A ⊒ A′ →
   ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ L ⊒ ƛ N′ ∶ p ↦ q
     ⦂ A ⇒ B ⊒ A′ ⇒ B′ →
-  ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ R ⊒ V′ ∶ pᵈ ⦂ A ⊒ A′ →
+  ΔL ∣ ΔR ∣ ρ ∣ []
+    ⊢ R ⊒ V′ ∶ fun-narrow-domain-dualᶜ p↦qᶜ ⦂ A ⊒ A′ →
   ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ρ′ ] ∃[ C ] ∃[ D ] ∃[ r ]
     (L · R —↠[ χs ] N) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
@@ -127,7 +129,7 @@ separated-dgg-beta-left-first :
       ⊢ N ⊒ N′ [ V′ ] ∶ r ⦂ C ⊒ D
 separated-dgg-beta-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {N′ = N′} {V′ = V′}
-    {pᵈ = pᵈ} {p = p} {q = q} {A = A} {A′ = A′}
+    {p = p} {q = q} {A = A} {A′ = A′}
     {B = B} {B′ = B′}
     okL okR noR-ready vV′ p↦qᶜ p-domainᶜ L⊒ƛ R⊒V′ =
   let
@@ -173,18 +175,32 @@ separated-dgg-beta-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     WLF⊒ƛ =
       advance-left-lambda-narrowing χsR ΔL₂≡ ρR-corr WL⊒ƛ
 
+    p↦q₁ = left-change-fun-coercion-narrowing χsL ΔL₁≡ ρL-corr p↦qᶜ
+
+    p↦q₂ =
+      left-change-fun-coercion-narrowing χsR ΔL₂≡ ρR-corr
+        (proj₁ p↦q₁)
+
+    dual-eq :
+      fun-narrow-domain-dual (proj₁ p↦q₂) ≡
+        applyCoercions χsR
+          (applyCoercions χsL (fun-narrow-domain-dualᶜ p↦qᶜ))
+    dual-eq =
+      trans (proj₂ p↦q₂) (cong (applyCoercions χsR) (proj₂ p↦q₁))
+
     WR⊒V′ :
       ΔL₂ ∣ ΔR ∣ applyLeftChanges χsR (applyLeftChanges χsL ρ) ∣ []
         ⊢ WR ⊒ V′
-          ∶ applyCoercions χsR (applyCoercions χsL pᵈ)
+          ∶ fun-narrow-domain-dual (proj₁ p↦q₂)
           ⦂ applyTys χsR (applyTys χsL A) ⊒ A′
-    WR⊒V′ = WR⊒V′raw
-
-    p₂-domainᶜ :
-      ΔL₂ ∣ ΔR ∣ applyLeftChanges χsR (applyLeftChanges χsL ρ)
-        ⊢ applyCoercions χsR (applyCoercions χsL pᵈ)
-          ∶ᶜ applyTys χsR (applyTys χsL A) ⊒ A′
-    p₂-domainᶜ = p₂ᶜ
+    WR⊒V′ =
+      subst
+        (λ pd →
+          ΔL₂ ∣ ΔR ∣ applyLeftChanges χsR (applyLeftChanges χsL ρ)
+            ∣ [] ⊢ WR ⊒ V′ ∶ pd
+              ⦂ applyTys χsR (applyTys χsL A) ⊒ A′)
+        (sym dual-eq)
+        WR⊒V′raw
 
     left-ready :
       L · R —↠[ χsL ] WL · applyTerms χsL R
@@ -215,8 +231,9 @@ separated-dgg-beta-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         WLF⊒ƛ
         (applyTerms-preserves-Value χsR vWL)
         (applyTerms-preserves-No• χsR noWL)
+        (proj₁ p↦q₂)
+        (separated-fun-domain-dual (proj₁ p↦q₂))
         WR⊒V′
-        p₂-domainᶜ
         vWR
         noWR
         vV′
@@ -267,16 +284,17 @@ separated-dgg-beta-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   N⊒N′[V′]
 
 separated-dgg-beta-right-first :
-  ∀ {ΔL ΔR ρ L R N′ V′ pᵈ p q A A′ B B′} →
+  ∀ {ΔL ΔR ρ L R N′ V′ p q A A′ B B′} →
   Value L →
   No• L →
   RuntimeOK R →
   Value V′ →
-  ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q ∶ᶜ A ⇒ B ⊒ A′ ⇒ B′ →
-  ΔL ∣ ΔR ∣ ρ ⊢ pᵈ ∶ᶜ A ⊒ A′ →
+  (p↦qᶜ : ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q ∶ᶜ A ⇒ B ⊒ A′ ⇒ B′) →
+  ΔL ∣ ΔR ∣ ρ ⊢ fun-narrow-domain-dualᶜ p↦qᶜ ∶ᶜ A ⊒ A′ →
   ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ L ⊒ ƛ N′ ∶ p ↦ q
     ⦂ A ⇒ B ⊒ A′ ⇒ B′ →
-  ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ R ⊒ V′ ∶ pᵈ ⦂ A ⊒ A′ →
+  ΔL ∣ ΔR ∣ ρ ∣ []
+    ⊢ R ⊒ V′ ∶ fun-narrow-domain-dualᶜ p↦qᶜ ⦂ A ⊒ A′ →
   ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ρ′ ] ∃[ C ] ∃[ D ] ∃[ r ]
     (L · R —↠[ χs ] N) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
@@ -285,7 +303,7 @@ separated-dgg-beta-right-first :
       ⊢ N ⊒ N′ [ V′ ] ∶ r ⦂ C ⊒ D
 separated-dgg-beta-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {N′ = N′} {V′ = V′}
-    {pᵈ = pᵈ} {p = p} {q = q} {A = A} {A′ = A′}
+    {p = p} {q = q} {A = A} {A′ = A′}
     {B = B} {B′ = B′}
     vL noL okR vV′ p↦qᶜ p-domainᶜ L⊒ƛ R⊒V′ =
   let
@@ -300,16 +318,20 @@ separated-dgg-beta-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     LF⊒ƛ =
       advance-left-lambda-narrowing χsR ΔL₁≡ ρR-corr L⊒ƛ
 
+    p↦q₁ = left-change-fun-coercion-narrowing χsR ΔL₁≡ ρR-corr p↦qᶜ
+
     WR⊒V′ :
       ΔL₁ ∣ ΔR ∣ applyLeftChanges χsR ρ ∣ []
         ⊢ WR ⊒ V′
-          ∶ applyCoercions χsR pᵈ ⦂ applyTys χsR A ⊒ A′
-    WR⊒V′ = WR⊒V′raw
-
-    p₁-domainᶜ :
-      ΔL₁ ∣ ΔR ∣ applyLeftChanges χsR ρ
-        ⊢ applyCoercions χsR pᵈ ∶ᶜ applyTys χsR A ⊒ A′
-    p₁-domainᶜ = p₁ᶜ
+          ∶ fun-narrow-domain-dual (proj₁ p↦q₁)
+          ⦂ applyTys χsR A ⊒ A′
+    WR⊒V′ =
+      subst
+        (λ pd →
+          ΔL₁ ∣ ΔR ∣ applyLeftChanges χsR ρ ∣ []
+            ⊢ WR ⊒ V′ ∶ pd ⦂ applyTys χsR A ⊒ A′)
+        (sym (proj₂ p↦q₁))
+        WR⊒V′raw
 
     ready :
       L · R —↠[ χsR ] applyTerms χsR L · WR
@@ -329,8 +351,9 @@ separated-dgg-beta-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         LF⊒ƛ
         (applyTerms-preserves-Value χsR vL)
         (applyTerms-preserves-No• χsR noL)
+        (proj₁ p↦q₁)
+        (separated-fun-domain-dual (proj₁ p↦q₁))
         WR⊒V′
-        p₁-domainᶜ
         vWR
         noWR
         vV′
@@ -369,14 +392,15 @@ separated-dgg-beta-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   N⊒N′[V′]
 
 separated-dgg-beta :
-  ∀ {ΔL ΔR ρ L R N′ V′ pᵈ p q A A′ B B′} →
+  ∀ {ΔL ΔR ρ L R N′ V′ p q A A′ B B′} →
   RuntimeOK (L · R) →
   Value V′ →
-  ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q ∶ᶜ A ⇒ B ⊒ A′ ⇒ B′ →
-  ΔL ∣ ΔR ∣ ρ ⊢ pᵈ ∶ᶜ A ⊒ A′ →
+  (p↦qᶜ : ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q ∶ᶜ A ⇒ B ⊒ A′ ⇒ B′) →
+  ΔL ∣ ΔR ∣ ρ ⊢ fun-narrow-domain-dualᶜ p↦qᶜ ∶ᶜ A ⊒ A′ →
   ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ L ⊒ ƛ N′ ∶ p ↦ q
     ⦂ A ⇒ B ⊒ A′ ⇒ B′ →
-  ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ R ⊒ V′ ∶ pᵈ ⦂ A ⊒ A′ →
+  ΔL ∣ ΔR ∣ ρ ∣ []
+    ⊢ R ⊒ V′ ∶ fun-narrow-domain-dualᶜ p↦qᶜ ⦂ A ⊒ A′ →
   ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ρ′ ] ∃[ C ] ∃[ D ] ∃[ r ]
     (L · R —↠[ χs ] N) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×

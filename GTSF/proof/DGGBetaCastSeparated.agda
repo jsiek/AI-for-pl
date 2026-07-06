@@ -256,6 +256,7 @@ separated-source-cast-plus-result {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
           qᵢᶜT
           qₒ⊒T
           dₛ⊒T
+          {! beta-cast-tail-composition !}
           N⊒TargetT)
   in
   subst
@@ -319,7 +320,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     vL noL vR noR vV′ vW′
     targetCast@(⊒cast+ᵗ {M′ = F′} {r = pᵢ ↦ qᵢ}
       {t = cₜ ↦ dₜ} {B = Aᵢ ⇒ Bᵢ} {η = ηCast}
-      pᶜ rᶜ t⊒ L⊒F′)
+      pᶜ rᶜ t⊒ _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′ =
   let
     relation-obligation :
@@ -371,48 +372,48 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   relation-obligation
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast+ᵗ {t = id A} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast+ᵗ {t = id A} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast+ᵗ {t = t₁ ︔ t₂} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast+ᵗ {t = t₁ ︔ t₂} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast+ᵗ {t = `∀ t} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast+ᵗ {t = `∀ t} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast+ᵗ {t = G !} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast+ᵗ {t = G !} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast+ᵗ {t = G ？} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast+ᵗ {t = G ？} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast+ᵗ {t = seal A α} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast+ᵗ {t = seal A α} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast+ᵗ {t = unseal α A} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast+ᵗ {t = unseal α A} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast+ᵗ {t = gen A t} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast+ᵗ {t = gen A t} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast+ᵗ {t = inst A t} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast+ᵗ {t = inst A t} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast+ᵗ {r = id P} {t = cₜ ↦ dₜ} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast+ᵗ {r = id P} {t = cₜ ↦ dₜ} pᶜ rᶜ t⊒ _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′ =
   {! separated-dgg-beta-cast-target-plus-id-inner-coercion !}
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast+ᵗ {r = r₁ ︔ r₂} {t = cₜ ↦ dₜ} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast+ᵗ {r = r₁ ︔ r₂} {t = cₜ ↦ dₜ} pᶜ rᶜ t⊒ _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′ =
   {! separated-dgg-beta-cast-target-plus-seq-inner-coercion !}
 separated-dgg-beta-cast-value-shape
@@ -420,21 +421,21 @@ separated-dgg-beta-cast-value-shape
     (⊒cast+ᵗ {r = G !} {t = cₜ ↦ dₜ} pᶜ
       (_ , _ , refl , _ , _ , _ , _)
       (_ , _ , () , _ , _ , _ , _)
-      L⊒F′)
+      _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
     (⊒cast+ᵗ {r = seal P α} {t = cₜ ↦ dₜ} pᶜ
       (_ , _ , refl , _ , _ , _ , _)
       (_ , _ , () , _ , _ , _ , _)
-      L⊒F′)
+      _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
     (⊒cast+ᵗ {r = gen P r} {t = cₜ ↦ dₜ} pᶜ
       (_ , _ , refl , _ , _ , _ , _)
       (_ , _ , () , _ , _ , _ , _)
-      L⊒F′)
+      _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
@@ -446,7 +447,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       t⊒@(storesCast , _ , _ , wf⇒ hAᵢ hBᵢ , wf⇒ hA′ hB′ ,
         (cast-fun cₜ⊢L _ , cross (cₜʷL ↦ⁿʷ _)) ,
         (cast-fun cₜ⊢R _ , cross (cₜʷR ↦ⁿʷ _)))
-      L⊒F′)
+      _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′ =
   let
     relation-obligation :
@@ -542,6 +543,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
               (fun-narrow-domain-dual-typingᶜ pᶜ)
               p-domainᶜ
               target-domain-cast
+              {! target-argument-cast-composition !}
               R⊒W′)
 
         inner-application :
@@ -560,6 +562,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
             (fun-narrow-codomainᶜ pᶜ)
             (separated-fun-codomain rᶜ)
             target-codomain-cast
+            {! target-result-cast-composition !}
             inner-application
 
         obligation :
@@ -585,39 +588,39 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   relation-obligation
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast-ᵗ {t = id A} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast-ᵗ {t = id A} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast-ᵗ {t = t₁ ︔ t₂} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast-ᵗ {t = t₁ ︔ t₂} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast-ᵗ {t = `∀ t} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast-ᵗ {t = `∀ t} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast-ᵗ {t = G !} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast-ᵗ {t = G !} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast-ᵗ {t = G ？} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast-ᵗ {t = G ？} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast-ᵗ {t = seal A α} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast-ᵗ {t = seal A α} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast-ᵗ {t = unseal α A} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast-ᵗ {t = unseal α A} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast-ᵗ {t = gen A t} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast-ᵗ {t = gen A t} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape
     vL noL vR noR vV′ vW′
-    (⊒cast-ᵗ {t = inst A t} pᶜ rᶜ t⊒ L⊒F′)
+    (⊒cast-ᵗ {t = inst A t} pᶜ rᶜ t⊒ _ L⊒F′)
     () p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {V′ = V′} {W′ = W′} {c = c} {d = d}
@@ -625,7 +628,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     targetCast@(⊒cast-ᵗ {M′ = F′} {p = id P}
       {t = cₜ ↦ dₜ}
       (_ , () , _ , _ , _ , (_ , cross (id-＇ α)) , _)
-      rᶜ t⊒ L⊒F′)
+      rᶜ t⊒ _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {V′ = V′} {W′ = W′} {c = c} {d = d}
@@ -633,7 +636,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     targetCast@(⊒cast-ᵗ {M′ = F′} {p = id P}
       {t = cₜ ↦ dₜ}
       (_ , () , _ , _ , _ , (_ , cross (id-‵ ι)) , _)
-      rᶜ t⊒ L⊒F′)
+      rᶜ t⊒ _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {V′ = V′} {W′ = W′} {c = c} {d = d}
@@ -641,7 +644,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     targetCast@(⊒cast-ᵗ {M′ = F′} {p = id P}
       {t = cₜ ↦ dₜ}
       (_ , () , _ , _ , _ , (_ , id★) , _)
-      rᶜ t⊒ L⊒F′)
+      rᶜ t⊒ _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {V′ = V′} {W′ = W′} {c = c} {d = d}
@@ -649,7 +652,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     targetCast@(⊒cast-ᵗ {M′ = F′} {p = p₀ ︔ p₁}
       {t = cₜ ↦ dₜ}
       (_ , () , _ , _ , _ , (_ , G ？︔ gⁿ) , _)
-      rᶜ t⊒ L⊒F′)
+      rᶜ t⊒ _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {V′ = V′} {W′ = W′} {c = c} {d = d}
@@ -657,20 +660,20 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     targetCast@(⊒cast-ᵗ {M′ = F′} {p = p₀ ︔ p₁}
       {t = cₜ ↦ dₜ}
       (_ , _ , refl , _ , _ , (_ , gⁿ ︔seal α) , _)
-      rᶜ (_ , () , _ , _ , _ , _ , _) L⊒F′)
+      rᶜ (_ , () , _ , _ , _ , _ , _) _ L⊒F′)
     T≡V′cd p-domainᶜ R⊒W′
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast+⊒ᵗ {M = F₀} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast+⊒ᵗ {M = F₀} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     with canonical-⇒ vL (typed-term-narrowing-source-typingᶜ sourceCast)
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast+⊒ᵗ {M = F₀} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast+⊒ᵗ {M = F₀} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-ƛ ()
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
@@ -687,6 +690,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         wf⇒ hALs hBLs ,
         (cast-fun c₀⊢L d₀⊢L , cross (c₀ʷL ↦ⁿʷ d₀ⁿL)) ,
         (cast-fun c₀⊢R d₀⊢R , cross (c₀ʷR ↦ⁿʷ d₀ⁿR)))
+      compᵏ
       F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ {W = F} {c = cₛ} {d = dₛ} vF L≡Fcd =
@@ -798,6 +802,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         (fun-narrow-domain-dual-typingᶜ qInner)
         p-domainᶜ
         cₛ⊒
+        {! source-argument-cast-composition !}
         R⊒W′
 
     χsA , WRA , ΔLA ,
@@ -915,7 +920,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast+⊒ᵗ {M = F₀} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast+⊒ᵗ {M = F₀} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF L≡Fcd =
   {! separated-dgg-beta-cast-source-plus-noncanonical-inner-coercion !}
@@ -935,6 +940,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       (storesCast , _ , _ , wf⇒ hALs hBLs , wf⇒ hAₒs hBₒs ,
         (cast-fun c₀⊢L d₀⊢L , cross (c₀ʷL ↦ⁿʷ d₀ⁿL)) ,
         (cast-fun c₀⊢R d₀⊢R , cross (c₀ʷR ↦ⁿʷ d₀ⁿR)))
+      compᵏ
       F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     with canonical-⇒ vL (typed-term-narrowing-source-typingᶜ sourceCast)
@@ -954,6 +960,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       (storesCast , _ , _ , wf⇒ hALs hBLs , wf⇒ hAₒs hBₒs ,
         (cast-fun c₀⊢L d₀⊢L , cross (c₀ʷL ↦ⁿʷ d₀ⁿL)) ,
         (cast-fun c₀⊢R d₀⊢R , cross (c₀ʷR ↦ⁿʷ d₀ⁿR)))
+      compᵏ
       F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-ƛ ()
@@ -973,6 +980,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       (storesCast , _ , _ , wf⇒ hALs hBLs , wf⇒ hAₒs hBₒs ,
         (cast-fun c₀⊢L d₀⊢L , cross (c₀ʷL ↦ⁿʷ d₀ⁿL)) ,
         (cast-fun c₀⊢R d₀⊢R , cross (c₀ʷR ↦ⁿʷ d₀ⁿR)))
+      compᵏ
       F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ {W = F} {c = cₛ} {d = dₛ} vF L≡Fcd =
@@ -1095,7 +1103,9 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
             ⊢ R ⟨ c₁ ⟩ ⊒ W′ ∶ fun-narrow-domain-dual rInner
               ⦂ AL ⊒ _)
         c-dual-eq
-        (cast+⊒ᵗ p-domainᶜ pᵢ-domain⊒ c-dual⊒ R⊒W′)
+        (cast+⊒ᵗ p-domainᶜ pᵢ-domain⊒ c-dual⊒
+          {! source-argument-domain-composition !}
+          R⊒W′)
 
     χsA , WRA , ΔLA ,
       vWRA , noWRA , R-c↠WRA , ΔLA≡ , ρA-corr ,
@@ -1226,6 +1236,7 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
             qₒ⊒Tρ
             nᶜ
             dₛ⊒Tρ
+            {! source-cast-tail-composition !}
             N⊒target
       in
       subst
@@ -1257,84 +1268,84 @@ separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = s} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = s} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     with canonical-⇒ vL (typed-term-narrowing-source-typingᶜ sourceCast)
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = s} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = s} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-ƛ ()
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = id A} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = id A} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF ()
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = s₁ ︔ s₂} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = s₁ ︔ s₂} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF ()
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = `∀ s} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = `∀ s} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF ()
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = G !} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = G !} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF ()
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = G ？} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = G ？} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF ()
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = seal A α} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = seal A α} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF ()
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = unseal α A} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = unseal α A} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF ()
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = gen A s} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = gen A s} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF ()
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = inst A s} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = inst A s} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF ()
 separated-dgg-beta-cast-value-shape {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {L = L} {R = R} {T = T} {V′ = V′} {W′ = W′} {c = c}
     {d = d}
     vL noL vR noR vV′ vW′
-    sourceCast@(cast-⊒ᵗ {M = F₀} {s = s₁ ↦ s₂} qᶜ rᶜ s⊒ F₀⊒T)
+    sourceCast@(cast-⊒ᵗ {M = F₀} {s = s₁ ↦ s₂} qᶜ rᶜ s⊒ _ F₀⊒T)
     T≡V′cd p-domainᶜ R⊒W′
     | fv-↦ vF L≡Fcd =
   {! separated-dgg-beta-cast-source-minus-general-fun-cast !}

@@ -3,32 +3,29 @@
 module proof.MediationProperties where
 
 -- File Charter:
---   * Store-typing properties of the mediation relations: the crux
---     lemma (mediation preserves cast typing across the two stores)
---     and the store-change transports of the mediated judgment.
---   * Holes: the structural Narrowing-witness transport (shape-only)
---     and the one-store weakening used by the home-side allocation
---     transport (base-language lemma, independent of mediation).
+--   * Store-typing properties of the mediated judgment: its
+--     store-change transports, the one-store and composition-record
+--     arrow projections, and the left-change transport family.
+--   * Holes: the one-store left-change transports (base-language
+--     lemmas, independent of mediation), the mediated term-relation
+--     left-change transport, and the one-store weakening used by the
+--     home-side allocation transport.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Nat using (zero; suc; _<_; s≤s; z≤n)
 open import Data.List using ([]; _∷_)
 open import Data.Product using
-  (_×_; _,_; proj₁; proj₂; Σ-syntax; ∃-syntax)
+  (_×_; _,_; proj₁; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using
-  (cong; subst; sym; trans)
+  (subst; sym; trans)
 
 open import Types
 open import Coercions
 open import Store using (StoreWfAt)
 open import NarrowWiden using
-  ( Narrowing
-  ; Widening
-  ; cross
+  ( cross
   ; dualʷ
-  ; dualⁿ
   ; _∣_∣_⊢_∶_⊒_
-  ; _∣_∣_⊢_∶_⊑_
   )
   renaming (_↦_ to _↦ⁿʷ_)
 open import NuReduction using
@@ -57,97 +54,6 @@ open import proof.CatchupSeparated using
 open import proof.LeftChangeNarrowingSeparated using
   ( dualʷ-raw-determined
   )
-
-------------------------------------------------------------------------
--- The crux lemma
-------------------------------------------------------------------------
-
--- Mediation preserves cast typing across the stores: with
--- corresponding modes, mediating store payloads, and a mediated raw,
--- a typing in the left store yields a typing of the mediated raw in
--- the right store at mediated endpoints.  This replaces the
--- shared-raw demand of the retired two-store judgment.
-med-cast-typing :
-  ∀ {V μL μR ΔR ΣL ΣR c c′ A B} {ΔL : TyCtx} →
-  Functional V →
-  ModeCorr V μL μR →
-  StoreMed V ΣL ΣR →
-  VarScopedʳ V ΔR →
-  MedCo V c c′ →
-  μL ∣ ΔL ∣ ΣL ⊢ c ∶ A =⇒ B →
-  Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ]
-    MedTy V A A′ × MedTy V B B′ ×
-    (μR ∣ ΔR ∣ ΣR ⊢ c′ ∶ A′ =⇒ B′)
-med-cast-typing f mc sm sc (medc-id med) (cast-id wfA ok) =
-  _ , _ , med , med ,
-  cast-id (med-wf sc med) (med-idTyAllowed mc med ok)
-med-cast-typing f mc sm sc (medc-seal v med) (cast-seal wfA α∈ mok)
-  with sm v α∈
-... | P , β∈ , medP
-  with medTy-functional f med medP
-... | refl =
-  _ , _ , med , med-var v ,
-  cast-seal (med-wf sc med) β∈
-    (trans (sym (cong sealModeAllowed (mc v))) mok)
-med-cast-typing f mc sm sc (medc-unseal v med) (cast-unseal wfA α∈ mok)
-  with sm v α∈
-... | P , β∈ , medP
-  with medTy-functional f med medP
-... | refl =
-  _ , _ , med-var v , med ,
-  cast-unseal (med-wf sc med) β∈
-    (trans (sym (cong sealModeAllowed (mc v))) mok)
-med-cast-typing f mc sm sc (medc-seq ms mt) (cast-seq s⊢ t⊢)
-  with med-cast-typing f mc sm sc ms s⊢
-... | A′ , B₁ , medA , medB₁ , s⊢′
-  with med-cast-typing f mc sm sc mt t⊢
-... | B₂ , C′ , medB₂ , medC , t⊢′
-  with medTy-functional f medB₂ medB₁
-... | refl =
-  A′ , C′ , medA , medC , cast-seq s⊢′ t⊢′
-med-cast-typing f mc sm sc (medc-tag med) (cast-tag wfG gG tok) =
-  _ , _ , med , med-★ ,
-  cast-tag (med-wf sc med) (med-ground med gG)
-    (med-tagTyAllowed mc med tok)
-med-cast-typing f mc sm sc (medc-untag med) (cast-untag wfH gH tok) =
-  _ , _ , med-★ , med ,
-  cast-untag (med-wf sc med) (med-ground med gH)
-    (med-tagTyAllowed mc med tok)
-med-cast-typing f mc sm sc (medc-fun ms mt) (cast-fun s⊢ t⊢)
-  with med-cast-typing f mc sm sc ms s⊢
-     | med-cast-typing f mc sm sc mt t⊢
-... | A′₁ , A₁ , medA′ , medA , s⊢′
-    | B₁ , B′₁ , medB , medB′ , t⊢′ =
-  _ , _ , med-⇒ medA medB , med-⇒ medA′ medB′ ,
-  cast-fun s⊢′ t⊢′
-med-cast-typing f mc sm sc (medc-all ms) (cast-all s⊢)
-  with med-cast-typing (extVar-functional f) (modeCorr-ext mc)
-         (storeMed-⟰ sm) (varScopedʳ-ext sc) ms s⊢
-... | A₁ , B₁ , medA , medB , s⊢′ =
-  _ , _ , med-∀ medA , med-∀ medB , cast-all s⊢′
-med-cast-typing f mc sm sc (medc-gen medA ms) (cast-gen wfA occ s⊢)
-  with med-cast-typing (extVar-functional f) (modeCorr-gen mc)
-         (storeMed-⟰ sm) (varScopedʳ-ext sc) ms s⊢
-... | A₁ , B₁ , medA₁ , medB , s⊢′
-  with medTy-functional (extVar-functional f) medA₁ (medTy-⇑ medA)
-... | refl =
-  _ , _ , medA , med-∀ medB ,
-  cast-gen (med-wf sc medA) (med-occurs medB occ) s⊢′
-med-cast-typing f mc sm sc (medc-inst medB ms) (cast-inst wfB occ s⊢)
-  with med-cast-typing (extVar-functional f) (modeCorr-inst mc)
-         (storeMed-inst sm) (varScopedʳ-ext sc) ms s⊢
-... | A₁ , B₁ , medA , medB₁ , s⊢′
-  with medTy-functional (extVar-functional f) medB₁ (medTy-⇑ medB)
-... | refl =
-  _ , _ , med-∀ medA , medB ,
-  cast-inst (med-wf sc medB) (med-occurs medA occ) s⊢′
-
--- The structural Narrowing witness only inspects the shape of the
--- raw, which mediation preserves.  Large mutual data, no conceptual
--- content; transport left as a named hole.
-med-narrowing-witness :
-  ∀ {V c c′} → MedCo V c c′ → Narrowing c → Narrowing c′
-med-narrowing-witness med w = {! med-narrowing-witness !}
 
 ------------------------------------------------------------------------
 -- Store-change transports of the mediated judgment
@@ -296,26 +202,6 @@ right-change-transportᵐ (bind X) {μ = μ} corr′ ev =
   instᵈ μ , right-alloc-transportᵐ corr′ ev
 
 ------------------------------------------------------------------------
--- Mediation and coercion duals
-------------------------------------------------------------------------
-
--- MedCo is closed under the grammar-directed duals: dualizing a pair
--- of mediated raws (each through its own side's witness) yields
--- mediated raws again.  Shape-only structural transport over the
--- witness grammars, like `med-narrowing-witness`; left as a named
--- hole.  (A direct proof generalizes the two dual-action
--- environments over a correspondence invariant — `normalᵃ` turns
--- into `extᵃ`/`genᵃ`/`instᵃ` on both sides in lockstep with the
--- `ExtVar` binder extension of the variable correspondence.)
-medCo-dualʷ :
-  ∀ {V c c′} →
-  MedCo V c c′ →
-  (w : Widening c) →
-  (w′ : Widening c′) →
-  MedCo V (proj₁ (dualʷ normalᵃ w)) (proj₁ (dualʷ normalᵃ w′))
-medCo-dualʷ med w w′ = {! medCo-dualʷ !}
-
-------------------------------------------------------------------------
 -- One-store left transports (source-cast evidence)
 ------------------------------------------------------------------------
 
@@ -394,18 +280,31 @@ fun-narrow-codomain¹ :
 fun-narrow-codomain¹ (cast-fun c⊢ d⊢ , cross (cʷ ↦ⁿʷ dⁿ)) =
   d⊢ , dⁿ
 
+-- The domain dual of a mediated arrow index is witness-, mode-, and
+-- store-independent: it is computed from the home witness of the
+-- raw, and dual raws are determined across witnesses.  (The two
+-- evidences may live at different stores — the transported inner
+-- index of the recursion is compared against the original.)
+fun-narrow-domain-dualᵐ-determined :
+  ∀ {μ₁ μ₂ ΔL₁ ΔR₁ ρ₁ ΔL₂ ΔR₂ ρ₂ p q
+     A A′ B B′ A₁ A₁′ B₁ B₁′} →
+  (e₁ : μ₁ ∣ ΔL₁ ∣ ΔR₁ ∣ ρ₁ ⊢ p ↦ q ∶ (A ⇒ B) ⊒ᵐ (A′ ⇒ B′)) →
+  (e₂ : μ₂ ∣ ΔL₂ ∣ ΔR₂ ∣ ρ₂ ⊢ p ↦ q ∶ (A₁ ⇒ B₁) ⊒ᵐ (A₁′ ⇒ B₁′)) →
+  fun-narrow-domain-dualᵐ e₁ ≡ fun-narrow-domain-dualᵐ e₂
+fun-narrow-domain-dualᵐ-determined
+    (_ , _ , _ , _ , _ , (_ , cross (p₁ʷ ↦ⁿʷ _)))
+    (_ , _ , _ , _ , _ , (_ , cross (p₂ʷ ↦ⁿʷ _))) =
+  dualʷ-raw-determined normalᵃ p₁ʷ p₂ʷ
+
 ------------------------------------------------------------------------
 -- Source-side composition record projections (⨟ˡ)
 ------------------------------------------------------------------------
 
--- Domain-dual projection of an arrow-level source composition.  The
--- record's left images are inverted field-wise (MedCo/MedTy are
--- structural, so the left images of arrow raws are arrows), their
--- domain widenings are dualized in the left store, and the mediation
--- of the dual raws comes from `medCo-dualʷ`.  This answers the
--- recorded open question positively: the ⨟ˡ record's fields DO
--- produce the inner-domain composition that the argument-cast node
--- of `sim-betaᵐ` needs, with no field change.
+-- Domain-dual projection of an arrow-level source composition: the
+-- left factor pins the middle type as an arrow, its domain widening
+-- dualizes in the left store, and the mediated factors project
+-- through `fun-narrow-domain-dual-typingᵐ` — determinacy of dual
+-- raws rephrases the results at the use site's own evidences.
 comp-src-fun-domain-dualᵐ :
   ∀ {μ₁ μ₂ η ΔL ΔR ρ cₛ dₛ p₁ q₁ p₂ q₂
      A₀ B₀ AL BL AR BR A₁ B₁ A₁′ B₁′ A₂ B₂ A₂′ B₂′} →
@@ -423,47 +322,33 @@ comp-src-fun-domain-dualᵐ :
         ⨟ˡ fun-narrow-domain-dualᵐ e₁
         ≈ fun-narrow-domain-dualᵐ e₂ ∶ A₀ ⊒ᵐ AR
 comp-src-fun-domain-dualᵐ {ρ = ρ} corr
-    (composed-index-src {νᶜᵒᵐᵖ = ν}
-      (med-⇒ mAR mBR)
-      (medc-fun mp₁ mq₁)
-      (medc-fun mp₂ mq₂)
+    (composed-index-src {ηˢ = ηᶠ} {νᶜᵒᵐᵖ = ν}
       (cast-fun cₛ⊢ᶠ dₛ⊢ᶠ , cross (cₛʷᶠ ↦ⁿʷ dₛⁿᶠ))
-      (cast-fun p₁ᴸ⊢ q₁ᴸ⊢ , cross (p₁ᴸʷ ↦ⁿʷ q₁ᴸⁿ))
-      (cast-fun p₂ᴸ⊢ q₂ᴸ⊢ , cross (p₂ᴸʷ ↦ⁿʷ q₂ᴸⁿ)))
+      q⊒ᶠ r⊒ᶠ)
     (cast-fun c⊢ d⊢ , cross (cʷ ↦ⁿʷ dⁿ))
-    (_ , _ , _ , _ , med-⇒ _ _ ,
-      (cast-fun p₁⊢ q₁⊢ , cross (p₁ʷ ↦ⁿʷ q₁ⁿ)))
-    (_ , _ , _ , _ , med-⇒ _ _ ,
-      (cast-fun p₂⊢ q₂⊢ , cross (p₂ʷ ↦ⁿʷ q₂ⁿ))) =
+    e₁ e₂ =
   composed-index-src
-    mAR
-    (medCo-dualʷ mp₁ p₁ᴸʷ p₁ʷ)
-    (medCo-dualʷ mp₂ p₂ᴸʷ p₂ʷ)
     (subst
-      (λ c₀ → ν ∣ _ ∣ leftStore ρ ⊢ c₀ ∶ _ ⊒ _)
+      (λ c₀ → ηᶠ ∣ _ ∣ leftStore ρ ⊢ c₀ ∶ _ ⊒ _)
       (dualʷ-raw-determined normalᵃ cₛʷᶠ cʷ)
       (dualʷ-flips-typingᵐ
-        {μ = ν} {η = normalᵃ} {ν = ν}
+        {μ = ηᶠ} {η = normalᵃ} {ν = ηᶠ}
         dualActionOk-normal
         dualStoreAt-normal
         (leftStore-wf corr)
         (cₛ⊢ᶠ , cₛʷᶠ)))
-    (dualʷ-flips-typingᵐ
-      {μ = ν} {η = normalᵃ} {ν = ν}
-      dualActionOk-normal
-      dualStoreAt-normal
-      (leftStore-wf corr)
-      (p₁ᴸ⊢ , p₁ᴸʷ))
-    (dualʷ-flips-typingᵐ
-      {μ = ν} {η = normalᵃ} {ν = ν}
-      dualActionOk-normal
-      dualStoreAt-normal
-      (leftStore-wf corr)
-      (p₂ᴸ⊢ , p₂ᴸʷ))
+    (subst
+      (λ c₀ → ν ∣ _ ∣ _ ∣ ρ ⊢ c₀ ∶ _ ⊒ᵐ _)
+      (fun-narrow-domain-dualᵐ-determined q⊒ᶠ e₁)
+      (fun-narrow-domain-dual-typingᵐ q⊒ᶠ))
+    (subst
+      (λ c₀ → ν ∣ _ ∣ _ ∣ ρ ⊢ c₀ ∶ _ ⊒ᵐ _)
+      (fun-narrow-domain-dualᵐ-determined r⊒ᶠ e₂)
+      (fun-narrow-domain-dual-typingᵐ r⊒ᶠ))
 
 -- Codomain projection of an arrow-level source composition: pure
--- field inversion — every output field is a sub-field of the input
--- record.
+-- field inversion — the left factor's codomain and the mediated
+-- factors' codomain projections.
 comp-src-fun-codomainᵐ :
   ∀ {ΔL ΔR ρ cₛ dₛ p₁ q₁ p₂ q₂ A₀ B₀ AR BR} →
   ΔL ∣ ΔR ∣ ρ ⊢ (cₛ ↦ dₛ) ⨟ˡ (p₁ ↦ q₁) ≈ (p₂ ↦ q₂)
@@ -471,61 +356,43 @@ comp-src-fun-codomainᵐ :
   ΔL ∣ ΔR ∣ ρ ⊢ dₛ ⨟ˡ q₁ ≈ q₂ ∶ B₀ ⊒ᵐ BR
 comp-src-fun-codomainᵐ
     (composed-index-src
-      (med-⇒ mAR mBR)
-      (medc-fun mp₁ mq₁)
-      (medc-fun mp₂ mq₂)
       (cast-fun cₛ⊢ᶠ dₛ⊢ᶠ , cross (cₛʷᶠ ↦ⁿʷ dₛⁿᶠ))
-      (cast-fun p₁ᴸ⊢ q₁ᴸ⊢ , cross (p₁ᴸʷ ↦ⁿʷ q₁ᴸⁿ))
-      (cast-fun p₂ᴸ⊢ q₂ᴸ⊢ , cross (p₂ᴸʷ ↦ⁿʷ q₂ᴸⁿ))) =
+      q⊒ᶠ r⊒ᶠ) =
   composed-index-src
-    mBR
-    mq₁
-    mq₂
     (dₛ⊢ᶠ , dₛⁿᶠ)
-    (q₁ᴸ⊢ , q₁ᴸⁿ)
-    (q₂ᴸ⊢ , q₂ᴸⁿ)
+    (fun-narrow-codomainᵐ q⊒ᶠ)
+    (fun-narrow-codomainᵐ r⊒ᶠ)
 
 ------------------------------------------------------------------------
 -- Left-change transports of the ⨟ˡ record and the term relation
 ------------------------------------------------------------------------
 
-medCo-applyLeftChanges :
-  ∀ χs {ρ c cʳ} →
-  MedCo (MatchedVar ρ) c cʳ →
-  MedCo (MatchedVar (applyLeftChanges χs ρ)) (applyCoercions χs c) cʳ
-medCo-applyLeftChanges [] med = med
-medCo-applyLeftChanges (keep ∷ χs) med =
-  medCo-applyLeftChanges χs med
-medCo-applyLeftChanges (bind X ∷ χs) med =
-  medCo-applyLeftChanges χs (medCo-mapˡ suc mv-left-alloc med)
-
 -- A source-cast composition record crosses left store changes
--- field-wise: the left images and their typings shift with the left
--- store, while the mediated (home) raws are untouched.
+-- field-wise: the left factor and its typing shift with the left
+-- store, while the mediated factors move by `left-changes-transportᵐ`
+-- — raws and home typings untouched.
 left-changes-comp-srcᵐ :
   ∀ χs {ΔL ΔR ρ s q r A B} →
+  StoreCorr (applyTyCtxs χs ΔL) ΔR (applyLeftChanges χs ρ) →
   ΔL ∣ ΔR ∣ ρ ⊢ s ⨟ˡ q ≈ r ∶ A ⊒ᵐ B →
   applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ
     ⊢ applyCoercions χs s ⨟ˡ q ≈ r ∶ applyTys χs A ⊒ᵐ B
-left-changes-comp-srcᵐ χs {ΔL = ΔL} {ρ = ρ}
-    (composed-index-src {νᶜᵒᵐᵖ = ν} med-B med-q med-r s⊒ˡ q⊒ˡ r⊒ˡ) =
+left-changes-comp-srcᵐ χs {ΔL = ΔL} {ρ = ρ} corr′
+    (composed-index-src {ηˢ = η} s⊒ˡ q⊒ r⊒) =
   composed-index-src
-    (medTy-applyLeftChanges χs med-B)
-    (medCo-applyLeftChanges χs med-q)
-    (medCo-applyLeftChanges χs med-r)
     (reindex (left-changes-narrowingˡ χs s⊒ˡ))
-    (reindex (left-changes-narrowingˡ χs q⊒ˡ))
-    (reindex (left-changes-narrowingˡ χs r⊒ˡ))
+    (left-changes-transportᵐ χs corr′ q⊒)
+    (left-changes-transportᵐ χs corr′ r⊒)
   where
   reindex :
     ∀ {c A B} →
-    applyModeEnvs χs ν ∣ applyTyCtxs χs ΔL ∣ applyStores χs (leftStore ρ)
+    applyModeEnvs χs η ∣ applyTyCtxs χs ΔL ∣ applyStores χs (leftStore ρ)
       ⊢ c ∶ A ⊒ B →
-    applyModeEnvs χs ν ∣ applyTyCtxs χs ΔL
+    applyModeEnvs χs η ∣ applyTyCtxs χs ΔL
       ∣ leftStore (applyLeftChanges χs ρ) ⊢ c ∶ A ⊒ B
   reindex =
     subst
-      (λ Σ → applyModeEnvs χs ν ∣ applyTyCtxs χs ΔL ∣ Σ ⊢ _ ∶ _ ⊒ _)
+      (λ Σ → applyModeEnvs χs η ∣ applyTyCtxs χs ΔL ∣ Σ ⊢ _ ∶ _ ⊒ _)
       (sym (leftStore-applyLeftChanges χs ρ))
 
 -- The mediated term-relation transport across left store changes:

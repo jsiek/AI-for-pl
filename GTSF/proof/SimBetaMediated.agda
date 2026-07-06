@@ -54,6 +54,7 @@ open import proof.MediationProperties using
   ; narrowing-dual¹-applyCoercions
   ; fun-narrow-domain-dual¹
   ; fun-narrow-domain-dual-typing¹
+  ; fun-narrow-domain-dualᵐ-determined
   ; comp-src-fun-domain-dualᵐ
   ; comp-src-fun-codomainᵐ
   )
@@ -69,27 +70,10 @@ open import proof.ReductionProperties using
   ; ·₂-↠
   )
 open import proof.LeftChangeNarrowingSeparated using
-  ( dualʷ-raw-determined
-  ; dualʷ-involutive-raw
+  ( dualʷ-involutive-raw
   ; applyTys-⇒
   ; no•-cast-inv
   )
-
--- The domain dual of a mediated arrow index is witness-, mode-, and
--- store-independent: it is computed from the home witness of the
--- raw, and dual raws are determined across witnesses.  (The two
--- evidences may live at different stores — the transported inner
--- index of the recursion is compared against the original.)
-fun-narrow-domain-dualᵐ-determined :
-  ∀ {μ₁ μ₂ ΔL₁ ΔR₁ ρ₁ ΔL₂ ΔR₂ ρ₂ p q
-     A A′ B B′ A₁ A₁′ B₁ B₁′} →
-  (e₁ : μ₁ ∣ ΔL₁ ∣ ΔR₁ ∣ ρ₁ ⊢ p ↦ q ∶ (A ⇒ B) ⊒ᵐ (A′ ⇒ B′)) →
-  (e₂ : μ₂ ∣ ΔL₂ ∣ ΔR₂ ∣ ρ₂ ⊢ p ↦ q ∶ (A₁ ⇒ B₁) ⊒ᵐ (A₁′ ⇒ B₁′)) →
-  fun-narrow-domain-dualᵐ e₁ ≡ fun-narrow-domain-dualᵐ e₂
-fun-narrow-domain-dualᵐ-determined
-    (_ , _ , _ , _ , _ , (_ , cross (p₁ʷ ↦ⁿʷ _)))
-    (_ , _ , _ , _ , _ , (_ , cross (p₂ʷ ↦ⁿʷ _))) =
-  dualʷ-raw-determined normalᵃ p₁ʷ p₂ʷ
 
 -- The mediated substitution lemma for the beta body (open in the old
 -- development as well).  Postulated with explicit approval
@@ -152,7 +136,7 @@ sim-betaᵐ-cast-plus-tail χs {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       (left-changes-transportᵐ χs corr′ qᵢᶜ)
       (left-changes-transportᵐ χs corr′ q⊒)
       dₛ⊒ˡ′
-      (left-changes-comp-srcᵐ χs comp-cod)
+      (left-changes-comp-srcᵐ χs corr′ comp-cod)
       N⊒NL)
 
 -- The codomain tail of the other source-cast branch (cast-⊒ᵗ shape):
@@ -187,7 +171,7 @@ sim-betaᵐ-cast-minus-tail χs {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
             ∶ applyTys χs BV ⊒ applyTys χs Bₒ)
       (sym (leftStore-applyLeftChanges χs ρ))
       (left-changes-narrowingˡ χs dₛ⊒ˡ))
-    (left-changes-comp-srcᵐ χs comp-cod)
+    (left-changes-comp-srcᵐ χs corr′ comp-cod)
     N⊒NL
 
 -- A sequence coercion cannot be the source cast of a value at an

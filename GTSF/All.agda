@@ -11,6 +11,7 @@ import GradualTypeCheck
 import GradualExamples
 import Coercions
 import NarrowWiden
+import GradualTermNarrowing
 import StoreCorrespondence
 import NuTerms
 import TypeCheck

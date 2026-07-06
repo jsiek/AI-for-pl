@@ -463,6 +463,37 @@ the old proof survive only at the two term-level cast positions.
   projections, and the mode-generic `fun-narrow-codomainᵐ`/
   `fun-narrow-domain-dual-typingᵐ`.
 
+Migration step 3 (2026-07-06, ⨟ˡ simplification — **MedCo deleted
+entirely**): jsiek's observation that the `⊒ᵐ` judgment's source
+endpoint is already a left-side type lets the `⨟ˡ` record glue its
+left factor to the composition on the nose, with no left images and
+no coercion mediation at all:
+
+- The record is now the exact mirror of `⨟ʳ`: `s⊒ˡ` one-store left at
+  `A ⊒ midTy`, plus mediated `q⊒ : midTy ⊒ᵐ B` and `r⊒ : A ⊒ᵐ B`.
+  One deviation from the mirror: the left factor carries its own mode
+  environment `ηˢ` (the mediated factors share `νᶜᵒᵐᵖ`), because a
+  left store change shifts the left factor's mode environment
+  (`applyModeEnvs`) while the mediated factors' home typings — over
+  the untouched right store — keep theirs.
+- `comp-src-fun-domain-dualᵐ` no longer inverts left images: the
+  mediated factors project through `fun-narrow-domain-dual-typingᵐ`
+  and dual-raw determinacy rephrases the results at the use site's
+  evidences.  `comp-src-fun-codomainᵐ` stays pure inversion.
+  `left-changes-comp-srcᵐ` transports the mediated factors by the
+  proved `left-changes-transportᵐ` (it now takes the target
+  `StoreCorr`, as that lemma does); only its `s⊒ˡ` field still waits
+  on the hole-bodied `left-changes-narrowingˡ`.
+- Deleted: the `medCo-dualʷ` hole AND the `med-narrowing-witness`
+  hole; `MedCo` and everything typed over it — `med-cast-typing` (the
+  step-1 crux lemma; nothing ever consumed it — the simplified record
+  never needs to mediate a coercion) with its `ModeCorr`/`StoreMed`/
+  `VarScopedʳ`/`med-wf`/boolean/occurrence support and the `MedTy`
+  functionality lemmas, plus `medCo-mapˡ`/`extVar-mapˡ`/
+  `medCo-applyLeftChanges`.  `Mediation.agda` is now MedTy-only, and
+  the "left-mediability" open question is dissolved rather than
+  answered.
+
 ## Track C. Catchup Proof
 
 - [x] Add right-side store-change operations.

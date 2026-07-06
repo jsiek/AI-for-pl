@@ -3,22 +3,13 @@
 ## TODO items
 
 [ ] Discharge the mediated left-change plumbing holes left by PR #48
-    (branch claude/mediated-simbeta-cast-bodies), step 2 of the
-    mediated migration.  All four are named `{! !}` holes in
-    `GTSF/proof/MediationProperties.agda`; background is in the
-    "Migration step 2 progress" entry of
-    `GTSF/proof/SeparatedStoresDGGChecklist.md`.
-    1. `medCo-dualʷ` — MedCo is closed under the grammar-directed
-       duals (`NarrowWiden.dualʷ`/`dualⁿ`).  Structural mutual
-       induction over the witness grammars, pairing each MedCo
-       constructor with the two sides' witnesses (their constructors
-       match because MedCo/MedTy are structural).  Generalize the two
-       dual-action environments over a correspondence invariant
-       (∀ V α β → ηL α ≡ ηR β): `normalᵃ` becomes
-       `extᵃ`/`genᵃ`/`instᵃ` on both sides in lockstep with the
-       `ExtVar` extension.  This unblocks the domain-dual projection
-       `comp-src-fun-domain-dualᵐ`.
-    2. `left-changes-narrowingˡ` — one-store left-store transport of
+    (step 2 of the mediated migration).  All three are named `{! !}`
+    holes in `GTSF/proof/MediationProperties.agda`; background is in
+    the "Migration step 2 progress" and "Migration step 3" entries of
+    `GTSF/proof/SeparatedStoresDGGChecklist.md`.  (A former fourth
+    hole, `medCo-dualʷ`, was deleted along with `MedCo` itself by the
+    ⨟ˡ record simplification — migration step 3.)
+    1. `left-changes-narrowingˡ` — one-store left-store transport of
        a narrowing judgment across `StoreChanges`.  Build from the
        `applyCoercion-typing` shapes (proof/NuPreservation.agda) plus
        `renameⁿ` witness renaming.  Open design point recorded in the
@@ -26,16 +17,17 @@
        step, but bare `StoreChanges` does not carry wf of the bound
        types — either thread a wf-chain invariant or drop the wf
        requirement from the underlying weakening lemmas.
-    3. `narrowing-dual¹-applyCoercions` — the dual raw of a narrowing
+    2. `narrowing-dual¹-applyCoercions` — the dual raw of a narrowing
        is determined by the raw and commutes with the store-change
        shifts (a narrowing sibling of `dualʷ-raw-determined`, plus
        dual/rename commutation generalized over the action env).
-    4. `left-changes-term-narrowingᵐ` — the ⊒ᵐ replacement of the old
+    3. `left-changes-term-narrowingᵐ` — the ⊒ᵐ replacement of the old
        postulated `left-change-term-narrowing`: structural induction
        over `MediatedNarrowing._∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_` with the index
        raw untouched; `left-changes-transportᵐ` handles the coercion
        fields, binder cases shift the correspondence
-       (`⇑ᶜorr`/`⇑ᵍᶜ`-style, cf. `medTy-applyLeftChanges`).
+       (`⇑ᶜorr`/`⇑ᵍᶜ`-style, cf. `medTy-applyLeftChanges` and
+       `mv-lockstep`).
     Constraints: no new postulates without explicit approval; holes
     OK; `make -C GTSF check` green before commit; commit + PR at the
     end.  After these, the next migration step is moving the DGG

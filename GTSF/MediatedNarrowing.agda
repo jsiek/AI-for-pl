@@ -207,10 +207,14 @@ record _∣_∣_⊢_⨟ʳ_≈_∶_⊒ᵐ_
     r⊒ : νᶜᵒᵐᵖ ∣ ΔL ∣ ΔR ∣ ρ ⊢ r ∶ A ⊒ᵐ B
 
 -- Source-cast rules (cast±⊒ᵗ): the cast factor lives in the left
--- store, so the composition is stated there over the LEFT images of
--- the mediated indices, which the record carries explicitly.  Whether
--- every use site can supply the images (left-mediability of relation
--- indices) is a recorded migration question.
+-- store and is glued to the composition on the nose — the mediated
+-- judgment's source endpoint is itself a left-side type, so the
+-- middle type needs no left image and no coercion mediation (`MedCo`)
+-- at all; the `MedTy` inside the mediated factors carries the only
+-- mediation.  The left factor keeps its own mode environment: under
+-- a left store change it shifts with the left store, while the
+-- mediated factors' home typings (right store, untouched) keep
+-- theirs.
 infix 4 _∣_∣_⊢_⨟ˡ_≈_∶_⊒ᵐ_
 
 record _∣_∣_⊢_⨟ˡ_≈_∶_⊒ᵐ_
@@ -219,15 +223,11 @@ record _∣_∣_⊢_⨟ˡ_≈_∶_⊒ᵐ_
   constructor composed-index-src
   field
     {midTy} : Ty          -- the inner source type; a left-side type
-    {Bᴸ} : Ty             -- left image of the target endpoint
-    {qᴸ rᴸ} : Coercion    -- left images of the mediated indices
+    {ηˢ} : ModeEnv
     {νᶜᵒᵐᵖ} : ModeEnv
-    med-B : MedTy (MatchedVar ρ) Bᴸ B
-    med-q : MedCo (MatchedVar ρ) qᴸ q
-    med-r : MedCo (MatchedVar ρ) rᴸ r
-    s⊒ˡ : νᶜᵒᵐᵖ ∣ ΔL ∣ leftStore ρ ⊢ s ∶ A ⊒ midTy
-    q⊒ˡ : νᶜᵒᵐᵖ ∣ ΔL ∣ leftStore ρ ⊢ qᴸ ∶ midTy ⊒ Bᴸ
-    r⊒ˡ : νᶜᵒᵐᵖ ∣ ΔL ∣ leftStore ρ ⊢ rᴸ ∶ A ⊒ Bᴸ
+    s⊒ˡ : ηˢ ∣ ΔL ∣ leftStore ρ ⊢ s ∶ A ⊒ midTy
+    q⊒ : νᶜᵒᵐᵖ ∣ ΔL ∣ ΔR ∣ ρ ⊢ q ∶ midTy ⊒ᵐ B
+    r⊒ : νᶜᵒᵐᵖ ∣ ΔL ∣ ΔR ∣ ρ ⊢ r ∶ A ⊒ᵐ B
 
 ------------------------------------------------------------------------
 -- The mediated term-narrowing relation
@@ -362,8 +362,9 @@ data _∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_
 
   -- The cast rules: the cast coercion's evidence lives in the store
   -- of the side that carries the cast, and the composition side
-  -- condition is stated in that same store (`⨟ʳ` for target casts,
-  -- `⨟ˡ` over left images for source casts).
+  -- condition glues that one-store factor to mediated evidence for
+  -- the other two indices (`⨟ʳ` for target casts, `⨟ˡ` for source
+  -- casts).
 
   ⊒cast+ᵗ : ∀ {ΔL ΔR ρ γ M M′ p r t A B C μ η}
     → ΔL ∣ ΔR ∣ ρ ⊢ p ∶ᶜ A ⊒ᵐ C

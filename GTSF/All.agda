@@ -20,6 +20,7 @@ import NuExamplesFresh
 import NuReduction
 import Eval
 import Run
+import proof.CompileTermNarrowing
 import proof.NWTermReduction
 import TermNarrowing
 import proof.TermNarrowingProperties

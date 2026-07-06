@@ -26,7 +26,6 @@ open import Mediation
 open import MediatedNarrowing
 open import proof.CatchupSeparated using
   ( applyLeftChanges
-  ; applyStores
   )
 open import proof.MediationProperties using
   ( left-changes-transportᵐ

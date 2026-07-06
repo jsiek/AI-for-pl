@@ -21,7 +21,9 @@ import proof.NWTermReduction
 import TermNarrowing
 import proof.TermNarrowingProperties
 import proof.CatchupSeparated
-import proof.MediatedNarrowingPrototype
+import Mediation
+import MediatedNarrowing
+import proof.MediationProperties
 import proof.DynamicGradualGuaranteeSeparated
 import NarrowingExamples
 import NuMetaTheory

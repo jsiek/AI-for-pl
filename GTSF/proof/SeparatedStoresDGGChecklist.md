@@ -379,6 +379,46 @@ extractors; restate the left-change family (now provable via
 `medTy-mapˡ`-style transports) and the InnerStepCastSeparated holes
 (via the right-side lemmas).
 
+Migration status (2026-07-06, this PR): the prototype is promoted into
+the real definitions and the prototype module is deleted.
+
+- `Mediation.agda` (top level, public): the mediation relations and
+  their metatheory, now **hole-free** — the prototype's `storeMed-⟰`/
+  `storeMed-inst` membership plumbing and the `occurs zero` transport
+  (`med-occursᵖ`, via a pivot-preservation invariant) are proved.
+- `MediatedNarrowing.agda` (top level, public): the mediated relation
+  `_∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_` with all constructors ported, **hole-free**.
+  Key shape changes against `TermNarrowingSeparated`:
+  - coercion indices use `⊢ᵐ` (home = right; `MedTy` mediates the
+    source endpoint; no stored src/tgt equations — derive them from
+    the home typing when needed);
+  - cast evidence is homed on its own cast's side as a plain
+    one-store `NarrowWiden` judgment (`t⊒ʳ` right for `⊒cast±ᵗ`,
+    `s⊒ˡ` left for `cast±⊒ᵗ`), with embedded duals via
+    `narrowing-dual¹`; a target cast's raw therefore shifts exactly
+    with the store that `ξ-⟨⟩` changes;
+  - composition side conditions: `⨟ʳ` lives wholly in the home store;
+    `⨟ˡ` (source casts) is stated in the left store over explicitly
+    carried left images (`MedCo` fields) — whether every use site can
+    supply the images (left-mediability of relation indices) is an
+    open migration question to settle when the cast-rule proofs move;
+  - the extractors simplify: the domain-dual typing needs one
+    `dualʷ-flips-typingᵐ` instead of two, and the cast term-typing
+    cases read their side's typing directly off the one-store
+    premise.
+- `proof/MediationProperties.agda`: the crux lemma `med-cast-typing`
+  (all ten cases proved) and the two allocation transports of `⊢ᵐ`
+  (`left-alloc-transportᵐ` hole-free; `right-alloc-transportᵐ` modulo
+  one-store weakening).  Remaining holes: that weakening and the
+  structural `Narrowing` witness transport.
+
+Next migration steps: port `catchup-lemmaˡ`'s statement and the
+left-change lemma family to `⊒ᵐ` (the family should become provable —
+`left-alloc-transportᵐ` is its single-allocation core), then move the
+DGG proof stack (`SimBeta`, `DGGBeta*`, the main theorem) file by
+file, and finally delete `TermNarrowingSeparated`'s two-store
+judgment and relation.
+
 ## Track C. Catchup Proof
 
 - [x] Add right-side store-change operations.

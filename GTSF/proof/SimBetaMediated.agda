@@ -120,21 +120,15 @@ sim-betaᵐ
 sim-betaᵐ (cast+⊒ᵗ {s = s₁ ︔ s₂} qᶜ r⊒ s⊒ˡ comp V⊒ƛ)
     vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
   {! sim-beta-mediated-cast-plus-seq !}
-sim-betaᵐ (cast+⊒ᵗ {s = unseal α X} qᶜ r⊒ s⊒ˡ comp V⊒ƛ)
-    vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
-  {! sim-beta-mediated-cast-plus-unseal !}
-sim-betaᵐ (cast+⊒ᵗ {s = inst X s} qᶜ r⊒ s⊒ˡ comp V⊒ƛ)
-    vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
-  {! sim-beta-mediated-cast-plus-inst !}
+sim-betaᵐ (cast+⊒ᵗ {s = unseal α X} qᶜ r⊒ (_ , cross ()) comp V⊒ƛ)
+sim-betaᵐ (cast+⊒ᵗ {s = inst X s} qᶜ r⊒ (_ , cross ()) comp V⊒ƛ)
 sim-betaᵐ (cast+⊒ᵗ {s = gen X s} qᶜ r⊒ s⊒ˡ comp V⊒ƛ)
     vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
   {! sim-beta-mediated-cast-plus-gen !}
+sim-betaᵐ (cast+⊒ᵗ {s = X !} qᶜ r⊒ (_ , cross ()) comp V⊒ƛ)
 sim-betaᵐ (cast+⊒ᵗ {s = seal X α} qᶜ r⊒ s⊒ˡ comp V⊒ƛ)
     vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
   {! sim-beta-mediated-cast-plus-seal !}
-sim-betaᵐ (cast+⊒ᵗ {s = X !} qᶜ r⊒ s⊒ˡ comp V⊒ƛ)
-    vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
-  {! sim-beta-mediated-cast-plus-tag !}
 sim-betaᵐ
     (cast+⊒ᵗ {s = cₛ ↦ dₛ} qᶜ r⊒
       (cast-fun c⊢ d⊢ , cross (cʷ ↦ⁿʷ dⁿ)) comp V⊒ƛ)

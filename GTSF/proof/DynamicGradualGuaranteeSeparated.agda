@@ -163,7 +163,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   in
   let
     χs , N , ΔL′ , ρ′ , C , D , r ,
-      source-steps , ΔL′≡ , ρ′≡ , N⊒N′[V′] = rec
+      source-steps , ΔL′≡ , ρ′≡ , C≡ , D≡ , N⊒N′[V′] = rec
   in
   χs ,
   N ,
@@ -177,8 +177,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   ΔL′≡ ,
   refl ,
   ρ′≡ ,
-  {! β-source-endpoint-tracking !} ,
-  {! β-target-endpoint-tracking !} ,
+  C≡ ,
+  D≡ ,
   N⊒N′[V′]
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}
@@ -197,7 +197,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   in
   let
     χs , N , ΔL′ , ρ′ , C , D , r ,
-      source-steps , ΔL′≡ , ρ′≡ , N⊒target = rec
+      source-steps , ΔL′≡ , ρ′≡ , C≡ , D≡ , N⊒target = rec
   in
   χs ,
   N ,
@@ -211,8 +211,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   ΔL′≡ ,
   refl ,
   ρ′≡ ,
-  {! β-cast-source-endpoint-tracking !} ,
-  {! β-cast-target-endpoint-tracking !} ,
+  C≡ ,
+  D≡ ,
   N⊒target
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}

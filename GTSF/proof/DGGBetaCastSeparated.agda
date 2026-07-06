@@ -1366,6 +1366,8 @@ separated-dgg-beta-cast-value :
     (L · R —↠[ χs ] N) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
     (ρ′ ≡ applyLeftChanges χs ρ) ×
+    (C ≡ applyTys χs B) ×
+    (D ≡ B′) ×
     ΔL′ ∣ ΔR ∣ ρ′ ∣ []
       ⊢ N ⊒ (V′ · (W′ ⟨ c ⟩)) ⟨ d ⟩ ∶ r ⦂ C ⊒ D
 separated-dgg-beta-cast-value
@@ -1386,6 +1388,8 @@ separated-dgg-beta-cast-value
   red ,
   ΔL′≡ ,
   ρ′≡ ,
+  refl ,
+  refl ,
   N⊒target
 
 separated-dgg-beta-cast-left-first :
@@ -1403,6 +1407,8 @@ separated-dgg-beta-cast-left-first :
     (L · R —↠[ χs ] N) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
     (ρ′ ≡ applyLeftChanges χs ρ) ×
+    (C ≡ applyTys χs B) ×
+    (D ≡ B′) ×
     ΔL′ ∣ ΔR ∣ ρ′ ∣ []
       ⊢ N ⊒ (V′ · (W′ ⟨ c ⟩)) ⟨ d ⟩ ∶ r ⦂ C ⊒ D
 separated-dgg-beta-cast-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
@@ -1469,6 +1475,8 @@ separated-dgg-beta-cast-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         (ρ′ ≡
           applyLeftChanges χs (applyLeftChanges χsR
             (applyLeftChanges χsL ρ))) ×
+        (C ≡ applyTys χs (applyTys χsR (applyTys χsL B))) ×
+        (D ≡ B′) ×
         ΔL′ ∣ ΔR ∣ ρ′ ∣ []
           ⊢ N ⊒ (V′ · (W′ ⟨ c ⟩)) ⟨ d ⟩ ∶ r ⦂ C ⊒ D
     tail =
@@ -1485,7 +1493,7 @@ separated-dgg-beta-cast-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   in
   let
     χsT , N , ΔL′ , ρ′ , C , D , r ,
-      tail-red , ΔT≡ , ρT≡ , N⊒target = tail
+      tail-red , ΔT≡ , ρT≡ , C≡ᵀ , D≡ᵀ , N⊒target = tail
 
     source-steps :
       L · R —↠[ (χsL ++ χsR) ++ χsT ] N
@@ -1515,6 +1523,15 @@ separated-dgg-beta-cast-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
             (applyLeftChanges-++ (χsL ++ χsR) χsT ρ)
             (cong (applyLeftChanges χsT)
               (applyLeftChanges-++ χsL χsR ρ))))
+
+    C≡ :
+      C ≡ applyTys ((χsL ++ χsR) ++ χsT) B
+    C≡ =
+      trans C≡ᵀ
+        (sym
+          (trans
+            (applyTys-++ (χsL ++ χsR) χsT B)
+            (cong (applyTys χsT) (applyTys-++ χsL χsR B))))
   in
   (χsL ++ χsR) ++ χsT ,
   N ,
@@ -1526,6 +1543,8 @@ separated-dgg-beta-cast-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   source-steps ,
   ΔL′≡ ,
   ρ′≡ ,
+  C≡ ,
+  D≡ᵀ ,
   N⊒target
 
 separated-dgg-beta-cast-right-first :
@@ -1543,6 +1562,8 @@ separated-dgg-beta-cast-right-first :
     (L · R —↠[ χs ] N) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
     (ρ′ ≡ applyLeftChanges χs ρ) ×
+    (C ≡ applyTys χs B) ×
+    (D ≡ B′) ×
     ΔL′ ∣ ΔR ∣ ρ′ ∣ []
       ⊢ N ⊒ (V′ · (W′ ⟨ c ⟩)) ⟨ d ⟩ ∶ r ⦂ C ⊒ D
 separated-dgg-beta-cast-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
@@ -1571,6 +1592,8 @@ separated-dgg-beta-cast-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         (applyTerms χsR L · WR —↠[ χs ] N) ×
         (ΔL′ ≡ applyTyCtxs χs ΔL₁) ×
         (ρ′ ≡ applyLeftChanges χs (applyLeftChanges χsR ρ)) ×
+        (C ≡ applyTys χs (applyTys χsR B)) ×
+        (D ≡ B′) ×
         ΔL′ ∣ ΔR ∣ ρ′ ∣ []
           ⊢ N ⊒ (V′ · (W′ ⟨ c ⟩)) ⟨ d ⟩ ∶ r ⦂ C ⊒ D
     tail =
@@ -1587,7 +1610,7 @@ separated-dgg-beta-cast-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   in
   let
     χsT , N , ΔL′ , ρ′ , C , D , r ,
-      tail-red , ΔT≡ , ρT≡ , N⊒target = tail
+      tail-red , ΔT≡ , ρT≡ , C≡ᵀ , D≡ᵀ , N⊒target = tail
 
     source-steps :
       L · R —↠[ χsR ++ χsT ] N
@@ -1605,6 +1628,10 @@ separated-dgg-beta-cast-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ρ′ ≡ applyLeftChanges (χsR ++ χsT) ρ
     ρ′≡ =
       trans ρT≡ (sym (applyLeftChanges-++ χsR χsT ρ))
+
+    C≡ :
+      C ≡ applyTys (χsR ++ χsT) B
+    C≡ = trans C≡ᵀ (sym (applyTys-++ χsR χsT B))
   in
   χsR ++ χsT ,
   N ,
@@ -1616,6 +1643,8 @@ separated-dgg-beta-cast-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   source-steps ,
   ΔL′≡ ,
   ρ′≡ ,
+  C≡ ,
+  D≡ᵀ ,
   N⊒target
 
 separated-dgg-beta-cast :
@@ -1631,6 +1660,8 @@ separated-dgg-beta-cast :
     (L · R —↠[ χs ] N) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
     (ρ′ ≡ applyLeftChanges χs ρ) ×
+    (C ≡ applyTys χs B) ×
+    (D ≡ B′) ×
     ΔL′ ∣ ΔR ∣ ρ′ ∣ []
       ⊢ N ⊒ (V′ · (W′ ⟨ c ⟩)) ⟨ d ⟩ ∶ r ⦂ C ⊒ D
 separated-dgg-beta-cast okLR@(ok-no (no•-· noL noR))

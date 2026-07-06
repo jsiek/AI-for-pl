@@ -419,6 +419,50 @@ DGG proof stack (`SimBeta`, `DGGBeta*`, the main theorem) file by
 file, and finally delete `TermNarrowingSeparated`'s two-store
 judgment and relation.
 
+Migration step 2 progress (2026-07-06, sim-betaᵐ cast bodies): the
+two real source-cast arrow branches of `sim-betaᵐ` (the `cast+⊒ᵗ` and
+`cast-⊒ᵗ` clauses at `s = cₛ ↦ dₛ`) are filled, mirroring the old
+proof's shape — β-↦, an argument-position cast node at the inner
+domain, catchup, recursion, then the codomain tail — with the index
+plumbing collapsed: the recursion's conclusion keeps the original
+codomain raw, so the `applyCoercions-++`/dual-commutation rewrites of
+the old proof survive only at the two term-level cast positions.
+
+- The recorded open question about the `⨟ˡ` record is **answered
+  positively — no field change is needed**.  The argument-cast node's
+  `∶ᶜ` inner-domain index comes straight off the constructor's own
+  `∶ᶜ` premise (`fun-narrow-domain-dual-typingᵐᶜ`), and the record's
+  fields project to the domain-dual composition by pure inversion
+  (`proof/MediationProperties.comp-src-fun-domain-dualᵐ`): MedCo/
+  MedTy are structural, so the left images of arrow raws are arrows,
+  and their domain factors dualize in the left store.  The only new
+  mediation metatheory is `medCo-dualʷ` — MedCo is closed under the
+  grammar-directed duals — a shape-only structural lemma left as a
+  named hole (same flavor as `med-narrowing-witness`).  The codomain
+  projection (`comp-src-fun-codomainᵐ`) is pure field inversion, no
+  new lemmas.
+- The exotic source-cast shapes are refuted locally, without the old
+  canonical-⇒/FunView detour: seq(？︔) by its ★-sourced untag
+  typing, seq(︔seal)/gen/seal by computing their duals through
+  `normalᵃ` to non-inert raws (the Value premise refutes), and the
+  non-arrow inner-index shapes through the mediated evidence — the
+  structural `MedTy` of the arrow middle type refutes the ★/seal-
+  variable/∀ mediated sources that ？/unseal/inst/？︔ force.
+- New hole-bodied plumbing in `proof/MediationProperties.agda`, to be
+  discharged with the mediated left-change family: `medCo-dualʷ`,
+  `left-changes-narrowingˡ` (one-store left transport; NOTE the
+  store-wf chaining question — iterating `applyCoercion-typing` needs
+  well-formedness of the bound types at each intermediate step, which
+  a bare `StoreChanges` does not carry), its dual-raw commutation
+  `narrowing-dual¹-applyCoercions`, and the term-relation transport
+  `left-changes-term-narrowingᵐ` (the ⊒ᵐ replacement of the old
+  postulated `left-change-term-narrowing`; the index raw is
+  untouched).  Proved outright: `medCo-mapˡ`/`extVar-mapˡ`
+  (`Mediation.agda`), `medCo-applyLeftChanges`, the ⨟ˡ record
+  transport `left-changes-comp-srcᵐ`, the one-store arrow
+  projections, and the mode-generic `fun-narrow-codomainᵐ`/
+  `fun-narrow-domain-dual-typingᵐ`.
+
 ## Track C. Catchup Proof
 
 - [x] Add right-side store-change operations.

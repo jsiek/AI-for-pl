@@ -220,7 +220,7 @@ Repairs:
   failed the termination checker.  It now checks.  The recursion through
   catchup projections is marked `TERMINATING`, matching the existing
   `sim-beta` precedent.  For a function-shaped target cast, the `⊒cast+ᵗ`
-  inner coercions `G \!`, `seal`, and `gen` are refuted by matching `refl` in
+  inner coercions `G !`, `seal`, and `gen` are refuted by matching `refl` in
   the inner coercion's `tgt` equation and `()` in the cast typing's `tgt`
   equation (an arrow type cannot be `★`, `＇α`, or `∀`).  The `id` and `_︔_`
   inner coercions are genuine open branches and hold explicit holes, as do
@@ -394,3 +394,59 @@ seal-free (or pointwise compatible with `tag-or-idᵈ`) at the frame's
 endpoints.  Where that fails, the counterexample shape (`★ ⊒ ＇ α` with
 `(α , ★)` in the store) shows tag- and seal-mediated evidence genuinely
 diverge, which is a relation-design fact, not a provability gap.
+
+## Composition side conditions and the six missing rules, 2026-07-05
+
+Comparing `TermNarrowingSeparated` with the cambridge25 term-narrowing
+rules exposed a partial port: the polymorphism/ν rules were absent and
+all four cast rules had dropped their composition side conditions.
+Both are now restored; see the checklist for the design details.
+Highlights:
+
+- New mixfix judgment `ΔL ∣ ΔR ∣ ρ ⊢ s ⨟ t ≈ r ∶ A ⊒ B` mirroring the
+  paper's `s ⨾ t ≈ r`.  It stores cross-store typings of `s`, `t`, `r`
+  at one shared mode environment; canonicity (`narrowing-determinedᵐ`)
+  then pins `r` to the `_⨟ⁿ_` composite (`composite-determinedˡ/ʳ`,
+  proved).  Stored-composite forms were tried first and abandoned:
+  they do not transport across the postulated store-change surfaces.
+- Six constructors ported: `⊒Λᵗ`, `⊒⟨ν⟩ᵗ`, `α⊒αᵗ`, `⊒αᵗ`, `ν⊒νᵗ`,
+  `⊒νᵗ`, with explicit endpoint-typing premises.
+- `sim-beta` reworked: mode-generic function-coercion evidence plus the
+  `∶ᶜ` typing of its domain dual, argument relation indexed by that
+  dual.  `fun-narrow-domain-dual-determined` (proved) replaces
+  determinacy-based re-indexing; the two recursion sites consume the
+  new (approved) postulate `left-change-fun-coercion-narrowing`.
+- The composition witnesses at the `sim-beta` cast branches are real
+  proofs assembled from the matched constructor's own composition
+  record: `separated-fun-domain-dual` of its fields at the shared
+  environment, raw indices bridged by
+  `fun-narrow-domain-dual-determined`.
+- Checking-time note: `GTSF/Makefile` now runs Agda with
+  `+RTS -A128M -M8G -RTS`; one unflagged check of `SimBetaSeparated`
+  was killed by the OS (exit 137, memory pressure).
+
+## Downstream sweep of the composition premises, 2026-07-06
+
+- The last two `sim-beta` composition sites (the codomain sides of
+  `sim-beta-cast+-result` and `sim-beta-cast-tail`) are filled.  Both
+  helpers gained a codomain composition premise
+  `ΔL ∣ ΔR ∣ ρ ⊢ d ⨟ q ≈ q′ ∶ B ⊒ BR`, produced at the call sites by
+  `cast-fun-comp-codomain` (projects a codomain composition out of an
+  arrow-level record, pinning the middle type with the s-factor's
+  target equations) and transported through the two catchup
+  store-change layers with `left-change-composed-index` (both proved,
+  `LeftChangeNarrowingSeparated`).  `sim-beta` has no remaining holes.
+- `separated-dgg-beta{,-left-first,-right-first}` re-based on the new
+  `sim-beta` arity.  The generic `pᵈ` premise is gone: the argument
+  relation is now stated at `fun-narrow-domain-dualᶜ p↦qᶜ`, which is
+  what `·⊒·ᵗ` inversion hands the main theorem, so
+  `DynamicGradualGuaranteeSeparated`'s β case needed no change.
+  Inside, `left-change-fun-coercion-narrowing` transports the arrow
+  `∶ᶜ` typing along each catchup χs-chain and its dual equality
+  re-indexes the caught-up argument relation (one `subst` per layer).
+- `DGGBetaCastSeparated` and `DynamicGradualGuaranteeSeparated`
+  patterns arity-bumped (`_` for the new composition premise).  The
+  six cast constructions in `DGGBetaCastSeparated` carry named
+  `{! …-composition !}` holes mirroring the discharged `sim-beta`
+  sites; filling them needs the same compᵏ-threading surgery on that
+  file's local helpers.

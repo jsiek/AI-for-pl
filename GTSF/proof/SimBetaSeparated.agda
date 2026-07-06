@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module proof.SimBetaSeparated where
 
 -- File Charter:
@@ -87,8 +89,16 @@ open import proof.LeftChangeNarrowingSeparated public using
   ; left-change-coercion-narrowing
   ; left-change-source-coercion-narrowing
   ; left-change-source-coercion-narrowing-dual
+  ; left-change-fun-coercion-narrowing
   ; dualʷ-raw-determined
   ; dualʷ-involutive-raw
+  ; fun-narrow-domain-dual-determined
+  ; composed-index-raws-≡
+  ; fun-domain-dual-composed
+  ; cast-fun-comp-domain-dual
+  ; cast-fun-comp-domain-dual₂
+  ; cast-fun-comp-codomain
+  ; left-change-composed-index
   ; separated-fun-domain-dual
   ; advance-left-term-narrowing
   ; advance-left-function-term-narrowing
@@ -117,6 +127,7 @@ sim-beta-cast-tail :
     M₁ —↠[ χsT ] castN χsT N) →
   μq ∣ ΔL ∣ ΔR ∣ ρ ⊢ qₒ ∶ Bₒ ⊒ BR →
   μd ∣ ΔL ∣ ΔR ∣ ρ ⊢ d ∶ D₁ ⊒ D₂ →
+  ΔL ∣ ΔR ∣ ρ ⊢ d ⨟ qₒ ≈ qᵢ ∶ D₁ ⊒ BR →
   ΔLA ≡ applyTyCtxs χsA ΔL →
   StoreCorr ΔLA ΔR (applyLeftChanges χsA ρ) →
   (∀ {χsT N ΔLT ρT} →
@@ -131,6 +142,11 @@ sim-beta-cast-tail :
       ⊢ applyCoercions χsT (applyCoercions χsA d)
         ∶ applyTys χsT (applyTys χsA D₁)
         ⊒ applyTys χsT (applyTys χsA D₂) →
+    ΔLT ∣ ΔR ∣ ρT
+      ⊢ applyCoercions χsT (applyCoercions χsA d)
+        ⨟ applyCoercions χsT (applyCoercions χsA qₒ)
+        ≈ applyCoercions χsT (applyCoercions χsA qᵢ)
+        ∶ applyTys χsT (applyTys χsA D₁) ⊒ BR →
     ΔLT ∣ ΔR ∣ ρT ∣ []
       ⊢ castN χsT N ⊒ NL [ VR ]
         ∶ applyCoercions χsT (applyCoercions χsA qₒ)
@@ -150,10 +166,11 @@ sim-beta-cast-tail :
       ⊢ N ⊒ NL [ VR ] ∶ applyCoercions χs qₒ
         ⦂ applyTys χs Bₒ ⊒ BR
 sim-beta-cast-tail {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {M₀ = M₀}
-    {NL = NL} {VR = VR} {qₒ = qₒ} {d = d} {Bₒ = Bₒ}
+    {NL = NL} {VR = VR} {qᵢ = qᵢ} {qₒ = qₒ} {d = d} {Bₒ = Bₒ}
     {BR = BR} {D₁ = D₁} {D₂ = D₂} {μq = μq} {μd = μd}
     {χsA = χsA} {ΔLA = ΔLA}
-    castN prefix-red tail-cast qₒ⊒ d⊒ ΔLA≡ ρA-corr wrap rec =
+    castN prefix-red tail-cast qₒ⊒ d⊒ comp₀ ΔLA≡ ρA-corr wrap
+    rec =
   let
     χsT , N , ΔLT , ρT ,
       tail-red , ΔT≡ , ρT≡ , N⊒NL[VR] = rec
@@ -228,6 +245,37 @@ sim-beta-cast-tail {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {M₀ = M₀}
         (sym ρT≡)
         d⊒T
 
+    compA :
+      ΔLA ∣ ΔR ∣ applyLeftChanges χsA ρ
+        ⊢ applyCoercions χsA d ⨟ applyCoercions χsA qₒ
+          ≈ applyCoercions χsA qᵢ ∶ applyTys χsA D₁ ⊒ BR
+    compA = left-change-composed-index χsA ΔLA≡ ρA-corr comp₀
+
+    compT :
+      ΔLT ∣ ΔR ∣ applyLeftChanges χsT (applyLeftChanges χsA ρ)
+        ⊢ applyCoercions χsT (applyCoercions χsA d)
+          ⨟ applyCoercions χsT (applyCoercions χsA qₒ)
+          ≈ applyCoercions χsT (applyCoercions χsA qᵢ)
+          ∶ applyTys χsT (applyTys χsA D₁) ⊒ BR
+    compT = left-change-composed-index χsT ΔT≡ ρT-corr compA
+
+    compTρ :
+      ΔLT ∣ ΔR ∣ ρT
+        ⊢ applyCoercions χsT (applyCoercions χsA d)
+          ⨟ applyCoercions χsT (applyCoercions χsA qₒ)
+          ≈ applyCoercions χsT (applyCoercions χsA qᵢ)
+          ∶ applyTys χsT (applyTys χsA D₁) ⊒ BR
+    compTρ =
+      subst
+        (λ ρ₀ →
+          ΔLT ∣ ΔR ∣ ρ₀
+            ⊢ applyCoercions χsT (applyCoercions χsA d)
+              ⨟ applyCoercions χsT (applyCoercions χsA qₒ)
+              ≈ applyCoercions χsT (applyCoercions χsA qᵢ)
+              ∶ applyTys χsT (applyTys χsA D₁) ⊒ BR)
+        (sym ρT≡)
+        compT
+
     source-steps :
       M₀ —↠[ (keep ∷ χsA) ++ χsT ] castN χsT N
     source-steps = ↠-trans prefix-red (tail-cast tail-red)
@@ -246,7 +294,7 @@ sim-beta-cast-tail {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {M₀ = M₀}
       trans ρT≡ (sym (applyLeftChanges-++ χsA χsT ρ))
 
     N-cast⊒ =
-      wrap ρT≡ N⊒NL[VR] qₒ⊒Tρ d⊒Tρ
+      wrap ρT≡ N⊒NL[VR] qₒ⊒Tρ d⊒Tρ compTρ
 
     N-cast⊒total :
       ΔLT ∣ ΔR ∣ ρT ∣ []
@@ -285,6 +333,7 @@ sim-beta-cast+-result :
   μq ∣ ΔL ∣ ΔR ∣ ρ ⊢ qₒ ∶ Bₒ ⊒ BR →
   (dₛ⊒ : μd ∣ ΔL ∣ ΔR ∣ ρ ⊢ dₛ ∶ Bₒ ⊒ BL) →
   narrowing-dual dₛ⊒ ≡ d →
+  ΔL ∣ ΔR ∣ ρ ⊢ dₛ ⨟ qᵢ ≈ qₒ ∶ Bₒ ⊒ BR →
   ΔLA ≡ applyTyCtxs χsA ΔL →
   StoreCorr ΔLA ΔR (applyLeftChanges χsA ρ) →
   ΔLT ≡ applyTyCtxs χsT ΔLA →
@@ -301,7 +350,7 @@ sim-beta-cast+-result {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {VR = VR} {N = N} {qᵢ = qᵢ} {qₒ = qₒ} {dₛ = dₛ}
     {d = d} {Bₒ = Bₒ} {BL = BL} {BR = BR} {μq = μq}
     {μd = μd} {χsA = χsA} {χsT = χsT}
-    qᵢᶜ qₒ⊒ dₛ⊒ dₛ-dual-eq ΔLA≡ ρA-corr ΔT≡ ρT≡
+    qᵢᶜ qₒ⊒ dₛ⊒ dₛ-dual-eq comp₀ ΔLA≡ ρA-corr ΔT≡ ρT≡
     N⊒NL[VR] =
   let
     μN , nᶜ = typed-term-narrowing-coercion N⊒NL[VR]
@@ -429,6 +478,9 @@ sim-beta-cast+-result {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
           qᵢᶜT
           qₒ⊒T
           dₛ⊒T
+          (left-change-composed-index χsT ΔT≡ ρT-corr
+            (left-change-composed-index χsA ΔLA≡ ρA-corr
+              comp₀))
           N⊒NL[VR]T)
   in
   subst
@@ -464,20 +516,24 @@ term-function-domain-dual :
   Coercion
 term-function-domain-dual (ƛ⊒ƛᵗ p↦qᶜ N⊒NL) =
   fun-narrow-domain-dualᶜ p↦qᶜ
-term-function-domain-dual (cast+⊒ᵗ qᶜ rᶜ s⊒ M⊒M′) =
+term-function-domain-dual (cast+⊒ᵗ qᶜ rᶜ s⊒ _ M⊒M′) =
   fun-narrow-domain-dual rᶜ
-term-function-domain-dual (cast-⊒ᵗ qᶜ rᶜ s⊒ M⊒M′) =
+term-function-domain-dual (cast-⊒ᵗ qᶜ rᶜ s⊒ _ M⊒M′) =
   fun-narrow-domain-dual qᶜ
 
 {-# TERMINATING #-}
 sim-beta :
-  ∀ {ΔL ΔR ρ WL NL WR VR pᵈ p q A A′ B B′} →
+  ∀ {ΔL ΔR ρ WL NL WR VR p q A A′ B B′ μsim} →
   ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ WL ⊒ ƛ NL ∶ p ↦ q
     ⦂ A ⇒ B ⊒ A′ ⇒ B′ →
   Value WL →
   No• WL →
-  ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ WR ⊒ VR ∶ pᵈ ⦂ A ⊒ A′ →
-  ΔL ∣ ΔR ∣ ρ ⊢ pᵈ ∶ᶜ A ⊒ A′ →
+  (p↦q-sim⊒ : μsim ∣ ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q
+                ∶ (A ⇒ B) ⊒ (A′ ⇒ B′)) →
+  ΔL ∣ ΔR ∣ ρ
+    ⊢ fun-narrow-domain-dual p↦q-sim⊒ ∶ᶜ A ⊒ A′ →
+  ΔL ∣ ΔR ∣ ρ ∣ []
+    ⊢ WR ⊒ VR ∶ fun-narrow-domain-dual p↦q-sim⊒ ⦂ A ⊒ A′ →
   Value WR →
   No• WR →
   Value VR →
@@ -491,7 +547,7 @@ sim-beta :
 sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {WR = WR} {VR = VR} {A = A} {A′ = A′}
     (ƛ⊒ƛᵗ p↦qᶜ N⊒NL)
-    (ƛ N) noWL WR⊒VR p-domainᶜ vWR noWR vVR =
+    (ƛ N) noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
   let
     WR⊒VR′ :
       ΔL ∣ ΔR ∣ ρ ∣ []
@@ -500,12 +556,7 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     WR⊒VR′ =
       subst
         (λ p → ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ WR ⊒ VR ∶ p ⦂ A ⊒ A′)
-        (narrowing-determinedᵐ
-          (leftStore-det (narrowing-store-corrᶜ p-domainᶜ))
-          (let _ , _ , _ , _ , _ , pᵈ⊒L , _ = p-domainᶜ in pᵈ⊒L)
-          (let _ , _ , _ , _ , _ , pᵈ⊒L , _ =
-                 fun-narrow-domain-dual-typingᶜ p↦qᶜ
-           in pᵈ⊒L))
+        (fun-narrow-domain-dual-determined p↦q-sim⊒ p↦qᶜ)
         WR⊒VR
   in
   keep ∷ [] ,
@@ -516,11 +567,11 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   refl ,
   refl ,
   term-substitution-narrowingᶜ N⊒NL WR⊒VR′
-sim-beta castCase@(cast+⊒ᵗ rᶜ p↦qᶜ t⊒ V⊒ƛ)
-    vWL noWL WR⊒VR p-domainᶜ vWR noWR vVR
+sim-beta castCase@(cast+⊒ᵗ rᶜ p↦qᶜ t⊒ _ V⊒ƛ)
+    vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     with canonical-⇒ vWL (typed-term-narrowing-source-typingᶜ castCase)
-sim-beta castCase@(cast+⊒ᵗ rᶜ p↦qᶜ t⊒ V⊒ƛ)
-    vWL noWL WR⊒VR p-domainᶜ vWR noWR vVR
+sim-beta castCase@(cast+⊒ᵗ rᶜ p↦qᶜ t⊒ _ V⊒ƛ)
+    vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-ƛ ()
 sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {WL = WL} {NL = NL}
     {WR = WR} {VR = VR} {A′ = AR}
@@ -532,8 +583,9 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {WL = WL} {NL = NL}
       t⊒@(storesCast , _ , _ , _ , _ ,
         (cast-fun cₛ⊢L dₛ⊢L , cross (cₛʷL ↦ⁿʷ dₛⁿL)) ,
         (cast-fun cₛ⊢R dₛ⊢R , cross (cₛʷR ↦ⁿʷ dₛⁿR)))
+      compᵏ
       V⊒ƛ)
-    vWL noWL WR⊒VR p-domainᶜ vWR noWR vVR
+    vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-↦ {W = VF} {c = c} {d = d} vVF eq =
   let
     M≡VF : M ≡ VF
@@ -654,6 +706,14 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {WL = WL} {NL = NL}
       c⊒L ,
       c⊒R
 
+    comp-final :
+      ΔL ∣ ΔR ∣ ρ
+        ⊢ c ⨟ fun-narrow-domain-dualᶜ pᵢ↦qᵢᶜ
+          ≈ fun-narrow-domain-dual p↦q-sim⊒ ∶ Aₒ ⊒ AR
+    comp-final =
+      cast-fun-comp-domain-dual compᵏ t⊒ cast-eq pᵢ↦qᵢᶜ
+        p↦q-sim⊒
+
     WR-c⊒VR :
       ΔL ∣ ΔR ∣ ρ ∣ []
         ⊢ WR ⟨ c ⟩ ⊒ VR ∶ fun-narrow-domain-dualᶜ pᵢ↦qᵢᶜ
@@ -663,6 +723,7 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {WL = WL} {NL = NL}
         (fun-narrow-domain-dual-typingᶜ pᵢ↦qᵢᶜ)
         p-domainᶜ
         c⊒
+        comp-final
         WR⊒VR
 
     χsA , WRA , ΔLA ,
@@ -675,6 +736,34 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {WL = WL} {NL = NL}
 
     VFA⊒ƛ =
       advance-left-lambda-narrowing χsA ΔLA≡ ρA-corr VF⊒ƛ
+
+    pᵢ↦qᵢ⊒A =
+      left-change-fun-coercion-narrowing χsA
+        ΔLA≡ ρA-corr pᵢ↦qᵢᶜ
+
+    pAᶜ′ :
+      ΔLA ∣ ΔR ∣ applyLeftChanges χsA ρ
+        ⊢ fun-narrow-domain-dual (proj₁ pᵢ↦qᵢ⊒A)
+          ∶ᶜ applyTys χsA AL ⊒ AR
+    pAᶜ′ =
+      subst
+        (λ pd →
+          ΔLA ∣ ΔR ∣ applyLeftChanges χsA ρ
+            ⊢ pd ∶ᶜ applyTys χsA AL ⊒ AR)
+        (sym (proj₂ pᵢ↦qᵢ⊒A))
+        pAᶜ
+
+    WRA⊒VR′ :
+      ΔLA ∣ ΔR ∣ applyLeftChanges χsA ρ ∣ []
+        ⊢ WRA ⊒ VR ∶ fun-narrow-domain-dual (proj₁ pᵢ↦qᵢ⊒A)
+          ⦂ applyTys χsA AL ⊒ AR
+    WRA⊒VR′ =
+      subst
+        (λ pd →
+          ΔLA ∣ ΔR ∣ applyLeftChanges χsA ρ ∣ []
+            ⊢ WRA ⊒ VR ∶ pd ⦂ applyTys χsA AL ⊒ AR)
+        (sym (proj₂ pᵢ↦qᵢ⊒A))
+        WRA⊒VR
 
     arg-ready :
       VF · (WR ⟨ c ⟩) —↠[ χsA ] applyTerms χsA VF · WRA
@@ -695,8 +784,9 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {WL = WL} {NL = NL}
         VFA⊒ƛ
         (applyTerms-preserves-Value χsA vVF)
         (applyTerms-preserves-No• χsA noVF)
-        WRA⊒VR
-        pAᶜ
+        (proj₁ pᵢ↦qᵢ⊒A)
+        pAᶜ′
+        WRA⊒VR′
         vWRA
         noWRA
         vVR
@@ -759,6 +849,7 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {WL = WL} {NL = NL}
         (separated-fun-codomain pₒ↦qₒᶜ)
         dₛ⊒
         dₛ-dual-eq
+        (cast-fun-comp-codomain compᵏ t⊒)
         ΔLA≡
         ρA-corr
         ΔT≡
@@ -780,8 +871,9 @@ sim-beta
       (storesCast , _ , _ , _ , _ ,
         (cast-fun _ _ , cross (_ ↦ⁿʷ _)) ,
         (cast-fun _ _ , cross (_ ↦ⁿʷ _)))
+      _
       V⊒ƛ)
-    vWL noWL WR⊒VR p-domainᶜ vWR noWR vVR
+    vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-↦ vVF eq
 sim-beta
     (cast+⊒ᵗ {q = (G ？) ︔ g}
@@ -790,8 +882,9 @@ sim-beta
       (storesCast , _ , _ , _ , _ ,
         (cast-fun _ _ , cross (_ ↦ⁿʷ _)) ,
         (cast-fun _ _ , cross (_ ↦ⁿʷ _)))
+      _
       V⊒ƛ)
-    vWL noWL WR⊒VR p-domainᶜ vWR noWR vVR
+    vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-↦ vVF eq
 sim-beta
     (cast+⊒ᵗ {q = g ︔ seal A α}
@@ -800,14 +893,15 @@ sim-beta
       (storesCast , _ , _ , _ , _ ,
         (cast-fun _ _ , cross (_ ↦ⁿʷ _)) ,
         (cast-fun _ _ , cross (_ ↦ⁿʷ _)))
+      _
       V⊒ƛ)
-    vWL noWL WR⊒VR p-domainᶜ vWR noWR vVR
+    vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-↦ vVF eq
 sim-beta
-    (cast-⊒ᵗ {s = id A} p↦qᶜ rᶜ t⊒ V⊒ƛ)
+    (cast-⊒ᵗ {s = id A} p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
     (vV ⟨ () ⟩)
 sim-beta
-    (cast-⊒ᵗ {s = c ︔ d} p↦qᶜ rᶜ t⊒ V⊒ƛ)
+    (cast-⊒ᵗ {s = c ︔ d} p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
     (vV ⟨ () ⟩)
 sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL}
     {WR = WR} {VR = VR}
@@ -820,12 +914,13 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL}
       rInner@(storesInner , _ , _ , wf⇒ hAL hBL , _ ,
         (cast-fun pᵢ⊢L _ , cross (pᵢʷL ↦ⁿʷ _)) ,
         (cast-fun pᵢ⊢R _ , cross (pᵢʷR ↦ⁿʷ _)))
-      (storesCast , _ , _ , _ , wf⇒ hAₒʳ hBₒʳ ,
+      s⊒ᵗᵘᵖ@(storesCast , _ , _ , _ , wf⇒ hAₒʳ hBₒʳ ,
         (cast-fun c⊢L d⊢L , cross (cʷL ↦ⁿʷ dⁿL)) ,
         (cast-fun c⊢R d⊢R , cross (cʷR ↦ⁿʷ dⁿR)))
+      compᵏ
       V⊒ƛ)
     (vV ⟨ i ⟩)
-    (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR =
+    (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
   let
     head-β↦ :
       (V ⟨ c ↦ d ⟩) · WR —↠[ keep ∷ [] ]
@@ -937,7 +1032,10 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL}
             ⊢ WR ⟨ s ⟩ ⊒ VR ∶ fun-narrow-domain-dual rInner
               ⦂ AL ⊒ AR)
         c-dual-eq
-        (cast+⊒ᵗ p-domainᶜ pᵢ-domain⊒ c-dual⊒ WR⊒VR)
+        (cast+⊒ᵗ p-domainᶜ pᵢ-domain⊒ c-dual⊒
+          (cast-fun-comp-domain-dual₂ compᵏ s⊒ᵗᵘᵖ p↦q-sim⊒
+            rInner)
+          WR⊒VR)
 
     χsA , WRA , ΔLA ,
       vWRA , noWRA , WR-c↠WRA , ΔLA≡ , ρA-corr ,
@@ -966,13 +1064,42 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL}
         (applyTerms χsA V · WRA) ⟨ applyCoercions χsA d ⟩
     cast-arg-ready = cast-↠ {c = d} arg-ready
 
+    pᵢ↦qᵢ⊒A =
+      left-change-fun-coercion-narrowing χsA
+        ΔLA≡ ρA-corr rInner
+
+    pAᶜ′ :
+      ΔLA ∣ ΔR ∣ applyLeftChanges χsA ρ
+        ⊢ fun-narrow-domain-dual (proj₁ pᵢ↦qᵢ⊒A)
+          ∶ᶜ applyTys χsA AL ⊒ AR
+    pAᶜ′ =
+      subst
+        (λ pd →
+          ΔLA ∣ ΔR ∣ applyLeftChanges χsA ρ
+            ⊢ pd ∶ᶜ applyTys χsA AL ⊒ AR)
+        (sym (proj₂ pᵢ↦qᵢ⊒A))
+        pAᶜ
+
+    WRA⊒VR′ :
+      ΔLA ∣ ΔR ∣ applyLeftChanges χsA ρ ∣ []
+        ⊢ WRA ⊒ VR ∶ fun-narrow-domain-dual (proj₁ pᵢ↦qᵢ⊒A)
+          ⦂ applyTys χsA AL ⊒ AR
+    WRA⊒VR′ =
+      subst
+        (λ pd →
+          ΔLA ∣ ΔR ∣ applyLeftChanges χsA ρ ∣ []
+            ⊢ WRA ⊒ VR ∶ pd ⦂ applyTys χsA AL ⊒ AR)
+        (sym (proj₂ pᵢ↦qᵢ⊒A))
+        WRA⊒VR
+
     rec =
       sim-beta
         VFA⊒ƛ
         (applyTerms-preserves-Value χsA vV)
         (applyTerms-preserves-No• χsA noV)
-        WRA⊒VR
-        pAᶜ
+        (proj₁ pᵢ↦qᵢ⊒A)
+        pAᶜ′
+        WRA⊒VR′
         vWRA
         noWRA
         vVR
@@ -989,76 +1116,78 @@ sim-beta {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL}
     (λ tail-red → cast-↠ {c = applyCoercions χsA d} tail-red)
     qₒ⊒
     d⊒
+    (cast-fun-comp-codomain compᵏ s⊒ᵗᵘᵖ)
     ΔLA≡
     ρA-corr
-    (λ _ N⊒NL[VR] qₒ⊒Tρ d⊒Tρ →
+    (λ _ N⊒NL[VR] qₒ⊒Tρ d⊒Tρ compTρ →
       let μN , nᶜ = typed-term-narrowing-coercion N⊒NL[VR] in
       cast-⊒ᵗ {μ = μN} {η = ηCast}
         qₒ⊒Tρ
         nᶜ
         d⊒Tρ
+        compTρ
         N⊒NL[VR])
     rec
 sim-beta castCase@(cast-⊒ᵗ {s = `∀ c}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ `∀ c ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ `∀ c ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     with canonical-⇒ (vV ⟨ `∀ c ⟩)
            (typed-term-narrowing-source-typingᶜ castCase)
 sim-beta castCase@(cast-⊒ᵗ {s = `∀ c}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ `∀ c ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ `∀ c ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-ƛ ()
 sim-beta castCase@(cast-⊒ᵗ {s = `∀ c}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ `∀ c ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ `∀ c ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-↦ vW ()
 sim-beta castCase@(cast-⊒ᵗ {s = G !}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ G ! ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ G ! ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     with canonical-⇒ (vV ⟨ G ! ⟩)
            (typed-term-narrowing-source-typingᶜ castCase)
 sim-beta castCase@(cast-⊒ᵗ {s = G !}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ G ! ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ G ! ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-ƛ ()
 sim-beta castCase@(cast-⊒ᵗ {s = G !}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ G ! ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ G ! ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-↦ vW ()
 sim-beta
-    (cast-⊒ᵗ {s = G ？} p↦qᶜ rᶜ t⊒ V⊒ƛ)
+    (cast-⊒ᵗ {s = G ？} p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
     (vV ⟨ () ⟩)
 sim-beta castCase@(cast-⊒ᵗ {s = seal A α}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ seal A α ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ seal A α ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     with canonical-⇒ (vV ⟨ seal A α ⟩)
            (typed-term-narrowing-source-typingᶜ castCase)
 sim-beta castCase@(cast-⊒ᵗ {s = seal A α}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ seal A α ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ seal A α ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-ƛ ()
 sim-beta castCase@(cast-⊒ᵗ {s = seal A α}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ seal A α ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ seal A α ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-↦ vW ()
 sim-beta
     (cast-⊒ᵗ {s = unseal α A}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
     (vV ⟨ () ⟩)
 sim-beta castCase@(cast-⊒ᵗ {s = gen A c}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ gen A c ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ gen A c ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     with canonical-⇒ (vV ⟨ gen A c ⟩)
            (typed-term-narrowing-source-typingᶜ castCase)
 sim-beta castCase@(cast-⊒ᵗ {s = gen A c}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ gen A c ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ gen A c ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-ƛ ()
 sim-beta castCase@(cast-⊒ᵗ {s = gen A c}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
-    (vV ⟨ gen A c ⟩) (no•-⟨⟩ noV) WR⊒VR p-domainᶜ vWR noWR vVR
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
+    (vV ⟨ gen A c ⟩) (no•-⟨⟩ noV) p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR
     | fv-↦ vW ()
 sim-beta
     (cast-⊒ᵗ {s = inst A c}
-      p↦qᶜ rᶜ t⊒ V⊒ƛ)
+      p↦qᶜ rᶜ t⊒ _ V⊒ƛ)
     (vV ⟨ () ⟩)

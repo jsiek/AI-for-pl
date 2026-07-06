@@ -206,10 +206,83 @@ Current named obligations in `proof.DynamicGradualGuaranteeSeparated`:
   an untag; the untag case dualizes to an inert tag and is discharged by
   `canonical-⇒`.
 
+## Partial-port findings (cambridge25 comparison, 2026-07-05)
+
+Comparing `TermNarrowingSeparated` against the cambridge25 term narrowing
+rules (`γ ⊢ M ⊒ M′ : r`):
+
+- Present: (⊒blame), (x⊒x), (λ⊒λ), (·⊒·), (Λ⊒Λ), (κ⊒κ), (⊕⊒⊕), and the
+  four cast rules.
+- Missing: (extend) and (split) — the seal-correspondence manipulation
+  rules; parts of their role live in the `SealCorr`/`applyLeftChanges`
+  machinery, but nobody has checked the machinery derives what the rules
+  provide.  Also missing: (⊒Λ), (⊒⟨ν⟩), (α⊒α), (⊒α), (ν⊒ν), (⊒ν) — the
+  Track B list below.
+- Weakened: all four separated cast rules dropped the cambridge25
+  composition side conditions (`s ⨾ q ≈ r`, `r ≈ p ⨾ t`), which the
+  shared-store `TermNarrowing` port keeps (via `_⨟ⁿ_` and `≈`).  The
+  dropped conditions are what made the separated conclusion indices free
+  relabelings; the coercion-tracking and mode-pinch analyses in this
+  checklist were partly artifacts of that.  Restored (2026-07-05) as
+  the mixfix judgment `ΔL ∣ ΔR ∣ ρ ⊢ s ⨟ t ≈ r ∶ A ⊒ B`: a record with
+  cross-store typings of both factors and of `r` at one shared mode
+  environment (`νᶜᵒᵐᵖ`, an implicit field, like the middle type).  The
+  literal composite equality is recovered by `composite-determinedˡ/ʳ`
+  via `narrowing-determinedᵐ` rather than stored, because the stored
+  form would not transport across the postulated store-change surfaces.
+- Supporting `sim-beta` changes for the composition witnesses:
+  `sim-beta` now takes mode-generic function-coercion evidence
+  (`μsim ∣ … ⊢ p ↦ q ∶ …`) plus the `∶ᶜ` typing of its
+  `fun-narrow-domain-dual`, with the argument relation indexed by that
+  dual.  `fun-narrow-domain-dual-determined` (proved: duals are
+  witness- and mode-independent, by `dualʷ-raw-determined`) does the
+  index re-alignments.  One postulate was added with explicit approval:
+  `left-change-fun-coercion-narrowing`, the arrow/domain-dual sibling
+  of `left-change-source-coercion-narrowing-dual`, consumed by the two
+  `sim-beta` recursion sites.  The composition witnesses themselves are
+  assembled from the matched constructor's incoming record by taking
+  `separated-fun-domain-dual` of its three fields (all at `νᶜᵒᵐᵖ`) and
+  bridging the raw indices with `fun-narrow-domain-dual-determined`.
+- All four `sim-beta` composition sites are discharged (2026-07-06):
+  the two domain-side sites use `cast-fun-comp-domain-dual` /
+  `cast-fun-comp-domain-dual₂`, and the two codomain-side sites
+  (`sim-beta-cast+-result` and `sim-beta-cast-tail`) thread a
+  codomain composition premise obtained by `cast-fun-comp-codomain`
+  from the matched constructor's record, transported through the
+  catchup store changes with `left-change-composed-index` (both
+  proved in `LeftChangeNarrowingSeparated`; no new postulates).
+- `separated-dgg-beta{,-left-first,-right-first}` were re-based on the
+  new `sim-beta` arity: the free-floating `pᵈ` premise is replaced by
+  `fun-narrow-domain-dualᶜ p↦qᶜ` (exactly what `·⊒·ᵗ` inversion
+  supplies), and the `∶ᶜ` arrow typing is transported through the
+  catchup χs-chains with `left-change-fun-coercion-narrowing`, whose
+  returned dual equality re-indexes the caught-up argument relation.
+- `DGGBetaCastSeparated` cast patterns were arity-bumped for the new
+  composition premise; its six cast *construction* sites now carry
+  named `{! …-composition !}` holes (`beta-cast-tail-composition`,
+  `target-argument-cast-composition`, `target-result-cast-composition`,
+  `source-argument-cast-composition`,
+  `source-argument-domain-composition`,
+  `source-cast-tail-composition`).  They mirror the discharged
+  `sim-beta` sites and should be filled the same way once that file's
+  local helpers thread the incoming `compᵏ` records.
+- The cambridge25 N.B. types p, q under `Γ | ∅` but r, s, t under
+  `Γ | Φ`; the Agda encoding of that split is `tag-or-idᵈ`-versus-`μ`
+  mode environments over a shared store (documented at `Mode` in
+  `Coercions.agda`).
+
 ## Track B. Term Narrowing Surface Needed By `sim-beta`
 
 - [x] Add separated cast-left and cast-right constructors.
-- [ ] Add separated `ν` and polymorphic constructors needed by catchup results.
+- [x] Add separated `ν` and polymorphic constructors (`⊒Λᵗ`, `⊒⟨ν⟩ᵗ`,
+  `α⊒αᵗ`, `⊒αᵗ`, `ν⊒νᵗ`, `⊒νᵗ`, 2026-07-05).  Target-only binders
+  extend both type contexts with a `right-only` seal entry; the shared
+  `α ꞉ q` coercion entry becomes a `matched` entry carrying `q`'s
+  endpoint types with the correlating `q ∶ᶜ` as an explicit premise;
+  endpoint typing is an explicit `TermTypingEndpointsᶜ` premise so the
+  extractors stay total.  Downstream coverage clauses for the six new
+  constructors are still being swept through the proof modules.
+  (extend)/(split) deferred: let proof attempts guide their design.
 - [ ] Add separated substitution narrowing for the beta body.
 - [x] Remove the lightweight coercion-correlation records; separated
   constructors now carry explicit endpoint products.

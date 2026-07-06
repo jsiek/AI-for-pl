@@ -116,6 +116,20 @@ renameᶜ ρ (`∀ p) = `∀ (renameᶜ (extᵗ ρ) p)
 renameᶜ ρ (gen A p) = gen (renameᵗ ρ A) (renameᶜ (extᵗ ρ) p)
 renameᶜ ρ (inst B p) = inst (renameᵗ ρ B) (renameᶜ (extᵗ ρ) p)
 
+-- Correspondence with the cambridge25 notes: the term-narrowing rules
+-- there type the structural indices p, q under `Γ | ∅` (no seal store,
+-- so p and q cannot contain seal or unseal coercions) while the
+-- cast-composed indices r, s, t are typed under `Γ | Φ`.  This Agda
+-- development instead types every coercion against the full store and
+-- encodes the ∅-versus-Φ split as a mode environment: `tag-or-idᵈ`
+-- (the `∶ᶜ` judgments used for p and q) forbids seal/unseal at every
+-- variable, playing the role of ∅, while a general `μ` may grant
+-- `seal-or-id` at store variables, playing the role of Φ.  The
+-- per-variable `Mode` records how that variable's imprecision is
+-- mediated: by nothing (`id-only`), by tags (`tag-or-id`), or by
+-- seals (`seal-or-id`); tag- and seal-mediation are deliberately
+-- incomparable in `mode≤`, which is what makes normal coercions
+-- canonical per mode environment (`narrowing-determinedᵐ`).
 data Mode : Set where
   id-only tag-or-id seal-or-id : Mode
 

@@ -124,10 +124,16 @@ const-narrowing-targetᶜ () eqM′ (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′)
 const-narrowing-targetᶜ () eqM′ (Λ⊒Λᵗ allᶜ vV vV′ V⊒V′)
 const-narrowing-targetᶜ refl refl (κ⊒κᵗ (κℕ n) pᶜ) = refl
 const-narrowing-targetᶜ () eqM′ (⊕⊒⊕ᵗ pᶜ M⊒M′ N⊒N′)
-const-narrowing-targetᶜ eqM () (⊒cast+ᵗ pᶜ rᶜ t⊒ M⊒M′)
-const-narrowing-targetᶜ eqM () (⊒cast-ᵗ pᶜ rᶜ t⊒ M⊒M′)
-const-narrowing-targetᶜ () eqM′ (cast+⊒ᵗ qᶜ rᶜ s⊒ M⊒M′)
-const-narrowing-targetᶜ () eqM′ (cast-⊒ᵗ qᶜ rᶜ s⊒ M⊒M′)
+const-narrowing-targetᶜ eqM () (⊒Λᵗ typing genᶜ N⊒V′)
+const-narrowing-targetᶜ eqM () (⊒⟨ν⟩ᵗ typing genᶜ i N⊒V′s)
+const-narrowing-targetᶜ () eqM′ (α⊒αᵗ γ′≡ typing qᶜ pᶜ L⊒L′)
+const-narrowing-targetᶜ eqM () (⊒αᵗ γ′≡ typing pᶜ L⊒L′)
+const-narrowing-targetᶜ () eqM′ (ν⊒νᵗ typing pᶜ qᶜ N⊒N′)
+const-narrowing-targetᶜ eqM () (⊒νᵗ typing pᶜ N⊒N′)
+const-narrowing-targetᶜ eqM () (⊒cast+ᵗ pᶜ rᶜ t⊒ _ M⊒M′)
+const-narrowing-targetᶜ eqM () (⊒cast-ᵗ pᶜ rᶜ t⊒ _ M⊒M′)
+const-narrowing-targetᶜ () eqM′ (cast+⊒ᵗ qᶜ rᶜ s⊒ _ M⊒M′)
+const-narrowing-targetᶜ () eqM′ (cast-⊒ᵗ qᶜ rᶜ s⊒ _ M⊒M′)
 
 value-id-ℕ-narrowing-target-constᶜ :
   ∀ {ΔL ΔR ρ W n} →

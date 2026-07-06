@@ -55,15 +55,16 @@ fun-narrow-domain-dualᵐ-determined
   dualʷ-raw-determined normalᵃ p₁ʷ p₂ʷ
 
 -- The mediated substitution lemma for the beta body (open in the old
--- development as well).
-term-substitution-narrowingᵐ :
-  ∀ {ΔL ΔR ρ N N′ V V′ p q A A′ B B′} →
-  ΔL ∣ ΔR ∣ ρ ∣ ctx-entry A A′ p ∷ []
-    ⊢ N ⊒ N′ ∶ q ⦂ B ⊒ᵐ B′ →
-  ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ V ⊒ V′ ∶ p ⦂ A ⊒ᵐ A′ →
-  ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ N [ V ] ⊒ N′ [ V′ ] ∶ q ⦂ B ⊒ᵐ B′
-term-substitution-narrowingᵐ N⊒N′ V⊒V′ =
-  {! term-substitution-narrowing-mediated !}
+-- development as well).  Postulated with explicit approval
+-- (2026-07-06); the substitution metatheory of the mediated relation
+-- is its own work item.
+postulate
+  term-substitution-narrowingᵐ :
+    ∀ {ΔL ΔR ρ N N′ V V′ p q A A′ B B′} →
+    ΔL ∣ ΔR ∣ ρ ∣ ctx-entry A A′ p ∷ []
+      ⊢ N ⊒ N′ ∶ q ⦂ B ⊒ᵐ B′ →
+    ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ V ⊒ V′ ∶ p ⦂ A ⊒ᵐ A′ →
+    ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ N [ V ] ⊒ N′ [ V′ ] ∶ q ⦂ B ⊒ᵐ B′
 
 sim-betaᵐ :
   ∀ {ΔL ΔR ρ WL NL WR VR p q A A′ B B′ μsim} →

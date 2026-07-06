@@ -79,11 +79,11 @@ lookupAny? (A ∷ Γ) (suc x) with lookupAny? Γ x
 value? : (M : GTerm) → Maybe (Value M)
 value? (` x) = nothing
 value? (ƛ A ⇒ M) = just (ƛ A ⇒ M)
-value? (L · M) = nothing
+value? (L ·[ ℓ ] M) = nothing
 value? (Λ M) = just (Λ M)
 value? (M `[ A ]) = nothing
 value? ($ κ) = just ($ κ)
-value? (L ⊕[ op ] M) = nothing
+value? (L ⊕[ op at ℓ ] M) = nothing
 
 constTy-wf : ∀ {Δ} → (κ : Const) → WfTy Δ (constTy κ)
 constTy-wf (κℕ n) = wfBase
@@ -148,24 +148,25 @@ consistent? Δ A B hA hB = consistent-endpoints Δ A B
 type-check-app-from :
   ∀ {Γ L M} →
   (Δ : TyCtx) →
+  (ℓ : Label) →
   (A : Ty) →
   Δ ∣ Γ ⊢ L ⦂ A →
   WfTy Δ A →
   (B : Ty) →
   Δ ∣ Γ ⊢ M ⦂ B →
   WfTy Δ B →
-  Maybe (HasSomeTypeWf Δ Γ (L · M))
-type-check-app-from Δ (＇ X) L⊢ hA B M⊢ hB = nothing
-type-check-app-from Δ (‵ ι) L⊢ hA B M⊢ hB = nothing
-type-check-app-from Δ ★ L⊢ wf★ B M⊢ hB
+  Maybe (HasSomeTypeWf Δ Γ (L ·[ ℓ ] M))
+type-check-app-from Δ ℓ (＇ X) L⊢ hA B M⊢ hB = nothing
+type-check-app-from Δ ℓ (‵ ι) L⊢ hA B M⊢ hB = nothing
+type-check-app-from Δ ℓ ★ L⊢ wf★ B M⊢ hB
     with consistent? Δ B ★ hB wf★
 ... | just B~★ = just (★ , (⊢·★ L⊢ M⊢ B~★ , wf★))
 ... | nothing = nothing
-type-check-app-from Δ (A₁ ⇒ B₁) L⊢ (wf⇒ hA₁ hB₁) B M⊢ hB
+type-check-app-from Δ ℓ (A₁ ⇒ B₁) L⊢ (wf⇒ hA₁ hB₁) B M⊢ hB
     with consistent? Δ A₁ B hA₁ hB
 ... | just A₁~B = just (B₁ , (⊢· L⊢ M⊢ A₁~B , hB₁))
 ... | nothing = nothing
-type-check-app-from Δ (`∀ A) L⊢ hA B M⊢ hB = nothing
+type-check-app-from Δ ℓ (`∀ A) L⊢ hA B M⊢ hB = nothing
 
 type-check-wf :
   (Δ : TyCtx) →
@@ -184,10 +185,10 @@ type-check-wf Δ Γ wfΓ (ƛ A ⇒ M) with wfTy? Δ A
 ...   | just (B , (M⊢ , hB)) = just (A ⇒ B , (⊢ƛ hA M⊢ , wf⇒ hA hB))
 ...   | nothing = nothing
 
-type-check-wf Δ Γ wfΓ (L · M)
+type-check-wf Δ Γ wfΓ (L ·[ ℓ ] M)
     with type-check-wf Δ Γ wfΓ L | type-check-wf Δ Γ wfΓ M
 ... | just (A , (L⊢ , hA)) | just (B , (M⊢ , hB)) =
-  type-check-app-from Δ A L⊢ hA B M⊢ hB
+  type-check-app-from Δ ℓ A L⊢ hA B M⊢ hB
 ... | nothing | _ = nothing
 ... | just _ | nothing = nothing
 
@@ -222,7 +223,7 @@ type-check-wf Δ Γ wfΓ (M `[ A ]) with type-check-wf Δ Γ wfΓ M
 type-check-wf Δ Γ wfΓ ($ κ) =
   just (constTy κ , (⊢$ κ , constTy-wf κ))
 
-type-check-wf Δ Γ wfΓ (L ⊕[ op ] M)
+type-check-wf Δ Γ wfΓ (L ⊕[ op at ℓ ] M)
     with type-check-wf Δ Γ wfΓ L | type-check-wf Δ Γ wfΓ M
 ... | just (A , (L⊢ , hA)) | just (B , (M⊢ , hB))
     with consistent? Δ A (‵ `ℕ) hA wfBase |
@@ -231,8 +232,8 @@ type-check-wf Δ Γ wfΓ (L ⊕[ op ] M)
       just (‵ `ℕ , (⊢⊕ L⊢ A~ℕ op M⊢ B~ℕ , wfBase))
 ...   | nothing | _ = nothing
 ...   | just A~ℕ | nothing = nothing
-type-check-wf Δ Γ wfΓ (L ⊕[ op ] M) | nothing | _ = nothing
-type-check-wf Δ Γ wfΓ (L ⊕[ op ] M) | just _ | nothing = nothing
+type-check-wf Δ Γ wfΓ (L ⊕[ op at ℓ ] M) | nothing | _ = nothing
+type-check-wf Δ Γ wfΓ (L ⊕[ op at ℓ ] M) | just _ | nothing = nothing
 
 type-check :
   (Δ : TyCtx) →

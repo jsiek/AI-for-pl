@@ -19,8 +19,7 @@ open import Types
 open import Ctx using (CtxWf; ctxWf-∷; ⤊ᵗ)
 open import Coercions
   using
-    ( Label
-    ; Coercion
+    ( Coercion
     ; _∣_⊢_∶_=⇒_
     ; _∣_∣_⊢_∶_=⇒_
     ; reveal
@@ -55,11 +54,11 @@ open import GradualTerms
   renaming
     ( `_ to `ᴳ_
     ; ƛ_⇒_ to ƛᴳ_⇒_
-    ; _·_ to _·ᴳ_
+    ; _·[_]_ to _·ᴳ[_]_
     ; Λ_ to Λᴳ_
     ; _`[_] to _`ᴳ[_]
     ; $ to $ᴳ
-    ; _⊕[_]_ to _⊕ᴳ[_]_
+    ; _⊕[_at_]_ to _⊕ᴳ[_at_]_
     ; Value to Valueᴳ
     ; _∣_⊢_⦂_ to _∣_⊢ᴳ_⦂_
     ; ⊢` to ⊢ᴳ`
@@ -243,66 +242,64 @@ cast⊢ plan M⊢ | _ , down⊢ᵐ | _ , up⊢ᵐ =
 
 compile :
   ∀ {Δ Γ M A} →
-  Label →
   CtxWf Δ Γ →
   Δ ∣ Γ ⊢ᴳ M ⦂ A →
   Σ[ N ∈ Term ] Δ ∣ [] ∣ Γ ⊢ᵀ N ⦂ A
 
 compile-value :
   ∀ {Δ Γ M A} →
-  (ℓ : Label) →
   (hΓ : CtxWf Δ Γ) →
   (vM : Valueᴳ M) →
   (M⊢ : Δ ∣ Γ ⊢ᴳ M ⦂ A) →
-  Valueᵀ (proj₁ (compile ℓ hΓ M⊢))
+  Valueᵀ (proj₁ (compile hΓ M⊢))
 
-compile ℓ hΓ (⊢ᴳ` x∈) =
+compile hΓ (⊢ᴳ` x∈) =
   `ᵀ _ , ⊢ᵀ` x∈
-compile ℓ hΓ (⊢ᴳƛ wfA M⊢) with compile ℓ (ctxWf-∷ wfA hΓ) M⊢
-compile ℓ hΓ (⊢ᴳƛ wfA M⊢) | N , N⊢ =
+compile hΓ (⊢ᴳƛ wfA M⊢) with compile (ctxWf-∷ wfA hΓ) M⊢
+compile hΓ (⊢ᴳƛ wfA M⊢) | N , N⊢ =
   ƛᵀ N , ⊢ᵀƛ wfA N⊢
-compile ℓ hΓ (⊢ᴳ· L⊢ M⊢ A~A′)
-    with compile ℓ hΓ L⊢ | compile ℓ hΓ M⊢
+compile hΓ (⊢ᴳ· {ℓ = ℓ} L⊢ M⊢ A~A′)
+    with compile hΓ L⊢ | compile hΓ M⊢
        | consistency-cast-plan ℓ (~-sym A~A′)
-compile ℓ hΓ (⊢ᴳ· L⊢ M⊢ A~A′)
+compile hΓ (⊢ᴳ· L⊢ M⊢ A~A′)
     | L′ , L′⊢ | M′ , M′⊢ | plan =
   L′ ·ᵀ cast plan M′ ,
   ⊢ᵀ· L′⊢ (cast⊢ plan M′⊢)
-compile ℓ hΓ (⊢ᴳ·★ L⊢ M⊢ A′~★)
-    with compile ℓ hΓ L⊢ | compile ℓ hΓ M⊢
+compile hΓ (⊢ᴳ·★ {ℓ = ℓ} L⊢ M⊢ A′~★)
+    with compile hΓ L⊢ | compile hΓ M⊢
        | consistency-cast-plan ℓ (~-sym (arrow★-consistent A′~★))
-compile ℓ hΓ (⊢ᴳ·★ L⊢ M⊢ A′~★)
+compile hΓ (⊢ᴳ·★ L⊢ M⊢ A′~★)
     | L′ , L′⊢ | M′ , M′⊢ | plan =
   cast plan L′ ·ᵀ M′ ,
   ⊢ᵀ· (cast⊢ plan L′⊢) M′⊢
-compile ℓ hΓ (⊢ᴳΛ {occ = occ} vM M⊢)
-    with compile ℓ (CtxWf-⤊ hΓ) M⊢
-       | compile-value ℓ (CtxWf-⤊ hΓ) vM M⊢
-compile ℓ hΓ (⊢ᴳΛ {occ = occ} vM M⊢) | N , N⊢ | vN =
+compile hΓ (⊢ᴳΛ {occ = occ} vM M⊢)
+    with compile (CtxWf-⤊ hΓ) M⊢
+       | compile-value (CtxWf-⤊ hΓ) vM M⊢
+compile hΓ (⊢ᴳΛ {occ = occ} vM M⊢) | N , N⊢ | vN =
   Λᵀ N , ⊢ᵀΛ vN N⊢
-compile ℓ hΓ (⊢ᴳ• {B = B} {A = A} M⊢ wfB wfA)
-    with compile ℓ hΓ M⊢
-compile ℓ hΓ (⊢ᴳ• {B = B} {A = A} M⊢ wfB wfA) | M′ , M′⊢ =
+compile hΓ (⊢ᴳ• {B = B} {A = A} M⊢ wfB wfA)
+    with compile hΓ M⊢
+compile hΓ (⊢ᴳ• {B = B} {A = A} M⊢ wfB wfA) | M′ , M′⊢ =
   νᵀ A M′ (reveal B zero (⇑ᵗ A)) ,
   ⊢ᵀν wfA M′⊢ (ν-reveal-typing wfA wfB)
-compile ℓ hΓ (⊢ᴳ$ κ) =
+compile hΓ (⊢ᴳ$ κ) =
   $ᵀ κ , ⊢ᵀ$ κ
-compile ℓ hΓ (⊢ᴳ⊕ L⊢ A~ℕ op M⊢ B~ℕ)
-    with compile ℓ hΓ L⊢ | compile ℓ hΓ M⊢
+compile hΓ (⊢ᴳ⊕ {ℓ = ℓ} L⊢ A~ℕ op M⊢ B~ℕ)
+    with compile hΓ L⊢ | compile hΓ M⊢
        | consistency-cast-plan ℓ A~ℕ | consistency-cast-plan ℓ B~ℕ
-compile ℓ hΓ (⊢ᴳ⊕ L⊢ A~ℕ op M⊢ B~ℕ)
+compile hΓ (⊢ᴳ⊕ L⊢ A~ℕ op M⊢ B~ℕ)
     | L′ , L′⊢ | M′ , M′⊢ | planL | planM =
   cast planL L′ ⊕ᵀ[ op ] cast planM M′ ,
   ⊢ᵀ⊕ (cast⊢ planL L′⊢) op (cast⊢ planM M′⊢)
 
-compile-value ℓ hΓ (ƛᴳ A ⇒ M) (⊢ᴳƛ wfA M⊢)
-    with compile ℓ (ctxWf-∷ wfA hΓ) M⊢
-compile-value ℓ hΓ (ƛᴳ A ⇒ M) (⊢ᴳƛ wfA M⊢) | N , N⊢ =
+compile-value hΓ (ƛᴳ A ⇒ M) (⊢ᴳƛ wfA M⊢)
+    with compile (ctxWf-∷ wfA hΓ) M⊢
+compile-value hΓ (ƛᴳ A ⇒ M) (⊢ᴳƛ wfA M⊢) | N , N⊢ =
   ƛᵀ N
-compile-value ℓ hΓ ($ᴳ κ) (⊢ᴳ$ .κ) =
+compile-value hΓ ($ᴳ κ) (⊢ᴳ$ .κ) =
   $ᵀ κ
-compile-value ℓ hΓ (Λᴳ M) (⊢ᴳΛ vM M⊢)
-    with compile ℓ (CtxWf-⤊ hΓ) M⊢
-       | compile-value ℓ (CtxWf-⤊ hΓ) vM M⊢
-compile-value ℓ hΓ (Λᴳ M) (⊢ᴳΛ vM M⊢) | N , N⊢ | vN =
+compile-value hΓ (Λᴳ M) (⊢ᴳΛ vM M⊢)
+    with compile (CtxWf-⤊ hΓ) M⊢
+       | compile-value (CtxWf-⤊ hΓ) vM M⊢
+compile-value hΓ (Λᴳ M) (⊢ᴳΛ vM M⊢) | N , N⊢ | vN =
   Λᵀ vN

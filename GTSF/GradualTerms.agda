@@ -5,6 +5,8 @@ module GradualTerms where
 --   * This layer uses the type consistency relation from `Imprecision`.
 --   * These terms are intended to compile to the intermediate language in
 --     `NuTerms.agda`; no target coercions appear in this source syntax.
+--   * Application and primitive-operation nodes carry source labels used by
+--     compilation when they generate casts.
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.Bool using (true)
@@ -22,19 +24,19 @@ open import Primitives using (Const; Prim; constTy)
 
 infix  5 ƛ_⇒_
 infix  5 Λ_
-infixl 7 _·_
+infixl 7 _·[_]_
 infixl 7 _`[_]
-infixl 6 _⊕[_]_
+infixl 6 _⊕[_at_]_
 infix  9 `_
 
 data GTerm : Set where
   `_      : Var → GTerm
   ƛ_⇒_    : Ty → GTerm → GTerm
-  _·_     : GTerm → GTerm → GTerm
+  _·[_]_  : GTerm → Label → GTerm → GTerm
   Λ_      : GTerm → GTerm
   _`[_]   : GTerm → Ty → GTerm
   $       : Const → GTerm
-  _⊕[_]_  : GTerm → Prim → GTerm → GTerm
+  _⊕[_at_]_ : GTerm → Prim → Label → GTerm → GTerm
 
 ------------------------------------------------------------------------
 -- Values
@@ -70,17 +72,17 @@ data _∣_⊢_⦂_ (Δ : TyCtx) (Γ : Ctx) : GTerm → Ty → Set₁ where
      → Δ ∣ (A ∷ Γ) ⊢ M ⦂ B
      → Δ ∣ Γ ⊢ (ƛ A ⇒ M) ⦂ (A ⇒ B)
 
-  ⊢· : ∀ {L M A A′ B}
+  ⊢· : ∀ {L M A A′ B ℓ}
      → Δ ∣ Γ ⊢ L ⦂ (A ⇒ B)
      → Δ ∣ Γ ⊢ M ⦂ A′
      → Δ ⊢ A ~ A′
-     → Δ ∣ Γ ⊢ (L · M) ⦂ B
+     → Δ ∣ Γ ⊢ (L ·[ ℓ ] M) ⦂ B
 
-  ⊢·★ : ∀ {L M A′}
+  ⊢·★ : ∀ {L M A′ ℓ}
      → Δ ∣ Γ ⊢ L ⦂ ★
      → Δ ∣ Γ ⊢ M ⦂ A′
      → Δ ⊢ A′ ~ ★
-     → Δ ∣ Γ ⊢ (L · M) ⦂ ★
+     → Δ ∣ Γ ⊢ (L ·[ ℓ ] M) ⦂ ★
 
   ⊢Λ : ∀ {M A} {occ : occurs zero A ≡ true}
      → Value M
@@ -96,10 +98,10 @@ data _∣_⊢_⦂_ (Δ : TyCtx) (Γ : Ctx) : GTerm → Ty → Set₁ where
   ⊢$ : ∀ (κ : Const)
      → Δ ∣ Γ ⊢ ($ κ) ⦂ constTy κ
 
-  ⊢⊕ : ∀ {L M A B}
+  ⊢⊕ : ∀ {L M A B ℓ}
      → Δ ∣ Γ ⊢ L ⦂ A
      → Δ ⊢ A ~ (‵ `ℕ)
      → (op : Prim)
      → Δ ∣ Γ ⊢ M ⦂ B
      → Δ ⊢ B ~ (‵ `ℕ)
-     → Δ ∣ Γ ⊢ (L ⊕[ op ] M) ⦂ (‵ `ℕ)
+     → Δ ∣ Γ ⊢ (L ⊕[ op at ℓ ] M) ⦂ (‵ `ℕ)

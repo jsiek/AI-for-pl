@@ -44,8 +44,10 @@ the store.
 - `Compile.agda` now has the canonical capitalized module/file name.
 - `CastPlan` is directed and contains only `down` and `up`.
 - `consistency-cast-plan` takes a `Label`.
-- `compile` and `compile-value` thread the label through all recursive calls and
-  all consistency-cast-plan calls.
+- Cast-producing gradual source constructors now carry labels.
+- `compile` and `compile-value` no longer take a label parameter; recursive
+  calls preserve source-node labels, and consistency-cast-plan calls use the
+  label from the current gradual application or primitive-operation node.
 
 ### Core Imprecision Adjustments
 

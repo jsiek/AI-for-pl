@@ -552,6 +552,16 @@ extendReplaceRel-coercionᶜ :
 extendReplaceRel-coercionᶜ rel cᶜ =
   narrow-weaken ≤-refl (extendReplaceRel-src-incl rel) cᶜ
 
+extendReplaceRel-fun-domain-dualᶜ :
+  ∀ {Δ σ σ′ p q A A′ B B′} →
+  (rel : ExtendReplaceRel Δ σ σ′) →
+  (p↦qᶜ : Δ ∣ srcStoreⁿ σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)) →
+  fun-narrow-domain-dualᶜ (extendReplaceRel-coercionᶜ rel p↦qᶜ) ≡
+    fun-narrow-domain-dualᶜ p↦qᶜ
+extendReplaceRel-fun-domain-dualᶜ rel
+    (cast-fun p⊢ q⊢ , cross (pʷ ↦ qⁿ)) =
+  refl
+
 extendReplaceRel-coercion :
   ∀ {Δ σ σ′ μ c A B} →
   ExtendReplaceRel Δ σ σ′ →
@@ -711,13 +721,19 @@ extendReplaceRel-typed-term (replace-left rel) (x⊒xᵗ pᶜ x∋p) =
   x⊒xᵗ (extendReplaceRel-coercionᶜ (replace-left rel) pᶜ) x∋p
 extendReplaceRel-typed-term (replace-left rel) (ƛ⊒ƛᵗ p↦qᶜ N⊒N′) =
   ƛ⊒ƛᵗ (extendReplaceRel-coercionᶜ (replace-left rel) p↦qᶜ)
-    (extendReplaceRel-typed-term (replace-left rel) N⊒N′)
+    (subst
+      (λ c → _ ∣ _ ∣ ctx-nrw _ _ c ∷ _ ⊢ _ ⊒ _ ∶ _ ⦂ _ ⊒ _)
+      (sym (extendReplaceRel-fun-domain-dualᶜ (replace-left rel) p↦qᶜ))
+      (extendReplaceRel-typed-term (replace-left rel) N⊒N′))
 extendReplaceRel-typed-term (replace-left rel)
     (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′) =
   ·⊒·ᵗ
     (extendReplaceRel-coercionᶜ (replace-left rel) p↦qᶜ)
     (extendReplaceRel-typed-term (replace-left rel) L⊒L′)
-    (extendReplaceRel-typed-term (replace-left rel) M⊒M′)
+    (subst
+      (λ c → _ ∣ _ ∣ _ ⊢ _ ⊒ _ ∶ c ⦂ _ ⊒ _)
+      (sym (extendReplaceRel-fun-domain-dualᶜ (replace-left rel) p↦qᶜ))
+      (extendReplaceRel-typed-term (replace-left rel) M⊒M′))
 extendReplaceRel-typed-term (replace-left rel) (Λ⊒Λᵗ allᶜ vV V⊒V′) =
   Λ⊒Λᵗ (extendReplaceRel-coercionᶜ (replace-left rel) allᶜ) vV
     (extendReplaceRel-typed-term (replace-left (extendReplaceRel-⇑ˢ rel))
@@ -810,13 +826,25 @@ extendReplaceRel-typed-term (replace-both {q = qh} rel)
     (ƛ⊒ƛᵗ p↦qᶜ N⊒N′) =
   ƛ⊒ƛᵗ
     (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) p↦qᶜ)
-    (extendReplaceRel-typed-term (replace-both {q = qh} rel) N⊒N′)
+    (subst
+      (λ c → _ ∣ _ ∣ ctx-nrw _ _ c ∷ _ ⊢ _ ⊒ _ ∶ _ ⦂ _ ⊒ _)
+      (sym
+        (extendReplaceRel-fun-domain-dualᶜ
+          (replace-both {q = qh} rel)
+          p↦qᶜ))
+      (extendReplaceRel-typed-term (replace-both {q = qh} rel) N⊒N′))
 extendReplaceRel-typed-term (replace-both {q = qh} rel)
     (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′) =
   ·⊒·ᵗ
     (extendReplaceRel-coercionᶜ (replace-both {q = qh} rel) p↦qᶜ)
     (extendReplaceRel-typed-term (replace-both {q = qh} rel) L⊒L′)
-    (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′)
+    (subst
+      (λ c → _ ∣ _ ∣ _ ⊢ _ ⊒ _ ∶ c ⦂ _ ⊒ _)
+      (sym
+        (extendReplaceRel-fun-domain-dualᶜ
+          (replace-both {q = qh} rel)
+          p↦qᶜ))
+      (extendReplaceRel-typed-term (replace-both {q = qh} rel) M⊒M′))
 extendReplaceRel-typed-term (replace-both {q = qh} rel)
     (Λ⊒Λᵗ allᶜ vV V⊒V′) =
   Λ⊒Λᵗ

@@ -40,9 +40,11 @@ open import proof.CoercionProperties
     ; dualActionOk-gen-inst
     ; dualActionOk-idTyAllowed
     ; dualActionOk-inst-gen
+    ; dualActionOk-normal
     ; dualStoreAt-ext
     ; dualStoreAt-gen-inst
     ; dualStoreAt-inst-gen
+    ; dualStoreAt-normal
     ; ModeRename
     ; renameᶜ-open-commute
     ; sealModeAllowed-var-seal
@@ -1712,6 +1714,22 @@ mutual
         (dualʷ-flips-typingᵐ
           rel ds wfΣ (c⊢ , strictʷ→widen cʷ))) ,
     proj₂ (dualStrictʷ η cʷ)
+
+fun-narrow-domain-dual-typingᶜ :
+  ∀ {Δ Σ p q A A′ B B′} →
+  StoreWfAt Δ Σ →
+  (p↦qᶜ : Δ ∣ Σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)) →
+  Δ ∣ Σ ⊢ fun-narrow-domain-dualᶜ p↦qᶜ ∶ᶜ A ⊒ A′
+fun-narrow-domain-dual-typingᶜ wfΣ
+    (cast-fun p⊢ q⊢ , cross (pʷ ↦ qⁿ)) =
+  dualʷ-flips-typingᵐ
+    {μ = tag-or-idᵈ}
+    {η = normalᵃ}
+    {ν = tag-or-idᵈ}
+    dualActionOk-normal
+    dualStoreAt-normal
+    wfΣ
+    (p⊢ , pʷ)
 
 widening-cross-ground-source-all⊥ :
   ∀ {μ Δ Σ A G g} →

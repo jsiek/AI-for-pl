@@ -20,7 +20,6 @@ open import Coercions
 open import GradualTerms
 open import NarrowWiden
 open import Primitives
-open import proof.CoercionProperties using (src-renameᶜ; tgt-renameᶜ)
 
 variable
   Δ : TyCtx
@@ -54,24 +53,27 @@ renameᵗᴳ ρ (L ⊕[ op at ℓ ] M) =
 -- Term-context narrowing
 ------------------------------------------------------------------------
 
+⇑ᵍ-entry : CtxNrwEntry → CtxNrwEntry
+⇑ᵍ-entry (ctx-nrw A B p) = ctx-nrw (⇑ᵗ A) (⇑ᵗ B) (⇑ᶜ p)
+
 ⇑ᵍ : CtxNrw → CtxNrw
-⇑ᵍ = map ⇑ᶜ
+⇑ᵍ = map ⇑ᵍ-entry
 
 srcCtxⁿ : CtxNrw → Ctx
-srcCtxⁿ = map src
+srcCtxⁿ = map srcTy
 
 tgtCtxⁿ : CtxNrw → Ctx
-tgtCtxⁿ = map tgt
+tgtCtxⁿ = map tgtTy
 
 srcCtxⁿ-⇑ᵍ : ∀ γ → srcCtxⁿ (⇑ᵍ γ) ≡ ⤊ᵗ (srcCtxⁿ γ)
 srcCtxⁿ-⇑ᵍ [] = refl
-srcCtxⁿ-⇑ᵍ (p ∷ γ) =
-  cong₂ _∷_ (src-renameᶜ suc p) (srcCtxⁿ-⇑ᵍ γ)
+srcCtxⁿ-⇑ᵍ (entry ∷ γ) =
+  cong₂ _∷_ refl (srcCtxⁿ-⇑ᵍ γ)
 
 tgtCtxⁿ-⇑ᵍ : ∀ γ → tgtCtxⁿ (⇑ᵍ γ) ≡ ⤊ᵗ (tgtCtxⁿ γ)
 tgtCtxⁿ-⇑ᵍ [] = refl
-tgtCtxⁿ-⇑ᵍ (p ∷ γ) =
-  cong₂ _∷_ (tgt-renameᶜ suc p) (tgtCtxⁿ-⇑ᵍ γ)
+tgtCtxⁿ-⇑ᵍ (entry ∷ γ) =
+  cong₂ _∷_ refl (tgtCtxⁿ-⇑ᵍ γ)
 
 ------------------------------------------------------------------------
 -- Typed/well-indexed gradual term narrowing
@@ -102,7 +104,7 @@ data _∣_∣_⊢ᴳ_⊒_∶_⦂_⊒_
   x⊒xᴳ : ∀ {x p A B}
     → {typing : GradualTermTypingEndpoints Δ γ (` x) (` x) A B}
     → Δ ∣ Σ ⊢ p ∶ᶜ A ⊒ B
-    → γ ∋ x ⦂ p
+    → γ ∋ x ⦂ ctx-nrw A B p
       --------------------------------
     → Δ ∣ Σ ∣ γ ⊢ᴳ ` x ⊒ ` x ∶ p ⦂ A ⊒ B
 
@@ -110,8 +112,9 @@ data _∣_∣_⊢ᴳ_⊒_∶_⦂_⊒_
     → {typing :
         GradualTermTypingEndpoints Δ γ
           (ƛ A ⇒ N) (ƛ A′ ⇒ N′) (A ⇒ B) (A′ ⇒ B′)}
-    → Δ ∣ Σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)
-    → Δ ∣ Σ ∣ (- p) ∷ γ ⊢ᴳ N ⊒ N′ ∶ q ⦂ B ⊒ B′
+    → (p↦qᶜ : Δ ∣ Σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′))
+    → Δ ∣ Σ ∣ ctx-nrw A A′ (fun-narrow-domain-dualᶜ p↦qᶜ) ∷ γ
+        ⊢ᴳ N ⊒ N′ ∶ q ⦂ B ⊒ B′
       ----------------------------------------------------
     → Δ ∣ Σ ∣ γ ⊢ᴳ ƛ A ⇒ N ⊒ ƛ A′ ⇒ N′ ∶ p ↦ q
         ⦂ A ⇒ B ⊒ A′ ⇒ B′
@@ -120,10 +123,11 @@ data _∣_∣_⊢ᴳ_⊒_∶_⦂_⊒_
     → {typing :
         GradualTermTypingEndpoints Δ γ
           (L ·[ ℓ ] M) (L′ ·[ ℓ ] M′) B B′}
-    → Δ ∣ Σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)
+    → (p↦qᶜ : Δ ∣ Σ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′))
     → Δ ∣ Σ ∣ γ ⊢ᴳ L ⊒ L′ ∶ p ↦ q
         ⦂ A ⇒ B ⊒ A′ ⇒ B′
-    → Δ ∣ Σ ∣ γ ⊢ᴳ M ⊒ M′ ∶ - p ⦂ A ⊒ A′
+    → Δ ∣ Σ ∣ γ ⊢ᴳ M ⊒ M′ ∶ fun-narrow-domain-dualᶜ p↦qᶜ
+        ⦂ A ⊒ A′
       -------------------------------------------------------
     → Δ ∣ Σ ∣ γ ⊢ᴳ L ·[ ℓ ] M ⊒ L′ ·[ ℓ ] M′ ∶ q ⦂ B ⊒ B′
 

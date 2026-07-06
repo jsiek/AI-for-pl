@@ -25,6 +25,7 @@ import proof.TermNarrowingProperties
 import proof.CatchupSeparated
 import Mediation
 import MediatedNarrowing
+import proof.DualRawProperties
 import proof.MediationProperties
 import proof.CatchupMediated
 import proof.SimBetaMediated

@@ -25,43 +25,30 @@ their postulates:
 New proof work goes to the `⊒ᵐ` ports (`proof/*Mediated.agda`,
 `proof/MediationProperties.agda`).
 
-[ ] Discharge the mediated plumbing holes in
-    `GTSF/proof/MediationProperties.agda` (left by PR #48, step 2 of
-    the mediated migration, plus one left over from step 1).  All
-    four are named `{! !}` holes; background is in the "Migration
-    step 2 progress" and "Migration step 3" entries of
-    `GTSF/proof/SeparatedStoresDGGChecklist.md`.  (A fifth hole,
-    `medCo-dualʷ`, was deleted along with `MedCo` itself by the ⨟ˡ
-    record simplification — migration step 3 — as was
-    `med-narrowing-witness`.)
-    1. `left-changes-narrowingˡ` — one-store left-store transport of
-       a narrowing judgment across `StoreChanges`.  Build from the
-       `applyCoercion-typing` shapes (proof/NuPreservation.agda) plus
-       `renameⁿ` witness renaming.  Open design point recorded in the
-       checklist: iterating needs StoreWfAt at each intermediate
-       step, but bare `StoreChanges` does not carry wf of the bound
-       types — either thread a wf-chain invariant or drop the wf
-       requirement from the underlying weakening lemmas.
-    2. `narrowing-dual¹-applyCoercions` — the dual raw of a narrowing
-       is determined by the raw and commutes with the store-change
-       shifts (a narrowing sibling of `dualʷ-raw-determined`, plus
-       dual/rename commutation generalized over the action env).
-    3. `left-changes-term-narrowingᵐ` — the ⊒ᵐ replacement of the old
-       postulated `left-change-term-narrowing`: structural induction
-       over `MediatedNarrowing._∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_` with the index
-       raw untouched; `left-changes-transportᵐ` handles the coercion
-       fields, binder cases shift the correspondence
-       (`⇑ᶜorr`/`⇑ᵍᶜ`-style, cf. `medTy-applyLeftChanges` and
-       `mv-lockstep`).
-    4. `right-store-shift-weakening` (inside
-       `right-alloc-transportᵐ`, left over from step 1) — ordinary
-       one-store weakening of the home typing under a right-store
-       allocation, modulo the `rightStore-⇑ʳᶜorr` reindexing; base
-       language, independent of mediation (see the comment at the
-       hole).
+[ ] Prove `left-changes-term-narrowingᵐ`, the last `{! !}` hole in
+    `GTSF/proof/MediationProperties.agda` (the ⊒ᵐ replacement of the
+    old postulated `left-change-term-narrowing`; the index raw is
+    untouched).  The other three holes of the mediated plumbing
+    family (`left-changes-narrowingˡ`,
+    `narrowing-dual¹-applyCoercions` via the new
+    `proof/DualRawProperties.agda`, and
+    `right-store-shift-weakening`) were discharged in migration
+    step 4 — see that checklist entry.
+    Proof design (recorded at the hole): reduce to a single `bind`,
+    which is a LEFT-ONLY INSERTION WEAKENING of the relation.  Direct
+    induction over the statement fails at the type-binder
+    constructors (Λ⊒Λᵗ, ⊒Λᵗ, ⊒⟨ν⟩ᵗ, α⊒αᵗ, ⊒αᵗ, ν⊒νᵗ, ⊒νᵗ): their
+    sub-derivations (and for α⊒αᵗ/⊒αᵗ their conclusions) sit at
+    `entry ∷ ⇑ᶜorr ρ`-shaped correspondences, where the outer change
+    must land BELOW the binder entry, while `applyLeftChange` only
+    inserts at position zero.  Generalize over a left-side insertion
+    renaming at arbitrary depth, with: an insertion sibling of
+    `mv-lockstep` for `MatchedVar`, `medTy-mapˡ` for the mediation,
+    `renameⁿ`/`coercion-renameᵗᵐ` for the left one-store evidence,
+    and `shift-left-term-typing` for the term typings.
     Constraints: no new postulates without explicit approval; holes
     OK; `make -C GTSF check` green before commit; commit + PR at the
-    end.  After these, the next migration step is moving the DGG
+    end.  After this, the next migration step is moving the DGG
     proof stack (`DGGBeta*`, `InnerStepCastSeparated`, the main
     theorem) onto ⊒ᵐ and deleting `TermNarrowingSeparated`.
 

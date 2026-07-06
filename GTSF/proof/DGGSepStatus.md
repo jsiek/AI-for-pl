@@ -128,9 +128,11 @@ composition witness needed to call the general lemma.
 | `left-ν-widening-lemma`, `⊒cast-ᵗ` | `partial/holes` | Contains recursive call to `left-widening-lemma-separated` for the non-dual target cast-wrapper case. |
 | `left-ν-widening-lemma`, `cast+⊒ᵗ` | `partial/holes` | Contains recursive call to `left-narrowing-lemma-separated` for the source cast-wrapper / `⊒Λ/-⊒` shape. |
 | `left-ν-widening-lemma`, `cast-⊒ᵗ` | `partial/holes` | Contains recursive call to `left-narrowing-lemma-separated` for the non-dual source cast-wrapper shape. |
-| `left-ν-widening-lemma`, remaining separated cases | `todo` | Body is `left-ν-widening-remaining-case`. |
+| `left-ν-widening-lemma`, `⊒αᵗ` | `partial/holes` | Target-only constructor exposed separately; binds `left-ν-widening-induction-skeleton L⊒L′` for the recursive premise and leaves the transport/corollary obligation as `leftν-⊒α-target-only-case`. |
+| `left-ν-widening-lemma`, `⊒νᵗ` | `partial/holes` | Target-only ν constructor exposed separately; binds `left-ν-widening-induction-skeleton N⊒N′` for the recursive premise and leaves `leftν-⊒ν-target-only-case`. |
+| `left-ν-widening-lemma`, `⊒blameᵗ` | `partial/holes` | Nonrecursive base case, now explicit as `leftν-⊒blame-base-case`. |
 | `matched-α-beta-gen-left-ν-widening-call` | `partial/holes` | Bridges the separated DGG redex to the general `left-ν-widening-lemma`. |
-| `left-ν-widening-induction-skeleton` | `partial/holes` | Auxiliary structural map over separated constructors, kept as a checklist for remaining recursive-premise coverage. |
+| `left-ν-widening-induction-skeleton` | `partial/holes` | Auxiliary structural map over every separated constructor; recursive premises are explicit rather than hidden behind a catch-all. |
 
 ## Major Separated Term-Narrowing Lemmas
 

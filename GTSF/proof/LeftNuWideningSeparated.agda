@@ -79,16 +79,60 @@ left-narrowing-lemma-separated :
 left-narrowing-lemma-separated vV noV compᵏ V⊒V′ =
   {! left-narrowing-lemma-separated-proof !}
 
+-- Structural proof skeleton for the intended mutual induction.  The exact
+-- result transports are still the holes in the lemmas below; this helper
+-- records which separated constructors recurse into which premises before
+-- those transports are filled.
+{-# TERMINATING #-}
+left-ν-widening-induction-skeleton :
+  ∀ {ΔL ΔR ρ γ L L′ p A B} →
+  ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ L ⊒ L′ ∶ p ⦂ A ⊒ B →
+  Set₁
+left-ν-widening-induction-skeleton (⊒blameᵗ _ _) = Set
+left-ν-widening-induction-skeleton (x⊒xᵗ _ _) = Set
+left-ν-widening-induction-skeleton (ƛ⊒ƛᵗ _ N⊒N′) =
+  left-ν-widening-induction-skeleton N⊒N′
+left-ν-widening-induction-skeleton (·⊒·ᵗ _ L⊒L′ M⊒M′) =
+  left-ν-widening-induction-skeleton L⊒L′ ×
+  left-ν-widening-induction-skeleton M⊒M′
+left-ν-widening-induction-skeleton (Λ⊒Λᵗ _ _ _ V⊒V′) =
+  left-ν-widening-induction-skeleton V⊒V′
+left-ν-widening-induction-skeleton (⊒Λᵗ _ _ N⊒V′) =
+  left-ν-widening-induction-skeleton N⊒V′
+left-ν-widening-induction-skeleton (⊒⟨ν⟩ᵗ _ _ _ N⊒V′s) =
+  left-ν-widening-induction-skeleton N⊒V′s
+left-ν-widening-induction-skeleton (α⊒αᵗ _ _ _ _ L⊒L′) =
+  left-ν-widening-induction-skeleton L⊒L′
+left-ν-widening-induction-skeleton (⊒αᵗ _ _ _ L⊒L′) =
+  left-ν-widening-induction-skeleton L⊒L′
+left-ν-widening-induction-skeleton (ν⊒νᵗ _ _ _ N⊒N′) =
+  left-ν-widening-induction-skeleton N⊒N′
+left-ν-widening-induction-skeleton (⊒νᵗ _ _ N⊒N′) =
+  left-ν-widening-induction-skeleton N⊒N′
+left-ν-widening-induction-skeleton (κ⊒κᵗ _ _) = Set
+left-ν-widening-induction-skeleton (⊕⊒⊕ᵗ _ M⊒M′ N⊒N′) =
+  left-ν-widening-induction-skeleton M⊒M′ ×
+  left-ν-widening-induction-skeleton N⊒N′
+left-ν-widening-induction-skeleton (⊒cast+ᵗ _ _ _ _ M⊒M′) =
+  left-ν-widening-induction-skeleton M⊒M′
+left-ν-widening-induction-skeleton (⊒cast-ᵗ _ _ _ _ M⊒M′) =
+  left-ν-widening-induction-skeleton M⊒M′
+left-ν-widening-induction-skeleton (cast+⊒ᵗ _ _ _ _ M⊒M′) =
+  left-ν-widening-induction-skeleton M⊒M′
+left-ν-widening-induction-skeleton (cast-⊒ᵗ _ _ _ _ M⊒M′) =
+  left-ν-widening-induction-skeleton M⊒M′
+
 -- Cambridge25-shaped value-level lemma.  The premise relation is the
 -- polymorphic value relation `V ⊒ V′ : ∀ p`; the source term adds the
 -- dual of the left widening cast `t`; and the composition witness pins the
 -- resulting index `r`.  The ν-specific instantiation is supplied by the
 -- caller through the shape of `t`, `r`, and the composition witness.
 --
--- This is intentionally more general than the DGG call-site theorem below:
--- it does not mention the target `β-gen•` step or the matched-α type
--- application.  Those belong to the caller that exposes where this lemma is
--- needed.
+-- This is the generalized Agda surface for the Cambridge25 ν instance:
+-- the statement quantifies over the left widening cast `t`, with the
+-- ν-specific case recovered when `t` is the widening form whose dual is
+-- the source-side `gen` cast.  The DGG call-site theorem below supplies
+-- that shape, the target `β-gen•` step, and the matched-α type application.
 left-ν-widening-lemma :
   ∀ {ΔL ΔR ρ V V′ p r t A B C D} →
   Value V →
@@ -171,8 +215,20 @@ left-ν-widening-lemma vV noV compᵏ
         Vcast⊒V′
   in
   {! leftν-cast-⊒-case !}
-left-ν-widening-lemma vV noV compᵏ V⊒V′ =
-  {! left-ν-widening-remaining-case !}
+left-ν-widening-lemma vV noV compᵏ
+    (⊒αᵗ γ′≡ endpoints pᶜ L⊒L′) =
+  let
+    ih = left-ν-widening-induction-skeleton L⊒L′
+  in
+  {! leftν-⊒α-target-only-case !}
+left-ν-widening-lemma vV noV compᵏ
+    (⊒νᵗ endpoints pᶜ N⊒N′) =
+  let
+    ih = left-ν-widening-induction-skeleton N⊒N′
+  in
+  {! leftν-⊒ν-target-only-case !}
+left-ν-widening-lemma vV noV compᵏ (⊒blameᵗ V⊢ rᶜ) =
+  {! leftν-⊒blame-base-case !}
 
 -- DGG call-site obligation for the separated `α⊒αᵗ` / `β-gen•` case.
 -- The source begins at the matched fresh α type application
@@ -223,46 +279,3 @@ matched-α-beta-gen-left-ν-widening-call
         {! matched-α-leftν-value-relation !}
   in
   {! matched-α-beta-gen-left-ν-widening-obligation !}
-
--- Structural proof skeleton for the intended mutual induction.  The exact
--- result transports are still the holes in the lemmas above; this
--- helper records which separated constructors recurse into which premises
--- before those transports are filled.
-{-# TERMINATING #-}
-left-ν-widening-induction-skeleton :
-  ∀ {ΔL ΔR ρ γ L L′ p A B} →
-  ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ L ⊒ L′ ∶ p ⦂ A ⊒ B →
-  Set₁
-left-ν-widening-induction-skeleton (⊒blameᵗ _ _) = Set
-left-ν-widening-induction-skeleton (x⊒xᵗ _ _) = Set
-left-ν-widening-induction-skeleton (ƛ⊒ƛᵗ _ N⊒N′) =
-  left-ν-widening-induction-skeleton N⊒N′
-left-ν-widening-induction-skeleton (·⊒·ᵗ _ L⊒L′ M⊒M′) =
-  left-ν-widening-induction-skeleton L⊒L′ ×
-  left-ν-widening-induction-skeleton M⊒M′
-left-ν-widening-induction-skeleton (Λ⊒Λᵗ _ _ _ V⊒V′) =
-  left-ν-widening-induction-skeleton V⊒V′
-left-ν-widening-induction-skeleton (⊒Λᵗ _ _ N⊒V′) =
-  left-ν-widening-induction-skeleton N⊒V′
-left-ν-widening-induction-skeleton (⊒⟨ν⟩ᵗ _ _ _ N⊒V′s) =
-  left-ν-widening-induction-skeleton N⊒V′s
-left-ν-widening-induction-skeleton (α⊒αᵗ _ _ _ _ L⊒L′) =
-  left-ν-widening-induction-skeleton L⊒L′
-left-ν-widening-induction-skeleton (⊒αᵗ _ _ _ L⊒L′) =
-  left-ν-widening-induction-skeleton L⊒L′
-left-ν-widening-induction-skeleton (ν⊒νᵗ _ _ _ N⊒N′) =
-  left-ν-widening-induction-skeleton N⊒N′
-left-ν-widening-induction-skeleton (⊒νᵗ _ _ N⊒N′) =
-  left-ν-widening-induction-skeleton N⊒N′
-left-ν-widening-induction-skeleton (κ⊒κᵗ _ _) = Set
-left-ν-widening-induction-skeleton (⊕⊒⊕ᵗ _ M⊒M′ N⊒N′) =
-  left-ν-widening-induction-skeleton M⊒M′ ×
-  left-ν-widening-induction-skeleton N⊒N′
-left-ν-widening-induction-skeleton (⊒cast+ᵗ _ _ _ _ M⊒M′) =
-  left-ν-widening-induction-skeleton M⊒M′
-left-ν-widening-induction-skeleton (⊒cast-ᵗ _ _ _ _ M⊒M′) =
-  left-ν-widening-induction-skeleton M⊒M′
-left-ν-widening-induction-skeleton (cast+⊒ᵗ _ _ _ _ M⊒M′) =
-  left-ν-widening-induction-skeleton M⊒M′
-left-ν-widening-induction-skeleton (cast-⊒ᵗ _ _ _ _ M⊒M′) =
-  left-ν-widening-induction-skeleton M⊒M′

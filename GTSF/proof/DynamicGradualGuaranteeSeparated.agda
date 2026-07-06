@@ -108,6 +108,10 @@ open import proof.DGGPrimitiveSeparated using
   ; value-normalized-id-ℕ-target-constᶜ
   ; nat-endpoints-id-coercionᶜ
   )
+open import proof.InnerStepCastSeparated using
+  ( target-cast-plus-inner-step-result
+  ; target-cast-minus-inner-step-result
+  )
 open import proof.DGGBetaSeparated using (separated-dgg-beta)
 open import proof.DGGBetaCastSeparated using (separated-dgg-beta-cast)
 open import proof.DGGDeltaSeparated using
@@ -1471,7 +1475,8 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M} {χ′ = χ′}
     okM
-    (⊒cast+ᵗ {M′ = M′} {t = t} {A = A} {B = Bᵢ} p′ᶜ rᶜ t⊒ _ M⊒M′)
+    (⊒cast+ᵗ {M′ = M′} {t = t} {A = A} {B = Bᵢ} p′ᶜ rᶜ t⊒ compᵏ
+      M⊒M′)
     (ξ-⟨⟩ {M′ = S′} M′→S′) =
   let
     rec :
@@ -1496,10 +1501,23 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
           ∶ _ ⦂ _ ⊒ _
     cast-result⊒ =
       let
-        ih : ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ S′ ∶ r ⦂ C ⊒ D
-        ih = N⊒S′
+        ih :
+          ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
+            ⊢ N ⊒ S′ ∶ r ⦂ applyTys χs A ⊒ applyTy χ′ Bᵢ
+        ih =
+          subst
+            (λ Y →
+              ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
+                ⊢ N ⊒ S′ ∶ r ⦂ applyTys χs A ⊒ Y)
+            D≡
+            (subst
+              (λ X →
+                ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ S′ ∶ r ⦂ X ⊒ D)
+              C≡
+              N⊒S′)
       in
-      {! target-cast-plus-inner-step-result !}
+      target-cast-plus-inner-step-result
+        p′ᶜ t⊒ compᵏ ΔL′≡ ΔR′≡ ρ′≡ ih
 
     obligation =
       χs ,
@@ -1567,7 +1585,7 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
 dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M} {χ′ = χ′}
     okM
-    (⊒cast-ᵗ {t = t} p′ᶜ rᶜ t⊒ _ M⊒M′)
+    (⊒cast-ᵗ {t = t} {A = A} p′ᶜ rᶜ t⊒ compᵏ M⊒M′)
     (ξ-⟨⟩ {M′ = S′} M′→S′) =
   let
     rec = dynamicGradualGuarantee okM M⊒M′ M′→S′
@@ -1581,10 +1599,23 @@ dynamicGradualGuarantee {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         ⊢ N ⊒ S′ ⟨ applyCoercion χ′ t ⟩ ∶ _ ⦂ _ ⊒ _
     cast-result⊒ =
       let
-        ih : ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ S′ ∶ r ⦂ C ⊒ D
-        ih = N⊒S′
+        ih :
+          ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
+            ⊢ N ⊒ S′ ∶ r ⦂ applyTys χs A ⊒ _
+        ih =
+          subst
+            (λ Y →
+              ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
+                ⊢ N ⊒ S′ ∶ r ⦂ applyTys χs A ⊒ Y)
+            D≡
+            (subst
+              (λ X →
+                ΔL′ ∣ ΔR′ ∣ ρ′ ∣ [] ⊢ N ⊒ S′ ∶ r ⦂ X ⊒ D)
+              C≡
+              N⊒S′)
       in
-      {! target-cast-minus-inner-step-result !}
+      target-cast-minus-inner-step-result
+        p′ᶜ rᶜ t⊒ compᵏ ΔL′≡ ΔR′≡ ρ′≡ ih
 
     obligation =
       χs ,

@@ -302,6 +302,46 @@ The separated substitution lemma is now stated as
 case is factored as `sim-beta-lambda` and already performs the one-step
 `β` reduction.
 
+## Right store changes and shared coercion raws (2026-07-06)
+
+The ξ-⟨⟩ target-cast cases of the main theorem are wired through
+`proof/InnerStepCastSeparated.agda`: the ⊒cast±ᵗ node is rebuilt over
+the IH's store-changed contexts, with the sibling evidence moved by
+three transport lemmas (`change-relation-coercion-narrowing`,
+`change-target-coercion-narrowing`, `change-composed-index`).  These
+are stated as hole-bodied lemmas, **not** postulates, because the
+counterexample check surfaced a real design tension:
+
+- The separated coercion judgment is a 7-tuple sharing **one raw**
+  between the two store typings
+  (`μ ∣ ΔL ∣ leftStore ρ ⊢ r ∶ A ⊒ B` and
+  `μ ∣ ΔR ∣ rightStore ρ ⊢ r ∶ A ⊒ B`).
+- Store changes are one-sided and shift de Bruijn indices at the front
+  (`applyStore (bind A) Σ = (zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ`), and `cast-seal`
+  resolves seal references positionally (`(α , A) ∈ Σ`).
+- Hence a right-only `bind` demands the raw be shifted for the right
+  typing (the ξ-⟨⟩ reduction indeed rewrites the stepped-under cast to
+  `applyCoercion χ c`) while the unchanged left store types the
+  *unshifted* raw.  One shared raw cannot satisfy both whenever it
+  mentions a seal: `seal A α` needs `(α , A)` in both stores before the
+  bind, and `(suc α , ⇑ᵗ A)` in the right store but still `(α , A)` in
+  the left store after it.
+- The **existing left-change postulate family has the mirrored
+  problem**: `left-change-term-narrowing` keeps the target term (with
+  its embedded `narrowing-dual t⊒` raws) fixed while `applyLeftChanges`
+  shifts the left store those raws are 7-tuple-typed against.
+
+Conclusion recorded for discussion: before the transport holes (and,
+retroactively, the left-change postulates) can be discharged, the
+separated coercion judgment likely needs either (a) per-side raws
+related by a correspondence, or (b) seal references resolved through
+`ρ` (names, not positions), or (c) an invariant that the mediating
+coercions of ⊒cast±ᵗ nodes are seal-free on the opposite side.  Note
+the mode system already distinguishes the sides (`tag-or-idᵈ` vs `μ`),
+so (c) may be closest to cambridge25's `Γ | ∅ ⊢ p, q` discipline: the
+`∶ᶜ`-side coercions cannot be seals, and the `Γ | Φ`-side raws are
+exactly the ones the store changes rewrite.
+
 ## Track C. Catchup Proof
 
 - [x] Add right-side store-change operations.

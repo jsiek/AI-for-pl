@@ -15,24 +15,31 @@ import GradualTermNarrowing
 import StoreCorrespondence
 import NuTerms
 import TypeCheck
-import TermNarrowingSeparated
+-- Replaced by MediatedNarrowing
+-- import TermNarrowingSeparated
 import NuExamplesFresh
 import NuReduction
 import Eval
 import Run
 import proof.CompileTermNarrowing
 import proof.NWTermReduction
-import TermNarrowing
-import proof.TermNarrowingProperties
-import proof.CatchupSeparated
+-- Replaced by MediatedNarrowing
+-- import TermNarrowing
+-- import proof.TermNarrowingProperties
+
+-- Replaced by CatchupMediated
+-- import proof.CatchupSeparated
+
 import Mediation
 import MediatedNarrowing
 import proof.DualRawProperties
 import proof.MediationProperties
 import proof.CatchupMediated
 import proof.SimBetaMediated
+-- The following "Separated" modules need to be ported
 import proof.LeftNuWideningSeparated
 import proof.DynamicGradualGuaranteeSeparated
+
 import NarrowingExamples
 import NuMetaTheory
 import proof.DynamicGradualGuarantee

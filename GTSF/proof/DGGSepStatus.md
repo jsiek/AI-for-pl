@@ -244,13 +244,13 @@ Cambridge25 analogue: `Simulation of function application` (`close match`).
 This is the function-application simulation lemma for a source value related
 to a target lambda.
 
-| Case | Status | Notes |
-| --- | --- | --- |
-| Direct `ƛ⊒ƛᵗ` | `partial/postulates` | Uses postulated `term-substitution-narrowingᶜ`; no holes in the case. |
-| `cast+⊒ᵗ`, canonical function source cast | `partial/holes` | Reaches `catchup-lemmaˡ` holes and left-change postulates. |
-| `cast+⊒ᵗ`, impossible target/source shapes | `finished` | Discharged by impossible value/canonical-form patterns. |
-| `cast-⊒ᵗ`, canonical function source cast | `partial/holes` | Reaches `catchup-lemmaˡ` holes and left-change postulates. |
-| `cast-⊒ᵗ`, impossible source-cast shapes | `finished` | Discharged by impossible value/canonical-form patterns. |
+| Case                                       | Status               | Notes                                                                 |
+| ------------------------------------------ | -------------------- | --------------------------------------------------------------------- |
+| Direct `ƛ⊒ƛᵗ`                              | `partial/postulates` | Uses postulated `term-substitution-narrowingᶜ`; no holes in the case. |
+| `cast+⊒ᵗ`, canonical function source cast  | `partial/holes`      | Reaches `catchup-lemmaˡ` holes and left-change postulates.            |
+| `cast+⊒ᵗ`, impossible target/source shapes | `finished`           | Discharged by impossible value/canonical-form patterns.               |
+| `cast-⊒ᵗ`, canonical function source cast  | `partial/holes`      | Reaches `catchup-lemmaˡ` holes and left-change postulates.            |
+| `cast-⊒ᵗ`, impossible source-cast shapes   | `finished`           | Discharged by impossible value/canonical-form patterns.               |
 
 ### `separated-dgg-beta`
 

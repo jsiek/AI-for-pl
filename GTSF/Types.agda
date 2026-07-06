@@ -28,6 +28,9 @@ open import Relation.Binary.PropositionalEquality
 Var : Set
 Var = ℕ
 
+Label : Set
+Label = ℕ
+
 TyVar : Set
 TyVar = Var
 

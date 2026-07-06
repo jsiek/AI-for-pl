@@ -49,7 +49,7 @@ polyApp =
     (Λ
       (ƛ ((＇ 1) ⇒ (＇ 0)) ⇒
         ƛ (＇ 1) ⇒
-          (` 1 · ` 0)))
+          (` 1 ·[ 1 ] ` 0)))
 
 polyK : GTerm
 polyK = Λ (ƛ (＇ 0) ⇒ ƛ (＇ 0) ⇒ ` 1)
@@ -58,7 +58,7 @@ polyBetaId : GTerm
 polyBetaId =
   Λ
     (ƛ (＇ 0) ⇒
-      ((ƛ (＇ 0) ⇒ ` 0) · ` 0))
+      ((ƛ (＇ 0) ⇒ ` 0) ·[ 2 ] ` 0))
 
 expect-⊢ :
   (M : GTerm) →
@@ -81,19 +81,19 @@ polyId-⊢ : 0 ∣ [] ⊢ polyId ⦂ `∀ ((＇ 0) ⇒ (＇ 0))
 polyId-⊢ = expect-⊢ polyId (`∀ ((＇ 0) ⇒ (＇ 0))) is-just
 
 example-dyn-id : GTerm
-example-dyn-id = idDyn · c
+example-dyn-id = idDyn ·[ 10 ] c
 
 example-dyn-id-⊢ : 0 ∣ [] ⊢ example-dyn-id ⦂ ★
 example-dyn-id-⊢ = expect-⊢ example-dyn-id ★ is-just
 
 example-nat-id : GTerm
-example-nat-id = natId · c
+example-nat-id = natId ·[ 11 ] c
 
 example-nat-id-⊢ : 0 ∣ [] ⊢ example-nat-id ⦂ (‵ `ℕ)
 example-nat-id-⊢ = expect-⊢ example-nat-id (‵ `ℕ) is-just
 
 example-poly-id : GTerm
-example-poly-id = (polyId `[ ‵ `ℕ ]) · c
+example-poly-id = (polyId `[ ‵ `ℕ ]) ·[ 12 ] c
 
 example-poly-id-⊢ : 0 ∣ [] ⊢ example-poly-id ⦂ (‵ `ℕ)
 example-poly-id-⊢ = expect-⊢ example-poly-id (‵ `ℕ) is-just
@@ -104,34 +104,34 @@ example-poly-id-⊢ = expect-⊢ example-poly-id (‵ `ℕ) is-just
 
 sec2-app-dyn : GTerm
 sec2-app-dyn =
-  (((polyApp `[ ★ ]) `[ ★ ]) · idDyn) · c
+  (((polyApp `[ ★ ]) `[ ★ ]) ·[ 20 ] idDyn) ·[ 21 ] c
 
 sec2-app-dyn-⊢ : 0 ∣ [] ⊢ sec2-app-dyn ⦂ ★
 sec2-app-dyn-⊢ = expect-⊢ sec2-app-dyn ★ is-just
 
 sec2-app-base : GTerm
 sec2-app-base =
-  (((polyApp `[ ‵ `ℕ ]) `[ ‵ `ℕ ]) · natId) · c
+  (((polyApp `[ ‵ `ℕ ]) `[ ‵ `ℕ ]) ·[ 22 ] natId) ·[ 23 ] c
 
 sec2-app-base-⊢ : 0 ∣ [] ⊢ sec2-app-base ⦂ (‵ `ℕ)
 sec2-app-base-⊢ = expect-⊢ sec2-app-base (‵ `ℕ) is-just
 
 sec5-β : GTerm
-sec5-β = (polyBetaId `[ ‵ `ℕ ]) · c
+sec5-β = (polyBetaId `[ ‵ `ℕ ]) ·[ 24 ] c
 
 sec5-β-⊢ : 0 ∣ [] ⊢ sec5-β ⦂ (‵ `ℕ)
 sec5-β-⊢ = expect-⊢ sec5-β (‵ `ℕ) is-just
 
 sec6-K-dyn : GTerm
 sec6-K-dyn =
-  ((polyK `[ ★ ]) · n42) · n69
+  ((polyK `[ ★ ]) ·[ 25 ] n42) ·[ 26 ] n69
 
 sec6-K-dyn-⊢ : 0 ∣ [] ⊢ sec6-K-dyn ⦂ ★
 sec6-K-dyn-⊢ = expect-⊢ sec6-K-dyn ★ is-just
 
 sec6-K-base : GTerm
 sec6-K-base =
-  ((polyK `[ ‵ `ℕ ]) · n42) · n69
+  ((polyK `[ ‵ `ℕ ]) ·[ 27 ] n42) ·[ 28 ] n69
 
 sec6-K-base-⊢ : 0 ∣ [] ⊢ sec6-K-base ⦂ (‵ `ℕ)
 sec6-K-base-⊢ = expect-⊢ sec6-K-base (‵ `ℕ) is-just
@@ -141,7 +141,7 @@ sec6-K-base-⊢ = expect-⊢ sec6-K-base (‵ `ℕ) is-just
 ------------------------------------------------------------------------
 
 bad-app : GTerm
-bad-app = c · c
+bad-app = c ·[ 90 ] c
 
 bad-app-test : type-check 0 [] ctxWf-[] bad-app ≡ nothing
 bad-app-test = refl

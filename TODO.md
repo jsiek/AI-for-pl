@@ -2,13 +2,38 @@
 
 ## TODO items
 
-[ ] Discharge the mediated left-change plumbing holes left by PR #48
-    (step 2 of the mediated migration).  All three are named `{! !}`
-    holes in `GTSF/proof/MediationProperties.agda`; background is in
-    the "Migration step 2 progress" and "Migration step 3" entries of
-    `GTSF/proof/SeparatedStoresDGGChecklist.md`.  (A former fourth
-    hole, `medCo-dualʷ`, was deleted along with `MedCo` itself by the
-    ⨟ˡ record simplification — migration step 3.)
+Direction guard (2026-07-06): the GTSF DGG development is migrating to
+the mediated relation (`MediatedNarrowing`, `⊒ᵐ`) — see the
+"Migration step" entries in `GTSF/proof/SeparatedStoresDGGChecklist.md`.
+The two retired surfaces and their proof stacks are scheduled for
+deletion once the port lands; do NOT fill their holes or discharge
+their postulates:
+  - shared-store surface: `TermNarrowing` with `proof/Catchup.agda`,
+    `proof/DynamicGradualGuarantee.agda`,
+    `proof/TermSubstitutionNarrowing.agda`,
+    `proof/LeftSealNarrowingInversion.agda`,
+    `proof/RightSealInversion2.agda`;
+  - two-store surface: `TermNarrowingSeparated` with
+    `proof/SimBetaSeparated.agda` (postulate),
+    `proof/LeftChangeNarrowingSeparated.agda` (postulate family),
+    `proof/CatchupSeparated.agda` (`catchup-lemmaˡ` — but its
+    store-change operations are imported by the mediated surface and
+    stay), `proof/DGGBeta*Separated.agda`,
+    `proof/InnerStepCastSeparated.agda`,
+    `proof/LeftNuWideningSeparated.agda`,
+    `proof/DynamicGradualGuaranteeSeparated.agda`.
+New proof work goes to the `⊒ᵐ` ports (`proof/*Mediated.agda`,
+`proof/MediationProperties.agda`).
+
+[ ] Discharge the mediated plumbing holes in
+    `GTSF/proof/MediationProperties.agda` (left by PR #48, step 2 of
+    the mediated migration, plus one left over from step 1).  All
+    four are named `{! !}` holes; background is in the "Migration
+    step 2 progress" and "Migration step 3" entries of
+    `GTSF/proof/SeparatedStoresDGGChecklist.md`.  (A fifth hole,
+    `medCo-dualʷ`, was deleted along with `MedCo` itself by the ⨟ˡ
+    record simplification — migration step 3 — as was
+    `med-narrowing-witness`.)
     1. `left-changes-narrowingˡ` — one-store left-store transport of
        a narrowing judgment across `StoreChanges`.  Build from the
        `applyCoercion-typing` shapes (proof/NuPreservation.agda) plus
@@ -28,16 +53,45 @@
        fields, binder cases shift the correspondence
        (`⇑ᶜorr`/`⇑ᵍᶜ`-style, cf. `medTy-applyLeftChanges` and
        `mv-lockstep`).
+    4. `right-store-shift-weakening` (inside
+       `right-alloc-transportᵐ`, left over from step 1) — ordinary
+       one-store weakening of the home typing under a right-store
+       allocation, modulo the `rightStore-⇑ʳᶜorr` reindexing; base
+       language, independent of mediation (see the comment at the
+       hole).
     Constraints: no new postulates without explicit approval; holes
     OK; `make -C GTSF check` green before commit; commit + PR at the
     end.  After these, the next migration step is moving the DGG
     proof stack (`DGGBeta*`, `InnerStepCastSeparated`, the main
     theorem) onto ⊒ᵐ and deleting `TermNarrowingSeparated`.
 
-[ ] Update `GTSF/proof/NarrowWidenProperties.agda` so proof-level
+[ ] Prove `catchup-lemmaᵐ` in `GTSF/proof/CatchupMediated.agda`: the
+    statement is settled (PR #48's `sim-betaᵐ` already consumes it)
+    but all eight clauses are `{! ? !}` holes.  Port the proof shape
+    from the shared-store `proof/Catchup.agda` `catchup-lemma`
+    (per-frame case analysis), restated over `⊒ᵐ` with left store
+    changes accumulated as in `sim-betaᵐ`.  Same constraints as
+    above.
+
+[ ] Discharge the approved postulate `term-substitution-narrowingᵐ`
+    in `GTSF/proof/SimBetaMediated.agda` (approved 2026-07-06): the
+    substitution metatheory of the mediated term relation.  This is
+    the ⊒ᵐ analogue of the open substitution lemma of the old
+    surfaces; expect it to be its own sizable development
+    (term-level substitution vs. the relation's context discipline).
+
+[ ] Update `GTSF/NarrowWidenComposition.agda` so proof-level
     composition `_⨟ⁿ_` / `_⨟ʷ_` concludes directly about the raw
-    composition operator `_⨟_` instead of returning an existential coercion.
-    Use the fuel monotonicity/sufficiency equations in `GTSF/NarrowWiden.agda`.
+    composition operator `_⨟_` instead of returning an existential
+    coercion.  Use the fuel monotonicity/sufficiency lemmas around
+    `composeᶜ` in `GTSF/Coercions.agda` (`seq-fuel≤`,
+    `arrow-left-fuel≤`, ...).  (File references corrected by the
+    2026-07-06 audit; the operators were never in
+    `proof/NarrowWidenProperties.agda`.)  Note: today's consumers are
+    the retired shared-store/two-store surfaces only, and the
+    mediated composition records (`⨟ʳ`/`⨟ˡ`) take an arbitrary
+    composite raw, so the existential form is already usable there —
+    this is base-language cleanup, not migration-blocking.
 
 ## In progress TODO items
 
@@ -168,6 +222,9 @@
   Stopped: 01:14 PM EDT 2026-04-30
   Blocker: Blocked holes: R09, R12, R01, R10, R03, R04, R02, R17, R18, R19, R21, R08, R07, R28, R20, R27, ...
 
+  (Orphaned run record below — the H-numbered holes belong to a
+  `sim-left` run, not this `sim-right` item; left here by a runner
+  merge.)
   Started: 12:40 PM EDT 2026-04-30
   Stopped: 12:55 PM EDT 2026-04-30
   Blocker: Blocked holes: H45, H40, H39, H34

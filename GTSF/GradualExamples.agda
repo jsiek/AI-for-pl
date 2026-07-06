@@ -1,22 +1,28 @@
-module GradualTypeCheckExamples where
+module GradualExamples where
 
 -- File Charter:
---   * Closed GTSF source examples checked by `GradualTypeCheck`.
+--   * Closed GTSF source examples checked by `GradualTypeCheck` and run
+--     through source checking, compilation, and target evaluation.
 --   * Adapted from the PolyUpDown fresh examples by dropping explicit
---     up/down coercion syntax and checking source gradual typing only.
---   * No execution tests live here because the source evaluator is not present.
+--     up/down coercion syntax.
+--   * Each directly executable source program has both typing evidence and a
+--     fuel-bounded `Run` regression for its expected target value.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([])
-open import Data.Maybe using (nothing)
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ)
 
 open import Types
 open import Ctx using (ctxWf-[])
+open import Coercions using () renaming (_! to _!ᶜ)
+import Eval as Eval
 open import GradualTerms
 open import GradualTypeCheck
   using (IsJust; is-just; toWitness; type-check; type-check-expect)
+open import NuTerms using (Term) renaming ($ to $ᵀ; _⟨_⟩ to _⟨ᵀ_⟩)
 open import Primitives
+import Run as Run
 
 ------------------------------------------------------------------------
 -- Shared terms and helpers
@@ -24,6 +30,12 @@ open import Primitives
 
 nat : ℕ → GTerm
 nat n = $ (κℕ n)
+
+natᵀ : ℕ → Term
+natᵀ n = $ᵀ (κℕ n)
+
+taggedNatᵀ : ℕ → Term
+taggedNatᵀ n = natᵀ n ⟨ᵀ (‵ `ℕ) !ᶜ ⟩
 
 c : GTerm
 c = nat 7
@@ -66,6 +78,13 @@ expect-⊢ :
   IsJust (type-check-expect 0 [] ctxWf-[] M A) →
   0 ∣ [] ⊢ M ⦂ A
 expect-⊢ M A ok = toWitness ok
+
+run-term : ∀ {M} → Maybe (Run.RunResult M) → Maybe Term
+run-term nothing = nothing
+run-term (just r) = just (Eval.term (Run.evaluation r))
+
+run-gas : ℕ
+run-gas = 100
 
 ------------------------------------------------------------------------
 -- Basic source examples
@@ -135,6 +154,42 @@ sec6-K-base =
 
 sec6-K-base-⊢ : 0 ∣ [] ⊢ sec6-K-base ⦂ (‵ `ℕ)
 sec6-K-base-⊢ = expect-⊢ sec6-K-base (‵ `ℕ) is-just
+
+------------------------------------------------------------------------
+-- Successful execution tests
+------------------------------------------------------------------------
+
+example-dyn-id-run :
+  run-term (Run.run run-gas example-dyn-id) ≡ just (taggedNatᵀ 7)
+example-dyn-id-run = refl
+
+example-nat-id-run :
+  run-term (Run.run run-gas example-nat-id) ≡ just (natᵀ 7)
+example-nat-id-run = refl
+
+example-poly-id-run :
+  run-term (Run.run run-gas example-poly-id) ≡ just (natᵀ 7)
+example-poly-id-run = refl
+
+sec2-app-dyn-run :
+  run-term (Run.run run-gas sec2-app-dyn) ≡ just (taggedNatᵀ 7)
+sec2-app-dyn-run = refl
+
+sec2-app-base-run :
+  run-term (Run.run run-gas sec2-app-base) ≡ just (natᵀ 7)
+sec2-app-base-run = refl
+
+sec5-β-run :
+  run-term (Run.run run-gas sec5-β) ≡ just (natᵀ 7)
+sec5-β-run = refl
+
+sec6-K-dyn-run :
+  run-term (Run.run run-gas sec6-K-dyn) ≡ just (taggedNatᵀ 42)
+sec6-K-dyn-run = refl
+
+sec6-K-base-run :
+  run-term (Run.run run-gas sec6-K-base) ≡ just (natᵀ 42)
+sec6-K-base-run = refl
 
 ------------------------------------------------------------------------
 -- Rejection tests

@@ -342,6 +342,43 @@ so (c) may be closest to cambridge25's `Γ | ∅ ⊢ p, q` discipline: the
 `∶ᶜ`-side coercions cannot be seals, and the `Γ | Φ`-side raws are
 exactly the ones the store changes rewrite.
 
+Design decision (2026-07-06): pursue the ρ-mediated variant — the
+coercion index is typed against ONE home store (right/target), and the
+matched entries of ρ mediate the source-side endpoint through a
+renaming.  Rationale: strict seal-freeness for `∶ᶜ` is too strong
+(relating `x ⊒ x` at a matched-seal-typed variable needs `id (＇ α)`),
+while mediation keeps such indices and translates their names.
+Prototyped in `proof/MediatedNarrowingPrototype.agda`:
+
+- `MedTy`/`MedCo` — mediation relations over an abstract variable
+  correspondence, with `ExtVar` binder extension; `MatchedVar ρ` is the
+  instance induced by ρ's matched entries.
+- Proved: functionality, one/two-sided renaming lemmas, the
+  allocation-shaped inclusions for `applyLeftChanges`-,
+  `applyRightChange`-, and lockstep-(`⇑ᶜorr`)-shaped extensions —
+  `mv-lockstep` shows the six lockstep constructors induce exactly
+  `ExtVar` of the old correspondence, reconciling them with the
+  one-sided theorem formulas.
+- Proved: the crux lemma `med-cast-typing` (mediation preserves cast
+  typing across stores) in all ten constructor cases, given
+  `ModeCorr`/`StoreMed`/scoping side conditions.
+- Proved hole-free: `left-alloc-transport` — the reshaped judgment
+  crosses a left store change with the home raw, its typing, and its
+  endpoints untouched.  This is the statement whose shared-raw
+  analogue is false today.
+- Remaining holes are plumbing only: `⟰ᵗ` membership shifts for
+  `StoreMed`, the `occurs zero` boolean traversal, the structural
+  `Narrowing` witness transport, and ordinary one-store weakening for
+  the home-side allocation demo.
+
+Migration sketch (next steps if adopted): extend `StoreCorr` (or a
+sibling record) with the `StoreMed` payload invariant and a
+`ModeCorr`-style mode discipline; replace the 7-tuple with the
+`⊢ᵐ`-shaped judgment; sweep TermNarrowingSeparated constructors and
+extractors; restate the left-change family (now provable via
+`medTy-mapˡ`-style transports) and the InnerStepCastSeparated holes
+(via the right-side lemmas).
+
 ## Track C. Catchup Proof
 
 - [x] Add right-side store-change operations.

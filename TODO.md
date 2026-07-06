@@ -26,36 +26,131 @@ New proof work goes to the `⊒ᵐ` ports (`proof/*Mediated.agda`,
 `proof/MediationProperties.agda`).
 
 [ ] DECIDE and finish `left-changes-term-narrowingᵐ`, now in
-    `GTSF/proof/MediatedLeftInsertion.agda` (migration step 5 in the
-    checklist).  The left-insertion weakening machinery is built and
+    `GTSF/proof/MediatedLeftInsertion.agda` (PR #60; checklist
+    "Migration step 5").  The left-insertion machinery is built and
     hole-free (`LeftIns`/`StoreIns`, `insRen`/`insModeEnv`,
     `mv-insert`, `narrowing-insertᵐ`/`narrowing-insertˡ`, the
     `⨟ʳ`/`⨟ˡ` record transports, `typing-insertᵀ`), and twelve of the
-    seventeen cases of `term-narrowing-insertᵐ` are proved — but the
-    statement is FALSE as stated for the remaining five constructors,
-    each hole-bodied with a refutation:
-    - `ν⊒νᵗ`: both terms embed `⇑ᶜ p` for the left-invariant index
-      `p`; a left change renames only the left copy.  Fix candidate:
-      the left term embeds its own left-typed raw (cast-rule style).
-    - `⊒Λᵗ`/`⊒⟨ν⟩ᵗ`: the index `gen A p` (and for ⊒⟨ν⟩ᵗ the right
-      term `V′ ⟨ gen A s ⟩`) embeds the LEFT endpoint `A`.  Fix
-      candidate: state them at `gen Aʳ p` with the mediated image
-      explicit.
-    - `α⊒αᵗ`/`⊒αᵗ`: position-zero anchoring of the head entry and of
-      the `⊢•` store head breaks under a depth-0 insertion (and
-      `typing-insertᵀ`'s `⊢•` clause is blocked by the rule's
-      verbatim Γ-sharing).  Possibly excluded by a `No•`-style
-      runtime invariant instead of a reshape.
-    Decision needed (jsiek): reshape those constructors as sketched
-    in the checklist's migration-step-5 entry, or add an invariant
-    premise to the transport that excludes the five shapes.  After
-    the decision, fill the five holes (plus `typing-insertᵀ`'s `⊢•`
-    clause) accordingly.
+    seventeen cases of `term-narrowing-insertᵐ` are proved.  The
+    remaining five constructor cases are hole-bodied because the
+    statement is FALSE for them as the relation stands.  The problems
+    and the recommended fixes, in full:
+
+    PROBLEM 1 — `ν⊒νᵗ` shares one raw three ways.  Its conclusion is
+    `⊢ ν A N (⇑ᶜ p) ⊒ ν A′ N′ (⇑ᶜ p) ∶ p ⦂ B ⊒ᵐ B′`: the SAME `p`
+    is the (home-typed, right-store) index and is embedded, shifted,
+    in BOTH terms.  A left `bind` rewrites the left term by `⇑ᵗᵐ`,
+    which renames its embedded copy to `⇑ᶜ (⇑ᶜ p)` (the ν-position
+    coercion sits inside the binder, so `renameᵗᵐ` hits it with
+    `extᵗ suc`), while the index and the right term keep `⇑ᶜ p`.
+    No constructor relates the resulting pair: ν⊒νᵗ forces both
+    embedded raws to equal `⇑ᶜ (index)`, and ⊒νᵗ (right-ν, left
+    arbitrary) would need the SHIFTED WHOLE left ν-term related to
+    the body `N′` — there is no left-only-ν introduction rule.
+    Concrete counterexample: any ν⊒νᵗ node with `p = id (＇ β)` and
+    `χs = bind X ∷ []`.
+    RECOMMENDED FIX: stop sharing the left copy syntactically.
+    Change the left term to `ν A N sₗ` where `sₗ` is its own
+    left-world raw, carried with a left one-store typing premise
+    `s⊒ˡ : η ∣ suc ΔL ∣ leftStore (matched zero (⇑ᵗ A) zero (⇑ᵗ A′)
+    ∷ ⇑ᶜorr ρ) ⊢ sₗ ∶ C ⊒ Cₗ′` (exactly how cast+⊒ᵗ/cast-⊒ᵗ carry
+    `s⊒ˡ`, so a left change renames `sₗ` together with the store it
+    is typed against — `narrowing-insertˡ` already transports this),
+    plus a side condition tying `sₗ` to the right/right-index copy
+    `⇑ᶜ p`.  The tie's exact form should be settled from the
+    consumer: the ν clauses of `catchup-lemmaᵐ`/`sim-betaᵐ` (still
+    holes) will reveal what the post-allocation cast nodes need —
+    the natural candidate is the pair of premises those cast nodes
+    take (`s⊒ˡ` + a `⨟ˡ`-style glue for the left cast, `t⊒ʳ` + `⨟ʳ`
+    for the right cast at `⇑ᶜ p`).  NOTE the mirror question will
+    arise for RIGHT store changes (the right term's embedded copy vs
+    a left-typed index) — design the tie once, symmetrically.
+
+    PROBLEM 2 — `⊒Λᵗ` and `⊒⟨ν⟩ᵗ` embed the LEFT endpoint in
+    left-invariant positions.  ⊒Λᵗ concludes
+    `⊢ N ⊒ Λ V′ ∶ gen A p ⦂ A ⊒ᵐ (`∀ B)`: the index raw embeds the
+    left endpoint `A`.  This is forced to be self-mediated: the ∶ᶜ
+    premise's home typing uses `cast-gen`, whose source endpoint IS
+    the raw's embedded type, so the package's mediated image `Aʳ`
+    satisfies `Aʳ ≡ A`.  Under a left insertion the endpoint becomes
+    `renameᵗ (insRen χs k) A` but the index must stay `gen A p` —
+    underivable (counterexample: `N = ` x`, `A = ＇ 0`,
+    `ρ = matched 0 ★ 0 ★ ∷ []`, `χs = bind X ∷ []`).  ⊒⟨ν⟩ᵗ has the
+    same index AND embeds `gen A s` in the (left-invariant) RIGHT
+    term.
+    RECOMMENDED FIX (small and self-contained; do this one first):
+    add an implicit `Aʳ` to both constructors and replace every
+    embedded `A` by `Aʳ`: premise `ΔL ∣ ΔR ∣ ρ ⊢ gen Aʳ p ∶ᶜ A ⊒ᵐ
+    `∀ B`, conclusion index `gen Aʳ p`, and in ⊒⟨ν⟩ᵗ right term
+    `V′ ⟨ gen Aʳ s ⟩` (also better-typed: the right cast's source
+    lives in the right world, which is exactly `Aʳ`).  No new field
+    is needed — the ∶ᶜ package already contains `Σ[ Aʳ ] MedTy
+    (MatchedVar ρ) A Aʳ`, and cast-gen pins the raw to it.  With
+    this, both cases are provable by `narrowing-insertᵐ` (index and
+    `Aʳ` untouched; `medTy-mapˡ` moves the mediation to the renamed
+    endpoint) — the case bodies then mirror the proved ⊒νᵗ clause.
+    Consumer sweep needed: construction sites currently instantiate
+    with `Aʳ = A`; they need a self-mediation witness `MedTy
+    (MatchedVar ρ) A A`, which holds when A's variables are
+    lockstep-matched in ρ — add a small `medTy-refl`-style lemma for
+    that (`med-var ∘ (proof that each var is self-matched)`).  Grep
+    consumers: `MediatedNarrowing.agda` extractors (no change — they
+    never inspect the embedded type), `proof/CatchupMediated.agda`
+    (statement-level, holes), `proof/SimBetaMediated.agda` (pattern
+    matches on gen-indexed nodes).
+
+    PROBLEM 3 — `α⊒αᵗ`/`⊒αᵗ` and the `⊢•` typing rule anchor the
+    store/correspondence HEAD.  Their conclusions live at
+    `matched/right-only zero … ∷ ⇑ᶜorr ρ` (entry at position zero)
+    and their `(⇑ᵗᵐ L) •` terms are typed by `⊢•`, which requires
+    `Σ ≡ (zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ₀`.  A depth-0 insertion (`li-zero`)
+    puts the new left-only entry ABOVE both anchors, so the
+    transported instance has a left-only head where the constructors
+    demand matched/right-only — underivable.  Separately,
+    `typing-insertᵀ`'s `⊢•` clause is blocked at ALL depths: `⊢•`
+    shares Γ verbatim between its premise (at Δ₀) and conclusion (at
+    suc Δ₀), so the transported premise wants Γ renamed by
+    `insRen χs (k-1)` while the conclusion wants `insRen χs k`;
+    these agree only on ⇑ᵗ-shifted entries, and only one binder
+    deep.
+    RECOMMENDED PATH: first study how `proof/NuPreservation.agda`
+    carries `⊢•` typings across bind-emitting reduction steps — the
+    language's own preservation proof must already resolve this
+    anchoring (likely via the `No•`/`One•` discipline: a left `bind`
+    is only emitted by ν-allocation, which happens when the ν body
+    is a value, i.e. with no live `•` outside the allocating ν).
+    Whatever invariant it uses is the premise to add.  Two concrete
+    ways to state it: (i) a `No• M` premise on
+    `left-changes-term-narrowingᵐ` (excludes `⊢•` nodes in the left
+    typing derivations AND α⊒αᵗ/⊒αᵗ nodes, whose left terms are
+    •-applications; `renameᵗᵐ-preserves-No•` threads it through the
+    induction) — but check the DGG call sites can supply it, since
+    compiled source ƛ-bodies may contain `(⇑ᵗᵐ L) •` from type
+    application; or (ii) a recursive predicate `LeftStable :
+    (derivation) → Set` defined by recursion on the relation (⊤ at
+    the twelve good constructors, conjunction of sub-results; ⊥ at
+    the five bad ones), taken as a premise and discharged by the
+    DGG's runtime invariant.  Option (ii) also covers PROBLEM 1/2 if
+    the reshapes are rejected, at the cost of pushing the burden to
+    every DGG use site.
+
+    NEXT STEPS, in order:
+    1. jsiek decides: reshape ⊒Λᵗ/⊒⟨ν⟩ᵗ (recommended, low-risk) and
+       ν⊒νᵗ (needs the tie design), vs the `LeftStable` premise
+       route; and pick the `⊢•` invariant after reading
+       NuPreservation.
+    2. If reshaping: edit `MediatedNarrowing.agda`, sweep consumers
+       (grep `⊒Λᵗ|⊒⟨ν⟩ᵗ|ν⊒νᵗ` in `GTSF/proof/*.agda`), add
+       `medTy-refl` to `Mediation.agda`.
+    3. Fill the five holes in `term-narrowing-insertᵐ` and the `⊢•`
+       clause of `typing-insertᵀ` (all in
+       `proof/MediatedLeftInsertion.agda`); the twelve proved cases
+       and all machinery are reshape-agnostic and stay.
+    4. `make -C GTSF check` green; commit + PR.
     Constraints: no new postulates without explicit approval; holes
-    OK; `make -C GTSF check` green before commit; commit + PR at the
-    end.  After this, the next migration step is moving the DGG
-    proof stack (`DGGBeta*`, `InnerStepCastSeparated`, the main
-    theorem) onto ⊒ᵐ and deleting `TermNarrowingSeparated`.
+    OK.  After this, the next migration step is moving the DGG proof
+    stack (`DGGBeta*`, `InnerStepCastSeparated`, the main theorem)
+    onto ⊒ᵐ and deleting `TermNarrowingSeparated`.
 
 [ ] Prove `catchup-lemmaᵐ` in `GTSF/proof/CatchupMediated.agda`: the
     statement is settled (PR #48's `sim-betaᵐ` already consumes it)

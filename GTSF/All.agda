@@ -24,6 +24,7 @@ import proof.CatchupSeparated
 import Mediation
 import MediatedNarrowing
 import proof.MediationProperties
+import proof.CatchupMediated
 import proof.DynamicGradualGuaranteeSeparated
 import NarrowingExamples
 import NuMetaTheory

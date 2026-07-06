@@ -125,6 +125,8 @@ separated-dgg-beta-left-first :
     (L · R —↠[ χs ] N) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
     (ρ′ ≡ applyLeftChanges χs ρ) ×
+    (C ≡ applyTys χs B) ×
+    (D ≡ B′) ×
     ΔL′ ∣ ΔR ∣ ρ′ ∣ []
       ⊢ N ⊒ N′ [ V′ ] ∶ r ⦂ C ⊒ D
 separated-dgg-beta-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
@@ -270,6 +272,15 @@ separated-dgg-beta-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
             (applyLeftChanges-++ (χsL ++ χsR) χsT ρ)
             (cong (applyLeftChanges χsT)
               (applyLeftChanges-++ χsL χsR ρ))))
+
+    C≡ :
+      applyTys χsT (applyTys χsR (applyTys χsL B)) ≡
+        applyTys ((χsL ++ χsR) ++ χsT) B
+    C≡ =
+      sym
+        (trans
+          (applyTys-++ (χsL ++ χsR) χsT B)
+          (cong (applyTys χsT) (applyTys-++ χsL χsR B)))
   in
   (χsL ++ χsR) ++ χsT ,
   N ,
@@ -281,6 +292,8 @@ separated-dgg-beta-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   source-steps ,
   ΔL′≡ ,
   ρ′≡ ,
+  C≡ ,
+  refl ,
   N⊒N′[V′]
 
 separated-dgg-beta-right-first :
@@ -299,6 +312,8 @@ separated-dgg-beta-right-first :
     (L · R —↠[ χs ] N) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
     (ρ′ ≡ applyLeftChanges χs ρ) ×
+    (C ≡ applyTys χs B) ×
+    (D ≡ B′) ×
     ΔL′ ∣ ΔR ∣ ρ′ ∣ []
       ⊢ N ⊒ N′ [ V′ ] ∶ r ⦂ C ⊒ D
 separated-dgg-beta-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
@@ -378,6 +393,10 @@ separated-dgg-beta-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       ρ′ ≡ applyLeftChanges (χsR ++ χsT) ρ
     ρ′≡ =
       trans ρT≡ (sym (applyLeftChanges-++ χsR χsT ρ))
+
+    C≡ :
+      applyTys χsT (applyTys χsR B) ≡ applyTys (χsR ++ χsT) B
+    C≡ = sym (applyTys-++ χsR χsT B)
   in
   χsR ++ χsT ,
   N ,
@@ -389,6 +408,8 @@ separated-dgg-beta-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   source-steps ,
   ΔL′≡ ,
   ρ′≡ ,
+  C≡ ,
+  refl ,
   N⊒N′[V′]
 
 separated-dgg-beta :
@@ -405,6 +426,8 @@ separated-dgg-beta :
     (L · R —↠[ χs ] N) ×
     (ΔL′ ≡ applyTyCtxs χs ΔL) ×
     (ρ′ ≡ applyLeftChanges χs ρ) ×
+    (C ≡ applyTys χs B) ×
+    (D ≡ B′) ×
     ΔL′ ∣ ΔR ∣ ρ′ ∣ []
       ⊢ N ⊒ N′ [ V′ ] ∶ r ⦂ C ⊒ D
 separated-dgg-beta okLR@(ok-no (no•-· noL noR))

@@ -284,6 +284,8 @@ Proof notes:
   `separated-dgg-beta-cast`) do not yet track endpoints; the two clauses
   carry `β-*-endpoint-tracking` holes until the extension is threaded
   through those helpers and `sim-beta`.
+  Resolved 2026-07-06: both delegation chains now return
+  `(C ≡ applyTys χs B) × (D ≡ B′)` — see the entry below.
 - The local `obligation` tuple ascriptions that duplicated the theorem's
   ∃-type were removed where the tuple is immediately returned; the clause
   type determines them, and the duplicated ascriptions could not name the
@@ -450,3 +452,30 @@ Highlights:
   `{! …-composition !}` holes mirroring the discharged `sim-beta`
   sites; filling them needs the same compᵏ-threading surgery on that
   file's local helpers.
+
+## β and β-↦ endpoint tracking closed, 2026-07-06
+
+The `β-*-endpoint-tracking` holes in the main theorem's β and β-↦
+clauses are filled; both clauses are now hole-free.  No new lemmas or
+postulates were needed: the innermost helpers (`sim-beta`,
+`separated-dgg-beta-cast-value-shape`) already state their result
+relations at concrete indices (`applyCoercions χs q ⦂ applyTys χs B ⊒
+B′`), and only the delegation wrappers erased them into bare
+existentials.  Every function in the two chains
+(`separated-dgg-beta{,-left-first,-right-first}` and
+`separated-dgg-beta-cast{,-value,-left-first,-right-first}`) now also
+returns `(C ≡ applyTys χs B) × (D ≡ B′)`:
+
+- `refl` at the concrete layer (`-cast-value`, next to the
+  value-shape call);
+- `sym (applyTys-++ …)` re-association chains where the catchup
+  layers nest store changes, mirroring the existing `ΔL′≡`
+  constructions (`trans C≡ᵀ (sym (trans (applyTys-++ (χsL ++ χsR) χsT
+  B) (cong (applyTys χsT) (applyTys-++ χsL χsR B))))` in the two-layer
+  case);
+- the dispatchers forward by tail call, so only their signatures
+  changed.
+
+At the theorem, the β/β-↦ steps are `pure-step`s, so `χ′ = keep` and
+`applyTy keep B = B` holds definitionally; the helper equalities fill
+both conclusion components directly.

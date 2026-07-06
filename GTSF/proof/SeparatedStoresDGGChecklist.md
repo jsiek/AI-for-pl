@@ -535,6 +535,82 @@ four `MediationProperties` holes are discharged; one remains.
   `medTy-mapˡ`, `renameⁿ`/`coercion-renameᵗᵐ`,
   `shift-left-term-typing`.
 
+Migration step 5 (2026-07-06, left-insertion weakening — FINDING: the
+term transport is FALSE as stated for five constructors): the
+insertion machinery is built in `proof/MediatedLeftInsertion.agda` and
+`left-changes-term-narrowingᵐ` moved there (MediationProperties is now
+hole-free), but implementing the step-4 design surfaced that it
+underestimated the problem.  What is proved, hole-free:
+
+- a left change chain `χs` is ONE renaming `applyRenᵗ χs`
+  (`applyTys`/`applyTerms` are `renameᵗ`/`renameᵗᵐ` of it); applied
+  `k` lockstep binders down it is the insertion renaming
+  `insRen χs k = extᵗᵏ (applyRenᵗ χs)`, with `TyRenameWf` into
+  `applyTyCtxs χs Δ`, a constructed mode-environment image
+  (`insModeEnv`, one `instᵈ` per bind), and store membership into the
+  inserted store (`storeIns-incl`).
+- `LeftIns χs k ρ ρ′` (correspondence-level insertion, with
+  `li-bind`/`li-matched`/`li-right` mirroring the term relation's
+  binder extensions) and its projections: `rightStore-insert` (right
+  store untouched), `storeIns-left` (left stores related by the
+  store-level `StoreIns`), and `mv-insert` (the insertion sibling of
+  `mv-lockstep`, via the `⇑ᶜorr` inversion `mv-shiftᵇ-inv`).
+- the mediated-core transports at arbitrary insertion depth:
+  `narrowing-insertᵐ` (index raw, home typing, and target endpoint
+  untouched; `medTy-mapˡ` moves the mediation), `narrowing-insertˡ`
+  (one-store left evidence renames wholesale), and the `⨟ʳ`/`⨟ˡ`
+  record transports `comp-tgt-insertᵐ`/`comp-src-insertᵐ`.
+- twelve of the seventeen term-relation cases of
+  `term-narrowing-insertᵐ`, including all four cast rules (the
+  embedded `narrowing-dual¹` raws rewrite by `narrowing-dual¹-raw` +
+  `dualRawⁿ-renameᶜ`), ƛ/· (the `fun-narrow-domain-dual` ctx-entry
+  and argument-index rewrites by
+  `fun-narrow-domain-dualᵐ-determined`), Λ⊒Λᵗ, ⊒νᵗ (the extended
+  `StoreCorr` rebuilt from the original sub-derivation's own package
+  via `corr-right-insert`), blame, variables, constants, and ⊕.
+
+FINDING — the remaining five cases are UNPROVABLE for the relation as
+currently stated (each hole clause records its refutation):
+
+- `ν⊒νᵗ` shares ONE raw between the left term, the right term, and
+  the index: both terms embed `⇑ᶜ p` for the home-typed index `p`.  A
+  left change renames the left term's copy but neither the right term
+  nor the index, and no constructor relates the resulting pair
+  (counterexample: `p = id (＇ β)`, `χs = bind X ∷ []`; there is no
+  left-only-ν introduction rule to reroute through ⊒νᵗ).  Fix
+  candidate: let the left term embed its own LEFT-typed raw (as the
+  cast rules do via `narrowing-dual¹`/`s⊒ˡ`), tied to the index by
+  mediation rather than syntactic identity.
+- `⊒Λᵗ`/`⊒⟨ν⟩ᵗ`: the index `gen A p` embeds the LEFT endpoint `A`
+  (cast-gen forces the raw's embedded type to equal the home source
+  endpoint, so these nodes are self-mediated: `Aʳ ≡ A`).  The
+  transported endpoint is `renameᵗ (insRen χs k) A` but the index
+  must stay `gen A p` — underivable (counterexample: `N = ` x`,
+  `A = ＇ 0`, `ρ = matched 0 ★ 0 ★ ∷ []`).  Fix candidate: state the
+  premise and index at `gen Aʳ p` with the mediated image explicit,
+  decoupling the raw from the left endpoint; `⊒⟨ν⟩ᵗ` additionally
+  embeds `gen A s` in the (left-invariant) right term and needs the
+  same decoupling there.
+- `α⊒αᵗ`/`⊒αᵗ`: their conclusions anchor a matched/right-only entry
+  at position ZERO of the correspondence, and their `(⇑ᵗᵐ L) •`
+  terms' `⊢•` typings anchor the store HEAD.  A depth-0 insertion
+  (`li-zero`) puts the new left-only entry above both anchors and no
+  constructor can rebuild the pair.  Related: `typing-insertᵀ`'s `⊢•`
+  clause is a documented hole — the rule shares `Γ` verbatim across
+  its type binder, so the transported premise context
+  (`insRen χs (k-1)`-renamed) differs from the conclusion's
+  (`insRen χs k`-renamed) unless `Γ`'s entries are ⇑ᵗ-shifted deeply
+  enough.  Whether the DGG ever transports across a live `•` (the
+  `No•`/`One•` discipline suggests left binds are only emitted with
+  no live opens) is the open question that decides between a
+  side-condition premise and a rule reshape.
+
+Decision needed (jsiek): reshape the three ν/gen constructors (and
+possibly the `⊢•`/α-rule anchoring) as sketched, or add an invariant
+premise to `left-changes-term-narrowingᵐ` that excludes the five
+shapes at transport time.  The insertion machinery is agnostic to the
+choice and stays either way.
+
 ## Track C. Catchup Proof
 
 - [x] Add right-side store-change operations.

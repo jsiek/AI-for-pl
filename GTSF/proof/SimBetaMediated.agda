@@ -50,7 +50,6 @@ open import proof.MediationProperties using
   ; applyModeEnvs
   ; left-changes-narrowingˡ
   ; left-changes-comp-srcᵐ
-  ; left-changes-term-narrowingᵐ
   ; narrowing-dual¹-applyCoercions
   ; fun-narrow-domain-dual¹
   ; fun-narrow-domain-dual-typing¹
@@ -58,6 +57,8 @@ open import proof.MediationProperties using
   ; comp-src-fun-domain-dualᵐ
   ; comp-src-fun-codomainᵐ
   )
+open import proof.MediatedLeftInsertion using
+  (left-changes-term-narrowingᵐ)
 open import proof.ReductionProperties using
   ( applyTerms-preserves-No•
   ; applyTerms-preserves-Value

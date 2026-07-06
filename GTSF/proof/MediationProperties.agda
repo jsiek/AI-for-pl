@@ -1,15 +1,13 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
 module proof.MediationProperties where
 
 -- File Charter:
 --   * Store-typing properties of the mediated judgment: its
 --     store-change transports, the one-store and composition-record
 --     arrow projections, and the left-change transport family.
---   * One hole: the mediated term-relation left-change transport
---     (`left-changes-term-narrowingᵐ`), pending a left-insertion
---     weakening of the relation — see the proof-design note at the
---     hole.
+--   * Hole-free.  The mediated term-relation left-change transport
+--     (`left-changes-term-narrowingᵐ`) lives in
+--     proof/MediatedLeftInsertion.agda, on top of the left-insertion
+--     weakening machinery defined there.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Nat using (zero; suc; _<_; s≤s; z≤n)
@@ -461,31 +459,7 @@ left-changes-comp-srcᵐ χs {ΔL = ΔL} {ρ = ρ} corr′
       (λ Σ → applyModeEnvs χs η ∣ applyTyCtxs χs ΔL ∣ Σ ⊢ _ ∶ _ ⊒ _)
       (sym (leftStore-applyLeftChanges χs ρ))
 
--- The mediated term-relation transport across left store changes:
--- the ⊒ᵐ replacement for the old postulated
--- `left-change-term-narrowing`.  Note the index raw `p` is untouched
--- — the point of the mediated design.
---
--- Proof design (recorded 2026-07-06, with the rest of the family
--- discharged): reduce to a single `bind`, which is a LEFT-ONLY
--- INSERTION WEAKENING of the relation — the statement as given
--- cannot be proved by direct induction, because the type-binder
--- constructors (Λ⊒Λᵗ, ⊒Λᵗ, ⊒⟨ν⟩ᵗ, α⊒αᵗ, ⊒αᵗ, ν⊒νᵗ, ⊒νᵗ) put their
--- sub-derivations (and for α⊒αᵗ/⊒αᵗ their conclusions) at
--- `entry ∷ ⇑ᶜorr ρ`-shaped correspondences, where the outer change
--- must land BELOW the binder entry, while `applyLeftChange` only
--- inserts at position zero.  The single-bind lemma therefore needs
--- the standard weakening generalization: an insertion renaming of
--- the left side at arbitrary depth (a left sibling of `mv-lockstep`
--- for `MatchedVar`, `medTy-mapˡ` for the mediation, renameⁿ/
--- `coercion-renameᵗᵐ` for the left one-store evidence, and
--- `shift-left-term-typing` for the term typings).  That is its own
--- work item; hole-bodied until then.
-left-changes-term-narrowingᵐ :
-  ∀ χs {ΔL ΔR ρ M M′ p A B} →
-  StoreCorr (applyTyCtxs χs ΔL) ΔR (applyLeftChanges χs ρ) →
-  ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ᵐ B →
-  applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
-    ⊢ applyTerms χs M ⊒ M′ ∶ p ⦂ applyTys χs A ⊒ᵐ B
-left-changes-term-narrowingᵐ χs corr M⊒M′ =
-  {! left-changes-term-narrowingᵐ !}
+-- The mediated term-relation transport across left store changes
+-- (`left-changes-term-narrowingᵐ`) lives in
+-- proof/MediatedLeftInsertion.agda: it needs a left-insertion
+-- weakening of the whole relation, which is its own development.

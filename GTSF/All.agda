@@ -34,6 +34,7 @@ import Mediation
 import MediatedNarrowing
 import proof.DualRawProperties
 import proof.MediationProperties
+import proof.MediatedLeftInsertion
 import proof.CatchupMediated
 import proof.SimBetaMediated
 -- The following "Separated" modules need to be ported

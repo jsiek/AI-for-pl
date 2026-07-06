@@ -118,6 +118,9 @@ open import proof.DGGDeltaSeparated using
   ( separated-⊕-δ-left-first
   ; separated-⊕-δ-right-first
   )
+open import proof.LeftNuWideningSeparated using
+  ( matched-α-beta-gen-left-ν-widening-call
+  )
 
 ------------------------------------------------------------------------
 -- Full separated DGG skeleton
@@ -1820,8 +1823,20 @@ dynamicGradualGuarantee okM (⊒⟨ν⟩ᵗ _ _ _ _) (pure-step st) =
   {! target-gen-cast-pure-step-simulation !}
 dynamicGradualGuarantee okM (⊒⟨ν⟩ᵗ _ _ _ _) (ξ-⟨⟩ st) =
   {! target-gen-cast-inner-step-simulation !}
+dynamicGradualGuarantee okM
+    (α⊒αᵗ {L′ = V′ ⟨ gen Aν s ⟩}
+      γ′≡ endpoints qᶜ pᶜ L⊒V′gen)
+    (pure-step (β-gen• vV′)) =
+  matched-α-beta-gen-left-ν-widening-call
+    okM
+    (pure-step (β-gen• vV′))
+    γ′≡
+    endpoints
+    qᶜ
+    pᶜ
+    L⊒V′gen
 dynamicGradualGuarantee okM (α⊒αᵗ _ _ _ _ _) (pure-step st) =
-  {! matched-seal-pure-step-simulation !}
+  {! matched-seal-other-pure-step-simulation !}
 dynamicGradualGuarantee okM (⊒αᵗ _ _ _ _) (pure-step st) =
   {! target-seal-pure-step-simulation !}
 dynamicGradualGuarantee okM (ν⊒νᵗ _ _ _ _) (ν-step st₁ st₂) =

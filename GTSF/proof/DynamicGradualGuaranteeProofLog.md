@@ -479,3 +479,23 @@ returns `(C ≡ applyTys χs B) × (D ≡ B′)`:
 At the theorem, the β/β-↦ steps are `pure-step`s, so `χ′ = keep` and
 `applyTy keep B = B` holds definitionally; the helper equalities fill
 both conclusion components directly.
+
+## ξ-⟨⟩ target-cast cases wired, 2026-07-06
+
+The `target-cast-plus-inner-step-result` and
+`target-cast-minus-inner-step-result` holes in the main theorem are
+replaced by calls into the new `proof/InnerStepCastSeparated.agda`.
+Each case lemma rebuilds the ⊒cast±ᵗ node over the IH's store-changed
+contexts (`applyTyCtxs χs ΔL`, `applyTyCtx χ′ ΔR`,
+`applyRightChange χ′ (applyLeftChanges χs ρ)`), taking the IH's own
+coercion evidence for the inner index and gluing it in with a
+transported composition record; the plus case rewrites its target term
+along the transported dual raw, the minus case re-indexes the IH by
+canonicity.  Both case lemmas and the theorem check green; the open
+content is isolated in four named holes — the three store-change
+transports of sibling cast evidence and one canonicity application —
+deliberately NOT postulated: the counterexample check found a design
+tension between the shared-raw 7-tuple judgment and one-sided de
+Bruijn store changes that also affects the existing left-change
+postulate family.  See "Right store changes and shared coercion raws"
+in the checklist for the analysis and candidate resolutions.

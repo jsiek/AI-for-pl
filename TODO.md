@@ -25,27 +25,32 @@ their postulates:
 New proof work goes to the `⊒ᵐ` ports (`proof/*Mediated.agda`,
 `proof/MediationProperties.agda`).
 
-[ ] Prove `left-changes-term-narrowingᵐ`, the last `{! !}` hole in
-    `GTSF/proof/MediationProperties.agda` (the ⊒ᵐ replacement of the
-    old postulated `left-change-term-narrowing`; the index raw is
-    untouched).  The other three holes of the mediated plumbing
-    family (`left-changes-narrowingˡ`,
-    `narrowing-dual¹-applyCoercions` via the new
-    `proof/DualRawProperties.agda`, and
-    `right-store-shift-weakening`) were discharged in migration
-    step 4 — see that checklist entry.
-    Proof design (recorded at the hole): reduce to a single `bind`,
-    which is a LEFT-ONLY INSERTION WEAKENING of the relation.  Direct
-    induction over the statement fails at the type-binder
-    constructors (Λ⊒Λᵗ, ⊒Λᵗ, ⊒⟨ν⟩ᵗ, α⊒αᵗ, ⊒αᵗ, ν⊒νᵗ, ⊒νᵗ): their
-    sub-derivations (and for α⊒αᵗ/⊒αᵗ their conclusions) sit at
-    `entry ∷ ⇑ᶜorr ρ`-shaped correspondences, where the outer change
-    must land BELOW the binder entry, while `applyLeftChange` only
-    inserts at position zero.  Generalize over a left-side insertion
-    renaming at arbitrary depth, with: an insertion sibling of
-    `mv-lockstep` for `MatchedVar`, `medTy-mapˡ` for the mediation,
-    `renameⁿ`/`coercion-renameᵗᵐ` for the left one-store evidence,
-    and `shift-left-term-typing` for the term typings.
+[ ] DECIDE and finish `left-changes-term-narrowingᵐ`, now in
+    `GTSF/proof/MediatedLeftInsertion.agda` (migration step 5 in the
+    checklist).  The left-insertion weakening machinery is built and
+    hole-free (`LeftIns`/`StoreIns`, `insRen`/`insModeEnv`,
+    `mv-insert`, `narrowing-insertᵐ`/`narrowing-insertˡ`, the
+    `⨟ʳ`/`⨟ˡ` record transports, `typing-insertᵀ`), and twelve of the
+    seventeen cases of `term-narrowing-insertᵐ` are proved — but the
+    statement is FALSE as stated for the remaining five constructors,
+    each hole-bodied with a refutation:
+    - `ν⊒νᵗ`: both terms embed `⇑ᶜ p` for the left-invariant index
+      `p`; a left change renames only the left copy.  Fix candidate:
+      the left term embeds its own left-typed raw (cast-rule style).
+    - `⊒Λᵗ`/`⊒⟨ν⟩ᵗ`: the index `gen A p` (and for ⊒⟨ν⟩ᵗ the right
+      term `V′ ⟨ gen A s ⟩`) embeds the LEFT endpoint `A`.  Fix
+      candidate: state them at `gen Aʳ p` with the mediated image
+      explicit.
+    - `α⊒αᵗ`/`⊒αᵗ`: position-zero anchoring of the head entry and of
+      the `⊢•` store head breaks under a depth-0 insertion (and
+      `typing-insertᵀ`'s `⊢•` clause is blocked by the rule's
+      verbatim Γ-sharing).  Possibly excluded by a `No•`-style
+      runtime invariant instead of a reshape.
+    Decision needed (jsiek): reshape those constructors as sketched
+    in the checklist's migration-step-5 entry, or add an invariant
+    premise to the transport that excludes the five shapes.  After
+    the decision, fill the five holes (plus `typing-insertᵀ`'s `⊢•`
+    clause) accordingly.
     Constraints: no new postulates without explicit approval; holes
     OK; `make -C GTSF check` green before commit; commit + PR at the
     end.  After this, the next migration step is moving the DGG

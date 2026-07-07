@@ -9,8 +9,9 @@ module proof.CompileTermNarrowing where
 --     right-only polymorphic and ν bridges are explicit fields of the
 --     specialized `CompileIndexMediation` plan.
 
+open import Data.Empty using (⊥)
 open import Data.List using ([]; _∷_; map)
-open import Data.Nat using (zero; suc)
+open import Data.Nat using (zero; suc; z<s)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using
@@ -57,6 +58,7 @@ open import NarrowWiden using
   ; CtxNrwEntry
   ; ctx-nrw
   ; cross
+  ; id-＇
   ; id-‵
   ; _∣_∣_⊢_∶_⊒_
   ; _∣_⊢_∶ᶜ_⊒_
@@ -89,7 +91,14 @@ open import StoreCorrespondence using
   ; leftStore
   ; rightStore-⇑ʳᶜorr
   )
-open import Mediation using (medTy-mapʳ; mv-shiftʳ)
+open import Mediation using
+  ( MedTy
+  ; MatchedVar
+  ; med-var
+  ; med-⇒
+  ; medTy-mapʳ
+  ; mv-shiftʳ
+  )
 open import proof.ImprecisionProperties using (~-refl; ~-sym)
 open import TermNarrowingSeparated using
   ( CtxCorr
@@ -242,6 +251,56 @@ record CompileIndexMediation (Δ : TyCtx) (ρ : SealCorr) : Set₁ where
       CompileIndexMediation (suc Δ) (⇑ᶜorr ρ)
 
 open CompileIndexMediation
+
+no-empty-var-med :
+  ∀ {Aʳ} →
+  MedTy (MatchedVar []) (＇ zero) Aʳ →
+  ⊥
+no-empty-var-med (med-var ())
+
+empty-var-indexᵐ-impossible :
+  suc zero ∣ suc zero ∣ [] ⊢ id (＇ zero) ∶ᶜ ＇ zero ⊒ᵐ ＇ zero →
+  ⊥
+empty-var-indexᵐ-impossible (stores , hA , hB , Aʳ , medA , home) =
+  no-empty-var-med medA
+
+empty-var-lambdaᵐ-impossible :
+  suc zero ∣ suc zero ∣ [] ∣ [] ⊢
+    ƛ (` zero) ⊒ ƛ (` zero)
+      ∶ id (＇ zero) ↦ id (＇ zero)
+      ⦂ (＇ zero ⇒ ＇ zero) ⊒ᵐ (＇ zero ⇒ ＇ zero) →
+  ⊥
+empty-var-lambdaᵐ-impossible
+    (ƛ⊒ƛᵗ (stores , hA , hB , Aʳ , med-⇒ medA medB , home) body) =
+  no-empty-var-med medA
+
+-- Consequently the current mediated relation cannot express the
+-- shared-store polymorphic identity example at the empty correspondence.
+empty-poly-idᵐ-impossible :
+  zero ∣ zero ∣ [] ∣ [] ⊢
+    Λ (ƛ (` zero)) ⊒ Λ (ƛ (` zero))
+      ∶ `∀ᶜ (id (＇ zero) ↦ id (＇ zero))
+      ⦂ `∀ (＇ zero ⇒ ＇ zero) ⊒ᵐ `∀ (＇ zero ⇒ ＇ zero) →
+  ⊥
+empty-poly-idᵐ-impossible (Λ⊒Λᵗ allᶜ vV vV′ V⊒V′) =
+  empty-var-lambdaᵐ-impossible V⊒V′
+
+-- The plan cannot be instantiated by the bare empty correspondence:
+-- after shifting under a type binder, the source index `id (＇ zero)`
+-- needs a matched variable witness, but `MatchedVar []` has none.
+empty-shift-index-plan-impossible :
+  CompileIndexMediation (suc zero) [] →
+  ⊥
+empty-shift-index-plan-impossible med
+    with indexᵐᶜ med (cast-id (wfVar z<s) refl , cross (id-＇ zero))
+empty-shift-index-plan-impossible med | varᶜ =
+  empty-var-indexᵐ-impossible varᶜ
+
+empty-compile-index-plan-impossible :
+  CompileIndexMediation zero [] →
+  ⊥
+empty-compile-index-plan-impossible med =
+  empty-shift-index-plan-impossible (shiftᵐ med)
 
 compile-context-subst-term :
   ∀ {Δ Γ Γ′ M A}

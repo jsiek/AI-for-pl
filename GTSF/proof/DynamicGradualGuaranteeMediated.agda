@@ -675,9 +675,17 @@ dynamicGradualGuaranteeᵐ okM rel@(⊒⟨ν⟩ᵗ _ _ _ _ _ _) (pure-step st)
 dynamicGradualGuaranteeᵐ okM (⊒⟨ν⟩ᵗ _ _ _ _ _ _) (ξ-⟨⟩ st) =
   {! target-gen-cast-mediated-inner-step !}
 dynamicGradualGuaranteeᵐ okM
+    rel@(α⊒αᵗ {L′ = blame} vL noL vL′ noL′ qᶜ pᶜ L⊒L′)
+    (pure-step blame-•) =
+  target-blameᵐ rel
+dynamicGradualGuaranteeᵐ okM
     (α⊒αᵗ vL noL vL′ noL′ qᶜ pᶜ L⊒L′)
     (pure-step st) =
   {! matched-seal-mediated-pure-step !}
+dynamicGradualGuaranteeᵐ okM
+    rel@(⊒αᵗ {L′ = blame} vL′ noL′ pᶜ L⊒L′)
+    (pure-step blame-•) =
+  target-blameᵐ rel
 dynamicGradualGuaranteeᵐ okM (⊒αᵗ vL′ noL′ pᶜ L⊒L′)
     (pure-step st) =
   {! target-seal-mediated-pure-step !}

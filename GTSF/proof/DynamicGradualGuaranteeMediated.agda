@@ -45,6 +45,7 @@ open import proof.DGGBetaCastMediated using (mediated-dgg-beta-cast)
 open import proof.DGGPrimitiveMediated using
   ( mediated-⊕-δ
   ; primitive-left-frame-keepᵐ
+  ; primitive-right-after-left-frame-keepᵐ
   ; primitive-right-frame-keepᵐ
   )
 open import proof.DGGCastMediated using
@@ -410,10 +411,10 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   {! ξ-⊕₁-mediated-frame-source-left-already-value !}
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
-    {χ′ = χ′}
+    {χ′ = keep}
     (ok-no (no•-⊕ noM noN))
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (ξ-⊕₂ {M′ = S′} vM′ shiftM′ N′→S′) =
+    (ξ-⊕₂ {χ = keep} {M′ = S′} vM′ shiftM′ N′→S′) =
   let
     χsM , WM , ΔL₁ ,
       vWM , noWM , M↠WM , ΔL₁≡ , ρM-corr ,
@@ -446,13 +447,53 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         N⊒N′M
         N′→S′
   in
-  {! ξ-⊕₂-mediated-frame-after-left-catchup-no-source-bullet !}
+  primitive-right-after-left-frame-keepᵐ
+    noN vWM noWM M↠WM ΔL₁≡ ρM-corr WM⊒M′ rec
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
-    {χ′ = χ′}
+    {χ′ = bind X}
+    (ok-no (no•-⊕ noM noN))
+    (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
+    (ξ-⊕₂ {χ = bind X} {M′ = S′} vM′ shiftM′ N′→S′) =
+  let
+    χsM , WM , ΔL₁ ,
+      vWM , noWM , M↠WM , ΔL₁≡ , ρM-corr ,
+      leftM≡ , rightM≡ , pMᶜ , WM⊒M′ =
+      catchup-lemmaᵐ (ok-no noM) vM′ M⊒M′
+
+    corrM :
+      StoreCorr (applyTyCtxs χsM ΔL) ΔR (applyLeftChanges χsM ρ)
+    corrM =
+      subst (λ Δ → StoreCorr Δ ΔR (applyLeftChanges χsM ρ))
+        ΔL₁≡
+        ρM-corr
+
+    N⊒N′M :
+      ΔL₁ ∣ ΔR ∣ applyLeftChanges χsM ρ ∣ []
+        ⊢ applyTerms χsM N ⊒ N′ ∶ id (‵ `ℕ)
+          ⦂ applyTys χsM (‵ `ℕ) ⊒ᵐ ‵ `ℕ
+    N⊒N′M =
+      subst
+        (λ Δ →
+          Δ ∣ ΔR ∣ applyLeftChanges χsM ρ ∣ []
+            ⊢ applyTerms χsM N ⊒ N′ ∶ id (‵ `ℕ)
+              ⦂ applyTys χsM (‵ `ℕ) ⊒ᵐ ‵ `ℕ)
+        (sym ΔL₁≡)
+        (left-changes-term-narrowingᵐ χsM corrM N⊒N′)
+
+    rec =
+      dynamicGradualGuaranteeᵐ
+        (applyTerms-preserves-RuntimeOK χsM (ok-no noN))
+        N⊒N′M
+        N′→S′
+  in
+  {! ξ-⊕₂-mediated-frame-after-left-catchup-no-source-bullet-target-bind !}
+dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
+    {χ′ = keep}
     (ok-⊕₁ okM noN)
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (ξ-⊕₂ {M′ = S′} vM′ shiftM′ N′→S′) =
+    (ξ-⊕₂ {χ = keep} {M′ = S′} vM′ shiftM′ N′→S′) =
   let
     χsM , WM , ΔL₁ ,
       vWM , noWM , M↠WM , ΔL₁≡ , ρM-corr ,
@@ -485,7 +526,47 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         N⊒N′M
         N′→S′
   in
-  {! ξ-⊕₂-mediated-frame-after-left-catchup-source-left-running !}
+  primitive-right-after-left-frame-keepᵐ
+    noN vWM noWM M↠WM ΔL₁≡ ρM-corr WM⊒M′ rec
+dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
+    {χ′ = bind X}
+    (ok-⊕₁ okM noN)
+    (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
+    (ξ-⊕₂ {χ = bind X} {M′ = S′} vM′ shiftM′ N′→S′) =
+  let
+    χsM , WM , ΔL₁ ,
+      vWM , noWM , M↠WM , ΔL₁≡ , ρM-corr ,
+      leftM≡ , rightM≡ , pMᶜ , WM⊒M′ =
+      catchup-lemmaᵐ okM vM′ M⊒M′
+
+    corrM :
+      StoreCorr (applyTyCtxs χsM ΔL) ΔR (applyLeftChanges χsM ρ)
+    corrM =
+      subst (λ Δ → StoreCorr Δ ΔR (applyLeftChanges χsM ρ))
+        ΔL₁≡
+        ρM-corr
+
+    N⊒N′M :
+      ΔL₁ ∣ ΔR ∣ applyLeftChanges χsM ρ ∣ []
+        ⊢ applyTerms χsM N ⊒ N′ ∶ id (‵ `ℕ)
+          ⦂ applyTys χsM (‵ `ℕ) ⊒ᵐ ‵ `ℕ
+    N⊒N′M =
+      subst
+        (λ Δ →
+          Δ ∣ ΔR ∣ applyLeftChanges χsM ρ ∣ []
+            ⊢ applyTerms χsM N ⊒ N′ ∶ id (‵ `ℕ)
+              ⦂ applyTys χsM (‵ `ℕ) ⊒ᵐ ‵ `ℕ)
+        (sym ΔL₁≡)
+        (left-changes-term-narrowingᵐ χsM corrM N⊒N′)
+
+    rec =
+      dynamicGradualGuaranteeᵐ
+        (applyTerms-preserves-RuntimeOK χsM (ok-no noN))
+        N⊒N′M
+        N′→S′
+  in
+  {! ξ-⊕₂-mediated-frame-after-left-catchup-source-left-running-target-bind !}
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
     {χ′ = keep}

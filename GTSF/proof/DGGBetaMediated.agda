@@ -1,5 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
 module proof.DGGBetaMediated where
 
 -- File Charter:

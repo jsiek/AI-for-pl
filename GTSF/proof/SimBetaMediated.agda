@@ -16,9 +16,10 @@ module proof.SimBetaMediated where
 --     since source store changes never touch a mediated index raw
 --     (`left-changes-transportᵐ`).  The proof splits on the function
 --     relation like the old proof; all branches are filled — the two
---     arrow cast branches recurse through catchup and the ⨟ˡ record
---     projections, and the exotic coercion shapes are refuted locally
---     by their own witnesses (no canonical-⇒/FunView detour).
+--     arrow cast branches recurse through catchup using the cast
+--     constructors' own premises, and the exotic coercion shapes are
+--     refuted locally by their own witnesses (no canonical-⇒/FunView
+--     detour).
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -49,13 +50,10 @@ open import proof.MediationProperties using
   ( left-changes-transportᵐ
   ; applyModeEnvs
   ; left-changes-narrowingˡ
-  ; left-changes-comp-srcᵐ
   ; narrowing-dual¹-applyCoercions
   ; fun-narrow-domain-dual¹
   ; fun-narrow-domain-dual-typing¹
   ; fun-narrow-domain-dualᵐ-determined
-  ; comp-src-fun-domain-dualᵐ
-  ; comp-src-fun-codomainᵐ
   )
 open import proof.MediatedLeftInsertion using
   (left-changes-term-narrowingᵐ)
@@ -102,7 +100,6 @@ sim-betaᵐ-cast-plus-tail :
   ΔL ∣ ΔR ∣ ρ ⊢ qᵢ ∶ᶜ BL ⊒ᵐ BR →
   μO ∣ ΔL ∣ ΔR ∣ ρ ⊢ q ∶ Bₒ ⊒ᵐ BR →
   (dₛ⊒ˡ : ηC ∣ ΔL ∣ leftStore ρ ⊢ dₛ ∶ Bₒ ⊒ BL) →
-  ΔL ∣ ΔR ∣ ρ ⊢ dₛ ⨟ˡ qᵢ ≈ q ∶ Bₒ ⊒ᵐ BR →
   ΔL′ ∣ ΔR ∣ ρ′ ∣ []
     ⊢ N ⊒ NL [ VR ] ∶ qᵢ ⦂ applyTys χs BL ⊒ᵐ BR →
   ΔL′ ∣ ΔR ∣ ρ′ ∣ []
@@ -111,7 +108,7 @@ sim-betaᵐ-cast-plus-tail :
 sim-betaᵐ-cast-plus-tail χs {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {N = N} {NL = NL} {VR = VR} {qᵢ = qᵢ} {q = q} {dₛ = dₛ}
     {Bₒ = Bₒ} {BL = BL} {BR = BR} {μO = μO} {ηC = ηC}
-    refl refl corr′ qᵢᶜ q⊒ dₛ⊒ˡ comp-cod N⊒NL =
+    refl refl corr′ qᵢᶜ q⊒ dₛ⊒ˡ N⊒NL =
   let
     dₛ⊒ˡ′ :
       applyModeEnvs χs ηC ∣ applyTyCtxs χs ΔL
@@ -137,13 +134,11 @@ sim-betaᵐ-cast-plus-tail χs {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       (left-changes-transportᵐ χs corr′ qᵢᶜ)
       (left-changes-transportᵐ χs corr′ q⊒)
       dₛ⊒ˡ′
-      (left-changes-comp-srcᵐ χs corr′ comp-cod)
       N⊒NL)
 
 -- The codomain tail of the other source-cast branch (cast-⊒ᵗ shape):
 -- the tail cast raw is the codomain factor itself, so no dual
--- commutation is needed; the composite's evidence comes off the
--- recursion result directly.
+-- commutation is needed.
 sim-betaᵐ-cast-minus-tail :
   ∀ χs {ΔL ΔR ρ ΔL′ ρ′ N NL VR qᵢ q dₛ BV Bₒ BR ηC μN} →
   ΔL′ ≡ applyTyCtxs χs ΔL →
@@ -151,7 +146,6 @@ sim-betaᵐ-cast-minus-tail :
   StoreCorr ΔL′ ΔR ρ′ →
   ΔL ∣ ΔR ∣ ρ ⊢ q ∶ᶜ Bₒ ⊒ᵐ BR →
   (dₛ⊒ˡ : ηC ∣ ΔL ∣ leftStore ρ ⊢ dₛ ∶ BV ⊒ Bₒ) →
-  ΔL ∣ ΔR ∣ ρ ⊢ dₛ ⨟ˡ q ≈ qᵢ ∶ BV ⊒ᵐ BR →
   μN ∣ ΔL′ ∣ ΔR ∣ ρ′ ⊢ qᵢ ∶ applyTys χs BV ⊒ᵐ BR →
   ΔL′ ∣ ΔR ∣ ρ′ ∣ []
     ⊢ N ⊒ NL [ VR ] ∶ qᵢ ⦂ applyTys χs BV ⊒ᵐ BR →
@@ -161,7 +155,7 @@ sim-betaᵐ-cast-minus-tail :
 sim-betaᵐ-cast-minus-tail χs {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {N = N} {NL = NL} {VR = VR} {qᵢ = qᵢ} {q = q} {dₛ = dₛ}
     {BV = BV} {Bₒ = Bₒ} {BR = BR} {ηC = ηC}
-    refl refl corr′ qᶜ dₛ⊒ˡ comp-cod qᵢ⊒ N⊒NL =
+    refl refl corr′ qᶜ dₛ⊒ˡ qᵢ⊒ N⊒NL =
   cast-⊒ᵗ
     (left-changes-transportᵐ χs corr′ qᶜ)
     qᵢ⊒
@@ -172,7 +166,6 @@ sim-betaᵐ-cast-minus-tail χs {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
             ∶ applyTys χs BV ⊒ applyTys χs Bₒ)
       (sym (leftStore-applyLeftChanges χs ρ))
       (left-changes-narrowingˡ χs dₛ⊒ˡ))
-    (left-changes-comp-srcᵐ χs corr′ comp-cod)
     N⊒NL
 
 -- A sequence coercion cannot be the source cast of a value at an
@@ -256,18 +249,18 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {WR = WR} {VR = VR}
 -- Value premise refutes them; the ？︔ seq shape is refuted by its
 -- ★-sourced untag typing.
 sim-betaᵐ
-  (cast+⊒ᵗ {s = id X} qᶜ r⊒ (cast-id _ _ , cross ()) comp V⊒ƛ)
-sim-betaᵐ (cast+⊒ᵗ {s = s₁ ︔ s₂} qᶜ r⊒ s⊒ˡ comp V⊒ƛ)
+  (cast+⊒ᵗ {s = id X} qᶜ r⊒ (cast-id _ _ , cross ()) V⊒ƛ)
+sim-betaᵐ (cast+⊒ᵗ {s = s₁ ︔ s₂} qᶜ r⊒ s⊒ˡ V⊒ƛ)
     vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
   ⊥-elim (plus-seq-cast-impossible s⊒ˡ vWL)
-sim-betaᵐ (cast+⊒ᵗ {s = unseal α X} qᶜ r⊒ (_ , cross ()) comp V⊒ƛ)
-sim-betaᵐ (cast+⊒ᵗ {s = inst X s} qᶜ r⊒ (_ , cross ()) comp V⊒ƛ)
+sim-betaᵐ (cast+⊒ᵗ {s = unseal α X} qᶜ r⊒ (_ , cross ()) V⊒ƛ)
+sim-betaᵐ (cast+⊒ᵗ {s = inst X s} qᶜ r⊒ (_ , cross ()) V⊒ƛ)
 sim-betaᵐ
-    (cast+⊒ᵗ {s = gen X s} qᶜ r⊒ (s⊢ , genⁿʷ sⁿ) comp V⊒ƛ)
+    (cast+⊒ᵗ {s = gen X s} qᶜ r⊒ (s⊢ , genⁿʷ sⁿ) V⊒ƛ)
     (vV ⟨ () ⟩)
-sim-betaᵐ (cast+⊒ᵗ {s = X !} qᶜ r⊒ (_ , cross ()) comp V⊒ƛ)
+sim-betaᵐ (cast+⊒ᵗ {s = X !} qᶜ r⊒ (_ , cross ()) V⊒ƛ)
 sim-betaᵐ
-    (cast+⊒ᵗ {s = seal X α} qᶜ r⊒ (s⊢ , sealⁿ .X .α) comp V⊒ƛ)
+    (cast+⊒ᵗ {s = seal X α} qᶜ r⊒ (s⊢ , sealⁿ .X .α) V⊒ƛ)
     (vV ⟨ () ⟩)
 -- Non-arrow inner-index shapes under an arrow source cast, refuted
 -- through the inner ∶ᶜ evidence: the id shape has no witness at an
@@ -277,29 +270,29 @@ sim-betaᵐ
 -- shape's tail types at a seal variable, not the arrow target.
 sim-betaᵐ
   (cast+⊒ᵗ {q = id X} (_ , _ , _ , _ , _ , (cast-id _ _ , cross ()))
-    r⊒ s⊒ˡ comp V⊒ƛ)
+    r⊒ s⊒ˡ V⊒ƛ)
 sim-betaᵐ
-    (cast+⊒ᵗ {q = q₁ ︔ q₂} qᶜ r⊒ (cast-fun _ _ , _) comp V⊒ƛ)
+    (cast+⊒ᵗ {q = q₁ ︔ q₂} qᶜ r⊒ (cast-fun _ _ , _) V⊒ƛ)
     vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
   ⊥-elim (inner-seq-index-impossible qᶜ)
 sim-betaᵐ
   (cast+⊒ᵗ {q = X ？}
     (_ , _ , _ , _ , () , (cast-untag _ _ _ , _))
-    r⊒ (cast-fun _ _ , _) comp V⊒ƛ)
+    r⊒ (cast-fun _ _ , _) V⊒ƛ)
 sim-betaᵐ
   (cast+⊒ᵗ {q = unseal α X}
     (_ , _ , _ , _ , () , (cast-unseal _ _ _ , _))
-    r⊒ (cast-fun _ _ , _) comp V⊒ƛ)
+    r⊒ (cast-fun _ _ , _) V⊒ƛ)
 sim-betaᵐ
   (cast+⊒ᵗ {q = inst X q₁}
     (_ , _ , _ , _ , () , (cast-inst _ _ _ , _))
-    r⊒ (cast-fun _ _ , _) comp V⊒ƛ)
+    r⊒ (cast-fun _ _ , _) V⊒ƛ)
 sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
     {VR = VR} {p = p} {q = q}
     {A = Aₒ} {A′ = AR} {B = Bₒ} {B′ = BR}
     (cast+⊒ᵗ {M = V} {q = pᵢ ↦ qᵢ} {s = cₛ ↦ dₛ}
       {C = AL ⇒ BL} {μ = μO} {η = ηC}
-      qᶜ r⊒ s⊒ˡ@(cast-fun c⊢ d⊢ , cross (cʷ ↦ⁿʷ dⁿ)) comp V⊒ƛ)
+      qᶜ r⊒ s⊒ˡ@(cast-fun c⊢ d⊢ , cross (cʷ ↦ⁿʷ dⁿ)) V⊒ƛ)
     (vV ⟨ i ⟩) (no•-⟨⟩ noV)
     p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
   let
@@ -318,7 +311,6 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
         (fun-narrow-domain-dual-typingᵐᶜ qᶜ)
         p-domainᶜ
         (fun-narrow-domain-dual-typing¹ (leftStore-wf stores) s⊒ˡ)
-        (comp-src-fun-domain-dualᵐ stores comp s⊒ˡ qᶜ p↦q-sim⊒)
         WR⊒VR
 
     χsA , WRA , ΔLA , vWRA , noWRA , WR↠WRA , ΔLA≡ , ρA-corr ,
@@ -462,7 +454,6 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
         (fun-narrow-codomainᵐᶜ qᶜ)
         (fun-narrow-codomainᵐ r⊒)
         (d⊢ , dⁿ)
-        (comp-src-fun-codomainᵐ comp)
         N⊒NL′
   in
   (keep ∷ χsA) ++ χsT ,
@@ -484,43 +475,43 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
 -- value premise (Inert s) and the witness refute the non-arrow
 -- shapes.
 sim-betaᵐ
-  (cast-⊒ᵗ {s = id X} qᶜ r⊒ (cast-id _ _ , cross ()) comp V⊒ƛ)
-sim-betaᵐ (cast-⊒ᵗ {s = s₁ ︔ s₂} qᶜ r⊒ s⊒ˡ comp V⊒ƛ)
+  (cast-⊒ᵗ {s = id X} qᶜ r⊒ (cast-id _ _ , cross ()) V⊒ƛ)
+sim-betaᵐ (cast-⊒ᵗ {s = s₁ ︔ s₂} qᶜ r⊒ s⊒ˡ V⊒ƛ)
     (vV ⟨ () ⟩)
-sim-betaᵐ (cast-⊒ᵗ {s = X ？} qᶜ r⊒ s⊒ˡ comp V⊒ƛ)
+sim-betaᵐ (cast-⊒ᵗ {s = X ？} qᶜ r⊒ s⊒ˡ V⊒ƛ)
     (vV ⟨ () ⟩)
-sim-betaᵐ (cast-⊒ᵗ {s = unseal α X} qᶜ r⊒ s⊒ˡ comp V⊒ƛ)
+sim-betaᵐ (cast-⊒ᵗ {s = unseal α X} qᶜ r⊒ s⊒ˡ V⊒ƛ)
     (vV ⟨ () ⟩)
-sim-betaᵐ (cast-⊒ᵗ {s = inst X s} qᶜ r⊒ s⊒ˡ comp V⊒ƛ)
+sim-betaᵐ (cast-⊒ᵗ {s = inst X s} qᶜ r⊒ s⊒ˡ V⊒ƛ)
     (vV ⟨ () ⟩)
 -- Non-arrow inner-index shapes, refuted through the ⊒ᵐ evidence of
 -- the cast premise exactly as in the cast+⊒ᵗ branch above.
 sim-betaᵐ
   (cast-⊒ᵗ {r = id X} qᶜ
     (_ , _ , _ , _ , _ , (cast-id _ _ , cross ()))
-    s⊒ˡ comp V⊒ƛ)
+    s⊒ˡ V⊒ƛ)
 sim-betaᵐ
-    (cast-⊒ᵗ {r = r₁ ︔ r₂} qᶜ r⊒ (cast-fun _ _ , _) comp V⊒ƛ)
+    (cast-⊒ᵗ {r = r₁ ︔ r₂} qᶜ r⊒ (cast-fun _ _ , _) V⊒ƛ)
     vWL noWL p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
   ⊥-elim (inner-seq-index-impossible r⊒)
 sim-betaᵐ
   (cast-⊒ᵗ {r = X ？} qᶜ
     (_ , _ , _ , _ , () , (cast-untag _ _ _ , _))
-    (cast-fun _ _ , _) comp V⊒ƛ)
+    (cast-fun _ _ , _) V⊒ƛ)
 sim-betaᵐ
   (cast-⊒ᵗ {r = unseal α X} qᶜ
     (_ , _ , _ , _ , () , (cast-unseal _ _ _ , _))
-    (cast-fun _ _ , _) comp V⊒ƛ)
+    (cast-fun _ _ , _) V⊒ƛ)
 sim-betaᵐ
   (cast-⊒ᵗ {r = inst X r₁} qᶜ
     (_ , _ , _ , _ , () , (cast-inst _ _ _ , _))
-    (cast-fun _ _ , _) comp V⊒ƛ)
+    (cast-fun _ _ , _) V⊒ƛ)
 sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
     {VR = VR} {p = p} {q = q}
     {A = Aₒ} {A′ = AR} {B = Bₒ} {B′ = BR}
     (cast-⊒ᵗ {M = V} {r = pᵢ ↦ qᵢ} {s = cₛ ↦ dₛ}
       {A = AV ⇒ BV} {μ = μO} {η = ηC}
-      qᶜ r⊒ s⊒ˡ@(cast-fun c⊢ d⊢ , cross (cʷ ↦ⁿʷ dⁿ)) comp V⊒ƛ)
+      qᶜ r⊒ s⊒ˡ@(cast-fun c⊢ d⊢ , cross (cʷ ↦ⁿʷ dⁿ)) V⊒ƛ)
     (vV ⟨ i ⟩) (no•-⟨⟩ noV)
     p↦q-sim⊒ p-domainᶜ WR⊒VR vWR noWR vVR =
   let
@@ -552,7 +543,6 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
           p-domainᶜ
           (fun-narrow-domain-dual-typingᵐ r⊒)
           cᵈ⊒ˡ
-          (comp-src-fun-domain-dualᵐ stores comp s⊒ˡ p↦q-sim⊒ r⊒)
           WR⊒VR)
 
     χsA , WRA , ΔLA , vWRA , noWRA , WR↠WRA , ΔLA≡ , ρA-corr ,
@@ -699,7 +689,6 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
         ρT-corr
         (fun-narrow-codomainᵐᶜ qᶜ)
         (d⊢ , dⁿ)
-        (comp-src-fun-codomainᵐ comp)
         qᵢ⊒′
         N⊒NL′
   in

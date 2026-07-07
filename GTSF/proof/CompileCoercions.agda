@@ -29,7 +29,6 @@ open import Coercions
     ; extᵈ
     ; genᵈ
     ; instᵈ
-    ; Label
     ; _∣_∣_⊢_∶_=⇒_
     ; _∣_⊢_∶_=⇒_
     ; idTyAllowed

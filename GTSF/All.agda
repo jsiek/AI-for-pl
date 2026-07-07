@@ -30,6 +30,8 @@ import proof.NWTermReduction
 -- Replaced by CatchupMediated
 -- import proof.CatchupSeparated
 
+import NuMetaTheory
+
 import Mediation
 import MediatedNarrowing
 import proof.DualRawProperties
@@ -38,9 +40,9 @@ import proof.MediatedLeftInsertion
 import proof.CatchupMediated
 import proof.SimBetaMediated
 -- The following "Separated" modules need to be ported
-import proof.LeftNuWideningSeparated
-import proof.DynamicGradualGuaranteeSeparated
-
-import NarrowingExamples
-import NuMetaTheory
-import proof.DynamicGradualGuarantee
+-- import proof.LeftNuWideningSeparated
+-- import proof.DynamicGradualGuaranteeSeparated
+-- Need to port NarrowingExamples to MediatedNarrowing
+-- import NarrowingExamples
+-- This version of the DGG is obsolete, uses the old TermNarrowing
+-- import proof.DynamicGradualGuarantee

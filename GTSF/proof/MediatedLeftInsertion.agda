@@ -46,7 +46,6 @@ open import StoreCorrespondence
 open import Mediation
 open import TermNarrowingSeparated using
   ( CtxCorrEntry; ctx-entry; CtxCorr; leftCtx; rightCtx; ⇑ᵍᶜ
-  ; TermTypingEndpointsᶜ
   )
 open import MediatedNarrowing
 open import proof.TypeProperties using
@@ -303,7 +302,7 @@ storeIns-incl {χs} (si-entry {k = k} {Σ = Σ} A si) (there x∈) =
 -- term-relation's binder rules: `li-bind` (Λ⊒Λᵗ), `li-matched`
 -- (α⊒αᵗ/ν⊒νᵗ), `li-right` (⊒Λᵗ/⊒⟨ν⟩ᵗ/⊒αᵗ/⊒νᵗ).  Matched entries
 -- carry a left type, which renames one binder further out; right-only
--- entries are untouched.
+-- entries do not change the left insertion depth.
 data LeftIns (χs : StoreChanges) : ℕ → SealCorr → SealCorr → Set where
   li-zero : ∀ {ρ} →
     LeftIns χs zero ρ (applyLeftChanges χs ρ)
@@ -318,9 +317,9 @@ data LeftIns (χs : StoreChanges) : ℕ → SealCorr → SealCorr → Set where
         ∷ ⇑ᶜorr ρ′)
   li-right : ∀ {k ρ ρ′} B →
     LeftIns χs k ρ ρ′ →
-    LeftIns χs (suc k)
-      (right-only zero (⇑ᵗ B) ∷ ⇑ᶜorr ρ)
-      (right-only zero (⇑ᵗ B) ∷ ⇑ᶜorr ρ′)
+    LeftIns χs k
+      (right-only zero (⇑ᵗ B) ∷ ⇑ʳᶜorr ρ)
+      (right-only zero (⇑ᵗ B) ∷ ⇑ʳᶜorr ρ′)
 
 -- The right store is untouched by a left insertion.
 rightStore-⇑ᶜorr-cong :
@@ -330,6 +329,14 @@ rightStore-⇑ᶜorr-cong :
 rightStore-⇑ᶜorr-cong {ρ} {ρ′} eq =
   trans (rightStore-⇑ᶜorr ρ′)
     (trans (cong ⟰ᵗ eq) (sym (rightStore-⇑ᶜorr ρ)))
+
+rightStore-⇑ʳᶜorr-cong :
+  ∀ {ρ ρ′} →
+  rightStore ρ′ ≡ rightStore ρ →
+  rightStore (⇑ʳᶜorr ρ′) ≡ rightStore (⇑ʳᶜorr ρ)
+rightStore-⇑ʳᶜorr-cong {ρ} {ρ′} eq =
+  trans (rightStore-⇑ʳᶜorr ρ′)
+    (trans (cong ⟰ᵗ eq) (sym (rightStore-⇑ʳᶜorr ρ)))
 
 rightStore-insert :
   ∀ {χs k ρ ρ′} →
@@ -344,7 +351,7 @@ rightStore-insert (li-matched A B li) =
     (rightStore-⇑ᶜorr-cong (rightStore-insert li))
 rightStore-insert (li-right B li) =
   cong ((zero , ⇑ᵗ B) ∷_)
-    (rightStore-⇑ᶜorr-cong (rightStore-insert li))
+    (rightStore-⇑ʳᶜorr-cong (rightStore-insert li))
 
 -- The left store of an insertion is a store-level insertion.
 storeIns-left :
@@ -367,10 +374,10 @@ storeIns-left {χs} (li-matched {k = k} {ρ = ρ} {ρ′ = ρ′} A B li) =
       (sym (leftStore-⇑ᶜorr ρ′)))
     (si-entry A (storeIns-left li))
 storeIns-left {χs} (li-right {k = k} {ρ = ρ} {ρ′ = ρ′} B li) =
-  subst₂ (StoreIns χs (suc k))
-    (sym (leftStore-⇑ᶜorr ρ))
-    (sym (leftStore-⇑ᶜorr ρ′))
-    (si-bind (storeIns-left li))
+  subst₂ (StoreIns χs k)
+    (sym (leftStore-⇑ʳᶜorr ρ))
+    (sym (leftStore-⇑ʳᶜorr ρ′))
+    (storeIns-left li)
 
 ------------------------------------------------------------------------
 -- MatchedVar across the insertion
@@ -399,6 +406,28 @@ mv-shiftᵇ-inv (right-only β₀ B ∷ ρ) (mv-there v)
     | α₁ , β₁ , eqα , eqβ , v₀ =
   α₁ , β₁ , eqα , eqβ , mv-there v₀
 
+mv-shiftʳ-inv :
+  ∀ ρ {α β} →
+  MatchedVar (⇑ʳᶜorr ρ) α β →
+  Σ[ β₀ ∈ TyVar ] ((β ≡ suc β₀) × MatchedVar ρ α β₀)
+mv-shiftʳ-inv (matched α₀ A β₀ B ∷ ρ) mv-here =
+  β₀ , refl , mv-here
+mv-shiftʳ-inv (matched α₀ A β₀ B ∷ ρ) (mv-there v)
+    with mv-shiftʳ-inv ρ v
+mv-shiftʳ-inv (matched α₀ A β₀ B ∷ ρ) (mv-there v)
+    | β₁ , eqβ , v₀ =
+  β₁ , eqβ , mv-there v₀
+mv-shiftʳ-inv (left-only α₀ A ∷ ρ) (mv-there v)
+    with mv-shiftʳ-inv ρ v
+mv-shiftʳ-inv (left-only α₀ A ∷ ρ) (mv-there v)
+    | β₁ , eqβ , v₀ =
+  β₁ , eqβ , mv-there v₀
+mv-shiftʳ-inv (right-only β₀ B ∷ ρ) (mv-there v)
+    with mv-shiftʳ-inv ρ v
+mv-shiftʳ-inv (right-only β₀ B ∷ ρ) (mv-there v)
+    | β₁ , eqβ , v₀ =
+  β₁ , eqβ , mv-there v₀
+
 mv-insert₀ :
   ∀ χs {ρ α β} →
   MatchedVar ρ α β →
@@ -426,10 +455,10 @@ mv-insert (li-matched {ρ = ρ} A B li) (mv-there v)
     | α₀ , β₀ , refl , refl , v₀ =
   mv-there (mv-shiftᵇ (mv-insert li v₀))
 mv-insert (li-right {ρ = ρ} B li) (mv-there v)
-    with mv-shiftᵇ-inv ρ v
+    with mv-shiftʳ-inv ρ v
 mv-insert (li-right {ρ = ρ} B li) (mv-there v)
-    | α₀ , β₀ , refl , refl , v₀ =
-  mv-there (mv-shiftᵇ (mv-insert li v₀))
+    | β₀ , refl , v₀ =
+  mv-there (mv-shiftʳ (mv-insert li v₀))
 
 ------------------------------------------------------------------------
 -- Insertion transport of the mediated coercion judgment
@@ -473,37 +502,6 @@ narrowing-insertˡ {χs} {k} li (s⊢ , sⁿ) =
       (modeRename-insRen χs k)
       s⊢) ,
   renameⁿ (insRen χs k) sⁿ
-
--- Composition records cross the insertion field-wise.
-comp-tgt-insertᵐ :
-  ∀ {χs k ΔL ΔR ρ ρ′ p t r A B} →
-  LeftIns χs k ρ ρ′ →
-  StoreCorr (applyTyCtxs χs ΔL) ΔR ρ′ →
-  ΔL ∣ ΔR ∣ ρ ⊢ p ⨟ʳ t ≈ r ∶ A ⊒ᵐ B →
-  applyTyCtxs χs ΔL ∣ ΔR ∣ ρ′
-    ⊢ p ⨟ʳ t ≈ r ∶ renameᵗ (insRen χs k) A ⊒ᵐ B
-comp-tgt-insertᵐ {ΔR = ΔR} {t = t} li corr′
-    (composed-index-tgt {midTy = midTy} {νᶜᵒᵐᵖ = ν₀} p⊒ t⊒ʳ r⊒) =
-  composed-index-tgt
-    (narrowing-insertᵐ li corr′ p⊒)
-    (subst (λ Σ → ν₀ ∣ ΔR ∣ Σ ⊢ t ∶ midTy ⊒ _)
-      (sym (rightStore-insert li))
-      t⊒ʳ)
-    (narrowing-insertᵐ li corr′ r⊒)
-
-comp-src-insertᵐ :
-  ∀ {χs k ΔL ΔR ρ ρ′ s q r A B} →
-  LeftIns χs k ρ ρ′ →
-  StoreCorr (applyTyCtxs χs ΔL) ΔR ρ′ →
-  ΔL ∣ ΔR ∣ ρ ⊢ s ⨟ˡ q ≈ r ∶ A ⊒ᵐ B →
-  applyTyCtxs χs ΔL ∣ ΔR ∣ ρ′
-    ⊢ renameᶜ (insRen χs k) s ⨟ˡ q ≈ r
-    ∶ renameᵗ (insRen χs k) A ⊒ᵐ B
-comp-src-insertᵐ li corr′ (composed-index-src s⊒ˡ q⊒ r⊒) =
-  composed-index-src
-    (narrowing-insertˡ li s⊒ˡ)
-    (narrowing-insertᵐ li corr′ q⊒)
-    (narrowing-insertᵐ li corr′ r⊒)
 
 ------------------------------------------------------------------------
 -- Term-context correspondence across the insertion
@@ -654,20 +652,13 @@ corr-right-insert :
   WfTy (suc ΔR) (⇑ᵗ A) →
   WfTy zero (⇑ᵗ A) →
   StoreCorr (applyTyCtxs χs ΔL) ΔR ρ′ →
-  StoreCorr (applyTyCtxs χs (suc ΔL)) (suc ΔR)
-    (right-only zero (⇑ᵗ A) ∷ ⇑ᶜorr ρ′)
-corr-right-insert {χs} {ΔL} {ΔR} {ρ′} {A} wfA-R wfA-0 corr′ =
-  subst
-    (λ Δ →
-      StoreCorr Δ (suc ΔR) (right-only zero (⇑ᵗ A) ∷ ⇑ᶜorr ρ′))
-    (sym (applyTyCtxs-suc χs ΔL))
-    (corr-right z<s wfA-R wfA-0 uniq (corr-⇑ᶜorr corr′))
+  StoreCorr (applyTyCtxs χs ΔL) (suc ΔR)
+    (right-only zero (⇑ᵗ A) ∷ ⇑ʳᶜorr ρ′)
+corr-right-insert {ρ′ = ρ′} wfA-R wfA-0 corr′ =
+  corr-right z<s wfA-R wfA-0 uniq (corr-⇑ʳᶜorr corr′)
   where
-  uniq : ∀ {D} → (zero , D) ∈ rightStore (⇑ᶜorr ρ′) → ⇑ᵗ A ≡ D
-  uniq {D} mem =
-    ⊥-elim
-      (∈-⟰ᵗ-zero
-        (subst (λ Σ → (zero , D) ∈ Σ) (rightStore-⇑ᶜorr ρ′) mem))
+  uniq : ∀ {D} → (zero , D) ∈ rightStore (⇑ʳᶜorr ρ′) → ⇑ᵗ _ ≡ D
+  uniq mem = ⊥-elim (rightStore-⇑ʳᶜorr-zero∉ mem)
 
 ------------------------------------------------------------------------
 -- The generalized term-relation transport
@@ -759,13 +750,14 @@ term-narrowing-insertᵐ {χs} {k} {ΔL} {ΔR} {ρ′ = ρ′} {γ = γ}
 -- ρ = matched 0 ★ 0 ★ ∷ [] and χs = bind X ∷ [] — the transported
 -- instance is underivable.  Fix requires decoupling the raw's embedded
 -- type from the source endpoint (state the premise at `gen Aʳ p`).
-term-narrowing-insertᵐ li corr′ (⊒Λᵗ typing genᶜ N⊒V′) =
+term-narrowing-insertᵐ li corr′ (⊒Λᵗ typing genᶜ vV′ N⊒V′) =
   {! ⊒Λᵗ-insert-blocked !}
 
 -- BLOCKED (recorded 2026-07-06): as ⊒Λᵗ, and additionally the RIGHT
 -- term `V′ ⟨ gen A s ⟩` embeds the left endpoint A, so even a
 -- reshaped index leaves the (left-invariant) right term stale.
-term-narrowing-insertᵐ li corr′ (⊒⟨ν⟩ᵗ typing genᶜ i N⊒V′s) =
+term-narrowing-insertᵐ li corr′
+    (⊒⟨ν⟩ᵗ typing genS⊢ V′⊢ genᶜ i N⊒V′s) =
   {! ⊒⟨ν⟩ᵗ-insert-blocked !}
 
 -- BLOCKED (recorded 2026-07-06): the α⊒αᵗ conclusion anchors the
@@ -776,7 +768,7 @@ term-narrowing-insertᵐ li corr′ (⊒⟨ν⟩ᵗ typing genᶜ i N⊒V′s) =
 -- ((⇑ᵗᵐ⇑ᵗᵐL) • , (⇑ᵗᵐL′) •) at a left-only-headed correspondence.
 -- At depth ≥ 1 the case would go through the li-matched extension,
 -- but the ⊢•-typing transport is itself blocked (see typing-insertᵀ).
-term-narrowing-insertᵐ li corr′ (α⊒αᵗ γ′≡ typing qᶜ pᶜ L⊒L′) =
+term-narrowing-insertᵐ li corr′ (α⊒αᵗ vL noL vL′ noL′ qᶜ pᶜ L⊒L′) =
   {! α⊒αᵗ-insert-blocked !}
 
 -- BLOCKED (recorded 2026-07-06): as α⊒αᵗ — the conclusion anchors a
@@ -784,7 +776,7 @@ term-narrowing-insertᵐ li corr′ (α⊒αᵗ γ′≡ typing qᶜ pᶜ L⊒L�
 -- which yields a left-only head) and the right term `(⇑ᵗᵐ L′) •`
 -- cannot be rebuilt by any other constructor; the left typing field
 -- also crosses ⊢•.
-term-narrowing-insertᵐ li corr′ (⊒αᵗ γ′≡ typing pᶜ L⊒L′) =
+term-narrowing-insertᵐ li corr′ (⊒αᵗ vL′ noL′ pᶜ L⊒L′) =
   {! ⊒αᵗ-insert-blocked !}
 
 -- BLOCKED (recorded 2026-07-06): ν⊒νᵗ shares ONE raw between the left
@@ -799,34 +791,41 @@ term-narrowing-insertᵐ li corr′ (⊒αᵗ γ′≡ typing pᶜ L⊒L′) =
 -- left term to embed its own left-typed raw (as the cast rules do via
 -- `narrowing-dual¹`), related to the index by mediation rather than
 -- syntactic identity.
-term-narrowing-insertᵐ li corr′ (ν⊒νᵗ typing pᶜ qᶜ N⊒N′) =
+term-narrowing-insertᵐ li corr′
+    (ν⊒νᵗ hA hA′ N⊢ N′⊢ sₗ⊢ sᵣ⊢ pᶜ qᶜ N⊒N′) =
   {! ν⊒νᵗ-insert-blocked !}
 
 term-narrowing-insertᵐ {χs} {k} {ΔL} {ΔR} {ρ = ρ} {ρ′ = ρ′} {γ = γ}
     li corr′
-    (⊒νᵗ {A = A} {B = B} {B′ = B′} {N = N} {N′ = N′} {p = p}
-      typing pᶜ N⊒N′) =
+    (⊒νᵗ {A = A} {B = B} {B′ = B′} {C′ = C′} {N = N} {N′ = N′}
+      {p = p} {s = s} {η = η} N⊢ hA N′⊢ s⊢ pᶜ N⊒N′) =
   ⊒νᵗ
-    ( subst (λ Γ → _ ∣ _ ∣ Γ ⊢ renameᵗᵐ (insRen χs k) N ⦂ _)
+    (subst (λ Γ → _ ∣ _ ∣ Γ ⊢ renameᵗᵐ (insRen χs k) N ⦂ _)
         (sym (leftCtx-insCtx χs k γ))
-        (typing-insertᵀ (storeIns-left li) (proj₁ typing))
-    , subst₂
-        (λ Σ Γ → ΔR ∣ Σ ∣ Γ ⊢ ν A N′ (⇑ᶜ p) ⦂ B′)
+        (typing-insertᵀ (storeIns-left li) N⊢))
+    hA
+    (subst₂
+        (λ Σ Γ → ΔR ∣ Σ ∣ Γ ⊢ N′ ⦂ `∀ C′)
         (sym (rightStore-insert li))
         (sym (rightCtx-insCtx χs k γ))
-        (proj₂ typing) )
+        N′⊢)
+    (subst
+      (λ Σ → η ∣ suc ΔR ∣ (zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ
+        ⊢ s ∶ C′ ⊒ ⇑ᵗ B′)
+      (sym (rightStore-insert li))
+      s⊢)
     (narrowing-insertᵐ li corr′ pᶜ)
     sub₊
   where
   pkg₀ = typed-term-narrowing-coercionᵐ N⊒N′
 
   corr₀ :
-    StoreCorr (suc ΔL) (suc ΔR) (right-only zero (⇑ᵗ A) ∷ ⇑ᶜorr ρ)
+    StoreCorr ΔL (suc ΔR) (right-only zero (⇑ᵗ A) ∷ ⇑ʳᶜorr ρ)
   corr₀ = proj₁ (proj₂ pkg₀)
 
   corrExt :
-    StoreCorr (applyTyCtxs χs (suc ΔL)) (suc ΔR)
-      (right-only zero (⇑ᵗ A) ∷ ⇑ᶜorr ρ′)
+    StoreCorr (applyTyCtxs χs ΔL) (suc ΔR)
+      (right-only zero (⇑ᵗ A) ∷ ⇑ʳᶜorr ρ′)
   corrExt =
     corr-right-insert
       (StoreWfAt.wfTy (rightStore-wf corr₀) (here refl))
@@ -834,28 +833,13 @@ term-narrowing-insertᵐ {χs} {k} {ΔL} {ΔR} {ρ = ρ} {ρ′ = ρ′} {γ = �
       corr′
 
   sub₊ :
-    suc (applyTyCtxs χs ΔL) ∣ suc ΔR
-      ∣ right-only zero (⇑ᵗ A) ∷ ⇑ᶜorr ρ′
-      ∣ ⇑ᵍᶜ (insCtx χs k γ)
-      ⊢ ⇑ᵗᵐ (renameᵗᵐ (insRen χs k) N) ⊒ N′ ∶ ⇑ᶜ p
-      ⦂ ⇑ᵗ (renameᵗ (insRen χs k) B) ⊒ᵐ ⇑ᵗ B′
+    applyTyCtxs χs ΔL ∣ suc ΔR
+      ∣ right-only zero (⇑ᵗ A) ∷ ⇑ʳᶜorr ρ′
+      ∣ insCtx χs k γ
+      ⊢ renameᵗᵐ (insRen χs k) N ⊒ N′ ∶ ⇑ᶜ p
+      ⦂ renameᵗ (insRen χs k) B ⊒ᵐ ⇑ᵗ B′
   sub₊ =
-    subst₂
-      (λ Δ″ γ″ →
-        Δ″ ∣ suc ΔR ∣ right-only zero (⇑ᵗ A) ∷ ⇑ᶜorr ρ′ ∣ γ″
-          ⊢ ⇑ᵗᵐ (renameᵗᵐ (insRen χs k) N) ⊒ N′ ∶ ⇑ᶜ p
-          ⦂ ⇑ᵗ (renameᵗ (insRen χs k) B) ⊒ᵐ ⇑ᵗ B′)
-      (applyTyCtxs-suc χs ΔL)
-      (insCtx-⇑ᵍᶜ χs k γ)
-      (subst₂
-        (λ N″ T →
-          applyTyCtxs χs (suc ΔL) ∣ suc ΔR
-            ∣ right-only zero (⇑ᵗ A) ∷ ⇑ᶜorr ρ′
-            ∣ insCtx χs (suc k) (⇑ᵍᶜ γ)
-            ⊢ N″ ⊒ N′ ∶ ⇑ᶜ p ⦂ T ⊒ᵐ ⇑ᵗ B′)
-        (renameᵗᵐ-ext-suc-comm (insRen χs k) N)
-        (renameᵗ-ext-suc-comm (insRen χs k) B)
-        (term-narrowing-insertᵐ (li-right A li) corrExt N⊒N′))
+    term-narrowing-insertᵐ (li-right A li) corrExt N⊒N′
 
 term-narrowing-insertᵐ {χs} {k} li corr′ (κ⊒κᵗ κ pᶜ) =
   subst
@@ -876,7 +860,7 @@ term-narrowing-insertᵐ li corr′ (⊕⊒⊕ᵗ pᶜ M⊒M′ N⊒N′) =
 term-narrowing-insertᵐ {χs} {k} {ΔR = ΔR} {ρ′ = ρ′} {γ = γ}
     li corr′
     (⊒cast+ᵗ {M = M} {M′ = M′} {p = p} {t = t}
-      {A = A} {B = B} {C = C} {η = η} pᶜ r⊒ t⊒ʳ comp M⊒M′) =
+      {A = A} {B = B} {C = C} {η = η} pᶜ r⊒ t⊒ʳ M⊒M′) =
   subst
     (λ c →
       _ ∣ _ ∣ ρ′ ∣ insCtx χs k γ
@@ -888,7 +872,6 @@ term-narrowing-insertᵐ {χs} {k} {ΔR = ΔR} {ρ′ = ρ′} {γ = γ}
       (narrowing-insertᵐ li corr′ pᶜ)
       (narrowing-insertᵐ li corr′ r⊒)
       t⊒ʳ₊
-      (comp-tgt-insertᵐ li corr′ comp)
       (term-narrowing-insertᵐ li corr′ M⊒M′))
   where
   t⊒ʳ₊ : _ ∣ ΔR ∣ rightStore ρ′ ⊢ t ∶ C ⊒ B
@@ -899,19 +882,18 @@ term-narrowing-insertᵐ {χs} {k} {ΔR = ΔR} {ρ′ = ρ′} {γ = γ}
 
 term-narrowing-insertᵐ {ΔR = ΔR} {ρ′ = ρ′} li corr′
     (⊒cast-ᵗ {t = t} {B = B} {C = C} {η = η}
-      pᶜ r⊒ t⊒ʳ comp M⊒M′) =
+      pᶜ r⊒ t⊒ʳ M⊒M′) =
   ⊒cast-ᵗ
     (narrowing-insertᵐ li corr′ pᶜ)
     (narrowing-insertᵐ li corr′ r⊒)
     (subst (λ Σ → η ∣ ΔR ∣ Σ ⊢ t ∶ C ⊒ B)
       (sym (rightStore-insert li))
       t⊒ʳ)
-    (comp-tgt-insertᵐ li corr′ comp)
     (term-narrowing-insertᵐ li corr′ M⊒M′)
 
 term-narrowing-insertᵐ {χs} {k} {ρ′ = ρ′} {γ = γ} li corr′
     (cast+⊒ᵗ {M = M} {M′ = M′} {r = r} {s = s}
-      {A = A} {B = B} {C = C} qᶜ r⊒ s⊒ˡ comp M⊒M′) =
+      {A = A} {B = B} {C = C} qᶜ r⊒ s⊒ˡ M⊒M′) =
   subst
     (λ c →
       _ ∣ _ ∣ ρ′ ∣ insCtx χs k γ
@@ -922,7 +904,6 @@ term-narrowing-insertᵐ {χs} {k} {ρ′ = ρ′} {γ = γ} li corr′
       (narrowing-insertᵐ li corr′ qᶜ)
       (narrowing-insertᵐ li corr′ r⊒)
       s⊒ˡ₊
-      (comp-src-insertᵐ li corr′ comp)
       (term-narrowing-insertᵐ li corr′ M⊒M′))
   where
   s⊒ˡ₊ = narrowing-insertˡ li s⊒ˡ
@@ -939,12 +920,11 @@ term-narrowing-insertᵐ {χs} {k} {ρ′ = ρ′} {γ = γ} li corr′
           (sym (narrowing-dual¹-raw s⊒ˡ))))
 
 term-narrowing-insertᵐ li corr′
-    (cast-⊒ᵗ qᶜ r⊒ s⊒ˡ comp M⊒M′) =
+    (cast-⊒ᵗ qᶜ r⊒ s⊒ˡ M⊒M′) =
   cast-⊒ᵗ
     (narrowing-insertᵐ li corr′ qᶜ)
     (narrowing-insertᵐ li corr′ r⊒)
     (narrowing-insertˡ li s⊒ˡ)
-    (comp-src-insertᵐ li corr′ comp)
     (term-narrowing-insertᵐ li corr′ M⊒M′)
 
 ------------------------------------------------------------------------

@@ -18,7 +18,7 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ-syntax; ∃-syntax)
-open import Relation.Binary.PropositionalEquality using (cong; subst)
+open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
 
 open import Types
 open import Ctx using (⤊ᵗ)
@@ -40,7 +40,6 @@ open import TermNarrowingSeparated using
   ; rightCtx-∋
   ; shift-left-term-typing
   ; shift-right-term-typing
-  ; TermTypingEndpointsᶜ
   )
 open import proof.CoercionProperties using
   ( coercion-src-tgtᵐ
@@ -187,51 +186,39 @@ fun-narrow-codomainᵐ
   stores , hB , hB′ , _ , medB , (q⊢ , qⁿ)
 
 ------------------------------------------------------------------------
--- Composition side conditions
-------------------------------------------------------------------------
-
--- Target-cast rules (⊒cast±ᵗ): both factors and the composite live in
--- the home store, because a mediated index's home typing already ends
--- at right-side types.
-infix 4 _∣_∣_⊢_⨟ʳ_≈_∶_⊒ᵐ_
-
-record _∣_∣_⊢_⨟ʳ_≈_∶_⊒ᵐ_
-    (ΔL ΔR : TyCtx) (ρ : SealCorr)
-    (p t r : Coercion) (A B : Ty) : Set₁ where
-  constructor composed-index-tgt
-  field
-    {midTy} : Ty
-    {νᶜᵒᵐᵖ} : ModeEnv
-    p⊒ : νᶜᵒᵐᵖ ∣ ΔL ∣ ΔR ∣ ρ ⊢ p ∶ A ⊒ᵐ midTy
-    t⊒ʳ : νᶜᵒᵐᵖ ∣ ΔR ∣ rightStore ρ ⊢ t ∶ midTy ⊒ B
-    r⊒ : νᶜᵒᵐᵖ ∣ ΔL ∣ ΔR ∣ ρ ⊢ r ∶ A ⊒ᵐ B
-
--- Source-cast rules (cast±⊒ᵗ): the cast factor lives in the left
--- store and is glued to the composition on the nose — the mediated
--- judgment's source endpoint is itself a left-side type, so the
--- middle type needs no left image and no coercion mediation (`MedCo`)
--- at all; the `MedTy` inside the mediated factors carries the only
--- mediation.  The left factor keeps its own mode environment: under
--- a left store change it shifts with the left store, while the
--- mediated factors' home typings (right store, untouched) keep
--- theirs.
-infix 4 _∣_∣_⊢_⨟ˡ_≈_∶_⊒ᵐ_
-
-record _∣_∣_⊢_⨟ˡ_≈_∶_⊒ᵐ_
-    (ΔL ΔR : TyCtx) (ρ : SealCorr)
-    (s q r : Coercion) (A B : Ty) : Set₁ where
-  constructor composed-index-src
-  field
-    {midTy} : Ty          -- the inner source type; a left-side type
-    {ηˢ} : ModeEnv
-    {νᶜᵒᵐᵖ} : ModeEnv
-    s⊒ˡ : ηˢ ∣ ΔL ∣ leftStore ρ ⊢ s ∶ A ⊒ midTy
-    q⊒ : νᶜᵒᵐᵖ ∣ ΔL ∣ ΔR ∣ ρ ⊢ q ∶ midTy ⊒ᵐ B
-    r⊒ : νᶜᵒᵐᵖ ∣ ΔL ∣ ΔR ∣ ρ ⊢ r ∶ A ⊒ᵐ B
-
-------------------------------------------------------------------------
 -- The mediated term-narrowing relation
 ------------------------------------------------------------------------
+
+shiftRightCtxCorrEntry : CtxCorrEntry → CtxCorrEntry
+shiftRightCtxCorrEntry (ctx-entry A B p) = ctx-entry A (⇑ᵗ B) (⇑ᶜ p)
+
+⇑ʳᵍᶜ : CtxCorr → CtxCorr
+⇑ʳᵍᶜ = map shiftRightCtxCorrEntry
+
+leftCtx-⇑ʳᵍᶜ :
+  ∀ γ →
+  leftCtx (⇑ʳᵍᶜ γ) ≡ leftCtx γ
+leftCtx-⇑ʳᵍᶜ [] = refl
+leftCtx-⇑ʳᵍᶜ (ctx-entry A B p ∷ γ) =
+  cong (A ∷_) (leftCtx-⇑ʳᵍᶜ γ)
+
+rightCtx-⇑ʳᵍᶜ :
+  ∀ γ →
+  rightCtx (⇑ʳᵍᶜ γ) ≡ ⤊ᵗ (rightCtx γ)
+rightCtx-⇑ʳᵍᶜ [] = refl
+rightCtx-⇑ʳᵍᶜ (ctx-entry A B p ∷ γ) =
+  cong (⇑ᵗ B ∷_) (rightCtx-⇑ʳᵍᶜ γ)
+
+shift-right-only-term-typing :
+  ∀ {Δ ρ γ M A} →
+  suc Δ ∣ rightStore (⇑ʳᶜorr ρ) ∣ rightCtx (⇑ʳᵍᶜ γ) ⊢ M ⦂ A →
+  suc Δ ∣ ⟰ᵗ (rightStore ρ) ∣ ⤊ᵗ (rightCtx γ) ⊢ M ⦂ A
+shift-right-only-term-typing {ρ = ρ} {γ = γ} M⊢ =
+  subst (λ Γ → _ ∣ _ ∣ Γ ⊢ _ ⦂ _)
+    (rightCtx-⇑ʳᵍᶜ γ)
+    (subst (λ Σ → _ ∣ Σ ∣ _ ⊢ _ ⦂ _)
+      (rightStore-⇑ʳᶜorr ρ)
+      M⊢)
 
 infix 4 _∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_
 
@@ -252,97 +239,98 @@ data _∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_
     → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ ` x ⊒ ` x ∶ p ⦂ A ⊒ᵐ B
 
   ƛ⊒ƛᵗ : ∀ {ΔL ΔR ρ γ N N′ p q A A′ B B′}
-    → (p↦qᶜ : ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q
-                   ∶ᶜ (A ⇒ B) ⊒ᵐ (A′ ⇒ B′))
-    → ΔL ∣ ΔR ∣ ρ ∣
-        ctx-entry A A′ (fun-narrow-domain-dualᵐᶜ p↦qᶜ) ∷ γ
+    → (p↦qᶜ : ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ᵐ (A′ ⇒ B′))
+    → ΔL ∣ ΔR ∣ ρ ∣ ctx-entry A A′ (fun-narrow-domain-dualᵐᶜ p↦qᶜ) ∷ γ
         ⊢ N ⊒ N′ ∶ q ⦂ B ⊒ᵐ B′
-      -------------------------------------------------------------
-    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ ƛ N ⊒ ƛ N′ ∶ p ↦ q
-        ⦂ A ⇒ B ⊒ᵐ A′ ⇒ B′
+      ----------------------------------------------------------------
+    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ ƛ N ⊒ ƛ N′ ∶ p ↦ q ⦂ A ⇒ B ⊒ᵐ A′ ⇒ B′
 
   ·⊒·ᵗ : ∀ {ΔL ΔR ρ γ L L′ M M′ p q A A′ B B′}
-    → (p↦qᶜ : ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q
-                   ∶ᶜ (A ⇒ B) ⊒ᵐ (A′ ⇒ B′))
+    → (p↦qᶜ : ΔL ∣ ΔR ∣ ρ ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ᵐ (A′ ⇒ B′))
     → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ L ⊒ L′ ∶ p ↦ q
         ⦂ A ⇒ B ⊒ᵐ A′ ⇒ B′
-    → ΔL ∣ ΔR ∣ ρ ∣ γ
-        ⊢ M ⊒ M′ ∶ fun-narrow-domain-dualᵐᶜ p↦qᶜ ⦂ A ⊒ᵐ A′
-      -----------------------------------------------------------
+    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ fun-narrow-domain-dualᵐᶜ p↦qᶜ ⦂ A ⊒ᵐ A′
+      ------------------------------------------------------------------
     → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ L · M ⊒ L′ · M′ ∶ q ⦂ B ⊒ᵐ B′
 
   Λ⊒Λᵗ : ∀ {ΔL ΔR ρ γ V V′ p A B}
     → ΔL ∣ ΔR ∣ ρ ⊢ `∀ p ∶ᶜ `∀ A ⊒ᵐ `∀ B
     → Value V
     → Value V′
-    → suc ΔL ∣ suc ΔR ∣ ⇑ᶜorr ρ ∣ ⇑ᵍᶜ γ
-        ⊢ V ⊒ V′ ∶ p ⦂ A ⊒ᵐ B
+    → suc ΔL ∣ suc ΔR ∣ ⇑ᶜorr ρ ∣ ⇑ᵍᶜ γ ⊢ V ⊒ V′ ∶ p ⦂ A ⊒ᵐ B
       -----------------------------------------------------------
-    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ Λ V ⊒ Λ V′ ∶ `∀ p
-        ⦂ `∀ A ⊒ᵐ `∀ B
+    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ Λ V ⊒ Λ V′ ∶ `∀ p ⦂ `∀ A ⊒ᵐ `∀ B
 
-  ⊒Λᵗ : ∀ {ΔL ΔR ρ γ N V′ p A B}
-    → TermTypingEndpointsᶜ ΔL ΔR ρ γ N (Λ V′) A (`∀ B)
-    → ΔL ∣ ΔR ∣ ρ ⊢ gen A p ∶ᶜ A ⊒ᵐ `∀ B
-    → suc ΔL ∣ suc ΔR ∣ right-only zero ★ ∷ ⇑ᶜorr ρ ∣ ⇑ᵍᶜ γ
-        ⊢ ⇑ᵗᵐ N ⊒ V′ ∶ p ⦂ ⇑ᵗ A ⊒ᵐ B
+  ⊒Λᵗ : ∀ {ΔL ΔR ρ γ N V′ p A Aʳ B}
+    → ΔL ∣ leftStore ρ ∣ leftCtx γ ⊢ N ⦂ A
+    → ΔL ∣ ΔR ∣ ρ ⊢ gen Aʳ p ∶ᶜ A ⊒ᵐ `∀ B
+    → Value V′
+    → ΔL ∣ suc ΔR ∣ ⇑ʳᶜorr ρ ∣ ⇑ʳᵍᶜ γ ⊢ N ⊒ V′ ∶ p ⦂ A ⊒ᵐ B
       --------------------------------------------------------
-    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ N ⊒ Λ V′ ∶ gen A p ⦂ A ⊒ᵐ `∀ B
+    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ N ⊒ Λ V′ ∶ gen Aʳ p ⦂ A ⊒ᵐ `∀ B
 
-  ⊒⟨ν⟩ᵗ : ∀ {ΔL ΔR ρ γ N V′ p s A B}
-    → TermTypingEndpointsᶜ ΔL ΔR ρ γ N (V′ ⟨ gen A s ⟩) A (`∀ B)
-    → ΔL ∣ ΔR ∣ ρ ⊢ gen A p ∶ᶜ A ⊒ᵐ `∀ B
+  ⊒⟨ν⟩ᵗ : ∀ {ΔL ΔR ρ γ N V′ p s A Aʳ B η}
+    → ΔL ∣ leftStore ρ ∣ leftCtx γ ⊢ N ⦂ A
+    → η ∣ ΔR ∣ rightStore ρ ⊢ gen Aʳ s ∶ Aʳ ⊒ `∀ B
+    → ΔR ∣ rightStore ρ ∣ rightCtx γ ⊢ V′ ⦂ Aʳ
+    → ΔL ∣ ΔR ∣ ρ ⊢ gen Aʳ p ∶ᶜ A ⊒ᵐ `∀ B
     → Inert s
-    → suc ΔL ∣ suc ΔR ∣ right-only zero ★ ∷ ⇑ᶜorr ρ ∣ ⇑ᵍᶜ γ
-        ⊢ ⇑ᵗᵐ N ⊒ V′ ⟨ s ⟩ ∶ p ⦂ ⇑ᵗ A ⊒ᵐ B
-      -----------------------------------------------------------
-    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ N ⊒ V′ ⟨ gen A s ⟩ ∶ gen A p
-        ⦂ A ⊒ᵐ `∀ B
+    → ΔL ∣ suc ΔR ∣ ⇑ʳᶜorr ρ ∣ ⇑ʳᵍᶜ γ ⊢ N ⊒ V′ ⟨ s ⟩ ∶ p ⦂ A ⊒ᵐ B
+      -------------------------------------------------------------
+    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ N ⊒ V′ ⟨ gen Aʳ s ⟩ ∶ gen Aʳ p ⦂ A ⊒ᵐ `∀ B
 
-  α⊒αᵗ : ∀ {ΔL ΔR ρ γ γ′ L L′ p q A B C D E F}
-    → γ′ ≡ ⇑ᵍᶜ γ
-    → TermTypingEndpointsᶜ (suc ΔL) (suc ΔR)
-        (matched zero (⇑ᵗ A) zero (⇑ᵗ B) ∷ ⇑ᶜorr ρ) γ′
-        ((⇑ᵗᵐ L) •) ((⇑ᵗᵐ L′) •) C D
+  α⊒αᵗ : ∀ {ΔL ΔR ρ γ L L′ p q A B C D}
+    → Value L
+    → No• L
+    → Value L′
+    → No• L′
     → ΔL ∣ ΔR ∣ ρ ⊢ q ∶ᶜ A ⊒ᵐ B
     → suc ΔL ∣ suc ΔR ∣ matched zero (⇑ᵗ A) zero (⇑ᵗ B) ∷ ⇑ᶜorr ρ
         ⊢ p ∶ᶜ C ⊒ᵐ D
-    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ L ⊒ L′ ∶ `∀ p ⦂ E ⊒ᵐ F
+    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ L ⊒ L′ ∶ `∀ p ⦂ `∀ C ⊒ᵐ `∀ D
       ------------------------------------------------
-    → suc ΔL ∣ suc ΔR ∣ matched zero (⇑ᵗ A) zero (⇑ᵗ B) ∷ ⇑ᶜorr ρ ∣ γ′
+    → suc ΔL ∣ suc ΔR ∣ matched zero (⇑ᵗ A) zero (⇑ᵗ B) ∷ ⇑ᶜorr ρ ∣ γ
         ⊢ (⇑ᵗᵐ L) • ⊒ (⇑ᵗᵐ L′) • ∶ p ⦂ C ⊒ᵐ D
 
-  ⊒αᵗ : ∀ {ΔL ΔR ρ γ γ′ L L′ p A B C D E F}
-    → γ′ ≡ ⇑ᵍᶜ γ
-    → TermTypingEndpointsᶜ (suc ΔL) (suc ΔR)
-        (right-only zero (⇑ᵗ A) ∷ ⇑ᶜorr ρ) γ′
-        (⇑ᵗᵐ L) ((⇑ᵗᵐ L′) •) C D
-    → suc ΔL ∣ suc ΔR ∣ right-only zero (⇑ᵗ A) ∷ ⇑ᶜorr ρ
-        ⊢ p ∶ᶜ C ⊒ᵐ D
-    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ L ⊒ L′ ∶ gen B p ⦂ E ⊒ᵐ F
+  ⊒αᵗ : ∀ {ΔL ΔR ρ γ L L′ p A B D}
+    → Value L′
+    → No• L′
+    → ΔL ∣ suc ΔR ∣ right-only zero (⇑ᵗ A) ∷ ⇑ʳᶜorr ρ
+        ⊢ p ∶ᶜ B ⊒ᵐ D
+    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ L ⊒ L′ ∶ gen B p ⦂ B ⊒ᵐ `∀ D
       -----------------------------------------------
-    → suc ΔL ∣ suc ΔR ∣ right-only zero (⇑ᵗ A) ∷ ⇑ᶜorr ρ ∣ γ′
-        ⊢ ⇑ᵗᵐ L ⊒ (⇑ᵗᵐ L′) • ∶ p ⦂ C ⊒ᵐ D
+    → ΔL ∣ suc ΔR ∣ right-only zero (⇑ᵗ A) ∷ ⇑ʳᶜorr ρ ∣ γ
+        ⊢ L ⊒ (⇑ᵗᵐ L′) • ∶ p ⦂ B ⊒ᵐ D
 
-  ν⊒νᵗ : ∀ {ΔL ΔR ρ γ A A′ B B′ N N′ p q}
-    → TermTypingEndpointsᶜ ΔL ΔR ρ γ
-        (ν A N (⇑ᶜ p)) (ν A′ N′ (⇑ᶜ p)) B B′
+  ν⊒νᵗ : ∀ {ΔL ΔR ρ γ A A′ B B′ C C′ N N′ p q sₗ sᵣ ηL ηR}
+    → WfTy ΔL A
+    → WfTy ΔR A′
+    → ΔL ∣ leftStore ρ ∣ leftCtx γ ⊢ N ⦂ `∀ C
+    → ΔR ∣ rightStore ρ ∣ rightCtx γ ⊢ N′ ⦂ `∀ C′
+    → ηL ∣ suc ΔL ∣ (zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStore ρ)
+        ⊢ sₗ ∶ C ⊒ ⇑ᵗ B
+    → ηR ∣ suc ΔR ∣ (zero , ⇑ᵗ A′) ∷ ⟰ᵗ (rightStore ρ)
+        ⊢ sᵣ ∶ C′ ⊒ ⇑ᵗ B′
     → ΔL ∣ ΔR ∣ ρ ⊢ p ∶ᶜ B ⊒ᵐ B′
     → ΔL ∣ ΔR ∣ ρ ⊢ q ∶ᶜ A ⊒ᵐ A′
     → suc ΔL ∣ suc ΔR ∣ matched zero (⇑ᵗ A) zero (⇑ᵗ A′) ∷ ⇑ᶜorr ρ
         ∣ ⇑ᵍᶜ γ
         ⊢ N ⊒ N′ ∶ ⇑ᶜ p ⦂ ⇑ᵗ B ⊒ᵐ ⇑ᵗ B′
       ------------------------------------------------------
-    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ ν A N (⇑ᶜ p) ⊒ ν A′ N′ (⇑ᶜ p) ∶ p
+    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ ν A N sₗ ⊒ ν A′ N′ sᵣ ∶ p
         ⦂ B ⊒ᵐ B′
 
-  ⊒νᵗ : ∀ {ΔL ΔR ρ γ A B B′ N N′ p}
-    → TermTypingEndpointsᶜ ΔL ΔR ρ γ N (ν A N′ (⇑ᶜ p)) B B′
+  ⊒νᵗ : ∀ {ΔL ΔR ρ γ A B B′ C′ N N′ p s η}
+    → ΔL ∣ leftStore ρ ∣ leftCtx γ ⊢ N ⦂ B
+    → WfTy ΔR A
+    → ΔR ∣ rightStore ρ ∣ rightCtx γ ⊢ N′ ⦂ `∀ C′
+    → η ∣ suc ΔR ∣ (zero , ⇑ᵗ A) ∷ ⟰ᵗ (rightStore ρ)
+        ⊢ s ∶ C′ ⊒ ⇑ᵗ B′
     → ΔL ∣ ΔR ∣ ρ ⊢ p ∶ᶜ B ⊒ᵐ B′
-    → suc ΔL ∣ suc ΔR ∣ right-only zero (⇑ᵗ A) ∷ ⇑ᶜorr ρ ∣ ⇑ᵍᶜ γ
-        ⊢ ⇑ᵗᵐ N ⊒ N′ ∶ ⇑ᶜ p ⦂ ⇑ᵗ B ⊒ᵐ ⇑ᵗ B′
+    → ΔL ∣ suc ΔR ∣ right-only zero (⇑ᵗ A) ∷ ⇑ʳᶜorr ρ ∣ γ
+        ⊢ N ⊒ N′ ∶ ⇑ᶜ p ⦂ B ⊒ᵐ ⇑ᵗ B′
       ---------------------------------------
-    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ N ⊒ ν A N′ (⇑ᶜ p) ∶ p ⦂ B ⊒ᵐ B′
+    → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ N ⊒ ν A N′ s ∶ p ⦂ B ⊒ᵐ B′
 
   κ⊒κᵗ : ∀ {ΔL ΔR ρ γ} κ
     → ΔL ∣ ΔR ∣ ρ ⊢ id (constTy κ) ∶ᶜ constTy κ ⊒ᵐ constTy κ
@@ -361,16 +349,12 @@ data _∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_
         ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ
 
   -- The cast rules: the cast coercion's evidence lives in the store
-  -- of the side that carries the cast, and the composition side
-  -- condition glues that one-store factor to mediated evidence for
-  -- the other two indices (`⨟ʳ` for target casts, `⨟ˡ` for source
-  -- casts).
+  -- of the side that carries the cast.
 
   ⊒cast+ᵗ : ∀ {ΔL ΔR ρ γ M M′ p r t A B C μ η}
     → ΔL ∣ ΔR ∣ ρ ⊢ p ∶ᶜ A ⊒ᵐ C
     → μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ r ∶ A ⊒ᵐ B
     → (t⊒ʳ : η ∣ ΔR ∣ rightStore ρ ⊢ t ∶ C ⊒ B)
-    → ΔL ∣ ΔR ∣ ρ ⊢ p ⨟ʳ t ≈ r ∶ A ⊒ᵐ B
     → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ r ⦂ A ⊒ᵐ B
       -------------------------------------------------------
     → ΔL ∣ ΔR ∣ ρ ∣ γ
@@ -380,7 +364,6 @@ data _∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_
     → ΔL ∣ ΔR ∣ ρ ⊢ p ∶ᶜ A ⊒ᵐ C
     → μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ r ∶ A ⊒ᵐ B
     → η ∣ ΔR ∣ rightStore ρ ⊢ t ∶ C ⊒ B
-    → ΔL ∣ ΔR ∣ ρ ⊢ p ⨟ʳ t ≈ r ∶ A ⊒ᵐ B
     → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ᵐ C
       ---------------------------------------------------
     → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ⟨ t ⟩ ∶ r ⦂ A ⊒ᵐ B
@@ -389,7 +372,6 @@ data _∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_
     → ΔL ∣ ΔR ∣ ρ ⊢ q ∶ᶜ C ⊒ᵐ B
     → μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ r ∶ A ⊒ᵐ B
     → (s⊒ˡ : η ∣ ΔL ∣ leftStore ρ ⊢ s ∶ A ⊒ C)
-    → ΔL ∣ ΔR ∣ ρ ⊢ s ⨟ˡ q ≈ r ∶ A ⊒ᵐ B
     → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ q ⦂ C ⊒ᵐ B
       -------------------------------------------------------
     → ΔL ∣ ΔR ∣ ρ ∣ γ
@@ -399,10 +381,57 @@ data _∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_
     → ΔL ∣ ΔR ∣ ρ ⊢ q ∶ᶜ C ⊒ᵐ B
     → μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ r ∶ A ⊒ᵐ B
     → η ∣ ΔL ∣ leftStore ρ ⊢ s ∶ A ⊒ C
-    → ΔL ∣ ΔR ∣ ρ ⊢ s ⨟ˡ q ≈ r ∶ A ⊒ᵐ B
     → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ r ⦂ A ⊒ᵐ B
       ---------------------------------------------------
     → ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⟨ s ⟩ ⊒ M′ ∶ q ⦂ C ⊒ᵐ B
+
+bullet-left-matched-typing :
+  ∀ {ΔL ρ γ L A C} →
+  WfTy (suc ΔL) C →
+  Value L →
+  No• L →
+  ΔL ∣ leftStore ρ ∣ leftCtx γ ⊢ L ⦂ `∀ C →
+  suc ΔL ∣ leftStore (matched zero (⇑ᵗ A) zero ★ ∷ ⇑ᶜorr ρ)
+    ∣ leftCtx γ ⊢ (⇑ᵗᵐ L) • ⦂ C
+bullet-left-matched-typing {ρ = ρ} {A = A} hC vL noL L⊢ =
+  ⊢• {Σ₀ = leftStore ρ} {A = A}
+    refl (cong ((zero , ⇑ᵗ A) ∷_) (leftStore-⇑ᶜorr ρ))
+    hC vL noL L⊢
+
+bullet-right-matched-typing :
+  ∀ {ΔR ρ γ L B D} →
+  WfTy (suc ΔR) D →
+  Value L →
+  No• L →
+  ΔR ∣ rightStore ρ ∣ rightCtx γ ⊢ L ⦂ `∀ D →
+  suc ΔR ∣ rightStore (matched zero ★ zero (⇑ᵗ B) ∷ ⇑ᶜorr ρ)
+    ∣ rightCtx γ ⊢ (⇑ᵗᵐ L) • ⦂ D
+bullet-right-matched-typing {ρ = ρ} {B = B} hD vL noL L⊢ =
+  ⊢• {Σ₀ = rightStore ρ} {A = B}
+    refl (cong ((zero , ⇑ᵗ B) ∷_) (rightStore-⇑ᶜorr ρ))
+    hD vL noL L⊢
+
+right-only-left-term-typing :
+  ∀ {Δ ρ γ M A X} →
+  Δ ∣ leftStore ρ ∣ leftCtx γ ⊢ M ⦂ A →
+  Δ ∣ leftStore (right-only zero X ∷ ⇑ʳᶜorr ρ) ∣ leftCtx γ ⊢ M ⦂ A
+right-only-left-term-typing {ρ = ρ} M⊢ =
+  subst (λ Σ → _ ∣ Σ ∣ _ ⊢ _ ⦂ _)
+    (sym (leftStore-⇑ʳᶜorr ρ))
+    M⊢
+
+bullet-right-only-typing :
+  ∀ {ΔR ρ γ L A D} →
+  WfTy (suc ΔR) D →
+  Value L →
+  No• L →
+  ΔR ∣ rightStore ρ ∣ rightCtx γ ⊢ L ⦂ `∀ D →
+  suc ΔR ∣ rightStore (right-only zero (⇑ᵗ A) ∷ ⇑ʳᶜorr ρ)
+    ∣ rightCtx γ ⊢ (⇑ᵗᵐ L) • ⦂ D
+bullet-right-only-typing {ρ = ρ} {A = A} hD vL noL L⊢ =
+  ⊢• {Σ₀ = rightStore ρ} {A = A}
+    refl (cong ((zero , ⇑ᵗ A) ∷_) (rightStore-⇑ʳᶜorr ρ))
+    hD vL noL L⊢
 
 ------------------------------------------------------------------------
 -- Extractors
@@ -411,7 +440,8 @@ data _∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_
 typed-term-narrowing-term-typingᵐᶜ :
   ∀ {ΔL ΔR ρ γ M M′ p A B} →
   ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ᵐ B →
-  TermTypingEndpointsᶜ ΔL ΔR ρ γ M M′ A B
+  (ΔL ∣ leftStore ρ ∣ leftCtx γ ⊢ M ⦂ A) ×
+  (ΔR ∣ rightStore ρ ∣ rightCtx γ ⊢ M′ ⦂ B)
 typed-term-narrowing-term-typingᵐᶜ
     (⊒blameᵗ M⊢ (_ , _ , hB , _)) =
   M⊢ , ⊢blame hB
@@ -436,14 +466,40 @@ typed-term-narrowing-term-typingᵐᶜ {ρ = ρ} {γ = γ}
   in
   ⊢Λ vV (shift-left-term-typing {ρ = ρ} {γ = γ} V⊢) ,
   ⊢Λ vV′ (shift-right-term-typing {ρ = ρ} {γ = γ} V′⊢)
-typed-term-narrowing-term-typingᵐᶜ (⊒Λᵗ typing genᶜ N⊒V′) = typing
-typed-term-narrowing-term-typingᵐᶜ (⊒⟨ν⟩ᵗ typing genᶜ i N⊒V′s) =
-  typing
-typed-term-narrowing-term-typingᵐᶜ (α⊒αᵗ γ′≡ typing qᶜ pᶜ L⊒L′) =
-  typing
-typed-term-narrowing-term-typingᵐᶜ (⊒αᵗ γ′≡ typing pᶜ L⊒L′) = typing
-typed-term-narrowing-term-typingᵐᶜ (ν⊒νᵗ typing pᶜ qᶜ N⊒N′) = typing
-typed-term-narrowing-term-typingᵐᶜ (⊒νᵗ typing pᶜ N⊒N′) = typing
+typed-term-narrowing-term-typingᵐᶜ {ρ = ρ} {γ = γ}
+    (⊒Λᵗ N⊢ genᶜ vV′ N⊒V′) =
+  let
+    _ , V′⊢ = typed-term-narrowing-term-typingᵐᶜ N⊒V′
+  in
+  N⊢ , ⊢Λ vV′ (shift-right-only-term-typing {ρ = ρ} {γ = γ} V′⊢)
+typed-term-narrowing-term-typingᵐᶜ
+    (⊒⟨ν⟩ᵗ N⊢ genS⊢ V′⊢ genᶜ i N⊒V′s) =
+  N⊢ , ⊢⟨⟩ (proj₁ genS⊢) V′⊢
+typed-term-narrowing-term-typingᵐᶜ
+    (α⊒αᵗ {ρ = ρ} {A = A} {B = B} vL noL vL′ noL′ qᶜ
+      pᶜ@(_ , hC , hD , _) L⊒L′) =
+  let
+    L⊢ , L′⊢ = typed-term-narrowing-term-typingᵐᶜ L⊒L′
+    L•⊢ =
+      bullet-left-matched-typing {ρ = ρ} {A = A} hC vL noL L⊢
+    L′•⊢ =
+      bullet-right-matched-typing {ρ = ρ} {B = B} hD vL′ noL′ L′⊢
+  in
+  L•⊢ , L′•⊢
+typed-term-narrowing-term-typingᵐᶜ
+    (⊒αᵗ {ρ = ρ} {A = A} vL′ noL′ pᶜ@(_ , _ , hD , _) L⊒L′) =
+  let
+    L⊢ , L′⊢ = typed-term-narrowing-term-typingᵐᶜ L⊒L′
+    L⊢′ = right-only-left-term-typing {ρ = ρ} {X = ⇑ᵗ A} L⊢
+    L′•⊢ =
+      bullet-right-only-typing {ρ = ρ} {A = A} hD vL′ noL′ L′⊢
+  in
+  L⊢′ , L′•⊢
+typed-term-narrowing-term-typingᵐᶜ
+    (ν⊒νᵗ hA hA′ N⊢ N′⊢ sₗ⊢ sᵣ⊢ pᶜ qᶜ N⊒N′) =
+  ⊢ν hA N⊢ (proj₁ sₗ⊢) , ⊢ν hA′ N′⊢ (proj₁ sᵣ⊢)
+typed-term-narrowing-term-typingᵐᶜ (⊒νᵗ N⊢ hA N′⊢ s⊢ pᶜ N⊒N′) =
+  N⊢ , ⊢ν hA N′⊢ (proj₁ s⊢)
 typed-term-narrowing-term-typingᵐᶜ (κ⊒κᵗ κ pᶜ) =
   ⊢$ κ , ⊢$ κ
 typed-term-narrowing-term-typingᵐᶜ (⊕⊒⊕ᵗ pᶜ M⊒M′ N⊒N′) =
@@ -453,7 +509,7 @@ typed-term-narrowing-term-typingᵐᶜ (⊕⊒⊕ᵗ pᶜ M⊒M′ N⊒N′) =
   in
   ⊢⊕ M⊢ addℕ N⊢ , ⊢⊕ M′⊢ addℕ N′⊢
 typed-term-narrowing-term-typingᵐᶜ
-    (⊒cast+ᵗ {η = η} pᶜ r⊒ t⊒ʳ _ M⊒M′) =
+    (⊒cast+ᵗ {η = η} pᶜ r⊒ t⊒ʳ M⊒M′) =
   let
     M⊢ , M′⊢ = typed-term-narrowing-term-typingᵐᶜ M⊒M′
     tᵈ⊢ =
@@ -466,13 +522,13 @@ typed-term-narrowing-term-typingᵐᶜ
   in
   M⊢ , ⊢⟨⟩ (proj₁ tᵈ⊢) M′⊢
 typed-term-narrowing-term-typingᵐᶜ
-    (⊒cast-ᵗ pᶜ r⊒ t⊒ʳ _ M⊒M′) =
+    (⊒cast-ᵗ pᶜ r⊒ t⊒ʳ M⊒M′) =
   let
     M⊢ , M′⊢ = typed-term-narrowing-term-typingᵐᶜ M⊒M′
   in
   M⊢ , ⊢⟨⟩ (proj₁ t⊒ʳ) M′⊢
 typed-term-narrowing-term-typingᵐᶜ
-    (cast+⊒ᵗ {η = η} qᶜ r⊒ s⊒ˡ _ M⊒M′) =
+    (cast+⊒ᵗ {η = η} qᶜ r⊒ s⊒ˡ M⊒M′) =
   let
     M⊢ , M′⊢ = typed-term-narrowing-term-typingᵐᶜ M⊒M′
     sᵈ⊢ =
@@ -485,7 +541,7 @@ typed-term-narrowing-term-typingᵐᶜ
   in
   ⊢⟨⟩ (proj₁ sᵈ⊢) M⊢ , M′⊢
 typed-term-narrowing-term-typingᵐᶜ
-    (cast-⊒ᵗ qᶜ r⊒ s⊒ˡ _ M⊒M′) =
+    (cast-⊒ᵗ qᶜ r⊒ s⊒ˡ M⊒M′) =
   let
     M⊢ , M′⊢ = typed-term-narrowing-term-typingᵐᶜ M⊒M′
   in
@@ -502,28 +558,31 @@ typed-term-narrowing-coercionᵐ (·⊒·ᵗ p↦qᶜ L⊒L′ M⊒M′) =
   tag-or-idᵈ , fun-narrow-codomainᵐᶜ p↦qᶜ
 typed-term-narrowing-coercionᵐ (Λ⊒Λᵗ allᶜ vV vV′ V⊒V′) =
   tag-or-idᵈ , allᶜ
-typed-term-narrowing-coercionᵐ (⊒Λᵗ typing genᶜ N⊒V′) =
+typed-term-narrowing-coercionᵐ (⊒Λᵗ N⊢ genᶜ vV′ N⊒V′) =
   tag-or-idᵈ , genᶜ
-typed-term-narrowing-coercionᵐ (⊒⟨ν⟩ᵗ typing genᶜ i N⊒V′s) =
+typed-term-narrowing-coercionᵐ
+    (⊒⟨ν⟩ᵗ N⊢ genS⊢ V′⊢ genᶜ i N⊒V′s) =
   tag-or-idᵈ , genᶜ
-typed-term-narrowing-coercionᵐ (α⊒αᵗ γ′≡ typing qᶜ pᶜ L⊒L′) =
+typed-term-narrowing-coercionᵐ
+    (α⊒αᵗ vL noL vL′ noL′ qᶜ pᶜ L⊒L′) =
   tag-or-idᵈ , pᶜ
-typed-term-narrowing-coercionᵐ (⊒αᵗ γ′≡ typing pᶜ L⊒L′) =
+typed-term-narrowing-coercionᵐ (⊒αᵗ vL′ noL′ pᶜ L⊒L′) =
   tag-or-idᵈ , pᶜ
-typed-term-narrowing-coercionᵐ (ν⊒νᵗ typing pᶜ qᶜ N⊒N′) =
+typed-term-narrowing-coercionᵐ
+    (ν⊒νᵗ hA hA′ N⊢ N′⊢ sₗ⊢ sᵣ⊢ pᶜ qᶜ N⊒N′) =
   tag-or-idᵈ , pᶜ
-typed-term-narrowing-coercionᵐ (⊒νᵗ typing pᶜ N⊒N′) =
+typed-term-narrowing-coercionᵐ (⊒νᵗ N⊢ hA N′⊢ s⊢ pᶜ N⊒N′) =
   tag-or-idᵈ , pᶜ
 typed-term-narrowing-coercionᵐ (κ⊒κᵗ κ pᶜ) = tag-or-idᵈ , pᶜ
 typed-term-narrowing-coercionᵐ (⊕⊒⊕ᵗ pᶜ M⊒M′ N⊒N′) =
   tag-or-idᵈ , pᶜ
-typed-term-narrowing-coercionᵐ (⊒cast+ᵗ pᶜ r⊒ t⊒ʳ _ M⊒M′) =
+typed-term-narrowing-coercionᵐ (⊒cast+ᵗ pᶜ r⊒ t⊒ʳ M⊒M′) =
   tag-or-idᵈ , pᶜ
-typed-term-narrowing-coercionᵐ (⊒cast-ᵗ {μ = μ} pᶜ r⊒ t⊒ʳ _ M⊒M′) =
+typed-term-narrowing-coercionᵐ (⊒cast-ᵗ {μ = μ} pᶜ r⊒ t⊒ʳ M⊒M′) =
   μ , r⊒
-typed-term-narrowing-coercionᵐ (cast+⊒ᵗ {μ = μ} qᶜ r⊒ s⊒ˡ _ M⊒M′) =
+typed-term-narrowing-coercionᵐ (cast+⊒ᵗ {μ = μ} qᶜ r⊒ s⊒ˡ M⊒M′) =
   μ , r⊒
-typed-term-narrowing-coercionᵐ (cast-⊒ᵗ qᶜ r⊒ s⊒ˡ _ M⊒M′) =
+typed-term-narrowing-coercionᵐ (cast-⊒ᵗ qᶜ r⊒ s⊒ˡ M⊒M′) =
   tag-or-idᵈ , qᶜ
 
 typed-term-narrowing-source-typingᵐᶜ :

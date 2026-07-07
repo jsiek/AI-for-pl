@@ -44,7 +44,8 @@ open import proof.DGGBetaMediated using (mediated-dgg-beta)
 open import proof.DGGBetaCastMediated using (mediated-dgg-beta-cast)
 open import proof.DGGPrimitiveMediated using (mediated-⊕-δ)
 open import proof.DGGCastMediated using
-  ( target-cast-minus-β-idᵐ
+  ( target-blameᵐ
+  ; target-cast-minus-β-idᵐ
   ; target-cast-plus-β-idᵐ
   )
 
@@ -597,6 +598,11 @@ dynamicGradualGuaranteeᵐ
     (⊒cast-ᵗ {t = id T} p′ᶜ rᶜ t⊒ M⊒M′)
     (pure-step (β-id vV)) =
   target-cast-minus-β-idᵐ t⊒ M⊒M′
+dynamicGradualGuaranteeᵐ
+    okM
+    castRel@(⊒cast-ᵗ p′ᶜ rᶜ t⊒ M⊒M′)
+    (pure-step (tag-untag-bad vV G≢H)) =
+  target-blameᵐ castRel
 dynamicGradualGuaranteeᵐ
     okM
     castRel@(⊒cast-ᵗ p′ᶜ rᶜ t⊒ M⊒M′)

@@ -1,17 +1,15 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
 module proof.DGGCastMediated where
 
 -- File Charter:
 --   * Mediated-store DGG helpers for target-side cast steps.
 --   * Packages direct cast simulations whose proof should stay out of the
 --     main DynamicGradualGuaranteeMediated case split.
---   * Currently exports the target `β-id` cases for `⊒cast+ᵗ` and
---     `⊒cast-ᵗ`.
+--   * Currently exports direct target `blame` and `β-id` cases for
+--     `⊒cast+ᵗ` and `⊒cast-ᵗ`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([])
-open import Data.Product using (_×_; _,_; ∃-syntax)
+open import Data.Product using (_×_; _,_; proj₂; ∃-syntax)
 
 open import Types
 open import Coercions
@@ -41,8 +39,39 @@ typed-term-narrowing-endpointsᵐᶜ refl refl M⊒M′ = M⊒M′
 -- Direct target cast simulation
 ------------------------------------------------------------------------
 
+target-blameᵐ :
+  ∀ {ΔL ΔR ρ M M′ p A B} →
+  ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ᵐ B →
+  ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
+  ∃[ C′ ] ∃[ D′ ] ∃[ r′ ]
+    (M —↠[ χs ] N) ×
+    (ΔL′ ≡ applyTyCtxs χs ΔL) ×
+    (ΔR′ ≡ applyTyCtx keep ΔR) ×
+    (ρ′ ≡ applyRightChange keep (applyLeftChanges χs ρ)) ×
+    (C′ ≡ applyTys χs A) ×
+    (D′ ≡ applyTy keep B) ×
+    ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
+      ⊢ N ⊒ blame ∶ r′ ⦂ C′ ⊒ᵐ D′
+target-blameᵐ M⊒M′ =
+  [] ,
+  _ ,
+  _ ,
+  _ ,
+  _ ,
+  _ ,
+  _ ,
+  _ ,
+  ↠-refl ,
+  refl ,
+  refl ,
+  refl ,
+  refl ,
+  refl ,
+  ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ M⊒M′)
+    (proj₂ (typed-term-narrowing-coercionᵐ M⊒M′))
+
 target-cast-plus-β-idᵐ :
-  ∀ {ΔL ΔR ρ M M′ p r A B C T η} →
+  ∀ {ΔL ΔR ρ M M′ r A B C T η} →
   η ∣ ΔR ∣ rightStore ρ ⊢ id T ∶ C ⊒ B →
   ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ M ⊒ M′ ∶ r ⦂ A ⊒ᵐ B →
   ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
@@ -73,7 +102,7 @@ target-cast-plus-β-idᵐ (cast-id _ _ , _) M⊒M′ =
   typed-term-narrowing-endpointsᵐᶜ refl refl M⊒M′
 
 target-cast-minus-β-idᵐ :
-  ∀ {ΔL ΔR ρ M M′ p r A B C T η} →
+  ∀ {ΔL ΔR ρ M M′ p A B C T η} →
   η ∣ ΔR ∣ rightStore ρ ⊢ id T ∶ C ⊒ B →
   ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ M ⊒ M′ ∶ p ⦂ A ⊒ᵐ C →
   ∃[ χs ] ∃[ N ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]

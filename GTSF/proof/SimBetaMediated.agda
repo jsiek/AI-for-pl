@@ -1,5 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
 module proof.SimBetaMediated where
 
 -- File Charter:
@@ -43,14 +41,10 @@ open import TermNarrowingSeparated using (ctx-entry)
 open import proof.CatchupSeparated using
   ( applyLeftChanges
   ; applyLeftChanges-++
-  ; leftStore-applyLeftChanges
   )
 open import proof.CatchupMediated using (catchup-lemmaᵐ)
 open import proof.MediationProperties using
   ( left-changes-transportᵐ
-  ; applyModeEnvs
-  ; left-changes-narrowingˡ
-  ; narrowing-dual¹-applyCoercions
   ; fun-narrow-domain-dual¹
   ; fun-narrow-domain-dual-typing¹
   ; fun-narrow-domain-dualᵐ-determined
@@ -73,6 +67,14 @@ open import proof.LeftChangeNarrowingSeparated using
   ; applyTys-⇒
   ; no•-cast-inv
   )
+open import proof.DGGSourceCastTailMediated using
+  ( inner-seq-index-impossible
+  ; plus-seq-cast-impossible
+  )
+  renaming
+  ( mediated-source-cast-plus-tail to sim-betaᵐ-cast-plus-tail
+  ; mediated-source-cast-minus-tail to sim-betaᵐ-cast-minus-tail
+  )
 
 -- The mediated substitution lemma for the beta body (open in the old
 -- development as well).  Postulated with explicit approval
@@ -85,115 +87,6 @@ postulate
       ⊢ N ⊒ N′ ∶ q ⦂ B ⊒ᵐ B′ →
     ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ V ⊒ V′ ∶ p ⦂ A ⊒ᵐ A′ →
     ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ N [ V ] ⊒ N′ [ V′ ] ∶ q ⦂ B ⊒ᵐ B′
-
--- The codomain tail of a source-cast branch (cast+⊒ᵗ shape): after
--- the recursion returns the beta result at the inner codomain, wrap
--- it with the shifted dual of the source cast's codomain factor.
--- All the codomain-side evidence enters at the ORIGINAL stores and
--- is transported across the accumulated left changes here — hoisted
--- out of the clause bodies as in the old proof (elaboration size).
-sim-betaᵐ-cast-plus-tail :
-  ∀ χs {ΔL ΔR ρ ΔL′ ρ′ N NL VR qᵢ q dₛ Bₒ BL BR μO ηC} →
-  ΔL′ ≡ applyTyCtxs χs ΔL →
-  ρ′ ≡ applyLeftChanges χs ρ →
-  StoreCorr ΔL′ ΔR ρ′ →
-  ΔL ∣ ΔR ∣ ρ ⊢ qᵢ ∶ᶜ BL ⊒ᵐ BR →
-  μO ∣ ΔL ∣ ΔR ∣ ρ ⊢ q ∶ Bₒ ⊒ᵐ BR →
-  (dₛ⊒ˡ : ηC ∣ ΔL ∣ leftStore ρ ⊢ dₛ ∶ Bₒ ⊒ BL) →
-  ΔL′ ∣ ΔR ∣ ρ′ ∣ []
-    ⊢ N ⊒ NL [ VR ] ∶ qᵢ ⦂ applyTys χs BL ⊒ᵐ BR →
-  ΔL′ ∣ ΔR ∣ ρ′ ∣ []
-    ⊢ N ⟨ applyCoercions χs (narrowing-dual¹ dₛ⊒ˡ) ⟩ ⊒ NL [ VR ]
-      ∶ q ⦂ applyTys χs Bₒ ⊒ᵐ BR
-sim-betaᵐ-cast-plus-tail χs {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
-    {N = N} {NL = NL} {VR = VR} {qᵢ = qᵢ} {q = q} {dₛ = dₛ}
-    {Bₒ = Bₒ} {BL = BL} {BR = BR} {μO = μO} {ηC = ηC}
-    refl refl corr′ qᵢᶜ q⊒ dₛ⊒ˡ N⊒NL =
-  let
-    dₛ⊒ˡ′ :
-      applyModeEnvs χs ηC ∣ applyTyCtxs χs ΔL
-        ∣ leftStore (applyLeftChanges χs ρ)
-        ⊢ applyCoercions χs dₛ
-          ∶ applyTys χs Bₒ ⊒ applyTys χs BL
-    dₛ⊒ˡ′ =
-      subst
-        (λ Σ →
-          applyModeEnvs χs ηC ∣ applyTyCtxs χs ΔL ∣ Σ
-            ⊢ applyCoercions χs dₛ
-              ∶ applyTys χs Bₒ ⊒ applyTys χs BL)
-        (sym (leftStore-applyLeftChanges χs ρ))
-        (left-changes-narrowingˡ χs dₛ⊒ˡ)
-  in
-  subst
-    (λ c₀ →
-      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
-        ⊢ N ⟨ c₀ ⟩ ⊒ NL [ VR ]
-          ∶ q ⦂ applyTys χs Bₒ ⊒ᵐ BR)
-    (narrowing-dual¹-applyCoercions χs dₛ⊒ˡ dₛ⊒ˡ′)
-    (cast+⊒ᵗ
-      (left-changes-transportᵐ χs corr′ qᵢᶜ)
-      (left-changes-transportᵐ χs corr′ q⊒)
-      dₛ⊒ˡ′
-      N⊒NL)
-
--- The codomain tail of the other source-cast branch (cast-⊒ᵗ shape):
--- the tail cast raw is the codomain factor itself, so no dual
--- commutation is needed.
-sim-betaᵐ-cast-minus-tail :
-  ∀ χs {ΔL ΔR ρ ΔL′ ρ′ N NL VR qᵢ q dₛ BV Bₒ BR ηC μN} →
-  ΔL′ ≡ applyTyCtxs χs ΔL →
-  ρ′ ≡ applyLeftChanges χs ρ →
-  StoreCorr ΔL′ ΔR ρ′ →
-  ΔL ∣ ΔR ∣ ρ ⊢ q ∶ᶜ Bₒ ⊒ᵐ BR →
-  (dₛ⊒ˡ : ηC ∣ ΔL ∣ leftStore ρ ⊢ dₛ ∶ BV ⊒ Bₒ) →
-  μN ∣ ΔL′ ∣ ΔR ∣ ρ′ ⊢ qᵢ ∶ applyTys χs BV ⊒ᵐ BR →
-  ΔL′ ∣ ΔR ∣ ρ′ ∣ []
-    ⊢ N ⊒ NL [ VR ] ∶ qᵢ ⦂ applyTys χs BV ⊒ᵐ BR →
-  ΔL′ ∣ ΔR ∣ ρ′ ∣ []
-    ⊢ N ⟨ applyCoercions χs dₛ ⟩ ⊒ NL [ VR ]
-      ∶ q ⦂ applyTys χs Bₒ ⊒ᵐ BR
-sim-betaᵐ-cast-minus-tail χs {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
-    {N = N} {NL = NL} {VR = VR} {qᵢ = qᵢ} {q = q} {dₛ = dₛ}
-    {BV = BV} {Bₒ = Bₒ} {BR = BR} {ηC = ηC}
-    refl refl corr′ qᶜ dₛ⊒ˡ qᵢ⊒ N⊒NL =
-  cast-⊒ᵗ
-    (left-changes-transportᵐ χs corr′ qᶜ)
-    qᵢ⊒
-    (subst
-      (λ Σ →
-        applyModeEnvs χs ηC ∣ applyTyCtxs χs ΔL ∣ Σ
-          ⊢ applyCoercions χs dₛ
-            ∶ applyTys χs BV ⊒ applyTys χs Bₒ)
-      (sym (leftStore-applyLeftChanges χs ρ))
-      (left-changes-narrowingˡ χs dₛ⊒ˡ))
-    N⊒NL
-
--- A sequence coercion cannot be the source cast of a value at an
--- arrow source: its ？︔ witness types the head untag from ★ (not an
--- arrow), and its ︔seal witness dualizes through `normalᵃ` to a
--- non-inert sequence, which the Value premise refutes.  Hoisted so
--- the witness split happens here and not in the sim-betaᵐ coverage.
-plus-seq-cast-impossible :
-  ∀ {η Δ Σ s₁ s₂ A B C M} →
-  (e : η ∣ Δ ∣ Σ ⊢ s₁ ︔ s₂ ∶ (A ⇒ B) ⊒ C) →
-  Value (M ⟨ narrowing-dual¹ e ⟩) →
-  ⊥
-plus-seq-cast-impossible (cast-seq () _ , _ ？︔ _)
-plus-seq-cast-impossible (s⊢ , _︔seal_ sⁿ α) (vM ⟨ () ⟩)
-
--- A mediated index of sequence shape cannot sit between arrow
--- endpoints: its ？︔ witness forces a ★ mediated source (refuted by
--- the structural MedTy of the arrow left type), and its ︔seal
--- witness forces a seal-variable target (refuted by the arrow
--- target).
-inner-seq-index-impossible :
-  ∀ {μ ΔL ΔR ρ q₁ q₂ AL BL AR BR} →
-  μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ q₁ ︔ q₂ ∶ (AL ⇒ BL) ⊒ᵐ (AR ⇒ BR) →
-  ⊥
-inner-seq-index-impossible
-  (_ , _ , _ , _ , med-⇒ _ _ , (cast-seq () _ , _ ？︔ _))
-inner-seq-index-impossible
-  (_ , _ , _ , _ , _ , (cast-seq _ () , _ ︔seal _))
 
 {-# TERMINATING #-}
 sim-betaᵐ :
@@ -228,14 +121,9 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {WR = WR} {VR = VR}
         (fun-narrow-domain-dualᵐ-determined p↦q-sim⊒ p↦qᶜ)
         WR⊒VR
   in
-  keep ∷ [] ,
-  N [ WR ] ,
-  ΔL ,
-  ρ ,
+  keep ∷ [] , N [ WR ] , ΔL , ρ ,
   ↠-step (pure-step (β vWR)) ↠-refl ,
-  refl ,
-  refl ,
-  term-substitution-narrowingᵐ N⊒NL WR⊒VR′
+  refl , refl , term-substitution-narrowingᵐ N⊒NL WR⊒VR′
 -- Source-cast branches.  The one-store cast evidence carried by the
 -- mediated constructors makes the shape analysis local: the deriv
 -- and witness in the premise refute the impossible coercion shapes
@@ -447,7 +335,7 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
         ⊢ N ⟨ applyCoercions (χsA ++ χsT) dᵈ ⟩ ⊒ NL [ VR ]
           ∶ q ⦂ applyTys (χsA ++ χsT) Bₒ ⊒ᵐ BR
     N-tail =
-      sim-betaᵐ-cast-plus-tail (χsA ++ χsT)
+      sim-betaᵐ-cast-plus-tail (χsA ++ χsT) {N = N} {Target = NL [ VR ]}
         ΔLT-total≡
         ρT-total≡
         ρT-corr
@@ -458,11 +346,7 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
   in
   (keep ∷ χsA) ++ χsT ,
   N ⟨ applyCoercions χsT (applyCoercions χsA dᵈ) ⟩ ,
-  ΔLT ,
-  ρT ,
-  source-steps ,
-  ΔLT-total≡ ,
-  ρT-total≡ ,
+  ΔLT , ρT , source-steps , ΔLT-total≡ , ρT-total≡ ,
   subst
     (λ c₀ →
       ΔLT ∣ ΔR ∣ ρT ∣ []
@@ -683,7 +567,7 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
         ⊢ N ⟨ applyCoercions (χsA ++ χsT) dₛ ⟩ ⊒ NL [ VR ]
           ∶ q ⦂ applyTys (χsA ++ χsT) Bₒ ⊒ᵐ BR
     N-tail =
-      sim-betaᵐ-cast-minus-tail (χsA ++ χsT)
+      sim-betaᵐ-cast-minus-tail (χsA ++ χsT) {N = N} {Target = NL [ VR ]}
         ΔLT-total≡
         ρT-total≡
         ρT-corr
@@ -694,11 +578,7 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
   in
   (keep ∷ χsA) ++ χsT ,
   N ⟨ applyCoercions χsT (applyCoercions χsA dₛ) ⟩ ,
-  ΔLT ,
-  ρT ,
-  source-steps ,
-  ΔLT-total≡ ,
-  ρT-total≡ ,
+  ΔLT , ρT , source-steps , ΔLT-total≡ , ρT-total≡ ,
   subst
     (λ c₀ →
       ΔLT ∣ ΔR ∣ ρT ∣ []

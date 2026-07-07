@@ -65,6 +65,8 @@ open import proof.TypeProperties
     ; TyRenameWf-suc
     ; TyRenameWf-suc-≤
     ; WfTy-weakenᵗ
+    ; WfTy-un⇑ᵗ
+    ; predᵗ
     ; raiseVarFrom-≢
     ; occurs-raise
     ; occurs-raise-fresh
@@ -72,6 +74,7 @@ open import proof.TypeProperties
     ; renameᵗ-ground
     ; renameᵗ-compose
     ; renameᵗ-id
+    ; renameᵗ-pred-suc
     ; renameᵗ-preserves-WfTy
     ; renameᵗ-ext-suc-comm
     ; renameStoreᵗ-ext-suc-comm
@@ -461,6 +464,23 @@ StoreUnique-⟰ᵗ uniqueΣ {α = suc α} h₁ h₂
     | A , eq₁ , h₁′ | B , eq₂ , h₂′ =
   trans eq₁ (trans (cong ⇑ᵗ (uniqueΣ h₁′ h₂′)) (sym eq₂))
 
+<-suc-inv :
+  ∀ {α Δ} →
+  suc α < suc Δ →
+  α < Δ
+<-suc-inv (s<s α<Δ) = α<Δ
+
+StoreUnique-⟰ᵗ-inv :
+  ∀ {Σ} →
+  StoreUnique (⟰ᵗ Σ) →
+  StoreUnique Σ
+StoreUnique-⟰ᵗ-inv uniqueΣ {A = A} {B = B} h₁ h₂ =
+  trans (sym (renameᵗ-pred-suc A))
+    (trans
+      (cong (renameᵗ predᵗ)
+        (uniqueΣ (∈-renameStoreᵗ suc h₁) (∈-renameStoreᵗ suc h₂)))
+      (renameᵗ-pred-suc B))
+
 StoreUnique-inst :
   ∀ {Σ} →
   StoreUnique Σ →
@@ -495,6 +515,25 @@ StoreDetWf-⟰ᵗ wfΣ =
     wfOlder′ {suc α} h | A , eq , h′ =
       subst (WfTy (suc α)) (sym eq)
         (renameᵗ-preserves-WfTy (wfOlder wfΣ h′) TyRenameWf-suc)
+
+StoreDetWf-⟰ᵗ-inv :
+  ∀ {Δ Σ} →
+  StoreDetWf (suc Δ) (⟰ᵗ Σ) →
+  StoreDetWf Δ Σ
+StoreDetWf-⟰ᵗ-inv wfΣ =
+  record
+    { at =
+        record
+          { bound = λ h →
+              <-suc-inv
+                (StoreWfAt.bound (at wfΣ) (∈-renameStoreᵗ suc h))
+          ; wfTy = λ h →
+              WfTy-un⇑ᵗ
+                (StoreWfAt.wfTy (at wfΣ) (∈-renameStoreᵗ suc h))
+          }
+    ; wfOlder = λ h → WfTy-un⇑ᵗ (wfOlder wfΣ (∈-renameStoreᵗ suc h))
+    ; unique = StoreUnique-⟰ᵗ-inv (unique wfΣ)
+    }
 
 StoreDetWf-inst :
   ∀ {Δ Σ} →

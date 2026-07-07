@@ -14,14 +14,15 @@ module proof.DynamicGradualGuaranteeMediated where
 --     recursive calls.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using ([]; _∷_; _++_)
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
-open import Data.Product using (_×_; _,_; proj₂; ∃-syntax)
+open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
-  using (cong; subst; sym; trans)
+  using (subst; sym)
 
 open import Types
 open import Coercions
+open import NarrowWiden using (cross; id-‵; id-＇; id★)
 open import Primitives using (addℕ)
 open import NuTerms
 open import NuReduction
@@ -29,7 +30,6 @@ open import StoreCorrespondence
 open import MediatedNarrowing
 open import proof.CatchupSeparated using
   ( applyLeftChanges
-  ; applyLeftChanges-++
   ; applyRightChange
   )
 open import proof.CatchupMediated using (catchup-lemmaᵐ)
@@ -40,15 +40,21 @@ open import proof.NuTermProperties using
   ; renameᵗᵐ-preserves-Value
   )
 open import proof.NuPreservation using (runtime-⟨⟩)
-open import proof.ReductionProperties using
-  ( applyTyCtxs-++
-  ; applyTys-++
-  ; ·₁-↠
-  ; ·₂-↠
-  ; ⊕₁-↠
-  ; ⊕₂-↠
-  ; cast-↠
-  ; ↠-trans
+open import proof.DGGBetaMediated using (mediated-dgg-beta)
+open import proof.DGGBetaCastMediated using (mediated-dgg-beta-cast)
+open import proof.DGGPrimitiveMediated using
+  ( mediated-⊕-δ
+  ; primitive-left-frame-keepᵐ
+  ; primitive-right-frame-keepᵐ
+  )
+open import proof.DGGPrimitiveFrameMediated using
+  (primitive-right-after-left-frame-keepᵐ)
+open import proof.DGGCastMediated using
+  ( source-cast-minus-resultᵐ
+  ; target-cast-plus-inner-resultᵐ
+  ; target-blameᵐ
+  ; target-cast-minus-β-idᵐ
+  ; target-cast-plus-β-idᵐ
   )
 
 ------------------------------------------------------------------------
@@ -124,55 +130,56 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     okLR
     (·⊒·ᵗ p↦q-wholeᶜ L⊒ƛ R⊒V′)
     (pure-step (β vV′)) =
-  {! mediated-β-simulation !}
+  let
+    rec =
+      mediated-dgg-beta
+        okLR
+        vV′
+        p↦q-wholeᶜ
+        (fun-narrow-domain-dual-typingᵐᶜ p↦q-wholeᶜ)
+        L⊒ƛ
+        R⊒V′
+  in
+  let
+    χs , N , ΔL′ , ρ′ , C , D , r , source-steps , ΔL′≡ , ρ′≡ ,
+      C≡ , D≡ , N⊒N′[V′] = rec
+  in
+  χs , N , ΔL′ , ΔR , ρ′ , C , D , r , source-steps ,
+  ΔL′≡ , refl , ρ′≡ , C≡ , D≡ , N⊒N′[V′]
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}
     okM
     (·⊒·ᵗ p↦qᶜ L⊒L′ R⊒R′)
-    (pure-step (β-↦ vV′ vW′)) =
-  {! mediated-β-cast-simulation !}
+    (pure-step (β-↦ {V = V′} {W = W′} vV′ vW′)) =
+  let
+    rec =
+      mediated-dgg-beta-cast
+        okM
+        vV′
+        vW′
+        p↦qᶜ
+        (fun-narrow-domain-dual-typingᵐᶜ p↦qᶜ)
+        L⊒L′
+        R⊒R′
+  in
+  let
+    χs , N , ΔL′ , ρ′ , C , D , r , source-steps , ΔL′≡ , ρ′≡ ,
+      C≡ , D≡ , N⊒target = rec
+  in
+  χs , N , ΔL′ , ΔR , ρ′ , C , D , r , source-steps ,
+  ΔL′≡ , refl , ρ′≡ , C≡ , D≡ , N⊒target
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}
     okM
     app@(·⊒·ᵗ p↦qᶜ L⊒L′ R⊒R′)
     (pure-step blame-·₁) =
-  [] ,
-  L · R ,
-  ΔL ,
-  ΔR ,
-  ρ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ app)
-    (proj₂ (typed-term-narrowing-coercionᵐ app))
+  target-blameᵐ app
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}
     okM
     app@(·⊒·ᵗ p↦qᶜ L⊒L′ R⊒R′)
     (pure-step (blame-·₂ vV)) =
-  [] ,
-  L · R ,
-  ΔL ,
-  ΔR ,
-  ρ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ app)
-    (proj₂ (typed-term-narrowing-coercionᵐ app))
+  target-blameᵐ app
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R} {M′ = L′ · R′} {χ′ = χ′}
     (ok-no (no•-· noL noR))
@@ -296,70 +303,67 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N}
     okMN
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (pure-step δ-⊕) =
-  {! mediated-primitive-delta-simulation !}
+    (pure-step (δ-⊕ {m = m′} {n = n′})) =
+  let
+    rec = mediated-⊕-δ okMN M⊒M′ N⊒N′
+
+    χs , P , ΔL′ , ρ′ , C , D , r ,
+      source-steps , ΔL′≡ , ρ′≡ , C≡ℕ , D≡ℕ , P⊒P′ = rec
+  in
+  χs , P , ΔL′ , ΔR , ρ′ , C , D , r , source-steps ,
+  ΔL′≡ , refl , ρ′≡ , C≡ℕ , D≡ℕ , P⊒P′
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N}
     okMN
     add@(⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
     (pure-step blame-⊕₁) =
-  [] ,
-  M ⊕[ addℕ ] N ,
-  ΔL ,
-  ΔR ,
-  ρ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ add)
-    (proj₂ (typed-term-narrowing-coercionᵐ add))
+  target-blameᵐ add
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N}
     okMN
     add@(⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
     (pure-step (blame-⊕₂ vV)) =
-  [] ,
-  M ⊕[ addℕ ] N ,
-  ΔL ,
-  ΔR ,
-  ρ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ add)
-    (proj₂ (typed-term-narrowing-coercionᵐ add))
+  target-blameᵐ add
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
-    {χ′ = χ′}
+    {χ′ = keep}
     (ok-no (no•-⊕ noM noN))
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (ξ-⊕₁ {L′ = S′} M′→S′ shiftN′) =
+    (ξ-⊕₁ {χ = keep} {L′ = S′} M′→S′ shiftN′) =
   let
     rec = dynamicGradualGuaranteeᵐ (ok-no noM) M⊒M′ M′→S′
   in
-  {! ξ-⊕₁-mediated-frame-no-source-bullet !}
+  primitive-left-frame-keepᵐ noN N⊒N′ rec
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
-    {χ′ = χ′}
+    {χ′ = bind X}
+    (ok-no (no•-⊕ noM noN))
+    (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
+    (ξ-⊕₁ {χ = bind X} {L′ = S′} M′→S′ shiftN′) =
+  let
+    rec = dynamicGradualGuaranteeᵐ (ok-no noM) M⊒M′ M′→S′
+  in
+  {! ξ-⊕₁-mediated-frame-no-source-bullet-target-bind !}
+dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
+    {χ′ = keep}
     (ok-⊕₁ okM noN)
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (ξ-⊕₁ {L′ = S′} M′→S′ shiftN′) =
+    (ξ-⊕₁ {χ = keep} {L′ = S′} M′→S′ shiftN′) =
   let
     rec = dynamicGradualGuaranteeᵐ okM M⊒M′ M′→S′
   in
-  {! ξ-⊕₁-mediated-frame-source-left-running !}
+  primitive-left-frame-keepᵐ noN N⊒N′ rec
+dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
+    {χ′ = bind X}
+    (ok-⊕₁ okM noN)
+    (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
+    (ξ-⊕₁ {χ = bind X} {L′ = S′} M′→S′ shiftN′) =
+  let
+    rec = dynamicGradualGuaranteeᵐ okM M⊒M′ M′→S′
+  in
+  {! ξ-⊕₁-mediated-frame-source-left-running-target-bind !}
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
     {χ′ = χ′}
@@ -369,10 +373,10 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   {! ξ-⊕₁-mediated-frame-source-left-already-value !}
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
-    {χ′ = χ′}
+    {χ′ = keep}
     (ok-no (no•-⊕ noM noN))
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (ξ-⊕₂ {M′ = S′} vM′ shiftM′ N′→S′) =
+    (ξ-⊕₂ {χ = keep} {M′ = S′} vM′ shiftM′ N′→S′) =
   let
     χsM , WM , ΔL₁ ,
       vWM , noWM , M↠WM , ΔL₁≡ , ρM-corr ,
@@ -405,13 +409,53 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         N⊒N′M
         N′→S′
   in
-  {! ξ-⊕₂-mediated-frame-after-left-catchup-no-source-bullet !}
+  primitive-right-after-left-frame-keepᵐ
+    noN vWM noWM M↠WM ΔL₁≡ ρM-corr WM⊒M′ rec
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
-    {χ′ = χ′}
+    {χ′ = bind X}
+    (ok-no (no•-⊕ noM noN))
+    (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
+    (ξ-⊕₂ {χ = bind X} {M′ = S′} vM′ shiftM′ N′→S′) =
+  let
+    χsM , WM , ΔL₁ ,
+      vWM , noWM , M↠WM , ΔL₁≡ , ρM-corr ,
+      leftM≡ , rightM≡ , pMᶜ , WM⊒M′ =
+      catchup-lemmaᵐ (ok-no noM) vM′ M⊒M′
+
+    corrM :
+      StoreCorr (applyTyCtxs χsM ΔL) ΔR (applyLeftChanges χsM ρ)
+    corrM =
+      subst (λ Δ → StoreCorr Δ ΔR (applyLeftChanges χsM ρ))
+        ΔL₁≡
+        ρM-corr
+
+    N⊒N′M :
+      ΔL₁ ∣ ΔR ∣ applyLeftChanges χsM ρ ∣ []
+        ⊢ applyTerms χsM N ⊒ N′ ∶ id (‵ `ℕ)
+          ⦂ applyTys χsM (‵ `ℕ) ⊒ᵐ ‵ `ℕ
+    N⊒N′M =
+      subst
+        (λ Δ →
+          Δ ∣ ΔR ∣ applyLeftChanges χsM ρ ∣ []
+            ⊢ applyTerms χsM N ⊒ N′ ∶ id (‵ `ℕ)
+              ⦂ applyTys χsM (‵ `ℕ) ⊒ᵐ ‵ `ℕ)
+        (sym ΔL₁≡)
+        (left-changes-term-narrowingᵐ χsM corrM N⊒N′)
+
+    rec =
+      dynamicGradualGuaranteeᵐ
+        (applyTerms-preserves-RuntimeOK χsM (ok-no noN))
+        N⊒N′M
+        N′→S′
+  in
+  {! ξ-⊕₂-mediated-frame-after-left-catchup-no-source-bullet-target-bind !}
+dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
+    {χ′ = keep}
     (ok-⊕₁ okM noN)
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (ξ-⊕₂ {M′ = S′} vM′ shiftM′ N′→S′) =
+    (ξ-⊕₂ {χ = keep} {M′ = S′} vM′ shiftM′ N′→S′) =
   let
     χsM , WM , ΔL₁ ,
       vWM , noWM , M↠WM , ΔL₁≡ , ρM-corr ,
@@ -444,38 +488,73 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         N⊒N′M
         N′→S′
   in
-  {! ξ-⊕₂-mediated-frame-after-left-catchup-source-left-running !}
+  primitive-right-after-left-frame-keepᵐ
+    noN vWM noWM M↠WM ΔL₁≡ ρM-corr WM⊒M′ rec
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
-    {χ′ = χ′}
+    {χ′ = bind X}
+    (ok-⊕₁ okM noN)
+    (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
+    (ξ-⊕₂ {χ = bind X} {M′ = S′} vM′ shiftM′ N′→S′) =
+  let
+    χsM , WM , ΔL₁ ,
+      vWM , noWM , M↠WM , ΔL₁≡ , ρM-corr ,
+      leftM≡ , rightM≡ , pMᶜ , WM⊒M′ =
+      catchup-lemmaᵐ okM vM′ M⊒M′
+
+    corrM :
+      StoreCorr (applyTyCtxs χsM ΔL) ΔR (applyLeftChanges χsM ρ)
+    corrM =
+      subst (λ Δ → StoreCorr Δ ΔR (applyLeftChanges χsM ρ))
+        ΔL₁≡
+        ρM-corr
+
+    N⊒N′M :
+      ΔL₁ ∣ ΔR ∣ applyLeftChanges χsM ρ ∣ []
+        ⊢ applyTerms χsM N ⊒ N′ ∶ id (‵ `ℕ)
+          ⦂ applyTys χsM (‵ `ℕ) ⊒ᵐ ‵ `ℕ
+    N⊒N′M =
+      subst
+        (λ Δ →
+          Δ ∣ ΔR ∣ applyLeftChanges χsM ρ ∣ []
+            ⊢ applyTerms χsM N ⊒ N′ ∶ id (‵ `ℕ)
+              ⦂ applyTys χsM (‵ `ℕ) ⊒ᵐ ‵ `ℕ)
+        (sym ΔL₁≡)
+        (left-changes-term-narrowingᵐ χsM corrM N⊒N′)
+
+    rec =
+      dynamicGradualGuaranteeᵐ
+        (applyTerms-preserves-RuntimeOK χsM (ok-no noN))
+        N⊒N′M
+        N′→S′
+  in
+  {! ξ-⊕₂-mediated-frame-after-left-catchup-source-left-running-target-bind !}
+dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
+    {χ′ = keep}
     (ok-⊕₂ vM noM okN)
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (ξ-⊕₂ {M′ = S′} vM′ shiftM′ N′→S′) =
+    (ξ-⊕₂ {χ = keep} {M′ = S′} vM′ shiftM′ N′→S′) =
   let
     rec = dynamicGradualGuaranteeᵐ okN N⊒N′ N′→S′
   in
-  {! ξ-⊕₂-mediated-frame-source-left-already-value !}
+  primitive-right-frame-keepᵐ vM noM M⊒M′ rec
+dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
+    {χ′ = bind X}
+    (ok-⊕₂ vM noM okN)
+    (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
+    (ξ-⊕₂ {χ = bind X} {M′ = S′} vM′ shiftM′ N′→S′) =
+  let
+    rec = dynamicGradualGuaranteeᵐ okN N⊒N′ N′→S′
+  in
+  {! ξ-⊕₂-mediated-frame-source-left-already-value-target-bind !}
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M}
     okM
     castRel@(⊒cast-ᵗ p′ᶜ rᶜ t⊒ M⊒M′)
     (pure-step blame-⟨⟩) =
-  [] ,
-  M ,
-  ΔL ,
-  ΔR ,
-  ρ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ castRel)
-    (proj₂ (typed-term-narrowing-coercionᵐ castRel))
+  target-blameᵐ castRel
 dynamicGradualGuaranteeᵐ {M = M}
     okM
     castRel@(⊒cast+ᵗ p′ᶜ rᶜ t⊒ M⊒M′)
@@ -483,7 +562,28 @@ dynamicGradualGuaranteeᵐ {M = M}
   let
     rec = dynamicGradualGuaranteeᵐ okM M⊒M′ M′→S′
   in
-  {! target-cast-plus-mediated-inner-step !}
+  target-cast-plus-inner-resultᵐ p′ᶜ t⊒ rec
+dynamicGradualGuaranteeᵐ
+    okM
+    (⊒cast+ᵗ p′ᶜ rᶜ
+      (cast-id h ok , cross (id-‵ ι))
+      M⊒M′)
+    (pure-step (β-id vV)) =
+  target-cast-plus-β-idᵐ (cast-id h ok , cross (id-‵ ι)) M⊒M′
+dynamicGradualGuaranteeᵐ
+    okM
+    (⊒cast+ᵗ p′ᶜ rᶜ
+      (cast-id h ok , cross (id-＇ α))
+      M⊒M′)
+    (pure-step (β-id vV)) =
+  target-cast-plus-β-idᵐ (cast-id h ok , cross (id-＇ α)) M⊒M′
+dynamicGradualGuaranteeᵐ
+    okM
+    (⊒cast+ᵗ p′ᶜ rᶜ
+      (cast-id h ok , id★)
+      M⊒M′)
+    (pure-step (β-id vV)) =
+  target-cast-plus-β-idᵐ (cast-id h ok , id★) M⊒M′
 dynamicGradualGuaranteeᵐ
     okM
     castRel@(⊒cast+ᵗ p′ᶜ rᶜ t⊒ M⊒M′)
@@ -497,6 +597,16 @@ dynamicGradualGuaranteeᵐ {M = M}
     rec = dynamicGradualGuaranteeᵐ okM M⊒M′ M′→S′
   in
   {! target-cast-minus-mediated-inner-step !}
+dynamicGradualGuaranteeᵐ
+    okM
+    (⊒cast-ᵗ {t = id T} p′ᶜ rᶜ t⊒ M⊒M′)
+    (pure-step (β-id vV)) =
+  target-cast-minus-β-idᵐ t⊒ M⊒M′
+dynamicGradualGuaranteeᵐ
+    okM
+    castRel@(⊒cast-ᵗ p′ᶜ rᶜ t⊒ M⊒M′)
+    (pure-step (tag-untag-bad vV G≢H)) =
+  target-blameᵐ castRel
 dynamicGradualGuaranteeᵐ
     okM
     castRel@(⊒cast-ᵗ p′ᶜ rᶜ t⊒ M⊒M′)
@@ -517,15 +627,26 @@ dynamicGradualGuaranteeᵐ {M = M ⟨ c ⟩}
   let
     rec = dynamicGradualGuaranteeᵐ (runtime-⟨⟩ okM) M⊒M′ M′→N′
   in
-  {! source-cast-minus-mediated-result !}
-dynamicGradualGuaranteeᵐ okM (⊒⟨ν⟩ᵗ _ _ _ _ _ _) (pure-step st) =
-  {! target-gen-cast-mediated-pure-step !}
+  source-cast-minus-resultᵐ qᶜ s⊒ rec
+dynamicGradualGuaranteeᵐ okM rel@(⊒⟨ν⟩ᵗ _ _ _ _ _ _) (pure-step st)
+    with st
+dynamicGradualGuaranteeᵐ okM rel@(⊒⟨ν⟩ᵗ _ _ _ _ _ _) (pure-step st)
+    | blame-⟨⟩ =
+  target-blameᵐ rel
 dynamicGradualGuaranteeᵐ okM (⊒⟨ν⟩ᵗ _ _ _ _ _ _) (ξ-⟨⟩ st) =
   {! target-gen-cast-mediated-inner-step !}
+dynamicGradualGuaranteeᵐ okM
+    rel@(α⊒αᵗ {L′ = blame} vL noL vL′ noL′ qᶜ pᶜ L⊒L′)
+    (pure-step blame-•) =
+  target-blameᵐ rel
 dynamicGradualGuaranteeᵐ okM
     (α⊒αᵗ vL noL vL′ noL′ qᶜ pᶜ L⊒L′)
     (pure-step st) =
   {! matched-seal-mediated-pure-step !}
+dynamicGradualGuaranteeᵐ okM
+    rel@(⊒αᵗ {L′ = blame} vL′ noL′ pᶜ L⊒L′)
+    (pure-step blame-•) =
+  target-blameᵐ rel
 dynamicGradualGuaranteeᵐ okM (⊒αᵗ vL′ noL′ pᶜ L⊒L′)
     (pure-step st) =
   {! target-seal-mediated-pure-step !}
@@ -548,9 +669,9 @@ dynamicGradualGuaranteeᵐ okM
     (ν-step vV noV) =
   {! nu-nu-mediated-allocation !}
 dynamicGradualGuaranteeᵐ okM
-    (ν⊒νᵗ hA hA′ N⊢ N′⊢ sₗ⊢ sᵣ⊢ pᶜ qᶜ N⊒N′)
+    rel@(ν⊒νᵗ hA hA′ N⊢ N′⊢ sₗ⊢ sᵣ⊢ pᶜ qᶜ N⊒N′)
     blame-ν =
-  {! nu-nu-mediated-blame !}
+  target-blameᵐ rel
 dynamicGradualGuaranteeᵐ okN
     (⊒νᵗ N⊢ hA N′⊢ s⊢ pᶜ N⊒N′)
     (ξ-ν N′→S′) =
@@ -561,6 +682,6 @@ dynamicGradualGuaranteeᵐ okN
 dynamicGradualGuaranteeᵐ okM (⊒νᵗ N⊢ hA N′⊢ s⊢ pᶜ N⊒N′)
     (ν-step vV noV) =
   {! target-nu-mediated-allocation !}
-dynamicGradualGuaranteeᵐ okM (⊒νᵗ N⊢ hA N′⊢ s⊢ pᶜ N⊒N′)
+dynamicGradualGuaranteeᵐ okM rel@(⊒νᵗ N⊢ hA N′⊢ s⊢ pᶜ N⊒N′)
     blame-ν =
-  {! target-nu-mediated-blame !}
+  target-blameᵐ rel

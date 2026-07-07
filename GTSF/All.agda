@@ -37,8 +37,18 @@ import MediatedNarrowing
 import proof.DualRawProperties
 import proof.MediationProperties
 import proof.MediatedLeftInsertion
+import proof.TermRenamingMediated
+import proof.TermSubstitutionSyntax
 import proof.CatchupMediated
+import proof.DGGSourceCastTailMediated
 import proof.SimBetaMediated
+import proof.DGGBetaMediated
+import proof.DGGBetaCastValueCommonMediated
+import proof.DGGBetaCastValueMediated
+import proof.DGGBetaCastMediated
+import proof.DGGStoreChangeMediated
+import proof.DGGPrimitiveMediated
+import proof.DGGCastMediated
 import proof.DynamicGradualGuaranteeMediated
 -- The following "Separated" modules need to be ported
 -- import proof.LeftNuWideningSeparated

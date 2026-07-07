@@ -50,11 +50,11 @@ eval {M = M} zero wfΣ okM M⊢ with progress okM M⊢
 eval {M = M} zero wfΣ okM M⊢ | done vM =
   just (result [] M ↠-refl M⊢ vM)
 eval {M = M} zero wfΣ okM M⊢ | step M→N = nothing
-eval {M = M} zero wfΣ okM M⊢ | crash refl = nothing
+eval {M = M} zero wfΣ okM M⊢ | crash _ = nothing
 eval {M = M} (suc gas) wfΣ okM M⊢ with progress okM M⊢
 eval {M = M} (suc gas) wfΣ okM M⊢ | done vM =
   just (result [] M ↠-refl M⊢ vM)
-eval {M = M} (suc gas) wfΣ okM M⊢ | crash refl = nothing
+eval {M = M} (suc gas) wfΣ okM M⊢ | crash _ = nothing
 eval {M = M} (suc gas) wfΣ okM M⊢
     | step {χ = χ} {N = N} M→N
     with eval gas

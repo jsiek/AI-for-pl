@@ -149,7 +149,7 @@ runTyped :
   Maybe (RunResult M)
 runTyped gas M⊢ with compile-closed M⊢
 ... | N , okN , N⊢ with eval gas empty-store-wf okN N⊢
-...   | just result = just (ran _ M⊢ N okN N⊢ result)
+...   | just evalResult = just (ran _ M⊢ N okN N⊢ evalResult)
 ...   | nothing = nothing
 
 run :

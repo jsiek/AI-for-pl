@@ -40,6 +40,7 @@ import proof.MediatedLeftInsertion
 import proof.CatchupMediated
 import proof.SimBetaMediated
 import proof.DGGBetaMediated
+import proof.DGGBetaCastMediated
 import proof.DGGPrimitiveMediated
 import proof.DGGCastMediated
 import proof.DynamicGradualGuaranteeMediated

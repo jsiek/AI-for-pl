@@ -41,6 +41,7 @@ open import proof.NuTermProperties using
   )
 open import proof.NuPreservation using (runtime-⟨⟩)
 open import proof.DGGBetaMediated using (mediated-dgg-beta)
+open import proof.DGGBetaCastMediated using (mediated-dgg-beta-cast)
 open import proof.DGGPrimitiveMediated using (mediated-⊕-δ)
 open import proof.DGGCastMediated using
   ( target-cast-minus-β-idᵐ
@@ -153,8 +154,37 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}
     okM
     (·⊒·ᵗ p↦qᶜ L⊒L′ R⊒R′)
-    (pure-step (β-↦ vV′ vW′)) =
-  {! mediated-β-cast-simulation !}
+    (pure-step (β-↦ {V = V′} {W = W′} vV′ vW′)) =
+  let
+    rec =
+      mediated-dgg-beta-cast
+        okM
+        vV′
+        vW′
+        p↦qᶜ
+        (fun-narrow-domain-dual-typingᵐᶜ p↦qᶜ)
+        L⊒L′
+        R⊒R′
+  in
+  let
+    χs , N , ΔL′ , ρ′ , C , D , r ,
+      source-steps , ΔL′≡ , ρ′≡ , C≡ , D≡ , N⊒target = rec
+  in
+  χs ,
+  N ,
+  ΔL′ ,
+  ΔR ,
+  ρ′ ,
+  C ,
+  D ,
+  r ,
+  source-steps ,
+  ΔL′≡ ,
+  refl ,
+  ρ′≡ ,
+  C≡ ,
+  D≡ ,
+  N⊒target
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}
     okM

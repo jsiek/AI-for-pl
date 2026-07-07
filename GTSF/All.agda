@@ -39,6 +39,7 @@ import proof.MediationProperties
 import proof.MediatedLeftInsertion
 import proof.CatchupMediated
 import proof.SimBetaMediated
+import proof.DynamicGradualGuaranteeMediated
 -- The following "Separated" modules need to be ported
 -- import proof.LeftNuWideningSeparated
 -- import proof.DynamicGradualGuaranteeSeparated

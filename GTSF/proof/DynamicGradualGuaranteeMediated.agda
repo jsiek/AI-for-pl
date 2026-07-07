@@ -22,6 +22,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Types
 open import Coercions
+open import NarrowWiden using (cross; id-‵; id-＇; id★)
 open import Primitives using (addℕ)
 open import NuTerms
 open import NuReduction
@@ -41,6 +42,10 @@ open import proof.NuTermProperties using
 open import proof.NuPreservation using (runtime-⟨⟩)
 open import proof.DGGBetaMediated using (mediated-dgg-beta)
 open import proof.DGGPrimitiveMediated using (mediated-⊕-δ)
+open import proof.DGGCastMediated using
+  ( target-cast-minus-β-idᵐ
+  ; target-cast-plus-β-idᵐ
+  )
 
 ------------------------------------------------------------------------
 -- Runtime transport used by IH setup after source catchup
@@ -525,6 +530,27 @@ dynamicGradualGuaranteeᵐ {M = M}
   {! target-cast-plus-mediated-inner-step !}
 dynamicGradualGuaranteeᵐ
     okM
+    (⊒cast+ᵗ p′ᶜ rᶜ
+      (cast-id h ok , cross (id-‵ ι))
+      M⊒M′)
+    (pure-step (β-id vV)) =
+  target-cast-plus-β-idᵐ (cast-id h ok , cross (id-‵ ι)) M⊒M′
+dynamicGradualGuaranteeᵐ
+    okM
+    (⊒cast+ᵗ p′ᶜ rᶜ
+      (cast-id h ok , cross (id-＇ α))
+      M⊒M′)
+    (pure-step (β-id vV)) =
+  target-cast-plus-β-idᵐ (cast-id h ok , cross (id-＇ α)) M⊒M′
+dynamicGradualGuaranteeᵐ
+    okM
+    (⊒cast+ᵗ p′ᶜ rᶜ
+      (cast-id h ok , id★)
+      M⊒M′)
+    (pure-step (β-id vV)) =
+  target-cast-plus-β-idᵐ (cast-id h ok , id★) M⊒M′
+dynamicGradualGuaranteeᵐ
+    okM
     castRel@(⊒cast+ᵗ p′ᶜ rᶜ t⊒ M⊒M′)
     target-step =
   {! target-cast-plus-mediated-direct-step !}
@@ -536,6 +562,11 @@ dynamicGradualGuaranteeᵐ {M = M}
     rec = dynamicGradualGuaranteeᵐ okM M⊒M′ M′→S′
   in
   {! target-cast-minus-mediated-inner-step !}
+dynamicGradualGuaranteeᵐ
+    okM
+    (⊒cast-ᵗ {t = id T} p′ᶜ rᶜ t⊒ M⊒M′)
+    (pure-step (β-id vV)) =
+  target-cast-minus-β-idᵐ t⊒ M⊒M′
 dynamicGradualGuaranteeᵐ
     okM
     castRel@(⊒cast-ᵗ p′ᶜ rᶜ t⊒ M⊒M′)

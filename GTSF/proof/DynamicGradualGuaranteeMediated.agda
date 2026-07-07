@@ -667,11 +667,11 @@ dynamicGradualGuaranteeᵐ {M = M ⟨ c ⟩}
     rec = dynamicGradualGuaranteeᵐ (runtime-⟨⟩ okM) M⊒M′ M′→N′
   in
   source-cast-minus-resultᵐ qᶜ s⊒ rec
-dynamicGradualGuaranteeᵐ okM rel@(⊒⟨ν⟩ᵗ _ _ _ _ _ _)
-    (pure-step blame-⟨⟩) =
+dynamicGradualGuaranteeᵐ okM rel@(⊒⟨ν⟩ᵗ _ _ _ _ _ _) (pure-step st)
+    with st
+dynamicGradualGuaranteeᵐ okM rel@(⊒⟨ν⟩ᵗ _ _ _ _ _ _) (pure-step st)
+    | blame-⟨⟩ =
   target-blameᵐ rel
-dynamicGradualGuaranteeᵐ okM (⊒⟨ν⟩ᵗ _ _ _ _ _ _) (pure-step st) =
-  {! target-gen-cast-mediated-pure-step !}
 dynamicGradualGuaranteeᵐ okM (⊒⟨ν⟩ᵗ _ _ _ _ _ _) (ξ-⟨⟩ st) =
   {! target-gen-cast-mediated-inner-step !}
 dynamicGradualGuaranteeᵐ okM

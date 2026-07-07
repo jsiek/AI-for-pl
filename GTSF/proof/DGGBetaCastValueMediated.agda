@@ -80,10 +80,16 @@ open import proof.ReductionProperties using
   ; ·₁-↠
   ; ·₂-↠
   )
-open import proof.DGGBetaCastValueCommonMediated using
+open import proof.DGGSourceCastTailMediated using
   ( inner-seq-index-impossible
   ; plus-seq-cast-impossible
-  ; dual-id-not-fun
+  )
+  renaming
+  ( mediated-source-cast-plus-tail to mediated-beta-cast-plus-tail
+  ; mediated-source-cast-minus-tail to mediated-beta-cast-minus-tail
+  )
+open import proof.DGGBetaCastValueCommonMediated using
+  ( dual-id-not-fun
   ; dual-seq-not-fun
   ; dual-all-not-fun
   ; dual-untag-not-fun
@@ -92,8 +98,6 @@ open import proof.DGGBetaCastValueCommonMediated using
   ; tag-narrowing-impossible
   ; unseal-narrowing-impossible
   ; inst-narrowing-impossible
-  ; mediated-beta-cast-plus-tail
-  ; mediated-beta-cast-minus-tail
   )
 
 ------------------------------------------------------------------------

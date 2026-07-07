@@ -38,6 +38,7 @@ import proof.DualRawProperties
 import proof.MediationProperties
 import proof.MediatedLeftInsertion
 import proof.CatchupMediated
+import proof.DGGSourceCastTailMediated
 import proof.SimBetaMediated
 import proof.DGGBetaMediated
 import proof.DGGBetaCastValueCommonMediated

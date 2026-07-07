@@ -41,6 +41,7 @@ import proof.CatchupMediated
 import proof.SimBetaMediated
 import proof.DGGBetaMediated
 import proof.DGGBetaCastMediated
+import proof.DGGStoreChangeMediated
 import proof.DGGPrimitiveMediated
 import proof.DGGCastMediated
 import proof.DynamicGradualGuaranteeMediated

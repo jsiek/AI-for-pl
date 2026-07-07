@@ -141,24 +141,11 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         R⊒V′
   in
   let
-    χs , N , ΔL′ , ρ′ , C , D , r ,
-      source-steps , ΔL′≡ , ρ′≡ , C≡ , D≡ , N⊒N′[V′] = rec
+    χs , N , ΔL′ , ρ′ , C , D , r , source-steps , ΔL′≡ , ρ′≡ ,
+      C≡ , D≡ , N⊒N′[V′] = rec
   in
-  χs ,
-  N ,
-  ΔL′ ,
-  ΔR ,
-  ρ′ ,
-  C ,
-  D ,
-  r ,
-  source-steps ,
-  ΔL′≡ ,
-  refl ,
-  ρ′≡ ,
-  C≡ ,
-  D≡ ,
-  N⊒N′[V′]
+  χs , N , ΔL′ , ΔR , ρ′ , C , D , r , source-steps ,
+  ΔL′≡ , refl , ρ′≡ , C≡ , D≡ , N⊒N′[V′]
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}
     okM
@@ -176,24 +163,11 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         R⊒R′
   in
   let
-    χs , N , ΔL′ , ρ′ , C , D , r ,
-      source-steps , ΔL′≡ , ρ′≡ , C≡ , D≡ , N⊒target = rec
+    χs , N , ΔL′ , ρ′ , C , D , r , source-steps , ΔL′≡ , ρ′≡ ,
+      C≡ , D≡ , N⊒target = rec
   in
-  χs ,
-  N ,
-  ΔL′ ,
-  ΔR ,
-  ρ′ ,
-  C ,
-  D ,
-  r ,
-  source-steps ,
-  ΔL′≡ ,
-  refl ,
-  ρ′≡ ,
-  C≡ ,
-  D≡ ,
-  N⊒target
+  χs , N , ΔL′ , ΔR , ρ′ , C , D , r , source-steps ,
+  ΔL′≡ , refl , ρ′≡ , C≡ , D≡ , N⊒target
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}
     okM

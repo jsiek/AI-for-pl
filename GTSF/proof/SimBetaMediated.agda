@@ -1,5 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
 module proof.SimBetaMediated where
 
 -- File Charter:
@@ -447,7 +445,7 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
         ⊢ N ⟨ applyCoercions (χsA ++ χsT) dᵈ ⟩ ⊒ NL [ VR ]
           ∶ q ⦂ applyTys (χsA ++ χsT) Bₒ ⊒ᵐ BR
     N-tail =
-      sim-betaᵐ-cast-plus-tail (χsA ++ χsT)
+      sim-betaᵐ-cast-plus-tail (χsA ++ χsT) {N = N} {NL = NL} {VR = VR}
         ΔLT-total≡
         ρT-total≡
         ρT-corr
@@ -683,7 +681,7 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
         ⊢ N ⟨ applyCoercions (χsA ++ χsT) dₛ ⟩ ⊒ NL [ VR ]
           ∶ q ⦂ applyTys (χsA ++ χsT) Bₒ ⊒ᵐ BR
     N-tail =
-      sim-betaᵐ-cast-minus-tail (χsA ++ χsT)
+      sim-betaᵐ-cast-minus-tail (χsA ++ χsT) {N = N} {NL = NL} {VR = VR}
         ΔLT-total≡
         ρT-total≡
         ρT-corr

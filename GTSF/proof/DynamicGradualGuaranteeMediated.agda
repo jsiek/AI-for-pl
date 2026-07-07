@@ -624,6 +624,9 @@ dynamicGradualGuaranteeᵐ {M = M ⟨ c ⟩}
     rec = dynamicGradualGuaranteeᵐ (runtime-⟨⟩ okM) M⊒M′ M′→N′
   in
   {! source-cast-minus-mediated-result !}
+dynamicGradualGuaranteeᵐ okM rel@(⊒⟨ν⟩ᵗ _ _ _ _ _ _)
+    (pure-step blame-⟨⟩) =
+  target-blameᵐ rel
 dynamicGradualGuaranteeᵐ okM (⊒⟨ν⟩ᵗ _ _ _ _ _ _) (pure-step st) =
   {! target-gen-cast-mediated-pure-step !}
 dynamicGradualGuaranteeᵐ okM (⊒⟨ν⟩ᵗ _ _ _ _ _ _) (ξ-⟨⟩ st) =
@@ -654,9 +657,9 @@ dynamicGradualGuaranteeᵐ okM
     (ν-step vV noV) =
   {! nu-nu-mediated-allocation !}
 dynamicGradualGuaranteeᵐ okM
-    (ν⊒νᵗ hA hA′ N⊢ N′⊢ sₗ⊢ sᵣ⊢ pᶜ qᶜ N⊒N′)
+    rel@(ν⊒νᵗ hA hA′ N⊢ N′⊢ sₗ⊢ sᵣ⊢ pᶜ qᶜ N⊒N′)
     blame-ν =
-  {! nu-nu-mediated-blame !}
+  target-blameᵐ rel
 dynamicGradualGuaranteeᵐ okN
     (⊒νᵗ N⊢ hA N′⊢ s⊢ pᶜ N⊒N′)
     (ξ-ν N′→S′) =
@@ -667,6 +670,6 @@ dynamicGradualGuaranteeᵐ okN
 dynamicGradualGuaranteeᵐ okM (⊒νᵗ N⊢ hA N′⊢ s⊢ pᶜ N⊒N′)
     (ν-step vV noV) =
   {! target-nu-mediated-allocation !}
-dynamicGradualGuaranteeᵐ okM (⊒νᵗ N⊢ hA N′⊢ s⊢ pᶜ N⊒N′)
+dynamicGradualGuaranteeᵐ okM rel@(⊒νᵗ N⊢ hA N′⊢ s⊢ pᶜ N⊒N′)
     blame-ν =
-  {! target-nu-mediated-blame !}
+  target-blameᵐ rel

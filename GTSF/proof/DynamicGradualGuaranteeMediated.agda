@@ -44,7 +44,9 @@ open import proof.DGGBetaMediated using (mediated-dgg-beta)
 open import proof.DGGBetaCastMediated using (mediated-dgg-beta-cast)
 open import proof.DGGPrimitiveMediated using (mediated-⊕-δ)
 open import proof.DGGCastMediated using
-  ( target-blameᵐ
+  ( source-cast-minus-resultᵐ
+  ; target-cast-plus-inner-resultᵐ
+  ; target-blameᵐ
   ; target-cast-minus-β-idᵐ
   ; target-cast-plus-β-idᵐ
   )
@@ -558,7 +560,7 @@ dynamicGradualGuaranteeᵐ {M = M}
   let
     rec = dynamicGradualGuaranteeᵐ okM M⊒M′ M′→S′
   in
-  {! target-cast-plus-mediated-inner-step !}
+  target-cast-plus-inner-resultᵐ p′ᶜ t⊒ rec
 dynamicGradualGuaranteeᵐ
     okM
     (⊒cast+ᵗ p′ᶜ rᶜ
@@ -623,7 +625,7 @@ dynamicGradualGuaranteeᵐ {M = M ⟨ c ⟩}
   let
     rec = dynamicGradualGuaranteeᵐ (runtime-⟨⟩ okM) M⊒M′ M′→N′
   in
-  {! source-cast-minus-mediated-result !}
+  source-cast-minus-resultᵐ qᶜ s⊒ rec
 dynamicGradualGuaranteeᵐ okM rel@(⊒⟨ν⟩ᵗ _ _ _ _ _ _)
     (pure-step blame-⟨⟩) =
   target-blameᵐ rel

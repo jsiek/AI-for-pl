@@ -40,6 +40,7 @@ import proof.MediatedLeftInsertion
 import proof.CatchupMediated
 import proof.SimBetaMediated
 import proof.DGGBetaMediated
+import proof.DGGPrimitiveMediated
 import proof.DynamicGradualGuaranteeMediated
 -- The following "Separated" modules need to be ported
 -- import proof.LeftNuWideningSeparated

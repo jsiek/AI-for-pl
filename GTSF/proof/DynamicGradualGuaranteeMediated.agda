@@ -40,6 +40,7 @@ open import proof.NuTermProperties using
   )
 open import proof.NuPreservation using (runtime-⟨⟩)
 open import proof.DGGBetaMediated using (mediated-dgg-beta)
+open import proof.DGGPrimitiveMediated using (mediated-⊕-δ)
 
 ------------------------------------------------------------------------
 -- Runtime transport used by IH setup after source catchup
@@ -314,8 +315,28 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N}
     okMN
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (pure-step δ-⊕) =
-  {! mediated-primitive-delta-simulation !}
+    (pure-step (δ-⊕ {m = m′} {n = n′})) =
+  let
+    rec = mediated-⊕-δ okMN M⊒M′ N⊒N′
+
+    χs , P , ΔL′ , ρ′ , C , D , r ,
+      source-steps , ΔL′≡ , ρ′≡ , C≡ℕ , D≡ℕ , P⊒P′ = rec
+  in
+  χs ,
+  P ,
+  ΔL′ ,
+  ΔR ,
+  ρ′ ,
+  C ,
+  D ,
+  r ,
+  source-steps ,
+  ΔL′≡ ,
+  refl ,
+  ρ′≡ ,
+  C≡ℕ ,
+  D≡ℕ ,
+  P⊒P′
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N}
     okMN

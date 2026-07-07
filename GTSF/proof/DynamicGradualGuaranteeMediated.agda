@@ -45,9 +45,10 @@ open import proof.DGGBetaCastMediated using (mediated-dgg-beta-cast)
 open import proof.DGGPrimitiveMediated using
   ( mediated-⊕-δ
   ; primitive-left-frame-keepᵐ
-  ; primitive-right-after-left-frame-keepᵐ
   ; primitive-right-frame-keepᵐ
   )
+open import proof.DGGPrimitiveFrameMediated using
+  (primitive-right-after-left-frame-keepᵐ)
 open import proof.DGGCastMediated using
   ( source-cast-minus-resultᵐ
   ; target-cast-plus-inner-resultᵐ

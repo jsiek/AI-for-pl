@@ -5,22 +5,23 @@ module proof.CompileTermNarrowing where
 --   * States that compiling two source terms related by
 --     `GradualTermNarrowing` yields target terms related by
 --     `MediatedNarrowing`.
---   * The easy structural cases are proved directly.  The remaining
---     compiler-specific cases are named postulate boundaries isolating the
---     needed cast-plan composition and type-application/ν algebra.
+--   * Structural and cast-plan cases are proved directly; the remaining
+--     right-only polymorphic and ν bridges are explicit fields of the
+--     specialized `CompileIndexMediation` plan.
 
 open import Data.List using ([]; _∷_; map)
-open import Data.Nat using (suc)
+open import Data.Nat using (zero; suc)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; cong; cong₂; inspect; subst; sym; trans; [_])
 
 open import Types
-open import Ctx using (CtxWf; ctxWf-∷)
+open import Ctx using (CtxWf; ctxWf-∷; ⤊ᵗ)
 open import Compile
   using
     ( CastPlan
+    ; arrow★-consistent
     ; cast
     ; compile
     ; compile-value
@@ -45,7 +46,9 @@ open import GradualTerms
     ; ⊢` to ⊢ᴳ`
     ; ⊢ƛ to ⊢ᴳƛ
     ; ⊢· to ⊢ᴳ·
+    ; ⊢·★ to ⊢ᴳ·★
     ; ⊢Λ to ⊢ᴳΛ
+    ; ⊢• to ⊢ᴳ•
     ; ⊢$ to ⊢ᴳ$
     ; ⊢⊕ to ⊢ᴳ⊕
     )
@@ -58,19 +61,41 @@ open import NarrowWiden using
   ; _∣_∣_⊢_∶_⊒_
   ; _∣_⊢_∶ᶜ_⊒_
   ; fun-narrow-domain-dualᶜ
+  ; narrow-mode-relax
   ; narrow-weaken
   )
-open import Coercions using (Coercion; id; _↦_; cast-id)
+  renaming (gen to genⁿ)
+open import Coercions using
+  ( Coercion
+  ; ModeIncl
+  ; cast-gen
+  ; gen
+  ; genᵈ
+  ; id
+  ; tag-or-idᵈ
+  ; _↦_
+  ; cast-id
+  )
+  renaming (`∀ to `∀ᶜ)
 open import Primitives using (addℕ; κℕ; constTy)
-open import proof.NuTermProperties using (CtxWf-⤊)
+open import proof.NuTermProperties using (CtxWf-⤊; term-weaken)
 open import proof.CoercionProperties using (coercion-wfᵐ)
 open import Store using (StoreIncl)
-open import StoreCorrespondence using (SealCorr; ⇑ᶜorr)
+open import StoreCorrespondence using
+  ( SealCorr
+  ; ⇑ᶜorr
+  ; ⇑ʳᶜorr
+  ; corr-⇑ʳᶜorr
+  ; leftStore
+  ; rightStore-⇑ʳᶜorr
+  )
+open import Mediation using (medTy-mapʳ; mv-shiftʳ)
 open import proof.ImprecisionProperties using (~-refl; ~-sym)
 open import TermNarrowingSeparated using
   ( CtxCorr
   ; CtxCorrEntry
   ; ctx-entry
+  ; leftCtx
   ; ⇑ᵍᶜ
   )
 
@@ -102,10 +127,12 @@ open import MediatedNarrowing
     ; _∣_∣_⊢_∶ᶜ_⊒ᵐ_
     ; fun-narrow-domain-dualᵐᶜ
     ; fun-narrow-domain-dual-typingᵐᶜ
+    ; ⇑ʳᵍᶜ
     ; x⊒xᵗ
     ; ƛ⊒ƛᵗ
     ; ·⊒·ᵗ
     ; Λ⊒Λᵗ
+    ; ⊒Λᵗ
     ; κ⊒κᵗ
     ; ⊕⊒⊕ᵗ
     ; cast+⊒ᵗ
@@ -148,6 +175,13 @@ tgtCtxⁿ-∋ :
 tgtCtxⁿ-∋ Z = Z
 tgtCtxⁿ-∋ (S x∋p) = S (tgtCtxⁿ-∋ x∋p)
 
+leftCtx-ctxNrwToCorr :
+  ∀ γ →
+  leftCtx (ctxNrwToCorr γ) ≡ srcCtxⁿ γ
+leftCtx-ctxNrwToCorr [] = refl
+leftCtx-ctxNrwToCorr (ctx-nrw A B p ∷ γ) =
+  cong (A ∷_) (leftCtx-ctxNrwToCorr γ)
+
 record CompileIndexMediation (Δ : TyCtx) (ρ : SealCorr) : Set₁ where
   inductive
   field
@@ -161,6 +195,48 @@ record CompileIndexMediation (Δ : TyCtx) (ρ : SealCorr) : Set₁ where
       (p↦qᶜ : Δ ∣ [] ⊢ p ↦ q ∶ᶜ (A ⇒ B) ⊒ (A′ ⇒ B′)) →
       fun-narrow-domain-dualᵐᶜ (indexᵐᶜ p↦qᶜ) ≡
         fun-narrow-domain-dualᶜ p↦qᶜ
+
+    right-only-forall-bodyᵐ :
+      ∀ {γ N V′ p A Aʳ B} →
+      (srcΓ-wf : CtxWf Δ (srcCtxⁿ γ)) →
+      (tgtΓ-wf : CtxWf Δ (tgtCtxⁿ γ)) →
+      (N⊢ : Δ ∣ srcCtxⁿ γ ⊢ᴳ N ⦂ A) →
+      (V′⊢ : suc Δ ∣ ⤊ᵗ (tgtCtxⁿ γ) ⊢ᴳ V′ ⦂ B) →
+      Δ ∣ Δ ∣ ρ ⊢ gen Aʳ p ∶ᶜ A ⊒ᵐ `∀ B →
+      suc Δ ∣ [] ∣ GradualTermNarrowing.⇑ᵍ γ
+        ⊢ᴳ GradualTermNarrowing.⇑ᵗᴳ N ⊒ V′ ∶ p ⦂ ⇑ᵗ A ⊒ B →
+      Δ ∣ suc Δ ∣ ⇑ʳᶜorr ρ ∣ ⇑ʳᵍᶜ (ctxNrwToCorr γ) ⊢
+        proj₁ (compile srcΓ-wf N⊢) ⊒
+        proj₁ (compile (CtxWf-⤊ tgtΓ-wf) V′⊢)
+          ∶ p ⦂ A ⊒ᵐ B
+
+    type-applicationνᵐ :
+      ∀ {γ M M′ T T′ A B p q r} →
+      (srcΓ-wf : CtxWf Δ (srcCtxⁿ γ)) →
+      (tgtΓ-wf : CtxWf Δ (tgtCtxⁿ γ)) →
+      (MT⊢ : Δ ∣ srcCtxⁿ γ ⊢ᴳ M `[ T ] ⦂ A [ T ]ᵗ) →
+      (M′T′⊢ : Δ ∣ tgtCtxⁿ γ ⊢ᴳ M′ `[ T′ ] ⦂ B [ T′ ]ᵗ) →
+      Δ ∣ [] ∣ γ ⊢ᴳ M ⊒ M′ ∶ `∀ᶜ p ⦂ `∀ A ⊒ `∀ B →
+      Δ ∣ Δ ∣ ρ ⊢ q ∶ᶜ T ⊒ᵐ T′ →
+      Δ ∣ Δ ∣ ρ ⊢ r ∶ᶜ A [ T ]ᵗ ⊒ᵐ B [ T′ ]ᵗ →
+      Δ ∣ Δ ∣ ρ ∣ ctxNrwToCorr γ ⊢
+        proj₁ (compile srcΓ-wf MT⊢) ⊒
+        proj₁ (compile tgtΓ-wf M′T′⊢)
+          ∶ r ⦂ A [ T ]ᵗ ⊒ᵐ B [ T′ ]ᵗ
+
+    target-type-applicationνᵐ :
+      ∀ {γ M M′ T′ A B p q r} →
+      (srcΓ-wf : CtxWf Δ (srcCtxⁿ γ)) →
+      (tgtΓ-wf : CtxWf Δ (tgtCtxⁿ γ)) →
+      (M⊢ : Δ ∣ srcCtxⁿ γ ⊢ᴳ M ⦂ A) →
+      (M′T′⊢ : Δ ∣ tgtCtxⁿ γ ⊢ᴳ M′ `[ T′ ] ⦂ B [ T′ ]ᵗ) →
+      Δ ∣ [] ∣ γ ⊢ᴳ M ⊒ M′ ∶ gen A p ⦂ A ⊒ `∀ B →
+      Δ ∣ Δ ∣ ρ ⊢ q ∶ᶜ ★ ⊒ᵐ T′ →
+      Δ ∣ Δ ∣ ρ ⊢ r ∶ᶜ A ⊒ᵐ B [ T′ ]ᵗ →
+      Δ ∣ Δ ∣ ρ ∣ ctxNrwToCorr γ ⊢
+        proj₁ (compile srcΓ-wf M⊢) ⊒
+        proj₁ (compile tgtΓ-wf M′T′⊢)
+          ∶ r ⦂ A ⊒ᵐ B [ T′ ]ᵗ
 
     shiftᵐ :
       CompileIndexMediation (suc Δ) (⇑ᶜorr ρ)
@@ -333,6 +409,98 @@ narrow-empty-weaken :
   μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B
 narrow-empty-weaken = narrow-weaken ≤-refl empty-store-incl
 
+narrow-store-cong :
+  ∀ {μ Δ Σ Σ′ c A B} →
+  Σ ≡ Σ′ →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
+  μ ∣ Δ ∣ Σ′ ⊢ c ∶ A ⊒ B
+narrow-store-cong refl c⊒ = c⊒
+
+gen-tag-or-id-incl :
+  ModeIncl (genᵈ tag-or-idᵈ) tag-or-idᵈ
+gen-tag-or-id-incl zero = refl
+gen-tag-or-id-incl (suc X) = refl
+
+gen-body-indexᵐᶜ :
+  ∀ {Δ ρ p A Aʳ B} →
+  Δ ∣ Δ ∣ ρ ⊢ gen Aʳ p ∶ᶜ A ⊒ᵐ `∀ B →
+  Δ ∣ suc Δ ∣ ⇑ʳᶜorr ρ ⊢ p ∶ᶜ A ⊒ᵐ B
+gen-body-indexᵐᶜ {ρ = ρ}
+    (stores , hA , wf∀ hB , Aʳ ,
+      med , (cast-gen hAʳ occ p⊢ , genⁿ pⁿ)) =
+  corr-⇑ʳᶜorr stores ,
+  hA ,
+  hB ,
+  ⇑ᵗ Aʳ ,
+  medTy-mapʳ suc mv-shiftʳ med ,
+  narrow-store-cong
+    (sym (rightStore-⇑ʳᶜorr ρ))
+    (narrow-mode-relax gen-tag-or-id-incl (p⊢ , pⁿ))
+
+compile-no• :
+  ∀ {Δ Γ M A} →
+  (hΓ : CtxWf Δ Γ) →
+  (M⊢ : Δ ∣ Γ ⊢ᴳ M ⦂ A) →
+  No• (proj₁ (compile hΓ M⊢))
+compile-no• hΓ (⊢ᴳ` x∈) = no•-`
+compile-no• hΓ (⊢ᴳƛ wfA M⊢)
+    with compile (ctxWf-∷ wfA hΓ) M⊢
+       | compile-no• (ctxWf-∷ wfA hΓ) M⊢
+compile-no• hΓ (⊢ᴳƛ wfA M⊢) | N , N⊢ | noN =
+  no•-ƛ noN
+compile-no• hΓ (⊢ᴳ· {ℓ = ℓ} L⊢ M⊢ A~A′)
+    with compile hΓ L⊢
+       | compile-no• hΓ L⊢
+       | compile hΓ M⊢
+       | compile-no• hΓ M⊢
+       | consistency-cast-plan ℓ (~-sym A~A′)
+compile-no• hΓ (⊢ᴳ· L⊢ M⊢ A~A′)
+    | L′ , L′⊢ | noL′ | M′ , M′⊢ | noM′ | plan =
+  no•-· noL′ (no•-⟨⟩ (no•-⟨⟩ noM′))
+compile-no• hΓ (⊢ᴳ·★ {ℓ = ℓ} L⊢ M⊢ A′~★)
+    with compile hΓ L⊢
+       | compile-no• hΓ L⊢
+       | compile hΓ M⊢
+       | compile-no• hΓ M⊢
+       | consistency-cast-plan ℓ (~-sym (arrow★-consistent A′~★))
+compile-no• hΓ (⊢ᴳ·★ L⊢ M⊢ A′~★)
+    | L′ , L′⊢ | noL′ | M′ , M′⊢ | noM′ | plan =
+  no•-· (no•-⟨⟩ (no•-⟨⟩ noL′)) noM′
+compile-no• hΓ (⊢ᴳΛ vM M⊢)
+    with compile (CtxWf-⤊ hΓ) M⊢
+       | compile-no• (CtxWf-⤊ hΓ) M⊢
+compile-no• hΓ (⊢ᴳΛ vM M⊢) | N , N⊢ | noN =
+  no•-Λ noN
+compile-no• hΓ (⊢ᴳ• M⊢ wfB wfA)
+    with compile hΓ M⊢
+       | compile-no• hΓ M⊢
+compile-no• hΓ (⊢ᴳ• M⊢ wfB wfA) | M′ , M′⊢ | noM′ =
+  no•-ν noM′
+compile-no• hΓ (⊢ᴳ$ κ) = no•-$
+compile-no• hΓ (⊢ᴳ⊕ {ℓ = ℓ} L⊢ A~ℕ op M⊢ B~ℕ)
+    with compile hΓ L⊢
+       | compile-no• hΓ L⊢
+       | compile hΓ M⊢
+       | compile-no• hΓ M⊢
+       | consistency-cast-plan ℓ A~ℕ
+       | consistency-cast-plan ℓ B~ℕ
+compile-no• hΓ (⊢ᴳ⊕ L⊢ A~ℕ op M⊢ B~ℕ)
+    | L′ , L′⊢ | noL′ | M′ , M′⊢ | noM′ | planL | planM =
+  no•-⊕
+    (no•-⟨⟩ (no•-⟨⟩ noL′))
+    (no•-⟨⟩ (no•-⟨⟩ noM′))
+
+compile-source-left-typing :
+  ∀ {Δ ρ γ N A} →
+  (N⊢ : Δ ∣ [] ∣ srcCtxⁿ γ ⊢ᵀ N ⦂ A) →
+  No• N →
+  Δ ∣ leftStore ρ ∣ leftCtx (ctxNrwToCorr γ) ⊢ᵀ N ⦂ A
+compile-source-left-typing {ρ = ρ} {γ = γ} N⊢ noN =
+  subst
+    (λ Γ → _ ∣ leftStore ρ ∣ Γ ⊢ᵀ _ ⦂ _)
+    (sym (leftCtx-ctxNrwToCorr γ))
+    (term-weaken ≤-refl empty-store-incl noN N⊢)
+
 cast-plan-left-narrowing :
   ∀ {Δ ρ γ M M′ A B C q r s μ ν} →
   (plan : CastPlan Δ [] A B) →
@@ -379,52 +547,38 @@ variable
   p : Coercion
   M M′ : GTerm
 
--- These are the remaining compiler-specific proof obligations from issue #58.
--- They are stated over canonical endpoint typings reconstructed from
--- `GradualTermNarrowing`, not arbitrary external typing derivations.
-postulate
-  compile-preserves-target-forall-narrowing-canonical :
-    ∀ {Δ ρ γ N V′ p A B} →
-    (med : CompileIndexMediation Δ ρ) →
-    (srcΓ-wf : CtxWf Δ (srcCtxⁿ γ)) →
-    (tgtΓ-wf : CtxWf Δ (tgtCtxⁿ γ)) →
-    (N⊒ΛV′ : Δ ∣ [] ∣ γ ⊢ᴳ N ⊒ Λ V′ ∶ p ⦂ A ⊒ B) →
-    let
-      N⊢ = gradual-term-narrowing-canonical-source-typing N⊒ΛV′
-      ΛV′⊢ = gradual-term-narrowing-canonical-target-typing N⊒ΛV′
-      L = proj₁ (compile srcΓ-wf N⊢)
-      L′ = proj₁ (compile tgtΓ-wf ΛV′⊢)
-    in
-    Δ ∣ Δ ∣ ρ ∣ ctxNrwToCorr γ ⊢ L ⊒ L′ ∶ p ⦂ A ⊒ᵐ B
-
-  compile-preserves-type-application-narrowing-canonical :
-    ∀ {Δ ρ γ M M′ T T′ p A B} →
-    (med : CompileIndexMediation Δ ρ) →
-    (srcΓ-wf : CtxWf Δ (srcCtxⁿ γ)) →
-    (tgtΓ-wf : CtxWf Δ (tgtCtxⁿ γ)) →
-    (MT⊒M′T′ : Δ ∣ [] ∣ γ ⊢ᴳ M `[ T ] ⊒ M′ `[ T′ ]
-                  ∶ p ⦂ A ⊒ B) →
-    let
-      MT⊢ = gradual-term-narrowing-canonical-source-typing MT⊒M′T′
-      M′T′⊢ = gradual-term-narrowing-canonical-target-typing MT⊒M′T′
-      N = proj₁ (compile srcΓ-wf MT⊢)
-      N′ = proj₁ (compile tgtΓ-wf M′T′⊢)
-    in
-    Δ ∣ Δ ∣ ρ ∣ ctxNrwToCorr γ ⊢ N ⊒ N′ ∶ p ⦂ A ⊒ᵐ B
-
-  compile-preserves-target-type-application-narrowing-canonical :
-    ∀ {Δ ρ γ M M′ T′ p A B} →
-    (med : CompileIndexMediation Δ ρ) →
-    (srcΓ-wf : CtxWf Δ (srcCtxⁿ γ)) →
-    (tgtΓ-wf : CtxWf Δ (tgtCtxⁿ γ)) →
-    (M⊒M′T′ : Δ ∣ [] ∣ γ ⊢ᴳ M ⊒ M′ `[ T′ ] ∶ p ⦂ A ⊒ B) →
-    let
-      M⊢ = gradual-term-narrowing-canonical-source-typing M⊒M′T′
-      M′T′⊢ = gradual-term-narrowing-canonical-target-typing M⊒M′T′
-      N = proj₁ (compile srcΓ-wf M⊢)
-      N′ = proj₁ (compile tgtΓ-wf M′T′⊢)
-    in
-    Δ ∣ Δ ∣ ρ ∣ ctxNrwToCorr γ ⊢ N ⊒ N′ ∶ p ⦂ A ⊒ᵐ B
+compile-preserves-target-forall-narrowing-canonical :
+  ∀ {Δ ρ γ N V′ p A B} →
+  (med : CompileIndexMediation Δ ρ) →
+  (srcΓ-wf : CtxWf Δ (srcCtxⁿ γ)) →
+  (tgtΓ-wf : CtxWf Δ (tgtCtxⁿ γ)) →
+  (N⊒ΛV′ : Δ ∣ [] ∣ γ ⊢ᴳ N ⊒ Λ V′ ∶ gen A p ⦂ A ⊒ `∀ B) →
+  let
+    N⊢ = gradual-term-narrowing-canonical-source-typing N⊒ΛV′
+    ΛV′⊢ = gradual-term-narrowing-canonical-target-typing N⊒ΛV′
+    L = proj₁ (compile srcΓ-wf N⊢)
+    L′ = proj₁ (compile tgtΓ-wf ΛV′⊢)
+  in
+  Δ ∣ Δ ∣ ρ ∣ ctxNrwToCorr γ ⊢ L ⊒ L′ ∶ gen A p ⦂ A ⊒ᵐ `∀ B
+compile-preserves-target-forall-narrowing-canonical {ρ = ρ}
+    med srcΓ-wf tgtΓ-wf
+    (⊒Λᴳ {typing = gradual-term-typing-endpoints N⊢ (⊢ᴳΛ vV′ V′⊢)}
+      pᶜ vV′ₙ N⊒V′) =
+  ⊒Λᵗ
+    (compile-source-left-typing {ρ = ρ}
+      (proj₂ (compile srcΓ-wf N⊢))
+      (compile-no• srcΓ-wf N⊢))
+    genᶜ
+    (compile-value (CtxWf-⤊ tgtΓ-wf) vV′ₙ V′⊢)
+    (right-only-forall-bodyᵐ med
+      srcΓ-wf
+      tgtΓ-wf
+      N⊢
+      V′⊢
+      genᶜ
+      N⊒V′)
+  where
+    genᶜ = indexᵐᶜ med pᶜ
 
 compile-preserves-term-narrowing-canonical :
   (med : CompileIndexMediation Δ ρ) →
@@ -601,13 +755,27 @@ compile-preserves-term-narrowing-canonical med srcΓ-wf tgtΓ-wf
   compile-preserves-target-forall-narrowing-canonical
     med srcΓ-wf tgtΓ-wf rel
 compile-preserves-term-narrowing-canonical med srcΓ-wf tgtΓ-wf
-    rel@([]⊒[]ᴳ M⊒M′ qᶜ rᶜ) =
-  compile-preserves-type-application-narrowing-canonical
-    med srcΓ-wf tgtΓ-wf rel
+    ([]⊒[]ᴳ {typing = gradual-term-typing-endpoints MT⊢ M′T′⊢}
+      M⊒M′ qᶜ rᶜ) =
+  type-applicationνᵐ med
+    srcΓ-wf
+    tgtΓ-wf
+    MT⊢
+    M′T′⊢
+    M⊒M′
+    (indexᵐᶜ med qᶜ)
+    (indexᵐᶜ med rᶜ)
 compile-preserves-term-narrowing-canonical med srcΓ-wf tgtΓ-wf
-    rel@(⊒[]ᴳ M⊒M′ qᶜ rᶜ) =
-  compile-preserves-target-type-application-narrowing-canonical
-    med srcΓ-wf tgtΓ-wf rel
+    (⊒[]ᴳ {typing = gradual-term-typing-endpoints M⊢ M′T′⊢}
+      M⊒M′ qᶜ rᶜ) =
+  target-type-applicationνᵐ med
+    srcΓ-wf
+    tgtΓ-wf
+    M⊢
+    M′T′⊢
+    M⊒M′
+    (indexᵐᶜ med qᶜ)
+    (indexᵐᶜ med rᶜ)
 compile-preserves-term-narrowing-canonical {Δ = Δ} med srcΓ-wf tgtΓ-wf
     (⊕⊒⊕ᴳ {op = addℕ} {ℓ = ℓ} M⊒M′ N⊒N′)
     with compile srcΓ-wf

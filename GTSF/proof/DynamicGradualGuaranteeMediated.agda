@@ -16,7 +16,7 @@ module proof.DynamicGradualGuaranteeMediated where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
-open import Data.Product using (_×_; _,_; proj₂; ∃-syntax)
+open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (subst; sym)
 
@@ -193,43 +193,13 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     okM
     app@(·⊒·ᵗ p↦qᶜ L⊒L′ R⊒R′)
     (pure-step blame-·₁) =
-  [] ,
-  L · R ,
-  ΔL ,
-  ΔR ,
-  ρ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ app)
-    (proj₂ (typed-term-narrowing-coercionᵐ app))
+  target-blameᵐ app
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R}
     okM
     app@(·⊒·ᵗ p↦qᶜ L⊒L′ R⊒R′)
     (pure-step (blame-·₂ vV)) =
-  [] ,
-  L · R ,
-  ΔL ,
-  ΔR ,
-  ρ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ app)
-    (proj₂ (typed-term-narrowing-coercionᵐ app))
+  target-blameᵐ app
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = L · R} {M′ = L′ · R′} {χ′ = χ′}
     (ok-no (no•-· noL noR))
@@ -380,43 +350,13 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     okMN
     add@(⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
     (pure-step blame-⊕₁) =
-  [] ,
-  M ⊕[ addℕ ] N ,
-  ΔL ,
-  ΔR ,
-  ρ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ add)
-    (proj₂ (typed-term-narrowing-coercionᵐ add))
+  target-blameᵐ add
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N}
     okMN
     add@(⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
     (pure-step (blame-⊕₂ vV)) =
-  [] ,
-  M ⊕[ addℕ ] N ,
-  ΔL ,
-  ΔR ,
-  ρ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ add)
-    (proj₂ (typed-term-narrowing-coercionᵐ add))
+  target-blameᵐ add
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
     {χ′ = χ′}
@@ -537,22 +477,7 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     okM
     castRel@(⊒cast-ᵗ p′ᶜ rᶜ t⊒ M⊒M′)
     (pure-step blame-⟨⟩) =
-  [] ,
-  M ,
-  ΔL ,
-  ΔR ,
-  ρ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ castRel)
-    (proj₂ (typed-term-narrowing-coercionᵐ castRel))
+  target-blameᵐ castRel
 dynamicGradualGuaranteeᵐ {M = M}
     okM
     castRel@(⊒cast+ᵗ p′ᶜ rᶜ t⊒ M⊒M′)

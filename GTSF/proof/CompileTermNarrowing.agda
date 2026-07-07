@@ -11,13 +11,23 @@ module proof.CompileTermNarrowing where
 
 open import Data.List using ([]; _∷_; map)
 open import Data.Nat using (suc)
+open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; cong; cong₂; subst; sym)
 
 open import Types
 open import Ctx using (CtxWf; ctxWf-∷)
-open import Compile using (compile; compile-value)
+open import Compile
+  using
+    ( CastPlan
+    ; cast
+    ; compile
+    ; compile-value
+    ; down⊒
+    ; lower
+    ; upDual⊒
+    )
 open import NuTerms
   using (Term)
   renaming
@@ -46,13 +56,18 @@ open import NarrowWiden using
   ; ctx-nrw
   ; cross
   ; id-‵
+  ; _∣_∣_⊢_∶_⊒_
   ; _∣_⊢_∶ᶜ_⊒_
   ; fun-narrow-domain-dualᶜ
+  ; narrow-weaken
   )
 open import Coercions using (Coercion; id; _↦_; cast-id)
 open import Primitives using (Const; Prim; κℕ; constTy)
 open import proof.NuTermProperties using (CtxWf-⤊)
+open import Store using (StoreIncl)
 open import StoreCorrespondence using (SealCorr; ⇑ᶜorr)
+open import proof.ImprecisionProperties using (~-left-wf; ~-refl; ~-right-wf)
+open import proof.TypeProperties using (singleTyEnv-Wf; substᵗ-preserves-WfTy)
 open import TermNarrowingSeparated using
   ( CtxCorr
   ; CtxCorrEntry
@@ -86,12 +101,17 @@ open import GradualTermNarrowing
 open import MediatedNarrowing
   using
     ( _∣_∣_∣_⊢_⊒_∶_⦂_⊒ᵐ_
+    ; _∣_∣_∣_⊢_∶_⊒ᵐ_
     ; _∣_∣_⊢_∶ᶜ_⊒ᵐ_
     ; fun-narrow-domain-dualᵐᶜ
     ; x⊒xᵗ
     ; ƛ⊒ƛᵗ
     ; Λ⊒Λᵗ
     ; κ⊒κᵗ
+    ; cast+⊒ᵗ
+    ; cast-⊒ᵗ
+    ; ⊒cast+ᵗ
+    ; ⊒cast-ᵗ
     )
 
 ctxNrwToCorrEntry : CtxNrwEntry → CtxCorrEntry
@@ -174,6 +194,75 @@ const-indexᶜ :
   ∀ {Δ} κ →
   Δ ∣ [] ⊢ id (constTy κ) ∶ᶜ constTy κ ⊒ constTy κ
 const-indexᶜ (κℕ n) = cast-id wfBase refl , cross (id-‵ `ℕ)
+
+gradual-typing-wf :
+  ∀ {Δ Γ M A} →
+  CtxWf Δ Γ →
+  Δ ∣ Γ ⊢ᴳ M ⦂ A →
+  WfTy Δ A
+gradual-typing-wf Γ-wf (⊢ᴳ` x∈) = Γ-wf x∈
+gradual-typing-wf Γ-wf (⊢ᴳƛ wfA M⊢) =
+  wf⇒ wfA (gradual-typing-wf (ctxWf-∷ wfA Γ-wf) M⊢)
+gradual-typing-wf Γ-wf (⊢ᴳ· L⊢ M⊢ A~A′)
+    with gradual-typing-wf Γ-wf L⊢
+gradual-typing-wf Γ-wf (⊢ᴳ· L⊢ M⊢ A~A′)
+    | wf⇒ hA hB = hB
+gradual-typing-wf Γ-wf (⊢ᴳ·★ L⊢ M⊢ A′~★) = wf★
+gradual-typing-wf Γ-wf (⊢ᴳΛ vM M⊢) =
+  wf∀ (gradual-typing-wf (CtxWf-⤊ Γ-wf) M⊢)
+gradual-typing-wf Γ-wf (⊢ᴳ• M⊢ wfB wfA) =
+  substᵗ-preserves-WfTy wfB (singleTyEnv-Wf wfA)
+gradual-typing-wf Γ-wf (⊢ᴳ$ (κℕ n)) = wfBase
+gradual-typing-wf Γ-wf (⊢ᴳ⊕ L⊢ A~ℕ op M⊢ B~ℕ) = wfBase
+
+empty-store-incl :
+  ∀ {Σ} →
+  StoreIncl [] Σ
+empty-store-incl ()
+
+narrow-empty-weaken :
+  ∀ {μ Δ Σ c A B} →
+  μ ∣ Δ ∣ [] ⊢ c ∶ A ⊒ B →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B
+narrow-empty-weaken = narrow-weaken ≤-refl empty-store-incl
+
+cast-plan-left-narrowing :
+  ∀ {Δ ρ γ M M′ A B C q r s μ ν} →
+  (plan : CastPlan Δ [] A B) →
+  Δ ∣ Δ ∣ ρ ⊢ q ∶ᶜ lower plan ⊒ᵐ C →
+  μ ∣ Δ ∣ Δ ∣ ρ ⊢ r ∶ A ⊒ᵐ C →
+  ν ∣ Δ ∣ Δ ∣ ρ ⊢ s ∶ B ⊒ᵐ C →
+  Δ ∣ Δ ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ r ⦂ A ⊒ᵐ C →
+  Δ ∣ Δ ∣ ρ ∣ γ ⊢ cast plan M ⊒ M′ ∶ s ⦂ B ⊒ᵐ C
+cast-plan-left-narrowing plan qᶜ r⊒ s⊒ M⊒M′ =
+  cast+⊒ᵗ
+    qᶜ
+    s⊒
+    (narrow-empty-weaken (proj₂ (proj₂ (upDual⊒ plan))))
+    (cast-⊒ᵗ
+      qᶜ
+      r⊒
+      (narrow-empty-weaken (proj₂ (down⊒ plan)))
+      M⊒M′)
+
+cast-plan-right-narrowing :
+  ∀ {Δ ρ γ M M′ A B C p q r μ} →
+  (plan : CastPlan Δ [] A B) →
+  Δ ∣ Δ ∣ ρ ⊢ p ∶ᶜ C ⊒ᵐ A →
+  μ ∣ Δ ∣ Δ ∣ ρ ⊢ q ∶ C ⊒ᵐ lower plan →
+  Δ ∣ Δ ∣ ρ ⊢ r ∶ᶜ C ⊒ᵐ B →
+  Δ ∣ Δ ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ C ⊒ᵐ A →
+  Δ ∣ Δ ∣ ρ ∣ γ ⊢ M ⊒ cast plan M′ ∶ r ⦂ C ⊒ᵐ B
+cast-plan-right-narrowing plan pᶜ q⊒ rᶜ M⊒M′ =
+  ⊒cast+ᵗ
+    rᶜ
+    q⊒
+    (narrow-empty-weaken (proj₂ (proj₂ (upDual⊒ plan))))
+    (⊒cast-ᵗ
+      pᶜ
+      q⊒
+      (narrow-empty-weaken (proj₂ (down⊒ plan)))
+      M⊒M′)
 
 -- These are the remaining compiler-specific proof obligations from issue #58.
 -- They are stated over `MediatedNarrowing`, not the obsolete shared-store

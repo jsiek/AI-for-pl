@@ -12,7 +12,7 @@ open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here)
 open import Data.Nat using (zero; suc; z<s; s<s)
-open import Data.Product using (Σ-syntax; _,_; proj₁)
+open import Data.Product using (Σ-syntax; _,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (subst; sym; trans)
 
 open import Types
@@ -20,13 +20,25 @@ open import Ctx using (CtxWf; ctxWf-∷; ⤊ᵗ)
 open import Coercions
   using
     ( Coercion
+    ; ModeEnv
     ; _∣_⊢_∶_=⇒_
     ; _∣_∣_⊢_∶_=⇒_
+    ; normalᵃ
     ; reveal
     )
 open import Imprecision using (_⊢_~_; id★; _↦_; tag_⇒_)
+open import NarrowWiden
+  using
+    ( _∣_∣_⊢_∶_⊒_
+    ; _∣_⊢_∶_⊒_
+    ; _∣_∣_⊢_∶_⊑_
+    ; dualⁿ
+    ; dualʷ
+    )
 open import Primitives using (Const; Prim; constTy)
-open import proof.CompileCoercions using (coerce-up; coerce-down; realizes-idᵢ)
+open import Store using (StoreWfAt)
+open import proof.CompileCoercions
+  using (coerce-upʷ; coerce-downⁿ; realizesCast-idᵢ)
 open import proof.CoercionProperties
   using
     ( RevealEnv
@@ -35,9 +47,13 @@ open import proof.CoercionProperties
     ; rv-miss
     ; singleSealᵈ
     ; singleSealMode
+    ; dualActionOk-normal
+    ; dualStoreAt-normal
     )
 open import proof.ImprecisionProperties
   using (⊑-src-wf-idᵢ; ⊑-tgt-wf-idᵢ; ~-sym)
+open import proof.NarrowWidenProperties
+  using (dualⁿ-flips-typingᵐ; dualʷ-flips-typingᵐ)
 open import proof.NuTermProperties using (CtxWf-⤊)
 open import proof.TypeProperties
   using
@@ -175,16 +191,50 @@ open import NuTerms
 -- Cast plans for compiling consistency
 ------------------------------------------------------------------------
 
+narrowing-dual-one :
+  ∀ {μ Δ Σ c A B} →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
+  Coercion
+narrowing-dual-one (_ , cⁿ) = proj₁ (dualⁿ normalᵃ cⁿ)
+
+empty-store-wf-at :
+  ∀ {Δ} →
+  StoreWfAt Δ []
+StoreWfAt.bound empty-store-wf-at ()
+StoreWfAt.wfTy empty-store-wf-at ()
+
 record CastPlan (Δ : TyCtx) (Σ : Store) (A B : Ty) : Set₁ where
   field
     lower : Ty
     down : Coercion
     down⊢ : Δ ∣ Σ ⊢ down ∶ A =⇒ lower
+    down⊒ : Δ ∣ Σ ⊢ down ∶ A ⊒ lower
 
-    up : Coercion
-    up⊢ : Δ ∣ Σ ⊢ up ∶ lower =⇒ B
+    upDual⊒ : Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ∶ B ⊒ lower
+    up⊑ :
+      Σ[ μ ∈ ModeEnv ]
+        μ ∣ Δ ∣ Σ
+          ⊢ narrowing-dual-one (proj₂ (proj₂ upDual⊒)) ∶ lower ⊑ B
 
 open CastPlan public
+
+upDual :
+  ∀ {Δ Σ A B} →
+  CastPlan Δ Σ A B →
+  Coercion
+upDual plan = proj₁ (upDual⊒ plan)
+
+up :
+  ∀ {Δ Σ A B} →
+  CastPlan Δ Σ A B →
+  Coercion
+up plan = narrowing-dual-one (proj₂ (proj₂ (upDual⊒ plan)))
+
+up⊢ :
+  ∀ {Δ Σ A B} →
+  (plan : CastPlan Δ Σ A B) →
+  Δ ∣ Σ ⊢ up plan ∶ lower plan =⇒ B
+up⊢ plan = proj₁ (up⊑ plan) , proj₁ (proj₂ (up⊑ plan))
 
 consistency-cast-plan :
   ∀ {Δ A B} →
@@ -192,24 +242,42 @@ consistency-cast-plan :
   Δ ⊢ A ~ B →
   CastPlan Δ [] A B
 consistency-cast-plan {Δ = Δ} ℓ (C , C⊑A , C⊑B)
-    with coerce-down ℓ
+    with coerce-downⁿ ℓ
            (⊑-src-wf-idᵢ C⊑A)
            (⊑-tgt-wf-idᵢ C⊑A)
-           (realizes-idᵢ Δ)
+           (realizesCast-idᵢ Δ)
            C⊑A
-       | coerce-up ℓ
+       | coerce-upʷ ℓ
            (⊑-src-wf-idᵢ C⊑B)
            (⊑-tgt-wf-idᵢ C⊑B)
-           (realizes-idᵢ Δ)
+           (realizesCast-idᵢ Δ)
            C⊑B
 consistency-cast-plan {Δ = Δ} ℓ (C , C⊑A , C⊑B)
-    | down , down⊢ | up , up⊢ =
+    | down , down⊒ | up , up⊑ =
   record
     { lower = C
     ; down = down
-    ; down⊢ = down⊢
-    ; up = up
-    ; up⊢ = up⊢
+    ; down⊢ = proj₁ down⊒ , proj₁ (proj₂ down⊒)
+    ; down⊒ = down⊒
+    ; upDual⊒ =
+        proj₁ (dualʷ normalᵃ (proj₂ (proj₂ up⊑))) ,
+        proj₁ up⊑ ,
+        dualʷ-flips-typingᵐ
+          dualActionOk-normal
+          dualStoreAt-normal
+          empty-store-wf-at
+          (proj₂ up⊑)
+    ; up⊑ =
+        proj₁ up⊑ ,
+        dualⁿ-flips-typingᵐ
+          dualActionOk-normal
+          dualStoreAt-normal
+          empty-store-wf-at
+          (dualʷ-flips-typingᵐ
+            dualActionOk-normal
+            dualStoreAt-normal
+            empty-store-wf-at
+            (proj₂ up⊑))
     }
 
 arrow★-consistent :

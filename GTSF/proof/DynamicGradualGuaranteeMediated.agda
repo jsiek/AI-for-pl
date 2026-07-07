@@ -42,7 +42,11 @@ open import proof.NuTermProperties using
 open import proof.NuPreservation using (runtime-⟨⟩)
 open import proof.DGGBetaMediated using (mediated-dgg-beta)
 open import proof.DGGBetaCastMediated using (mediated-dgg-beta-cast)
-open import proof.DGGPrimitiveMediated using (mediated-⊕-δ)
+open import proof.DGGPrimitiveMediated using
+  ( mediated-⊕-δ
+  ; primitive-left-frame-keepᵐ
+  ; primitive-right-frame-keepᵐ
+  )
 open import proof.DGGCastMediated using
   ( source-cast-minus-resultᵐ
   ; target-cast-plus-inner-resultᵐ
@@ -359,24 +363,44 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   target-blameᵐ add
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
-    {χ′ = χ′}
+    {χ′ = keep}
     (ok-no (no•-⊕ noM noN))
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (ξ-⊕₁ {L′ = S′} M′→S′ shiftN′) =
+    (ξ-⊕₁ {χ = keep} {L′ = S′} M′→S′ shiftN′) =
   let
     rec = dynamicGradualGuaranteeᵐ (ok-no noM) M⊒M′ M′→S′
   in
-  {! ξ-⊕₁-mediated-frame-no-source-bullet !}
+  primitive-left-frame-keepᵐ noN N⊒N′ rec
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
-    {χ′ = χ′}
+    {χ′ = bind X}
+    (ok-no (no•-⊕ noM noN))
+    (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
+    (ξ-⊕₁ {χ = bind X} {L′ = S′} M′→S′ shiftN′) =
+  let
+    rec = dynamicGradualGuaranteeᵐ (ok-no noM) M⊒M′ M′→S′
+  in
+  {! ξ-⊕₁-mediated-frame-no-source-bullet-target-bind !}
+dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
+    {χ′ = keep}
     (ok-⊕₁ okM noN)
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (ξ-⊕₁ {L′ = S′} M′→S′ shiftN′) =
+    (ξ-⊕₁ {χ = keep} {L′ = S′} M′→S′ shiftN′) =
   let
     rec = dynamicGradualGuaranteeᵐ okM M⊒M′ M′→S′
   in
-  {! ξ-⊕₁-mediated-frame-source-left-running !}
+  primitive-left-frame-keepᵐ noN N⊒N′ rec
+dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
+    {χ′ = bind X}
+    (ok-⊕₁ okM noN)
+    (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
+    (ξ-⊕₁ {χ = bind X} {L′ = S′} M′→S′ shiftN′) =
+  let
+    rec = dynamicGradualGuaranteeᵐ okM M⊒M′ M′→S′
+  in
+  {! ξ-⊕₁-mediated-frame-source-left-running-target-bind !}
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
     {χ′ = χ′}
@@ -464,14 +488,24 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
   {! ξ-⊕₂-mediated-frame-after-left-catchup-source-left-running !}
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
-    {χ′ = χ′}
+    {χ′ = keep}
     (ok-⊕₂ vM noM okN)
     (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
-    (ξ-⊕₂ {M′ = S′} vM′ shiftM′ N′→S′) =
+    (ξ-⊕₂ {χ = keep} {M′ = S′} vM′ shiftM′ N′→S′) =
   let
     rec = dynamicGradualGuaranteeᵐ okN N⊒N′ N′→S′
   in
-  {! ξ-⊕₂-mediated-frame-source-left-already-value !}
+  primitive-right-frame-keepᵐ vM noM M⊒M′ rec
+dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M ⊕[ addℕ ] N} {M′ = M′ ⊕[ addℕ ] N′}
+    {χ′ = bind X}
+    (ok-⊕₂ vM noM okN)
+    (⊕⊒⊕ᵗ pℕᶜ M⊒M′ N⊒N′)
+    (ξ-⊕₂ {χ = bind X} {M′ = S′} vM′ shiftM′ N′→S′) =
+  let
+    rec = dynamicGradualGuaranteeᵐ okN N⊒N′ N′→S′
+  in
+  {! ξ-⊕₂-mediated-frame-source-left-already-value-target-bind !}
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M}
     okM

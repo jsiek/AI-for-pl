@@ -8,7 +8,7 @@ module proof.DGGPrimitiveMediated where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (_+_)
-open import Data.Product using (_×_; _,_; ∃-syntax)
+open import Data.Product using (_×_; _,_; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (cong; subst; sym; trans)
 
@@ -23,11 +23,13 @@ open import Mediation
 open import MediatedNarrowing
 open import proof.CatchupSeparated using
   ( applyLeftChanges
+  ; applyRightChange
   ; applyLeftChanges-++
   )
 open import proof.CatchupMediated using (catchup-lemmaᵐ)
 open import proof.MediatedLeftInsertion using
   (left-changes-term-narrowingᵐ)
+open import proof.NarrowWidenProperties using (narrowing-determinedᵐ)
 open import proof.NuProgress using (canonical-ℕ; nv-const)
 open import proof.LeftChangeNarrowingSeparated using
   (applyTerms-preserves-RuntimeOK)
@@ -55,6 +57,24 @@ id-ℕ-narrowingᵐᶜ stores =
   ‵ `ℕ ,
   med-base ,
   (cast-id wfBase refl , cross (id-‵ `ℕ))
+
+mediated-id-ℕ-index-determined :
+  ∀ {μ ΔL ΔR ρ p} →
+  μ ∣ ΔL ∣ ΔR ∣ ρ ⊢ p ∶ ‵ `ℕ ⊒ᵐ ‵ `ℕ →
+  p ≡ id (‵ `ℕ)
+mediated-id-ℕ-index-determined
+    (stores , wfBase , wfBase , .(‵ `ℕ) , med-base , p⊒) =
+  narrowing-determinedᵐ (rightStore-det stores)
+    p⊒
+    (cast-id wfBase refl , cross (id-‵ `ℕ))
+
+typed-id-ℕ-index-determinedᵐ :
+  ∀ {ΔL ΔR ρ γ M M′ p} →
+  ΔL ∣ ΔR ∣ ρ ∣ γ ⊢ M ⊒ M′ ∶ p ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ →
+  p ≡ id (‵ `ℕ)
+typed-id-ℕ-index-determinedᵐ M⊒M′ =
+  mediated-id-ℕ-index-determined
+    (proj₂ (typed-term-narrowing-coercionᵐ M⊒M′))
 
 constant-⊕-δ-step :
   ∀ {χsL χsR L R m n} →
@@ -137,6 +157,221 @@ value-normalized-id-ℕ-target-constᵐᶜ
             (λ B → _ ∣ _ ∣ _ ∣ [] ⊢ _ ⊒ _ ∶ _ ⦂ _ ⊒ᵐ B)
             B≡
             W⊒))))
+
+primitive-left-frame-keepᵐ :
+  ∀ {ΔL ΔR ρ M N S′ N′} →
+  No• N →
+  ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ N ⊒ N′
+    ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ →
+  (∃[ χs ] ∃[ P ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
+   ∃[ C ] ∃[ D ] ∃[ r ]
+    (M —↠[ χs ] P) ×
+    (ΔL′ ≡ applyTyCtxs χs ΔL) ×
+    (ΔR′ ≡ applyTyCtx keep ΔR) ×
+    (ρ′ ≡ applyRightChange keep (applyLeftChanges χs ρ)) ×
+    (C ≡ applyTys χs (‵ `ℕ)) ×
+    (D ≡ applyTy keep (‵ `ℕ)) ×
+    ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
+      ⊢ P ⊒ S′ ∶ r ⦂ C ⊒ᵐ D) →
+  ∃[ χs ] ∃[ P ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
+  ∃[ C ] ∃[ D ] ∃[ r ]
+    (M ⊕[ addℕ ] N —↠[ χs ] P) ×
+    (ΔL′ ≡ applyTyCtxs χs ΔL) ×
+    (ΔR′ ≡ applyTyCtx keep ΔR) ×
+    (ρ′ ≡ applyRightChange keep (applyLeftChanges χs ρ)) ×
+    (C ≡ applyTys χs (‵ `ℕ)) ×
+    (D ≡ applyTy keep (‵ `ℕ)) ×
+    ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
+      ⊢ P ⊒ S′ ⊕[ addℕ ] N′ ∶ r ⦂ C ⊒ᵐ D
+primitive-left-frame-keepᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M} {N = N} {S′ = S′} {N′ = N′}
+    noN N⊒N′
+    (χs , P , .(applyTyCtxs χs ΔL) , .(applyTyCtx keep ΔR) ,
+     .(applyRightChange keep (applyLeftChanges χs ρ)) ,
+     .(applyTys χs (‵ `ℕ)) , .(applyTy keep (‵ `ℕ)) , r ,
+     M↠P , refl , refl , refl , refl , refl , P⊒S′) =
+  let
+    μP , rᶜ = typed-term-narrowing-coercionᵐ P⊒S′
+
+    corr :
+      StoreCorr (applyTyCtxs χs ΔL) ΔR (applyLeftChanges χs ρ)
+    corr = narrowing-store-corrᵐᶜ rᶜ
+
+    pℕᶜ :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ
+        ⊢ id (‵ `ℕ) ∶ᶜ ‵ `ℕ ⊒ᵐ ‵ `ℕ
+    pℕᶜ = id-ℕ-narrowingᵐᶜ corr
+
+    N⊒N′L :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+        ⊢ applyTerms χs N ⊒ N′ ∶ id (‵ `ℕ)
+          ⦂ applyTys χs (‵ `ℕ) ⊒ᵐ ‵ `ℕ
+    N⊒N′L = left-changes-term-narrowingᵐ χs corr N⊒N′
+
+    N⊒N′ℕ :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+        ⊢ applyTerms χs N ⊒ N′ ∶ id (‵ `ℕ)
+          ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ
+    N⊒N′ℕ =
+      subst
+        (λ A →
+          applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+            ⊢ applyTerms χs N ⊒ N′ ∶ id (‵ `ℕ)
+              ⦂ A ⊒ᵐ ‵ `ℕ)
+        (applyTys-ℕ χs)
+        N⊒N′L
+
+    P⊒S′ℕ :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+        ⊢ P ⊒ S′ ∶ r ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ
+    P⊒S′ℕ =
+      subst
+        (λ A →
+          applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+            ⊢ P ⊒ S′ ∶ r ⦂ A ⊒ᵐ ‵ `ℕ)
+        (applyTys-ℕ χs)
+        P⊒S′
+
+    P⊒S′id :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+        ⊢ P ⊒ S′ ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ
+    P⊒S′id =
+      subst
+        (λ q →
+          applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+            ⊢ P ⊒ S′ ∶ q ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ)
+        (typed-id-ℕ-index-determinedᵐ P⊒S′ℕ)
+        P⊒S′ℕ
+
+    framed⊒ :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+        ⊢ P ⊕[ addℕ ] applyTerms χs N ⊒ S′ ⊕[ addℕ ] N′
+          ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ
+    framed⊒ = ⊕⊒⊕ᵗ pℕᶜ P⊒S′id N⊒N′ℕ
+  in
+  χs ,
+  P ⊕[ addℕ ] applyTerms χs N ,
+  applyTyCtxs χs ΔL ,
+  ΔR ,
+  applyLeftChanges χs ρ ,
+  ‵ `ℕ ,
+  ‵ `ℕ ,
+  id (‵ `ℕ) ,
+  ⊕₁-↠ noN M↠P ,
+  refl ,
+  refl ,
+  refl ,
+  sym (applyTys-ℕ χs) ,
+  refl ,
+  framed⊒
+
+primitive-right-frame-keepᵐ :
+  ∀ {ΔL ΔR ρ M M′ N S′} →
+  Value M →
+  No• M →
+  ΔL ∣ ΔR ∣ ρ ∣ [] ⊢ M ⊒ M′
+    ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ →
+  (∃[ χs ] ∃[ P ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
+   ∃[ C ] ∃[ D ] ∃[ r ]
+    (N —↠[ χs ] P) ×
+    (ΔL′ ≡ applyTyCtxs χs ΔL) ×
+    (ΔR′ ≡ applyTyCtx keep ΔR) ×
+    (ρ′ ≡ applyRightChange keep (applyLeftChanges χs ρ)) ×
+    (C ≡ applyTys χs (‵ `ℕ)) ×
+    (D ≡ applyTy keep (‵ `ℕ)) ×
+    ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
+      ⊢ P ⊒ S′ ∶ r ⦂ C ⊒ᵐ D) →
+  ∃[ χs ] ∃[ P ] ∃[ ΔL′ ] ∃[ ΔR′ ] ∃[ ρ′ ]
+  ∃[ C ] ∃[ D ] ∃[ r ]
+    (M ⊕[ addℕ ] N —↠[ χs ] P) ×
+    (ΔL′ ≡ applyTyCtxs χs ΔL) ×
+    (ΔR′ ≡ applyTyCtx keep ΔR) ×
+    (ρ′ ≡ applyRightChange keep (applyLeftChanges χs ρ)) ×
+    (C ≡ applyTys χs (‵ `ℕ)) ×
+    (D ≡ applyTy keep (‵ `ℕ)) ×
+    ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
+      ⊢ P ⊒ M′ ⊕[ addℕ ] S′ ∶ r ⦂ C ⊒ᵐ D
+primitive-right-frame-keepᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
+    {M = M} {M′ = M′} {N = N} {S′ = S′}
+    vM noM M⊒M′
+    (χs , P , .(applyTyCtxs χs ΔL) , .(applyTyCtx keep ΔR) ,
+     .(applyRightChange keep (applyLeftChanges χs ρ)) ,
+     .(applyTys χs (‵ `ℕ)) , .(applyTy keep (‵ `ℕ)) , r ,
+     N↠P , refl , refl , refl , refl , refl , P⊒S′) =
+  let
+    μP , rᶜ = typed-term-narrowing-coercionᵐ P⊒S′
+
+    corr :
+      StoreCorr (applyTyCtxs χs ΔL) ΔR (applyLeftChanges χs ρ)
+    corr = narrowing-store-corrᵐᶜ rᶜ
+
+    pℕᶜ :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ
+        ⊢ id (‵ `ℕ) ∶ᶜ ‵ `ℕ ⊒ᵐ ‵ `ℕ
+    pℕᶜ = id-ℕ-narrowingᵐᶜ corr
+
+    M⊒M′L :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+        ⊢ applyTerms χs M ⊒ M′ ∶ id (‵ `ℕ)
+          ⦂ applyTys χs (‵ `ℕ) ⊒ᵐ ‵ `ℕ
+    M⊒M′L = left-changes-term-narrowingᵐ χs corr M⊒M′
+
+    M⊒M′ℕ :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+        ⊢ applyTerms χs M ⊒ M′ ∶ id (‵ `ℕ)
+          ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ
+    M⊒M′ℕ =
+      subst
+        (λ A →
+          applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+            ⊢ applyTerms χs M ⊒ M′ ∶ id (‵ `ℕ)
+              ⦂ A ⊒ᵐ ‵ `ℕ)
+        (applyTys-ℕ χs)
+        M⊒M′L
+
+    P⊒S′ℕ :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+        ⊢ P ⊒ S′ ∶ r ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ
+    P⊒S′ℕ =
+      subst
+        (λ A →
+          applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+            ⊢ P ⊒ S′ ∶ r ⦂ A ⊒ᵐ ‵ `ℕ)
+        (applyTys-ℕ χs)
+        P⊒S′
+
+    P⊒S′id :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+        ⊢ P ⊒ S′ ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ
+    P⊒S′id =
+      subst
+        (λ q →
+          applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+            ⊢ P ⊒ S′ ∶ q ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ)
+        (typed-id-ℕ-index-determinedᵐ P⊒S′ℕ)
+        P⊒S′ℕ
+
+    framed⊒ :
+      applyTyCtxs χs ΔL ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
+        ⊢ applyTerms χs M ⊕[ addℕ ] P ⊒ M′ ⊕[ addℕ ] S′
+          ∶ id (‵ `ℕ) ⦂ ‵ `ℕ ⊒ᵐ ‵ `ℕ
+    framed⊒ = ⊕⊒⊕ᵗ pℕᶜ M⊒M′ℕ P⊒S′id
+  in
+  χs ,
+  applyTerms χs M ⊕[ addℕ ] P ,
+  applyTyCtxs χs ΔL ,
+  ΔR ,
+  applyLeftChanges χs ρ ,
+  ‵ `ℕ ,
+  ‵ `ℕ ,
+  id (‵ `ℕ) ,
+  ⊕₂-↠ vM noM N↠P ,
+  refl ,
+  refl ,
+  refl ,
+  sym (applyTys-ℕ χs) ,
+  refl ,
+  framed⊒
 
 ------------------------------------------------------------------------
 -- Primitive addition simulation

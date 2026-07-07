@@ -121,14 +121,9 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {WR = WR} {VR = VR}
         (fun-narrow-domain-dualᵐ-determined p↦q-sim⊒ p↦qᶜ)
         WR⊒VR
   in
-  keep ∷ [] ,
-  N [ WR ] ,
-  ΔL ,
-  ρ ,
+  keep ∷ [] , N [ WR ] , ΔL , ρ ,
   ↠-step (pure-step (β vWR)) ↠-refl ,
-  refl ,
-  refl ,
-  term-substitution-narrowingᵐ N⊒NL WR⊒VR′
+  refl , refl , term-substitution-narrowingᵐ N⊒NL WR⊒VR′
 -- Source-cast branches.  The one-store cast evidence carried by the
 -- mediated constructors makes the shape analysis local: the deriv
 -- and witness in the premise refute the impossible coercion shapes
@@ -351,11 +346,7 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
   in
   (keep ∷ χsA) ++ χsT ,
   N ⟨ applyCoercions χsT (applyCoercions χsA dᵈ) ⟩ ,
-  ΔLT ,
-  ρT ,
-  source-steps ,
-  ΔLT-total≡ ,
-  ρT-total≡ ,
+  ΔLT , ρT , source-steps , ΔLT-total≡ , ρT-total≡ ,
   subst
     (λ c₀ →
       ΔLT ∣ ΔR ∣ ρT ∣ []
@@ -587,11 +578,7 @@ sim-betaᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ} {NL = NL} {WR = WR}
   in
   (keep ∷ χsA) ++ χsT ,
   N ⟨ applyCoercions χsT (applyCoercions χsA dₛ) ⟩ ,
-  ΔLT ,
-  ρT ,
-  source-steps ,
-  ΔLT-total≡ ,
-  ρT-total≡ ,
+  ΔLT , ρT , source-steps , ΔLT-total≡ , ρT-total≡ ,
   subst
     (λ c₀ →
       ΔLT ∣ ΔR ∣ ρT ∣ []

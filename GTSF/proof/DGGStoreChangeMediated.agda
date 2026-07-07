@@ -11,7 +11,7 @@ module proof.DGGStoreChangeMediated where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
-open import Relation.Binary.PropositionalEquality using (cong; trans)
+open import Relation.Binary.PropositionalEquality using (cong; subst; trans)
 
 open import Types
 open import NuReduction using (StoreChange; StoreChanges; keep; bind)
@@ -19,6 +19,10 @@ open import StoreCorrespondence
 open import proof.CatchupSeparated using
   ( applyLeftChange
   ; applyLeftChanges
+  )
+open import proof.NarrowWidenProperties using
+  ( StoreDetWf
+  ; StoreDetWf-⟰ᵗ-inv
   )
 
 ⇑ˡᶜorr-⇑ʳᶜorr-commute :
@@ -50,3 +54,17 @@ applyLeftChanges-⇑ʳᶜorr (χ ∷ χs) ρ =
   trans
     (cong (applyLeftChanges χs) (applyLeftChange-⇑ʳᶜorr χ ρ))
     (applyLeftChanges-⇑ʳᶜorr χs (applyLeftChange χ ρ))
+
+corr-⇑ʳᶜorr-inv :
+  ∀ {ΔL ΔR ρ} →
+  StoreCorr ΔL (suc ΔR) (⇑ʳᶜorr ρ) →
+  StoreCorr ΔL ΔR ρ
+corr-⇑ʳᶜorr-inv {ρ = ρ} corr =
+  store-corr
+    (subst (λ Σ → StoreDetWf _ Σ)
+      (leftStore-⇑ʳᶜorr ρ)
+      (leftStore-det corr))
+    (StoreDetWf-⟰ᵗ-inv
+      (subst (λ Σ → StoreDetWf _ Σ)
+        (rightStore-⇑ʳᶜorr ρ)
+        (rightStore-det corr)))

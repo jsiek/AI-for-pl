@@ -176,20 +176,8 @@ target-blameᵐ :
     ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
       ⊢ N ⊒ blame ∶ r′ ⦂ C′ ⊒ᵐ D′
 target-blameᵐ M⊒M′ =
-  [] ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
+  [] , _ , _ , _ , _ , _ , _ , _ , ↠-refl ,
+  refl , refl , refl , refl , refl ,
   ⊒blameᵗ (typed-term-narrowing-source-typingᵐᶜ M⊒M′)
     (proj₂ (typed-term-narrowing-coercionᵐ M⊒M′))
 
@@ -208,20 +196,8 @@ target-cast-plus-β-idᵐ :
     ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
       ⊢ N ⊒ M′ ∶ r′ ⦂ C′ ⊒ᵐ D′
 target-cast-plus-β-idᵐ (cast-id _ _ , _) M⊒M′ =
-  [] ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
+  [] , _ , _ , _ , _ , _ , _ , _ , ↠-refl ,
+  refl , refl , refl , refl , refl ,
   typed-term-narrowing-endpointsᵐᶜ refl refl M⊒M′
 
 target-cast-minus-β-idᵐ :
@@ -239,20 +215,8 @@ target-cast-minus-β-idᵐ :
     ΔL′ ∣ ΔR′ ∣ ρ′ ∣ []
       ⊢ N ⊒ M′ ∶ r′ ⦂ C′ ⊒ᵐ D′
 target-cast-minus-β-idᵐ (cast-id _ _ , _) M⊒M′ =
-  [] ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  _ ,
-  ↠-refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
+  [] , _ , _ , _ , _ , _ , _ , _ , ↠-refl ,
+  refl , refl , refl , refl , refl ,
   typed-term-narrowing-endpointsᵐᶜ refl refl M⊒M′
 
 target-cast-plus-inner-resultᵐ :
@@ -338,21 +302,10 @@ target-cast-plus-inner-resultᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
         dual≡
         (⊒cast+ᵗ pᶜ′ rᶜ′ t⊒′ N⊒S′)
   in
-  χs ,
-  N ,
-  applyTyCtxs χs ΔL ,
-  applyTyCtx χ′ ΔR ,
+  χs , N , applyTyCtxs χs ΔL , applyTyCtx χ′ ΔR ,
   applyRightChange χ′ (applyLeftChanges χs ρ) ,
-  applyTys χs A ,
-  applyTy χ′ C ,
-  applyCoercion χ′ p ,
-  source-steps ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  result
+  applyTys χs A , applyTy χ′ C , applyCoercion χ′ p ,
+  source-steps , refl , refl , refl , refl , refl , result
 
 source-cast-minus-resultᵐ :
   ∀ {ΔL ΔR ρ M N′ q s A B C η χ′} →
@@ -417,18 +370,8 @@ source-cast-minus-resultᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       {η = η} {ΔL = ΔL} {ρ = ρ} {s = s} {A = A} {C = C}
       s⊒
   in
-  χs ,
-  N ⟨ applyCoercions χs s ⟩ ,
-  applyTyCtxs χs ΔL ,
-  applyTyCtx χ′ ΔR ,
-  applyRightChange χ′ (applyLeftChanges χs ρ) ,
-  applyTys χs C ,
-  applyTy χ′ B ,
-  applyCoercion χ′ q ,
-  cast-↠ {c = s} source-steps ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
-  refl ,
+  χs , N ⟨ applyCoercions χs s ⟩ , applyTyCtxs χs ΔL ,
+  applyTyCtx χ′ ΔR , applyRightChange χ′ (applyLeftChanges χs ρ) ,
+  applyTys χs C , applyTy χ′ B , applyCoercion χ′ q ,
+  cast-↠ {c = s} source-steps , refl , refl , refl , refl , refl ,
   cast-⊒ᵗ qᶜ′ rᶜ′ s⊒′ N⊒N′

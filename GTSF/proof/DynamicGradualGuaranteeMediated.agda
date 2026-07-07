@@ -310,21 +310,8 @@ dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     χs , P , ΔL′ , ρ′ , C , D , r ,
       source-steps , ΔL′≡ , ρ′≡ , C≡ℕ , D≡ℕ , P⊒P′ = rec
   in
-  χs ,
-  P ,
-  ΔL′ ,
-  ΔR ,
-  ρ′ ,
-  C ,
-  D ,
-  r ,
-  source-steps ,
-  ΔL′≡ ,
-  refl ,
-  ρ′≡ ,
-  C≡ℕ ,
-  D≡ℕ ,
-  P⊒P′
+  χs , P , ΔL′ , ΔR , ρ′ , C , D , r , source-steps ,
+  ΔL′≡ , refl , ρ′≡ , C≡ℕ , D≡ℕ , P⊒P′
 dynamicGradualGuaranteeᵐ {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
     {M = M ⊕[ addℕ ] N}
     okMN

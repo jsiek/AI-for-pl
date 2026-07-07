@@ -313,6 +313,40 @@ renameᵗ-preserves-WfTy (wf⇒ hA hB) hρ =
 renameᵗ-preserves-WfTy (wf∀ hA) hρ =
   wf∀ (renameᵗ-preserves-WfTy hA (TyRenameWf-ext hρ))
 
+TyRenameReflectsWf : TyCtx → TyCtx → Renameᵗ → Set
+TyRenameReflectsWf Δ Δ′ ρ = ∀ {X} → ρ X < Δ′ → X < Δ
+
+TyRenameReflectsWf-ext :
+  ∀ {Δ Δ′ ρ} →
+  TyRenameReflectsWf Δ Δ′ ρ →
+  TyRenameReflectsWf (suc Δ) (suc Δ′) (extᵗ ρ)
+TyRenameReflectsWf-ext hρ {zero} z<s = z<s
+TyRenameReflectsWf-ext hρ {suc X} (s<s ρX<Δ′) = s<s (hρ ρX<Δ′)
+
+renameᵗ-reflects-WfTy :
+  ∀ {Δ Δ′ A ρ} →
+  WfTy Δ′ (renameᵗ ρ A) →
+  TyRenameReflectsWf Δ Δ′ ρ →
+  WfTy Δ A
+renameᵗ-reflects-WfTy {A = ＇ X} (wfVar ρX<Δ′) hρ =
+  wfVar (hρ ρX<Δ′)
+renameᵗ-reflects-WfTy {A = ‵ ι} wfBase hρ = wfBase
+renameᵗ-reflects-WfTy {A = ★} wf★ hρ = wf★
+renameᵗ-reflects-WfTy {A = A ⇒ B} (wf⇒ hA hB) hρ =
+  wf⇒ (renameᵗ-reflects-WfTy hA hρ)
+      (renameᵗ-reflects-WfTy hB hρ)
+renameᵗ-reflects-WfTy {A = `∀ A} (wf∀ hA) hρ =
+  wf∀ (renameᵗ-reflects-WfTy hA (TyRenameReflectsWf-ext hρ))
+
+suc-reflects-Wf : ∀ {Δ} → TyRenameReflectsWf Δ (suc Δ) suc
+suc-reflects-Wf (s<s X<Δ) = X<Δ
+
+WfTy-un⇑ᵗ :
+  ∀ {Δ A} →
+  WfTy (suc Δ) (⇑ᵗ A) →
+  WfTy Δ A
+WfTy-un⇑ᵗ hA = renameᵗ-reflects-WfTy hA suc-reflects-Wf
+
 TySubstWf : TyCtx → TyCtx → Substᵗ → Set
 TySubstWf Δ Δ′ σ = ∀ {X} → X < Δ → WfTy Δ′ (σ X)
 

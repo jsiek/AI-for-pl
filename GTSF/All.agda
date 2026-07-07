@@ -37,6 +37,8 @@ import MediatedNarrowing
 import proof.DualRawProperties
 import proof.MediationProperties
 import proof.MediatedLeftInsertion
+import proof.TermRenamingMediated
+import proof.TermSubstitutionSyntax
 import proof.CatchupMediated
 import proof.DGGSourceCastTailMediated
 import proof.SimBetaMediated

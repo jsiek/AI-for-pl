@@ -280,19 +280,8 @@ mediated-dgg-beta-left-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
           (applyTys-++ (χsL ++ χsR) χsT B)
           (cong (applyTys χsT) (applyTys-++ χsL χsR B)))
   in
-  (χsL ++ χsR) ++ χsT ,
-  N ,
-  ΔL′ ,
-  ρ′ ,
-  _ ,
-  _ ,
-  _ ,
-  source-steps ,
-  ΔL′≡ ,
-  ρ′≡ ,
-  C≡ ,
-  refl ,
-  N⊒N′[V′]
+  (χsL ++ χsR) ++ χsT , N , ΔL′ , ρ′ , _ , _ , _ ,
+  source-steps , ΔL′≡ , ρ′≡ , C≡ , refl , N⊒N′[V′]
 
 mediated-dgg-beta-right-first :
   ∀ {ΔL ΔR ρ L R N′ V′ p q A A′ B B′} →
@@ -440,19 +429,8 @@ mediated-dgg-beta-right-first {ΔL = ΔL} {ΔR = ΔR} {ρ = ρ}
       applyTys χsT (applyTys χsR B) ≡ applyTys (χsR ++ χsT) B
     C≡ = sym (applyTys-++ χsR χsT B)
   in
-  χsR ++ χsT ,
-  N ,
-  ΔL′ ,
-  ρ′ ,
-  _ ,
-  _ ,
-  _ ,
-  source-steps ,
-  ΔL′≡ ,
-  ρ′≡ ,
-  C≡ ,
-  refl ,
-  N⊒N′[V′]
+  χsR ++ χsT , N , ΔL′ , ρ′ , _ , _ , _ , source-steps ,
+  ΔL′≡ , ρ′≡ , C≡ , refl , N⊒N′[V′]
 
 mediated-dgg-beta :
   ∀ {ΔL ΔR ρ L R N′ V′ p q A A′ B B′} →

@@ -51,7 +51,7 @@ catchup-lemmaᵐ :
     ΔL′ ∣ ΔR ∣ applyLeftChanges χs ρ ∣ []
       ⊢ W ⊒ V ∶ p ⦂ applyTys χs A ⊒ᵐ B
 catchup-lemmaᵐ (ok-no noM) vV M⊒V = {! ? !}
-catchup-lemmaᵐ (ok-• vW noW) vV M⊒V = {! ? !}
+catchup-lemmaᵐ (ok-• vW noW) vV ()
 catchup-lemmaᵐ (ok-·₁ okL noR) vV M⊒V = {! ? !}
 catchup-lemmaᵐ (ok-·₂ vL noL okR) vV M⊒V = {! ? !}
 catchup-lemmaᵐ (ok-ν okL) vV M⊒V = {! ? !}

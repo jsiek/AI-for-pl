@@ -321,6 +321,7 @@ infixl 7 _⨟ⁿ_
 infixl 7 _⨟ʷ_
 infixl 7 _⨟ᶜⁿ_
 infixl 7 _⨟ᶜʷ_
+infixl 7 _⊢_⨟ⁿ_
 
 {-# TERMINATING #-}
 mutual
@@ -710,3 +711,11 @@ mutual
   _⨟ᶜʷ_ {wfΣ = wfΣ}
       (cast-all s⊢ , `∀ sʷ) (cast-all t⊢ , `∀ tʷ) | u , u⊑ =
     _ , (cast-all (proj₁ u⊑) , `∀ (proj₂ u⊑))
+
+_⊢_⨟ⁿ_ :
+  ∀ {μ Δ Σ A B C s t} →
+  StoreDetWf Δ Σ →
+  μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊒ B →
+  μ ∣ Δ ∣ Σ ⊢ t ∶ B ⊒ C →
+  ∃[ u ] μ ∣ Δ ∣ Σ ⊢ u ∶ A ⊒ C
+wfΣ ⊢ s⊒ ⨟ⁿ t⊒ = _⨟ⁿ_ {wfΣ = wfΣ} s⊒ t⊒

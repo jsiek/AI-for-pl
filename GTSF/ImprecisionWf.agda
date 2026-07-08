@@ -6,14 +6,15 @@ module ImprecisionWf where
 --     derivations by separate source and target type contexts so each
 --     derivation determines well-formed endpoints.
 --   * Exposes erasure back to raw imprecision and endpoint well-formedness
---     theorems for the indexed judgment.
+--     theorems for the indexed judgment
+--     `Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ`.
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.Bool using (true)
 open import Data.List using (_∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (_<_; zero; suc)
-open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃; ∃-syntax)
+open import Data.Product using (_×_; _,_; proj₁; proj₂)
 
 open import Types
 import Imprecision as Raw
@@ -26,7 +27,6 @@ open import Imprecision public using
   ; ⇑ᴸᵢₐ
   ; ⇑ᵢ
   ; ⇑ᴸᵢ
-  ; idᵢ
   )
 open import proof.ImprecisionProperties using
   (WfImpCtx²; ∀ᵢ-wf²; νᵢ-wf²)
@@ -36,57 +36,57 @@ open import proof.TypeProperties using (WfTy-un⇑ᵗ)
 -- Type imprecision with well-formed endpoints
 ------------------------------------------------------------------------
 
-infix 4 _∣_∣_⊢_⊑_
-data _∣_∣_⊢_⊑_ (Δᴸ Δᴿ : TyCtx) (Φ : ImpCtx) :
-  Ty → Ty → Set where
-  id★ :
+infix 4 _∣_⊢_⊑_⊣_
+data _∣_⊢_⊑_⊣_ (Φ : ImpCtx) (Δᴸ : TyCtx) :
+  Ty → Ty → TyCtx → Set where
+  id★ : ∀ {Δᴿ}
     -----------------------------
-    Δᴸ ∣ Δᴿ ∣ Φ ⊢ ★ ⊑ ★
+    → Φ ∣ Δᴸ ⊢ ★ ⊑ ★ ⊣ Δᴿ
 
-  idˣ : ∀ {X Y}
+  idˣ : ∀ {X Y Δᴿ}
     → (X ˣ⊑ˣ Y) ∈ Φ
     → X < Δᴸ
     → Y < Δᴿ
     -----------------------------
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ ＇ X ⊑ ＇ Y
+    → Φ ∣ Δᴸ ⊢ ＇ X ⊑ ＇ Y ⊣ Δᴿ
 
-  idι : ∀ {ι}
+  idι : ∀ {ι Δᴿ}
     -----------------------------
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ ‵ ι ⊑ ‵ ι
+    → Φ ∣ Δᴸ ⊢ ‵ ι ⊑ ‵ ι ⊣ Δᴿ
 
-  _↦_ : ∀ {A A′ B B′}
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ A ⊑ A′
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ B ⊑ B′
+  _↦_ : ∀ {A A′ B B′ Δᴿ}
+    → Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ
+    → Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ
     -------------------------------------
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ (A ⇒ B) ⊑ (A′ ⇒ B′)
+    → Φ ∣ Δᴸ ⊢ (A ⇒ B) ⊑ (A′ ⇒ B′) ⊣ Δᴿ
 
-  ∀ⁱ_ : ∀ {A B}
-    → suc Δᴸ ∣ suc Δᴿ ∣ (0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ ⊢ A ⊑ B
+  ∀ⁱ_ : ∀ {A B Δᴿ}
+    → ((0 ˣ⊑ˣ 0) ∷ ⇑ᵢ Φ) ∣ suc Δᴸ ⊢ A ⊑ B ⊣ suc Δᴿ
     ------------------------------------------------
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ (`∀ A) ⊑ (`∀ B)
+    → Φ ∣ Δᴸ ⊢ (`∀ A) ⊑ (`∀ B) ⊣ Δᴿ
 
-  tag_ : ∀ (ι : Base)
+  tag_ : ∀ {Δᴿ} (ι : Base)
     -----------------------------
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ ‵ ι ⊑ ★
+    → Φ ∣ Δᴸ ⊢ ‵ ι ⊑ ★ ⊣ Δᴿ
 
-  tag_⇒_ : ∀ {A₁ A₂}
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ A₁ ⊑ ★
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ A₂ ⊑ ★
+  tag_⇒_ : ∀ {A₁ A₂ Δᴿ}
+    → Φ ∣ Δᴸ ⊢ A₁ ⊑ ★ ⊣ Δᴿ
+    → Φ ∣ Δᴸ ⊢ A₂ ⊑ ★ ⊣ Δᴿ
     --------------------------------
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ A₁ ⇒ A₂ ⊑ ★
+    → Φ ∣ Δᴸ ⊢ A₁ ⇒ A₂ ⊑ ★ ⊣ Δᴿ
 
-  tagˣ : ∀ {X}
+  tagˣ : ∀ {X Δᴿ}
     → X ˣ⊑★ ∈ Φ
     → X < Δᴸ
     -----------------------------
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ ＇ X ⊑ ★
+    → Φ ∣ Δᴸ ⊢ ＇ X ⊑ ★ ⊣ Δᴿ
 
-  ν : ∀ {A B}
+  ν : ∀ {A B Δᴿ}
     → occurs zero A ≡ true
-    → (suc Δᴸ ∣ suc Δᴿ ∣ (0 ˣ⊑★) ∷ ⇑ᵢ Φ
-        ⊢ A ⊑ ⇑ᵗ B)
+    → (((0 ˣ⊑★) ∷ ⇑ᵢ Φ)
+        ∣ suc Δᴸ ⊢ A ⊑ ⇑ᵗ B ⊣ suc Δᴿ)
     ------------------------------------------------
-    → Δᴸ ∣ Δᴿ ∣ Φ ⊢ (`∀ A) ⊑ B
+    → Φ ∣ Δᴸ ⊢ (`∀ A) ⊑ B ⊣ Δᴿ
 
 ------------------------------------------------------------------------
 -- Erasure to raw imprecision
@@ -94,7 +94,7 @@ data _∣_∣_⊢_⊑_ (Δᴸ Δᴿ : TyCtx) (Φ : ImpCtx) :
 
 erase⊑ :
   ∀ {Δᴸ Δᴿ Φ A B} →
-  Δᴸ ∣ Δᴿ ∣ Φ ⊢ A ⊑ B →
+  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
   Raw._⊢_⊑_ Φ A B
 erase⊑ id★ = Raw.id★
 erase⊑ (idˣ X⊑Y∈ _ _) = Raw.idˣ X⊑Y∈
@@ -110,7 +110,7 @@ raw→wf :
   ∀ {Δᴸ Δᴿ Φ A B} →
   WfImpCtx² Δᴸ Δᴿ Φ →
   Raw._⊢_⊑_ Φ A B →
-  Δᴸ ∣ Δᴿ ∣ Φ ⊢ A ⊑ B
+  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ
 raw→wf hΦ Raw.id★ = id★
 raw→wf hΦ (Raw.idˣ X⊑Y∈) =
   idˣ X⊑Y∈ (proj₁ (hΦ X⊑Y∈)) (proj₂ (hΦ X⊑Y∈))
@@ -129,12 +129,12 @@ raw→wf hΦ (Raw.ν occA p) = ν occA (raw→wf (νᵢ-wf² hΦ) p)
 mutual
   ⊑-src-wf :
     ∀ {Δᴸ Δᴿ Φ A B} →
-    Δᴸ ∣ Δᴿ ∣ Φ ⊢ A ⊑ B →
+    Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
     WfTy Δᴸ A
 
   ⊑-tgt-wf :
     ∀ {Δᴸ Δᴿ Φ A B} →
-    Δᴸ ∣ Δᴿ ∣ Φ ⊢ A ⊑ B →
+    Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
     WfTy Δᴿ B
 
   ⊑-src-wf id★ = wf★
@@ -159,7 +159,6 @@ mutual
 
 ⊑-wf :
   ∀ {Δᴸ Δᴿ Φ A B} →
-  Δᴸ ∣ Δᴿ ∣ Φ ⊢ A ⊑ B →
+  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
   WfTy Δᴸ A × WfTy Δᴿ B
 ⊑-wf p = ⊑-src-wf p , ⊑-tgt-wf p
-

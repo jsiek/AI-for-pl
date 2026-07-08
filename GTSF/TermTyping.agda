@@ -55,23 +55,31 @@ open import NuTerms
 
 -- `tag-or-idᵈ` is the ordinary compile-cast mode.  `instᵈ` is included
 -- because reducing an `inst` widening exposes its body under a fresh
--- ν-bound seal.  The shifted form is the mode expected after a surrounding
+-- ν-bound seal.  The weakened form is the mode expected after a surrounding
 -- reduction allocates a newer store entry before the cast is reached.
-shiftCastᵈ : ModeEnv → ModeEnv
-shiftCastᵈ μ zero = tag-or-id
-shiftCastᵈ μ (suc X) = μ X
+weakenCastᵈ : ModeEnv → ModeEnv
+weakenCastᵈ μ zero = μ zero
+weakenCastᵈ μ (suc X) = μ X
 
 data CastMode : ModeEnv → Set where
   cast-tag-or-id :
     CastMode tag-or-idᵈ
 
+  cast-ext : ∀ {μ} →
+    CastMode μ →
+    CastMode (extᵈ μ)
+
+  cast-gen : ∀ {μ} →
+    CastMode μ →
+    CastMode (genᵈ μ)
+
   cast-inst : ∀ {μ} →
     CastMode μ →
     CastMode (instᵈ μ)
 
-  cast-shift : ∀ {μ} →
+  cast-weaken : ∀ {μ} →
     CastMode μ →
-    CastMode (shiftCastᵈ μ)
+    CastMode (weakenCastᵈ μ)
 
 ------------------------------------------------------------------------
 -- Typing

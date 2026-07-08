@@ -7,13 +7,17 @@ module All where
 
 import Compile
 import Types
+import ImprecisionWf
 import GradualTypeCheck
 import GradualExamples
 import Coercions
+import Conversion
 import NarrowWiden
 import GradualTermNarrowing
 import StoreCorrespondence
 import NuTerms
+import TermTyping
+import proof.TypePreservation
 import TypeCheck
 -- Replaced by MediatedNarrowing
 -- import TermNarrowingSeparated

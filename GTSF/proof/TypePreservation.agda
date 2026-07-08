@@ -15,7 +15,7 @@ open import Data.List using ([]; _∷_; map)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (suc; zero; z<s; s<s; z≤n; s≤s; _≤_)
 open import Data.Nat.Properties using (≤-refl; n≤1+n)
-open import Data.Product using (_×_; _,_; proj₁; proj₂)
+open import Data.Product as Product using (_×_; _,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality
   using (cong; cong₂; subst; sym; trans)
 
@@ -764,20 +764,16 @@ pure-preservation wfΣ (no•-⟨⟩ noV)
     (⊢⟨⟩⊑ mode (cast-id hA ok , id★) hV) (β-id vV) =
   hV
 pure-preservation wfΣ (no•-⟨⟩ noV)
-    (⊢⟨⟩↑ () hV) (β-seq vV)
-pure-preservation wfΣ (no•-⟨⟩ noV)
-    (⊢⟨⟩↓ () hV) (β-seq vV)
-pure-preservation wfΣ (no•-⟨⟩ noV)
     (⊢⟨⟩⊒ mode
       (cast-seq p⊢ q⊢ , gG ？︔ gⁿ) hV)
     (β-seq vV) =
   ⊢⟨⟩⊒ mode (q⊢ , cross (strictCrossⁿ→cross gⁿ))
     (⊢⟨⟩⊒ mode (p⊢ , untag gG) hV)
 pure-preservation wfΣ (no•-⟨⟩ noV)
-    (⊢⟨⟩⊒ mode
+    (⊢⟨⟩⊒ {μ = μ} mode
       (cast-seq p⊢ (cast-seal hA α∈Σ ok) , sⁿ ︔seal α) hV)
     (β-seq vV) =
-  ⊢⟨⟩↓ (conv↓-seal hA α∈Σ ok)
+  ⊢⟨⟩↓ (conv↓-seal {μ = μ} hA α∈Σ ok)
     (⊢⟨⟩⊒ mode (p⊢ , strictⁿ→narrow sⁿ) hV)
 pure-preservation wfΣ (no•-⟨⟩ noV)
     (⊢⟨⟩⊑ mode
@@ -786,11 +782,11 @@ pure-preservation wfΣ (no•-⟨⟩ noV)
   ⊢⟨⟩⊑ mode (q⊢ , tag gG)
     (⊢⟨⟩⊑ mode (p⊢ , cross (strictCrossʷ→cross gʷ)) hV)
 pure-preservation wfΣ (no•-⟨⟩ noV)
-    (⊢⟨⟩⊑ mode
+    (⊢⟨⟩⊑ {μ = μ} mode
       (cast-seq (cast-unseal hA α∈Σ ok) q⊢ , unseal︔_ α sʷ) hV)
     (β-seq vV) =
   ⊢⟨⟩⊑ mode (q⊢ , strictʷ→widen sʷ)
-    (⊢⟨⟩↑ (conv↑-unseal hA α∈Σ ok) hV)
+    (⊢⟨⟩↑ (conv↑-unseal {μ = μ} hA α∈Σ ok) hV)
 pure-preservation wfΣ (no•-· (no•-⟨⟩ noV) noW)
     (⊢· (⊢⟨⟩↑ (conv↑-fun p⊢ q⊢) hV) hW)
     (β-↦ vV vW) =
@@ -816,6 +812,9 @@ pure-preservation wfΣ (no•-⟨⟩ noV)
       (cast-inst {A = A} {B = B} {s = c} hB occ c⊢ , inst cʷ) V⊢)
     (β-inst vV) =
   ⊢ν⊑ mode V⊢ (c⊢ , cʷ)
+pure-preservation wfΣ (no•-⟨⟩ noV)
+    (⊢⟨⟩⊒ mode (cast-inst hB occ c⊢ , cross ()) V⊢)
+    (β-inst vV)
 pure-preservation wfΣ (no•-⟨⟩ (no•-⟨⟩ noV))
     (⊢⟨⟩↑ (conv↑-unseal hB αB∈Σ _)
       (⊢⟨⟩↓ (conv↓-seal hA αA∈Σ _) hV))
@@ -831,6 +830,13 @@ pure-preservation wfΣ (no•-⟨⟩ (no•-⟨⟩ noV))
         (unique wfΣ αA∈Σ αB∈Σ)
         hV
 pure-preservation wfΣ (no•-⟨⟩ (no•-⟨⟩ noV))
+    (⊢⟨⟩↑ (conv↑-unseal hB αB∈Σ _)
+      (⊢⟨⟩⊑ mode (c⊢ , cross ()) hV))
+    (seal-unseal vV)
+pure-preservation wfΣ (no•-⟨⟩ noV)
+    (⊢⟨⟩⊒ mode (cast-unseal hB αB∈Σ _ , cross ()) hV)
+    (seal-unseal vV)
+pure-preservation wfΣ (no•-⟨⟩ (no•-⟨⟩ noV))
     (⊢⟨⟩⊑ mode (cast-unseal hB αB∈Σ _ , unsealʷ α B)
       (⊢⟨⟩↓ (conv↓-seal hA αA∈Σ _) hV))
     (seal-unseal vV) =
@@ -845,15 +851,33 @@ pure-preservation wfΣ (no•-⟨⟩ (no•-⟨⟩ noV))
         (unique wfΣ αA∈Σ αB∈Σ)
         hV
 pure-preservation wfΣ (no•-⟨⟩ (no•-⟨⟩ noV))
+    (⊢⟨⟩⊑ mode (cast-unseal hB αB∈Σ _ , unsealʷ α B)
+      (⊢⟨⟩⊑ mode′ (c⊢ , cross ()) hV))
+    (seal-unseal vV)
+pure-preservation wfΣ (no•-⟨⟩ (no•-⟨⟩ noV))
     (⊢⟨⟩⊒ mode (cast-untag hG gG _ , untag gG′)
       (⊢⟨⟩⊑ mode′ (cast-tag hG′ gG″ _ , tag gG‴) hV))
     (tag-untag-ok vV) =
   hV
 pure-preservation wfΣ (no•-⟨⟩ (no•-⟨⟩ noV))
+    (⊢⟨⟩⊒ mode (cast-untag hG gG _ , untag gG′)
+      (⊢⟨⟩⊒ mode′ (c⊢ , cross ()) hV))
+    (tag-untag-ok vV)
+pure-preservation wfΣ (no•-⟨⟩ (no•-⟨⟩ noV))
     (⊢⟨⟩⊒ mode (cast-untag hH gH _ , untag gH′)
       (⊢⟨⟩⊑ mode′ (cast-tag hG gG _ , tag gG′) hV))
     (tag-untag-bad vV G≢H) =
   ⊢blame hH
+pure-preservation wfΣ (no•-⟨⟩ (no•-⟨⟩ noV))
+    (⊢⟨⟩⊒ mode (cast-untag hH gH _ , untag gH′)
+      (⊢⟨⟩⊒ mode′ (c⊢ , cross ()) hV))
+    (tag-untag-bad vV G≢H)
+pure-preservation wfΣ (no•-⟨⟩ noV)
+    (⊢⟨⟩⊑ mode (cast-untag hH gH _ , cross ()) hV)
+    (tag-untag-ok vV)
+pure-preservation wfΣ (no•-⟨⟩ noV)
+    (⊢⟨⟩⊑ mode (cast-untag hH gH _ , cross ()) hV)
+    (tag-untag-bad vV G≢H)
 pure-preservation wfΣ (no•-· noB noM)
     (⊢· (⊢blame (wf⇒ hA hB)) hM) blame-·₁ =
   ⊢blame hB
@@ -908,3 +932,597 @@ pure-preserves-No•-typed :
   No• N
 pure-preserves-No•-typed wfΣ noM M⊢ red =
   NuPreservation.pure-preserves-No•-typed wfΣ noM (forget M⊢) red
+
+StoreWfAt-tail :
+  ∀ {Δ α A Σ} →
+  StoreWfAt Δ ((α , A) ∷ Σ) →
+  StoreWfAt Δ Σ
+StoreWfAt-tail wfΣ =
+  record
+    { bound = λ x∈ → bound wfΣ (there x∈)
+    ; wfTy = λ x∈ → wfTy wfΣ (there x∈)
+    }
+
+bullet-pure-preservation :
+  ∀ {Δ Σ Aν V C N} →
+  StoreWf (suc Δ) ((zero , ⇑ᵗ Aν) ∷ ⟰ᵗ Σ) →
+  WfTy (suc Δ) C →
+  Value V →
+  No• V →
+  Δ ∣ Σ ∣ [] ⊢ V ⦂ `∀ C →
+  ((⇑ᵗᵐ V) •) —→ N →
+  suc Δ ∣ (zero , ⇑ᵗ Aν) ∷ ⟰ᵗ Σ ∣ [] ⊢ N ⦂ C
+bullet-pure-preservation wfΣ hC (ƛ N) noV () red
+bullet-pure-preservation {C = C} wfΣ hC
+    (Λ vW) (no•-Λ noW) (⊢Λ vW′ W⊢) (β-Λ• vW↑) =
+  subst
+    (λ T → _ ∣ _ ∣ [] ⊢ T ⦂ C)
+    (sym (open0-ext-suc-cancelᵐ _))
+    (term-weaken ≤-refl StoreIncl-drop noW W⊢)
+bullet-pure-preservation wfΣ hC ($ (κℕ n)) noV () red
+bullet-pure-preservation wfΣ hC (vW ⟨ G ! ⟩) noV W⊢ ()
+bullet-pure-preservation wfΣ hC (vW ⟨ seal A α ⟩) noV W⊢ ()
+bullet-pure-preservation wfΣ hC (vW ⟨ c ↦ d ⟩) noV W⊢ ()
+bullet-pure-preservation {C = C} wfΣ hC
+    (_⟨_⟩ {V = W} vW (`∀ c)) (no•-⟨⟩ noW)
+    (⊢⟨⟩↑ (conv↑-all c⊢) W⊢) (β-∀• vW↑) =
+  subst
+    (λ d → _ ∣ _ ∣ [] ⊢ ((⇑ᵗᵐ W) •) ⟨ d ⟩ ⦂ C)
+    (sym (open0-ext-suc-cancelᶜ c))
+    (⊢⟨⟩↑
+      (conversion↑-weaken ≤-refl StoreIncl-drop c⊢)
+      (⊢• refl refl hA vW noW W⊢))
+  where
+    hA : WfTy _ _
+    hA = proj₁ (conversion↑-wf (StoreWfAt-tail (at wfΣ)) c⊢)
+bullet-pure-preservation {C = C} wfΣ hC
+    (_⟨_⟩ {V = W} vW (`∀ c)) (no•-⟨⟩ noW)
+    (⊢⟨⟩↓ (conv↓-all c⊢) W⊢) (β-∀• vW↑) =
+  subst
+    (λ d → _ ∣ _ ∣ [] ⊢ ((⇑ᵗᵐ W) •) ⟨ d ⟩ ⦂ C)
+    (sym (open0-ext-suc-cancelᶜ c))
+    (⊢⟨⟩↓
+      (conversion↓-weaken ≤-refl StoreIncl-drop c⊢)
+      (⊢• refl refl hA vW noW W⊢))
+  where
+    hA : WfTy _ _
+    hA = proj₁ (conversion↓-wf (StoreWfAt-tail (at wfΣ)) c⊢)
+bullet-pure-preservation {C = C} wfΣ hC
+    (_⟨_⟩ {V = W} vW (`∀ c)) (no•-⟨⟩ noW)
+    (⊢⟨⟩⊒ mode (cast-all c⊢ , cross (`∀ cⁿ)) W⊢)
+    (β-∀• vW↑) =
+  subst
+    (λ d → _ ∣ _ ∣ [] ⊢ ((⇑ᵗᵐ W) •) ⟨ d ⟩ ⦂ C)
+    (sym (open0-ext-suc-cancelᶜ c))
+    (⊢⟨⟩⊒
+      (cast-ext mode)
+      (narrow-weaken ≤-refl StoreIncl-drop (c⊢ , cⁿ))
+      (⊢• refl refl hA vW noW W⊢))
+  where
+    hA : WfTy _ _
+    hA = proj₁ (coercion-wfᵐ (StoreWfAt-tail (at wfΣ)) c⊢)
+bullet-pure-preservation {C = C} wfΣ hC
+    (_⟨_⟩ {V = W} vW (`∀ c)) (no•-⟨⟩ noW)
+    (⊢⟨⟩⊑ mode (cast-all c⊢ , cross (`∀ cʷ)) W⊢)
+    (β-∀• vW↑) =
+  subst
+    (λ d → _ ∣ _ ∣ [] ⊢ ((⇑ᵗᵐ W) •) ⟨ d ⟩ ⦂ C)
+    (sym (open0-ext-suc-cancelᶜ c))
+    (⊢⟨⟩⊑
+      (cast-ext mode)
+      (widen-weaken ≤-refl StoreIncl-drop (c⊢ , cʷ))
+      (⊢• refl refl hA vW noW W⊢))
+  where
+    hA : WfTy _ _
+    hA = proj₁ (coercion-wfᵐ (StoreWfAt-tail (at wfΣ)) c⊢)
+bullet-pure-preservation {C = C} wfΣ hC
+    (_⟨_⟩ {V = W} vW (gen A c)) (no•-⟨⟩ noW)
+    (⊢⟨⟩⊒ mode (cast-gen hA occ c⊢ , gen cⁿ) W⊢)
+    (β-gen• vW↑) =
+  subst
+    (λ d → _ ∣ _ ∣ [] ⊢ (⇑ᵗᵐ W) ⟨ d ⟩ ⦂ C)
+    (sym (open0-ext-suc-cancelᶜ c))
+    (⊢⟨⟩⊒
+      (cast-gen mode)
+      (narrow-weaken ≤-refl StoreIncl-drop (c⊢ , cⁿ))
+      (term-weaken ≤-refl StoreIncl-drop
+        (renameᵗᵐ-preserves-No• suc noW)
+        (typing-renameᵀ {ρ = suc} {ψ = predᵗ}
+          TyRenameWf-suc RenameLeftInverse-suc castModeRenamer-suc
+          noW
+          W⊢)))
+bullet-pure-preservation wfΣ hC
+    (_⟨_⟩ {V = W} vW (gen A c)) (no•-⟨⟩ noW)
+    (⊢⟨⟩↑ () W⊢) (β-gen• vW↑)
+bullet-pure-preservation wfΣ hC
+    (_⟨_⟩ {V = W} vW (gen A c)) (no•-⟨⟩ noW)
+    (⊢⟨⟩↓ () W⊢) (β-gen• vW↑)
+bullet-pure-preservation wfΣ hC
+    (_⟨_⟩ {V = W} vW (gen A c)) (no•-⟨⟩ noW)
+    (⊢⟨⟩⊑ mode (c⊢ , cross ()) W⊢) (β-gen• vW↑)
+
+pure-preservation-runtime :
+  ∀ {Δ Σ M N A} →
+  StoreWf Δ Σ →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  RuntimeOK M →
+  M —→ N →
+  Δ ∣ Σ ∣ [] ⊢ N ⦂ A
+pure-preservation-runtime wfΣ
+    (⊢• refl refl hC vV noV V⊢) okM red =
+  bullet-pure-preservation wfΣ hC vV noV V⊢ red
+pure-preservation-runtime wfΣ M⊢ (ok-no noM) red =
+  pure-preservation wfΣ noM M⊢ red
+pure-preservation-runtime wfΣ M⊢ (ok-·₁ okL noM) (β vV) =
+  pure-preservation wfΣ
+    (no•-· (NuPreservation.value-runtime-No• (ƛ _) okL) noM)
+    M⊢
+    (β vV)
+pure-preservation-runtime wfΣ M⊢ (ok-·₁ okL noM)
+    (β-↦ vV vW) =
+  pure-preservation wfΣ
+    (no•-·
+      (NuPreservation.value-runtime-No• (vV ⟨ _ ↦ _ ⟩) okL)
+      noM)
+    M⊢
+    (β-↦ vV vW)
+pure-preservation-runtime wfΣ M⊢ (ok-·₁ okL noM) blame-·₁ =
+  pure-preservation wfΣ (no•-· no•-blame noM) M⊢ blame-·₁
+pure-preservation-runtime wfΣ M⊢ (ok-·₁ okL noM)
+    (blame-·₂ vV) =
+  pure-preservation wfΣ
+    (no•-· (NuPreservation.value-runtime-No• vV okL) noM)
+    M⊢
+    (blame-·₂ vV)
+pure-preservation-runtime wfΣ M⊢ (ok-·₂ vV noV okM) (β vW) =
+  pure-preservation wfΣ
+    (no•-· noV (NuPreservation.value-runtime-No• vW okM))
+    M⊢
+    (β vW)
+pure-preservation-runtime wfΣ M⊢ (ok-·₂ vV noV okM)
+    (β-↦ vV′ vW) =
+  pure-preservation wfΣ
+    (no•-· noV (NuPreservation.value-runtime-No• vW okM))
+    M⊢
+    (β-↦ vV′ vW)
+pure-preservation-runtime wfΣ M⊢ (ok-·₂ vV noV okM)
+    (blame-·₂ vV′) =
+  pure-preservation wfΣ
+    (no•-· noV no•-blame)
+    M⊢
+    (blame-·₂ vV′)
+pure-preservation-runtime wfΣ M⊢ (ok-⟨⟩ okM) (β-id vV) =
+  pure-preservation wfΣ
+    (no•-⟨⟩ (NuPreservation.value-runtime-No• vV okM))
+    M⊢
+    (β-id vV)
+pure-preservation-runtime wfΣ M⊢ (ok-⟨⟩ okM) (β-seq vV) =
+  pure-preservation wfΣ
+    (no•-⟨⟩ (NuPreservation.value-runtime-No• vV okM))
+    M⊢
+    (β-seq vV)
+pure-preservation-runtime wfΣ M⊢ (ok-⟨⟩ okM) (β-inst vV) =
+  pure-preservation wfΣ
+    (no•-⟨⟩ (NuPreservation.value-runtime-No• vV okM))
+    M⊢
+    (β-inst vV)
+pure-preservation-runtime wfΣ M⊢ (ok-⟨⟩ okM) (seal-unseal vV) =
+  pure-preservation wfΣ
+    (no•-⟨⟩
+      (NuPreservation.value-runtime-No• (vV ⟨ seal _ _ ⟩) okM))
+    M⊢
+    (seal-unseal vV)
+pure-preservation-runtime wfΣ M⊢ (ok-⟨⟩ okM) (tag-untag-ok vV) =
+  pure-preservation wfΣ
+    (no•-⟨⟩
+      (NuPreservation.value-runtime-No• (vV ⟨ _ ! ⟩) okM))
+    M⊢
+    (tag-untag-ok vV)
+pure-preservation-runtime wfΣ M⊢ (ok-⟨⟩ okM)
+    (tag-untag-bad vV G≢H) =
+  pure-preservation wfΣ
+    (no•-⟨⟩
+      (NuPreservation.value-runtime-No• (vV ⟨ _ ! ⟩) okM))
+    M⊢
+    (tag-untag-bad vV G≢H)
+pure-preservation-runtime wfΣ M⊢ (ok-⟨⟩ okM) blame-⟨⟩ =
+  pure-preservation wfΣ (no•-⟨⟩ no•-blame) M⊢ blame-⟨⟩
+pure-preservation-runtime wfΣ M⊢ (ok-⊕₁ okL noM) δ-⊕ =
+  pure-preservation wfΣ
+    (no•-⊕ (NuPreservation.value-runtime-No• ($ _) okL) noM)
+    M⊢
+    δ-⊕
+pure-preservation-runtime wfΣ M⊢ (ok-⊕₁ okL noM) blame-⊕₁ =
+  pure-preservation wfΣ (no•-⊕ no•-blame noM) M⊢ blame-⊕₁
+pure-preservation-runtime wfΣ M⊢ (ok-⊕₁ okL noM)
+    (blame-⊕₂ vL) =
+  pure-preservation wfΣ
+    (no•-⊕ (NuPreservation.value-runtime-No• vL okL) noM)
+    M⊢
+    (blame-⊕₂ vL)
+pure-preservation-runtime wfΣ M⊢ (ok-⊕₂ vL noL okM) δ-⊕ =
+  pure-preservation wfΣ
+    (no•-⊕ noL (NuPreservation.value-runtime-No• ($ _) okM))
+    M⊢
+    δ-⊕
+pure-preservation-runtime wfΣ M⊢ (ok-⊕₂ vL noL okM)
+    (blame-⊕₂ vL′) =
+  pure-preservation wfΣ
+    (no•-⊕ noL no•-blame)
+    M⊢
+    (blame-⊕₂ vL′)
+
+------------------------------------------------------------------------
+-- Store-change preservation
+------------------------------------------------------------------------
+
+applyTerm-typing :
+  ∀ {χ : StoreChange}{Δ Σ M A} →
+  StoreWfAt Δ Σ →
+  No• M →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  applyTyCtx χ Δ ∣ applyStore χ Σ ∣ [] ⊢ applyTerm χ M ⦂ applyTy χ A
+applyTerm-typing {χ = keep} wfΣ noM M⊢ = M⊢
+applyTerm-typing {χ = bind Aν} {Δ = Δ} wfΣ noM M⊢ =
+  term-weaken ≤-refl StoreIncl-drop
+    (renameᵗᵐ-preserves-No• suc noM)
+    (typing-renameᵀ
+      {ρ = suc} {ψ = predᵗ}
+      TyRenameWf-suc
+      RenameLeftInverse-suc
+      castModeRenamer-suc
+      noM
+      M⊢)
+
+applyTerm-typing-shiftable :
+  ∀ {χ : StoreChange}{Δ Σ M A} →
+  StoreWfAt Δ Σ →
+  Shiftable χ M →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  applyTyCtx χ Δ ∣ applyStore χ Σ ∣ [] ⊢ applyTerm χ M ⦂ applyTy χ A
+applyTerm-typing-shiftable wfΣ shift-keep M⊢ = M⊢
+applyTerm-typing-shiftable wfΣ (shift-bind noM) M⊢ =
+  applyTerm-typing wfΣ noM M⊢
+
+⊢·-applyTy :
+  ∀ χ {Δ Σ L M A B} →
+  Δ ∣ Σ ∣ [] ⊢ L ⦂ applyTy χ (A ⇒ B) →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ applyTy χ A →
+  Δ ∣ Σ ∣ [] ⊢ L · M ⦂ applyTy χ B
+⊢·-applyTy keep hL hM = ⊢· hL hM
+⊢·-applyTy (bind Aχ) hL hM = ⊢· hL hM
+
+⊢⊕-applyTy :
+  ∀ χ {Δ Σ L M} →
+  Δ ∣ Σ ∣ [] ⊢ L ⦂ applyTy χ (‵ `ℕ) →
+  (op : Prim) →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ applyTy χ (‵ `ℕ) →
+  Δ ∣ Σ ∣ [] ⊢ L ⊕[ op ] M ⦂ applyTy χ (‵ `ℕ)
+⊢⊕-applyTy keep hL op hM = ⊢⊕ hL op hM
+⊢⊕-applyTy (bind Aχ) hL op hM = ⊢⊕ hL op hM
+
+applyTyUnderTyBinder : StoreChange → Ty → Ty
+applyTyUnderTyBinder keep A = A
+applyTyUnderTyBinder (bind B) A = renameᵗ (extᵗ suc) A
+
+⊢ν↑-applyTy :
+  ∀ χ {μ Δ Σ A B C L c} →
+  WfTy (applyTyCtx χ Δ) (applyTy χ A) →
+  applyTyCtx χ Δ ∣ applyStore χ Σ ∣ [] ⊢ L ⦂ applyTy χ (`∀ C) →
+  μ ∣ suc (applyTyCtx χ Δ)
+    ∣ (zero , ⇑ᵗ (applyTy χ A)) ∷ ⟰ᵗ (applyStore χ Σ)
+    ⊢ c ∶ applyTyUnderTyBinder χ C ↑ˢ ⇑ᵗ (applyTy χ B) →
+  applyTyCtx χ Δ ∣ applyStore χ Σ ∣ []
+    ⊢ ν (applyTy χ A) L c ⦂ applyTy χ B
+⊢ν↑-applyTy keep hA hL c⊢ = ⊢ν↑ hA hL c⊢
+⊢ν↑-applyTy (bind Aχ) hA hL c⊢ = ⊢ν↑ hA hL c⊢
+
+⊢ν⊑-applyTy :
+  ∀ χ {μ Δ Σ B C L c} →
+  CastMode μ →
+  applyTyCtx χ Δ ∣ applyStore χ Σ ∣ [] ⊢ L ⦂ applyTy χ (`∀ C) →
+  instᵈ μ ∣ suc (applyTyCtx χ Δ)
+    ∣ (zero , ★) ∷ ⟰ᵗ (applyStore χ Σ)
+    ⊢ c ∶ applyTyUnderTyBinder χ C ⊑ ⇑ᵗ (applyTy χ B) →
+  applyTyCtx χ Δ ∣ applyStore χ Σ ∣ []
+    ⊢ ν (applyTy χ ★) L c ⦂ applyTy χ B
+⊢ν⊑-applyTy keep mode hL c⊢ = ⊢ν⊑ mode hL c⊢
+⊢ν⊑-applyTy (bind Aχ) mode hL c⊢ = ⊢ν⊑ mode hL c⊢
+
+applyConversion↑-typing :
+  ∀ {χ : StoreChange}{μ Δ Σ c A B} →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ↑ˢ B →
+  Product.Σ ModeEnv
+    (λ ν →
+      ν ∣ applyTyCtx χ Δ ∣ applyStore χ Σ
+        ⊢ applyCoercion χ c ∶ applyTy χ A ↑ˢ applyTy χ B)
+applyConversion↑-typing {χ = keep} {μ = μ} c⊢ = μ , c⊢
+applyConversion↑-typing {χ = bind Aν} {μ = μ} c⊢ =
+  weakenCastᵈ μ ,
+    conversion↑-weaken ≤-refl StoreIncl-drop
+      (conversion↑-renameᵗ
+        TyRenameWf-suc
+        modeRename-suc-weakenCast
+        c⊢)
+
+applyConversion↓-typing :
+  ∀ {χ : StoreChange}{μ Δ Σ c A B} →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ↓ˢ B →
+  Product.Σ ModeEnv
+    (λ ν →
+      ν ∣ applyTyCtx χ Δ ∣ applyStore χ Σ
+        ⊢ applyCoercion χ c ∶ applyTy χ A ↓ˢ applyTy χ B)
+applyConversion↓-typing {χ = keep} {μ = μ} c⊢ = μ , c⊢
+applyConversion↓-typing {χ = bind Aν} {μ = μ} c⊢ =
+  weakenCastᵈ μ ,
+    conversion↓-weaken ≤-refl StoreIncl-drop
+      (conversion↓-renameᵗ
+        TyRenameWf-suc
+        modeRename-suc-weakenCast
+        c⊢)
+
+applyNarrow-typing :
+  ∀ {χ : StoreChange}{μ Δ Σ c A B} →
+  CastMode μ →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
+  Product.Σ ModeEnv
+    (λ ν →
+      CastMode ν ×
+      ν ∣ applyTyCtx χ Δ ∣ applyStore χ Σ
+        ⊢ applyCoercion χ c ∶ applyTy χ A ⊒ applyTy χ B)
+applyNarrow-typing {χ = keep} {μ = μ} mode c⊢ =
+  μ , mode , c⊢
+applyNarrow-typing {χ = bind Aν} {μ = μ} mode c⊢ =
+  weakenCastᵈ μ ,
+    cast-weaken mode ,
+    narrow-weaken ≤-refl StoreIncl-drop
+      (narrow-renameᵗ TyRenameWf-suc modeRename-suc-weakenCast c⊢)
+
+applyWiden-typing :
+  ∀ {χ : StoreChange}{μ Δ Σ c A B} →
+  CastMode μ →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B →
+  Product.Σ ModeEnv
+    (λ ν →
+      CastMode ν ×
+      ν ∣ applyTyCtx χ Δ ∣ applyStore χ Σ
+        ⊢ applyCoercion χ c ∶ applyTy χ A ⊑ applyTy χ B)
+applyWiden-typing {χ = keep} {μ = μ} mode c⊢ =
+  μ , mode , c⊢
+applyWiden-typing {χ = bind Aν} {μ = μ} mode c⊢ =
+  weakenCastᵈ μ ,
+    cast-weaken mode ,
+    widen-weaken ≤-refl StoreIncl-drop
+      (widen-renameᵗ TyRenameWf-suc modeRename-suc-weakenCast c⊢)
+
+applyConversion↑UnderTyBinder-typing :
+  ∀ {χ : StoreChange}{μ Δ Σ c B C Aν} →
+  μ ∣ suc Δ ∣ (zero , ⇑ᵗ Aν) ∷ ⟰ᵗ Σ ⊢ c ∶ C ↑ˢ ⇑ᵗ B →
+  Product.Σ ModeEnv
+    (λ ν →
+      ν ∣ suc (applyTyCtx χ Δ)
+        ∣ (zero , ⇑ᵗ (applyTy χ Aν)) ∷ ⟰ᵗ (applyStore χ Σ)
+        ⊢ applyCoercionUnderTyBinder χ c
+        ∶ applyTyUnderTyBinder χ C ↑ˢ ⇑ᵗ (applyTy χ B))
+applyConversion↑UnderTyBinder-typing {χ = keep} {μ = μ} c⊢ =
+  μ , c⊢
+applyConversion↑UnderTyBinder-typing {χ = bind Aχ} {μ = μ}
+    {Δ = Δ} {Σ = Σ} {c = c} {B = Bout} {C = C} {Aν = Aν} c⊢ =
+  νmode ,
+    subst
+      (λ T →
+        νmode ∣ suc (suc Δ)
+          ∣ (zero , ⇑ᵗ (⇑ᵗ Aν)) ∷ ⟰ᵗ ((zero , ⇑ᵗ Aχ) ∷ ⟰ᵗ Σ)
+          ⊢ renameᶜ (extᵗ suc) c ∶ renameᵗ (extᵗ suc) C ↑ˢ T)
+      (renameᵗ-ext-suc-comm suc Bout)
+      (conversion↑-weaken ≤-refl incl renamed-store)
+  where
+    νmode : ModeEnv
+    νmode Y = μ (extᵗ predᵗ Y)
+
+    renamed-store :
+      νmode ∣ suc (suc Δ)
+        ∣ (zero , ⇑ᵗ (⇑ᵗ Aν)) ∷ ⟰ᵗ (⟰ᵗ Σ)
+        ⊢ renameᶜ (extᵗ suc) c
+        ∶ renameᵗ (extᵗ suc) C ↑ˢ renameᵗ (extᵗ suc) (⇑ᵗ Bout)
+    renamed-store =
+      subst
+        (λ Σ′ →
+          νmode ∣ suc (suc Δ) ∣ Σ′
+            ⊢ renameᶜ (extᵗ suc) c
+            ∶ renameᵗ (extᵗ suc) C ↑ˢ renameᵗ (extᵗ suc) (⇑ᵗ Bout))
+        (renameStoreᵗ-ext-suc-cons-comm suc Σ Aν)
+        (conversion↑-renameᵗ
+          (TyRenameWf-ext TyRenameWf-suc)
+          (modeRename-left-inverse
+            {ρ = extᵗ suc} {ψ = extᵗ predᵗ}
+            (RenameLeftInverse-ext RenameLeftInverse-suc))
+          c⊢)
+
+    incl :
+      StoreIncl
+        ((zero , ⇑ᵗ (⇑ᵗ Aν)) ∷ ⟰ᵗ (⟰ᵗ Σ))
+        ((zero , ⇑ᵗ (⇑ᵗ Aν)) ∷ ⟰ᵗ ((zero , ⇑ᵗ Aχ) ∷ ⟰ᵗ Σ))
+    incl (here refl) = here refl
+    incl (there h) = there (there h)
+
+applyWidenInstUnderTyBinder-typing :
+  ∀ {χ : StoreChange}{μ Δ Σ c B C} →
+  CastMode μ →
+  instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ ⊢ c ∶ C ⊑ ⇑ᵗ B →
+  Product.Σ ModeEnv
+    (λ ν →
+      CastMode ν ×
+      instᵈ ν ∣ suc (applyTyCtx χ Δ)
+        ∣ (zero , ★) ∷ ⟰ᵗ (applyStore χ Σ)
+        ⊢ applyCoercionUnderTyBinder χ c
+        ∶ applyTyUnderTyBinder χ C ⊑ ⇑ᵗ (applyTy χ B))
+applyWidenInstUnderTyBinder-typing {χ = keep} {μ = μ} mode c⊢ =
+  μ , mode , c⊢
+applyWidenInstUnderTyBinder-typing {χ = bind Aχ} {μ = μ}
+    {Δ = Δ} {Σ = Σ} {c = c} {B = Bout} {C = C} mode c⊢ =
+  weakenCastᵈ μ ,
+    cast-weaken mode ,
+    subst
+      (λ T →
+        instᵈ (weakenCastᵈ μ) ∣ suc (suc Δ)
+          ∣ (zero , ★) ∷ ⟰ᵗ ((zero , ⇑ᵗ Aχ) ∷ ⟰ᵗ Σ)
+          ⊢ renameᶜ (extᵗ suc) c ∶ renameᵗ (extᵗ suc) C ⊑ T)
+      (renameᵗ-ext-suc-comm suc Bout)
+      (widen-weaken ≤-refl incl renamed-store)
+  where
+    renamed-store :
+      instᵈ (weakenCastᵈ μ) ∣ suc (suc Δ)
+        ∣ (zero , ★) ∷ ⟰ᵗ (⟰ᵗ Σ)
+        ⊢ renameᶜ (extᵗ suc) c
+        ∶ renameᵗ (extᵗ suc) C ⊑ renameᵗ (extᵗ suc) (⇑ᵗ Bout)
+    renamed-store =
+      subst
+        (λ Σ′ →
+          instᵈ (weakenCastᵈ μ) ∣ suc (suc Δ) ∣ Σ′
+            ⊢ renameᶜ (extᵗ suc) c
+            ∶ renameᵗ (extᵗ suc) C ⊑ renameᵗ (extᵗ suc) (⇑ᵗ Bout))
+        (renameStoreᵗ-ext-suc-cons-comm suc Σ ★)
+        (widen-renameᵗ
+          (TyRenameWf-ext TyRenameWf-suc)
+          (ModeRename-inst modeRename-suc-weakenCast)
+          c⊢)
+
+    incl :
+      StoreIncl
+        ((zero , ★) ∷ ⟰ᵗ (⟰ᵗ Σ))
+        ((zero , ★) ∷ ⟰ᵗ ((zero , ⇑ᵗ Aχ) ∷ ⟰ᵗ Σ))
+    incl (here refl) = here refl
+    incl (there h) = there (there h)
+
+runtime-preservation :
+  ∀ {Δ Σ M N A χ} →
+  StoreWf Δ Σ →
+  RuntimeOK M →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  M —→[ χ ] N →
+  RuntimeOK N
+runtime-preservation wfΣ okM M⊢ red =
+  NuPreservation.runtime-preservation wfΣ okM (forget M⊢) red
+
+store-preservation :
+  ∀ {Δ Σ M N A χ} →
+  StoreWf Δ Σ →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  M —→[ χ ] N →
+  StoreWf (applyTyCtx χ Δ) (applyStore χ Σ)
+store-preservation wfΣ M⊢ red =
+  NuPreservation.store-preservation wfΣ (forget M⊢) red
+
+preservation :
+  ∀ {Δ Σ M N A χ} →
+  StoreWf Δ Σ →
+  RuntimeOK M →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  M —→[ χ ] N →
+  applyTyCtx χ Δ ∣ applyStore χ Σ ∣ [] ⊢ N ⦂ applyTy χ A
+preservation wfΣ okM M⊢ (pure-step red) =
+  pure-preservation-runtime wfΣ M⊢ okM red
+preservation wfΣ okM (⊢ν↑ hA V⊢ c⊢)
+    (ν-step vV noV′) =
+  ⊢⟨⟩↑ c⊢
+    (⊢• refl refl (typing-wf-∀-body (at wfΣ) V⊢) vV noV′ V⊢)
+preservation wfΣ okM (⊢ν⊑ mode V⊢ c⊢)
+    (ν-step vV noV′) =
+  ⊢⟨⟩⊑ (cast-inst mode) c⊢
+    (⊢• refl refl (typing-wf-∀-body (at wfΣ) V⊢) vV noV′ V⊢)
+preservation wfΣ okM (⊢· L⊢ M⊢)
+    (ξ-·₁ {χ = χ} red shiftM) =
+  ⊢·-applyTy χ
+    (preservation wfΣ (NuPreservation.runtime-·₁ okM) L⊢ red)
+    (applyTerm-typing-shiftable (at wfΣ) shiftM M⊢)
+preservation wfΣ okM (⊢· V⊢ M⊢)
+    (ξ-·₂ {χ = χ} vV shiftV red) =
+  ⊢·-applyTy χ
+    (applyTerm-typing-shiftable (at wfΣ) shiftV V⊢)
+    (preservation wfΣ (NuPreservation.runtime-·₂ vV okM) M⊢ red)
+preservation wfΣ okM (⊢⟨⟩↑ c⊢ M⊢)
+    (ξ-⟨⟩ {χ = χ} red)
+    with applyConversion↑-typing {χ = χ} c⊢
+preservation wfΣ okM (⊢⟨⟩↑ c⊢ M⊢)
+    (ξ-⟨⟩ {χ = χ} red)
+    | μ′ , c′⊢ =
+  ⊢⟨⟩↑ c′⊢ (preservation wfΣ (NuPreservation.runtime-⟨⟩ okM) M⊢ red)
+preservation wfΣ okM (⊢⟨⟩↓ c⊢ M⊢)
+    (ξ-⟨⟩ {χ = χ} red)
+    with applyConversion↓-typing {χ = χ} c⊢
+preservation wfΣ okM (⊢⟨⟩↓ c⊢ M⊢)
+    (ξ-⟨⟩ {χ = χ} red)
+    | μ′ , c′⊢ =
+  ⊢⟨⟩↓ c′⊢ (preservation wfΣ (NuPreservation.runtime-⟨⟩ okM) M⊢ red)
+preservation wfΣ okM (⊢⟨⟩⊒ mode c⊢ M⊢)
+    (ξ-⟨⟩ {χ = χ} red)
+    with applyNarrow-typing {χ = χ} mode c⊢
+preservation wfΣ okM (⊢⟨⟩⊒ mode c⊢ M⊢)
+    (ξ-⟨⟩ {χ = χ} red)
+    | μ′ , mode′ , c′⊢ =
+  ⊢⟨⟩⊒ mode′ c′⊢
+    (preservation wfΣ (NuPreservation.runtime-⟨⟩ okM) M⊢ red)
+preservation wfΣ okM (⊢⟨⟩⊑ mode c⊢ M⊢)
+    (ξ-⟨⟩ {χ = χ} red)
+    with applyWiden-typing {χ = χ} mode c⊢
+preservation wfΣ okM (⊢⟨⟩⊑ mode c⊢ M⊢)
+    (ξ-⟨⟩ {χ = χ} red)
+    | μ′ , mode′ , c′⊢ =
+  ⊢⟨⟩⊑ mode′ c′⊢
+    (preservation wfΣ (NuPreservation.runtime-⟨⟩ okM) M⊢ red)
+preservation wfΣ okM (⊢ν↑ hA L⊢ c⊢)
+    (ξ-ν {χ = χ} red)
+    with applyConversion↑UnderTyBinder-typing {χ = χ} c⊢
+preservation wfΣ okM (⊢ν↑ hA L⊢ c⊢)
+    (ξ-ν {χ = χ} red)
+    | μ′ , c′⊢ =
+  ⊢ν↑-applyTy χ (renameA χ hA)
+    (preservation wfΣ (NuPreservation.runtime-ν okM) L⊢ red)
+    c′⊢
+  where
+    renameA : ∀ χ → WfTy _ _ → WfTy (applyTyCtx χ _) (applyTy χ _)
+    renameA keep h = h
+    renameA (bind Aχ) h = renameᵗ-preserves-WfTy h TyRenameWf-suc
+preservation wfΣ okM (⊢ν⊑ mode L⊢ c⊢)
+    (ξ-ν {χ = χ} red)
+    with applyWidenInstUnderTyBinder-typing {χ = χ} mode c⊢
+preservation wfΣ okM (⊢ν⊑ mode L⊢ c⊢)
+    (ξ-ν {χ = χ} red)
+    | μ′ , mode′ , c′⊢ =
+  ⊢ν⊑-applyTy χ mode′
+    (preservation wfΣ (NuPreservation.runtime-ν okM) L⊢ red)
+    c′⊢
+preservation wfΣ okM (⊢ν↑ hA (⊢blame (wf∀ hC)) c⊢)
+    blame-ν =
+  ⊢blame
+    (typing-wf (at wfΣ) closedCtxWf (⊢ν↑ hA (⊢blame (wf∀ hC)) c⊢))
+preservation wfΣ okM (⊢ν⊑ mode (⊢blame (wf∀ hC)) c⊢)
+    blame-ν =
+  ⊢blame
+    (typing-wf (at wfΣ) closedCtxWf (⊢ν⊑ mode (⊢blame (wf∀ hC)) c⊢))
+preservation wfΣ okM (⊢⊕ L⊢ op M⊢)
+    (ξ-⊕₁ {χ = χ} red shiftM) =
+  ⊢⊕-applyTy χ
+    (preservation wfΣ (NuPreservation.runtime-⊕₁ okM) L⊢ red) op
+    (applyTerm-typing-shiftable (at wfΣ) shiftM M⊢)
+preservation wfΣ okM (⊢⊕ L⊢ op M⊢)
+    (ξ-⊕₂ {χ = χ} vL shiftL red) =
+  ⊢⊕-applyTy χ
+    (applyTerm-typing-shiftable (at wfΣ) shiftL L⊢) op
+    (preservation wfΣ (NuPreservation.runtime-⊕₂ vL okM) M⊢ red)
+
+multi-preservation :
+  ∀ {Δ Σ M N A χs} →
+  StoreWf Δ Σ →
+  RuntimeOK M →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  M —↠[ χs ] N →
+  applyTyCtxs χs Δ ∣ applyStores χs Σ ∣ [] ⊢ N ⦂ applyTys χs A
+multi-preservation wfΣ okM M⊢ ↠-refl = M⊢
+multi-preservation wfΣ okM M⊢ (↠-step red reds) =
+  multi-preservation
+    (store-preservation wfΣ M⊢ red)
+    (runtime-preservation wfΣ okM M⊢ red)
+    (preservation wfΣ okM M⊢ red)
+    reds

@@ -23,10 +23,20 @@ open import Coercions
     ; _∣_⊢_∶_=⇒_
     ; _∣_∣_⊢_∶_=⇒_
     ; reveal
+    ; tag-or-idᵈ
     )
+open import Conversion using (_∣_∣_⊢_∶_↑ˢ_; reveal-conversion-env)
 open import Imprecision using (_⊢_~_; id★; _↦_; tag_⇛_)
 open import Primitives using (Const; Prim; constTy)
-open import proof.CompileCoercions using (coerce-up; coerce-down; realizes-idᵢ)
+open import NarrowWiden using
+  ( _∣_∣_⊢_∶_⊒_
+  ; _∣_∣_⊢_∶_⊑_
+  )
+open import proof.CompileCoercions using
+  ( coerce-upʷ
+  ; coerce-downⁿ
+  ; realizes-idᵢᴺᵂ
+  )
 open import proof.CoercionProperties
   using
     ( RevealEnv
@@ -92,6 +102,7 @@ open import NuTerms
     ; ⊢⊕ to ⊢ᵀ⊕
     ; ⊢⟨⟩ to ⊢ᵀ⟨⟩
     )
+import TermTyping as TT
 
 ------------------------------------------------------------------------
 -- Nu coercion for source type application
@@ -171,6 +182,45 @@ open import NuTerms
         (renameᵗ-id B)
         revealed′
 
+ν-reveal-conversion :
+  ∀ {Δ A B} →
+  WfTy Δ A →
+  WfTy (suc Δ) B →
+  singleSealᵈ zero ∣ suc Δ ∣ (zero , ⇑ᵗ A) ∷ []
+    ⊢ reveal B zero (⇑ᵗ A) ∶ B ↑ˢ ⇑ᵗ (B [ A ]ᵗ)
+ν-reveal-conversion {A = A} {B = B} hA hB =
+  subst
+    (λ T →
+      singleSealᵈ zero ∣ _ ∣ _ ⊢ reveal B zero (⇑ᵗ A)
+        ∶ B ↑ˢ T)
+    (ν-subst-target A B)
+    revealed
+  where
+    revealed′ :
+      singleSealᵈ zero ∣ _ ∣ _ ⊢
+        reveal (renameᵗ (λ X → X) B) zero (⇑ᵗ A)
+        ∶ renameᵗ (λ X → X) B ↑ˢ substᵗ (ν-subst A) B
+    revealed′ =
+      reveal-conversion-env
+        hB
+        (λ X<Δ → X<Δ)
+        (ν-subst-wf hA)
+        ν-reveal-env
+        (renameᵗ-preserves-WfTy hA TyRenameWf-suc)
+        (here refl)
+        singleSealMode
+
+    revealed :
+      singleSealᵈ zero ∣ _ ∣ _ ⊢ reveal B zero (⇑ᵗ A)
+        ∶ B ↑ˢ substᵗ (ν-subst A) B
+    revealed =
+      subst
+        (λ S →
+          singleSealᵈ zero ∣ _ ∣ _ ⊢ reveal S zero (⇑ᵗ A)
+            ∶ S ↑ˢ substᵗ (ν-subst A) B)
+        (renameᵗ-id B)
+        revealed′
+
 ------------------------------------------------------------------------
 -- Cast plans for compiling consistency
 ------------------------------------------------------------------------
@@ -180,9 +230,11 @@ record CastPlan (Δ : TyCtx) (Σ : Store) (A B : Ty) : Set₁ where
     lower : Ty
     down : Coercion
     down⊢ : Δ ∣ Σ ⊢ down ∶ A =⇒ lower
+    down⊒ : tag-or-idᵈ ∣ Δ ∣ Σ ⊢ down ∶ A ⊒ lower
 
     up : Coercion
     up⊢ : Δ ∣ Σ ⊢ up ∶ lower =⇒ B
+    up⊑ : tag-or-idᵈ ∣ Δ ∣ Σ ⊢ up ∶ lower ⊑ B
 
 open CastPlan public
 
@@ -192,24 +244,26 @@ consistency-cast-plan :
   Δ ⊢ A ~ B →
   CastPlan Δ [] A B
 consistency-cast-plan {Δ = Δ} ℓ (C , C⊑A , C⊑B)
-    with coerce-down ℓ
+    with coerce-downⁿ ℓ
            (⊑-src-wf-idᵢ C⊑A)
            (⊑-tgt-wf-idᵢ C⊑A)
-           (realizes-idᵢ Δ)
+           (realizes-idᵢᴺᵂ Δ)
            C⊑A
-       | coerce-up ℓ
+       | coerce-upʷ ℓ
            (⊑-src-wf-idᵢ C⊑B)
            (⊑-tgt-wf-idᵢ C⊑B)
-           (realizes-idᵢ Δ)
+           (realizes-idᵢᴺᵂ Δ)
            C⊑B
 consistency-cast-plan {Δ = Δ} ℓ (C , C⊑A , C⊑B)
-    | down , down⊢ | up , up⊢ =
+    | down , down⊒ | up , up⊑ =
   record
     { lower = C
     ; down = down
-    ; down⊢ = down⊢
+    ; down⊢ = tag-or-idᵈ , proj₁ down⊒
+    ; down⊒ = down⊒
     ; up = up
-    ; up⊢ = up⊢
+    ; up⊢ = tag-or-idᵈ , proj₁ up⊑
+    ; up⊑ = up⊑
     }
 
 arrow★-consistent :
@@ -235,6 +289,20 @@ cast⊢ :
 cast⊢ plan M⊢ with down⊢ plan | up⊢ plan
 cast⊢ plan M⊢ | _ , down⊢ᵐ | _ , up⊢ᵐ =
   ⊢ᵀ⟨⟩ up⊢ᵐ (⊢ᵀ⟨⟩ down⊢ᵐ M⊢)
+
+seal★-tag-or-id :
+  ∀ {Σ} →
+  TT.SealModeStore★ tag-or-idᵈ Σ
+seal★-tag-or-id α ()
+
+cast⊢ᵀ :
+  ∀ {Δ Γ A B M} →
+  (plan : CastPlan Δ [] A B) →
+  TT._∣_∣_⊢_⦂_ Δ [] Γ M A →
+  TT._∣_∣_⊢_⦂_ Δ [] Γ (cast plan M) B
+cast⊢ᵀ plan M⊢ =
+  TT.⊢⟨⟩⊑ TT.cast-tag-or-id seal★-tag-or-id (up⊑ plan)
+    (TT.⊢⟨⟩⊒ TT.cast-tag-or-id seal★-tag-or-id (down⊒ plan) M⊢)
 
 ------------------------------------------------------------------------
 -- Compilation
@@ -302,4 +370,72 @@ compile-value hΓ (Λᴳ M) (⊢ᴳΛ vM M⊢)
     with compile (CtxWf-⤊ hΓ) M⊢
        | compile-value (CtxWf-⤊ hΓ) vM M⊢
 compile-value hΓ (Λᴳ M) (⊢ᴳΛ vM M⊢) | N , N⊢ | vN =
+  Λᵀ vN
+
+------------------------------------------------------------------------
+-- Refined compilation for the DGG path
+------------------------------------------------------------------------
+
+compileᵀ :
+  ∀ {Δ Γ M A} →
+  CtxWf Δ Γ →
+  Δ ∣ Γ ⊢ᴳ M ⦂ A →
+  Σ[ N ∈ Term ] TT._∣_∣_⊢_⦂_ Δ [] Γ N A
+
+compileᵀ-value :
+  ∀ {Δ Γ M A} →
+  (hΓ : CtxWf Δ Γ) →
+  (vM : Valueᴳ M) →
+  (M⊢ : Δ ∣ Γ ⊢ᴳ M ⦂ A) →
+  Valueᵀ (proj₁ (compileᵀ hΓ M⊢))
+
+compileᵀ hΓ (⊢ᴳ` x∈) =
+  `ᵀ _ , TT.⊢` x∈
+compileᵀ hΓ (⊢ᴳƛ wfA M⊢) with compileᵀ (ctxWf-∷ wfA hΓ) M⊢
+compileᵀ hΓ (⊢ᴳƛ wfA M⊢) | N , N⊢ =
+  ƛᵀ N , TT.⊢ƛ wfA N⊢
+compileᵀ hΓ (⊢ᴳ· {ℓ = ℓ} L⊢ M⊢ A~A′)
+    with compileᵀ hΓ L⊢ | compileᵀ hΓ M⊢
+       | consistency-cast-plan ℓ (~-sym A~A′)
+compileᵀ hΓ (⊢ᴳ· L⊢ M⊢ A~A′)
+    | L′ , L′⊢ | M′ , M′⊢ | plan =
+  L′ ·ᵀ cast plan M′ ,
+  TT.⊢· L′⊢ (cast⊢ᵀ plan M′⊢)
+compileᵀ hΓ (⊢ᴳ·★ {ℓ = ℓ} L⊢ M⊢ A′~★)
+    with compileᵀ hΓ L⊢ | compileᵀ hΓ M⊢
+       | consistency-cast-plan ℓ (~-sym (arrow★-consistent A′~★))
+compileᵀ hΓ (⊢ᴳ·★ L⊢ M⊢ A′~★)
+    | L′ , L′⊢ | M′ , M′⊢ | plan =
+  cast plan L′ ·ᵀ M′ ,
+  TT.⊢· (cast⊢ᵀ plan L′⊢) M′⊢
+compileᵀ hΓ (⊢ᴳΛ {occ = occ} vM M⊢)
+    with compileᵀ (CtxWf-⤊ hΓ) M⊢
+       | compileᵀ-value (CtxWf-⤊ hΓ) vM M⊢
+compileᵀ hΓ (⊢ᴳΛ {occ = occ} vM M⊢) | N , N⊢ | vN =
+  Λᵀ N , TT.⊢Λ vN N⊢
+compileᵀ hΓ (⊢ᴳ• {B = B} {A = A} M⊢ wfB wfA)
+    with compileᵀ hΓ M⊢
+compileᵀ hΓ (⊢ᴳ• {B = B} {A = A} M⊢ wfB wfA) | M′ , M′⊢ =
+  νᵀ A M′ (reveal B zero (⇑ᵗ A)) ,
+  TT.⊢ν↑ wfA M′⊢ (ν-reveal-conversion wfA wfB)
+compileᵀ hΓ (⊢ᴳ$ κ) =
+  $ᵀ κ , TT.⊢$ κ
+compileᵀ hΓ (⊢ᴳ⊕ {ℓ = ℓ} L⊢ A~ℕ op M⊢ B~ℕ)
+    with compileᵀ hΓ L⊢ | compileᵀ hΓ M⊢
+       | consistency-cast-plan ℓ A~ℕ | consistency-cast-plan ℓ B~ℕ
+compileᵀ hΓ (⊢ᴳ⊕ L⊢ A~ℕ op M⊢ B~ℕ)
+    | L′ , L′⊢ | M′ , M′⊢ | planL | planM =
+  cast planL L′ ⊕ᵀ[ op ] cast planM M′ ,
+  TT.⊢⊕ (cast⊢ᵀ planL L′⊢) op (cast⊢ᵀ planM M′⊢)
+
+compileᵀ-value hΓ (ƛᴳ A ⇒ M) (⊢ᴳƛ wfA M⊢)
+    with compileᵀ (ctxWf-∷ wfA hΓ) M⊢
+compileᵀ-value hΓ (ƛᴳ A ⇒ M) (⊢ᴳƛ wfA M⊢) | N , N⊢ =
+  ƛᵀ N
+compileᵀ-value hΓ ($ᴳ κ) (⊢ᴳ$ .κ) =
+  $ᵀ κ
+compileᵀ-value hΓ (Λᴳ M) (⊢ᴳΛ vM M⊢)
+    with compileᵀ (CtxWf-⤊ hΓ) M⊢
+       | compileᵀ-value (CtxWf-⤊ hΓ) vM M⊢
+compileᵀ-value hΓ (Λᴳ M) (⊢ᴳΛ vM M⊢) | N , N⊢ | vN =
   Λᵀ vN

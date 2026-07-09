@@ -14,7 +14,7 @@ open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (zero; suc; z<s)
 open import Data.Nat.Properties using (≤-refl)
-open import Data.Product using (Σ-syntax; _,_)
+open import Data.Product using (_×_; Σ-syntax; _,_; proj₁; proj₂)
 
 open import Types
 open import Store using (StoreIncl; StoreIncl-drop)
@@ -26,6 +26,7 @@ open import Coercions
     ; tag-or-id
     ; seal-or-id
     ; id-onlyᵈ
+    ; tag-or-idᵈ
     ; extᵈ
     ; genᵈ
     ; instᵈ
@@ -56,6 +57,11 @@ open import Coercions
     ; gen to genᶜ
     )
 open import Imprecision
+import NarrowWiden as NW
+open import NarrowWiden using
+  ( _∣_∣_⊢_∶_⊒_
+  ; _∣_∣_⊢_∶_⊑_
+  )
 open import proof.CoercionProperties
   using
     ( ModeRename
@@ -97,6 +103,10 @@ ModeRename-suc-inst X | seal-or-id = refl
 ModeRename-suc-id-only :
   ModeRename suc id-onlyᵈ id-onlyᵈ
 ModeRename-suc-id-only X = refl
+
+ModeRename-suc-tag-or-id :
+  ModeRename suc tag-or-idᵈ tag-or-idᵈ
+ModeRename-suc-tag-or-id X = refl
 
 AllIdMode : ModeEnv → Set
 AllIdMode μ = ∀ X → μ X ≡ id-only
@@ -309,6 +319,493 @@ realizes-idᵢ (suc Δ) =
     (cast-id (wfVar z<s) (idTyAllowed-id-only (＇ zero)))
     (cast-id (wfVar z<s) (idTyAllowed-id-only (＇ zero)))
     (Realizes-rename-suc ModeRename-suc-id-only (realizes-idᵢ Δ))
+
+------------------------------------------------------------------------
+-- Realizing imprecision assumptions as canonical narrowing/widening casts
+------------------------------------------------------------------------
+
+idTyAllowed-true : (μ : ModeEnv) → (A : Ty) → idTyAllowed μ A ≡ true
+idTyAllowed-true μ (＇ α) with μ α
+idTyAllowed-true μ (＇ α) | id-only = refl
+idTyAllowed-true μ (＇ α) | tag-or-id = refl
+idTyAllowed-true μ (＇ α) | seal-or-id = refl
+idTyAllowed-true μ (‵ ι) = refl
+idTyAllowed-true μ ★ = refl
+idTyAllowed-true μ (A ⇒ B)
+    rewrite idTyAllowed-true μ A | idTyAllowed-true μ B =
+  refl
+idTyAllowed-true μ (`∀ A) = idTyAllowed-true (extᵈ μ) A
+
+data Realizesᴺᵂ (μ : ModeEnv) (Δ : TyCtx) (Σ : Store) :
+    ImpCtx → Set₁ where
+  realᵂⁿ-[] :
+    Realizesᴺᵂ μ Δ Σ []
+
+  realᵂⁿ-xx : ∀ {Φ X Y c d} →
+    WfTy Δ (＇ X) →
+    WfTy Δ (＇ Y) →
+    μ ∣ Δ ∣ Σ ⊢ c ∶ ＇ X ⊑ ＇ Y →
+    μ ∣ Δ ∣ Σ ⊢ d ∶ ＇ Y ⊒ ＇ X →
+    Realizesᴺᵂ μ Δ Σ Φ →
+    Realizesᴺᵂ μ Δ Σ ((X ˣ⊑ˣ Y) ∷ Φ)
+
+  realᵂⁿ-star : ∀ {Φ X c d} →
+    WfTy Δ (＇ X) →
+    μ ∣ Δ ∣ Σ ⊢ c ∶ ＇ X ⊑ ★ →
+    NW.StrictWidening c →
+    μ ∣ Δ ∣ Σ ⊢ d ∶ ★ ⊒ ＇ X →
+    NW.StrictNarrowing d →
+    Realizesᴺᵂ μ Δ Σ Φ →
+    Realizesᴺᵂ μ Δ Σ ((X ˣ⊑★) ∷ Φ)
+
+realizes-xx-upʷ :
+  ∀ {μ Δ Σ Φ X Y} →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  (X ˣ⊑ˣ Y) ∈ Φ →
+  Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ ＇ X ⊑ ＇ Y
+realizes-xx-upʷ (realᵂⁿ-xx hX hY c⊑ d⊒ r) (here refl) = _ , c⊑
+realizes-xx-upʷ (realᵂⁿ-xx hX hY c⊑ d⊒ r) (there x∈) =
+  realizes-xx-upʷ r x∈
+realizes-xx-upʷ (realᵂⁿ-star hX c⊑ cˢ d⊒ dˢ r) (here ())
+realizes-xx-upʷ (realᵂⁿ-star hX c⊑ cˢ d⊒ dˢ r) (there x∈) =
+  realizes-xx-upʷ r x∈
+
+realizes-xx-downⁿ :
+  ∀ {μ Δ Σ Φ X Y} →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  (X ˣ⊑ˣ Y) ∈ Φ →
+  Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ ＇ Y ⊒ ＇ X
+realizes-xx-downⁿ (realᵂⁿ-xx hX hY c⊑ d⊒ r) (here refl) = _ , d⊒
+realizes-xx-downⁿ (realᵂⁿ-xx hX hY c⊑ d⊒ r) (there x∈) =
+  realizes-xx-downⁿ r x∈
+realizes-xx-downⁿ (realᵂⁿ-star hX c⊑ cˢ d⊒ dˢ r) (here ())
+realizes-xx-downⁿ (realᵂⁿ-star hX c⊑ cˢ d⊒ dˢ r) (there x∈) =
+  realizes-xx-downⁿ r x∈
+
+realizes-star-upʷ :
+  ∀ {μ Δ Σ Φ X} →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  (X ˣ⊑★) ∈ Φ →
+  Σ[ c ∈ Coercion ]
+    (μ ∣ Δ ∣ Σ ⊢ c ∶ ＇ X ⊑ ★) × NW.StrictWidening c
+realizes-star-upʷ (realᵂⁿ-xx hX hY c⊑ d⊒ r) (here ())
+realizes-star-upʷ (realᵂⁿ-xx hX hY c⊑ d⊒ r) (there x∈) =
+  realizes-star-upʷ r x∈
+realizes-star-upʷ (realᵂⁿ-star hX c⊑ cˢ d⊒ dˢ r) (here refl) =
+  _ , c⊑ , cˢ
+realizes-star-upʷ (realᵂⁿ-star hX c⊑ cˢ d⊒ dˢ r) (there x∈) =
+  realizes-star-upʷ r x∈
+
+realizes-star-downⁿ :
+  ∀ {μ Δ Σ Φ X} →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  (X ˣ⊑★) ∈ Φ →
+  Σ[ c ∈ Coercion ]
+    (μ ∣ Δ ∣ Σ ⊢ c ∶ ★ ⊒ ＇ X) × NW.StrictNarrowing c
+realizes-star-downⁿ (realᵂⁿ-xx hX hY c⊑ d⊒ r) (here ())
+realizes-star-downⁿ (realᵂⁿ-xx hX hY c⊑ d⊒ r) (there x∈) =
+  realizes-star-downⁿ r x∈
+realizes-star-downⁿ (realᵂⁿ-star hX c⊑ cˢ d⊒ dˢ r) (here refl) =
+  _ , d⊒ , dˢ
+realizes-star-downⁿ (realᵂⁿ-star hX c⊑ cˢ d⊒ dˢ r) (there x∈) =
+  realizes-star-downⁿ r x∈
+
+Realizesᴺᵂ-store-weaken :
+  ∀ {μ Δ Σ Σ′ Φ} →
+  StoreIncl Σ Σ′ →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  Realizesᴺᵂ μ Δ Σ′ Φ
+Realizesᴺᵂ-store-weaken incl realᵂⁿ-[] = realᵂⁿ-[]
+Realizesᴺᵂ-store-weaken incl (realᵂⁿ-xx hX hY c⊑ d⊒ r) =
+  realᵂⁿ-xx hX hY
+    (NW.widen-weaken ≤-refl incl c⊑)
+    (NW.narrow-weaken ≤-refl incl d⊒)
+    (Realizesᴺᵂ-store-weaken incl r)
+Realizesᴺᵂ-store-weaken incl
+    (realᵂⁿ-star hX c⊑ cˢ d⊒ dˢ r) =
+  realᵂⁿ-star hX
+    (NW.widen-weaken ≤-refl incl c⊑)
+    cˢ
+    (NW.narrow-weaken ≤-refl incl d⊒)
+    dˢ
+    (Realizesᴺᵂ-store-weaken incl r)
+
+Realizesᴺᵂ-rename-suc :
+  ∀ {μ ν Δ Σ Φ} →
+  ModeRename suc μ ν →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  Realizesᴺᵂ ν (suc Δ) (⟰ᵗ Σ) (⇑ᵢ Φ)
+Realizesᴺᵂ-rename-suc rel realᵂⁿ-[] = realᵂⁿ-[]
+Realizesᴺᵂ-rename-suc rel (realᵂⁿ-xx hX hY c⊑ d⊒ r) =
+  realᵂⁿ-xx
+    (renameᵗ-preserves-WfTy hX TyRenameWf-suc)
+    (renameᵗ-preserves-WfTy hY TyRenameWf-suc)
+    (NW.widen-renameᵗ TyRenameWf-suc rel c⊑)
+    (NW.narrow-renameᵗ TyRenameWf-suc rel d⊒)
+    (Realizesᴺᵂ-rename-suc rel r)
+Realizesᴺᵂ-rename-suc rel (realᵂⁿ-star hX c⊑ cˢ d⊒ dˢ r) =
+  realᵂⁿ-star
+    (renameᵗ-preserves-WfTy hX TyRenameWf-suc)
+    (NW.widen-renameᵗ TyRenameWf-suc rel c⊑)
+    (NW.renameStrictʷ suc cˢ)
+    (NW.narrow-renameᵗ TyRenameWf-suc rel d⊒)
+    (NW.renameStrictⁿ suc dˢ)
+    (Realizesᴺᵂ-rename-suc rel r)
+
+Realizesᴺᵂ-⇑ᵢ :
+  ∀ {μ Δ Σ Φ} →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  Realizesᴺᵂ (extᵈ μ) (suc Δ) (⟰ᵗ Σ) (⇑ᵢ Φ)
+Realizesᴺᵂ-⇑ᵢ = Realizesᴺᵂ-rename-suc ModeRename-suc-ext
+
+Realizesᴺᵂ-∀ⁱ :
+  ∀ {μ Δ Σ Φ} →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  Realizesᴺᵂ (extᵈ μ) (suc Δ) (⟰ᵗ Σ)
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+Realizesᴺᵂ-∀ⁱ r =
+  realᵂⁿ-xx
+    (wfVar z<s)
+    (wfVar z<s)
+    (cast-id (wfVar z<s) refl , NW.cross (NW.id-＇ zero))
+    (cast-id (wfVar z<s) refl , NW.cross (NW.id-＇ zero))
+    (Realizesᴺᵂ-⇑ᵢ r)
+
+Realizesᴺᵂ-ν-inst :
+  ∀ {μ Δ Σ Φ} →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  Realizesᴺᵂ (instᵈ μ) (suc Δ) ((zero , ★) ∷ ⟰ᵗ Σ)
+    ((zero ˣ⊑★) ∷ ⇑ᵢ Φ)
+Realizesᴺᵂ-ν-inst r =
+  realᵂⁿ-star
+    (wfVar z<s)
+    (cast-unseal wf★ (here refl) refl , NW.unsealʷ zero ★)
+    (NW.strict-unseal zero ★)
+    (cast-seal wf★ (here refl) refl , NW.sealⁿ ★ zero)
+    (NW.strict-seal ★ zero)
+    (Realizesᴺᵂ-store-weaken StoreIncl-drop
+      (Realizesᴺᵂ-rename-suc ModeRename-suc-inst r))
+
+Realizesᴺᵂ-ν-gen :
+  ∀ {μ Δ Σ Φ} →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  Realizesᴺᵂ (genᵈ μ) (suc Δ) (⟰ᵗ Σ) ((zero ˣ⊑★) ∷ ⇑ᵢ Φ)
+Realizesᴺᵂ-ν-gen r =
+  realᵂⁿ-star
+    (wfVar z<s)
+    (cast-tag (wfVar z<s) (＇ zero) refl , NW.tag (＇ zero))
+    (NW.strict-tag (＇ zero))
+    (cast-untag (wfVar z<s) (＇ zero) refl , NW.untag (＇ zero))
+    (NW.strict-untag (＇ zero))
+    (Realizesᴺᵂ-rename-suc ModeRename-suc-gen r)
+
+realizes-idᵢᴺᵂ :
+  ∀ Δ →
+  Realizesᴺᵂ tag-or-idᵈ Δ [] (idᵢ Δ)
+realizes-idᵢᴺᵂ zero = realᵂⁿ-[]
+realizes-idᵢᴺᵂ (suc Δ) =
+  realᵂⁿ-xx
+    (wfVar z<s)
+    (wfVar z<s)
+    (cast-id (wfVar z<s) refl , NW.cross (NW.id-＇ zero))
+    (cast-id (wfVar z<s) refl , NW.cross (NW.id-＇ zero))
+    (Realizesᴺᵂ-rename-suc ModeRename-suc-tag-or-id
+      (realizes-idᵢᴺᵂ Δ))
+
+------------------------------------------------------------------------
+-- Canonical narrowing/widening synthesis from imprecision
+------------------------------------------------------------------------
+
+data UpStarView {μ Δ Σ Φ} :
+    Realizesᴺᵂ μ Δ Σ Φ →
+    ∀ {A} → Φ ⊢ A ⊑ ★ → Set₁ where
+  up★-id : ∀ {r} →
+    UpStarView r id★
+
+  up★-strict : ∀ {r A p c} →
+    μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ ★ →
+    NW.StrictWidening c →
+    UpStarView r {A = A} p
+
+data DownStarView {μ Δ Σ Φ} :
+    Realizesᴺᵂ μ Δ Σ Φ →
+    ∀ {A} → Φ ⊢ A ⊑ ★ → Set₁ where
+  down★-id : ∀ {r} →
+    DownStarView r id★
+
+  down★-strict : ∀ {r A p c} →
+    μ ∣ Δ ∣ Σ ⊢ c ∶ ★ ⊒ A →
+    NW.StrictNarrowing c →
+    DownStarView r {A = A} p
+
+mutual
+  coerce-upʷᵐ :
+    ∀ {μ Δ Σ Φ C A} →
+    (ℓ : Label) →
+    WfTy Δ C →
+    WfTy Δ A →
+    Realizesᴺᵂ μ Δ Σ Φ →
+    Φ ⊢ C ⊑ A →
+    Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ C ⊑ A
+  coerce-upʷᵐ ℓ wf★ wf★ r id★ =
+    idᶜ ★ , cast-id wf★ refl , NW.id★
+  coerce-upʷᵐ {C = ＇ X} {A = ＇ Y} ℓ hX hY r (idˣ X⊑Y) =
+    realizes-xx-upʷ r X⊑Y
+  coerce-upʷᵐ {C = ‵ ι} ℓ wfBase wfBase r idι =
+    idᶜ (‵ ι) , cast-id wfBase refl , NW.cross (NW.id-‵ ι)
+  coerce-upʷᵐ ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) r (p ↦ q)
+      with coerce-downⁿᵐ ℓ hA hA′ r p
+         | coerce-upʷᵐ ℓ hB hB′ r q
+  coerce-upʷᵐ ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) r (p ↦ q)
+      | s , s⊒ | t , t⊑ =
+    (s ↦ᶜ t) , cast-fun (proj₁ s⊒) (proj₁ t⊑) ,
+    NW.cross (proj₂ s⊒ NW.↦ proj₂ t⊑)
+  coerce-upʷᵐ ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
+      with coerce-upʷᵐ ℓ hA hB (Realizesᴺᵂ-∀ⁱ r) p
+  coerce-upʷᵐ ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
+      | c , c⊑ =
+    `∀ᶜ c , cast-all (proj₁ c⊑) , NW.cross (NW.`∀ (proj₂ c⊑))
+  coerce-upʷᵐ {C = ‵ ι} ℓ wfBase wf★ r (tag ι) =
+    (‵ ι) !ᶜ , cast-tag wfBase (‵ ι) refl , NW.tag (‵ ι)
+  coerce-upʷᵐ ℓ (wf⇒ hA hB) wf★ r (tag_⇛_ p q)
+      with coerce-up-fun-starˢʷ ℓ hA hB r p q
+  coerce-upʷᵐ ℓ (wf⇒ hA hB) wf★ r (tag_⇛_ p q)
+      | c , c⊑ , cˢ =
+    c , c⊑
+  coerce-upʷᵐ {C = ＇ X} ℓ hX wf★ r (tagˣ X⊑★)
+      with realizes-star-upʷ r X⊑★
+  coerce-upʷᵐ {C = ＇ X} ℓ hX wf★ r (tagˣ X⊑★)
+      | c , c⊑ , cˢ =
+    c , c⊑
+  coerce-upʷᵐ {A = B} ℓ (wf∀ hA) hB r (ν occ p)
+      with coerce-upʷᵐ ℓ
+             hA
+             (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
+             (Realizesᴺᵂ-ν-inst r)
+             p
+  coerce-upʷᵐ {A = B} ℓ (wf∀ hA) hB r (ν occ p)
+      | c , c⊑ =
+    instᶜ B c , cast-inst hB occ (proj₁ c⊑) , NW.inst (proj₂ c⊑)
+
+  coerce-downⁿᵐ :
+    ∀ {μ Δ Σ Φ C A} →
+    (ℓ : Label) →
+    WfTy Δ C →
+    WfTy Δ A →
+    Realizesᴺᵂ μ Δ Σ Φ →
+    Φ ⊢ C ⊑ A →
+    Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ C
+  coerce-downⁿᵐ ℓ wf★ wf★ r id★ =
+    idᶜ ★ , cast-id wf★ refl , NW.id★
+  coerce-downⁿᵐ {C = ＇ X} {A = ＇ Y} ℓ hX hY r (idˣ X⊑Y) =
+    realizes-xx-downⁿ r X⊑Y
+  coerce-downⁿᵐ {C = ‵ ι} ℓ wfBase wfBase r idι =
+    idᶜ (‵ ι) , cast-id wfBase refl , NW.cross (NW.id-‵ ι)
+  coerce-downⁿᵐ ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) r (p ↦ q)
+      with coerce-upʷᵐ ℓ hA hA′ r p
+         | coerce-downⁿᵐ ℓ hB hB′ r q
+  coerce-downⁿᵐ ℓ (wf⇒ hA hB) (wf⇒ hA′ hB′) r (p ↦ q)
+      | s , s⊑ | t , t⊒ =
+    (s ↦ᶜ t) , cast-fun (proj₁ s⊑) (proj₁ t⊒) ,
+    NW.cross (proj₂ s⊑ NW.↦ proj₂ t⊒)
+  coerce-downⁿᵐ ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
+      with coerce-downⁿᵐ ℓ hA hB (Realizesᴺᵂ-∀ⁱ r) p
+  coerce-downⁿᵐ ℓ (wf∀ hA) (wf∀ hB) r (∀ⁱ p)
+      | c , c⊒ =
+    `∀ᶜ c , cast-all (proj₁ c⊒) , NW.cross (NW.`∀ (proj₂ c⊒))
+  coerce-downⁿᵐ {C = ‵ ι} ℓ wfBase wf★ r (tag ι) =
+    (‵ ι) ？ᶜ , cast-untag wfBase (‵ ι) refl , NW.untag (‵ ι)
+  coerce-downⁿᵐ ℓ (wf⇒ hA hB) wf★ r (tag_⇛_ p q)
+      with coerce-down-fun-starˢⁿ ℓ hA hB r p q
+  coerce-downⁿᵐ ℓ (wf⇒ hA hB) wf★ r (tag_⇛_ p q)
+      | c , c⊒ , cˢ =
+    c , c⊒
+  coerce-downⁿᵐ {C = ＇ X} ℓ hX wf★ r (tagˣ X⊑★)
+      with realizes-star-downⁿ r X⊑★
+  coerce-downⁿᵐ {C = ＇ X} ℓ hX wf★ r (tagˣ X⊑★)
+      | c , c⊒ , cˢ =
+    c , c⊒
+  coerce-downⁿᵐ {A = B} ℓ (wf∀ hA) hB r (ν occ p)
+      with coerce-downⁿᵐ ℓ
+             hA
+             (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
+             (Realizesᴺᵂ-ν-gen r)
+             p
+  coerce-downⁿᵐ {A = B} ℓ (wf∀ hA) hB r (ν occ p)
+      | c , c⊒ =
+    genᶜ B c , cast-gen hB occ (proj₁ c⊒) , NW.gen (proj₂ c⊒)
+
+  up-star-view :
+    ∀ {μ Δ Σ Φ A} →
+    (ℓ : Label) →
+    WfTy Δ A →
+    (r : Realizesᴺᵂ μ Δ Σ Φ) →
+    (p : Φ ⊢ A ⊑ ★) →
+    UpStarView r p
+  up-star-view ℓ wf★ r id★ =
+    up★-id
+  up-star-view {A = ‵ ι} ℓ wfBase r (tag ι) =
+    up★-strict
+      (cast-tag wfBase (‵ ι) refl , NW.tag (‵ ι))
+      (NW.strict-tag (‵ ι))
+  up-star-view ℓ (wf⇒ hA hB) r (tag_⇛_ p q)
+      with coerce-up-fun-starˢʷ ℓ hA hB r p q
+  up-star-view ℓ (wf⇒ hA hB) r (tag_⇛_ p q)
+      | c , c⊑ , cˢ =
+    up★-strict c⊑ cˢ
+  up-star-view {A = ＇ X} ℓ hX r (tagˣ X⊑★)
+      with realizes-star-upʷ r X⊑★
+  up-star-view {A = ＇ X} ℓ hX r (tagˣ X⊑★)
+      | c , c⊑ , cˢ =
+    up★-strict c⊑ cˢ
+  up-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν occ p)
+      with coerce-upʷᵐ ℓ hA wf★ (Realizesᴺᵂ-ν-inst r) p
+  up-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν occ p)
+      | c , c⊑ =
+    up★-strict
+      (cast-inst wf★ occ (proj₁ c⊑) , NW.inst (proj₂ c⊑))
+      (NW.strict-inst (proj₂ c⊑))
+
+  down-star-view :
+    ∀ {μ Δ Σ Φ A} →
+    (ℓ : Label) →
+    WfTy Δ A →
+    (r : Realizesᴺᵂ μ Δ Σ Φ) →
+    (p : Φ ⊢ A ⊑ ★) →
+    DownStarView r p
+  down-star-view ℓ wf★ r id★ =
+    down★-id
+  down-star-view {A = ‵ ι} ℓ wfBase r (tag ι) =
+    down★-strict
+      (cast-untag wfBase (‵ ι) refl , NW.untag (‵ ι))
+      (NW.strict-untag (‵ ι))
+  down-star-view ℓ (wf⇒ hA hB) r (tag_⇛_ p q)
+      with coerce-down-fun-starˢⁿ ℓ hA hB r p q
+  down-star-view ℓ (wf⇒ hA hB) r (tag_⇛_ p q)
+      | c , c⊒ , cˢ =
+    down★-strict c⊒ cˢ
+  down-star-view {A = ＇ X} ℓ hX r (tagˣ X⊑★)
+      with realizes-star-downⁿ r X⊑★
+  down-star-view {A = ＇ X} ℓ hX r (tagˣ X⊑★)
+      | c , c⊒ , cˢ =
+    down★-strict c⊒ cˢ
+  down-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν occ p)
+      with coerce-downⁿᵐ ℓ hA wf★ (Realizesᴺᵂ-ν-gen r) p
+  down-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν occ p)
+      | c , c⊒ =
+    down★-strict
+      (cast-gen wf★ occ (proj₁ c⊒) , NW.gen (proj₂ c⊒))
+      (NW.strict-gen (proj₂ c⊒))
+
+  coerce-up-fun-starˢʷ :
+    ∀ {μ Δ Σ Φ A B} →
+    (ℓ : Label) →
+    WfTy Δ A →
+    WfTy Δ B →
+    (r : Realizesᴺᵂ μ Δ Σ Φ) →
+    Φ ⊢ A ⊑ ★ →
+    Φ ⊢ B ⊑ ★ →
+    Σ[ c ∈ Coercion ]
+      (μ ∣ Δ ∣ Σ ⊢ c ∶ A ⇒ B ⊑ ★) × NW.StrictWidening c
+  coerce-up-fun-starˢʷ ℓ hA hB r p q
+      with down-star-view ℓ hA r p | up-star-view ℓ hB r q
+  coerce-up-fun-starˢʷ ℓ hA hB r p q
+      | down★-id | up★-id =
+    ((★ ⇒ ★) !ᶜ) ,
+    (cast-tag (wf⇒ wf★ wf★) ★⇒★ refl , NW.tag ★⇒★) ,
+    NW.strict-tag ★⇒★
+  coerce-up-fun-starˢʷ ℓ hA hB r p q
+      | down★-id | up★-strict {c = t} t⊑ tˢ =
+    ((idᶜ ★ ↦ᶜ t) ︔ᶜ ((★ ⇒ ★) !ᶜ)) ,
+    (cast-seq
+      (cast-fun (cast-id wf★ refl) (proj₁ t⊑))
+      (cast-tag (wf⇒ wf★ wf★) ★⇒★ refl) ,
+     NW.strictʷ→widen (NW.strict-tag-seq (NW.cw-funʳ NW.id★ tˢ) ★⇒★)) ,
+    NW.strict-tag-seq (NW.cw-funʳ NW.id★ tˢ) ★⇒★
+  coerce-up-fun-starˢʷ ℓ hA hB r p q
+      | down★-strict {c = s} s⊒ sˢ | up★-id =
+    ((s ↦ᶜ idᶜ ★) ︔ᶜ ((★ ⇒ ★) !ᶜ)) ,
+    (cast-seq
+      (cast-fun (proj₁ s⊒) (cast-id wf★ refl))
+      (cast-tag (wf⇒ wf★ wf★) ★⇒★ refl) ,
+     NW.strictʷ→widen (NW.strict-tag-seq (NW.cw-funˡ sˢ NW.id★) ★⇒★)) ,
+    NW.strict-tag-seq (NW.cw-funˡ sˢ NW.id★) ★⇒★
+  coerce-up-fun-starˢʷ ℓ hA hB r p q
+      | down★-strict {c = s} s⊒ sˢ
+      | up★-strict {c = t} t⊑ tˢ =
+    ((s ↦ᶜ t) ︔ᶜ ((★ ⇒ ★) !ᶜ)) ,
+    (cast-seq
+      (cast-fun (proj₁ s⊒) (proj₁ t⊑))
+      (cast-tag (wf⇒ wf★ wf★) ★⇒★ refl) ,
+     NW.strictʷ→widen
+       (NW.strict-tag-seq (NW.cw-funˡ sˢ (proj₂ t⊑)) ★⇒★)) ,
+    NW.strict-tag-seq (NW.cw-funˡ sˢ (proj₂ t⊑)) ★⇒★
+
+  coerce-down-fun-starˢⁿ :
+    ∀ {μ Δ Σ Φ A B} →
+    (ℓ : Label) →
+    WfTy Δ A →
+    WfTy Δ B →
+    (r : Realizesᴺᵂ μ Δ Σ Φ) →
+    Φ ⊢ A ⊑ ★ →
+    Φ ⊢ B ⊑ ★ →
+    Σ[ c ∈ Coercion ]
+      (μ ∣ Δ ∣ Σ ⊢ c ∶ ★ ⊒ A ⇒ B) × NW.StrictNarrowing c
+  coerce-down-fun-starˢⁿ ℓ hA hB r p q
+      with up-star-view ℓ hA r p | down-star-view ℓ hB r q
+  coerce-down-fun-starˢⁿ ℓ hA hB r p q
+      | up★-id | down★-id =
+    ((★ ⇒ ★) ？ᶜ) ,
+    (cast-untag (wf⇒ wf★ wf★) ★⇒★ refl , NW.untag ★⇒★) ,
+    NW.strict-untag ★⇒★
+  coerce-down-fun-starˢⁿ ℓ hA hB r p q
+      | up★-id | down★-strict {c = t} t⊒ tˢ =
+    (((★ ⇒ ★) ？ᶜ) ︔ᶜ (idᶜ ★ ↦ᶜ t)) ,
+    (cast-seq
+      (cast-untag (wf⇒ wf★ wf★) ★⇒★ refl)
+      (cast-fun (cast-id wf★ refl) (proj₁ t⊒)) ,
+     NW.strictⁿ→narrow (NW.strict-untag-seq ★⇒★
+       (NW.cn-funʳ NW.id★ tˢ))) ,
+    NW.strict-untag-seq ★⇒★ (NW.cn-funʳ NW.id★ tˢ)
+  coerce-down-fun-starˢⁿ ℓ hA hB r p q
+      | up★-strict {c = s} s⊑ sˢ | down★-id =
+    (((★ ⇒ ★) ？ᶜ) ︔ᶜ (s ↦ᶜ idᶜ ★)) ,
+    (cast-seq
+      (cast-untag (wf⇒ wf★ wf★) ★⇒★ refl)
+      (cast-fun (proj₁ s⊑) (cast-id wf★ refl)) ,
+     NW.strictⁿ→narrow (NW.strict-untag-seq ★⇒★
+       (NW.cn-funˡ sˢ NW.id★))) ,
+    NW.strict-untag-seq ★⇒★ (NW.cn-funˡ sˢ NW.id★)
+  coerce-down-fun-starˢⁿ ℓ hA hB r p q
+      | up★-strict {c = s} s⊑ sˢ
+      | down★-strict {c = t} t⊒ tˢ =
+    (((★ ⇒ ★) ？ᶜ) ︔ᶜ (s ↦ᶜ t)) ,
+    (cast-seq
+      (cast-untag (wf⇒ wf★ wf★) ★⇒★ refl)
+      (cast-fun (proj₁ s⊑) (proj₁ t⊒)) ,
+     NW.strictⁿ→narrow
+       (NW.strict-untag-seq ★⇒★ (NW.cn-funˡ sˢ (proj₂ t⊒)))) ,
+    NW.strict-untag-seq ★⇒★ (NW.cn-funˡ sˢ (proj₂ t⊒))
+
+coerce-upʷ :
+  ∀ {μ Δ Σ Φ C A} →
+  (ℓ : Label) →
+  WfTy Δ C →
+  WfTy Δ A →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  Φ ⊢ C ⊑ A →
+  Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ C ⊑ A
+coerce-upʷ = coerce-upʷᵐ
+
+coerce-downⁿ :
+  ∀ {μ Δ Σ Φ C A} →
+  (ℓ : Label) →
+  WfTy Δ C →
+  WfTy Δ A →
+  Realizesᴺᵂ μ Δ Σ Φ →
+  Φ ⊢ C ⊑ A →
+  Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ C
+coerce-downⁿ = coerce-downⁿᵐ
 
 ------------------------------------------------------------------------
 -- Coercion synthesis from imprecision

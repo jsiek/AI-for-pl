@@ -24,7 +24,7 @@ open import Coercions
     ; _∣_∣_⊢_∶_=⇒_
     ; reveal
     )
-open import Imprecision using (_⊢_~_; id★; _↦_; tag_⇒_)
+open import Imprecision using (_⊢_~_; id★; _↦_; tag_⇛_)
 open import Primitives using (Const; Prim; constTy)
 open import proof.CompileCoercions using (coerce-up; coerce-down; realizes-idᵢ)
 open import proof.CoercionProperties
@@ -217,7 +217,7 @@ arrow★-consistent :
   Δ ⊢ A ~ ★ →
   Δ ⊢ (A ⇒ ★) ~ ★
 arrow★-consistent (C , C⊑A , C⊑★) =
-  C ⇒ ★ , (C⊑A ↦ id★) , (tag C⊑★ ⇒ id★)
+  C ⇒ ★ , (C⊑A ↦ id★) , (tag C⊑★ ⇛ id★)
 
 cast :
   ∀ {Δ A B} →

@@ -5,8 +5,7 @@ module ImprecisionWf where
 --   * Reuses the assumptions from `Imprecision`, but indexes
 --     derivations by separate source and target type contexts so each
 --     derivation determines well-formed endpoints.
---   * Exposes erasure back to raw imprecision and endpoint well-formedness
---     theorems for the indexed judgment
+--   * Exposes endpoint well-formedness theorems for the indexed judgment
 --     `Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ`.
 
 open import Agda.Builtin.Equality using (_≡_)
@@ -14,10 +13,9 @@ open import Data.Bool using (true)
 open import Data.List using (_∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (_<_; zero; suc)
-open import Data.Product using (_×_; _,_; proj₁; proj₂)
+open import Data.Product using (_×_; _,_)
 
 open import Types
-import Imprecision as Raw
 open import Imprecision public using
   ( ImpAssm
   ; _ˣ⊑★
@@ -28,9 +26,6 @@ open import Imprecision public using
   ; ⇑ᵢ
   ; ⇑ᴸᵢ
   )
-open import proof.ImprecisionProperties using
-  (WfImpCtx²; ∀ᵢ-wf²; νᵢ-wf²)
-open import proof.TypeProperties using (WfTy-un⇑ᵗ)
 
 ------------------------------------------------------------------------
 -- Type imprecision with well-formed endpoints
@@ -69,7 +64,7 @@ data _∣_⊢_⊑_⊣_ (Φ : ImpCtx) (Δᴸ : TyCtx) :
     -----------------------------
     → Φ ∣ Δᴸ ⊢ ‵ ι ⊑ ★ ⊣ Δᴿ
 
-  tag_⇒_ : ∀ {A₁ A₂ Δᴿ}
+  tag_⇛_ : ∀ {A₁ A₂ Δᴿ}
     → Φ ∣ Δᴸ ⊢ A₁ ⊑ ★ ⊣ Δᴿ
     → Φ ∣ Δᴸ ⊢ A₂ ⊑ ★ ⊣ Δᴿ
     --------------------------------
@@ -83,44 +78,10 @@ data _∣_⊢_⊑_⊣_ (Φ : ImpCtx) (Δᴸ : TyCtx) :
 
   ν : ∀ {A B Δᴿ}
     → occurs zero A ≡ true
-    → (((0 ˣ⊑★) ∷ ⇑ᵢ Φ)
-        ∣ suc Δᴸ ⊢ A ⊑ ⇑ᵗ B ⊣ suc Δᴿ)
+    → (((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+        ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ)
     ------------------------------------------------
     → Φ ∣ Δᴸ ⊢ (`∀ A) ⊑ B ⊣ Δᴿ
-
-------------------------------------------------------------------------
--- Erasure to raw imprecision
-------------------------------------------------------------------------
-
-erase⊑ :
-  ∀ {Δᴸ Δᴿ Φ A B} →
-  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
-  Raw._⊢_⊑_ Φ A B
-erase⊑ id★ = Raw.id★
-erase⊑ (idˣ X⊑Y∈ _ _) = Raw.idˣ X⊑Y∈
-erase⊑ idι = Raw.idι
-erase⊑ (p ↦ q) = Raw._↦_ (erase⊑ p) (erase⊑ q)
-erase⊑ (∀ⁱ p) = Raw.∀ⁱ (erase⊑ p)
-erase⊑ (tag ι) = Raw.tag ι
-erase⊑ (tag_⇒_ p q) = Raw.tag_⇒_ (erase⊑ p) (erase⊑ q)
-erase⊑ (tagˣ X⊑★∈ _) = Raw.tagˣ X⊑★∈
-erase⊑ (ν occA p) = Raw.ν occA (erase⊑ p)
-
-raw→wf :
-  ∀ {Δᴸ Δᴿ Φ A B} →
-  WfImpCtx² Δᴸ Δᴿ Φ →
-  Raw._⊢_⊑_ Φ A B →
-  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ
-raw→wf hΦ Raw.id★ = id★
-raw→wf hΦ (Raw.idˣ X⊑Y∈) =
-  idˣ X⊑Y∈ (proj₁ (hΦ X⊑Y∈)) (proj₂ (hΦ X⊑Y∈))
-raw→wf hΦ Raw.idι = idι
-raw→wf hΦ (p Raw.↦ q) = raw→wf hΦ p ↦ raw→wf hΦ q
-raw→wf hΦ (Raw.∀ⁱ p) = ∀ⁱ (raw→wf (∀ᵢ-wf² hΦ) p)
-raw→wf hΦ (Raw.tag ι) = tag ι
-raw→wf hΦ (Raw.tag_⇒_ p q) = tag_⇒_ (raw→wf hΦ p) (raw→wf hΦ q)
-raw→wf hΦ (Raw.tagˣ X⊑★∈) = tagˣ X⊑★∈ (hΦ X⊑★∈)
-raw→wf hΦ (Raw.ν occA p) = ν occA (raw→wf (νᵢ-wf² hΦ) p)
 
 ------------------------------------------------------------------------
 -- Endpoint well-formedness
@@ -143,7 +104,7 @@ mutual
   ⊑-src-wf (p ↦ q) = wf⇒ (⊑-src-wf p) (⊑-src-wf q)
   ⊑-src-wf (∀ⁱ p) = wf∀ (⊑-src-wf p)
   ⊑-src-wf (tag ι) = wfBase
-  ⊑-src-wf (tag_⇒_ p q) = wf⇒ (⊑-src-wf p) (⊑-src-wf q)
+  ⊑-src-wf (tag_⇛_ p q) = wf⇒ (⊑-src-wf p) (⊑-src-wf q)
   ⊑-src-wf (tagˣ _ X<Δᴸ) = wfVar X<Δᴸ
   ⊑-src-wf (ν occA p) = wf∀ (⊑-src-wf p)
 
@@ -153,9 +114,9 @@ mutual
   ⊑-tgt-wf (p ↦ q) = wf⇒ (⊑-tgt-wf p) (⊑-tgt-wf q)
   ⊑-tgt-wf (∀ⁱ p) = wf∀ (⊑-tgt-wf p)
   ⊑-tgt-wf (tag ι) = wf★
-  ⊑-tgt-wf (tag_⇒_ p q) = wf★
+  ⊑-tgt-wf (tag_⇛_ p q) = wf★
   ⊑-tgt-wf (tagˣ _ _) = wf★
-  ⊑-tgt-wf (ν occA p) = WfTy-un⇑ᵗ (⊑-tgt-wf p)
+  ⊑-tgt-wf (ν occA p) = ⊑-tgt-wf p
 
 ⊑-wf :
   ∀ {Δᴸ Δᴿ Φ A B} →

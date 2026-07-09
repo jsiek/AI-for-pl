@@ -354,10 +354,10 @@ mutual
     `∀ᶜ c , cast-all c⊢
   coerce-upᵐ {C = ‵ ι} ℓ wfBase wf★ ok r (tag ι) =
     ((‵ ι) !ᶜ) , cast-tag wfBase (‵ ι) refl
-  coerce-upᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇒_ p q)
+  coerce-upᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇛_ p q)
       with coerce-downᵐ ℓ hA wf★ refl r p
          | coerce-upᵐ ℓ hB wf★ refl r q
-  coerce-upᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇒_ p q)
+  coerce-upᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇛_ p q)
       | s , s⊢ | t , t⊢ =
     ((s ↦ᶜ t) ︔ᶜ ((★ ⇒ ★) !ᶜ)) ,
     cast-seq (cast-fun s⊢ t⊢) (cast-tag (wf⇒ wf★ wf★) ★⇒★ refl)
@@ -413,10 +413,10 @@ mutual
     `∀ᶜ c , cast-all c⊢
   coerce-downᵐ {C = ‵ ι} ℓ wfBase wf★ ok r (tag ι) =
     ((‵ ι) ？ᶜ) , cast-untag wfBase (‵ ι) refl
-  coerce-downᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇒_ p q)
+  coerce-downᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇛_ p q)
       with coerce-upᵐ ℓ hA wf★ refl r p
          | coerce-downᵐ ℓ hB wf★ refl r q
-  coerce-downᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇒_ p q)
+  coerce-downᵐ ℓ (wf⇒ hA hB) wf★ ok r (tag_⇛_ p q)
       | s , s⊢ | t , t⊢ =
     (((★ ⇒ ★) ？ᶜ) ︔ᶜ (s ↦ᶜ t)) ,
     cast-seq (cast-untag (wf⇒ wf★ wf★) ★⇒★ refl) (cast-fun s⊢ t⊢)

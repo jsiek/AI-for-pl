@@ -42,7 +42,7 @@ open import Imprecision
     ; ∀ⁱ_
     ; tag_
     ; tagˣ_
-    ; tag_⇒_
+    ; tag_⇛_
     ; ν
     )
 open import proof.ImprecisionProperties using (⊑-refl-idᵢ; ⊑-tgt-wf-idᵢ)
@@ -1852,7 +1852,7 @@ mlb? A B with search-mlb? A B
 --   Φᴸ ⊢ C ⊑ A × Φᴿ ⊢ C ⊑ B
 --
 -- The variable cases consume one `CAssm`.  The base/star cases use `id★`,
--- `idι`, `tag`, `tag_⇒_`, and `tagˣ`.  The arrow cases use recursive
+-- `idι`, `tag`, `tag_⇛_`, and `tagˣ`.  The arrow cases use recursive
 -- `search-mlb?-lower` results plus `merge-assms-preserves`.
 --
 -- Search proof theorem:
@@ -2425,8 +2425,8 @@ rename-assm²-⇑ᴸᵢ h {a = suc X ˣ⊑ˣ Y} (there a∈) =
       {occB = trans (occurs-zero-rename-ext σ B) occB}
       (⊑-renameᵗ² (rename-assm²-⇑ᵢ h) p)
 ⊑-renameᵗ² h (tag ι) = tag ι
-⊑-renameᵗ² h (tag_⇒_ p q) =
-  tag_⇒_ (⊑-renameᵗ² h p) (⊑-renameᵗ² h q)
+⊑-renameᵗ² h (tag_⇛_ p q) =
+  tag_⇛_ (⊑-renameᵗ² h p) (⊑-renameᵗ² h q)
 ⊑-renameᵗ² h (tagˣ x∈) = tagˣ (h x∈)
 ⊑-renameᵗ² {ρ = ρ} h
     (ν {A = A} {B = B} occA p) =
@@ -2520,7 +2520,7 @@ left-spine-ctx-incl (rightOnly ∷ bs) {Φ = Φ} {Ψ = Ψ} incl =
     incl′ (here refl) = here refl
     incl′ (there a∈) = there (⇑ᵢ-incl incl a∈)
 ⊑-mono incl (tag ι) = tag ι
-⊑-mono incl (tag_⇒_ p q) = tag_⇒_ (⊑-mono incl p) (⊑-mono incl q)
+⊑-mono incl (tag_⇛_ p q) = tag_⇛_ (⊑-mono incl p) (⊑-mono incl q)
 ⊑-mono incl (tagˣ x∈) = tagˣ (incl x∈)
 ⊑-mono {Φ = Φ} {Ψ = Ψ} incl (ν occ p) =
   ν occ
@@ -3520,8 +3520,8 @@ discharge-ν d .discharge-star {X = suc X} (there x⊑★∈) =
   ∀ⁱ_ {occA = occA} {occB = occB}
     (⊑-discharge (discharge-∀ d) hB p)
 ⊑-discharge d wf★ (tag ι) = tag ι
-⊑-discharge d wf★ (tag_⇒_ p q) =
-  tag_⇒_ (⊑-discharge d wf★ p) (⊑-discharge d wf★ q)
+⊑-discharge d wf★ (tag_⇛_ p q) =
+  tag_⇛_ (⊑-discharge d wf★ p) (⊑-discharge d wf★ q)
 ⊑-discharge d wf★ (tagˣ x⊑★∈) =
   tagˣ (discharge-star d x⊑★∈)
 ⊑-discharge d hB (ν occA p) =
@@ -3606,7 +3606,7 @@ mutual
       | just (C₁ , Γ₁) | just (C₂ , Γ₂) | nothing
   core-mlb?-lower-raw {A = ★} {B = B₁ ⇒ B₂} wf★ (wf⇒ hB₁ hB₂) refl
       | just (C₁ , Γ₁) | just (C₂ , Γ₂) | just Γ =
-    ( tag_⇒_
+    ( tag_⇛_
         (⊑-mono left₁ (proj₁ lower₁))
         (⊑-mono left₂ (proj₁ lower₂))
     , ⊑-mono right₁ (proj₂ lower₁) ↦ ⊑-mono right₂ (proj₂ lower₂)
@@ -3653,7 +3653,7 @@ mutual
   core-mlb?-lower-raw {A = A₁ ⇒ A₂} {B = ★} (wf⇒ hA₁ hA₂) wf★ refl
       | just (C₁ , Γ₁) | just (C₂ , Γ₂) | just Γ =
     ( ⊑-mono left₁ (proj₁ lower₁) ↦ ⊑-mono left₂ (proj₁ lower₂)
-    , tag_⇒_
+    , tag_⇛_
         (⊑-mono right₁ (proj₂ lower₁))
         (⊑-mono right₂ (proj₂ lower₂))
     )
@@ -3866,7 +3866,7 @@ mlb-type {Γ = Γ} (idι {ι = ι}) idι = ‵ ι
 mlb-type {Γ = Γ} idι (tag ι) = ‵ ι
 mlb-type {Γ = Γ} (p₁ ↦ p₂) (q₁ ↦ q₂) =
   mlb-type p₁ q₁ ⇒ mlb-type p₂ q₂
-mlb-type {Γ = Γ} (p₁ ↦ p₂) (tag_⇒_ q₁ q₂) =
+mlb-type {Γ = Γ} (p₁ ↦ p₂) (tag_⇛_ q₁ q₂) =
   mlb-type p₁ q₁ ⇒ mlb-type p₂ q₂
 mlb-type {Γ = Γ} (∀ⁱ p) (∀ⁱ q) =
   `∀ (mlb-type {Γ = same ∷ Γ} p q)
@@ -3874,9 +3874,9 @@ mlb-type {Γ = Γ} (∀ⁱ p) (ν occ q) =
   `∀ (mlb-type {Γ = left ∷ Γ} p q)
 mlb-type {Γ = Γ} (tag ι) idι = ‵ ι
 mlb-type {Γ = Γ} (tag ι) (tag .ι) = ★
-mlb-type {Γ = Γ} (tag_⇒_ p₁ p₂) (q₁ ↦ q₂) =
+mlb-type {Γ = Γ} (tag_⇛_ p₁ p₂) (q₁ ↦ q₂) =
   mlb-type p₁ q₁ ⇒ mlb-type p₂ q₂
-mlb-type {Γ = Γ} (tag_⇒_ p₁ p₂) (tag_⇒_ q₁ q₂) = ★
+mlb-type {Γ = Γ} (tag_⇛_ p₁ p₂) (tag_⇛_ q₁ q₂) = ★
 mlb-type {Γ = Γ} (tagˣ w⊑★) (idˣ w⊑y) =
   ＇ choice-star-var Γ w⊑★ w⊑y
 mlb-type {Γ = Γ} (tagˣ w⊑★) (tagˣ w⊑★′) = ★
@@ -4237,7 +4237,7 @@ maximal-star-arrow-from-maximal :
 maximal-star-arrow-from-maximal mlb₁ mlb₂ =
   record
     { lower = lower mlb₁ ⇒ lower mlb₂
-    ; lower-left = tag_⇒_ (lower-left mlb₁) (lower-left mlb₂)
+    ; lower-left = tag_⇛_ (lower-left mlb₁) (lower-left mlb₂)
     ; lower-right = lower-right mlb₁ ↦ lower-right mlb₂
     ; maximal = maximal′
     }
@@ -4246,7 +4246,7 @@ maximal-star-arrow-from-maximal mlb₁ mlb₂ =
       ∀ {D} →
       CommonLowerBound _ ★ (_ ⇒ _) D →
       ¬ StrictlyBelow _ (lower mlb₁ ⇒ lower mlb₂) D
-    maximal′ ((tag_⇒_ D₁⊑★ D₂⊑★) , (D₁⊑B₁ ↦ D₂⊑B₂))
+    maximal′ ((tag_⇛_ D₁⊑★ D₂⊑★) , (D₁⊑B₁ ↦ D₂⊑B₂))
         ((C₁⊑D₁ ↦ C₂⊑D₂) , ¬D⊑C) =
       maximal mlb₁ (D₁⊑★ , D₁⊑B₁)
         ( C₁⊑D₁
@@ -4256,7 +4256,7 @@ maximal-star-arrow-from-maximal mlb₁ mlb₂ =
               , λ D₂⊑C₂ → ¬D⊑C (D₁⊑C₁ ↦ D₂⊑C₂)
               )
         )
-    maximal′ (id★ , ()) ((tag_⇒_ C₁⊑★ C₂⊑★) , ¬D⊑C)
+    maximal′ (id★ , ()) ((tag_⇛_ C₁⊑★ C₂⊑★) , ¬D⊑C)
 
 maximal-arrow-star-from-maximal :
   ∀ {Δ A₁ A₂} →
@@ -4267,7 +4267,7 @@ maximal-arrow-star-from-maximal mlb₁ mlb₂ =
   record
     { lower = lower mlb₁ ⇒ lower mlb₂
     ; lower-left = lower-left mlb₁ ↦ lower-left mlb₂
-    ; lower-right = tag_⇒_ (lower-right mlb₁) (lower-right mlb₂)
+    ; lower-right = tag_⇛_ (lower-right mlb₁) (lower-right mlb₂)
     ; maximal = maximal′
     }
   where
@@ -4275,7 +4275,7 @@ maximal-arrow-star-from-maximal mlb₁ mlb₂ =
       ∀ {D} →
       CommonLowerBound _ (_ ⇒ _) ★ D →
       ¬ StrictlyBelow _ (lower mlb₁ ⇒ lower mlb₂) D
-    maximal′ ((D₁⊑A₁ ↦ D₂⊑A₂) , (tag_⇒_ D₁⊑★ D₂⊑★))
+    maximal′ ((D₁⊑A₁ ↦ D₂⊑A₂) , (tag_⇛_ D₁⊑★ D₂⊑★))
         ((C₁⊑D₁ ↦ C₂⊑D₂) , ¬D⊑C) =
       maximal mlb₁ (D₁⊑A₁ , D₁⊑★)
         ( C₁⊑D₁
@@ -4322,7 +4322,7 @@ maximal-star-arrow-from-maximalᶜ :
 maximal-star-arrow-from-maximalᶜ mlb₁ mlb₂ =
   record
     { lowerᶜ = lowerᶜ mlb₁ ⇒ lowerᶜ mlb₂
-    ; lower-leftᶜ = tag_⇒_ (lower-leftᶜ mlb₁) (lower-leftᶜ mlb₂)
+    ; lower-leftᶜ = tag_⇛_ (lower-leftᶜ mlb₁) (lower-leftᶜ mlb₂)
     ; lower-rightᶜ = lower-rightᶜ mlb₁ ↦ lower-rightᶜ mlb₂
     ; maximalᶜ = maximal′
     }
@@ -4331,7 +4331,7 @@ maximal-star-arrow-from-maximalᶜ mlb₁ mlb₂ =
       ∀ {D} →
       CommonLowerBoundᶜ _ _ ★ (_ ⇒ _) D →
       ¬ StrictlyBelowᶜ _ (lowerᶜ mlb₁ ⇒ lowerᶜ mlb₂) D
-    maximal′ ((tag_⇒_ D₁⊑★ D₂⊑★) , (D₁⊑B₁ ↦ D₂⊑B₂))
+    maximal′ ((tag_⇛_ D₁⊑★ D₂⊑★) , (D₁⊑B₁ ↦ D₂⊑B₂))
         ((C₁⊑D₁ ↦ C₂⊑D₂) , ¬D⊑C) =
       maximalᶜ mlb₁ (D₁⊑★ , D₁⊑B₁)
         ( C₁⊑D₁
@@ -4341,7 +4341,7 @@ maximal-star-arrow-from-maximalᶜ mlb₁ mlb₂ =
               , λ D₂⊑C₂ → ¬D⊑C (D₁⊑C₁ ↦ D₂⊑C₂)
               )
         )
-    maximal′ (id★ , ()) ((tag_⇒_ C₁⊑★ C₂⊑★) , ¬D⊑C)
+    maximal′ (id★ , ()) ((tag_⇛_ C₁⊑★ C₂⊑★) , ¬D⊑C)
 
 maximal-arrow-star-from-maximalᶜ :
   ∀ {Φᴸ Φᴿ Φᴼ A₁ A₂} →
@@ -4352,7 +4352,7 @@ maximal-arrow-star-from-maximalᶜ mlb₁ mlb₂ =
   record
     { lowerᶜ = lowerᶜ mlb₁ ⇒ lowerᶜ mlb₂
     ; lower-leftᶜ = lower-leftᶜ mlb₁ ↦ lower-leftᶜ mlb₂
-    ; lower-rightᶜ = tag_⇒_ (lower-rightᶜ mlb₁) (lower-rightᶜ mlb₂)
+    ; lower-rightᶜ = tag_⇛_ (lower-rightᶜ mlb₁) (lower-rightᶜ mlb₂)
     ; maximalᶜ = maximal′
     }
   where
@@ -4360,7 +4360,7 @@ maximal-arrow-star-from-maximalᶜ mlb₁ mlb₂ =
       ∀ {D} →
       CommonLowerBoundᶜ _ _ (_ ⇒ _) ★ D →
       ¬ StrictlyBelowᶜ _ (lowerᶜ mlb₁ ⇒ lowerᶜ mlb₂) D
-    maximal′ ((D₁⊑A₁ ↦ D₂⊑A₂) , (tag_⇒_ D₁⊑★ D₂⊑★))
+    maximal′ ((D₁⊑A₁ ↦ D₂⊑A₂) , (tag_⇛_ D₁⊑★ D₂⊑★))
         ((C₁⊑D₁ ↦ C₂⊑D₂) , ¬D⊑C) =
       maximalᶜ mlb₁ (D₁⊑A₁ , D₁⊑★)
         ( C₁⊑D₁

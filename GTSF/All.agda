@@ -14,6 +14,9 @@ import Coercions
 import Conversion
 import NarrowWiden
 import GradualTermNarrowing
+import GradualTermImprecision
+import NuTermImprecision
+import proof.CastImprecision
 import StoreCorrespondence
 import NuTerms
 import TermTyping

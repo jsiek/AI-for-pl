@@ -36,7 +36,7 @@ open import Imprecision
     ; ∀ⁱ_
     ; tag_
     ; tagˣ_
-    ; tag_⇒_
+    ; tag_⇛_
     ; ν
     )
 open import proof.ImprecisionProperties using (⊑-refl-idᵢ; ⊑-tgt-wf-idᵢ)
@@ -437,7 +437,7 @@ comparable-arrow-arrow c₁ c₂ =
         (C₁⊑D₁ ↦ C₂⊑D₂) =
       c-comparable c₁ (D₁⊑A₁ , D₁⊑B₁) C₁⊑D₁ ↦
       c-comparable c₂ (D₂⊑A₂ , D₂⊑B₂) C₂⊑D₂
-    comparable (() , _) (tag_⇒_ C₁⊑★ C₂⊑★)
+    comparable (() , _) (tag_⇛_ C₁⊑★ C₂⊑★)
 
 maximal-arrow-arrow :
   ∀ {Δ A₁ A₂ B₁ B₂} →
@@ -499,7 +499,7 @@ maximal-arrow-arrow-from-maximal mlb₁ mlb₂ =
               , λ D₂⊑C₂ → ¬D⊑C (D₁⊑C₁ ↦ D₂⊑C₂)
               )
         )
-    maximal′ (() , _) ((tag_⇒_ C₁⊑★ C₂⊑★) , ¬D⊑C)
+    maximal′ (() , _) ((tag_⇛_ C₁⊑★ C₂⊑★) , ¬D⊑C)
 
 arrow-arrow-domain-consistent :
   ∀ {Δ A₁ A₂ B₁ B₂} →
@@ -532,7 +532,7 @@ star-arrow-domain-consistent :
   Δ ⊢ ★ ~ B₁ ⇒ B₂ →
   Δ ⊢ ★ ~ B₁
 star-arrow-domain-consistent
-    (C₁ ⇒ C₂ , tag_⇒_ C₁⊑★ C₂⊑★ , C₁⊑B₁ ↦ C₂⊑B₂) =
+    (C₁ ⇒ C₂ , tag_⇛_ C₁⊑★ C₂⊑★ , C₁⊑B₁ ↦ C₂⊑B₂) =
   C₁ , C₁⊑★ , C₁⊑B₁
 star-arrow-domain-consistent (`∀ C , C⊑★ , C⊑B) =
   star-arrow-domain-consistent-ν C⊑★ C⊑B
@@ -542,7 +542,7 @@ star-arrow-codomain-consistent :
   Δ ⊢ ★ ~ B₁ ⇒ B₂ →
   Δ ⊢ ★ ~ B₂
 star-arrow-codomain-consistent
-    (C₁ ⇒ C₂ , tag_⇒_ C₁⊑★ C₂⊑★ , C₁⊑B₁ ↦ C₂⊑B₂) =
+    (C₁ ⇒ C₂ , tag_⇛_ C₁⊑★ C₂⊑★ , C₁⊑B₁ ↦ C₂⊑B₂) =
   C₂ , C₂⊑★ , C₂⊑B₂
 star-arrow-codomain-consistent (`∀ C , C⊑★ , C⊑B) =
   star-arrow-codomain-consistent-ν C⊑★ C⊑B
@@ -569,7 +569,7 @@ maximal-star-arrow-from-maximal :
 maximal-star-arrow-from-maximal mlb₁ mlb₂ =
   record
     { lower = lower mlb₁ ⇒ lower mlb₂
-    ; lower-left = tag_⇒_ (lower-left mlb₁) (lower-left mlb₂)
+    ; lower-left = tag_⇛_ (lower-left mlb₁) (lower-left mlb₂)
     ; lower-right = lower-right mlb₁ ↦ lower-right mlb₂
     ; maximal = maximal′
     }
@@ -578,7 +578,7 @@ maximal-star-arrow-from-maximal mlb₁ mlb₂ =
       ∀ {D} →
       CommonLowerBound _ ★ (_ ⇒ _) D →
       ¬ StrictlyBelow _ (lower mlb₁ ⇒ lower mlb₂) D
-    maximal′ ((tag_⇒_ D₁⊑★ D₂⊑★) , (D₁⊑B₁ ↦ D₂⊑B₂))
+    maximal′ ((tag_⇛_ D₁⊑★ D₂⊑★) , (D₁⊑B₁ ↦ D₂⊑B₂))
         ((C₁⊑D₁ ↦ C₂⊑D₂) , ¬D⊑C) =
       maximal mlb₁ (D₁⊑★ , D₁⊑B₁)
         ( C₁⊑D₁
@@ -588,7 +588,7 @@ maximal-star-arrow-from-maximal mlb₁ mlb₂ =
               , λ D₂⊑C₂ → ¬D⊑C (D₁⊑C₁ ↦ D₂⊑C₂)
               )
         )
-    maximal′ (id★ , ()) ((tag_⇒_ C₁⊑★ C₂⊑★) , ¬D⊑C)
+    maximal′ (id★ , ()) ((tag_⇛_ C₁⊑★ C₂⊑★) , ¬D⊑C)
 
 maximal-arrow-star-from-maximal :
   ∀ {Δ A₁ A₂} →
@@ -599,7 +599,7 @@ maximal-arrow-star-from-maximal mlb₁ mlb₂ =
   record
     { lower = lower mlb₁ ⇒ lower mlb₂
     ; lower-left = lower-left mlb₁ ↦ lower-left mlb₂
-    ; lower-right = tag_⇒_ (lower-right mlb₁) (lower-right mlb₂)
+    ; lower-right = tag_⇛_ (lower-right mlb₁) (lower-right mlb₂)
     ; maximal = maximal′
     }
   where
@@ -607,7 +607,7 @@ maximal-arrow-star-from-maximal mlb₁ mlb₂ =
       ∀ {D} →
       CommonLowerBound _ (_ ⇒ _) ★ D →
       ¬ StrictlyBelow _ (lower mlb₁ ⇒ lower mlb₂) D
-    maximal′ ((D₁⊑A₁ ↦ D₂⊑A₂) , (tag_⇒_ D₁⊑★ D₂⊑★))
+    maximal′ ((D₁⊑A₁ ↦ D₂⊑A₂) , (tag_⇛_ D₁⊑★ D₂⊑★))
         ((C₁⊑D₁ ↦ C₂⊑D₂) , ¬D⊑C) =
       maximal mlb₁ (D₁⊑A₁ , D₁⊑★)
         ( C₁⊑D₁
@@ -617,7 +617,7 @@ maximal-arrow-star-from-maximal mlb₁ mlb₂ =
               , λ D₂⊑C₂ → ¬D⊑C (D₁⊑C₁ ↦ D₂⊑C₂)
               )
         )
-    maximal′ (() , id★) ((tag_⇒_ C₁⊑★ C₂⊑★) , ¬D⊑C)
+    maximal′ (() , id★) ((tag_⇛_ C₁⊑★ C₂⊑★) , ¬D⊑C)
 
 ------------------------------------------------------------------------
 -- Shape-directed selector skeleton

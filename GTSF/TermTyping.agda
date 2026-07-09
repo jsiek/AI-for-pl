@@ -9,7 +9,9 @@ module TermTyping where
 --     evidence in compile-generated cast modes.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (true)
 open import Data.List using (_∷_)
+open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_,_; proj₁)
 
@@ -56,9 +58,10 @@ open import NuTerms
 -- `tag-or-idᵈ` is the ordinary compile-cast mode.  `instᵈ` is included
 -- because reducing an `inst` widening exposes its body under a fresh
 -- ν-bound seal.  The weakened form is the mode expected after a surrounding
--- reduction allocates a newer store entry before the cast is reached.
+-- reduction allocates a newer store entry before the cast is reached; the
+-- fresh entry is not mentioned by the shifted coercion, so it only permits id.
 weakenCastᵈ : ModeEnv → ModeEnv
-weakenCastᵈ μ zero = μ zero
+weakenCastᵈ μ zero = id-only
 weakenCastᵈ μ (suc X) = μ X
 
 data CastMode : ModeEnv → Set where
@@ -80,6 +83,10 @@ data CastMode : ModeEnv → Set where
   cast-weaken : ∀ {μ} →
     CastMode μ →
     CastMode (weakenCastᵈ μ)
+
+SealModeStore★ : ModeEnv → Store → Set
+SealModeStore★ μ Σ =
+  ∀ α → sealModeAllowed (μ α) ≡ true → (α , ★) ∈ Σ
 
 ------------------------------------------------------------------------
 -- Typing
@@ -132,6 +139,7 @@ data _∣_∣_⊢_⦂_ (Δ : TyCtx) (Σ : Store) (Γ : Ctx) :
 
   ⊢ν⊑ : ∀ {L B C c μ}
      → CastMode μ
+     → SealModeStore★ (instᵈ μ) ((zero , ★) ∷ ⟰ᵗ Σ)
      → Δ ∣ Σ ∣ Γ ⊢ L ⦂ `∀ C
      → instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ ⊢ c ∶ C ⊑ ⇑ᵗ B
       --------------------------------------------
@@ -162,6 +170,7 @@ data _∣_∣_⊢_⦂_ (Δ : TyCtx) (Σ : Store) (Γ : Ctx) :
 
   ⊢⟨⟩⊒ : ∀ {M A B c μ}
       → CastMode μ
+      → SealModeStore★ μ Σ
       → μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B
       → Δ ∣ Σ ∣ Γ ⊢ M ⦂ A
       -------------------------
@@ -169,6 +178,7 @@ data _∣_∣_⊢_⦂_ (Δ : TyCtx) (Σ : Store) (Γ : Ctx) :
 
   ⊢⟨⟩⊑ : ∀ {M A B c μ}
       → CastMode μ
+      → SealModeStore★ μ Σ
       → μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B
       → Δ ∣ Σ ∣ Γ ⊢ M ⦂ A
       -------------------------
@@ -199,7 +209,7 @@ forget (⊢• refl refl hC vV noV V⊢) =
   NT.⊢• refl refl hC vV noV (forget V⊢)
 forget (⊢ν↑ hA L⊢ c⊢) =
   NT.⊢ν hA (forget L⊢) (conversion↑⇒coercion c⊢)
-forget (⊢ν⊑ mode L⊢ c⊢) =
+forget (⊢ν⊑ mode seal★ L⊢ c⊢) =
   NT.⊢ν wf★ (forget L⊢) (proj₁ c⊢)
 forget (⊢$ κ) =
   NT.⊢$ κ
@@ -209,9 +219,9 @@ forget (⊢⟨⟩↑ c⊢ M⊢) =
   NT.⊢⟨⟩ (conversion↑⇒coercion c⊢) (forget M⊢)
 forget (⊢⟨⟩↓ c⊢ M⊢) =
   NT.⊢⟨⟩ (conversion↓⇒coercion c⊢) (forget M⊢)
-forget (⊢⟨⟩⊒ mode c⊢ M⊢) =
+forget (⊢⟨⟩⊒ mode seal★ c⊢ M⊢) =
   NT.⊢⟨⟩ (proj₁ c⊢) (forget M⊢)
-forget (⊢⟨⟩⊑ mode c⊢ M⊢) =
+forget (⊢⟨⟩⊑ mode seal★ c⊢ M⊢) =
   NT.⊢⟨⟩ (proj₁ c⊢) (forget M⊢)
 forget (⊢blame hA) =
   NT.⊢blame hA

@@ -327,11 +327,11 @@ mutual
   imp? Φ (A₁ ⇒ A₂) (＇ X) = no (λ ())
   imp? Φ (A₁ ⇒ A₂) (‵ ι) = no (λ ())
   imp? Φ (A₁ ⇒ A₂) ★ with imp? Φ A₁ ★ | imp? Φ A₂ ★
-  ... | yes A₁⊑★ | yes A₂⊑★ = yes (tag_⇒_ A₁⊑★ A₂⊑★)
+  ... | yes A₁⊑★ | yes A₂⊑★ = yes (tag_⇛_ A₁⊑★ A₂⊑★)
   ... | no A₁⋢★ | _ =
-    no λ { (tag_⇒_ A₁⊑★ A₂⊑★) → A₁⋢★ A₁⊑★ }
+    no λ { (tag_⇛_ A₁⊑★ A₂⊑★) → A₁⋢★ A₁⊑★ }
   ... | yes A₁⊑★ | no A₂⋢★ =
-    no λ { (tag_⇒_ A₁⊑★ A₂⊑★) → A₂⋢★ A₂⊑★ }
+    no λ { (tag_⇛_ A₁⊑★ A₂⊑★) → A₂⋢★ A₂⊑★ }
   imp? Φ (A₁ ⇒ A₂) (B₁ ⇒ B₂) with imp? Φ A₁ B₁ | imp? Φ A₂ B₂
   ... | yes A₁⊑B₁ | yes A₂⊑B₂ = yes (A₁⊑B₁ ↦ A₂⊑B₂)
   ... | no A₁⋢B₁ | _ = no λ { (A₁⊑B₁ ↦ A₂⊑B₂) → A₁⋢B₁ A₁⊑B₁ }
@@ -415,7 +415,7 @@ mutual
   ⊑-src-wf² hΦ (∀ⁱ p) =
     wf∀ (⊑-src-wf² (∀ᵢ-wf² hΦ) p)
   ⊑-src-wf² hΦ (tag ι) = wfBase
-  ⊑-src-wf² hΦ (tag_⇒_ p q) =
+  ⊑-src-wf² hΦ (tag_⇛_ p q) =
     wf⇒ (⊑-src-wf² hΦ p) (⊑-src-wf² hΦ q)
   ⊑-src-wf² hΦ (tagˣ X⊑★∈) = wfVar (hΦ X⊑★∈)
   ⊑-src-wf² hΦ (ν occA p) =
@@ -429,7 +429,7 @@ mutual
   ⊑-tgt-wf² hΦ (∀ⁱ p) =
     wf∀ (⊑-tgt-wf² (∀ᵢ-wf² hΦ) p)
   ⊑-tgt-wf² hΦ (tag ι) = wf★
-  ⊑-tgt-wf² hΦ (tag_⇒_ p q) = wf★
+  ⊑-tgt-wf² hΦ (tag_⇛_ p q) = wf★
   ⊑-tgt-wf² hΦ (tagˣ X⊑★∈) = wf★
   ⊑-tgt-wf² hΦ (ν occA p) =
     WfTy-un⇑ᵗ (⊑-tgt-wf² (νᵢ-wf² hΦ) p)

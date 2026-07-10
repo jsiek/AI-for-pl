@@ -383,6 +383,50 @@ No route produces a maximal candidate, so the result is:
 nothing
 ```
 
+## Proof Targets
+
+The simple algorithm has three positive proof targets before coherence.
+
+First, raw soundness says every enumerated candidate is a common lower bound:
+
+```agda
+enumMLB-sound :
+  ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
+  WfImpCtx² Δᶜ Δᴸ Φᴸ →
+  WfImpCtx² Δᶜ Δᴿ Φᴿ →
+  C ∈ enumMLB fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B →
+  Φᴸ ∣ Δᶜ ⊢ C ⊑ A ⊣ Δᴸ ×
+  Φᴿ ∣ Δᶜ ⊢ C ⊑ B ⊣ Δᴿ
+```
+
+Second, raw completeness says every common lower bound is below some
+enumerated raw candidate:
+
+```agda
+rawEndpointMlbsAt-complete :
+  ∀ {Δ A B D} →
+  WfTy Δ A →
+  WfTy Δ B →
+  CommonLowerBoundᵢ Δ A B D →
+  ∃[ E ]
+    (E ∈ rawEndpointMlbsAt Δ A B ×
+     idᵢ Δ ∣ Δ ⊢ D ⊑ E ⊣ Δ)
+```
+
+Third, pruned maximality says a kept candidate has no strictly larger common
+lower bound above it:
+
+```agda
+allEndpointMlbsAt-maximal :
+  ∀ {Δ A B C D} →
+  WfTy Δ A →
+  WfTy Δ B →
+  C ∈ allEndpointMlbsAt Δ A B →
+  CommonLowerBoundᵢ Δ A B D →
+  idᵢ Δ ∣ Δ ⊢ C ⊑ D ⊣ Δ →
+  idᵢ Δ ∣ Δ ⊢ D ⊑ C ⊣ Δ
+```
+
 ## Proof Plan
 
 The recommended proof order is:
@@ -395,19 +439,36 @@ The recommended proof order is:
    if `Enum Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C`, then
    `Φᴸ ∣ Δᶜ ⊢ C ⊑ A ⊣ Δᴸ` and
    `Φᴿ ∣ Δᶜ ⊢ C ⊑ B ⊣ Δᴿ`.
-4. Prove maximal-route completeness: if `D` is a maximal common lower bound,
-   then `D` is equivalent to some candidate enumerated by `enumMLB`.
-   The key cases invert the outer proofs for `D ⊑ A` and `D ⊑ B`.
-5. Prove the `ν`/`ν`-elimination lemma and use it in the completeness proof to
-   justify omitting the fourth outer proof combination.
+4. Prove raw completeness: if `D` is any common lower bound of `A` and `B`,
+   then `D` is below some candidate enumerated by `enumMLB`.
+
+   ```agda
+   rawEndpointMlbsAt-complete :
+     ∀ {Δ A B D} →
+     WfTy Δ A →
+     WfTy Δ B →
+     CommonLowerBoundᵢ Δ A B D →
+     ∃[ E ]
+       (E ∈ rawEndpointMlbsAt Δ A B ×
+        idᵢ Δ ∣ Δ ⊢ D ⊑ E ⊣ Δ)
+   ```
+
+   The key induction is on the common-lower evidence for `D`, with recursion
+   controlled by the endpoint shapes and the `fuelFor A B` bound.  The fuel
+   must depend only on `A` and `B`, not on `D`.
+5. Prove the `ν`/`ν`-elimination lemma needed by raw completeness.  The
+   executable `enumMLB` omits the fourth outer proof combination, so this
+   lemma must show that a lower bound using `ν` on both sides is still below
+   a candidate produced by one of the three executable routes.
 6. Prove pruning correctness: removing candidates strictly below another
    enumerated candidate preserves exactly the maximal candidates.
 7. Prove selector soundness and maximality as projections from the pruned list.
 8. Prove endpoint-canonical coherence only after the selector is fixed.
 
-The important induction for completeness is on the pair of lower-bound proofs,
-not on the profile data.  In the `forall` case, proof inversion directly yields
-one of the outer proof combinations above.
+Completeness is the bridge from raw enumeration to pruning.  It does not say
+that every raw candidate is maximal.  It says every common lower bound is below
+some raw candidate, so pruning can detect any strictly larger common lower
+above a selected candidate.
 
 ## Agda Implementation Notes
 

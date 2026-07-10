@@ -6,6 +6,7 @@ MAlonzo/
 *#
 Scratch.agda
 log/
+__pycache__/
 
 # Lean/Lake local build state
 .lake/

@@ -25,8 +25,10 @@ open import Types
 open import Imprecision using (ImpCtx; idᵢ)
 open import ImprecisionWf
 open import proof.EndpointCanonicalMLBSimple using
-  ( allEndpointMlbsAt; arrowProducts; dedupe; endpointCtx; enumMLB
-  ; fuelFor; hasStar; hasStrictAbove?; hasVar; pruneStrictlyBelow
+  ( allEndpointMlbsAt; arrowProducts; below?; dedupe; dedupeSeen
+  ; endpointCtx; enumMLB
+  ; fuelFor; hasStar; hasStrictAbove?; hasVar; memberTy?
+  ; pruneStrictlyBelow
   ; pruneStrictlyBelowFrom
   ; rawEndpointMlbsAt; simpleEndpointMlb; simpleEndpointMlbAt
   ; strictlyBelow?; varCandidate?; varCandidatesUpTo; wrapAll
@@ -36,7 +38,7 @@ open import proof.EndpointCanonicalMLBSimpleSoundness using
   (first-sound; pruneStrictlyBelow-sound; νᵢᶜ-wf²
   )
 open import proof.ImprecisionProperties using
-  ( WfImpCtx²; WfImpCtx-to²; idᵢ-lookup; idᵢ-no-star
+  ( WfImpCtx²; WfImpCtx-to²; idᵢ-lookup; idᵢ-no-star; imp?
   ; idᵢ-var-identity; idᵢ-wf; no-⇑ᵢ-zero-left; no-⇑ᵢ-zero-right
   ; no-⇑ᵢ-zero-star; ⇑ᵢ-★∈
   ; no-⇑ᴸᵢ-zero-left; un⇑ᵢ-★∈; un⇑ᵢ-ˣ∈; un⇑ᴸᵢ-ˣ∈; ∀ᵢ-wf²
@@ -44,6 +46,7 @@ open import proof.ImprecisionProperties using
 open import proof.MaximalLowerBoundsWf using
   ( CommonLowerBoundᵢ; no-occurs-base-lowerᵢ
   ; no-occurs-var-lower-νctxᵢ; no-⇑ᴸᵢ-zero-star
+  ; old⊑→wf-idᵢ; ⊑-forgetᵢ
   ; un⇑ᴸᵢ-★∈; ⇑ᴸᵢ-★∈; ∨-true-leftᵢ; ∨-true-rightᵢ
   ; ⊑-trans-idᵢ
   )
@@ -90,22 +93,96 @@ pruneStrictlyBelow-no-strict-above {Δ = Δ} {C = C} {xs = xs} C∈ =
 -- Current proof frontier
 ------------------------------------------------------------------------
 
+memberTy?-sound :
+  ∀ {C : Ty} {xs : List Ty} →
+  memberTy? C xs ≡ true →
+  C ∈ xs
+memberTy?-sound {xs = []} ()
+memberTy?-sound {C = C} {xs = A ∷ As} ok with C ≟Ty A
+memberTy?-sound {C = .A} {xs = A ∷ As} ok | yes refl = here refl
+memberTy?-sound {C = C} {xs = A ∷ As} ok | no C≢A =
+  there (memberTy?-sound ok)
+
+∉-cons :
+  ∀ {C A : Ty} {xs : List Ty} →
+  ¬ (C ≡ A) →
+  ¬ (C ∈ xs) →
+  ¬ (C ∈ A ∷ xs)
+∉-cons C≢A C∉xs (here C≡A) = C≢A C≡A
+∉-cons C≢A C∉xs (there C∈xs) = C∉xs C∈xs
+
+dedupeSeen-complete :
+  ∀ {C : Ty} {seen xs : List Ty} →
+  C ∈ xs →
+  ¬ (C ∈ seen) →
+  C ∈ dedupeSeen seen xs
+dedupeSeen-complete {xs = []} () C∉seen
+dedupeSeen-complete {C = C} {seen = seen} {xs = A ∷ As} C∈ C∉seen
+    with memberTy? A seen in A∈seen?
+dedupeSeen-complete {C = .A} {seen = seen} {xs = A ∷ As}
+    (here refl) C∉seen | true =
+  ⊥-elim (C∉seen (memberTy?-sound A∈seen?))
+dedupeSeen-complete {C = C} {seen = seen} {xs = A ∷ As}
+    (there C∈) C∉seen | true =
+  dedupeSeen-complete C∈ C∉seen
+dedupeSeen-complete {C = .A} {seen = seen} {xs = A ∷ As}
+    (here refl) C∉seen | false =
+  here refl
+dedupeSeen-complete {C = C} {seen = seen} {xs = A ∷ As}
+    (there C∈) C∉seen | false
+    with C ≟Ty A
+dedupeSeen-complete {C = .A} {seen = seen} {xs = A ∷ As}
+    (there C∈) C∉seen | false | yes refl =
+  here refl
+dedupeSeen-complete {C = C} {seen = seen} {xs = A ∷ As}
+    (there C∈) C∉seen | false | no C≢A =
+  there (dedupeSeen-complete C∈ (∉-cons C≢A C∉seen))
+
+dedupe-complete :
+  ∀ {C : Ty} {xs : List Ty} →
+  C ∈ xs →
+  C ∈ dedupe xs
+dedupe-complete C∈ = dedupeSeen-complete C∈ (λ ())
+
+impᵢ? :
+  ∀ {Δ A B} →
+  Dec (idᵢ Δ ∣ Δ ⊢ A ⊑ B ⊣ Δ)
+impᵢ? {Δ = Δ} {A = A} {B = B} with imp? (idᵢ Δ) A B
+impᵢ? {Δ = Δ} {A = A} {B = B} | yes A⊑B =
+  yes (old⊑→wf-idᵢ A⊑B)
+impᵢ? {Δ = Δ} {A = A} {B = B} | no A⋢B =
+  no (λ A⊑B → A⋢B (⊑-forgetᵢ A⊑B))
+
+below?-trueᵢ :
+  ∀ {Δ A B} →
+  idᵢ Δ ∣ Δ ⊢ A ⊑ B ⊣ Δ →
+  below? Δ A B ≡ true
+below?-trueᵢ {Δ = Δ} {A = A} {B = B} A⊑B
+    with imp? (idᵢ Δ) A B
+below?-trueᵢ {Δ = Δ} {A = A} {B = B} A⊑B | yes p = refl
+below?-trueᵢ {Δ = Δ} {A = A} {B = B} A⊑B | no A⋢B =
+  ⊥-elim (A⋢B (⊑-forgetᵢ A⊑B))
+
+below?-falseᵢ :
+  ∀ {Δ A B} →
+  ¬ (idᵢ Δ ∣ Δ ⊢ A ⊑ B ⊣ Δ) →
+  below? Δ A B ≡ false
+below?-falseᵢ {Δ = Δ} {A = A} {B = B} A⋢B
+    with imp? (idᵢ Δ) A B
+below?-falseᵢ {Δ = Δ} {A = A} {B = B} A⋢B | yes A⊑B =
+  ⊥-elim (A⋢B (old⊑→wf-idᵢ A⊑B))
+below?-falseᵢ {Δ = Δ} {A = A} {B = B} A⋢B | no p = refl
+
+strictlyBelow?-completeᵢ :
+  ∀ {Δ C E} →
+  idᵢ Δ ∣ Δ ⊢ C ⊑ E ⊣ Δ →
+  ¬ (idᵢ Δ ∣ Δ ⊢ E ⊑ C ⊣ Δ) →
+  strictlyBelow? Δ C E ≡ true
+strictlyBelow?-completeᵢ C⊑E E⋢C
+    rewrite below?-trueᵢ C⊑E | below?-falseᵢ E⋢C =
+  refl
+
 postulate
-  dedupe-complete :
-    ∀ {C : Ty} {xs : List Ty} →
-    C ∈ xs →
-    C ∈ dedupe xs
-
-  strictlyBelow?-completeᵢ :
-    ∀ {Δ C E} →
-    idᵢ Δ ∣ Δ ⊢ C ⊑ E ⊣ Δ →
-    ¬ (idᵢ Δ ∣ Δ ⊢ E ⊑ C ⊣ Δ) →
-    strictlyBelow? Δ C E ≡ true
-
-  impᵢ? :
-    ∀ {Δ A B} →
-    Dec (idᵢ Δ ∣ Δ ⊢ A ⊑ B ⊣ Δ)
-
   EnoughFuel : ℕ → Ty → Ty → Set
 
   fuel-zero-impossible :
@@ -636,28 +713,30 @@ data ννRouteCover
     ∀ᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ R ⊑ B ⊣ suc Δᴿ →
     ννRouteCover Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D
 
-νν-route-cover-close :
-  ∀ {Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
-  ννRouteCover (νᵢᶜ Φᴸ) (νᵢᶜ Φᴿ) (suc Δᶜ) Δᴸ Δᴿ A B C →
-  ννRouteCover Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B (`∀ C)
-νν-route-cover-close {Φᴸ = Φᴸ} {Φᴿ = Φᴿ} {Δᶜ = Δᶜ}
-    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
-    (cover-both {R = R} C⊑R R⊑A R⊑B)
-    with occurs zero R
-νν-route-cover-close {Φᴸ = Φᴸ} {Φᴿ = Φᴿ} {Δᶜ = Δᶜ}
-    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
-    (cover-both {R = R} C⊑R R⊑A R⊑B) | true =
-  {!!}
-νν-route-cover-close {Φᴸ = Φᴸ} {Φᴿ = Φᴿ} {Δᶜ = Δᶜ}
-    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
-    (cover-both {R = R} C⊑R R⊑A R⊑B) | false =
-  {!!}
-νν-route-cover-close (cover-left occR C⊑R R⊑A R⊑∀B) =
-  {!!}
-νν-route-cover-close (cover-right occR C⊑R R⊑∀A R⊑B) =
-  {!!}
+nested-star-cover :
+  ννRouteCover (νᵢᶜ []) (νᵢᶜ []) 1 0 0 ★ ★ ★
+nested-star-cover = cover-both id★ id★ id★
+
+no-closed-star-cover :
+  ¬ ννRouteCover [] [] 0 0 0 ★ ★ (`∀ ★)
+no-closed-star-cover (cover-both (∀ⁱ id★) (ν occ★ p) q) =
+  false≠true occ★
+no-closed-star-cover (cover-both (ν occ★ p) q r) =
+  false≠true occ★
+no-closed-star-cover (cover-left occR (∀ⁱ id★) p q) =
+  false≠true occR
+no-closed-star-cover (cover-left occR (ν occ★ p) q r) =
+  false≠true occ★
+no-closed-star-cover (cover-right occR (∀ⁱ id★) p q) =
+  false≠true occR
+no-closed-star-cover (cover-right occR (ν occ★ p) q r) =
+  false≠true occ★
 
 postulate
+  -- This theorem must be proved directly from the two lower-bound
+  -- derivations.  A generic recursive closure operation on `ννRouteCover`
+  -- is not valid: closing a nested route can exchange the two newest binders,
+  -- while the relation above records no binder-alignment evidence.
   νν-route-cover :
     ∀ {Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D} →
     StarMeetCtxᵢ Φᴸ Φᴿ (idᵢ Δᶜ) →
@@ -1146,10 +1225,10 @@ mutual
     {!!}
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ＇ Y}
       enough hΦᴸ hΦᴿ meet (ν occD D⊑A) (ν occD′ D⊑B) =
-    {!!}
+    ⊥-elim (no-occurs-var-lower-νctxᵢ occD′ D⊑B)
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ‵ ι}
       enough hΦᴸ hΦᴿ meet (ν occD D⊑A) (ν occD′ D⊑B) =
-    {!!}
+    ⊥-elim (no-occurs-base-lowerᵢ occD′ D⊑B)
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ★}
       enough hΦᴸ hΦᴿ meet (ν occD D⊑A) (ν occD′ D⊑B) =
     {!!}

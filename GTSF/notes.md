@@ -1,3 +1,25 @@
+
+# Greatest lower bounds don't always exist between consistent types
+
+If two types A and B have a lower bound, C ⊑ A and C ⊑ B,
+do they always have a greatest lower bound?
+
+I was surprised to learn this afternoon that no, there might not be a greatest lower bound.
+
+Take
+A = ∀X. X → ★
+B = ∀Y. ★ → Y
+
+Here is a lower bound:
+∀X.∀Y. X → Y  ⊑  ∀X. X → ★
+∀X.∀Y. X → Y  ⊑  ∀Y. ★ → Y
+
+Here is another lower bound (flipping the order of the ∀s):
+∀Y.∀X. X → Y  ⊑  ∀X. X → ★
+∀Y.∀X. X → Y  ⊑  ∀Y. ★ → Y
+
+These two lower bounds are incomparable, so neither of them is the greatest lower bound.
+
 --------------------------------------------------------------------------------
 
 Alternative to the type application machine

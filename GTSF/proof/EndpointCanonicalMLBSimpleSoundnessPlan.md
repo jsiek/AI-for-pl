@@ -493,7 +493,7 @@ first-sound :
 6. Prove `enumMLB-sound`.
 7. Prove the raw/pruned/selected endpoint corollaries.
 8. Add one or two `EndpointCanonicalMLBSimpleTest` proof witnesses using the
-   final selected soundness theorem, analogous to `endpointMlbCommonLower?`.
+   final selected soundness theorem directly.
 
 ## What Not To Prove Yet
 

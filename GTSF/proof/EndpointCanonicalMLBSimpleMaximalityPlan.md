@@ -75,12 +75,21 @@ This statement is weaker and better targeted than the current upper-cone
 lemma.  It does not mention a raw candidate `C`, and it does not require a
 proof `C ⊑ D`.  The candidate `C` only matters later, in the pruning argument.
 
-For the recursive proof, use a worker theorem over `enumMLB`.  The worker needs
-a fuel premise that depends only on the endpoint shapes `A` and `B`, not on the
-lower bound `D`.  The public theorem should instantiate this worker with
-`fuelFor A B`.
+For the recursive proof, use a worker theorem over `enumMLB`.  The worker uses
+the concrete invariant
 
-One possible shape is:
+```agda
+data EnoughFuel (fuel : ℕ) (A B : Ty) : Set where
+  fuel-ok :
+    suc (sizeTy A + sizeTy B) ≤ fuel →
+    EnoughFuel fuel A B
+```
+
+This depends only on the endpoint shapes `A` and `B`, not on the lower bound
+`D`.  Every recursive endpoint clause preserves it, and `fuelFor A B` provides
+it at the public entry point.
+
+The worker has the following shape:
 
 ```agda
 enumMLB-complete :
@@ -104,9 +113,6 @@ star-assumption used by both sides is also available in the output context.
 At the public entry point this output context is `idᵢ Δ`, so no such free star
 assumption can exist.  Under a source `ν`/`ν` step the invariant is preserved by
 adding the one allowed bound-variable star to the output context.
-
-If `EnoughFuel` becomes proof noise, first prove a public worker specialized to
-`fuelFor A B`, then factor out the general fuel statement only if needed.
 
 ## Maximality From Completeness
 
@@ -269,20 +275,28 @@ dedupe-complete :
 Whole-list pruning and strict-above completeness are already isolated in the
 Agda file.
 
-## Proof Order
+## Current Status
 
-1. Prove the list completeness lemmas for `wrapAll`, `wrapAllIfOccurs`,
+The following layers now type-check without postulates:
+
+1. List membership completeness for `wrapAll`, `wrapAllIfOccurs`,
    `arrowProducts`, and `dedupe`.
-2. Prove or port the local occurrence/freshness lemmas needed by the one-sided
-   and `ν`/`ν` cases.
-3. Prove `enumMLB-complete-used`, because it is needed to feed
-   `wrapAllIfOccurs` in the one-sided routes.
-4. Build the top-down skeleton for `enumMLB-complete`, inserting recursive
-   calls in every structural case.
-5. Focus on `enumMLB-νν-complete-elim`, the only case not mirrored directly by
-   the executable routes.
-6. Finish `enumMLB-complete`, then derive `rawEndpointMlbsAt-complete`.
-7. Remove the `rawEndpointMlbsAt-complete` postulate and re-check maximality.
+2. Boolean completeness for variable candidates, implication lookup, and the
+   below/strict-below tests used by pruning.
+3. The concrete `EnoughFuel` invariant, its `fuelFor` introduction theorem,
+   and every recursive endpoint projection.
+4. `enumMLB-complete-used` and every ordinary structural clause of
+   `enumMLB-complete`.
+5. The pruning-to-maximality assembly after raw completeness.
+
+Only the binder-normalization layer remains.  It consists of
+`νν-route-cover` for the paired-`∀` route and five source-`ν`/`ν` clauses for
+one-sided `∀` and arrow endpoint shapes.  The variable and base clauses are
+impossible, while the `★`/`★` clause follows from `StarMeetCtxᵢ`.
+
+The next implementation step is to normalize the two lower-bound derivations
+while carrying binder-swap evidence, then connect the normalized route to the
+already proved recursive completeness workers.
 
 ## Risk
 

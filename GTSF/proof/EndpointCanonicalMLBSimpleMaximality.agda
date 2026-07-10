@@ -15,8 +15,12 @@ open import Data.List using (List; []; _∷_; _++_; map)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Maybe using (just)
-open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
-open import Data.Nat.Properties using (_≟_)
+open import Data.Nat using
+  (ℕ; _+_; _<_; _≤_; zero; suc; z≤n; s≤s; s≤s⁻¹; z<s; s<s)
+open import Data.Nat.Properties using
+  ( _≟_; +-assoc; +-identityʳ; +-mono-≤; +-suc
+  ; m≤m+n; m≤n+m; ≤-trans
+  )
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (cong; sym; trans)
 open import Relation.Nullary using (Dec; ¬_; no; yes)
@@ -31,7 +35,7 @@ open import proof.EndpointCanonicalMLBSimple using
   ; pruneStrictlyBelow
   ; pruneStrictlyBelowFrom
   ; rawEndpointMlbsAt; simpleEndpointMlb; simpleEndpointMlbAt
-  ; strictlyBelow?; varCandidate?; varCandidatesUpTo; wrapAll
+  ; sizeTy; strictlyBelow?; varCandidate?; varCandidatesUpTo; wrapAll
   ; wrapAllIfOccurs; _==ᵇ_; ∀ᵢᶜ; νᵢᶜ
   )
 open import proof.EndpointCanonicalMLBSimpleSoundness using
@@ -182,72 +186,184 @@ strictlyBelow?-completeᵢ C⊑E E⋢C
     rewrite below?-trueᵢ C⊑E | below?-falseᵢ E⋢C =
   refl
 
-postulate
-  EnoughFuel : ℕ → Ty → Ty → Set
-
-  fuel-zero-impossible :
-    ∀ {A B} →
-    EnoughFuel zero A B →
-    ⊥
-
-  fuelFor-enough :
-    ∀ {A B} →
-    EnoughFuel (fuelFor A B) A B
-
-  fuel-∀∀-both :
-    ∀ {fuel A B} →
-    EnoughFuel (suc fuel) (`∀ A) (`∀ B) →
+data EnoughFuel (fuel : ℕ) (A B : Ty) : Set where
+  fuel-ok :
+    suc (sizeTy A + sizeTy B) ≤ fuel →
     EnoughFuel fuel A B
 
-  fuel-∀∀-left :
-    ∀ {fuel A B} →
-    EnoughFuel (suc fuel) (`∀ A) (`∀ B) →
-    EnoughFuel fuel A (`∀ B)
+fuel-zero-impossible :
+  ∀ {A B} →
+  EnoughFuel zero A B →
+  ⊥
+fuel-zero-impossible (fuel-ok ())
 
-  fuel-∀∀-right :
-    ∀ {fuel A B} →
-    EnoughFuel (suc fuel) (`∀ A) (`∀ B) →
-    EnoughFuel fuel (`∀ A) B
+fuelFor-enough :
+  ∀ {A B} →
+  EnoughFuel (fuelFor A B) A B
+fuelFor-enough {A = A} {B = B}
+    rewrite +-assoc 20 (sizeTy A) (sizeTy B)
+          | +-assoc (20 + (sizeTy A + sizeTy B)) (sizeTy A) (sizeTy B) =
+  fuel-ok
+    (≤-trans
+      (m≤n+m (suc (sizeTy A + sizeTy B)) 19)
+      (m≤m+n (20 + (sizeTy A + sizeTy B)) (sizeTy A + sizeTy B)))
 
-  fuel-∀L :
-    ∀ {fuel A B} →
-    EnoughFuel (suc fuel) (`∀ A) B →
-    EnoughFuel fuel A B
+weaken≤ : ∀ {m n} → m ≤ n → m ≤ suc n
+weaken≤ z≤n = z≤n
+weaken≤ (s≤s m≤n) = s≤s (weaken≤ m≤n)
 
-  fuel-∀R :
-    ∀ {fuel A B} →
-    EnoughFuel (suc fuel) A (`∀ B) →
-    EnoughFuel fuel A B
+drop-suc≤ : ∀ {m n} → suc m ≤ n → m ≤ n
+drop-suc≤ {n = zero} ()
+drop-suc≤ {n = suc n} m<n = weaken≤ (s≤s⁻¹ m<n)
 
-  fuel-⇒⇒-left :
-    ∀ {fuel A₁ A₂ B₁ B₂} →
-    EnoughFuel (suc fuel) (A₁ ⇒ A₂) (B₁ ⇒ B₂) →
-    EnoughFuel fuel A₁ B₁
+fuel-∀∀-both :
+  ∀ {fuel A B} →
+  EnoughFuel (suc fuel) (`∀ A) (`∀ B) →
+  EnoughFuel fuel A B
+fuel-∀∀-both {A = A} {B = B} (fuel-ok enough)
+    rewrite +-suc (sizeTy A) (sizeTy B) =
+  fuel-ok (drop-suc≤ (s≤s⁻¹ enough))
 
-  fuel-⇒⇒-right :
-    ∀ {fuel A₁ A₂ B₁ B₂} →
-    EnoughFuel (suc fuel) (A₁ ⇒ A₂) (B₁ ⇒ B₂) →
-    EnoughFuel fuel A₂ B₂
+fuel-∀∀-left :
+  ∀ {fuel A B} →
+  EnoughFuel (suc fuel) (`∀ A) (`∀ B) →
+  EnoughFuel fuel A (`∀ B)
+fuel-∀∀-left (fuel-ok enough) =
+  fuel-ok (s≤s⁻¹ enough)
 
-  fuel-⇒★-left :
-    ∀ {fuel A₁ A₂} →
-    EnoughFuel (suc fuel) (A₁ ⇒ A₂) ★ →
-    EnoughFuel fuel A₁ ★
+fuel-∀∀-right :
+  ∀ {fuel A B} →
+  EnoughFuel (suc fuel) (`∀ A) (`∀ B) →
+  EnoughFuel fuel (`∀ A) B
+fuel-∀∀-right {A = A} {B = B} (fuel-ok enough)
+    rewrite +-suc (sizeTy A) (sizeTy B) =
+  fuel-ok (s≤s⁻¹ enough)
 
-  fuel-⇒★-right :
-    ∀ {fuel A₁ A₂} →
-    EnoughFuel (suc fuel) (A₁ ⇒ A₂) ★ →
-    EnoughFuel fuel A₂ ★
+fuel-∀L :
+  ∀ {fuel A B} →
+  EnoughFuel (suc fuel) (`∀ A) B →
+  EnoughFuel fuel A B
+fuel-∀L (fuel-ok enough) = fuel-ok (s≤s⁻¹ enough)
 
-  fuel-★⇒-left :
-    ∀ {fuel B₁ B₂} →
-    EnoughFuel (suc fuel) ★ (B₁ ⇒ B₂) →
-    EnoughFuel fuel ★ B₁
+fuel-∀R :
+  ∀ {fuel A B} →
+  EnoughFuel (suc fuel) A (`∀ B) →
+  EnoughFuel fuel A B
+fuel-∀R {A = A} {B = B} (fuel-ok enough)
+    rewrite +-suc (sizeTy A) (sizeTy B) =
+  fuel-ok (s≤s⁻¹ enough)
 
-  fuel-★⇒-right :
-    ∀ {fuel B₁ B₂} →
-    EnoughFuel (suc fuel) ★ (B₁ ⇒ B₂) →
-    EnoughFuel fuel ★ B₂
+pred-⇒⇒-sum :
+  ∀ {a b c d fuel} →
+  suc (suc (a + b) + suc (c + d)) ≤ suc fuel →
+  suc ((a + b) + (c + d)) ≤ fuel
+pred-⇒⇒-sum {a = a} {b = b} {c = c} {d = d} enough
+    rewrite +-suc (a + b) (c + d) =
+  drop-suc≤ (s≤s⁻¹ enough)
+
+pred-⇒⇒-left :
+  ∀ {a b c d fuel} →
+  suc (suc (a + b) + suc (c + d)) ≤ suc fuel →
+  suc (a + c) ≤ fuel
+pred-⇒⇒-left {a = a} {b = b} {c = c} {d = d} enough =
+  ≤-trans
+    (s≤s (+-mono-≤ (m≤m+n a b) (m≤m+n c d)))
+    (pred-⇒⇒-sum {a = a} {b = b} {c = c} {d = d} enough)
+
+pred-⇒⇒-right :
+  ∀ {a b c d fuel} →
+  suc (suc (a + b) + suc (c + d)) ≤ suc fuel →
+  suc (b + d) ≤ fuel
+pred-⇒⇒-right {a = a} {b = b} {c = c} {d = d} enough =
+  ≤-trans
+    (s≤s (+-mono-≤ (m≤n+m b a) (m≤n+m d c)))
+    (pred-⇒⇒-sum {a = a} {b = b} {c = c} {d = d} enough)
+
+fuel-⇒⇒-left :
+  ∀ {fuel A₁ A₂ B₁ B₂} →
+  EnoughFuel (suc fuel) (A₁ ⇒ A₂) (B₁ ⇒ B₂) →
+  EnoughFuel fuel A₁ B₁
+fuel-⇒⇒-left {A₁ = A₁} {A₂ = A₂} {B₁ = B₁} {B₂ = B₂}
+    (fuel-ok enough) =
+  fuel-ok
+    (pred-⇒⇒-left
+      {a = sizeTy A₁} {b = sizeTy A₂}
+      {c = sizeTy B₁} {d = sizeTy B₂} enough)
+
+fuel-⇒⇒-right :
+  ∀ {fuel A₁ A₂ B₁ B₂} →
+  EnoughFuel (suc fuel) (A₁ ⇒ A₂) (B₁ ⇒ B₂) →
+  EnoughFuel fuel A₂ B₂
+fuel-⇒⇒-right {A₁ = A₁} {A₂ = A₂} {B₁ = B₁} {B₂ = B₂}
+    (fuel-ok enough) =
+  fuel-ok
+    (pred-⇒⇒-right
+      {a = sizeTy A₁} {b = sizeTy A₂}
+      {c = sizeTy B₁} {d = sizeTy B₂} enough)
+
+pred-⇒★-left :
+  ∀ {a b fuel} →
+  suc (suc (a + b) + 1) ≤ suc fuel →
+  suc (a + 1) ≤ fuel
+pred-⇒★-left {a = a} {b = b} enough
+    rewrite +-suc a zero
+          | +-identityʳ a
+          | +-suc (suc (a + b)) zero
+          | +-identityʳ (suc (a + b)) =
+  ≤-trans (s≤s (s≤s (m≤m+n a b))) (s≤s⁻¹ enough)
+
+pred-⇒★-right :
+  ∀ {a b fuel} →
+  suc (suc (a + b) + 1) ≤ suc fuel →
+  suc (b + 1) ≤ fuel
+pred-⇒★-right {a = a} {b = b} enough
+    rewrite +-suc b zero
+          | +-identityʳ b
+          | +-suc (suc (a + b)) zero
+          | +-identityʳ (suc (a + b)) =
+  ≤-trans (s≤s (s≤s (m≤n+m b a))) (s≤s⁻¹ enough)
+
+fuel-⇒★-left :
+  ∀ {fuel A₁ A₂} →
+  EnoughFuel (suc fuel) (A₁ ⇒ A₂) ★ →
+  EnoughFuel fuel A₁ ★
+fuel-⇒★-left {A₁ = A₁} {A₂ = A₂} (fuel-ok enough) =
+  fuel-ok (pred-⇒★-left {a = sizeTy A₁} {b = sizeTy A₂} enough)
+
+fuel-⇒★-right :
+  ∀ {fuel A₁ A₂} →
+  EnoughFuel (suc fuel) (A₁ ⇒ A₂) ★ →
+  EnoughFuel fuel A₂ ★
+fuel-⇒★-right {A₁ = A₁} {A₂ = A₂} (fuel-ok enough) =
+  fuel-ok (pred-⇒★-right {a = sizeTy A₁} {b = sizeTy A₂} enough)
+
+pred-★⇒-left :
+  ∀ {c d fuel} →
+  suc (1 + suc (c + d)) ≤ suc fuel →
+  suc (1 + c) ≤ fuel
+pred-★⇒-left {c = c} {d = d} enough =
+  ≤-trans (s≤s (s≤s (m≤m+n c d))) (s≤s⁻¹ enough)
+
+pred-★⇒-right :
+  ∀ {c d fuel} →
+  suc (1 + suc (c + d)) ≤ suc fuel →
+  suc (1 + d) ≤ fuel
+pred-★⇒-right {c = c} {d = d} enough =
+  ≤-trans (s≤s (s≤s (m≤n+m d c))) (s≤s⁻¹ enough)
+
+fuel-★⇒-left :
+  ∀ {fuel B₁ B₂} →
+  EnoughFuel (suc fuel) ★ (B₁ ⇒ B₂) →
+  EnoughFuel fuel ★ B₁
+fuel-★⇒-left {B₁ = B₁} {B₂ = B₂} (fuel-ok enough) =
+  fuel-ok (pred-★⇒-left {c = sizeTy B₁} {d = sizeTy B₂} enough)
+
+fuel-★⇒-right :
+  ∀ {fuel B₁ B₂} →
+  EnoughFuel (suc fuel) ★ (B₁ ⇒ B₂) →
+  EnoughFuel fuel ★ B₂
+fuel-★⇒-right {B₁ = B₁} {B₂ = B₂} (fuel-ok enough) =
+  fuel-ok (pred-★⇒-right {c = sizeTy B₁} {d = sizeTy B₂} enough)
 
 ------------------------------------------------------------------------
 -- Layer 3: raw completeness skeleton

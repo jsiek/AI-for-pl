@@ -29,6 +29,7 @@ open import Coercions using
   ; Mode
   ; ModeEnv
   ; id-only
+  ; id-onlyᵈ
   ; tag-or-id
   ; seal-or-id
   ; extᵈ
@@ -40,6 +41,7 @@ open import Coercions using
 import Coercions as C
 open import Imprecision using
   ( ImpCtx
+  ; idᵢ
   ; _ˣ⊑★
   ; _ˣ⊑ˣ_
   ; ⇑ᵢ
@@ -87,6 +89,24 @@ castᵢ μ (suc Δ) | tag-or-id =
   (zero ˣ⊑ˣ zero) ∷ (zero ˣ⊑★) ∷ ⇑ᵢ (castᵢ (tailᵈ μ) Δ)
 castᵢ μ (suc Δ) | seal-or-id =
   (zero ˣ⊑ˣ zero) ∷ (zero ˣ⊑★) ∷ ⇑ᵢ (castᵢ (tailᵈ μ) Δ)
+
+castᵢ-id-only-env :
+  ∀ μ Δ →
+  (∀ X → μ X ≡ id-only) →
+  castᵢ μ Δ ≡ idᵢ Δ
+castᵢ-id-only-env μ zero allId = refl
+castᵢ-id-only-env μ (suc Δ) allId with μ zero | allId zero
+castᵢ-id-only-env μ (suc Δ) allId | id-only | refl =
+  cong ((zero ˣ⊑ˣ zero) ∷_)
+    (cong ⇑ᵢ
+      (castᵢ-id-only-env (tailᵈ μ) Δ (λ X → allId (suc X))))
+castᵢ-id-only-env μ (suc Δ) allId | tag-or-id | ()
+castᵢ-id-only-env μ (suc Δ) allId | seal-or-id | ()
+
+castᵢ-id-only :
+  ∀ Δ →
+  castᵢ id-onlyᵈ Δ ≡ idᵢ Δ
+castᵢ-id-only Δ = castᵢ-id-only-env id-onlyᵈ Δ (λ X → refl)
 
 tagMode⇒starAllowed :
   ∀ {m} →

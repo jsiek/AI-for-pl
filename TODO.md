@@ -8,6 +8,48 @@
     Do not introduce new postulates.
     You are done when there are no holes in this theorem and in the helper lemmas that it uses.
 
+[ ] In GTSF, investigate replacing the new compile-specific
+    NuTermImprecision application constructors with a canonical maximal
+    lower-bound proof for consistency casts.
+    Background: consistency is currently an existential common lower bound:
+      Δ ⊢ A ~ B = ∃[ C ] idᵢ Δ ⊢ C ⊑ A × idᵢ Δ ⊢ C ⊑ B
+    and Compile.consistency-cast-plan uses the witness C supplied by that
+    consistency proof.  In compile-preserves-term-imprecision-typed, the
+    source and target sides may therefore insert casts through different
+    lower witnesses C and C′.  The direct proof path then gets stuck needing
+    coherence such as C ⊑ C′, but the arbitrary existential witnesses do not
+    provide that.
+    A feasible alternative proof likely needs:
+      1. a canonical maximal-lower-bound selector for consistency;
+      2. a selector-specific maximality property, not a general GLB theorem
+         (GLBs do not exist for all consistent GTSF types);
+      3. a canonical coherence corollary, saying if A ⊑ A′ and B ⊑ B′,
+         then the selected MLB for A,B is imprecise to the selected MLB
+         for A′,B′;
+      4. a change to Compile.consistency-cast-plan so it casts through the
+         canonical lower bound rather than the arbitrary existential witness;
+      5. a rewrite of the application cases of
+         proof/CompileTermImprecision.agda to use the existing cast
+         imprecision constructors instead of the compile-specific
+         NuTermImprecision constructors.
+    Existing starting point: GTSF/proof/MaximalLowerBounds.agda already
+    sketches much of this direction, including MaximalLowerBound,
+    ComparableMaximalLowerBound, mlb-type, and choose-mlb.  However, the file
+    currently does not type-check: it still contains stale occurrence-index
+    assumptions for wf∀/∀ⁱ, and it has postulates including choose-mlbᶜ plus
+    supporting spine lemmas.  Repairing this file means deriving occurrence
+    evidence where ν needs it, not from wf∀, because WfTy.wf∀ no longer stores
+    occurrence evidence.
+    Important caveat: proving only "a maximal lower exists" is not enough if
+    Compile.consistency-cast-plan keeps using arbitrary witnesses from _⊢_~_.
+    Either compile must use the canonical lower, or one must additionally prove
+    cast-plan coherence/normalization between arbitrary-witness plans and
+    canonical plans.  The latter is probably not cheaper.
+    Do not introduce new postulates.  Done when the canonical lower-bound
+    infrastructure type-checks, Compile uses it for consistency casts, and
+    compile-preserves-term-imprecision-typed no longer needs the
+    compile-specific NuTermImprecision application constructors.
+
 ## In progress TODO items
 
 ## Completed TODO items

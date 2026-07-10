@@ -10,6 +10,7 @@ module NuTermImprecision where
 --     `NuTerms` typing derivations for both related terms.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ-syntax; ∃-syntax)
@@ -23,6 +24,8 @@ open import ImprecisionWf
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
+  ; narrow-mode-relax
+  ; widen-mode-relax
   )
 open import NuTerms using
   ( Term
@@ -59,6 +62,7 @@ open import proof.NarrowWidenProperties using (StoreDetWf)
 open import TermTyping using
   ( CastMode
   ; SealModeStore★
+  ; cast-tag-or-id
   ; _∣_∣_⊢_⦂_
   ; ⊢`
   ; ⊢ƛ
@@ -86,6 +90,21 @@ variable
   op : Prim
   c c′ d d′ s s′ : Coercion
   μ μ′ : ModeEnv
+
+left-id-only-compatible :
+  ∀ {Φ Δ} →
+  LeftCastCtxCompatible id-onlyᵈ Δ Φ
+left-id-only-compatible X<Δ ()
+
+right-id-only-compatible :
+  ∀ {Φ Δ} →
+  RightCastCtxCompatible id-onlyᵈ Δ Φ
+right-id-only-compatible x∈ Y<Δ ()
+
+seal★-tag-or-id :
+  ∀ {Σ} →
+  SealModeStore★ tag-or-idᵈ Σ
+seal★-tag-or-id α ()
 
 ------------------------------------------------------------------------
 -- Store imprecision
@@ -446,6 +465,50 @@ data _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_ :
       ------------------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ L · M ⊑ L′ · M′ ⦂ B ⊑ B′ ∶ pB
 
+  ·⊑·castsᵀ :
+      ∀ {L L′ M M′ A A′ B B′ C C′ D D′ pA pB pC d u d′ u′}
+    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D
+    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ A
+    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ D′
+    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ D′ ⊑ A′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ L ⊑ L′
+        ⦂ A ⇒ B ⊑ A′ ⇒ B′ ∶ pA ↦ pB
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC
+      ------------------------------------------------------------
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺ L · ((M ⟨ d ⟩) ⟨ u ⟩)
+          ⊑ L′ · ((M′ ⟨ d′ ⟩) ⟨ u′ ⟩)
+        ⦂ B ⊑ B′ ∶ pB
+
+  ·⊑·★castsᵀ :
+      ∀ {L L′ M M′ A B C C′ D E pA pB pC d u d′ u′}
+    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D
+    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ A
+    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ ★ ⊒ E
+    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ E ⊑ C′ ⇒ ★
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ L ⊑ L′
+        ⦂ A ⇒ B ⊑ ★ ∶ tag pA ⇛ pB
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC
+      ------------------------------------------------------------
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺ L · ((M ⟨ d ⟩) ⟨ u ⟩)
+          ⊑ ((L′ ⟨ d′ ⟩) ⟨ u′ ⟩) · M′
+        ⦂ B ⊑ ★ ∶ pB
+
+  ·★⊑·★castsᵀ :
+      ∀ {L L′ M M′ C C′ D D′ pC d u d′ u′}
+    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ ★ ⊒ D
+    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ C ⇒ ★
+    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ ★ ⊒ D′
+    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ D′ ⊑ C′ ⇒ ★
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ L ⊑ L′ ⦂ ★ ⊑ ★ ∶ id★
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC
+      ------------------------------------------------------------
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺ ((L ⟨ d ⟩) ⟨ u ⟩) · M
+          ⊑ ((L′ ⟨ d′ ⟩) ⟨ u′ ⟩) · M′
+        ⦂ ★ ⊑ ★ ∶ id★
+
   Λ⊑Λᵀ : ∀ {ρ′ γ′ V V′ A B p}
     → LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ′
     → LiftCtxⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) γ γ′
@@ -455,6 +518,17 @@ data _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_ :
         ⊢ᴺ V ⊑ V′ ⦂ A ⊑ B ∶ p
       ------------------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ Λ V ⊑ Λ V′ ⦂ `∀ A ⊑ `∀ B ∶ ∀ⁱ p
+
+  Λ⊑ᵀ : ∀ {ρ′ γ′ V N′ A B p}
+    → (occ : occurs zero A ≡ true)
+    → LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′
+    → LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γ′
+    → Value V
+    → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ γ′
+        ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B ∶ p
+      ------------------------------------------------------------
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ Λ V ⊑ N′ ⦂ `∀ A ⊑ B
+        ∶ ν occ p
 
   α⊑αᵀ : ∀ {ρ′ γ′ L L′ A B C D p}
     → Value L
@@ -582,6 +656,16 @@ data _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_ :
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⦂ B ⊑ B′
         ∶ ⊑-transˡ-castᵢ okΦ (narrowing⇒⊑ᵢ wfΣ seal★ c⊒) p
 
+  cast⊒⊑idᵀ : ∀ {M M′ A B B′ p c}
+    → (wfΣ : StoreDetWf Δᴸ (leftStoreⁱ ρ))
+    → (seal★ : SealModeStore★ id-onlyᵈ (leftStoreⁱ ρ))
+    → (c⊒ : id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊒ B)
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p
+      ------------------------------------------------------------
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⦂ B ⊑ B′
+        ∶ ⊑-transˡ-castᵢ left-id-only-compatible
+            (narrowing⇒⊑ᵢ wfΣ seal★ c⊒) p
+
   cast⊑⊑ᵀ : ∀ {M M′ A B B′ p c μ}
     → CastMode μ
     → SealModeStore★ μ (leftStoreⁱ ρ)
@@ -610,6 +694,16 @@ data _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_ :
       ------------------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′
         ∶ ⊑-transʳ-castᵢ okΦ p (widening⇒⊑ᵢ wfΣ′ seal★′ c′⊑)
+
+  ⊑cast⊑idᵀ : ∀ {M M′ A A′ B′ p c′}
+    → (wfΣ′ : StoreDetWf Δᴿ (rightStoreⁱ ρ))
+    → (seal★′ : SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ))
+    → (c′⊑ : id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′)
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
+      ------------------------------------------------------------
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′
+        ∶ ⊑-transʳ-castᵢ right-id-only-compatible p
+            (widening⇒⊑ᵢ wfΣ′ seal★′ c′⊑)
 
   conv↑⊑ᵀ : ∀ {M M′ A B B′ p c μ}
     → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ↑ˢ B
@@ -790,6 +884,33 @@ mutual
       (nu-term-imprecision-source-typing L⊑L′)
       (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
+      (·⊑·castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
+    ⊢·
+      (nu-term-imprecision-source-typing L⊑L′)
+      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
+        (widen-mode-relax id-only≤tag-or-idᵈ u⊑)
+        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
+          (narrow-mode-relax id-only≤tag-or-idᵈ d⊒)
+          (nu-term-imprecision-source-typing M⊑M′)))
+  nu-term-imprecision-source-typing
+      (·⊑·★castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
+    ⊢·
+      (nu-term-imprecision-source-typing L⊑L′)
+      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
+        (widen-mode-relax id-only≤tag-or-idᵈ u⊑)
+        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
+          (narrow-mode-relax id-only≤tag-or-idᵈ d⊒)
+          (nu-term-imprecision-source-typing M⊑M′)))
+  nu-term-imprecision-source-typing
+      (·★⊑·★castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
+    ⊢·
+      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
+        (widen-mode-relax id-only≤tag-or-idᵈ u⊑)
+        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
+          (narrow-mode-relax id-only≤tag-or-idᵈ d⊒)
+          (nu-term-imprecision-source-typing L⊑L′)))
+      (nu-term-imprecision-source-typing M⊑M′)
+  nu-term-imprecision-source-typing
       (Λ⊑Λᵀ {ρ = ρ} {γ = γ} liftρ liftγ vV vV′ V⊑V′) =
     ⊢Λ vV
       (subst
@@ -799,6 +920,16 @@ mutual
           (λ Σ → _ ∣ Σ ∣ _ ⊢ _ ⦂ _)
           (leftStoreⁱ-lift liftρ)
           (nu-term-imprecision-source-typing V⊑V′)))
+  nu-term-imprecision-source-typing
+      (Λ⊑ᵀ occ liftρ liftγ vV V⊑N′) =
+    ⊢Λ vV
+      (subst
+        (λ Γ → _ ∣ _ ∣ Γ ⊢ _ ⦂ _)
+        (leftCtxⁱ-lift-left liftγ)
+        (subst
+          (λ Σ → _ ∣ Σ ∣ _ ⊢ _ ⦂ _)
+          (leftStoreⁱ-lift-left liftρ)
+          (nu-term-imprecision-source-typing V⊑N′)))
   nu-term-imprecision-source-typing
       (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ L⊑L′ L•⊢ L′•⊢) =
     L•⊢
@@ -833,12 +964,20 @@ mutual
       (cast⊒⊑ᵀ mode wfΣ seal★ okΦ c⊒ M⊑M′) =
     ⊢⟨⟩⊒ mode seal★ c⊒ (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
+      (cast⊒⊑idᵀ wfΣ seal★ c⊒ M⊑M′) =
+    ⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
+      (narrow-mode-relax id-only≤tag-or-idᵈ c⊒)
+      (nu-term-imprecision-source-typing M⊑M′)
+  nu-term-imprecision-source-typing
       (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q) =
     ⊢⟨⟩⊑ mode seal★ c⊑ (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q) =
     nu-term-imprecision-source-typing M⊑M′
   nu-term-imprecision-source-typing
       (⊑cast⊑ᵀ mode′ wfΣ′ seal★′ okΦ′ c′⊑ M⊑M′) =
+    nu-term-imprecision-source-typing M⊑M′
+  nu-term-imprecision-source-typing
+      (⊑cast⊑idᵀ wfΣ′ seal★′ c′⊑ M⊑M′) =
     nu-term-imprecision-source-typing M⊑M′
   nu-term-imprecision-source-typing (conv↑⊑ᵀ c↑ M⊑M′ q) =
     ⊢⟨⟩↑ c↑ (nu-term-imprecision-source-typing M⊑M′)
@@ -860,6 +999,33 @@ mutual
       (nu-term-imprecision-target-typing L⊑L′)
       (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
+      (·⊑·castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
+    ⊢·
+      (nu-term-imprecision-target-typing L⊑L′)
+      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
+        (widen-mode-relax id-only≤tag-or-idᵈ u′⊑)
+        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
+          (narrow-mode-relax id-only≤tag-or-idᵈ d′⊒)
+          (nu-term-imprecision-target-typing M⊑M′)))
+  nu-term-imprecision-target-typing
+      (·⊑·★castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
+    ⊢·
+      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
+        (widen-mode-relax id-only≤tag-or-idᵈ u′⊑)
+        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
+          (narrow-mode-relax id-only≤tag-or-idᵈ d′⊒)
+          (nu-term-imprecision-target-typing L⊑L′)))
+      (nu-term-imprecision-target-typing M⊑M′)
+  nu-term-imprecision-target-typing
+      (·★⊑·★castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
+    ⊢·
+      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
+        (widen-mode-relax id-only≤tag-or-idᵈ u′⊑)
+        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
+          (narrow-mode-relax id-only≤tag-or-idᵈ d′⊒)
+          (nu-term-imprecision-target-typing L⊑L′)))
+      (nu-term-imprecision-target-typing M⊑M′)
+  nu-term-imprecision-target-typing
       (Λ⊑Λᵀ {ρ = ρ} {γ = γ} liftρ liftγ vV vV′ V⊑V′) =
     ⊢Λ vV′
       (subst
@@ -869,6 +1035,15 @@ mutual
           (λ Σ → _ ∣ Σ ∣ _ ⊢ _ ⦂ _)
           (rightStoreⁱ-lift liftρ)
           (nu-term-imprecision-target-typing V⊑V′)))
+  nu-term-imprecision-target-typing
+      (Λ⊑ᵀ occ liftρ liftγ vV V⊑N′) =
+    subst
+      (λ Γ → _ ∣ _ ∣ Γ ⊢ _ ⦂ _)
+      (rightCtxⁱ-lift-left liftγ)
+      (subst
+        (λ Σ → _ ∣ Σ ∣ _ ⊢ _ ⦂ _)
+        (rightStoreⁱ-lift-left liftρ)
+        (nu-term-imprecision-target-typing V⊑N′))
   nu-term-imprecision-target-typing
       (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ L⊑L′ L•⊢ L′•⊢) =
     L′•⊢
@@ -902,6 +1077,9 @@ mutual
   nu-term-imprecision-target-typing
       (cast⊒⊑ᵀ mode wfΣ seal★ okΦ c⊒ M⊑M′) =
     nu-term-imprecision-target-typing M⊑M′
+  nu-term-imprecision-target-typing
+      (cast⊒⊑idᵀ wfΣ seal★ c⊒ M⊑M′) =
+    nu-term-imprecision-target-typing M⊑M′
   nu-term-imprecision-target-typing (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q) =
     nu-term-imprecision-target-typing M⊑M′
   nu-term-imprecision-target-typing
@@ -910,6 +1088,11 @@ mutual
   nu-term-imprecision-target-typing
       (⊑cast⊑ᵀ mode′ wfΣ′ seal★′ okΦ′ c′⊑ M⊑M′) =
     ⊢⟨⟩⊑ mode′ seal★′ c′⊑ (nu-term-imprecision-target-typing M⊑M′)
+  nu-term-imprecision-target-typing
+      (⊑cast⊑idᵀ wfΣ′ seal★′ c′⊑ M⊑M′) =
+    ⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
+      (widen-mode-relax id-only≤tag-or-idᵈ c′⊑)
+      (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing (conv↑⊑ᵀ c↑ M⊑M′ q) =
     nu-term-imprecision-target-typing M⊑M′
   nu-term-imprecision-target-typing (conv↓⊑ᵀ c↓ M⊑M′ q) =

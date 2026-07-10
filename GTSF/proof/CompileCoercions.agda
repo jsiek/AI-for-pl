@@ -512,6 +512,19 @@ realizes-idᵢᴺᵂ (suc Δ) =
     (Realizesᴺᵂ-rename-suc ModeRename-suc-tag-or-id
       (realizes-idᵢᴺᵂ Δ))
 
+realizes-idᵢᴺᵂ-id-only :
+  ∀ Δ →
+  Realizesᴺᵂ id-onlyᵈ Δ [] (idᵢ Δ)
+realizes-idᵢᴺᵂ-id-only zero = realᵂⁿ-[]
+realizes-idᵢᴺᵂ-id-only (suc Δ) =
+  realᵂⁿ-xx
+    (wfVar z<s)
+    (wfVar z<s)
+    (cast-id (wfVar z<s) refl , NW.cross (NW.id-＇ zero))
+    (cast-id (wfVar z<s) refl , NW.cross (NW.id-＇ zero))
+    (Realizesᴺᵂ-rename-suc ModeRename-suc-id-only
+      (realizes-idᵢᴺᵂ-id-only Δ))
+
 ------------------------------------------------------------------------
 -- Canonical narrowing/widening synthesis from imprecision
 ------------------------------------------------------------------------

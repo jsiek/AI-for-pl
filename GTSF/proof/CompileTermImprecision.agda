@@ -9,14 +9,31 @@ module proof.CompileTermImprecision where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (suc)
-open import Data.Product using (proj₁)
+open import Data.List.Membership.Propositional using (_∈_)
+open import Data.List.Relation.Unary.Any using (here; there)
+open import Data.Nat using (zero; suc)
+open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Product using (_,_; proj₁)
 open import Relation.Binary.PropositionalEquality using
-  (cong₂; subst; sym)
+  (cong₂; subst; sym; trans)
 
 open import Types
 open import Ctx using (CtxWf; ctxWf-∷)
-open import Compile using (compileᵀ; compileᵀ-value)
+open import Coercions using (id-onlyᵈ; id-only≤tag-or-idᵈ)
+open import Compile using
+  ( CastPlan
+  ; cast
+  ; compileᵀ
+  ; compileᵀ-value
+  ; arrow★-consistent
+  ; consistency-cast-plan
+  ; down⊒
+  ; lower
+  ; lower⊑target
+  ; up⊑
+  ; ν-reveal-conversion
+  ; seal★-tag-or-id
+  )
 open import GradualTerms
   using (GTerm)
   renaming
@@ -37,10 +54,49 @@ open import GradualTerms
     ; ⊢$ to ⊢ᴳ$
     ; ⊢⊕ to ⊢ᴳ⊕
     )
-open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
+import ImprecisionWf as IWF
+import Imprecision as Imp
+open import Imprecision using () renaming (idι to idιᴵ; ν to νᴵ)
+open import ImprecisionWf
+  using
+    ( ImpAssm
+    ; ImpCtx
+    ; _ˣ⊑★
+    ; _ˣ⊑ˣ_
+    ; ⇑ᵢ
+    ; ⇑ᴸᵢ
+    ; _∣_⊢_⊑_⊣_
+    )
 open import NuTerms using (Term)
+open import NarrowWiden using (narrow-mode-relax; widen-mode-relax)
 open import Primitives using (Prim; addℕ; κℕ)
 open import proof.NuTermProperties using (CtxWf-⤊)
+open import proof.NarrowWidenProperties using (StoreDetWf)
+open import proof.ImprecisionProperties using
+  ( ⇑ᵢ-ˣ∈
+  ; ⇑ᵢ-★∈
+  ; ⇑ᴸᵢ-∈
+  ; un⇑ᵢ-ˣ∈
+  ; un⇑ᵢ-★∈
+  ; no-⇑ᵢ-zero-left
+  ; no-⇑ᵢ-zero-right
+  ; no-⇑ᵢ-zero-star
+  ; un⇑ᴸᵢ-ˣ∈
+  ; no-⇑ᴸᵢ-zero-left
+  ; ~-sym
+  ; ⊑-base-inv-idᵢ
+  ; ⊑-forall-base-⊥
+  )
+open import proof.MaximalLowerBoundsWf using (⊑-forgetᵢ)
+open import proof.TypeProperties using
+  ( TyRenameWf
+  ; TyRenameWf-ext
+  ; TyRenameWf-suc
+  ; occurs-zero-rename-ext
+  ; renameᵗ-id
+  ; renameᵗ-preserves-WfTy
+  )
+open import TermTyping using (SealModeStore★; cast-tag-or-id)
 
 import GradualTermImprecision as GTI
 open import GradualTermImprecision using (_∣_∣_∣_⊢ᴳ_⊑_⦂_⊑_∶_)
@@ -57,6 +113,21 @@ variable
   x : Var
   ℓ : Label
   op : Prim
+
+storeDetWf-[] :
+  ∀ {Δ} →
+  StoreDetWf Δ []
+storeDetWf-[] =
+  record
+    { at = record { bound = λ (); wfTy = λ () }
+    ; wfOlder = λ ()
+    ; unique = λ ()
+    }
+
+seal★-id-only :
+  ∀ {Σ} →
+  SealModeStore★ id-onlyᵈ Σ
+seal★-id-only α ()
 
 ------------------------------------------------------------------------
 -- Context conversion
@@ -119,6 +190,190 @@ ctxImpToNu-lift-left (GTI.lift-left-∷ liftγ) =
   NTI.lift-left-ctx-∷ (ctxImpToNu-lift-left liftγ)
 
 ------------------------------------------------------------------------
+-- Type-imprecision lifting for ν compilation
+------------------------------------------------------------------------
+
+renameImpAssm : Renameᵗ → Renameᵗ → ImpAssm → ImpAssm
+renameImpAssm ρ σ (X ˣ⊑★) = ρ X ˣ⊑★
+renameImpAssm ρ σ (X ˣ⊑ˣ Y) = ρ X ˣ⊑ˣ σ Y
+
+un⇑ᴸᵢ-★∈ :
+  ∀ {Φ X} →
+  (suc X ˣ⊑★) ∈ ⇑ᴸᵢ Φ →
+  (X ˣ⊑★) ∈ Φ
+un⇑ᴸᵢ-★∈ {Φ = []} ()
+un⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑★) ∷ Φ} (here refl) = here refl
+un⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑★) ∷ Φ} (there x∈) =
+  there (un⇑ᴸᵢ-★∈ x∈)
+un⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
+  there (un⇑ᴸᵢ-★∈ x∈)
+
+⇑ᴸᵢ-ˣ∈ :
+  ∀ {Φ X Y} →
+  (X ˣ⊑ˣ Y) ∈ Φ →
+  (suc X ˣ⊑ˣ Y) ∈ ⇑ᴸᵢ Φ
+⇑ᴸᵢ-ˣ∈ {Φ = []} ()
+⇑ᴸᵢ-ˣ∈ {Φ = (_ ˣ⊑★) ∷ Φ} (there x∈) =
+  there (⇑ᴸᵢ-ˣ∈ x∈)
+⇑ᴸᵢ-ˣ∈ {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (here refl) = here refl
+⇑ᴸᵢ-ˣ∈ {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
+  there (⇑ᴸᵢ-ˣ∈ x∈)
+
+⇑ᴸᵢ-★∈ :
+  ∀ {Φ X} →
+  (X ˣ⊑★) ∈ Φ →
+  (suc X ˣ⊑★) ∈ ⇑ᴸᵢ Φ
+⇑ᴸᵢ-★∈ {Φ = []} ()
+⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑★) ∷ Φ} (here refl) = here refl
+⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑★) ∷ Φ} (there x∈) =
+  there (⇑ᴸᵢ-★∈ x∈)
+⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
+  there (⇑ᴸᵢ-★∈ x∈)
+
+no-⇑ᴸᵢ-zero-star :
+  ∀ {Φ} →
+  (zero ˣ⊑★) ∈ ⇑ᴸᵢ Φ →
+  ⊥
+no-⇑ᴸᵢ-zero-star {Φ = []} ()
+no-⇑ᴸᵢ-zero-star {Φ = (_ ˣ⊑★) ∷ Φ} (there x∈) =
+  no-⇑ᴸᵢ-zero-star x∈
+no-⇑ᴸᵢ-zero-star {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
+  no-⇑ᴸᵢ-zero-star x∈
+
+renameImpAssm-⇑ᵢ :
+  ∀ {ρ σ Φ Ψ} →
+  (∀ {a} → a ∈ Φ → renameImpAssm ρ σ a ∈ Ψ) →
+  ∀ {a} →
+  a ∈ (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ →
+  renameImpAssm (extᵗ ρ) (extᵗ σ) a ∈
+    (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Ψ
+renameImpAssm-⇑ᵢ h {a = zero ˣ⊑★} (here ())
+renameImpAssm-⇑ᵢ h {a = zero ˣ⊑★} (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-star a∈)
+renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑★} (here ())
+renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑★} (there a∈) =
+  there (⇑ᵢ-★∈ (h (un⇑ᵢ-★∈ a∈)))
+renameImpAssm-⇑ᵢ h {a = zero ˣ⊑ˣ zero} (here refl) = here refl
+renameImpAssm-⇑ᵢ h {a = zero ˣ⊑ˣ zero} (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left a∈)
+renameImpAssm-⇑ᵢ h {a = zero ˣ⊑ˣ suc Y} (here ())
+renameImpAssm-⇑ᵢ h {a = zero ˣ⊑ˣ suc Y} (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left a∈)
+renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑ˣ zero} (here ())
+renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑ˣ zero} (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-right a∈)
+renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑ˣ suc Y} (here ())
+renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑ˣ suc Y} (there a∈) =
+  there (⇑ᵢ-ˣ∈ (h (un⇑ᵢ-ˣ∈ a∈)))
+
+renameImpAssm-⇑ᴸᵢ :
+  ∀ {ρ σ Φ Ψ} →
+  (∀ {a} → a ∈ Φ → renameImpAssm ρ σ a ∈ Ψ) →
+  ∀ {a} →
+  a ∈ (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ →
+  renameImpAssm (extᵗ ρ) σ a ∈ (zero ˣ⊑★) ∷ ⇑ᴸᵢ Ψ
+renameImpAssm-⇑ᴸᵢ h {a = zero ˣ⊑★} (here refl) = here refl
+renameImpAssm-⇑ᴸᵢ h {a = zero ˣ⊑★} (there a∈) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star a∈)
+renameImpAssm-⇑ᴸᵢ h {a = suc X ˣ⊑★} (here ())
+renameImpAssm-⇑ᴸᵢ h {a = suc X ˣ⊑★} (there a∈) =
+  there (⇑ᴸᵢ-★∈ (h (un⇑ᴸᵢ-★∈ a∈)))
+renameImpAssm-⇑ᴸᵢ h {a = zero ˣ⊑ˣ Y} (here ())
+renameImpAssm-⇑ᴸᵢ h {a = zero ˣ⊑ˣ Y} (there a∈) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left a∈)
+renameImpAssm-⇑ᴸᵢ h {a = suc X ˣ⊑ˣ Y} (here ())
+renameImpAssm-⇑ᴸᵢ h {a = suc X ˣ⊑ˣ Y} (there a∈) =
+  there (⇑ᴸᵢ-ˣ∈ (h (un⇑ᴸᵢ-ˣ∈ a∈)))
+
+TyRenameWf-id :
+  ∀ {Δ} →
+  TyRenameWf Δ Δ (λ X → X)
+TyRenameWf-id X<Δ = X<Δ
+
+imp-renameᵗ :
+  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ Δᴿ′ ρ σ A B} →
+  (∀ {a} → a ∈ Φ → renameImpAssm ρ σ a ∈ Ψ) →
+  TyRenameWf Δᴸ Δᴸ′ ρ →
+  TyRenameWf Δᴿ Δᴿ′ σ →
+  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
+  Ψ ∣ Δᴸ′ ⊢ renameᵗ ρ A ⊑ renameᵗ σ B ⊣ Δᴿ′
+imp-renameᵗ h hρ hσ IWF.id★ = IWF.id★
+imp-renameᵗ h hρ hσ (IWF.idˣ x∈ X<Δᴸ Y<Δᴿ) =
+  IWF.idˣ (h x∈) (hρ X<Δᴸ) (hσ Y<Δᴿ)
+imp-renameᵗ h hρ hσ IWF.idι = IWF.idι
+imp-renameᵗ h hρ hσ (p IWF.↦ q) =
+  imp-renameᵗ h hρ hσ p IWF.↦ imp-renameᵗ h hρ hσ q
+imp-renameᵗ h hρ hσ (IWF.∀ⁱ p) =
+  IWF.∀ⁱ (imp-renameᵗ (renameImpAssm-⇑ᵢ h)
+    (TyRenameWf-ext hρ) (TyRenameWf-ext hσ) p)
+imp-renameᵗ h hρ hσ (IWF.tag ι) = IWF.tag ι
+imp-renameᵗ h hρ hσ (IWF.tag p ⇛ q) =
+  IWF.tag (imp-renameᵗ h hρ hσ p) ⇛ imp-renameᵗ h hρ hσ q
+imp-renameᵗ h hρ hσ (IWF.tagˣ x∈ X<Δᴸ) =
+  IWF.tagˣ (h x∈) (hρ X<Δᴸ)
+imp-renameᵗ {ρ = ρ} h hρ hσ (IWF.ν {A = A} occ p) =
+  IWF.ν (trans (occurs-zero-rename-ext ρ A) occ)
+    (imp-renameᵗ (renameImpAssm-⇑ᴸᵢ h)
+      (TyRenameWf-ext hρ) hσ p)
+
+imp-lift :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
+  ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ∣ suc Δᴸ
+    ⊢ ⇑ᵗ A ⊑ ⇑ᵗ B ⊣ suc Δᴿ
+imp-lift =
+  imp-renameᵗ {ρ = suc} {σ = suc}
+    (λ { {a = X ˣ⊑★} a∈ → there (⇑ᵢ-★∈ a∈)
+       ; {a = X ˣ⊑ˣ Y} a∈ → there (⇑ᵢ-ˣ∈ a∈) })
+    TyRenameWf-suc TyRenameWf-suc
+
+imp-lift-left :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
+  ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ B ⊣ Δᴿ
+imp-lift-left {B = B} p =
+  subst
+    (λ T →
+      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ _) ∣ _ ⊢ _ ⊑ T ⊣ _)
+    (renameᵗ-id B)
+    (imp-renameᵗ {ρ = suc} {σ = λ X → X}
+      (λ { {a = X ˣ⊑★} a∈ → there (⇑ᴸᵢ-★∈ a∈)
+         ; {a = X ˣ⊑ˣ Y} a∈ → there (⇑ᴸᵢ-ˣ∈ a∈) })
+      TyRenameWf-suc TyRenameWf-id p)
+
+nuCtx⇑ :
+  ∀ {Φ Δᴸ Δᴿ} →
+  NTI.CtxImp Φ Δᴸ Δᴿ →
+  NTI.CtxImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) (suc Δᴸ) (suc Δᴿ)
+nuCtx⇑ [] = []
+nuCtx⇑ (NTI.ctx-imp A B p ∷ γ) =
+  NTI.ctx-imp (⇑ᵗ A) (⇑ᵗ B) (imp-lift p) ∷ nuCtx⇑ γ
+
+nuCtx⇑-lift :
+  ∀ {Φ Δᴸ Δᴿ} →
+  (γ : NTI.CtxImp Φ Δᴸ Δᴿ) →
+  NTI.LiftCtxⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) γ (nuCtx⇑ γ)
+nuCtx⇑-lift [] = NTI.lift-ctx-[]
+nuCtx⇑-lift (NTI.ctx-imp A B p ∷ γ) =
+  NTI.lift-ctx-∷ (nuCtx⇑-lift γ)
+
+nuCtx⇑ᴸ :
+  ∀ {Φ Δᴸ Δᴿ} →
+  NTI.CtxImp Φ Δᴸ Δᴿ →
+  NTI.CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ
+nuCtx⇑ᴸ [] = []
+nuCtx⇑ᴸ (NTI.ctx-imp A B p ∷ γ) =
+  NTI.ctx-imp (⇑ᵗ A) B (imp-lift-left p) ∷ nuCtx⇑ᴸ γ
+
+nuCtx⇑ᴸ-lift :
+  ∀ {Φ Δᴸ Δᴿ} →
+  (γ : NTI.CtxImp Φ Δᴸ Δᴿ) →
+  NTI.LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ (nuCtx⇑ᴸ γ)
+nuCtx⇑ᴸ-lift [] = NTI.lift-left-ctx-[]
+nuCtx⇑ᴸ-lift (NTI.ctx-imp A B p ∷ γ) =
+  NTI.lift-left-ctx-∷ (nuCtx⇑ᴸ-lift γ)
+
+------------------------------------------------------------------------
 -- Congruence helpers for compiler proof plumbing
 ------------------------------------------------------------------------
 
@@ -146,6 +401,78 @@ nu-term-imprecision-cong-terms :
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ L′ ⊑ R′ ⦂ A ⊑ B ∶ p
 nu-term-imprecision-cong-terms refl refl L⊑R = L⊑R
 
+compiled-argument-cast-imprecision :
+  ∀ {Φ Δᴸ Δᴿ δ M M′ A A′ C C′ pA pC} →
+  (plan : CastPlan Δᴸ [] C A) →
+  (plan′ : CastPlan Δᴿ [] C′ A′) →
+  Φ ∣ Δᴸ ⊢ lower plan ⊑ lower plan′ ⊣ Δᴿ →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
+    ⊢ᴺ cast plan M ⊑ cast plan′ M′ ⦂ A ⊑ A′ ∶ pA
+compiled-argument-cast-imprecision {pA = pA}
+    plan plan′ lower⊑lower′ M⊑M′ =
+  let
+    M↓⊑M′ =
+      NTI.cast⊒⊑idᵀ storeDetWf-[] seal★-id-only (down⊒ plan) M⊑M′
+    M↓⊑M′↓ =
+      NTI.⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
+        (narrow-mode-relax id-only≤tag-or-idᵈ (down⊒ plan′))
+        M↓⊑M′ lower⊑lower′
+    M↓⊑M′↑ =
+      NTI.⊑cast⊑idᵀ storeDetWf-[] seal★-id-only (up⊑ plan′) M↓⊑M′↓
+  in
+  NTI.cast⊑⊑ᵀ cast-tag-or-id seal★-tag-or-id
+    (widen-mode-relax id-only≤tag-or-idᵈ (up⊑ plan))
+    M↓⊑M′↑ pA
+
+compiled-cast-nat-imprecision :
+  ∀ {Φ Δᴸ Δᴿ δ M M′ A A′ p ℓ} →
+  (A~ℕ : Imp._⊢_~_ Δᴸ A (‵ `ℕ)) →
+  (A′~ℕ : Imp._⊢_~_ Δᴿ A′ (‵ `ℕ)) →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
+    ⊢ᴺ cast (consistency-cast-plan ℓ A~ℕ) M
+      ⊑ cast (consistency-cast-plan ℓ A′~ℕ) M′
+    ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ IWF.idι
+compiled-cast-nat-imprecision
+    ((`∀ A) , C⊑A , νᴵ occ p) A′~ℕ M⊑M′ =
+  ⊥-elim (⊑-forall-base-⊥ (νᴵ occ p))
+compiled-cast-nat-imprecision
+    A~ℕ ((`∀ A′) , C′⊑A′ , νᴵ occ p) M⊑M′ =
+  ⊥-elim (⊑-forall-base-⊥ (νᴵ occ p))
+compiled-cast-nat-imprecision {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ℓ = ℓ}
+    (.(‵ `ℕ) , C⊑A , Imp.idι)
+    (.(‵ `ℕ) , C′⊑A′ , Imp.idι)
+    M⊑M′ =
+  let
+    plan = consistency-cast-plan ℓ (‵ `ℕ , C⊑A , Imp.idι)
+    plan′ = consistency-cast-plan ℓ (‵ `ℕ , C′⊑A′ , Imp.idι)
+    plan-lower≡ℕ : lower plan ≡ ‵ `ℕ
+    plan-lower≡ℕ = ⊑-base-inv-idᵢ (⊑-forgetᵢ (lower⊑target plan))
+    plan′-lower≡ℕ : lower plan′ ≡ ‵ `ℕ
+    plan′-lower≡ℕ = ⊑-base-inv-idᵢ (⊑-forgetᵢ (lower⊑target plan′))
+    lower⊑lower′ : Φ ∣ Δᴸ ⊢ lower plan ⊑ lower plan′ ⊣ Δᴿ
+    lower⊑lower′ =
+      subst
+        (λ A → Φ ∣ Δᴸ ⊢ A ⊑ lower plan′ ⊣ Δᴿ)
+        (sym plan-lower≡ℕ)
+        (subst
+          (λ B → Φ ∣ Δᴸ ⊢ ‵ `ℕ ⊑ B ⊣ Δᴿ)
+          (sym plan′-lower≡ℕ)
+          IWF.idι)
+    M↓⊑M′ =
+      NTI.cast⊒⊑idᵀ storeDetWf-[] seal★-id-only (down⊒ plan) M⊑M′
+    M↓⊑M′↓ =
+      NTI.⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
+        (narrow-mode-relax id-only≤tag-or-idᵈ (down⊒ plan′))
+        M↓⊑M′ lower⊑lower′
+    M↓⊑M′↑ =
+      NTI.⊑cast⊑idᵀ storeDetWf-[] seal★-id-only (up⊑ plan′) M↓⊑M′↓
+  in
+  NTI.cast⊑⊑ᵀ cast-tag-or-id seal★-tag-or-id
+    (widen-mode-relax id-only≤tag-or-idᵈ (up⊑ plan))
+    M↓⊑M′↑ IWF.idι
+
 ------------------------------------------------------------------------
 -- Compile monotonicity, with holes for the remaining hard cases
 ------------------------------------------------------------------------
@@ -172,7 +499,7 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
       N⊑N′)
 -- application, function endpoints on both sides
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
-    app@(GTI.·⊑·ᴳ L⊑L′ N⊑N′ A~C A′~C′) =
+    app@(GTI.·⊑·ᴳ {ℓ = ℓ} L⊑L′ N⊑N′ A~C A′~C′) =
   let
     L⊑L′ᵀ =
       compile-preserves-term-imprecision-typed
@@ -185,10 +512,16 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         tgtΓ-wf
         N⊑N′
   in
-  {!!}
+  NTI.·⊑·castsᵀ
+    (down⊒ (consistency-cast-plan ℓ (~-sym A~C)))
+    (up⊑ (consistency-cast-plan ℓ (~-sym A~C)))
+    (down⊒ (consistency-cast-plan ℓ (~-sym A′~C′)))
+    (up⊑ (consistency-cast-plan ℓ (~-sym A′~C′)))
+    L⊑L′ᵀ
+    N⊑N′ᵀ
 -- application, right function type is ★
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
-    app@(GTI.·⊑·★ᴳ L⊑L′ N⊑N′ A~C C′~★) =
+    app@(GTI.·⊑·★ᴳ {ℓ = ℓ} L⊑L′ N⊑N′ A~C C′~★) =
   let
     L⊑L′ᵀ =
       compile-preserves-term-imprecision-typed
@@ -201,10 +534,18 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         tgtΓ-wf
         N⊑N′
   in
-  {!!}
+  NTI.·⊑·★castsᵀ
+    (down⊒ (consistency-cast-plan ℓ (~-sym A~C)))
+    (up⊑ (consistency-cast-plan ℓ (~-sym A~C)))
+    (down⊒
+      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C′~★))))
+    (up⊑
+      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C′~★))))
+    L⊑L′ᵀ
+    N⊑N′ᵀ
 -- application, both function types are ★
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
-    app@(GTI.·★⊑·★ᴳ L⊑L′ N⊑N′ C~★ C′~★) =
+    app@(GTI.·★⊑·★ᴳ {ℓ = ℓ} L⊑L′ N⊑N′ C~★ C′~★) =
   let
     L⊑L′ᵀ =
       compile-preserves-term-imprecision-typed
@@ -217,7 +558,17 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         tgtΓ-wf
         N⊑N′
   in
-  {!!}
+  NTI.·★⊑·★castsᵀ
+    (down⊒
+      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C~★))))
+    (up⊑
+      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C~★))))
+    (down⊒
+      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C′~★))))
+    (up⊑
+      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C′~★))))
+    L⊑L′ᵀ
+    N⊑N′ᵀ
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
     (GTI.Λ⊑Λᴳ liftγ vV vV′ occA occB V⊑V′) =
   NTI.Λ⊑Λᵀ
@@ -260,9 +611,26 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
           tgtΓ-wf)
         V⊑N′
   in
-  {!!}
+  NTI.Λ⊑ᵀ occ
+    NTI.lift-left-store-[]
+    (ctxImpToNu-lift-left liftγ)
+    (compileᵀ-value (CtxWf-⤊ srcΓ-wf) vV
+      (subst
+        (λ Γ → _ ∣ Γ ⊢ᴳ _ ⦂ _)
+        (GTI.srcCtxⁱ-lift-left liftγ)
+        (GTI.gradual-term-imprecision-source-typing V⊑N′)))
+    (nu-term-imprecision-cong-terms
+      (compile-context-subst-term-sym
+        (GTI.srcCtxⁱ-lift-left liftγ)
+        (CtxWf-⤊ srcΓ-wf)
+        (GTI.gradual-term-imprecision-source-typing V⊑N′))
+      (compile-context-subst-term-sym
+        (GTI.tgtCtxⁱ-lift-left liftγ)
+        tgtΓ-wf
+        (GTI.gradual-term-imprecision-target-typing V⊑N′))
+      V⊑N′ᵀ)
 -- synchronized type application
-compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
+compile-preserves-term-imprecision-typed {γ = γ} srcΓ-wf tgtΓ-wf
     rel@(GTI.[]⊑[]ᴳ hA hT hB hT′ M⊑M′ q r) =
   let
     M⊑M′ᵀ =
@@ -271,9 +639,16 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         tgtΓ-wf
         M⊑M′
   in
-  {!!}
+  NTI.ν⊑νᵀ hT hT′
+    (ν-reveal-conversion hT hA)
+    (ν-reveal-conversion hT′ hB)
+    q
+    (imp-lift q)
+    NTI.lift-store-[]
+    (nuCtx⇑-lift (ctxImpToNu γ))
+    M⊑M′ᵀ
 -- left-only type application
-compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
+compile-preserves-term-imprecision-typed {γ = γ} srcΓ-wf tgtΓ-wf
     rel@(GTI.[]⊑ᴳ hA hT M⊑M′ q r) =
   let
     M⊑M′ᵀ =
@@ -282,12 +657,17 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         tgtΓ-wf
         M⊑M′
   in
-  {!!}
+  NTI.ν⊑ᵀ hT
+    (renameᵗ-preserves-WfTy hT TyRenameWf-suc)
+    (ν-reveal-conversion hT hA)
+    NTI.lift-left-store-[]
+    (nuCtx⇑ᴸ-lift (ctxImpToNu γ))
+    M⊑M′ᵀ
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf GTI.κ⊑κᴳ =
   NTI.κ⊑κᵀ
 -- primitive addition
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
-    prim@(GTI.⊕⊑⊕ᴳ {op = addℕ} L⊑L′ A~ℕ A′~ℕ
+    prim@(GTI.⊕⊑⊕ᴳ {op = addℕ} {ℓ = ℓ} L⊑L′ A~ℕ A′~ℕ
       N⊑N′ B~ℕ B′~ℕ) =
   let
     L⊑L′ᵀ =
@@ -301,7 +681,9 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         tgtΓ-wf
         N⊑N′
   in
-  {!!}
+  NTI.⊕⊑⊕ᵀ
+    (compiled-cast-nat-imprecision {ℓ = ℓ} A~ℕ A′~ℕ L⊑L′ᵀ)
+    (compiled-cast-nat-imprecision {ℓ = ℓ} B~ℕ B′~ℕ N⊑N′ᵀ)
 
 compile-preserves-term-imprecision :
   (srcΓ-wf : CtxWf Δᴸ (GTI.srcCtxⁱ γ)) →

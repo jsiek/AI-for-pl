@@ -175,6 +175,9 @@ modeIncl-refl X | id-only = refl
 modeIncl-refl X | tag-or-id = refl
 modeIncl-refl X | seal-or-id = refl
 
+id-only≤tag-or-idᵈ : ModeIncl id-onlyᵈ tag-or-idᵈ
+id-only≤tag-or-idᵈ X = refl
+
 idModeAllowed : Mode → Bool
 idModeAllowed id-only = true
 idModeAllowed tag-or-id = true

@@ -1,18 +1,19 @@
 module Compile where
 
 -- File Charter:
---   * Compilation from source gradual GTSF terms to target explicit-coercion terms.
+--   * Compilation from source gradual GTSF terms to target explicit-coercion
+--     terms.
 --   * Exports the common-lower-bound cast-plan specification, `compile`, and
 --     `compile-value`.
---   * The store is empty at compile time; target reduction allocates store cells
---     later for polymorphic/seal behavior.
+--   * The store is empty at compile time; target reduction allocates store
+--     cells later for polymorphic/seal behavior.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here)
 open import Data.Nat using (zero; suc; z<s; s<s)
-open import Data.Product using (Σ-syntax; _,_; proj₁)
+open import Data.Product using (_×_; Σ-syntax; _,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (subst; sym; trans)
 
 open import Types
@@ -23,20 +24,27 @@ open import Coercions
     ; _∣_⊢_∶_=⇒_
     ; _∣_∣_⊢_∶_=⇒_
     ; reveal
+    ; id-onlyᵈ
+    ; id-only≤tag-or-idᵈ
     ; tag-or-idᵈ
     )
 open import Conversion using (_∣_∣_⊢_∶_↑ˢ_; reveal-conversion-env)
-open import Imprecision using (_⊢_~_; id★; _↦_; tag_⇛_)
+open import Imprecision using (_⊢_~_; idᵢ; id★; _↦_; tag_⇛_)
+import ImprecisionWf as IWF
 open import Primitives using (Const; Prim; constTy)
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
+  ; narrow-mode-relax
+  ; widen-mode-relax
   )
 open import proof.CompileCoercions using
   ( coerce-upʷ
   ; coerce-downⁿ
-  ; realizes-idᵢᴺᵂ
+  ; realizes-idᵢᴺᵂ-id-only
   )
+open import proof.CastImprecision
+  using (castᵢ-id-only; narrowing⇒⊑ᵢ; widening⇒⊑ᵢ)
 open import proof.CoercionProperties
   using
     ( RevealEnv
@@ -48,6 +56,14 @@ open import proof.CoercionProperties
     )
 open import proof.ImprecisionProperties
   using (⊑-src-wf-idᵢ; ⊑-tgt-wf-idᵢ; ~-sym)
+open import proof.MaximalLowerBoundsWf
+  using
+    ( mlb-type-from-lowerᵢ
+    ; mlb-type-from-lower-commonᵢ
+    ; mlb-type-from-lower-common-oldᵢ
+    ; old⊑→wf-idᵢ
+    )
+open import proof.NarrowWidenProperties using (StoreDetWf)
 open import proof.NuTermProperties using (CtxWf-⤊)
 open import proof.TypeProperties
   using
@@ -103,6 +119,21 @@ open import NuTerms
     ; ⊢⟨⟩ to ⊢ᵀ⟨⟩
     )
 import TermTyping as TT
+
+storeDetWf-[] :
+  ∀ {Δ} →
+  StoreDetWf Δ []
+storeDetWf-[] =
+  record
+    { at = record { bound = λ (); wfTy = λ () }
+    ; wfOlder = λ ()
+    ; unique = λ ()
+    }
+
+seal★-id-only :
+  ∀ {Σ} →
+  TT.SealModeStore★ id-onlyᵈ Σ
+seal★-id-only α ()
 
 ------------------------------------------------------------------------
 -- Nu coercion for source type application
@@ -227,44 +258,70 @@ import TermTyping as TT
 
 record CastPlan (Δ : TyCtx) (Σ : Store) (A B : Ty) : Set₁ where
   field
+    -- Consistency witnesses are built from `idᵢ`, so the cast evidence is
+    -- kept in `id-onlyᵈ` and relaxed only at the term-typing boundary.
     lower : Ty
     down : Coercion
     down⊢ : Δ ∣ Σ ⊢ down ∶ A =⇒ lower
-    down⊒ : tag-or-idᵈ ∣ Δ ∣ Σ ⊢ down ∶ A ⊒ lower
+    down⊒ : id-onlyᵈ ∣ Δ ∣ Σ ⊢ down ∶ A ⊒ lower
+    lower⊑source :
+      IWF._∣_⊢_⊑_⊣_ (idᵢ Δ) Δ lower A Δ
 
     up : Coercion
     up⊢ : Δ ∣ Σ ⊢ up ∶ lower =⇒ B
-    up⊑ : tag-or-idᵈ ∣ Δ ∣ Σ ⊢ up ∶ lower ⊑ B
+    up⊑ : id-onlyᵈ ∣ Δ ∣ Σ ⊢ up ∶ lower ⊑ B
+    lower⊑target :
+      IWF._∣_⊢_⊑_⊣_ (idᵢ Δ) Δ lower B Δ
 
 open CastPlan public
+
+consistency-cast-planᵢ :
+  ∀ {Δ A B} →
+  Label →
+  (Σ[ C ∈ Ty ]
+    (IWF._∣_⊢_⊑_⊣_ (idᵢ Δ) Δ C A Δ ×
+     IWF._∣_⊢_⊑_⊣_ (idᵢ Δ) Δ C B Δ)) →
+  CastPlan Δ [] A B
+consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
+    with mlb-type-from-lower-commonᵢ C⊑A C⊑B
+       | mlb-type-from-lower-common-oldᵢ C⊑A C⊑B
+consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
+    | lower⊑source , lower⊑target
+    | lower⊑source-old , lower⊑target-old
+    with coerce-downⁿ ℓ
+           (IWF.⊑-src-wf lower⊑source)
+           (IWF.⊑-tgt-wf lower⊑source)
+           (realizes-idᵢᴺᵂ-id-only Δ)
+           lower⊑source-old
+       | coerce-upʷ ℓ
+           (IWF.⊑-src-wf lower⊑target)
+           (IWF.⊑-tgt-wf lower⊑target)
+           (realizes-idᵢᴺᵂ-id-only Δ)
+           lower⊑target-old
+consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
+    | lower⊑source , lower⊑target
+    | lower⊑source-old , lower⊑target-old
+    | down , down⊒ | up , up⊑ =
+  record
+    { lower = mlb-type-from-lowerᵢ C⊑A C⊑B
+    ; down = down
+    ; down⊢ = id-onlyᵈ , proj₁ down⊒
+    ; down⊒ = down⊒
+    ; lower⊑source = lower⊑source
+    ; up = up
+    ; up⊢ = id-onlyᵈ , proj₁ up⊑
+    ; up⊑ = up⊑
+    ; lower⊑target = lower⊑target
+    }
 
 consistency-cast-plan :
   ∀ {Δ A B} →
   Label →
   Δ ⊢ A ~ B →
   CastPlan Δ [] A B
-consistency-cast-plan {Δ = Δ} ℓ (C , C⊑A , C⊑B)
-    with coerce-downⁿ ℓ
-           (⊑-src-wf-idᵢ C⊑A)
-           (⊑-tgt-wf-idᵢ C⊑A)
-           (realizes-idᵢᴺᵂ Δ)
-           C⊑A
-       | coerce-upʷ ℓ
-           (⊑-src-wf-idᵢ C⊑B)
-           (⊑-tgt-wf-idᵢ C⊑B)
-           (realizes-idᵢᴺᵂ Δ)
-           C⊑B
-consistency-cast-plan {Δ = Δ} ℓ (C , C⊑A , C⊑B)
-    | down , down⊒ | up , up⊑ =
-  record
-    { lower = C
-    ; down = down
-    ; down⊢ = tag-or-idᵈ , proj₁ down⊒
-    ; down⊒ = down⊒
-    ; up = up
-    ; up⊢ = tag-or-idᵈ , proj₁ up⊑
-    ; up⊑ = up⊑
-    }
+consistency-cast-plan ℓ (C , C⊑A , C⊑B) =
+  consistency-cast-planᵢ ℓ
+    (C , old⊑→wf-idᵢ C⊑A , old⊑→wf-idᵢ C⊑B)
 
 arrow★-consistent :
   ∀ {Δ A} →
@@ -301,8 +358,10 @@ cast⊢ᵀ :
   TT._∣_∣_⊢_⦂_ Δ [] Γ M A →
   TT._∣_∣_⊢_⦂_ Δ [] Γ (cast plan M) B
 cast⊢ᵀ plan M⊢ =
-  TT.⊢⟨⟩⊑ TT.cast-tag-or-id seal★-tag-or-id (up⊑ plan)
-    (TT.⊢⟨⟩⊒ TT.cast-tag-or-id seal★-tag-or-id (down⊒ plan) M⊢)
+  TT.⊢⟨⟩⊑ TT.cast-tag-or-id seal★-tag-or-id
+    (widen-mode-relax id-only≤tag-or-idᵈ (up⊑ plan))
+    (TT.⊢⟨⟩⊒ TT.cast-tag-or-id seal★-tag-or-id
+      (narrow-mode-relax id-only≤tag-or-idᵈ (down⊒ plan)) M⊢)
 
 ------------------------------------------------------------------------
 -- Compilation

@@ -4,8 +4,10 @@ File Charter:
 
 - Purpose: plan for proving maximality of the simple exhaustive endpoint MLB
   algorithm.
-- Scope: the public maximality theorem, durable pruning lemmas, and the
-  completeness theorem for raw enumeration.
+- Scope: the raw-enumeration completeness theorem in
+  `EndpointCanonicalMLBSimpleCompleteness.agda`, plus durable pruning lemmas
+  and the public maximality theorem in
+  `EndpointCanonicalMLBSimpleMaximality.agda`.
 - Main dependencies: `EndpointCanonicalMLBSimple.agda`,
   `EndpointCanonicalMLBSimpleSoundness.agda`, `ImprecisionWf.agda`,
   `TypeProperties.agda`, `ImprecisionProperties.agda`, and
@@ -75,16 +77,32 @@ This statement is weaker and better targeted than the current upper-cone
 lemma.  It does not mention a raw candidate `C`, and it does not require a
 proof `C ⊑ D`.  The candidate `C` only matters later, in the pruning argument.
 
-For the recursive proof, use a worker theorem over `enumMLB`.  The worker needs
-a fuel premise that depends only on the endpoint shapes `A` and `B`, not on the
-lower bound `D`.  The public theorem should instantiate this worker with
-`fuelFor A B`.
+For the recursive proof, use a worker theorem over `enumMLB`.  The worker uses
+the concrete invariant
 
-One possible shape is:
+```agda
+data EnoughFuel (fuel : ℕ) (A B : Ty) : Set where
+  fuel-ok :
+    suc (sizeTy A + sizeTy B) ≤ fuel →
+    EnoughFuel fuel A B
+```
+
+This depends only on the endpoint shapes `A` and `B`, not on the lower bound
+`D`.  Every recursive endpoint clause preserves it, and `fuelFor A B` provides
+it at the public entry point.
+
+The worker also carries `SourceFuel sourceFuel D`.  Ordinary recursive calls
+decrease endpoint fuel.  A `ν`/`ν` elimination keeps the endpoints fixed but
+decreases source fuel after replacing the unsupported binder by `★`.  This
+lexicographic measure lets Agda accept the proof without a termination pragma.
+
+The worker has the following shape:
 
 ```agda
 enumMLB-complete :
   ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D} →
+  (sourceFuel : ℕ) →
+  SourceFuel sourceFuel D →
   EnoughFuel fuel A B →
   WfImpCtx² Δᶜ Δᴸ Φᴸ →
   WfImpCtx² Δᶜ Δᴿ Φᴿ →
@@ -102,11 +120,8 @@ both contain `X ˣ⊑★`, so `＇ X` is a common lower bound of `★` and `★`
 `idᵢ Δᶜ` cannot prove `＇ X ⊑ ★`.  The invariant says that any common
 star-assumption used by both sides is also available in the output context.
 At the public entry point this output context is `idᵢ Δ`, so no such free star
-assumption can exist.  Under a source `ν`/`ν` step the invariant is preserved by
-adding the one allowed bound-variable star to the output context.
-
-If `EnoughFuel` becomes proof noise, first prove a public worker specialized to
-`fuelFor A B`, then factor out the general fuel statement only if needed.
+assumption can exist.  A source `ν`/`ν` step removes the shared bound-variable
+star assumption by instantiating that source variable with `★` on both sides.
 
 ## Maximality From Completeness
 
@@ -132,8 +147,8 @@ with:
 rawEndpointMlbsAt-complete
 ```
 
-The Agda file now consumes `rawEndpointMlbsAt-complete` directly.  The obsolete
-upper-cone skeleton has been removed from the maximality module.
+The maximality module now imports `rawEndpointMlbsAt-complete` directly from
+the completeness module.  The obsolete upper-cone skeleton has been removed.
 
 ## Completeness Proof Shape
 
@@ -202,41 +217,35 @@ For endpoints `` `∀ A `` and `` `∀ B ``, invert both lower-bound proofs with
 2. `∀ⁱ`/`ν`: use `enumMLB-complete-used` under
    `∀ᵢᶜ Φᴸ` and `νᵢᶜ Φᴿ`; wrap with `wrapAllIfOccurs-complete`.
 3. `ν`/`∀ⁱ`: symmetric to the previous case.
-4. `ν`/`ν`: use the fourth-route elimination lemma below.
+4. `ν`/`ν`: instantiate the unsupported source binder with `★` and use the
+   generic elimination theorem below.
 
 ### The `ν`/`ν` Elimination Lemma
 
-This remains the main semantic risk.  The lemma should state that if a common
-lower of `` `∀ A `` and `` `∀ B `` is obtained by using `ν` on both sides, then
-it is below some real three-route candidate:
+The completed lemma is generic in the endpoint shapes.  If both lower-bound
+proofs erase the same source binder, it instantiates that binder and recursively
+completes the resulting smaller common lower bound:
 
 ```agda
-enumMLB-νν-complete-elim :
+enumMLB-νν-complete :
   ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D} →
-  EnoughFuel (suc fuel) (`∀ A) (`∀ B) →
+  (sourceFuel : ℕ) →
+  SourceFuel sourceFuel (`∀ D) →
+  EnoughFuel fuel A B →
   WfImpCtx² Δᶜ Δᴸ Φᴸ →
   WfImpCtx² Δᶜ Δᴿ Φᴿ →
+  StarMeetCtxᵢ Φᴸ Φᴿ (idᵢ Δᶜ) →
   occurs zero D ≡ true →
-  νᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ D ⊑ `∀ A ⊣ Δᴸ →
-  νᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ D ⊑ `∀ B ⊣ Δᴿ →
+  νᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ D ⊑ A ⊣ Δᴸ →
+  νᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ D ⊑ B ⊣ Δᴿ →
   ∃[ E ]
-    (E ∈ enumMLB (suc fuel) Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ (`∀ A) (`∀ B) ×
+    (E ∈ enumMLB fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B ×
      idᵢ Δᶜ ∣ Δᶜ ⊢ `∀ D ⊑ E ⊣ Δᶜ)
 ```
 
-It may be useful to prove this through a proof-only four-route relation, but
-the final theorem should return membership in the real three-route
-`enumMLB`.  Unlike the old upper-cone plan, this lemma should not mention an
-already-enumerated candidate `C`.
-
-Existing occurrence and freshness facts from `MaximalLowerBoundsWf.agda` are
-still relevant here:
-
-- `occurs-backᵢ`
-- `νlower-∀shape-body-lowerᵢ`
-- `νν-false-support-from-bodyᵢ`
-- `sel-νν-from-∀∀-support-true-lowerᵢ`
-- `sel-νν-from-∀∀-support-false-lowerᵢ`
+This single theorem discharges the paired-`∀`, one-sided-`∀`, and arrow
+ν/ν cases.  It is mutually recursive with `enumMLB-complete`: the ordinary
+clauses decrease endpoint fuel, while this clause decreases source fuel.
 
 ## Supporting List Lemmas
 
@@ -266,39 +275,104 @@ dedupe-complete :
   C ∈ dedupe xs
 ```
 
-Whole-list pruning and strict-above completeness are already isolated in the
-Agda file.
+Whole-list pruning and strict-above completeness are isolated in the
+maximality module.
 
-## Proof Order
+## Current Status
 
-1. Prove the list completeness lemmas for `wrapAll`, `wrapAllIfOccurs`,
+The complete proof now type-checks without postulates or unsolved metas:
+
+1. List membership completeness for `wrapAll`, `wrapAllIfOccurs`,
    `arrowProducts`, and `dedupe`.
-2. Prove or port the local occurrence/freshness lemmas needed by the one-sided
-   and `ν`/`ν` cases.
-3. Prove `enumMLB-complete-used`, because it is needed to feed
-   `wrapAllIfOccurs` in the one-sided routes.
-4. Build the top-down skeleton for `enumMLB-complete`, inserting recursive
-   calls in every structural case.
-5. Focus on `enumMLB-νν-complete-elim`, the only case not mirrored directly by
-   the executable routes.
-6. Finish `enumMLB-complete`, then derive `rawEndpointMlbsAt-complete`.
-7. Remove the `rawEndpointMlbsAt-complete` postulate and re-check maximality.
+2. Boolean completeness for variable candidates, implication lookup, and the
+   below/strict-below tests used by pruning.
+3. The concrete `EnoughFuel` invariant, its `fuelFor` introduction theorem,
+   and every recursive endpoint projection.
+4. `enumMLB-complete-used` and every structural clause of
+   `enumMLB-complete`.
+5. Generic `ν`/`ν` elimination for paired-`∀`, one-sided-`∀`, and arrow
+   endpoint shapes.
+6. `rawEndpointMlbsAt-complete` in its own module, with the
+   pruning-to-maximality assembly kept separately.
+7. Selector success completeness: `simpleEndpointMlbAt-complete` proves that
+   any well-formed endpoint pair with a common lower bound returns `just C`;
+   `simpleEndpointMlb-complete` specializes it to `endpointCtx`.
 
-## Risk
+A raw-shaped selector theorem with the additional conclusion `D ⊑ C` is not
+valid.  For `glb-bad-A` and `glb-bad-B`, the selector returns `glb-lower-XY`,
+while `glb-lower-YX` is another common lower bound and
+`glb-lower-YX ⋢ glb-lower-XY`.  Such a theorem would assert the unavailable
+GLB property rather than selector success completeness.
 
-The risky theorem is still the `ν`/`ν` elimination theorem, but the new
-statement removes the unrelated route-alignment problem for an arbitrary raw
-candidate `C`.
+The strict focused checks are:
 
-The second risk is `enumMLB-complete-used`.  It must guarantee an enumerated
-upper candidate that still mentions the exposed binder whenever the source
-lower bound mentions that binder and the route needs `wrapAllIfOccurs`.
+```text
+agda --no-allow-unsolved-metas -v0 \
+  proof/EndpointCanonicalMLBSimpleCompleteness.agda
+agda --no-allow-unsolved-metas -v0 \
+  proof/EndpointCanonicalMLBSimpleMaximality.agda
+```
 
-The current implementation has exposed a third focused obligation: source
-`ν`/`ν` closure for non-paired-`∀` endpoint shapes, such as `★`/`` `∀ B `` and
-`★`/arrow.  The direct `★`/`★` subcase follows from `StarMeetCtxᵢ`, but the
-one-sided-`∀` and arrow subcases must show that the executable structural route
-still yields a candidate above `` `∀ D ``.
+The key simplification is that `ν`/`ν` elimination does not normalize either
+derivation into an executable `forall` route.  It instantiates the unsupported
+source binder with `★`, recursively completes the resulting smaller common
+lower bound, and uses transitivity.
+
+### Do Not Factor Through a Body Comparison
+
+The first `ννRouteCover` formulation required a common body `R` and a proof
+
+```agda
+idᵢ (suc Δᶜ) ∣ suc Δᶜ ⊢ D ⊑ R ⊣ suc Δᶜ
+```
+
+before wrapping the result with `∀ⁱ`.  That requirement is false even when
+`occurs zero D ≡ true`.  The checked counterexample takes
+
+```agda
+D = `∀ (★ ⇒ ＇ 1)
+```
+
+under an outer `ν` context.  Both derivations
+
+```agda
+νᵢᶜ [] ∣ 1 ⊢ D ⊑ `∀ ★ ⊣ 0
+```
+
+exist because the `ν` assumption supplies `＇ 1 ⊑ ★`.  But if `D` factored
+through a body `R` that was below `★` under `∀ᵢᶜ []`, transitivity would give
+
+```agda
+∀ᵢᶜ [] ∣ 1 ⊢ D ⊑ ★ ⊣ 1
+```
+
+which is impossible: eliminating the source `∀` would require
+`occurs zero (★ ⇒ ＇ 1) ≡ true`.  The Agda module records the derivable premise
+as `nested-used-star-lower` and the contradiction as
+`no-nested-used-body-factor`.
+
+The completed proof therefore avoids a route-cover relation entirely.  The
+three essential lemmas are
+
+```agda
+inst-starᵢ :
+  νᵢᶜ Φ ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
+  Φ ∣ Δᴸ ⊢ A [ ★ ]ᵗ ⊑ B ⊣ Δᴿ
+
+close-star-lowerᵢ :
+  occurs zero A ≡ true →
+  WfTy (suc Δ) A →
+  idᵢ Δ ∣ Δ ⊢ `∀ A ⊑ A [ ★ ]ᵗ ⊣ Δ
+
+sizeTy-subst-starᵢ :
+  sizeTy (substᵗ (substVarFrom k ★) A) ≡ sizeTy A
+```
+
+Applying `inst-starᵢ` to both lower-bound derivations produces a common lower
+bound `D [ ★ ]ᵗ` under the original contexts.  Its size equals `sizeTy D`, so
+removing the enclosing `∀` strictly decreases source fuel.  Recursive
+completeness gives `D [ ★ ]ᵗ ⊑ E`; composing this with
+`close-star-lowerᵢ` gives `` `∀ D ⊑ E ``.
 
 ## Relationship To Coherence
 

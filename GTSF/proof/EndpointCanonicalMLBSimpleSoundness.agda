@@ -29,6 +29,7 @@ open import proof.EndpointCanonicalMLBSimple using
   ; allEndpointMlbsAt
   ; dedupe
   ; dedupeSeen
+  ; endpointCtx
   ; enumMLB
   ; first
   ; fuelFor
@@ -38,6 +39,7 @@ open import proof.EndpointCanonicalMLBSimple using
   ; memberTy?
   ; pruneStrictlyBelow
   ; rawEndpointMlbsAt
+  ; simpleEndpointMlb
   ; simpleEndpointMlbAt
   ; varCandidate?
   ; varCandidatesUpTo
@@ -784,3 +786,11 @@ simpleEndpointMlbAt-sound :
   idᵢ Δ ∣ Δ ⊢ C ⊑ B ⊣ Δ
 simpleEndpointMlbAt-sound {Δ = Δ} {A = A} {B = B} eq =
   allEndpointMlbsAt-sound (first-sound {xs = allEndpointMlbsAt Δ A B} eq)
+
+simpleEndpointMlb-sound :
+  ∀ {A B C} →
+  simpleEndpointMlb A B ≡ just C →
+  idᵢ (endpointCtx A B) ∣ endpointCtx A B ⊢ C ⊑ A ⊣ endpointCtx A B ×
+  idᵢ (endpointCtx A B) ∣ endpointCtx A B ⊢ C ⊑ B ⊣ endpointCtx A B
+simpleEndpointMlb-sound {A = A} {B = B} eq =
+  simpleEndpointMlbAt-sound {Δ = endpointCtx A B} eq

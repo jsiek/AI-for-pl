@@ -52,7 +52,7 @@ open import proof.MaximalLowerBoundsWf using
   ; no-occurs-var-lower-νctxᵢ; no-⇑ᴸᵢ-zero-star
   ; old⊑→wf-idᵢ; ⊑-forgetᵢ
   ; un⇑ᴸᵢ-★∈; ⇑ᴸᵢ-★∈; ∨-true-leftᵢ; ∨-true-rightᵢ
-  ; ⊑-trans-idᵢ
+  ; ⊑-trans-idᵢ; ⊑-trans-left-idᵢ
   )
 
 ------------------------------------------------------------------------
@@ -803,12 +803,15 @@ CompleteUsedIH fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B =
     (E ∈ enumMLB fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B ×
      (occurs zero E ≡ true × idᵢ Δᶜ ∣ Δᶜ ⊢ D ⊑ E ⊣ Δᶜ))
 
+-- A route must retain the comparison between the whole source and the
+-- wrapped route source.  Requiring only a body comparison is too strong:
+-- `no-nested-used-body-factor` below gives a concrete counterexample.
 data ννRouteCover
     (Φᴸ Φᴿ : ImpCtx) (Δᶜ Δᴸ Δᴿ : TyCtx)
     (A B D : Ty) : Set where
   cover-both :
     ∀ {R} →
-    idᵢ (suc Δᶜ) ∣ suc Δᶜ ⊢ D ⊑ R ⊣ suc Δᶜ →
+    idᵢ Δᶜ ∣ Δᶜ ⊢ `∀ D ⊑ `∀ R ⊣ Δᶜ →
     ∀ᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ R ⊑ A ⊣ suc Δᴸ →
     ∀ᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ R ⊑ B ⊣ suc Δᴿ →
     ννRouteCover Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D
@@ -816,7 +819,7 @@ data ννRouteCover
   cover-left :
     ∀ {R} →
     occurs zero R ≡ true →
-    idᵢ (suc Δᶜ) ∣ suc Δᶜ ⊢ D ⊑ R ⊣ suc Δᶜ →
+    idᵢ Δᶜ ∣ Δᶜ ⊢ `∀ D ⊑ `∀ R ⊣ Δᶜ →
     ∀ᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ R ⊑ A ⊣ suc Δᴸ →
     νᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ R ⊑ `∀ B ⊣ Δᴿ →
     ννRouteCover Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D
@@ -824,42 +827,36 @@ data ννRouteCover
   cover-right :
     ∀ {R} →
     occurs zero R ≡ true →
-    idᵢ (suc Δᶜ) ∣ suc Δᶜ ⊢ D ⊑ R ⊣ suc Δᶜ →
+    idᵢ Δᶜ ∣ Δᶜ ⊢ `∀ D ⊑ `∀ R ⊣ Δᶜ →
     νᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ R ⊑ `∀ A ⊣ Δᴸ →
     ∀ᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ R ⊑ B ⊣ suc Δᴿ →
     ννRouteCover Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D
 
 nested-star-cover :
   ννRouteCover (νᵢᶜ []) (νᵢᶜ []) 1 0 0 ★ ★ ★
-nested-star-cover = cover-both id★ id★ id★
+nested-star-cover = cover-both (∀ⁱ id★) id★ id★
 
-no-closed-star-cover :
-  ¬ ννRouteCover [] [] 0 0 0 ★ ★ (`∀ ★)
-no-closed-star-cover (cover-both (∀ⁱ id★) (ν occ★ p) q) =
-  false≠true occ★
-no-closed-star-cover (cover-both (ν occ★ p) q r) =
-  false≠true occ★
-no-closed-star-cover (cover-left occR (∀ⁱ id★) p q) =
-  false≠true occR
-no-closed-star-cover (cover-left occR (ν occ★ p) q r) =
-  false≠true occ★
-no-closed-star-cover (cover-right occR (∀ⁱ id★) p q) =
-  false≠true occR
-no-closed-star-cover (cover-right occR (ν occ★ p) q r) =
-  false≠true occ★
+nested-used-star-lower :
+  νᵢᶜ [] ∣ 1 ⊢ `∀ (★ ⇒ ＇ 1) ⊑ `∀ ★ ⊣ 0
+nested-used-star-lower =
+  ∀ⁱ (tag id★ ⇛ tagˣ (there (here refl)) (s<s z<s))
 
-postulate
-  -- This theorem must be proved directly from the two lower-bound
-  -- derivations.  A generic recursive closure operation on `ννRouteCover`
-  -- is not valid: closing a nested route can exchange the two newest binders,
-  -- while the relation above records no binder-alignment evidence.
-  νν-route-cover :
-    ∀ {Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D} →
-    StarMeetCtxᵢ Φᴸ Φᴿ (idᵢ Δᶜ) →
-    occurs zero D ≡ true →
-    νᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ D ⊑ `∀ A ⊣ Δᴸ →
-    νᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ D ⊑ `∀ B ⊣ Δᴿ →
-    ννRouteCover Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D
+nested-used-star-cover :
+  ννRouteCover [] [] 0 0 0 ★ ★ (`∀ (★ ⇒ ＇ 1))
+nested-used-star-cover =
+  cover-both (ν refl nested-used-star-lower) id★ id★
+
+no-nested-used-star-lower :
+  ∀ᵢᶜ [] ∣ 1 ⊢ `∀ (★ ⇒ ＇ 1) ⊑ ★ ⊣ 1 →
+  ⊥
+no-nested-used-star-lower (ν () p)
+
+no-nested-used-body-factor :
+  ¬ (∃[ R ]
+      (idᵢ 1 ∣ 1 ⊢ `∀ (★ ⇒ ＇ 1) ⊑ R ⊣ 1 ×
+       ∀ᵢᶜ [] ∣ 1 ⊢ R ⊑ ★ ⊣ 1))
+no-nested-used-body-factor (R , D⊑R , R⊑★) =
+  no-nested-used-star-lower (⊑-trans-left-idᵢ D⊑R R⊑★)
 
 νν-route-cover-complete :
   ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D} →
@@ -885,22 +882,24 @@ postulate
      idᵢ Δᶜ ∣ Δᶜ ⊢ `∀ D ⊑ E ⊣ Δᶜ)
 νν-route-cover-complete {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
-    ih-both ih-left ih-right meet (cover-both D⊑R R⊑A R⊑B)
+    ih-both ih-left ih-right meet (cover-both ∀D⊑∀R R⊑A R⊑B)
     with ih-both (StarMeet-∀∀ᵢ meet) R⊑A R⊑B
 νν-route-cover-complete {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
-    ih-both ih-left ih-right meet (cover-both D⊑R R⊑A R⊑B)
+    ih-both ih-left ih-right meet (cover-both ∀D⊑∀R R⊑A R⊑B)
     | E , E∈ , R⊑E =
   `∀ E ,
   ∈-++-left (wrapAll-complete E∈) ,
-  ∀ⁱ (⊑-trans-idᵢ D⊑R R⊑E)
+  ⊑-trans-idᵢ ∀D⊑∀R (∀ⁱ R⊑E)
 νν-route-cover-complete {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
-    ih-both ih-left ih-right meet (cover-left occR D⊑R R⊑A R⊑∀B)
+    ih-both ih-left ih-right meet
+    (cover-left occR ∀D⊑∀R R⊑A R⊑∀B)
     with ih-left (StarMeet-∀νᵢ meet) occR R⊑A R⊑∀B
 νν-route-cover-complete {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
-    ih-both ih-left ih-right meet (cover-left occR D⊑R R⊑A R⊑∀B)
+    ih-both ih-left ih-right meet
+    (cover-left occR ∀D⊑∀R R⊑A R⊑∀B)
     | E , E∈ , occE , R⊑E =
   `∀ E ,
   ∈-++-right
@@ -909,14 +908,16 @@ postulate
         (enumMLB fuel (∀ᵢᶜ Φᴸ) (∀ᵢᶜ Φᴿ)
           (suc Δᶜ) (suc Δᴸ) (suc Δᴿ) A B)}
     (∈-++-left (wrapAllIfOccurs-complete occE E∈)) ,
-  ∀ⁱ (⊑-trans-idᵢ D⊑R R⊑E)
+  ⊑-trans-idᵢ ∀D⊑∀R (∀ⁱ R⊑E)
 νν-route-cover-complete {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
-    ih-both ih-left ih-right meet (cover-right occR D⊑R R⊑∀A R⊑B)
+    ih-both ih-left ih-right meet
+    (cover-right occR ∀D⊑∀R R⊑∀A R⊑B)
     with ih-right (StarMeet-ν∀ᵢ meet) occR R⊑∀A R⊑B
 νν-route-cover-complete {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
-    ih-both ih-left ih-right meet (cover-right occR D⊑R R⊑∀A R⊑B)
+    ih-both ih-left ih-right meet
+    (cover-right occR ∀D⊑∀R R⊑∀A R⊑B)
     | E , E∈ , occE , R⊑E =
   `∀ E ,
   ∈-++-right
@@ -929,7 +930,7 @@ postulate
         (enumMLB fuel (∀ᵢᶜ Φᴸ) (νᵢᶜ Φᴿ)
           (suc Δᶜ) (suc Δᴸ) Δᴿ A (`∀ B))}
       (wrapAllIfOccurs-complete occE E∈)) ,
-  ∀ⁱ (⊑-trans-idᵢ D⊑R R⊑E)
+  ⊑-trans-idᵢ ∀D⊑∀R (∀ⁱ R⊑E)
 
 mutual
   enumMLB-complete-used :
@@ -967,20 +968,7 @@ mutual
       {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ} {Δᶜ = Δᶜ}
       {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
       enough hΦᴸ hΦᴿ ih-both ih-left ih-right meet occD D⊑A D⊑B =
-    E , dedupe-complete E∈ , D⊑E
-    where
-      route =
-        νν-route-cover-complete
-          {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ} {Δᶜ = Δᶜ}
-          {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
-          ih-both ih-left ih-right meet
-          (νν-route-cover meet occD D⊑A D⊑B)
-
-      E = proj₁ route
-
-      E∈ = proj₁ (proj₂ route)
-
-      D⊑E = proj₂ (proj₂ route)
+    {!!}
 
   enumMLB-complete :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D} →

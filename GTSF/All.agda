@@ -20,6 +20,9 @@ import NuTermImprecision
 import proof.CastImprecision
 import proof.EndpointCanonicalMLB
 import proof.EndpointCanonicalMLBProof
+import proof.EndpointCanonicalMLBSimple
+import proof.EndpointCanonicalMLBSimpleSoundness
+import proof.EndpointCanonicalMLBSimpleTest
 import proof.EndpointCanonicalMLBTest
 import proof.MLBGlbCounterexample
 import proof.MaximalLowerBoundsWf

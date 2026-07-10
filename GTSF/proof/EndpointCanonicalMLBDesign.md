@@ -53,6 +53,11 @@ computation-by-`refl` tests in `proof.EndpointCanonicalMLBTest`.
 The checked proof-target and certificate surface is
 `proof.EndpointCanonicalMLBProof`.
 
+A draft alternative, intentionally simpler but slower, is
+`EndpointCanonicalMLBSimpleDesign.md`.  It replaces support-profile solving with
+an exhaustive recursive search over the three supported `forall` proof-rule
+combinations.
+
 ## Core Design Decisions
 
 ### Input

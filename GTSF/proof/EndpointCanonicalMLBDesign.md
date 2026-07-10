@@ -50,13 +50,12 @@ The regression and bounded model tests are in
 
 The checked Agda implementation is `proof.EndpointCanonicalMLB`, with
 computation-by-`refl` tests in `proof.EndpointCanonicalMLBTest`.
-The checked proof-target and certificate surface is
-`proof.EndpointCanonicalMLBProof`.
 
-A draft alternative, intentionally simpler but slower, is
-`EndpointCanonicalMLBSimpleDesign.md`.  It replaces support-profile solving with
-an exhaustive recursive search over the three supported `forall` proof-rule
-combinations.
+The intentionally simpler but slower reference algorithm is described in
+`EndpointCanonicalMLBSimpleDesign.md`.  It replaces support-profile solving
+with an exhaustive recursive search over the three supported `forall`
+proof-rule combinations.  Future work should prove the efficient algorithm
+equivalent to this exhaustive reference implementation.
 
 ## Core Design Decisions
 

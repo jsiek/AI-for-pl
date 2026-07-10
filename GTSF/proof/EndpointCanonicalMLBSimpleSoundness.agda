@@ -38,6 +38,7 @@ open import proof.EndpointCanonicalMLBSimple using
   ; hasVar
   ; memberTy?
   ; pruneStrictlyBelow
+  ; pruneStrictlyBelowFrom
   ; rawEndpointMlbsAt
   ; simpleEndpointMlb
   ; simpleEndpointMlbAt
@@ -744,19 +745,28 @@ rawEndpointMlbsAt-sound {Δ = Δ} {A = A} {B = B} C∈ =
     (WfImpCtx-to² (idᵢ-wf Δ))
     C∈
 
+pruneStrictlyBelowFrom-sound :
+  ∀ {Δ C all} {xs : List Ty} →
+  C ∈ pruneStrictlyBelowFrom Δ all xs →
+  C ∈ xs
+pruneStrictlyBelowFrom-sound {xs = []} ()
+pruneStrictlyBelowFrom-sound {Δ = Δ} {all = all} {xs = A ∷ As} C∈
+    with hasStrictAbove? Δ A all
+pruneStrictlyBelowFrom-sound {Δ = Δ} {all = all} {xs = A ∷ As} C∈
+    | true =
+  there (pruneStrictlyBelowFrom-sound C∈)
+pruneStrictlyBelowFrom-sound {Δ = Δ} {all = all} {xs = A ∷ As} (here refl)
+    | false =
+  here refl
+pruneStrictlyBelowFrom-sound {Δ = Δ} {all = all} {xs = A ∷ As} (there C∈)
+    | false =
+  there (pruneStrictlyBelowFrom-sound C∈)
+
 pruneStrictlyBelow-sound :
   ∀ {Δ C} {xs : List Ty} →
   C ∈ pruneStrictlyBelow Δ xs →
   C ∈ xs
-pruneStrictlyBelow-sound {xs = []} ()
-pruneStrictlyBelow-sound {Δ = Δ} {xs = A ∷ As} C∈
-    with hasStrictAbove? Δ A (A ∷ As)
-pruneStrictlyBelow-sound {Δ = Δ} {xs = A ∷ As} C∈ | true =
-  there (pruneStrictlyBelow-sound C∈)
-pruneStrictlyBelow-sound {Δ = Δ} {xs = A ∷ As} (here refl) | false =
-  here refl
-pruneStrictlyBelow-sound {Δ = Δ} {xs = A ∷ As} (there C∈) | false =
-  there (pruneStrictlyBelow-sound C∈)
+pruneStrictlyBelow-sound C∈ = pruneStrictlyBelowFrom-sound C∈
 
 first-sound :
   ∀ {C xs} →

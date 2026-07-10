@@ -3870,7 +3870,6 @@ choice-star-var-occurs-rightOnlyᵢ {Γ = rightOnlyᵢ ∷ Γ} {Y = suc Y}
     (choice-star-var-occurs-rightOnlyᵢ mode
       (un⇑ᴸᵢ-★∈ x⊑★)
       (un⇑ᵢ-ˣ∈ x⊑y))
-choice-star-var-occurs-rightOnlyᵢ {Γ = neitherᵢ ∷ Γ} {X = zero} ()
 choice-star-var-occurs-rightOnlyᵢ (thereᵐᵢ {n = neitherᵢ} mode)
     (there x⊑★) (here ())
 choice-star-var-occurs-rightOnlyᵢ {Γ = neitherᵢ ∷ Γ}
@@ -6149,11 +6148,9 @@ non∀-targetᵢ non∀-★ id★ = non∀-★
 non∀-targetᵢ non∀-＇ (idˣ _ _ _) = non∀-＇
 non∀-targetᵢ non∀-‵ idι = non∀-‵
 non∀-targetᵢ non∀-⇒ (p ↦ q) = non∀-⇒
-non∀-targetᵢ () (∀ⁱ p)
 non∀-targetᵢ non∀-‵ (tag ι) = non∀-★
 non∀-targetᵢ non∀-⇒ (tag p ⇛ q) = non∀-★
 non∀-targetᵢ non∀-＇ (tagˣ _ _) = non∀-★
-non∀-targetᵢ () (ν occA p)
 
 non∀-⊑∀-impossibleᵢ :
   ∀ {Φ Δᴸ Δᴿ A C} →

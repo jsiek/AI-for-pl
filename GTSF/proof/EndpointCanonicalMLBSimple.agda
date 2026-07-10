@@ -91,6 +91,7 @@ dedupe = dedupeSeen []
 νᵢᶜ : ImpCtx → ImpCtx
 νᵢᶜ Φ = (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ
 
+-- X ⊑ Y ∈ Φ
 hasVar : ℕ → ℕ → ImpCtx → Bool
 hasVar X Y [] = false
 hasVar X Y ((z ˣ⊑★) ∷ Φ) = hasVar X Y Φ
@@ -98,6 +99,7 @@ hasVar X Y ((z ˣ⊑ˣ w) ∷ Φ) with X ==ᵇ z | Y ==ᵇ w
 hasVar X Y ((z ˣ⊑ˣ w) ∷ Φ) | true | true = true
 hasVar X Y ((z ˣ⊑ˣ w) ∷ Φ) | _ | _ = hasVar X Y Φ
 
+-- X ⊑ ★ ∈ Φ
 hasStar : ℕ → ImpCtx → Bool
 hasStar X [] = false
 hasStar X ((z ˣ⊑★) ∷ Φ) with X ==ᵇ z
@@ -105,14 +107,15 @@ hasStar X ((z ˣ⊑★) ∷ Φ) | true = true
 hasStar X ((z ˣ⊑★) ∷ Φ) | false = hasStar X Φ
 hasStar X ((z ˣ⊑ˣ w) ∷ Φ) = hasStar X Φ
 
+-- Do we have X′ ⊑ A and X′ ⊑ B ?
 varCandidate? : ImpCtx → ImpCtx → Ty → Ty → ℕ → Bool
-varCandidate? Φᴸ Φᴿ (＇ X) (＇ Y) W =
-  hasVar W X Φᴸ andᵇ hasVar W Y Φᴿ
-varCandidate? Φᴸ Φᴿ (＇ X) ★ W =
-  hasVar W X Φᴸ andᵇ hasStar W Φᴿ
-varCandidate? Φᴸ Φᴿ ★ (＇ Y) W =
-  hasStar W Φᴸ andᵇ hasVar W Y Φᴿ
-varCandidate? Φᴸ Φᴿ A B W = false
+varCandidate? Φᴸ Φᴿ (＇ X) (＇ Y) X′ =  -- X′ ⊑ X ∈ Φᴸ  and  X′ ⊑ Y ∈ Φᴿ
+  hasVar X′ X Φᴸ andᵇ hasVar X′ Y Φᴿ
+varCandidate? Φᴸ Φᴿ (＇ X) ★ X′ =       -- X′ ⊑ X ∈ Φᴸ  and  X′ ⊑ ★ ∈ Φᴿ
+  hasVar X′ X Φᴸ andᵇ hasStar X′ Φᴿ
+varCandidate? Φᴸ Φᴿ ★ (＇ Y) X′ =       -- X′ ⊑ ★ ∈ Φᴸ  and  X′ ⊑ Y ∈ Φᴿ
+  hasStar X′ Φᴸ andᵇ hasVar X′ Y Φᴿ
+varCandidate? Φᴸ Φᴿ A B X′ = false
 
 varCandidatesUpTo : ImpCtx → ImpCtx → Ty → Ty → ℕ → List Ty
 varCandidatesUpTo Φᴸ Φᴿ A B zero = []
@@ -240,12 +243,16 @@ hasStrictAbove? Δ A (B ∷ Bs) with strictlyBelow? Δ A B
 hasStrictAbove? Δ A (B ∷ Bs) | true = true
 hasStrictAbove? Δ A (B ∷ Bs) | false = hasStrictAbove? Δ A Bs
 
+pruneStrictlyBelowFrom : ℕ → List Ty → List Ty → List Ty
+pruneStrictlyBelowFrom Δ all [] = []
+pruneStrictlyBelowFrom Δ all (A ∷ As) with hasStrictAbove? Δ A all
+pruneStrictlyBelowFrom Δ all (A ∷ As) | true =
+  pruneStrictlyBelowFrom Δ all As
+pruneStrictlyBelowFrom Δ all (A ∷ As) | false =
+  A ∷ pruneStrictlyBelowFrom Δ all As
+
 pruneStrictlyBelow : ℕ → List Ty → List Ty
-pruneStrictlyBelow Δ [] = []
-pruneStrictlyBelow Δ (A ∷ As)
-    with hasStrictAbove? Δ A (A ∷ As)
-pruneStrictlyBelow Δ (A ∷ As) | true = pruneStrictlyBelow Δ As
-pruneStrictlyBelow Δ (A ∷ As) | false = A ∷ pruneStrictlyBelow Δ As
+pruneStrictlyBelow Δ xs = pruneStrictlyBelowFrom Δ xs xs
 
 rawEndpointMlbsAt : ℕ → Ty → Ty → List Ty
 rawEndpointMlbsAt Δ A B =

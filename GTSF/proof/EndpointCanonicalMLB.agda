@@ -5,8 +5,11 @@ module proof.EndpointCanonicalMLB where
 --     types.
 --   * Mirrors `EndpointCanonicalMLBDesign.md` and the Python reference
 --     implementation in `endpoint_canonical_mlb.py`.
---   * This module computes endpoint-based candidates only; proof obligations
---     over `ImprecisionWf` belong in `proof.MaximalLowerBoundsWf`.
+--   * This module only computes endpoint-based candidates.
+--   * Future work should prove this efficient profile-based algorithm
+--     equivalent to the slower exhaustive algorithm in
+--     `proof.EndpointCanonicalMLBSimple`, reusing the latter's correctness
+--     results for this implementation.
 
 open import Data.Bool using (Bool; true; false)
 open import Data.List using (List; []; _∷_; _++_; length)

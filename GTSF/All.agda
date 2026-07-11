@@ -19,7 +19,6 @@ import DynamicGradualGuarantee
 import NuTermImprecision
 import proof.CastImprecision
 import proof.EndpointCanonicalMLB
-import proof.EndpointCanonicalMLBProof
 import proof.EndpointCanonicalMLBSimple
 import proof.EndpointCanonicalMLBSimpleCompleteness
 import proof.EndpointCanonicalMLBSimpleMaximality

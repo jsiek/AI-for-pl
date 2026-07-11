@@ -13,7 +13,7 @@ open import Data.List using ([]; _∷_)
 open import Data.Maybe using (just; nothing)
 
 open import Types
-open import proof.MLBGlbCounterexample using
+open import proof.MLBGlbExample using
   ( glb-bad-A
   ; glb-bad-B
   ; glb-lower-XY

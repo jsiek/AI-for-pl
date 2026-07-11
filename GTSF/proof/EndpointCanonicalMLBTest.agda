@@ -31,19 +31,19 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; _↦_
   )
-open import proof.MLBGlbCounterexample using
+open import proof.MLBGlbExample using
   ( glb-bad-A
   ; glb-bad-A⊑A
   ; glb-bad-B
   ; glb-bad-B⊑B
   ; glb-lower-XY
-  ; glb-lower-XY⋢YX
   ; glb-lower-XY⊑A
   ; glb-lower-XY⊑B
   ; glb-lower-YX
   ; glb-lower-YX⊑A
   ; glb-lower-YX⊑B
   )
+open import proof.MLBGlbCounterexample using (glb-lower-XY⋢YX)
 open import proof.EndpointCanonicalMLB using (endpointMlb)
 open import proof.EndpointCanonicalMLBProof using
   ( EndpointMlbCoherenceᵢ

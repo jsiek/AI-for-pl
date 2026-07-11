@@ -81,7 +81,7 @@ expect-⊢ M A ok = toWitness ok
 
 run-term : ∀ {M} → Maybe (Run.RunResult M) → Maybe Term
 run-term nothing = nothing
-run-term (just r) = just (Eval.term (Run.evaluation r))
+run-term (just r) = just (Eval.finalTerm (Run.evaluation r))
 
 run-gas : ℕ
 run-gas = 100

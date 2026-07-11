@@ -6,7 +6,7 @@ module Run where
 --   * Exports `run` for fuel-bounded execution of closed gradual programs and
 --     `runTyped` for callers that already have source typing.
 --   * Packages source typing, compiled target typing, the runtime invariant,
---     and the final `EvalResult` in one result record.
+--     and the final value-or-blame `EvalOutcome` in one result record.
 
 open import Data.List using ([])
 open import Data.Maybe using (Maybe; just; nothing)
@@ -22,9 +22,8 @@ open import Compile
     ; compile-value
     ; consistency-cast-plan
     )
-open import Eval using (EvalResult; eval)
+open import Eval using (EvalOutcome; eval)
 open import GradualTypeCheck using (type-check)
-open import NuStore using (StoreWf)
 open import proof.ImprecisionProperties using (~-sym)
 open import proof.NuTermProperties using (CtxWf-⤊)
 
@@ -57,17 +56,6 @@ open import NuTerms
     ; ok-no
     )
   renaming (_∣_∣_⊢_⦂_ to _∣_∣_⊢ᵀ_⦂_)
-
-------------------------------------------------------------------------
--- Empty runtime store
-------------------------------------------------------------------------
-
-empty-store-wf : ∀ {Δ} → StoreWf Δ []
-empty-store-wf =
-  record
-    { at = record { bound = λ (); wfTy = λ () }
-    ; unique = λ ()
-    }
 
 compile-no• :
   ∀ {Δ Γ M A} →
@@ -138,7 +126,7 @@ record RunResult (M : GTerm) : Set₁ where
     target         : Term
     targetRuntime  : RuntimeOK target
     targetTyping   : 0 ∣ [] ∣ [] ⊢ᵀ target ⦂ sourceType
-    evaluation     : EvalResult 0 [] target sourceType
+    evaluation     : EvalOutcome target
 
 open RunResult public
 
@@ -148,7 +136,7 @@ runTyped :
   0 ∣ [] ⊢ᴳ M ⦂ A →
   Maybe (RunResult M)
 runTyped gas M⊢ with compile-closed M⊢
-... | N , okN , N⊢ with eval gas empty-store-wf okN N⊢
+... | N , okN , N⊢ with eval gas N
 ...   | just evalResult = just (ran _ M⊢ N okN N⊢ evalResult)
 ...   | nothing = nothing
 

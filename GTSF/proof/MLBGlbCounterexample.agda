@@ -12,6 +12,7 @@ module proof.MLBGlbCounterexample where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥)
 open import Data.List.Relation.Unary.Any using (here; there)
+open import Data.Maybe using (just)
 open import Data.Nat using (zero; suc; z<s; s<s)
 open import Relation.Nullary using (¬_)
 
@@ -20,6 +21,8 @@ import Imprecision as Imp
 open import Imprecision using (idᵢ)
 open import ImprecisionWf
 open import proof.ImprecisionProperties using (idᵢ-var-identity)
+open import proof.EndpointCanonicalMLBSimple using (simpleEndpointMlbAt)
+open import proof.MLBGlbExample
 open import proof.MaximalLowerBoundsWf using
   ( choice-idᵢ
   ; leftChoice-id-proofᵢ
@@ -29,72 +32,6 @@ open import proof.MaximalLowerBoundsWf using
   ; rightChoice-id-proofᵢ
   ; ⊑-forgetᵢ
   )
-
-------------------------------------------------------------------------
--- The endpoint pair from `notes.md`
-------------------------------------------------------------------------
-
-glb-bad-A : Ty
-glb-bad-A = `∀ (＇ zero ⇒ ★)
-
-glb-bad-B : Ty
-glb-bad-B = `∀ (★ ⇒ ＇ zero)
-
-glb-bad-A⊑A : idᵢ zero ∣ zero ⊢ glb-bad-A ⊑ glb-bad-A ⊣ zero
-glb-bad-A⊑A =
-  ∀ⁱ (idˣ (here refl) z<s z<s ↦ id★)
-
-glb-bad-B⊑B : idᵢ zero ∣ zero ⊢ glb-bad-B ⊑ glb-bad-B ⊣ zero
-glb-bad-B⊑B =
-  ∀ⁱ (id★ ↦ idˣ (here refl) z<s z<s)
-
--- `∀X.∀Y. X → Y`
-glb-lower-XY : Ty
-glb-lower-XY = `∀ (`∀ (＇ (suc zero) ⇒ ＇ zero))
-
--- `∀Y.∀X. X → Y`
-glb-lower-YX : Ty
-glb-lower-YX = `∀ (`∀ (＇ zero ⇒ ＇ (suc zero)))
-
-------------------------------------------------------------------------
--- Both flipped lower bounds are common lower bounds of `A` and `B`.
-------------------------------------------------------------------------
-
-glb-lower-XY⊑A :
-  idᵢ zero ∣ zero ⊢ glb-lower-XY ⊑ glb-bad-A ⊣ zero
-glb-lower-XY⊑A =
-  ∀ⁱ
-    (ν refl
-      ( idˣ (there (here refl)) (s<s z<s) z<s
-      ↦ tagˣ (here refl) z<s
-      ))
-
-glb-lower-XY⊑B :
-  idᵢ zero ∣ zero ⊢ glb-lower-XY ⊑ glb-bad-B ⊣ zero
-glb-lower-XY⊑B =
-  ν refl
-    (∀ⁱ
-      ( tagˣ (there (here refl)) (s<s z<s)
-      ↦ idˣ (here refl) z<s z<s
-      ))
-
-glb-lower-YX⊑A :
-  idᵢ zero ∣ zero ⊢ glb-lower-YX ⊑ glb-bad-A ⊣ zero
-glb-lower-YX⊑A =
-  ν refl
-    (∀ⁱ
-      ( idˣ (here refl) z<s z<s
-      ↦ tagˣ (there (here refl)) (s<s z<s)
-      ))
-
-glb-lower-YX⊑B :
-  idᵢ zero ∣ zero ⊢ glb-lower-YX ⊑ glb-bad-B ⊣ zero
-glb-lower-YX⊑B =
-  ∀ⁱ
-    (ν refl
-      ( tagˣ (here refl) z<s
-      ↦ idˣ (there (here refl)) (s<s z<s) z<s
-      ))
 
 ------------------------------------------------------------------------
 -- `mlb-typeᵢ` follows the lower-bound derivation order.
@@ -137,6 +74,35 @@ glb-lower-XY⋢YX p = glb-lower-XY⋢YX-old (⊑-forgetᵢ p)
 glb-lower-YX⋢XY :
   ¬ (idᵢ zero ∣ zero ⊢ glb-lower-YX ⊑ glb-lower-XY ⊣ zero)
 glb-lower-YX⋢XY p = glb-lower-YX⋢XY-old (⊑-forgetᵢ p)
+
+------------------------------------------------------------------------
+-- No maximal endpoint selector can satisfy the proposed broad coherence.
+------------------------------------------------------------------------
+
+bad-simple-selector-coherence-counterexampleᵢ :
+  ¬
+    (∀ {Φ Δᴸ Δᴿ A A′ B B′ C C′}
+      {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+      {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+      simpleEndpointMlbAt Δᴸ A B ≡ just C →
+      simpleEndpointMlbAt Δᴿ A′ B′ ≡ just C′ →
+      Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ)
+bad-simple-selector-coherence-counterexampleᵢ coherence =
+  glb-lower-YX⋢XY
+    (coherence
+      {Φ = idᵢ zero}
+      {Δᴸ = zero}
+      {Δᴿ = zero}
+      {A = glb-lower-YX}
+      {A′ = glb-bad-A}
+      {B = glb-lower-YX}
+      {B′ = glb-bad-B}
+      {C = glb-lower-YX}
+      {C′ = glb-lower-XY}
+      {pA = glb-lower-YX⊑A}
+      {pB = glb-lower-YX⊑B}
+      refl
+      refl)
 
 ------------------------------------------------------------------------
 -- The broad lower-bound-driven coherence theorem is refuted.

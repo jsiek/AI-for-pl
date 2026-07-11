@@ -12,6 +12,7 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here)
+open import Data.Maybe using (just)
 open import Data.Nat using (zero; suc; z<s; s<s)
 open import Data.Product using (_×_; Σ-syntax; _,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (subst; sym; trans)
@@ -56,12 +57,15 @@ open import proof.CoercionProperties
     )
 open import proof.ImprecisionProperties
   using (⊑-src-wf-idᵢ; ⊑-tgt-wf-idᵢ; ~-sym)
+open import proof.EndpointCanonicalMLBSimple using (simpleEndpointMlbAt)
+open import proof.EndpointCanonicalMLBSimpleMaximality using
+  (simpleEndpointMlbAt-complete)
+open import proof.EndpointCanonicalMLBSimpleSoundness using
+  (simpleEndpointMlbAt-sound)
 open import proof.MaximalLowerBoundsWf
   using
-    ( mlb-type-from-lowerᵢ
-    ; mlb-type-from-lower-commonᵢ
-    ; mlb-type-from-lower-common-oldᵢ
-    ; old⊑→wf-idᵢ
+    ( old⊑→wf-idᵢ
+    ; ⊑-forgetᵢ
     )
 open import proof.NarrowWidenProperties using (StoreDetWf)
 open import proof.NuTermProperties using (CtxWf-⤊)
@@ -261,6 +265,7 @@ record CastPlan (Δ : TyCtx) (Σ : Store) (A B : Ty) : Set₁ where
     -- Consistency witnesses are built from `idᵢ`, so the cast evidence is
     -- kept in `id-onlyᵈ` and relaxed only at the term-typing boundary.
     lower : Ty
+    lower-selected : simpleEndpointMlbAt Δ A B ≡ just lower
     down : Coercion
     down⊢ : Δ ∣ Σ ⊢ down ∶ A =⇒ lower
     down⊒ : id-onlyᵈ ∣ Δ ∣ Σ ⊢ down ∶ A ⊒ lower
@@ -283,27 +288,29 @@ consistency-cast-planᵢ :
      IWF._∣_⊢_⊑_⊣_ (idᵢ Δ) Δ C B Δ)) →
   CastPlan Δ [] A B
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
-    with mlb-type-from-lower-commonᵢ C⊑A C⊑B
-       | mlb-type-from-lower-common-oldᵢ C⊑A C⊑B
+    with simpleEndpointMlbAt-complete
+      (IWF.⊑-tgt-wf C⊑A) (IWF.⊑-tgt-wf C⊑B) (C⊑A , C⊑B)
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
-    | lower⊑source , lower⊑target
-    | lower⊑source-old , lower⊑target-old
+    | lower , lower-selected
+    with simpleEndpointMlbAt-sound lower-selected
+consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
+    | lower , lower-selected | lower⊑source , lower⊑target
     with coerce-downⁿ ℓ
            (IWF.⊑-src-wf lower⊑source)
            (IWF.⊑-tgt-wf lower⊑source)
            (realizes-idᵢᴺᵂ-id-only Δ)
-           lower⊑source-old
+           (⊑-forgetᵢ lower⊑source)
        | coerce-upʷ ℓ
            (IWF.⊑-src-wf lower⊑target)
            (IWF.⊑-tgt-wf lower⊑target)
            (realizes-idᵢᴺᵂ-id-only Δ)
-           lower⊑target-old
+           (⊑-forgetᵢ lower⊑target)
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
-    | lower⊑source , lower⊑target
-    | lower⊑source-old , lower⊑target-old
+    | lower , lower-selected | lower⊑source , lower⊑target
     | down , down⊒ | up , up⊑ =
   record
-    { lower = mlb-type-from-lowerᵢ C⊑A C⊑B
+    { lower = lower
+    ; lower-selected = lower-selected
     ; down = down
     ; down⊢ = id-onlyᵈ , proj₁ down⊒
     ; down⊒ = down⊒

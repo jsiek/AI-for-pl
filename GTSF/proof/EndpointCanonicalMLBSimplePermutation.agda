@@ -5,8 +5,7 @@ module proof.EndpointCanonicalMLBSimplePermutation where
 --     permutations.
 --   * Supplies route exchange, origin, path, and transport infrastructure for
 --     cross-context factorization.
---   * Uses one-hole type contexts to retain whole-candidate invariants while
---     descending through wrapped routes.
+--   * Tracks exposure histories while descending through wrapped routes.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (false; true; _∨_)
@@ -15,11 +14,8 @@ open import Data.List using (List; []; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using
-  (ℕ; _+_; _<_; _≤_; zero; suc; z≤n; s≤s; z<s; s<s)
-open import Data.Nat.Properties using
-  ( +-mono-≤; +-monoˡ-<; +-monoʳ-<
-  ; <-≤-trans; <-irrefl; <-trans; m≤n⇒m≤1+n
-  )
+  (ℕ; _<_; zero; suc; z<s; s<s)
+open import Data.Nat.Properties using (<-trans)
 open import Data.Nat.Properties using (_≟_)
 open import Data.Product using
   (_×_; _,_; proj₁; proj₂; ∃-syntax; Σ-syntax)
@@ -35,17 +31,12 @@ open import ImprecisionWf
 open import ForallPermutation using
   ( _≈∀_; ≈∀-refl; ≈∀-sym; ≈∀-trans; ≈∀-⇒; ≈∀-∀)
 open import proof.EndpointCanonicalMLBSimple using
-  ( allEndpointMlbsAt; dedupe; enumMLB; hasStrictAbove?
-  ; rawEndpointMlbsAt; varCandidate?; varCandidatesUpTo
+  ( allEndpointMlbsAt; dedupe; rawEndpointMlbsAt
+  ; varCandidate?; varCandidatesUpTo
   )
 open import proof.EndpointCanonicalMLBSimpleCompleteness using
-  ( dedupe-complete; hasStar-complete; hasVar-complete; impᵢ?
-  ; varCandidate-star-var-complete; varCandidate-var-star-complete
+  ( varCandidate-star-var-complete; varCandidate-var-star-complete
   ; varCandidate-var-var-complete; varCandidatesUpTo-complete
-  )
-open import proof.EndpointCanonicalMLBSimpleMaximality using
-  ( false≠true; hasStrictAbove?-completeᵢ
-  ; pruneStrictlyBelow-no-strict-above
   )
 open import proof.EndpointCanonicalMLBSimpleRoutes
 open import proof.EndpointCanonicalMLBSimpleSoundness using
@@ -66,263 +57,6 @@ open import proof.TypeProperties using
 
 ------------------------------------------------------------------------
 -- Type contexts and contextual maximality
-------------------------------------------------------------------------
-
-data RouteCtx : Set where
-  □ : RouteCtx
-  under-∀ : RouteCtx → RouteCtx
-  under-⇒₁ : RouteCtx → Ty → RouteCtx
-  under-⇒₂ : Ty → RouteCtx → RouteCtx
-
-plug : RouteCtx → Ty → Ty
-plug □ A = A
-plug (under-∀ K) A = plug K (`∀ A)
-plug (under-⇒₁ K B) A = plug K (A ⇒ B)
-plug (under-⇒₂ A K) B = plug K (A ⇒ B)
-
-ContextMaximal : ℕ → RouteCtx → (Ty → Set) → Ty → Set
-ContextMaximal Δ K Candidate C =
-  ∀ {D} →
-  Candidate D →
-  idᵢ Δ ∣ Δ ⊢ plug K C ⊑ plug K D ⊣ Δ →
-  idᵢ Δ ∣ Δ ⊢ plug K D ⊑ plug K C ⊣ Δ
-
-forall-count : Ty → ℕ
-forall-count (＇ X) = zero
-forall-count (‵ ι) = zero
-forall-count ★ = zero
-forall-count (A ⇒ B) = forall-count A + forall-count B
-forall-count (`∀ A) = suc (forall-count A)
-
-forall-count-monotone :
-  ∀ {Φ Δᴸ Δᴿ A B} →
-  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
-  forall-count B ≤ forall-count A
-forall-count-monotone id★ = z≤n
-forall-count-monotone (idˣ x∈ X<Δ Y<Δ) = z≤n
-forall-count-monotone idι = z≤n
-forall-count-monotone (p ↦ q) =
-  +-mono-≤ (forall-count-monotone p) (forall-count-monotone q)
-forall-count-monotone (∀ⁱ p) = s≤s (forall-count-monotone p)
-forall-count-monotone (tag ι) = z≤n
-forall-count-monotone (tag p ⇛ q) = z≤n
-forall-count-monotone (tagˣ x∈ X<Δ) = z≤n
-forall-count-monotone (ν occ p) =
-  m≤n⇒m≤1+n (forall-count-monotone p)
-
-no-forall-count-increase :
-  ∀ {Φ Δᴸ Δᴿ A B} →
-  forall-count A < forall-count B →
-  ¬ (Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ)
-no-forall-count-increase {A = A} countA<countB A⊑B =
-  <-irrefl refl
-    (<-≤-trans countA<countB (forall-count-monotone A⊑B))
-
-forall-count-plug-preserves-< :
-  ∀ K {A B} →
-  forall-count A < forall-count B →
-  forall-count (plug K A) < forall-count (plug K B)
-forall-count-plug-preserves-< □ A<B = A<B
-forall-count-plug-preserves-< (under-∀ K) A<B =
-  forall-count-plug-preserves-< K (s<s A<B)
-forall-count-plug-preserves-< (under-⇒₁ K C) A<B =
-  forall-count-plug-preserves-< K (+-monoˡ-< (forall-count C) A<B)
-forall-count-plug-preserves-< (under-⇒₂ C K) A<B =
-  forall-count-plug-preserves-< K (+-monoʳ-< (forall-count C) A<B)
-
-no-context-forall-count-increase :
-  ∀ {Φ Δᴸ Δᴿ K A B} →
-  forall-count A < forall-count B →
-  ¬ (Φ ∣ Δᴸ ⊢ plug K A ⊑ plug K B ⊣ Δᴿ)
-no-context-forall-count-increase {K = K} A<B =
-  no-forall-count-increase (forall-count-plug-preserves-< K A<B)
-
-context-maximal-rejects-count-drop :
-  ∀ {Δ K Candidate C D} →
-  ContextMaximal Δ K Candidate C →
-  Candidate D →
-  forall-count D < forall-count C →
-  idᵢ Δ ∣ Δ ⊢ plug K C ⊑ plug K D ⊣ Δ →
-  ⊥
-context-maximal-rejects-count-drop {K = K} {C = C} {D = D}
-    maximal D-candidate countD<countC C⊑D =
-  no-context-forall-count-increase {K = K} {A = D} {B = C}
-    countD<countC
-    (maximal D-candidate C⊑D)
-
-all-endpoint-context-maximal :
-  ∀ {Δ A B C} →
-  C ∈ allEndpointMlbsAt Δ A B →
-  ContextMaximal Δ □ (RawEndpointRoute Δ A B) C
-all-endpoint-context-maximal {Δ = Δ} {A = A} {B = B} {C = C}
-    C∈all {D} Droute C⊑D
-    with impᵢ? {Δ = Δ} {A = D} {B = C}
-all-endpoint-context-maximal {Δ = Δ} {A = A} {B = B} {C = C}
-    C∈all {D} Droute C⊑D | yes D⊑C =
-  D⊑C
-all-endpoint-context-maximal {Δ = Δ} {A = A} {B = B} {C = C}
-    C∈all {D} Droute C⊑D | no ¬D⊑C =
-  ⊥-elim (false≠true (trans (sym Cmax) C<D))
-  where
-    xs = dedupe (rawEndpointMlbsAt Δ A B)
-
-    Cmax : hasStrictAbove? Δ C xs ≡ false
-    Cmax =
-      pruneStrictlyBelow-no-strict-above
-        {Δ = Δ} {C = C} {xs = xs} C∈all
-
-    D∈xs : D ∈ xs
-    D∈xs = dedupe-complete (raw-endpoint-route→membership Droute)
-
-    C<D : hasStrictAbove? Δ C xs ≡ true
-    C<D = hasStrictAbove?-completeᵢ D∈xs C⊑D ¬D⊑C
-
-record MaximalEndpointRoute (Δ : ℕ) (A B C : Ty) : Set where
-  field
-    endpoint-route : RawEndpointRoute Δ A B C
-    endpoint-context-maximal :
-      ContextMaximal Δ □ (RawEndpointRoute Δ A B) C
-
-open MaximalEndpointRoute public
-
-all-endpoint-maximal-route :
-  ∀ {Δ A B C} →
-  C ∈ allEndpointMlbsAt Δ A B →
-  MaximalEndpointRoute Δ A B C
-all-endpoint-maximal-route C∈ =
-  record
-    { endpoint-route = all-endpoint-membership→route C∈
-    ; endpoint-context-maximal = all-endpoint-context-maximal C∈
-    }
-
-------------------------------------------------------------------------
--- Maximality descent through route constructors
-------------------------------------------------------------------------
-
-both-child-context-maximal :
-  ∀ {Δ K fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
-  ContextMaximal Δ K
-    (EnumRoute (suc fuel) Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ (`∀ A) (`∀ B))
-    (`∀ C) →
-  ContextMaximal Δ (under-∀ K)
-    (EnumRoute fuel
-      (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴸ)
-      (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴿ)
-      (suc Δᶜ) (suc Δᴸ) (suc Δᴿ) A B)
-    C
-both-child-context-maximal maximal Droute C⊑D =
-  maximal (route-both Droute) C⊑D
-
-left-child-context-maximal :
-  ∀ {Δ K fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
-  ContextMaximal Δ K
-    (EnumRoute (suc fuel) Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ (`∀ A) B)
-    (`∀ C) →
-  ContextMaximal Δ (under-∀ K)
-    (λ D →
-      occurs zero D ≡ true ×
-      EnumRoute fuel
-        (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴸ)
-        (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴿ)
-        (suc Δᶜ) (suc Δᴸ) Δᴿ A B D)
-    C
-left-child-context-maximal maximal Droute C⊑D =
-  maximal (route-left (proj₁ Droute) (proj₂ Droute)) C⊑D
-
-right-child-context-maximal :
-  ∀ {Δ K fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
-  ContextMaximal Δ K
-    (EnumRoute (suc fuel) Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A (`∀ B))
-    (`∀ C) →
-  ContextMaximal Δ (under-∀ K)
-    (λ D →
-      occurs zero D ≡ true ×
-      EnumRoute fuel
-        (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴸ)
-        (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴿ)
-        (suc Δᶜ) Δᴸ (suc Δᴿ) A B D)
-    C
-right-child-context-maximal maximal Droute C⊑D =
-  maximal (route-right (proj₁ Droute) (proj₂ Droute)) C⊑D
-
-arrow-left-child-context-maximal :
-  ∀ {Δ K fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ
-      A₁ A₂ B₁ B₂ C₁ C₂} →
-  EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₂ B₂ C₂ →
-  ContextMaximal Δ K
-    (EnumRoute (suc fuel) Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ
-      (A₁ ⇒ A₂) (B₁ ⇒ B₂))
-    (C₁ ⇒ C₂) →
-  ContextMaximal Δ (under-⇒₁ K C₂)
-    (EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ B₁)
-    C₁
-arrow-left-child-context-maximal route₂ maximal route₁ C⊑D =
-  maximal (route-arrow route₁ route₂) C⊑D
-
-arrow-right-child-context-maximal :
-  ∀ {Δ K fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ
-      A₁ A₂ B₁ B₂ C₁ C₂} →
-  EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ B₁ C₁ →
-  ContextMaximal Δ K
-    (EnumRoute (suc fuel) Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ
-      (A₁ ⇒ A₂) (B₁ ⇒ B₂))
-    (C₁ ⇒ C₂) →
-  ContextMaximal Δ (under-⇒₂ C₁ K)
-    (EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₂ B₂)
-    C₂
-arrow-right-child-context-maximal route₁ maximal route₂ C⊑D =
-  maximal (route-arrow route₁ route₂) C⊑D
-
-arrow-star-left-child-context-maximal :
-  ∀ {Δ K fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ A₂ C₁ C₂} →
-  EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₂ ★ C₂ →
-  ContextMaximal Δ K
-    (EnumRoute (suc fuel) Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ (A₁ ⇒ A₂) ★)
-    (C₁ ⇒ C₂) →
-  ContextMaximal Δ (under-⇒₁ K C₂)
-    (EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ ★)
-    C₁
-arrow-star-left-child-context-maximal route₂ maximal route₁ C⊑D =
-  maximal (route-arrow-star route₁ route₂) C⊑D
-
-arrow-star-right-child-context-maximal :
-  ∀ {Δ K fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ A₂ C₁ C₂} →
-  EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ ★ C₁ →
-  ContextMaximal Δ K
-    (EnumRoute (suc fuel) Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ (A₁ ⇒ A₂) ★)
-    (C₁ ⇒ C₂) →
-  ContextMaximal Δ (under-⇒₂ C₁ K)
-    (EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₂ ★)
-    C₂
-arrow-star-right-child-context-maximal route₁ maximal route₂ C⊑D =
-  maximal (route-arrow-star route₁ route₂) C⊑D
-
-star-arrow-left-child-context-maximal :
-  ∀ {Δ K fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ B₁ B₂ C₁ C₂} →
-  EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ★ B₂ C₂ →
-  ContextMaximal Δ K
-    (EnumRoute (suc fuel) Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ★ (B₁ ⇒ B₂))
-    (C₁ ⇒ C₂) →
-  ContextMaximal Δ (under-⇒₁ K C₂)
-    (EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ★ B₁)
-    C₁
-star-arrow-left-child-context-maximal route₂ maximal route₁ C⊑D =
-  maximal (route-star-arrow route₁ route₂) C⊑D
-
-star-arrow-right-child-context-maximal :
-  ∀ {Δ K fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ B₁ B₂ C₁ C₂} →
-  EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ★ B₁ C₁ →
-  ContextMaximal Δ K
-    (EnumRoute (suc fuel) Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ★ (B₁ ⇒ B₂))
-    (C₁ ⇒ C₂) →
-  ContextMaximal Δ (under-⇒₂ C₁ K)
-    (EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ★ B₂)
-    C₂
-star-arrow-right-child-context-maximal route₁ maximal route₂ C⊑D =
-  maximal (route-star-arrow route₁ route₂) C⊑D
-
-------------------------------------------------------------------------
--- The structural part of the paired-route induction
 ------------------------------------------------------------------------
 
 data AlignedRoutes :
@@ -593,17 +327,6 @@ aligned-routes-≈∀ (aligned-left-right body≈) =
 aligned-routes-≈∀ (aligned-right-left body≈) =
   ≈∀-double-swap-sym body≈
 
-left-right-route-exchange-≈∀ :
-  ∀ {C D} →
-  renameᵗ ForallPermutation.swap01ᵗ C ≈∀ D →
-  `∀ (`∀ C) ≈∀ `∀ (`∀ D)
-left-right-route-exchange-≈∀ = ≈∀-double-swap
-
-right-left-route-exchange-≈∀ :
-  ∀ {C D} →
-  C ≈∀ renameᵗ ForallPermutation.swap01ᵗ D →
-  `∀ (`∀ C) ≈∀ `∀ (`∀ D)
-right-left-route-exchange-≈∀ = ≈∀-double-swap-sym
 
 ------------------------------------------------------------------------
 -- Route alignment under an adjacent left/right exposure exchange
@@ -702,30 +425,6 @@ right-origin-member (right-origin-under-left origin) =
   there (⇑ᴸᵢ-∈ (right-origin-member origin))
 right-origin-member (right-origin-under-right origin) =
   there (⇑ᵢ-ˣ∈ (right-origin-member origin))
-
-left-star-member-at-right :
-  ∀ {modes Δ X} →
-  ModeAt modes X rightᵉ →
-  (X ˣ⊑★) ∈ apply-left modes (idᵢ Δ)
-left-star-member-at-right hereᵉ = here refl
-left-star-member-at-right (thereᵉ {other = bothᵉ} mode) =
-  there (⇑ᵢ-★∈ (left-star-member-at-right mode))
-left-star-member-at-right (thereᵉ {other = leftᵉ} mode) =
-  there (⇑ᵢ-★∈ (left-star-member-at-right mode))
-left-star-member-at-right (thereᵉ {other = rightᵉ} mode) =
-  there (⇑ᴸᵢ-∈ (left-star-member-at-right mode))
-
-right-star-member-at-left :
-  ∀ {modes Δ X} →
-  ModeAt modes X leftᵉ →
-  (X ˣ⊑★) ∈ apply-right modes (idᵢ Δ)
-right-star-member-at-left hereᵉ = here refl
-right-star-member-at-left (thereᵉ {other = bothᵉ} mode) =
-  there (⇑ᵢ-★∈ (right-star-member-at-left mode))
-right-star-member-at-left (thereᵉ {other = leftᵉ} mode) =
-  there (⇑ᴸᵢ-∈ (right-star-member-at-left mode))
-right-star-member-at-left (thereᵉ {other = rightᵉ} mode) =
-  there (⇑ᵢ-★∈ (right-star-member-at-left mode))
 
 apply-common-depth : List Exposure → ℕ → ℕ
 apply-common-depth [] Δ = Δ
@@ -1806,168 +1505,6 @@ history-star-var-routes-aligned {modes = modes} {Δ = Δ} {Y = Y}
     | refl =
   aligned-star-var
 
-------------------------------------------------------------------------
--- Leading-forall spine certificates
-------------------------------------------------------------------------
-
-data TerminalRoute :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
-    EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C → Set where
-  terminal-star : ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ} →
-    TerminalRoute (route-star {fuel} {Φᴸ} {Φᴿ} {Δᶜ} {Δᴸ} {Δᴿ})
-  terminal-base : ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ι} →
-    TerminalRoute
-      (route-base {fuel} {Φᴸ} {Φᴿ} {Δᶜ} {Δᴸ} {Δᴿ} {ι})
-  terminal-base-star : ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ι} →
-    TerminalRoute
-      (route-base-star {fuel} {Φᴸ} {Φᴿ} {Δᶜ} {Δᴸ} {Δᴿ} {ι})
-  terminal-star-base : ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ι} →
-    TerminalRoute
-      (route-star-base {fuel} {Φᴸ} {Φᴿ} {Δᶜ} {Δᴸ} {Δᴿ} {ι})
-  terminal-arrow :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ A₂ B₁ B₂ C₁ C₂}
-      {route₁ : EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ B₁ C₁}
-      {route₂ :
-        EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₂ B₂ C₂} →
-    TerminalRoute (route-arrow route₁ route₂)
-  terminal-arrow-star :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ A₂ C₁ C₂}
-      {route₁ : EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ ★ C₁}
-      {route₂ :
-        EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₂ ★ C₂} →
-    TerminalRoute (route-arrow-star route₁ route₂)
-  terminal-star-arrow :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ B₁ B₂ C₁ C₂}
-      {route₁ : EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ★ B₁ C₁}
-      {route₂ :
-        EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ★ B₂ C₂} →
-    TerminalRoute (route-star-arrow route₁ route₂)
-  terminal-vars :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ X Y C}
-      {C∈ : C ∈ varCandidatesUpTo Φᴸ Φᴿ (＇ X) (＇ Y) Δᶜ} →
-    TerminalRoute
-      (route-vars
-        {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
-        {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-        {X = X} {Y = Y} {C = C} C∈)
-  terminal-var-star :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ X C}
-      {C∈ : C ∈ varCandidatesUpTo Φᴸ Φᴿ (＇ X) ★ Δᶜ} →
-    TerminalRoute
-      (route-var-star
-        {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
-        {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-        {X = X} {C = C} C∈)
-  terminal-star-var :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ Y C}
-      {C∈ : C ∈ varCandidatesUpTo Φᴸ Φᴿ ★ (＇ Y) Δᶜ} →
-    TerminalRoute
-      (route-star-var
-        {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
-        {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-        {Y = Y} {C = C} C∈)
-
-data GeneratedSpine (Δ : ℕ) :
-    ∀ {modes fuel A B C}
-      (route : EnumRoute fuel
-        (apply-left modes (idᵢ Δ)) (apply-right modes (idᵢ Δ))
-        (apply-common-depth modes Δ)
-        (apply-left-depth modes Δ) (apply-right-depth modes Δ)
-        A B C) →
-    Set where
-  spine-terminal :
-    ∀ {modes fuel A B C}
-      {route : EnumRoute fuel
-        (apply-left modes (idᵢ Δ)) (apply-right modes (idᵢ Δ))
-        (apply-common-depth modes Δ)
-        (apply-left-depth modes Δ) (apply-right-depth modes Δ)
-        A B C} →
-    TerminalRoute route →
-    GeneratedSpine Δ route
-  spine-both :
-    ∀ {modes fuel A B C}
-      {route : EnumRoute fuel
-        (apply-left (bothᵉ ∷ modes) (idᵢ Δ))
-        (apply-right (bothᵉ ∷ modes) (idᵢ Δ))
-        (apply-common-depth (bothᵉ ∷ modes) Δ)
-        (apply-left-depth (bothᵉ ∷ modes) Δ)
-        (apply-right-depth (bothᵉ ∷ modes) Δ) A B C} →
-    GeneratedSpine Δ {modes = bothᵉ ∷ modes} route →
-    GeneratedSpine Δ
-      (route-both
-        {Φᴸ = apply-left modes (idᵢ Δ)}
-        {Φᴿ = apply-right modes (idᵢ Δ)}
-        {Δᶜ = apply-common-depth modes Δ}
-        {Δᴸ = apply-left-depth modes Δ}
-        {Δᴿ = apply-right-depth modes Δ} route)
-  spine-left :
-    ∀ {modes fuel A B C occ}
-      {route : EnumRoute fuel
-        (apply-left (leftᵉ ∷ modes) (idᵢ Δ))
-        (apply-right (leftᵉ ∷ modes) (idᵢ Δ))
-        (apply-common-depth (leftᵉ ∷ modes) Δ)
-        (apply-left-depth (leftᵉ ∷ modes) Δ)
-        (apply-right-depth (leftᵉ ∷ modes) Δ) A B C} →
-    GeneratedSpine Δ {modes = leftᵉ ∷ modes} route →
-    GeneratedSpine Δ
-      (route-left
-        {Φᴸ = apply-left modes (idᵢ Δ)}
-        {Φᴿ = apply-right modes (idᵢ Δ)}
-        {Δᶜ = apply-common-depth modes Δ}
-        {Δᴸ = apply-left-depth modes Δ}
-        {Δᴿ = apply-right-depth modes Δ} occ route)
-  spine-right :
-    ∀ {modes fuel A B C occ}
-      {route : EnumRoute fuel
-        (apply-left (rightᵉ ∷ modes) (idᵢ Δ))
-        (apply-right (rightᵉ ∷ modes) (idᵢ Δ))
-        (apply-common-depth (rightᵉ ∷ modes) Δ)
-        (apply-left-depth (rightᵉ ∷ modes) Δ)
-        (apply-right-depth (rightᵉ ∷ modes) Δ) A B C} →
-    GeneratedSpine Δ {modes = rightᵉ ∷ modes} route →
-    GeneratedSpine Δ
-      (route-right
-        {Φᴸ = apply-left modes (idᵢ Δ)}
-        {Φᴿ = apply-right modes (idᵢ Δ)}
-        {Δᶜ = apply-common-depth modes Δ}
-        {Δᴸ = apply-left-depth modes Δ}
-        {Δᴿ = apply-right-depth modes Δ} occ route)
-
-generated-spine :
-  ∀ {modes Δ fuel A B C}
-    (route : EnumRoute fuel
-      (apply-left modes (idᵢ Δ)) (apply-right modes (idᵢ Δ))
-      (apply-common-depth modes Δ)
-      (apply-left-depth modes Δ) (apply-right-depth modes Δ)
-      A B C) →
-  GeneratedSpine Δ route
-generated-spine {modes = modes} (route-both route) =
-  spine-both {modes = modes}
-    (generated-spine {modes = bothᵉ ∷ modes} route)
-generated-spine {modes = modes} (route-left occ route) =
-  spine-left {modes = modes}
-    (generated-spine {modes = leftᵉ ∷ modes} route)
-generated-spine {modes = modes} (route-right occ route) =
-  spine-right {modes = modes}
-    (generated-spine {modes = rightᵉ ∷ modes} route)
-generated-spine (route-arrow route₁ route₂) =
-  spine-terminal terminal-arrow
-generated-spine (route-arrow-star route₁ route₂) =
-  spine-terminal terminal-arrow-star
-generated-spine (route-star-arrow route₁ route₂) =
-  spine-terminal terminal-star-arrow
-generated-spine route-star = spine-terminal terminal-star
-generated-spine route-base = spine-terminal terminal-base
-generated-spine route-base-star = spine-terminal terminal-base-star
-generated-spine route-star-base = spine-terminal terminal-star-base
-generated-spine (route-vars C∈) = spine-terminal terminal-vars
-generated-spine (route-var-star C∈) = spine-terminal terminal-var-star
-generated-spine (route-star-var C∈) = spine-terminal terminal-star-var
-
-------------------------------------------------------------------------
--- A used one-sided binder determines a terminal variable/star leaf
-------------------------------------------------------------------------
-
 data LeftStarPath : Ty → Ty → TyVar → Set where
   path-left-∀ :
     ∀ {A B X} →
@@ -2327,24 +1864,6 @@ data StarRightPath : Ty → Ty → TyVar → Set where
     StarRightPath ★ B₂ X →
     StarRightPath ★ (B₁ ⇒ B₂) X
   star-path-star-var : ∀ {X} → StarRightPath ★ (＇ X) X
-
-flip-left-star-path :
-  ∀ {A B X} →
-  LeftStarPath A B X →
-  StarRightPath B A X
-flip-left-star-path (path-left-∀ path) =
-  star-path-right-∀ (flip-left-star-path path)
-flip-left-star-path (path-right-∀ path) =
-  star-path-left-∀ (flip-left-star-path path)
-flip-left-star-path (path-arrow₁ path) =
-  star-path-arrow₁ (flip-left-star-path path)
-flip-left-star-path (path-arrow₂ path) =
-  star-path-arrow₂ (flip-left-star-path path)
-flip-left-star-path (path-arrow-star₁ path) =
-  star-path-star-arrow₁ (flip-left-star-path path)
-flip-left-star-path (path-arrow-star₂ path) =
-  star-path-star-arrow₂ (flip-left-star-path path)
-flip-left-star-path path-var-star = star-path-star-var
 
 remove-right-star-path :
   ∀ {A B X} →
@@ -3003,25 +2522,6 @@ transport-enum-route left-transport right-transport pres
     (transport-star-var-candidate-with
       left-transport right-transport pres C∈)
 
-swap-route-renamed :
-  ∀ {modes fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
-  EnumRoute fuel
-    (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-    (apply-common-depth modes (suc (suc Δᶜ)))
-    (apply-left-depth modes (suc Δᴸ))
-    (apply-right-depth modes (suc Δᴿ)) A B C →
-  EnumRoute fuel
-    (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-    (apply-common-depth modes (suc (suc Δᶜ)))
-    (apply-left-depth modes (suc Δᴸ))
-    (apply-right-depth modes (suc Δᴿ))
-    A B (renameᵗ (swap-under modes) C)
-swap-route-renamed {modes = modes} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ} =
-  transport-enum-route
-    (left-context-transport modes Φᴸ)
-    (right-context-transport modes Φᴿ)
-    swap-under-pres-<
-
 transport-vars-candidate :
   ∀ {modes Φᴸ Φᴿ Δᶜ X Y C} →
   C ∈ varCandidatesUpTo
@@ -3455,69 +2955,6 @@ swap-route {modes = modes} (route-star-var C∈) =
   route-star-var (transport-star-var-candidate {modes = modes} C∈) ,
   swap-aligned-star-var refl
 
-swap-aligned-routes-≈∀ :
-  ∀ {modes fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D}
-    {route :
-      EnumRoute fuel
-        (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-        (apply-common-depth modes (suc (suc Δᶜ)))
-        (apply-left-depth modes (suc Δᴸ))
-        (apply-right-depth modes (suc Δᴿ)) A B C}
-    {route′ :
-      EnumRoute fuel
-        (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-        (apply-common-depth modes (suc (suc Δᶜ)))
-        (apply-left-depth modes (suc Δᴸ))
-        (apply-right-depth modes (suc Δᴿ)) A B D} →
-  SwapAlignedRoutes modes route route′ →
-  renameᵗ (swap-under modes) C ≈∀ D
-swap-aligned-routes-≈∀ (swap-aligned-both aligned) =
-  ≈∀-∀ (swap-aligned-routes-≈∀ aligned)
-swap-aligned-routes-≈∀ (swap-aligned-left aligned) =
-  ≈∀-∀ (swap-aligned-routes-≈∀ aligned)
-swap-aligned-routes-≈∀ (swap-aligned-right aligned) =
-  ≈∀-∀ (swap-aligned-routes-≈∀ aligned)
-swap-aligned-routes-≈∀ (swap-aligned-arrow aligned₁ aligned₂) =
-  ≈∀-⇒
-    (swap-aligned-routes-≈∀ aligned₁)
-    (swap-aligned-routes-≈∀ aligned₂)
-swap-aligned-routes-≈∀ (swap-aligned-arrow-star aligned₁ aligned₂) =
-  ≈∀-⇒
-    (swap-aligned-routes-≈∀ aligned₁)
-    (swap-aligned-routes-≈∀ aligned₂)
-swap-aligned-routes-≈∀ (swap-aligned-star-arrow aligned₁ aligned₂) =
-  ≈∀-⇒
-    (swap-aligned-routes-≈∀ aligned₁)
-    (swap-aligned-routes-≈∀ aligned₂)
-swap-aligned-routes-≈∀ swap-aligned-star = ≈∀-refl
-swap-aligned-routes-≈∀ swap-aligned-base = ≈∀-refl
-swap-aligned-routes-≈∀ swap-aligned-base-star = ≈∀-refl
-swap-aligned-routes-≈∀ swap-aligned-star-base = ≈∀-refl
-swap-aligned-routes-≈∀ (swap-aligned-var refl) = ≈∀-refl
-swap-aligned-routes-≈∀ (swap-aligned-var-star refl) = ≈∀-refl
-swap-aligned-routes-≈∀ (swap-aligned-star-var refl) = ≈∀-refl
-
-left-right-swap-alignment-≈∀ :
-  ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D}
-    {route :
-      EnumRoute fuel
-        (proof.EndpointCanonicalMLBSimple.νᵢᶜ
-          (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴸ))
-        (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ
-          (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴿ))
-        (suc (suc Δᶜ)) (suc Δᴸ) (suc Δᴿ) A B C}
-    {route′ :
-      EnumRoute fuel
-        (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ
-          (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴸ))
-        (proof.EndpointCanonicalMLBSimple.νᵢᶜ
-          (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴿ))
-        (suc (suc Δᶜ)) (suc Δᴸ) (suc Δᴿ) A B D} →
-  SwapAlignedRoutes [] route route′ →
-  `∀ (`∀ C) ≈∀ `∀ (`∀ D)
-left-right-swap-alignment-≈∀ aligned =
-  ≈∀-double-swap (swap-aligned-routes-≈∀ aligned)
-
 left-right-adjacent-connectivity :
   ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C}
     (occC : occurs zero C ≡ true)
@@ -3547,118 +2984,6 @@ left-right-adjacent-connectivity occC occ∀C route
 left-right-adjacent-connectivity occC occ∀C route
     | route′ , swap-aligned =
   route′ , aligned-left-right ≈∀-refl
-
-right-left-adjacent-connectivity :
-  ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C}
-    (occC : occurs zero C ≡ true)
-    (occ∀C : occurs zero (`∀ C) ≡ true)
-    (route :
-      EnumRoute fuel
-        (proof.EndpointCanonicalMLBSimple.νᵢᶜ
-          (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴸ))
-        (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ
-          (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴿ))
-        (suc (suc Δᶜ)) (suc Δᴸ) (suc Δᴿ) A B C) →
-  Σ[ route′ ∈
-      EnumRoute fuel
-        (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ
-          (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴸ))
-        (proof.EndpointCanonicalMLBSimple.νᵢᶜ
-          (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴿ))
-        (suc (suc Δᶜ)) (suc Δᴸ) (suc Δᴿ)
-        A B (renameᵗ ForallPermutation.swap01ᵗ C) ]
-    AlignedRoutes
-      (route-right
-        (occurs-swap01-right {A = C} occC)
-        (route-left (occurs-swap01-left {A = C} occ∀C) route′))
-      (route-left occ∀C (route-right occC route))
-right-left-adjacent-connectivity occC occ∀C route
-    with left-right-adjacent-connectivity occC occ∀C route
-right-left-adjacent-connectivity occC occ∀C route
-    | route′ , aligned =
-  route′ , aligned-sym aligned
-
-left-right-same-schedule-connectivity :
-  ∀ {modes Δ fuel A B C D}
-    (occC : occurs zero C ≡ true)
-    (occ∀C : occurs zero (`∀ C) ≡ true)
-    (occD : occurs zero D ≡ true)
-    (occ∀D : occurs zero (`∀ D) ≡ true)
-    (route : EnumRoute fuel
-      (apply-left (rightᵉ ∷ leftᵉ ∷ modes) (idᵢ Δ))
-      (apply-right (rightᵉ ∷ leftᵉ ∷ modes) (idᵢ Δ))
-      (apply-common-depth (rightᵉ ∷ leftᵉ ∷ modes) Δ)
-      (apply-left-depth (rightᵉ ∷ leftᵉ ∷ modes) Δ)
-      (apply-right-depth (rightᵉ ∷ leftᵉ ∷ modes) Δ)
-      A B C)
-    (route′ : EnumRoute fuel
-      (apply-left (leftᵉ ∷ rightᵉ ∷ modes) (idᵢ Δ))
-      (apply-right (leftᵉ ∷ rightᵉ ∷ modes) (idᵢ Δ))
-      (apply-common-depth (leftᵉ ∷ rightᵉ ∷ modes) Δ)
-      (apply-left-depth (leftᵉ ∷ rightᵉ ∷ modes) Δ)
-      (apply-right-depth (leftᵉ ∷ rightᵉ ∷ modes) Δ)
-      A B D) →
-  SameSchedule
-    (swap-route-renamed
-      {modes = []}
-      {Φᴸ = apply-left modes (idᵢ Δ)}
-      {Φᴿ = apply-right modes (idᵢ Δ)}
-      {Δᶜ = apply-common-depth modes Δ}
-      {Δᴸ = apply-left-depth modes Δ}
-      {Δᴿ = apply-right-depth modes Δ}
-      route)
-    route′ →
-  AlignedRoutes
-    (route-left occ∀C (route-right occC route))
-    (route-right occ∀D (route-left occD route′))
-left-right-same-schedule-connectivity
-    {modes = modes} {Δ = Δ}
-    occC occ∀C occD occ∀D route route′ same =
-  aligned-left-right
-    (aligned-routes-≈∀
-      (same-schedule-aligned
-        {modes = leftᵉ ∷ rightᵉ ∷ modes} {Δ = Δ} same))
-
-right-left-same-schedule-connectivity :
-  ∀ {modes Δ fuel A B C D}
-    (occC : occurs zero C ≡ true)
-    (occ∀C : occurs zero (`∀ C) ≡ true)
-    (occD : occurs zero D ≡ true)
-    (occ∀D : occurs zero (`∀ D) ≡ true)
-    (route : EnumRoute fuel
-      (apply-left (rightᵉ ∷ leftᵉ ∷ modes) (idᵢ Δ))
-      (apply-right (rightᵉ ∷ leftᵉ ∷ modes) (idᵢ Δ))
-      (apply-common-depth (rightᵉ ∷ leftᵉ ∷ modes) Δ)
-      (apply-left-depth (rightᵉ ∷ leftᵉ ∷ modes) Δ)
-      (apply-right-depth (rightᵉ ∷ leftᵉ ∷ modes) Δ)
-      A B C)
-    (route′ : EnumRoute fuel
-      (apply-left (leftᵉ ∷ rightᵉ ∷ modes) (idᵢ Δ))
-      (apply-right (leftᵉ ∷ rightᵉ ∷ modes) (idᵢ Δ))
-      (apply-common-depth (leftᵉ ∷ rightᵉ ∷ modes) Δ)
-      (apply-left-depth (leftᵉ ∷ rightᵉ ∷ modes) Δ)
-      (apply-right-depth (leftᵉ ∷ rightᵉ ∷ modes) Δ)
-      A B D) →
-  SameSchedule
-    (swap-route-renamed
-      {modes = []}
-      {Φᴸ = apply-left modes (idᵢ Δ)}
-      {Φᴿ = apply-right modes (idᵢ Δ)}
-      {Δᶜ = apply-common-depth modes Δ}
-      {Δᴸ = apply-left-depth modes Δ}
-      {Δᴿ = apply-right-depth modes Δ}
-      route)
-    route′ →
-  AlignedRoutes
-    (route-right occ∀D (route-left occD route′))
-    (route-left occ∀C (route-right occC route))
-right-left-same-schedule-connectivity
-    {modes = modes} {Δ = Δ}
-    occC occ∀C occD occ∀D route route′ same =
-  aligned-sym
-    (left-right-same-schedule-connectivity
-      {modes = modes} {Δ = Δ}
-      occC occ∀C occD occ∀D route route′ same)
 
 same-schedule-refl :
   ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C}

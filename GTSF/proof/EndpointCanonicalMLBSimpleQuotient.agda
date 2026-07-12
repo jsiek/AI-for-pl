@@ -13,13 +13,10 @@ open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
 open import Types
 open import ForallPermutation using
   (_∣_⊢_⊑ᵖ_⊣_; ≈∀-refl; quotientᵖ)
-open import Imprecision using (idᵢ)
-open import ImprecisionWf as IWF using
+open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import proof.EndpointCanonicalMLBSimple using
   (MLB; rawEndpointMlbsAt)
-open import proof.EndpointCanonicalMLBSimpleCompleteness using
-  (rawEndpointMlbsAt-complete)
 open import proof.EndpointCanonicalMLBSimplePermutation using
   (rawEndpointMlbsAt-≈∀)
 open import proof.EndpointCanonicalMLBSimpleFactorization using
@@ -28,7 +25,7 @@ open import proof.EndpointCanonicalMLBSimpleRoutes using
   (MLB-result→route; raw-endpoint-route→membership)
 open import proof.EndpointCanonicalMLBSimpleSoundness using (MLB-sound)
 open import proof.MaximalLowerBoundsWf using
-  (⊑-trans-idᵢ; ⊑-trans-left-idᵢ)
+  (⊑-trans-left-idᵢ)
 
 MLB-monotoneᵖ-from-factor :
   (∀ {Φ Δᴸ Δᴿ A B C C′} →
@@ -86,42 +83,6 @@ MLB-monotoneᵖ :
 MLB-monotoneᵖ =
   MLB-monotoneᵖ-from-factor rawEndpointMlbsAt-factor
 
-MLB-monotone-idᵖ :
-  ∀ {Δ A A′ B B′ C C′} →
-  idᵢ Δ ∣ Δ ⊢ A ⊑ A′ ⊣ Δ →
-  idᵢ Δ ∣ Δ ⊢ B ⊑ B′ ⊣ Δ →
-  MLB Δ A B ≡ just C →
-  MLB Δ A′ B′ ≡ just C′ →
-  idᵢ Δ ∣ Δ ⊢ C ⊑ᵖ C′ ⊣ Δ
-MLB-monotone-idᵖ
-    {Δ = Δ} {A = A} {A′ = A′} {B = B} {B′ = B′}
-    {C = C} {C′ = C′} A⊑A′ B⊑B′ C-selected C′-selected =
-  quotientᵖ ≈∀-refl C⊑D D≈C′
-  where
-    C-lower = MLB-sound {Δ = Δ} {A = A} {B = B} C-selected
-
-    C⊑A′ = ⊑-trans-idᵢ (proj₁ C-lower) A⊑A′
-    C⊑B′ = ⊑-trans-idᵢ (proj₂ C-lower) B⊑B′
-
-    factored =
-      rawEndpointMlbsAt-complete
-        {Δ = Δ} {A = A′} {B = B′} {D = C}
-        (IWF.⊑-tgt-wf C⊑A′) (IWF.⊑-tgt-wf C⊑B′)
-        (C⊑A′ , C⊑B′)
-
-    D = proj₁ factored
-    D∈raw = proj₁ (proj₂ factored)
-    C⊑D = proj₂ (proj₂ factored)
-
-    C′∈raw =
-      raw-endpoint-route→membership
-        {Δ = Δ} {A = A′} {B = B′}
-        (MLB-result→route
-          {Δ = Δ} {A = A′} {B = B′} C′-selected)
-
-    D≈C′ =
-      rawEndpointMlbsAt-≈∀
-        {Δ = Δ} {A = A′} {B = B′} D∈raw C′∈raw
 
 -- The fixed-endpoint half is discharged by `rawEndpointMlbsAt-≈∀`.
 -- General `Φ` uses route-guided factorization because an arbitrary

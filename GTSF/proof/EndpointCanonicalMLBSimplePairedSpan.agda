@@ -4,25 +4,21 @@ module proof.EndpointCanonicalMLBSimplePairedSpan where
 --   * Defines the proof-only paired span context used by simple MLB
 --     factorization.
 --   * Records the two endpoint views of a common-lower variable in one row.
---   * Unifies the three variable terminal factorization arguments through a
---     single pullback property.
+--   * Converts two ordinary lower-bound derivations into one paired witness.
 --   * Keeps the paired representation internal to the factorization proof.
 
 open import Data.Bool using (true)
-open import Data.Empty using (⊥-elim)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (_<_; zero; suc)
-open import Relation.Binary.PropositionalEquality using (_≡_; subst; sym)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
-open import Imprecision using (ImpCtx; idᵢ; _ˣ⊑★; _ˣ⊑ˣ_)
+open import Imprecision using (ImpCtx; _ˣ⊑★; _ˣ⊑ˣ_)
 open import ImprecisionWf using
   ( _∣_⊢_⊑_⊣_; id★; idˣ; idι; _↦_; ∀ⁱ_; tag_; tag_⇛_
   ; tagˣ; ν
   )
 open import proof.EndpointCanonicalMLBSimple using (∀ᵢᶜ; νᵢᶜ)
-open import proof.ImprecisionProperties using
-  (idᵢ-no-star; idᵢ-var-identity)
 
 data View : Set where
   varᵛ : TyVar → View
@@ -323,64 +319,3 @@ pair-lower (∀ⁱ p) (∀ⁱ q) = paired-both (pair-lower p q)
 pair-lower (∀ⁱ p) (ν occ q) = paired-left occ (pair-lower p q)
 pair-lower (ν occ p) (∀ⁱ q) = paired-right occ (pair-lower p q)
 pair-lower (ν occ p) (ν occ′ q) = paired-neither occ (pair-lower p q)
-
-record SpanPullback (Φ : ImpCtx) (source target : SpanCtx) : Set where
-  field
-    pull-variable :
-      ∀ {Z W L R} →
-      Z ↦⟨ L , R ⟩∈ source →
-      W ↦⟨ L , R ⟩∈ target →
-      (Z ˣ⊑ˣ W) ∈ Φ
-
-open SpanPullback
-
-root-pullback :
-  ∀ {Φ Δ} →
-  SpanPullback Φ (span Φ Φ) (span (idᵢ Δ) (idᵢ Δ))
-root-pullback .pull-variable
-    (row-var-var z⊑x z⊑y) (row-var-var w⊑x w⊑y) =
-  subst (λ K → (_ ˣ⊑ˣ K) ∈ _)
-    (sym (idᵢ-var-identity w⊑x)) z⊑x
-root-pullback .pull-variable
-    (row-var-star z⊑x z⊑★) (row-var-star w⊑x w⊑★) =
-  ⊥-elim (idᵢ-no-star w⊑★)
-root-pullback .pull-variable
-    (row-star-var z⊑★ z⊑y) (row-star-var w⊑★ w⊑y) =
-  ⊥-elim (idᵢ-no-star w⊑★)
-root-pullback .pull-variable
-    (row-star-star z⊑★ z⊑★′) (row-star-star w⊑★ w⊑★′) =
-  ⊥-elim (idᵢ-no-star w⊑★)
-
-span-variable-factor :
-  ∀ {Φ source target Δᶜ Δᵒ Z W L R} →
-  SpanPullback Φ source target →
-  Z ↦⟨ L , R ⟩∈ source →
-  W ↦⟨ L , R ⟩∈ target →
-  Z < Δᶜ →
-  W < Δᵒ →
-  Φ ∣ Δᶜ ⊢ ＇ Z ⊑ ＇ W ⊣ Δᵒ
-span-variable-factor pull source-row target-row Z<Δᶜ W<Δᵒ =
-  idˣ (pull-variable pull source-row target-row) Z<Δᶜ W<Δᵒ
-
-paired-variable-factor :
-  ∀ {Φ source target Δᶜ Δᴸ Δᴿ Δᵒ Z W A B} →
-  SpanPullback Φ source target →
-  PairedLower source Δᶜ (＇ Z) A B Δᴸ Δᴿ →
-  PairedLower target Δᵒ (＇ W) A B Δᴸ Δᴿ →
-  Φ ∣ Δᶜ ⊢ ＇ Z ⊑ ＇ W ⊣ Δᵒ
-paired-variable-factor pull
-    (paired-var-var source-row Z<Δᶜ X<Δᴸ Y<Δᴿ)
-    (paired-var-var target-row W<Δᵒ X<Δᴸ′ Y<Δᴿ′) =
-  span-variable-factor pull source-row target-row Z<Δᶜ W<Δᵒ
-paired-variable-factor pull
-    (paired-var-star source-row Z<Δᶜ X<Δᴸ)
-    (paired-var-star target-row W<Δᵒ X<Δᴸ′) =
-  span-variable-factor pull source-row target-row Z<Δᶜ W<Δᵒ
-paired-variable-factor pull
-    (paired-star-var source-row Z<Δᶜ Y<Δᴿ)
-    (paired-star-var target-row W<Δᵒ Y<Δᴿ′) =
-  span-variable-factor pull source-row target-row Z<Δᶜ W<Δᵒ
-paired-variable-factor pull
-    (paired-var-stars source-row Z<Δᶜ)
-    (paired-var-stars target-row W<Δᵒ) =
-  span-variable-factor pull source-row target-row Z<Δᶜ W<Δᵒ

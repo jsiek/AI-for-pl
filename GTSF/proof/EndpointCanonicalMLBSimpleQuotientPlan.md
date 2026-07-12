@@ -272,8 +272,8 @@ The reverse bridge should invert `dedupe` and concatenation membership using
 the existing soundness helpers.  Do not recover a route from lower-bound
 derivations; the bad-GLB example shows that such evidence is not canonical.
 
-Next prove local adjacent-exchange lemmas for route spines.  The important
-mixed exchange is:
+The proof tracks each route by its exposure history. The important mixed
+exchange is:
 
 ```text
 expose a left-only binder; then expose a right-only binder
@@ -283,51 +283,37 @@ expose a left-only binder; then expose a right-only binder
 expose a right-only binder; then expose a left-only binder
 ```
 
-The resulting types differ by `≈∀-swap`, with the body renamed by
-`swap01ᵗ`.
-Lift this exchange through arrows and enclosing `∀` binders.
+The resulting types differ by `≈∀-swap`, with the body renamed by `swap01ᵗ`.
+`swap-route` transports a complete route across this exchange, including its
+variable candidate and `occurs` evidence. `AlignedRoutes` then lifts the body
+equivalence through arrows and enclosing `∀` binders.
 
 Use the old `MlbTypeSelectorSwap01*` development only as a source for already
 checked renaming and occurrence arguments.  Do not make the new theorem depend
 on the old selector or its refuted broad coherence statement.
 
-Prove route connectivity by induction on endpoint shapes and the two route
-certificates.  Do not recursively assume ordinary maximality of route bodies:
-that implication is false under `∀`, because a reverse comparison between the
-wrapped candidates may use `ν` even when no reverse ordinary comparison exists
-between their bodies.
+Prove route connectivity directly by induction on endpoint shapes and the two
+route certificates. The surviving invariants are:
 
-Instead carry a one-hole `RouteCtx` and contextual maximality:
+- the two histories expose the same original endpoints;
+- variable candidates are unique for a fixed history;
+- a used left-only binder induces a `LeftStarPath` to a variable/star leaf;
+- a used right-only binder induces the symmetric `StarRightPath`; and
+- those paths rule out crossing or unmatched exposure schedules.
 
-```agda
-ContextMaximal Δ K Candidate C =
-  ∀ {D} →
-  Candidate D →
-  idᵢ Δ ∣ Δ ⊢ plug K C ⊑ plug K D ⊣ Δ →
-  idᵢ Δ ∣ Δ ⊢ plug K D ⊑ plug K C ⊣ Δ
-```
-
-At the root, `K = □`, and survival from `pruneStrictlyBelow` proves this
-property.  When the induction enters a route constructor, extend `K` with the
-corresponding `∀` or arrow frame.  A child competitor is then lifted back to a
-whole raw route before contextual maximality is used.  For one-sided `∀`
-routes, restrict child competitors to those carrying the required `occurs`
-evidence.
-
-The route cases are:
+Bubble a one-sided exposure outward along its path. If the other route exposes
+the independent binder first, apply `swap-route`, then continue under the
+renamed body. The route cases are:
 
 - first-order candidates are equal, so use `≈∀-refl`;
 - arrow routes recurse componentwise and use `≈∀-⇒`;
 - aligned polymorphic routes recurse beneath `≈∀-∀`;
-- differing independent exposure orders extend the contextual invariant
-  through both wrappers, use one adjacent exchange, and then recurse under the
-  `swap01ᵗ` renaming; and
-- a supposedly unmatched or crossing route must contradict that both
-  candidates survived `pruneStrictlyBelow`.
+- differing independent exposure orders use one adjacent exchange and recurse
+  under the `swap01ᵗ` renaming; and
+- unmatched or crossing routes contradict the left/right path invariants.
 
-The last premise is essential.  Raw candidates need not all be permutation
-equivalent; state the recursive theorem for routes equipped with their
-`hasStrictAbove? = false` evidence.
+Thus all raw candidates for fixed endpoints are permutation-equivalent; no
+pruning or maximality premise is needed.
 
 Checkpoint: prove both entries of `allEndpointMlbs` for the bad-GLB endpoints
 equivalent without referring to their concrete definitions by `refl`.

@@ -14,7 +14,7 @@ open import Data.List using (List; []; _∷_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; z<s; s<s)
-open import Data.Product using (proj₁)
+open import Data.Product using (proj₁; proj₂)
 
 open import Types
 open import Coercions
@@ -90,9 +90,29 @@ down-D =
       (realizes-idᵢᴺᵂ-id-only zero)
       glb-lower-XY⊑A-old)
 
+down-D-⊒ :
+  id-onlyᵈ ∣ zero ∣ [] ⊢ down-D ∶ glb-bad-A ⊒ glb-lower-XY
+down-D-⊒ =
+  proj₂
+    (coerce-downⁿ route-label
+      (IWF.⊑-src-wf glb-lower-XY⊑A)
+      (IWF.⊑-tgt-wf glb-lower-XY⊑A)
+      (realizes-idᵢᴺᵂ-id-only zero)
+      glb-lower-XY⊑A-old)
+
 up-D : Coercion
 up-D =
   proj₁
+    (coerce-upʷ route-label
+      (IWF.⊑-src-wf glb-lower-XY⊑B)
+      (IWF.⊑-tgt-wf glb-lower-XY⊑B)
+      (realizes-idᵢᴺᵂ-id-only zero)
+      glb-lower-XY⊑B-old)
+
+up-D-⊑ :
+  id-onlyᵈ ∣ zero ∣ [] ⊢ up-D ∶ glb-lower-XY ⊑ glb-bad-B
+up-D-⊑ =
+  proj₂
     (coerce-upʷ route-label
       (IWF.⊑-src-wf glb-lower-XY⊑B)
       (IWF.⊑-tgt-wf glb-lower-XY⊑B)
@@ -108,9 +128,29 @@ down-E =
       (realizes-idᵢᴺᵂ-id-only zero)
       glb-lower-YX⊑A-old)
 
+down-E-⊒ :
+  id-onlyᵈ ∣ zero ∣ [] ⊢ down-E ∶ glb-bad-A ⊒ glb-lower-YX
+down-E-⊒ =
+  proj₂
+    (coerce-downⁿ route-label
+      (IWF.⊑-src-wf glb-lower-YX⊑A)
+      (IWF.⊑-tgt-wf glb-lower-YX⊑A)
+      (realizes-idᵢᴺᵂ-id-only zero)
+      glb-lower-YX⊑A-old)
+
 up-E : Coercion
 up-E =
   proj₁
+    (coerce-upʷ route-label
+      (IWF.⊑-src-wf glb-lower-YX⊑B)
+      (IWF.⊑-tgt-wf glb-lower-YX⊑B)
+      (realizes-idᵢᴺᵂ-id-only zero)
+      glb-lower-YX⊑B-old)
+
+up-E-⊑ :
+  id-onlyᵈ ∣ zero ∣ [] ⊢ up-E ∶ glb-lower-YX ⊑ glb-bad-B
+up-E-⊑ =
+  proj₂
     (coerce-upʷ route-label
       (IWF.⊑-src-wf glb-lower-YX⊑B)
       (IWF.⊑-tgt-wf glb-lower-YX⊑B)

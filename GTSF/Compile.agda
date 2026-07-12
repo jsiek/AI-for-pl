@@ -56,12 +56,12 @@ open import proof.CoercionProperties
     ; singleSealMode
     )
 open import proof.ImprecisionProperties
-  using (⊑-src-wf-idᵢ; ⊑-tgt-wf-idᵢ; ~-sym)
-open import proof.EndpointCanonicalMLBSimple using (simpleEndpointMlbAt)
+  using (⊑-src-wf-idᵢ; ⊑-tgt-wf-idᵢ; ~-refl; ~-sym)
+open import proof.EndpointCanonicalMLBSimple using (MLB)
 open import proof.EndpointCanonicalMLBSimpleMaximality using
-  (simpleEndpointMlbAt-complete)
+  (MLB-complete)
 open import proof.EndpointCanonicalMLBSimpleSoundness using
-  (simpleEndpointMlbAt-sound)
+  (MLB-sound)
 open import proof.MaximalLowerBoundsWf
   using
     ( old⊑→wf-idᵢ
@@ -265,7 +265,7 @@ record CastPlan (Δ : TyCtx) (Σ : Store) (A B : Ty) : Set₁ where
     -- Consistency witnesses are built from `idᵢ`, so the cast evidence is
     -- kept in `id-onlyᵈ` and relaxed only at the term-typing boundary.
     lower : Ty
-    lower-selected : simpleEndpointMlbAt Δ A B ≡ just lower
+    lower-selected : MLB Δ A B ≡ just lower
     down : Coercion
     down⊢ : Δ ∣ Σ ⊢ down ∶ A =⇒ lower
     down⊒ : id-onlyᵈ ∣ Δ ∣ Σ ⊢ down ∶ A ⊒ lower
@@ -288,11 +288,11 @@ consistency-cast-planᵢ :
      IWF._∣_⊢_⊑_⊣_ (idᵢ Δ) Δ C B Δ)) →
   CastPlan Δ [] A B
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
-    with simpleEndpointMlbAt-complete
+    with MLB-complete
       (IWF.⊑-tgt-wf C⊑A) (IWF.⊑-tgt-wf C⊑B) (C⊑A , C⊑B)
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
     | lower , lower-selected
-    with simpleEndpointMlbAt-sound lower-selected
+    with MLB-sound lower-selected
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
     | lower , lower-selected | lower⊑source , lower⊑target
     with coerce-downⁿ ℓ
@@ -336,6 +336,12 @@ arrow★-consistent :
   Δ ⊢ (A ⇒ ★) ~ ★
 arrow★-consistent (C , C⊑A , C⊑★) =
   C ⇒ ★ , (C⊑A ↦ id★) , (tag C⊑★ ⇛ id★)
+
+dynamic-application-function-consistent :
+  ∀ {Δ} →
+  Δ ⊢ ★ ~ ★ ⇒ ★
+dynamic-application-function-consistent =
+  ~-sym (arrow★-consistent (~-refl wf★))
 
 cast :
   ∀ {Δ A B} →
@@ -399,13 +405,17 @@ compile hΓ (⊢ᴳ· L⊢ M⊢ A~A′)
     | L′ , L′⊢ | M′ , M′⊢ | plan =
   L′ ·ᵀ cast plan M′ ,
   ⊢ᵀ· L′⊢ (cast⊢ plan M′⊢)
+-- Dynamic application uses the fixed domain `★`, as in GTLC.  Specializing
+-- the function cast to the argument type breaks compile monotonicity.
 compile hΓ (⊢ᴳ·★ {ℓ = ℓ} L⊢ M⊢ A′~★)
     with compile hΓ L⊢ | compile hΓ M⊢
-       | consistency-cast-plan ℓ (~-sym (arrow★-consistent A′~★))
+       | consistency-cast-plan ℓ
+           dynamic-application-function-consistent
+       | consistency-cast-plan ℓ A′~★
 compile hΓ (⊢ᴳ·★ L⊢ M⊢ A′~★)
-    | L′ , L′⊢ | M′ , M′⊢ | plan =
-  cast plan L′ ·ᵀ M′ ,
-  ⊢ᵀ· (cast⊢ plan L′⊢) M′⊢
+    | L′ , L′⊢ | M′ , M′⊢ | fun-plan | arg-plan =
+  cast fun-plan L′ ·ᵀ cast arg-plan M′ ,
+  ⊢ᵀ· (cast⊢ fun-plan L′⊢) (cast⊢ arg-plan M′⊢)
 compile hΓ (⊢ᴳΛ {occ = occ} vM M⊢)
     with compile (CtxWf-⤊ hΓ) M⊢
        | compile-value (CtxWf-⤊ hΓ) vM M⊢
@@ -469,11 +479,13 @@ compileᵀ hΓ (⊢ᴳ· L⊢ M⊢ A~A′)
   TT.⊢· L′⊢ (cast⊢ᵀ plan M′⊢)
 compileᵀ hΓ (⊢ᴳ·★ {ℓ = ℓ} L⊢ M⊢ A′~★)
     with compileᵀ hΓ L⊢ | compileᵀ hΓ M⊢
-       | consistency-cast-plan ℓ (~-sym (arrow★-consistent A′~★))
+       | consistency-cast-plan ℓ
+           dynamic-application-function-consistent
+       | consistency-cast-plan ℓ A′~★
 compileᵀ hΓ (⊢ᴳ·★ L⊢ M⊢ A′~★)
-    | L′ , L′⊢ | M′ , M′⊢ | plan =
-  cast plan L′ ·ᵀ M′ ,
-  TT.⊢· (cast⊢ᵀ plan L′⊢) M′⊢
+    | L′ , L′⊢ | M′ , M′⊢ | fun-plan | arg-plan =
+  cast fun-plan L′ ·ᵀ cast arg-plan M′ ,
+  TT.⊢· (cast⊢ᵀ fun-plan L′⊢) (cast⊢ᵀ arg-plan M′⊢)
 compileᵀ hΓ (⊢ᴳΛ {occ = occ} vM M⊢)
     with compileᵀ (CtxWf-⤊ hΓ) M⊢
        | compileᵀ-value (CtxWf-⤊ hΓ) vM M⊢

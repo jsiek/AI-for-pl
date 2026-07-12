@@ -1,11 +1,11 @@
 module proof.CompileTermImprecision where
 
 -- File Charter:
---   * Compile monotonicity scaffold for source gradual-term imprecision.
---   * Converts `GradualTermImprecision` contexts to `NuTermImprecision`
---     contexts and proves the structural compiler cases.
---   * Leaves the cast/ν-heavy compiler cases as Agda interaction holes, so
---     the remaining proof obligations are reported directly by Agda.
+--   * Proves compilation monotone from gradual-term imprecision to the new
+--     mutually recursive ordinary/quotiented Nu-term imprecision judgments.
+--   * Uses quotiented type imprecision only between the hidden lower types of
+--     compiled narrowing/widening pairs.
+--   * Keeps application and cast reasoning orthogonal.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
@@ -25,10 +25,11 @@ open import Compile using
   ; cast
   ; compileᵀ
   ; compileᵀ-value
-  ; arrow★-consistent
   ; consistency-cast-plan
+  ; dynamic-application-function-consistent
   ; down⊒
   ; lower
+  ; lower-selected
   ; lower⊑target
   ; up⊑
   ; ν-reveal-conversion
@@ -54,6 +55,7 @@ open import GradualTerms
     ; ⊢$ to ⊢ᴳ$
     ; ⊢⊕ to ⊢ᴳ⊕
     )
+open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 import ImprecisionWf as IWF
 import Imprecision as Imp
 open import Imprecision using () renaming (idι to idιᴵ; ν to νᴵ)
@@ -86,7 +88,10 @@ open import proof.ImprecisionProperties using
   ; ~-sym
   ; ⊑-base-inv-idᵢ
   ; ⊑-forall-base-⊥
+  ; ⊑-refl-idᵢ
   )
+open import proof.EndpointCanonicalMLBSimpleQuotient using
+  (MLB-monotoneᵖ)
 open import proof.MaximalLowerBoundsWf using (⊑-forgetᵢ)
 open import proof.TypeProperties using
   ( TyRenameWf
@@ -101,7 +106,9 @@ open import TermTyping using (SealModeStore★; cast-tag-or-id)
 import GradualTermImprecision as GTI
 open import GradualTermImprecision using (_∣_∣_∣_⊢ᴳ_⊑_⦂_⊑_∶_)
 import NuTermImprecision as NTI
-open import NuTermImprecision using (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
+import QuotientedTermImprecision as QTI
+open import QuotientedTermImprecision using
+  (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 
 variable
   Φ Ψ : ImpCtx
@@ -401,105 +408,141 @@ nu-term-imprecision-cong-terms :
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ L′ ⊑ R′ ⦂ A ⊑ B ∶ p
 nu-term-imprecision-cong-terms refl refl L⊑R = L⊑R
 
+imprecision-target-subst :
+  ∀ {Φ Δᴸ Δᴿ A B B′} →
+  B ≡ B′ →
+  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
+  Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ
+imprecision-target-subst refl A⊑B = A⊑B
+
 compiled-argument-cast-imprecision :
   ∀ {Φ Δᴸ Δᴿ δ M M′ A A′ C C′ pA pC} →
   (plan : CastPlan Δᴸ [] C A) →
   (plan′ : CastPlan Δᴿ [] C′ A′) →
-  Φ ∣ Δᴸ ⊢ lower plan ⊑ lower plan′ ⊣ Δᴿ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC →
+  Φ ∣ Δᴸ ⊢ lower plan ⊑ᵖ lower plan′ ⊣ Δᴿ →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
+    ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
     ⊢ᴺ cast plan M ⊑ cast plan′ M′ ⦂ A ⊑ A′ ∶ pA
 compiled-argument-cast-imprecision {pA = pA}
     plan plan′ lower⊑lower′ M⊑M′ =
-  let
-    M↓⊑M′ =
-      NTI.cast⊒⊑idᵀ storeDetWf-[] seal★-id-only (down⊒ plan) M⊑M′
-    M↓⊑M′↓ =
-      NTI.⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
-        (narrow-mode-relax id-only≤tag-or-idᵈ (down⊒ plan′))
-        M↓⊑M′ lower⊑lower′
-    M↓⊑M′↑ =
-      NTI.⊑cast⊑idᵀ storeDetWf-[] seal★-id-only (up⊑ plan′) M↓⊑M′↓
-  in
-  NTI.cast⊑⊑ᵀ cast-tag-or-id seal★-tag-or-id
-    (widen-mode-relax id-only≤tag-or-idᵈ (up⊑ plan))
-    M↓⊑M′↑ pA
+  QTI.up⊑upᵀ
+    (QTI.down⊑downᵀ (down⊒ plan) (down⊒ plan′) M⊑M′
+      lower⊑lower′)
+    (up⊑ plan) (up⊑ plan′) pA
 
 compiled-cast-nat-imprecision :
   ∀ {Φ Δᴸ Δᴿ δ M M′ A A′ p ℓ} →
   (A~ℕ : Imp._⊢_~_ Δᴸ A (‵ `ℕ)) →
   (A′~ℕ : Imp._⊢_~_ Δᴿ A′ (‵ `ℕ)) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
+    ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
     ⊢ᴺ cast (consistency-cast-plan ℓ A~ℕ) M
       ⊑ cast (consistency-cast-plan ℓ A′~ℕ) M′
     ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ IWF.idι
 compiled-cast-nat-imprecision
-    ((`∀ A) , C⊑A , νᴵ occ p) A′~ℕ M⊑M′ =
-  ⊥-elim (⊑-forall-base-⊥ (νᴵ occ p))
-compiled-cast-nat-imprecision
-    A~ℕ ((`∀ A′) , C′⊑A′ , νᴵ occ p) M⊑M′ =
-  ⊥-elim (⊑-forall-base-⊥ (νᴵ occ p))
-compiled-cast-nat-imprecision {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ℓ = ℓ}
-    (.(‵ `ℕ) , C⊑A , Imp.idι)
-    (.(‵ `ℕ) , C′⊑A′ , Imp.idι)
-    M⊑M′ =
+    {p = p} {ℓ = ℓ} A~ℕ A′~ℕ M⊑M′ =
   let
-    plan = consistency-cast-plan ℓ (‵ `ℕ , C⊑A , Imp.idι)
-    plan′ = consistency-cast-plan ℓ (‵ `ℕ , C′⊑A′ , Imp.idι)
-    plan-lower≡ℕ : lower plan ≡ ‵ `ℕ
-    plan-lower≡ℕ = ⊑-base-inv-idᵢ (⊑-forgetᵢ (lower⊑target plan))
-    plan′-lower≡ℕ : lower plan′ ≡ ‵ `ℕ
-    plan′-lower≡ℕ = ⊑-base-inv-idᵢ (⊑-forgetᵢ (lower⊑target plan′))
-    lower⊑lower′ : Φ ∣ Δᴸ ⊢ lower plan ⊑ lower plan′ ⊣ Δᴿ
-    lower⊑lower′ =
-      subst
-        (λ A → Φ ∣ Δᴸ ⊢ A ⊑ lower plan′ ⊣ Δᴿ)
-        (sym plan-lower≡ℕ)
-        (subst
-          (λ B → Φ ∣ Δᴸ ⊢ ‵ `ℕ ⊑ B ⊣ Δᴿ)
-          (sym plan′-lower≡ℕ)
-          IWF.idι)
-    M↓⊑M′ =
-      NTI.cast⊒⊑idᵀ storeDetWf-[] seal★-id-only (down⊒ plan) M⊑M′
-    M↓⊑M′↓ =
-      NTI.⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
-        (narrow-mode-relax id-only≤tag-or-idᵈ (down⊒ plan′))
-        M↓⊑M′ lower⊑lower′
-    M↓⊑M′↑ =
-      NTI.⊑cast⊑idᵀ storeDetWf-[] seal★-id-only (up⊑ plan′) M↓⊑M′↓
+    plan = consistency-cast-plan ℓ A~ℕ
+    plan′ = consistency-cast-plan ℓ A′~ℕ
+    lower⊑ᵖlower′ =
+      MLB-monotoneᵖ p IWF.idι
+        (lower-selected plan) (lower-selected plan′)
   in
-  NTI.cast⊑⊑ᵀ cast-tag-or-id seal★-tag-or-id
-    (widen-mode-relax id-only≤tag-or-idᵈ (up⊑ plan))
-    M↓⊑M′↑ IWF.idι
+  compiled-argument-cast-imprecision plan plan′ lower⊑ᵖlower′ M⊑M′
+
+dynamic-application-plan-lower :
+  ∀ (Δ : TyCtx) (ℓ : Label) →
+  lower
+    (consistency-cast-plan {Δ = Δ} ℓ
+      dynamic-application-function-consistent)
+    ≡ ★ ⇒ ★
+dynamic-application-plan-lower Δ ℓ = refl
+
+compiled-right-dynamic-function-imprecision :
+  ∀ {Φ Δᴸ Δᴿ δ L L′ A B pA pB ℓ} →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
+    ⊢ᴺ L ⊑ L′ ⦂ A ⇒ B ⊑ ★ ∶ IWF.tag pA ⇛ pB →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
+    ⊢ᴺ L ⊑ cast
+      (consistency-cast-plan {Δ = Δᴿ} ℓ
+        dynamic-application-function-consistent) L′
+    ⦂ A ⇒ B ⊑ ★ ⇒ ★ ∶ pA IWF.↦ pB
+compiled-right-dynamic-function-imprecision
+    {Δᴿ = Δᴿ} {pA = pA} {pB = pB} {ℓ = ℓ} L⊑L′ =
+  let
+    plan = consistency-cast-plan {Δ = Δᴿ} ℓ
+      dynamic-application-function-consistent
+    arrow⊑lower =
+      imprecision-target-subst
+        (sym (dynamic-application-plan-lower Δᴿ ℓ))
+        (pA IWF.↦ pB)
+    L⊑L′↓ =
+      QTI.⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
+        (narrow-mode-relax id-only≤tag-or-idᵈ (down⊒ plan))
+        L⊑L′ arrow⊑lower
+  in
+  QTI.⊑cast⊑idᵀ storeDetWf-[] seal★-id-only
+    (up⊑ plan) L⊑L′↓ (pA IWF.↦ pB)
+
+compiled-dynamic-function-imprecision :
+  ∀ {Φ Δᴸ Δᴿ δ L L′ ℓ} →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
+    ⊢ᴺ L ⊑ L′ ⦂ ★ ⊑ ★ ∶ IWF.id★ →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
+    ⊢ᴺ cast
+      (consistency-cast-plan {Δ = Δᴸ} ℓ
+        dynamic-application-function-consistent) L
+      ⊑ cast
+        (consistency-cast-plan {Δ = Δᴿ} ℓ
+          dynamic-application-function-consistent) L′
+    ⦂ ★ ⇒ ★ ⊑ ★ ⇒ ★ ∶ IWF.id★ IWF.↦ IWF.id★
+compiled-dynamic-function-imprecision
+    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ℓ = ℓ} L⊑L′ =
+  let
+    plan = consistency-cast-plan {Δ = Δᴸ} ℓ
+      dynamic-application-function-consistent
+    plan′ = consistency-cast-plan {Δ = Δᴿ} ℓ
+      dynamic-application-function-consistent
+    lower⊑ᵖlower′ =
+      MLB-monotoneᵖ IWF.id★
+        (IWF.id★ IWF.↦ IWF.id★)
+        (lower-selected plan) (lower-selected plan′)
+  in
+  compiled-argument-cast-imprecision plan plan′ lower⊑ᵖlower′ L⊑L′
 
 ------------------------------------------------------------------------
--- Compile monotonicity, with holes for the remaining hard cases
+-- Compile monotonicity
 ------------------------------------------------------------------------
 
 compile-preserves-term-imprecision-typed :
   (srcΓ-wf : CtxWf Δᴸ (GTI.srcCtxⁱ γ)) →
   (tgtΓ-wf : CtxWf Δᴿ (GTI.tgtCtxⁱ γ)) →
-  (M⊑M′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p) →
+  (M⊑M′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ γ
+    ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p) →
   let
     M⊢ = GTI.gradual-term-imprecision-source-typing M⊑M′
     M′⊢ = GTI.gradual-term-imprecision-target-typing M⊑M′
     N = proj₁ (compileᵀ srcΓ-wf M⊢)
     N′ = proj₁ (compileᵀ tgtΓ-wf M′⊢)
   in
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ ctxImpToNu γ ⊢ᴺ N ⊑ N′ ⦂ A ⊑ B ∶ p
-compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf (GTI.x⊑xᴳ x∈) =
-  NTI.x⊑xᵀ (ctxImpToNu-∋ x∈)
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ ctxImpToNu γ
+    ⊢ᴺ N ⊑ N′ ⦂ A ⊑ B ∶ p
+compile-preserves-term-imprecision-typed
+    srcΓ-wf tgtΓ-wf (GTI.x⊑xᴳ x∈) =
+  QTI.x⊑xᵀ (ctxImpToNu-∋ x∈)
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
     (GTI.ƛ⊑ƛᴳ hA hA′ N⊑N′) =
-  NTI.ƛ⊑ƛᵀ hA hA′
+  QTI.ƛ⊑ƛᵀ hA hA′
     (compile-preserves-term-imprecision-typed
       (ctxWf-∷ hA srcΓ-wf)
       (ctxWf-∷ hA′ tgtΓ-wf)
       N⊑N′)
 -- application, function endpoints on both sides
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
-    app@(GTI.·⊑·ᴳ {ℓ = ℓ} L⊑L′ N⊑N′ A~C A′~C′) =
+    (GTI.·⊑·ᴳ {ℓ = ℓ} {pA = pA} {pC = pC}
+      L⊑L′ N⊑N′ A~C A′~C′) =
   let
     L⊑L′ᵀ =
       compile-preserves-term-imprecision-typed
@@ -511,17 +554,20 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         srcΓ-wf
         tgtΓ-wf
         N⊑N′
+    plan = consistency-cast-plan ℓ (~-sym A~C)
+    plan′ = consistency-cast-plan ℓ (~-sym A′~C′)
+    lower⊑ᵖlower′ =
+      MLB-monotoneᵖ pC pA
+        (lower-selected plan) (lower-selected plan′)
   in
-  NTI.·⊑·castsᵀ
-    (down⊒ (consistency-cast-plan ℓ (~-sym A~C)))
-    (up⊑ (consistency-cast-plan ℓ (~-sym A~C)))
-    (down⊒ (consistency-cast-plan ℓ (~-sym A′~C′)))
-    (up⊑ (consistency-cast-plan ℓ (~-sym A′~C′)))
+  QTI.·⊑·ᵀ
     L⊑L′ᵀ
-    N⊑N′ᵀ
+    (compiled-argument-cast-imprecision plan plan′
+      lower⊑ᵖlower′ N⊑N′ᵀ)
 -- application, right function type is ★
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
-    app@(GTI.·⊑·★ᴳ {ℓ = ℓ} L⊑L′ N⊑N′ A~C C′~★) =
+    (GTI.·⊑·★ᴳ {ℓ = ℓ} {pA = pA} {pB = pB} {pC = pC}
+      L⊑L′ N⊑N′ A~C C′~★) =
   let
     L⊑L′ᵀ =
       compile-preserves-term-imprecision-typed
@@ -533,19 +579,20 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         srcΓ-wf
         tgtΓ-wf
         N⊑N′
+    argument-plan = consistency-cast-plan ℓ (~-sym A~C)
+    argument-plan′ = consistency-cast-plan ℓ C′~★
+    argument-lower⊑ᵖlower′ =
+      MLB-monotoneᵖ pC pA
+        (lower-selected argument-plan) (lower-selected argument-plan′)
   in
-  NTI.·⊑·★castsᵀ
-    (down⊒ (consistency-cast-plan ℓ (~-sym A~C)))
-    (up⊑ (consistency-cast-plan ℓ (~-sym A~C)))
-    (down⊒
-      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C′~★))))
-    (up⊑
-      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C′~★))))
-    L⊑L′ᵀ
-    N⊑N′ᵀ
+  QTI.·⊑·ᵀ
+    (compiled-right-dynamic-function-imprecision {ℓ = ℓ} L⊑L′ᵀ)
+    (compiled-argument-cast-imprecision argument-plan argument-plan′
+      argument-lower⊑ᵖlower′ N⊑N′ᵀ)
 -- application, both function types are ★
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
-    app@(GTI.·★⊑·★ᴳ {ℓ = ℓ} L⊑L′ N⊑N′ C~★ C′~★) =
+    (GTI.·★⊑·★ᴳ {ℓ = ℓ} {pC = pC}
+      L⊑L′ N⊑N′ C~★ C′~★) =
   let
     L⊑L′ᵀ =
       compile-preserves-term-imprecision-typed
@@ -557,21 +604,19 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         srcΓ-wf
         tgtΓ-wf
         N⊑N′
+    argument-plan = consistency-cast-plan ℓ C~★
+    argument-plan′ = consistency-cast-plan ℓ C′~★
+    argument-lower⊑ᵖlower′ =
+      MLB-monotoneᵖ pC IWF.id★
+        (lower-selected argument-plan) (lower-selected argument-plan′)
   in
-  NTI.·★⊑·★castsᵀ
-    (down⊒
-      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C~★))))
-    (up⊑
-      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C~★))))
-    (down⊒
-      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C′~★))))
-    (up⊑
-      (consistency-cast-plan ℓ (~-sym (arrow★-consistent C′~★))))
-    L⊑L′ᵀ
-    N⊑N′ᵀ
+  QTI.·⊑·ᵀ
+    (compiled-dynamic-function-imprecision {ℓ = ℓ} L⊑L′ᵀ)
+    (compiled-argument-cast-imprecision argument-plan argument-plan′
+      argument-lower⊑ᵖlower′ N⊑N′ᵀ)
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
     (GTI.Λ⊑Λᴳ liftγ vV vV′ occA occB V⊑V′) =
-  NTI.Λ⊑Λᵀ
+  QTI.Λ⊑Λᵀ
     NTI.lift-store-[]
     (ctxImpToNu-lift liftγ)
     (compileᵀ-value (CtxWf-⤊ srcΓ-wf) vV
@@ -611,7 +656,7 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
           tgtΓ-wf)
         V⊑N′
   in
-  NTI.Λ⊑ᵀ occ
+  QTI.Λ⊑ᵀ occ
     NTI.lift-left-store-[]
     (ctxImpToNu-lift-left liftγ)
     (compileᵀ-value (CtxWf-⤊ srcΓ-wf) vV
@@ -630,7 +675,8 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         (GTI.gradual-term-imprecision-target-typing V⊑N′))
       V⊑N′ᵀ)
 -- synchronized type application
-compile-preserves-term-imprecision-typed {γ = γ} srcΓ-wf tgtΓ-wf
+compile-preserves-term-imprecision-typed
+    {γ = γ} srcΓ-wf tgtΓ-wf
     rel@(GTI.[]⊑[]ᴳ hA hT hB hT′ M⊑M′ q r) =
   let
     M⊑M′ᵀ =
@@ -639,7 +685,7 @@ compile-preserves-term-imprecision-typed {γ = γ} srcΓ-wf tgtΓ-wf
         tgtΓ-wf
         M⊑M′
   in
-  NTI.ν⊑νᵀ hT hT′
+  QTI.ν⊑νᵀ hT hT′
     (ν-reveal-conversion hT hA)
     (ν-reveal-conversion hT′ hB)
     q
@@ -648,7 +694,8 @@ compile-preserves-term-imprecision-typed {γ = γ} srcΓ-wf tgtΓ-wf
     (nuCtx⇑-lift (ctxImpToNu γ))
     M⊑M′ᵀ
 -- left-only type application
-compile-preserves-term-imprecision-typed {γ = γ} srcΓ-wf tgtΓ-wf
+compile-preserves-term-imprecision-typed
+    {γ = γ} srcΓ-wf tgtΓ-wf
     rel@(GTI.[]⊑ᴳ hA hT M⊑M′ q r) =
   let
     M⊑M′ᵀ =
@@ -657,14 +704,15 @@ compile-preserves-term-imprecision-typed {γ = γ} srcΓ-wf tgtΓ-wf
         tgtΓ-wf
         M⊑M′
   in
-  NTI.ν⊑ᵀ hT
+  QTI.ν⊑ᵀ hT
     (renameᵗ-preserves-WfTy hT TyRenameWf-suc)
     (ν-reveal-conversion hT hA)
     NTI.lift-left-store-[]
     (nuCtx⇑ᴸ-lift (ctxImpToNu γ))
     M⊑M′ᵀ
-compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf GTI.κ⊑κᴳ =
-  NTI.κ⊑κᵀ
+compile-preserves-term-imprecision-typed
+    srcΓ-wf tgtΓ-wf GTI.κ⊑κᴳ =
+  QTI.κ⊑κᵀ
 -- primitive addition
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
     prim@(GTI.⊕⊑⊕ᴳ {op = addℕ} {ℓ = ℓ} L⊑L′ A~ℕ A′~ℕ
@@ -681,22 +729,25 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         tgtΓ-wf
         N⊑N′
   in
-  NTI.⊕⊑⊕ᵀ
+  QTI.⊕⊑⊕ᵀ
     (compiled-cast-nat-imprecision {ℓ = ℓ} A~ℕ A′~ℕ L⊑L′ᵀ)
     (compiled-cast-nat-imprecision {ℓ = ℓ} B~ℕ B′~ℕ N⊑N′ᵀ)
 
 compile-preserves-term-imprecision :
   (srcΓ-wf : CtxWf Δᴸ (GTI.srcCtxⁱ γ)) →
   (tgtΓ-wf : CtxWf Δᴿ (GTI.tgtCtxⁱ γ)) →
-  (M⊑M′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p) →
+  (M⊑M′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ γ
+    ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p) →
   let
     M⊢ = GTI.gradual-term-imprecision-source-typing M⊑M′
     M′⊢ = GTI.gradual-term-imprecision-target-typing M⊑M′
     N = proj₁ (compileᵀ srcΓ-wf M⊢)
     N′ = proj₁ (compileᵀ tgtΓ-wf M′⊢)
   in
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ ctxImpToNu γ ⊢ᴺ N ⊑ N′ ⦂ A ⊑ B ∶ p
-compile-preserves-term-imprecision srcΓ-wf tgtΓ-wf M⊑M′ =
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ ctxImpToNu γ
+    ⊢ᴺ N ⊑ N′ ⦂ A ⊑ B ∶ p
+compile-preserves-term-imprecision
+    srcΓ-wf tgtΓ-wf M⊑M′ =
   compile-preserves-term-imprecision-typed
     srcΓ-wf
     tgtΓ-wf

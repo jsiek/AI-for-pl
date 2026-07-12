@@ -465,50 +465,6 @@ data _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_ :
       ------------------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ L · M ⊑ L′ · M′ ⦂ B ⊑ B′ ∶ pB
 
-  ·⊑·castsᵀ :
-      ∀ {L L′ M M′ A A′ B B′ C C′ D D′ pA pB pC d u d′ u′}
-    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D
-    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ A
-    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ D′
-    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ D′ ⊑ A′
-    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ L ⊑ L′
-        ⦂ A ⇒ B ⊑ A′ ⇒ B′ ∶ pA ↦ pB
-    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC
-      ------------------------------------------------------------
-    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-        ⊢ᴺ L · ((M ⟨ d ⟩) ⟨ u ⟩)
-          ⊑ L′ · ((M′ ⟨ d′ ⟩) ⟨ u′ ⟩)
-        ⦂ B ⊑ B′ ∶ pB
-
-  ·⊑·★castsᵀ :
-      ∀ {L L′ M M′ A B C C′ D E pA pB pC d u d′ u′}
-    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D
-    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ A
-    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ ★ ⊒ E
-    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ E ⊑ C′ ⇒ ★
-    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ L ⊑ L′
-        ⦂ A ⇒ B ⊑ ★ ∶ tag pA ⇛ pB
-    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC
-      ------------------------------------------------------------
-    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-        ⊢ᴺ L · ((M ⟨ d ⟩) ⟨ u ⟩)
-          ⊑ ((L′ ⟨ d′ ⟩) ⟨ u′ ⟩) · M′
-        ⦂ B ⊑ ★ ∶ pB
-
-  ·★⊑·★castsᵀ :
-      ∀ {L L′ M M′ C C′ D D′ pC d u d′ u′}
-    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ ★ ⊒ D
-    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ C ⇒ ★
-    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ ★ ⊒ D′
-    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ D′ ⊑ C′ ⇒ ★
-    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ L ⊑ L′ ⦂ ★ ⊑ ★ ∶ id★
-    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC
-      ------------------------------------------------------------
-    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-        ⊢ᴺ ((L ⟨ d ⟩) ⟨ u ⟩) · M
-          ⊑ ((L′ ⟨ d′ ⟩) ⟨ u′ ⟩) · M′
-        ⦂ ★ ⊑ ★ ∶ id★
-
   Λ⊑Λᵀ : ∀ {ρ′ γ′ V V′ A B p}
     → LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ′
     → LiftCtxⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) γ γ′
@@ -884,33 +840,6 @@ mutual
       (nu-term-imprecision-source-typing L⊑L′)
       (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
-      (·⊑·castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
-    ⊢·
-      (nu-term-imprecision-source-typing L⊑L′)
-      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
-        (widen-mode-relax id-only≤tag-or-idᵈ u⊑)
-        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
-          (narrow-mode-relax id-only≤tag-or-idᵈ d⊒)
-          (nu-term-imprecision-source-typing M⊑M′)))
-  nu-term-imprecision-source-typing
-      (·⊑·★castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
-    ⊢·
-      (nu-term-imprecision-source-typing L⊑L′)
-      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
-        (widen-mode-relax id-only≤tag-or-idᵈ u⊑)
-        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
-          (narrow-mode-relax id-only≤tag-or-idᵈ d⊒)
-          (nu-term-imprecision-source-typing M⊑M′)))
-  nu-term-imprecision-source-typing
-      (·★⊑·★castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
-    ⊢·
-      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
-        (widen-mode-relax id-only≤tag-or-idᵈ u⊑)
-        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
-          (narrow-mode-relax id-only≤tag-or-idᵈ d⊒)
-          (nu-term-imprecision-source-typing L⊑L′)))
-      (nu-term-imprecision-source-typing M⊑M′)
-  nu-term-imprecision-source-typing
       (Λ⊑Λᵀ {ρ = ρ} {γ = γ} liftρ liftγ vV vV′ V⊑V′) =
     ⊢Λ vV
       (subst
@@ -997,33 +926,6 @@ mutual
   nu-term-imprecision-target-typing (·⊑·ᵀ L⊑L′ M⊑M′) =
     ⊢·
       (nu-term-imprecision-target-typing L⊑L′)
-      (nu-term-imprecision-target-typing M⊑M′)
-  nu-term-imprecision-target-typing
-      (·⊑·castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
-    ⊢·
-      (nu-term-imprecision-target-typing L⊑L′)
-      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
-        (widen-mode-relax id-only≤tag-or-idᵈ u′⊑)
-        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
-          (narrow-mode-relax id-only≤tag-or-idᵈ d′⊒)
-          (nu-term-imprecision-target-typing M⊑M′)))
-  nu-term-imprecision-target-typing
-      (·⊑·★castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
-    ⊢·
-      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
-        (widen-mode-relax id-only≤tag-or-idᵈ u′⊑)
-        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
-          (narrow-mode-relax id-only≤tag-or-idᵈ d′⊒)
-          (nu-term-imprecision-target-typing L⊑L′)))
-      (nu-term-imprecision-target-typing M⊑M′)
-  nu-term-imprecision-target-typing
-      (·★⊑·★castsᵀ d⊒ u⊑ d′⊒ u′⊑ L⊑L′ M⊑M′) =
-    ⊢·
-      (⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
-        (widen-mode-relax id-only≤tag-or-idᵈ u′⊑)
-        (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
-          (narrow-mode-relax id-only≤tag-or-idᵈ d′⊒)
-          (nu-term-imprecision-target-typing L⊑L′)))
       (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
       (Λ⊑Λᵀ {ρ = ρ} {γ = γ} liftρ liftγ vV vV′ V⊑V′) =

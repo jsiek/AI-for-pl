@@ -26,16 +26,16 @@ open import ImprecisionWf
 open import proof.EndpointCanonicalMLBSimple using
   ( allEndpointMlbsAt; below?; dedupe; endpointCtx; first; hasStrictAbove?
   ; pruneStrictlyBelow; pruneStrictlyBelowFrom
-  ; rawEndpointMlbsAt; simpleEndpointMlb; simpleEndpointMlbAt
+  ; rawEndpointMlbsAt; simpleEndpointMlb; MLB
   ; strictlyBelow?
   )
 open import proof.EndpointCanonicalMLBSimpleSoundness using
-  (first-sound; pruneStrictlyBelow-sound)
+  (first-sound; pruneStrictlyBelow-sound; rawEndpointMlbsAt-sound)
 open import proof.EndpointCanonicalMLBSimpleCompleteness using
-  ( dedupe-complete; impᵢ?; rawEndpointMlbsAt-complete
+  ( below?-trueᵢ; dedupe-complete; impᵢ?; rawEndpointMlbsAt-complete
   ; strictlyBelow?-completeᵢ
   )
-open import proof.ImprecisionProperties using (imp?)
+open import proof.ImprecisionProperties using (imp?; ⊑-refl-idᵢ)
 open import proof.MaximalLowerBoundsWf using
   (CommonLowerBoundᵢ; old⊑→wf-idᵢ; ⊑-forgetᵢ; ⊑-trans-idᵢ)
 
@@ -250,6 +250,101 @@ list-has-maximalᵢ {Δ = Δ} {xs = A ∷ B ∷ Bs} C₀∈
     C⊑A = proj₁ C<A-evidence
     A⋢C = proj₂ C<A-evidence
 
+aboveList : TyCtx → Ty → List Ty → List Ty
+aboveList Δ C [] = []
+aboveList Δ C (A ∷ As) with below? Δ C A
+aboveList Δ C (A ∷ As) | true = A ∷ aboveList Δ C As
+aboveList Δ C (A ∷ As) | false = aboveList Δ C As
+
+aboveList-soundᵢ :
+  ∀ {Δ C E xs} →
+  E ∈ aboveList Δ C xs →
+  E ∈ xs × idᵢ Δ ∣ Δ ⊢ C ⊑ E ⊣ Δ
+aboveList-soundᵢ {xs = []} ()
+aboveList-soundᵢ {Δ = Δ} {C = C} {E = E} {xs = A ∷ As} E∈
+    with below? Δ C A in C⊑A?
+aboveList-soundᵢ {Δ = Δ} {C = C} {E = .A} {xs = A ∷ As}
+    (here refl) | true =
+  here refl , below?-soundᵢ C⊑A?
+aboveList-soundᵢ {Δ = Δ} {C = C} {E = E} {xs = A ∷ As}
+    (there E∈) | true =
+  let E∈As , C⊑E = aboveList-soundᵢ E∈ in
+  there E∈As , C⊑E
+aboveList-soundᵢ {Δ = Δ} {C = C} {E = E} {xs = A ∷ As}
+    E∈ | false =
+  let E∈As , C⊑E = aboveList-soundᵢ E∈ in
+  there E∈As , C⊑E
+
+aboveList-completeᵢ :
+  ∀ {Δ C E xs} →
+  E ∈ xs →
+  idᵢ Δ ∣ Δ ⊢ C ⊑ E ⊣ Δ →
+  E ∈ aboveList Δ C xs
+aboveList-completeᵢ {xs = []} () C⊑E
+aboveList-completeᵢ {Δ = Δ} {C = C} {E = .A} {xs = A ∷ As}
+    (here refl) C⊑A
+    rewrite below?-trueᵢ C⊑A =
+  here refl
+aboveList-completeᵢ {Δ = Δ} {C = C} {E = E} {xs = A ∷ As}
+    (there E∈) C⊑E
+    with below? Δ C A
+aboveList-completeᵢ {Δ = Δ} {C = C} {E = E} {xs = A ∷ As}
+    (there E∈) C⊑E | true =
+  there (aboveList-completeᵢ E∈ C⊑E)
+aboveList-completeᵢ {Δ = Δ} {C = C} {E = E} {xs = A ∷ As}
+    (there E∈) C⊑E | false =
+  aboveList-completeᵢ E∈ C⊑E
+
+list-has-maximal-aboveᵢ :
+  ∀ {Δ C} {xs : List Ty} →
+  C ∈ xs →
+  idᵢ Δ ∣ Δ ⊢ C ⊑ C ⊣ Δ →
+  ∃[ D ]
+    (D ∈ xs ×
+     hasStrictAbove? Δ D xs ≡ false ×
+     idᵢ Δ ∣ Δ ⊢ C ⊑ D ⊣ Δ)
+list-has-maximal-aboveᵢ {Δ = Δ} {C = C} {xs = xs} C∈ C⊑C =
+  D , D∈xs , Dmax , C⊑D
+  where
+    C∈upper : C ∈ aboveList Δ C xs
+    C∈upper = aboveList-completeᵢ C∈ C⊑C
+
+    maximal = list-has-maximalᵢ C∈upper
+
+    D : Ty
+    D = proj₁ maximal
+
+    D∈upper : D ∈ aboveList Δ C xs
+    D∈upper = proj₁ (proj₂ maximal)
+
+    DmaxUpper : hasStrictAbove? Δ D (aboveList Δ C xs) ≡ false
+    DmaxUpper = proj₂ (proj₂ maximal)
+
+    D∈xs : D ∈ xs
+    D∈xs = proj₁ (aboveList-soundᵢ {xs = xs} D∈upper)
+
+    C⊑D : idᵢ Δ ∣ Δ ⊢ C ⊑ D ⊣ Δ
+    C⊑D = proj₂ (aboveList-soundᵢ {xs = xs} D∈upper)
+
+    Dmax : hasStrictAbove? Δ D xs ≡ false
+    Dmax =
+      hasStrictAbove?-noneᵢ
+        (λ {E} E∈xs D⊑E ¬E⊑D →
+          false≠true
+            (trans (sym DmaxUpper) (E-above E∈xs D⊑E ¬E⊑D)))
+      where
+        E-above :
+          ∀ {E} →
+          E ∈ xs →
+          idᵢ Δ ∣ Δ ⊢ D ⊑ E ⊣ Δ →
+          ¬ (idᵢ Δ ∣ Δ ⊢ E ⊑ D ⊣ Δ) →
+          hasStrictAbove? Δ D (aboveList Δ C xs) ≡ true
+        E-above E∈xs D⊑E ¬E⊑D =
+          hasStrictAbove?-completeᵢ
+            (aboveList-completeᵢ E∈xs (⊑-trans-idᵢ C⊑D D⊑E))
+            D⊑E
+            ¬E⊑D
+
 pruneStrictlyBelowFrom-no-strict-above :
   ∀ {Δ C all} {xs : List Ty} →
   C ∈ pruneStrictlyBelowFrom Δ all xs →
@@ -315,6 +410,48 @@ pruneStrictlyBelow-complete :
 pruneStrictlyBelow-complete C∈ Cmax =
   pruneStrictlyBelowFrom-complete C∈ Cmax
 
+rawEndpointMlbsAt-promote :
+  ∀ {Δ A B C} →
+  C ∈ rawEndpointMlbsAt Δ A B →
+  ∃[ D ]
+    (D ∈ allEndpointMlbsAt Δ A B ×
+     idᵢ Δ ∣ Δ ⊢ C ⊑ D ⊣ Δ)
+rawEndpointMlbsAt-promote {Δ = Δ} {A = A} {B = B} {C = C} C∈raw =
+  D , D∈all , C⊑D
+  where
+    xs : List Ty
+    xs = dedupe (rawEndpointMlbsAt Δ A B)
+
+    C∈xs : C ∈ xs
+    C∈xs = dedupe-complete C∈raw
+
+    C-lower :
+      idᵢ Δ ∣ Δ ⊢ C ⊑ A ⊣ Δ ×
+      idᵢ Δ ∣ Δ ⊢ C ⊑ B ⊣ Δ
+    C-lower =
+      rawEndpointMlbsAt-sound
+        {Δ = Δ} {A = A} {B = B} C∈raw
+
+    C⊑C : idᵢ Δ ∣ Δ ⊢ C ⊑ C ⊣ Δ
+    C⊑C = old⊑→wf-idᵢ (⊑-refl-idᵢ (⊑-src-wf (proj₁ C-lower)))
+
+    maximal = list-has-maximal-aboveᵢ C∈xs C⊑C
+
+    D : Ty
+    D = proj₁ maximal
+
+    D∈xs : D ∈ xs
+    D∈xs = proj₁ (proj₂ maximal)
+
+    Dmax : hasStrictAbove? Δ D xs ≡ false
+    Dmax = proj₁ (proj₂ (proj₂ maximal))
+
+    C⊑D : idᵢ Δ ∣ Δ ⊢ C ⊑ D ⊣ Δ
+    C⊑D = proj₂ (proj₂ (proj₂ maximal))
+
+    D∈all : D ∈ allEndpointMlbsAt Δ A B
+    D∈all = pruneStrictlyBelow-complete D∈xs Dmax
+
 first-complete :
   ∀ {C} {xs : List Ty} →
   C ∈ xs →
@@ -324,13 +461,13 @@ first-complete {xs = A ∷ As} C∈ = A , refl
 
 -- This is success completeness only.  Adding `D ⊑ C` to the conclusion would
 -- assert that the selected candidate is a GLB, which is false in general.
-simpleEndpointMlbAt-complete :
+MLB-complete :
   ∀ {Δ A B D} →
   WfTy Δ A →
   WfTy Δ B →
   CommonLowerBoundᵢ Δ A B D →
-  ∃[ C ] simpleEndpointMlbAt Δ A B ≡ just C
-simpleEndpointMlbAt-complete {Δ = Δ} {A = A} {B = B}
+  ∃[ C ] MLB Δ A B ≡ just C
+MLB-complete {Δ = Δ} {A = A} {B = B}
     hA hB commonD =
   first-complete C∈all
   where
@@ -357,7 +494,7 @@ simpleEndpointMlb-complete :
   CommonLowerBoundᵢ (endpointCtx A B) A B D →
   ∃[ C ] simpleEndpointMlb A B ≡ just C
 simpleEndpointMlb-complete {A = A} {B = B} hA hB commonD =
-  simpleEndpointMlbAt-complete
+  MLB-complete
     {Δ = endpointCtx A B} hA hB commonD
 
 ------------------------------------------------------------------------
@@ -419,15 +556,15 @@ allEndpointMlbsAt-maximal {Δ = Δ} {A = A} {B = B} {C = C} {D = D}
     above : hasStrictAbove? Δ C xs ≡ true
     above = hasStrictAbove?-completeᵢ E∈xs C⊑E ¬E⊑C
 
-simpleEndpointMlbAt-maximal :
+MLB-maximal :
   ∀ {Δ A B C D} →
   WfTy Δ A →
   WfTy Δ B →
-  simpleEndpointMlbAt Δ A B ≡ just C →
+  MLB Δ A B ≡ just C →
   CommonLowerBoundᵢ Δ A B D →
   idᵢ Δ ∣ Δ ⊢ C ⊑ D ⊣ Δ →
   idᵢ Δ ∣ Δ ⊢ D ⊑ C ⊣ Δ
-simpleEndpointMlbAt-maximal {Δ = Δ} {A = A} {B = B}
+MLB-maximal {Δ = Δ} {A = A} {B = B}
     hA hB eq commonD C⊑D =
   allEndpointMlbsAt-maximal hA hB
     (first-sound {xs = allEndpointMlbsAt Δ A B} eq) commonD C⊑D
@@ -442,4 +579,4 @@ simpleEndpointMlb-maximal :
     ∣ endpointCtx A B ⊢ C ⊑ D ⊣ endpointCtx A B →
   idᵢ (endpointCtx A B) ∣ endpointCtx A B ⊢ D ⊑ C ⊣ endpointCtx A B
 simpleEndpointMlb-maximal {A = A} {B = B} hA hB eq commonD C⊑D =
-  simpleEndpointMlbAt-maximal {Δ = endpointCtx A B} hA hB eq commonD C⊑D
+  MLB-maximal {Δ = endpointCtx A B} hA hB eq commonD C⊑D

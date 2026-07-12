@@ -6,8 +6,11 @@ module All where
 --     checks the active development plus the compiler path.
 
 import Compile
+import CompileTermImprecision
 import Types
 import ImprecisionWf
+import ForallPermutation
+import QuotientedTermImprecision
 import GradualTypeCheck
 import GradualExamples
 import Coercions
@@ -18,16 +21,28 @@ import GradualTermImprecision
 import DynamicGradualGuarantee
 import NuTermImprecision
 import proof.CastImprecision
+import proof.CompileDynamicApplicationTest
+import proof.CompileTermImprecision
 import proof.EndpointCanonicalMLB
 import proof.EndpointCanonicalMLBSimple
 import proof.EndpointCanonicalMLBSimpleCompleteness
 import proof.EndpointCanonicalMLBSimpleMaximality
+import proof.EndpointCanonicalMLBSimpleQuotient
 import proof.EndpointCanonicalMLBSimpleSoundness
 import proof.EndpointCanonicalMLBSimpleTest
 import proof.EndpointCanonicalMLBTest
 import proof.MLBGlbExample
 import proof.MLBGlbCounterexample
 import proof.MLBRouteOperationalExperiment
+import proof.ForallPermutationTest
+import proof.ForallPermutationProperties
+import proof.EndpointCanonicalMLBSimpleRoutes
+import proof.EndpointCanonicalMLBSimplePermutation
+import proof.EndpointCanonicalMLBSimpleFactor
+import proof.EndpointCanonicalMLBSimplePairedSpan
+import proof.EndpointCanonicalMLBSimpleFactorization
+import proof.EndpointCanonicalMLBSimpleFactorCounterexample
+import proof.QuotientedTermImprecisionTest
 import proof.MaximalLowerBoundsWf
 import StoreCorrespondence
 import NuTerms

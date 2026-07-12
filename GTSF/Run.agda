@@ -17,10 +17,10 @@ open import Types
 open import Ctx using (CtxWf; ctxWf-[]; ctxWf-∷)
 open import Compile
   using
-    ( arrow★-consistent
-    ; compile
+    ( compile
     ; compile-value
     ; consistency-cast-plan
+    ; dynamic-application-function-consistent
     )
 open import Eval using (EvalOutcome; eval)
 open import GradualTypeCheck using (type-check)
@@ -75,12 +75,16 @@ compile-no• hΓ (⊢ᴳ· {ℓ = ℓ} L⊢ M⊢ A~A′)
        | compile-no• hΓ L⊢ | compile-no• hΓ M⊢
 ... | L′ , L′⊢ | M′ , M′⊢ | plan | noL | noM =
   no•-· noL (no•-⟨⟩ (no•-⟨⟩ noM))
-compile-no• hΓ (⊢ᴳ·★ {ℓ = ℓ} L⊢ M⊢ A′~★)
+compile-no• {Δ = Δ} hΓ (⊢ᴳ·★ {ℓ = ℓ} L⊢ M⊢ A′~★)
     with compile hΓ L⊢ | compile hΓ M⊢
-       | consistency-cast-plan ℓ (~-sym (arrow★-consistent A′~★))
+       | consistency-cast-plan {Δ = Δ} ℓ
+           dynamic-application-function-consistent
+       | consistency-cast-plan {Δ = Δ} ℓ A′~★
        | compile-no• hΓ L⊢ | compile-no• hΓ M⊢
-... | L′ , L′⊢ | M′ , M′⊢ | plan | noL | noM =
-  no•-· (no•-⟨⟩ (no•-⟨⟩ noL)) noM
+... | L′ , L′⊢ | M′ , M′⊢ | fun-plan | arg-plan | noL | noM =
+  no•-·
+    (no•-⟨⟩ (no•-⟨⟩ noL))
+    (no•-⟨⟩ (no•-⟨⟩ noM))
 compile-no• hΓ (⊢ᴳΛ {occ = occ} vM M⊢)
     with compile (CtxWf-⤊ hΓ) M⊢
        | compile-value (CtxWf-⤊ hΓ) vM M⊢

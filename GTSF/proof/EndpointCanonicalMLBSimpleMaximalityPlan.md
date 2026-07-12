@@ -36,11 +36,11 @@ allEndpointMlbsAt-maximal :
 The selector corollaries are small wrappers:
 
 ```agda
-simpleEndpointMlbAt-maximal :
+MLB-maximal :
   ∀ {Δ A B C D} →
   WfTy Δ A →
   WfTy Δ B →
-  simpleEndpointMlbAt Δ A B ≡ just C →
+  MLB Δ A B ≡ just C →
   CommonLowerBoundᵢ Δ A B D →
   idᵢ Δ ∣ Δ ⊢ C ⊑ D ⊣ Δ →
   idᵢ Δ ∣ Δ ⊢ D ⊑ C ⊣ Δ
@@ -294,7 +294,7 @@ The complete proof now type-checks without postulates or unsolved metas:
    endpoint shapes.
 6. `rawEndpointMlbsAt-complete` in its own module, with the
    pruning-to-maximality assembly kept separately.
-7. Selector success completeness: `simpleEndpointMlbAt-complete` proves that
+7. Selector success completeness: `MLB-complete` proves that
    any well-formed endpoint pair with a common lower bound returns `just C`;
    `simpleEndpointMlb-complete` specializes it to `endpointCtx`.
 

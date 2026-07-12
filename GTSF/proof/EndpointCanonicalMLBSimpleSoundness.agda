@@ -41,7 +41,7 @@ open import proof.EndpointCanonicalMLBSimple using
   ; pruneStrictlyBelowFrom
   ; rawEndpointMlbsAt
   ; simpleEndpointMlb
-  ; simpleEndpointMlbAt
+  ; MLB
   ; varCandidate?
   ; varCandidatesUpTo
   ; ∀ᵢᶜ
@@ -789,12 +789,12 @@ allEndpointMlbsAt-sound {Δ = Δ} {A = A} {B = B} C∈ =
         {xs = dedupe (rawEndpointMlbsAt Δ A B)}
         C∈))
 
-simpleEndpointMlbAt-sound :
+MLB-sound :
   ∀ {Δ A B C} →
-  simpleEndpointMlbAt Δ A B ≡ just C →
+  MLB Δ A B ≡ just C →
   idᵢ Δ ∣ Δ ⊢ C ⊑ A ⊣ Δ ×
   idᵢ Δ ∣ Δ ⊢ C ⊑ B ⊣ Δ
-simpleEndpointMlbAt-sound {Δ = Δ} {A = A} {B = B} eq =
+MLB-sound {Δ = Δ} {A = A} {B = B} eq =
   allEndpointMlbsAt-sound (first-sound {xs = allEndpointMlbsAt Δ A B} eq)
 
 simpleEndpointMlb-sound :
@@ -803,4 +803,4 @@ simpleEndpointMlb-sound :
   idᵢ (endpointCtx A B) ∣ endpointCtx A B ⊢ C ⊑ A ⊣ endpointCtx A B ×
   idᵢ (endpointCtx A B) ∣ endpointCtx A B ⊢ C ⊑ B ⊣ endpointCtx A B
 simpleEndpointMlb-sound {A = A} {B = B} eq =
-  simpleEndpointMlbAt-sound {Δ = endpointCtx A B} eq
+  MLB-sound {Δ = endpointCtx A B} eq

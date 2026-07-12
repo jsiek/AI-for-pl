@@ -262,8 +262,8 @@ allEndpointMlbsAt : ℕ → Ty → Ty → List Ty
 allEndpointMlbsAt Δ A B =
   pruneStrictlyBelow Δ (dedupe (rawEndpointMlbsAt Δ A B))
 
-simpleEndpointMlbAt : ℕ → Ty → Ty → Maybe Ty
-simpleEndpointMlbAt Δ A B = first (allEndpointMlbsAt Δ A B)
+MLB : ℕ → Ty → Ty → Maybe Ty
+MLB Δ A B = first (allEndpointMlbsAt Δ A B)
 
 rawEndpointMlbs : Ty → Ty → List Ty
 rawEndpointMlbs A B = rawEndpointMlbsAt (endpointCtx A B) A B
@@ -272,4 +272,4 @@ allEndpointMlbs : Ty → Ty → List Ty
 allEndpointMlbs A B = allEndpointMlbsAt (endpointCtx A B) A B
 
 simpleEndpointMlb : Ty → Ty → Maybe Ty
-simpleEndpointMlb A B = simpleEndpointMlbAt (endpointCtx A B) A B
+simpleEndpointMlb A B = MLB (endpointCtx A B) A B

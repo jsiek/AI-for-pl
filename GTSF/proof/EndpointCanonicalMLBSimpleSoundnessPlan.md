@@ -36,13 +36,13 @@ allEndpointMlbsAt-sound :
   idᵢ Δ ∣ Δ ⊢ C ⊑ A ⊣ Δ ×
   idᵢ Δ ∣ Δ ⊢ C ⊑ B ⊣ Δ
 
-simpleEndpointMlbAt-sound :
-  simpleEndpointMlbAt Δ A B ≡ just C →
+MLB-sound :
+  MLB Δ A B ≡ just C →
   idᵢ Δ ∣ Δ ⊢ C ⊑ A ⊣ Δ ×
   idᵢ Δ ∣ Δ ⊢ C ⊑ B ⊣ Δ
 ```
 
-Do not start with `simpleEndpointMlbAt-sound`.  Its proof depends mostly on
+Do not start with `MLB-sound`.  Its proof depends mostly on
 list plumbing, while the important semantic argument is in `enumMLB-sound`.
 
 ## Top-Down Proof Structure
@@ -51,7 +51,7 @@ list plumbing, while the important semantic argument is in `enumMLB-sound`.
 
 Prove these last.
 
-1. `simpleEndpointMlbAt-sound`
+1. `MLB-sound`
 2. `allEndpointMlbsAt-sound`
 3. optionally `simpleEndpointMlb-sound`, with `endpointCtx A B`
 
@@ -464,8 +464,8 @@ pruneStrictlyBelow-sound :
 Finally:
 
 ```agda
-simpleEndpointMlbAt-sound :
-  simpleEndpointMlbAt Δ A B ≡ just C →
+MLB-sound :
+  MLB Δ A B ≡ just C →
   idᵢ Δ ∣ Δ ⊢ C ⊑ A ⊣ Δ ×
   idᵢ Δ ∣ Δ ⊢ C ⊑ B ⊣ Δ
 ```
@@ -502,7 +502,7 @@ phase.
 
 Also do not try to prove that `endpointCtx A B` is the least well-formed
 context for `A` and `B`.  Soundness for `simpleEndpointMlb` can initially be
-stated with an explicit `Δ` via `simpleEndpointMlbAt`.  The endpoint-only
+stated with an explicit `Δ` via `MLB`.  The endpoint-only
 `simpleEndpointMlb` corollary can be delayed until there are `typeCtxBound`
 well-formedness lemmas.
 

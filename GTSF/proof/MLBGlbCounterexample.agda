@@ -11,9 +11,11 @@ module proof.MLBGlbCounterexample where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥)
+open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Maybe using (just)
 open import Data.Nat using (zero; suc; z<s; s<s)
+open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Relation.Nullary using (¬_)
 
 open import Types
@@ -21,7 +23,7 @@ import Imprecision as Imp
 open import Imprecision using (idᵢ)
 open import ImprecisionWf
 open import proof.ImprecisionProperties using (idᵢ-var-identity)
-open import proof.EndpointCanonicalMLBSimple using (simpleEndpointMlbAt)
+open import proof.EndpointCanonicalMLBSimple using (MLB; rawEndpointMlbsAt)
 open import proof.MLBGlbExample
 open import proof.MaximalLowerBoundsWf using
   ( choice-idᵢ
@@ -76,6 +78,30 @@ glb-lower-YX⋢XY :
 glb-lower-YX⋢XY p = glb-lower-YX⋢XY-old (⊑-forgetᵢ p)
 
 ------------------------------------------------------------------------
+-- The source factors through the compatible raw target route.
+------------------------------------------------------------------------
+
+glb-lower-YX-raw :
+  glb-lower-YX ∈ rawEndpointMlbsAt zero glb-bad-A glb-bad-B
+glb-lower-YX-raw = there (here refl)
+
+glb-lower-YX⊑YX :
+  idᵢ zero ∣ zero ⊢ glb-lower-YX ⊑ glb-lower-YX ⊣ zero
+glb-lower-YX⊑YX =
+  ∀ⁱ
+    (∀ⁱ
+      ( idˣ (here refl) z<s z<s
+      ↦ idˣ (there (here refl)) (s<s z<s) (s<s z<s)
+      ))
+
+glb-lower-YX-raw-factor :
+  ∃[ D ]
+    (D ∈ rawEndpointMlbsAt zero glb-bad-A glb-bad-B ×
+     idᵢ zero ∣ zero ⊢ glb-lower-YX ⊑ D ⊣ zero)
+glb-lower-YX-raw-factor =
+  glb-lower-YX , glb-lower-YX-raw , glb-lower-YX⊑YX
+
+------------------------------------------------------------------------
 -- No maximal endpoint selector can satisfy the proposed broad coherence.
 ------------------------------------------------------------------------
 
@@ -84,8 +110,8 @@ bad-simple-selector-coherence-counterexampleᵢ :
     (∀ {Φ Δᴸ Δᴿ A A′ B B′ C C′}
       {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
       {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-      simpleEndpointMlbAt Δᴸ A B ≡ just C →
-      simpleEndpointMlbAt Δᴿ A′ B′ ≡ just C′ →
+      MLB Δᴸ A B ≡ just C →
+      MLB Δᴿ A′ B′ ≡ just C′ →
       Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ)
 bad-simple-selector-coherence-counterexampleᵢ coherence =
   glb-lower-YX⋢XY

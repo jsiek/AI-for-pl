@@ -1,5 +1,124 @@
+# Why compile monotonicity uses quotiented imprecision
 
-# Greatest lower bounds don't always exist between consistent types
+Here is a concrete pair of related applications whose compilations expose the
+bad-GLB problem.  The left program is the more precise one.
+
+```text
+f  : (∀Y. ∀X. X → Y) → ℕ       x  : ∀Y. ∀X. X → Y
+f′ : (∀Y. ★ → Y) → ℕ           x′ : ∀X. X → ★
+
+f x  ⊑  f′ x′
+```
+
+The function types are related because
+
+`∀Y. ∀X. X → Y ⊑ ∀Y. ★ → Y`,
+
+and the argument types are related because
+
+`∀Y. ∀X. X → Y ⊑ ∀X. X → ★`.
+
+The applications are well typed.  On the left, the function domain and the
+argument type are identical.  On the right, `∀Y. ★ → Y` and `∀X. X → ★` are
+consistent because they have a common lower bound.  Thus this pair is an
+instance of the source `·⊑·ᴳ` rule: the rule requires imprecision between the
+two domains, imprecision between the two argument types, and consistency of
+the domain with the argument type on each side.  It does not require the two
+consistency proofs to choose related lower bounds.
+
+To compile an application, the compiler casts the argument to the function
+domain through the endpoint-canonical maximal lower bound.  The left argument
+therefore follows this path:
+
+```text
+∀Y. ∀X. X → Y
+  down to  ∀Y. ∀X. X → Y
+  up to    ∀Y. ∀X. X → Y
+```
+
+The right argument follows this path:
+
+```text
+∀X. X → ★
+  down to  ∀X. ∀Y. X → Y
+  up to    ∀Y. ★ → Y
+```
+
+The first path uses
+
+`MLB (∀Y. ∀X. X → Y) (∀Y. ∀X. X → Y) = ∀Y. ∀X. X → Y`.
+
+The second uses
+
+`MLB (∀X. X → ★) (∀Y. ★ → Y) = ∀X. ∀Y. X → Y`.
+
+The structural target application rule needs the compiled arguments to be
+imprecise at the two function domains.  The argument induction hypothesis
+starts with
+
+`∀Y. ∀X. X → Y ⊑ ∀X. X → ★`.
+
+After the paired narrowing casts, ordinary cast imprecision would require
+
+`∀Y. ∀X. X → Y ⊑ ∀X. ∀Y. X → Y`.
+
+That relation is false.  It is exactly one direction of the bad-GLB
+counterexample.
+
+The two right-hand endpoint types have both of the following common lower
+bounds:
+
+```text
+∀X. ∀Y. X → Y  ⊑  ∀X. X → ★
+∀X. ∀Y. X → Y  ⊑  ∀Y. ★ → Y
+
+∀Y. ∀X. X → Y  ⊑  ∀X. X → ★
+∀Y. ∀X. X → Y  ⊑  ∀Y. ★ → Y
+```
+
+Ordinary imprecision cannot compare those lower bounds in either direction.
+The `∀ⁱ` rule pairs binders at corresponding positions, while the `ν` rule
+forgets a source binder by relating it to `★`.  Neither rule exchanges two
+binders.  Consequently there is no greatest lower bound in ordinary
+imprecision.
+
+This is why the ordinary selector monotonicity property needed by compilation
+is false.  In this example it would say that the two endpoint relations
+
+```text
+∀Y. ∀X. X → Y  ⊑  ∀X. X → ★
+∀Y. ∀X. X → Y  ⊑  ∀Y. ★ → Y
+```
+
+imply
+
+`∀Y. ∀X. X → Y ⊑ ∀X. ∀Y. X → Y`.
+
+Selecting `∀Y. ∀X. X → Y` for the right application would avoid this
+particular direction, but the mirrored application starting from
+`∀X. ∀Y. X → Y` would then require the other false direction.  An ordinary
+monotone selection for the right-hand endpoints would have to lie above both
+incomparable lower bounds while remaining below both endpoints: it would have
+to be their greatest lower bound.
+
+Quotiented imprecision repairs precisely this intermediate obligation.  It
+identifies adjacent permutations of universal binders, so
+
+`∀Y. ∀X. X → Y ≈∀ ∀X. ∀Y. X → Y`,
+
+and hence the two selected intermediates are related by `⊑ᵖ`.  The
+`down⊑downᵀ` rule enters quotiented term imprecision after the paired narrowing
+casts.  The `up⊑upᵀ` rule then encloses those hidden intermediates in the paired
+widening casts and returns to ordinary imprecision between the function
+domains.  The quotient is therefore confined to the compiler-generated middle
+types; the compiled applications still have the ordinary result type `ℕ`.
+
+The common-lower witnesses are checked in `proof/MLBGlbExample.agda`.  Their
+ordinary incomparability and the failed selector-monotonicity theorem are
+checked in `proof/MLBGlbCounterexample.agda`.  The corresponding application
+case of compile monotonicity is in `proof/CompileTermImprecision.agda`.
+
+# Why GLBs don't always exist
 
 If two types A and B have a lower bound, C ⊑ A and C ⊑ B,
 do they always have a greatest lower bound?
@@ -19,6 +138,12 @@ Here is another lower bound (flipping the order of the ∀s):
 ∀Y.∀X. X → Y  ⊑  ∀Y. ★ → Y
 
 These two lower bounds are incomparable, so neither of them is the greatest lower bound.
+
+Φ ⊢ A ⊓ C ≈ D
+
+
+
+
 
 --------------------------------------------------------------------------------
 

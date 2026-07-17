@@ -20,6 +20,7 @@ open import Relation.Binary.PropositionalEquality using
 open import Types
 open import Ctx using (CtxWf; ctxWf-∷)
 open import Coercions using (id-onlyᵈ; id-only≤tag-or-idᵈ)
+open import Conversion using (reveal↑)
 open import Compile using
   ( CastPlan
   ; cast
@@ -686,8 +687,8 @@ compile-preserves-term-imprecision-typed
         M⊑M′
   in
   QTI.ν⊑νᵀ hT hT′
-    (ν-reveal-conversion hT hA)
-    (ν-reveal-conversion hT′ hB)
+    (reveal↑ (ν-reveal-conversion hT hA))
+    (reveal↑ (ν-reveal-conversion hT′ hB))
     q
     (imp-lift q)
     NTI.lift-store-[]
@@ -706,7 +707,7 @@ compile-preserves-term-imprecision-typed
   in
   QTI.ν⊑ᵀ hT
     (renameᵗ-preserves-WfTy hT TyRenameWf-suc)
-    (ν-reveal-conversion hT hA)
+    (reveal↑ (ν-reveal-conversion hT hA))
     NTI.lift-left-store-[]
     (nuCtx⇑ᴸ-lift (ctxImpToNu γ))
     M⊑M′ᵀ

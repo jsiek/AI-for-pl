@@ -99,13 +99,6 @@ renameStoreᵗ-single-suc-cons-cancel α Σ A =
     (cong₂ _,_ refl (renameᵗ-single-suc-cancel α A))
     (renameStoreᵗ-single-suc-cancel α Σ)
 
-singleRenameᵗ-Wf-< :
-  ∀ {Δ α} →
-  α < Δ →
-  TyRenameWf (suc Δ) Δ (singleRenameᵗ α)
-singleRenameᵗ-Wf-< α<Δ {zero} z<s = α<Δ
-singleRenameᵗ-Wf-< α<Δ {suc X} (s<s X<Δ) = X<Δ
-
 rename-[]ᴿ-commute :
   ∀ ρ B α →
   renameᵗ ρ (B [ α ]ᴿ) ≡ renameᵗ (extᵗ ρ) B [ ρ α ]ᴿ

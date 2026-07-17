@@ -1,11 +1,39 @@
+# Why implicit narrowing is not coherent for a gradually typed language
+
+
+Γ ⊢ M : A     A ⊒ B
+-------------------
+Γ ⊢ M : B
+
+
+let
+  f : ★ → ★ = λ x:★. x
+  x : ★ = 42             --- implicit up cast
+in
+  f x
+
+
+  ⊢ f : ★ → ★    ★ → ★ ⊒ 𝔹 → ★      ⊢ x : ★       ★ ⊒ 𝔹
+ -----------------------------      --------------------
+  ⊢ f : 𝔹 → ★                       ⊢ x : 𝔹
+  -----------------------------------------
+  ⊢ f x
+
+
+With these casts, f ⟨ ... ⟩ x ⟨ ... ⟩ reduces to blame.
+
+
+
+
+
 # Why compile monotonicity uses quotiented imprecision
 
 Here is a concrete pair of related applications whose compilations expose the
 bad-GLB problem.  The left program is the more precise one.
 
 ```text
-f  : (∀Y. ∀X. X → Y) → ℕ       x  : ∀Y. ∀X. X → Y
-f′ : (∀Y. ★ → Y) → ℕ           x′ : ∀X. X → ★
+f  : (∀Y. ∀X. X → Y) → ℕ     f′ : (∀Y. ★ → Y) → ℕ
+x  : ∀Y. ∀X. X → Y           x′ : ∀X. X → ★
 
 f x  ⊑  f′ x′
 ```

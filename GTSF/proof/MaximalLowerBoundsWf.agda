@@ -54,6 +54,7 @@ open import proof.TypeProperties using
   ; renameᵗ-ext-suc-comm
   ; renameᵗ-id
   ; renameᵗ-single-suc-cancel
+  ; singleRenameᵗ-Wf-<
   )
 
 ∨-true-leftᵢ : ∀ {b c} → b ≡ true → b ∨ c ≡ true
@@ -386,6 +387,43 @@ rename-assm²-∀ᵢ {a = X ˣ⊑ˣ Y} x∈ = there (⇑ᵢ-ˣ∈ x∈)
     (λ X<Δ → s<s X<Δ)
     (λ Y<Δ → s<s Y<Δ)
 
+rename-assm²-open-shiftᵢ :
+  ∀ {Φ a α β} →
+  a ∈ ⇑ᵢ Φ →
+  rename-assm²ᵢ (singleRenameᵗ α) (singleRenameᵗ β) a ∈ Φ
+rename-assm²-open-shiftᵢ {Φ = []} ()
+rename-assm²-open-shiftᵢ {Φ = (X ˣ⊑★) ∷ Φ} (here refl) =
+  here refl
+rename-assm²-open-shiftᵢ {Φ = (X ˣ⊑ˣ Y) ∷ Φ} (here refl) =
+  here refl
+rename-assm²-open-shiftᵢ {Φ = (X ˣ⊑★) ∷ Φ} (there a∈) =
+  there (rename-assm²-open-shiftᵢ a∈)
+rename-assm²-open-shiftᵢ {Φ = (X ˣ⊑ˣ Y) ∷ Φ} (there a∈) =
+  there (rename-assm²-open-shiftᵢ a∈)
+
+rename-assm²-open∀ᵢ :
+  ∀ {Φ a α β} →
+  (α ˣ⊑ˣ β) ∈ Φ →
+  a ∈ ∀ᵢᶜ Φ →
+  rename-assm²ᵢ (singleRenameᵗ α) (singleRenameᵗ β) a ∈ Φ
+rename-assm²-open∀ᵢ α⊑β (here refl) = α⊑β
+rename-assm²-open∀ᵢ α⊑β (there a∈) =
+  rename-assm²-open-shiftᵢ a∈
+
+⊑-open∀ᵢ :
+  ∀ {Φ Δᴸ Δᴿ A B α β} →
+  (α ˣ⊑ˣ β) ∈ Φ →
+  α < Δᴸ →
+  β < Δᴿ →
+  ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ A ⊑ B ⊣ suc Δᴿ →
+  Φ ∣ Δᴸ ⊢ A [ α ]ᴿ ⊑ B [ β ]ᴿ ⊣ Δᴿ
+⊑-open∀ᵢ α⊑β α<Δᴸ β<Δᴿ p =
+  ⊑-renameᵗ²ᵢ
+    (rename-assm²-open∀ᵢ α⊑β)
+    (singleRenameᵗ-Wf-< α<Δᴸ)
+    (singleRenameᵗ-Wf-< β<Δᴿ)
+    p
+
 ⊑-source-liftνᵢ :
   ∀ {Φ Δᴸ Δᴿ A B} →
   Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
@@ -400,6 +438,36 @@ rename-assm²-∀ᵢ {a = X ˣ⊑ˣ Y} x∈ = there (⇑ᵢ-ˣ∈ x∈)
       rename-assm²-source-νᵢ
       (λ X<Δ → s<s X<Δ)
       (λ Y<Δ → Y<Δ)
+      p)
+
+rename-assm²-target-rightᵢ :
+  ∀ {Φ a} →
+  a ∈ Φ →
+  rename-assm²ᵢ (λ X → X) suc a ∈ ⇑ᴿᵢ Φ
+rename-assm²-target-rightᵢ {Φ = []} ()
+rename-assm²-target-rightᵢ {Φ = (X ˣ⊑★) ∷ Φ} (here refl) =
+  here refl
+rename-assm²-target-rightᵢ {Φ = (X ˣ⊑ˣ Y) ∷ Φ} (here refl) =
+  here refl
+rename-assm²-target-rightᵢ {Φ = (X ˣ⊑★) ∷ Φ} (there a∈) =
+  there (rename-assm²-target-rightᵢ a∈)
+rename-assm²-target-rightᵢ {Φ = (X ˣ⊑ˣ Y) ∷ Φ} (there a∈) =
+  there (rename-assm²-target-rightᵢ a∈)
+
+⊑-target-lift-rightᵢ :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
+  ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ A ⊑ ⇑ᵗ B ⊣ suc Δᴿ
+⊑-target-lift-rightᵢ {A = A} {B = B} p =
+  subst
+    (λ A′ → ⇑ᴿᵢ _ ∣ _ ⊢ A′ ⊑ ⇑ᵗ B ⊣ _)
+    (renameᵗ-id A)
+    (⊑-renameᵗ²ᵢ
+      {ρ = λ X → X}
+      {σ = suc}
+      rename-assm²-target-rightᵢ
+      (λ X<Δ → X<Δ)
+      (λ Y<Δ → s<s Y<Δ)
       p)
 
 νᵣᵢ : Renameᵗ → Renameᵗ
@@ -821,6 +889,225 @@ swap01-pres-<ᵢ {X = suc zero} (s<s z<s) = z<s
 swap01-pres-<ᵢ {X = suc (suc X)} (s<s (s<s X<Δ)) =
   s<s (s<s X<Δ)
 
+rename-assm²-swapRight∀∀ᵢ :
+  ∀ {Φ a} →
+  a ∈ ∀ᵢᶜ (∀ᵢᶜ Φ) →
+  rename-assm²ᵢ (λ X → X) swap01ᵢ a ∈ swapRight∀∀ᵢ Φ
+rename-assm²-swapRight∀∀ᵢ {a = zero ˣ⊑★} =
+  λ { (here ()) ; (there a∈) → ⊥-elim (no-⇑ᵢ-zero-star a∈) }
+rename-assm²-swapRight∀∀ᵢ {a = suc zero ˣ⊑★}
+    (here ())
+rename-assm²-swapRight∀∀ᵢ {a = suc zero ˣ⊑★}
+    (there a∈) =
+  ⊥-elim (no-∀ctx-zero-starᵢ (un⇑ᵢ-★∈ a∈))
+rename-assm²-swapRight∀∀ᵢ {a = suc (suc X) ˣ⊑★}
+    (here ())
+rename-assm²-swapRight∀∀ᵢ {a = suc (suc X) ˣ⊑★}
+    (there (here ()))
+rename-assm²-swapRight∀∀ᵢ {a = suc (suc X) ˣ⊑★}
+    (there (there a∈)) =
+  there (there a∈)
+rename-assm²-swapRight∀∀ᵢ {a = zero ˣ⊑ˣ zero}
+    (here refl) =
+  here refl
+rename-assm²-swapRight∀∀ᵢ {a = zero ˣ⊑ˣ zero}
+    (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left a∈)
+rename-assm²-swapRight∀∀ᵢ {a = zero ˣ⊑ˣ suc Y}
+    (here ())
+rename-assm²-swapRight∀∀ᵢ {a = zero ˣ⊑ˣ suc Y}
+    (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left a∈)
+rename-assm²-swapRight∀∀ᵢ {a = suc zero ˣ⊑ˣ zero}
+    (here ())
+rename-assm²-swapRight∀∀ᵢ {a = suc zero ˣ⊑ˣ zero}
+    (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-right a∈)
+rename-assm²-swapRight∀∀ᵢ
+    {a = suc zero ˣ⊑ˣ suc zero} (here ())
+rename-assm²-swapRight∀∀ᵢ
+    {a = suc zero ˣ⊑ˣ suc zero} (there a∈) =
+  there (here refl)
+rename-assm²-swapRight∀∀ᵢ
+    {a = suc zero ˣ⊑ˣ suc (suc Y)} (here ())
+rename-assm²-swapRight∀∀ᵢ
+    {a = suc zero ˣ⊑ˣ suc (suc Y)} (there a∈) =
+  ⊥-elim (no-∀ctx-zero-leftᵢ (un⇑ᵢ-ˣ∈ a∈))
+rename-assm²-swapRight∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ zero} (here ())
+rename-assm²-swapRight∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ zero} (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-right a∈)
+rename-assm²-swapRight∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc zero} (here ())
+rename-assm²-swapRight∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc zero} (there a∈) =
+  ⊥-elim (no-∀ctx-zero-rightᵢ (un⇑ᵢ-ˣ∈ a∈))
+rename-assm²-swapRight∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc (suc Y)} (here ())
+rename-assm²-swapRight∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc (suc Y)}
+    (there (here ()))
+rename-assm²-swapRight∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc (suc Y)}
+    (there (there a∈)) =
+  there (there a∈)
+
+⊑-swapRight01∀∀ᵢ :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  ∀ᵢᶜ (∀ᵢᶜ Φ) ∣ suc (suc Δᴸ)
+    ⊢ A ⊑ B ⊣ suc (suc Δᴿ) →
+  swapRight∀∀ᵢ Φ ∣ suc (suc Δᴸ)
+    ⊢ A ⊑ renameᵗ swap01ᵢ B ⊣ suc (suc Δᴿ)
+⊑-swapRight01∀∀ᵢ {A = A} p =
+  subst
+    (λ T → _ ∣ _ ⊢ T ⊑ renameᵗ swap01ᵢ _ ⊣ _)
+    (renameᵗ-id A)
+    (⊑-renameᵗ²ᵢ
+      { ρ = λ X → X }
+      { σ = swap01ᵢ }
+      rename-assm²-swapRight∀∀ᵢ
+      (λ X<Δ → X<Δ)
+      swap01-pres-<ᵢ
+      p)
+
+rename-assm²-swapLeft∀∀ᵢ :
+  ∀ {Φ a} →
+  a ∈ ∀ᵢᶜ (∀ᵢᶜ Φ) →
+  rename-assm²ᵢ swap01ᵢ (λ X → X) a ∈ swapRight∀∀ᵢ Φ
+rename-assm²-swapLeft∀∀ᵢ {a = zero ˣ⊑★} =
+  λ { (here ()) ; (there a∈) → ⊥-elim (no-⇑ᵢ-zero-star a∈) }
+rename-assm²-swapLeft∀∀ᵢ {a = suc zero ˣ⊑★}
+    (here ())
+rename-assm²-swapLeft∀∀ᵢ {a = suc zero ˣ⊑★}
+    (there a∈) =
+  ⊥-elim (no-∀ctx-zero-starᵢ (un⇑ᵢ-★∈ a∈))
+rename-assm²-swapLeft∀∀ᵢ {a = suc (suc X) ˣ⊑★}
+    (here ())
+rename-assm²-swapLeft∀∀ᵢ {a = suc (suc X) ˣ⊑★}
+    (there (here ()))
+rename-assm²-swapLeft∀∀ᵢ {a = suc (suc X) ˣ⊑★}
+    (there (there a∈)) =
+  there (there a∈)
+rename-assm²-swapLeft∀∀ᵢ {a = zero ˣ⊑ˣ zero}
+    (here refl) =
+  there (here refl)
+rename-assm²-swapLeft∀∀ᵢ {a = zero ˣ⊑ˣ zero}
+    (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left a∈)
+rename-assm²-swapLeft∀∀ᵢ {a = zero ˣ⊑ˣ suc Y}
+    (here ())
+rename-assm²-swapLeft∀∀ᵢ {a = zero ˣ⊑ˣ suc Y}
+    (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left a∈)
+rename-assm²-swapLeft∀∀ᵢ {a = suc zero ˣ⊑ˣ zero}
+    (here ())
+rename-assm²-swapLeft∀∀ᵢ {a = suc zero ˣ⊑ˣ zero}
+    (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-right a∈)
+rename-assm²-swapLeft∀∀ᵢ
+    {a = suc zero ˣ⊑ˣ suc zero} (here ())
+rename-assm²-swapLeft∀∀ᵢ
+    {a = suc zero ˣ⊑ˣ suc zero} (there a∈) =
+  here refl
+rename-assm²-swapLeft∀∀ᵢ
+    {a = suc zero ˣ⊑ˣ suc (suc Y)} (here ())
+rename-assm²-swapLeft∀∀ᵢ
+    {a = suc zero ˣ⊑ˣ suc (suc Y)} (there a∈) =
+  ⊥-elim (no-∀ctx-zero-leftᵢ (un⇑ᵢ-ˣ∈ a∈))
+rename-assm²-swapLeft∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ zero} (here ())
+rename-assm²-swapLeft∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ zero} (there a∈) =
+  ⊥-elim (no-⇑ᵢ-zero-right a∈)
+rename-assm²-swapLeft∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc zero} (here ())
+rename-assm²-swapLeft∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc zero} (there a∈) =
+  ⊥-elim (no-∀ctx-zero-rightᵢ (un⇑ᵢ-ˣ∈ a∈))
+rename-assm²-swapLeft∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc (suc Y)} (here ())
+rename-assm²-swapLeft∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc (suc Y)}
+    (there (here ()))
+rename-assm²-swapLeft∀∀ᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc (suc Y)}
+    (there (there a∈)) =
+  there (there a∈)
+
+⊑-swapLeft01∀∀ᵢ :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  ∀ᵢᶜ (∀ᵢᶜ Φ) ∣ suc (suc Δᴸ)
+    ⊢ A ⊑ B ⊣ suc (suc Δᴿ) →
+  swapRight∀∀ᵢ Φ ∣ suc (suc Δᴸ)
+    ⊢ renameᵗ swap01ᵢ A ⊑ B ⊣ suc (suc Δᴿ)
+⊑-swapLeft01∀∀ᵢ {B = B} p =
+  subst
+    (λ T → _ ∣ _ ⊢ renameᵗ swap01ᵢ _ ⊑ T ⊣ _)
+    (renameᵗ-id B)
+    (⊑-renameᵗ²ᵢ
+      { ρ = swap01ᵢ }
+      { σ = λ X → X }
+      rename-assm²-swapLeft∀∀ᵢ
+      swap01-pres-<ᵢ
+      (λ X<Δ → X<Δ)
+      p)
+
+renameᵗ-swap01-liftᵢ :
+  ∀ B →
+  renameᵗ swap01ᵢ (⇑ᵗ B) ≡ renameᵗ (extᵗ suc) B
+renameᵗ-swap01-liftᵢ B =
+  trans
+    (renameᵗ-compose suc swap01ᵢ B)
+    (rename-cong
+      (λ { zero → refl ; (suc X) → refl })
+      B)
+
+renameᵗ-swap01-double-liftᵢ :
+  ∀ B →
+  renameᵗ swap01ᵢ (⇑ᵗ (⇑ᵗ B)) ≡ ⇑ᵗ (⇑ᵗ B)
+renameᵗ-swap01-double-liftᵢ B =
+  trans
+    (cong (renameᵗ swap01ᵢ) (renameᵗ-compose suc suc B))
+    (trans
+      (renameᵗ-compose (λ X → suc (suc X)) swap01ᵢ B)
+      (trans
+        (rename-cong (λ X → refl) B)
+        (sym (renameᵗ-compose suc suc B))))
+
+⊑-crossed-body-lift∀∀ᵢ :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ A ⊑ B ⊣ suc Δᴿ →
+  swapRight∀∀ᵢ Φ ∣ suc (suc Δᴸ)
+    ⊢ ⇑ᵗ A ⊑ renameᵗ (extᵗ suc) B ⊣ suc (suc Δᴿ)
+⊑-crossed-body-lift∀∀ᵢ {B = B} p =
+  subst
+    (λ T → _ ∣ _ ⊢ ⇑ᵗ _ ⊑ T ⊣ _)
+    (renameᵗ-swap01-liftᵢ B)
+    (⊑-swapRight01∀∀ᵢ (⊑-lift∀ᵢ p))
+
+⊑-crossed-left-body-lift∀∀ᵢ :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ A ⊑ B ⊣ suc Δᴿ →
+  swapRight∀∀ᵢ Φ ∣ suc (suc Δᴸ)
+    ⊢ renameᵗ (extᵗ suc) A ⊑ ⇑ᵗ B ⊣ suc (suc Δᴿ)
+⊑-crossed-left-body-lift∀∀ᵢ {A = A} p =
+  subst
+    (λ T → _ ∣ _ ⊢ T ⊑ ⇑ᵗ _ ⊣ _)
+    (renameᵗ-swap01-liftᵢ A)
+    (⊑-swapLeft01∀∀ᵢ (⊑-lift∀ᵢ p))
+
+⊑-crossed-double-lift∀∀ᵢ :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
+  swapRight∀∀ᵢ Φ ∣ suc (suc Δᴸ)
+    ⊢ ⇑ᵗ (⇑ᵗ A) ⊑ ⇑ᵗ (⇑ᵗ B) ⊣ suc (suc Δᴿ)
+⊑-crossed-double-lift∀∀ᵢ {B = B} p =
+  subst
+    (λ T → _ ∣ _ ⊢ ⇑ᵗ (⇑ᵗ _) ⊑ T ⊣ _)
+    (renameᵗ-swap01-double-liftᵢ B)
+    (⊑-swapRight01∀∀ᵢ (⊑-lift∀ᵢ (⊑-lift∀ᵢ p)))
+
 rename-assm²-swap∀∀ᵢ :
   ∀ {Φ a} →
   a ∈ ∀ᵢᶜ (∀ᵢᶜ Φ) →
@@ -1119,6 +1406,89 @@ rename-assm²-∀ν-to-ν∀ᵢ {a = suc (suc X) ˣ⊑ˣ suc Y} (there a∈) =
       {ρ = swap01ᵢ}
       {σ = λ X → X}
       rename-assm²-∀ν-to-ν∀ᵢ
+      swap01-pres-<ᵢ
+      (λ Y<Δ → Y<Δ)
+      p)
+
+rename-assm²-ν∀-to-∀νᵢ :
+  ∀ {Φ a} →
+  a ∈ νᵢᶜ (∀ᵢᶜ Φ) →
+  rename-assm²ᵢ swap01ᵢ (λ X → X) a ∈ ∀ᵢᶜ (νᵢᶜ Φ)
+rename-assm²-ν∀-to-∀νᵢ {a = zero ˣ⊑★} (here refl) =
+  there (⇑ᵢ-★∈ (here refl))
+rename-assm²-ν∀-to-∀νᵢ {a = zero ˣ⊑★} (there a∈) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-star a∈)
+rename-assm²-ν∀-to-∀νᵢ {a = suc zero ˣ⊑★} (here ())
+rename-assm²-ν∀-to-∀νᵢ {a = suc zero ˣ⊑★} (there a∈) =
+  ⊥-elim (no-∀ctx-zero-starᵢ (un⇑ᴸᵢ-★∈ a∈))
+rename-assm²-ν∀-to-∀νᵢ {a = suc (suc X) ˣ⊑★} (here ())
+rename-assm²-ν∀-to-∀νᵢ {a = suc (suc X) ˣ⊑★} (there a∈)
+    with un⇑ᴸᵢ-★∈ a∈
+rename-assm²-ν∀-to-∀νᵢ {a = suc (suc X) ˣ⊑★} (there a∈)
+    | here ()
+rename-assm²-ν∀-to-∀νᵢ {a = suc (suc X) ˣ⊑★} (there a∈)
+    | there x∈ =
+  there
+    (⇑ᵢ-★∈
+      (there (⇑ᴸᵢ-★∈ (un⇑ᵢ-★∈ x∈))))
+rename-assm²-ν∀-to-∀νᵢ {a = zero ˣ⊑ˣ zero} (here ())
+rename-assm²-ν∀-to-∀νᵢ {a = zero ˣ⊑ˣ zero} (there a∈) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left a∈)
+rename-assm²-ν∀-to-∀νᵢ {a = zero ˣ⊑ˣ suc Y} (here ())
+rename-assm²-ν∀-to-∀νᵢ {a = zero ˣ⊑ˣ suc Y} (there a∈) =
+  ⊥-elim (no-⇑ᴸᵢ-zero-left a∈)
+rename-assm²-ν∀-to-∀νᵢ {a = suc zero ˣ⊑ˣ zero} (here ())
+rename-assm²-ν∀-to-∀νᵢ {a = suc zero ˣ⊑ˣ zero} (there a∈)
+    with un⇑ᴸᵢ-ˣ∈ a∈
+rename-assm²-ν∀-to-∀νᵢ {a = suc zero ˣ⊑ˣ zero} (there a∈)
+    | here refl = here refl
+rename-assm²-ν∀-to-∀νᵢ {a = suc zero ˣ⊑ˣ zero} (there a∈)
+    | there x∈ = ⊥-elim (no-⇑ᵢ-zero-left x∈)
+rename-assm²-ν∀-to-∀νᵢ {a = suc zero ˣ⊑ˣ suc Y} (here ())
+rename-assm²-ν∀-to-∀νᵢ {a = suc zero ˣ⊑ˣ suc Y} (there a∈)
+    with un⇑ᴸᵢ-ˣ∈ a∈
+rename-assm²-ν∀-to-∀νᵢ {a = suc zero ˣ⊑ˣ suc Y} (there a∈)
+    | here ()
+rename-assm²-ν∀-to-∀νᵢ {a = suc zero ˣ⊑ˣ suc Y} (there a∈)
+    | there x∈ = ⊥-elim (no-⇑ᵢ-zero-left x∈)
+rename-assm²-ν∀-to-∀νᵢ {a = suc (suc X) ˣ⊑ˣ zero} (here ())
+rename-assm²-ν∀-to-∀νᵢ {a = suc (suc X) ˣ⊑ˣ zero} (there a∈)
+    with un⇑ᴸᵢ-ˣ∈ a∈
+rename-assm²-ν∀-to-∀νᵢ {a = suc (suc X) ˣ⊑ˣ zero} (there a∈)
+    | here ()
+rename-assm²-ν∀-to-∀νᵢ {a = suc (suc X) ˣ⊑ˣ zero} (there a∈)
+    | there x∈ = ⊥-elim (no-⇑ᵢ-zero-right x∈)
+rename-assm²-ν∀-to-∀νᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc Y} (here ())
+rename-assm²-ν∀-to-∀νᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc Y} (there a∈)
+    with un⇑ᴸᵢ-ˣ∈ a∈
+rename-assm²-ν∀-to-∀νᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc Y} (there a∈)
+    | here ()
+rename-assm²-ν∀-to-∀νᵢ
+    {a = suc (suc X) ˣ⊑ˣ suc Y} (there a∈)
+    | there x∈ =
+  there
+    (⇑ᵢ-ˣ∈
+      (there (⇑ᴸᵢ-ˣ∈ (un⇑ᵢ-ˣ∈ x∈))))
+
+⊑-ν∀-to-∀νᵢ :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  νᵢᶜ (∀ᵢᶜ Φ) ∣ suc (suc Δᴸ) ⊢ A ⊑ B ⊣ suc Δᴿ →
+  ∀ᵢᶜ (νᵢᶜ Φ)
+    ∣ suc (suc Δᴸ) ⊢ renameᵗ swap01ᵢ A ⊑ B ⊣ suc Δᴿ
+⊑-ν∀-to-∀νᵢ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+    {A = A} {B = B} p =
+  subst
+    (λ B′ →
+      ∀ᵢᶜ (νᵢᶜ Φ)
+        ∣ suc (suc Δᴸ) ⊢ renameᵗ swap01ᵢ A ⊑ B′ ⊣ suc Δᴿ)
+    (renameᵗ-id B)
+    (⊑-renameᵗ²ᵢ
+      {ρ = swap01ᵢ}
+      {σ = λ X → X}
+      rename-assm²-ν∀-to-∀νᵢ
       swap01-pres-<ᵢ
       (λ Y<Δ → Y<Δ)
       p)

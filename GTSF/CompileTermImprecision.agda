@@ -11,6 +11,7 @@ open import Data.Product using (proj₁)
 open import Types
 open import Ctx using (CtxWf)
 open import Compile using (compileᵀ)
+open import GradualTerms using (GTerm)
 import GradualTermImprecision as GTI
 open import GradualTermImprecision using
   (_∣_∣_∣_⊢ᴳ_⊑_⦂_⊑_∶_)
@@ -27,7 +28,7 @@ variable
   γ : GTI.CtxImp Φ Δᴸ Δᴿ
   A B : Ty
   p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ
-  M M′ : GTI.GTerm
+  M M′ : GTerm
 
 ctxImpToNu :
   GTI.CtxImp Φ Δᴸ Δᴿ →

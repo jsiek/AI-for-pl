@@ -893,3 +893,18 @@ multi-preservation wfΣ okM M⊢ (↠-step red reds) =
     (runtime-preservation wfΣ okM M⊢ red)
     (preservation wfΣ okM M⊢ red)
     reds
+
+multi-runtime-preservation :
+  ∀ {Δ Σ M N A χs} →
+  StoreWf Δ Σ →
+  RuntimeOK M →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  M —↠[ χs ] N →
+  RuntimeOK N
+multi-runtime-preservation wfΣ okM M⊢ ↠-refl = okM
+multi-runtime-preservation wfΣ okM M⊢ (↠-step red reds) =
+  multi-runtime-preservation
+    (store-preservation wfΣ M⊢ red)
+    (runtime-preservation wfΣ okM M⊢ red)
+    (preservation wfΣ okM M⊢ red)
+    reds

@@ -6,12 +6,16 @@ module NuTermImprecision where
 --   * Relates independent left/right runtime stores with explicit matched,
 --     left-only, and right-only allocation entries, so ν-step simulation cases
 --     have a visible place to extend the store relation.
+--   * Separates physical store entries from correspondence-only links, which
+--     permits swapped polymorphic allocations with independent store order.
 --   * Carries enough side conditions for the relation to project to ordinary
 --     `NuTerms` typing derivations for both related terms.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_; map)
+open import Data.List.Membership.Propositional using (_∈_)
+open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ-syntax; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
@@ -126,6 +130,11 @@ data StoreImpEntry (Φ : ImpCtx) (Δᴸ Δᴿ : TyCtx) : Set where
     WfTy Δᴿ B →
     StoreImpEntry Φ Δᴸ Δᴿ
 
+  store-link :
+    (α : TyVar) → (A : Ty) → (β : TyVar) → (B : Ty) →
+    Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
+    StoreImpEntry Φ Δᴸ Δᴿ
+
 StoreImp : ImpCtx → TyCtx → TyCtx → Set
 StoreImp Φ Δᴸ Δᴿ = List (StoreImpEntry Φ Δᴸ Δᴿ)
 
@@ -133,11 +142,13 @@ leftStoreEntryⁱ : StoreImpEntry Φ Δᴸ Δᴿ → Store → Store
 leftStoreEntryⁱ (store-matched α A β B p) Σ = (α , A) ∷ Σ
 leftStoreEntryⁱ (store-left α A hA) Σ = (α , A) ∷ Σ
 leftStoreEntryⁱ (store-right β B hB) Σ = Σ
+leftStoreEntryⁱ (store-link α A β B p) Σ = Σ
 
 rightStoreEntryⁱ : StoreImpEntry Φ Δᴸ Δᴿ → Store → Store
 rightStoreEntryⁱ (store-matched α A β B p) Σ = (β , B) ∷ Σ
 rightStoreEntryⁱ (store-left α A hA) Σ = Σ
 rightStoreEntryⁱ (store-right β B hB) Σ = (β , B) ∷ Σ
+rightStoreEntryⁱ (store-link α A β B p) Σ = Σ
 
 leftStoreⁱ : StoreImp Φ Δᴸ Δᴿ → Store
 leftStoreⁱ [] = []
@@ -146,6 +157,88 @@ leftStoreⁱ (entry ∷ ρ) = leftStoreEntryⁱ entry (leftStoreⁱ ρ)
 rightStoreⁱ : StoreImp Φ Δᴸ Δᴿ → Store
 rightStoreⁱ [] = []
 rightStoreⁱ (entry ∷ ρ) = rightStoreEntryⁱ entry (rightStoreⁱ ρ)
+
+data StoreCorresponds
+    {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+    (ρ : StoreImp Φ Δᴸ Δᴿ)
+    (α : TyVar) (A : Ty) (β : TyVar) (B : Ty)
+    (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) : Set where
+  correspondence-stored :
+    store-matched α A β B p ∈ ρ →
+    StoreCorresponds ρ α A β B p
+
+  correspondence-linked :
+    store-link α A β B p ∈ ρ →
+    StoreCorresponds ρ α A β B p
+
+crossedStoreⁱ :
+  ∀ {Φ Δᴸ Δᴿ A₀ A₁ B₀ B₁} →
+  WfTy Δᴸ A₀ →
+  WfTy Δᴸ A₁ →
+  WfTy Δᴿ B₀ →
+  WfTy Δᴿ B₁ →
+  (p₀₁ : Φ ∣ Δᴸ ⊢ A₀ ⊑ B₁ ⊣ Δᴿ) →
+  (p₁₀ : Φ ∣ Δᴸ ⊢ A₁ ⊑ B₀ ⊣ Δᴿ) →
+  StoreImp Φ Δᴸ Δᴿ →
+  StoreImp Φ Δᴸ Δᴿ
+crossedStoreⁱ hA₀ hA₁ hB₀ hB₁ p₀₁ p₁₀ ρ =
+  store-left zero _ hA₀ ∷
+  store-left (suc zero) _ hA₁ ∷
+  store-right zero _ hB₀ ∷
+  store-right (suc zero) _ hB₁ ∷
+  store-link zero _ (suc zero) _ p₀₁ ∷
+  store-link (suc zero) _ zero _ p₁₀ ∷
+  ρ
+
+leftStoreⁱ-crossed :
+  ∀ {Φ Δᴸ Δᴿ A₀ A₁ B₀ B₁}
+    {hA₀ : WfTy Δᴸ A₀} {hA₁ : WfTy Δᴸ A₁}
+    {hB₀ : WfTy Δᴿ B₀} {hB₁ : WfTy Δᴿ B₁}
+    {p₀₁ : Φ ∣ Δᴸ ⊢ A₀ ⊑ B₁ ⊣ Δᴿ}
+    {p₁₀ : Φ ∣ Δᴸ ⊢ A₁ ⊑ B₀ ⊣ Δᴿ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  leftStoreⁱ (crossedStoreⁱ hA₀ hA₁ hB₀ hB₁ p₀₁ p₁₀ ρ)
+    ≡ (zero , A₀) ∷ (suc zero , A₁) ∷ leftStoreⁱ ρ
+leftStoreⁱ-crossed = refl
+
+rightStoreⁱ-crossed :
+  ∀ {Φ Δᴸ Δᴿ A₀ A₁ B₀ B₁}
+    {hA₀ : WfTy Δᴸ A₀} {hA₁ : WfTy Δᴸ A₁}
+    {hB₀ : WfTy Δᴿ B₀} {hB₁ : WfTy Δᴿ B₁}
+    {p₀₁ : Φ ∣ Δᴸ ⊢ A₀ ⊑ B₁ ⊣ Δᴿ}
+    {p₁₀ : Φ ∣ Δᴸ ⊢ A₁ ⊑ B₀ ⊣ Δᴿ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  rightStoreⁱ (crossedStoreⁱ hA₀ hA₁ hB₀ hB₁ p₀₁ p₁₀ ρ)
+    ≡ (zero , B₀) ∷ (suc zero , B₁) ∷ rightStoreⁱ ρ
+rightStoreⁱ-crossed = refl
+
+crossedStoreⁱ-new-old :
+  ∀ {Φ Δᴸ Δᴿ A₀ A₁ B₀ B₁}
+    {hA₀ : WfTy Δᴸ A₀} {hA₁ : WfTy Δᴸ A₁}
+    {hB₀ : WfTy Δᴿ B₀} {hB₁ : WfTy Δᴿ B₁}
+    {p₀₁ : Φ ∣ Δᴸ ⊢ A₀ ⊑ B₁ ⊣ Δᴿ}
+    {p₁₀ : Φ ∣ Δᴸ ⊢ A₁ ⊑ B₀ ⊣ Δᴿ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  StoreCorresponds
+    (crossedStoreⁱ hA₀ hA₁ hB₀ hB₁ p₀₁ p₁₀ ρ)
+    zero A₀ (suc zero) B₁ p₀₁
+crossedStoreⁱ-new-old =
+  correspondence-linked
+    (there (there (there (there (here refl)))))
+
+crossedStoreⁱ-old-new :
+  ∀ {Φ Δᴸ Δᴿ A₀ A₁ B₀ B₁}
+    {hA₀ : WfTy Δᴸ A₀} {hA₁ : WfTy Δᴸ A₁}
+    {hB₀ : WfTy Δᴿ B₀} {hB₁ : WfTy Δᴿ B₁}
+    {p₀₁ : Φ ∣ Δᴸ ⊢ A₀ ⊑ B₁ ⊣ Δᴿ}
+    {p₁₀ : Φ ∣ Δᴸ ⊢ A₁ ⊑ B₀ ⊣ Δᴿ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  StoreCorresponds
+    (crossedStoreⁱ hA₀ hA₁ hB₀ hB₁ p₀₁ p₁₀ ρ)
+    (suc zero) A₁ zero B₀ p₁₀
+crossedStoreⁱ-old-new =
+  correspondence-linked
+    (there (there (there (there (there (here refl))))))
 
 data LiftStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
     StoreImp Φ Δᴸ Δᴿ → StoreImp Ψ (suc Δᴸ) (suc Δᴿ) → Set where
@@ -173,6 +266,13 @@ data LiftStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
         (store-right β B hB ∷ ρ)
         (store-right (suc β) (⇑ᵗ B) hB′ ∷ ρ′)
 
+  lift-store-link : ∀ {ρ ρ′ α β A B p p′}
+    → LiftStoreⁱ Ψ ρ ρ′
+      --------------------------------------------------------------
+    → LiftStoreⁱ Ψ
+        (store-link α A β B p ∷ ρ)
+        (store-link (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B) p′ ∷ ρ′)
+
 leftStoreⁱ-lift :
   ∀ {Φ Δᴸ Δᴿ Ψ} {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp Ψ (suc Δᴸ) (suc Δᴿ)} →
@@ -184,6 +284,8 @@ leftStoreⁱ-lift (lift-store-∷ liftρ) =
 leftStoreⁱ-lift (lift-store-left liftρ) =
   cong ((_,_ _ _) ∷_) (leftStoreⁱ-lift liftρ)
 leftStoreⁱ-lift (lift-store-right liftρ) =
+  leftStoreⁱ-lift liftρ
+leftStoreⁱ-lift (lift-store-link liftρ) =
   leftStoreⁱ-lift liftρ
 
 rightStoreⁱ-lift :
@@ -198,6 +300,8 @@ rightStoreⁱ-lift (lift-store-left liftρ) =
   rightStoreⁱ-lift liftρ
 rightStoreⁱ-lift (lift-store-right liftρ) =
   cong ((_,_ _ _) ∷_) (rightStoreⁱ-lift liftρ)
+rightStoreⁱ-lift (lift-store-link liftρ) =
+  rightStoreⁱ-lift liftρ
 
 data LiftLeftStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
     StoreImp Φ Δᴸ Δᴿ → StoreImp Ψ (suc Δᴸ) Δᴿ → Set where
@@ -225,6 +329,13 @@ data LiftLeftStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
         (store-right β B hB ∷ ρ)
         (store-right β B hB′ ∷ ρ′)
 
+  lift-left-store-link : ∀ {ρ ρ′ α β A B p p′}
+    → LiftLeftStoreⁱ Ψ ρ ρ′
+      --------------------------------------------------------------
+    → LiftLeftStoreⁱ Ψ
+        (store-link α A β B p ∷ ρ)
+        (store-link (suc α) (⇑ᵗ A) β B p′ ∷ ρ′)
+
 leftStoreⁱ-lift-left :
   ∀ {Φ Δᴸ Δᴿ Ψ} {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp Ψ (suc Δᴸ) Δᴿ} →
@@ -236,6 +347,8 @@ leftStoreⁱ-lift-left (lift-left-store-∷ liftρ) =
 leftStoreⁱ-lift-left (lift-left-store-left liftρ) =
   cong ((_,_ _ _) ∷_) (leftStoreⁱ-lift-left liftρ)
 leftStoreⁱ-lift-left (lift-left-store-right liftρ) =
+  leftStoreⁱ-lift-left liftρ
+leftStoreⁱ-lift-left (lift-left-store-link liftρ) =
   leftStoreⁱ-lift-left liftρ
 
 rightStoreⁱ-lift-left :
@@ -250,6 +363,8 @@ rightStoreⁱ-lift-left (lift-left-store-left liftρ) =
   rightStoreⁱ-lift-left liftρ
 rightStoreⁱ-lift-left (lift-left-store-right liftρ) =
   cong ((_,_ _ _) ∷_) (rightStoreⁱ-lift-left liftρ)
+rightStoreⁱ-lift-left (lift-left-store-link liftρ) =
+  rightStoreⁱ-lift-left liftρ
 
 data LiftRightStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
     StoreImp Φ Δᴸ Δᴿ → StoreImp Ψ Δᴸ (suc Δᴿ) → Set where
@@ -277,6 +392,13 @@ data LiftRightStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
         (store-right β B hB ∷ ρ)
         (store-right (suc β) (⇑ᵗ B) hB′ ∷ ρ′)
 
+  lift-right-store-link : ∀ {ρ ρ′ α β A B p p′}
+    → LiftRightStoreⁱ Ψ ρ ρ′
+      --------------------------------------------------------------
+    → LiftRightStoreⁱ Ψ
+        (store-link α A β B p ∷ ρ)
+        (store-link α A (suc β) (⇑ᵗ B) p′ ∷ ρ′)
+
 leftStoreⁱ-lift-right :
   ∀ {Φ Δᴸ Δᴿ Ψ} {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp Ψ Δᴸ (suc Δᴿ)} →
@@ -288,6 +410,8 @@ leftStoreⁱ-lift-right (lift-right-store-∷ liftρ) =
 leftStoreⁱ-lift-right (lift-right-store-left liftρ) =
   cong ((_,_ _ _) ∷_) (leftStoreⁱ-lift-right liftρ)
 leftStoreⁱ-lift-right (lift-right-store-right liftρ) =
+  leftStoreⁱ-lift-right liftρ
+leftStoreⁱ-lift-right (lift-right-store-link liftρ) =
   leftStoreⁱ-lift-right liftρ
 
 rightStoreⁱ-lift-right :
@@ -302,6 +426,8 @@ rightStoreⁱ-lift-right (lift-right-store-left liftρ) =
   rightStoreⁱ-lift-right liftρ
 rightStoreⁱ-lift-right (lift-right-store-right liftρ) =
   cong ((_,_ _ _) ∷_) (rightStoreⁱ-lift-right liftρ)
+rightStoreⁱ-lift-right (lift-right-store-link liftρ) =
+  rightStoreⁱ-lift-right liftρ
 
 ------------------------------------------------------------------------
 -- Term-context imprecision

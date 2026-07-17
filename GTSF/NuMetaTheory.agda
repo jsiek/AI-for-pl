@@ -52,6 +52,17 @@ multi-preservation :
   applyTyCtxs χs Δ ∣ applyStores χs Σ ∣ [] ⊢ N ⦂ applyTys χs A
 multi-preservation = PreservationProof.multi-preservation
 
+multi-runtime-preservation :
+  ∀ {Δ : TyCtx}{Σ : Store}{M N : Term}{A : Ty}
+    {χs : StoreChanges} →
+  StoreWf Δ Σ →
+  RuntimeOK M →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  M —↠[ χs ] N →
+  RuntimeOK N
+multi-runtime-preservation =
+  PreservationProof.multi-runtime-preservation
+
 narrowing-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
   NarrowWidenProof.StoreDetWf Δ Σ →

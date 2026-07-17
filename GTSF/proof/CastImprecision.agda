@@ -9,6 +9,8 @@ module proof.CastImprecision where
 --     `ˣ⊑★` assumption.
 --   * Provides the one-sided transitivity principles needed to compose those
 --     local edges with ambient Nu-term imprecision indices.
+--   * Records why generic one-sided casts cannot cross a matched fresh-seal
+--     boundary: it supplies `zero ˣ⊑ˣ zero`, not `zero ˣ⊑★`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (Bool; false; true; _∨_)
@@ -337,6 +339,44 @@ RightCastCtxCompatible μ Δ Φ =
   Y < Δ →
   modeStarAllowed (μ Y) ≡ true →
   (X ˣ⊑★) ∈ Φ
+
+matched-gen-left-incompatible :
+  ∀ {μ Δ Φ} →
+  LeftCastCtxCompatible (genᵈ μ) (suc Δ)
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) →
+  ⊥
+matched-gen-left-incompatible ok with ok z<s refl
+matched-gen-left-incompatible ok | there zero★∈ =
+  no-⇑ᵢ-zero-star zero★∈
+
+matched-gen-right-incompatible :
+  ∀ {μ Δ Φ} →
+  RightCastCtxCompatible (genᵈ μ) (suc Δ)
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) →
+  ⊥
+matched-gen-right-incompatible ok
+    with ok (here refl) z<s refl
+matched-gen-right-incompatible ok | there zero★∈ =
+  no-⇑ᵢ-zero-star zero★∈
+
+matched-inst-left-incompatible :
+  ∀ {μ Δ Φ} →
+  LeftCastCtxCompatible (instᵈ μ) (suc Δ)
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) →
+  ⊥
+matched-inst-left-incompatible ok with ok z<s refl
+matched-inst-left-incompatible ok | there zero★∈ =
+  no-⇑ᵢ-zero-star zero★∈
+
+matched-inst-right-incompatible :
+  ∀ {μ Δ Φ} →
+  RightCastCtxCompatible (instᵈ μ) (suc Δ)
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) →
+  ⊥
+matched-inst-right-incompatible ok
+    with ok (here refl) z<s refl
+matched-inst-right-incompatible ok | there zero★∈ =
+  no-⇑ᵢ-zero-star zero★∈
 
 ∀ᵢᶜ : ImpCtx → ImpCtx
 ∀ᵢᶜ Φ = (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ

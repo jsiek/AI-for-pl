@@ -1,7 +1,10 @@
 module Imprecision where
 
 -- File Charter:
---   * Imprecision on types
+--   * Defines type imprecision assumptions and the raw type relation.
+--   * Provides matched, source-only, and target-only shifts of assumption
+--     contexts for polymorphic runtime allocation.
+--   * Defines the crossed context for two logically permuted allocations.
 
 open import Types
 
@@ -29,6 +32,10 @@ ImpCtx = List ImpAssm
 ⇑ᴸᵢₐ (X ˣ⊑★) = suc X ˣ⊑★
 ⇑ᴸᵢₐ (X ˣ⊑ˣ Y) = suc X ˣ⊑ˣ Y
 
+⇑ᴿᵢₐ : ImpAssm → ImpAssm
+⇑ᴿᵢₐ (X ˣ⊑★) = X ˣ⊑★
+⇑ᴿᵢₐ (X ˣ⊑ˣ Y) = X ˣ⊑ˣ suc Y
+
 ⇑ᵢ : ImpCtx → ImpCtx
 ⇑ᵢ [] = []
 ⇑ᵢ (m ∷ Φ) = ⇑ᵢₐ m ∷ ⇑ᵢ Φ
@@ -36,6 +43,16 @@ ImpCtx = List ImpAssm
 ⇑ᴸᵢ : ImpCtx → ImpCtx
 ⇑ᴸᵢ [] = []
 ⇑ᴸᵢ (m ∷ Φ) = ⇑ᴸᵢₐ m ∷ ⇑ᴸᵢ Φ
+
+⇑ᴿᵢ : ImpCtx → ImpCtx
+⇑ᴿᵢ [] = []
+⇑ᴿᵢ (m ∷ Φ) = ⇑ᴿᵢₐ m ∷ ⇑ᴿᵢ Φ
+
+swapRight∀∀ᵢ : ImpCtx → ImpCtx
+swapRight∀∀ᵢ Φ =
+  (zero ˣ⊑ˣ suc zero) ∷
+  (suc zero ˣ⊑ˣ zero) ∷
+  ⇑ᵢ (⇑ᵢ Φ)
 
 ------------------------------------------------------------------------
 -- Type Imprecision
@@ -51,7 +68,7 @@ data _⊢_⊑_ (Φ : ImpCtx) : Ty → Ty → Set where
     → (X ˣ⊑ˣ Y) ∈ Φ
     ---------------------
     → Φ ⊢ ＇ X ⊑ ＇ Y
-    
+
   idι : ∀ {ι}
     -------------------
     → Φ ⊢ ‵ ι ⊑ ‵ ι

@@ -7,17 +7,23 @@ module Run where
 --     `runTyped` for callers that already have source typing.
 --   * Packages source typing, compiled target typing, the runtime invariant,
 --     and the final value-or-blame `EvalOutcome` in one result record.
+--   * Transfers the bullet-free/runtime invariant from `compile` to the
+--     refined `compileᵀ` interface used by compiler monotonicity.
 
+open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using ([])
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁)
+open import Relation.Binary.PropositionalEquality using (subst)
 
 open import Types
 open import Ctx using (CtxWf; ctxWf-[]; ctxWf-∷)
 open import Compile
   using
     ( compile
+    ; compileᵀ
+    ; compile-term-agrees
     ; compile-value
     ; consistency-cast-plan
     ; dynamic-application-function-consistent
@@ -110,6 +116,21 @@ compile-runtime :
   (M⊢ : Δ ∣ Γ ⊢ᴳ M ⦂ A) →
   RuntimeOK (proj₁ (compile hΓ M⊢))
 compile-runtime hΓ M⊢ = ok-no (compile-no• hΓ M⊢)
+
+compileᵀ-no• :
+  ∀ {Δ Γ M A} →
+  (hΓ : CtxWf Δ Γ) →
+  (M⊢ : Δ ∣ Γ ⊢ᴳ M ⦂ A) →
+  No• (proj₁ (compileᵀ hΓ M⊢))
+compileᵀ-no• hΓ M⊢ =
+  subst No• (compile-term-agrees hΓ M⊢) (compile-no• hΓ M⊢)
+
+compileᵀ-runtime :
+  ∀ {Δ Γ M A} →
+  (hΓ : CtxWf Δ Γ) →
+  (M⊢ : Δ ∣ Γ ⊢ᴳ M ⦂ A) →
+  RuntimeOK (proj₁ (compileᵀ hΓ M⊢))
+compileᵀ-runtime hΓ M⊢ = ok-no (compileᵀ-no• hΓ M⊢)
 
 compile-closed :
   ∀ {M A} →

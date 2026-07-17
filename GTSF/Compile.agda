@@ -3,8 +3,8 @@ module Compile where
 -- File Charter:
 --   * Compilation from source gradual GTSF terms to target explicit-coercion
 --     terms.
---   * Exports the common-lower-bound cast-plan specification, `compile`, and
---     `compile-value`.
+--   * Exports the common-lower-bound cast-plan specification, `compile`,
+--     `compileᵀ`, their value proofs, and agreement of their output terms.
 --   * The store is empty at compile time; target reduction allocates store
 --     cells later for polymorphic/seal behavior.
 
@@ -517,3 +517,64 @@ compileᵀ-value hΓ (Λᴳ M) (⊢ᴳΛ vM M⊢)
        | compileᵀ-value (CtxWf-⤊ hΓ) vM M⊢
 compileᵀ-value hΓ (Λᴳ M) (⊢ᴳΛ vM M⊢) | N , N⊢ | vN =
   Λᵀ vN
+
+------------------------------------------------------------------------
+-- Agreement of the two compilation typing interfaces
+------------------------------------------------------------------------
+
+compile-term-agrees :
+  ∀ {Δ Γ M A} →
+  (hΓ : CtxWf Δ Γ) →
+  (M⊢ : Δ ∣ Γ ⊢ᴳ M ⦂ A) →
+  proj₁ (compile hΓ M⊢) ≡ proj₁ (compileᵀ hΓ M⊢)
+compile-term-agrees hΓ (⊢ᴳ` x∈) = refl
+compile-term-agrees hΓ (⊢ᴳƛ wfA M⊢)
+    with compile (ctxWf-∷ wfA hΓ) M⊢
+       | compileᵀ (ctxWf-∷ wfA hΓ) M⊢
+       | compile-term-agrees (ctxWf-∷ wfA hΓ) M⊢
+compile-term-agrees hΓ (⊢ᴳƛ wfA M⊢)
+    | N , N⊢ | N′ , N′⊢ | refl = refl
+compile-term-agrees hΓ (⊢ᴳ· {ℓ = ℓ} L⊢ M⊢ A~A′)
+    with compile hΓ L⊢ | compileᵀ hΓ L⊢
+       | compile hΓ M⊢ | compileᵀ hΓ M⊢
+       | consistency-cast-plan ℓ (~-sym A~A′)
+       | compile-term-agrees hΓ L⊢
+       | compile-term-agrees hΓ M⊢
+compile-term-agrees hΓ (⊢ᴳ· L⊢ M⊢ A~A′)
+    | L , L⊢′ | L′ , L′⊢ | N , N⊢ | N′ , N′⊢
+    | plan | refl | refl = refl
+compile-term-agrees {Δ = Δ} hΓ (⊢ᴳ·★ {ℓ = ℓ} L⊢ M⊢ A′~★)
+    with compile hΓ L⊢ | compileᵀ hΓ L⊢
+       | compile hΓ M⊢ | compileᵀ hΓ M⊢
+       | consistency-cast-plan {Δ = Δ} ℓ
+           dynamic-application-function-consistent
+       | consistency-cast-plan {Δ = Δ} ℓ A′~★
+       | compile-term-agrees hΓ L⊢
+       | compile-term-agrees hΓ M⊢
+compile-term-agrees {Δ = Δ} hΓ (⊢ᴳ·★ L⊢ M⊢ A′~★)
+    | L , L⊢′ | L′ , L′⊢ | N , N⊢ | N′ , N′⊢
+    | fun-plan | arg-plan | refl | refl = refl
+compile-term-agrees hΓ (⊢ᴳΛ vM M⊢)
+    with compile (CtxWf-⤊ hΓ) M⊢
+       | compileᵀ (CtxWf-⤊ hΓ) M⊢
+       | compile-value (CtxWf-⤊ hΓ) vM M⊢
+       | compileᵀ-value (CtxWf-⤊ hΓ) vM M⊢
+       | compile-term-agrees (CtxWf-⤊ hΓ) M⊢
+compile-term-agrees hΓ (⊢ᴳΛ vM M⊢)
+    | N , N⊢ | N′ , N′⊢ | vN | vN′ | refl = refl
+compile-term-agrees hΓ (⊢ᴳ• M⊢ wfB wfA)
+    with compile hΓ M⊢ | compileᵀ hΓ M⊢
+       | compile-term-agrees hΓ M⊢
+compile-term-agrees hΓ (⊢ᴳ• M⊢ wfB wfA)
+    | N , N⊢ | N′ , N′⊢ | refl = refl
+compile-term-agrees hΓ (⊢ᴳ$ κ) = refl
+compile-term-agrees hΓ (⊢ᴳ⊕ {ℓ = ℓ} L⊢ A~ℕ op M⊢ B~ℕ)
+    with compile hΓ L⊢ | compileᵀ hΓ L⊢
+       | compile hΓ M⊢ | compileᵀ hΓ M⊢
+       | consistency-cast-plan ℓ A~ℕ
+       | consistency-cast-plan ℓ B~ℕ
+       | compile-term-agrees hΓ L⊢
+       | compile-term-agrees hΓ M⊢
+compile-term-agrees hΓ (⊢ᴳ⊕ L⊢ A~ℕ op M⊢ B~ℕ)
+    | L , L⊢′ | L′ , L′⊢ | N , N⊢ | N′ , N′⊢
+    | planL | planM | refl | refl = refl

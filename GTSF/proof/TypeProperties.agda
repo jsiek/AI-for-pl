@@ -291,6 +291,13 @@ singleRenameᵗ-Wf α<sucΔ {zero} z<s = α<sucΔ
 singleRenameᵗ-Wf α<sucΔ {suc X} (s<s X<Δ) =
   m<n⇒m<1+n X<Δ
 
+singleRenameᵗ-Wf-< :
+  ∀ {Δ α} →
+  α < Δ →
+  TyRenameWf (suc Δ) Δ (singleRenameᵗ α)
+singleRenameᵗ-Wf-< α<Δ {zero} z<s = α<Δ
+singleRenameᵗ-Wf-< α<Δ {suc X} (s<s X<Δ) = X<Δ
+
 renameᵗ-ground :
   ∀ ρ {G} →
   Ground G →

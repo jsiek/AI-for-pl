@@ -353,6 +353,14 @@ applyTysUnderTyBinders [] A = A
 applyTysUnderTyBinders (χ ∷ χs) A =
   applyTysUnderTyBinders χs (applyTyUnderTyBinder χ A)
 
+applyTysUnderTyBinders-++ :
+  ∀ χs χs′ A →
+  applyTysUnderTyBinders (χs ++ χs′) A ≡
+    applyTysUnderTyBinders χs′ (applyTysUnderTyBinders χs A)
+applyTysUnderTyBinders-++ [] χs′ A = refl
+applyTysUnderTyBinders-++ (χ ∷ χs) χs′ A =
+  applyTysUnderTyBinders-++ χs χs′ (applyTyUnderTyBinder χ A)
+
 applyTysUnderTyBinders-⇑ᵗ :
   ∀ χs A →
   applyTysUnderTyBinders χs (⇑ᵗ A) ≡ ⇑ᵗ (applyTys χs A)
@@ -363,6 +371,12 @@ applyTysUnderTyBinders-⇑ᵗ (bind B ∷ χs) A =
   trans
     (cong (applyTysUnderTyBinders χs) (renameᵗ-ext-suc-comm suc A))
     (applyTysUnderTyBinders-⇑ᵗ χs (⇑ᵗ A))
+
+applyTy-∀ :
+  ∀ χ A →
+  applyTy χ (`∀ A) ≡ `∀ (applyTyUnderTyBinder χ A)
+applyTy-∀ keep A = refl
+applyTy-∀ (bind B) A = refl
 
 applyTys-∀ :
   ∀ χs A →

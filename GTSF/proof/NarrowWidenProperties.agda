@@ -48,6 +48,7 @@ open import proof.CoercionProperties
     ; ModeRename
     ; renameᶜ-open-commute
     ; sealModeAllowed-var-seal
+    ; single-mode-rename-lower
     ; src-renameᶜ
     ; tagModeAllowed-var-tag
     )
@@ -78,7 +79,79 @@ open import proof.TypeProperties
     ; renameᵗ-preserves-WfTy
     ; renameᵗ-ext-suc-comm
     ; renameStoreᵗ-ext-suc-comm
+    ; renameStoreᵗ-single-suc-cancel
+    ; singleRenameᵗ-Wf-<
     )
+
+------------------------------------------------------------------------
+-- Opening typed narrowing and widening at a fresh seal name
+------------------------------------------------------------------------
+
+open-narrowing :
+  ∀ {μ Δ Σ α c A B} →
+  α < Δ →
+  extᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ A ⊒ B →
+  μ ∣ Δ ∣ Σ ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ ⊒ B [ α ]ᴿ
+open-narrowing {μ = μ} {Σ = Σ} {α = α} α<Δ c⊒ =
+  subst
+    (λ Σ′ → μ ∣ _ ∣ Σ′ ⊢ _ ∶ _ ⊒ _)
+    (renameStoreᵗ-single-suc-cancel α Σ)
+    (narrow-renameᵗ
+      (singleRenameᵗ-Wf-< α<Δ)
+      (single-mode-rename-lower μ α)
+      c⊒)
+
+open-widening :
+  ∀ {μ Δ Σ α c A B} →
+  α < Δ →
+  extᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ A ⊑ B →
+  μ ∣ Δ ∣ Σ ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ ⊑ B [ α ]ᴿ
+open-widening {μ = μ} {Σ = Σ} {α = α} α<Δ c⊑ =
+  subst
+    (λ Σ′ → μ ∣ _ ∣ Σ′ ⊢ _ ∶ _ ⊑ _)
+    (renameStoreᵗ-single-suc-cancel α Σ)
+    (widen-renameᵗ
+      (singleRenameᵗ-Wf-< α<Δ)
+      (single-mode-rename-lower μ α)
+      c⊑)
+
+open-all-narrowing :
+  ∀ {μ Δ Σ α c A B} →
+  α < Δ →
+  μ ∣ Δ ∣ Σ ⊢ `∀ c ∶ `∀ A ⊒ `∀ B →
+  μ ∣ Δ ∣ Σ ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ ⊒ B [ α ]ᴿ
+open-all-narrowing α<Δ (cast-all c⊢ , cross (`∀ cⁿ)) =
+  open-narrowing α<Δ (c⊢ , cⁿ)
+
+open-all-widening :
+  ∀ {μ Δ Σ α c A B} →
+  α < Δ →
+  μ ∣ Δ ∣ Σ ⊢ `∀ c ∶ `∀ A ⊑ `∀ B →
+  μ ∣ Δ ∣ Σ ⊢ c [ α ]ᶜ ∶ A [ α ]ᴿ ⊑ B [ α ]ᴿ
+open-all-widening α<Δ (cast-all c⊢ , cross (`∀ cʷ)) =
+  open-widening α<Δ (c⊢ , cʷ)
+
+allocate-all-narrowing :
+  ∀ {μ Δ Σ Aν c A B} →
+  μ ∣ Δ ∣ Σ ⊢ `∀ c ∶ `∀ A ⊒ `∀ B →
+  extᵈ μ ∣ suc Δ ∣ (zero , Aν) ∷ ⟰ᵗ Σ ⊢ c ∶ A ⊒ B
+allocate-all-narrowing (cast-all c⊢ , cross (`∀ cⁿ)) =
+  narrow-weaken ≤-refl StoreIncl-drop (c⊢ , cⁿ)
+
+allocate-all-widening :
+  ∀ {μ Δ Σ Aν c A B} →
+  μ ∣ Δ ∣ Σ ⊢ `∀ c ∶ `∀ A ⊑ `∀ B →
+  extᵈ μ ∣ suc Δ ∣ (zero , Aν) ∷ ⟰ᵗ Σ ⊢ c ∶ A ⊑ B
+allocate-all-widening (cast-all c⊢ , cross (`∀ cʷ)) =
+  widen-weaken ≤-refl StoreIncl-drop (c⊢ , cʷ)
+
+allocate-gen-narrowing :
+  ∀ {μ Δ Σ Aν c A B} →
+  μ ∣ Δ ∣ Σ ⊢ gen A c ∶ A ⊒ `∀ B →
+  genᵈ μ ∣ suc Δ ∣ (zero , Aν) ∷ ⟰ᵗ Σ
+    ⊢ c ∶ ⇑ᵗ A ⊒ B
+allocate-gen-narrowing (cast-gen hA occ c⊢ , gen cⁿ) =
+  narrow-weaken ≤-refl StoreIncl-drop (c⊢ , cⁿ)
 
 ------------------------------------------------------------------------
 -- Basic structural lemmas

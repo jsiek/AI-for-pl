@@ -7,6 +7,7 @@ module ImprecisionWf where
 --     derivation determines well-formed endpoints.
 --   * Exposes endpoint well-formedness theorems for the indexed judgment
 --     `Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ`.
+--   * Re-exports the crossed two-allocation context from `Imprecision`.
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.Bool using (true)
@@ -23,8 +24,11 @@ open import Imprecision public using
   ; ImpCtx
   ; ⇑ᵢₐ
   ; ⇑ᴸᵢₐ
+  ; ⇑ᴿᵢₐ
   ; ⇑ᵢ
   ; ⇑ᴸᵢ
+  ; ⇑ᴿᵢ
+  ; swapRight∀∀ᵢ
   )
 
 ------------------------------------------------------------------------

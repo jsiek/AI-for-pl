@@ -43,6 +43,10 @@ import proof.EndpointCanonicalMLBSimplePairedSpan
 import proof.EndpointCanonicalMLBSimpleFactorization
 import proof.EndpointCanonicalMLBSimpleFactorCounterexample
 import proof.QuotientedTermImprecisionTest
+import proof.NuImprecisionSimulation
+import proof.NuReductionDeterminism
+import proof.NuDGGTraceAlignment
+import proof.NuDGGSpine
 import proof.MaximalLowerBoundsWf
 import StoreCorrespondence
 import NuTerms
@@ -53,6 +57,7 @@ import TypeCheck
 -- import TermNarrowingSeparated
 import NuExamplesFresh
 import NuReduction
+import ReductionTrace
 import Eval
 import Run
 import proof.CompileTermNarrowing

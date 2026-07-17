@@ -1,21 +1,24 @@
 module NuExamplesFresh where
 
 -- File Charter:
---   * Closed NuTerms examples that exercise the Maybe-based type checker.
---   * Adapted from the PolyUpDown extrinsic-inst fresh examples, but limited
---     to typing regressions because the NuTerms evaluator is not in place.
+--   * Closed NuTerms examples that exercise the Maybe-based type checker and
+--     the traced evaluator.
+--   * Adapted from the PolyUpDown extrinsic-inst fresh examples.
 --   * Covers base/dynamic casts, unannotated lambdas under expected types,
---     polymorphic `ν` instantiation, and representative rejection cases.
+--     polymorphic `ν` instantiation, successful seal behavior, tag blame, and
+--     representative rejection cases.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using ([])
-open import Data.Maybe using (nothing)
+open import Data.List using ([]; _∷_)
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ)
 
+import Eval as Eval
 open import Types
 open import Coercions
 open import Primitives
 open import NuTerms
+open import ReductionTrace
 open import TypeCheck using (IsJust; fromJust; is-just; type-check-expect)
 
 ------------------------------------------------------------------------
@@ -34,6 +37,10 @@ expect-⊢ :
   IsJust (type-check-expect 0 [] [] M A) →
   0 ∣ [] ∣ [] ⊢ M ⦂ A
 expect-⊢ M A ok = fromJust (type-check-expect 0 [] [] M A) ok
+
+eval-term : ∀ {M} → Maybe (Eval.EvalOutcome M) → Maybe Term
+eval-term nothing = nothing
+eval-term (just r) = just (Eval.finalTerm r)
 
 nat : ℕ → Term
 nat n = $ (κℕ n)
@@ -241,6 +248,61 @@ sec6-K-base = (polyKNat · n42) · n69
 
 sec6-K-base-⊢ : 0 ∣ [] ∣ [] ⊢ sec6-K-base ⦂ Nat
 sec6-K-base-⊢ = expect-⊢ sec6-K-base Nat is-just
+
+------------------------------------------------------------------------
+-- Paired `ν`, seal, and tag traces
+------------------------------------------------------------------------
+
+polyIdNat-app-result :
+  eval-term (Eval.eval 20 polyIdNat-app) ≡ just c
+polyIdNat-app-result = refl
+
+polyIdNat-app-trace :
+  outcome-step-names (Eval.eval 20 polyIdNat-app) ≡
+  just
+    ( under-app-left allocate-ν
+    ∷ under-app-left (under-cast (root β-Λ•-step))
+    ∷ root β-↦-step
+    ∷ under-cast (root β-ƛ-step)
+    ∷ root seal-unseal-step
+    ∷ [] )
+polyIdNat-app-trace = refl
+
+polyIdDyn-app-result :
+  eval-term (Eval.eval 20 polyIdDyn-app) ≡ just (c ⟨ Nat ! ⟩)
+polyIdDyn-app-result = refl
+
+polyIdDyn-app-trace :
+  outcome-step-names (Eval.eval 20 polyIdDyn-app) ≡
+  just
+    ( under-app-left allocate-ν
+    ∷ under-app-left (under-cast (root β-Λ•-step))
+    ∷ under-app-right (root β-seq-step)
+    ∷ under-app-right (under-cast (root β-id-step))
+    ∷ root β-↦-step
+    ∷ under-cast (root β-ƛ-step)
+    ∷ root seal-unseal-step
+    ∷ [] )
+polyIdDyn-app-trace = refl
+
+tag-mismatch : Term
+tag-mismatch = c★ ⟨ untagBool ⟩
+
+tag-mismatch-⊢ : 0 ∣ [] ∣ [] ⊢ tag-mismatch ⦂ BoolTy
+tag-mismatch-⊢ = expect-⊢ tag-mismatch BoolTy is-just
+
+tag-mismatch-result :
+  eval-term (Eval.eval 20 tag-mismatch) ≡ just blame
+tag-mismatch-result = refl
+
+tag-mismatch-trace :
+  outcome-step-names (Eval.eval 20 tag-mismatch) ≡
+  just
+    ( under-cast (root β-seq-step)
+    ∷ under-cast (under-cast (root β-id-step))
+    ∷ root tag-untag-bad-step
+    ∷ [] )
+tag-mismatch-trace = refl
 
 ------------------------------------------------------------------------
 -- Rejection checks

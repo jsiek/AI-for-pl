@@ -454,6 +454,18 @@ ModeRename-ext :
 ModeRename-ext rel zero = refl
 ModeRename-ext rel (suc X) = rel X
 
+single-mode-rename-lower :
+  ∀ μ α →
+  ModeRename (singleRenameᵗ α) (extᵈ μ) μ
+single-mode-rename-lower μ α zero with μ α
+single-mode-rename-lower μ α zero | id-only = refl
+single-mode-rename-lower μ α zero | tag-or-id = refl
+single-mode-rename-lower μ α zero | seal-or-id = refl
+single-mode-rename-lower μ α (suc X) with μ X
+single-mode-rename-lower μ α (suc X) | id-only = refl
+single-mode-rename-lower μ α (suc X) | tag-or-id = refl
+single-mode-rename-lower μ α (suc X) | seal-or-id = refl
+
 ModeRename-gen :
   ∀ {ρ μ ν} →
   ModeRename ρ μ ν →

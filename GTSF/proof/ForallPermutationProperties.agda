@@ -8,9 +8,11 @@ module proof.ForallPermutationProperties where
 --   * Contains no selector-specific assumptions.
 
 open import Data.Empty using (⊥-elim)
+open import Data.Bool using (true)
 open import Data.List using (_∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (_<_; zero; suc; z<s; s<s)
+open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; cong; refl; subst; trans)
 
@@ -58,6 +60,109 @@ renameᵗ-ext-swap01-involutive A =
   trans
     (renameᵗ-compose (extᵗ swap01ᵗ) (extᵗ swap01ᵗ) A)
     (trans (rename-cong ext-swap01-involutive A) (renameᵗ-id A))
+
+------------------------------------------------------------------------
+-- Outer-forall shape is invariant under permutation equivalence
+------------------------------------------------------------------------
+
+mutual
+  ≈∀-preserves-all-shape :
+    ∀ {A B} →
+    A ≈∀ B →
+    ∃[ C ] A ≡ `∀ C →
+    ∃[ D ] B ≡ `∀ D
+  ≈∀-preserves-all-shape ≈∀-refl allA = allA
+  ≈∀-preserves-all-shape (≈∀-sym A≈B) allA =
+    ≈∀-reflects-all-shape A≈B allA
+  ≈∀-preserves-all-shape (≈∀-trans A≈B B≈C) allA =
+    ≈∀-preserves-all-shape B≈C
+      (≈∀-preserves-all-shape A≈B allA)
+  ≈∀-preserves-all-shape (≈∀-⇒ A≈A′ B≈B′) (C , ())
+  ≈∀-preserves-all-shape (≈∀-∀ {B = B} A≈B) allA =
+    B , refl
+  ≈∀-preserves-all-shape (≈∀-swap {A = A}) allA =
+    `∀ (renameᵗ swap01ᵗ A) , refl
+
+  ≈∀-reflects-all-shape :
+    ∀ {A B} →
+    A ≈∀ B →
+    ∃[ D ] B ≡ `∀ D →
+    ∃[ C ] A ≡ `∀ C
+  ≈∀-reflects-all-shape ≈∀-refl allB = allB
+  ≈∀-reflects-all-shape (≈∀-sym A≈B) allB =
+    ≈∀-preserves-all-shape A≈B allB
+  ≈∀-reflects-all-shape (≈∀-trans A≈B B≈C) allC =
+    ≈∀-reflects-all-shape A≈B
+      (≈∀-reflects-all-shape B≈C allC)
+  ≈∀-reflects-all-shape (≈∀-⇒ A≈A′ B≈B′) (D , ())
+  ≈∀-reflects-all-shape (≈∀-∀ {A = A} A≈B) allB =
+    A , refl
+  ≈∀-reflects-all-shape (≈∀-swap {A = A}) allB =
+    `∀ A , refl
+
+≈∀-all-right :
+  ∀ {A B} →
+  `∀ A ≈∀ B →
+  ∃[ C ] B ≡ `∀ C
+≈∀-all-right {A = A} A≈B =
+  ≈∀-preserves-all-shape A≈B (A , refl)
+
+≈∀-all-left :
+  ∀ {A B} →
+  A ≈∀ `∀ B →
+  ∃[ C ] A ≡ `∀ C
+≈∀-all-left {B = B} A≈B =
+  ≈∀-reflects-all-shape A≈B (B , refl)
+
+⊑ᵖ-all-representatives :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  Φ ∣ Δᴸ ⊢ `∀ A ⊑ᵖ `∀ B ⊣ Δᴿ →
+  ∃[ C ] ∃[ D ]
+    ((`∀ A ≈∀ `∀ C) ×
+     (Φ ∣ Δᴸ ⊢ `∀ C ⊑ `∀ D ⊣ Δᴿ) ×
+     (`∀ D ≈∀ `∀ B))
+⊑ᵖ-all-representatives
+    (quotientᵖ A≈A′ A′⊑B′ B′≈B)
+    with ≈∀-all-right A≈A′ | ≈∀-all-left B′≈B
+⊑ᵖ-all-representatives
+    (quotientᵖ A≈A′ A′⊑B′ B′≈B)
+    | C , refl | D , refl =
+  C , D , A≈A′ , A′⊑B′ , B′≈B
+
+data AllImprecisionView
+    {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx} {A B : Ty} :
+    (Φ ∣ Δᴸ ⊢ `∀ A ⊑ `∀ B ⊣ Δᴿ) → Set where
+  all-paired :
+    (p : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ∣ suc Δᴸ
+      ⊢ A ⊑ B ⊣ suc Δᴿ) →
+    AllImprecisionView (∀ⁱ p)
+
+  all-source :
+    (occ : occurs zero A ≡ true) →
+    (p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ
+      ⊢ A ⊑ `∀ B ⊣ Δᴿ) →
+    AllImprecisionView (ν occ p)
+
+all-imprecision-view :
+  ∀ {Φ Δᴸ Δᴿ A B}
+    (p : Φ ∣ Δᴸ ⊢ `∀ A ⊑ `∀ B ⊣ Δᴿ) →
+  AllImprecisionView p
+all-imprecision-view (∀ⁱ p) = all-paired p
+all-imprecision-view (ν occ p) = all-source occ p
+
+⊑ᵖ-all-view :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  Φ ∣ Δᴸ ⊢ `∀ A ⊑ᵖ `∀ B ⊣ Δᴿ →
+  ∃[ C ] ∃[ D ]
+    ((`∀ A ≈∀ `∀ C) ×
+     ∃[ p ]
+       (AllImprecisionView p × (`∀ D ≈∀ `∀ B)))
+⊑ᵖ-all-view (quotientᵖ A≈A′ A′⊑B′ B′≈B)
+    with ≈∀-all-right A≈A′ | ≈∀-all-left B′≈B
+⊑ᵖ-all-view (quotientᵖ A≈A′ A′⊑B′ B′≈B)
+    | C , refl | D , refl =
+  C , D , A≈A′ , A′⊑B′ ,
+    all-imprecision-view A′⊑B′ , B′≈B
 
 swap01-pres-< :
   ∀ {Δ X} →

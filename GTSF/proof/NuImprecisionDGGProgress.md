@@ -5701,6 +5701,14 @@ catch-up architecture.
   seconds.  These were focused migration checks; `NuDGGStrictSpine`,
   `NuDGGTerminalSkeleton`, and `All.agda` were not rerun.
 
+- At pushed commit `336d17ca`, a fresh isolated Ginger worktree passed
+  focused `--no-allow-unsolved-metas` checks for
+  `NuImprecisionSimulationResultDef`, `NuImprecisionWorldCoherenceDef`,
+  `NuImprecisionAtomicTargetReindex`, and
+  `NuDGGTerminalBackwardValueProof`.  The last check transitively checked the
+  decoupled one-step and value-catch-up `Def` contracts without importing the
+  live scratch implementations.
+
 - Completed strict
   [`atomic-target-value-reindexᵀ`](NuImprecisionAtomicTargetReindex.agda),
   which recursively rebuilds the quotiented term relation at the desired

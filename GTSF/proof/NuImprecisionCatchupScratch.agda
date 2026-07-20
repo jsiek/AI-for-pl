@@ -106,6 +106,10 @@ open import proof.NuImprecisionOneStepSourceCastFrames using
   ( weak-one-step-source-narrow-cast-indexed-frame-outcomeᵀ
   ; weak-one-step-source-widen-cast-indexed-frame-outcomeᵀ
   )
+open import proof.NuImprecisionOneStepSourceConversionFrames using
+  ( weak-one-step-source-conceal-conversion-indexed-frame-outcomeᵀ
+  ; weak-one-step-source-reveal-conversion-indexed-frame-outcomeᵀ
+  )
 open import proof.NuImprecisionSimulation using
   ( left-catchup-indexed-prefix-α-Λᵀ
   ; weak-one-step-target-cast-frameᵀ
@@ -1484,6 +1488,24 @@ weak-one-step-indexed-simulationᵀ
     M′→N′ =
   weak-one-step-source-widen-cast-indexed-frame-outcomeᵀ
     mode seal★ c⊑ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (conv↑⊑ᵀ c↑ M⊑M′ q)
+    M′→N′ =
+  weak-one-step-source-reveal-conversion-indexed-frame-outcomeᵀ
+    c↑ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (conv↓⊑ᵀ c↓ M⊑M′ q)
+    M′→N′ =
+  weak-one-step-source-conceal-conversion-indexed-frame-outcomeᵀ
+    c↓ inner q
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′

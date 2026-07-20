@@ -14,7 +14,9 @@ import proof.NuDGGTerminalBackwardValueAssembly
 import proof.NuDGGTraceAlignment
 import proof.NuDGGTraceMeasure
 import proof.NuDGGWeakResultPreservation
+import proof.NuImprecisionCatchupSourceAllocationTerminal
 import proof.NuImprecisionCatchupSourceCastTerminal
 import proof.NuImprecisionOneStepSourceCastFrames
+import proof.NuImprecisionOneStepSourceConversionFrames
 import proof.NuImprecisionQuotientInstView
 import proof.NuImprecisionTargetBlameCatchup

@@ -46,8 +46,10 @@ import proof.QuotientedTermImprecisionTest
 import proof.NuImprecisionSimulationCore
 import proof.NuImprecisionSimulation
 import proof.NuImprecisionCatchupScratch
+import proof.NuImprecisionCatchupSourceAllocationTerminal
 import proof.NuImprecisionCatchupSourceCastTerminal
 import proof.NuImprecisionOneStepSourceCastFrames
+import proof.NuImprecisionOneStepSourceConversionFrames
 import proof.NuImprecisionQuotientInstView
 import proof.NuImprecisionTargetBlameCatchup
 import proof.NuImprecisionAllocationSimulation

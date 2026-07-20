@@ -7,7 +7,7 @@ module proof.NuImprecisionOneStepSourceConversionFrames where
 --     leaves the target term, target change, and store imprecision unchanged.
 --   * Reveal/conceal provenance supplies the conversion evidence transported
 --     across the source catch-up trace.
---   * Contains exactly the two intended leaf-proof holes.
+--   * Contains exactly the two intended hole-free leaf-proof wrappers.
 
 open import Conversion using (ConcealConversion; RevealConversion)
 open import Data.Product using (_,_)

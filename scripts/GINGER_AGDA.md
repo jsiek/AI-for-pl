@@ -10,6 +10,7 @@ on `ginger.luddy.indiana.edu`.
 - Repository library configuration: `scripts/agda-ginger-config/`
 - Agda executable: `/home/jsiek/.local/opt/Agda-v2.7.0.1/bin/agda`
 - Standard library source: `/home/jsiek/.local/opt/agda-stdlib-2.1.1/src`
+- Codex executable: `/home/jsiek/.local/bin/codex`
 
 The configuration directory contains:
 
@@ -31,6 +32,32 @@ For a deliberately partial statement module that explicitly enables unsolved
 metas, omit `--no-allow-unsolved-metas`:
 
     scripts/agda-ginger -v0 proof/<PartialModule>.agda
+
+## Starting a remote worker worktree
+
+The following is the standard setup for one isolated proof slice.  Replace
+`<slice>` and `<frozen-commit>` with the work-package name and the exact commit
+that contains its checked interface.
+
+    ssh ginger.luddy.indiana.edu
+    cd /home/jsiek/src/AI-for-pl
+    git fetch origin
+    git worktree add -b codex/ginger-<slice> \
+      /home/jsiek/src/AI-for-pl/.codex-ginger-worktrees/<slice> \
+      <frozen-commit>
+    cd /home/jsiek/src/AI-for-pl/.codex-ginger-worktrees/<slice>
+    scripts/agda-ginger --no-allow-unsolved-metas -v0 proof/<OwnedModule>.agda
+
+Commit and push only the worker's owned files from that worktree.  The local
+integrator fetches the worker branch, reviews its exact diff, integrates it,
+and runs the nearest focused consumer check.  Do not run `All.agda` in the
+worker worktree.
+
+When launching a non-login SSH worker directly, use the absolute Codex path;
+the non-login shell may not include `/home/jsiek/.local/bin` in `PATH`:
+
+    /home/jsiek/.local/bin/codex exec -m gpt-5.5 \
+      -s workspace-write --dangerously-bypass-hook-trust -
 
 Use checks in three tiers:
 

@@ -46,6 +46,9 @@ import proof.QuotientedTermImprecisionTest
 import proof.NuImprecisionSimulationCore
 import proof.NuImprecisionSimulation
 import proof.NuImprecisionCatchupScratch
+import proof.NuImprecisionCatchupSourceCastTerminal
+import proof.NuImprecisionOneStepSourceCastFrames
+import proof.NuImprecisionQuotientInstView
 import proof.NuImprecisionTargetBlameCatchup
 import proof.NuImprecisionAllocationSimulation
 import proof.NuReductionDeterminism
@@ -54,6 +57,8 @@ import proof.NuDGGSpine
 import proof.NuDGGStrictSpine
 import proof.NuDGGTerminalBackwardBlameAssembly
 import proof.NuDGGTerminalBackwardBlameIntegration
+import proof.NuDGGTerminalBackwardValueAssembly
+import proof.NuDGGTerminalBackwardValueIntegration
 import proof.NuDGGTerminalSkeleton
 import proof.NuDGGWeakResultPreservation
 import proof.MaximalLowerBoundsWf

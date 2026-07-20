@@ -10,6 +10,11 @@ import proof.NuDGGPreservation
 import proof.NuDGGSpine
 import proof.NuDGGTerminal
 import proof.NuDGGTerminalBackwardBlameAssembly
+import proof.NuDGGTerminalBackwardValueAssembly
 import proof.NuDGGTraceAlignment
 import proof.NuDGGTraceMeasure
 import proof.NuDGGWeakResultPreservation
+import proof.NuImprecisionCatchupSourceCastTerminal
+import proof.NuImprecisionOneStepSourceCastFrames
+import proof.NuImprecisionQuotientInstView
+import proof.NuImprecisionTargetBlameCatchup

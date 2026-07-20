@@ -102,6 +102,10 @@ open import proof.NuImprecisionAllocationSimulation using
 open import proof.NuImprecisionSimulationCore
 open import proof.NuImprecisionQuotientValue using
   (left-catchup-indexed-final-quotientᵀ)
+open import proof.NuImprecisionOneStepSourceCastFrames using
+  ( weak-one-step-source-narrow-cast-indexed-frame-outcomeᵀ
+  ; weak-one-step-source-widen-cast-indexed-frame-outcomeᵀ
+  )
 open import proof.NuImprecisionSimulation using
   ( left-catchup-indexed-prefix-α-Λᵀ
   ; weak-one-step-target-cast-frameᵀ
@@ -1465,3 +1469,21 @@ weak-one-step-indexed-simulationᵀ
       (blame⊑ᵀ blame⊢))
     blame-ν =
   indexed-outcome-source-blame ↠-refl
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q)
+    M′→N′ =
+  weak-one-step-source-narrow-cast-indexed-frame-outcomeᵀ
+    mode seal★ c⊒ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q)
+    M′→N′ =
+  weak-one-step-source-widen-cast-indexed-frame-outcomeᵀ
+    mode seal★ c⊑ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′

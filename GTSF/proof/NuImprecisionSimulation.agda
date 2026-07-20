@@ -4795,25 +4795,6 @@ left-catchup-indexed-all-keep-stepᵀ source→ final N⊑V′ =
   where
   result = weak-one-step-keep-source-catchupᵀ source→ N⊑V′
 
-left-catchup-indexed-prefix-prepend-keepᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N V′ A B p}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  (source→ : M —→[ keep ] N) →
-  (N⊑V′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ A ⊑ B ∶ p) →
-  Δᴸ ∣ leftStoreⁱ ρ⁺ ∣ [] ⊢ N ⦂ A →
-  Δᴿ ∣ rightStoreⁱ ρ⁺ ∣ [] ⊢ V′ ⦂ B →
-  LeftCatchupIndexedResult
-    {N = N} {V′ = V′} {ρ = ρ⁺} p →
-  LeftCatchupIndexedResult
-    {N = M} {V′ = V′} {ρ = ρ⁺} p
-left-catchup-indexed-prefix-prepend-keepᵀ
-    prefix source→ N⊑V′ N⊢ V′⊢ catchup =
-  left-catchup-indexed-prepend-keepᵀ source→
-    (allocation-prefixᵀ prefix N⊑V′ N⊢ V′⊢) catchup
-
-
 left-catchup-indexed-all-prepend-keepᵀ :
   ∀ {Φ Δᴸ Δᴿ M N V′ C C′ q}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →

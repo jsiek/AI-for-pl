@@ -151,16 +151,15 @@ weak-one-step-prepend-source-keep-type-coherenceᵀ
   combined = weak-one-step-prepend-source-keepᵀ source→ second
 
 left-catchup-indexed-prepend-keepᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N V′ A B p}
+  ∀ {Φ Δᴸ Δᴿ M N V′ A B}
+    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   (source→ : M —→[ keep ] N) →
-  (N⊑V′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ A ⊑ B ∶ p) →
   LeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ} p →
   LeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ} p
-left-catchup-indexed-prepend-keepᵀ source→ N⊑V′
+left-catchup-indexed-prepend-keepᵀ source→
     (left-indexed-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) final)

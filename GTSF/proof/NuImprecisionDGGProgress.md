@@ -38,6 +38,8 @@ to the public `GradualDGG`.
 | `β-inst` followed by `ν ★` allocation | checked locally | Matched, left-only, and right-only two-step lemmas |
 | Polymorphic value-shape inversion | checked locally | `Λ`, `∀` cast, or `gen`; each forces one administrative step |
 | Quotiented `∀`-index inversion | checked locally | Representatives remain `∀`; ordinary witness is paired `∀` or source-only `ν` |
+| Atomic-target desired-index reindexing | completed | `atomic-target-value-reindexᵀ` reconstructs the term relation structurally at the requested proof-relevant index |
+| World/store-name coherence contract | completed statement | `WorldCoherent` requires exact `StoreCorresponds` evidence for every physically live matched name assumption; preservation proofs are not started |
 | Swapped two-allocation context/store | checked locally | Crossed name assumptions and independent-order store links |
 | Swapped two-allocation relation boundary | checked locally | `allocation-crossedᵀ`; projections equal the two-`bind` traces |
 | Reduction under `ν` and `ν ★` | checked | Matched, source-only, and target-only outer frame lemmas |
@@ -166,7 +168,7 @@ common hypotheses, it states
 | F1. State a source-oriented one-step simulation | not yet started | If related terms satisfy \(M\xrightarrow{\chi}L\), produce a target multi-step \(M'\xRightarrow{\chi_t}L'\) and a transported relation \(L\sqsubseteq L'\), with exact world/store/type actions. This is the polarity-reversed analogue of the current target-step dispatcher, but no declaration exists yet. |
 | F2. Prove the source-oriented one-step cases | not yet started | Split on the source reduction and term-imprecision derivation. Reuse the checked matched, left-only, and right-only allocation/cast/frame lemmas where their polarity fits. The definition-sensitive `ν`, `ν ★`, `Λ`, `gen`, `inst`, and `•` cases should be proved before the ordinary congruence cases. |
 | F3. Prove target catch-up from a related source value | not yet started | From \(\operatorname{Value}(V)\) and \(V\sqsubseteq M'\), show that \(M'\) reduces to a value \(V'\) related to \(V\). This needs structural recursion over the relation and target administrative reductions, including target-only allocation and quotient-cast cases. |
-| F4. Rule out a source-blame alternative when the source is a value | completed | [`source-value-indexed-outcome-relatedᵀ`](NuImprecisionSimulationCore.agda#L1471) proves the required local outcome fact: an indexed weak outcome from a source value must be related, with zero source changes and the same source value. It constrains one target step; it does **not** by itself prove target termination. |
+| F4. Rule out a source-blame alternative when the source is a value | completed | [`source-value-indexed-outcome-relatedᵀ`](NuImprecisionSimulationCore.agda#L1231) proves the required local outcome fact: an indexed weak outcome from a source value must be related, with zero source changes and the same source value. It constrains one target step; it does **not** by itself prove target termination. |
 | F5. Lift source one-step simulation over a source trace | partial | [`forward-source-value-generalᵀ`](NuDGGTerminalForward.agda#L36) freezes the required arbitrary-world conclusion and its closed specialization is checked. The trace induction body remains a hole. |
 | F6. Normalize composed changes and final store projections | partial | The weak result transport, type coherence, frame maps, and store-change composition infrastructure are checked. The forward trace-level composition theorem that packages the exact equalities required by the terminal statement is unwritten. |
 | F7. Package the terminal theorem | partial | The exact full package is frozen in [`forward-source-value-generalᵀ`](NuDGGTerminalForward.agda#L36), and the closed theorem is a checked specialization. Constructing its witnesses in the general proof remains. |
@@ -205,12 +207,12 @@ Under the common hypotheses, it states
 
 | Step | Status | Proof obligation and available evidence |
 |---|---|---|
-| B1. Catch up a source related to an already terminal target value | partial | [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1045) has the required arbitrary-type interface: given `RuntimeOK N`, `Value V′`, `No• V′`, and \(N\sqsubseteq V'\), it returns an indexed source catch-up. Ten explicit holes remain in this proof. |
+| B1. Catch up a source related to an already terminal target value | partial | [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1083) has the required arbitrary-type interface: given `RuntimeOK N`, `Value V′`, `No• V′`, and \(N\sqsubseteq V'\), it returns an indexed source catch-up. Ten explicit holes remain in this proof. |
 | B2. Finish quotient-cast value classification | completed | The first GPT 5.5 ginger pilot supplied all four missing down/gen-down clauses for an untag-then-seal source sequence, then made the type and precision implicits explicit through the quotient helper chain. The exact wrapper command and a local strict focused check pass for [`NuImprecisionQuotientValue.agda`](NuImprecisionQuotientValue.agda). |
-| B3. Discharge the two quotient-`inst` residuals in B1 | partial | The residual alternative from B2 must be threaded through the outer down/up and gen-down/up catch-up functions. These are the holes at [`left-catchup-indexed-prefix-down-upᵀ`](NuImprecisionCatchupScratch.agda#L981) and [`left-catchup-indexed-prefix-gen-down-upᵀ`](NuImprecisionCatchupScratch.agda#L1043). |
-| B4. Discharge the remaining source allocation/cast leaves in B1 | partial | Eight holes remain in [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1049): the `α⊑ᵀ` residual, source-only `ν`, source-only `ν ★`, narrowing cast, widening cast, paired conversion, reveal, and conceal leaves. The strict pre-allocation terminal frames for the two source allocation cases are now isolated in [`NuImprecisionCatchupSourceAllocationTerminal.agda`](NuImprecisionCatchupSourceAllocationTerminal.agda), and the four arbitrary-type source cast terminal frames are complete; recursive assembly around those leaves remains. |
-| B5. Complete the target-oriented one-step dispatcher | partial | [`weak-one-step-indexed-simulationᵀ`](NuImprecisionCatchupScratch.agda#L1351) has the intended interface and checked blame, matched/source-only/target-only `ν` and `ν ★`, recursive source narrowing/widening-cast clauses, and recursive source reveal/conceal-conversion clauses. The four new clauses consume strict outcome wrappers in [`NuImprecisionOneStepSourceCastFrames.agda`](NuImprecisionOneStepSourceCastFrames.agda#L38) and [`NuImprecisionOneStepSourceConversionFrames.agda`](NuImprecisionOneStepSourceConversionFrames.agda#L54). The other non-`ν` term-relation/reduction combinations remain to be enumerated, and the scratch module still permits incomplete matches. |
-| B6. Forget the indexed wrapper when aligning an outcome | completed | [`forget-weak-indexed-outcome`](NuImprecisionSimulationCore.agda#L1583) converts the indexed outcome to the unindexed outcome consumed by the trace-alignment layer. |
+| B3. Discharge the two quotient-`inst` residuals in B1 | partial | The residual alternative from B2 must be threaded through the outer down/up and gen-down/up catch-up functions. These are the holes at [`left-catchup-indexed-prefix-down-upᵀ`](NuImprecisionCatchupScratch.agda#L961) and [`left-catchup-indexed-prefix-gen-down-upᵀ`](NuImprecisionCatchupScratch.agda#L1021). |
+| B4. Discharge the remaining source allocation/cast leaves in B1 | partial | Eight holes remain in [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1083): the `α⊑ᵀ` residual, source-only `ν`, source-only `ν ★`, narrowing cast, widening cast, paired conversion, reveal, and conceal leaves. The strict pre-allocation terminal frames for the two source allocation cases are now isolated in [`NuImprecisionCatchupSourceAllocationTerminal.agda`](NuImprecisionCatchupSourceAllocationTerminal.agda), and the four arbitrary-type source cast terminal frames are complete; recursive assembly around those leaves remains. |
+| B5. Complete the target-oriented one-step dispatcher | partial | [`weak-one-step-indexed-simulationᵀ`](NuImprecisionCatchupScratch.agda#L1381) now connects explicit impossible/value cases, primitive frames, target cast/conversion frames, and all five target root handlers in addition to the allocation and source cast/conversion families. Atomic target identity is complete. One target reveal/seal root and eleven target cast roots remain explicit holes; other application and primitive roots still require frozen slices, and the scratch module still permits incomplete matches. |
+| B6. Forget the indexed wrapper when aligning an outcome | completed | [`forget-weak-indexed-outcome`](NuImprecisionSimulationCore.agda#L1264) converts the indexed outcome to the unindexed outcome consumed by the trace-alignment layer. |
 | B7. Align administrative target tails with the observed value trace | completed | [`weak-outcome-target-value-alignedᵀ`](NuDGGTraceAlignment.agda#L53), using [`target-tail-prefix-value`](NuReductionDeterminism.agda#L199), returns either an immediate source-blame trace or a residual target trace from the related result, together with \(\psi=\operatorname{targetTailChanges}(R)\mathbin{++}\theta\). |
 | B8. Maintain runtime, typing, and store well-formedness | completed | One-step [`store-preservation`](NuPreservation.agda#L802), [`multi-preservation`](NuPreservation.agda#L882), [`multi-runtime-preservation`](NuPreservation.agda#L897), and [`multi-store-preservation`](NuDGGPreservation.agda#L27) are completed. The four result-level projections are checked in [`NuDGGWeakResultPreservation.agda`](NuDGGWeakResultPreservation.agda). |
 | B9. Prove the target-trace terminal induction | completed proof | [`backward-target-value-or-source-blame-proofᵀ`](NuDGGTerminalBackwardValueProof.agda) is a hole-free fuel induction over the observed target trace. It consumes only [`WeakOneStepIndexedSimulationᵀ`](NuImprecisionOneStepDef.agda) and [`LeftValueCatchupᵀ`](NuImprecisionValueCatchupDef.agda), aligns administrative target tails, and recurses only on the strictly shorter residual trace. |
@@ -262,9 +264,9 @@ The shortest current path to visible terminal progress is:
    inference in
    [`NuImprecisionQuotientValue.agda`](NuImprecisionQuotientValue.agda).
 2. **Partial:** close the two quotient-`inst` residuals in
-   [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda#L981).
+   [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda#L961).
 3. **Partial:** close the remaining eight leaves of
-   [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1045).
+   [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1083).
 4. **Partial:** enumerate and prove every non-`ν` case of
    [`weak-one-step-indexed-simulationᵀ`](NuImprecisionCatchupScratch.agda#L1343),
    then remove incomplete-pattern acceptance.
@@ -311,6 +313,9 @@ are delegated:
 | [`NuDGGWeakResultPreservation.agda`](NuDGGWeakResultPreservation.agda) | completed | Four result-level runtime/store preservation lemmas, completed by the second GPT 5.5 ginger slice and rechecked locally against the shared multi-step store theorem |
 | [`NuDGGTerminalBackwardBlameAssembly.agda`](NuDGGTerminalBackwardBlameAssembly.agda) | completed | Hole-free fuel induction proving that the frozen target-step and blame-catch-up interfaces suffice for the arbitrary-world backward-blame terminal theorem |
 | [`NuDGGTerminalBackwardBlameIntegration.agda`](NuDGGTerminalBackwardBlameIntegration.agda) | completed live interface check | Instantiates the strict assembly with the live dispatcher and target-blame catch-up declarations; the focused consumer check passes, although those imported leaf bodies remain partial |
+| [`NuImprecisionSimulationResultDef.agda`](NuImprecisionSimulationResultDef.agda) | completed | Strict 506-line home of the weak-result, indexed-outcome, transport/coherence, and left-catch-up result algebra; imported directly by contracts without the simulation core |
+| [`NuImprecisionAtomicTargetReindex.agda`](NuImprecisionAtomicTargetReindex.agda) | completed | Strict exhaustive reconstruction of atomic-target value relations at an explicit desired type-imprecision index; closes target conversion identity roots without proof irrelevance |
+| [`NuImprecisionWorldCoherenceDef.agda`](NuImprecisionWorldCoherenceDef.agda) | completed statement; proofs not started | Freezes `WorldCoherent`, the exact store-correspondence invariant required before target seal cancellation can be a sound leaf |
 | [`NuImprecisionTargetBlameCatchup.agda`](NuImprecisionTargetBlameCatchup.agda) | completed | Hole-free structural target-blame catch-up, including source allocation and all four source cast/conversion tails |
 | [`NuImprecisionCatchupSourceCastTerminal.agda`](NuImprecisionCatchupSourceCastTerminal.agda) | completed | Two arbitrary-type terminal frame lemmas for source cast-to-blame and source inert-cast outcomes |
 | [`NuImprecisionQuotientInstView.agda`](NuImprecisionQuotientInstView.agda) | completed | Exhaustive quotient-instantiation spine view exposing only sound structural witnesses |
@@ -5638,11 +5643,12 @@ catch-up architecture.
 
 - Expanded the target conversion and target cast root files into exhaustive
   operational skeletons.  Target blame and grammar-impossible roots are
-  complete.  Target conversion has two explicit support holes: atomic-target
-  desired-index catch-up and quotient-aware target-seal cancellation.  Target
-  casts have eleven feasible root holes covering identity reindexing, sequence
-  factorization, instantiation allocation, and tag/seal collapse.  All five
-  root handlers are now connected to
+  complete.  At this point target conversion had two explicit support holes:
+  atomic-target desired-index catch-up and quotient-aware target-seal
+  cancellation.  The former is completed below; target seal cancellation
+  remains.  Target casts have eleven feasible root holes covering identity
+  reindexing, sequence factorization, instantiation allocation, and tag/seal
+  collapse.  All five root handlers are now connected to
   `weak-one-step-indexed-simulationᵀ`; the focused scratch consumer check
   passed in 195.25 seconds.  After the full integration batch, the nearest
   end-to-end consumer [`NuDGGTerminalSkeleton`](NuDGGTerminalSkeleton.agda)
@@ -5666,10 +5672,58 @@ catch-up architecture.
   The cold `Proof` check also checked its imported `Def` contracts without
   importing the live partial dispatcher or value catch-up implementation.
 
+### 2026-07-20: stable weak-result definition boundary
+
+- Moved the complete weak-result algebra from the 15,000-line
+  [`NuImprecisionSimulationCore`](NuImprecisionSimulationCore.agda) into the
+  strict 506-line
+  [`NuImprecisionSimulationResultDef`](NuImprecisionSimulationResultDef.agda).
+  This includes base, indexed, arrow, universal, silent, and catch-up result
+  records plus the two transport normalizers named by type coherence.  The
+  move is closed-world: all consumers import moved names directly, and the
+  core neither aliases nor publicly re-exports them.
+
+- Inlined the matched-binder assumption context in the result declarations
+  instead of importing the 20,000-line `MaximalLowerBoundsWf` module merely
+  for its local `∀ᵢᶜ` abbreviation.  The result module contains no holes,
+  permissive options, simulation implementation, or recursive dispatcher.
+
+- Focused checks demonstrate the new boundary.  The result module passed in
+  3.57 seconds; `NuImprecisionOneStepDef` and
+  `NuImprecisionValueCatchupDef` passed in 3.16 and 3.39 seconds; and the
+  higher-order backward-value `Proof` passed in 3.92 seconds.  After a source
+  change deliberately invalidated `NuImprecisionSimulationCore`, the same
+  `Proof` still passed in 3.23 seconds without rebuilding the core.
+
+- The relocated core passed in 47.24 seconds, a mixed primitive-frame
+  consumer passed in 46.19 seconds, the broad batched scratch dispatcher
+  passed in 288.55 seconds, and the backward-blame assembly passed in 2.87
+  seconds.  These were focused migration checks; `NuDGGStrictSpine`,
+  `NuDGGTerminalSkeleton`, and `All.agda` were not rerun.
+
+- Completed strict
+  [`atomic-target-value-reindexᵀ`](NuImprecisionAtomicTargetReindex.agda),
+  which recursively rebuilds the quotiented term relation at the desired
+  index and uses atomicity plus target value shape to eliminate the unsound
+  general cases.  It does not prove the old and new indices equal: duplicate
+  type assumptions make that false.  The target conversion identity roots
+  now consume this theorem, leaving only reveal-unseal in that root module.
+
+- The target reveal/seal hole is not yet a safe Ginger leaf.  Exact-world
+  cancellation needs an explicit world/store-name coherence invariant; the
+  current weak-result type can otherwise hide the missing invariant by
+  choosing an enriched result imprecision context.  The strict
+  [`NuImprecisionWorldCoherenceDef`](NuImprecisionWorldCoherenceDef.agda) now
+  freezes the minimal `WorldCoherent` contract: every live `idˣ` assumption
+  whose endpoints are physically stored returns an exact `StoreCorresponds`
+  witness.  Its lift, allocation, composition, and coherent-outcome proofs
+  are not started.
+
 ### Next boundary
 
-Extract the weak-result contracts into a stable definition module, then apply
-the `Def`/`Proof`/`Lemma` split to the value-catch-up and one-step dispatcher
-boundaries themselves.  In parallel, continue the hard atomic-target and
-target-seal support proofs locally while using Ginger only for frozen strict
-leaf implementations.
+Prove the structural lift/allocation lemmas for `WorldCoherent`, then freeze
+coherent one-step and value-catch-up result contracts before attempting target
+seal cancellation.  In parallel, apply the `Def`/`Proof`/`Lemma` split to the
+value-catch-up and one-step dispatcher boundaries themselves and freeze the
+next independent target-cast or primitive leaves for Ginger.  Keep the hard
+coherence and seal proofs local.

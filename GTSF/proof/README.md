@@ -69,8 +69,16 @@ The small difference between the two stale-dependency runs is not evidence of
 a major speedup.  The demonstrated benefit is invalidation isolation: changes
 to dependency implementations do not force `Def` or `Proof` to recheck.
 
-The pilot also exposed the next checking-time boundary.  Both dependency
-contracts currently import the large `NuImprecisionSimulationCore` module just
-to name `WeakOneStepIndexedOutcome` and `LeftCatchupIndexedResult`.  Extracting
-those result records and their prerequisite definitions into a stable,
-definition-only module is the next modularization experiment.
+The pilot exposed a second checking-time boundary: both dependency contracts
+imported the large `NuImprecisionSimulationCore` module just to name result
+types.  That result algebra now lives in the strict 506-line
+`NuImprecisionSimulationResultDef` module.  Consumers import moved names there
+directly; the core imports it non-publicly, with no compatibility re-export.
+
+The move reduced a focused `NuImprecisionSimulationCore` rebuild to 47.24
+seconds and made the two dependency contracts check in 3.16 and 3.39 seconds.
+Most importantly, after invalidating the core again,
+`NuDGGTerminalBackwardValueProof` still checked in 3.23 seconds without
+rebuilding it.  This is the intended invalidation boundary.  The batched
+scratch-dispatcher consumer passed in 288.55 seconds; neither
+`NuDGGStrictSpine` nor `All.agda` was run for that migration.

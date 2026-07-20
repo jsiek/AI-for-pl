@@ -5656,6 +5656,16 @@ catch-up architecture.
   structurally restricted result such as atomic-target catch-up; reveal
   unsealing requires its separate quotient-aware cancellation theorem.
 
+- At pushed commit `45cc0c68`, an isolated Ginger worktree passed focused
+  `--no-allow-unsolved-metas` checks for
+  [`NuDGGTerminalBackwardValueProof`](NuDGGTerminalBackwardValueProof.agda),
+  [`NuImprecisionOneStepPrimitiveLeaves`](NuImprecisionOneStepPrimitiveLeaves.agda),
+  [`NuImprecisionOneStepApplicationRoots`](NuImprecisionOneStepApplicationRoots.agda),
+  and
+  [`NuImprecisionOneStepTargetBlameRoots`](NuImprecisionOneStepTargetBlameRoots.agda).
+  The cold `Proof` check also checked its imported `Def` contracts without
+  importing the live partial dispatcher or value catch-up implementation.
+
 ### Next boundary
 
 Extract the weak-result contracts into a stable definition module, then apply

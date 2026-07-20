@@ -54,6 +54,10 @@ open import NuReduction using
   ; blame-ν
   ; bind
   ; keep
+  ; pure-step
+  ; ξ-⟨⟩
+  ; ξ-⊕₁
+  ; ξ-⊕₂
   ; ξ-ν
   ; ν-step
   ; ↠-refl
@@ -64,9 +68,12 @@ open import NuTerms using
   ; RuntimeOK
   ; Value
   ; no•-Λ
+  ; no•-⊕
   ; no•-⟨⟩
   ; no•-blame
   ; ok-no
+  ; ok-⊕₁
+  ; ok-⊕₂
   ; ok-⟨⟩
   ; blame
   ; ν
@@ -109,6 +116,28 @@ open import proof.NuImprecisionOneStepSourceCastFrames using
 open import proof.NuImprecisionOneStepSourceConversionFrames using
   ( weak-one-step-source-conceal-conversion-indexed-frame-outcomeᵀ
   ; weak-one-step-source-reveal-conversion-indexed-frame-outcomeᵀ
+  )
+open import proof.NuImprecisionOneStepTargetConversionFrames using
+  ( weak-one-step-target-conceal-conversion-indexed-frame-outcomeᵀ
+  ; weak-one-step-target-reveal-conversion-indexed-frame-outcomeᵀ
+  )
+open import proof.NuImprecisionOneStepTargetConversionRoots using
+  ( weak-one-step-target-conceal-conversion-root-outcomeᵀ
+  ; weak-one-step-target-reveal-conversion-root-outcomeᵀ
+  )
+open import proof.NuImprecisionOneStepTargetCastFrames using
+  ( weak-one-step-target-narrow-cast-indexed-frame-outcomeᵀ
+  ; weak-one-step-target-widen-cast-indexed-frame-outcomeᵀ
+  ; weak-one-step-target-widen-id-cast-indexed-frame-outcomeᵀ
+  )
+open import proof.NuImprecisionOneStepTargetCastRoots using
+  ( weak-one-step-target-narrow-cast-root-outcomeᵀ
+  ; weak-one-step-target-widen-cast-root-outcomeᵀ
+  ; weak-one-step-target-widen-id-cast-root-outcomeᵀ
+  )
+open import proof.NuImprecisionOneStepPrimitiveFrames using
+  ( weak-one-step-⊕₁-indexed-frame-outcomeᵀ
+  ; weak-one-step-⊕₂-indexed-frame-outcomeᵀ
   )
 open import proof.NuImprecisionSimulation using
   ( left-catchup-indexed-prefix-α-Λᵀ
@@ -1364,6 +1393,93 @@ weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′ (blame⊑ᵀ M′⊢) M′→N′ =
   indexed-outcome-source-blame ↠-refl
 weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′ (x⊑xᵀ x∈) (pure-step ())
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′ (ƛ⊑ƛᵀ hA hA′ N⊑N′) (pure-step ())
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′) (pure-step ())
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′ κ⊑κᵀ (pure-step ())
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-no (no•-⊕ noL noM))
+    (ok-no (no•-⊕ noL′ noM′))
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₁ L′→L₁′ shiftM′) =
+  weak-one-step-⊕₁-indexed-frame-outcomeᵀ
+    noM noM′ M⊑M′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (ok-no noL) (ok-no noL′) L⊑L′ L′→L₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-no (no•-⊕ noL noM))
+    (ok-⊕₁ okL′ noM′)
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₁ L′→L₁′ shiftM′) =
+  weak-one-step-⊕₁-indexed-frame-outcomeᵀ
+    noM noM′ M⊑M′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (ok-no noL) okL′ L⊑L′ L′→L₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-⊕₁ okL noM)
+    (ok-no (no•-⊕ noL′ noM′))
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₁ L′→L₁′ shiftM′) =
+  weak-one-step-⊕₁-indexed-frame-outcomeᵀ
+    noM noM′ M⊑M′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okL (ok-no noL′) L⊑L′ L′→L₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-⊕₁ okL noM)
+    (ok-⊕₁ okL′ noM′)
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₁ L′→L₁′ shiftM′) =
+  weak-one-step-⊕₁-indexed-frame-outcomeᵀ
+    noM noM′ M⊑M′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okL okL′ L⊑L′ L′→L₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-⊕₂ vL noL okM)
+    (ok-no (no•-⊕ noL′ noM′))
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₂ vL′ shiftL′ M′→M₁′) =
+  weak-one-step-⊕₂-indexed-frame-outcomeᵀ
+    vL noL vL′ noL′ L⊑L′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (ok-no noM′) M⊑M′ M′→M₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-⊕₂ vL noL okM)
+    (ok-⊕₁ okL′ noM′)
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₂ vL′ shiftL′ M′→M₁′) =
+  weak-one-step-⊕₂-indexed-frame-outcomeᵀ
+    vL noL vL′ noL′ L⊑L′ inner
+  where
+  noL′ = runtime-value-no• okL′ vL′
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (ok-no noM′) M⊑M′ M′→M₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-⊕₂ vL noL okM)
+    (ok-⊕₂ vL″ noL′ okM′)
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₂ vL′ shiftL′ M′→M₁′) =
+  weak-one-step-⊕₂-indexed-frame-outcomeᵀ
+    vL noL vL′ noL′ L⊑L′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′ M⊑M′ M′→M₁′
+weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑
       liftρ liftγ N⊑V′)
@@ -1509,3 +1625,78 @@ weak-one-step-indexed-simulationᵀ
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑conv↑ᵀ c′↑ M⊑M′ q)
+    (ξ-⟨⟩ M′→N′) =
+  weak-one-step-target-reveal-conversion-indexed-frame-outcomeᵀ
+    c′↑ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑conv↑ᵀ c′↑ M⊑M′ q)
+    (pure-step root) =
+  weak-one-step-target-reveal-conversion-root-outcomeᵀ
+    wfΣ′ okM okM′ c′↑ M⊑M′ q root
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑conv↓ᵀ c′↓ M⊑M′ q)
+    (ξ-⟨⟩ M′→N′) =
+  weak-one-step-target-conceal-conversion-indexed-frame-outcomeᵀ
+    c′↓ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑conv↓ᵀ c′↓ M⊑M′ q)
+    (pure-step root) =
+  weak-one-step-target-conceal-conversion-root-outcomeᵀ
+    wfΣ′ okM okM′ c′↓ M⊑M′ q root
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q)
+    (ξ-⟨⟩ M′→N′) =
+  weak-one-step-target-narrow-cast-indexed-frame-outcomeᵀ
+    mode′ seal★′ c′⊒ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q)
+    (pure-step root) =
+  weak-one-step-target-narrow-cast-root-outcomeᵀ
+    wfΣ′ okM okM′ mode′ seal★′ c′⊒ M⊑M′ q root
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q)
+    (ξ-⟨⟩ M′→N′) =
+  weak-one-step-target-widen-cast-indexed-frame-outcomeᵀ
+    mode′ seal★′ c′⊑ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q)
+    (pure-step root) =
+  weak-one-step-target-widen-cast-root-outcomeᵀ
+    wfΣ′ okM okM′ mode′ seal★′ c′⊑ M⊑M′ q root
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q)
+    (ξ-⟨⟩ M′→N′) =
+  weak-one-step-target-widen-id-cast-indexed-frame-outcomeᵀ
+    seal★′ c′⊑ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q)
+    (pure-step root) =
+  weak-one-step-target-widen-id-cast-root-outcomeᵀ
+    wfΣ′ okM okM′ seal★′ c′⊑ M⊑M′ q root

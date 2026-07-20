@@ -1,5 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
 module proof.NuImprecisionOneStepPrimitiveLeaves where
 
 -- File Charter:
@@ -8,7 +6,7 @@ module proof.NuImprecisionOneStepPrimitiveLeaves where
 --   * Covers Nat-value inversion and the primitive blame roots that do not
 --     require transporting an operand across the other operand's catch-up.
 --   * Excludes delta and crossed ξ schedules.
---   * Contains exactly five intended leaf-proof holes.
+--   * Contains five hole-free leaf proofs.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥-elim)
@@ -27,10 +25,11 @@ open import NuReduction using
   ; ↠-step
   ; _—→[_]_
   )
-open import NuTermImprecision using (StoreImp; leftCtxⁱ)
+open import NuTermImprecision using (StoreImp; leftCtxⁱ; leftStoreⁱ)
 open import NuTerms using
   ( No•
   ; RuntimeOK
+  ; Term
   ; Value
   ; _∣_∣_⊢_⦂_
   ; no•-⊕
@@ -99,8 +98,9 @@ private
       {ρ : StoreImp Φ Δᴸ Δᴿ} →
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
       ⊢ᴺ $ (κℕ m) ⊑ $ (κℕ n) ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ idι →
-    $ (κℕ m) ≡ $ (κℕ n)
-  related-nat-constant-target-constantᵀ κ⊑κᵀ = refl
+    _≡_ {A = Term} ($ (κℕ m)) ($ (κℕ n))
+  related-nat-constant-target-constantᵀ
+      {m = n} {n = .n} κ⊑κᵀ = refl
   related-nat-constant-target-constantᵀ
       (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) =
     related-nat-constant-target-constantᵀ M⊑M′
@@ -155,16 +155,20 @@ related-nat-value-target-constantᵀ :
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ V ⊑ $ (κℕ n) ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ idι →
   V ≡ $ (κℕ n)
-related-nat-value-target-constantᵀ {V = V} {n = n} vV V⊑κ
+related-nat-value-target-constantᵀ
+    {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {V = V} {n = n} {ρ = ρ}
+    vV V⊑κ
     with canonical-ℕ vV
       (subst
-        (λ Γ → _ ∣ _ ∣ Γ ⊢ V ⦂ ‵ `ℕ)
-        leftCtxⁱ-[]
+        (λ Γ → Δᴸ ∣ leftStoreⁱ ρ ∣ Γ ⊢ V ⦂ ‵ `ℕ)
+        (leftCtxⁱ-[] {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ})
         (forget
           (nu-term-imprecision-source-typing
-            {γ = []} {M = V} {M′ = $ (κℕ n)}
+            {ρ = ρ} {γ = []} {M = V} {M′ = $ (κℕ n)}
             {A = ‵ `ℕ} {B = ‵ `ℕ} V⊑κ)))
-related-nat-value-target-constantᵀ {V = V} {n = n} vV V⊑κ
+related-nat-value-target-constantᵀ
+    {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {V = V} {n = n} {ρ = ρ}
+    vV V⊑κ
     | nv-const V≡
     rewrite V≡ =
   related-nat-constant-target-constantᵀ V⊑κ
@@ -178,7 +182,8 @@ weak-one-step-⊕-left-blame-indexed-outcomeᵀ :
     ⊢ᴺ L ⊑ blame ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ idι →
   WeakOneStepIndexedOutcome
     {M = L ⊕[ addℕ ] M}
-    {N′ = blame} {χ = keep} {ρ = ρ} idι
+    {N′ = blame} {A = ‵ `ℕ} {B = ‵ `ℕ}
+    {χ = keep} {ρ = ρ} idι
 weak-one-step-⊕-left-blame-indexed-outcomeᵀ
     (ok-no (no•-⊕ noL noM)) L⊑blame
     with left-catchup-target-blameᵀ (ok-no noL) L⊑blame
@@ -212,7 +217,8 @@ weak-one-step-⊕-right-blame-right-first-indexed-outcomeᵀ :
     ⊢ᴺ M ⊑ blame ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ idι →
   WeakOneStepIndexedOutcome
     {M = L ⊕[ addℕ ] M}
-    {N′ = blame} {χ = keep} {ρ = ρ} idι
+    {N′ = blame} {A = ‵ `ℕ} {B = ‵ `ℕ}
+    {χ = keep} {ρ = ρ} idι
 weak-one-step-⊕-right-blame-right-first-indexed-outcomeᵀ
     vL noL okM M⊑blame
     with left-catchup-target-blameᵀ okM M⊑blame

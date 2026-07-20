@@ -1,12 +1,10 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
-module proof.NuDGGTerminalBackwardValue where
+module proof.NuDGGTerminalBackwardValueLemma where
 
 -- File Charter:
---   * Owns the exact backward target-value terminal theorem required by the
---     closed Nu DGG spine.
---   * The statement is frozen and checked; its proof will combine target-step
---     simulation, terminal left catch-up, alignment, and trace induction.
+--   * Assembles the canonical backward target-value terminal lemma from the
+--     generic proof and the live one-step/catch-up implementations.
+--   * Keeps the expensive live dependency closure out of the Def and Proof
+--     modules.
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using ([])
@@ -29,40 +27,28 @@ open import NuTermImprecision using
   )
 open import NuTerms using (RuntimeOK; Value; blame)
 open import QuotientedTermImprecision using
-  (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
+  ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
+  ; prefix-reflⁱ
+  )
 open import proof.NuDGGClosedWorld using (empty-store-wf)
+open import proof.NuDGGTerminalBackwardValueDef using
+  (BackwardTargetValueOrSourceBlameᵀ)
+open import proof.NuDGGTerminalBackwardValueProof using
+  (backward-target-value-or-source-blame-proofᵀ)
+open import proof.NuImprecisionCatchupScratch using
+  ( left-catchup-indexed-prefixᵀ
+  ; weak-one-step-indexed-simulationᵀ
+  )
 
 
 backward-target-value-or-source-blame-generalᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-  StoreWf Δᴸ (leftStoreⁱ ρ) →
-  StoreWf Δᴿ (rightStoreⁱ ρ) →
-  RuntimeOK M →
-  RuntimeOK M′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
-  ∀ V′ χs′ →
-  M′ —↠[ χs′ ] V′ →
-  Value V′ →
-    (∃[ V ] (Σ[ χs ∈ StoreChanges ]
-    (∃[ Ψ ] (Σ[ ρ′ ∈
-        StoreImp Ψ
-          (applyTyCtxs χs Δᴸ) (applyTyCtxs χs′ Δᴿ) ]
-    (Σ[ q ∈
-        (Ψ ∣ applyTyCtxs χs Δᴸ
-          ⊢ applyTys χs A ⊑ applyTys χs′ B
-          ⊣ applyTyCtxs χs′ Δᴿ) ]
-      ((M —↠[ χs ] V) ×
-       Value V ×
-       (leftStoreⁱ ρ′ ≡ applyStores χs (leftStoreⁱ ρ)) ×
-       (rightStoreⁱ ρ′ ≡ applyStores χs′ (rightStoreⁱ ρ)) ×
-       Ψ ∣ applyTyCtxs χs Δᴸ ∣ applyTyCtxs χs′ Δᴿ ∣ ρ′ ∣ []
-         ⊢ᴺ V ⊑ V′
-         ⦂ applyTys χs A ⊑ applyTys χs′ B ∶ q)))))
-    ⊎ (∃[ χs ] (M —↠[ χs ] blame)))
-backward-target-value-or-source-blame-generalᵀ = {!!}
+  BackwardTargetValueOrSourceBlameᵀ
+backward-target-value-or-source-blame-generalᵀ =
+  backward-target-value-or-source-blame-proofᵀ
+    weak-one-step-indexed-simulationᵀ
+    (λ okM vV′ noV′ M⊑V′ →
+      left-catchup-indexed-prefixᵀ
+        prefix-reflⁱ okM vV′ noV′ M⊑V′)
 
 
 backward-target-value-or-source-blameᵀ :

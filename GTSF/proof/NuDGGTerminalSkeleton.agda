@@ -9,7 +9,7 @@ open import DynamicGradualGuarantee using (GradualDGG)
 open import proof.NuDGGTerminal using (terminal-components⇒gradual-dgg)
 open import proof.NuDGGTerminalBackwardBlame using
   (backward-target-blameᵀ)
-open import proof.NuDGGTerminalBackwardValue using
+open import proof.NuDGGTerminalBackwardValueLemma using
   (backward-target-value-or-source-blameᵀ)
 open import proof.NuDGGTerminalForward using (forward-source-valueᵀ)
 

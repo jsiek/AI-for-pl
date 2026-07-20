@@ -7,7 +7,7 @@ module proof.NuImprecisionOneStepPrimitiveFrames where
 --     recursion remains visible in the dispatcher.
 --   * Covers only the left-operand and right-operand frames for addition;
 --     primitive delta, scheduling boundaries, and root blame live elsewhere.
---   * Contains exactly the two intended leaf-proof holes.
+--   * Contains exactly the two intended hole-free leaf-proof wrappers.
 
 open import Data.List using ([]; _∷_; _++_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_; idι)

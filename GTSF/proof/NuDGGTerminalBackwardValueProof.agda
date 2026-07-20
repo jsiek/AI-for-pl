@@ -1,7 +1,8 @@
-module proof.NuDGGTerminalBackwardValueAssembly where
+module proof.NuDGGTerminalBackwardValueProof where
 
 -- File Charter:
---   * Owns the higher-order backward-value terminal trace assembly theorem.
+--   * Proves the backward-value terminal contract from its two major
+--     dependency contracts.
 --   * Proves the target-step dispatcher and already-terminal value catch-up
 --     interfaces sufficient by fuel induction on the observed target trace.
 --   * Packages all accumulated traces, worlds, types, and store equalities.
@@ -62,7 +63,11 @@ open import proof.NuDGGWeakResultPreservation using
   ; weak-result-target-store-wf
   ; weak-result-target-runtime
   )
+open import proof.NuDGGTerminalBackwardValueDef using
+  (BackwardTargetValueOrSourceBlameᵀ)
 open import proof.NuProgress using (runtime-value-no•)
+open import proof.NuImprecisionOneStepDef using
+  (WeakOneStepIndexedSimulationᵀ)
 open import proof.NuImprecisionSimulationCore using
   ( LeftCatchupIndexedResult
   ; WeakOneStepIndexedOutcome
@@ -91,6 +96,8 @@ open import proof.NuImprecisionSimulationCore using
   ; transportType
   ; weakIndexedResult
   )
+open import proof.NuImprecisionValueCatchupDef using
+  (LeftValueCatchupᵀ)
 
 
 normalize-empty-runtime-context :
@@ -239,60 +246,11 @@ prepend-weak-related-valueᵀ
       V⊑V′
 
 
-backward-target-value-or-source-blame-general-from-componentsᵀ :
-  (one-step :
-    ∀ {Φ Δᴸ Δᴿ M M′ N′ A B}
-      {χ : StoreChange}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-    StoreWf Δᴿ (rightStoreⁱ ρ) →
-    RuntimeOK M →
-    RuntimeOK M′ →
-    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-      ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
-    M′ —→[ χ ] N′ →
-    WeakOneStepIndexedOutcome
-      {M = M} {N′ = N′} {χ = χ} {ρ = ρ} p) →
-  (target-value-catchup :
-    ∀ {Φ Δᴸ Δᴿ M V′ A B}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-    RuntimeOK M →
-    Value V′ →
-    No• V′ →
-    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-      ⊢ᴺ M ⊑ V′ ⦂ A ⊑ B ∶ p →
-    LeftCatchupIndexedResult {N = M} {V′ = V′} {ρ = ρ} p) →
-  ∀ {Φ Δᴸ Δᴿ M M′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-  StoreWf Δᴸ (leftStoreⁱ ρ) →
-  StoreWf Δᴿ (rightStoreⁱ ρ) →
-  RuntimeOK M →
-  RuntimeOK M′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
-  ∀ V′ χs′ →
-  M′ —↠[ χs′ ] V′ →
-  Value V′ →
-    (∃[ V ] (Σ[ χs ∈ StoreChanges ]
-    (∃[ Ψ ] (Σ[ ρ′ ∈
-        StoreImp Ψ
-          (applyTyCtxs χs Δᴸ) (applyTyCtxs χs′ Δᴿ) ]
-    (Σ[ q ∈
-        (Ψ ∣ applyTyCtxs χs Δᴸ
-          ⊢ applyTys χs A ⊑ applyTys χs′ B
-          ⊣ applyTyCtxs χs′ Δᴿ) ]
-      ((M —↠[ χs ] V) ×
-       Value V ×
-       (leftStoreⁱ ρ′ ≡ applyStores χs (leftStoreⁱ ρ)) ×
-       (rightStoreⁱ ρ′ ≡ applyStores χs′ (rightStoreⁱ ρ)) ×
-       Ψ ∣ applyTyCtxs χs Δᴸ
-         ∣ applyTyCtxs χs′ Δᴿ ∣ ρ′ ∣ []
-         ⊢ᴺ V ⊑ V′
-         ⦂ applyTys χs A ⊑ applyTys χs′ B ∶ q)))))
-    ⊎ (∃[ χs ] (M —↠[ χs ] blame)))
-backward-target-value-or-source-blame-general-from-componentsᵀ
+backward-target-value-or-source-blame-proofᵀ :
+  WeakOneStepIndexedSimulationᵀ →
+  LeftValueCatchupᵀ →
+  BackwardTargetValueOrSourceBlameᵀ
+backward-target-value-or-source-blame-proofᵀ
     one-step target-value-catchup wfL wfR okM okM′ M⊑M′
     V′ χs′ M′↠V′ vV′ =
   go (length χs′) wfL wfR okM okM′ M⊑M′

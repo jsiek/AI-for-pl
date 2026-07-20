@@ -15,6 +15,7 @@ import proof.NuDGGTerminalBackwardValueProof
 import proof.NuImprecisionOneStepDef
 import proof.NuImprecisionValueCatchupDef
 import proof.NuImprecisionSimulationResultDef
+import proof.NuImprecisionWorldCoherenceDef
 import proof.NuDGGTraceAlignment
 import proof.NuDGGTraceMeasure
 import proof.NuDGGWeakResultPreservation
@@ -26,6 +27,7 @@ import proof.NuImprecisionOneStepPrimitiveFrames
 import proof.NuImprecisionOneStepPrimitiveLeaves
 import proof.NuImprecisionOneStepApplicationRoots
 import proof.NuImprecisionOneStepTargetBlameRoots
+import proof.NuImprecisionAtomicTargetReindex
 import proof.NuImprecisionOneStepTargetCastFrames
 import proof.NuImprecisionOneStepTargetConversionFrames
 import proof.NuImprecisionQuotientInstView

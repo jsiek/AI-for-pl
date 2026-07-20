@@ -9,7 +9,7 @@ module proof.NuImprecisionOneStepTargetConversionRoots where
 --     module.
 --   * Each helper owns exhaustive inversion of the corresponding ordinary
 --     conversion redex while preserving the explicit result index q.
---   * Contains exactly two intended hard-proof holes.
+--   * Contains one intended hard-proof hole for reveal-unseal cancellation.
 
 open import Conversion using
   ( ConcealConversion
@@ -38,8 +38,12 @@ open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import Types using (Atom; ＇_; ‵_; ★)
 open import proof.NuPreservation using (runtime-⟨⟩)
-open import proof.NuImprecisionSimulationCore using
+open import proof.NuImprecisionSimulationResultDef using
   (WeakOneStepIndexedOutcome)
+open import proof.NuImprecisionSimulationCore using
+  (weak-one-step-indexed-outcome-relatedᵀ)
+open import proof.NuImprecisionAtomicTargetReindex using
+  (atomic-target-value-reindexᵀ)
 open import proof.NuImprecisionOneStepTargetBlameRoots using
   (weak-one-step-target-blame-indexed-outcomeᵀ)
 
@@ -57,7 +61,10 @@ weak-one-step-target-atomic-identity-root-outcomeᵀ :
   Value V →
   WeakOneStepIndexedOutcome
     {M = M} {N′ = V} {χ = keep} {ρ = ρ} q
-weak-one-step-target-atomic-identity-root-outcomeᵀ = {!!}
+weak-one-step-target-atomic-identity-root-outcomeᵀ
+    atom okM okV M⊑V q vV =
+  weak-one-step-indexed-outcome-relatedᵀ
+    (atomic-target-value-reindexᵀ atom vV M⊑V q)
 
 
 weak-one-step-target-reveal-conversion-root-outcomeᵀ :

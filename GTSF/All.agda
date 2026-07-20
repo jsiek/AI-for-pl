@@ -44,6 +44,7 @@ import proof.EndpointCanonicalMLBSimpleFactorization
 import proof.EndpointCanonicalMLBSimpleFactorCounterexample
 import proof.QuotientedTermImprecisionTest
 import proof.NuImprecisionSimulationResultDef
+import proof.NuImprecisionWorldCoherenceDef
 import proof.NuImprecisionSimulationCore
 import proof.NuImprecisionSimulation
 import proof.NuImprecisionCatchupScratch
@@ -55,6 +56,7 @@ import proof.NuImprecisionOneStepPrimitiveFrames
 import proof.NuImprecisionOneStepPrimitiveLeaves
 import proof.NuImprecisionOneStepApplicationRoots
 import proof.NuImprecisionOneStepTargetBlameRoots
+import proof.NuImprecisionAtomicTargetReindex
 import proof.NuImprecisionOneStepTargetCastFrames
 import proof.NuImprecisionOneStepTargetConversionFrames
 import proof.NuImprecisionOneStepTargetCastRoots

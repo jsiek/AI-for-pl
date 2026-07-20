@@ -1,0 +1,4 @@
+name: standard-library
+include: /home/jsiek/.local/opt/agda-stdlib-2.1.1/src
+flags:
+  --warning=noUnsupportedIndexedMatch

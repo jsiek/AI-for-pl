@@ -46,10 +46,16 @@ import proof.QuotientedTermImprecisionTest
 import proof.NuImprecisionSimulationCore
 import proof.NuImprecisionSimulation
 import proof.NuImprecisionCatchupScratch
+import proof.NuImprecisionTargetBlameCatchup
 import proof.NuImprecisionAllocationSimulation
 import proof.NuReductionDeterminism
 import proof.NuDGGTraceAlignment
 import proof.NuDGGSpine
+import proof.NuDGGStrictSpine
+import proof.NuDGGTerminalBackwardBlameAssembly
+import proof.NuDGGTerminalBackwardBlameIntegration
+import proof.NuDGGTerminalSkeleton
+import proof.NuDGGWeakResultPreservation
 import proof.MaximalLowerBoundsWf
 import StoreCorrespondence
 import NuTerms

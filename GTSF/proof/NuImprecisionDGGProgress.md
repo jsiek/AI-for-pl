@@ -11,11 +11,12 @@ Agda declaration yet. Historical log entries use **checked** as a synonym for
 ## Current objective
 
 Complete the arbitrary-type source catch-up and the target-step dispatcher,
-then use them to prove the two backward terminal clauses. In parallel, the
-forward terminal clause still requires a source-oriented one-step simulation
-and a target catch-up theorem for the case where the source is already a value.
-Those three terminal clauses feed the already checked reduction to
-`ClosedNuDGG` and then to the public `GradualDGG`.
+then plug them into the now-completed backward-blame trace assembly and build
+the analogous backward-value assembly. In parallel, the forward terminal
+clause still requires a source-oriented one-step simulation and a target
+catch-up theorem for the case where the source is already a value. Those three
+terminal clauses feed the already checked reduction to `ClosedNuDGG` and then
+to the public `GradualDGG`.
 
 ## Coverage ledger
 
@@ -32,7 +33,7 @@ Those three terminal clauses feed the already checked reduction to
 | Paired conceal `β-∀•` | checked through allocation | Same theorem handles both paired conversion forms |
 | One-sided reveal/conceal `β-∀•` | checked | Left/right reveal and conceal lemmas |
 | Generic narrowing/widening `β-∀•` | checked one-step boundary | Both constructor orders and all four combinations return `WeakOneStepResult` |
-| Source-only canonical-`∀` catchup | partial | Now a specialization of arbitrary-type value catchup; ten explicit holes remain, all in `NuImprecisionCatchupScratch`: two quotient-`inst` residuals, three source-allocation leaves, and five source cast/conversion leaves |
+| Source-only canonical-`∀` catchup | partial | Ten explicit holes remain in `NuImprecisionCatchupScratch`; the upstream quotient-value pattern and inference regression is repaired and strictly checked |
 | `β-gen•` | partial | Matched reconstruction and one-sided administrative clause checked; source-allocation naturality remains |
 | `β-inst` followed by `ν ★` allocation | checked locally | Matched, left-only, and right-only two-step lemmas |
 | Polymorphic value-shape inversion | checked locally | `Λ`, `∀` cast, or `gen`; each forces one administrative step |
@@ -44,9 +45,12 @@ Those three terminal clauses feed the already checked reduction to
 | Administrative simulation-up-to | partial | The result, transport, coherence, source-`keep` composition, and all six `ν`-frame outcome maps are checked; the unfinished integration is confined to the dispatcher scratch |
 | One-step Nu-imprecision simulation | partial | The dispatcher skeleton covers blame and the matched/source-only/target-only `ν` and `ν ★` families; ten explicit helper holes remain, and the non-`ν` constructor/reduction patterns are not yet enumerated |
 | Terminal target-trace alignment | checked | Determinism makes every administrative `targetTail` a prefix of an observed trace to a value or blame |
-| Forward source-value terminal clause | not yet started | Its statement is an anonymous premise of `closed-nu-terminal-simulation⇒closed-nu-dgg`; it needs a source-oriented dispatcher and target-side value catch-up |
-| Backward target-value-or-source-blame clause | not yet started | Its statement is an anonymous premise of `closed-nu-terminal-simulation⇒closed-nu-dgg`; arbitrary-value catch-up and the target dispatcher are partial |
-| Backward target-blame clause | not yet started | Its statement is an anonymous premise of `closed-nu-terminal-simulation⇒closed-nu-dgg`; target-trace alignment is checked, but the zero-step blame catch-up and trace induction are unwritten |
+| Forward source-value terminal clause | partial | Its exact named statement is checked in `NuDGGTerminalForward`; the proof still needs a source-oriented dispatcher and target-side value catch-up |
+| Backward target-value-or-source-blame clause | partial | Its exact named statement is checked in `NuDGGTerminalBackwardValue`; arbitrary-value catch-up and the target dispatcher are partial, and the trace induction is unwritten |
+| Backward target-blame clause | partial | Its exact named statement is checked in `NuDGGTerminalBackwardBlame`; target-trace alignment and the higher-order trace induction are checked, while zero-step blame catch-up and the live target dispatcher remain partial |
+| Residual target-trace measure | completed | `aligned-residual-shorter` proves that the aligned residual after a distinguished target step is strictly shorter |
+| Multi-step store well-formedness | completed | `multi-store-preservation` packages the store invariant across a complete Nu trace |
+| Named terminal components compose to `GradualDGG` | completed interface check | `dynamic-gradual-guarantee-skeleton` supplies the three named boundaries to the checked strict wrapper |
 | Three terminal clauses imply `ClosedNuDGG` | checked | `closed-nu-terminal-simulation⇒closed-nu-dgg` is hole-free |
 | Closed `GradualDGG` | checked reduction | `closed-nu-dgg⇒gradual-dgg` reduces it to `ClosedNuDGG`, which now follows from exactly three terminal simulation clauses |
 
@@ -55,13 +59,13 @@ Those three terminal clauses feed the already checked reduction to
 ### Checked outer spine
 
 The public input relation is compiled to the closed runtime relation by
-[`compiled-term-imprecision`](NuDGGSpine.agda#L76). The runtime theorem to be
-proved is [`ClosedNuDGG`](NuDGGSpine.agda#L243). Its four observable clauses
+[`compiled-term-imprecision`](NuDGGSpine.agda#L77). The runtime theorem to be
+proved is [`ClosedNuDGG`](NuDGGSpine.agda#L235). Its four observable clauses
 are forward termination, forward divergence, backward termination-or-blame,
 and backward divergence-or-blame.
 
 The checked theorem
-[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L338) proves
+[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L330) proves
 that it is enough to supply only the following three terminal facts:
 
 1. if the source reaches a value, the target reaches a related value;
@@ -69,17 +73,17 @@ that it is enough to supply only the following three terminal facts:
 3. if the target reaches blame, the source reaches blame.
 
 It derives both divergence clauses by finite-prefix arguments. The checked
-theorem [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L408) then discharges the
+theorem [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L400) then discharges the
 public [`GradualDGG`](../DynamicGradualGuarantee.agda#L91).
 
 Status of this outer spine:
 
 | Step | Status | Checked declaration or remaining work |
 |---|---|---|
-| Compile public imprecision to closed Nu imprecision | completed | [`compiled-term-imprecision`](NuDGGSpine.agda#L76) |
-| Reduce the four observations in `ClosedNuDGG` to three terminal facts | completed | [`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L338) |
-| Reduce `GradualDGG` to `ClosedNuDGG` | completed | [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L408) |
-| Supply the three terminal facts | partial | The common one-step and catch-up infrastructure is substantial, but none of the three terminal facts has a named Agda proof yet |
+| Compile public imprecision to closed Nu imprecision | completed | [`compiled-term-imprecision`](NuDGGSpine.agda#L77) |
+| Reduce the four observations in `ClosedNuDGG` to three terminal facts | completed | [`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L330) |
+| Reduce `GradualDGG` to `ClosedNuDGG` | completed | [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L400) |
+| Supply the three terminal facts | partial | All three exact statements and arbitrary-world recursive forms are named in the terminal modules; their general proof bodies remain open |
 
 ### Common hypotheses and final related-value package
 
@@ -131,17 +135,19 @@ This is deliberately written out rather than hidden behind a new alias: the
 final store projections and transported type index are invariants that every
 trace-level proof must preserve.
 
-The names `ForwardSourceValue`, `BackwardTargetValueOrSourceBlame`, and
-`BackwardTargetBlame` below are expository labels for the three anonymous
-premises; they are not declarations currently present in the Agda source.
+The CamelCase names below remain expository labels.  Their exact Agda
+counterparts are [`forward-source-valueᵀ`](NuDGGTerminalForward.agda#L67),
+[`backward-target-value-or-source-blameᵀ`](NuDGGTerminalBackwardValue.agda#L68),
+and [`backward-target-blameᵀ`](NuDGGTerminalBackwardBlame.agda#L44).
 
 ## Terminal fact 1: `ForwardSourceValue`
 
 ### Statement
 
-This is the first anonymous premise of
-[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L343). Under
-the common hypotheses, it states
+This is the first premise of
+[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L330), now
+named [`forward-source-valueᵀ`](NuDGGTerminalForward.agda#L67). Under the
+common hypotheses, it states
 
 \[
 \begin{aligned}
@@ -161,9 +167,9 @@ the common hypotheses, it states
 | F2. Prove the source-oriented one-step cases | not yet started | Split on the source reduction and term-imprecision derivation. Reuse the checked matched, left-only, and right-only allocation/cast/frame lemmas where their polarity fits. The definition-sensitive `ν`, `ν ★`, `Λ`, `gen`, `inst`, and `•` cases should be proved before the ordinary congruence cases. |
 | F3. Prove target catch-up from a related source value | not yet started | From \(\operatorname{Value}(V)\) and \(V\sqsubseteq M'\), show that \(M'\) reduces to a value \(V'\) related to \(V\). This needs structural recursion over the relation and target administrative reductions, including target-only allocation and quotient-cast cases. |
 | F4. Rule out a source-blame alternative when the source is a value | completed | [`source-value-indexed-outcome-relatedᵀ`](NuImprecisionSimulationCore.agda#L1471) proves the required local outcome fact: an indexed weak outcome from a source value must be related, with zero source changes and the same source value. It constrains one target step; it does **not** by itself prove target termination. |
-| F5. Lift source one-step simulation over a source trace | not yet started | Induct on \(N\xRightarrow{\chi_s}V\). Compose the target traces and transported worlds after each source step; when the source trace is reflexive or reaches its final value, invoke F3. |
+| F5. Lift source one-step simulation over a source trace | partial | [`forward-source-value-generalᵀ`](NuDGGTerminalForward.agda#L36) freezes the required arbitrary-world conclusion and its closed specialization is checked. The trace induction body remains a hole. |
 | F6. Normalize composed changes and final store projections | partial | The weak result transport, type coherence, frame maps, and store-change composition infrastructure are checked. The forward trace-level composition theorem that packages the exact equalities required by the terminal statement is unwritten. |
-| F7. Package the terminal theorem | not yet started | Return \(V',\chi_t,\Phi,\rho,q\), the target value trace, both store-projection equalities, and the final transported term relation. |
+| F7. Package the terminal theorem | partial | The exact full package is frozen in [`forward-source-value-generalᵀ`](NuDGGTerminalForward.agda#L36), and the closed theorem is a checked specialization. Constructing its witnesses in the general proof remains. |
 
 The essential missing fact is not another use of the target-oriented dispatcher.
 That dispatcher allows target administrative work while the source takes zero
@@ -175,9 +181,11 @@ source trace; F3 closes the remaining target administrative tail.
 
 ### Statement
 
-This is the second anonymous premise of
-[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L360). Under
-the common hypotheses, it states
+This is the second premise of
+[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L330), now
+named
+[`backward-target-value-or-source-blameᵀ`](NuDGGTerminalBackwardValue.agda#L68).
+Under the common hypotheses, it states
 
 \[
 \begin{aligned}
@@ -198,16 +206,16 @@ the common hypotheses, it states
 | Step | Status | Proof obligation and available evidence |
 |---|---|---|
 | B1. Catch up a source related to an already terminal target value | partial | [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1045) has the required arbitrary-type interface: given `RuntimeOK N`, `Value V′`, `No• V′`, and \(N\sqsubseteq V'\), it returns an indexed source catch-up. Ten explicit holes remain in this proof. |
-| B2. Finish quotient-cast value classification | completed | [`left-catchup-indexed-final-quotient-valueᵀ`](NuImprecisionQuotientValue.agda#L1327) and [`left-catchup-indexed-final-quotientᵀ`](NuImprecisionQuotientValue.agda#L1385) are hole-free. They return either the final catch-up or the single reachable outer-`inst` residual trace. |
+| B2. Finish quotient-cast value classification | completed | The first GPT 5.5 ginger pilot supplied all four missing down/gen-down clauses for an untag-then-seal source sequence, then made the type and precision implicits explicit through the quotient helper chain. The exact wrapper command and a local strict focused check pass for [`NuImprecisionQuotientValue.agda`](NuImprecisionQuotientValue.agda). |
 | B3. Discharge the two quotient-`inst` residuals in B1 | partial | The residual alternative from B2 must be threaded through the outer down/up and gen-down/up catch-up functions. These are the holes at [`left-catchup-indexed-prefix-down-upᵀ`](NuImprecisionCatchupScratch.agda#L981) and [`left-catchup-indexed-prefix-gen-down-upᵀ`](NuImprecisionCatchupScratch.agda#L1043). |
 | B4. Discharge the remaining source allocation/cast leaves in B1 | partial | Eight holes remain in [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1045): the `α⊑ᵀ` residual, source-only `ν`, source-only `ν ★`, narrowing cast, widening cast, paired conversion, reveal, and conceal leaves. |
 | B5. Complete the target-oriented one-step dispatcher | partial | [`weak-one-step-indexed-simulationᵀ`](NuImprecisionCatchupScratch.agda#L1343) has the intended interface and checked blame plus matched/source-only/target-only `ν` and `ν ★` clauses. The non-`ν` term-relation/reduction combinations have not yet been enumerated; the module currently permits incomplete matches. |
 | B6. Forget the indexed wrapper when aligning an outcome | completed | [`forget-weak-indexed-outcome`](NuImprecisionSimulationCore.agda#L1583) converts the indexed outcome to the unindexed outcome consumed by the trace-alignment layer. |
 | B7. Align administrative target tails with the observed value trace | completed | [`weak-outcome-target-value-alignedᵀ`](NuDGGTraceAlignment.agda#L53), using [`target-tail-prefix-value`](NuReductionDeterminism.agda#L199), returns either an immediate source-blame trace or a residual target trace from the related result, together with \(\psi=\operatorname{targetTailChanges}(R)\mathbin{++}\theta\). |
-| B8. Maintain runtime, typing, and store well-formedness | partial | One-step [`store-preservation`](NuPreservation.agda#L802), [`multi-preservation`](NuPreservation.agda#L882), and [`multi-runtime-preservation`](NuPreservation.agda#L897) are completed. The terminal induction still needs to package the iterated store-well-formedness fact at each recursive call. |
-| B9. Prove the target-trace terminal induction | not yet started | Use well-founded induction on the length of the observed target trace. The reflexive case invokes B1 after deriving `No• V′` from the runtime value. The step case invokes B5, finishes immediately on a source-blame outcome, and otherwise uses B6–B7 to recurse on the strictly shorter aligned residual trace. |
+| B8. Maintain runtime, typing, and store well-formedness | completed | One-step [`store-preservation`](NuPreservation.agda#L802), [`multi-preservation`](NuPreservation.agda#L882), [`multi-runtime-preservation`](NuPreservation.agda#L897), and [`multi-store-preservation`](NuDGGPreservation.agda#L27) are completed. The four result-level projections are checked in [`NuDGGWeakResultPreservation.agda`](NuDGGWeakResultPreservation.agda). |
+| B9. Prove the target-trace terminal induction | partial | [`backward-target-value-or-source-blame-generalᵀ`](NuDGGTerminalBackwardValue.agda#L36) freezes the arbitrary-world recursive conclusion and its closed specialization is checked. The well-founded induction body remains a hole. |
 | B10. Compose source traces and transported worlds | partial | Prefix/store-change composition support is checked, including [`left-catchup-indexed-prepend-keepᵀ`](NuImprecisionCatchupComposition.agda#L153). The exact trace-level assembly for repeated weak outcomes and the final five witnesses remains unwritten. |
-| B11. Package the terminal theorem | not yet started | Return either the full related-value witnesses or the accumulated source trace to blame. |
+| B11. Package the terminal theorem | partial | The exact alternatives and all witnesses are frozen in [`backward-target-value-or-source-blame-generalᵀ`](NuDGGTerminalBackwardValue.agda#L36), and the closed theorem is a checked specialization. Constructing those witnesses in the trace proof remains. |
 
 The induction should be on target-trace length, not directly on the syntactic
 multi-step proof. A weak outcome can consume the distinguished target step and
@@ -219,8 +227,9 @@ the induction hypothesis applies.
 
 ### Statement
 
-This is the third anonymous premise of
-[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L379). Under
+This is the third premise of
+[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L330), now
+named [`backward-target-blameᵀ`](NuDGGTerminalBackwardBlame.agda#L44). Under
 the common hypotheses, it states
 
 \[
@@ -233,12 +242,12 @@ the common hypotheses, it states
 
 | Step | Status | Proof obligation and available evidence |
 |---|---|---|
-| C1. Prove zero-step catch-up against target blame | not yet started | Prove directly that if `RuntimeOK M` and \(M\sqsubseteq\operatorname{blame}\), then \(\exists\chi_s.\ M\xRightarrow{\chi_s}\operatorname{blame}\). This must be a reduction theorem, not merely an inversion to \(M=\operatorname{blame}\), because source casts, `ν`/`ν ★` frames, and bullet-related administrative forms can surround blame. |
+| C1. Prove zero-step catch-up against target blame | partial | [`left-catchup-target-blameᵀ`](NuImprecisionTargetBlameCatchup.agda#L24) freezes the exact arbitrary-world statement. Its structural proof remains. This must be a reduction theorem, not merely an inversion to \(M=\operatorname{blame}\), because source casts, `ν`/`ν ★` frames, and bullet-related administrative forms can surround blame. |
 | C2. Complete the target-oriented one-step dispatcher | partial | Reuse B5. Its exceptional outcome already carries the required source trace to blame. |
 | C3. Align administrative target tails with the observed blame trace | completed | [`weak-outcome-target-blame-alignedᵀ`](NuDGGTraceAlignment.agda#L75), using [`target-tail-prefix-blame`](NuReductionDeterminism.agda#L220), returns either source blame immediately or a residual target trace ending in blame with the exact change-list equation. |
-| C4. Prove the target-blame trace induction | not yet started | Use well-founded induction on target-trace length. The reflexive case invokes C1. The step case applies C2; an exceptional outcome is done, while a related outcome is aligned by C3 and recursed on. |
-| C5. Compose accumulated source traces | partial | Existing weak-result and store-change composition lemmas provide most local equations, but the complete recursive trace composer is unwritten. |
-| C6. Package the terminal theorem | not yet started | Return the accumulated source changes and source trace to blame. |
+| C4. Prove the target-blame trace induction | completed assembly and live fit check | [`backward-target-blame-general-from-componentsᵀ`](NuDGGTerminalBackwardBlameAssembly.agda#L103) proves the higher-order trace theorem from the dispatcher and blame catch-up. It uses fuel, target-tail alignment, [`aligned-residual-shorter`](NuDGGTraceMeasure.agda#L26), the four checked weak-result preservation facts, and source-trace composition. [`backward-target-blame-general-integratedᵀ`](NuDGGTerminalBackwardBlameIntegration.agda#L32) checks that the live partial implementations have exactly those argument types. That consumer check exposed and repaired an accidental use of the superseded term-imprecision judgment in C1. |
+| C5. Compose accumulated source traces | completed | The assembly prepends each `sourceCatchup` with `↠-trans` and concatenates its `sourceChanges` with the recursive blame trace. |
+| C6. Package the terminal theorem | partial | The exact existential trace is frozen in [`backward-target-blame-generalᵀ`](NuDGGTerminalBackwardBlame.agda#L28), and the closed theorem is a checked specialization. The assembly and live interface fit are complete; after C1 and C2 become hole-free, this theorem can be defined by the checked assembly application. |
 
 C1 may be implemented as its own structural theorem or as the blame branch of a
 single generalized left catch-up theorem whose target is terminal (value or
@@ -249,32 +258,227 @@ the explicit source trace required by the terminal statement.
 
 The shortest current path to visible terminal progress is:
 
-1. **Partial:** close the two quotient-`inst` residuals in
+1. **Completed:** repair and strictly check the quotient-value patterns and
+   inference in
+   [`NuImprecisionQuotientValue.agda`](NuImprecisionQuotientValue.agda).
+2. **Partial:** close the two quotient-`inst` residuals in
    [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda#L981).
-2. **Partial:** close the remaining eight leaves of
+3. **Partial:** close the remaining eight leaves of
    [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1045).
-3. **Partial:** enumerate and prove every non-`ν` case of
+4. **Partial:** enumerate and prove every non-`ν` case of
    [`weak-one-step-indexed-simulationᵀ`](NuImprecisionCatchupScratch.agda#L1343),
    then remove incomplete-pattern acceptance.
-4. **Not yet started:** prove the backward target-value terminal induction B9
-   and package B11.
-5. **Not yet started:** prove zero-step target-blame catch-up C1, then the
-   target-blame induction C4 and package C6.
-6. **Not yet started:** introduce the source-oriented one-step theorem F1–F2
+5. **Partial:** fill the checked `backward-target-value-or-source-blameᵀ`
+   statement by proving the terminal induction B9 and packaging B11.
+6. **Partial:** finish zero-step target-blame catch-up C1 and the dispatcher C2,
+   then package `backward-target-blameᵀ` with the completed C4 assembly and
+   its checked live adapter.
+7. **Not yet started:** introduce the source-oriented one-step theorem F1–F2
    and the target-side value catch-up F3.
-7. **Not yet started:** lift those results across the source trace and package
-   the forward terminal theorem F5–F7.
-8. **Not yet started:** instantiate the already completed outer-spine theorems:
-   pass the three facts to
-   [`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L338) and
-   then pass the result to
-   [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L408).
+8. **Partial:** fill the checked `forward-source-valueᵀ` statement by lifting
+   those results across the source trace and packaging F5–F7.
+9. **Completed interface check:**
+   [`terminal-components⇒gradual-dgg`](NuDGGTerminal.agda#L38) accepts the
+   three proofs separately, and
+   [`dynamic-gradual-guarantee-skeleton`](NuDGGTerminalSkeleton.agda#L17)
+   checks their end-to-end fit.  The imported terminal bodies remain partial.
 
 The backward value theorem is the best first trace-level target because its two
 largest prerequisites already exist as partial checked declarations. The
 forward theorem is structurally separate work: completing the target-oriented
 dispatcher does not remove the need for its source-oriented mirror and its
 value catch-up base.
+
+## Interface freeze and ginger execution plan
+
+### Two-layer skeleton
+
+The skeleton is split into an interface layer and an implementation layer.
+The interface layer is developed and reviewed with GPT 5.6 before proof cases
+are delegated:
+
+| File | Status | Role |
+|---|---|---|
+| [`NuDGGTerminal.agda`](NuDGGTerminal.agda) | completed | Strict wrapper with the three full terminal statements as separate arguments; produces `GradualDGG` |
+| [`NuDGGTerminalForward.agda`](NuDGGTerminalForward.agda) | partial | Owns the exact `forward-source-valueᵀ` statement and its eventual proof |
+| [`NuDGGTerminalBackwardValue.agda`](NuDGGTerminalBackwardValue.agda) | partial | Owns the exact `backward-target-value-or-source-blameᵀ` statement and its eventual proof |
+| [`NuDGGTerminalBackwardBlame.agda`](NuDGGTerminalBackwardBlame.agda) | partial | Owns the exact `backward-target-blameᵀ` statement and its eventual proof |
+| [`NuDGGTerminalSkeleton.agda`](NuDGGTerminalSkeleton.agda) | completed interface check | Supplies the three named boundaries to the strict wrapper and therefore checks the path to `GradualDGG` |
+| [`NuDGGTraceMeasure.agda`](NuDGGTraceMeasure.agda) | completed | Supplies the decreasing measure for target-terminal induction |
+| [`NuDGGPreservation.agda`](NuDGGPreservation.agda) | completed | Supplies multi-step store well-formedness |
+| [`NuDGGWeakResultPreservation.agda`](NuDGGWeakResultPreservation.agda) | completed | Four result-level runtime/store preservation lemmas, completed by the second GPT 5.5 ginger slice and rechecked locally against the shared multi-step store theorem |
+| [`NuDGGTerminalBackwardBlameAssembly.agda`](NuDGGTerminalBackwardBlameAssembly.agda) | completed | Hole-free fuel induction proving that the frozen target-step and blame-catch-up interfaces suffice for the arbitrary-world backward-blame terminal theorem |
+| [`NuDGGTerminalBackwardBlameIntegration.agda`](NuDGGTerminalBackwardBlameIntegration.agda) | completed live interface check | Instantiates the strict assembly with the live dispatcher and target-blame catch-up declarations; the focused consumer check passes, although those imported leaf bodies remain partial |
+| [`NuDGGStrictSpine.agda`](NuDGGStrictSpine.agda) | completed check target; milestone run pending | Strict aggregate that deliberately excludes all partial proof modules; its first clean-room rebuild was stopped after the checking-cost policy changed |
+
+The three terminal modules now also state their arbitrary-world recursive
+theorems.  Each theorem quantifies over the initial imprecision world, both
+store typings, both runtime invariants, and the transported type index; its
+conclusion exposes final store projections relative to the initial stores.
+The closed terminal theorem in each file is already a checked specialization
+of that general statement.
+
+The backward-blame member of the next interface layer is complete: its strict,
+higher-order trace assembly takes the major leaf simulations as arguments and
+proves the terminal trace induction without postulates.  The same pattern
+should next be applied to backward target-value-or-source-blame.  This checks
+that leaf interfaces carry enough world, store, runtime, and type-action
+evidence before the leaf cases are completed.
+
+The implementation layer will eventually have the following stable module
+boundaries:
+
+| Planned module | Major proof boundary | Model assignment |
+|---|---|---|
+| `NuImprecisionValueCatchup.agda` | Promote `left-catchup-indexed-prefixᵀ` after its ten holes close | GPT 5.6 for quotient/allocation/cast leaves |
+| `NuImprecisionTargetStep.agda` | Promote the exhaustive target-oriented dispatcher | GPT 5.6 integration; GPT 5.5 for frozen simple case helpers |
+| [`NuImprecisionTargetBlameCatchup.agda`](NuImprecisionTargetBlameCatchup.agda) | Exact `left-catchup-target-blameᵀ` statement is checked; structural proof remains | GPT 5.6 design; GPT 5.5 for simple constructor helpers |
+| `NuImprecisionSourceStep.agda` | Source-oriented one-step simulation | GPT 5.6 |
+| `NuImprecisionRightValueCatchup.agda` | Target catch-up from an already valuable source | GPT 5.6 design; GPT 5.5 for frozen simple cases |
+
+The live declarations remain in `NuImprecisionCatchupScratch` until they are
+hole-free.  Promotion moves the canonical declaration and deletes the obsolete
+scratch copy; it does not introduce a compatibility alias.
+
+### Tiered checking lanes
+
+Use the smallest check that can detect the expected class of error:
+
+1. **Per edit and per worker:** check only the owned module with
+   `agda --no-allow-unsolved-metas -v0 proof/<OwnedModule>.agda`.  During
+   deliberate statement-only scaffolding, use the ordinary targeted command
+   and keep `--allow-unsolved-metas` explicit in that partial module.
+2. **Per integration batch:** check the nearest focused consumer, such as one
+   terminal theorem module, `NuDGGTerminalBackwardBlameIntegration`, or
+   `NuDGGTerminalSkeleton`.  Batch several independent worker results before
+   paying this cost.  Treat a consumer as high-cost if a clean dependency
+   rebuild dominates its nominally small source file.
+3. **At interface freezes and proof milestones only:** check
+   `NuDGGStrictSpine`, followed by `All.agda` when broad compatibility is
+   warranted.  These are not per-commit or per-worker commands.
+
+`NuDGGStrictSpine` imports only hole-free modules.  `NuDGGTerminalSkeleton` is
+the exploratory end-to-end fit check and imports the three explicitly partial
+terminal modules.  `All.agda` remains the broad compatibility check, but is
+not by itself a strict completion certificate while it imports active scratch
+modules.
+
+A completed worker slice may not contain holes, postulates, incomplete
+matches, or new foundational definitions.  Its default validation stops after
+the targeted owned-module check; the GPT 5.6 integrator owns the focused and
+full checks.
+
+### Agda modularity and checking-cost policy
+
+Parameterized modules are useful for organizing a family of results that all
+assume the same proof capabilities, but they are not a separate interface
+compilation mechanism.  Agda abstracts module parameters over every exported
+definition; applying the module creates definitions that apply those
+parameters.  Thus, for the single backward-blame theorem, the explicit
+`one-step` and `target-blame-catchup` arguments of
+[`backward-target-blame-general-from-componentsᵀ`](NuDGGTerminalBackwardBlameAssembly.agda#L103)
+already provide essentially the same elaborated boundary.  Convert an assembly
+to a parameterized module only when several definitions share the capability
+telescope and the namespace improves readability.
+
+The important compilation boundary is the source file.  Agda stores checked
+case trees and resolved implicits in `.agdai` interface files and loads an
+external module through that interface.  Consequently, use this dependency
+shape:
+
+1. Put stable result datatypes, projections, and theorem input types in small
+   strict `Core` modules.
+2. Put the higher-order trace assembly in a strict module that imports only
+   those stable cores and accepts unfinished leaf theorems as arguments.
+3. Keep each changing leaf proof in its own implementation module; do not make
+   unrelated workers import the large dispatcher scratch file.
+4. Use one tiny `Integration` module to apply live leaves to the assembly, and
+   check it only at an integration milestone.
+5. Once a large proof is complete, consider putting its definition in an
+   `opaque` block if no client relies on its definitional reduction.  Agda 2.7
+   documents opacity specifically as a way to control unfolding for
+   performance.  Apply this selectively and recheck the nearest consumer,
+   because an equality proof that closes by reduction may need an explicit
+   `unfolding` clause instead.
+
+The completed backward-blame assembly already has the first four parts of this
+shape.  The cold live consumer took several minutes because it had to rebuild
+the changing scratch dependency; after interfaces were cached, repairing the
+wrong relation import and rechecking the same consumer took about five seconds.
+This is evidence that module application is not the current bottleneck.
+
+Before changing proof architecture for performance, collect one cold profile
+at the relevant milestone:
+
+    agda --profile=modules -v0 proof/<FocusedConsumer>.agda
+
+If one owned module dominates, profile its definitions separately:
+
+    agda --profile=definitions -v0 proof/<OwnedModule>.agda
+
+Do not profile `All.agda` by default.  Preserve the resulting module and
+definition timings in this log, then optimize the measured boundary.  Keep
+Agda's default interface caching and default projection-like optimization
+enabled; do not use the interface-ignoring debug flags in ordinary work.
+
+Primary Agda references: the
+[2.7 module-system description](https://agda.readthedocs.io/en/v2.7.0/language/module-system.html),
+[interface-file description](https://agda.readthedocs.io/en/stable/tools/interface-files.html),
+[2.7 opaque-definition description](https://agda.readthedocs.io/en/v2.7.0/language/opaque-definitions.html),
+and [2.7.0.1 profiling options](https://agda.readthedocs.io/en/v2.7.0.1/tools/command-line-options.html#profiling-and-debugging-options).
+
+On ginger, replace the bare `agda` above with the repository wrapper:
+
+    scripts/agda-ginger --no-allow-unsolved-metas -v0 proof/<OwnedModule>.agda
+
+The canonical operational instructions, paths, checking tiers, and
+troubleshooting guide are in
+[`scripts/GINGER_AGDA.md`](../../scripts/GINGER_AGDA.md).  Keep that guide in
+sync if either installed path or the worker workflow changes.
+
+The wrapper changes to `GTSF/` itself, pins
+`/home/jsiek/.local/opt/Agda-v2.7.0.1`, and sets `Agda_datadir` to that
+installation's `data` directory.  It also sets `AGDA_DIR` to the checked-in
+`scripts/agda-ginger-config`, whose local library descriptor points at the
+adjacent stdlib source.  Agda therefore stores any refreshed stdlib interfaces
+inside the worktree rather than the read-only installation.  This avoids the
+executable's stale compiled-in Cabal data path, dependence on per-user library
+registration, and per-worker copies of the standard-library source.  The
+executable prefix can be overridden with `GINGER_AGDA_PREFIX`; update the
+small local library descriptor if the stdlib installation moves.
+
+### Ginger work-package contract
+
+The remote repository is `/home/jsiek/src/AI-for-pl` on
+`ginger.luddy.indiana.edu`.  Each GPT 5.5 worker receives a separate worktree and a
+branch based on one frozen interface commit.  Each work package records:
+
+1. the exact theorem statement and base commit;
+2. one owned file or a nonoverlapping helper module;
+3. allowed imports and explicit forbidden API/definition changes;
+4. the cheap owned-module validation command; focused and full aggregate
+   checks are assigned to the GPT 5.6 integrator, not every worker;
+5. the rule that any required interface change is reported rather than made;
+6. a final summary of remaining holes, which must be zero for integration.
+
+Begin with two workers.  The first tasks should be short, mechanical case
+families whose helper signatures have already been checked by the GPT 5.6
+trace skeleton.  Scale the worker count only after both pilot branches
+integrate without interface repair.  Quotient recursion, allocation-world
+permutations, dependent transports, termination architecture, and dispatcher
+integration stay with GPT 5.6 here.
+
+Bootstrap status on 2026-07-20: the corrected host is reachable, the tracked
+checkout is clean on `main`, Agda 2.7.0.1 and standard library 2.1.1 are under
+`/home/jsiek/.local/opt`, Codex CLI 0.144.6 is installed, and the model catalog
+exposes the exact slug `gpt-5.5`.  The first worker ran in an isolated worktree
+on branch `codex/ginger-dgg-quotient-seal-cases` and repaired the four missing
+quotient pattern clauses plus their ambiguous inference boundary.  Its first
+validation attempt exposed the stale compiled-in Agda data path and a sandbox
+attempt to refresh installed stdlib interfaces; `scripts/agda-ginger` now makes
+the runtime path explicit and redirects Agda's application/library cache into
+the worktree for every future worker.  Do not change GitHub authentication as
+part of this bootstrap.
 
 ## Definition audit
 
@@ -5220,3 +5424,86 @@ allocation/permutation helper and prepend the checked `keep, bind \star`
 trace.  After those focused clauses, enumerate the missing non-`ν` patterns of
 `weak-one-step-indexed-simulationᵀ` and connect each written helper to the main
 dispatcher before claiming total one-step coverage.
+
+### 2026-07-20: terminal interfaces and low-cost checking lanes
+
+- Added separate partial modules for the three named terminal facts:
+  `forward-source-valueᵀ`,
+  `backward-target-value-or-source-blameᵀ`, and
+  `backward-target-blameᵀ`.  Their full statements type-check and the
+  hole-free `NuDGGTerminal` wrapper accepts them as separate arguments before
+  invoking the checked `ClosedNuDGG` and public `GradualDGG` spine.
+
+- Added arbitrary-world versions of all three statements.  This records the
+  invariant exposed by the first top-down audit: recursive terminal simulation
+  cannot remain at the closed theorem type after a target or source step,
+  because the imprecision world, both stores, both type contexts, and the type
+  index have changed.  Each closed terminal theorem is now a checked
+  specialization of its arbitrary-world statement; only the general proof
+  body remains open.
+
+- Added the checked base statement
+  `left-catchup-target-blameᵀ`.  It requires `RuntimeOK` and an arbitrary-world
+  relation to target `blame`, and returns an explicit source trace to blame.
+  Its structural proof remains open.
+
+- Added two hole-free terminal-trace support modules:
+  `aligned-residual-shorter` proves the residual trace from deterministic
+  target-tail alignment is strictly shorter than the original stepped trace,
+  and `multi-store-preservation` propagates `StoreWf` through a full Nu trace.
+
+- Added `NuDGGStrictSpine`, which excludes all partial terminal and catch-up
+  modules.  Checking is now explicitly tiered: owned modules after each edit,
+  focused terminal consumers after integration batches, and the strict spine
+  plus `All.agda` only at interface freezes or major proof milestones.  A
+  multi-minute strict aggregate rebuild was stopped once this policy was
+  adopted; it is not part of the per-slice loop.
+
+- Bootstrapped the remote machine at `ginger.luddy.indiana.edu`.  The clean
+  tracked checkout is `/home/jsiek/src/AI-for-pl` on `main`; Agda 2.7.0.1,
+  standard library 2.1.1, Codex CLI 0.144.6, and the exact model slug
+  `gpt-5.5` are verified.  The executable's compiled-in Cabal data directory
+  is stale, so added `scripts/agda-ginger` to pin both the working Agda data
+  directory and a repository-owned Agda application directory.  The latter
+  points at the adjacent stdlib source while keeping refreshed interfaces in
+  the worktree.  Future ginger work packages use that wrapper and never invoke
+  the bare executable, mutate the installed stdlib, or copy its source tree.
+
+- Ran the first isolated GPT 5.5 pilot on
+  `codex/ginger-dgg-quotient-seal-cases`.  It supplied the four exhaustive
+  down/gen-down clauses missing from the source untag-then-seal quotient
+  cases, then repaired the ambiguous type and precision implicits exposed by a
+  fresh build.  Both the exact ginger wrapper command and the local strict
+  owned-module check pass.
+
+- Completed the second isolated GPT 5.5 slice on
+  `codex/ginger-dgg-weak-preservation`.  It proved the four frozen weak-result
+  runtime/store facts by preserving across `sourceCatchup`, and across the
+  distinguished target step followed by `targetTail`.  The integrated local
+  version reuses `NuDGGPreservation.multi-store-preservation` instead of
+  duplicating it, and its focused strict check passes.
+
+- Completed the GPT 5.6 higher-order backward-blame assembly in
+  `NuDGGTerminalBackwardBlameAssembly`.  The proof is independent of the live
+  partial leaf implementations: it accepts their frozen interfaces, performs
+  fuel induction over the observed target trace, restores all recursive
+  invariants through `NuDGGWeakResultPreservation`, and composes the source
+  traces.  This integration pass also caught a missing `[]` import in
+  `NuDGGTraceMeasure`; the focused measure and assembly checks pass after that
+  repair.
+
+- Checked the live backward-blame consumer in
+  `NuDGGTerminalBackwardBlameIntegration`.  Its first run found that
+  `left-catchup-target-blameᵀ` had accidentally imported the old
+  `NuTermImprecision` judgment.  The statement now uses
+  `QuotientedTermImprecision`, and both the focused catch-up statement check
+  and the live assembly application pass.  This consumer is classified as an
+  integration-milestone check because a clean dependency rebuild is costly.
+
+### Next boundary
+
+Complete the arbitrary-source target-blame catch-up and the exhaustive
+target-step dispatcher at the exact interfaces accepted by
+`NuDGGTerminalBackwardBlameIntegration`.  In parallel at the architecture
+level, establish the analogous higher-order assembly for backward
+target-value-or-source-blame before delegating its easy leaf cases to ginger.

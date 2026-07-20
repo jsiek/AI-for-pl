@@ -430,12 +430,13 @@ left-catchup-indexed-one-keep-valueᵀ M→N vN noN N⊑V′ =
     }
 
 left-catchup-indexed-double-cast-blameᵀ :
-  ∀ {Φ Δᴸ Δᴿ V′ A B p d u}
+  ∀ {Φ Δᴸ Δᴿ V′ d u} {A B : T.Ty}
+    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ V′ ⦂ B →
   LeftCatchupIndexedResult
     {N = (blame ⟨ d ⟩) ⟨ u ⟩}
-    {V′ = V′} {ρ = ρ} p
+    {V′ = V′} {A = A} {B = B} {ρ = ρ} p
 left-catchup-indexed-double-cast-blameᵀ V′⊢ =
   left-indexed-catchup
     (weak-indexed-result result blame-relation)
@@ -476,11 +477,13 @@ left-catchup-indexed-double-cast-blameᵀ V′⊢ =
     }
 
 left-catchup-indexed-two-keep-to-blameᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A B p}
+  ∀ {Φ Δᴸ Δᴿ M V′} {A B : T.Ty}
+    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   M —↠[ keep ∷ keep ∷ [] ] blame →
   Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ V′ ⦂ B →
-  LeftCatchupIndexedResult {N = M} {V′ = V′} {ρ = ρ} p
+  LeftCatchupIndexedResult {N = M} {V′ = V′} {A = A} {B = B}
+    {ρ = ρ} p
 left-catchup-indexed-two-keep-to-blameᵀ M↠blame V′⊢ =
   left-indexed-catchup
     (weak-indexed-result result blame-relation)
@@ -814,6 +817,15 @@ target-inert-after-source-untag-sequence-impossible :
     ⦂ D ⊑ᵖ D′ ∶ qD) →
   ⊥
 target-inert-after-source-untag-sequence-impossible
+    inert-d′
+    down@(down⊑downᵀ
+      (C.cast-seq
+        (C.cast-untag hG gG⊢ ok)
+        (C.cast-seal hX α∈Σ seal-ok) ,
+        NW.strict-untag gG NW.︔seal α)
+      d′⊒ V⊑V′ qD) =
+  source-quotient-down-seal-tail-impossible down
+target-inert-after-source-untag-sequence-impossible
     {Δᴿ = Δᴿ} {ρ = ρ} inert-d′
     (down⊑downᵀ
       (C.cast-seq (C.cast-untag hG gG⊢ ok) g⊢ ,
@@ -857,6 +869,15 @@ target-inert-after-source-untag-sequence-impossible
       (λ X → C.id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
         ⊢ _ ∶ X ⊒ ★)
       (star-term-imprecision-target V⊑V′) d′⊒
+target-inert-after-source-untag-sequence-impossible
+    inert-d′
+    down@(gen-down⊑gen-downᵀ
+      (C.cast-seq
+        (C.cast-untag hG gG⊢ ok)
+        (C.cast-seal hX α∈Σ seal-ok) ,
+        NW.strict-untag gG NW.︔seal α)
+      d′⊒ V⊑V′ qD) =
+  source-quotient-down-seal-tail-impossible down
 target-inert-after-source-untag-sequence-impossible
     {Δᴿ = Δᴿ} {ρ = ρ} inert-d′
     (gen-down⊑gen-downᵀ
@@ -903,7 +924,10 @@ target-inert-after-source-untag-sequence-impossible
       (star-term-imprecision-target V⊑V′) d′⊒
 
 inner-sequence-residualᵀ :
-  ∀ {Φ Δᴸ Δᴿ V V′ G g d′ u u′ D D′ A A′ qD pA}
+  ∀ {Φ Δᴸ Δᴿ V V′ G g d′ u u′}
+    {D D′ A A′ : T.Ty}
+    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+    {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   (Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺᵖ (V ⟨ ((G ？) ︔ g) ⟩) ⊑ (V′ ⟨ d′ ⟩)
@@ -914,6 +938,15 @@ inner-sequence-residualᵀ :
     ⊢ᴺ ((V ⟨ G ？ ⟩) ⟨ g ⟩) ⟨ u ⟩
       ⊑ (V′ ⟨ d′ ⟩) ⟨ u′ ⟩
     ⦂ A ⊑ A′ ∶ pA
+inner-sequence-residualᵀ
+    down@(down⊑downᵀ
+      (C.cast-seq
+        (C.cast-untag hG gG⊢ ok)
+        (C.cast-seal hX α∈Σ seal-ok) ,
+        NW.strict-untag gG NW.︔seal α)
+      d′⊒ V⊑V′ qD)
+    widening pA =
+  ⊥-elim (source-quotient-down-seal-tail-impossible down)
 inner-sequence-residualᵀ
     (down⊑downᵀ
       (C.cast-seq
@@ -937,6 +970,15 @@ inner-sequence-residualᵀ
       V⊑V′ G⊑C′
   split-down = down⊑downᵀ g⊒ d′⊒ untag-relation qD
 inner-sequence-residualᵀ
+    down@(gen-down⊑gen-downᵀ
+      (C.cast-seq
+        (C.cast-untag hG gG⊢ ok)
+        (C.cast-seal hX α∈Σ seal-ok) ,
+        NW.strict-untag gG NW.︔seal α)
+      d′⊒ V⊑V′ qD)
+    widening pA =
+  ⊥-elim (source-quotient-down-seal-tail-impossible down)
+inner-sequence-residualᵀ
     (gen-down⊑gen-downᵀ
       (C.cast-seq
         (C.cast-untag hG gG⊢ ok) g⊢ ,
@@ -959,7 +1001,10 @@ inner-sequence-residualᵀ
     gen-down⊑gen-downᵀ g⊒ d′⊒ untag-relation qD
 
 left-catchup-indexed-final-quotient-outer-pureᵀ :
-  ∀ {Φ Δᴸ Δᴿ V V′ L D D′ A A′ qD pA d d′ u u′}
+  ∀ {Φ Δᴸ Δᴿ V V′ L d d′ u u′}
+    {D D′ A A′ : T.Ty}
+    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+    {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   ((V ⟨ d ⟩) ⟨ u ⟩) —→ L →
   Value V →
@@ -1100,7 +1145,10 @@ left-catchup-indexed-final-quotient-outer-pureᵀ {qD = qD}
   inj₁ (⊥-elim (source-quotient-down-seal-impossible down))
 
 left-catchup-indexed-final-quotient-inner-stepᵀ :
-  ∀ {Φ Δᴸ Δᴿ V V′ L D D′ A A′ qD pA d d′ u u′}
+  ∀ {Φ Δᴸ Δᴿ V V′ L d d′ u u′}
+    {D D′ A A′ : T.Ty}
+    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+    {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   (V ⟨ d ⟩) —→[ keep ] L →
   Value V →
@@ -1191,7 +1239,10 @@ left-catchup-indexed-final-quotient-inner-stepᵀ
   ⊥-elim (value-no-step vV V→)
 
 left-catchup-indexed-final-quotient-after-source-stepᵀ :
-  ∀ {Φ Δᴸ Δᴿ V V′ L D D′ A A′ qD pA d d′ u u′}
+  ∀ {Φ Δᴸ Δᴿ V V′ L d d′ u u′}
+    {D D′ A A′ : T.Ty}
+    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+    {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   Value V →
   No• V →
@@ -1217,18 +1268,21 @@ left-catchup-indexed-final-quotient-after-source-stepᵀ :
 left-catchup-indexed-final-quotient-after-source-stepᵀ
     vV noV vV′ noV′ inert-d′ inert-u′
     (pure-step source→) down widening pA =
-  left-catchup-indexed-final-quotient-outer-pureᵀ
+  left-catchup-indexed-final-quotient-outer-pureᵀ {pA = pA}
     source→ vV noV vV′ noV′ inert-d′ inert-u′
     down widening pA
 left-catchup-indexed-final-quotient-after-source-stepᵀ
     vV noV vV′ noV′ inert-d′ inert-u′
     (ξ-⟨⟩ source→) down widening pA =
-  inj₁ (left-catchup-indexed-final-quotient-inner-stepᵀ
+  inj₁ (left-catchup-indexed-final-quotient-inner-stepᵀ {pA = pA}
     source→ vV noV vV′ noV′ inert-d′ inert-u′
     down widening pA)
 
 left-catchup-indexed-final-quotient-activeᵀ :
-  ∀ {Φ Δᴸ Δᴿ V V′ D D′ A A′ qD pA d d′ u u′}
+  ∀ {Φ Δᴸ Δᴿ V V′ d d′ u u′}
+    {D D′ A A′ : T.Ty}
+    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+    {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   Value V →
   No• V →
@@ -1265,7 +1319,7 @@ left-catchup-indexed-final-quotient-activeᵀ
     down@(down⊑downᵀ d⊒ d′⊒ V⊑V′ qD)
     widening@(quotient-id-widening u⊑ u′⊑) pA
     | L , source→ =
-  left-catchup-indexed-final-quotient-after-source-stepᵀ
+  left-catchup-indexed-final-quotient-after-source-stepᵀ {pA = pA}
     vV noV vV′ noV′ inert-d′ inert-u′
     source→ down widening pA
 left-catchup-indexed-final-quotient-activeᵀ
@@ -1284,7 +1338,7 @@ left-catchup-indexed-final-quotient-activeᵀ
     widening@(quotient-cast-widening
       mode seal★ u⊑ mode′ seal★′ u′⊑) pA
     | L , source→ =
-  left-catchup-indexed-final-quotient-after-source-stepᵀ
+  left-catchup-indexed-final-quotient-after-source-stepᵀ {pA = pA}
     vV noV vV′ noV′ inert-d′ inert-u′
     source→ down widening pA
 left-catchup-indexed-final-quotient-activeᵀ
@@ -1301,7 +1355,7 @@ left-catchup-indexed-final-quotient-activeᵀ
     down@(gen-down⊑gen-downᵀ d⊒ d′⊒ V⊑V′ qD)
     widening@(quotient-id-widening u⊑ u′⊑) pA
     | L , source→ =
-  left-catchup-indexed-final-quotient-after-source-stepᵀ
+  left-catchup-indexed-final-quotient-after-source-stepᵀ {pA = pA}
     vV noV vV′ noV′ inert-d′ inert-u′
     source→ down widening pA
 left-catchup-indexed-final-quotient-activeᵀ
@@ -1320,12 +1374,15 @@ left-catchup-indexed-final-quotient-activeᵀ
     widening@(quotient-cast-widening
       mode seal★ u⊑ mode′ seal★′ u′⊑) pA
     | L , source→ =
-  left-catchup-indexed-final-quotient-after-source-stepᵀ
+  left-catchup-indexed-final-quotient-after-source-stepᵀ {pA = pA}
     vV noV vV′ noV′ inert-d′ inert-u′
     source→ down widening pA
 
 left-catchup-indexed-final-quotient-valueᵀ :
-  ∀ {Φ Δᴸ Δᴿ V V′ D D′ A A′ qD pA d d′ u u′}
+  ∀ {Φ Δᴸ Δᴿ V V′ d d′ u u′}
+    {D D′ A A′ : T.Ty}
+    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+    {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   Value V →
   No• V →
@@ -1361,7 +1418,7 @@ left-catchup-indexed-final-quotient-valueᵀ
     vV noV vV′ noV′ inert-d′ inert-u′
     down widening pA
     | yes inert-d | no not-inert-u =
-  left-catchup-indexed-final-quotient-activeᵀ
+  left-catchup-indexed-final-quotient-activeᵀ {pA = pA}
     vV noV vV′ noV′ inert-d′ inert-u′
     (λ { (source-d , source-u) → not-inert-u source-u })
     down widening pA
@@ -1369,7 +1426,7 @@ left-catchup-indexed-final-quotient-valueᵀ
     vV noV vV′ noV′ inert-d′ inert-u′
     down widening pA
     | no not-inert-d | yes inert-u =
-  left-catchup-indexed-final-quotient-activeᵀ
+  left-catchup-indexed-final-quotient-activeᵀ {pA = pA}
     vV noV vV′ noV′ inert-d′ inert-u′
     (λ { (source-d , source-u) → not-inert-d source-d })
     down widening pA
@@ -1377,13 +1434,16 @@ left-catchup-indexed-final-quotient-valueᵀ
     vV noV vV′ noV′ inert-d′ inert-u′
     down widening pA
     | no not-inert-d | no not-inert-u =
-  left-catchup-indexed-final-quotient-activeᵀ
+  left-catchup-indexed-final-quotient-activeᵀ {pA = pA}
     vV noV vV′ noV′ inert-d′ inert-u′
     (λ { (source-d , source-u) → not-inert-d source-d })
     down widening pA
 
 left-catchup-indexed-final-quotientᵀ :
-  ∀ {Φ Δᴸ Δᴿ V V′ D D′ A A′ qD pA d d′ u u′}
+  ∀ {Φ Δᴸ Δᴿ V V′ d d′ u u′}
+    {D D′ A A′ : T.Ty}
+    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+    {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   Value V′ →
   No• V′ →
@@ -1407,12 +1467,12 @@ left-catchup-indexed-final-quotientᵀ :
 left-catchup-indexed-final-quotientᵀ
     vV′ noV′ inert-d′ inert-u′
     down widening pA (inj₁ (vV , noV)) =
-  left-catchup-indexed-final-quotient-valueᵀ
+  left-catchup-indexed-final-quotient-valueᵀ {pA = pA}
     vV noV vV′ noV′ inert-d′ inert-u′
     down widening pA
 left-catchup-indexed-final-quotientᵀ
     vV′ noV′ inert-d′ inert-u′
     down widening pA (inj₂ refl) =
-  inj₁ (left-catchup-indexed-double-cast-blameᵀ
+  inj₁ (left-catchup-indexed-double-cast-blameᵀ {p = pA}
     (nu-term-imprecision-target-typing
       (up⊑upᵀ down widening pA)))

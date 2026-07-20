@@ -45,6 +45,11 @@ import proof.EndpointCanonicalMLBSimpleFactorCounterexample
 import proof.QuotientedTermImprecisionTest
 import proof.NuImprecisionSimulationResultDef
 import proof.NuImprecisionWorldCoherenceDef
+import proof.NuImprecisionWorldCoherenceProof
+import proof.NuImprecisionWorldCoherenceLemma
+import proof.NuImprecisionWorldCoherentResultDef
+import proof.NuImprecisionWorldCoherentOneStepDef
+import proof.NuImprecisionWorldCoherentValueCatchupDef
 import proof.NuImprecisionSimulationCore
 import proof.NuImprecisionSimulation
 import proof.NuImprecisionCatchupScratch
@@ -71,6 +76,7 @@ import proof.NuDGGStrictSpine
 import proof.NuDGGTerminalBackwardBlameAssembly
 import proof.NuDGGTerminalBackwardBlameIntegration
 import proof.NuDGGTerminalBackwardValueDef
+import proof.NuDGGTerminalBackwardValueWorldCoherentDef
 import proof.NuDGGTerminalBackwardValueProof
 import proof.NuDGGTerminalBackwardValueLemma
 import proof.NuDGGTerminalSkeleton

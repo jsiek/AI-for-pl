@@ -11,11 +11,17 @@ import proof.NuDGGSpine
 import proof.NuDGGTerminal
 import proof.NuDGGTerminalBackwardBlameAssembly
 import proof.NuDGGTerminalBackwardValueDef
+import proof.NuDGGTerminalBackwardValueWorldCoherentDef
 import proof.NuDGGTerminalBackwardValueProof
 import proof.NuImprecisionOneStepDef
 import proof.NuImprecisionValueCatchupDef
 import proof.NuImprecisionSimulationResultDef
 import proof.NuImprecisionWorldCoherenceDef
+import proof.NuImprecisionWorldCoherenceProof
+import proof.NuImprecisionWorldCoherenceLemma
+import proof.NuImprecisionWorldCoherentResultDef
+import proof.NuImprecisionWorldCoherentOneStepDef
+import proof.NuImprecisionWorldCoherentValueCatchupDef
 import proof.NuDGGTraceAlignment
 import proof.NuDGGTraceMeasure
 import proof.NuDGGWeakResultPreservation

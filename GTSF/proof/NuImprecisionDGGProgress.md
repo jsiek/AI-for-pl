@@ -39,7 +39,7 @@ to the public `GradualDGG`.
 | Polymorphic value-shape inversion | checked locally | `Λ`, `∀` cast, or `gen`; each forces one administrative step |
 | Quotiented `∀`-index inversion | checked locally | Representatives remain `∀`; ordinary witness is paired `∀` or source-only `ν` |
 | Atomic-target desired-index reindexing | completed | `atomic-target-value-reindexᵀ` reconstructs the term relation structurally at the requested proof-relevant index |
-| World/store-name coherence contract | completed statement | `WorldCoherent` requires exact `StoreCorresponds` evidence for every physically live matched name assumption; preservation proofs are not started |
+| World/store-name coherence contract | partial | `WorldCoherent` is frozen; empty, entry extension, all three canonical lifts, and matched/left/right single-name allocation are strict; crossed allocation and simulation-result propagation remain |
 | Swapped two-allocation context/store | checked locally | Crossed name assumptions and independent-order store links |
 | Swapped two-allocation relation boundary | checked locally | `allocation-crossedᵀ`; projections equal the two-`bind` traces |
 | Reduction under `ν` and `ν ★` | checked | Matched, source-only, and target-only outer frame lemmas |
@@ -315,7 +315,13 @@ are delegated:
 | [`NuDGGTerminalBackwardBlameIntegration.agda`](NuDGGTerminalBackwardBlameIntegration.agda) | completed live interface check | Instantiates the strict assembly with the live dispatcher and target-blame catch-up declarations; the focused consumer check passes, although those imported leaf bodies remain partial |
 | [`NuImprecisionSimulationResultDef.agda`](NuImprecisionSimulationResultDef.agda) | completed | Strict 506-line home of the weak-result, indexed-outcome, transport/coherence, and left-catch-up result algebra; imported directly by contracts without the simulation core |
 | [`NuImprecisionAtomicTargetReindex.agda`](NuImprecisionAtomicTargetReindex.agda) | completed | Strict exhaustive reconstruction of atomic-target value relations at an explicit desired type-imprecision index; closes target conversion identity roots without proof irrelevance |
-| [`NuImprecisionWorldCoherenceDef.agda`](NuImprecisionWorldCoherenceDef.agda) | completed statement; proofs not started | Freezes `WorldCoherent`, the exact store-correspondence invariant required before target seal cancellation can be a sound leaf |
+| [`NuImprecisionWorldCoherenceDef.agda`](NuImprecisionWorldCoherenceDef.agda) | completed statement | Freezes `WorldCoherent`, the exact store-correspondence invariant required before target seal cancellation can be a sound leaf |
+| [`NuImprecisionWorldCoherenceProof.agda`](NuImprecisionWorldCoherenceProof.agda) | completed | Strict structural proof layer: empty world, exact entry-extension obligations, correspondence weakening, and matched/left/right canonical lift preservation |
+| [`NuImprecisionWorldCoherenceLemma.agda`](NuImprecisionWorldCoherenceLemma.agda) | partial boundary | Strict assembly for matched, source-only, and target-only single-name lift-plus-allocation; crossed two-name allocation remains separate |
+| [`NuImprecisionWorldCoherentResultDef.agda`](NuImprecisionWorldCoherentResultDef.agda) | completed statement | Adds final `WorldCoherent` evidence to continuing one-step outcomes and catch-up results without changing the generic result algebra |
+| [`NuImprecisionWorldCoherentOneStepDef.agda`](NuImprecisionWorldCoherentOneStepDef.agda) | completed statement | Strengthened one-step contract consumes input coherence and returns it on every related successor branch |
+| [`NuImprecisionWorldCoherentValueCatchupDef.agda`](NuImprecisionWorldCoherentValueCatchupDef.agda) | completed statement | Strengthened value-catch-up contract consumes input coherence and exposes coherent final catch-up worlds |
+| [`NuDGGTerminalBackwardValueWorldCoherentDef.agda`](NuDGGTerminalBackwardValueWorldCoherentDef.agda) | completed statement | Arbitrary-world backward-value terminal contract with the necessary initial `WorldCoherent` premise; the closed public conclusion is unchanged |
 | [`NuImprecisionTargetBlameCatchup.agda`](NuImprecisionTargetBlameCatchup.agda) | completed | Hole-free structural target-blame catch-up, including source allocation and all four source cast/conversion tails |
 | [`NuImprecisionCatchupSourceCastTerminal.agda`](NuImprecisionCatchupSourceCastTerminal.agda) | completed | Two arbitrary-type terminal frame lemmas for source cast-to-blame and source inert-cast outcomes |
 | [`NuImprecisionQuotientInstView.agda`](NuImprecisionQuotientInstView.agda) | completed | Exhaustive quotient-instantiation spine view exposing only sound structural witnesses |
@@ -5724,14 +5730,53 @@ catch-up architecture.
   [`NuImprecisionWorldCoherenceDef`](NuImprecisionWorldCoherenceDef.agda) now
   freezes the minimal `WorldCoherent` contract: every live `idˣ` assumption
   whose endpoints are physically stored returns an exact `StoreCorresponds`
-  witness.  Its lift, allocation, composition, and coherent-outcome proofs
-  are not started.
+  witness.
+
+### 2026-07-20: strict world-coherence boundary
+
+- Completed strict
+  [`NuImprecisionWorldCoherenceProof`](NuImprecisionWorldCoherenceProof.agda).
+  It proves the empty world, exact obligations for each store-entry extension,
+  correspondence weakening, and coherence preservation through the matched,
+  left-only, and right-only canonical store lifts.  The lift theorems are
+  deliberately specialized to the reflected allocation contexts: arbitrary
+  lift target contexts can introduce a new live `idˣ` assumption between two
+  previously unrelated one-sided physical entries, so unrestricted lift
+  preservation is false.
+
+- Completed strict single-name allocation assembly in
+  [`NuImprecisionWorldCoherenceLemma`](NuImprecisionWorldCoherenceLemma.agda).
+  Matched allocation uses absence of physical name `0` from both shifted
+  stores; source-only and target-only allocation use absence of a corresponding
+  `idˣ` assumption at the freshly allocated endpoint.  Crossed two-name
+  allocation remains the outstanding structural case.
+
+- Added a separate acyclic statement layer above the generic weak-result
+  algebra:
+  [`NuImprecisionWorldCoherentResultDef`](NuImprecisionWorldCoherentResultDef.agda),
+  [`NuImprecisionWorldCoherentOneStepDef`](NuImprecisionWorldCoherentOneStepDef.agda),
+  and
+  [`NuImprecisionWorldCoherentValueCatchupDef`](NuImprecisionWorldCoherentValueCatchupDef.agda).
+  Related one-step branches carry coherence of their successor store; source
+  blame branches do not need a successor invariant.  Catch-up results expose
+  final coherence so existing compositional frames need not split on their
+  terminal alternative.
+
+- Froze the full strengthened arbitrary-world terminal statement as
+  [`WorldCoherentBackwardTargetValueOrSourceBlameᵀ`](NuDGGTerminalBackwardValueWorldCoherentDef.agda).
+  Its only new public-support premise is `WorldCoherent ρ`; its terminal
+  alternatives and the eventual closed `ClosedNuDGG` conclusion are unchanged.
+  A higher-order proof instantiating the new one-step and catch-up contracts is
+  the next top-level fit check.
+
+- All seven new or extended world-coherence modules were checked with focused
+  `--no-allow-unsolved-metas` commands.  No aggregate module was checked.
 
 ### Next boundary
 
-Prove the structural lift/allocation lemmas for `WorldCoherent`, then freeze
-coherent one-step and value-catch-up result contracts before attempting target
-seal cancellation.  In parallel, apply the `Def`/`Proof`/`Lemma` split to the
-value-catch-up and one-step dispatcher boundaries themselves and freeze the
-next independent target-cast or primitive leaves for Ginger.  Keep the hard
-coherence and seal proofs local.
+Prove crossed two-name allocation coherence and the higher-order
+world-coherent backward-value `Proof`, then thread the invariant through the
+actual one-step and catch-up result constructors.  With that sound input
+available, complete the hard target reveal/unseal cancellation locally.  In
+parallel, continue the isolated target-cast root leaves on Ginger and integrate
+only strict, focused worker modules; do not run aggregate checks.

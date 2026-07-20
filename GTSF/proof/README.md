@@ -82,3 +82,24 @@ Most importantly, after invalidating the core again,
 rebuilding it.  This is the intended invalidation boundary.  The batched
 scratch-dispatcher consumer passed in 288.55 seconds; neither
 `NuDGGStrictSpine` nor `All.agda` was run for that migration.
+
+## Invariant layers above generic results
+
+Keep semantic induction invariants above
+`NuImprecisionSimulationResultDef` when the generic result algebra does not
+itself justify them.  The world/store-name coherence work follows this shape:
+
+- `NuImprecisionWorldCoherenceDef` defines the invariant;
+- `NuImprecisionWorldCoherenceProof` proves structural preservation;
+- `NuImprecisionWorldCoherenceLemma` assembles concrete reachable-world
+  operations;
+- `NuImprecisionWorldCoherentResultDef` adds the invariant only to continuing
+  result branches; and
+- the world-coherent one-step and catch-up `Def` modules state the strengthened
+  major dependencies.
+
+Do not derive a coherent result from an arbitrary generic result.  Generic
+`WeakOneStepResult` deliberately permits an independently chosen result world,
+so preservation must be proved where the concrete result store is constructed.
+This separation keeps both definition layers strict and avoids importing the
+dispatcher into either one.

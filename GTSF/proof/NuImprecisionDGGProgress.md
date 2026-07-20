@@ -1,15 +1,21 @@
 # Nu-imprecision DGG progress
 
 This ledger tracks the checked path from `QuotientedTermImprecision` to the
-dynamic gradual guarantee. A checked item has been accepted by Agda without
-unsolved metas; a statement-only item has its intended interface written down
-but is not counted as proved.
+dynamic gradual guarantee. In the detailed plan, **completed** means that the
+linked declaration has been accepted by Agda without holes, **partial** means
+that a checked interface or some checked cases exist but required cases remain,
+and **not yet started** means that the terminal theorem or support lemma has no
+Agda declaration yet. Historical log entries use **checked** as a synonym for
+**completed**.
 
 ## Current objective
 
-Prove simulation coverage for reductions involving `ν`, `Λ`, `gen`, `inst`,
-and runtime type application `•`, beginning with the definition-sensitive
-cases.
+Complete the arbitrary-type source catch-up and the target-step dispatcher,
+then use them to prove the two backward terminal clauses. In parallel, the
+forward terminal clause still requires a source-oriented one-step simulation
+and a target catch-up theorem for the case where the source is already a value.
+Those three terminal clauses feed the already checked reduction to
+`ClosedNuDGG` and then to the public `GradualDGG`.
 
 ## Coverage ledger
 
@@ -38,7 +44,237 @@ cases.
 | Administrative simulation-up-to | partial | The result, transport, coherence, source-`keep` composition, and all six `ν`-frame outcome maps are checked; the unfinished integration is confined to the dispatcher scratch |
 | One-step Nu-imprecision simulation | partial | The dispatcher skeleton covers blame and the matched/source-only/target-only `ν` and `ν ★` families; ten explicit helper holes remain, and the non-`ν` constructor/reduction patterns are not yet enumerated |
 | Terminal target-trace alignment | checked | Determinism makes every administrative `targetTail` a prefix of an observed trace to a value or blame |
+| Forward source-value terminal clause | not yet started | Its statement is an anonymous premise of `closed-nu-terminal-simulation⇒closed-nu-dgg`; it needs a source-oriented dispatcher and target-side value catch-up |
+| Backward target-value-or-source-blame clause | not yet started | Its statement is an anonymous premise of `closed-nu-terminal-simulation⇒closed-nu-dgg`; arbitrary-value catch-up and the target dispatcher are partial |
+| Backward target-blame clause | not yet started | Its statement is an anonymous premise of `closed-nu-terminal-simulation⇒closed-nu-dgg`; target-trace alignment is checked, but the zero-step blame catch-up and trace induction are unwritten |
+| Three terminal clauses imply `ClosedNuDGG` | checked | `closed-nu-terminal-simulation⇒closed-nu-dgg` is hole-free |
 | Closed `GradualDGG` | checked reduction | `closed-nu-dgg⇒gradual-dgg` reduces it to `ClosedNuDGG`, which now follows from exactly three terminal simulation clauses |
+
+## Top-down proof plan from `QuotientedTermImprecision`
+
+### Checked outer spine
+
+The public input relation is compiled to the closed runtime relation by
+[`compiled-term-imprecision`](NuDGGSpine.agda#L76). The runtime theorem to be
+proved is [`ClosedNuDGG`](NuDGGSpine.agda#L243). Its four observable clauses
+are forward termination, forward divergence, backward termination-or-blame,
+and backward divergence-or-blame.
+
+The checked theorem
+[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L338) proves
+that it is enough to supply only the following three terminal facts:
+
+1. if the source reaches a value, the target reaches a related value;
+2. if the target reaches a value, the source reaches a related value or blame;
+3. if the target reaches blame, the source reaches blame.
+
+It derives both divergence clauses by finite-prefix arguments. The checked
+theorem [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L408) then discharges the
+public [`GradualDGG`](../DynamicGradualGuarantee.agda#L91).
+
+Status of this outer spine:
+
+| Step | Status | Checked declaration or remaining work |
+|---|---|---|
+| Compile public imprecision to closed Nu imprecision | completed | [`compiled-term-imprecision`](NuDGGSpine.agda#L76) |
+| Reduce the four observations in `ClosedNuDGG` to three terminal facts | completed | [`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L338) |
+| Reduce `GradualDGG` to `ClosedNuDGG` | completed | [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L408) |
+| Supply the three terminal facts | partial | The common one-step and catch-up infrastructure is substantial, but none of the three terminal facts has a named Agda proof yet |
+
+### Common hypotheses and final related-value package
+
+All three terminal facts are quantified over closed terms and begin with
+
+\[
+  \operatorname{RuntimeOK}(N),\qquad
+  \operatorname{RuntimeOK}(N'),\qquad
+  []\mid 0\mid 0\mid []\mid []
+    \vdash^{N} N\sqsubseteq N'
+    \mathrel{\vcentcolon} A\sqsubseteq B\mathbin{\mathop{\vcentcolon}}p,
+\]
+
+where
+
+\[
+  p : []\mid 0\vdash A\sqsubseteq B\dashv 0.
+\]
+
+Whenever a value branch succeeds, it must return all of the transported world,
+store, and type-index evidence explicitly. For source changes \(\chi_s\) and
+target changes \(\chi_t\), this package is
+
+\[
+\begin{aligned}
+  \exists\,\Phi,\rho,q.\quad
+  &\rho : \operatorname{StoreImp}
+      \bigl(\Phi,\operatorname{applyTyCtxs}(\chi_s,0),
+                   \operatorname{applyTyCtxs}(\chi_t,0)\bigr),\\
+  &q : \Phi\mid\operatorname{applyTyCtxs}(\chi_s,0)
+      \vdash \operatorname{applyTys}(\chi_s,A)
+        \sqsubseteq \operatorname{applyTys}(\chi_t,B)
+      \dashv \operatorname{applyTyCtxs}(\chi_t,0),\\
+  &\operatorname{leftStore}^{i}(\rho)
+      = \operatorname{applyStores}(\chi_s,[]),\\
+  &\operatorname{rightStore}^{i}(\rho)
+      = \operatorname{applyStores}(\chi_t,[]),\\
+  &\Phi\mid\operatorname{applyTyCtxs}(\chi_s,0)
+       \mid\operatorname{applyTyCtxs}(\chi_t,0)\mid\rho\mid[]
+       \vdash^{N} V\sqsubseteq V'
+       \mathrel{\vcentcolon}
+       \operatorname{applyTys}(\chi_s,A)
+       \sqsubseteq\operatorname{applyTys}(\chi_t,B)
+       \mathbin{\mathop{\vcentcolon}}q.
+\end{aligned}
+\]
+
+This is deliberately written out rather than hidden behind a new alias: the
+final store projections and transported type index are invariants that every
+trace-level proof must preserve.
+
+The names `ForwardSourceValue`, `BackwardTargetValueOrSourceBlame`, and
+`BackwardTargetBlame` below are expository labels for the three anonymous
+premises; they are not declarations currently present in the Agda source.
+
+## Terminal fact 1: `ForwardSourceValue`
+
+### Statement
+
+This is the first anonymous premise of
+[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L343). Under
+the common hypotheses, it states
+
+\[
+\begin{aligned}
+  &N\xRightarrow{\chi_s}V\ \land\ \operatorname{Value}(V)\\
+  &\quad\Longrightarrow
+  \exists\,V',\chi_t,\Phi,\rho,q.\quad
+    N'\xRightarrow{\chi_t}V'\ \land\ \operatorname{Value}(V')
+    \ \land\ \text{the full related-value package above}.
+\end{aligned}
+\]
+
+### Proof plan and status
+
+| Step | Status | Proof obligation and available evidence |
+|---|---|---|
+| F1. State a source-oriented one-step simulation | not yet started | If related terms satisfy \(M\xrightarrow{\chi}L\), produce a target multi-step \(M'\xRightarrow{\chi_t}L'\) and a transported relation \(L\sqsubseteq L'\), with exact world/store/type actions. This is the polarity-reversed analogue of the current target-step dispatcher, but no declaration exists yet. |
+| F2. Prove the source-oriented one-step cases | not yet started | Split on the source reduction and term-imprecision derivation. Reuse the checked matched, left-only, and right-only allocation/cast/frame lemmas where their polarity fits. The definition-sensitive `ν`, `ν ★`, `Λ`, `gen`, `inst`, and `•` cases should be proved before the ordinary congruence cases. |
+| F3. Prove target catch-up from a related source value | not yet started | From \(\operatorname{Value}(V)\) and \(V\sqsubseteq M'\), show that \(M'\) reduces to a value \(V'\) related to \(V\). This needs structural recursion over the relation and target administrative reductions, including target-only allocation and quotient-cast cases. |
+| F4. Rule out a source-blame alternative when the source is a value | completed | [`source-value-indexed-outcome-relatedᵀ`](NuImprecisionSimulationCore.agda#L1471) proves the required local outcome fact: an indexed weak outcome from a source value must be related, with zero source changes and the same source value. It constrains one target step; it does **not** by itself prove target termination. |
+| F5. Lift source one-step simulation over a source trace | not yet started | Induct on \(N\xRightarrow{\chi_s}V\). Compose the target traces and transported worlds after each source step; when the source trace is reflexive or reaches its final value, invoke F3. |
+| F6. Normalize composed changes and final store projections | partial | The weak result transport, type coherence, frame maps, and store-change composition infrastructure are checked. The forward trace-level composition theorem that packages the exact equalities required by the terminal statement is unwritten. |
+| F7. Package the terminal theorem | not yet started | Return \(V',\chi_t,\Phi,\rho,q\), the target value trace, both store-projection equalities, and the final transported term relation. |
+
+The essential missing fact is not another use of the target-oriented dispatcher.
+That dispatcher allows target administrative work while the source takes zero
+steps. It therefore cannot, by itself, prove that a target eventually becomes a
+value merely because the source has become one. F1 advances along the known
+source trace; F3 closes the remaining target administrative tail.
+
+## Terminal fact 2: `BackwardTargetValueOrSourceBlame`
+
+### Statement
+
+This is the second anonymous premise of
+[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L360). Under
+the common hypotheses, it states
+
+\[
+\begin{aligned}
+  &N'\xRightarrow{\chi_t}V'\ \land\ \operatorname{Value}(V')\\
+  &\quad\Longrightarrow\\
+  &\qquad\left(
+    \exists\,V,\chi_s,\Phi,\rho,q.\quad
+      N\xRightarrow{\chi_s}V\ \land\ \operatorname{Value}(V)
+      \ \land\ \text{the full related-value package above}
+    \right)\\
+  &\qquad\quad\lor\quad
+    \left(\exists\,\chi_s.\ N\xRightarrow{\chi_s}\operatorname{blame}\right).
+\end{aligned}
+\]
+
+### Proof plan and status
+
+| Step | Status | Proof obligation and available evidence |
+|---|---|---|
+| B1. Catch up a source related to an already terminal target value | partial | [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1045) has the required arbitrary-type interface: given `RuntimeOK N`, `Value V′`, `No• V′`, and \(N\sqsubseteq V'\), it returns an indexed source catch-up. Ten explicit holes remain in this proof. |
+| B2. Finish quotient-cast value classification | completed | [`left-catchup-indexed-final-quotient-valueᵀ`](NuImprecisionQuotientValue.agda#L1327) and [`left-catchup-indexed-final-quotientᵀ`](NuImprecisionQuotientValue.agda#L1385) are hole-free. They return either the final catch-up or the single reachable outer-`inst` residual trace. |
+| B3. Discharge the two quotient-`inst` residuals in B1 | partial | The residual alternative from B2 must be threaded through the outer down/up and gen-down/up catch-up functions. These are the holes at [`left-catchup-indexed-prefix-down-upᵀ`](NuImprecisionCatchupScratch.agda#L981) and [`left-catchup-indexed-prefix-gen-down-upᵀ`](NuImprecisionCatchupScratch.agda#L1043). |
+| B4. Discharge the remaining source allocation/cast leaves in B1 | partial | Eight holes remain in [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1045): the `α⊑ᵀ` residual, source-only `ν`, source-only `ν ★`, narrowing cast, widening cast, paired conversion, reveal, and conceal leaves. |
+| B5. Complete the target-oriented one-step dispatcher | partial | [`weak-one-step-indexed-simulationᵀ`](NuImprecisionCatchupScratch.agda#L1343) has the intended interface and checked blame plus matched/source-only/target-only `ν` and `ν ★` clauses. The non-`ν` term-relation/reduction combinations have not yet been enumerated; the module currently permits incomplete matches. |
+| B6. Forget the indexed wrapper when aligning an outcome | completed | [`forget-weak-indexed-outcome`](NuImprecisionSimulationCore.agda#L1583) converts the indexed outcome to the unindexed outcome consumed by the trace-alignment layer. |
+| B7. Align administrative target tails with the observed value trace | completed | [`weak-outcome-target-value-alignedᵀ`](NuDGGTraceAlignment.agda#L53), using [`target-tail-prefix-value`](NuReductionDeterminism.agda#L199), returns either an immediate source-blame trace or a residual target trace from the related result, together with \(\psi=\operatorname{targetTailChanges}(R)\mathbin{++}\theta\). |
+| B8. Maintain runtime, typing, and store well-formedness | partial | One-step [`store-preservation`](NuPreservation.agda#L802), [`multi-preservation`](NuPreservation.agda#L882), and [`multi-runtime-preservation`](NuPreservation.agda#L897) are completed. The terminal induction still needs to package the iterated store-well-formedness fact at each recursive call. |
+| B9. Prove the target-trace terminal induction | not yet started | Use well-founded induction on the length of the observed target trace. The reflexive case invokes B1 after deriving `No• V′` from the runtime value. The step case invokes B5, finishes immediately on a source-blame outcome, and otherwise uses B6–B7 to recurse on the strictly shorter aligned residual trace. |
+| B10. Compose source traces and transported worlds | partial | Prefix/store-change composition support is checked, including [`left-catchup-indexed-prepend-keepᵀ`](NuImprecisionCatchupComposition.agda#L153). The exact trace-level assembly for repeated weak outcomes and the final five witnesses remains unwritten. |
+| B11. Package the terminal theorem | not yet started | Return either the full related-value witnesses or the accumulated source trace to blame. |
+
+The induction should be on target-trace length, not directly on the syntactic
+multi-step proof. A weak outcome can consume the distinguished target step and
+then take an administrative `targetTail`. B7 proves that this tail is a prefix
+of the observed trace and exposes the strictly smaller residual trace on which
+the induction hypothesis applies.
+
+## Terminal fact 3: `BackwardTargetBlame`
+
+### Statement
+
+This is the third anonymous premise of
+[`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L379). Under
+the common hypotheses, it states
+
+\[
+  N'\xRightarrow{\chi_t}\operatorname{blame}
+  \quad\Longrightarrow\quad
+  \exists\,\chi_s.\ N\xRightarrow{\chi_s}\operatorname{blame}.
+\]
+
+### Proof plan and status
+
+| Step | Status | Proof obligation and available evidence |
+|---|---|---|
+| C1. Prove zero-step catch-up against target blame | not yet started | Prove directly that if `RuntimeOK M` and \(M\sqsubseteq\operatorname{blame}\), then \(\exists\chi_s.\ M\xRightarrow{\chi_s}\operatorname{blame}\). This must be a reduction theorem, not merely an inversion to \(M=\operatorname{blame}\), because source casts, `ν`/`ν ★` frames, and bullet-related administrative forms can surround blame. |
+| C2. Complete the target-oriented one-step dispatcher | partial | Reuse B5. Its exceptional outcome already carries the required source trace to blame. |
+| C3. Align administrative target tails with the observed blame trace | completed | [`weak-outcome-target-blame-alignedᵀ`](NuDGGTraceAlignment.agda#L75), using [`target-tail-prefix-blame`](NuReductionDeterminism.agda#L220), returns either source blame immediately or a residual target trace ending in blame with the exact change-list equation. |
+| C4. Prove the target-blame trace induction | not yet started | Use well-founded induction on target-trace length. The reflexive case invokes C1. The step case applies C2; an exceptional outcome is done, while a related outcome is aligned by C3 and recursed on. |
+| C5. Compose accumulated source traces | partial | Existing weak-result and store-change composition lemmas provide most local equations, but the complete recursive trace composer is unwritten. |
+| C6. Package the terminal theorem | not yet started | Return the accumulated source changes and source trace to blame. |
+
+C1 may be implemented as its own structural theorem or as the blame branch of a
+single generalized left catch-up theorem whose target is terminal (value or
+blame). The latter is attractive only if it shortens the proof without hiding
+the explicit source trace required by the terminal statement.
+
+## Recommended implementation order
+
+The shortest current path to visible terminal progress is:
+
+1. **Partial:** close the two quotient-`inst` residuals in
+   [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda#L981).
+2. **Partial:** close the remaining eight leaves of
+   [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1045).
+3. **Partial:** enumerate and prove every non-`ν` case of
+   [`weak-one-step-indexed-simulationᵀ`](NuImprecisionCatchupScratch.agda#L1343),
+   then remove incomplete-pattern acceptance.
+4. **Not yet started:** prove the backward target-value terminal induction B9
+   and package B11.
+5. **Not yet started:** prove zero-step target-blame catch-up C1, then the
+   target-blame induction C4 and package C6.
+6. **Not yet started:** introduce the source-oriented one-step theorem F1–F2
+   and the target-side value catch-up F3.
+7. **Not yet started:** lift those results across the source trace and package
+   the forward terminal theorem F5–F7.
+8. **Not yet started:** instantiate the already completed outer-spine theorems:
+   pass the three facts to
+   [`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L338) and
+   then pass the result to
+   [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L408).
+
+The backward value theorem is the best first trace-level target because its two
+largest prerequisites already exist as partial checked declarations. The
+forward theorem is structurally separate work: completing the target-oriented
+dispatcher does not remove the need for its source-oriented mirror and its
+value catch-up base.
 
 ## Definition audit
 

@@ -1,6 +1,9 @@
 
 This is a mechanization of a polymorphic gradually typed lambda calculus.
 
+Major metatheory boundaries use the `Def`/`Proof`/`Lemma` organization and
+strictness policy documented in [`proof/README.md`](proof/README.md).
+
 ## Remote Agda checks on ginger
 
 Use the checked-in [`scripts/agda-ginger`](../scripts/agda-ginger) wrapper for

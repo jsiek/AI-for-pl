@@ -53,6 +53,12 @@ integrator fetches the worker branch, reviews its exact diff, integrates it,
 and runs the nearest focused consumer check.  Do not run `All.agda` in the
 worker worktree.
 
+For a completed leaf, remove any local `--allow-unsolved-metas` and
+`--allow-incomplete-matches` options before the final check.  Agda's
+command-line `--no-allow-unsolved-metas` does not reliably override a source
+module that locally enables unsolved metas, so the final audit must also
+confirm that the owned file contains no holes or permissive module options.
+
 When launching a non-login SSH worker directly, use the absolute Codex path;
 the non-login shell may not include `/home/jsiek/.local/bin` in `PATH`:
 

@@ -1,5 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
 module proof.NuImprecisionOneStepTargetConversionFrames where
 
 -- File Charter:
@@ -9,16 +7,42 @@ module proof.NuImprecisionOneStepTargetConversionFrames where
 --     lifts only the target reduct through the ξ-⟨⟩ frame.
 --   * The source term, store imprecision, and initial store change are
 --     unchanged; the target coercion is transformed by that initial change.
---   * Excludes root conversion reductions and contains exactly two proof
---     holes, one for reveal and one for conceal.
+--   * Excludes root conversion reductions; source-blame outcomes pass through
+--     unchanged because the source term is not framed.
 
 open import Conversion using (ConcealConversion; RevealConversion)
+open import Data.List using (_∷_)
+open import Data.Product using (_,_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuReduction using (applyCoercion)
+open import NuReduction using
+  (applyCoercion; applyTy; applyTyCtx; applyTyCtxs; applyTys)
 open import NuTermImprecision using (StoreImp; rightStoreⁱ)
 open import NuTerms using (_⟨_⟩)
+open import QuotientedTermImprecision using (⊑conv↑ᵀ; ⊑conv↓ᵀ)
+open import Relation.Binary.PropositionalEquality using (subst; sym)
+open import proof.ReductionProperties using (applyCoercions)
+open import proof.NuImprecisionSimulation using
+  ( weak-one-step-target-cast-frameᵀ
+  ; weak-one-step-target-cast-frame-transportᵀ
+  ; weak-one-step-target-cast-frame-coherenceᵀ
+  )
 open import proof.NuImprecisionSimulationCore using
-  (WeakOneStepIndexedOutcome)
+  ( WeakOneStepIndexedOutcome
+  ; canonicalIndexedResults
+  ; indexed-outcome-related
+  ; indexed-outcome-source-blame
+  ; relatedResults
+  ; resultRightCtx
+  ; resultStore
+  ; targetCtxResult
+  ; targetStoreResult
+  ; targetTailChanges
+  ; transportType
+  ; weak-indexed-result
+  ; weakIndexedResult
+  ; apply-conceal-conversions
+  ; apply-reveal-conversions
+  )
 
 
 weak-one-step-target-reveal-conversion-indexed-frame-outcomeᵀ :
@@ -33,7 +57,54 @@ weak-one-step-target-reveal-conversion-indexed-frame-outcomeᵀ :
     {M = M} {N′ = N′ ⟨ applyCoercion χ c′ ⟩}
     {χ = χ} {ρ = ρ} q
 weak-one-step-target-reveal-conversion-indexed-frame-outcomeᵀ
-    c′↑ inner q = {!!}
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {χ = χ} c′↑
+    (indexed-outcome-related indexed transport coherence) q
+    with apply-reveal-conversions
+      {χs = χ ∷ targetTailChanges (weakIndexedResult indexed)} c′↑
+weak-one-step-target-reveal-conversion-indexed-frame-outcomeᵀ
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {χ = χ} c′↑
+    (indexed-outcome-related indexed transport coherence) q
+    | μ′ , β′ , X′ , c′↑⁺ =
+  indexed-outcome-related
+    (weak-indexed-result framed (relatedResults framed))
+    (weak-one-step-target-cast-frame-transportᵀ
+      inner final-relation transport)
+    (weak-one-step-target-cast-frame-coherenceᵀ
+      inner final-relation coherence)
+  where
+  inner = weakIndexedResult indexed
+
+  final-conversion :
+    RevealConversion μ′ (resultRightCtx inner)
+      (rightStoreⁱ (resultStore inner)) β′ X′
+      (applyCoercions (targetTailChanges inner) (applyCoercion χ c′))
+      (applyTys (targetTailChanges inner) (applyTy χ A′))
+      (applyTys (targetTailChanges inner) (applyTy χ B′))
+  final-conversion =
+    subst
+      (λ Δ → RevealConversion μ′ Δ
+        (rightStoreⁱ (resultStore inner)) β′ X′
+        (applyCoercions (targetTailChanges inner) (applyCoercion χ c′))
+        (applyTys (targetTailChanges inner) (applyTy χ A′))
+        (applyTys (targetTailChanges inner) (applyTy χ B′)))
+      (sym (targetCtxResult inner))
+      (subst
+        (λ Σ → RevealConversion μ′
+          (applyTyCtxs (targetTailChanges inner) (applyTyCtx χ Δᴿ))
+          Σ β′ X′
+          (applyCoercions (targetTailChanges inner) (applyCoercion χ c′))
+          (applyTys (targetTailChanges inner) (applyTy χ A′))
+          (applyTys (targetTailChanges inner) (applyTy χ B′)))
+        (sym (targetStoreResult inner)) c′↑⁺)
+
+  final-relation =
+    ⊑conv↑ᵀ final-conversion
+      (canonicalIndexedResults indexed) (transportType inner q)
+
+  framed = weak-one-step-target-cast-frameᵀ inner final-relation
+weak-one-step-target-reveal-conversion-indexed-frame-outcomeᵀ
+    c′↑ (indexed-outcome-source-blame source↠) q =
+  indexed-outcome-source-blame source↠
 
 
 weak-one-step-target-conceal-conversion-indexed-frame-outcomeᵀ :
@@ -48,4 +119,51 @@ weak-one-step-target-conceal-conversion-indexed-frame-outcomeᵀ :
     {M = M} {N′ = N′ ⟨ applyCoercion χ c′ ⟩}
     {χ = χ} {ρ = ρ} q
 weak-one-step-target-conceal-conversion-indexed-frame-outcomeᵀ
-    c′↓ inner q = {!!}
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {χ = χ} c′↓
+    (indexed-outcome-related indexed transport coherence) q
+    with apply-conceal-conversions
+      {χs = χ ∷ targetTailChanges (weakIndexedResult indexed)} c′↓
+weak-one-step-target-conceal-conversion-indexed-frame-outcomeᵀ
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {χ = χ} c′↓
+    (indexed-outcome-related indexed transport coherence) q
+    | μ′ , β′ , X′ , c′↓⁺ =
+  indexed-outcome-related
+    (weak-indexed-result framed (relatedResults framed))
+    (weak-one-step-target-cast-frame-transportᵀ
+      inner final-relation transport)
+    (weak-one-step-target-cast-frame-coherenceᵀ
+      inner final-relation coherence)
+  where
+  inner = weakIndexedResult indexed
+
+  final-conversion :
+    ConcealConversion μ′ (resultRightCtx inner)
+      (rightStoreⁱ (resultStore inner)) β′ X′
+      (applyCoercions (targetTailChanges inner) (applyCoercion χ c′))
+      (applyTys (targetTailChanges inner) (applyTy χ A′))
+      (applyTys (targetTailChanges inner) (applyTy χ B′))
+  final-conversion =
+    subst
+      (λ Δ → ConcealConversion μ′ Δ
+        (rightStoreⁱ (resultStore inner)) β′ X′
+        (applyCoercions (targetTailChanges inner) (applyCoercion χ c′))
+        (applyTys (targetTailChanges inner) (applyTy χ A′))
+        (applyTys (targetTailChanges inner) (applyTy χ B′)))
+      (sym (targetCtxResult inner))
+      (subst
+        (λ Σ → ConcealConversion μ′
+          (applyTyCtxs (targetTailChanges inner) (applyTyCtx χ Δᴿ))
+          Σ β′ X′
+          (applyCoercions (targetTailChanges inner) (applyCoercion χ c′))
+          (applyTys (targetTailChanges inner) (applyTy χ A′))
+          (applyTys (targetTailChanges inner) (applyTy χ B′)))
+        (sym (targetStoreResult inner)) c′↓⁺)
+
+  final-relation =
+    ⊑conv↓ᵀ final-conversion
+      (canonicalIndexedResults indexed) (transportType inner q)
+
+  framed = weak-one-step-target-cast-frameᵀ inner final-relation
+weak-one-step-target-conceal-conversion-indexed-frame-outcomeᵀ
+    c′↓ (indexed-outcome-source-blame source↠) q =
+  indexed-outcome-source-blame source↠

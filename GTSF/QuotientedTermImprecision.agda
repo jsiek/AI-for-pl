@@ -15,14 +15,12 @@ module QuotientedTermImprecision where
 --     physical store order need not coincide across permuted allocations.
 --   * Factors runtime-bullet instantiation from single-name reveal/conceal
 --     conversions and paired conversion imprecision.
---   * Includes repaired ordinary and `ν ★` allocation states for matched,
---     left-only, and right-only executions.
+--   * Uses one proof-only prefix-extension rule for matched, one-sided, and
+--     crossed allocation states.
 --   * Records the intermediate index for right-only allocation and permits
 --     body relations to cross the exact fresh-store extension it creates.
---   * Includes an exact two-allocation boundary for adjacent-`∀`
---     permutations, with independently ordered stores and crossed links.
---   * Transports both orientations of that body boundary by renaming one
---     endpoint and shifting the other.
+--   * Leaves adjacent-`∀` crossed-body transport admissible, avoiding
+--     syntax-specific swap constructors in the term relation.
 --   * Relates widening bodies exposed by crossed `inst∀` and `∀inst`
 --     coercions in both exact, differently ordered seal-mode orientations.
 
@@ -71,12 +69,10 @@ open import NuTerms using
   )
 open import Primitives
 open import proof.CastImprecision using
-  ( RightCastCtxCompatible
-  ; ∀ᵢᶜ
+  ( ∀ᵢᶜ
   ; widening⇒⊑ᵢ
   ; ⊑-transʳ-castᵢ
   )
-open import proof.NarrowWidenProperties using (StoreDetWf)
 open import TermTyping using
   ( CastMode
   ; SealModeStore★
@@ -101,6 +97,7 @@ open import TermTyping using
   )
 open import NuTermImprecision using
   ( StoreImp
+  ; StoreImpEntry
   ; StoreCorresponds
   ; CtxImp
   ; ctx-imp
@@ -141,6 +138,19 @@ variable
   Δᴸ Δᴿ : TyCtx
   ρ : StoreImp Φ Δᴸ Δᴿ
   γ : CtxImp Φ Δᴸ Δᴿ
+
+------------------------------------------------------------------------
+-- Store-imprecision prefix extension
+------------------------------------------------------------------------
+
+data StoreImpPrefix {Φ Δᴸ Δᴿ} :
+    StoreImp Φ Δᴸ Δᴿ → StoreImp Φ Δᴸ Δᴿ → Set where
+  prefix-reflⁱ : ∀ {ρ} → StoreImpPrefix ρ ρ
+
+  prefix-∷ⁱ :
+    ∀ {ρ₀ ρ⁺} {entry : StoreImpEntry Φ Δᴸ Δᴿ} →
+    StoreImpPrefix ρ₀ ρ⁺ →
+    StoreImpPrefix ρ₀ (entry ∷ ρ⁺)
 
 ------------------------------------------------------------------------
 -- Paired single-name conversions
@@ -185,6 +195,25 @@ data PairedCast
     SealModeStore★ μ′ (rightStoreⁱ ρ) →
     μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′ →
     PairedCast Φ Δᴸ Δᴿ ρ c c′ {A} {A′} {B} {B′} p q
+
+data QuotientWideningPair
+    {Φ : ImpCtx} (Δᴸ Δᴿ : TyCtx) (ρ : StoreImp Φ Δᴸ Δᴿ) :
+    (u u′ : Coercion) → (D D′ A A′ : Ty) → Set₁ where
+  quotient-id-widening :
+    ∀ {u u′ D D′ A A′} →
+    id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ A →
+    id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ D′ ⊑ A′ →
+    QuotientWideningPair Δᴸ Δᴿ ρ u u′ D D′ A A′
+
+  quotient-cast-widening :
+    ∀ {μ μ′ u u′ D D′ A A′} →
+    CastMode μ →
+    SealModeStore★ μ (leftStoreⁱ ρ) →
+    μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ A →
+    CastMode μ′ →
+    SealModeStore★ μ′ (rightStoreⁱ ρ) →
+    μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ D′ ⊑ A′ →
+    QuotientWideningPair Δᴸ Δᴿ ρ u u′ D D′ A A′
 
 ------------------------------------------------------------------------
 -- Nu-term imprecision with quotiented hidden cast intermediates
@@ -235,40 +264,7 @@ mutual
         ∀ {N N′ A A′ D D′ qD u u′}
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ N ⊑ N′ ⦂ D ⊑ᵖ D′ ∶ qD
-      → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ A
-      → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ D′ ⊑ A′
-      → (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ)
-        ------------------------------------------------------------
-      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-          ⊢ᴺ N ⟨ u ⟩ ⊑ N′ ⟨ u′ ⟩ ⦂ A ⊑ A′ ∶ pA
-
-    crossed-up⊑upᵀ :
-        ∀ {N N′ A A′ D D′ qD u u′ μ}
-      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-          ⊢ᴺᵖ N ⊑ N′ ⦂ D ⊑ᵖ D′ ∶ qD
-      → CastMode μ
-      → SealModeStore★ μ (leftStoreⁱ ρ)
-      → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ A
-      → SealModeStore★
-          (instᵈ (extᵈ tag-or-idᵈ)) (rightStoreⁱ ρ)
-      → instᵈ (extᵈ tag-or-idᵈ) ∣ Δᴿ ∣ rightStoreⁱ ρ
-          ⊢ u′ ∶ D′ ⊑ A′
-      → (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ)
-        ------------------------------------------------------------
-      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-          ⊢ᴺ N ⟨ u ⟩ ⊑ N′ ⟨ u′ ⟩ ⦂ A ⊑ A′ ∶ pA
-
-    crossed-left-up⊑upᵀ :
-        ∀ {N N′ A A′ D D′ qD u u′ μ}
-      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-          ⊢ᴺᵖ N ⊑ N′ ⦂ D ⊑ᵖ D′ ∶ qD
-      → CastMode μ
-      → SealModeStore★ μ (leftStoreⁱ ρ)
-      → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ A
-      → SealModeStore★
-          (extᵈ (instᵈ tag-or-idᵈ)) (rightStoreⁱ ρ)
-      → extᵈ (instᵈ tag-or-idᵈ) ∣ Δᴿ ∣ rightStoreⁱ ρ
-          ⊢ u′ ∶ D′ ⊑ A′
+      → QuotientWideningPair Δᴸ Δᴿ ρ u u′ D D′ A A′
       → (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ)
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
@@ -368,136 +364,15 @@ mutual
           store-right zero (⇑ᵗ A) h⇑A ∷ ρ′ ∣ γ′
           ⊢ᴺ N ⊑ (⇑ᵗᵐ L′) • ⦂ B ⊑ C′ ∶ r
 
-    allocation-matchedᵀ :
-        ∀ {Φ₀ Δᴸ₀ Δᴿ₀ A A′ B B′ M M′ p}
-          {ρ₀ : StoreImp Φ₀ Δᴸ₀ Δᴿ₀}
-          {ρ′ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-            (suc Δᴸ₀) (suc Δᴿ₀)}
-          {γ′ : CtxImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-            (suc Δᴸ₀) (suc Δᴿ₀)} →
-      (pX : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-        ∣ suc Δᴸ₀ ⊢ A ⊑ A′ ⊣ suc Δᴿ₀) →
-      LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀) ρ₀ ρ′ →
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-        ∣ suc Δᴸ₀ ∣ suc Δᴿ₀ ∣ ρ′ ∣ γ′
-        ⊢ᴺ M ⊑ M′ ⦂ B ⊑ B′ ∶ p →
-      suc Δᴸ₀
-        ∣ leftStoreⁱ (store-matched zero A zero A′ pX ∷ ρ′)
-        ∣ leftCtxⁱ γ′ ⊢ M ⦂ B →
-      suc Δᴿ₀
-        ∣ rightStoreⁱ (store-matched zero A zero A′ pX ∷ ρ′)
-        ∣ rightCtxⁱ γ′ ⊢ M′ ⦂ B′
+    allocation-prefixᵀ : ∀ {ρ₀ M M′ A B p}
+      → StoreImpPrefix ρ₀ ρ
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ γ
+          ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p
+      → Δᴸ ∣ leftStoreⁱ ρ ∣ leftCtxⁱ γ ⊢ M ⦂ A
+      → Δᴿ ∣ rightStoreⁱ ρ ∣ rightCtxⁱ γ ⊢ M′ ⦂ B
         ------------------------------------------------------------
-      → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-          ∣ suc Δᴸ₀ ∣ suc Δᴿ₀ ∣
-          store-matched zero A zero A′ pX ∷ ρ′ ∣ γ′
-          ⊢ᴺ M ⊑ M′ ⦂ B ⊑ B′ ∶ p
-
-    allocation-crossedᵀ :
-        ∀ {Φ₀ Δᴸ₀ Δᴿ₀ A₀ A₁ B₀ B₁ C C′ M M′ p}
-          {p₀₁ p₁₀}
-          {ρ₀ : StoreImp Φ₀ Δᴸ₀ Δᴿ₀}
-          {ρ₁ : StoreImp (∀ᵢᶜ Φ₀) (suc Δᴸ₀) (suc Δᴿ₀)}
-          {ρ₂ : StoreImp (swapRight∀∀ᵢ Φ₀)
-            (suc (suc Δᴸ₀)) (suc (suc Δᴿ₀))}
-          {γ₂ : CtxImp (swapRight∀∀ᵢ Φ₀)
-            (suc (suc Δᴸ₀)) (suc (suc Δᴿ₀))} →
-      (hA₀ : WfTy (suc (suc Δᴸ₀)) A₀) →
-      (hA₁ : WfTy (suc (suc Δᴸ₀)) A₁) →
-      (hB₀ : WfTy (suc (suc Δᴿ₀)) B₀) →
-      (hB₁ : WfTy (suc (suc Δᴿ₀)) B₁) →
-      LiftStoreⁱ (∀ᵢᶜ Φ₀) ρ₀ ρ₁ →
-      LiftStoreⁱ (swapRight∀∀ᵢ Φ₀) ρ₁ ρ₂ →
-      swapRight∀∀ᵢ Φ₀ ∣ suc (suc Δᴸ₀)
-        ⊢ A₀ ⊑ B₁ ⊣ suc (suc Δᴿ₀) →
-      swapRight∀∀ᵢ Φ₀ ∣ suc (suc Δᴸ₀)
-        ⊢ A₁ ⊑ B₀ ⊣ suc (suc Δᴿ₀) →
-      swapRight∀∀ᵢ Φ₀
-        ∣ suc (suc Δᴸ₀) ∣ suc (suc Δᴿ₀) ∣ ρ₂ ∣ γ₂
-        ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ p →
-      suc (suc Δᴸ₀) ∣
-        (zero , A₀) ∷ (suc zero , A₁) ∷ leftStoreⁱ ρ₂
-        ∣ leftCtxⁱ γ₂ ⊢ M ⦂ C →
-      suc (suc Δᴿ₀) ∣
-        (zero , B₀) ∷ (suc zero , B₁) ∷ rightStoreⁱ ρ₂
-        ∣ rightCtxⁱ γ₂ ⊢ M′ ⦂ C′
-        ------------------------------------------------------------
-      → swapRight∀∀ᵢ Φ₀
-          ∣ suc (suc Δᴸ₀) ∣ suc (suc Δᴿ₀) ∣
-          store-left zero A₀ hA₀ ∷
-          store-left (suc zero) A₁ hA₁ ∷
-          store-right zero B₀ hB₀ ∷
-          store-right (suc zero) B₁ hB₁ ∷
-          store-link zero A₀ (suc zero) B₁ p₀₁ ∷
-          store-link (suc zero) A₁ zero B₀ p₁₀ ∷ ρ₂
-          ∣ γ₂ ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ p
-
-    swapRight-bodyᵀ :
-        ∀ {Φ₀ Δᴸ₀ Δᴿ₀ A B C C′ W W′ M M′ p}
-          {ρ₀ : StoreImp Φ₀ Δᴸ₀ Δᴿ₀}
-          {ρ₁ : StoreImp (∀ᵢᶜ Φ₀) (suc Δᴸ₀) (suc Δᴿ₀)}
-          {ρ₂ : StoreImp (swapRight∀∀ᵢ Φ₀)
-            (suc (suc Δᴸ₀)) (suc (suc Δᴿ₀))} →
-      LiftStoreⁱ (∀ᵢᶜ Φ₀) ρ₀ ρ₁ →
-      LiftStoreⁱ (swapRight∀∀ᵢ Φ₀) ρ₁ ρ₂ →
-      ∀ᵢᶜ Φ₀ ∣ suc Δᴸ₀ ∣ suc Δᴿ₀ ∣ ρ₁ ∣ []
-        ⊢ᴺ W ⊑ W′ ⦂ A ⊑ B ∶ p →
-      M ≡ ⇑ᵗᵐ W →
-      M′ ≡ renameᵗᵐ (extᵗ suc) W′ →
-      C ≡ ⇑ᵗ A →
-      C′ ≡ renameᵗ (extᵗ suc) B →
-      (q : swapRight∀∀ᵢ Φ₀ ∣ suc (suc Δᴸ₀)
-        ⊢ C ⊑ C′ ⊣ suc (suc Δᴿ₀)) →
-      suc (suc Δᴸ₀) ∣ leftStoreⁱ ρ₂ ∣ [] ⊢ M ⦂ C →
-      suc (suc Δᴿ₀) ∣ rightStoreⁱ ρ₂ ∣ [] ⊢ M′ ⦂ C′
-        ------------------------------------------------------------
-      → swapRight∀∀ᵢ Φ₀
-          ∣ suc (suc Δᴸ₀) ∣ suc (suc Δᴿ₀) ∣ ρ₂ ∣ []
-          ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ q
-
-    swapLeft-bodyᵀ :
-        ∀ {Φ₀ Δᴸ₀ Δᴿ₀ A B C C′ W W′ M M′ p}
-          {ρ₀ : StoreImp Φ₀ Δᴸ₀ Δᴿ₀}
-          {ρ₁ : StoreImp (∀ᵢᶜ Φ₀) (suc Δᴸ₀) (suc Δᴿ₀)}
-          {ρ₂ : StoreImp (swapRight∀∀ᵢ Φ₀)
-            (suc (suc Δᴸ₀)) (suc (suc Δᴿ₀))} →
-      LiftStoreⁱ (∀ᵢᶜ Φ₀) ρ₀ ρ₁ →
-      LiftStoreⁱ (swapRight∀∀ᵢ Φ₀) ρ₁ ρ₂ →
-      ∀ᵢᶜ Φ₀ ∣ suc Δᴸ₀ ∣ suc Δᴿ₀ ∣ ρ₁ ∣ []
-        ⊢ᴺ W ⊑ W′ ⦂ A ⊑ B ∶ p →
-      M ≡ renameᵗᵐ (extᵗ suc) W →
-      M′ ≡ ⇑ᵗᵐ W′ →
-      C ≡ renameᵗ (extᵗ suc) A →
-      C′ ≡ ⇑ᵗ B →
-      (q : swapRight∀∀ᵢ Φ₀ ∣ suc (suc Δᴸ₀)
-        ⊢ C ⊑ C′ ⊣ suc (suc Δᴿ₀)) →
-      suc (suc Δᴸ₀) ∣ leftStoreⁱ ρ₂ ∣ [] ⊢ M ⦂ C →
-      suc (suc Δᴿ₀) ∣ rightStoreⁱ ρ₂ ∣ [] ⊢ M′ ⦂ C′
-        ------------------------------------------------------------
-      → swapRight∀∀ᵢ Φ₀
-          ∣ suc (suc Δᴸ₀) ∣ suc (suc Δᴿ₀) ∣ ρ₂ ∣ []
-          ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ q
-
-    allocation-leftᵀ :
-        ∀ {Φ₀ Δᴸ₀ Δᴿ α A B B′ M M′ p}
-          {ρ₀ : StoreImp Φ₀ Δᴸ₀ Δᴿ}
-          {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ₀)
-            (suc Δᴸ₀) Δᴿ}
-          {γ′ : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ₀)
-            (suc Δᴸ₀) Δᴿ} →
-      (hA : WfTy (suc Δᴸ₀) A) →
-      LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ₀) ρ₀ ρ′ →
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ₀)
-        ∣ suc Δᴸ₀ ∣ Δᴿ ∣ ρ′ ∣ γ′
-        ⊢ᴺ M ⊑ M′ ⦂ B ⊑ B′ ∶ p →
-      suc Δᴸ₀ ∣ leftStoreⁱ (store-left α A hA ∷ ρ′)
-        ∣ leftCtxⁱ γ′ ⊢ M ⦂ B →
-      Δᴿ ∣ rightStoreⁱ (store-left α A hA ∷ ρ′)
-        ∣ rightCtxⁱ γ′ ⊢ M′ ⦂ B′
-        ------------------------------------------------------------
-      → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ₀) ∣ suc Δᴸ₀ ∣ Δᴿ ∣
-          store-left α A hA ∷ ρ′ ∣ γ′
-          ⊢ᴺ M ⊑ M′ ⦂ B ⊑ B′ ∶ p
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p
 
     ν⊑νᵀ :
         ∀ {ρ′ γ′ A A′ B B′ C C′ N N′ p q s s′ μ μ′}
@@ -665,7 +540,6 @@ mutual
           ⊢ᴺ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
 
     ⊑cast⊑idᵀ : ∀ {M M′ A A′ B′ p c′}
-      → (wfΣ′ : StoreDetWf Δᴿ (rightStoreⁱ ρ))
       → (seal★′ : SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ))
       → (c′⊑ :
           id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′)
@@ -798,17 +672,15 @@ mutual
     ⊢·
       (nu-term-imprecision-source-typing L⊑L′)
       (nu-term-imprecision-source-typing M⊑M′)
-  nu-term-imprecision-source-typing (up⊑upᵀ M⊑M′ u⊑ u′⊑ p) =
+  nu-term-imprecision-source-typing
+      (up⊑upᵀ M⊑M′ (quotient-id-widening u⊑ u′⊑) p) =
     ⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
       (widen-mode-relax id-only≤tag-or-idᵈ u⊑)
       (quotiented-nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
-      (crossed-up⊑upᵀ M⊑M′ mode seal★ u⊑ seal★′ u′⊑ p) =
-    ⊢⟨⟩⊑ mode seal★ u⊑
-      (quotiented-nu-term-imprecision-source-typing M⊑M′)
-  nu-term-imprecision-source-typing
-      (crossed-left-up⊑upᵀ M⊑M′ mode seal★ u⊑
-        seal★′ u′⊑ p) =
+      (up⊑upᵀ M⊑M′
+        (quotient-cast-widening
+          mode seal★ u⊑ mode′ seal★′ u′⊑) p) =
     ⊢⟨⟩⊑ mode seal★ u⊑
       (quotiented-nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
@@ -842,22 +714,7 @@ mutual
       (⊑αᵀ vL′ noL′ h⇑A liftρ liftγ N⊑L′ r N⊢ L′•⊢) =
     N⊢
   nu-term-imprecision-source-typing
-      (allocation-matchedᵀ pX liftρ M⊑M′ M⊢ M′⊢) =
-    M⊢
-  nu-term-imprecision-source-typing
-      (allocation-crossedᵀ hA₀ hA₁ hB₀ hB₁ liftρ₁ liftρ₂
-        p₀₁ p₁₀ M⊑M′ M⊢ M′⊢) =
-    M⊢
-  nu-term-imprecision-source-typing
-      (swapRight-bodyᵀ liftρ₁ liftρ₂ W⊑W′ refl refl refl refl q
-        M⊢ M′⊢) =
-    M⊢
-  nu-term-imprecision-source-typing
-      (swapLeft-bodyᵀ liftρ₁ liftρ₂ W⊑W′ refl refl refl refl q
-        M⊢ M′⊢) =
-    M⊢
-  nu-term-imprecision-source-typing
-      (allocation-leftᵀ hA liftρ M⊑M′ M⊢ M′⊢) =
+      (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) =
     M⊢
   nu-term-imprecision-source-typing
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
@@ -901,7 +758,7 @@ mutual
       (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q) =
     nu-term-imprecision-source-typing M⊑M′
   nu-term-imprecision-source-typing
-      (⊑cast⊑idᵀ wfΣ′ seal★′ c′⊑ M⊑M′ q) =
+      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q) =
     nu-term-imprecision-source-typing M⊑M′
   nu-term-imprecision-source-typing
       (conv⊑convᵀ
@@ -940,18 +797,16 @@ mutual
     ⊢·
       (nu-term-imprecision-target-typing L⊑L′)
       (nu-term-imprecision-target-typing M⊑M′)
-  nu-term-imprecision-target-typing (up⊑upᵀ M⊑M′ u⊑ u′⊑ p) =
+  nu-term-imprecision-target-typing
+      (up⊑upᵀ M⊑M′ (quotient-id-widening u⊑ u′⊑) p) =
     ⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
       (widen-mode-relax id-only≤tag-or-idᵈ u′⊑)
       (quotiented-nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
-      (crossed-up⊑upᵀ M⊑M′ mode seal★ u⊑ seal★′ u′⊑ p) =
-    ⊢⟨⟩⊑ (cast-inst (cast-ext cast-tag-or-id)) seal★′ u′⊑
-      (quotiented-nu-term-imprecision-target-typing M⊑M′)
-  nu-term-imprecision-target-typing
-      (crossed-left-up⊑upᵀ M⊑M′ mode seal★ u⊑
-        seal★′ u′⊑ p) =
-    ⊢⟨⟩⊑ (cast-ext (cast-inst cast-tag-or-id)) seal★′ u′⊑
+      (up⊑upᵀ M⊑M′
+        (quotient-cast-widening
+          mode seal★ u⊑ mode′ seal★′ u′⊑) p) =
+    ⊢⟨⟩⊑ mode′ seal★′ u′⊑
       (quotiented-nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
       (Λ⊑Λᵀ {ρ = ρ} {γ = γ} liftρ liftγ vV vV′ V⊑V′) =
@@ -983,22 +838,7 @@ mutual
       (⊑αᵀ vL′ noL′ h⇑A liftρ liftγ N⊑L′ r N⊢ L′•⊢) =
     L′•⊢
   nu-term-imprecision-target-typing
-      (allocation-matchedᵀ pX liftρ M⊑M′ M⊢ M′⊢) =
-    M′⊢
-  nu-term-imprecision-target-typing
-      (allocation-crossedᵀ hA₀ hA₁ hB₀ hB₁ liftρ₁ liftρ₂
-        p₀₁ p₁₀ M⊑M′ M⊢ M′⊢) =
-    M′⊢
-  nu-term-imprecision-target-typing
-      (swapRight-bodyᵀ liftρ₁ liftρ₂ W⊑W′ refl refl refl refl q
-        M⊢ M′⊢) =
-    M′⊢
-  nu-term-imprecision-target-typing
-      (swapLeft-bodyᵀ liftρ₁ liftρ₂ W⊑W′ refl refl refl refl q
-        M⊢ M′⊢) =
-    M′⊢
-  nu-term-imprecision-target-typing
-      (allocation-leftᵀ hA liftρ M⊑M′ M⊢ M′⊢) =
+      (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) =
     M′⊢
   nu-term-imprecision-target-typing
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
@@ -1045,7 +885,7 @@ mutual
     ⊢⟨⟩⊑ mode′ seal★′ c′⊑
       (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
-      (⊑cast⊑idᵀ wfΣ′ seal★′ c′⊑ M⊑M′ q) =
+      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q) =
     ⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
       (widen-mode-relax id-only≤tag-or-idᵈ c′⊑)
       (nu-term-imprecision-target-typing M⊑M′)

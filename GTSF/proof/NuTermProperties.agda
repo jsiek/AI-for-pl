@@ -151,6 +151,32 @@ renameᵗᵐ-cong {ρ = ρ} {ρ′ = ρ′} eq (M ⟨ c ⟩) =
     (cong (λ c′ → renameᵗᵐ ρ′ M ⟨ c′ ⟩) (renameᶜ-cong eq c))
 renameᵗᵐ-cong eq blame = refl
 
+renameᵗᵐ-id :
+  ∀ M →
+  renameᵗᵐ (λ X → X) M ≡ M
+renameᵗᵐ-id (` x) = refl
+renameᵗᵐ-id (ƛ M) = cong ƛ_ (renameᵗᵐ-id M)
+renameᵗᵐ-id (L · M) = cong₂ _·_ (renameᵗᵐ-id L) (renameᵗᵐ-id M)
+renameᵗᵐ-id (Λ M) =
+  cong Λ_ (trans (renameᵗᵐ-cong extᵗ-id M) (renameᵗᵐ-id M))
+renameᵗᵐ-id (M •) = cong _• (renameᵗᵐ-id M)
+renameᵗᵐ-id (ν A L c) =
+  trans
+    (cong (λ B → ν B (renameᵗᵐ (λ X → X) L)
+                    (renameᶜ (extᵗ (λ X → X)) c))
+      (renameᵗ-id A))
+    (trans
+      (cong (λ M → ν A M (renameᶜ (extᵗ (λ X → X)) c))
+        (renameᵗᵐ-id L))
+      (cong (ν A L)
+        (trans (renameᶜ-cong extᵗ-id c) (renameᶜ-id c))))
+renameᵗᵐ-id ($ κ) = refl
+renameᵗᵐ-id (L ⊕[ op ] M) =
+  cong₂ _⊕[ op ]_ (renameᵗᵐ-id L) (renameᵗᵐ-id M)
+renameᵗᵐ-id (M ⟨ c ⟩) =
+  cong₂ _⟨_⟩ (renameᵗᵐ-id M) (renameᶜ-id c)
+renameᵗᵐ-id blame = refl
+
 renameᵗᵐ-compose :
   ∀ ρ τ M →
   renameᵗᵐ τ (renameᵗᵐ ρ M) ≡

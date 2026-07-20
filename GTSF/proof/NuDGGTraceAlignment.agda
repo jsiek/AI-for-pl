@@ -14,7 +14,7 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import NuReduction using (_—↠[_]_)
 open import NuTermImprecision using (StoreImp)
 open import NuTerms using (Term; Value; blame)
-open import proof.NuImprecisionSimulation using
+open import proof.NuImprecisionSimulationCore using
   ( WeakOneStepOutcome
   ; WeakOneStepResult
   ; outcome-related
@@ -61,9 +61,11 @@ weak-outcome-target-value-alignedᵀ :
       ((targetResult result —↠[ θs ] V) ×
         (ψs ≡ targetTailChanges result ++ θs)))
   ⊎ ∃[ χs ] (M —↠[ χs ] blame)
-weak-outcome-target-value-alignedᵀ (outcome-related result) N′↠V vV
+weak-outcome-target-value-alignedᵀ
+    (outcome-related result transport coherence) N′↠V vV
   with weak-result-target-prefix-valueᵀ result N′↠V vV
-weak-outcome-target-value-alignedᵀ (outcome-related result) N′↠V vV
+weak-outcome-target-value-alignedᵀ
+    (outcome-related result transport coherence) N′↠V vV
   | θs , result↠V , trace-eq =
     inj₁ (result , θs , result↠V , trace-eq)
 weak-outcome-target-value-alignedᵀ
@@ -80,9 +82,11 @@ weak-outcome-target-blame-alignedᵀ :
       ((targetResult result —↠[ θs ] blame) ×
         (ψs ≡ targetTailChanges result ++ θs)))
   ⊎ ∃[ χs ] (M —↠[ χs ] blame)
-weak-outcome-target-blame-alignedᵀ (outcome-related result) N′↠blame
+weak-outcome-target-blame-alignedᵀ
+    (outcome-related result transport coherence) N′↠blame
   with weak-result-target-prefix-blameᵀ result N′↠blame
-weak-outcome-target-blame-alignedᵀ (outcome-related result) N′↠blame
+weak-outcome-target-blame-alignedᵀ
+    (outcome-related result transport coherence) N′↠blame
   | θs , result↠blame , trace-eq =
     inj₁ (result , θs , result↠blame , trace-eq)
 weak-outcome-target-blame-alignedᵀ

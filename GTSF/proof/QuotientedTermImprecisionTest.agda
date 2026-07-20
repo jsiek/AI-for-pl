@@ -45,4 +45,4 @@ cast-via-D⊑cast-via-E =
   up⊑upᵀ
     (down⊑downᵀ down-D-⊒ down-E-⊒ blame-A⊑blame-A
       glb-lower-XY⊑ᵖYX)
-    up-D-⊑ up-E-⊑ glb-bad-B⊑B
+    (quotient-id-widening up-D-⊑ up-E-⊑) glb-bad-B⊑B

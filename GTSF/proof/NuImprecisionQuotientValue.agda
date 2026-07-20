@@ -1,5 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas --allow-incomplete-matches #-}
-
 module proof.NuImprecisionQuotientValue where
 
 -- File Charter:

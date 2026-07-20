@@ -26,7 +26,7 @@ cases.
 | Paired conceal `β-∀•` | checked through allocation | Same theorem handles both paired conversion forms |
 | One-sided reveal/conceal `β-∀•` | checked | Left/right reveal and conceal lemmas |
 | Generic narrowing/widening `β-∀•` | checked one-step boundary | Both constructor orders and all four combinations return `WeakOneStepResult` |
-| Source-only canonical-`∀` catchup | partial | Now a specialization of arbitrary-type value catchup; terminal values, impossible target shapes, target wrappers, prefix recursion, the direct `α/Λ` leaf, and quotient recursion are checked; ten cast/allocation helper holes remain |
+| Source-only canonical-`∀` catchup | partial | Now a specialization of arbitrary-type value catchup; ten explicit holes remain, all in `NuImprecisionCatchupScratch`: two quotient-`inst` residuals, three source-allocation leaves, and five source cast/conversion leaves |
 | `β-gen•` | partial | Matched reconstruction and one-sided administrative clause checked; source-allocation naturality remains |
 | `β-inst` followed by `ν ★` allocation | checked locally | Matched, left-only, and right-only two-step lemmas |
 | Polymorphic value-shape inversion | checked locally | `Λ`, `∀` cast, or `gen`; each forces one administrative step |
@@ -35,8 +35,8 @@ cases.
 | Swapped two-allocation relation boundary | checked locally | `allocation-crossedᵀ`; projections equal the two-`bind` traces |
 | Reduction under `ν` and `ν ★` | checked | Matched, source-only, and target-only outer frame lemmas |
 | `blame-ν` | checked outcome | Exceptional outcomes carry a source catchup to blame; source frames lift it with `ν-blame-tail` |
-| Administrative simulation-up-to | partial | Composition and all six `ν`-frame outcome maps preserve transport-bearing outcomes |
-| One-step Nu-imprecision simulation | partial | Direct quotient, generic `β-∀•`, matched/one-sided `ν`, and arbitrary-type value-catchup recursion are checked; the dispatcher remains intentionally incomplete |
+| Administrative simulation-up-to | partial | The result, transport, coherence, source-`keep` composition, and all six `ν`-frame outcome maps are checked; the unfinished integration is confined to the dispatcher scratch |
+| One-step Nu-imprecision simulation | partial | The dispatcher skeleton covers blame and the matched/source-only/target-only `ν` and `ν ★` families; ten explicit helper holes remain, and the non-`ν` constructor/reduction patterns are not yet enumerated |
 | Terminal target-trace alignment | checked | Determinism makes every administrative `targetTail` a prefix of an observed trace to a value or blame |
 | Closed `GradualDGG` | checked reduction | `closed-nu-dgg⇒gradual-dgg` reduces it to `ClosedNuDGG`, which now follows from exactly three terminal simulation clauses |
 
@@ -79,7 +79,13 @@ arbitrary store replacement.
 6. Connect `β-inst` to `ν ★` and its allocation step. — checked locally
 7. Prove `ξ-ν`, `blame-ν`, and store-change composition. — checked
 8. Package administrative reductions into a sound simulation-up-to closure.
+   — partial; the stable result, transport, coherence, frame, and prefix
+   composition layers are checked.
 9. Prove one-step simulation and lift it to `GradualDGG`.
+   — partial; the recursive dispatcher is stated, but its current skeleton
+   covers only blame and the `ν`/`ν ★` families.  The ten explicit helper
+   holes and the still-unwritten dispatcher patterns are listed in the latest
+   snapshot below.
 
 ## Log
 
@@ -4889,7 +4895,7 @@ inner-sequence clauses.  Then use the resulting recursion interface at the
 outer instantiation boundary, where the source-only `\star` allocation must be
 combined with the existing permutation/crossed-allocation infrastructure.
 
-### 2026-07-20: quotient value scratch is hole-free
+### 2026-07-20: promoted quotient value module is hole-free
 
 - Closed both normalized inner-sequence leaves by contradiction.  A strict
   crossed narrowing after a source untag has an arrow target, whereas the
@@ -4910,7 +4916,7 @@ combined with the existing permutation/crossed-allocation infrastructure.
     u = \mathsf{inst}\ B\ s,
   \]
 
-  the scratch theorem now returns the checked trace
+  `NuImprecisionQuotientValue` now returns the checked trace
 
   \[
     V\langle d\rangle\langle u\rangle
@@ -4925,11 +4931,40 @@ combined with the existing permutation/crossed-allocation infrastructure.
   of the theorem statement.
 
 - Propagated that residual into the ordinary-down and gen-down clauses of the
-  recursive catch-up dispatcher.  The quotient value scratch contains no
-  holes.  The dispatcher now has two new, explicit holes whose contexts carry
-  the transported quotient narrowing/widening evidence, the source allocation
-  trace, and the already-obtained catch-up induction hypothesis for the
-  underlying terms.
+  recursive catch-up dispatcher.  The stable
+  `NuImprecisionQuotientValue` module contains no holes.  The dispatcher has
+  two explicit residual holes whose contexts carry the transported quotient
+  narrowing/widening evidence, the source allocation trace, and the
+  already-obtained catch-up induction hypothesis for the underlying terms.
+
+- Audited the current Agda proof after promoting and splitting the stable
+  modules.  `NuImprecisionSimulationCore`,
+  `NuImprecisionAllocationSimulation`, `NuImprecisionCatchupComposition`, and
+  `NuImprecisionQuotientValue` all check with unsolved metas disabled.  On the
+  active Nu-imprecision simulation path, exactly ten explicit holes remain,
+  all in `NuImprecisionCatchupScratch`:
+
+  - two quotient-`inst` residual clauses, in the ordinary-down and gen-down
+    helpers;
+  - three source-allocation dispatcher leaves, for `α⊑ᵀ`, `ν⊑ᵀ`, and
+    `νcast⊑ᵀ`;
+  - five source cast/conversion dispatcher leaves, for `cast⊒⊑ᵀ`,
+    `cast⊑⊑ᵀ`, `conv⊑convᵀ`, `conv↑⊑ᵀ`, and `conv↓⊑ᵀ`.
+
+- Removed the inherited scratch options from
+  `NuImprecisionQuotientValue`.  The promoted module checks with Agda's
+  default rejection of both unsolved metas and incomplete pattern matches, so
+  its hole-free status no longer depends on permissive module flags.
+
+- Those ten holes are not the complete remainder of one-step simulation.
+  `weak-one-step-indexed-simulationᵀ` is still an unfinished dispatcher
+  skeleton accepted under `--allow-incomplete-matches`.  Its written clauses
+  cover `blame⊑ᵀ` and the matched, source-only, and target-only ordinary `ν`
+  and `ν ★` families, including their allocation, inner-step, and blame
+  boundaries where applicable.  The non-`ν` term-imprecision constructors and
+  their target-reduction cases have not yet been enumerated.  They are
+  unwritten obligations, not Agda holes, and must be audited after the focused
+  catch-up boundary is closed.
 
 - This refactoring avoids a circular proof.  The quotient endpoint witness
   alone does not derive the ordinary post-allocation body relation required by
@@ -4946,4 +4981,6 @@ Complete the two explicit quotient-instantiation residual clauses in
 widening spines into the one-sided and adjacent-swap allocation shapes.  Then
 feed the already-bound underlying catch-up result into the corresponding
 allocation/permutation helper and prepend the checked `keep, bind \star`
-trace.
+trace.  After those focused clauses, enumerate the missing non-`ν` patterns of
+`weak-one-step-indexed-simulationᵀ` and connect each written helper to the main
+dispatcher before claiming total one-step coverage.

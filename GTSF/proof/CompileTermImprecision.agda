@@ -430,7 +430,7 @@ compiled-argument-cast-imprecision {pA = pA}
   QTI.up⊑upᵀ
     (QTI.down⊑downᵀ (down⊒ plan) (down⊒ plan′) M⊑M′
       lower⊑lower′)
-    (up⊑ plan) (up⊑ plan′) pA
+    (QTI.quotient-id-widening (up⊑ plan) (up⊑ plan′)) pA
 
 compiled-cast-nat-imprecision :
   ∀ {Φ Δᴸ Δᴿ δ M M′ A A′ p ℓ} →
@@ -484,7 +484,7 @@ compiled-right-dynamic-function-imprecision
         (narrow-mode-relax id-only≤tag-or-idᵈ (down⊒ plan))
         L⊑L′ arrow⊑lower
   in
-  QTI.⊑cast⊑idᵀ storeDetWf-[] seal★-id-only
+  QTI.⊑cast⊑idᵀ seal★-id-only
     (up⊑ plan) L⊑L′↓ (pA IWF.↦ pB)
 
 compiled-dynamic-function-imprecision :

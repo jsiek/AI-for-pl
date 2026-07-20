@@ -3,7 +3,8 @@ module proof.TypeProperties where
 -- File Charter:
 --   * Proof-only metatheory for GTSF type operations.
 --   * Well-formedness preservation, occurrence bookkeeping for type binders,
---     and store-renaming equalities used by coercion and term preservation.
+--     type-context permutations, and store-renaming equalities used by
+--     coercion and term preservation.
 --   * No coercion-specific or term-typing lemmas live here.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -276,6 +277,64 @@ TyRenameWf-suc :
   ∀ {Δ} →
   TyRenameWf Δ (suc Δ) suc
 TyRenameWf-suc X<Δ = s<s X<Δ
+
+record TyPermutation (Δ Δ′ : TyCtx) : Set where
+  constructor ty-permutation
+  field
+    forward : Renameᵗ
+    backward : Renameᵗ
+    forward-wf : TyRenameWf Δ Δ′ forward
+    backward-wf : TyRenameWf Δ′ Δ backward
+    backward-forward : RenameLeftInverse forward backward
+    forward-backward : RenameLeftInverse backward forward
+
+open TyPermutation public
+
+TyPermutation-id : ∀ Δ → TyPermutation Δ Δ
+TyPermutation-id Δ =
+  ty-permutation (λ X → X) (λ X → X)
+    (λ X<Δ → X<Δ) (λ X<Δ → X<Δ) (λ X → refl) (λ X → refl)
+
+TyPermutation-sym :
+  ∀ {Δ Δ′} → TyPermutation Δ Δ′ → TyPermutation Δ′ Δ
+TyPermutation-sym π =
+  ty-permutation (backward π) (forward π)
+    (backward-wf π) (forward-wf π)
+    (forward-backward π) (backward-forward π)
+
+TyPermutation-ext :
+  ∀ {Δ Δ′} → TyPermutation Δ Δ′ →
+  TyPermutation (suc Δ) (suc Δ′)
+TyPermutation-ext π =
+  ty-permutation (extᵗ (forward π)) (extᵗ (backward π))
+    (TyRenameWf-ext (forward-wf π))
+    (TyRenameWf-ext (backward-wf π))
+    (RenameLeftInverse-ext (backward-forward π))
+    (RenameLeftInverse-ext (forward-backward π))
+
+TyPermutation-compose :
+  ∀ {Δ Θ Ω} →
+  TyPermutation Δ Θ → TyPermutation Θ Ω → TyPermutation Δ Ω
+TyPermutation-compose π υ =
+  ty-permutation
+    (λ X → forward υ (forward π X))
+    (λ X → backward π (backward υ X))
+    (λ X<Δ → forward-wf υ (forward-wf π X<Δ))
+    (λ X<Ω → backward-wf π (backward-wf υ X<Ω))
+    backward-forward′
+    forward-backward′
+  where
+  backward-forward′ : ∀ X → _ ≡ X
+  backward-forward′ X =
+    trans
+      (cong (backward π) (backward-forward υ (forward π X)))
+      (backward-forward π X)
+
+  forward-backward′ : ∀ X → _ ≡ X
+  forward-backward′ X =
+    trans
+      (cong (forward υ) (forward-backward π (backward υ X)))
+      (forward-backward υ X)
 
 TyRenameWf-suc-≤ :
   ∀ {Δ Δ′} →

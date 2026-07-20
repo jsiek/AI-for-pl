@@ -19,7 +19,7 @@ open import Data.Nat.Properties
   using (_≟_; ≤-refl; n≤1+n; n<1+n; <-≤-trans; <-irrefl;
          m<n⇒m<1+n; suc-injective)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax; proj₁; proj₂)
-open import Relation.Nullary using (yes; no)
+open import Relation.Nullary using (Dec; yes; no)
 open import Relation.Binary.PropositionalEquality
   using (_≢_; cong; cong₂; subst; sym; trans)
 
@@ -32,6 +32,18 @@ open import proof.StoreProperties
 ------------------------------------------------------------------------
 -- Inert coercions
 ------------------------------------------------------------------------
+
+inert-dec : (c : Coercion) → Dec (Inert c)
+inert-dec (id A) = no (λ ())
+inert-dec (c ︔ d) = no (λ ())
+inert-dec (c ↦ d) = yes (c ↦ d)
+inert-dec (`∀ c) = yes (`∀ c)
+inert-dec (G !) = yes (G !)
+inert-dec (G ？) = no (λ ())
+inert-dec (seal A α) = yes (seal A α)
+inert-dec (unseal α A) = no (λ ())
+inert-dec (gen A c) = yes (gen A c)
+inert-dec (inst B c) = no (λ ())
 
 ∧-trueˡ :
   ∀ {b c} →
@@ -134,6 +146,31 @@ renameᶜ-cong eq (inst B c) =
     (renameᶜ-cong
       (λ { zero → refl ; (suc X) → cong suc (eq X) })
       c)
+
+extᵗ-id :
+  ∀ X →
+  extᵗ (λ Y → Y) X ≡ X
+extᵗ-id zero = refl
+extᵗ-id (suc X) = refl
+
+renameᶜ-id :
+  ∀ c →
+  renameᶜ (λ X → X) c ≡ c
+renameᶜ-id (id A) = cong id (renameᵗ-id A)
+renameᶜ-id (c ︔ d) = cong₂ _︔_ (renameᶜ-id c) (renameᶜ-id d)
+renameᶜ-id (c ↦ d) = cong₂ _↦_ (renameᶜ-id c) (renameᶜ-id d)
+renameᶜ-id (`∀ c) =
+  cong `∀ (trans (renameᶜ-cong extᵗ-id c) (renameᶜ-id c))
+renameᶜ-id (G !) = cong _! (renameᵗ-id G)
+renameᶜ-id (G ？) = cong _？ (renameᵗ-id G)
+renameᶜ-id (seal A α) = cong (λ B → seal B α) (renameᵗ-id A)
+renameᶜ-id (unseal α A) = cong (unseal α) (renameᵗ-id A)
+renameᶜ-id (gen A c) =
+  cong₂ gen (renameᵗ-id A)
+    (trans (renameᶜ-cong extᵗ-id c) (renameᶜ-id c))
+renameᶜ-id (inst B c) =
+  cong₂ inst (renameᵗ-id B)
+    (trans (renameᶜ-cong extᵗ-id c) (renameᶜ-id c))
 
 renameᶜ-compose :
   ∀ ρ τ c →

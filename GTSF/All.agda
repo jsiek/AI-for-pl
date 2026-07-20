@@ -43,7 +43,10 @@ import proof.EndpointCanonicalMLBSimplePairedSpan
 import proof.EndpointCanonicalMLBSimpleFactorization
 import proof.EndpointCanonicalMLBSimpleFactorCounterexample
 import proof.QuotientedTermImprecisionTest
+import proof.NuImprecisionSimulationCore
 import proof.NuImprecisionSimulation
+import proof.NuImprecisionCatchupScratch
+import proof.NuImprecisionAllocationSimulation
 import proof.NuReductionDeterminism
 import proof.NuDGGTraceAlignment
 import proof.NuDGGSpine

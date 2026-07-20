@@ -41,18 +41,20 @@ open import proof.NuImprecisionSimulation using
   ; weak-one-step-target-cast-frame-transportᵀ
   )
 open import proof.NuImprecisionSimulationCore using
-  ( WeakOneStepIndexedOutcome
-  ; apply-fixed-widens-typing
+  ( apply-fixed-widens-typing
   ; apply-narrows-typing
   ; apply-widens-typing
+  ; modeRename-id-only
+  ; seal★-id-only
+  )
+open import proof.NuImprecisionSimulationResultDef using
+  ( WeakOneStepIndexedOutcome
   ; canonicalIndexedResults
   ; indexed-outcome-related
   ; indexed-outcome-source-blame
-  ; modeRename-id-only
   ; relatedResults
   ; resultRightCtx
   ; resultStore
-  ; seal★-id-only
   ; targetCtxResult
   ; targetStoreResult
   ; targetTailChanges

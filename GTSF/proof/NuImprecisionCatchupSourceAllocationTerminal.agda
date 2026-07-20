@@ -29,6 +29,15 @@ open import QuotientedTermImprecision using (StoreImpPrefix)
 open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (WfTy; ★; `∀; ⇑ᵗ; ⟰ᵗ)
 open import proof.NuImprecisionSimulationCore using
+  ( leftStoreⁱ-prefix-inclusion
+  ; weak-one-step-source-ν-frameᵀ
+  ; weak-one-step-source-ν-frame-preserves-transportᵀ
+  ; weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
+  ; weak-one-step-source-νcast-frameᵀ
+  ; weak-one-step-source-νcast-frame-preserves-transportᵀ
+  ; weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
+  )
+open import proof.NuImprecisionSimulationResultDef using
   ( LeftCatchupIndexedResult
   ; LeftSilentIndexedResult
   ; left-indexed-catchup
@@ -40,13 +49,6 @@ open import proof.NuImprecisionSimulationCore using
   ; weakIndexedResult
   ; weak-indexed-result
   ; catchupIndexedResult
-  ; leftStoreⁱ-prefix-inclusion
-  ; weak-one-step-source-ν-frameᵀ
-  ; weak-one-step-source-ν-frame-preserves-transportᵀ
-  ; weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-  ; weak-one-step-source-νcast-frameᵀ
-  ; weak-one-step-source-νcast-frame-preserves-transportᵀ
-  ; weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
   )
 open import proof.StoreProperties using (renameStoreᵗ-incl)
 open import proof.TypePreservation using (seal★-weaken)

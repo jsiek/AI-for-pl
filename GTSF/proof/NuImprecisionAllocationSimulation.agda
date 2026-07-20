@@ -381,6 +381,7 @@ open import proof.TypeProperties using
   )
 
 open import proof.NuImprecisionSimulationCore
+open import proof.NuImprecisionSimulationResultDef
 open import proof.NuImprecisionSimulation
 
 ------------------------------------------------------------------------

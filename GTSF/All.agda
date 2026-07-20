@@ -43,6 +43,7 @@ import proof.EndpointCanonicalMLBSimplePairedSpan
 import proof.EndpointCanonicalMLBSimpleFactorization
 import proof.EndpointCanonicalMLBSimpleFactorCounterexample
 import proof.QuotientedTermImprecisionTest
+import proof.NuImprecisionSimulationResultDef
 import proof.NuImprecisionSimulationCore
 import proof.NuImprecisionSimulation
 import proof.NuImprecisionCatchupScratch

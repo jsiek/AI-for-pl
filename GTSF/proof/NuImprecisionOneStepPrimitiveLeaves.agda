@@ -51,7 +51,7 @@ open import TermTyping using (forget)
 open import Types using (`ℕ; ‵_)
 open import proof.NuImprecisionTargetBlameCatchup using
   (left-catchup-target-blameᵀ; value-not-target-blameᵀ)
-open import proof.NuImprecisionSimulationCore using
+open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedOutcome
   ; indexed-outcome-source-blame
   )

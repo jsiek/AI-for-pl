@@ -48,7 +48,7 @@ open import proof.NuDGGWeakResultPreservation using
   ; weak-result-target-store-wf
   ; weak-result-target-runtime
   )
-open import proof.NuImprecisionSimulationCore using
+open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedOutcome
   ; canonicalIndexedResults
   ; indexed-outcome-related

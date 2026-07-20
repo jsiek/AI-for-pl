@@ -16,6 +16,7 @@ open import NuReduction using
 open import NuTermImprecision using (StoreImp)
 open import QuotientedTermImprecision
 open import proof.NuImprecisionSimulationCore
+open import proof.NuImprecisionSimulationResultDef
 
 weak-one-step-keep-source-catchupᵀ :
   ∀ {Φ Δᴸ Δᴿ M N N′ A B p}

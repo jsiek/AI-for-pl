@@ -28,9 +28,10 @@ open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import Types using (_⇒_)
 open import proof.NuImprecisionSimulationCore using
+  (·₁-blame-tail)
+open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedOutcome
   ; indexed-outcome-source-blame
-  ; ·₁-blame-tail
   )
 open import proof.NuImprecisionTargetBlameCatchup using
   ( left-catchup-target-blameᵀ

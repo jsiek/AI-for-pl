@@ -90,6 +90,7 @@ open import proof.ForallPermutationProperties using
 open import proof.NuImprecisionCatchupComposition using
   (left-catchup-indexed-prepend-keepᵀ)
 open import proof.NuImprecisionSimulationCore
+open import proof.NuImprecisionSimulationResultDef
 open import proof.NuPreservation using (value-no-step)
 open import proof.NuProgress using
   (Progress; crash; done; progress-cast; step)

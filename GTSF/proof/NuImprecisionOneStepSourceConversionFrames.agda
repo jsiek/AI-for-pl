@@ -24,6 +24,10 @@ open import proof.NuImprecisionSimulation using
   ; weak-one-step-source-cast-frame-coherenceᵀ
   )
 open import proof.NuImprecisionSimulationCore using
+  ( apply-conceal-conversions
+  ; apply-reveal-conversions
+  )
+open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedOutcome
   ; canonicalIndexedResults
   ; indexed-outcome-related
@@ -37,8 +41,6 @@ open import proof.NuImprecisionSimulationCore using
   ; transportType
   ; weak-indexed-result
   ; weakIndexedResult
-  ; apply-conceal-conversions
-  ; apply-reveal-conversions
   )
 open import proof.NuImprecisionTargetBlameCatchup using
   (cast-blame-tailᵀ)

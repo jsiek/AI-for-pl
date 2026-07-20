@@ -68,7 +68,7 @@ open import proof.NuDGGTerminalBackwardValueDef using
 open import proof.NuProgress using (runtime-value-no•)
 open import proof.NuImprecisionOneStepDef using
   (WeakOneStepIndexedSimulationᵀ)
-open import proof.NuImprecisionSimulationCore using
+open import proof.NuImprecisionSimulationResultDef using
   ( LeftCatchupIndexedResult
   ; WeakOneStepIndexedOutcome
   ; WeakOneStepIndexedResult

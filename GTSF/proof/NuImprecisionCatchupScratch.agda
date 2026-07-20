@@ -107,6 +107,7 @@ open import proof.NuImprecisionAllocationSimulation using
   ; weak-one-step-right-νcast-indexed-outcomeᵀ
   )
 open import proof.NuImprecisionSimulationCore
+open import proof.NuImprecisionSimulationResultDef
 open import proof.NuImprecisionQuotientValue using
   (left-catchup-indexed-final-quotientᵀ)
 open import proof.NuImprecisionOneStepSourceCastFrames using

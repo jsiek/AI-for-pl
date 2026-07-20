@@ -38,7 +38,7 @@ open import NuTerms using (RuntimeOK; _⟨_⟩)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import TermTyping using (CastMode; SealModeStore★)
-open import proof.NuImprecisionSimulationCore using
+open import proof.NuImprecisionSimulationResultDef using
   (WeakOneStepIndexedOutcome)
 open import proof.NuImprecisionOneStepTargetBlameRoots using
   (weak-one-step-target-blame-indexed-outcomeᵀ)

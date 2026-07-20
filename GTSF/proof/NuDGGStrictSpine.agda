@@ -14,6 +14,7 @@ import proof.NuDGGTerminalBackwardValueDef
 import proof.NuDGGTerminalBackwardValueProof
 import proof.NuImprecisionOneStepDef
 import proof.NuImprecisionValueCatchupDef
+import proof.NuImprecisionSimulationResultDef
 import proof.NuDGGTraceAlignment
 import proof.NuDGGTraceMeasure
 import proof.NuDGGWeakResultPreservation

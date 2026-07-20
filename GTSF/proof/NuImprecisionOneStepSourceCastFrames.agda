@@ -21,7 +21,7 @@ open import proof.NuImprecisionSimulation using
   ( weak-one-step-source-narrow-cast-indexed-frameᵀ
   ; weak-one-step-source-widen-cast-indexed-frameᵀ
   )
-open import proof.NuImprecisionSimulationCore using
+open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedOutcome
   ; indexed-outcome-related
   ; indexed-outcome-source-blame

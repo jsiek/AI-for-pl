@@ -26,6 +26,7 @@ open import QuotientedTermImprecision using
   )
 import proof.NuImprecisionCatchupComposition as CC
 open import proof.NuImprecisionSimulationCore
+open import proof.NuImprecisionSimulationResultDef
 
 left-catchup-indexed-source-cast-blame-frameᵀ :
   ∀ {Φ Δᴸ Δᴿ M L V′ A A′ B B′ ρ d}

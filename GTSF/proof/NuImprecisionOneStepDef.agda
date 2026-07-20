@@ -14,7 +14,7 @@ open import NuTermImprecision using (StoreImp; rightStoreⁱ)
 open import NuTerms using (RuntimeOK)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
-open import proof.NuImprecisionSimulationCore using
+open import proof.NuImprecisionSimulationResultDef using
   (WeakOneStepIndexedOutcome)
 
 

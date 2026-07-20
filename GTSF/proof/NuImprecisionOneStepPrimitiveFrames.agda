@@ -35,6 +35,10 @@ open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; cong; subst; sym; trans)
 open import Types using (`ℕ; ‵_)
 open import proof.NuImprecisionSimulationCore using
+  ( nu-term-imprecision-transport-typesᵀ
+  ; weak-one-step-index-resultᵀ
+  )
+open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedOutcome
   ; WeakOneStepIndexedResult
   ; WeakOneStepResult
@@ -43,7 +47,6 @@ open import proof.NuImprecisionSimulationCore using
   ; canonicalIndexedResults
   ; indexed-outcome-related
   ; indexed-outcome-source-blame
-  ; nu-term-imprecision-transport-typesᵀ
   ; resultCtx
   ; resultLeftCtx
   ; resultRightCtx
@@ -64,7 +67,6 @@ open import proof.NuImprecisionSimulationCore using
   ; transportNo•Terms
   ; transportRightBody
   ; transportType
-  ; weak-one-step-index-resultᵀ
   ; weak-step-transport
   ; weak-step-type-coherence
   ; weakIndexedResult

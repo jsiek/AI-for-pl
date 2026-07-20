@@ -22,7 +22,7 @@ open import NuTermImprecision using
   ; rightStoreⁱ
   )
 open import NuTerms using (RuntimeOK; _∣_∣_⊢_⦂_)
-open import proof.NuImprecisionSimulationCore using
+open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepResult
   ; resultLeftCtx
   ; resultRightCtx

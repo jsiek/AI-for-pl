@@ -14,7 +14,7 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import NuReduction using (_—↠[_]_)
 open import NuTermImprecision using (StoreImp)
 open import NuTerms using (Term; Value; blame)
-open import proof.NuImprecisionSimulationCore using
+open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepOutcome
   ; WeakOneStepResult
   ; outcome-related

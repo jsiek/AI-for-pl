@@ -45,9 +45,11 @@ open import
 open import
   proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameCompatibleCasesDef
   using
-  ( PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertᵀ
-  ; PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ
-  )
+  (PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertCoreDef
+  using
+  (PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertCoreᵀ)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingSourceAllFrameAllIndexClosingDef
   using (PairedLambdaTargetClosingSourceAllFrameAllIndexClosingᵀ)
@@ -84,7 +86,7 @@ paired-lambda-target-closing-frame-closing-assembly-proofᵀ :
   PairedLambdaTargetClosingSourceGenFrameStructuralConcealClosingᵀ →
   PairedLambdaTargetClosingSourceAllFrameAllIndexClosingᵀ →
   PairedLambdaTargetClosingPairedConversionFrameClosingᵀ →
-  PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertᵀ →
+  PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertCoreᵀ →
   PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ →
   PairedLambdaTargetClosingUpIdFrameQuotientIdWideningClosingᵀ →
   PairedLambdaTargetClosingUpIdFrameQuotientCastWideningClosingᵀ →

@@ -65,9 +65,15 @@ open import
 open import
   proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameCompatibleCasesDef
   using
-  ( PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertᵀ
-  ; PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ
-  )
+  (PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertCoreDef
+  using
+  (PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertCoreᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertProof
+  using
+  (paired-lambda-target-closing-paired-widening-frame-compatible-source-inert-proofᵀ)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingSourceAllFrameAllIndexClosingDef
   using (PairedLambdaTargetClosingSourceAllFrameAllIndexClosingᵀ)
@@ -138,7 +144,7 @@ paired-lambda-target-closing-frame-closing-handlers-proofᵀ :
   PairedLambdaTargetClosingSourceGenFrameStructuralConcealClosingᵀ →
   PairedLambdaTargetClosingSourceAllFrameAllIndexClosingᵀ →
   PairedLambdaTargetClosingPairedConversionFrameClosingᵀ →
-  PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertᵀ →
+  PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertCoreᵀ →
   PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ →
   PairedLambdaTargetClosingUpIdFrameQuotientIdWideningClosingᵀ →
   PairedLambdaTargetClosingUpIdFrameQuotientCastWideningClosingᵀ →
@@ -192,7 +198,8 @@ paired-lambda-target-closing-frame-closing-handlers-proofᵀ
     ; handle-frame-paired-widening =
         paired-lambda-target-closing-paired-widening-frame-handler-proofᵀ
           (paired-lambda-target-closing-paired-widening-frame-compatible-cases-proofᵀ
-            paired-widening-source-inert
+            (paired-lambda-target-closing-paired-widening-frame-compatible-source-inert-proofᵀ
+              paired-widening-source-inert)
             paired-widening-target-inert-bridge)
     ; handle-frame-up-id =
         paired-lambda-target-closing-up-id-frame-handler-proofᵀ

@@ -18,7 +18,10 @@ open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuTermImprecision using (StoreImp; leftStoreⁱ; rightStoreⁱ)
 open import NuTerms using (Term; _⟨_⟩)
 open import PairedWideningCompatibility using
-  (PairedWideningCompatible)
+  ( PairedWideningCompatible
+  ; compatible-source-inert
+  ; compatible-target-inert-bridge
+  )
 open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx; `∀)
 open import
@@ -30,6 +33,30 @@ open import
 open import
   proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameClosingDef
   using (PairedLambdaTargetClosingPairedWideningFrameClosingᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameCompatibleCasesDef
+  using
+  ( PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertᵀ
+  ; PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ
+  )
+
+
+paired-lambda-target-closing-paired-widening-frame-compatible-cases-proofᵀ :
+  PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertᵀ →
+  PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ →
+  PairedLambdaTargetClosingPairedWideningFrameClosingᵀ
+paired-lambda-target-closing-paired-widening-frame-compatible-cases-proofᵀ
+    source-inert target-inert-bridge inner view inert-d′
+    cast-mode seal source-widening target-cast-mode target-seal
+    target-widening (compatible-source-inert inert-d) =
+  source-inert inner view inert-d′ cast-mode seal source-widening
+    target-cast-mode target-seal target-widening inert-d
+paired-lambda-target-closing-paired-widening-frame-compatible-cases-proofᵀ
+    source-inert target-inert-bridge inner view inert-d′
+    cast-mode seal source-widening target-cast-mode target-seal
+    target-widening (compatible-target-inert-bridge bridge) =
+  target-inert-bridge inner view inert-d′ cast-mode seal source-widening
+    target-cast-mode target-seal target-widening bridge
 
 
 paired-lambda-target-closing-paired-widening-frame-handler-proofᵀ :

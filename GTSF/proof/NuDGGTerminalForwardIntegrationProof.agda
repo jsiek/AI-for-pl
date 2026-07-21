@@ -29,6 +29,10 @@ open import proof.NuImprecisionWorldCoherentRightValueCatchupProof using
   (world-coherent-right-value-catchup-proofᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepDef using
   (WorldCoherentSourceOneStepSimulationᵀ)
+open import proof.NuImprecisionWorldCoherentSourceOneStepCasesDef using
+  (WorldCoherentSourceOneStepCases)
+open import proof.NuImprecisionWorldCoherentSourceOneStepDispatcherProof using
+  (world-coherent-source-one-step-dispatcher-proofᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepProof using
   (world-coherent-source-one-step-proofᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepPrefixDef using
@@ -96,4 +100,17 @@ prefix-forward-engines-and-backward-terminals⇒gradual-dgg
     source-prefix right-prefix backward-value backward-blame =
   exact-forward-engines-and-backward-terminals⇒gradual-dgg
     (world-coherent-exact-source-one-step-prefix-proofᵀ source-prefix)
+    right-prefix backward-value backward-blame
+
+
+source-cases-and-right-prefix⇒gradual-dgg :
+  WorldCoherentSourceOneStepCases →
+  WorldCoherentRightValueCatchupPrefixᵀ →
+  BackwardTargetValueOrSourceBlameᵀ →
+  BackwardTargetBlameᵀ →
+  GradualDGG
+source-cases-and-right-prefix⇒gradual-dgg
+    source-cases right-prefix backward-value backward-blame =
+  prefix-forward-engines-and-backward-terminals⇒gradual-dgg
+    (world-coherent-source-one-step-dispatcher-proofᵀ source-cases)
     right-prefix backward-value backward-blame

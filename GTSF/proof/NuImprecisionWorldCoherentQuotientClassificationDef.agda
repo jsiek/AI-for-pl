@@ -56,4 +56,4 @@ WorldCoherentQuotientClassificationᵀ =
       (((V ⟨ d ⟩) ⟨ u ⟩)
         —↠[ keep ∷ bind ★ ∷ [] ]
           ((⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩) ×
-      Value V × No• V
+      Value (V ⟨ d ⟩) × No• (V ⟨ d ⟩)

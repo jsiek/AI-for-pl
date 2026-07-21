@@ -33,8 +33,8 @@ WorldCoherentQuotientInstCatchupᵀ =
   WorldCoherent ρ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   RuntimeOK ((V ⟨ d ⟩) ⟨ C.inst B s ⟩) →
-  Value V →
-  No• V →
+  Value (V ⟨ d ⟩) →
+  No• (V ⟨ d ⟩) →
   Value V′ →
   No• V′ →
   C.Inert d′ →

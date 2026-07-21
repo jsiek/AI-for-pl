@@ -35,6 +35,6 @@ world-coherent-quotient-final-catchup-proofᵀ
 world-coherent-quotient-final-catchup-proofᵀ
     classify quotient-inst coherent wfL okV
     vV′ noV′ inert-d′ inert-u′ down widening final
-    | inj₂ (B , s , refl , source↠ , vV , noV) =
-  quotient-inst coherent wfL okV vV noV
+    | inj₂ (B , s , refl , source↠ , vVd , noVd) =
+  quotient-inst coherent wfL okV vVd noVd
     vV′ noV′ inert-d′ inert-u′ down widening

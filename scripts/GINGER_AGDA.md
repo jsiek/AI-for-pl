@@ -40,6 +40,13 @@ Do not use that pattern for new skeleton or worker modules.  State unfinished
 major dependencies as higher-order contract parameters so the new module can
 pass the strict command from its first checked version.
 
+For a three-file theorem boundary, strict-check `<Stem>Def.agda` before proof
+work and `<Stem>Proof.agda` before supplying canonical dependencies in
+`<Stem>Lemma.agda`.  Besides reducing invalidation, this is a contract audit:
+an overbroad statement should fail locally or admit a strict counterexample.
+Repair the `Def` instead of allowing an unsolved meta to carry the mismatch
+into the larger proof.
+
 ## Starting a remote worker worktree
 
 The following is the standard setup for one isolated proof slice.  Replace

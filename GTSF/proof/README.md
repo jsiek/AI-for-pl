@@ -50,6 +50,14 @@ may remain permissive while it is being decomposed, but no new `Def`, `Proof`,
 or leaf module should need that option merely to expose the rest of the proof
 shape.
 
+Strict checking is also a contract audit.  Check each `Def` before writing its
+implementation and check each higher-order `Proof` before any canonical
+dependency is supplied.  If a proposed contract is false or too broad, record
+the strict counterexample and repair the `Def`; never hide the mismatch behind
+an unsolved meta in a downstream assembly.  The initial source-seal
+cancellation contract was rejected this way: a source-only name may also occur
+in a matched row unless source-name role exclusivity is carried explicitly.
+
 A command-line `--no-allow-unsolved-metas` is not sufficient when a source
 module locally enables `--allow-unsolved-metas`.  Completion therefore
 requires removing the local option and checking the owned module again, as
@@ -208,13 +216,21 @@ leaf was assembled.
 The structural bridge is
 `WorldCoherentQuotientClassificationᵀ`.  It classifies a terminal quotient
 node as either a complete coherent catch-up or the unique outer-`inst`
-residual, packaging source `Value`/`No•` evidence with that residual.  The
+residual, packaging `Value (V ⟨ d ⟩)` and `No• (V ⟨ d ⟩)` evidence
+for the inner down-cast value that is ready to fire the outer `inst`.  The
 strict `NuImprecisionWorldCoherentQuotientFinalCatchupProof` then needs only
 this classifier and `WorldCoherentQuotientInstCatchupᵀ`; source-runtime
 handlers are not a dependency of quotient-final assembly.  Keep the
 classifier implementation separate so ordinary store-neutral quotient leaves
 retain coherence and left `StoreWf` instead of erasing them behind a generic
 `LeftCatchupIndexedResult`.
+
+`WorldCoherentQuotientInstCatchupᵀ` is an independent semantic capability,
+not a consequence of `WorldCoherentSourceRuntimeCatchupᵀ`.  Source-runtime
+handlers start from an ordinary relation, whereas the quotient-`inst` leaf
+must construct the missing quotiented-to-ordinary representative alignment.
+The structural quotient view and allocation helpers recover the operational
+spine and coherent allocated world, but do not prove that alignment.
 
 Keep source bullet, allocation, cast, and conversion handlers together in
 `NuImprecisionWorldCoherentSourceRuntimeCatchup*`; source `inst` catch-up and
@@ -235,7 +251,11 @@ its fields recursively.  Its current proof decomposition is:
 - `source-bullet`, `source-ν`, `source-νcast`, and the widening-`inst`
   case form one genuine recursive allocation SCC;
 - `source-reveal` needs exact source-side seal cancellation for active
-  `unseal`; its contracts are frozen in
+  `unseal`; the first cancellation contract was strictly refuted because it
+  omitted source-only-versus-matched name exclusivity.  Its replacement is
+  being isolated as a separate imprecision-context invariant rather than
+  folded into `WorldCoherent`, because empty-store coherence is valid for
+  arbitrary contexts.  The affected boundaries are
   `NuImprecisionSourceSealCancellationDef` and
   `NuImprecisionWorldCoherentSourceUnsealCatchupDef`;
 - active narrowing/widening need source tag/untag classification in addition
@@ -243,8 +263,9 @@ its fields recursively.  Its current proof decomposition is:
 - `source-paired-cast` needs prefix and accumulated-change transport for
   `PairedCast` evidence.
 
-Prove the independent conceal leaf first, then freeze and prove source seal
-cancellation and tag cancellation as explicit contracts.  Next prove reveal,
+Prove the independent conceal leaf first, then repair and prove source seal
+cancellation with source-name role exclusivity and freeze tag cancellation as
+an explicit contract.  Next prove reveal,
 non-`inst` narrow/widen cases, and paired-cast transport.  Only then implement
 the allocation SCC as a visibly structural mutual proof (or with an explicit
 administrative measure) and assemble the eight-field record.  Do not make the

@@ -131,14 +131,14 @@ right-source-narrow-frameᵀ
     prefix coherent exclusive wfR okM′ vM noM inert mode seal★ c⊒
     M⊑M′
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent′ exclusive′ wfR′)
+      catchup lineage source-bullet-transport coherent′ exclusive′ wfR′)
     with rightCatchupSourceChangesEmpty catchup
        | rightCatchupSourceUnchanged catchup
 right-source-narrow-frameᵀ
     prefix coherent exclusive wfR okM′ vM noM inert mode seal★ c⊒
     M⊑M′
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent′ exclusive′ wfR′)
+      catchup lineage source-bullet-transport coherent′ exclusive′ wfR′)
     | refl | refl =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup framed refl refl
@@ -150,7 +150,7 @@ right-source-narrow-frameᵀ
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent′ exclusive′ wfR′
+    source-bullet-transport coherent′ exclusive′ wfR′
   where
   seal★⁺ =
     seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★
@@ -200,14 +200,14 @@ right-source-widen-frameᵀ
     prefix coherent exclusive wfR okM′ vM noM inert mode seal★ c⊑
     M⊑M′
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent′ exclusive′ wfR′)
+      catchup lineage source-bullet-transport coherent′ exclusive′ wfR′)
     with rightCatchupSourceChangesEmpty catchup
        | rightCatchupSourceUnchanged catchup
 right-source-widen-frameᵀ
     prefix coherent exclusive wfR okM′ vM noM inert mode seal★ c⊑
     M⊑M′
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent′ exclusive′ wfR′)
+      catchup lineage source-bullet-transport coherent′ exclusive′ wfR′)
     | refl | refl =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup framed refl refl
@@ -219,7 +219,7 @@ right-source-widen-frameᵀ
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent′ exclusive′ wfR′
+    source-bullet-transport coherent′ exclusive′ wfR′
   where
   seal★⁺ =
     seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★
@@ -267,14 +267,14 @@ right-source-reveal-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
     prefix coherent exclusive wfR okM′ vM noM inert c↑ M⊑M′
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent′ exclusive′ wfR′)
+      catchup lineage source-bullet-transport coherent′ exclusive′ wfR′)
     with rightCatchupSourceChangesEmpty catchup
        | rightCatchupSourceUnchanged catchup
 right-source-reveal-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
     prefix coherent exclusive wfR okM′ vM noM inert c↑ M⊑M′
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent′ exclusive′ wfR′)
+      catchup lineage source-bullet-transport coherent′ exclusive′ wfR′)
     | refl | refl =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup framed refl refl
@@ -286,7 +286,7 @@ right-source-reveal-frameᵀ
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent′ exclusive′ wfR′
+    source-bullet-transport coherent′ exclusive′ wfR′
   where
   inner = weakIndexedResult (rightCatchupIndexedResult catchup)
 
@@ -348,14 +348,14 @@ right-source-conceal-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
     prefix coherent exclusive wfR okM′ vM noM inert c↓ M⊑M′
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent′ exclusive′ wfR′)
+      catchup lineage source-bullet-transport coherent′ exclusive′ wfR′)
     with rightCatchupSourceChangesEmpty catchup
        | rightCatchupSourceUnchanged catchup
 right-source-conceal-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
     prefix coherent exclusive wfR okM′ vM noM inert c↓ M⊑M′
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent′ exclusive′ wfR′)
+      catchup lineage source-bullet-transport coherent′ exclusive′ wfR′)
     | refl | refl =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup framed refl refl
@@ -367,7 +367,7 @@ right-source-conceal-frameᵀ
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent′ exclusive′ wfR′
+    source-bullet-transport coherent′ exclusive′ wfR′
   where
   inner = weakIndexedResult (rightCatchupIndexedResult catchup)
 

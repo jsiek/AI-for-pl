@@ -5,6 +5,8 @@ module proof.NuImprecisionLeftRuntimeRenameDef where
 --     quotiented Nu-term imprecision with a bullet-free source.
 --   * Bundles the mutually implemented maps while returning direct relation
 --     derivations, with no simulation result or outcome wrapper.
+--   * Requires structural world-insertion evidence so target-right runtime
+--     allocation branches expose their exact lifted world and map shapes.
 --   * Contains no implementation, postulate, hole, permissive option, or
 --     source-allocation index specialization.
 
@@ -28,6 +30,8 @@ open import QuotientedTermImprecision using
   )
 open import Types using (Renameᵗ; Ty; TyCtx; renameᵗ)
 open import proof.MaximalLowerBoundsWf using (rename-assm²ᵢ)
+open import proof.NuImprecisionLeftWorldInsertionDef using
+  (LeftWorldInsertionⁱ)
 open import proof.NuImprecisionSimulationCore using
   ( LeftCtxRenameⁱ
   ; LeftInsertion
@@ -52,6 +56,7 @@ record LeftRuntimeRename : Set₁ where
         {M M′ : Term} {A B : Ty}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
       LeftInsertion τ →
+      LeftWorldInsertionⁱ τ Φ Ψ assm →
       LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
       LeftCtxRenameⁱ τ assm hτ γ γ′ →
       No• M →
@@ -74,6 +79,7 @@ record LeftRuntimeRename : Set₁ where
         {M M′ : Term} {D D′ : Ty}
         {q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
       LeftInsertion τ →
+      LeftWorldInsertionⁱ τ Φ Ψ assm →
       LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
       LeftCtxRenameⁱ τ assm hτ γ γ′ →
       No• M →

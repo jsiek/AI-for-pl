@@ -15,6 +15,9 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ( RightValueCatchupIndexedResult
   ; rightCatchupIndexedResult
   )
+open import
+  proof.NuImprecisionRightValueCatchupSourceBulletTransportDef
+  using (RightValueCatchupSourceBulletTransportᵀ)
 open import proof.NuImprecisionSimulationResultDef using
   ( resultCtx
   ; resultRightCtx
@@ -39,6 +42,11 @@ record WorldCoherentRightValueCatchupIndexedResult
 
     worldRightCatchupStoreLineage :
       WeakOneStepStoreLineage
+        (weakIndexedResult
+          (rightCatchupIndexedResult worldRightCatchupResult))
+
+    worldRightCatchupSourceBulletTransport :
+      RightValueCatchupSourceBulletTransportᵀ
         (weakIndexedResult
           (rightCatchupIndexedResult worldRightCatchupResult))
 

@@ -12,6 +12,7 @@ open import Data.List using ([])
 open import Data.Nat.Properties using (≤-refl)
 
 open import NuReduction using (keep; ↠-refl)
+open import NuTerms using (⇑ᵗᵐ; _•)
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; nu-term-imprecision-source-typing
@@ -22,6 +23,9 @@ open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
   (rel-store-embedding-reflⁱ)
 open import proof.NuImprecisionRightValueCatchupResultDef using
   (right-value-indexed-catchup)
+open import
+  proof.NuImprecisionRightValueCatchupSourceBulletTransportDef
+  using (RightValueCatchupSourceBulletTransportᵀ)
 open import proof.NuImprecisionSimulationResultDef using
   ( weak-indexed-result
   ; weak-step-result
@@ -54,7 +58,7 @@ world-coherent-right-value-terminal-proofᵀ
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup indexed refl refl vV noV vV′ noV′
       transport type-coherence)
-    lineage coherent exclusive wfR
+    lineage source-bullet-transport coherent exclusive wfR
   where
   source-typing⁺ =
     term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
@@ -91,3 +95,15 @@ world-coherent-right-value-terminal-proofᵀ
 
   lineage =
     weak-step-store-lineage ρ⁺ rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  source-bullet-transport :
+    RightValueCatchupSourceBulletTransportᵀ result
+  source-bullet-transport {L = L} {M′ = M′} {C = C} {C′ = C′}
+      {q = q} prefix′ okL noL′ L⊢ L⊑L′ =
+    allocation-prefixᵀ {ρ = ρ⁺} {M = (⇑ᵗᵐ L) •} {M′ = M′}
+      {A = C} {B = C′} {p = q}
+      prefix′ L⊑L′ L⊢ target-typing′
+    where
+    target-typing′ =
+      term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix′)
+        noL′ (nu-term-imprecision-target-typing L⊑L′)

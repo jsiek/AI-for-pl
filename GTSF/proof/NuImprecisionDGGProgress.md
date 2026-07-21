@@ -319,7 +319,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightSourceFramesDef.agda`](NuImprecisionWorldCoherentRightSourceFramesDef.agda) | completed statement | Canonical four-field source cast/conversion frame boundary. |
 | [`NuImprecisionWorldCoherentRightSourceFramesProof.agda`](NuImprecisionWorldCoherentRightSourceFramesProof.agda) | completed GPT-5.5 proof | Frames an inner terminal catch-up through source narrowing, widening, reveal, or conceal while retaining transport, coherence, lineage, and world invariants. |
 | [`NuImprecisionWorldCoherentRightSourceFramesLemma.agda`](NuImprecisionWorldCoherentRightSourceFramesLemma.agda) | completed canonical assembly | Exposes all four source-frame proofs through the canonical three-file boundary. |
-| [`NuImprecisionWorldCoherentRightTargetCastFramesDef.agda`](NuImprecisionWorldCoherentRightTargetCastFramesDef.agda) | completed frozen statement | Canonical five-field target cast/conversion frame boundary extracted for hard local proof development. |
+| [`NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda) | completed statement; proof not started | Five-field terminalization boundary for target narrowing, widening, identity-only widening, reveal, and conceal.  Unlike a mechanical frame, each field must also normalize active casts after the inner target reaches a value. |
 | [`NuImprecisionWorldCoherentRightValueTerminalDef.agda`](NuImprecisionWorldCoherentRightValueTerminalDef.agda) | completed statement | Zero-step value/value base returning the full recursive right-catch-up result in the ambient prefix world. |
 | [`NuImprecisionWorldCoherentRightValueTerminalProof.agda`](NuImprecisionWorldCoherentRightValueTerminalProof.agda) | completed GPT-5.5 proof | Lifts both terminal typings and their relation through the ambient prefix, then returns the zero-step result with identity transport, coherence, and lineage. |
 | [`NuImprecisionWorldCoherentRightValueTerminalLemma.agda`](NuImprecisionWorldCoherentRightValueTerminalLemma.agda) | completed canonical assembly | Exposes the strict terminal proof through the canonical three-file boundary. |
@@ -346,9 +346,9 @@ are delegated:
 | [`NuImprecisionSourceOneStepDeltaRootDef.agda`](NuImprecisionSourceOneStepDeltaRootDef.agda) | completed statement | Synchronized natural-addition base for the primitive pure-root family, returning the full ambient strong result. |
 | [`NuImprecisionSourceOneStepDeltaRootProof.agda`](NuImprecisionSourceOneStepDeltaRootProof.agda) | completed GPT-5.5 proof | Uses matching singleton `keep` traces and `δ-⊕` steps, lifts the final constant relation through the ambient prefix, and supplies identity transport, coherence, and reflexive lineage. |
 | [`NuImprecisionSourceOneStepDeltaRootLemma.agda`](NuImprecisionSourceOneStepDeltaRootLemma.agda) | completed canonical assembly | Exposes the synchronized delta proof through the canonical three-file boundary. |
-| [`NuImprecisionSourceSilentCompositionDef.agda`](NuImprecisionSourceSilentCompositionDef.agda) | completed statement | Composes a source-silent target catch-up with the following source-oriented result while retaining transport, type coherence, and relational-store lineage. |
-| [`NuImprecisionSourceSilentCompositionProof.agda`](NuImprecisionSourceSilentCompositionProof.agda) | completed GPT-5.6 proof | Concatenates the target tails, composes generic relation transport and arrow/`∀` coherence, and factors relational-store embeddings through the intermediate prefix. |
-| [`NuImprecisionSourceSilentCompositionLemma.agda`](NuImprecisionSourceSilentCompositionLemma.agda) | completed canonical assembly | Exposes the four-field composition record through the canonical three-file boundary. |
+| [`NuImprecisionSourceSilentCompositionDef.agda`](NuImprecisionSourceSilentCompositionDef.agda) | completed strengthened statement | Composes a source-silent target catch-up with the following source-oriented result while retaining transport, type coherence, lineage, exact source changes/result, and final world/name invariants. |
+| [`NuImprecisionSourceSilentCompositionProof.agda`](NuImprecisionSourceSilentCompositionProof.agda) | completed GPT-5.6 proof | Concatenates target tails, composes transport/coherence/lineage, and proves that the combined result preserves the second result's exact source trace, endpoint, world coherence, and source-name exclusivity. |
+| [`NuImprecisionSourceSilentCompositionLemma.agda`](NuImprecisionSourceSilentCompositionLemma.agda) | completed canonical assembly | Exposes the eight-field composition record through the canonical three-file boundary. |
 | [`NuImprecisionRightStorePrefixFactorDef.agda`](NuImprecisionRightStorePrefixFactorDef.agda) | completed statement | Small factorization needed by source-only binder traversal in right catch-up. |
 | [`NuImprecisionRightStorePrefixFactorProof.agda`](NuImprecisionRightStorePrefixFactorProof.agda) | completed GPT-5.5 proof | Exhaustive strict structural proof developed in an isolated Ginger worktree. |
 | [`NuImprecisionRightStorePrefixFactorLemma.agda`](NuImprecisionRightStorePrefixFactorLemma.agda) | completed canonical assembly | Canonical three-file assembly consumed by the future source-all right-catch-up case. |
@@ -8348,12 +8348,16 @@ coordination.  Use focused strict checks throughout and reserve
   [`Lemma`](NuImprecisionWorldCoherentRightSourceFramesLemma.agda) is now in
   the routine forward spine.
 
-- Extracted the five target cast and conversion frames into
-  [`NuImprecisionWorldCoherentRightTargetCastFramesDef.agda`](NuImprecisionWorldCoherentRightTargetCastFramesDef.agda).
-  The aggregate right-catch-up cases record now imports this canonical record,
-  and the recursive dispatcher imports its projections directly.  This freezes
-  the exact hard local boundary for target narrowing, widening, identity-only
-  widening, reveal, and conceal without importing their future proof.
+- Renamed the target-side boundary to
+  [`NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda)
+  after a GPT-5.6 proof audit exposed that these are not merely frame lemmas.
+  Once the recursive inner relation reaches a target value, the transformed
+  outer cast may be inert, but an active identity, sequence, tag,
+  instantiation, unseal, or reveal-unseal cast must take root steps and resume
+  normalization.  The five-field statement already promises the correct
+  terminal result, so the DGG-facing dispatcher remains valid; the missing
+  lower proof structure is now explicitly active-root normalization rather
+  than an incorrectly assumed mechanical framing proof.
 
 - Froze
   [`RightStorePrefixFactorᵀ`](NuImprecisionRightStorePrefixFactorDef.agda) as
@@ -8443,6 +8447,14 @@ coordination.  Use focused strict checks throughout and reserve
   universal coherence equations; and prefix inversion plus embedding
   composition proves store lineage.  Its focused strict check is about five
   seconds and it is now part of the routine forward spine.
+
+- Strengthened `SourceSilentComposition` after the direct delta proof exposed
+  that its abstract contract omitted four endpoint invariants preserved by the
+  concrete implementation.  It now carries exact source-change and
+  source-result preservation plus direct transport of final `WorldCoherent`
+  and `SourceNameExclusive` evidence.  This avoids implementation imports and
+  dependent store equality in two-operand scheduling; the strengthened `Def`,
+  `Proof`, `Lemma`, and routine forward spine all pass strictly.
 
 - No `All.agda`, `NuDGGStrictSpine.agda`, hole, postulate, incomplete match,
   or source-level permissive option was used in this organization batch.

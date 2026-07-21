@@ -1,12 +1,15 @@
-module proof.NuImprecisionWorldCoherentRightTargetCastFramesDef where
+module
+  proof.NuImprecisionWorldCoherentRightTargetCastTerminalizationDef
+  where
 
 -- File Charter:
---   * Defines the five target-cast frame capabilities used by recursive
---     world-coherent right-value catch-up.
+--   * Defines the five target-cast terminalization capabilities used by
+--     recursive world-coherent right-value catch-up.
 --   * Keeps every ambient-prefix, runtime, cast, relation, and recursive
 --     result premise explicit at the canonical target-frame boundary.
---   * Contains no dispatcher, implementation, postulate, hole, or permissive
---     option.
+--   * Each capability includes both inert framing and active-root
+--     normalization needed to finish at a target value.
+--   * Contains no dispatcher, implementation, postulate, hole, or option.
 
 open import Data.List using ([])
 
@@ -42,7 +45,7 @@ open import proof.NuImprecisionWorldCoherentRightCatchupResultDef using
   (WorldCoherentRightValueCatchupIndexedResult)
 
 
-record WorldCoherentRightTargetCastFrames : Set₁ where
+record WorldCoherentRightTargetCastTerminalization : Set₁ where
   field
     rightTargetNarrowFrame :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -157,4 +160,4 @@ record WorldCoherentRightTargetCastFrames : Set₁ where
       WorldCoherentRightValueCatchupIndexedResult
         {V = V} {M′ = M′ ⟨ c′ ⟩} {ρ = ρ⁺} q
 
-open WorldCoherentRightTargetCastFrames public
+open WorldCoherentRightTargetCastTerminalization public

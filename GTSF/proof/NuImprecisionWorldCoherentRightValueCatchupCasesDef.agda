@@ -83,8 +83,9 @@ open import proof.NuImprecisionWorldCoherentRightCatchupResultDef using
   (WorldCoherentRightValueCatchupIndexedResult)
 open import proof.NuImprecisionWorldCoherentRightSourceFramesDef using
   (WorldCoherentRightSourceFrames)
-open import proof.NuImprecisionWorldCoherentRightTargetCastFramesDef using
-  (WorldCoherentRightTargetCastFrames)
+open import
+  proof.NuImprecisionWorldCoherentRightTargetCastTerminalizationDef
+  using (WorldCoherentRightTargetCastTerminalization)
 open import proof.NuImprecisionWorldCoherentRightValueTerminalDef using
   (WorldCoherentRightValueTerminalᵀ)
 
@@ -304,7 +305,8 @@ record WorldCoherentRightValueCatchupCases : Set₁ where
   field
     rightValueTerminalCase : WorldCoherentRightValueTerminalᵀ
     rightValueSourceFramesCase : WorldCoherentRightSourceFrames
-    rightValueTargetCastFramesCase : WorldCoherentRightTargetCastFrames
+    rightValueTargetCastTerminalizationCase :
+      WorldCoherentRightTargetCastTerminalization
     rightValuePairedCastFrameCase : WorldCoherentRightPairedCastFrameᵀ
     rightValueQuotientDownUpFrameCase :
       WorldCoherentRightQuotientDownUpFrame

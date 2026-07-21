@@ -71,7 +71,7 @@ open import
   ; rightValueSourceFramesCase
   ; rightValueTargetAllocationFramesCase
   ; rightValueTargetBulletClosingCase
-  ; rightValueTargetCastFramesCase
+  ; rightValueTargetCastTerminalizationCase
   ; rightValueTerminalCase
   )
 open import proof.NuImprecisionWorldCoherentRightSourceFramesDef using
@@ -80,7 +80,8 @@ open import proof.NuImprecisionWorldCoherentRightSourceFramesDef using
   ; rightSourceRevealFrame
   ; rightSourceWidenFrame
   )
-open import proof.NuImprecisionWorldCoherentRightTargetCastFramesDef using
+open import
+  proof.NuImprecisionWorldCoherentRightTargetCastTerminalizationDef using
   ( rightTargetConcealFrame
   ; rightTargetIdWidenFrame
   ; rightTargetNarrowFrame
@@ -236,7 +237,7 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
   rightTargetNarrowFrame target-cases prefix coherent exclusive wfR
     okM′ vV noV mode seal★ c⊒ V⊑M′ inner
   where
-  target-cases = rightValueTargetCastFramesCase cases
+  target-cases = rightValueTargetCastTerminalizationCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive wfR (runtime-⟨⟩ okM′)
     vV noV V⊑M′
@@ -246,7 +247,7 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
   rightTargetWidenFrame target-cases prefix coherent exclusive wfR
     okM′ vV noV mode seal★ c⊑ V⊑M′ inner
   where
-  target-cases = rightValueTargetCastFramesCase cases
+  target-cases = rightValueTargetCastTerminalizationCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive wfR (runtime-⟨⟩ okM′)
     vV noV V⊑M′
@@ -256,7 +257,7 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
   rightTargetIdWidenFrame target-cases prefix coherent exclusive wfR
     okM′ vV noV seal★ c⊑ V⊑M′ inner
   where
-  target-cases = rightValueTargetCastFramesCase cases
+  target-cases = rightValueTargetCastTerminalizationCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive wfR (runtime-⟨⟩ okM′)
     vV noV V⊑M′
@@ -296,7 +297,7 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
   rightTargetRevealFrame target-cases prefix coherent exclusive wfR
     okM′ vV noV c↑ V⊑M′ inner
   where
-  target-cases = rightValueTargetCastFramesCase cases
+  target-cases = rightValueTargetCastTerminalizationCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive wfR (runtime-⟨⟩ okM′)
     vV noV V⊑M′
@@ -306,7 +307,7 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
   rightTargetConcealFrame target-cases prefix coherent exclusive wfR
     okM′ vV noV c↓ V⊑M′ inner
   where
-  target-cases = rightValueTargetCastFramesCase cases
+  target-cases = rightValueTargetCastTerminalizationCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive wfR (runtime-⟨⟩ okM′)
     vV noV V⊑M′

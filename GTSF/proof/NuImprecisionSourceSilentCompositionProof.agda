@@ -39,6 +39,8 @@ open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
   ; rel-store-embedding-congⁱ
   ; rel-store-embedding-prefix-invⁱ
   )
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import proof.NuImprecisionSimulationCore using
   ( ≡-to-≅
   ; subst-to-≅
@@ -55,6 +57,8 @@ open import proof.NuImprecisionSourceSilentCompositionDef
 open import proof.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)
 open import proof.NuImprecisionWeakOneStepStoreLineageDef
+open import proof.NuImprecisionWorldCoherenceDef using
+  (WorldCoherent)
 open import proof.ReductionProperties using
   ( applyStores-++
   ; applyTerms-++
@@ -534,6 +538,90 @@ source-silent-preserves-store-lineageᵀ
     (store-imp-prefix-transⁱ prefix₁₂ prefix₂)
 
 
+source-silent-preserves-changes-exactᵀ :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (first : WeakOneStepResult ρ M M′ A B keep)
+    (source-empty : sourceChanges first ≡ [])
+    (source-same : sourceResult first ≡ M)
+    (second : WeakOneStepResult
+      (resultStore first)
+      (sourceResult first)
+      (targetResult first)
+      (resultSourceType first)
+      (resultTargetType first)
+      keep)
+    {χs} →
+  sourceChanges second ≡ χs →
+  sourceChanges
+    (source-silent-resultᵀ first source-empty source-same second) ≡ χs
+source-silent-preserves-changes-exactᵀ
+    first refl refl second exact = exact
+
+
+source-silent-preserves-result-exactᵀ :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (first : WeakOneStepResult ρ M M′ A B keep)
+    (source-empty : sourceChanges first ≡ [])
+    (source-same : sourceResult first ≡ M)
+    (second : WeakOneStepResult
+      (resultStore first)
+      (sourceResult first)
+      (targetResult first)
+      (resultSourceType first)
+      (resultTargetType first)
+      keep)
+    {L} →
+  sourceResult second ≡ L →
+  sourceResult
+    (source-silent-resultᵀ first source-empty source-same second) ≡ L
+source-silent-preserves-result-exactᵀ
+    first refl refl second exact = exact
+
+
+source-silent-preserves-world-coherentᵀ :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (first : WeakOneStepResult ρ M M′ A B keep)
+    (source-empty : sourceChanges first ≡ [])
+    (source-same : sourceResult first ≡ M)
+    (second : WeakOneStepResult
+      (resultStore first)
+      (sourceResult first)
+      (targetResult first)
+      (resultSourceType first)
+      (resultTargetType first)
+      keep) →
+  WorldCoherent (resultStore second) →
+  WorldCoherent
+    (resultStore
+      (source-silent-resultᵀ first source-empty source-same second))
+source-silent-preserves-world-coherentᵀ
+    first refl refl second coherent = coherent
+
+
+source-silent-preserves-source-name-exclusiveᵀ :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (first : WeakOneStepResult ρ M M′ A B keep)
+    (source-empty : sourceChanges first ≡ [])
+    (source-same : sourceResult first ≡ M)
+    (second : WeakOneStepResult
+      (resultStore first)
+      (sourceResult first)
+      (targetResult first)
+      (resultSourceType first)
+      (resultTargetType first)
+      keep) →
+  SourceNameExclusive (resultCtx second) →
+  SourceNameExclusive
+    (resultCtx
+      (source-silent-resultᵀ first source-empty source-same second))
+source-silent-preserves-source-name-exclusiveᵀ
+    first refl refl second exclusive = exclusive
+
+
 source-silent-composition-proofᵀ : SourceSilentComposition
 source-silent-composition-proofᵀ =
   record
@@ -543,4 +631,12 @@ source-silent-composition-proofᵀ =
         source-silent-preserves-type-coherenceᵀ
     ; sourceSilentStoreLineage =
         source-silent-preserves-store-lineageᵀ
+    ; sourceSilentChangesExact =
+        source-silent-preserves-changes-exactᵀ
+    ; sourceSilentResultExact =
+        source-silent-preserves-result-exactᵀ
+    ; sourceSilentWorldCoherent =
+        source-silent-preserves-world-coherentᵀ
+    ; sourceSilentSourceNameExclusive =
+        source-silent-preserves-source-name-exclusiveᵀ
     }

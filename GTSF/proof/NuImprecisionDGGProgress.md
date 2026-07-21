@@ -350,6 +350,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda) | completed higher-order proof | GPT 5.5 Ginger proof transports and frames every narrowing grammar form, propagates source blame, and resumes terminal values through the whole value-prefix capability; canonical assembly remains cyclic |
 | [`NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda) | completed statement | Exact-final terminal source-narrowing semantics, separated from accumulated-change framing |
 | [`NuImprecisionWorldCoherentSourceWidenCatchupDef.agda`](NuImprecisionWorldCoherentSourceWidenCatchupDef.agda) | completed statement | Whole accumulated-world source-widening handler contract and the precise dependency used by terminal paired widening |
+| [`NuImprecisionWorldCoherentSourceWidenCatchupProof.agda`](NuImprecisionWorldCoherentSourceWidenCatchupProof.agda) | completed higher-order proof | GPT 5.5 Ginger proof covers identity, inert, tag, sequence, active unseal, and active `inst`; local integration threads explicit lineage through every terminal, frame, and silent-composition path |
 | [`NuImprecisionWorldCoherentFinalSourceWidenCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceWidenCatchupDef.agda) | completed statement | Exact-final terminal source-widening semantics; active `inst` remains the explicit allocation-sensitive case |
 | [`NuImprecisionWorldCoherentSourceConcealCatchup.agda`](NuImprecisionWorldCoherentSourceConcealCatchup.agda) | completed leaf | GPT 5.5 proved all conceal-conversion cases on ginger; the adapted proof preserves final coherence and left `StoreWf` and passes a local focused strict check |
 | [`NuImprecisionContextExclusivityDef.agda`](NuImprecisionContextExclusivityDef.agda) | completed statement | Separate source-name role invariant: a source-only row and matched row cannot share the same source name; this remains distinct from store-world coherence |
@@ -6537,3 +6538,20 @@ coordination.  Use focused strict checks throughout and reserve
   inhabitants remain explicit theorem dependencies and absent canonical
   `Lemma` assemblies, while the completed skeleton and transport joins remain
   strict.  No `All.agda` or strict-spine check was run.
+
+- Integrated the GPT 5.5 source-widening adapter from Ginger.  Its exhaustive
+  proof handles all widening grammar forms, uses the strict midpoint and
+  source-seal contracts at sequence/unseal boundaries, and exposes active
+  `inst` through the whole value-prefix dependency.  The local lineage update
+  supplies reflexive witnesses to terminal/local steps and composes them with
+  the operand catch-up lineage.  The resulting 1,365-line module passes its
+  focused strict check; no canonical `Lemma` is added because its value-prefix
+  dependency belongs to the mutual source-runtime SCC.
+
+- The first attempted ordinary source-`ν` `Proof` stopped at a contract error
+  instead of introducing a meta.  `WorldCoherentSourceNuCatchupᵀ` currently
+  accepts an arbitrary index for `` `∀ C ⊑ B′ ``, but post-allocation
+  `α⊑ᵀ` requires that index to be specifically `ν occ r`; the alternative
+  `∀ⁱ r` case is inhabited.  The active repair audit is therefore tightening
+  the source-only `ν`/`νcast` relation constructors and their handler contracts
+  before any allocation proof is assembled.

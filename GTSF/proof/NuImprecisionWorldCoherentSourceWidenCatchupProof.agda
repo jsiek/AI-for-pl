@@ -30,6 +30,7 @@ open import NuReduction using
   ; applyTyCtxs
   ; applyTys
   ; bind
+  ; blame-⟨⟩
   ; keep
   ; pure-step
   ; β-seq
@@ -51,7 +52,9 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; prefix-reflⁱ
+  ; blame⊑ᵀ
   ; cast⊑⊑ᵀ
+  ; nu-term-imprecision-target-typing
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Relation.Binary.PropositionalEquality using
@@ -96,6 +99,7 @@ open import proof.NuImprecisionSimulationCore using
   ; weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
   ; weak-one-step-prepend-left-silent-preserves-transportᵀ
   ; weak-one-step-prepend-left-silentᵀ
+  ; weak-one-step-reindexᵀ
   ; weak-one-step-source-νcast-frameᵀ
   )
 open import proof.NuImprecisionSimulationResultDef using
@@ -136,6 +140,16 @@ open import proof.NuImprecisionSourceSealCancellationDef using
   (SourceSealCancellationᵀ)
 open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion)
+open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
+  (rel-store-embedding-reflⁱ)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  ( lineageEmbedding
+  ; lineagePrefix
+  ; lineageStore
+  ; weak-step-store-lineage
+  )
+open import proof.NuImprecisionWeakOneStepStoreLineageProof using
+  (weak-one-step-prepend-left-silent-store-lineageᵀ)
 open import proof.NuImprecisionWorldCoherentCatchupComposition using
   (world-coherent-left-catchup-indexed-resume-silentᵀ)
 open import proof.NuImprecisionWorldCoherentResultDef using
@@ -419,6 +433,8 @@ world-coherent-source-inert-widen-castᵀ
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     with result-widening-typingᵀ prefix mode seal★ c⊑ indexed
@@ -430,6 +446,8 @@ world-coherent-source-inert-widen-castᵀ
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , mode′ , final-seal , final-cast
@@ -442,6 +460,8 @@ world-coherent-source-inert-widen-castᵀ
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , mode′ , final-seal , final-cast
@@ -451,6 +471,8 @@ world-coherent-source-inert-widen-castᵀ
         (left-catchup-invariant first-silent
           (inj₁ (vW ⟨ inert′ ⟩ , no•-⟨⟩ noW)))
         first-transport first-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
@@ -485,6 +507,8 @@ world-coherent-source-inert-widen-castᵀ
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , mode′ , final-seal , final-cast
@@ -493,6 +517,7 @@ world-coherent-source-inert-widen-castᵀ
       (left-catchup-indexed-source-cast-blame-frameᵀ
         catchup framed refl first-silent
         first-transport first-coherence refl)
+      terminal-combined-lineage
       coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
@@ -517,6 +542,36 @@ world-coherent-source-inert-widen-castᵀ
     weak-one-step-source-cast-frame-coherenceᵀ
       inner final-relation inner-coherence
 
+  terminal-first =
+    weak-one-step-reindexᵀ first refl refl
+      (canonicalIndexedResults framed)
+
+  terminal-target⊢ =
+    nu-term-imprecision-target-typing
+      (relatedResults terminal-first)
+
+  terminal-second-relation = blame⊑ᵀ terminal-target⊢
+
+  terminal-second = weak-one-step-keep-source-catchupᵀ
+    {p = resultType terminal-first}
+    (pure-step blame-⟨⟩) terminal-second-relation
+
+  terminal-first-lineage =
+    weak-step-store-lineage
+      lineage-store lineage-embedding lineage-prefix
+
+  terminal-second-lineage =
+    weak-step-store-lineage
+      (resultStore terminal-first)
+      rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  terminal-combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent terminal-first
+        (left-silent-invariant refl refl))
+      terminal-second
+      terminal-first-lineage terminal-second-lineage
+
 
 world-coherent-source-id-widen-castᵀ :
   ∀ {Φ Δᴸ Δᴿ ρ₀ ρ⁺ N V′ A B′ μ}
@@ -537,6 +592,8 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     with result-widening-typingᵀ prefix mode seal★ c⊑ indexed
@@ -546,6 +603,8 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , mode′ , final-seal , final-cast
@@ -556,6 +615,8 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , mode′ , final-seal , final-cast
@@ -566,6 +627,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
       (left-catchup-invariant
         (left-silent-invariant refl refl) (inj₁ (vW , noW)))
       combined-transport combined-coherence)
+    combined-lineage
     coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
@@ -593,6 +655,17 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
 
   combined = weak-one-step-prepend-left-silentᵀ
     (left-silent first first-silent) second
+
+  second-lineage =
+    weak-step-store-lineage
+      (resultStore first) rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent first first-silent) second
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
+      second-lineage
 
   type-eq = HE.≅-to-≡
     (HE.trans
@@ -634,6 +707,8 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , mode′ , final-seal , final-cast
@@ -642,6 +717,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
     (left-catchup-indexed-source-cast-blame-frameᵀ
       catchup framed refl first-silent
       first-transport first-coherence refl)
+    terminal-combined-lineage
     coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
@@ -666,6 +742,36 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
     weak-one-step-source-cast-frame-coherenceᵀ
       inner final-relation inner-coherence
 
+  terminal-first =
+    weak-one-step-reindexᵀ first refl refl
+      (canonicalIndexedResults framed)
+
+  terminal-target⊢ =
+    nu-term-imprecision-target-typing
+      (relatedResults terminal-first)
+
+  terminal-second-relation = blame⊑ᵀ terminal-target⊢
+
+  terminal-second = weak-one-step-keep-source-catchupᵀ
+    {p = resultType terminal-first}
+    (pure-step blame-⟨⟩) terminal-second-relation
+
+  terminal-first-lineage =
+    weak-step-store-lineage
+      lineage-store lineage-embedding lineage-prefix
+
+  terminal-second-lineage =
+    weak-step-store-lineage
+      (resultStore terminal-first)
+      rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  terminal-combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent terminal-first
+        (left-silent-invariant refl refl))
+      terminal-second
+      terminal-first-lineage terminal-second-lineage
+
 
 terminal-world-catchupᵀ :
   ∀ {Φ Δᴸ Δᴿ W V′ A B}
@@ -683,6 +789,8 @@ terminal-world-catchupᵀ :
 terminal-world-catchupᵀ coherent exclusive wfL vW noW relation =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-relatedᵀ (inj₁ (vW , noW)) relation)
+    (weak-step-store-lineage
+      _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 
 
@@ -713,6 +821,8 @@ world-coherent-source-seq-widen-castᵀ
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     with result-widening-typingᵀ prefix mode seal★
@@ -727,6 +837,8 @@ world-coherent-source-seq-widen-castᵀ
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μc , modec , final-seal-c , final-cast-c
@@ -740,6 +852,8 @@ world-coherent-source-seq-widen-castᵀ
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μc , modec , final-seal-c , final-cast-c
@@ -747,6 +861,7 @@ world-coherent-source-seq-widen-castᵀ
     | inj₁ (vW , noW) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     first-silent-result
+    combined-lineage
     (value-prefix prefix-reflⁱ coherent exclusive wfL runtime
       vV′ noV′ (canonicalIndexedResults first-indexed))
   where
@@ -800,6 +915,17 @@ world-coherent-source-seq-widen-castᵀ
   combined = weak-one-step-prepend-left-silentᵀ
     (left-silent first first-silent) second
 
+  second-lineage =
+    weak-step-store-lineage
+      (resultStore first) rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent first first-silent) second
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
+      second-lineage
+
   type-eq = HE.≅-to-≡
     (HE.trans
       (subst²-to-≅
@@ -844,6 +970,8 @@ world-coherent-source-seq-widen-castᵀ
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μc , modec , final-seal-c , final-cast-c
@@ -853,6 +981,7 @@ world-coherent-source-seq-widen-castᵀ
     (left-catchup-indexed-source-cast-blame-frameᵀ
       catchup framed refl first-silent
       first-transport first-coherence refl)
+    terminal-combined-lineage
     coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
@@ -876,6 +1005,36 @@ world-coherent-source-seq-widen-castᵀ
   first-coherence =
     weak-one-step-source-cast-frame-coherenceᵀ
       inner final-relation inner-coherence
+
+  terminal-first =
+    weak-one-step-reindexᵀ first refl refl
+      (canonicalIndexedResults framed)
+
+  terminal-target⊢ =
+    nu-term-imprecision-target-typing
+      (relatedResults terminal-first)
+
+  terminal-second-relation = blame⊑ᵀ terminal-target⊢
+
+  terminal-second = weak-one-step-keep-source-catchupᵀ
+    {p = resultType terminal-first}
+    (pure-step blame-⟨⟩) terminal-second-relation
+
+  terminal-first-lineage =
+    weak-step-store-lineage
+      lineage-store lineage-embedding lineage-prefix
+
+  terminal-second-lineage =
+    weak-step-store-lineage
+      (resultStore terminal-first)
+      rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  terminal-combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent terminal-first
+        (left-silent-invariant refl refl))
+      terminal-second
+      terminal-first-lineage terminal-second-lineage
 
 
 world-coherent-source-inst-widen-castᵀ :
@@ -901,6 +1060,8 @@ world-coherent-source-inst-widen-castᵀ value-prefix
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     with result-widening-typingᵀ prefix mode seal★ c⊑ indexed
@@ -911,6 +1072,8 @@ world-coherent-source-inst-widen-castᵀ value-prefix
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , mode′ , final-seal , final-cast
@@ -923,12 +1086,15 @@ world-coherent-source-inst-widen-castᵀ value-prefix
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , mode′ , final-seal , final-cast
     | inj₁ (vW , noW) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     first-silent-result
+    combined-lineage
     (value-prefix prefix-reflⁱ coherent exclusive wfL runtime
       vV′ noV′ (canonicalIndexedResults first-indexed))
   where
@@ -974,6 +1140,17 @@ world-coherent-source-inst-widen-castᵀ value-prefix
 
   combined = weak-one-step-prepend-left-silentᵀ
     (left-silent first first-silent) second
+
+  second-lineage =
+    weak-step-store-lineage
+      (resultStore first) rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent first first-silent) second
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
+      second-lineage
 
   type-eq = HE.≅-to-≡
     (HE.trans
@@ -1026,6 +1203,8 @@ world-coherent-source-inst-widen-castᵀ value-prefix
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , mode′ , final-seal , final-cast
@@ -1034,6 +1213,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
     (left-catchup-indexed-source-cast-blame-frameᵀ
       catchup framed refl first-silent
       first-transport first-coherence refl)
+    terminal-combined-lineage
     coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
@@ -1057,6 +1237,36 @@ world-coherent-source-inst-widen-castᵀ value-prefix
   first-coherence =
     weak-one-step-source-cast-frame-coherenceᵀ
       inner final-relation inner-coherence
+
+  terminal-first =
+    weak-one-step-reindexᵀ first refl refl
+      (canonicalIndexedResults framed)
+
+  terminal-target⊢ =
+    nu-term-imprecision-target-typing
+      (relatedResults terminal-first)
+
+  terminal-second-relation = blame⊑ᵀ terminal-target⊢
+
+  terminal-second = weak-one-step-keep-source-catchupᵀ
+    {p = resultType terminal-first}
+    (pure-step blame-⟨⟩) terminal-second-relation
+
+  terminal-first-lineage =
+    weak-step-store-lineage
+      lineage-store lineage-embedding lineage-prefix
+
+  terminal-second-lineage =
+    weak-step-store-lineage
+      (resultStore terminal-first)
+      rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  terminal-combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent terminal-first
+        (left-silent-invariant refl refl))
+      terminal-second
+      terminal-first-lineage terminal-second-lineage
 
 
 world-coherent-source-widen-catchup-proofᵀ :

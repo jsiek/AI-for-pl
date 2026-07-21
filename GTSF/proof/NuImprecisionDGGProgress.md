@@ -361,6 +361,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda) | completed statement | Full exact-final branch specialized to `∀ⁱ r`; the proof audit found no counterexample or need for an added compatibility premise |
 | [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexViewCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexViewCatchupDef.agda) | completed hard-worker statement | Freezes the allocation-sensitive worker after source and target polymorphic values are both classified as `AllView`; its `av-Λ`/`av-∀`/`av-gen` cross-product remains the explicit missing inhabitant |
 | [`NuImprecisionSourceNuPairedBinderSupport.agda`](NuImprecisionSourceNuPairedBinderSupport.agda) | completed extraction | Focused owner of matched/left context lifts, the source-`ν`/`∀` store and context commuting squares, and `left-source-lift-Λᵀ`; all five definitions were deleted from the simulation core |
+| [`NuImprecisionPairedStorePrefixFactorDef.agda`](NuImprecisionPairedStorePrefixFactorDef.agda), [`Proof`](NuImprecisionPairedStorePrefixFactorProof.agda), and [`Lemma`](NuImprecisionPairedStorePrefixFactorLemma.agda) | completed strict triple | Factors a matched `LiftStoreⁱ` through an ambient `StoreImpPrefix`; the GPT 5.5 Ginger proof is exhaustive, has no broad simulation dependency, and the canonical assembly is checked separately without unsolved metas |
 | [`NuImprecisionWorldCoherentLeftCatchupPrependKeepStep.agda`](NuImprecisionWorldCoherentLeftCatchupPrependKeepStep.agda) | completed focused proof | Canonical administrative `β-Λ•` keep step and coherent catch-up prepend operation shared by ordinary and `ν ★` target-closing transformers |
 | [`NuImprecisionWorldCoherentSourceNuPairedLambdaTargetClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedLambdaTargetClosingCatchupDef.agda) | completed hard statement | Exact post-allocation `av-Λ`/`av-Λ` target-binder-closing contract; makes the term-level `ν∀`-to-`∀ν` rotation, both store lifts, matched body relation, reveal, and desired outer index explicit |
 | [`NuImprecisionWorldCoherentSourceNuPairedLambdaTargetClosingCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuPairedLambdaTargetClosingCatchupProof.agda) | completed higher-order proof; assembly partial | Strictly removes the administrative `β-Λ•` step and reduces the hard ordinary contract to the semantic reveal-closing contract; no `Lemma` exists while that dependency remains partial |
@@ -7890,3 +7891,29 @@ coordination.  Use focused strict checks throughout and reserve
   [`PairedLambdaTargetClosingContinuationValueTerminalᵀ`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda)
   recursion; the matched `Λ`/`Λ` structural reveal/conceal closing contracts
   remain its first semantic leaves.
+
+### 2026-07-21: first strict matched-binder support leaf from Ginger
+
+- Completed the representative matched-store prefix-factorization boundary as
+  the full three-file triple
+  [`NuImprecisionPairedStorePrefixFactorDef.agda`](NuImprecisionPairedStorePrefixFactorDef.agda),
+  [`NuImprecisionPairedStorePrefixFactorProof.agda`](NuImprecisionPairedStorePrefixFactorProof.agda),
+  and
+  [`NuImprecisionPairedStorePrefixFactorLemma.agda`](NuImprecisionPairedStorePrefixFactorLemma.agda).
+  The theorem factors a matched universal store lift through an existing
+  relational-store prefix and returns both the lifted prefix world and the
+  residual prefix witness.
+
+- GPT 5.5 implemented the structural `Proof` in the isolated Ginger worktree.
+  It recurses exhaustively over `StoreImpPrefix` and every `LiftStoreⁱ`
+  constructor, imports no broad simulation module, and passed
+  `scripts/agda-ginger --no-allow-unsolved-metas -v0`.  The coordinator then
+  reviewed the exact one-file diff and integrated remote commit `7f63f8ea`.
+
+- The canonical `Lemma` is deliberately checked as its own assembly gate and
+  is imported by the focused paired-target-closing spine.  This records the
+  additional purpose of the three-file organization: an unfinished dependency
+  remains an explicit higher-order parameter, while any underconstrained
+  canonical instantiation fails locally in `Lemma` instead of motivating a
+  source-level `--allow-unsolved-metas`.  No `All.agda` check is part of this
+  workflow.

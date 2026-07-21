@@ -386,6 +386,8 @@ open import proof.TypeProperties using
 open import proof.NuImprecisionSimulationCore
 open import proof.NuImprecisionSimulationResultDef
 open import proof.NuImprecisionStoreLift using (lift-right-store-result)
+open import proof.NuImprecisionStorePrefix using
+  (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
 open import proof.NuImprecisionCatchupComposition
 
 ------------------------------------------------------------------------

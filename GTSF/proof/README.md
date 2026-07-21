@@ -103,6 +103,13 @@ other direct consumers import it explicitly; the simulation core does not
 re-export those names.  This keeps coherent catch-up allocation leaves outside
 the large core's invalidation cone.
 
+Structural prefix operations live beside it in
+`NuImprecisionStorePrefix`: projected left/right store inclusion and prefix
+transitivity are defined there and imported directly by catch-up consumers.
+Do not move these names back into, or re-export them through, the simulation
+core; doing so would reconnect stable catch-up structure to the largest proof
+implementation file.
+
 ## Invariant layers above generic results
 
 Keep semantic induction invariants above

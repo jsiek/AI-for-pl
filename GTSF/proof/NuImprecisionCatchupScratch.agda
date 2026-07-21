@@ -108,6 +108,11 @@ open import proof.NuImprecisionAllocationSimulation using
   )
 open import proof.NuImprecisionSimulationCore
 open import proof.NuImprecisionSimulationResultDef
+open import proof.NuImprecisionStorePrefix using
+  ( leftStoreⁱ-prefix-inclusion
+  ; rightStoreⁱ-prefix-inclusion
+  ; store-imp-prefix-transⁱ
+  )
 open import proof.NuImprecisionQuotientValue using
   (left-catchup-indexed-final-quotientᵀ)
 open import proof.NuImprecisionOneStepSourceCastFrames using

@@ -232,6 +232,11 @@ open import proof.NuImprecisionOneStepRelated using
   )
 open import proof.NuImprecisionStoreLift using
   (lift-left-store-result; lift-right-store-result)
+open import proof.NuImprecisionStorePrefix using
+  ( leftStoreⁱ-prefix-inclusion
+  ; rightStoreⁱ-prefix-inclusion
+  ; store-imp-prefix-transⁱ
+  )
 open import Store using (StoreIncl; StoreIncl-drop; StoreIncl-refl)
 open import TermTyping using
   ( CastMode
@@ -2306,52 +2311,6 @@ rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
     (rel-store-embedding-link eqα eqA eqβ eqB emb)
     | ρ₀′ , emb₀ , prefix′ =
   ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
-
-leftStoreⁱ-prefix-inclusion :
-  ∀ {Φ Δᴸ Δᴿ} {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  StoreIncl (leftStoreⁱ ρ₀) (leftStoreⁱ ρ⁺)
-leftStoreⁱ-prefix-inclusion prefix-reflⁱ x∈ = x∈
-leftStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-matched α A β B p} prefix) x∈ =
-  there (leftStoreⁱ-prefix-inclusion prefix x∈)
-leftStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-left α A hA} prefix) x∈ =
-  there (leftStoreⁱ-prefix-inclusion prefix x∈)
-leftStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-right β B hB} prefix) x∈ =
-  leftStoreⁱ-prefix-inclusion prefix x∈
-leftStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-link α A β B p} prefix) x∈ =
-  leftStoreⁱ-prefix-inclusion prefix x∈
-
-rightStoreⁱ-prefix-inclusion :
-  ∀ {Φ Δᴸ Δᴿ} {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  StoreIncl (rightStoreⁱ ρ₀) (rightStoreⁱ ρ⁺)
-rightStoreⁱ-prefix-inclusion prefix-reflⁱ x∈ = x∈
-rightStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-matched α A β B p} prefix) x∈ =
-  there (rightStoreⁱ-prefix-inclusion prefix x∈)
-rightStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-left α A hA} prefix) x∈ =
-  rightStoreⁱ-prefix-inclusion prefix x∈
-rightStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-right β B hB} prefix) x∈ =
-  there (rightStoreⁱ-prefix-inclusion prefix x∈)
-rightStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-link α A β B p} prefix) x∈ =
-  rightStoreⁱ-prefix-inclusion prefix x∈
-
-store-imp-prefix-transⁱ :
-  ∀ {Φ Δᴸ Δᴿ}
-    {ρ₀ ρ₁ ρ₂ : StoreImp Φ Δᴸ Δᴿ} →
-  StoreImpPrefix ρ₀ ρ₁ →
-  StoreImpPrefix ρ₁ ρ₂ →
-  StoreImpPrefix ρ₀ ρ₂
-store-imp-prefix-transⁱ prefix₀₁ prefix-reflⁱ = prefix₀₁
-store-imp-prefix-transⁱ prefix₀₁ (prefix-∷ⁱ prefix₁₂) =
-  prefix-∷ⁱ (store-imp-prefix-transⁱ prefix₀₁ prefix₁₂)
 
 rel-store-rename-prefix-invⁱ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ}

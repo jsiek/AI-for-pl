@@ -324,6 +324,7 @@ are delegated:
 | [`NuImprecisionQuotientWideningTransport.agda`](NuImprecisionQuotientWideningTransport.agda) | completed extraction | Focused transport of one id-only/general quotient widening pair; the paired-widening leaf now avoids both the 14,449-line simulation core and broad quotient support |
 | [`NuImprecisionWorldCoherentCatchupComposition.agda`](NuImprecisionWorldCoherentCatchupComposition.agda) | completed | Strict coherent wrapper for silent-result resumption, preserving final `WorldCoherent`, source-name exclusivity, left `StoreWf`, and composed relational-store lineage |
 | [`NuImprecisionRelStoreEmbeddingAlgebra.agda`](NuImprecisionRelStoreEmbeddingAlgebra.agda) | completed extraction | Focused identity, canonical left/right lift embeddings, prefix restriction, renaming congruence, and composition for relational-store embeddings; definitions were removed from the broad simulation core |
+| [`NuImprecisionWorldEmbeddingNoBullet.agda`](NuImprecisionWorldEmbeddingNoBullet.agda) | completed extraction | Canonical strict mutual transport of bullet-free term imprecision through relational-world embeddings; duplicate implementations were deleted from both the broad simulation and source-bullet modules |
 | [`NuImprecisionWeakOneStepStoreLineageProof.agda`](NuImprecisionWeakOneStepStoreLineageProof.agda) | completed proof | Strictly composes two explicit lineage witnesses across left-silent resumption, including prefix restriction and accumulated source-renaming normalization |
 | [`NuImprecisionWorldCoherentCatchupPrefixFrames.agda`](NuImprecisionWorldCoherentCatchupPrefixFrames.agda) | completed | Five strict wrappers for target narrowing, widening, identity widening, reveal, and conceal frames; store-neutral framing preserves the inner relational-store lineage as well as the final world and left store |
 | [`NuImprecisionAtomicTargetReindex.agda`](NuImprecisionAtomicTargetReindex.agda) | completed | Strict exhaustive reconstruction of atomic-target value relations at an explicit desired type-imprecision index; closes target conversion identity roots without proof irrelevance |
@@ -345,15 +346,17 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceBulletCatchupDef.agda`](NuImprecisionWorldCoherentSourceBulletCatchupDef.agda) | completed statement | Exact former runtime-field telescope for source-only post-allocation bullet catch-up |
 | [`NuImprecisionWorldCoherentSourceBulletCatchupProof.agda`](NuImprecisionWorldCoherentSourceBulletCatchupProof.agda) | completed higher-order proof | Strictly reconstructs the allocated `α⊑ᵀ` relation and delegates to the whole value-prefix catch-up contract; canonical assembly remains in the mutual SCC |
 | [`NuImprecisionSourcePolymorphicValueBase.agda`](NuImprecisionSourcePolymorphicValueBase.agda) | completed focused leaf | Strict source polymorphic-value classification and the one-step post-allocation eliminator; direct consumers import this canonical owner, and the cold Ginger check took 62.69 seconds |
-| [`NuImprecisionSourceBulletBase.agda`](NuImprecisionSourceBulletBase.agda) | completed semantic extraction; checking-time partial | Strictly packages direct `α`/`Λ` prefix catch-up and allocated-bullet reconstruction; polymorphic post-allocation stepping/value shape moved to their focused canonical owner, but this module still imports `NuImprecisionSimulationCore` for world embedding/result support |
+| [`NuImprecisionSourceBulletBase.agda`](NuImprecisionSourceBulletBase.agda) | completed semantic extraction; improved checking boundary | Strictly packages direct `α`/`Λ` prefix catch-up and allocated-bullet reconstruction; polymorphic value support and generic bullet-free world transport now have focused canonical owners, while specialized embedding/result support still comes from `NuImprecisionSimulationCore` |
 | [`NuImprecisionWorldCoherentSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCatchupDef.agda) | completed statement | Exact ordinary source-`ν` handler contract; its inhabitant is downstream of source-bullet and source-reveal, not in the minimal SCC |
 | [`NuImprecisionWorldCoherentSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuCatchupProof.agda) | completed higher-order proof | Strict accumulated-world adapter transports the reveal and universal relation to the operand's final world, delegates final-value allocation to the exact-final contract, propagates source blame, and composes explicit lineages |
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda) | completed statement | Exact-final ordinary source-`ν` contract retains the arbitrary inner universal index, final allocation/reveal evidence, values, and world invariants |
 | [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda) | completed statement | Full exact-final branch specialized to `ν occ r`; intended source-bullet/allocation implementation path |
-| [`NuImprecisionLeftLiftPrefixBodyDef.agda`](NuImprecisionLeftLiftPrefixBodyDef.agda) | completed statement; leaf proof not yet started | Exact source-only left-lift transport under a relational-store prefix; isolates the final broad-simulation dependency from exact source allocation proofs |
+| [`NuImprecisionLeftLiftPrefixBodyDef.agda`](NuImprecisionLeftLiftPrefixBodyDef.agda) | completed statement | Exact source-only left-lift transport under a relational-store prefix; isolates the reusable contract from exact source allocation proofs |
+| [`NuImprecisionLeftLiftPrefixBodyProof.agda`](NuImprecisionLeftLiftPrefixBodyProof.agda) | completed focused proof | Strict canonical proof imports the focused bullet-free world transport instead of the broad simulation; no separate `Lemma` wrapper is needed because this leaf has no incomplete theorem dependency to assemble |
 | [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda) | completed higher-order proof | Strict source allocation, bullet/reveal catch-up, outer `ν` resumption, coherence, exclusivity, store Wf, and lineage from the whole left-lift-prefix, bullet, and reveal capabilities; imports no broad simulation implementation |
 | [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda) | completed statement | Full exact-final branch specialized to `∀ⁱ r`; the proof audit found no counterexample or need for an added compatibility premise |
 | [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexViewCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexViewCatchupDef.agda) | completed hard-worker statement | Freezes the allocation-sensitive worker after source and target polymorphic values are both classified as `AllView`; its `av-Λ`/`av-∀`/`av-gen` cross-product remains the explicit missing inhabitant |
+| [`NuImprecisionWorldCoherentSourceNuPairedLambdaTargetClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedLambdaTargetClosingCatchupDef.agda) | completed hard statement; proof not yet started | Exact post-allocation `av-Λ`/`av-Λ` target-binder-closing contract; makes the term-level `ν∀`-to-`∀ν` rotation, both store lifts, matched body relation, reveal, and desired outer index explicit without a hole or postulate |
 | [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupProof.agda) | completed higher-order proof | Strictly derives the full paired-index contract from the classified-view worker by source and target canonical-form inversion; canonical `Lemma` remains absent |
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda) | completed higher-order proof | Exhaustively assembles the generic exact-final contract from the source-only-index and paired-index whole capabilities; canonical `Lemma` remains absent |
 | [`NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda) | completed statement | Exact runtime `ν ★` handler boundary participating in the widening-`inst` mutual SCC |
@@ -6674,3 +6677,42 @@ coordination.  Use focused strict checks throughout and reserve
   `</dev/null`; the trailing `-` form is reserved for a prompt genuinely
   supplied over standard input.  This avoids the remote worker appearing to
   hang with an open SSH input pipe.
+
+### 2026-07-21: bullet-free embedding boundary and `Λ`/`Λ` hard contract
+
+- Integrated two concurrent GPT 5.5 Ginger leaves from frozen strict
+  interfaces.  [`NuImprecisionWorldEmbeddingNoBullet.agda`](NuImprecisionWorldEmbeddingNoBullet.agda)
+  is now the sole owner of `rel-world-embed-no•ᵀ` and its paired mutual theorem;
+  the 433 duplicate lines were deleted from `NuImprecisionSimulation` and
+  `NuImprecisionSourceBulletBase`.  Its cold Ginger strict check took 236.61
+  seconds, after which the broad simulation consumer checked from cache in
+  3.94 seconds.
+
+- Completed [`NuImprecisionLeftLiftPrefixBodyProof.agda`](NuImprecisionLeftLiftPrefixBodyProof.agda)
+  as the canonical proof of the existing strict contract.  The Ginger worker
+  first proved it independently, then local integration replaced its temporary
+  private traversal with the focused world-embedding import.  The resulting
+  module is 120 lines rather than 387 and passed a local focused strict check
+  in 4.21 seconds.  The obsolete same-named theorem and its now-dead private
+  embedding chain were removed from the broad simulation rather than retained
+  as compatibility aliases.
+
+- Rechecked the focused world-embedding owner, left-lift proof,
+  `NuImprecisionSourceBulletBase`, broad simulation, and both ordinary and
+  cast-aware exact source-only allocation proofs using
+  `--no-allow-unsolved-metas`.  The local broad-simulation check took 27.14
+  seconds; no `All.agda` or strict-spine check was run.
+
+- Froze the direct paired `av-Λ`/`av-Λ` obstruction as the strict
+  [`WorldCoherentSourceNuPairedLambdaTargetClosingCatchupᵀ`](NuImprecisionWorldCoherentSourceNuPairedLambdaTargetClosingCatchupDef.agda)
+  contract.  It states the genuine post-allocation target-binder-closing step:
+  both the source-only and matched-universal store lifts, the matched bodies,
+  source reveal, and desired outer index are explicit, and the result performs
+  the term-level `ν∀`-to-`∀ν` binder rotation.  The `Def` checks strictly; its
+  `Proof` is not yet started.
+
+- This batch reinforces the strictness benefit of the three-file and
+  higher-order organization.  Incomplete semantic joins are whole theorem
+  parameters or absent `Proof`/`Lemma` modules, never source holes.  Every new
+  file in this batch therefore checks with `--no-allow-unsolved-metas` from its
+  first integrated form.

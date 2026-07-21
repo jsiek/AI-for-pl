@@ -3,8 +3,8 @@ module proof.NuImprecisionWorldEmbeddingNoBullet where
 -- File Charter:
 --   * Owns the generic no-runtime-bullet transport theorems through relational
 --     world embeddings.
---   * Exports `rel-world-embed-no•ᵀ` and `rel-world-embed-no•ᵀᵖ` as the
---     canonical mutual theorem family.
+--   * Exports the `rel-world-embed-no•ᵀ` mutual theorem family as its
+--     canonical owner.
 --   * Depends on `NuImprecisionSimulationCore` for world-embedding action
 --     lemmas and on `QuotientedTermImprecision` for the term relations.
 

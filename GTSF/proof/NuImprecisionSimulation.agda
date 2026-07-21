@@ -422,27 +422,6 @@ lift-store-rel-embeddingⁱ (lift-store-link liftρ) =
   rel-store-embedding-link refl refl refl refl
     (lift-store-rel-embeddingⁱ liftρ)
 
-lift-left-store-rel-embeddingⁱ :
-  ∀ {Φ Ψ Δᴸ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp Ψ (suc Δᴸ) Δᴿ} →
-  LiftLeftStoreⁱ Ψ ρ ρ′ →
-  RelStoreEmbeddingⁱ suc (λ X → X) ρ ρ′
-lift-left-store-rel-embeddingⁱ lift-left-store-[] =
-  rel-store-embedding-[]
-lift-left-store-rel-embeddingⁱ (lift-left-store-∷ liftρ) =
-  rel-store-embedding-matched refl refl refl
-    (sym (renameᵗ-id _)) (lift-left-store-rel-embeddingⁱ liftρ)
-lift-left-store-rel-embeddingⁱ (lift-left-store-left liftρ) =
-  rel-store-embedding-left refl refl
-    (lift-left-store-rel-embeddingⁱ liftρ)
-lift-left-store-rel-embeddingⁱ (lift-left-store-right liftρ) =
-  rel-store-embedding-right refl (sym (renameᵗ-id _))
-    (lift-left-store-rel-embeddingⁱ liftρ)
-lift-left-store-rel-embeddingⁱ (lift-left-store-link liftρ) =
-  rel-store-embedding-link refl refl refl
-    (sym (renameᵗ-id _)) (lift-left-store-rel-embeddingⁱ liftρ)
-
 identity-store-rel-embeddingⁱ :
   ∀ {Φ Δᴸ Δᴿ} {ρ : StoreImp Φ Δᴸ Δᴿ} →
   RelStoreEmbeddingⁱ (λ X → X) (λ X → X) ρ ρ
@@ -577,19 +556,6 @@ matched-lift-world-embeddingⁱ liftρ =
   rel-world-embedding RenameLeftInverse-suc RenameLeftInverse-suc
     castModeRenamer-suc castModeRenamer-suc
     (lift-store-rel-embeddingⁱ liftρ) rel-ctx-rename-[]
-
-left-lift-world-embeddingⁱ :
-  ∀ {Φ Δᴸ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
-  RelWorldEmbeddingⁱ suc (λ X → X) predᵗ (λ X → X)
-    rename-assm²-source-νᵢ TyRenameWf-suc (λ X<Δ → X<Δ)
-    {ρ = ρ} {ρ′ = ρ′} {γ = []} {γ′ = []}
-left-lift-world-embeddingⁱ liftρ =
-  rel-world-embedding RenameLeftInverse-suc (λ X → refl)
-    castModeRenamer-suc castModeRenamer-id
-    (lift-left-store-rel-embeddingⁱ liftρ) rel-ctx-rename-[]
 
 right-lift-world-embeddingⁱ :
   ∀ {Φ Δᴸ Δᴿ}
@@ -1392,34 +1358,6 @@ matched-lift-prefix-bodyᵀ liftρ prefix noL noL′ L⊑L′ =
     (matched-lift-world-embeddingⁱ liftρ) L⊑L′ noL noL′
   noL↑ = renameᵗᵐ-preserves-No• suc noL
   noL′↑ = renameᵗᵐ-preserves-No• suc noL′
-
-left-lift-prefix-bodyᵀ :
-  ∀ {Φ Δᴸ Δᴿ A B L L′ p}
-    {ρ₀ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ₁ ρ⁺ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      (suc Δᴸ) Δᴿ} →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρ₁ →
-  StoreImpPrefix ρ₁ ρ⁺ →
-  No• L → No• L′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ L ⊑ L′ ⦂ A ⊑ B ∶ p →
-  ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣ ρ⁺ ∣ []
-    ⊢ᴺ ⇑ᵗᵐ L ⊑ L′ ⦂ ⇑ᵗ A ⊑ B ∶ ⊑-source-liftνᵢ p
-left-lift-prefix-bodyᵀ {B = B} {L′ = L′}
-    liftρ prefix noL noL′ L⊑L′ =
-  allocation-prefixᵀ prefix body
-    (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
-      noL↑ (nu-term-imprecision-source-typing body))
-    (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)
-      noL′ (nu-term-imprecision-target-typing body))
-  where
-  body =
-    nu-term-imprecision-transport-termsᵀ refl (renameᵗᵐ-id L′)
-      (nu-term-imprecision-transport-typesᵀ
-        refl (renameᵗ-id B) refl
-        (rel-world-embed-no•ᵀ
-          (left-lift-world-embeddingⁱ liftρ) L⊑L′ noL noL′))
-  noL↑ = renameᵗᵐ-preserves-No• suc noL
 
 right-lift-prefix-bodyᵀ :
   ∀ {Φ Δᴸ Δᴿ A B L L′ p}

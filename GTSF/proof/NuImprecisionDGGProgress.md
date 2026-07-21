@@ -329,6 +329,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda) | completed higher-order proof | Exhaustive split on all source store-step constructors, proving that the nine capabilities suffice for the prefix engine and hence public DGG. |
 | [`NuImprecisionWorldCoherentSourcePureStepCasesDef.agda`](NuImprecisionWorldCoherentSourcePureStepCasesDef.agda) | completed statement | Replaces the opaque pure-step capability with four major source-shape families carrying the full ambient-prefix and exact-result contract. |
 | [`NuImprecisionWorldCoherentSourcePureStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourcePureStepDispatcherProof.agda) | completed higher-order proof | Exhaustively routes all 18 pure reductions through the application, runtime-bullet, cast/conversion, or primitive family. |
+| [`NuImprecisionWorldCoherentSourcePrimitivePureRootDef.agda`](NuImprecisionWorldCoherentSourcePrimitivePureRootDef.agda) | completed statement | Canonical full primitive-root capability consumed by the four-way pure-step record and targeted by the synchronized delta leaf. |
 | [`NuImprecisionSourceOneStepBlameRootDef.agda`](NuImprecisionSourceOneStepBlameRootDef.agda) | completed statement | Shared strong result for every keep-step source-to-blame root, including the `ν` blame frame. |
 | [`NuImprecisionSourceOneStepBlameRootProof.agda`](NuImprecisionSourceOneStepBlameRootProof.agda) | completed GPT-5.5 proof | Constructs the exact singleton source trace, zero target trace, ambient blame relation, identity transport/coherence, and reflexive lineage. |
 | [`NuImprecisionSourceOneStepBlameRootLemma.agda`](NuImprecisionSourceOneStepBlameRootLemma.agda) | completed canonical assembly | Exposes the corrected strict Ginger proof through the canonical three-file boundary. |
@@ -8282,6 +8283,13 @@ coordination.  Use focused strict checks throughout and reserve
   [`dispatcher`](NuImprecisionWorldCoherentSourcePureStepDispatcherProof.agda)
   covers all 18 pure reductions explicitly, and the nine-way store-step
   dispatcher now consumes this record directly.
+
+- Extracted the primitive member of that four-way record into
+  [`WorldCoherentSourcePrimitivePureRootᵀ`](NuImprecisionWorldCoherentSourcePrimitivePureRootDef.agda).
+  The exact ambient-prefix, refined-typing, runtime, reduction, relation, and
+  strong-result statement now has its own canonical filename.  The aggregate
+  pure-step record refers to that definition directly, which gives the
+  synchronized delta root a typed route into the DGG-facing source skeleton.
 
 - Froze the complete right-value catch-up recursion in
   [`WorldCoherentRightValueCatchupCases`](NuImprecisionWorldCoherentRightValueCatchupCasesDef.agda).

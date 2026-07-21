@@ -13,8 +13,10 @@ open import proof.NuImprecisionCatchupPrefixSupport using
 open import proof.NuImprecisionSimulationResultDef using
   ( LeftCatchupIndexedResult
   ; LeftSilentIndexedResult
+  ; canonicalIndexedResults
   ; left-catchup-invariant
   ; left-indexed-catchup
+  ; left-silent
   ; left-silent-indexed
   ; left-silent-invariant
   ; resultStore
@@ -24,6 +26,11 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportType
   ; weakIndexedResult
   )
+open import proof.NuImprecisionSimulationCore using
+  (weak-one-step-reindexᵀ)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef
+open import proof.NuImprecisionWeakOneStepStoreLineageProof using
+  (weak-one-step-prepend-left-silent-store-lineageᵀ)
 open import proof.NuImprecisionWorldCoherentResultDef using
   ( WorldCoherentLeftCatchupIndexedResult
   ; world-coherent-left-indexed-catchup
@@ -37,6 +44,7 @@ world-coherent-left-catchup-indexed-resume-silentᵀ :
   (silent : LeftSilentIndexedResult
     {N = M} {V′ = V′} {ρ = ρ} p) →
   let first = weakIndexedResult (silentIndexedResult silent) in
+  WeakOneStepStoreLineage first →
   WorldCoherentLeftCatchupIndexedResult
     {N = sourceResult first}
     {V′ = targetResult first}
@@ -48,12 +56,33 @@ world-coherent-left-catchup-indexed-resume-silentᵀ
     silent@(left-silent-indexed first-indexed
       (left-silent-invariant refl refl)
       first-runtime first-transport first-coherence)
+    first-lineage
     (world-coherent-left-indexed-catchup
       second@(left-indexed-catchup second-indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         second-transport second-coherence)
-      coherent exclusive wfL) =
+      second-lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-resume-silentᵀ silent second)
+    (weak-step-store-lineage
+      (lineageStore combined-lineage)
+      (lineageEmbedding combined-lineage)
+      (lineagePrefix combined-lineage))
     coherent exclusive wfL
+  where
+  first-raw = weakIndexedResult first-indexed
+
+  first = weak-one-step-reindexᵀ first-raw refl refl
+    (canonicalIndexedResults first-indexed)
+
+  first-lineage′ = weak-step-store-lineage
+    (lineageStore first-lineage)
+    (lineageEmbedding first-lineage)
+    (lineagePrefix first-lineage)
+
+  combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent first (left-silent-invariant refl refl))
+      (weakIndexedResult second-indexed)
+      first-lineage′ second-lineage

@@ -164,10 +164,11 @@ contains renamed copies of every old relational entry.
 World-coherent silent resumption is defined separately in
 `NuImprecisionWorldCoherentCatchupComposition`.  Its final coherence witness
 comes from the resumed catch-up result, whose final store is also the composed
-result store.  The same result package carries final left `StoreWf`, which the
-composition theorem preserves definitionally.  This makes ownership of both
-semantic invariants explicit and avoids any attempt to infer them from generic
-result transport fields.
+result store.  The same result package carries final left `StoreWf`; the
+composition theorem preserves it definitionally and composes the two explicit
+relational-store lineage witnesses.  This makes ownership of the semantic
+invariants explicit and avoids any attempt to infer them from generic result
+transport fields.
 
 Target-only prefix frames have a parallel strict wrapper layer in
 `NuImprecisionWorldCoherentCatchupPrefixFrames`.  It pattern matches the raw
@@ -192,7 +193,7 @@ itself justify them.  The world/store-name coherence work follows this shape:
   canonical allocation-context transformations;
 - `NuImprecisionWorldCoherentResultDef` adds the invariant only to continuing
   result branches, together with final source-name exclusivity and final
-  left-store well-formedness on catch-up results;
+  left-store well-formedness and relational-store lineage on catch-up results;
   and
 - the world-coherent one-step and catch-up `Def` modules state the strengthened
   major dependencies.

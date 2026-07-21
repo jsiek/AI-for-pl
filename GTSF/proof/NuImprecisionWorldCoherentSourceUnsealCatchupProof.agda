@@ -26,6 +26,7 @@ open import NuReduction using
   ; applyTyCtxs
   ; applyTys
   ; bind
+  ; blame-⟨⟩
   ; keep
   ; pure-step
   ; seal-unseal
@@ -36,13 +37,17 @@ open import NuTerms using
   ( No•
   ; Term
   ; Value
+  ; blame
   ; no•-⟨⟩
   ; _⟨_⟩
   )
 open import NuStore using (StoreWf)
 open import QuotientedTermImprecision using
-  ( conv↑⊑ᵀ
+  ( blame⊑ᵀ
+  ; conv↑⊑ᵀ
   ; nu-term-imprecision-source-typing
+  ; nu-term-imprecision-target-typing
+  ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Relation.Binary.PropositionalEquality using
@@ -72,6 +77,7 @@ open import proof.NuImprecisionSimulationCore using
   ; weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
   ; weak-one-step-prepend-left-silent-preserves-transportᵀ
   ; weak-one-step-prepend-left-silentᵀ
+  ; weak-one-step-reindexᵀ
   )
 open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedResult
@@ -102,6 +108,8 @@ open import proof.NuImprecisionSimulationResultDef using
   )
 open import proof.NuImprecisionSourceSealCancellationDef using
   (SourceSealCancellationᵀ)
+open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
+  (rel-store-embedding-reflⁱ)
 open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion)
 open import proof.NuImprecisionWorldCoherentResultDef using
@@ -111,6 +119,14 @@ open import proof.NuImprecisionWorldCoherentSourceUnsealCatchupDef using
   (WorldCoherentSourceUnsealCatchupᵀ)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  ( lineageEmbedding
+  ; lineagePrefix
+  ; lineageStore
+  ; weak-step-store-lineage
+  )
+open import proof.NuImprecisionWeakOneStepStoreLineageProof using
+  (weak-one-step-prepend-left-silent-store-lineageᵀ)
 open import proof.NuProgress using
   (SealView; canonical-＇; sv-seal)
 open import proof.ReductionProperties using
@@ -272,6 +288,8 @@ world-coherent-source-unseal-catchup-proofᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     with result-reveal-conversionᵀ indexed
@@ -286,6 +304,8 @@ world-coherent-source-unseal-catchup-proofᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , α′ , X′ , final-conversion
@@ -298,6 +318,8 @@ world-coherent-source-unseal-catchup-proofᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , α′ , X′ , final-conversion
@@ -313,6 +335,8 @@ world-coherent-source-unseal-catchup-proofᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , α′ , X′ , final-conversion
@@ -326,7 +350,7 @@ world-coherent-source-unseal-catchup-proofᵀ
         (left-silent-invariant refl refl)
         (inj₁ (vW , seal-no•⁻¹ noS)))
       combined-transport combined-coherence)
-    coherent exclusive wfL
+    combined-lineage coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
 
@@ -372,6 +396,17 @@ world-coherent-source-unseal-catchup-proofᵀ
   combined = weak-one-step-prepend-left-silentᵀ
     (left-silent first first-silent) second
 
+  second-lineage =
+    weak-step-store-lineage
+      (resultStore first) rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent first first-silent) second
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
+      second-lineage
+
   type-eq = HE.≅-to-≡
     (HE.trans
       (subst²-to-≅
@@ -411,6 +446,8 @@ world-coherent-source-unseal-catchup-proofᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , α′ , X′ , final-conversion
@@ -420,6 +457,10 @@ world-coherent-source-unseal-catchup-proofᵀ
     (left-catchup-indexed-source-cast-blame-frameᵀ
       catchup framed refl first-silent
       first-transport first-coherence refl)
+    (weak-step-store-lineage
+      (lineageStore terminal-combined-lineage)
+      (lineageEmbedding terminal-combined-lineage)
+      (lineagePrefix terminal-combined-lineage))
     coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
@@ -431,6 +472,36 @@ world-coherent-source-unseal-catchup-proofᵀ
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
   framed = weak-indexed-result first (relatedResults first)
+
+  terminal-first =
+    weak-one-step-reindexᵀ first refl refl
+      (canonicalIndexedResults framed)
+
+  terminal-first-lineage =
+    weak-step-store-lineage
+      lineage-store lineage-embedding lineage-prefix
+
+  terminal-target⊢ =
+    nu-term-imprecision-target-typing
+      (relatedResults terminal-first)
+
+  terminal-second-relation = blame⊑ᵀ terminal-target⊢
+
+  terminal-second = weak-one-step-keep-source-catchupᵀ
+    {p = resultType terminal-first}
+    (pure-step blame-⟨⟩) terminal-second-relation
+
+  terminal-second-lineage =
+    weak-step-store-lineage
+      (resultStore terminal-first)
+      rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  terminal-combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent terminal-first
+        (left-silent-invariant refl refl))
+      terminal-second
+      terminal-first-lineage terminal-second-lineage
 
   first-silent =
     weak-one-step-source-cast-frame-silentᵀ

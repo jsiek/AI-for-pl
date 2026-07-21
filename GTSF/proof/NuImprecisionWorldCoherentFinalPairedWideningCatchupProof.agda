@@ -46,8 +46,12 @@ open import
   using (WorldCoherentFinalPairedWideningCatchupᵀ)
 open import proof.NuImprecisionWorldCoherentResultDef using
   (world-coherent-left-indexed-catchup)
+open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
+  (rel-store-embedding-reflⁱ)
 open import proof.NuImprecisionWorldCoherentSourceWidenCatchupDef using
   (WorldCoherentSourceWidenCatchupᵀ)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  (weak-step-store-lineage)
 
 
 world-coherent-final-paired-widening-catchup-proofᵀ :
@@ -63,6 +67,7 @@ world-coherent-final-paired-widening-catchup-proofᵀ
       (left-catchup-indexed-prefix-blameᵀ
         prefix-reflⁱ (no•-⟨⟩ noV′)
         (blame⊑ᵀ target⊢)))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
   where
   target⊢ = nu-term-imprecision-target-typing
@@ -84,6 +89,7 @@ world-coherent-final-paired-widening-catchup-proofᵀ
           mode seal★ c⊑ mode′ seal★′ c′⊑
           (compatible-source-inert inert-c))
         W⊑V′))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-widening-catchup-proofᵀ
     source-widen coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′
@@ -96,6 +102,7 @@ world-coherent-final-paired-widening-catchup-proofᵀ
     world-coherent-left-indexed-catchup
       (left-catchup-indexed-prefix-valueᵀ
         prefix-reflⁱ (ok-no noW) vW noV′ W⊑V′)
+      (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
       coherent exclusive wfL
 
   source-catchup =

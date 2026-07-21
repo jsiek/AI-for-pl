@@ -19,6 +19,7 @@ open import TermTyping using
   (CastMode; SealModeStore★)
 open import proof.NuImprecisionCatchupPrefixSupport
 open import proof.NuImprecisionSimulationResultDef
+open import proof.NuImprecisionWeakOneStepStoreLineageDef
 open import proof.NuImprecisionWorldCoherentResultDef
 
 
@@ -42,10 +43,14 @@ world-coherent-left-catchup-prefix-target-narrow-castᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         transport type-coherence)
-      coherent exclusive wfL) =
+      lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-narrow-castᵀ
       prefix mode seal★ c⊒ catchup)
+    (weak-step-store-lineage
+      (lineageStore lineage)
+      (lineageEmbedding lineage)
+      (lineagePrefix lineage))
     coherent exclusive wfL
 
 world-coherent-left-catchup-prefix-target-reveal-castᵀ :
@@ -67,10 +72,14 @@ world-coherent-left-catchup-prefix-target-reveal-castᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         transport type-coherence)
-      coherent exclusive wfL) =
+      lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-reveal-castᵀ
       prefix c↑ catchup)
+    (weak-step-store-lineage
+      (lineageStore lineage)
+      (lineageEmbedding lineage)
+      (lineagePrefix lineage))
     coherent exclusive wfL
 
 world-coherent-left-catchup-prefix-target-conceal-castᵀ :
@@ -92,10 +101,14 @@ world-coherent-left-catchup-prefix-target-conceal-castᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         transport type-coherence)
-      coherent exclusive wfL) =
+      lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-conceal-castᵀ
       prefix c↓ catchup)
+    (weak-step-store-lineage
+      (lineageStore lineage)
+      (lineageEmbedding lineage)
+      (lineagePrefix lineage))
     coherent exclusive wfL
 
 world-coherent-left-catchup-prefix-target-widen-castᵀ :
@@ -118,10 +131,14 @@ world-coherent-left-catchup-prefix-target-widen-castᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         transport type-coherence)
-      coherent exclusive wfL) =
+      lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-widen-castᵀ
       prefix mode seal★ c⊑ catchup)
+    (weak-step-store-lineage
+      (lineageStore lineage)
+      (lineageEmbedding lineage)
+      (lineagePrefix lineage))
     coherent exclusive wfL
 
 world-coherent-left-catchup-prefix-target-widen-id-castᵀ :
@@ -143,8 +160,12 @@ world-coherent-left-catchup-prefix-target-widen-id-castᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         transport type-coherence)
-      coherent exclusive wfL) =
+      lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-widen-id-castᵀ
       prefix seal★ c⊑ catchup)
+    (weak-step-store-lineage
+      (lineageStore lineage)
+      (lineageEmbedding lineage)
+      (lineagePrefix lineage))
     coherent exclusive wfL

@@ -13,8 +13,15 @@ open import Data.Sum using (inj₁; inj₂)
 
 open import NarrowWiden using (narrow-weaken)
 import NarrowWiden as NW
+open import NuReduction using (blame-⟨⟩; pure-step)
 open import NuTerms using (ok-no; ok-⟨⟩)
-open import QuotientedTermImprecision using (prefix-reflⁱ)
+open import QuotientedTermImprecision using
+  ( blame⊑ᵀ
+  ; nu-term-imprecision-target-typing
+  ; prefix-reflⁱ
+  )
+open import proof.NuImprecisionCatchupComposition using
+  (weak-one-step-keep-source-catchupᵀ)
 open import proof.NuImprecisionCatchupSourceCastTerminal using
   (left-catchup-indexed-source-cast-blame-frameᵀ)
 open import proof.NuImprecisionSimulation using
@@ -23,14 +30,23 @@ open import proof.NuImprecisionSimulationResultDef using
   ( canonicalIndexedResults
   ; left-catchup-invariant
   ; left-indexed-catchup
+  ; left-silent
   ; left-silent-indexed
   ; left-silent-invariant
+  ; relatedResults
+  ; resultStore
+  ; resultType
   ; transportAllCoherent
   ; transportArrowCoherent
   ; transportNo•Terms
   ; weak-step-transport
   ; weak-step-type-coherence
+  ; weakIndexedResult
   )
+open import proof.NuImprecisionSimulationCore using
+  (weak-one-step-reindexᵀ)
+open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
+  (rel-store-embedding-reflⁱ)
 open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion)
 open import proof.NuImprecisionWorldCoherentCatchupComposition using
@@ -41,6 +57,14 @@ open import proof.NuImprecisionWorldCoherentSourceNarrowCatchupDef using
   (WorldCoherentSourceNarrowCatchupᵀ)
 open import proof.NuImprecisionWorldCoherentValueCatchupPrefixDef using
   (WorldCoherentLeftValueCatchupPrefixᵀ)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  ( lineageEmbedding
+  ; lineagePrefix
+  ; lineageStore
+  ; weak-step-store-lineage
+  )
+open import proof.NuImprecisionWeakOneStepStoreLineageProof using
+  (weak-one-step-prepend-left-silent-store-lineageᵀ)
 open import proof.TypePreservation using (seal★-weaken)
 
 
@@ -54,6 +78,8 @@ world-coherent-source-narrow-catchup-framedᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     with final
@@ -64,6 +90,8 @@ world-coherent-source-narrow-catchup-framedᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | inj₁ (vW , noW) =
@@ -72,6 +100,8 @@ world-coherent-source-narrow-catchup-framedᵀ
       (left-silent-invariant refl refl)
       (ok-⟨⟩ (ok-no noW))
       first-transport first-coherence)
+    (weak-step-store-lineage
+      lineage-store lineage-embedding lineage-prefix)
     (value-catchup
       prefix-reflⁱ coherent exclusive wfL
       (ok-⟨⟩ (ok-no noW)) vV′ noV′
@@ -101,6 +131,8 @@ world-coherent-source-narrow-catchup-framedᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | inj₂ refl =
@@ -108,6 +140,10 @@ world-coherent-source-narrow-catchup-framedᵀ
     (left-catchup-indexed-source-cast-blame-frameᵀ
       catchup framed refl (left-silent-invariant refl refl)
       first-transport first-coherence refl)
+    (weak-step-store-lineage
+      (lineageStore terminal-combined-lineage)
+      (lineageEmbedding terminal-combined-lineage)
+      (lineagePrefix terminal-combined-lineage))
     coherent exclusive wfL
   where
   source-store-incl = leftStoreⁱ-prefix-inclusion prefix
@@ -119,6 +155,38 @@ world-coherent-source-narrow-catchup-framedᵀ
   framed =
     weak-one-step-source-narrow-cast-indexed-frameᵀ
       mode seal★⁺ c⊒⁺ indexed
+
+  terminal-first-raw = weakIndexedResult framed
+
+  terminal-first =
+    weak-one-step-reindexᵀ terminal-first-raw refl refl
+      (canonicalIndexedResults framed)
+
+  terminal-first-lineage =
+    weak-step-store-lineage
+      lineage-store lineage-embedding lineage-prefix
+
+  terminal-target⊢ =
+    nu-term-imprecision-target-typing
+      (relatedResults terminal-first)
+
+  terminal-second-relation = blame⊑ᵀ terminal-target⊢
+
+  terminal-second = weak-one-step-keep-source-catchupᵀ
+    {p = resultType terminal-first}
+    (pure-step blame-⟨⟩) terminal-second-relation
+
+  terminal-second-lineage =
+    weak-step-store-lineage
+      (resultStore terminal-first)
+      rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  terminal-combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent terminal-first
+        (left-silent-invariant refl refl))
+      terminal-second
+      terminal-first-lineage terminal-second-lineage
 
   first-transport =
     weak-step-transport (transportNo•Terms inner-transport)

@@ -82,6 +82,7 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv⊑convᵀ
   ; nu-term-imprecision-target-typing
+  ; prefix-reflⁱ
   ; up⊑upᵀ
   ; x⊑xᵀ
   ; Λ⊑Λᵀ
@@ -189,8 +190,14 @@ open import proof.NuImprecisionSimulationResultDef using
   ; weak-indexed-result
   ; weakIndexedResult
   )
+open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
+  (rel-store-embedding-reflⁱ)
 open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  (weak-step-store-lineage)
+open import proof.NuImprecisionWeakOneStepStoreLineageProof using
+  (weak-one-step-prepend-left-silent-store-lineageᵀ)
 open import proof.NuImprecisionWorldCoherentResultDef using
   ( WorldCoherentLeftCatchupIndexedResult
   ; world-coherent-left-indexed-catchup
@@ -379,6 +386,8 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     with result-conceal-conversionᵀ indexed c↓
@@ -388,6 +397,8 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , α′ , X′ , final-conversion
@@ -398,6 +409,8 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , α′ , X′ , final-conversion
@@ -407,6 +420,8 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
       (left-catchup-invariant first-silent
         (inj₁ (vW ⟨ inert′ ⟩ , no•-⟨⟩ noW)))
       first-transport first-coherence)
+    (weak-step-store-lineage
+      lineage-store lineage-embedding lineage-prefix)
     coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
@@ -439,6 +454,8 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , α′ , X′ , final-conversion
@@ -449,7 +466,7 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
       (left-catchup-invariant
         (left-silent-invariant refl refl) (inj₂ refl))
       combined-transport combined-coherence)
-    coherent exclusive wfL
+    combined-lineage coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
 
@@ -488,6 +505,17 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
 
   combined = weak-one-step-prepend-left-silentᵀ
     (left-silent first first-silent) second
+
+  second-lineage =
+    weak-step-store-lineage
+      (resultStore first) rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent first first-silent) second
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
+      second-lineage
 
   type-eq = HE.≅-to-≡
     (HE.trans
@@ -539,6 +567,8 @@ world-coherent-source-id-conceal-castᵀ atom c↓
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     with result-conceal-conversionᵀ indexed c↓
@@ -548,6 +578,8 @@ world-coherent-source-id-conceal-castᵀ atom c↓
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , α′ , X′ , final-conversion
@@ -558,6 +590,8 @@ world-coherent-source-id-conceal-castᵀ atom c↓
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , α′ , X′ , final-conversion
@@ -568,7 +602,7 @@ world-coherent-source-id-conceal-castᵀ atom c↓
       (left-catchup-invariant
         (left-silent-invariant refl refl) (inj₁ (vW , noW)))
       combined-transport combined-coherence)
-    coherent exclusive wfL
+    combined-lineage coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
 
@@ -611,6 +645,17 @@ world-coherent-source-id-conceal-castᵀ atom c↓
   combined = weak-one-step-prepend-left-silentᵀ
     (left-silent first first-silent) second
 
+  second-lineage =
+    weak-step-store-lineage
+      (resultStore first) rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent first first-silent) second
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
+      second-lineage
+
   type-eq = HE.≅-to-≡
     (HE.trans
       (subst²-to-≅
@@ -651,6 +696,8 @@ world-coherent-source-id-conceal-castᵀ atom c↓
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         inner-transport inner-coherence)
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
     | μ′ , α′ , X′ , final-conversion
@@ -661,7 +708,7 @@ world-coherent-source-id-conceal-castᵀ atom c↓
       (left-catchup-invariant
         (left-silent-invariant refl refl) (inj₂ refl))
       combined-transport combined-coherence)
-    coherent exclusive wfL
+    combined-lineage coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
 
@@ -700,6 +747,17 @@ world-coherent-source-id-conceal-castᵀ atom c↓
 
   combined = weak-one-step-prepend-left-silentᵀ
     (left-silent first first-silent) second
+
+  second-lineage =
+    weak-step-store-lineage
+      (resultStore first) rel-store-embedding-reflⁱ prefix-reflⁱ
+
+  combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      (left-silent first first-silent) second
+      (weak-step-store-lineage
+        lineage-store lineage-embedding lineage-prefix)
+      second-lineage
 
   type-eq = HE.≅-to-≡
     (HE.trans

@@ -30,6 +30,8 @@ open import proof.NuImprecisionSimulationResultDef using
   )
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  (WeakOneStepStoreLineage)
 open import proof.ReductionProperties using
   (applyCoercions)
 
@@ -45,6 +47,7 @@ LeftSilentPairedCastTransportᵀ =
   StoreImpPrefix ρ₀ ρ⁺ →
   (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
   LeftSilentInvariant inner →
+  WeakOneStepStoreLineage inner →
   WorldCoherent (resultStore inner) →
   PairedCast Φ Δᴸ Δᴿ ρ₀
     c c′ {A} {A′} {B} {B′} p q →

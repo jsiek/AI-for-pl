@@ -93,6 +93,10 @@ open import proof.NuImprecisionWorldCoherentResultDef using
   ( WorldCoherentLeftCatchupIndexedResult
   ; world-coherent-left-indexed-catchup
   )
+open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
+  (rel-store-embedding-reflⁱ)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  (weak-step-store-lineage)
 open import proof.NuPreservation using (value-no-step)
 
 
@@ -154,6 +158,7 @@ world-coherent-quotient-outer-pureᵀ
         (pure-step (β-seq vW))
         (vW ⟨ strict-cross-widening-inert sʷ ⟩ ⟨ _ ! ⟩)
         (no•-⟨⟩ (no•-⟨⟩ (no•-⟨⟩ noV))) final-relation)
+      (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
       coherent
       exclusive
       wfL)
@@ -197,6 +202,7 @@ world-coherent-quotient-outer-pureᵀ
         (pure-step (β-seq vW))
         (vW ⟨ strict-cross-widening-inert sʷ ⟩ ⟨ _ ! ⟩)
         (no•-⟨⟩ (no•-⟨⟩ (no•-⟨⟩ noV))) final-relation)
+      (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
       coherent
       exclusive
       wfL)
@@ -365,6 +371,7 @@ world-coherent-quotient-inner-stepᵀ
         (↠-step (pure-step blame-⟨⟩) ↠-refl))
       (nu-term-imprecision-target-typing
         (up⊑upᵀ down widening pA)))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent
     exclusive
     wfL
@@ -571,6 +578,7 @@ world-coherent-quotient-valueᵀ
     (world-coherent-left-indexed-catchup
       (left-catchup-indexed-final-quotient-inertᵀ
         vV noV inert-d inert-u (up⊑upᵀ down widening pA))
+      (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
       coherent
       exclusive
       wfL)
@@ -615,6 +623,7 @@ world-coherent-quotient-classification-proofᵀ {pA = pA}
       (left-catchup-indexed-double-cast-blameᵀ
         (nu-term-imprecision-target-typing
           (up⊑upᵀ down widening pA)))
+      (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
       coherent
       exclusive
       wfL)

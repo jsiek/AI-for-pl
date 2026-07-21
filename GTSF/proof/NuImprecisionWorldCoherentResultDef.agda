@@ -27,6 +27,8 @@ open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  (WeakOneStepStoreLineage)
 
 
 data WorldCoherentWeakOneStepIndexedOutcome
@@ -56,6 +58,10 @@ record WorldCoherentLeftCatchupIndexedResult
     worldCatchupResult :
       LeftCatchupIndexedResult
         {N = N} {V′ = V′} {ρ = ρ} p
+    worldCatchupStoreLineage :
+      WeakOneStepStoreLineage
+        (weakIndexedResult
+          (catchupIndexedResult worldCatchupResult))
     worldCatchupCoherence :
       WorldCoherent
         (resultStore

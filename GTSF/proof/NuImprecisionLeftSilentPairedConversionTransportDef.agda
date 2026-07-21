@@ -3,8 +3,8 @@ module proof.NuImprecisionLeftSilentPairedConversionTransportDef where
 -- File Charter:
 --   * Defines transport of paired reveal/conceal conversions through a
 --     completed left-silent simulation result and ambient store prefix.
---   * Makes reconstruction of the final paired StoreCorresponds witness from
---     world coherence an explicit constructor-family boundary.
+--   * Requires explicit relational-store lineage to reconstruct the final
+--     paired StoreCorresponds witness.
 --   * Contains no transport implementation or paired-widening case.
 
 open import Coercions using (Coercion)
@@ -30,6 +30,8 @@ open import proof.NuImprecisionSimulationResultDef using
   )
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  (WeakOneStepStoreLineage)
 open import proof.ReductionProperties using
   (applyCoercions)
 
@@ -45,6 +47,7 @@ LeftSilentPairedConversionTransportᵀ =
   StoreImpPrefix ρ₀ ρ⁺ →
   (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
   LeftSilentInvariant inner →
+  WeakOneStepStoreLineage inner →
   WorldCoherent (resultStore inner) →
   PairedConversion Φ Δᴸ Δᴿ ρ₀
     c c′ {A} {A′} {B} {B′} p q →

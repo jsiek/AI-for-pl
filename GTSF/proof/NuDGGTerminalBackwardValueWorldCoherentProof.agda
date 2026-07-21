@@ -141,13 +141,13 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
   go zero coherent exclusive wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
     | world-coherent-left-indexed-catchup
-        catchup final-coherent final-exclusive final-wfL
+        catchup catchup-lineage final-coherent final-exclusive final-wfL
     with sourceIsValueOrBlame
       (catchupIndexedInvariant catchup)
   go zero {p = p} coherent exclusive wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
     | world-coherent-left-indexed-catchup
-        catchup final-coherent final-exclusive final-wfL
+        catchup catchup-lineage final-coherent final-exclusive final-wfL
     | inj₁ (vV , noV)
     with sourceCtxResult
            (weakIndexedResult (catchupIndexedResult catchup))
@@ -160,7 +160,7 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
   go zero {p = p} coherent exclusive wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
     | world-coherent-left-indexed-catchup
-        catchup final-coherent final-exclusive final-wfL
+        catchup catchup-lineage final-coherent final-exclusive final-wfL
     | inj₁ (vV , noV) | refl | refl | refl | refl =
       inj₁
         ( sourceResult (weakIndexedResult (catchupIndexedResult catchup))
@@ -181,7 +181,7 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
   go zero coherent exclusive wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
     | world-coherent-left-indexed-catchup
-        catchup final-coherent final-exclusive final-wfL
+        catchup catchup-lineage final-coherent final-exclusive final-wfL
     | inj₂ refl =
       inj₂
         ( sourceChanges (weakIndexedResult (catchupIndexedResult catchup))

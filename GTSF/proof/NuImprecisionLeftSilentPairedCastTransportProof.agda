@@ -27,13 +27,14 @@ left-silent-paired-cast-transport-proofᵀ :
   LeftSilentPairedCastTransportᵀ
 left-silent-paired-cast-transport-proofᵀ
     conversion-transport widening-transport
-    prefix inner silent coherent
+    prefix inner silent lineage coherent
     (paired-conversion conversion) =
   paired-conversion
-    (conversion-transport prefix inner silent coherent conversion)
+    (conversion-transport
+      prefix inner silent lineage coherent conversion)
 left-silent-paired-cast-transport-proofᵀ
     conversion-transport widening-transport
-    prefix inner silent coherent
+    prefix inner silent lineage coherent
     (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat) =
   widening-transport prefix inner silent
     mode seal★ c⊑ mode′ seal★′ c′⊑ compat

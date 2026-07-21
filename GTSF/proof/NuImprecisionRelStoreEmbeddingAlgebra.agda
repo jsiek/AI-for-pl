@@ -8,11 +8,30 @@ module proof.NuImprecisionRelStoreEmbeddingAlgebra where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
+open import Data.Nat using (suc)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (cong; sym; trans)
 
 open import NuTermImprecision using
-  ( StoreImp
+  ( LiftLeftStoreⁱ
+  ; LiftRightStoreⁱ
+  ; LiftStoreⁱ
+  ; StoreImp
+  ; lift-left-store-[]
+  ; lift-left-store-left
+  ; lift-left-store-link
+  ; lift-left-store-right
+  ; lift-left-store-∷
+  ; lift-right-store-[]
+  ; lift-right-store-left
+  ; lift-right-store-link
+  ; lift-right-store-right
+  ; lift-right-store-∷
+  ; lift-store-[]
+  ; lift-store-left
+  ; lift-store-link
+  ; lift-store-right
+  ; lift-store-∷
   ; store-left
   ; store-link
   ; store-matched
@@ -52,6 +71,82 @@ rel-store-embedding-reflⁱ
   rel-store-embedding-link
     refl (sym (renameᵗ-id A)) refl (sym (renameᵗ-id B))
     rel-store-embedding-reflⁱ
+
+
+lift-store-embeddingⁱ :
+  ∀ {Φ Ψ Δᴸ Δᴿ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {ρ′ : StoreImp Ψ (suc Δᴸ) (suc Δᴿ)} →
+  LiftStoreⁱ Ψ ρ ρ′ →
+  RelStoreEmbeddingⁱ suc suc ρ ρ′
+lift-store-embeddingⁱ lift-store-[] =
+  rel-store-embedding-[]
+lift-store-embeddingⁱ (lift-store-∷ liftρ) =
+  rel-store-embedding-matched refl refl refl refl
+    (lift-store-embeddingⁱ liftρ)
+lift-store-embeddingⁱ (lift-store-left liftρ) =
+  rel-store-embedding-left refl refl
+    (lift-store-embeddingⁱ liftρ)
+lift-store-embeddingⁱ (lift-store-right liftρ) =
+  rel-store-embedding-right refl refl
+    (lift-store-embeddingⁱ liftρ)
+lift-store-embeddingⁱ (lift-store-link liftρ) =
+  rel-store-embedding-link refl refl refl refl
+    (lift-store-embeddingⁱ liftρ)
+
+
+lift-left-store-embeddingⁱ :
+  ∀ {Φ Ψ Δᴸ Δᴿ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {ρ′ : StoreImp Ψ (suc Δᴸ) Δᴿ} →
+  LiftLeftStoreⁱ Ψ ρ ρ′ →
+  RelStoreEmbeddingⁱ suc (λ β → β) ρ ρ′
+lift-left-store-embeddingⁱ lift-left-store-[] =
+  rel-store-embedding-[]
+lift-left-store-embeddingⁱ
+    (lift-left-store-∷ {B = B} liftρ) =
+  rel-store-embedding-matched
+    refl refl refl (sym (renameᵗ-id B))
+    (lift-left-store-embeddingⁱ liftρ)
+lift-left-store-embeddingⁱ (lift-left-store-left liftρ) =
+  rel-store-embedding-left refl refl
+    (lift-left-store-embeddingⁱ liftρ)
+lift-left-store-embeddingⁱ
+    (lift-left-store-right {B = B} liftρ) =
+  rel-store-embedding-right refl (sym (renameᵗ-id B))
+    (lift-left-store-embeddingⁱ liftρ)
+lift-left-store-embeddingⁱ
+    (lift-left-store-link {B = B} liftρ) =
+  rel-store-embedding-link
+    refl refl refl (sym (renameᵗ-id B))
+    (lift-left-store-embeddingⁱ liftρ)
+
+
+lift-right-store-embeddingⁱ :
+  ∀ {Φ Ψ Δᴸ Δᴿ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {ρ′ : StoreImp Ψ Δᴸ (suc Δᴿ)} →
+  LiftRightStoreⁱ Ψ ρ ρ′ →
+  RelStoreEmbeddingⁱ (λ α → α) suc ρ ρ′
+lift-right-store-embeddingⁱ lift-right-store-[] =
+  rel-store-embedding-[]
+lift-right-store-embeddingⁱ
+    (lift-right-store-∷ {A = A} liftρ) =
+  rel-store-embedding-matched
+    refl (sym (renameᵗ-id A)) refl refl
+    (lift-right-store-embeddingⁱ liftρ)
+lift-right-store-embeddingⁱ
+    (lift-right-store-left {A = A} liftρ) =
+  rel-store-embedding-left refl (sym (renameᵗ-id A))
+    (lift-right-store-embeddingⁱ liftρ)
+lift-right-store-embeddingⁱ (lift-right-store-right liftρ) =
+  rel-store-embedding-right refl refl
+    (lift-right-store-embeddingⁱ liftρ)
+lift-right-store-embeddingⁱ
+    (lift-right-store-link {A = A} liftρ) =
+  rel-store-embedding-link
+    refl (sym (renameᵗ-id A)) refl refl
+    (lift-right-store-embeddingⁱ liftρ)
 
 
 rel-store-embedding-congⁱ :

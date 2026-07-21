@@ -71,6 +71,10 @@ open import
   using (WorldCoherentFinalPairedConversionCatchupᵀ)
 open import proof.NuImprecisionWorldCoherentResultDef using
   (world-coherent-left-indexed-catchup)
+open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
+  (rel-store-embedding-reflⁱ)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  (weak-step-store-lineage)
 
 
 source-unseal-target-inert-impossible :
@@ -103,6 +107,7 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
       (left-catchup-indexed-prefix-blameᵀ
         prefix-reflⁱ (no•-⟨⟩ noV′)
         (blame⊑ᵀ target⊢)))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
   where
   target⊢ = nu-term-imprecision-target-typing
@@ -114,6 +119,7 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
       (⊑conv↑ᵀ target W⊑V′ _))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
     coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
@@ -122,6 +128,7 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
       (⊑conv↑ᵀ target W⊑V′ _))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
     coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
@@ -130,6 +137,7 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
       (⊑conv↑ᵀ target W⊑V′ _))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
     {p = p} coherent exclusive wfL (inj₁ (vW , noW))
@@ -144,6 +152,7 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
       prefix-reflⁱ (ok-no (no•-⟨⟩ noW)) (vW ⟨ _ ↦ _ ⟩)
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ (paired-conversion conversion) W⊑V′))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
     coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
@@ -153,6 +162,7 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
       prefix-reflⁱ (ok-no (no•-⟨⟩ noW)) (vW ⟨ `∀ _ ⟩)
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ (paired-conversion conversion) W⊑V′))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
     coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
@@ -161,6 +171,7 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
       (⊑conv↓ᵀ target W⊑V′ _))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
     coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
@@ -169,6 +180,7 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
       (⊑conv↓ᵀ target W⊑V′ _))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
     coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
@@ -177,6 +189,7 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
       (⊑conv↓ᵀ target W⊑V′ _))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
     coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
@@ -187,6 +200,7 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
       prefix-reflⁱ (ok-no (no•-⟨⟩ noW)) (vW ⟨ seal _ _ ⟩)
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ (paired-conversion conversion) W⊑V′))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
     coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
@@ -196,6 +210,7 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
       prefix-reflⁱ (ok-no (no•-⟨⟩ noW)) (vW ⟨ _ ↦ _ ⟩)
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ (paired-conversion conversion) W⊑V′))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
     coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
@@ -205,4 +220,5 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
       prefix-reflⁱ (ok-no (no•-⟨⟩ noW)) (vW ⟨ `∀ _ ⟩)
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ (paired-conversion conversion) W⊑V′))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL

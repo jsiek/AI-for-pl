@@ -44,9 +44,8 @@ open import Types using
   (Ty; TyCtx; TyVar)
 open import proof.NuImprecisionLeftSilentPairedConversionTransportDef using
   (LeftSilentPairedConversionTransportᵀ)
-open import
-  proof.NuImprecisionLeftSilentStoreCorrespondsTransportDef using
-  (LeftSilentStoreCorrespondsTransportᵀ)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  (LineageAwareLeftSilentStoreCorrespondsTransportᵀ)
 open import proof.NuImprecisionSimulationResultDef using
   ( LeftSilentInvariant
   ; WeakOneStepResult
@@ -289,23 +288,23 @@ result-target-conceal-silent {Δᴿ = Δᴿ} prefix inner
 
 
 left-silent-paired-conversion-transport-proofᵀ :
-  LeftSilentStoreCorrespondsTransportᵀ →
+  LineageAwareLeftSilentStoreCorrespondsTransportᵀ →
   LeftSilentPairedConversionTransportᵀ
 left-silent-paired-conversion-transport-proofᵀ
     correspondence-transport prefix inner
-    silent@(left-silent-invariant refl refl) coherent
+    silent@(left-silent-invariant refl refl) lineage coherent
     (paired-reveal corr c↑ c′↑) =
   paired-reveal
     (proj₂
-      (correspondence-transport prefix inner silent corr))
+      (correspondence-transport prefix inner silent lineage corr))
     (proj₂ (result-source-reveal prefix inner c↑))
     (result-target-reveal-silent prefix inner silent c′↑)
 left-silent-paired-conversion-transport-proofᵀ
     correspondence-transport prefix inner
-    silent@(left-silent-invariant refl refl) coherent
+    silent@(left-silent-invariant refl refl) lineage coherent
     (paired-conceal corr c↓ c′↓) =
   paired-conceal
     (proj₂
-      (correspondence-transport prefix inner silent corr))
+      (correspondence-transport prefix inner silent lineage corr))
     (proj₂ (result-source-conceal prefix inner c↓))
     (result-target-conceal-silent prefix inner silent c′↓)

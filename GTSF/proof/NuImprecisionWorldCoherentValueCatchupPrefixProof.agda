@@ -39,9 +39,17 @@ open import proof.NuImprecisionCatchupPrefixSupport
 open import proof.NuImprecisionCatchupQuotientSupport
 open import proof.NuImprecisionQuotientWideningTransport using
   (weak-one-step-transport-quotient-widening-pairᵀ)
+open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
+  (rel-store-embedding-reflⁱ)
 open import proof.NuImprecisionSimulationResultDef
 open import proof.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)
+open import proof.NuImprecisionWeakOneStepStoreLineageDef using
+  ( lineageEmbedding
+  ; lineagePrefix
+  ; lineageStore
+  ; weak-step-store-lineage
+  )
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentCatchupComposition using
@@ -87,10 +95,14 @@ world-coherent-left-catchup-prefix-down-upᵀ
         invariant@(left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         transport coherence)
-      coherent final-exclusive final-wfL) =
+      lineage coherent final-exclusive final-wfL) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed-prefix-down-up-from-finalᵀ
       prefix widening catchup final-down)
+    (weak-step-store-lineage
+      (lineageStore lineage)
+      (lineageEmbedding lineage)
+      (lineagePrefix lineage))
     (quotient-final coherent final-exclusive final-wfL final-ok
       vM′ noM′ inert-d′ inert-u′
       final-down final-widening final)
@@ -140,10 +152,14 @@ world-coherent-left-catchup-prefix-gen-down-upᵀ
         invariant@(left-catchup-invariant
           silent@(left-silent-invariant refl refl) final)
         transport coherence)
-      coherent final-exclusive final-wfL) =
+      lineage coherent final-exclusive final-wfL) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed-prefix-down-up-from-finalᵀ
       prefix widening catchup final-down)
+    (weak-step-store-lineage
+      (lineageStore lineage)
+      (lineageEmbedding lineage)
+      (lineagePrefix lineage))
     (quotient-final coherent final-exclusive final-wfL final-ok
       vM′ noM′ inert-d′ inert-u′
       final-down final-widening final)
@@ -170,6 +186,8 @@ world-coherent-left-value-catchup-prefix-proofᵀ
     rel@(blame⊑ᵀ V′⊢) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-blameᵀ prefix noV′ rel)
+    (weak-step-store-lineage _
+      rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
@@ -276,6 +294,8 @@ world-coherent-left-value-catchup-prefix-proofᵀ
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix okN (ƛ _) noV′ rel)
+    (weak-step-store-lineage _
+      rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
@@ -288,6 +308,8 @@ world-coherent-left-value-catchup-prefix-proofᵀ
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix okN (Λ vV) noV′ rel)
+    (weak-step-store-lineage _
+      rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
@@ -296,6 +318,8 @@ world-coherent-left-value-catchup-prefix-proofᵀ
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix okN (Λ vV) noV′ rel)
+    (weak-step-store-lineage _
+      rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
@@ -356,6 +380,8 @@ world-coherent-left-value-catchup-prefix-proofᵀ
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix okN ($ _) noV′ rel)
+    (weak-step-store-lineage _
+      rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup

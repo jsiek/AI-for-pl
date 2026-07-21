@@ -207,13 +207,13 @@ world-coherent-target-reveal-root-proofᵀ
     catchup cancel
     coherent exclusive wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
     | world-coherent-left-indexed-catchup
-        caught final-coherent final-exclusive final-wfL
+        caught caught-lineage final-coherent final-exclusive final-wfL
     with sourceIsValueOrBlame (catchupIndexedInvariant caught)
 world-coherent-target-reveal-root-proofᵀ
     catchup cancel
     coherent exclusive wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
     | world-coherent-left-indexed-catchup
-        caught final-coherent final-exclusive final-wfL
+        caught caught-lineage final-coherent final-exclusive final-wfL
     | inj₂ refl =
   world-indexed-outcome-source-blame
     (sourceCatchup (weakIndexedResult (catchupIndexedResult caught)))
@@ -221,7 +221,7 @@ world-coherent-target-reveal-root-proofᵀ
     catchup cancel
     coherent exclusive wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
     | world-coherent-left-indexed-catchup
-        caught final-coherent final-exclusive final-wfL
+        caught caught-lineage final-coherent final-exclusive final-wfL
     | inj₁ (vW , noW)
     with targetTailIsEmpty
            (silentInvariant (catchupIndexedInvariant caught))
@@ -231,7 +231,7 @@ world-coherent-target-reveal-root-proofᵀ
     catchup cancel {X′ = X′} {β = β} {ρ = ρ}
     coherent exclusive wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
     | world-coherent-left-indexed-catchup
-        caught final-coherent final-exclusive final-wfL
+        caught caught-lineage final-coherent final-exclusive final-wfL
     | inj₁ (vW , noW) | refl | refl =
   world-indexed-outcome-related
     retargeted

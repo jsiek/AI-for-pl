@@ -62,6 +62,12 @@ independent source/target widening premises admit active source unseal against
 an inert target variable tag.  Keep the strict counterexample until the
 `PairedCast` constructor or its semantic boundary carries the missing
 compatibility; do not create a permissive proof file for the false statement.
+The counterexample does not presently refute closed or public DGG: synchronized
+allocation gives both fresh casts `cast-inst` provenance and cannot create the
+bad target tag.  The recommended reusable compatibility is source inertness or
+the implication from target inertness to a cross bridge from the source cast's
+target type to the target cast's source type.  This retains inert/inert pairs
+and exposes exactly the evidence needed by an active-source terminal proof.
 
 A command-line `--no-allow-unsolved-metas` is not sufficient when a source
 module locally enables `--allow-unsolved-metas`.  Completion therefore

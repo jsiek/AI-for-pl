@@ -38,7 +38,6 @@ open import NuTerms using
   ; _•
   ; _⟨_⟩
   ; _⊕[_]_
-  ; _∣_∣_⊢_⦂_
   )
 open import Primitives using (Prim)
 open import QuotientedTermImprecision using
@@ -52,6 +51,7 @@ open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)
+open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
 record WorldCoherentSourceOneStepCases : Set₁ where

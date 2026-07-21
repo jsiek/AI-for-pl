@@ -18,7 +18,7 @@ open import NuTermImprecision using
   ; rightCtxⁱ
   ; rightStoreⁱ
   )
-open import NuTerms using (Term; _∣_∣_⊢_⦂_)
+open import NuTerms using (Term)
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; nu-term-imprecision-source-typing
@@ -29,7 +29,7 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepPrefixDef using
   (WorldCoherentSourceOneStepPrefixᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentExactSourceOneStepSimulationᵀ)
-open import TermTyping using (forget)
+open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
 normalize-source-one-step-empty-runtime-context :
@@ -51,10 +51,9 @@ source-one-step-empty-context-source-typing
     {Φ} {Δᴸ} {Δᴿ} {M} {M′} {A} {B} {ρ} {p} M⊑M′ =
   normalize-source-one-step-empty-runtime-context
     {Γ = leftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} []} refl
-    (forget
-      (nu-term-imprecision-source-typing
-        {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ} {γ = []}
-        {M = M} {M′ = M′} {A = A} {B = B} {p = p} M⊑M′))
+    (nu-term-imprecision-source-typing
+      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ} {γ = []}
+      {M = M} {M′ = M′} {A = A} {B = B} {p = p} M⊑M′)
 
 
 source-one-step-empty-context-target-typing :
@@ -68,10 +67,9 @@ source-one-step-empty-context-target-typing
     {Φ} {Δᴸ} {Δᴿ} {M} {M′} {A} {B} {ρ} {p} M⊑M′ =
   normalize-source-one-step-empty-runtime-context
     {Γ = rightCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} []} refl
-    (forget
-      (nu-term-imprecision-target-typing
-        {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ} {γ = []}
-        {M = M} {M′ = M′} {A = A} {B = B} {p = p} M⊑M′))
+    (nu-term-imprecision-target-typing
+      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ} {γ = []}
+      {M = M} {M′ = M′} {A = A} {B = B} {p = p} M⊑M′)
 
 
 world-coherent-exact-source-one-step-prefix-proofᵀ :

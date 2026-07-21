@@ -15,7 +15,7 @@ open import NuReduction using (StoreChange; _—→[_]_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
   (StoreImp; leftStoreⁱ; rightStoreⁱ)
-open import NuTerms using (RuntimeOK; _∣_∣_⊢_⦂_)
+open import NuTerms using (RuntimeOK)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
@@ -26,6 +26,7 @@ open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)
+open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
 WorldCoherentSourceOneStepPrefixᵀ : Set₁

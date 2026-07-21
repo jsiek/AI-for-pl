@@ -16,7 +16,6 @@ open import NuTermImprecision using
 open import NuTerms using
   ( RuntimeOK
   ; blame
-  ; _∣_∣_⊢_⦂_
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
@@ -28,6 +27,7 @@ open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)
+open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
 WorldCoherentSourceKeepBlameRootᵀ : Set₁

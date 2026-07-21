@@ -385,6 +385,7 @@ open import proof.TypeProperties using
 
 open import proof.NuImprecisionSimulationCore
 open import proof.NuImprecisionSimulationResultDef
+open import proof.NuImprecisionStoreLift using (lift-right-store-result)
 open import proof.NuImprecisionCatchupComposition
 
 ------------------------------------------------------------------------

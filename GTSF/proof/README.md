@@ -96,6 +96,13 @@ result definitions and below the simulation core.  Root proofs should import
 that module directly; importing `NuImprecisionSimulationCore` merely to build
 an unchanged related outcome defeats the `Def`/`Proof` invalidation boundary.
 
+Canonical store lifting follows the same closed-world rule.
+`NuImprecisionStoreLift` is the sole definition site for
+`lift-left-store-result` and `lift-right-store-result`.  Allocation proofs and
+other direct consumers import it explicitly; the simulation core does not
+re-export those names.  This keeps coherent catch-up allocation leaves outside
+the large core's invalidation cone.
+
 ## Invariant layers above generic results
 
 Keep semantic induction invariants above

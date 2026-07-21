@@ -230,6 +230,8 @@ open import proof.NuImprecisionOneStepRelated using
   ; weak-one-step-related-type-coherenceᵀ
   ; weak-one-step-relatedᵀ
   )
+open import proof.NuImprecisionStoreLift using
+  (lift-left-store-result; lift-right-store-result)
 open import Store using (StoreIncl; StoreIncl-drop; StoreIncl-refl)
 open import TermTyping using
   ( CastMode
@@ -1854,71 +1856,6 @@ swap01-lift-right-obstruction {B = B} x∈ liftρ eq =
     (subst
       ((zero , renameᵗ swap01ᵗ B) ∈_)
       (sym eq) (∈-renameStoreᵗ swap01ᵗ x∈))
-
-lift-left-store-result :
-  ∀ {Φ Δᴸ Δᴿ} (ρ : StoreImp Φ Δᴸ Δᴿ) →
-  ∃[ ρ′ ] LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′
-lift-left-store-result [] = [] , lift-left-store-[]
-lift-left-store-result (store-matched α A β B p ∷ ρ)
-    with lift-left-store-result ρ
-lift-left-store-result (store-matched α A β B p ∷ ρ)
-    | ρ′ , liftρ =
-  store-matched (suc α) (⇑ᵗ A) β B
-    (⊑-source-liftνᵢ p) ∷ ρ′ ,
-  lift-left-store-∷ liftρ
-lift-left-store-result (store-left α A hA ∷ ρ)
-    with lift-left-store-result ρ
-lift-left-store-result (store-left α A hA ∷ ρ)
-    | ρ′ , liftρ =
-  store-left (suc α) (⇑ᵗ A)
-    (renameᵗ-preserves-WfTy hA TyRenameWf-suc) ∷ ρ′ ,
-  lift-left-store-left liftρ
-lift-left-store-result (store-right β B hB ∷ ρ)
-    with lift-left-store-result ρ
-lift-left-store-result (store-right β B hB ∷ ρ)
-    | ρ′ , liftρ =
-  store-right β B hB ∷ ρ′ ,
-  lift-left-store-right liftρ
-lift-left-store-result (store-link α A β B p ∷ ρ)
-    with lift-left-store-result ρ
-lift-left-store-result (store-link α A β B p ∷ ρ)
-    | ρ′ , liftρ =
-  store-link (suc α) (⇑ᵗ A) β B
-    (⊑-source-liftνᵢ p) ∷ ρ′ ,
-  lift-left-store-link liftρ
-
-lift-right-store-result :
-  ∀ {Φ Δᴸ Δᴿ} (ρ : StoreImp Φ Δᴸ Δᴿ) →
-  ∃[ ρ′ ] LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ ρ′
-lift-right-store-result [] = [] , lift-right-store-[]
-lift-right-store-result (store-matched α A β B p ∷ ρ)
-    with lift-right-store-result ρ
-lift-right-store-result (store-matched α A β B p ∷ ρ)
-    | ρ′ , liftρ =
-  store-matched α A (suc β) (⇑ᵗ B)
-    (⊑-target-lift-rightᵢ p) ∷ ρ′ ,
-  lift-right-store-∷ liftρ
-lift-right-store-result (store-left α A hA ∷ ρ)
-    with lift-right-store-result ρ
-lift-right-store-result (store-left α A hA ∷ ρ)
-    | ρ′ , liftρ =
-  store-left α A hA ∷ ρ′ ,
-  lift-right-store-left liftρ
-lift-right-store-result (store-right β B hB ∷ ρ)
-    with lift-right-store-result ρ
-lift-right-store-result (store-right β B hB ∷ ρ)
-    | ρ′ , liftρ =
-  store-right (suc β) (⇑ᵗ B)
-    (renameᵗ-preserves-WfTy hB TyRenameWf-suc) ∷ ρ′ ,
-  lift-right-store-right liftρ
-lift-right-store-result (store-link α A β B p ∷ ρ)
-    with lift-right-store-result ρ
-lift-right-store-result (store-link α A β B p ∷ ρ)
-    | ρ′ , liftρ =
-  store-link α A (suc β) (⇑ᵗ B)
-    (⊑-target-lift-rightᵢ p) ∷ ρ′ ,
-  lift-right-store-link liftρ
 
 left-right-store-commuteⁱ :
   ∀ {Φ Δᴸ Δᴿ}

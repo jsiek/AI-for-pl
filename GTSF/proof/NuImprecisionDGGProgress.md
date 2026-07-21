@@ -316,6 +316,7 @@ are delegated:
 | [`NuDGGTerminalBackwardBlameIntegration.agda`](NuDGGTerminalBackwardBlameIntegration.agda) | completed live interface check | Instantiates the strict assembly with the live dispatcher and target-blame catch-up declarations; the focused consumer check passes, although those imported leaf bodies remain partial |
 | [`NuImprecisionSimulationResultDef.agda`](NuImprecisionSimulationResultDef.agda) | completed | Strict 506-line home of the weak-result, indexed-outcome, transport/coherence, and left-catch-up result algebra; imported directly by contracts without the simulation core |
 | [`NuImprecisionOneStepRelated.agda`](NuImprecisionOneStepRelated.agda) | completed | Strict canonical keep-step result and indexed-outcome builders extracted from the simulation core so terminal and identity roots do not import the 15,000-line implementation |
+| [`NuImprecisionStoreLift.agda`](NuImprecisionStoreLift.agda) | completed | Sole strict definition site for canonical left/right store-lift results; coherent allocation proofs can import it without depending on the simulation core |
 | [`NuImprecisionAtomicTargetReindex.agda`](NuImprecisionAtomicTargetReindex.agda) | completed | Strict exhaustive reconstruction of atomic-target value relations at an explicit desired type-imprecision index; closes target conversion identity roots without proof irrelevance |
 | [`NuImprecisionOneStepTargetCastIdentityRoots.agda`](NuImprecisionOneStepTargetCastIdentityRoots.agda) | completed | Three strict β-id root outcomes for narrowing, general widening, and id-only widening target casts; the partial target-cast dispatcher now has eight holes instead of eleven |
 | [`NuImprecisionTargetCastSequenceMidpointDef.agda`](NuImprecisionTargetCastSequenceMidpointDef.agda) | completed statement | Strict indexed family for the local midpoint evidence retained by one quotiented target-cast node; avoids an unsound global right-context-compatibility requirement |
@@ -5882,6 +5883,17 @@ catch-up architecture.
   specializes that prefix capability at `prefix-reflⁱ`, checking the path from
   the recursive invariant to the public catch-up contract without importing
   the partial scratch implementation.
+
+- Extracted `lift-left-store-result` and `lift-right-store-result` from the
+  simulation core into strict
+  [`NuImprecisionStoreLift`](NuImprecisionStoreLift.agda).  The core imports
+  the new module non-publicly, and `NuImprecisionSimulation` imports the right
+  lift directly; there is no compatibility re-export.  Focused checks passed
+  for the new module, the modified core, and the direct simulation consumer.
+  The cold new-module check took about 86 seconds because its existing lift
+  lemmas still pull in a large dependency cone; that is a future profiling
+  target, but edits to the 15,000-line core no longer invalidate the canonical
+  store-lift constructors.  No aggregate check was run.
 
 - Stopped the first Ginger β-sequence worker after it made no worktree changes
   during an overlong search.  Its useful diagnostic is that the nested target

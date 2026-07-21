@@ -45,6 +45,7 @@ import proof.EndpointCanonicalMLBSimpleFactorCounterexample
 import proof.QuotientedTermImprecisionTest
 import proof.NuImprecisionSimulationResultDef
 import proof.NuImprecisionOneStepRelated
+import proof.NuImprecisionStoreLift
 import proof.NuImprecisionWorldCoherenceDef
 import proof.NuImprecisionWorldCoherenceProof
 import proof.NuImprecisionWorldCoherenceLemma

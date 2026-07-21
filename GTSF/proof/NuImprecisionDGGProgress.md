@@ -165,13 +165,13 @@ common hypotheses, it states
 
 | Step | Status | Proof obligation and available evidence |
 |---|---|---|
-| F1. State a source-oriented one-step simulation | completed statement | [`WorldCoherentSourceOneStepSimulationᵀ`](NuImprecisionWorldCoherentSourceOneStepDef.agda) returns the target administrative trace, exact distinguished source change, transported relation, both store projections, and successor coherence/exclusivity. |
-| F2. Prove the source-oriented one-step cases | not yet started | Split on the source reduction and term-imprecision derivation. Reuse the checked matched, left-only, and right-only allocation/cast/frame lemmas where their polarity fits. The definition-sensitive `ν`, `ν ★`, `Λ`, `gen`, `inst`, and `•` cases should be proved before the ordinary congruence cases. |
-| F3. Prove target catch-up from a related source value | completed statement; proof not started | [`WorldCoherentRightValueCatchupᵀ`](NuImprecisionWorldCoherentRightValueCatchupDef.agda) freezes the zero-source-change terminal package. Its implementation needs structural recursion over the relation and target administrative reductions, including target-only allocation and quotient-cast cases. |
+| F1. State a source-oriented one-step simulation | completed statement and recursive boundary | [`WorldCoherentSourceOneStepSimulationᵀ`](NuImprecisionWorldCoherentSourceOneStepDef.agda) is the compact terminal consumer. [`WorldCoherentSourceOneStepIndexedResult`](NuImprecisionWorldCoherentSourceOneStepResultDef.agda) retains generic index transport, type coherence, store lineage, the exact singleton source change, and final world invariants for recursive case proofs. |
+| F2. Prove the source-oriented one-step cases | partial: dispatcher boundary frozen; case proofs not started | [`WorldCoherentSourceOneStepPrefixᵀ`](NuImprecisionWorldCoherentSourceOneStepPrefixDef.agda) is the ambient-prefix worker required under `allocation-prefixᵀ`. [`world-coherent-exact-source-one-step-prefix-proofᵀ`](NuImprecisionWorldCoherentSourceOneStepPrefixProof.agda) and [`world-coherent-source-one-step-proofᵀ`](NuImprecisionWorldCoherentSourceOneStepProof.agda) strictly project that worker to F1. The remaining implementation splits over the nine source reduction families and the application, quotient, bullet, prefix, `ν`, `ν ★`, primitive, source-cast, paired-cast, and target-frame relation families. |
+| F3. Prove target catch-up from a related source value | partial: recursive/result boundaries and terminal projection completed; structural cases not started | [`WorldCoherentRightValueCatchupPrefixᵀ`](NuImprecisionWorldCoherentRightValueCatchupPrefixDef.agda) returns [`WorldCoherentRightValueCatchupIndexedResult`](NuImprecisionWorldCoherentRightCatchupResultDef.agda), retaining arbitrary-index transport, type coherence, relational-store lineage, final coherence/exclusivity, and target `StoreWf`. [`world-coherent-right-value-catchup-proofᵀ`](NuImprecisionWorldCoherentRightValueCatchupProof.agda) strictly erases this evidence to [`WorldCoherentRightValueCatchupᵀ`](NuImprecisionWorldCoherentRightValueCatchupDef.agda) only at the terminal boundary. Structural source/target frame, quotient, binder-closing, and allocation proofs remain. |
 | F4. Rule out a source-blame alternative when the source is a value | completed | [`source-value-indexed-outcome-relatedᵀ`](NuImprecisionSimulationCore.agda#L1231) proves the required local outcome fact: an indexed weak outcome from a source value must be related, with zero source changes and the same source value. It constrains one target step; it does **not** by itself prove target termination. |
 | F5. Lift source one-step simulation over a source trace | completed higher-order proof | [`world-coherent-forward-source-value-proofᵀ`](NuDGGTerminalForwardProof.agda) recurses structurally on the observed source trace and invokes right-value catch-up in the reflexive base. No fuel or trace-alignment theorem is needed. |
 | F6. Normalize composed changes and final store projections | completed | The same proof reconstructs successor `StoreWf` and `RuntimeOK` by preservation, concatenates target traces, and normalizes contexts, endpoint types, and physical stores with the `apply*-++` laws. |
-| F7. Package the terminal theorem | partial | [`WorldCoherentForwardSourceValueᵀ`](NuDGGTerminalForwardDef.agda) is frozen and its higher-order inhabitant is strict. A canonical `Lemma` and replacement of the old permissive [`NuDGGTerminalForward.agda`](NuDGGTerminalForward.agda) wait for strict implementations of F2 and F3. |
+| F7. Package the terminal theorem | completed higher-order path; canonical engines missing | [`prefix-forward-engines-and-backward-terminals⇒gradual-dgg`](NuDGGTerminalForwardIntegrationProof.agda) checks the exact path from the two recursive prefix workers plus the two backward terminal contracts through `WorldCoherentForwardSourceValueᵀ` to public `GradualDGG`. A canonical `Lemma` still waits for strict implementations of F2 and F3 and the backward terminal engines. |
 
 The essential missing fact is not another use of the target-oriented dispatcher.
 That dispatcher allows target administrative work while the source takes zero
@@ -305,10 +305,21 @@ are delegated:
 | [`NuDGGTerminal.agda`](NuDGGTerminal.agda) | completed | Strict wrapper with the three full terminal statements as separate arguments; produces `GradualDGG` |
 | [`NuDGGTerminalForward.agda`](NuDGGTerminalForward.agda) | partial; superseded implementation shell | The older statement/closed adapter remains permissive. It should be replaced, rather than wrapped, once the new strict semantic dependencies are inhabited. |
 | [`NuImprecisionWorldCoherentSourceOneStepDef.agda`](NuImprecisionWorldCoherentSourceOneStepDef.agda) | completed statement | Exact source-oriented one-step contract, including target administrative work, successor relation/world invariants, and physical-store lineage. |
+| [`NuImprecisionWorldCoherentSourceOneStepResultDef.agda`](NuImprecisionWorldCoherentSourceOneStepResultDef.agda) | completed statement | Strong recursive source-step result with generic transport/coherence, store lineage, exact singleton source trace, and final world invariants. |
+| [`NuImprecisionWorldCoherentSourceOneStepPrefixDef.agda`](NuImprecisionWorldCoherentSourceOneStepPrefixDef.agda) | completed statement | Ambient-prefix worker contract separating the relation prefix from the physical store used by typing and reduction. |
+| [`NuImprecisionWorldCoherentSourceOneStepPrefixProof.agda`](NuImprecisionWorldCoherentSourceOneStepPrefixProof.agda) | completed higher-order proof | Instantiates the prefix worker reflexively and derives its explicit source/target typing premises from the quotient relation. |
+| [`NuImprecisionWorldCoherentSourceOneStepProof.agda`](NuImprecisionWorldCoherentSourceOneStepProof.agda) | completed higher-order proof | Erases the strong recursive source-step result to the compact terminal engine after checking its exact source change and result. |
 | [`NuImprecisionWorldCoherentRightValueCatchupDef.agda`](NuImprecisionWorldCoherentRightValueCatchupDef.agda) | completed statement | Exact target catch-up contract from a related source value, with zero source changes and an explicit final related target value. |
+| [`NuImprecisionRightValueCatchupResultDef.agda`](NuImprecisionRightValueCatchupResultDef.agda) | completed statement | Strong indexed catch-up result retaining source silence, both terminal-value facts, generic transport, and type coherence. |
+| [`NuImprecisionWorldCoherentRightCatchupResultDef.agda`](NuImprecisionWorldCoherentRightCatchupResultDef.agda) | completed statement | Adds lineage, final world invariants, and target-store well-formedness to the recursive right-catch-up result. |
+| [`NuImprecisionWorldCoherentRightValueCatchupPrefixDef.agda`](NuImprecisionWorldCoherentRightValueCatchupPrefixDef.agda) | completed statement | Ambient-prefix recursive right-value catch-up contract. |
+| [`NuImprecisionWorldCoherentRightValueCatchupProof.agda`](NuImprecisionWorldCoherentRightValueCatchupProof.agda) | completed higher-order proof | Reflexively instantiates the prefix worker and projects its exact terminal witnesses to the compact forward contract. |
 | [`NuDGGTerminalForwardDef.agda`](NuDGGTerminalForwardDef.agda) | completed statement | Arbitrary-world forward source-value terminal package with transported contexts, types, stores, and relation index written out. |
 | [`NuDGGTerminalForwardProof.agda`](NuDGGTerminalForwardProof.agda) | completed higher-order proof | Hole-free structural source-trace induction from the two new semantic contracts; preservation supplies every recursive runtime/store premise. |
 | [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda) | completed focused integration | Imports only the three forward statement modules and the higher-order proof, avoiding the broad DGG and `All.agda` checks. |
+| [`NuDGGTerminalForwardIntegrationProof.agda`](NuDGGTerminalForwardIntegrationProof.agda) | completed higher-order proof | Connects the recursive forward prefix workers and independent backward terminal contracts all the way to public `GradualDGG`. |
+| [`NuDGGTerminalForwardMilestone.agda`](NuDGGTerminalForwardMilestone.agda) | completed high-cost milestone boundary | Imports the public compiler/DGG integration proof separately so routine forward checks remain small. |
+| [`NuImprecisionRightStorePrefixFactorDef.agda`](NuImprecisionRightStorePrefixFactorDef.agda) | completed frozen leaf statement | Small factorization needed by source-only binder traversal in right catch-up; its proof is assigned as an isolated Ginger/GPT-5.5 slice. |
 | [`NuDGGTerminalBackwardValueDef.agda`](NuDGGTerminalBackwardValueDef.agda) | completed | Small statement module defining `BackwardTargetValueOrSourceBlameᵀ` |
 | [`NuDGGTerminalBackwardValueProof.agda`](NuDGGTerminalBackwardValueProof.agda) | completed | Hole-free higher-order fuel induction and source-trace composition from the two dependency contracts |
 | [`NuDGGTerminalBackwardValueLemma.agda`](NuDGGTerminalBackwardValueLemma.agda) | completed assembly; dependencies partial | Canonical application to the live dispatcher and value catch-up; excluded from the strict spine until both supplied lemmas are strict |
@@ -8185,3 +8196,61 @@ coordination.  Use focused strict checks throughout and reserve
   yet, so no canonical `Lemma` is claimed.  This turns the remaining forward
   work into two explicit proof families suitable for separate local and
   Ginger slices without checking `NuDGGStrictSpine.agda` or `All.agda`.
+
+### 2026-07-21: recursive forward engines connected to public DGG
+
+- Audited both forward dependencies against the cases that must recursively
+  rebuild frames and binders.  The compact terminal statements were sound but
+  intentionally too small for those proofs.  The new
+  [`WorldCoherentSourceOneStepIndexedResult`](NuImprecisionWorldCoherentSourceOneStepResultDef.agda)
+  and
+  [`WorldCoherentRightValueCatchupIndexedResult`](NuImprecisionWorldCoherentRightCatchupResultDef.agda)
+  retain arbitrary-index transport, arrow/`∀` coherence, relational-store
+  lineage, and final world invariants.  The source result additionally records
+  the exact singleton distinguished step; the right-catch-up result records an
+  unchanged source value and a terminal target value.
+
+- Froze ambient-prefix workers in
+  [`NuImprecisionWorldCoherentSourceOneStepPrefixDef.agda`](NuImprecisionWorldCoherentSourceOneStepPrefixDef.agda)
+  and
+  [`NuImprecisionWorldCoherentRightValueCatchupPrefixDef.agda`](NuImprecisionWorldCoherentRightValueCatchupPrefixDef.agda).
+  The prefix is necessary beneath `allocation-prefixᵀ`: the term relation may
+  mention a smaller relational store while reduction, typing, preservation,
+  and allocation operate in the larger coherent ambient store.
+
+- Completed strict erasure and reflexive-prefix proofs.  The source path is
+
+      WorldCoherentSourceOneStepPrefixᵀ
+        → WorldCoherentExactSourceOneStepSimulationᵀ
+        → WorldCoherentSourceOneStepSimulationᵀ,
+
+  and the right path is
+
+      WorldCoherentRightValueCatchupPrefixᵀ
+        → WorldCoherentRightValueCatchupᵀ.
+
+  These are checked theorem applications, not compatibility aliases.  They
+  force every recursive implementation to supply the strong result before
+  its transport and lineage evidence can be erased.
+
+- Added
+  [`prefix-forward-engines-and-backward-terminals⇒gradual-dgg`](NuDGGTerminalForwardIntegrationProof.agda),
+  which checks the full higher-order route from the two recursive forward
+  workers plus `BackwardTargetValueOrSourceBlameᵀ` and
+  `BackwardTargetBlameᵀ` to public `GradualDGG`.  The routine
+  [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda)
+  remains below four seconds locally.  The public-DGG import is isolated in
+  [`NuDGGTerminalForwardMilestone.agda`](NuDGGTerminalForwardMilestone.agda):
+  its warm check is about six seconds, but its first cold check took roughly
+  150 seconds because it loads the compiler/DGG spine.  It is therefore a
+  milestone check, not a per-leaf check.
+
+- Froze
+  [`RightStorePrefixFactorᵀ`](NuImprecisionRightStorePrefixFactorDef.agda) as
+  the first independent forward Ginger slice.  Its proof is a four-case
+  structural extraction already present in the broad simulation core; the
+  worker owns only the new `Proof` file and must use the repository Ginger
+  wrapper with `--no-allow-unsolved-metas`.
+
+- No `All.agda`, `NuDGGStrictSpine.agda`, hole, postulate, incomplete match,
+  or source-level permissive option was used in this organization batch.

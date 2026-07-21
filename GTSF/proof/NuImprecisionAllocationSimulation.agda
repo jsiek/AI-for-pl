@@ -391,6 +391,7 @@ open import proof.TypeProperties using
 open import proof.NuImprecisionSimulationCore
 open import proof.NuImprecisionSimulationResultDef
 open import proof.NuImprecisionSimulation
+open import proof.NuImprecisionStoreLift using (lift-store-result)
 
 ------------------------------------------------------------------------
 -- Synchronized polymorphic allocation

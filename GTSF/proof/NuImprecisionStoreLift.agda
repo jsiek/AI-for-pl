@@ -14,6 +14,12 @@ open import Types using (⇑ᵗ)
 open import ImprecisionWf using (_ˣ⊑★; ⇑ᴸᵢ; ⇑ᴿᵢ)
 open import NuTermImprecision using
   ( StoreImp
+  ; LiftStoreⁱ
+  ; lift-store-[]
+  ; lift-store-∷
+  ; lift-store-left
+  ; lift-store-right
+  ; lift-store-link
   ; LiftLeftStoreⁱ
   ; lift-left-store-[]
   ; lift-left-store-∷
@@ -32,7 +38,7 @@ open import NuTermImprecision using
   ; store-link
   )
 open import proof.MaximalLowerBoundsWf using
-  (⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
+  (∀ᵢᶜ; ⊑-lift∀ᵢ; ⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
 open import proof.TypeProperties using
   (TyRenameWf-suc; renameᵗ-preserves-WfTy)
 
@@ -102,3 +108,37 @@ lift-right-store-result (store-link α A β B p ∷ ρ)
   store-link α A (suc β) (⇑ᵗ B)
     (⊑-target-lift-rightᵢ p) ∷ ρ′ ,
   lift-right-store-link liftρ
+
+
+lift-store-result :
+  ∀ {Φ Δᴸ Δᴿ} (ρ : StoreImp Φ Δᴸ Δᴿ) →
+  ∃[ ρ′ ] LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ′
+lift-store-result [] = [] , lift-store-[]
+lift-store-result (store-matched α A β B p ∷ ρ)
+    with lift-store-result ρ
+lift-store-result (store-matched α A β B p ∷ ρ)
+    | ρ′ , liftρ =
+  store-matched (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B)
+    (⊑-lift∀ᵢ p) ∷ ρ′ ,
+  lift-store-∷ liftρ
+lift-store-result (store-left α A hA ∷ ρ)
+    with lift-store-result ρ
+lift-store-result (store-left α A hA ∷ ρ)
+    | ρ′ , liftρ =
+  store-left (suc α) (⇑ᵗ A)
+    (renameᵗ-preserves-WfTy hA TyRenameWf-suc) ∷ ρ′ ,
+  lift-store-left liftρ
+lift-store-result (store-right β B hB ∷ ρ)
+    with lift-store-result ρ
+lift-store-result (store-right β B hB ∷ ρ)
+    | ρ′ , liftρ =
+  store-right (suc β) (⇑ᵗ B)
+    (renameᵗ-preserves-WfTy hB TyRenameWf-suc) ∷ ρ′ ,
+  lift-store-right liftρ
+lift-store-result (store-link α A β B p ∷ ρ)
+    with lift-store-result ρ
+lift-store-result (store-link α A β B p ∷ ρ)
+    | ρ′ , liftρ =
+  store-link (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B)
+    (⊑-lift∀ᵢ p) ∷ ρ′ ,
+  lift-store-link liftρ

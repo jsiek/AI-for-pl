@@ -66,6 +66,7 @@ import proof.NuImprecisionWorldCoherentTargetRevealRootProof
 import proof.NuImprecisionSimulationCore
 import proof.NuImprecisionSimulation
 import proof.NuImprecisionCatchupScratch
+import proof.NuImprecisionCatchupPrefixSupport
 import proof.NuImprecisionCatchupSourceAllocationTerminal
 import proof.NuImprecisionCatchupSourceCastTerminal
 import proof.NuImprecisionOneStepSourceCastFrames

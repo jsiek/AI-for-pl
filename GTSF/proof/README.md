@@ -110,6 +110,19 @@ Do not move these names back into, or re-export them through, the simulation
 core; doing so would reconnect stable catch-up structure to the largest proof
 implementation file.
 
+The first strict catch-up implementation island lives in
+`NuImprecisionCatchupPrefixSupport`.  It owns silent-result composition, the
+five target-cast prefix frames, and the terminal source value/blame builders.
+These nine definitions were moved out of the permissive scratch dispatcher;
+new coherent catch-up proofs should import this module and must not recover
+them by importing `NuImprecisionCatchupScratch`.
+
+The remaining hole-free down/up transport block should likewise move into
+`NuImprecisionCatchupQuotientSupport` before the strict prefix proof is
+written.  Keep the two ordinary/generated down-up drivers out of that support
+module: their quotient-`inst` residual is the semantic hole represented by
+`WorldCoherentQuotientInstCatchupᵀ`, not mechanical transport support.
+
 ## Invariant layers above generic results
 
 Keep semantic induction invariants above
@@ -168,6 +181,28 @@ modules.  Put the shared ordinary/gen quotient-`inst` final-state theorem in
 `NuImprecisionWorldCoherentQuotientInstCatchup*`.  The prefix `Proof` should
 take those two whole contracts as higher-order arguments, with all target
 frames and ordinary terminal cases handled structurally.
+
+The source-runtime record is an assembly boundary, not permission to assume
+its fields recursively.  Its current proof decomposition is:
+
+- `source-conceal` is the first independent leaf: conceal coercions are inert
+  except for identity, which takes one administrative step;
+- `source-bullet`, `source-ν`, `source-νcast`, and the widening-`inst`
+  case form one genuine recursive allocation SCC;
+- `source-reveal` needs exact source-side seal cancellation for active
+  `unseal`;
+- active narrowing/widening need source tag/untag classification in addition
+  to the existing inert and blame frames; and
+- `source-paired-cast` needs prefix and accumulated-change transport for
+  `PairedCast` evidence.
+
+Prove the independent conceal leaf first, then freeze and prove source seal
+cancellation and tag cancellation as explicit contracts.  Next prove reveal,
+non-`inst` narrow/widen cases, and paired-cast transport.  Only then implement
+the allocation SCC as a visibly structural mutual proof (or with an explicit
+administrative measure) and assemble the eight-field record.  Do not make the
+record itself a higher-order input to its own `Proof`; that would encode the
+missing recursion circularly while still appearing strict to Agda.
 
 The target reveal-unseal root is the next higher-order boundary:
 

@@ -318,6 +318,8 @@ are delegated:
 | [`NuImprecisionOneStepRelated.agda`](NuImprecisionOneStepRelated.agda) | completed | Strict canonical keep-step result and indexed-outcome builders extracted from the simulation core so terminal and identity roots do not import the 15,000-line implementation |
 | [`NuImprecisionStoreLift.agda`](NuImprecisionStoreLift.agda) | completed | Sole strict definition site for canonical left/right store-lift results; coherent allocation proofs can import it without depending on the simulation core |
 | [`NuImprecisionStorePrefix.agda`](NuImprecisionStorePrefix.agda) | completed | Sole strict definition site for source/target prefix-store inclusion and prefix transitivity; catch-up modules import it directly instead of inheriting these lemmas from the simulation core |
+| [`NuImprecisionCatchupPrefixSupport.agda`](NuImprecisionCatchupPrefixSupport.agda) | completed | Strict home of nine silent-composition, target-prefix-frame, and terminal value/blame helpers extracted from the permissive scratch dispatcher; the focused strict check passes |
+| `NuImprecisionCatchupQuotientSupport.agda` | not yet started | Will extract the eight already-hole-free paired/down-up transport helpers; the two quotient-`inst` residual drivers remain outside this mechanical support module |
 | [`NuImprecisionAtomicTargetReindex.agda`](NuImprecisionAtomicTargetReindex.agda) | completed | Strict exhaustive reconstruction of atomic-target value relations at an explicit desired type-imprecision index; closes target conversion identity roots without proof irrelevance |
 | [`NuImprecisionOneStepTargetCastIdentityRoots.agda`](NuImprecisionOneStepTargetCastIdentityRoots.agda) | completed | Three strict β-id root outcomes for narrowing, general widening, and id-only widening target casts; the partial target-cast dispatcher now has eight holes instead of eleven |
 | [`NuImprecisionTargetCastSequenceMidpointDef.agda`](NuImprecisionTargetCastSequenceMidpointDef.agda) | completed statement | Strict indexed family for the local midpoint evidence retained by one quotiented target-cast node; avoids an unsound global right-context-compatibility requirement |
@@ -334,7 +336,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentValueCatchupPrefixDef.agda`](NuImprecisionWorldCoherentValueCatchupPrefixDef.agda) | completed statement | Ambient-prefix induction contract: the relation may use a smaller prefix world, while coherence is retained for the ambient evaluation world that will own the result |
 | [`NuImprecisionWorldCoherentValueCatchupProof.agda`](NuImprecisionWorldCoherentValueCatchupProof.agda) | completed adapter proof | Strictly derives the public coherent value-catch-up contract from the prefix worker by applying it to `prefix-reflⁱ`; the structural prefix worker remains unimplemented |
 | [`NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda`](NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda) | completed statement | Strict eight-field handler record for the mutually dependent source bullet, allocation, cast, and conversion cases; keeps the source `inst`/`ν ★` SCC intact |
-| `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | not yet started | Will prove the eight source-runtime handlers together, extending coherence only at the allocation continuations |
+| `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial proof plan; implementation not started | `source-conceal` is immediately tractable; bullet, `ν`, `ν ★`, and widening-`inst` form the allocation SCC; narrowing, widening, reveal, and paired casts first need explicit source cancellation/classification or prefix-transport support |
 | [`NuImprecisionWorldCoherentQuotientInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientInstCatchupDef.agda) | completed statement | Strict mode-polymorphic final-state contract shared by ordinary-down and gen-down quotient-`inst` residuals |
 | `NuImprecisionWorldCoherentQuotientInstCatchupProof.agda` | not yet started | Will prove the shared quotient residual from the source-runtime capability and expose any missing quotient invariant at one boundary |
 | `NuImprecisionWorldCoherentValueCatchupPrefixProof.agda` | not yet started | Will implement the recursive prefix worker from exactly the source-runtime and quotient-`inst` capabilities, reusing coherence on frames and extending it only at allocation results |
@@ -5960,10 +5962,42 @@ catch-up architecture.
   wrapper.  The module imports neither store well-formedness nor the scratch
   dispatcher or simulation core, and its focused no-unsolved-metas check passes.
 
+- Extracted the first nine hole-free catch-up implementation helpers into
+  strict
+  [`NuImprecisionCatchupPrefixSupport`](NuImprecisionCatchupPrefixSupport.agda).
+  The module now owns silent-result resumption, the generic target frame, all
+  five target narrow/widen/reveal/conceal prefix frames, and the terminal
+  source value and blame builders.  The old definitions were deleted from
+  `NuImprecisionCatchupScratch`, which imports the canonical module directly;
+  there is no compatibility re-export.  The focused Ginger check passed with
+  `--no-allow-unsolved-metas` after the dependency cache warmed.  The partial
+  Scratch consumer reached the 90-second bound without diagnostics, and no
+  aggregate module was checked.
+
+- Audited the remaining strict prefix dispatcher clause by clause.  Once the
+  eight hole-free quotient/down-up transport helpers are extracted into
+  `NuImprecisionCatchupQuotientSupport`, the higher-order prefix proof can be
+  written without importing the permissive Scratch module.  Its only semantic
+  parameters remain `WorldCoherentSourceRuntimeCatchupᵀ` and
+  `WorldCoherentQuotientInstCatchupᵀ`.  The quotient residual needs a local
+  control-flow split retaining the final source `Value`/`No•` evidence and a
+  dependent rewrite by the discovered `inst` shape; neither issue requires a
+  broader contract.
+
+- Audited the eight source-runtime fields against the existing strict leaves.
+  Only `source-conceal` is presently a direct frame/administrative-step proof.
+  `source-bullet`, `source-ν`, `source-νcast`, and widening `inst` form the
+  genuine allocation SCC.  Active reveal needs source-side exact seal
+  cancellation; active narrowing/widening need tag/untag
+  cancellation/classification; paired casts need `PairedCast` transport across
+  the ambient prefix and accumulated source changes.  This dependency graph is
+  now part of the proof plan so a strict-looking implementation cannot close
+  those fields by circularly assuming the whole source-runtime record.
+
 ### Next boundary
 
-Inhabit the world-coherent value-catch-up contract by threading the invariant
-through the actual catch-up result constructors, then create the canonical
-target reveal-unseal `Lemma`.  Resolve the β-sequence midpoint factorization
-locally before assigning a smaller leaf to Ginger.  Integrate only strict,
-focused worker modules; do not run aggregate checks.
+Extract the remaining quotient/down-up support, then write the strict
+higher-order prefix dispatcher from its two frozen semantic contracts.  In
+parallel, use `source-conceal` as the next Ginger leaf and freeze source seal
+and tag cancellation statements locally before assigning their implementations.
+Integrate only strict, focused worker modules; do not run aggregate checks.

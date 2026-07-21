@@ -40,6 +40,7 @@ import proof.NuImprecisionWorldCoherentTargetRevealRootProof
 import proof.NuDGGTraceAlignment
 import proof.NuDGGTraceMeasure
 import proof.NuDGGWeakResultPreservation
+import proof.NuImprecisionCatchupPrefixSupport
 import proof.NuImprecisionCatchupSourceAllocationTerminal
 import proof.NuImprecisionCatchupSourceCastTerminal
 import proof.NuImprecisionOneStepSourceCastFrames

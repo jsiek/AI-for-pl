@@ -346,6 +346,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceBulletCatchupProof.agda`](NuImprecisionWorldCoherentSourceBulletCatchupProof.agda) | completed higher-order proof | Strictly reconstructs the allocated `α⊑ᵀ` relation and delegates to the whole value-prefix catch-up contract; canonical assembly remains in the mutual SCC |
 | [`NuImprecisionSourceBulletBase.agda`](NuImprecisionSourceBulletBase.agda) | completed semantic extraction; checking-time partial | GPT 5.5 Ginger extraction strictly packages polymorphic post-allocation stepping/value shape, direct `α`/`Λ` prefix catch-up, and allocated-bullet reconstruction; it no longer imports the broad simulation dispatcher, but still imports `NuImprecisionSimulationCore` for world embedding/result support |
 | [`NuImprecisionWorldCoherentSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCatchupDef.agda) | completed statement | Exact ordinary source-`ν` handler contract; its inhabitant is downstream of source-bullet and source-reveal, not in the minimal SCC |
+| [`NuImprecisionWorldCoherentSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuCatchupProof.agda) | completed higher-order proof | Strict accumulated-world adapter transports the reveal and universal relation to the operand's final world, delegates final-value allocation to the exact-final contract, propagates source blame, and composes explicit lineages |
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda) | completed statement | Exact-final ordinary source-`ν` contract retains the arbitrary inner universal index, final allocation/reveal evidence, values, and world invariants |
 | [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda) | completed statement | Full exact-final branch specialized to `ν occ r`; intended source-bullet/allocation implementation path |
 | [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda) | completed statement; hard audit | Full exact-final branch specialized to `∀ⁱ r`; existing one-sided allocation leaves do not yet derive it, so a strict proof-or-counterexample audit is active |
@@ -6596,3 +6597,13 @@ coordination.  Use focused strict checks throughout and reserve
   performs the terminal `blame-ν` step with reflexive lineage.  The focused
   check passes and the canonical `Lemma` remains absent pending the exact-final
   allocation/SCC inhabitant.
+
+- Completed the strict accumulated ordinary source-`ν` adapter.  It weakens
+  the reveal through the ambient prefix, transports both the reveal and the
+  inner universal relation through accumulated source changes, and constructs
+  the canonical final left store/context lifts before delegating allocation to
+  `WorldCoherentFinalSourceNuCatchupᵀ`.  Its blame branch frames the outer `ν`,
+  takes `blame-ν`, and resumes with composed lineage.  The focused
+  `--no-allow-unsolved-metas` check passes; the unresolved source-only and
+  paired exact-final branches remain explicit higher-order dependencies rather
+  than holes or permissive modules.

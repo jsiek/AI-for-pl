@@ -198,10 +198,6 @@ open import proof.NuImprecisionSimulationResultDef using
   )
 open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
-open import proof.NuImprecisionSourcePolymorphicValueBase public using
-  ( post-allocation-polymorphic-value-step
-  ; left-polymorphic-value-shapeᵀ
-  )
 open import proof.NuTermProperties using
   ( open0-ext-suc-cancelᵐ
   ; renameᵗᵐ-id

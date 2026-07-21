@@ -89,6 +89,21 @@ Launch a worker through the repository wrapper:
     scripts/codex-ginger -m gpt-5.5 \
       -s workspace-write --dangerously-bypass-hook-trust -
 
+The trailing `-` reads the prompt from standard input and is appropriate for
+an interactive shell or an explicit pipe.  For an unattended worker launched
+over SSH, pass the prompt as an argument and close standard input explicitly:
+
+    ssh ginger.luddy.indiana.edu \
+      "cd /home/jsiek/src/AI-for-pl/.codex-ginger-worktrees/<slice> && \
+       scripts/codex-ginger -m gpt-5.5 \
+         -s workspace-write --dangerously-bypass-hook-trust \
+         '<prompt>' </dev/null"
+
+Without `</dev/null`, the remote `codex exec` process can keep the SSH input
+pipe open after the prompt has been delivered and appear to hang.  Prefer the
+argument form above for coordinator-launched workers; reserve `-` for a prompt
+that is actually being supplied on standard input.
+
 Do not replace this with bare `codex exec -s workspace-write`.  Agda stores
 standard-library interfaces under the installed library's `_build` directory,
 which is outside a worker worktree.  A workspace-only Codex sandbox can read

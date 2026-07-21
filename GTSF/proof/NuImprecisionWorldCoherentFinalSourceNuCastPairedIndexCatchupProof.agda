@@ -13,7 +13,7 @@ module
 open import QuotientedTermImprecision using
   (nu-term-imprecision-target-typing)
 open import TermTyping using (forget)
-open import proof.NuImprecisionSourceBulletBase using
+open import proof.NuImprecisionSourcePolymorphicValueBase using
   (left-polymorphic-value-shapeᵀ)
 open import
   proof.NuImprecisionWorldCoherentFinalSourceNuCastPairedIndexCatchupDef

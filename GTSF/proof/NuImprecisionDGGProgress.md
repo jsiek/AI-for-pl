@@ -344,7 +344,8 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda`](NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda) | completed statement | Strict eight-field assembly record; bullet, ordinary `ν`, runtime `ν ★`, narrowing, and widening fields now refer to their own whole contracts |
 | [`NuImprecisionWorldCoherentSourceBulletCatchupDef.agda`](NuImprecisionWorldCoherentSourceBulletCatchupDef.agda) | completed statement | Exact former runtime-field telescope for source-only post-allocation bullet catch-up |
 | [`NuImprecisionWorldCoherentSourceBulletCatchupProof.agda`](NuImprecisionWorldCoherentSourceBulletCatchupProof.agda) | completed higher-order proof | Strictly reconstructs the allocated `α⊑ᵀ` relation and delegates to the whole value-prefix catch-up contract; canonical assembly remains in the mutual SCC |
-| [`NuImprecisionSourceBulletBase.agda`](NuImprecisionSourceBulletBase.agda) | completed semantic extraction; checking-time partial | GPT 5.5 Ginger extraction strictly packages polymorphic post-allocation stepping/value shape, direct `α`/`Λ` prefix catch-up, and allocated-bullet reconstruction; it no longer imports the broad simulation dispatcher, but still imports `NuImprecisionSimulationCore` for world embedding/result support |
+| [`NuImprecisionSourcePolymorphicValueBase.agda`](NuImprecisionSourcePolymorphicValueBase.agda) | completed focused leaf | Strict source polymorphic-value classification and the one-step post-allocation eliminator; direct consumers import this canonical owner, and the cold Ginger check took 62.69 seconds |
+| [`NuImprecisionSourceBulletBase.agda`](NuImprecisionSourceBulletBase.agda) | completed semantic extraction; checking-time partial | Strictly packages direct `α`/`Λ` prefix catch-up and allocated-bullet reconstruction; polymorphic post-allocation stepping/value shape moved to their focused canonical owner, but this module still imports `NuImprecisionSimulationCore` for world embedding/result support |
 | [`NuImprecisionWorldCoherentSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCatchupDef.agda) | completed statement | Exact ordinary source-`ν` handler contract; its inhabitant is downstream of source-bullet and source-reveal, not in the minimal SCC |
 | [`NuImprecisionWorldCoherentSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuCatchupProof.agda) | completed higher-order proof | Strict accumulated-world adapter transports the reveal and universal relation to the operand's final world, delegates final-value allocation to the exact-final contract, propagates source blame, and composes explicit lineages |
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda) | completed statement | Exact-final ordinary source-`ν` contract retains the arbitrary inner universal index, final allocation/reveal evidence, values, and world invariants |
@@ -6655,3 +6656,21 @@ coordination.  Use focused strict checks throughout and reserve
   remains inside the classified-view worker.  All six modules pass focused
   `--no-allow-unsolved-metas` checks, with no canonical `Lemma` or permissive
   assembly.
+
+- Integrated the first checking-time extraction from that allocation boundary
+  as `NuImprecisionSourcePolymorphicValueBase`.  It canonically owns source
+  polymorphic-value classification and the post-allocation one-step theorem;
+  the ordinary and runtime-`ν` paired-index proofs import it directly, and
+  `NuImprecisionSourceBulletBase` no longer re-exports it.  The new focused
+  module passed a cold strict Ginger check in 62.69 seconds, while the old
+  source-bullet owner took about 173.5 seconds cold.  This is an actual
+  invalidation boundary: edits to the paired-index skeleton can check against
+  the 119-line value base without first loading the deeper bullet catch-up
+  implementation.  No `All.agda` or strict-spine check was run.
+
+- Recorded the reliable unattended Ginger invocation in
+  [`scripts/GINGER_AGDA.md`](../../scripts/GINGER_AGDA.md).  Coordinator-launched
+  workers pass the prompt as an argument and close standard input with
+  `</dev/null`; the trailing `-` form is reserved for a prompt genuinely
+  supplied over standard input.  This avoids the remote worker appearing to
+  hang with an open SSH input pipe.

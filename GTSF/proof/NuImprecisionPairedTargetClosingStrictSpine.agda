@@ -153,6 +153,7 @@ import
 import proof.NuImprecisionCorrespondingSourceNameNotStarDef
 import proof.NuImprecisionCorrespondingSourceNameNotStarProof
 import proof.NuImprecisionCorrespondingSourceNameNotStarLemma
+import proof.NuImprecisionMatchedLiftInvariantsDef
 import
   proof.NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef
 import

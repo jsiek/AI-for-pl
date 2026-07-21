@@ -166,7 +166,7 @@ common hypotheses, it states
 | Step | Status | Proof obligation and available evidence |
 |---|---|---|
 | F1. State a source-oriented one-step simulation | completed statement and recursive boundary | [`WorldCoherentSourceOneStepSimulationᵀ`](NuImprecisionWorldCoherentSourceOneStepDef.agda) is the compact terminal consumer. [`WorldCoherentSourceOneStepIndexedResult`](NuImprecisionWorldCoherentSourceOneStepResultDef.agda) retains generic index transport, type coherence, store lineage, the exact singleton source change, and final world invariants for recursive case proofs. |
-| F2. Prove the source-oriented one-step cases | partial: complete reduction-family skeleton; case proofs not started | [`WorldCoherentSourceOneStepCases`](NuImprecisionWorldCoherentSourceOneStepCasesDef.agda) freezes all nine source-step families. [`world-coherent-source-one-step-dispatcher-proofᵀ`](NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda) assembles them exhaustively into the ambient-prefix worker, which the two checked erasure proofs project to F1 and then to public DGG. Each family still splits over the application, quotient, bullet, prefix, `ν`, `ν ★`, primitive, source-cast, paired-cast, and target-frame relation constructors relevant to its redex or frame. |
+| F2. Prove the source-oriented one-step cases | partial: complete reduction-family skeleton; shared blame leaf frozen | [`WorldCoherentSourceOneStepCases`](NuImprecisionWorldCoherentSourceOneStepCasesDef.agda) freezes all nine source-step families. [`world-coherent-source-one-step-dispatcher-proofᵀ`](NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda) assembles them exhaustively into the ambient-prefix worker. [`WorldCoherentSourceKeepBlameRootᵀ`](NuImprecisionSourceOneStepBlameRootDef.agda) factors the common exact result for all keep-step source blame roots and the `ν` blame frame. The remaining families still split over the application, quotient, bullet, prefix, `ν`, `ν ★`, primitive, source-cast, paired-cast, and target-frame relations relevant to each redex or frame. |
 | F3. Prove target catch-up from a related source value | partial: recursive/result boundaries and terminal projection completed; zero-step base frozen | [`WorldCoherentRightValueCatchupPrefixᵀ`](NuImprecisionWorldCoherentRightValueCatchupPrefixDef.agda) returns [`WorldCoherentRightValueCatchupIndexedResult`](NuImprecisionWorldCoherentRightCatchupResultDef.agda), retaining arbitrary-index transport, type coherence, relational-store lineage, final coherence/exclusivity, and target `StoreWf`. [`WorldCoherentRightValueTerminalᵀ`](NuImprecisionWorldCoherentRightValueTerminalDef.agda) freezes the already-related value/value base. The structural source/target frame, quotient, binder-closing, and allocation proofs remain. |
 | F4. Rule out a source-blame alternative when the source is a value | completed | [`source-value-indexed-outcome-relatedᵀ`](NuImprecisionSimulationCore.agda#L1231) proves the required local outcome fact: an indexed weak outcome from a source value must be related, with zero source changes and the same source value. It constrains one target step; it does **not** by itself prove target termination. |
 | F5. Lift source one-step simulation over a source trace | completed higher-order proof | [`world-coherent-forward-source-value-proofᵀ`](NuDGGTerminalForwardProof.agda) recurses structurally on the observed source trace and invokes right-value catch-up in the reflexive base. No fuel or trace-alignment theorem is needed. |
@@ -322,6 +322,7 @@ are delegated:
 | [`NuDGGTerminalForwardMilestone.agda`](NuDGGTerminalForwardMilestone.agda) | completed high-cost milestone boundary | Imports the public compiler/DGG integration proof separately so routine forward checks remain small. |
 | [`NuImprecisionWorldCoherentSourceOneStepCasesDef.agda`](NuImprecisionWorldCoherentSourceOneStepCasesDef.agda) | completed statement | Record of the nine exact source reduction-family capabilities, each retaining the full ambient-prefix invariant package. |
 | [`NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda) | completed higher-order proof | Exhaustive split on all source store-step constructors, proving that the nine capabilities suffice for the prefix engine and hence public DGG. |
+| [`NuImprecisionSourceOneStepBlameRootDef.agda`](NuImprecisionSourceOneStepBlameRootDef.agda) | completed frozen statement; proof assigned | Shared strong result for every keep-step source-to-blame root, including the `ν` blame frame. |
 | [`NuImprecisionRightStorePrefixFactorDef.agda`](NuImprecisionRightStorePrefixFactorDef.agda) | completed statement | Small factorization needed by source-only binder traversal in right catch-up. |
 | [`NuImprecisionRightStorePrefixFactorProof.agda`](NuImprecisionRightStorePrefixFactorProof.agda) | completed GPT-5.5 proof | Exhaustive strict structural proof developed in an isolated Ginger worktree. |
 | [`NuImprecisionRightStorePrefixFactorLemma.agda`](NuImprecisionRightStorePrefixFactorLemma.agda) | completed canonical assembly | Canonical three-file assembly consumed by the future source-all right-catch-up case. |
@@ -8277,6 +8278,14 @@ coordination.  Use focused strict checks throughout and reserve
   coherence, relational-store lineage, final world invariants, and target
   store well-formedness.  Its `Def` and nearest focused consumer pass before
   proof delegation.
+
+- Froze
+  [`WorldCoherentSourceKeepBlameRootᵀ`](NuImprecisionSourceOneStepBlameRootDef.agda)
+  as the next source-step leaf.  Its single strong-result construction covers
+  all six pure source-to-blame roots and `blame-ν`; the supplied source step is
+  retained as the exact singleton source trace while the target remains
+  unchanged.  The statement includes the ambient prefix so it can inhabit the
+  already-checked source reduction-family dispatcher without later widening.
 
 - No `All.agda`, `NuDGGStrictSpine.agda`, hole, postulate, incomplete match,
   or source-level permissive option was used in this organization batch.

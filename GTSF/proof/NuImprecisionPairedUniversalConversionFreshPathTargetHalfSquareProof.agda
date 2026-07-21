@@ -103,17 +103,17 @@ paired-universal-conversion-fresh-path-target-reveal-half-square-proofᵀ :
   PairedUniversalConversionFreshPathTargetRevealHalfSquareᵀ
 paired-universal-conversion-fresh-path-target-reveal-half-square-proofᵀ
     structural {r = r} corresponds
-    (reveal-unseal hX′ β∈Σ ok) occ-B fresh-path =
+    (reveal-unseal hX′ β∈Σ ok) occ-B source-path fresh-path =
   ⊥-elim
     (source-only-occurrence-cannot-target-var
       fresh-source-only-no-var r occ-B)
 paired-universal-conversion-fresh-path-target-reveal-half-square-proofᵀ
     structural {B = B} {r = r} {s = s} corresponds
-    (reveal-all target-reveal) occ-B
+    (reveal-all target-reveal) occ-B source-path
     (at-body fresh-path) =
   at-body
     (structural {B = B} {r = r} {s = s}
-      corresponds target-reveal occ-B fresh-path)
+      corresponds target-reveal occ-B source-path fresh-path)
 
 
 paired-universal-conversion-fresh-path-target-conceal-half-square-proofᵀ :
@@ -121,8 +121,8 @@ paired-universal-conversion-fresh-path-target-conceal-half-square-proofᵀ :
   PairedUniversalConversionFreshPathTargetConcealHalfSquareᵀ
 paired-universal-conversion-fresh-path-target-conceal-half-square-proofᵀ
     structural {B = B} {r = r} {s = s} corresponds
-    (conceal-all target-conceal) occ-B
+    (conceal-all target-conceal) occ-B source-path
     (at-body fresh-path) =
   at-body
     (structural {B = B} {r = r} {s = s}
-      corresponds target-conceal occ-B fresh-path)
+      corresponds target-conceal occ-B source-path fresh-path)

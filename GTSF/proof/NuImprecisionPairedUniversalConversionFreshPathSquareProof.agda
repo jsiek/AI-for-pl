@@ -41,12 +41,12 @@ paired-universal-conversion-fresh-path-square-proofᵀ
     (paired-reveal corr (reveal-all source-reveal) target-reveal) =
   reveal-fresh-path-backward source-reveal
     (reveal-half {B = B} {r = r} {s = s}
-      corr target-reveal occ-r
+      corr target-reveal occ-r x-at
       (reveal-fresh-path-forward source-reveal x-at))
 paired-universal-conversion-fresh-path-square-proofᵀ
     reveal-half conceal-half {B = B} {r = r} {s = s} x-at occ-r
     (paired-conceal corr (conceal-all source-conceal) target-conceal) =
   conceal-fresh-path-backward source-conceal
     (conceal-half {B = B} {r = r} {s = s}
-      corr target-conceal occ-r
+      corr target-conceal occ-r x-at
       (conceal-fresh-path-forward source-conceal x-at))

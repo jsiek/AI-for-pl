@@ -6,7 +6,7 @@ module
 --   * Defines the target/imprecision half of fresh-path transport around a
 --     source-only-to-paired universal-conversion square.
 --   * Retains the exact TypePath prefix so structural descent cannot forget
---     which branch contains the fresh source variable.
+--     which source and target branches contain the fresh source variable.
 --   * Separates reveal and conceal because their target conversion proofs
 --     have different active terminal cases.
 --   * Contains no implementation, postulate, hole, permissive option,
@@ -55,6 +55,7 @@ PairedUniversalConversionFreshPathTargetRevealHalfSquareᵀ =
   RevealConversion η′ Δᴿ (rightStoreⁱ ρ) β X′ c′
     B′ (`∀ C′) →
   occurs zero B ≡ true →
+  VarAtPath zero p B →
   VarAtPath zero p (`∀ E) →
   VarAtPath zero (body p) (`∀ E)
 
@@ -74,5 +75,6 @@ PairedUniversalConversionFreshPathTargetConcealHalfSquareᵀ =
   ConcealConversion η′ Δᴿ (rightStoreⁱ ρ) β X′ c′
     B′ (`∀ C′) →
   occurs zero B ≡ true →
+  VarAtPath zero p B →
   VarAtPath zero p (`∀ E) →
   VarAtPath zero (body p) (`∀ E)

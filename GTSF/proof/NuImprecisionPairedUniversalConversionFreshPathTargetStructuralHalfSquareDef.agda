@@ -8,6 +8,8 @@ module
 --   * Exposes the binder history honestly: the distinguished source
 --     occurrence is now variable one inside the source universal body, and
 --     the target conversion has been lifted under its universal binder.
+--   * Retains the proof-relevant source path aligned with the target path;
+--     boolean source occurrence alone is insufficient for this descent.
 --   * Separates reveal and conceal because their structural conversion
 --     evidence remains polarity-specific.
 --   * Contains no implementation, postulate, hole, permissive option,
@@ -56,6 +58,7 @@ PairedUniversalConversionFreshPathTargetStructuralRevealHalfSquareᵀ =
   RevealConversion (extᵈ η′) (suc Δᴿ) (⟰ᵗ (rightStoreⁱ ρ))
     (suc β) (⇑ᵗ X′) d′ D C′ →
   occurs zero B ≡ true →
+  VarAtPath zero (body p) B →
   VarAtPath (suc zero) p E →
   VarAtPath (suc zero) (body p) E
 
@@ -76,5 +79,6 @@ PairedUniversalConversionFreshPathTargetStructuralConcealHalfSquareᵀ =
   ConcealConversion (extᵈ η′) (suc Δᴿ) (⟰ᵗ (rightStoreⁱ ρ))
     (suc β) (⇑ᵗ X′) d′ D C′ →
   occurs zero B ≡ true →
+  VarAtPath zero (body p) B →
   VarAtPath (suc zero) p E →
   VarAtPath (suc zero) (body p) E

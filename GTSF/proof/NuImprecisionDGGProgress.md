@@ -441,9 +441,9 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda) | completed `ν` branch statement; assembly partial | Source-only-index generic terminal stops before final reveal only in the `ν` case, where its existential intermediate index is not ruled out by the paired-index counterexample |
 | [`NuImprecisionFreshTypePath.agda`](NuImprecisionFreshTypePath.agda) | completed strict path toolkit | Proof-relevant paths to variable occurrences, boolean-occurrence extraction, path functionality, and both finite self-extension contradictions for the fresh-binder cycle argument |
 | [`NuImprecisionFreshTypePathTransport.agda`](NuImprecisionFreshTypePathTransport.agda) | completed hard structural support | Inverse path transport through type renaming, exclusion of free zero from shifted types, and mutual forward/backward exact-path preservation through reveal and conceal conversions, with fresh-binder specializations |
-| [`NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareDef.agda) | completed exact reveal/conceal statements; structural reduction completed | Isolates the two prefix-indexed target/imprecision transports that preserve the exact fresh-variable path from `p` to `body p`; source conversion transport is not duplicated in these leaves |
-| [`NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda) | completed generalized structural statements; concrete proofs not yet started | Exposes the honest post-`∀` binder history: the distinguished variable is one inside `E`, the target conversion is lifted under the binder, and the remaining obligation transports `VarAtPath 1 p E` to `VarAtPath 1 (body p) E` separately for reveal and conceal |
-| [`NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareProof.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareProof.agda) | completed hard structural reduction; canonical `Lemma` absent | Proves active target unseal impossible by source-only fresh-variable tracking and delegates exactly the structural `reveal-all` and `conceal-all` cases to the generalized contracts |
+| [`NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareDef.agda) | completed corrected reveal/conceal statements; structural reduction completed | Isolates the two prefix-indexed target/imprecision transports from `p` to `body p` while retaining proof-relevant source and target paths at the same `p`; source conversion transport is not duplicated in these leaves |
+| [`NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda) | completed corrected structural statements; concrete proofs not yet started | Exposes the honest post-`∀` binder history and retains `VarAtPath 0 (body p) B` alongside `VarAtPath 1 p E`; the previous boolean-occurrence-only statements were refuted by strict Ginger counterexamples |
+| [`NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareProof.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareProof.agda) | completed corrected structural reduction; canonical `Lemma` absent | Proves active target unseal impossible by source-only fresh-variable tracking and threads the aligned source path into the structural `reveal-all` and `conceal-all` dependencies |
 | [`NuImprecisionPairedUniversalConversionFreshPathSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathSquareDef.agda) | completed exact statement; higher-order proof completed | Names the joint path-square theorem required by the cycle proof |
 | [`NuImprecisionPairedUniversalConversionFreshPathSquareProof.agda`](NuImprecisionPairedUniversalConversionFreshPathSquareProof.agda) | completed higher-order proof; assembly partial | Exhaustively splits paired reveal/conceal, transports the path forward through the source conversion, invokes the exact target half-square, and transports backward through the source conversion |
 | [`NuImprecisionPairedUniversalConversionFreshPathCycleDef.agda`](NuImprecisionPairedUniversalConversionFreshPathCycleDef.agda) | completed impossibility statement; structural half-square inhabitants not yet started | Isolates the exact claim that `occ-r`, the two body indices, and a paired universal conversion form an impossible fresh-binder path cycle; allocation evidence is deliberately absent |
@@ -7575,14 +7575,14 @@ coordination.  Use focused strict checks throughout and reserve
 - The fresh-path half-square audit likewise found that root-indexed path
   transport is not recursively strong enough after descending under `∀`.
   [`NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda)
-  now exposes the binder history explicitly as
-  `VarAtPath 1 p E → VarAtPath 1 (body p) E` under the lifted target
-  conversion.  Its strict adapter proves the active target-unseal branch
-  impossible and reduces reveal/conceal to the two structural cases.  The
-  twenty-one-capability record now requests these smaller generalized
-  contracts, while the frame assembly reconstructs the original half-square,
-  full square, cycle contradiction, and rotation internally without unsolved
-  metas.
+  now exposes the binder history and branch alignment explicitly as
+  `VarAtPath 0 (body p) B → VarAtPath 1 p E →
+  VarAtPath 1 (body p) E` under the lifted target conversion.  Its strict
+  adapter proves the active target-unseal branch impossible and reduces
+  reveal/conceal to the two structural cases.  The twenty-one-capability
+  record requests these smaller generalized contracts, while the frame
+  assembly reconstructs the original half-square, full square, cycle
+  contradiction, and rotation internally without unsolved metas.
 
 - Completed the continuation-indexed top-level fit in
   [`NuImprecisionPairedLambdaTargetClosingContinuationProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationProof.agda).
@@ -7636,9 +7636,9 @@ coordination.  Use focused strict checks throughout and reserve
   [`NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationDef.agda`](NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationDef.agda).
 
 - After materialization, terminal closing should split on the *final* precision
-  index.  The `ν` branch is a common nonrecursive theorem using allocation-prefix
-  transport, source-bullet introduction, the existing paired-conversion
-  rotation theorem, and the final reveal.  The `∀ⁱ` branch is the one honest hard
+  index.  The `ν` branch is a common nonrecursive theorem: the external paired
+  universal conversion is impossible by the fresh-path cycle theorem.  The
+  `∀ⁱ` branch is the one honest hard
   fused terminal theorem and must be proved directly; defining it through the
   continuation interpreter would be circular.  A common continuation-value
   terminal theorem can then materialize the pending continuation and delegate
@@ -7695,7 +7695,24 @@ coordination.  Use focused strict checks throughout and reserve
   or bypass the handler record entirely.  The latter is the preferred eventual
   closed-world cleanup if the direct `FrameView` route remains simpler.
 
-- Two additional GPT 5.5 Ginger workers were launched for the generalized
-  structural reveal and conceal fresh-path target half-squares.  These are
-  independent path-transport leaves and are being checked separately from the
-  continuation architecture.
+- The two GPT 5.5 Ginger structural half-square workers each found a strict
+  counterexample to the assigned statement and correctly left no `Proof` file.
+  Both failures had the same cause: `occurs zero B ≡ true` did not say that
+  the source occurrence followed the same path `p` as the target occurrence,
+  so an unrelated arrow branch could satisfy the premises and falsify the
+  conclusion.  The outer and structural `Def` files now retain the aligned
+  source path, and the target-half-square and full-square adapters were updated
+  accordingly.  All four affected files pass focused
+  `--no-allow-unsolved-metas` checks.  Fresh Ginger proof assignments must use
+  these corrected statements, not the refuted boolean-only contracts.
+
+- The four first-generation continuation leaf workers also correctly returned
+  no files.  Their reported target-frame/leaf dependencies match the local SCC
+  audit: direct induction on a fixed leaf schema is not closed under pending
+  target frames.  Those attempts are superseded by the common
+  pending-materialization and continuation-value terminal DAG.
+
+- Launched a new GPT 5.5 Ginger worker from frozen commit `4f367942` for the
+  standalone pending-target materialization proof.  It owns one `Proof` file,
+  may use only the seven constructive pending cases, and must pass the focused
+  strict wrapper check without changing its `Def`.

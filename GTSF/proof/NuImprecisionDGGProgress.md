@@ -331,6 +331,7 @@ are delegated:
 | [`NuImprecisionSourceOneStepBlameRootDef.agda`](NuImprecisionSourceOneStepBlameRootDef.agda) | completed statement | Shared strong result for every keep-step source-to-blame root, including the `ν` blame frame. |
 | [`NuImprecisionSourceOneStepBlameRootProof.agda`](NuImprecisionSourceOneStepBlameRootProof.agda) | completed GPT-5.5 proof | Constructs the exact singleton source trace, zero target trace, ambient blame relation, identity transport/coherence, and reflexive lineage. |
 | [`NuImprecisionSourceOneStepBlameRootLemma.agda`](NuImprecisionSourceOneStepBlameRootLemma.agda) | completed canonical assembly | Exposes the corrected strict Ginger proof through the canonical three-file boundary. |
+| [`NuImprecisionSourceOneStepDeltaRootDef.agda`](NuImprecisionSourceOneStepDeltaRootDef.agda) | completed frozen statement; proof assigned | Synchronized natural-addition base for the primitive pure-root family, returning the full ambient strong result. |
 | [`NuImprecisionSourceSilentCompositionDef.agda`](NuImprecisionSourceSilentCompositionDef.agda) | completed statement | Composes a source-silent target catch-up with the following source-oriented result while retaining transport, type coherence, and relational-store lineage. |
 | [`NuImprecisionSourceSilentCompositionProof.agda`](NuImprecisionSourceSilentCompositionProof.agda) | completed GPT-5.6 proof | Concatenates the target tails, composes generic relation transport and arrow/`∀` coherence, and factors relational-store embeddings through the intermediate prefix. |
 | [`NuImprecisionSourceSilentCompositionLemma.agda`](NuImprecisionSourceSilentCompositionLemma.agda) | completed canonical assembly | Exposes the four-field composition record through the canonical three-file boundary. |
@@ -8348,6 +8349,14 @@ coordination.  Use focused strict checks throughout and reserve
   Ginger check is about 3.2 seconds, and the local canonical
   [`Lemma`](NuImprecisionSourceOneStepBlameRootLemma.agda) is part of the
   routine forward spine.
+
+- Froze the next independent source leaf in
+  [`WorldCoherentSourceDeltaRootᵀ`](NuImprecisionSourceOneStepDeltaRootDef.agda).
+  This is the synchronized `δ-⊕` base beneath the primitive pure-root family:
+  both endpoints reduce the same natural constants, while the result retains
+  the ambient prefix, world coherence, exact singleton source trace, target
+  trace, transport, type coherence, and store lineage.  Its strict `Def`
+  check passes before Ginger delegation.
 
 - Froze the hard forward composition algebra in
   [`SourceSilentComposition`](NuImprecisionSourceSilentCompositionDef.agda).

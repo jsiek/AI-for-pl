@@ -319,6 +319,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightSourceFramesDef.agda`](NuImprecisionWorldCoherentRightSourceFramesDef.agda) | completed statement | Canonical four-field source cast/conversion frame boundary. |
 | [`NuImprecisionWorldCoherentRightSourceFramesProof.agda`](NuImprecisionWorldCoherentRightSourceFramesProof.agda) | completed GPT-5.5 proof | Frames an inner terminal catch-up through source narrowing, widening, reveal, or conceal while retaining transport, coherence, lineage, and world invariants. |
 | [`NuImprecisionWorldCoherentRightSourceFramesLemma.agda`](NuImprecisionWorldCoherentRightSourceFramesLemma.agda) | completed canonical assembly | Exposes all four source-frame proofs through the canonical three-file boundary. |
+| [`NuImprecisionWorldCoherentRightTargetInertFramingDef.agda`](NuImprecisionWorldCoherentRightTargetInertFramingDef.agda) | completed statement; proof not started | Shared five-way boundary for mechanically framing a completed right-value catch-up when the transformed target coercion is inert. |
 | [`NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda) | completed statement; proof not started | Five-field terminalization boundary for target narrowing, widening, identity-only widening, reveal, and conceal.  Unlike a mechanical frame, each field must also normalize active casts after the inner target reaches a value. |
 | [`NuImprecisionWorldCoherentRightValueTerminalDef.agda`](NuImprecisionWorldCoherentRightValueTerminalDef.agda) | completed statement | Zero-step value/value base returning the full recursive right-catch-up result in the ambient prefix world. |
 | [`NuImprecisionWorldCoherentRightValueTerminalProof.agda`](NuImprecisionWorldCoherentRightValueTerminalProof.agda) | completed GPT-5.5 proof | Lifts both terminal typings and their relation through the ambient prefix, then returns the zero-step result with identity transport, coherence, and lineage. |
@@ -8361,6 +8362,20 @@ coordination.  Use focused strict checks throughout and reserve
   terminal result, so the DGG-facing dispatcher remains valid; the missing
   lower proof structure is now explicitly active-root normalization rather
   than an incorrectly assumed mechanical framing proof.
+
+- Isolated the common inert half of those five target cases in
+  [`WorldCoherentRightTargetInertFramingᵀ`](NuImprecisionWorldCoherentRightTargetInertFramingDef.agda).
+  It consumes any of the five cast/conversion evidence forms plus `Inert` and
+  lifts an already completed strong right-value result through the target
+  frame.  The statement passes a focused strict check in about 3.5 seconds.
+  The active half cannot yet be stated as a sound independent assembly:
+  β-sequence needs the local
+  [`TargetCastSequenceMidpointᵀ`](NuImprecisionTargetCastSequenceMidpointDef.agda)
+  witness, but the current three target-cast constructors retain only the
+  final precision index.  Instantiation, target `ν ★`, and bullet closing also
+  form a genuine administrative recursion cycle, so their implementation
+  needs a combined decreasing rank rather than the full catch-up theorem as a
+  circular resume parameter.
 
 - Froze
   [`RightStorePrefixFactorᵀ`](NuImprecisionRightStorePrefixFactorDef.agda) as

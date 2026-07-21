@@ -326,6 +326,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightSourceFramesProof.agda`](NuImprecisionWorldCoherentRightSourceFramesProof.agda) | completed GPT-5.5 proof | Frames an inner terminal catch-up through source narrowing, widening, reveal, or conceal while retaining transport, coherence, lineage, and world invariants. |
 | [`NuImprecisionWorldCoherentRightSourceFramesLemma.agda`](NuImprecisionWorldCoherentRightSourceFramesLemma.agda) | completed canonical assembly | Exposes all four source-frame proofs through the canonical three-file boundary. |
 | [`NuImprecisionWorldCoherentRightTargetInertFramingDef.agda`](NuImprecisionWorldCoherentRightTargetInertFramingDef.agda) | completed statement; proof not started | Shared five-way boundary for mechanically framing a completed right-value catch-up when the transformed target coercion is inert. |
+| [`NuImprecisionTargetAdministrationMeasureDef.agda`](NuImprecisionTargetAdministrationMeasureDef.agda) | completed statement | Well-founded potential for the joint target-cast, target-allocation, and target-bullet normalization cycle; sequence structure is charged twice and pending frames once. |
 | [`NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda) | completed statement; proof not started | Five-field terminalization boundary for target narrowing, widening, identity-only widening, reveal, and conceal.  Unlike a mechanical frame, each field must also normalize active casts after the inner target reaches a value. |
 | [`NuImprecisionWorldCoherentRightValueTerminalDef.agda`](NuImprecisionWorldCoherentRightValueTerminalDef.agda) | completed statement | Zero-step value/value base returning the full recursive right-catch-up result in the ambient prefix world. |
 | [`NuImprecisionWorldCoherentRightValueTerminalProof.agda`](NuImprecisionWorldCoherentRightValueTerminalProof.agda) | completed GPT-5.5 proof | Lifts both terminal typings and their relation through the ambient prefix, then returns the zero-step result with identity transport, coherence, and lineage. |
@@ -8592,3 +8593,13 @@ coordination.  Use focused strict checks throughout and reserve
   local warm check is about 4.0 seconds and the routine forward spine about
   6.1 seconds.  This is a strict higher-order proof, not yet a canonical
   recursive assembly.
+
+- Audited the active right-target SCC.  A midpoint for only the outer
+  sequence is insufficient because `β-seq`, `inst`, and universal body
+  exposure create descendant cast obligations.  The eventual relation must
+  retain a hereditary normalization plan.  Froze the independent
+  [`target administration measure`](NuImprecisionTargetAdministrationMeasureDef.agda):
+  coercion structure contributes `1 + 2 * sizeᶜ c`, a pending stack also
+  contributes its length, and the `ν` phase carries one additional unit.
+  The statement checks strictly in about 2.2 seconds; its arithmetic laws are
+  the next Ginger leaf.

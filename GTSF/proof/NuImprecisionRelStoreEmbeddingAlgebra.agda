@@ -7,10 +7,17 @@ module proof.NuImprecisionRelStoreEmbeddingAlgebra where
 --   * Contains no simulation result, catch-up, or semantic dispatcher proof.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.List using ([]; _∷_)
 open import Data.Product using (_×_; _,_; ∃-syntax)
-open import Relation.Binary.PropositionalEquality using (cong; trans)
+open import Relation.Binary.PropositionalEquality using (cong; sym; trans)
 
-open import NuTermImprecision using (StoreImp)
+open import NuTermImprecision using
+  ( StoreImp
+  ; store-left
+  ; store-link
+  ; store-matched
+  ; store-right
+  )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; prefix-reflⁱ
@@ -18,7 +25,33 @@ open import QuotientedTermImprecision using
   )
 open import Types using (Renameᵗ; renameᵗ)
 open import proof.NuImprecisionRelStoreEmbeddingDef
-open import proof.TypeProperties using (rename-cong; renameᵗ-compose)
+open import proof.TypeProperties using
+  (rename-cong; renameᵗ-compose; renameᵗ-id)
+
+
+rel-store-embedding-reflⁱ :
+  ∀ {Φ Δᴸ Δᴿ} {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  RelStoreEmbeddingⁱ (λ α → α) (λ β → β) ρ ρ
+rel-store-embedding-reflⁱ {ρ = []} =
+  rel-store-embedding-[]
+rel-store-embedding-reflⁱ
+    {ρ = store-matched α A β B p ∷ ρ} =
+  rel-store-embedding-matched
+    refl (sym (renameᵗ-id A)) refl (sym (renameᵗ-id B))
+    rel-store-embedding-reflⁱ
+rel-store-embedding-reflⁱ
+    {ρ = store-left α A hA ∷ ρ} =
+  rel-store-embedding-left
+    refl (sym (renameᵗ-id A)) rel-store-embedding-reflⁱ
+rel-store-embedding-reflⁱ
+    {ρ = store-right β B hB ∷ ρ} =
+  rel-store-embedding-right
+    refl (sym (renameᵗ-id B)) rel-store-embedding-reflⁱ
+rel-store-embedding-reflⁱ
+    {ρ = store-link α A β B p ∷ ρ} =
+  rel-store-embedding-link
+    refl (sym (renameᵗ-id A)) refl (sym (renameᵗ-id B))
+    rel-store-embedding-reflⁱ
 
 
 rel-store-embedding-congⁱ :

@@ -358,9 +358,14 @@ complete.  Source bullet, ordinary `ν`, runtime `ν ★`, source narrowing, and
 source widening now also have separate strict statement modules; exact-final
 source narrowing and widening have their own contracts so accumulated-change
 adapters do not have to conceal terminal semantics.  The source-bullet
-higher-order proof is complete from the whole value-prefix contract.  These
-strict transformers deliberately do not imply that a cyclic canonical
-inhabitant exists.
+higher-order proof is complete from the whole value-prefix contract.  The
+source-narrowing higher-order proof is also complete: it transports and frames
+the cast, propagates final source blame, and resumes terminal values through
+the whole value-prefix contract.  These strict transformers deliberately do
+not imply that a cyclic canonical inhabitant exists.  In particular, the
+narrowing adapter's callback creates an implementation edge back to
+value-prefix catch-up; canonical assembly must justify that edge by structural
+descent or an explicit administrative measure.
 
 Next use completed source tag cancellation and the source cast-sequence
 midpoint in the exact-final non-`inst` narrowing/widening handlers, and prove

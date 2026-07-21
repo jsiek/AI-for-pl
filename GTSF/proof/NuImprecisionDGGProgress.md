@@ -347,6 +347,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCatchupDef.agda) | completed statement | Exact ordinary source-`ν` handler contract; its inhabitant is downstream of source-bullet and source-reveal, not in the minimal SCC |
 | [`NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda) | completed statement | Exact runtime `ν ★` handler boundary participating in the widening-`inst` mutual SCC |
 | [`NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda) | completed statement | Whole accumulated-world source-narrowing handler contract |
+| [`NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda) | completed higher-order proof | GPT 5.5 Ginger proof transports and frames every narrowing grammar form, propagates source blame, and resumes terminal values through the whole value-prefix capability; canonical assembly remains cyclic |
 | [`NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda) | completed statement | Exact-final terminal source-narrowing semantics, separated from accumulated-change framing |
 | [`NuImprecisionWorldCoherentSourceWidenCatchupDef.agda`](NuImprecisionWorldCoherentSourceWidenCatchupDef.agda) | completed statement | Whole accumulated-world source-widening handler contract and the precise dependency used by terminal paired widening |
 | [`NuImprecisionWorldCoherentFinalSourceWidenCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceWidenCatchupDef.agda) | completed statement | Exact-final terminal source-widening semantics; active `inst` remains the explicit allocation-sensitive case |
@@ -6492,6 +6493,17 @@ coordination.  Use focused strict checks throughout and reserve
   leaves are represented by whole theorem parameters and absent `Lemma`
   assemblies, so new skeleton and adapter modules can remain strict without
   `--allow-unsolved-metas`.  No aggregate module was checked for this batch.
+
+- Integrated the first GPT 5.5 source-handler adapter from Ginger.  The strict
+  source-narrowing `Proof` weakens the cast over the ambient prefix, frames the
+  completed operand catch-up, propagates a final source blame directly, and
+  otherwise resumes catch-up through the whole value-prefix contract.  It
+  splits exhaustively over the narrowing grammar and passes focused strict
+  checks on Ginger and locally.  Its current source-frame dependency still
+  comes from the broad simulation module; extracting that quartet is a
+  checking-time leaf, not a semantic blocker.  No canonical `Lemma` is added,
+  because applying this adapter to the value-prefix proof would tie the
+  implementation SCC and still needs a justified decreasing measure.
 
 - Extracted relational-store embedding prefix restriction and composition from
   `NuImprecisionSimulationCore` into the focused strict

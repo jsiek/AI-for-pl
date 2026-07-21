@@ -298,7 +298,11 @@ its fields recursively.  Its current proof decomposition is:
   independently on Ginger.  Exact-final-world catch-up is likewise assembled
   from separate paired-conversion and paired-widening semantic contracts,
   keeping the active `inst` allocation case visible instead of assuming the
-  source-runtime record recursively.
+  source-runtime record recursively.  Exact-final paired conversion is now
+  complete.  Accumulated paired-conversion transport reduces to an explicit
+  `LeftSilentStoreCorrespondsTransportᵀ` boundary because linked relational
+  store entries appear in neither projected store and cannot be recovered from
+  final `WorldCoherent` alone.
 
 The independent conceal, active-unseal, and source-reveal leaves are now
 complete.  Next finish source tag cancellation, use the completed source

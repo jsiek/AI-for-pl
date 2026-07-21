@@ -361,9 +361,12 @@ are delegated:
 | [`NuImprecisionLeftSilentPairedCastTransportDef.agda`](NuImprecisionLeftSilentPairedCastTransportDef.agda) | completed statement; hard proof | Exact accumulated-change transport contract for `PairedCast`; arbitrary source changes must rebuild final `StoreCorresponds` or carry an explicit world embedding |
 | [`NuImprecisionLeftSilentPairedWideningTransportDef.agda`](NuImprecisionLeftSilentPairedWideningTransportDef.agda) | completed statement; Ginger leaf | Store-neutral constructor-family transport; the frozen proof is independent of final world coherence |
 | [`NuImprecisionLeftSilentPairedConversionTransportDef.agda`](NuImprecisionLeftSilentPairedConversionTransportDef.agda) | completed statement; hard proof | Sole remaining accumulated-transport boundary that reconstructs final paired `StoreCorresponds` evidence |
+| [`NuImprecisionLeftSilentStoreCorrespondsTransportDef.agda`](NuImprecisionLeftSilentStoreCorrespondsTransportDef.agda) | completed statement; hard proof | Minimal relational-world embedding capability preserving both stored and linked correspondences through accumulated changes; projected store equalities cannot recover linked entries |
+| [`NuImprecisionLeftSilentPairedConversionTransportProof.agda`](NuImprecisionLeftSilentPairedConversionTransportProof.agda) | completed higher-order proof | Exhaustively transports paired reveal/conceal endpoints and reduces their correspondence evidence to `LeftSilentStoreCorrespondsTransportᵀ` |
 | [`NuImprecisionLeftSilentPairedCastTransportProof.agda`](NuImprecisionLeftSilentPairedCastTransportProof.agda) | completed higher-order proof | Exhaustively derives full paired-cast transport from the widening and conversion constructor-family capabilities |
 | [`NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda) | completed statement | Exact-final-world terminal paired-cast contract retaining target inertness, final coherence, source-name exclusivity, and left `StoreWf` |
-| [`NuImprecisionWorldCoherentFinalPairedConversionCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedConversionCatchupDef.agda) | completed statement; hard proof | Constructor-level terminal conversion capability; target inertness leaves fun/all inert framing and the target-seal/source-identity cancellation case |
+| [`NuImprecisionWorldCoherentFinalPairedConversionCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedConversionCatchupDef.agda) | completed statement | Constructor-level terminal paired-conversion capability retaining all final-world invariants |
+| [`NuImprecisionWorldCoherentFinalPairedConversionCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedConversionCatchupProof.agda) | completed proof | Exhaustive strict proof: source blame and identities take administrative steps, inert reveal/conceal forms are terminal frames, and source unseal is impossible against target inertness |
 | [`NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda) | completed statement; hard proof | Constructor-level terminal widening capability; owns identity, inert, tag/sequence cancellation, and active source-`inst` allocation cases |
 | [`NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda) | completed higher-order proof | Exhaustively derives the exact-final-world contract from the two constructor-level semantic capabilities without importing a recursive dispatcher |
 | [`NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda) | completed statement | Top accumulated-world paired-cast handler, matching the strengthened source-runtime field |
@@ -6260,6 +6263,19 @@ catch-up architecture.
   isolates target-seal/source-identity cancellation, while paired widening
   isolates its active source-`inst` allocation case.  The assembly imports no
   recursive source-runtime or value-catch-up dispatcher.
+
+- Completed exact-final paired-conversion catch-up without an additional
+  cancellation assumption.  Source identity conversions take `β-id`, inert
+  conversions remain terminal frames, source blame propagates, and source
+  unseal is ruled out by exhaustive inversion against target inertness.
+
+- Reduced accumulated paired-conversion transport to the genuine relational
+  world-embedding boundary
+  [`LeftSilentStoreCorrespondsTransportᵀ`](NuImprecisionLeftSilentStoreCorrespondsTransportDef.agda).
+  The higher-order endpoint proof is complete; only preservation of stored and
+  linked correspondence evidence remains.  In particular, final
+  `WorldCoherent` cannot recover `store-link` entries absent from both projected
+  stores.
 
 ### Next boundary
 

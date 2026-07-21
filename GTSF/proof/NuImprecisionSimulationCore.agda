@@ -223,6 +223,13 @@ open import NuTermImprecision using
   )
 open import QuotientedTermImprecision
 open import proof.NuImprecisionSimulationResultDef
+open import proof.NuImprecisionOneStepRelated using
+  ( weak-one-step-indexed-outcome-relatedᵀ
+  ; weak-one-step-indexed-relatedᵀ
+  ; weak-one-step-related-transportᵀ
+  ; weak-one-step-related-type-coherenceᵀ
+  ; weak-one-step-relatedᵀ
+  )
 open import Store using (StoreIncl; StoreIncl-drop; StoreIncl-refl)
 open import TermTyping using
   ( CastMode
@@ -12049,79 +12056,6 @@ weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
     combined =
       weak-one-step-prepend-left-silentᵀ
         (left-silent first (left-silent-invariant refl refl)) second
-
-weak-one-step-relatedᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p →
-  WeakOneStepResult ρ M N A B keep
-weak-one-step-relatedᵀ result =
-  record
-    { sourceChanges = []
-    ; targetTailChanges = []
-    ; sourceResult = _
-    ; targetResult = _
-    ; resultCtx = _
-    ; resultLeftCtx = _
-    ; resultRightCtx = _
-    ; sourceCtxResult = refl
-    ; targetCtxResult = refl
-    ; resultStore = _
-    ; resultSourceType = _
-    ; resultTargetType = _
-    ; sourceTypeResult = refl
-    ; targetTypeResult = refl
-    ; transportType = λ p → p
-    ; transportAllBody = λ p → p
-    ; transportRightBody = λ p → p
-    ; resultType = _
-    ; sourceCatchup = ↠-refl
-    ; targetTail = ↠-refl
-    ; sourceStoreResult = refl
-    ; targetStoreResult = refl
-    ; relatedResults = result
-    }
-
-weak-one-step-related-transportᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (result :
-    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-      ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p) →
-  WeakOneStepTransport (weak-one-step-relatedᵀ result)
-weak-one-step-related-transportᵀ result =
-  weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′)
-
-weak-one-step-related-type-coherenceᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (result : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p) →
-  WeakOneStepTypeCoherence (weak-one-step-relatedᵀ result)
-weak-one-step-related-type-coherenceᵀ result =
-  weak-step-type-coherence (λ pC pD → refl) (λ q → refl)
-
-weak-one-step-indexed-relatedᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (result : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p) →
-  WeakOneStepIndexedResult {χ = keep} p
-weak-one-step-indexed-relatedᵀ result =
-  weak-indexed-result (weak-one-step-relatedᵀ result) result
-
-weak-one-step-indexed-outcome-relatedᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (result : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p) →
-  WeakOneStepIndexedOutcome {χ = keep} p
-weak-one-step-indexed-outcome-relatedᵀ result =
-  indexed-outcome-related
-    (weak-one-step-indexed-relatedᵀ result)
-    (weak-one-step-related-transportᵀ result)
-    (weak-one-step-related-type-coherenceᵀ result)
 
 weak-one-step-arrow-relatedᵀ :
   ∀ {Φ Δᴸ Δᴿ L L′ A A′ B B′ pA pB}

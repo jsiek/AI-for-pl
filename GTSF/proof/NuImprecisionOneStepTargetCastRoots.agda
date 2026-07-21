@@ -40,6 +40,11 @@ open import QuotientedTermImprecision using
 open import TermTyping using (CastMode; SealModeStore★)
 open import proof.NuImprecisionSimulationResultDef using
   (WeakOneStepIndexedOutcome)
+open import proof.NuImprecisionOneStepTargetCastIdentityRoots using
+  ( weak-one-step-target-narrow-cast-identity-root-outcomeᵀ
+  ; weak-one-step-target-widen-cast-identity-root-outcomeᵀ
+  ; weak-one-step-target-widen-id-cast-identity-root-outcomeᵀ
+  )
 open import proof.NuImprecisionOneStepTargetBlameRoots using
   (weak-one-step-target-blame-indexed-outcomeᵀ)
 
@@ -61,7 +66,9 @@ weak-one-step-target-narrow-cast-root-outcomeᵀ :
   WeakOneStepIndexedOutcome
     {M = M} {N′ = N′} {χ = keep} {ρ = ρ} q
 weak-one-step-target-narrow-cast-root-outcomeᵀ
-    wf okM okCast mode seal★ narrowing relation q (β-id vV) = {!!}
+    wf okM okCast mode seal★ narrowing relation q (β-id vV) =
+  weak-one-step-target-narrow-cast-identity-root-outcomeᵀ
+    narrowing relation q vV
 weak-one-step-target-narrow-cast-root-outcomeᵀ
     wf okM okCast mode seal★ narrowing relation q (β-seq vV) = {!!}
 weak-one-step-target-narrow-cast-root-outcomeᵀ
@@ -97,7 +104,9 @@ weak-one-step-target-widen-cast-root-outcomeᵀ :
   WeakOneStepIndexedOutcome
     {M = M} {N′ = N′} {χ = keep} {ρ = ρ} q
 weak-one-step-target-widen-cast-root-outcomeᵀ
-    wf okM okCast mode seal★ widening relation q (β-id vV) = {!!}
+    wf okM okCast mode seal★ widening relation q (β-id vV) =
+  weak-one-step-target-widen-cast-identity-root-outcomeᵀ
+    widening relation q vV
 weak-one-step-target-widen-cast-root-outcomeᵀ
     wf okM okCast mode seal★ widening relation q (β-seq vV) = {!!}
 weak-one-step-target-widen-cast-root-outcomeᵀ
@@ -131,7 +140,9 @@ weak-one-step-target-widen-id-cast-root-outcomeᵀ :
   WeakOneStepIndexedOutcome
     {M = M} {N′ = N′} {χ = keep} {ρ = ρ} q
 weak-one-step-target-widen-id-cast-root-outcomeᵀ
-    wf okM okCast seal★ widening relation q (β-id vV) = {!!}
+    wf okM okCast seal★ widening relation q (β-id vV) =
+  weak-one-step-target-widen-id-cast-identity-root-outcomeᵀ
+    widening relation q vV
 weak-one-step-target-widen-id-cast-root-outcomeᵀ
     wf okM okCast seal★ widening relation q (β-seq vV) = {!!}
 weak-one-step-target-widen-id-cast-root-outcomeᵀ

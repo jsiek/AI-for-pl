@@ -83,6 +83,12 @@ rebuilding it.  This is the intended invalidation boundary.  The batched
 scratch-dispatcher consumer passed in 288.55 seconds; neither
 `NuDGGStrictSpine` nor `All.agda` was run for that migration.
 
+Apply the same rule to trivial result constructors.  The canonical
+relation-to-keep-step builders live in `NuImprecisionOneStepRelated`, above the
+result definitions and below the simulation core.  Root proofs should import
+that module directly; importing `NuImprecisionSimulationCore` merely to build
+an unchanged related outcome defeats the `Def`/`Proof` invalidation boundary.
+
 ## Invariant layers above generic results
 
 Keep semantic induction invariants above
@@ -103,3 +109,19 @@ Do not derive a coherent result from an arbitrary generic result.  Generic
 so preservation must be proved where the concrete result store is constructed.
 This separation keeps both definition layers strict and avoids importing the
 dispatcher into either one.
+
+Terminal target-seal cancellation follows the same file convention:
+
+- `NuImprecisionTargetSealCancellationDef` states the complete exact-world
+  contract;
+- `NuImprecisionTargetSealCancellationProof` owns the quotient/value inversion;
+  and
+- `NuImprecisionTargetSealCancellationLemma` exposes the canonical inhabitant
+  once the proof is strict.
+
+The terminal `Def` includes world coherence, target-store well-formedness,
+physical target-store membership, and both proof-relevant indices.  Keep those
+premises visible: hiding them in the target-conversion dispatcher would make it
+easy to type-check a leaf that cannot be composed after catch-up changes the
+world.  The dispatcher should consume the canonical `Lemma`; neither the `Def`
+nor the `Proof` should import the dispatcher or inherit its permissive options.

@@ -27,7 +27,7 @@ open import QuotientedTermImprecision using
 open import Types using (＇_; ‵_; ★)
 open import proof.NuImprecisionAtomicTargetReindex using
   (atomic-target-value-reindexᵀ)
-open import proof.NuImprecisionSimulationCore using
+open import proof.NuImprecisionOneStepRelated using
   (weak-one-step-indexed-outcome-relatedᵀ)
 open import proof.NuImprecisionSimulationResultDef using
   (WeakOneStepIndexedOutcome)

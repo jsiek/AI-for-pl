@@ -40,7 +40,7 @@ open import Types using (Atom; ＇_; ‵_; ★)
 open import proof.NuPreservation using (runtime-⟨⟩)
 open import proof.NuImprecisionSimulationResultDef using
   (WeakOneStepIndexedOutcome)
-open import proof.NuImprecisionSimulationCore using
+open import proof.NuImprecisionOneStepRelated using
   (weak-one-step-indexed-outcome-relatedᵀ)
 open import proof.NuImprecisionAtomicTargetReindex using
   (atomic-target-value-reindexᵀ)

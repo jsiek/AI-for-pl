@@ -389,6 +389,8 @@ open import proof.NuImprecisionRelStoreEmbeddingDef
 open import proof.NuImprecisionSimulationCore
 open import proof.NuImprecisionSourcePolymorphicValueBase using
   ( left-polymorphic-value-shapeᵀ
+  ; post-allocation-β-∀•-bare
+  ; post-allocation-β-gen•-bare
   ; post-allocation-polymorphic-value-step
   )
 open import proof.NuImprecisionWorldEmbeddingNoBullet using
@@ -2287,19 +2289,6 @@ post-allocation-β-Λ• :
 post-allocation-β-Λ• vV =
   ξ-⟨⟩ (post-allocation-β-Λ•-bare vV)
 
-post-allocation-β-∀•-bare :
-  ∀ {V c} →
-  Value V →
-  (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
-    —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ c ⟩
-post-allocation-β-∀•-bare {V = V} {c = c} vV =
-  subst
-    (λ d → (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
-      —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ d ⟩)
-    (open0-ext-suc-cancelᶜ c)
-    (pure-step
-      (β-∀• (renameᵗᵐ-preserves-Value suc vV)))
-
 post-β-inst :
   ∀ {V B s} →
   Value V →
@@ -2321,19 +2310,6 @@ post-β-gen• :
   Value V →
   ((V ⟨ gen A c ⟩) •) —→[ keep ] (V ⟨ (c [ zero ]ᶜ) ⟩)
 post-β-gen• vV = pure-step (β-gen• vV)
-
-post-allocation-β-gen•-bare :
-  ∀ {V A c} →
-  Value V →
-  (⇑ᵗᵐ (V ⟨ gen A c ⟩)) •
-    —→[ keep ] (⇑ᵗᵐ V) ⟨ c ⟩
-post-allocation-β-gen•-bare {V = V} {c = c} vV =
-  subst
-    (λ d → (⇑ᵗᵐ (V ⟨ gen _ c ⟩)) •
-      —→[ keep ] (⇑ᵗᵐ V) ⟨ d ⟩)
-    (open0-ext-suc-cancelᶜ c)
-    (pure-step
-      (β-gen• (renameᵗᵐ-preserves-Value suc vV)))
 
 post-allocation-β-gen• :
   ∀ {V A c s} →

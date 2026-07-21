@@ -3,9 +3,11 @@ module proof.NuImprecisionSourcePolymorphicValueBase where
 -- File Charter:
 --   * Provides source polymorphic-value base facts for post-allocation
 --     runtime-bullet steps and source-side shape inversion.
---   * Exports `post-allocation-polymorphic-value-step` and
+--   * Exports `post-allocation-β-∀•-bare`,
+--     `post-allocation-β-gen•-bare`,
+--     `post-allocation-polymorphic-value-step`, and
 --     `left-polymorphic-value-shapeᵀ`.
---   * Keeps the beta-step and value-shape helper proofs private.
+--   * Keeps the remaining beta-step and value-shape helper proofs private.
 
 open import Agda.Builtin.Equality using (refl)
 open import Coercions using (gen; `∀)
@@ -55,32 +57,33 @@ private
       (pure-step
         (β-Λ• (renameᵗᵐ-preserves-Value (extᵗ suc) vV)))
 
-  post-allocation-β-∀•-bare :
-    ∀ {V c} →
-    Value V →
-    (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
-      —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ c ⟩
-  post-allocation-β-∀•-bare {V = V} {c = c} vV =
-    subst
-      (λ d → (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
-        —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ d ⟩)
-      (open0-ext-suc-cancelᶜ c)
-      (pure-step
-        (β-∀• (renameᵗᵐ-preserves-Value suc vV)))
+post-allocation-β-∀•-bare :
+  ∀ {V c} →
+  Value V →
+  (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
+    —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ c ⟩
+post-allocation-β-∀•-bare {V = V} {c = c} vV =
+  subst
+    (λ d → (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
+      —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ d ⟩)
+    (open0-ext-suc-cancelᶜ c)
+    (pure-step
+      (β-∀• (renameᵗᵐ-preserves-Value suc vV)))
 
-  post-allocation-β-gen•-bare :
-    ∀ {V A c} →
-    Value V →
-    (⇑ᵗᵐ (V ⟨ gen A c ⟩)) •
-      —→[ keep ] (⇑ᵗᵐ V) ⟨ c ⟩
-  post-allocation-β-gen•-bare {V = V} {c = c} vV =
-    subst
-      (λ d → (⇑ᵗᵐ (V ⟨ gen _ c ⟩)) •
-        —→[ keep ] (⇑ᵗᵐ V) ⟨ d ⟩)
-      (open0-ext-suc-cancelᶜ c)
-      (pure-step
-        (β-gen• (renameᵗᵐ-preserves-Value suc vV)))
+post-allocation-β-gen•-bare :
+  ∀ {V A c} →
+  Value V →
+  (⇑ᵗᵐ (V ⟨ gen A c ⟩)) •
+    —→[ keep ] (⇑ᵗᵐ V) ⟨ c ⟩
+post-allocation-β-gen•-bare {V = V} {c = c} vV =
+  subst
+    (λ d → (⇑ᵗᵐ (V ⟨ gen _ c ⟩)) •
+      —→[ keep ] (⇑ᵗᵐ V) ⟨ d ⟩)
+    (open0-ext-suc-cancelᶜ c)
+    (pure-step
+      (β-gen• (renameᵗᵐ-preserves-Value suc vV)))
 
+private
   Λ-value-body :
     ∀ {V} →
     Value (Λ V) →

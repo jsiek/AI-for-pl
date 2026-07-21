@@ -7,17 +7,11 @@ module proof.NuImprecisionLeftSilentStoreCorrespondsTransportDef where
 --     equalities, especially preservation of store-link entries.
 --   * Contains no paired-conversion or catch-up implementation.
 
-open import Data.List using ([]; _∷_)
-open import Data.Nat using (suc)
 open import Data.Product using (∃-syntax)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using
-  ( StoreChanges
-  ; applyTys
-  ; bind
-  ; keep
-  )
+  (applyTys; keep)
 open import NuTermImprecision using
   (StoreCorresponds; StoreImp)
 open import NuTerms using (Term)
@@ -31,12 +25,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; sourceChanges
   ; targetTailChanges
   )
-
-
-applyTyVars : StoreChanges → TyVar → TyVar
-applyTyVars [] α = α
-applyTyVars (keep ∷ χs) α = applyTyVars χs α
-applyTyVars (bind A ∷ χs) α = applyTyVars χs (suc α)
+open import proof.ReductionProperties using
+  (applyTyVars)
 
 
 LeftSilentStoreCorrespondsTransportᵀ : Set₁

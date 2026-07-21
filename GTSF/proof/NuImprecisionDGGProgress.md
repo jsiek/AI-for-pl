@@ -370,7 +370,11 @@ are delegated:
 | [`NuImprecisionLeftSilentPairedWideningTransportLemma.agda`](NuImprecisionLeftSilentPairedWideningTransportLemma.agda) | completed lemma | Canonical strict inhabitant of the widening constructor-family transport contract |
 | [`NuImprecisionLeftSilentPairedConversionTransportDef.agda`](NuImprecisionLeftSilentPairedConversionTransportDef.agda) | completed statement; hard proof | Sole remaining accumulated-transport boundary that reconstructs final paired `StoreCorresponds` evidence |
 | [`NuImprecisionLeftSilentStoreCorrespondsTransportDef.agda`](NuImprecisionLeftSilentStoreCorrespondsTransportDef.agda) | completed statement; hard proof | Minimal relational-world embedding capability preserving both stored and linked correspondences through accumulated changes; projected store equalities cannot recover linked entries |
-| Coherent catch-up store lineage | planned hard plumbing | Add one result invariant consisting of `RelStoreEmbeddingⁱ` into a renamed relational store followed by `StoreImpPrefix` into the final store; identity/frame/composition/allocation families already have the structural ingredients |
+| [`NuImprecisionRelStoreEmbeddingDef.agda`](NuImprecisionRelStoreEmbeddingDef.agda) | completed extraction | Small stable definition of relational-store embedding, moved out of the simulation core with no compatibility re-export |
+| [`NuImprecisionRelStoreEmbeddingProof.agda`](NuImprecisionRelStoreEmbeddingProof.agda) | completed proof | Transports both stored and linked `StoreCorresponds` evidence through one relational-store embedding; membership helpers remain private |
+| [`NuImprecisionWeakOneStepStoreLineageDef.agda`](NuImprecisionWeakOneStepStoreLineageDef.agda) | completed statement | Packages the smallest sufficient lineage invariant: an embedding under accumulated source/target renamings followed by a prefix into the result store |
+| [`NuImprecisionLeftSilentStoreCorrespondsTransportProof.agda`](NuImprecisionLeftSilentStoreCorrespondsTransportProof.agda) | completed lineage-aware proof | Uses ambient-prefix weakening, relational-store embedding, endpoint reindexing, and result-prefix weakening to preserve stored or linked correspondence |
+| Coherent catch-up store-lineage construction | partial; hard plumbing | The lineage statement and its correspondence consumer are strict; identity/frame/composition/allocation constructors still need to construct and propagate lineage before the accumulated paired-conversion contract can receive it |
 | [`NuImprecisionLeftSilentPairedConversionTransportProof.agda`](NuImprecisionLeftSilentPairedConversionTransportProof.agda) | completed higher-order proof | Exhaustively transports paired reveal/conceal endpoints and reduces their correspondence evidence to `LeftSilentStoreCorrespondsTransportᵀ` |
 | [`NuImprecisionLeftSilentPairedCastTransportProof.agda`](NuImprecisionLeftSilentPairedCastTransportProof.agda) | completed higher-order proof | Exhaustively derives full paired-cast transport from the widening and conversion constructor-family capabilities |
 | [`NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda) | completed statement | Exact-final-world terminal paired-cast contract retaining target inertness, final coherence, source-name exclusivity, and left `StoreWf` |
@@ -383,7 +387,9 @@ are delegated:
 | `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial | The conceal field is complete; bullet, `ν`, `ν ★`, and widening-`inst` form the allocation SCC; narrowing, widening, reveal, and paired casts still need their explicit cancellation/classification or prefix-transport leaves |
 | [`NuImprecisionWorldCoherentQuotientInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientInstCatchupDef.agda) | completed narrowed statement | Strict mode-polymorphic final-state contract shared by ordinary-down and gen-down quotient-`inst` residuals; it requires the actual ready inner value `V ⟨ d ⟩` and no-bullet evidence |
 | [`NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda) | completed statement; hard proof | Exposes `quotientᵖ D≈C C⊑C′ C′≈D′` and asks for direct coherent catch-up without inventing an ordinary relation between physical endpoints |
-| Quotient representative-`inst` `Proof`/`Lemma` | not yet started; hard boundary | Must interpret arbitrary `≈∀` composition (`sym`, `trans`, congruence, and adjacent swap), generalize the specialized swap telescope, and package the crossed final world and left `StoreWf` |
+| [`NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef.agda) | completed statement | Replaces arbitrary permutation derivations by explicit finite paths of oriented contextual adjacent swaps while retaining the original quotient evidence in the term relation |
+| [`NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupProof.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupProof.agda) | completed higher-order proof | Normalizes `refl`, `sym`, `trans`, arrow/`∀` congruence, and swap into paths and reduces representative catch-up to the path-aware capability |
+| Quotient representative-`inst` path semantics | not yet started; hard boundary | Prove the identity path and prepend-one-oriented-contextual-swap cases, including whole-source reduction, crossed store/world construction, and continuation on the residual path; no canonical `Lemma` exists yet |
 | [`NuImprecisionWorldCoherentQuotientInstCatchupProof.agda`](NuImprecisionWorldCoherentQuotientInstCatchupProof.agda) | completed higher-order proof | Strict dependent elimination of `qD` reduces the existing quotient-`inst` contract to the direct representative capability |
 | `NuImprecisionWorldCoherentQuotientInstCatchupLemma.agda` | not yet started | Canonical assembly waits for a strict representative-level inhabitant; no permissive lemma is created |
 | [`NuImprecisionQuotientToOrdinaryCounterexample.agda`](NuImprecisionQuotientToOrdinaryCounterexample.agda) | completed obstruction | An empty-context adjacent-`∀` swap is quotient-related but has no ordinary relation; strict proof rules out generic dequotienting, so quotient-`inst` needs direct permutation-aware catch-up |
@@ -6323,13 +6329,34 @@ catch-up architecture.
   retargeted.  The paired-widening proof now checks in about three seconds and
   its source cone contains no simulation-core or broad quotient-support import.
 
+- Normalized arbitrary representative permutations before attempting
+  quotient-`inst` semantics.  The new path `Def` exposes a finite sequence of
+  oriented contextual adjacent swaps; the strict higher-order `Proof`
+  eliminates `sym`, `trans`, and congruence from the remaining semantic
+  recursion.  What remains is the honest identity/prepend-one-swap capability,
+  rather than an unstructured proof over arbitrary permutation derivations.
+
+- Froze the exact weak-result store-lineage statement and completed its first
+  consumer.  Lineage consists of `RelStoreEmbeddingⁱ` under accumulated
+  source/target renamings followed by `StoreImpPrefix` into the result store;
+  this is sufficient to preserve both stored and linked correspondence.
+  Construction and propagation through coherent catch-up remain partial.
+
+- Extracted relational-store embedding and correspondence transport from the
+  14k-line simulation core into focused `Def` and `Proof` modules, deleting the
+  original definitions and retargeting all consumers.  The four new focused
+  checks take roughly 2.6--3.1 seconds.  One deliberate strict core migration
+  check passed in about 38 seconds; no aggregate check was run.
+
 ### Next boundary
 
 Use completed source tag cancellation and midpoint recovery in the non-`inst`
-narrowing/widening handlers, while implementing the remaining
-paired-cast dependencies.  Treat representative quotient-`inst` as its own
-hard semantic bridge; once it is complete, assemble it with the completed
-classifier, quotient-final proof, and structural prefix proof.  Continue
+narrowing/widening handlers, while constructing store lineage through the
+coherent catch-up result families needed by paired conversion.  For
+representative quotient-`inst`, prove identity and prepend-one-oriented-swap
+path semantics; normalization and the adapter to the original contract are
+already complete.  Once that bridge is complete, assemble it with the
+completed classifier, quotient-final proof, and structural prefix proof. Continue
 assigning only frozen, nonoverlapping leaf modules to Ginger; keep allocation
 SCCs, arbitrary quotient-permutation interpretation, and dependent transport
 joins under GPT 5.6 coordination.  Use focused strict checks throughout and

@@ -138,6 +138,18 @@ ordinary/generated down-up drivers out of that support module: their
 quotient-`inst` residual is the semantic hole represented by
 `WorldCoherentQuotientInstCatchupᵀ`, not mechanical transport support.
 
+Relational-store lineage has its own similarly small dependency cut.
+`NuImprecisionRelStoreEmbeddingDef` is the sole definition site for
+`RelStoreEmbeddingⁱ`, and `NuImprecisionRelStoreEmbeddingProof` transports
+stored or linked correspondence through it.  The original definitions were
+removed from `NuImprecisionSimulationCore`; the core and its other consumers
+import the new modules non-publicly.  Consequently
+`NuImprecisionWeakOneStepStoreLineageDef` and its correspondence-transport
+proof check in about three seconds without importing the simulation core.
+Keep lineage construction in coherent catch-up implementations: generic
+`WeakOneStepResult` intentionally does not promise that its result store
+contains renamed copies of every old relational entry.
+
 World-coherent silent resumption is defined separately in
 `NuImprecisionWorldCoherentCatchupComposition`.  Its final coherence witness
 comes from the resumed catch-up result, whose final store is also the composed

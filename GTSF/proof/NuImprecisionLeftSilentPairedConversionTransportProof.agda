@@ -46,9 +46,7 @@ open import proof.NuImprecisionLeftSilentPairedConversionTransportDef using
   (LeftSilentPairedConversionTransportᵀ)
 open import
   proof.NuImprecisionLeftSilentStoreCorrespondsTransportDef using
-  ( LeftSilentStoreCorrespondsTransportᵀ
-  ; applyTyVars
-  )
+  (LeftSilentStoreCorrespondsTransportᵀ)
 open import proof.NuImprecisionSimulationResultDef using
   ( LeftSilentInvariant
   ; WeakOneStepResult
@@ -65,7 +63,7 @@ open import proof.NuImprecisionSimulationResultDef using
 open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
 open import proof.ReductionProperties using
-  (applyCoercions)
+  (applyCoercions; applyTyVars)
 open import proof.TypePreservation using
   (modeRename-suc-weakenCast)
 open import proof.TypeProperties using

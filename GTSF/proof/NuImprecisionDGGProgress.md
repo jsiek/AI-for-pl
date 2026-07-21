@@ -333,6 +333,13 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourcePureStepCasesDef.agda`](NuImprecisionWorldCoherentSourcePureStepCasesDef.agda) | completed statement | Replaces the opaque pure-step capability with four major source-shape families carrying the full ambient-prefix and exact-result contract. |
 | [`NuImprecisionWorldCoherentSourcePureStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourcePureStepDispatcherProof.agda) | completed higher-order proof | Exhaustively routes all 18 pure reductions through the application, runtime-bullet, cast/conversion, or primitive family. |
 | [`NuImprecisionWorldCoherentSourcePrimitivePureRootDef.agda`](NuImprecisionWorldCoherentSourcePrimitivePureRootDef.agda) | completed statement | Canonical full primitive-root capability consumed by the four-way pure-step record and targeted by the synchronized delta leaf. |
+| [`NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupDef.agda) | completed statement | General source-delta capability for an arbitrary related target, retaining the exact strong source result. |
+| [`NuImprecisionWorldCoherentSourcePrimitivePureRootCasesDef.agda`](NuImprecisionWorldCoherentSourcePrimitivePureRootCasesDef.agda) | completed statement | Two-case primitive boundary separating general delta catch-up from the shared blame leaf. |
+| [`NuImprecisionWorldCoherentSourcePrimitivePureRootProof.agda`](NuImprecisionWorldCoherentSourcePrimitivePureRootProof.agda) | completed higher-order proof | Exhaustively routes `δ-⊕`, `blame-⊕₁`, and `blame-⊕₂` into the two primitive capabilities. |
+| [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef.agda) | completed frozen statement; proof ready for delegation | Five mechanical target cast/conversion frames for an already-completed exact source step. |
+| [`NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectDef.agda) | completed statement; hard proof not started | DGG-near two-operand scheduling boundary for the unframed target primitive. |
+| [`NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupCasesDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupCasesDef.agda) | completed statement | Separates direct two-operand scheduling from structural target framing. |
+| [`NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupDispatcherProof.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupDispatcherProof.agda) | completed higher-order proof | Structural recursion through allocation prefixes and all five target frames, with target allocation forms eliminated by their impossible `ℕ ⊑ ∀` index. |
 | [`NuImprecisionSourceOneStepBlameRootDef.agda`](NuImprecisionSourceOneStepBlameRootDef.agda) | completed statement | Shared strong result for every keep-step source-to-blame root, including the `ν` blame frame. |
 | [`NuImprecisionSourceOneStepBlameRootProof.agda`](NuImprecisionSourceOneStepBlameRootProof.agda) | completed GPT-5.5 proof | Constructs the exact singleton source trace, zero target trace, ambient blame relation, identity transport/coherence, and reflexive lineage. |
 | [`NuImprecisionSourceOneStepBlameRootLemma.agda`](NuImprecisionSourceOneStepBlameRootLemma.agda) | completed canonical assembly | Exposes the corrected strict Ginger proof through the canonical three-file boundary. |
@@ -8295,6 +8302,18 @@ coordination.  Use focused strict checks throughout and reserve
   strong-result statement now has its own canonical filename.  The aggregate
   pure-step record refers to that definition directly, which gives the
   synchronized delta root a typed route into the DGG-facing source skeleton.
+
+- Completed the next two DGG-facing primitive layers.  The
+  [`primitive pure-root proof`](NuImprecisionWorldCoherentSourcePrimitivePureRootProof.agda)
+  now needs only general delta catch-up plus the completed blame root, and
+  exhaustively covers all three primitive reductions.  Beneath it, the
+  [`delta dispatcher`](NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupDispatcherProof.agda)
+  recursively removes relational-store prefixes, delegates the unframed
+  primitive to one direct scheduling capability, and transports completed
+  results through all five target cast/conversion constructors.  The
+  impossible target allocation forms are discharged at their `ℕ ⊑ ∀` type
+  index.  Thus the remaining semantic work is isolated to direct two-operand
+  scheduling and mechanical source-step target framing.
 
 - Froze the complete right-value catch-up recursion in
   [`WorldCoherentRightValueCatchupCases`](NuImprecisionWorldCoherentRightValueCatchupCasesDef.agda).

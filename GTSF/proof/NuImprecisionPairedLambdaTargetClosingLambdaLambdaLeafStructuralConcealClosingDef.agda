@@ -7,7 +7,8 @@ module
 --     closing branch after the two outer universal conceals and the forced
 --     second source universal conceal are inverted.
 --   * Retains the matched body relation, source allocation, correspondence,
---     innermost source conceal, target body conceal, and final reveal fused.
+--     result imprecision index, innermost source conceal, target body conceal,
+--     and final reveal fused.
 --   * Exposes no pre-final-reveal source-only intermediate index.
 --   * Contains no implementation, postulate, hole, permissive option, broad
 --     simulation import, or recursive frame closer.
@@ -89,7 +90,9 @@ PairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingᵀ =
     {Aν C′ D E X X′ : Ty} {c c′ t : Coercion}
     {η η′ μ : ModeEnv} {α β : TyVar}
     {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ `∀ D ⊑ `∀ C′ ⊣ Δᴿ} →
+    {p : Φ ∣ Δᴸ ⊢ `∀ D ⊑ `∀ C′ ⊣ Δᴿ}
+    {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ⊢ `∀ E ⊑ C′ ⊣ suc Δᴿ} →
   StoreImpPrefix ρ₀ ρ →
   (h⇑Aν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
   RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))

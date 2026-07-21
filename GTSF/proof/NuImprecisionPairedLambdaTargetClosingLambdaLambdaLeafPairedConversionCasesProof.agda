@@ -31,9 +31,11 @@ paired-lambda-target-closing-lambda-lambda-leaf-paired-reveal-closing-proofᵀ :
   PairedLambdaTargetClosingLambdaLambdaLeafPairedRevealClosingᵀ
 paired-lambda-target-closing-lambda-lambda-leaf-paired-reveal-closing-proofᵀ
     closing liftΛ liftγ vV noV vV′ noV′ V⊑V′
+    {q = q}
     prefix h⇑Aν final-reveal liftν lift∀ corresponds
     (reveal-all source-reveal) (reveal-all target-reveal) =
   closing liftΛ liftγ vV noV vV′ noV′ V⊑V′
+    {q = q}
     prefix h⇑Aν final-reveal liftν lift∀ corresponds
     source-reveal target-reveal
 
@@ -43,9 +45,11 @@ paired-lambda-target-closing-lambda-lambda-leaf-paired-conceal-closing-proofᵀ 
   PairedLambdaTargetClosingLambdaLambdaLeafPairedConcealClosingᵀ
 paired-lambda-target-closing-lambda-lambda-leaf-paired-conceal-closing-proofᵀ
     closing liftΛ liftγ vV noV vV′ noV′ V⊑V′
+    {q = q}
     prefix h⇑Aν final-reveal liftν lift∀ corresponds
     (conceal-all (conceal-all source-conceal))
     (conceal-all target-conceal) =
   closing liftΛ liftγ vV noV vV′ noV′ V⊑V′
+    {q = q}
     prefix h⇑Aν final-reveal liftν lift∀ corresponds
     source-conceal target-conceal

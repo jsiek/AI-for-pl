@@ -54,17 +54,21 @@ paired-lambda-target-closing-lambda-lambda-leaf-closing-proofᵀ :
 paired-lambda-target-closing-lambda-lambda-leaf-closing-proofᵀ
     reveal-closing conceal-closing
     liftρ liftγ vV noV vV′ noV′ V⊑V′
+    {q = q}
     prefix h⇑A final-reveal liftν lift∀
     (paired-reveal corr source-reveal target-reveal) =
   reveal-closing liftρ liftγ vV noV vV′ noV′ V⊑V′
+    {q = q}
     prefix h⇑A final-reveal liftν lift∀ corr
     source-reveal target-reveal
 paired-lambda-target-closing-lambda-lambda-leaf-closing-proofᵀ
     reveal-closing conceal-closing
     liftρ liftγ vV noV vV′ noV′ V⊑V′
+    {q = q}
     prefix h⇑A final-reveal liftν lift∀
     (paired-conceal corr source-conceal target-conceal) =
   conceal-closing liftρ liftγ vV noV vV′ noV′ V⊑V′
+    {q = q}
     prefix h⇑A final-reveal liftν lift∀ corr
     source-conceal target-conceal
 

@@ -6,7 +6,8 @@ module
 --   * Defines the exact reveal and conceal constructor branches required by
 --     matched-`Λ`/`Λ` target closing.
 --   * Keeps the matched body relation, source allocation, conversion
---     correspondence, and final reveal fused in each branch.
+--     correspondence, proof-relevant result index, and final reveal fused in
+--     each branch.
 --   * Contains no dispatcher, implementation, postulate, hole, permissive
 --     option, broad simulation import, or recursive frame closer.
 
@@ -87,7 +88,9 @@ PairedLambdaTargetClosingLambdaLambdaLeafPairedRevealClosingᵀ =
     {Aν C′ D E X X′ : Ty} {c c′ t : Coercion}
     {η η′ μ : ModeEnv} {α β : TyVar}
     {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ `∀ D ⊑ `∀ C′ ⊣ Δᴿ} →
+    {p : Φ ∣ Δᴸ ⊢ `∀ D ⊑ `∀ C′ ⊣ Δᴿ}
+    {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ⊢ `∀ E ⊑ C′ ⊣ suc Δᴿ} →
   StoreImpPrefix ρ₀ ρ →
   (h⇑Aν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
   RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
@@ -135,7 +138,9 @@ PairedLambdaTargetClosingLambdaLambdaLeafPairedConcealClosingᵀ =
     {Aν C′ D E X X′ : Ty} {c c′ t : Coercion}
     {η η′ μ : ModeEnv} {α β : TyVar}
     {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ `∀ D ⊑ `∀ C′ ⊣ Δᴿ} →
+    {p : Φ ∣ Δᴸ ⊢ `∀ D ⊑ `∀ C′ ⊣ Δᴿ}
+    {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ⊢ `∀ E ⊑ C′ ⊣ suc Δᴿ} →
   StoreImpPrefix ρ₀ ρ →
   (h⇑Aν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
   RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))

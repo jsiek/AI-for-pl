@@ -6,7 +6,8 @@ module
 --   * Defines the structural core of the matched-`Λ`/`Λ` paired-reveal
 --     closing branch after both universal reveal conversions are inverted.
 --   * Retains the matched body relation, source allocation, conversion
---     correspondence, both inner reveals, and final reveal as one fused step.
+--     correspondence, result imprecision index, both inner reveals, and final
+--     reveal as one fused step.
 --   * Exposes no pre-final-reveal source-only intermediate index.
 --   * Contains no implementation, postulate, hole, permissive option, broad
 --     simulation import, or recursive frame closer.
@@ -88,7 +89,9 @@ PairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingᵀ =
     {Aν C′ D E X X′ : Ty} {c c′ t : Coercion}
     {η η′ μ : ModeEnv} {α β : TyVar}
     {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ `∀ D ⊑ `∀ C′ ⊣ Δᴿ} →
+    {p : Φ ∣ Δᴸ ⊢ `∀ D ⊑ `∀ C′ ⊣ Δᴿ}
+    {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ⊢ `∀ E ⊑ C′ ⊣ suc Δᴿ} →
   StoreImpPrefix ρ₀ ρ →
   (h⇑Aν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
   RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))

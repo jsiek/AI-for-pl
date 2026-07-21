@@ -77,6 +77,14 @@ paths, endpoints, stores, coercions, and derivation indices explicitly.  Do
 not make the assembly permissive.  The fresh-path target half-square and square
 assemblies are checked examples of this pattern.
 
+Strict-check higher-order `Proof` modules before treating their contracts as
+frozen as well.  The matched-`Λ` structural-closing fit check exposed a dropped
+proof-relevant result index `q`: paired reveal/conceal constructors do not use
+that index in their constructor arguments, so an unchecked splitter can erase
+it silently.  Retaining `q` through the case and structural `Def` modules made
+the fit proofs strict.  This kind of missing larger-proof evidence must be
+repaired in the contract, never filled by an unsolved meta.
+
 A command-line `--no-allow-unsolved-metas` is not sufficient when a source
 module locally enables `--allow-unsolved-metas`.  Completion therefore
 requires removing the local option and checking the owned module again, as

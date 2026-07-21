@@ -438,10 +438,10 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingDef.agda) | completed fused statement; assembly partial | Exact ordinary source-`Λ`/target-nonbinder leaf retains source-bullet allocation, the whole paired conversion, and the final reveal; its factorization through the shared `ν` rotation is explicit |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingProof.agda) | completed higher-order proof; assembly partial | Prefix-transports the `Λ` relation, constructs the source runtime bullet, invokes `NuPairedConversionRotationᵀ`, applies the final reveal, and exactly inhabits `handle-leaf-Λ` |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingDef.agda) | completed fused statement; concrete proof not yet started | Exact matched `Λ`/`Λ` leaf retains the body relation, both allocation lifts, whole paired conversion, and final reveal because the checked counterexample refutes the tempting pre-reveal factorization |
-| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda) | completed constructor statements; semantic proofs not yet started | Exact paired-reveal and paired-conceal matched-`Λ` leaves retain the body relation, ambient prefix, both lifts, store correspondence, conversion evidence, and final reveal |
-| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda) | completed reduced statement; direct-root blocker, proof not yet started | Smallest honest matched-`Λ` paired-reveal dependency after both outer universal reveals invert uniquely; its live inner-unseal case has a non-universal source body, so it requires a direct unseal/allocation transport base rather than the universal-only recursive hypothesis |
-| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda) | completed reduced statement; direct-root blocker, proof not yet started | Smallest honest matched-`Λ` paired-conceal dependency after the two outer conceals and forced nested source `conceal-all` invert; only the innermost source and target body conceals remain fused with allocation and final reveal |
-| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda) | completed strict constructor reductions; structural proofs not yet started | Exhaustively reduces both paired-reveal and paired-conceal leaves to their smaller structural contracts; no outer universal conversion wrapper remains a semantic worker obligation |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda) | completed corrected constructor statements | Exact paired-reveal and paired-conceal matched-`Λ` leaves retain the body relation, ambient prefix, both lifts, store correspondence, conversion evidence, proof-relevant result index `q`, and final reveal |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda) and [`FromAllConversionProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingFromAllConversionProof.agda) | corrected statement and completed strict fit proof; canonical `Proof`/`Lemma` not yet started | The smallest fused reveal contract now retains `q`; the strategy-named fit proof reconstructs and prefix-transports the matched `Λ` relation and derives the leaf from the shared all-conversion theorem. That dependency is equivalent to the larger recursive root, so the unqualified canonical `Proof` remains absent pending the direct fresh-path argument |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda) and [`FromAllConversionProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingFromAllConversionProof.agda) | corrected statement and completed strict fit proof; canonical `Proof`/`Lemma` not yet started | The conceal counterpart retains `q`, rebuilds the matched `Λ` relation, and packages the double source conceal plus target conceal for the same shared theorem. The unqualified canonical `Proof` remains absent because using that larger theorem here would be circular |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda) | completed strict constructor reductions | Exhaustively reduces both paired-reveal and paired-conceal leaves to their corrected structural contracts and carries the exact result index `q` through the reduction |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda) | completed higher-order dispatcher and handler adapter; assembly partial | Exhaustively derives the fused matched-`Λ` theorem from its paired-reveal/conceal branches and verifies exact `handle-leaf-ΛΛ` fit without a recursive closer or one-sided intermediate |
 | [`NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda) | completed fused statement; assembly partial | Exact quotient gen-down/gen terminal retains the quotient relation, widening pair, source allocation, external paired conversion, and final reveal after its proposed one-size-fits-all pre-reveal rotation was refuted |
 | [`NuImprecisionPairedLambdaTargetClosingUpGenLeafAllIndexClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafAllIndexClosingDef.agda) | completed paired-`∀ⁱ` statement; concrete proof not yet started | Smallest remaining fused quotient terminal branch; the source-only `ν` branch is constructive through the shared rotation, while the checked counterexample applies precisely to this paired-index branch |
@@ -7917,3 +7917,36 @@ coordination.  Use focused strict checks throughout and reserve
   canonical instantiation fails locally in `Lemma` instead of motivating a
   source-level `--allow-unsolved-metas`.  No `All.agda` check is part of this
   workflow.
+
+### 2026-07-21: matched-`Λ` contract repair from strict higher-order fit
+
+- Added strict higher-order fit proofs from the shared fused all-conversion
+  theorem to each matched-`Λ` structural leaf.  The initial focused checks
+  failed at the higher-order application with an unsolved result-index meta.
+  The cause was a real interface omission: the exact
+  `q : ∀ E ⊑ C′` derivation indexed the original paired conversion but had
+  been dropped by both constructor-case `Def`s and both structural `Def`s.
+  `paired-reveal` and `paired-conceal` do not mention that index in their
+  constructor arguments, so ordinary pattern matching had hidden the loss.
+
+- Restored `q` through
+  [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda),
+  both structural statement modules, the exhaustive paired-conversion
+  reducers, and the fused leaf closer.  The corrected `Def`s and all affected
+  consumers pass focused `--no-allow-unsolved-metas` checks.
+
+- The two fit proofs reconstruct `Λ V ⊑ Λ V′`, weaken its typing through the
+  ambient store prefix, and package the inner conversions at the retained
+  index `q`.  They are deliberately strategy-named
+  [`StructuralRevealClosingFromAllConversionProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingFromAllConversionProof.agda)
+  and
+  [`StructuralConcealClosingFromAllConversionProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingFromAllConversionProof.agda):
+  the shared theorem is equivalent to the larger recursive root, so these are
+  strict statement-fit audits rather than the non-circular canonical proof.
+  The unqualified `Proof` and canonical `Lemma` files remain absent.
+
+- This is a direct example of the three-file/higher-order organization
+  preventing permissive development from concealing a larger-proof mismatch.
+  The repaired fit proofs, frame-handler consumer, and focused paired-target
+  spine all pass strictly.  No source-level `--allow-unsolved-metas`,
+  `All.agda`, or other broad aggregate check was used.

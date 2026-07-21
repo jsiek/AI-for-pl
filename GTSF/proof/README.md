@@ -57,6 +57,11 @@ the strict counterexample and repair the `Def`; never hide the mismatch behind
 an unsolved meta in a downstream assembly.  The initial source-seal
 cancellation contract was rejected this way: a source-only name may also occur
 in a matched row unless source-name role exclusivity is carried explicitly.
+The same policy refuted unrestricted exact-final paired-widening catch-up:
+independent source/target widening premises admit active source unseal against
+an inert target variable tag.  Keep the strict counterexample until the
+`PairedCast` constructor or its semantic boundary carries the missing
+compatibility; do not create a permissive proof file for the false statement.
 
 A command-line `--no-allow-unsolved-metas` is not sufficient when a source
 module locally enables `--allow-unsolved-metas`.  Completion therefore

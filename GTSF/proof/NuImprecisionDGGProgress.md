@@ -380,11 +380,12 @@ are delegated:
 | [`NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda) | completed statement | Exact-final-world terminal paired-cast contract retaining target inertness, final coherence, source-name exclusivity, and left `StoreWf` |
 | [`NuImprecisionWorldCoherentFinalPairedConversionCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedConversionCatchupDef.agda) | completed statement | Constructor-level terminal paired-conversion capability retaining all final-world invariants |
 | [`NuImprecisionWorldCoherentFinalPairedConversionCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedConversionCatchupProof.agda) | completed proof | Exhaustive strict proof: source blame and identities take administrative steps, inert reveal/conceal forms are terminal frames, and source unseal is impossible against target inertness |
-| [`NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda) | completed statement; hard proof | Constructor-level terminal widening capability; owns identity, inert, tag/sequence cancellation, and active source-`inst` allocation cases |
-| [`NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda) | completed higher-order proof | Exhaustively derives the exact-final-world contract from the two constructor-level semantic capabilities without importing a recursive dispatcher |
+| [`NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda) | refuted statement | The premises permit an active source unseal paired with an inert target variable tag; the contract must be narrowed or the underlying `PairedCast` relation strengthened |
+| [`NuImprecisionWorldCoherentFinalPairedWideningCatchupCounterexample.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupCounterexample.agda) | completed obstruction | Strict coherent matched-store example reduces the source by seal/unseal while the target stays inert; source-tag cancellation would require impossible `Nat ⊑ ＇0` |
+| [`NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda) | completed higher-order proof; blocked dependency | Exhaustively derives the exact-final-world contract from the two constructor-level semantic capabilities, but its widening parameter is now known to be uninhabited as stated |
 | [`NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda) | completed statement | Top accumulated-world paired-cast handler, matching the strengthened source-runtime field |
-| [`NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda) | completed higher-order proof | Strictly composes accumulated paired-cast transport with exact-final-world catch-up; its single-cast frame keeps final contexts, world, and change lists unchanged |
-| `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial | The conceal field is complete; bullet, `ν`, `ν ★`, and widening-`inst` form the allocation SCC; narrowing, widening, reveal, and paired casts still need their explicit cancellation/classification or prefix-transport leaves |
+| [`NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda) | completed higher-order proof; blocked dependency | Strictly composes accumulated paired-cast transport with exact-final-world catch-up; canonical assembly waits for both store-lineage propagation and a repaired paired-widening relation/contract |
+| `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial | The conceal field is complete; bullet, `ν`, `ν ★`, and widening-`inst` form the allocation SCC; narrowing/widening need cancellation/classification, paired conversion needs lineage, and paired widening exposes a genuine relation-compatibility defect |
 | [`NuImprecisionWorldCoherentQuotientInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientInstCatchupDef.agda) | completed narrowed statement | Strict mode-polymorphic final-state contract shared by ordinary-down and gen-down quotient-`inst` residuals; it requires the actual ready inner value `V ⟨ d ⟩` and no-bullet evidence |
 | [`NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda) | completed statement; hard proof | Exposes `quotientᵖ D≈C C⊑C′ C′≈D′` and asks for direct coherent catch-up without inventing an ordinary relation between physical endpoints |
 | [`NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef.agda) | completed statement | Replaces arbitrary permutation derivations by explicit finite paths of oriented contextual adjacent swaps while retaining the original quotient evidence in the term relation |
@@ -6348,6 +6349,17 @@ catch-up architecture.
   checks take roughly 2.6--3.1 seconds.  One deliberate strict core migration
   check passed in about 38 seconds; no aggregate check was run.
 
+- Refuted the unrestricted exact-final paired-widening contract with a strict
+  counterexample.  In a coherent matched `★` store, `PairedCast` permits active
+  source `unseal 0 ★` to be paired with inert target `(＇ 0) !`, while choosing
+  endpoint witnesses `＇ 0 ⊑ ＇ 0` and `★ ⊑ ★` independently.  The source
+  cancels its seal, the target remains inert, and any claimed final relation
+  would imply the constructorless judgment `Nat ⊑ ＇ 0`.  This is not a missing
+  proof lemma: either paired widening must carry compatibility tying its
+  endpoint witnesses to both casts, or the relevant relation constructor must
+  exclude the cross-mode pair.  No permissive `Proof` or canonical `Lemma` was
+  created for the false contract.
+
 ### Next boundary
 
 Use completed source tag cancellation and midpoint recovery in the non-`inst`
@@ -6355,7 +6367,10 @@ narrowing/widening handlers, while constructing store lineage through the
 coherent catch-up result families needed by paired conversion.  For
 representative quotient-`inst`, prove identity and prepend-one-oriented-swap
 path semantics; normalization and the adapter to the original contract are
-already complete.  Once that bridge is complete, assemble it with the
+already complete.  Before resuming paired-widening semantics, choose and
+mechanize the compatibility repair exposed by the strict counterexample;
+continuing under the current `PairedCast` constructor would target a false
+theorem.  Once the quotient bridge is complete, assemble it with the
 completed classifier, quotient-final proof, and structural prefix proof. Continue
 assigning only frozen, nonoverlapping leaf modules to Ginger; keep allocation
 SCCs, arbitrary quotient-permutation interpretation, and dependent transport

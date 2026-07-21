@@ -27,8 +27,10 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepCasesDef using
   ; sourceNuFrameStepCase
   ; sourcePrimitiveLeftStepCase
   ; sourcePrimitiveRightStepCase
-  ; sourcePureStepCase
+  ; sourcePureStepCases
   )
+open import proof.NuImprecisionWorldCoherentSourcePureStepDispatcherProof using
+  (world-coherent-source-pure-step-dispatcher-proofᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepPrefixDef using
   (WorldCoherentSourceOneStepPrefixᵀ)
 
@@ -39,8 +41,10 @@ world-coherent-source-one-step-dispatcher-proofᵀ :
 world-coherent-source-one-step-dispatcher-proofᵀ
     cases prefix coherent exclusive wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (pure-step root) =
-  sourcePureStepCase cases prefix coherent exclusive wfL wfR
-    okM okM′ M⊢ M′⊢ M⊑M′ root
+  world-coherent-source-pure-step-dispatcher-proofᵀ
+    (sourcePureStepCases cases)
+    prefix coherent exclusive wfL wfR okM okM′
+    M⊢ M′⊢ M⊑M′ root
 world-coherent-source-one-step-dispatcher-proofᵀ
     cases prefix coherent exclusive wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (ν-step vV noV) =

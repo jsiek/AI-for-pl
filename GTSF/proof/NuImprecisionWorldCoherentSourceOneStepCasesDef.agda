@@ -51,30 +51,14 @@ open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)
+open import proof.NuImprecisionWorldCoherentSourcePureStepCasesDef using
+  (WorldCoherentSourcePureStepCases)
 open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
 record WorldCoherentSourceOneStepCases : Set₁ where
   field
-    sourcePureStepCase :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {M M′ L : Term} {A B : Ty}
-        {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      WorldCoherent ρ⁺ →
-      SourceNameExclusive Φ →
-      StoreWf Δᴸ (leftStoreⁱ ρ⁺) →
-      StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
-      RuntimeOK M →
-      RuntimeOK M′ →
-      Δᴸ ∣ leftStoreⁱ ρ⁺ ∣ [] ⊢ M ⦂ A →
-      Δᴿ ∣ rightStoreⁱ ρ⁺ ∣ [] ⊢ M′ ⦂ B →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-        ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
-      M —→ L →
-      WorldCoherentSourceOneStepIndexedResult
-        {M = M} {M′ = M′} {L = L} {χ = keep} {ρ = ρ⁺} p
+    sourcePureStepCases : WorldCoherentSourcePureStepCases
 
     sourceAllocationStepCase :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}

@@ -23,6 +23,11 @@ open import proof.NuDGGTerminalForwardProof using
   (world-coherent-forward-source-value-proofᵀ)
 open import proof.NuImprecisionWorldCoherentRightValueCatchupDef using
   (WorldCoherentRightValueCatchupᵀ)
+open import proof.NuImprecisionWorldCoherentRightValueCatchupCasesDef using
+  (WorldCoherentRightValueCatchupCases)
+open import
+  proof.NuImprecisionWorldCoherentRightValueCatchupDispatcherProof
+  using (world-coherent-right-value-catchup-dispatcher-proofᵀ)
 open import proof.NuImprecisionWorldCoherentRightValueCatchupPrefixDef using
   (WorldCoherentRightValueCatchupPrefixᵀ)
 open import proof.NuImprecisionWorldCoherentRightValueCatchupProof using
@@ -114,3 +119,17 @@ source-cases-and-right-prefix⇒gradual-dgg
   prefix-forward-engines-and-backward-terminals⇒gradual-dgg
     (world-coherent-source-one-step-dispatcher-proofᵀ source-cases)
     right-prefix backward-value backward-blame
+
+
+forward-cases-and-backward-terminals⇒gradual-dgg :
+  WorldCoherentSourceOneStepCases →
+  WorldCoherentRightValueCatchupCases →
+  BackwardTargetValueOrSourceBlameᵀ →
+  BackwardTargetBlameᵀ →
+  GradualDGG
+forward-cases-and-backward-terminals⇒gradual-dgg
+    source-cases right-cases backward-value backward-blame =
+  source-cases-and-right-prefix⇒gradual-dgg
+    source-cases
+    (world-coherent-right-value-catchup-dispatcher-proofᵀ right-cases)
+    backward-value backward-blame

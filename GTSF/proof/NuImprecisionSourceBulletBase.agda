@@ -9,13 +9,12 @@ module proof.NuImprecisionSourceBulletBase where
 --   * Keeps local administrative embedding and post-allocation helpers private
 --     and avoids depending on the main simulation or scratch modules.
 
-open import Agda.Builtin.Equality using (_≡_; refl)
-open import Coercions using (Coercion; gen; `∀)
+open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (zero; suc)
 open import Data.Nat.Properties using (≤-refl)
-open import Data.Product using (_,_; ∃-syntax)
+open import Data.Product using (_,_)
 open import Data.Sum using (inj₁)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using
@@ -23,9 +22,7 @@ open import ImprecisionWf using
 open import NuReduction using
   ( keep
   ; pure-step
-  ; β-gen•
   ; β-Λ•
-  ; β-∀•
   ; ↠-refl
   ; ↠-step
   ; _—→[_]_
@@ -51,7 +48,6 @@ open import NuTermImprecision using
   )
 open import NuTerms using
   ( No•
-  ; Term
   ; Value
   ; no•-$
   ; no•-`
@@ -66,7 +62,6 @@ open import NuTerms using
   ; Λ_
   ; ⇑ᵗᵐ
   ; _•
-  ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
@@ -111,19 +106,14 @@ open import QuotientedTermImprecision using
 open import Relation.Binary.PropositionalEquality using
   (subst; sym)
 open import Store using (StoreIncl-drop)
-open import TermTyping using (_∣_∣_⊢_⦂_; forget; ⊢•)
+open import TermTyping using (_∣_∣_⊢_⦂_; ⊢•)
 open import Types using
-  ( Renameᵗ
-  ; Store
-  ; Ty
-  ; TyCtx
-  ; WfTy
+  ( WfTy
   ; `∀
   ; extᵗ
   ; renameᵗ
   ; ⇑ᵗ
   )
-open import proof.CoercionProperties using (open0-ext-suc-cancelᶜ)
 open import proof.MaximalLowerBoundsWf using
   (rename-assm²ᵢ; ⊑-renameᵗ²ᵢ)
 open import proof.NuImprecisionRelStoreEmbeddingDef using
@@ -208,8 +198,10 @@ open import proof.NuImprecisionSimulationResultDef using
   )
 open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
-open import proof.NuProgress using
-  (AllView; av-gen; av-Λ; av-∀; canonical-∀)
+open import proof.NuImprecisionSourcePolymorphicValueBase public using
+  ( post-allocation-polymorphic-value-step
+  ; left-polymorphic-value-shapeᵀ
+  )
 open import proof.NuTermProperties using
   ( open0-ext-suc-cancelᵐ
   ; renameᵗᵐ-id
@@ -536,69 +528,6 @@ private
       (open0-ext-suc-cancelᵐ V)
       (pure-step
         (β-Λ• (renameᵗᵐ-preserves-Value (extᵗ suc) vV)))
-
-  post-allocation-β-∀•-bare :
-    ∀ {V c} →
-    Value V →
-    (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
-      —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ c ⟩
-  post-allocation-β-∀•-bare {V = V} {c = c} vV =
-    subst
-      (λ d → (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
-        —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ d ⟩)
-      (open0-ext-suc-cancelᶜ c)
-      (pure-step
-        (β-∀• (renameᵗᵐ-preserves-Value suc vV)))
-
-  post-allocation-β-gen•-bare :
-    ∀ {V A c} →
-    Value V →
-    (⇑ᵗᵐ (V ⟨ gen A c ⟩)) •
-      —→[ keep ] (⇑ᵗᵐ V) ⟨ c ⟩
-  post-allocation-β-gen•-bare {V = V} {c = c} vV =
-    subst
-      (λ d → (⇑ᵗᵐ (V ⟨ gen _ c ⟩)) •
-        —→[ keep ] (⇑ᵗᵐ V) ⟨ d ⟩)
-      (open0-ext-suc-cancelᶜ c)
-      (pure-step
-        (β-gen• (renameᵗᵐ-preserves-Value suc vV)))
-
-  Λ-value-body :
-    ∀ {V} →
-    Value (Λ V) →
-    Value V
-  Λ-value-body (Λ vV) = vV
-
-post-allocation-polymorphic-value-step :
-  ∀ {Δ : TyCtx} {Σ : Store} {L A} →
-  Value L →
-  Δ ∣ Σ ∣ [] ⊢ L ⦂ `∀ A →
-  ∃[ N ] ((⇑ᵗᵐ L) • —→[ keep ] N)
-post-allocation-polymorphic-value-step
-    {Δ = Δ} {Σ = Σ} {L = L} {A = A} vL L⊢
-    with canonical-∀ {Δ = Δ} {Σ = Σ} {V = L} {A = A}
-      vL (forget L⊢)
-post-allocation-polymorphic-value-step {L = .(Λ V)} vL L⊢
-    | av-Λ {W = V} refl =
-  V , post-allocation-β-Λ•-bare (Λ-value-body vL)
-post-allocation-polymorphic-value-step
-    {L = .(V ⟨ `∀ c ⟩)} vL L⊢ | av-∀ {W = V} {c = c} vV refl =
-  ((⇑ᵗᵐ V) •) ⟨ c ⟩ , post-allocation-β-∀•-bare vV
-post-allocation-polymorphic-value-step
-    {L = .(V ⟨ gen A c ⟩)} vL L⊢
-    | av-gen {W = V} {A = A} {c = c} vV refl =
-  (⇑ᵗᵐ V) ⟨ c ⟩ , post-allocation-β-gen•-bare vV
-
-left-polymorphic-value-shapeᵀ :
-  ∀ {Φ Δᴸ Δᴿ L N′ A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  Value L →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ L ⊑ N′ ⦂ `∀ A ⊑ B ∶ p →
-  AllView L
-left-polymorphic-value-shapeᵀ vL L⊑N′ =
-  canonical-∀ vL
-    (forget (nu-term-imprecision-source-typing L⊑N′))
 
 left-catchup-indexed-prefix-α-Λᵀ :
   ∀ {Φ Δᴸ Δᴿ Aν W V′ A B p}

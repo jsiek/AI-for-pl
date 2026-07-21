@@ -121,7 +121,7 @@ source-tag-cancellation-proofᵀ eliminate {p = id★}
     (conv⊑convᵀ
       (paired-widening
         mode seal★ (C.cast-tag hG gG⊢ ok , NW.tag gG′)
-        mode′ seal★′ c′⊑)
+        mode′ seal★′ c′⊑ _)
       inner)
     q =
   ⊑cast⊑ᵀ mode′ seal★′ c′⊑ inner q

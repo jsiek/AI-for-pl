@@ -67,8 +67,8 @@ paired-cast-target-reindexᵀ
     (paired-conversion (paired-conceal corr c↓ c′↓)) r =
   paired-conversion (paired-conceal corr c↓ c′↓)
 paired-cast-target-reindexᵀ
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑) r =
-  paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑
+    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat) r =
+  paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat
 
 
 atomic-target-value-reindexᵀ :
@@ -122,7 +122,7 @@ atomic-target-value-reindexᵀ atom ()
     (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′) q
 atomic-target-value-reindexᵀ atom ()
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ liftρ liftγ N⊑N′) q
+      s⊑ s′⊑ _ liftρ liftγ N⊑N′) q
 atomic-target-value-reindexᵀ atom vV
     (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V) q =
   νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V

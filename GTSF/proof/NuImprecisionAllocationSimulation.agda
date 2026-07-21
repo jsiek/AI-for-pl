@@ -391,6 +391,8 @@ open import proof.TypeProperties using
 open import proof.NuImprecisionSimulationCore
 open import proof.NuImprecisionSimulationResultDef
 open import proof.NuImprecisionSimulation
+open import proof.NuImprecisionSourcePolymorphicValueBase using
+  (post-allocation-β-gen•-bare)
 open import proof.NuImprecisionStoreLift using (lift-store-result)
 
 ------------------------------------------------------------------------

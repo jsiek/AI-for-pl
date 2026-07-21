@@ -81,12 +81,12 @@ paired-lambda-target-closing-gen-leaf-ν-closing-proofᵀ :
 paired-lambda-target-closing-gen-leaf-ν-closing-proofᵀ
     rotation {r = r} vV noV vN′ noN′ mode seal★ hA occ-g
     g⊢ gⁿ V⊑N′ occ-r
-    prefix h⇑A reveal liftν lift∀ conversion
+    prefix coherent exclusive wfL h⇑A reveal liftν lift∀ conversion
     with rotation prefix vV noV vN′ noN′ mode seal★ hA occ-g
       g⊢ gⁿ V⊑N′ occ-r r h⇑A liftν lift∀ conversion
 paired-lambda-target-closing-gen-leaf-ν-closing-proofᵀ
     rotation {r = r} vV noV vN′ noN′ mode seal★ hA occ-g
     g⊢ gⁿ V⊑N′ occ-r
-    prefix h⇑A reveal liftν lift∀ conversion
+    prefix coherent exclusive wfL h⇑A reveal liftν lift∀ conversion
     | u , rotated =
   conv↑⊑ᵀ (reveal-all reveal) rotated (⊑-source-liftνᵢ _)

@@ -30,6 +30,7 @@ open import NuTermImprecision using
   ; leftStoreⁱ
   ; store-left
   )
+open import NuStore using (StoreWf)
 open import NuTerms using
   ( No•
   ; Term
@@ -53,6 +54,10 @@ open import Types using
   ; ⟰ᵗ
   )
 open import proof.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
+open import proof.NuImprecisionWorldCoherenceDef using
+  (WorldCoherent)
 
 
 SourceNuPairedAllConversionPostBetaAllRevealClosingRelationᵀ : Set₁
@@ -69,6 +74,9 @@ SourceNuPairedAllConversionPostBetaAllRevealClosingRelationᵀ =
       ∣ suc Δᴸ ⊢ F ⊑ F′ ⊣ suc Δᴿ}
     {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ `∀ E ⊑ C′ ⊣ suc Δᴿ} →
+  WorldCoherent ρ →
+  SourceNameExclusive Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
   RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
     (⟰ᵗ (leftStoreⁱ

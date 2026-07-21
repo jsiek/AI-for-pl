@@ -89,9 +89,9 @@ paired-lambda-target-closing-paired-widening-frame-compatible-source-inert-proof
     core inner view inert-d′ cast-mode seal
     (C.cast-all d⊢ , NW.cross (NW.`∀ dʷ))
     target-mode target-seal target-widening (C.`∀ ._) =
-  λ prefix h⇑A reveal liftν lift∀ conversion →
+  λ prefix coherent exclusive wfL h⇑A reveal liftν lift∀ conversion →
     core inner view cast-mode seal (d⊢ , dʷ)
       target-mode target-seal
       (paired-widening-target-inert-viewᵀ inert-d′ target-widening)
-      prefix h⇑A reveal liftν lift∀
+      prefix coherent exclusive wfL h⇑A reveal liftν lift∀
       (paired-source-all-conversion-viewᵀ conversion)

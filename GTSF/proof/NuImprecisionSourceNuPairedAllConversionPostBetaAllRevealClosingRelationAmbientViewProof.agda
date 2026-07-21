@@ -28,8 +28,9 @@ source-ν-paired-all-conversion-post-beta-all-reveal-closing-relation-ambient-vi
   SourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingᵀ →
   SourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewᵀ
 source-ν-paired-all-conversion-post-beta-all-reveal-closing-relation-ambient-view-proofᵀ
-    frame-view frame-closing prefix h⇑A reveal liftν lift∀
+    frame-view frame-closing prefix coherent exclusive wfL h⇑A reveal
+    liftν lift∀
     vV noV vV′ noV′ source-view target-view conversion V⊑V′ =
-  frame-closing prefix h⇑A reveal liftν lift∀
+  frame-closing prefix coherent exclusive wfL h⇑A reveal liftν lift∀
     (frame-view vV noV vV′ noV′ source-view V⊑V′)
     conversion

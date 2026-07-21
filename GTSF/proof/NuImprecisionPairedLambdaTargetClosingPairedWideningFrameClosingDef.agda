@@ -28,6 +28,7 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   )
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
+open import NuStore using (StoreWf)
 open import NuTermImprecision using
   ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
@@ -56,9 +57,13 @@ open import Types using
   ; ⟰ᵗ
   )
 open import proof.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingFrameViewDef
   using (PairedLambdaTargetClosingFrameView)
+open import proof.NuImprecisionWorldCoherenceDef using
+  (WorldCoherent)
 
 
 PairedLambdaTargetClosingPairedWideningFrameClosingᵀ : Set₁
@@ -78,6 +83,9 @@ PairedLambdaTargetClosingPairedWideningFrameClosingᵀ =
       {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
         ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
     StoreImpPrefix ρ₀ ρ →
+    WorldCoherent ρ →
+    SourceNameExclusive Φ →
+    StoreWf Δᴸ (leftStoreⁱ ρ) →
     (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
     RevealConversion (C.extᵈ ν) (suc (suc Δᴸ))
       (⟰ᵗ (leftStoreⁱ
@@ -115,6 +123,9 @@ PairedLambdaTargetClosingPairedWideningFrameClosingᵀ =
     {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
   StoreImpPrefix ρ₀ ρ →
+  WorldCoherent ρ →
+  SourceNameExclusive Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
   RevealConversion (C.extᵈ ν) (suc (suc Δᴸ))
     (⟰ᵗ (leftStoreⁱ

@@ -30,10 +30,10 @@ paired-lambda-target-closing-source-gen-frame-paired-reveal-closing-proofᵀ :
   PairedLambdaTargetClosingSourceGenFramePairedRevealClosingᵀ
 paired-lambda-target-closing-source-gen-frame-paired-reveal-closing-proofᵀ
     closing vV noV vN′ noN′ relation framed inner
-    prefix h⇑A final-reveal liftν lift∀ corresponds
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀ corresponds
     (reveal-all source-reveal) (reveal-all target-reveal) =
   closing vV noV vN′ noN′ relation framed inner
-    prefix h⇑A final-reveal liftν lift∀ corresponds
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀ corresponds
     source-reveal target-reveal
 
 
@@ -42,8 +42,8 @@ paired-lambda-target-closing-source-gen-frame-paired-conceal-closing-proofᵀ :
   PairedLambdaTargetClosingSourceGenFramePairedConcealClosingᵀ
 paired-lambda-target-closing-source-gen-frame-paired-conceal-closing-proofᵀ
     closing vV noV vN′ noN′ relation framed inner
-    prefix h⇑A final-reveal liftν lift∀ corresponds
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀ corresponds
     (conceal-all source-conceal) (conceal-all target-conceal) =
   closing vV noV vN′ noN′ relation framed inner
-    prefix h⇑A final-reveal liftν lift∀ corresponds
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀ corresponds
     source-conceal target-conceal

@@ -46,6 +46,7 @@ open import NuTermImprecision using
   ; rightStoreⁱ
   ; store-left
   )
+open import NuStore using (StoreWf)
 open import NuTerms using (Term; ⇑ᵗᵐ; _•; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( PairedConversion
@@ -65,9 +66,13 @@ open import Types using
   ; ⟰ᵗ
   )
 open import proof.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingFrameViewDef
   using (PairedLambdaTargetClosingFrameView)
+open import proof.NuImprecisionWorldCoherenceDef using
+  (WorldCoherent)
 
 
 PairedLambdaTargetClosingFrameClosingTargetRevealᵀ : Set₁
@@ -87,6 +92,9 @@ PairedLambdaTargetClosingFrameClosingTargetRevealᵀ =
       {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
         ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
     StoreImpPrefix ρ₀ ρ →
+    WorldCoherent ρ →
+    SourceNameExclusive Φ →
+    StoreWf Δᴸ (leftStoreⁱ ρ) →
     (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
     RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
       (⟰ᵗ (leftStoreⁱ
@@ -115,6 +123,9 @@ PairedLambdaTargetClosingFrameClosingTargetRevealᵀ =
     {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
   StoreImpPrefix ρ₀ ρ →
+  WorldCoherent ρ →
+  SourceNameExclusive Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
   RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
     (⟰ᵗ (leftStoreⁱ
@@ -150,6 +161,9 @@ PairedLambdaTargetClosingFrameClosingTargetConcealᵀ =
       {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
         ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
     StoreImpPrefix ρ₀ ρ →
+    WorldCoherent ρ →
+    SourceNameExclusive Φ →
+    StoreWf Δᴸ (leftStoreⁱ ρ) →
     (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
     RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
       (⟰ᵗ (leftStoreⁱ
@@ -178,6 +192,9 @@ PairedLambdaTargetClosingFrameClosingTargetConcealᵀ =
     {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
   StoreImpPrefix ρ₀ ρ →
+  WorldCoherent ρ →
+  SourceNameExclusive Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
   RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
     (⟰ᵗ (leftStoreⁱ
@@ -213,6 +230,9 @@ PairedLambdaTargetClosingFrameClosingTargetNarrowingᵀ =
       {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
         ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
     StoreImpPrefix ρ₀ ρ →
+    WorldCoherent ρ →
+    SourceNameExclusive Φ →
+    StoreWf Δᴸ (leftStoreⁱ ρ) →
     (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
     RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
       (⟰ᵗ (leftStoreⁱ
@@ -243,6 +263,9 @@ PairedLambdaTargetClosingFrameClosingTargetNarrowingᵀ =
     {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
   StoreImpPrefix ρ₀ ρ →
+  WorldCoherent ρ →
+  SourceNameExclusive Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
   RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
     (⟰ᵗ (leftStoreⁱ
@@ -278,6 +301,9 @@ PairedLambdaTargetClosingFrameClosingTargetWideningᵀ =
       {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
         ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
     StoreImpPrefix ρ₀ ρ →
+    WorldCoherent ρ →
+    SourceNameExclusive Φ →
+    StoreWf Δᴸ (leftStoreⁱ ρ) →
     (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
     RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
       (⟰ᵗ (leftStoreⁱ
@@ -308,6 +334,9 @@ PairedLambdaTargetClosingFrameClosingTargetWideningᵀ =
     {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
   StoreImpPrefix ρ₀ ρ →
+  WorldCoherent ρ →
+  SourceNameExclusive Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
   RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
     (⟰ᵗ (leftStoreⁱ
@@ -342,6 +371,9 @@ PairedLambdaTargetClosingFrameClosingTargetIdOnlyWideningᵀ =
       {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
         ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
     StoreImpPrefix ρ₀ ρ →
+    WorldCoherent ρ →
+    SourceNameExclusive Φ →
+    StoreWf Δᴸ (leftStoreⁱ ρ) →
     (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
     RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
       (⟰ᵗ (leftStoreⁱ
@@ -371,6 +403,9 @@ PairedLambdaTargetClosingFrameClosingTargetIdOnlyWideningᵀ =
     {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ `∀ E ⊑ C₀′ ⊣ suc Δᴿ} →
   StoreImpPrefix ρ₀ ρ →
+  WorldCoherent ρ →
+  SourceNameExclusive Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
   RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
     (⟰ᵗ (leftStoreⁱ

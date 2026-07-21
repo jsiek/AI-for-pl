@@ -47,15 +47,19 @@ paired-lambda-target-closing-paired-conversion-frame-closing-proofᵀ :
 paired-lambda-target-closing-paired-conversion-frame-closing-proofᵀ
     reveal-closing conceal-closing inner view inert
     (paired-reveal corr source-reveal target-reveal)
-    prefix h⇑A final-reveal liftν lift∀ final-conversion =
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    final-conversion =
   reveal-closing inner view inert corr source-reveal target-reveal
-    prefix h⇑A final-reveal liftν lift∀ final-conversion
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    final-conversion
 paired-lambda-target-closing-paired-conversion-frame-closing-proofᵀ
     reveal-closing conceal-closing inner view inert
     (paired-conceal corr source-conceal target-conceal)
-    prefix h⇑A final-reveal liftν lift∀ final-conversion =
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    final-conversion =
   conceal-closing inner view inert corr source-conceal target-conceal
-    prefix h⇑A final-reveal liftν lift∀ final-conversion
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    final-conversion
 
 
 paired-lambda-target-closing-paired-conversion-frame-handler-proofᵀ :

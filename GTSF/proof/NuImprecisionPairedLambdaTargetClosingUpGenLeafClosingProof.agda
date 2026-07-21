@@ -182,6 +182,8 @@ paired-lambda-target-closing-up-gen-leaf-handler-proofᵀ :
     ((M′ ⟨ d′ ⟩) ⟨ u′ ⟩) B B′ q
 paired-lambda-target-closing-up-gen-leaf-handler-proofᵀ
     closing vM noM vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ M⊑M′ qD widening q =
+    d⊒ d′⊒ M⊑M′ qD widening q
+    prefix coherent exclusive wfL h⇑A reveal liftν lift∀ conversion =
   closing vM noM vM′ noM′ inert-d′ inert-u′
     d⊒ d′⊒ M⊑M′ qD widening q
+    prefix h⇑A reveal liftν lift∀ conversion

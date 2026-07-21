@@ -51,5 +51,7 @@ paired-lambda-target-closing-continuation-from-view-frame-closing-proofᵀ :
   PairedLambdaTargetClosingContinuationFromViewᵀ →
   SourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingᵀ
 paired-lambda-target-closing-continuation-from-view-frame-closing-proofᵀ
-    close prefix h⇑A reveal liftν lift∀ view conversion =
-  close view pending-refl prefix h⇑A reveal liftν lift∀ conversion
+    close prefix coherent exclusive wfL h⇑A reveal liftν lift∀
+    view conversion =
+  close view pending-refl prefix coherent exclusive wfL
+    h⇑A reveal liftν lift∀ conversion

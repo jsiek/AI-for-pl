@@ -95,11 +95,11 @@ interpret-paired-lambda-target-closing-frames handlers target-frame
   initial
 interpret-paired-lambda-target-closing-frames handlers target-frame
     leaf initial (frame-prefix frames prefix _ _) =
-  λ prefix′ h⇑A reveal liftν lift∀ conversion →
+  λ prefix′ coherent exclusive wfL h⇑A reveal liftν lift∀ conversion →
     interpret-paired-lambda-target-closing-frames handlers target-frame
       leaf initial frames
       (store-imp-prefix-transⁱ prefix prefix′)
-      h⇑A reveal liftν lift∀ conversion
+      coherent exclusive wfL h⇑A reveal liftν lift∀ conversion
 interpret-paired-lambda-target-closing-frames handlers target-frame
     leaf initial (frame-cast⊒⊑ frames mode seal★ c⊒ r) =
   handle-frame-cast⊒⊑ handlers
@@ -260,6 +260,7 @@ paired-lambda-target-closing-frame-closing-proofᵀ :
   PairedLambdaTargetClosingFrameClosingTargetFrameᵀ →
   SourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingᵀ
 paired-lambda-target-closing-frame-closing-proofᵀ
-    handlers target-frame prefix h⇑A reveal liftν lift∀ view conversion =
+    handlers target-frame prefix coherent exclusive wfL
+    h⇑A reveal liftν lift∀ view conversion =
   interpret-paired-lambda-target-closing-view handlers target-frame view
-    prefix h⇑A reveal liftν lift∀ conversion
+    prefix coherent exclusive wfL h⇑A reveal liftν lift∀ conversion

@@ -90,31 +90,36 @@ paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
 paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
     cycle core {q = ν occ-q q-body} {r = ν occ-r r-body}
     inner view (s C.↦ t) (CV.reveal-fun s↓ t↑)
-    prefix h⇑A final-reveal liftν lift∀ conversion =
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion =
   ⊥-elim (cycle occ-r conversion)
 paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
     cycle core {q = ∀ⁱ q-body} {r = ∀ⁱ r-body}
     inner view (C.`∀ d) (CV.reveal-all reveal)
-    prefix h⇑A final-reveal liftν lift∀ conversion =
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion =
   core inner view (target-reveal-all-∀∀ reveal)
-    prefix h⇑A final-reveal liftν lift∀
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
     (paired-lambda-target-closing-paired-all-conversion-viewᵀ
       conversion)
 paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
     cycle core {q = ∀ⁱ q-body} {r = ν occ-r r-body}
     inner view (C.`∀ d) (CV.reveal-all reveal)
-    prefix h⇑A final-reveal liftν lift∀ conversion =
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion =
   ⊥-elim (cycle occ-r conversion)
 paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
     cycle core {q = ν occ-q q-body} {r = ∀ⁱ r-body}
     inner view (C.`∀ d) (CV.reveal-all reveal)
-    prefix h⇑A final-reveal liftν lift∀ conversion =
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion =
   core inner view (target-reveal-all-ν∀ reveal)
-    prefix h⇑A final-reveal liftν lift∀
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
     (paired-lambda-target-closing-paired-all-conversion-viewᵀ
       conversion)
 paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
     cycle core {q = ν occ-q q-body} {r = ν occ-r r-body}
     inner view (C.`∀ d) (CV.reveal-all reveal)
-    prefix h⇑A final-reveal liftν lift∀ conversion =
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion =
   ⊥-elim (cycle occ-r conversion)

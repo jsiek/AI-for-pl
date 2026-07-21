@@ -34,6 +34,7 @@ open import NuTermImprecision using
   ; rightStoreⁱ
   ; store-left
   )
+open import NuStore using (StoreWf)
 open import NuTerms using
   ( No•
   ; Term
@@ -58,9 +59,13 @@ open import Types using
   ; ⟰ᵗ
   )
 open import proof.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef
   using (PairedLambdaTargetClosingFrameClosingMotive)
+open import proof.NuImprecisionWorldCoherenceDef using
+  (WorldCoherent)
 
 
 PairedLambdaTargetClosingSourceGenFrameStructuralRevealClosingᵀ : Set₁
@@ -87,6 +92,9 @@ PairedLambdaTargetClosingSourceGenFrameStructuralRevealClosingᵀ =
   PairedLambdaTargetClosingFrameClosingMotive ρ₀
     V N′ F (`∀ B′) q →
   StoreImpPrefix ρ₀ ρ →
+  WorldCoherent ρ →
+  SourceNameExclusive Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
   RevealConversion (C.extᵈ θ) (suc (suc Δᴸ))
     (⟰ᵗ (leftStoreⁱ

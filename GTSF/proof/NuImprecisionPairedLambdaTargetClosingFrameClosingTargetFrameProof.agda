@@ -39,25 +39,45 @@ paired-lambda-target-closing-frame-closing-target-frame-proofᵀ :
 paired-lambda-target-closing-frame-closing-target-frame-proofᵀ
     target-reveal target-conceal target-narrowing target-widening
     target-id-only-widening inner view inert
-    (inj₁ (_ , _ , _ , reveal)) =
+    (inj₁ (_ , _ , _ , reveal))
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion =
   target-reveal inner view inert reveal
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion
 paired-lambda-target-closing-frame-closing-target-frame-proofᵀ
     target-reveal target-conceal target-narrowing target-widening
     target-id-only-widening inner view inert
-    (inj₂ (inj₁ (_ , _ , _ , conceal))) =
+    (inj₂ (inj₁ (_ , _ , _ , conceal)))
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion =
   target-conceal inner view inert conceal
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion
 paired-lambda-target-closing-frame-closing-target-frame-proofᵀ
     target-reveal target-conceal target-narrowing target-widening
     target-id-only-widening inner view inert
-    (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , narrowing)))) =
+    (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , narrowing))))
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion =
   target-narrowing inner view inert mode seal★ narrowing
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion
 paired-lambda-target-closing-frame-closing-target-frame-proofᵀ
     target-reveal target-conceal target-narrowing target-widening
     target-id-only-widening inner view inert
-    (inj₂ (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , widening))))) =
+    (inj₂ (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , widening)))))
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion =
   target-widening inner view inert mode seal★ widening
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion
 paired-lambda-target-closing-frame-closing-target-frame-proofᵀ
     target-reveal target-conceal target-narrowing target-widening
     target-id-only-widening inner view inert
-    (inj₂ (inj₂ (inj₂ (inj₂ (seal★ , widening))))) =
+    (inj₂ (inj₂ (inj₂ (inj₂ (seal★ , widening)))))
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion =
   target-id-only-widening inner view inert seal★ widening
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion

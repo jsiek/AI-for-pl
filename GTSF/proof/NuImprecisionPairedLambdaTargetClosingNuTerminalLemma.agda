@@ -22,7 +22,9 @@ open import
 paired-lambda-target-closing-ν-terminal-lemmaᵀ :
   PairedLambdaTargetClosingNuTerminalᵀ
 paired-lambda-target-closing-ν-terminal-lemmaᵀ
-    {r = r} vW noW vW′ noW′ W⊑W′ prefix h⇑A reveal liftν lift∀ conversion =
+    {r = r} vW noW vW′ noW′ W⊑W′ prefix coherent exclusive wfL
+    h⇑A reveal liftν lift∀ conversion =
   paired-lambda-target-closing-ν-terminal-proofᵀ
     paired-universal-conversion-fresh-path-cycle-lemmaᵀ
-    {r = r} vW noW vW′ noW′ W⊑W′ prefix h⇑A reveal liftν lift∀ conversion
+    {r = r} vW noW vW′ noW′ W⊑W′ prefix coherent exclusive wfL
+    h⇑A reveal liftν lift∀ conversion

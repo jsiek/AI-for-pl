@@ -44,9 +44,10 @@ paired-lambda-target-closing-lambda-lambda-leaf-structural-conceal-closing-from-
 paired-lambda-target-closing-lambda-lambda-leaf-structural-conceal-closing-from-all-conversion-proofᵀ
     closing liftΛ liftγ vV noV vV′ noV′ V⊑V′
     {q = q}
-    prefix h⇑Aν final-reveal liftν lift∀ corresponds
+    prefix coherent exclusive wfL h⇑Aν final-reveal liftν lift∀
+    corresponds
     source-conceal target-conceal =
-  closing {q = q} h⇑Aν final-reveal liftν lift∀
+  closing {q = q} coherent exclusive wfL h⇑Aν final-reveal liftν lift∀
     lambda-value lambda-no-bullet
     lambda-value′ lambda-no-bullet′
     (paired-conceal corresponds

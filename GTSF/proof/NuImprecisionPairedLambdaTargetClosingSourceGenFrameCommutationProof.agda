@@ -32,16 +32,16 @@ paired-lambda-target-closing-source-gen-frame-commutation-proofᵀ :
 paired-lambda-target-closing-source-gen-frame-commutation-proofᵀ
     reveal-closing conceal-closing
     vV noV vN′ noN′ relation framed inner
-    prefix h⇑A final-reveal liftν lift∀
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
     (paired-reveal corr source-reveal target-reveal) =
   reveal-closing vV noV vN′ noN′ relation framed inner
-    prefix h⇑A final-reveal liftν lift∀ corr
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀ corr
     source-reveal target-reveal
 paired-lambda-target-closing-source-gen-frame-commutation-proofᵀ
     reveal-closing conceal-closing
     vV noV vN′ noN′ relation framed inner
-    prefix h⇑A final-reveal liftν lift∀
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
     (paired-conceal corr source-conceal target-conceal) =
   conceal-closing vV noV vN′ noN′ relation framed inner
-    prefix h⇑A final-reveal liftν lift∀ corr
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀ corr
     source-conceal target-conceal

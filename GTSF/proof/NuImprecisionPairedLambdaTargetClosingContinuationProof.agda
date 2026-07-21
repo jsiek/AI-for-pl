@@ -260,6 +260,8 @@ paired-lambda-target-closing-continuation-proofᵀ :
   PairedLambdaTargetClosingContinuationHandlers →
   SourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingᵀ
 paired-lambda-target-closing-continuation-proofᵀ
-    handlers prefix h⇑A reveal liftν lift∀ view conversion =
+    handlers prefix coherent exclusive wfL
+    h⇑A reveal liftν lift∀ view conversion =
   interpret-paired-lambda-target-closing-continuation-view handlers view
-    pending-refl prefix h⇑A reveal liftν lift∀ conversion
+    pending-refl prefix coherent exclusive wfL
+    h⇑A reveal liftν lift∀ conversion

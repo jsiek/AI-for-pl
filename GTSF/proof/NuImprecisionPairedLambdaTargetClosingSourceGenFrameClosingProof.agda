@@ -78,7 +78,9 @@ paired-lambda-target-closing-source-gen-frame-closing-proofᵀ :
   PairedLambdaTargetClosingFrameClosingMotive ρ
     (V ⟨ C.gen (`∀ F) c ⟩) N′ B (`∀ B′) (∀ⁱ r)
 paired-lambda-target-closing-source-gen-frame-closing-proofᵀ
-    commutation {r = r} inner view mode seal★ hA occ c⊢ cⁿ =
+    commutation {r = r} inner view mode seal★ hA occ c⊢ cⁿ
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion =
   commutation
     (paired-lambda-target-closing-frame-view-source-value view)
     (paired-lambda-target-closing-frame-view-source-no-bullet view)
@@ -88,5 +90,7 @@ paired-lambda-target-closing-source-gen-frame-closing-proofᵀ
     (cast⊒⊑ᵀ mode seal★ (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
       relation (∀ⁱ r))
     inner
+    prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
+    conversion
   where
   relation = paired-lambda-target-closing-frame-view-relation view

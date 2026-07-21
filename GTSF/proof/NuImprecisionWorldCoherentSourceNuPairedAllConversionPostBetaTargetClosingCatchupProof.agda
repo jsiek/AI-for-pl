@@ -208,7 +208,7 @@ private
       (ok-⟨⟩ (ok-⟨⟩ (ok-• vV noV)))
       (vV′ ⟨ C.`∀ _ ⟩)
       (no•-⟨⟩ noV′)
-      (all-relation h⇑A inner liftν lift∀
+      (all-relation coherent exclusive wfL h⇑A inner liftν lift∀
         vV noV vV′ noV′ conversion V⊑V′)
 
   dispatch-post-beta-target-closing
@@ -264,7 +264,7 @@ private
       (ok-⟨⟩ (ok-⟨⟩ (ok-• vV noV)))
       (vV′ ⟨ C.`∀ _ ⟩)
       (no•-⟨⟩ noV′)
-      (all-relation h⇑A inner liftν lift∀
+      (all-relation coherent exclusive wfL h⇑A inner liftν lift∀
         vV noV vV′ noV′ conversion V⊑V′)
 
 

@@ -21,5 +21,6 @@ paired-lambda-target-closing-ν-terminal-proofᵀ :
   PairedUniversalConversionFreshPathCycleᵀ →
   PairedLambdaTargetClosingNuTerminalᵀ
 paired-lambda-target-closing-ν-terminal-proofᵀ cycle
-    vW noW vW′ noW′ W⊑W′ prefix h⇑A reveal liftν lift∀ conversion =
+    vW noW vW′ noW′ W⊑W′ prefix coherent exclusive wfL h⇑A
+    reveal liftν lift∀ conversion =
   ⊥-elim (cycle _ conversion)

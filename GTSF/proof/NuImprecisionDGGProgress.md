@@ -392,7 +392,7 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda) | completed hard classifier | Exhaustive strict mutual recursion over ordinary and quotiented QTI derivations constructs exactly the proof-relevant leaves and frames, including recursive classification below outer-`∀ⁱ` generic narrowing; no `Lemma` wrapper is needed because the proof has no theorem dependency |
 | [`NuImprecisionPairedLambdaTargetClosingFrameViewProperties.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProperties.agda) | completed GPT 5.5 structural leaf | Strict recursion reconstructs the exact QTI relation and projects source/target `Value` and `No•` evidence from the proof-relevant view; no wrapper or theorem dependency is needed |
 | [`NuImprecisionStoreCorrespondenceLift.agda`](NuImprecisionStoreCorrespondenceLift.agda) | completed GPT 5.5 structural support | Canonical owner of weakening and matched, left-only, and right-only store-lift transport for `StoreCorresponds`; duplicate private copies were removed from both world-coherence consumers |
-| [`NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda) | completed corrected higher-order interface | Strict post-bullet motive and thirteen semantic handler contracts, including recursive outer-`∀ⁱ` generic narrowing; every non-leaf handler receives both the recursive motive and exact inner frame view, preserving the raw QTI and endpoint evidence needed for bullet commutation |
+| [`NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda) | completed strengthened higher-order interface | The strict post-bullet motive now attaches `WorldCoherent`, `SourceNameExclusive`, and left `StoreWf` to the exact final ambient world after `StoreImpPrefix`; all active and compatibility handler families forward the invariant triple, while every non-leaf retains the recursive motive and exact inner frame view |
 | [`NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersProof.agda) | completed top-level higher-order assembly; superseded | Constructs all thirteen old-motive handler fields from one rotation theorem plus fourteen exact branch capabilities; it remains a strict fit audit, while the active route now uses pending materialization and direct `FrameView` projection |
 | [`NuImprecisionPairedLambdaTargetClosingPendingTargetFramesDef.agda`](NuImprecisionPairedLambdaTargetClosingPendingTargetFramesDef.agda) | completed corrected continuation boundary | Proof-relevant cons stack of prefix changes and all five target-only frame forms, plus the continuation-indexed closing motive and its reflexive-continuation projection to the original public motive |
 | [`NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationDef.agda`](NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationDef.agda) | completed strict statement and concrete proof | Exposes the independent structural fold over a pending continuation: from the seed target value/no-bullet evidence and quotiented relation, produce the final target value/no-bullet evidence and relation at the final world and precision index; no terminal-closing or semantic-handler dependency is permitted |
@@ -439,8 +439,13 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingProof.agda) | completed higher-order proof; assembly partial | Prefix-transports the `Λ` relation, constructs the source runtime bullet, invokes `NuPairedConversionRotationᵀ`, applies the final reveal, and exactly inhabits `handle-leaf-Λ` |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingDef.agda) | completed fused statement; concrete proof not yet started | Exact matched `Λ`/`Λ` leaf retains the body relation, both allocation lifts, whole paired conversion, and final reveal because the checked counterexample refutes the tempting pre-reveal factorization |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda) | completed corrected constructor statements | Exact paired-reveal and paired-conceal matched-`Λ` leaves retain the body relation, ambient prefix, both lifts, store correspondence, conversion evidence, proof-relevant result index `q`, and final reveal |
-| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda) and [`FromAllConversionProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingFromAllConversionProof.agda) | corrected statement and completed strict fit proof; canonical `Proof`/`Lemma` not yet started | The smallest fused reveal contract now retains `q`; the strategy-named fit proof reconstructs and prefix-transports the matched `Λ` relation and derives the leaf from the shared all-conversion theorem. That dependency is equivalent to the larger recursive root, so the unqualified canonical `Proof` remains absent pending the direct fresh-path argument |
-| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda) and [`FromAllConversionProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingFromAllConversionProof.agda) | corrected statement and completed strict fit proof; canonical `Proof`/`Lemma` not yet started | The conceal counterpart retains `q`, rebuilds the matched `Λ` relation, and packages the double source conceal plus target conceal for the same shared theorem. The unqualified canonical `Proof` remains absent because using that larger theorem here would be circular |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda), [`Proof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingProof.agda), and [`FromAllConversionProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingFromAllConversionProof.agda) | strengthened statement and completed strict higher-order dispatcher; canonical `Lemma` absent | The fused reveal contract retains `q` and consumes final-world coherence, source-name exclusivity, and left store Wf. The direct proof exhaustively reduces it to the structural-all and matched-unseal capabilities. The strategy-named larger-theorem fit still checks but remains circular. |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralAllRevealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralAllRevealClosingDef.agda) | completed hard structural statement; proof not yet started | Exact live source-`reveal-all` family retained by the direct dispatcher, including its inner reveal, target reveal, `q`, both allocation lifts, final reveal, and exact final-world invariant triple. |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingDef.agda) | completed hard-leaf statement; proof not yet started | Exact live reveal base after inversion: both body endpoints are variables at corresponding names, the source correspondence type is universal, both unseals and the final reveal remain fused, and the final ambient world carries coherence, exclusivity, and left store Wf. The body uses `renameᵗ (extᵗ suc) F`, not the inequivalent `⇑ᵗ F`. |
+| `NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingProof.agda` | not yet started | Intended hard proof is parameterized by `SourceSealCancellationᵀ`; it must combine canonical source-variable inversion, exact-world seal cancellation, and the final allocation/reveal relation without inventing a pre-final-reveal source-only index. |
+| `NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingLemma.agda` | not yet started | Canonical assembly will supply [`source-seal-cancellationᵀ`](NuImprecisionSourceSealCancellationLemma.agda) only after the higher-order proof exists and passes independently. |
+| [`NuImprecisionCorrespondingSourceNameNotStarDef.agda`](NuImprecisionCorrespondingSourceNameNotStarDef.agda) | completed leaf statement; GPT 5.5 proof queued | Reusable invariant corollary: a source name participating in `StoreCorresponds` cannot simultaneously have a source-only row. This is the small frozen Ginger work package for the reveal/conceal `tagˣ` contradictions. |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda) and [`FromAllConversionProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingFromAllConversionProof.agda) | strengthened statement and completed strict fit proof; canonical `Proof`/`Lemma` not yet started | The conceal counterpart retains `q` and the same final-world invariant triple. Coherence plus exclusivity closes its rogue source-only/corresponding-name base, but its direct fused mixed-binder final-reveal cycle remains a hard proof dependency; the larger all-conversion route is circular. |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda) | completed strict constructor reductions | Exhaustively reduces both paired-reveal and paired-conceal leaves to their corrected structural contracts and carries the exact result index `q` through the reduction |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda) | completed higher-order dispatcher and handler adapter; assembly partial | Exhaustively derives the fused matched-`Λ` theorem from its paired-reveal/conceal branches and verifies exact `handle-leaf-ΛΛ` fit without a recursive closer or one-sided intermediate |
 | [`NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda) | completed fused statement; assembly partial | Exact quotient gen-down/gen terminal retains the quotient relation, widening pair, source allocation, external paired conversion, and final reveal after its proposed one-size-fits-all pre-reveal rotation was refuted |
@@ -7988,13 +7993,74 @@ coordination.  Use focused strict checks throughout and reserve
 - The attempted matched-`Λ` structural counterexample was discarded: its
   proposed premises were inconsistent because the fresh zero occurrence would
   need both the outer matched row and the new source-only row.  This is positive
-  evidence that the structural contract may already exclude the rogue-world
-  shape.  Reassessing whether the final frame motive needs any additional
-  explicit premise is **in progress**; the strengthened `WorldCoherent`
-  carried by existing boundaries is now semantically meaningful.
+  evidence that the structural contract excludes the rogue-world shape.  The
+  subsequent constructor audit resolved the remaining invariant question:
+  final-world coherence and source-name exclusivity rule out the rogue row,
+  while final left `StoreWf` is additionally required by the surviving matched
+  unseal case to identify the stored source type during seal cancellation.
 
 - A cold-cache `NuDGGStrictSpine.agda` check was stopped after 5.5 minutes with
   no diagnostic.  The focused modules above took roughly 2--17 seconds each
   and supply the integration evidence for this batch.  No `All.agda`, paired
   target-closing aggregate, source-level `--allow-unsolved-metas`, hole, or
   postulate was used.
+
+### 2026-07-21: exact final-world motive and matched-unseal boundary
+
+- Strengthened the central
+  [`PairedLambdaTargetClosingFrameClosingMotive`](NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda)
+  immediately after `StoreImpPrefix ρ₀ ρ` with the three invariants that
+  belong to the exact final ambient world:
+
+      WorldCoherent ρ →
+      SourceNameExclusive Φ →
+      StoreWf Δᴸ (leftStoreⁱ ρ) →
+
+  Coherence alone is not enough in the live matched/matched unseal case.
+  `SourceSealCancellationᵀ` uses store uniqueness to identify the type in the
+  value's source seal with the type exposed by the matched correspondence.
+  Right-store well-formedness is not required because the target unseal remains
+  in the conclusion.
+
+- Propagated the triple through the active all-reveal relation path and every
+  retained compatibility handler family: matched leaves, source generic and
+  source-all frames, target frames, paired conversion, paired widening,
+  quotient up-id/up-gen-all, terminal `ν`, continuation interpretation, and
+  frame interpretation.  The focused
+  [`NuImprecisionPairedTargetClosingStrictSpine.agda`](NuImprecisionPairedTargetClosingStrictSpine.agda)
+  again passes `--no-allow-unsolved-metas`.  This audit used focused leaf and
+  nearest-consumer checks only; it did not run `All.agda` or
+  `NuDGGStrictSpine.agda`.
+
+- Froze the first direct hard base in
+  [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingDef.agda).
+  It retains the matched body relation, exact final world, both unseals, both
+  allocation lifts, the final reveal, and the result index.  Its first strict
+  check exposed an important binder error in the draft contract: opening the
+  body of `∀ F` uses `renameᵗ (extᵗ suc) F`, not `⇑ᵗ F`.  The corrected
+  `Def` passes strictly, so downstream proof work will not silently inherit
+  that false specialization.
+
+- The direct structural-reveal dispatcher is **completed as a strict
+  higher-order proof** in
+  [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingProof.agda).
+  Inversion leaves exactly two genuine capabilities: the matched/matched
+  double-unseal base above and the frozen
+  [`StructuralAllRevealClosingᵀ`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralAllRevealClosingDef.agda)
+  source-`reveal-all` family.  Coherence/exclusivity removes the
+  variable-to-star branch but does not make the structural-all family
+  impossible.  No canonical `Lemma` should be created until both capabilities
+  receive non-circular inhabitants.
+
+- Added the frozen GPT 5.5 leaf statement
+  [`CorrespondingSourceNameNotStarᵀ`](NuImprecisionCorrespondingSourceNameNotStarDef.agda).
+  It packages the small reusable contradiction between `StoreCorresponds`,
+  converse world provenance, source-name exclusivity, and a source-only row.
+  Its `Proof` is the next isolated Ginger work package; its `Lemma` remains not
+  yet started until that remote strict result is reviewed and integrated.
+
+- This batch contains no hole, postulate, incomplete match, source-level
+  permissive option, or use of `--allow-unsolved-metas`.  Each contract and
+  higher-order proof is checked independently before canonical assembly, so a
+  missing invariant or underconstrained instantiation appears in its smallest
+  module rather than in a high-cost aggregate.

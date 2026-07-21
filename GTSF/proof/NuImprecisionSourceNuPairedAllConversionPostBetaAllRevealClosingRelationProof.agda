@@ -29,9 +29,10 @@ source-ν-paired-all-conversion-post-beta-all-reveal-closing-relation-proofᵀ :
   SourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewᵀ →
   SourceNuPairedAllConversionPostBetaAllRevealClosingRelationᵀ
 source-ν-paired-all-conversion-post-beta-all-reveal-closing-relation-proofᵀ
-    ambient-relation h⇑A inner liftν lift∀
+    ambient-relation coherent exclusive wfL h⇑A inner liftν lift∀
     vV noV vV′ noV′ conversion V⊑V′ =
-  ambient-relation prefix-reflⁱ h⇑A inner liftν lift∀
+  ambient-relation prefix-reflⁱ coherent exclusive wfL h⇑A inner
+    liftν lift∀
     vV noV vV′ noV′ source-view target-view conversion V⊑V′
   where
   source-view = left-polymorphic-value-shapeᵀ vV V⊑V′

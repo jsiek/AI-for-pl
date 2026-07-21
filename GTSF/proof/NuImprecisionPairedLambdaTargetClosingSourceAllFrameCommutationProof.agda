@@ -57,12 +57,12 @@ paired-lambda-target-closing-source-all-frame-commutation-proofᵀ
 paired-lambda-target-closing-source-all-frame-commutation-proofᵀ
     rotate-conversion all-closing {d = d} {r = ν occ-r r}
     vW noW vW′ noW′ relation framed inner
-    prefix h⇑A reveal liftν lift∀ conversion
+    prefix coherent exclusive wfL h⇑A reveal liftν lift∀ conversion
     with rotate-conversion h⇑A liftν occ-r conversion
 paired-lambda-target-closing-source-all-frame-commutation-proofᵀ
     rotate-conversion all-closing {d = d} {r = ν occ-r r}
     vW noW vW′ noW′ relation framed inner
-    prefix h⇑A reveal liftν lift∀ conversion
+    prefix coherent exclusive wfL h⇑A reveal liftν lift∀ conversion
     | u , rotated-conversion =
   conv↑⊑ᵀ (reveal-all reveal)
     (conv⊑convᵀ (paired-conversion rotated-conversion)

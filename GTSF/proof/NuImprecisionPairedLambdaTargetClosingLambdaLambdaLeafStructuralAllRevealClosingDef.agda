@@ -1,16 +1,14 @@
 module
-  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef
+  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralAllRevealClosingDef
   where
 
 -- File Charter:
---   * Defines the structural core of the matched-`Λ`/`Λ` paired-reveal
---     closing branch after both universal reveal conversions are inverted.
---   * Retains the matched body relation, source allocation, conversion
---     correspondence, result imprecision index, both inner reveals, and final
---     reveal as one fused step.
---   * Exposes no pre-final-reveal source-only intermediate index.
+--   * Defines the exact live source-`reveal-all` branch of the structural
+--     matched-`Lambda` paired-reveal closing leaf.
+--   * Retains the inner source reveal, target reveal, result imprecision
+--     index, final reveal, allocation lifts, and final-world invariant triple.
 --   * Contains no implementation, postulate, hole, permissive option, broad
---     simulation import, or recursive frame closer.
+--     simulation import, recursive closer, or alias-only proof obligation.
 
 import Coercions as C
 open import Coercions using (Coercion; ModeEnv)
@@ -25,6 +23,7 @@ open import ImprecisionWf using
   ; ⇑ᴸᵢ
   ; _∣_⊢_⊑_⊣_
   )
+open import NuStore using (StoreWf)
 open import NuTermImprecision using
   ( CtxImp
   ; LiftCtxⁱ
@@ -36,7 +35,6 @@ open import NuTermImprecision using
   ; rightStoreⁱ
   ; store-left
   )
-open import NuStore using (StoreWf)
 open import NuTerms using
   ( No•
   ; Term
@@ -68,9 +66,9 @@ open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 
 
-PairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingᵀ :
+PairedLambdaTargetClosingLambdaLambdaLeafStructuralAllRevealClosingᵀ :
   Set₁
-PairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingᵀ =
+PairedLambdaTargetClosingLambdaLambdaLeafStructuralAllRevealClosingᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ : StoreImp Φ Δᴸ Δᴿ}
     {ρΛ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
@@ -79,19 +77,19 @@ PairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingᵀ =
       (suc Δᴸ) (suc Δᴿ)}
     {V V′ : Term} {A B : Ty}
     {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ A ⊑ B ⊣ suc Δᴿ} →
+      ∣ suc Δᴸ ⊢ `∀ A ⊑ B ⊣ suc Δᴿ} →
   LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ₀ ρΛ →
   LiftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) [] γΛ →
   Value V → No• V → Value V′ → No• V′ →
   ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
     ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρΛ ∣ γΛ
-    ⊢ᴺ V ⊑ V′ ⦂ A ⊑ B ∶ r →
+    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ B ∶ r →
   ∀ {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       (suc Δᴸ) (suc Δᴿ)}
-    {Aν C′ D E X X′ : Ty} {c c′ t : Coercion}
+    {Aν C′ D E X X′ : Ty} {c′ s t : Coercion}
     {η η′ μ : ModeEnv} {α β : TyVar}
     {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ `∀ D ⊑ `∀ C′ ⊣ Δᴿ}
@@ -110,13 +108,15 @@ PairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingᵀ =
   LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρν →
   LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ∀ →
   StoreCorresponds ρ α X β X′ pX →
-  RevealConversion (C.extᵈ η) (suc Δᴸ) (⟰ᵗ (leftStoreⁱ ρ))
-    (suc α) (⇑ᵗ X) c A (`∀ E) →
-  RevealConversion (C.extᵈ η′) (suc Δᴿ) (⟰ᵗ (rightStoreⁱ ρ))
+  RevealConversion (C.extᵈ (C.extᵈ η)) (suc (suc Δᴸ))
+    (⟰ᵗ (⟰ᵗ (leftStoreⁱ ρ)))
+    (suc (suc α)) (⇑ᵗ (⇑ᵗ X)) s A E →
+  RevealConversion (C.extᵈ η′) (suc Δᴿ)
+    (⟰ᵗ (rightStoreⁱ ρ))
     (suc β) (⇑ᵗ X′) c′ B C′ →
   ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
     ∣ suc Δᴸ ∣ Δᴿ ∣
       store-left zero (⇑ᵗ Aν) h⇑Aν ∷ ρν ∣ []
-    ⊢ᴺ (((⇑ᵗᵐ (Λ V)) •) ⟨ c ⟩) ⟨ C.`∀ t ⟩
+    ⊢ᴺ (((⇑ᵗᵐ (Λ V)) •) ⟨ C.`∀ s ⟩) ⟨ C.`∀ t ⟩
       ⊑ (Λ V′) ⟨ C.`∀ c′ ⟩
       ⦂ ⇑ᵗ (`∀ D) ⊑ `∀ C′ ∶ ⊑-source-liftνᵢ p

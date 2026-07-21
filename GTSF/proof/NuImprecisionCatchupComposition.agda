@@ -10,11 +10,12 @@ open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([]; _∷_)
 import Relation.Binary.HeterogeneousEquality as HE
 
-open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
+open import ImprecisionWf using (_∣_⊢_⊑_⊣_; ∀ⁱ_)
 open import NuReduction using
   (keep; _—→[_]_; ↠-refl; ↠-step)
 open import NuTermImprecision using (StoreImp)
 open import QuotientedTermImprecision
+open import Types using (`∀)
 open import proof.NuImprecisionSimulationCore
 open import proof.NuImprecisionSimulationResultDef
 
@@ -166,6 +167,33 @@ left-catchup-indexed-prepend-keepᵀ source→
         (left-silent-invariant refl refl) final)
       second-transport second-coherence) =
   left-indexed-catchup
+    (weak-indexed-result combined (canonicalIndexedResults indexed))
+    (left-catchup-invariant
+      (left-silent-invariant refl refl) final)
+    (weak-one-step-prepend-source-keep-transportᵀ
+      source→ second second-transport)
+    (weak-one-step-prepend-source-keep-type-coherenceᵀ
+      source→ second second-coherence)
+  where
+  second = weakIndexedResult indexed
+  combined = weak-one-step-prepend-source-keepᵀ source→ second
+
+left-catchup-indexed-all-prepend-keepᵀ :
+  ∀ {Φ Δᴸ Δᴿ M N V′ C C′ q}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  (source→ : M —→[ keep ] N) →
+  (N⊑V′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+    ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q) →
+  LeftCatchupIndexedAllResult
+    {N = N} {V′ = V′} {ρ = ρ} q →
+  LeftCatchupIndexedAllResult
+    {N = M} {V′ = V′} {ρ = ρ} q
+left-catchup-indexed-all-prepend-keepᵀ source→ N⊑V′
+    (left-indexed-all-catchup indexed
+      (left-catchup-invariant
+        (left-silent-invariant refl refl) final)
+      second-transport second-coherence) =
+  left-indexed-all-catchup
     (weak-indexed-result combined (canonicalIndexedResults indexed))
     (left-catchup-invariant
       (left-silent-invariant refl refl) final)

@@ -129,7 +129,10 @@ Use checks in three tiers:
 
 1. Every worker checks only its owned module.
 2. The integrator checks the nearest focused consumer after batching worker
-   results.
+   results.  For the paired-index source-allocation and target-closing
+   architecture, use
+   `proof/NuImprecisionPairedTargetClosingStrictSpine.agda` as the focused
+   integration target.
 3. `proof/NuDGGStrictSpine.agda` and `All.agda` are milestone checks, not
    per-worker or per-commit checks.
 

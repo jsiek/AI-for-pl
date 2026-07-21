@@ -122,6 +122,11 @@ pipe open after the prompt has been delivered and appear to hang.  Prefer the
 argument form above for coordinator-launched workers; reserve `-` for a prompt
 that is actually being supplied on standard input.
 
+Treat `Reading additional input from stdin...` as a launch failure, not worker
+progress: the model has not received the task yet.  Send EOF (for example,
+Ctrl-D in an attached PTY) or relaunch with `</dev/null`.  Coordinator tooling
+should normally use the documented redirection and avoid an interactive PTY.
+
 Do not replace this with bare `codex exec -s workspace-write`.  Agda stores
 standard-library interfaces under the installed library's `_build` directory,
 which is outside a worker worktree.  A workspace-only Codex sandbox can read

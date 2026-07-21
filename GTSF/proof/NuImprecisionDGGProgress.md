@@ -392,6 +392,8 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda) | completed corrected higher-order interpreter; handler assembly partial | Strict structural recursion carries the original leaf, supplies the exact inner view at every frame boundary, delegates twelve semantic cases and the shared target-frame capability, composes ambient prefixes, and splits paired conversion from paired widening |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaConversionRotationDef.agda) | completed hard dependency statement; proof not yet started | Exact matched-`Λ`/`Λ` source-allocation naturality kernel returns the pre-final-reveal rotated relation and isolates the remaining paired-conversion renaming foundation |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda) | completed higher-order leaf proof; assembly partial | Consumes the whole rotation theorem and performs the final structural reveal with the exact source-lifted index; no `Lemma` exists until rotation is proved |
+| [`NuImprecisionPairedLambdaTargetClosingUpGenConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingUpGenConversionRotationDef.agda) | completed hard dependency statement; proof not yet started | Exact quotient gen-down/gen source-allocation rotation retains both quotient casts and returns the pre-final-reveal relation at an existential intermediate index |
+| [`NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof.agda) | completed higher-order leaf proof; assembly partial | Consumes the whole quotient/gen rotation theorem and performs the final structural reveal at the exact source-lifted index; no `Lemma` exists until rotation is proved |
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda) | completed semantic statement; higher-order proof completed; assembly partial | Exact fused closer over one proof-relevant frame view; retains the ambient prefix, paired conversion, both allocation lifts, final reveal, and exact conclusion |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda) | completed statement; proof not yet started | Fused active fresh-unseal operational boundary; recursive cancellation and target closing remain inseparable |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda) | completed statement; proof not yet started | Whole paired-widening target-closing family retaining both modes, store sealing invariants, typed casts, and `PairedWideningCompatible` |
@@ -7130,3 +7132,13 @@ coordination.  Use focused strict checks throughout and reserve
   The source-all worktree remained clean.  The target-frame worker's single
   scratch file was removed because it contained only diagnostic holes.  Both
   packages should be relaunched only from the corrected frozen interface.
+
+- The hard quotient gen-down/gen terminal has the same two-stage shape as the
+  matched-binder terminal.  Its exact pre-reveal obligation now lives in
+  [`NuImprecisionPairedLambdaTargetClosingUpGenConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingUpGenConversionRotationDef.agda),
+  retaining the complete quotient leaf, ambient prefix, both allocation lifts,
+  and external paired conversion.  The completed strict adapter in
+  [`NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof.agda)
+  consumes that rotation and adds only the final structural reveal.  Both
+  focused checks pass with unsolved metas disabled; the rotation implementation
+  and canonical leaf assembly are explicitly not yet started.

@@ -23,6 +23,10 @@ import
 import
   proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof
 import
+  proof.NuImprecisionPairedLambdaTargetClosingUpGenConversionRotationDef
+import
+  proof.NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof
+import
   proof.NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationDef
 import
   proof.NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewProof

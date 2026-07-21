@@ -26,6 +26,8 @@ import proof.NuImprecisionWorldCoherentResultDef
 import proof.NuImprecisionWorldCoherentOneStepDef
 import proof.NuImprecisionWorldCoherentValueCatchupDef
 import proof.NuImprecisionTargetSealCancellationDef
+import proof.NuImprecisionTargetSealCancellationProof
+import proof.NuImprecisionTargetSealCancellationLemma
 import proof.NuDGGTraceAlignment
 import proof.NuDGGTraceMeasure
 import proof.NuDGGWeakResultPreservation

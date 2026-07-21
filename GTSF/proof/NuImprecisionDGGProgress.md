@@ -328,8 +328,8 @@ are delegated:
 | [`NuDGGTerminalBackwardValueWorldCoherentDef.agda`](NuDGGTerminalBackwardValueWorldCoherentDef.agda) | completed statement | Arbitrary-world backward-value terminal contract with the necessary initial `WorldCoherent` premise; the closed public conclusion is unchanged |
 | [`NuDGGTerminalBackwardValueWorldCoherentProof.agda`](NuDGGTerminalBackwardValueWorldCoherentProof.agda) | completed proof | Hole-free higher-order fuel induction from the world-coherent one-step and value-catch-up contracts; passes a strict focused check without live implementations |
 | [`NuImprecisionTargetSealCancellationDef.agda`](NuImprecisionTargetSealCancellationDef.agda) | completed statement | Exact terminal target-seal cancellation contract with world coherence, target-store well-formedness, physical membership, value/no-bullet facts, and explicit old/new indices |
-| [`NuImprecisionTargetSealCancellationProof.agda`](NuImprecisionTargetSealCancellationProof.agda) | in progress | The main ambient-prefix cases are implemented, but the local focused consumer check exposed missing impossible value/cast clauses and two unresolved mode metas; it remains outside the strict surface |
-| [`NuImprecisionTargetSealCancellationLemma.agda`](NuImprecisionTargetSealCancellationLemma.agda) | not yet promoted | Canonical assembly exists, but cannot enter the strict surface until the structural proof passes its focused consumer check |
+| [`NuImprecisionTargetSealCancellationProof.agda`](NuImprecisionTargetSealCancellationProof.agda) | completed proof | Hard quotient/value inversion with ambient-prefix recursion; source seals recurse via exact correspondence, target-only seals strip, paired conceal becomes source-only conceal, allocation prefixes rebuild, and all incompatible cast/value forms are eliminated exhaustively |
+| [`NuImprecisionTargetSealCancellationLemma.agda`](NuImprecisionTargetSealCancellationLemma.agda) | completed lemma | Canonical inhabitant of `TargetSealCancellationᵀ`; its focused assembly check passes without importing the dispatcher or catch-up implementation |
 | [`NuImprecisionTargetBlameCatchup.agda`](NuImprecisionTargetBlameCatchup.agda) | completed | Hole-free structural target-blame catch-up, including source allocation and all four source cast/conversion tails |
 | [`NuImprecisionCatchupSourceCastTerminal.agda`](NuImprecisionCatchupSourceCastTerminal.agda) | completed | Two arbitrary-type terminal frame lemmas for source cast-to-blame and source inert-cast outcomes |
 | [`NuImprecisionQuotientInstView.agda`](NuImprecisionQuotientInstView.agda) | completed | Exhaustive quotient-instantiation spine view exposing only sound structural witnesses |
@@ -5805,11 +5805,12 @@ catch-up architecture.
   `Proof` uses ambient-prefix recursion: source seals obtain exact
   correspondence from `WorldCoherent`, target-only seals use atomic
   reindexing, paired conceal retains only its source conceal, and allocation
-  prefixes rebuild after target typing inversion.  The local focused consumer
-  check then exposed missing impossible value/cast clauses and two unresolved
-  mode metas, so `Proof` and `Lemma` remain in progress and outside the strict
-  aggregate.  The split still keeps the live
-  target-conversion dispatcher out of both `Def` and `Proof`, so the hard
+  prefixes rebuild after target typing inversion.  The first local consumer
+  check exposed missing impossible value/cast clauses and two unresolved mode
+  metas; an exhaustive follow-up eliminated the incompatible target widening,
+  paired reveal/widening, and inert-source cases and fixed the modes explicitly.
+  The exact `Lemma` consumer and strict checks now pass.  The split keeps the
+  live target-conversion dispatcher out of both `Def` and `Proof`, so the hard
   theorem is checked without inheriting that file's
   `--allow-unsolved-metas`.
 

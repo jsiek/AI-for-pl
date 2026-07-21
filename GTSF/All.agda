@@ -53,6 +53,8 @@ import proof.NuImprecisionWorldCoherentResultDef
 import proof.NuImprecisionWorldCoherentOneStepDef
 import proof.NuImprecisionWorldCoherentValueCatchupDef
 import proof.NuImprecisionTargetSealCancellationDef
+import proof.NuImprecisionTargetSealCancellationProof
+import proof.NuImprecisionTargetSealCancellationLemma
 import proof.NuImprecisionSimulationCore
 import proof.NuImprecisionSimulation
 import proof.NuImprecisionCatchupScratch

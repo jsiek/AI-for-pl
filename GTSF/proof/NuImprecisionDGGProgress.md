@@ -331,6 +331,14 @@ are delegated:
 | [`NuDGGTerminalForwardMilestone.agda`](NuDGGTerminalForwardMilestone.agda) | completed high-cost milestone boundary | Imports the public compiler/DGG integration proof separately so routine forward checks remain small. |
 | [`NuImprecisionWorldCoherentSourceOneStepCasesDef.agda`](NuImprecisionWorldCoherentSourceOneStepCasesDef.agda) | completed statement | Record of the nine exact source reduction-family capabilities, each retaining the full ambient-prefix invariant package. |
 | [`NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda) | completed higher-order proof | Exhaustive split on all source store-step constructors, proving that the nine capabilities suffice for the prefix engine and hence public DGG. |
+| [`NuImprecisionWorldCoherentSourceAllocationStepDef.agda`](NuImprecisionWorldCoherentSourceAllocationStepDef.agda) | completed statement; proof not started | Canonical source allocation-step boundary with the exact `bind` change and post-allocation term. |
+| [`NuImprecisionWorldCoherentSourceApplicationLeftStepDef.agda`](NuImprecisionWorldCoherentSourceApplicationLeftStepDef.agda) | completed statement; proof not started | Canonical source application-left congruence boundary. |
+| [`NuImprecisionWorldCoherentSourceApplicationRightStepDef.agda`](NuImprecisionWorldCoherentSourceApplicationRightStepDef.agda) | completed statement; proof not started | Canonical source application-right congruence boundary. |
+| [`NuImprecisionWorldCoherentSourceCastFrameStepDef.agda`](NuImprecisionWorldCoherentSourceCastFrameStepDef.agda) | completed statement; proof not started | Canonical source cast congruence boundary with coercion action under the source store change. |
+| [`NuImprecisionWorldCoherentSourceNuFrameStepDef.agda`](NuImprecisionWorldCoherentSourceNuFrameStepDef.agda) | completed statement; proof not started | Canonical source `ν` congruence boundary with type/coercion action under the binder. |
+| [`NuImprecisionWorldCoherentSourceNuBlameStepDef.agda`](NuImprecisionWorldCoherentSourceNuBlameStepDef.agda) | completed statement; proof ready for delegation | Canonical source `ν`-blame boundary, expected to adapt the completed shared blame root. |
+| [`NuImprecisionWorldCoherentSourcePrimitiveLeftStepDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveLeftStepDef.agda) | completed statement; proof not started | Canonical source primitive-left congruence boundary. |
+| [`NuImprecisionWorldCoherentSourcePrimitiveRightStepDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveRightStepDef.agda) | completed statement; proof not started | Canonical source primitive-right congruence boundary. |
 | [`NuImprecisionWorldCoherentSourcePureStepCasesDef.agda`](NuImprecisionWorldCoherentSourcePureStepCasesDef.agda) | completed statement | Replaces the opaque pure-step capability with four major source-shape families carrying the full ambient-prefix and exact-result contract. |
 | [`NuImprecisionWorldCoherentSourcePureStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourcePureStepDispatcherProof.agda) | completed higher-order proof | Exhaustively routes all 18 pure reductions through the application, runtime-bullet, cast/conversion, or primitive family. |
 | [`NuImprecisionWorldCoherentSourceApplicationPureRootDef.agda`](NuImprecisionWorldCoherentSourceApplicationPureRootDef.agda) | completed statement; proof not started | Canonical ambient-prefix statement for every source application pure root. |
@@ -8483,6 +8491,16 @@ coordination.  Use focused strict checks throughout and reserve
   pure-root obligation independently discoverable and give each one a stable
   future `Proof`/`Lemma` path.  The aggregate record and its exhaustive
   18-root dispatcher still pass strict focused checks.
+
+- Promoted all eight non-pure members of the nine-way source one-step record
+  to canonical statement modules: allocation, both application congruences,
+  cast congruence, `ν` congruence and blame, and both primitive congruences.
+  [`WorldCoherentSourceOneStepCases`](NuImprecisionWorldCoherentSourceOneStepCasesDef.agda)
+  is now a small aggregate over nine independently checkable major concepts
+  rather than a 244-line owner of eight inline theorem statements.  Its
+  focused strict check passes in 4.6 seconds and the exhaustive source-step
+  dispatcher in 3.9 seconds.  This also exposes the `ν`-blame adapter as a
+  small next Ginger work package.
 
 - No `All.agda`, `NuDGGStrictSpine.agda`, hole, postulate, incomplete match,
   or source-level permissive option was used in this organization batch.

@@ -386,7 +386,9 @@ are delegated:
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationProof.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationProof.agda) | completed higher-order proof; assembly partial | Strictly derives both `AllView`s, starts the ambient worker at `prefix-reflⁱ`, and delegates the unchanged fused relation; the relation-recursive ambient worker and canonical `Lemma` remain not yet started |
 | [`NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda) | completed proof-relevant statement | Strict joint view of the QTI derivation with binder and generic-narrowing leaves, structural source frames, generic target frames, atomic paired frames, and atomic quotient frames; it contains no fabricated one-sided relation |
 | [`NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda) | completed hard classifier | Exhaustive strict mutual recursion over ordinary and quotiented QTI derivations constructs exactly the proof-relevant leaves and frames; no `Lemma` wrapper is needed because the proof has no theorem dependency |
-| [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda) | completed semantic statement; proof not yet started | Exact fused closer over one proof-relevant frame view; retains the ambient prefix, paired conversion, both allocation lifts, final reveal, and exact conclusion |
+| [`NuImprecisionPairedLambdaTargetClosingFrameViewProperties.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProperties.agda) | completed GPT 5.5 structural leaf | Strict recursion reconstructs the exact QTI relation and projects source/target `Value` and `No•` evidence from the proof-relevant view; no wrapper or theorem dependency is needed |
+| [`NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda) | completed higher-order interface | Strict post-bullet motive and twelve semantic handler contracts: four leaves, four source-all frames, paired conversion, paired widening, and two quotient frames; administrative prefix and target-only frames stay in the interpreter |
+| [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda) | completed semantic statement; higher-order proof in progress | Exact fused closer over one proof-relevant frame view; retains the ambient prefix, paired conversion, both allocation lifts, final reveal, and exact conclusion |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda) | completed statement; proof not yet started | Fused active fresh-unseal operational boundary; recursive cancellation and target closing remain inseparable |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda) | completed statement; proof not yet started | Whole paired-widening target-closing family retaining both modes, store sealing invariants, typed casts, and `PairedWideningCompatible` |
 | [`NuImprecisionWorldCoherentTargetInertFrameCatchupDef.agda`](NuImprecisionWorldCoherentTargetInertFrameCatchupDef.agda) | completed statement | One reusable strict target-frame contract with an inline five-way evidence sum for reveal, conceal, narrowing, widening, and id-only widening |
@@ -7059,3 +7061,23 @@ coordination.  Use focused strict checks throughout and reserve
   seconds in the worker and 2.5 seconds from the updated local cache.  Since
   this classifier has no incomplete theorem dependency, it is itself the
   canonical inhabitant and needs no separate `Lemma` wrapper.
+
+- Integrated the first leaf downstream of that classifier from a separate
+  GPT 5.5 Ginger worktree in
+  [`NuImprecisionPairedLambdaTargetClosingFrameViewProperties.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProperties.agda).
+  Five strict structural functions reconstruct the exact QTI relation and
+  project source and target `Value` and `No•` evidence.  The focused Ginger
+  and local checks both passed with unsolved metas disabled; no aggregate was
+  checked.
+
+- Froze the GPT 5.6 semantic-handler boundary in
+  [`NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda).
+  Its source-body-indexed motive specializes exactly to `FrameClosingᵀ`:
+  the source universal body coercion is applied after the bullet, while the
+  target parameter is the whole target coercion.  The record exposes exactly
+  twelve semantic cases and leaves reflexivity, prefix composition, and the
+  five target-only frames administrative.  The focused strict check passed in
+  3.21 seconds.  The structural higher-order interpreter is now in progress;
+  its unavailable semantic handlers will remain theorem parameters rather
+  than holes, so the `Proof` can remain independently checkable without
+  `--allow-unsolved-metas`.

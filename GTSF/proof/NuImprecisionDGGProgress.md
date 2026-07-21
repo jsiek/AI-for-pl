@@ -376,7 +376,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightTargetInertFramingDef.agda`](NuImprecisionWorldCoherentRightTargetInertFramingDef.agda) | completed statement | Shared five-way boundary for mechanically framing a completed right-value catch-up when the transformed target coercion is inert. |
 | [`NuImprecisionWorldCoherentRightTargetInertFramingProof.agda`](NuImprecisionWorldCoherentRightTargetInertFramingProof.agda) | completed GPT-5.5 proof | Exhaustively frames reveal, conceal, narrowing, widening, and identity-only widening while preserving the existing complete catch-up payload, including source-bullet transport. No target-frame result layer is introduced. |
 | [`NuImprecisionTargetAdministrationMeasureDef.agda`](NuImprecisionTargetAdministrationMeasureDef.agda) | completed statement | Well-founded potential for the joint target-cast, target-allocation, and target-bullet normalization cycle; sequence structure is charged twice and pending frames once. |
-| [`NuImprecisionTargetAdministrationMeasureProof.agda`](NuImprecisionTargetAdministrationMeasureProof.agda) | completed GPT-5.5 proof | Strict arithmetic equations for sequence splitting, inert absorption, instantiation, `ν` administration, and coercion renaming. |
+| [`NuImprecisionTargetAdministrationMeasureProof.agda`](NuImprecisionTargetAdministrationMeasureProof.agda) | completed strict proof | Arithmetic equations cover sequence splitting, inert absorption, instantiation, `ν` administration, coercion/value renaming, and the three `β-Λ•`/`β-∀•`/`β-gen•` bullet exposures. These equations let the private SCC pass predecessor `Acc` proofs without repeating arithmetic in semantic clauses. |
 | [`NuImprecisionTargetAdministrationPlanDef.agda`](NuImprecisionTargetAdministrationPlanDef.agda) | completed statement; canonical synthesis available | Cast-local hereditary proof evidence records every sequence midpoint and treats `inst` as a boundary where the retained post-allocation QTI index supplies a fresh plan. It contains no simulation result or outcome payload and avoids changing QTI unless synthesis fails. |
 | [`NuImprecisionTargetAdministrationPlanSynthesisDef.agda`](NuImprecisionTargetAdministrationPlanSynthesisDef.agda) | completed statement | Direct narrowing/widening synthesis uses only a target store prefix, final sparse-store well-formedness, seal-mode evidence, typed coercion structure, and the initial/final precision indices. This is the low-fanout experiment before any QTI change. |
 | [`NuImprecisionTargetAdministrationPlanSynthesisProof.agda`](NuImprecisionTargetAdministrationPlanSynthesisProof.agda) | completed GPT-5.5 proof | Exhaustive narrowing/widening recursion reconstructs inert and active plans, recovers ground sequence midpoints from the existing precision indices, and eliminates seal/unseal sequence conflicts by target-store prefix inclusion and uniqueness. No QTI constructor or simulation carrier changes were needed. |
@@ -386,7 +386,9 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightTargetSequenceResumeProof.agda`](NuImprecisionWorldCoherentRightTargetSequenceResumeProof.agda) | completed direct proof | Opens the two existing complete payloads once, frames the shared inner target trace through the sequence cast, inserts the post-catch-up `β-seq`, and composes the continuation. Generic transport, arrow/`∀` coherence, store lineage, source-bullet transport, and final world invariants are all rebuilt directly; no further carrier layer is introduced. |
 | [`NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationDef.agda`](NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationDef.agda) | completed strict statement | Three reachable smaller-rank continuation families for narrowing, widening, and identity-only widening sequences. Each consumes hereditary subplans and returns the existing complete right-catchup result rooted at the nested casts; reveal and conceal have no sequence constructor. This is a recursion capability, not a result carrier. |
 | [`NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationProof.agda`](NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationProof.agda) | completed strict higher-order fit proof; canonical Lemma intentionally absent | From an assumed complete target-cast terminalization, starts with the canonical zero-step value result and terminalizes the two nested casts in order for all three sequence modes. The stronger premise subsumes the plans and rank equation. This validates every index, but tying it back to terminalization is non-structural; canonical assembly must instead use the private well-founded target-administration SCC. |
-| [`NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda`](NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda) | completed repaired strict statement and fit audit; five of nine roots proved | Nine provenance-preserving active-root continuations: five `β-id` entries, narrowing untag, general instantiation, general unseal, and reveal-unseal. Every field consumes a completed inner catch-up and returns the same existing complete carrier. A later audit removed the redundant identity-only instantiation field: its widening evidence relaxes to `tag-or-idᵈ` and the terminalizer calls the general root directly. The general root remains genuine SCC work because its universal index also admits source-only `ν`. |
+| [`NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda`](NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda) | seven of nine roots proved; narrow-untag statement refuted; repair not yet started | Nine provenance-preserving active-root continuations: five `β-id` entries, narrowing untag, general instantiation, general unseal, and reveal-unseal. Every field consumes a completed inner catch-up and returns the same existing complete carrier. A later audit removed the redundant identity-only instantiation field: its widening evidence relaxes to `tag-or-idᵈ` and the terminalizer calls the general root directly. The general root remains genuine SCC work because its universal index also admits source-only `ν`. The narrow-untag field currently permits a requested function-ground index unrelated to the inner index; the strict duplicated-source-name counterexample below refutes that generalized field, so the production boundary requires a stronger reachable-world/index-compatibility invariant before SCC assembly. |
+| [`NuImprecisionWorldCoherentRightTargetActiveUnsealRootProof.agda`](NuImprecisionWorldCoherentRightTargetActiveUnsealRootProof.agda) | completed strict Ginger/GPT-5.5 proof | Proves the widening-unseal and reveal-unseal active roots. Both cancel the final target seal, append the target `seal-unseal` step, and rebuild transport, coherence, lineage, bullet transport, and world evidence in the existing complete catch-up result. No unseal-specific result carrier is introduced. |
+| [`NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample.agda`](NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample.agda) | completed strict counterexample to the current generalized boundary | A duplicated source-only assumption context satisfies `SourceNameExclusive` and all instantiated direct-untag premises. The requested function-ground index crosses the two distinct membership proofs, and exhaustive QTI inversion proves that the post-untag identity lambdas cannot be related at that index. This establishes the missing proof-relevant invariant without adding a counterexample/result carrier. |
 | [`NuImprecisionWorldCoherentRightTargetActiveRootResumeProof.agda`](NuImprecisionWorldCoherentRightTargetActiveRootResumeProof.agda) | partial strict proof: all five identity roots completed | A shared direct `β-id` composition preserves the existing catch-up result's transport, coherence, lineage, bullet transport, world coherence, and source-name evidence. Narrowing, general widening, identity-only widening, reveal, and conceal identity roots each invert the three reachable identity type shapes and reuse that core. The file intentionally does not assemble the ten-field capability while untag, instantiation, and unseal roots remain open. |
 | [`NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda) | completed statement | Five-field terminalization boundary for target narrowing, widening, identity-only widening, reveal, and conceal. Each field returns the existing complete catch-up carrier directly. |
 | [`NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda) | completed strict higher-order proof | Synthesizes hereditary target plans, delegates inert and active roots to their exact capabilities, and handles narrowing/widening/id-only sequences by transporting and splitting the final cast, synthesizing subplans, invoking the smaller-rank pending continuation, and splicing it through the direct sequence-resume proof. Reveal/conceal structural conversions are inert. No target-administration result or view layer is introduced. |
@@ -461,7 +463,8 @@ are delegated:
 | [`NuImprecisionLeftSourceAllocationRuntimeTargetBulletDef.agda`](NuImprecisionLeftSourceAllocationRuntimeTargetBulletDef.agda) | completed repaired strict statement | Focused direct `⊑αᵀ` reconstruction for canonical source allocation. The first statement used the equal but proof-relevantly different left-after-right world; equality of the world expressions did not identify their renaming witnesses or indices. The repaired statement uses the constructor-natural `⇑ᴿᵢ (νᵢᶜ Φ)` world and `rename-assm²-⇑ᴿᵢ rename-assm²-source-νᵢ`, so `left-rename-⊑αᵀ` applies exactly. It removes the redundant source-typing premise and adds no coherence or result carrier. |
 | [`NuImprecisionLeftSourceAllocationRuntimeTargetBulletProof.agda`](NuImprecisionLeftSourceAllocationRuntimeTargetBulletProof.agda) | completed strict higher-order proof | Applies `left-rename-⊑αᵀ` at the constructor-natural world and supplies its bullet-free body map directly from `LeftRenameNoBullet` and `left-insertion-suc`. The proof is a direct theorem composition with no intermediate transport payload. |
 | [`NuImprecisionLeftSourceAllocationRuntimeTargetBulletLemma.agda`](NuImprecisionLeftSourceAllocationRuntimeTargetBulletLemma.agda) | completed canonical assembly | Supplies the completed generic no-bullet renaming to the higher-order target-bullet proof and exposes the direct relation theorem through the three-file boundary. |
-| [`NuImprecisionLeftSourceAllocationRuntimeTransportDef.agda`](NuImprecisionLeftSourceAllocationRuntimeTransportDef.agda) | completed root statement; implementation plan partial | Mutually transports ordinary and quotiented QTI derivations through the canonical source-allocation renaming and returns direct relation derivations. Ginger exposed two integration constraints before implementation: generalized recursion loses the visibly right-lifted target world required at `⊑αᵀ`, and bullet-free cast/allocation branches require `LeftInsertion`. The repaired `LeftRenameNoBullet` now handles inert branches and the reoriented target-bullet helper fits `left-rename-⊑αᵀ` exactly. The remaining implementation recurses only through the unique active `RuntimeOK` subterm and returns direct relation derivations; no public result carrier has been added. |
+| [`NuImprecisionLeftSourceAllocationRuntimeCommutationProof.agda`](NuImprecisionLeftSourceAllocationRuntimeCommutationProof.agda) | completed strict direct bridge | Factors the outer left-after-right store/context renaming through the original right lifts, rebuilds the target-bullet leaf at the constructor-natural right-after-left world and desired precision index, then eliminates the world equality. It returns the exact outer QTI directly without precision-proof equality, proof irrelevance, or a path/coherence carrier. |
+| [`NuImprecisionLeftSourceAllocationRuntimeTransportDef.agda`](NuImprecisionLeftSourceAllocationRuntimeTransportDef.agda) | completed root statement; full mutual proof in progress | Mutually transports ordinary and quotiented QTI derivations through the canonical source-allocation renaming and returns direct relation derivations. Ginger exposed two integration constraints before implementation: generalized recursion loses the visibly right-lifted target world required at `⊑αᵀ`, and bullet-free cast/allocation branches require `LeftInsertion`. `LeftRenameNoBullet` now handles inert branches, while the focused commutation proof above closes the active target-bullet crossing at the exact outer index. The implementation recurses only through the unique active `RuntimeOK` subterm and adds no public result carrier. |
 | [`NuImprecisionWorldCoherentSourceOneStepPairedCastFrameDef.agda`](NuImprecisionWorldCoherentSourceOneStepPairedCastFrameDef.agda) | completed statement; proof not started | A paired source/target cast consumes and returns the existing complete exact continuing result. The hard part is simultaneous source-change and target-tail transport, not result packaging. |
 | [`NuImprecisionWorldCoherentSourceOneStepQuotientDownUpStepDef.agda`](NuImprecisionWorldCoherentSourceOneStepQuotientDownUpStepDef.agda) | completed higher-order statement; proof not started | Fused quotient down/up step consumes the ordinary recursive prefix worker and returns its ordinary source-step outcome directly. The quotient subjudgment and its two cast layers remain internal, avoiding a QTIP-specific result carrier. |
 | [`NuImprecisionWorldCoherentSourceOneStepTargetBulletFrameStepDef.agda`](NuImprecisionWorldCoherentSourceOneStepTargetBulletFrameStepDef.agda) | completed higher-order statement; proof not started | Hard right-world crossing for a source step below `⊑αᵀ`. It consumes the ordinary recursive prefix worker and returns the existing outcome directly, without a bullet-specific carrier. |
@@ -8884,3 +8887,67 @@ coordination.  Use focused strict checks throughout and reserve
   target-inert framing, and narrowed source-allocation runtime-transport
   statement.  It passes strictly in about 7.4 seconds from the warm cache.
   No `All.agda` or other high-cost aggregate check was run.
+
+### 2026-07-21: flat target administration and proof-relevant crossings
+
+- The target-administration fit proofs establish the public boundary but do
+  not by themselves provide a canonical recursive implementation.  In
+  particular, tying
+  [`WorldCoherentRightTargetCastTerminalization`](NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda)
+  through the globally polymorphic pending-sequence record is non-structural:
+  a local predecessor of an `Acc` proof cannot inhabit that record.
+
+- The canonical implementation will therefore live in one private SCC proof
+  file.  Its narrowing, widening, and identity-only widening workers take an
+  `Acc _<_` proof for `targetPendingAdministrationRank` and return the existing
+  `WorldCoherentRightValueCatchupIndexedResult` directly.  A mutually defined
+  target-`ν` worker is ranked by `targetNuAdministrationRank`.  Sequence,
+  inert, instantiation, and `ν` calls descend using the four completed rank
+  equations.  The public functions only seed these workers with
+  `<-wellFounded`; the rank is recursion control and never becomes part of a
+  success/result/outcome carrier.
+
+- Under the issue-#78 audit, the generic
+  [`WorldCoherentRightTargetAdministrationᵀ`](NuImprecisionWorldCoherentRightTargetAdministrationDef.agda)
+  boundary is now considered obsolete: its generic outer QTI premise loses
+  target-frame provenance.  It should be deleted after the SCC exports the
+  constructor-specific public inhabitants, not wrapped in another view or
+  compatibility layer.  The pending-sequence definition remains useful as a
+  fit boundary, while its standalone higher-order proof remains deliberately
+  noncanonical.
+
+- Completed the five target identity-root proofs, the direct pending-sequence
+  fit proof, the target-ground quotient elimination leaf, and the flat
+  target-cast-to-right-value case assembly.  Narrow-untag, the two unseal
+  roots, and the general instantiation/target-`ν` SCC are still in progress.
+  All completed branches return the existing complete right-catch-up payload;
+  none introduces an administration-specific carrier.
+
+- The first cold focused check in a new Ginger worktree can still take several
+  minutes because the worktree has its own `.agdai` cache.  The same focused
+  modules are typically below ten seconds once warm.  Proof repair and model
+  escalation should therefore retain the same worktree so that cold and warm
+  timings are not confused.
+
+- The source-allocation runtime traversal is complete in shape but its active
+  `⊑αᵀ` leaf exposed a proof-relevant left/right commutation obligation.  The
+  outer theorem asks for the left-after-right world
+  `νᵢᶜ (⇑ᴿᵢ Φ)` and its canonical `⊑-rename-leftᵢ` witness, while the direct
+  target-bullet constructor naturally yields `⇑ᴿᵢ (νᵢᶜ Φ)` with
+  `rename-assm²-⇑ᴿᵢ rename-assm²-source-νᵢ`.  The worlds are propositionally
+  equal, but their store/context renaming witnesses and precision indices are
+  proof-relevantly different.  A focused direct commutation proof is in
+  progress; plain `subst`, proof irrelevance, or a parallel path carrier are
+  not valid repairs.
+
+- Narrow-untag exposed a second desired-index boundary for the function
+  ground `★⇒★`, and the strict
+  [`counterexample`](NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample.agda)
+  shows that the current generalized root is false.  A context with duplicate
+  source-only assumptions satisfies `SourceNameExclusive` and all instantiated
+  root premises, but the requested function-ground index crosses the two
+  distinct membership proofs.  After target untagging, QTI inversion reduces
+  the identity-lambda relation to an impossible variable lookup.  Thus neither
+  atomic/ground target reindexing nor proof irrelevance is a valid repair.  The
+  production boundary needs a stronger reachable-world/index-compatibility
+  invariant, or the final theorem must weaken its canonical-index claim.

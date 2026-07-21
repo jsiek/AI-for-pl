@@ -112,7 +112,7 @@ world-coherent-right-target-inert-framing-proofᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
     prefix inert (inj₁ (_ , _ , _ , c↑))
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent exclusive wfR)
+      catchup lineage source-bullet-transport coherent exclusive wfR)
     with apply-reveal-conversions
       {χs = keep ∷ targetTailChanges
         (weakIndexedResult (rightCatchupIndexedResult catchup))}
@@ -122,7 +122,7 @@ world-coherent-right-target-inert-framing-proofᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
     prefix inert (inj₁ (_ , _ , _ , c↑))
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent exclusive wfR)
+      catchup lineage source-bullet-transport coherent exclusive wfR)
     | μ″ , β″ , X″ , c″↑ =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup framed
@@ -137,7 +137,7 @@ world-coherent-right-target-inert-framing-proofᵀ
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent exclusive wfR
+    source-bullet-transport coherent exclusive wfR
   where
   indexed = rightCatchupIndexedResult catchup
   inner = weakIndexedResult indexed
@@ -188,7 +188,7 @@ world-coherent-right-target-inert-framing-proofᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
     prefix inert (inj₂ (inj₁ (_ , _ , _ , c↓)))
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent exclusive wfR)
+      catchup lineage source-bullet-transport coherent exclusive wfR)
     with apply-conceal-conversions
       {χs = keep ∷ targetTailChanges
         (weakIndexedResult (rightCatchupIndexedResult catchup))}
@@ -198,7 +198,7 @@ world-coherent-right-target-inert-framing-proofᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
     prefix inert (inj₂ (inj₁ (_ , _ , _ , c↓)))
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent exclusive wfR)
+      catchup lineage source-bullet-transport coherent exclusive wfR)
     | μ″ , β″ , X″ , c″↓ =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup framed
@@ -213,7 +213,7 @@ world-coherent-right-target-inert-framing-proofᵀ
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent exclusive wfR
+    source-bullet-transport coherent exclusive wfR
   where
   indexed = rightCatchupIndexedResult catchup
   inner = weakIndexedResult indexed
@@ -264,7 +264,7 @@ world-coherent-right-target-inert-framing-proofᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
     prefix inert (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊒))))
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent exclusive wfR)
+      catchup lineage source-bullet-transport coherent exclusive wfR)
     with apply-narrows-typing
       {χs = keep ∷ targetTailChanges
         (weakIndexedResult (rightCatchupIndexedResult catchup))}
@@ -276,7 +276,7 @@ world-coherent-right-target-inert-framing-proofᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
     prefix inert (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊒))))
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent exclusive wfR)
+      catchup lineage source-bullet-transport coherent exclusive wfR)
     | μ″ , mode″ , seal★″ , c″⊒ =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup framed
@@ -291,7 +291,7 @@ world-coherent-right-target-inert-framing-proofᵀ
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent exclusive wfR
+    source-bullet-transport coherent exclusive wfR
   where
   indexed = rightCatchupIndexedResult catchup
   inner = weakIndexedResult indexed
@@ -346,7 +346,7 @@ world-coherent-right-target-inert-framing-proofᵀ
     prefix inert
     (inj₂ (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊑)))))
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent exclusive wfR)
+      catchup lineage source-bullet-transport coherent exclusive wfR)
     with apply-widens-typing
       {χs = keep ∷ targetTailChanges
         (weakIndexedResult (rightCatchupIndexedResult catchup))}
@@ -359,7 +359,7 @@ world-coherent-right-target-inert-framing-proofᵀ
     prefix inert
     (inj₂ (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊑)))))
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent exclusive wfR)
+      catchup lineage source-bullet-transport coherent exclusive wfR)
     | μ″ , mode″ , seal★″ , c″⊑ =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup framed
@@ -374,7 +374,7 @@ world-coherent-right-target-inert-framing-proofᵀ
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent exclusive wfR
+    source-bullet-transport coherent exclusive wfR
   where
   indexed = rightCatchupIndexedResult catchup
   inner = weakIndexedResult indexed
@@ -428,7 +428,7 @@ world-coherent-right-target-inert-framing-proofᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
     prefix inert (inj₂ (inj₂ (inj₂ (inj₂ (seal★ , c⊑)))))
     (world-coherent-right-value-indexed-catchup
-      catchup lineage coherent exclusive wfR) =
+      catchup lineage source-bullet-transport coherent exclusive wfR) =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup framed
       (rightCatchupSourceChangesEmpty catchup)
@@ -442,7 +442,7 @@ world-coherent-right-target-inert-framing-proofᵀ
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent exclusive wfR
+    source-bullet-transport coherent exclusive wfR
   where
   indexed = rightCatchupIndexedResult catchup
   inner = weakIndexedResult indexed

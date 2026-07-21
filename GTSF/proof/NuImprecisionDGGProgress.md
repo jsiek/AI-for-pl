@@ -373,7 +373,8 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightSourceFramesDef.agda`](NuImprecisionWorldCoherentRightSourceFramesDef.agda) | completed statement | Canonical four-field source cast/conversion frame boundary. |
 | [`NuImprecisionWorldCoherentRightSourceFramesProof.agda`](NuImprecisionWorldCoherentRightSourceFramesProof.agda) | completed GPT-5.5 proof | Frames an inner terminal catch-up through source narrowing, widening, reveal, or conceal while retaining transport, source-bullet transport, coherence, lineage, and world invariants. |
 | [`NuImprecisionWorldCoherentRightSourceFramesLemma.agda`](NuImprecisionWorldCoherentRightSourceFramesLemma.agda) | completed canonical assembly | Exposes all four source-frame proofs through the canonical three-file boundary. |
-| [`NuImprecisionWorldCoherentRightTargetInertFramingDef.agda`](NuImprecisionWorldCoherentRightTargetInertFramingDef.agda) | completed statement; proof not started | Shared five-way boundary for mechanically framing a completed right-value catch-up when the transformed target coercion is inert. |
+| [`NuImprecisionWorldCoherentRightTargetInertFramingDef.agda`](NuImprecisionWorldCoherentRightTargetInertFramingDef.agda) | completed statement | Shared five-way boundary for mechanically framing a completed right-value catch-up when the transformed target coercion is inert. |
+| [`NuImprecisionWorldCoherentRightTargetInertFramingProof.agda`](NuImprecisionWorldCoherentRightTargetInertFramingProof.agda) | completed GPT-5.5 proof | Exhaustively frames reveal, conceal, narrowing, widening, and identity-only widening while preserving the existing complete catch-up payload, including source-bullet transport. No target-frame result layer is introduced. |
 | [`NuImprecisionTargetAdministrationMeasureDef.agda`](NuImprecisionTargetAdministrationMeasureDef.agda) | completed statement | Well-founded potential for the joint target-cast, target-allocation, and target-bullet normalization cycle; sequence structure is charged twice and pending frames once. |
 | [`NuImprecisionTargetAdministrationMeasureProof.agda`](NuImprecisionTargetAdministrationMeasureProof.agda) | completed GPT-5.5 proof | Strict arithmetic equations for sequence splitting, inert absorption, instantiation, `ν` administration, and coercion renaming. |
 | [`NuImprecisionTargetAdministrationPlanDef.agda`](NuImprecisionTargetAdministrationPlanDef.agda) | completed statement; canonical synthesis available | Cast-local hereditary proof evidence records every sequence midpoint and treats `inst` as a boundary where the retained post-allocation QTI index supplies a fresh plan. It contains no simulation result or outcome payload and avoids changing QTI unless synthesis fails. |
@@ -393,8 +394,10 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceOneStepCasesDef.agda`](NuImprecisionWorldCoherentSourceOneStepCasesDef.agda) | completed corrected statement | Record of nine source reduction families: pure, allocation, and `ν`-blame roots return exact continuing results, while the six congruence families return explicit related-or-source-blame outcomes. |
 | [`NuImprecisionWorldCoherentSourceOneStepCasesProof.agda`](NuImprecisionWorldCoherentSourceOneStepCasesProof.agda) | completed higher-order assembly | Builds the full source one-step case record from ten remaining named families while supplying primitive roots and `ν` blame canonically. |
 | [`NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda) | completed higher-order proof | Exhaustive split on all source store-step constructors, proving that the nine capabilities suffice for the prefix engine and hence public DGG. |
-| [`NuImprecisionWorldCoherentSourceAllocationStepDef.agda`](NuImprecisionWorldCoherentSourceAllocationStepDef.agda) | completed statement; proof in progress | Canonical source allocation-step boundary with the exact `bind` change and post-allocation term. Source-only `ν` index clauses are structural; paired `∀ⁱ` clauses now delegate to their exact leaf capability. |
+| [`NuImprecisionWorldCoherentSourceAllocationStepDef.agda`](NuImprecisionWorldCoherentSourceAllocationStepDef.agda) | completed statement | Canonical source allocation-step boundary with the exact `bind` change and post-allocation term. |
+| [`NuImprecisionWorldCoherentSourceAllocationStepProof.agda`](NuImprecisionWorldCoherentSourceAllocationStepProof.agda) | completed higher-order proof; leaf dependencies partial | Exhaustively proves matched allocation and direct source-only `νⁱ` allocation, delegates the two paired `∀ⁱ` leaves and the exact target-bullet crossing, and returns the existing complete source-step result directly. |
 | [`NuImprecisionWorldCoherentSourceAllocationPairedIndexStepsDef.agda`](NuImprecisionWorldCoherentSourceAllocationPairedIndexStepsDef.agda) | completed exact leaf statements; proofs not started | Ordinary and `ν ★` source allocation when the inner universal index is paired `∀ⁱ`. Both keep the distinguished allocation as the exact singleton source step and return the existing complete result directly; the source-only `ν` branches remain structural cases of the main allocation proof. |
+| [`NuImprecisionWorldCoherentSourceAllocationTargetBulletStepDef.agda`](NuImprecisionWorldCoherentSourceAllocationTargetBulletStepDef.agda) | completed exact leaf statement; proof not started | Hard source-allocation step below a target runtime-bullet relation. It returns the existing complete source-step result directly and is the remaining non-paired leaf of the allocation proof. |
 | [`NuImprecisionWorldCoherentSourceApplicationLeftStepDef.agda`](NuImprecisionWorldCoherentSourceApplicationLeftStepDef.agda) | completed statement | Canonical source application-left congruence boundary. |
 | [`NuImprecisionWorldCoherentSourceApplicationLeftStepProof.agda`](NuImprecisionWorldCoherentSourceApplicationLeftStepProof.agda) | partial: strict non-decreasing adapter; structural replacement in progress | Rebuilds `ξ-·₁` but invokes the prefix worker on the same outer configuration, so it cannot participate in the total recursive knot. It must be replaced by subderivation recursion plus flat exact frame maps. |
 | [`NuImprecisionWorldCoherentSourceApplicationRightStepDef.agda`](NuImprecisionWorldCoherentSourceApplicationRightStepDef.agda) | completed statement | Canonical source application-right congruence boundary. |
@@ -438,8 +441,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceOneStepBinaryFramesProof.agda`](NuImprecisionWorldCoherentSourceOneStepBinaryFramesProof.agda) | completed GPT-5.5 proof | Reuses the weak application frames and constructs the primitive frames directly while preserving exact source changes/results, transport, type coherence, store lineage, world coherence, and source-name exclusivity. |
 | [`NuImprecisionWorldCoherentSourceOneStepBinaryFramesLemma.agda`](NuImprecisionWorldCoherentSourceOneStepBinaryFramesLemma.agda) | completed canonical assembly | Exposes all four flat binary frame maps without adding an application- or primitive-specific result layer. |
 | [`NuImprecisionWorldCoherentRightValueCatchupRuntimeNoBulletTransportDef.agda`](NuImprecisionWorldCoherentRightValueCatchupRuntimeNoBulletTransportDef.agda) | completed repaired flat statement; proof in progress | Transports an active source sibling and no-bullet target sibling directly through a completed right-value catch-up. Its runtime-source premise now uses refined `TermTyping` at the final relational store, which is exactly what the `α⊑ᵀ` invariant requires. Its output remains the final QTI derivation itself, with no runtime-transport result carrier. |
-| [`NuImprecisionLeftWorldInsertionDef.agda`](NuImprecisionLeftWorldInsertionDef.agda) | completed structural evidence | Four constructors retain the canonical source insertion and its exact traversal through matched, source-left, and target-right world lifts. This prevents an arbitrary output world from hiding the right-lift shape required by `⊑αᵀ`. |
-| [`NuImprecisionLeftRuntimeRenameDef.agda`](NuImprecisionLeftRuntimeRenameDef.agda) | completed repaired flat statement; proof in progress | Mutually transports ordinary and quotiented QTI derivations across a structural left insertion when the source is no-bullet and the target is runtime-safe. Both fields return relation derivations directly and now require proof-relevant world-insertion evidence; source-allocation index normalization remains an assembly boundary rather than a result wrapper. |
+| [`NuImprecisionLeftSourceAllocationRuntimeTransportDef.agda`](NuImprecisionLeftSourceAllocationRuntimeTransportDef.agda) | completed narrowed statement; proof not started | Mutually transports ordinary and quotiented QTI derivations through the one canonical source-allocation lift actually needed. Existing left-lift witnesses and the QTI derivation replace the rejected parallel world-path datatype; both fields return direct relation derivations. |
 | [`NuImprecisionWorldCoherentSourceOneStepPairedCastFrameDef.agda`](NuImprecisionWorldCoherentSourceOneStepPairedCastFrameDef.agda) | completed statement; proof not started | A paired source/target cast consumes and returns the existing complete exact continuing result. The hard part is simultaneous source-change and target-tail transport, not result packaging. |
 | [`NuImprecisionWorldCoherentSourceOneStepQuotientDownUpStepDef.agda`](NuImprecisionWorldCoherentSourceOneStepQuotientDownUpStepDef.agda) | completed higher-order statement; proof not started | Fused quotient down/up step consumes the ordinary recursive prefix worker and returns its ordinary source-step outcome directly. The quotient subjudgment and its two cast layers remain internal, avoiding a QTIP-specific result carrier. |
 | [`NuImprecisionWorldCoherentSourceOneStepTargetBulletFrameStepDef.agda`](NuImprecisionWorldCoherentSourceOneStepTargetBulletFrameStepDef.agda) | completed higher-order statement; proof not started | Hard right-world crossing for a source step below `⊑αᵀ`. It consumes the ordinary recursive prefix worker and returns the existing outcome directly, without a bullet-specific carrier. |
@@ -8828,3 +8830,34 @@ coordination.  Use focused strict checks throughout and reserve
   [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda)
   passes strictly in about 6.4 seconds after importing these four proofs.  No
   `All.agda`, broad DGG spine, permissive option, hole, or postulate was used.
+
+- Completed the higher-order source-allocation root in
+  [`NuImprecisionWorldCoherentSourceAllocationStepProof.agda`](NuImprecisionWorldCoherentSourceAllocationStepProof.agda).
+  The recursion distinguishes constructor-form `νⁱ` and paired `∀ⁱ` indices,
+  proves both ordinary and `ν ★` direct `νⁱ` leaves, delegates the paired
+  leaves, and joins matched allocation through right-value catch-up and flat
+  exact composition.  The remaining target-bullet crossing is isolated by
+  [`WorldCoherentSourceAllocationTargetBulletStepᵀ`](NuImprecisionWorldCoherentSourceAllocationTargetBulletStepDef.agda).
+
+- Integrated the Ginger/GPT-5.5
+  [`right target inert framing proof`](NuImprecisionWorldCoherentRightTargetInertFramingProof.agda).
+  All five evidence branches preserve the retained source-bullet transport
+  definitionally because target inert framing leaves the weak result's
+  changes, contexts, store, and transported index unchanged.  The local
+  focused strict check passes in about 5.2 seconds.
+
+- Applied the issue-#78 carrier audit to the proposed source runtime rename.
+  The separate `LeftWorldInsertionⁱ` path duplicated the structural QTI
+  traversal, used defined functions in GADT indices, and did not determine a
+  unique target-right predecessor.  It and the over-general rename boundary
+  were removed before any proof depended on them.  The replacement
+  [`LeftSourceAllocationRuntimeTransport`](NuImprecisionLeftSourceAllocationRuntimeTransportDef.agda)
+  is specialized to the canonical source allocation, consumes existing
+  left-lift witnesses, and returns the ordinary or quotient relation directly.
+  Thus the future mutual proof has one complete relational payload per branch
+  and no parallel world-path or transport-result layer.
+
+- The focused forward spine now includes the completed allocation root,
+  target-inert framing, and narrowed source-allocation runtime-transport
+  statement.  It passes strictly in about 7.4 seconds from the warm cache.
+  No `All.agda` or other high-cost aggregate check was run.

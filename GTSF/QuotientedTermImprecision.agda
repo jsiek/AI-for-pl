@@ -67,6 +67,8 @@ open import NuTerms using
   ; _⟨_⟩
   ; blame
   )
+open import PairedWideningCompatibility using
+  (PairedWideningCompatible)
 open import Primitives
 open import proof.CastImprecision using
   ( ∀ᵢᶜ
@@ -194,6 +196,7 @@ data PairedCast
     CastMode μ′ →
     SealModeStore★ μ′ (rightStoreⁱ ρ) →
     μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′ →
+    PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
     PairedCast Φ Δᴸ Δᴿ ρ c c′ {A} {A′} {B} {B′} p q
 
 data QuotientWideningPair
@@ -440,6 +443,9 @@ mutual
       → instᵈ μ′ ∣ suc Δᴿ
           ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
           ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′
+      → PairedWideningCompatible
+          ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+          (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′
       → LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ′
       → LiftCtxⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) γ γ′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
@@ -729,8 +735,8 @@ mutual
       (⊑νᵀ hA h⇑A s↑ liftρ liftγ B⊑C′ N⊑N′) =
     nu-term-imprecision-source-typing N⊑N′
   nu-term-imprecision-source-typing
-      (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ
-        liftγ N⊑N′) =
+      (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+        liftρ liftγ N⊑N′) =
     ⊢ν⊑ mode seal★ (nu-term-imprecision-source-typing N⊑N′) s⊑
   nu-term-imprecision-source-typing
       (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′) =
@@ -772,7 +778,7 @@ mutual
       (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
       (conv⊑convᵀ
-        (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑)
+        (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat)
         M⊑M′) =
     ⊢⟨⟩⊑ mode seal★ c⊑
       (nu-term-imprecision-source-typing M⊑M′)
@@ -853,8 +859,8 @@ mutual
     ⊢ν↑ hA (nu-term-imprecision-target-typing N⊑N′)
       (reveal-conversion-typing s↑)
   nu-term-imprecision-target-typing
-      (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ
-        liftγ N⊑N′) =
+      (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+        liftρ liftγ N⊑N′) =
     ⊢ν⊑ mode′ seal★′
       (nu-term-imprecision-target-typing N⊑N′) s′⊑
   nu-term-imprecision-target-typing
@@ -901,7 +907,7 @@ mutual
       (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
       (conv⊑convᵀ
-        (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑)
+        (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat)
         M⊑M′) =
     ⊢⟨⟩⊑ mode′ seal★′ c′⊑
       (nu-term-imprecision-target-typing M⊑M′)

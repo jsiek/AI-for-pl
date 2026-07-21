@@ -362,7 +362,10 @@ are delegated:
 | [`NuImprecisionLeftSilentPairedWideningTransportDef.agda`](NuImprecisionLeftSilentPairedWideningTransportDef.agda) | completed statement; Ginger leaf | Store-neutral constructor-family transport; the frozen proof is independent of final world coherence |
 | [`NuImprecisionLeftSilentPairedConversionTransportDef.agda`](NuImprecisionLeftSilentPairedConversionTransportDef.agda) | completed statement; hard proof | Sole remaining accumulated-transport boundary that reconstructs final paired `StoreCorresponds` evidence |
 | [`NuImprecisionLeftSilentPairedCastTransportProof.agda`](NuImprecisionLeftSilentPairedCastTransportProof.agda) | completed higher-order proof | Exhaustively derives full paired-cast transport from the widening and conversion constructor-family capabilities |
-| [`NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda) | completed statement; hard proof | Exact-final-world terminal paired-cast contract retaining target inertness, final coherence, source-name exclusivity, and left `StoreWf` |
+| [`NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda) | completed statement | Exact-final-world terminal paired-cast contract retaining target inertness, final coherence, source-name exclusivity, and left `StoreWf` |
+| [`NuImprecisionWorldCoherentFinalPairedConversionCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedConversionCatchupDef.agda) | completed statement; hard proof | Constructor-level terminal conversion capability; target inertness leaves fun/all inert framing and the target-seal/source-identity cancellation case |
+| [`NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda) | completed statement; hard proof | Constructor-level terminal widening capability; owns identity, inert, tag/sequence cancellation, and active source-`inst` allocation cases |
+| [`NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda) | completed higher-order proof | Exhaustively derives the exact-final-world contract from the two constructor-level semantic capabilities without importing a recursive dispatcher |
 | [`NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda) | completed statement | Top accumulated-world paired-cast handler, matching the strengthened source-runtime field |
 | [`NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda) | completed higher-order proof | Strictly composes accumulated paired-cast transport with exact-final-world catch-up; its single-cast frame keeps final contexts, world, and change lists unchanged |
 | `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial | The conceal field is complete; bullet, `ν`, `ν ★`, and widening-`inst` form the allocation SCC; narrowing, widening, reveal, and paired casts still need their explicit cancellation/classification or prefix-transport leaves |
@@ -6251,6 +6254,12 @@ catch-up architecture.
   final-world coherence and is a frozen GPT 5.5 leaf; all paired
   `StoreCorresponds` reconstruction is confined to the hard conversion
   contract.
+
+- Split exact-final-world paired-cast semantics by constructor family and
+  completed the strict higher-order assembly.  The paired-conversion contract
+  isolates target-seal/source-identity cancellation, while paired widening
+  isolates its active source-`inst` allocation case.  The assembly imports no
+  recursive source-runtime or value-catch-up dispatcher.
 
 ### Next boundary
 

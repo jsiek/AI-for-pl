@@ -295,7 +295,10 @@ its fields recursively.  Its current proof decomposition is:
   after arbitrary source changes remains the hard transport step.  Full
   transport is itself assembled from separate paired-widening and
   paired-conversion capabilities, so the store-neutral widening proof can run
-  independently on Ginger.
+  independently on Ginger.  Exact-final-world catch-up is likewise assembled
+  from separate paired-conversion and paired-widening semantic contracts,
+  keeping the active `inst` allocation case visible instead of assuming the
+  source-runtime record recursively.
 
 The independent conceal, active-unseal, and source-reveal leaves are now
 complete.  Next finish source tag cancellation, use the completed source

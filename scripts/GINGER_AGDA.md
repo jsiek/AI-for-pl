@@ -47,6 +47,12 @@ an overbroad statement should fail locally or admit a strict counterexample.
 Repair the `Def` instead of allowing an unsolved meta to carry the mismatch
 into the larger proof.
 
+If the canonical dependencies are incomplete or mutually recursive, stop at a
+strict higher-order `Proof` and record `<Stem>Lemma.agda` as not yet started.
+That is a valid worker or integration milestone: the missing proof is an
+explicit theorem parameter, while the files that do exist still pass
+`--no-allow-unsolved-metas`.
+
 ## Starting a remote worker worktree
 
 The following is the standard setup for one isolated proof slice.  Replace

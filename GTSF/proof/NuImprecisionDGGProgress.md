@@ -366,7 +366,7 @@ are delegated:
 | [`NuImprecisionSourceCastSequenceMidpointLemma.agda`](NuImprecisionSourceCastSequenceMidpointLemma.agda) | completed lemma | Canonical strict inhabitant of both midpoint fields |
 | [`NuImprecisionLeftSilentPairedCastTransportDef.agda`](NuImprecisionLeftSilentPairedCastTransportDef.agda) | completed statement; hard proof | Exact accumulated-change transport contract for `PairedCast`; arbitrary source changes must rebuild final `StoreCorresponds` or carry an explicit world embedding |
 | [`NuImprecisionLeftSilentPairedWideningTransportDef.agda`](NuImprecisionLeftSilentPairedWideningTransportDef.agda) | completed statement | Store-neutral constructor-family transport independent of final world coherence |
-| [`NuImprecisionLeftSilentPairedWideningTransportProof.agda`](NuImprecisionLeftSilentPairedWideningTransportProof.agda) | completed proof | GPT 5.5 adapter transports a quotient widening pair and exhaustively handles both cast-widening and id-widening results |
+| [`NuImprecisionLeftSilentPairedWideningTransportProof.agda`](NuImprecisionLeftSilentPairedWideningTransportProof.agda) | completed proof | GPT 5.5 adapter transports a quotient widening pair, its compatibility witness, and both cast-widening and id-widening results |
 | [`NuImprecisionLeftSilentPairedWideningTransportLemma.agda`](NuImprecisionLeftSilentPairedWideningTransportLemma.agda) | completed lemma | Canonical strict inhabitant of the widening constructor-family transport contract |
 | [`NuImprecisionLeftSilentPairedConversionTransportDef.agda`](NuImprecisionLeftSilentPairedConversionTransportDef.agda) | completed statement; hard proof | Sole remaining accumulated-transport boundary that reconstructs final paired `StoreCorresponds` evidence |
 | [`NuImprecisionLeftSilentStoreCorrespondsTransportDef.agda`](NuImprecisionLeftSilentStoreCorrespondsTransportDef.agda) | completed statement; hard proof | Minimal relational-world embedding capability preserving both stored and linked correspondences through accumulated changes; projected store equalities cannot recover linked entries |
@@ -380,13 +380,18 @@ are delegated:
 | [`NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda) | completed statement | Exact-final-world terminal paired-cast contract retaining target inertness, final coherence, source-name exclusivity, and left `StoreWf` |
 | [`NuImprecisionWorldCoherentFinalPairedConversionCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedConversionCatchupDef.agda) | completed statement | Constructor-level terminal paired-conversion capability retaining all final-world invariants |
 | [`NuImprecisionWorldCoherentFinalPairedConversionCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedConversionCatchupProof.agda) | completed proof | Exhaustive strict proof: source blame and identities take administrative steps, inert reveal/conceal forms are terminal frames, and source unseal is impossible against target inertness |
-| [`NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda) | refuted statement | The premises permit an active source unseal paired with an inert target variable tag; the contract must be narrowed or the underlying `PairedCast` relation strengthened |
-| [`NuImprecisionWorldCoherentFinalPairedWideningCatchupCounterexample.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupCounterexample.agda) | completed obstruction | Strict coherent matched-store example reduces the source by seal/unseal while the target stays inert; source-tag cancellation would require impossible `Nat ⊑ ＇0` |
-| Paired-widening compatibility repair | decision required; not started | Recommended reusable condition is `Inert c ⊎ (Inert c′ → B ⊑ A′)`: source-inert pairs remain valid, target-active synchronized allocations discharge the implication by inversion, and source-active/target-inert pairs must supply the exact cross bridge |
-| [`NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda) | completed higher-order proof; blocked dependency | Exhaustively derives the exact-final-world contract from the two constructor-level semantic capabilities, but its widening parameter is now known to be uninhabited as stated |
+| [`PairedWideningCompatibility.agda`](../PairedWideningCompatibility.agda) | completed definition | `PairedWideningCompatible` records either source inertness or the exact bridge obtained from target inertness; `PairedCast.paired-widening` and `νcast⊑νcastᵀ` carry it explicitly |
+| [`NuImprecisionSimulationCore.agda`](NuImprecisionSimulationCore.agda) paired-widening migration | completed integration | Two-sided, left-only, under-binder, allocation-frame, transport, and coherence paths preserve the compatibility witness; the focused strict core check passes |
+| [`NuImprecisionAllocationSimulation.agda`](NuImprecisionAllocationSimulation.agda) paired-widening migration | completed integration | Matched `ν ★` allocation, value/source-blame catch-up, transport, coherence, and indexed outcomes thread the compatibility witness; the focused strict check passes |
+| [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda) paired-widening migration | partial legacy debt | Four `νcast⊑νcastᵀ` branches still use the old constructor shape and the local allocation helper lacks compatibility; repair or retire this permissive scratch file before strict-spine inclusion |
+| [`NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda) | completed repaired statement | Exact-final terminal widening now requires `PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′` |
+| [`NuImprecisionWorldCoherentFinalPairedWideningCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupProof.agda) | completed higher-order proof | Source-inert pairs are terminal; source-active/target-inert pairs use the compatibility bridge, the supplied source-runtime `source-widen` handler, and a target-cast frame; source blame is propagated |
+| `NuImprecisionWorldCoherentFinalPairedWideningCatchupLemma.agda` | not yet started; mutual assembly | No permissive canonical assembly is created: the strict proof exposes its genuine mutual dependency on `WorldCoherentSourceRuntimeCatchupᵀ` as a theorem parameter |
+| [`NuImprecisionWorldCoherentFinalPairedWideningCatchupCounterexample.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupCounterexample.agda) | completed regression | The former active-source-unseal/inert-target-tag pair cannot inhabit `PairedWideningCompatible`; this keeps the original obstruction as a strict guard on the repaired relation |
+| [`NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda) | completed higher-order proof | Exhaustively derives the exact-final-world contract from strict paired-conversion and repaired paired-widening capabilities |
 | [`NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda) | completed statement | Top accumulated-world paired-cast handler, matching the strengthened source-runtime field |
-| [`NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda) | completed higher-order proof; blocked dependency | Strictly composes accumulated paired-cast transport with exact-final-world catch-up; canonical assembly waits for both store-lineage propagation and a repaired paired-widening relation/contract |
-| `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial | The conceal field is complete; bullet, `ν`, `ν ★`, and widening-`inst` form the allocation SCC; narrowing/widening need cancellation/classification, paired conversion needs lineage, and paired widening needs either retained allocation provenance or strengthened compatibility |
+| [`NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda) | completed higher-order proof; partial assembly | Strictly composes accumulated paired-cast transport with exact-final-world catch-up; canonical assembly still waits for store-lineage propagation and the mutual source-runtime/paired-widening join |
+| `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial | The conceal field and compatible terminal paired-widening proof are complete; bullet, `ν`, `ν ★`, widening-`inst`, and the source-widen/paired-cast join form the allocation SCC; narrowing/widening need cancellation/classification and paired conversion needs lineage |
 | [`NuImprecisionWorldCoherentQuotientInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientInstCatchupDef.agda) | completed narrowed statement | Strict mode-polymorphic final-state contract shared by ordinary-down and gen-down quotient-`inst` residuals; it requires the actual ready inner value `V ⟨ d ⟩` and no-bullet evidence |
 | [`NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda) | completed statement; hard proof | Exposes `quotientᵖ D≈C C⊑C′ C′≈D′` and asks for direct coherent catch-up without inventing an ordinary relation between physical endpoints |
 | [`NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef.agda) | completed statement | Replaces arbitrary permutation derivations by explicit finite paths of oriented contextual adjacent swaps while retaining the original quotient evidence in the term relation |
@@ -452,9 +457,11 @@ scratch copy; it does not introduce a compatibility alias.
 Use the smallest check that can detect the expected class of error:
 
 1. **Per edit and per worker:** check only the owned module with
-   `agda --no-allow-unsolved-metas -v0 proof/<OwnedModule>.agda`.  During
-   deliberate statement-only scaffolding, use the ordinary targeted command
-   and keep `--allow-unsolved-metas` explicit in that partial module.
+   `agda --no-allow-unsolved-metas -v0 proof/<OwnedModule>.agda`.  New
+   statement-only scaffolding belongs in a strict `Def` module, and unfinished
+   proof dependencies belong in the telescope of a strict higher-order
+   `Proof`.  Only pre-existing legacy scratch modules may remain deliberately
+   permissive while they are being decomposed.
 2. **Per integration batch:** check the nearest focused consumer, such as one
    terminal theorem module, `NuDGGTerminalBackwardBlameIntegration`, or
    `NuDGGTerminalSkeleton`.  Batch several independent worker results before
@@ -505,6 +512,9 @@ use the naming and dependency policy in [`proof/README.md`](README.md):
 5. Represent every unfinished architectural dependency as a higher-order
    contract parameter, not an Agda hole.  Avoiding `--allow-unsolved-metas` is
    an explicit objective of the split, in addition to checking-time isolation.
+   If the canonical dependency graph is mutual, leave the `Lemma` assembly
+   absent until the strongly connected proof is ready; a strict `Def` and
+   higher-order `Proof` still count as completed architectural work.
 6. Once a large proof is complete, consider putting its definition in an
    `opaque` block if no client relies on its definitional reduction.  Agda 2.7
    documents opacity specifically as a way to control unfolding for
@@ -6370,8 +6380,7 @@ catch-up architecture.
   forgot this allocation provenance and therefore quantified over more paired
   widenings than the closed simulation generates.
 
-- Identified the smallest apparent reusable repair.  A paired widening should
-  carry
+- Mechanized the smallest reusable repair.  Every paired widening now carries
 
   \[
     \operatorname{Inert}(c)
@@ -6384,10 +6393,44 @@ catch-up architecture.
   supplies exactly the bridge needed to catch the source up to the target
   operand before framing `c′`.  No equality tying final proof index `q` to a
   composed derivation is needed: `⊑cast⊑ᵀ` accepts the exact `q` explicitly.
-  Before changing the global constructor, recheck that the synchronized
-  allocation site discharges the implication by impossible inertness of its
-  target `inst`; otherwise retain the same fact as an explicit reachability
-  invariant in the coherent catch-up layer.
+  The compatibility contract is a genuine reusable concept in
+  [`PairedWideningCompatibility.agda`](../PairedWideningCompatibility.agda),
+  and both `PairedCast.paired-widening` and `νcast⊑νcastᵀ` carry it.
+
+- Migrated the compatibility witness through the strict proof surface.
+  GPT 5.5 Ginger workers repaired ground quotient elimination, atomic target
+  reindexing, source/target cancellation consumers, and left-silent paired
+  widening transport from frozen interfaces.  GPT 5.6 integration repaired
+  the simulation core and allocation SCC, including two-sided and left-only
+  renaming, binder lifting, weak frames, source-blame allocation, result
+  transport, type coherence, and indexed outcomes.  Focused strict checks pass
+  for every changed consumer; no aggregate `All.agda` or strict-spine check was
+  run for this batch.  A read-only audit found no blocker in the strict modules
+  and isolated the remaining stale constructor patterns to the explicitly
+  permissive [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda).
+
+- Repaired and proved exact-final paired-widening catch-up.  The strict
+  [`Def`](NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda) requires
+  compatibility.  The strict higher-order
+  [`Proof`](NuImprecisionWorldCoherentFinalPairedWideningCatchupProof.agda)
+  handles source blame, source-inert terminal values, and the
+  source-active/target-inert bridge.  The last case calls the supplied whole
+  `WorldCoherentSourceRuntimeCatchupᵀ` contract at its `source-widen` field and
+  then frames the target cast.  This exposes an honest mutual SCC instead of a
+  hole: the canonical `Lemma` is not created until source-runtime assembly can
+  supply the dependency.
+
+- Converted the old counterexample into a strict regression.  Its active
+  source unseal and inert target variable tag cannot satisfy either
+  `PairedWideningCompatible` constructor.  Thus the repaired theorem excludes
+  exactly the bad pair while preserving the diagnostic as an independently
+  checked module.
+
+- Confirmed the strictness benefit of the three-file organization in this
+  repair.  The theorem statement and its higher-order proof both pass
+  `--no-allow-unsolved-metas` even though canonical mutual assembly is not yet
+  available.  Missing work is visible as a whole theorem parameter and an
+  absent `Lemma`, rather than an unsolved meta or a permissive module option.
 
 ### Next boundary
 
@@ -6396,14 +6439,12 @@ narrowing/widening handlers, while constructing store lineage through the
 coherent catch-up result families needed by paired conversion.  For
 representative quotient-`inst`, prove identity and prepend-one-oriented-swap
 path semantics; normalization and the adapter to the original contract are
-already complete.  Before resuming paired-widening semantics, choose and
-mechanize either the recommended reusable compatibility condition on
-`PairedCast.paired-widening` or an equivalent allocation-provenance invariant
-on coherent catch-up results.  Continuing with the current arbitrary-world
-helper would target a false theorem.  Once the quotient bridge is complete,
-assemble it with the
-completed classifier, quotient-final proof, and structural prefix proof. Continue
-assigning only frozen, nonoverlapping leaf modules to Ginger; keep allocation
-SCCs, arbitrary quotient-permutation interpretation, and dependent transport
-joins under GPT 5.6 coordination.  Use focused strict checks throughout and
-reserve `NuDGGStrictSpine.agda` and `All.agda` for milestones.
+already complete.  For paired widening, assemble the now-strict terminal proof
+inside the genuine source-widen/paired-cast mutual SCC; do not manufacture a
+standalone canonical `Lemma` before that join exists.  Once the quotient bridge
+is complete, assemble it with the completed classifier, quotient-final proof,
+and structural prefix proof.  Continue assigning only frozen, nonoverlapping
+leaf modules to Ginger; keep allocation SCCs, arbitrary quotient-permutation
+interpretation, mutual assembly, and dependent transport joins under GPT 5.6
+coordination.  Use focused strict checks throughout and reserve
+`NuDGGStrictSpine.agda` and `All.agda` for milestones.

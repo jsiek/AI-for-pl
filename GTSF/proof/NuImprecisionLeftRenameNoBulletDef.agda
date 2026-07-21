@@ -3,6 +3,8 @@ module proof.NuImprecisionLeftRenameNoBulletDef where
 -- File Charter:
 --   * Defines generic left-only renaming of ordinary and quotiented QTI
 --     derivations whose source and target terms contain no runtime bullet.
+--   * Requires the existing left-insertion capability needed to rename casts
+--     and allocation conversions admitted by No•.
 --   * Bundles the mutually implemented maps while returning relation
 --     derivations directly.
 --   * Contains no implementation, postulate, hole, permissive option, or
@@ -30,7 +32,8 @@ open import QuotientedTermImprecision using
 open import Types using (Renameᵗ; Ty; TyCtx; renameᵗ)
 open import proof.MaximalLowerBoundsWf using (rename-assm²ᵢ)
 open import proof.NuImprecisionSimulationCore using
-  ( LeftCtxRenameⁱ
+  ( LeftInsertion
+  ; LeftCtxRenameⁱ
   ; LeftStoreRenameⁱ
   ; ⊑-rename-leftᵢ
   ; ⊑ᵖ-rename-leftᵢ
@@ -51,6 +54,7 @@ record LeftRenameNoBullet : Set₁ where
         {γ′ : CtxImp Ψ Δᴸ′ Δᴿ}
         {M M′ : Term} {A B : Ty}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+      LeftInsertion τ →
       LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
       LeftCtxRenameⁱ τ assm hτ γ γ′ →
       No• M →
@@ -73,6 +77,7 @@ record LeftRenameNoBullet : Set₁ where
         {γ′ : CtxImp Ψ Δᴸ′ Δᴿ}
         {M M′ : Term} {D D′ : Ty}
         {q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
+      LeftInsertion τ →
       LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
       LeftCtxRenameⁱ τ assm hτ γ γ′ →
       No• M →

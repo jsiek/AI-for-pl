@@ -385,6 +385,7 @@ are delegated:
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewProof.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewProof.agda) | completed higher-order adapter | Classifies the input QTI derivation into the proof-relevant frame view and delegates the unchanged fused conclusion to the frame-closing capability |
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationProof.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationProof.agda) | completed higher-order proof; assembly partial | Strictly derives both `AllView`s, starts the ambient worker at `prefix-reflⁱ`, and delegates the unchanged fused relation; the relation-recursive ambient worker and canonical `Lemma` remain not yet started |
 | [`NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda) | completed proof-relevant statement | Strict joint view of the QTI derivation with binder and generic-narrowing leaves, structural source frames, generic target frames, atomic paired frames, and atomic quotient frames; it contains no fabricated one-sided relation |
+| [`NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda) | completed hard classifier | Exhaustive strict mutual recursion over ordinary and quotiented QTI derivations constructs exactly the proof-relevant leaves and frames; no `Lemma` wrapper is needed because the proof has no theorem dependency |
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda) | completed semantic statement; proof not yet started | Exact fused closer over one proof-relevant frame view; retains the ambient prefix, paired conversion, both allocation lifts, final reveal, and exact conclusion |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda) | completed statement; proof not yet started | Fused active fresh-unseal operational boundary; recursive cancellation and target closing remain inseparable |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda) | completed statement; proof not yet started | Whole paired-widening target-closing family retaining both modes, store sealing invariants, typed casts, and `PairedWideningCompatible` |
@@ -7046,3 +7047,15 @@ coordination.  Use focused strict checks throughout and reserve
   the motive and handle binder rotation, quotient/gen, paired widening, and
   quotient frames.  Once those exact types check, structural reconstruction,
   prefix/target transport, and source-all adapters are suitable GPT 5.5 work.
+
+- Completed the hard frame-view classifier in
+  [`NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda).
+  It is an exhaustive mutual recursion over ordinary and quotiented QTI
+  derivations, not a recursion on `AllView`.  The proof constructs the two
+  binder leaves, both generic-narrowing terminals, all structural source and
+  target frames, the atomic paired frame, both recursive quotient frames, and
+  allocation-prefix frames.  Impossible syntax, value, bullet, and index
+  cases are eliminated explicitly.  The strict focused check took 9.26
+  seconds in the worker and 2.5 seconds from the updated local cache.  Since
+  this classifier has no incomplete theorem dependency, it is itself the
+  canonical inhabitant and needs no separate `Lemma` wrapper.

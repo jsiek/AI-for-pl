@@ -73,6 +73,11 @@ open import ForallPermutation using
   ; _∣_⊢_⊑ᵖ_⊣_
   )
 open import ImprecisionWf
+open import PairedWideningCompatibility using
+  ( PairedWideningCompatible
+  ; compatible-source-inert
+  ; compatible-target-inert-bridge
+  )
 open import NarrowWiden using
   ( narrow-mode-relax
   ; narrow-renameᵗ
@@ -308,6 +313,8 @@ open import proof.ReductionProperties using
   ; applyCoercions-inst
   ; applyCoercions-preserves-Inert
   ; applyCoercionUnderTyBinders
+  ; applyCoercionUnderTyBinders-preserves-Inert
+  ; applyCoercionUnderTyBinders-reflects-Inert
   ; applyTerm-preserves-No•
   ; applyTerm-preserves-Value
   ; applyTerms-++
@@ -319,6 +326,7 @@ open import proof.ReductionProperties using
   ; applyTyCtxs-++
   ; applyTysUnderTyBinders
   ; applyTysUnderTyBinders-++
+  ; applyTysUnderTyBinders-⇑ᵗ
   ; applyTys-++
   ; applyTys-★
   ; applyTys-∀
@@ -1303,6 +1311,41 @@ weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
 -- Synchronized `inst` allocation
 ------------------------------------------------------------------------
 
+weak-result-transport-paired-widening-compatible-under-binderᵀ :
+  ∀ {Φ Δᴸ Δᴿ N N′ X Y B A′ c c′}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (inner : WeakOneStepResult ρ N N′ X Y keep) →
+  PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) c c′ (⇑ᵗ B) A′ →
+  PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ (resultCtx inner))
+    (suc (resultLeftCtx inner)) (suc (resultRightCtx inner))
+    (applyCoercionUnderTyBinders (sourceChanges inner) c)
+    (applyCoercionUnderTyBinders (targetTailChanges inner) c′)
+    (⇑ᵗ (applyTys (sourceChanges inner) B))
+    (applyTysUnderTyBinders (targetTailChanges inner) A′)
+weak-result-transport-paired-widening-compatible-under-binderᵀ inner
+    (compatible-source-inert inert-c) =
+  compatible-source-inert
+    (applyCoercionUnderTyBinders-preserves-Inert
+      (sourceChanges inner) inert-c)
+weak-result-transport-paired-widening-compatible-under-binderᵀ
+    {B = B} {c′ = c′} inner
+    (compatible-target-inert-bridge bridge) =
+  compatible-target-inert-bridge λ inert-c′ →
+    subst
+      (λ S → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ (resultCtx inner))
+        ∣ suc (resultLeftCtx inner)
+        ⊢ S ⊑ applyTysUnderTyBinders
+            (targetTailChanges inner) _
+        ⊣ suc (resultRightCtx inner))
+      (applyTysUnderTyBinders-⇑ᵗ (sourceChanges inner) B)
+      (transportAllBody inner
+        (bridge
+          (applyCoercionUnderTyBinders-reflects-Inert
+            (targetTailChanges inner) c′ inert-c′)))
+
 matched-νcast-allocation :
   ∀ {Φ Δᴸ Δᴿ B B′ C C′ N N′ s s′ μ μ′ q}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -1322,6 +1365,9 @@ matched-νcast-allocation :
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′ →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
@@ -1333,13 +1379,13 @@ matched-νcast-allocation :
     ⊢ᴺ ((⇑ᵗᵐ N) •) ⟨ s ⟩ ⊑ ((⇑ᵗᵐ N′) •) ⟨ s′ ⟩
     ⦂ ⇑ᵗ B ⊑ ⇑ᵗ B′ ∶ ⊑-lift∀ᵢ pB)
 matched-νcast-allocation {q = q} vN noN vN′ noN′ mode seal★ mode′
-    seal★′ s⊑ s′⊑ pB liftρ N⊑N′ =
+    seal★′ s⊑ s′⊑ compat pB liftρ N⊑N′ =
   ν-step vN noN ,
   ν-step vN′ noN′ ,
   conv⊑convᵀ
     (paired-widening
       (cast-inst mode) left-seal left-widening
-      (cast-inst mode′) right-seal right-widening)
+      (cast-inst mode′) right-seal right-widening compat)
     (α⊑αᵀ vN noN vN′ noN′ id★ liftρ lift-ctx-[] N⊑N′
       left-bullet-typing right-bullet-typing)
   where
@@ -1404,6 +1450,9 @@ weak-one-step-matched-νcastᵀ :
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′ →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
@@ -1414,14 +1463,14 @@ weak-one-step-matched-νcastᵀ :
 weak-one-step-matched-νcastᵀ
     {B = B} {B′ = B′} {ρ′ = ρ′}
     vN noN vN′ noN′ mode seal★ mode′ seal★′ s⊑ s′⊑
-    pB liftρ N⊑N′
+    compat pB liftρ N⊑N′
     with matched-νcast-allocation
       vN noN vN′ noN′ mode seal★ mode′ seal★′ s⊑ s′⊑
-      pB liftρ N⊑N′
+      compat pB liftρ N⊑N′
 weak-one-step-matched-νcastᵀ
     {B = B} {B′ = B′} {ρ′ = ρ′}
     vN noN vN′ noN′ mode seal★ mode′ seal★′ s⊑ s′⊑
-    pB liftρ N⊑N′
+    compat pB liftρ N⊑N′
     | source→ , _ , result =
   record
     { sourceChanges = bind ★ ∷ []
@@ -1472,6 +1521,9 @@ weak-one-step-matched-νcast-transportᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (liftρ : LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ′) →
   (N⊑N′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
@@ -1479,16 +1531,16 @@ weak-one-step-matched-νcast-transportᵀ :
   WeakOneStepTransport
     (weak-one-step-matched-νcastᵀ
       vN noN vN′ noN′ mode seal★ mode′ seal★′
-      s⊑ s′⊑ pB liftρ N⊑N′)
+      s⊑ s′⊑ compat pB liftρ N⊑N′)
 weak-one-step-matched-νcast-transportᵀ
     vN noN vN′ noN′ mode seal★ mode′ seal★′
-    s⊑ s′⊑ pB liftρ N⊑N′
+    s⊑ s′⊑ compat pB liftρ N⊑N′
     with matched-νcast-allocation
       vN noN vN′ noN′ mode seal★ mode′ seal★′
-      s⊑ s′⊑ pB liftρ N⊑N′
+      s⊑ s′⊑ compat pB liftρ N⊑N′
 weak-one-step-matched-νcast-transportᵀ
     vN noN vN′ noN′ mode seal★ mode′ seal★′
-    s⊑ s′⊑ pB liftρ N⊑N′
+    s⊑ s′⊑ compat pB liftρ N⊑N′
     | source→ , target→ , result =
   weak-step-transport
     (matched-lift-prefix-bodyᵀ liftρ (prefix-∷ⁱ prefix-reflⁱ))
@@ -1514,6 +1566,9 @@ weak-one-step-matched-νcast-type-coherenceᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (liftρ : LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ′) →
   (N⊑N′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
@@ -1521,16 +1576,17 @@ weak-one-step-matched-νcast-type-coherenceᵀ :
   WeakOneStepTypeCoherence
     (weak-one-step-matched-νcastᵀ
       vN noN vN′ noN′ mode seal★ mode′ seal★′
-      s⊑ s′⊑ pB liftρ N⊑N′)
+      s⊑ s′⊑ compat pB liftρ N⊑N′)
 weak-one-step-matched-νcast-type-coherenceᵀ
     vN noN vN′ noN′ mode seal★ mode′ seal★′
-    s⊑ s′⊑ pB liftρ N⊑N′
+    s⊑ s′⊑ compat pB liftρ N⊑N′
     with matched-νcast-allocation
       vN noN vN′ noN′ mode seal★ mode′ seal★′
-      s⊑ s′⊑ pB liftρ N⊑N′
+      s⊑ s′⊑ compat pB liftρ N⊑N′
 weak-one-step-matched-νcast-type-coherenceᵀ
     vN noN vN′ noN′ mode seal★ mode′ seal★′
-    s⊑ s′⊑ pB liftρ N⊑N′ | source→ , target→ , result =
+    s⊑ s′⊑ compat pB liftρ N⊑N′
+    | source→ , target→ , result =
   weak-step-type-coherence (λ pC pD → refl) (λ q′ → refl)
 
 weak-one-step-matched-νcast-value-catchupᵀ :
@@ -1547,6 +1603,9 @@ weak-one-step-matched-νcast-value-catchupᵀ :
     ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   Value V′ →
   No• V′ →
@@ -1558,7 +1617,7 @@ weak-one-step-matched-νcast-value-catchupᵀ :
     (ν ★ N s) (((⇑ᵗᵐ V′) •) ⟨ s′ ⟩)
     B B′ (bind ★)
 weak-one-step-matched-νcast-value-catchupᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant
         (left-silent-invariant refl refl) final))
@@ -1566,12 +1625,13 @@ weak-one-step-matched-νcast-value-catchupᵀ
   weak-one-step-prepend-left-silentᵀ
     (left-silent
       (weak-one-step-matched-νcast-frameᵀ
-        mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+        mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
         (weak-all-result inner innerAll))
       (left-silent-invariant refl refl))
     (weak-one-step-matched-νcastᵀ
       vW noW vV′ noV′ modeˢ sealˢ modeᵗ′ sealᵗ′
-      source⊑ target⊑ (transportType inner pB) liftρ₀ innerAll)
+      source⊑ target⊑ transported-compat
+      (transportType inner pB) liftρ₀ innerAll)
   where
   liftρ₀ = proj₂ (lift-store-result (resultStore inner))
   source = weak-result-source-widen-inst inner mode seal★ s⊑
@@ -1583,6 +1643,9 @@ weak-one-step-matched-νcast-value-catchupᵀ
   modeᵗ′ = proj₁ (proj₂ target)
   sealᵗ′ = proj₁ (proj₂ (proj₂ target))
   target⊑ = proj₂ (proj₂ (proj₂ target))
+  transported-compat =
+    weak-result-transport-paired-widening-compatible-under-binderᵀ
+      inner compat
 
 weak-one-step-matched-νcast-value-catchup-transportᵀ :
   ∀ {Φ Δᴸ Δᴿ B B′ C C′ N V′ s s′ μ μ′}
@@ -1600,6 +1663,9 @@ weak-one-step-matched-νcast-value-catchup-transportᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (vV′ : Value V′) →
   (noV′ : No• V′) →
@@ -1612,10 +1678,10 @@ weak-one-step-matched-νcast-value-catchup-transportᵀ :
   WeakOneStepTransport (weakResult (catchupAllResult catchup)) →
   WeakOneStepTransport
     (weak-one-step-matched-νcast-value-catchupᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       vV′ noV′ catchup vW noW)
 weak-one-step-matched-νcast-value-catchup-transportᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant
         (left-silent-invariant refl refl) final))
@@ -1623,18 +1689,20 @@ weak-one-step-matched-νcast-value-catchup-transportᵀ
   weak-one-step-prepend-left-silent-preserves-transportᵀ
     (left-silent
       (weak-one-step-matched-νcast-frameᵀ
-        mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+        mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
         (weak-all-result inner innerAll))
       (left-silent-invariant refl refl))
     (weak-one-step-matched-νcastᵀ
       vW noW vV′ noV′ modeˢ sealˢ modeᵗ′ sealᵗ′
-      source⊑ target⊑ (transportType inner pB) liftρ₀ innerAll)
+      source⊑ target⊑ transported-compat
+      (transportType inner pB) liftρ₀ innerAll)
     (weak-one-step-matched-νcast-frame-preserves-transportᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       (weak-all-result inner innerAll) inner-transport)
     (weak-one-step-matched-νcast-transportᵀ
       vW noW vV′ noV′ modeˢ sealˢ modeᵗ′ sealᵗ′
-      source⊑ target⊑ (transportType inner pB) liftρ₀ innerAll)
+      source⊑ target⊑ transported-compat
+      (transportType inner pB) liftρ₀ innerAll)
   where
   liftρ₀ = proj₂ (lift-store-result (resultStore inner))
   source = weak-result-source-widen-inst inner mode seal★ s⊑
@@ -1646,6 +1714,9 @@ weak-one-step-matched-νcast-value-catchup-transportᵀ
   modeᵗ′ = proj₁ (proj₂ target)
   sealᵗ′ = proj₁ (proj₂ (proj₂ target))
   target⊑ = proj₂ (proj₂ (proj₂ target))
+  transported-compat =
+    weak-result-transport-paired-widening-compatible-under-binderᵀ
+      inner compat
 
 weak-one-step-matched-νcast-value-catchup-type-coherenceᵀ :
   ∀ {Φ Δᴸ Δᴿ B B′ C C′ N V′ s s′ μ μ′}
@@ -1663,6 +1734,9 @@ weak-one-step-matched-νcast-value-catchup-type-coherenceᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (vV′ : Value V′) →
   (noV′ : No• V′) →
@@ -1675,10 +1749,10 @@ weak-one-step-matched-νcast-value-catchup-type-coherenceᵀ :
   WeakOneStepTypeCoherence (weakResult (catchupAllResult catchup)) →
   WeakOneStepTypeCoherence
     (weak-one-step-matched-νcast-value-catchupᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       vV′ noV′ catchup vW noW)
 weak-one-step-matched-νcast-value-catchup-type-coherenceᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant
         (left-silent-invariant refl refl) final))
@@ -1686,18 +1760,20 @@ weak-one-step-matched-νcast-value-catchup-type-coherenceᵀ
   weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
     (left-silent
       (weak-one-step-matched-νcast-frameᵀ
-        mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+        mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
         (weak-all-result inner innerAll))
       (left-silent-invariant refl refl))
     (weak-one-step-matched-νcastᵀ
       vW noW vV′ noV′ modeˢ sealˢ modeᵗ′ sealᵗ′
-      source⊑ target⊑ (transportType inner pB) liftρ₀ innerAll)
+      source⊑ target⊑ transported-compat
+      (transportType inner pB) liftρ₀ innerAll)
     (weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       (weak-all-result inner innerAll) inner-coherence)
     (weak-one-step-matched-νcast-type-coherenceᵀ
       vW noW vV′ noV′ modeˢ sealˢ modeᵗ′ sealᵗ′
-      source⊑ target⊑ (transportType inner pB) liftρ₀ innerAll)
+      source⊑ target⊑ transported-compat
+      (transportType inner pB) liftρ₀ innerAll)
   where
   liftρ₀ = proj₂ (lift-store-result (resultStore inner))
   source = weak-result-source-widen-inst inner mode seal★ s⊑
@@ -1709,6 +1785,9 @@ weak-one-step-matched-νcast-value-catchup-type-coherenceᵀ
   modeᵗ′ = proj₁ (proj₂ target)
   sealᵗ′ = proj₁ (proj₂ (proj₂ target))
   target⊑ = proj₂ (proj₂ (proj₂ target))
+  transported-compat =
+    weak-result-transport-paired-widening-compatible-under-binderᵀ
+      inner compat
 
 weak-one-step-matched-νcast-blame-catchupᵀ :
   ∀ {Φ Δᴸ Δᴿ B B′ C C′ N V′ s s′ μ μ′}
@@ -1725,6 +1804,9 @@ weak-one-step-matched-νcast-blame-catchupᵀ :
     ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   Value V′ →
   No• V′ →
@@ -1735,19 +1817,19 @@ weak-one-step-matched-νcast-blame-catchupᵀ :
     (ν ★ N s) (((⇑ᵗᵐ V′) •) ⟨ s′ ⟩)
     B B′ (bind ★)
 weak-one-step-matched-νcast-blame-catchupᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl
     with silent
 weak-one-step-matched-νcast-blame-catchupᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl | left-silent-invariant refl refl
     with lift-store-result (resultStore inner)
 weak-one-step-matched-νcast-blame-catchupᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl | left-silent-invariant refl refl | ρ′ , liftρ
@@ -1757,7 +1839,7 @@ weak-one-step-matched-νcast-blame-catchupᵀ
       {χs = keep ∷ []} mode′ seal★′ s′⊑
 weak-one-step-matched-νcast-blame-catchupᵀ
     {B = B} {B′ = B′} {s = s} {s′ = s′}
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl | left-silent-invariant refl refl | ρ′ , liftρ
@@ -1765,7 +1847,7 @@ weak-one-step-matched-νcast-blame-catchupᵀ
     | μᵗ , modeᵗ , sealᵗ , target⊑ =
   let
     first = weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       (weak-all-result inner innerAll)
 
     target⊢ =
@@ -1803,6 +1885,9 @@ weak-one-step-matched-νcast-blame-catchup-transportᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (vV′ : Value V′) →
   (noV′ : No• V′) →
@@ -1813,22 +1898,22 @@ weak-one-step-matched-νcast-blame-catchup-transportᵀ :
   WeakOneStepTransport (weakResult (catchupAllResult catchup)) →
   WeakOneStepTransport
     (weak-one-step-matched-νcast-blame-catchupᵀ
-      wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       vV′ noV′ catchup eq-blame)
 weak-one-step-matched-νcast-blame-catchup-transportᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl inner-transport
     with silent
 weak-one-step-matched-νcast-blame-catchup-transportᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl inner-transport | left-silent-invariant refl refl
     with lift-store-result (resultStore inner)
 weak-one-step-matched-νcast-blame-catchup-transportᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl inner-transport | left-silent-invariant refl refl
@@ -1839,7 +1924,7 @@ weak-one-step-matched-νcast-blame-catchup-transportᵀ
       {χs = keep ∷ []} mode′ seal★′ s′⊑
 weak-one-step-matched-νcast-blame-catchup-transportᵀ
     {B = B} {B′ = B′} {s = s} {s′ = s′}
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl inner-transport | left-silent-invariant refl refl
@@ -1848,7 +1933,7 @@ weak-one-step-matched-νcast-blame-catchup-transportᵀ
     | μᵗ , modeᵗ , sealᵗ , target⊑ =
   let
     first = weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       (weak-all-result inner innerAll)
 
     target⊢ =
@@ -1870,7 +1955,7 @@ weak-one-step-matched-νcast-blame-catchup-transportᵀ
     (left-silent first (left-silent-invariant refl refl))
     second
     (weak-one-step-matched-νcast-frame-preserves-transportᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       (weak-all-result inner innerAll) inner-transport)
     (weak-one-step-source-blame-right-allocation-transportᵀ
       {A = ★} {A′ = ★}
@@ -1901,6 +1986,9 @@ weak-one-step-matched-νcast-blame-catchup-type-coherenceᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (vV′ : Value V′) →
   (noV′ : No• V′) →
@@ -1911,22 +1999,22 @@ weak-one-step-matched-νcast-blame-catchup-type-coherenceᵀ :
   WeakOneStepTypeCoherence (weakResult (catchupAllResult catchup)) →
   WeakOneStepTypeCoherence
     (weak-one-step-matched-νcast-blame-catchupᵀ
-      wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       vV′ noV′ catchup eq-blame)
 weak-one-step-matched-νcast-blame-catchup-type-coherenceᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl inner-coherence
     with silent
 weak-one-step-matched-νcast-blame-catchup-type-coherenceᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl inner-coherence | left-silent-invariant refl refl
     with lift-store-result (resultStore inner)
 weak-one-step-matched-νcast-blame-catchup-type-coherenceᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl inner-coherence | left-silent-invariant refl refl
@@ -1937,7 +2025,7 @@ weak-one-step-matched-νcast-blame-catchup-type-coherenceᵀ
       {χs = keep ∷ []} mode′ seal★′ s′⊑
 weak-one-step-matched-νcast-blame-catchup-type-coherenceᵀ
     {B = B} {B′ = B′} {s = s} {s′ = s′}
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     (left-all-catchup (weak-all-result inner innerAll)
       (left-catchup-invariant silent final))
     refl inner-coherence | left-silent-invariant refl refl
@@ -1946,7 +2034,7 @@ weak-one-step-matched-νcast-blame-catchup-type-coherenceᵀ
     | μᵗ , modeᵗ , sealᵗ , target⊑ =
   let
     first = weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       (weak-all-result inner innerAll)
 
     target⊢ =
@@ -1968,7 +2056,7 @@ weak-one-step-matched-νcast-blame-catchup-type-coherenceᵀ
     (left-silent first (left-silent-invariant refl refl))
     second
     (weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       (weak-all-result inner innerAll) inner-coherence)
     (weak-one-step-source-blame-right-allocation-type-coherenceᵀ
       {A = ★} {A′ = ★}
@@ -1997,6 +2085,9 @@ weak-one-step-matched-νcast-catchupᵀ :
     ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   Value V′ →
   No• V′ →
@@ -2006,20 +2097,20 @@ weak-one-step-matched-νcast-catchupᵀ :
     (ν ★ N s) (((⇑ᵗᵐ V′) •) ⟨ s′ ⟩)
     B B′ (bind ★)
 weak-one-step-matched-νcast-catchupᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′ catchup
     with sourceIsValueOrBlame (catchupAllInvariant catchup)
 weak-one-step-matched-νcast-catchupᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′ catchup | inj₁ (vW , noW) =
   weak-one-step-matched-νcast-value-catchupᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′ catchup vW noW
 weak-one-step-matched-νcast-catchupᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′ catchup | inj₂ eq-blame =
   weak-one-step-matched-νcast-blame-catchupᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′ catchup eq-blame
 
 weak-one-step-matched-νcast-catchup-transportᵀ :
@@ -2039,6 +2130,9 @@ weak-one-step-matched-νcast-catchup-transportᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (vV′ : Value V′) →
   (noV′ : No• V′) →
@@ -2047,23 +2141,23 @@ weak-one-step-matched-νcast-catchup-transportᵀ :
   WeakOneStepTransport (weakResult (catchupAllResult catchup)) →
   WeakOneStepTransport
     (weak-one-step-matched-νcast-catchupᵀ
-      wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       vV′ noV′ catchup)
 weak-one-step-matched-νcast-catchup-transportᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     catchup transport
     with sourceIsValueOrBlame (catchupAllInvariant catchup)
 weak-one-step-matched-νcast-catchup-transportᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     catchup transport | inj₁ (vW , noW) =
   weak-one-step-matched-νcast-value-catchup-transportᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′ catchup vW noW transport
 weak-one-step-matched-νcast-catchup-transportᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     catchup transport | inj₂ eq-blame =
   weak-one-step-matched-νcast-blame-catchup-transportᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′ catchup eq-blame transport
 
 weak-one-step-matched-νcast-catchup-type-coherenceᵀ :
@@ -2083,6 +2177,9 @@ weak-one-step-matched-νcast-catchup-type-coherenceᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (vV′ : Value V′) →
   (noV′ : No• V′) →
@@ -2091,23 +2188,23 @@ weak-one-step-matched-νcast-catchup-type-coherenceᵀ :
   WeakOneStepTypeCoherence (weakResult (catchupAllResult catchup)) →
   WeakOneStepTypeCoherence
     (weak-one-step-matched-νcast-catchupᵀ
-      wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       vV′ noV′ catchup)
 weak-one-step-matched-νcast-catchup-type-coherenceᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     catchup coherence
     with sourceIsValueOrBlame (catchupAllInvariant catchup)
 weak-one-step-matched-νcast-catchup-type-coherenceᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     catchup coherence | inj₁ (vW , noW) =
   weak-one-step-matched-νcast-value-catchup-type-coherenceᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′ catchup vW noW coherence
 weak-one-step-matched-νcast-catchup-type-coherenceᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB vV′ noV′
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB vV′ noV′
     catchup coherence | inj₂ eq-blame =
   weak-one-step-matched-νcast-blame-catchup-type-coherenceᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′ catchup eq-blame coherence
 
 weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ :
@@ -2127,6 +2224,9 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (vV′ : Value V′) →
   (noV′ : No• V′) →
@@ -2138,7 +2238,7 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ :
     {A = B} {B = B′} {χ = bind ★} {ρ = ρ} pB
 weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
     {B = B} {B′ = B′} {s = s} {s′ = s′}
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′
     (left-indexed-all-catchup indexed
       (left-catchup-invariant
@@ -2147,7 +2247,7 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
     with final
 weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
     {B = B} {B′ = B′} {s = s} {s′ = s′}
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′
     (left-indexed-all-catchup indexed
       (left-catchup-invariant
@@ -2165,13 +2265,13 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
 
   result =
     weak-one-step-matched-νcast-value-catchupᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       vV′ noV′ old-catchup vW noW
 
   inner = weakResult (catchupAllResult old-catchup)
   innerAll = canonicalAllResults (catchupAllResult old-catchup)
   first = weak-one-step-matched-νcast-frameᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (catchupAllResult old-catchup)
   liftρ₀ = proj₂ (lift-store-result (resultStore inner))
   source = weak-result-source-widen-inst inner mode seal★ s⊑
@@ -2183,9 +2283,13 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
   modeᵗ′ = proj₁ (proj₂ target)
   sealᵗ′ = proj₁ (proj₂ (proj₂ target))
   target⊑ = proj₂ (proj₂ (proj₂ target))
+  transported-compat =
+    weak-result-transport-paired-widening-compatible-under-binderᵀ
+      inner compat
   second = weak-one-step-matched-νcastᵀ
     vW noW vV′ noV′ modeˢ sealˢ modeᵗ′ sealᵗ′
-    source⊑ target⊑ (transportType inner pB) liftρ₀ innerAll
+    source⊑ target⊑ transported-compat
+    (transportType inner pB) liftρ₀ innerAll
 
   type-eq = HE.≅-to-≡
     (HE.trans
@@ -2200,16 +2304,16 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
 
   transport =
     weak-one-step-matched-νcast-value-catchup-transportᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       vV′ noV′ old-catchup vW noW inner-transport
 
   coherence =
     weak-one-step-matched-νcast-value-catchup-type-coherenceᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       vV′ noV′ old-catchup vW noW inner-coherence
 weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
     {B = B} {B′ = B′} {s = s} {s′ = s′}
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     vV′ noV′
     (left-indexed-all-catchup indexed
       (left-catchup-invariant
@@ -2227,7 +2331,7 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
 
   inner = weakResult (catchupAllResult old-catchup)
   first = weak-one-step-matched-νcast-frameᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (catchupAllResult old-catchup)
   target⊢ = nu-term-imprecision-target-typing (relatedResults first)
   second = weak-one-step-source-blame-right-allocationᵀ
@@ -2261,7 +2365,7 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
     weak-one-step-prepend-left-silent-preserves-transportᵀ
       (left-silent first (left-silent-invariant refl refl)) second
       (weak-one-step-matched-νcast-frame-preserves-transportᵀ
-        mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+        mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
         (catchupAllResult old-catchup) inner-transport)
       (weak-one-step-source-blame-right-allocation-transportᵀ
         {A = ★} {A′ = ★}
@@ -2281,7 +2385,7 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
     weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
       (left-silent first (left-silent-invariant refl refl)) second
       (weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-        mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+        mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
         (catchupAllResult old-catchup) inner-coherence)
       (weak-one-step-source-blame-right-allocation-type-coherenceᵀ
         {A = ★} {A′ = ★}
@@ -2884,6 +2988,9 @@ matched-β-inst-νcast-allocation :
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′ →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
@@ -2897,11 +3004,11 @@ matched-β-inst-νcast-allocation :
     ⊢ᴺ ((⇑ᵗᵐ N) •) ⟨ s ⟩ ⊑ ((⇑ᵗᵐ N′) •) ⟨ s′ ⟩
     ⦂ ⇑ᵗ B ⊑ ⇑ᵗ B′ ∶ ⊑-lift∀ᵢ pB)
 matched-β-inst-νcast-allocation vN noN vN′ noN′ mode seal★
-    mode′ seal★′ s⊑ s′⊑ pB liftρ N⊑N′
+    mode′ seal★′ s⊑ s′⊑ compat pB liftρ N⊑N′
     with matched-νcast-allocation vN noN vN′ noN′ mode seal★
-      mode′ seal★′ s⊑ s′⊑ pB liftρ N⊑N′
+      mode′ seal★′ s⊑ s′⊑ compat pB liftρ N⊑N′
 matched-β-inst-νcast-allocation vN noN vN′ noN′ mode seal★
-    mode′ seal★′ s⊑ s′⊑ pB liftρ N⊑N′
+    mode′ seal★′ s⊑ s′⊑ compat pB liftρ N⊑N′
     | N→ , N′→ , result =
   ↠-step (post-β-inst vN) (↠-step N→ ↠-refl) ,
   ↠-step (post-β-inst vN′) (↠-step N′→ ↠-refl) ,

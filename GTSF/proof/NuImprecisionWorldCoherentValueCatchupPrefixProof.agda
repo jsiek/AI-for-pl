@@ -335,7 +335,7 @@ world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive wfL okN () noV′
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ liftρ liftγ N⊑N′)
+      s⊑ s′⊑ compat liftρ liftγ N⊑N′)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive wfL okN vV′ noV′

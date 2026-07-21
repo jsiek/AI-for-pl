@@ -221,6 +221,11 @@ open import NuTermImprecision using
   ; crossedStoreⁱ-old-new
   )
 open import QuotientedTermImprecision
+open import PairedWideningCompatibility using
+  ( PairedWideningCompatible
+  ; compatible-source-inert
+  ; compatible-target-inert-bridge
+  )
 open import proof.NuImprecisionRelStoreEmbeddingDef
 open import proof.NuImprecisionRelStoreEmbeddingProof using
   (rel-store-embedding-correspondenceⁱ)
@@ -332,6 +337,8 @@ open import proof.ReductionProperties using
   ( applyCoercions
   ; applyCoercions-inst
   ; applyCoercions-preserves-Inert
+  ; applyCoercionUnderTyBinders-preserves-Inert
+  ; applyCoercionUnderTyBinders-reflects-Inert
   ; applyCoercionUnderTyBinders
   ; applyTerm-preserves-No•
   ; applyTerm-preserves-Value
@@ -344,6 +351,7 @@ open import proof.ReductionProperties using
   ; applyTyCtxs-++
   ; applyTysUnderTyBinders
   ; applyTysUnderTyBinders-++
+  ; applyTysUnderTyBinders-⇑ᵗ
   ; applyTys-++
   ; applyTys-★
   ; applyTys-∀
@@ -362,6 +370,8 @@ open import proof.CoercionProperties using
   ; ModeRename
   ; modeRename-id-only
   ; open0-ext-suc-cancelᶜ
+  ; renameᶜ-preserves-Inert
+  ; renameᶜ-reflects-Inert
   )
 open import proof.TypePreservation using
   ( applyNarrow-typing
@@ -404,6 +414,47 @@ open import proof.TypeProperties using
   ; renameStoreᵗ-compose
   ; renameStoreᵗ-ext-suc-comm
   )
+
+
+paired-widening-compatible-rename²ᵢ :
+  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ c c′ B A′}
+    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ} →
+  (hτ : TyRenameWf Δᴸ Θᴸ τ) →
+  (hσ : TyRenameWf Δᴿ Θᴿ σ) →
+  PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
+  PairedWideningCompatible Ψ Θᴸ Θᴿ
+    (renameᶜ τ c) (renameᶜ σ c′) (renameᵗ τ B) (renameᵗ σ A′)
+paired-widening-compatible-rename²ᵢ hτ hσ
+    (compatible-source-inert inert) =
+  compatible-source-inert (renameᶜ-preserves-Inert _ inert)
+paired-widening-compatible-rename²ᵢ {c′ = c′} {assm = assm} hτ hσ
+    (compatible-target-inert-bridge bridge) =
+  compatible-target-inert-bridge λ inert′ →
+    ⊑-renameᵗ²ᵢ assm hτ hσ
+      (bridge (renameᶜ-reflects-Inert _ c′ inert′))
+
+paired-widening-compatible-rename-under-binders²ᵢ :
+  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ c c′ B A′}
+    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ} →
+  (hτ : TyRenameWf Δᴸ Θᴸ τ) →
+  (hσ : TyRenameWf Δᴿ Θᴿ σ) →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    c c′ (⇑ᵗ B) A′ →
+  PairedWideningCompatible (∀ᵢᶜ Ψ) (suc Θᴸ) (suc Θᴿ)
+    (renameᶜ (extᵗ τ) c) (renameᶜ (extᵗ σ) c′)
+    (⇑ᵗ (renameᵗ τ B)) (renameᵗ (extᵗ σ) A′)
+paired-widening-compatible-rename-under-binders²ᵢ
+    {Ψ = Ψ} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ} {τ = τ} {σ = σ}
+    {c = c} {c′ = c′} {B = B} {A′ = A′} {assm = assm}
+    hτ hσ compat =
+  subst
+    (λ T → PairedWideningCompatible (∀ᵢᶜ Ψ) (suc Θᴸ) (suc Θᴿ)
+      (renameᶜ (extᵗ τ) c) (renameᶜ (extᵗ σ) c′)
+      T (renameᵗ (extᵗ σ) A′))
+    (renameᵗ-ext-suc-comm τ B)
+    (paired-widening-compatible-rename²ᵢ
+      {assm = rename-assm²-⇑ᵢ assm}
+      (TyRenameWf-ext hτ) (TyRenameWf-ext hσ) compat)
 
 store-incl-insert-second :
   ∀ {Σ α β A B} →
@@ -4699,6 +4750,44 @@ rename-assm²-∀-leftᵢ {Ψ = Ψ} assm {a = a} a∈ =
     (⊑-rename-leftᵢ
       (extᵗ τ) (rename-assm²-⇑ᴸᵢ assm) (TyRenameWf-ext hτ) p)
 
+paired-widening-compatible-rename-leftᵢ :
+  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ c c′ B A′}
+    {assm : ∀ {a} → a ∈ Φ →
+      rename-assm²ᵢ τ (λ X → X) a ∈ Ψ} →
+  (hτ : TyRenameWf Δᴸ Δᴸ′ τ) →
+  PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
+  PairedWideningCompatible Ψ Δᴸ′ Δᴿ
+    (renameᶜ τ c) c′ (renameᵗ τ B) A′
+paired-widening-compatible-rename-leftᵢ hτ
+    (compatible-source-inert inert) =
+  compatible-source-inert (renameᶜ-preserves-Inert _ inert)
+paired-widening-compatible-rename-leftᵢ {assm = assm} hτ
+    (compatible-target-inert-bridge bridge) =
+  compatible-target-inert-bridge λ inert′ →
+    ⊑-rename-leftᵢ _ assm hτ (bridge inert′)
+
+paired-widening-compatible-rename-left-under-bindersᵢ :
+  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ c c′ B A′}
+    {assm : ∀ {a} → a ∈ Φ →
+      rename-assm²ᵢ τ (λ X → X) a ∈ Ψ} →
+  (hτ : TyRenameWf Δᴸ Δᴸ′ τ) →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    c c′ (⇑ᵗ B) A′ →
+  PairedWideningCompatible (∀ᵢᶜ Ψ) (suc Δᴸ′) (suc Δᴿ)
+    (renameᶜ (extᵗ τ) c) c′ (⇑ᵗ (renameᵗ τ B)) A′
+paired-widening-compatible-rename-left-under-bindersᵢ
+    {Ψ = Ψ} {Δᴸ′ = Δᴸ′} {Δᴿ = Δᴿ} {τ = τ}
+    {c = c} {c′ = c′} {B = B} {A′ = A′} {assm = assm}
+    hτ compat =
+  subst
+    (λ T → PairedWideningCompatible
+      (∀ᵢᶜ Ψ) (suc Δᴸ′) (suc Δᴿ)
+      (renameᶜ (extᵗ τ) c) c′ T A′)
+    (renameᵗ-ext-suc-comm τ B)
+    (paired-widening-compatible-rename-leftᵢ
+      {assm = rename-assm²-∀-leftᵢ assm}
+      (TyRenameWf-ext hτ) compat)
+
 ⊑-rename-left-atᵢ :
   ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ A A′ B} (τ : Renameᵗ) →
   (assm : ∀ {a} → a ∈ Φ →
@@ -5964,8 +6053,9 @@ rel-world-paired-cast-embed :
     (⊑-renameᵗ²ᵢ assm hτ hσ p) (⊑-renameᵗ²ᵢ assm hτ hσ q)
 rel-world-paired-cast-embed emb (paired-conversion conv) =
   paired-conversion (rel-world-paired-conversion-embed emb conv)
-rel-world-paired-cast-embed emb
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑) =
+rel-world-paired-cast-embed
+    {assm = assm} {hτ = hτ} {hσ = hσ} emb
+    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat) =
   paired-widening
     (CastModeRenamer.target-mode
       (left-embedding-cast-renamer emb) mode)
@@ -5979,6 +6069,8 @@ rel-world-paired-cast-embed emb
     (right-widening-rel-embed-mode emb
       (CastModeRenamer.target-rename
         (right-embedding-cast-renamer emb) mode′) c′⊑)
+    (paired-widening-compatible-rename²ᵢ
+      {assm = assm} hτ hσ compat)
 
 rel-world-conv⊑conv-embedᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
@@ -6343,8 +6435,9 @@ rel-world-paired-cast-permute :
     (⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) q)
 rel-world-paired-cast-permute perm (paired-conversion conv) =
   paired-conversion (rel-world-paired-conversion-permute perm conv)
-rel-world-paired-cast-permute perm
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑) =
+rel-world-paired-cast-permute
+    {πᴸ = πᴸ} {πᴿ = πᴿ} {assm = assm} perm
+    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat) =
   paired-widening
     (CastModeRenamer.target-mode (left-cast-renamer perm) mode)
     (left-seal-rel-permute perm mode seal★)
@@ -6355,6 +6448,8 @@ rel-world-paired-cast-permute perm
     (right-widening-rel-permute-mode perm
       (CastModeRenamer.target-rename (right-cast-renamer perm) mode′)
       c′⊑)
+    (paired-widening-compatible-rename²ᵢ
+      {assm = assm} (forward-wf πᴸ) (forward-wf πᴿ) compat)
 
 rel-world-conv⊑conv-permuteᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
@@ -7799,6 +7894,8 @@ rel-world-νcast⊑νcast-permuteᵀ :
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ∀ →
   LiftCtxⁱ (∀ᵢᶜ Φ) γ γ∀ →
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
@@ -7815,21 +7912,28 @@ rel-world-νcast⊑νcast-permuteᵀ :
       ⊑ renameᵗ (forward πᴿ) B′
     ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) p
 rel-world-νcast⊑νcast-permuteᵀ
-    perm mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    perm mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     with left-ν★-widening-rel-permute perm mode seal★ s⊑
        | right-ν★-widening-rel-permute perm mode′ seal★′ s′⊑
 rel-world-νcast⊑νcast-permuteᵀ
-    perm mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    perm mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     | target-mode , target-seal , target-s⊑
     | target-mode′ , target-seal′ , target-s′⊑
     with rel-world-permutation-lift∀ⁱ perm liftρ liftγ
 rel-world-νcast⊑νcast-permuteᵀ
-    perm mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    {πᴸ = πᴸ} {πᴿ = πᴿ} {assm = assm}
+    perm mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     | target-mode , target-seal , target-s⊑
     | target-mode′ , target-seal′ , target-s′⊑
     | ρ′∀ , γ′∀ , liftρ′ , liftγ′ , body-perm =
   νcast⊑νcastᵀ target-mode target-seal target-mode′ target-seal′
-    target-s⊑ target-s′⊑ liftρ′ liftγ′ N⊑N′
+    target-s⊑ target-s′⊑
+    (paired-widening-compatible-rename-under-binders²ᵢ
+      {assm = assm} (forward-wf πᴸ) (forward-wf πᴿ) compat)
+    liftρ′ liftγ′ N⊑N′
 
 rel-world-νcast⊑νcast-embedᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
@@ -7854,6 +7958,8 @@ rel-world-νcast⊑νcast-embedᵀ :
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ∀ →
   LiftCtxⁱ (∀ᵢᶜ Φ) γ γ∀ →
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
@@ -7865,21 +7971,28 @@ rel-world-νcast⊑νcast-embedᵀ :
     ⦂ renameᵗ τ B ⊑ renameᵗ σ B′
     ∶ ⊑-renameᵗ²ᵢ assm hτ hσ p
 rel-world-νcast⊑νcast-embedᵀ
-    emb mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    emb mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     with left-ν★-widening-rel-embed emb mode seal★ s⊑
        | right-ν★-widening-rel-embed emb mode′ seal★′ s′⊑
 rel-world-νcast⊑νcast-embedᵀ
-    emb mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    emb mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     | target-mode , target-seal , target-s⊑
     | target-mode′ , target-seal′ , target-s′⊑
     with rel-world-embedding-lift∀ⁱ emb liftρ liftγ
 rel-world-νcast⊑νcast-embedᵀ
-    emb mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    {assm = assm} {hτ = hτ} {hσ = hσ}
+    emb mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     | target-mode , target-seal , target-s⊑
     | target-mode′ , target-seal′ , target-s′⊑
     | ρ′∀ , γ′∀ , liftρ′ , liftγ′ , body-emb =
   νcast⊑νcastᵀ target-mode target-seal target-mode′ target-seal′
-    target-s⊑ target-s′⊑ liftρ′ liftγ′ N⊑N′
+    target-s⊑ target-s′⊑
+    (paired-widening-compatible-rename-under-binders²ᵢ
+      {assm = assm} hτ hσ compat)
+    liftρ′ liftγ′ N⊑N′
 
 rel-world-νcast⊑-permuteᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
@@ -9694,6 +9807,8 @@ left-rename-νcastᵀ :
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ∀ →
   LiftCtxⁱ (∀ᵢᶜ Φ) γ γ∀ →
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
@@ -9704,16 +9819,17 @@ left-rename-νcastᵀ :
     ⊢ᴺ renameᵗᵐ τ (ν ★ N s) ⊑ ν ★ N′ s′
     ⦂ renameᵗ τ B ⊑ B′ ∶ ⊑-rename-leftᵢ τ assm hτ p
 left-rename-νcastᵀ
-    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑
+    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑ compat
     liftρ liftγ N⊑N′
     with left-store-rename-∀ renameρ liftρ
 left-rename-νcastᵀ
-    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑
+    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑ compat
     liftρ liftγ N⊑N′
     | ρ′∀ , liftρ′ , renameρ∀
     with left-ctx-rename-∀ renameγ liftγ
 left-rename-νcastᵀ
-    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑
+    {assm = assm} {hτ = hτ}
+    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑ compat
     liftρ liftγ N⊑N′
     | ρ′∀ , liftρ′ , renameρ∀
     | γ′∀ , liftγ′ , renameγ∀ =
@@ -9724,6 +9840,8 @@ left-rename-νcastᵀ
     mode′ (right-seal★-ν★-left-renameⁱ renameρ seal★′)
     (left-widening-ν★-renameⁱ ins renameρ mode s⊑)
     (right-widening-ν★-left-renameⁱ renameρ s′⊑)
+    (paired-widening-compatible-rename-left-under-bindersᵢ
+      {assm = assm} hτ compat)
     liftρ′ liftγ′ N⊑N′
 
 left-rename-νcast⊑ᵀ :
@@ -10076,8 +10194,8 @@ left-paired-cast-renameⁱ :
 left-paired-cast-renameⁱ ins renameρ
     (paired-conversion conv) =
   paired-conversion (left-paired-conversion-renameⁱ ins renameρ conv)
-left-paired-cast-renameⁱ ins renameρ
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑) =
+left-paired-cast-renameⁱ {assm = assm} {hτ = hτ} ins renameρ
+    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat) =
   paired-widening
     (CastModeRenamer.target-mode modeτ mode)
     (left-seal★-renameⁱ modeτ renameρ mode seal★)
@@ -10085,6 +10203,8 @@ left-paired-cast-renameⁱ ins renameρ
     mode′
     (right-seal★-left-renameⁱ renameρ seal★′)
     (right-widening-left-renameⁱ renameρ c′⊑)
+    (paired-widening-compatible-rename-leftᵢ
+      {assm = assm} hτ compat)
   where
   modeτ = left-insertion-cast-renamer ins
 
@@ -12919,6 +13039,8 @@ weak-one-step-matched-νcast-frameᵀ :
     ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   WeakOneStepAllResult
     {N = N} {N₁′ = N₁′} {C = C} {C′ = C′}
@@ -12928,15 +13050,17 @@ weak-one-step-matched-νcast-frameᵀ :
     (ν ★ N₁′ (applyCoercionUnderTyBinder χ s′))
     B B′ χ
 weak-one-step-matched-νcast-frameᵀ
+    {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {B = B} {B′ = B′} {C = C} {C′ = C′}
     {N = N} {N₁′ = N₁′} {s = s} {s′ = s′} {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     with lift-store-result (resultStore inner)
 weak-one-step-matched-νcast-frameᵀ
+    {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {B = B} {B′ = B′} {C = C} {C′ = C′}
     {N = N} {N₁′ = N₁′} {s = s} {s′ = s′} {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     | ρ′ , liftρ
     with apply-widen-inst-under-ty-binders
@@ -12944,9 +13068,10 @@ weak-one-step-matched-νcast-frameᵀ
        | apply-widen-inst-under-ty-binders
       {χs = χ ∷ targetTailChanges inner} mode′ seal★′ s′⊑
 weak-one-step-matched-νcast-frameᵀ
+    {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {B = B} {B′ = B′} {C = C} {C′ = C′}
     {N = N} {N₁′ = N₁′} {s = s} {s′ = s′} {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     | ρ′ , liftρ
     | μᵣ , modeᵣ , sealᵣ , source⊑
@@ -12997,6 +13122,7 @@ weak-one-step-matched-νcast-frameᵀ
     ; relatedResults =
         νcast⊑νcastᵀ modeᵣ source-seal modeᵗ target-seal
           source-widen target-widen
+          result-compat
           liftρ lift-ctx-[] innerAll
     }
   where
@@ -13053,6 +13179,40 @@ weak-one-step-matched-νcast-frameᵀ
                     (applyTys (targetTailChanges inner) (applyTy χ B′)))
           (sym (targetStoreResult inner)) target⊑)
 
+    transport-compat :
+      PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+        s s′ (⇑ᵗ B) C′ →
+      PairedWideningCompatible
+        (∀ᵢᶜ (resultCtx inner))
+        (suc (resultLeftCtx inner)) (suc (resultRightCtx inner))
+        (applyCoercionUnderTyBinders (sourceChanges inner) s)
+        (applyCoercionUnderTyBinders (targetTailChanges inner)
+          (applyCoercionUnderTyBinder χ s′))
+        (⇑ᵗ (applyTys (sourceChanges inner) B))
+        (applyTysUnderTyBinders (targetTailChanges inner)
+          (applyTyUnderTyBinder χ C′))
+    transport-compat (compatible-source-inert inert) =
+      compatible-source-inert
+        (applyCoercionUnderTyBinders-preserves-Inert
+          (sourceChanges inner) inert)
+    transport-compat
+        (compatible-target-inert-bridge bridge) =
+      compatible-target-inert-bridge λ inert′ →
+        subst
+          (λ T → (∀ᵢᶜ (resultCtx inner))
+            ∣ suc (resultLeftCtx inner) ⊢ T ⊑
+              applyTysUnderTyBinders (targetTailChanges inner)
+                (applyTyUnderTyBinder χ C′)
+            ⊣ suc (resultRightCtx inner))
+          (applyTysUnderTyBinders-⇑ᵗ (sourceChanges inner) B)
+          (transportAllBody inner
+            (bridge
+              (applyCoercionUnderTyBinders-reflects-Inert
+                (χ ∷ targetTailChanges inner) s′ inert′)))
+
+    result-compat =
+      transport-compat compat
+
 weak-one-step-matched-νcast-frame-preserves-transportᵀ :
   ∀ {Φ Δᴸ Δᴿ B B′ C C′ N N₁′ s s′ μ μ′ χ q}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
@@ -13068,6 +13228,8 @@ weak-one-step-matched-νcast-frame-preserves-transportᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (all : WeakOneStepAllResult
     {N = N} {N₁′ = N₁′} {C = C} {C′ = C′}
@@ -13075,15 +13237,15 @@ weak-one-step-matched-νcast-frame-preserves-transportᵀ :
   WeakOneStepTransport (weakResult all) →
   WeakOneStepTransport
     (weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB all)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all)
 weak-one-step-matched-νcast-frame-preserves-transportᵀ
     {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) transport
     with lift-store-result (resultStore inner)
 weak-one-step-matched-νcast-frame-preserves-transportᵀ
     {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) transport
     | ρ′ , liftρ
     with apply-widen-inst-under-ty-binders
@@ -13091,7 +13253,7 @@ weak-one-step-matched-νcast-frame-preserves-transportᵀ
        | apply-widen-inst-under-ty-binders
       {χs = χ ∷ targetTailChanges inner} mode′ seal★′ s′⊑
 weak-one-step-matched-νcast-frame-preserves-transportᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) transport
     | ρ′ , liftρ
     | μᵣ , modeᵣ , sealᵣ , source⊑
@@ -13113,6 +13275,8 @@ weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (all : WeakOneStepAllResult
     {N = N} {N₁′ = N₁′} {C = C} {C′ = C′}
@@ -13120,15 +13284,15 @@ weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ :
   WeakOneStepTypeCoherence (weakResult all) →
   WeakOneStepTypeCoherence
     (weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB all)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all)
 weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
     {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) coherence
     with lift-store-result (resultStore inner)
 weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
     {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) coherence
     | ρ′ , liftρ
     with apply-widen-inst-under-ty-binders
@@ -13136,7 +13300,7 @@ weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
        | apply-widen-inst-under-ty-binders
       {χs = χ ∷ targetTailChanges inner} mode′ seal★′ s′⊑
 weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) coherence
     | ρ′ , liftρ
     | μᵣ , modeᵣ , sealᵣ , source⊑
@@ -13158,6 +13322,8 @@ left-silent-matched-νcast-frameᵀ :
     ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (all : WeakOneStepAllResult
     {N = N} {N₁′ = V′} {χ = keep} {ρ = ρ} q) →
@@ -13166,12 +13332,12 @@ left-silent-matched-νcast-frameᵀ :
     {M = ν ★ N s} {V′ = ν ★ V′ s′}
     {A = B} {B = B′} {ρ = ρ}
 left-silent-matched-νcast-frameᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     (left-silent-invariant refl refl)
     with lift-store-result (resultStore inner)
 left-silent-matched-νcast-frameᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     (left-silent-invariant refl refl)
     | ρ′ , liftρ
@@ -13180,7 +13346,7 @@ left-silent-matched-νcast-frameᵀ
        | apply-widen-inst-under-ty-binders
       {χs = keep ∷ []} mode′ seal★′ s′⊑
 left-silent-matched-νcast-frameᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     (left-silent-invariant refl refl)
     | ρ′ , liftρ
@@ -13188,7 +13354,7 @@ left-silent-matched-νcast-frameᵀ
     | μᵗ , modeᵗ , sealᵗ , target⊑ =
   left-silent
     (weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       (weak-all-result inner innerAll))
     (left-silent-invariant refl refl)
 
@@ -13902,6 +14068,8 @@ weak-one-step-matched-νcast-frame-outcomeᵀ :
     ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   WeakOneStepAllOutcome
     {N = N} {N₁′ = N₁′} {C = C} {C′ = C′}
@@ -13911,14 +14079,14 @@ weak-one-step-matched-νcast-frame-outcomeᵀ :
     (ν ★ N₁′ (applyCoercionUnderTyBinder χ s′))
     B B′ χ
 weak-one-step-matched-νcast-frame-outcomeᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB =
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB =
   weak-all-outcome-map-target-ν
     (weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB)
     (weak-one-step-matched-νcast-frame-preserves-transportᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB)
     (weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB)
     (λ N↠ → _ , ν-blame-tail N↠)
 
 weak-one-step-matched-ν-indexed-frame-outcomeᵀ :
@@ -13971,6 +14139,8 @@ weak-one-step-matched-νcast-indexed-frame-outcomeᵀ :
     ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   WeakOneStepIndexedOutcome
     {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (∀ⁱ q) →
@@ -13979,23 +14149,23 @@ weak-one-step-matched-νcast-indexed-frame-outcomeᵀ :
     {N′ = ν ★ N₁′ (applyCoercionUnderTyBinder χ s′)}
     {χ = χ} {ρ = ρ} pB
 weak-one-step-matched-νcast-indexed-frame-outcomeᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB indexed
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB indexed
     with weak-indexed-all-outcomeᵀ indexed
 weak-one-step-matched-νcast-indexed-frame-outcomeᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB indexed
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB indexed
     | all-outcome-related all transport coherence =
   indexed-outcome-related
     (weak-indexed-result framed (relatedResults framed))
     (weak-one-step-matched-νcast-frame-preserves-transportᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB all transport)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all transport)
     (weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB all coherence)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all coherence)
   where
   framed =
     weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB all
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all
 weak-one-step-matched-νcast-indexed-frame-outcomeᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB indexed
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB indexed
     | all-outcome-source-blame source↠ =
   indexed-outcome-source-blame (ν-blame-tail source↠)
 

@@ -1071,10 +1071,10 @@ mutual
       (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
   rel-world-embed-no•ᵀ emb
       (νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑
-        liftρ liftγ N⊑N′)
+        compat liftρ liftγ N⊑N′)
       (no•-ν noN) (no•-ν noN′) =
     rel-world-νcast⊑νcast-embedᵀ emb mode seal mode′ seal′
-      s⊑ s′⊑ liftρ liftγ
+      s⊑ s′⊑ compat liftρ liftγ
       (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
   rel-world-embed-no•ᵀ emb
       (νcast⊑ᵀ mode seal s⊑ liftρ liftγ N⊑N′)

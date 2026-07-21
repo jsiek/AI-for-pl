@@ -34,7 +34,7 @@ world-coherent-final-paired-cast-catchup-proofᵀ
 world-coherent-final-paired-cast-catchup-proofᵀ
     conversion-catchup widening-catchup
     coherent exclusive wfL final vV′ noV′ inert-c′
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑) W⊑V′ =
+    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat) W⊑V′ =
   widening-catchup coherent exclusive wfL final
     vV′ noV′ inert-c′ mode seal★ c⊑ mode′ seal★′ c′⊑
-    W⊑V′
+    compat W⊑V′

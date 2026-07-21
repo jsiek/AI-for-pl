@@ -276,7 +276,7 @@ atomic-source-value-reindexᵀ atom vM
   ⊑νᵀ hA h⇑A s↑ liftρ liftγ r M⊑N′
 atomic-source-value-reindexᵀ atom ()
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑
-      liftρ liftγ N⊑N′) q
+      compat liftρ liftγ N⊑N′) q
 atomic-source-value-reindexᵀ atom ()
     (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′) q
 atomic-source-value-reindexᵀ atom vM

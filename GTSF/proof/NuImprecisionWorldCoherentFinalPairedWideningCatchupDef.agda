@@ -21,6 +21,8 @@ open import NuTermImprecision using
   (StoreImp; leftStoreⁱ; rightStoreⁱ)
 open import NuTerms using
   (No•; Term; Value; blame; _⟨_⟩)
+open import PairedWideningCompatibility using
+  (PairedWideningCompatible)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import TermTyping using (CastMode; SealModeStore★)
@@ -54,6 +56,7 @@ WorldCoherentFinalPairedWideningCatchupᵀ =
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′ →
+  PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ W ⊑ V′ ⦂ A ⊑ A′ ∶ p →
   WorldCoherentLeftCatchupIndexedResult

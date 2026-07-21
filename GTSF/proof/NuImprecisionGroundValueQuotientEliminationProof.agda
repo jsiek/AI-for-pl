@@ -18,6 +18,8 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   )
 import NarrowWiden as NW
+open import PairedWideningCompatibility using
+  (compatible-source-inert)
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
@@ -167,7 +169,8 @@ ground-value-quotient-elimination-proofᵀ
       cast-tag-or-id seal★-tag-or-id
       (NW.widen-mode-relax C.id-only≤tag-or-idᵈ d⊑)
       cast-tag-or-id seal★-tag-or-id
-      (NW.widen-mode-relax C.id-only≤tag-or-idᵈ d′⊑))
+      (NW.widen-mode-relax C.id-only≤tag-or-idᵈ d′⊑)
+      (compatible-source-inert (cast-value-inert vV)))
     M⊑M′
   where
   d⊑ = inert-narrowing-to-function-ground-widening
@@ -192,7 +195,8 @@ ground-value-quotient-elimination-proofᵀ
   conv⊑convᵀ
     (paired-widening
       (cast-gen cast-tag-or-id) seal★-gen-tag-or-id d⊑
-      (cast-gen cast-tag-or-id) seal★-gen-tag-or-id d′⊑)
+      (cast-gen cast-tag-or-id) seal★-gen-tag-or-id d′⊑
+      (compatible-source-inert (cast-value-inert vV)))
     M⊑M′
   where
   d⊑ = inert-narrowing-to-function-ground-widening

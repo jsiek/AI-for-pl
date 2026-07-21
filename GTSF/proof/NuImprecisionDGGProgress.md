@@ -171,7 +171,7 @@ common hypotheses, it states
 | F4. Rule out a source-blame alternative when the source is a value | completed | [`source-value-indexed-outcome-relatedᵀ`](NuImprecisionSimulationCore.agda#L1231) proves the required local outcome fact: an indexed weak outcome from a source value must be related, with zero source changes and the same source value. It constrains one target step; it does **not** by itself prove target termination. |
 | F5. Lift source one-step simulation over a source trace | completed higher-order proof | [`world-coherent-forward-source-value-proofᵀ`](NuDGGTerminalForwardProof.agda) recurses structurally on the observed source trace and invokes right-value catch-up in the reflexive base. No fuel or trace-alignment theorem is needed. |
 | F6. Normalize composed changes and final store projections | completed | The same proof reconstructs successor `StoreWf` and `RuntimeOK` by preservation, concatenates target traces, and normalizes contexts, endpoint types, and physical stores with the `apply*-++` laws. |
-| F7. Package the terminal theorem | completed higher-order path down to named major forward builders; canonical engines missing | [`forward-case-builders-and-backward-terminals⇒gradual-dgg`](NuDGGTerminalForwardIntegrationProof.agda) checks the path from the eight right-catch-up capabilities, the ten remaining named source capabilities, and the two backward terminal contracts to public `GradualDGG`. It canonically supplies the completed primitive and `ν`-blame source families before invoking both recursive dispatchers and `WorldCoherentForwardSourceValueᵀ`. A canonical `Lemma` still waits for strict implementations of the remaining F2/F3 families and the backward terminal engines. |
+| F7. Package the terminal theorem | completed higher-order path down to every unfinished major forward capability; canonical engines missing | [`remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg`](NuDGGTerminalForwardIntegrationProof.agda) checks the path from the six unfinished right-catch-up capabilities, the ten unfinished source capabilities, and the two backward terminal contracts to public `GradualDGG`. It canonically supplies completed right terminal/source frames and source primitive/`ν`-blame families before invoking both recursive dispatchers and `WorldCoherentForwardSourceValueᵀ`. A canonical `Lemma` still waits for strict implementations of those remaining F2/F3 families and the backward terminal engines. |
 
 The essential missing fact is not another use of the target-oriented dispatcher.
 That dispatcher allows target administrative work while the source takes zero
@@ -315,6 +315,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightValueCatchupPrefixDef.agda`](NuImprecisionWorldCoherentRightValueCatchupPrefixDef.agda) | completed statement | Ambient-prefix recursive right-value catch-up contract. |
 | [`NuImprecisionWorldCoherentRightValueCatchupProof.agda`](NuImprecisionWorldCoherentRightValueCatchupProof.agda) | completed higher-order proof | Reflexively instantiates the prefix worker and projects its exact terminal witnesses to the compact forward contract. |
 | [`NuImprecisionWorldCoherentRightValueCatchupCasesDef.agda`](NuImprecisionWorldCoherentRightValueCatchupCasesDef.agda) | completed statement | Eight-family semantic boundary for the recursive right-value engine; constructor-specific premises and recursive-result consumers remain explicit. |
+| [`NuImprecisionWorldCoherentRightValueCatchupCasesProof.agda`](NuImprecisionWorldCoherentRightValueCatchupCasesProof.agda) | completed higher-order assembly | Builds the eight-family right-value record from the six unfinished capabilities while supplying terminal values and source frames canonically. |
 | [`NuImprecisionWorldCoherentRightPairedCastFrameDef.agda`](NuImprecisionWorldCoherentRightPairedCastFrameDef.agda) | completed statement; proof not started | Canonical paired-cast frame boundary extracted from the right-value aggregate. |
 | [`NuImprecisionWorldCoherentRightQuotientDownUpFrameDef.agda`](NuImprecisionWorldCoherentRightQuotientDownUpFrameDef.agda) | completed statement; proof not started | Canonical identity/generated quotient down/up frame boundary. |
 | [`NuImprecisionWorldCoherentRightSourceAllClosingDef.agda`](NuImprecisionWorldCoherentRightSourceAllClosingDef.agda) | completed statement; proof not started | Canonical source-only universal closing boundary. |
@@ -8561,6 +8562,15 @@ coordination.  Use focused strict checks throughout and reserve
   capabilities, and the two backward terminal contracts.  It then constructs
   both recursive forward engines and invokes the existing terminal assembly.
   This theorem is the integration gate for future leaf proofs.
+
+- Added the strict
+  [`right-value cases proof`](NuImprecisionWorldCoherentRightValueCatchupCasesProof.agda),
+  which supplies the completed terminal and source-frame families canonically.
+  The still closer
+  [`remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg`](NuDGGTerminalForwardIntegrationProof.agda)
+  therefore exposes exactly six unfinished right capabilities and ten
+  unfinished source capabilities, rather than accepting either aggregate as
+  an opaque parameter.
 
 - Extracted paired-cast framing, quotient down/up framing, source-universal
   closing, target-bullet closing, and target-allocation framing from the

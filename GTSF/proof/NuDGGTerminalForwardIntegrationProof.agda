@@ -26,6 +26,26 @@ open import proof.NuImprecisionWorldCoherentRightValueCatchupDef using
 open import proof.NuImprecisionWorldCoherentRightValueCatchupCasesDef using
   (WorldCoherentRightValueCatchupCases)
 open import
+  proof.NuImprecisionWorldCoherentRightPairedCastFrameDef using
+  (WorldCoherentRightPairedCastFrameᵀ)
+open import
+  proof.NuImprecisionWorldCoherentRightQuotientDownUpFrameDef
+  using (WorldCoherentRightQuotientDownUpFrame)
+open import proof.NuImprecisionWorldCoherentRightSourceAllClosingDef using
+  (WorldCoherentRightSourceAllClosingᵀ)
+open import
+  proof.NuImprecisionWorldCoherentRightTargetAllocationFramesDef
+  using (WorldCoherentRightTargetAllocationFrames)
+open import
+  proof.NuImprecisionWorldCoherentRightTargetBulletClosingDef
+  using (WorldCoherentRightTargetBulletClosingᵀ)
+open import
+  proof.NuImprecisionWorldCoherentRightTargetCastTerminalizationDef
+  using (WorldCoherentRightTargetCastTerminalization)
+open import
+  proof.NuImprecisionWorldCoherentRightValueCatchupCasesProof
+  using (world-coherent-right-value-catchup-cases-proofᵀ)
+open import
   proof.NuImprecisionWorldCoherentRightValueCatchupDispatcherProof
   using (world-coherent-right-value-catchup-dispatcher-proofᵀ)
 open import proof.NuImprecisionWorldCoherentRightValueCatchupPrefixDef using
@@ -192,3 +212,38 @@ forward-case-builders-and-backward-terminals⇒gradual-dgg
       cast-frame-step ν-frame-step
       primitive-left-step primitive-right-step)
     right-cases backward-value backward-blame
+
+
+remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg :
+  WorldCoherentRightTargetCastTerminalization →
+  WorldCoherentRightPairedCastFrameᵀ →
+  WorldCoherentRightQuotientDownUpFrame →
+  WorldCoherentRightSourceAllClosingᵀ →
+  WorldCoherentRightTargetBulletClosingᵀ →
+  WorldCoherentRightTargetAllocationFrames →
+  WorldCoherentSourceApplicationPureRootᵀ →
+  WorldCoherentSourceRuntimeBulletPureRootᵀ →
+  WorldCoherentSourceCastPureRootᵀ →
+  WorldCoherentSourceAllocationStepᵀ →
+  WorldCoherentSourceApplicationLeftStepᵀ →
+  WorldCoherentSourceApplicationRightStepᵀ →
+  WorldCoherentSourceCastFrameStepᵀ →
+  WorldCoherentSourceNuFrameStepᵀ →
+  WorldCoherentSourcePrimitiveLeftStepᵀ →
+  WorldCoherentSourcePrimitiveRightStepᵀ →
+  BackwardTargetValueOrSourceBlameᵀ →
+  BackwardTargetBlameᵀ →
+  GradualDGG
+remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg
+    target-casts paired-cast quotient source-all target-bullet
+    target-allocation application-root bullet-root cast-root
+    allocation-step application-left-step application-right-step
+    cast-frame-step ν-frame-step primitive-left-step primitive-right-step
+    backward-value backward-blame =
+  forward-case-builders-and-backward-terminals⇒gradual-dgg
+    (world-coherent-right-value-catchup-cases-proofᵀ
+      target-casts paired-cast quotient source-all target-bullet
+      target-allocation)
+    application-root bullet-root cast-root allocation-step
+    application-left-step application-right-step cast-frame-step ν-frame-step
+    primitive-left-step primitive-right-step backward-value backward-blame

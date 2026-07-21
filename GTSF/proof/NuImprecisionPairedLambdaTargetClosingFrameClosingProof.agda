@@ -6,6 +6,8 @@ module
 --   * Interprets a proof-relevant paired-lambda target-closing frame view.
 --   * Delegates the twelve semantic cases to an explicit handler record and
 --     all five target-only cases to one shared target-frame capability.
+--   * Carries the original leaf through frame recursion and reconstructs the
+--     exact inner frame view at every non-leaf semantic boundary.
 --   * Handles reflexivity and store-prefix composition structurally.
 --   * Contains no canonical assembly, postulate, hole, or permissive option.
 
@@ -42,7 +44,8 @@ open import
   proof.NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef
   using (PairedLambdaTargetClosingFrameClosingTargetFrameᵀ)
 open import proof.NuImprecisionPairedLambdaTargetClosingFrameViewDef using
-  ( PairedLambdaTargetClosingFrames
+  ( PairedLambdaTargetClosingLeaf
+  ; PairedLambdaTargetClosingFrames
   ; PairedLambdaTargetClosingFrameView
   ; closing-frame-view
   ; frame-cast⊒⊑
@@ -79,103 +82,118 @@ interpret-paired-lambda-target-closing-frames :
     {L L′ W W′ : Term} {F₀ A′ F B′ : Ty}
     {p : Φ ∣ Δᴸ ⊢ `∀ F₀ ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ `∀ F ⊑ B′ ⊣ Δᴿ} →
+  PairedLambdaTargetClosingLeaf ρ₀
+    L L′ (`∀ F₀) A′ p →
   PairedLambdaTargetClosingFrameClosingMotive ρ₀ L L′ F₀ A′ p →
   PairedLambdaTargetClosingFrames ρ₀ L L′ (`∀ F₀) A′ p
     ρ W W′ (`∀ F) B′ q →
   PairedLambdaTargetClosingFrameClosingMotive ρ W W′ F B′ q
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial frame-refl =
+    leaf initial frame-refl =
   initial
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial (frame-prefix frames prefix _ _) =
+    leaf initial (frame-prefix frames prefix _ _) =
   λ prefix′ h⇑A reveal liftν lift∀ conversion →
     interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames
+      leaf initial frames
       (store-imp-prefix-transⁱ prefix prefix′)
       h⇑A reveal liftν lift∀ conversion
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial (frame-cast⊒⊑ frames mode seal★ c⊒ r) =
+    leaf initial (frame-cast⊒⊑ frames mode seal★ c⊒ r) =
   handle-frame-cast⊒⊑ handlers
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     mode seal★ c⊒ r
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial (frame-cast⊑⊑ frames mode seal★ c⊑ r) =
+    leaf initial (frame-cast⊑⊑ frames mode seal★ c⊑ r) =
   handle-frame-cast⊑⊑ handlers
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     mode seal★ c⊑ r
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial (frame-conv↑⊑ frames c↑ r) =
+    leaf initial (frame-conv↑⊑ frames c↑ r) =
   handle-frame-conv↑⊑ handlers
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     c↑ r
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial (frame-conv↓⊑ frames c↓ r) =
+    leaf initial (frame-conv↓⊑ frames c↓ r) =
   handle-frame-conv↓⊑ handlers
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     c↓ r
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial (frame-⊑cast⊒ frames inert mode seal★ c⊒ r) =
+    leaf initial (frame-⊑cast⊒ frames inert mode seal★ c⊒ r) =
   target-frame
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     inert (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊒))))
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial (frame-⊑cast⊑ frames inert mode seal★ c⊑ r) =
+    leaf initial (frame-⊑cast⊑ frames inert mode seal★ c⊑ r) =
   target-frame
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     inert (inj₂ (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊑)))))
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial (frame-⊑cast⊑id frames inert seal★ c⊑ r) =
+    leaf initial (frame-⊑cast⊑id frames inert seal★ c⊑ r) =
   target-frame
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     inert (inj₂ (inj₂ (inj₂ (inj₂ (seal★ , c⊑)))))
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial (frame-⊑conv↑ frames inert c↑ r) =
+    leaf initial (frame-⊑conv↑ frames inert c↑ r) =
   target-frame
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     inert (inj₁ (_ , _ , _ , c↑))
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial (frame-⊑conv↓ frames inert c↓ r) =
+    leaf initial (frame-⊑conv↓ frames inert c↓ r) =
   target-frame
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     inert (inj₂ (inj₁ (_ , _ , _ , c↓)))
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial
+    leaf initial
     (frame-conv⊑conv frames inert (paired-conversion conversion)) =
   handle-frame-paired-conversion handlers
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     inert conversion
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial
+    leaf initial
     (frame-conv⊑conv frames inert
       (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑
         compatible)) =
   handle-frame-paired-widening handlers
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     inert mode seal★ c⊑ mode′ seal★′ c′⊑ compatible
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial
+    leaf initial
     (frame-up-id frames inert-d′ inert-u′ d⊒ d′⊒ qD widening q) =
   handle-frame-up-id handlers
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     inert-d′ inert-u′ d⊒ d′⊒ qD widening q
 interpret-paired-lambda-target-closing-frames handlers target-frame
-    initial
+    leaf initial
     (frame-up-gen-all frames inert-d′ inert-u′ d⊒ d′⊒ qD widening q) =
   handle-frame-up-gen-all handlers
     (interpret-paired-lambda-target-closing-frames handlers target-frame
-      initial frames)
+      leaf initial frames)
+    (closing-frame-view leaf frames)
     inert-d′ inert-u′ d⊒ d′⊒ qD widening q
 
 
@@ -190,32 +208,36 @@ interpret-paired-lambda-target-closing-view :
   PairedLambdaTargetClosingFrameClosingMotive ρ W W′ F B′ q
 interpret-paired-lambda-target-closing-view handlers target-frame
     (closing-frame-view
-      (leaf-ΛΛ liftρ liftγ vV noV vV′ noV′ V⊑V′) frames) =
+      leaf@(leaf-ΛΛ liftρ liftγ vV noV vV′ noV′ V⊑V′) frames) =
   interpret-paired-lambda-target-closing-frames handlers target-frame
+    leaf
     (handle-leaf-ΛΛ handlers
       liftρ liftγ vV noV vV′ noV′ V⊑V′)
     frames
 interpret-paired-lambda-target-closing-view handlers target-frame
     (closing-frame-view
-      (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) frames) =
+      leaf@(leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) frames) =
   interpret-paired-lambda-target-closing-frames handlers target-frame
+    leaf
     (handle-leaf-Λ handlers
       occ liftρ liftγ vV noV vN′ noN′ V⊑N′)
     frames
 interpret-paired-lambda-target-closing-view handlers target-frame
     (closing-frame-view
-      (leaf-gen vV noV vN′ noN′ mode seal★ hA occ c= cⁿ V⊑N′ r)
+      leaf@(leaf-gen vV noV vN′ noN′ mode seal★ hA occ c= cⁿ V⊑N′ r)
       frames) =
   interpret-paired-lambda-target-closing-frames handlers target-frame
+    leaf
     (handle-leaf-gen handlers
       vV noV vN′ noN′ mode seal★ hA occ c= cⁿ V⊑N′ r)
     frames
 interpret-paired-lambda-target-closing-view handlers target-frame
     (closing-frame-view
-      (leaf-up-gen vM noM vM′ noM′ inert-d′ inert-u′
+      leaf@(leaf-up-gen vM noM vM′ noM′ inert-d′ inert-u′
         d⊒ d′⊒ M⊑M′ qD widening q)
       frames) =
   interpret-paired-lambda-target-closing-frames handlers target-frame
+    leaf
     (handle-leaf-up-gen handlers
       vM noM vM′ noM′ inert-d′ inert-u′
       d⊒ d′⊒ M⊑M′ qD widening q)

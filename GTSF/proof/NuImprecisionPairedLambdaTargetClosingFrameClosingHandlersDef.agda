@@ -8,6 +8,8 @@ module
 --   * Defines the twelve genuinely semantic handlers: four terminal leaves,
 --     four source-all frames, paired conversion, paired widening, and the two
 --     quotient frames.
+--   * Gives every non-leaf handler both the recursive motive and the exact
+--     inner proof-relevant frame view.
 --   * Leaves prefix extension, reflexivity, and target-only frames to the
 --     administrative interpreter.
 --   * In the motive, c is the body of the source universal coercion consumed
@@ -91,6 +93,9 @@ open import Types using
   ; ⟰ᵗ
   )
 open import proof.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingFrameViewDef
+  using (PairedLambdaTargetClosingFrameView)
 
 
 PairedLambdaTargetClosingFrameClosingMotive :
@@ -224,6 +229,8 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
           {c : Coercion} {μ : ModeEnv} →
       PairedLambdaTargetClosingFrameClosingMotive ρ
         W W′ B B′ q →
+      PairedLambdaTargetClosingFrameView ρ
+        W W′ (`∀ B) B′ q →
       CastMode μ →
       SealModeStore★ μ (leftStoreⁱ ρ) →
       μ ∣ Δᴸ ∣ leftStoreⁱ ρ
@@ -240,6 +247,8 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
           {c : Coercion} {μ : ModeEnv} →
       PairedLambdaTargetClosingFrameClosingMotive ρ
         W W′ B B′ q →
+      PairedLambdaTargetClosingFrameView ρ
+        W W′ (`∀ B) B′ q →
       CastMode μ →
       SealModeStore★ μ (leftStoreⁱ ρ) →
       μ ∣ Δᴸ ∣ leftStoreⁱ ρ
@@ -256,6 +265,8 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
           {c : Coercion} {μ : ModeEnv} {α : TyVar} →
       PairedLambdaTargetClosingFrameClosingMotive ρ
         W W′ B B′ q →
+      PairedLambdaTargetClosingFrameView ρ
+        W W′ (`∀ B) B′ q →
       RevealConversion μ Δᴸ (leftStoreⁱ ρ)
         α X (C.`∀ c) (`∀ B) (`∀ C) →
       (r : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ) →
@@ -270,6 +281,8 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
           {c : Coercion} {μ : ModeEnv} {α : TyVar} →
       PairedLambdaTargetClosingFrameClosingMotive ρ
         W W′ B B′ q →
+      PairedLambdaTargetClosingFrameView ρ
+        W W′ (`∀ B) B′ q →
       ConcealConversion μ Δᴸ (leftStoreⁱ ρ)
         α X (C.`∀ c) (`∀ B) (`∀ C) →
       (r : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ) →
@@ -285,6 +298,8 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
           {c c′ : Coercion} →
       PairedLambdaTargetClosingFrameClosingMotive ρ
         W W′ B B′ q →
+      PairedLambdaTargetClosingFrameView ρ
+        W W′ (`∀ B) B′ q →
       Inert c′ →
       PairedConversion Φ Δᴸ Δᴿ ρ (C.`∀ c) c′ q r →
       PairedLambdaTargetClosingFrameClosingMotive ρ
@@ -299,6 +314,8 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
           {c c′ : Coercion} {μ μ′ : ModeEnv} →
       PairedLambdaTargetClosingFrameClosingMotive ρ
         W W′ B B′ q →
+      PairedLambdaTargetClosingFrameView ρ
+        W W′ (`∀ B) B′ q →
       Inert c′ →
       CastMode μ →
       SealModeStore★ μ (leftStoreⁱ ρ) →
@@ -320,6 +337,8 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
           {d d′ u u′ : Coercion} →
       PairedLambdaTargetClosingFrameClosingMotive ρ
         M M′ C C′ pC →
+      PairedLambdaTargetClosingFrameView ρ
+        M M′ (`∀ C) C′ pC →
       Inert d′ → Inert u′ →
       id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ
         ⊢ C.`∀ d ∶ `∀ C ⊒ `∀ D →
@@ -341,6 +360,8 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
           {d d′ u u′ : Coercion} →
       PairedLambdaTargetClosingFrameClosingMotive ρ
         M M′ C C′ pC →
+      PairedLambdaTargetClosingFrameView ρ
+        M M′ (`∀ C) C′ pC →
       Inert d′ → Inert u′ →
       genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ
         ⊢ C.`∀ d ∶ `∀ C ⊒ `∀ D →

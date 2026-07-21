@@ -7,6 +7,8 @@ module
 --     paired-lambda target-closing frame interpreter.
 --   * Keeps reveal, conceal, narrowing, widening, and identity-mode widening
 --     as explicit alternatives in one theorem statement.
+--   * Retains both the recursive motive and exact inner frame view so the
+--     implementation can recover relation and endpoint evidence.
 --   * Contains no implementation, semantic handler, postulate, or permissive
 --     option.
 
@@ -23,6 +25,9 @@ open import Types using (Ty; TyCtx; `∀)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef
   using (PairedLambdaTargetClosingFrameClosingMotive)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingFrameViewDef
+  using (PairedLambdaTargetClosingFrameView)
 
 
 PairedLambdaTargetClosingFrameClosingTargetFrameᵀ : Set₁
@@ -33,6 +38,7 @@ PairedLambdaTargetClosingFrameClosingTargetFrameᵀ =
     {q : Φ ∣ Δᴸ ⊢ `∀ F ⊑ B′ ⊣ Δᴿ}
     {r : Φ ∣ Δᴸ ⊢ `∀ F ⊑ C′ ⊣ Δᴿ} →
   PairedLambdaTargetClosingFrameClosingMotive ρ W W′ F B′ q →
+  PairedLambdaTargetClosingFrameView ρ W W′ (`∀ F) B′ q →
   Inert c′ →
   ((∃[ μ′ ] ∃[ β ] ∃[ X′ ]
       RevealConversion μ′ Δᴿ (rightStoreⁱ ρ)

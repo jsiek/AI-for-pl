@@ -18,9 +18,11 @@ open import NuReduction using
 open import NuTermImprecision using
   (StoreImp; leftStoreⁱ)
 open import NuTerms using
-  (No•; RuntimeOK; Term; _∣_∣_⊢_⦂_)
+  (No•; RuntimeOK; Term)
 open import QuotientedTermImprecision using
   (StoreImpPrefix; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
+open import TermTyping using
+  (_∣_∣_⊢_⦂_)
 open import Types using
   (Ty; TyCtx)
 open import proof.NuImprecisionRightValueCatchupResultDef using

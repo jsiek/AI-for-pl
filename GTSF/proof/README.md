@@ -117,11 +117,19 @@ These nine definitions were moved out of the permissive scratch dispatcher;
 new coherent catch-up proofs should import this module and must not recover
 them by importing `NuImprecisionCatchupScratch`.
 
-The remaining hole-free down/up transport block should likewise move into
-`NuImprecisionCatchupQuotientSupport` before the strict prefix proof is
-written.  Keep the two ordinary/generated down-up drivers out of that support
-module: their quotient-`inst` residual is the semantic hole represented by
+The remaining hole-free down/up transport block lives in
+`NuImprecisionCatchupQuotientSupport`.  It owns paired double-cast framing,
+runtime recovery, narrowing transport, ordinary/generated down transport,
+quotient-widening transport, and final silent framing.  Keep the two
+ordinary/generated down-up drivers out of that support module: their
+quotient-`inst` residual is the semantic hole represented by
 `WorldCoherentQuotientInstCatchupᵀ`, not mechanical transport support.
+
+World-coherent silent resumption is defined separately in
+`NuImprecisionWorldCoherentCatchupComposition`.  Its final coherence witness
+comes from the resumed catch-up result, whose final store is also the composed
+result store.  This makes the ownership of coherence explicit and avoids any
+attempt to infer it from generic result transport fields.
 
 ## Invariant layers above generic results
 

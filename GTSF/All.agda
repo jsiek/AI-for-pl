@@ -67,6 +67,8 @@ import proof.NuImprecisionSimulationCore
 import proof.NuImprecisionSimulation
 import proof.NuImprecisionCatchupScratch
 import proof.NuImprecisionCatchupPrefixSupport
+import proof.NuImprecisionCatchupQuotientSupport
+import proof.NuImprecisionWorldCoherentCatchupComposition
 import proof.NuImprecisionCatchupSourceAllocationTerminal
 import proof.NuImprecisionCatchupSourceCastTerminal
 import proof.NuImprecisionOneStepSourceCastFrames

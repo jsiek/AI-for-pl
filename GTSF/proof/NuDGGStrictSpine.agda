@@ -41,6 +41,8 @@ import proof.NuDGGTraceAlignment
 import proof.NuDGGTraceMeasure
 import proof.NuDGGWeakResultPreservation
 import proof.NuImprecisionCatchupPrefixSupport
+import proof.NuImprecisionCatchupQuotientSupport
+import proof.NuImprecisionWorldCoherentCatchupComposition
 import proof.NuImprecisionCatchupSourceAllocationTerminal
 import proof.NuImprecisionCatchupSourceCastTerminal
 import proof.NuImprecisionOneStepSourceCastFrames

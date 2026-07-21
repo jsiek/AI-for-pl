@@ -319,7 +319,8 @@ are delegated:
 | [`NuImprecisionStoreLift.agda`](NuImprecisionStoreLift.agda) | completed | Sole strict definition site for canonical left/right store-lift results; coherent allocation proofs can import it without depending on the simulation core |
 | [`NuImprecisionStorePrefix.agda`](NuImprecisionStorePrefix.agda) | completed | Sole strict definition site for source/target prefix-store inclusion and prefix transitivity; catch-up modules import it directly instead of inheriting these lemmas from the simulation core |
 | [`NuImprecisionCatchupPrefixSupport.agda`](NuImprecisionCatchupPrefixSupport.agda) | completed | Strict home of nine silent-composition, target-prefix-frame, and terminal value/blame helpers extracted from the permissive scratch dispatcher; the focused strict check passes |
-| `NuImprecisionCatchupQuotientSupport.agda` | not yet started | Will extract the eight already-hole-free paired/down-up transport helpers; the two quotient-`inst` residual drivers remain outside this mechanical support module |
+| [`NuImprecisionCatchupQuotientSupport.agda`](NuImprecisionCatchupQuotientSupport.agda) | completed extraction; focused check bounded | Strict home of the eight paired/down-up frame and transport helpers; no holes/options/postulates and no diagnostics in the 90-second focused check; the semantic quotient-`inst` drivers remain outside |
+| [`NuImprecisionWorldCoherentCatchupComposition.agda`](NuImprecisionWorldCoherentCatchupComposition.agda) | completed source; focused check bounded | Strict coherent wrapper for silent-result resumption, taking final coherence from the resumed catch-up result; no diagnostics in two bounded local attempts |
 | [`NuImprecisionAtomicTargetReindex.agda`](NuImprecisionAtomicTargetReindex.agda) | completed | Strict exhaustive reconstruction of atomic-target value relations at an explicit desired type-imprecision index; closes target conversion identity roots without proof irrelevance |
 | [`NuImprecisionOneStepTargetCastIdentityRoots.agda`](NuImprecisionOneStepTargetCastIdentityRoots.agda) | completed | Three strict β-id root outcomes for narrowing, general widening, and id-only widening target casts; the partial target-cast dispatcher now has eight holes instead of eleven |
 | [`NuImprecisionTargetCastSequenceMidpointDef.agda`](NuImprecisionTargetCastSequenceMidpointDef.agda) | completed statement | Strict indexed family for the local midpoint evidence retained by one quotiented target-cast node; avoids an unsound global right-context-compatibility requirement |
@@ -5994,10 +5995,29 @@ catch-up architecture.
   now part of the proof plan so a strict-looking implementation cannot close
   those fields by circularly assuming the whole source-runtime record.
 
+- Extracted the second strict implementation island into
+  [`NuImprecisionCatchupQuotientSupport`](NuImprecisionCatchupQuotientSupport.agda).
+  Its eight definitions cover paired double-cast framing, final runtime
+  recovery, source/target narrowing transport, ordinary and generated down
+  transport, quotient-widening transport, and final silent down-up framing.
+  The old definitions were deleted from Scratch, while the two drivers with
+  real quotient-`inst` holes remain there.  Source audits and `git diff
+  --check` are clean; the focused strict check produced no diagnostics before
+  its 90-second bound.  No aggregate check was run.
+
+- Added strict
+  [`world-coherent-left-catchup-indexed-resume-silentᵀ`](NuImprecisionWorldCoherentCatchupComposition.agda).
+  The wrapper composes the existing silent result with a coherent resumed
+  catch-up and reuses the resumed result's final-world witness, matching the
+  composed result store definitionally.  Source audits are clean.  Two local
+  focused attempts were stopped after 60 seconds without diagnostics under the
+  checking-cost policy; completion of a warmed focused check remains a
+  verification task rather than a reason to run a larger aggregate.
+
 ### Next boundary
 
-Extract the remaining quotient/down-up support, then write the strict
-higher-order prefix dispatcher from its two frozen semantic contracts.  In
-parallel, use `source-conceal` as the next Ginger leaf and freeze source seal
-and tag cancellation statements locally before assigning their implementations.
-Integrate only strict, focused worker modules; do not run aggregate checks.
+Write the strict higher-order prefix dispatcher from its two frozen semantic
+contracts and the two extracted support modules.  In parallel, finish the
+Ginger `source-conceal` leaf and freeze source seal and tag cancellation
+statements locally before assigning their implementations.  Integrate only
+strict, focused worker modules; do not run aggregate checks.

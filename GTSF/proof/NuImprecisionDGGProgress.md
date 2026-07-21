@@ -339,7 +339,15 @@ are delegated:
 | [`NuImprecisionWorldCoherentValueCatchupDef.agda`](NuImprecisionWorldCoherentValueCatchupDef.agda) | completed statement | Strengthened value-catch-up consumes initial coherence, source-name exclusivity, and left `StoreWf`, and exposes all three at the final catch-up world |
 | [`NuImprecisionWorldCoherentValueCatchupPrefixDef.agda`](NuImprecisionWorldCoherentValueCatchupPrefixDef.agda) | completed statement | Ambient-prefix induction contract: the relation may use a smaller prefix world, while coherence, source-name exclusivity, and left `StoreWf` belong to the ambient evaluation world |
 | [`NuImprecisionWorldCoherentValueCatchupProof.agda`](NuImprecisionWorldCoherentValueCatchupProof.agda) | completed adapter proof | Strictly derives the public coherent value-catch-up contract from the prefix worker by applying it to `prefix-reflⁱ` |
-| [`NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda`](NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda) | completed statement | Strict eight-field handler record for the mutually dependent source bullet, allocation, cast, and conversion cases; keeps the source `inst`/`ν ★` SCC intact |
+| [`NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda`](NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda) | completed statement | Strict eight-field assembly record; bullet, ordinary `ν`, runtime `ν ★`, narrowing, and widening fields now refer to their own whole contracts |
+| [`NuImprecisionWorldCoherentSourceBulletCatchupDef.agda`](NuImprecisionWorldCoherentSourceBulletCatchupDef.agda) | completed statement | Exact former runtime-field telescope for source-only post-allocation bullet catch-up |
+| [`NuImprecisionWorldCoherentSourceBulletCatchupProof.agda`](NuImprecisionWorldCoherentSourceBulletCatchupProof.agda) | completed higher-order proof | Strictly reconstructs the allocated `α⊑ᵀ` relation and delegates to the whole value-prefix catch-up contract; canonical assembly remains in the mutual SCC |
+| [`NuImprecisionWorldCoherentSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCatchupDef.agda) | completed statement | Exact ordinary source-`ν` handler contract; its inhabitant is downstream of source-bullet and source-reveal, not in the minimal SCC |
+| [`NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda) | completed statement | Exact runtime `ν ★` handler boundary participating in the widening-`inst` mutual SCC |
+| [`NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda) | completed statement | Whole accumulated-world source-narrowing handler contract |
+| [`NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda) | completed statement | Exact-final terminal source-narrowing semantics, separated from accumulated-change framing |
+| [`NuImprecisionWorldCoherentSourceWidenCatchupDef.agda`](NuImprecisionWorldCoherentSourceWidenCatchupDef.agda) | completed statement | Whole accumulated-world source-widening handler contract and the precise dependency used by terminal paired widening |
+| [`NuImprecisionWorldCoherentFinalSourceWidenCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceWidenCatchupDef.agda) | completed statement | Exact-final terminal source-widening semantics; active `inst` remains the explicit allocation-sensitive case |
 | [`NuImprecisionWorldCoherentSourceConcealCatchup.agda`](NuImprecisionWorldCoherentSourceConcealCatchup.agda) | completed leaf | GPT 5.5 proved all conceal-conversion cases on ginger; the adapted proof preserves final coherence and left `StoreWf` and passes a local focused strict check |
 | [`NuImprecisionContextExclusivityDef.agda`](NuImprecisionContextExclusivityDef.agda) | completed statement | Separate source-name role invariant: a source-only row and matched row cannot share the same source name; this remains distinct from store-world coherence |
 | [`NuImprecisionContextExclusivityProof.agda`](NuImprecisionContextExclusivityProof.agda) | completed proof | Strict exhaustive preservation under empty, matched, source-only, target-only, and crossed context transformations; the focused no-unsolved-metas check passes |
@@ -385,13 +393,13 @@ are delegated:
 | [`NuImprecisionAllocationSimulation.agda`](NuImprecisionAllocationSimulation.agda) paired-widening migration | completed integration | Matched `ν ★` allocation, value/source-blame catch-up, transport, coherence, and indexed outcomes thread the compatibility witness; the focused strict check passes |
 | [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda) paired-widening migration | partial legacy debt | Four `νcast⊑νcastᵀ` branches still use the old constructor shape and the local allocation helper lacks compatibility; repair or retire this permissive scratch file before strict-spine inclusion |
 | [`NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda) | completed repaired statement | Exact-final terminal widening now requires `PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′` |
-| [`NuImprecisionWorldCoherentFinalPairedWideningCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupProof.agda) | completed higher-order proof | Source-inert pairs are terminal; source-active/target-inert pairs use the compatibility bridge, the supplied source-runtime `source-widen` handler, and a target-cast frame; source blame is propagated |
-| `NuImprecisionWorldCoherentFinalPairedWideningCatchupLemma.agda` | not yet started; mutual assembly | No permissive canonical assembly is created: the strict proof exposes its genuine mutual dependency on `WorldCoherentSourceRuntimeCatchupᵀ` as a theorem parameter |
+| [`NuImprecisionWorldCoherentFinalPairedWideningCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupProof.agda) | completed higher-order proof | Source-inert pairs are terminal; source-active/target-inert pairs use the compatibility bridge, the supplied whole `WorldCoherentSourceWidenCatchupᵀ`, and a target-cast frame; source blame is propagated |
+| `NuImprecisionWorldCoherentFinalPairedWideningCatchupLemma.agda` | not yet started; mutual assembly | No permissive canonical assembly is created: the strict proof exposes only the genuine source-widen dependency, whose canonical inhabitant belongs to the mutual SCC |
 | [`NuImprecisionWorldCoherentFinalPairedWideningCatchupCounterexample.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupCounterexample.agda) | completed regression | The former active-source-unseal/inert-target-tag pair cannot inhabit `PairedWideningCompatible`; this keeps the original obstruction as a strict guard on the repaired relation |
 | [`NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupProof.agda) | completed higher-order proof | Exhaustively derives the exact-final-world contract from strict paired-conversion and repaired paired-widening capabilities |
 | [`NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda) | completed statement | Top accumulated-world paired-cast handler, matching the strengthened source-runtime field |
 | [`NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda) | completed higher-order proof; partial assembly | Strictly composes accumulated paired-cast transport with exact-final-world catch-up; canonical assembly still waits for store-lineage propagation and the mutual source-runtime/paired-widening join |
-| `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial | The conceal field and compatible terminal paired-widening proof are complete; bullet, `ν`, `ν ★`, widening-`inst`, and the source-widen/paired-cast join form the allocation SCC; narrowing/widening need cancellation/classification and paired conversion needs lineage |
+| `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial | Conceal/reveal and terminal paired-widening layers are complete; source-bullet has a strict higher-order proof; the minimal canonical SCC is value-prefix catch-up, bullet, `ν ★`, widening-`inst`, paired cast, and final paired widening. Ordinary `ν` is downstream. Exact-final narrowing/widening and paired-conversion lineage remain active work |
 | [`NuImprecisionWorldCoherentQuotientInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientInstCatchupDef.agda) | completed narrowed statement | Strict mode-polymorphic final-state contract shared by ordinary-down and gen-down quotient-`inst` residuals; it requires the actual ready inner value `V ⟨ d ⟩` and no-bullet evidence |
 | [`NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda) | completed statement; hard proof | Exposes `quotientᵖ D≈C C⊑C′ C′≈D′` and asks for direct coherent catch-up without inventing an ordinary relation between physical endpoints |
 | [`NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef.agda) | completed statement | Replaces arbitrary permutation derivations by explicit finite paths of oriented contextual adjacent swaps while retaining the original quotient evidence in the term relation |
@@ -6415,10 +6423,10 @@ catch-up architecture.
   [`Proof`](NuImprecisionWorldCoherentFinalPairedWideningCatchupProof.agda)
   handles source blame, source-inert terminal values, and the
   source-active/target-inert bridge.  The last case calls the supplied whole
-  `WorldCoherentSourceRuntimeCatchupᵀ` contract at its `source-widen` field and
-  then frames the target cast.  This exposes an honest mutual SCC instead of a
-  hole: the canonical `Lemma` is not created until source-runtime assembly can
-  supply the dependency.
+  `WorldCoherentSourceWidenCatchupᵀ` contract and then frames the target cast.
+  This exposes the smallest honest mutual dependency instead of a hole: the
+  canonical `Lemma` is not created until mutual source-widen assembly can
+  supply it.
 
 - Converted the old counterexample into a strict regression.  Its active
   source unseal and inert target variable tag cannot satisfy either
@@ -6448,3 +6456,37 @@ leaf modules to Ginger; keep allocation SCCs, arbitrary quotient-permutation
 interpretation, mutual assembly, and dependent transport joins under GPT 5.6
 coordination.  Use focused strict checks throughout and reserve
 `NuDGGStrictSpine.agda` and `All.agda` for milestones.
+
+### 2026-07-21: source-handler contracts and SCC audit
+
+- Split the large source-runtime statement at genuine semantic boundaries.
+  Source bullet, ordinary source `ν`, runtime source `ν ★`, source narrowing,
+  and source widening now each have a strict whole-contract `Def` module.  The
+  eight-field runtime record refers to those contracts rather than repeating
+  their telescopes.  This is a naming and checking boundary; it does not claim
+  that the cyclic canonical inhabitants can be assembled independently.
+
+- Added exact-final source-narrowing and source-widening contracts.  They
+  separate terminal cast semantics from the generic adapter that transports a
+  cast through the operand catch-up's accumulated source changes.  In
+  particular, active widening `inst` is now visible as the allocation-sensitive
+  exact-final case instead of being represented by a hole in a broad handler.
+
+- Completed the strict higher-order source-bullet proof.  It reconstructs the
+  allocated `α⊑ᵀ` relation from the former runtime-field premises and invokes
+  `WorldCoherentLeftValueCatchupPrefixᵀ`.  The `Def`, `Proof`, refactored
+  runtime record, and recursive prefix consumer all pass focused
+  `--no-allow-unsolved-metas` checks.
+
+- Audited the implementation graph.  The true inhabitant SCC is value-prefix
+  catch-up together with source bullet, runtime `ν ★`, active widening `inst`,
+  source paired cast, final paired cast, and final paired widening.  Ordinary
+  source `ν` is acyclic once source bullet and source reveal exist.  Therefore
+  the higher-order files are useful strict interface checks, but the canonical
+  `Lemma` assembly for the SCC must be one structurally decreasing mutual
+  proof (or use an explicit administrative-redex measure).
+
+- This split is also an explicit defense against permissive checking.  Missing
+  leaves are represented by whole theorem parameters and absent `Lemma`
+  assemblies, so new skeleton and adapter modules can remain strict without
+  `--allow-unsolved-metas`.  No aggregate module was checked for this batch.

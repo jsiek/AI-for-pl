@@ -78,100 +78,21 @@ open import proof.NuImprecisionWorldCoherentSourceNarrowCatchupDef using
   (WorldCoherentSourceNarrowCatchupᵀ)
 open import proof.NuImprecisionWorldCoherentSourceWidenCatchupDef using
   (WorldCoherentSourceWidenCatchupᵀ)
+open import proof.NuImprecisionWorldCoherentSourceBulletCatchupDef using
+  (WorldCoherentSourceBulletCatchupᵀ)
+open import proof.NuImprecisionWorldCoherentSourceNuCatchupDef using
+  (WorldCoherentSourceNuCatchupᵀ)
+open import proof.NuImprecisionWorldCoherentSourceNuCastCatchupDef using
+  (WorldCoherentSourceNuCastCatchupᵀ)
 
 
 record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
   field
-    source-bullet :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ : StoreImp Φ Δᴸ Δᴿ}
-        {ρ′ ρ⁺ : StoreImp
-          ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-        {L V′ : Term} {A B′ C : Ty}
-        {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-          ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
-        {occ : occurs zero C ≡ true} →
-      (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
-      StoreImpPrefix
-        (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′) ρ⁺ →
-      WorldCoherent ρ⁺ →
-      SourceNameExclusive ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) →
-      StoreWf (suc Δᴸ) (leftStoreⁱ ρ⁺) →
-      RuntimeOK ((⇑ᵗᵐ L) •) →
-      Value V′ →
-      No• V′ →
-      Value L →
-      No• L →
-      LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
-      LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-        ([] {A = CtxImpEntry Φ Δᴸ Δᴿ})
-        ([] {A = CtxImpEntry
-          ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}) →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-        ⊢ᴺ L ⊑ V′ ⦂ `∀ C ⊑ B′ ∶ ν occ p →
-      suc Δᴸ
-        ∣ leftStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
-        ∣ leftCtxⁱ ([] {A = CtxImpEntry
-          ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ})
-        ⊢ (⇑ᵗᵐ L) • ⦂ C →
-      Δᴿ
-        ∣ rightStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
-        ∣ rightCtxⁱ ([] {A = CtxImpEntry
-          ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ})
-        ⊢ V′ ⦂ B′ →
-      WorldCoherentLeftCatchupIndexedResult
-        {N = (⇑ᵗᵐ L) •} {V′ = V′} {ρ = ρ⁺} p
+    source-bullet : WorldCoherentSourceBulletCatchupᵀ
 
-    source-ν :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-        {N V′ : Term} {A B B′ C : Ty} {s : Coercion}
-        {μ : ModeEnv} {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      WfTy Δᴸ A →
-      WfTy (suc Δᴸ) (⇑ᵗ A) →
-      RevealConversion μ (suc Δᴸ)
-        ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ₀))
-        zero (⇑ᵗ A) s C (⇑ᵗ B) →
-      LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρ′ →
-      LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-        ([] {A = CtxImpEntry Φ Δᴸ Δᴿ})
-        ([] {A = CtxImpEntry
-          ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}) →
-      Value V′ →
-      No• V′ →
-      WorldCoherentLeftCatchupIndexedResult
-        {N = N} {V′ = V′} {ρ = ρ⁺} q →
-      WorldCoherentLeftCatchupIndexedResult
-        {N = ν A N s} {V′ = V′} {ρ = ρ⁺} p
+    source-ν : WorldCoherentSourceNuCatchupᵀ
 
-    source-νcast :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-        {N V′ : Term} {B B′ C : Ty} {s : Coercion}
-        {μ : ModeEnv} {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      CastMode μ →
-      SealModeStore★ (instᵈ μ)
-        ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)) →
-      instᵈ μ ∣ suc Δᴸ
-        ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)
-        ⊢ s ∶ C ⊑ ⇑ᵗ B →
-      LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρ′ →
-      LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-        ([] {A = CtxImpEntry Φ Δᴸ Δᴿ})
-        ([] {A = CtxImpEntry
-          ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}) →
-      Value V′ →
-      No• V′ →
-      WorldCoherentLeftCatchupIndexedResult
-        {N = N} {V′ = V′} {ρ = ρ⁺} q →
-      WorldCoherentLeftCatchupIndexedResult
-        {N = ν ★ N s} {V′ = V′} {ρ = ρ⁺} p
+    source-νcast : WorldCoherentSourceNuCastCatchupᵀ
 
     source-narrow : WorldCoherentSourceNarrowCatchupᵀ
 

@@ -277,10 +277,11 @@ reduces the existing contract to that direct capability.  Its canonical
 `Lemma` must remain absent until a representative-level `Proof` handles
 `sym`, `trans`, congruence, and the primitive adjacent swap compositionally.
 
-Keep source bullet, allocation, cast, and conversion handlers together in
-`NuImprecisionWorldCoherentSourceRuntimeCatchup*`; source `inst` catch-up and
-`ν ★` allocation are mutually dependent and should not be split into fake leaf
-modules.  Put the complete quotient join in
+Give each source handler its own genuine whole contract, but keep the
+canonical inhabitants for the genuinely recursive handlers in one mutual
+assembly.  In particular, source `inst` catch-up and `ν ★` allocation must not
+be assembled as independent closed lemmas merely because their `Def` and
+higher-order `Proof` modules check separately.  Put the complete quotient join in
 `NuImprecisionWorldCoherentQuotientFinalCatchup*`, and the shared ordinary/gen
 quotient-`inst` final-state leaf in
 `NuImprecisionWorldCoherentQuotientInstCatchup*`.  The checked prefix `Proof`
@@ -293,8 +294,11 @@ its fields recursively.  Its current proof decomposition is:
 - `source-conceal` is complete in
   `NuImprecisionWorldCoherentSourceConcealCatchup`: conceal coercions are inert
   except for identity, which takes one administrative step;
-- `source-bullet`, `source-ν`, `source-νcast`, and the widening-`inst`
-  case form one genuine recursive allocation SCC;
+- the canonical inhabitants of value-prefix catch-up, `source-bullet`,
+  `source-νcast`, widening `inst`, source paired-cast, and final paired
+  widening form one genuine recursive allocation SCC.  Ordinary `source-ν`
+  is downstream: once source-bullet and source-reveal are available, it can be
+  assembled without a back-edge;
 - `source-reveal` needs exact source-side seal cancellation for active
   `unseal`; the first cancellation contract was strictly refuted because it
   omitted source-only-versus-matched name exclusivity.  Its replacement uses
@@ -344,12 +348,19 @@ its fields recursively.  Its current proof decomposition is:
   required lift embeddings.
 
 The independent conceal, active-unseal, and source-reveal leaves are now
-complete.  Next use completed source tag cancellation and the source
-cast-sequence midpoint in the non-`inst`
-narrow/widen cases, and prove the remaining paired-cast dependencies.  Only
-then implement
-the allocation SCC as a visibly structural mutual proof (or with an explicit
-administrative measure) and assemble the eight-field record.  Do not make the
+complete.  Source bullet, ordinary `ν`, runtime `ν ★`, source narrowing, and
+source widening now also have separate strict statement modules; exact-final
+source narrowing and widening have their own contracts so accumulated-change
+adapters do not have to conceal terminal semantics.  The source-bullet
+higher-order proof is complete from the whole value-prefix contract.  These
+strict transformers deliberately do not imply that a cyclic canonical
+inhabitant exists.
+
+Next use completed source tag cancellation and the source cast-sequence
+midpoint in the exact-final non-`inst` narrowing/widening handlers, and prove
+the remaining paired-cast dependencies.  Then implement the allocation SCC as
+a visibly structural mutual proof (or with an explicit administrative
+measure), before assembling the eight-field runtime record.  Do not make the
 record itself a higher-order input to its own `Proof`; that would encode the
 missing recursion circularly while still appearing strict to Agda.
 

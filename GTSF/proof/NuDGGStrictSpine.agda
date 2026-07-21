@@ -8,6 +8,7 @@ module proof.NuDGGStrictSpine where
 
 import proof.NuDGGPreservation
 import proof.NuDGGSpine
+import proof.NuDGGClosedWorld
 import proof.NuDGGTerminal
 import proof.NuDGGTerminalBackwardBlameAssembly
 import proof.NuDGGTerminalBackwardValueDef
@@ -25,9 +26,13 @@ import proof.NuImprecisionWorldCoherenceCrossedLemma
 import proof.NuImprecisionWorldCoherentResultDef
 import proof.NuImprecisionWorldCoherentOneStepDef
 import proof.NuImprecisionWorldCoherentValueCatchupDef
+import proof.NuImprecisionWorldCoherentValueCatchupPrefixDef
+import proof.NuImprecisionWorldCoherentValueCatchupProof
 import proof.NuImprecisionTargetSealCancellationDef
 import proof.NuImprecisionTargetSealCancellationProof
 import proof.NuImprecisionTargetSealCancellationLemma
+import proof.NuImprecisionWorldCoherentTargetRevealRootDef
+import proof.NuImprecisionWorldCoherentTargetRevealRootProof
 import proof.NuDGGTraceAlignment
 import proof.NuDGGTraceMeasure
 import proof.NuDGGWeakResultPreservation
@@ -41,6 +46,7 @@ import proof.NuImprecisionOneStepApplicationRoots
 import proof.NuImprecisionOneStepTargetBlameRoots
 import proof.NuImprecisionAtomicTargetReindex
 import proof.NuImprecisionOneStepTargetCastIdentityRoots
+import proof.NuImprecisionTargetCastSequenceMidpointDef
 import proof.NuImprecisionOneStepTargetCastFrames
 import proof.NuImprecisionOneStepTargetConversionFrames
 import proof.NuImprecisionQuotientInstView

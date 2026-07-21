@@ -318,6 +318,9 @@ are delegated:
 | [`NuImprecisionOneStepRelated.agda`](NuImprecisionOneStepRelated.agda) | completed | Strict canonical keep-step result and indexed-outcome builders extracted from the simulation core so terminal and identity roots do not import the 15,000-line implementation |
 | [`NuImprecisionAtomicTargetReindex.agda`](NuImprecisionAtomicTargetReindex.agda) | completed | Strict exhaustive reconstruction of atomic-target value relations at an explicit desired type-imprecision index; closes target conversion identity roots without proof irrelevance |
 | [`NuImprecisionOneStepTargetCastIdentityRoots.agda`](NuImprecisionOneStepTargetCastIdentityRoots.agda) | completed | Three strict β-id root outcomes for narrowing, general widening, and id-only widening target casts; the partial target-cast dispatcher now has eight holes instead of eleven |
+| [`NuImprecisionTargetCastSequenceMidpointDef.agda`](NuImprecisionTargetCastSequenceMidpointDef.agda) | completed statement | Strict indexed family for the local midpoint evidence retained by one quotiented target-cast node; avoids an unsound global right-context-compatibility requirement |
+| `NuImprecisionOneStepTargetCastSequenceIdRoot.agda` | in progress on Ginger | The id-only widening β-sequence leaf is derivable with the existing `right-id-only-compatible` witness and has been reassigned as one narrow GPT 5.5 work package |
+| General target-cast β-sequence midpoint integration | not yet started | The narrowing and general widening nodes must retain a local `TargetCastSequenceMidpointᵀ` witness and pass it to their root helpers; existing constructors retain only final `q` |
 | [`NuImprecisionWorldCoherenceDef.agda`](NuImprecisionWorldCoherenceDef.agda) | completed statement | Freezes `WorldCoherent`, the exact store-correspondence invariant required before target seal cancellation can be a sound leaf |
 | [`NuImprecisionWorldCoherenceProof.agda`](NuImprecisionWorldCoherenceProof.agda) | completed | Strict structural proof layer: empty world, exact entry-extension obligations, correspondence weakening, and matched/left/right canonical lift preservation |
 | [`NuImprecisionWorldCoherenceLemma.agda`](NuImprecisionWorldCoherenceLemma.agda) | partial boundary | Strict assembly for matched, source-only, and target-only single-name lift-plus-allocation; crossed two-name allocation remains separate |
@@ -325,11 +328,19 @@ are delegated:
 | [`NuImprecisionWorldCoherentResultDef.agda`](NuImprecisionWorldCoherentResultDef.agda) | completed statement | Adds final `WorldCoherent` evidence to continuing one-step outcomes and catch-up results without changing the generic result algebra |
 | [`NuImprecisionWorldCoherentOneStepDef.agda`](NuImprecisionWorldCoherentOneStepDef.agda) | completed statement | Strengthened one-step contract consumes input coherence and returns it on every related successor branch |
 | [`NuImprecisionWorldCoherentValueCatchupDef.agda`](NuImprecisionWorldCoherentValueCatchupDef.agda) | completed statement | Strengthened value-catch-up contract consumes input coherence and exposes coherent final catch-up worlds |
+| [`NuImprecisionWorldCoherentValueCatchupPrefixDef.agda`](NuImprecisionWorldCoherentValueCatchupPrefixDef.agda) | completed statement | Ambient-prefix induction contract: the relation may use a smaller prefix world, while coherence is retained for the ambient evaluation world that will own the result |
+| [`NuImprecisionWorldCoherentValueCatchupProof.agda`](NuImprecisionWorldCoherentValueCatchupProof.agda) | completed adapter proof | Strictly derives the public coherent value-catch-up contract from the prefix worker by applying it to `prefix-reflⁱ`; the structural prefix worker remains unimplemented |
+| `NuImprecisionWorldCoherentValueCatchupPrefixProof.agda` | not yet started | Will implement the recursive prefix worker from strict leaf contracts, reusing coherence on frames and extending it only at source allocation results |
+| `NuImprecisionWorldCoherentValueCatchupLemma.agda` | not yet started | Canonical assembly waits for the strict prefix proof and its strict allocation/quotient leaves |
 | [`NuDGGTerminalBackwardValueWorldCoherentDef.agda`](NuDGGTerminalBackwardValueWorldCoherentDef.agda) | completed statement | Arbitrary-world backward-value terminal contract with the necessary initial `WorldCoherent` premise; the closed public conclusion is unchanged |
 | [`NuDGGTerminalBackwardValueWorldCoherentProof.agda`](NuDGGTerminalBackwardValueWorldCoherentProof.agda) | completed proof | Hole-free higher-order fuel induction from the world-coherent one-step and value-catch-up contracts; passes a strict focused check without live implementations |
+| [`NuDGGClosedWorld.agda`](NuDGGClosedWorld.agda) | completed | Supplies both `empty-store-wf` and the vacuous `empty-world-coherent` witness needed when the strengthened arbitrary-world theorem is specialized back to closed DGG |
 | [`NuImprecisionTargetSealCancellationDef.agda`](NuImprecisionTargetSealCancellationDef.agda) | completed statement | Exact terminal target-seal cancellation contract with world coherence, target-store well-formedness, physical membership, value/no-bullet facts, and explicit old/new indices |
 | [`NuImprecisionTargetSealCancellationProof.agda`](NuImprecisionTargetSealCancellationProof.agda) | completed proof | Hard quotient/value inversion with ambient-prefix recursion; source seals recurse via exact correspondence, target-only seals strip, paired conceal becomes source-only conceal, allocation prefixes rebuild, and all incompatible cast/value forms are eliminated exhaustively |
 | [`NuImprecisionTargetSealCancellationLemma.agda`](NuImprecisionTargetSealCancellationLemma.agda) | completed lemma | Canonical inhabitant of `TargetSealCancellationᵀ`; its focused assembly check passes without importing the dispatcher or catch-up implementation |
+| [`NuImprecisionWorldCoherentTargetRevealRootDef.agda`](NuImprecisionWorldCoherentTargetRevealRootDef.agda) | completed statement | Full coherent target reveal-unseal root contract, including initial coherence, target store typing and membership, runtime/value premises, and the desired unsealed index |
+| [`NuImprecisionWorldCoherentTargetRevealRootProof.agda`](NuImprecisionWorldCoherentTargetRevealRootProof.agda) | completed proof | Strict higher-order proof from coherent value catch-up and target-seal cancellation; transports store evidence into the catch-up world, cancels the seal, and retargets the result without losing transport, type, trace, or coherence evidence |
+| `NuImprecisionWorldCoherentTargetRevealRootLemma.agda` | not yet started | Canonical assembly waits for a strict inhabitant of `WorldCoherentLeftValueCatchupᵀ`; no permissive assembly file is created in the meantime |
 | [`NuImprecisionTargetBlameCatchup.agda`](NuImprecisionTargetBlameCatchup.agda) | completed | Hole-free structural target-blame catch-up, including source allocation and all four source cast/conversion tails |
 | [`NuImprecisionCatchupSourceCastTerminal.agda`](NuImprecisionCatchupSourceCastTerminal.agda) | completed | Two arbitrary-type terminal frame lemmas for source cast-to-blame and source inert-cast outcomes |
 | [`NuImprecisionQuotientInstView.agda`](NuImprecisionQuotientInstView.agda) | completed | Exhaustive quotient-instantiation spine view exposing only sound structural witnesses |
@@ -422,7 +433,10 @@ use the naming and dependency policy in [`proof/README.md`](README.md):
    are themselves strict.
 4. Keep each changing leaf proof in its own implementation module; do not make
    unrelated workers import the large dispatcher scratch file.
-5. Once a large proof is complete, consider putting its definition in an
+5. Represent every unfinished architectural dependency as a higher-order
+   contract parameter, not an Agda hole.  Avoiding `--allow-unsolved-metas` is
+   an explicit objective of the split, in addition to checking-time isolation.
+6. Once a large proof is complete, consider putting its definition in an
    `opaque` block if no client relies on its definitional reduction.  Agda 2.7
    documents opacity specifically as a way to control unfolding for
    performance.  Apply this selectively and recheck the nearest consumer,
@@ -5814,6 +5828,13 @@ catch-up architecture.
   theorem is checked without inheriting that file's
   `--allow-unsolved-metas`.
 
+- Made the no-unsolved-metas benefit an explicit organization criterion.
+  Missing major proofs are represented by whole theorem contracts passed to
+  strict higher-order `Proof` modules.  Holes are therefore confined to the
+  remaining legacy scratch dispatchers while those files are decomposed; new
+  skeleton, boundary, and worker modules are expected to be strict from their
+  first checked version.
+
 - Completed strict
   [`world-coherent-backward-target-value-or-source-blame-proofᵀ`](NuDGGTerminalBackwardValueWorldCoherentProof.agda).
   The higher-order theorem consumes only the strengthened one-step and value
@@ -5838,10 +5859,52 @@ catch-up architecture.
   the two exported crossed correspondences.  The focused Ginger check,
   diff check, and line-length audit pass.
 
+- Completed the strict coherent reveal-unseal root boundary in
+  [`NuImprecisionWorldCoherentTargetRevealRootDef`](NuImprecisionWorldCoherentTargetRevealRootDef.agda)
+  and
+  [`NuImprecisionWorldCoherentTargetRevealRootProof`](NuImprecisionWorldCoherentTargetRevealRootProof.agda).
+  The higher-order proof consumes only the coherent value-catch-up and exact
+  seal-cancellation contracts.  Its value branch transports target store
+  typing and membership into the final catch-up world, cancels at the
+  transported desired index, and rebuilds the result with unchanged transport,
+  type-coherence, trace, and final-world evidence; its other branch returns
+  source blame.  Both focused strict checks pass.  The canonical `Lemma` is
+  deliberately not created until coherent catch-up has a strict inhabitant.
+
+- Froze the value-catch-up induction invariant as strict
+  [`WorldCoherentLeftValueCatchupPrefixᵀ`](NuImprecisionWorldCoherentValueCatchupPrefixDef.agda).
+  It carries coherence for ambient `ρ⁺` while allowing the current quotient
+  relation to live in a smaller prefix world `ρ₀`.  This distinction is
+  necessary because an arbitrary prefix can contribute correspondences that
+  are absent from its tail, so coherence cannot soundly be recovered by a
+  post-hoc wrapper around an ordinary catch-up result.  The strict
+  [`world-coherent-left-value-catchup-proofᵀ`](NuImprecisionWorldCoherentValueCatchupProof.agda)
+  specializes that prefix capability at `prefix-reflⁱ`, checking the path from
+  the recursive invariant to the public catch-up contract without importing
+  the partial scratch implementation.
+
+- Stopped the first Ginger β-sequence worker after it made no worktree changes
+  during an overlong search.  Its useful diagnostic is that the nested target
+  relation needs a midpoint imprecision witness, while the current dispatcher
+  root receives only the final index `q`.  This is now an interface/factorization
+  question for local GPT 5.6 analysis, not another blind leaf assignment.
+
+- Resolved that interface question locally.  The id-only widening branch can
+  derive the midpoint with `right-id-only-compatible`, `StoreWf⇒det`,
+  `widening⇒⊑ᵢ`, and `⊑-transʳ-castᵢ`; it is now a smaller Ginger leaf.  The
+  general narrowing and widening branches cannot derive the prescribed
+  midpoint from their current premises.  A global `RightCastCtxCompatible`
+  premise is not sound for this purpose because matched `gen` and `inst` worlds
+  are intentionally incompatible.  The strict indexed family
+  [`TargetCastSequenceMidpointᵀ`](NuImprecisionTargetCastSequenceMidpointDef.agda)
+  instead records local split evidence on one quotiented target-cast node.  The
+  future constructor change should retain that witness beside `p` and `q`, and
+  the β-sequence root should consume it explicitly.
+
 ### Next boundary
 
-Connect target-seal cancellation to the reveal-unseal root through the
-world-coherent value-catch-up contract, then thread the invariant through the
-actual one-step and catch-up result constructors.  Continue isolated
-target-cast leaves on Ginger and integrate only strict, focused worker modules;
-do not run aggregate checks.
+Inhabit the world-coherent value-catch-up contract by threading the invariant
+through the actual catch-up result constructors, then create the canonical
+target reveal-unseal `Lemma`.  Resolve the β-sequence midpoint factorization
+locally before assigning a smaller leaf to Ginger.  Integrate only strict,
+focused worker modules; do not run aggregate checks.

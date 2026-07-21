@@ -52,9 +52,13 @@ import proof.NuImprecisionWorldCoherenceCrossedLemma
 import proof.NuImprecisionWorldCoherentResultDef
 import proof.NuImprecisionWorldCoherentOneStepDef
 import proof.NuImprecisionWorldCoherentValueCatchupDef
+import proof.NuImprecisionWorldCoherentValueCatchupPrefixDef
+import proof.NuImprecisionWorldCoherentValueCatchupProof
 import proof.NuImprecisionTargetSealCancellationDef
 import proof.NuImprecisionTargetSealCancellationProof
 import proof.NuImprecisionTargetSealCancellationLemma
+import proof.NuImprecisionWorldCoherentTargetRevealRootDef
+import proof.NuImprecisionWorldCoherentTargetRevealRootProof
 import proof.NuImprecisionSimulationCore
 import proof.NuImprecisionSimulation
 import proof.NuImprecisionCatchupScratch
@@ -68,6 +72,7 @@ import proof.NuImprecisionOneStepApplicationRoots
 import proof.NuImprecisionOneStepTargetBlameRoots
 import proof.NuImprecisionAtomicTargetReindex
 import proof.NuImprecisionOneStepTargetCastIdentityRoots
+import proof.NuImprecisionTargetCastSequenceMidpointDef
 import proof.NuImprecisionOneStepTargetCastFrames
 import proof.NuImprecisionOneStepTargetConversionFrames
 import proof.NuImprecisionOneStepTargetCastRoots
@@ -79,6 +84,7 @@ import proof.NuReductionDeterminism
 import proof.NuDGGTraceAlignment
 import proof.NuDGGSpine
 import proof.NuDGGStrictSpine
+import proof.NuDGGClosedWorld
 import proof.NuDGGTerminalBackwardBlameAssembly
 import proof.NuDGGTerminalBackwardBlameIntegration
 import proof.NuDGGTerminalBackwardValueDef

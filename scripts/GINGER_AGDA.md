@@ -28,10 +28,14 @@ From the root of the checkout or any worker worktree, run:
 The wrapper changes into `GTSF/`, so module paths are relative to that
 directory.  Do not invoke the bare `agda` executable for routine ginger work.
 
-For a deliberately partial statement module that explicitly enables unsolved
-metas, omit `--no-allow-unsolved-metas`:
+For an existing deliberately partial legacy module that explicitly enables
+unsolved metas, omit `--no-allow-unsolved-metas`:
 
     scripts/agda-ginger -v0 proof/<PartialModule>.agda
+
+Do not use that pattern for new skeleton or worker modules.  State unfinished
+major dependencies as higher-order contract parameters so the new module can
+pass the strict command from its first checked version.
 
 ## Starting a remote worker worktree
 

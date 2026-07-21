@@ -43,6 +43,13 @@ independently strict.  Completed architectural work therefore does not need a
 temporary file-level `--allow-unsolved-metas` just because a supplied leaf is
 still under construction.
 
+Treat avoiding `--allow-unsolved-metas` as an architectural objective of the
+split.  New top-level skeleton work should represent missing proofs as explicit
+higher-order contract parameters, not as holes.  A partial legacy dispatcher
+may remain permissive while it is being decomposed, but no new `Def`, `Proof`,
+or leaf module should need that option merely to expose the rest of the proof
+shape.
+
 A command-line `--no-allow-unsolved-metas` is not sufficient when a source
 module locally enables `--allow-unsolved-metas`.  Completion therefore
 requires removing the local option and checking the owned module again, as
@@ -125,3 +132,38 @@ premises visible: hiding them in the target-conversion dispatcher would make it
 easy to type-check a leaf that cannot be composed after catch-up changes the
 world.  The dispatcher should consume the canonical `Lemma`; neither the `Def`
 nor the `Proof` should import the dispatcher or inherit its permissive options.
+
+World-coherent value catch-up needs one additional genuine induction contract.
+`NuImprecisionWorldCoherentValueCatchupPrefixDef` permits the current relation
+to be exposed in a smaller world `ρ₀`, but carries `WorldCoherent ρ⁺` for the
+ambient world that owns the final result.  Coherence is not generally
+downward-closed through an arbitrary `StoreImpPrefix`, so it cannot be attached
+after running the ordinary catch-up theorem.
+
+`NuImprecisionWorldCoherentValueCatchupProof` already proves the public
+catch-up contract from this prefix contract using `prefix-reflⁱ`.  The future
+prefix implementation should take its unfinished allocation and quotient
+leaves as higher-order contracts.  It must not import
+`NuImprecisionCatchupScratch` merely to reuse its partial dispatcher.
+
+The target reveal-unseal root is the next higher-order boundary:
+
+- `NuImprecisionWorldCoherentTargetRevealRootDef` states the complete root
+  contract;
+- `NuImprecisionWorldCoherentTargetRevealRootProof` proves it from the whole
+  world-coherent value-catch-up and target-seal-cancellation contracts; and
+- `NuImprecisionWorldCoherentTargetRevealRootLemma` should be created only
+  after the live coherent value-catch-up contract has a strict inhabitant.
+
+This intentionally leaves the `Lemma` file absent while its canonical catch-up
+dependency is unfinished.  The checked `Proof` already establishes that the
+dependency statements compose; adding a permissive assembly would weaken the
+strict boundary without supplying new evidence.
+
+Target coercion sequencing has a separate local-evidence boundary.
+`NuImprecisionTargetCastSequenceMidpointDef` defines an indexed family for the
+midpoint witness attached to one quotiented target-cast node.  Do not replace
+it with a global `RightCastCtxCompatible` assumption: matched `gen` and `inst`
+worlds need not satisfy that condition.  Root helpers should consume the local
+witness explicitly, while the quotient constructor is responsible for
+retaining it when the node is built.

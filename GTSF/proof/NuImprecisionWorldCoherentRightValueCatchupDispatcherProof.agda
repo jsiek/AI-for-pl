@@ -63,13 +63,8 @@ open import
   ( WorldCoherentRightValueCatchupCases
   ; rightQuotientGenDownUpFrame
   ; rightQuotientIdDownUpFrame
-  ; rightTargetConcealFrame
-  ; rightTargetIdWidenFrame
-  ; rightTargetNarrowFrame
   ; rightTargetNuCastFrame
   ; rightTargetNuFrame
-  ; rightTargetRevealFrame
-  ; rightTargetWidenFrame
   ; rightValuePairedCastFrameCase
   ; rightValueQuotientDownUpFrameCase
   ; rightValueSourceAllClosingCase
@@ -84,6 +79,13 @@ open import proof.NuImprecisionWorldCoherentRightSourceFramesDef using
   ; rightSourceNarrowFrame
   ; rightSourceRevealFrame
   ; rightSourceWidenFrame
+  )
+open import proof.NuImprecisionWorldCoherentRightTargetCastFramesDef using
+  ( rightTargetConcealFrame
+  ; rightTargetIdWidenFrame
+  ; rightTargetNarrowFrame
+  ; rightTargetRevealFrame
+  ; rightTargetWidenFrame
   )
 open import
   proof.NuImprecisionWorldCoherentRightValueCatchupPrefixDef

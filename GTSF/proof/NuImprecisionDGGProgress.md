@@ -317,6 +317,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightValueCatchupCasesDef.agda`](NuImprecisionWorldCoherentRightValueCatchupCasesDef.agda) | completed statement | Eight-family semantic boundary for the recursive right-value engine; constructor-specific premises and recursive-result consumers remain explicit. |
 | [`NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda`](NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda) | completed higher-order proof | Direct structural recursion over every quotiented term-precision constructor, including prefix transitivity, impossible value shapes, and explicit binder-closing boundaries. |
 | [`NuImprecisionWorldCoherentRightSourceFramesDef.agda`](NuImprecisionWorldCoherentRightSourceFramesDef.agda) | completed frozen statement; proof assigned | Canonical four-field source cast/conversion frame boundary extracted for isolated Ginger development. |
+| [`NuImprecisionWorldCoherentRightTargetCastFramesDef.agda`](NuImprecisionWorldCoherentRightTargetCastFramesDef.agda) | completed frozen statement | Canonical five-field target cast/conversion frame boundary extracted for hard local proof development. |
 | [`NuImprecisionWorldCoherentRightValueTerminalDef.agda`](NuImprecisionWorldCoherentRightValueTerminalDef.agda) | completed statement | Zero-step value/value base returning the full recursive right-catch-up result in the ambient prefix world. |
 | [`NuImprecisionWorldCoherentRightValueTerminalProof.agda`](NuImprecisionWorldCoherentRightValueTerminalProof.agda) | completed GPT-5.5 proof | Lifts both terminal typings and their relation through the ambient prefix, then returns the zero-step result with identity transport, coherence, and lineage. |
 | [`NuImprecisionWorldCoherentRightValueTerminalLemma.agda`](NuImprecisionWorldCoherentRightValueTerminalLemma.agda) | completed canonical assembly | Exposes the strict terminal proof through the canonical three-file boundary. |
@@ -8313,6 +8314,13 @@ coordination.  Use focused strict checks throughout and reserve
   worker's dependency surface small and gives the narrowing, widening,
   reveal, and conceal source frames their expected `Def`/`Proof`/`Lemma`
   filename path.
+
+- Extracted the five target cast and conversion frames into
+  [`NuImprecisionWorldCoherentRightTargetCastFramesDef.agda`](NuImprecisionWorldCoherentRightTargetCastFramesDef.agda).
+  The aggregate right-catch-up cases record now imports this canonical record,
+  and the recursive dispatcher imports its projections directly.  This freezes
+  the exact hard local boundary for target narrowing, widening, identity-only
+  widening, reveal, and conceal without importing their future proof.
 
 - Froze
   [`RightStorePrefixFactorᵀ`](NuImprecisionRightStorePrefixFactorDef.agda) as

@@ -387,6 +387,10 @@ open import proof.TypeProperties using
 
 open import proof.NuImprecisionRelStoreEmbeddingDef
 open import proof.NuImprecisionSimulationCore
+open import proof.NuImprecisionPairedAllBetaCommutation using
+  ( paired-β-∀-revealᵀ
+  ; paired-β-∀-concealᵀ
+  )
 open import proof.NuImprecisionSourcePolymorphicValueBase using
   ( left-polymorphic-value-shapeᵀ
   ; post-allocation-β-∀•-bare
@@ -3767,84 +3771,6 @@ paired-β-∀-conceal zero⊑zero zero-entry vV vV′
   paired-conceal (correspondence-stored zero-entry)
     (open-conceal-conversion z<s c↓)
     (open-conceal-conversion z<s c′↓)
-
-paired-β-∀-revealᵀ :
-  ∀ {Φ Δᴸ Δᴿ X X′ pX μ μ′ c c′ A A′ B B′ V V′}
-    {ρ : StoreImp Φ (suc Δᴸ) (suc Δᴿ)}
-    {γ : CtxImp Φ (suc Δᴸ) (suc Δᴿ)} →
-  (zero⊑zero : (zero ˣ⊑ˣ zero) ∈ Φ) →
-  store-matched zero X zero X′ pX ∈ ρ →
-  Value V →
-  Value V′ →
-  RevealConversion μ (suc Δᴸ) (leftStoreⁱ ρ) zero X
-    (`∀ c) (`∀ A) (`∀ B) →
-  RevealConversion μ′ (suc Δᴿ) (rightStoreⁱ ρ) zero X′
-    (`∀ c′) (`∀ A′) (`∀ B′) →
-  (p : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ A ⊑ A′ ⊣ suc (suc Δᴿ)) →
-  (q : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ B ⊑ B′ ⊣ suc (suc Δᴿ)) →
-  Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ V • ⊑ V′ •
-    ⦂ A [ zero ]ᴿ ⊑ A′ [ zero ]ᴿ
-    ∶ ⊑-open∀ᵢ {α = zero} {β = zero} zero⊑zero z<s z<s p →
-  (((V ⟨ `∀ c ⟩) • —→[ keep ]
-      (V •) ⟨ (c [ zero ]ᶜ) ⟩) ×
-   ((V′ ⟨ `∀ c′ ⟩) • —→[ keep ]
-      (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩) ×
-   (Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺ (V •) ⟨ (c [ zero ]ᶜ) ⟩
-        ⊑ (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩
-      ⦂ B [ zero ]ᴿ ⊑ B′ [ zero ]ᴿ
-      ∶ ⊑-open∀ᵢ {α = zero} {β = zero}
-          zero⊑zero z<s z<s q))
-paired-β-∀-revealᵀ zero⊑zero zero-entry vV vV′
-    (reveal-all c↑) (reveal-all c′↑) p q V•⊑V′• =
-  pure-step (β-∀• vV) ,
-  pure-step (β-∀• vV′) ,
-  conv⊑convᵀ
-    (paired-conversion
-      (paired-reveal (correspondence-stored zero-entry)
-        (open-reveal-conversion z<s c↑)
-        (open-reveal-conversion z<s c′↑)))
-    V•⊑V′•
-
-paired-β-∀-concealᵀ :
-  ∀ {Φ Δᴸ Δᴿ X X′ pX μ μ′ c c′ A A′ B B′ V V′}
-    {ρ : StoreImp Φ (suc Δᴸ) (suc Δᴿ)}
-    {γ : CtxImp Φ (suc Δᴸ) (suc Δᴿ)} →
-  (zero⊑zero : (zero ˣ⊑ˣ zero) ∈ Φ) →
-  store-matched zero X zero X′ pX ∈ ρ →
-  Value V →
-  Value V′ →
-  ConcealConversion μ (suc Δᴸ) (leftStoreⁱ ρ) zero X
-    (`∀ c) (`∀ A) (`∀ B) →
-  ConcealConversion μ′ (suc Δᴿ) (rightStoreⁱ ρ) zero X′
-    (`∀ c′) (`∀ A′) (`∀ B′) →
-  (p : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ A ⊑ A′ ⊣ suc (suc Δᴿ)) →
-  (q : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ B ⊑ B′ ⊣ suc (suc Δᴿ)) →
-  Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ V • ⊑ V′ •
-    ⦂ A [ zero ]ᴿ ⊑ A′ [ zero ]ᴿ
-    ∶ ⊑-open∀ᵢ {α = zero} {β = zero} zero⊑zero z<s z<s p →
-  (((V ⟨ `∀ c ⟩) • —→[ keep ]
-      (V •) ⟨ (c [ zero ]ᶜ) ⟩) ×
-   ((V′ ⟨ `∀ c′ ⟩) • —→[ keep ]
-      (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩) ×
-   (Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺ (V •) ⟨ (c [ zero ]ᶜ) ⟩
-        ⊑ (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩
-      ⦂ B [ zero ]ᴿ ⊑ B′ [ zero ]ᴿ
-      ∶ ⊑-open∀ᵢ {α = zero} {β = zero}
-          zero⊑zero z<s z<s q))
-paired-β-∀-concealᵀ zero⊑zero zero-entry vV vV′
-    (conceal-all c↓) (conceal-all c′↓) p q V•⊑V′• =
-  pure-step (β-∀• vV) ,
-  pure-step (β-∀• vV′) ,
-  conv⊑convᵀ
-    (paired-conversion
-      (paired-conceal (correspondence-stored zero-entry)
-        (open-conceal-conversion z<s c↓)
-        (open-conceal-conversion z<s c′↓)))
-    V•⊑V′•
 
 left-β-∀-revealᵀ :
   ∀ {Φ Δᴸ Δᴿ X μ c A B B′ V N′ p}

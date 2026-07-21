@@ -5,8 +5,8 @@ module
 -- File Charter:
 --   * Defines the canonical target-runtime-bullet leaf for source-allocation
 --     runtime transport.
---   * Keeps the original and source-renamed target-lift worlds explicit so
---     the proof can invert their store and context renaming witnesses.
+--   * Uses the constructor-natural right-after-left world, so the existing
+--     target-bullet renaming theorem applies without proof-index coherence.
 --   * Returns the renamed `⊑αᵀ` relation directly, without a path, result,
 --     outcome, or view carrier.
 --   * Contains no implementation, postulate, hole, permissive option, or
@@ -25,8 +25,6 @@ open import NuTermImprecision using
   ; LiftRightCtxⁱ
   ; LiftRightStoreⁱ
   ; StoreImp
-  ; leftCtxⁱ
-  ; leftStoreⁱ
   ; rightCtxⁱ
   ; rightStoreⁱ
   ; store-right
@@ -57,6 +55,7 @@ open import proof.MaximalLowerBoundsWf using
 open import proof.NuImprecisionSimulationCore using
   ( LeftCtxRenameⁱ
   ; LeftStoreRenameⁱ
+  ; rename-assm²-⇑ᴿᵢ
   ; ⊑-rename-leftᵢ
   )
 open import proof.TypeProperties using (TyRenameWf-suc)
@@ -67,18 +66,20 @@ LeftSourceAllocationRuntimeTargetBulletᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρᴿ : StoreImp (⇑ᴿᵢ Φ) Δᴸ (suc Δᴿ)}
-    {ρᴸᴿ : StoreImp (νᵢᶜ (⇑ᴿᵢ Φ)) (suc Δᴸ) (suc Δᴿ)}
+    {ρᴸᴿ : StoreImp (⇑ᴿᵢ (νᵢᶜ Φ)) (suc Δᴸ) (suc Δᴿ)}
     {γ : CtxImp Φ Δᴸ Δᴿ}
     {γᴿ : CtxImp (⇑ᴿᵢ Φ) Δᴸ (suc Δᴿ)}
-    {γᴸᴿ : CtxImp (νᵢᶜ (⇑ᴿᵢ Φ)) (suc Δᴸ) (suc Δᴿ)}
+    {γᴸᴿ : CtxImp (⇑ᴿᵢ (νᵢᶜ Φ)) (suc Δᴸ) (suc Δᴿ)}
     {N L′ : Term} {A B C′ : Ty}
     {q : Φ ∣ Δᴸ ⊢ B ⊑ `∀ C′ ⊣ Δᴿ}
     {r : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ}
     {h⇑A h⇑A′ : WfTy (suc Δᴿ) (⇑ᵗ A)} →
-  LeftStoreRenameⁱ suc rename-assm²-source-νᵢ TyRenameWf-suc
+  LeftStoreRenameⁱ suc
+    (rename-assm²-⇑ᴿᵢ rename-assm²-source-νᵢ) TyRenameWf-suc
     (store-right zero (⇑ᵗ A) h⇑A ∷ ρᴿ)
     (store-right zero (⇑ᵗ A) h⇑A′ ∷ ρᴸᴿ) →
-  LeftCtxRenameⁱ suc rename-assm²-source-νᵢ
+  LeftCtxRenameⁱ suc
+    (rename-assm²-⇑ᴿᵢ rename-assm²-source-νᵢ)
     TyRenameWf-suc γᴿ γᴸᴿ →
   No• N →
   Value L′ →
@@ -87,15 +88,13 @@ LeftSourceAllocationRuntimeTargetBulletᵀ =
   LiftRightCtxⁱ (⇑ᴿᵢ Φ) γ γᴿ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
     ⊢ᴺ N ⊑ L′ ⦂ B ⊑ `∀ C′ ∶ q →
-  Δᴸ
-    ∣ leftStoreⁱ (store-right zero (⇑ᵗ A) h⇑A ∷ ρᴿ)
-    ∣ leftCtxⁱ γᴿ ⊢ N ⦂ B →
   suc Δᴿ
     ∣ rightStoreⁱ (store-right zero (⇑ᵗ A) h⇑A ∷ ρᴿ)
     ∣ rightCtxⁱ γᴿ ⊢ (⇑ᵗᵐ L′) • ⦂ C′ →
-  νᵢᶜ (⇑ᴿᵢ Φ) ∣ suc Δᴸ ∣ suc Δᴿ
+  ⇑ᴿᵢ (νᵢᶜ Φ) ∣ suc Δᴸ ∣ suc Δᴿ
     ∣ store-right zero (⇑ᵗ A) h⇑A′ ∷ ρᴸᴿ ∣ γᴸᴿ
     ⊢ᴺ renameᵗᵐ suc N ⊑ (⇑ᵗᵐ L′) •
     ⦂ renameᵗ suc B ⊑ C′
-    ∶ ⊑-rename-leftᵢ suc rename-assm²-source-νᵢ
+    ∶ ⊑-rename-leftᵢ suc
+      (rename-assm²-⇑ᴿᵢ rename-assm²-source-νᵢ)
       TyRenameWf-suc r

@@ -241,6 +241,14 @@ related.  The missing hard boundary is therefore compositional catch-up over
 the `≈∀` derivation, using the specialized swap/allocation machinery in its
 swap case.
 
+`NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef` now exposes
+the two arbitrary `≈∀` derivations and their ordinary representative relation
+without claiming an ordinary relation between physical quotient endpoints.
+The canonical `NuImprecisionWorldCoherentQuotientInstCatchupProof` strictly
+reduces the existing contract to that direct capability.  Its canonical
+`Lemma` must remain absent until a representative-level `Proof` handles
+`sym`, `trans`, congruence, and the primitive adjacent swap compositionally.
+
 Keep source bullet, allocation, cast, and conversion handlers together in
 `NuImprecisionWorldCoherentSourceRuntimeCatchup*`; source `inst` catch-up and
 `ν ★` allocation are mutually dependent and should not be split into fake leaf
@@ -266,7 +274,10 @@ its fields recursively.  Its current proof decomposition is:
   `WorldCoherent`, because empty-store coherence is valid for
   arbitrary contexts.  The repaired `Def`/`Proof`/`Lemma` triples for
   `NuImprecisionSourceSealCancellation` and
-  `NuImprecisionWorldCoherentSourceUnsealCatchup` are strict and complete;
+  `NuImprecisionWorldCoherentSourceUnsealCatchup` are strict and complete.
+  The source-reveal `Def`/`Proof`/`Lemma` triple is also complete: its
+  higher-order proof dispatches all reveal forms and delegates only active
+  unseal to the canonical unseal lemma;
 - active narrowing/widening need source tag/untag classification in addition
   to the existing inert and blame frames.  The raw two-seal obstruction in
   `NuImprecisionSourceCastSequenceMidpointCounterexample` does not satisfy
@@ -276,12 +287,15 @@ its fields recursively.  Its current proof decomposition is:
   decomposition theorem; and
 - `source-paired-cast` needs prefix and accumulated-change transport for
   `PairedCast` evidence.  Its contract retains the target cast's `Inert`
-  witness because every structural caller already has it; rebuilding final
-  `StoreCorresponds` after arbitrary source changes remains the hard step.
+  witness because every structural caller already has it.  The strict
+  `NuImprecisionWorldCoherentSourcePairedCastCatchupProof` now composes two
+  explicit dependencies: accumulated left-silent paired-cast transport and
+  exact-final-world paired-cast catch-up.  Rebuilding final `StoreCorresponds`
+  after arbitrary source changes remains the hard transport step.
 
-The independent conceal and active-unseal leaves are now complete.  Next wire
-the canonical unseal lemma into `source-reveal`, finish source tag cancellation,
-derive the source cast-sequence midpoint from the full
+The independent conceal, active-unseal, and source-reveal leaves are now
+complete.  Next finish source tag cancellation, derive the source cast-sequence
+midpoint from the full
 seal-mode/store-uniqueness hypotheses, and prove the remaining non-`inst`
 narrow/widen cases and paired-cast transport.  Only then implement
 the allocation SCC as a visibly structural mutual proof (or with an explicit

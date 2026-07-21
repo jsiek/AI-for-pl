@@ -349,17 +349,23 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceUnsealCatchupProof.agda`](NuImprecisionWorldCoherentSourceUnsealCatchupProof.agda) | completed higher-order proof | Strictly derives active source-unseal catch-up from repaired seal cancellation; a structural `AppliedUnseal` equality view keeps transformed indices in constructor form, and the focused check passes |
 | [`NuImprecisionWorldCoherentSourceUnsealCatchupLemma.agda`](NuImprecisionWorldCoherentSourceUnsealCatchupLemma.agda) | completed lemma | Canonical strict assembly supplies source-seal cancellation to the higher-order unseal proof |
 | [`NuImprecisionWorldCoherentSourceRevealCatchupDef.agda`](NuImprecisionWorldCoherentSourceRevealCatchupDef.agda) | completed statement | Full source reveal-conversion handler contract, with active unseal isolated behind the completed higher-order dependency |
-| `NuImprecisionWorldCoherentSourceRevealCatchupProof.agda` | in progress on Ginger | GPT 5.5 owns only the strict higher-order dispatch from the complete unseal contract; the frozen interface is based on commit `8e3f39a1` plus its statement commit |
-| `NuImprecisionWorldCoherentSourceRevealCatchupLemma.agda` | not yet started | Local canonical assembly will supply the completed source-unseal lemma after the Ginger proof is integrated |
+| [`NuImprecisionWorldCoherentSourceRevealCatchupProof.agda`](NuImprecisionWorldCoherentSourceRevealCatchupProof.agda) | completed higher-order proof | GPT 5.5 supplied the exhaustive strict dispatch for all six reveal forms; identity and inert forms use source-cast framing, while active unseal calls the whole supplied unseal contract |
+| [`NuImprecisionWorldCoherentSourceRevealCatchupLemma.agda`](NuImprecisionWorldCoherentSourceRevealCatchupLemma.agda) | completed lemma | Canonical strict assembly supplies the completed source-unseal lemma |
 | [`NuImprecisionSourceTagCancellationDef.agda`](NuImprecisionSourceTagCancellationDef.agda) | completed statement | Purely syntactic cancellation of the same ground source tag; no world/store invariant is required |
 | `NuImprecisionSourceTagCancellationProof.agda` | in progress on Ginger | GPT 5.5 owns the frozen, store-neutral exhaustive tag-peeling work package |
 | `NuImprecisionSourceTagCancellationLemma.agda` | not yet started | Canonical assembly follows the strict proof |
 | [`NuImprecisionSourceCastSequenceMidpointCounterexample.agda`](NuImprecisionSourceCastSequenceMidpointCounterexample.agda) | completed corrected obstruction | Strictly packages coherent, exclusive, well-typed two-seal endpoints with no midpoint, but also proves that the example violates `SealModeStore★`; `seal-enabled-store-entry-star` explains why the raw obstruction cannot refute the full source-runtime boundary |
 | Positive source cast-sequence midpoint | in progress; hard boundary | Derive the restricted midpoint from the actual `SealModeStore★`, final `StoreWf`, and prefix/inclusion hypotheses before changing constructor plumbing |
-| Source paired-cast accumulated transport | not yet started; hard boundary | The caller now retains `Inert c′`, but arbitrary `sourceChanges` still require rebuilding final `StoreCorresponds` evidence or carrying an explicit world embedding |
+| [`NuImprecisionLeftSilentPairedCastTransportDef.agda`](NuImprecisionLeftSilentPairedCastTransportDef.agda) | completed statement; hard proof | Exact accumulated-change transport contract for `PairedCast`; arbitrary source changes must rebuild final `StoreCorresponds` or carry an explicit world embedding |
+| [`NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda) | completed statement; hard proof | Exact-final-world terminal paired-cast contract retaining target inertness, final coherence, source-name exclusivity, and left `StoreWf` |
+| [`NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda) | completed statement | Top accumulated-world paired-cast handler, matching the strengthened source-runtime field |
+| [`NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda) | completed higher-order proof | Strictly composes accumulated paired-cast transport with exact-final-world catch-up; its single-cast frame keeps final contexts, world, and change lists unchanged |
 | `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial | The conceal field is complete; bullet, `ν`, `ν ★`, and widening-`inst` form the allocation SCC; narrowing, widening, reveal, and paired casts still need their explicit cancellation/classification or prefix-transport leaves |
 | [`NuImprecisionWorldCoherentQuotientInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientInstCatchupDef.agda) | completed narrowed statement | Strict mode-polymorphic final-state contract shared by ordinary-down and gen-down quotient-`inst` residuals; it requires the actual ready inner value `V ⟨ d ⟩` and no-bullet evidence |
-| `NuImprecisionWorldCoherentQuotientInstCatchupProof.agda` | not yet started; hard independent leaf | Generic dequotienting is false; this proof needs a direct compositional catch-up theorem over `≈∀`, including adjacent-swap allocation, rather than the ordinary source-runtime path |
+| [`NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda) | completed statement; hard proof | Exposes `quotientᵖ D≈C C⊑C′ C′≈D′` and asks for direct coherent catch-up without inventing an ordinary relation between physical endpoints |
+| Quotient representative-`inst` `Proof`/`Lemma` | not yet started; hard boundary | Must interpret arbitrary `≈∀` composition (`sym`, `trans`, congruence, and adjacent swap), generalize the specialized swap telescope, and package the crossed final world and left `StoreWf` |
+| [`NuImprecisionWorldCoherentQuotientInstCatchupProof.agda`](NuImprecisionWorldCoherentQuotientInstCatchupProof.agda) | completed higher-order proof | Strict dependent elimination of `qD` reduces the existing quotient-`inst` contract to the direct representative capability |
+| `NuImprecisionWorldCoherentQuotientInstCatchupLemma.agda` | not yet started | Canonical assembly waits for a strict representative-level inhabitant; no permissive lemma is created |
 | [`NuImprecisionQuotientToOrdinaryCounterexample.agda`](NuImprecisionQuotientToOrdinaryCounterexample.agda) | completed obstruction | An empty-context adjacent-`∀` swap is quotient-related but has no ordinary relation; strict proof rules out generic dequotienting, so quotient-`inst` needs direct permutation-aware catch-up |
 | [`NuImprecisionWorldCoherentQuotientClassificationDef.agda`](NuImprecisionWorldCoherentQuotientClassificationDef.agda) | completed narrowed statement | Strict structural classifier returning either a coherent terminal quotient result or the unique outer-`inst` residual with `Value (V ⟨ d ⟩)`, `No• (V ⟨ d ⟩)`, and reduction evidence |
 | [`NuImprecisionWorldCoherentQuotientClassificationProof.agda`](NuImprecisionWorldCoherentQuotientClassificationProof.agda) | completed proof | GPT 5.5 supplied the exhaustive classifier on Ginger; local integration strengthened it to retain final source-name exclusivity and the ready `V ⟨ d ⟩` residual, and the focused strict check passes |
@@ -6209,14 +6215,32 @@ catch-up architecture.
   is not refuted, and the remaining hard task is a positive restricted
   midpoint decomposition using its real mode/store hypotheses.
 
+- Integrated the strict GPT 5.5 source-reveal proof and added its canonical
+  `Lemma`.  The higher-order `Proof` covers all six `RevealConversion` forms;
+  active unseal is the only semantic dependency and is supplied as the whole
+  completed `WorldCoherentSourceUnsealCatchupᵀ` contract.  Both focused local
+  checks pass with unsolved metas disabled.
+
+- Split source paired-cast catch-up into exact accumulated transport, exact
+  final-world semantics, and top handler contracts.  The top higher-order
+  proof is complete and strict.  This confines the remaining work to final
+  `StoreCorresponds` transport and exact-world paired-cast behavior instead of
+  leaving an opaque hole in the source-runtime record.
+
+- Added the direct representative-level quotient-`inst` contract and a strict
+  higher-order proof reducing the existing final-state contract to it.  The
+  representative statement exposes `quotientᵖ D≈C C⊑C′ C′≈D′`; the remaining
+  proof must interpret arbitrary `≈∀` constructors compositionally, while the
+  canonical `Lemma` stays absent.
+
 ### Next boundary
 
-Use the completed source-unseal assembly to finish the full `source-reveal`
-handler, and finish source tag cancellation for the non-`inst`
-narrowing/widening handlers.  Treat quotient-`inst` as its own hard semantic
-bridge; once it is complete, assemble it with the completed classifier,
-quotient-final proof, and structural prefix proof.  Continue assigning only
-frozen, nonoverlapping leaf modules to Ginger; keep allocation SCCs,
-quotiented-to-ordinary alignment, and dependent transport joins under GPT 5.6
-coordination.  Use focused strict checks throughout and reserve
-`NuDGGStrictSpine.agda` and `All.agda` for milestones.
+Finish source tag cancellation for the non-`inst` narrowing/widening handlers,
+then derive the restricted source cast-sequence midpoint and implement the two
+paired-cast dependencies.  Treat representative quotient-`inst` as its own
+hard semantic bridge; once it is complete, assemble it with the completed
+classifier, quotient-final proof, and structural prefix proof.  Continue
+assigning only frozen, nonoverlapping leaf modules to Ginger; keep allocation
+SCCs, arbitrary quotient-permutation interpretation, and dependent transport
+joins under GPT 5.6 coordination.  Use focused strict checks throughout and
+reserve `NuDGGStrictSpine.agda` and `All.agda` for milestones.

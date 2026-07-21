@@ -325,6 +325,21 @@ with the identity map on source-blame traces.  The remaining source recursive
 join and target administrative SCC should follow the same direct-elimination
 discipline.
 
+The target-administration audit keeps the existing cast-terminalization,
+target-bullet, and target-allocation `Def` results unchanged: each already
+returns one complete
+`WorldCoherentRightValueCatchupIndexedResult`.  They form one genuine mutual
+proof, so their implementations should live in a shared
+`NuImprecisionWorldCoherentRightTargetAdministrationProof.agda` with private
+`Acc`-ranked workers and three direct public exports.  The missing input is a
+hereditary `TargetAdministrationPlan` on every QTI node that can introduce an
+active target cast; the current one-level sequence midpoint cannot describe
+active casts exposed below sequence, `inst`, bullet, paired-cast, quotient, or
+`ν ★` boundaries.  Such a plan is recursive evidence, not another simulation
+result carrier.  If introduced, it should replace the one-level midpoint
+rather than wrap or re-export it.  This relation-level change needs a focused
+impact audit before implementation.
+
 ### Two-layer skeleton
 
 The skeleton is split into an interface layer and an implementation layer.
@@ -402,6 +417,9 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesProof.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesProof.agda) | completed GPT-5.5 proof | Transports each target cast/conversion through the completed source result's accumulated target tail, rebuilds the final quotient relation, and preserves every strong-result invariant. |
 | [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesLemma.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesLemma.agda) | completed canonical assembly | Exposes all five source-step target frames through the canonical three-file boundary. |
 | [`NuImprecisionWorldCoherentSourceOneStepTargetNuFramesDef.agda`](NuImprecisionWorldCoherentSourceOneStepTargetNuFramesDef.agda) | completed statement; proof ready for delegation | Ordinary and casted target-`ν` frames consume and return the complete exact continuing result directly. The recursive join maps source blame by identity and introduces no target-`ν` outcome carrier. |
+| [`NuImprecisionWorldCoherentSourceOneStepPairedCastFrameDef.agda`](NuImprecisionWorldCoherentSourceOneStepPairedCastFrameDef.agda) | completed statement; proof not started | A paired source/target cast consumes and returns the existing complete exact continuing result. The hard part is simultaneous source-change and target-tail transport, not result packaging. |
+| [`NuImprecisionWorldCoherentSourceOneStepQuotientDownUpStepDef.agda`](NuImprecisionWorldCoherentSourceOneStepQuotientDownUpStepDef.agda) | completed higher-order statement; proof not started | Fused quotient down/up step consumes the ordinary recursive prefix worker and returns its ordinary source-step outcome directly. The quotient subjudgment and its two cast layers remain internal, avoiding a QTIP-specific result carrier. |
+| [`NuImprecisionWorldCoherentSourceOneStepTargetBulletFrameStepDef.agda`](NuImprecisionWorldCoherentSourceOneStepTargetBulletFrameStepDef.agda) | completed higher-order statement; proof not started | Hard right-world crossing for a source step below `⊑αᵀ`. It consumes the ordinary recursive prefix worker and returns the existing outcome directly, without a bullet-specific carrier. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectDef.agda) | completed statement | DGG-near two-operand scheduling boundary for the unframed target primitive. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectProof.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectProof.agda) | completed GPT-5.6 proof | Exhaustively schedules `ok-no`, `ok-⊕₁`, and `ok-⊕₂`: catches up target operands left-to-right, identifies natural constants, performs synchronized delta, and preserves the full exact-result invariant package. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupCasesDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupCasesDef.agda) | completed statement | Separates direct two-operand scheduling from structural target framing. |

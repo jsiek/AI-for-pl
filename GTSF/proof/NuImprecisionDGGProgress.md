@@ -10,13 +10,13 @@ Agda declaration yet. Historical log entries use **checked** as a synonym for
 
 ## Current objective
 
-Complete the arbitrary-type source catch-up and the target-step dispatcher,
-then plug them into the now-completed backward-blame trace assembly and build
-the analogous backward-value assembly. In parallel, the forward terminal
-clause still requires a source-oriented one-step simulation and a target
-catch-up theorem for the case where the source is already a value. Those three
-terminal clauses feed the already checked reduction to `ClosedNuDGG` and then
-to the public `GradualDGG`.
+Complete the semantic engines behind the three hole-free terminal assemblies.
+On the backward side these are the arbitrary-type source catch-up, target-step
+dispatcher, and zero-step blame catch-up.  On the forward side they are the
+newly frozen source-oriented one-step simulation and right-value catch-up
+contracts.  The trace-level forward, backward-value, and backward-blame
+assemblies then feed the already checked reduction to `ClosedNuDGG` and the
+public `GradualDGG`.
 
 ## Coverage ledger
 
@@ -47,7 +47,7 @@ to the public `GradualDGG`.
 | Administrative simulation-up-to | partial | The result, transport, coherence, source-`keep` composition, and all six `ν`-frame outcome maps are checked; the unfinished integration is confined to the dispatcher scratch |
 | One-step Nu-imprecision simulation | partial | The dispatcher skeleton covers blame and the matched/source-only/target-only `ν` and `ν ★` families; ten explicit helper holes remain, and the non-`ν` constructor/reduction patterns are not yet enumerated |
 | Terminal target-trace alignment | checked | Determinism makes every administrative `targetTail` a prefix of an observed trace to a value or blame |
-| Forward source-value terminal clause | partial | Its exact named statement is checked in `NuDGGTerminalForward`; the proof still needs a source-oriented dispatcher and target-side value catch-up |
+| Forward source-value terminal clause | completed higher-order assembly; dependencies not started | The strict `Def`/`Proof` architecture shows that source one-step simulation and right-value catch-up suffice; both semantic implementations remain to be proved |
 | Backward target-value-or-source-blame clause | partial dependencies | Its `Def` contract, generic `Proof`, and canonical `Lemma` assembly are hole-free; arbitrary-value catch-up and the target dispatcher supplied by the lemma remain partial |
 | Backward target-blame clause | partial | Its exact named statement is checked in `NuDGGTerminalBackwardBlame`; target-trace alignment and the higher-order trace induction are checked, while zero-step blame catch-up and the live target dispatcher remain partial |
 | Residual target-trace measure | completed | `aligned-residual-shorter` proves that the aligned residual after a distinguished target step is strictly shorter |
@@ -165,13 +165,13 @@ common hypotheses, it states
 
 | Step | Status | Proof obligation and available evidence |
 |---|---|---|
-| F1. State a source-oriented one-step simulation | not yet started | If related terms satisfy \(M\xrightarrow{\chi}L\), produce a target multi-step \(M'\xRightarrow{\chi_t}L'\) and a transported relation \(L\sqsubseteq L'\), with exact world/store/type actions. This is the polarity-reversed analogue of the current target-step dispatcher, but no declaration exists yet. |
+| F1. State a source-oriented one-step simulation | completed statement | [`WorldCoherentSourceOneStepSimulationᵀ`](NuImprecisionWorldCoherentSourceOneStepDef.agda) returns the target administrative trace, exact distinguished source change, transported relation, both store projections, and successor coherence/exclusivity. |
 | F2. Prove the source-oriented one-step cases | not yet started | Split on the source reduction and term-imprecision derivation. Reuse the checked matched, left-only, and right-only allocation/cast/frame lemmas where their polarity fits. The definition-sensitive `ν`, `ν ★`, `Λ`, `gen`, `inst`, and `•` cases should be proved before the ordinary congruence cases. |
-| F3. Prove target catch-up from a related source value | not yet started | From \(\operatorname{Value}(V)\) and \(V\sqsubseteq M'\), show that \(M'\) reduces to a value \(V'\) related to \(V\). This needs structural recursion over the relation and target administrative reductions, including target-only allocation and quotient-cast cases. |
+| F3. Prove target catch-up from a related source value | completed statement; proof not started | [`WorldCoherentRightValueCatchupᵀ`](NuImprecisionWorldCoherentRightValueCatchupDef.agda) freezes the zero-source-change terminal package. Its implementation needs structural recursion over the relation and target administrative reductions, including target-only allocation and quotient-cast cases. |
 | F4. Rule out a source-blame alternative when the source is a value | completed | [`source-value-indexed-outcome-relatedᵀ`](NuImprecisionSimulationCore.agda#L1231) proves the required local outcome fact: an indexed weak outcome from a source value must be related, with zero source changes and the same source value. It constrains one target step; it does **not** by itself prove target termination. |
-| F5. Lift source one-step simulation over a source trace | partial | [`forward-source-value-generalᵀ`](NuDGGTerminalForward.agda#L36) freezes the required arbitrary-world conclusion and its closed specialization is checked. The trace induction body remains a hole. |
-| F6. Normalize composed changes and final store projections | partial | The weak result transport, type coherence, frame maps, and store-change composition infrastructure are checked. The forward trace-level composition theorem that packages the exact equalities required by the terminal statement is unwritten. |
-| F7. Package the terminal theorem | partial | The exact full package is frozen in [`forward-source-value-generalᵀ`](NuDGGTerminalForward.agda#L36), and the closed theorem is a checked specialization. Constructing its witnesses in the general proof remains. |
+| F5. Lift source one-step simulation over a source trace | completed higher-order proof | [`world-coherent-forward-source-value-proofᵀ`](NuDGGTerminalForwardProof.agda) recurses structurally on the observed source trace and invokes right-value catch-up in the reflexive base. No fuel or trace-alignment theorem is needed. |
+| F6. Normalize composed changes and final store projections | completed | The same proof reconstructs successor `StoreWf` and `RuntimeOK` by preservation, concatenates target traces, and normalizes contexts, endpoint types, and physical stores with the `apply*-++` laws. |
+| F7. Package the terminal theorem | partial | [`WorldCoherentForwardSourceValueᵀ`](NuDGGTerminalForwardDef.agda) is frozen and its higher-order inhabitant is strict. A canonical `Lemma` and replacement of the old permissive [`NuDGGTerminalForward.agda`](NuDGGTerminalForward.agda) wait for strict implementations of F2 and F3. |
 
 The essential missing fact is not another use of the target-oriented dispatcher.
 That dispatcher allows target administrative work while the source takes zero
@@ -303,7 +303,12 @@ are delegated:
 | File | Status | Role |
 |---|---|---|
 | [`NuDGGTerminal.agda`](NuDGGTerminal.agda) | completed | Strict wrapper with the three full terminal statements as separate arguments; produces `GradualDGG` |
-| [`NuDGGTerminalForward.agda`](NuDGGTerminalForward.agda) | partial | Owns the exact `forward-source-valueᵀ` statement and its eventual proof |
+| [`NuDGGTerminalForward.agda`](NuDGGTerminalForward.agda) | partial; superseded implementation shell | The older statement/closed adapter remains permissive. It should be replaced, rather than wrapped, once the new strict semantic dependencies are inhabited. |
+| [`NuImprecisionWorldCoherentSourceOneStepDef.agda`](NuImprecisionWorldCoherentSourceOneStepDef.agda) | completed statement | Exact source-oriented one-step contract, including target administrative work, successor relation/world invariants, and physical-store lineage. |
+| [`NuImprecisionWorldCoherentRightValueCatchupDef.agda`](NuImprecisionWorldCoherentRightValueCatchupDef.agda) | completed statement | Exact target catch-up contract from a related source value, with zero source changes and an explicit final related target value. |
+| [`NuDGGTerminalForwardDef.agda`](NuDGGTerminalForwardDef.agda) | completed statement | Arbitrary-world forward source-value terminal package with transported contexts, types, stores, and relation index written out. |
+| [`NuDGGTerminalForwardProof.agda`](NuDGGTerminalForwardProof.agda) | completed higher-order proof | Hole-free structural source-trace induction from the two new semantic contracts; preservation supplies every recursive runtime/store premise. |
+| [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda) | completed focused integration | Imports only the three forward statement modules and the higher-order proof, avoiding the broad DGG and `All.agda` checks. |
 | [`NuDGGTerminalBackwardValueDef.agda`](NuDGGTerminalBackwardValueDef.agda) | completed | Small statement module defining `BackwardTargetValueOrSourceBlameᵀ` |
 | [`NuDGGTerminalBackwardValueProof.agda`](NuDGGTerminalBackwardValueProof.agda) | completed | Hole-free higher-order fuel induction and source-trace composition from the two dependency contracts |
 | [`NuDGGTerminalBackwardValueLemma.agda`](NuDGGTerminalBackwardValueLemma.agda) | completed assembly; dependencies partial | Canonical application to the live dispatcher and value catch-up; excluded from the strict spine until both supplied lemmas are strict |
@@ -427,7 +432,7 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingContinuationHandlersAssemblyProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationHandlersAssemblyProof.agda) | completed strict statement-fit audit; superseded on active route | Assembles the thirteen standalone continuation theorem types into the exact old interpreter record; direct view projection is now the active consumer boundary |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationProof.agda) | completed strict continuation interpreter; superseded on active route | Structurally prepends prefix and all five target-only frames and delegates thirteen semantic cases; direct `FrameView` projection now bypasses this interpreter |
 | [`NuImprecisionPairedLambdaTargetClosingFrameClosingCapabilitiesDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingCapabilitiesDef.agda) | completed strict dependency audit; superseded | Bundles the twenty-one old-motive leaves and eliminated repeated higher-order metas, but includes five fused target-frame assumptions; the continuation handler record is now the active boundary |
-| [`NuImprecisionPairedLambdaTargetClosingFrameClosingAssemblyProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingAssemblyProof.agda) | completed strict old-motive fit; superseded | Exhaustively unpacks the old twenty-one-capability record and remains a checked audit artifact, but upper consumers now use the continuation interpreter because its fused target-frame capability cannot be inhabited non-circularly |
+| [`NuImprecisionPairedLambdaTargetClosingFrameClosingAssemblyProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingAssemblyProof.agda) | completed strict old-motive fit; superseded | Exhaustively unpacks the old twenty-one-capability record and remains a checked audit artifact. The continuation interpreter superseded this record, and the current active route now bypasses both through direct `FrameView` projection into the continuation-value terminal root. |
 | [`NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda) | completed corrected shared statement; branch assembly completed | One inline five-way capability receives the recursive motive plus exact inner view; ordinary QTI framing reverses the required inner-frame/final-conversion order, so each branch remains a fused non-circular commutation theorem |
 | [`NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameCasesDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameCasesDef.agda) | completed GPT 5.5 constructor statements; semantic proofs not yet started | Five exact fused contracts for target reveal, conceal, narrowing, widening, and id-only widening, each retaining the recursive result, proof-relevant view, external conversion, allocation, and final reveal |
 | [`NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameProof.agda) | completed GPT 5.5 higher-order dispatcher; canonical `Lemma` absent | Exhaustively eliminates the nested target-frame evidence sum and reconstructs the shared target-frame capability from the five branch contracts |
@@ -441,11 +446,13 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda) | completed corrected constructor statements | Exact paired-reveal and paired-conceal matched-`Λ` leaves retain the body relation, ambient prefix, both lifts, store correspondence, conversion evidence, proof-relevant result index `q`, and final reveal |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda), [`Proof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingProof.agda), and [`FromAllConversionProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingFromAllConversionProof.agda) | strengthened statement and completed strict higher-order dispatcher; canonical `Lemma` absent | The fused reveal contract retains `q` and consumes final-world coherence, source-name exclusivity, and left store Wf. The direct proof exhaustively reduces it to the structural-all and matched-unseal capabilities. The strategy-named larger-theorem fit still checks but remains circular. |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralAllRevealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralAllRevealClosingDef.agda) | completed hard structural statement; proof not yet started | Exact live source-`reveal-all` family retained by the direct dispatcher, including its inner reveal, target reveal, `q`, both allocation lifts, final reveal, and exact final-world invariant triple. |
-| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingDef.agda) | completed hard-leaf statement; proof not yet started | Exact live reveal base after inversion: both body endpoints are variables at corresponding names, the source correspondence type is universal, both unseals and the final reveal remain fused, and the final ambient world carries coherence, exclusivity, and left store Wf. The body uses `renameᵗ (extᵗ suc) F`, not the inequivalent `⇑ᵗ F`. |
-| `NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingProof.agda` | not yet started | Intended hard proof is parameterized by `SourceSealCancellationᵀ`; it must combine canonical source-variable inversion, exact-world seal cancellation, and the final allocation/reveal relation without inventing a pre-final-reveal source-only index. |
-| `NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingLemma.agda` | not yet started | Canonical assembly will supply [`source-seal-cancellationᵀ`](NuImprecisionSourceSealCancellationLemma.agda) only after the higher-order proof exists and passes independently. |
-| [`NuImprecisionCorrespondingSourceNameNotStarDef.agda`](NuImprecisionCorrespondingSourceNameNotStarDef.agda), [`Proof`](NuImprecisionCorrespondingSourceNameNotStarProof.agda), and [`Lemma`](NuImprecisionCorrespondingSourceNameNotStarLemma.agda) | completed GPT 5.5 leaf triple | Reusable invariant corollary: a source name participating in `StoreCorresponds` cannot simultaneously have a source-only row. The frozen Ginger proof uses `corresponds-idˣ` and `SourceNameExclusive` directly; its `Def`, `Proof`, `Lemma`, and focused integration all pass strictly. |
-| [`NuImprecisionMatchedLiftInvariantsDef.agda`](NuImprecisionMatchedLiftInvariantsDef.agda), [`Proof`](NuImprecisionMatchedLiftInvariantsProof.agda), and [`Lemma`](NuImprecisionMatchedLiftInvariantsLemma.agda) | completed GPT 5.5 leaf triple | Preserves the exact-world invariant triple across a matched `LiftStoreⁱ`: coherence and source-name exclusivity at the shifted context, plus left `StoreWf` at the shifted store. The frozen Ginger proof and canonical assembly pass focused strict checks and directly support matched-unseal closing. |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingDef.agda) | completed hard-leaf statement | Exact live reveal base after inversion: both body endpoints are variables at corresponding names, the source correspondence type is universal, both unseals and the final reveal remain fused, and the final ambient world carries coherence, exclusivity, and left store Wf. The body uses `renameᵗ (extᵗ suc) F`, not the inequivalent `⇑ᵗ F`. |
+| [`NuImprecisionConversionAbsenceIdentityDef.agda`](NuImprecisionConversionAbsenceIdentityDef.agda), [`Proof`](NuImprecisionConversionAbsenceIdentityProof.agda), and [`Lemma`](NuImprecisionConversionAbsenceIdentityLemma.agda) | completed GPT 5.5 leaf triple | Mutual structural recursion proves that a reveal whose tracked name is absent from its source, and dually a conceal whose tracked name is absent from its target, preserve the endpoint type. The frozen Ginger proof, local private-helper review, canonical assembly, and focused integration all pass strictly. |
+| [`NuImprecisionCommonTargetExtensionCycleDef.agda`](NuImprecisionCommonTargetExtensionCycleDef.agda) and [`Proof`](NuImprecisionCommonTargetExtensionCycleProof.agda) | completed hard type-only theorem | An exhaustive paired-lower recursion rules out placing a renamed copy of the middle endpoint beneath one extra target universal. `paired-both` and `paired-neither` recurse; the two one-sided cases expose symmetric left/right star paths, each impossible from a type to its own renamed copy. |
+| [`NuImprecisionPairedLambdaClosingIndexCycleDef.agda`](NuImprecisionPairedLambdaClosingIndexCycleDef.agda), [`Proof`](NuImprecisionPairedLambdaClosingIndexCycleProof.agda), and [`Lemma`](NuImprecisionPairedLambdaClosingIndexCycleLemma.agda) | completed strict triple | Opens the unused matched binder on both endpoints of `q`, cancels both uniform lifts, pairs the resulting lower bound with `p`, and invokes the common target-extension cycle. The exact obstruction contains no conversion, store, term relation, or simulation dependency. |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingProof.agda) and [`Lemma`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingLemma.agda) | completed strict proof and canonical assembly | Proves freshness of name one in `renameᵗ (extᵗ suc) F`, applies `RevealAbsentSourceIdentityᵀ`, cancels the injective renaming to obtain `F ≡ D`, and invokes the canonical closing-index cycle. It does not use source-seal cancellation, store-prefix factorization, matched-lift invariants, or the refuted pre-final relation. |
+| [`NuImprecisionCorrespondingSourceNameNotStarDef.agda`](NuImprecisionCorrespondingSourceNameNotStarDef.agda), [`Proof`](NuImprecisionCorrespondingSourceNameNotStarProof.agda), and [`Lemma`](NuImprecisionCorrespondingSourceNameNotStarLemma.agda) | completed GPT 5.5 leaf triple | Reusable invariant corollary: a source name participating in `StoreCorresponds` cannot simultaneously have a source-only row. The frozen Ginger proof uses `corresponds-idˣ` and `SourceNameExclusive` directly; its `Def`, `Proof`, `Lemma`, and focused integration all pass strictly. It remains useful infrastructure but is not needed by the new type-contradiction proof of the matched-unseal base. |
+| [`NuImprecisionMatchedLiftInvariantsDef.agda`](NuImprecisionMatchedLiftInvariantsDef.agda), [`Proof`](NuImprecisionMatchedLiftInvariantsProof.agda), and [`Lemma`](NuImprecisionMatchedLiftInvariantsLemma.agda) | completed GPT 5.5 leaf triple | Preserves the exact-world invariant triple across a matched `LiftStoreⁱ`: coherence and source-name exclusivity at the shifted context, plus left `StoreWf` at the shifted store. The frozen Ginger proof and canonical assembly pass focused strict checks. It remains reusable semantic infrastructure but is not consumed by the new type-contradiction proof of the matched-unseal base. |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda) and [`FromAllConversionProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingFromAllConversionProof.agda) | strengthened statement and completed strict fit proof; canonical `Proof`/`Lemma` not yet started | The conceal counterpart retains `q` and the same final-world invariant triple. Coherence plus exclusivity closes its rogue source-only/corresponding-name base, but its direct fused mixed-binder final-reveal cycle remains a hard proof dependency; the larger all-conversion route is circular. |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda) | completed strict constructor reductions | Exhaustively reduces both paired-reveal and paired-conceal leaves to their corrected structural contracts and carries the exact result index `q` through the reduction |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda) | completed higher-order dispatcher and handler adapter; assembly partial | Exhaustively derives the fused matched-`Λ` theorem from its paired-reveal/conceal branches and verifies exact `handle-leaf-ΛΛ` fit without a recursive closer or one-sided intermediate |
@@ -8083,3 +8090,98 @@ coordination.  Use focused strict checks throughout and reserve
   higher-order proof is checked independently before canonical assembly, so a
   missing invariant or underconstrained instantiation appears in its smallest
   module rather than in a high-cost aggregate.
+
+### 2026-07-21: fresh-reveal identity and matched-unseal index boundary
+
+- Re-audited the matched/matched double-unseal base from its final reveal
+  rather than attempting the previously planned store-level seal
+  cancellation.  The tracked name is `suc zero`, while the reveal source
+  `renameᵗ (extᵗ suc) F` omits exactly that inserted name.  Therefore the final
+  reveal is type-level identity and identifies its endpoints.  This makes the
+  semantic store telescope irrelevant to the contradiction; the old
+  `SourceSealCancellationᵀ`, `PairedStorePrefixFactorᵀ`, and
+  `MatchedLiftInvariantsᵀ` route is valid infrastructure but not the proof of
+  this exact leaf.
+
+- Froze the mutual endpoint facts in
+  [`NuImprecisionConversionAbsenceIdentityDef.agda`](NuImprecisionConversionAbsenceIdentityDef.agda).
+  GPT 5.5 implemented the exhaustive mutual
+  [`Proof`](NuImprecisionConversionAbsenceIdentityProof.agda) from frozen
+  commit `26c87e21` in an isolated Ginger worktree.  The worker owned exactly
+  that file and passed
+  `scripts/agda-ginger --no-allow-unsolved-metas -v0`; the local coordinator
+  reviewed the exact diff, made its three helper facts private, rechecked it,
+  and added the strict canonical
+  [`Lemma`](NuImprecisionConversionAbsenceIdentityLemma.agda).
+
+- Isolated the remaining type-only obstruction as
+  [`PairedLambdaClosingIndexCycleᵀ`](NuImprecisionPairedLambdaClosingIndexCycleDef.agda).
+  Once the final reveal gives `F ≡ D`, the ambient index
+
+      `∀ D ⊑ ∀ (⇑ X′)`
+
+  cannot coexist with the one-binder matched index
+
+      `∀ (rename (ext suc) F) ⊑ ⇑ X′`.
+
+  The statement contains no conversion, store, term relation, or simulation
+  dependency.  The older paired-conversion fresh-path cycle is not
+  interchangeable: it assumes a `PairedConversion` with a source-only input
+  index, which this already-inverted leaf does not expose.
+
+- Completed the strict higher-order
+  [`MatchedUnsealClosingProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingProof.agda).
+  It proves absence of name one using `rename-raise-ext` and
+  `occurs-raise-fresh`, applies the new reveal identity, cancels
+  `renameᵗ (extᵗ suc)` with `renameᵗ-pred-ext-suc`, and delegates only the pure
+  index cycle.  The proof does not construct the known-false pre-final
+  relation.
+
+- Completed the type-only cycle after strengthening its internal statement to
+  [`CommonTargetExtensionCycleᵀ`](NuImprecisionCommonTargetExtensionCycleDef.agda).
+  An initial audit listed only `paired-both` and `paired-right`; a strict
+  coverage check exposed the missing `paired-left` and `paired-neither` cases.
+  The final proof handles all four explicitly: both/neither recurse, while
+  left/right expose symmetric impossible star paths from a type to a uniformly
+  renamed copy.  The exact cycle then opens the unused binder with
+  `open-unused-bothᵢ`, cancels both lifts, and applies `pair-lower`.
+
+- Assembled the canonical
+  [`MatchedUnsealClosingLemma`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingLemma.agda)
+  from the conversion-absence identity and completed index cycle.  Thus the
+  live matched/matched double-unseal leaf is now fully strict, not merely a
+  checked statement or higher-order reduction.
+
+- Added the new `Def`, `Proof`, and canonical leaf modules to
+  [`NuImprecisionPairedTargetClosingStrictSpine.agda`](NuImprecisionPairedTargetClosingStrictSpine.agda).
+  The nearest focused strict check passed locally in 8.0 seconds.  No
+  `NuDGGStrictSpine.agda` or `All.agda` check was run.
+
+### 2026-07-21: strict forward terminal architecture
+
+- Froze the two independent semantic engines required by forward simulation:
+  [`WorldCoherentSourceOneStepSimulationᵀ`](NuImprecisionWorldCoherentSourceOneStepDef.agda)
+  advances one observed source step while permitting a target administrative
+  trace, and
+  [`WorldCoherentRightValueCatchupᵀ`](NuImprecisionWorldCoherentRightValueCatchupDef.agda)
+  finishes the target once the related source is already a value.  The
+  one-step contract returns successor `WorldCoherent` and
+  `SourceNameExclusive` evidence; physical-store equalities plus preservation
+  reconstruct the remaining recursive invariants.
+
+- Completed the strict higher-order theorem
+  [`world-coherent-forward-source-value-proofᵀ`](NuDGGTerminalForwardProof.agda).
+  It recurses directly on the observed source trace.  Each successor invokes
+  the one-step engine, derives `StoreWf` and `RuntimeOK` for the new relation,
+  and recurses.  The base invokes right-value catch-up.  Target traces are
+  concatenated and their context, endpoint-type, and store actions are
+  normalized by the existing `apply*-++` laws.  No fuel, determinism, or
+  residual-trace alignment is required on this polarity.
+
+- Added the focused
+  [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda)
+  integration boundary.  The higher-order proof passes
+  `--no-allow-unsolved-metas`; neither semantic engine has an implementation
+  yet, so no canonical `Lemma` is claimed.  This turns the remaining forward
+  work into two explicit proof families suitable for separate local and
+  Ginger slices without checking `NuDGGStrictSpine.agda` or `All.agda`.

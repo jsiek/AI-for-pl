@@ -268,16 +268,21 @@ its fields recursively.  Its current proof decomposition is:
   `NuImprecisionSourceSealCancellation` and
   `NuImprecisionWorldCoherentSourceUnsealCatchup` are strict and complete;
 - active narrowing/widening need source tag/untag classification in addition
-  to the existing inert and blame frames; and
+  to the existing inert and blame frames.  The raw two-seal obstruction in
+  `NuImprecisionSourceCastSequenceMidpointCounterexample` does not satisfy
+  `SealModeStore★`: `seal-enabled-store-entry-star` proves from store
+  uniqueness that every seal-enabled source entry has payload `★`.  Thus the
+  full source-runtime boundary still supports a positive, restricted midpoint
+  decomposition theorem; and
 - `source-paired-cast` needs prefix and accumulated-change transport for
   `PairedCast` evidence.  Its contract retains the target cast's `Inert`
   witness because every structural caller already has it; rebuilding final
   `StoreCorresponds` after arbitrary source changes remains the hard step.
 
 The independent conceal and active-unseal leaves are now complete.  Next wire
-the canonical unseal lemma into `source-reveal`, freeze source tag cancellation
-as an explicit contract, derive the source cast-sequence midpoint from the
-full seal-mode/store-uniqueness hypotheses, and prove the remaining non-`inst`
+the canonical unseal lemma into `source-reveal`, finish source tag cancellation,
+derive the source cast-sequence midpoint from the full
+seal-mode/store-uniqueness hypotheses, and prove the remaining non-`inst`
 narrow/widen cases and paired-cast transport.  Only then implement
 the allocation SCC as a visibly structural mutual proof (or with an explicit
 administrative measure) and assemble the eight-field record.  Do not make the

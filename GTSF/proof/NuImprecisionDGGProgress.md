@@ -352,9 +352,10 @@ are delegated:
 | `NuImprecisionWorldCoherentSourceRevealCatchupProof.agda` | in progress on Ginger | GPT 5.5 owns only the strict higher-order dispatch from the complete unseal contract; the frozen interface is based on commit `8e3f39a1` plus its statement commit |
 | `NuImprecisionWorldCoherentSourceRevealCatchupLemma.agda` | not yet started | Local canonical assembly will supply the completed source-unseal lemma after the Ginger proof is integrated |
 | [`NuImprecisionSourceTagCancellationDef.agda`](NuImprecisionSourceTagCancellationDef.agda) | completed statement | Purely syntactic cancellation of the same ground source tag; no world/store invariant is required |
-| `NuImprecisionSourceTagCancellationProof.agda` | not yet started; Ginger leaf | Exhaustive tag peeling is a frozen, store-neutral GPT 5.5 work package |
+| `NuImprecisionSourceTagCancellationProof.agda` | in progress on Ginger | GPT 5.5 owns the frozen, store-neutral exhaustive tag-peeling work package |
 | `NuImprecisionSourceTagCancellationLemma.agda` | not yet started | Canonical assembly follows the strict proof |
-| Source cast-sequence midpoint | under corrected audit | A proposed two-seal obstruction fails under the full `SealModeStore★` plus final `StoreWf` hypotheses: uniqueness forces seal midpoints to `★`; derive the restricted midpoint before changing constructor plumbing |
+| [`NuImprecisionSourceCastSequenceMidpointCounterexample.agda`](NuImprecisionSourceCastSequenceMidpointCounterexample.agda) | completed corrected obstruction | Strictly packages coherent, exclusive, well-typed two-seal endpoints with no midpoint, but also proves that the example violates `SealModeStore★`; `seal-enabled-store-entry-star` explains why the raw obstruction cannot refute the full source-runtime boundary |
+| Positive source cast-sequence midpoint | in progress; hard boundary | Derive the restricted midpoint from the actual `SealModeStore★`, final `StoreWf`, and prefix/inclusion hypotheses before changing constructor plumbing |
 | Source paired-cast accumulated transport | not yet started; hard boundary | The caller now retains `Inert c′`, but arbitrary `sourceChanges` still require rebuilding final `StoreCorresponds` evidence or carrying an explicit world embedding |
 | `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial | The conceal field is complete; bullet, `ν`, `ν ★`, and widening-`inst` form the allocation SCC; narrowing, widening, reveal, and paired casts still need their explicit cancellation/classification or prefix-transport leaves |
 | [`NuImprecisionWorldCoherentQuotientInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientInstCatchupDef.agda) | completed narrowed statement | Strict mode-polymorphic final-state contract shared by ordinary-down and gen-down quotient-`inst` residuals; it requires the actual ready inner value `V ⟨ d ⟩` and no-bullet evidence |
@@ -6199,10 +6200,19 @@ catch-up architecture.
   theorem skeletons.  The rejected source-seal contract and narrowed
   quotient-`inst` residual are concrete contract errors found by this policy.
 
+- Strictly checked the corrected source cast-sequence obstruction in
+  [`NuImprecisionSourceCastSequenceMidpointCounterexample.agda`](NuImprecisionSourceCastSequenceMidpointCounterexample.agda).
+  The example has coherent, source-exclusive, typed two-seal endpoints but no
+  midpoint.  It necessarily violates `SealModeStore★`; the reusable
+  `seal-enabled-store-entry-star` lemma shows that store uniqueness forces any
+  seal-enabled entry to carry `★`.  Therefore the full source-runtime contract
+  is not refuted, and the remaining hard task is a positive restricted
+  midpoint decomposition using its real mode/store hypotheses.
+
 ### Next boundary
 
 Use the completed source-unseal assembly to finish the full `source-reveal`
-handler, and freeze source tag cancellation for the non-`inst`
+handler, and finish source tag cancellation for the non-`inst`
 narrowing/widening handlers.  Treat quotient-`inst` as its own hard semantic
 bridge; once it is complete, assemble it with the completed classifier,
 quotient-final proof, and structural prefix proof.  Continue assigning only

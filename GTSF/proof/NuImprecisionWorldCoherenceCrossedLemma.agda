@@ -27,18 +27,11 @@ open import NuTermImprecision using
   ( LiftStoreⁱ
   ; StoreCorresponds
   ; StoreImp
-  ; correspondence-linked
-  ; correspondence-stored
   ; crossedStoreⁱ
   ; crossedStoreⁱ-new-old
   ; crossedStoreⁱ-old-new
   ; leftStoreⁱ
   ; leftStoreⁱ-lift
-  ; lift-store-[]
-  ; lift-store-left
-  ; lift-store-link
-  ; lift-store-right
-  ; lift-store-∷
   ; rightStoreⁱ
   ; rightStoreⁱ-lift
   )
@@ -53,8 +46,10 @@ open import proof.NuImprecisionWorldCoherenceDef using
   ; idˣ-corresponds
   ; world-coherent
   )
-open import proof.NuImprecisionWorldCoherenceProof using
-  (store-corresponds-weaken)
+open import proof.NuImprecisionStoreCorrespondenceLift using
+  ( lift-store-corresponds
+  ; store-corresponds-weaken
+  )
 
 
 private
@@ -269,67 +264,6 @@ private
   un-swapRight∀∀ᵢ-double-id (there (here ()))
   un-swapRight∀∀ᵢ-double-id (there (there assm)) =
     un⇑ᵢ⇑ᵢ-ˣ∈ assm
-
-
-  lift-store-corresponds :
-    ∀ {Φ Ψ Δᴸ Δᴿ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      {ρ′ : StoreImp Ψ (suc Δᴸ) (suc Δᴿ)}
-      {α A β B p} →
-    LiftStoreⁱ Ψ ρ ρ′ →
-    StoreCorresponds ρ α A β B p →
-    ∃[ p′ ] StoreCorresponds ρ′
-      (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B) p′
-  lift-store-corresponds lift-store-[] (correspondence-stored ())
-  lift-store-corresponds lift-store-[] (correspondence-linked ())
-  lift-store-corresponds
-      (lift-store-∷ {p′ = p′} liftρ)
-      (correspondence-stored (here refl)) =
-    p′ , correspondence-stored (here refl)
-  lift-store-corresponds (lift-store-∷ liftρ)
-      (correspondence-stored (there member)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-stored member) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-left liftρ)
-      (correspondence-stored (there member)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-stored member) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-right liftρ)
-      (correspondence-stored (there member)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-stored member) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-link liftρ)
-      (correspondence-stored (there member)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-stored member) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-∷ liftρ)
-      (correspondence-linked (there member)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-linked member) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-left liftρ)
-      (correspondence-linked (there member)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-linked member) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-right liftρ)
-      (correspondence-linked (there member)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-linked member) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds
-      (lift-store-link {p′ = p′} liftρ)
-      (correspondence-linked (here refl)) =
-    p′ , correspondence-linked (here refl)
-  lift-store-corresponds (lift-store-link liftρ)
-      (correspondence-linked (there member)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-linked member) in
-    p′ , store-corresponds-weaken corr
 
 
   weaken-crossed-corresponds :

@@ -28,27 +28,11 @@ open import NuTermImprecision using
   ; StoreCorresponds
   ; StoreImp
   ; StoreImpEntry
-  ; correspondence-linked
   ; correspondence-stored
   ; leftStoreⁱ
   ; leftStoreⁱ-lift
   ; leftStoreⁱ-lift-left
   ; leftStoreⁱ-lift-right
-  ; lift-left-store-[]
-  ; lift-left-store-left
-  ; lift-left-store-link
-  ; lift-left-store-right
-  ; lift-left-store-∷
-  ; lift-right-store-[]
-  ; lift-right-store-left
-  ; lift-right-store-link
-  ; lift-right-store-right
-  ; lift-right-store-∷
-  ; lift-store-[]
-  ; lift-store-left
-  ; lift-store-link
-  ; lift-store-right
-  ; lift-store-∷
   ; rightStoreⁱ
   ; rightStoreⁱ-lift
   ; rightStoreⁱ-lift-left
@@ -60,6 +44,12 @@ open import NuTermImprecision using
   )
 open import Relation.Binary.PropositionalEquality using (subst)
 open import Types using (Store; ⇑ᵗ; ⟰ᵗ)
+open import proof.NuImprecisionStoreCorrespondenceLift using
+  ( lift-left-store-corresponds
+  ; lift-right-store-corresponds
+  ; lift-store-corresponds
+  ; store-corresponds-weaken
+  )
 open import proof.NuImprecisionWorldCoherenceDef using
   ( WorldCoherent
   ; idˣ-corresponds
@@ -71,19 +61,6 @@ world-coherent-empty :
   ∀ {Φ Δᴸ Δᴿ} →
   WorldCoherent ([] {A = StoreImpEntry Φ Δᴸ Δᴿ})
 world-coherent-empty = world-coherent (λ _ ())
-
-
-store-corresponds-weaken :
-  ∀ {Φ Δᴸ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {entry : StoreImpEntry Φ Δᴸ Δᴿ}
-    {α A β B p} →
-  StoreCorresponds ρ α A β B p →
-  StoreCorresponds (entry ∷ ρ) α A β B p
-store-corresponds-weaken (correspondence-stored x∈) =
-  correspondence-stored (there x∈)
-store-corresponds-weaken (correspondence-linked x∈) =
-  correspondence-linked (there x∈)
 
 
 world-coherent-store-link :
@@ -282,194 +259,6 @@ zero-not-in-shifted-store member
     with shift-store-member member
 zero-not-in-shifted-store member
     | α , A , () , eqA , old-member
-
-
-private
-  lift-store-corresponds :
-    ∀ {Φ Ψ Δᴸ Δᴿ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      {ρ′ : StoreImp Ψ (suc Δᴸ) (suc Δᴿ)}
-      {α A β B p} →
-    LiftStoreⁱ Ψ ρ ρ′ →
-    StoreCorresponds ρ α A β B p →
-    ∃[ p′ ] StoreCorresponds ρ′
-      (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B) p′
-  lift-store-corresponds lift-store-[] (correspondence-stored ())
-  lift-store-corresponds lift-store-[] (correspondence-linked ())
-  lift-store-corresponds
-      (lift-store-∷ {p′ = p′} liftρ)
-      (correspondence-stored (here refl)) =
-    p′ , correspondence-stored (here refl)
-  lift-store-corresponds (lift-store-∷ liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-left liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-right liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-link liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-∷ liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-left liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds (lift-store-right liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-store-corresponds
-      (lift-store-link {p′ = p′} liftρ)
-      (correspondence-linked (here refl)) =
-    p′ , correspondence-linked (here refl)
-  lift-store-corresponds (lift-store-link liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr =
-          lift-store-corresponds liftρ (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
-
-
-  lift-left-store-corresponds :
-    ∀ {Φ Ψ Δᴸ Δᴿ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      {ρ′ : StoreImp Ψ (suc Δᴸ) Δᴿ}
-      {α A β B p} →
-    LiftLeftStoreⁱ Ψ ρ ρ′ →
-    StoreCorresponds ρ α A β B p →
-    ∃[ p′ ] StoreCorresponds ρ′
-      (suc α) (⇑ᵗ A) β B p′
-  lift-left-store-corresponds lift-left-store-[]
-      (correspondence-stored ())
-  lift-left-store-corresponds lift-left-store-[]
-      (correspondence-linked ())
-  lift-left-store-corresponds
-      (lift-left-store-∷ {p′ = p′} liftρ)
-      (correspondence-stored (here refl)) =
-    p′ , correspondence-stored (here refl)
-  lift-left-store-corresponds (lift-left-store-∷ liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr = lift-left-store-corresponds liftρ
-          (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-left-store-corresponds (lift-left-store-left liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr = lift-left-store-corresponds liftρ
-          (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-left-store-corresponds (lift-left-store-right liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr = lift-left-store-corresponds liftρ
-          (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-left-store-corresponds (lift-left-store-link liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr = lift-left-store-corresponds liftρ
-          (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-left-store-corresponds (lift-left-store-∷ liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr = lift-left-store-corresponds liftρ
-          (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-left-store-corresponds (lift-left-store-left liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr = lift-left-store-corresponds liftρ
-          (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-left-store-corresponds (lift-left-store-right liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr = lift-left-store-corresponds liftρ
-          (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-left-store-corresponds
-      (lift-left-store-link {p′ = p′} liftρ)
-      (correspondence-linked (here refl)) =
-    p′ , correspondence-linked (here refl)
-  lift-left-store-corresponds (lift-left-store-link liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr = lift-left-store-corresponds liftρ
-          (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
-
-
-  lift-right-store-corresponds :
-    ∀ {Φ Ψ Δᴸ Δᴿ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      {ρ′ : StoreImp Ψ Δᴸ (suc Δᴿ)}
-      {α A β B p} →
-    LiftRightStoreⁱ Ψ ρ ρ′ →
-    StoreCorresponds ρ α A β B p →
-    ∃[ p′ ] StoreCorresponds ρ′
-      α A (suc β) (⇑ᵗ B) p′
-  lift-right-store-corresponds lift-right-store-[]
-      (correspondence-stored ())
-  lift-right-store-corresponds lift-right-store-[]
-      (correspondence-linked ())
-  lift-right-store-corresponds
-      (lift-right-store-∷ {p′ = p′} liftρ)
-      (correspondence-stored (here refl)) =
-    p′ , correspondence-stored (here refl)
-  lift-right-store-corresponds (lift-right-store-∷ liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr = lift-right-store-corresponds liftρ
-          (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-right-store-corresponds (lift-right-store-left liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr = lift-right-store-corresponds liftρ
-          (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-right-store-corresponds (lift-right-store-right liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr = lift-right-store-corresponds liftρ
-          (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-right-store-corresponds (lift-right-store-link liftρ)
-      (correspondence-stored (there x∈)) =
-    let p′ , corr = lift-right-store-corresponds liftρ
-          (correspondence-stored x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-right-store-corresponds (lift-right-store-∷ liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr = lift-right-store-corresponds liftρ
-          (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-right-store-corresponds (lift-right-store-left liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr = lift-right-store-corresponds liftρ
-          (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-right-store-corresponds (lift-right-store-right liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr = lift-right-store-corresponds liftρ
-          (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
-  lift-right-store-corresponds
-      (lift-right-store-link {p′ = p′} liftρ)
-      (correspondence-linked (here refl)) =
-    p′ , correspondence-linked (here refl)
-  lift-right-store-corresponds (lift-right-store-link liftρ)
-      (correspondence-linked (there x∈)) =
-    let p′ , corr = lift-right-store-corresponds liftρ
-          (correspondence-linked x∈) in
-    p′ , store-corresponds-weaken corr
 
 
 world-coherent-lift-store :

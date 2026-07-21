@@ -398,11 +398,12 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationProof.agda`](NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationProof.agda) | completed GPT 5.5 strict proof | Structural recursion implements reflexivity, allocation prefixing, three target cast forms, and two target conversion forms; the proof has no theorem dependency, so a separate canonical `Lemma` wrapper would be redundant |
 | [`NuImprecisionPairedLambdaTargetClosingNuTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingNuTerminalDef.agda) | completed strict statement | Common ordinary closing motive at a final source-only `ν` index, with endpoint values and the final quotiented relation explicit |
 | [`NuImprecisionPairedLambdaTargetClosingNuTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingNuTerminalProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Eliminates the external paired universal conversion using `PairedUniversalConversionFreshPathCycleᵀ`; the canonical assembly waits for the two structural fresh-path half-squares |
-| [`NuImprecisionPairedLambdaTargetClosingAllTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingAllTerminalDef.agda) | completed strict hard-root statement; proof not yet started | Common ordinary closing motive for arbitrary related universal values at a final `∀ⁱ` index; this theorem must be proved directly with a decreasing body/index measure and must not import the continuation interpreter |
+| [`NuImprecisionPairedLambdaTargetClosingAllTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingAllTerminalDef.agda) | completed strict corollary statement | Common ordinary closing motive for arbitrary related universal values at a final `∀ⁱ` index; the non-circular direction derives it from the direct continuation-value terminal theorem with `pending-refl` |
+| [`NuImprecisionPairedLambdaTargetClosingAllTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingAllTerminalProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Derives all-terminal closing from continuation-value terminal closing by choosing the empty pending continuation, thereby checking the intended dependency direction without assuming a recursive global theorem |
 | [`NuImprecisionPairedLambdaTargetClosingMaterializedTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingMaterializedTerminalDef.agda) | completed strict dispatcher statement | Common ordinary terminal theorem after pending target frames have been materialized, abstracting only over the final precision index |
 | [`NuImprecisionPairedLambdaTargetClosingMaterializedTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingMaterializedTerminalProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Exhaustively dispatches final `ν` and `∀ⁱ` indices to the two explicit terminal dependencies; contains no local inferred theorem type or unsolved meta |
-| [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda) | completed strict common continuation statement | Generic related-value closer for an arbitrary pending target continuation |
-| [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Materializes the pending continuation and invokes ordinary materialized terminal closing; its two theorem dependencies are explicit and strict |
+| [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda) | completed strict hard-root statement; direct proof in progress | Generic related-value closer for a concrete QTI derivation and arbitrary pending target continuation; the canonical implementation must recurse on that derivation while accumulating target-only frames |
+| [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalMaterializationProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalMaterializationProof.agda) | completed strict compatibility proof; canonical `Proof` and `Lemma` absent | Materializes the pending continuation and invokes ordinary materialized terminal closing; it proves exact statement fit from two explicit theorem parameters but is not the non-circular recursive implementation |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda) | completed strict direct-view statement | Directly maps one proof-relevant `FrameView` to the continuation motive, without exposing thirteen constructor-specific capabilities |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationFromViewProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationFromViewProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Projects source/target value, no-bullet, and exact relation evidence from the view, invokes continuation-value terminal closing, and projects `pending-refl` to the existing frame-closing consumer |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationHandlersDef.agda) | completed strict audit interface; superseded on active route | Restates all four leaves and nine semantic frames against the continuation-indexed motive; direct `FrameView` projection now makes constructor-specific canonical inhabitants unnecessary |
@@ -7660,42 +7661,79 @@ coordination.  Use focused strict checks throughout and reserve
   Ginger assignment uses `--no-allow-unsolved-metas`; permissive checks are not
   part of this workflow.
 
-- The exact next terminal DAG is:
+- A direct-recursion audit corrected the terminal dependency graph.  The hard
+  root is the existing
+  [`PairedLambdaTargetClosingContinuationValueTerminalᵀ`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda),
+  with the concrete QTI derivation and pending target continuation both exposed.
+  Its implementation must recurse directly on that QTI derivation.  The five
+  target-only frames and allocation prefix extend the pending continuation
+  before the recursive call; terminal processing consumes that continuation.
+  [`PairedLambdaTargetClosingAllTerminalᵀ`](NuImprecisionPairedLambdaTargetClosingAllTerminalDef.agda)
+  is downstream: choose `pending-refl` in the direct theorem.  Materializing a
+  pending continuation and then invoking all-terminal closing remains a valid
+  higher-order statement-fit proof, but using that route to construct the hard
+  root would be circular.
 
-      four leaf adapters ----\
-                              +--> continuation-value terminal
-      nine frame adapters ---/              |
-                                             +--> pending-target materialization
-                                             +--> `ν` terminal --> rotation
-                                             `--> `∀ⁱ` terminal [hard core]
-
-  The materializer is the only structurally recursive node.  All theorem nodes
-  are otherwise singleton dependency components, provided the hard `∀ⁱ` terminal
-  theorem is proved directly and does not import the continuation interpreter.
-
-- Froze that terminal DAG in strict Agda.  The `ν` and `∀ⁱ` terminal statements,
-  materialized-terminal dispatcher, and continuation-value terminal statement
-  now have separate `Def` files.  The `ν` proof, final-index dispatcher, and
-  materialize-then-close proof have strict higher-order `Proof` files.  While
-  checking the first dispatcher draft, an inferred local helper type left
-  unresolved constraints under the strict flag.  Instead of accepting those
-  metas, the helper was promoted to the explicit reusable
+- Froze the compatibility side of the terminal graph in strict Agda.  The `ν`
+  and `∀ⁱ` terminal statements, materialized-terminal dispatcher, and
+  continuation-value terminal statement have separate `Def` files.  The `ν`
+  proof, final-index dispatcher, and materialize-then-close compatibility proof
+  have strict higher-order `Proof` files.  While checking the first dispatcher
+  draft, an inferred local helper type left unresolved constraints under the
+  strict flag.  Instead of accepting those metas, the helper was promoted to
+  the explicit reusable
   [`NuImprecisionPairedLambdaTargetClosingMaterializedTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingMaterializedTerminalDef.agda)
   boundary.  Its standalone dispatcher now checks with
   `--no-allow-unsolved-metas`, illustrating the intended advantage of the
   three-file/higher-order organization.
 
-- The all-index terminal statement is extensionally the remaining direct
-  all-index closing relation.  It is not progress to assume it in the thirteen
-  adapters and then use the continuation interpreter to reconstruct it; that
-  would be a circular assembly.  The active hard-proof task is therefore a
-  direct one-layer theorem whose recursive hypothesis is restricted to a
-  strictly smaller body precision derivation (with QTI derivation height as a
-  secondary measure if administrative inversion is needed).  Once that root
-  exists, `FrameView` projections plus the common continuation-value theorem
-  can either discharge all thirteen compatibility statements as thin adapters
-  or bypass the handler record entirely.  The latter is the preferred eventual
-  closed-world cleanup if the direct `FrameView` route remains simpler.
+- The active hard-proof task is a direct implementation of
+  [`PairedLambdaTargetClosingContinuationValueTerminalᵀ`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda).
+  For a concrete derivation `R` and pending continuation `K`, the recursive
+  motive is the theorem's complete conclusion: if both endpoints are values
+  without runtime bullets, then every `K` produces the final frame-closing
+  motive.  The proof is mutual recursion over ordinary and quotiented QTI
+  derivations, ordered lexicographically by QTI derivation height, pending
+  continuation length, and the currently exposed type-imprecision/conversion
+  derivation height.  QTI height is primary because every source, paired, or
+  quotient frame has a genuine smaller QTI premise even when its precision
+  index is not structurally smaller.  At target-only frames, the QTI premise
+  becomes smaller while `K` grows.  At terminal leaves, consuming one pending
+  constructor keeps `R` fixed and makes `K` smaller.  Repeated local universal
+  inversion uses the third component only.
+
+- The direct proof has four terminal QTI leaves (`Λ`/`Λ`, source `Λ`, generic
+  source at final `ν`, and quotient generic source), fourteen recursive or
+  administrative frame families (prefix; five source frames; five target
+  frames; paired conversion; quotient up-id; and quotient up-gen-all), and
+  seven pending-continuation cases
+  (`pending-refl`, prefix, three target casts, reveal, and conceal).  Paired
+  conversion must keep reveal/conceal/widening atomic, and quotient cases must
+  keep their complete widening package.  This branch inventory is already
+  represented strictly by
+  [`FrameView`](NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda) and
+  [`PendingTargetFrames`](NuImprecisionPairedLambdaTargetClosingPendingTargetFramesDef.agda);
+  no additional alias-only `Def` is needed.
+
+- The file convention now records the direct proof's status unambiguously.
+  [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda)
+  is complete.  The canonical
+  `NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalProof.agda`
+  is intentionally absent while the direct recursion is incomplete, and its
+  canonical `Lemma` file is likewise absent.  The completed materialization
+  route was renamed
+  [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalMaterializationProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalMaterializationProof.agda)
+  so it cannot be mistaken for the direct proof.  Conversely,
+  [`NuImprecisionPairedLambdaTargetClosingAllTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingAllTerminalProof.agda)
+  is complete as a strict higher-order corollary from the direct theorem; its
+  `Lemma` remains absent until the direct theorem has a canonical inhabitant.
+
+- A speculative assembly record for the two terminal roots was discarded
+  before commit when strict checking exposed unresolved constraints in its
+  generic path assembly.  No permissive option was enabled and no placeholder
+  survived.  This is precisely the intended failure mode: a missing dependency
+  remains visible in a theorem parameter or absent assembly file instead of
+  being hidden by `--allow-unsolved-metas`.
 
 - Completed that direct `FrameView` route in
   [`NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda)

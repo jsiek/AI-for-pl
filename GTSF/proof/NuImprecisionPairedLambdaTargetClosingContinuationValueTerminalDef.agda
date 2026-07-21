@@ -5,8 +5,9 @@ module
 -- File Charter:
 --   * Defines common terminal closing for related universal source values
 --     under an arbitrary pending target continuation.
---   * The intended proof materializes the continuation and dispatches on its
---     final `ν` or `∀ⁱ` imprecision index.
+--   * This is the direct semantic root: its implementation should recurse on
+--     the concrete quotiented term-imprecision derivation while accumulating
+--     target-only frames in the pending continuation.
 --   * Contains no implementation, postulate, hole, permissive option,
 --     semantic handler, frame view, or broad simulation import.
 

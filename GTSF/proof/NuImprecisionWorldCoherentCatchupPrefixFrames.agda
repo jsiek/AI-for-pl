@@ -42,11 +42,11 @@ world-coherent-left-catchup-prefix-target-narrow-castᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         transport type-coherence)
-      coherent wfL) =
+      coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-narrow-castᵀ
       prefix mode seal★ c⊒ catchup)
-    coherent wfL
+    coherent exclusive wfL
 
 world-coherent-left-catchup-prefix-target-reveal-castᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ β X′}
@@ -67,11 +67,11 @@ world-coherent-left-catchup-prefix-target-reveal-castᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         transport type-coherence)
-      coherent wfL) =
+      coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-reveal-castᵀ
       prefix c↑ catchup)
-    coherent wfL
+    coherent exclusive wfL
 
 world-coherent-left-catchup-prefix-target-conceal-castᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ β X′}
@@ -92,11 +92,11 @@ world-coherent-left-catchup-prefix-target-conceal-castᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         transport type-coherence)
-      coherent wfL) =
+      coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-conceal-castᵀ
       prefix c↓ catchup)
-    coherent wfL
+    coherent exclusive wfL
 
 world-coherent-left-catchup-prefix-target-widen-castᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ}
@@ -118,11 +118,11 @@ world-coherent-left-catchup-prefix-target-widen-castᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         transport type-coherence)
-      coherent wfL) =
+      coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-widen-castᵀ
       prefix mode seal★ c⊑ catchup)
-    coherent wfL
+    coherent exclusive wfL
 
 world-coherent-left-catchup-prefix-target-widen-id-castᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c}
@@ -143,8 +143,8 @@ world-coherent-left-catchup-prefix-target-widen-id-castᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         transport type-coherence)
-      coherent wfL) =
+      coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-widen-id-castᵀ
       prefix seal★ c⊑ catchup)
-    coherent wfL
+    coherent exclusive wfL

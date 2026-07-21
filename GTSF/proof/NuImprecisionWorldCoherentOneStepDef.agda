@@ -3,8 +3,8 @@ module proof.NuImprecisionWorldCoherentOneStepDef where
 -- File Charter:
 --   * Defines the world-coherent target-oriented indexed one-step simulation
 --     contract used by the backward terminal proof.
---   * Requires coherence of the input world and returns it for every related
---     successor world.
+--   * Requires world coherence and source-name exclusivity and returns both
+--     for every related successor world.
 --   * Contains no implementation and imports only statement-level support.
 
 open import Data.List using ([])
@@ -19,6 +19,8 @@ open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentWeakOneStepIndexedOutcome)
 
@@ -30,6 +32,7 @@ WorldCoherentWeakOneStepIndexedSimulationᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   WorldCoherent ρ →
+  SourceNameExclusive Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   StoreWf Δᴿ (rightStoreⁱ ρ) →
   RuntimeOK M →

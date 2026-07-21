@@ -18,6 +18,8 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import Types using (Ty; TyVar; ＇_)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 
@@ -28,6 +30,7 @@ SourceSealCancellationᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ ＇ α ⊑ B ⊣ Δᴿ} →
   WorldCoherent ρ →
+  SourceNameExclusive Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   Value V →
   Value W →

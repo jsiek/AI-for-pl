@@ -4,6 +4,8 @@ module proof.NuDGGTerminalBackwardValueWorldCoherentDef where
 --   * Defines the arbitrary-world backward target-value-or-source-blame
 --     contract with the world/store-name coherence premise required by
 --     target seal cancellation.
+--   * Carries source-name role exclusivity required by source seal
+--     cancellation through arbitrary-world recursion.
 --   * Keeps the complete terminal alternatives explicit at the use site.
 --   * Contains no implementation and imports only statement-level support.
 
@@ -31,6 +33,8 @@ open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 
 
 WorldCoherentBackwardTargetValueOrSourceBlameᵀ : Set₁
@@ -39,6 +43,7 @@ WorldCoherentBackwardTargetValueOrSourceBlameᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   WorldCoherent ρ →
+  SourceNameExclusive Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   StoreWf Δᴿ (rightStoreⁱ ρ) →
   RuntimeOK M →

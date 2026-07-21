@@ -23,18 +23,18 @@ world-coherent-quotient-final-catchup-proofᵀ :
   WorldCoherentQuotientInstCatchupᵀ →
   WorldCoherentQuotientFinalCatchupᵀ
 world-coherent-quotient-final-catchup-proofᵀ
-    classify quotient-inst coherent wfL okV
+    classify quotient-inst coherent exclusive wfL okV
     vV′ noV′ inert-d′ inert-u′ down widening final
-    with classify coherent wfL vV′ noV′
+    with classify coherent exclusive wfL vV′ noV′
       inert-d′ inert-u′ down widening final
 world-coherent-quotient-final-catchup-proofᵀ
-    classify quotient-inst coherent wfL okV
+    classify quotient-inst coherent exclusive wfL okV
     vV′ noV′ inert-d′ inert-u′ down widening final
     | inj₁ caught =
   caught
 world-coherent-quotient-final-catchup-proofᵀ
-    classify quotient-inst coherent wfL okV
+    classify quotient-inst coherent exclusive wfL okV
     vV′ noV′ inert-d′ inert-u′ down widening final
     | inj₂ (B , s , refl , source↠ , vVd , noVd) =
-  quotient-inst coherent wfL okV vVd noVd
+  quotient-inst coherent exclusive wfL okV vVd noVd
     vV′ noV′ inert-d′ inert-u′ down widening

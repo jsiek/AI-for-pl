@@ -158,8 +158,13 @@ itself justify them.  The world/store-name coherence work follows this shape:
 - `NuImprecisionWorldCoherenceProof` proves structural preservation;
 - `NuImprecisionWorldCoherenceLemma` assembles concrete reachable-world
   operations;
+- `NuImprecisionContextExclusivityDef` separately rules out assigning one
+  source name both source-only and matched roles;
+- `NuImprecisionContextExclusivityProof` preserves that invariant through all
+  canonical allocation-context transformations;
 - `NuImprecisionWorldCoherentResultDef` adds the invariant only to continuing
-  result branches, with final left-store well-formedness on catch-up results;
+  result branches, together with final source-name exclusivity and final
+  left-store well-formedness on catch-up results;
   and
 - the world-coherent one-step and catch-up `Def` modules state the strengthened
   major dependencies.
@@ -190,11 +195,12 @@ World-coherent value catch-up needs one additional genuine induction contract.
 `NuImprecisionWorldCoherentValueCatchupPrefixDef` permits the current relation
 to be exposed in a smaller world `ρ₀`, but carries `WorldCoherent ρ⁺` for the
 ambient world that owns the final result.  It also consumes initial left
-`StoreWf`; every coherent catch-up result exposes the transported final left
-`StoreWf`.  Coherence is not generally downward-closed through an arbitrary
-`StoreImpPrefix`, and active source unseal needs final-store uniqueness, so
-neither invariant can safely be attached after running the ordinary catch-up
-theorem.
+`StoreWf` and `SourceNameExclusive Φ`; every coherent catch-up result exposes
+the transported final left `StoreWf` and final context exclusivity.  Coherence
+is not generally downward-closed through an arbitrary `StoreImpPrefix`, and
+active source unseal needs both final-store uniqueness and exclusion of a
+matched row for a source-only name, so none of these invariants can safely be
+attached after running the ordinary catch-up theorem.
 
 `NuImprecisionWorldCoherentValueCatchupProof` already proves the public
 catch-up contract from this prefix contract using `prefix-reflⁱ`.  The future
@@ -252,21 +258,21 @@ its fields recursively.  Its current proof decomposition is:
   case form one genuine recursive allocation SCC;
 - `source-reveal` needs exact source-side seal cancellation for active
   `unseal`; the first cancellation contract was strictly refuted because it
-  omitted source-only-versus-matched name exclusivity.  Its replacement is
-  being isolated as a separate imprecision-context invariant rather than
-  folded into `WorldCoherent`, because empty-store coherence is valid for
-  arbitrary contexts.  The affected boundaries are
-  `NuImprecisionSourceSealCancellationDef` and
-  `NuImprecisionWorldCoherentSourceUnsealCatchupDef`;
+  omitted source-only-versus-matched name exclusivity.  Its replacement uses
+  a separate imprecision-context invariant rather than being folded into
+  `WorldCoherent`, because empty-store coherence is valid for
+  arbitrary contexts.  The repaired `Def`/`Proof`/`Lemma` triples for
+  `NuImprecisionSourceSealCancellation` and
+  `NuImprecisionWorldCoherentSourceUnsealCatchup` are strict and complete;
 - active narrowing/widening need source tag/untag classification in addition
   to the existing inert and blame frames; and
 - `source-paired-cast` needs prefix and accumulated-change transport for
   `PairedCast` evidence.
 
-Prove the independent conceal leaf first, then repair and prove source seal
-cancellation with source-name role exclusivity and freeze tag cancellation as
-an explicit contract.  Next prove reveal,
-non-`inst` narrow/widen cases, and paired-cast transport.  Only then implement
+The independent conceal and active-unseal leaves are now complete.  Next wire
+the canonical unseal lemma into `source-reveal`, freeze source tag cancellation
+as an explicit contract, and prove the remaining non-`inst` narrow/widen cases
+and paired-cast transport.  Only then implement
 the allocation SCC as a visibly structural mutual proof (or with an explicit
 administrative measure) and assemble the eight-field record.  Do not make the
 record itself a higher-order input to its own `Proof`; that would encode the

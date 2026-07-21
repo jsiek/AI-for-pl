@@ -3,8 +3,8 @@ module proof.NuDGGTerminalBackwardValueWorldCoherentProof where
 -- File Charter:
 --   * Proves the world-coherent backward-value terminal contract from its
 --     world-coherent one-step and value catch-up dependency contracts.
---   * Threads world coherence through the fuel induction on the observed
---     target trace and unwraps it only at the terminal boundary.
+--   * Threads world coherence and source-name exclusivity through the fuel
+--     induction and unwraps them only at the terminal boundary.
 --   * Reuses the generic trace composition helpers without importing either
 --     live partial simulation implementation.
 
@@ -85,6 +85,8 @@ open import proof.NuImprecisionWorldCoherentResultDef using
   )
 open import proof.NuImprecisionWorldCoherentValueCatchupDef using
   (WorldCoherentLeftValueCatchupᵀ)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 
@@ -94,9 +96,10 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ :
   WorldCoherentLeftValueCatchupᵀ →
   WorldCoherentBackwardTargetValueOrSourceBlameᵀ
 world-coherent-backward-target-value-or-source-blame-proofᵀ
-    one-step target-value-catchup coherent wfL wfR okM okM′ M⊑M′
+    one-step target-value-catchup
+    coherent exclusive wfL wfR okM okM′ M⊑M′
     V′ χs′ M′↠V′ vV′ =
-  go (length χs′) coherent wfL wfR okM okM′ M⊑M′
+  go (length χs′) coherent exclusive wfL wfR okM okM′ M⊑M′
     V′ χs′ M′↠V′ vV′ ≤-refl
   where
   go :
@@ -104,6 +107,7 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
       {ρ : StoreImp Φ Δᴸ Δᴿ}
       {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
     WorldCoherent ρ →
+    SourceNameExclusive Φ →
     StoreWf Δᴸ (leftStoreⁱ ρ) →
     StoreWf Δᴿ (rightStoreⁱ ρ) →
     RuntimeOK M →
@@ -130,20 +134,20 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
            ⊢ᴺ V ⊑ V′
            ⦂ applyTys χs A ⊑ applyTys ψs B ∶ q)))))
       ⊎ (∃[ χs ] (M —↠[ χs ] blame)))
-  go zero coherent wfL wfR okM okM′ M⊑M′ V′ []
+  go zero coherent exclusive wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
-    with target-value-catchup coherent wfL okM vV′
+    with target-value-catchup coherent exclusive wfL okM vV′
       (runtime-value-no• okM′ vV′) M⊑M′
-  go zero coherent wfL wfR okM okM′ M⊑M′ V′ []
+  go zero coherent exclusive wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
     | world-coherent-left-indexed-catchup
-        catchup final-coherent final-wfL
+        catchup final-coherent final-exclusive final-wfL
     with sourceIsValueOrBlame
       (catchupIndexedInvariant catchup)
-  go zero {p = p} coherent wfL wfR okM okM′ M⊑M′ V′ []
+  go zero {p = p} coherent exclusive wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
     | world-coherent-left-indexed-catchup
-        catchup final-coherent final-wfL
+        catchup final-coherent final-exclusive final-wfL
     | inj₁ (vV , noV)
     with sourceCtxResult
            (weakIndexedResult (catchupIndexedResult catchup))
@@ -153,10 +157,10 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
            (silentInvariant (catchupIndexedInvariant catchup))
        | targetIsUnchanged
            (silentInvariant (catchupIndexedInvariant catchup))
-  go zero {p = p} coherent wfL wfR okM okM′ M⊑M′ V′ []
+  go zero {p = p} coherent exclusive wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
     | world-coherent-left-indexed-catchup
-        catchup final-coherent final-wfL
+        catchup final-coherent final-exclusive final-wfL
     | inj₁ (vV , noV) | refl | refl | refl | refl =
       inj₁
         ( sourceResult (weakIndexedResult (catchupIndexedResult catchup))
@@ -174,42 +178,45 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
             (weakIndexedResult (catchupIndexedResult catchup))
         , canonicalIndexedResults (catchupIndexedResult catchup)
         )
-  go zero coherent wfL wfR okM okM′ M⊑M′ V′ []
+  go zero coherent exclusive wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
     | world-coherent-left-indexed-catchup
-        catchup final-coherent final-wfL
+        catchup final-coherent final-exclusive final-wfL
     | inj₂ refl =
       inj₂
         ( sourceChanges (weakIndexedResult (catchupIndexedResult catchup))
         , sourceCatchup
             (weakIndexedResult (catchupIndexedResult catchup))
         )
-  go zero coherent wfL wfR okM okM′ M⊑M′ V′
+  go zero coherent exclusive wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ ()
-  go (suc fuel) coherent wfL wfR okM okM′ M⊑M′ V′ []
+  go (suc fuel) coherent exclusive wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound =
-    go zero coherent wfL wfR okM okM′ M⊑M′ V′ []
+    go zero coherent exclusive wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ ≤-refl
-  go (suc fuel) coherent wfL wfR okM okM′ M⊑M′ V′
+  go (suc fuel) coherent exclusive wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
-    with one-step coherent wfL wfR okM okM′ M⊑M′ target-step
-  go (suc fuel) coherent wfL wfR okM okM′ M⊑M′ V′
+    with one-step
+      coherent exclusive wfL wfR okM okM′ M⊑M′ target-step
+  go (suc fuel) coherent exclusive wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
     | world-indexed-outcome-source-blame
         {χs = source-blame-changes} source-blame =
       inj₂ (source-blame-changes , source-blame)
-  go (suc fuel) coherent wfL wfR okM okM′ M⊑M′ V′
+  go (suc fuel) coherent exclusive wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
     | world-indexed-outcome-related
-        indexed transport type-coherence successor-coherent
+        indexed transport type-coherence
+        successor-coherent successor-exclusive
     with weak-result-target-prefix-valueᵀ
       (weakIndexedResult indexed) target-rest vV′
-  go (suc fuel) coherent wfL wfR okM okM′ M⊑M′ V′
+  go (suc fuel) coherent exclusive wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
     | world-indexed-outcome-related
-        indexed transport type-coherence successor-coherent
+        indexed transport type-coherence
+        successor-coherent successor-exclusive
     | residual-changes , target-result↠V′ , trace-eq
-    with go fuel successor-coherent
+    with go fuel successor-coherent successor-exclusive
       (weak-result-source-store-wf
         (weakIndexedResult indexed) wfL okM
         (empty-context-source-typing M⊑M′))
@@ -234,10 +241,11 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
             {residual = residual-changes}
             trace-eq)
           bound))
-  go (suc fuel) coherent wfL wfR okM okM′ M⊑M′ V′
+  go (suc fuel) coherent exclusive wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
     | world-indexed-outcome-related
-        indexed transport type-coherence successor-coherent
+        indexed transport type-coherence
+        successor-coherent successor-exclusive
     | residual-changes , target-result↠V′ , trace-eq
     | inj₂ (result-blame-changes , source-result↠blame) =
       inj₂
@@ -246,10 +254,11 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
         , ↠-trans (sourceCatchup (weakIndexedResult indexed))
                   source-result↠blame
         )
-  go (suc fuel) coherent wfL wfR okM okM′ M⊑M′ V′
+  go (suc fuel) coherent exclusive wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
     | world-indexed-outcome-related
-        indexed transport type-coherence successor-coherent
+        indexed transport type-coherence
+        successor-coherent successor-exclusive
     | residual-changes , target-result↠V′ , trace-eq
     | inj₁ (V , result-source-changes , Ψ , ρ′ , q ,
         source-result↠V , vV , left-store-eq , right-store-eq , V⊑V′) =

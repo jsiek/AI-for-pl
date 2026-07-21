@@ -70,6 +70,8 @@ open import Types using
 open import Coercions using (Coercion; ModeEnv; instᵈ)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
 
@@ -89,6 +91,7 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
       StoreImpPrefix
         (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′) ρ⁺ →
       WorldCoherent ρ⁺ →
+      SourceNameExclusive ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) →
       StoreWf (suc Δᴸ) (leftStoreⁱ ρ⁺) →
       RuntimeOK ((⇑ᵗᵐ L) •) →
       Value V′ →

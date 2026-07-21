@@ -53,7 +53,7 @@ world-coherent-left-catchup-indexed-resume-silentᵀ
         (left-catchup-invariant
           (left-silent-invariant refl refl) final)
         second-transport second-coherence)
-      coherent wfL) =
+      coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-resume-silentᵀ silent second)
-    coherent wfL
+    coherent exclusive wfL

@@ -19,6 +19,8 @@ open import QuotientedTermImprecision using
 open import Types using (Ty)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
 
@@ -31,6 +33,7 @@ WorldCoherentQuotientInstCatchupᵀ =
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
   WorldCoherent ρ →
+  SourceNameExclusive Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   RuntimeOK ((V ⟨ d ⟩) ⟨ C.inst B s ⟩) →
   Value (V ⟨ d ⟩) →

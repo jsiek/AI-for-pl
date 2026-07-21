@@ -5,7 +5,7 @@ module proof.NuImprecisionWorldCoherentResultDef where
 --     coherence invariant on every continuing related branch.
 --   * Wraps the generic result algebra without importing a simulation
 --     implementation or recursive dispatcher.
---   * Gives catch-up results an explicit coherent final world.
+--   * Gives continuing results explicit final-world and context invariants.
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (_—↠[_]_)
@@ -18,10 +18,13 @@ open import proof.NuImprecisionSimulationResultDef using
   ; WeakOneStepTransport
   ; WeakOneStepTypeCoherence
   ; catchupIndexedResult
+  ; resultCtx
   ; resultLeftCtx
   ; resultStore
   ; weakIndexedResult
   )
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 
@@ -36,6 +39,7 @@ data WorldCoherentWeakOneStepIndexedOutcome
     WeakOneStepTransport (weakIndexedResult result) →
     WeakOneStepTypeCoherence (weakIndexedResult result) →
     WorldCoherent (resultStore (weakIndexedResult result)) →
+    SourceNameExclusive (resultCtx (weakIndexedResult result)) →
     WorldCoherentWeakOneStepIndexedOutcome p
 
   world-indexed-outcome-source-blame : ∀ {χs} →
@@ -55,6 +59,11 @@ record WorldCoherentLeftCatchupIndexedResult
     worldCatchupCoherence :
       WorldCoherent
         (resultStore
+          (weakIndexedResult
+            (catchupIndexedResult worldCatchupResult)))
+    worldCatchupSourceNameExclusive :
+      SourceNameExclusive
+        (resultCtx
           (weakIndexedResult
             (catchupIndexedResult worldCatchupResult)))
     worldCatchupSourceStoreWf :

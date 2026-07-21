@@ -3,8 +3,8 @@ module proof.NuImprecisionWorldCoherentValueCatchupDef where
 -- File Charter:
 --   * Defines the world-coherent already-terminal target-value catch-up
 --     contract used by the backward terminal proof.
---   * Requires coherence of the input world and exposes coherence of the
---     final catch-up world for subsequent composition.
+--   * Requires world coherence, context exclusivity, and left-store
+--     well-formedness, and exposes all three at the final catch-up world.
 --   * Contains no implementation and imports only statement-level support.
 
 open import Data.List using ([])
@@ -17,6 +17,8 @@ open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
 
@@ -27,6 +29,7 @@ WorldCoherentLeftValueCatchupᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   WorldCoherent ρ →
+  SourceNameExclusive Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   RuntimeOK M →
   Value V′ →

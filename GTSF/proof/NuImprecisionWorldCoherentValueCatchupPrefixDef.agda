@@ -5,6 +5,7 @@ module proof.NuImprecisionWorldCoherentValueCatchupPrefixDef where
 --     already-terminal target-value catch-up.
 --   * Keeps coherence at the ambient evaluation world while the relation may
 --     be exposed through a smaller store-imprecision prefix.
+--   * Threads source-name exclusivity and left-store well-formedness with it.
 --   * Contains no implementation and imports only statement-level support.
 
 open import Data.List using ([])
@@ -19,6 +20,8 @@ open import QuotientedTermImprecision using
   )
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
 
@@ -30,6 +33,7 @@ WorldCoherentLeftValueCatchupPrefixᵀ =
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
+  SourceNameExclusive Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ⁺) →
   RuntimeOK M →
   Value V′ →

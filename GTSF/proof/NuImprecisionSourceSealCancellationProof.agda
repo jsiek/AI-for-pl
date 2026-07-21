@@ -1,196 +1,483 @@
 module proof.NuImprecisionSourceSealCancellationProof where
 
 -- File Charter:
---   * Records a strict counterexample to the current source-seal cancellation
---     contract.
---   * Isolates the incompatible `tagˣ` branch: the source name can also occur
---     in a matched row whose target seal remains beneath a target tag.
---   * Contains no postulates, holes, permissive options, or simulation import.
+--   * Proves exact-world cancellation of a terminal source seal.
+--   * Uses world coherence for matched names and source-name exclusivity to
+--     eliminate a source-only name hidden beneath a target tag.
+--   * Depends on atomic target reindexing for proof-relevant indices.
 
-open import Agda.Builtin.Equality using (refl)
-open import Data.Empty using (⊥)
-open import Data.List using ([]; _∷_)
+open import Data.Empty using (⊥; ⊥-elim)
+open import Data.List using ([])
+open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
-open import Data.Nat using (zero; suc; z<s)
-open import Data.Product using (_,_)
+open import Data.Product using (_,_; _×_; ∃-syntax)
 import Coercions as C
 open import Coercions using (_!)
+import Conversion
 open import Conversion using (conceal-seal)
-open import Imprecision using (_ˣ⊑★; _ˣ⊑ˣ_)
 open import ImprecisionWf using
-  (_∣_⊢_⊑_⊣_; idι; idˣ; tag_; tagˣ)
-import NarrowWiden as NW
-open import NuStore using (StoreWf)
+  (_∣_⊢_⊑_⊣_; idˣ; tagˣ)
+import NarrowWiden
+open import NuStore using (StoreWf; unique)
 open import NuTermImprecision using
-  ( StoreCorresponds
-  ; StoreImp
-  ; correspondence-stored
+  ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
-  ; seal★-tag-or-id
+  ; store-left
+  ; store-link
   ; store-matched
+  ; store-right
   )
 open import NuTerms using
-  ( No•
-  ; Term
-  ; Value
-  ; no•-$
-  ; no•-⟨⟩
-  ; _⟨_⟩
-  ; $
-  )
-open import Primitives using (κℕ)
+  (No•; Term; Value; no•-⟨⟩; _⟨_⟩)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
+  ( StoreImpPrefix
+  ; allocation-prefixᵀ
+  ; cast⊒⊑ᵀ
+  ; cast⊑⊑ᵀ
+  ; conv↑⊑ᵀ
+  ; conv↓⊑ᵀ
   ; conv⊑convᵀ
-  ; κ⊑κᵀ
   ; paired-conceal
   ; paired-conversion
+  ; paired-reveal
+  ; paired-widening
+  ; prefix-∷ⁱ
+  ; prefix-reflⁱ
+  ; quotient-cast-widening
+  ; quotient-id-widening
+  ; up⊑upᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
+  ; ⊑conv↑ᵀ
+  ; ⊑conv↓ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
-open import TermTyping using (cast-tag-or-id)
-open import Types using
-  (Ty; wfBase; wfVar; ★; ＇_; ‵_; `ℕ)
+open import TermTyping using
+  (_∣_∣_⊢_⦂_; ⊢⟨⟩↓; ⊢⟨⟩⊒; ⊢⟨⟩⊑)
 import Types as T
+open import Types using (Atom; Ty; TyVar; ＇_)
+open import proof.NuImprecisionAtomicTargetReindex using
+  (atomic-target-value-reindexᵀ)
+open import proof.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import proof.NuImprecisionSourceSealCancellationDef using
   (SourceSealCancellationᵀ)
 open import proof.NuImprecisionWorldCoherenceDef using
-  (WorldCoherent; world-coherent)
+  (WorldCoherent; idˣ-corresponds)
 
 
-private
-  Φ₀ = (zero ˣ⊑★) ∷ (zero ˣ⊑ˣ zero) ∷ []
-
-  Nat : Ty
-  Nat = ‵ `ℕ
-
-  ρ₀ : StoreImp Φ₀ (suc zero) (suc zero)
-  ρ₀ = store-matched zero Nat zero Nat idι ∷ []
-
-  K : Term
-  K = $ (κℕ zero)
-
-  SourceSealed : Term
-  SourceSealed = K ⟨ C.seal Nat zero ⟩
-
-  TargetSealed : Term
-  TargetSealed = K ⟨ C.seal Nat zero ⟩
-
-  TargetTagged : Term
-  TargetTagged = TargetSealed ⟨ (＇ zero) ! ⟩
-
-  id-var : Φ₀ ∣ suc zero ⊢ ＇ zero ⊑ ＇ zero ⊣ suc zero
-  id-var = idˣ (there (here refl)) z<s z<s
-
-  tag-var : Φ₀ ∣ suc zero ⊢ ＇ zero ⊑ ★ ⊣ suc zero
-  tag-var = tagˣ (here refl) z<s
-
-  tag-nat : Φ₀ ∣ suc zero ⊢ Nat ⊑ ★ ⊣ suc zero
-  tag-nat = tag `ℕ
-
-  correspondence :
-    StoreCorresponds ρ₀ zero Nat zero Nat idι
-  correspondence = correspondence-stored (here refl)
-
-  coherent : WorldCoherent ρ₀
-  coherent = world-coherent
-    λ { (here ())
-      ; (there (here refl)) (here refl) (here refl) →
-          idι , correspondence
-      ; (there (here refl)) (here refl) (there ())
-      ; (there (here refl)) (there ()) right∈
-      ; (there (there ()))
-      }
-
-  source-store-wf : StoreWf (suc zero) (leftStoreⁱ ρ₀)
-  source-store-wf =
-    record
-      { at = record
-          { bound = λ { (here refl) → z<s ; (there ()) }
-          ; wfTy = λ { (here refl) → wfBase ; (there ()) }
-          }
-      ; unique = λ
-          { (here refl) (here refl) → refl
-          ; (here refl) (there ())
-          ; (there ()) right∈
-          }
-      }
-
-  value-K : Value K
-  value-K = $ (κℕ zero)
-
-  value-source-sealed : Value SourceSealed
-  value-source-sealed = value-K ⟨ C.seal Nat zero ⟩
-
-  value-target-sealed : Value TargetSealed
-  value-target-sealed = value-K ⟨ C.seal Nat zero ⟩
-
-  value-target-tagged : Value TargetTagged
-  value-target-tagged = value-target-sealed ⟨ (＇ zero) ! ⟩
-
-  no-target-tagged : No• TargetTagged
-  no-target-tagged = no•-⟨⟩ (no•-⟨⟩ no•-$)
-
-  matched-seals :
-    Φ₀ ∣ suc zero ∣ suc zero ∣ ρ₀ ∣ []
-      ⊢ᴺ SourceSealed ⊑ TargetSealed
-      ⦂ ＇ zero ⊑ ＇ zero ∶ id-var
-  matched-seals =
-    conv⊑convᵀ
-      (paired-conversion
-        (paired-conceal
-          {μ = C.seal-or-idᵈ} {μ′ = C.seal-or-idᵈ} correspondence
-          (conceal-seal wfBase (here refl) refl)
-          (conceal-seal wfBase (here refl) refl)))
-      κ⊑κᵀ
-
-  cancellation-premise :
-    Φ₀ ∣ suc zero ∣ suc zero ∣ ρ₀ ∣ []
-      ⊢ᴺ SourceSealed ⊑ TargetTagged
-      ⦂ ＇ zero ⊑ ★ ∶ tag-var
-  cancellation-premise =
-    ⊑cast⊑ᵀ cast-tag-or-id seal★-tag-or-id
-      (C.cast-tag (wfVar z<s) (T.＇ zero) refl ,
-        NW.tag (T.＇ zero))
-      matched-seals tag-var
-
-  no-base-var-relation :
-    ∀ {ρ : StoreImp Φ₀ (suc zero) (suc zero)}
-      {M N : Term}
-      {p : Φ₀ ∣ suc zero ⊢ Nat ⊑ ＇ zero ⊣ suc zero} →
-    Φ₀ ∣ suc zero ∣ suc zero ∣ ρ ∣ []
-      ⊢ᴺ M ⊑ N ⦂ Nat ⊑ ＇ zero ∶ p →
-    ⊥
-  no-base-var-relation {p = ()}
-
-  no-cancellation-conclusion :
-    ∀ {ρ : StoreImp Φ₀ (suc zero) (suc zero)} →
-    Φ₀ ∣ suc zero ∣ suc zero ∣ ρ ∣ []
-      ⊢ᴺ K ⊑ TargetTagged ⦂ Nat ⊑ ★ ∶ tag-nat →
-    ⊥
-  no-cancellation-conclusion
-      (⊑cast⊒ᵀ mode seal★
-        (C.cast-tag hG ground ok , NW.cross ()) inner q)
-  no-cancellation-conclusion
-      (⊑cast⊑ᵀ mode seal★
-        (C.cast-tag hG (T.＇ .zero) ok , NW.tag (T.＇ .zero))
-        inner q) =
-    no-base-var-relation inner
-  no-cancellation-conclusion
-      (⊑cast⊑idᵀ seal★
-        (C.cast-tag hG ground () , widening) inner q)
-  no-cancellation-conclusion
-      (allocation-prefixᵀ prefix inner K⊢ TargetTagged⊢) =
-    no-cancellation-conclusion inner
+left-prefix-inclusionᵀ :
+  ∀ {Φ Δᴸ Δᴿ} {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
+  StoreImpPrefix ρ₀ ρ⁺ →
+  ∀ {α A} →
+  (α , A) ∈ leftStoreⁱ ρ₀ →
+  (α , A) ∈ leftStoreⁱ ρ⁺
+left-prefix-inclusionᵀ prefix-reflⁱ x∈ = x∈
+left-prefix-inclusionᵀ
+    (prefix-∷ⁱ {entry = store-matched α A β B p} prefix) x∈ =
+  there (left-prefix-inclusionᵀ prefix x∈)
+left-prefix-inclusionᵀ
+    (prefix-∷ⁱ {entry = store-left α A hA} prefix) x∈ =
+  there (left-prefix-inclusionᵀ prefix x∈)
+left-prefix-inclusionᵀ
+    (prefix-∷ⁱ {entry = store-right β B hB} prefix) x∈ =
+  left-prefix-inclusionᵀ prefix x∈
+left-prefix-inclusionᵀ
+    (prefix-∷ⁱ {entry = store-link α A β B p} prefix) x∈ =
+  left-prefix-inclusionᵀ prefix x∈
 
 
-source-seal-cancellation-uninhabited :
-  SourceSealCancellationᵀ →
+right-prefix-inclusionᵀ :
+  ∀ {Φ Δᴸ Δᴿ} {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
+  StoreImpPrefix ρ₀ ρ⁺ →
+  ∀ {β B} →
+  (β , B) ∈ rightStoreⁱ ρ₀ →
+  (β , B) ∈ rightStoreⁱ ρ⁺
+right-prefix-inclusionᵀ prefix-reflⁱ x∈ = x∈
+right-prefix-inclusionᵀ
+    (prefix-∷ⁱ {entry = store-matched α A β B p} prefix) x∈ =
+  there (right-prefix-inclusionᵀ prefix x∈)
+right-prefix-inclusionᵀ
+    (prefix-∷ⁱ {entry = store-left α A hA} prefix) x∈ =
+  right-prefix-inclusionᵀ prefix x∈
+right-prefix-inclusionᵀ
+    (prefix-∷ⁱ {entry = store-right β B hB} prefix) x∈ =
+  there (right-prefix-inclusionᵀ prefix x∈)
+right-prefix-inclusionᵀ
+    (prefix-∷ⁱ {entry = store-link α A β B p} prefix) x∈ =
+  right-prefix-inclusionᵀ prefix x∈
+
+
+prefix-transᵀ :
+  ∀ {Φ Δᴸ Δᴿ} {ρ₀ ρ₁ ρ₂ : StoreImp Φ Δᴸ Δᴿ} →
+  StoreImpPrefix ρ₀ ρ₁ →
+  StoreImpPrefix ρ₁ ρ₂ →
+  StoreImpPrefix ρ₀ ρ₂
+prefix-transᵀ prefix₀₁ prefix-reflⁱ = prefix₀₁
+prefix-transᵀ prefix₀₁ (prefix-∷ⁱ prefix₁₂) =
+  prefix-∷ⁱ (prefix-transᵀ prefix₀₁ prefix₁₂)
+
+
+source-seal-typing⁻¹ :
+  ∀ {Δ Σ Γ V X α} →
+  Δ ∣ Σ ∣ Γ ⊢ V ⟨ C.seal X α ⟩ ⦂ ＇ α →
+  ((α , X) ∈ Σ) × (Δ ∣ Σ ∣ Γ ⊢ V ⦂ X)
+source-seal-typing⁻¹
+    (⊢⟨⟩↓ (Conversion.conv↓-seal hX α∈Σ ok) V⊢) =
+  α∈Σ , V⊢
+source-seal-typing⁻¹
+    (⊢⟨⟩⊒ mode seal★
+      (C.cast-seal hX α∈Σ ok , NarrowWiden.sealⁿ _ _) V⊢) =
+  α∈Σ , V⊢
+source-seal-typing⁻¹
+    (⊢⟨⟩⊑ mode seal★
+      (C.cast-seal hX α∈Σ ok , NarrowWiden.cross ()) V⊢)
+
+
+target-atomᵀ :
+  ∀ {Φ Δᴸ Δᴿ α B} →
+  Φ ∣ Δᴸ ⊢ ＇ α ⊑ B ⊣ Δᴿ →
+  Atom B
+target-atomᵀ (idˣ a∈Φ α< β<) = T.＇ _
+target-atomᵀ (tagˣ a∈Φ α<) = T.★
+
+
+inert-reveal-target-atom-impossibleᵀ :
+  ∀ {μ Δ Σ α X c A B} →
+  Conversion.RevealConversion μ Δ Σ α X c A B →
+  Atom B →
+  C.Inert c →
   ⊥
-source-seal-cancellation-uninhabited cancel =
-  no-cancellation-conclusion
-    (cancel coherent source-store-wf value-K value-target-tagged
-      no-target-tagged (here refl) cancellation-premise tag-nat)
+inert-reveal-target-atom-impossibleᵀ
+    (Conversion.reveal-id-var hY ok) atom ()
+inert-reveal-target-atom-impossibleᵀ
+    Conversion.reveal-id-base atom ()
+inert-reveal-target-atom-impossibleᵀ
+    Conversion.reveal-id-★ atom ()
+inert-reveal-target-atom-impossibleᵀ
+    (Conversion.reveal-unseal hX αX∈Σ ok) atom ()
+inert-reveal-target-atom-impossibleᵀ
+    (Conversion.reveal-fun c↓ c↑) () inert
+inert-reveal-target-atom-impossibleᵀ
+    (Conversion.reveal-all c↑) () inert
+
+
+inert-conceal-target-star-impossibleᵀ :
+  ∀ {μ Δ Σ α X c A} →
+  Conversion.ConcealConversion μ Δ Σ α X c A T.★ →
+  C.Inert c →
+  ⊥
+inert-conceal-target-star-impossibleᵀ
+    Conversion.conceal-id-★ ()
+
+
+source-seal-cancellation-prefixᵀ :
+  ∀ {Φ Δᴸ Δᴿ} {V W : Term} {B X Y : Ty} {α : TyVar}
+    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
+    {p : Φ ∣ Δᴸ ⊢ ＇ α ⊑ B ⊣ Δᴿ} →
+  StoreImpPrefix ρ₀ ρ⁺ →
+  WorldCoherent ρ⁺ →
+  SourceNameExclusive Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ⁺) →
+  Value V →
+  Value W →
+  No• W →
+  (α , X) ∈ leftStoreⁱ ρ⁺ →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
+    ⊢ᴺ V ⟨ C.seal Y α ⟩ ⊑ W ⦂ ＇ α ⊑ B ∶ p →
+  (q : Φ ∣ Δᴸ ⊢ X ⊑ B ⊣ Δᴿ) →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
+    ⊢ᴺ V ⊑ W ⦂ X ⊑ B ∶ q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (up⊑upᵀ inner
+      (quotient-id-widening
+        (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ()) u′⊑)
+      oldq)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (up⊑upᵀ inner
+      (quotient-cast-widening mode seal★
+        (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
+        mode′ seal★′ u′⊑)
+      oldq)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (cast⊑⊑ᵀ mode seal★
+      (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
+      inner oldq)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (conv⊑convᵀ
+      (paired-conversion (paired-reveal corr () c′↑)) inner)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (conv⊑convᵀ
+      (paired-widening mode seal★
+        (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
+        mode′ seal★′ c′⊑)
+      inner)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
+    (⊑cast⊑ᵀ mode seal★
+      (C.cast-seal hZ βZ∈Σ ok , NarrowWiden.cross ())
+      Vα⊑M oldq)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
+    (⊑cast⊑idᵀ seal★
+      (C.cast-seal hZ βZ∈Σ ok , NarrowWiden.cross ())
+      Vα⊑M oldq)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ inert ⟩) noW αX∈Σ
+    (⊑conv↑ᵀ c′↑ Vα⊑M oldq) q =
+  ⊥-elim
+    (inert-reveal-target-atom-impossibleᵀ
+      c′↑ (target-atomᵀ oldq) inert)
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
+    (⊑cast⊒ᵀ mode seal★
+      (C.cast-seal hZ βZ∈Σ ok , NarrowWiden.sealⁿ .Z .β)
+      Vα⊑M oldq)
+    q
+    with idˣ-corresponds coh a∈Φ αX∈Σ
+      (right-prefix-inclusionᵀ prefix βZ∈Σ)
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
+    (⊑cast⊒ᵀ mode seal★
+      (C.cast-seal hZ βZ∈Σ ok , NarrowWiden.sealⁿ .Z .β)
+      Vα⊑M oldq)
+    q | pX , corr =
+  ⊑cast⊒ᵀ mode seal★
+    (C.cast-seal hZ βZ∈Σ ok , NarrowWiden.sealⁿ Z β)
+    (source-seal-cancellation-prefixᵀ
+      prefix coh exclusive wfΣ vV vM noM αX∈Σ Vα⊑M pX)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
+    (⊑conv↓ᵀ { μ′ = μ′ }
+      (conceal-seal hZ βZ∈Σ ok) Vα⊑M oldq)
+    q
+    with idˣ-corresponds coh a∈Φ αX∈Σ
+      (right-prefix-inclusionᵀ prefix βZ∈Σ)
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
+    (⊑conv↓ᵀ { μ′ = μ′ }
+      (conceal-seal hZ βZ∈Σ ok) Vα⊑M oldq)
+    q | pX , corr =
+  ⊑conv↓ᵀ { μ′ = μ′ } (conceal-seal hZ βZ∈Σ ok)
+    (source-seal-cancellation-prefixᵀ
+      prefix coh exclusive wfΣ vV vM noM αX∈Σ Vα⊑M pX)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (cast⊒⊑ᵀ mode seal★
+      (C.cast-seal hY αY∈Σ ok , NarrowWiden.sealⁿ Y α)
+      V⊑W oldq)
+    q
+    rewrite unique wfΣ
+      (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
+  atomic-target-value-reindexᵀ
+    (target-atomᵀ (idˣ a∈Φ α< β<)) vW V⊑W q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (conv↓⊑ᵀ (conceal-seal hY αY∈Σ ok) V⊑W oldq)
+    q
+    rewrite unique wfΣ
+      (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
+  atomic-target-value-reindexᵀ
+    (target-atomᵀ (idˣ a∈Φ α< β<)) vW V⊑W q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
+    (conv⊑convᵀ
+      (paired-conversion
+        (paired-conceal { μ = μ } { μ′ = μ′ } corr
+          (conceal-seal hY αY∈Σ ok)
+          (conceal-seal hZ βZ∈Σ ok′)))
+      V⊑M)
+    q
+    rewrite unique wfΣ
+      (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
+  ⊑conv↓ᵀ { μ′ = μ′ } (conceal-seal hZ βZ∈Σ ok′) V⊑M q
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (allocation-prefixᵀ prefix₀ inner Vseal⊢ W⊢) q
+    with source-seal-typing⁻¹ Vseal⊢
+source-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (allocation-prefixᵀ prefix₀ inner Vseal⊢ W⊢) q
+    | αY∈Σ , V⊢
+    rewrite unique wfΣ
+      (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
+  allocation-prefixᵀ prefix₀
+    (source-seal-cancellation-prefixᵀ
+      (prefix-transᵀ prefix₀ prefix) coh exclusive wfΣ
+      vV vW noW αX∈Σ inner q)
+    V⊢ W⊢
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (up⊑upᵀ inner
+      (quotient-id-widening
+        (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ()) u′⊑)
+      oldq)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (up⊑upᵀ inner
+      (quotient-cast-widening mode seal★
+        (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
+        mode′ seal★′ u′⊑)
+      oldq)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (cast⊑⊑ᵀ mode seal★
+      (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
+      inner oldq)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (conv⊑convᵀ
+      (paired-conversion (paired-reveal corr () c′↑)) inner)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (conv⊑convᵀ
+      (paired-widening mode seal★
+        (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
+        mode′ seal★′ c′⊑)
+      inner)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ inert′ ⟩) noW αX∈Σ
+    (conv⊑convᵀ
+      (paired-conversion
+        (paired-conceal corr
+          (conceal-seal hY αY∈Σ ok) c′↓))
+      V⊑M)
+    q =
+  ⊥-elim (inert-conceal-target-star-impossibleᵀ c′↓ inert′)
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (cast⊒⊑ᵀ mode seal★
+      (C.cast-seal hY αY∈Σ ok , NarrowWiden.sealⁿ Y α)
+      V⊑W oldq)
+    q
+    rewrite unique wfΣ
+      (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
+  atomic-target-value-reindexᵀ
+    T.★ vW V⊑W q
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ G ! ⟩) noW αX∈Σ
+    (⊑cast⊒ᵀ mode seal★
+      (C.cast-tag hG gG ok , NarrowWiden.cross ()) Vα⊑M oldq)
+    q
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ (T.＇ β) ! ⟩) noW αX∈Σ
+    (⊑cast⊑ᵀ {p = idˣ match∈ α<′ β<}
+      mode seal★
+      (C.cast-tag hβ (T.＇ β) ok , NarrowWiden.tag (T.＇ β))
+      Vα⊑M oldq)
+    q =
+  ⊥-elim (exclusive star∈ match∈)
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ (T.＇ β) ! ⟩) noW αX∈Σ
+    (⊑cast⊑idᵀ {p = idˣ match∈ α<′ β<}
+      seal★
+      (C.cast-tag hβ (T.＇ β) ok , NarrowWiden.tag (T.＇ β))
+      Vα⊑M oldq)
+    q =
+  ⊥-elim (exclusive star∈ match∈)
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (conv↓⊑ᵀ (conceal-seal hY αY∈Σ ok) V⊑W oldq)
+    q
+    rewrite unique wfΣ
+      (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
+  atomic-target-value-reindexᵀ
+    T.★ vW V⊑W q
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ inert ⟩) noW αX∈Σ
+    (⊑conv↑ᵀ c′↑ Vα⊑M oldq) q =
+  ⊥-elim
+    (inert-reveal-target-atom-impossibleᵀ c′↑ T.★ inert)
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV
+    (vM ⟨ inert ⟩) noW αX∈Σ
+    (⊑conv↓ᵀ c′↓ Vα⊑M oldq) q =
+  ⊥-elim (inert-conceal-target-star-impossibleᵀ c′↓ inert)
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (allocation-prefixᵀ prefix₀ inner Vseal⊢ W⊢) q
+    with source-seal-typing⁻¹ Vseal⊢
+source-seal-cancellation-prefixᵀ
+    {p = tagˣ star∈ α<}
+    prefix coh exclusive wfΣ vV vW noW αX∈Σ
+    (allocation-prefixᵀ prefix₀ inner Vseal⊢ W⊢) q
+    | αY∈Σ , V⊢
+    rewrite unique wfΣ
+      (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
+  allocation-prefixᵀ prefix₀
+    (source-seal-cancellation-prefixᵀ
+      (prefix-transᵀ prefix₀ prefix) coh exclusive wfΣ
+      vV vW noW αX∈Σ inner q)
+    V⊢ W⊢
+
+
+source-seal-cancellation-proofᵀ : SourceSealCancellationᵀ
+source-seal-cancellation-proofᵀ coh exclusive wfΣ vV vW noW αX∈Σ
+    Vseal⊑W q =
+  source-seal-cancellation-prefixᵀ
+    prefix-reflⁱ coh exclusive wfΣ vV vW noW αX∈Σ Vseal⊑W q

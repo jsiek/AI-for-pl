@@ -1,8 +1,8 @@
 module proof.NuImprecisionSimulationCore where
 
 -- File Charter:
---   * Defines the stable weak one-step result, its indexed forms, and the
---     transport and type-coherence interfaces used by simulation proofs.
+--   * Imports the stable weak one-step result interfaces from
+--     `NuImprecisionSimulationResultDef` and proves operations over them.
 --   * Proves composition, framing, allocation-prefix, and terminal helpers.
 --   * Defines the general weak one-step result over transformed stores,
 --     contexts, and endpoint types.
@@ -87,7 +87,6 @@ open import NarrowWiden using
   ; narrow-weaken
   ; widen-mode-relax
   ; widen-renameᵗ
-  ; widen-weaken
   ; _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
@@ -222,6 +221,33 @@ open import NuTermImprecision using
   ; crossedStoreⁱ-old-new
   )
 open import QuotientedTermImprecision
+open import PairedWideningCompatibility using
+  ( PairedWideningCompatible
+  ; compatible-source-inert
+  ; compatible-target-inert-bridge
+  )
+open import proof.NuImprecisionRelStoreEmbeddingDef
+open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
+  ( rel-store-embedding-composeⁱ
+  ; rel-store-embedding-prefix-invⁱ
+  )
+open import proof.NuImprecisionRelStoreEmbeddingProof using
+  (rel-store-embedding-correspondenceⁱ)
+open import proof.NuImprecisionSimulationResultDef
+open import proof.NuImprecisionOneStepRelated using
+  ( weak-one-step-indexed-outcome-relatedᵀ
+  ; weak-one-step-indexed-relatedᵀ
+  ; weak-one-step-related-transportᵀ
+  ; weak-one-step-related-type-coherenceᵀ
+  ; weak-one-step-relatedᵀ
+  )
+open import proof.NuImprecisionStoreLift using
+  (lift-store-result; lift-left-store-result; lift-right-store-result)
+open import proof.NuImprecisionStorePrefix using
+  ( leftStoreⁱ-prefix-inclusion
+  ; rightStoreⁱ-prefix-inclusion
+  ; store-imp-prefix-transⁱ
+  )
 open import Store using (StoreIncl; StoreIncl-drop; StoreIncl-refl)
 open import TermTyping using
   ( CastMode
@@ -315,6 +341,8 @@ open import proof.ReductionProperties using
   ( applyCoercions
   ; applyCoercions-inst
   ; applyCoercions-preserves-Inert
+  ; applyCoercionUnderTyBinders-preserves-Inert
+  ; applyCoercionUnderTyBinders-reflects-Inert
   ; applyCoercionUnderTyBinders
   ; applyTerm-preserves-No•
   ; applyTerm-preserves-Value
@@ -327,6 +355,7 @@ open import proof.ReductionProperties using
   ; applyTyCtxs-++
   ; applyTysUnderTyBinders
   ; applyTysUnderTyBinders-++
+  ; applyTysUnderTyBinders-⇑ᵗ
   ; applyTys-++
   ; applyTys-★
   ; applyTys-∀
@@ -343,11 +372,13 @@ open import proof.CoercionProperties using
   ; ModeIncl-gen
   ; ModeIncl-inst
   ; ModeRename
+  ; modeRename-id-only
   ; open0-ext-suc-cancelᶜ
+  ; renameᶜ-preserves-Inert
+  ; renameᶜ-reflects-Inert
   )
 open import proof.TypePreservation using
   ( applyNarrow-typing
-  ; applyWiden-typing
   ; applyWidenInstUnderTyBinder-typing
   ; CastModeRenamer
   ; castModeRenamer-ext
@@ -387,6 +418,47 @@ open import proof.TypeProperties using
   ; renameStoreᵗ-compose
   ; renameStoreᵗ-ext-suc-comm
   )
+
+
+paired-widening-compatible-rename²ᵢ :
+  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ c c′ B A′}
+    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ} →
+  (hτ : TyRenameWf Δᴸ Θᴸ τ) →
+  (hσ : TyRenameWf Δᴿ Θᴿ σ) →
+  PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
+  PairedWideningCompatible Ψ Θᴸ Θᴿ
+    (renameᶜ τ c) (renameᶜ σ c′) (renameᵗ τ B) (renameᵗ σ A′)
+paired-widening-compatible-rename²ᵢ hτ hσ
+    (compatible-source-inert inert) =
+  compatible-source-inert (renameᶜ-preserves-Inert _ inert)
+paired-widening-compatible-rename²ᵢ {c′ = c′} {assm = assm} hτ hσ
+    (compatible-target-inert-bridge bridge) =
+  compatible-target-inert-bridge λ inert′ →
+    ⊑-renameᵗ²ᵢ assm hτ hσ
+      (bridge (renameᶜ-reflects-Inert _ c′ inert′))
+
+paired-widening-compatible-rename-under-binders²ᵢ :
+  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ c c′ B A′}
+    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ} →
+  (hτ : TyRenameWf Δᴸ Θᴸ τ) →
+  (hσ : TyRenameWf Δᴿ Θᴿ σ) →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    c c′ (⇑ᵗ B) A′ →
+  PairedWideningCompatible (∀ᵢᶜ Ψ) (suc Θᴸ) (suc Θᴿ)
+    (renameᶜ (extᵗ τ) c) (renameᶜ (extᵗ σ) c′)
+    (⇑ᵗ (renameᵗ τ B)) (renameᵗ (extᵗ σ) A′)
+paired-widening-compatible-rename-under-binders²ᵢ
+    {Ψ = Ψ} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ} {τ = τ} {σ = σ}
+    {c = c} {c′ = c′} {B = B} {A′ = A′} {assm = assm}
+    hτ hσ compat =
+  subst
+    (λ T → PairedWideningCompatible (∀ᵢᶜ Ψ) (suc Θᴸ) (suc Θᴿ)
+      (renameᶜ (extᵗ τ) c) (renameᶜ (extᵗ σ) c′)
+      T (renameᵗ (extᵗ σ) A′))
+    (renameᵗ-ext-suc-comm τ B)
+    (paired-widening-compatible-rename²ᵢ
+      {assm = rename-assm²-⇑ᵢ assm}
+      (TyRenameWf-ext hτ) (TyRenameWf-ext hσ) compat)
 
 store-incl-insert-second :
   ∀ {Σ α β A B} →
@@ -525,25 +597,6 @@ apply-narrows-typing {χs = χ ∷ χs} mode seal★ c⊒
     | μ′ , mode′ , seal★′ , c′⊒ =
   apply-narrows-typing {χs = χs} mode′ seal★′ c′⊒
 
-apply-widens-typing :
-  ∀ {χs μ Δ Σ c A B} →
-  CastMode μ →
-  SealModeStore★ μ Σ →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B →
-  ∃[ μ′ ]
-    CastMode μ′ ×
-    SealModeStore★ μ′ (applyStores χs Σ) ×
-    (μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ
-      ⊢ applyCoercions χs c
-        ∶ applyTys χs A ⊑ applyTys χs B)
-apply-widens-typing {χs = []} {μ = μ} mode seal★ c⊑ =
-  μ , mode , seal★ , c⊑
-apply-widens-typing {χs = χ ∷ χs} mode seal★ c⊑
-    with applyWiden-typing {χ = χ} mode seal★ c⊑
-apply-widens-typing {χs = χ ∷ χs} mode seal★ c⊑
-    | μ′ , mode′ , seal★′ , c′⊑ =
-  apply-widens-typing {χs = χs} mode′ seal★′ c′⊑
-
 apply-fixed-narrows-typing :
   ∀ {χs μ Δ Σ c A B} →
   ModeRename suc μ μ →
@@ -558,21 +611,6 @@ apply-fixed-narrows-typing {χs = bind X ∷ χs} mode-suc c⊒ =
   apply-fixed-narrows-typing {χs = χs} mode-suc
     (narrow-weaken ≤-refl StoreIncl-drop
       (narrow-renameᵗ TyRenameWf-suc mode-suc c⊒))
-
-apply-fixed-widens-typing :
-  ∀ {χs μ Δ Σ c A B} →
-  ModeRename suc μ μ →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B →
-  μ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ
-    ⊢ applyCoercions χs c
-      ∶ applyTys χs A ⊑ applyTys χs B
-apply-fixed-widens-typing {χs = []} mode-suc c⊑ = c⊑
-apply-fixed-widens-typing {χs = keep ∷ χs} mode-suc c⊑ =
-  apply-fixed-widens-typing {χs = χs} mode-suc c⊑
-apply-fixed-widens-typing {χs = bind X ∷ χs} mode-suc c⊑ =
-  apply-fixed-widens-typing {χs = χs} mode-suc
-    (widen-weaken ≤-refl StoreIncl-drop
-      (widen-renameᵗ TyRenameWf-suc mode-suc c⊑))
 
 apply-reveal-conversion :
   ∀ {χ μ Δ Σ α X c A B} →
@@ -676,176 +714,6 @@ subst-cancel-sym :
   (p : P y) →
   subst P eq (subst P (sym eq) p) ≡ p
 subst-cancel-sym P refl p = refl
-
-record WeakOneStepResult
-    {Φ Δᴸ Δᴿ}
-    (ρ : StoreImp Φ Δᴸ Δᴿ)
-    (M N′ : Term)
-    (A B : Ty)
-    (χ : StoreChange) : Set₁ where
-  constructor weak-step-result
-  field
-    sourceChanges : StoreChanges
-    targetTailChanges : StoreChanges
-    sourceResult : Term
-    targetResult : Term
-    resultCtx : ImpCtx
-    resultLeftCtx : TyCtx
-    resultRightCtx : TyCtx
-    sourceCtxResult :
-      resultLeftCtx ≡ applyTyCtxs sourceChanges Δᴸ
-    targetCtxResult :
-      resultRightCtx
-        ≡ applyTyCtxs targetTailChanges (applyTyCtx χ Δᴿ)
-    resultStore :
-      StoreImp resultCtx resultLeftCtx resultRightCtx
-    resultSourceType : Ty
-    resultTargetType : Ty
-    sourceTypeResult :
-      resultSourceType ≡ applyTys sourceChanges A
-    targetTypeResult :
-      resultTargetType ≡ applyTys targetTailChanges (applyTy χ B)
-    transportType :
-      ∀ {C D} →
-      Φ ∣ Δᴸ ⊢ C ⊑ D ⊣ Δᴿ →
-      resultCtx ∣ resultLeftCtx
-        ⊢ applyTys sourceChanges C
-          ⊑ applyTys targetTailChanges (applyTy χ D)
-        ⊣ resultRightCtx
-    transportAllBody :
-      ∀ {C D} →
-      ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ D ⊣ suc Δᴿ →
-      ∀ᵢᶜ resultCtx ∣ suc resultLeftCtx
-        ⊢ applyTysUnderTyBinders sourceChanges C
-          ⊑ applyTysUnderTyBinders targetTailChanges
-              (applyTyUnderTyBinder χ D)
-        ⊣ suc resultRightCtx
-    transportRightBody :
-      ∀ {C D} →
-      ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ C ⊑ D ⊣ suc Δᴿ →
-      ⇑ᴿᵢ resultCtx ∣ resultLeftCtx
-        ⊢ applyTys sourceChanges C
-          ⊑ applyTysUnderTyBinders targetTailChanges
-              (applyTyUnderTyBinder χ D)
-        ⊣ suc resultRightCtx
-    resultType :
-      resultCtx ∣ resultLeftCtx
-        ⊢ resultSourceType ⊑ resultTargetType
-        ⊣ resultRightCtx
-    sourceCatchup : M —↠[ sourceChanges ] sourceResult
-    targetTail : N′ —↠[ targetTailChanges ] targetResult
-    sourceStoreResult :
-      leftStoreⁱ resultStore
-        ≡ applyStores sourceChanges (leftStoreⁱ ρ)
-    targetStoreResult :
-      rightStoreⁱ resultStore
-        ≡ applyStores targetTailChanges
-            (applyStore χ (rightStoreⁱ ρ))
-    relatedResults :
-      resultCtx
-        ∣ resultLeftCtx
-        ∣ resultRightCtx
-        ∣ resultStore ∣ []
-        ⊢ᴺ sourceResult ⊑ targetResult
-        ⦂ resultSourceType ⊑ resultTargetType
-        ∶ resultType
-
-open WeakOneStepResult public
-
-record WeakOneStepTransport
-    {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ) : Set₁ where
-  constructor weak-step-transport
-  field
-    transportNo•Terms :
-      ∀ {L L′ C C′ p} →
-      No• L →
-      No• L′ →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-        ⊢ᴺ L ⊑ L′ ⦂ C ⊑ C′ ∶ p →
-      resultCtx result
-        ∣ resultLeftCtx result
-        ∣ resultRightCtx result
-        ∣ resultStore result ∣ []
-        ⊢ᴺ applyTerms (sourceChanges result) L
-          ⊑ applyTerms (targetTailChanges result) (applyTerm χ L′)
-        ⦂ applyTys (sourceChanges result) C
-          ⊑ applyTys (targetTailChanges result) (applyTy χ C′)
-        ∶ transportType result p
-
-open WeakOneStepTransport public
-
-transportArrowType :
-  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ)
-    {C C′ D D′} →
-  Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ →
-  Φ ∣ Δᴸ ⊢ D ⊑ D′ ⊣ Δᴿ →
-  resultCtx result ∣ resultLeftCtx result
-    ⊢ applyTys (sourceChanges result) C ⇒
-        applyTys (sourceChanges result) D
-      ⊑ applyTys (targetTailChanges result) (applyTy χ C′) ⇒
-        applyTys (targetTailChanges result) (applyTy χ D′)
-    ⊣ resultRightCtx result
-transportArrowType {χ = χ} result {C′ = C′} {D′ = D′}
-    pC pD =
-  subst
-    (λ T → resultCtx result ∣ resultLeftCtx result
-      ⊢ applyTys (sourceChanges result) _ ⇒
-          applyTys (sourceChanges result) _
-        ⊑ T ⊣ resultRightCtx result)
-    target-eq
-    (subst
-      (λ S → resultCtx result ∣ resultLeftCtx result
-        ⊢ S ⊑ applyTys (targetTailChanges result)
-            (applyTy χ (C′ ⇒ D′))
-          ⊣ resultRightCtx result)
-      (applyTys-⇒ (sourceChanges result) _ _)
-      (transportType result (pC ↦ pD)))
-  where
-  target-eq =
-    trans
-      (cong (applyTys (targetTailChanges result))
-        (applyTys-⇒ (χ ∷ []) C′ D′))
-      (applyTys-⇒ (targetTailChanges result)
-        (applyTy χ C′) (applyTy χ D′))
-
-transportAllType :
-  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ)
-    {C C′} →
-  ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ →
-  resultCtx result ∣ resultLeftCtx result
-    ⊢ `∀ (applyTysUnderTyBinders
-          (sourceChanges result) C)
-      ⊑ `∀ (applyTysUnderTyBinders
-          (targetTailChanges result)
-          (applyTyUnderTyBinder χ C′))
-    ⊣ resultRightCtx result
-transportAllType {χ = χ} result {C = C} {C′ = C′} q =
-  subst
-    (λ T → resultCtx result ∣ resultLeftCtx result
-      ⊢ `∀ (applyTysUnderTyBinders
-          (sourceChanges result) C)
-        ⊑ T ⊣ resultRightCtx result)
-    target-eq
-    (subst
-      (λ S → resultCtx result ∣ resultLeftCtx result
-        ⊢ S ⊑ applyTys (targetTailChanges result)
-            (applyTy χ (`∀ C′))
-          ⊣ resultRightCtx result)
-      (applyTys-∀ (sourceChanges result) C)
-      (transportType result (∀ⁱ q)))
-  where
-  target-eq =
-    trans
-      (cong (applyTys (targetTailChanges result))
-        (applyTy-∀ χ C′))
-      (applyTys-∀ (targetTailChanges result)
-        (applyTyUnderTyBinder χ C′))
 
 transportType-source-subst-to-raw≅ :
   ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
@@ -1018,26 +886,6 @@ transportType-transportAllType-to-raw≅ {χ = χ} inner outer
     (applyTys-∀ (targetTailChanges inner)
       (applyTyUnderTyBinder χ C′))
 
-record WeakOneStepTypeCoherence
-    {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ) : Set₁ where
-  constructor weak-step-type-coherence
-  field
-    transportArrowCoherent :
-      ∀ {C C′ D D′}
-        (pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ)
-        (pD : Φ ∣ Δᴸ ⊢ D ⊑ D′ ⊣ Δᴿ) →
-      transportArrowType result pC pD ≡
-        transportType result pC ↦ transportType result pD
-    transportAllCoherent :
-      ∀ {C C′}
-        (q : ∀ᵢᶜ Φ ∣ suc Δᴸ
-          ⊢ C ⊑ C′ ⊣ suc Δᴿ) →
-      transportAllType result q ≡
-        ∀ⁱ (transportAllBody result q)
-
-open WeakOneStepTypeCoherence public
 
 nu-term-imprecision-transport-typesᵀ :
   ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A B C D}
@@ -1381,43 +1229,6 @@ weak-one-step-reindex-preserves-type-coherenceᵀ
     (transportArrowCoherent coherence)
     (transportAllCoherent coherence)
 
-data WeakOneStepOutcome
-    {Φ Δᴸ Δᴿ}
-    (ρ : StoreImp Φ Δᴸ Δᴿ)
-    (M N′ : Term)
-    (A B : Ty)
-    (χ : StoreChange) : Set₁ where
-  outcome-related :
-    (result : WeakOneStepResult ρ M N′ A B χ) →
-    WeakOneStepTransport result →
-    WeakOneStepTypeCoherence result →
-    WeakOneStepOutcome ρ M N′ A B χ
-
-  outcome-source-blame : ∀ {χs} →
-    M —↠[ χs ] blame →
-    WeakOneStepOutcome ρ M N′ A B χ
-
-record WeakOneStepIndexedResult
-    {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) : Set₁ where
-  constructor weak-indexed-result
-  field
-    weakIndexedResult : WeakOneStepResult ρ M N′ A B χ
-    canonicalIndexedResults :
-      resultCtx weakIndexedResult
-        ∣ resultLeftCtx weakIndexedResult
-        ∣ resultRightCtx weakIndexedResult
-        ∣ resultStore weakIndexedResult ∣ []
-        ⊢ᴺ sourceResult weakIndexedResult
-          ⊑ targetResult weakIndexedResult
-        ⦂ applyTys (sourceChanges weakIndexedResult) A
-          ⊑ applyTys (targetTailChanges weakIndexedResult)
-              (applyTy χ B)
-        ∶ transportType weakIndexedResult p
-
-open WeakOneStepIndexedResult public
-
 weak-one-step-index-resultᵀ :
   ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
@@ -1444,20 +1255,6 @@ weak-one-step-index-resultᵀ result type-eq =
       type-eq
       (relatedResults result))
 
-data WeakOneStepIndexedOutcome
-    {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) : Set₁ where
-  indexed-outcome-related :
-    (result : WeakOneStepIndexedResult
-      {M = M} {N′ = N′} {χ = χ} {ρ = ρ} p) →
-    WeakOneStepTransport (weakIndexedResult result) →
-    WeakOneStepTypeCoherence (weakIndexedResult result) →
-    WeakOneStepIndexedOutcome p
-
-  indexed-outcome-source-blame : ∀ {χs} →
-    M —↠[ χs ] blame →
-    WeakOneStepIndexedOutcome p
 
 value-source-multistep-refl :
   ∀ {χs V N} →
@@ -1500,85 +1297,6 @@ source-value-indexed-outcome-relatedᵀ vV
   value-blame-impossible : Value blame → ⊥
   value-blame-impossible ()
 
-record WeakOneStepAllResult
-    {Φ Δᴸ Δᴿ N N₁′ C C′ χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ) : Set₁ where
-  constructor weak-all-result
-  field
-    weakResult : WeakOneStepResult ρ N N₁′ (`∀ C) (`∀ C′) χ
-    canonicalAllResults :
-      resultCtx weakResult
-        ∣ resultLeftCtx weakResult
-        ∣ resultRightCtx weakResult
-        ∣ resultStore weakResult ∣ []
-        ⊢ᴺ sourceResult weakResult ⊑ targetResult weakResult
-        ⦂ `∀
-            (applyTysUnderTyBinders (sourceChanges weakResult) C)
-          ⊑ `∀
-              (applyTysUnderTyBinders (targetTailChanges weakResult)
-                (applyTyUnderTyBinder χ C′))
-        ∶ ∀ⁱ (transportAllBody weakResult q)
-
-open WeakOneStepAllResult public
-
-data WeakOneStepAllOutcome
-    {Φ Δᴸ Δᴿ N N₁′ C C′ χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ) : Set₁ where
-  all-outcome-related :
-    (result : WeakOneStepAllResult
-      {N = N} {N₁′ = N₁′} {χ = χ} {ρ = ρ} q) →
-    WeakOneStepTransport (weakResult result) →
-    WeakOneStepTypeCoherence (weakResult result) →
-    WeakOneStepAllOutcome q
-
-  all-outcome-source-blame : ∀ {χs} →
-    N —↠[ χs ] blame →
-    WeakOneStepAllOutcome q
-
-record WeakOneStepArrowResult
-    {Φ Δᴸ Δᴿ L L₁′ A A′ B B′ χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ)
-    (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) : Set₁ where
-  constructor weak-arrow-result
-  field
-    weakArrowResult :
-      WeakOneStepResult ρ L L₁′ (A ⇒ B) (A′ ⇒ B′) χ
-    canonicalArrowResults :
-      resultCtx weakArrowResult
-        ∣ resultLeftCtx weakArrowResult
-        ∣ resultRightCtx weakArrowResult
-        ∣ resultStore weakArrowResult ∣ []
-        ⊢ᴺ sourceResult weakArrowResult
-          ⊑ targetResult weakArrowResult
-        ⦂ applyTys (sourceChanges weakArrowResult) A ⇒
-            applyTys (sourceChanges weakArrowResult) B
-          ⊑ applyTys (targetTailChanges weakArrowResult)
-              (applyTy χ A′) ⇒
-            applyTys (targetTailChanges weakArrowResult)
-              (applyTy χ B′)
-        ∶ transportType weakArrowResult pA ↦
-            transportType weakArrowResult pB
-
-open WeakOneStepArrowResult public
-
-data WeakOneStepArrowOutcome
-    {Φ Δᴸ Δᴿ L L₁′ A A′ B B′ χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ)
-    (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) : Set₁ where
-  arrow-outcome-related :
-    (result : WeakOneStepArrowResult
-      {L = L} {L₁′ = L₁′} {χ = χ} {ρ = ρ} pA pB) →
-    WeakOneStepTransport (weakArrowResult result) →
-    WeakOneStepTypeCoherence (weakArrowResult result) →
-    WeakOneStepArrowOutcome pA pB
-
-  arrow-outcome-source-blame : ∀ {χs} →
-    L —↠[ χs ] blame →
-    WeakOneStepArrowOutcome pA pB
 
 forget-weak-indexed-outcome :
   ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
@@ -1712,16 +1430,6 @@ weak-indexed-all-outcomeᵀ
     (indexed-outcome-source-blame source↠) =
   all-outcome-source-blame source↠
 
-record LeftSilentInvariant
-    {Φ Δᴸ Δᴿ M V′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M V′ A B keep) : Set₁ where
-  constructor left-silent-invariant
-  field
-    targetTailIsEmpty : targetTailChanges result ≡ []
-    targetIsUnchanged : targetResult result ≡ V′
-
-open LeftSilentInvariant public
 
 weak-result-right-wf-silent :
   ∀ {Φ Δᴸ Δᴿ M V′ A B}
@@ -1739,38 +1447,7 @@ weak-result-right-wf-silent result
       (StoreWf _)
       (sym (targetStoreResult result)) wfΣ′)
 
-record LeftCatchupInvariant
-    {Φ Δᴸ Δᴿ M V′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M V′ A B keep) : Set₁ where
-  constructor left-catchup-invariant
-  field
-    silentInvariant : LeftSilentInvariant result
-    sourceIsValueOrBlame :
-      (Value (sourceResult result) × No• (sourceResult result)) ⊎
-      sourceResult result ≡ blame
 
-open LeftCatchupInvariant public
-
-record LeftSilentResult
-    {Φ Δᴸ Δᴿ M V′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} : Set₁ where
-  constructor left-silent
-  field
-    silentResult : WeakOneStepResult ρ M V′ A B keep
-    resultIsLeftSilent : LeftSilentInvariant silentResult
-
-open LeftSilentResult public
-
-record LeftCatchupResult
-    {Φ Δᴸ Δᴿ M V′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} : Set₁ where
-  constructor left-catchup
-  field
-    catchupResult : WeakOneStepResult ρ M V′ A B keep
-    catchupInvariant : LeftCatchupInvariant catchupResult
-
-open LeftCatchupResult public
 
 forget-left-catchup :
   ∀ {Φ Δᴸ Δᴿ M V′ A B}
@@ -1783,99 +1460,10 @@ forget-left-catchup
     (left-catchup result (left-catchup-invariant silent final)) =
   left-silent result silent
 
-record LeftCatchupAllResult
-    {Φ Δᴸ Δᴿ N V′ C C′}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ) : Set₁ where
-  constructor left-all-catchup
-  field
-    catchupAllResult :
-      WeakOneStepAllResult
-        {N = N} {N₁′ = V′} {χ = keep} {ρ = ρ} q
-    catchupAllInvariant :
-      LeftCatchupInvariant (weakResult catchupAllResult)
 
-open LeftCatchupAllResult public
 
-record LeftCatchupIndexedResult
-    {Φ Δᴸ Δᴿ N V′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) : Set₁ where
-  constructor left-indexed-catchup
-  field
-    catchupIndexedResult :
-      WeakOneStepIndexedResult
-        {M = N} {N′ = V′} {χ = keep} {ρ = ρ} p
-    catchupIndexedInvariant :
-      LeftCatchupInvariant
-        (weakIndexedResult catchupIndexedResult)
-    catchupIndexedTransport :
-      WeakOneStepTransport
-        (weakIndexedResult catchupIndexedResult)
-    catchupIndexedCoherence :
-      WeakOneStepTypeCoherence
-        (weakIndexedResult catchupIndexedResult)
 
-open LeftCatchupIndexedResult public
 
-record LeftSilentIndexedResult
-    {Φ Δᴸ Δᴿ N V′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) : Set₁ where
-  constructor left-silent-indexed
-  field
-    silentIndexedResult :
-      WeakOneStepIndexedResult
-        {M = N} {N′ = V′} {χ = keep} {ρ = ρ} p
-    silentIndexedInvariant :
-      LeftSilentInvariant
-        (weakIndexedResult silentIndexedResult)
-    silentIndexedRuntime :
-      RuntimeOK
-        (sourceResult (weakIndexedResult silentIndexedResult))
-    silentIndexedTransport :
-      WeakOneStepTransport
-        (weakIndexedResult silentIndexedResult)
-    silentIndexedCoherence :
-      WeakOneStepTypeCoherence
-        (weakIndexedResult silentIndexedResult)
-
-open LeftSilentIndexedResult public
-
-data LeftCatchupIndexedProgress
-    {Φ Δᴸ Δᴿ N V′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) : Set₁ where
-  left-progress-done :
-    LeftCatchupIndexedResult
-      {N = N} {V′ = V′} {ρ = ρ} p →
-    LeftCatchupIndexedProgress p
-
-  left-progress-continue :
-    LeftSilentIndexedResult
-      {N = N} {V′ = V′} {ρ = ρ} p →
-    LeftCatchupIndexedProgress p
-
-record LeftCatchupIndexedAllResult
-    {Φ Δᴸ Δᴿ N V′ C C′}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ) : Set₁ where
-  constructor left-indexed-all-catchup
-  field
-    catchupIndexedAllResult :
-      WeakOneStepIndexedResult
-        {M = N} {N′ = V′} {χ = keep} {ρ = ρ} (∀ⁱ q)
-    catchupIndexedAllInvariant :
-      LeftCatchupInvariant
-        (weakIndexedResult catchupIndexedAllResult)
-    catchupIndexedAllTransport :
-      WeakOneStepTransport
-        (weakIndexedResult catchupIndexedAllResult)
-    catchupIndexedAllCoherence :
-      WeakOneStepTypeCoherence
-        (weakIndexedResult catchupIndexedAllResult)
-
-open LeftCatchupIndexedAllResult public
 
 generalize-left-indexed-all-catchup :
   ∀ {Φ Δᴸ Δᴿ N V′ C C′}
@@ -2198,39 +1786,6 @@ weak-result-target-widen-inst
                 (applyTys (targetTailChanges inner) (applyTy χ B)))
       (sym (targetStoreResult inner)) c′⊑)
 
-lift-store-result :
-  ∀ {Φ Δᴸ Δᴿ} (ρ : StoreImp Φ Δᴸ Δᴿ) →
-  ∃[ ρ′ ] LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ′
-lift-store-result [] = [] , lift-store-[]
-lift-store-result (store-matched α A β B p ∷ ρ)
-    with lift-store-result ρ
-lift-store-result (store-matched α A β B p ∷ ρ)
-    | ρ′ , liftρ =
-  store-matched (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B)
-    (⊑-lift∀ᵢ p) ∷ ρ′ ,
-  lift-store-∷ liftρ
-lift-store-result (store-left α A hA ∷ ρ)
-    with lift-store-result ρ
-lift-store-result (store-left α A hA ∷ ρ)
-    | ρ′ , liftρ =
-  store-left (suc α) (⇑ᵗ A)
-    (renameᵗ-preserves-WfTy hA TyRenameWf-suc) ∷ ρ′ ,
-  lift-store-left liftρ
-lift-store-result (store-right β B hB ∷ ρ)
-    with lift-store-result ρ
-lift-store-result (store-right β B hB ∷ ρ)
-    | ρ′ , liftρ =
-  store-right (suc β) (⇑ᵗ B)
-    (renameᵗ-preserves-WfTy hB TyRenameWf-suc) ∷ ρ′ ,
-  lift-store-right liftρ
-lift-store-result (store-link α A β B p ∷ ρ)
-    with lift-store-result ρ
-lift-store-result (store-link α A β B p ∷ ρ)
-    | ρ′ , liftρ =
-  store-link (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B)
-    (⊑-lift∀ᵢ p) ∷ ρ′ ,
-  lift-store-link liftρ
-
 lift-store-left-zero⊥ :
   ∀ {Φ Ψ Δᴸ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -2296,71 +1851,6 @@ swap01-lift-right-obstruction {B = B} x∈ liftρ eq =
     (subst
       ((zero , renameᵗ swap01ᵗ B) ∈_)
       (sym eq) (∈-renameStoreᵗ swap01ᵗ x∈))
-
-lift-left-store-result :
-  ∀ {Φ Δᴸ Δᴿ} (ρ : StoreImp Φ Δᴸ Δᴿ) →
-  ∃[ ρ′ ] LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′
-lift-left-store-result [] = [] , lift-left-store-[]
-lift-left-store-result (store-matched α A β B p ∷ ρ)
-    with lift-left-store-result ρ
-lift-left-store-result (store-matched α A β B p ∷ ρ)
-    | ρ′ , liftρ =
-  store-matched (suc α) (⇑ᵗ A) β B
-    (⊑-source-liftνᵢ p) ∷ ρ′ ,
-  lift-left-store-∷ liftρ
-lift-left-store-result (store-left α A hA ∷ ρ)
-    with lift-left-store-result ρ
-lift-left-store-result (store-left α A hA ∷ ρ)
-    | ρ′ , liftρ =
-  store-left (suc α) (⇑ᵗ A)
-    (renameᵗ-preserves-WfTy hA TyRenameWf-suc) ∷ ρ′ ,
-  lift-left-store-left liftρ
-lift-left-store-result (store-right β B hB ∷ ρ)
-    with lift-left-store-result ρ
-lift-left-store-result (store-right β B hB ∷ ρ)
-    | ρ′ , liftρ =
-  store-right β B hB ∷ ρ′ ,
-  lift-left-store-right liftρ
-lift-left-store-result (store-link α A β B p ∷ ρ)
-    with lift-left-store-result ρ
-lift-left-store-result (store-link α A β B p ∷ ρ)
-    | ρ′ , liftρ =
-  store-link (suc α) (⇑ᵗ A) β B
-    (⊑-source-liftνᵢ p) ∷ ρ′ ,
-  lift-left-store-link liftρ
-
-lift-right-store-result :
-  ∀ {Φ Δᴸ Δᴿ} (ρ : StoreImp Φ Δᴸ Δᴿ) →
-  ∃[ ρ′ ] LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ ρ′
-lift-right-store-result [] = [] , lift-right-store-[]
-lift-right-store-result (store-matched α A β B p ∷ ρ)
-    with lift-right-store-result ρ
-lift-right-store-result (store-matched α A β B p ∷ ρ)
-    | ρ′ , liftρ =
-  store-matched α A (suc β) (⇑ᵗ B)
-    (⊑-target-lift-rightᵢ p) ∷ ρ′ ,
-  lift-right-store-∷ liftρ
-lift-right-store-result (store-left α A hA ∷ ρ)
-    with lift-right-store-result ρ
-lift-right-store-result (store-left α A hA ∷ ρ)
-    | ρ′ , liftρ =
-  store-left α A hA ∷ ρ′ ,
-  lift-right-store-left liftρ
-lift-right-store-result (store-right β B hB ∷ ρ)
-    with lift-right-store-result ρ
-lift-right-store-result (store-right β B hB ∷ ρ)
-    | ρ′ , liftρ =
-  store-right (suc β) (⇑ᵗ B)
-    (renameᵗ-preserves-WfTy hB TyRenameWf-suc) ∷ ρ′ ,
-  lift-right-store-right liftρ
-lift-right-store-result (store-link α A β B p ∷ ρ)
-    with lift-right-store-result ρ
-lift-right-store-result (store-link α A β B p ∷ ρ)
-    | ρ′ , liftρ =
-  store-link α A (suc β) (⇑ᵗ B)
-    (⊑-target-lift-rightᵢ p) ∷ ρ′ ,
-  lift-right-store-link liftρ
 
 left-right-store-commuteⁱ :
   ∀ {Φ Δᴸ Δᴿ}
@@ -2669,47 +2159,6 @@ data RelStoreRenameⁱ
       (store-link α′ A′ β′ B′
         (⊑-rename-at²ᵢ assm hτ hσ eqA eqB p) ∷ ρ′)
 
-data RelStoreEmbeddingⁱ
-    {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    (τ σ : Renameᵗ) :
-    StoreImp Φ Δᴸ Δᴿ → StoreImp Ψ Θᴸ Θᴿ → Set₁ where
-  rel-store-embedding-[] :
-    RelStoreEmbeddingⁱ τ σ [] []
-
-  rel-store-embedding-matched :
-    ∀ {ρ ρ′ α α′ A A′ β β′ B B′ p p′} →
-    α′ ≡ τ α → A′ ≡ renameᵗ τ A →
-    β′ ≡ σ β → B′ ≡ renameᵗ σ B →
-    RelStoreEmbeddingⁱ τ σ ρ ρ′ →
-    RelStoreEmbeddingⁱ τ σ
-      (store-matched α A β B p ∷ ρ)
-      (store-matched α′ A′ β′ B′ p′ ∷ ρ′)
-
-  rel-store-embedding-left :
-    ∀ {ρ ρ′ α α′ A A′ hA hA′} →
-    α′ ≡ τ α → A′ ≡ renameᵗ τ A →
-    RelStoreEmbeddingⁱ τ σ ρ ρ′ →
-    RelStoreEmbeddingⁱ τ σ
-      (store-left α A hA ∷ ρ)
-      (store-left α′ A′ hA′ ∷ ρ′)
-
-  rel-store-embedding-right :
-    ∀ {ρ ρ′ β β′ B B′ hB hB′} →
-    β′ ≡ σ β → B′ ≡ renameᵗ σ B →
-    RelStoreEmbeddingⁱ τ σ ρ ρ′ →
-    RelStoreEmbeddingⁱ τ σ
-      (store-right β B hB ∷ ρ)
-      (store-right β′ B′ hB′ ∷ ρ′)
-
-  rel-store-embedding-link :
-    ∀ {ρ ρ′ α α′ A A′ β β′ B B′ p p′} →
-    α′ ≡ τ α → A′ ≡ renameᵗ τ A →
-    β′ ≡ σ β → B′ ≡ renameᵗ σ B →
-    RelStoreEmbeddingⁱ τ σ ρ ρ′ →
-    RelStoreEmbeddingⁱ τ σ
-      (store-link α A β B p ∷ ρ)
-      (store-link α′ A′ β′ B′ p′ ∷ ρ′)
-
 rel-store-rename-embeddingⁱ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ}
     {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
@@ -2771,92 +2220,6 @@ rightStoreⁱ-rel-embedding
 rightStoreⁱ-rel-embedding
     (rel-store-embedding-link eqα eqA eqβ eqB emb) =
   rightStoreⁱ-rel-embedding emb
-
-rel-store-embedding-prefix-invⁱ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′⁺ : StoreImp Ψ Θᴸ Θᴿ} →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  RelStoreEmbeddingⁱ τ σ ρ⁺ ρ′⁺ →
-  ∃[ ρ₀′ ]
-    RelStoreEmbeddingⁱ τ σ ρ₀ ρ₀′ ×
-    StoreImpPrefix ρ₀′ ρ′⁺
-rel-store-embedding-prefix-invⁱ prefix-reflⁱ emb =
-  _ , emb , prefix-reflⁱ
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-matched eqα eqA eqβ eqB emb)
-    with rel-store-embedding-prefix-invⁱ prefix emb
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-matched eqα eqA eqβ eqB emb)
-    | ρ₀′ , emb₀ , prefix′ =
-  ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-left eqα eqA emb)
-    with rel-store-embedding-prefix-invⁱ prefix emb
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-left eqα eqA emb)
-    | ρ₀′ , emb₀ , prefix′ =
-  ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-right eqβ eqB emb)
-    with rel-store-embedding-prefix-invⁱ prefix emb
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-right eqβ eqB emb)
-    | ρ₀′ , emb₀ , prefix′ =
-  ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-link eqα eqA eqβ eqB emb)
-    with rel-store-embedding-prefix-invⁱ prefix emb
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-link eqα eqA eqβ eqB emb)
-    | ρ₀′ , emb₀ , prefix′ =
-  ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
-
-leftStoreⁱ-prefix-inclusion :
-  ∀ {Φ Δᴸ Δᴿ} {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  StoreIncl (leftStoreⁱ ρ₀) (leftStoreⁱ ρ⁺)
-leftStoreⁱ-prefix-inclusion prefix-reflⁱ x∈ = x∈
-leftStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-matched α A β B p} prefix) x∈ =
-  there (leftStoreⁱ-prefix-inclusion prefix x∈)
-leftStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-left α A hA} prefix) x∈ =
-  there (leftStoreⁱ-prefix-inclusion prefix x∈)
-leftStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-right β B hB} prefix) x∈ =
-  leftStoreⁱ-prefix-inclusion prefix x∈
-leftStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-link α A β B p} prefix) x∈ =
-  leftStoreⁱ-prefix-inclusion prefix x∈
-
-rightStoreⁱ-prefix-inclusion :
-  ∀ {Φ Δᴸ Δᴿ} {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  StoreIncl (rightStoreⁱ ρ₀) (rightStoreⁱ ρ⁺)
-rightStoreⁱ-prefix-inclusion prefix-reflⁱ x∈ = x∈
-rightStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-matched α A β B p} prefix) x∈ =
-  there (rightStoreⁱ-prefix-inclusion prefix x∈)
-rightStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-left α A hA} prefix) x∈ =
-  rightStoreⁱ-prefix-inclusion prefix x∈
-rightStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-right β B hB} prefix) x∈ =
-  there (rightStoreⁱ-prefix-inclusion prefix x∈)
-rightStoreⁱ-prefix-inclusion
-    (prefix-∷ⁱ {entry = store-link α A β B p} prefix) x∈ =
-  rightStoreⁱ-prefix-inclusion prefix x∈
-
-store-imp-prefix-transⁱ :
-  ∀ {Φ Δᴸ Δᴿ}
-    {ρ₀ ρ₁ ρ₂ : StoreImp Φ Δᴸ Δᴿ} →
-  StoreImpPrefix ρ₀ ρ₁ →
-  StoreImpPrefix ρ₁ ρ₂ →
-  StoreImpPrefix ρ₀ ρ₂
-store-imp-prefix-transⁱ prefix₀₁ prefix-reflⁱ = prefix₀₁
-store-imp-prefix-transⁱ prefix₀₁ (prefix-∷ⁱ prefix₁₂) =
-  prefix-∷ⁱ (store-imp-prefix-transⁱ prefix₀₁ prefix₁₂)
 
 rel-store-rename-prefix-invⁱ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ}
@@ -3029,129 +2392,6 @@ rel-store-rename-correspondenceⁱ renameρ
   let α′ , eqα , A′ , eqA , β′ , eqβ , B′ , eqB , p∈′ =
         rel-store-rename-link∈ⁱ renameρ p∈ in
   α′ , eqα , A′ , eqA , β′ , eqβ , B′ , eqB ,
-  correspondence-linked p∈′
-
-rel-store-embedding-matched∈ⁱ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {α A β B p} →
-  RelStoreEmbeddingⁱ τ σ ρ ρ′ →
-  store-matched α A β B p ∈ ρ →
-  ∃[ α′ ] ∃[ A′ ] ∃[ β′ ] ∃[ B′ ] ∃[ p′ ]
-    (α′ ≡ τ α × A′ ≡ renameᵗ τ A ×
-     β′ ≡ σ β × B′ ≡ renameᵗ σ B ×
-     store-matched α′ A′ β′ B′ p′ ∈ ρ′)
-rel-store-embedding-matched∈ⁱ rel-store-embedding-[] ()
-rel-store-embedding-matched∈ⁱ
-    (rel-store-embedding-matched
-      {p′ = p′} eqα eqA eqβ eqB emb) (here refl) =
-  _ , _ , _ , _ , p′ , eqα , eqA , eqβ , eqB , here refl
-rel-store-embedding-matched∈ⁱ
-    (rel-store-embedding-matched eqα eqA eqβ eqB emb) (there p∈) =
-  let α′ , A′ , β′ , B′ , p′ ,
-        eqα′ , eqA′ , eqβ′ , eqB′ , p∈′ =
-        rel-store-embedding-matched∈ⁱ emb p∈ in
-  α′ , A′ , β′ , B′ , p′ ,
-  eqα′ , eqA′ , eqβ′ , eqB′ , there p∈′
-rel-store-embedding-matched∈ⁱ
-    (rel-store-embedding-left eqα eqA emb) (here ())
-rel-store-embedding-matched∈ⁱ
-    (rel-store-embedding-left eqα eqA emb) (there p∈) =
-  let α′ , A′ , β′ , B′ , p′ ,
-        eqα′ , eqA′ , eqβ′ , eqB′ , p∈′ =
-        rel-store-embedding-matched∈ⁱ emb p∈ in
-  α′ , A′ , β′ , B′ , p′ ,
-  eqα′ , eqA′ , eqβ′ , eqB′ , there p∈′
-rel-store-embedding-matched∈ⁱ
-    (rel-store-embedding-right eqβ eqB emb) (here ())
-rel-store-embedding-matched∈ⁱ
-    (rel-store-embedding-right eqβ eqB emb) (there p∈) =
-  let α′ , A′ , β′ , B′ , p′ ,
-        eqα′ , eqA′ , eqβ′ , eqB′ , p∈′ =
-        rel-store-embedding-matched∈ⁱ emb p∈ in
-  α′ , A′ , β′ , B′ , p′ ,
-  eqα′ , eqA′ , eqβ′ , eqB′ , there p∈′
-rel-store-embedding-matched∈ⁱ
-    (rel-store-embedding-link eqα eqA eqβ eqB emb) (here ())
-rel-store-embedding-matched∈ⁱ
-    (rel-store-embedding-link eqα eqA eqβ eqB emb) (there p∈) =
-  let α′ , A′ , β′ , B′ , p′ ,
-        eqα′ , eqA′ , eqβ′ , eqB′ , p∈′ =
-        rel-store-embedding-matched∈ⁱ emb p∈ in
-  α′ , A′ , β′ , B′ , p′ ,
-  eqα′ , eqA′ , eqβ′ , eqB′ , there p∈′
-
-rel-store-embedding-link∈ⁱ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {α A β B p} →
-  RelStoreEmbeddingⁱ τ σ ρ ρ′ →
-  store-link α A β B p ∈ ρ →
-  ∃[ α′ ] ∃[ A′ ] ∃[ β′ ] ∃[ B′ ] ∃[ p′ ]
-    (α′ ≡ τ α × A′ ≡ renameᵗ τ A ×
-     β′ ≡ σ β × B′ ≡ renameᵗ σ B ×
-     store-link α′ A′ β′ B′ p′ ∈ ρ′)
-rel-store-embedding-link∈ⁱ rel-store-embedding-[] ()
-rel-store-embedding-link∈ⁱ
-    (rel-store-embedding-matched eqα eqA eqβ eqB emb) (here ())
-rel-store-embedding-link∈ⁱ
-    (rel-store-embedding-matched eqα eqA eqβ eqB emb) (there p∈) =
-  let α′ , A′ , β′ , B′ , p′ ,
-        eqα′ , eqA′ , eqβ′ , eqB′ , p∈′ =
-        rel-store-embedding-link∈ⁱ emb p∈ in
-  α′ , A′ , β′ , B′ , p′ ,
-  eqα′ , eqA′ , eqβ′ , eqB′ , there p∈′
-rel-store-embedding-link∈ⁱ
-    (rel-store-embedding-left eqα eqA emb) (here ())
-rel-store-embedding-link∈ⁱ
-    (rel-store-embedding-left eqα eqA emb) (there p∈) =
-  let α′ , A′ , β′ , B′ , p′ ,
-        eqα′ , eqA′ , eqβ′ , eqB′ , p∈′ =
-        rel-store-embedding-link∈ⁱ emb p∈ in
-  α′ , A′ , β′ , B′ , p′ ,
-  eqα′ , eqA′ , eqβ′ , eqB′ , there p∈′
-rel-store-embedding-link∈ⁱ
-    (rel-store-embedding-right eqβ eqB emb) (here ())
-rel-store-embedding-link∈ⁱ
-    (rel-store-embedding-right eqβ eqB emb) (there p∈) =
-  let α′ , A′ , β′ , B′ , p′ ,
-        eqα′ , eqA′ , eqβ′ , eqB′ , p∈′ =
-        rel-store-embedding-link∈ⁱ emb p∈ in
-  α′ , A′ , β′ , B′ , p′ ,
-  eqα′ , eqA′ , eqβ′ , eqB′ , there p∈′
-rel-store-embedding-link∈ⁱ
-    (rel-store-embedding-link
-      {p′ = p′} eqα eqA eqβ eqB emb) (here refl) =
-  _ , _ , _ , _ , p′ , eqα , eqA , eqβ , eqB , here refl
-rel-store-embedding-link∈ⁱ
-    (rel-store-embedding-link eqα eqA eqβ eqB emb) (there p∈) =
-  let α′ , A′ , β′ , B′ , p′ ,
-        eqα′ , eqA′ , eqβ′ , eqB′ , p∈′ =
-        rel-store-embedding-link∈ⁱ emb p∈ in
-  α′ , A′ , β′ , B′ , p′ ,
-  eqα′ , eqA′ , eqβ′ , eqB′ , there p∈′
-
-rel-store-embedding-correspondenceⁱ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {α A β B p} →
-  RelStoreEmbeddingⁱ τ σ ρ ρ′ →
-  StoreCorresponds ρ α A β B p →
-  ∃[ α′ ] ∃[ A′ ] ∃[ β′ ] ∃[ B′ ] ∃[ p′ ]
-    (α′ ≡ τ α × A′ ≡ renameᵗ τ A ×
-     β′ ≡ σ β × B′ ≡ renameᵗ σ B ×
-     StoreCorresponds ρ′ α′ A′ β′ B′ p′)
-rel-store-embedding-correspondenceⁱ emb
-    (correspondence-stored p∈) =
-  let α′ , A′ , β′ , B′ , p′ , eqα , eqA , eqβ , eqB , p∈′ =
-        rel-store-embedding-matched∈ⁱ emb p∈ in
-  α′ , A′ , β′ , B′ , p′ , eqα , eqA , eqβ , eqB ,
-  correspondence-stored p∈′
-rel-store-embedding-correspondenceⁱ emb
-    (correspondence-linked p∈) =
-  let α′ , A′ , β′ , B′ , p′ , eqα , eqA , eqβ , eqB , p∈′ =
-        rel-store-embedding-link∈ⁱ emb p∈ in
-  α′ , A′ , β′ , B′ , p′ , eqα , eqA , eqβ , eqB ,
   correspondence-linked p∈′
 
 data RelCtxRenameⁱ
@@ -5254,74 +4494,6 @@ store-projection-embedding-composeⁱ
     (store-inclusion-rename-compose σ ω
       (right-store-inclusion emb₁) (right-store-inclusion emb₂))
 
-renamed-name-compose :
-  ∀ {τ υ : Renameᵗ} {α α₁ α₂} →
-  α₁ ≡ τ α →
-  α₂ ≡ υ α₁ →
-  α₂ ≡ υ (τ α)
-renamed-name-compose {τ = τ} {υ = υ} eq₁ eq₂ =
-  trans eq₂ (cong υ eq₁)
-
-renamed-type-compose :
-  ∀ (τ υ : Renameᵗ) {A A₁ A₂} →
-  A₁ ≡ renameᵗ τ A →
-  A₂ ≡ renameᵗ υ A₁ →
-  A₂ ≡ renameᵗ (λ X → υ (τ X)) A
-renamed-type-compose τ υ {A = A} eq₁ eq₂ =
-  trans eq₂
-    (trans (cong (renameᵗ υ) eq₁) (renameᵗ-compose τ υ A))
-
-rel-store-embedding-composeⁱ :
-  ∀ {Φ Ψ Ω Δᴸ Δᴿ Θᴸ Θᴿ Ξᴸ Ξᴿ τ σ υ ω}
-    {ρ₀ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ₁ : StoreImp Ψ Θᴸ Θᴿ}
-    {ρ₂ : StoreImp Ω Ξᴸ Ξᴿ} →
-  RelStoreEmbeddingⁱ τ σ ρ₀ ρ₁ →
-  RelStoreEmbeddingⁱ υ ω ρ₁ ρ₂ →
-  RelStoreEmbeddingⁱ
-    (λ X → υ (τ X)) (λ X → ω (σ X)) ρ₀ ρ₂
-rel-store-embedding-composeⁱ
-    rel-store-embedding-[] rel-store-embedding-[] =
-  rel-store-embedding-[]
-rel-store-embedding-composeⁱ
-    {τ = τ} {σ = σ} {υ = υ} {ω = ω}
-    (rel-store-embedding-matched
-      {A = A} {B = B} eqα₁ eqA₁ eqβ₁ eqB₁ emb₁)
-    (rel-store-embedding-matched eqα₂ eqA₂ eqβ₂ eqB₂ emb₂) =
-  rel-store-embedding-matched
-    (renamed-name-compose {τ = τ} {υ = υ} eqα₁ eqα₂)
-    (renamed-type-compose τ υ {A = A} eqA₁ eqA₂)
-    (renamed-name-compose {τ = σ} {υ = ω} eqβ₁ eqβ₂)
-    (renamed-type-compose σ ω {A = B} eqB₁ eqB₂)
-    (rel-store-embedding-composeⁱ emb₁ emb₂)
-rel-store-embedding-composeⁱ
-    {τ = τ} {υ = υ}
-    (rel-store-embedding-left {A = A} eqα₁ eqA₁ emb₁)
-    (rel-store-embedding-left eqα₂ eqA₂ emb₂) =
-  rel-store-embedding-left
-    (renamed-name-compose {τ = τ} {υ = υ} eqα₁ eqα₂)
-    (renamed-type-compose τ υ {A = A} eqA₁ eqA₂)
-    (rel-store-embedding-composeⁱ emb₁ emb₂)
-rel-store-embedding-composeⁱ
-    {σ = σ} {ω = ω}
-    (rel-store-embedding-right {B = B} eqβ₁ eqB₁ emb₁)
-    (rel-store-embedding-right eqβ₂ eqB₂ emb₂) =
-  rel-store-embedding-right
-    (renamed-name-compose {τ = σ} {υ = ω} eqβ₁ eqβ₂)
-    (renamed-type-compose σ ω {A = B} eqB₁ eqB₂)
-    (rel-store-embedding-composeⁱ emb₁ emb₂)
-rel-store-embedding-composeⁱ
-    {τ = τ} {σ = σ} {υ = υ} {ω = ω}
-    (rel-store-embedding-link
-      {A = A} {B = B} eqα₁ eqA₁ eqβ₁ eqB₁ emb₁)
-    (rel-store-embedding-link eqα₂ eqA₂ eqβ₂ eqB₂ emb₂) =
-  rel-store-embedding-link
-    (renamed-name-compose {τ = τ} {υ = υ} eqα₁ eqα₂)
-    (renamed-type-compose τ υ {A = A} eqA₁ eqA₂)
-    (renamed-name-compose {τ = σ} {υ = ω} eqβ₁ eqβ₂)
-    (renamed-type-compose σ ω {A = B} eqB₁ eqB₂)
-    (rel-store-embedding-composeⁱ emb₁ emb₂)
-
 rel-world-embedding-[]-composeⁱ :
   ∀ {Φ Ψ Ω Δᴸ Δᴿ Θᴸ Θᴿ Ξᴸ Ξᴿ}
     {τ σ ψ φ υ ω ξ ζ}
@@ -5440,6 +4612,44 @@ rename-assm²-∀-leftᵢ {Ψ = Ψ} assm {a = a} a∈ =
   ν (trans (occurs-zero-rename-ext τ A) occ)
     (⊑-rename-leftᵢ
       (extᵗ τ) (rename-assm²-⇑ᴸᵢ assm) (TyRenameWf-ext hτ) p)
+
+paired-widening-compatible-rename-leftᵢ :
+  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ c c′ B A′}
+    {assm : ∀ {a} → a ∈ Φ →
+      rename-assm²ᵢ τ (λ X → X) a ∈ Ψ} →
+  (hτ : TyRenameWf Δᴸ Δᴸ′ τ) →
+  PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
+  PairedWideningCompatible Ψ Δᴸ′ Δᴿ
+    (renameᶜ τ c) c′ (renameᵗ τ B) A′
+paired-widening-compatible-rename-leftᵢ hτ
+    (compatible-source-inert inert) =
+  compatible-source-inert (renameᶜ-preserves-Inert _ inert)
+paired-widening-compatible-rename-leftᵢ {assm = assm} hτ
+    (compatible-target-inert-bridge bridge) =
+  compatible-target-inert-bridge λ inert′ →
+    ⊑-rename-leftᵢ _ assm hτ (bridge inert′)
+
+paired-widening-compatible-rename-left-under-bindersᵢ :
+  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ c c′ B A′}
+    {assm : ∀ {a} → a ∈ Φ →
+      rename-assm²ᵢ τ (λ X → X) a ∈ Ψ} →
+  (hτ : TyRenameWf Δᴸ Δᴸ′ τ) →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    c c′ (⇑ᵗ B) A′ →
+  PairedWideningCompatible (∀ᵢᶜ Ψ) (suc Δᴸ′) (suc Δᴿ)
+    (renameᶜ (extᵗ τ) c) c′ (⇑ᵗ (renameᵗ τ B)) A′
+paired-widening-compatible-rename-left-under-bindersᵢ
+    {Ψ = Ψ} {Δᴸ′ = Δᴸ′} {Δᴿ = Δᴿ} {τ = τ}
+    {c = c} {c′ = c′} {B = B} {A′ = A′} {assm = assm}
+    hτ compat =
+  subst
+    (λ T → PairedWideningCompatible
+      (∀ᵢᶜ Ψ) (suc Δᴸ′) (suc Δᴿ)
+      (renameᶜ (extᵗ τ) c) c′ T A′)
+    (renameᵗ-ext-suc-comm τ B)
+    (paired-widening-compatible-rename-leftᵢ
+      {assm = rename-assm²-∀-leftᵢ assm}
+      (TyRenameWf-ext hτ) compat)
 
 ⊑-rename-left-atᵢ :
   ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ A A′ B} (τ : Renameᵗ) →
@@ -6331,10 +5541,6 @@ left-widening-renameⁱ {hτ = hτ} modeτ mode renameρ c⊑ =
     (widen-renameᵗ hτ
       (CastModeRenamer.target-rename modeτ mode) c⊑)
 
-modeRename-id-only :
-  ∀ (τ : Renameᵗ) → ModeRename τ id-onlyᵈ id-onlyᵈ
-modeRename-id-only τ X = refl
-
 seal★-id-only :
   ∀ {Σ} → SealModeStore★ id-onlyᵈ Σ
 seal★-id-only α ()
@@ -6710,8 +5916,9 @@ rel-world-paired-cast-embed :
     (⊑-renameᵗ²ᵢ assm hτ hσ p) (⊑-renameᵗ²ᵢ assm hτ hσ q)
 rel-world-paired-cast-embed emb (paired-conversion conv) =
   paired-conversion (rel-world-paired-conversion-embed emb conv)
-rel-world-paired-cast-embed emb
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑) =
+rel-world-paired-cast-embed
+    {assm = assm} {hτ = hτ} {hσ = hσ} emb
+    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat) =
   paired-widening
     (CastModeRenamer.target-mode
       (left-embedding-cast-renamer emb) mode)
@@ -6725,6 +5932,8 @@ rel-world-paired-cast-embed emb
     (right-widening-rel-embed-mode emb
       (CastModeRenamer.target-rename
         (right-embedding-cast-renamer emb) mode′) c′⊑)
+    (paired-widening-compatible-rename²ᵢ
+      {assm = assm} hτ hσ compat)
 
 rel-world-conv⊑conv-embedᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
@@ -7089,8 +6298,9 @@ rel-world-paired-cast-permute :
     (⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) q)
 rel-world-paired-cast-permute perm (paired-conversion conv) =
   paired-conversion (rel-world-paired-conversion-permute perm conv)
-rel-world-paired-cast-permute perm
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑) =
+rel-world-paired-cast-permute
+    {πᴸ = πᴸ} {πᴿ = πᴿ} {assm = assm} perm
+    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat) =
   paired-widening
     (CastModeRenamer.target-mode (left-cast-renamer perm) mode)
     (left-seal-rel-permute perm mode seal★)
@@ -7101,6 +6311,8 @@ rel-world-paired-cast-permute perm
     (right-widening-rel-permute-mode perm
       (CastModeRenamer.target-rename (right-cast-renamer perm) mode′)
       c′⊑)
+    (paired-widening-compatible-rename²ᵢ
+      {assm = assm} (forward-wf πᴸ) (forward-wf πᴿ) compat)
 
 rel-world-conv⊑conv-permuteᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
@@ -8545,6 +7757,8 @@ rel-world-νcast⊑νcast-permuteᵀ :
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ∀ →
   LiftCtxⁱ (∀ᵢᶜ Φ) γ γ∀ →
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
@@ -8561,21 +7775,28 @@ rel-world-νcast⊑νcast-permuteᵀ :
       ⊑ renameᵗ (forward πᴿ) B′
     ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) p
 rel-world-νcast⊑νcast-permuteᵀ
-    perm mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    perm mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     with left-ν★-widening-rel-permute perm mode seal★ s⊑
        | right-ν★-widening-rel-permute perm mode′ seal★′ s′⊑
 rel-world-νcast⊑νcast-permuteᵀ
-    perm mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    perm mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     | target-mode , target-seal , target-s⊑
     | target-mode′ , target-seal′ , target-s′⊑
     with rel-world-permutation-lift∀ⁱ perm liftρ liftγ
 rel-world-νcast⊑νcast-permuteᵀ
-    perm mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    {πᴸ = πᴸ} {πᴿ = πᴿ} {assm = assm}
+    perm mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     | target-mode , target-seal , target-s⊑
     | target-mode′ , target-seal′ , target-s′⊑
     | ρ′∀ , γ′∀ , liftρ′ , liftγ′ , body-perm =
   νcast⊑νcastᵀ target-mode target-seal target-mode′ target-seal′
-    target-s⊑ target-s′⊑ liftρ′ liftγ′ N⊑N′
+    target-s⊑ target-s′⊑
+    (paired-widening-compatible-rename-under-binders²ᵢ
+      {assm = assm} (forward-wf πᴸ) (forward-wf πᴿ) compat)
+    liftρ′ liftγ′ N⊑N′
 
 rel-world-νcast⊑νcast-embedᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
@@ -8600,6 +7821,8 @@ rel-world-νcast⊑νcast-embedᵀ :
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ∀ →
   LiftCtxⁱ (∀ᵢᶜ Φ) γ γ∀ →
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
@@ -8611,21 +7834,28 @@ rel-world-νcast⊑νcast-embedᵀ :
     ⦂ renameᵗ τ B ⊑ renameᵗ σ B′
     ∶ ⊑-renameᵗ²ᵢ assm hτ hσ p
 rel-world-νcast⊑νcast-embedᵀ
-    emb mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    emb mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     with left-ν★-widening-rel-embed emb mode seal★ s⊑
        | right-ν★-widening-rel-embed emb mode′ seal★′ s′⊑
 rel-world-νcast⊑νcast-embedᵀ
-    emb mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    emb mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     | target-mode , target-seal , target-s⊑
     | target-mode′ , target-seal′ , target-s′⊑
     with rel-world-embedding-lift∀ⁱ emb liftρ liftγ
 rel-world-νcast⊑νcast-embedᵀ
-    emb mode seal★ mode′ seal★′ s⊑ s′⊑ liftρ liftγ N⊑N′
+    {assm = assm} {hτ = hτ} {hσ = hσ}
+    emb mode seal★ mode′ seal★′ s⊑ s′⊑ compat
+    liftρ liftγ N⊑N′
     | target-mode , target-seal , target-s⊑
     | target-mode′ , target-seal′ , target-s′⊑
     | ρ′∀ , γ′∀ , liftρ′ , liftγ′ , body-emb =
   νcast⊑νcastᵀ target-mode target-seal target-mode′ target-seal′
-    target-s⊑ target-s′⊑ liftρ′ liftγ′ N⊑N′
+    target-s⊑ target-s′⊑
+    (paired-widening-compatible-rename-under-binders²ᵢ
+      {assm = assm} hτ hσ compat)
+    liftρ′ liftγ′ N⊑N′
 
 rel-world-νcast⊑-permuteᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
@@ -10440,6 +9670,8 @@ left-rename-νcastᵀ :
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ∀ →
   LiftCtxⁱ (∀ᵢᶜ Φ) γ γ∀ →
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
@@ -10450,16 +9682,17 @@ left-rename-νcastᵀ :
     ⊢ᴺ renameᵗᵐ τ (ν ★ N s) ⊑ ν ★ N′ s′
     ⦂ renameᵗ τ B ⊑ B′ ∶ ⊑-rename-leftᵢ τ assm hτ p
 left-rename-νcastᵀ
-    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑
+    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑ compat
     liftρ liftγ N⊑N′
     with left-store-rename-∀ renameρ liftρ
 left-rename-νcastᵀ
-    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑
+    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑ compat
     liftρ liftγ N⊑N′
     | ρ′∀ , liftρ′ , renameρ∀
     with left-ctx-rename-∀ renameγ liftγ
 left-rename-νcastᵀ
-    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑
+    {assm = assm} {hτ = hτ}
+    ins renameρ renameγ mode seal★ mode′ seal★′ s⊑ s′⊑ compat
     liftρ liftγ N⊑N′
     | ρ′∀ , liftρ′ , renameρ∀
     | γ′∀ , liftγ′ , renameγ∀ =
@@ -10470,6 +9703,8 @@ left-rename-νcastᵀ
     mode′ (right-seal★-ν★-left-renameⁱ renameρ seal★′)
     (left-widening-ν★-renameⁱ ins renameρ mode s⊑)
     (right-widening-ν★-left-renameⁱ renameρ s′⊑)
+    (paired-widening-compatible-rename-left-under-bindersᵢ
+      {assm = assm} hτ compat)
     liftρ′ liftγ′ N⊑N′
 
 left-rename-νcast⊑ᵀ :
@@ -10822,8 +10057,8 @@ left-paired-cast-renameⁱ :
 left-paired-cast-renameⁱ ins renameρ
     (paired-conversion conv) =
   paired-conversion (left-paired-conversion-renameⁱ ins renameρ conv)
-left-paired-cast-renameⁱ ins renameρ
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑) =
+left-paired-cast-renameⁱ {assm = assm} {hτ = hτ} ins renameρ
+    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat) =
   paired-widening
     (CastModeRenamer.target-mode modeτ mode)
     (left-seal★-renameⁱ modeτ renameρ mode seal★)
@@ -10831,6 +10066,8 @@ left-paired-cast-renameⁱ ins renameρ
     mode′
     (right-seal★-left-renameⁱ renameρ seal★′)
     (right-widening-left-renameⁱ renameρ c′⊑)
+    (paired-widening-compatible-rename-leftᵢ
+      {assm = assm} hτ compat)
   where
   modeτ = left-insertion-cast-renamer ins
 
@@ -10941,129 +10178,6 @@ left-rename-⊑conv↓ᵀ :
     ⦂ renameᵗ τ A ⊑ B′ ∶ ⊑-rename-leftᵢ τ assm hτ q
 left-rename-⊑conv↓ᵀ renameρ conv M⊑M′ =
   ⊑conv↓ᵀ (right-conceal-left-renameⁱ renameρ conv) M⊑M′ _
-
-lift-ctx-result :
-  ∀ {Φ Δᴸ Δᴿ} (γ : CtxImp Φ Δᴸ Δᴿ) →
-  ∃[ γ′ ] LiftCtxⁱ (∀ᵢᶜ Φ) γ γ′
-lift-ctx-result [] = [] , lift-ctx-[]
-lift-ctx-result (ctx-imp A B p ∷ γ) with lift-ctx-result γ
-lift-ctx-result (ctx-imp A B p ∷ γ) | γ′ , liftγ =
-  ctx-imp (⇑ᵗ A) (⇑ᵗ B) (⊑-lift∀ᵢ p) ∷ γ′ ,
-  lift-ctx-∷ liftγ
-
-lift-left-ctx-result :
-  ∀ {Φ Δᴸ Δᴿ} (γ : CtxImp Φ Δᴸ Δᴿ) →
-  ∃[ γ′ ] LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γ′
-lift-left-ctx-result [] = [] , lift-left-ctx-[]
-lift-left-ctx-result (ctx-imp A B p ∷ γ)
-    with lift-left-ctx-result γ
-lift-left-ctx-result (ctx-imp A B p ∷ γ) | γ′ , liftγ =
-  ctx-imp (⇑ᵗ A) B (⊑-source-liftνᵢ p) ∷ γ′ ,
-  lift-left-ctx-∷ liftγ
-
-left-forall-store-square :
-  ∀ {Φ Δᴸ Δᴿ} (ρ : StoreImp Φ Δᴸ Δᴿ) →
-  ∃[ ρν ] ∃[ ρ∀ ] ∃[ ρν∀ ] ∃[ ρ∀ν ]
-    LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρν ×
-    LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ∀ ×
-    LiftStoreⁱ (∀ᵢᶜ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)) ρν ρν∀ ×
-    LiftLeftStoreⁱ
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ (∀ᵢᶜ Φ)) ρ∀ ρ∀ν ×
-    leftStoreⁱ ρν∀ ≡ leftStoreⁱ ρ∀ν ×
-    rightStoreⁱ ρν∀ ≡ rightStoreⁱ ρ∀ν
-left-forall-store-square ρ with lift-left-store-result ρ
-left-forall-store-square ρ | ρν , liftν
-    with lift-store-result ρ
-left-forall-store-square ρ | ρν , liftν | ρ∀ , lift∀
-    with lift-store-result ρν
-left-forall-store-square ρ | ρν , liftν | ρ∀ , lift∀
-    | ρν∀ , liftν∀ with lift-left-store-result ρ∀
-left-forall-store-square ρ | ρν , liftν | ρ∀ , lift∀
-    | ρν∀ , liftν∀ | ρ∀ν , lift∀ν =
-  ρν , ρ∀ , ρν∀ , ρ∀ν ,
-  liftν , lift∀ , liftν∀ , lift∀ν ,
-  trans
-    (leftStoreⁱ-lift liftν∀)
-    (trans
-      (cong ⟰ᵗ (leftStoreⁱ-lift-left liftν))
-      (sym
-        (trans
-          (leftStoreⁱ-lift-left lift∀ν)
-          (cong ⟰ᵗ (leftStoreⁱ-lift lift∀))))) ,
-  trans
-    (rightStoreⁱ-lift liftν∀)
-    (trans
-      (cong ⟰ᵗ (rightStoreⁱ-lift-left liftν))
-      (sym
-        (trans
-          (rightStoreⁱ-lift-left lift∀ν)
-          (rightStoreⁱ-lift lift∀))))
-
-left-forall-ctx-square :
-  ∀ {Φ Δᴸ Δᴿ} (γ : CtxImp Φ Δᴸ Δᴿ) →
-  ∃[ γν ] ∃[ γ∀ ] ∃[ γν∀ ] ∃[ γ∀ν ]
-    LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γν ×
-    LiftCtxⁱ (∀ᵢᶜ Φ) γ γ∀ ×
-    LiftCtxⁱ (∀ᵢᶜ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)) γν γν∀ ×
-    LiftLeftCtxⁱ
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ (∀ᵢᶜ Φ)) γ∀ γ∀ν ×
-    leftCtxⁱ γν∀ ≡ leftCtxⁱ γ∀ν ×
-    rightCtxⁱ γν∀ ≡ rightCtxⁱ γ∀ν
-left-forall-ctx-square γ with lift-left-ctx-result γ
-left-forall-ctx-square γ | γν , liftν with lift-ctx-result γ
-left-forall-ctx-square γ | γν , liftν | γ∀ , lift∀
-    with lift-ctx-result γν
-left-forall-ctx-square γ | γν , liftν | γ∀ , lift∀
-    | γν∀ , liftν∀ with lift-left-ctx-result γ∀
-left-forall-ctx-square γ | γν , liftν | γ∀ , lift∀
-    | γν∀ , liftν∀ | γ∀ν , lift∀ν =
-  γν , γ∀ , γν∀ , γ∀ν ,
-  liftν , lift∀ , liftν∀ , lift∀ν ,
-  trans
-    (leftCtxⁱ-lift liftν∀)
-    (trans
-      (cong ⤊ᵗ (leftCtxⁱ-lift-left liftν))
-      (sym
-        (trans
-          (leftCtxⁱ-lift-left lift∀ν)
-          (cong ⤊ᵗ (leftCtxⁱ-lift lift∀))))) ,
-  trans
-    (rightCtxⁱ-lift liftν∀)
-    (trans
-      (cong ⤊ᵗ (rightCtxⁱ-lift-left liftν))
-      (sym
-        (trans
-          (rightCtxⁱ-lift-left lift∀ν)
-          (rightCtxⁱ-lift lift∀))))
-
-left-source-lift-Λᵀ :
-  ∀ {Φ Δᴸ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ}
-    {γν : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-    {ρν∀ : StoreImp (∀ᵢᶜ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ))
-      (suc (suc Δᴸ)) (suc Δᴿ)}
-    {γν∀ : CtxImp (∀ᵢᶜ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ))
-      (suc (suc Δᴸ)) (suc Δᴿ)}
-    {V V′ A B q} →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρν →
-  LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γν →
-  LiftStoreⁱ (∀ᵢᶜ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)) ρν ρν∀ →
-  LiftCtxⁱ (∀ᵢᶜ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)) γν γν∀ →
-  Value V →
-  Value V′ →
-  ∀ᵢᶜ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-    ∣ suc (suc Δᴸ) ∣ suc Δᴿ ∣ ρν∀ ∣ γν∀
-    ⊢ᴺ renameᵗᵐ (extᵗ suc) V ⊑ V′
-    ⦂ renameᵗ (extᵗ suc) A ⊑ B ∶ q →
-  ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣ ρν ∣ γν
-    ⊢ᴺ ⇑ᵗᵐ (Λ V) ⊑ Λ V′
-    ⦂ ⇑ᵗ (`∀ A) ⊑ `∀ B ∶ ∀ⁱ q
-left-source-lift-Λᵀ
-    liftνρ liftνγ liftν∀ρ liftν∀γ vV vV′ V⊑V′ =
-  Λ⊑Λᵀ liftν∀ρ liftν∀γ
-    (renameᵗᵐ-preserves-Value (extᵗ suc) vV) vV′ V⊑V′
 
 left-source-lift-⊑αᵀ :
   ∀ {Φ Δᴸ Δᴿ}
@@ -12499,79 +11613,6 @@ weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
       weak-one-step-prepend-left-silentᵀ
         (left-silent first (left-silent-invariant refl refl)) second
 
-weak-one-step-relatedᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p →
-  WeakOneStepResult ρ M N A B keep
-weak-one-step-relatedᵀ result =
-  record
-    { sourceChanges = []
-    ; targetTailChanges = []
-    ; sourceResult = _
-    ; targetResult = _
-    ; resultCtx = _
-    ; resultLeftCtx = _
-    ; resultRightCtx = _
-    ; sourceCtxResult = refl
-    ; targetCtxResult = refl
-    ; resultStore = _
-    ; resultSourceType = _
-    ; resultTargetType = _
-    ; sourceTypeResult = refl
-    ; targetTypeResult = refl
-    ; transportType = λ p → p
-    ; transportAllBody = λ p → p
-    ; transportRightBody = λ p → p
-    ; resultType = _
-    ; sourceCatchup = ↠-refl
-    ; targetTail = ↠-refl
-    ; sourceStoreResult = refl
-    ; targetStoreResult = refl
-    ; relatedResults = result
-    }
-
-weak-one-step-related-transportᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (result :
-    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-      ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p) →
-  WeakOneStepTransport (weak-one-step-relatedᵀ result)
-weak-one-step-related-transportᵀ result =
-  weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′)
-
-weak-one-step-related-type-coherenceᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (result : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p) →
-  WeakOneStepTypeCoherence (weak-one-step-relatedᵀ result)
-weak-one-step-related-type-coherenceᵀ result =
-  weak-step-type-coherence (λ pC pD → refl) (λ q → refl)
-
-weak-one-step-indexed-relatedᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (result : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p) →
-  WeakOneStepIndexedResult {χ = keep} p
-weak-one-step-indexed-relatedᵀ result =
-  weak-indexed-result (weak-one-step-relatedᵀ result) result
-
-weak-one-step-indexed-outcome-relatedᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (result : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p) →
-  WeakOneStepIndexedOutcome {χ = keep} p
-weak-one-step-indexed-outcome-relatedᵀ result =
-  indexed-outcome-related
-    (weak-one-step-indexed-relatedᵀ result)
-    (weak-one-step-related-transportᵀ result)
-    (weak-one-step-related-type-coherenceᵀ result)
-
 weak-one-step-arrow-relatedᵀ :
   ∀ {Φ Δᴸ Δᴿ L L′ A A′ B B′ pA pB}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
@@ -13738,6 +12779,8 @@ weak-one-step-matched-νcast-frameᵀ :
     ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   WeakOneStepAllResult
     {N = N} {N₁′ = N₁′} {C = C} {C′ = C′}
@@ -13747,15 +12790,17 @@ weak-one-step-matched-νcast-frameᵀ :
     (ν ★ N₁′ (applyCoercionUnderTyBinder χ s′))
     B B′ χ
 weak-one-step-matched-νcast-frameᵀ
+    {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {B = B} {B′ = B′} {C = C} {C′ = C′}
     {N = N} {N₁′ = N₁′} {s = s} {s′ = s′} {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     with lift-store-result (resultStore inner)
 weak-one-step-matched-νcast-frameᵀ
+    {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {B = B} {B′ = B′} {C = C} {C′ = C′}
     {N = N} {N₁′ = N₁′} {s = s} {s′ = s′} {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     | ρ′ , liftρ
     with apply-widen-inst-under-ty-binders
@@ -13763,9 +12808,10 @@ weak-one-step-matched-νcast-frameᵀ
        | apply-widen-inst-under-ty-binders
       {χs = χ ∷ targetTailChanges inner} mode′ seal★′ s′⊑
 weak-one-step-matched-νcast-frameᵀ
+    {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {B = B} {B′ = B′} {C = C} {C′ = C′}
     {N = N} {N₁′ = N₁′} {s = s} {s′ = s′} {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     | ρ′ , liftρ
     | μᵣ , modeᵣ , sealᵣ , source⊑
@@ -13816,6 +12862,7 @@ weak-one-step-matched-νcast-frameᵀ
     ; relatedResults =
         νcast⊑νcastᵀ modeᵣ source-seal modeᵗ target-seal
           source-widen target-widen
+          result-compat
           liftρ lift-ctx-[] innerAll
     }
   where
@@ -13872,6 +12919,40 @@ weak-one-step-matched-νcast-frameᵀ
                     (applyTys (targetTailChanges inner) (applyTy χ B′)))
           (sym (targetStoreResult inner)) target⊑)
 
+    transport-compat :
+      PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+        s s′ (⇑ᵗ B) C′ →
+      PairedWideningCompatible
+        (∀ᵢᶜ (resultCtx inner))
+        (suc (resultLeftCtx inner)) (suc (resultRightCtx inner))
+        (applyCoercionUnderTyBinders (sourceChanges inner) s)
+        (applyCoercionUnderTyBinders (targetTailChanges inner)
+          (applyCoercionUnderTyBinder χ s′))
+        (⇑ᵗ (applyTys (sourceChanges inner) B))
+        (applyTysUnderTyBinders (targetTailChanges inner)
+          (applyTyUnderTyBinder χ C′))
+    transport-compat (compatible-source-inert inert) =
+      compatible-source-inert
+        (applyCoercionUnderTyBinders-preserves-Inert
+          (sourceChanges inner) inert)
+    transport-compat
+        (compatible-target-inert-bridge bridge) =
+      compatible-target-inert-bridge λ inert′ →
+        subst
+          (λ T → (∀ᵢᶜ (resultCtx inner))
+            ∣ suc (resultLeftCtx inner) ⊢ T ⊑
+              applyTysUnderTyBinders (targetTailChanges inner)
+                (applyTyUnderTyBinder χ C′)
+            ⊣ suc (resultRightCtx inner))
+          (applyTysUnderTyBinders-⇑ᵗ (sourceChanges inner) B)
+          (transportAllBody inner
+            (bridge
+              (applyCoercionUnderTyBinders-reflects-Inert
+                (χ ∷ targetTailChanges inner) s′ inert′)))
+
+    result-compat =
+      transport-compat compat
+
 weak-one-step-matched-νcast-frame-preserves-transportᵀ :
   ∀ {Φ Δᴸ Δᴿ B B′ C C′ N N₁′ s s′ μ μ′ χ q}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
@@ -13887,6 +12968,8 @@ weak-one-step-matched-νcast-frame-preserves-transportᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (all : WeakOneStepAllResult
     {N = N} {N₁′ = N₁′} {C = C} {C′ = C′}
@@ -13894,15 +12977,15 @@ weak-one-step-matched-νcast-frame-preserves-transportᵀ :
   WeakOneStepTransport (weakResult all) →
   WeakOneStepTransport
     (weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB all)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all)
 weak-one-step-matched-νcast-frame-preserves-transportᵀ
     {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) transport
     with lift-store-result (resultStore inner)
 weak-one-step-matched-νcast-frame-preserves-transportᵀ
     {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) transport
     | ρ′ , liftρ
     with apply-widen-inst-under-ty-binders
@@ -13910,7 +12993,7 @@ weak-one-step-matched-νcast-frame-preserves-transportᵀ
        | apply-widen-inst-under-ty-binders
       {χs = χ ∷ targetTailChanges inner} mode′ seal★′ s′⊑
 weak-one-step-matched-νcast-frame-preserves-transportᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) transport
     | ρ′ , liftρ
     | μᵣ , modeᵣ , sealᵣ , source⊑
@@ -13932,6 +13015,8 @@ weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ :
   (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (compat : PairedWideningCompatible
+    (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (all : WeakOneStepAllResult
     {N = N} {N₁′ = N₁′} {C = C} {C′ = C′}
@@ -13939,15 +13024,15 @@ weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ :
   WeakOneStepTypeCoherence (weakResult all) →
   WeakOneStepTypeCoherence
     (weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB all)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all)
 weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
     {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) coherence
     with lift-store-result (resultStore inner)
 weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
     {χ = χ}
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) coherence
     | ρ′ , liftρ
     with apply-widen-inst-under-ty-binders
@@ -13955,7 +13040,7 @@ weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
        | apply-widen-inst-under-ty-binders
       {χs = χ ∷ targetTailChanges inner} mode′ seal★′ s′⊑
 weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll) coherence
     | ρ′ , liftρ
     | μᵣ , modeᵣ , sealᵣ , source⊑
@@ -13977,6 +13062,8 @@ left-silent-matched-νcast-frameᵀ :
     ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (all : WeakOneStepAllResult
     {N = N} {N₁′ = V′} {χ = keep} {ρ = ρ} q) →
@@ -13985,12 +13072,12 @@ left-silent-matched-νcast-frameᵀ :
     {M = ν ★ N s} {V′ = ν ★ V′ s′}
     {A = B} {B = B′} {ρ = ρ}
 left-silent-matched-νcast-frameᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     (left-silent-invariant refl refl)
     with lift-store-result (resultStore inner)
 left-silent-matched-νcast-frameᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     (left-silent-invariant refl refl)
     | ρ′ , liftρ
@@ -13999,7 +13086,7 @@ left-silent-matched-νcast-frameᵀ
        | apply-widen-inst-under-ty-binders
       {χs = keep ∷ []} mode′ seal★′ s′⊑
 left-silent-matched-νcast-frameᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
     (weak-all-result inner innerAll)
     (left-silent-invariant refl refl)
     | ρ′ , liftρ
@@ -14007,7 +13094,7 @@ left-silent-matched-νcast-frameᵀ
     | μᵗ , modeᵗ , sealᵗ , target⊑ =
   left-silent
     (weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB
       (weak-all-result inner innerAll))
     (left-silent-invariant refl refl)
 
@@ -14721,6 +13808,8 @@ weak-one-step-matched-νcast-frame-outcomeᵀ :
     ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   WeakOneStepAllOutcome
     {N = N} {N₁′ = N₁′} {C = C} {C′ = C′}
@@ -14730,14 +13819,14 @@ weak-one-step-matched-νcast-frame-outcomeᵀ :
     (ν ★ N₁′ (applyCoercionUnderTyBinder χ s′))
     B B′ χ
 weak-one-step-matched-νcast-frame-outcomeᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB =
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB =
   weak-all-outcome-map-target-ν
     (weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB)
     (weak-one-step-matched-νcast-frame-preserves-transportᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB)
     (weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB)
     (λ N↠ → _ , ν-blame-tail N↠)
 
 weak-one-step-matched-ν-indexed-frame-outcomeᵀ :
@@ -14790,6 +13879,8 @@ weak-one-step-matched-νcast-indexed-frame-outcomeᵀ :
     ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
   instᵈ μ′ ∣ suc Δᴿ ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   WeakOneStepIndexedOutcome
     {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (∀ⁱ q) →
@@ -14798,23 +13889,23 @@ weak-one-step-matched-νcast-indexed-frame-outcomeᵀ :
     {N′ = ν ★ N₁′ (applyCoercionUnderTyBinder χ s′)}
     {χ = χ} {ρ = ρ} pB
 weak-one-step-matched-νcast-indexed-frame-outcomeᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB indexed
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB indexed
     with weak-indexed-all-outcomeᵀ indexed
 weak-one-step-matched-νcast-indexed-frame-outcomeᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB indexed
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB indexed
     | all-outcome-related all transport coherence =
   indexed-outcome-related
     (weak-indexed-result framed (relatedResults framed))
     (weak-one-step-matched-νcast-frame-preserves-transportᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB all transport)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all transport)
     (weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB all coherence)
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all coherence)
   where
   framed =
     weak-one-step-matched-νcast-frameᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB all
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all
 weak-one-step-matched-νcast-indexed-frame-outcomeᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ pB indexed
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB indexed
     | all-outcome-source-blame source↠ =
   indexed-outcome-source-blame (ν-blame-tail source↠)
 

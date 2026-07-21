@@ -54,6 +54,10 @@ open import NuReduction using
   ; blame-ν
   ; bind
   ; keep
+  ; pure-step
+  ; ξ-⟨⟩
+  ; ξ-⊕₁
+  ; ξ-⊕₂
   ; ξ-ν
   ; ν-step
   ; ↠-refl
@@ -64,9 +68,12 @@ open import NuTerms using
   ; RuntimeOK
   ; Value
   ; no•-Λ
+  ; no•-⊕
   ; no•-⟨⟩
   ; no•-blame
   ; ok-no
+  ; ok-⊕₁
+  ; ok-⊕₂
   ; ok-⟨⟩
   ; blame
   ; ν
@@ -100,825 +107,60 @@ open import proof.NuImprecisionAllocationSimulation using
   ; weak-one-step-right-νcast-indexed-outcomeᵀ
   )
 open import proof.NuImprecisionSimulationCore
+open import proof.NuImprecisionSimulationResultDef
+open import proof.NuImprecisionStorePrefix using
+  ( leftStoreⁱ-prefix-inclusion
+  ; rightStoreⁱ-prefix-inclusion
+  ; store-imp-prefix-transⁱ
+  )
 open import proof.NuImprecisionQuotientValue using
   (left-catchup-indexed-final-quotientᵀ)
+open import proof.NuImprecisionOneStepSourceCastFrames using
+  ( weak-one-step-source-narrow-cast-indexed-frame-outcomeᵀ
+  ; weak-one-step-source-widen-cast-indexed-frame-outcomeᵀ
+  )
+open import proof.NuImprecisionOneStepSourceConversionFrames using
+  ( weak-one-step-source-conceal-conversion-indexed-frame-outcomeᵀ
+  ; weak-one-step-source-reveal-conversion-indexed-frame-outcomeᵀ
+  )
+open import proof.NuImprecisionOneStepTargetConversionFrames using
+  ( weak-one-step-target-conceal-conversion-indexed-frame-outcomeᵀ
+  ; weak-one-step-target-reveal-conversion-indexed-frame-outcomeᵀ
+  )
+open import proof.NuImprecisionOneStepTargetConversionRoots using
+  ( weak-one-step-target-conceal-conversion-root-outcomeᵀ
+  ; weak-one-step-target-reveal-conversion-root-outcomeᵀ
+  )
+open import proof.NuImprecisionOneStepTargetCastFrames using
+  ( weak-one-step-target-narrow-cast-indexed-frame-outcomeᵀ
+  ; weak-one-step-target-widen-cast-indexed-frame-outcomeᵀ
+  ; weak-one-step-target-widen-id-cast-indexed-frame-outcomeᵀ
+  )
+open import proof.NuImprecisionOneStepTargetCastRoots using
+  ( weak-one-step-target-narrow-cast-root-outcomeᵀ
+  ; weak-one-step-target-widen-cast-root-outcomeᵀ
+  ; weak-one-step-target-widen-id-cast-root-outcomeᵀ
+  )
+open import proof.NuImprecisionOneStepPrimitiveFrames using
+  ( weak-one-step-⊕₁-indexed-frame-outcomeᵀ
+  ; weak-one-step-⊕₂-indexed-frame-outcomeᵀ
+  )
 open import proof.NuImprecisionSimulation using
   ( left-catchup-indexed-prefix-α-Λᵀ
   ; weak-one-step-target-cast-frameᵀ
   ; weak-one-step-target-cast-frame-coherenceᵀ
   ; weak-one-step-target-cast-frame-transportᵀ
   )
+open import proof.NuImprecisionCatchupPrefixSupport
+open import proof.NuImprecisionCatchupQuotientSupport
+open import proof.NuImprecisionQuotientWideningTransport using
+  (weak-one-step-transport-quotient-widening-pairᵀ)
 open import proof.ReductionProperties using
   (applyCoercions; applyTy-★; applyTys-++; cast-↠)
 open import proof.NuPreservation using (runtime-ν; runtime-⟨⟩)
 open import proof.NuProgress using (runtime-value-no•)
 open import proof.TypePreservation using
   (seal★-weaken; term-weaken)
-
-left-catchup-indexed-resume-silentᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-  (silent : LeftSilentIndexedResult
-    {N = M} {V′ = V′} {ρ = ρ} p) →
-  let first = weakIndexedResult (silentIndexedResult silent) in
-  LeftCatchupIndexedResult
-    {N = sourceResult first}
-    {V′ = targetResult first}
-    {ρ = resultStore first}
-    (transportType first p) →
-  LeftCatchupIndexedResult
-    {N = M} {V′ = V′} {ρ = ρ} p
-left-catchup-indexed-resume-silentᵀ
-    {A = A} {B = B} {p = p}
-    (left-silent-indexed first-indexed
-      (left-silent-invariant refl refl)
-      first-runtime first-transport first-coherence)
-    (left-indexed-catchup second-indexed
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      second-transport second-coherence) =
-  left-indexed-catchup
-    (weak-indexed-result combined canonical)
-    (left-catchup-invariant
-      (left-silent-invariant refl refl) final)
-    combined-transport combined-coherence
-  where
-  first-raw = weakIndexedResult first-indexed
-
-  first = weak-one-step-reindexᵀ
-    first-raw refl refl (canonicalIndexedResults first-indexed)
-
-  first-transport′ =
-    weak-one-step-reindex-preserves-transportᵀ
-      first-raw refl refl (canonicalIndexedResults first-indexed)
-      first-transport
-
-  first-coherence′ =
-    weak-one-step-reindex-preserves-type-coherenceᵀ
-      first-raw refl refl (canonicalIndexedResults first-indexed)
-      first-coherence
-
-  second = weakIndexedResult second-indexed
-
-  raw-combined =
-    weak-one-step-prepend-left-silentᵀ
-      (left-silent first (left-silent-invariant refl refl)) second
-
-  source-eq :
-    applyTys (sourceChanges second) (resultSourceType first) ≡
-      applyTys
-        (sourceChanges first ++ sourceChanges second) A
-  source-eq =
-    trans
-      (cong (applyTys (sourceChanges second))
-        (sourceTypeResult first))
-      (sym (applyTys-++
-        (sourceChanges first) (sourceChanges second) A))
-
-  target-eq :
-    applyTys (targetTailChanges second)
-        (applyTy keep (resultTargetType first)) ≡
-      applyTys (targetTailChanges second) (applyTy keep B)
-  target-eq =
-    cong
-      (λ T → applyTys (targetTailChanges second) (applyTy keep T))
-      (targetTypeResult first)
-
-  index-eq = HE.≅-to-≡
-    (HE.trans
-      (subst²-to-≅
-        {P = λ S T → resultCtx second ∣ resultLeftCtx second
-          ⊢ S ⊑ T ⊣ resultRightCtx second}
-        source-eq target-eq
-        (transportType second (transportType first p)))
-      (HE.sym
-        (weak-one-step-compose-type-to-nested≅ first second p)))
-
-  canonical =
-    nu-term-imprecision-transport-typesᵀ
-      source-eq target-eq index-eq
-      (canonicalIndexedResults second-indexed)
-
-  combined = weak-one-step-reindexᵀ
-    raw-combined refl refl canonical
-
-  raw-transport =
-    weak-one-step-prepend-left-silent-preserves-transportᵀ
-      (left-silent first (left-silent-invariant refl refl)) second
-      first-transport′ second-transport
-
-  combined-transport =
-    weak-one-step-reindex-preserves-transportᵀ
-      raw-combined refl refl canonical raw-transport
-
-  raw-coherence =
-    weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
-      (left-silent first (left-silent-invariant refl refl)) second
-      first-coherence′ second-coherence
-
-  combined-coherence =
-    weak-one-step-reindex-preserves-type-coherenceᵀ
-      raw-combined refl refl canonical raw-coherence
-
-left-catchup-indexed-target-frameᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ W′ A A′ B B′}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-  (catchup : LeftCatchupIndexedResult
-    {N = M} {V′ = V′} {ρ = ρ} p) →
-  (framed : WeakOneStepIndexedResult
-    {M = M} {N′ = W′} {χ = keep} {ρ = ρ} q) →
-  let inner = weakIndexedResult (catchupIndexedResult catchup)
-      first = weakIndexedResult framed
-  in
-  sourceResult first ≡ sourceResult inner →
-  LeftSilentInvariant first →
-  WeakOneStepTransport first →
-  WeakOneStepTypeCoherence first →
-  LeftCatchupIndexedResult
-    {N = M} {V′ = W′} {ρ = ρ} q
-left-catchup-indexed-target-frameᵀ
-    (left-indexed-catchup indexed
-      (left-catchup-invariant inner-silent final)
-      inner-transport inner-coherence)
-    framed refl first-silent first-transport first-coherence =
-  left-indexed-catchup framed
-    (left-catchup-invariant first-silent final)
-    first-transport first-coherence
-
-left-catchup-indexed-prefix-target-narrow-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  CastMode μ →
-  SealModeStore★ μ (rightStoreⁱ ρ₀) →
-  μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊒ B′ →
-  (catchup : LeftCatchupIndexedResult
-    {N = M} {V′ = V′} {ρ = ρ⁺} p) →
-  LeftCatchupIndexedResult
-    {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
-left-catchup-indexed-prefix-target-narrow-castᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
-    prefix mode seal★ c⊒
-    catchup@(left-indexed-catchup indexed
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence) =
-  left-catchup-indexed-target-frameᵀ
-    catchup framed refl (left-silent-invariant refl refl)
-    (weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation inner-transport)
-    (weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence)
-  where
-  inner = weakIndexedResult indexed
-
-  seal★⁺ = seal★-weaken
-    (rightStoreⁱ-prefix-inclusion prefix) seal★
-
-  c⊒⁺ = narrow-weaken ≤-refl
-    (rightStoreⁱ-prefix-inclusion prefix) c⊒
-
-  final-seal =
-    subst (SealModeStore★ _)
-      (sym (targetStoreResult inner)) seal★⁺
-
-  final-cast =
-    subst
-      (λ Δ → _ ∣ Δ ∣ rightStoreⁱ (resultStore inner)
-        ⊢ c ∶ A′ ⊒ B′)
-      (sym (targetCtxResult inner))
-      (subst
-        (λ Σ → _ ∣ Δᴿ ∣ Σ ⊢ c ∶ A′ ⊒ B′)
-        (sym (targetStoreResult inner)) c⊒⁺)
-
-  final-relation =
-    ⊑cast⊒ᵀ mode final-seal final-cast
-      (canonicalIndexedResults indexed) (transportType inner _)
-
-  first = weak-one-step-target-cast-frameᵀ
-    inner final-relation
-
-  framed = weak-indexed-result first (relatedResults first)
-
-left-catchup-indexed-prefix-target-reveal-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ β X′}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  RevealConversion μ Δᴿ (rightStoreⁱ ρ₀)
-    β X′ c A′ B′ →
-  (catchup : LeftCatchupIndexedResult
-    {N = M} {V′ = V′} {ρ = ρ⁺} p) →
-  LeftCatchupIndexedResult
-    {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
-left-catchup-indexed-prefix-target-reveal-castᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
-    prefix c↑
-    catchup@(left-indexed-catchup indexed
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence) =
-  left-catchup-indexed-target-frameᵀ
-    catchup framed refl (left-silent-invariant refl refl)
-    (weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation inner-transport)
-    (weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence)
-  where
-  inner = weakIndexedResult indexed
-
-  c↑⁺ = weaken-reveal-conversion
-    (rightStoreⁱ-prefix-inclusion prefix) c↑
-
-  final-conversion =
-    subst
-      (λ Δ → RevealConversion _ Δ
-        (rightStoreⁱ (resultStore inner)) _ _ c A′ B′)
-      (sym (targetCtxResult inner))
-      (subst
-        (λ Σ → RevealConversion _ Δᴿ Σ _ _ c A′ B′)
-        (sym (targetStoreResult inner)) c↑⁺)
-
-  final-relation =
-    ⊑conv↑ᵀ final-conversion
-      (canonicalIndexedResults indexed) (transportType inner _)
-
-  first = weak-one-step-target-cast-frameᵀ
-    inner final-relation
-
-  framed = weak-indexed-result first (relatedResults first)
-
-left-catchup-indexed-prefix-target-conceal-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ β X′}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  ConcealConversion μ Δᴿ (rightStoreⁱ ρ₀)
-    β X′ c A′ B′ →
-  (catchup : LeftCatchupIndexedResult
-    {N = M} {V′ = V′} {ρ = ρ⁺} p) →
-  LeftCatchupIndexedResult
-    {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
-left-catchup-indexed-prefix-target-conceal-castᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
-    prefix c↓
-    catchup@(left-indexed-catchup indexed
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence) =
-  left-catchup-indexed-target-frameᵀ
-    catchup framed refl (left-silent-invariant refl refl)
-    (weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation inner-transport)
-    (weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence)
-  where
-  inner = weakIndexedResult indexed
-
-  c↓⁺ = weaken-conceal-conversion
-    (rightStoreⁱ-prefix-inclusion prefix) c↓
-
-  final-conversion =
-    subst
-      (λ Δ → ConcealConversion _ Δ
-        (rightStoreⁱ (resultStore inner)) _ _ c A′ B′)
-      (sym (targetCtxResult inner))
-      (subst
-        (λ Σ → ConcealConversion _ Δᴿ Σ _ _ c A′ B′)
-        (sym (targetStoreResult inner)) c↓⁺)
-
-  final-relation =
-    ⊑conv↓ᵀ final-conversion
-      (canonicalIndexedResults indexed) (transportType inner _)
-
-  first = weak-one-step-target-cast-frameᵀ
-    inner final-relation
-
-  framed = weak-indexed-result first (relatedResults first)
-
-left-catchup-indexed-prefix-target-widen-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  CastMode μ →
-  SealModeStore★ μ (rightStoreⁱ ρ₀) →
-  μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊑ B′ →
-  (catchup : LeftCatchupIndexedResult
-    {N = M} {V′ = V′} {ρ = ρ⁺} p) →
-  LeftCatchupIndexedResult
-    {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
-left-catchup-indexed-prefix-target-widen-castᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
-    prefix mode seal★ c⊑
-    catchup@(left-indexed-catchup indexed
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence) =
-  left-catchup-indexed-target-frameᵀ
-    catchup framed refl (left-silent-invariant refl refl)
-    (weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation inner-transport)
-    (weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence)
-  where
-  inner = weakIndexedResult indexed
-
-  seal★⁺ = seal★-weaken
-    (rightStoreⁱ-prefix-inclusion prefix) seal★
-
-  c⊑⁺ = widen-weaken ≤-refl
-    (rightStoreⁱ-prefix-inclusion prefix) c⊑
-
-  final-seal =
-    subst (SealModeStore★ _)
-      (sym (targetStoreResult inner)) seal★⁺
-
-  final-cast =
-    subst
-      (λ Δ → _ ∣ Δ ∣ rightStoreⁱ (resultStore inner)
-        ⊢ c ∶ A′ ⊑ B′)
-      (sym (targetCtxResult inner))
-      (subst
-        (λ Σ → _ ∣ Δᴿ ∣ Σ ⊢ c ∶ A′ ⊑ B′)
-        (sym (targetStoreResult inner)) c⊑⁺)
-
-  final-relation =
-    ⊑cast⊑ᵀ mode final-seal final-cast
-      (canonicalIndexedResults indexed) (transportType inner _)
-
-  first = weak-one-step-target-cast-frameᵀ
-    inner final-relation
-
-  framed = weak-indexed-result first (relatedResults first)
-
-left-catchup-indexed-prefix-target-widen-id-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) →
-  id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
-    ⊢ c ∶ A′ ⊑ B′ →
-  (catchup : LeftCatchupIndexedResult
-    {N = M} {V′ = V′} {ρ = ρ⁺} p) →
-  LeftCatchupIndexedResult
-    {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
-left-catchup-indexed-prefix-target-widen-id-castᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
-    prefix seal★ c⊑
-    catchup@(left-indexed-catchup indexed
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence) =
-  left-catchup-indexed-target-frameᵀ
-    catchup framed refl (left-silent-invariant refl refl)
-    (weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation inner-transport)
-    (weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence)
-  where
-  inner = weakIndexedResult indexed
-
-  seal★⁺ = seal★-weaken {μ = id-onlyᵈ}
-    (rightStoreⁱ-prefix-inclusion prefix) seal★
-
-  c⊑⁺ = widen-weaken ≤-refl
-    (rightStoreⁱ-prefix-inclusion prefix) c⊑
-
-  final-seal =
-    subst (SealModeStore★ id-onlyᵈ)
-      (sym (targetStoreResult inner)) seal★⁺
-
-  final-cast =
-    subst
-      (λ Δ → id-onlyᵈ ∣ Δ ∣ rightStoreⁱ (resultStore inner)
-        ⊢ c ∶ A′ ⊑ B′)
-      (sym (targetCtxResult inner))
-      (subst
-        (λ Σ → id-onlyᵈ ∣ Δᴿ ∣ Σ ⊢ c ∶ A′ ⊑ B′)
-        (sym (targetStoreResult inner)) c⊑⁺)
-
-  final-relation =
-    ⊑cast⊑idᵀ final-seal final-cast
-      (canonicalIndexedResults indexed) (transportType inner _)
-
-  first = weak-one-step-target-cast-frameᵀ
-    inner final-relation
-
-  framed = weak-indexed-result first (relatedResults first)
-
-------------------------------------------------------------------------
--- Active arbitrary-type value catch-up worker
-------------------------------------------------------------------------
-
-left-catchup-indexed-prefix-valueᵀ :
-  ∀ {Φ Δᴸ Δᴿ V V′ A B}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  RuntimeOK V →
-  Value V →
-  No• V′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ A ⊑ B ∶ p →
-  LeftCatchupIndexedResult
-    {N = V} {V′ = V′} {ρ = ρ⁺} p
-left-catchup-indexed-prefix-valueᵀ
-    prefix okV vV noV′ V⊑V′ =
-  left-catchup-indexed-prefix-relatedᵀ
-    prefix (inj₁ (vV , runtime-value-no• okV vV))
-    V⊑V′ V⊢ V′⊢
-  where
-  V⊢ = term-weaken ≤-refl
-    (leftStoreⁱ-prefix-inclusion prefix)
-    (runtime-value-no• okV vV)
-    (nu-term-imprecision-source-typing V⊑V′)
-  V′⊢ = term-weaken ≤-refl
-    (rightStoreⁱ-prefix-inclusion prefix) noV′
-    (nu-term-imprecision-target-typing V⊑V′)
-
-left-catchup-indexed-prefix-blameᵀ :
-  ∀ {Φ Δᴸ Δᴿ V′ A B}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  No• V′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ blame ⊑ V′ ⦂ A ⊑ B ∶ p →
-  LeftCatchupIndexedResult
-    {N = blame} {V′ = V′} {ρ = ρ⁺} p
-left-catchup-indexed-prefix-blameᵀ prefix noV′ blame⊑V′ =
-  left-catchup-indexed-prefix-relatedᵀ
-    prefix (inj₂ refl) blame⊑V′ blame⊢ V′⊢
-  where
-  blame⊢ = term-weaken ≤-refl
-    (leftStoreⁱ-prefix-inclusion prefix) no•-blame
-    (nu-term-imprecision-source-typing blame⊑V′)
-  V′⊢ = term-weaken ≤-refl
-    (rightStoreⁱ-prefix-inclusion prefix) noV′
-    (nu-term-imprecision-target-typing blame⊑V′)
-
-weak-one-step-paired-double-cast-frameᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ A A′ d d′ u u′}
-    {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (inner : WeakOneStepResult ρ M M′ C C′ keep) →
-  LeftSilentInvariant inner →
-  (resultCtx inner
-    ∣ resultLeftCtx inner
-    ∣ resultRightCtx inner
-    ∣ resultStore inner ∣ []
-    ⊢ᴺ ((sourceResult inner ⟨
-          applyCoercions (sourceChanges inner) d ⟩) ⟨
-        applyCoercions (sourceChanges inner) u ⟩)
-      ⊑ ((targetResult inner ⟨ d′ ⟩) ⟨ u′ ⟩)
-    ⦂ applyTys (sourceChanges inner) A ⊑
-        applyTys (targetTailChanges inner) (applyTy keep A′)
-    ∶ transportType inner pA) →
-  WeakOneStepResult ρ
-    ((M ⟨ d ⟩) ⟨ u ⟩) ((M′ ⟨ d′ ⟩) ⟨ u′ ⟩)
-    A A′ keep
-weak-one-step-paired-double-cast-frameᵀ
-    {A = A} {A′ = A′}
-    {d = d} {d′ = d′} {u = u} {u′ = u′}
-    inner (left-silent-invariant refl refl) final =
-  record
-    { sourceChanges = sourceChanges inner
-    ; targetTailChanges = []
-    ; sourceResult = (sourceResult inner ⟨
-        applyCoercions (sourceChanges inner) d ⟩) ⟨
-          applyCoercions (sourceChanges inner) u ⟩
-    ; targetResult = (targetResult inner ⟨ d′ ⟩) ⟨ u′ ⟩
-    ; resultCtx = resultCtx inner
-    ; resultLeftCtx = resultLeftCtx inner
-    ; resultRightCtx = resultRightCtx inner
-    ; sourceCtxResult = sourceCtxResult inner
-    ; targetCtxResult = targetCtxResult inner
-    ; resultStore = resultStore inner
-    ; resultSourceType = applyTys (sourceChanges inner) A
-    ; resultTargetType = A′
-    ; sourceTypeResult = refl
-    ; targetTypeResult = refl
-    ; transportType = transportType inner
-    ; transportAllBody = transportAllBody inner
-    ; transportRightBody = transportRightBody inner
-    ; resultType = transportType inner _
-    ; sourceCatchup = cast-↠ (cast-↠ (sourceCatchup inner))
-    ; targetTail = cast-↠ (cast-↠ (targetTail inner))
-    ; sourceStoreResult = sourceStoreResult inner
-    ; targetStoreResult = targetStoreResult inner
-    ; relatedResults = final
-    }
-
-left-catchup-final-runtime :
-  ∀ {Φ Δᴸ Δᴿ M V′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {result : WeakOneStepResult ρ M V′ A B keep} →
-  LeftCatchupInvariant result →
-  RuntimeOK (sourceResult result)
-left-catchup-final-runtime
-    (left-catchup-invariant silent
-      (inj₁ (vV , noV))) =
-  ok-no noV
-left-catchup-final-runtime
-    (left-catchup-invariant silent (inj₂ refl)) =
-  ok-no no•-blame
-
-weak-one-step-transport-source-fixed-narrowingᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D μ d}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
-  ModeRename suc μ μ →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ d ∶ C ⊒ D →
-  μ ∣ resultLeftCtx inner ∣ leftStoreⁱ (resultStore inner)
-    ⊢ applyCoercions (sourceChanges inner) d
-      ∶ applyTys (sourceChanges inner) C
-      ⊒ applyTys (sourceChanges inner) D
-weak-one-step-transport-source-fixed-narrowingᵀ
-    {Δᴸ = Δᴸ} mode-suc prefix inner d⊒ =
-  subst
-    (λ Δ → _ ∣ Δ ∣ leftStoreⁱ (resultStore inner)
-      ⊢ applyCoercions (sourceChanges inner) _
-        ∶ applyTys (sourceChanges inner) _
-        ⊒ applyTys (sourceChanges inner) _)
-    (sym (sourceCtxResult inner))
-    (subst
-      (λ Σ → _ ∣ applyTyCtxs (sourceChanges inner) Δᴸ ∣ Σ
-        ⊢ applyCoercions (sourceChanges inner) _
-          ∶ applyTys (sourceChanges inner) _
-          ⊒ applyTys (sourceChanges inner) _)
-      (sym (sourceStoreResult inner))
-      (apply-fixed-narrows-typing mode-suc
-        (narrow-weaken ≤-refl
-          (leftStoreⁱ-prefix-inclusion prefix) d⊒)))
-
-weak-one-step-transport-target-narrowing-silentᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D′ μ d′}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
-  LeftSilentInvariant inner →
-  μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ d′ ∶ C′ ⊒ D′ →
-  μ ∣ resultRightCtx inner ∣ rightStoreⁱ (resultStore inner)
-    ⊢ d′ ∶ C′ ⊒ D′
-weak-one-step-transport-target-narrowing-silentᵀ
-    {Δᴿ = Δᴿ} prefix inner
-    (left-silent-invariant refl refl) d′⊒ =
-  subst
-    (λ Δ → _ ∣ Δ ∣ rightStoreⁱ (resultStore inner)
-      ⊢ _ ∶ _ ⊒ _)
-    (sym (targetCtxResult inner))
-    (subst
-      (λ Σ → _ ∣ Δᴿ ∣ Σ ⊢ _ ∶ _ ⊒ _)
-      (sym (targetStoreResult inner))
-      (narrow-weaken ≤-refl
-        (rightStoreⁱ-prefix-inclusion prefix) d′⊒))
-
-weak-one-step-transport-id-downᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ d d′}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
-    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  (indexed : WeakOneStepIndexedResult
-    {M = M} {N′ = M′} {χ = keep} {ρ = ρ⁺} pC) →
-  let inner = weakIndexedResult indexed in
-  LeftSilentInvariant inner →
-  id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ d ∶ C ⊒ D →
-  id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ d′ ∶ C′ ⊒ D′ →
-  resultCtx inner
-    ∣ resultLeftCtx inner
-    ∣ resultRightCtx inner
-    ∣ resultStore inner ∣ []
-    ⊢ᴺᵖ (sourceResult inner ⟨
-        applyCoercions (sourceChanges inner) d ⟩)
-      ⊑ (targetResult inner ⟨ d′ ⟩)
-    ⦂ applyTys (sourceChanges inner) D ⊑ᵖ
-      applyTys (targetTailChanges inner) (applyTy keep D′)
-    ∶ weak-one-step-transport-quotientᵀ inner qD
-weak-one-step-transport-id-downᵀ
-    prefix indexed (left-silent-invariant refl refl) d⊒ d′⊒ =
-  down⊑downᵀ
-    (weak-one-step-transport-source-fixed-narrowingᵀ
-      (modeRename-id-only suc) prefix inner d⊒)
-    (weak-one-step-transport-target-narrowing-silentᵀ
-      prefix inner (left-silent-invariant refl refl) d′⊒)
-    (canonicalIndexedResults indexed)
-    (weak-one-step-transport-quotientᵀ inner _)
-  where
-  inner = weakIndexedResult indexed
-
-weak-one-step-transport-gen-downᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ d d′}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
-    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  (indexed : WeakOneStepIndexedResult
-    {M = M} {N′ = M′} {χ = keep} {ρ = ρ⁺} pC) →
-  let inner = weakIndexedResult indexed in
-  LeftSilentInvariant inner →
-  genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ₀
-    ⊢ d ∶ C ⊒ D →
-  genᵈ tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
-    ⊢ d′ ∶ C′ ⊒ D′ →
-  resultCtx inner
-    ∣ resultLeftCtx inner
-    ∣ resultRightCtx inner
-    ∣ resultStore inner ∣ []
-    ⊢ᴺᵖ (sourceResult inner ⟨
-        applyCoercions (sourceChanges inner) d ⟩)
-      ⊑ (targetResult inner ⟨ d′ ⟩)
-    ⦂ applyTys (sourceChanges inner) D ⊑ᵖ
-      applyTys (targetTailChanges inner) (applyTy keep D′)
-    ∶ weak-one-step-transport-quotientᵀ inner qD
-weak-one-step-transport-gen-downᵀ
-    prefix indexed (left-silent-invariant refl refl) d⊒ d′⊒ =
-  gen-down⊑gen-downᵀ
-    (weak-one-step-transport-source-fixed-narrowingᵀ
-      (modeRename-gen-tag-or-id suc) prefix inner d⊒)
-    (weak-one-step-transport-target-narrowing-silentᵀ
-      prefix inner (left-silent-invariant refl refl) d′⊒)
-    (canonicalIndexedResults indexed)
-    (weak-one-step-transport-quotientᵀ inner _)
-  where
-  inner = weakIndexedResult indexed
-
-weak-one-step-transport-quotient-widening-pairᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ u u′}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
-  LeftSilentInvariant inner →
-  QuotientWideningPair Δᴸ Δᴿ ρ₀ u u′ D D′ A A′ →
-  QuotientWideningPair
-    (resultLeftCtx inner) (resultRightCtx inner) (resultStore inner)
-    (applyCoercions (sourceChanges inner) u) u′
-    (applyTys (sourceChanges inner) D) D′
-    (applyTys (sourceChanges inner) A) A′
-weak-one-step-transport-quotient-widening-pairᵀ
-    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-    {D = D} {D′ = D′} {A = A} {A′ = A′}
-    prefix inner (left-silent-invariant refl refl)
-    (quotient-id-widening u⊑ u′⊑) =
-  quotient-id-widening source-u target-u
-  where
-  source-u⁺ = widen-weaken ≤-refl
-    (leftStoreⁱ-prefix-inclusion prefix) u⊑
-
-  source-u⁺⁺ = apply-fixed-widens-typing
-    (modeRename-id-only suc) source-u⁺
-
-  source-u =
-    subst
-      (λ Δ → id-onlyᵈ ∣ Δ ∣ leftStoreⁱ (resultStore inner)
-        ⊢ applyCoercions (sourceChanges inner) _
-          ∶ applyTys (sourceChanges inner) D
-          ⊑ applyTys (sourceChanges inner) A)
-      (sym (sourceCtxResult inner))
-      (subst
-        (λ Σ → id-onlyᵈ ∣ applyTyCtxs (sourceChanges inner) Δᴸ
-          ∣ Σ ⊢ applyCoercions (sourceChanges inner) _
-          ∶ applyTys (sourceChanges inner) D
-          ⊑ applyTys (sourceChanges inner) A)
-        (sym (sourceStoreResult inner)) source-u⁺⁺)
-
-  target-u⁺ = widen-weaken ≤-refl
-    (rightStoreⁱ-prefix-inclusion prefix) u′⊑
-
-  target-u =
-    subst
-      (λ Δ → id-onlyᵈ ∣ Δ ∣ rightStoreⁱ (resultStore inner)
-        ⊢ _ ∶ D′ ⊑ A′)
-      (sym (targetCtxResult inner))
-      (subst
-        (λ Σ → id-onlyᵈ ∣ Δᴿ ∣ Σ ⊢ _ ∶ D′ ⊑ A′)
-        (sym (targetStoreResult inner)) target-u⁺)
-weak-one-step-transport-quotient-widening-pairᵀ
-    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-    {D = D} {D′ = D′} {A = A} {A′ = A′}
-    prefix inner (left-silent-invariant refl refl)
-    (quotient-cast-widening
-      mode seal★ u⊑ mode′ seal★′ u′⊑)
-    with apply-widens-typing
-      { χs = sourceChanges inner }
-      mode
-      (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
-      (widen-weaken ≤-refl
-        (leftStoreⁱ-prefix-inclusion prefix) u⊑)
-weak-one-step-transport-quotient-widening-pairᵀ
-    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-    {D = D} {D′ = D′} {A = A} {A′ = A′}
-    prefix inner (left-silent-invariant refl refl)
-    (quotient-cast-widening
-      mode seal★ u⊑ mode′ seal★′ u′⊑)
-    | μˢ , modeˢ , seal★ˢ , uˢ⊑ =
-  quotient-cast-widening
-    modeˢ source-seal★ source-u
-    mode′ target-seal★ target-u
-  where
-  source-seal★ =
-    subst (SealModeStore★ μˢ)
-      (sym (sourceStoreResult inner)) seal★ˢ
-
-  source-u =
-    subst
-      (λ Δ → μˢ ∣ Δ ∣ leftStoreⁱ (resultStore inner)
-        ⊢ applyCoercions (sourceChanges inner) _
-          ∶ applyTys (sourceChanges inner) D
-          ⊑ applyTys (sourceChanges inner) A)
-      (sym (sourceCtxResult inner))
-      (subst
-        (λ Σ → μˢ ∣ applyTyCtxs (sourceChanges inner) Δᴸ
-          ∣ Σ ⊢ applyCoercions (sourceChanges inner) _
-          ∶ applyTys (sourceChanges inner) D
-          ⊑ applyTys (sourceChanges inner) A)
-        (sym (sourceStoreResult inner)) uˢ⊑)
-
-  target-seal★⁺ = seal★-weaken
-    (rightStoreⁱ-prefix-inclusion prefix) seal★′
-
-  target-seal★ =
-    subst (SealModeStore★ _)
-      (sym (targetStoreResult inner)) target-seal★⁺
-
-  target-u⁺ = widen-weaken ≤-refl
-    (rightStoreⁱ-prefix-inclusion prefix) u′⊑
-
-  target-u =
-    subst
-      (λ Δ → _ ∣ Δ ∣ rightStoreⁱ (resultStore inner)
-        ⊢ _ ∶ D′ ⊑ A′)
-      (sym (targetCtxResult inner))
-      (subst
-        (λ Σ → _ ∣ Δᴿ ∣ Σ ⊢ _ ∶ D′ ⊑ A′)
-        (sym (targetStoreResult inner)) target-u⁺)
-
-left-silent-indexed-prefix-down-up-from-finalᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
-    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
-    {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  QuotientWideningPair Δᴸ Δᴿ ρ₀ u u′ D D′ A A′ →
-  (catchup : LeftCatchupIndexedResult
-    {N = M} {V′ = M′} {ρ = ρ⁺} pC) →
-  let indexed = catchupIndexedResult catchup
-      inner = weakIndexedResult indexed
-  in
-  (resultCtx inner
-    ∣ resultLeftCtx inner
-    ∣ resultRightCtx inner
-    ∣ resultStore inner ∣ []
-    ⊢ᴺᵖ (sourceResult inner ⟨
-        applyCoercions (sourceChanges inner) d ⟩)
-      ⊑ (targetResult inner ⟨ d′ ⟩)
-    ⦂ applyTys (sourceChanges inner) D ⊑ᵖ
-      applyTys (targetTailChanges inner) (applyTy keep D′)
-    ∶ weak-one-step-transport-quotientᵀ inner qD) →
-  LeftSilentIndexedResult
-    {N = (M ⟨ d ⟩) ⟨ u ⟩}
-    {V′ = (M′ ⟨ d′ ⟩) ⟨ u′ ⟩}
-    {ρ = ρ⁺} pA
-left-silent-indexed-prefix-down-up-from-finalᵀ
-    {pA = pA} prefix widening
-    (left-indexed-catchup indexed
-      invariant@(left-catchup-invariant
-        silent@(left-silent-invariant refl refl) final)
-      transport coherence)
-    down =
-  left-silent-indexed
-    (weak-indexed-result framed final-relation)
-    (left-silent-invariant refl refl)
-    (ok-⟨⟩ (ok-⟨⟩ (left-catchup-final-runtime invariant)))
-    (weak-step-transport (transportNo•Terms transport))
-    (weak-step-type-coherence
-      (transportArrowCoherent coherence)
-      (transportAllCoherent coherence))
-  where
-  inner = weakIndexedResult indexed
-
-  final-widening =
-    weak-one-step-transport-quotient-widening-pairᵀ
-      prefix inner silent widening
-
-  final-relation =
-    up⊑upᵀ down final-widening (transportType inner pA)
-
-  framed = weak-one-step-paired-double-cast-frameᵀ
-    inner silent final-relation
 
 left-catchup-indexed-prefix-down-upᵀ :
   ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′}
@@ -1356,6 +598,93 @@ weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′ (blame⊑ᵀ M′⊢) M′→N′ =
   indexed-outcome-source-blame ↠-refl
 weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′ (x⊑xᵀ x∈) (pure-step ())
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′ (ƛ⊑ƛᵀ hA hA′ N⊑N′) (pure-step ())
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′) (pure-step ())
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′ κ⊑κᵀ (pure-step ())
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-no (no•-⊕ noL noM))
+    (ok-no (no•-⊕ noL′ noM′))
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₁ L′→L₁′ shiftM′) =
+  weak-one-step-⊕₁-indexed-frame-outcomeᵀ
+    noM noM′ M⊑M′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (ok-no noL) (ok-no noL′) L⊑L′ L′→L₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-no (no•-⊕ noL noM))
+    (ok-⊕₁ okL′ noM′)
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₁ L′→L₁′ shiftM′) =
+  weak-one-step-⊕₁-indexed-frame-outcomeᵀ
+    noM noM′ M⊑M′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (ok-no noL) okL′ L⊑L′ L′→L₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-⊕₁ okL noM)
+    (ok-no (no•-⊕ noL′ noM′))
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₁ L′→L₁′ shiftM′) =
+  weak-one-step-⊕₁-indexed-frame-outcomeᵀ
+    noM noM′ M⊑M′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okL (ok-no noL′) L⊑L′ L′→L₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-⊕₁ okL noM)
+    (ok-⊕₁ okL′ noM′)
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₁ L′→L₁′ shiftM′) =
+  weak-one-step-⊕₁-indexed-frame-outcomeᵀ
+    noM noM′ M⊑M′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okL okL′ L⊑L′ L′→L₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-⊕₂ vL noL okM)
+    (ok-no (no•-⊕ noL′ noM′))
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₂ vL′ shiftL′ M′→M₁′) =
+  weak-one-step-⊕₂-indexed-frame-outcomeᵀ
+    vL noL vL′ noL′ L⊑L′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (ok-no noM′) M⊑M′ M′→M₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-⊕₂ vL noL okM)
+    (ok-⊕₁ okL′ noM′)
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₂ vL′ shiftL′ M′→M₁′) =
+  weak-one-step-⊕₂-indexed-frame-outcomeᵀ
+    vL noL vL′ noL′ L⊑L′ inner
+  where
+  noL′ = runtime-value-no• okL′ vL′
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (ok-no noM′) M⊑M′ M′→M₁′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′
+    (ok-⊕₂ vL noL okM)
+    (ok-⊕₂ vL″ noL′ okM′)
+    (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+    (ξ-⊕₂ vL′ shiftL′ M′→M₁′) =
+  weak-one-step-⊕₂-indexed-frame-outcomeᵀ
+    vL noL vL′ noL′ L⊑L′ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′ M⊑M′ M′→M₁′
+weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑
       liftρ liftγ N⊑V′)
@@ -1465,3 +794,114 @@ weak-one-step-indexed-simulationᵀ
       (blame⊑ᵀ blame⊢))
     blame-ν =
   indexed-outcome-source-blame ↠-refl
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q)
+    M′→N′ =
+  weak-one-step-source-narrow-cast-indexed-frame-outcomeᵀ
+    mode seal★ c⊒ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q)
+    M′→N′ =
+  weak-one-step-source-widen-cast-indexed-frame-outcomeᵀ
+    mode seal★ c⊑ inner
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (conv↑⊑ᵀ c↑ M⊑M′ q)
+    M′→N′ =
+  weak-one-step-source-reveal-conversion-indexed-frame-outcomeᵀ
+    c↑ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (conv↓⊑ᵀ c↓ M⊑M′ q)
+    M′→N′ =
+  weak-one-step-source-conceal-conversion-indexed-frame-outcomeᵀ
+    c↓ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑conv↑ᵀ c′↑ M⊑M′ q)
+    (ξ-⟨⟩ M′→N′) =
+  weak-one-step-target-reveal-conversion-indexed-frame-outcomeᵀ
+    c′↑ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑conv↑ᵀ c′↑ M⊑M′ q)
+    (pure-step root) =
+  weak-one-step-target-reveal-conversion-root-outcomeᵀ
+    wfΣ′ okM okM′ c′↑ M⊑M′ q root
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑conv↓ᵀ c′↓ M⊑M′ q)
+    (ξ-⟨⟩ M′→N′) =
+  weak-one-step-target-conceal-conversion-indexed-frame-outcomeᵀ
+    c′↓ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑conv↓ᵀ c′↓ M⊑M′ q)
+    (pure-step root) =
+  weak-one-step-target-conceal-conversion-root-outcomeᵀ
+    wfΣ′ okM okM′ c′↓ M⊑M′ q root
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q)
+    (ξ-⟨⟩ M′→N′) =
+  weak-one-step-target-narrow-cast-indexed-frame-outcomeᵀ
+    mode′ seal★′ c′⊒ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q)
+    (pure-step root) =
+  weak-one-step-target-narrow-cast-root-outcomeᵀ
+    wfΣ′ okM okM′ mode′ seal★′ c′⊒ M⊑M′ q root
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q)
+    (ξ-⟨⟩ M′→N′) =
+  weak-one-step-target-widen-cast-indexed-frame-outcomeᵀ
+    mode′ seal★′ c′⊑ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q)
+    (pure-step root) =
+  weak-one-step-target-widen-cast-root-outcomeᵀ
+    wfΣ′ okM okM′ mode′ seal★′ c′⊑ M⊑M′ q root
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q)
+    (ξ-⟨⟩ M′→N′) =
+  weak-one-step-target-widen-id-cast-indexed-frame-outcomeᵀ
+    seal★′ c′⊑ inner q
+  where
+  inner = weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q)
+    (pure-step root) =
+  weak-one-step-target-widen-id-cast-root-outcomeᵀ
+    wfΣ′ okM okM′ seal★′ c′⊑ M⊑M′ q root

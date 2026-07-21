@@ -62,6 +62,7 @@ open import NuTerms using
   ; _∣_∣_⊢_⦂_
   )
 open import proof.NuProgress using (Progress; crash; done; step)
+open import proof.NuDGGClosedWorld using (empty-store-wf)
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; nu-term-imprecision-source-typing
@@ -101,15 +102,6 @@ compiled-right-runtime M⊑M′ =
 ------------------------------------------------------------------------
 -- Observation-level consequences of terminal simulation
 ------------------------------------------------------------------------
-
-empty-store-wf :
-  ∀ {Δ} →
-  StoreWf Δ []
-empty-store-wf =
-  record
-    { at = record { bound = λ (); wfTy = λ () }
-    ; unique = λ ()
-    }
 
 closed-left-store :
   leftStoreⁱ {Φ = []} {Δᴸ = 0} {Δᴿ = 0} [] ≡ []

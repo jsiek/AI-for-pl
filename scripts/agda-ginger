@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# File charter:
+#   Run focused GTSF Agda checks on ginger with the pinned local installation.
+#   Avoid dependence on Agda's compiled-in Cabal data path or per-user library
+#   registration.  Arguments are passed directly to Agda from GTSF/.
+#   See scripts/GINGER_AGDA.md for setup, use, and troubleshooting.
+
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
+
+agda_prefix="${GINGER_AGDA_PREFIX:-/home/jsiek/.local/opt/Agda-v2.7.0.1}"
+agda_bin="${agda_prefix}/bin/agda"
+agda_app_dir="${repo_root}/scripts/agda-ginger-config"
+
+if [[ ! -x "${agda_bin}" ]]; then
+  echo "Agda executable not found: ${agda_bin}" >&2
+  exit 1
+fi
+
+if [[ ! -d "${agda_prefix}/data/lib" ]]; then
+  echo "Agda runtime data not found: ${agda_prefix}/data/lib" >&2
+  exit 1
+fi
+
+if [[ ! -f "${agda_app_dir}/standard-library.agda-lib" ]]; then
+  echo "Ginger Agda library config not found: ${agda_app_dir}" >&2
+  exit 1
+fi
+
+export Agda_datadir="${agda_prefix}/data"
+export AGDA_DIR="${agda_app_dir}"
+cd "${repo_root}/GTSF"
+exec "${agda_bin}" \
+  --library-file="${agda_app_dir}/libraries" \
+  -l standard-library -i . "$@"

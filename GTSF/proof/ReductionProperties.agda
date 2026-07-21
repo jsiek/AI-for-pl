@@ -27,6 +27,7 @@ open import proof.CoercionProperties
     ; renameᶜ-ext-suc-suc
     ; renameᶜ-open-commute
     ; renameᶜ-preserves-Inert
+    ; renameᶜ-reflects-Inert
     )
 open import proof.NuTermProperties
   using
@@ -667,6 +668,14 @@ applyCoercionUnderTyBinder-preserves-Inert keep i = i
 applyCoercionUnderTyBinder-preserves-Inert (bind A) i =
   renameᶜ-preserves-Inert (extᵗ suc) i
 
+applyCoercionUnderTyBinder-reflects-Inert :
+  ∀ χ c →
+  Inert (applyCoercionUnderTyBinder χ c) →
+  Inert c
+applyCoercionUnderTyBinder-reflects-Inert keep c i = i
+applyCoercionUnderTyBinder-reflects-Inert (bind A) c i =
+  renameᶜ-reflects-Inert (extᵗ suc) c i
+
 applyCoercionUnderTyBinders-preserves-Inert :
   ∀ χs {c} →
   Inert c →
@@ -675,6 +684,16 @@ applyCoercionUnderTyBinders-preserves-Inert [] i = i
 applyCoercionUnderTyBinders-preserves-Inert (χ ∷ χs) i =
   applyCoercionUnderTyBinders-preserves-Inert χs
     (applyCoercionUnderTyBinder-preserves-Inert χ i)
+
+applyCoercionUnderTyBinders-reflects-Inert :
+  ∀ χs c →
+  Inert (applyCoercionUnderTyBinders χs c) →
+  Inert c
+applyCoercionUnderTyBinders-reflects-Inert [] c i = i
+applyCoercionUnderTyBinders-reflects-Inert (χ ∷ χs) c i =
+  applyCoercionUnderTyBinder-reflects-Inert χ c
+    (applyCoercionUnderTyBinders-reflects-Inert χs
+      (applyCoercionUnderTyBinder χ c) i)
 
 applyCoercionUnderTyBinders-⇑ᶜ :
   ∀ χs c →

@@ -355,6 +355,8 @@ open import proof.TypePreservation using
   ; term-weaken
   ; typing-renameᵀ
   )
+open import proof.NuWideningTransport using
+  (apply-widens-typing)
 open import proof.StoreProperties using
   (∈-renameStoreᵗ; renameStoreᵗ-incl)
 open import proof.TypeProperties using
@@ -383,8 +385,41 @@ open import proof.TypeProperties using
   ; renameStoreᵗ-ext-suc-comm
   )
 
+open import proof.NuImprecisionRelStoreEmbeddingDef
 open import proof.NuImprecisionSimulationCore
+open import proof.NuImprecisionPairedAllBetaCommutation using
+  ( paired-β-∀-revealᵀ
+  ; paired-β-∀-concealᵀ
+  )
+open import proof.NuImprecisionSourcePolymorphicValueBase using
+  ( left-polymorphic-value-shapeᵀ
+  ; post-allocation-β-∀•-bare
+  ; post-allocation-β-gen•-bare
+  ; post-allocation-polymorphic-value-step
+  )
+open import proof.NuImprecisionWorldEmbeddingNoBullet using
+  (rel-world-embed-no•ᵀ; rel-world-embed-no•ᵀᵖ)
+open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
+  (rel-store-embedding-composeⁱ)
+open import proof.NuImprecisionSimulationResultDef
+open import proof.NuImprecisionStoreLift using (lift-right-store-result)
+open import proof.NuImprecisionStorePrefix using
+  (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
+open import proof.NuImprecisionSourceLeftAllocationCastTransport using
+  ( allocated-left-seal★
+  ; allocated-left-gen-seal★
+  ; allocated-left-relationᵀ
+  ; open-allocated-left-all-reveal
+  ; open-allocated-left-all-conceal
+  )
 open import proof.NuImprecisionCatchupComposition
+open import proof.NuImprecisionSourceInertBulletCommutation using
+  ( left-catchup-indexed-all-α-∀-revealᵀ
+  ; left-catchup-indexed-all-α-∀-concealᵀ
+  ; left-catchup-indexed-all-α-∀-narrowingᵀ
+  ; left-catchup-indexed-all-α-∀-wideningᵀ
+  ; left-catchup-indexed-all-α-gen-narrowingᵀ
+  )
 
 ------------------------------------------------------------------------
 -- Crossed stores realize two allocations in opposite logical orders
@@ -410,27 +445,6 @@ lift-store-rel-embeddingⁱ (lift-store-right liftρ) =
 lift-store-rel-embeddingⁱ (lift-store-link liftρ) =
   rel-store-embedding-link refl refl refl refl
     (lift-store-rel-embeddingⁱ liftρ)
-
-lift-left-store-rel-embeddingⁱ :
-  ∀ {Φ Ψ Δᴸ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp Ψ (suc Δᴸ) Δᴿ} →
-  LiftLeftStoreⁱ Ψ ρ ρ′ →
-  RelStoreEmbeddingⁱ suc (λ X → X) ρ ρ′
-lift-left-store-rel-embeddingⁱ lift-left-store-[] =
-  rel-store-embedding-[]
-lift-left-store-rel-embeddingⁱ (lift-left-store-∷ liftρ) =
-  rel-store-embedding-matched refl refl refl
-    (sym (renameᵗ-id _)) (lift-left-store-rel-embeddingⁱ liftρ)
-lift-left-store-rel-embeddingⁱ (lift-left-store-left liftρ) =
-  rel-store-embedding-left refl refl
-    (lift-left-store-rel-embeddingⁱ liftρ)
-lift-left-store-rel-embeddingⁱ (lift-left-store-right liftρ) =
-  rel-store-embedding-right refl (sym (renameᵗ-id _))
-    (lift-left-store-rel-embeddingⁱ liftρ)
-lift-left-store-rel-embeddingⁱ (lift-left-store-link liftρ) =
-  rel-store-embedding-link refl refl refl
-    (sym (renameᵗ-id _)) (lift-left-store-rel-embeddingⁱ liftρ)
 
 identity-store-rel-embeddingⁱ :
   ∀ {Φ Δᴸ Δᴿ} {ρ : StoreImp Φ Δᴸ Δᴿ} →
@@ -566,19 +580,6 @@ matched-lift-world-embeddingⁱ liftρ =
   rel-world-embedding RenameLeftInverse-suc RenameLeftInverse-suc
     castModeRenamer-suc castModeRenamer-suc
     (lift-store-rel-embeddingⁱ liftρ) rel-ctx-rename-[]
-
-left-lift-world-embeddingⁱ :
-  ∀ {Φ Δᴸ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
-  RelWorldEmbeddingⁱ suc (λ X → X) predᵗ (λ X → X)
-    rename-assm²-source-νᵢ TyRenameWf-suc (λ X<Δ → X<Δ)
-    {ρ = ρ} {ρ′ = ρ′} {γ = []} {γ′ = []}
-left-lift-world-embeddingⁱ liftρ =
-  rel-world-embedding RenameLeftInverse-suc (λ X → refl)
-    castModeRenamer-suc castModeRenamer-id
-    (lift-left-store-rel-embeddingⁱ liftρ) rel-ctx-rename-[]
 
 right-lift-world-embeddingⁱ :
   ∀ {Φ Δᴸ Δᴿ}
@@ -960,188 +961,6 @@ crossed-left-then-permutation-embeddingⁱ liftρ₁ liftρ₂ perm =
   rel-world-embedding-[]-composeⁱ
     (crossed-left-world-embeddingⁱ liftρ₁ liftρ₂)
     (rel-world-permutation-embeddingⁱ perm)
-
-------------------------------------------------------------------------
--- General no-runtime-bullet transport through world embeddings
-------------------------------------------------------------------------
-
-mutual
-  rel-world-embed-no•ᵀ :
-    ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
-      {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
-      {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-      {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-      {M M′ A B} {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-    (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
-      {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
-    No• M → No• M′ →
-    Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-      ⊢ᴺ renameᵗᵐ τ M ⊑ renameᵗᵐ σ M′
-      ⦂ renameᵗ τ A ⊑ renameᵗ σ B
-      ∶ ⊑-renameᵗ²ᵢ assm hτ hσ p
-
-  rel-world-embed-no•ᵀᵖ :
-    ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
-      {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
-      {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-      {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-      {M M′ D D′} {q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
-    (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
-      {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺᵖ M ⊑ M′ ⦂ D ⊑ᵖ D′ ∶ q →
-    No• M → No• M′ →
-    Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-      ⊢ᴺᵖ renameᵗᵐ τ M ⊑ renameᵗᵐ σ M′
-      ⦂ renameᵗ τ D ⊑ᵖ renameᵗ σ D′
-      ∶ ⊑ᵖ-rename²ᵢ assm hτ hσ q
-
-  rel-world-embed-no•ᵀ emb (blame⊑ᵀ M′⊢)
-      no•-blame noM′ =
-    rel-world-blame-embedᵀ emb noM′ M′⊢
-  rel-world-embed-no•ᵀ emb (x⊑xᵀ x∈) no•-` no•-` =
-    rel-world-x-embedᵀ emb x∈
-  rel-world-embed-no•ᵀ emb (ƛ⊑ƛᵀ hA hA′ N⊑N′)
-      (no•-ƛ noN) (no•-ƛ noN′) =
-    rel-world-ƛ-embedᵀ emb hA hA′
-      (rel-world-embed-no•ᵀ
-        (rel-world-embedding-ctx-∷ⁱ emb) N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb (·⊑·ᵀ L⊑L′ M⊑M′)
-      (no•-· noL noM) (no•-· noL′ noM′) =
-    ·⊑·ᵀ
-      (rel-world-embed-no•ᵀ emb L⊑L′ noL noL′)
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-  rel-world-embed-no•ᵀ emb (up⊑upᵀ N⊑N′ widening pA)
-      (no•-⟨⟩ noN) (no•-⟨⟩ noN′) =
-    rel-world-up⊑up-embedᵀ emb widening
-      (rel-world-embed-no•ᵀᵖ emb N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb
-      (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′)
-      (no•-Λ noV) (no•-Λ noV′)
-      with rel-world-Λ-embedᵀ emb liftρ liftγ vV vV′
-  rel-world-embed-no•ᵀ emb
-      (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′)
-      (no•-Λ noV) (no•-Λ noV′)
-      | ρ′∀ , γ′∀ , liftρ′ , liftγ′ , body-emb , finish =
-    finish (rel-world-embed-no•ᵀ body-emb V⊑V′ noV noV′)
-  rel-world-embed-no•ᵀ emb (Λ⊑ᵀ occ liftρ liftγ vV V⊑N′)
-      (no•-Λ noV) noN′
-      with rel-world-Λ⊑-embedᵀ emb occ liftρ liftγ vV
-  rel-world-embed-no•ᵀ emb (Λ⊑ᵀ occ liftρ liftγ vV V⊑N′)
-      (no•-Λ noV) noN′
-      | ρ′ν , γ′ν , liftρ′ , liftγ′ , body-emb , finish =
-    finish (rel-world-embed-no•ᵀ body-emb V⊑N′ noV noN′)
-  rel-world-embed-no•ᵀ emb
-      (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ L⊑L′ L⊢ L′⊢)
-      () noM′
-  rel-world-embed-no•ᵀ emb
-      (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ L⊢ N′⊢) () noN′
-  rel-world-embed-no•ᵀ emb
-      (⊑αᵀ vL′ noL′ hA liftρ liftγ N⊑L′ r N⊢ L′⊢) noN ()
-  rel-world-embed-no•ᵀ emb
-      (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) noM noM′ =
-    rel-world-allocation-prefix-embedᵀ emb prefix
-      (λ emb₀ → rel-world-embed-no•ᵀ emb₀ M⊑M′ noM noM′)
-      noM noM′ M⊢ M′⊢
-  rel-world-embed-no•ᵀ emb
-      (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
-        liftρ liftγ N⊑N′)
-      (no•-ν noN) (no•-ν noN′) =
-    rel-world-ν⊑ν-embedᵀ emb hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
-      liftρ liftγ (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb
-      (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′)
-      (no•-ν noN) noN′ =
-    rel-world-ν⊑-embedᵀ emb hA h⇑A s↑ liftρ liftγ
-      (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb
-      (⊑νᵀ hA h⇑A s↑ liftρ liftγ r N⊑N′)
-      noN (no•-ν noN′) =
-    rel-world-⊑ν-embedᵀ emb hA h⇑A s↑ liftρ liftγ r
-      (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb
-      (νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑
-        liftρ liftγ N⊑N′)
-      (no•-ν noN) (no•-ν noN′) =
-    rel-world-νcast⊑νcast-embedᵀ emb mode seal mode′ seal′
-      s⊑ s′⊑ liftρ liftγ
-      (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb
-      (νcast⊑ᵀ mode seal s⊑ liftρ liftγ N⊑N′)
-      (no•-ν noN) noN′ =
-    rel-world-νcast⊑-embedᵀ emb mode seal s⊑ liftρ liftγ
-      (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb
-      (⊑νcastᵀ mode seal s⊑ liftρ liftγ r N⊑N′)
-      noN (no•-ν noN′) =
-    rel-world-⊑νcast-embedᵀ emb mode seal s⊑ liftρ liftγ r
-      (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb κ⊑κᵀ no•-$ no•-$ = κ⊑κᵀ
-  rel-world-embed-no•ᵀ emb (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
-      (no•-⊕ noL noM) (no•-⊕ noL′ noM′) =
-    ⊕⊑⊕ᵀ
-      (rel-world-embed-no•ᵀ emb L⊑L′ noL noL′)
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-  rel-world-embed-no•ᵀ emb
-      (cast⊒⊑ᵀ mode seal c⊒ M⊑M′ q)
-      (no•-⟨⟩ noM) noM′ =
-    rel-world-cast⊒⊑-embedᵀ emb mode seal c⊒
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-  rel-world-embed-no•ᵀ emb
-      (cast⊑⊑ᵀ mode seal c⊑ M⊑M′ q)
-      (no•-⟨⟩ noM) noM′ =
-    rel-world-cast⊑⊑-embedᵀ emb mode seal c⊑
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-  rel-world-embed-no•ᵀ emb
-      (⊑cast⊒ᵀ mode seal c⊒ M⊑M′ q)
-      noM (no•-⟨⟩ noM′) =
-    rel-world-⊑cast⊒-embedᵀ emb mode seal c⊒
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-  rel-world-embed-no•ᵀ emb
-      (⊑cast⊑ᵀ mode seal c⊑ M⊑M′ q)
-      noM (no•-⟨⟩ noM′) =
-    rel-world-⊑cast⊑-embedᵀ emb mode seal c⊑
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-  rel-world-embed-no•ᵀ emb
-      (⊑cast⊑idᵀ seal c⊑ M⊑M′ q)
-      noM (no•-⟨⟩ noM′) =
-    rel-world-⊑cast⊑id-embedᵀ emb c⊑
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-  rel-world-embed-no•ᵀ emb
-      (conv⊑convᵀ cast M⊑M′)
-      (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
-    rel-world-conv⊑conv-embedᵀ emb cast
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-  rel-world-embed-no•ᵀ emb (conv↑⊑ᵀ conv M⊑M′ q)
-      (no•-⟨⟩ noM) noM′ =
-    rel-world-conv↑⊑-embedᵀ emb conv
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-  rel-world-embed-no•ᵀ emb (conv↓⊑ᵀ conv M⊑M′ q)
-      (no•-⟨⟩ noM) noM′ =
-    rel-world-conv↓⊑-embedᵀ emb conv
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-  rel-world-embed-no•ᵀ emb (⊑conv↑ᵀ conv M⊑M′ q)
-      noM (no•-⟨⟩ noM′) =
-    rel-world-⊑conv↑-embedᵀ emb conv
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-  rel-world-embed-no•ᵀ emb (⊑conv↓ᵀ conv M⊑M′ q)
-      noM (no•-⟨⟩ noM′) =
-    rel-world-⊑conv↓-embedᵀ emb conv
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-
-  rel-world-embed-no•ᵀᵖ emb
-      (down⊑downᵀ d⊒ d′⊒ M⊑M′ q)
-      (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
-    rel-world-down-embedᵀ emb d⊒ d′⊒
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′) q
-  rel-world-embed-no•ᵀᵖ emb
-      (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ q)
-      (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
-    rel-world-gen-down-embedᵀ emb d⊒ d′⊒
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′) q
 
 identity-bodyᵀ :
   ∀ {Φ Δᴸ Δᴿ A B L L′ p}
@@ -1563,34 +1382,6 @@ matched-lift-prefix-bodyᵀ liftρ prefix noL noL′ L⊑L′ =
     (matched-lift-world-embeddingⁱ liftρ) L⊑L′ noL noL′
   noL↑ = renameᵗᵐ-preserves-No• suc noL
   noL′↑ = renameᵗᵐ-preserves-No• suc noL′
-
-left-lift-prefix-bodyᵀ :
-  ∀ {Φ Δᴸ Δᴿ A B L L′ p}
-    {ρ₀ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ₁ ρ⁺ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      (suc Δᴸ) Δᴿ} →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρ₁ →
-  StoreImpPrefix ρ₁ ρ⁺ →
-  No• L → No• L′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ L ⊑ L′ ⦂ A ⊑ B ∶ p →
-  ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣ ρ⁺ ∣ []
-    ⊢ᴺ ⇑ᵗᵐ L ⊑ L′ ⦂ ⇑ᵗ A ⊑ B ∶ ⊑-source-liftνᵢ p
-left-lift-prefix-bodyᵀ {B = B} {L′ = L′}
-    liftρ prefix noL noL′ L⊑L′ =
-  allocation-prefixᵀ prefix body
-    (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
-      noL↑ (nu-term-imprecision-source-typing body))
-    (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)
-      noL′ (nu-term-imprecision-target-typing body))
-  where
-  body =
-    nu-term-imprecision-transport-termsᵀ refl (renameᵗᵐ-id L′)
-      (nu-term-imprecision-transport-typesᵀ
-        refl (renameᵗ-id B) refl
-        (rel-world-embed-no•ᵀ
-          (left-lift-world-embeddingⁱ liftρ) L⊑L′ noL noL′))
-  noL↑ = renameᵗᵐ-preserves-No• suc noL
 
 right-lift-prefix-bodyᵀ :
   ∀ {Φ Δᴸ Δᴿ A B L L′ p}
@@ -2262,41 +2053,6 @@ weaken-store-corresponds (correspondence-stored x∈) =
 weaken-store-corresponds (correspondence-linked x∈) =
   correspondence-linked (there x∈)
 
-allocated-left-seal★ :
-  ∀ {Φ Δᴸ Δᴿ μ Aν}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
-  SealModeStore★ μ (leftStoreⁱ ρ) →
-  SealModeStore★ (extᵈ μ) ((zero , Aν) ∷ leftStoreⁱ ρ′)
-allocated-left-seal★ liftρ seal★ zero ()
-allocated-left-seal★ {μ = μ} {ρ′ = ρ′} liftρ seal★ (suc α) ok =
-  there (shifted-seal★ (suc α) ok)
-  where
-    shifted-seal★ : SealModeStore★ (extᵈ μ) (leftStoreⁱ ρ′)
-    shifted-seal★ =
-      subst (SealModeStore★ (extᵈ μ))
-        (sym (leftStoreⁱ-lift-left liftρ))
-        (seal★-ext-shift seal★)
-
-allocated-left-gen-seal★ :
-  ∀ {Φ Δᴸ Δᴿ μ Aν}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
-  SealModeStore★ μ (leftStoreⁱ ρ) →
-  SealModeStore★ (genᵈ μ) ((zero , Aν) ∷ leftStoreⁱ ρ′)
-allocated-left-gen-seal★ liftρ seal★ zero ()
-allocated-left-gen-seal★ {μ = μ} {ρ′ = ρ′}
-    liftρ seal★ (suc α) ok =
-  there (shifted-seal★ (suc α) ok)
-  where
-    shifted-seal★ : SealModeStore★ (genᵈ μ) (leftStoreⁱ ρ′)
-    shifted-seal★ =
-      subst (SealModeStore★ (genᵈ μ))
-        (sym (leftStoreⁱ-lift-left liftρ))
-        (seal★-gen-shift seal★)
-
 seal★-weakenCast-shift :
   ∀ {μ Σ} →
   SealModeStore★ μ Σ →
@@ -2389,57 +2145,6 @@ left-source-lift-cast-wideningᵀ liftρ mode seal★ c⊑ M⊑M′ q′ =
     (lifted-left-weakenCast-seal★ liftρ seal★)
     (lifted-left-widening liftρ c⊑) M⊑M′ q′
 
-allocated-left-relationᵀ :
-  ∀ {Φ Δᴸ Δᴿ Aν M M′ B B′ p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-    {γ′ : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  (hAν : WfTy (suc Δᴸ) Aν) →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
-  No• M →
-  ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ M ⊑ M′ ⦂ B ⊑ B′ ∶ p →
-  ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣
-    store-left zero Aν hAν ∷ ρ′ ∣ γ′
-    ⊢ᴺ M ⊑ M′ ⦂ B ⊑ B′ ∶ p
-allocated-left-relationᵀ hAν liftρ noM M⊑M′ =
-  allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) M⊑M′
-    (term-weaken {Δ′ = _} {Σ′ = _} ≤-refl StoreIncl-drop noM
-      (nu-term-imprecision-source-typing M⊑M′))
-    (nu-term-imprecision-target-typing M⊑M′)
-
-open-allocated-left-all-reveal :
-  ∀ {Φ Δᴸ Δᴿ μ α X Aν c A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
-  RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X
-    (`∀ c) (`∀ A) (`∀ B) →
-  RevealConversion (extᵈ μ) (suc Δᴸ)
-    ((zero , Aν) ∷ leftStoreⁱ ρ′)
-    (suc α) (⇑ᵗ X) c A B
-open-allocated-left-all-reveal liftρ (reveal-all c↑) =
-  weaken-reveal-conversion StoreIncl-drop
-    (subst
-      (λ Σ → RevealConversion _ _ Σ _ _ _ _ _)
-      (sym (leftStoreⁱ-lift-left liftρ)) c↑)
-
-open-allocated-left-all-conceal :
-  ∀ {Φ Δᴸ Δᴿ μ α X Aν c A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
-  ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X
-    (`∀ c) (`∀ A) (`∀ B) →
-  ConcealConversion (extᵈ μ) (suc Δᴸ)
-    ((zero , Aν) ∷ leftStoreⁱ ρ′)
-    (suc α) (⇑ᵗ X) c A B
-open-allocated-left-all-conceal liftρ (conceal-all c↓) =
-  weaken-conceal-conversion StoreIncl-drop
-    (subst
-      (λ Σ → ConcealConversion _ _ Σ _ _ _ _ _)
-      (sym (leftStoreⁱ-lift-left liftρ)) c↓)
-
 open-allocated-paired-all-conversion :
   ∀ {Φ Δᴸ Δᴿ X X′ pX c c′ A A′ B B′ p q}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -2516,19 +2221,6 @@ post-allocation-β-Λ• :
 post-allocation-β-Λ• vV =
   ξ-⟨⟩ (post-allocation-β-Λ•-bare vV)
 
-post-allocation-β-∀•-bare :
-  ∀ {V c} →
-  Value V →
-  (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
-    —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ c ⟩
-post-allocation-β-∀•-bare {V = V} {c = c} vV =
-  subst
-    (λ d → (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
-      —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ d ⟩)
-    (open0-ext-suc-cancelᶜ c)
-    (pure-step
-      (β-∀• (renameᵗᵐ-preserves-Value suc vV)))
-
 post-β-inst :
   ∀ {V B s} →
   Value V →
@@ -2550,19 +2242,6 @@ post-β-gen• :
   Value V →
   ((V ⟨ gen A c ⟩) •) —→[ keep ] (V ⟨ (c [ zero ]ᶜ) ⟩)
 post-β-gen• vV = pure-step (β-gen• vV)
-
-post-allocation-β-gen•-bare :
-  ∀ {V A c} →
-  Value V →
-  (⇑ᵗᵐ (V ⟨ gen A c ⟩)) •
-    —→[ keep ] (⇑ᵗᵐ V) ⟨ c ⟩
-post-allocation-β-gen•-bare {V = V} {c = c} vV =
-  subst
-    (λ d → (⇑ᵗᵐ (V ⟨ gen _ c ⟩)) •
-      —→[ keep ] (⇑ᵗᵐ V) ⟨ d ⟩)
-    (open0-ext-suc-cancelᶜ c)
-    (pure-step
-      (β-gen• (renameᵗᵐ-preserves-Value suc vV)))
 
 post-allocation-β-gen• :
   ∀ {V A c s} →
@@ -3897,32 +3576,6 @@ weak-one-step-reverse-direct-quotient-indexed-outcomeᵀ
     (targetTypeResult result)
     (transportType result pF)
 
-Λ-value-body :
-  ∀ {V} →
-  Value (Λ V) →
-  Value V
-Λ-value-body (Λ vV) = vV
-
-post-allocation-polymorphic-value-step :
-  ∀ {Δ : TyCtx} {Σ : Store} {L A} →
-  Value L →
-  Δ ∣ Σ ∣ [] ⊢ L ⦂ `∀ A →
-  ∃[ N ] ((⇑ᵗᵐ L) • —→[ keep ] N)
-post-allocation-polymorphic-value-step
-    {Δ = Δ} {Σ = Σ} {L = L} {A = A} vL L⊢
-    with canonical-∀ {Δ = Δ} {Σ = Σ} {V = L} {A = A}
-      vL (forget L⊢)
-post-allocation-polymorphic-value-step {L = .(Λ V)} vL L⊢
-    | av-Λ {W = V} refl =
-  V , post-allocation-β-Λ•-bare (Λ-value-body vL)
-post-allocation-polymorphic-value-step
-    {L = .(V ⟨ `∀ c ⟩)} vL L⊢ | av-∀ {W = V} {c = c} vV refl =
-  ((⇑ᵗᵐ V) •) ⟨ c ⟩ , post-allocation-β-∀•-bare vV
-post-allocation-polymorphic-value-step
-    {L = .(V ⟨ gen A c ⟩)} vL L⊢
-    | av-gen {W = V} {A = A} {c = c} vV refl =
-  (⇑ᵗᵐ V) ⟨ c ⟩ , post-allocation-β-gen•-bare vV
-
 matched-polymorphic-value-shapeᵀ :
   ∀ {Φ Δᴸ Δᴿ L L′ A A′ p}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
@@ -3936,17 +3589,6 @@ matched-polymorphic-value-shapeᵀ vL vL′ L⊑L′ =
     (forget (nu-term-imprecision-source-typing L⊑L′)) ,
   canonical-∀ vL′
     (forget (nu-term-imprecision-target-typing L⊑L′))
-
-left-polymorphic-value-shapeᵀ :
-  ∀ {Φ Δᴸ Δᴿ L N′ A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  Value L →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ L ⊑ N′ ⦂ `∀ A ⊑ B ∶ p →
-  AllView L
-left-polymorphic-value-shapeᵀ vL L⊑N′ =
-  canonical-∀ vL
-    (forget (nu-term-imprecision-source-typing L⊑N′))
 
 right-polymorphic-value-shapeᵀ :
   ∀ {Φ Δᴸ Δᴿ N L′ A B p}
@@ -4129,84 +3771,6 @@ paired-β-∀-conceal zero⊑zero zero-entry vV vV′
   paired-conceal (correspondence-stored zero-entry)
     (open-conceal-conversion z<s c↓)
     (open-conceal-conversion z<s c′↓)
-
-paired-β-∀-revealᵀ :
-  ∀ {Φ Δᴸ Δᴿ X X′ pX μ μ′ c c′ A A′ B B′ V V′}
-    {ρ : StoreImp Φ (suc Δᴸ) (suc Δᴿ)}
-    {γ : CtxImp Φ (suc Δᴸ) (suc Δᴿ)} →
-  (zero⊑zero : (zero ˣ⊑ˣ zero) ∈ Φ) →
-  store-matched zero X zero X′ pX ∈ ρ →
-  Value V →
-  Value V′ →
-  RevealConversion μ (suc Δᴸ) (leftStoreⁱ ρ) zero X
-    (`∀ c) (`∀ A) (`∀ B) →
-  RevealConversion μ′ (suc Δᴿ) (rightStoreⁱ ρ) zero X′
-    (`∀ c′) (`∀ A′) (`∀ B′) →
-  (p : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ A ⊑ A′ ⊣ suc (suc Δᴿ)) →
-  (q : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ B ⊑ B′ ⊣ suc (suc Δᴿ)) →
-  Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ V • ⊑ V′ •
-    ⦂ A [ zero ]ᴿ ⊑ A′ [ zero ]ᴿ
-    ∶ ⊑-open∀ᵢ {α = zero} {β = zero} zero⊑zero z<s z<s p →
-  (((V ⟨ `∀ c ⟩) • —→[ keep ]
-      (V •) ⟨ (c [ zero ]ᶜ) ⟩) ×
-   ((V′ ⟨ `∀ c′ ⟩) • —→[ keep ]
-      (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩) ×
-   (Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺ (V •) ⟨ (c [ zero ]ᶜ) ⟩
-        ⊑ (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩
-      ⦂ B [ zero ]ᴿ ⊑ B′ [ zero ]ᴿ
-      ∶ ⊑-open∀ᵢ {α = zero} {β = zero}
-          zero⊑zero z<s z<s q))
-paired-β-∀-revealᵀ zero⊑zero zero-entry vV vV′
-    (reveal-all c↑) (reveal-all c′↑) p q V•⊑V′• =
-  pure-step (β-∀• vV) ,
-  pure-step (β-∀• vV′) ,
-  conv⊑convᵀ
-    (paired-conversion
-      (paired-reveal (correspondence-stored zero-entry)
-        (open-reveal-conversion z<s c↑)
-        (open-reveal-conversion z<s c′↑)))
-    V•⊑V′•
-
-paired-β-∀-concealᵀ :
-  ∀ {Φ Δᴸ Δᴿ X X′ pX μ μ′ c c′ A A′ B B′ V V′}
-    {ρ : StoreImp Φ (suc Δᴸ) (suc Δᴿ)}
-    {γ : CtxImp Φ (suc Δᴸ) (suc Δᴿ)} →
-  (zero⊑zero : (zero ˣ⊑ˣ zero) ∈ Φ) →
-  store-matched zero X zero X′ pX ∈ ρ →
-  Value V →
-  Value V′ →
-  ConcealConversion μ (suc Δᴸ) (leftStoreⁱ ρ) zero X
-    (`∀ c) (`∀ A) (`∀ B) →
-  ConcealConversion μ′ (suc Δᴿ) (rightStoreⁱ ρ) zero X′
-    (`∀ c′) (`∀ A′) (`∀ B′) →
-  (p : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ A ⊑ A′ ⊣ suc (suc Δᴿ)) →
-  (q : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ B ⊑ B′ ⊣ suc (suc Δᴿ)) →
-  Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ V • ⊑ V′ •
-    ⦂ A [ zero ]ᴿ ⊑ A′ [ zero ]ᴿ
-    ∶ ⊑-open∀ᵢ {α = zero} {β = zero} zero⊑zero z<s z<s p →
-  (((V ⟨ `∀ c ⟩) • —→[ keep ]
-      (V •) ⟨ (c [ zero ]ᶜ) ⟩) ×
-   ((V′ ⟨ `∀ c′ ⟩) • —→[ keep ]
-      (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩) ×
-   (Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺ (V •) ⟨ (c [ zero ]ᶜ) ⟩
-        ⊑ (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩
-      ⦂ B [ zero ]ᴿ ⊑ B′ [ zero ]ᴿ
-      ∶ ⊑-open∀ᵢ {α = zero} {β = zero}
-          zero⊑zero z<s z<s q))
-paired-β-∀-concealᵀ zero⊑zero zero-entry vV vV′
-    (conceal-all c↓) (conceal-all c′↓) p q V•⊑V′• =
-  pure-step (β-∀• vV) ,
-  pure-step (β-∀• vV′) ,
-  conv⊑convᵀ
-    (paired-conversion
-      (paired-conceal (correspondence-stored zero-entry)
-        (open-conceal-conversion z<s c↓)
-        (open-conceal-conversion z<s c′↓)))
-    V•⊑V′•
 
 left-β-∀-revealᵀ :
   ∀ {Φ Δᴸ Δᴿ X μ c A B B′ V N′ p}
@@ -4794,52 +4358,6 @@ left-catchup-indexed-all-keep-stepᵀ source→ final N⊑V′ =
       source→ N⊑V′)
   where
   result = weak-one-step-keep-source-catchupᵀ source→ N⊑V′
-
-left-catchup-indexed-prefix-prepend-keepᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N V′ A B p}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  (source→ : M —→[ keep ] N) →
-  (N⊑V′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ A ⊑ B ∶ p) →
-  Δᴸ ∣ leftStoreⁱ ρ⁺ ∣ [] ⊢ N ⦂ A →
-  Δᴿ ∣ rightStoreⁱ ρ⁺ ∣ [] ⊢ V′ ⦂ B →
-  LeftCatchupIndexedResult
-    {N = N} {V′ = V′} {ρ = ρ⁺} p →
-  LeftCatchupIndexedResult
-    {N = M} {V′ = V′} {ρ = ρ⁺} p
-left-catchup-indexed-prefix-prepend-keepᵀ
-    prefix source→ N⊑V′ N⊢ V′⊢ catchup =
-  left-catchup-indexed-prepend-keepᵀ source→
-    (allocation-prefixᵀ prefix N⊑V′ N⊢ V′⊢) catchup
-
-
-left-catchup-indexed-all-prepend-keepᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N V′ C C′ q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (source→ : M —→[ keep ] N) →
-  (N⊑V′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q) →
-  LeftCatchupIndexedAllResult
-    {N = N} {V′ = V′} {ρ = ρ} q →
-  LeftCatchupIndexedAllResult
-    {N = M} {V′ = V′} {ρ = ρ} q
-left-catchup-indexed-all-prepend-keepᵀ source→ N⊑V′
-    (left-indexed-all-catchup indexed
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      second-transport second-coherence) =
-  left-indexed-all-catchup
-    (weak-indexed-result combined (canonicalIndexedResults indexed))
-    (left-catchup-invariant
-      (left-silent-invariant refl refl) final)
-    (weak-one-step-prepend-source-keep-transportᵀ
-      source→ second second-transport)
-    (weak-one-step-prepend-source-keep-type-coherenceᵀ
-      source→ second second-coherence)
-  where
-  second = weakIndexedResult indexed
-  combined = weak-one-step-prepend-source-keepᵀ source→ second
 
 left-catchup-indexed-all-prefix-prepend-keepᵀ :
   ∀ {Φ Δᴸ Δᴿ M N V′ C C′ q}
@@ -6591,70 +6109,6 @@ left-catchup-all-α-∀-concealᵀ
       conv↓⊑ᵀ (open-allocated-left-all-conceal liftρ c↓)
         bullet-relation (∀ⁱ q)
 
-left-catchup-indexed-all-α-∀-revealᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ α X Aν A C C′ c V V′ occ r q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value V →
-  No• V →
-  (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
-  (liftρ : LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
-  RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X
-    (`∀ c) (`∀ A) (`∀ (`∀ C)) →
-  LeftCatchupIndexedAllResult
-    {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
-left-catchup-indexed-all-α-∀-revealᵀ
-    {V = V} {q = q}
-    vV noV hAν liftρ V⊑V′ c↑ catchup =
-  left-catchup-indexed-all-prepend-keepᵀ
-    (post-allocation-β-∀•-bare vV) post-relation catchup
-  where
-  bullet-relation =
-    left-allocated-bulletᵀ vV noV hAν liftρ V⊑V′
-
-  post-relation =
-    conv↑⊑ᵀ (open-allocated-left-all-reveal liftρ c↑)
-      bullet-relation (∀ⁱ q)
-
-left-catchup-indexed-all-α-∀-concealᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ α X Aν A C C′ c V V′ occ r q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value V →
-  No• V →
-  (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
-  (liftρ : LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
-  ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X
-    (`∀ c) (`∀ A) (`∀ (`∀ C)) →
-  LeftCatchupIndexedAllResult
-    {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
-left-catchup-indexed-all-α-∀-concealᵀ
-    {V = V} {q = q}
-    vV noV hAν liftρ V⊑V′ c↓ catchup =
-  left-catchup-indexed-all-prepend-keepᵀ
-    (post-allocation-β-∀•-bare vV) post-relation catchup
-  where
-  bullet-relation =
-    left-allocated-bulletᵀ vV noV hAν liftρ V⊑V′
-
-  post-relation =
-    conv↓⊑ᵀ (open-allocated-left-all-conceal liftρ c↓)
-      bullet-relation (∀ⁱ q)
-
 left-catchup-all-α-∀-narrowingᵀ :
   ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -6799,151 +6253,6 @@ left-catchup-all-α-gen-narrowingᵀ
       cast⊒⊑ᵀ (cast-gen mode)
         (allocated-left-gen-seal★ liftρ seal★)
         body-narrowing body-relation (∀ⁱ q)
-
-left-catchup-indexed-all-α-∀-narrowingᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value V →
-  No• V →
-  (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
-  (mode : CastMode μ) →
-  (seal★ : SealModeStore★ μ (leftStoreⁱ ρ)) →
-  (liftρ : LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ
-    ⊢ `∀ c ∶ `∀ A ⊒ `∀ (`∀ C) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
-  LeftCatchupIndexedAllResult
-    {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
-left-catchup-indexed-all-α-∀-narrowingᵀ
-    {Δᴸ = Δᴸ} {μ = μ} {Aν = Aν} {A = A} {C = C}
-    {c = c} {V = V} {q = q} {ρ′ = ρ′}
-    vV noV hAν mode seal★ liftρ c∀⊒ V⊑V′ catchup =
-  left-catchup-indexed-all-prepend-keepᵀ
-    (post-allocation-β-∀•-bare vV) post-relation catchup
-  where
-  bullet-relation =
-    left-allocated-bulletᵀ vV noV hAν liftρ V⊑V′
-
-  body-narrowing :
-    extᵈ μ ∣ suc Δᴸ ∣
-      (zero , ⇑ᵗ Aν) ∷ leftStoreⁱ ρ′
-      ⊢ c ∶ A ⊒ `∀ C
-  body-narrowing =
-    subst
-      (λ Σ → extᵈ μ ∣ suc Δᴸ ∣ Σ
-        ⊢ c ∶ A ⊒ `∀ C)
-      (cong ((zero , ⇑ᵗ Aν) ∷_)
-        (sym (leftStoreⁱ-lift-left liftρ)))
-      (allocate-all-narrowing c∀⊒)
-
-  post-relation =
-    cast⊒⊑ᵀ (cast-ext mode)
-      (allocated-left-seal★ liftρ seal★)
-      body-narrowing bullet-relation (∀ⁱ q)
-
-left-catchup-indexed-all-α-∀-wideningᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value V →
-  No• V →
-  (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
-  (mode : CastMode μ) →
-  (seal★ : SealModeStore★ μ (leftStoreⁱ ρ)) →
-  (liftρ : LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ
-    ⊢ `∀ c ∶ `∀ A ⊑ `∀ (`∀ C) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
-  LeftCatchupIndexedAllResult
-    {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
-left-catchup-indexed-all-α-∀-wideningᵀ
-    {Δᴸ = Δᴸ} {μ = μ} {Aν = Aν} {A = A} {C = C}
-    {c = c} {V = V} {q = q} {ρ′ = ρ′}
-    vV noV hAν mode seal★ liftρ c∀⊑ V⊑V′ catchup =
-  left-catchup-indexed-all-prepend-keepᵀ
-    (post-allocation-β-∀•-bare vV) post-relation catchup
-  where
-  bullet-relation =
-    left-allocated-bulletᵀ vV noV hAν liftρ V⊑V′
-
-  body-widening :
-    extᵈ μ ∣ suc Δᴸ ∣
-      (zero , ⇑ᵗ Aν) ∷ leftStoreⁱ ρ′
-      ⊢ c ∶ A ⊑ `∀ C
-  body-widening =
-    subst
-      (λ Σ → extᵈ μ ∣ suc Δᴸ ∣ Σ
-        ⊢ c ∶ A ⊑ `∀ C)
-      (cong ((zero , ⇑ᵗ Aν) ∷_)
-        (sym (leftStoreⁱ-lift-left liftρ)))
-      (allocate-all-widening c∀⊑)
-
-  post-relation =
-    cast⊑⊑ᵀ (cast-ext mode)
-      (allocated-left-seal★ liftρ seal★)
-      body-widening bullet-relation (∀ⁱ q)
-
-left-catchup-indexed-all-α-gen-narrowingᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ p q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value V →
-  No• V →
-  (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
-  (mode : CastMode μ) →
-  (seal★ : SealModeStore★ μ (leftStoreⁱ ρ)) →
-  (liftρ : LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ
-    ⊢ gen A c ∶ A ⊒ `∀ (`∀ C) →
-  ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ []
-    ⊢ᴺ ⇑ᵗᵐ V ⊑ V′ ⦂ ⇑ᵗ A ⊑ `∀ C′ ∶ p →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ V) ⟨ c ⟩} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ (V ⟨ gen A c ⟩)) •} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
-left-catchup-indexed-all-α-gen-narrowingᵀ
-    {Δᴸ = Δᴸ} {μ = μ} {Aν = Aν} {A = A} {C = C}
-    {c = c} {V = V} {q = q} {ρ′ = ρ′}
-    vV noV hAν mode seal★ liftρ cgen⊒ shifted-body catchup =
-  left-catchup-indexed-all-prepend-keepᵀ
-    (post-allocation-β-gen•-bare vV) post-relation catchup
-  where
-  body-narrowing :
-    genᵈ μ ∣ suc Δᴸ ∣
-      (zero , ⇑ᵗ Aν) ∷ leftStoreⁱ ρ′
-      ⊢ c ∶ ⇑ᵗ A ⊒ `∀ C
-  body-narrowing =
-    subst
-      (λ Σ → genᵈ μ ∣ suc Δᴸ ∣ Σ
-        ⊢ c ∶ ⇑ᵗ A ⊒ `∀ C)
-      (cong ((zero , ⇑ᵗ Aν) ∷_)
-        (sym (leftStoreⁱ-lift-left liftρ)))
-      (allocate-gen-narrowing cgen⊒)
-
-  body-relation =
-    allocated-left-relationᵀ hAν liftρ
-      (renameᵗᵐ-preserves-No• suc noV) shifted-body
-
-  post-relation =
-    cast⊒⊑ᵀ (cast-gen mode)
-      (allocated-left-gen-seal★ liftρ seal★)
-      body-narrowing body-relation (∀ⁱ q)
 
 shifted-var-not-wf-at-zero :
   WfTy zero (＇ (suc zero)) → ⊥

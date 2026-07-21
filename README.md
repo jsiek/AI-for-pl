@@ -45,4 +45,7 @@ Local bibliography note: `/Users/jsiek/bib/all.bib` is a large catalogue of PL
 papers that we use as a reference source when porting examples and designs into
 the Agda developments.
 
+Development workflow: GTSF proof workers on `ginger.luddy.indiana.edu` should
+use the repository-local wrapper and library configuration documented in
+[`scripts/GINGER_AGDA.md`](scripts/GINGER_AGDA.md).
 

@@ -10,8 +10,13 @@ module proof.NuImprecisionPairedTargetClosingStrictSpine where
 --     scratch development.
 
 import proof.NuImprecisionPairedLambdaTargetClosingRelationCounterexample
+import proof.NuImprecisionPairedLambdaTargetClosingFrameViewDef
 import
   proof.NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationDef
+import
+  proof.NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewProof
+import
+  proof.NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef
 import
   proof.NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationProof
 import

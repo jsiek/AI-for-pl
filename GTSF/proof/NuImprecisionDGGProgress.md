@@ -349,6 +349,7 @@ are delegated:
 | [`NuImprecisionSourceLeftAllocationCastTransport.agda`](NuImprecisionSourceLeftAllocationCastTransport.agda) | completed GPT 5.5 extraction | Focused owner of source-left allocation seal-mode transport, relation weakening through the fresh row, and opened structural reveal/conceal conversions; imports no broad simulation module |
 | [`NuImprecisionCatchupComposition.agda`](NuImprecisionCatchupComposition.agda) indexed-all prepend | completed extraction | Canonical result-algebra owner of `left-catchup-indexed-all-prepend-keepᵀ`; the duplicate broad-simulation definition was deleted |
 | [`NuImprecisionSourceInertBulletCommutation.agda`](NuImprecisionSourceInertBulletCommutation.agda) | completed GPT 5.5 extraction | Canonical focused owner of the five indexed-all source `β-∀•`/`β-gen•` commutation lemmas; depends only on focused allocation, bullet, value, and catch-up owners, with duplicates removed from the broad simulation |
+| [`NuImprecisionPairedAllBetaCommutation.agda`](NuImprecisionPairedAllBetaCommutation.agda) | completed GPT 5.5 extraction | Canonical focused owner of the paired reveal/reveal and conceal/conceal `β-∀•` commutation kernels; the duplicate broad-simulation definitions were deleted |
 | [`NuImprecisionSourceBulletBase.agda`](NuImprecisionSourceBulletBase.agda) | completed semantic extraction; improved checking boundary | Strictly packages direct `α`/`Λ` prefix catch-up and allocated-bullet reconstruction; polymorphic value support and generic bullet-free world transport now have focused canonical owners, while specialized embedding/result support still comes from `NuImprecisionSimulationCore` |
 | [`NuImprecisionWorldCoherentSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCatchupDef.agda) | completed statement | Exact ordinary source-`ν` handler contract; its inhabitant is downstream of source-bullet and source-reveal, not in the minimal SCC |
 | [`NuImprecisionWorldCoherentSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuCatchupProof.agda) | completed higher-order proof | Strict accumulated-world adapter transports the reveal and universal relation to the operand's final world, delegates final-value allocation to the exact-final contract, propagates source blame, and composes explicit lineages |
@@ -381,7 +382,10 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaTargetClosingCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaTargetClosingCatchupProof.agda) | completed higher-order proof; assembly partial | Exhaustively dispatches final source reveal to structural-all and active-unseal families while retaining paired reveal/conceal together |
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationDef.agda) | completed statement; assembly partial | Pure structural-all relation boundary directly connecting the two closed casts at the final source-lifted index |
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewDef.agda) | completed hard-worker statement | Retains both `AllView`s and the exact fused conclusion while allowing the input relation to originate below an ambient `StoreImpPrefix`; paired conversion and both allocation lifts remain at the ambient world |
+| [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewProof.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewProof.agda) | completed higher-order adapter | Classifies the input QTI derivation into the proof-relevant frame view and delegates the unchanged fused conclusion to the frame-closing capability |
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationProof.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationProof.agda) | completed higher-order proof; assembly partial | Strictly derives both `AllView`s, starts the ambient worker at `prefix-reflⁱ`, and delegates the unchanged fused relation; the relation-recursive ambient worker and canonical `Lemma` remain not yet started |
+| [`NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda) | completed proof-relevant statement | Strict joint view of the QTI derivation with binder and generic-narrowing leaves, structural source frames, generic target frames, atomic paired frames, and atomic quotient frames; it contains no fabricated one-sided relation |
+| [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda) | completed semantic statement; proof not yet started | Exact fused closer over one proof-relevant frame view; retains the ambient prefix, paired conversion, both allocation lifts, final reveal, and exact conclusion |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda) | completed statement; proof not yet started | Fused active fresh-unseal operational boundary; recursive cancellation and target closing remain inseparable |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda) | completed statement; proof not yet started | Whole paired-widening target-closing family retaining both modes, store sealing invariants, typed casts, and `PairedWideningCompatible` |
 | [`NuImprecisionWorldCoherentTargetInertFrameCatchupDef.agda`](NuImprecisionWorldCoherentTargetInertFrameCatchupDef.agda) | completed statement | One reusable strict target-frame contract with an inline five-way evidence sum for reveal, conceal, narrowing, widening, and id-only widening |
@@ -6983,3 +6987,62 @@ coordination.  Use focused strict checks throughout and reserve
   impossible `gen` clauses are suitable future GPT 5.5 slices once their
   spine-indexed statements are frozen.  Binder rotation and fused
   source/paired/quotient cases remain GPT 5.6 work.
+
+- Extracted the two existing paired universal beta-commutation kernels on
+  Ginger with GPT 5.5.  They now live in
+  [`NuImprecisionPairedAllBetaCommutation.agda`](NuImprecisionPairedAllBetaCommutation.agda),
+  which imports no broad simulation, simulation-core, or scratch module.
+  The new owner and its broad simulation consumer both passed strict Ginger
+  checks; the consumer took 158.80 seconds.  A local strict owner check took
+  3.3 seconds.  The duplicate definitions were removed from
+  `NuImprecisionSimulation.agda`, and no aggregate was checked.
+
+- Froze the first proof-relevant target-closing spine in
+  [`NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda).
+  It records the QTI derivation jointly instead of storing independent source
+  and target cast lists.  Its recursive source frames are restricted to exact
+  structural universal casts, while target-only frames remain generic after
+  a target `gen` peel.  Paired and quotiented casts stay atomic.  The two
+  binder leaves are joined by the direct generic-narrowing terminal and the
+  quotient gen-down/gen terminal; the latter two cases were missing from the
+  earlier prose-only plan and became visible only when the exact indexed
+  datatype was checked.  The owner passes `--no-allow-unsolved-metas` in 2.6
+  seconds locally.
+
+- Audited extraction of `left-paired-conversion-renameⁱ` and
+  `left-paired-cast-renameⁱ` on Ginger, but stopped before edits.  Their
+  dependency closure still includes left precision-index renaming, the
+  proof-relevant store-renaming relation and correspondence lookup, conversion
+  and widening transport, cast-mode renaming, and paired-widening
+  compatibility transport, all spread through `NuImprecisionSimulationCore`.
+  That is a foundation-sized refactoring rather than a leaf.  Before farming
+  these theorems out again, extract a small canonical left-renaming foundation
+  with its own strict owner; do not disguise the whole closure as one worker
+  module.
+
+- Connected the proof-relevant view to the existing ambient theorem with two
+  more strict three-file boundaries.  The exact semantic obligation is now
+  [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda):
+  it replaces raw endpoint classifications and the raw QTI derivation with
+  one checked frame view while retaining every ambient allocation and closing
+  premise.  The completed higher-order adapter in
+  [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewProof.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewProof.agda)
+  takes the frame classifier and semantic closer as whole theorem parameters,
+  constructs the view, and inhabits the existing ambient contract.  Both
+  focused strict checks take about three seconds.  The frame-closing `Proof`
+  and all canonical `Lemma` assemblies remain absent rather than permissive.
+
+- Audited the semantic interpreter required below `FrameClosingᵀ`.  The view
+  is evidence-complete: it can reconstruct the original QTI derivation and
+  all endpoint `Value`/`No•` facts without a fabricated intermediate index.
+  It must nevertheless be interpreted with a higher-order post-bullet motive,
+  because a source structural-`∀` frame opens to its body coercion while a
+  target-only frame remains outside the uninstantiated target.  The genuine
+  semantic handler families are the four leaves, four source-all frames,
+  paired conversion, paired widening, and the two recursive quotient frames.
+  Reflexivity, prefix, and the five target-only frames remain administrative;
+  if target transport cannot be derived internally, expose one shared
+  five-way capability rather than five theorem files.  GPT 5.6 should freeze
+  the motive and handle binder rotation, quotient/gen, paired widening, and
+  quotient frames.  Once those exact types check, structural reconstruction,
+  prefix/target transport, and source-all adapters are suitable GPT 5.5 work.

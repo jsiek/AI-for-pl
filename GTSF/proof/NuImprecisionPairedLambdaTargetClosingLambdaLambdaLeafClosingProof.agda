@@ -3,10 +3,11 @@ module
   where
 
 -- File Charter:
---   * Adapts the exact fused matched-`Λ` closing theorem to the corresponding
---     target-closing frame handler field.
---   * Keeps the fused semantic theorem as an explicit higher-order
---     dependency because the pre-reveal rotation is false.
+--   * Proves the matched-`Λ` closing theorem from its exact paired-reveal and
+--     paired-conceal constructor branches.
+--   * Keeps both semantic branches fused through source allocation and the
+--     final reveal because the pre-reveal rotation is false.
+--   * Adapts the resulting theorem to the corresponding frame handler field.
 --   * Contains no postulate, hole, permissive option, broad simulation
 --     import, or dependency on the recursive frame-closing theorem.
 
@@ -27,7 +28,10 @@ open import NuTermImprecision using
   )
 open import NuTerms using (No•; Term; Value; Λ_)
 open import QuotientedTermImprecision using
-  (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
+  ( paired-conceal
+  ; paired-reveal
+  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
+  )
 open import Types using (Ty; TyCtx; `∀)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef
@@ -35,6 +39,34 @@ open import
 open import
   proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingDef
   using (PairedLambdaTargetClosingLambdaLambdaLeafClosingᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef
+  using
+  ( PairedLambdaTargetClosingLambdaLambdaLeafPairedConcealClosingᵀ
+  ; PairedLambdaTargetClosingLambdaLambdaLeafPairedRevealClosingᵀ
+  )
+
+
+paired-lambda-target-closing-lambda-lambda-leaf-closing-proofᵀ :
+  PairedLambdaTargetClosingLambdaLambdaLeafPairedRevealClosingᵀ →
+  PairedLambdaTargetClosingLambdaLambdaLeafPairedConcealClosingᵀ →
+  PairedLambdaTargetClosingLambdaLambdaLeafClosingᵀ
+paired-lambda-target-closing-lambda-lambda-leaf-closing-proofᵀ
+    reveal-closing conceal-closing
+    liftρ liftγ vV noV vV′ noV′ V⊑V′
+    prefix h⇑A final-reveal liftν lift∀
+    (paired-reveal corr source-reveal target-reveal) =
+  reveal-closing liftρ liftγ vV noV vV′ noV′ V⊑V′
+    prefix h⇑A final-reveal liftν lift∀ corr
+    source-reveal target-reveal
+paired-lambda-target-closing-lambda-lambda-leaf-closing-proofᵀ
+    reveal-closing conceal-closing
+    liftρ liftγ vV noV vV′ noV′ V⊑V′
+    prefix h⇑A final-reveal liftν lift∀
+    (paired-conceal corr source-conceal target-conceal) =
+  conceal-closing liftρ liftγ vV noV vV′ noV′ V⊑V′
+    prefix h⇑A final-reveal liftν lift∀ corr
+    source-conceal target-conceal
 
 
 paired-lambda-target-closing-lambda-lambda-leaf-handler-proofᵀ :

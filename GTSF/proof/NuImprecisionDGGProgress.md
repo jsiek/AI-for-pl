@@ -395,11 +395,17 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingDef.agda) | completed fused statement; assembly partial | Exact ordinary source-`Λ`/target-nonbinder leaf retains source-bullet allocation, the whole paired conversion, and the final reveal; its factorization through the shared `ν` rotation is explicit |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingProof.agda) | completed higher-order proof; assembly partial | Prefix-transports the `Λ` relation, constructs the source runtime bullet, invokes `NuPairedConversionRotationᵀ`, applies the final reveal, and exactly inhabits `handle-leaf-Λ` |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingDef.agda) | completed fused statement; concrete proof not yet started | Exact matched `Λ`/`Λ` leaf retains the body relation, both allocation lifts, whole paired conversion, and final reveal because the checked counterexample refutes the tempting pre-reveal factorization |
-| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda) | completed handler adapter; assembly partial | Verifies that the fused matched-`Λ` theorem exactly inhabits `handle-leaf-ΛΛ`; it introduces no circular recursive closer or one-sided intermediate |
-| [`NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda) | completed fused statement; concrete proof not yet started | Exact quotient gen-down/gen terminal retains the quotient relation, widening pair, source allocation, external paired conversion, and final reveal after its proposed pre-reveal rotation was refuted |
-| [`NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof.agda) | completed handler adapter; assembly partial | Verifies direct fit of the fused quotient theorem to `handle-leaf-up-gen` without depending on recursive frame closing |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda) | completed constructor statements; semantic proofs not yet started | Exact paired-reveal and paired-conceal matched-`Λ` leaves retain the body relation, ambient prefix, both lifts, store correspondence, conversion evidence, and final reveal |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda) | completed higher-order dispatcher and handler adapter; assembly partial | Exhaustively derives the fused matched-`Λ` theorem from its paired-reveal/conceal branches and verifies exact `handle-leaf-ΛΛ` fit without a recursive closer or one-sided intermediate |
+| [`NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda) | completed fused statement; assembly partial | Exact quotient gen-down/gen terminal retains the quotient relation, widening pair, source allocation, external paired conversion, and final reveal after its proposed one-size-fits-all pre-reveal rotation was refuted |
+| [`NuImprecisionPairedLambdaTargetClosingUpGenLeafAllIndexClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafAllIndexClosingDef.agda) | completed paired-`∀ⁱ` statement; concrete proof not yet started | Smallest remaining fused quotient terminal branch; the source-only `ν` branch is constructive through the shared rotation, while the checked counterexample applies precisely to this paired-index branch |
+| [`NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof.agda) | completed higher-order index proof; assembly partial | Splits the outer index exhaustively: paired `∀ⁱ` delegates to the fused branch, while `ν` reconstructs the quotient relation, prefix-transports it, allocates the source bullet, rotates the paired conversion, and applies the final reveal; the exact handler adapter is retained |
 | [`NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda) | completed `ν` branch statement; assembly partial | Source-only-index generic terminal stops before final reveal only in the `ν` case, where its existential intermediate index is not ruled out by the paired-index counterexample |
-| [`NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef.agda) | completed reusable statement; concrete proof not yet started | Exact semantic boundary for opening a paired universal conversion through one source-only allocation at an outer `ν` index; it is shared by the terminal generic leaf and source-universal frame |
+| [`NuImprecisionFreshTypePath.agda`](NuImprecisionFreshTypePath.agda) | completed strict path toolkit | Proof-relevant paths to variable occurrences, boolean-occurrence extraction, path functionality, and both finite self-extension contradictions for the fresh-binder cycle argument |
+| [`NuImprecisionPairedUniversalConversionFreshPathCycleDef.agda`](NuImprecisionPairedUniversalConversionFreshPathCycleDef.agda) | completed impossibility statement; joint transport not yet started | Isolates the exact claim that `occ-r`, the two body indices, and a paired universal conversion form an impossible fresh-binder path cycle; allocation evidence is deliberately absent |
+| [`NuImprecisionPairedUniversalConversionFreshPathCycleProof.agda`](NuImprecisionPairedUniversalConversionFreshPathCycleProof.agda) | completed higher-order proof; assembly partial | Converts `occ-r` to a proof-relevant path and derives contradiction from one explicit inline dependency transporting that path around the whole imprecision/conversion square to `body p` |
+| [`NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef.agda) | completed reusable statement; assembly partial | Exact semantic boundary for opening a paired universal conversion through one source-only allocation at an outer `ν` index; it is shared by the ordinary `Λ`, generic terminal, quotient terminal, and source-universal cases |
+| [`NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationProof.agda`](NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationProof.agda) | completed higher-order proof; assembly partial | Eliminates the impossible fresh-path-cycle premise before store allocation evidence is needed; the only missing dependency is the joint path-square transport exposed by the cycle proof |
 | [`NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationProof.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationProof.agda) | completed higher-order proof; assembly partial | Derives generic-terminal conversion rotation from the reusable `ν` paired-conversion rotation by prefix transport, generic-cast reconstruction, and source runtime-bullet allocation |
 | [`NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof.agda) | completed higher-order leaf proof; assembly partial | Implements `handle-leaf-gen-ν` from generic-terminal conversion rotation and applies the final source reveal only after the paired conversion has been rotated |
 | [`NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef.agda`](NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef.agda) | completed fused statement; concrete proof not yet started | Honest recursive outer-`∀ⁱ` generic-narrowing boundary retaining inner and framed QTI relations, endpoint evidence, and the recursive closing motive |
@@ -7177,8 +7183,9 @@ coordination.  Use focused strict checks throughout and reserve
   bullet; then
   [`NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof.agda)
   applies the final reveal.  Both adapters are strict and complete as
-  higher-order proofs.  Only the canonical semantic rotation inhabitant is
-  not yet started, so no `Lemma` assembly exists and no meta is required.
+  higher-order proofs.  The rotation itself has since been reduced to the
+  fresh-path-cycle theorem described below; no `Lemma` assembly exists while
+  its joint square-transport dependency remains incomplete.
 
 - Froze the recursive paired-index generic frame in
   [`NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef.agda`](NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef.agda).
@@ -7243,9 +7250,10 @@ coordination.  Use focused strict checks throughout and reserve
   out its pre-reveal split.
   [`NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda)
   analogously keeps the quotient gen-down/gen relation and widening evidence
-  fused through closing.  Their `Proof` files strictly verify exact handler
-  fit while leaving the concrete semantic theorems as explicit parameters.
-  No `Lemma` files or permissive metas were introduced.
+  fused through closing.  The matched `Λ` proof strictly verifies exact
+  handler fit while leaving its semantic theorem explicit.  The quotient
+  proof has since been refined by its outer index as described below.  No
+  `Lemma` files or permissive metas were introduced.
 
 - Refined recursive source-gen commutation by the actual paired-conversion
   constructors.  The two exact reveal/conceal statements are in
@@ -7276,3 +7284,44 @@ coordination.  Use focused strict checks throughout and reserve
   `NuImprecisionWorldCoherenceCrossedLemma`.  All three focused modules pass
   `agda --no-allow-unsolved-metas -v0` on Ginger and locally; no aggregate
   check was needed.
+
+- Refined the quotient gen-down/gen leaf by the actual outer precision index.
+  The strict proof in
+  [`NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof.agda)
+  handles `ν` constructively: it rebuilds the quotient relation, transports it
+  through the ambient prefix, allocates the source bullet, rotates the paired
+  conversion, and applies the final reveal.  Only the paired `∀ⁱ` branch
+  remains fused in
+  [`NuImprecisionPairedLambdaTargetClosingUpGenLeafAllIndexClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafAllIndexClosingDef.agda),
+  exactly where the earlier quotient-rotation counterexample applies.  Both
+  focused modules pass strict checks.
+
+- Audited the shared `ν` rotation down to a proof-relevant type-path cycle.
+  A finite search over small types and both paired-conversion constructors
+  found no counterexample; structural analysis instead indicates that the
+  premise is impossible.  The strict toolkit
+  [`NuImprecisionFreshTypePath.agda`](NuImprecisionFreshTypePath.agda)
+  converts boolean occurrence to a path, proves path functionality, and
+  refutes a path returning below one extra universal body.  The exact
+  impossibility statement is
+  [`NuImprecisionPairedUniversalConversionFreshPathCycleDef.agda`](NuImprecisionPairedUniversalConversionFreshPathCycleDef.agda).
+  Its strict higher-order proof file reduces it to one inline joint transport:
+  from `VarAtPath zero p B`, the two imprecision indices and paired
+  reveal/conceal conversion must produce
+  `VarAtPath zero (body p) B`.  That joint square transport is the only
+  unstarted mathematical lemma at this boundary; separate boolean occurrence
+  transports are too weak because function types may contain both branches.
+  [`NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationProof.agda`](NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationProof.agda)
+  then derives the whole rotation immediately from the cycle impossibility,
+  before using either allocation premise.  Every existing file is strict and
+  the absent canonical `Lemma` makes the remaining dependency explicit.
+
+- Refined the matched `Λ`/`Λ` fused leaf by the two actual paired-conversion
+  constructors.  The exact paired-reveal and paired-conceal statements live in
+  [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda).
+  Each retains the body relation, ambient prefix, both allocation lifts, store
+  correspondence, source and target conversion evidence, and final reveal.
+  [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda)
+  is now the strict exhaustive dispatcher plus exact handler adapter.  The two
+  semantic constructor proofs remain not started; the recursive frame closer
+  would be circular and is not imported.

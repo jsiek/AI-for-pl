@@ -24,6 +24,13 @@ import
   proof.NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef
 import
   proof.NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef
+import proof.NuImprecisionFreshTypePath
+import
+  proof.NuImprecisionPairedUniversalConversionFreshPathCycleDef
+import
+  proof.NuImprecisionPairedUniversalConversionFreshPathCycleProof
+import
+  proof.NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationProof
 import
   proof.NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingDef
 import
@@ -31,9 +38,13 @@ import
 import
   proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingDef
 import
+  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef
+import
   proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof
 import
   proof.NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef
+import
+  proof.NuImprecisionPairedLambdaTargetClosingUpGenLeafAllIndexClosingDef
 import
   proof.NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingProof
 import

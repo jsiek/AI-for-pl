@@ -278,8 +278,11 @@ its fields recursively.  Its current proof decomposition is:
   The source-reveal `Def`/`Proof`/`Lemma` triple is also complete: its
   higher-order proof dispatches all reveal forms and delegates only active
   unseal to the canonical unseal lemma;
-- active narrowing/widening need source tag/untag classification in addition
-  to the existing inert and blame frames.  The raw two-seal obstruction in
+- active narrowing/widening need quotient-aware source tag/untag
+  classification in addition to the existing inert and blame frames.  The
+  first ordinary source-tag cancellation contract was rejected by strict
+  checking: an `up⊑upᵀ` premise retains only a quotiented inner relation and
+  cannot produce an ordinary conclusion.  The raw two-seal obstruction in
   `NuImprecisionSourceCastSequenceMidpointCounterexample` does not satisfy
   `SealModeStore★`: `seal-enabled-store-entry-star` proves from store
   uniqueness that every seal-enabled source entry has payload `★`.  Thus the
@@ -305,9 +308,10 @@ its fields recursively.  Its current proof decomposition is:
   final `WorldCoherent` alone.
 
 The independent conceal, active-unseal, and source-reveal leaves are now
-complete.  Next finish source tag cancellation, use the completed source
-cast-sequence midpoint in the non-`inst` narrow/widen cases, and prove the two
-remaining paired-cast dependencies.  Only then implement
+complete.  Next replace source tag cancellation with a quotient-aware
+boundary, use the completed source cast-sequence midpoint in the non-`inst`
+narrow/widen cases, and prove the remaining paired-cast dependencies.  Only
+then implement
 the allocation SCC as a visibly structural mutual proof (or with an explicit
 administrative measure) and assemble the eight-field record.  Do not make the
 record itself a higher-order input to its own `Proof`; that would encode the

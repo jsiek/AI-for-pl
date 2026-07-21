@@ -174,3 +174,9 @@ it with a global `RightCastCtxCompatible` assumption: matched `gen` and `inst`
 worlds need not satisfy that condition.  Root helpers should consume the local
 witness explicitly, while the quotient constructor is responsible for
 retaining it when the node is built.
+
+`NuImprecisionOneStepTargetCastSequenceRoots` is the corresponding strict leaf
+proof: given that local midpoint, it constructs both ordinary narrowing and
+widening β-sequence outcomes without importing the dispatcher or simulation
+core.  This separates the remaining constructor-plumbing change from the
+already-checked operational root argument.

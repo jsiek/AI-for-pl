@@ -320,7 +320,8 @@ are delegated:
 | [`NuImprecisionAtomicTargetReindex.agda`](NuImprecisionAtomicTargetReindex.agda) | completed | Strict exhaustive reconstruction of atomic-target value relations at an explicit desired type-imprecision index; closes target conversion identity roots without proof irrelevance |
 | [`NuImprecisionOneStepTargetCastIdentityRoots.agda`](NuImprecisionOneStepTargetCastIdentityRoots.agda) | completed | Three strict β-id root outcomes for narrowing, general widening, and id-only widening target casts; the partial target-cast dispatcher now has eight holes instead of eleven |
 | [`NuImprecisionTargetCastSequenceMidpointDef.agda`](NuImprecisionTargetCastSequenceMidpointDef.agda) | completed statement | Strict indexed family for the local midpoint evidence retained by one quotiented target-cast node; avoids an unsound global right-context-compatibility requirement |
-| `NuImprecisionOneStepTargetCastSequenceIdRoot.agda` | in progress on Ginger | The id-only widening β-sequence leaf is derivable with the existing `right-id-only-compatible` witness and has been reassigned as one narrow GPT 5.5 work package |
+| [`NuImprecisionOneStepTargetCastSequenceRoots.agda`](NuImprecisionOneStepTargetCastSequenceRoots.agda) | completed leaves | Strict narrowing and widening β-sequence root helpers consume an explicit midpoint witness and reconstruct the nested target relation; this proves the proposed local evidence is sufficient |
+| Id-only target-cast β-sequence root | partial dependency | `right-id-only-compatible` supplies context composition, but the existing `widening⇒⊑ᵢ` route requires dense `Store.StoreWf`; the dispatcher has sparse `NuStore.StoreWf`. Ground tags mean the branch is not generally impossible, so it also needs retained midpoint evidence or a new sparse-store embedding theorem |
 | General target-cast β-sequence midpoint integration | not yet started | The narrowing and general widening nodes must retain a local `TargetCastSequenceMidpointᵀ` witness and pass it to their root helpers; existing constructors retain only final `q` |
 | [`NuImprecisionWorldCoherenceDef.agda`](NuImprecisionWorldCoherenceDef.agda) | completed statement | Freezes `WorldCoherent`, the exact store-correspondence invariant required before target seal cancellation can be a sound leaf |
 | [`NuImprecisionWorldCoherenceProof.agda`](NuImprecisionWorldCoherenceProof.agda) | completed | Strict structural proof layer: empty world, exact entry-extension obligations, correspondence weakening, and matched/left/right canonical lift preservation |
@@ -5901,17 +5902,29 @@ catch-up architecture.
   root receives only the final index `q`.  This is now an interface/factorization
   question for local GPT 5.6 analysis, not another blind leaf assignment.
 
-- Resolved that interface question locally.  The id-only widening branch can
-  derive the midpoint with `right-id-only-compatible`, `StoreWf⇒det`,
-  `widening⇒⊑ᵢ`, and `⊑-transʳ-castᵢ`; it is now a smaller Ginger leaf.  The
-  general narrowing and widening branches cannot derive the prescribed
-  midpoint from their current premises.  A global `RightCastCtxCompatible`
+- Refined that interface question locally and with a narrow Ginger attempt.
+  `right-id-only-compatible` supplies the context-composition half of the
+  id-only widening midpoint, but the existing `widening⇒⊑ᵢ` route requires
+  dense `Store.StoreWf`; the dispatcher intentionally carries sparse
+  `NuStore.StoreWf`.  The branch is not generally impossible because ground
+  base/function tags remain available in id-only mode.  Thus all three general
+  sequence handlers still need local midpoint evidence, unless a separate
+  sparse-store cast-embedding theorem is proved.  For general narrowing and
+  widening, a global `RightCastCtxCompatible`
   premise is not sound for this purpose because matched `gen` and `inst` worlds
   are intentionally incompatible.  The strict indexed family
   [`TargetCastSequenceMidpointᵀ`](NuImprecisionTargetCastSequenceMidpointDef.agda)
   instead records local split evidence on one quotiented target-cast node.  The
   future constructor change should retain that witness beside `p` and `q`, and
   the β-sequence root should consume it explicitly.
+
+- Proved that the proposed midpoint is sufficient in strict
+  [`NuImprecisionOneStepTargetCastSequenceRoots`](NuImprecisionOneStepTargetCastSequenceRoots.agda).
+  Its narrowing and widening helpers take the two typed component casts, the
+  explicit midpoint `r`, and final `q`, then rebuild the target reduct using two
+  nested quotient cast constructors and the canonical unchanged-source result
+  wrapper.  The module imports neither store well-formedness nor the scratch
+  dispatcher or simulation core, and its focused no-unsolved-metas check passes.
 
 ### Next boundary
 

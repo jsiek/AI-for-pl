@@ -345,7 +345,13 @@ its fields recursively.  Its current proof decomposition is:
   `StoreImpPrefix` into the result store.  Add this only to coherent catch-up
   results, where it is universally needed; identity/frame cases preserve it,
   composition composes it, and allocation constructors already expose the
-  required lift embeddings.
+  required lift embeddings.  The focused relational-store prefix restriction,
+  renaming congruence, and composition algebra now lives in
+  `NuImprecisionRelStoreEmbeddingAlgebra`, and
+  `NuImprecisionWeakOneStepStoreLineageProof` strictly proves the silent
+  resumption composition step.  Propagating the field through every coherent
+  result constructor and constructing it at allocation roots remain the
+  integration work.
 
 The independent conceal, active-unseal, and source-reveal leaves are now
 complete.  Source bullet, ordinary `ν`, runtime `ν ★`, source narrowing, and

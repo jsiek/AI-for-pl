@@ -387,6 +387,8 @@ open import proof.TypeProperties using
 
 open import proof.NuImprecisionRelStoreEmbeddingDef
 open import proof.NuImprecisionSimulationCore
+open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
+  (rel-store-embedding-composeⁱ)
 open import proof.NuImprecisionSimulationResultDef
 open import proof.NuImprecisionStoreLift using (lift-right-store-result)
 open import proof.NuImprecisionStorePrefix using

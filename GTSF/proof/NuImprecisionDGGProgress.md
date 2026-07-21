@@ -323,6 +323,8 @@ are delegated:
 | [`NuWideningTransport.agda`](NuWideningTransport.agda) | completed extraction | Seventy-line low-level home of generic and fixed-mode widening transport through store changes; imports no term-imprecision result or simulation core |
 | [`NuImprecisionQuotientWideningTransport.agda`](NuImprecisionQuotientWideningTransport.agda) | completed extraction | Focused transport of one id-only/general quotient widening pair; the paired-widening leaf now avoids both the 14,449-line simulation core and broad quotient support |
 | [`NuImprecisionWorldCoherentCatchupComposition.agda`](NuImprecisionWorldCoherentCatchupComposition.agda) | completed | Strict coherent wrapper for silent-result resumption, preserving both final `WorldCoherent` and final left `StoreWf`; the focused strict check passes |
+| [`NuImprecisionRelStoreEmbeddingAlgebra.agda`](NuImprecisionRelStoreEmbeddingAlgebra.agda) | completed extraction | Focused prefix restriction, renaming congruence, and composition for relational-store embeddings; definitions were removed from the broad simulation core |
+| [`NuImprecisionWeakOneStepStoreLineageProof.agda`](NuImprecisionWeakOneStepStoreLineageProof.agda) | completed proof | Strictly composes two explicit lineage witnesses across left-silent resumption, including prefix restriction and accumulated source-renaming normalization |
 | [`NuImprecisionWorldCoherentCatchupPrefixFrames.agda`](NuImprecisionWorldCoherentCatchupPrefixFrames.agda) | completed | Five strict wrappers for target narrowing, widening, identity widening, reveal, and conceal frames; dependent pattern matching makes preservation of the final world and left store definitionally visible |
 | [`NuImprecisionAtomicTargetReindex.agda`](NuImprecisionAtomicTargetReindex.agda) | completed | Strict exhaustive reconstruction of atomic-target value relations at an explicit desired type-imprecision index; closes target conversion identity roots without proof irrelevance |
 | [`NuImprecisionOneStepTargetCastIdentityRoots.agda`](NuImprecisionOneStepTargetCastIdentityRoots.agda) | completed | Three strict β-id root outcomes for narrowing, general widening, and id-only widening target casts; the partial target-cast dispatcher now has eight holes instead of eleven |
@@ -6490,3 +6492,12 @@ coordination.  Use focused strict checks throughout and reserve
   leaves are represented by whole theorem parameters and absent `Lemma`
   assemblies, so new skeleton and adapter modules can remain strict without
   `--allow-unsolved-metas`.  No aggregate module was checked for this batch.
+
+- Extracted relational-store embedding prefix restriction and composition from
+  `NuImprecisionSimulationCore` into the focused strict
+  `NuImprecisionRelStoreEmbeddingAlgebra`.  Added structural renaming
+  congruence there, then proved weak-result lineage composition across
+  left-silent resumption in `NuImprecisionWeakOneStepStoreLineageProof`.
+  Focused strict checks passed for the new algebra, the lineage proof, the
+  migrated simulation core, and its direct simulation consumer.  No aggregate
+  check was run.

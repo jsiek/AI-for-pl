@@ -346,7 +346,8 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceNuBlameStepDef.agda`](NuImprecisionWorldCoherentSourceNuBlameStepDef.agda) | completed statement | Canonical source `ν`-blame boundary. |
 | [`NuImprecisionWorldCoherentSourceNuBlameStepProof.agda`](NuImprecisionWorldCoherentSourceNuBlameStepProof.agda) | completed GPT-5.5 proof | Strict adapter from `blame-ν` to the completed common source-blame root. |
 | [`NuImprecisionWorldCoherentSourceNuBlameStepLemma.agda`](NuImprecisionWorldCoherentSourceNuBlameStepLemma.agda) | completed canonical assembly | Exposes source `ν` blame to the source one-step aggregate. |
-| [`NuImprecisionWorldCoherentSourcePrimitiveLeftStepDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveLeftStepDef.agda) | completed statement; proof not started | Canonical source primitive-left congruence boundary. |
+| [`NuImprecisionWorldCoherentSourcePrimitiveLeftStepDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveLeftStepDef.agda) | completed statement | Canonical source primitive-left congruence boundary. |
+| [`NuImprecisionWorldCoherentSourcePrimitiveLeftStepProof.agda`](NuImprecisionWorldCoherentSourcePrimitiveLeftStepProof.agda) | completed GPT-5.5 higher-order proof | Rebuilds `ξ-⊕₁` and delegates the framed step to the recursive source prefix worker; canonical recursion assembly remains. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveRightStepDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveRightStepDef.agda) | completed statement; proof not started | Canonical source primitive-right congruence boundary. |
 | [`NuImprecisionWorldCoherentSourcePureStepCasesDef.agda`](NuImprecisionWorldCoherentSourcePureStepCasesDef.agda) | completed statement | Replaces the opaque pure-step capability with four major source-shape families carrying the full ambient-prefix and exact-result contract. |
 | [`NuImprecisionWorldCoherentSourcePureStepCasesProof.agda`](NuImprecisionWorldCoherentSourcePureStepCasesProof.agda) | completed higher-order assembly | Builds the four-way pure-root record and supplies the completed primitive family from right-value catch-up. |
@@ -8583,3 +8584,11 @@ coordination.  Use focused strict checks throughout and reserve
   forward spine in about 5.1 seconds, and the DGG-facing milestone in about
   5.3 seconds from the warm cache.  No `All.agda` or `NuDGGStrictSpine.agda`
   check was run.
+
+- GPT-5.5 proved the source primitive-left congruence adapter on Ginger in
+  [`NuImprecisionWorldCoherentSourcePrimitiveLeftStepProof.agda`](NuImprecisionWorldCoherentSourcePrimitiveLeftStepProof.agda).
+  It rebuilds the supplied inner step with `ξ-⊕₁` and invokes the recursive
+  ambient-prefix worker.  The cold Ginger check took about 96 seconds; the
+  local warm check is about 4.0 seconds and the routine forward spine about
+  6.1 seconds.  This is a strict higher-order proof, not yet a canonical
+  recursive assembly.

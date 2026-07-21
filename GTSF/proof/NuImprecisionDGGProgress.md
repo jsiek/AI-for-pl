@@ -357,6 +357,12 @@ are delegated:
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda) | completed higher-order proof | Exhaustively assembles the generic exact-final contract from the source-only-index and paired-index whole capabilities; canonical `Lemma` remains absent |
 | [`NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda) | completed statement | Exact runtime `ν ★` handler boundary participating in the widening-`inst` mutual SCC |
 | [`NuImprecisionWorldCoherentFinalSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCastCatchupDef.agda) | completed statement | Exact-final cast-aware `ν ★` allocation contract owns fresh source allocation and lineage while retaining arbitrary inner index `q`, final cast evidence, and desired outer index |
+| [`NuImprecisionWorldCoherentFinalSourceNuCastCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuCastCatchupProof.agda) | completed higher-order proof | Strictly dispatches the arbitrary inner universal index to the source-only and paired-index whole contracts; canonical `Lemma` remains absent |
+| [`NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupDef.agda) | completed statement | Exact-final `ν ★` branch specialized to `ν occ r`, retaining the instantiation cast and complete world premises |
+| [`NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupProof.agda) | completed higher-order proof | Strict fresh-`★` allocation, bullet and widening catch-up, coherence, exclusivity, store Wf, transport, and lineage from the whole left-lift-prefix, bullet, and widening capabilities |
+| [`NuImprecisionWorldCoherentFinalSourceNuCastPairedIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCastPairedIndexCatchupDef.agda) | completed statement | Exact-final `ν ★` branch specialized to `∀ⁱ r`, without assuming a target allocation or administrative target step |
+| [`NuImprecisionWorldCoherentFinalSourceNuCastPairedIndexViewCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCastPairedIndexViewCatchupDef.agda) | completed hard-worker statement | Freezes the unresolved paired-index `AllView` cross-product after both polymorphic endpoints are classified |
+| [`NuImprecisionWorldCoherentFinalSourceNuCastPairedIndexCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuCastPairedIndexCatchupProof.agda) | completed higher-order proof | Strictly reduces the full paired-index `ν ★` branch to the classified-view worker by source and target canonical-form inversion |
 | [`NuImprecisionWorldCoherentSourceNuCastCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuCastCatchupProof.agda) | completed higher-order proof | Strict accumulated-world adapter transports inst evidence through source changes, delegates final-value allocation to the exact-final contract, propagates source blame, and composes explicit lineages |
 | [`NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda) | completed statement | Whole accumulated-world source-narrowing handler contract |
 | [`NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda) | completed higher-order proof | GPT 5.5 Ginger proof transports and frames every narrowing grammar form, propagates source blame, and resumes terminal values through the whole value-prefix capability; canonical assembly remains cyclic |
@@ -6635,3 +6641,17 @@ coordination.  Use focused strict checks throughout and reserve
   commute the runtime bullet through their casts.  Both modules pass focused
   `--no-allow-unsolved-metas` checks; the worker and canonical `Lemma` remain
   absent instead of being represented by holes.
+
+- Completed the six-module exact-final source-`ν ★` architecture.  The generic
+  higher-order proof dispatches the arbitrary inner universal index to
+  source-only and paired whole contracts.  The source-only branch is fully
+  proved from `LeftLiftPrefixBodyᵀ`, coherent source-bullet catch-up, and
+  coherent source-widening catch-up: it allocates the fresh `★` row, transports
+  the instantiation cast, establishes coherence, exclusivity, sparse store Wf,
+  and explicit lineage, then resumes the allocation step.  The paired branch
+  strictly derives both endpoint `AllView`s and exposes its nine-case worker.
+  Current one-sided `α⊑ᵀ` allocation consumes only a `ν` index, while the
+  paired `∀ⁱ` index supplies the paired `α⊑αᵀ` route; resolving that mismatch
+  remains inside the classified-view worker.  All six modules pass focused
+  `--no-allow-unsolved-metas` checks, with no canonical `Lemma` or permissive
+  assembly.

@@ -380,6 +380,7 @@ are delegated:
 | [`NuImprecisionTargetAdministrationPlanSynthesisDef.agda`](NuImprecisionTargetAdministrationPlanSynthesisDef.agda) | completed statement | Direct narrowing/widening synthesis uses only a target store prefix, final sparse-store well-formedness, seal-mode evidence, typed coercion structure, and the initial/final precision indices. This is the low-fanout experiment before any QTI change. |
 | [`NuImprecisionTargetAdministrationPlanSynthesisProof.agda`](NuImprecisionTargetAdministrationPlanSynthesisProof.agda) | completed GPT-5.5 proof | Exhaustive narrowing/widening recursion reconstructs inert and active plans, recovers ground sequence midpoints from the existing precision indices, and eliminates seal/unseal sequence conflicts by target-store prefix inclusion and uniqueness. No QTI constructor or simulation carrier changes were needed. |
 | [`NuImprecisionTargetAdministrationPlanSynthesisLemma.agda`](NuImprecisionTargetAdministrationPlanSynthesisLemma.agda) | completed canonical assembly | Exposes the hereditary target-plan synthesis record consumed by the future target-administration recursion. |
+| [`NuImprecisionWorldCoherentRightTargetAdministrationDef.agda`](NuImprecisionWorldCoherentRightTargetAdministrationDef.agda) | completed flat statement; proof not started | Executes one hereditary cast plan after inner right-value catch-up. It consumes the original outer QTI derivation and returns the existing complete catch-up payload directly, so sequence, identity, untag, unseal, and instantiation can share one recursion without an administration result layer. |
 | [`NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda) | completed statement; proof not started | Five-field terminalization boundary for target narrowing, widening, identity-only widening, reveal, and conceal.  Unlike a mechanical frame, each field must also normalize active casts after the inner target reaches a value. |
 | [`NuImprecisionWorldCoherentRightValueTerminalDef.agda`](NuImprecisionWorldCoherentRightValueTerminalDef.agda) | completed statement | Zero-step value/value base returning the full recursive right-catch-up result in the ambient prefix world. |
 | [`NuImprecisionWorldCoherentRightValueTerminalProof.agda`](NuImprecisionWorldCoherentRightValueTerminalProof.agda) | completed GPT-5.5 proof | Lifts both terminal typings and their relation through the ambient prefix, then returns the zero-step result with identity transport, source-bullet transport, coherence, and lineage. |
@@ -8768,6 +8769,17 @@ coordination.  Use focused strict checks throughout and reserve
   `allocation-prefixᵀ`, and all four source cast/conversion frames preserve it
   directly.  This adds no new result or outcome layer and keeps the eventual
   runtime-transport proof a direct QTI transformation.
+
+- Froze the flat execution boundary for the active target-administration SCC
+  in
+  [`WorldCoherentRightTargetAdministrationᵀ`](NuImprecisionWorldCoherentRightTargetAdministrationDef.agda).
+  It consumes one hereditary plan, the original outer QTI derivation, and the
+  already completed inner catch-up, then returns the existing complete
+  right-value result.  Sequence splitting, inert absorption, identity,
+  untag, unseal, and instantiation can therefore share one recursion without
+  an intermediate administration outcome.  The instantiation clause remains
+  mutually dependent on target allocation and target-bullet closing; this is
+  the deliberate SCC boundary, not another carrier layer.
 
 - Ginger/GPT-5.5 completed the ordinary and casted exact target-`ν` frame maps
   in

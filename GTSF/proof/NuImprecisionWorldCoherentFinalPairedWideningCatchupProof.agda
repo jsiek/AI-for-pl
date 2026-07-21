@@ -6,8 +6,8 @@ module
 --   * Proves exact-world terminal catch-up for compatible paired widenings.
 --   * Uses source inertness for the zero-step terminal case and the explicit
 --     cross bridge for the source-widen/target-frame case.
---   * Takes the mutually dependent source-runtime handler as a whole theorem
---     parameter and imports no source-runtime implementation.
+--   * Takes only the source-widen handler contract and imports no source
+--     runtime record or implementation.
 
 open import Agda.Builtin.Equality using (refl)
 open import Data.Product using (_,_)
@@ -46,15 +46,15 @@ open import
   using (WorldCoherentFinalPairedWideningCatchupᵀ)
 open import proof.NuImprecisionWorldCoherentResultDef using
   (world-coherent-left-indexed-catchup)
-open import proof.NuImprecisionWorldCoherentSourceRuntimeCatchupDef using
-  (WorldCoherentSourceRuntimeCatchupᵀ; source-widen)
+open import proof.NuImprecisionWorldCoherentSourceWidenCatchupDef using
+  (WorldCoherentSourceWidenCatchupᵀ)
 
 
 world-coherent-final-paired-widening-catchup-proofᵀ :
-  WorldCoherentSourceRuntimeCatchupᵀ →
+  WorldCoherentSourceWidenCatchupᵀ →
   WorldCoherentFinalPairedWideningCatchupᵀ
 world-coherent-final-paired-widening-catchup-proofᵀ
-    runtime {p = p} {q = q}
+    source-widen {p = p} {q = q}
     coherent exclusive wfL (inj₂ refl) vV′ noV′ inert-c′
     mode seal★ c⊑ mode′ seal★′ c′⊑ compat W⊑V′ =
   world-coherent-left-indexed-catchup
@@ -72,7 +72,7 @@ world-coherent-final-paired-widening-catchup-proofᵀ
         mode seal★ c⊑ mode′ seal★′ c′⊑ compat)
       W⊑V′)
 world-coherent-final-paired-widening-catchup-proofᵀ
-    runtime coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′
+    source-widen coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′
     inert-c′ mode seal★ c⊑ mode′ seal★′ c′⊑
     (compatible-source-inert inert-c) W⊑V′ =
   world-coherent-left-indexed-catchup
@@ -86,7 +86,7 @@ world-coherent-final-paired-widening-catchup-proofᵀ
         W⊑V′))
     coherent exclusive wfL
 world-coherent-final-paired-widening-catchup-proofᵀ
-    runtime coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′
+    source-widen coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′
     inert-c′ mode seal★ c⊑ mode′ seal★′ c′⊑
     (compatible-target-inert-bridge bridge) W⊑V′ =
   world-coherent-left-catchup-prefix-target-widen-castᵀ
@@ -99,5 +99,5 @@ world-coherent-final-paired-widening-catchup-proofᵀ
       coherent exclusive wfL
 
   source-catchup =
-    source-widen runtime prefix-reflⁱ mode seal★ c⊑
+    source-widen prefix-reflⁱ mode seal★ c⊑
       vV′ noV′ initial (bridge inert-c′)

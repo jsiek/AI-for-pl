@@ -74,6 +74,10 @@ open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
+open import proof.NuImprecisionWorldCoherentSourceNarrowCatchupDef using
+  (WorldCoherentSourceNarrowCatchupᵀ)
+open import proof.NuImprecisionWorldCoherentSourceWidenCatchupDef using
+  (WorldCoherentSourceWidenCatchupᵀ)
 
 
 record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
@@ -169,39 +173,9 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
       WorldCoherentLeftCatchupIndexedResult
         {N = ν ★ N s} {V′ = V′} {ρ = ρ⁺} p
 
-    source-narrow :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {N V′ : Term} {A B B′ : Ty} {c : Coercion}
-        {μ : ModeEnv} {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      CastMode μ →
-      SealModeStore★ μ (leftStoreⁱ ρ₀) →
-      μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊒ B →
-      Value V′ →
-      No• V′ →
-      WorldCoherentLeftCatchupIndexedResult
-        {N = N} {V′ = V′} {ρ = ρ⁺} p →
-      (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-      WorldCoherentLeftCatchupIndexedResult
-        {N = N ⟨ c ⟩} {V′ = V′} {ρ = ρ⁺} q
+    source-narrow : WorldCoherentSourceNarrowCatchupᵀ
 
-    source-widen :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {N V′ : Term} {A B B′ : Ty} {c : Coercion}
-        {μ : ModeEnv} {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      CastMode μ →
-      SealModeStore★ μ (leftStoreⁱ ρ₀) →
-      μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
-      Value V′ →
-      No• V′ →
-      WorldCoherentLeftCatchupIndexedResult
-        {N = N} {V′ = V′} {ρ = ρ⁺} p →
-      (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-      WorldCoherentLeftCatchupIndexedResult
-        {N = N ⟨ c ⟩} {V′ = V′} {ρ = ρ⁺} q
+    source-widen : WorldCoherentSourceWidenCatchupᵀ
 
     source-paired-cast :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}

@@ -3,7 +3,7 @@ module
   where
 
 -- File Charter:
---   * Connects the continuation-indexed target-closing handlers to the whole
+--   * Connects common continuation-value terminal closing to the whole
 --     post-beta target-closing catch-up theorem.
 --   * Adds only the independently stated terminal value-catch-up and active
 --     fresh-unseal capabilities above structural-all relation assembly.
@@ -11,8 +11,8 @@ module
 --     option, broad simulation import, or canonical `Lemma` assembly.
 
 open import
-  proof.NuImprecisionPairedLambdaTargetClosingContinuationHandlersDef
-  using (PairedLambdaTargetClosingContinuationHandlers)
+  proof.NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef
+  using (PairedLambdaTargetClosingContinuationValueTerminalᵀ)
 open import
   proof.NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAssemblyProof
   using
@@ -35,13 +35,13 @@ open import
 
 
 world-coherent-source-ν-paired-all-conversion-post-beta-target-closing-catchup-assembly-proofᵀ :
-  PairedLambdaTargetClosingContinuationHandlers →
+  PairedLambdaTargetClosingContinuationValueTerminalᵀ →
   WorldCoherentLeftValueCatchupᵀ →
   WorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupᵀ →
   WorldCoherentSourceNuPairedAllConversionPostBetaTargetClosingCatchupᵀ
 world-coherent-source-ν-paired-all-conversion-post-beta-target-closing-catchup-assembly-proofᵀ
-    handlers value-catchup unseal-catchup =
+    terminal value-catchup unseal-catchup =
   world-coherent-source-ν-paired-all-conversion-post-beta-target-closing-catchup-proofᵀ
     (source-ν-paired-all-conversion-post-beta-all-reveal-closing-relation-assembly-proofᵀ
-      handlers)
+      terminal)
     value-catchup unseal-catchup

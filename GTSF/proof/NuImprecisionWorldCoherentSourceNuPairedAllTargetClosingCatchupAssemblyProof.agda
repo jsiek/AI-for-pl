@@ -13,8 +13,8 @@ module
 open import QuotientedTermImprecision using
   (paired-conversion; paired-widening)
 open import
-  proof.NuImprecisionPairedLambdaTargetClosingContinuationHandlersDef
-  using (PairedLambdaTargetClosingContinuationHandlers)
+  proof.NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef
+  using (PairedLambdaTargetClosingContinuationValueTerminalᵀ)
 open import
   proof.NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef
   using
@@ -44,13 +44,13 @@ open import
 
 
 world-coherent-source-ν-paired-all-target-closing-catchup-assembly-proofᵀ :
-  PairedLambdaTargetClosingContinuationHandlers →
+  PairedLambdaTargetClosingContinuationValueTerminalᵀ →
   WorldCoherentLeftValueCatchupᵀ →
   WorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupᵀ →
   WorldCoherentSourceNuPairedAllWideningTargetClosingCatchupᵀ →
   WorldCoherentSourceNuPairedAllTargetClosingCatchupᵀ
 world-coherent-source-ν-paired-all-target-closing-catchup-assembly-proofᵀ
-    handlers value-catchup unseal-catchup
+    terminal value-catchup unseal-catchup
     widening-catchup coherent exclusive wfL hA h⇑A reveal
     liftν lift∀ vV noV vV′ noV′
     (paired-conversion conversion) V⊑V′ =
@@ -62,9 +62,9 @@ world-coherent-source-ν-paired-all-target-closing-catchup-assembly-proofᵀ
   conversion-catchup =
     world-coherent-source-ν-paired-all-conversion-target-closing-catchup-proofᵀ
       (world-coherent-source-ν-paired-all-conversion-post-beta-target-closing-catchup-assembly-proofᵀ
-        handlers value-catchup unseal-catchup)
+        terminal value-catchup unseal-catchup)
 world-coherent-source-ν-paired-all-target-closing-catchup-assembly-proofᵀ
-    handlers value-catchup unseal-catchup
+    terminal value-catchup unseal-catchup
     widening-catchup {q = q}
     coherent exclusive wfL hA h⇑A reveal liftν lift∀
     vV noV vV′ noV′

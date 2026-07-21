@@ -355,8 +355,13 @@ are delegated:
 | `NuImprecisionSourceTagCancellationProof.agda` | in progress on Ginger | GPT 5.5 owns the frozen, store-neutral exhaustive tag-peeling work package |
 | `NuImprecisionSourceTagCancellationLemma.agda` | not yet started | Canonical assembly follows the strict proof |
 | [`NuImprecisionSourceCastSequenceMidpointCounterexample.agda`](NuImprecisionSourceCastSequenceMidpointCounterexample.agda) | completed corrected obstruction | Strictly packages coherent, exclusive, well-typed two-seal endpoints with no midpoint, but also proves that the example violates `SealModeStore★`; `seal-enabled-store-entry-star` explains why the raw obstruction cannot refute the full source-runtime boundary |
-| Positive source cast-sequence midpoint | in progress; hard boundary | Derive the restricted midpoint from the actual `SealModeStore★`, final `StoreWf`, and prefix/inclusion hypotheses before changing constructor plumbing |
+| [`NuImprecisionSourceCastSequenceMidpointDef.agda`](NuImprecisionSourceCastSequenceMidpointDef.agda) | completed statement | Exact narrowing and widening midpoint capability over the ambient prefix, coherence, exclusivity, final sparse `StoreWf`, cast mode, and `SealModeStore★` package |
+| [`NuImprecisionSourceCastSequenceMidpointProof.agda`](NuImprecisionSourceCastSequenceMidpointProof.agda) | completed proof | Strict-cross tag/untag shapes yield the only ground midpoint; final-store uniqueness plus prefix inclusion eliminates seal/unseal sequence shapes |
+| [`NuImprecisionSourceCastSequenceMidpointLemma.agda`](NuImprecisionSourceCastSequenceMidpointLemma.agda) | completed lemma | Canonical strict inhabitant of both midpoint fields |
 | [`NuImprecisionLeftSilentPairedCastTransportDef.agda`](NuImprecisionLeftSilentPairedCastTransportDef.agda) | completed statement; hard proof | Exact accumulated-change transport contract for `PairedCast`; arbitrary source changes must rebuild final `StoreCorresponds` or carry an explicit world embedding |
+| [`NuImprecisionLeftSilentPairedWideningTransportDef.agda`](NuImprecisionLeftSilentPairedWideningTransportDef.agda) | completed statement; Ginger leaf | Store-neutral constructor-family transport; the frozen proof is independent of final world coherence |
+| [`NuImprecisionLeftSilentPairedConversionTransportDef.agda`](NuImprecisionLeftSilentPairedConversionTransportDef.agda) | completed statement; hard proof | Sole remaining accumulated-transport boundary that reconstructs final paired `StoreCorresponds` evidence |
+| [`NuImprecisionLeftSilentPairedCastTransportProof.agda`](NuImprecisionLeftSilentPairedCastTransportProof.agda) | completed higher-order proof | Exhaustively derives full paired-cast transport from the widening and conversion constructor-family capabilities |
 | [`NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda) | completed statement; hard proof | Exact-final-world terminal paired-cast contract retaining target inertness, final coherence, source-name exclusivity, and left `StoreWf` |
 | [`NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupDef.agda) | completed statement | Top accumulated-world paired-cast handler, matching the strengthened source-runtime field |
 | [`NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda`](NuImprecisionWorldCoherentSourcePairedCastCatchupProof.agda) | completed higher-order proof | Strictly composes accumulated paired-cast transport with exact-final-world catch-up; its single-cast frame keeps final contexts, world, and change lists unchanged |
@@ -6233,11 +6238,25 @@ catch-up architecture.
   proof must interpret arbitrary `≈∀` constructors compositionally, while the
   canonical `Lemma` stays absent.
 
+- Completed the positive strict
+  [`SourceCastSequenceMidpointᵀ`](NuImprecisionSourceCastSequenceMidpointDef.agda)
+  `Def`/`Proof`/`Lemma` triple.  The exact source-runtime hypotheses are
+  sufficient: tag/untag strict-cross shapes expose the ground midpoint, while
+  prefix inclusion, `SealModeStore★`, and final sparse-store uniqueness make
+  the problematic seal/unseal sequence shapes impossible.
+
+- Split accumulated paired-cast transport by constructor family.  The full
+  higher-order proof now takes a paired-conversion capability and a
+  paired-widening capability explicitly.  The widening contract requires no
+  final-world coherence and is a frozen GPT 5.5 leaf; all paired
+  `StoreCorresponds` reconstruction is confined to the hard conversion
+  contract.
+
 ### Next boundary
 
-Finish source tag cancellation for the non-`inst` narrowing/widening handlers,
-then derive the restricted source cast-sequence midpoint and implement the two
-paired-cast dependencies.  Treat representative quotient-`inst` as its own
+Finish source tag cancellation and use the completed midpoint in the non-`inst`
+narrowing/widening handlers, while implementing the two paired-cast
+dependencies.  Treat representative quotient-`inst` as its own
 hard semantic bridge; once it is complete, assemble it with the completed
 classifier, quotient-final proof, and structural prefix proof.  Continue
 assigning only frozen, nonoverlapping leaf modules to Ginger; keep allocation

@@ -283,21 +283,24 @@ its fields recursively.  Its current proof decomposition is:
   `NuImprecisionSourceCastSequenceMidpointCounterexample` does not satisfy
   `SealModeStore★`: `seal-enabled-store-entry-star` proves from store
   uniqueness that every seal-enabled source entry has payload `★`.  Thus the
-  full source-runtime boundary still supports a positive, restricted midpoint
-  decomposition theorem; and
+  strict `NuImprecisionSourceCastSequenceMidpoint` triple derives the positive,
+  restricted midpoint from the full prefix, seal-mode, and store-uniqueness
+  hypotheses; and
 - `source-paired-cast` needs prefix and accumulated-change transport for
   `PairedCast` evidence.  Its contract retains the target cast's `Inert`
   witness because every structural caller already has it.  The strict
   `NuImprecisionWorldCoherentSourcePairedCastCatchupProof` now composes two
   explicit dependencies: accumulated left-silent paired-cast transport and
   exact-final-world paired-cast catch-up.  Rebuilding final `StoreCorresponds`
-  after arbitrary source changes remains the hard transport step.
+  after arbitrary source changes remains the hard transport step.  Full
+  transport is itself assembled from separate paired-widening and
+  paired-conversion capabilities, so the store-neutral widening proof can run
+  independently on Ginger.
 
 The independent conceal, active-unseal, and source-reveal leaves are now
-complete.  Next finish source tag cancellation, derive the source cast-sequence
-midpoint from the full
-seal-mode/store-uniqueness hypotheses, and prove the remaining non-`inst`
-narrow/widen cases and paired-cast transport.  Only then implement
+complete.  Next finish source tag cancellation, use the completed source
+cast-sequence midpoint in the non-`inst` narrow/widen cases, and prove the two
+remaining paired-cast dependencies.  Only then implement
 the allocation SCC as a visibly structural mutual proof (or with an explicit
 administrative measure) and assemble the eight-field record.  Do not make the
 record itself a higher-order input to its own `Proof`; that would encode the

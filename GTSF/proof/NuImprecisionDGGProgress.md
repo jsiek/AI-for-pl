@@ -344,6 +344,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda`](NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda) | completed statement | Strict eight-field assembly record; bullet, ordinary `ν`, runtime `ν ★`, narrowing, and widening fields now refer to their own whole contracts |
 | [`NuImprecisionWorldCoherentSourceBulletCatchupDef.agda`](NuImprecisionWorldCoherentSourceBulletCatchupDef.agda) | completed statement | Exact former runtime-field telescope for source-only post-allocation bullet catch-up |
 | [`NuImprecisionWorldCoherentSourceBulletCatchupProof.agda`](NuImprecisionWorldCoherentSourceBulletCatchupProof.agda) | completed higher-order proof | Strictly reconstructs the allocated `α⊑ᵀ` relation and delegates to the whole value-prefix catch-up contract; canonical assembly remains in the mutual SCC |
+| [`NuImprecisionSourceBulletBase.agda`](NuImprecisionSourceBulletBase.agda) | completed semantic extraction; checking-time partial | GPT 5.5 Ginger extraction strictly packages polymorphic post-allocation stepping/value shape, direct `α`/`Λ` prefix catch-up, and allocated-bullet reconstruction; it no longer imports the broad simulation dispatcher, but still imports `NuImprecisionSimulationCore` for world embedding/result support |
 | [`NuImprecisionWorldCoherentSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCatchupDef.agda) | completed statement | Exact ordinary source-`ν` handler contract; its inhabitant is downstream of source-bullet and source-reveal, not in the minimal SCC |
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda) | completed statement | Exact-final ordinary source-`ν` contract retains the arbitrary inner universal index, final allocation/reveal evidence, values, and world invariants |
 | [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda) | completed statement | Full exact-final branch specialized to `ν occ r`; intended source-bullet/allocation implementation path |
@@ -351,6 +352,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda) | completed higher-order proof | Exhaustively assembles the generic exact-final contract from the source-only-index and paired-index whole capabilities; canonical `Lemma` remains absent |
 | [`NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda) | completed statement | Exact runtime `ν ★` handler boundary participating in the widening-`inst` mutual SCC |
 | [`NuImprecisionWorldCoherentFinalSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCastCatchupDef.agda) | completed statement | Exact-final cast-aware `ν ★` allocation contract owns fresh source allocation and lineage while retaining arbitrary inner index `q`, final cast evidence, and desired outer index |
+| [`NuImprecisionWorldCoherentSourceNuCastCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuCastCatchupProof.agda) | completed higher-order proof | Strict accumulated-world adapter transports inst evidence through source changes, delegates final-value allocation to the exact-final contract, propagates source blame, and composes explicit lineages |
 | [`NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda) | completed statement | Whole accumulated-world source-narrowing handler contract |
 | [`NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda) | completed higher-order proof | GPT 5.5 Ginger proof transports and frames every narrowing grammar form, propagates source blame, and resumes terminal values through the whole value-prefix capability; canonical assembly remains cyclic |
 | [`NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda) | completed statement | Exact-final terminal source-narrowing semantics, separated from accumulated-change framing |
@@ -6579,3 +6581,18 @@ coordination.  Use focused strict checks throughout and reserve
   before the core relation is changed.  This keeps both possible outcomes
   explicit and prevents an unsupported assumption from entering the larger
   DGG proof.
+
+- Integrated the GPT 5.5 `NuImprecisionSourceBulletBase` extraction.  The four
+  exported semantic leaves pass focused strict checks on Ginger and locally.
+  The module still reaches the large simulation core for relational-world
+  embedding and indexed-result algebra, so this is a semantic completion but
+  only a partial checking-time boundary; those support dependencies are a
+  future closed-world extraction target.
+
+- Completed the strict accumulated source-`ν ★` adapter.  It transports the
+  instantiation cast to the operand catch-up's final world, delegates fresh
+  allocation and lineage to `WorldCoherentFinalSourceNuCastCatchupᵀ`, and
+  composes that exact-final result with the framed prefix.  Its blame branch
+  performs the terminal `blame-ν` step with reflexive lineage.  The focused
+  check passes and the canonical `Lemma` remains absent pending the exact-final
+  allocation/SCC inhabitant.

@@ -13,5 +13,6 @@ open import proof.NuImprecisionWorldCoherenceDef using
 
 
 corresponding-source-name-not-star-proofᵀ : CorrespondingSourceNameNotStarᵀ
-corresponding-source-name-not-star-proofᵀ coherent exclusive corresponds star∈ =
+corresponding-source-name-not-star-proofᵀ
+    coherent exclusive corresponds star∈ =
   exclusive star∈ (corresponds-idˣ coherent corresponds)

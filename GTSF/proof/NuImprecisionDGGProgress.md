@@ -444,7 +444,7 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingDef.agda) | completed hard-leaf statement; proof not yet started | Exact live reveal base after inversion: both body endpoints are variables at corresponding names, the source correspondence type is universal, both unseals and the final reveal remain fused, and the final ambient world carries coherence, exclusivity, and left store Wf. The body uses `renameᵗ (extᵗ suc) F`, not the inequivalent `⇑ᵗ F`. |
 | `NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingProof.agda` | not yet started | Intended hard proof is parameterized by `SourceSealCancellationᵀ`; it must combine canonical source-variable inversion, exact-world seal cancellation, and the final allocation/reveal relation without inventing a pre-final-reveal source-only index. |
 | `NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingLemma.agda` | not yet started | Canonical assembly will supply [`source-seal-cancellationᵀ`](NuImprecisionSourceSealCancellationLemma.agda) only after the higher-order proof exists and passes independently. |
-| [`NuImprecisionCorrespondingSourceNameNotStarDef.agda`](NuImprecisionCorrespondingSourceNameNotStarDef.agda) | completed leaf statement; GPT 5.5 proof queued | Reusable invariant corollary: a source name participating in `StoreCorresponds` cannot simultaneously have a source-only row. This is the small frozen Ginger work package for the reveal/conceal `tagˣ` contradictions. |
+| [`NuImprecisionCorrespondingSourceNameNotStarDef.agda`](NuImprecisionCorrespondingSourceNameNotStarDef.agda), [`Proof`](NuImprecisionCorrespondingSourceNameNotStarProof.agda), and [`Lemma`](NuImprecisionCorrespondingSourceNameNotStarLemma.agda) | completed GPT 5.5 leaf triple | Reusable invariant corollary: a source name participating in `StoreCorresponds` cannot simultaneously have a source-only row. The frozen Ginger proof uses `corresponds-idˣ` and `SourceNameExclusive` directly; its `Def`, `Proof`, `Lemma`, and focused integration all pass strictly. |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda) and [`FromAllConversionProof`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingFromAllConversionProof.agda) | strengthened statement and completed strict fit proof; canonical `Proof`/`Lemma` not yet started | The conceal counterpart retains `q` and the same final-world invariant triple. Coherence plus exclusivity closes its rogue source-only/corresponding-name base, but its direct fused mixed-binder final-reveal cycle remains a hard proof dependency; the larger all-conversion route is circular. |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda) | completed strict constructor reductions | Exhaustively reduces both paired-reveal and paired-conceal leaves to their corrected structural contracts and carries the exact result index `q` through the reduction |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda) | completed higher-order dispatcher and handler adapter; assembly partial | Exhaustively derives the fused matched-`Λ` theorem from its paired-reveal/conceal branches and verifies exact `handle-leaf-ΛΛ` fit without a recursive closer or one-sided intermediate |
@@ -8056,8 +8056,13 @@ coordination.  Use focused strict checks throughout and reserve
   [`CorrespondingSourceNameNotStarᵀ`](NuImprecisionCorrespondingSourceNameNotStarDef.agda).
   It packages the small reusable contradiction between `StoreCorresponds`,
   converse world provenance, source-name exclusivity, and a source-only row.
-  Its `Proof` is the next isolated Ginger work package; its `Lemma` remains not
-  yet started until that remote strict result is reviewed and integrated.
+  GPT 5.5 implemented the one-file
+  [`Proof`](NuImprecisionCorrespondingSourceNameNotStarProof.agda) from frozen
+  commit `d8a5719d` in an isolated Ginger worktree.  The worker changed no
+  interface, and its wrapper check and whitespace audit passed.  After exact
+  diff review, the local coordinator integrated it and added the separately
+  checked canonical
+  [`Lemma`](NuImprecisionCorrespondingSourceNameNotStarLemma.agda).
 
 - This batch contains no hole, postulate, incomplete match, source-level
   permissive option, or use of `--allow-unsolved-metas`.  Each contract and

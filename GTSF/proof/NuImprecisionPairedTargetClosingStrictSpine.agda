@@ -151,6 +151,8 @@ import
 import
   proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof
 import proof.NuImprecisionCorrespondingSourceNameNotStarDef
+import proof.NuImprecisionCorrespondingSourceNameNotStarProof
+import proof.NuImprecisionCorrespondingSourceNameNotStarLemma
 import
   proof.NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef
 import

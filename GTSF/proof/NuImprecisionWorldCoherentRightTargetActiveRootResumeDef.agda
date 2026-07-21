@@ -201,30 +201,6 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       WorldCoherentRightValueCatchupIndexedResult
         {V = V} {M′ = M′ ⟨ inst B s ⟩} {ρ = ρ⁺} q
 
-    rightTargetIdWidenInstantiationRoot :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {V M′ : Term} {A B C : Ty} {s : Coercion}
-        {p : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-      WorldCoherentRightTargetAllocationFrames →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      WorldCoherent ρ⁺ →
-      SourceNameExclusive Φ →
-      StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
-      RuntimeOK (M′ ⟨ inst B s ⟩) →
-      Value V →
-      No• V →
-      SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) →
-      id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
-        ⊢ inst B s ∶ `∀ C ⊑ B →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-        ⊢ᴺ V ⊑ M′ ⦂ A ⊑ `∀ C ∶ p →
-      WorldCoherentRightValueCatchupIndexedResult
-        {V = V} {M′ = M′} {ρ = ρ⁺} p →
-      WorldCoherentRightValueCatchupIndexedResult
-        {V = V} {M′ = M′ ⟨ inst B s ⟩} {ρ = ρ⁺} q
-
     rightTargetWidenUnsealRoot :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}

@@ -62,7 +62,7 @@ open import NuReduction using
   )
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+  (StoreImp; rightStoreⁱ; seal★-tag-or-id)
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -79,7 +79,7 @@ open import QuotientedTermImprecision using
   )
 open import Store using (StoreIncl)
 open import TermTyping using
-  (CastMode; SealModeStore★)
+  (CastMode; SealModeStore★; cast-tag-or-id)
 open import Types using (Ty; TyCtx)
 open import proof.CoercionProperties using (modeRename-id-only)
 open import proof.NuImprecisionContextExclusivityDef using
@@ -688,8 +688,10 @@ private
       (C.cast-unseal hB αB∈Σ () , cʷ) relation caught plan-unseal
   id-widen-administration inert pending roots allocation prefix coherent
       exclusive wfR runtime vV noV seal★ c⊑ relation caught plan-inst =
-    rightTargetIdWidenInstantiationRoot roots allocation prefix coherent
-      exclusive wfR runtime vV noV seal★ c⊑ relation caught
+    rightTargetWidenInstantiationRoot roots allocation prefix coherent
+      exclusive wfR runtime vV noV cast-tag-or-id seal★-tag-or-id
+      (NW.widen-mode-relax C.id-only≤tag-or-idᵈ c⊑)
+      relation caught
   id-widen-administration inert pending roots allocation prefix coherent
       exclusive wfR runtime vV noV seal★ c⊑ relation caught
       (plan-seq s-plan t-plan) =

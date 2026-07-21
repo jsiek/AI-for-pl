@@ -349,7 +349,8 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuCatchupProof.agda) | completed higher-order proof | Strict accumulated-world adapter transports the reveal and universal relation to the operand's final world, delegates final-value allocation to the exact-final contract, propagates source blame, and composes explicit lineages |
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda) | completed statement | Exact-final ordinary source-`ν` contract retains the arbitrary inner universal index, final allocation/reveal evidence, values, and world invariants |
 | [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda) | completed statement | Full exact-final branch specialized to `ν occ r`; intended source-bullet/allocation implementation path |
-| [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda) | completed higher-order proof; checking-time partial | Strict source allocation, bullet/reveal catch-up, outer `ν` resumption, coherence, exclusivity, store Wf, and lineage from the whole bullet and reveal capabilities; still imports `NuImprecisionSimulation` only for `left-lift-prefix-bodyᵀ` |
+| [`NuImprecisionLeftLiftPrefixBodyDef.agda`](NuImprecisionLeftLiftPrefixBodyDef.agda) | completed statement; leaf proof not yet started | Exact source-only left-lift transport under a relational-store prefix; isolates the final broad-simulation dependency from exact source allocation proofs |
+| [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda) | completed higher-order proof | Strict source allocation, bullet/reveal catch-up, outer `ν` resumption, coherence, exclusivity, store Wf, and lineage from the whole left-lift-prefix, bullet, and reveal capabilities; imports no broad simulation implementation |
 | [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda) | completed statement | Full exact-final branch specialized to `∀ⁱ r`; the proof audit found no counterexample or need for an added compatibility premise |
 | [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexViewCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexViewCatchupDef.agda) | completed hard-worker statement | Freezes the allocation-sensitive worker after source and target polymorphic values are both classified as `AllView`; its `av-Λ`/`av-∀`/`av-gen` cross-product remains the explicit missing inhabitant |
 | [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupProof.agda) | completed higher-order proof | Strictly derives the full paired-index contract from the classified-view worker by source and target canonical-form inversion; canonical `Lemma` remains absent |
@@ -6618,10 +6619,11 @@ coordination.  Use focused strict checks throughout and reserve
   well-formedness, then catches up the bullet and reveal cast before prepending
   the `ν` allocation step.  Its explicit lineage combines the canonical left
   store lift with the fresh-row prefix.  A focused
-  `--no-allow-unsolved-metas` check passes.  The only remaining checking-time
-  debt in this completed join is its broad `NuImprecisionSimulation` import
-  for `left-lift-prefix-bodyᵀ`; extracting that single support theorem is now a
-  frozen leaf task rather than a semantic proof risk.
+  `--no-allow-unsolved-metas` check passes.  The former broad
+  `NuImprecisionSimulation` import for `left-lift-prefix-bodyᵀ` has been
+  replaced by the small strict `LeftLiftPrefixBodyᵀ` contract.  Its proof is a
+  frozen leaf task, while the completed allocation join now checks without
+  importing the large simulation implementation or relying on a meta.
 
 - Completed the paired-index proof-or-counterexample audit with a positive
   strict boundary.  No incompatible final setup was found, and no additional

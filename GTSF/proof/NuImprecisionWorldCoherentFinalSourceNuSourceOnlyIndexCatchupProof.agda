@@ -77,8 +77,8 @@ open import proof.NuImprecisionContextExclusivityProof using
   (source-name-exclusive-source-only-head)
 open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
   (lift-left-store-embeddingⁱ)
-open import proof.NuImprecisionSimulation using
-  (left-lift-prefix-bodyᵀ)
+open import proof.NuImprecisionLeftLiftPrefixBodyDef using
+  (LeftLiftPrefixBodyᵀ)
 open import proof.NuImprecisionSimulationCore using
   ( equality-proof-unique
   ; renameᵗ-ext-id
@@ -162,11 +162,12 @@ private
 
 
 world-coherent-final-source-ν-source-only-index-catchup-proofᵀ :
+  LeftLiftPrefixBodyᵀ →
   WorldCoherentSourceBulletCatchupᵀ →
   WorldCoherentSourceRevealCatchupᵀ →
   WorldCoherentFinalSourceNuSourceOnlyIndexCatchupᵀ
 world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
-    bullet-catchup reveal-catchup
+    left-lift-prefix-body bullet-catchup reveal-catchup
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ = ρ} {ρ′ = ρ′} {L = L} {V′ = V′}
     {A = A} {B = B} {B′ = B′} {C = C} {s = s}
@@ -255,7 +256,7 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
       (left-silent-invariant refl refl)
       (ok-⟨⟩ (ok-• vL noL))
       (weak-step-transport
-        (left-lift-prefix-bodyᵀ liftρ
+        (left-lift-prefix-body liftρ
           (prefix-∷ⁱ prefix-reflⁱ)))
       (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ)
 

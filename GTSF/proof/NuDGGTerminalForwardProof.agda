@@ -9,8 +9,10 @@ module proof.NuDGGTerminalForwardProof where
 --   * Imports neither live simulation implementation.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Product using (_×_; _,_; Σ-syntax; ∃-syntax)
+open import Data.Sum using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using
   (cong; subst; sym; trans)
 
@@ -62,6 +64,8 @@ open import proof.ReductionProperties using
   ; applyTys-++
   ; ↠-trans
   )
+open import proof.NuReductionDeterminism using
+  (source-blame-excludes-value)
 open import TermTyping using (forget)
 
 
@@ -128,8 +132,18 @@ world-coherent-forward-source-value-proofᵀ
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B} {ρ = ρ}
     coherent exclusive wfL wfR okM okM′ M⊑M′
     V (χ ∷ χs) (↠-step source-step source-rest) vV
-    | L′ , θs , Ψ , ρ′ , q , M′↠L′ , coherent′ , exclusive′ ,
-      left-eq , right-eq , L⊑L′
+    | inj₂ (source-blame-changes , source↠blame) =
+  ⊥-elim
+    (source-blame-excludes-value source↠blame
+      (↠-step source-step source-rest) vV)
+world-coherent-forward-source-value-proofᵀ
+    one-step right-catchup
+    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B} {ρ = ρ}
+    coherent exclusive wfL wfR okM okM′ M⊑M′
+    V (χ ∷ χs) (↠-step source-step source-rest) vV
+    | inj₁
+        (L′ , θs , Ψ , ρ′ , q , M′↠L′ , coherent′ ,
+          exclusive′ , left-eq , right-eq , L⊑L′)
     with world-coherent-forward-source-value-proofᵀ
       one-step right-catchup coherent′ exclusive′
       next-wfL next-wfR next-okL next-okL′ L⊑L′
@@ -156,8 +170,9 @@ world-coherent-forward-source-value-proofᵀ
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B} {ρ = ρ}
     coherent exclusive wfL wfR okM okM′ M⊑M′
     V (χ ∷ χs) (↠-step source-step source-rest) vV
-    | L′ , θs , Ψ , ρ′ , q , M′↠L′ , coherent′ , exclusive′ ,
-      left-eq , right-eq , L⊑L′
+    | inj₁
+        (L′ , θs , Ψ , ρ′ , q , M′↠L′ , coherent′ ,
+          exclusive′ , left-eq , right-eq , L⊑L′)
     | V′ , ηs , Ω , ρ″ , r , L′↠V′ , vV′ ,
       final-left-eq , final-right-eq , V⊑V′
     rewrite sym (applyTyCtxs-++ θs ηs Δᴿ)

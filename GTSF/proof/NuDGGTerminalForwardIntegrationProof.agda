@@ -82,10 +82,6 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepProof using
   (world-coherent-source-one-step-proofᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepPrefixDef using
   (WorldCoherentSourceOneStepPrefixᵀ)
-open import proof.NuImprecisionWorldCoherentSourceOneStepPrefixProof using
-  (world-coherent-exact-source-one-step-prefix-proofᵀ)
-open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentExactSourceOneStepSimulationᵀ)
 open import
   proof.NuImprecisionWorldCoherentSourcePrimitiveLeftStepDef using
   (WorldCoherentSourcePrimitiveLeftStepᵀ)
@@ -129,21 +125,6 @@ forward-engines-and-backward-terminals⇒gradual-dgg
     backward-blame
 
 
-exact-forward-engines-and-backward-terminals⇒gradual-dgg :
-  WorldCoherentExactSourceOneStepSimulationᵀ →
-  WorldCoherentRightValueCatchupPrefixᵀ →
-  BackwardTargetValueOrSourceBlameᵀ →
-  BackwardTargetBlameᵀ →
-  GradualDGG
-exact-forward-engines-and-backward-terminals⇒gradual-dgg
-    exact-one-step right-prefix backward-value backward-blame =
-  forward-engines-and-backward-terminals⇒gradual-dgg
-    (world-coherent-source-one-step-proofᵀ exact-one-step)
-    (world-coherent-right-value-catchup-proofᵀ right-prefix)
-    backward-value
-    backward-blame
-
-
 prefix-forward-engines-and-backward-terminals⇒gradual-dgg :
   WorldCoherentSourceOneStepPrefixᵀ →
   WorldCoherentRightValueCatchupPrefixᵀ →
@@ -152,9 +133,10 @@ prefix-forward-engines-and-backward-terminals⇒gradual-dgg :
   GradualDGG
 prefix-forward-engines-and-backward-terminals⇒gradual-dgg
     source-prefix right-prefix backward-value backward-blame =
-  exact-forward-engines-and-backward-terminals⇒gradual-dgg
-    (world-coherent-exact-source-one-step-prefix-proofᵀ source-prefix)
-    right-prefix backward-value backward-blame
+  forward-engines-and-backward-terminals⇒gradual-dgg
+    (world-coherent-source-one-step-proofᵀ source-prefix)
+    (world-coherent-right-value-catchup-proofᵀ right-prefix)
+    backward-value backward-blame
 
 
 source-cases-and-right-prefix⇒gradual-dgg :

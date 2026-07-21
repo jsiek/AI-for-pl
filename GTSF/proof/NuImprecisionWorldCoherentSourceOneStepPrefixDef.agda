@@ -1,8 +1,8 @@
 module proof.NuImprecisionWorldCoherentSourceOneStepPrefixDef where
 
 -- File Charter:
---   * Defines the ambient-prefix induction boundary for exact source one-step
---     simulation.
+--   * Defines the ambient-prefix induction boundary for source one-step
+--     simulation with an explicit source-blame alternative.
 --   * Separates the smaller relational-store witness from the larger physical
 --     store used by reduction, typing, and preservation.
 --   * Returns the full recursive result needed by evaluation-context cases.
@@ -24,8 +24,8 @@ open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
-open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import proof.NuImprecisionWorldCoherentSourceOneStepOutcomeDef using
+  (WorldCoherentSourceOneStepOutcome)
 open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
@@ -47,5 +47,5 @@ WorldCoherentSourceOneStepPrefixᵀ =
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
   M —→[ χ ] L →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = M} {M′ = M′} {L = L} {χ = χ} {ρ = ρ⁺} p

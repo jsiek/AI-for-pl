@@ -2,7 +2,7 @@ module proof.NuImprecisionWorldCoherentSourceOneStepDispatcherProof where
 
 -- File Charter:
 --   * Proves that the nine frozen source-reduction case capabilities assemble
---     into the ambient-prefix exact source one-step dispatcher.
+--     into the ambient-prefix source one-step outcome dispatcher.
 --   * Splits exhaustively on the source store-step derivation.
 --   * Contains no semantic case implementation, postulate, or hole.
 
@@ -29,6 +29,8 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepCasesDef using
   ; sourcePrimitiveRightStepCase
   ; sourcePureStepCases
   )
+open import proof.NuImprecisionWorldCoherentSourceOneStepOutcomeDef using
+  (source-step-outcome-related)
 open import proof.NuImprecisionWorldCoherentSourcePureStepDispatcherProof using
   (world-coherent-source-pure-step-dispatcher-proofᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepPrefixDef using
@@ -41,15 +43,17 @@ world-coherent-source-one-step-dispatcher-proofᵀ :
 world-coherent-source-one-step-dispatcher-proofᵀ
     cases prefix coherent exclusive wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (pure-step root) =
-  world-coherent-source-pure-step-dispatcher-proofᵀ
-    (sourcePureStepCases cases)
-    prefix coherent exclusive wfL wfR okM okM′
-    M⊢ M′⊢ M⊑M′ root
+  source-step-outcome-related
+    (world-coherent-source-pure-step-dispatcher-proofᵀ
+      (sourcePureStepCases cases)
+      prefix coherent exclusive wfL wfR okM okM′
+      M⊢ M′⊢ M⊑M′ root)
 world-coherent-source-one-step-dispatcher-proofᵀ
     cases prefix coherent exclusive wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (ν-step vV noV) =
-  sourceAllocationStepCase cases prefix coherent exclusive wfL wfR
-    okM okM′ M⊢ M′⊢ M⊑M′ vV noV
+  source-step-outcome-related
+    (sourceAllocationStepCase cases prefix coherent exclusive wfL wfR
+      okM okM′ M⊢ M′⊢ M⊑M′ vV noV)
 world-coherent-source-one-step-dispatcher-proofᵀ
     cases prefix coherent exclusive wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (ξ-·₁ inner shift) =
@@ -73,8 +77,9 @@ world-coherent-source-one-step-dispatcher-proofᵀ
 world-coherent-source-one-step-dispatcher-proofᵀ
     cases prefix coherent exclusive wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-ν =
-  sourceNuBlameStepCase cases prefix coherent exclusive wfL wfR
-    okM okM′ M⊢ M′⊢ M⊑M′
+  source-step-outcome-related
+    (sourceNuBlameStepCase cases prefix coherent exclusive wfL wfR
+      okM okM′ M⊢ M′⊢ M⊑M′)
 world-coherent-source-one-step-dispatcher-proofᵀ
     cases prefix coherent exclusive wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (ξ-⊕₁ inner shift) =

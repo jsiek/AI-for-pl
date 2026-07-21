@@ -3,7 +3,7 @@ module proof.NuImprecisionWorldCoherentSourceCastFrameStepDef where
 -- File Charter:
 --   * Defines the world-coherent source cast-frame step capability.
 --   * Keeps coercion transport, the framed store change, runtime, typing, and
---     indexed simulation result explicit at this semantic boundary.
+--     indexed simulation outcome explicit at this semantic boundary.
 --   * Contains no implementation, dispatcher, postulate, hole, permissive
 --     option, or broad simulation import.
 
@@ -26,8 +26,8 @@ open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
-open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import proof.NuImprecisionWorldCoherentSourceOneStepOutcomeDef using
+  (WorldCoherentSourceOneStepOutcome)
 open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
@@ -49,7 +49,7 @@ WorldCoherentSourceCastFrameStepᵀ =
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⦂ A ⊑ B ∶ p →
   M —→[ χ ] M₁ →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = M ⟨ c ⟩} {M′ = M′}
     {L = M₁ ⟨ applyCoercion χ c ⟩}
     {χ = χ} {ρ = ρ⁺} p

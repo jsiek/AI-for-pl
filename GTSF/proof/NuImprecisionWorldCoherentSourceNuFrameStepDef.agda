@@ -3,7 +3,7 @@ module proof.NuImprecisionWorldCoherentSourceNuFrameStepDef where
 -- File Charter:
 --   * Defines the world-coherent source `ν`-frame step capability.
 --   * Keeps type/coercion transport under the binder, runtime, typing, and
---     indexed simulation result explicit at this semantic boundary.
+--     indexed simulation outcome explicit at this semantic boundary.
 --   * Contains no implementation, dispatcher, postulate, hole, permissive
 --     option, or broad simulation import.
 
@@ -30,8 +30,8 @@ open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
-open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import proof.NuImprecisionWorldCoherentSourceOneStepOutcomeDef using
+  (WorldCoherentSourceOneStepOutcome)
 open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
@@ -54,7 +54,7 @@ WorldCoherentSourceNuFrameStepᵀ =
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ ν C L c ⊑ M′ ⦂ A ⊑ B ∶ p →
   L —→[ χ ] L′ →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = ν C L c} {M′ = M′}
     {L = ν (applyTy χ C) L′
       (applyCoercionUnderTyBinder χ c)}

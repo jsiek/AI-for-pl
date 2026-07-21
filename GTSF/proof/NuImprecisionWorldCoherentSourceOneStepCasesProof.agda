@@ -3,8 +3,8 @@ module
   where
 
 -- File Charter:
---   * Assembles every named source one-step family into the exact DGG-facing
---     case record.
+--   * Assembles every named source one-step family into the DGG-facing
+--     outcome case record.
 --   * Threads right-value catch-up only to the source primitive pure roots;
 --     all other unfinished semantic families remain explicit parameters.
 --   * Contains no semantic leaf, postulate, hole, or permissive option.

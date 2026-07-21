@@ -3,7 +3,7 @@ module proof.NuImprecisionWorldCoherentSourcePrimitiveRightStepDef where
 -- File Charter:
 --   * Defines the world-coherent source primitive-right frame capability.
 --   * Keeps the value, framed store change, runtime, typing, and indexed
---     simulation result explicit at this semantic boundary.
+--     simulation outcome explicit at this semantic boundary.
 --   * Contains no implementation, dispatcher, postulate, hole, permissive
 --     option, or broad simulation import.
 
@@ -26,8 +26,8 @@ open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
-open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import proof.NuImprecisionWorldCoherentSourceOneStepOutcomeDef using
+  (WorldCoherentSourceOneStepOutcome)
 open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
@@ -51,7 +51,7 @@ WorldCoherentSourcePrimitiveRightStepᵀ =
   Value L →
   Shiftable χ L →
   M —→[ χ ] M₁ →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = L ⊕[ op ] M} {M′ = M′}
     {L = applyTerm χ L ⊕[ op ] M₁}
     {χ = χ} {ρ = ρ⁺} p

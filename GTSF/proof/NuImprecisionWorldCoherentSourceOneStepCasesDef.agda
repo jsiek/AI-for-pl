@@ -2,7 +2,7 @@ module proof.NuImprecisionWorldCoherentSourceOneStepCasesDef where
 
 -- File Charter:
 --   * Aggregates the nine named source-reduction case capabilities consumed
---     by the exact source one-step dispatcher.
+--     by the source one-step outcome dispatcher.
 --   * Refers to one independently checkable semantic boundary per reduction
 --     family while preserving the dispatcher's canonical field names.
 --   * Contains no case statement, implementation, postulate, hole,

@@ -3,7 +3,7 @@ module proof.NuImprecisionWorldCoherentSourceApplicationLeftStepDef where
 -- File Charter:
 --   * Defines the world-coherent source application-left frame capability.
 --   * Keeps the framed store change, shiftability, runtime, typing, and
---     indexed simulation result explicit at this semantic boundary.
+--     indexed simulation outcome explicit at this semantic boundary.
 --   * Contains no implementation, dispatcher, postulate, hole, permissive
 --     option, or broad simulation import.
 
@@ -25,8 +25,8 @@ open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
-open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import proof.NuImprecisionWorldCoherentSourceOneStepOutcomeDef using
+  (WorldCoherentSourceOneStepOutcome)
 open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
@@ -49,6 +49,6 @@ WorldCoherentSourceApplicationLeftStepᵀ =
     ⊢ᴺ L · M ⊑ M′ ⦂ A ⊑ B ∶ p →
   L —→[ χ ] L′ →
   Shiftable χ M →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = L · M} {M′ = M′}
     {L = L′ · applyTerm χ M} {χ = χ} {ρ = ρ⁺} p

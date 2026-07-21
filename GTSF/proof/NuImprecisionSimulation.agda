@@ -4529,33 +4529,6 @@ left-catchup-indexed-all-keep-stepᵀ source→ final N⊑V′ =
   where
   result = weak-one-step-keep-source-catchupᵀ source→ N⊑V′
 
-left-catchup-indexed-all-prepend-keepᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N V′ C C′ q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (source→ : M —→[ keep ] N) →
-  (N⊑V′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q) →
-  LeftCatchupIndexedAllResult
-    {N = N} {V′ = V′} {ρ = ρ} q →
-  LeftCatchupIndexedAllResult
-    {N = M} {V′ = V′} {ρ = ρ} q
-left-catchup-indexed-all-prepend-keepᵀ source→ N⊑V′
-    (left-indexed-all-catchup indexed
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      second-transport second-coherence) =
-  left-indexed-all-catchup
-    (weak-indexed-result combined (canonicalIndexedResults indexed))
-    (left-catchup-invariant
-      (left-silent-invariant refl refl) final)
-    (weak-one-step-prepend-source-keep-transportᵀ
-      source→ second second-transport)
-    (weak-one-step-prepend-source-keep-type-coherenceᵀ
-      source→ second second-coherence)
-  where
-  second = weakIndexedResult indexed
-  combined = weak-one-step-prepend-source-keepᵀ source→ second
-
 left-catchup-indexed-all-prefix-prepend-keepᵀ :
   ∀ {Φ Δᴸ Δᴿ M N V′ C C′ q}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →

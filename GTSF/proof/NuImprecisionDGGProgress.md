@@ -365,7 +365,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentPairedLambdaTargetClosingAllRevealCatchupDef.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingAllRevealCatchupDef.agda) | completed statement | Structural universal reveal branch; must perform recursive target-binder closing together with the `ν∀`-to-`∀ν` binder rotation |
 | [`NuImprecisionWorldCoherentPairedLambdaTargetClosingAllRevealCatchupProof.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingAllRevealCatchupProof.agda) | completed higher-order proof; assembly partial | Packages an exact relation-level closing capability through the whole coherent value-catch-up contract, establishing the allocated world's coherence, exclusivity, and left store Wf |
 | [`NuImprecisionWorldCoherentPairedLambdaTargetClosingAllRevealRelationDef.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingAllRevealRelationDef.agda) | completed statement; proof not yet started | Remaining term-relation transformation from the matched nested universal body to the source-only rotated `W ⟨ ∀ s ⟩ ⊑ Λ W′` relation |
-| [`NuImprecisionPairedLambdaTargetClosingRelationDef.agda`](NuImprecisionPairedLambdaTargetClosingRelationDef.agda) | completed shared statement; proof not yet started | Relation-only paired-binder transport from `W ⊑ W′ : ∀ E ⊑ C′` in the matched world to an existentially indexed `W ⊑ Λ W′ : ∀ E ⊑ ∀ C′` relation in the source-only allocated world |
+| [`NuImprecisionPairedLambdaTargetClosingRelationCounterexample.agda`](NuImprecisionPairedLambdaTargetClosingRelationCounterexample.agda) | completed strict counterexample | Refutes the removed existential intermediate relation: a closed paired `Λ`/`Λ` premise at `∀ Nat ⊑ ∀ Nat` exists, but no source-only index for `∀ Nat ⊑ ∀ (∀ Nat)` can exist |
 | [`NuImprecisionWorldCoherentPairedLambdaTargetClosingUnsealCatchupDef.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingUnsealCatchupDef.agda) | completed statement | Active unseal branch of target-binder closing |
 | [`NuImprecisionWorldCoherentPairedLambdaTargetClosingUnsealCatchupProof.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingUnsealCatchupProof.agda) | completed impossible leaf | Canonical forms would require fresh name zero in the uniformly shifted matched-universal source store, contradicting `zero-not-in-shifted-store`; no pre-unseal relation is needed |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllTargetClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllTargetClosingCatchupDef.agda) | completed hard statement | Exact direct post-allocation `av-∀`/`av-∀` boundary retaining the inner paired universal relation and whole `PairedCast` evidence |
@@ -375,6 +375,8 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaTargetClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaTargetClosingCatchupDef.agda) | completed statement | Exact post-`β-∀•` semantic boundary retaining the whole paired conversion, final source reveal, and closed target cast without an invented one-sided intermediate index |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaTargetClosingCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaTargetClosingCatchupProof.agda) | completed higher-order proof; assembly partial | Exhaustively dispatches final source reveal to structural-all and active-unseal families while retaining paired reveal/conceal together |
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationDef.agda) | completed statement; proof not yet started | Pure structural-all relation boundary directly connecting the two closed casts at the final source-lifted index |
+| [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationViewDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationViewDef.agda) | completed hard-worker statement | Retains the exact fused structural-all telescope and conclusion while exposing canonical `AllView` classifications for both endpoint values; it introduces no intermediate precision index |
+| [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationProof.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationProof.agda) | completed higher-order proof; assembly partial | Strictly derives both `AllView`s and delegates the unchanged fused relation to the classified worker; the nine-case worker and canonical `Lemma` remain not yet started |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda) | completed statement; proof not yet started | Fused active fresh-unseal operational boundary; recursive cancellation and target closing remain inseparable |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda) | completed statement; proof not yet started | Whole paired-widening target-closing family retaining both modes, store sealing invariants, typed casts, and `PairedWideningCompatible` |
 | [`NuImprecisionWorldCoherentTargetInertFrameCatchupDef.agda`](NuImprecisionWorldCoherentTargetInertFrameCatchupDef.agda) | completed statement | One reusable strict target-frame contract with an inline five-way evidence sum for reveal, conceal, narrowing, widening, and id-only widening |
@@ -392,9 +394,10 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceNuCastPairedLambdaTargetClosingCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuCastPairedLambdaTargetClosingCatchupProof.agda) | completed higher-order proof; assembly partial | Reuses the shared administrative prepend proof and delegates only semantic target closing through widening |
 | [`NuImprecisionWorldCoherentPairedLambdaTargetClosingWidenCatchupDef.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingWidenCatchupDef.agda) | completed statement | Exact semantic catch-up from `W ⟨ s ⟩` to `Λ W′` through source widening |
 | [`NuImprecisionWorldCoherentPairedLambdaTargetClosingWidenCatchupProof.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingWidenCatchupProof.agda) | completed higher-order proof; assembly partial | Strict exhaustive dispatcher over all widening constructors; only structural-`∀`, active-`inst`, and unseal-spine families remain as theorem dependencies |
-| [`NuImprecisionWorldCoherentPairedLambdaTargetClosingAllWidenCatchupDef.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingAllWidenCatchupDef.agda) | completed statement | Structural universal widening family specialized to target-binder closing |
-| [`NuImprecisionWorldCoherentPairedLambdaTargetClosingAllWidenCatchupProof.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingAllWidenCatchupProof.agda) | completed higher-order proof; assembly partial | Consumes the shared paired-binder relation transport, applies the structural universal widening, and packages the inert result through coherent value catch-up |
-| [`NuImprecisionWorldCoherentPairedLambdaTargetClosingInstWidenCatchupDef.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingInstWidenCatchupDef.agda) | completed statement; proof not yet started | Active instantiation family; semantically reduces to a `ν ★` target-closing obligation |
+| [`NuImprecisionWorldCoherentPairedLambdaTargetClosingAllWidenCatchupDef.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingAllWidenCatchupDef.agda) | completed hard statement; proof not yet started | Structural universal widening family specialized to target-binder closing; it must remain fused because the tempting existential intermediate relation is false |
+| [`NuImprecisionWorldCoherentPairedLambdaTargetClosingInstWidenCatchupDef.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingInstWidenCatchupDef.agda) | completed statement | Active instantiation family before the administrative `β-inst` step |
+| [`NuImprecisionWorldCoherentPairedLambdaTargetClosingInstPostBetaCatchupDef.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingInstPostBetaCatchupDef.agda) | completed fused hard statement; proof not yet started | Exact post-`β-inst` runtime-`ν ★` target-closing obligation, retaining the complete paired relation and allocation-sensitive telescope |
+| [`NuImprecisionWorldCoherentPairedLambdaTargetClosingInstWidenCatchupProof.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingInstWidenCatchupProof.agda) | completed higher-order proof; assembly partial | Strictly prepends the source `β-inst` step and delegates the unchanged fused runtime-`ν ★` obligation; no intermediate relation or canonical `Lemma` is introduced |
 | [`NuImprecisionWorldCoherentPairedLambdaTargetClosingUnsealSpineWidenCatchupDef.agda`](NuImprecisionWorldCoherentPairedLambdaTargetClosingUnsealSpineWidenCatchupDef.agda) | completed statement; proof not yet started | One genuine unseal-headed family containing bare unseal and unseal-plus-strict-tail operations inline |
 | [`NuImprecisionWorldCoherentFinalSourceNuCastPairedIndexCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuCastPairedIndexCatchupProof.agda) | completed higher-order proof | Strictly reduces the full paired-index `ν ★` branch to the classified-view worker by source and target canonical-form inversion |
 | [`NuImprecisionWorldCoherentSourceNuCastCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuCastCatchupProof.agda) | completed higher-order proof | Strict accumulated-world adapter transports inst evidence through source changes, delegates final-value allocation to the exact-final contract, propagates source blame, and composes explicit lineages |
@@ -6805,10 +6808,11 @@ coordination.  Use focused strict checks throughout and reserve
   unseal-headed spine.  All identity/base/function/tag alternatives are
   impossible once the final type is known to be universal.  The unseal family
   keeps bare unseal and unseal-with-strict-tail operations together in one
-  inline product.  The structural family now has a completed catch-up package
-  over a shared relation-only paired-binder transport.  That transport is also
-  relevant to structural reveal; its proof, active `inst`, and unseal-spine
-  semantics remain hard work, and canonical assembly has not started.
+  inline product.  The structural family remains one fused hard statement.
+  An attempted shared relation-only paired-binder transport was refuted by a
+  strict counterexample and removed together with the package that depended on
+  it.  Structural widening, active `inst`, and unseal-spine semantics remain
+  hard work, and canonical assembly has not started.
 
 - The eight non-`Λ`/`Λ` `AllView` combinations were audited.  `AllView` is a
   surface classification, not the recursion measure: the eventual worker must
@@ -6827,6 +6831,42 @@ coordination.  Use focused strict checks throughout and reserve
   local check took 8.83 seconds.  The large cold/warm gap is further evidence
   for keeping statement and proof owners small and checking the nearest
   consumer only after integration.
+
+- Audited the proposed shared target-binder-closing relation before allowing
+  it into either reveal or widening assembly.  The strict
+  [`NuImprecisionPairedLambdaTargetClosingRelationCounterexample.agda`](NuImprecisionPairedLambdaTargetClosingRelationCounterexample.agda)
+  constructs a valid paired `Λ`/`Λ` premise at `∀ Nat ⊑ ∀ Nat`, then proves by
+  exhaustive index inversion that the proposed source-only conclusion would
+  require the impossible index `∀ Nat ⊑ ∀ (∀ Nat)`.  The false `Def` and its
+  dependent structural-widening `Proof` were deleted rather than left as an
+  uninhabited theorem parameter.  Both structural branches now retain their
+  exact fused endpoints.
+
+- Deepened two valid fused paths without adding metas.  Direct paired
+  conversion now derives source and target `AllView`s and delegates its exact
+  structural-all relation to a classified-view worker, leaving the honest
+  nine-case matrix explicit.  Active instantiation widening now has a strict
+  post-`β-inst` contract whose source term is exactly `ν ★ W c`; its completed
+  higher-order adapter merely prepends the `β-inst` step.  The allocation and
+  target-closing semantics remain one explicit theorem dependency because the
+  existing source-`ν ★` paired-lambda theorem begins too late to discharge it.
+
+- The concurrent GPT 5.5 Ginger audit of the five source inert-bullet
+  commutation theorems correctly made no edits: the requested slice is not yet
+  closed over focused owners.  The remaining broad-only dependency closure is
+  `allocated-left-seal★`, `allocated-left-gen-seal★`,
+  `allocated-left-relationᵀ`, `open-allocated-left-all-reveal`,
+  `open-allocated-left-all-conceal`, and
+  `left-catchup-indexed-all-prepend-keepᵀ` in
+  [`NuImprecisionSimulation.agda`](NuImprecisionSimulation.agda).  The two
+  post-allocation bare steps already live in
+  [`NuImprecisionSourcePolymorphicValueBase.agda`](NuImprecisionSourcePolymorphicValueBase.agda)
+  but are private.  The next modularization pass should therefore extract one
+  source-left allocation cast/conversion owner, expose the two existing bare
+  steps from their canonical value owner, and move the indexed-all prepend
+  wrapper into focused catch-up result algebra.  Only after those boundaries
+  check strictly should the five commutation theorems move out of the broad
+  simulation.
 
 - No new file uses `--allow-unsolved-metas`, a hole, a postulate, or an
   incomplete match.  Missing semantic work is represented by checked theorem

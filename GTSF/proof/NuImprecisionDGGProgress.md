@@ -388,7 +388,9 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda) | completed hard classifier | Exhaustive strict mutual recursion over ordinary and quotiented QTI derivations constructs exactly the proof-relevant leaves and frames; no `Lemma` wrapper is needed because the proof has no theorem dependency |
 | [`NuImprecisionPairedLambdaTargetClosingFrameViewProperties.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProperties.agda) | completed GPT 5.5 structural leaf | Strict recursion reconstructs the exact QTI relation and projects source/target `Value` and `No•` evidence from the proof-relevant view; no wrapper or theorem dependency is needed |
 | [`NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda) | completed higher-order interface | Strict post-bullet motive and twelve semantic handler contracts: four leaves, four source-all frames, paired conversion, paired widening, and two quotient frames; administrative prefix and target-only frames stay in the interpreter |
-| [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda) | completed semantic statement; higher-order proof in progress | Exact fused closer over one proof-relevant frame view; retains the ambient prefix, paired conversion, both allocation lifts, final reveal, and exact conclusion |
+| [`NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda) | completed shared statement; proof not yet started | One inline five-way capability for transporting reveal, conceal, narrowing, widening, or id-only widening target frames without reversing the final target coercion order |
+| [`NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda) | completed higher-order interpreter; handler assembly partial | Strict structural recursion delegates twelve semantic cases and the shared target-frame capability, composes ambient prefixes internally, and splits paired conversion from paired widening; no `Lemma` exists while handler inhabitants remain incomplete |
+| [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda) | completed semantic statement; higher-order proof completed; assembly partial | Exact fused closer over one proof-relevant frame view; retains the ambient prefix, paired conversion, both allocation lifts, final reveal, and exact conclusion |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda) | completed statement; proof not yet started | Fused active fresh-unseal operational boundary; recursive cancellation and target closing remain inseparable |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllWideningTargetClosingCatchupDef.agda) | completed statement; proof not yet started | Whole paired-widening target-closing family retaining both modes, store sealing invariants, typed casts, and `PairedWideningCompatible` |
 | [`NuImprecisionWorldCoherentTargetInertFrameCatchupDef.agda`](NuImprecisionWorldCoherentTargetInertFrameCatchupDef.agda) | completed statement | One reusable strict target-frame contract with an inline five-way evidence sum for reveal, conceal, narrowing, widening, and id-only widening |
@@ -7081,3 +7083,17 @@ coordination.  Use focused strict checks throughout and reserve
   its unavailable semantic handlers will remain theorem parameters rather
   than holes, so the `Proof` can remain independently checkable without
   `--allow-unsolved-metas`.
+
+- Completed the strict GPT 5.6 structural interpreter in
+  [`NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda).
+  It recurses over the proof-relevant frame spine, delegates the twelve
+  semantic cases to the handler record, splits paired conversion from paired
+  widening, and composes store prefixes internally.  The audit also froze one
+  genuinely shared target-only transport statement in
+  [`NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda):
+  ordinary result framing would put the target frame outside the final paired
+  conversion, whereas this proof needs it inside, so all five target-frame
+  forms share one explicit capability.  Both owners pass focused strict
+  checks, and the paired target-closing spine still checks in isolation.  The
+  missing semantic and target-frame implementations are theorem parameters,
+  not metas; the canonical `Lemma` remains absent until they are assembled.

@@ -153,6 +153,8 @@ open import proof.NuImprecisionSimulation using
   )
 open import proof.NuImprecisionCatchupPrefixSupport
 open import proof.NuImprecisionCatchupQuotientSupport
+open import proof.NuImprecisionQuotientWideningTransport using
+  (weak-one-step-transport-quotient-widening-pairᵀ)
 open import proof.ReductionProperties using
   (applyCoercions; applyTy-★; applyTys-++; cast-↠)
 open import proof.NuPreservation using (runtime-ν; runtime-⟨⟩)

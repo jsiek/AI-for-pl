@@ -125,10 +125,15 @@ These nine definitions were moved out of the permissive scratch dispatcher;
 new coherent catch-up proofs should import this module and must not recover
 them by importing `NuImprecisionCatchupScratch`.
 
-The remaining hole-free down/up transport block lives in
-`NuImprecisionCatchupQuotientSupport`.  It owns paired double-cast framing,
-runtime recovery, narrowing transport, ordinary/generated down transport,
-quotient-widening transport, and final silent framing.  Keep the two
+The remaining hole-free down/up transport block is split between
+`NuImprecisionCatchupQuotientSupport` and the focused
+`NuImprecisionQuotientWideningTransport`.  The former owns paired double-cast
+framing, runtime recovery, narrowing transport, ordinary/generated down
+transport, and final silent framing; the latter owns transport of one quotient
+widening pair.  Its lower-level store-change cast transport lives in
+`NuWideningTransport`, and `modeRename-id-only` lives with `ModeRename` in
+`CoercionProperties`.  This keeps the small paired-widening leaf out of the
+simulation-core dependency cone.  Keep the two
 ordinary/generated down-up drivers out of that support module: their
 quotient-`inst` residual is the semantic hole represented by
 `WorldCoherentQuotientInstCatchupᵀ`, not mechanical transport support.
@@ -280,9 +285,11 @@ its fields recursively.  Its current proof decomposition is:
   unseal to the canonical unseal lemma;
 - active narrowing/widening need quotient-aware source tag/untag
   classification in addition to the existing inert and blame frames.  The
-  first ordinary source-tag cancellation contract was rejected by strict
-  checking: an `up⊑upᵀ` premise retains only a quotiented inner relation and
-  cannot produce an ordinary conclusion.  The raw two-seal obstruction in
+  first source-tag proof attempt exposed an `up⊑upᵀ` premise that retains only
+  a quotiented inner relation.  The contract is nevertheless sound because its
+  ground/value hypotheses support the restricted
+  `GroundValueQuotientEliminationᵀ` theorem; no global dequotienting is used.
+  The raw two-seal obstruction in
   `NuImprecisionSourceCastSequenceMidpointCounterexample` does not satisfy
   `SealModeStore★`: `seal-enabled-store-entry-star` proves from store
   uniqueness that every seal-enabled source entry has payload `★`.  Thus the
@@ -305,11 +312,17 @@ its fields recursively.  Its current proof decomposition is:
   complete.  Accumulated paired-conversion transport reduces to an explicit
   `LeftSilentStoreCorrespondsTransportᵀ` boundary because linked relational
   store entries appear in neither projected store and cannot be recovered from
-  final `WorldCoherent` alone.
+  final `WorldCoherent` alone.  The smallest implementation invariant is a
+  `WeakOneStepStoreLineage` package: a relational-store embedding from the
+  initial store into an intermediate renamed store, followed by a
+  `StoreImpPrefix` into the result store.  Add this only to coherent catch-up
+  results, where it is universally needed; identity/frame cases preserve it,
+  composition composes it, and allocation constructors already expose the
+  required lift embeddings.
 
 The independent conceal, active-unseal, and source-reveal leaves are now
-complete.  Next replace source tag cancellation with a quotient-aware
-boundary, use the completed source cast-sequence midpoint in the non-`inst`
+complete.  Next use completed source tag cancellation and the source
+cast-sequence midpoint in the non-`inst`
 narrow/widen cases, and prove the remaining paired-cast dependencies.  Only
 then implement
 the allocation SCC as a visibly structural mutual proof (or with an explicit

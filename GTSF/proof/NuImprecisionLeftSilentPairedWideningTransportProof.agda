@@ -17,7 +17,7 @@ open import QuotientedTermImprecision using
   ; quotient-cast-widening
   )
 open import TermTyping using (cast-tag-or-id)
-open import proof.NuImprecisionCatchupQuotientSupport using
+open import proof.NuImprecisionQuotientWideningTransport using
   (weak-one-step-transport-quotient-widening-pairᵀ)
 open import
   proof.NuImprecisionLeftSilentPairedWideningTransportDef using

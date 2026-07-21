@@ -355,6 +355,8 @@ open import proof.TypePreservation using
   ; term-weaken
   ; typing-renameᵀ
   )
+open import proof.NuWideningTransport using
+  (apply-widens-typing)
 open import proof.StoreProperties using
   (∈-renameStoreᵗ; renameStoreᵗ-incl)
 open import proof.TypeProperties using

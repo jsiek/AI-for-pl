@@ -484,6 +484,10 @@ renameᶜ-dual-normal ρ = renameᶜ-dual (λ X → refl)
 ModeRename : Renameᵗ → ModeEnv → ModeEnv → Set
 ModeRename ρ μ ν = ∀ X → mode≤ (μ X) (ν (ρ X)) ≡ true
 
+modeRename-id-only :
+  ∀ (τ : Renameᵗ) → ModeRename τ id-onlyᵈ id-onlyᵈ
+modeRename-id-only τ X = refl
+
 ModeRename-ext :
   ∀ {ρ μ ν} →
   ModeRename ρ μ ν →

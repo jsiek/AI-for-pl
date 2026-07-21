@@ -87,7 +87,6 @@ open import NarrowWiden using
   ; narrow-weaken
   ; widen-mode-relax
   ; widen-renameᵗ
-  ; widen-weaken
   ; _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
@@ -358,11 +357,11 @@ open import proof.CoercionProperties using
   ; ModeIncl-gen
   ; ModeIncl-inst
   ; ModeRename
+  ; modeRename-id-only
   ; open0-ext-suc-cancelᶜ
   )
 open import proof.TypePreservation using
   ( applyNarrow-typing
-  ; applyWiden-typing
   ; applyWidenInstUnderTyBinder-typing
   ; CastModeRenamer
   ; castModeRenamer-ext
@@ -540,25 +539,6 @@ apply-narrows-typing {χs = χ ∷ χs} mode seal★ c⊒
     | μ′ , mode′ , seal★′ , c′⊒ =
   apply-narrows-typing {χs = χs} mode′ seal★′ c′⊒
 
-apply-widens-typing :
-  ∀ {χs μ Δ Σ c A B} →
-  CastMode μ →
-  SealModeStore★ μ Σ →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B →
-  ∃[ μ′ ]
-    CastMode μ′ ×
-    SealModeStore★ μ′ (applyStores χs Σ) ×
-    (μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ
-      ⊢ applyCoercions χs c
-        ∶ applyTys χs A ⊑ applyTys χs B)
-apply-widens-typing {χs = []} {μ = μ} mode seal★ c⊑ =
-  μ , mode , seal★ , c⊑
-apply-widens-typing {χs = χ ∷ χs} mode seal★ c⊑
-    with applyWiden-typing {χ = χ} mode seal★ c⊑
-apply-widens-typing {χs = χ ∷ χs} mode seal★ c⊑
-    | μ′ , mode′ , seal★′ , c′⊑ =
-  apply-widens-typing {χs = χs} mode′ seal★′ c′⊑
-
 apply-fixed-narrows-typing :
   ∀ {χs μ Δ Σ c A B} →
   ModeRename suc μ μ →
@@ -573,21 +553,6 @@ apply-fixed-narrows-typing {χs = bind X ∷ χs} mode-suc c⊒ =
   apply-fixed-narrows-typing {χs = χs} mode-suc
     (narrow-weaken ≤-refl StoreIncl-drop
       (narrow-renameᵗ TyRenameWf-suc mode-suc c⊒))
-
-apply-fixed-widens-typing :
-  ∀ {χs μ Δ Σ c A B} →
-  ModeRename suc μ μ →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B →
-  μ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ
-    ⊢ applyCoercions χs c
-      ∶ applyTys χs A ⊑ applyTys χs B
-apply-fixed-widens-typing {χs = []} mode-suc c⊑ = c⊑
-apply-fixed-widens-typing {χs = keep ∷ χs} mode-suc c⊑ =
-  apply-fixed-widens-typing {χs = χs} mode-suc c⊑
-apply-fixed-widens-typing {χs = bind X ∷ χs} mode-suc c⊑ =
-  apply-fixed-widens-typing {χs = χs} mode-suc
-    (widen-weaken ≤-refl StoreIncl-drop
-      (widen-renameᵗ TyRenameWf-suc mode-suc c⊑))
 
 apply-reveal-conversion :
   ∀ {χ μ Δ Σ α X c A B} →
@@ -5784,10 +5749,6 @@ left-widening-renameⁱ {hτ = hτ} modeτ mode renameρ c⊑ =
     (sym (leftStoreⁱ-left-rename renameρ))
     (widen-renameᵗ hτ
       (CastModeRenamer.target-rename modeτ mode) c⊑)
-
-modeRename-id-only :
-  ∀ (τ : Renameᵗ) → ModeRename τ id-onlyᵈ id-onlyᵈ
-modeRename-id-only τ X = refl
 
 seal★-id-only :
   ∀ {Σ} → SealModeStore★ id-onlyᵈ Σ

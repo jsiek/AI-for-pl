@@ -37,6 +37,8 @@ open import NuTerms using
 open import QuotientedTermImprecision
 open import proof.NuImprecisionCatchupPrefixSupport
 open import proof.NuImprecisionCatchupQuotientSupport
+open import proof.NuImprecisionQuotientWideningTransport using
+  (weak-one-step-transport-quotient-widening-pairᵀ)
 open import proof.NuImprecisionSimulationResultDef
 open import proof.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)

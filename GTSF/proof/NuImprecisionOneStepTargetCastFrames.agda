@@ -41,12 +41,10 @@ open import proof.NuImprecisionSimulation using
   ; weak-one-step-target-cast-frame-transportᵀ
   )
 open import proof.NuImprecisionSimulationCore using
-  ( apply-fixed-widens-typing
-  ; apply-narrows-typing
-  ; apply-widens-typing
-  ; modeRename-id-only
+  ( apply-narrows-typing
   ; seal★-id-only
   )
+open import proof.CoercionProperties using (modeRename-id-only)
 open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedOutcome
   ; canonicalIndexedResults
@@ -63,6 +61,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; weakIndexedResult
   )
 open import proof.ReductionProperties using (applyCoercions)
+open import proof.NuWideningTransport using
+  (apply-fixed-widens-typing; apply-widens-typing)
 
 
 weak-one-step-target-narrow-cast-indexed-frame-outcomeᵀ :

@@ -319,7 +319,9 @@ are delegated:
 | [`NuImprecisionStoreLift.agda`](NuImprecisionStoreLift.agda) | completed | Sole strict definition site for canonical left/right store-lift results; coherent allocation proofs can import it without depending on the simulation core |
 | [`NuImprecisionStorePrefix.agda`](NuImprecisionStorePrefix.agda) | completed | Sole strict definition site for source/target prefix-store inclusion and prefix transitivity; catch-up modules import it directly instead of inheriting these lemmas from the simulation core |
 | [`NuImprecisionCatchupPrefixSupport.agda`](NuImprecisionCatchupPrefixSupport.agda) | completed | Strict home of nine silent-composition, target-prefix-frame, and terminal value/blame helpers extracted from the permissive scratch dispatcher; the focused strict check passes |
-| [`NuImprecisionCatchupQuotientSupport.agda`](NuImprecisionCatchupQuotientSupport.agda) | completed | Strict home of the eight paired/down-up frame and transport helpers; the focused strict check passes; semantic quotient completion remains outside |
+| [`NuImprecisionCatchupQuotientSupport.agda`](NuImprecisionCatchupQuotientSupport.agda) | completed | Strict home of the broader paired/down-up framing, narrowing, and final assembly helpers; quotient widening-pair transport has moved to a focused module with no compatibility re-export |
+| [`NuWideningTransport.agda`](NuWideningTransport.agda) | completed extraction | Seventy-line low-level home of generic and fixed-mode widening transport through store changes; imports no term-imprecision result or simulation core |
+| [`NuImprecisionQuotientWideningTransport.agda`](NuImprecisionQuotientWideningTransport.agda) | completed extraction | Focused transport of one id-only/general quotient widening pair; the paired-widening leaf now avoids both the 14,449-line simulation core and broad quotient support |
 | [`NuImprecisionWorldCoherentCatchupComposition.agda`](NuImprecisionWorldCoherentCatchupComposition.agda) | completed | Strict coherent wrapper for silent-result resumption, preserving both final `WorldCoherent` and final left `StoreWf`; the focused strict check passes |
 | [`NuImprecisionWorldCoherentCatchupPrefixFrames.agda`](NuImprecisionWorldCoherentCatchupPrefixFrames.agda) | completed | Five strict wrappers for target narrowing, widening, identity widening, reveal, and conceal frames; dependent pattern matching makes preservation of the final world and left store definitionally visible |
 | [`NuImprecisionAtomicTargetReindex.agda`](NuImprecisionAtomicTargetReindex.agda) | completed | Strict exhaustive reconstruction of atomic-target value relations at an explicit desired type-imprecision index; closes target conversion identity roots without proof irrelevance |
@@ -351,9 +353,13 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceRevealCatchupDef.agda`](NuImprecisionWorldCoherentSourceRevealCatchupDef.agda) | completed statement | Full source reveal-conversion handler contract, with active unseal isolated behind the completed higher-order dependency |
 | [`NuImprecisionWorldCoherentSourceRevealCatchupProof.agda`](NuImprecisionWorldCoherentSourceRevealCatchupProof.agda) | completed higher-order proof | GPT 5.5 supplied the exhaustive strict dispatch for all six reveal forms; identity and inert forms use source-cast framing, while active unseal calls the whole supplied unseal contract |
 | [`NuImprecisionWorldCoherentSourceRevealCatchupLemma.agda`](NuImprecisionWorldCoherentSourceRevealCatchupLemma.agda) | completed lemma | Canonical strict assembly supplies the completed source-unseal lemma |
-| [`NuImprecisionSourceTagCancellationDef.agda`](NuImprecisionSourceTagCancellationDef.agda) | rejected statement; repair in progress | A surviving `up⊑upᵀ` quotient-up premise leaves only quotiented inner evidence after tag peeling, so the demanded ordinary conclusion would require the refuted generic dequotienting step |
-| `NuImprecisionSourceTagCancellationProof.agda` | deliberately absent | The GPT 5.5 audit removed its exploratory file after strict checking exposed the quotient-up countercase |
-| Quotient-aware source tag boundary | in progress; hard contract audit | Must fit the actual paired-widening/source-runtime caller without inventing an ordinary relation between physical quotient endpoints |
+| [`NuImprecisionSourceTagCancellationDef.agda`](NuImprecisionSourceTagCancellationDef.agda) | completed sound statement | Pure same-ground source-tag cancellation; its ground/value hypotheses admit restricted quotient elimination in the surviving quotient-up case |
+| [`NuImprecisionGroundValueQuotientEliminationDef.agda`](NuImprecisionGroundValueQuotientEliminationDef.agda) | completed statement | Restricted elimination from a ground-related quotient relation between values to an existential ordinary relation; does not imply global dequotienting |
+| [`NuImprecisionGroundValueQuotientEliminationProof.agda`](NuImprecisionGroundValueQuotientEliminationProof.agda) | completed proof | Variable/base cases contradict inert value narrowing; the function-ground case reclassifies inert down coercions as paired widening |
+| [`NuImprecisionGroundValueQuotientEliminationLemma.agda`](NuImprecisionGroundValueQuotientEliminationLemma.agda) | completed lemma | Canonical strict inhabitant of the restricted elimination theorem |
+| [`NuImprecisionSourceTagQuotientUpProof.agda`](NuImprecisionSourceTagQuotientUpProof.agda) | completed higher-order adapter | Eliminates the ground-value quotient inner relation and rebuilds either id-only or general target widening without a physical-endpoint alignment theorem |
+| [`NuImprecisionSourceTagCancellationProof.agda`](NuImprecisionSourceTagCancellationProof.agda) | completed higher-order proof | Exhaustive structural proof takes only `GroundValueQuotientEliminationᵀ`; quotient-up, target cast/conversion, paired widening, and allocation-prefix cases are explicit |
+| [`NuImprecisionSourceTagCancellationLemma.agda`](NuImprecisionSourceTagCancellationLemma.agda) | completed lemma | Canonical strict assembly supplies ground-value quotient elimination |
 | [`NuImprecisionSourceCastSequenceMidpointCounterexample.agda`](NuImprecisionSourceCastSequenceMidpointCounterexample.agda) | completed corrected obstruction | Strictly packages coherent, exclusive, well-typed two-seal endpoints with no midpoint, but also proves that the example violates `SealModeStore★`; `seal-enabled-store-entry-star` explains why the raw obstruction cannot refute the full source-runtime boundary |
 | [`NuImprecisionSourceCastSequenceMidpointDef.agda`](NuImprecisionSourceCastSequenceMidpointDef.agda) | completed statement | Exact narrowing and widening midpoint capability over the ambient prefix, coherence, exclusivity, final sparse `StoreWf`, cast mode, and `SealModeStore★` package |
 | [`NuImprecisionSourceCastSequenceMidpointProof.agda`](NuImprecisionSourceCastSequenceMidpointProof.agda) | completed proof | Strict-cross tag/untag shapes yield the only ground midpoint; final-store uniqueness plus prefix inclusion eliminates seal/unseal sequence shapes |
@@ -364,6 +370,7 @@ are delegated:
 | [`NuImprecisionLeftSilentPairedWideningTransportLemma.agda`](NuImprecisionLeftSilentPairedWideningTransportLemma.agda) | completed lemma | Canonical strict inhabitant of the widening constructor-family transport contract |
 | [`NuImprecisionLeftSilentPairedConversionTransportDef.agda`](NuImprecisionLeftSilentPairedConversionTransportDef.agda) | completed statement; hard proof | Sole remaining accumulated-transport boundary that reconstructs final paired `StoreCorresponds` evidence |
 | [`NuImprecisionLeftSilentStoreCorrespondsTransportDef.agda`](NuImprecisionLeftSilentStoreCorrespondsTransportDef.agda) | completed statement; hard proof | Minimal relational-world embedding capability preserving both stored and linked correspondences through accumulated changes; projected store equalities cannot recover linked entries |
+| Coherent catch-up store lineage | planned hard plumbing | Add one result invariant consisting of `RelStoreEmbeddingⁱ` into a renamed relational store followed by `StoreImpPrefix` into the final store; identity/frame/composition/allocation families already have the structural ingredients |
 | [`NuImprecisionLeftSilentPairedConversionTransportProof.agda`](NuImprecisionLeftSilentPairedConversionTransportProof.agda) | completed higher-order proof | Exhaustively transports paired reveal/conceal endpoints and reduces their correspondence evidence to `LeftSilentStoreCorrespondsTransportᵀ` |
 | [`NuImprecisionLeftSilentPairedCastTransportProof.agda`](NuImprecisionLeftSilentPairedCastTransportProof.agda) | completed higher-order proof | Exhaustively derives full paired-cast transport from the widening and conversion constructor-family capabilities |
 | [`NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedCastCatchupDef.agda) | completed statement | Exact-final-world terminal paired-cast contract retaining target inertness, final coherence, source-name exclusivity, and left `StoreWf` |
@@ -6279,6 +6286,14 @@ catch-up architecture.
   `WorldCoherent` cannot recover `store-link` entries absent from both projected
   stores.
 
+- Audited the missing correspondence theorem against all result constructors.
+  The smallest sufficient invariant is relational-store renaming/embedding
+  followed by an allocation prefix.  It should be added only to
+  `WorldCoherentLeftCatchupIndexedResult`, then preserved by the coherent
+  composition/frame proofs and supplied by allocation witnesses.  This plan
+  carries linked entries without bloating generic `WeakOneStepResult` or using
+  unsolved metas.
+
 - Completed the GPT 5.5 paired-widening transport leaf on Ginger and added its
   canonical `Lemma`.  The helper can return either `quotient-cast-widening` or
   `quotient-id-widening`; the proof covers both explicitly, relaxing id-only
@@ -6287,16 +6302,31 @@ catch-up architecture.
   the warmed coordinator recheck took under ten seconds, identifying helper
   extraction as a future invalidation optimization.
 
-- Rejected the original source-tag cancellation contract during its Ginger
-  audit.  The surviving `up⊑upᵀ` branch leaves a quotiented inner relation, but
-  the statement demands an ordinary one.  The worker removed its exploratory
-  file; GPT 5.6 is now freezing a quotient-aware replacement rather than
-  hiding the mismatch behind an unsolved meta.
+- The Ginger source-tag audit exposed a surviving `up⊑upᵀ` branch whose inner
+  relation is quotiented.  A GPT 5.6 follow-up proved the strictly smaller
+  [`GroundValueQuotientEliminationᵀ`](NuImprecisionGroundValueQuotientEliminationDef.agda)
+  theorem from the contract's existing ground/value hypotheses and completed
+  the quotient-up adapter.  Thus the original source-tag statement remains
+  sound, while unrestricted quotient-to-ordinary alignment remains false.
+
+- Completed the source-tag `Proof`/`Lemma` pair.  The proof is higher-order over
+  exactly `GroundValueQuotientEliminationᵀ`, recurses structurally through
+  target casts/conversions and allocation prefixes, and handles both quotient
+  widening constructors explicitly.  Its focused strict recheck takes about
+  four seconds on the current cache.
+
+- Performed the closed-world checking-time extraction prompted by the cold
+  Ginger leaf.  `apply-widens-typing` and `apply-fixed-widens-typing` moved to
+  `NuWideningTransport`, quotient widening-pair transport moved to
+  `NuImprecisionQuotientWideningTransport`, and `modeRename-id-only` moved to
+  `CoercionProperties`; original definitions were deleted and every consumer
+  retargeted.  The paired-widening proof now checks in about three seconds and
+  its source cone contains no simulation-core or broad quotient-support import.
 
 ### Next boundary
 
-Freeze quotient-aware source tag handling and use the completed midpoint in
-the non-`inst` narrowing/widening handlers, while implementing the remaining
+Use completed source tag cancellation and midpoint recovery in the non-`inst`
+narrowing/widening handlers, while implementing the remaining
 paired-cast dependencies.  Treat representative quotient-`inst` as its own
 hard semantic bridge; once it is complete, assemble it with the completed
 classifier, quotient-final proof, and structural prefix proof.  Continue

@@ -348,7 +348,9 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupDef.agda) | completed statement | General source-delta capability for an arbitrary related target, retaining the exact strong source result. |
 | [`NuImprecisionWorldCoherentSourcePrimitivePureRootCasesDef.agda`](NuImprecisionWorldCoherentSourcePrimitivePureRootCasesDef.agda) | completed statement | Two-case primitive boundary separating general delta catch-up from the shared blame leaf. |
 | [`NuImprecisionWorldCoherentSourcePrimitivePureRootProof.agda`](NuImprecisionWorldCoherentSourcePrimitivePureRootProof.agda) | completed higher-order proof | Exhaustively routes `δ-⊕`, `blame-⊕₁`, and `blame-⊕₂` into the two primitive capabilities. |
-| [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef.agda) | completed frozen statement; proof ready for delegation | Five mechanical target cast/conversion frames for an already-completed exact source step. |
+| [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef.agda) | completed statement | Five mechanical target cast/conversion frames for an already-completed exact source step. |
+| [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesProof.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesProof.agda) | completed GPT-5.5 proof | Transports each target cast/conversion through the completed source result's accumulated target tail, rebuilds the final quotient relation, and preserves every strong-result invariant. |
+| [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesLemma.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesLemma.agda) | completed canonical assembly | Exposes all five source-step target frames through the canonical three-file boundary. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectDef.agda) | completed statement; hard proof not started | DGG-near two-operand scheduling boundary for the unframed target primitive. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupCasesDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupCasesDef.agda) | completed statement | Separates direct two-operand scheduling from structural target framing. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupDispatcherProof.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupDispatcherProof.agda) | completed higher-order proof | Structural recursion through allocation prefixes and all five target frames, with target allocation forms eliminated by their impossible `ℕ ⊑ ∀` index. |
@@ -8501,6 +8503,18 @@ coordination.  Use focused strict checks throughout and reserve
   focused strict check passes in 4.6 seconds and the exhaustive source-step
   dispatcher in 3.9 seconds.  This also exposes the `ν`-blame adapter as a
   small next Ginger work package.
+
+- GPT-5.5 completed all five
+  [`source-step target frames`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesProof.agda)
+  on Ginger.  Because the completed inner source result may already contain a
+  target administrative tail, each proof transports the original cast or
+  conversion through those target changes, reconstructs the final quotient
+  relation at the transported index, and frames the target trace.  Exact
+  source changes/result, transport, coherence, lineage, and final world/name
+  invariants are retained.  The reviewed focused Ginger check passes in 3.9
+  seconds; the canonical
+  [`Lemma`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesLemma.agda)
+  now participates in the routine forward spine.
 
 - No `All.agda`, `NuDGGStrictSpine.agda`, hole, postulate, incomplete match,
   or source-level permissive option was used in this organization batch.

@@ -409,6 +409,13 @@ open import proof.NuImprecisionSourceLeftAllocationCastTransport using
   ; open-allocated-left-all-conceal
   )
 open import proof.NuImprecisionCatchupComposition
+open import proof.NuImprecisionSourceInertBulletCommutation using
+  ( left-catchup-indexed-all-α-∀-revealᵀ
+  ; left-catchup-indexed-all-α-∀-concealᵀ
+  ; left-catchup-indexed-all-α-∀-narrowingᵀ
+  ; left-catchup-indexed-all-α-∀-wideningᵀ
+  ; left-catchup-indexed-all-α-gen-narrowingᵀ
+  )
 
 ------------------------------------------------------------------------
 -- Crossed stores realize two allocations in opposite logical orders
@@ -6176,70 +6183,6 @@ left-catchup-all-α-∀-concealᵀ
       conv↓⊑ᵀ (open-allocated-left-all-conceal liftρ c↓)
         bullet-relation (∀ⁱ q)
 
-left-catchup-indexed-all-α-∀-revealᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ α X Aν A C C′ c V V′ occ r q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value V →
-  No• V →
-  (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
-  (liftρ : LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
-  RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X
-    (`∀ c) (`∀ A) (`∀ (`∀ C)) →
-  LeftCatchupIndexedAllResult
-    {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
-left-catchup-indexed-all-α-∀-revealᵀ
-    {V = V} {q = q}
-    vV noV hAν liftρ V⊑V′ c↑ catchup =
-  left-catchup-indexed-all-prepend-keepᵀ
-    (post-allocation-β-∀•-bare vV) post-relation catchup
-  where
-  bullet-relation =
-    left-allocated-bulletᵀ vV noV hAν liftρ V⊑V′
-
-  post-relation =
-    conv↑⊑ᵀ (open-allocated-left-all-reveal liftρ c↑)
-      bullet-relation (∀ⁱ q)
-
-left-catchup-indexed-all-α-∀-concealᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ α X Aν A C C′ c V V′ occ r q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value V →
-  No• V →
-  (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
-  (liftρ : LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
-  ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X
-    (`∀ c) (`∀ A) (`∀ (`∀ C)) →
-  LeftCatchupIndexedAllResult
-    {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
-left-catchup-indexed-all-α-∀-concealᵀ
-    {V = V} {q = q}
-    vV noV hAν liftρ V⊑V′ c↓ catchup =
-  left-catchup-indexed-all-prepend-keepᵀ
-    (post-allocation-β-∀•-bare vV) post-relation catchup
-  where
-  bullet-relation =
-    left-allocated-bulletᵀ vV noV hAν liftρ V⊑V′
-
-  post-relation =
-    conv↓⊑ᵀ (open-allocated-left-all-conceal liftρ c↓)
-      bullet-relation (∀ⁱ q)
-
 left-catchup-all-α-∀-narrowingᵀ :
   ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -6384,151 +6327,6 @@ left-catchup-all-α-gen-narrowingᵀ
       cast⊒⊑ᵀ (cast-gen mode)
         (allocated-left-gen-seal★ liftρ seal★)
         body-narrowing body-relation (∀ⁱ q)
-
-left-catchup-indexed-all-α-∀-narrowingᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value V →
-  No• V →
-  (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
-  (mode : CastMode μ) →
-  (seal★ : SealModeStore★ μ (leftStoreⁱ ρ)) →
-  (liftρ : LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ
-    ⊢ `∀ c ∶ `∀ A ⊒ `∀ (`∀ C) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
-  LeftCatchupIndexedAllResult
-    {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
-left-catchup-indexed-all-α-∀-narrowingᵀ
-    {Δᴸ = Δᴸ} {μ = μ} {Aν = Aν} {A = A} {C = C}
-    {c = c} {V = V} {q = q} {ρ′ = ρ′}
-    vV noV hAν mode seal★ liftρ c∀⊒ V⊑V′ catchup =
-  left-catchup-indexed-all-prepend-keepᵀ
-    (post-allocation-β-∀•-bare vV) post-relation catchup
-  where
-  bullet-relation =
-    left-allocated-bulletᵀ vV noV hAν liftρ V⊑V′
-
-  body-narrowing :
-    extᵈ μ ∣ suc Δᴸ ∣
-      (zero , ⇑ᵗ Aν) ∷ leftStoreⁱ ρ′
-      ⊢ c ∶ A ⊒ `∀ C
-  body-narrowing =
-    subst
-      (λ Σ → extᵈ μ ∣ suc Δᴸ ∣ Σ
-        ⊢ c ∶ A ⊒ `∀ C)
-      (cong ((zero , ⇑ᵗ Aν) ∷_)
-        (sym (leftStoreⁱ-lift-left liftρ)))
-      (allocate-all-narrowing c∀⊒)
-
-  post-relation =
-    cast⊒⊑ᵀ (cast-ext mode)
-      (allocated-left-seal★ liftρ seal★)
-      body-narrowing bullet-relation (∀ⁱ q)
-
-left-catchup-indexed-all-α-∀-wideningᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value V →
-  No• V →
-  (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
-  (mode : CastMode μ) →
-  (seal★ : SealModeStore★ μ (leftStoreⁱ ρ)) →
-  (liftρ : LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ
-    ⊢ `∀ c ∶ `∀ A ⊑ `∀ (`∀ C) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
-  LeftCatchupIndexedAllResult
-    {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
-left-catchup-indexed-all-α-∀-wideningᵀ
-    {Δᴸ = Δᴸ} {μ = μ} {Aν = Aν} {A = A} {C = C}
-    {c = c} {V = V} {q = q} {ρ′ = ρ′}
-    vV noV hAν mode seal★ liftρ c∀⊑ V⊑V′ catchup =
-  left-catchup-indexed-all-prepend-keepᵀ
-    (post-allocation-β-∀•-bare vV) post-relation catchup
-  where
-  bullet-relation =
-    left-allocated-bulletᵀ vV noV hAν liftρ V⊑V′
-
-  body-widening :
-    extᵈ μ ∣ suc Δᴸ ∣
-      (zero , ⇑ᵗ Aν) ∷ leftStoreⁱ ρ′
-      ⊢ c ∶ A ⊑ `∀ C
-  body-widening =
-    subst
-      (λ Σ → extᵈ μ ∣ suc Δᴸ ∣ Σ
-        ⊢ c ∶ A ⊑ `∀ C)
-      (cong ((zero , ⇑ᵗ Aν) ∷_)
-        (sym (leftStoreⁱ-lift-left liftρ)))
-      (allocate-all-widening c∀⊑)
-
-  post-relation =
-    cast⊑⊑ᵀ (cast-ext mode)
-      (allocated-left-seal★ liftρ seal★)
-      body-widening bullet-relation (∀ⁱ q)
-
-left-catchup-indexed-all-α-gen-narrowingᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ p q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value V →
-  No• V →
-  (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
-  (mode : CastMode μ) →
-  (seal★ : SealModeStore★ μ (leftStoreⁱ ρ)) →
-  (liftρ : LiftLeftStoreⁱ
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ
-    ⊢ gen A c ∶ A ⊒ `∀ (`∀ C) →
-  ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ []
-    ⊢ᴺ ⇑ᵗᵐ V ⊑ V′ ⦂ ⇑ᵗ A ⊑ `∀ C′ ∶ p →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ V) ⟨ c ⟩} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
-  LeftCatchupIndexedAllResult
-    {N = (⇑ᵗᵐ (V ⟨ gen A c ⟩)) •} {V′ = V′}
-    {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
-left-catchup-indexed-all-α-gen-narrowingᵀ
-    {Δᴸ = Δᴸ} {μ = μ} {Aν = Aν} {A = A} {C = C}
-    {c = c} {V = V} {q = q} {ρ′ = ρ′}
-    vV noV hAν mode seal★ liftρ cgen⊒ shifted-body catchup =
-  left-catchup-indexed-all-prepend-keepᵀ
-    (post-allocation-β-gen•-bare vV) post-relation catchup
-  where
-  body-narrowing :
-    genᵈ μ ∣ suc Δᴸ ∣
-      (zero , ⇑ᵗ Aν) ∷ leftStoreⁱ ρ′
-      ⊢ c ∶ ⇑ᵗ A ⊒ `∀ C
-  body-narrowing =
-    subst
-      (λ Σ → genᵈ μ ∣ suc Δᴸ ∣ Σ
-        ⊢ c ∶ ⇑ᵗ A ⊒ `∀ C)
-      (cong ((zero , ⇑ᵗ Aν) ∷_)
-        (sym (leftStoreⁱ-lift-left liftρ)))
-      (allocate-gen-narrowing cgen⊒)
-
-  body-relation =
-    allocated-left-relationᵀ hAν liftρ
-      (renameᵗᵐ-preserves-No• suc noV) shifted-body
-
-  post-relation =
-    cast⊒⊑ᵀ (cast-gen mode)
-      (allocated-left-gen-seal★ liftρ seal★)
-      body-narrowing body-relation (∀ⁱ q)
 
 shifted-var-not-wf-at-zero :
   WfTy zero (＇ (suc zero)) → ⊥

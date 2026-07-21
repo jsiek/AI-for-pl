@@ -96,6 +96,16 @@ branch.  The local integrator then fetches that branch, reviews its exact diff,
 integrates it, and runs the nearest focused consumer check.  Do not run
 `All.agda` in the worker worktree.
 
+Each worktree has its own project `.agdai` files.  The first check of a proof
+that imports a deep project module can therefore be a cold dependency build
+and may take several minutes even when the same focused check takes under ten
+seconds from the warm cache.  Keep a worker in the same worktree while it
+repairs a slice, and distinguish first-cold time from subsequent focused times
+in handoff reports.  Do not recreate the worktree merely to retry a failed
+proof or model-capacity interruption; that discards the useful project
+interface cache.  The shared standard-library cache does not remove this
+per-worktree project cost.
+
 For a completed leaf, remove any local `--allow-unsolved-metas` and
 `--allow-incomplete-matches` options before the final check.  Agda's
 command-line `--no-allow-unsolved-metas` does not reliably override a source

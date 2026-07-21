@@ -350,7 +350,9 @@ are delegated:
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda) | completed statement | Exact-final ordinary source-`ν` contract retains the arbitrary inner universal index, final allocation/reveal evidence, values, and world invariants |
 | [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda) | completed statement | Full exact-final branch specialized to `ν occ r`; intended source-bullet/allocation implementation path |
 | [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda) | completed higher-order proof; checking-time partial | Strict source allocation, bullet/reveal catch-up, outer `ν` resumption, coherence, exclusivity, store Wf, and lineage from the whole bullet and reveal capabilities; still imports `NuImprecisionSimulation` only for `left-lift-prefix-bodyᵀ` |
-| [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda) | completed statement; hard audit | Full exact-final branch specialized to `∀ⁱ r`; existing one-sided allocation leaves do not yet derive it, so a strict proof-or-counterexample audit is active |
+| [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda) | completed statement | Full exact-final branch specialized to `∀ⁱ r`; the proof audit found no counterexample or need for an added compatibility premise |
+| [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexViewCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexViewCatchupDef.agda) | completed hard-worker statement | Freezes the allocation-sensitive worker after source and target polymorphic values are both classified as `AllView`; its `av-Λ`/`av-∀`/`av-gen` cross-product remains the explicit missing inhabitant |
+| [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupProof.agda) | completed higher-order proof | Strictly derives the full paired-index contract from the classified-view worker by source and target canonical-form inversion; canonical `Lemma` remains absent |
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda) | completed higher-order proof | Exhaustively assembles the generic exact-final contract from the source-only-index and paired-index whole capabilities; canonical `Lemma` remains absent |
 | [`NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda) | completed statement | Exact runtime `ν ★` handler boundary participating in the widening-`inst` mutual SCC |
 | [`NuImprecisionWorldCoherentFinalSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCastCatchupDef.agda) | completed statement | Exact-final cast-aware `ν ★` allocation contract owns fresh source allocation and lineage while retaining arbitrary inner index `q`, final cast evidence, and desired outer index |
@@ -6620,3 +6622,14 @@ coordination.  Use focused strict checks throughout and reserve
   debt in this completed join is its broad `NuImprecisionSimulation` import
   for `left-lift-prefix-bodyᵀ`; extracting that single support theorem is now a
   frozen leaf task rather than a semantic proof risk.
+
+- Completed the paired-index proof-or-counterexample audit with a positive
+  strict boundary.  No incompatible final setup was found, and no additional
+  compatibility premise on `ν⊑ᵀ` is justified.  The new higher-order proof
+  obtains source and target `AllView`s by canonical-form inversion and
+  delegates to one classified-view contract.  That contract exposes exactly
+  the nine allocation-sensitive `av-Λ`/`av-∀`/`av-gen` combinations: the
+  `Λ`/`Λ` case owns binder alignment, while inert `∀` and `gen` cases must
+  commute the runtime bullet through their casts.  Both modules pass focused
+  `--no-allow-unsolved-metas` checks; the worker and canonical `Lemma` remain
+  absent instead of being represented by holes.

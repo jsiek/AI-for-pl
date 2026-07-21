@@ -38,18 +38,19 @@ open import proof.NuImprecisionConversionAbsenceIdentityDef using
   )
 
 
-∨-falseˡ : ∀ {b c} → b ∨ c ≡ false → b ≡ false
-∨-falseˡ {b = false} eq = refl
-∨-falseˡ {b = true} ()
+private
+  ∨-falseˡ : ∀ {b c} → b ∨ c ≡ false → b ≡ false
+  ∨-falseˡ {b = false} eq = refl
+  ∨-falseˡ {b = true} ()
 
-∨-falseʳ : ∀ {b c} → b ∨ c ≡ false → c ≡ false
-∨-falseʳ {b = false} eq = eq
-∨-falseʳ {b = true} ()
+  ∨-falseʳ : ∀ {b c} → b ∨ c ≡ false → c ≡ false
+  ∨-falseʳ {b = false} eq = eq
+  ∨-falseʳ {b = true} ()
 
-occurs-self-false : ∀ (α : TyVar) → occurs α (＇ α) ≡ false → ⊥
-occurs-self-false α occ with α ≟ α
-occurs-self-false α () | yes refl
-occurs-self-false α occ | no α≢α = α≢α refl
+  occurs-self-false : ∀ (α : TyVar) → occurs α (＇ α) ≡ false → ⊥
+  occurs-self-false α occ with α ≟ α
+  occurs-self-false α () | yes refl
+  occurs-self-false α occ | no α≢α = α≢α refl
 
 
 mutual

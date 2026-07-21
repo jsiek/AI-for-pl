@@ -316,6 +316,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightValueCatchupProof.agda`](NuImprecisionWorldCoherentRightValueCatchupProof.agda) | completed higher-order proof | Reflexively instantiates the prefix worker and projects its exact terminal witnesses to the compact forward contract. |
 | [`NuImprecisionWorldCoherentRightValueCatchupCasesDef.agda`](NuImprecisionWorldCoherentRightValueCatchupCasesDef.agda) | completed statement | Eight-family semantic boundary for the recursive right-value engine; constructor-specific premises and recursive-result consumers remain explicit. |
 | [`NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda`](NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda) | completed higher-order proof | Direct structural recursion over every quotiented term-precision constructor, including prefix transitivity, impossible value shapes, and explicit binder-closing boundaries. |
+| [`NuImprecisionWorldCoherentRightSourceFramesDef.agda`](NuImprecisionWorldCoherentRightSourceFramesDef.agda) | completed frozen statement; proof assigned | Canonical four-field source cast/conversion frame boundary extracted for isolated Ginger development. |
 | [`NuImprecisionWorldCoherentRightValueTerminalDef.agda`](NuImprecisionWorldCoherentRightValueTerminalDef.agda) | completed statement | Zero-step value/value base returning the full recursive right-catch-up result in the ambient prefix world. |
 | [`NuImprecisionWorldCoherentRightValueTerminalProof.agda`](NuImprecisionWorldCoherentRightValueTerminalProof.agda) | completed GPT-5.5 proof | Lifts both terminal typings and their relation through the ambient prefix, then returns the zero-step result with identity transport, coherence, and lineage. |
 | [`NuImprecisionWorldCoherentRightValueTerminalLemma.agda`](NuImprecisionWorldCoherentRightValueTerminalLemma.agda) | completed canonical assembly | Exposes the strict terminal proof through the canonical three-file boundary. |
@@ -8295,6 +8296,15 @@ coordination.  Use focused strict checks throughout and reserve
   theorem establishes that these eight right families, the partitioned source
   families, and the two backward terminal contracts are sufficient for public
   `GradualDGG`.
+
+- Extracted the next delegated right-catch-up family into the canonical
+  [`NuImprecisionWorldCoherentRightSourceFramesDef.agda`](NuImprecisionWorldCoherentRightSourceFramesDef.agda)
+  boundary.  The aggregate cases record imports the single canonical type,
+  and the recursive dispatcher imports its four projections directly; no
+  compatibility re-export or duplicate definition remains.  This keeps the
+  worker's dependency surface small and gives the narrowing, widening,
+  reveal, and conceal source frames their expected `Def`/`Proof`/`Lemma`
+  filename path.
 
 - Froze
   [`RightStorePrefixFactorᵀ`](NuImprecisionRightStorePrefixFactorDef.agda) as

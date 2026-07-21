@@ -81,105 +81,10 @@ open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentRightCatchupResultDef using
   (WorldCoherentRightValueCatchupIndexedResult)
+open import proof.NuImprecisionWorldCoherentRightSourceFramesDef using
+  (WorldCoherentRightSourceFrames)
 open import proof.NuImprecisionWorldCoherentRightValueTerminalDef using
   (WorldCoherentRightValueTerminalᵀ)
-
-
-record WorldCoherentRightSourceFrames : Set₁ where
-  field
-    rightSourceNarrowFrame :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {M M′ : Term} {A B B′ : Ty} {c : Coercion} {μ}
-        {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      WorldCoherent ρ⁺ →
-      SourceNameExclusive Φ →
-      StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
-      RuntimeOK M′ →
-      Value M →
-      No• M →
-      Inert c →
-      CastMode μ →
-      SealModeStore★ μ (leftStoreⁱ ρ₀) →
-      μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊒ B →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-        ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
-      WorldCoherentRightValueCatchupIndexedResult
-        {V = M} {M′ = M′} {ρ = ρ⁺} p →
-      WorldCoherentRightValueCatchupIndexedResult
-        {V = M ⟨ c ⟩} {M′ = M′} {ρ = ρ⁺} q
-
-    rightSourceWidenFrame :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {M M′ : Term} {A B B′ : Ty} {c : Coercion} {μ}
-        {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      WorldCoherent ρ⁺ →
-      SourceNameExclusive Φ →
-      StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
-      RuntimeOK M′ →
-      Value M →
-      No• M →
-      Inert c →
-      CastMode μ →
-      SealModeStore★ μ (leftStoreⁱ ρ₀) →
-      μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-        ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
-      WorldCoherentRightValueCatchupIndexedResult
-        {V = M} {M′ = M′} {ρ = ρ⁺} p →
-      WorldCoherentRightValueCatchupIndexedResult
-        {V = M ⟨ c ⟩} {M′ = M′} {ρ = ρ⁺} q
-
-    rightSourceRevealFrame :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {M M′ : Term} {A B B′ : Ty} {c : Coercion} {μ α X}
-        {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      WorldCoherent ρ⁺ →
-      SourceNameExclusive Φ →
-      StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
-      RuntimeOK M′ →
-      Value M →
-      No• M →
-      Inert c →
-      RevealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-        ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
-      WorldCoherentRightValueCatchupIndexedResult
-        {V = M} {M′ = M′} {ρ = ρ⁺} p →
-      WorldCoherentRightValueCatchupIndexedResult
-        {V = M ⟨ c ⟩} {M′ = M′} {ρ = ρ⁺} q
-
-    rightSourceConcealFrame :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {M M′ : Term} {A B B′ : Ty} {c : Coercion} {μ α X}
-        {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      WorldCoherent ρ⁺ →
-      SourceNameExclusive Φ →
-      StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
-      RuntimeOK M′ →
-      Value M →
-      No• M →
-      Inert c →
-      ConcealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-        ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
-      WorldCoherentRightValueCatchupIndexedResult
-        {V = M} {M′ = M′} {ρ = ρ⁺} p →
-      WorldCoherentRightValueCatchupIndexedResult
-        {V = M ⟨ c ⟩} {M′ = M′} {ρ = ρ⁺} q
-
-open WorldCoherentRightSourceFrames public
 
 
 record WorldCoherentRightTargetCastFrames : Set₁ where

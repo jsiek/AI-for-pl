@@ -384,17 +384,22 @@ are delegated:
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewDef.agda) | completed hard-worker statement | Retains both `AllView`s and the exact fused conclusion while allowing the input relation to originate below an ambient `StoreImpPrefix`; paired conversion and both allocation lifts remain at the ambient world |
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewProof.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewProof.agda) | completed higher-order adapter | Classifies the input QTI derivation into the proof-relevant frame view and delegates the unchanged fused conclusion to the frame-closing capability |
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationProof.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationProof.agda) | completed higher-order proof; assembly partial | Strictly derives both `AllView`s, starts the ambient worker at `prefix-reflⁱ`, and delegates the unchanged fused relation; the relation-recursive ambient worker and canonical `Lemma` remain not yet started |
-| [`NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda) | completed proof-relevant statement | Strict joint view of the QTI derivation with binder and generic-narrowing leaves, structural source frames, generic target frames, atomic paired frames, and atomic quotient frames; it contains no fabricated one-sided relation |
-| [`NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda) | completed hard classifier | Exhaustive strict mutual recursion over ordinary and quotiented QTI derivations constructs exactly the proof-relevant leaves and frames; no `Lemma` wrapper is needed because the proof has no theorem dependency |
+| [`NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewDef.agda) | completed proof-relevant statement | Strict joint view of the QTI derivation with binder leaves, the genuine outer-`ν` generic leaf, a recursive outer-`∀ⁱ` generic source frame, structural source and target frames, atomic paired frames, and atomic quotient frames; it contains no fabricated one-sided relation |
+| [`NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda) | completed hard classifier | Exhaustive strict mutual recursion over ordinary and quotiented QTI derivations constructs exactly the proof-relevant leaves and frames, including recursive classification below outer-`∀ⁱ` generic narrowing; no `Lemma` wrapper is needed because the proof has no theorem dependency |
 | [`NuImprecisionPairedLambdaTargetClosingFrameViewProperties.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProperties.agda) | completed GPT 5.5 structural leaf | Strict recursion reconstructs the exact QTI relation and projects source/target `Value` and `No•` evidence from the proof-relevant view; no wrapper or theorem dependency is needed |
-| [`NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda) | completed corrected higher-order interface | Strict post-bullet motive and twelve semantic handler contracts; every non-leaf handler receives both the recursive motive and exact inner frame view, preserving the raw QTI and endpoint evidence needed for bullet commutation |
-| [`NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda) | completed corrected shared statement; proof not yet started | One inline five-way capability receives the recursive motive plus exact inner view and transports reveal, conceal, narrowing, widening, or id-only widening target frames without reversing the final target coercion order |
-| [`NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda) | completed corrected higher-order interpreter; handler assembly partial | Strict structural recursion carries the original leaf, supplies the exact inner view at every frame boundary, delegates twelve semantic cases and the shared target-frame capability, composes ambient prefixes, and splits paired conversion from paired widening |
+| [`NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda) | completed corrected higher-order interface | Strict post-bullet motive and thirteen semantic handler contracts, including recursive outer-`∀ⁱ` generic narrowing; every non-leaf handler receives both the recursive motive and exact inner frame view, preserving the raw QTI and endpoint evidence needed for bullet commutation |
+| [`NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda) | completed corrected shared statement; proof not yet started | One inline five-way capability receives the recursive motive plus exact inner view; two GPT 5.5 audits confirmed that ordinary QTI framing reverses the required inner-frame/final-conversion order, so its inhabitant must be a fused non-circular commutation proof |
+| [`NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda) | completed corrected higher-order interpreter; handler assembly partial | Strict structural recursion carries the original leaf, supplies the exact inner view at every frame boundary, delegates thirteen semantic cases and the shared target-frame capability, composes ambient prefixes, and splits paired conversion from paired widening |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaConversionRotationCounterexample.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaConversionRotationCounterexample.agda) | completed strict counterexample | Packages inhabited matched-binder, allocation-lift, and structural paired-reveal premises while refuting the proposed existential pre-final-reveal relation; binder closing must remain fused through the final reveal |
-| [`NuImprecisionPairedLambdaTargetClosingGenLeafAllIndexClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafAllIndexClosingDef.agda) | completed exact branch statement; proof not yet started | Fused generic-narrowing terminal for an outer paired `∀ⁱ` index; retains final reveal and therefore avoids the refuted source-only intermediate relation |
-| [`NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda) | completed `ν` branch statement; proof not yet started | Source-only-index generic terminal stops before final reveal only in the `ν` case, where its existential intermediate index is not ruled out by the paired-index counterexample |
-| [`NuImprecisionPairedLambdaTargetClosingGenLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafClosingProof.agda) | completed higher-order leaf dispatcher; assembly partial | Exhaustively combines the fused `∀ⁱ` branch with the `ν` conversion-rotation branch and adds the final reveal only after the latter |
-| [`NuImprecisionPairedLambdaTargetClosingSourceAllFrameCommutationDef.agda`](NuImprecisionPairedLambdaTargetClosingSourceAllFrameCommutationDef.agda) | completed fused statement; proof not yet started | One source-structural-`∀` commutation capability retains inner and framed QTI relations, endpoint evidence, and the recursive motive without inventing a source-only index |
+| [`NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda) | completed `ν` branch statement; assembly partial | Source-only-index generic terminal stops before final reveal only in the `ν` case, where its existential intermediate index is not ruled out by the paired-index counterexample |
+| [`NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef.agda) | completed reusable statement; concrete proof not yet started | Exact semantic boundary for opening a paired universal conversion through one source-only allocation at an outer `ν` index; it is shared by the terminal generic leaf and source-universal frame |
+| [`NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationProof.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationProof.agda) | completed higher-order proof; assembly partial | Derives generic-terminal conversion rotation from the reusable `ν` paired-conversion rotation by prefix transport, generic-cast reconstruction, and source runtime-bullet allocation |
+| [`NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof.agda) | completed higher-order leaf proof; assembly partial | Implements `handle-leaf-gen-ν` from generic-terminal conversion rotation and applies the final source reveal only after the paired conversion has been rotated |
+| [`NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef.agda`](NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef.agda) | completed fused statement; concrete proof not yet started | Honest recursive outer-`∀ⁱ` generic-narrowing boundary retaining inner and framed QTI relations, endpoint evidence, and the recursive closing motive |
+| [`NuImprecisionPairedLambdaTargetClosingSourceGenFrameClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingSourceGenFrameClosingProof.agda) | completed higher-order frame proof; assembly partial | Implements `handle-frame-gen-all` by reconstructing the authoritative generic-cast QTI relation from the exact inner view and delegating the fused commutation theorem |
+| [`NuImprecisionPairedLambdaTargetClosingSourceAllFrameCommutationDef.agda`](NuImprecisionPairedLambdaTargetClosingSourceAllFrameCommutationDef.agda) | completed fused statement; assembly partial | One source-structural-`∀` commutation capability retains inner and framed QTI relations, endpoint evidence, and the recursive motive without inventing a source-only index |
+| [`NuImprecisionPairedLambdaTargetClosingSourceAllFrameAllIndexClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingSourceAllFrameAllIndexClosingDef.agda) | completed outer-`∀ⁱ` statement; concrete proof not yet started | Fused paired-index source-universal branch that must retain the final reveal because a source-only pre-reveal target-binder rotation is false |
+| [`NuImprecisionPairedLambdaTargetClosingSourceAllFrameCommutationProof.agda`](NuImprecisionPairedLambdaTargetClosingSourceAllFrameCommutationProof.agda) | completed higher-order index dispatcher; assembly partial | Splits the framed outer index: paired `∀ⁱ` delegates to the fused branch, while `ν` reuses paired-conversion rotation, allocates the source bullet, and applies the final reveal |
 | [`NuImprecisionPairedLambdaTargetClosingSourceAllFrameClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingSourceAllFrameClosingProof.agda) | completed higher-order four-case proof; assembly partial | Projects the exact inner view evidence, reconstructs narrowing, widening, reveal, or conceal framed QTI relations, and delegates all four handlers to the one fused commutation capability |
 | [`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda`](NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef.agda) | completed semantic statement; higher-order proof completed; assembly partial | Exact fused closer over one proof-relevant frame view; retains the ambient prefix, paired conversion, both allocation lifts, final reveal, and exact conclusion |
 | [`NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuPairedAllConversionPostBetaUnsealClosingCatchupDef.agda) | completed statement; proof not yet started | Fused active fresh-unseal operational boundary; recursive cancellation and target closing remain inseparable |
@@ -7049,8 +7054,9 @@ coordination.  Use focused strict checks throughout and reserve
   It must nevertheless be interpreted with a higher-order post-bullet motive,
   because a source structural-`∀` frame opens to its body coercion while a
   target-only frame remains outside the uninstantiated target.  The genuine
-  semantic handler families are the four leaves, four source-all frames,
-  paired conversion, paired widening, and the two recursive quotient frames.
+  semantic handler families are the four leaves, the recursive source-generic
+  frame, four source-all frames, paired conversion, paired widening, and the
+  two recursive quotient frames.
   Reflexivity, prefix, and the five target-only frames remain administrative;
   if target transport cannot be derived internally, expose one shared
   five-way capability rather than five theorem files.  GPT 5.6 should freeze
@@ -7062,8 +7068,9 @@ coordination.  Use focused strict checks throughout and reserve
   [`NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda).
   It is an exhaustive mutual recursion over ordinary and quotiented QTI
   derivations, not a recursion on `AllView`.  The proof constructs the two
-  binder leaves, both generic-narrowing terminals, all structural source and
-  target frames, the atomic paired frame, both recursive quotient frames, and
+  binder leaves, the outer-`ν` generic-narrowing terminal, the recursive
+  outer-`∀ⁱ` generic frame, all other structural source and target frames, the
+  atomic paired frame, both recursive quotient frames, and
   allocation-prefix frames.  Impossible syntax, value, bullet, and index
   cases are eliminated explicitly.  The strict focused check took 9.26
   seconds in the worker and 2.5 seconds from the updated local cache.  Since
@@ -7083,16 +7090,16 @@ coordination.  Use focused strict checks throughout and reserve
   Its source-body-indexed motive specializes exactly to `FrameClosingᵀ`:
   the source universal body coercion is applied after the bullet, while the
   target parameter is the whole target coercion.  The record exposes exactly
-  twelve semantic cases and leaves reflexivity, prefix composition, and the
+  thirteen semantic cases and leaves reflexivity, prefix composition, and the
   five target-only frames administrative.  The focused strict check passed in
-  3.21 seconds.  The structural higher-order interpreter is now in progress;
-  its unavailable semantic handlers will remain theorem parameters rather
+  3.21 seconds.  The structural higher-order interpreter consumes the record;
+  unavailable semantic handlers remain theorem parameters rather
   than holes, so the `Proof` can remain independently checkable without
   `--allow-unsolved-metas`.
 
 - Completed the strict GPT 5.6 structural interpreter in
   [`NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingProof.agda).
-  It recurses over the proof-relevant frame spine, delegates the twelve
+  It recurses over the proof-relevant frame spine, delegates the thirteen
   semantic cases to the handler record, splits paired conversion from paired
   widening, and composes store prefixes internally.  The audit also froze one
   genuinely shared target-only transport statement in
@@ -7141,16 +7148,34 @@ coordination.  Use focused strict checks throughout and reserve
   false `Def` and adapter were deleted.  The up-gen leaf therefore remains an
   exact fused field of `FrameClosingHandlers`, not a two-stage theorem.
 
-- Split the generic-narrowing terminal only along its genuine outer-index
-  distinction.  The paired `∀ⁱ` branch remains fully fused through the final
-  reveal in
-  [`NuImprecisionPairedLambdaTargetClosingGenLeafAllIndexClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafAllIndexClosingDef.agda).
-  The source-only `ν` branch has its own pre-reveal contract in
-  [`NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda).
-  A strict exhaustive higher-order dispatcher in
-  [`NuImprecisionPairedLambdaTargetClosingGenLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafClosingProof.agda)
-  consumes both capabilities.  All three focused checks pass with unsolved
-  metas disabled; their concrete hard inhabitants remain not yet started.
+- Corrected the generic-narrowing classification after auditing proof fit.  It
+  is terminal only when its outer index is source-only `ν`.  At paired `∀ⁱ`,
+  its inner relation necessarily has universal source type and is structurally
+  smaller, so treating it as a leaf hid a circular use of target closing.  The
+  classifier, properties, handler record, and interpreter now use
+  `leaf-gen-ν` for the terminal and `frame-gen-all` for recursive paired-index
+  narrowing.  The obsolete all-index leaf statement and dispatcher were
+  deleted rather than retained as aliases.
+
+- Decomposed the genuine `ν` generic leaf without holes.  The shared hard
+  semantic boundary is
+  [`NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef.agda),
+  which opens a paired universal conversion through source-only allocation.
+  [`NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationProof.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationProof.agda)
+  adds ambient-prefix transport, the generic cast, and the allocated source
+  bullet; then
+  [`NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof.agda)
+  applies the final reveal.  Both adapters are strict and complete as
+  higher-order proofs.  Only the canonical semantic rotation inhabitant is
+  not yet started, so no `Lemma` assembly exists and no meta is required.
+
+- Froze the recursive paired-index generic frame in
+  [`NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef.agda`](NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef.agda).
+  Its strict adapter
+  [`NuImprecisionPairedLambdaTargetClosingSourceGenFrameClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingSourceGenFrameClosingProof.agda)
+  reconstructs the exact generic-cast relation from the inner view and
+  implements `handle-frame-gen-all`.  The concrete fused commutation theorem
+  is not yet started; it remains an explicit whole-theorem parameter.
 
 - Froze the four source structural-universal handlers behind one genuinely
   shared fused boundary in
@@ -7161,3 +7186,35 @@ coordination.  Use focused strict checks throughout and reserve
   reconstructs the narrowing, widening, reveal, and conceal framed relations
   from the inner view and delegates all four cases.  No source-only
   intermediate index is introduced.
+
+- Refined that source-universal capability by the framed outer index.  The
+  paired `∀ⁱ` case remains fused in
+  [`NuImprecisionPairedLambdaTargetClosingSourceAllFrameAllIndexClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingSourceAllFrameAllIndexClosingDef.agda),
+  because the refuted pre-reveal binder rotation applies there.  The strict
+  dispatcher in
+  [`NuImprecisionPairedLambdaTargetClosingSourceAllFrameCommutationProof.agda`](NuImprecisionPairedLambdaTargetClosingSourceAllFrameCommutationProof.agda)
+  handles the `ν` case constructively using the shared paired-conversion
+  rotation, source-bullet allocation, and final reveal.  Thus one reusable
+  `ν` rotation theorem and one fused paired-index theorem are the only concrete
+  semantic dependencies; all surrounding assembly is already complete.
+
+- Re-ran the shared target-only frame capability on Ginger after the
+  inner-view correction.  The GPT 5.5 worker confirmed the remaining exact
+  obstruction rather than producing an adapter: applying a QTI target-frame
+  constructor after the recursive motive yields the target frame outside the
+  final paired conversion, while the theorem requires
+  `(W′ ⟨ d′ ⟩) ⟨ c′ ⟩`.  Rebuilding a framed view and recursively
+  invoking the interpreter would be circular.  No smaller focused raw
+  commutation theorem exists yet, so
+  [`NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef.agda)
+  remains the honest fused boundary.  The worker removed its diagnostic file
+  and left the remote worktree clean.
+
+- Audited the source-`Λ`/target-nonbinder leaf on Ginger.  The GPT 5.5 worker
+  made no edits and left the worktree clean: after the source-only runtime
+  bullet, ordinary framing cannot split the external paired conversion before
+  its structural final reveal without demanding the same invalid source-only
+  universal index exposed by the counterexamples above.  The next GPT 5.6
+  step is therefore an exact fused post-bullet paired-conversion/all-reveal
+  contract, followed by a small `handle-leaf-Λ` adapter.  A partial worker file
+  was deliberately not created.

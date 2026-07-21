@@ -82,7 +82,7 @@ open import proof.NuProgress using
   ; av-∀
   ; canonical-∀
   )
-open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_; ∀ⁱ_; ν)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import NuTermImprecision using (StoreImp)
 open import Types using (Ty; TyCtx; `∀)
@@ -254,11 +254,59 @@ mutual
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
+      (cast⊒⊑ᵀ {p = p} mode seal★
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
+      with p
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
       (cast⊒⊑ᵀ mode seal★
-        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ q) =
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
+      | ∀ⁱ p
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (cast⊒⊑ᵀ mode seal★
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
+      | ∀ⁱ p | closing-frame-view leaf frames =
     closing-frame-view
-      (leaf-gen vM noM vM′ noM′ mode seal★
-        hA occ c⊢ cⁿ M⊑M′ q)
+      leaf
+      (frame-gen-all frames mode seal★ hA occ c⊢ cⁿ q)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (cast⊒⊑ᵀ mode seal★
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
+      | ν occ-p p
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (cast⊒⊑ᵀ mode seal★
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
+      | ν occ-p p | closing-frame-view leaf frames =
+    closing-frame-view
+      leaf
+      (frame-gen-all frames mode seal★ hA occ c⊢ cⁿ q)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (cast⊒⊑ᵀ mode seal★
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (ν occ-r r)) =
+    closing-frame-view
+      (leaf-gen-ν vM noM vM′ noM′ mode seal★
+        hA occ c⊢ cⁿ M⊑M′ occ-r r)
       frame-refl
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′

@@ -13,7 +13,7 @@ module proof.NuImprecisionPairedLambdaTargetClosingFrameViewProperties where
 import Coercions as C
 open import Data.List using ([])
 open import Data.Product using (_,_)
-open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_; ∀ⁱ_; ν)
 import NarrowWiden as NW
 open import NuTermImprecision using (StoreImp)
 open import NuTerms using
@@ -56,6 +56,7 @@ open import proof.NuImprecisionPairedLambdaTargetClosingFrameViewDef
   ; frame-conv⊑conv
   ; frame-conv↑⊑
   ; frame-conv↓⊑
+  ; frame-gen-all
   ; frame-prefix
   ; frame-refl
   ; frame-up-gen-all
@@ -65,7 +66,7 @@ open import proof.NuImprecisionPairedLambdaTargetClosingFrameViewDef
   ; frame-⊑cast⊑id
   ; frame-⊑conv↑
   ; frame-⊑conv↓
-  ; leaf-gen
+  ; leaf-gen-ν
   ; leaf-up-gen
   ; leaf-Λ
   ; leaf-ΛΛ
@@ -86,8 +87,10 @@ paired-lambda-target-closing-frame-view-leaf-relation
     (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) =
   Λ⊑ᵀ occ liftρ liftγ vV V⊑N′
 paired-lambda-target-closing-frame-view-leaf-relation
-    (leaf-gen vV noV vN′ noN′ mode seal★ hA occ c⊢ cⁿ V⊑N′ r) =
-  cast⊒⊑ᵀ mode seal★ (C.cast-gen hA occ c⊢ , NW.gen cⁿ) V⊑N′ r
+    (leaf-gen-ν vV noV vN′ noN′ mode seal★ hA occ-g c⊢ cⁿ
+      V⊑N′ occ-r r) =
+  cast⊒⊑ᵀ mode seal★ (C.cast-gen hA occ-g c⊢ , NW.gen cⁿ)
+    V⊑N′ (ν occ-r r)
 paired-lambda-target-closing-frame-view-leaf-relation
     (leaf-up-gen vM noM vM′ noM′ inert-d′ inert-u′
       d⊒ d′⊒ M⊑M′ qD widening q) =
@@ -133,6 +136,11 @@ paired-lambda-target-closing-frame-view-frames-relation L⊑L′
   conv↓⊑ᵀ conv
     (paired-lambda-target-closing-frame-view-frames-relation L⊑L′ frames)
     r
+paired-lambda-target-closing-frame-view-frames-relation L⊑L′
+    (frame-gen-all frames mode seal★ hA occ c⊢ cⁿ r) =
+  cast⊒⊑ᵀ mode seal★ (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+    (paired-lambda-target-closing-frame-view-frames-relation L⊑L′ frames)
+    (∀ⁱ r)
 paired-lambda-target-closing-frame-view-frames-relation L⊑L′
     (frame-⊑cast⊒ frames inert mode seal★ c⊒ r) =
   ⊑cast⊒ᵀ mode seal★ c⊒
@@ -207,8 +215,9 @@ paired-lambda-target-closing-frame-view-leaf-source-value
     (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) =
   Λ vV
 paired-lambda-target-closing-frame-view-leaf-source-value
-    (leaf-gen {A = A} {c = c}
-      vV noV vN′ noN′ mode seal★ hA occ c⊢ cⁿ V⊑N′ r) =
+    (leaf-gen-ν {A = A} {c = c}
+      vV noV vN′ noN′ mode seal★ hA occ-g c⊢ cⁿ
+      V⊑N′ occ-r r) =
   vV ⟨ C.gen A c ⟩
 paired-lambda-target-closing-frame-view-leaf-source-value
     (leaf-up-gen {X = X} {d = d} {u = u}
@@ -248,6 +257,10 @@ paired-lambda-target-closing-frame-view-frames-source-value vL
     (frame-conv↓⊑ {c = c} frames conv r) =
   paired-lambda-target-closing-frame-view-frames-source-value vL frames
     ⟨ C.`∀ c ⟩
+paired-lambda-target-closing-frame-view-frames-source-value vL
+    (frame-gen-all {c = c} frames mode seal★ hA occ c⊢ cⁿ r) =
+  paired-lambda-target-closing-frame-view-frames-source-value vL frames
+    ⟨ C.gen _ c ⟩
 paired-lambda-target-closing-frame-view-frames-source-value vL
     (frame-⊑cast⊒ frames inert mode seal★ c⊒ r) =
   paired-lambda-target-closing-frame-view-frames-source-value vL frames
@@ -309,7 +322,8 @@ paired-lambda-target-closing-frame-view-leaf-source-no-bullet
     (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) =
   no•-Λ noV
 paired-lambda-target-closing-frame-view-leaf-source-no-bullet
-    (leaf-gen vV noV vN′ noN′ mode seal★ hA occ c⊢ cⁿ V⊑N′ r) =
+    (leaf-gen-ν vV noV vN′ noN′ mode seal★ hA occ-g c⊢ cⁿ
+      V⊑N′ occ-r r) =
   no•-⟨⟩ noV
 paired-lambda-target-closing-frame-view-leaf-source-no-bullet
     (leaf-up-gen vM noM vM′ noM′ inert-d′ inert-u′ d⊒ d′⊒
@@ -349,6 +363,11 @@ paired-lambda-target-closing-frame-view-frames-source-no-bullet noL
       noL frames)
 paired-lambda-target-closing-frame-view-frames-source-no-bullet noL
     (frame-conv↓⊑ frames conv r) =
+  no•-⟨⟩
+    (paired-lambda-target-closing-frame-view-frames-source-no-bullet
+      noL frames)
+paired-lambda-target-closing-frame-view-frames-source-no-bullet noL
+    (frame-gen-all frames mode seal★ hA occ c⊢ cⁿ r) =
   no•-⟨⟩
     (paired-lambda-target-closing-frame-view-frames-source-no-bullet
       noL frames)
@@ -414,7 +433,8 @@ paired-lambda-target-closing-frame-view-leaf-target-value
     (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) =
   vN′
 paired-lambda-target-closing-frame-view-leaf-target-value
-    (leaf-gen vV noV vN′ noN′ mode seal★ hA occ c⊢ cⁿ V⊑N′ r) =
+    (leaf-gen-ν vV noV vN′ noN′ mode seal★ hA occ-g c⊢ cⁿ
+      V⊑N′ occ-r r) =
   vN′
 paired-lambda-target-closing-frame-view-leaf-target-value
     (leaf-up-gen vM noM vM′ noM′ inert-d′ inert-u′ d⊒ d′⊒
@@ -448,6 +468,9 @@ paired-lambda-target-closing-frame-view-frames-target-value vL′
   paired-lambda-target-closing-frame-view-frames-target-value vL′ frames
 paired-lambda-target-closing-frame-view-frames-target-value vL′
     (frame-conv↓⊑ frames conv r) =
+  paired-lambda-target-closing-frame-view-frames-target-value vL′ frames
+paired-lambda-target-closing-frame-view-frames-target-value vL′
+    (frame-gen-all frames mode seal★ hA occ c⊢ cⁿ r) =
   paired-lambda-target-closing-frame-view-frames-target-value vL′ frames
 paired-lambda-target-closing-frame-view-frames-target-value vL′
     (frame-⊑cast⊒ frames inert mode seal★ c⊒ r) =
@@ -513,7 +536,8 @@ paired-lambda-target-closing-frame-view-leaf-target-no-bullet
     (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) =
   noN′
 paired-lambda-target-closing-frame-view-leaf-target-no-bullet
-    (leaf-gen vV noV vN′ noN′ mode seal★ hA occ c⊢ cⁿ V⊑N′ r) =
+    (leaf-gen-ν vV noV vN′ noN′ mode seal★ hA occ-g c⊢ cⁿ
+      V⊑N′ occ-r r) =
   noN′
 paired-lambda-target-closing-frame-view-leaf-target-no-bullet
     (leaf-up-gen vM noM vM′ noM′ inert-d′ inert-u′ d⊒ d′⊒
@@ -551,6 +575,10 @@ paired-lambda-target-closing-frame-view-frames-target-no-bullet noL′
     noL′ frames
 paired-lambda-target-closing-frame-view-frames-target-no-bullet noL′
     (frame-conv↓⊑ frames conv r) =
+  paired-lambda-target-closing-frame-view-frames-target-no-bullet
+    noL′ frames
+paired-lambda-target-closing-frame-view-frames-target-no-bullet noL′
+    (frame-gen-all frames mode seal★ hA occ c⊢ cⁿ r) =
   paired-lambda-target-closing-frame-view-frames-target-no-bullet
     noL′ frames
 paired-lambda-target-closing-frame-view-frames-target-no-bullet noL′

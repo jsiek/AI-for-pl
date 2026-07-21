@@ -5,9 +5,9 @@ module
 -- File Charter:
 --   * Defines the post-bullet target-closing motive for one proof-relevant
 --     paired-lambda frame spine.
---   * Defines the twelve genuinely semantic handlers: four terminal leaves,
---     four source-all frames, paired conversion, paired widening, and the two
---     quotient frames.
+--   * Defines the thirteen genuinely semantic handlers: four terminal
+--     leaves, the recursive source-gen frame, four source-all frames, paired
+--     conversion, paired widening, and the two quotient frames.
 --   * Gives every non-leaf handler both the recursive motive and the exact
 --     inner proof-relevant frame view.
 --   * Leaves prefix extension, reflexivity, and target-only frames to the
@@ -177,11 +177,13 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
       PairedLambdaTargetClosingFrameClosingMotive ρ
         (Λ V) N′ A B (ν occ p)
 
-    handle-leaf-gen :
+    handle-leaf-gen-ν :
         ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
           {ρ : StoreImp Φ Δᴸ Δᴿ}
           {V N′ : Term} {A B B′ : Ty}
           {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
+          {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+            ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
           {c : Coercion} {μ : ModeEnv} →
       Value V → No• V →
       Value N′ → No• N′ →
@@ -194,9 +196,9 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
       NW.Narrowing c →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
         ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B′ ∶ q →
-      (r : Φ ∣ Δᴸ ⊢ `∀ B ⊑ B′ ⊣ Δᴿ) →
+      (occ-r : occurs zero B ≡ true) →
       PairedLambdaTargetClosingFrameClosingMotive ρ
-        (V ⟨ C.gen A c ⟩) N′ B B′ r
+        (V ⟨ C.gen A c ⟩) N′ B B′ (ν occ-r r)
 
     handle-leaf-up-gen :
         ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -220,6 +222,28 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
       PairedLambdaTargetClosingFrameClosingMotive ρ
         ((M ⟨ C.gen X d ⟩) ⟨ C.`∀ u ⟩)
         ((M′ ⟨ d′ ⟩) ⟨ u′ ⟩) B B′ q
+
+    handle-frame-gen-all :
+        ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+          {ρ : StoreImp Φ Δᴸ Δᴿ}
+          {V N′ : Term} {F B B′ : Ty}
+          {q : Φ ∣ Δᴸ ⊢ `∀ F ⊑ `∀ B′ ⊣ Δᴿ}
+          {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+            ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ suc Δᴿ}
+          {c : Coercion} {μ : ModeEnv} →
+      PairedLambdaTargetClosingFrameClosingMotive ρ
+        V N′ F (`∀ B′) q →
+      PairedLambdaTargetClosingFrameView ρ
+        V N′ (`∀ F) (`∀ B′) q →
+      CastMode μ →
+      SealModeStore★ μ (leftStoreⁱ ρ) →
+      (hA : WfTy Δᴸ (`∀ F)) →
+      (occ : occurs zero B ≡ true) →
+      genᵈ μ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ)
+        ⊢ c ∶ ⇑ᵗ (`∀ F) =⇒ B →
+      NW.Narrowing c →
+      PairedLambdaTargetClosingFrameClosingMotive ρ
+        (V ⟨ C.gen (`∀ F) c ⟩) N′ B (`∀ B′) (∀ⁱ r)
 
     handle-frame-cast⊒⊑ :
         ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}

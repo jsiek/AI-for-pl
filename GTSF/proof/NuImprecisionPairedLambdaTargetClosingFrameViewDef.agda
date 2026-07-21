@@ -5,6 +5,8 @@ module proof.NuImprecisionPairedLambdaTargetClosingFrameViewDef where
 --     lambda target-closing proof.
 --   * Keeps paired and quotiented frames atomic, so no unsound one-sided
 --     intermediate type-imprecision index is exposed.
+--   * Keeps source-only generic closing terminal while representing the
+--     outer-`∀ⁱ` generic case as a recursive source frame.
 --   * Uses only constructor-form term indices; plugging and frame composition
 --     are deliberately absent from the data indices.
 --   * Contains no classifier implementation, postulate, or permissive option.
@@ -113,7 +115,7 @@ data PairedLambdaTargetClosingLeaf
     PairedLambdaTargetClosingLeaf ρ
       (Λ V) N′ (`∀ A) B (ν occ p)
 
-  leaf-gen :
+  leaf-gen-ν :
       ∀ {ρ V N′ A B B′ q c μ} →
     Value V → No• V →
     Value N′ → No• N′ →
@@ -126,9 +128,11 @@ data PairedLambdaTargetClosingLeaf
     (cⁿ : NW.Narrowing c) →
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
       ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B′ ∶ q →
-    (r : Φ ∣ Δᴸ ⊢ `∀ B ⊑ B′ ⊣ Δᴿ) →
+    (occ-r : occurs zero B ≡ true) →
+    (r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
     PairedLambdaTargetClosingLeaf ρ
-      (V ⟨ C.gen A c ⟩) N′ (`∀ B) B′ r
+      (V ⟨ C.gen A c ⟩) N′ (`∀ B) B′ (ν occ-r r)
 
   leaf-up-gen :
       ∀ {ρ M M′ X C′ D D′ B B′ pC
@@ -218,6 +222,23 @@ data PairedLambdaTargetClosingFrames
     (r : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ) →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ (W ⟨ C.`∀ c ⟩) W′ (`∀ C) B′ r
+
+  frame-gen-all :
+      ∀ {ρ V N′ F B B′ q c μ} →
+    PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
+      ρ V N′ (`∀ F) (`∀ B′) q →
+    CastMode μ →
+    SealModeStore★ μ (leftStoreⁱ ρ) →
+    (hA : WfTy Δᴸ (`∀ F)) →
+    (occ : occurs zero B ≡ true) →
+    genᵈ μ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ)
+      ⊢ c ∶ ⇑ᵗ (`∀ F) =⇒ B →
+    NW.Narrowing c →
+    (r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ suc Δᴿ) →
+    PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
+      ρ (V ⟨ C.gen (`∀ F) c ⟩) N′
+      (`∀ B) (`∀ B′) (∀ⁱ r)
 
   frame-⊑cast⊒ :
       ∀ {ρ W W′ B B′ C′ q c′ μ′} →

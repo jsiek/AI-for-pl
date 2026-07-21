@@ -4,7 +4,7 @@ module
 
 -- File Charter:
 --   * Interprets a proof-relevant paired-lambda target-closing frame view.
---   * Delegates the twelve semantic cases to an explicit handler record and
+--   * Delegates the thirteen semantic cases to an explicit handler record and
 --     all five target-only cases to one shared target-frame capability.
 --   * Carries the original leaf through frame recursion and reconstructs the
 --     exact inner frame view at every non-leaf semantic boundary.
@@ -31,11 +31,12 @@ open import
   ; handle-frame-cast⊑⊑
   ; handle-frame-conv↑⊑
   ; handle-frame-conv↓⊑
+  ; handle-frame-gen-all
   ; handle-frame-paired-conversion
   ; handle-frame-paired-widening
   ; handle-frame-up-gen-all
   ; handle-frame-up-id
-  ; handle-leaf-gen
+  ; handle-leaf-gen-ν
   ; handle-leaf-up-gen
   ; handle-leaf-Λ
   ; handle-leaf-ΛΛ
@@ -52,6 +53,7 @@ open import proof.NuImprecisionPairedLambdaTargetClosingFrameViewDef using
   ; frame-cast⊑⊑
   ; frame-conv↑⊑
   ; frame-conv↓⊑
+  ; frame-gen-all
   ; frame-conv⊑conv
   ; frame-prefix
   ; frame-refl
@@ -62,7 +64,7 @@ open import proof.NuImprecisionPairedLambdaTargetClosingFrameViewDef using
   ; frame-⊑cast⊑id
   ; frame-⊑conv↑
   ; frame-⊑conv↓
-  ; leaf-gen
+  ; leaf-gen-ν
   ; leaf-up-gen
   ; leaf-Λ
   ; leaf-ΛΛ
@@ -126,6 +128,14 @@ interpret-paired-lambda-target-closing-frames handlers target-frame
       leaf initial frames)
     (closing-frame-view leaf frames)
     c↓ r
+interpret-paired-lambda-target-closing-frames handlers target-frame
+    leaf initial
+    (frame-gen-all frames mode seal★ hA occ c⊢ cⁿ r) =
+  handle-frame-gen-all handlers
+    (interpret-paired-lambda-target-closing-frames handlers target-frame
+      leaf initial frames)
+    (closing-frame-view leaf frames)
+    mode seal★ hA occ c⊢ cⁿ
 interpret-paired-lambda-target-closing-frames handlers target-frame
     leaf initial (frame-⊑cast⊒ frames inert mode seal★ c⊒ r) =
   target-frame
@@ -224,12 +234,13 @@ interpret-paired-lambda-target-closing-view handlers target-frame
     frames
 interpret-paired-lambda-target-closing-view handlers target-frame
     (closing-frame-view
-      leaf@(leaf-gen vV noV vN′ noN′ mode seal★ hA occ c= cⁿ V⊑N′ r)
+      leaf@(leaf-gen-ν vV noV vN′ noN′ mode seal★ hA occ-g c= cⁿ
+        V⊑N′ occ-r r)
       frames) =
   interpret-paired-lambda-target-closing-frames handlers target-frame
     leaf
-    (handle-leaf-gen handlers
-      vV noV vN′ noN′ mode seal★ hA occ c= cⁿ V⊑N′ r)
+    (handle-leaf-gen-ν handlers
+      vV noV vN′ noN′ mode seal★ hA occ-g c= cⁿ V⊑N′ occ-r)
     frames
 interpret-paired-lambda-target-closing-view handlers target-frame
     (closing-frame-view

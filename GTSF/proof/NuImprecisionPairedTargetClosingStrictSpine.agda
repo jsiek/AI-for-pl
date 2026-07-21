@@ -17,6 +17,10 @@ import
   proof.NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef
 import
   proof.NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef
+import
+  proof.NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameCasesDef
+import
+  proof.NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameProof
 import proof.NuImprecisionPairedLambdaTargetClosingFrameClosingProof
 import
   proof.NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersProof
@@ -29,6 +33,9 @@ import
 import
   proof.NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef
 import proof.NuImprecisionFreshTypePath
+import proof.NuImprecisionFreshTypePathTransport
+import
+  proof.NuImprecisionPairedUniversalConversionFreshPathSquareDef
 import
   proof.NuImprecisionPairedUniversalConversionFreshPathCycleDef
 import
@@ -44,6 +51,12 @@ import
 import
   proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef
 import
+  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef
+import
+  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef
+import
+  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof
+import
   proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof
 import
   proof.NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef
@@ -58,6 +71,12 @@ import
   proof.NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef
 import
   proof.NuImprecisionPairedLambdaTargetClosingSourceGenFramePairedConversionCasesDef
+import
+  proof.NuImprecisionPairedLambdaTargetClosingSourceGenFrameStructuralRevealClosingDef
+import
+  proof.NuImprecisionPairedLambdaTargetClosingSourceGenFrameStructuralConcealClosingDef
+import
+  proof.NuImprecisionPairedLambdaTargetClosingSourceGenFramePairedConversionCasesProof
 import
   proof.NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationProof
 import
@@ -77,9 +96,13 @@ import
 import
   proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameClosingDef
 import
+  proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameCompatibleCasesDef
+import
   proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameClosingProof
 import
   proof.NuImprecisionPairedLambdaTargetClosingUpIdFrameClosingDef
+import
+  proof.NuImprecisionPairedLambdaTargetClosingUpIdFrameWideningCasesDef
 import
   proof.NuImprecisionPairedLambdaTargetClosingUpIdFrameClosingProof
 import

@@ -17,14 +17,25 @@ open import
   proof.NuImprecisionPairedLambdaTargetClosingFrameClosingProof
   using (paired-lambda-target-closing-frame-closing-proofᵀ)
 open import
-  proof.NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameDef
-  using (PairedLambdaTargetClosingFrameClosingTargetFrameᵀ)
-open import
-  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef
+  proof.NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameCasesDef
   using
-  ( PairedLambdaTargetClosingLambdaLambdaLeafPairedConcealClosingᵀ
-  ; PairedLambdaTargetClosingLambdaLambdaLeafPairedRevealClosingᵀ
+  ( PairedLambdaTargetClosingFrameClosingTargetConcealᵀ
+  ; PairedLambdaTargetClosingFrameClosingTargetIdOnlyWideningᵀ
+  ; PairedLambdaTargetClosingFrameClosingTargetNarrowingᵀ
+  ; PairedLambdaTargetClosingFrameClosingTargetRevealᵀ
+  ; PairedLambdaTargetClosingFrameClosingTargetWideningᵀ
   )
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameProof
+  using (paired-lambda-target-closing-frame-closing-target-frame-proofᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef
+  using
+  (PairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef
+  using
+  (PairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingᵀ)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef
   using (PairedLambdaTargetClosingNuPairedConversionRotationᵀ)
@@ -32,17 +43,20 @@ open import
   proof.NuImprecisionPairedLambdaTargetClosingPairedConversionFrameClosingDef
   using (PairedLambdaTargetClosingPairedConversionFrameClosingᵀ)
 open import
-  proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameClosingDef
-  using (PairedLambdaTargetClosingPairedWideningFrameClosingᵀ)
+  proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameCompatibleCasesDef
+  using
+  ( PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertᵀ
+  ; PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ
+  )
 open import
   proof.NuImprecisionPairedLambdaTargetClosingSourceAllFrameAllIndexClosingDef
   using (PairedLambdaTargetClosingSourceAllFrameAllIndexClosingᵀ)
 open import
-  proof.NuImprecisionPairedLambdaTargetClosingSourceGenFramePairedConversionCasesDef
-  using
-  ( PairedLambdaTargetClosingSourceGenFramePairedConcealClosingᵀ
-  ; PairedLambdaTargetClosingSourceGenFramePairedRevealClosingᵀ
-  )
+  proof.NuImprecisionPairedLambdaTargetClosingSourceGenFrameStructuralConcealClosingDef
+  using (PairedLambdaTargetClosingSourceGenFrameStructuralConcealClosingᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingSourceGenFrameStructuralRevealClosingDef
+  using (PairedLambdaTargetClosingSourceGenFrameStructuralRevealClosingᵀ)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingUpGenAllFrameClosingDef
   using (PairedLambdaTargetClosingUpGenAllFrameClosingᵀ)
@@ -50,8 +64,11 @@ open import
   proof.NuImprecisionPairedLambdaTargetClosingUpGenLeafAllIndexClosingDef
   using (PairedLambdaTargetClosingUpGenLeafAllIndexClosingᵀ)
 open import
-  proof.NuImprecisionPairedLambdaTargetClosingUpIdFrameClosingDef
-  using (PairedLambdaTargetClosingUpIdFrameClosingᵀ)
+  proof.NuImprecisionPairedLambdaTargetClosingUpIdFrameWideningCasesDef
+  using
+  ( PairedLambdaTargetClosingUpIdFrameQuotientCastWideningClosingᵀ
+  ; PairedLambdaTargetClosingUpIdFrameQuotientIdWideningClosingᵀ
+  )
 open import
   proof.NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingDef
   using
@@ -60,25 +77,37 @@ open import
 
 paired-lambda-target-closing-frame-closing-assembly-proofᵀ :
   PairedLambdaTargetClosingNuPairedConversionRotationᵀ →
-  PairedLambdaTargetClosingLambdaLambdaLeafPairedRevealClosingᵀ →
-  PairedLambdaTargetClosingLambdaLambdaLeafPairedConcealClosingᵀ →
+  PairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingᵀ →
+  PairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingᵀ →
   PairedLambdaTargetClosingUpGenLeafAllIndexClosingᵀ →
-  PairedLambdaTargetClosingSourceGenFramePairedRevealClosingᵀ →
-  PairedLambdaTargetClosingSourceGenFramePairedConcealClosingᵀ →
+  PairedLambdaTargetClosingSourceGenFrameStructuralRevealClosingᵀ →
+  PairedLambdaTargetClosingSourceGenFrameStructuralConcealClosingᵀ →
   PairedLambdaTargetClosingSourceAllFrameAllIndexClosingᵀ →
   PairedLambdaTargetClosingPairedConversionFrameClosingᵀ →
-  PairedLambdaTargetClosingPairedWideningFrameClosingᵀ →
-  PairedLambdaTargetClosingUpIdFrameClosingᵀ →
+  PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertᵀ →
+  PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ →
+  PairedLambdaTargetClosingUpIdFrameQuotientIdWideningClosingᵀ →
+  PairedLambdaTargetClosingUpIdFrameQuotientCastWideningClosingᵀ →
   PairedLambdaTargetClosingUpGenAllFrameClosingᵀ →
-  PairedLambdaTargetClosingFrameClosingTargetFrameᵀ →
+  PairedLambdaTargetClosingFrameClosingTargetRevealᵀ →
+  PairedLambdaTargetClosingFrameClosingTargetConcealᵀ →
+  PairedLambdaTargetClosingFrameClosingTargetNarrowingᵀ →
+  PairedLambdaTargetClosingFrameClosingTargetWideningᵀ →
+  PairedLambdaTargetClosingFrameClosingTargetIdOnlyWideningᵀ →
   SourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingᵀ
 paired-lambda-target-closing-frame-closing-assembly-proofᵀ
     rotate lambda-lambda-reveal lambda-lambda-conceal up-gen-all-index
     source-gen-reveal source-gen-conceal source-all-all-index
-    paired-conversion paired-widening up-id up-gen-all target-frame =
+    paired-conversion paired-widening-source-inert
+    paired-widening-target-inert-bridge up-id-id up-id-cast up-gen-all
+    target-reveal target-conceal target-narrowing target-widening
+    target-id-only-widening =
   paired-lambda-target-closing-frame-closing-proofᵀ
     (paired-lambda-target-closing-frame-closing-handlers-proofᵀ
       rotate lambda-lambda-reveal lambda-lambda-conceal up-gen-all-index
       source-gen-reveal source-gen-conceal source-all-all-index
-      paired-conversion paired-widening up-id up-gen-all)
-    target-frame
+      paired-conversion paired-widening-source-inert
+      paired-widening-target-inert-bridge up-id-id up-id-cast up-gen-all)
+    (paired-lambda-target-closing-frame-closing-target-frame-proofᵀ
+      target-reveal target-conceal target-narrowing target-widening
+      target-id-only-widening)

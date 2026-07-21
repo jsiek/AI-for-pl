@@ -28,10 +28,21 @@ open import
   )
 open import
   proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef
+  using (PairedLambdaTargetClosingLambdaLambdaLeafPairedConcealClosingᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof
   using
-  ( PairedLambdaTargetClosingLambdaLambdaLeafPairedConcealClosingᵀ
-  ; PairedLambdaTargetClosingLambdaLambdaLeafPairedRevealClosingᵀ
+  ( paired-lambda-target-closing-lambda-lambda-leaf-paired-conceal-closing-proofᵀ
+  ; paired-lambda-target-closing-lambda-lambda-leaf-paired-reveal-closing-proofᵀ
   )
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef
+  using
+  (PairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef
+  using
+  (PairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingᵀ)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingProof
   using (paired-lambda-target-closing-lambda-leaf-handler-proofᵀ)
@@ -46,12 +57,17 @@ open import
   using
   (paired-lambda-target-closing-paired-conversion-frame-handler-proofᵀ)
 open import
-  proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameClosingDef
-  using (PairedLambdaTargetClosingPairedWideningFrameClosingᵀ)
-open import
   proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameClosingProof
   using
-  (paired-lambda-target-closing-paired-widening-frame-handler-proofᵀ)
+  ( paired-lambda-target-closing-paired-widening-frame-compatible-cases-proofᵀ
+  ; paired-lambda-target-closing-paired-widening-frame-handler-proofᵀ
+  )
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingPairedWideningFrameCompatibleCasesDef
+  using
+  ( PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertᵀ
+  ; PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ
+  )
 open import
   proof.NuImprecisionPairedLambdaTargetClosingSourceAllFrameAllIndexClosingDef
   using (PairedLambdaTargetClosingSourceAllFrameAllIndexClosingᵀ)
@@ -73,11 +89,17 @@ open import
   proof.NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationProof
   using (paired-lambda-target-closing-source-gen-frame-commutation-proofᵀ)
 open import
-  proof.NuImprecisionPairedLambdaTargetClosingSourceGenFramePairedConversionCasesDef
+  proof.NuImprecisionPairedLambdaTargetClosingSourceGenFramePairedConversionCasesProof
   using
-  ( PairedLambdaTargetClosingSourceGenFramePairedConcealClosingᵀ
-  ; PairedLambdaTargetClosingSourceGenFramePairedRevealClosingᵀ
+  ( paired-lambda-target-closing-source-gen-frame-paired-conceal-closing-proofᵀ
+  ; paired-lambda-target-closing-source-gen-frame-paired-reveal-closing-proofᵀ
   )
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingSourceGenFrameStructuralConcealClosingDef
+  using (PairedLambdaTargetClosingSourceGenFrameStructuralConcealClosingᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingSourceGenFrameStructuralRevealClosingDef
+  using (PairedLambdaTargetClosingSourceGenFrameStructuralRevealClosingᵀ)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingUpGenAllFrameClosingDef
   using (PairedLambdaTargetClosingUpGenAllFrameClosingᵀ)
@@ -94,35 +116,47 @@ open import
   ; paired-lambda-target-closing-up-gen-leaf-handler-proofᵀ
   )
 open import
-  proof.NuImprecisionPairedLambdaTargetClosingUpIdFrameClosingDef
-  using (PairedLambdaTargetClosingUpIdFrameClosingᵀ)
-open import
   proof.NuImprecisionPairedLambdaTargetClosingUpIdFrameClosingProof
-  using (paired-lambda-target-closing-up-id-frame-handler-proofᵀ)
+  using
+  ( paired-lambda-target-closing-up-id-frame-handler-proofᵀ
+  ; paired-lambda-target-closing-up-id-frame-widening-cases-proofᵀ
+  )
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingUpIdFrameWideningCasesDef
+  using
+  ( PairedLambdaTargetClosingUpIdFrameQuotientCastWideningClosingᵀ
+  ; PairedLambdaTargetClosingUpIdFrameQuotientIdWideningClosingᵀ
+  )
 
 
 paired-lambda-target-closing-frame-closing-handlers-proofᵀ :
   PairedLambdaTargetClosingNuPairedConversionRotationᵀ →
-  PairedLambdaTargetClosingLambdaLambdaLeafPairedRevealClosingᵀ →
-  PairedLambdaTargetClosingLambdaLambdaLeafPairedConcealClosingᵀ →
+  PairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingᵀ →
+  PairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingᵀ →
   PairedLambdaTargetClosingUpGenLeafAllIndexClosingᵀ →
-  PairedLambdaTargetClosingSourceGenFramePairedRevealClosingᵀ →
-  PairedLambdaTargetClosingSourceGenFramePairedConcealClosingᵀ →
+  PairedLambdaTargetClosingSourceGenFrameStructuralRevealClosingᵀ →
+  PairedLambdaTargetClosingSourceGenFrameStructuralConcealClosingᵀ →
   PairedLambdaTargetClosingSourceAllFrameAllIndexClosingᵀ →
   PairedLambdaTargetClosingPairedConversionFrameClosingᵀ →
-  PairedLambdaTargetClosingPairedWideningFrameClosingᵀ →
-  PairedLambdaTargetClosingUpIdFrameClosingᵀ →
+  PairedLambdaTargetClosingPairedWideningFrameCompatibleSourceInertᵀ →
+  PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ →
+  PairedLambdaTargetClosingUpIdFrameQuotientIdWideningClosingᵀ →
+  PairedLambdaTargetClosingUpIdFrameQuotientCastWideningClosingᵀ →
   PairedLambdaTargetClosingUpGenAllFrameClosingᵀ →
   PairedLambdaTargetClosingFrameClosingHandlers
 paired-lambda-target-closing-frame-closing-handlers-proofᵀ
     rotate lambda-lambda-reveal lambda-lambda-conceal up-gen-all-index
     source-gen-reveal source-gen-conceal source-all-all-index
-    paired-conversion paired-widening up-id up-gen-all =
+    paired-conversion paired-widening-source-inert
+    paired-widening-target-inert-bridge up-id-id up-id-cast up-gen-all =
   record
     { handle-leaf-ΛΛ =
         paired-lambda-target-closing-lambda-lambda-leaf-handler-proofᵀ
           (paired-lambda-target-closing-lambda-lambda-leaf-closing-proofᵀ
-            lambda-lambda-reveal lambda-lambda-conceal)
+            (paired-lambda-target-closing-lambda-lambda-leaf-paired-reveal-closing-proofᵀ
+              lambda-lambda-reveal)
+            (paired-lambda-target-closing-lambda-lambda-leaf-paired-conceal-closing-proofᵀ
+              lambda-lambda-conceal))
     ; handle-leaf-Λ =
         paired-lambda-target-closing-lambda-leaf-handler-proofᵀ rotate
     ; handle-leaf-gen-ν =
@@ -136,7 +170,10 @@ paired-lambda-target-closing-frame-closing-handlers-proofᵀ
     ; handle-frame-gen-all =
         paired-lambda-target-closing-source-gen-frame-closing-proofᵀ
           (paired-lambda-target-closing-source-gen-frame-commutation-proofᵀ
-            source-gen-reveal source-gen-conceal)
+            (paired-lambda-target-closing-source-gen-frame-paired-reveal-closing-proofᵀ
+              source-gen-reveal)
+            (paired-lambda-target-closing-source-gen-frame-paired-conceal-closing-proofᵀ
+              source-gen-conceal))
     ; handle-frame-cast⊒⊑ =
         paired-lambda-target-closing-source-all-narrowing-frame-closing-proofᵀ
           source-all-commutation
@@ -154,9 +191,13 @@ paired-lambda-target-closing-frame-closing-handlers-proofᵀ
           paired-conversion
     ; handle-frame-paired-widening =
         paired-lambda-target-closing-paired-widening-frame-handler-proofᵀ
-          paired-widening
+          (paired-lambda-target-closing-paired-widening-frame-compatible-cases-proofᵀ
+            paired-widening-source-inert
+            paired-widening-target-inert-bridge)
     ; handle-frame-up-id =
-        paired-lambda-target-closing-up-id-frame-handler-proofᵀ up-id
+        paired-lambda-target-closing-up-id-frame-handler-proofᵀ
+          (paired-lambda-target-closing-up-id-frame-widening-cases-proofᵀ
+            up-id-id up-id-cast)
     ; handle-frame-up-gen-all =
         paired-lambda-target-closing-up-gen-all-frame-handler-proofᵀ
           up-gen-all

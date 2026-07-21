@@ -388,16 +388,20 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceOneStepCasesProof.agda`](NuImprecisionWorldCoherentSourceOneStepCasesProof.agda) | completed higher-order assembly | Builds the full source one-step case record from ten remaining named families while supplying primitive roots and `ν` blame canonically. |
 | [`NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda) | completed higher-order proof | Exhaustive split on all source store-step constructors, proving that the nine capabilities suffice for the prefix engine and hence public DGG. |
 | [`NuImprecisionWorldCoherentSourceAllocationStepDef.agda`](NuImprecisionWorldCoherentSourceAllocationStepDef.agda) | completed statement; proof not started | Canonical source allocation-step boundary with the exact `bind` change and post-allocation term. |
-| [`NuImprecisionWorldCoherentSourceApplicationLeftStepDef.agda`](NuImprecisionWorldCoherentSourceApplicationLeftStepDef.agda) | completed statement; proof not started | Canonical source application-left congruence boundary. |
-| [`NuImprecisionWorldCoherentSourceApplicationRightStepDef.agda`](NuImprecisionWorldCoherentSourceApplicationRightStepDef.agda) | completed statement; proof not started | Canonical source application-right congruence boundary. |
-| [`NuImprecisionWorldCoherentSourceCastFrameStepDef.agda`](NuImprecisionWorldCoherentSourceCastFrameStepDef.agda) | completed statement; proof not started | Canonical source cast congruence boundary with coercion action under the source store change. |
+| [`NuImprecisionWorldCoherentSourceApplicationLeftStepDef.agda`](NuImprecisionWorldCoherentSourceApplicationLeftStepDef.agda) | completed statement | Canonical source application-left congruence boundary. |
+| [`NuImprecisionWorldCoherentSourceApplicationLeftStepProof.agda`](NuImprecisionWorldCoherentSourceApplicationLeftStepProof.agda) | completed GPT-5.5 higher-order proof | Rebuilds `ξ-·₁` and delegates the framed source step to the recursive prefix worker; canonical recursion assembly remains. |
+| [`NuImprecisionWorldCoherentSourceApplicationRightStepDef.agda`](NuImprecisionWorldCoherentSourceApplicationRightStepDef.agda) | completed statement | Canonical source application-right congruence boundary. |
+| [`NuImprecisionWorldCoherentSourceApplicationRightStepProof.agda`](NuImprecisionWorldCoherentSourceApplicationRightStepProof.agda) | completed GPT-5.5 higher-order proof | Rebuilds `ξ-·₂` and delegates the framed source step to the recursive prefix worker; canonical recursion assembly remains. |
+| [`NuImprecisionWorldCoherentSourceCastFrameStepDef.agda`](NuImprecisionWorldCoherentSourceCastFrameStepDef.agda) | completed statement | Canonical source cast congruence boundary with coercion action under the source store change. |
+| [`NuImprecisionWorldCoherentSourceCastFrameStepProof.agda`](NuImprecisionWorldCoherentSourceCastFrameStepProof.agda) | completed higher-order proof | Exhaustively fits all 15 reachable QTI constructors to the recursive prefix worker and existing flat outcome, delegating quotient and target-bullet crossings through explicit capabilities; canonical recursion assembly remains. |
 | [`NuImprecisionWorldCoherentSourceNuFrameStepDef.agda`](NuImprecisionWorldCoherentSourceNuFrameStepDef.agda) | completed statement; proof not started | Canonical source `ν` congruence boundary with type/coercion action under the binder. |
 | [`NuImprecisionWorldCoherentSourceNuBlameStepDef.agda`](NuImprecisionWorldCoherentSourceNuBlameStepDef.agda) | completed statement | Canonical source `ν`-blame boundary. |
 | [`NuImprecisionWorldCoherentSourceNuBlameStepProof.agda`](NuImprecisionWorldCoherentSourceNuBlameStepProof.agda) | completed GPT-5.5 proof | Strict adapter from `blame-ν` to the completed common source-blame root. |
 | [`NuImprecisionWorldCoherentSourceNuBlameStepLemma.agda`](NuImprecisionWorldCoherentSourceNuBlameStepLemma.agda) | completed canonical assembly | Exposes source `ν` blame to the source one-step aggregate. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveLeftStepDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveLeftStepDef.agda) | completed statement | Canonical source primitive-left congruence boundary. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveLeftStepProof.agda`](NuImprecisionWorldCoherentSourcePrimitiveLeftStepProof.agda) | completed GPT-5.5 higher-order proof | Rebuilds `ξ-⊕₁` and delegates the framed step to the recursive source prefix worker; canonical recursion assembly remains. |
-| [`NuImprecisionWorldCoherentSourcePrimitiveRightStepDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveRightStepDef.agda) | completed statement; proof not started | Canonical source primitive-right congruence boundary. |
+| [`NuImprecisionWorldCoherentSourcePrimitiveRightStepDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveRightStepDef.agda) | completed statement | Canonical source primitive-right congruence boundary. |
+| [`NuImprecisionWorldCoherentSourcePrimitiveRightStepProof.agda`](NuImprecisionWorldCoherentSourcePrimitiveRightStepProof.agda) | completed GPT-5.5 higher-order proof | Rebuilds `ξ-⊕₂` and delegates the framed source step to the recursive prefix worker; canonical recursion assembly remains. |
 | [`NuImprecisionWorldCoherentSourcePureStepCasesDef.agda`](NuImprecisionWorldCoherentSourcePureStepCasesDef.agda) | completed statement | Replaces the opaque pure-step capability with four major source-shape families carrying the full ambient-prefix and exact-result contract. |
 | [`NuImprecisionWorldCoherentSourcePureStepCasesProof.agda`](NuImprecisionWorldCoherentSourcePureStepCasesProof.agda) | completed higher-order assembly | Builds the four-way pure-root record and supplies the completed primitive family from right-value catch-up. |
 | [`NuImprecisionWorldCoherentSourcePureStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourcePureStepDispatcherProof.agda) | completed higher-order proof | Exhaustively routes all 18 pure reductions through the application, runtime-bullet, cast/conversion, or primitive family. |
@@ -8739,3 +8743,37 @@ coordination.  Use focused strict checks throughout and reserve
   must depend on the active target-cast terminalization SCC rather than accept
   an `Inert c′` premise that is false for valid paired casts.  No invalid proof
   file was created.
+
+- Ginger/GPT-5.5 completed the ordinary and casted exact target-`ν` frame maps
+  in
+  [`NuImprecisionWorldCoherentSourceOneStepTargetNuFramesProof.agda`](NuImprecisionWorldCoherentSourceOneStepTargetNuFramesProof.agda).
+  The maps preserve the complete existing continuing result and add no
+  target-`ν` outcome layer.  Their canonical assembly and the routine forward
+  spine pass strict focused checks.
+
+- Froze direct, flat boundaries for paired-cast framing, quotient down/up, and
+  target-bullet crossing.  Each consumes or returns the existing continuing
+  result or source-step outcome rather than introducing a family-specific
+  carrier.  The target-bullet audit also confirmed that no lower-world
+  coherence premise or `No•` restriction is derivable; its implementation
+  must own the structural right-world crossing.
+
+- Completed
+  [`NuImprecisionWorldCoherentSourceCastFrameStepProof.agda`](NuImprecisionWorldCoherentSourceCastFrameStepProof.agda),
+  the higher-order fit proof for all 15 reachable QTI constructors.  It uses
+  the generic outcome map, lifts source and paired blame through the cast,
+  preserves target-only blame traces unchanged, and delegates the two hard
+  crossings through their explicit capabilities.  Its strict focused check
+  passes in about 4.3 seconds from the warm cache.
+
+- Three parallel Ginger/GPT-5.5 workers completed the application-left,
+  application-right, and primitive-right congruence proofs.  Together with the
+  previously completed primitive-left proof, all four simple congruence leaves
+  now rebuild their outer source step and delegate directly to the recursive
+  prefix worker.  These are higher-order fit proofs, so no misleading
+  canonical `Lemma` façade is added before the recursive knot exists.
+
+- The combined
+  [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda)
+  passes strictly in about 6.4 seconds after importing these four proofs.  No
+  `All.agda`, broad DGG spine, permissive option, hole, or postulate was used.

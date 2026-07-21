@@ -1,13 +1,15 @@
 module
-  proof.NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationViewDef
+  proof.NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewDef
   where
 
 -- File Charter:
---   * Defines the structural-all paired-conversion closing relation after both
---     underlying universal values have been classified by canonical forms.
---   * Retains the final reveal, whole `PairedConversion`, and exact final
---     source-lifted index without introducing an intermediate relation.
---   * Contains no implementation, dispatcher, or permissive option.
+--   * Defines the ambient-prefix structural-all paired-conversion closing
+--     relation after both universal values have been classified.
+--   * Keeps the external paired conversion, source allocation lifts, and
+--     final reveal at the fixed ambient world while the input relation may
+--     originate below a store-imprecision prefix.
+--   * Contains no implementation, intermediate index, postulate, or
+--     permissive option.
 
 import Coercions as C
 open import Coercions using (Coercion; ModeEnv)
@@ -40,6 +42,7 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( PairedConversion
+  ; StoreImpPrefix
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using
@@ -56,10 +59,11 @@ open import proof.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
 open import proof.NuProgress using (AllView)
 
 
-SourceNuPairedAllConversionPostBetaAllRevealClosingRelationViewᵀ : Set₁
-SourceNuPairedAllConversionPostBetaAllRevealClosingRelationViewᵀ =
+SourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewᵀ :
+  Set₁
+SourceNuPairedAllConversionPostBetaAllRevealClosingRelationAmbientViewᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {ρ₀ ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       (suc Δᴸ) (suc Δᴿ)}
@@ -70,6 +74,7 @@ SourceNuPairedAllConversionPostBetaAllRevealClosingRelationViewᵀ =
       ∣ suc Δᴸ ⊢ F ⊑ F′ ⊣ suc Δᴿ}
     {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ `∀ E ⊑ C′ ⊣ suc Δᴿ} →
+  StoreImpPrefix ρ₀ ρ →
   (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
   RevealConversion (C.extᵈ μ) (suc (suc Δᴸ))
     (⟰ᵗ (leftStoreⁱ
@@ -88,7 +93,7 @@ SourceNuPairedAllConversionPostBetaAllRevealClosingRelationViewᵀ =
     (C.`∀ c) (C.`∀ c′)
     {`∀ F} {`∀ F′} {`∀ (`∀ E)} {`∀ C′}
     (∀ⁱ r) (∀ⁱ q) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ V′ ⦂ `∀ F ⊑ `∀ F′ ∶ ∀ⁱ r →
   ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
     ∣ suc Δᴸ ∣ Δᴿ ∣

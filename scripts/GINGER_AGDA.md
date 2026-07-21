@@ -31,14 +31,12 @@ From the root of the checkout or any worker worktree, run:
 The wrapper changes into `GTSF/`, so module paths are relative to that
 directory.  Do not invoke the bare `agda` executable for routine ginger work.
 
-For an existing deliberately partial legacy module that explicitly enables
-unsolved metas, omit `--no-allow-unsolved-metas`:
-
-    scripts/agda-ginger -v0 proof/<PartialModule>.agda
-
-Do not use that pattern for new skeleton or worker modules.  State unfinished
-major dependencies as higher-order contract parameters so the new module can
-pass the strict command from its first checked version.
+Do not use a deliberately partial legacy module as a worker or integration
+check target.  A source-level `--allow-unsolved-metas` option can defeat the
+intent of the command-line strict flag, so extracting a small strict boundary
+is part of preparing the work package.  State unfinished major dependencies
+as higher-order contract parameters so every new `Def`, `Proof`, leaf, and
+focused spine passes the strict command from its first checked version.
 
 For a three-file theorem boundary, strict-check `<Stem>Def.agda` before proof
 work and `<Stem>Proof.agda` before supplying canonical dependencies in
@@ -52,6 +50,13 @@ strict higher-order `Proof` and record `<Stem>Lemma.agda` as not yet started.
 That is a valid worker or integration milestone: the missing proof is an
 explicit theorem parameter, while the files that do exist still pass
 `--no-allow-unsolved-metas`.
+
+This is also the dependency audit.  A higher-order parameter appears in the
+checked type and therefore cannot hide a missing index transport, store
+invariant, or reduction premise.  An unsolved meta can hide exactly those
+mistakes until a much larger consumer is checked.  Do not create a partial
+`Proof` or placeholder `Lemma`; leave the file absent until it has a strict
+inhabitant.
 
 ## Starting a remote worker worktree
 

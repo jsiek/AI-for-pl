@@ -9,7 +9,8 @@ module proof.NuImprecisionWorldCoherentResultDef where
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (_—↠[_]_)
-open import NuTermImprecision using (StoreImp)
+open import NuStore using (StoreWf)
+open import NuTermImprecision using (StoreImp; leftStoreⁱ)
 open import NuTerms using (blame)
 open import proof.NuImprecisionSimulationResultDef using
   ( LeftCatchupIndexedResult
@@ -17,6 +18,7 @@ open import proof.NuImprecisionSimulationResultDef using
   ; WeakOneStepTransport
   ; WeakOneStepTypeCoherence
   ; catchupIndexedResult
+  ; resultLeftCtx
   ; resultStore
   ; weakIndexedResult
   )
@@ -55,5 +57,14 @@ record WorldCoherentLeftCatchupIndexedResult
         (resultStore
           (weakIndexedResult
             (catchupIndexedResult worldCatchupResult)))
+    worldCatchupSourceStoreWf :
+      StoreWf
+        (resultLeftCtx
+          (weakIndexedResult
+            (catchupIndexedResult worldCatchupResult)))
+        (leftStoreⁱ
+          (resultStore
+            (weakIndexedResult
+              (catchupIndexedResult worldCatchupResult))))
 
 open WorldCoherentLeftCatchupIndexedResult public

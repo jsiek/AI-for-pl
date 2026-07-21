@@ -18,5 +18,6 @@ world-coherent-left-value-catchup-proofᵀ :
   WorldCoherentLeftValueCatchupPrefixᵀ →
   WorldCoherentLeftValueCatchupᵀ
 world-coherent-left-value-catchup-proofᵀ
-    prefix-catchup coherent okM vV′ noV′ M⊑V′ =
-  prefix-catchup prefix-reflⁱ coherent okM vV′ noV′ M⊑V′
+    prefix-catchup coherent wfL okM vV′ noV′ M⊑V′ =
+  prefix-catchup
+    prefix-reflⁱ coherent wfL okM vV′ noV′ M⊑V′

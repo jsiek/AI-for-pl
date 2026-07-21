@@ -12,7 +12,8 @@ open import Data.List using ([])
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (StoreChange; _—→[_]_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using (StoreImp; rightStoreⁱ)
+open import NuTermImprecision using
+  (StoreImp; leftStoreⁱ; rightStoreⁱ)
 open import NuTerms using (RuntimeOK)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
@@ -29,6 +30,7 @@ WorldCoherentWeakOneStepIndexedSimulationᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   WorldCoherent ρ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   StoreWf Δᴿ (rightStoreⁱ ρ) →
   RuntimeOK M →
   RuntimeOK M′ →

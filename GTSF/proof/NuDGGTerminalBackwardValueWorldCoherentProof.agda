@@ -132,16 +132,18 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
       ⊎ (∃[ χs ] (M —↠[ χs ] blame)))
   go zero coherent wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
-    with target-value-catchup coherent okM vV′
+    with target-value-catchup coherent wfL okM vV′
       (runtime-value-no• okM′ vV′) M⊑M′
   go zero coherent wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
-    | world-coherent-left-indexed-catchup catchup final-coherent
+    | world-coherent-left-indexed-catchup
+        catchup final-coherent final-wfL
     with sourceIsValueOrBlame
       (catchupIndexedInvariant catchup)
   go zero {p = p} coherent wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
-    | world-coherent-left-indexed-catchup catchup final-coherent
+    | world-coherent-left-indexed-catchup
+        catchup final-coherent final-wfL
     | inj₁ (vV , noV)
     with sourceCtxResult
            (weakIndexedResult (catchupIndexedResult catchup))
@@ -153,7 +155,8 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
            (silentInvariant (catchupIndexedInvariant catchup))
   go zero {p = p} coherent wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
-    | world-coherent-left-indexed-catchup catchup final-coherent
+    | world-coherent-left-indexed-catchup
+        catchup final-coherent final-wfL
     | inj₁ (vV , noV) | refl | refl | refl | refl =
       inj₁
         ( sourceResult (weakIndexedResult (catchupIndexedResult catchup))
@@ -173,7 +176,8 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
         )
   go zero coherent wfL wfR okM okM′ M⊑M′ V′ []
       ↠-refl vV′ bound
-    | world-coherent-left-indexed-catchup catchup final-coherent
+    | world-coherent-left-indexed-catchup
+        catchup final-coherent final-wfL
     | inj₂ refl =
       inj₂
         ( sourceChanges (weakIndexedResult (catchupIndexedResult catchup))
@@ -188,7 +192,7 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
       ↠-refl vV′ ≤-refl
   go (suc fuel) coherent wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
-    with one-step coherent wfR okM okM′ M⊑M′ target-step
+    with one-step coherent wfL wfR okM okM′ M⊑M′ target-step
   go (suc fuel) coherent wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
     | world-indexed-outcome-source-blame

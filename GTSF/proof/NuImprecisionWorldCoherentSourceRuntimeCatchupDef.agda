@@ -35,6 +35,7 @@ open import NuTermImprecision using
   ; rightStoreⁱ
   ; store-left
   )
+open import NuStore using (StoreWf)
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -88,6 +89,7 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
       StoreImpPrefix
         (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′) ρ⁺ →
       WorldCoherent ρ⁺ →
+      StoreWf (suc Δᴸ) (leftStoreⁱ ρ⁺) →
       RuntimeOK ((⇑ᵗᵐ L) •) →
       Value V′ →
       No• V′ →
@@ -131,6 +133,8 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
         ([] {A = CtxImpEntry Φ Δᴸ Δᴿ})
         ([] {A = CtxImpEntry
           ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}) →
+      Value V′ →
+      No• V′ →
       WorldCoherentLeftCatchupIndexedResult
         {N = N} {V′ = V′} {ρ = ρ⁺} q →
       WorldCoherentLeftCatchupIndexedResult
@@ -155,6 +159,8 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
         ([] {A = CtxImpEntry Φ Δᴸ Δᴿ})
         ([] {A = CtxImpEntry
           ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}) →
+      Value V′ →
+      No• V′ →
       WorldCoherentLeftCatchupIndexedResult
         {N = N} {V′ = V′} {ρ = ρ⁺} q →
       WorldCoherentLeftCatchupIndexedResult
@@ -169,6 +175,8 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
       CastMode μ →
       SealModeStore★ μ (leftStoreⁱ ρ₀) →
       μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊒ B →
+      Value V′ →
+      No• V′ →
       WorldCoherentLeftCatchupIndexedResult
         {N = N} {V′ = V′} {ρ = ρ⁺} p →
       (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
@@ -184,6 +192,8 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
       CastMode μ →
       SealModeStore★ μ (leftStoreⁱ ρ₀) →
       μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
+      Value V′ →
+      No• V′ →
       WorldCoherentLeftCatchupIndexedResult
         {N = N} {V′ = V′} {ρ = ρ⁺} p →
       (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
@@ -199,6 +209,8 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       PairedCast Φ Δᴸ Δᴿ ρ₀
         c c′ {A} {A′} {B} {B′} p q →
+      Value V′ →
+      No• V′ →
       WorldCoherentLeftCatchupIndexedResult
         {N = N} {V′ = V′} {ρ = ρ⁺} p →
       WorldCoherentLeftCatchupIndexedResult
@@ -212,6 +224,8 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
       RevealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      Value V′ →
+      No• V′ →
       WorldCoherentLeftCatchupIndexedResult
         {N = N} {V′ = V′} {ρ = ρ⁺} p →
       (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
@@ -226,6 +240,8 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
       ConcealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      Value V′ →
+      No• V′ →
       WorldCoherentLeftCatchupIndexedResult
         {N = N} {V′ = V′} {ρ = ρ⁺} p →
       (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →

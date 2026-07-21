@@ -9,7 +9,8 @@ import Coercions as C
 open import Data.List using ([])
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using (StoreImp)
+open import NuStore using (StoreWf)
+open import NuTermImprecision using (StoreImp; leftStoreⁱ)
 open import NuTerms using (No•; RuntimeOK; Term; Value; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( QuotientWideningPair
@@ -30,6 +31,7 @@ WorldCoherentQuotientInstCatchupᵀ =
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
   WorldCoherent ρ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   RuntimeOK ((V ⟨ d ⟩) ⟨ C.inst B s ⟩) →
   Value V →
   No• V →

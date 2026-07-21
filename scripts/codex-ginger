@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# File charter:
+#   Launch a Ginger Codex worker with the narrow extra write permission needed
+#   by Agda's shared standard-library interface cache.
+#   Pass all arguments directly to `codex exec` from the current worktree.
+
+set -euo pipefail
+
+codex_bin="${GINGER_CODEX_BIN:-/home/jsiek/.local/bin/codex}"
+stdlib_prefix="${GINGER_AGDA_STDLIB_PREFIX:-\
+/home/jsiek/.local/opt/agda-stdlib-2.1.1}"
+stdlib_build="${stdlib_prefix}/_build"
+
+if [[ ! -x "${codex_bin}" ]]; then
+  echo "Codex executable not found: ${codex_bin}" >&2
+  exit 1
+fi
+
+if [[ ! -d "${stdlib_prefix}/src" ]]; then
+  echo "Agda standard library not found: ${stdlib_prefix}/src" >&2
+  exit 1
+fi
+
+mkdir -p "${stdlib_build}"
+
+exec "${codex_bin}" exec --add-dir "${stdlib_build}" "$@"

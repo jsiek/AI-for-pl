@@ -38,7 +38,7 @@ open import proof.NuImprecisionSimulationResultDef
 open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
 open import proof.ReductionProperties using
-  (applyCoercions; cast-↞)
+  (applyCoercions; cast-↠)
 open import proof.TypePreservation using (seal★-weaken)
 
 weak-one-step-paired-double-cast-frameᵀ :
@@ -55,7 +55,7 @@ weak-one-step-paired-double-cast-frameᵀ :
           applyCoercions (sourceChanges inner) d ⟩) ⟨
         applyCoercions (sourceChanges inner) u ⟩)
       ⊑ ((targetResult inner ⟨ d′ ⟩) ⟨ u′ ⟩)
-    ⧺ applyTys (sourceChanges inner) A ⊑
+    ⦂ applyTys (sourceChanges inner) A ⊑
         applyTys (targetTailChanges inner) (applyTy keep A′)
     ∶ transportType inner pA) →
   WeakOneStepResult ρ
@@ -86,8 +86,8 @@ weak-one-step-paired-double-cast-frameᵀ
     ; transportAllBody = transportAllBody inner
     ; transportRightBody = transportRightBody inner
     ; resultType = transportType inner _
-    ; sourceCatchup = cast-↞ (cast-↞ (sourceCatchup inner))
-    ; targetTail = cast-↞ (cast-↞ (targetTail inner))
+    ; sourceCatchup = cast-↠ (cast-↠ (sourceCatchup inner))
+    ; targetTail = cast-↠ (cast-↠ (targetTail inner))
     ; sourceStoreResult = sourceStoreResult inner
     ; targetStoreResult = targetStoreResult inner
     ; relatedResults = final
@@ -132,7 +132,8 @@ weak-one-step-transport-source-fixed-narrowingᵀ
           ∶ applyTys (sourceChanges inner) _
           ⊒ applyTys (sourceChanges inner) _)
       (sym (sourceStoreResult inner))
-      (apply-fixed-narrows-typing mode-suc
+      (apply-fixed-narrows-typing
+        {χs = sourceChanges inner} mode-suc
         (narrow-weaken ≤-refl
           (leftStoreⁱ-prefix-inclusion prefix) d⊒)))
 
@@ -177,7 +178,7 @@ weak-one-step-transport-id-downᵀ :
     ⊢ᴺᵖ (sourceResult inner ⟨
         applyCoercions (sourceChanges inner) d ⟩)
       ⊑ (targetResult inner ⟨ d′ ⟩)
-    ⧺ applyTys (sourceChanges inner) D ⊑ᵖ
+    ⦂ applyTys (sourceChanges inner) D ⊑ᵖ
       applyTys (targetTailChanges inner) (applyTy keep D′)
     ∶ weak-one-step-transport-quotientᵀ inner qD
 weak-one-step-transport-id-downᵀ
@@ -213,7 +214,7 @@ weak-one-step-transport-gen-downᵀ :
     ⊢ᴺᵖ (sourceResult inner ⟨
         applyCoercions (sourceChanges inner) d ⟩)
       ⊑ (targetResult inner ⟨ d′ ⟩)
-    ⧺ applyTys (sourceChanges inner) D ⊑ᵖ
+    ⦂ applyTys (sourceChanges inner) D ⊑ᵖ
       applyTys (targetTailChanges inner) (applyTy keep D′)
     ∶ weak-one-step-transport-quotientᵀ inner qD
 weak-one-step-transport-gen-downᵀ
@@ -251,6 +252,7 @@ weak-one-step-transport-quotient-widening-pairᵀ
     (leftStoreⁱ-prefix-inclusion prefix) u⊑
 
   source-u⁺⁺ = apply-fixed-widens-typing
+    {χs = sourceChanges inner}
     (modeRename-id-only suc) source-u⁺
 
   source-u =
@@ -358,7 +360,7 @@ left-silent-indexed-prefix-down-up-from-finalᵀ :
     ⊢ᴺᵖ (sourceResult inner ⟨
         applyCoercions (sourceChanges inner) d ⟩)
       ⊑ (targetResult inner ⟨ d′ ⟩)
-    ⧺ applyTys (sourceChanges inner) D ⊑ᵖ
+    ⦂ applyTys (sourceChanges inner) D ⊑ᵖ
       applyTys (targetTailChanges inner) (applyTy keep D′)
     ∶ weak-one-step-transport-quotientᵀ inner qD) →
   LeftSilentIndexedResult

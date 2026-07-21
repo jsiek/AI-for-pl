@@ -128,8 +128,17 @@ quotient-`inst` residual is the semantic hole represented by
 World-coherent silent resumption is defined separately in
 `NuImprecisionWorldCoherentCatchupComposition`.  Its final coherence witness
 comes from the resumed catch-up result, whose final store is also the composed
-result store.  This makes the ownership of coherence explicit and avoids any
-attempt to infer it from generic result transport fields.
+result store.  The same result package carries final left `StoreWf`, which the
+composition theorem preserves definitionally.  This makes ownership of both
+semantic invariants explicit and avoids any attempt to infer them from generic
+result transport fields.
+
+Target-only prefix frames have a parallel strict wrapper layer in
+`NuImprecisionWorldCoherentCatchupPrefixFrames`.  It pattern matches the raw
+catch-up package before applying a frame, so Agda can see that the result world
+and left store are unchanged.  The structural dispatcher imports these small
+wrappers instead of repeating dependent transports for coherence and
+well-formedness in each target-cast case.
 
 ## Invariant layers above generic results
 
@@ -142,7 +151,8 @@ itself justify them.  The world/store-name coherence work follows this shape:
 - `NuImprecisionWorldCoherenceLemma` assembles concrete reachable-world
   operations;
 - `NuImprecisionWorldCoherentResultDef` adds the invariant only to continuing
-  result branches; and
+  result branches, with final left-store well-formedness on catch-up results;
+  and
 - the world-coherent one-step and catch-up `Def` modules state the strengthened
   major dependencies.
 
@@ -171,9 +181,12 @@ nor the `Proof` should import the dispatcher or inherit its permissive options.
 World-coherent value catch-up needs one additional genuine induction contract.
 `NuImprecisionWorldCoherentValueCatchupPrefixDef` permits the current relation
 to be exposed in a smaller world `ρ₀`, but carries `WorldCoherent ρ⁺` for the
-ambient world that owns the final result.  Coherence is not generally
-downward-closed through an arbitrary `StoreImpPrefix`, so it cannot be attached
-after running the ordinary catch-up theorem.
+ambient world that owns the final result.  It also consumes initial left
+`StoreWf`; every coherent catch-up result exposes the transported final left
+`StoreWf`.  Coherence is not generally downward-closed through an arbitrary
+`StoreImpPrefix`, and active source unseal needs final-store uniqueness, so
+neither invariant can safely be attached after running the ordinary catch-up
+theorem.
 
 `NuImprecisionWorldCoherentValueCatchupProof` already proves the public
 catch-up contract from this prefix contract using `prefix-reflⁱ`.  The future
@@ -181,24 +194,50 @@ prefix implementation should take its unfinished allocation and quotient
 leaves as higher-order contracts.  It must not import
 `NuImprecisionCatchupScratch` merely to reuse its partial dispatcher.
 
-The structural prefix proof has two major semantic dependencies.  Keep the
-source bullet, allocation, cast, and conversion handlers together in
+The strict structural prefix proof has exactly two direct semantic
+dependencies: `WorldCoherentSourceRuntimeCatchupᵀ` and
+`WorldCoherentQuotientFinalCatchupᵀ`.  The latter means "finish this complete
+terminal down/up quotient node" and deliberately owns classification of the
+source endpoint.  The narrower
+`WorldCoherentQuotientInstCatchupᵀ` remains a leaf contract used while proving
+that final quotient capability; it is not strong enough to let the dispatcher
+attach coherence to an arbitrary classifier result.  This distinction was
+found by strict-checking the complete prefix skeleton, before any unfinished
+leaf was assembled.
+
+The structural bridge is
+`WorldCoherentQuotientClassificationᵀ`.  It classifies a terminal quotient
+node as either a complete coherent catch-up or the unique outer-`inst`
+residual, packaging source `Value`/`No•` evidence with that residual.  The
+strict `NuImprecisionWorldCoherentQuotientFinalCatchupProof` then needs only
+this classifier and `WorldCoherentQuotientInstCatchupᵀ`; source-runtime
+handlers are not a dependency of quotient-final assembly.  Keep the
+classifier implementation separate so ordinary store-neutral quotient leaves
+retain coherence and left `StoreWf` instead of erasing them behind a generic
+`LeftCatchupIndexedResult`.
+
+Keep source bullet, allocation, cast, and conversion handlers together in
 `NuImprecisionWorldCoherentSourceRuntimeCatchup*`; source `inst` catch-up and
 `ν ★` allocation are mutually dependent and should not be split into fake leaf
-modules.  Put the shared ordinary/gen quotient-`inst` final-state theorem in
-`NuImprecisionWorldCoherentQuotientInstCatchup*`.  The prefix `Proof` should
-take those two whole contracts as higher-order arguments, with all target
-frames and ordinary terminal cases handled structurally.
+modules.  Put the complete quotient join in
+`NuImprecisionWorldCoherentQuotientFinalCatchup*`, and the shared ordinary/gen
+quotient-`inst` final-state leaf in
+`NuImprecisionWorldCoherentQuotientInstCatchup*`.  The checked prefix `Proof`
+handles all target frames and ordinary terminal cases structurally and takes
+only the two complete contracts as higher-order arguments.
 
 The source-runtime record is an assembly boundary, not permission to assume
 its fields recursively.  Its current proof decomposition is:
 
-- `source-conceal` is the first independent leaf: conceal coercions are inert
+- `source-conceal` is complete in
+  `NuImprecisionWorldCoherentSourceConcealCatchup`: conceal coercions are inert
   except for identity, which takes one administrative step;
 - `source-bullet`, `source-ν`, `source-νcast`, and the widening-`inst`
   case form one genuine recursive allocation SCC;
 - `source-reveal` needs exact source-side seal cancellation for active
-  `unseal`;
+  `unseal`; its contracts are frozen in
+  `NuImprecisionSourceSealCancellationDef` and
+  `NuImprecisionWorldCoherentSourceUnsealCatchupDef`;
 - active narrowing/widening need source tag/untag classification in addition
   to the existing inert and blame frames; and
 - `source-paired-cast` needs prefix and accumulated-change transport for

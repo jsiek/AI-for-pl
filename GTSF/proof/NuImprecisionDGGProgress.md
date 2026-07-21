@@ -319,8 +319,9 @@ are delegated:
 | [`NuImprecisionStoreLift.agda`](NuImprecisionStoreLift.agda) | completed | Sole strict definition site for canonical left/right store-lift results; coherent allocation proofs can import it without depending on the simulation core |
 | [`NuImprecisionStorePrefix.agda`](NuImprecisionStorePrefix.agda) | completed | Sole strict definition site for source/target prefix-store inclusion and prefix transitivity; catch-up modules import it directly instead of inheriting these lemmas from the simulation core |
 | [`NuImprecisionCatchupPrefixSupport.agda`](NuImprecisionCatchupPrefixSupport.agda) | completed | Strict home of nine silent-composition, target-prefix-frame, and terminal value/blame helpers extracted from the permissive scratch dispatcher; the focused strict check passes |
-| [`NuImprecisionCatchupQuotientSupport.agda`](NuImprecisionCatchupQuotientSupport.agda) | completed extraction; focused check bounded | Strict home of the eight paired/down-up frame and transport helpers; no holes/options/postulates and no diagnostics in the 90-second focused check; the semantic quotient-`inst` drivers remain outside |
-| [`NuImprecisionWorldCoherentCatchupComposition.agda`](NuImprecisionWorldCoherentCatchupComposition.agda) | completed source; focused check bounded | Strict coherent wrapper for silent-result resumption, taking final coherence from the resumed catch-up result; no diagnostics in two bounded local attempts |
+| [`NuImprecisionCatchupQuotientSupport.agda`](NuImprecisionCatchupQuotientSupport.agda) | completed | Strict home of the eight paired/down-up frame and transport helpers; the focused strict check passes; semantic quotient completion remains outside |
+| [`NuImprecisionWorldCoherentCatchupComposition.agda`](NuImprecisionWorldCoherentCatchupComposition.agda) | completed | Strict coherent wrapper for silent-result resumption, preserving both final `WorldCoherent` and final left `StoreWf`; the focused strict check passes |
+| [`NuImprecisionWorldCoherentCatchupPrefixFrames.agda`](NuImprecisionWorldCoherentCatchupPrefixFrames.agda) | completed | Five strict wrappers for target narrowing, widening, identity widening, reveal, and conceal frames; dependent pattern matching makes preservation of the final world and left store definitionally visible |
 | [`NuImprecisionAtomicTargetReindex.agda`](NuImprecisionAtomicTargetReindex.agda) | completed | Strict exhaustive reconstruction of atomic-target value relations at an explicit desired type-imprecision index; closes target conversion identity roots without proof irrelevance |
 | [`NuImprecisionOneStepTargetCastIdentityRoots.agda`](NuImprecisionOneStepTargetCastIdentityRoots.agda) | completed | Three strict β-id root outcomes for narrowing, general widening, and id-only widening target casts; the partial target-cast dispatcher now has eight holes instead of eleven |
 | [`NuImprecisionTargetCastSequenceMidpointDef.agda`](NuImprecisionTargetCastSequenceMidpointDef.agda) | completed statement | Strict indexed family for the local midpoint evidence retained by one quotiented target-cast node; avoids an unsound global right-context-compatibility requirement |
@@ -331,16 +332,25 @@ are delegated:
 | [`NuImprecisionWorldCoherenceProof.agda`](NuImprecisionWorldCoherenceProof.agda) | completed | Strict structural proof layer: empty world, exact entry-extension obligations, correspondence weakening, and matched/left/right canonical lift preservation |
 | [`NuImprecisionWorldCoherenceLemma.agda`](NuImprecisionWorldCoherenceLemma.agda) | partial boundary | Strict assembly for matched, source-only, and target-only single-name lift-plus-allocation; crossed two-name allocation remains separate |
 | [`NuImprecisionWorldCoherenceCrossedLemma.agda`](NuImprecisionWorldCoherenceCrossedLemma.agda) | completed | Separate strict crossed two-name allocation proof over `swapRight∀∀ᵢ`, using the exact two canonical lift witnesses and six-entry `crossedStoreⁱ` layout |
-| [`NuImprecisionWorldCoherentResultDef.agda`](NuImprecisionWorldCoherentResultDef.agda) | completed statement | Adds final `WorldCoherent` evidence to continuing one-step outcomes and catch-up results without changing the generic result algebra |
-| [`NuImprecisionWorldCoherentOneStepDef.agda`](NuImprecisionWorldCoherentOneStepDef.agda) | completed statement | Strengthened one-step contract consumes input coherence and returns it on every related successor branch |
-| [`NuImprecisionWorldCoherentValueCatchupDef.agda`](NuImprecisionWorldCoherentValueCatchupDef.agda) | completed statement | Strengthened value-catch-up contract consumes input coherence and exposes coherent final catch-up worlds |
-| [`NuImprecisionWorldCoherentValueCatchupPrefixDef.agda`](NuImprecisionWorldCoherentValueCatchupPrefixDef.agda) | completed statement | Ambient-prefix induction contract: the relation may use a smaller prefix world, while coherence is retained for the ambient evaluation world that will own the result |
-| [`NuImprecisionWorldCoherentValueCatchupProof.agda`](NuImprecisionWorldCoherentValueCatchupProof.agda) | completed adapter proof | Strictly derives the public coherent value-catch-up contract from the prefix worker by applying it to `prefix-reflⁱ`; the structural prefix worker remains unimplemented |
+| [`NuImprecisionWorldCoherentResultDef.agda`](NuImprecisionWorldCoherentResultDef.agda) | completed statement | Catch-up results expose final `WorldCoherent` and final left `StoreWf`; the latter is required by active source unseal/store uniqueness |
+| [`NuImprecisionWorldCoherentOneStepDef.agda`](NuImprecisionWorldCoherentOneStepDef.agda) | completed statement | Strengthened one-step contract consumes coherence and both source/target `StoreWf`, and returns coherence on every related successor branch |
+| [`NuImprecisionWorldCoherentValueCatchupDef.agda`](NuImprecisionWorldCoherentValueCatchupDef.agda) | completed statement | Strengthened value-catch-up consumes initial coherence and left `StoreWf`, and exposes both invariants at the final catch-up world |
+| [`NuImprecisionWorldCoherentValueCatchupPrefixDef.agda`](NuImprecisionWorldCoherentValueCatchupPrefixDef.agda) | completed statement | Ambient-prefix induction contract: the relation may use a smaller prefix world, while coherence and left `StoreWf` belong to the ambient evaluation world |
+| [`NuImprecisionWorldCoherentValueCatchupProof.agda`](NuImprecisionWorldCoherentValueCatchupProof.agda) | completed adapter proof | Strictly derives the public coherent value-catch-up contract from the prefix worker by applying it to `prefix-reflⁱ` |
 | [`NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda`](NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda) | completed statement | Strict eight-field handler record for the mutually dependent source bullet, allocation, cast, and conversion cases; keeps the source `inst`/`ν ★` SCC intact |
-| `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial proof plan; implementation not started | `source-conceal` is immediately tractable; bullet, `ν`, `ν ★`, and widening-`inst` form the allocation SCC; narrowing, widening, reveal, and paired casts first need explicit source cancellation/classification or prefix-transport support |
+| [`NuImprecisionWorldCoherentSourceConcealCatchup.agda`](NuImprecisionWorldCoherentSourceConcealCatchup.agda) | completed leaf | GPT 5.5 proved all conceal-conversion cases on ginger; the adapted proof preserves final coherence and left `StoreWf` and passes a local focused strict check |
+| [`NuImprecisionSourceSealCancellationDef.agda`](NuImprecisionSourceSealCancellationDef.agda) | completed statement | Exact-world source analogue of target seal cancellation, with coherence, left `StoreWf`, physical membership, target value/no-bullet facts, and an explicit replacement index |
+| `NuImprecisionSourceSealCancellationProof.agda` | in progress | Hard source-side quotient/value inversion; this is the main GPT 5.6 proof currently being developed from the target cancellation template |
+| [`NuImprecisionWorldCoherentSourceUnsealCatchupDef.agda`](NuImprecisionWorldCoherentSourceUnsealCatchupDef.agda) | completed statement | Strict assembly contract for lifting exact source unseal through an ambient prefix and a completed coherent inner catch-up |
+| `NuImprecisionWorldCoherentSourceUnsealCatchupProof.agda` | not yet started | Will use source seal cancellation, transported reveal evidence, one source keep-step, and coherent silent resumption |
+| `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | partial | The conceal field is complete; bullet, `ν`, `ν ★`, and widening-`inst` form the allocation SCC; narrowing, widening, reveal, and paired casts still need their explicit cancellation/classification or prefix-transport leaves |
 | [`NuImprecisionWorldCoherentQuotientInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientInstCatchupDef.agda) | completed statement | Strict mode-polymorphic final-state contract shared by ordinary-down and gen-down quotient-`inst` residuals |
 | `NuImprecisionWorldCoherentQuotientInstCatchupProof.agda` | not yet started | Will prove the shared quotient residual from the source-runtime capability and expose any missing quotient invariant at one boundary |
-| `NuImprecisionWorldCoherentValueCatchupPrefixProof.agda` | not yet started | Will implement the recursive prefix worker from exactly the source-runtime and quotient-`inst` capabilities, reusing coherence on frames and extending it only at allocation results |
+| [`NuImprecisionWorldCoherentQuotientClassificationDef.agda`](NuImprecisionWorldCoherentQuotientClassificationDef.agda) | completed statement | Strict structural classifier returning either a coherent terminal quotient result or the unique outer-`inst` residual with its source value/no-bullet and reduction evidence |
+| `NuImprecisionWorldCoherentQuotientClassificationProof.agda` | not yet started | Leaf proof will refine the existing exhaustive quotient value classifier so ordinary store-neutral outcomes retain coherence and left `StoreWf` |
+| [`NuImprecisionWorldCoherentQuotientFinalCatchupDef.agda`](NuImprecisionWorldCoherentQuotientFinalCatchupDef.agda) | completed statement | Complete terminal down/up quotient-node contract; unlike the narrower `Inst` leaf, it returns a coherent, left-well-formed catch-up result for every final source value/blame classification |
+| [`NuImprecisionWorldCoherentQuotientFinalCatchupProof.agda`](NuImprecisionWorldCoherentQuotientFinalCatchupProof.agda) | completed higher-order proof | Strict two-way assembly from coherent quotient classification and the quotient-`inst` contract; the source-runtime record is not needed at this join |
+| [`NuImprecisionWorldCoherentValueCatchupPrefixProof.agda`](NuImprecisionWorldCoherentValueCatchupPrefixProof.agda) | completed higher-order proof | Exhaustive recursive dispatcher from exactly `WorldCoherentSourceRuntimeCatchupᵀ` and `WorldCoherentQuotientFinalCatchupᵀ`; contains no holes/options/postulates, imports no scratch dispatcher, and passes a focused strict check |
 | `NuImprecisionWorldCoherentValueCatchupLemma.agda` | not yet started | Canonical assembly waits for the strict prefix proof and its strict allocation/quotient leaves |
 | [`NuDGGTerminalBackwardValueWorldCoherentDef.agda`](NuDGGTerminalBackwardValueWorldCoherentDef.agda) | completed statement | Arbitrary-world backward-value terminal contract with the necessary initial `WorldCoherent` premise; the closed public conclusion is unchanged |
 | [`NuDGGTerminalBackwardValueWorldCoherentProof.agda`](NuDGGTerminalBackwardValueWorldCoherentProof.agda) | completed proof | Hole-free higher-order fuel induction from the world-coherent one-step and value-catch-up contracts; passes a strict focused check without live implementations |
@@ -6014,10 +6024,85 @@ catch-up architecture.
   checking-cost policy; completion of a warmed focused check remains a
   verification task rather than a reason to run a larger aggregate.
 
+### 2026-07-20: strict coherent catch-up skeleton and first Ginger leaf
+
+- Strengthened
+  [`WorldCoherentLeftCatchupIndexedResult`](NuImprecisionWorldCoherentResultDef.agda)
+  with final left `StoreWf`.  Initial left well-formedness is now visible in
+  both coherent value-catch-up contracts, and both left/right well-formedness
+  premises are visible in the coherent one-step contract.  The change was
+  threaded through backward-value assembly and the target reveal root.  This
+  is not redundant bookkeeping: active source unseal needs uniqueness in the
+  final left store.
+
+- Added strict
+  [`NuImprecisionWorldCoherentCatchupPrefixFrames.agda`](NuImprecisionWorldCoherentCatchupPrefixFrames.agda).
+  Its five target-only frame wrappers preserve the final world and left store
+  by dependent pattern matching, making those invariants definitionally
+  visible to the recursive dispatcher.
+
+- Froze
+  [`WorldCoherentQuotientFinalCatchupᵀ`](NuImprecisionWorldCoherentQuotientFinalCatchupDef.agda)
+  as a major semantic join.  An attempted skeleton using only the narrower
+  quotient-`inst` contract failed exactly where it tried to attach coherence
+  to a generic classifier result.  The final-node contract instead returns a
+  coherent, left-well-formed result for the complete terminal quotient node.
+
+- Audited that final quotient join exhaustively and froze
+  [`WorldCoherentQuotientClassificationᵀ`](NuImprecisionWorldCoherentQuotientClassificationDef.agda).
+  It retains coherence and left `StoreWf` in every ordinary store-neutral
+  outcome and packages source value/no-bullet evidence with the sole
+  outer-`inst` residual.  The strict
+  [`world-coherent-quotient-final-catchup-proofᵀ`](NuImprecisionWorldCoherentQuotientFinalCatchupProof.agda)
+  now proves the final contract from exactly that classifier and
+  `WorldCoherentQuotientInstCatchupᵀ`; it does not depend on source-runtime
+  catch-up.
+
+- Completed the exhaustive higher-order
+  [`world-coherent-left-value-catchup-prefix-proofᵀ`](NuImprecisionWorldCoherentValueCatchupPrefixProof.agda).
+  It takes only `WorldCoherentSourceRuntimeCatchupᵀ` and
+  `WorldCoherentQuotientFinalCatchupᵀ`, imports no permissive scratch
+  dispatcher, and passes
+  `agda --no-allow-unsolved-metas -v0` on its own module.  All ordinary target
+  frames, terminal values/blame, allocation-prefix reassociation, and
+  quotient down/up recursion are therefore checked before the semantic leaf
+  implementations exist.
+
+- Froze exact source-side contracts in
+  [`NuImprecisionSourceSealCancellationDef.agda`](NuImprecisionSourceSealCancellationDef.agda)
+  and
+  [`NuImprecisionWorldCoherentSourceUnsealCatchupDef.agda`](NuImprecisionWorldCoherentSourceUnsealCatchupDef.agda).
+  The former cancels a source seal using coherent final-store membership and
+  uniqueness; the latter lifts that cancellation through an ambient prefix,
+  adds the source keep-step, and resumes the coherent catch-up.
+
+- Integrated the first GPT 5.5 Ginger semantic leaf,
+  [`world-coherent-source-conceal-catchupᵀ`](NuImprecisionWorldCoherentSourceConcealCatchup.agda).
+  Identity conceal performs one administrative `β-id` step; seal, arrow, and
+  universal conceal are inert frames; source blame is propagated.  After
+  adapting the worker result to retain final left `StoreWf`, the local focused
+  strict check passes.
+
+- Added [`scripts/codex-ginger`](../../scripts/codex-ginger) and documented it
+  in [`scripts/GINGER_AGDA.md`](../../scripts/GINGER_AGDA.md).  The wrapper
+  gives a Codex worker write access only to the installed standard-library
+  `_build` interface cache.  This fixes the previously recurring
+  `removeLink: permission denied` failure without broadening access to the
+  standard-library source or the rest of the remote home directory.
+
+- Made strictness an architectural acceptance condition for the three-file
+  split.  A missing canonical leaf is represented by an uninstantiated theorem
+  parameter in a strict `Proof` module, never by a hole or file-level
+  `--allow-unsolved-metas`.  This both checks integration fit early and keeps
+  partial implementations out of the dependency cone of already-completed
+  theorem skeletons.
+
 ### Next boundary
 
-Write the strict higher-order prefix dispatcher from its two frozen semantic
-contracts and the two extracted support modules.  In parallel, finish the
-Ginger `source-conceal` leaf and freeze source seal and tag cancellation
-statements locally before assigning their implementations.  Integrate only
-strict, focused worker modules; do not run aggregate checks.
+Prove the coherent quotient classifier and quotient-`inst` contracts, then
+assemble them with the completed quotient-final and structural prefix proofs.
+Concurrently finish source seal cancellation and its unseal catch-up assembly,
+then use those results for `source-reveal`.  Continue assigning only frozen,
+nonoverlapping leaf modules to Ginger; keep allocation SCCs and dependent
+transport joins under GPT 5.6 coordination.  Use focused strict checks
+throughout and reserve `NuDGGStrictSpine.agda` and `All.agda` for milestones.

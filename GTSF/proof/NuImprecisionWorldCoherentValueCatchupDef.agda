@@ -10,7 +10,8 @@ module proof.NuImprecisionWorldCoherentValueCatchupDef where
 open import Data.List using ([])
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using (StoreImp)
+open import NuStore using (StoreWf)
+open import NuTermImprecision using (StoreImp; leftStoreⁱ)
 open import NuTerms using (No•; RuntimeOK; Value)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
@@ -26,6 +27,7 @@ WorldCoherentLeftValueCatchupᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   WorldCoherent ρ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   RuntimeOK M →
   Value V′ →
   No• V′ →

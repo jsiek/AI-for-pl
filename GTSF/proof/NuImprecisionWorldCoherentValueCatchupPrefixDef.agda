@@ -10,7 +10,8 @@ module proof.NuImprecisionWorldCoherentValueCatchupPrefixDef where
 open import Data.List using ([])
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using (StoreImp)
+open import NuStore using (StoreWf)
+open import NuTermImprecision using (StoreImp; leftStoreⁱ)
 open import NuTerms using (No•; RuntimeOK; Value)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
@@ -29,6 +30,7 @@ WorldCoherentLeftValueCatchupPrefixᵀ =
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
+  StoreWf Δᴸ (leftStoreⁱ ρ⁺) →
   RuntimeOK M →
   Value V′ →
   No• V′ →

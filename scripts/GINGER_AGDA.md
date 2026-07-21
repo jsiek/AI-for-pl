@@ -10,7 +10,10 @@ on `ginger.luddy.indiana.edu`.
 - Repository library configuration: `scripts/agda-ginger-config/`
 - Agda executable: `/home/jsiek/.local/opt/Agda-v2.7.0.1/bin/agda`
 - Standard library source: `/home/jsiek/.local/opt/agda-stdlib-2.1.1/src`
+- Standard library interface cache:
+  `/home/jsiek/.local/opt/agda-stdlib-2.1.1/_build`
 - Codex executable: `/home/jsiek/.local/bin/codex`
+- Codex worker wrapper: `scripts/codex-ginger`
 
 The configuration directory contains:
 
@@ -63,11 +66,24 @@ command-line `--no-allow-unsolved-metas` does not reliably override a source
 module that locally enables unsolved metas, so the final audit must also
 confirm that the owned file contains no holes or permissive module options.
 
-When launching a non-login SSH worker directly, use the absolute Codex path;
-the non-login shell may not include `/home/jsiek/.local/bin` in `PATH`:
+Launch a worker through the repository wrapper:
 
-    /home/jsiek/.local/bin/codex exec -m gpt-5.5 \
+    scripts/codex-ginger -m gpt-5.5 \
       -s workspace-write --dangerously-bypass-hook-trust -
+
+Do not replace this with bare `codex exec -s workspace-write`.  Agda stores
+standard-library interfaces under the installed library's `_build` directory,
+which is outside a worker worktree.  A workspace-only Codex sandbox can read
+the library but fails when Agda must replace a stale interface.  The wrapper
+adds only that `_build` directory as an extra writable root; it does not make
+the standard-library source or the rest of the home directory writable.
+
+After installing or upgrading Agda or the standard library, run one focused
+`scripts/agda-ginger` check outside a Codex worker before starting several
+workers concurrently.  This warms the shared library cache and avoids having
+multiple workers regenerate the same interfaces at once.  The narrow
+`--add-dir` permission remains necessary because a later focused check may
+still discover one stale library interface.
 
 Use checks in three tiers:
 
@@ -112,8 +128,12 @@ repository change.
 The wrapper fails early with a specific message if the executable, runtime
 data, or repository library descriptor is missing.  If a check instead reports
 that it cannot write an interface beneath `/home/jsiek/.local/opt`, first
-confirm that the repository wrapper—not bare `agda`—was used and that the
-worktree contains all three configuration files.
+confirm that both repository wrappers were used: `scripts/codex-ginger`
+launched the worker and `scripts/agda-ginger` launched Agda.  Also confirm that
+the worktree contains all three library-configuration files.  A
+`removeLink: permission denied` error under the standard-library `_build`
+directory specifically means the worker was launched without the narrow
+Codex-cache permission.
 
 Do not repair an Agda problem by changing the shared GitHub CLI authentication
 configuration.

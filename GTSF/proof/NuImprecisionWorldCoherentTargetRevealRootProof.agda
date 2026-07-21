@@ -200,22 +200,25 @@ world-coherent-target-reveal-root-proofᵀ :
   WorldCoherentTargetRevealRootᵀ
 world-coherent-target-reveal-root-proofᵀ
     catchup cancel {X = X} {X′ = X′} {β = β} {ρ = ρ}
-    coherent wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
-    with catchup coherent okM (vV ⟨ C.seal X β ⟩)
+    coherent wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
+    with catchup coherent wfL okM (vV ⟨ C.seal X β ⟩)
       (runtime-value-no• okVβ (vV ⟨ C.seal X β ⟩)) M⊑Vβ
 world-coherent-target-reveal-root-proofᵀ
-    catchup cancel coherent wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
-    | world-coherent-left-indexed-catchup caught final-coherent
+    catchup cancel coherent wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
+    | world-coherent-left-indexed-catchup
+        caught final-coherent final-wfL
     with sourceIsValueOrBlame (catchupIndexedInvariant caught)
 world-coherent-target-reveal-root-proofᵀ
-    catchup cancel coherent wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
-    | world-coherent-left-indexed-catchup caught final-coherent
+    catchup cancel coherent wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
+    | world-coherent-left-indexed-catchup
+        caught final-coherent final-wfL
     | inj₂ refl =
   world-indexed-outcome-source-blame
     (sourceCatchup (weakIndexedResult (catchupIndexedResult caught)))
 world-coherent-target-reveal-root-proofᵀ
-    catchup cancel coherent wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
-    | world-coherent-left-indexed-catchup caught final-coherent
+    catchup cancel coherent wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
+    | world-coherent-left-indexed-catchup
+        caught final-coherent final-wfL
     | inj₁ (vW , noW)
     with targetTailIsEmpty
            (silentInvariant (catchupIndexedInvariant caught))
@@ -223,8 +226,9 @@ world-coherent-target-reveal-root-proofᵀ
            (silentInvariant (catchupIndexedInvariant caught))
 world-coherent-target-reveal-root-proofᵀ
     catchup cancel {X′ = X′} {β = β} {ρ = ρ}
-    coherent wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
-    | world-coherent-left-indexed-catchup caught final-coherent
+    coherent wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
+    | world-coherent-left-indexed-catchup
+        caught final-coherent final-wfL
     | inj₁ (vW , noW) | refl | refl =
   world-indexed-outcome-related
     retargeted

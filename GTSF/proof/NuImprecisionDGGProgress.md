@@ -345,7 +345,12 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceBulletCatchupDef.agda`](NuImprecisionWorldCoherentSourceBulletCatchupDef.agda) | completed statement | Exact former runtime-field telescope for source-only post-allocation bullet catch-up |
 | [`NuImprecisionWorldCoherentSourceBulletCatchupProof.agda`](NuImprecisionWorldCoherentSourceBulletCatchupProof.agda) | completed higher-order proof | Strictly reconstructs the allocated `α⊑ᵀ` relation and delegates to the whole value-prefix catch-up contract; canonical assembly remains in the mutual SCC |
 | [`NuImprecisionWorldCoherentSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCatchupDef.agda) | completed statement | Exact ordinary source-`ν` handler contract; its inhabitant is downstream of source-bullet and source-reveal, not in the minimal SCC |
+| [`NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda) | completed statement | Exact-final ordinary source-`ν` contract retains the arbitrary inner universal index, final allocation/reveal evidence, values, and world invariants |
+| [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda) | completed statement | Full exact-final branch specialized to `ν occ r`; intended source-bullet/allocation implementation path |
+| [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda) | completed statement; hard audit | Full exact-final branch specialized to `∀ⁱ r`; existing one-sided allocation leaves do not yet derive it, so a strict proof-or-counterexample audit is active |
+| [`NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda) | completed higher-order proof | Exhaustively assembles the generic exact-final contract from the source-only-index and paired-index whole capabilities; canonical `Lemma` remains absent |
 | [`NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda) | completed statement | Exact runtime `ν ★` handler boundary participating in the widening-`inst` mutual SCC |
+| [`NuImprecisionWorldCoherentFinalSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCastCatchupDef.agda) | completed statement | Exact-final cast-aware `ν ★` allocation contract owns fresh source allocation and lineage while retaining arbitrary inner index `q`, final cast evidence, and desired outer index |
 | [`NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda) | completed statement | Whole accumulated-world source-narrowing handler contract |
 | [`NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda) | completed higher-order proof | GPT 5.5 Ginger proof transports and frames every narrowing grammar form, propagates source blame, and resumes terminal values through the whole value-prefix capability; canonical assembly remains cyclic |
 | [`NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda) | completed statement | Exact-final terminal source-narrowing semantics, separated from accumulated-change framing |
@@ -6548,10 +6553,29 @@ coordination.  Use focused strict checks throughout and reserve
   focused strict check; no canonical `Lemma` is added because its value-prefix
   dependency belongs to the mutual source-runtime SCC.
 
-- The first attempted ordinary source-`ν` `Proof` stopped at a contract error
-  instead of introducing a meta.  `WorldCoherentSourceNuCatchupᵀ` currently
-  accepts an arbitrary index for `` `∀ C ⊑ B′ ``, but post-allocation
-  `α⊑ᵀ` requires that index to be specifically `ν occ r`; the alternative
-  `∀ⁱ r` case is inhabited.  The active repair audit is therefore tightening
-  the source-only `ν`/`νcast` relation constructors and their handler contracts
-  before any allocation proof is assembled.
+- The first attempted ordinary source-`ν` `Proof` stopped at a missing
+  classification boundary instead of introducing a meta.  Its inner index for
+  `` `∀ C ⊑ B′ `` has two inhabited forms: `ν occ r` feeds the allocated
+  `α⊑ᵀ`/source-bullet path, while `∀ⁱ r` requires target polymorphic-value
+  inversion and the separate `α`-against-`Λ` catch-up path.  The broad
+  source-only relation constructor is therefore intentional and is not being
+  narrowed.  The active repair is to expose this terminal index/value split as
+  a whole strict dependency; its existing leaf ingredients are being extracted
+  into `NuImprecisionSourceBulletBase` on Ginger.
+
+- Added the exact-final ordinary source-`ν` skeleton as three full contracts:
+  a generic arbitrary-index statement, a `ν occ r` branch, and a `∀ⁱ r`
+  branch.  A strict higher-order `Proof` dispatches exhaustively between the
+  two index constructors.  The analogous cast-aware exact-final source-`ν ★`
+  statement retains the runtime cast and desired outer index so its proof can
+  classify the final value and own fresh allocation/lineage.  All five new
+  statement/assembly modules pass focused strict checks; no canonical `Lemma`
+  was created.
+
+- The `∀ⁱ` branch is deliberately marked as a hard semantic audit, not an easy
+  leaf.  Existing one-sided bullet helpers require `ν occ r`; the available
+  paired-`∀` allocation path also steps the target, which a left catch-up may
+  not do.  A separate proof-or-counterexample module is testing this branch
+  before the core relation is changed.  This keeps both possible outcomes
+  explicit and prevents an unsupported assumption from entering the larger
+  DGG proof.

@@ -5,8 +5,8 @@ module proof.NuImprecisionLeftSourceAllocationRuntimeTransportDef where
 --     allocation lift.
 --   * Bundles the mutually implemented ordinary and quotient maps while
 --     returning relation derivations directly.
---   * Uses the existing left-lift witnesses and relation derivation instead
---     of a parallel world-path datatype.
+--   * Uses canonical left-renaming witnesses and the relation derivation
+--     instead of an ambiguous lift or parallel world-path datatype.
 --   * Contains no implementation, postulate, hole, permissive option, or
 --     result carrier.
 
@@ -18,8 +18,6 @@ open import ImprecisionWf using
   )
 open import NuTermImprecision using
   ( CtxImp
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
   ; StoreImp
   )
 open import NuTerms using
@@ -38,7 +36,9 @@ open import proof.MaximalLowerBoundsWf using
   ; rename-assm²-source-νᵢ
   )
 open import proof.NuImprecisionSimulationCore using
-  ( ⊑-rename-leftᵢ
+  ( LeftCtxRenameⁱ
+  ; LeftStoreRenameⁱ
+  ; ⊑-rename-leftᵢ
   ; ⊑ᵖ-rename-leftᵢ
   )
 open import proof.TypeProperties using (TyRenameWf-suc)
@@ -54,8 +54,10 @@ record LeftSourceAllocationRuntimeTransport : Set₁ where
         {γᴸ : CtxImp (νᵢᶜ Φ) (suc Δᴸ) Δᴿ}
         {M M′ : Term} {A B : Ty}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-      LiftLeftStoreⁱ (νᵢᶜ Φ) ρ ρᴸ →
-      LiftLeftCtxⁱ (νᵢᶜ Φ) γ γᴸ →
+      LeftStoreRenameⁱ suc rename-assm²-source-νᵢ
+        TyRenameWf-suc ρ ρᴸ →
+      LeftCtxRenameⁱ suc rename-assm²-source-νᵢ
+        TyRenameWf-suc γ γᴸ →
       No• M →
       RuntimeOK M′ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
@@ -74,8 +76,10 @@ record LeftSourceAllocationRuntimeTransport : Set₁ where
         {γᴸ : CtxImp (νᵢᶜ Φ) (suc Δᴸ) Δᴿ}
         {M M′ : Term} {D D′ : Ty}
         {q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
-      LiftLeftStoreⁱ (νᵢᶜ Φ) ρ ρᴸ →
-      LiftLeftCtxⁱ (νᵢᶜ Φ) γ γᴸ →
+      LeftStoreRenameⁱ suc rename-assm²-source-νᵢ
+        TyRenameWf-suc ρ ρᴸ →
+      LeftCtxRenameⁱ suc rename-assm²-source-νᵢ
+        TyRenameWf-suc γ γᴸ →
       No• M →
       RuntimeOK M′ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ

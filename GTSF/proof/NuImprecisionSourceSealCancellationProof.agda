@@ -226,7 +226,7 @@ source-seal-cancellation-prefixᵀ
     (conv⊑convᵀ
       (paired-widening mode seal★
         (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
-        mode′ seal★′ c′⊑)
+        mode′ seal★′ c′⊑ _)
       inner)
     q
 source-seal-cancellation-prefixᵀ
@@ -383,7 +383,7 @@ source-seal-cancellation-prefixᵀ
     (conv⊑convᵀ
       (paired-widening mode seal★
         (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
-        mode′ seal★′ c′⊑)
+        mode′ seal★′ c′⊑ _)
       inner)
     q
 source-seal-cancellation-prefixᵀ

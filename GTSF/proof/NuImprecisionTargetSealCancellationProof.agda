@@ -201,7 +201,7 @@ target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
     (conv⊑convᵀ
       (paired-widening mode seal★ c⊑ mode′ seal★′
-        (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())) inner)
+        (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ()) _) inner)
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ

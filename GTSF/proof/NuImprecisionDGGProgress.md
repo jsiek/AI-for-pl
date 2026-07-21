@@ -363,6 +363,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourcePrimitivePureRootCasesDef.agda`](NuImprecisionWorldCoherentSourcePrimitivePureRootCasesDef.agda) | completed statement | Two-case primitive boundary separating general delta catch-up from the shared blame leaf. |
 | [`NuImprecisionWorldCoherentSourcePrimitivePureRootProof.agda`](NuImprecisionWorldCoherentSourcePrimitivePureRootProof.agda) | completed higher-order proof | Exhaustively routes `δ-⊕`, `blame-⊕₁`, and `blame-⊕₂` into the two primitive capabilities. |
 | [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef.agda) | completed statement | Five mechanical target cast/conversion frames for an already-completed exact source step. |
+| [`NuImprecisionWorldCoherentSourceOneStepSourceCastFramesDef.agda`](NuImprecisionWorldCoherentSourceOneStepSourceCastFramesDef.agda) | completed statement; proof ready for delegation | Four source cast/conversion frames for an already-computed recursive source result; the eventual mutual worker consumes these results instead of passing itself through a helper. |
 | [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesProof.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesProof.agda) | completed GPT-5.5 proof | Transports each target cast/conversion through the completed source result's accumulated target tail, rebuilds the final quotient relation, and preserves every strong-result invariant. |
 | [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesLemma.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesLemma.agda) | completed canonical assembly | Exposes all five source-step target frames through the canonical three-file boundary. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectDef.agda) | completed statement | DGG-near two-operand scheduling boundary for the unframed target primitive. |
@@ -8603,3 +8604,13 @@ coordination.  Use focused strict checks throughout and reserve
   contributes its length, and the `ν` phase carries one additional unit.
   The statement checks strictly in about 2.2 seconds; its arithmetic laws are
   the next Ginger leaf.
+
+- Audited the canonical source recursion join.  It has six recursive
+  congruence families: both application frames, source cast, source `ν`, and
+  both primitive frames; allocation is a root.  The final implementation must
+  recurse mutually over QTI and QTIP, including allocation-prefix descent, and
+  hand already-computed inner results to nonrecursive frame adapters.  Froze
+  the first adapter record in
+  [`NuImprecisionWorldCoherentSourceOneStepSourceCastFramesDef.agda`](NuImprecisionWorldCoherentSourceOneStepSourceCastFramesDef.agda).
+  Its four source cast/conversion fields check strictly in about 2.9 seconds
+  and are ready for a Ginger proof.

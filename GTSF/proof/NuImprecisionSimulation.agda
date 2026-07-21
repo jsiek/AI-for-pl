@@ -387,6 +387,10 @@ open import proof.TypeProperties using
 
 open import proof.NuImprecisionRelStoreEmbeddingDef
 open import proof.NuImprecisionSimulationCore
+open import proof.NuImprecisionSourcePolymorphicValueBase using
+  ( left-polymorphic-value-shapeᵀ
+  ; post-allocation-polymorphic-value-step
+  )
 open import proof.NuImprecisionWorldEmbeddingNoBullet using
   (rel-world-embed-no•ᵀ; rel-world-embed-no•ᵀᵖ)
 open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
@@ -3664,32 +3668,6 @@ weak-one-step-reverse-direct-quotient-indexed-outcomeᵀ
     (targetTypeResult result)
     (transportType result pF)
 
-Λ-value-body :
-  ∀ {V} →
-  Value (Λ V) →
-  Value V
-Λ-value-body (Λ vV) = vV
-
-post-allocation-polymorphic-value-step :
-  ∀ {Δ : TyCtx} {Σ : Store} {L A} →
-  Value L →
-  Δ ∣ Σ ∣ [] ⊢ L ⦂ `∀ A →
-  ∃[ N ] ((⇑ᵗᵐ L) • —→[ keep ] N)
-post-allocation-polymorphic-value-step
-    {Δ = Δ} {Σ = Σ} {L = L} {A = A} vL L⊢
-    with canonical-∀ {Δ = Δ} {Σ = Σ} {V = L} {A = A}
-      vL (forget L⊢)
-post-allocation-polymorphic-value-step {L = .(Λ V)} vL L⊢
-    | av-Λ {W = V} refl =
-  V , post-allocation-β-Λ•-bare (Λ-value-body vL)
-post-allocation-polymorphic-value-step
-    {L = .(V ⟨ `∀ c ⟩)} vL L⊢ | av-∀ {W = V} {c = c} vV refl =
-  ((⇑ᵗᵐ V) •) ⟨ c ⟩ , post-allocation-β-∀•-bare vV
-post-allocation-polymorphic-value-step
-    {L = .(V ⟨ gen A c ⟩)} vL L⊢
-    | av-gen {W = V} {A = A} {c = c} vV refl =
-  (⇑ᵗᵐ V) ⟨ c ⟩ , post-allocation-β-gen•-bare vV
-
 matched-polymorphic-value-shapeᵀ :
   ∀ {Φ Δᴸ Δᴿ L L′ A A′ p}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
@@ -3703,17 +3681,6 @@ matched-polymorphic-value-shapeᵀ vL vL′ L⊑L′ =
     (forget (nu-term-imprecision-source-typing L⊑L′)) ,
   canonical-∀ vL′
     (forget (nu-term-imprecision-target-typing L⊑L′))
-
-left-polymorphic-value-shapeᵀ :
-  ∀ {Φ Δᴸ Δᴿ L N′ A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  Value L →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ L ⊑ N′ ⦂ `∀ A ⊑ B ∶ p →
-  AllView L
-left-polymorphic-value-shapeᵀ vL L⊑N′ =
-  canonical-∀ vL
-    (forget (nu-term-imprecision-source-typing L⊑N′))
 
 right-polymorphic-value-shapeᵀ :
   ∀ {Φ Δᴸ Δᴿ N L′ A B p}

@@ -394,6 +394,14 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef.agda) | completed corrected higher-order interface | Strict post-bullet motive and thirteen semantic handler contracts, including recursive outer-`∀ⁱ` generic narrowing; every non-leaf handler receives both the recursive motive and exact inner frame view, preserving the raw QTI and endpoint evidence needed for bullet commutation |
 | [`NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersProof.agda`](NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersProof.agda) | completed top-level higher-order assembly; superseded by continuation refactor | Constructs all thirteen old-motive handler fields from one rotation theorem plus fourteen exact branch capabilities; it remains a strict fit audit, but the continuation-indexed handlers are now the active architecture because target-only frames cannot be closed after recursion in the old motive |
 | [`NuImprecisionPairedLambdaTargetClosingPendingTargetFramesDef.agda`](NuImprecisionPairedLambdaTargetClosingPendingTargetFramesDef.agda) | completed corrected continuation boundary | Proof-relevant cons stack of prefix changes and all five target-only frame forms, plus the continuation-indexed closing motive and its reflexive-continuation projection to the original public motive |
+| [`NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationDef.agda`](NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationDef.agda) | completed strict statement; proof assigned to Ginger | Exposes the independent structural fold over a pending continuation: from the seed target value/no-bullet evidence and quotiented relation, produce the final target value/no-bullet evidence and relation at the final world and precision index; no terminal-closing or semantic-handler dependency is permitted |
+| [`NuImprecisionPairedLambdaTargetClosingNuTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingNuTerminalDef.agda) | completed strict statement | Common ordinary closing motive at a final source-only `ν` index, with endpoint values and the final quotiented relation explicit |
+| [`NuImprecisionPairedLambdaTargetClosingNuTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingNuTerminalProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Eliminates the external paired universal conversion using `PairedUniversalConversionFreshPathCycleᵀ`; the canonical assembly waits for the two structural fresh-path half-squares |
+| [`NuImprecisionPairedLambdaTargetClosingAllTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingAllTerminalDef.agda) | completed strict hard-root statement; proof not yet started | Common ordinary closing motive for arbitrary related universal values at a final `∀ⁱ` index; this theorem must be proved directly with a decreasing body/index measure and must not import the continuation interpreter |
+| [`NuImprecisionPairedLambdaTargetClosingMaterializedTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingMaterializedTerminalDef.agda) | completed strict dispatcher statement | Common ordinary terminal theorem after pending target frames have been materialized, abstracting only over the final precision index |
+| [`NuImprecisionPairedLambdaTargetClosingMaterializedTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingMaterializedTerminalProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Exhaustively dispatches final `ν` and `∀ⁱ` indices to the two explicit terminal dependencies; contains no local inferred theorem type or unsolved meta |
+| [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda) | completed strict common continuation statement | Generic related-value closer for an arbitrary pending target continuation |
+| [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Materializes the pending continuation and invokes ordinary materialized terminal closing; its two theorem dependencies are explicit and strict |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationHandlersDef.agda) | completed corrected handler statements; concrete inhabitants not yet started | Restates all four leaves and nine semantic frames against the continuation-indexed motive while preserving each exact inner `FrameView`; target-only frames are deliberately absent because the continuation interpreter handles them structurally |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationLambdaLambdaLeafDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationLambdaLambdaLeafDef.agda) | completed continuation statement; proof not yet started | Matched `Λ`/`Λ` terminal closing for an arbitrary pending target continuation |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationLambdaLeafDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationLambdaLeafDef.agda) | completed continuation statement; proof not yet started | Source `Λ`/target-nonbinder terminal closing for an arbitrary pending target continuation |
@@ -7598,3 +7606,96 @@ coordination.  Use focused strict checks throughout and reserve
   types.  This is the new farm-out boundary: every worker can own one named
   `Def`/`Proof` pair, while upper consumers forward the assembled record
   atomically and never enable unsolved metas.
+
+- Four GPT 5.5 Ginger audits against the superseded old-motive constructor
+  contracts returned no inhabitants and were intentionally not integrated.
+  The paired-reveal and paired-conceal frame branches both require the fused
+  paired-conversion commutation hidden by the old target-frame organization.
+  The quotient-id and quotient-cast up-gen-all branches both require an exact
+  all-index commutation theorem, and their `ν` cases additionally depend on
+  conversion rotation.  These independent results reinforce the continuation
+  refactor: the missing reasoning belongs in the continuation-generalized
+  semantic handlers, not in isolated old-motive leaves or comment-only proof
+  files.
+
+- Launched four new GPT 5.5 Ginger workers from frozen continuation commit
+  `c1c36f7e`, one for each terminal continuation `Def`.  Each assignment
+  requires a genuine exported inhabitant and strict focused check; a blocked
+  worker must report the exact mutual dependency and leave no placeholder
+  file.  Local GPT 5.6 audits are concurrently classifying the leaf, source
+  frame, and paired/quotient frame dependency graph before more remote work is
+  assigned.
+
+- The continuation audit identified a smaller common dependency graph.  A
+  pending-target materializer first folds prefixes and target-only frames into
+  a final value/no-bullet pair and a quotiented term-imprecision derivation at
+  the final world and index.  It is a genuine leaf: `pending-refl` is identity,
+  `pending-prefix` uses `allocation-prefixᵀ`, and the five target constructors
+  use the matching target-side quotiented-imprecision constructors.  The new
+  strict statement is
+  [`NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationDef.agda`](NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationDef.agda).
+
+- After materialization, terminal closing should split on the *final* precision
+  index.  The `ν` branch is a common nonrecursive theorem using allocation-prefix
+  transport, source-bullet introduction, the existing paired-conversion
+  rotation theorem, and the final reveal.  The `∀ⁱ` branch is the one honest hard
+  fused terminal theorem and must be proved directly; defining it through the
+  continuation interpreter would be circular.  A common continuation-value
+  terminal theorem can then materialize the pending continuation and delegate
+  to those two final-index cores.  All four leaf proofs and all nine semantic
+  frame proofs become downstream adapters that construct their outer
+  quotiented relation and call this common terminal theorem.  The adapters do
+  not need to call one another or recursively consume their continuation-motive
+  premise.
+
+- This refinement makes the intended use of the three-file convention more
+  concrete.  A `Def` file is always strict-checkable and records the exact
+  dependency boundary.  A `Proof` file is created only when an inhabitant is
+  available from its declared theorem parameters.  A canonical `Lemma` file is
+  created only when all dependency lemmas exist and can be assembled.  Missing
+  work therefore appears as an absent file or absent canonical assembly, never
+  as a source `--allow-unsolved-metas` option.  Every focused check and every
+  Ginger assignment uses `--no-allow-unsolved-metas`; permissive checks are not
+  part of this workflow.
+
+- The exact next terminal DAG is:
+
+      four leaf adapters ----\
+                              +--> continuation-value terminal
+      nine frame adapters ---/              |
+                                             +--> pending-target materialization
+                                             +--> `ν` terminal --> rotation
+                                             `--> `∀ⁱ` terminal [hard core]
+
+  The materializer is the only structurally recursive node.  All theorem nodes
+  are otherwise singleton dependency components, provided the hard `∀ⁱ` terminal
+  theorem is proved directly and does not import the continuation interpreter.
+
+- Froze that terminal DAG in strict Agda.  The `ν` and `∀ⁱ` terminal statements,
+  materialized-terminal dispatcher, and continuation-value terminal statement
+  now have separate `Def` files.  The `ν` proof, final-index dispatcher, and
+  materialize-then-close proof have strict higher-order `Proof` files.  While
+  checking the first dispatcher draft, an inferred local helper type left
+  unresolved constraints under the strict flag.  Instead of accepting those
+  metas, the helper was promoted to the explicit reusable
+  [`NuImprecisionPairedLambdaTargetClosingMaterializedTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingMaterializedTerminalDef.agda)
+  boundary.  Its standalone dispatcher now checks with
+  `--no-allow-unsolved-metas`, illustrating the intended advantage of the
+  three-file/higher-order organization.
+
+- The all-index terminal statement is extensionally the remaining direct
+  all-index closing relation.  It is not progress to assume it in the thirteen
+  adapters and then use the continuation interpreter to reconstruct it; that
+  would be a circular assembly.  The active hard-proof task is therefore a
+  direct one-layer theorem whose recursive hypothesis is restricted to a
+  strictly smaller body precision derivation (with QTI derivation height as a
+  secondary measure if administrative inversion is needed).  Once that root
+  exists, `FrameView` projections plus the common continuation-value theorem
+  can either discharge all thirteen compatibility statements as thin adapters
+  or bypass the handler record entirely.  The latter is the preferred eventual
+  closed-world cleanup if the direct `FrameView` route remains simpler.
+
+- Two additional GPT 5.5 Ginger workers were launched for the generalized
+  structural reveal and conceal fresh-path target half-squares.  These are
+  independent path-transport leaves and are being checked separately from the
+  continuation architecture.

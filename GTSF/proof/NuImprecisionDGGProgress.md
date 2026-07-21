@@ -404,6 +404,7 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingMaterializedTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingMaterializedTerminalProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Exhaustively dispatches final `ν` and `∀ⁱ` indices to the two explicit terminal dependencies; contains no local inferred theorem type or unsolved meta |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda) | completed strict hard-root statement; direct proof in progress | Generic related-value closer for a concrete QTI derivation and arbitrary pending target continuation; the canonical implementation must recurse on that derivation while accumulating target-only frames |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalMaterializationProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalMaterializationProof.agda) | completed strict compatibility proof; canonical `Proof` and `Lemma` absent | Materializes the pending continuation and invokes ordinary materialized terminal closing; it proves exact statement fit from two explicit theorem parameters but is not the non-circular recursive implementation |
+| [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchDef.agda) | completed strict leaf statement; proof assigned to GPT 5.5 | Closure of the continuation motive under one allocation prefix; receives the computed result for the immediate QTI premise rather than hiding the recursive function behind a higher-order argument |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda) | completed strict direct-view statement | Directly maps one proof-relevant `FrameView` to the continuation motive, without exposing thirteen constructor-specific capabilities |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationFromViewProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationFromViewProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Projects source/target value, no-bullet, and exact relation evidence from the view, invokes continuation-value terminal closing, and projects `pending-refl` to the existing frame-closing consumer |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationHandlersDef.agda) | completed strict audit interface; superseded on active route | Restates all four leaves and nine semantic frames against the continuation-indexed motive; direct `FrameView` projection now makes constructor-specific canonical inhabitants unnecessary |
@@ -7734,6 +7735,16 @@ coordination.  Use focused strict checks throughout and reserve
   survived.  This is precisely the intended failure mode: a missing dependency
   remains visible in a theorem parameter or absent assembly file instead of
   being hidden by `--allow-unsolved-metas`.
+
+- Extracted the first direct-recursion leaf for GPT 5.5 in
+  [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchDef.agda).
+  The theorem closes the continuation motive under one `StoreImpPrefix` by
+  prepending `pending-prefix`.  Its input is the already-computed result for
+  the immediate QTI premise, not the recursive function, so the eventual
+  direct proof can make a visibly structural recursive call and then invoke
+  this leaf.  The `Def` is strict; its `Proof` is a separate Ginger-owned file,
+  and no `Lemma` will be needed because the recursive result is intentionally
+  supplied at the call site.
 
 - Completed that direct `FrameView` route in
   [`NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda)

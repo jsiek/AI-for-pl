@@ -45,6 +45,13 @@ an overbroad statement should fail locally or admit a strict counterexample.
 Repair the `Def` instead of allowing an unsolved meta to carry the mismatch
 into the larger proof.
 
+Reserve the unqualified `<Stem>Proof.agda` name for the intended canonical
+proof direction.  If a strict higher-order fit proof reaches the same statement
+through a non-canonical strategy, give the strategy in the filename, for
+example `<Stem>MaterializationProof.agda`.  This keeps a checked compatibility
+route from looking like the missing direct proof.  The unqualified proof file
+should remain absent until its actual inhabitant exists.
+
 If the canonical dependencies are incomplete or mutually recursive, stop at a
 strict higher-order `Proof` and record `<Stem>Lemma.agda` as not yet started.
 That is a valid worker or integration milestone: the missing proof is an

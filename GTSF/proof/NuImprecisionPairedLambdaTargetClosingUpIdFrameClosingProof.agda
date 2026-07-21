@@ -5,6 +5,8 @@ module
 -- File Charter:
 --   * Adapts the reusable fused quotient up-id frame theorem to the exact
 --     target-closing handler field.
+--   * Provides the exhaustive constructor dispatcher from the quotient-id and
+--     quotient-cast branch capabilities to the whole quotient widening pair.
 --   * Keeps the semantic theorem as an explicit higher-order dependency and
 --     preserves the recursive motive and exact inner frame view required by
 --     the handler.
@@ -18,7 +20,11 @@ open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
 open import NuTermImprecision using (StoreImp; leftStoreⁱ; rightStoreⁱ)
 open import NuTerms using (Term; _⟨_⟩)
-open import QuotientedTermImprecision using (QuotientWideningPair)
+open import QuotientedTermImprecision using
+  ( QuotientWideningPair
+  ; quotient-cast-widening
+  ; quotient-id-widening
+  )
 open import Types using (Ty; TyCtx; `∀)
 open import
   proof.NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef
@@ -29,6 +35,27 @@ open import
 open import
   proof.NuImprecisionPairedLambdaTargetClosingUpIdFrameClosingDef
   using (PairedLambdaTargetClosingUpIdFrameClosingᵀ)
+open import
+  proof.NuImprecisionPairedLambdaTargetClosingUpIdFrameWideningCasesDef
+  using
+    ( PairedLambdaTargetClosingUpIdFrameQuotientCastWideningClosingᵀ
+    ; PairedLambdaTargetClosingUpIdFrameQuotientIdWideningClosingᵀ
+    )
+
+
+paired-lambda-target-closing-up-id-frame-widening-cases-proofᵀ :
+  PairedLambdaTargetClosingUpIdFrameQuotientIdWideningClosingᵀ →
+  PairedLambdaTargetClosingUpIdFrameQuotientCastWideningClosingᵀ →
+  PairedLambdaTargetClosingUpIdFrameClosingᵀ
+paired-lambda-target-closing-up-id-frame-widening-cases-proofᵀ
+    id-closing cast-closing inner view inert-d′ inert-u′ d⊒ d′⊒ qD
+    (quotient-id-widening u⊑ u′⊑) r =
+  id-closing inner view inert-d′ inert-u′ d⊒ d′⊒ qD u⊑ u′⊑ r
+paired-lambda-target-closing-up-id-frame-widening-cases-proofᵀ
+    id-closing cast-closing inner view inert-d′ inert-u′ d⊒ d′⊒ qD
+    (quotient-cast-widening mode seal u⊑ mode′ seal′ u′⊑) r =
+  cast-closing inner view inert-d′ inert-u′ d⊒ d′⊒ qD
+    mode seal u⊑ mode′ seal′ u′⊑ r
 
 
 paired-lambda-target-closing-up-id-frame-handler-proofᵀ :

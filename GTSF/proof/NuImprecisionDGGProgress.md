@@ -397,7 +397,8 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationDef.agda`](NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationDef.agda) | completed strict statement and concrete proof | Exposes the independent structural fold over a pending continuation: from the seed target value/no-bullet evidence and quotiented relation, produce the final target value/no-bullet evidence and relation at the final world and precision index; no terminal-closing or semantic-handler dependency is permitted |
 | [`NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationProof.agda`](NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationProof.agda) | completed GPT 5.5 strict proof | Structural recursion implements reflexivity, allocation prefixing, three target cast forms, and two target conversion forms; the proof has no theorem dependency, so a separate canonical `Lemma` wrapper would be redundant |
 | [`NuImprecisionPairedLambdaTargetClosingNuTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingNuTerminalDef.agda) | completed strict statement | Common ordinary closing motive at a final source-only `ν` index, with endpoint values and the final quotiented relation explicit |
-| [`NuImprecisionPairedLambdaTargetClosingNuTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingNuTerminalProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Eliminates the external paired universal conversion using `PairedUniversalConversionFreshPathCycleᵀ`; the canonical assembly waits for the two structural fresh-path half-squares |
+| [`NuImprecisionPairedLambdaTargetClosingNuTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingNuTerminalProof.agda) | completed strict higher-order proof | Eliminates the external paired universal conversion using only the `PairedUniversalConversionFreshPathCycleᵀ` theorem parameter |
+| [`NuImprecisionPairedLambdaTargetClosingNuTerminalLemma.agda`](NuImprecisionPairedLambdaTargetClosingNuTerminalLemma.agda) | completed canonical assembly | Supplies the strict fresh-path-cycle lemma to the higher-order proof; the complete source-only `ν` terminal dependency is now independently checkable |
 | [`NuImprecisionPairedLambdaTargetClosingAllTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingAllTerminalDef.agda) | completed strict corollary statement | Common ordinary closing motive for arbitrary related universal values at a final `∀ⁱ` index; the non-circular direction derives it from the direct continuation-value terminal theorem with `pending-refl` |
 | [`NuImprecisionPairedLambdaTargetClosingAllTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingAllTerminalProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Derives all-terminal closing from continuation-value terminal closing by choosing the empty pending continuation, thereby checking the intended dependency direction without assuming a recursive global theorem |
 | [`NuImprecisionPairedLambdaTargetClosingMaterializedTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingMaterializedTerminalDef.agda) | completed strict dispatcher statement | Common ordinary terminal theorem after pending target frames have been materialized, abstracting only over the final precision index |
@@ -447,15 +448,23 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationDef.agda) | completed `ν` branch statement; assembly partial | Source-only-index generic terminal stops before final reveal only in the `ν` case, where its existential intermediate index is not ruled out by the paired-index counterexample |
 | [`NuImprecisionFreshTypePath.agda`](NuImprecisionFreshTypePath.agda) | completed strict path toolkit | Proof-relevant paths to variable occurrences, boolean-occurrence extraction, path functionality, and both finite self-extension contradictions for the fresh-binder cycle argument |
 | [`NuImprecisionFreshTypePathTransport.agda`](NuImprecisionFreshTypePathTransport.agda) | completed hard structural support | Inverse path transport through type renaming, exclusion of free zero from shifted types, and mutual forward/backward exact-path preservation through reveal and conceal conversions, with fresh-binder specializations |
+| [`NuImprecisionFreshTypePathArrowRouteDef.agda`](NuImprecisionFreshTypePathArrowRouteDef.agda) | completed strict definition | `SameArrowRoute` forgets universal-body edges while retaining the ordered function-domain/function-codomain route; its body-stripping operations normalize crossed `∀ⁱ`/`ν` binder histories |
+| [`NuImprecisionFreshTypePathImprecisionTransportDef.agda`](NuImprecisionFreshTypePathImprecisionTransportDef.agda) | completed strict theorem boundary | States matched-source path transport and both source-only impossibility results, and bundles them as the reusable `FreshTypePathImprecisionTransport` capability consumed by the structural half-squares |
+| [`NuImprecisionFreshTypePathImprecisionTransportProof.agda`](NuImprecisionFreshTypePathImprecisionTransportProof.agda) | completed hard proof | Strict structural recursion over imprecision derives the three arrow-route theorems using proof-relevant `VarTrack`/`StarTrack` name lineage; it exports the concrete transport capability with no theorem dependency |
 | [`NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareDef.agda) | completed corrected reveal/conceal statements; structural reduction completed | Isolates the two prefix-indexed target/imprecision transports from `p` to `body p` while retaining proof-relevant source and target paths at the same `p`; source conversion transport is not duplicated in these leaves |
-| [`NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda) | completed corrected structural statements; both GPT 5.5 proof attempts blocked | Exposes the honest post-`∀` binder history and retains `VarAtPath 0 (body p) B` alongside `VarAtPath 1 p E`; reveal and conceal both require a separate path-indexed imprecision inversion theorem generalized over mixed `∀ᵢ (νᵢ Φ)`/`νᵢ (∀ᵢ Φ)` histories |
-| [`NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareProof.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareProof.agda) | completed corrected structural reduction; canonical `Lemma` absent | Proves active target unseal impossible by source-only fresh-variable tracking and threads the aligned source path into the structural `reveal-all` and `conceal-all` dependencies |
+| [`NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda) | completed corrected structural statements | Exposes the honest post-`∀` binder history and retains `VarAtPath 0 (body p) B` alongside `VarAtPath 1 p E`; the mixed binder histories are handled through `SameArrowRoute` rather than exact path equality |
+| [`NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareProof.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareProof.agda) | completed strict higher-order proof | Sends the distinguished path forward through target imprecision, backward through reveal or conceal conversion, and contradicts the aligned source-only path on the same arrow route |
+| [`NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareLemma.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareLemma.agda) | completed canonical assembly | Supplies the concrete imprecision transport bundle to both structural half-square proofs; explicit `r` and `s` indices eliminate otherwise unresolved higher-order metas |
+| [`NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareProof.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareProof.agda) | completed corrected structural reduction | Proves active target unseal impossible by source-only fresh-variable tracking and threads the aligned source path into the structural `reveal-all` and `conceal-all` dependencies |
+| [`NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareLemma.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareLemma.agda) | completed canonical assembly | Eta-expands both structural theorem dependencies with every hidden path, world, type, coercion, and imprecision index before constructing the outer reveal/conceal half-squares |
 | [`NuImprecisionPairedUniversalConversionFreshPathSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathSquareDef.agda) | completed exact statement; higher-order proof completed | Names the joint path-square theorem required by the cycle proof |
-| [`NuImprecisionPairedUniversalConversionFreshPathSquareProof.agda`](NuImprecisionPairedUniversalConversionFreshPathSquareProof.agda) | completed higher-order proof; assembly partial | Exhaustively splits paired reveal/conceal, transports the path forward through the source conversion, invokes the exact target half-square, and transports backward through the source conversion |
-| [`NuImprecisionPairedUniversalConversionFreshPathCycleDef.agda`](NuImprecisionPairedUniversalConversionFreshPathCycleDef.agda) | completed impossibility statement; structural half-square inhabitants not yet started | Isolates the exact claim that `occ-r`, the two body indices, and a paired universal conversion form an impossible fresh-binder path cycle; allocation evidence is deliberately absent |
-| [`NuImprecisionPairedUniversalConversionFreshPathCycleProof.agda`](NuImprecisionPairedUniversalConversionFreshPathCycleProof.agda) | completed higher-order proof; assembly partial | Converts `occ-r` to a proof-relevant path and derives contradiction from the named `PairedUniversalConversionFreshPathSquareᵀ` dependency transporting that path around the whole square to `body p` |
+| [`NuImprecisionPairedUniversalConversionFreshPathSquareProof.agda`](NuImprecisionPairedUniversalConversionFreshPathSquareProof.agda) | completed higher-order proof | Exhaustively splits paired reveal/conceal, transports the path forward through the source conversion, invokes the exact target half-square, and transports backward through the source conversion |
+| [`NuImprecisionPairedUniversalConversionFreshPathSquareLemma.agda`](NuImprecisionPairedUniversalConversionFreshPathSquareLemma.agda) | completed canonical assembly | Supplies fully eta-expanded reveal and conceal half-square lemmas to the square proof, exposing all hidden theorem indices under strict checking |
+| [`NuImprecisionPairedUniversalConversionFreshPathCycleDef.agda`](NuImprecisionPairedUniversalConversionFreshPathCycleDef.agda) | completed impossibility statement | Isolates the exact claim that `occ-r`, the two body indices, and a paired universal conversion form an impossible fresh-binder path cycle; allocation evidence is deliberately absent |
+| [`NuImprecisionPairedUniversalConversionFreshPathCycleProof.agda`](NuImprecisionPairedUniversalConversionFreshPathCycleProof.agda) | completed higher-order proof | Converts `occ-r` to a proof-relevant path and derives contradiction from the named `PairedUniversalConversionFreshPathSquareᵀ` dependency transporting that path around the whole square to `body p` |
+| [`NuImprecisionPairedUniversalConversionFreshPathCycleLemma.agda`](NuImprecisionPairedUniversalConversionFreshPathCycleLemma.agda) | completed canonical assembly | Supplies the strict square lemma to the cycle proof and closes the fresh-binder impossibility chain |
 | [`NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef.agda`](NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef.agda) | completed reusable statement; assembly partial | Exact semantic boundary for opening a paired universal conversion through one source-only allocation at an outer `ν` index; it is shared by the ordinary `Λ`, generic terminal, quotient terminal, and source-universal cases |
-| [`NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationProof.agda`](NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationProof.agda) | completed higher-order proof; assembly partial | Eliminates the impossible fresh-path-cycle premise before store allocation evidence is needed; the only missing dependency is the joint path-square transport exposed by the cycle proof |
+| [`NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationProof.agda`](NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationProof.agda) | completed higher-order proof; canonical `Lemma` not yet started | Eliminates the impossible fresh-path-cycle premise before store allocation evidence is needed; its cycle dependency now has a completed canonical lemma, but this downstream rotation assembly has not yet been added |
 | [`NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationProof.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationProof.agda) | completed higher-order proof; assembly partial | Derives generic-terminal conversion rotation from the reusable `ν` paired-conversion rotation by prefix transport, generic-cast reconstruction, and source runtime-bullet allocation |
 | [`NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof.agda) | completed higher-order leaf proof; assembly partial | Implements `handle-leaf-gen-ν` from generic-terminal conversion rotation and applies the final source reveal only after the paired conversion has been rotated |
 | [`NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef.agda`](NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef.agda) | completed fused statement; concrete proof not yet started | Honest recursive outer-`∀ⁱ` generic-narrowing boundary retaining inner and framed QTI relations, endpoint evidence, and the recursive closing motive |
@@ -645,15 +654,17 @@ Use the smallest check that can detect the expected class of error:
    `NuDGGTerminalSkeleton`.  Batch several independent worker results before
    paying this cost.  Treat a consumer as high-cost if a clean dependency
    rebuild dominates its nominally small source file.
-3. **At interface freezes and proof milestones only:** check
-   `NuDGGStrictSpine`, followed by `All.agda` when broad compatibility is
-   warranted.  These are not per-commit or per-worker commands.
+3. **At interface freezes and proof milestones only:** check the nearest
+   family-specific strict spine, and check `NuDGGStrictSpine` only when the
+   changed family is actually connected to it.  Do not run `All.agda` in the
+   active DGG organization workflow; a broad repository check requires a
+   separate explicit request.  These are not per-commit or per-worker
+   commands.
 
 `NuDGGStrictSpine` imports only hole-free modules.  `NuDGGTerminalSkeleton` is
 the exploratory end-to-end fit check and imports the three explicitly partial
-terminal modules.  `All.agda` remains the broad compatibility check, but is
-not by itself a strict completion certificate while it imports active scratch
-modules.
+terminal modules.  `All.agda` is neither part of the routine lane nor a strict
+completion certificate while it imports active scratch modules.
 
 A completed worker slice may not contain holes, postulates, incomplete
 matches, or new foundational definitions.  Its default validation stops after
@@ -7830,3 +7841,52 @@ coordination.  Use focused strict checks throughout and reserve
   only its owned file.  The local focused spine now imports the proof directly;
   no canonical `Lemma` wrapper is needed because the proof has no theorem
   dependency to assemble.
+
+### 2026-07-21: arrow-route transport and strict ν-terminal assembly
+
+- Completed the mixed-binder path theorem that blocked both structural
+  fresh-path half-squares.  The strict
+  [`SameArrowRoute`](NuImprecisionFreshTypePathArrowRouteDef.agda) relation
+  erases `body` edges while preserving the ordered `domain`/`codomain` route.
+  This identifies paths that differ only because paired `∀ⁱ` and source-only
+  `ν` binders were crossed, without weakening function-branch alignment.
+
+- Froze the three reusable imprecision/path statements and their concrete
+  implementation in
+  [`NuImprecisionFreshTypePathImprecisionTransportDef.agda`](NuImprecisionFreshTypePathImprecisionTransportDef.agda)
+  and
+  [`NuImprecisionFreshTypePathImprecisionTransportProof.agda`](NuImprecisionFreshTypePathImprecisionTransportProof.agda).
+  Matched source names move forward on the same arrow route; source-only names
+  cannot appear on a same-route target path; and the specialized universal-body
+  form closes the binder case.  The proof is structural over imprecision and
+  uses the existing proof-relevant `VarTrack` and `StarTrack` name lineages.
+
+- Completed both reveal and conceal structural half-squares, then assembled
+  every remaining layer through separate strict `Lemma` modules: structural
+  half-square, target half-square, full square, fresh-path cycle, and the
+  source-only `ν` terminal theorem.  The checked dependency chain is
+
+      imprecision arrow-route transport
+        → structural target half-squares
+        → target half-squares
+        → fresh-path square
+        → fresh-path cycle
+        → source-only `ν` terminal closing.
+
+- Strict checking exposed two underconstrained higher-order assemblies.  A
+  bare polymorphic structural-half-square argument left metas in the target
+  half-square `Lemma`, and bare polymorphic target-half-square arguments left
+  metas in the square `Lemma`.  Both were repaired by eta-expanding the
+  dependency and passing every hidden path, world, endpoint, coercion, store,
+  and imprecision derivation index explicitly.  No permissive option was used.
+  This is a concrete validation of the `Def`/higher-order `Proof`/canonical
+  `Lemma` convention: unsolved assembly constraints become local strict errors
+  instead of surviving inside a large partially checked proof.
+
+- Focused `--no-allow-unsolved-metas` checks pass for every new module and for
+  [`NuImprecisionPairedTargetClosingStrictSpine.agda`](NuImprecisionPairedTargetClosingStrictSpine.agda).
+  No `All.agda` or other broad aggregate check was run.  The next hard root is
+  still the direct
+  [`PairedLambdaTargetClosingContinuationValueTerminalᵀ`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda)
+  recursion; the matched `Λ`/`Λ` structural reveal/conceal closing contracts
+  remain its first semantic leaves.

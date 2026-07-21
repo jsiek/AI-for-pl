@@ -45,6 +45,12 @@ an overbroad statement should fail locally or admit a strict counterexample.
 Repair the `Def` instead of allowing an unsolved meta to carry the mismatch
 into the larger proof.
 
+Strict-check `<Stem>Lemma.agda` independently as well.  If supplying a bare
+polymorphic dependency leaves metas, eta-expand that dependency and pass its
+hidden contexts, paths, endpoints, stores, coercions, and derivation indices
+explicitly.  This is an assembly error exposed by the split, not a reason to
+enable unsolved metas.
+
 Reserve the unqualified `<Stem>Proof.agda` name for the intended canonical
 proof direction.  If a strict higher-order fit proof reaches the same statement
 through a non-canonical strategy, give the strategy in the filename, for
@@ -145,8 +151,9 @@ Use checks in three tiers:
    architecture, use
    `proof/NuImprecisionPairedTargetClosingStrictSpine.agda` as the focused
    integration target.
-3. `proof/NuDGGStrictSpine.agda` and `All.agda` are milestone checks, not
-   per-worker or per-commit checks.
+3. Check `proof/NuDGGStrictSpine.agda` only when the changed family is connected
+   to it.  Do not run `All.agda` in the active DGG workflow; a broad repository
+   check requires a separate explicit request.
 
 When a focused check is unexpectedly expensive, profile that boundary rather
 than starting with `All.agda`:

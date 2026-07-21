@@ -3,9 +3,9 @@ module proof.NuImprecisionPairedTargetClosingStrictSpine where
 -- File Charter:
 --   * Aggregates the strict paired-index allocation and target-closing
 --     architecture used by source `ν` and runtime `ν ★` catch-up.
---   * Provides a focused integration check below `NuDGGStrictSpine` and
---     `All.agda`; it imports statements and higher-order proofs, not missing
---     canonical `Lemma` assemblies.
+--   * Provides the focused integration check for this proof family; it
+--     imports strict statements, higher-order proofs, and completed canonical
+--     `Lemma` assemblies without requiring a broad aggregate check.
 --   * Deliberately excludes the broad simulation modules and permissive
 --     scratch development.
 
@@ -23,6 +23,7 @@ import
   proof.NuImprecisionPairedLambdaTargetClosingPendingTargetMaterializationProof
 import proof.NuImprecisionPairedLambdaTargetClosingNuTerminalDef
 import proof.NuImprecisionPairedLambdaTargetClosingNuTerminalProof
+import proof.NuImprecisionPairedLambdaTargetClosingNuTerminalLemma
 import proof.NuImprecisionPairedLambdaTargetClosingAllTerminalDef
 import proof.NuImprecisionPairedLambdaTargetClosingAllTerminalProof
 import proof.NuImprecisionPairedLambdaTargetClosingMaterializedTerminalDef
@@ -94,6 +95,9 @@ import
   proof.NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef
 import proof.NuImprecisionFreshTypePath
 import proof.NuImprecisionFreshTypePathTransport
+import proof.NuImprecisionFreshTypePathArrowRouteDef
+import proof.NuImprecisionFreshTypePathImprecisionTransportDef
+import proof.NuImprecisionFreshTypePathImprecisionTransportProof
 import
   proof.NuImprecisionPairedUniversalConversionFreshPathSquareDef
 import
@@ -101,13 +105,23 @@ import
 import
   proof.NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef
 import
+  proof.NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareProof
+import
+  proof.NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareLemma
+import
   proof.NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareProof
 import
+  proof.NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareLemma
+import
   proof.NuImprecisionPairedUniversalConversionFreshPathSquareProof
+import
+  proof.NuImprecisionPairedUniversalConversionFreshPathSquareLemma
 import
   proof.NuImprecisionPairedUniversalConversionFreshPathCycleDef
 import
   proof.NuImprecisionPairedUniversalConversionFreshPathCycleProof
+import
+  proof.NuImprecisionPairedUniversalConversionFreshPathCycleLemma
 import
   proof.NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationProof
 import

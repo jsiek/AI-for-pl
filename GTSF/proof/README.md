@@ -69,6 +69,14 @@ source-runtime contract as a whole theorem parameter; its canonical `Lemma`
 stays absent until that mutual assembly is available.  This is the intended
 alternative to placing a hole in the terminal proof.
 
+Strict-check the canonical `Lemma` as a separate assembly step.  Agda may leave
+hidden indices underconstrained when a polymorphic theorem is passed as a bare
+higher-order argument even though both theorem types look identical.  In that
+case, eta-expand the supplied theorem and pass the relevant hidden contexts,
+paths, endpoints, stores, coercions, and derivation indices explicitly.  Do
+not make the assembly permissive.  The fresh-path target half-square and square
+assemblies are checked examples of this pattern.
+
 A command-line `--no-allow-unsolved-metas` is not sufficient when a source
 module locally enables `--allow-unsolved-metas`.  Completion therefore
 requires removing the local option and checking the owned module again, as

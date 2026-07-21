@@ -333,7 +333,11 @@ are delegated:
 | [`NuImprecisionWorldCoherentValueCatchupDef.agda`](NuImprecisionWorldCoherentValueCatchupDef.agda) | completed statement | Strengthened value-catch-up contract consumes input coherence and exposes coherent final catch-up worlds |
 | [`NuImprecisionWorldCoherentValueCatchupPrefixDef.agda`](NuImprecisionWorldCoherentValueCatchupPrefixDef.agda) | completed statement | Ambient-prefix induction contract: the relation may use a smaller prefix world, while coherence is retained for the ambient evaluation world that will own the result |
 | [`NuImprecisionWorldCoherentValueCatchupProof.agda`](NuImprecisionWorldCoherentValueCatchupProof.agda) | completed adapter proof | Strictly derives the public coherent value-catch-up contract from the prefix worker by applying it to `prefix-reflⁱ`; the structural prefix worker remains unimplemented |
-| `NuImprecisionWorldCoherentValueCatchupPrefixProof.agda` | not yet started | Will implement the recursive prefix worker from strict leaf contracts, reusing coherence on frames and extending it only at source allocation results |
+| [`NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda`](NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda) | completed statement | Strict eight-field handler record for the mutually dependent source bullet, allocation, cast, and conversion cases; keeps the source `inst`/`ν ★` SCC intact |
+| `NuImprecisionWorldCoherentSourceRuntimeCatchupProof.agda` | not yet started | Will prove the eight source-runtime handlers together, extending coherence only at the allocation continuations |
+| [`NuImprecisionWorldCoherentQuotientInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientInstCatchupDef.agda) | completed statement | Strict mode-polymorphic final-state contract shared by ordinary-down and gen-down quotient-`inst` residuals |
+| `NuImprecisionWorldCoherentQuotientInstCatchupProof.agda` | not yet started | Will prove the shared quotient residual from the source-runtime capability and expose any missing quotient invariant at one boundary |
+| `NuImprecisionWorldCoherentValueCatchupPrefixProof.agda` | not yet started | Will implement the recursive prefix worker from exactly the source-runtime and quotient-`inst` capabilities, reusing coherence on frames and extending it only at allocation results |
 | `NuImprecisionWorldCoherentValueCatchupLemma.agda` | not yet started | Canonical assembly waits for the strict prefix proof and its strict allocation/quotient leaves |
 | [`NuDGGTerminalBackwardValueWorldCoherentDef.agda`](NuDGGTerminalBackwardValueWorldCoherentDef.agda) | completed statement | Arbitrary-world backward-value terminal contract with the necessary initial `WorldCoherent` premise; the closed public conclusion is unchanged |
 | [`NuDGGTerminalBackwardValueWorldCoherentProof.agda`](NuDGGTerminalBackwardValueWorldCoherentProof.agda) | completed proof | Hole-free higher-order fuel induction from the world-coherent one-step and value-catch-up contracts; passes a strict focused check without live implementations |
@@ -5905,6 +5909,26 @@ catch-up architecture.
   checks passed for the new module, Core, Simulation, and the terminal helper.
   The partial scratch consumer produced no diagnostics but was stopped around
   85 seconds under the checking-cost policy.  No aggregate check was run.
+
+- Reduced the ten visible coherent catch-up holes to two semantic higher-order
+  capabilities.  `WorldCoherentSourceRuntimeCatchupᵀ` keeps source bullet,
+  source allocation, and the five source cast/conversion handlers in one record
+  because source `inst` catch-up and `ν ★` allocation form a real proof SCC.
+  `WorldCoherentQuotientInstCatchupᵀ` is one mode-polymorphic final-state
+  contract shared by the ordinary-down and gen-down quotient residuals.  The
+  future strict prefix proof will take exactly those two dependencies; target
+  frames and terminal cases preserve an already-established final coherence.
+
+- Froze both capabilities as strict statement modules.  The eight-field
+  [`WorldCoherentSourceRuntimeCatchupᵀ`](NuImprecisionWorldCoherentSourceRuntimeCatchupDef.agda)
+  mirrors the live `α⊑ᵀ`, source allocation, cast, and conversion branch
+  telescopes; in particular, the bullet field retains the full allocated-world
+  lifts and coherence premise instead of hiding them behind a simplified term
+  shape.  The single
+  [`WorldCoherentQuotientInstCatchupᵀ`](NuImprecisionWorldCoherentQuotientInstCatchupDef.agda)
+  contract uses the actual quotiented relation and `QuotientWideningPair`, so
+  ordinary-down and gen-down share one final-state obligation without an extra
+  mode or implementation premise.  Both focused no-unsolved-metas checks pass.
 
 - Stopped the first Ginger β-sequence worker after it made no worktree changes
   during an overlong search.  Its useful diagnostic is that the nested target

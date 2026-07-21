@@ -160,6 +160,15 @@ prefix implementation should take its unfinished allocation and quotient
 leaves as higher-order contracts.  It must not import
 `NuImprecisionCatchupScratch` merely to reuse its partial dispatcher.
 
+The structural prefix proof has two major semantic dependencies.  Keep the
+source bullet, allocation, cast, and conversion handlers together in
+`NuImprecisionWorldCoherentSourceRuntimeCatchup*`; source `inst` catch-up and
+`ν ★` allocation are mutually dependent and should not be split into fake leaf
+modules.  Put the shared ordinary/gen quotient-`inst` final-state theorem in
+`NuImprecisionWorldCoherentQuotientInstCatchup*`.  The prefix `Proof` should
+take those two whole contracts as higher-order arguments, with all target
+frames and ordinary terminal cases handled structurally.
+
 The target reveal-unseal root is the next higher-order boundary:
 
 - `NuImprecisionWorldCoherentTargetRevealRootDef` states the complete root

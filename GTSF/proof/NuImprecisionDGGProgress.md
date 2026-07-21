@@ -295,6 +295,36 @@ value catch-up base.
 
 ## Interface freeze and ginger execution plan
 
+### Result-carrier constraint from issue #78
+
+[GitHub issue #78](https://github.com/jsiek/AI-for-pl/issues/78) identifies
+the checking and maintenance cost of vertically nested simulation carriers.
+The forward skeleton therefore uses the following rule while the broader
+flattening issue remains separate from this proof effort:
+
+- an outcome branch contains one complete success payload or one source-blame
+  trace, rather than another outcome-shaped wrapper;
+- proof modules eliminate outcomes at their boundary and pass the complete
+  success payload to frame lemmas directly;
+- shared operations use the exhaustive
+  [`world-coherent-source-one-step-outcome-mapᵀ`](NuImprecisionWorldCoherentSourceOneStepOutcomeMap.agda)
+  eliminator rather than introducing a result alias for each frame family;
+- capability records may group several theorem fields, but must not store a
+  tower of success/result/outcome carriers merely to name intermediate proof
+  obligations; and
+- no compatibility aliases or wrapper modules will be added for superseded
+  carrier shapes.
+
+The source-step outcome is the one necessary branch point: its related branch
+contains the already complete exact continuing result, and its other branch
+contains the complete trace from the original source term to `blame`.  The
+initial source-cast outcome-frame record was removed after this audit, and a
+proposed target-cast counterpart was never added.  Source frames can apply the
+generic eliminator with `cast-blame-tailᵀ`; target-only frames can apply it
+with the identity map on source-blame traces.  The remaining source recursive
+join and target administrative SCC should follow the same direct-elimination
+discipline.
+
 ### Two-layer skeleton
 
 The skeleton is split into an interface layer and an implementation layer.
@@ -369,9 +399,9 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceOneStepSourceCastFramesDef.agda`](NuImprecisionWorldCoherentSourceOneStepSourceCastFramesDef.agda) | completed related-branch statement | Four source cast/conversion frames for an already-computed exact continuing result. The complete recursive cast case additionally splits the new outcome and lifts source blame with `cast-blame-tailᵀ`. |
 | [`NuImprecisionWorldCoherentSourceOneStepSourceCastFramesProof.agda`](NuImprecisionWorldCoherentSourceOneStepSourceCastFramesProof.agda) | completed GPT-5.5 proof | Prefix-weakens source cast/conversion evidence, frames the exact continuing result, and preserves transport, coherence, lineage, world, and source-name invariants. |
 | [`NuImprecisionWorldCoherentSourceOneStepSourceCastFramesLemma.agda`](NuImprecisionWorldCoherentSourceOneStepSourceCastFramesLemma.agda) | completed canonical assembly | Exposes the four related-branch source frames through the three-file boundary. |
-| [`NuImprecisionWorldCoherentSourceOneStepSourceCastOutcomeFramesDef.agda`](NuImprecisionWorldCoherentSourceOneStepSourceCastOutcomeFramesDef.agda) | completed statement; proof ready for delegation | Four complete related-or-source-blame source cast/conversion frame adapters, built from the exact frames and generic outcome map. |
 | [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesProof.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesProof.agda) | completed GPT-5.5 proof | Transports each target cast/conversion through the completed source result's accumulated target tail, rebuilds the final quotient relation, and preserves every strong-result invariant. |
 | [`NuImprecisionWorldCoherentSourceOneStepTargetCastFramesLemma.agda`](NuImprecisionWorldCoherentSourceOneStepTargetCastFramesLemma.agda) | completed canonical assembly | Exposes all five source-step target frames through the canonical three-file boundary. |
+| [`NuImprecisionWorldCoherentSourceOneStepTargetNuFramesDef.agda`](NuImprecisionWorldCoherentSourceOneStepTargetNuFramesDef.agda) | completed statement; proof ready for delegation | Ordinary and casted target-`ν` frames consume and return the complete exact continuing result directly. The recursive join maps source blame by identity and introduces no target-`ν` outcome carrier. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectDef.agda) | completed statement | DGG-near two-operand scheduling boundary for the unframed target primitive. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectProof.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaDirectProof.agda) | completed GPT-5.6 proof | Exhaustively schedules `ok-no`, `ok-⊕₁`, and `ok-⊕₂`: catches up target operands left-to-right, identifies natural constants, performs synchronized delta, and preserves the full exact-result invariant package. |
 | [`NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupCasesDef.agda`](NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupCasesDef.agda) | completed statement | Separates direct two-operand scheduling from structural target framing. |
@@ -8673,15 +8703,15 @@ coordination.  Use focused strict checks throughout and reserve
   The canonical
   [`Lemma`](NuImprecisionWorldCoherentSourceOneStepSourceCastFramesLemma.agda)
   passes locally in about 6.6 seconds.  This is the continuing half of the
-  corrected recursive cast case; its remaining source-blame branch is a small
-  outcome adapter using `cast-blame-tailᵀ`.
+  corrected recursive cast case; the complete case will invoke the generic
+  outcome eliminator directly with `cast-blame-tailᵀ`.
 
 - Added the reusable strict
-  [`outcome map`](NuImprecisionWorldCoherentSourceOneStepOutcomeMap.agda) and
-  froze the four-field
-  [`source cast outcome boundary`](NuImprecisionWorldCoherentSourceOneStepSourceCastOutcomeFramesDef.agda).
-  This is now a mechanical Ginger leaf: the related clauses use the canonical
-  exact source frames and every blame clause uses `cast-blame-tailᵀ`.
+  [`outcome map`](NuImprecisionWorldCoherentSourceOneStepOutcomeMap.agda).
+  The initially frozen four-field source-cast outcome record was then removed
+  under the issue-#78 carrier audit: its related clauses are just the canonical
+  exact source frames and every blame clause is `cast-blame-tailᵀ`, so direct
+  elimination is both sufficient and flatter.
 
 - The paired-cast Ginger audit correctly rejected its frozen statement: source
   inertness does not imply that the paired target coercion is inert, so a

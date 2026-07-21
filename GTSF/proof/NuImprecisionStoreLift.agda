@@ -1,10 +1,11 @@
 module proof.NuImprecisionStoreLift where
 
 -- File Charter:
---   * Constructs canonical left-only and right-only lifts of an imprecision
---     store.
+--   * Constructs canonical matched, left-only, and right-only lifts of an
+--     imprecision store.
 --   * Keeps store-lift construction independent of the simulation core.
---   * Exports `lift-left-store-result` and `lift-right-store-result`.
+--   * Exports `lift-store-result`, `lift-left-store-result`, and
+--     `lift-right-store-result`.
 
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)

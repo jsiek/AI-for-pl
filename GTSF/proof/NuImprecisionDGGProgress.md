@@ -404,7 +404,8 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingMaterializedTerminalProof.agda`](NuImprecisionPairedLambdaTargetClosingMaterializedTerminalProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Exhaustively dispatches final `ν` and `∀ⁱ` indices to the two explicit terminal dependencies; contains no local inferred theorem type or unsolved meta |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalDef.agda) | completed strict hard-root statement; direct proof in progress | Generic related-value closer for a concrete QTI derivation and arbitrary pending target continuation; the canonical implementation must recurse on that derivation while accumulating target-only frames |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalMaterializationProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalMaterializationProof.agda) | completed strict compatibility proof; canonical `Proof` and `Lemma` absent | Materializes the pending continuation and invokes ordinary materialized terminal closing; it proves exact statement fit from two explicit theorem parameters but is not the non-circular recursive implementation |
-| [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchDef.agda) | completed strict leaf statement; proof assigned to GPT 5.5 | Closure of the continuation motive under one allocation prefix; receives the computed result for the immediate QTI premise rather than hiding the recursive function behind a higher-order argument |
+| [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchDef.agda) | completed strict leaf statement | Closure of the continuation motive under one allocation prefix; receives the computed result for the immediate QTI premise rather than hiding the recursive function behind a higher-order argument |
+| [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchProof.agda) | completed GPT 5.5 strict proof | Applies the computed recursive motive to `pending-prefix`; imports only its `Def` and the pending-frame constructor owner, and needs no canonical `Lemma` wrapper |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda) | completed strict direct-view statement | Directly maps one proof-relevant `FrameView` to the continuation motive, without exposing thirteen constructor-specific capabilities |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationFromViewProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationFromViewProof.agda) | completed strict higher-order proof; canonical `Lemma` absent | Projects source/target value, no-bullet, and exact relation evidence from the view, invokes continuation-value terminal closing, and projects `pending-refl` to the existing frame-closing consumer |
 | [`NuImprecisionPairedLambdaTargetClosingContinuationHandlersDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationHandlersDef.agda) | completed strict audit interface; superseded on active route | Restates all four leaves and nine semantic frames against the continuation-indexed motive; direct `FrameView` projection now makes constructor-specific canonical inhabitants unnecessary |
@@ -436,8 +437,8 @@ are delegated:
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLeafClosingProof.agda) | completed higher-order proof; assembly partial | Prefix-transports the `Λ` relation, constructs the source runtime bullet, invokes `NuPairedConversionRotationᵀ`, applies the final reveal, and exactly inhabits `handle-leaf-Λ` |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingDef.agda) | completed fused statement; concrete proof not yet started | Exact matched `Λ`/`Λ` leaf retains the body relation, both allocation lifts, whole paired conversion, and final reveal because the checked counterexample refutes the tempting pre-reveal factorization |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesDef.agda) | completed constructor statements; semantic proofs not yet started | Exact paired-reveal and paired-conceal matched-`Λ` leaves retain the body relation, ambient prefix, both lifts, store correspondence, conversion evidence, and final reveal |
-| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda) | completed reduced statement; concrete proof not yet started | Smallest honest matched-`Λ` paired-reveal dependency after both outer universal reveals invert uniquely; it keeps the body relation, allocation, correspondence, both inner structural reveals, and final reveal fused, with no false pre-reveal index |
-| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda) | completed reduced statement; concrete proof not yet started | Smallest honest matched-`Λ` paired-conceal dependency after the two outer conceals and forced nested source `conceal-all` invert; only the innermost source and target body conceals remain fused with allocation and final reveal |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda) | completed reduced statement; direct-root blocker, proof not yet started | Smallest honest matched-`Λ` paired-reveal dependency after both outer universal reveals invert uniquely; its live inner-unseal case has a non-universal source body, so it requires a direct unseal/allocation transport base rather than the universal-only recursive hypothesis |
+| [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingDef.agda) | completed reduced statement; direct-root blocker, proof not yet started | Smallest honest matched-`Λ` paired-conceal dependency after the two outer conceals and forced nested source `conceal-all` invert; only the innermost source and target body conceals remain fused with allocation and final reveal |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafPairedConversionCasesProof.agda) | completed strict constructor reductions; structural proofs not yet started | Exhaustively reduces both paired-reveal and paired-conceal leaves to their smaller structural contracts; no outer universal conversion wrapper remains a semantic worker obligation |
 | [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafClosingProof.agda) | completed higher-order dispatcher and handler adapter; assembly partial | Exhaustively derives the fused matched-`Λ` theorem from its paired-reveal/conceal branches and verifies exact `handle-leaf-ΛΛ` fit without a recursive closer or one-sided intermediate |
 | [`NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingUpGenLeafClosingDef.agda) | completed fused statement; assembly partial | Exact quotient gen-down/gen terminal retains the quotient relation, widening pair, source allocation, external paired conversion, and final reveal after its proposed one-size-fits-all pre-reveal rotation was refuted |
@@ -447,7 +448,7 @@ are delegated:
 | [`NuImprecisionFreshTypePath.agda`](NuImprecisionFreshTypePath.agda) | completed strict path toolkit | Proof-relevant paths to variable occurrences, boolean-occurrence extraction, path functionality, and both finite self-extension contradictions for the fresh-binder cycle argument |
 | [`NuImprecisionFreshTypePathTransport.agda`](NuImprecisionFreshTypePathTransport.agda) | completed hard structural support | Inverse path transport through type renaming, exclusion of free zero from shifted types, and mutual forward/backward exact-path preservation through reveal and conceal conversions, with fresh-binder specializations |
 | [`NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareDef.agda) | completed corrected reveal/conceal statements; structural reduction completed | Isolates the two prefix-indexed target/imprecision transports from `p` to `body p` while retaining proof-relevant source and target paths at the same `p`; source conversion transport is not duplicated in these leaves |
-| [`NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda) | completed corrected structural statements; concrete proofs not yet started | Exposes the honest post-`∀` binder history and retains `VarAtPath 0 (body p) B` alongside `VarAtPath 1 p E`; the previous boolean-occurrence-only statements were refuted by strict Ginger counterexamples |
+| [`NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetStructuralHalfSquareDef.agda) | completed corrected structural statements; both GPT 5.5 proof attempts blocked | Exposes the honest post-`∀` binder history and retains `VarAtPath 0 (body p) B` alongside `VarAtPath 1 p E`; reveal and conceal both require a separate path-indexed imprecision inversion theorem generalized over mixed `∀ᵢ (νᵢ Φ)`/`νᵢ (∀ᵢ Φ)` histories |
 | [`NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareProof.agda`](NuImprecisionPairedUniversalConversionFreshPathTargetHalfSquareProof.agda) | completed corrected structural reduction; canonical `Lemma` absent | Proves active target unseal impossible by source-only fresh-variable tracking and threads the aligned source path into the structural `reveal-all` and `conceal-all` dependencies |
 | [`NuImprecisionPairedUniversalConversionFreshPathSquareDef.agda`](NuImprecisionPairedUniversalConversionFreshPathSquareDef.agda) | completed exact statement; higher-order proof completed | Names the joint path-square theorem required by the cycle proof |
 | [`NuImprecisionPairedUniversalConversionFreshPathSquareProof.agda`](NuImprecisionPairedUniversalConversionFreshPathSquareProof.agda) | completed higher-order proof; assembly partial | Exhaustively splits paired reveal/conceal, transports the path forward through the source conversion, invokes the exact target half-square, and transports backward through the source conversion |
@@ -7742,9 +7743,49 @@ coordination.  Use focused strict checks throughout and reserve
   prepending `pending-prefix`.  Its input is the already-computed result for
   the immediate QTI premise, not the recursive function, so the eventual
   direct proof can make a visibly structural recursive call and then invoke
-  this leaf.  The `Def` is strict; its `Proof` is a separate Ginger-owned file,
-  and no `Lemma` will be needed because the recursive result is intentionally
-  supplied at the call site.
+  this leaf.  The Ginger-owned
+  [`NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchProof.agda`](NuImprecisionPairedLambdaTargetClosingContinuationValueTerminalPrefixBranchProof.agda)
+  now applies that result to `pending-prefix`; both focused Ginger checks and
+  the local focused integration check use `--no-allow-unsolved-metas`.  No
+  `Lemma` is needed because the recursive result is intentionally supplied at
+  the call site.
+
+- The first direct GPT 5.6 implementation attempt deliberately left the
+  canonical `ContinuationValueTerminalProof.agda` absent.  Its first exact
+  semantic blocker is the matched `Λ`/`Λ`, `pending-refl` branch.  Exhaustive
+  paired-conversion inversion reduces that branch to
+  [`NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda`](NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingDef.agda)
+  and its conceal counterpart.  In the live inner `reveal-unseal` case the
+  body relation's source type is a type variable, while the direct recursive
+  theorem accepts only a universal source endpoint.  This case therefore needs
+  a genuine base construction transporting the body relation through the
+  corresponding unseals and source-only allocation; simply invoking the QTI
+  induction hypothesis would be ill-typed.
+
+- The Agda termination audit chose a concrete implementation shape already
+  accepted by the checker in the strict `FrameView` classifier: mutually
+  recursive ordinary-QTI and QTIP workers.  The ordinary worker additionally
+  receives `AllView W` and returns the continuation motive; the QTIP worker is
+  specialized to the complete `up⊑upᵀ` package and returns the motive for the
+  whole quotient pair.  Ordinary `up⊑upᵀ` clauses recurse on the direct QTIP
+  premise, while QTIP `down⊑downᵀ` and `gen-down⊑gen-downᵀ` clauses recurse on
+  their direct ordinary premise.  Terminal continuation consumption will be a
+  separate local structural recursion on the pending derivation.  This is
+  simpler than encoding an explicit lexicographic accessibility proof, keeps
+  all recursive calls visibly structural, and requires no new alias-only
+  `Def` modules.
+
+- The first corrected structural-reveal half-square Ginger attempt also left
+  its `Proof` file absent.  Descent through `reveal-all` produces a paired head
+  over a source-only context for the source index, and a plain target body for
+  the second index, so the frozen theorem is not recursively closed.  The next
+  honest boundary is a proof-relevant path inversion theorem generalized over
+  those mixed binder histories.  The conceal worker independently reached the
+  same boundary in crossed function-domain paths: its paired side transports
+  the target occurrence to `body (domain p)`, while the aligned source-only
+  witness sits at `body (domain (body p))`.  Both workers removed their partial
+  files.  A local GPT 5.6 task now owns the generalized path-history theorem;
+  no hole, permissive option, commit, or aggregate check was retained.
 
 - Completed that direct `FrameView` route in
   [`NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda`](NuImprecisionPairedLambdaTargetClosingContinuationFromViewDef.agda)

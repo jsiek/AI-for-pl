@@ -234,9 +234,12 @@ retain coherence and left `StoreWf` instead of erasing them behind a generic
 `WorldCoherentQuotientInstCatchupᵀ` is an independent semantic capability,
 not a consequence of `WorldCoherentSourceRuntimeCatchupᵀ`.  Source-runtime
 handlers start from an ordinary relation, whereas the quotient-`inst` leaf
-must construct the missing quotiented-to-ordinary representative alignment.
-The structural quotient view and allocation helpers recover the operational
-spine and coherent allocated world, but do not prove that alignment.
+must handle the permutation directly.  Generic quotient-to-ordinary
+alignment is false: `NuImprecisionQuotientToOrdinaryCounterexample` gives an
+empty-context adjacent-`∀` swap that is quotient-related but not ordinarily
+related.  The missing hard boundary is therefore compositional catch-up over
+the `≈∀` derivation, using the specialized swap/allocation machinery in its
+swap case.
 
 Keep source bullet, allocation, cast, and conversion handlers together in
 `NuImprecisionWorldCoherentSourceRuntimeCatchup*`; source `inst` catch-up and
@@ -267,12 +270,15 @@ its fields recursively.  Its current proof decomposition is:
 - active narrowing/widening need source tag/untag classification in addition
   to the existing inert and blame frames; and
 - `source-paired-cast` needs prefix and accumulated-change transport for
-  `PairedCast` evidence.
+  `PairedCast` evidence.  Its contract retains the target cast's `Inert`
+  witness because every structural caller already has it; rebuilding final
+  `StoreCorresponds` after arbitrary source changes remains the hard step.
 
 The independent conceal and active-unseal leaves are now complete.  Next wire
 the canonical unseal lemma into `source-reveal`, freeze source tag cancellation
-as an explicit contract, and prove the remaining non-`inst` narrow/widen cases
-and paired-cast transport.  Only then implement
+as an explicit contract, derive the source cast-sequence midpoint from the
+full seal-mode/store-uniqueness hypotheses, and prove the remaining non-`inst`
+narrow/widen cases and paired-cast transport.  Only then implement
 the allocation SCC as a visibly structural mutual proof (or with an explicit
 administrative measure) and assemble the eight-field record.  Do not make the
 record itself a higher-order input to its own `Proof`; that would encode the

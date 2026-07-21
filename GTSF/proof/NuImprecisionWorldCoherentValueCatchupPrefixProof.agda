@@ -385,7 +385,7 @@ world-coherent-left-value-catchup-prefix-proofᵀ
     (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
     (conv⊑convᵀ conversion N⊑V′) =
   source-paired-cast source-runtime prefix conversion
-    vV′ noV′ inner
+    vV′ noV′ inert inner
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup prefix coherent exclusive wfL

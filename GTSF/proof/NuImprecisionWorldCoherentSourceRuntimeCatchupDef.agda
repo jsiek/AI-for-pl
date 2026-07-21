@@ -67,7 +67,7 @@ open import Types using
   ; ⟰ᵗ
   ; occurs
   )
-open import Coercions using (Coercion; ModeEnv; instᵈ)
+open import Coercions using (Coercion; Inert; ModeEnv; instᵈ)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionContextExclusivityDef using
@@ -214,6 +214,7 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
         c c′ {A} {A′} {B} {B′} p q →
       Value V′ →
       No• V′ →
+      Inert c′ →
       WorldCoherentLeftCatchupIndexedResult
         {N = N} {V′ = V′} {ρ = ρ⁺} p →
       WorldCoherentLeftCatchupIndexedResult

@@ -90,6 +90,7 @@ world-coherent-matched-allocation
     liftρ coherent =
   world-coherent-store-matched
     (world-coherent-lift-store liftρ coherent)
+    (here refl)
     new-left
     new-right
   where

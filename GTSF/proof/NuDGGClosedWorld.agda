@@ -10,7 +10,11 @@ module proof.NuDGGClosedWorld where
 open import Data.List using ([])
 
 open import NuStore using (StoreWf)
-open import NuTermImprecision using (StoreImpEntry)
+open import NuTermImprecision using
+  ( StoreImpEntry
+  ; correspondence-linked
+  ; correspondence-stored
+  )
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent; world-coherent)
 
@@ -28,4 +32,9 @@ empty-store-wf =
 empty-world-coherent :
   ∀ {Δᴸ Δᴿ} →
   WorldCoherent ([] {A = StoreImpEntry [] Δᴸ Δᴿ})
-empty-world-coherent = world-coherent (λ ())
+empty-world-coherent =
+  world-coherent
+    (λ ())
+    λ { (correspondence-stored ())
+      ; (correspondence-linked ())
+      }

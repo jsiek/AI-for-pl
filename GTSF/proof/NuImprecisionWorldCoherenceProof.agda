@@ -28,6 +28,7 @@ open import NuTermImprecision using
   ; StoreCorresponds
   ; StoreImp
   ; StoreImpEntry
+  ; correspondence-linked
   ; correspondence-stored
   ; leftStoreⁱ
   ; leftStoreⁱ-lift
@@ -46,33 +47,44 @@ open import Relation.Binary.PropositionalEquality using (subst)
 open import Types using (Store; ⇑ᵗ; ⟰ᵗ)
 open import proof.NuImprecisionStoreCorrespondenceLift using
   ( lift-left-store-corresponds
+  ; lift-left-store-corresponds-origin
   ; lift-right-store-corresponds
+  ; lift-right-store-corresponds-origin
   ; lift-store-corresponds
+  ; lift-store-corresponds-origin
   ; store-corresponds-weaken
   )
 open import proof.NuImprecisionWorldCoherenceDef using
   ( WorldCoherent
+  ; corresponds-idˣ
   ; idˣ-corresponds
   ; world-coherent
   )
+open import proof.ImprecisionProperties using (⇑ᵢ-∈; ⇑ᴸᵢ-∈)
 
 
 world-coherent-empty :
   ∀ {Φ Δᴸ Δᴿ} →
   WorldCoherent ([] {A = StoreImpEntry Φ Δᴸ Δᴿ})
-world-coherent-empty = world-coherent (λ _ ())
+world-coherent-empty =
+  world-coherent
+    (λ _ ())
+    λ { (correspondence-stored ())
+      ; (correspondence-linked ())
+      }
 
 
 world-coherent-store-link :
   ∀ {Φ Δᴸ Δᴿ α A β B p}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   WorldCoherent ρ →
+  (α ˣ⊑ˣ β) ∈ Φ →
   WorldCoherent (store-link α A β B p ∷ ρ)
 world-coherent-store-link
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {α = α} {A = A} {β = β} {B = B} {p = p} {ρ = ρ}
-    coherent =
-  world-coherent helper
+    coherent head-assm =
+  world-coherent helper origin
   where
   helper :
     ∀ {α′ β′ X X′} →
@@ -84,6 +96,17 @@ world-coherent-store-link
   helper assm left∈ right∈ =
     let q , corr = idˣ-corresponds coherent assm left∈ right∈ in
     q , store-corresponds-weaken corr
+
+  origin :
+    ∀ {α′ β′ X X′ q} →
+    StoreCorresponds
+      (store-link α A β B p ∷ ρ) α′ X β′ X′ q →
+    (α′ ˣ⊑ˣ β′) ∈ Φ
+  origin (correspondence-stored (there member)) =
+    corresponds-idˣ coherent (correspondence-stored member)
+  origin (correspondence-linked (here refl)) = head-assm
+  origin (correspondence-linked (there member)) =
+    corresponds-idˣ coherent (correspondence-linked member)
 
 
 world-coherent-store-left :
@@ -100,7 +123,7 @@ world-coherent-store-left
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {α = α} {A = A} {hA = hA} {ρ = ρ}
     coherent new-left =
-  world-coherent helper
+  world-coherent helper origin
   where
   helper :
     ∀ {α′ β X X′} →
@@ -113,6 +136,16 @@ world-coherent-store-left
   helper assm (there left∈) right∈ =
     let p , corr = idˣ-corresponds coherent assm left∈ right∈ in
     p , store-corresponds-weaken corr
+
+  origin :
+    ∀ {α′ β X X′ p} →
+    StoreCorresponds
+      (store-left α A hA ∷ ρ) α′ X β X′ p →
+    (α′ ˣ⊑ˣ β) ∈ Φ
+  origin (correspondence-stored (there member)) =
+    corresponds-idˣ coherent (correspondence-stored member)
+  origin (correspondence-linked (there member)) =
+    corresponds-idˣ coherent (correspondence-linked member)
 
 
 world-coherent-store-right :
@@ -129,7 +162,7 @@ world-coherent-store-right
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {β = β} {B = B} {hB = hB} {ρ = ρ}
     coherent new-right =
-  world-coherent helper
+  world-coherent helper origin
   where
   helper :
     ∀ {α β′ X X′} →
@@ -143,11 +176,22 @@ world-coherent-store-right
     let p , corr = idˣ-corresponds coherent assm left∈ right∈ in
     p , store-corresponds-weaken corr
 
+  origin :
+    ∀ {α β′ X X′ p} →
+    StoreCorresponds
+      (store-right β B hB ∷ ρ) α X β′ X′ p →
+    (α ˣ⊑ˣ β′) ∈ Φ
+  origin (correspondence-stored (there member)) =
+    corresponds-idˣ coherent (correspondence-stored member)
+  origin (correspondence-linked (there member)) =
+    corresponds-idˣ coherent (correspondence-linked member)
+
 
 world-coherent-store-matched :
   ∀ {Φ Δᴸ Δᴿ α A β B p}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   WorldCoherent ρ →
+  (α ˣ⊑ˣ β) ∈ Φ →
   (∀ {β′ X′} →
     (α ˣ⊑ˣ β′) ∈ Φ →
     (β′ , X′) ∈ rightStoreⁱ ρ →
@@ -162,8 +206,8 @@ world-coherent-store-matched :
 world-coherent-store-matched
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {α = α} {A = A} {β = β} {B = B} {p = p} {ρ = ρ}
-    coherent new-left new-right =
-  world-coherent helper
+    coherent head-assm new-left new-right =
+  world-coherent helper origin
   where
   helper :
     ∀ {α′ β′ X X′} →
@@ -181,6 +225,17 @@ world-coherent-store-matched
   helper assm (there left∈) (there right∈) =
     let q , corr = idˣ-corresponds coherent assm left∈ right∈ in
     q , store-corresponds-weaken corr
+
+  origin :
+    ∀ {α′ β′ X X′ q} →
+    StoreCorresponds
+      (store-matched α A β B p ∷ ρ) α′ X β′ X′ q →
+    (α′ ˣ⊑ˣ β′) ∈ Φ
+  origin (correspondence-stored (here refl)) = head-assm
+  origin (correspondence-stored (there member)) =
+    corresponds-idˣ coherent (correspondence-stored member)
+  origin (correspondence-linked (there member)) =
+    corresponds-idˣ coherent (correspondence-linked member)
 
 
 private
@@ -233,6 +288,19 @@ private
     there (unshift-right-id assm)
 
 
+  shift-right-id :
+    ∀ {Φ α β} →
+    (α ˣ⊑ˣ β) ∈ Φ →
+    (α ˣ⊑ˣ suc β) ∈ ⇑ᴿᵢ Φ
+  shift-right-id {Φ = []} ()
+  shift-right-id {Φ = (_ ˣ⊑★) ∷ Φ} (here ())
+  shift-right-id {Φ = (_ ˣ⊑★) ∷ Φ} (there assm) =
+    there (shift-right-id assm)
+  shift-right-id {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (here refl) = here refl
+  shift-right-id {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there assm) =
+    there (shift-right-id assm)
+
+
   matched-lift-assumption :
     ∀ {Φ α β} →
     (suc α ˣ⊑ˣ suc β) ∈
@@ -272,7 +340,7 @@ world-coherent-lift-store :
 world-coherent-lift-store
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ} {ρ′ = ρ′}
     liftρ coherent =
-  world-coherent helper
+  world-coherent helper origin
   where
   helper :
     ∀ {α′ β′ X X′} →
@@ -294,6 +362,14 @@ world-coherent-lift-store
           (matched-lift-assumption assm) old-left∈ old-right∈ in
     lift-store-corresponds liftρ corr
 
+  origin :
+    ∀ {α′ β′ X X′ p′} →
+    StoreCorresponds ρ′ α′ X β′ X′ p′ →
+    (α′ ˣ⊑ˣ β′) ∈ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+  origin corr with lift-store-corresponds-origin liftρ corr
+  origin corr | α , A , β , B , p , refl , refl , old-corr =
+    there (⇑ᵢ-∈ (corresponds-idˣ coherent old-corr))
+
 
 world-coherent-lift-left-store :
   ∀ {Φ Δᴸ Δᴿ}
@@ -305,7 +381,7 @@ world-coherent-lift-left-store :
 world-coherent-lift-left-store
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ} {ρ′ = ρ′}
     liftρ coherent =
-  world-coherent helper
+  world-coherent helper origin
   where
   helper :
     ∀ {α′ β X X′} →
@@ -325,6 +401,14 @@ world-coherent-lift-left-store
           (left-lift-assumption assm) old-left∈ old-right∈ in
     lift-left-store-corresponds liftρ corr
 
+  origin :
+    ∀ {α′ β X X′ p′} →
+    StoreCorresponds ρ′ α′ X β X′ p′ →
+    (α′ ˣ⊑ˣ β) ∈ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+  origin corr with lift-left-store-corresponds-origin liftρ corr
+  origin corr | α , A , p , refl , old-corr =
+    there (⇑ᴸᵢ-∈ (corresponds-idˣ coherent old-corr))
+
 
 world-coherent-lift-right-store :
   ∀ {Φ Δᴸ Δᴿ}
@@ -336,7 +420,7 @@ world-coherent-lift-right-store :
 world-coherent-lift-right-store
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ} {ρ′ = ρ′}
     liftρ coherent =
-  world-coherent helper
+  world-coherent helper origin
   where
   helper :
     ∀ {α β′ X X′} →
@@ -355,3 +439,11 @@ world-coherent-lift-right-store
         p , corr = idˣ-corresponds coherent
           (unshift-right-id assm) old-left∈ old-right∈ in
     lift-right-store-corresponds liftρ corr
+
+  origin :
+    ∀ {α β′ X X′ p′} →
+    StoreCorresponds ρ′ α X β′ X′ p′ →
+    (α ˣ⊑ˣ β′) ∈ ⇑ᴿᵢ Φ
+  origin corr with lift-right-store-corresponds-origin liftρ corr
+  origin corr | β , B , p , refl , old-corr =
+    shift-right-id (corresponds-idˣ coherent old-corr)

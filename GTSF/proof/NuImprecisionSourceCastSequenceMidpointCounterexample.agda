@@ -36,6 +36,8 @@ open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
 open import NuStore using (StoreWf; unique)
 open import NuTermImprecision using
   ( StoreImp
+  ; correspondence-linked
+  ; correspondence-stored
   ; leftStoreⁱ
   ; rightStoreⁱ
   ; store-left
@@ -121,7 +123,16 @@ private
   exclusive (there ()) match∈
 
   coherent : WorldCoherent ρ
-  coherent = world-coherent (λ match∈ left∈ ())
+  coherent =
+    world-coherent
+      (λ match∈ left∈ ())
+      λ { (correspondence-stored (here ()))
+        ; (correspondence-stored (there (here ())))
+        ; (correspondence-stored (there (there ())))
+        ; (correspondence-linked (here ()))
+        ; (correspondence-linked (there (here ())))
+        ; (correspondence-linked (there (there ())))
+        }
 
   source-store-wf : StoreWf Δᴸ (leftStoreⁱ ρ)
   source-store-wf =

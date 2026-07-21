@@ -24,6 +24,7 @@ open import NuStore using (StoreWf)
 open import NuTermImprecision using
   ( StoreCorresponds
   ; StoreImp
+  ; correspondence-linked
   ; correspondence-stored
   ; leftStoreⁱ
   ; rightStoreⁱ
@@ -94,14 +95,20 @@ private
   correspondence = correspondence-stored (here refl)
 
   coherent : WorldCoherent ρ₀
-  coherent = world-coherent
-    λ { (here ())
-      ; (there (here refl)) (here refl) (here refl) →
-          idι , correspondence
-      ; (there (here refl)) (here refl) (there ())
-      ; (there (here refl)) (there ()) right∈
-      ; (there (there ()))
-      }
+  coherent =
+    world-coherent
+      (λ { (here ())
+         ; (there (here refl)) (here refl) (here refl) →
+             idι , correspondence
+         ; (there (here refl)) (here refl) (there ())
+         ; (there (here refl)) (there ()) right∈
+         ; (there (there ()))
+         })
+      λ { (correspondence-stored (here refl)) → there (here refl)
+        ; (correspondence-stored (there ()))
+        ; (correspondence-linked (here ()))
+        ; (correspondence-linked (there ()))
+        }
 
   source-store-wf : StoreWf (suc zero) (leftStoreⁱ ρ₀)
   source-store-wf =

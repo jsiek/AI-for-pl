@@ -333,11 +333,10 @@ are delegated:
 | [`NuImprecisionOneStepTargetCastSequenceRoots.agda`](NuImprecisionOneStepTargetCastSequenceRoots.agda) | completed leaves | Strict narrowing and widening β-sequence root helpers consume an explicit midpoint witness and reconstruct the nested target relation; this proves the proposed local evidence is sufficient |
 | Id-only target-cast β-sequence root | partial dependency | `right-id-only-compatible` supplies context composition, but the existing `widening⇒⊑ᵢ` route requires dense `Store.StoreWf`; the dispatcher has sparse `NuStore.StoreWf`. Ground tags mean the branch is not generally impossible, so it also needs retained midpoint evidence or a new sparse-store embedding theorem |
 | General target-cast β-sequence midpoint integration | not yet started | The narrowing and general widening nodes must retain a local `TargetCastSequenceMidpointᵀ` witness and pass it to their root helpers; existing constructors retain only final `q` |
-| [`NuImprecisionWorldCoherenceDef.agda`](NuImprecisionWorldCoherenceDef.agda) | partial; strengthening required | The existing forward field is strict and widely propagated, but it does not require a `StoreCorresponds` witness to originate from a matched row in the imprecision context; add that converse provenance field to this canonical record before relying on it at matched-`Λ` terminal leaves |
-| [`NuImprecisionWorldCoherenceConverseCounterexample.agda`](NuImprecisionWorldCoherenceConverseCounterexample.agda) | completed strict counterexample | GPT 5.5 Ginger regression: the current `WorldCoherent` and `SourceNameExclusive` both hold for a source-only context containing a rogue matched store entry, yet its `StoreCorresponds` witness has no matched context row |
-| [`NuImprecisionWorldCoherenceProof.agda`](NuImprecisionWorldCoherenceProof.agda) | completed for the forward field; converse propagation not yet started | Strict structural proof layer for the current record: empty world, exact entry-extension obligations, correspondence weakening, and matched/left/right canonical lift preservation; every constructor and lift must next preserve converse provenance |
-| [`NuImprecisionWorldCoherenceLemma.agda`](NuImprecisionWorldCoherenceLemma.agda) | completed for current single-name allocations; converse propagation not yet started | Strict assembly for matched, source-only, and target-only single-name lift-plus-allocation; after strengthening, matched allocation supplies the new head row and all three cases preserve tail provenance |
-| [`NuImprecisionWorldCoherenceCrossedLemma.agda`](NuImprecisionWorldCoherenceCrossedLemma.agda) | completed for the forward field; converse propagation not yet started | Separate strict crossed two-name allocation proof over `swapRight∀∀ᵢ`; the strengthened proof must map both crossed head correspondences to their two matched context rows and transport tail provenance through both lifts |
+| [`NuImprecisionWorldCoherenceDef.agda`](NuImprecisionWorldCoherenceDef.agda) | completed strengthened statement | `WorldCoherent` now contains both directions: live matched rows plus physical endpoints produce `StoreCorresponds`, and every `StoreCorresponds` witness originates from a live matched row |
+| [`NuImprecisionWorldCoherenceProof.agda`](NuImprecisionWorldCoherenceProof.agda) | completed strengthened proof | Strict structural proof layer for both fields: empty world, exact entry-extension obligations, correspondence weakening, and matched/left/right canonical lift preservation |
+| [`NuImprecisionWorldCoherenceLemma.agda`](NuImprecisionWorldCoherenceLemma.agda) | completed strengthened single-name assembly | Strict matched, source-only, and target-only single-name lift-plus-allocation assembly; matched allocation supplies the new head row and all three cases preserve tail provenance |
+| [`NuImprecisionWorldCoherenceCrossedLemma.agda`](NuImprecisionWorldCoherenceCrossedLemma.agda) | completed strengthened crossed assembly | Strict crossed two-name allocation over `swapRight∀∀ᵢ`; both crossed head correspondences map to their matched context rows and tail provenance is transported through both lifts |
 | [`NuImprecisionWorldCoherentResultDef.agda`](NuImprecisionWorldCoherentResultDef.agda) | completed statement | Continuing one-step and catch-up results expose final `WorldCoherent` and `SourceNameExclusive`; catch-up additionally exposes final left `StoreWf` and explicit relational-store lineage from its ambient input world |
 | [`NuImprecisionWorldCoherentOneStepDef.agda`](NuImprecisionWorldCoherentOneStepDef.agda) | completed statement | Strengthened one-step contract consumes coherence, source-name exclusivity, and both source/target `StoreWf`, and returns both semantic invariants on every related successor branch |
 | [`NuImprecisionWorldCoherentValueCatchupDef.agda`](NuImprecisionWorldCoherentValueCatchupDef.agda) | completed statement | Strengthened value-catch-up consumes initial coherence, source-name exclusivity, and left `StoreWf`, and exposes all three at the final catch-up world |
@@ -7954,32 +7953,48 @@ coordination.  Use focused strict checks throughout and reserve
 
 ### 2026-07-21: converse world-provenance obstruction
 
-- Completed the focused GPT 5.5 Ginger regression
-  [`NuImprecisionWorldCoherenceConverseCounterexample.agda`](NuImprecisionWorldCoherenceConverseCounterexample.agda).
-  Its imprecision context contains only `zero ˣ⊑★`, while its relational store
-  contains `store-matched zero ★ zero ★ id★`.  The current forward-only
-  `WorldCoherent` condition is vacuous, `SourceNameExclusive` holds, and the
-  store supplies `StoreCorresponds`; nevertheless `zero ˣ⊑ˣ zero` is absent
-  from the context.
+- A focused GPT 5.5 Ginger regression exhibited the precise gap in the old
+  forward-only invariant: a context containing only `zero ˣ⊑★` could coexist
+  with a rogue `store-matched zero ★ zero ★ id★`, vacuous old
+  `WorldCoherent`, `SourceNameExclusive`, and `StoreCorresponds`, but no
+  `zero ˣ⊑ˣ zero` row.  The regression passed strict Ginger and local checks,
+  then was deleted after the strengthened invariant made its witness
+  uninhabitable.  This follows the repository's closed-world policy instead
+  of retaining an obsolete compatibility definition.
 
-- Therefore the existing `WorldCoherent` record is partial as a DGG world
-  invariant.  Strengthen that canonical record with a converse provenance
-  field taking any `StoreCorresponds ρ α A β B p` to
-  `(α ˣ⊑ˣ β) ∈ Φ`.  Do not introduce a second overlapping invariant.  After
-  the strengthened record is assembled, the temporary counterexample should
-  stop type-checking by construction and can be deleted; its current role is
-  to make the missing obligation mechanically explicit before changing the
-  shared interface.
+- Strengthened the canonical
+  [`WorldCoherent`](NuImprecisionWorldCoherenceDef.agda) record with
+  `corresponds-idˣ`, taking every
+  `StoreCorresponds ρ α A β B p` back to `(α ˣ⊑ˣ β) ∈ Φ`.  The existing
+  `idˣ-corresponds` field remains the forward direction; no overlapping
+  invariant was introduced.
 
-- Propagate the new field in stages: first through empty, entry-extension, and
-  matched/left/right lift proofs; then through canonical and crossed
-  allocations and the closed-world witness; finally require the strengthened
-  final-world coherence together with `SourceNameExclusive` at the frame and
-  matched-`Λ` structural closing boundaries.  Each stage gets a focused
-  `--no-allow-unsolved-metas` check.  Unfinished downstream theorems remain
-  explicit parameters of higher-order `Proof` modules; neither holes nor
-  source-level `--allow-unsolved-metas` are permitted.
+- Added the three exhaustive inverse-lift theorems in
+  [`NuImprecisionStoreCorrespondenceLift.agda`](NuImprecisionStoreCorrespondenceLift.agda):
+  `lift-store-corresponds-origin`,
+  `lift-left-store-corresponds-origin`, and
+  `lift-right-store-corresponds-origin`.  Their conclusions expose the old
+  names, old imprecision proof, and old `StoreCorresponds` witness explicitly,
+  avoiding proof equality and hidden transport metas.
 
-- Ginger checked the new counterexample with
-  `scripts/agda-ginger --no-allow-unsolved-metas -v0`, and the local focused
-  check also passed.  No `All.agda` or other aggregate module was checked.
+- Propagated converse provenance through empty and entry-extension worlds,
+  all three store lifts, canonical matched/source-only/target-only allocation,
+  crossed two-name allocation, the closed-world witness, and the two existing
+  counterexample witnesses that remain valid.  All of these modules pass
+  focused `--no-allow-unsolved-metas` checks.  Source and target seal
+  cancellation and the terminal backward-value world-coherent contract also
+  pass as focused downstream consumers.
+
+- The attempted matched-`Λ` structural counterexample was discarded: its
+  proposed premises were inconsistent because the fresh zero occurrence would
+  need both the outer matched row and the new source-only row.  This is positive
+  evidence that the structural contract may already exclude the rogue-world
+  shape.  Reassessing whether the final frame motive needs any additional
+  explicit premise is **in progress**; the strengthened `WorldCoherent`
+  carried by existing boundaries is now semantically meaningful.
+
+- A cold-cache `NuDGGStrictSpine.agda` check was stopped after 5.5 minutes with
+  no diagnostic.  The focused modules above took roughly 2--17 seconds each
+  and supply the integration evidence for this batch.  No `All.agda`, paired
+  target-closing aggregate, source-level `--allow-unsolved-metas`, hole, or
+  postulate was used.

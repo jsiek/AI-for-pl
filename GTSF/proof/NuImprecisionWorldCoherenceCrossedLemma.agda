@@ -27,6 +27,8 @@ open import NuTermImprecision using
   ( LiftStoreⁱ
   ; StoreCorresponds
   ; StoreImp
+  ; correspondence-linked
+  ; correspondence-stored
   ; crossedStoreⁱ
   ; crossedStoreⁱ-new-old
   ; crossedStoreⁱ-old-new
@@ -39,15 +41,18 @@ open import Types using (Store; Ty; TyCtx; WfTy; ⇑ᵗ; ⟰ᵗ)
 open import proof.ImprecisionProperties using
   ( no-⇑ᵢ-zero-left
   ; no-⇑ᵢ-zero-right
+  ; ⇑ᵢ-∈
   ; un⇑ᵢ-ˣ∈
   )
 open import proof.NuImprecisionWorldCoherenceDef using
   ( WorldCoherent
+  ; corresponds-idˣ
   ; idˣ-corresponds
   ; world-coherent
   )
 open import proof.NuImprecisionStoreCorrespondenceLift using
   ( lift-store-corresponds
+  ; lift-store-corresponds-origin
   ; store-corresponds-weaken
   )
 
@@ -303,7 +308,7 @@ private
   world-coherent-crossed-tail-lift-store
       {Φ = Φ} {ρ₀ = ρ₀} {ρ₁ = ρ₁} {ρ₂ = ρ₂}
       liftρ₁ liftρ₂ coherent =
-    world-coherent helper
+    world-coherent helper origin
     where
     helper :
       ∀ {α′ β′ X X′} →
@@ -324,6 +329,22 @@ private
         p₁ , corr₁ = lift-store-corresponds liftρ₁ corr
       in
       lift-store-corresponds liftρ₂ corr₁
+
+    origin :
+      ∀ {α′ β′ X X′ p′} →
+      StoreCorresponds ρ₂ α′ X β′ X′ p′ →
+      (α′ ˣ⊑ˣ β′) ∈ swapRight∀∀ᵢ Φ
+    origin corr₂ with lift-store-corresponds-origin liftρ₂ corr₂
+    origin corr₂
+        | α₁ , A₁ , β₁ , B₁ , p₁ , refl , refl , corr₁
+        with lift-store-corresponds-origin liftρ₁ corr₁
+    origin corr₂
+        | .(suc α₀) , A₁ , .(suc β₀) , B₁ , p₁ ,
+          refl , refl , corr₁
+        | α₀ , A₀ , β₀ , B₀ , p₀ , refl , refl , corr₀ =
+      there
+        (there
+          (⇑ᵢ-∈ (⇑ᵢ-∈ (corresponds-idˣ coherent corr₀))))
 
 
 world-coherent-crossed-allocation :
@@ -348,7 +369,7 @@ world-coherent-crossed-allocation :
 world-coherent-crossed-allocation
     {Φ = Φ} {ρ₂ = ρ₂}
     hA₀ hA₁ hB₀ hB₁ p₀₁ p₁₀ liftρ₁ liftρ₂ coherent =
-  world-coherent helper
+  world-coherent helper origin
   where
   tail-coherent : WorldCoherent ρ₂
   tail-coherent =
@@ -403,3 +424,26 @@ world-coherent-crossed-allocation
           idˣ-corresponds tail-coherent
             (there (there assm)) left∈ right∈ in
     p , weaken-crossed-corresponds corr
+
+  origin :
+    ∀ {α β X X′ p} →
+    StoreCorresponds
+      (crossedStoreⁱ hA₀ hA₁ hB₀ hB₁ p₀₁ p₁₀ ρ₂)
+      α X β X′ p →
+    (α ˣ⊑ˣ β) ∈ swapRight∀∀ᵢ Φ
+  origin
+      (correspondence-stored
+        (there (there (there (there (there (there member))))))) =
+    corresponds-idˣ tail-coherent (correspondence-stored member)
+  origin
+      (correspondence-linked
+        (there (there (there (there (here refl)))))) =
+    here refl
+  origin
+      (correspondence-linked
+        (there (there (there (there (there (here refl))))))) =
+    there (here refl)
+  origin
+      (correspondence-linked
+        (there (there (there (there (there (there member))))))) =
+    corresponds-idˣ tail-coherent (correspondence-linked member)

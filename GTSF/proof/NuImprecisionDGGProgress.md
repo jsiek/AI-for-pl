@@ -349,6 +349,7 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentSourceNuCatchupProof.agda) | completed higher-order proof | Strict accumulated-world adapter transports the reveal and universal relation to the operand's final world, delegates final-value allocation to the exact-final contract, propagates source blame, and composes explicit lineages |
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupDef.agda) | completed statement | Exact-final ordinary source-`ν` contract retains the arbitrary inner universal index, final allocation/reveal evidence, values, and world invariants |
 | [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef.agda) | completed statement | Full exact-final branch specialized to `ν occ r`; intended source-bullet/allocation implementation path |
+| [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda) | completed higher-order proof; checking-time partial | Strict source allocation, bullet/reveal catch-up, outer `ν` resumption, coherence, exclusivity, store Wf, and lineage from the whole bullet and reveal capabilities; still imports `NuImprecisionSimulation` only for `left-lift-prefix-bodyᵀ` |
 | [`NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef.agda) | completed statement; hard audit | Full exact-final branch specialized to `∀ⁱ r`; existing one-sided allocation leaves do not yet derive it, so a strict proof-or-counterexample audit is active |
 | [`NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda`](NuImprecisionWorldCoherentFinalSourceNuCatchupProof.agda) | completed higher-order proof | Exhaustively assembles the generic exact-final contract from the source-only-index and paired-index whole capabilities; canonical `Lemma` remains absent |
 | [`NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda`](NuImprecisionWorldCoherentSourceNuCastCatchupDef.agda) | completed statement | Exact runtime `ν ★` handler boundary participating in the widening-`inst` mutual SCC |
@@ -6607,3 +6608,15 @@ coordination.  Use focused strict checks throughout and reserve
   `--no-allow-unsolved-metas` check passes; the unresolved source-only and
   paired exact-final branches remain explicit higher-order dependencies rather
   than holes or permissive modules.
+
+- Completed the strict exact-final source-only-index branch for ordinary
+  source `ν`.  The higher-order proof takes the whole source-bullet and
+  source-reveal catch-up contracts, allocates the fresh source-only row,
+  establishes world coherence, source-name exclusivity, and sparse store
+  well-formedness, then catches up the bullet and reveal cast before prepending
+  the `ν` allocation step.  Its explicit lineage combines the canonical left
+  store lift with the fresh-row prefix.  A focused
+  `--no-allow-unsolved-metas` check passes.  The only remaining checking-time
+  debt in this completed join is its broad `NuImprecisionSimulation` import
+  for `left-lift-prefix-bodyᵀ`; extracting that single support theorem is now a
+  frozen leaf task rather than a semantic proof risk.

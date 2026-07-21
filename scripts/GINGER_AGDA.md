@@ -62,10 +62,15 @@ that contains its checked interface.
     cd /home/jsiek/src/AI-for-pl/.codex-ginger-worktrees/<slice>
     scripts/agda-ginger --no-allow-unsolved-metas -v0 proof/<OwnedModule>.agda
 
-Commit and push only the worker's owned files from that worktree.  The local
-integrator fetches the worker branch, reviews its exact diff, integrates it,
-and runs the nearest focused consumer check.  Do not run `All.agda` in the
-worker worktree.
+Leave the worker's owned files uncommitted when Codex is running in
+`workspace-write`.  A Git worktree's `.git` file points to the main checkout's
+shared Git directory, which is deliberately outside the worker sandbox, so the
+worker cannot create `index.lock` or write commit objects.  After the worker
+reports a clean focused check, the coordinator uses an ordinary SSH shell to
+review the exact diff, stage only the owned paths, commit, and push the worker
+branch.  The local integrator then fetches that branch, reviews its exact diff,
+integrates it, and runs the nearest focused consumer check.  Do not run
+`All.agda` in the worker worktree.
 
 For a completed leaf, remove any local `--allow-unsolved-metas` and
 `--allow-incomplete-matches` options before the final check.  Agda's
@@ -84,6 +89,13 @@ which is outside a worker worktree.  A workspace-only Codex sandbox can read
 the library but fails when Agda must replace a stale interface.  The wrapper
 adds only that `_build` directory as an extra writable root; it does not make
 the standard-library source or the rest of the home directory writable.
+
+The wrapper intentionally does not grant write access to the main checkout's
+shared `.git` directory.  Do not treat an `index.lock: Read-only file system`
+message as an Agda or proof failure, and do not broaden the worker sandbox to
+fix it.  Use the coordinator Git handoff described above.  Remote network
+access from inside the worker sandbox may also be unavailable; the coordinator
+performs the push from the ordinary SSH session.
 
 After installing or upgrading Agda or the standard library, run one focused
 `scripts/agda-ginger` check outside a Codex worker before starting several
@@ -156,7 +168,9 @@ interface commit.  The assignment must state:
 4. the exact focused wrapper command;
 5. that interface changes must be reported instead of made; and
 6. that the completed slice must contain no holes, postulates, or incomplete
-   matches.
+   matches; and
+7. that the worker must not commit or push because the coordinator owns the
+   exact-path Git handoff.
 
 The local GPT 5.6 integrator owns focused consumer checks, architecture-sensitive
 proofs, and milestone aggregate checks.

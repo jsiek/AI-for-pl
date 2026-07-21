@@ -6163,6 +6163,13 @@ catch-up architecture.
   `removeLink: permission denied` failure without broadening access to the
   standard-library source or the rest of the remote home directory.
 
+- Recorded the separate Ginger Git handoff.  A worktree's real Git directory
+  is outside the Codex `workspace-write` sandbox, so workers now stop after
+  their owned-file strict check.  The coordinator reviews, stages, commits,
+  and pushes the exact owned paths through the ordinary SSH session.  This
+  avoids recurring `index.lock` and sandboxed-network failures without
+  granting the proof worker broad access to the shared repository metadata.
+
 - Made strictness an architectural acceptance condition for the three-file
   split.  A missing canonical leaf is represented by an uninstantiated theorem
   parameter in a strict `Proof` module, never by a hole or file-level

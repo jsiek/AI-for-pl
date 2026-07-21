@@ -34,6 +34,6 @@ left-silent-paired-cast-transport-proofᵀ
 left-silent-paired-cast-transport-proofᵀ
     conversion-transport widening-transport
     prefix inner silent coherent
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑) =
+    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat) =
   widening-transport prefix inner silent
-    mode seal★ c⊑ mode′ seal★′ c′⊑
+    mode seal★ c⊑ mode′ seal★′ c′⊑ compat

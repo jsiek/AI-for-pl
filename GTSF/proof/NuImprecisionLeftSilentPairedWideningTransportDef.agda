@@ -17,6 +17,8 @@ open import NuReduction using
 open import NuTermImprecision using
   (StoreImp; leftStoreⁱ; rightStoreⁱ)
 open import NuTerms using (Term)
+open import PairedWideningCompatibility using
+  (PairedWideningCompatible)
 open import QuotientedTermImprecision using
   (PairedCast; StoreImpPrefix)
 open import TermTyping using
@@ -54,6 +56,7 @@ LeftSilentPairedWideningTransportᵀ =
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ₀) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c′ ∶ A′ ⊑ B′ →
+  PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
   PairedCast
     (resultCtx inner)
     (resultLeftCtx inner)

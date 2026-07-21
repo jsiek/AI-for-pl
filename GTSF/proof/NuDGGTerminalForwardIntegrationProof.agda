@@ -34,8 +34,28 @@ open import proof.NuImprecisionWorldCoherentRightValueCatchupProof using
   (world-coherent-right-value-catchup-proofᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepDef using
   (WorldCoherentSourceOneStepSimulationᵀ)
+open import proof.NuImprecisionWorldCoherentSourceAllocationStepDef using
+  (WorldCoherentSourceAllocationStepᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourceApplicationLeftStepDef using
+  (WorldCoherentSourceApplicationLeftStepᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourceApplicationPureRootDef
+  using (WorldCoherentSourceApplicationPureRootᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourceApplicationRightStepDef using
+  (WorldCoherentSourceApplicationRightStepᵀ)
+open import proof.NuImprecisionWorldCoherentSourceCastFrameStepDef using
+  (WorldCoherentSourceCastFrameStepᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourceCastPureRootDef
+  using (WorldCoherentSourceCastPureRootᵀ)
+open import proof.NuImprecisionWorldCoherentSourceNuFrameStepDef using
+  (WorldCoherentSourceNuFrameStepᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepCasesDef using
   (WorldCoherentSourceOneStepCases)
+open import proof.NuImprecisionWorldCoherentSourceOneStepCasesProof using
+  (world-coherent-source-one-step-cases-proofᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepDispatcherProof using
   (world-coherent-source-one-step-dispatcher-proofᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepProof using
@@ -46,6 +66,15 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepPrefixProof using
   (world-coherent-exact-source-one-step-prefix-proofᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentExactSourceOneStepSimulationᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourcePrimitiveLeftStepDef using
+  (WorldCoherentSourcePrimitiveLeftStepᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourcePrimitiveRightStepDef using
+  (WorldCoherentSourcePrimitiveRightStepᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourceRuntimeBulletPureRootDef
+  using (WorldCoherentSourceRuntimeBulletPureRootᵀ)
 
 
 world-coherent-forward-and-backward-terminals⇒gradual-dgg :
@@ -133,3 +162,33 @@ forward-cases-and-backward-terminals⇒gradual-dgg
     source-cases
     (world-coherent-right-value-catchup-dispatcher-proofᵀ right-cases)
     backward-value backward-blame
+
+
+forward-case-builders-and-backward-terminals⇒gradual-dgg :
+  WorldCoherentRightValueCatchupCases →
+  WorldCoherentSourceApplicationPureRootᵀ →
+  WorldCoherentSourceRuntimeBulletPureRootᵀ →
+  WorldCoherentSourceCastPureRootᵀ →
+  WorldCoherentSourceAllocationStepᵀ →
+  WorldCoherentSourceApplicationLeftStepᵀ →
+  WorldCoherentSourceApplicationRightStepᵀ →
+  WorldCoherentSourceCastFrameStepᵀ →
+  WorldCoherentSourceNuFrameStepᵀ →
+  WorldCoherentSourcePrimitiveLeftStepᵀ →
+  WorldCoherentSourcePrimitiveRightStepᵀ →
+  BackwardTargetValueOrSourceBlameᵀ →
+  BackwardTargetBlameᵀ →
+  GradualDGG
+forward-case-builders-and-backward-terminals⇒gradual-dgg
+    right-cases application-root bullet-root cast-root
+    allocation-step application-left-step application-right-step
+    cast-frame-step ν-frame-step primitive-left-step primitive-right-step
+    backward-value backward-blame =
+  forward-cases-and-backward-terminals⇒gradual-dgg
+    (world-coherent-source-one-step-cases-proofᵀ
+      (world-coherent-right-value-catchup-dispatcher-proofᵀ right-cases)
+      application-root bullet-root cast-root
+      allocation-step application-left-step application-right-step
+      cast-frame-step ν-frame-step
+      primitive-left-step primitive-right-step)
+    right-cases backward-value backward-blame

@@ -272,6 +272,13 @@ occurs-zero? A with occurs zero A
 occurs-zero? A | false = no (λ ())
 occurs-zero? A | true = yes refl
 
+genSafeSource? : (A : Ty) → Dec (GenSafeSource A)
+genSafeSource? (＇ X) = no (λ ())
+genSafeSource? (‵ ι) = no (λ ())
+genSafeSource? ★ = no (λ ())
+genSafeSource? (A ⇒ B) = yes source-fun
+genSafeSource? (`∀ A) = yes source-all
+
 infix 4 _≟ImpAssm_
 _≟ImpAssm_ : (a b : ImpAssm) → Dec (a ≡ b)
 (x ˣ⊑★) ≟ImpAssm (y ˣ⊑★) with x ≟ y
@@ -338,53 +345,77 @@ mutual
   ... | yes A₁⊑B₁ | no A₂⋢B₂ =
     no λ { (A₁⊑B₁ ↦ A₂⊑B₂) → A₂⋢B₂ A₂⊑B₂ }
   imp? Φ (A₁ ⇒ A₂) (`∀ B) = no (λ ())
-  imp? Φ (`∀ A) (＇ X) with occurs-zero? A
-  imp? Φ (`∀ A) (＇ X) | no ¬occA =
+  imp? Φ (`∀ A) (＇ X) with genSafeSource? A
+  imp? Φ (`∀ A) (＇ X) | no ¬safe =
+    no λ { (ν {{safe}} occ A⊑X) → ¬safe safe }
+  imp? Φ (`∀ A) (＇ X) | yes safe with occurs-zero? A
+  imp? Φ (`∀ A) (＇ X) | yes safe | no ¬occA =
     no λ { (ν occ A⊑X) → ¬occA occ }
-  imp? Φ (`∀ A) (＇ X) | yes occA
+  imp? Φ (`∀ A) (＇ X) | yes safe | yes occA
       with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (＇ X))
-  imp? Φ (`∀ A) (＇ X) | yes occA | yes A⊑X = yes (ν occA A⊑X)
-  imp? Φ (`∀ A) (＇ X) | yes occA | no A⋢X =
+  imp? Φ (`∀ A) (＇ X) | yes safe | yes occA | yes A⊑X =
+    yes (ν {{safe}} occA A⊑X)
+  imp? Φ (`∀ A) (＇ X) | yes safe | yes occA | no A⋢X =
     no λ { (ν occ A⊑X) → A⋢X A⊑X }
-  imp? Φ (`∀ A) (‵ ι) with occurs-zero? A
-  imp? Φ (`∀ A) (‵ ι) | no ¬occA =
+  imp? Φ (`∀ A) (‵ ι) with genSafeSource? A
+  imp? Φ (`∀ A) (‵ ι) | no ¬safe =
+    no λ { (ν {{safe}} occ A⊑ι) → ¬safe safe }
+  imp? Φ (`∀ A) (‵ ι) | yes safe with occurs-zero? A
+  imp? Φ (`∀ A) (‵ ι) | yes safe | no ¬occA =
     no λ { (ν occ A⊑ι) → ¬occA occ }
-  imp? Φ (`∀ A) (‵ ι) | yes occA
+  imp? Φ (`∀ A) (‵ ι) | yes safe | yes occA
       with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (‵ ι))
-  imp? Φ (`∀ A) (‵ ι) | yes occA | yes A⊑ι = yes (ν occA A⊑ι)
-  imp? Φ (`∀ A) (‵ ι) | yes occA | no A⋢ι =
+  imp? Φ (`∀ A) (‵ ι) | yes safe | yes occA | yes A⊑ι =
+    yes (ν {{safe}} occA A⊑ι)
+  imp? Φ (`∀ A) (‵ ι) | yes safe | yes occA | no A⋢ι =
     no λ { (ν occ A⊑ι) → A⋢ι A⊑ι }
-  imp? Φ (`∀ A) ★ with occurs-zero? A
-  imp? Φ (`∀ A) ★ | no ¬occA =
+  imp? Φ (`∀ A) ★ with genSafeSource? A
+  imp? Φ (`∀ A) ★ | no ¬safe =
+    no λ { (ν {{safe}} occ A⊑★) → ¬safe safe }
+  imp? Φ (`∀ A) ★ | yes safe with occurs-zero? A
+  imp? Φ (`∀ A) ★ | yes safe | no ¬occA =
     no λ { (ν occ A⊑★) → ¬occA occ }
-  imp? Φ (`∀ A) ★ | yes occA
+  imp? Φ (`∀ A) ★ | yes safe | yes occA
       with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ ★)
-  imp? Φ (`∀ A) ★ | yes occA | yes A⊑★ = yes (ν occA A⊑★)
-  imp? Φ (`∀ A) ★ | yes occA | no A⋢★ =
+  imp? Φ (`∀ A) ★ | yes safe | yes occA | yes A⊑★ =
+    yes (ν {{safe}} occA A⊑★)
+  imp? Φ (`∀ A) ★ | yes safe | yes occA | no A⋢★ =
     no λ { (ν occ A⊑★) → A⋢★ A⊑★ }
-  imp? Φ (`∀ A) (B₁ ⇒ B₂) with occurs-zero? A
-  imp? Φ (`∀ A) (B₁ ⇒ B₂) | no ¬occA =
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) with genSafeSource? A
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) | no ¬safe =
+    no λ { (ν {{safe}} occ A⊑B) → ¬safe safe }
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes safe with occurs-zero? A
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes safe | no ¬occA =
     no λ { (ν occ A⊑B) → ¬occA occ }
-  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes occA
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes safe | yes occA
       with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (B₁ ⇒ B₂))
-  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes occA | yes A⊑B =
-    yes (ν occA A⊑B)
-  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes occA | no A⋢B =
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes safe | yes occA | yes A⊑B =
+    yes (ν {{safe}} occA A⊑B)
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes safe | yes occA | no A⋢B =
     no λ { (ν occ A⊑B) → A⋢B A⊑B }
   imp? Φ (`∀ A) (`∀ B)
       with imp? ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) A B
   imp? Φ (`∀ A) (`∀ B) | yes A⊑B = yes (∀ⁱ A⊑B)
-  imp? Φ (`∀ A) (`∀ B) | no A⋢B with occurs-zero? A
-  imp? Φ (`∀ A) (`∀ B) | no A⋢B | no ¬occA =
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B with genSafeSource? A
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B | no ¬safe =
+    no λ
+      { (∀ⁱ A⊑B) → A⋢B A⊑B
+      ; (ν {{safe}} occ A⊑∀B) → ¬safe safe
+      }
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes safe
+      with occurs-zero? A
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes safe | no ¬occA =
     no λ
       { (∀ⁱ A⊑B) → A⋢B A⊑B
       ; (ν occ A⊑∀B) → ¬occA occ
       }
-  imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes occA
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes safe | yes occA
       with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (`∀ B))
-  imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes occA | yes A⊑∀B =
-    yes (ν occA A⊑∀B)
-  imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes occA | no A⋢∀B =
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes safe | yes occA
+      | yes A⊑∀B =
+    yes (ν {{safe}} occA A⊑∀B)
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes safe | yes occA
+      | no A⋢∀B =
     no λ
       { (∀ⁱ A⊑B) → A⋢B A⊑B
       ; (ν occ A⊑∀B) → A⋢∀B A⊑∀B

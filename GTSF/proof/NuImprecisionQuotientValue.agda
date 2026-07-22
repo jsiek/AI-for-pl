@@ -87,6 +87,7 @@ open import proof.CastImprecision using
 open import proof.ForallPermutationProperties using
   (⊑ᵖ-arrow-left-shape; ⊑ᵖ-ground-left
   ; ⊑ᵖ-star-left-eq)
+open import proof.GenSafeProperties using (genSafe-star-source⊥)
 open import proof.NuImprecisionCatchupComposition using
   (left-catchup-indexed-prepend-keepᵀ)
 open import proof.NuImprecisionSimulationCore
@@ -188,6 +189,25 @@ inert-narrowing-star-to-arrow (() , narrowing) (seal A α)
 inert-narrowing-star-to-arrow (() , narrowing) (c ↦ d)
 inert-narrowing-star-to-arrow (() , narrowing) (`∀ c)
 inert-narrowing-star-to-arrow (() , narrowing) (gen A c)
+
+inert-narrowing-source-star-no-seal :
+  ∀ {μ Δ Σ d B} →
+  (∀ α → C.sealModeAllowed (μ α) ≡ false) →
+  μ ∣ Δ ∣ Σ ⊢ d ∶ ★ ⊒ B →
+  Inert d →
+  ⊥
+inert-narrowing-source-star-no-seal
+    no-seal (_ , NW.cross ()) (G !)
+inert-narrowing-source-star-no-seal no-seal
+    (C.cast-seal hA α∈Σ ok , narrowing) (seal A α) =
+  false≢true (trans (sym (no-seal α)) ok)
+inert-narrowing-source-star-no-seal
+    no-seal (() , narrowing) (c ↦ d)
+inert-narrowing-source-star-no-seal
+    no-seal (() , narrowing) (`∀ c)
+inert-narrowing-source-star-no-seal no-seal
+    (C.cast-gen h★ occ c⊢ , NW.gen safe) (gen ★ c) =
+  genSafe-star-source⊥ c⊢ safe
 
 cast-value-inert :
   ∀ {V c} →
@@ -374,6 +394,20 @@ outer-inst-allocation-trace :
 outer-inst-allocation-trace noV vW =
   ↠-step (pure-step (β-inst vW))
     (↠-step (ν-step vW (no•-⟨⟩ noV)) ↠-refl)
+
+outer-inst-fun-tag-allocation-trace :
+  ∀ {V d B s} →
+  No• V →
+  Value (V ⟨ d ⟩) →
+  ((V ⟨ d ⟩) ⟨ inst B s ︔ ((★ T.⇒ ★) !) ⟩)
+    —↠[ keep ∷ keep ∷ bind ★ ∷ [] ]
+      ((((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+        ⟨ ⇑ᶜ ((★ T.⇒ ★) !) ⟩)
+outer-inst-fun-tag-allocation-trace noV vW =
+  ↠-step (pure-step (β-seq vW))
+    (↠-step (ξ-⟨⟩ (pure-step (β-inst vW)))
+      (↠-step
+        (ξ-⟨⟩ (ν-step vW (no•-⟨⟩ noV))) ↠-refl))
 
 inner-inst-allocation-trace :
   ∀ {V B s u} →
@@ -829,6 +863,21 @@ target-inert-after-source-untag-sequence-impossible
 target-inert-after-source-untag-sequence-impossible
     {Δᴿ = Δᴿ} {ρ = ρ} inert-d′
     (down⊑downᵀ
+      (C.cast-seq (C.cast-untag hG gG⊢ ok)
+                  (C.cast-gen hA occ g⊢) ,
+       NW.fun-untag-gen safe)
+      d′⊒ V⊑V′ qD) =
+  inert-narrowing-source-star-no-seal
+    id-only-no-seal star-d′⊒ inert-d′
+  where
+  star-d′⊒ =
+    subst
+      (λ X → C.id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
+        ⊢ _ ∶ X ⊒ _)
+      (star-term-imprecision-target V⊑V′) d′⊒
+target-inert-after-source-untag-sequence-impossible
+    {Δᴿ = Δᴿ} {ρ = ρ} inert-d′
+    (down⊑downᵀ
       (C.cast-seq (C.cast-untag hG gG⊢ ok) g⊢ ,
         gG NW.？︔ gⁿ)
       d′⊒ V⊑V′ qD)
@@ -879,6 +928,21 @@ target-inert-after-source-untag-sequence-impossible
         NW.strict-untag gG NW.︔seal α)
       d′⊒ V⊑V′ qD) =
   source-quotient-down-seal-tail-impossible down
+target-inert-after-source-untag-sequence-impossible
+    {Δᴿ = Δᴿ} {ρ = ρ} inert-d′
+    (gen-down⊑gen-downᵀ
+      (C.cast-seq (C.cast-untag hG gG⊢ ok)
+                  (C.cast-gen hA occ g⊢) ,
+       NW.fun-untag-gen safe)
+      d′⊒ V⊑V′ qD) =
+  inert-narrowing-source-star-no-seal
+    gen-tag-or-id-no-seal star-d′⊒ inert-d′
+  where
+  star-d′⊒ =
+    subst
+      (λ X → C.genᵈ C.tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
+        ⊢ _ ∶ X ⊒ _)
+      (star-term-imprecision-target V⊑V′) d′⊒
 target-inert-after-source-untag-sequence-impossible
     {Δᴿ = Δᴿ} {ρ = ρ} inert-d′
     (gen-down⊑gen-downᵀ
@@ -950,6 +1014,28 @@ inner-sequence-residualᵀ
   ⊥-elim (source-quotient-down-seal-tail-impossible down)
 inner-sequence-residualᵀ
     (down⊑downᵀ
+      (C.cast-seq (C.cast-untag hG gG⊢ ok)
+                  (C.cast-gen hA occ g⊢) ,
+       NW.fun-untag-gen safe)
+      d′⊒ V⊑V′ qD)
+    widening pA =
+  up⊑upᵀ split-down widening pA
+  where
+  G⊑C′ =
+    subst (λ X → _ ∣ _ ⊢ _ ⊑ X ⊣ _)
+      (sym (star-term-imprecision-target V⊑V′))
+      (tag id★ ⇛ id★)
+  untag⊒ =
+    NW.narrow-mode-relax { μ = C.id-onlyᵈ }
+      C.id-only≤tag-or-idᵈ
+      (C.cast-untag hG gG⊢ ok , NW.untag gG⊢)
+  untag-relation =
+    cast⊒⊑ᵀ cast-tag-or-id seal★-tag-or-id untag⊒
+      V⊑V′ G⊑C′
+  gen⊒ = C.cast-gen hA occ g⊢ , NW.gen safe
+  split-down = down⊑downᵀ gen⊒ d′⊒ untag-relation qD
+inner-sequence-residualᵀ
+    (down⊑downᵀ
       (C.cast-seq
         (C.cast-untag hG gG⊢ ok) g⊢ ,
         gG NW.？︔ gⁿ)
@@ -979,6 +1065,26 @@ inner-sequence-residualᵀ
       d′⊒ V⊑V′ qD)
     widening pA =
   ⊥-elim (source-quotient-down-seal-tail-impossible down)
+inner-sequence-residualᵀ
+    (gen-down⊑gen-downᵀ
+      (C.cast-seq (C.cast-untag hG gG⊢ ok)
+                  (C.cast-gen hA occ g⊢) ,
+       NW.fun-untag-gen safe)
+      d′⊒ V⊑V′ qD)
+    widening pA =
+  up⊑upᵀ split-down widening pA
+  where
+  G⊑C′ =
+    subst (λ X → _ ∣ _ ⊢ _ ⊑ X ⊣ _)
+      (sym (star-term-imprecision-target V⊑V′))
+      (tag id★ ⇛ id★)
+  untag⊒ = C.cast-untag hG gG⊢ ok , NW.untag gG⊢
+  untag-relation =
+    cast⊒⊑ᵀ (cast-gen cast-tag-or-id)
+      seal★-gen-tag-or-id untag⊒ V⊑V′ G⊑C′
+  gen⊒ = C.cast-gen hA occ g⊢ , NW.gen safe
+  split-down =
+    gen-down⊑gen-downᵀ gen⊒ d′⊒ untag-relation qD
 inner-sequence-residualᵀ
     (gen-down⊑gen-downᵀ
       (C.cast-seq
@@ -1028,6 +1134,12 @@ left-catchup-indexed-final-quotient-outer-pureᵀ :
       (((V ⟨ d ⟩) ⟨ u ⟩)
         —↠[ keep ∷ bind ★ ∷ [] ]
           ((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+  ⊎ ∃[ B ] ∃[ s ]
+      (u ≡ (inst B s ︔ ((★ T.⇒ ★) !))) ×
+      (((V ⟨ d ⟩) ⟨ u ⟩)
+        —↠[ keep ∷ keep ∷ bind ★ ∷ [] ]
+          ((((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+            ⟨ ⇑ᶜ ((★ T.⇒ ★) !) ⟩))
 left-catchup-indexed-final-quotient-outer-pureᵀ
     (β-id vW) vV noV vV′ noV′ inert-d′ inert-u′
     down (quotient-id-widening u⊑ u′⊑) pA =
@@ -1118,12 +1230,36 @@ left-catchup-indexed-final-quotient-outer-pureᵀ
   inj₁ (⊥-elim
     (source-inert-quotient-down-var-impossible vW down))
 left-catchup-indexed-final-quotient-outer-pureᵀ
+    (β-seq vW) vV noV vV′ noV′ inert-d′ inert-u′
+    down
+    (quotient-id-widening
+      (C.cast-seq (C.cast-inst hB occ s⊢)
+                  (C.cast-tag hG gG⊢ ok) ,
+       NW.inst-fun-tag safe)
+      u′⊑)
+    pA =
+  inj₂
+    (inj₂ (_ , _ , refl ,
+      outer-inst-fun-tag-allocation-trace noV vW))
+left-catchup-indexed-final-quotient-outer-pureᵀ
+    (β-seq vW) vV noV vV′ noV′ inert-d′ inert-u′
+    down
+    (quotient-cast-widening mode seal★
+      (C.cast-seq (C.cast-inst hB occ s⊢)
+                  (C.cast-tag hG gG⊢ ok) ,
+       NW.inst-fun-tag safe)
+      mode′ seal★′ u′⊑)
+    pA =
+  inj₂
+    (inj₂ (_ , _ , refl ,
+      outer-inst-fun-tag-allocation-trace noV vW))
+left-catchup-indexed-final-quotient-outer-pureᵀ
     (β-inst vW) vV noV vV′ noV′ inert-d′ inert-u′
     down
     (quotient-id-widening
       (C.cast-inst hB occ s⊢ , NW.inst sʷ) u′⊑)
     pA =
-  inj₂ (_ , _ , refl , outer-inst-allocation-trace noV vW)
+  inj₂ (inj₁ (_ , _ , refl , outer-inst-allocation-trace noV vW))
 left-catchup-indexed-final-quotient-outer-pureᵀ
     (β-inst vW) vV noV vV′ noV′ inert-d′ inert-u′
     down
@@ -1131,7 +1267,7 @@ left-catchup-indexed-final-quotient-outer-pureᵀ
       (C.cast-inst hB occ s⊢ , NW.inst sʷ)
       mode′ seal★′ u′⊑)
     pA =
-  inj₂ (_ , _ , refl , outer-inst-allocation-trace noV vW)
+  inj₂ (inj₁ (_ , _ , refl , outer-inst-allocation-trace noV vW))
 left-catchup-indexed-final-quotient-outer-pureᵀ
     (tag-untag-ok vW) vV noV vV′ noV′ inert-d′ inert-u′
     down widening pA =
@@ -1176,6 +1312,15 @@ left-catchup-indexed-final-quotient-inner-stepᵀ
 left-catchup-indexed-final-quotient-inner-stepᵀ
     (pure-step (β-seq vW)) vV noV vV′ noV′ inert-d′ inert-u′
     down@(down⊑downᵀ
+      (C.cast-seq s⊢ t⊢ , NW.fun-untag-gen safe)
+      d′⋒ V⊑V′ qD)
+    widening pA =
+  ⊥-elim
+    (target-inert-after-source-untag-sequence-impossible
+      inert-d′ down)
+left-catchup-indexed-final-quotient-inner-stepᵀ
+    (pure-step (β-seq vW)) vV noV vV′ noV′ inert-d′ inert-u′
+    down@(down⊑downᵀ
       (C.cast-seq s⊢ t⊢ , gG NW.？︔ gⁿ)
       d′⋒ V⊑V′ qD)
     widening pA =
@@ -1190,6 +1335,15 @@ left-catchup-indexed-final-quotient-inner-stepᵀ
       d′⋒ V⊑V′ qD)
     widening pA =
   ⊥-elim (source-quotient-down-seal-tail-impossible down)
+left-catchup-indexed-final-quotient-inner-stepᵀ
+    (pure-step (β-seq vW)) vV noV vV′ noV′ inert-d′ inert-u′
+    down@(gen-down⊑gen-downᵀ
+      (C.cast-seq s⊢ t⊢ , NW.fun-untag-gen safe)
+      d′⋒ V⊑V′ qD)
+    widening pA =
+  ⊥-elim
+    (target-inert-after-source-untag-sequence-impossible
+      inert-d′ down)
 left-catchup-indexed-final-quotient-inner-stepᵀ
     (pure-step (β-seq vW)) vV noV vV′ noV′ inert-d′ inert-u′
     down@(gen-down⊑gen-downᵀ
@@ -1266,6 +1420,12 @@ left-catchup-indexed-final-quotient-after-source-stepᵀ :
       (((V ⟨ d ⟩) ⟨ u ⟩)
         —↠[ keep ∷ bind ★ ∷ [] ]
           ((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+  ⊎ ∃[ B ] ∃[ s ]
+      (u ≡ (inst B s ︔ ((★ T.⇒ ★) !))) ×
+      (((V ⟨ d ⟩) ⟨ u ⟩)
+        —↠[ keep ∷ keep ∷ bind ★ ∷ [] ]
+          ((((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+            ⟨ ⇑ᶜ ((★ T.⇒ ★) !) ⟩))
 left-catchup-indexed-final-quotient-after-source-stepᵀ
     vV noV vV′ noV′ inert-d′ inert-u′
     (pure-step source→) down widening pA =
@@ -1306,6 +1466,12 @@ left-catchup-indexed-final-quotient-activeᵀ :
       (((V ⟨ d ⟩) ⟨ u ⟩)
         —↠[ keep ∷ bind ★ ∷ [] ]
           ((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+  ⊎ ∃[ B ] ∃[ s ]
+      (u ≡ (inst B s ︔ ((★ T.⇒ ★) !))) ×
+      (((V ⟨ d ⟩) ⟨ u ⟩)
+        —↠[ keep ∷ keep ∷ bind ★ ∷ [] ]
+          ((((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+            ⟨ ⇑ᶜ ((★ T.⇒ ★) !) ⟩))
 left-catchup-indexed-final-quotient-activeᵀ
     vV noV vV′ noV′ inert-d′ inert-u′
     source-active
@@ -1405,6 +1571,12 @@ left-catchup-indexed-final-quotient-valueᵀ :
       (((V ⟨ d ⟩) ⟨ u ⟩)
         —↠[ keep ∷ bind ★ ∷ [] ]
           ((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+  ⊎ ∃[ B ] ∃[ s ]
+      (u ≡ (inst B s ︔ ((★ T.⇒ ★) !))) ×
+      (((V ⟨ d ⟩) ⟨ u ⟩)
+        —↠[ keep ∷ keep ∷ bind ★ ∷ [] ]
+          ((((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+            ⟨ ⇑ᶜ ((★ T.⇒ ★) !) ⟩))
 left-catchup-indexed-final-quotient-valueᵀ
     vV noV vV′ noV′ inert-d′ inert-u′
     down widening pA
@@ -1465,6 +1637,12 @@ left-catchup-indexed-final-quotientᵀ :
       (((V ⟨ d ⟩) ⟨ u ⟩)
         —↠[ keep ∷ bind ★ ∷ [] ]
           ((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+  ⊎ ∃[ B ] ∃[ s ]
+      (u ≡ (inst B s ︔ ((★ T.⇒ ★) !))) ×
+      (((V ⟨ d ⟩) ⟨ u ⟩)
+        —↠[ keep ∷ keep ∷ bind ★ ∷ [] ]
+          ((((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+            ⟨ ⇑ᶜ ((★ T.⇒ ★) !) ⟩))
 left-catchup-indexed-final-quotientᵀ
     vV′ noV′ inert-d′ inert-u′
     down widening pA (inj₁ (vV , noV)) =

@@ -21,6 +21,7 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
   ; conv⊑convᵀ
+  ; gen⊑groundᵀ
   ; paired-conceal
   ; paired-conversion
   ; paired-reveal
@@ -94,17 +95,19 @@ atomic-target-value-reindexᵀ atom vV
 atomic-target-value-reindexᵀ () vV
     (Λ⊑Λᵀ liftρ liftγ vW vW′ W⊑W′) q
 atomic-target-value-reindexᵀ atom vV
-    (Λ⊑ᵀ occ liftρ liftγ vW W⊑V) (ν occ′ q) =
-  Λ⊑ᵀ occ′ liftρ liftγ vW
+    (Λ⊑ᵀ {{safe}} occ liftρ liftγ vW W⊑V)
+    (ν {{safe′}} occ′ q) =
+  Λ⊑ᵀ {{safe = safe′}} occ′ liftρ liftγ vW
     (atomic-target-value-reindexᵀ atom vV W⊑V q)
 atomic-target-value-reindexᵀ atom ()
     (α⊑αᵀ vL noL vL′ noL′ p↑ liftρ liftγ
       L⊑L′ L•⊢ L′•⊢) q
 atomic-target-value-reindexᵀ atom vV
-    (α⊑ᵀ {occ = occ} vL noL hA liftρ liftγ
+    (α⊑ᵀ {occ = occ} {{safe = safe}} vL noL hA liftρ liftγ
       L⊑V L•⊢ V⊢) q =
-  α⊑ᵀ vL noL hA liftρ liftγ
-    (atomic-target-value-reindexᵀ atom vV L⊑V (ν occ q))
+  α⊑ᵀ {{safe = safe}} vL noL hA liftρ liftγ
+    (atomic-target-value-reindexᵀ atom vV L⊑V
+      (ν {{safe}} occ q))
     L•⊢ V⊢
 atomic-target-value-reindexᵀ atom ()
     (⊑αᵀ vL′ noL′ hA liftρ liftγ N⊑L′ r N⊢ L′•⊢) q
@@ -132,6 +135,11 @@ atomic-target-value-reindexᵀ atom vV κ⊑κᵀ idι =
   κ⊑κᵀ
 atomic-target-value-reindexᵀ atom ()
     (⊕⊑⊕ᵀ L⊑L′ M⊑M′) q
+atomic-target-value-reindexᵀ atom vV
+    (gen⊑groundᵀ mode seal★ c⊒ gH vW vV′ V′⊢
+      W⊑V′tag p) q =
+  gen⊑groundᵀ mode seal★ c⊒ gH vW vV′ V′⊢
+    W⊑V′tag q
 atomic-target-value-reindexᵀ atom vV
     (cast⊒⊑ᵀ mode seal★ c⊒ M⊑V p) q =
   cast⊒⊑ᵀ mode seal★ c⊒ M⊑V q

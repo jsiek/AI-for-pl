@@ -2406,6 +2406,7 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
 
 left-νcast-allocation :
   ∀ {Φ Δᴸ Δᴿ B B′ C N N′ s μ q occ}
+    {{safe : GenSafeSource C}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value N →
@@ -2467,6 +2468,7 @@ left-νcast-allocation {q = q} vN noN mode seal★ s⊑ pB liftρ
 
 left-ν↑-allocation :
   ∀ {Φ Δᴸ Δᴿ A B B′ C N N′ s μ q occ}
+    {{safe : GenSafeSource C}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value N →
@@ -3019,6 +3021,7 @@ matched-β-inst-νcast-allocation vN noN vN′ noN′ mode seal★
 
 left-β-inst-νcast-allocation :
   ∀ {Φ Δᴸ Δᴿ B B′ C N N′ s μ q occ}
+    {{safe : GenSafeSource C}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value N →

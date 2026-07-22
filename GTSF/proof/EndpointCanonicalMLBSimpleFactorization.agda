@@ -22,7 +22,8 @@ open import Relation.Binary.PropositionalEquality using
 
 open import Types
 open import ForallPermutation using (_≈∀_; ≈∀-swap)
-open import Imprecision using (ImpCtx; idᵢ; _ˣ⊑★; _ˣ⊑ˣ_)
+open import Imprecision using
+  (GenSafeSource; ImpCtx; idᵢ; _ˣ⊑★; _ˣ⊑ˣ_)
 open import ImprecisionWf using
   ( _∣_⊢_⊑_⊣_; id★; idˣ; idι; _↦_; ∀ⁱ_; tag_; tag_⇛_; tagˣ
   ; ν; ⊑-src-wf
@@ -89,6 +90,8 @@ open import proof.EndpointCanonicalMLBSimpleCompleteness using
   ; fuel-★⇒-left; fuel-★⇒-right
   ; sizeTy-subst-starᵢ
   )
+open import proof.MaximalLowerBoundsWf using
+  (genSafeSource-forward-if-occursᵢ)
 open import proof.EndpointCanonicalMLBSimpleFactor using
   ( occurs-zero-factor-∀
   ; source-left-exposure-path; source-right-exposure-path
@@ -790,7 +793,7 @@ world-bubble-left-exposure :
       (world-common-depth (world-extend leftˢ target))
       (world-left-depth (world-extend leftˢ target))
       (world-right-depth (world-extend leftˢ target)) A B E ×
-     occurs zero E ≡ true)
+     GenSafeSource E × occurs zero E ≡ true)
 world-bubble-left-exposure {Δ = Δ}
     (target-schedule modes left-eq right-eq common-eq left-depth-eq
       right-depth-eq)
@@ -802,13 +805,13 @@ world-bubble-left-exposure
     (target-schedule modes left-eq right-eq common-eq left-depth-eq
       right-depth-eq)
     path route
-    | E , body , occ =
+    | E , body , safe , occ =
   E ,
   transport-enum-route
     (sym (cong ∀ᵢᶜ left-eq)) (sym (cong νᵢᶜ right-eq))
     (sym (cong suc common-eq)) (sym (cong suc left-depth-eq))
     (sym right-depth-eq) refl refl refl body ,
-  occ
+  safe , occ
 
 world-bubble-right-exposure :
   ∀ {Δ target fuel A B C} →
@@ -827,7 +830,7 @@ world-bubble-right-exposure :
       (world-common-depth (world-extend rightˢ target))
       (world-left-depth (world-extend rightˢ target))
       (world-right-depth (world-extend rightˢ target)) A B E ×
-     occurs zero E ≡ true)
+     GenSafeSource E × occurs zero E ≡ true)
 world-bubble-right-exposure {Δ = Δ}
     (target-schedule modes left-eq right-eq common-eq left-depth-eq
       right-depth-eq)
@@ -841,13 +844,13 @@ world-bubble-right-exposure
     (target-schedule modes left-eq right-eq common-eq left-depth-eq
       right-depth-eq)
     path route
-    | E , body , occ , aligned =
+    | E , body , safe , occ , aligned =
   E ,
   transport-enum-route
     (sym (cong νᵢᶜ left-eq)) (sym (cong ∀ᵢᶜ right-eq))
     (sym (cong suc common-eq)) (sym left-depth-eq)
     (sym (cong suc right-depth-eq)) refl refl refl body ,
-  occ
+  safe , occ
 
 world-left-route-path :
   ∀ {Δ target fuel A B C} →
@@ -925,7 +928,7 @@ paired-left-compatible-route :
       (world-common-depth (world-extend leftˢ target))
       (world-left-depth (world-extend leftˢ target))
       (world-right-depth (world-extend leftˢ target)) A B E ×
-     occurs zero E ≡ true)
+     GenSafeSource E × occurs zero E ≡ true)
 paired-left-compatible-route history occ source route =
   world-bubble-left-exposure
     (indexed-target-schedule history)
@@ -955,7 +958,7 @@ paired-right-compatible-route :
       (world-common-depth (world-extend rightˢ target))
       (world-left-depth (world-extend rightˢ target))
       (world-right-depth (world-extend rightˢ target)) A B E ×
-     occurs zero E ≡ true)
+     GenSafeSource E × occurs zero E ≡ true)
 paired-right-compatible-route history occ source route =
   world-bubble-right-exposure
     (indexed-target-schedule history)
@@ -1652,6 +1655,7 @@ paired-both-route-factor-step history source route recurse
 
 paired-left-route-factor-step :
   ∀ {Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ fuel C A B D} →
+  {{safeC : GenSafeSource C}} →
   IndexedFactorWorlds Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ →
   occurs zero C ≡ true →
   PairedLower
@@ -1688,18 +1692,22 @@ paired-left-route-factor-step :
       (world-left-depth target) (world-right-depth target)
       (`∀ A) B F ×
      Ψ ∣ Δˢ ⊢ `∀ C ⊑ F ⊣ Δᵗ)
-paired-left-route-factor-step history occ source route recurse
+paired-left-route-factor-step {{safeC}} history occ source route recurse
     with paired-left-compatible-route history occ source route
-paired-left-route-factor-step history occ source route recurse
-    | E , compatible , target-occ
+paired-left-route-factor-step {{safeC}} history occ source route recurse
+    | E , compatible , target-safe , target-occ
     with recurse compatible
-paired-left-route-factor-step history occ source route recurse
-    | E , compatible , target-occ | F , route′ , factor =
-  `∀ F , route-left (occurs-zero-factor-∀ factor occ) route′ ,
+paired-left-route-factor-step {{safeC}} history occ source route recurse
+    | E , compatible , target-safe , target-occ | F , route′ , factor =
+  `∀ F , route-left {{safeF}} factor-occ route′ ,
   ∀ⁱ factor
+  where
+    factor-occ = occurs-zero-factor-∀ factor occ
+    safeF = genSafeSource-forward-if-occursᵢ factor safeC factor-occ
 
 paired-right-route-factor-step :
   ∀ {Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ fuel C A B D} →
+  {{safeC : GenSafeSource C}} →
   IndexedFactorWorlds Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ →
   occurs zero C ≡ true →
   PairedLower
@@ -1736,18 +1744,22 @@ paired-right-route-factor-step :
       (world-left-depth target) (world-right-depth target)
       A (`∀ B) F ×
      Ψ ∣ Δˢ ⊢ `∀ C ⊑ F ⊣ Δᵗ)
-paired-right-route-factor-step history occ source route recurse
+paired-right-route-factor-step {{safeC}} history occ source route recurse
     with paired-right-compatible-route history occ source route
-paired-right-route-factor-step history occ source route recurse
-    | E , compatible , target-occ
+paired-right-route-factor-step {{safeC}} history occ source route recurse
+    | E , compatible , target-safe , target-occ
     with recurse compatible
-paired-right-route-factor-step history occ source route recurse
-    | E , compatible , target-occ | F , route′ , factor =
-  `∀ F , route-right (occurs-zero-factor-∀ factor occ) route′ ,
+paired-right-route-factor-step {{safeC}} history occ source route recurse
+    | E , compatible , target-safe , target-occ | F , route′ , factor =
+  `∀ F , route-right {{safeF}} factor-occ route′ ,
   ∀ⁱ factor
+  where
+    factor-occ = occurs-zero-factor-∀ factor occ
+    safeF = genSafeSource-forward-if-occursᵢ factor safeC factor-occ
 
 paired-neither-route-factor-step :
   ∀ {Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ fuel C A B} →
+  {{safeC : GenSafeSource C}} →
   IndexedFactorWorlds Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ →
   occurs zero C ≡ true →
   PairedLower
@@ -1769,10 +1781,11 @@ paired-neither-route-factor-step :
       (world-common-depth target)
       (world-left-depth target) (world-right-depth target) A B F ×
      Ψ ∣ Δˢ ⊢ `∀ C ⊑ F ⊣ Δᵗ)
-paired-neither-route-factor-step {C = C} history occ source
+paired-neither-route-factor-step {C = C} {{safeC}} history occ source
     (F , route , factor) =
   F , route ,
-  ⊑-trans-left-idᵢ (close-star-lowerᵢ occ source-wf) factor
+  ⊑-trans-left-idᵢ
+    (close-star-lowerᵢ {{safeC}} occ source-wf) factor
   where
     source-wf =
       subst (λ Δ → WfTy (suc Δ) C)
@@ -1922,11 +1935,11 @@ star-factor-worker (suc (suc sourceFuel)) source history
       (source-fuel-arrow-right source) history lower₂
 star-factor-worker .(suc zero)
     (source-ok {budget = zero} ()) history
-    (paired-neither occ lower)
+    (paired-neither {{safe}} occ lower)
 star-factor-worker (suc (suc sourceFuel)) source history
-    (paired-neither {C = C} occ lower) =
+    (paired-neither {C = C} {{safe}} occ lower) =
   ⊑-trans-left-idᵢ
-    (close-star-lowerᵢ occ source-wf)
+    (close-star-lowerᵢ {{safe}} occ source-wf)
     (star-factor-worker (suc sourceFuel)
       (source-fuel-inst-star source) history (paired-inst-star lower))
   where
@@ -1962,11 +1975,11 @@ route-factor-worker (suc fuel) sourceFuel source history
   ★ , route-star , star-factor-worker sourceFuel source history lower
 route-factor-worker
     (suc fuel) .(suc zero) (source-ok {budget = zero} ()) history
-    (paired-neither occ lower) route
+    (paired-neither {{safe}} occ lower) route
 route-factor-worker
     (suc fuel) (suc (suc sourceFuel)) source history
-    (paired-neither occ lower) route =
-  paired-neither-route-factor-step history occ lower
+    (paired-neither {{safe}} occ lower) route =
+  paired-neither-route-factor-step {{safe}} history occ lower
     (route-factor-worker (suc fuel) (suc sourceFuel)
       (source-fuel-inst-star source) history
       (paired-inst-star lower) route)
@@ -2056,15 +2069,15 @@ route-factor-worker (suc fuel) sourceFuel source history
         (indexed-factor-paired bothˢ active-both history)
         lower compatible)
 route-factor-worker (suc fuel) sourceFuel source history
-    (paired-left occ lower) route =
-  paired-left-route-factor-step history occ lower route
+    (paired-left {{safe}} occ lower) route =
+  paired-left-route-factor-step {{safe}} history occ lower route
     (λ compatible →
       route-factor-worker fuel _ sourceFuelFor
         (indexed-factor-paired leftˢ active-left history)
         lower compatible)
 route-factor-worker (suc fuel) sourceFuel source history
-    (paired-right occ lower) route =
-  paired-right-route-factor-step history occ lower route
+    (paired-right {{safe}} occ lower) route =
+  paired-right-route-factor-step {{safe}} history occ lower route
     (λ compatible →
       route-factor-worker fuel _ sourceFuelFor
         (indexed-factor-paired rightˢ active-right history)

@@ -1119,7 +1119,8 @@ world-coherent-source-inst-widen-castᵀ value-prefix
       (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
 
   source-cast =
-    widen-weaken ≤-refl source-store-incl (s⊢ , sʷ)
+    widen-weaken ≤-refl source-store-incl
+      (s⊢ , NW.dualGenSafe→widening sʷ)
 
   ν-framed = weak-one-step-source-νcast-frameᵀ
     mode ν-seal★ source-cast q inner
@@ -1344,6 +1345,18 @@ world-coherent-source-widen-catchup-proofᵀ
     (s⊢ , NW.cross (NW.strictCrossʷ→cross gʷ))
     (t⊢ , NW.tag gG)
     (gʷ NW.︔ gG !) vV′ noV′ catchup q
+world-coherent-source-widen-catchup-proofᵀ
+    midpoint cancel value-prefix
+    prefix mode seal★
+    (C.cast-seq (C.cast-inst hB occ s⊢)
+                (C.cast-tag hG gG ok) ,
+     NW.inst-fun-tag safe)
+    vV′ noV′ catchup q =
+  world-coherent-source-seq-widen-castᵀ
+    midpoint value-prefix prefix mode seal★
+    (C.cast-inst hB occ s⊢ , NW.inst safe)
+    (C.cast-tag hG gG ok , NW.tag gG)
+    (NW.inst-fun-tag safe) vV′ noV′ catchup q
 world-coherent-source-widen-catchup-proofᵀ
     midpoint cancel value-prefix
     {μ = μ}

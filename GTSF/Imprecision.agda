@@ -58,6 +58,46 @@ swapRight∀∀ᵢ Φ =
 -- Type Imprecision
 ------------------------------------------------------------------------
 
+-- A source body generalized by `ν` must expose a value-preserving coercion
+-- shape.  Functions do so directly; an outer universal gives an inert
+-- all-coercion, while any nested source-only generalization checks its own
+-- body.  In particular, a bare bound variable is excluded because
+-- compiling it against `★` would put its active projection directly beneath
+-- `gen`.
+data GenSafeSource : Ty → Set where
+  source-fun : ∀ {A B} → GenSafeSource (A ⇒ B)
+  source-all : ∀ {A} → GenSafeSource (`∀ A)
+
+genSafeSource-unique :
+  ∀ {A} →
+  (p q : GenSafeSource A) →
+  p ≡ q
+genSafeSource-unique source-fun source-fun = refl
+genSafeSource-unique source-all source-all = refl
+
+instance
+  genSafeSource-fun : ∀ {A B} → GenSafeSource (A ⇒ B)
+  genSafeSource-fun = source-fun
+
+  genSafeSource-all : ∀ {A} → GenSafeSource (`∀ A)
+  genSafeSource-all = source-all
+
+renameGenSafeSource :
+  ∀ {A} →
+  (ρ : Renameᵗ) →
+  GenSafeSource A →
+  GenSafeSource (renameᵗ ρ A)
+renameGenSafeSource ρ source-fun = source-fun
+renameGenSafeSource ρ source-all = source-all
+
+substGenSafeSource :
+  ∀ {A} →
+  (cons : Substᵗ) →
+  GenSafeSource A →
+  GenSafeSource (substᵗ cons A)
+substGenSafeSource cons source-fun = source-fun
+substGenSafeSource cons source-all = source-all
+
 infix 4 _⊢_⊑_
 data _⊢_⊑_ (Φ : ImpCtx) : Ty → Ty → Set where
   id★ :
@@ -99,6 +139,7 @@ data _⊢_⊑_ (Φ : ImpCtx) : Ty → Ty → Set where
     → Φ ⊢ ＇ X ⊑ ★
 
   ν : ∀ {A B}
+    → {{GenSafeSource A}}
     → occurs zero A ≡ true      -- Phil: keep this, need for unique derivations
     → (0 ˣ⊑★) ∷ ⇑ᵢ Φ ⊢ A ⊑ ⇑ᵗ B
     -------------------------

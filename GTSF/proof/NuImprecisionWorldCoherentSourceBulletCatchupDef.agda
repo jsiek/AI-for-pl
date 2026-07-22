@@ -12,7 +12,8 @@ open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_,_)
 open import ImprecisionWf using
-  ( ImpCtx
+  ( GenSafeSource
+  ; ImpCtx
   ; _ˣ⊑★
   ; ⇑ᴸᵢ
   ; _∣_⊢_⊑_⊣_
@@ -54,6 +55,7 @@ WorldCoherentSourceBulletCatchupᵀ =
     {L V′ : Term} {A B′ C : Ty}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
+    {{safe : GenSafeSource C}}
     {occ : occurs zero C ≡ true} →
   (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
   StoreImpPrefix

@@ -1052,7 +1052,8 @@ gen∀-body-mode≤gen (suc (suc (suc X))) = refl
 ∀gen-narrowing-body
     (C.cast-all (C.cast-gen hA occ d⊢) ,
       NW.cross (NW.`∀ (NW.gen dⁿ))) =
-  narrow-mode-relax ∀gen-body-mode≤gen (d⊢ , dⁿ)
+  narrow-mode-relax ∀gen-body-mode≤gen
+    (d⊢ , NW.genSafe→narrowing dⁿ)
 
 gen∀-narrowing-body :
   ∀ {Δ Σ B D′ d′} →
@@ -1062,7 +1063,7 @@ gen∀-narrowing-body :
     ⊢ d′ ∶ renameᵗ (extᵗ suc) B ⊒ D′
 gen∀-narrowing-body
     (C.cast-gen hB occ (C.cast-all d′⊢) ,
-      NW.gen (NW.cross (NW.`∀ d′ⁿ))) =
+      NW.gen (NW.safe-all d′ⁿ)) =
   narrow-mode-relax gen∀-body-mode≤gen (d′⊢ , d′ⁿ)
 
 inst∀-widening-body :
@@ -1074,7 +1075,7 @@ inst∀-widening-body :
     ⊢ u ∶ D ⊑ renameᵗ (extᵗ suc) E
 inst∀-widening-body
     (C.cast-inst hE occ (C.cast-all u⊢) ,
-      NW.inst (NW.cross (NW.`∀ uʷ))) =
+      NW.inst (NW.safe-all uʷ)) =
   widen-mode-relax
     (ModeIncl-ext (ModeIncl-inst id-only≤tag-or-idᵈ))
     (u⊢ , uʷ)
@@ -1091,7 +1092,7 @@ inst∀-widening-body
       NW.cross (NW.`∀ (NW.inst u′ʷ))) =
   widen-mode-relax
     (ModeIncl-inst (ModeIncl-ext id-only≤tag-or-idᵈ))
-    (u′⊢ , u′ʷ)
+    (u′⊢ , NW.dualGenSafe→widening u′ʷ)
 
 leftStoreⁱ-double-lift :
   ∀ {Φ Δᴸ Δᴿ}
@@ -5314,7 +5315,8 @@ left-silent-indexed-all-source-widen-inst-valueᵀ
     inner final-relation (left-silent-invariant refl refl)
 
   ν-framed = weak-one-step-source-νcast-frameᵀ
-    mode (seal★-inst seal★) (s⊢ , sʷ) (∀ⁱ _) inner
+    mode (seal★-inst seal★)
+      (s⊢ , NW.dualGenSafe→widening sʷ) (∀ⁱ _) inner
 
   second-relation :
     resultCtx first
@@ -6015,6 +6017,7 @@ left-catchup-indexed-all-prefix-α-Λᵀ
 
 left-allocated-bulletᵀ :
   ∀ {Φ Δᴸ Δᴿ Aν A B′ V V′ occ r}
+    {{safe : GenSafeSource A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -6049,6 +6052,7 @@ left-allocated-bulletᵀ
 
 left-catchup-all-α-∀-revealᵀ :
   ∀ {Φ Δᴸ Δᴿ μ α X Aν A C C′ c V V′ occ r q}
+    {{safe : GenSafeSource A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -6080,6 +6084,7 @@ left-catchup-all-α-∀-revealᵀ
 
 left-catchup-all-α-∀-concealᵀ :
   ∀ {Φ Δᴸ Δᴿ μ α X Aν A C C′ c V V′ occ r q}
+    {{safe : GenSafeSource A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -6111,6 +6116,7 @@ left-catchup-all-α-∀-concealᵀ
 
 left-catchup-all-α-∀-narrowingᵀ :
   ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
+    {{safe : GenSafeSource A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -6159,6 +6165,7 @@ left-catchup-all-α-∀-narrowingᵀ
 
 left-catchup-all-α-∀-wideningᵀ :
   ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
+    {{safe : GenSafeSource A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →

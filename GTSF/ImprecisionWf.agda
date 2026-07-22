@@ -29,6 +29,12 @@ open import Imprecision public using
   ; ⇑ᴸᵢ
   ; ⇑ᴿᵢ
   ; swapRight∀∀ᵢ
+  ; GenSafeSource
+  ; source-fun
+  ; source-all
+  ; genSafeSource-unique
+  ; renameGenSafeSource
+  ; substGenSafeSource
   )
 
 ------------------------------------------------------------------------
@@ -81,6 +87,7 @@ data _∣_⊢_⊑_⊣_ (Φ : ImpCtx) (Δᴸ : TyCtx) :
     → Φ ∣ Δᴸ ⊢ ＇ X ⊑ ★ ⊣ Δᴿ
 
   ν : ∀ {A B Δᴿ}
+    → {{GenSafeSource A}}
     → occurs zero A ≡ true
     → (((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
         ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ)

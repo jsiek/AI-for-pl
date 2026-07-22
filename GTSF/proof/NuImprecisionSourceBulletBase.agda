@@ -16,7 +16,13 @@ open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁)
 open import ImprecisionWf using
-  (_∣_⊢_⊑_⊣_; _ˣ⊑★; ⇑ᴸᵢ; ν; ⊑-src-wf)
+  ( GenSafeSource
+  ; _∣_⊢_⊑_⊣_
+  ; _ˣ⊑★
+  ; ⇑ᴸᵢ
+  ; ν
+  ; ⊑-src-wf
+  )
 open import NuReduction using
   ( keep
   ; pure-step
@@ -360,6 +366,7 @@ left-catchup-indexed-prefix-α-Λᵀ
 
 left-allocated-bulletᵀ :
   ∀ {Φ Δᴸ Δᴿ Aν A B′ V V′ occ r}
+    {{safe : GenSafeSource A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →

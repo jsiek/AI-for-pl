@@ -157,8 +157,11 @@ mutual
     proj₁ (dualⁿ η w) ≡ dualRawⁿ η c
   dualⁿ-raw η (cross gⁿ) = dualCrossⁿ-raw η gⁿ
   dualⁿ-raw η id★ = refl
-  dualⁿ-raw η (gen {A = A} sⁿ) =
-    cong (inst A) (dualⁿ-raw (genᵃ η) sⁿ)
+  dualⁿ-raw η (gen {A = A} safe) =
+    cong (inst A)
+      (trans
+        (dualGenSafeⁿ-raw (genᵃ η) safe)
+        (dualⁿ-raw (genᵃ η) (genSafe→narrowing safe)))
   dualⁿ-raw η (untag (＇ α)) with η α
   ... | normal = refl
   ... | tag-to-seal = refl
@@ -185,6 +188,11 @@ mutual
     trans
       (cong (_︔ ((★ ⇒ ★) !)) (dualStrictCrossⁿ-raw η gⁿ))
       (sym (dualRawSeqⁿ-nonseal η ((★ ⇒ ★) ？) gⁿ))
+  dualⁿ-raw η (fun-untag-gen {A = A} safe) =
+    cong (λ d → inst A d ︔ ((★ ⇒ ★) !))
+      (trans
+        (dualGenSafeⁿ-raw (genᵃ η) safe)
+        (dualⁿ-raw (genᵃ η) (genSafe→narrowing safe)))
   dualⁿ-raw η (sealⁿ A α) with η α
   ... | normal = refl
   ... | tag-to-seal = refl
@@ -198,8 +206,11 @@ mutual
     ∀ η {c} (w : StrictNarrowing c) →
     proj₁ (dualStrictⁿ η w) ≡ dualRawⁿ η c
   dualStrictⁿ-raw η (strict-crossⁿ gⁿ) = dualStrictCrossⁿ-raw η gⁿ
-  dualStrictⁿ-raw η (strict-gen {A = A} sⁿ) =
-    cong (inst A) (dualⁿ-raw (genᵃ η) sⁿ)
+  dualStrictⁿ-raw η (strict-gen {A = A} safe) =
+    cong (inst A)
+      (trans
+        (dualGenSafeⁿ-raw (genᵃ η) safe)
+        (dualⁿ-raw (genᵃ η) (genSafe→narrowing safe)))
   dualStrictⁿ-raw η (strict-untag (＇ α)) with η α
   ... | normal = refl
   ... | tag-to-seal = refl
@@ -226,6 +237,11 @@ mutual
     trans
       (cong (_︔ ((★ ⇒ ★) !)) (dualStrictCrossⁿ-raw η gⁿ))
       (sym (dualRawSeqⁿ-nonseal η ((★ ⇒ ★) ？) gⁿ))
+  dualStrictⁿ-raw η (strict-fun-untag-gen {A = A} safe) =
+    cong (λ d → inst A d ︔ ((★ ⇒ ★) !))
+      (trans
+        (dualGenSafeⁿ-raw (genᵃ η) safe)
+        (dualⁿ-raw (genᵃ η) (genSafe→narrowing safe)))
   dualStrictⁿ-raw η (strict-seal A α) with η α
   ... | normal = refl
   ... | tag-to-seal = refl
@@ -260,8 +276,11 @@ mutual
     proj₁ (dualʷ η w) ≡ dualRawʷ η c
   dualʷ-raw η (cross gʷ) = dualCrossʷ-raw η gʷ
   dualʷ-raw η id★ = refl
-  dualʷ-raw η (inst {B = B} sʷ) =
-    cong (gen B) (dualʷ-raw (instᵃ η) sʷ)
+  dualʷ-raw η (inst {B = B} safe) =
+    cong (gen B)
+      (trans
+        (dualGenSafeʷ-raw (instᵃ η) safe)
+        (dualʷ-raw (instᵃ η) (dualGenSafe→widening safe)))
   dualʷ-raw η (tag (＇ α)) with η α
   ... | normal = refl
   ... | tag-to-seal = refl
@@ -288,6 +307,11 @@ mutual
     trans
       (cong (((★ ⇒ ★) ？) ︔_) (dualStrictCrossʷ-raw η gʷ))
       (sym (dualRawSeqʷ-nonunseal η gʷ ((★ ⇒ ★) !)))
+  dualʷ-raw η (inst-fun-tag {B = B} safe) =
+    cong (λ d → ((★ ⇒ ★) ？) ︔ gen B d)
+      (trans
+        (dualGenSafeʷ-raw (instᵃ η) safe)
+        (dualʷ-raw (instᵃ η) (dualGenSafe→widening safe)))
   dualʷ-raw η (unsealʷ α A) with η α
   ... | normal = refl
   ... | tag-to-seal = refl
@@ -301,8 +325,11 @@ mutual
     ∀ η {c} (w : StrictWidening c) →
     proj₁ (dualStrictʷ η w) ≡ dualRawʷ η c
   dualStrictʷ-raw η (strict-crossʷ gʷ) = dualStrictCrossʷ-raw η gʷ
-  dualStrictʷ-raw η (strict-inst {B = B} sʷ) =
-    cong (gen B) (dualʷ-raw (instᵃ η) sʷ)
+  dualStrictʷ-raw η (strict-inst {B = B} safe) =
+    cong (gen B)
+      (trans
+        (dualGenSafeʷ-raw (instᵃ η) safe)
+        (dualʷ-raw (instᵃ η) (dualGenSafe→widening safe)))
   dualStrictʷ-raw η (strict-tag (＇ α)) with η α
   ... | normal = refl
   ... | tag-to-seal = refl
@@ -329,6 +356,11 @@ mutual
     trans
       (cong (((★ ⇒ ★) ？) ︔_) (dualStrictCrossʷ-raw η gʷ))
       (sym (dualRawSeqʷ-nonunseal η gʷ ((★ ⇒ ★) !)))
+  dualStrictʷ-raw η (strict-inst-fun-tag {B = B} safe) =
+    cong (λ d → ((★ ⇒ ★) ？) ︔ gen B d)
+      (trans
+        (dualGenSafeʷ-raw (instᵃ η) safe)
+        (dualʷ-raw (instᵃ η) (dualGenSafe→widening safe)))
   dualStrictʷ-raw η (strict-unseal α A) with η α
   ... | normal = refl
   ... | tag-to-seal = refl

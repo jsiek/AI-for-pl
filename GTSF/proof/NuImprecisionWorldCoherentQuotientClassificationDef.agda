@@ -2,11 +2,13 @@ module proof.NuImprecisionWorldCoherentQuotientClassificationDef where
 
 -- File Charter:
 --   * Defines coherent classification of one terminal quotient down-up node.
---   * Returns either a complete coherent catch-up or the unique outer-inst
---     residual together with its source value and reduction evidence.
+--   * Returns either a complete coherent catch-up, a plain outer-inst
+--     residual, or the eager outer-inst/function-tag residual, together with
+--     source value and reduction evidence.
 --   * Contains no classifier implementation or recursive dispatcher import.
 
 import Coercions as C
+open import Coercions using (_!; _︔_; ⇑ᶜ)
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using ([]; _∷_)
 open import Data.Product using (_×_; ∃-syntax)
@@ -22,7 +24,7 @@ open import QuotientedTermImprecision using
   ( QuotientWideningPair
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
-open import Types using (Ty; ★)
+open import Types using (Ty; ★; _⇒_)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionContextExclusivityDef using
@@ -59,4 +61,11 @@ WorldCoherentQuotientClassificationᵀ =
       (((V ⟨ d ⟩) ⟨ u ⟩)
         —↠[ keep ∷ bind ★ ∷ [] ]
           ((⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩) ×
+      Value (V ⟨ d ⟩) × No• (V ⟨ d ⟩)
+  ⊎ ∃[ B ] ∃[ s ]
+      (u ≡ (C.inst B s ︔ ((★ ⇒ ★) !))) ×
+      (((V ⟨ d ⟩) ⟨ u ⟩)
+        —↠[ keep ∷ keep ∷ bind ★ ∷ [] ]
+          ((((⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+            ⟨ ⇑ᶜ ((★ ⇒ ★) !) ⟩)) ×
       Value (V ⟨ d ⟩) × No• (V ⟨ d ⟩)

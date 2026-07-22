@@ -56,6 +56,7 @@ open import proof.ImprecisionProperties using
   ; idᵢ-wf
   ; ∀ᵢ-wf²
   ; ⇑ᴸᵢ-wf²
+  ; genSafeSource?
   )
 
 ------------------------------------------------------------------------
@@ -179,22 +180,30 @@ wrapAllIfOccurs-sound :
   ∀ {C : Ty} {xs : List Ty} →
   C ∈ wrapAllIfOccurs xs →
   ∃[ C₀ ]
-    (C ≡ `∀ C₀ × (occurs zero C₀ ≡ true) × C₀ ∈ xs)
+    (C ≡ `∀ C₀ × GenSafeSource C₀ ×
+      (occurs zero C₀ ≡ true) × C₀ ∈ xs)
 wrapAllIfOccurs-sound {xs = []} ()
 wrapAllIfOccurs-sound {xs = A ∷ As} C∈
-    with occurs zero A in occA
-wrapAllIfOccurs-sound {xs = A ∷ As} (here refl) | true =
-  A , refl , occA , here refl
-wrapAllIfOccurs-sound {xs = A ∷ As} (there C∈) | true
+    with genSafeSource? A | occurs zero A in occA
+wrapAllIfOccurs-sound {xs = A ∷ As} (here refl)
+    | yes safe | true =
+  A , refl , safe , occA , here refl
+wrapAllIfOccurs-sound {xs = A ∷ As} (there C∈)
+    | yes safe | true
     with wrapAllIfOccurs-sound {xs = As} C∈
-wrapAllIfOccurs-sound {xs = A ∷ As} (there C∈) | true
-    | C₀ , eq , occC₀ , C₀∈ =
-  C₀ , eq , occC₀ , there C₀∈
-wrapAllIfOccurs-sound {xs = A ∷ As} C∈ | false
+wrapAllIfOccurs-sound {xs = A ∷ As} (there C∈)
+    | yes safe | true | C₀ , eq , safeC₀ , occC₀ , C₀∈ =
+  C₀ , eq , safeC₀ , occC₀ , there C₀∈
+wrapAllIfOccurs-sound {xs = A ∷ As} C∈ | yes safe | false
     with wrapAllIfOccurs-sound {xs = As} C∈
-wrapAllIfOccurs-sound {xs = A ∷ As} C∈ | false
-    | C₀ , eq , occC₀ , C₀∈ =
-  C₀ , eq , occC₀ , there C₀∈
+wrapAllIfOccurs-sound {xs = A ∷ As} C∈ | yes safe | false
+    | C₀ , eq , safeC₀ , occC₀ , C₀∈ =
+  C₀ , eq , safeC₀ , occC₀ , there C₀∈
+wrapAllIfOccurs-sound {xs = A ∷ As} C∈ | no ¬safe | occA
+    with wrapAllIfOccurs-sound {xs = As} C∈
+wrapAllIfOccurs-sound {xs = A ∷ As} C∈ | no ¬safe | occA
+    | C₀ , eq , safeC₀ , occC₀ , C₀∈ =
+  C₀ , eq , safeC₀ , occC₀ , there C₀∈
 
 mapArrow-sound :
   ∀ {A C : Ty} {Bs : List Ty} →
@@ -429,13 +438,13 @@ enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = `∀ B}
     hΦᴸ hΦᴿ C∈ | inj₂ C∈leftOrRight | inj₁ C∈leftOnly
-    | C₀ , refl , occC₀ , C₀∈
+    | C₀ , refl , safeC₀ , occC₀ , C₀∈
     with enumMLB-sound {fuel = fuel} (∀ᵢ-wf² hΦᴸ) (νᵢᶜ-wf² hΦᴿ) C₀∈
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = `∀ B}
     hΦᴸ hΦᴿ C∈ | inj₂ C∈leftOrRight | inj₁ C∈leftOnly
-    | C₀ , refl , occC₀ , C₀∈ | C₀⊑A , C₀⊑∀B =
-  ∀ⁱ C₀⊑A , ν occC₀ C₀⊑∀B
+    | C₀ , refl , safeC₀ , occC₀ , C₀∈ | C₀⊑A , C₀⊑∀B =
+  ∀ⁱ C₀⊑A , ν {{safeC₀}} occC₀ C₀⊑∀B
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = `∀ B}
     hΦᴸ hΦᴿ C∈ | inj₂ C∈leftOrRight | inj₂ C∈rightOnly
@@ -447,13 +456,13 @@ enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = `∀ B}
     hΦᴸ hΦᴿ C∈ | inj₂ C∈leftOrRight | inj₂ C∈rightOnly
-    | C₀ , refl , occC₀ , C₀∈
+    | C₀ , refl , safeC₀ , occC₀ , C₀∈
     with enumMLB-sound {fuel = fuel} (νᵢᶜ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ) C₀∈
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = `∀ B}
     hΦᴸ hΦᴿ C∈ | inj₂ C∈leftOrRight | inj₂ C∈rightOnly
-    | C₀ , refl , occC₀ , C₀∈ | C₀⊑∀A , C₀⊑B =
-  ν occC₀ C₀⊑∀A , ∀ⁱ C₀⊑B
+    | C₀ , refl , safeC₀ , occC₀ , C₀∈ | C₀⊑∀A , C₀⊑B =
+  ν {{safeC₀}} occC₀ C₀⊑∀A , ∀ⁱ C₀⊑B
 
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = ＇ Y}
@@ -467,12 +476,12 @@ enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
              C∈)
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = ＇ Y}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈
     with enumMLB-sound {fuel = fuel} (∀ᵢ-wf² hΦᴸ) (νᵢᶜ-wf² hΦᴿ) C₀∈
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = ＇ Y}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
-  ∀ⁱ C₀⊑A , ν occC₀ C₀⊑B
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
+  ∀ⁱ C₀⊑A , ν {{safeC₀}} occC₀ C₀⊑B
 
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = (‵ ι)}
@@ -486,12 +495,12 @@ enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
              C∈)
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = (‵ ι)}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈
     with enumMLB-sound {fuel = fuel} (∀ᵢ-wf² hΦᴸ) (νᵢᶜ-wf² hΦᴿ) C₀∈
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = (‵ ι)}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
-  ∀ⁱ C₀⊑A , ν occC₀ C₀⊑B
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
+  ∀ⁱ C₀⊑A , ν {{safeC₀}} occC₀ C₀⊑B
 
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = ★}
@@ -505,12 +514,12 @@ enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
              C∈)
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = ★}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈
     with enumMLB-sound {fuel = fuel} (∀ᵢ-wf² hΦᴸ) (νᵢᶜ-wf² hΦᴿ) C₀∈
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = ★}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
-  ∀ⁱ C₀⊑A , ν occC₀ C₀⊑B
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
+  ∀ⁱ C₀⊑A , ν {{safeC₀}} occC₀ C₀⊑B
 
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = B₁ ⇒ B₂}
@@ -525,12 +534,12 @@ enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
              C∈)
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = B₁ ⇒ B₂}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈
     with enumMLB-sound {fuel = fuel} (∀ᵢ-wf² hΦᴸ) (νᵢᶜ-wf² hΦᴿ) C₀∈
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = B₁ ⇒ B₂}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
-  ∀ⁱ C₀⊑A , ν occC₀ C₀⊑B
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
+  ∀ⁱ C₀⊑A , ν {{safeC₀}} occC₀ C₀⊑B
 
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = ＇ X} {B = `∀ B}
@@ -544,12 +553,12 @@ enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
              C∈)
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = ＇ X} {B = `∀ B}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈
     with enumMLB-sound {fuel = fuel} (νᵢᶜ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ) C₀∈
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = ＇ X} {B = `∀ B}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
-  ν occC₀ C₀⊑A , ∀ⁱ C₀⊑B
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
+  ν {{safeC₀}} occC₀ C₀⊑A , ∀ⁱ C₀⊑B
 
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = (‵ ι)} {B = `∀ B}
@@ -563,12 +572,12 @@ enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
              C∈)
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = (‵ ι)} {B = `∀ B}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈
     with enumMLB-sound {fuel = fuel} (νᵢᶜ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ) C₀∈
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = (‵ ι)} {B = `∀ B}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
-  ν occC₀ C₀⊑A , ∀ⁱ C₀⊑B
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
+  ν {{safeC₀}} occC₀ C₀⊑A , ∀ⁱ C₀⊑B
 
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = ★} {B = `∀ B}
@@ -582,12 +591,12 @@ enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
              C∈)
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = ★} {B = `∀ B}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈
     with enumMLB-sound {fuel = fuel} (νᵢᶜ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ) C₀∈
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = ★} {B = `∀ B}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
-  ν occC₀ C₀⊑A , ∀ⁱ C₀⊑B
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
+  ν {{safeC₀}} occC₀ C₀⊑A , ∀ⁱ C₀⊑B
 
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A₁ ⇒ A₂} {B = `∀ B}
@@ -602,12 +611,12 @@ enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
              C∈)
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A₁ ⇒ A₂} {B = `∀ B}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈
     with enumMLB-sound {fuel = fuel} (νᵢᶜ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ) C₀∈
 enumMLB-sound {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A₁ ⇒ A₂} {B = `∀ B}
-    hΦᴸ hΦᴿ C∈ | C₀ , refl , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
-  ν occC₀ C₀⊑A , ∀ⁱ C₀⊑B
+    hΦᴸ hΦᴿ C∈ | C₀ , refl , safeC₀ , occC₀ , C₀∈ | C₀⊑A , C₀⊑B =
+  ν {{safeC₀}} occC₀ C₀⊑A , ∀ⁱ C₀⊑B
 
 enumMLB-sound {fuel = suc fuel} {A = ★} {B = ★}
     hΦᴸ hΦᴿ (here refl) =

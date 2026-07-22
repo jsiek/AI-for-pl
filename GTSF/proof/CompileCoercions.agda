@@ -9,6 +9,7 @@ module proof.CompileCoercions where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true; false)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
@@ -61,6 +62,14 @@ import NarrowWiden as NW
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
+  )
+open import NarrowWidenComposition using
+  (widening-at-dualGenSafe-target)
+open import proof.GenSafeProperties using
+  ( shape-fun
+  ; shape-all
+  ; raise-genSafeShape
+  ; narrowing-at-genSafe-source
   )
 open import proof.CoercionProperties
   using
@@ -551,6 +560,40 @@ data DownStarView {μ Δ Σ Φ} :
     NW.StrictNarrowing c →
     DownStarView r {A = A} p
 
+data UpNuStarCore {μ Δ Σ Φ} :
+    Realizesᴺᵂ μ Δ Σ Φ →
+    ∀ {A} → Φ ⊢ A ⊑ ★ → Set₁ where
+  upν★-core : ∀ {r A p c} →
+    μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ (★ ⇒ ★) →
+    NW.DualGenSafe c →
+    UpNuStarCore r {A = A} p
+
+data DownNuStarCore {μ Δ Σ Φ} :
+    Realizesᴺᵂ μ Δ Σ Φ →
+    ∀ {A} → Φ ⊢ A ⊑ ★ → Set₁ where
+  downν★-core : ∀ {r A p c} →
+    μ ∣ Δ ∣ Σ ⊢ c ∶ (★ ⇒ ★) ⊒ A →
+    NW.GenSafe c →
+    DownNuStarCore r {A = A} p
+
+genSafeSource-to-var⊥ :
+  ∀ {Φ A X} →
+  GenSafeSource A →
+  Φ ⊢ A ⊑ ＇ X →
+  ⊥
+genSafeSource-to-var⊥ source-fun ()
+genSafeSource-to-var⊥ source-all (ν {{safe}} occ p) =
+  genSafeSource-to-var⊥ safe p
+
+genSafeSource-to-base⊥ :
+  ∀ {Φ A ι} →
+  GenSafeSource A →
+  Φ ⊢ A ⊑ ‵ ι →
+  ⊥
+genSafeSource-to-base⊥ source-fun ()
+genSafeSource-to-base⊥ source-all (ν {{safe}} occ p) =
+  genSafeSource-to-base⊥ safe p
+
 mutual
   coerce-upʷᵐ :
     ∀ {μ Δ Σ Φ C A} →
@@ -590,15 +633,49 @@ mutual
   coerce-upʷᵐ {C = ＇ X} ℓ hX wf★ r (tagˣ X⊑★)
       | c , c⊑ , cˢ =
     c , c⊑
-  coerce-upʷᵐ {A = B} ℓ (wf∀ hA) hB r (ν occ p)
+  coerce-upʷᵐ {A = B₁ ⇒ B₂} ℓ (wf∀ hA) (wf⇒ hB₁ hB₂)
+      r (ν occ p)
       with coerce-upʷᵐ ℓ
              hA
-             (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
+             (renameᵗ-preserves-WfTy (wf⇒ hB₁ hB₂) TyRenameWf-suc)
              (Realizesᴺᵂ-ν-inst r)
              p
-  coerce-upʷᵐ {A = B} ℓ (wf∀ hA) hB r (ν occ p)
+  coerce-upʷᵐ {A = B₁ ⇒ B₂} ℓ (wf∀ hA) (wf⇒ hB₁ hB₂)
+      r (ν occ p)
       | c , c⊑ =
-    instᶜ B c , cast-inst hB occ (proj₁ c⊑) , NW.inst (proj₂ c⊑)
+    instᶜ (B₁ ⇒ B₂) c ,
+    cast-inst (wf⇒ hB₁ hB₂) occ (proj₁ c⊑) ,
+    NW.inst
+      (widening-at-dualGenSafe-target
+        (raise-genSafeShape shape-fun)
+        (proj₁ c⊑) occ (proj₂ c⊑))
+  coerce-upʷᵐ {A = `∀ B} ℓ (wf∀ hA) (wf∀ hB) r (ν occ p)
+      with coerce-upʷᵐ ℓ
+             hA
+             (renameᵗ-preserves-WfTy (wf∀ hB) TyRenameWf-suc)
+             (Realizesᴺᵂ-ν-inst r)
+             p
+  coerce-upʷᵐ {A = `∀ B} ℓ (wf∀ hA) (wf∀ hB) r (ν occ p)
+      | c , c⊑ =
+    instᶜ (`∀ B) c , cast-inst (wf∀ hB) occ (proj₁ c⊑) ,
+    NW.inst
+      (widening-at-dualGenSafe-target
+        (raise-genSafeShape shape-all)
+        (proj₁ c⊑) occ (proj₂ c⊑))
+  coerce-upʷᵐ ℓ (wf∀ hA) (wfVar Y<Δ) r
+      (ν {{safe}} occ p) =
+    ⊥-elim (genSafeSource-to-var⊥ safe p)
+  coerce-upʷᵐ ℓ (wf∀ hA) wfBase r (ν {{safe}} occ p) =
+    ⊥-elim (genSafeSource-to-base⊥ safe p)
+  coerce-upʷᵐ ℓ (wf∀ hA) wf★ r (ν {{safe}} occ p)
+      with coerce-up-nu-star-core ℓ hA (Realizesᴺᵂ-ν-inst r) safe p
+  coerce-upʷᵐ ℓ (wf∀ hA) wf★ r (ν {{safe}} occ p)
+      | upν★-core {c = c} c⊑ cᵍ =
+    (instᶜ (★ ⇒ ★) c ︔ᶜ ((★ ⇒ ★) !ᶜ)) ,
+    cast-seq
+      (cast-inst (wf⇒ wf★ wf★) occ (proj₁ c⊑))
+      (cast-tag (wf⇒ wf★ wf★) ★⇒★ refl) ,
+    NW.inst-fun-tag cᵍ
 
   coerce-downⁿᵐ :
     ∀ {μ Δ Σ Φ C A} →
@@ -638,15 +715,147 @@ mutual
   coerce-downⁿᵐ {C = ＇ X} ℓ hX wf★ r (tagˣ X⊑★)
       | c , c⊒ , cˢ =
     c , c⊒
-  coerce-downⁿᵐ {A = B} ℓ (wf∀ hA) hB r (ν occ p)
+  coerce-downⁿᵐ {A = B₁ ⇒ B₂} ℓ (wf∀ hA) (wf⇒ hB₁ hB₂)
+      r (ν occ p)
       with coerce-downⁿᵐ ℓ
              hA
-             (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
+             (renameᵗ-preserves-WfTy (wf⇒ hB₁ hB₂) TyRenameWf-suc)
              (Realizesᴺᵂ-ν-gen r)
              p
-  coerce-downⁿᵐ {A = B} ℓ (wf∀ hA) hB r (ν occ p)
+  coerce-downⁿᵐ {A = B₁ ⇒ B₂} ℓ (wf∀ hA) (wf⇒ hB₁ hB₂)
+      r (ν occ p)
       | c , c⊒ =
-    genᶜ B c , cast-gen hB occ (proj₁ c⊒) , NW.gen (proj₂ c⊒)
+    genᶜ (B₁ ⇒ B₂) c ,
+    cast-gen (wf⇒ hB₁ hB₂) occ (proj₁ c⊒) ,
+    NW.gen
+      (narrowing-at-genSafe-source
+        (raise-genSafeShape shape-fun)
+        (proj₁ c⊒) occ (proj₂ c⊒))
+  coerce-downⁿᵐ {A = `∀ B} ℓ (wf∀ hA) (wf∀ hB) r (ν occ p)
+      with coerce-downⁿᵐ ℓ
+             hA
+             (renameᵗ-preserves-WfTy (wf∀ hB) TyRenameWf-suc)
+             (Realizesᴺᵂ-ν-gen r)
+             p
+  coerce-downⁿᵐ {A = `∀ B} ℓ (wf∀ hA) (wf∀ hB) r (ν occ p)
+      | c , c⊒ =
+    genᶜ (`∀ B) c , cast-gen (wf∀ hB) occ (proj₁ c⊒) ,
+    NW.gen
+      (narrowing-at-genSafe-source
+        (raise-genSafeShape shape-all)
+        (proj₁ c⊒) occ (proj₂ c⊒))
+  coerce-downⁿᵐ ℓ (wf∀ hA) (wfVar Y<Δ) r
+      (ν {{safe}} occ p) =
+    ⊥-elim (genSafeSource-to-var⊥ safe p)
+  coerce-downⁿᵐ ℓ (wf∀ hA) wfBase r (ν {{safe}} occ p) =
+    ⊥-elim (genSafeSource-to-base⊥ safe p)
+  coerce-downⁿᵐ ℓ (wf∀ hA) wf★ r (ν {{safe}} occ p)
+      with coerce-down-nu-star-core ℓ hA (Realizesᴺᵂ-ν-gen r) safe p
+  coerce-downⁿᵐ ℓ (wf∀ hA) wf★ r (ν {{safe}} occ p)
+      | downν★-core {c = c} c⊒ cᵍ =
+    (((★ ⇒ ★) ？ᶜ) ︔ᶜ genᶜ (★ ⇒ ★) c) ,
+    cast-seq
+      (cast-untag (wf⇒ wf★ wf★) ★⇒★ refl)
+      (cast-gen (wf⇒ wf★ wf★) occ (proj₁ c⊒)) ,
+    NW.fun-untag-gen cᵍ
+
+  coerce-up-nu-star-core :
+    ∀ {μ Δ Σ Φ A} →
+    (ℓ : Label) →
+    WfTy Δ A →
+    (r : Realizesᴺᵂ μ Δ Σ Φ) →
+    GenSafeSource A →
+    (p : Φ ⊢ A ⊑ ★) →
+    UpNuStarCore r p
+  coerce-up-nu-star-core ℓ (wf⇒ hA hB) r source-fun
+      (tag_⇛_ p q)
+      with down-star-view ℓ hA r p | up-star-view ℓ hB r q
+  coerce-up-nu-star-core ℓ (wf⇒ hA hB) r source-fun
+      (tag_⇛_ p q) | down★-id | up★-id =
+    upν★-core
+      (cast-fun (cast-id wf★ refl) (cast-id wf★ refl) ,
+       NW.cross (NW.id★ NW.↦ NW.id★))
+      (NW.safe-fun NW.id★ NW.id★)
+  coerce-up-nu-star-core ℓ (wf⇒ hA hB) r source-fun
+      (tag_⇛_ p q)
+      | down★-id | up★-strict {c = t} t⊑ tˢ =
+    upν★-core
+      (cast-fun (cast-id wf★ refl) (proj₁ t⊑) ,
+       NW.cross (NW.id★ NW.↦ proj₂ t⊑))
+      (NW.safe-fun NW.id★ (proj₂ t⊑))
+  coerce-up-nu-star-core ℓ (wf⇒ hA hB) r source-fun
+      (tag_⇛_ p q)
+      | down★-strict {c = s} s⊒ sˢ | up★-id =
+    upν★-core
+      (cast-fun (proj₁ s⊒) (cast-id wf★ refl) ,
+       NW.cross (proj₂ s⊒ NW.↦ NW.id★))
+      (NW.safe-fun (proj₂ s⊒) NW.id★)
+  coerce-up-nu-star-core ℓ (wf⇒ hA hB) r source-fun
+      (tag_⇛_ p q)
+      | down★-strict {c = s} s⊒ sˢ
+      | up★-strict {c = t} t⊑ tˢ =
+    upν★-core
+      (cast-fun (proj₁ s⊒) (proj₁ t⊑) ,
+       NW.cross (proj₂ s⊒ NW.↦ proj₂ t⊑))
+      (NW.safe-fun (proj₂ s⊒) (proj₂ t⊑))
+  coerce-up-nu-star-core ℓ (wf∀ hA) r source-all
+      (ν {{safe}} occ p)
+      with coerce-up-nu-star-core ℓ hA
+             (Realizesᴺᵂ-ν-inst r) safe p
+  coerce-up-nu-star-core ℓ (wf∀ hA) r source-all
+      (ν {{safe}} occ p) | upν★-core {c = c} c⊑ cᵍ =
+    upν★-core
+      (cast-inst (wf⇒ wf★ wf★) occ (proj₁ c⊑) , NW.inst cᵍ)
+      (NW.safe-inst cᵍ)
+
+  coerce-down-nu-star-core :
+    ∀ {μ Δ Σ Φ A} →
+    (ℓ : Label) →
+    WfTy Δ A →
+    (r : Realizesᴺᵂ μ Δ Σ Φ) →
+    GenSafeSource A →
+    (p : Φ ⊢ A ⊑ ★) →
+    DownNuStarCore r p
+  coerce-down-nu-star-core ℓ (wf⇒ hA hB) r source-fun
+      (tag_⇛_ p q)
+      with up-star-view ℓ hA r p | down-star-view ℓ hB r q
+  coerce-down-nu-star-core ℓ (wf⇒ hA hB) r source-fun
+      (tag_⇛_ p q) | up★-id | down★-id =
+    downν★-core
+      (cast-fun (cast-id wf★ refl) (cast-id wf★ refl) ,
+       NW.cross (NW.id★ NW.↦ NW.id★))
+      (NW.safe-fun NW.id★ NW.id★)
+  coerce-down-nu-star-core ℓ (wf⇒ hA hB) r source-fun
+      (tag_⇛_ p q)
+      | up★-id | down★-strict {c = t} t⊒ tˢ =
+    downν★-core
+      (cast-fun (cast-id wf★ refl) (proj₁ t⊒) ,
+       NW.cross (NW.id★ NW.↦ proj₂ t⊒))
+      (NW.safe-fun NW.id★ (proj₂ t⊒))
+  coerce-down-nu-star-core ℓ (wf⇒ hA hB) r source-fun
+      (tag_⇛_ p q)
+      | up★-strict {c = s} s⊑ sˢ | down★-id =
+    downν★-core
+      (cast-fun (proj₁ s⊑) (cast-id wf★ refl) ,
+       NW.cross (proj₂ s⊑ NW.↦ NW.id★))
+      (NW.safe-fun (proj₂ s⊑) NW.id★)
+  coerce-down-nu-star-core ℓ (wf⇒ hA hB) r source-fun
+      (tag_⇛_ p q)
+      | up★-strict {c = s} s⊑ sˢ
+      | down★-strict {c = t} t⊒ tˢ =
+    downν★-core
+      (cast-fun (proj₁ s⊑) (proj₁ t⊒) ,
+       NW.cross (proj₂ s⊑ NW.↦ proj₂ t⊒))
+      (NW.safe-fun (proj₂ s⊑) (proj₂ t⊒))
+  coerce-down-nu-star-core ℓ (wf∀ hA) r source-all
+      (ν {{safe}} occ p)
+      with coerce-down-nu-star-core ℓ hA
+             (Realizesᴺᵂ-ν-gen r) safe p
+  coerce-down-nu-star-core ℓ (wf∀ hA) r source-all
+      (ν {{safe}} occ p) | downν★-core {c = c} c⊒ cᵍ =
+    downν★-core
+      (cast-gen (wf⇒ wf★ wf★) occ (proj₁ c⊒) , NW.gen cᵍ)
+      (NW.safe-gen cᵍ)
 
   up-star-view :
     ∀ {μ Δ Σ Φ A} →
@@ -671,13 +880,16 @@ mutual
   up-star-view {A = ＇ X} ℓ hX r (tagˣ X⊑★)
       | c , c⊑ , cˢ =
     up★-strict c⊑ cˢ
-  up-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν occ p)
-      with coerce-upʷᵐ ℓ hA wf★ (Realizesᴺᵂ-ν-inst r) p
-  up-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν occ p)
-      | c , c⊑ =
+  up-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν {{safe}} occ p)
+      with coerce-up-nu-star-core ℓ hA (Realizesᴺᵂ-ν-inst r) safe p
+  up-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν {{safe}} occ p)
+      | upν★-core {c = c} c⊑ cᵍ =
     up★-strict
-      (cast-inst wf★ occ (proj₁ c⊑) , NW.inst (proj₂ c⊑))
-      (NW.strict-inst (proj₂ c⊑))
+      (cast-seq
+        (cast-inst (wf⇒ wf★ wf★) occ (proj₁ c⊑))
+        (cast-tag (wf⇒ wf★ wf★) ★⇒★ refl) ,
+       NW.inst-fun-tag cᵍ)
+      (NW.strict-inst-fun-tag cᵍ)
 
   down-star-view :
     ∀ {μ Δ Σ Φ A} →
@@ -702,13 +914,16 @@ mutual
   down-star-view {A = ＇ X} ℓ hX r (tagˣ X⊑★)
       | c , c⊒ , cˢ =
     down★-strict c⊒ cˢ
-  down-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν occ p)
-      with coerce-downⁿᵐ ℓ hA wf★ (Realizesᴺᵂ-ν-gen r) p
-  down-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν occ p)
-      | c , c⊒ =
+  down-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν {{safe}} occ p)
+      with coerce-down-nu-star-core ℓ hA (Realizesᴺᵂ-ν-gen r) safe p
+  down-star-view {A = `∀ A} ℓ (wf∀ hA) r (ν {{safe}} occ p)
+      | downν★-core {c = c} c⊒ cᵍ =
     down★-strict
-      (cast-gen wf★ occ (proj₁ c⊒) , NW.gen (proj₂ c⊒))
-      (NW.strict-gen (proj₂ c⊒))
+      (cast-seq
+        (cast-untag (wf⇒ wf★ wf★) ★⇒★ refl)
+        (cast-gen (wf⇒ wf★ wf★) occ (proj₁ c⊒)) ,
+       NW.fun-untag-gen cᵍ)
+      (NW.strict-fun-untag-gen cᵍ)
 
   coerce-up-fun-starˢʷ :
     ∀ {μ Δ Σ Φ A B} →

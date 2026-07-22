@@ -20,7 +20,7 @@ open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (_<_; zero; suc; z<s; s<s)
 open import Data.Nat.Properties using (_≟_)
-open import Data.Product using (_,_)
+open import Data.Product using (_,_; proj₁)
 open import Relation.Binary.PropositionalEquality using (cong; inspect; [_])
 open import Relation.Nullary using (yes; no)
 
@@ -579,6 +579,16 @@ mutual
   occurs-back comp α (ν occA p) occ =
     occurs-back (compose-νid comp) α p occ
 
+  genSafeSource-backᵢ :
+    ∀ {Φ Δᴸ Δᴿ A B} →
+    Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
+    GenSafeSource B →
+    GenSafeSource A
+  genSafeSource-backᵢ (p ↦ q) source-fun = source-fun
+  genSafeSource-backᵢ (∀ⁱ p) source-all = source-all
+  genSafeSource-backᵢ (ν occ p) source-fun = source-all
+  genSafeSource-backᵢ (ν occ p) source-all = source-all
+
   ⊑-trans-compose :
     ∀ {ρ Δᴸ Δᴹ Δᴿ Φᴸ Φᴿ Φᴼ A B C} →
     ComposeCtx ρ Δᴸ Φᴸ Φᴿ Φᴼ →
@@ -599,8 +609,9 @@ mutual
             (⊑-trans-compose comp p₂ q₂)
   ⊑-trans-compose comp (∀ⁱ p) (∀ⁱ q) =
     ∀ⁱ (⊑-trans-compose (compose-∀∀ comp) p q)
-  ⊑-trans-compose comp (∀ⁱ p) (ν occ q) =
-    ν (occurs-back (compose-∀∀ comp) zero p occ)
+  ⊑-trans-compose comp (∀ⁱ p) (ν {{safe}} occ q) =
+    ν {{genSafeSource-backᵢ p safe}}
+      (occurs-back (compose-∀∀ comp) zero p occ)
       (⊑-trans-compose (compose-∀ν comp) p q)
   ⊑-trans-compose comp (tag ι) id★ = tag ι
   ⊑-trans-compose comp (tag_⇛_ p q) id★ =
@@ -864,8 +875,9 @@ composeʳ-νid comp .compʳ-star {X = suc x} (there x★∈) =
 ⊑-trans-compose-right comp bmap (∀ⁱ p) (∀ⁱ q) =
   ∀ⁱ (⊑-trans-compose-right
     (composeʳ-∀∀ comp) (bound-∀ bmap) p q)
-⊑-trans-compose-right comp bmap (∀ⁱ p) (ν occ q) =
-  ν (occurs-back-bound (bound-∀ bmap) zero z<s p occ)
+⊑-trans-compose-right comp bmap (∀ⁱ p) (ν {{safe}} occ q) =
+  ν {{genSafeSource-backᵢ p safe}}
+    (occurs-back-bound (bound-∀ bmap) zero z<s p occ)
     (⊑-trans-compose-right
       (composeʳ-∀ν comp) (bound-∀ bmap) p q)
 ⊑-trans-compose-right comp bmap (tag ι) id★ = tag ι
@@ -874,8 +886,8 @@ composeʳ-νid comp .compʳ-star {X = suc x} (there x★∈) =
           (⊑-trans-compose-right comp bmap q id★)
 ⊑-trans-compose-right comp bmap (tagˣ x★∈ X<Δ) id★ =
   tagˣ (compʳ-star comp x★∈) X<Δ
-⊑-trans-compose-right comp bmap (ν occ p) q =
-  ν occ (⊑-trans-compose-right
+⊑-trans-compose-right comp bmap (ν {{safe}} occ p) q =
+  ν {{safe}} occ (⊑-trans-compose-right
     (composeʳ-νid comp) (bound-ν bmap) p q)
 
 compose-cast-right :
@@ -926,6 +938,8 @@ mutual
   strictNarrowing⇒narrowing (NW.strict-untag G) = NW.untag G
   strictNarrowing⇒narrowing (NW.strict-untag-seq G g) =
     G NW.？︔ g
+  strictNarrowing⇒narrowing (NW.strict-fun-untag-gen safe) =
+    NW.fun-untag-gen safe
   strictNarrowing⇒narrowing (NW.strict-seal A α) = NW.sealⁿ A α
   strictNarrowing⇒narrowing (NW.strict-seal-seq n α) =
     n NW.︔seal α
@@ -940,6 +954,8 @@ mutual
   strictWidening⇒widening (NW.strict-tag G) = NW.tag G
   strictWidening⇒widening (NW.strict-tag-seq g G) =
     g NW.︔ G !
+  strictWidening⇒widening (NW.strict-inst-fun-tag safe) =
+    NW.inst-fun-tag safe
   strictWidening⇒widening (NW.strict-unseal α A) = NW.unsealʷ α A
   strictWidening⇒widening (NW.strict-unseal-seq α w) =
     NW.unseal︔_ α w
@@ -1081,6 +1097,34 @@ mutual
     ν occ (drop-targetᵢ hB (drop-target-ν drop) p)
 
 mutual
+  genSafe-target-admissible :
+    ∀ {μ Δ Σ A B c} →
+    C._∣_∣_⊢_∶_=⇒_ μ Δ Σ c A B →
+    NW.GenSafe c →
+    GenSafeSource B
+  genSafe-target-admissible (C.cast-fun s⊢ t⊢)
+      (NW.safe-fun sʷ tⁿ) =
+    source-fun
+  genSafe-target-admissible (C.cast-all c⊢) (NW.safe-all cⁿ) =
+    source-all
+  genSafe-target-admissible (C.cast-gen hA occ c⊢)
+      (NW.safe-gen safe) =
+    source-all
+
+  dualGenSafe-source-admissible :
+    ∀ {μ Δ Σ A B c} →
+    C._∣_∣_⊢_∶_=⇒_ μ Δ Σ c A B →
+    NW.DualGenSafe c →
+    GenSafeSource A
+  dualGenSafe-source-admissible (C.cast-fun s⊢ t⊢)
+      (NW.safe-fun sⁿ tʷ) =
+    source-fun
+  dualGenSafe-source-admissible (C.cast-all c⊢) (NW.safe-all cʷ) =
+    source-all
+  dualGenSafe-source-admissible (C.cast-inst hB occ c⊢)
+      (NW.safe-inst safe) =
+    source-all
+
   narrowing-gen⇒⊑ᵢ :
     ∀ {μ Δ Σ A B c} →
     StoreDetWf Δ Σ →
@@ -1088,9 +1132,12 @@ mutual
     WfTy Δ A →
     occurs zero B ≡ true →
     genᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ∶ ⇑ᵗ A ⊒ B →
+    NW.GenSafe c →
     castᵢ μ Δ ∣ Δ ⊢ `∀ B ⊑ A ⊣ Δ
-  narrowing-gen⇒⊑ᵢ {μ = μ} {Δ = Δ} wfΣ seal★ hA occB c⊒ =
-    ν occB (drop-targetᵢ hA (drop-target-castᵢ-gen {μ = μ} {Δ = Δ})
+  narrowing-gen⇒⊑ᵢ {μ = μ} {Δ = Δ} wfΣ seal★ hA occB
+      c⊒ safe =
+    ν {{genSafe-target-admissible (proj₁ c⊒) safe}} occB
+      (drop-targetᵢ hA (drop-target-castᵢ-gen {μ = μ} {Δ = Δ})
       (narrowing⇒⊑ᵢ (StoreDetWf-⟰ᵗ wfΣ)
         (seal★-gen-shift seal★) c⊒))
 
@@ -1101,9 +1148,12 @@ mutual
     WfTy Δ B →
     occurs zero A ≡ true →
     instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ ⊢ c ∶ A ⊑ ⇑ᵗ B →
+    NW.DualGenSafe c →
     castᵢ μ Δ ∣ Δ ⊢ `∀ A ⊑ B ⊣ Δ
-  widening-inst⇒⊑ᵢ {μ = μ} {Δ = Δ} wfΣ seal★ hB occA c⊑ =
-    ν occA (drop-targetᵢ hB (drop-target-castᵢ-inst {μ = μ} {Δ = Δ})
+  widening-inst⇒⊑ᵢ {μ = μ} {Δ = Δ} wfΣ seal★ hB occA
+      c⊑ safe =
+    ν {{dualGenSafe-source-admissible (proj₁ c⊑) safe}} occA
+      (drop-targetᵢ hB (drop-target-castᵢ-inst {μ = μ} {Δ = Δ})
       (widening⇒⊑ᵢ (StoreDetWf-inst wfΣ)
         (seal★-inst-shift seal★) c⊑))
 
@@ -1129,7 +1179,8 @@ mutual
     ∀ⁱ (narrowing⇒⊑ᵢ (StoreDetWf-⟰ᵗ wfΣ)
           (seal★-ext-shift seal★) (c⊢ , cⁿ))
   narrowing⇒⊑ᵢ wfΣ seal★ (C.cast-gen hA occB c⊢ , NW.gen cⁿ) =
-    narrowing-gen⇒⊑ᵢ wfΣ seal★ hA occB (c⊢ , cⁿ)
+    narrowing-gen⇒⊑ᵢ wfΣ seal★ hA occB
+      (c⊢ , NW.genSafe→narrowing cⁿ) cⁿ
   narrowing⇒⊑ᵢ wfΣ seal★ (C.cast-untag hG G ok , NW.untag _) =
     ground⊑★ hG G ok
   narrowing⇒⊑ᵢ wfΣ seal★ (C.cast-seq s⊢ t⊢ , G NW.？︔ gⁿ) =
@@ -1137,6 +1188,13 @@ mutual
       (narrowing⇒⊑ᵢ wfΣ seal★
         (t⊢ , NW.cross (strictCrossNarrowing⇒crossNarrowing gⁿ)))
       (narrowing⇒⊑ᵢ wfΣ seal★ (s⊢ , NW.untag G))
+  narrowing⇒⊑ᵢ wfΣ seal★
+      (C.cast-seq s⊢ (C.cast-gen hG occ t⊢) ,
+       NW.fun-untag-gen safe) =
+    ⊑-trans-castᵢ
+      (narrowing-gen⇒⊑ᵢ wfΣ seal★ hG occ
+        (t⊢ , NW.genSafe→narrowing safe) safe)
+      (narrowing⇒⊑ᵢ wfΣ seal★ (s⊢ , NW.untag ★⇒★))
   narrowing⇒⊑ᵢ wfΣ seal★ (C.cast-seal hA α∈Σ ok ,
       NW.sealⁿ A α)
       rewrite NWP.StoreDetWf.unique wfΣ α∈Σ (seal★ α ok) =
@@ -1169,7 +1227,8 @@ mutual
     ∀ⁱ (widening⇒⊑ᵢ (StoreDetWf-⟰ᵗ wfΣ)
           (seal★-ext-shift seal★) (c⊢ , cʷ))
   widening⇒⊑ᵢ wfΣ seal★ (C.cast-inst hB occA c⊢ , NW.inst cʷ) =
-    widening-inst⇒⊑ᵢ wfΣ seal★ hB occA (c⊢ , cʷ)
+    widening-inst⇒⊑ᵢ wfΣ seal★ hB occA
+      (c⊢ , NW.dualGenSafe→widening cʷ) cʷ
   widening⇒⊑ᵢ wfΣ seal★ (C.cast-tag hG G ok , NW.tag _) =
     ground⊑★ hG G ok
   widening⇒⊑ᵢ wfΣ seal★ (C.cast-seq s⊢ t⊢ , gʷ NW.︔ G !) =
@@ -1177,6 +1236,13 @@ mutual
       (widening⇒⊑ᵢ wfΣ seal★
         (s⊢ , NW.cross (strictCrossWidening⇒crossWidening gʷ)))
       (widening⇒⊑ᵢ wfΣ seal★ (t⊢ , NW.tag G))
+  widening⇒⊑ᵢ wfΣ seal★
+      (C.cast-seq (C.cast-inst hG occ s⊢) t⊢ ,
+       NW.inst-fun-tag safe) =
+    ⊑-trans-castᵢ
+      (widening-inst⇒⊑ᵢ wfΣ seal★ hG occ
+        (s⊢ , NW.dualGenSafe→widening safe) safe)
+      (widening⇒⊑ᵢ wfΣ seal★ (t⊢ , NW.tag ★⇒★))
   widening⇒⊑ᵢ wfΣ seal★ (C.cast-unseal hA α∈Σ ok ,
       NW.unsealʷ α A)
       rewrite NWP.StoreDetWf.unique wfΣ α∈Σ (seal★ α ok) =

@@ -15,7 +15,9 @@ open import Coercions using
   (Inert; genᵈ; id-onlyᵈ; tag-or-idᵈ)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
+import NarrowWiden as NW
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
+open import NarrowWiden using (genSafe→inert)
 open import NuTermImprecision using
   ( StoreImp
   ; leftStoreⁱ
@@ -387,6 +389,17 @@ world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive wfL okN () noV′
     (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive wfL okN vW noW
+    rel@(gen⊑groundᵀ mode seal★ (c⊢ , NW.gen safe)
+      gH vV vW′ W⊢ V⊑Wtag q) =
+  world-coherent-left-indexed-catchup
+    (left-catchup-indexed-prefix-valueᵀ
+      prefix okN (vV ⟨ genSafe→inert (NW.safe-gen safe) ⟩) noW rel)
+    (weak-step-store-lineage _
+      rel-store-embedding-reflⁱ prefix-reflⁱ)
+    coherent exclusive wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive wfL okN vV′ noV′

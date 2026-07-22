@@ -10,24 +10,211 @@ Agda declaration yet. Historical log entries use **checked** as a synonym for
 
 ## Current objective
 
-Audit and repair the source-`gen`/target-untag boundary after the flat
-[`gen⊑groundᵀ`](../QuotientedTermImprecision.agda#L503) constructor proved
-insufficient.  It repairs the same-label example in
-[`repaired-final-relation`](NuImprecisionGenUntagCounterexampleCore.agda#L233),
-but the strictly checked
-[`source-gen-target-ground-agreement-counterexample`](NuImprecisionGenUntagMismatchCounterexampleCore.agda)
-uses a `Nat` target tag followed by a function-ground untag to refute the
-generalized ground-agreement statement.  The same construction refutes
-[`TargetTagCancellationᵀ`](NuImprecisionTargetTagCancellationMismatchCounterexample.agda)
-and [`ClosedNuDGG`](NuImprecisionClosedNuDGGCounterexample.agda).  Preserve the
-canonical precision index and the checked conditional assemblies; under
-[issue #78](https://github.com/jsiek/AI-for-pl/issues/78), repair the relation or
-the operational theorem directly rather than adding a result, outcome, view,
-or compatibility layer.  The strict
-[`gradual-dgg-gen-untag-mismatch-counterexample`](GradualDGGGenUntagMismatchCounterexample.agda#L325)
-now proves that compiled ordinary-application argument casts reach the same
-mismatch from a closed public gradual-term derivation, refuting the current
-public `GradualDGG` statement.
+Repair the source-`gen`/target-untag contradiction at the coercion grammar,
+following the Cambridge design: a projection that must run eagerly is kept
+outside `gen`, and the body admitted directly underneath `gen` belongs to the
+new operationally safe [`GenSafe`](../NarrowWiden.agda#L80) category.  The
+dual [`DualGenSafe`](../NarrowWiden.agda#L192) category imposes the symmetric
+shape restriction under `inst`.  This decision supersedes the earlier proposal
+to weaken `GradualDGG` by admitting right-hand blame.  The old mismatch
+counterexamples remain valuable regression specifications, but their former
+narrowing witnesses should become unconstructible under the repaired grammar.
+
+The six grammar metatheorems are complete and hole-free.  The core composition,
+determinacy, refined preservation, public progress, nearest DGG simulation,
+term-reduction support, quotient-value classifier, and world-coherent quotient
+classification have focused checks.  The final quotient join is again a
+hole-free higher-order proof: it now exposes separate semantic dependencies for
+plain `inst` and eager `inst ; (★⇒★)!`.  Compiler synthesis is complete,
+and the eager semantic case now reduces by a checked higher-order proof to the
+plain `inst` capability plus a reusable inert source-widening frame.  A focused
+check of the old
+*runtime witness* now fails at
+[`body-cast-narrowing`](NuImprecisionGenUntagCounterexampleCore.agda#L157):
+the available `Narrowing(body-cast)` is not a `GenSafe(body-cast)`.  This does
+not reject either gradual source program or their gradual typing/imprecision
+derivation.  The compiler now puts the projection outside `gen`, and both
+compiled programs reduce eagerly to blame.  The quotient-DGG integration spine
+checks through [`NuDGGStrictSpine`](NuDGGStrictSpine.agda), but that spine
+deliberately excludes the permissive catch-up scratch dispatcher and the two
+partial terminal files.  The hard quotient obligation is again the
+pre-existing plain representative-`inst` permutation path semantics; the eager
+form adds no new hard semantic leaf.  No full
+`All.agda` check is required for this migration: that aggregate includes
+obsolete proof-development branches such as mediated DGG experiments.  The
+live completion criterion is the transitive dependency cone rooted at
+[`DynamicGradualGuarantee.agda`](../DynamicGradualGuarantee.agda), which passes
+with `--no-allow-unsolved-metas` in about 3.9 seconds from the warm cache.  The
+unfinished quotient-DGG path semantics are tracked separately by
+[`NuDGGStrictSpine.agda`](NuDGGStrictSpine.agda).
+
+## `GenSafe` grammar repair
+
+### Grammar
+
+The narrowing-side safe core is
+
+\[
+\begin{aligned}
+  g &::= s \to t \mid \forall X.s,\\
+  i &::= g \mid \nu\alpha.i,
+\end{aligned}
+\]
+
+represented by [`GenSafe`](../NarrowWiden.agda#L80).  In particular, neither a
+projection nor an identity coercion is a `GenSafe` body.  The enclosing
+[`Narrowing.gen`](../NarrowWiden.agda#L102) constructor now requires
+`GenSafe(s)`, rather than arbitrary `Narrowing(s)`.  The new eager form
+[`fun-untag-gen`](../NarrowWiden.agda#L115) represents
+
+\[
+  (\star\Rightarrow\star)?\ ;\ \operatorname{gen}(A,s),
+  \qquad \operatorname{GenSafe}(s),
+\]
+
+so the projection runs before a generalization value can form.  The widening
+grammar has the dual restrictions
+[`Widening.inst`](../NarrowWiden.agda#L214) and
+[`inst-fun-tag`](../NarrowWiden.agda#L227).
+
+The repair retains the language's non-vacuity restriction.  A gradual type
+abstraction requires `occurs zero A ≡ true` in
+[`GradualTerms.⊢Λ`](../GradualTerms.agda#L87), and the corresponding coercion
+rule requires the same fact in
+[`Coercions.cast-gen`](../Coercions.agda#L685).  The imprecision rule
+[`Imprecision.ν`](../Imprecision.agda#L141) retains that premise as well.
+Consequently, `∀ X. Nat` is not an admissible vacuous generalization in this
+language, so a cast from `★` to `∀ X. Nat` is not a counterexample to the
+specialized eager form.
+
+The occurrence premise is not itself what selects the function ground.  The
+typing of the `GenSafe` body does.  [`ground-genSafeShape→fun`](GenSafeProperties.agda#L130)
+proves that if a raised ground type has a `GenSafe` shape, then that ground is
+`★ ⇒ ★`.  The typed corollaries
+[`eager-gen-ground-function`](GenSafeProperties.agda#L139) and
+[`eager-inst-ground-function`](GenSafeProperties.agda#L148) prove the narrowing
+and widening cases used at the eager boundary.  Thus the mechanized
+`(★⇒★)? ; gen` form is forced by well-typedness; it is not a weakening of
+the Cambridge `G? ; i` presentation.
+
+### Six required results
+
+| Item | Status | Formal result |
+|---|---|---|
+| 1. `GenSafe` preserves values | **completed** | [`genSafe-value`](GenSafeProperties.agda#L189): \(\operatorname{Value}(V) \land \operatorname{GenSafe}(c) \Rightarrow \operatorname{Value}(V\langle c\rangle)\). |
+| 2. `gen` admits only safe bodies | **completed** | The grammar restriction is [`Narrowing.gen`](../NarrowWiden.agda#L102), and [`gen-body-genSafe`](GenSafeProperties.agda#L196) proves \(\operatorname{Narrowing}(\operatorname{gen}(A,c)) \Rightarrow \operatorname{GenSafe}(c)\). The dual restriction is [`Widening.inst`](../NarrowWiden.agda#L214). |
+| 3. Composition preserves the safe category | **completed** | [`genSafe-composition`](GenSafeComposition.agda#L31) proves that typed composable `GenSafe` coercions compose to a typed `GenSafe` coercion. [`dualGenSafe-composition`](GenSafeComposition.agda#L51) is the widening dual. |
+| 4. Composition keeps eager work outside `gen` | **completed** | [`fun-untag-gen-composition`](GenSafeComposition.agda#L71) computes the normalized composition to exactly \((\star\Rightarrow\star)?;\operatorname{gen}(\star\Rightarrow\star,t)\). [`inst-fun-tag-composition`](GenSafeComposition.agda#L87) proves the dual equation. |
+| 5. Every well-typed narrowing/widening has a canonical factorization | **completed** | [`narrowing-canonical-factorization`](GenSafeComposition.agda#L150) and [`widening-canonical-factorization`](GenSafeComposition.agda#L193) classify every typed witness into its safe, identity, eager projection/tag, or seal/unseal form. The sharper critical-boundary results are [`narrowing-star-all-canonical-factorization`](GenSafeComposition.agda#L123) and [`widening-all-star-canonical-factorization`](GenSafeComposition.agda#L236). |
+| 6. Narrowing/widening remains unique | **completed** | [`narrowing-determinedᵐ`](NarrowWidenProperties.agda#L4259) proves \(c:A\mathrel{\unrhd}B \land d:A\mathrel{\unrhd}B \Rightarrow c=d\) under `StoreDetWf`; [`widening-determinedᵐ`](NarrowWidenProperties.agda#L4268) is dual. |
+
+For item 3, the narrowing statement is
+
+\[
+\begin{aligned}
+  &s : A \Rightarrow B,\quad \operatorname{GenSafe}(s),\\
+  &t : B \Rightarrow C,\quad \operatorname{GenSafe}(t)\\
+  &\qquad\Longrightarrow
+    \exists u.\ u : A \Rightarrow C
+      \land \operatorname{GenSafe}(u).
+\end{aligned}
+\]
+
+For the DGG-critical instance of item 5,
+
+\[
+  c : \star \mathrel{\unrhd} \forall B
+  \quad\Longrightarrow\quad
+  \exists s.\ c =
+    (\star\Rightarrow\star)?;\operatorname{gen}(\star\Rightarrow\star,s)
+    \land \operatorname{GenSafe}(s).
+\]
+
+Thus the grammar rules out the old shape
+`gen ★ (((★ ⇒ ★) ?) ; s)`: the projection is forced to the left of
+`gen` and therefore fires eagerly.
+
+### `GenSafe` versus `Inert`
+
+They are close but not literally the same raw category.
+[`genSafe→narrowing×inert`](GenSafeProperties.agda#L202) proves
+
+\[
+  \operatorname{GenSafe}(c)
+  \Rightarrow
+  \operatorname{Narrowing}(c)\land\operatorname{Inert}(c).
+\]
+
+Conversely, [`narrowing-inert-view`](GenSafeProperties.agda#L229) proves
+
+\[
+  \operatorname{Narrowing}(c)\land\operatorname{Inert}(c)
+  \Rightarrow
+  \operatorname{GenSafe}(c)
+  \lor \exists A,\alpha.\ c=\operatorname{seal}(A,\alpha).
+\]
+
+The standalone seal is the sole difference.  At a well-typed `gen` boundary,
+the freshness/occurrence premise excludes that seal, and
+[`typed-gen-body-inert→genSafe`](GenSafeProperties.agda#L402) recovers
+`GenSafe`.  Hence `GenSafe` and inert narrowing coincide for admissible `gen`
+bodies, though not as unrestricted raw predicates.  `DualGenSafe` should not
+be equated with `Inert`: `inst` is operationally active, so it is a syntactic
+duality condition rather than a value-form predicate.
+
+### Integration status
+
+| Layer | Status | Evidence or remaining work |
+|---|---|---|
+| Core grammar, duality, renaming, and well-formedness | **completed** | [`NarrowWiden.agda`](../NarrowWiden.agda) checks focused. |
+| Typed composition and normalization | **completed** | [`NarrowWidenComposition.agda`](../NarrowWidenComposition.agda) checks focused; it is still a high-cost module on a cold check. |
+| Six `GenSafe` theorems and `Inert` comparison | **completed** | [`GenSafeProperties.agda`](GenSafeProperties.agda), [`GenSafeComposition.agda`](GenSafeComposition.agda), and determinacy in [`NarrowWidenProperties.agda`](NarrowWidenProperties.agda) check without holes. |
+| Cast-imprecision and raw-duality clients | **completed** | [`CastImprecision.agda`](CastImprecision.agda) and [`DualRawProperties.agda`](DualRawProperties.agda) have been migrated and focused-checked. |
+| Refined preservation | **completed** | [`pure-preservation`](TypePreservation.agda#L851) includes the new eager sequence cases at [the narrowing branch](TypePreservation.agda#L899) and [the widening branch](TypePreservation.agda#L917); the module checks focused. |
+| Progress | **completed; statement unchanged** | Ordinary coercion typing, not the narrowing classifier, drives [`progress`](NuProgress.agda#L288). Its proof and the public [`NuMetaTheory.progress`](../NuMetaTheory.agda#L28) both check focused. |
+| Nearest DGG integration | **completed for the current module** | [`NuImprecisionSimulation.agda`](NuImprecisionSimulation.agda) has migrated nested `gen`/`inst` witnesses and checks focused. |
+| Term-reduction support | **completed** | [`NWTermReduction.agda`](NWTermReduction.agda) handles both new eager sequence constructors and checks focused. |
+| Quotient value classification | **completed** | [`outer-inst-fun-tag-allocation-trace`](NuImprecisionQuotientValue.agda#L398) exposes the exact `keep, keep, bind ★` trace, and the quotient-value classifier propagates the eager residual explicitly; the module checks focused. |
+| World-coherent quotient classification | **completed** | [`WorldCoherentQuotientClassificationᵀ`](NuImprecisionWorldCoherentQuotientClassificationDef.agda#L36) and [`world-coherent-quotient-classification-proofᵀ`](NuImprecisionWorldCoherentQuotientClassificationProof.agda#L687) retain both the plain and eager `inst` residuals with value/no-bullet evidence; both modules check focused. |
+| Final quotient assembly | **completed modulo the pre-existing plain-`inst` capability** | [`world-coherent-quotient-final-catchup-proofᵀ`](NuImprecisionWorldCoherentQuotientFinalCatchupProof.agda#L24) dispatches strictly to the plain `inst` capability or [`WorldCoherentQuotientInstFunTagCatchupᵀ`](NuImprecisionWorldCoherentQuotientInstFunTagCatchupDef.agda#L31). The checked [`world-coherent-quotient-inst-fun-tag-catchupᵀ`](NuImprecisionWorldCoherentQuotientInstFunTagCatchupLemma.agda#L25) reduces the eager capability to plain `inst` and the completed [`world-coherent-source-inert-widen-frameᵀ`](NuImprecisionWorldCoherentSourceInertWidenFrameLemma.agda#L16). [`world-coherent-quotient-final-catchupᵀ`](NuImprecisionWorldCoherentQuotientFinalCatchupLemma.agda#L28) supplies the classifier and eager adapter internally, leaving only the already-open plain quotient-`inst` path semantics as a parameter. |
+| Former contradiction | **completed** | [`public-mismatch-relation`](GenSafeMismatchBlameRegression.agda#L164), [`source-program-typing`](GenSafeMismatchBlameRegression.agda#L171), and [`target-program-typing`](GenSafeMismatchBlameRegression.agda#L175) prove that the gradual programs remain related and well typed. [`source-down-compiler-agreement`](GenSafeMismatchBlameRegression.agda#L214) and [`target-down-compiler-agreement`](GenSafeMismatchBlameRegression.agda#L224) identify the synthesized coercions. [`source-blame-trace`](GenSafeMismatchBlameRegression.agda#L264) and [`target-blame-trace`](GenSafeMismatchBlameRegression.agda#L273) prove blame/blame. |
+| Compiler synthesis | **completed** | The `ν`-to-star cases of [`coerce-upʷᵐ`](CompileCoercions.agda#L668) and [`coerce-downⁿᵐ`](CompileCoercions.agda#L750) synthesize the eager dual forms. `CompileCoercions.agda` and its direct term-imprecision client check focused without holes. |
+| Repaired value/reindex dispatchers | **completed** | [`world-coherent-left-value-catchup-prefix-proofᵀ`](NuImprecisionWorldCoherentValueCatchupPrefixProof.agda#L181) treats `gen⊑groundᵀ` as an immediate value case using `GenSafe`, and [`atomic-target-value-reindexᵀ`](NuImprecisionAtomicTargetReindex.agda#L75) reconstructs that constructor at the requested proof-relevant index. |
+| Live DGG dependency cone | **completed** | [`DynamicGradualGuarantee.agda`](../DynamicGradualGuarantee.agda) passes with `--no-allow-unsolved-metas` in about 3.9 seconds from the warm cache, so every grammar client transitively used by the public DGG statement checks. `All.agda` is deliberately not the completion criterion because it includes obsolete proof-development branches. |
+| Canonical backward-value implementation cone | **grammar migration completed; semantic proof partial** | A direct check of [`NuDGGTerminalBackwardValueLemma.agda`](NuDGGTerminalBackwardValueLemma.agda) exposed two active dependencies omitted by the strict architectural spine. [`NuImprecisionAllocationSimulation.agda`](NuImprecisionAllocationSimulation.agda#L2407) now threads `GenSafeSource C` through all three source-`ν` allocation entry points and passes strictly. [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda#L217) now distinguishes the plain and eager `inst` residuals and propagates paired-widening compatibility. Its two pre-existing plain branches and two newly explicit eager branches remain unproved under legacy permissive options, along with eight older source catch-up leaves. Therefore the grammar repair is propagated, but the canonical backward-value theorem is not yet a strict completed proof. |
+| Quotient-DGG path semantics | **partial; separate new-proof track** | The focused [`NuDGGStrictSpine.agda`](NuDGGStrictSpine.agda) check passes, but this means its explicit higher-order contracts fit; it does not prove the remaining semantic leaves. Continue leaf-first with the plain representative-`inst` path semantics described by [`WorldCoherentQuotientRepresentativeInstPathCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef.agda#L63). The eager adapter is complete. |
+
+The source-level mismatch example itself remains admissible.  The obsolete
+source down-coercion was
+
+\[
+  \operatorname{gen}\bigl(\star,
+    (\star\Rightarrow\star)?;
+    (X!\Rightarrow X?)\bigr).
+\]
+
+The repaired compiler synthesizes
+
+\[
+  (\star\Rightarrow\star)?;
+  \operatorname{gen}\bigl(\star\Rightarrow\star,
+    X!\Rightarrow X?\bigr).
+\]
+
+The target down-coercion is still \((\star\Rightarrow\star)?\).  Because the
+shared argument evaluates to a dynamically tagged `Nat`, both runtime sides
+fail at that eager function projection and reduce to blame; the source never
+reaches `gen`.  The surface relation and typing are established by
+[`public-mismatch-relation`](GenSafeMismatchBlameRegression.agda#L164),
+[`source-program-typing`](GenSafeMismatchBlameRegression.agda#L171), and
+[`target-program-typing`](GenSafeMismatchBlameRegression.agda#L175).  Direct
+compiler agreement is established by
+[`source-down-compiler-agreement`](GenSafeMismatchBlameRegression.agda#L214)
+and
+[`target-down-compiler-agreement`](GenSafeMismatchBlameRegression.agda#L224).
+The two reductions are established by
+[`source-blame-trace`](GenSafeMismatchBlameRegression.agda#L264) and
+[`target-blame-trace`](GenSafeMismatchBlameRegression.agda#L273).
 
 ## Coverage ledger
 
@@ -44,7 +231,7 @@ public `GradualDGG` statement.
 | Paired conceal `β-∀•` | checked through allocation | Same theorem handles both paired conversion forms |
 | One-sided reveal/conceal `β-∀•` | checked | Left/right reveal and conceal lemmas |
 | Generic narrowing/widening `β-∀•` | checked one-step boundary | Both constructor orders and all four combinations return `WeakOneStepResult` |
-| Source-only canonical-`∀` catchup | partial | Ten explicit holes remain in `NuImprecisionCatchupScratch`; the upstream quotient-value pattern and inference regression is repaired and strictly checked |
+| Source-only canonical-`∀` catchup | partial | Twelve explicit holes remain in `NuImprecisionCatchupScratch`: four plain/eager quotient residuals plus eight pre-existing source catch-up leaves. The upstream quotient-value pattern and inference regression is repaired and strictly checked. |
 | `β-gen•` | partial | Matched reconstruction and one-sided administrative clause checked; source-allocation naturality remains |
 | `β-inst` followed by `ν ★` allocation | checked locally | Matched, left-only, and right-only two-step lemmas |
 | Polymorphic value-shape inversion | checked locally | `Λ`, `∀` cast, or `gen`; each forces one administrative step |
@@ -58,15 +245,15 @@ public `GradualDGG` statement.
 | Administrative simulation-up-to | partial | The result, transport, coherence, source-`keep` composition, and all six `ν`-frame outcome maps are checked; the unfinished integration is confined to the dispatcher scratch |
 | One-step Nu-imprecision simulation | partial | The dispatcher skeleton covers blame and the matched/source-only/target-only `ν` and `ν ★` families; ten explicit helper holes remain, and the non-`ν` constructor/reduction patterns are not yet enumerated |
 | Terminal target-trace alignment | checked | Determinism makes every administrative `targetTail` a prefix of an observed trace to a value or blame |
-| Forward source-value terminal clause | completed higher-order assembly; semantic premise refuted for current QTI | The strict `Def`/`Proof` architecture shows that source one-step simulation and right-value catch-up suffice. [`closed-nu-dgg-mismatch-counterexample`](NuImprecisionClosedNuDGGCounterexample.agda) exhibits a related source value whose target reaches blame, so the right-value catch-up premise cannot be inhabited until the boundary is repaired. |
-| Backward target-value-or-source-blame clause | partial; generalized cancellation refuted | The same-label source-`gen` case is repaired by `gen⊑groundᵀ`, but [`target-tag-cancellation-mismatch-counterexample`](NuImprecisionTargetTagCancellationMismatchCounterexample.agda) refutes the generalized tag-cancellation dependency. The generic trace induction, left catch-up, and non-untag work remain reusable. |
+| Forward source-value terminal clause | completed higher-order assembly; plain quotient path leaf pending | The strict `Def`/`Proof` architecture shows that source one-step simulation and right-value catch-up suffice. Grammar, compiler, quotient classification, final higher-order assembly, and the eager quotient adapter are migrated; canonical assembly still depends on the plain representative-`inst` path semantics. |
+| Backward target-value-or-source-blame clause | partial; plain quotient path pending | The old generalized cancellation was refuted. The eager `GenSafe` factorization supplies the intended structural invariant, and the eager quotient residual now reduces to the plain-`inst` capability. Generic trace induction, left catch-up, and non-untag work remain reusable; the remaining quotient blocker is the pre-existing representative permutation path semantics. |
 | Backward target-blame clause | partial | Its exact named statement is checked in `NuDGGTerminalBackwardBlame`; target-trace alignment and the higher-order trace induction are checked, while zero-step blame catch-up and the live target dispatcher remain partial |
 | Residual target-trace measure | completed | `aligned-residual-shorter` proves that the aligned residual after a distinguished target step is strictly shorter |
 | Multi-step store well-formedness | completed | `multi-store-preservation` packages the store invariant across a complete Nu trace |
 | Named terminal components compose to `GradualDGG` | completed conditional interface check | `dynamic-gradual-guarantee-skeleton` supplies the three named boundaries to the checked strict wrapper; the semantic implementations remain partial. |
 | Three terminal clauses imply `ClosedNuDGG` | completed conditional theorem | `closed-nu-terminal-simulation⇒closed-nu-dgg` is hole-free; its three semantic premises remain to be supplied. |
-| `ClosedNuDGG` consistency | refuted for the current unrestricted QTI | [`closed-nu-dgg-mismatch-counterexample`](NuImprecisionClosedNuDGGCounterexample.agda) is strict and hole-free. The source is a value; the target deterministically reaches blame through a mismatched tag/untag pair. |
-| Closed `GradualDGG` reduction | public theorem refuted | [`gradual-dgg-gen-untag-mismatch-counterexample`](GradualDGGGenUntagMismatchCounterexample.agda#L325) strictly proves `GradualDGG → ⊥`. Compiler origin does not exclude the mismatch: a closed public relation reaches it through ordinary application argument casts. |
+| `ClosedNuDGG` consistency | historical counterexample; revalidation pending | The old unrestricted grammar admitted a deterministic mismatched tag/untag counterexample. The new grammar removes its nested projection witness; recheck the positive theorem after compiler synthesis and all DGG clients migrate. |
+| Closed `GradualDGG` reduction | historical counterexample; revalidation pending | The old compiler produced the bad nested `gen` body. Compiler migration must pull that projection outside `gen`, after which the former counterexample should be converted to a positive eager-reduction regression. |
 
 ## Top-down proof plan from `QuotientedTermImprecision`
 
@@ -90,13 +277,12 @@ It derives both divergence clauses by finite-prefix arguments. The checked
 theorem [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L400) then discharges the
 public [`GradualDGG`](../DynamicGradualGuarantee.agda#L91).
 
-The new `gen⊑groundᵀ` constructor supplies the missing final relation for
-the old same-label example, but does not constrain the earlier generic
-`cast⊒⊑ᵀ` relation to use that label.  The checked mismatch example relates a
-source `gen` value around a `Nat` tag to a target that untags at `★ ⇒ ★`.
-The source is already a value while the target reaches blame, so the first
-terminal fact and `ClosedNuDGG` are false for the current unrestricted QTI.
-The checked outer implications remain reusable once their premise is repaired.
+Historically, `gen⊑groundᵀ` repaired only the same-label final relation; the
+unrestricted grammar still admitted a source `gen` value around a `Nat` tag
+opposite a target function untag.  The `GenSafe` repair attacks that earlier
+construction instead: the active untag may no longer remain underneath `gen`.
+The checked outer implications remain reusable while compiler synthesis and
+the remaining relation clients migrate to this invariant.
 
 Status of this outer spine:
 
@@ -105,7 +291,7 @@ Status of this outer spine:
 | Compile public imprecision to closed Nu imprecision | completed | [`compiled-term-imprecision`](NuDGGSpine.agda#L77) |
 | Reduce the four observations in `ClosedNuDGG` to three terminal facts | completed | [`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L330) |
 | Reduce `GradualDGG` to `ClosedNuDGG` | completed | [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L400) |
-| Supply the three terminal facts | partial; current forward premise refuted | All three exact statements and arbitrary-world recursive forms are named. The mismatch counterexample refutes the current forward value premise and generalized tag cancellation; the trace inductions and unrelated semantic cases remain reusable after a relation or theorem-boundary repair. |
+| Supply the three terminal facts | partial; grammar migration in progress | All three exact statements and arbitrary-world recursive forms are named. The eager factorization repairs the structural source of the old mismatch; compiler synthesis, catch-up, and active-root clients must be migrated before the terminal premises are revalidated. |
 
 ### Common hypotheses and final related-value package
 
@@ -227,18 +413,18 @@ Under the common hypotheses, it states
 
 | Step | Status | Proof obligation and available evidence |
 |---|---|---|
-| B1. Catch up a source related to an already terminal target value | partial | [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1083) has the required arbitrary-type interface: given `RuntimeOK N`, `Value V′`, `No• V′`, and \(N\sqsubseteq V'\), it returns an indexed source catch-up. Ten explicit holes remain in this proof. |
+| B1. Catch up a source related to an already terminal target value | partial | [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L307) has the required arbitrary-type interface: given `RuntimeOK N`, `Value V′`, `No• V′`, and \(N\sqsubseteq V'\), it returns an indexed source catch-up. Twelve explicit holes remain across this dispatcher and its two quotient drivers: four plain/eager quotient residuals plus eight source leaves. |
 | B2. Finish quotient-cast value classification | completed | The first GPT 5.5 ginger pilot supplied all four missing down/gen-down clauses for an untag-then-seal source sequence, then made the type and precision implicits explicit through the quotient helper chain. The exact wrapper command and a local strict focused check pass for [`NuImprecisionQuotientValue.agda`](NuImprecisionQuotientValue.agda). |
-| B3. Discharge the two quotient-`inst` residuals in B1 | partial | The residual alternative from B2 must be threaded through the outer down/up and gen-down/up catch-up functions. These are the holes at [`left-catchup-indexed-prefix-down-upᵀ`](NuImprecisionCatchupScratch.agda#L961) and [`left-catchup-indexed-prefix-gen-down-upᵀ`](NuImprecisionCatchupScratch.agda#L1021). |
-| B4. Discharge the remaining source allocation/cast leaves in B1 | partial | Eight holes remain in [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1083): the `α⊑ᵀ` residual, source-only `ν`, source-only `ν ★`, narrowing cast, widening cast, paired conversion, reveal, and conceal leaves. The strict pre-allocation terminal frames for the two source allocation cases are now isolated in [`NuImprecisionCatchupSourceAllocationTerminal.agda`](NuImprecisionCatchupSourceAllocationTerminal.agda), and the four arbitrary-type source cast terminal frames are complete; recursive assembly around those leaves remains. |
-| B5. Complete the target-oriented one-step dispatcher | partial | [`weak-one-step-indexed-simulationᵀ`](NuImprecisionCatchupScratch.agda#L1381) now connects explicit impossible/value cases, primitive frames, target cast/conversion frames, and all five target root handlers in addition to the allocation and source cast/conversion families. Atomic target identity and all three target-cast β-id roots are complete. One target reveal/seal root and eight target-cast roots remain explicit holes; the scratch module still permits incomplete matches. |
+| B3. Discharge the quotient-`inst` residuals in B1 | partial | The classifier's plain and eager alternatives must be threaded through both outer drivers. These are the four holes in [`left-catchup-indexed-prefix-down-upᵀ`](NuImprecisionCatchupScratch.agda#L167) and [`left-catchup-indexed-prefix-gen-down-upᵀ`](NuImprecisionCatchupScratch.agda#L236). The strict quotient path architecture now reduces the eager alternative to the plain capability, but the canonical dispatcher is not yet connected to that architecture. |
+| B4. Discharge the remaining source allocation/cast leaves in B1 | partial | Eight holes remain in [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L307): the `α⊑ᵀ` residual, source-only `ν`, source-only `ν ★`, narrowing cast, widening cast, paired conversion, reveal, and conceal leaves. The strict pre-allocation terminal frames for the two source allocation cases are now isolated in [`NuImprecisionCatchupSourceAllocationTerminal.agda`](NuImprecisionCatchupSourceAllocationTerminal.agda), and the four arbitrary-type source cast terminal frames are complete; recursive assembly around those leaves remains. |
+| B5. Complete the target-oriented one-step dispatcher | partial | [`weak-one-step-indexed-simulationᵀ`](NuImprecisionCatchupScratch.agda#L607) connects explicit impossible/value cases, primitive frames, target cast/conversion frames, and all five target root handlers in addition to the allocation and source cast/conversion families. Atomic target identity and all three target-cast β-id roots are complete. The scratch module still permits incomplete matches, so exhaustive completion remains required even though no additional explicit term holes occur in this dispatcher. |
 | B6. Forget the indexed wrapper when aligning an outcome | completed | [`forget-weak-indexed-outcome`](NuImprecisionSimulationCore.agda#L1264) converts the indexed outcome to the unindexed outcome consumed by the trace-alignment layer. |
 | B7. Align administrative target tails with the observed value trace | completed | [`weak-outcome-target-value-alignedᵀ`](NuDGGTraceAlignment.agda#L53), using [`target-tail-prefix-value`](NuReductionDeterminism.agda#L199), returns either an immediate source-blame trace or a residual target trace from the related result, together with \(\psi=\operatorname{targetTailChanges}(R)\mathbin{++}\theta\). |
 | B8. Maintain runtime, typing, and store well-formedness | completed | One-step [`store-preservation`](NuPreservation.agda#L802), [`multi-preservation`](NuPreservation.agda#L882), [`multi-runtime-preservation`](NuPreservation.agda#L897), and [`multi-store-preservation`](NuDGGPreservation.agda#L27) are completed. The four result-level projections are checked in [`NuDGGWeakResultPreservation.agda`](NuDGGWeakResultPreservation.agda). |
 | B9. Prove the target-trace terminal induction | completed proof | [`backward-target-value-or-source-blame-proofᵀ`](NuDGGTerminalBackwardValueProof.agda) is a hole-free fuel induction over the observed target trace. It consumes only [`WeakOneStepIndexedSimulationᵀ`](NuImprecisionOneStepDef.agda) and [`LeftValueCatchupᵀ`](NuImprecisionValueCatchupDef.agda), aligns administrative target tails, and recurses only on the strictly shorter residual trace. |
 | B9a. Check the strengthened world-coherent induction | completed proof | [`world-coherent-backward-target-value-or-source-blame-proofᵀ`](NuDGGTerminalBackwardValueWorldCoherentProof.agda) repeats the fuel induction against the strengthened one-step and catch-up contracts. It threads successor `WorldCoherent` evidence only through continuing branches and imports no live implementation. |
 | B10. Compose source traces and transported worlds | completed | [`prepend-weak-related-valueᵀ`](NuDGGTerminalBackwardValueProof.agda) composes the source trace and source changes while transporting the value relation, worlds, stores, and endpoint equations. The proof packages the final related-value witnesses or propagates source blame. |
-| B11. Package the terminal theorem | completed conditional assembly; dependencies partial | [`BackwardTargetValueOrSourceBlameᵀ`](NuDGGTerminalBackwardValueDef.agda) freezes the exact alternatives. [`backward-target-value-or-source-blame-generalᵀ`](NuDGGTerminalBackwardValueLemma.agda) is a hole-free application of the generic induction to assumed live contracts. The old source-`gen` contradiction is repaired locally; the live dispatcher and value catch-up implementations remain incomplete. |
+| B11. Package the terminal theorem | completed conditional assembly; dependencies partial | [`BackwardTargetValueOrSourceBlameᵀ`](NuDGGTerminalBackwardValueDef.agda) freezes the exact alternatives. [`backward-target-value-or-source-blame-generalᵀ`](NuDGGTerminalBackwardValueLemma.agda) is a hole-free application of the generic induction to assumed live contracts. The old source-`gen` contradiction is repaired locally. A direct canonical-`Lemma` check reaches the permissive [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda#L215), whose plain/eager quotient residual branches remain holes; the live dispatcher and value catch-up are therefore still incomplete. |
 
 The induction should be on target-trace length, not directly on the syntactic
 multi-step proof. A weak outcome can consume the distinguished target step and
@@ -277,7 +463,12 @@ single generalized left catch-up theorem whose target is terminal (value or
 blame). The latter is attractive only if it shortens the proof without hiding
 the explicit source trace required by the terminal statement.
 
-## Recommended implementation order
+## Historical implementation order before `GenSafe`
+
+This section records the diagnosis that led to the grammar repair.  Its steps
+5--7 and the blame-permissive theorem proposal below are superseded by the
+`GenSafe` plan above; they are retained so that the failed alternatives and
+counterexample history are not rediscovered.
 
 The shortest sound path is now:
 
@@ -368,7 +559,7 @@ therefore constrain or specialize the QTI construction itself, or narrow the
 operational theorem to a justified compiler image.  It must not add an
 untag-specific result/view layer around the false premise.
 
-### Semantic repair audit after the mismatched-tag counterexample
+### Historical semantic repair audit after the mismatched-tag counterexample
 
 The first repair added one flat constructor to the existing mutual QTI
 relation, named `gen⊑groundᵀ`.  Its conclusion soundly relates a terminal
@@ -419,7 +610,12 @@ both would directly worsen the hierarchy in issue #78.  A compiler-image
 boundary is viable only if it stays at the closed entry theorem and the
 recursive relation preserves it without another nested success carrier.
 
-### Recommended public-theorem repair (pending design approval)
+### Superseded public-theorem repair
+
+The proposal in this subsection is no longer recommended.  Narrowing reverses
+left/right precision relative to the POPL presentation, so admitting arbitrary
+right-hand blame would weaken the wrong observation.  The approved repair is
+the eager `GenSafe` grammar above.
 
 The least invasive sound repair is to admit blame on either side at the
 observation boundary.  This matches the intended term-narrowing policy in
@@ -544,10 +740,10 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample.agda`](NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample.agda) | completed strict regression for the old generalized boundary | A duplicated source-only assumption context satisfies `SourceNameExclusive` and all old local direct-untag operational/typing premises. The requested function-ground index crosses the two distinct membership proofs, and exhaustive QTI inversion proves that the post-untag identity lambdas cannot be related at that index. The file now also proves that the new `AssumptionMembershipUnique` premise rejects exactly this duplicate-row context, so it no longer manufactures the strengthened terminal catch-up premise. |
 | [`NuImprecisionTargetTagCancellationDef.agda`](NuImprecisionTargetTagCancellationDef.agda) | completed strict statement; refuted | Flat generalized leaf returning the ground equality and QTI derivation inline. [`NuImprecisionTargetTagCancellationMismatchCounterexample.agda`](NuImprecisionTargetTagCancellationMismatchCounterexample.agda) proves it false for current QTI without adding a result carrier. |
 | [`NuImprecisionSourceGenTargetGroundAgreementDef.agda`](NuImprecisionSourceGenTargetGroundAgreementDef.agda) | completed strict statement; refuted | The intended equality is not implied by current QTI: [`NuImprecisionGenUntagMismatchCounterexampleCore.agda`](NuImprecisionGenUntagMismatchCounterexampleCore.agda) relates a source `gen` over a `Nat` tag while the requested target ground is `★ ⇒ ★`. |
-| [`NuImprecisionGenUntagCounterexampleCore.agda`](NuImprecisionGenUntagCounterexampleCore.agda) | completed strict positive regression | Defines the concrete empty-world terms, coercion typings, QTI witnesses, runtimes, target trace, exclusivity/uniqueness proofs, and [`repaired-final-relation`](NuImprecisionGenUntagCounterexampleCore.agda#L233). It is a direct collection of facts, not a record or result carrier. |
-| [`NuImprecisionGenUntagMismatchCounterexampleCore.agda`](NuImprecisionGenUntagMismatchCounterexampleCore.agda) | completed strict negative regression | Reuses the same source `gen`, changes the target tag payload to `Nat`, and retains function-ground untagging. It directly refutes ground agreement and supplies the source-value/target-blame operational witnesses. |
-| [`NuImprecisionClosedNuDGGCounterexample.agda`](NuImprecisionClosedNuDGGCounterexample.agda) | completed strict counterexample | Applies `ClosedNuDGG` to the mismatch core and contradicts the forward value result by deterministic alignment with the target trace to blame. |
-| [`GradualDGGGenUntagMismatchCounterexample.agda`](GradualDGGGenUntagMismatchCounterexample.agda) | completed strict public counterexample | Defines a closed gradual-term relation, exposes both compiled term shapes, proves the complete source-value and target-blame traces, and derives `GradualDGG → ⊥`. The proof adds no carrier or origin predicate. |
+| [`NuImprecisionGenUntagCounterexampleCore.agda`](NuImprecisionGenUntagCounterexampleCore.agda) | historical; old runtime witness now rejected | Before `GenSafe`, this defined the empty-world nested-`gen` runtime witness and its final relation. It now fails exactly where `NW.gen` is given a body containing the projection; this is the intended rejection of the old compiled shape. |
+| [`NuImprecisionGenUntagMismatchCounterexampleCore.agda`](NuImprecisionGenUntagMismatchCounterexampleCore.agda) | historical; blocked by rejected runtime witness | Reused the old nested-`gen` source and therefore no longer checks. Preserve its mismatched-label idea when writing the new eager source-blame/target-blame regression. |
+| [`NuImprecisionClosedNuDGGCounterexample.agda`](NuImprecisionClosedNuDGGCounterexample.agda) | historical; superseded by grammar repair | Its refutation depends on the now-unconstructible nested-`gen` runtime relation. Revalidate `ClosedNuDGG` only after compiler and DGG clients migrate. |
+| [`GradualDGGGenUntagMismatchCounterexample.agda`](GradualDGGGenUntagMismatchCounterexample.agda) | partial migration; surface programs remain valid | Its closed gradual terms and gradual imprecision relation remain the desired source-level regression. The old compilation-shape and source-value trace do not: compiler repair should expose the function projection before `gen`, producing source blame as well as target blame. |
 | [`NuImprecisionWorldCoherentRightTargetNarrowUntagRootProof.agda`](NuImprecisionWorldCoherentRightTargetNarrowUntagRootProof.agda) | completed higher-order fit to a refuted premise | Proves that flat generalized cancellation would suffice for the complete narrow-untag root. The mismatch confirms that the surrounding indices fit but the cancellation premise is not semantically available. No cancellation carrier should be added. |
 | [`NuImprecisionWorldCoherentRightTargetActiveRootResumeProof.agda`](NuImprecisionWorldCoherentRightTargetActiveRootResumeProof.agda) | partial strict proof: all five identity roots completed | A shared direct `β-id` composition preserves the existing catch-up result's transport, coherence, lineage, bullet transport, world coherence, and source-name evidence. Narrowing, general widening, identity-only widening, reveal, and conceal identity roots each invert the three reachable identity type shapes and reuse that core. The file intentionally does not assemble the ten-field capability while untag, instantiation, and unseal roots remain open. |
 | [`NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda) | completed statement | Five-field terminalization boundary for target narrowing, widening, identity-only widening, reveal, and conceal. Each field returns the existing complete catch-up carrier directly. |
@@ -927,7 +1123,7 @@ are delegated:
 | [`PairedWideningCompatibility.agda`](../PairedWideningCompatibility.agda) | completed definition | `PairedWideningCompatible` records either source inertness or the exact bridge obtained from target inertness; `PairedCast.paired-widening` and `νcast⊑νcastᵀ` carry it explicitly |
 | [`NuImprecisionSimulationCore.agda`](NuImprecisionSimulationCore.agda) paired-widening migration | completed integration | Two-sided, left-only, under-binder, allocation-frame, transport, and coherence paths preserve the compatibility witness; the focused strict core check passes |
 | [`NuImprecisionAllocationSimulation.agda`](NuImprecisionAllocationSimulation.agda) paired-widening migration | completed integration | Matched `ν ★` allocation, value/source-blame catch-up, transport, coherence, and indexed outcomes thread the compatibility witness; the focused strict check passes |
-| [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda) paired-widening migration | partial legacy debt | Four `νcast⊑νcastᵀ` branches still use the old constructor shape and the local allocation helper lacks compatibility; repair or retire this permissive scratch file before strict-spine inclusion |
+| [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda) paired-widening migration | completed grammar-shape migration; semantic proof partial | All four `νcast⊑νcastᵀ` branches now bind and propagate `PairedWideningCompatible`, including through the local allocation helper. The file remains a permissive legacy implementation: its ordinary and generated down/up quotient residuals are four explicit holes, and other pre-existing catch-up holes remain. It must be split or completed before it can enter the strict spine. |
 | [`NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupDef.agda) | completed repaired statement | Exact-final terminal widening now requires `PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′` |
 | [`NuImprecisionWorldCoherentFinalPairedWideningCatchupProof.agda`](NuImprecisionWorldCoherentFinalPairedWideningCatchupProof.agda) | completed higher-order proof | Source-inert pairs are terminal; source-active/target-inert pairs use the compatibility bridge, the supplied whole `WorldCoherentSourceWidenCatchupᵀ`, and a target-cast frame; source blame is propagated |
 | `NuImprecisionWorldCoherentFinalPairedWideningCatchupLemma.agda` | not yet started; mutual assembly | No permissive canonical assembly is created: the strict proof exposes only the genuine source-widen dependency, whose canonical inhabitant belongs to the mutual SCC |
@@ -940,14 +1136,39 @@ are delegated:
 | [`NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef.agda) | completed statement; hard proof | Exposes `quotientᵖ D≈C C⊑C′ C′≈D′` and asks for direct coherent catch-up without inventing an ordinary relation between physical endpoints |
 | [`NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef.agda) | completed statement | Replaces arbitrary permutation derivations by explicit finite paths of oriented contextual adjacent swaps while retaining the original quotient evidence in the term relation |
 | [`NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupProof.agda`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupProof.agda) | completed higher-order proof | Normalizes `refl`, `sym`, `trans`, arrow/`∀` congruence, and swap into paths and reduces representative catch-up to the path-aware capability |
-| Quotient representative-`inst` path semantics | not yet started; hard boundary | Prove the identity path and prepend-one-oriented-contextual-swap cases, including whole-source reduction, crossed store/world construction, and continuation on the residual path; no canonical `Lemma` exists yet |
+| [`WorldCoherentQuotientRepresentativeInstPathIdentityCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityCatchupDef.agda#L33) | completed higher-order reduction; canonical SCC assembly pending | Isolates the base case where both normalized paths are `path-refl`, while retaining the original quotient proof witnesses. The checked proof reduces it first to the paired/source-only view and then to four ordinary/generated-down adapters, all now implemented at the value-prefix/final-quotient SCC boundary. |
+| [`WorldCoherentQuotientRepresentativeInstPathIdentityViewCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityViewCatchupDef.agda#L35) | completed higher-order dispatch; canonical SCC assembly pending | Exposes the representative relation as `AllImprecisionView`: either paired `∀/∀` imprecision or source-only non-vacuous `ν`. It retains both self-permutation witnesses and the quotiented term relation, so it does not assume an unsound physical-endpoint relation; its checked proof dispatches to the paired and source-only capabilities. |
+| [`world-coherent-quotient-representative-inst-path-identity-catchup-proofᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityCatchupProof.agda#L32) | completed higher-order proof | Dependent elimination of the source `inst` widening forces the identity-path source representative to be universal, obtains `all-imprecision-view`, and reduces the original identity contract to the refined view contract. Both id-only and general quotient widening modes are explicit checked clauses. |
+| [`WorldCoherentQuotientRepresentativeInstPathIdentityPairedCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityPairedCatchupDef.agda#L35) | completed higher-order dispatch; canonical SCC assembly pending | Paired `∀/∀` identity handling retains the lifted body-imprecision witness, original quotient downcasts, self-permutations, and final source `inst`/target inert widening. Its checked dispatcher separates ordinary-down and generated-down witnesses and invokes their completed higher-order adapters. |
+| [`WorldCoherentQuotientRepresentativeInstPathIdentitySourceCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentitySourceCatchupDef.agda#L42) | completed higher-order dispatch; canonical SCC assembly pending | Source-only identity handling retains `GenSafeSource`, `occurs zero E ≡ true`, the one-sided lifted body relation, original quotient evidence, and final casts. Its checked dispatcher preserves those witnesses in both ordinary-down and generated-down branches, so vacuous generalization is not admitted. |
+| [`world-coherent-quotient-representative-inst-path-identity-paired-catchup-proofᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityPairedCatchupProof.agda#L27) | completed higher-order proof | Exhaustively eliminates `down⊑downᵀ` versus `gen-down⊑gen-downᵀ`, exposing the inner ordinary term relation and the two narrowing derivations to the corresponding semantic leaf. |
+| [`WorldCoherentQuotientRepresentativeInstPathIdentityPairedIdDownCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityPairedIdDownCatchupDef.agda#L33) | completed higher-order proof; canonical SCC assembly pending | The [checked proof](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityPairedIdDownCatchupProof.agda#L43) handles identity quotient widening directly: sparse-store cast embedding reconstructs the two ordinary downcast layers, target widening is framed, exact `ν ★` allocation is invoked, and `β-inst` is prepended. It delegates general cast widening to the adjacent checked adapter, which the top assembly constructs from the SCC interfaces. |
+| [`WorldCoherentQuotientRepresentativeInstPathIdentityPairedIdDownCastWidenCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityPairedIdDownCastWidenCatchupDef.agda#L31) | completed higher-order proof; canonical SCC assembly pending | The [checked proof](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityPairedIdDownCastWidenCatchupProof.agda#L31) reconstructs `quotientᵖ ≈∀-refl (∀ⁱ r) ≈∀-refl`, recursively catches up the inner value through `WorldCoherentLeftValueCatchupPrefixᵀ`, and reapplies the complete ordinary down/up frame through `WorldCoherentQuotientFinalCatchupᵀ`. It retains both modes and both widening derivations; no ambient mode-compatibility assumption is invented. |
+| [`WorldCoherentQuotientRepresentativeInstPathIdentityPairedGenDownCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityPairedGenDownCatchupDef.agda#L33) | completed higher-order proof; canonical SCC assembly pending | The [checked proof](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityPairedGenDownCatchupProof.agda#L31) reconstructs `quotientᵖ ≈∀-refl (∀ⁱ r) ≈∀-refl`, recursively catches up the inner ordinary value relation through `WorldCoherentLeftValueCatchupPrefixᵀ`, and reapplies the whole generated-down/up frame through `WorldCoherentQuotientFinalCatchupᵀ`. Thus no unavailable ordinary relation between the downcast endpoints is assumed. |
+| [`world-coherent-quotient-representative-inst-path-identity-source-catchup-proofᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentitySourceCatchupProof.agda#L28) | completed higher-order proof | Exhaustively eliminates ordinary versus generated downcasts while passing `GenSafeSource`, the occurrence proof, and the one-sided body relation explicitly to both leaves. |
+| [`WorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCatchupDef.agda#L39) | completed higher-order proof; canonical SCC assembly pending | The [checked proof](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCatchupProof.agda#L44) handles identity quotient widening directly and constructs the exact inner index as `ν {{safe}} occ r`. It delegates general cast widening to the adjacent checked non-vacuous adapter, which the top assembly constructs from the SCC interfaces. |
+| [`WorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCastWidenCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCastWidenCatchupDef.agda#L37) | completed higher-order proof; canonical SCC assembly pending | The [checked proof](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCastWidenCatchupProof.agda#L32) reconstructs the exact non-vacuous index `quotientᵖ ≈∀-refl (ν {{safe}} occ r) ≈∀-refl`, recursively catches up the inner value, and reapplies the complete ordinary down/up frame at the same value-prefix/final-quotient SCC boundary. Both `GenSafeSource E` and `occurs zero E ≡ true` are consumed. |
+| [`WorldCoherentQuotientRepresentativeInstPathIdentitySourceGenDownCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentitySourceGenDownCatchupDef.agda#L39) | completed higher-order proof; canonical SCC assembly pending | The [checked proof](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentitySourceGenDownCatchupProof.agda#L32) uses `GenSafeSource E` and `occ : occurs zero E ≡ true` to reconstruct the exact non-vacuous index `quotientᵖ ≈∀-refl (ν {{safe}} occ r) ≈∀-refl`, then uses the same value-prefix/final-quotient SCC boundary as the paired case. The occurrence witness is consumed by the proof; there is no vacuous branch. |
+| [`world-coherent-quotient-representative-inst-path-identity-view-catchup-proofᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityViewCatchupProof.agda#L27) | completed higher-order proof | Exhaustive two-clause assembly of the identity view from the paired and source-only semantic contracts. |
+| [`world-coherent-quotient-representative-inst-path-identity-view-catchup-lemmaᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityViewCatchupLemma.agda#L48) | completed higher-order assembly | Instantiates the paired and source-only dispatchers with all four checked ordinary/generated-down adapters. The top quotient-`inst` assembly builds those adapters internally from `WorldCoherentLeftValueCatchupPrefixᵀ` and `WorldCoherentQuotientFinalCatchupᵀ`; the only additional identity-path input is exact source-`ν ★` allocation. |
+| [`WorldCoherentQuotientRepresentativeInstPathSourceStepCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathSourceStepCatchupDef.agda#L36) | partial semantic proof | Isolates one leading oriented contextual source step, its residual source path, and the complete target path. [`source-inst-step-view`](NuImprecisionQuotientInstPathProperties.agda#L61) strictly eliminates both impossible arrow-context cases, and the [checked adapter](NuImprecisionWorldCoherentQuotientRepresentativeInstPathSourceStepCatchupProof.agda#L25) reduces the worker to top-level swap, top-level unswap, and under-`∀` steps. Operational handling of those three reachable cases remains. |
+| [`WorldCoherentQuotientRepresentativeInstPathTargetStepCatchupᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathTargetStepCatchupDef.agda#L35) | completed statement; proof not yet started | Isolates one leading target step after the source path is exhausted. The implementation must align the target permutation step with the observed target value. |
+| [`world-coherent-quotient-representative-inst-path-cases-proofᵀ`](NuImprecisionWorldCoherentQuotientRepresentativeInstPathCasesProof.agda#L29) | completed higher-order proof | Exhaustively assembles the full path capability from the identity, source-step, and target-step contracts. This fit check is strict and adds no hole, postulate, or incomplete match. |
+| [`nu-narrowing⇒⊑ᵢ`](NuCastImprecision.agda#L95) and [`nu-widening⇒⊑ᵢ`](NuCastImprecision.agda#L149) | completed strict proof | Sparse-`NuStore.StoreWf` cast embedding mirrors the dense-store theorem for the full repaired narrowing/widening grammars, including non-vacuous `gen`/`inst`. It uses [`StoreWf-⟰ᵗ`](NuStoreProperties.agda#L158) under binders and removes the earlier need to strengthen DGG worlds to the dense store invariant. |
+| Quotient representative-`inst` path semantics | **partial** | The complete statement and every structural case assembly are checked. All four identity-path ordinary/generated-down adapters now have strict higher-order proofs at the explicit value-prefix/final-quotient mutual-SCC boundary. Two standalone semantic residuals remain: the reachable leading source permutation cases and one leading target permutation step. Canonical completion additionally requires closing the already documented value-prefix/final-quotient/source-runtime SCC. |
 | [`NuImprecisionWorldCoherentQuotientInstCatchupProof.agda`](NuImprecisionWorldCoherentQuotientInstCatchupProof.agda) | completed higher-order proof | Strict dependent elimination of `qD` reduces the existing quotient-`inst` contract to the direct representative capability |
-| `NuImprecisionWorldCoherentQuotientInstCatchupLemma.agda` | not yet started | Canonical assembly waits for a strict representative-level inhabitant; no permissive lemma is created |
+| [`world-coherent-quotient-inst-catchup-lemmaᵀ`](NuImprecisionWorldCoherentQuotientInstCatchupLemma.agda#L82) | completed higher-order top assembly | Connects exact source-`ν ★` allocation and the two oriented permutation-step residuals through identity classification, path interpretation, representative exposure, and quotient elimination. Its five inputs are `WorldCoherentFinalSourceNuCastCatchupᵀ`, the source- and target-step contracts, `WorldCoherentLeftValueCatchupPrefixᵀ`, and `WorldCoherentQuotientFinalCatchupᵀ`. It constructs all four identity-path ordinary/generated-down leaves internally from the last two capabilities, making the genuine mutual-SCC back-edge explicit. The focused strict check passes with no holes or unsolved metas. |
 | [`NuImprecisionQuotientToOrdinaryCounterexample.agda`](NuImprecisionQuotientToOrdinaryCounterexample.agda) | completed obstruction | An empty-context adjacent-`∀` swap is quotient-related but has no ordinary relation; strict proof rules out generic dequotienting, so quotient-`inst` needs direct permutation-aware catch-up |
-| [`NuImprecisionWorldCoherentQuotientClassificationDef.agda`](NuImprecisionWorldCoherentQuotientClassificationDef.agda) | completed narrowed statement | Strict structural classifier returning either a coherent terminal quotient result or the unique outer-`inst` residual with `Value (V ⟨ d ⟩)`, `No• (V ⟨ d ⟩)`, and reduction evidence |
-| [`NuImprecisionWorldCoherentQuotientClassificationProof.agda`](NuImprecisionWorldCoherentQuotientClassificationProof.agda) | completed proof | GPT 5.5 supplied the exhaustive classifier on Ginger; local integration strengthened it to retain final source-name exclusivity and the ready `V ⟨ d ⟩` residual, and the focused strict check passes |
+| [`NuImprecisionWorldCoherentQuotientClassificationDef.agda`](NuImprecisionWorldCoherentQuotientClassificationDef.agda) | completed narrowed statement | Strict structural classifier returning either a coherent terminal quotient result, the plain outer-`inst` residual, or the eager `inst ; (★⇒★)!` residual, each with `Value (V ⟨ d ⟩)`, `No• (V ⟨ d ⟩)`, and reduction evidence |
+| [`NuImprecisionWorldCoherentQuotientClassificationProof.agda`](NuImprecisionWorldCoherentQuotientClassificationProof.agda) | completed proof | The exhaustive classifier now retains both residual shapes and their exact traces; the focused strict check passes |
 | [`NuImprecisionWorldCoherentQuotientFinalCatchupDef.agda`](NuImprecisionWorldCoherentQuotientFinalCatchupDef.agda) | completed statement | Complete terminal down/up quotient-node contract; unlike the narrower `Inst` leaf, it returns a coherent, left-well-formed catch-up result for every final source value/blame classification |
-| [`NuImprecisionWorldCoherentQuotientFinalCatchupProof.agda`](NuImprecisionWorldCoherentQuotientFinalCatchupProof.agda) | completed higher-order proof | Strict two-way assembly from coherent quotient classification and the quotient-`inst` contract; the source-runtime record is not needed at this join |
+| [`NuImprecisionWorldCoherentSourceInertWidenFrameDef.agda`](NuImprecisionWorldCoherentSourceInertWidenFrameDef.agda) | completed reusable statement | Exact framing capability used to place an inert source function tag around a completed coherent catch-up result |
+| [`NuImprecisionWorldCoherentSourceInertWidenFrameLemma.agda`](NuImprecisionWorldCoherentSourceInertWidenFrameLemma.agda) | completed canonical lemma | Supplies the framing capability from the checked structural source-widening proof |
+| [`NuImprecisionWorldCoherentQuotientInstFunTagCatchupDef.agda`](NuImprecisionWorldCoherentQuotientInstFunTagCatchupDef.agda) | completed statement | Exact semantic contract for the new eager residual `inst B s ; (★⇒★)!` |
+| [`NuImprecisionWorldCoherentQuotientInstFunTagCatchupProof.agda`](NuImprecisionWorldCoherentQuotientInstFunTagCatchupProof.agda) | completed higher-order proof | Splits `inst ; (★⇒★)!`, invokes plain quotient-`inst` catch-up at `(★⇒★) ⊑ A′`, frames the result with the inert tag, and prepends `β-seq`; no new permutation semantics are required |
+| [`NuImprecisionWorldCoherentQuotientInstFunTagCatchupLemma.agda`](NuImprecisionWorldCoherentQuotientInstFunTagCatchupLemma.agda) | completed higher-order assembly | Supplies the canonical inert source-widen frame, leaving plain quotient-`inst` catch-up as the eager adapter's only parameter |
+| [`NuImprecisionWorldCoherentQuotientFinalCatchupProof.agda`](NuImprecisionWorldCoherentQuotientFinalCatchupProof.agda) | completed higher-order proof | Strict three-way assembly from coherent quotient classification, the plain quotient-`inst` contract, and the eager quotient-`inst`/function-tag contract; the source-runtime record is not needed at this join |
+| [`NuImprecisionWorldCoherentQuotientFinalCatchupLemma.agda`](NuImprecisionWorldCoherentQuotientFinalCatchupLemma.agda) | completed higher-order assembly | Supplies the checked classifier and derives the eager capability from plain quotient-`inst`, so the final quotient join has only the pre-existing plain capability left as a parameter |
 | [`NuImprecisionWorldCoherentValueCatchupPrefixProof.agda`](NuImprecisionWorldCoherentValueCatchupPrefixProof.agda) | completed higher-order proof | Exhaustive recursive dispatcher from exactly `WorldCoherentSourceRuntimeCatchupᵀ` and `WorldCoherentQuotientFinalCatchupᵀ`; contains no holes/options/postulates, imports no scratch dispatcher, and passes a focused strict check |
 | `NuImprecisionWorldCoherentValueCatchupLemma.agda` | not yet started | Canonical assembly waits for the strict prefix proof and its strict allocation/quotient leaves |
 | [`NuDGGTerminalBackwardValueWorldCoherentDef.agda`](NuDGGTerminalBackwardValueWorldCoherentDef.agda) | completed statement | Arbitrary-world backward-value terminal contract with initial world coherence and source-name exclusivity; the closed public conclusion is unchanged |
@@ -9247,3 +9468,62 @@ coordination.  Use focused strict checks throughout and reserve
   inline sum beside the existing complete success result, not a new outcome
   carrier.  This agrees with the explicit right-blame policy in `popl2027.tex`
   and directly addresses issue #78's nesting concern.
+
+### 2026-07-22: non-vacuous `GenSafe` repair and eager quotient adapter
+
+- The design keeps the non-vacuity premises on gradual `Λ`, coercion `gen`,
+  and imprecision `ν`.  Therefore `★` to `∀ X. Nat` is not an admissible
+  source-language cast in GTSF.  No `GenSafeSource` base case or identity
+  `GenSafe` coercion was added.
+
+- [`ground-genSafeShape→fun`](GenSafeProperties.agda#L130),
+  [`eager-gen-ground-function`](GenSafeProperties.agda#L139), and
+  [`eager-inst-ground-function`](GenSafeProperties.agda#L148) prove that a
+  well-typed safe body adjacent to a raised ground forces that ground to be
+  `★ ⇒ ★`.  This formally justifies the specialized eager grammar used by
+  the mechanization.
+
+- Compiler synthesis now produces the eager narrowing/widening forms.
+  [`source-down-compiler-agreement`](GenSafeMismatchBlameRegression.agda#L214)
+  and
+  [`target-down-compiler-agreement`](GenSafeMismatchBlameRegression.agda#L224)
+  connect the source regression to those synthesized coercions.  Both compiled
+  sides have checked blame traces.
+
+- The new eager quotient case is structurally reducible rather than a second
+  hard permutation leaf.  The completed
+  [`WorldCoherentSourceInertWidenFrameᵀ`](NuImprecisionWorldCoherentSourceInertWidenFrameDef.agda#L23)
+  boundary frames a coherent result with an inert source widening.  The
+  checked
+  [`world-coherent-quotient-inst-fun-tag-catchup-proofᵀ`](NuImprecisionWorldCoherentQuotientInstFunTagCatchupProof.agda#L46)
+  invokes plain quotient-`inst` catch-up at `(★ ⇒ ★) ⊑ A′`, applies
+  that frame, and prepends `β-seq`.  The remaining hard quotient obligation is
+  the pre-existing plain representative-`inst` permutation path semantics.
+
+- Focused strict checks pass for the new `Def`/`Proof`/`Lemma` modules,
+  `NuImprecisionAtomicTargetReindex.agda`,
+  `NuImprecisionWorldCoherentSourceConcealCatchup.agda`,
+  `NuImprecisionWorldCoherentSourceWidenCatchupProof.agda`,
+  `NuMetaTheory.agda`, and `NuDGGStrictSpine.agda`.  No `All.agda` check was
+  run.
+
+- The canonical eager and final quotient assemblies now make the dependency
+  reduction explicit.  The eager lemma takes plain quotient-`inst` catch-up
+  as its only parameter, and the final lemma supplies the checked classifier
+  plus that eager adapter.  Thus the repaired branch adds no independent
+  semantic assumption.
+
+- The remaining representative-`inst` path semantics now has three checked
+  work-package statements: identity paths, one leading source step, and one
+  leading target step after source exhaustion.  The strict path-cases proof
+  assembles those packages into the complete path capability.
+
+- The identity package is now refined one level further.  Source `inst`
+  typing forces its representative endpoint to have shape `∀ E`, after which
+  `all-imprecision-view` gives exactly two sound semantic cases: paired
+  `∀/∀` imprecision and source-only non-vacuous `ν`.  The checked identity
+  `Proof` reduces to that view without dequotienting the paired downcasts.
+  Separate checked `Def` files now freeze both semantic leaves, and the strict
+  view `Proof` assembles them exhaustively.  Implementing the paired and
+  source-only leaves is the next identity-path task; the source and target
+  swap-step implementations remain not yet started.

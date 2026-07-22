@@ -319,8 +319,9 @@ imp-renameᵗ h hρ hσ (IWF.tag p ⇛ q) =
   IWF.tag (imp-renameᵗ h hρ hσ p) ⇛ imp-renameᵗ h hρ hσ q
 imp-renameᵗ h hρ hσ (IWF.tagˣ x∈ X<Δᴸ) =
   IWF.tagˣ (h x∈) (hρ X<Δᴸ)
-imp-renameᵗ {ρ = ρ} h hρ hσ (IWF.ν {A = A} occ p) =
-  IWF.ν (trans (occurs-zero-rename-ext ρ A) occ)
+imp-renameᵗ {ρ = ρ} h hρ hσ (IWF.ν {A = A} {{safe}} occ p) =
+  IWF.ν {{IWF.renameGenSafeSource (extᵗ ρ) safe}}
+    (trans (occurs-zero-rename-ext ρ A) occ)
     (imp-renameᵗ (renameImpAssm-⇑ᴸᵢ h)
       (TyRenameWf-ext hρ) hσ p)
 

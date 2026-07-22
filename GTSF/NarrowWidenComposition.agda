@@ -14,24 +14,51 @@ module NarrowWidenComposition where
 
 open import Data.Bool using (true)
 open import Data.List.Membership.Propositional using (_∈_)
+open import Data.List.Relation.Unary.Any using (here; there)
+open import Data.List using (_∷_)
+open import Data.Nat using (zero; suc)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_; proj₁; proj₂; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; cong; cong₂)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; sym; cong; cong₂)
 
 open import Types
 open import Store using (StoreIncl-drop)
 open import Coercions
 open import NarrowWiden
+open import proof.GenSafeProperties
+  using
+    ( GenSafeShape
+    ; shape-fun
+    ; shape-all
+    ; genSafe-source-shape
+    ; genSafe-star-source⊥
+    ; dualGenSafe-target-shape
+    ; crossNarrowing-source-shape
+    ; crossWidening-target-shape
+    ; lower-genSafeShape
+    ; raise-genSafeShape
+    ; narrowing-at-genSafe-source
+    )
 open import proof.NarrowWidenProperties
   using
     ( StoreDetWf
     ; StoreDetWf-⟰ᵗ
     ; StoreDetWf-inst
+    ; occurs-var-true→≡
     ; narrowing-cross-ground-target-star⊥
     ; widening-cross-ground-source-star⊥
     )
+open import proof.CoercionProperties using (zero∉-⟰ᵗ)
+
+head-star-unique :
+  ∀ {Σ A} →
+  (zero , A) ∈ ((zero , ★) ∷ ⟰ᵗ Σ) →
+  A ≡ ★
+head-star-unique (here refl) = refl
+head-star-unique (there A∈Σ) = ⊥-elim (zero∉-⟰ᵗ A∈Σ)
 
 narrowing-cross-var-source-fun⊥ :
   ∀ {μ Δ Σ α C s t} →
@@ -39,6 +66,13 @@ narrowing-cross-var-source-fun⊥ :
   CrossNarrowing (s ↦ t) →
   ⊥
 narrowing-cross-var-source-fun⊥ ()
+
+narrowing-cross-all-source-fun⊥ :
+  ∀ {μ Δ Σ A C s t} →
+  μ ∣ Δ ∣ Σ ⊢ s ↦ t ∶ `∀ A =⇒ C →
+  CrossNarrowing (s ↦ t) →
+  ⊥
+narrowing-cross-all-source-fun⊥ ()
 
 narrowing-cross-var-source-all⊥ :
   ∀ {μ Δ Σ α C s} →
@@ -145,6 +179,8 @@ mutual
   narrowing-view (gen cⁿ) = inj₁ (strict-gen cⁿ)
   narrowing-view (untag gG) = inj₁ (strict-untag gG)
   narrowing-view (gG ？︔ cˢ) = inj₁ (strict-untag-seq gG cˢ)
+  narrowing-view (fun-untag-gen cᵍ) =
+    inj₁ (strict-fun-untag-gen cᵍ)
   narrowing-view (sealⁿ A α) = inj₁ (strict-seal A α)
   narrowing-view (cˢ ︔seal α) = inj₁ (strict-seal-seq cˢ α)
 
@@ -156,7 +192,8 @@ mutual
     inj₂ (idcn-＇ α)
   cross-narrowing-view (id-‵ ι) =
     inj₂ (idcn-‵ ι)
-  cross-narrowing-view (sʷ ↦ tⁿ) with widening-view sʷ | narrowing-view tⁿ
+  cross-narrowing-view (sʷ ↦ tⁿ)
+      with widening-view sʷ | narrowing-view tⁿ
   cross-narrowing-view (sʷ ↦ tⁿ) | inj₁ sˢ | _ =
     inj₁ (cn-funˡ sˢ tⁿ)
   cross-narrowing-view (sʷ ↦ tⁿ) | inj₂ sⁱ | inj₁ tˢ =
@@ -182,6 +219,8 @@ mutual
   widening-view (inst cʷ) = inj₁ (strict-inst cʷ)
   widening-view (tag gG) = inj₁ (strict-tag gG)
   widening-view (cˢ ︔ gG !) = inj₁ (strict-tag-seq cˢ gG)
+  widening-view (inst-fun-tag cᵍ) =
+    inj₁ (strict-inst-fun-tag cᵍ)
   widening-view (unsealʷ α A) = inj₁ (strict-unseal α A)
   widening-view (unseal︔_ α cˢ) = inj₁ (strict-unseal-seq α cˢ)
 
@@ -193,7 +232,8 @@ mutual
     inj₂ (idcw-＇ α)
   cross-widening-view (id-‵ ι) =
     inj₂ (idcw-‵ ι)
-  cross-widening-view (sⁿ ↦ tʷ) with narrowing-view sⁿ | widening-view tʷ
+  cross-widening-view (sⁿ ↦ tʷ)
+      with narrowing-view sⁿ | widening-view tʷ
   cross-widening-view (sⁿ ↦ tʷ) | inj₁ sˢ | _ =
     inj₁ (cw-funˡ sˢ tʷ)
   cross-widening-view (sⁿ ↦ tʷ) | inj₂ sⁱ | inj₁ tˢ =
@@ -313,6 +353,93 @@ wrap-unsealʷ hA α∈Σ ok (c⊢ , cʷ) | inj₂ cⁱ
 wrap-unsealʷ hA α∈Σ ok (c⊢ , cʷ) | inj₂ cⁱ | refl =
   _ , (cast-unseal hA α∈Σ ok , unsealʷ _ _)
 
+widening-star-safe-target⊥ :
+  ∀ {μ Δ Σ B c} →
+  GenSafeShape B →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ ★ =⇒ B →
+  Widening c →
+  ⊥
+widening-star-safe-target⊥ shape-fun
+    c⊢ (cross (sⁿ ↦ tʷ)) =
+  widening-cross-star-source-fun⊥ c⊢ (sⁿ ↦ tʷ)
+widening-star-safe-target⊥ shape-all
+    c⊢ (cross (`∀ sʷ)) =
+  widening-cross-star-source-all⊥ c⊢ (`∀ sʷ)
+widening-star-safe-target⊥ shape
+    c⊢ (inst safe) =
+  widening-inst-star-source⊥ c⊢ (inst safe)
+widening-star-safe-target⊥ shape
+    (cast-id hA ok) (cross ())
+widening-star-safe-target⊥ () (cast-id hA ok) id★
+widening-star-safe-target⊥ ()
+    (cast-tag hG gG ok) (tag gG′)
+widening-star-safe-target⊥ ()
+    (cast-seq c⊢ (cast-tag hG gG ok)) (cʷ ︔ gG′ !)
+widening-star-safe-target⊥ shape
+    (cast-seq () (cast-tag hG ★⇒★ ok))
+    (inst-fun-tag safe)
+widening-star-safe-target⊥ shape
+    () (unsealʷ α A)
+widening-star-safe-target⊥ shape
+    (cast-seq () c⊢) (unseal︔_ α cʷ)
+
+widening-at-dualGenSafe-target :
+  ∀ {μ Δ Σ A B c} →
+  GenSafeShape B →
+  instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ ⊢ c ∶ A =⇒ B →
+  occurs zero A ≡ true →
+  Widening c →
+  DualGenSafe c
+widening-at-dualGenSafe-target shape-fun
+    (cast-fun s⊢ t⊢) occ (cross (sⁿ ↦ tʷ)) =
+  safe-fun sⁿ tʷ
+widening-at-dualGenSafe-target shape-all
+    (cast-all c⊢) occ (cross (`∀ sʷ)) =
+  safe-all sʷ
+widening-at-dualGenSafe-target shape-fun
+    (cast-inst hB occA c⊢) occ (inst safe) =
+  safe-inst safe
+widening-at-dualGenSafe-target shape-all
+    (cast-inst hB occA c⊢) occ (inst safe) =
+  safe-inst safe
+widening-at-dualGenSafe-target ()
+    (cast-id hA ok) occ (cross (id-＇ α))
+widening-at-dualGenSafe-target ()
+    (cast-id hA ok) occ (cross (id-‵ ι))
+widening-at-dualGenSafe-target () (cast-id hA ok) occ id★
+widening-at-dualGenSafe-target ()
+    (cast-tag hG gG ok) occ (tag gG′)
+widening-at-dualGenSafe-target ()
+    (cast-seq c⊢ (cast-tag hG gG ok)) occ (cʷ ︔ gG′ !)
+widening-at-dualGenSafe-target ()
+    (cast-seq (cast-inst hB occA c⊢) (cast-tag hG ★⇒★ ok))
+    occ (inst-fun-tag safe)
+widening-at-dualGenSafe-target shape
+    (cast-unseal {α = α} hA α∈Σ ok) occ (unsealʷ .α A)
+    with occurs-var-true→≡ occ
+widening-at-dualGenSafe-target shape
+    (cast-unseal {α = .zero} hA α∈Σ ok) occ (unsealʷ .zero A)
+    | refl
+    with head-star-unique α∈Σ
+widening-at-dualGenSafe-target ()
+    (cast-unseal {α = .zero} hA α∈Σ ok) occ (unsealʷ .zero .★)
+    | refl | refl
+widening-at-dualGenSafe-target shape
+    (cast-seq (cast-unseal {α = α} hA α∈Σ ok) c⊢)
+    occ (unseal︔_ .α cʷ)
+    with occurs-var-true→≡ occ
+widening-at-dualGenSafe-target shape
+    (cast-seq (cast-unseal {α = .zero} hA α∈Σ ok) c⊢)
+    occ (unseal︔_ .zero cʷ)
+    | refl
+    with head-star-unique α∈Σ
+widening-at-dualGenSafe-target shape
+    (cast-seq (cast-unseal {α = .zero} hA α∈Σ ok) c⊢)
+    occ (unseal︔_ .zero cʷ)
+    | refl | refl =
+  ⊥-elim
+    (widening-star-safe-target⊥ shape c⊢ (strictʷ→widen cʷ))
+
 ------------------------------------------------------------------------
 -- Composition for narrowing and widening
 ------------------------------------------------------------------------
@@ -428,7 +555,7 @@ mutual
       (cast-gen hA occ s⊢ , gen sⁿ)
       (cast-all t⊢ , cross (`∀ tⁿ))
       with _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ}
-             (s⊢ , sⁿ)
+             (s⊢ , genSafe→narrowing sⁿ)
              (narrow-mode-relax modeIncl-ext-gen (t⊢ , tⁿ))
   _⨟ⁿ_ {wfΣ = wfΣ}
       (cast-gen hA occ s⊢ , gen sⁿ)
@@ -437,14 +564,215 @@ mutual
            (narrowing-source-occurs StoreNoOccurs-zero-⟰ᵗ
              (t⊢ , tⁿ) occ)
            (proj₁ u⊒) ,
-         gen (proj₂ u⊒))
-  _⨟ⁿ_ {wfΣ = wfΣ} s⊒ (cast-gen hB occ t⊢ , gen tⁿ)
+         gen
+           (narrowing-at-genSafe-source
+             (genSafe-source-shape s⊢ sⁿ)
+             (proj₁ u⊒)
+             (narrowing-source-occurs StoreNoOccurs-zero-⟰ᵗ
+               (t⊢ , tⁿ) occ)
+             (proj₂ u⊒)))
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG ★⇒★ okG)
+                (cast-gen hA occA s⊢) ,
+       fun-untag-gen sᵍ)
+      (cast-id hB okB , cross ())
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (s⊢ , fun-untag-gen sᵍ)
+      (t⊢ , cross (sʷ ↦ tⁿ))
+      with s⊢
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (s⊢ , fun-untag-gen sᵍ)
+      (t⊢ , cross (sʷ ↦ tⁿ))
+      | cast-seq (cast-untag hG ★⇒★ okG)
+                 (cast-gen hA occA u⊢) =
+    ⊥-elim (narrowing-cross-all-source-fun⊥ t⊢ (sʷ ↦ tⁿ))
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG ★⇒★ okG)
+                (cast-gen hA occA s⊢) ,
+       fun-untag-gen sᵍ)
+      (cast-all t⊢ , cross (`∀ tⁿ))
       with _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ}
-             (narrow-⇑ᵗ-gen s⊒) (t⊢ , tⁿ)
-  _⨟ⁿ_ {wfΣ = wfΣ} s⊒ (cast-gen hB occ t⊢ , gen tⁿ)
+             (s⊢ , genSafe→narrowing sᵍ)
+             (narrow-mode-relax modeIncl-ext-gen (t⊢ , tⁿ))
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG ★⇒★ okG)
+                (cast-gen hA occA s⊢) ,
+       fun-untag-gen sᵍ)
+      (cast-all t⊢ , cross (`∀ tⁿ)) | u , u⊒ =
+    _ , (cast-seq (cast-untag hG ★⇒★ okG)
+                  (cast-gen hG occC (proj₁ u⊒)) ,
+         fun-untag-gen
+           (narrowing-at-genSafe-source
+             (genSafe-source-shape s⊢ sᵍ)
+             (proj₁ u⊒) occC (proj₂ u⊒)))
+    where
+      occC = narrowing-source-occurs StoreNoOccurs-zero-⟰ᵗ
+               (t⊢ , tⁿ) occA
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (s⊢ , cross sⁿ) (cast-gen hB occ t⊢ , gen tᵍ)
+      with _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ}
+             (narrow-⇑ᵗ-gen (s⊢ , cross sⁿ))
+             (t⊢ , genSafe→narrowing tᵍ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (s⊢ , cross sⁿ) (cast-gen hB occ t⊢ , gen tᵍ)
       | u , u⊒ =
-    _ , (cast-gen (narrow-src-wf s⊒) occ (proj₁ u⊒) ,
-         gen (proj₂ u⊒))
+    _ , (cast-gen (narrow-src-wf (s⊢ , cross sⁿ)) occ (proj₁ u⊒) ,
+         gen
+           (narrowing-at-genSafe-source
+             (raise-genSafeShape
+               (crossNarrowing-source-shape
+                 (lower-genSafeShape (genSafe-source-shape t⊢ tᵍ))
+                 s⊢ sⁿ))
+             (proj₁ u⊒) occ (proj₂ u⊒)))
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-id hA ok , id★) (cast-gen hB occ t⊢ , gen tᵍ) =
+    ⊥-elim (genSafe-star-source⊥ t⊢ tᵍ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-gen hA occA s⊢ , gen sᵍ)
+      (cast-gen hB occB t⊢ , gen tᵍ)
+      with _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ}
+             (narrow-⇑ᵗ-gen (cast-gen hA occA s⊢ , gen sᵍ))
+             (t⊢ , genSafe→narrowing tᵍ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-gen hA occA s⊢ , gen sᵍ)
+      (cast-gen hB occB t⊢ , gen tᵍ)
+      | u , u⊒ =
+    _ , (cast-gen hA occB (proj₁ u⊒) ,
+         gen
+           (narrowing-at-genSafe-source
+             (raise-genSafeShape
+               (genSafe-source-shape
+                 (cast-gen hA occA s⊢) (safe-gen sᵍ)))
+             (proj₁ u⊒) occB (proj₂ u⊒)))
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-untag hG (＇ α) okG , untag (＇ .α))
+      (cast-gen hB occ t⊢ , gen tᵍ)
+      with genSafe-source-shape t⊢ tᵍ
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-untag hG (＇ α) okG , untag (＇ .α))
+      (cast-gen hB occ t⊢ , gen tᵍ) | ()
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-untag hG (‵ ι) okG , untag (‵ .ι))
+      (cast-gen hB occ t⊢ , gen tᵍ)
+      with genSafe-source-shape t⊢ tᵍ
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-untag hG (‵ ι) okG , untag (‵ .ι))
+      (cast-gen hB occ t⊢ , gen tᵍ) | ()
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-untag hG ★⇒★ okG , untag ★⇒★)
+      (cast-gen hB occ t⊢ , gen tᵍ) =
+    _ , (cast-seq (cast-untag hG ★⇒★ okG)
+                  (cast-gen hB occ t⊢) ,
+         fun-untag-gen tᵍ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG (＇ α) okG) s⊢ ,
+       (＇ .α) ？︔ sᶜ)
+      (cast-gen hB occ t⊢ , gen tᵍ)
+      with crossNarrowing-source-shape
+             (lower-genSafeShape (genSafe-source-shape t⊢ tᵍ))
+             s⊢ (strictCrossⁿ→cross sᶜ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG (＇ α) okG) s⊢ ,
+       (＇ .α) ？︔ sᶜ)
+      (cast-gen hB occ t⊢ , gen tᵍ) | ()
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG (‵ ι) okG) s⊢ ,
+       (‵ .ι) ？︔ sᶜ)
+      (cast-gen hB occ t⊢ , gen tᵍ)
+      with crossNarrowing-source-shape
+             (lower-genSafeShape (genSafe-source-shape t⊢ tᵍ))
+             s⊢ (strictCrossⁿ→cross sᶜ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG (‵ ι) okG) s⊢ ,
+       (‵ .ι) ？︔ sᶜ)
+      (cast-gen hB occ t⊢ , gen tᵍ) | ()
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG ★⇒★ okG) s⊢ , ★⇒★ ？︔ sᶜ)
+      (cast-gen hB occ t⊢ , gen tᵍ)
+      with _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ}
+             (narrow-⇑ᵗ-gen (s⊢ , cross (strictCrossⁿ→cross sᶜ)))
+             (t⊢ , genSafe→narrowing tᵍ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG ★⇒★ okG) s⊢ , ★⇒★ ？︔ sᶜ)
+      (cast-gen hB occ t⊢ , gen tᵍ) | u , u⊒ =
+    _ , (cast-seq (cast-untag hG ★⇒★ okG)
+                  (cast-gen hG occ (proj₁ u⊒)) ,
+         fun-untag-gen
+           (narrowing-at-genSafe-source
+             shape-fun (proj₁ u⊒) occ (proj₂ u⊒)))
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG ★⇒★ okG)
+                (cast-gen hA occA s⊢) ,
+       fun-untag-gen sᵍ)
+      (cast-gen hB occB t⊢ , gen tᵍ)
+      with _⨟ⁿ_ {wfΣ = StoreDetWf-⟰ᵗ wfΣ}
+             (narrow-⇑ᵗ-gen (cast-gen hA occA s⊢ , gen sᵍ))
+             (t⊢ , genSafe→narrowing tᵍ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG ★⇒★ okG)
+                (cast-gen hA occA s⊢) ,
+       fun-untag-gen sᵍ)
+      (cast-gen hB occB t⊢ , gen tᵍ) | u , u⊒ =
+    _ , (cast-seq (cast-untag hG ★⇒★ okG)
+                  (cast-gen hG occB (proj₁ u⊒)) ,
+         fun-untag-gen
+           (narrowing-at-genSafe-source
+             shape-fun (proj₁ u⊒) occB (proj₂ u⊒)))
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seal hA α∈Σ ok , sealⁿ A α)
+      (cast-gen hB occ t⊢ , gen tᵍ)
+      with genSafe-source-shape t⊢ tᵍ
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seal hA α∈Σ ok , sealⁿ A α)
+      (cast-gen hB occ t⊢ , gen tᵍ) | ()
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq s⊢ (cast-seal hA α∈Σ ok) , sⁿ ︔seal α)
+      (cast-gen hB occ t⊢ , gen tᵍ)
+      with genSafe-source-shape t⊢ tᵍ
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq s⊢ (cast-seal hA α∈Σ ok) , sⁿ ︔seal α)
+      (cast-gen hB occ t⊢ , gen tᵍ) | ()
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (s⊢ , cross sᶜ)
+      (cast-seq (cast-untag hG ★⇒★ okG)
+                (cast-gen hA occ t⊢) ,
+       fun-untag-gen tᵍ) =
+    ⊥-elim (narrowing-cross-target-star⊥ s⊢ sᶜ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-id hA ok , id★)
+      (cast-seq (cast-untag hG ★⇒★ okG)
+                (cast-gen hB occ t⊢) ,
+       fun-untag-gen tᵍ) =
+    _ , (cast-seq (cast-untag hG ★⇒★ okG)
+                  (cast-gen hB occ t⊢) ,
+         fun-untag-gen tᵍ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-untag hG () okG , untag gG)
+      (cast-seq (cast-untag hH ★⇒★ okH)
+                (cast-gen hB occ t⊢) ,
+       fun-untag-gen tᵍ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG gG okG) s⊢ , gG′ ？︔ sᶜ)
+      (cast-seq (cast-untag hH ★⇒★ okH)
+                (cast-gen hB occ t⊢) ,
+       fun-untag-gen tᵍ) =
+    ⊥-elim
+      (narrowing-cross-ground-target-star⊥
+        gG (s⊢ , strictCrossⁿ→cross sᶜ))
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-gen hA occA s⊢ , gen sᵍ)
+      (cast-seq () (cast-gen hB occB t⊢) , fun-untag-gen tᵍ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq (cast-untag hG ★⇒★ okG)
+                (cast-gen hA occA s⊢) ,
+       fun-untag-gen sᵍ)
+      (cast-seq () (cast-gen hB occB t⊢) , fun-untag-gen tᵍ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seal hA α∈Σ ok , sealⁿ A α)
+      (cast-seq () (cast-gen hB occ t⊢) , fun-untag-gen tᵍ)
+  _⨟ⁿ_ {wfΣ = wfΣ}
+      (cast-seq s⊢ (cast-seal hA α∈Σ ok) , sⁿ ︔seal α)
+      (cast-seq () (cast-gen hB occ t⊢) , fun-untag-gen tᵍ)
   _⨟ⁿ_ {wfΣ = wfΣ}
       s⊒ (cast-seal hC α∈Σ ok , sealⁿ A α) =
     wrap-sealⁿ s⊒ hC α∈Σ ok
@@ -638,13 +966,188 @@ mutual
       (s⊢ , cross (id-‵ ι))
       (() , inst tʷ)
       | cast-id hA ok
-  _⨟ʷ_ {wfΣ = wfΣ} (cast-inst hB occ s⊢ , inst sʷ) t⊑
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ) (t⊢ , cross tʷ)
       with _⨟ʷ_ {wfΣ = StoreDetWf-inst wfΣ}
-             (s⊢ , sʷ) (widen-⇑ᵗ-inst-cons t⊑)
-  _⨟ʷ_ {wfΣ = wfΣ} (cast-inst hB occ s⊢ , inst sʷ) t⊑
+             (s⊢ , dualGenSafe→widening sᵍ)
+             (widen-⇑ᵗ-inst-cons (t⊢ , cross tʷ))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ) (t⊢ , cross tʷ)
       | u , u⊑ =
-    _ , (cast-inst (widen-tgt-wf t⊑) occ (proj₁ u⊑) ,
-         inst (proj₂ u⊑))
+    _ , (cast-inst (widen-tgt-wf (t⊢ , cross tʷ)) occ (proj₁ u⊑) ,
+         inst
+           (widening-at-dualGenSafe-target
+             (raise-genSafeShape
+               (crossWidening-target-shape
+                 (lower-genSafeShape
+                   (dualGenSafe-target-shape s⊢ sᵍ))
+                 t⊢ tʷ))
+             (proj₁ u⊑) occ (proj₂ u⊑)))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occA s⊢ , inst sᵍ)
+      (cast-inst hC occB t⊢ , inst tᵍ)
+      with _⨟ʷ_ {wfΣ = StoreDetWf-inst wfΣ}
+             (s⊢ , dualGenSafe→widening sᵍ)
+             (widen-⇑ᵗ-inst-cons (cast-inst hC occB t⊢ , inst tᵍ))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occA s⊢ , inst sᵍ)
+      (cast-inst hC occB t⊢ , inst tᵍ) | u , u⊑ =
+    _ , (cast-inst hC occA (proj₁ u⊑) ,
+         inst
+           (widening-at-dualGenSafe-target
+             (raise-genSafeShape
+               (dualGenSafe-target-shape
+                 (cast-inst hC occB t⊢) (safe-inst tᵍ)))
+             (proj₁ u⊑) occA (proj₂ u⊑)))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-tag hG (＇ α) okG , tag (＇ .α))
+      with dualGenSafe-target-shape s⊢ sᵍ
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-tag hG (＇ α) okG , tag (＇ .α)) | ()
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-tag hG (‵ ι) okG , tag (‵ .ι))
+      with dualGenSafe-target-shape s⊢ sᵍ
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-tag hG (‵ ι) okG , tag (‵ .ι)) | ()
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-tag hG ★⇒★ okG , tag ★⇒★) =
+    _ , (cast-seq (cast-inst hB occ s⊢)
+                  (cast-tag hG ★⇒★ okG) ,
+         inst-fun-tag sᵍ)
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-seq t⊢ (cast-tag hG (＇ α) okG) , tᶜ ︔ (＇ .α) !)
+      with crossWidening-target-shape
+             (lower-genSafeShape (dualGenSafe-target-shape s⊢ sᵍ))
+             t⊢ (strictCrossʷ→cross tᶜ)
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-seq t⊢ (cast-tag hG (＇ α) okG) , tᶜ ︔ (＇ .α) !)
+      | ()
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-seq t⊢ (cast-tag hG (‵ ι) okG) , tᶜ ︔ (‵ .ι) !)
+      with crossWidening-target-shape
+             (lower-genSafeShape (dualGenSafe-target-shape s⊢ sᵍ))
+             t⊢ (strictCrossʷ→cross tᶜ)
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-seq t⊢ (cast-tag hG (‵ ι) okG) , tᶜ ︔ (‵ .ι) !)
+      | ()
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-seq t⊢ (cast-tag hG ★⇒★ okG) , tᶜ ︔ ★⇒★ !)
+      with _⨟ʷ_ {wfΣ = StoreDetWf-inst wfΣ}
+             (s⊢ , dualGenSafe→widening sᵍ)
+             (widen-⇑ᵗ-inst-cons
+               (t⊢ , cross (strictCrossʷ→cross tᶜ)))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-seq t⊢ (cast-tag hG ★⇒★ okG) , tᶜ ︔ ★⇒★ !)
+      | u , u⊑ =
+    _ , (cast-seq (cast-inst hG occ (proj₁ u⊑))
+                  (cast-tag hG ★⇒★ okG) ,
+         inst-fun-tag
+           (widening-at-dualGenSafe-target
+             shape-fun (proj₁ u⊑) occ (proj₂ u⊑)))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-seq (cast-inst hC occC t⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag tᵍ)
+      with _⨟ʷ_ {wfΣ = StoreDetWf-inst wfΣ}
+             (s⊢ , dualGenSafe→widening sᵍ)
+             (widen-⇑ᵗ-inst-cons (cast-inst hC occC t⊢ , inst tᵍ))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-seq (cast-inst hC occC t⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag tᵍ) | u , u⊑ =
+    _ , (cast-seq (cast-inst hG occ (proj₁ u⊑))
+                  (cast-tag hG ★⇒★ okG) ,
+         inst-fun-tag
+           (widening-at-dualGenSafe-target
+             shape-fun (proj₁ u⊑) occ (proj₂ u⊑)))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-unseal hA α∈Σ ok , unsealʷ α A)
+      with dualGenSafe-target-shape s⊢ sᵍ
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-unseal hA α∈Σ ok , unsealʷ α A) | ()
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-seq (cast-unseal hA α∈Σ ok) t⊢ , unseal︔_ α tʷ)
+      with dualGenSafe-target-shape s⊢ sᵍ
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-inst hB occ s⊢ , inst sᵍ)
+      (cast-seq (cast-unseal hA α∈Σ ok) t⊢ , unseal︔_ α tʷ)
+      | ()
+  _⨟ʷ_ {wfΣ = wfΣ}
+      s⊑
+      (cast-seq (cast-inst hC occ t⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag tᵍ)
+      with _⨟ʷ_ {wfΣ = wfΣ} s⊑ (cast-inst hC occ t⊢ , inst tᵍ)
+  _⨟ʷ_ {wfΣ = wfΣ}
+      s⊑
+      (cast-seq (cast-inst hC occ t⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag tᵍ)
+      | u , u⊑ =
+    _⨟ʷ_ {wfΣ = wfΣ}
+      u⊑ (cast-tag hG ★⇒★ okG , tag ★⇒★)
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-seq (cast-inst hB occ s⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag sᵍ)
+      (cast-id hA ok , cross ())
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-seq (cast-inst hB occ s⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag sᵍ)
+      (t⊢ , cross (sⁿ ↦ tʷ)) =
+    ⊥-elim (widening-cross-star-source-fun⊥ t⊢ (sⁿ ↦ tʷ))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-seq (cast-inst hB occ s⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag sᵍ)
+      (t⊢ , cross (`∀ tʷ)) =
+    ⊥-elim (widening-cross-star-source-all⊥ t⊢ (`∀ tʷ))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-seq (cast-inst hB occ s⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag sᵍ)
+      (cast-tag hH () okH , tag gH)
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-seq (cast-inst hB occ s⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag sᵍ)
+      (cast-seq t⊢ (cast-tag hH gH okH) , tᶜ ︔ gH′ !) =
+    ⊥-elim
+      (widening-cross-ground-source-star⊥
+        gH (t⊢ , strictCrossʷ→cross tᶜ))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-seq (cast-inst hB occ s⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag sᵍ)
+      (t⊢ , inst tᵍ) =
+    ⊥-elim (widening-inst-star-source⊥ t⊢ (inst tᵍ))
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-seq (cast-inst hB occ s⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag sᵍ)
+      (() , unsealʷ α A)
+  _⨟ʷ_ {wfΣ = wfΣ}
+      (cast-seq (cast-inst hB occ s⊢)
+                (cast-tag hG ★⇒★ okG) ,
+       inst-fun-tag sᵍ)
+      (cast-seq () t⊢ , unseal︔_ α tʷ)
   _⨟ʷ_ {wfΣ = wfΣ}
       (cast-unseal hA α∈Σ ok , unsealʷ α A)
       t⊑ =
@@ -663,7 +1166,7 @@ mutual
       with _⨟ʷ_ {wfΣ = StoreDetWf-inst wfΣ}
              (widen-weaken ≤-refl StoreIncl-drop
                (widen-mode-relax modeIncl-ext-inst (s⊢ , sʷ)))
-             (t⊢ , tʷ)
+             (t⊢ , dualGenSafe→widening tʷ)
   _⨟ʷ_ {wfΣ = wfΣ}
       (cast-all s⊢ , cross (`∀ sʷ))
       (cast-inst hC occ t⊢ , inst tʷ) | u , u⊑ =
@@ -671,7 +1174,13 @@ mutual
            (widening-target-occurs StoreNoOccurs-zero-⟰ᵗ
              (s⊢ , sʷ) occ)
            (proj₁ u⊑) ,
-         inst (proj₂ u⊑))
+         inst
+           (widening-at-dualGenSafe-target
+             (dualGenSafe-target-shape t⊢ tʷ)
+             (proj₁ u⊑)
+             (widening-target-occurs StoreNoOccurs-zero-⟰ᵗ
+               (s⊢ , sʷ) occ)
+             (proj₂ u⊑)))
   _⨟ʷ_ {wfΣ = wfΣ}
       (s⊢ , cross sᶜ)
       (cast-seq t⊢ (cast-tag hG gG okG) , tᶜ ︔ gG′ !)

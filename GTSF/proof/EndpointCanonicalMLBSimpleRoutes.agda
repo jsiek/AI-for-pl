@@ -19,7 +19,7 @@ open import Data.Sum using (inj₁; inj₂)
 open import Relation.Nullary using (yes; no)
 
 open import Types
-open import Imprecision using (ImpCtx; idᵢ)
+open import Imprecision using (GenSafeSource; ImpCtx; idᵢ)
 open import proof.EndpointCanonicalMLBSimple using
   ( allEndpointMlbsAt; arrowProducts; dedupe; enumMLB; fuelFor
   ; rawEndpointMlbsAt; MLB
@@ -53,6 +53,7 @@ data EnumRoute :
 
   route-left :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
+    {{GenSafeSource C}} →
     occurs zero C ≡ true →
     EnumRoute fuel (∀ᵢᶜ Φᴸ) (νᵢᶜ Φᴿ)
       (suc Δᶜ) (suc Δᴸ) Δᴿ A B C →
@@ -61,6 +62,7 @@ data EnumRoute :
 
   route-right :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
+    {{GenSafeSource C}} →
     occurs zero C ≡ true →
     EnumRoute fuel (νᵢᶜ Φᴸ) (∀ᵢᶜ Φᴿ)
       (suc Δᶜ) Δᴸ (suc Δᴿ) A B C →
@@ -140,7 +142,7 @@ enum-route→membership {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
       (wrapAll-complete (enum-route→membership route)))
 enum-route→membership {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-    {A = `∀ A} {B = `∀ B} (route-left occ route) =
+    {A = `∀ A} {B = `∀ B} (route-left {{safe}} occ route) =
   dedupe-complete
     (∈-++-right
       {xs = forallBothCandidates fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B}
@@ -152,22 +154,24 @@ enum-route→membership {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
           leftForallCandidates fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A (`∀ B)}
         {ys =
           rightForallCandidates fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ (`∀ A) B}
-        (wrapAllIfOccurs-complete occ (enum-route→membership route))))
-enum-route→membership {B = ＇ Y} (route-left occ route) =
+        (wrapAllIfOccurs-complete
+          safe occ (enum-route→membership route))))
+enum-route→membership {B = ＇ Y} (route-left {{safe}} occ route) =
   dedupe-complete
-    (wrapAllIfOccurs-complete occ (enum-route→membership route))
-enum-route→membership {B = ‵ ι} (route-left occ route) =
+    (wrapAllIfOccurs-complete safe occ (enum-route→membership route))
+enum-route→membership {B = ‵ ι} (route-left {{safe}} occ route) =
   dedupe-complete
-    (wrapAllIfOccurs-complete occ (enum-route→membership route))
-enum-route→membership {B = ★} (route-left occ route) =
+    (wrapAllIfOccurs-complete safe occ (enum-route→membership route))
+enum-route→membership {B = ★} (route-left {{safe}} occ route) =
   dedupe-complete
-    (wrapAllIfOccurs-complete occ (enum-route→membership route))
-enum-route→membership {B = B₁ ⇒ B₂} (route-left occ route) =
+    (wrapAllIfOccurs-complete safe occ (enum-route→membership route))
+enum-route→membership {B = B₁ ⇒ B₂}
+    (route-left {{safe}} occ route) =
   dedupe-complete
-    (wrapAllIfOccurs-complete occ (enum-route→membership route))
+    (wrapAllIfOccurs-complete safe occ (enum-route→membership route))
 enum-route→membership {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
     {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-    {A = `∀ A} {B = `∀ B} (route-right occ route) =
+    {A = `∀ A} {B = `∀ B} (route-right {{safe}} occ route) =
   dedupe-complete
     (∈-++-right
       {xs = forallBothCandidates fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B}
@@ -179,19 +183,21 @@ enum-route→membership {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
           leftForallCandidates fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A (`∀ B)}
         {ys =
           rightForallCandidates fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ (`∀ A) B}
-        (wrapAllIfOccurs-complete occ (enum-route→membership route))))
-enum-route→membership {A = ＇ X} (route-right occ route) =
+        (wrapAllIfOccurs-complete
+          safe occ (enum-route→membership route))))
+enum-route→membership {A = ＇ X} (route-right {{safe}} occ route) =
   dedupe-complete
-    (wrapAllIfOccurs-complete occ (enum-route→membership route))
-enum-route→membership {A = ‵ ι} (route-right occ route) =
+    (wrapAllIfOccurs-complete safe occ (enum-route→membership route))
+enum-route→membership {A = ‵ ι} (route-right {{safe}} occ route) =
   dedupe-complete
-    (wrapAllIfOccurs-complete occ (enum-route→membership route))
-enum-route→membership {A = ★} (route-right occ route) =
+    (wrapAllIfOccurs-complete safe occ (enum-route→membership route))
+enum-route→membership {A = ★} (route-right {{safe}} occ route) =
   dedupe-complete
-    (wrapAllIfOccurs-complete occ (enum-route→membership route))
-enum-route→membership {A = A₁ ⇒ A₂} (route-right occ route) =
+    (wrapAllIfOccurs-complete safe occ (enum-route→membership route))
+enum-route→membership {A = A₁ ⇒ A₂}
+    (route-right {{safe}} occ route) =
   dedupe-complete
-    (wrapAllIfOccurs-complete occ (enum-route→membership route))
+    (wrapAllIfOccurs-complete safe occ (enum-route→membership route))
 enum-route→membership route-star = here refl
 enum-route→membership {A = ‵ ι} {B = ‵ .ι} route-base
     with ι ≟Base ι
@@ -250,8 +256,8 @@ mutual
         (dedupe-sound C∈)
   left-membership→route {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
       {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B} C∈
-      | C₀ , (refl , (occ , C₀∈)) =
-    route-left occ (membership→enum-route C₀∈)
+      | C₀ , refl , safe , occ , C₀∈ =
+    route-left {{safe}} occ (membership→enum-route C₀∈)
 
   right-membership→route :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
@@ -269,8 +275,8 @@ mutual
         (dedupe-sound C∈)
   right-membership→route {fuel = fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
       {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B} C∈
-      | C₀ , (refl , (occ , C₀∈)) =
-    route-right occ (membership→enum-route C₀∈)
+      | C₀ , refl , safe , occ , C₀∈ =
+    route-right {{safe}} occ (membership→enum-route C₀∈)
 
   arrow-membership→route :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ A₂ B₁ B₂ C} →
@@ -341,8 +347,8 @@ mutual
   membership→enum-route {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
       {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       {A = `∀ A} {B = `∀ B} C∈ | inj₂ C∈one
-      | inj₁ C∈left | C₀ , (refl , (occ , C₀∈)) =
-    route-left occ (membership→enum-route C₀∈)
+      | inj₁ C∈left | C₀ , refl , safe , occ , C₀∈ =
+    route-left {{safe}} occ (membership→enum-route C₀∈)
   membership→enum-route {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
       {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       {A = `∀ A} {B = `∀ B} C∈ | inj₂ C∈one
@@ -355,8 +361,8 @@ mutual
   membership→enum-route {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
       {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       {A = `∀ A} {B = `∀ B} C∈ | inj₂ C∈one
-      | inj₂ C∈right | C₀ , (refl , (occ , C₀∈)) =
-    route-right occ (membership→enum-route C₀∈)
+      | inj₂ C∈right | C₀ , refl , safe , occ , C₀∈ =
+    route-right {{safe}} occ (membership→enum-route C₀∈)
 
   membership→enum-route {fuel = suc fuel} {A = `∀ A} {B = ＇ Y} C∈ =
     left-membership→route C∈

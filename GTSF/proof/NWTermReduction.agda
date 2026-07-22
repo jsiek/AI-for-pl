@@ -196,9 +196,11 @@ nw-seq-left :
   NWCoercion (p ︔ q) →
   NWCoercion p
 nw-seq-left (inj₁ (gG ？︔ gⁿ)) = inj₁ (untag gG)
+nw-seq-left (inj₁ (fun-untag-gen safe)) = inj₁ (untag ★⇒★)
 nw-seq-left (inj₁ (_︔seal_ sⁿ α)) = inj₁ (strictⁿ→narrow sⁿ)
 nw-seq-left (inj₂ (gʷ ︔ gG !)) =
   inj₂ (cross (strictCrossʷ→cross gʷ))
+nw-seq-left (inj₂ (inst-fun-tag safe)) = inj₂ (inst safe)
 nw-seq-left (inj₂ (unseal︔_ α {A = A} sʷ)) =
   inj₂ (unsealʷ α A)
 
@@ -208,9 +210,11 @@ nw-seq-right :
   NWCoercion q
 nw-seq-right (inj₁ (gG ？︔ gⁿ)) =
   inj₁ (cross (strictCrossⁿ→cross gⁿ))
+nw-seq-right (inj₁ (fun-untag-gen safe)) = inj₁ (gen safe)
 nw-seq-right (inj₁ (_︔seal_ {A = A} sⁿ α)) =
   inj₁ (sealⁿ A α)
 nw-seq-right (inj₂ (gʷ ︔ gG !)) = inj₂ (tag gG)
+nw-seq-right (inj₂ (inst-fun-tag safe)) = inj₂ (tag ★⇒★)
 nw-seq-right (inj₂ (unseal︔_ α sʷ)) =
   inj₂ (strictʷ→widen sʷ)
 
@@ -239,7 +243,7 @@ nw-gen-body :
   ∀ {A c} →
   NWCoercion (gen A c) →
   NWCoercion c
-nw-gen-body (inj₁ (gen cⁿ)) = inj₁ cⁿ
+nw-gen-body (inj₁ (gen safe)) = inj₁ (genSafe→narrowing safe)
 nw-gen-body (inj₂ (cross ()))
 
 nw-inst-body :
@@ -247,7 +251,7 @@ nw-inst-body :
   NWCoercion (inst A c) →
   NWCoercion c
 nw-inst-body (inj₁ (cross ()))
-nw-inst-body (inj₂ (inst cʷ)) = inj₂ cʷ
+nw-inst-body (inj₂ (inst safe)) = inj₂ (dualGenSafe→widening safe)
 
 applyCoercion-preserves-NWCoercion :
   ∀ χ {c} →

@@ -90,7 +90,7 @@ paired-lambda-target-closing-frame-view-leaf-relation
     (leaf-gen-ν vV noV vN′ noN′ mode seal★ hA occ-g c⊢ cⁿ
       V⊑N′ occ-r r) =
   cast⊒⊑ᵀ mode seal★ (C.cast-gen hA occ-g c⊢ , NW.gen cⁿ)
-    V⊑N′ (ν occ-r r)
+    V⊑N′ (ν _ occ-r r)
 paired-lambda-target-closing-frame-view-leaf-relation
     (leaf-up-gen vM noM vM′ noM′ inert-d′ inert-u′
       d⊒ d′⊒ M⊑M′ qD widening q) =

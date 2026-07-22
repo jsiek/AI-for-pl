@@ -217,6 +217,21 @@ target-tail-prefix-value (↠-step M→L L↠N)
   | θs , N↠V , ψs≡χs++θs =
     θs , N↠V , cong (_ ∷_) ψs≡χs++θs
 
+
+source-blame-excludes-value :
+  ∀ {M V χs ψs} →
+  M —↠[ χs ] blame →
+  M —↠[ ψs ] V →
+  Value V →
+  ⊥
+source-blame-excludes-value M↠blame M↠V vV
+  with target-tail-prefix-value M↠blame M↠V vV
+source-blame-excludes-value M↠blame M↠V ()
+  | θs , ↠-refl , trace-eq
+source-blame-excludes-value M↠blame M↠V vV
+  | θs , ↠-step blame→L L↠V , trace-eq =
+    blame-irreducible blame→L
+
 target-tail-prefix-blame :
   ∀ {M N χs ψs} →
   M —↠[ χs ] N →

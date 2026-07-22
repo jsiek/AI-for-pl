@@ -113,7 +113,7 @@ data PairedLambdaTargetClosingLeaf
       ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ γ′
       ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B ∶ p →
     PairedLambdaTargetClosingLeaf ρ
-      (Λ V) N′ (`∀ A) B (ν occ p)
+      (Λ V) N′ (`∀ A) B (ν _ occ p)
 
   leaf-gen-ν :
       ∀ {ρ V N′ A B B′ q c μ} →
@@ -132,7 +132,7 @@ data PairedLambdaTargetClosingLeaf
     (r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
     PairedLambdaTargetClosingLeaf ρ
-      (V ⟨ C.gen A c ⟩) N′ (`∀ B) B′ (ν occ-r r)
+      (V ⟨ C.gen A c ⟩) N′ (`∀ B) B′ (ν _ occ-r r)
 
   leaf-up-gen :
       ∀ {ρ M M′ X C′ D D′ B B′ pC

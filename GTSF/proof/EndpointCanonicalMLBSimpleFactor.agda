@@ -184,7 +184,7 @@ source-var-star-incompatible left right
 source-var-star-incompatible left right
     (idˣ z⊑l Z<Δ L<Δ) (tagˣ z⊑★ Z<Δ′) | refl =
   track-star right z⊑★
-source-var-star-incompatible left right (ν occ p) (ν occ′ q) =
+source-var-star-incompatible left right (ν _ occ p) (ν _ occ′ q) =
   source-var-star-incompatible
     (target-track-ν left) (var-track-ν right) p q
 
@@ -201,7 +201,7 @@ source-star-var-incompatible left right
 source-star-var-incompatible left right
     (tagˣ z⊑★ Z<Δ) (idˣ z⊑r Z<Δ′ R<Δ) | refl =
   track-star left z⊑★
-source-star-var-incompatible left right (ν occ p) (ν occ′ q) =
+source-star-var-incompatible left right (ν _ occ p) (ν _ occ′ q) =
   source-star-var-incompatible
     (var-track-ν left) (target-track-ν right) p q
 
@@ -237,7 +237,7 @@ occurs-tracked-variable track (tagˣ x∈ X<Δ) occ
     with occurs-var-true→≡ occ
 occurs-tracked-variable track (tagˣ x∈ X<Δ) occ | refl =
   ⊥-elim (track-star track x∈)
-occurs-tracked-variable track (ν occA p) occ =
+occurs-tracked-variable track (ν _ occA p) occ =
   occurs-tracked-variable (var-track-ν track) p occ
 
 occurs-zero-factor-∀ :
@@ -346,15 +346,15 @@ source-left-used-path left right (∀ⁱ p) (∀ⁱ q) occ =
     (path-left-∀
       (source-left-used-path
         (var-track-∀ left) (star-track-∀ right) p q occ))
-source-left-used-path left right (∀ⁱ p) (ν occB q) occ =
+source-left-used-path left right (∀ⁱ p) (ν _ occB q) occ =
   path-left-∀
     (source-left-used-path
       (var-track-∀ left) (star-track-ν right) p q occ)
-source-left-used-path left right (ν occA p) (∀ⁱ q) occ =
+source-left-used-path left right (ν _ occA p) (∀ⁱ q) occ =
   path-right-∀
     (source-left-used-path
       (var-track-ν left) (star-track-∀ right) p q occ)
-source-left-used-path left right (ν occA p) (ν occB q) occ =
+source-left-used-path left right (ν _ occA p) (ν _ occB q) occ =
   source-left-used-path
     (var-track-ν left) (star-track-ν right) p q occ
 
@@ -451,15 +451,15 @@ source-right-used-path left right (∀ⁱ p) (∀ⁱ q) occ =
     (star-path-right-∀
       (source-right-used-path
         (star-track-∀ left) (var-track-∀ right) p q occ))
-source-right-used-path left right (∀ⁱ p) (ν occB q) occ =
+source-right-used-path left right (∀ⁱ p) (ν _ occB q) occ =
   star-path-left-∀
     (source-right-used-path
       (star-track-∀ left) (var-track-ν right) p q occ)
-source-right-used-path left right (ν occA p) (∀ⁱ q) occ =
+source-right-used-path left right (ν _ occA p) (∀ⁱ q) occ =
   star-path-right-∀
     (source-right-used-path
       (star-track-ν left) (var-track-∀ right) p q occ)
-source-right-used-path left right (ν occA p) (ν occB q) occ =
+source-right-used-path left right (ν _ occA p) (ν _ occB q) occ =
   source-right-used-path
     (star-track-ν left) (var-track-ν right) p q occ
 

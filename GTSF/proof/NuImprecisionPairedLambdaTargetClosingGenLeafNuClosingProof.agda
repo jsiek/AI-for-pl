@@ -77,7 +77,7 @@ paired-lambda-target-closing-gen-leaf-ν-closing-proofᵀ :
     ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B′ ∶ q →
   (occ-r : occurs zero B ≡ true) →
   PairedLambdaTargetClosingFrameClosingMotive ρ
-    (V ⟨ C.gen A c ⟩) N′ B B′ (ν occ-r r)
+    (V ⟨ C.gen A c ⟩) N′ B B′ (ν _ occ-r r)
 paired-lambda-target-closing-gen-leaf-ν-closing-proofᵀ
     rotation {r = r} vV noV vN′ noN′ mode seal★ hA occ-g
     g⊢ gⁿ V⊑N′ occ-r

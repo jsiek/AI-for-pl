@@ -94,6 +94,23 @@ Do not retain `Assembly` or `Integration` compatibility modules after a stem
 has been converted.  This is a closed-world repository, so update consumers to
 the canonical `Def`/`Proof`/`Lemma` names and remove the superseded files.
 
+## Live DGG grammar-migration check
+
+Use the public DGG statement as the canonical low-cost downstream check after
+changing the narrowing/widening grammar or one of its live clients:
+
+    agda --no-allow-unsolved-metas -v0 DynamicGradualGuarantee.agda
+
+Agda checks the entire transitive import cone rooted at
+[`DynamicGradualGuarantee.agda`](../DynamicGradualGuarantee.agda).  This check
+took about 3.9 seconds from the warm cache on the local Agda 2.7.0.1 setup.
+Do not use `All.agda` as the completion criterion for this migration: it also
+imports obsolete proof-development branches, including mediated DGG work.
+Check the unfinished quotient-DGG proof architecture separately with
+[`NuDGGStrictSpine.agda`](NuDGGStrictSpine.agda); a passing architectural spine
+means its explicit higher-order contracts fit, not that every semantic leaf is
+proved.
+
 ## Backward-value pilot benchmark
 
 The representative conversion was measured locally with Agda 2.7.0.1 and
@@ -266,15 +283,30 @@ leaf was assembled.
 
 The structural bridge is
 `WorldCoherentQuotientClassificationᵀ`.  It classifies a terminal quotient
-node as either a complete coherent catch-up or the unique outer-`inst`
-residual, packaging `Value (V ⟨ d ⟩)` and `No• (V ⟨ d ⟩)` evidence
-for the inner down-cast value that is ready to fire the outer `inst`.  The
-strict `NuImprecisionWorldCoherentQuotientFinalCatchupProof` then needs only
-this classifier and `WorldCoherentQuotientInstCatchupᵀ`; source-runtime
-handlers are not a dependency of quotient-final assembly.  Keep the
-classifier implementation separate so ordinary store-neutral quotient leaves
-retain coherence and left `StoreWf` instead of erasing them behind a generic
+node as a complete coherent catch-up, a plain outer-`inst` residual, or the
+eager `inst ; (★⇒★)!` residual required by `InstSafe`.  Both residuals
+package `Value (V ⟨ d ⟩)` and `No• (V ⟨ d ⟩)` evidence for the inner
+down-cast value.  The strict
+`NuImprecisionWorldCoherentQuotientFinalCatchupProof` therefore consumes the
+classifier, `WorldCoherentQuotientInstCatchupᵀ`, and
+`WorldCoherentQuotientInstFunTagCatchupᵀ`; source-runtime handlers are not a
+dependency of quotient-final assembly.  Keep the classifier implementation
+separate so ordinary store-neutral quotient leaves retain coherence and left
+`StoreWf` instead of erasing them behind a generic
 `LeftCatchupIndexedResult`.
+
+The eager capability is not a second permutation-semantic leaf.
+`NuImprecisionWorldCoherentQuotientInstFunTagCatchupProof` reduces it to
+`WorldCoherentQuotientInstCatchupᵀ` and the reusable
+`WorldCoherentSourceInertWidenFrameᵀ`: first catch up through plain `inst`,
+then frame the result with the inert `(★ ⇒ ★)!` cast, and finally prepend
+the leading `β-seq` step.  The canonical
+`NuImprecisionWorldCoherentQuotientInstFunTagCatchupLemma` supplies the inert
+frame and remains higher-order only in the plain quotient-`inst` capability.
+Likewise, `NuImprecisionWorldCoherentQuotientFinalCatchupLemma` supplies the
+checked classifier and eager adapter, so final quotient catch-up has just the
+plain quotient-`inst` capability left as a parameter.  Neither assembly
+duplicates the representative permutation proof.
 
 `WorldCoherentQuotientInstCatchupᵀ` is an independent semantic capability,
 not a consequence of `WorldCoherentSourceRuntimeCatchupᵀ`.  Source-runtime
@@ -291,8 +323,70 @@ the two arbitrary `≈∀` derivations and their ordinary representative relatio
 without claiming an ordinary relation between physical quotient endpoints.
 The canonical `NuImprecisionWorldCoherentQuotientInstCatchupProof` strictly
 reduces the existing contract to that direct capability.  Its canonical
-`Lemma` must remain absent until a representative-level `Proof` handles
-`sym`, `trans`, congruence, and the primitive adjacent swap compositionally.
+`Lemma` must remain absent until the representative path semantics are
+implemented.  The checked
+`NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupProof`
+already normalizes `sym`, `trans`, congruence, and primitive swaps to oriented
+finite paths.  The strict
+`NuImprecisionWorldCoherentQuotientRepresentativeInstPathCasesProof` then
+splits that path capability into three whole contracts: identity paths, one
+leading source-path step, and one leading target-path step after the source
+path is exhausted.  Their `*IdentityCatchupDef`, `*SourceStepCatchupDef`, and
+`*TargetStepCatchupDef` files are the current parallel work packages.  Keep
+their semantic implementations separate; the checked case assembly will join
+them without a permissive dispatcher.
+
+The identity package has a further strict boundary.  Its checked
+`*IdentityCatchupProof` pattern-matches the source `inst` widening, which
+forces the representative source endpoint to be universal, and delegates to
+`*IdentityViewCatchupDef` with `AllImprecisionView`.  The remaining identity
+semantics therefore has exactly the paired `∀/∀` and source-only non-vacuous
+`ν` cases, frozen separately by `*IdentityPairedCatchupDef` and
+`*IdentitySourceCatchupDef`.  The checked `*IdentityViewCatchupProof` joins
+those two leaves.  This refinement retains the original self-permutation
+witnesses and the quotiented downcast relation; it does not introduce the
+false ordinary relation between physical quotient endpoints.
+
+Each identity view is now split once more by the actual quotient-down
+constructor.  The checked `*IdentityPairedCatchupProof` and
+`*IdentitySourceCatchupProof` distinguish ordinary `down⊑downᵀ` from
+generated `gen-down⊑gen-downᵀ`, exposing the inner ordinary relation and
+both narrowing derivations.  The four identity work packages are therefore
+paired/source-only × ordinary/generated downcast.  In both
+source-only packages, `NonVar E`, `occurs zero E ≡ true`, and the
+lifted one-sided body relation are explicit inputs.  Although `NonVar`
+includes base and `★`, their occurrence premise is impossible; do not add a
+vacuous source-`ν` branch or weaken away that premise when proving these
+leaves.
+
+The ordinary-down packages now have checked partial proofs.  Their
+identity-only quotient-widening clauses use `NuCastImprecision` to embed
+narrowing and widening under sparse `NuStore.StoreWf`, reconstruct the exact
+ordinary relation needed by source `ν ★` allocation, and prepend `β-inst`.
+The source-only proof constructs `ν safe occ r` explicitly, so the
+non-vacuity condition participates in the proof.  Each general-cast
+quotient-widening clause is frozen as a separate hard contract because its
+mode may require ambient variable-to-star compatibility not exposed by the
+outer precision index.
+
+The generated-down packages now also have checked higher-order proofs.  They
+first invoke the ordinary value-prefix catch-up capability on the inner
+`V ⊑ V′` relation and then reapply the whole quotient down/up frame through
+terminal quotient catch-up.  This exposes their genuine back-edge into the
+value-prefix/final-quotient mutual SCC instead of treating each generated leaf
+as an unrelated semantic axiom.  In the source-only proof, the reconstructed
+quotient index is exactly `quotientᵖ ≈∀-refl (ν safe occ r) ≈∀-refl`;
+both `NonVar E` and `occurs zero E ≡ true` are therefore used, and the
+non-vacuity restriction remains enforced.
+
+`NuImprecisionWorldCoherentQuotientInstCatchupLemma` now supplies the checked
+top assembly.  Given exact source-`ν ★` allocation, the two general-cast
+ordinary-down residuals, the oriented source/target permutation-step
+residuals, and the value-prefix/final-quotient SCC capabilities, it reaches
+the original `WorldCoherentQuotientInstCatchupᵀ` contract through the complete
+path and quotient stack.  The two generated-down inhabitants are built inside
+this assembly, so their eventual fit and their recursive dependencies are
+both checked rather than left implicit.
 
 Give each source handler its own genuine whole contract, but keep the
 canonical inhabitants for the genuinely recursive handlers in one mutual

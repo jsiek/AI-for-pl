@@ -897,6 +897,12 @@ pure-preservation wfΣ (no•-⟨⟩ noV)
   ⊢⟨⟩⊒ mode seal★ (q⊢ , cross (strictCrossⁿ→cross gⁿ))
     (⊢⟨⟩⊒ mode seal★ (p⊢ , untag gG) hV)
 pure-preservation wfΣ (no•-⟨⟩ noV)
+    (⊢⟨⟩⊒ mode seal★
+      (cast-seq p⊢ q⊢ , fun-untag-gen safe) hV)
+    (β-seq vV) =
+  ⊢⟨⟩⊒ mode seal★ (q⊢ , gen safe)
+    (⊢⟨⟩⊒ mode seal★ (p⊢ , untag ★⇒★) hV)
+pure-preservation wfΣ (no•-⟨⟩ noV)
     (⊢⟨⟩⊒ {μ = μ} mode seal★
       (cast-seq p⊢ (cast-seal hA α∈Σ ok) , sⁿ ︔seal α) hV)
     (β-seq vV) =
@@ -908,6 +914,12 @@ pure-preservation wfΣ (no•-⟨⟩ noV)
     (β-seq vV) =
   ⊢⟨⟩⊑ mode seal★ (q⊢ , tag gG)
     (⊢⟨⟩⊑ mode seal★ (p⊢ , cross (strictCrossʷ→cross gʷ)) hV)
+pure-preservation wfΣ (no•-⟨⟩ noV)
+    (⊢⟨⟩⊑ mode seal★
+      (cast-seq p⊢ q⊢ , inst-fun-tag safe) hV)
+    (β-seq vV) =
+  ⊢⟨⟩⊑ mode seal★ (q⊢ , tag ★⇒★)
+    (⊢⟨⟩⊑ mode seal★ (p⊢ , inst safe) hV)
 pure-preservation wfΣ (no•-⟨⟩ noV)
     (⊢⟨⟩⊑ {μ = μ} mode seal★
       (cast-seq (cast-unseal hA α∈Σ ok) q⊢ , unseal︔_ α sʷ) hV)
@@ -938,7 +950,8 @@ pure-preservation wfΣ (no•-⟨⟩ noV)
     (⊢⟨⟩⊑ mode seal★
       (cast-inst {A = A} {B = B} {s = c} hB occ c⊢ , inst cʷ) V⊢)
     (β-inst vV) =
-  ⊢ν⊑ mode (seal★-inst seal★) V⊢ (c⊢ , cʷ)
+  ⊢ν⊑ mode (seal★-inst seal★) V⊢
+    (c⊢ , instSafe→widening cʷ)
 pure-preservation wfΣ (no•-⟨⟩ noV)
     (⊢⟨⟩⊒ mode seal★ (cast-inst hB occ c⊢ , cross ()) V⊢)
     (β-inst vV)
@@ -1154,7 +1167,8 @@ bullet-pure-preservation {C = C} wfΣ hC
     (⊢⟨⟩⊒
       (cast-gen mode)
       (seal★-weaken StoreIncl-drop (seal★-gen-shift seal★))
-      (narrow-weaken ≤-refl StoreIncl-drop (c⊢ , cⁿ))
+      (narrow-weaken ≤-refl StoreIncl-drop
+        (c⊢ , genSafe→narrowing cⁿ))
       (term-weaken ≤-refl StoreIncl-drop
         (renameᵗᵐ-preserves-No• suc noW)
         (typing-renameᵀ {ρ = suc} {ψ = predᵗ}

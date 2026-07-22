@@ -139,7 +139,7 @@ paired-lambda-target-closing-lambda-leaf-handler-proofᵀ :
     ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B ∶ p →
   PairedLambdaTargetClosingFrameClosingMotive ρ
-    (Λ V) N′ A B (ν occ p)
+    (Λ V) N′ A B (ν _ occ p)
 paired-lambda-target-closing-lambda-leaf-handler-proofᵀ
     rotate occ liftΛ liftγ vV noV vN′ noN′ V⊑N′
     prefix coherent exclusive wfL h⇑Aν reveal liftν lift∀ conversion =

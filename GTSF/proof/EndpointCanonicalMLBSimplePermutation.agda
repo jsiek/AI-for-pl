@@ -97,6 +97,8 @@ data AlignedRoutes :
 
   aligned-left :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route :
         EnumRoute fuel
           (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴸ)
@@ -109,11 +111,13 @@ data AlignedRoutes :
           (suc Δᶜ) (suc Δᴸ) Δᴿ A B D} →
     AlignedRoutes route route′ →
     AlignedRoutes
-      (route-left occC route)
-      (route-left occD route′)
+      (route-left {{safeC}} occC route)
+      (route-left {{safeD}} occD route′)
 
   aligned-right :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route :
         EnumRoute fuel
           (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴸ)
@@ -126,8 +130,8 @@ data AlignedRoutes :
           (suc Δᶜ) Δᴸ (suc Δᴿ) A B D} →
     AlignedRoutes route route′ →
     AlignedRoutes
-      (route-right occC route)
-      (route-right occD route′)
+      (route-right {{safeC}} occC route)
+      (route-right {{safeD}} occD route′)
 
   aligned-arrow :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ
@@ -241,6 +245,8 @@ data AlignedRoutes :
 
   aligned-left-right :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {occC : occurs zero C ≡ true}
       {occ∀C : occurs zero (`∀ C) ≡ true}
       {occD : occurs zero D ≡ true}
@@ -261,11 +267,13 @@ data AlignedRoutes :
           (suc (suc Δᶜ)) (suc Δᴸ) (suc Δᴿ) A B D} →
     renameᵗ ForallPermutation.swap01ᵗ C ≈∀ D →
     AlignedRoutes
-      (route-left occ∀C (route-right occC route))
-      (route-right occ∀D (route-left occD route′))
+      (route-left occ∀C (route-right {{safeC}} occC route))
+      (route-right occ∀D (route-left {{safeD}} occD route′))
 
   aligned-right-left :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {occC : occurs zero C ≡ true}
       {occ∀C : occurs zero (`∀ C) ≡ true}
       {occD : occurs zero D ≡ true}
@@ -286,8 +294,8 @@ data AlignedRoutes :
           (suc (suc Δᶜ)) (suc Δᴸ) (suc Δᴿ) A B D} →
     C ≈∀ renameᵗ ForallPermutation.swap01ᵗ D →
     AlignedRoutes
-      (route-right occ∀C (route-left occC route))
-      (route-left occ∀D (route-right occD route′))
+      (route-right occ∀C (route-left {{safeC}} occC route))
+      (route-left occ∀D (route-right {{safeD}} occD route′))
 
 aligned-routes-≈∀ :
   ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D}
@@ -2198,6 +2206,8 @@ data SameSchedule :
 
   same-left :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route : EnumRoute fuel
         (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴸ)
         (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴿ)
@@ -2208,10 +2218,13 @@ data SameSchedule :
         (suc Δᶜ) (suc Δᴸ) Δᴿ A B D} →
     SameSchedule route route′ →
     SameSchedule
-      (route-left occC route) (route-left occD route′)
+      (route-left {{safeC}} occC route)
+      (route-left {{safeD}} occD route′)
 
   same-right :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route : EnumRoute fuel
         (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴸ)
         (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴿ)
@@ -2222,7 +2235,8 @@ data SameSchedule :
         (suc Δᶜ) Δᴸ (suc Δᴿ) A B D} →
     SameSchedule route route′ →
     SameSchedule
-      (route-right occC route) (route-right occD route′)
+      (route-right {{safeC}} occC route)
+      (route-right {{safeD}} occD route′)
 
   same-arrow :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ
@@ -2470,15 +2484,15 @@ transport-enum-route left-transport right-transport pres
       (transport-∀ left-transport) (transport-∀ right-transport)
       (TyRenameWf-ext pres) route)
 transport-enum-route {ρ = ρ} left-transport right-transport pres
-    (route-left {C = C} occ route) =
-  route-left
+    (route-left {C = C} {{safe}} occ route) =
+  route-left {{renameNonVar (extᵗ ρ) safe}}
     (trans (occurs-zero-rename-ext ρ C) occ)
     (transport-enum-route
       (transport-∀ left-transport) (transport-ν right-transport)
       (TyRenameWf-ext pres) route)
 transport-enum-route {ρ = ρ} left-transport right-transport pres
-    (route-right {C = C} occ route) =
-  route-right
+    (route-right {C = C} {{safe}} occ route) =
+  route-right {{renameNonVar (extᵗ ρ) safe}}
     (trans (occurs-zero-rename-ext ρ C) occ)
     (transport-enum-route
       (transport-ν left-transport) (transport-∀ right-transport)
@@ -2654,6 +2668,8 @@ data SwapAlignedRoutes (modes : List Exposure) :
 
   swap-aligned-left :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route :
         EnumRoute fuel
           (lr-left-context (leftᵉ ∷ modes) Φᴸ)
@@ -2670,10 +2686,13 @@ data SwapAlignedRoutes (modes : List Exposure) :
           (apply-right-depth (leftᵉ ∷ modes) (suc Δᴿ)) A B D} →
     SwapAlignedRoutes (leftᵉ ∷ modes) route route′ →
     SwapAlignedRoutes modes
-      (route-left occC route) (route-left occD route′)
+      (route-left {{safeC}} occC route)
+      (route-left {{safeD}} occD route′)
 
   swap-aligned-right :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route :
         EnumRoute fuel
           (lr-left-context (rightᵉ ∷ modes) Φᴸ)
@@ -2690,7 +2709,8 @@ data SwapAlignedRoutes (modes : List Exposure) :
           (apply-right-depth (rightᵉ ∷ modes) (suc Δᴿ)) A B D} →
     SwapAlignedRoutes (rightᵉ ∷ modes) route route′ →
     SwapAlignedRoutes modes
-      (route-right occC route) (route-right occD route′)
+      (route-right {{safeC}} occC route)
+      (route-right {{safeD}} occD route′)
 
   swap-aligned-arrow :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ
@@ -2904,22 +2924,26 @@ swap-route {modes = modes} (route-both route)
 swap-route {modes = modes} (route-both route)
     | route′ , aligned =
   route-both route′ , swap-aligned-both aligned
-swap-route {modes = modes} (route-left {C = C} occ route)
+swap-route {modes = modes} (route-left {C = C} {{safe}} occ route)
     with swap-route {modes = leftᵉ ∷ modes} route
-swap-route {modes = modes} (route-left {C = C} occ route)
+swap-route {modes = modes} (route-left {C = C} {{safe}} occ route)
     | route′ , aligned =
-  route-left
+  route-left {{safe′}}
     (trans (occurs-zero-rename-ext (swap-under modes) C) occ)
     route′ ,
-  swap-aligned-left aligned
-swap-route {modes = modes} (route-right {C = C} occ route)
+  swap-aligned-left {{safeC = safe}} {{safeD = safe′}} aligned
+  where
+    safe′ = renameNonVar (extᵗ (swap-under modes)) safe
+swap-route {modes = modes} (route-right {C = C} {{safe}} occ route)
     with swap-route {modes = rightᵉ ∷ modes} route
-swap-route {modes = modes} (route-right {C = C} occ route)
+swap-route {modes = modes} (route-right {C = C} {{safe}} occ route)
     | route′ , aligned =
-  route-right
+  route-right {{safe′}}
     (trans (occurs-zero-rename-ext (swap-under modes) C) occ)
     route′ ,
-  swap-aligned-right aligned
+  swap-aligned-right {{safeC = safe}} {{safeD = safe′}} aligned
+  where
+    safe′ = renameNonVar (extᵗ (swap-under modes)) safe
 swap-route {modes = modes} (route-arrow route₁ route₂)
     with swap-route {modes = modes} route₁
        | swap-route {modes = modes} route₂
@@ -2957,6 +2981,7 @@ swap-route {modes = modes} (route-star-var C∈) =
 
 left-right-adjacent-connectivity :
   ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C}
+    {{safeC : NonVar C}}
     (occC : occurs zero C ≡ true)
     (occ∀C : occurs zero (`∀ C) ≡ true)
     (route :
@@ -2975,15 +3000,19 @@ left-right-adjacent-connectivity :
         (suc (suc Δᶜ)) (suc Δᴸ) (suc Δᴿ)
         A B (renameᵗ ForallPermutation.swap01ᵗ C) ]
     AlignedRoutes
-      (route-left occ∀C (route-right occC route))
+      (route-left occ∀C (route-right {{safeC}} occC route))
       (route-right
         (occurs-swap01-right {A = C} occC)
-        (route-left (occurs-swap01-left {A = C} occ∀C) route′))
-left-right-adjacent-connectivity occC occ∀C route
+        (route-left {{renameNonVar ForallPermutation.swap01ᵗ safeC}}
+          (occurs-swap01-left {A = C} occ∀C) route′))
+left-right-adjacent-connectivity {{safeC}} occC occ∀C route
     with swap-route {modes = []} route
-left-right-adjacent-connectivity occC occ∀C route
+left-right-adjacent-connectivity {{safeC}} occC occ∀C route
     | route′ , swap-aligned =
-  route′ , aligned-left-right ≈∀-refl
+  route′ , aligned-left-right
+    {{safeC = safeC}}
+    {{safeD = renameNonVar ForallPermutation.swap01ᵗ safeC}}
+    ≈∀-refl
 
 same-schedule-refl :
   ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C}
@@ -3026,8 +3055,9 @@ bubble-right-exposure :
       (apply-common-depth (rightᵉ ∷ modes) Δ)
       (apply-left-depth (rightᵉ ∷ modes) Δ)
       (apply-right-depth (rightᵉ ∷ modes) Δ) A B E ]
-    Σ[ occE ∈ (occurs zero E ≡ true) ]
-      AlignedRoutes route (route-right occE body)
+    Σ[ safeE ∈ NonVar E ]
+      Σ[ occE ∈ (occurs zero E ≡ true) ]
+        AlignedRoutes route (route-right {{safeE}} occE body)
 bubble-right-exposure {modes = modes} {Δ = Δ} path
     (route-both body) =
   ⊥-elim
@@ -3046,9 +3076,9 @@ bubble-right-exposure
 bubble-right-exposure
     {modes = modes} {Δ = Δ} {fuel = suc fuel} path
     (route-left inner-occ route)
-    | E , body , occE , aligned
+    | E , body , safeE , occE , aligned
     with left-right-adjacent-connectivity
-      occE inner-occ′ body
+      {{safeE}} occE inner-occ′ body
   where
     inner-path =
       left-used-path
@@ -3058,14 +3088,15 @@ bubble-right-exposure
     inner-occ′ =
       left-path-used
         {modes = leftᵉ ∷ modes} {Δ = Δ}
-        left-origin-left (route-right occE body) inner-path
+        left-origin-left (route-right {{safeE}} occE body) inner-path
 bubble-right-exposure
     {modes = modes} {Δ = Δ} {fuel = suc fuel} path
     (route-left inner-occ route)
-    | E , body , occE , aligned | body′ , adjacent =
+    | E , body , safeE , occE , aligned | body′ , adjacent =
   `∀ (renameᵗ ForallPermutation.swap01ᵗ E) ,
-  route-left
+  route-left {{renameNonVar ForallPermutation.swap01ᵗ safeE}}
     (occurs-swap01-left {A = E} inner-occ′) body′ ,
+  nonvar-all ,
   occurs-swap01-right {A = E} occE ,
   aligned-trans (aligned-left aligned) adjacent
   where
@@ -3077,10 +3108,10 @@ bubble-right-exposure
     inner-occ′ =
       left-path-used
         {modes = leftᵉ ∷ modes} {Δ = Δ}
-        left-origin-left (route-right occE body) inner-path
+        left-origin-left (route-right {{safeE}} occE body) inner-path
 bubble-right-exposure {modes = modes} {Δ = Δ} path
-    route@(route-right occ body) =
-  _ , body , occ ,
+    route@(route-right {{safe}} occ body) =
+  _ , body , safe , occ ,
   same-schedule-aligned
     {modes = modes} {Δ = Δ} (same-schedule-refl route)
 
@@ -3099,7 +3130,7 @@ bubble-left-exposure :
       (apply-common-depth (leftᵉ ∷ modes) Δ)
       (apply-left-depth (leftᵉ ∷ modes) Δ)
       (apply-right-depth (leftᵉ ∷ modes) Δ) A B E ]
-    occurs zero E ≡ true
+    NonVar E × occurs zero E ≡ true
 bubble-left-exposure {modes = modes} {Δ = Δ} path
     (route-both body) =
   ⊥-elim
@@ -3118,16 +3149,17 @@ bubble-left-exposure
 bubble-left-exposure
     {modes = modes} {Δ = Δ} {fuel = suc fuel} path
     (route-right inner-occ route)
-    | E , body , occE
+    | E , body , safeE , occE
     with swap-route {modes = []} (flip-enum-route body)
 bubble-left-exposure
     {modes = modes} {Δ = Δ} {fuel = suc fuel} path
     (route-right inner-occ route)
-    | E , body , occE | body′ , aligned =
+    | E , body , safeE , occE | body′ , aligned =
   `∀ (renameᵗ ForallPermutation.swap01ᵗ E) ,
-  route-right
+  route-right {{renameNonVar ForallPermutation.swap01ᵗ safeE}}
     (occurs-swap01-left {A = E} inner-occ′)
     (flip-enum-route body′) ,
+  nonvar-all ,
   occurs-swap01-right {A = E} occE
   where
     inner-path =
@@ -3138,9 +3170,9 @@ bubble-left-exposure
     inner-occ′ =
       right-star-path-used
         {modes = rightᵉ ∷ modes} {Δ = Δ}
-        right-origin-right (route-left occE body) inner-path
-bubble-left-exposure path (route-left occ body) =
-  _ , body , occ
+        right-origin-right (route-left {{safeE}} occE body) inner-path
+bubble-left-exposure path (route-left {{safe}} occ body) =
+  _ , body , safe , occ
 
 mutual
   generated-routes-aligned :
@@ -3244,6 +3276,8 @@ mutual
 
   left-right-routes-aligned :
     ∀ {modes Δ fuel A B C D}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       (occC : occurs zero C ≡ true)
       (route : EnumRoute fuel
         (apply-left (leftᵉ ∷ modes) (idᵢ Δ))
@@ -3261,11 +3295,13 @@ mutual
         (apply-right-depth (rightᵉ ∷ modes) Δ)
         (`∀ A) B D) →
     AlignedRoutes
-      (route-left occC route) (route-right occD route′)
-  left-right-routes-aligned {fuel = zero} occC () occD route′
+      (route-left {{safeC}} occC route)
+      (route-right {{safeD}} occD route′)
+  left-right-routes-aligned {fuel = zero}
+      {{safeC}} {{safeD}} occC () occD route′
   left-right-routes-aligned
       {modes = modes} {Δ = Δ} {fuel = suc fuel}
-      occC route occD route′
+      {{safeC}} {{safeD}} occC route occD route′
       with bubble-right-exposure
         {modes = leftᵉ ∷ modes} {Δ = Δ}
         right-path route
@@ -3277,9 +3313,9 @@ mutual
             right-origin-right route′ occD)
   left-right-routes-aligned
       {modes = modes} {Δ = Δ} {fuel = suc fuel}
-      occC route occD route′
-      | E , body , occE , bubbled
-      with left-right-adjacent-connectivity occE occC′ body
+      {{safeC}} {{safeD}} occC route occD route′
+      | E , body , safeE , occE , bubbled
+      with left-right-adjacent-connectivity {{safeE}} occE occC′ body
     where
       left-path =
         left-used-path
@@ -3289,18 +3325,19 @@ mutual
       occC′ =
         left-path-used
           {modes = leftᵉ ∷ modes} {Δ = Δ}
-          left-origin-left (route-right occE body) left-path
+          left-origin-left (route-right {{safeE}} occE body) left-path
 
   left-right-routes-aligned
       {modes = modes} {Δ = Δ} {fuel = suc fuel}
-      occC route occD route′
-      | E , body , occE , bubbled | body′ , adjacent =
+      {{safeC}} {{safeD}} occC route occD route′
+      | E , body , safeE , occE , bubbled | body′ , adjacent =
     aligned-trans (aligned-left bubbled)
       (aligned-trans adjacent
         (aligned-right
           (generated-routes-aligned
             {modes = rightᵉ ∷ modes} {Δ = Δ}
             (route-left
+              {{renameNonVar ForallPermutation.swap01ᵗ safeE}}
               (occurs-swap01-left {A = E} occC′) body′)
             route′)))
     where
@@ -3312,7 +3349,7 @@ mutual
       occC′ =
         left-path-used
           {modes = leftᵉ ∷ modes} {Δ = Δ}
-          left-origin-left (route-right occE body) left-path
+          left-origin-left (route-right {{safeE}} occE body) left-path
 
 rawEndpointMlbsAt-≈∀ :
   ∀ {Δ A B C D} →

@@ -41,6 +41,7 @@ open import Coercions using
   ; id-only
   ; tag-or-id
   ; seal-or-id
+  ; _!
   ; mode≤
   ; extᵈ
   ; gen
@@ -413,6 +414,7 @@ open import proof.TypeProperties using
   ; rename-cong
   ; renameᵗ-compose
   ; renameᵗ-ext-suc-comm
+  ; renameᵗ-ground
   ; renameᵗ-id
   ; renameᵗ-preserves-WfTy
   ; renameStoreᵗ-compose
@@ -1052,20 +1054,24 @@ transport-all-⊑ᵢ refl refl = refl
 
 transport-ν-⊑ᵢ :
   ∀ {Φ Δᴸ Δᴿ C₀ C₁ B}
+    {{safe₀ : NonVar C₀}}
+    {{safe₁ : NonVar C₁}}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C₀ ⊑ B ⊣ Δᴿ} →
   (eqC : C₀ ≡ C₁) →
   (occ : occurs zero C₀ ≡ true) →
   subst
     (λ S → Φ ∣ Δᴸ ⊢ S ⊑ B ⊣ Δᴿ)
-    (cong `∀ eqC) (ν occ p)
-  ≡ ν
+    (cong `∀ eqC) (ν safe₀ occ p)
+  ≡ ν safe₁
       (trans (sym (cong (occurs zero) eqC)) occ)
       (subst
         (λ S → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
           ∣ suc Δᴸ ⊢ S ⊑ B ⊣ Δᴿ)
         eqC p)
-transport-ν-⊑ᵢ refl occ = refl
+transport-ν-⊑ᵢ {{safe₀}} {{safe₁}} refl occ
+    rewrite nonVar-unique safe₀ safe₁ =
+  refl
 
 equality-proof-unique :
   ∀ {A : Set} {x y : A}
@@ -3341,6 +3347,7 @@ rel-world-Λ⊑-embedᵀ :
     {V N′ A B}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+  {{safe : NonVar A}} →
   (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
     {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
   (occ : occurs zero A ≡ true) →
@@ -3362,15 +3369,16 @@ rel-world-Λ⊑-embedᵀ :
      Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
        ⊢ᴺ renameᵗᵐ τ (Λ V) ⊑ renameᵗᵐ σ N′
        ⦂ renameᵗ τ (`∀ A) ⊑ renameᵗ σ B
-       ∶ ⊑-renameᵗ²ᵢ assm hτ hσ (ν occ p))
-rel-world-Λ⊑-embedᵀ emb occ liftρ liftγ vV
+       ∶ ⊑-renameᵗ²ᵢ assm hτ hσ (ν _ occ p))
+rel-world-Λ⊑-embedᵀ {{safe}} emb occ liftρ liftγ vV
     with rel-world-embedding-lift-leftⁱ emb liftρ liftγ
 rel-world-Λ⊑-embedᵀ {τ = τ} {A = A}
-    emb occ liftρ liftγ vV
+    {{safe}} emb occ liftρ liftγ vV
     | ρ′ν , γ′ν , liftρ′ , liftγ′ , body-emb =
   ρ′ν , γ′ν , liftρ′ , liftγ′ , body-emb ,
   λ V⊑N′ →
-    Λ⊑ᵀ (trans (occurs-zero-rename-ext τ A) occ)
+    Λ⊑ᵀ {{renameNonVar (extᵗ τ) safe}}
+      (trans (occurs-zero-rename-ext τ A) occ)
       liftρ′ liftγ′
       (renameᵗᵐ-preserves-Value (extᵗ τ) vV)
       V⊑N′
@@ -3388,6 +3396,7 @@ rel-world-Λ⊑-permuteᵀ :
     {V N′ A B}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+  {{safe : NonVar A}} →
   (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
     {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
   (occ : occurs zero A ≡ true) →
@@ -3415,16 +3424,18 @@ rel-world-Λ⊑-permuteᵀ :
        ⦂ renameᵗ (forward πᴸ) (`∀ A)
          ⊑ renameᵗ (forward πᴿ) B
        ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ)
-           (ν occ p))
+           (ν _ occ p))
 rel-world-Λ⊑-permuteᵀ {πᴸ = πᴸ} {πᴿ = πᴿ} {A = A}
-    perm occ liftρ liftγ vV
+    {{safe}} perm occ liftρ liftγ vV
     with rel-world-permutation-lift-leftⁱ perm liftρ liftγ
 rel-world-Λ⊑-permuteᵀ {πᴸ = πᴸ} {πᴿ = πᴿ} {A = A}
-    perm occ liftρ liftγ vV
+    {{safe}} perm occ liftρ liftγ vV
     | ρ′ν , γ′ν , liftρ′ , liftγ′ , body-perm =
   ρ′ν , γ′ν , liftρ′ , liftγ′ , body-perm ,
   λ V⊑N′ →
-    Λ⊑ᵀ (trans (occurs-zero-rename-ext (forward πᴸ) A) occ)
+    Λ⊑ᵀ
+      {{renameNonVar (extᵗ (forward πᴸ)) safe}}
+      (trans (occurs-zero-rename-ext (forward πᴸ) A) occ)
       liftρ′ liftγ′
       (renameᵗᵐ-preserves-Value (extᵗ (forward πᴸ)) vV)
       V⊑N′
@@ -4608,8 +4619,10 @@ rename-assm²-∀-leftᵢ {Ψ = Ψ} assm {a = a} a∈ =
   ⊑-rename-leftᵢ τ assm hτ q
 ⊑-rename-leftᵢ τ assm hτ (tagˣ a∈ X<Δ) =
   tagˣ (assm a∈) (hτ X<Δ)
-⊑-rename-leftᵢ {Φ = Φ} τ assm hτ (ν {A = A} occ p) =
-  ν (trans (occurs-zero-rename-ext τ A) occ)
+⊑-rename-leftᵢ {Φ = Φ} τ assm hτ
+    (ν {A = A} safe occ p) =
+  ν (renameNonVar (extᵗ τ) safe)
+    (trans (occurs-zero-rename-ext τ A) occ)
     (⊑-rename-leftᵢ
       (extᵗ τ) (rename-assm²-⇑ᴸᵢ assm) (TyRenameWf-ext hτ) p)
 
@@ -4964,17 +4977,26 @@ right-under-left-ctx-eq Φ =
 
 ⊑-target-lift-right-ν-shapeᵢ :
   ∀ {Φ Δᴸ Δᴿ C B}
+    {{safe : NonVar C}}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ B ⊣ Δᴿ}
     (occ : occurs zero C ≡ true) →
   ∃[ occ′ ]
-    ⊑-target-lift-rightᵢ (ν occ p) ≡
-      ν occ′ (⊑-target-under-leftᵢ p)
-⊑-target-lift-right-ν-shapeᵢ {C = C} occ
-    rewrite equality-proof-unique
+    ⊑-target-lift-rightᵢ (ν safe occ p) ≡
+      ν {A = C} safe occ′ (⊑-target-under-leftᵢ p)
+⊑-target-lift-right-ν-shapeᵢ {C = C} {{safe}} occ
+    rewrite nonVar-unique
+      (subst NonVar (renameᵗ-ext-id C)
+        (renameNonVar (extᵗ (λ X → X)) safe)) safe
+      | equality-proof-unique
       (renameᵗ-id (`∀ C)) (cong `∀ (renameᵗ-ext-id C)) =
   _ ,
-  transport-ν-⊑ᵢ (renameᵗ-ext-id C)
+  transport-ν-⊑ᵢ
+    {C₀ = renameᵗ (extᵗ (λ X → X)) C}
+    {C₁ = C}
+    {{safe₀ = renameNonVar (extᵗ (λ X → X)) safe}}
+    {{safe₁ = safe}}
+    (renameᵗ-ext-id C)
     (trans (occurs-zero-rename-ext (λ X → X) C) occ)
 
 rel-store-rename-lift-rightⁱ :
@@ -6127,6 +6149,46 @@ rel-world-cast⊒⊑-embedᵀ emb mode seal★ c⊒ M⊑M′ =
       (CastModeRenamer.target-rename
         (left-embedding-cast-renamer emb) mode) c⊒)
     M⊑M′ _
+
+rel-world-gen⊑ground-embedᵀ :
+  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
+    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
+    {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
+    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
+    {V W A B H p q c μ} →
+  (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
+    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
+  (mode : CastMode μ) →
+  SealModeStore★ μ (leftStoreⁱ ρ) →
+  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ gen A c ∶ A ⊒ `∀ B →
+  Ground H →
+  Value V →
+  Value W →
+  No• W →
+  Δᴿ ∣ rightStoreⁱ ρ ∣ rightCtxⁱ γ ⊢ W ⦂ H →
+  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
+    ⊢ᴺ renameᵗᵐ τ V ⊑ renameᵗᵐ σ (W ⟨ H ! ⟩)
+    ⦂ renameᵗ τ A ⊑ ★
+    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ p →
+  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
+    ⊢ᴺ renameᵗᵐ τ (V ⟨ gen A c ⟩) ⊑ renameᵗᵐ σ W
+    ⦂ renameᵗ τ (`∀ B) ⊑ renameᵗ σ H
+    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ q
+rel-world-gen⊑ground-embedᵀ {τ = τ} {σ = σ}
+    emb mode seal★ c⊒ gH vV vW noW W⊢ V⊑Wtag =
+  gen⊑groundᵀ
+    (CastModeRenamer.target-mode
+      (left-embedding-cast-renamer emb) mode)
+    (left-seal-rel-embed emb mode seal★)
+    (left-narrowing-rel-embed-mode emb
+      (CastModeRenamer.target-rename
+        (left-embedding-cast-renamer emb) mode) c⊒)
+    (renameᵗ-ground σ gH)
+    (renameᵗᵐ-preserves-Value τ vV)
+    (renameᵗᵐ-preserves-Value σ vW)
+    (rel-world-target-typing-embed emb noW W⊢)
+    V⊑Wtag _
 
 rel-world-cast⊑⊑-embedᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
@@ -9450,6 +9512,7 @@ left-rename-Λ⊑ᵀ :
     {V N′ A B}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+  {{safe : NonVar A}} →
   LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
   LeftCtxRenameⁱ τ assm hτ γ γ′ →
   (occ : occurs zero A ≡ true) →
@@ -9475,17 +9538,18 @@ left-rename-Λ⊑ᵀ :
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ (Λ V) ⊑ N′
     ⦂ renameᵗ τ (`∀ A) ⊑ B
-    ∶ ⊑-rename-leftᵢ τ assm hτ (ν occ p)
-left-rename-Λ⊑ᵀ renameρ renameγ occ liftρ liftγ vV body-map
+    ∶ ⊑-rename-leftᵢ τ assm hτ (ν safe occ p)
+left-rename-Λ⊑ᵀ {{safe}} renameρ renameγ occ liftρ liftγ vV body-map
     with left-store-rename-ν renameρ liftρ
-left-rename-Λ⊑ᵀ renameρ renameγ occ liftρ liftγ vV body-map
+left-rename-Λ⊑ᵀ {{safe}} renameρ renameγ occ liftρ liftγ vV body-map
     | ρ′ν , liftρ′ , renameρν
     with left-ctx-rename-ν renameγ liftγ
-left-rename-Λ⊑ᵀ {τ = τ} {A = A}
+left-rename-Λ⊑ᵀ {τ = τ} {A = A} {{safe}}
     renameρ renameγ occ liftρ liftγ vV body-map
     | ρ′ν , liftρ′ , renameρν
     | γ′ν , liftγ′ , renameγν =
-  Λ⊑ᵀ (trans (occurs-zero-rename-ext τ A) occ)
+  Λ⊑ᵀ {{renameNonVar (extᵗ τ) safe}}
+    (trans (occurs-zero-rename-ext τ A) occ)
     liftρ′ liftγ′ (renameᵗᵐ-preserves-Value (extᵗ τ) vV)
     (body-map liftρ′ liftγ′ renameρν renameγν)
 
@@ -10263,6 +10327,7 @@ right-target-square-α⊑ᵀ :
     {L N′ A B′ C}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
+    {{safe : NonVar C}}
     {occ : occurs zero C ≡ true} →
   Value L →
   No• L →
@@ -10273,7 +10338,7 @@ right-target-square-α⊑ᵀ :
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ (⇑ᴿᵢ Φ)) ρᴿ ρ× →
   ⇑ᴿᵢ Φ ∣ Δᴸ ∣ suc Δᴿ ∣ ρᴿ ∣ []
     ⊢ᴺ L ⊑ ⇑ᵗᵐ N′
-    ⦂ `∀ C ⊑ ⇑ᵗ B′ ∶ ν occ (⊑-target-under-leftᵢ p) →
+    ⦂ `∀ C ⊑ ⇑ᵗ B′ ∶ ν _ occ (⊑-target-under-leftᵢ p) →
   suc Δᴸ ∣
     leftStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρᴸ) ∣ []
     ⊢ (⇑ᵗᵐ L) • ⦂ C →
@@ -10309,6 +10374,7 @@ right-target-lift-α⊑ᵀ :
     {L N′ A B′ C}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
+    {{safe : NonVar C}}
     {occ : occurs zero C ≡ true} →
   Value L →
   No• L →
@@ -10319,7 +10385,7 @@ right-target-lift-α⊑ᵀ :
   LiftRightCtxⁱ (⇑ᴿᵢ Φ) γ γᴿ →
   ⇑ᴿᵢ Φ ∣ Δᴸ ∣ suc Δᴿ ∣ ρᴿ ∣ γᴿ
     ⊢ᴺ L ⊑ ⇑ᵗᵐ N′
-    ⦂ `∀ C ⊑ ⇑ᵗ B′ ∶ ν occ (⊑-target-under-leftᵢ p) →
+    ⦂ `∀ C ⊑ ⇑ᵗ B′ ∶ ν _ occ (⊑-target-under-leftᵢ p) →
   suc Δᴸ ∣
     leftStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρᴸ) ∣
     leftCtxⁱ γᴸ ⊢ (⇑ᵗᵐ L) • ⦂ C →

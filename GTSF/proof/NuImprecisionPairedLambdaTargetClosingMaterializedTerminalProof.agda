@@ -27,7 +27,7 @@ paired-lambda-target-closing-materialized-terminal-proofᵀ :
   PairedLambdaTargetClosingAllTerminalᵀ →
   PairedLambdaTargetClosingMaterializedTerminalᵀ
 paired-lambda-target-closing-materialized-terminal-proofᵀ
-    close-ν close-∀ {q = ν occ r} vW noW vW′ noW′ W⊑W′ =
+    close-ν close-∀ {q = ν _ occ r} vW noW vW′ noW′ W⊑W′ =
   close-ν vW noW vW′ noW′ W⊑W′
 paired-lambda-target-closing-materialized-terminal-proofᵀ
     close-ν close-∀ {q = ∀ⁱ r} vW noW vW′ noW′ W⊑W′ =

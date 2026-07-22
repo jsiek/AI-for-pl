@@ -44,6 +44,8 @@ open import NarrowWiden using
   ; _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
+open import PairedWideningCompatibility using
+  (PairedWideningCompatible)
 open import NuReduction using
   ( _—→[_]_
   ; _—↠[_]_
@@ -219,7 +221,16 @@ left-catchup-indexed-prefix-down-upᵀ
       invariant@(left-catchup-invariant
         silent@(left-silent-invariant refl refl) final)
       transport coherence)
-    | inj₂ (B , s , u≡inst , source↠) =
+    | inj₂ (inj₁ (B , s , u≡inst , source↠)) =
+  {!!}
+left-catchup-indexed-prefix-down-upᵀ
+    prefix okM vM′ noM′ inert-d′ inert-u′
+    d⊒ d′⊒ widening
+    catchup@(left-indexed-catchup indexed
+      invariant@(left-catchup-invariant
+        silent@(left-silent-invariant refl refl) final)
+      transport coherence)
+    | inj₂ (inj₂ (B , s , u≡inst-tag , source↠)) =
   {!!}
 
 left-catchup-indexed-prefix-gen-down-upᵀ :
@@ -281,7 +292,16 @@ left-catchup-indexed-prefix-gen-down-upᵀ
       invariant@(left-catchup-invariant
         silent@(left-silent-invariant refl refl) final)
       transport coherence)
-    | inj₂ (B , s , u≡inst , source↠) =
+    | inj₂ (inj₁ (B , s , u≡inst , source↠)) =
+  {!!}
+left-catchup-indexed-prefix-gen-down-upᵀ
+    prefix okM vM′ noM′ inert-d′ inert-u′
+    d⊒ d′⊒ widening
+    catchup@(left-indexed-catchup indexed
+      invariant@(left-catchup-invariant
+        silent@(left-silent-invariant refl refl) final)
+      transport coherence)
+    | inj₂ (inj₂ (B , s , u≡inst-tag , source↠)) =
   {!!}
 
 left-catchup-indexed-prefixᵀ :
@@ -411,7 +431,7 @@ left-catchup-indexed-prefixᵀ
 left-catchup-indexed-prefixᵀ
     prefix okN () noV′
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ liftρ liftγ N⊑N′)
+      s⊑ s′⊑ compat liftρ liftγ N⊑N′)
 left-catchup-indexed-prefixᵀ
     prefix okN vV′ noV′
     rel@(νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V′) =
@@ -562,6 +582,8 @@ weak-one-step-matched-νcast-source-allᵀ :
   instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
+    s s′ (⇑ᵗ B) C′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q →
   ν ★ V′ s′ —→[ bind ★ ] ((⇑ᵗᵐ V′) •) ⟨ s′ ⟩ →
@@ -571,9 +593,9 @@ weak-one-step-matched-νcast-source-allᵀ :
     {A = B} {B = B′} {χ = bind ★} {ρ = ρ} pB
 weak-one-step-matched-νcast-source-allᵀ
     wfΣ′ okν mode seal★ s⊑ mode′ seal★′ s′⊑
-    N⊑V′ (ν-step vV′ noV′) =
+    compat N⊑V′ (ν-step vV′ noV′) =
   weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ _
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat _
     vV′ noV′
     (left-catchup-indexed-allᵀ
       (runtime-ν okν) vV′ noV′ N⊑V′)
@@ -711,25 +733,25 @@ weak-one-step-indexed-simulationᵀ
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ liftρ liftγ N⊑V′)
+      s⊑ s′⊑ compat liftρ liftγ N⊑V′)
     red@(ν-step vV′ noV′) =
   weak-one-step-matched-νcast-source-allᵀ
-    wfΣ′ okM mode seal★ s⊑ mode′ seal★′ s′⊑ N⊑V′ red
+    wfΣ′ okM mode seal★ s⊑ mode′ seal★′ s′⊑ compat N⊑V′ red
 weak-one-step-indexed-simulationᵀ {χ = χ}
     wfΣ′ okM okM′
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ liftρ liftγ N⊑N′)
+      s⊑ s′⊑ compat liftρ liftγ N⊑N′)
     (ξ-ν N′→N₁′)
     rewrite applyTy-★ χ =
   weak-one-step-matched-νcast-indexed-frame-outcomeᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ _ inner
+    mode seal★ s⊑ mode′ seal★′ s′⊑ compat _ inner
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ (runtime-ν okM) (runtime-ν okM′) N⊑N′ N′→N₁′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ liftρ liftγ (blame⊑ᵀ blame⊢))
+      s⊑ s′⊑ compat liftρ liftγ (blame⊑ᵀ blame⊢))
     blame-ν =
   indexed-outcome-source-blame
     (↠-step blame-ν ↠-refl)

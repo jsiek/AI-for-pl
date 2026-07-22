@@ -166,7 +166,7 @@ target-seal-cancellation-prefixᵀ :
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ W ⊑ V ⦂ A ⊑ X′ ∶ q
 target-seal-cancellation-prefixᵀ
-    {p = ν occ p} prefix coh wfΣ vW noW vV β∈Σ W⊑V q =
+    {p = ν _ occ p} prefix coh wfΣ vW noW vV β∈Σ W⊑V q =
   ⊥-elim (no-occurs-var-lower-νctxᵢ occ p)
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ

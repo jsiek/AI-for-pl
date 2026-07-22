@@ -78,4 +78,4 @@ PairedLambdaTargetClosingContinuationGenNuLeafᵀ =
     ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B′ ∶ q →
   (occ-r : occurs zero B ≡ true) →
   PairedLambdaTargetClosingFrameClosingMotiveᴷ ρ
-    (V ⟨ C.gen A c ⟩) N′ B B′ (ν occ-r r)
+    (V ⟨ C.gen A c ⟩) N′ B B′ (ν _ occ-r r)

@@ -4,8 +4,8 @@ module proof.NuImprecisionWorldCoherentQuotientClassificationProof where
 --   * Proves coherent classification of one terminal quotient down-up node.
 --   * Refines the exhaustive quotient-value classifier with explicit
 --     world-coherent packaging for store-neutral non-inst outcomes.
---   * Preserves the unique outer-inst residual with its reduction trace,
---     source value evidence, and no-runtime-bullet evidence.
+--   * Preserves the plain and eager outer-inst residuals with their reduction
+--     traces, source value evidence, and no-runtime-bullet evidence.
 
 import Coercions as C
 import NarrowWiden as NW
@@ -65,6 +65,7 @@ open import proof.ForallPermutationProperties using
 open import proof.NuImprecisionQuotientValue using
   ( active-double-cast-step
   ; outer-inst-allocation-trace
+  ; outer-inst-fun-tag-allocation-trace
   ; source-inert-quotient-down-before-id-widening-impossible
   ; source-inert-quotient-down-var-impossible
   ; source-quotient-down-seal-impossible
@@ -130,6 +131,13 @@ world-coherent-quotient-outer-pureᵀ :
       (((V ⟨ d ⟩) ⟨ u ⟩)
         —↠[ keep ∷ bind ★ ∷ [] ]
           ((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩) ×
+      Value (V ⟨ d ⟩) × No• (V ⟨ d ⟩)
+  ⊎ ∃[ B ] ∃[ s ]
+      (u ≡ (C.inst B s ︔ ((★ T.⇒ ★) !))) ×
+      (((V ⟨ d ⟩) ⟨ u ⟩)
+        —↠[ keep ∷ keep ∷ bind ★ ∷ [] ]
+          ((((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+            ⟨ C.⇑ᶜ ((★ T.⇒ ★) !) ⟩)) ×
       Value (V ⟨ d ⟩) × No• (V ⟨ d ⟩)
 world-coherent-quotient-outer-pureᵀ
     coherent exclusive wfL (β-id vW) vV noV vV′ noV′
@@ -233,6 +241,34 @@ world-coherent-quotient-outer-pureᵀ
   inj₁ (⊥-elim
     (source-inert-quotient-down-var-impossible vW down))
 world-coherent-quotient-outer-pureᵀ
+    coherent exclusive wfL (β-seq vW) vV noV vV′ noV′
+    inert-d′ inert-u′ down
+    (quotient-id-widening
+      (C.cast-seq (C.cast-inst hB occ s⊢)
+                  (C.cast-tag hG gG⊢ ok) ,
+       NW.inst-fun-tag safe)
+      u′⊑)
+    pA =
+  inj₂
+    (inj₂
+      (_ , _ , refl ,
+       outer-inst-fun-tag-allocation-trace noV vW ,
+       vW , no•-⟨⟩ noV))
+world-coherent-quotient-outer-pureᵀ
+    coherent exclusive wfL (β-seq vW) vV noV vV′ noV′
+    inert-d′ inert-u′ down
+    (quotient-cast-widening mode seal★
+      (C.cast-seq (C.cast-inst hB occ s⊢)
+                  (C.cast-tag hG gG⊢ ok) ,
+       NW.inst-fun-tag safe)
+      mode′ seal★′ u′⊑)
+    pA =
+  inj₂
+    (inj₂
+      (_ , _ , refl ,
+       outer-inst-fun-tag-allocation-trace noV vW ,
+       vW , no•-⟨⟩ noV))
+world-coherent-quotient-outer-pureᵀ
     coherent exclusive wfL (β-inst vW) vV noV vV′ noV′
     inert-d′ inert-u′ down
     (quotient-id-widening
@@ -240,8 +276,9 @@ world-coherent-quotient-outer-pureᵀ
       u′⊑)
     pA =
   inj₂
-    (_ , _ , refl , outer-inst-allocation-trace noV vW ,
-      vW , no•-⟨⟩ noV)
+    (inj₁
+      (_ , _ , refl , outer-inst-allocation-trace noV vW ,
+       vW , no•-⟨⟩ noV))
 world-coherent-quotient-outer-pureᵀ
     coherent exclusive wfL (β-inst vW) vV noV vV′ noV′
     inert-d′ inert-u′ down
@@ -250,8 +287,9 @@ world-coherent-quotient-outer-pureᵀ
       mode′ seal★′ u′⊑)
     pA =
   inj₂
-    (_ , _ , refl , outer-inst-allocation-trace noV vW ,
-      vW , no•-⟨⟩ noV)
+    (inj₁
+      (_ , _ , refl , outer-inst-allocation-trace noV vW ,
+       vW , no•-⟨⟩ noV))
 world-coherent-quotient-outer-pureᵀ
     coherent exclusive wfL (tag-untag-ok vW) vV noV vV′ noV′
     inert-d′ inert-u′ down
@@ -317,6 +355,15 @@ world-coherent-quotient-inner-stepᵀ
 world-coherent-quotient-inner-stepᵀ
     coherent exclusive wfL (pure-step (β-seq vW)) vV noV vV′ noV′
     inert-d′ inert-u′ down@(down⊑downᵀ
+      (C.cast-seq s⊢ t⊢ , NW.fun-untag-gen safe)
+      d′⋒ V⊑V′ qD)
+    widening pA =
+  ⊥-elim
+    (target-inert-after-source-untag-sequence-impossible
+      inert-d′ down)
+world-coherent-quotient-inner-stepᵀ
+    coherent exclusive wfL (pure-step (β-seq vW)) vV noV vV′ noV′
+    inert-d′ inert-u′ down@(down⊑downᵀ
       (C.cast-seq s⊢ t⊢ , gG NW.？︔ gⁿ)
       d′⋒ V⊑V′ qD)
     widening pA =
@@ -331,6 +378,15 @@ world-coherent-quotient-inner-stepᵀ
       d′⋒ V⊑V′ qD)
     widening pA =
   ⊥-elim (source-quotient-down-seal-tail-impossible down)
+world-coherent-quotient-inner-stepᵀ
+    coherent exclusive wfL (pure-step (β-seq vW)) vV noV vV′ noV′
+    inert-d′ inert-u′ down@(gen-down⊑gen-downᵀ
+      (C.cast-seq s⊢ t⊢ , NW.fun-untag-gen safe)
+      d′⋒ V⊑V′ qD)
+    widening pA =
+  ⊥-elim
+    (target-inert-after-source-untag-sequence-impossible
+      inert-d′ down)
 world-coherent-quotient-inner-stepᵀ
     coherent exclusive wfL (pure-step (β-seq vW)) vV noV vV′ noV′
     inert-d′ inert-u′ down@(gen-down⊑gen-downᵀ
@@ -418,6 +474,13 @@ world-coherent-quotient-after-source-stepᵀ :
         —↠[ keep ∷ bind ★ ∷ [] ]
           ((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩) ×
       Value (V ⟨ d ⟩) × No• (V ⟨ d ⟩)
+  ⊎ ∃[ B ] ∃[ s ]
+      (u ≡ (C.inst B s ︔ ((★ T.⇒ ★) !))) ×
+      (((V ⟨ d ⟩) ⟨ u ⟩)
+        —↠[ keep ∷ keep ∷ bind ★ ∷ [] ]
+          ((((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+            ⟨ C.⇑ᶜ ((★ T.⇒ ★) !) ⟩)) ×
+      Value (V ⟨ d ⟩) × No• (V ⟨ d ⟩)
 world-coherent-quotient-after-source-stepᵀ
     coherent exclusive wfL vV noV vV′ noV′ inert-d′ inert-u′
     (pure-step source→) down widening pA =
@@ -462,6 +525,13 @@ world-coherent-quotient-activeᵀ :
       (((V ⟨ d ⟩) ⟨ u ⟩)
         —↠[ keep ∷ bind ★ ∷ [] ]
           ((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩) ×
+      Value (V ⟨ d ⟩) × No• (V ⟨ d ⟩)
+  ⊎ ∃[ B ] ∃[ s ]
+      (u ≡ (C.inst B s ︔ ((★ T.⇒ ★) !))) ×
+      (((V ⟨ d ⟩) ⟨ u ⟩)
+        —↠[ keep ∷ keep ∷ bind ★ ∷ [] ]
+          ((((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+            ⟨ C.⇑ᶜ ((★ T.⇒ ★) !) ⟩)) ×
       Value (V ⟨ d ⟩) × No• (V ⟨ d ⟩)
 world-coherent-quotient-activeᵀ
     coherent exclusive wfL vV noV vV′ noV′ inert-d′ inert-u′
@@ -565,6 +635,13 @@ world-coherent-quotient-valueᵀ :
       (((V ⟨ d ⟩) ⟨ u ⟩)
         —↠[ keep ∷ bind ★ ∷ [] ]
           ((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩) ×
+      Value (V ⟨ d ⟩) × No• (V ⟨ d ⟩)
+  ⊎ ∃[ B ] ∃[ s ]
+      (u ≡ (C.inst B s ︔ ((★ T.⇒ ★) !))) ×
+      (((V ⟨ d ⟩) ⟨ u ⟩)
+        —↠[ keep ∷ keep ∷ bind ★ ∷ [] ]
+          ((((NT.⇑ᵗᵐ (V ⟨ d ⟩)) •) ⟨ s ⟩)
+            ⟨ C.⇑ᶜ ((★ T.⇒ ★) !) ⟩)) ×
       Value (V ⟨ d ⟩) × No• (V ⟨ d ⟩)
 world-coherent-quotient-valueᵀ
     coherent exclusive wfL vV noV vV′ noV′ inert-d′ inert-u′

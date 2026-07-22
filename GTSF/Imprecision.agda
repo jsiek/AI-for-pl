@@ -58,6 +58,59 @@ swapRight∀∀ᵢ Φ =
 -- Type Imprecision
 ------------------------------------------------------------------------
 
+-- A source body generalized by `ν` cannot be a bare type variable.  Together
+-- with the occurrence premise on `ν`, this leaves exactly function and
+-- universal bodies: base types and `★` cannot contain the fresh variable.
+-- The separation keeps the type-level side condition independent of the
+-- operational `GenSafe` coercion category.
+data NonVar : Ty → Set where
+  nonvar-base : ∀ {ι} → NonVar (‵ ι)
+  nonvar-star : NonVar ★
+  nonvar-fun : ∀ {A B} → NonVar (A ⇒ B)
+  nonvar-all : ∀ {A} → NonVar (`∀ A)
+
+nonVar-unique :
+  ∀ {A} →
+  (p q : NonVar A) →
+  p ≡ q
+nonVar-unique nonvar-base nonvar-base = refl
+nonVar-unique nonvar-star nonvar-star = refl
+nonVar-unique nonvar-fun nonvar-fun = refl
+nonVar-unique nonvar-all nonvar-all = refl
+
+instance
+  nonVar-base-instance : ∀ {ι} → NonVar (‵ ι)
+  nonVar-base-instance = nonvar-base
+
+  nonVar-star-instance : NonVar ★
+  nonVar-star-instance = nonvar-star
+
+  nonVar-fun-instance : ∀ {A B} → NonVar (A ⇒ B)
+  nonVar-fun-instance = nonvar-fun
+
+  nonVar-all-instance : ∀ {A} → NonVar (`∀ A)
+  nonVar-all-instance = nonvar-all
+
+renameNonVar :
+  ∀ {A} →
+  (ρ : Renameᵗ) →
+  NonVar A →
+  NonVar (renameᵗ ρ A)
+renameNonVar ρ nonvar-base = nonvar-base
+renameNonVar ρ nonvar-star = nonvar-star
+renameNonVar ρ nonvar-fun = nonvar-fun
+renameNonVar ρ nonvar-all = nonvar-all
+
+substNonVar :
+  ∀ {A} →
+  (cons : Substᵗ) →
+  NonVar A →
+  NonVar (substᵗ cons A)
+substNonVar cons nonvar-base = nonvar-base
+substNonVar cons nonvar-star = nonvar-star
+substNonVar cons nonvar-fun = nonvar-fun
+substNonVar cons nonvar-all = nonvar-all
+
 infix 4 _⊢_⊑_
 data _⊢_⊑_ (Φ : ImpCtx) : Ty → Ty → Set where
   id★ :
@@ -99,6 +152,7 @@ data _⊢_⊑_ (Φ : ImpCtx) : Ty → Ty → Set where
     → Φ ⊢ ＇ X ⊑ ★
 
   ν : ∀ {A B}
+    → NonVar A
     → occurs zero A ≡ true      -- Phil: keep this, need for unique derivations
     → (0 ˣ⊑★) ∷ ⇑ᵢ Φ ⊢ A ⊑ ⇑ᵗ B
     -------------------------

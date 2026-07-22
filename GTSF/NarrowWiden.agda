@@ -74,6 +74,23 @@ mutual
       StrictNarrowing s →
       StrictCrossNarrowing (`∀ s)
 
+  -- A narrowing is safe immediately underneath `gen` exactly when
+  -- applying it to a value produces another value.  In particular,
+  -- projections and nontrivial sequences are deliberately absent.
+  data GenSafe : Coercion → Set where
+    safe-fun : ∀ {s t} →
+      Widening s →
+      Narrowing t →
+      GenSafe (s ↦ t)
+
+    safe-all : ∀ {s} →
+      Narrowing s →
+      GenSafe (`∀ s)
+
+    safe-gen : ∀ {A s} →
+      GenSafe s →
+      GenSafe (gen A s)
+
   data Narrowing : Coercion → Set where
     cross : ∀ {g} →
       CrossNarrowing g →
@@ -83,7 +100,7 @@ mutual
       Narrowing (id ★)
 
     gen : ∀ {A s} →
-      Narrowing s →
+      GenSafe s →
       Narrowing (gen A s)
 
     untag : ∀ {G} →
@@ -94,6 +111,10 @@ mutual
       Ground G →
       StrictCrossNarrowing g →
       Narrowing ((G ？) ︔ g)
+
+    fun-untag-gen : ∀ {A s} →
+      GenSafe s →
+      Narrowing (((★ ⇒ ★) ？) ︔ gen A s)
 
     sealⁿ : (A : Ty) →
       (α : TyVar) →
@@ -110,7 +131,7 @@ mutual
       StrictNarrowing g
 
     strict-gen : ∀ {A s} →
-      Narrowing s →
+      GenSafe s →
       StrictNarrowing (gen A s)
 
     strict-untag : ∀ {G} →
@@ -121,6 +142,10 @@ mutual
       Ground G →
       StrictCrossNarrowing g →
       StrictNarrowing ((G ？) ︔ g)
+
+    strict-fun-untag-gen : ∀ {A s} →
+      GenSafe s →
+      StrictNarrowing (((★ ⇒ ★) ？) ︔ gen A s)
 
     strict-seal : (A : Ty) →
       (α : TyVar) →
@@ -162,6 +187,22 @@ mutual
       StrictWidening s →
       StrictCrossWidening (`∀ s)
 
+  -- Instantiation-safe, grammar-directed dual of `GenSafe`.  These
+  -- coercions need not be operationally inert because `inst` is active.
+  data InstSafe : Coercion → Set where
+    safe-fun : ∀ {s t} →
+      Narrowing s →
+      Widening t →
+      InstSafe (s ↦ t)
+
+    safe-all : ∀ {s} →
+      Widening s →
+      InstSafe (`∀ s)
+
+    safe-inst : ∀ {B s} →
+      InstSafe s →
+      InstSafe (inst B s)
+
   data Widening : Coercion → Set where
     cross : ∀ {g} →
       CrossWidening g →
@@ -171,7 +212,7 @@ mutual
       Widening (id ★)
 
     inst : ∀ {B s} →
-      Widening s →
+      InstSafe s →
       Widening (inst B s)
 
     tag : ∀ {G} →
@@ -182,6 +223,10 @@ mutual
       StrictCrossWidening g →
       Ground G →
       Widening (g ︔ (G !))
+
+    inst-fun-tag : ∀ {B s} →
+      InstSafe s →
+      Widening (inst B s ︔ ((★ ⇒ ★) !))
 
     unsealʷ : (α : TyVar) →
       (A : Ty) →
@@ -197,7 +242,7 @@ mutual
       StrictWidening g
 
     strict-inst : ∀ {B s} →
-      Widening s →
+      InstSafe s →
       StrictWidening (inst B s)
 
     strict-tag : ∀ {G} →
@@ -209,6 +254,10 @@ mutual
       Ground G →
       StrictWidening (g ︔ (G !))
 
+    strict-inst-fun-tag : ∀ {B s} →
+      InstSafe s →
+      StrictWidening (inst B s ︔ ((★ ⇒ ★) !))
+
     strict-unseal : (α : TyVar) →
       (A : Ty) →
       StrictWidening (unseal α A)
@@ -216,6 +265,31 @@ mutual
     strict-unseal-seq : (α : TyVar) → ∀ {A s} →
       StrictWidening s →
       StrictWidening (unseal α A ︔ s)
+
+genSafe→narrowing :
+  ∀ {c} →
+  GenSafe c →
+  Narrowing c
+genSafe→narrowing (safe-fun sʷ tⁿ) = cross (sʷ ↦ tⁿ)
+genSafe→narrowing (safe-all sⁿ) = cross (`∀ sⁿ)
+genSafe→narrowing (safe-gen sᵍ) = gen sᵍ
+
+instSafe→widening :
+  ∀ {c} →
+  InstSafe c →
+  Widening c
+instSafe→widening (safe-fun sⁿ tʷ) = cross (sⁿ ↦ tʷ)
+instSafe→widening (safe-all sʷ) = cross (`∀ sʷ)
+instSafe→widening (safe-inst sᵍ) = inst sᵍ
+
+genSafe→inert :
+  ∀ {c} →
+  GenSafe c →
+  Inert c
+genSafe→inert (safe-fun sʷ tⁿ) = _ ↦ _
+genSafe→inert (safe-all sⁿ) = `∀ _
+genSafe→inert (safe-gen {A = A} {s = s} sᵍ) =
+  Coercions.gen A s
 
 mutual
   strictCrossⁿ→cross :
@@ -238,6 +312,7 @@ mutual
   strictⁿ→narrow (strict-gen sⁿ) = gen sⁿ
   strictⁿ→narrow (strict-untag gG) = untag gG
   strictⁿ→narrow (strict-untag-seq gG gˢ) = gG ？︔ gˢ
+  strictⁿ→narrow (strict-fun-untag-gen sᵍ) = fun-untag-gen sᵍ
   strictⁿ→narrow (strict-seal A α) = sealⁿ A α
   strictⁿ→narrow (strict-seal-seq sˢ α) = sˢ ︔seal α
 
@@ -261,6 +336,7 @@ mutual
   strictʷ→widen (strict-inst sʷ) = inst sʷ
   strictʷ→widen (strict-tag gG) = tag gG
   strictʷ→widen (strict-tag-seq gˢ gG) = gˢ ︔ gG !
+  strictʷ→widen (strict-inst-fun-tag sᵍ) = inst-fun-tag sᵍ
   strictʷ→widen (strict-unseal α A) = unsealʷ α A
   strictʷ→widen (strict-unseal-seq α sˢ) = unseal︔_ α sˢ
 
@@ -269,6 +345,44 @@ mutual
 ------------------------------------------------------------------------
 
 mutual
+  instSafeⁿ :
+    DualActionEnv →
+    ∀ {c} →
+    GenSafe c →
+    ∃[ d ] InstSafe d
+  instSafeⁿ η (safe-fun sʷ tⁿ) =
+    (proj₁ sⁿ ↦ proj₁ tʷ) , safe-fun (proj₂ sⁿ) (proj₂ tʷ)
+    where
+      sⁿ = dualʷ η sʷ
+      tʷ = dualⁿ η tⁿ
+  instSafeⁿ η (safe-all sⁿ) =
+    `∀ (proj₁ sʷ) , safe-all (proj₂ sʷ)
+    where
+      sʷ = dualⁿ (extᵃ η) sⁿ
+  instSafeⁿ η (safe-gen {A = A} sᵍ) =
+    inst A (proj₁ sᵍʷ) , safe-inst (proj₂ sᵍʷ)
+    where
+      sᵍʷ = instSafeⁿ (genᵃ η) sᵍ
+
+  instSafeʷ :
+    DualActionEnv →
+    ∀ {c} →
+    InstSafe c →
+    ∃[ d ] GenSafe d
+  instSafeʷ η (safe-fun sⁿ tʷ) =
+    (proj₁ sʷ ↦ proj₁ tⁿ) , safe-fun (proj₂ sʷ) (proj₂ tⁿ)
+    where
+      sʷ = dualⁿ η sⁿ
+      tⁿ = dualʷ η tʷ
+  instSafeʷ η (safe-all sʷ) =
+    `∀ (proj₁ sⁿ) , safe-all (proj₂ sⁿ)
+    where
+      sⁿ = dualʷ (extᵃ η) sʷ
+  instSafeʷ η (safe-inst {B = B} sᵍ) =
+    gen B (proj₁ sᵍⁿ) , safe-gen (proj₂ sᵍⁿ)
+    where
+      sᵍⁿ = instSafeʷ (instᵃ η) sᵍ
+
   dualCrossNarrowing :
     DualActionEnv →
     ∀ {c} →
@@ -316,10 +430,10 @@ mutual
     where
       gʷ = dualCrossNarrowing η gⁿ
   dualⁿ η id★ = id ★ , id★
-  dualⁿ η (gen {A = A} sⁿ) =
-    inst A (proj₁ sʷ) , inst (proj₂ sʷ)
+  dualⁿ η (gen {A = A} sᵍ) =
+    inst A (proj₁ sᵍʷ) , inst (proj₂ sᵍʷ)
     where
-      sʷ = dualⁿ (genᵃ η) sⁿ
+      sᵍʷ = instSafeⁿ (genᵃ η) sᵍ
   dualⁿ η (untag (＇ α)) with η α
   dualⁿ η (untag (＇ α)) | normal = (＇ α) ! , tag (＇ α)
   dualⁿ η (untag (＇ α)) | tag-to-seal = unseal α ★ , unsealʷ α ★
@@ -345,6 +459,11 @@ mutual
     (proj₁ gʷ ︔ ((★ ⇒ ★) !)) , (proj₂ gʷ ︔ ★⇒★ !)
     where
       gʷ = dualStrictCrossNarrowing η gⁿ
+  dualⁿ η (fun-untag-gen {A = A} sᵍ) =
+    (inst A (proj₁ sᵍʷ) ︔ ((★ ⇒ ★) !)) ,
+    inst-fun-tag (proj₂ sᵍʷ)
+    where
+      sᵍʷ = instSafeⁿ (genᵃ η) sᵍ
   dualⁿ η (sealⁿ A α) with η α
   dualⁿ η (sealⁿ A α) | normal = unseal α A , unsealʷ α A
   dualⁿ η (sealⁿ A α) | tag-to-seal = unseal α A , unsealʷ α A
@@ -370,10 +489,10 @@ mutual
     proj₁ gʷ , strict-crossʷ (proj₂ gʷ)
     where
       gʷ = dualStrictCrossNarrowing η gⁿ
-  dualStrictⁿ η (strict-gen {A = A} sⁿ) =
-    inst A (proj₁ sʷ) , strict-inst (proj₂ sʷ)
+  dualStrictⁿ η (strict-gen {A = A} sᵍ) =
+    inst A (proj₁ sᵍʷ) , strict-inst (proj₂ sᵍʷ)
     where
-      sʷ = dualⁿ (genᵃ η) sⁿ
+      sᵍʷ = instSafeⁿ (genᵃ η) sᵍ
   dualStrictⁿ η (strict-untag (＇ α)) with η α
   dualStrictⁿ η (strict-untag (＇ α)) | normal =
     (＇ α) ! , strict-tag (＇ α)
@@ -382,7 +501,8 @@ mutual
   dualStrictⁿ η (strict-untag (＇ α)) | seal-to-tag =
     (＇ α) ! , strict-tag (＇ α)
   dualStrictⁿ η (strict-untag (‵ ι)) = (‵ ι) ! , strict-tag (‵ ι)
-  dualStrictⁿ η (strict-untag ★⇒★) = (★ ⇒ ★) ! , strict-tag ★⇒★
+  dualStrictⁿ η (strict-untag ★⇒★) =
+    (★ ⇒ ★) ! , strict-tag ★⇒★
   dualStrictⁿ η (strict-untag-seq (＇ α) gⁿ) with η α
   dualStrictⁿ η (strict-untag-seq (＇ α) gⁿ) | normal =
     (proj₁ gʷ ︔ ((＇ α) !)) , strict-tag-seq (proj₂ gʷ) (＇ α)
@@ -402,6 +522,11 @@ mutual
     (proj₁ gʷ ︔ ((★ ⇒ ★) !)) , strict-tag-seq (proj₂ gʷ) ★⇒★
     where
       gʷ = dualStrictCrossNarrowing η gⁿ
+  dualStrictⁿ η (strict-fun-untag-gen {A = A} sᵍ) =
+    (inst A (proj₁ sᵍʷ) ︔ ((★ ⇒ ★) !)) ,
+    strict-inst-fun-tag (proj₂ sᵍʷ)
+    where
+      sᵍʷ = instSafeⁿ (genᵃ η) sᵍ
   dualStrictⁿ η (strict-seal A α) with η α
   dualStrictⁿ η (strict-seal A α) | normal =
     unseal α A , strict-unseal α A
@@ -468,10 +593,10 @@ mutual
     where
       gⁿ = dualCrossWidening η gʷ
   dualʷ η id★ = id ★ , id★
-  dualʷ η (inst {B = B} sʷ) =
-    gen B (proj₁ sⁿ) , gen (proj₂ sⁿ)
+  dualʷ η (inst {B = B} sᵍ) =
+    gen B (proj₁ sᵍⁿ) , gen (proj₂ sᵍⁿ)
     where
-      sⁿ = dualʷ (instᵃ η) sʷ
+      sᵍⁿ = instSafeʷ (instᵃ η) sᵍ
   dualʷ η (tag (＇ α)) with η α
   dualʷ η (tag (＇ α)) | normal = (＇ α) ？ , untag (＇ α)
   dualʷ η (tag (＇ α)) | tag-to-seal = seal ★ α , sealⁿ ★ α
@@ -497,6 +622,11 @@ mutual
     (((★ ⇒ ★) ？) ︔ proj₁ gⁿ) , (★⇒★ ？︔ proj₂ gⁿ)
     where
       gⁿ = dualStrictCrossWidening η gʷ
+  dualʷ η (inst-fun-tag {B = B} sᵍ) =
+    (((★ ⇒ ★) ？) ︔ gen B (proj₁ sᵍⁿ)) ,
+    fun-untag-gen (proj₂ sᵍⁿ)
+    where
+      sᵍⁿ = instSafeʷ (instᵃ η) sᵍ
   dualʷ η (unsealʷ α A) with η α
   dualʷ η (unsealʷ α A) | normal = seal A α , sealⁿ A α
   dualʷ η (unsealʷ α A) | tag-to-seal = seal A α , sealⁿ A α
@@ -522,10 +652,10 @@ mutual
     proj₁ gⁿ , strict-crossⁿ (proj₂ gⁿ)
     where
       gⁿ = dualStrictCrossWidening η gʷ
-  dualStrictʷ η (strict-inst {B = B} sʷ) =
-    gen B (proj₁ sⁿ) , strict-gen (proj₂ sⁿ)
+  dualStrictʷ η (strict-inst {B = B} sᵍ) =
+    gen B (proj₁ sᵍⁿ) , strict-gen (proj₂ sᵍⁿ)
     where
-      sⁿ = dualʷ (instᵃ η) sʷ
+      sᵍⁿ = instSafeʷ (instᵃ η) sᵍ
   dualStrictʷ η (strict-tag (＇ α)) with η α
   dualStrictʷ η (strict-tag (＇ α)) | normal =
     (＇ α) ？ , strict-untag (＇ α)
@@ -534,7 +664,8 @@ mutual
   dualStrictʷ η (strict-tag (＇ α)) | seal-to-tag =
     (＇ α) ？ , strict-untag (＇ α)
   dualStrictʷ η (strict-tag (‵ ι)) = (‵ ι) ？ , strict-untag (‵ ι)
-  dualStrictʷ η (strict-tag ★⇒★) = (★ ⇒ ★) ？ , strict-untag ★⇒★
+  dualStrictʷ η (strict-tag ★⇒★) =
+    (★ ⇒ ★) ？ , strict-untag ★⇒★
   dualStrictʷ η (strict-tag-seq gʷ (＇ α)) with η α
   dualStrictʷ η (strict-tag-seq gʷ (＇ α)) | normal =
     (((＇ α) ？) ︔ proj₁ gⁿ) , strict-untag-seq (＇ α) (proj₂ gⁿ)
@@ -551,9 +682,15 @@ mutual
     where
       gⁿ = dualStrictCrossWidening η gʷ
   dualStrictʷ η (strict-tag-seq gʷ ★⇒★) =
-    (((★ ⇒ ★) ？) ︔ proj₁ gⁿ) , strict-untag-seq ★⇒★ (proj₂ gⁿ)
+    (((★ ⇒ ★) ？) ︔ proj₁ gⁿ) ,
+    strict-untag-seq ★⇒★ (proj₂ gⁿ)
     where
       gⁿ = dualStrictCrossWidening η gʷ
+  dualStrictʷ η (strict-inst-fun-tag {B = B} sᵍ) =
+    (((★ ⇒ ★) ？) ︔ gen B (proj₁ sᵍⁿ)) ,
+    strict-fun-untag-gen (proj₂ sᵍⁿ)
+    where
+      sᵍⁿ = instSafeʷ (instᵃ η) sᵍ
   dualStrictʷ η (strict-unseal α A) with η α
   dualStrictʷ η (strict-unseal α A) | normal =
     seal A α , strict-seal A α
@@ -572,6 +709,22 @@ mutual
       sⁿ = dualStrictʷ η sʷ
   dualStrictʷ η (strict-unseal-seq α {A = A} sʷ) | seal-to-tag =
     (＇ α) ？ , strict-untag (＇ α)
+
+instSafeⁿ-raw :
+  ∀ η {c} (safe : GenSafe c) →
+  proj₁ (instSafeⁿ η safe) ≡
+    proj₁ (dualⁿ η (genSafe→narrowing safe))
+instSafeⁿ-raw η (safe-fun sʷ tⁿ) = refl
+instSafeⁿ-raw η (safe-all sⁿ) = refl
+instSafeⁿ-raw η (safe-gen sᵍ) = refl
+
+instSafeʷ-raw :
+  ∀ η {c} (safe : InstSafe c) →
+  proj₁ (instSafeʷ η safe) ≡
+    proj₁ (dualʷ η (instSafe→widening safe))
+instSafeʷ-raw η (safe-fun sⁿ tʷ) = refl
+instSafeʷ-raw η (safe-all sʷ) = refl
+instSafeʷ-raw η (safe-inst sᵍ) = refl
 
 ------------------------------------------------------------------------
 -- Well-Typed Mode-Indexed Narrowing and Widening
@@ -678,16 +831,29 @@ mutual
   renameStrictCrossNarrowing ρ (cn-all sⁿ) =
     cn-all (renameStrictⁿ (extᵗ ρ) sⁿ)
 
+  renameGenSafe :
+    ∀ ρ {c} →
+    GenSafe c →
+    GenSafe (renameᶜ ρ c)
+  renameGenSafe ρ (safe-fun sʷ tⁿ) =
+    safe-fun (renameʷ ρ sʷ) (renameⁿ ρ tⁿ)
+  renameGenSafe ρ (safe-all sⁿ) =
+    safe-all (renameⁿ (extᵗ ρ) sⁿ)
+  renameGenSafe ρ (safe-gen sᵍ) =
+    safe-gen (renameGenSafe (extᵗ ρ) sᵍ)
+
   renameⁿ :
     ∀ ρ {c} →
     Narrowing c →
     Narrowing (renameᶜ ρ c)
   renameⁿ ρ (cross gⁿ) = cross (renameCrossNarrowing ρ gⁿ)
   renameⁿ ρ id★ = id★
-  renameⁿ ρ (gen sⁿ) = gen (renameⁿ (extᵗ ρ) sⁿ)
+  renameⁿ ρ (gen sᵍ) = gen (renameGenSafe (extᵗ ρ) sᵍ)
   renameⁿ ρ (untag gG) = untag (renameᵗ-ground ρ gG)
   renameⁿ ρ (gG ？︔ gⁿ) =
     renameᵗ-ground ρ gG ？︔ renameStrictCrossNarrowing ρ gⁿ
+  renameⁿ ρ (fun-untag-gen sᵍ) =
+    fun-untag-gen (renameGenSafe (extᵗ ρ) sᵍ)
   renameⁿ ρ (sealⁿ A α) = sealⁿ (renameᵗ ρ A) (ρ α)
   renameⁿ ρ (_︔seal_ sⁿ α) = renameStrictⁿ ρ sⁿ ︔seal ρ α
 
@@ -697,14 +863,16 @@ mutual
     StrictNarrowing (renameᶜ ρ c)
   renameStrictⁿ ρ (strict-crossⁿ gⁿ) =
     strict-crossⁿ (renameStrictCrossNarrowing ρ gⁿ)
-  renameStrictⁿ ρ (strict-gen sⁿ) =
-    strict-gen (renameⁿ (extᵗ ρ) sⁿ)
+  renameStrictⁿ ρ (strict-gen sᵍ) =
+    strict-gen (renameGenSafe (extᵗ ρ) sᵍ)
   renameStrictⁿ ρ (strict-untag gG) =
     strict-untag (renameᵗ-ground ρ gG)
   renameStrictⁿ ρ (strict-untag-seq gG gⁿ) =
     strict-untag-seq
       (renameᵗ-ground ρ gG)
       (renameStrictCrossNarrowing ρ gⁿ)
+  renameStrictⁿ ρ (strict-fun-untag-gen sᵍ) =
+    strict-fun-untag-gen (renameGenSafe (extᵗ ρ) sᵍ)
   renameStrictⁿ ρ (strict-seal A α) =
     strict-seal (renameᵗ ρ A) (ρ α)
   renameStrictⁿ ρ (strict-seal-seq sⁿ α) =
@@ -732,16 +900,29 @@ mutual
   renameStrictCrossWidening ρ (cw-all sʷ) =
     cw-all (renameStrictʷ (extᵗ ρ) sʷ)
 
+  renameInstSafe :
+    ∀ ρ {c} →
+    InstSafe c →
+    InstSafe (renameᶜ ρ c)
+  renameInstSafe ρ (safe-fun sⁿ tʷ) =
+    safe-fun (renameⁿ ρ sⁿ) (renameʷ ρ tʷ)
+  renameInstSafe ρ (safe-all sʷ) =
+    safe-all (renameʷ (extᵗ ρ) sʷ)
+  renameInstSafe ρ (safe-inst sᵍ) =
+    safe-inst (renameInstSafe (extᵗ ρ) sᵍ)
+
   renameʷ :
     ∀ ρ {c} →
     Widening c →
     Widening (renameᶜ ρ c)
   renameʷ ρ (cross gʷ) = cross (renameCrossWidening ρ gʷ)
   renameʷ ρ id★ = id★
-  renameʷ ρ (inst sʷ) = inst (renameʷ (extᵗ ρ) sʷ)
+  renameʷ ρ (inst sᵍ) = inst (renameInstSafe (extᵗ ρ) sᵍ)
   renameʷ ρ (tag gG) = tag (renameᵗ-ground ρ gG)
   renameʷ ρ (gʷ ︔ gG !) =
     renameStrictCrossWidening ρ gʷ ︔ renameᵗ-ground ρ gG !
+  renameʷ ρ (inst-fun-tag sᵍ) =
+    inst-fun-tag (renameInstSafe (extᵗ ρ) sᵍ)
   renameʷ ρ (unsealʷ α A) = unsealʷ (ρ α) (renameᵗ ρ A)
   renameʷ ρ (unseal︔_ α sʷ) =
     unseal︔_ (ρ α) (renameStrictʷ ρ sʷ)
@@ -752,14 +933,16 @@ mutual
     StrictWidening (renameᶜ ρ c)
   renameStrictʷ ρ (strict-crossʷ gʷ) =
     strict-crossʷ (renameStrictCrossWidening ρ gʷ)
-  renameStrictʷ ρ (strict-inst sʷ) =
-    strict-inst (renameʷ (extᵗ ρ) sʷ)
+  renameStrictʷ ρ (strict-inst sᵍ) =
+    strict-inst (renameInstSafe (extᵗ ρ) sᵍ)
   renameStrictʷ ρ (strict-tag gG) =
     strict-tag (renameᵗ-ground ρ gG)
   renameStrictʷ ρ (strict-tag-seq gʷ gG) =
     strict-tag-seq
       (renameStrictCrossWidening ρ gʷ)
       (renameᵗ-ground ρ gG)
+  renameStrictʷ ρ (strict-inst-fun-tag sᵍ) =
+    strict-inst-fun-tag (renameInstSafe (extᵗ ρ) sᵍ)
   renameStrictʷ ρ (strict-unseal α A) =
     strict-unseal (ρ α) (renameᵗ ρ A)
   renameStrictʷ ρ (strict-unseal-seq α sʷ) =
@@ -860,6 +1043,10 @@ mutual
   narrow-src-wf
       (cast-seq (cast-untag hG gG ok) s⊢ , gG′ ？︔ sⁿ) =
     wf★
+  narrow-src-wf
+      (cast-seq (cast-untag hG gG ok) (cast-gen hA occ s⊢) ,
+       fun-untag-gen sᵍ) =
+    wf★
   narrow-src-wf (cast-seal hA α∈Σ ok , sealⁿ A α) = hA
   narrow-src-wf
       (cast-seq s⊢ (cast-seal hA α∈Σ ok) , _︔seal_ sⁿ α) =
@@ -881,6 +1068,10 @@ mutual
   widen-tgt-wf (cast-tag hG gG ok , tag gG′) = wf★
   widen-tgt-wf
       (cast-seq s⊢ (cast-tag hG gG ok) , sʷ ︔ gG′ !) =
+    wf★
+  widen-tgt-wf
+      (cast-seq (cast-inst hB occ s⊢) (cast-tag hG gG ok) ,
+       inst-fun-tag sᵍ) =
     wf★
   widen-tgt-wf (cast-unseal hA α∈Σ ok , unsealʷ α A) = hA
   widen-tgt-wf
@@ -976,12 +1167,16 @@ mutual
     narrowing-source-occurs (StoreNoOccurs-⟰ᵗ noOcc) (s⊢ , sⁿ) occ
   narrowing-source-occurs noOcc (cast-id hA ok , id★) ()
   narrowing-source-occurs {α = α} noOcc
-      (cast-gen {A = A} hA occB s⊢ , gen sⁿ) occ =
-    narrowing-source-occurs (StoreNoOccurs-⟰ᵗ noOcc) (s⊢ , sⁿ)
+      (cast-gen {A = A} hA occB s⊢ , gen sᵍ) occ =
+    narrowing-source-occurs (StoreNoOccurs-⟰ᵗ noOcc)
+      (s⊢ , genSafe→narrowing sᵍ)
       (trans (occurs-raise zero α A) occ)
   narrowing-source-occurs noOcc (cast-untag hG gG ok , untag gG′) ()
   narrowing-source-occurs noOcc
       (cast-seq (cast-untag hG gG ok) s⊢ , gG′ ？︔ sⁿ) ()
+  narrowing-source-occurs noOcc
+      (cast-seq (cast-untag hG gG ok) (cast-gen hA occ s⊢) ,
+       fun-untag-gen sᵍ) ()
   narrowing-source-occurs {α = α} noOcc
       (cast-seal {α = β} hA β∈Σ ok , sealⁿ A β)
       occ
@@ -1052,12 +1247,16 @@ mutual
     widening-target-occurs (StoreNoOccurs-⟰ᵗ noOcc) (s⊢ , sʷ) occ
   widening-target-occurs noOcc (cast-id hA ok , id★) ()
   widening-target-occurs {α = α} noOcc
-      (cast-inst {B = B} hB occA s⊢ , inst sʷ) occ =
-    widening-target-occurs (StoreNoOccurs-inst noOcc) (s⊢ , sʷ)
+      (cast-inst {B = B} hB occA s⊢ , inst sᵍ) occ =
+    widening-target-occurs (StoreNoOccurs-inst noOcc)
+      (s⊢ , instSafe→widening sᵍ)
       (trans (occurs-raise zero α B) occ)
   widening-target-occurs noOcc (cast-tag hG gG ok , tag gG′) ()
   widening-target-occurs noOcc
       (cast-seq s⊢ (cast-tag hG gG ok) , sʷ ︔ gG′ !) ()
+  widening-target-occurs noOcc
+      (cast-seq (cast-inst hB occ s⊢) (cast-tag hG gG ok) ,
+       inst-fun-tag sᵍ) ()
   widening-target-occurs {α = α} noOcc
       (cast-unseal {α = β} hA β∈Σ ok , unsealʷ β A)
       occ

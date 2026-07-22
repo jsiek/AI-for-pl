@@ -4,6 +4,9 @@ module proof.NuProgress where
 --   * Canonical-form lemmas and progress for closed Nu GTSF terms.
 --   * Produces values, blame crashes, or one store-change reduction step.
 --   * Uses the `NuTerms`/`NuReduction` formulation of the dynamic semantics.
+--   * The `GenSafe` repair needs no new progress branch: its eager
+--     untag/gen and inst/tag forms are ordinary coercion sequences and step
+--     through the existing `cast-seq` case.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥)

@@ -286,6 +286,7 @@ mutual
           ⊢ᴺ Λ V ⊑ Λ V′ ⦂ `∀ A ⊑ `∀ B ∶ ∀ⁱ p
 
     Λ⊑ᵀ : ∀ {ρ′ γ′ V N′ A B p}
+      → {{safe : NonVar A}}
       → (occ : occurs zero A ≡ true)
       → LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′
       → LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γ′
@@ -296,7 +297,7 @@ mutual
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ Λ V ⊑ N′ ⦂ `∀ A ⊑ B
-          ∶ ν occ p
+          ∶ ν safe occ p
 
     α⊑αᵀ : ∀ {ρ′ γ′ L L′ A B C D p}
       → Value L
@@ -328,13 +329,14 @@ mutual
 
     α⊑ᵀ :
         ∀ {ρ′ γ′ L N′ A B′ C p occ}
+      → {{safe : NonVar C}}
       → Value L
       → No• L
       → (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A))
       → LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′
       → LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γ′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-          ⊢ᴺ L ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν occ p
+          ⊢ᴺ L ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν safe occ p
       → suc Δᴸ
           ∣ leftStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
           ∣ leftCtxⁱ γ′ ⊢ (⇑ᵗᵐ L) • ⦂ C
@@ -499,6 +501,21 @@ mutual
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ L ⊕[ addℕ ] M ⊑ L′ ⊕[ addℕ ] M′
           ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ idι
+
+    gen⊑groundᵀ : ∀ {V W A B H p c μ}
+      → CastMode μ
+      → SealModeStore★ μ (leftStoreⁱ ρ)
+      → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ gen A c ∶ A ⊒ `∀ B
+      → Ground H
+      → Value V
+      → Value W
+      → Δᴿ ∣ rightStoreⁱ ρ ∣ rightCtxⁱ γ ⊢ W ⦂ H
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺ V ⊑ W ⟨ H ! ⟩ ⦂ A ⊑ ★ ∶ p
+      → (q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ H ⊣ Δᴿ)
+        ------------------------------------------------------------
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺ V ⟨ gen A c ⟩ ⊑ W ⦂ `∀ B ⊑ H ∶ q
 
     cast⊒⊑ᵀ : ∀ {M M′ A B B′ p c μ}
       → CastMode μ
@@ -752,6 +769,10 @@ mutual
       addℕ
       (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
+      (gen⊑groundᵀ mode seal★ c⊒ gH vV vW W⊢ V⊑Wtag q) =
+    ⊢⟨⟩⊒ mode seal★ c⊒
+      (nu-term-imprecision-source-typing V⊑Wtag)
+  nu-term-imprecision-source-typing
       (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q) =
     ⊢⟨⟩⊒ mode seal★ c⊒ (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
@@ -876,6 +897,9 @@ mutual
       (nu-term-imprecision-target-typing L⊑L′)
       addℕ
       (nu-term-imprecision-target-typing M⊑M′)
+  nu-term-imprecision-target-typing
+      (gen⊑groundᵀ mode seal★ c⊒ gH vV vW W⊢ V⊑Wtag q) =
+    W⊢
   nu-term-imprecision-target-typing
       (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q) =
     nu-term-imprecision-target-typing M⊑M′

@@ -75,7 +75,7 @@ paired-lambda-target-closing-gen-leaf-ν-conversion-rotation-proofᵀ
   generic-relation₀ =
     cast⊒⊑ᵀ mode seal★
       (C.cast-gen hA occ-g g⊢ , NW.gen gⁿ)
-      V⊑N′ (ν occ-r r)
+      V⊑N′ (ν _ occ-r r)
 
   generic-relation =
     allocation-prefixᵀ prefix generic-relation₀

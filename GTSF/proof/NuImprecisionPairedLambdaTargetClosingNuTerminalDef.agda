@@ -42,6 +42,6 @@ PairedLambdaTargetClosingNuTerminalᵀ =
   Value W → No• W →
   Value W′ → No• W′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ W ⊑ W′ ⦂ `∀ F ⊑ B′ ∶ ν occ r →
+    ⊢ᴺ W ⊑ W′ ⦂ `∀ F ⊑ B′ ∶ ν _ occ r →
   PairedLambdaTargetClosingFrameClosingMotive
-    ρ W W′ F B′ (ν occ r)
+    ρ W W′ F B′ (ν _ occ r)

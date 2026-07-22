@@ -155,6 +155,16 @@ StoreUnique-⟰ᵗ uniqueΣ {α = suc α} h₁ h₂
     | A , eq₁ , h₁′ | B , eq₂ , h₂′ =
   trans eq₁ (trans (cong ⇑ᵗ (uniqueΣ h₁′ h₂′)) (sym eq₂))
 
+StoreWf-⟰ᵗ :
+  ∀ {Δ Σ} →
+  StoreWf Δ Σ →
+  StoreWf (suc Δ) (⟰ᵗ Σ)
+StoreWf-⟰ᵗ wfΣ =
+  record
+    { at = StoreWfAt-⟰ᵗ (at wfΣ)
+    ; unique = StoreUnique-⟰ᵗ (unique wfΣ)
+    }
+
 StoreUnique-bind :
   ∀ {Σ Aν} →
   (∀ {α A B} → (α , A) ∈ Σ → (α , B) ∈ Σ → A ≡ B) →

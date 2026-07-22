@@ -1052,7 +1052,8 @@ gen∀-body-mode≤gen (suc (suc (suc X))) = refl
 ∀gen-narrowing-body
     (C.cast-all (C.cast-gen hA occ d⊢) ,
       NW.cross (NW.`∀ (NW.gen dⁿ))) =
-  narrow-mode-relax ∀gen-body-mode≤gen (d⊢ , dⁿ)
+  narrow-mode-relax ∀gen-body-mode≤gen
+    (d⊢ , NW.genSafe→narrowing dⁿ)
 
 gen∀-narrowing-body :
   ∀ {Δ Σ B D′ d′} →
@@ -1062,7 +1063,7 @@ gen∀-narrowing-body :
     ⊢ d′ ∶ renameᵗ (extᵗ suc) B ⊒ D′
 gen∀-narrowing-body
     (C.cast-gen hB occ (C.cast-all d′⊢) ,
-      NW.gen (NW.cross (NW.`∀ d′ⁿ))) =
+      NW.gen (NW.safe-all d′ⁿ)) =
   narrow-mode-relax gen∀-body-mode≤gen (d′⊢ , d′ⁿ)
 
 inst∀-widening-body :
@@ -1074,7 +1075,7 @@ inst∀-widening-body :
     ⊢ u ∶ D ⊑ renameᵗ (extᵗ suc) E
 inst∀-widening-body
     (C.cast-inst hE occ (C.cast-all u⊢) ,
-      NW.inst (NW.cross (NW.`∀ uʷ))) =
+      NW.inst (NW.safe-all uʷ)) =
   widen-mode-relax
     (ModeIncl-ext (ModeIncl-inst id-only≤tag-or-idᵈ))
     (u⊢ , uʷ)
@@ -1091,7 +1092,7 @@ inst∀-widening-body
       NW.cross (NW.`∀ (NW.inst u′ʷ))) =
   widen-mode-relax
     (ModeIncl-inst (ModeIncl-ext id-only≤tag-or-idᵈ))
-    (u′⊢ , u′ʷ)
+    (u′⊢ , NW.instSafe→widening u′ʷ)
 
 leftStoreⁱ-double-lift :
   ∀ {Φ Δᴸ Δᴿ}
@@ -5314,7 +5315,8 @@ left-silent-indexed-all-source-widen-inst-valueᵀ
     inner final-relation (left-silent-invariant refl refl)
 
   ν-framed = weak-one-step-source-νcast-frameᵀ
-    mode (seal★-inst seal★) (s⊢ , sʷ) (∀ⁱ _) inner
+    mode (seal★-inst seal★)
+      (s⊢ , NW.instSafe→widening sʷ) (∀ⁱ _) inner
 
   second-relation :
     resultCtx first
@@ -6015,6 +6017,7 @@ left-catchup-indexed-all-prefix-α-Λᵀ
 
 left-allocated-bulletᵀ :
   ∀ {Φ Δᴸ Δᴿ Aν A B′ V V′ occ r}
+    {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -6023,7 +6026,7 @@ left-allocated-bulletᵀ :
   (liftρ : LiftLeftStoreⁱ
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ B′ ∶ ν occ r →
+    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ B′ ∶ ν _ occ r →
   ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣
     store-left zero (⇑ᵗ Aν) hAν ∷ ρ′ ∣ []
     ⊢ᴺ (⇑ᵗᵐ V) • ⊑ V′ ⦂ A ⊑ B′ ∶ r
@@ -6049,6 +6052,7 @@ left-allocated-bulletᵀ
 
 left-catchup-all-α-∀-revealᵀ :
   ∀ {Φ Δᴸ Δᴿ μ α X Aν A C C′ c V V′ occ r q}
+    {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -6056,7 +6060,7 @@ left-catchup-all-α-∀-revealᵀ :
   (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
   LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
+    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X
     (`∀ c) (`∀ A) (`∀ (`∀ C)) →
   (catchup : LeftCatchupAllResult
@@ -6080,6 +6084,7 @@ left-catchup-all-α-∀-revealᵀ
 
 left-catchup-all-α-∀-concealᵀ :
   ∀ {Φ Δᴸ Δᴿ μ α X Aν A C C′ c V V′ occ r q}
+    {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -6087,7 +6092,7 @@ left-catchup-all-α-∀-concealᵀ :
   (hAν : WfTy (suc Δᴸ) (⇑ᵗ Aν)) →
   LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
+    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X
     (`∀ c) (`∀ A) (`∀ (`∀ C)) →
   (catchup : LeftCatchupAllResult
@@ -6111,6 +6116,7 @@ left-catchup-all-α-∀-concealᵀ
 
 left-catchup-all-α-∀-narrowingᵀ :
   ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
+    {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -6123,7 +6129,7 @@ left-catchup-all-α-∀-narrowingᵀ :
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ
     ⊢ `∀ c ∶ `∀ A ⊒ `∀ (`∀ C) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
+    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   (catchup : LeftCatchupAllResult
     {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
     {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q) →
@@ -6159,6 +6165,7 @@ left-catchup-all-α-∀-narrowingᵀ
 
 left-catchup-all-α-∀-wideningᵀ :
   ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
+    {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -6171,7 +6178,7 @@ left-catchup-all-α-∀-wideningᵀ :
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ
     ⊢ `∀ c ∶ `∀ A ⊑ `∀ (`∀ C) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
+    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   (catchup : LeftCatchupAllResult
     {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
     {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q) →

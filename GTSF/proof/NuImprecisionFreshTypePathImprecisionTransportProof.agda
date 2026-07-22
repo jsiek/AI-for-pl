@@ -71,9 +71,9 @@ matched-source-path-forward-proofᵀ track (tag r ⇛ s) (at-codomain x-at)
     | q , route , ()
 matched-source-path-forward-proofᵀ track (tagˣ x∈ X<Δ) at-here =
   ⊥-elim (track-star track x∈)
-matched-source-path-forward-proofᵀ track (ν occ r) (at-body x-at)
+matched-source-path-forward-proofᵀ track (ν _ occ r) (at-body x-at)
     with matched-source-path-forward-proofᵀ (var-track-ν track) r x-at
-matched-source-path-forward-proofᵀ track (ν occ r) (at-body x-at)
+matched-source-path-forward-proofᵀ track (ν _ occ r) (at-body x-at)
     | q , route , y-at =
   q , skip-left-body route , y-at
 
@@ -101,7 +101,7 @@ source-only-same-route-impossible-proofᵀ
     track (tag r ⇛ s) x-at () route
 source-only-same-route-impossible-proofᵀ
     track (tagˣ x∈ X<Δ) at-here () route
-source-only-same-route-impossible-proofᵀ track (ν occ r)
+source-only-same-route-impossible-proofᵀ track (ν _ occ r)
     (at-body x-at) y-at route =
   source-only-same-route-impossible-proofᵀ
     (star-track-ν track) r x-at y-at
@@ -115,7 +115,7 @@ source-only-to-universal-body-impossible-proofᵀ track (∀ⁱ r)
   source-only-same-route-impossible-proofᵀ
     (star-track-∀ track) r x-at y-at
     (strip-left-body route)
-source-only-to-universal-body-impossible-proofᵀ track (ν occ r)
+source-only-to-universal-body-impossible-proofᵀ track (ν _ occ r)
     (at-body x-at) y-at route =
   source-only-to-universal-body-impossible-proofᵀ
     (star-track-ν track) r x-at y-at

@@ -7,4 +7,3 @@ module proof.NuDGGTerminalForwardMilestone where
 --     routine focused forward check.
 
 import proof.NuDGGTerminalForwardIntegrationProof
-import proof.NuImprecisionClosedNuDGGCounterexample

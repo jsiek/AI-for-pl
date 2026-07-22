@@ -1,15 +1,14 @@
 module proof.NuImprecisionGenUntagCounterexampleCore where
 
 -- File Charter:
---   * Defines the shared concrete source-`gen`/target-`untag` counterexample.
+--   * Defines the concrete source-`gen`/target-`untag` regression example.
 --   * Provides its syntax, typing, QTI, runtime, and reduction witnesses.
---   * Proves that no final QTI relation can relate its source and target
---     values, even after an arbitrary allocation prefix.
+--   * Shows that `gen⊑groundᵀ` supplies the final value relation that the old
+--     QTI definition lacked.
 --   * Introduces no record, result, view, theorem alias, postulate, hole, or
 --     permissive option.
 
 open import Agda.Builtin.Equality using (refl)
-open import Data.Empty using (⊥)
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here)
 open import Data.Nat using (zero; suc; z<s)
@@ -59,12 +58,10 @@ open import NuTerms using
 open import PairedWideningCompatibility using
   (compatible-source-inert)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; cast⊒⊑ᵀ
-  ; cast⊑⊑ᵀ
-  ; conv↑⊑ᵀ
-  ; conv↓⊑ᵀ
+  ( cast⊒⊑ᵀ
   ; conv⊑convᵀ
+  ; gen⊑groundᵀ
+  ; nu-term-imprecision-target-typing
   ; paired-widening
   ; x⊑xᵀ
   ; ƛ⊑ƛᵀ
@@ -233,37 +230,11 @@ target-trace : target-redex —↠[ keep ∷ [] ] W
 target-trace =
   ↠-step (pure-step (tag-untag-ok vW)) ↠-refl
 
-no-star-function-index :
-  ∀ {Φ : ImpCtx} →
-  Φ ∣ Δ₀ ⊢ ★ ⊑ G ⊣ Δ₀ →
-  ⊥
-no-star-function-index ()
-
-no-star-function-relation :
-  ∀ {Φ : ImpCtx} {ρ : StoreImp Φ Δ₀ Δ₀}
-    {M N : Term} {r : Φ ∣ Δ₀ ⊢ ★ ⊑ G ⊣ Δ₀} →
-  Φ ∣ Δ₀ ∣ Δ₀ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ N ⦂ ★ ⊑ G ∶ r →
-  ⊥
-no-star-function-relation {r = r} relation =
-  no-star-function-index r
-
-final-relation-impossible :
-  ∀ {Φ : ImpCtx} {ρ : StoreImp Φ Δ₀ Δ₀}
-    {r : Φ ∣ Δ₀ ⊢ A ⊑ G ⊣ Δ₀} →
-  Φ ∣ Δ₀ ∣ Δ₀ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ W ⦂ A ⊑ G ∶ r →
-  ⊥
-final-relation-impossible
-    (cast⊒⊑ᵀ mode seal★
-      (C.cast-gen h★ occ c⊢ , NW.gen cⁿ) inner oldq) =
-  no-star-function-relation inner
-final-relation-impossible
-    (cast⊑⊑ᵀ mode seal★ (c⊢ , NW.cross ()) inner oldq)
-final-relation-impossible
-    (conv↑⊑ᵀ () inner oldq)
-final-relation-impossible
-    (conv↓⊑ᵀ () inner oldq)
-final-relation-impossible
-    (allocation-prefixᵀ prefix inner V⊢ W⊢) =
-  final-relation-impossible inner
+repaired-final-relation :
+  Φ₀ ∣ Δ₀ ∣ Δ₀ ∣ ρ₀ ∣ []
+    ⊢ᴺ V ⊑ W ⦂ A ⊑ G ∶ q
+repaired-final-relation =
+  gen⊑groundᵀ cast-tag-or-id seal★-tag-or-id
+    source-gen-typing gG v-tagged vW
+    (nu-term-imprecision-target-typing W-relation)
+    tagged-relation q

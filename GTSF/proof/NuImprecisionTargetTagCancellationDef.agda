@@ -1,12 +1,11 @@
 module proof.NuImprecisionTargetTagCancellationDef where
 
 -- File Charter:
---   * Defines the candidate cancellation of one terminal target ground tag.
+--   * Defines cancellation of one terminal target ground tag.
 --   * Returns equality of the discovered tag label with the requested ground
 --     type and the ordinary relation at the requested precision index.
---   * This candidate is strictly refuted by
---     `NuImprecisionTargetTagCancellationCounterexample`; retain it only as
---     the flat dependency of the higher-order active-root fit proof.
+--   * The `gen⊑groundᵀ` QTI constructor repairs the former source-`gen`
+--     obstruction; a strict implementation is still pending.
 --   * Contains no implementation, result carrier, or simulation dependency.
 
 open import Agda.Builtin.Equality using (_≡_)

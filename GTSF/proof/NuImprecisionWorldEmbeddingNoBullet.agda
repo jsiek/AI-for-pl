@@ -35,6 +35,7 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv⊑convᵀ
   ; down⊑downᵀ
+  ; gen⊑groundᵀ
   ; gen-down⊑gen-downᵀ
   ; up⊑upᵀ
   ; x⊑xᵀ
@@ -76,6 +77,7 @@ open import proof.NuImprecisionSimulationCore using
   ; rel-world-down-embedᵀ
   ; rel-world-embedding-ctx-∷ⁱ
   ; rel-world-gen-down-embedᵀ
+  ; rel-world-gen⊑ground-embedᵀ
   ; rel-world-up⊑up-embedᵀ
   ; rel-world-x-embedᵀ
   ; rel-world-Λ-embedᵀ
@@ -216,6 +218,11 @@ mutual
     ⊕⊑⊕ᵀ
       (rel-world-embed-no•ᵀ emb L⊑L′ noL noL′)
       (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
+  rel-world-embed-no•ᵀ emb
+      (gen⊑groundᵀ mode seal★ c⊒ gH vV vW W⊢ V⊑Wtag q)
+      (no•-⟨⟩ noV) noW =
+    rel-world-gen⊑ground-embedᵀ emb mode seal★ c⊒ gH vV vW noW W⊢
+      (rel-world-embed-no•ᵀ emb V⊑Wtag noV (no•-⟨⟩ noW))
   rel-world-embed-no•ᵀ emb
       (cast⊒⊑ᵀ mode seal c⊒ M⊑M′ q)
       (no•-⟨⟩ noM) noM′ =

@@ -4,8 +4,8 @@ module proof.NuImprecisionTargetTagCancellationDef where
 --   * Defines cancellation of one terminal target ground tag.
 --   * Returns equality of the discovered tag label with the requested ground
 --     type and the ordinary relation at the requested precision index.
---   * The `gen⊑groundᵀ` QTI constructor repairs the former source-`gen`
---     obstruction; a strict implementation is still pending.
+--   * Retained as a refuted generalized boundary: a source `gen` can be
+--     related to a target carrying a different ground tag.
 --   * Contains no implementation, result carrier, or simulation dependency.
 
 open import Agda.Builtin.Equality using (_≡_)

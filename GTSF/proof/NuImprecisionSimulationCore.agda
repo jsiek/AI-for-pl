@@ -41,6 +41,7 @@ open import Coercions using
   ; id-only
   ; tag-or-id
   ; seal-or-id
+  ; _!
   ; mode≤
   ; extᵈ
   ; gen
@@ -413,6 +414,7 @@ open import proof.TypeProperties using
   ; rename-cong
   ; renameᵗ-compose
   ; renameᵗ-ext-suc-comm
+  ; renameᵗ-ground
   ; renameᵗ-id
   ; renameᵗ-preserves-WfTy
   ; renameStoreᵗ-compose
@@ -6127,6 +6129,46 @@ rel-world-cast⊒⊑-embedᵀ emb mode seal★ c⊒ M⊑M′ =
       (CastModeRenamer.target-rename
         (left-embedding-cast-renamer emb) mode) c⊒)
     M⊑M′ _
+
+rel-world-gen⊑ground-embedᵀ :
+  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
+    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
+    {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
+    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
+    {V W A B H p q c μ} →
+  (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
+    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
+  (mode : CastMode μ) →
+  SealModeStore★ μ (leftStoreⁱ ρ) →
+  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ gen A c ∶ A ⊒ `∀ B →
+  Ground H →
+  Value V →
+  Value W →
+  No• W →
+  Δᴿ ∣ rightStoreⁱ ρ ∣ rightCtxⁱ γ ⊢ W ⦂ H →
+  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
+    ⊢ᴺ renameᵗᵐ τ V ⊑ renameᵗᵐ σ (W ⟨ H ! ⟩)
+    ⦂ renameᵗ τ A ⊑ ★
+    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ p →
+  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
+    ⊢ᴺ renameᵗᵐ τ (V ⟨ gen A c ⟩) ⊑ renameᵗᵐ σ W
+    ⦂ renameᵗ τ (`∀ B) ⊑ renameᵗ σ H
+    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ q
+rel-world-gen⊑ground-embedᵀ {τ = τ} {σ = σ}
+    emb mode seal★ c⊒ gH vV vW noW W⊢ V⊑Wtag =
+  gen⊑groundᵀ
+    (CastModeRenamer.target-mode
+      (left-embedding-cast-renamer emb) mode)
+    (left-seal-rel-embed emb mode seal★)
+    (left-narrowing-rel-embed-mode emb
+      (CastModeRenamer.target-rename
+        (left-embedding-cast-renamer emb) mode) c⊒)
+    (renameᵗ-ground σ gH)
+    (renameᵗᵐ-preserves-Value τ vV)
+    (renameᵗᵐ-preserves-Value σ vW)
+    (rel-world-target-typing-embed emb noW W⊢)
+    V⊑Wtag _
 
 rel-world-cast⊑⊑-embedᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}

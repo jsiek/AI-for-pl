@@ -23,7 +23,11 @@ and [`ClosedNuDGG`](NuImprecisionClosedNuDGGCounterexample.agda).  Preserve the
 canonical precision index and the checked conditional assemblies; under
 [issue #78](https://github.com/jsiek/AI-for-pl/issues/78), repair the relation or
 the operational theorem directly rather than adding a result, outcome, view,
-or compatibility layer.
+or compatibility layer.  The strict
+[`gradual-dgg-gen-untag-mismatch-counterexample`](GradualDGGGenUntagMismatchCounterexample.agda#L325)
+now proves that compiled ordinary-application argument casts reach the same
+mismatch from a closed public gradual-term derivation, refuting the current
+public `GradualDGG` statement.
 
 ## Coverage ledger
 
@@ -62,7 +66,7 @@ or compatibility layer.
 | Named terminal components compose to `GradualDGG` | completed conditional interface check | `dynamic-gradual-guarantee-skeleton` supplies the three named boundaries to the checked strict wrapper; the semantic implementations remain partial. |
 | Three terminal clauses imply `ClosedNuDGG` | completed conditional theorem | `closed-nu-terminal-simulation⇒closed-nu-dgg` is hole-free; its three semantic premises remain to be supplied. |
 | `ClosedNuDGG` consistency | refuted for the current unrestricted QTI | [`closed-nu-dgg-mismatch-counterexample`](NuImprecisionClosedNuDGGCounterexample.agda) is strict and hole-free. The source is a value; the target deterministically reaches blame through a mismatched tag/untag pair. |
-| Closed `GradualDGG` reduction | completed conditionally; closed premise refuted | `closed-nu-dgg⇒gradual-dgg` remains a valid implication, but its `ClosedNuDGG` premise is too broad for the current QTI. A compiler-image restriction, a relation repair, or a change to the operational statement must be justified before the public theorem can use this route. |
+| Closed `GradualDGG` reduction | public theorem refuted | [`gradual-dgg-gen-untag-mismatch-counterexample`](GradualDGGGenUntagMismatchCounterexample.agda#L325) strictly proves `GradualDGG → ⊥`. Compiler origin does not exclude the mismatch: a closed public relation reaches it through ordinary application argument casts. |
 
 ## Top-down proof plan from `QuotientedTermImprecision`
 
@@ -291,14 +295,19 @@ The shortest sound path is now:
    the canonical requested precision index and no new carrier.  World
    embedding now propagates it, but it remains only the post-untag same-label
    relation.
-4. **In progress:** audit the compiler image and the two generic cast QTI
-   constructors to determine the smallest sound boundary.  Distinguish a
-   source `gen` under target `untag` from ordinary cast framing without hiding
-   the distinction in a result carrier.
-5. **Not yet started:** replace the refuted agreement/cancellation statements
+4. **Completed strict public counterexample:** ordinary application casts the same
+   dynamic argument to `∀` on the source and `★ ⇒ ★` on the target.
+   With a dynamic `Nat` payload, the whole compiled source terminates while the
+   whole target blames.  The checked
+   [`GradualDGG → ⊥`](GradualDGGGenUntagMismatchCounterexample.agda#L325)
+   proof includes both complete traces and the determinism contradiction.
+5. **Not yet started:** choose between a language/compiler repair and a public
+   theorem-statement repair; restricting only the internal QTI is insufficient
+   because compilation generates the offending behavior.
+6. **After that decision:** replace the refuted agreement/cancellation statements
    with same-label direct statements justified by the repaired relation, then
    recheck the narrow-untag active root and focused forward strict spine.
-6. **After item 5:** resume quotient catch-up, the remaining target dispatcher
+7. **After the boundary is sound:** resume quotient catch-up, the target dispatcher
    cases, source one-step families, and conditional terminal assemblies.  Their
    checked structural work remains reusable.
 
@@ -401,7 +410,7 @@ boundary; `gen⊑groundᵀ` alone cannot prove tag equality.
 | Revalidate generalized target-tag cancellation | refuted | [`target-tag-cancellation-mismatch-counterexample`](NuImprecisionTargetTagCancellationMismatchCounterexample.agda) applies the generalized cancellation boundary and derives `Nat ≡ ★ ⇒ ★`. |
 | Revalidate `ClosedNuDGG` | refuted for current QTI | [`closed-nu-dgg-mismatch-counterexample`](NuImprecisionClosedNuDGGCounterexample.agda) contradicts the forward source-value clause using the deterministic target trace to blame. |
 | Propagate `gen⊑groundᵀ` through QTI traversals | partial | Core typing projections, the positive regression, and [`NuImprecisionWorldEmbeddingNoBullet.agda`](NuImprecisionWorldEmbeddingNoBullet.agda) pass strict checks. Further traversals remain, but semantic redesign takes priority. |
-| Audit generic cast composition and compiler image | in progress | Determine whether to restrict or split `cast⊒⊑ᵀ` and `⊑cast⊒ᵀ`, or replace the all-QTI `ClosedNuDGG` premise with a small canonical compiler-image invariant. No result/view/outcome carrier is permitted. |
+| Audit generic cast composition and compiler image | completed strict public refutation | [`GradualDGGGenUntagMismatchCounterexample.agda`](GradualDGGGenUntagMismatchCounterexample.agda) proves that ordinary application argument plans generate the source `★ → ∀` cast and target `★ → ★ ⇒ ★` cast around the same dynamic `Nat` computation. No provenance/result/view/outcome carrier can repair this semantic witness. |
 | State and assemble sound same-label cancellation | not yet started | Replace the refuted equality-producing boundary only after the relation or theorem premise makes the common tag label explicit. The conclusion should remain a direct QTI derivation at the canonical requested index. |
 
 Still-rejected alternatives are a compilation-reachability predicate threaded
@@ -409,6 +418,80 @@ through every weak-simulation payload and a separate terminal-QTI saturation;
 both would directly worsen the hierarchy in issue #78.  A compiler-image
 boundary is viable only if it stays at the closed entry theorem and the
 recursive relation preserves it without another nested success carrier.
+
+### Recommended public-theorem repair (pending design approval)
+
+The least invasive sound repair is to admit blame on either side at the
+observation boundary.  This matches the intended term-narrowing policy in
+`popl2027.tex`: the term on the right may reduce to blame regardless of the
+left term's behavior.  It also accepts the checked public witness without
+changing compilation, cast semantics, or the natural ordinary-application
+relation.
+
+The four public observations should become
+
+\[
+\begin{array}{ll}
+N \Downarrow V
+  &\Longrightarrow N' \Downarrow V'\text{ with }V\sqsubseteq V'
+    \quad\lor\quad N' \Downarrow \mathsf{blame},\\
+N \Uparrow
+  &\Longrightarrow N' \Uparrow
+    \quad\lor\quad N' \Downarrow \mathsf{blame},\\
+N' \Downarrow V'
+  &\Longrightarrow N \Downarrow V\text{ with }V\sqsubseteq V'
+    \quad\lor\quad N \Downarrow \mathsf{blame},\\
+N' \Uparrow
+  &\Longrightarrow N \Uparrow
+    \quad\lor\quad N \Downarrow \mathsf{blame}.
+\end{array}
+\]
+
+Thus Part 1 of [`GradualDGG`](../DynamicGradualGuarantee.agda#L91) gains an
+inline target-blame alternative, Part 2 changes its conclusion from
+`Divergesᶜ` to `DivergeOrBlameᶜ`, and Parts 3 and 4 remain unchanged.
+The identical delta applies to `ClosedNuDGG`.
+
+Only two terminal facts are then required:
+
+1. source value implies a related target value or target blame;
+2. target value implies a related source value or source blame.
+
+Both divergence clauses follow from progress and these two terminal facts.
+The explicit `BackwardTargetBlameᵀ` obligation must be removed: it contradicts
+both the intended right-blame policy and the checked public counterexample.
+
+At the arbitrary-world right-value catch-up boundary, keep the existing
+complete success payload unchanged and add only an inline sum:
+
+```agda
+WorldCoherentRightValueCatchupIndexedResult
+  {V = V} {M′ = M′} {ρ = ρ⁺} p
+⊎ (∃[ θs ] (M′ —↞[ θs ] blame))
+```
+
+This is the issue-#78 constraint in concrete form: do not introduce a
+`RightValueCatchupOutcome`, view, compatibility wrapper, or second success
+carrier.  Existing successful root/frame proofs stay in the first branch.
+For narrow-untag, equal ground labels use same-label cancellation and
+`tag-untag-ok`; unequal labels append `tag-untag-bad` and return the direct
+target-blame branch.  The refuted ground-agreement theorem is unnecessary.
+
+| Repair action | Status | Files or reusable work |
+|---|---|---|
+| Confirm current public theorem is false | completed | [`GradualDGGGenUntagMismatchCounterexample.agda`](GradualDGGGenUntagMismatchCounterexample.agda) |
+| Approve blame-permissive public observation | pending design decision | Change [`DynamicGradualGuarantee.agda`](../DynamicGradualGuarantee.agda), then mirror the delta in [`NuDGGSpine.agda`](NuDGGSpine.agda). |
+| Reduce the spine from three terminal facts to two | not yet started | Update `NuDGGTerminal.agda` and the closed/public assembly proofs; derive both divergence clauses by progress. |
+| Add the inline target-blame branch to forward catch-up | not yet started | Update the forward `Def` files, right-value catch-up `Def` files, and active-root conclusion; retain existing complete success records unchanged. |
+| Complete same-label target-tag cancellation | not yet started | Replace generalized `TargetTagCancellationᵀ`; `gen⊑groundᵀ` remains the successful source-`gen` case. |
+| Remove obsolete target-blame-to-source-blame path | not yet started | Delete the four `NuDGGTerminalBackwardBlame*` implementation/assembly modules and their imports instead of preserving shims. |
+| Adapt the checked public mismatch regression | not yet started | After the theorem changes, replace `GradualDGG → ⊥` with a witness selecting the new target-blame branch. |
+
+Changing compilation or cast semantics is possible but substantially more
+invasive: eager `gen` would require a runtime representation/check for
+universal values, while lazy untagging would require function proxies and new
+application semantics.  Restricting QTI alone cannot work because it does not
+change the compiled programs or their checked source-value/target-blame traces.
 
 ### Two-layer skeleton
 
@@ -464,6 +547,7 @@ are delegated:
 | [`NuImprecisionGenUntagCounterexampleCore.agda`](NuImprecisionGenUntagCounterexampleCore.agda) | completed strict positive regression | Defines the concrete empty-world terms, coercion typings, QTI witnesses, runtimes, target trace, exclusivity/uniqueness proofs, and [`repaired-final-relation`](NuImprecisionGenUntagCounterexampleCore.agda#L233). It is a direct collection of facts, not a record or result carrier. |
 | [`NuImprecisionGenUntagMismatchCounterexampleCore.agda`](NuImprecisionGenUntagMismatchCounterexampleCore.agda) | completed strict negative regression | Reuses the same source `gen`, changes the target tag payload to `Nat`, and retains function-ground untagging. It directly refutes ground agreement and supplies the source-value/target-blame operational witnesses. |
 | [`NuImprecisionClosedNuDGGCounterexample.agda`](NuImprecisionClosedNuDGGCounterexample.agda) | completed strict counterexample | Applies `ClosedNuDGG` to the mismatch core and contradicts the forward value result by deterministic alignment with the target trace to blame. |
+| [`GradualDGGGenUntagMismatchCounterexample.agda`](GradualDGGGenUntagMismatchCounterexample.agda) | completed strict public counterexample | Defines a closed gradual-term relation, exposes both compiled term shapes, proves the complete source-value and target-blame traces, and derives `GradualDGG → ⊥`. The proof adds no carrier or origin predicate. |
 | [`NuImprecisionWorldCoherentRightTargetNarrowUntagRootProof.agda`](NuImprecisionWorldCoherentRightTargetNarrowUntagRootProof.agda) | completed higher-order fit to a refuted premise | Proves that flat generalized cancellation would suffice for the complete narrow-untag root. The mismatch confirms that the surrounding indices fit but the cancellation premise is not semantically available. No cancellation carrier should be added. |
 | [`NuImprecisionWorldCoherentRightTargetActiveRootResumeProof.agda`](NuImprecisionWorldCoherentRightTargetActiveRootResumeProof.agda) | partial strict proof: all five identity roots completed | A shared direct `β-id` composition preserves the existing catch-up result's transport, coherence, lineage, bullet transport, world coherence, and source-name evidence. Narrowing, general widening, identity-only widening, reveal, and conceal identity roots each invert the three reachable identity type shapes and reuse that core. The file intentionally does not assemble the ten-field capability while untag, instantiation, and unseal roots remain open. |
 | [`NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda) | completed statement | Five-field terminalization boundary for target narrowing, widening, identity-only widening, reveal, and conceal. Each field returns the existing complete catch-up carrier directly. |
@@ -9122,16 +9206,29 @@ coordination.  Use focused strict checks throughout and reserve
   proves the operational consequence.  The source term is already a value;
   the target deterministically performs the bad tag/untag step to `blame`.
   Therefore the forward source-value clause of `ClosedNuDGG` cannot return a
-  target value.  This is a counterexample to the all-QTI closed theorem, not
-  yet a counterexample to public `GradualDGG`; the compiler image must be
-  audited separately.
+  target value.  This directly refutes the all-QTI closed theorem.
+
+- The subsequent compiler-image audit found that the behavior also comes from
+  a closed public gradual relation.  Let `A = ∀ α. α ⇒ α`,
+  `G = ★ ⇒ ★`, `I_T = λ x : T. x`, and
+  `E = I_★ 0 : ★`.  Ordinary gradual application relates
+  `I_A E` to `I_G E` at `A ⊑ G`.  Compilation casts the shared dynamic
+  argument down to `A` on the source and `G` on the target.  After `E` reaches
+  a `Nat` tag, these are exactly the source `gen` and bad target untag from the
+  mismatch core, modulo the compiler's structural identity widenings.  The
+  whole source reaches a latent generic value while the target reaches blame.
+  [`GradualDGGGenUntagMismatchCounterexample.agda`](GradualDGGGenUntagMismatchCounterexample.agda)
+  formalizes the closed surface relation, both definitional compiled shapes,
+  the full source-value and target-blame traces, and the final deterministic
+  contradiction.  Its strict focused check passes in about 3.1 seconds.
 
 - Issue #78 rules out hiding this mismatch behind another untag outcome,
   relation view, or compatibility result.  The next local design step is to
-  audit the generic source and target cast constructors and the precise image
-  of `compile-preserves-term-imprecision`.  A sound fix must make the shared
-  tag label explicit in the relation or keep any compiler-image premise at the
-  closed entry boundary, while preserving direct canonical QTI conclusions.
+  audit the language/compiler semantics and the public observation statement.
+  A compiler-origin predicate cannot exclude a behavior that the compiler
+  itself generates.  A sound fix must change the cast composition/semantics or
+  weaken the public observation, while preserving direct canonical QTI
+  conclusions in whatever theorem remains.
 
 - Ginger/GPT-5.5 completed the independent mechanical propagation through
   [`NuImprecisionWorldEmbeddingNoBullet.agda`](NuImprecisionWorldEmbeddingNoBullet.agda).
@@ -9139,3 +9236,14 @@ coordination.  Use focused strict checks throughout and reserve
   Its first strict run in the remote worktree was 46.74 seconds; the warm rerun
   was 3.67 seconds.  This supports the focused-worktree workflow and avoids a
   broad `All.agda` check while the semantic boundary remains unsettled.
+
+- The recommended repair is now an observation-level change, pending design
+  approval: admit a direct target-blame alternative when the source reaches a
+  value, and weaken source-divergence preservation to target
+  divergence-or-blame.  Keep the existing two right-to-left clauses.  The DGG
+  spine then needs only forward-value-or-target-blame and
+  backward-value-or-source-blame; the false target-blame-implies-source-blame
+  terminal family is deleted.  At right catch-up, the blame alternative is an
+  inline sum beside the existing complete success result, not a new outcome
+  carrier.  This agrees with the explicit right-blame policy in `popl2027.tex`
+  and directly addresses issue #78's nesting concern.

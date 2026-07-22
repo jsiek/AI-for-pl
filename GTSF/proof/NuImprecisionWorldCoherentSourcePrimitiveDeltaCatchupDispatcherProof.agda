@@ -49,27 +49,27 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ :
   WorldCoherentSourcePrimitiveDeltaCatchupCases →
   WorldCoherentSourcePrimitiveDeltaCatchupᵀ
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfR okM′
+    cases prefix coherent exclusive unique wfR okM′
     (allocation-prefixᵀ prefix₀ inner M⊢ M′⊢) =
   world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases (store-imp-prefix-transⁱ prefix₀ prefix)
-    coherent exclusive wfR okM′ inner
+    coherent exclusive unique wfR okM′ inner
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfR okM′
+    cases prefix coherent exclusive unique wfR okM′
     (⊑αᵀ {q = ()} vL′ noL′ hA liftρ liftγ inner r N⊢ L′•⊢)
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfR okM′
+    cases prefix coherent exclusive unique wfR okM′
     (⊑νᵀ {q = ()} hA h⇑A s↑ liftρ liftγ r inner)
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfR okM′
+    cases prefix coherent exclusive unique wfR okM′
     (⊑νcastᵀ {q = ()} mode seal★ s⊑ liftρ liftγ r inner)
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfR okM′
+    cases prefix coherent exclusive unique wfR okM′
     (⊕⊑⊕ᵀ L⊑L′ R⊑R′) =
   sourcePrimitiveDeltaDirectCase cases
-    prefix coherent exclusive wfR okM′ L⊑L′ R⊑R′
+    prefix coherent exclusive unique wfR okM′ L⊑L′ R⊑R′
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfR okM′
+    cases prefix coherent exclusive unique wfR okM′
     (⊑cast⊒ᵀ mode seal★ c⊒ inner q) =
   sourceStepTargetNarrowFrame target-frames
     prefix mode seal★ c⊒ recursive
@@ -77,9 +77,9 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =
     world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-      cases prefix coherent exclusive wfR (runtime-⟨⟩ okM′) inner
+      cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′) inner
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfR okM′
+    cases prefix coherent exclusive unique wfR okM′
     (⊑cast⊑ᵀ mode seal★ c⊑ inner q) =
   sourceStepTargetWidenFrame target-frames
     prefix mode seal★ c⊑ recursive
@@ -87,9 +87,9 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =
     world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-      cases prefix coherent exclusive wfR (runtime-⟨⟩ okM′) inner
+      cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′) inner
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfR okM′
+    cases prefix coherent exclusive unique wfR okM′
     (⊑cast⊑idᵀ seal★ c⊑ inner q) =
   sourceStepTargetIdWidenFrame target-frames
     prefix seal★ c⊑ recursive
@@ -97,22 +97,22 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =
     world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-      cases prefix coherent exclusive wfR (runtime-⟨⟩ okM′) inner
+      cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′) inner
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfR okM′
+    cases prefix coherent exclusive unique wfR okM′
     (⊑conv↑ᵀ c↑ inner q) =
   sourceStepTargetRevealFrame target-frames prefix c↑ recursive
   where
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =
     world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-      cases prefix coherent exclusive wfR (runtime-⟨⟩ okM′) inner
+      cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′) inner
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfR okM′
+    cases prefix coherent exclusive unique wfR okM′
     (⊑conv↓ᵀ c↓ inner q) =
   sourceStepTargetConcealFrame target-frames prefix c↓ recursive
   where
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =
     world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-      cases prefix coherent exclusive wfR (runtime-⟨⟩ okM′) inner
+      cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′) inner

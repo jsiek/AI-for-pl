@@ -16,6 +16,8 @@ open import NuReduction using (StoreChange; keep)
 open import NuTermImprecision using (StoreImp)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedResult
   ; WeakOneStepTransport
@@ -70,6 +72,11 @@ record WorldCoherentSourceOneStepIndexedResult
 
     sourceStepSourceNameExclusive :
       SourceNameExclusive
+        (resultCtx
+          (weakIndexedResult sourceStepIndexedResult))
+
+    sourceStepAssumptionMembershipUnique :
+      AssumptionMembershipUnique
         (resultCtx
           (weakIndexedResult sourceStepIndexedResult))
 

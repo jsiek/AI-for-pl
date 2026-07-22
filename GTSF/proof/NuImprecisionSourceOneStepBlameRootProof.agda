@@ -38,10 +38,11 @@ world-coherent-source-keep-blame-root-proofᵀ
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {M = M} {M′ = M′} {A = A} {B = B}
     {ρ⁺ = ρ⁺} {p = p}
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ M→blame =
   world-coherent-source-one-step-indexed
     indexed transport type-coherence lineage refl refl coherent exclusive
+    unique
   where
   blame-relation = blame⊑ᵀ M′⊢
 

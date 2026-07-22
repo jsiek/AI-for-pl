@@ -159,16 +159,16 @@ world-coherent-source-ν-frame-step-proofᵀ :
   WorldCoherentSourceNuFrameStepᵀ
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (allocation-prefixᵀ prefix₀ inner inner-source⊢ inner-target⊢)
     N→N′ =
   prefix (store-imp-prefix-transⁱ prefix₀ prefixρ)
-    coherent exclusive wfL wfR ok-source ok-target source⊢ target⊢
+    coherent exclusive unique wfL wfR ok-source ok-target source⊢ target⊢
     inner (ξ-ν N→N′)
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
       liftρ liftγ inner)
@@ -177,7 +177,7 @@ world-coherent-source-ν-frame-step-proofᵀ
     (sourceStepMatchedNuFrame source-ν-frames
       {pA = A⊑A′} prefixρ s↑ s′↑)
     (λ source↠blame → _ , ν-blame-tailᵀ source↠blame)
-    (prefix prefixρ coherent exclusive wfL wfR
+    (prefix prefixρ coherent exclusive unique wfL wfR
       (ν-runtime ok-source) (ν-runtime ok-target)
       (ν-body-typing-at
         (proj₁ (coercion-src-tgtᵐ
@@ -190,13 +190,13 @@ world-coherent-source-ν-frame-step-proofᵀ
       inner N→N′)
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ inner) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepSourceNuFrame source-ν-frames prefixρ hA s↑)
     (λ source↠blame → _ , ν-blame-tailᵀ source↠blame)
-    (prefix prefixρ coherent exclusive wfL wfR
+    (prefix prefixρ coherent exclusive unique wfL wfR
       (ν-runtime ok-source) ok-target
       (ν-body-typing-at
         (proj₁ (coercion-src-tgtᵐ
@@ -205,7 +205,7 @@ world-coherent-source-ν-frame-step-proofᵀ
       target⊢ inner N→N′)
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
       s⊑ s′⊑ compat liftρ liftγ inner)
@@ -214,7 +214,7 @@ world-coherent-source-ν-frame-step-proofᵀ
     (sourceStepMatchedNuCastFrame source-ν-frames prefixρ
       mode seal★ s⊑ mode′ seal★′ s′⊑ compat)
     (λ source↠blame → _ , ν-blame-tailᵀ source↠blame)
-    (prefix prefixρ coherent exclusive wfL wfR
+    (prefix prefixρ coherent exclusive unique wfL wfR
       (ν-runtime ok-source) (ν-runtime ok-target)
       (ν-body-typing-at
         (proj₁ (coercion-src-tgtᵐ (proj₁ s⊑))) source⊢)
@@ -223,69 +223,69 @@ world-coherent-source-ν-frame-step-proofᵀ
       inner N→N′)
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ inner) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepSourceNuCastFrame source-ν-frames prefixρ
       mode seal★ s⊑)
     (λ source↠blame → _ , ν-blame-tailᵀ source↠blame)
-    (prefix prefixρ coherent exclusive wfL wfR
+    (prefix prefixρ coherent exclusive unique wfL wfR
       (ν-runtime ok-source) ok-target
       (ν-body-typing-at
         (proj₁ (coercion-src-tgtᵐ (proj₁ s⊑))) source⊢)
       target⊢ inner N→N′)
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑cast⊒ᵀ mode′ seal★′ c′⊒ inner q) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetNarrowFrame target-cast-frames prefixρ
       mode′ seal★′ c′⊒)
     (λ source↠blame → _ , source↠blame)
-    (prefix prefixρ coherent exclusive wfL wfR ok-source
+    (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (cast-runtime ok-target) source⊢
       (cast-body-typing-at
         (proj₁ (coercion-src-tgtᵐ (proj₁ c′⊒))) target⊢)
       inner (ξ-ν N→N′))
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑cast⊑ᵀ mode′ seal★′ c′⊑ inner q) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetWidenFrame target-cast-frames prefixρ
       mode′ seal★′ c′⊑)
     (λ source↠blame → _ , source↠blame)
-    (prefix prefixρ coherent exclusive wfL wfR ok-source
+    (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (cast-runtime ok-target) source⊢
       (cast-body-typing-at
         (proj₁ (coercion-src-tgtᵐ (proj₁ c′⊑))) target⊢)
       inner (ξ-ν N→N′))
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑cast⊑idᵀ seal★′ c′⊑ inner q) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetIdWidenFrame target-cast-frames prefixρ
       seal★′ c′⊑)
     (λ source↠blame → _ , source↠blame)
-    (prefix prefixρ coherent exclusive wfL wfR ok-source
+    (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (cast-runtime ok-target) source⊢
       (cast-body-typing-at
         (proj₁ (coercion-src-tgtᵐ (proj₁ c′⊑))) target⊢)
       inner (ξ-ν N→N′))
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑conv↑ᵀ c′↑ inner q) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetRevealFrame target-cast-frames prefixρ c′↑)
     (λ source↠blame → _ , source↠blame)
-    (prefix prefixρ coherent exclusive wfL wfR ok-source
+    (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (cast-runtime ok-target) source⊢
       (cast-body-typing-at
         (proj₁ (coercion-src-tgtᵐ
@@ -294,13 +294,13 @@ world-coherent-source-ν-frame-step-proofᵀ
       inner (ξ-ν N→N′))
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑conv↓ᵀ c′↓ inner q) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetConcealFrame target-cast-frames prefixρ c′↓)
     (λ source↠blame → _ , source↠blame)
-    (prefix prefixρ coherent exclusive wfL wfR ok-source
+    (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (cast-runtime ok-target) source⊢
       (cast-body-typing-at
         (proj₁ (coercion-src-tgtᵐ
@@ -309,13 +309,13 @@ world-coherent-source-ν-frame-step-proofᵀ
       inner (ξ-ν N→N′))
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑νᵀ hA h⇑A s↑ liftρ liftγ r inner) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetNuFrame target-ν-frames prefixρ hA s↑ r)
     (λ source↠blame → _ , source↠blame)
-    (prefix prefixρ coherent exclusive wfL wfR ok-source
+    (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (ν-runtime ok-target) source⊢
       (ν-body-typing-at
         (proj₁ (coercion-src-tgtᵐ
@@ -324,21 +324,21 @@ world-coherent-source-ν-frame-step-proofᵀ
       inner (ξ-ν N→N′))
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r inner) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetNuCastFrame target-ν-frames prefixρ
       mode seal★ s⊑ r)
     (λ source↠blame → _ , source↠blame)
-    (prefix prefixρ coherent exclusive wfL wfR ok-source
+    (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (ν-runtime ok-target) source⊢
       (ν-body-typing-at
         (proj₁ (coercion-src-tgtᵐ (proj₁ s⊑))) target⊢)
       inner (ξ-ν N→N′))
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
-    target-bullet-step prefixρ coherent exclusive wfL wfR
+    target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑αᵀ vL′ noL′ h⇑A liftρ lift-right-ctx-[] inner r
       inner-source⊢ inner-target⊢)

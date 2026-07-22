@@ -41,6 +41,8 @@ open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
   )
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionSimulationCore using
   ( ≡-to-≅
   ; subst-to-≅
@@ -622,6 +624,27 @@ source-silent-preserves-source-name-exclusiveᵀ
     first refl refl second exclusive = exclusive
 
 
+source-silent-preserves-assumption-membership-uniqueᵀ :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (first : WeakOneStepResult ρ M M′ A B keep)
+    (source-empty : sourceChanges first ≡ [])
+    (source-same : sourceResult first ≡ M)
+    (second : WeakOneStepResult
+      (resultStore first)
+      (sourceResult first)
+      (targetResult first)
+      (resultSourceType first)
+      (resultTargetType first)
+      keep) →
+  AssumptionMembershipUnique (resultCtx second) →
+  AssumptionMembershipUnique
+    (resultCtx
+      (source-silent-resultᵀ first source-empty source-same second))
+source-silent-preserves-assumption-membership-uniqueᵀ
+    first refl refl second unique = unique
+
+
 source-silent-composition-proofᵀ : SourceSilentComposition
 source-silent-composition-proofᵀ =
   record
@@ -639,4 +662,6 @@ source-silent-composition-proofᵀ =
         source-silent-preserves-world-coherentᵀ
     ; sourceSilentSourceNameExclusive =
         source-silent-preserves-source-name-exclusiveᵀ
+    ; sourceSilentAssumptionMembershipUnique =
+        source-silent-preserves-assumption-membership-uniqueᵀ
     }

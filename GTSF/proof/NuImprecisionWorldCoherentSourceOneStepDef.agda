@@ -3,8 +3,8 @@ module proof.NuImprecisionWorldCoherentSourceOneStepDef where
 -- File Charter:
 --   * Defines the source-oriented one-step simulation contract used by
 --     forward terminal DGG trace induction.
---   * Requires and returns world coherence and source-name exclusivity on the
---     continuing related branch.
+--   * Requires and returns world coherence, source-name exclusivity, and
+--     assumption-membership uniqueness on the continuing related branch.
 --   * Returns either a continuing related result after the distinguished
 --     source step or a source trace to blame.
 --   * Contains no implementation and imports only statement-level support.
@@ -38,6 +38,8 @@ open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 
@@ -50,6 +52,7 @@ WorldCoherentSourceOneStepSimulationᵀ =
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   StoreWf Δᴿ (rightStoreⁱ ρ) →
   RuntimeOK M →
@@ -68,6 +71,7 @@ WorldCoherentSourceOneStepSimulationᵀ =
       ((M′ —↠[ θs ] L′) ×
        WorldCoherent ρ′ ×
        SourceNameExclusive Ψ ×
+       AssumptionMembershipUnique Ψ ×
        (leftStoreⁱ ρ′ ≡ applyStore χ (leftStoreⁱ ρ)) ×
        (rightStoreⁱ ρ′ ≡ applyStores θs (rightStoreⁱ ρ)) ×
        Ψ ∣ applyTyCtx χ Δᴸ

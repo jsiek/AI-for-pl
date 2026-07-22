@@ -33,6 +33,8 @@ open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx; TyVar; ★; ＇_; `∀)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import
@@ -53,6 +55,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
       RuntimeOK (M′ ⟨ id B ⟩) →
       Value V →
@@ -75,6 +78,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
       RuntimeOK (M′ ⟨ id B ⟩) →
       Value V →
@@ -97,6 +101,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
       RuntimeOK (M′ ⟨ id B ⟩) →
       Value V →
@@ -119,6 +124,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
       RuntimeOK (M′ ⟨ id B ⟩) →
       Value V →
@@ -140,6 +146,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
       RuntimeOK (M′ ⟨ id B ⟩) →
       Value V →
@@ -162,6 +169,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
       RuntimeOK (M′ ⟨ H ？ ⟩) →
       Value V →
@@ -186,6 +194,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
       RuntimeOK (M′ ⟨ inst B s ⟩) →
       Value V →
@@ -210,6 +219,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
       RuntimeOK (M′ ⟨ unseal α B ⟩) →
       Value V →
@@ -234,6 +244,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
       RuntimeOK (M′ ⟨ unseal α B ⟩) →
       Value V →

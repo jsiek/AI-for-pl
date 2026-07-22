@@ -23,6 +23,8 @@ open import QuotientedTermImprecision using
 open import Types using (Ty; TyCtx)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentRightCatchupResultDef using
@@ -39,6 +41,7 @@ WorldCoherentRightPairedCastFrameᵀ =
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK (M′ ⟨ c′ ⟩) →
   Value M →

@@ -780,19 +780,19 @@ world-coherent-right-target-sequence-resume-proofᵀ
         (weak-indexed-result first first-canonical)
         refl refl vV noV vW noW first-transport first-coherence)
       first-lineage first-bullet first-world
-      first-exclusive first-wfR)
+      first-exclusive first-unique first-wfR)
     (world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         (weak-indexed-result second second-canonical)
         refl refl vV₂ noV₂ vZ noZ second-transport second-coherence)
       second-lineage second-bullet second-world
-      second-exclusive second-wfR) =
+      second-exclusive second-unique second-wfR) =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup
       (weak-indexed-result combined combined-canonical)
       refl refl vV noV vZ noZ combined-transport combined-coherence)
     combined-lineage combined-bullet second-world
-    second-exclusive second-wfR
+    second-exclusive second-unique second-wfR
   where
   combined = sequence-resume-result first second vW
 

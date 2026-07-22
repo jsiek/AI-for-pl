@@ -46,11 +46,13 @@ world-coherent-right-value-catchup-proofᵀ :
   WorldCoherentRightValueCatchupPrefixᵀ →
   WorldCoherentRightValueCatchupᵀ
 world-coherent-right-value-catchup-proofᵀ
-    prefix-catchup {p = p} coherent exclusive wfR okM′ vV noV V⊑M′
-    with prefix-catchup prefix-reflⁱ coherent exclusive wfR okM′
+    prefix-catchup {p = p} coherent exclusive unique wfR
+    okM′ vV noV V⊑M′
+    with prefix-catchup prefix-reflⁱ coherent exclusive unique wfR okM′
       vV noV V⊑M′
 world-coherent-right-value-catchup-proofᵀ
-    prefix-catchup {p = p} coherent exclusive wfR okM′ vV noV V⊑M′
+    prefix-catchup {p = p} coherent exclusive unique wfR
+    okM′ vV noV V⊑M′
     | world-result
     with sourceCtxResult result
        | targetCtxResult result
@@ -61,7 +63,8 @@ world-coherent-right-value-catchup-proofᵀ
   indexed = rightCatchupIndexedResult catchup
   result = weakIndexedResult indexed
 world-coherent-right-value-catchup-proofᵀ
-    prefix-catchup {p = p} coherent exclusive wfR okM′ vV noV V⊑M′
+    prefix-catchup {p = p} coherent exclusive unique wfR
+    okM′ vV noV V⊑M′
     | world-result | refl | refl | refl | refl =
       targetResult result ,
       targetTailChanges result ,

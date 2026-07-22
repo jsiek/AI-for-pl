@@ -27,19 +27,19 @@ world-coherent-source-primitive-pure-root-proofᵀ :
   WorldCoherentSourcePrimitivePureRootCases →
   WorldCoherentSourcePrimitivePureRootᵀ
 world-coherent-source-primitive-pure-root-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     (⊢⊕ L⊢ op R⊢) M′⊢ M⊑M′ δ-⊕ =
   sourcePrimitiveDeltaCatchupCase cases
-    prefix coherent exclusive wfR okM′ M⊑M′
+    prefix coherent exclusive unique wfR okM′ M⊑M′
 world-coherent-source-primitive-pure-root-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-⊕₁ =
   sourcePrimitiveBlameRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (pure-step blame-⊕₁)
 world-coherent-source-primitive-pure-root-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (blame-⊕₂ vL) =
   sourcePrimitiveBlameRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (pure-step (blame-⊕₂ vL))

@@ -43,110 +43,110 @@ world-coherent-source-pure-step-dispatcher-proofᵀ :
   WorldCoherentSourcePureStepCases →
   WorldCoherentSourcePureStepᵀ
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ δ-⊕ =
   sourcePrimitivePureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ δ-⊕
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β vV) =
   sourceApplicationPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β vV)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-Λ• vV) =
   sourceRuntimeBulletPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-Λ• vV)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-∀• vV) =
   sourceRuntimeBulletPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-∀• vV)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-gen• vV) =
   sourceRuntimeBulletPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-gen• vV)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-id vV) =
   sourceCastPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-id vV)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-seq vV) =
   sourceCastPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-seq vV)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-↦ vV vW) =
   sourceApplicationPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-↦ vV vW)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-inst vV) =
   sourceCastPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-inst vV)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (tag-untag-ok vV) =
   sourceCastPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (tag-untag-ok vV)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (tag-untag-bad vV G≢H) =
   sourceCastPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (tag-untag-bad vV G≢H)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (seal-unseal vV) =
   sourceCastPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (seal-unseal vV)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-·₁ =
   sourceApplicationPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-·₁
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (blame-·₂ vV) =
   sourceApplicationPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (blame-·₂ vV)
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-• =
   sourceRuntimeBulletPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-•
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-⟨⟩ =
   sourceCastPureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-⟨⟩
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-⊕₁ =
   sourcePrimitivePureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-⊕₁
 world-coherent-source-pure-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (blame-⊕₂ vL) =
   sourcePrimitivePureRootCase cases
-    prefix coherent exclusive wfL wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (blame-⊕₂ vL)

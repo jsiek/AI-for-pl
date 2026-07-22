@@ -31,6 +31,8 @@ open import TermTyping using (_∣_∣_⊢_⦂_)
 open import Types using (Ty; TyCtx; WfTy; `∀; ⇑ᵗ)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentRightCatchupResultDef using
@@ -50,6 +52,7 @@ WorldCoherentRightTargetBulletClosingᵀ =
   StoreImpPrefix (store-right zero (⇑ᵗ A) h⇑A ∷ ρ′) ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive (⇑ᴿᵢ Φ) →
+  AssumptionMembershipUnique (⇑ᴿᵢ Φ) →
   StoreWf (suc Δᴿ) (rightStoreⁱ ρ⁺) →
   RuntimeOK ((⇑ᵗᵐ L′) •) →
   Value N →

@@ -66,6 +66,8 @@ open import Types using (Ty; TyCtx; TyVar; ＇_; ⇑ᵗ; _⇒_; `∀)
 open import proof.NuProgress using (SealView; canonical-＇; sv-seal)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ
   ; rel-store-embedding-congⁱ
@@ -425,7 +427,8 @@ private
   widen-unseal-framed-relation {Δᴿ = Δᴿ} {B = B} {α = α}
       {q = q} prefix mode seal★ c⊑
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       with apply-widens-typing
         {χs = keep ∷ targetTailChanges
           (weakIndexedResult (rightCatchupIndexedResult catchup))}
@@ -436,7 +439,8 @@ private
   widen-unseal-framed-relation {Δᴿ = Δᴿ} {B = B} {α = α}
       {q = q} prefix mode seal★ c⊑
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       | μ″ , mode″ , seal★″ , c″⊑ =
     ⊑cast⊑ᵀ mode″ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
@@ -499,7 +503,8 @@ private
   reveal-unseal-framed-relation {Δᴿ = Δᴿ} {B = B} {α = α}
       {q = q} prefix c↑
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       with apply-reveal-conversions
         {χs = keep ∷ targetTailChanges
           (weakIndexedResult (rightCatchupIndexedResult catchup))}
@@ -508,7 +513,8 @@ private
   reveal-unseal-framed-relation {Δᴿ = Δᴿ} {B = B} {α = α}
       {q = q} prefix c↑
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       | μ″ , β″ , X″ , c″↑ =
     ⊑conv↑ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
@@ -569,7 +575,7 @@ private
       prefix
       (world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet-transport final-world
-        final-exclusive final-wfR)
+        final-exclusive final-unique final-wfR)
       αB∈Σ framed-relation
       with canonical-applied-target-var
         (applyTys-var
@@ -582,7 +588,7 @@ private
       prefix
       (world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet-transport final-world
-        final-exclusive final-wfR)
+        final-exclusive final-unique final-wfR)
       αB∈Σ framed-relation
       | sv-seal {W = W} {A = Y} vW refl =
     world-coherent-right-value-indexed-catchup
@@ -600,6 +606,7 @@ private
       combined-bullet
       final-world
       final-exclusive
+      final-unique
       final-wfR
     where
     indexed = rightCatchupIndexedResult catchup
@@ -759,6 +766,7 @@ rightTargetWidenUnsealRoot :
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK (M′ ⟨ unseal α B ⟩) →
   Value V →
@@ -774,7 +782,7 @@ rightTargetWidenUnsealRoot :
   WorldCoherentRightValueCatchupIndexedResult
     {V = V} {M′ = M′ ⟨ unseal α B ⟩} {ρ = ρ⁺} q
 rightTargetWidenUnsealRoot {B = B} {α = α}
-    prefix coherent exclusive wfR okUnseal vV noV mode seal★
+    prefix coherent exclusive unique wfR okUnseal vV noV mode seal★
     c⊑@(C.cast-unseal hB αB∈Σ ok , NW.unsealʷ .α .B)
     V⊑M′ inner-world =
   target-unseal-resume-core prefix inner-world αB∈Σ
@@ -790,6 +798,7 @@ rightTargetRevealUnsealRoot :
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK (M′ ⟨ unseal α B ⟩) →
   Value V →
@@ -803,7 +812,7 @@ rightTargetRevealUnsealRoot :
   WorldCoherentRightValueCatchupIndexedResult
     {V = V} {M′ = M′ ⟨ unseal α B ⟩} {ρ = ρ⁺} q
 rightTargetRevealUnsealRoot
-    prefix coherent exclusive wfR okUnseal vV noV
+    prefix coherent exclusive unique wfR okUnseal vV noV
     c↑@(reveal-unseal hB αB∈Σ ok)
     V⊑M′ inner-world =
   target-unseal-resume-core prefix inner-world αB∈Σ

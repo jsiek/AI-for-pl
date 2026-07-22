@@ -26,6 +26,8 @@ open import QuotientedTermImprecision using
 open import Types using (Ty; TyCtx; `ℕ; ‵_)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
@@ -41,6 +43,7 @@ WorldCoherentSourcePrimitiveDeltaCatchupᵀ =
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK M′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []

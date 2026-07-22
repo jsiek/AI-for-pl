@@ -85,6 +85,7 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ; sourceStepIndexedResult
   ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
+  ; sourceStepAssumptionMembershipUnique
   ; sourceStepStoreLineage
   ; sourceStepTransport
   ; sourceStepTypeCoherence
@@ -149,6 +150,7 @@ source-step-target-narrow-frameᵀ
     (sourceStepResultExact complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
+    (sourceStepAssumptionMembershipUnique complete)
   where
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀
@@ -235,6 +237,7 @@ source-step-target-widen-frameᵀ
     (sourceStepResultExact complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
+    (sourceStepAssumptionMembershipUnique complete)
   where
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀
@@ -309,6 +312,7 @@ source-step-target-id-widen-frameᵀ
     (sourceStepResultExact complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
+    (sourceStepAssumptionMembershipUnique complete)
   where
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀
@@ -397,6 +401,7 @@ source-step-target-reveal-frameᵀ
     (sourceStepResultExact complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
+    (sourceStepAssumptionMembershipUnique complete)
   where
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀
@@ -476,6 +481,7 @@ source-step-target-conceal-frameᵀ
     (sourceStepResultExact complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
+    (sourceStepAssumptionMembershipUnique complete)
   where
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀

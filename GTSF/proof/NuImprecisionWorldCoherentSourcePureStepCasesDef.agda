@@ -22,6 +22,8 @@ open import QuotientedTermImprecision using
 open import Types using (Ty; TyCtx)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
@@ -50,6 +52,7 @@ WorldCoherentSourcePureStepᵀ =
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ⁺) →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK M →

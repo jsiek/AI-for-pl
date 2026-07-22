@@ -4,7 +4,8 @@ module proof.NuImprecisionSourceSilentCompositionDef where
 --   * Defines composition of a source-silent target catch-up with a following
 --     exact source-oriented result.
 --   * Requires the composed result to preserve generic term transport,
---     arrow/`∀` type coherence, and relational-store lineage.
+--     arrow/`∀` type coherence, relational-store lineage, and final context
+--     uniqueness.
 --   * Contains no composition implementation, postulate, or hole.
 
 open import Agda.Builtin.Equality using (_≡_)
@@ -15,6 +16,8 @@ open import NuTermImprecision using (StoreImp)
 open import NuTerms using (Term)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepResult
   ; WeakOneStepTransport
@@ -173,6 +176,24 @@ record SourceSilentComposition : Set₁ where
           keep) →
       SourceNameExclusive (resultCtx second) →
       SourceNameExclusive
+        (resultCtx
+          (sourceSilentResult first source-empty source-same second))
+
+    sourceSilentAssumptionMembershipUnique :
+      ∀ {Φ Δᴸ Δᴿ M M′ A B}
+        {ρ : StoreImp Φ Δᴸ Δᴿ}
+        (first : WeakOneStepResult ρ M M′ A B keep)
+        (source-empty : sourceChanges first ≡ [])
+        (source-same : sourceResult first ≡ M)
+        (second : WeakOneStepResult
+          (resultStore first)
+          (sourceResult first)
+          (targetResult first)
+          (resultSourceType first)
+          (resultTargetType first)
+          keep) →
+      AssumptionMembershipUnique (resultCtx second) →
+      AssumptionMembershipUnique
         (resultCtx
           (sourceSilentResult first source-empty source-same second))
 

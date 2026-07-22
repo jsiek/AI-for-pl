@@ -33,6 +33,8 @@ open import TermTyping using
 open import Types using (Ty; TyCtx; WfTy; ★; `∀; ⟰ᵗ; ⇑ᵗ)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentRightCatchupResultDef using
@@ -51,6 +53,7 @@ record WorldCoherentRightTargetAllocationFrames : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
       RuntimeOK (ν A N′ s) →
       Value N →
@@ -81,6 +84,7 @@ record WorldCoherentRightTargetAllocationFrames : Set₁ where
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
       RuntimeOK (ν ★ N′ s) →
       Value N →

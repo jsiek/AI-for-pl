@@ -54,11 +54,11 @@ world-coherent-right-value-terminal-proofᵀ
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {V = V} {V′ = V′} {A = A} {B = B}
     {ρ⁺ = ρ⁺} {p = p}
-    prefix coherent exclusive wfR vV noV vV′ noV′ V⊑V′ =
+    prefix coherent exclusive unique wfR vV noV vV′ noV′ V⊑V′ =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup indexed refl refl vV noV vV′ noV′
       transport type-coherence)
-    lineage source-bullet-transport coherent exclusive wfR
+    lineage source-bullet-transport coherent exclusive unique wfR
   where
   source-typing⁺ =
     term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)

@@ -7,6 +7,8 @@ module
 --   * Inhabits the direct-tag premises with duplicate source-only assumptions.
 --   * Proves that the untagged identity lambdas are not related at the
 --     requested crossed pair of assumption witnesses.
+--   * Proves that the strengthened reachable-world uniqueness premise rejects
+--     exactly this duplicate-row context.
 --   * Introduces no result carrier, postulate, hole, or permissive option.
 
 open import Data.Empty using (⊥)
@@ -73,12 +75,8 @@ open import Types using
 open import proof.NuDGGClosedWorld using (empty-store-wf)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
-open import
-  proof.NuImprecisionWorldCoherentRightCatchupResultDef
-  using (WorldCoherentRightValueCatchupIndexedResult)
-open import
-  proof.NuImprecisionWorldCoherentRightValueTerminalProof
-  using (world-coherent-right-value-terminal-proofᵀ)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherenceProof using
@@ -167,17 +165,6 @@ private
   runtime-untag : RuntimeOK (tagged ⟨ (H C.？) ⟩)
   runtime-untag = ok-no (no•-⟨⟩ no-tagged)
 
-  caught :
-    WorldCoherentRightValueCatchupIndexedResult
-      {V = I} {M′ = tagged}
-      {ρ = ([] {A =
-        NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})} p
-  caught =
-    world-coherent-right-value-terminal-proofᵀ
-      prefix-reflⁱ coherent₂ exclusive₂ empty-store-wf
-      vI noI v-tagged no-tagged tagged-relation
-
-
   variable-at-a₂-impossible :
     Φ₂ ∣ suc zero ∣ zero ∣
       ([] {A = NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
@@ -205,7 +192,15 @@ requested-untagged-relation-impossible
   requested-untagged-relation-impossible inner
 
 
-untag-root-premises-are-inhabited :
+duplicate-assumptions-not-unique :
+  AssumptionMembershipUnique Φ₂ →
+  ⊥
+duplicate-assumptions-not-unique unique
+    with unique (here refl) (there (here refl))
+duplicate-assumptions-not-unique unique | ()
+
+
+old-untag-local-premises-are-inhabited :
   StoreImpPrefix
     ([] {A =
       NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
@@ -224,12 +219,8 @@ untag-root-premises-are-inhabited :
   (Φ₂ ∣ suc zero ∣ zero ∣
     ([] {A =
       NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
-    ∣ [] ⊢ᴺ I ⊑ tagged ⦂ A ⊑ ★ ∶ p) ×
-  WorldCoherentRightValueCatchupIndexedResult
-    {V = I} {M′ = tagged}
-    {ρ = ([] {A =
-      NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})} p
-untag-root-premises-are-inhabited =
+    ∣ [] ⊢ᴺ I ⊑ tagged ⦂ A ⊑ ★ ∶ p)
+old-untag-local-premises-are-inhabited =
   prefix-reflⁱ ,
   coherent₂ ,
   exclusive₂ ,
@@ -240,8 +231,7 @@ untag-root-premises-are-inhabited =
   cast-tag-or-id ,
   seal★-tag-or-id ,
   untag-typing ,
-  tagged-relation ,
-  caught
+  tagged-relation
 
 
 direct-tag-premise-is-inhabited :
@@ -249,14 +239,6 @@ direct-tag-premise-is-inhabited :
     ([] {A = NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
     ∣ [] ⊢ᴺ I ⊑ tagged ⦂ A ⊑ ★ ∶ p
 direct-tag-premise-is-inhabited = tagged-relation
-
-
-right-value-catchup-premise-is-inhabited :
-  WorldCoherentRightValueCatchupIndexedResult
-    {V = I} {M′ = tagged}
-    {ρ = ([] {A =
-      NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})} p
-right-value-catchup-premise-is-inhabited = caught
 
 
 untag-runtime-premise-is-inhabited :

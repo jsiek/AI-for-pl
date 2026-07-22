@@ -14,6 +14,8 @@ open import proof.NuDGGTerminalForwardClosedDef using
   (ClosedForwardSourceValueᵀ)
 open import proof.NuDGGTerminalForwardDef using
   (WorldCoherentForwardSourceValueᵀ)
+open import proof.NuImprecisionAssumptionMembershipUniquenessProof using
+  (assumption-membership-unique-empty)
 open import proof.NuImprecisionContextExclusivityProof using
   (source-name-exclusive-empty)
 
@@ -22,6 +24,7 @@ world-coherent-forward-source-value-closed-proofᵀ :
   WorldCoherentForwardSourceValueᵀ →
   ClosedForwardSourceValueᵀ
 world-coherent-forward-source-value-closed-proofᵀ
-    forward okN okN′ N⊑N′ =
+  forward okN okN′ N⊑N′ =
   forward empty-world-coherent source-name-exclusive-empty
-    empty-store-wf empty-store-wf okN okN′ N⊑N′
+    assumption-membership-unique-empty empty-store-wf empty-store-wf
+    okN okN′ N⊑N′

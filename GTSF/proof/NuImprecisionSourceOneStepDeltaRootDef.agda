@@ -18,6 +18,8 @@ open import QuotientedTermImprecision using (StoreImpPrefix)
 open import Types using (TyCtx; `ℕ; ‵_)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
@@ -32,6 +34,7 @@ WorldCoherentSourceDeltaRootᵀ =
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   WorldCoherentSourceOneStepIndexedResult
     {M = $ (κℕ m) ⊕[ addℕ ] $ (κℕ n)}
     {M′ = $ (κℕ m) ⊕[ addℕ ] $ (κℕ n)}

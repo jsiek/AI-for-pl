@@ -34,6 +34,8 @@ open import TermTyping using (_∣_∣_⊢_⦂_)
 open import Types using (Ty; TyCtx; WfTy; `∀; ⇑ᵗ)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
@@ -54,6 +56,7 @@ WorldCoherentSourceAllocationTargetBulletStepᵀ =
     (store-right zero (⇑ᵗ A) h⇑A ∷ ρᴿ) ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive (⇑ᴿᵢ Φ) →
+  AssumptionMembershipUnique (⇑ᴿᵢ Φ) →
   StoreWf Δᴸ (leftStoreⁱ ρ⁺) →
   StoreWf (suc Δᴿ) (rightStoreⁱ ρ⁺) →
   RuntimeOK (ν C V c) →

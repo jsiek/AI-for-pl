@@ -109,8 +109,11 @@ open import proof.NuImprecisionSourceOneStepDeltaRootDef using
   (WorldCoherentSourceDeltaRootᵀ)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionSourceSilentCompositionDef using
   ( SourceSilentComposition
+  ; sourceSilentAssumptionMembershipUnique
   ; sourceSilentChangesExact
   ; sourceSilentResult
   ; sourceSilentResultExact
@@ -124,6 +127,7 @@ open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
 open import proof.NuImprecisionWorldCoherentRightCatchupResultDef using
   ( WorldCoherentRightValueCatchupIndexedResult
+  ; worldRightCatchupAssumptionMembershipUnique
   ; worldRightCatchupCoherence
   ; worldRightCatchupResult
   ; worldRightCatchupSourceNameExclusive
@@ -139,6 +143,7 @@ open import
   proof.NuImprecisionWorldCoherentSourceOneStepResultDef
   using
   ( WorldCoherentSourceOneStepIndexedResult
+  ; sourceStepAssumptionMembershipUnique
   ; sourceStepChangesExact
   ; sourceStepIndexedResult
   ; sourceStepResultExact
@@ -515,6 +520,7 @@ finish-right-catchup-deltaᵀ
     combined-result
     combined-world
     combined-exclusive
+    combined-unique
   where
   right-catchup = worldRightCatchupResult right-world
   right-indexed = rightCatchupIndexedResult right-catchup
@@ -547,6 +553,7 @@ finish-right-catchup-deltaᵀ
     delta prefix-reflⁱ
       (worldRightCatchupCoherence right-world)
       (worldRightCatchupSourceNameExclusive right-world)
+      (worldRightCatchupAssumptionMembershipUnique right-world)
 
   target-framed≡ :
     targetResult framed ≡
@@ -607,6 +614,11 @@ finish-right-catchup-deltaᵀ
       composition framed refl refl delta-result
       (sourceStepSourceNameExclusive delta-world′)
 
+  combined-unique =
+    sourceSilentAssumptionMembershipUnique
+      composition framed refl refl delta-result
+      (sourceStepAssumptionMembershipUnique delta-world′)
+
 
 finish-left-then-right-deltaᵀ :
   WorldCoherentRightValueCatchupPrefixᵀ →
@@ -617,6 +629,7 @@ finish-left-then-right-deltaᵀ :
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK L′ →
   No• R′ →
@@ -632,14 +645,14 @@ finish-left-then-right-deltaᵀ :
     {χ = keep} {ρ = ρ⁺} idι
 finish-left-then-right-deltaᵀ
     right-catchup composition delta
-    prefix coherent exclusive target-wf runtime-left no-right
+    prefix coherent exclusive unique target-wf runtime-left no-right
     left-relation right-relation
     with right-catchup
-      prefix coherent exclusive target-wf runtime-left
+      prefix coherent exclusive unique target-wf runtime-left
       ($ (κℕ _)) no•-$ left-relation
 finish-left-then-right-deltaᵀ
     right-catchup composition delta
-    prefix coherent exclusive target-wf runtime-left no-right
+    prefix coherent exclusive unique target-wf runtime-left no-right
     left-relation right-relation
     | left-world
     with related-nat-source-constant-target-valueᵀ
@@ -649,7 +662,7 @@ finish-left-then-right-deltaᵀ
   left-catchup = worldRightCatchupResult left-world
 finish-left-then-right-deltaᵀ
     right-catchup composition delta
-    prefix coherent exclusive target-wf runtime-left no-right
+    prefix coherent exclusive unique target-wf runtime-left no-right
     left-relation right-relation
     | left-world | target-left≡
     with rightCatchupSourceChangesEmpty
@@ -659,7 +672,7 @@ finish-left-then-right-deltaᵀ
        | target-left≡
 finish-left-then-right-deltaᵀ
     right-catchup composition delta
-    prefix coherent exclusive target-wf runtime-left no-right
+    prefix coherent exclusive unique target-wf runtime-left no-right
     left-relation right-relation
     | left-world | target-left≡ | refl | refl | refl =
   world-coherent-source-one-step-indexed
@@ -671,6 +684,7 @@ finish-left-then-right-deltaᵀ
     combined-result
     combined-world
     combined-exclusive
+    combined-unique
   where
   left-catchup = worldRightCatchupResult left-world
   left-indexed = rightCatchupIndexedResult left-catchup
@@ -720,6 +734,7 @@ finish-left-then-right-deltaᵀ
       prefix-reflⁱ
       (worldRightCatchupCoherence left-world)
       (worldRightCatchupSourceNameExclusive left-world)
+      (worldRightCatchupAssumptionMembershipUnique left-world)
       (worldRightCatchupTargetStoreWf left-world)
       (ok-no
         (applyTerms-preserves-No•
@@ -776,6 +791,11 @@ finish-left-then-right-deltaᵀ
       composition framed-left refl refl phase-two-result
       (sourceStepSourceNameExclusive phase-two)
 
+  combined-unique =
+    sourceSilentAssumptionMembershipUnique
+      composition framed-left refl refl phase-two-result
+      (sourceStepAssumptionMembershipUnique phase-two)
+
 
 world-coherent-source-primitive-delta-direct-proofᵀ :
   WorldCoherentRightValueCatchupPrefixᵀ →
@@ -784,35 +804,35 @@ world-coherent-source-primitive-delta-direct-proofᵀ :
   WorldCoherentSourcePrimitiveDeltaDirectᵀ
 world-coherent-source-primitive-delta-direct-proofᵀ
     right-catchup composition delta
-    prefix coherent exclusive target-wf
+    prefix coherent exclusive unique target-wf
     (ok-no (no•-⊕ no-left no-right))
     left-relation right-relation =
   finish-left-then-right-deltaᵀ
     right-catchup composition delta
-    prefix coherent exclusive target-wf
+    prefix coherent exclusive unique target-wf
     (ok-no no-left) no-right left-relation right-relation
 world-coherent-source-primitive-delta-direct-proofᵀ
     right-catchup composition delta
-    prefix coherent exclusive target-wf
+    prefix coherent exclusive unique target-wf
     (ok-⊕₁ runtime-left no-right)
     left-relation right-relation =
   finish-left-then-right-deltaᵀ
     right-catchup composition delta
-    prefix coherent exclusive target-wf
+    prefix coherent exclusive unique target-wf
     runtime-left no-right left-relation right-relation
 world-coherent-source-primitive-delta-direct-proofᵀ
     right-catchup composition delta
-    prefix coherent exclusive target-wf
+    prefix coherent exclusive unique target-wf
     (ok-⊕₂ value-left no-left runtime-right)
     left-relation right-relation
     with related-nat-source-constant-target-valueᵀ
       value-left left-relation
 world-coherent-source-primitive-delta-direct-proofᵀ
     right-catchup composition delta
-    prefix coherent exclusive target-wf
+    prefix coherent exclusive unique target-wf
     (ok-⊕₂ value-left no-left runtime-right)
     left-relation right-relation | refl =
   finish-right-catchup-deltaᵀ composition delta
     (right-catchup
-      prefix coherent exclusive target-wf runtime-right
+      prefix coherent exclusive unique target-wf runtime-right
       ($ (κℕ _)) no•-$ right-relation)

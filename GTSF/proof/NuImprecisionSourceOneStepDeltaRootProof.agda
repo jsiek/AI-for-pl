@@ -46,9 +46,10 @@ world-coherent-source-delta-root-proofᵀ :
 world-coherent-source-delta-root-proofᵀ
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {m = m} {n = n}
-    prefix coherent exclusive =
+    prefix coherent exclusive unique =
   world-coherent-source-one-step-indexed
     indexed transport type-coherence lineage refl refl coherent exclusive
+    unique
   where
   result-typingᴸ =
     ⊢$ (κℕ (m + n))

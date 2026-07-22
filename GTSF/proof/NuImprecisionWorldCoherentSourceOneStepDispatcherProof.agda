@@ -41,52 +41,52 @@ world-coherent-source-one-step-dispatcher-proofᵀ :
   WorldCoherentSourceOneStepCases →
   WorldCoherentSourceOneStepPrefixᵀ
 world-coherent-source-one-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (pure-step root) =
   source-step-outcome-related
     (world-coherent-source-pure-step-dispatcher-proofᵀ
       (sourcePureStepCases cases)
-      prefix coherent exclusive wfL wfR okM okM′
+      prefix coherent exclusive unique wfL wfR okM okM′
       M⊢ M′⊢ M⊑M′ root)
 world-coherent-source-one-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (ν-step vV noV) =
   source-step-outcome-related
-    (sourceAllocationStepCase cases prefix coherent exclusive wfL wfR
+    (sourceAllocationStepCase cases prefix coherent exclusive unique wfL wfR
       okM okM′ M⊢ M′⊢ M⊑M′ vV noV)
 world-coherent-source-one-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (ξ-·₁ inner shift) =
-  sourceApplicationLeftStepCase cases prefix coherent exclusive wfL wfR
+  sourceApplicationLeftStepCase cases prefix coherent exclusive unique wfL wfR
     okM okM′ M⊢ M′⊢ M⊑M′ inner shift
 world-coherent-source-one-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (ξ-·₂ vV shift inner) =
-  sourceApplicationRightStepCase cases prefix coherent exclusive wfL wfR
+  sourceApplicationRightStepCase cases prefix coherent exclusive unique wfL wfR
     okM okM′ M⊢ M′⊢ M⊑M′ vV shift inner
 world-coherent-source-one-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (ξ-⟨⟩ inner) =
-  sourceCastFrameStepCase cases prefix coherent exclusive wfL wfR
+  sourceCastFrameStepCase cases prefix coherent exclusive unique wfL wfR
     okM okM′ M⊢ M′⊢ M⊑M′ inner
 world-coherent-source-one-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (ξ-ν inner) =
-  sourceNuFrameStepCase cases prefix coherent exclusive wfL wfR
+  sourceNuFrameStepCase cases prefix coherent exclusive unique wfL wfR
     okM okM′ M⊢ M′⊢ M⊑M′ inner
 world-coherent-source-one-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-ν =
   source-step-outcome-related
-    (sourceNuBlameStepCase cases prefix coherent exclusive wfL wfR
+    (sourceNuBlameStepCase cases prefix coherent exclusive unique wfL wfR
       okM okM′ M⊢ M′⊢ M⊑M′)
 world-coherent-source-one-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (ξ-⊕₁ inner shift) =
-  sourcePrimitiveLeftStepCase cases prefix coherent exclusive wfL wfR
+  sourcePrimitiveLeftStepCase cases prefix coherent exclusive unique wfL wfR
     okM okM′ M⊢ M′⊢ M⊑M′ inner shift
 world-coherent-source-one-step-dispatcher-proofᵀ
-    cases prefix coherent exclusive wfL wfR okM okM′
+    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (ξ-⊕₂ vL shift inner) =
-  sourcePrimitiveRightStepCase cases prefix coherent exclusive wfL wfR
+  sourcePrimitiveRightStepCase cases prefix coherent exclusive unique wfL wfR
     okM okM′ M⊢ M′⊢ M⊑M′ vL shift inner

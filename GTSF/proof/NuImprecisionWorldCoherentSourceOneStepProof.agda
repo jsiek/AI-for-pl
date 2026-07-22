@@ -50,7 +50,8 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepOutcomeDef using
 open import proof.NuImprecisionWorldCoherentSourceOneStepPrefixDef using
   (WorldCoherentSourceOneStepPrefixᵀ)
 open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  ( sourceStepChangesExact
+  ( sourceStepAssumptionMembershipUnique
+  ; sourceStepChangesExact
   ; sourceStepIndexedResult
   ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
@@ -103,19 +104,19 @@ world-coherent-source-one-step-proofᵀ :
   WorldCoherentSourceOneStepPrefixᵀ →
   WorldCoherentSourceOneStepSimulationᵀ
 world-coherent-source-one-step-proofᵀ
-    prefix-step {p = p} coherent exclusive wfL wfR
+    prefix-step {p = p} coherent exclusive unique wfL wfR
     okM okM′ M⊑M′ source-step
-    with prefix-step prefix-reflⁱ coherent exclusive wfL wfR okM okM′
+    with prefix-step prefix-reflⁱ coherent exclusive unique wfL wfR okM okM′
       (source-one-step-empty-context-source-typing M⊑M′)
       (source-one-step-empty-context-target-typing M⊑M′)
       M⊑M′ source-step
 world-coherent-source-one-step-proofᵀ
-    prefix-step {p = p} coherent exclusive wfL wfR
+    prefix-step {p = p} coherent exclusive unique wfL wfR
     okM okM′ M⊑M′ source-step
     | source-step-outcome-source-blame source↠blame =
       inj₂ (_ , source↠blame)
 world-coherent-source-one-step-proofᵀ
-    prefix-step {p = p} coherent exclusive wfL wfR
+    prefix-step {p = p} coherent exclusive unique wfL wfR
     okM okM′ M⊑M′ source-step
     | source-step-outcome-related exact-result
     with sourceCtxResult result
@@ -126,7 +127,7 @@ world-coherent-source-one-step-proofᵀ
   indexed = sourceStepIndexedResult exact-result
   result = weakIndexedResult indexed
 world-coherent-source-one-step-proofᵀ
-    prefix-step {p = p} coherent exclusive wfL wfR
+    prefix-step {p = p} coherent exclusive unique wfL wfR
     okM okM′ M⊑M′ source-step
     | source-step-outcome-related exact-result
     | refl | refl | refl | refl =
@@ -139,6 +140,7 @@ world-coherent-source-one-step-proofᵀ
       targetTail result ,
       sourceStepWorldCoherent exact-result ,
       sourceStepSourceNameExclusive exact-result ,
+      sourceStepAssumptionMembershipUnique exact-result ,
       sourceStoreResult result ,
       targetStoreResult result ,
       canonicalIndexedResults indexed)

@@ -83,6 +83,7 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ; sourceStepIndexedResult
   ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
+  ; sourceStepAssumptionMembershipUnique
   ; sourceStepStoreLineage
   ; sourceStepTransport
   ; sourceStepTypeCoherence
@@ -146,6 +147,7 @@ source-step-source-narrow-frameᵀ
     framed-result-exact
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
+    (sourceStepAssumptionMembershipUnique complete)
   where
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀
@@ -243,6 +245,7 @@ source-step-source-widen-frameᵀ
     framed-result-exact
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
+    (sourceStepAssumptionMembershipUnique complete)
   where
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀
@@ -336,6 +339,7 @@ source-step-source-reveal-frameᵀ
     framed-result-exact
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
+    (sourceStepAssumptionMembershipUnique complete)
   where
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀
@@ -426,6 +430,7 @@ source-step-source-conceal-frameᵀ
     framed-result-exact
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
+    (sourceStepAssumptionMembershipUnique complete)
   where
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀

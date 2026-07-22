@@ -18,7 +18,7 @@ world-coherent-source-application-right-step-proofᵀ :
   WorldCoherentSourceOneStepPrefixᵀ →
   WorldCoherentSourceApplicationRightStepᵀ
 world-coherent-source-application-right-step-proofᵀ
-    prefix prefixρ coherent exclusive wfL wfR okVM okM′
+    prefix prefixρ coherent exclusive unique wfL wfR okVM okM′
     VM⊢ M′⊢ VM⊑M′ vV shiftV M→M₁ =
-  prefix prefixρ coherent exclusive wfL wfR okVM okM′
+  prefix prefixρ coherent exclusive unique wfL wfR okVM okM′
     VM⊢ M′⊢ VM⊑M′ (ξ-·₂ vV shiftV M→M₁)

@@ -133,6 +133,12 @@ open import proof.NuImprecisionContextExclusivityProof using
   )
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
+open import proof.NuImprecisionAssumptionMembershipUniquenessProof using
+  ( assumption-membership-unique-matched
+  ; assumption-membership-unique-source
+  )
 open import proof.NuImprecisionLeftLiftPrefixBodyProof using
   (left-lift-prefix-body-proofᵀ)
 open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
@@ -576,6 +582,8 @@ private
     WorldCoherent (resultStore (weakIndexedResult second-indexed)) →
     SourceNameExclusive
       (resultCtx (weakIndexedResult second-indexed)) →
+    AssumptionMembershipUnique
+      (resultCtx (weakIndexedResult second-indexed)) →
     WorldCoherentSourceOneStepIndexedResult
       {M = M} {M′ = M′} {L = L}
       {χ = χ} {ρ = ρ} p
@@ -583,11 +591,11 @@ private
       {p = p} first-indexed target→ second-indexed
       first-transport first-coherence first-lineage
       second-transport second-coherence second-lineage
-      changes-exact result-exact final-world final-exclusive =
+      changes-exact result-exact final-world final-exclusive final-unique =
     world-coherent-source-one-step-indexed
       (weak-one-step-index-resultᵀ combined type-eq)
       combined-transport combined-coherence combined-lineage
-      changes-exact result-exact final-world final-exclusive
+      changes-exact result-exact final-world final-exclusive final-unique
     where
     first-raw = weakIndexedResult first-indexed
     first = weak-one-step-reindexᵀ first-raw refl refl
@@ -659,35 +667,38 @@ world-coherent-source-allocation-step-proofᵀ :
   WorldCoherentSourceAllocationTargetBulletStepᵀ →
   WorldCoherentSourceAllocationStepᵀ
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (allocation-prefixᵀ prefix₀ inner inner-source⊢ inner-target⊢)
     vV noV =
   world-coherent-source-allocation-step-proofᵀ
     right-catchup paired-steps target-bullet
     (store-imp-prefix-transⁱ prefix₀ prefix)
-    coherent exclusive wfL wfR ok-source ok-target source⊢ target⊢
+    coherent exclusive unique wfL wfR ok-source ok-target source⊢ target⊢
     inner vV noV
 world-coherent-source-allocation-step-proofᵀ
     right-catchup paired-steps target-bullet
-    prefix coherent exclusive wfL wfR
+    prefix coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑ᵀ {q = ∀ⁱ q}
       hA h⇑A s↑ liftρ lift-left-ctx-[] inner)
     vV noV =
   sourceAllocationNuPairedIndexStep paired-steps
-    prefix coherent exclusive wfL wfR
+    prefix coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     hA h⇑A s↑ liftρ lift-left-ctx-[] inner vV noV
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑ᵀ {q = νⁱ occ q}
       hA h⇑A s↑ liftρ lift-left-ctx-[] inner)
     vV noV
     with lift-left-store-result _
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑ᵀ {q = νⁱ occ q}
       hA h⇑A s↑ liftρ lift-left-ctx-[] inner)
@@ -709,7 +720,8 @@ world-coherent-source-allocation-step-proofᵀ
           source⊢)
         target⊢)
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑ᵀ {q = νⁱ occ q}
       hA h⇑A s↑ liftρ lift-left-ctx-[] inner)
@@ -727,6 +739,7 @@ world-coherent-source-allocation-step-proofᵀ
     refl refl
     (world-coherent-left-allocation liftρ⁺ coherent)
     (source-name-exclusive-source-only-head exclusive)
+    (assumption-membership-unique-source unique)
   where
   result : WeakOneStepResult _ _ _ _ _ keep
   result =
@@ -758,26 +771,28 @@ world-coherent-source-allocation-step-proofᵀ
       }
 world-coherent-source-allocation-step-proofᵀ
     right-catchup paired-steps target-bullet
-    prefix coherent exclusive wfL wfR
+    prefix coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (νcast⊑ᵀ {q = ∀ⁱ q}
       mode seal★ s⊑ liftρ lift-left-ctx-[] inner)
     vV noV =
   sourceAllocationNuCastPairedIndexStep paired-steps
-    prefix coherent exclusive wfL wfR
+    prefix coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     mode seal★ s⊑ liftρ lift-left-ctx-[] inner vV noV
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (νcast⊑νcastᵀ {p = pB}
       mode seal★ mode′ seal★′ s⊑ s′⊑ compat
       liftρ lift-ctx inner)
     vV noV
-    with right-catchup prefix coherent exclusive wfR
+    with right-catchup prefix coherent exclusive unique wfR
       (ν-runtime ok-target) vV noV inner
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (νcast⊑νcastᵀ {p = pB}
       mode seal★ mode′ seal★′ s⊑ s′⊑ compat
@@ -789,13 +804,14 @@ world-coherent-source-allocation-step-proofᵀ
           inner-transport inner-coherence)
         (weak-step-store-lineage
           lineage-store lineage-embedding lineage-prefix)
-        source-bullet-transport final-coherent final-exclusive final-wfR
+        source-bullet-transport final-coherent final-exclusive final-unique
+          final-wfR
     =
   compose-exact-source-stepᵀ
     first-indexed target-step second-indexed
     first-transport first-coherence first-lineage
     second-transport second-coherence second-lineage
-    refl refl final-world final-exclusive⁺
+    refl refl final-world final-exclusive⁺ final-unique⁺
   where
   all = weak-indexed-all-resultᵀ indexed inner-coherence
   inner-result = weakIndexedResult indexed
@@ -882,16 +898,21 @@ world-coherent-source-allocation-step-proofᵀ
 
   final-exclusive⁺ =
     source-name-exclusive-matched-head final-exclusive
+
+  final-unique⁺ =
+    assumption-membership-unique-matched final-unique
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑νᵀ {p = pB}
       hA hA′ s↑ s′↑ pA A⇑⊑A′⇑ liftρ lift-ctx inner)
     vV noV
-    with right-catchup prefix coherent exclusive wfR
+    with right-catchup prefix coherent exclusive unique wfR
       (ν-runtime ok-target) vV noV inner
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑νᵀ {p = pB}
       hA hA′ s↑ s′↑ pA A⇑⊑A′⇑ liftρ lift-ctx inner)
@@ -902,13 +923,14 @@ world-coherent-source-allocation-step-proofᵀ
           inner-transport inner-coherence)
         (weak-step-store-lineage
           lineage-store lineage-embedding lineage-prefix)
-        source-bullet-transport final-coherent final-exclusive final-wfR
+        source-bullet-transport final-coherent final-exclusive final-unique
+          final-wfR
     =
   compose-exact-source-stepᵀ
     first-indexed target-step second-indexed
     first-transport first-coherence first-lineage
     second-transport second-coherence second-lineage
-    refl refl final-world final-exclusive⁺
+    refl refl final-world final-exclusive⁺ final-unique⁺
   where
   all = weak-indexed-all-resultᵀ indexed inner-coherence
 
@@ -981,15 +1003,20 @@ world-coherent-source-allocation-step-proofᵀ
 
   final-exclusive⁺ =
     source-name-exclusive-matched-head final-exclusive
+
+  final-unique⁺ =
+    assumption-membership-unique-matched final-unique
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (νcast⊑ᵀ {q = νⁱ occ q}
       mode seal★ s⊑ liftρ lift-left-ctx-[] inner)
     vV noV
     with lift-left-store-result _
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (νcast⊑ᵀ {q = νⁱ occ q}
       mode seal★ s⊑ liftρ lift-left-ctx-[] inner)
@@ -1013,7 +1040,8 @@ world-coherent-source-allocation-step-proofᵀ
           (proj₁ (coercion-src-tgtᵐ (proj₁ s⊑))) source⊢)
         target⊢)
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (νcast⊑ᵀ {q = νⁱ occ q}
       mode seal★ s⊑ liftρ lift-left-ctx-[] inner)
@@ -1031,6 +1059,7 @@ world-coherent-source-allocation-step-proofᵀ
     refl refl
     (world-coherent-left-allocation liftρ⁺ coherent)
     (source-name-exclusive-source-only-head exclusive)
+    (assumption-membership-unique-source unique)
   where
   result : WeakOneStepResult _ _ _ _ _ keep
   result =
@@ -1061,52 +1090,60 @@ world-coherent-source-allocation-step-proofᵀ
       ; relatedResults = related
       }
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑cast⊒ᵀ mode′ seal★′ c′⊒ inner q) vV noV =
   sourceStepTargetNarrowFrame
     world-coherent-source-one-step-target-cast-frames
     prefix mode′ seal★′ c′⊒
     (world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
       ok-source (cast-runtime ok-target) source⊢
       (cast-body-typing-at
         (proj₁ (coercion-src-tgtᵐ (proj₁ c′⊒))) target⊢)
       inner vV noV)
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑cast⊑ᵀ mode′ seal★′ c′⊑ inner q) vV noV =
   sourceStepTargetWidenFrame
     world-coherent-source-one-step-target-cast-frames
     prefix mode′ seal★′ c′⊑
     (world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
       ok-source (cast-runtime ok-target) source⊢
       (cast-body-typing-at
         (proj₁ (coercion-src-tgtᵐ (proj₁ c′⊑))) target⊢)
       inner vV noV)
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑cast⊑idᵀ seal★′ c′⊑ inner q) vV noV =
   sourceStepTargetIdWidenFrame
     world-coherent-source-one-step-target-cast-frames
     prefix seal★′ c′⊑
     (world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
       ok-source (cast-runtime ok-target) source⊢
       (cast-body-typing-at
         (proj₁ (coercion-src-tgtᵐ (proj₁ c′⊑))) target⊢)
       inner vV noV)
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑conv↑ᵀ c′↑ inner q) vV noV =
   sourceStepTargetRevealFrame
     world-coherent-source-one-step-target-cast-frames prefix c′↑
     (world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
       ok-source (cast-runtime ok-target) source⊢
       (cast-body-typing-at
         (proj₁ (coercion-src-tgtᵐ
@@ -1114,13 +1151,15 @@ world-coherent-source-allocation-step-proofᵀ
         target⊢)
       inner vV noV)
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑conv↓ᵀ c′↓ inner q) vV noV =
   sourceStepTargetConcealFrame
     world-coherent-source-one-step-target-cast-frames prefix c′↓
     (world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
       ok-source (cast-runtime ok-target) source⊢
       (cast-body-typing-at
         (proj₁ (coercion-src-tgtᵐ
@@ -1128,14 +1167,16 @@ world-coherent-source-allocation-step-proofᵀ
             (conceal-conversion-typing c′↓)))) target⊢)
       inner vV noV)
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑νᵀ hA h⇑A s↑ liftρ lift-right-ctx-[] r inner) vV noV =
   sourceStepTargetNuFrame
     world-coherent-source-one-step-target-nu-framesᵀ
     prefix hA s↑ r
     (world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
       ok-source (ν-runtime ok-target) source⊢
       (ν-body-typing-at
         (proj₁ (coercion-src-tgtᵐ
@@ -1143,7 +1184,8 @@ world-coherent-source-allocation-step-proofᵀ
         target⊢)
       inner vV noV)
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑νcastᵀ mode seal★ s⊑ liftρ lift-right-ctx-[] r inner)
     vV noV =
@@ -1151,17 +1193,19 @@ world-coherent-source-allocation-step-proofᵀ
     world-coherent-source-one-step-target-nu-framesᵀ
     prefix mode seal★ s⊑ r
     (world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
       ok-source (ν-runtime ok-target) source⊢
       (ν-body-typing-at
         (proj₁ (coercion-src-tgtᵐ (proj₁ s⊑))) target⊢)
       inner vV noV)
 world-coherent-source-allocation-step-proofᵀ
-    right-catchup paired-steps target-bullet prefix coherent exclusive wfL wfR
+    right-catchup paired-steps target-bullet prefix coherent exclusive unique
+      wfL wfR
     ok-source ok-target source⊢ target⊢
     (⊑αᵀ vL′ noL′ h⇑A liftρ lift-right-ctx-[] inner r
       inner-source⊢ inner-target⊢)
     vV noV =
-  target-bullet h⇑A prefix coherent exclusive wfL wfR
+  target-bullet h⇑A prefix coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢ vL′ noL′ liftρ inner
     inner-source⊢ inner-target⊢ vV noV

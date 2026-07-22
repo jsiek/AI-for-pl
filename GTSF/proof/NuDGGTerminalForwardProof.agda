@@ -116,21 +116,21 @@ world-coherent-forward-source-value-proofᵀ :
   WorldCoherentRightValueCatchupᵀ →
   WorldCoherentForwardSourceValueᵀ
 world-coherent-forward-source-value-proofᵀ
-    one-step right-catchup {M = M} coherent exclusive wfL wfR
+    one-step right-catchup {M = M} coherent exclusive unique wfL wfR
     okM okM′ M⊑M′ .M [] ↠-refl vM =
-  right-catchup coherent exclusive wfR okM′ vM
+  right-catchup coherent exclusive unique wfR okM′ vM
     (runtime-value-no• okM vM) M⊑M′
 world-coherent-forward-source-value-proofᵀ
     one-step right-catchup
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B} {ρ = ρ}
-    coherent exclusive wfL wfR okM okM′ M⊑M′
+    coherent exclusive unique wfL wfR okM okM′ M⊑M′
     V (χ ∷ χs) (↠-step source-step source-rest) vV
-    with one-step coherent exclusive wfL wfR okM okM′ M⊑M′
+    with one-step coherent exclusive unique wfL wfR okM okM′ M⊑M′
       source-step
 world-coherent-forward-source-value-proofᵀ
     one-step right-catchup
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B} {ρ = ρ}
-    coherent exclusive wfL wfR okM okM′ M⊑M′
+    coherent exclusive unique wfL wfR okM okM′ M⊑M′
     V (χ ∷ χs) (↠-step source-step source-rest) vV
     | inj₂ (source-blame-changes , source↠blame) =
   ⊥-elim
@@ -139,14 +139,14 @@ world-coherent-forward-source-value-proofᵀ
 world-coherent-forward-source-value-proofᵀ
     one-step right-catchup
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B} {ρ = ρ}
-    coherent exclusive wfL wfR okM okM′ M⊑M′
+    coherent exclusive unique wfL wfR okM okM′ M⊑M′
     V (χ ∷ χs) (↠-step source-step source-rest) vV
     | inj₁
         (L′ , θs , Ψ , ρ′ , q , M′↠L′ , coherent′ ,
-          exclusive′ , left-eq , right-eq , L⊑L′)
+          exclusive′ , unique′ , left-eq , right-eq , L⊑L′)
     with world-coherent-forward-source-value-proofᵀ
       one-step right-catchup coherent′ exclusive′
-      next-wfL next-wfR next-okL next-okL′ L⊑L′
+      unique′ next-wfL next-wfR next-okL next-okL′ L⊑L′
       V χs source-rest vV
   where
   source-typing = forward-empty-context-source-typing M⊑M′
@@ -168,11 +168,11 @@ world-coherent-forward-source-value-proofᵀ
 world-coherent-forward-source-value-proofᵀ
     one-step right-catchup
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B} {ρ = ρ}
-    coherent exclusive wfL wfR okM okM′ M⊑M′
+    coherent exclusive unique wfL wfR okM okM′ M⊑M′
     V (χ ∷ χs) (↠-step source-step source-rest) vV
     | inj₁
         (L′ , θs , Ψ , ρ′ , q , M′↠L′ , coherent′ ,
-          exclusive′ , left-eq , right-eq , L⊑L′)
+          exclusive′ , unique′ , left-eq , right-eq , L⊑L′)
     | V′ , ηs , Ω , ρ″ , r , L′↠V′ , vV′ ,
       final-left-eq , final-right-eq , V⊑V′
     rewrite sym (applyTyCtxs-++ θs ηs Δᴿ)

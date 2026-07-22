@@ -79,6 +79,8 @@ open import proof.NuImprecisionAtomicTargetReindex using
   (atomic-target-value-reindexᵀ)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ
   ; rel-store-embedding-congⁱ
@@ -393,7 +395,7 @@ private
   target-identity-resume-core {B = B} {q = q} atom
       (world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet-transport final-world
-        final-exclusive final-wfR)
+        final-exclusive final-unique final-wfR)
       framed-relation =
     world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
@@ -410,6 +412,7 @@ private
       combined-bullet
       final-world
       final-exclusive
+      final-unique
       final-wfR
     where
     indexed = rightCatchupIndexedResult catchup
@@ -556,7 +559,8 @@ private
   narrow-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
       prefix mode seal★ c⊒
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       with apply-narrows-typing
         {χs = keep ∷ targetTailChanges
           (weakIndexedResult (rightCatchupIndexedResult catchup))}
@@ -567,7 +571,8 @@ private
   narrow-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
       prefix mode seal★ c⊒
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       | μ″ , mode″ , seal★″ , c″⊒ =
     ⊑cast⊒ᵀ mode″ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
@@ -628,7 +633,8 @@ private
   widen-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
       prefix mode seal★ c⊑
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       with apply-widens-typing
         {χs = keep ∷ targetTailChanges
           (weakIndexedResult (rightCatchupIndexedResult catchup))}
@@ -639,7 +645,8 @@ private
   widen-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
       prefix mode seal★ c⊑
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       | μ″ , mode″ , seal★″ , c″⊑ =
     ⊑cast⊑ᵀ mode″ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
@@ -698,7 +705,8 @@ private
   id-widen-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
       prefix c⊑
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR) =
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR) =
     ⊑cast⊑idᵀ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
     where
@@ -763,7 +771,8 @@ private
   reveal-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
       prefix c↑
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       with apply-reveal-conversions
         {χs = keep ∷ targetTailChanges
           (weakIndexedResult (rightCatchupIndexedResult catchup))}
@@ -772,7 +781,8 @@ private
   reveal-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
       prefix c↑
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       | μ″ , β″ , X″ , c″↑ =
     ⊑conv↑ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
@@ -829,7 +839,8 @@ private
   conceal-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
       prefix c↓
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       with apply-conceal-conversions
         {χs = keep ∷ targetTailChanges
           (weakIndexedResult (rightCatchupIndexedResult catchup))}
@@ -838,7 +849,8 @@ private
   conceal-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
       prefix c↓
       inner-world@(world-coherent-right-value-indexed-catchup
-        catchup lineage source-bullet final-world final-exclusive final-wfR)
+        catchup lineage source-bullet final-world final-exclusive final-unique
+        final-wfR)
       | μ″ , β″ , X″ , c″↓ =
     ⊑conv↓ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
@@ -877,6 +889,7 @@ rightTargetNarrowIdentityRoot :
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK (M′ ⟨ id B ⟩) →
   Value V →
@@ -891,19 +904,19 @@ rightTargetNarrowIdentityRoot :
   WorldCoherentRightValueCatchupIndexedResult
     {V = V} {M′ = M′ ⟨ id B ⟩} {ρ = ρ⁺} q
 rightTargetNarrowIdentityRoot
-    prefix coherent exclusive wfR okId vV noV mode seal★
+    prefix coherent exclusive unique wfR okId vV noV mode seal★
     c⊒@(C.cast-id _ _ , NW.cross (NW.id-＇ α))
     V⊑M′ inner-world =
   target-identity-resume-core (＇ α) inner-world
     (narrow-framed-relation prefix mode seal★ c⊒ inner-world)
 rightTargetNarrowIdentityRoot
-    prefix coherent exclusive wfR okId vV noV mode seal★
+    prefix coherent exclusive unique wfR okId vV noV mode seal★
     c⊒@(C.cast-id _ _ , NW.cross (NW.id-‵ ι))
     V⊑M′ inner-world =
   target-identity-resume-core (‵ ι) inner-world
     (narrow-framed-relation prefix mode seal★ c⊒ inner-world)
 rightTargetNarrowIdentityRoot
-    prefix coherent exclusive wfR okId vV noV mode seal★
+    prefix coherent exclusive unique wfR okId vV noV mode seal★
     c⊒@(C.cast-id _ _ , NW.id★)
     V⊑M′ inner-world =
   target-identity-resume-core ★ inner-world
@@ -918,6 +931,7 @@ rightTargetWidenIdentityRoot :
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK (M′ ⟨ id B ⟩) →
   Value V →
@@ -932,19 +946,19 @@ rightTargetWidenIdentityRoot :
   WorldCoherentRightValueCatchupIndexedResult
     {V = V} {M′ = M′ ⟨ id B ⟩} {ρ = ρ⁺} q
 rightTargetWidenIdentityRoot
-    prefix coherent exclusive wfR okId vV noV mode seal★
+    prefix coherent exclusive unique wfR okId vV noV mode seal★
     c⊑@(C.cast-id _ _ , NW.cross (NW.id-＇ α))
     V⊑M′ inner-world =
   target-identity-resume-core (＇ α) inner-world
     (widen-framed-relation prefix mode seal★ c⊑ inner-world)
 rightTargetWidenIdentityRoot
-    prefix coherent exclusive wfR okId vV noV mode seal★
+    prefix coherent exclusive unique wfR okId vV noV mode seal★
     c⊑@(C.cast-id _ _ , NW.cross (NW.id-‵ ι))
     V⊑M′ inner-world =
   target-identity-resume-core (‵ ι) inner-world
     (widen-framed-relation prefix mode seal★ c⊑ inner-world)
 rightTargetWidenIdentityRoot
-    prefix coherent exclusive wfR okId vV noV mode seal★
+    prefix coherent exclusive unique wfR okId vV noV mode seal★
     c⊑@(C.cast-id _ _ , NW.id★)
     V⊑M′ inner-world =
   target-identity-resume-core ★ inner-world
@@ -959,6 +973,7 @@ rightTargetIdWidenIdentityRoot :
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK (M′ ⟨ id B ⟩) →
   Value V →
@@ -973,19 +988,19 @@ rightTargetIdWidenIdentityRoot :
   WorldCoherentRightValueCatchupIndexedResult
     {V = V} {M′ = M′ ⟨ id B ⟩} {ρ = ρ⁺} q
 rightTargetIdWidenIdentityRoot
-    prefix coherent exclusive wfR okId vV noV seal★
+    prefix coherent exclusive unique wfR okId vV noV seal★
     c⊑@(C.cast-id _ _ , NW.cross (NW.id-＇ α))
     V⊑M′ inner-world =
   target-identity-resume-core (＇ α) inner-world
     (id-widen-framed-relation prefix c⊑ inner-world)
 rightTargetIdWidenIdentityRoot
-    prefix coherent exclusive wfR okId vV noV seal★
+    prefix coherent exclusive unique wfR okId vV noV seal★
     c⊑@(C.cast-id _ _ , NW.cross (NW.id-‵ ι))
     V⊑M′ inner-world =
   target-identity-resume-core (‵ ι) inner-world
     (id-widen-framed-relation prefix c⊑ inner-world)
 rightTargetIdWidenIdentityRoot
-    prefix coherent exclusive wfR okId vV noV seal★
+    prefix coherent exclusive unique wfR okId vV noV seal★
     c⊑@(C.cast-id _ _ , NW.id★)
     V⊑M′ inner-world =
   target-identity-resume-core ★ inner-world
@@ -1000,6 +1015,7 @@ rightTargetRevealIdentityRoot :
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK (M′ ⟨ id B ⟩) →
   Value V →
@@ -1013,19 +1029,19 @@ rightTargetRevealIdentityRoot :
   WorldCoherentRightValueCatchupIndexedResult
     {V = V} {M′ = M′ ⟨ id B ⟩} {ρ = ρ⁺} q
 rightTargetRevealIdentityRoot
-    prefix coherent exclusive wfR okId vV noV
+    prefix coherent exclusive unique wfR okId vV noV
     c↑@(Conv.reveal-id-var {Y = Y} hY ok)
     V⊑M′ inner-world =
   target-identity-resume-core (＇ Y) inner-world
     (reveal-framed-relation prefix c↑ inner-world)
 rightTargetRevealIdentityRoot
-    prefix coherent exclusive wfR okId vV noV
+    prefix coherent exclusive unique wfR okId vV noV
     c↑@(Conv.reveal-id-base {ι = ι})
     V⊑M′ inner-world =
   target-identity-resume-core (‵ ι) inner-world
     (reveal-framed-relation prefix c↑ inner-world)
 rightTargetRevealIdentityRoot
-    prefix coherent exclusive wfR okId vV noV
+    prefix coherent exclusive unique wfR okId vV noV
     c↑@Conv.reveal-id-★
     V⊑M′ inner-world =
   target-identity-resume-core ★ inner-world
@@ -1040,6 +1056,7 @@ rightTargetConcealIdentityRoot :
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK (M′ ⟨ id B ⟩) →
   Value V →
@@ -1053,19 +1070,19 @@ rightTargetConcealIdentityRoot :
   WorldCoherentRightValueCatchupIndexedResult
     {V = V} {M′ = M′ ⟨ id B ⟩} {ρ = ρ⁺} q
 rightTargetConcealIdentityRoot
-    prefix coherent exclusive wfR okId vV noV
+    prefix coherent exclusive unique wfR okId vV noV
     c↓@(Conv.conceal-id-var {Y = Y} hY ok)
     V⊑M′ inner-world =
   target-identity-resume-core (＇ Y) inner-world
     (conceal-framed-relation prefix c↓ inner-world)
 rightTargetConcealIdentityRoot
-    prefix coherent exclusive wfR okId vV noV
+    prefix coherent exclusive unique wfR okId vV noV
     c↓@(Conv.conceal-id-base {ι = ι})
     V⊑M′ inner-world =
   target-identity-resume-core (‵ ι) inner-world
     (conceal-framed-relation prefix c↓ inner-world)
 rightTargetConcealIdentityRoot
-    prefix coherent exclusive wfR okId vV noV
+    prefix coherent exclusive unique wfR okId vV noV
     c↓@Conv.conceal-id-★
     V⊑M′ inner-world =
   target-identity-resume-core ★ inner-world

@@ -17,8 +17,8 @@ open import proof.NuImprecisionWorldCoherentSourceNuBlameStepDef using
 world-coherent-source-ν-blame-step-proofᵀ :
   WorldCoherentSourceNuBlameStepᵀ
 world-coherent-source-ν-blame-step-proofᵀ
-    prefix coherent exclusive wfL wfR okνblame okM′
+    prefix coherent exclusive unique wfL wfR okνblame okM′
     νblame⊢ M′⊢ νblame⊑M′ =
   world-coherent-source-keep-blame-rootᵀ
-    prefix coherent exclusive wfL wfR okνblame okM′
+    prefix coherent exclusive unique wfL wfR okνblame okM′
     νblame⊢ M′⊢ νblame⊑M′ blame-ν

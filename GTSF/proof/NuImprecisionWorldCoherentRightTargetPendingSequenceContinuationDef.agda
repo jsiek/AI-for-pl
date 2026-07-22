@@ -34,6 +34,8 @@ open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import proof.NuImprecisionTargetAdministrationMeasureDef using
   (targetPendingAdministrationRank)
 open import proof.NuImprecisionTargetAdministrationPlanDef using
@@ -67,6 +69,7 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
         ⊢ᴺ V ⊑ W ⦂ A ⊑ B ∶ p →
       WorldCoherent ρ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ) →
       RuntimeOK ((W ⟨ s ⟩) ⟨ t ⟩) →
       Value V →
@@ -95,6 +98,7 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
         ⊢ᴺ V ⊑ W ⦂ A ⊑ B ∶ p →
       WorldCoherent ρ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ) →
       RuntimeOK ((W ⟨ s ⟩) ⟨ t ⟩) →
       Value V →
@@ -124,6 +128,7 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
         ⊢ᴺ V ⊑ W ⦂ A ⊑ B ∶ p →
       WorldCoherent ρ →
       SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ) →
       RuntimeOK ((W ⟨ s ⟩) ⟨ t ⟩) →
       Value V →

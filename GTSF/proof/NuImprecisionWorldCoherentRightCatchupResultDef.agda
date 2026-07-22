@@ -11,6 +11,9 @@ open import NuStore using (StoreWf)
 open import NuTermImprecision using (StoreImp; rightStoreⁱ)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import
+  proof.NuImprecisionAssumptionMembershipUniquenessDef
+  using (AssumptionMembershipUnique)
 open import proof.NuImprecisionRightValueCatchupResultDef using
   ( RightValueCatchupIndexedResult
   ; rightCatchupIndexedResult
@@ -58,6 +61,12 @@ record WorldCoherentRightValueCatchupIndexedResult
 
     worldRightCatchupSourceNameExclusive :
       SourceNameExclusive
+        (resultCtx
+          (weakIndexedResult
+            (rightCatchupIndexedResult worldRightCatchupResult)))
+
+    worldRightCatchupAssumptionMembershipUnique :
+      AssumptionMembershipUnique
         (resultCtx
           (weakIndexedResult
             (rightCatchupIndexedResult worldRightCatchupResult)))

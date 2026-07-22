@@ -55,6 +55,7 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ; sourceStepIndexedResult
   ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
+  ; sourceStepAssumptionMembershipUnique
   ; sourceStepStoreLineage
   ; sourceStepTransport
   ; sourceStepTypeCoherence
@@ -104,6 +105,7 @@ source-step-target-ν-frameᵀ {p = p}
     (sourceStepResultExact complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
+    (sourceStepAssumptionMembershipUnique complete)
   where
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀
@@ -159,6 +161,7 @@ source-step-target-νcast-frameᵀ {p = p}
     (sourceStepResultExact complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
+    (sourceStepAssumptionMembershipUnique complete)
   where
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀

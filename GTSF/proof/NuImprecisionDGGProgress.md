@@ -10,13 +10,14 @@ Agda declaration yet. Historical log entries use **checked** as a synonym for
 
 ## Current objective
 
-Complete the semantic engines behind the three hole-free terminal assemblies.
-On the backward side these are the arbitrary-type source catch-up, target-step
-dispatcher, and zero-step blame catch-up.  On the forward side they are the
-newly frozen source-oriented one-step simulation and right-value catch-up
-contracts.  The trace-level forward, backward-value, and backward-blame
-assemblies then feed the already checked reduction to `ClosedNuDGG` and the
-public `GradualDGG`.
+Repair the semantic statement exposed by the strict
+[`ClosedNuDGG` counterexample](NuImprecisionClosedNuDGGCounterexample.agda).
+The current QTI relation admits a closed source `gen` value opposite a target
+tag/untag redex, but it has no post-untag relation for the resulting value pair;
+consequently `ClosedNuDGG → ⊥`.  Before completing the remaining semantic
+engines, choose and validate the smallest sound relation or theorem change.
+Preserve the checked conditional assemblies and flat capability boundaries;
+do not hide the obstruction behind another simulation carrier.
 
 ## Coverage ledger
 
@@ -48,13 +49,14 @@ public `GradualDGG`.
 | One-step Nu-imprecision simulation | partial | The dispatcher skeleton covers blame and the matched/source-only/target-only `ν` and `ν ★` families; ten explicit helper holes remain, and the non-`ν` constructor/reduction patterns are not yet enumerated |
 | Terminal target-trace alignment | checked | Determinism makes every administrative `targetTail` a prefix of an observed trace to a value or blame |
 | Forward source-value terminal clause | completed higher-order assembly; dependencies not started | The strict `Def`/`Proof` architecture shows that source one-step simulation and right-value catch-up suffice; both semantic implementations remain to be proved |
-| Backward target-value-or-source-blame clause | partial dependencies | Its `Def` contract, generic `Proof`, and canonical `Lemma` assembly are hole-free; arbitrary-value catch-up and the target dispatcher supplied by the lemma remain partial |
+| Backward target-value-or-source-blame clause | refuted as currently stated | [`closed-nu-dgg-counterexample`](NuImprecisionClosedNuDGGCounterexample.agda) supplies a closed related source value and target untag redex for which the target reaches a value, while the source can neither step to blame nor end in a QTI-related value. The generic induction remains a valid conditional theorem, but its semantic contracts cannot be inhabited without repairing QTI or weakening the conclusion. |
 | Backward target-blame clause | partial | Its exact named statement is checked in `NuDGGTerminalBackwardBlame`; target-trace alignment and the higher-order trace induction are checked, while zero-step blame catch-up and the live target dispatcher remain partial |
 | Residual target-trace measure | completed | `aligned-residual-shorter` proves that the aligned residual after a distinguished target step is strictly shorter |
 | Multi-step store well-formedness | completed | `multi-store-preservation` packages the store invariant across a complete Nu trace |
-| Named terminal components compose to `GradualDGG` | completed interface check | `dynamic-gradual-guarantee-skeleton` supplies the three named boundaries to the checked strict wrapper |
-| Three terminal clauses imply `ClosedNuDGG` | checked | `closed-nu-terminal-simulation⇒closed-nu-dgg` is hole-free |
-| Closed `GradualDGG` | checked reduction | `closed-nu-dgg⇒gradual-dgg` reduces it to `ClosedNuDGG`, which now follows from exactly three terminal simulation clauses |
+| Named terminal components compose to `GradualDGG` | completed conditional interface check | `dynamic-gradual-guarantee-skeleton` supplies the three named boundaries to the checked strict wrapper, but the backward-value boundary is now known to be false under current QTI. |
+| Three terminal clauses imply `ClosedNuDGG` | completed conditional theorem | `closed-nu-terminal-simulation⇒closed-nu-dgg` is hole-free; the strict counterexample proves that its three premises cannot all be supplied under current QTI. |
+| `ClosedNuDGG` consistency | refuted | [`closed-nu-dgg-counterexample`](NuImprecisionClosedNuDGGCounterexample.agda) proves `ClosedNuDGG → ⊥` using an empty-world source-`gen`/target-untag configuration. |
+| Closed `GradualDGG` reduction | completed conditionally; public theorem unresolved | `closed-nu-dgg⇒gradual-dgg` remains a valid reduction, but the required `ClosedNuDGG` premise is refuted. A source-level compilation audit finds the same configuration reachable from closed gradual applications, so compiler origin does not appear to repair the statement. |
 
 ## Top-down proof plan from `QuotientedTermImprecision`
 
@@ -78,6 +80,13 @@ It derives both divergence clauses by finite-prefix arguments. The checked
 theorem [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L400) then discharges the
 public [`GradualDGG`](../DynamicGradualGuarantee.agda#L91).
 
+The strict theorem
+[`closed-nu-dgg-counterexample`](NuImprecisionClosedNuDGGCounterexample.agda)
+now proves that `ClosedNuDGG` itself is uninhabited under the current QTI
+relation.  Thus the reductions above remain valid conditional theorems, but
+the three terminal facts cannot all be proved without changing the relation or
+the terminal statement.
+
 Status of this outer spine:
 
 | Step | Status | Checked declaration or remaining work |
@@ -85,7 +94,7 @@ Status of this outer spine:
 | Compile public imprecision to closed Nu imprecision | completed | [`compiled-term-imprecision`](NuDGGSpine.agda#L77) |
 | Reduce the four observations in `ClosedNuDGG` to three terminal facts | completed | [`closed-nu-terminal-simulation⇒closed-nu-dgg`](NuDGGSpine.agda#L330) |
 | Reduce `GradualDGG` to `ClosedNuDGG` | completed | [`closed-nu-dgg⇒gradual-dgg`](NuDGGSpine.agda#L400) |
-| Supply the three terminal facts | partial | All three exact statements and arbitrary-world recursive forms are named in the terminal modules; their general proof bodies remain open |
+| Supply the three terminal facts | blocked by refuted backward-value fact | All three exact statements and arbitrary-world recursive forms are named, but the strict closed counterexample refutes the current backward target-value-or-source-blame clause. Repair QTI or the terminal conclusion before resuming canonical assembly. |
 
 ### Common hypotheses and final related-value package
 
@@ -167,7 +176,7 @@ common hypotheses, it states
 |---|---|---|
 | F1. State a source-oriented one-step simulation | completed corrected statement and recursive boundary | [`WorldCoherentSourceOneStepSimulationᵀ`](NuImprecisionWorldCoherentSourceOneStepDef.agda) returns either a compact continuing relation or a source trace to blame. [`WorldCoherentSourceOneStepIndexedResult`](NuImprecisionWorldCoherentSourceOneStepResultDef.agda) retains generic index transport, type coherence, store lineage, the exact singleton source change, and final world invariants on the continuing branch. [`WorldCoherentSourceOneStepOutcome`](NuImprecisionWorldCoherentSourceOneStepOutcomeDef.agda) adds the necessary blame branch for congruence cases. The ambient-prefix boundary requires refined [`TermTyping`](../TermTyping.agda) derivations at the physical store, exactly as needed to rebuild `allocation-prefixᵀ`. |
 | F2. Prove the source-oriented one-step cases | partial: primitive roots and `ν` blame completed; ten named major families remain | [`WorldCoherentSourceOneStepCases`](NuImprecisionWorldCoherentSourceOneStepCasesDef.agda) freezes all nine source store-step families, while [`WorldCoherentSourcePureStepCases`](NuImprecisionWorldCoherentSourcePureStepCasesDef.agda) exposes the four pure-root families. [`world-coherent-source-one-step-cases-proofᵀ`](NuImprecisionWorldCoherentSourceOneStepCasesProof.agda) now assembles the DGG-facing record from individually named capabilities, supplying primitive roots and the source `ν`-blame case canonically. Direct primitive scheduling, target framing, source-silent composition, synchronized delta, and common blame are all strict. The unfinished parameters are application, runtime-bullet, and cast/conversion pure roots plus allocation, both application frames, cast and `ν` frames, and both primitive frames. |
-| F3. Prove target catch-up from a related source value | partial: complete recursive dispatcher, terminal and source-frame families; six named families remain | [`WorldCoherentRightValueCatchupCases`](NuImprecisionWorldCoherentRightValueCatchupCasesDef.agda) is now a small assembly over eight canonical capability files. [`world-coherent-right-value-catchup-dispatcher-proofᵀ`](NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda) recursively covers every quotiented term-precision constructor and produces [`WorldCoherentRightValueCatchupPrefixᵀ`](NuImprecisionWorldCoherentRightValueCatchupPrefixDef.agda). Terminal values and all four source frames are completed. Paired casts, quotient down/up, source-`∀` closing, target-bullet closing, target allocation, and active target-cast terminalization remain. The target-cast family is structurally blocked on retaining a cast-sequence midpoint and proving a combined administrative recursion measure, not on mechanical inert framing. |
+| F3. Prove target catch-up from a related source value | partial: complete recursive dispatcher, terminal and source-frame families; semantic audit required before the remaining assembly | [`WorldCoherentRightValueCatchupCases`](NuImprecisionWorldCoherentRightValueCatchupCasesDef.agda) is now a small assembly over eight canonical capability files. [`world-coherent-right-value-catchup-dispatcher-proofᵀ`](NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda) recursively covers every quotiented term-precision constructor and produces [`WorldCoherentRightValueCatchupPrefixᵀ`](NuImprecisionWorldCoherentRightValueCatchupPrefixDef.agda). Terminal values and all four source frames are completed. Paired casts, quotient down/up, source-`∀` closing, target-bullet closing, target allocation, and active target-cast terminalization remain. The target-cast measure and sequence skeleton are checked, but the generalized narrowing-untag root now has a reachable source-`gen` obstruction even under the uniqueness invariant. This must be resolved at the language/relation level before canonical target-cast assembly. |
 | F4. Rule out source blame along an observed trace to a value | completed | [`source-blame-excludes-value`](NuReductionDeterminism.agda) aligns a source trace to blame with the observed trace to a value. Determinism leaves a residual trace from `blame` to the value, contradicting either `Value blame` or blame irreducibility. |
 | F5. Lift source one-step simulation over a source trace | completed corrected higher-order proof | [`world-coherent-forward-source-value-proofᵀ`](NuDGGTerminalForwardProof.agda) recurses structurally on the observed source trace and invokes right-value catch-up in the reflexive base. A continuing one-step outcome recurses on the source tail; a source-blame outcome is eliminated by F4. |
 | F6. Normalize composed changes and final store projections | completed | The same proof reconstructs successor `StoreWf` and `RuntimeOK` by preservation, concatenates target traces, and normalizes contexts, endpoint types, and physical stores with the `apply*-++` laws. |
@@ -218,7 +227,7 @@ Under the common hypotheses, it states
 | B9. Prove the target-trace terminal induction | completed proof | [`backward-target-value-or-source-blame-proofᵀ`](NuDGGTerminalBackwardValueProof.agda) is a hole-free fuel induction over the observed target trace. It consumes only [`WeakOneStepIndexedSimulationᵀ`](NuImprecisionOneStepDef.agda) and [`LeftValueCatchupᵀ`](NuImprecisionValueCatchupDef.agda), aligns administrative target tails, and recurses only on the strictly shorter residual trace. |
 | B9a. Check the strengthened world-coherent induction | completed proof | [`world-coherent-backward-target-value-or-source-blame-proofᵀ`](NuDGGTerminalBackwardValueWorldCoherentProof.agda) repeats the fuel induction against the strengthened one-step and catch-up contracts. It threads successor `WorldCoherent` evidence only through continuing branches and imports no live implementation. |
 | B10. Compose source traces and transported worlds | completed | [`prepend-weak-related-valueᵀ`](NuDGGTerminalBackwardValueProof.agda) composes the source trace and source changes while transporting the value relation, worlds, stores, and endpoint equations. The proof packages the final related-value witnesses or propagates source blame. |
-| B11. Package the terminal theorem | completed assembly; dependencies partial | [`BackwardTargetValueOrSourceBlameᵀ`](NuDGGTerminalBackwardValueDef.agda) freezes the exact alternatives. [`backward-target-value-or-source-blame-generalᵀ`](NuDGGTerminalBackwardValueLemma.agda) is the hole-free canonical application of the generic proof to the live dispatcher and catch-up declarations. The lemma stays outside the strict spine until those supplied implementations are hole-free. |
+| B11. Package the terminal theorem | checked conditional assembly; terminal contract refuted | [`BackwardTargetValueOrSourceBlameᵀ`](NuDGGTerminalBackwardValueDef.agda) freezes the exact alternatives. [`backward-target-value-or-source-blame-generalᵀ`](NuDGGTerminalBackwardValueLemma.agda) is a hole-free application of the generic induction to assumed live contracts. [`closed-nu-dgg-counterexample`](NuImprecisionClosedNuDGGCounterexample.agda) proves that those contracts cannot jointly inhabit this terminal statement under current QTI. |
 
 The induction should be on target-trace length, not directly on the syntactic
 multi-step proof. A weak outcome can consume the distinguished target step and
@@ -259,39 +268,28 @@ the explicit source trace required by the terminal statement.
 
 ## Recommended implementation order
 
-The shortest current path to visible terminal progress is:
+The shortest sound path is now:
 
-1. **Completed:** repair and strictly check the quotient-value patterns and
-   inference in
-   [`NuImprecisionQuotientValue.agda`](NuImprecisionQuotientValue.agda).
-2. **Partial:** close the two quotient-`inst` residuals in
-   [`NuImprecisionCatchupScratch.agda`](NuImprecisionCatchupScratch.agda#L961).
-3. **Partial:** close the remaining eight leaves of
-   [`left-catchup-indexed-prefixᵀ`](NuImprecisionCatchupScratch.agda#L1083).
-4. **Partial:** enumerate and prove every non-`ν` case of
-   [`weak-one-step-indexed-simulationᵀ`](NuImprecisionCatchupScratch.agda#L1343),
-   then remove incomplete-pattern acceptance.
-5. **Partial:** fill the checked `backward-target-value-or-source-blameᵀ`
-   statement by proving the terminal induction B9 and packaging B11.
-6. **Partial:** finish zero-step target-blame catch-up C1 and the dispatcher C2,
-   then package `backward-target-blameᵀ` with the completed C4 assembly and
-   its checked live adapter.
-7. **Partial:** inhabit the corrected source one-step outcome families F1–F2
-   and finish the target-side value catch-up F3.
-8. **Completed higher-order path:** the checked forward source-value induction
-   and DGG-near assembly expose every remaining source/right capability as a
-   strict parameter; canonical engines still depend on item 7.
-9. **Completed interface check:**
-   [`terminal-components⇒gradual-dgg`](NuDGGTerminal.agda#L38) accepts the
-   three proofs separately, and
-   [`dynamic-gradual-guarantee-skeleton`](NuDGGTerminalSkeleton.agda#L17)
-   checks their end-to-end fit.  The imported terminal bodies remain partial.
-
-The backward value theorem is the best first trace-level target because its two
-largest prerequisites already exist as partial checked declarations. The
-forward theorem is structurally separate work: completing the target-oriented
-dispatcher does not remove the need for its source-oriented mirror and its
-value catch-up base.
+1. **Completed:** retain the strict empty-world refutation
+   [`closed-nu-dgg-counterexample`](NuImprecisionClosedNuDGGCounterexample.agda)
+   as the regression that every repair must eliminate.
+2. **Completed read-only audit:** trace the source-`gen`/target-untag shape back
+   through nested closed gradual applications and compilation; compiler origin
+   does not exclude it.
+3. **In progress:** choose the smallest semantic repair.  The leading option
+   is a canonical QTI constructor that relates the surviving source `gen`
+   value to the untagged target ground value while retaining the exact
+   `ν`-shaped precision index.  Compare its fan-out against changing the terminal
+   relation or operational value boundary.
+4. **Not yet started:** state the repair in a small `Def` boundary and prove a
+   local positive replacement for target-tag cancellation.  Do not introduce
+   another result/outcome/view carrier.
+5. **Not yet started:** recheck the narrow-untag active root and the focused
+   forward strict spine, then re-run the closed counterexample.  The repaired
+   relation must make its old contradiction case impossible by construction.
+6. **Suspended until item 5:** resume quotient catch-up, the remaining target
+   dispatcher cases, source one-step families, and the conditional terminal
+   assemblies.  Their checked structural work remains reusable.
 
 ## Interface freeze and ginger execution plan
 
@@ -340,6 +338,61 @@ result at the original outer cast.  This boundary must be constructor-specific
 enough to retain target-frame provenance; it must not wrap the result in a new
 one-step or weak-simulation outcome.
 
+The narrowing-untag audit follows this constraint particularly closely.  The
+candidate cancellation statement returns one equality and one QTI derivation
+directly, and the higher-order root proof consumes that flat theorem parameter
+without introducing a cancellation outcome or view.  This made the failed
+semantic boundary visible: the strict counterexample refutes the candidate
+statement itself, rather than hiding the obstruction inside another partial
+result layer.  Until the reachable source-`gen` case is resolved, no new
+untag-specific carrier should be added.
+
+### Semantic repair decision after the closed counterexample
+
+The leading repair is one new flat constructor in the existing mutual QTI
+relation, tentatively named `gen⊑groundᵀ`.  Its conclusion relates a terminal
+source `gen` value directly to the already-untagged target ground value:
+
+```agda
+gen⊑groundᵀ :
+  ∀ {V W A B H p q c μ} →
+  CastMode μ →
+  SealModeStore★ μ (leftStoreⁱ ρ) →
+  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ C.gen A c ∶ A ⊒ `∀ B →
+  Ground H →
+  Value V →
+  Value W →
+  Δᴿ ∣ rightStoreⁱ ρ ∣ rightCtxⁱ γ ⊢ W ⦂ H →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+    ⊢ᴺ V ⊑ W ⟨ H ! ⟩ ⦂ A ⊑ ★ ∶ p →
+  (q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ H ⊣ Δᴿ) →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+    ⊢ᴺ V ⟨ C.gen A c ⟩ ⊑ W ⦂ `∀ B ⊑ H ∶ q
+```
+
+The explicit `q` preserves the authoritative canonical index.  This is a
+semantic term-relation constructor, not a result, view, outcome, alias, or
+compatibility wrapper.  When the source universal is later observed by type
+application, its justification is the existing `β-gen•` source-allocation path:
+lift the tagged premise into the source-only world, expose the body coercion,
+pair it with a virtual target `H ?`, and use target `tag-untag-ok` to connect
+back to `W`.
+
+| Repair step | Status | Scope |
+|---|---|---|
+| Strictly refute generic target-tag cancellation | completed | [`target-tag-cancellation-counterexample`](NuImprecisionTargetTagCancellationCounterexample.agda) proves `TargetTagCancellationᵀ → ⊥`. |
+| Strictly refute the current closed operational theorem | completed | [`closed-nu-dgg-counterexample`](NuImprecisionClosedNuDGGCounterexample.agda) proves `ClosedNuDGG → ⊥`. |
+| Confirm source-language reachability | completed read-only audit | Nested closed gradual applications compile to the source-`gen`/target-untag configuration, so a compiler-origin premise is not a sound shortcut. |
+| Approve and add `gen⊑groundᵀ` | not yet started | Core relation change requiring an explicit design decision. Estimated fan-out is 20--25 files: roughly 15 mechanical traversals and 3--5 semantic cases. |
+| Reprove flat target-tag cancellation | not yet started | Add a focused `Def`/`Proof`/`Lemma` boundary; the new constructor handles the sole `gen` obstruction and existing cases remain structural. |
+| Revalidate closed DGG boundary | not yet started | The old counterexample must cease to derive a contradiction because its final value pair is related by the new constructor. |
+
+The rejected alternatives are a compilation-reachability predicate threaded
+through every weak-simulation payload, a weaker terminal theorem that drops
+related final values, and a separate terminal-QTI saturation.  The first and
+third would directly worsen the hierarchy in issue #78; the second would
+materially weaken the public DGG.
+
 ### Two-layer skeleton
 
 The skeleton is split into an interface layer and an implementation layer.
@@ -386,9 +439,13 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightTargetSequenceResumeProof.agda`](NuImprecisionWorldCoherentRightTargetSequenceResumeProof.agda) | completed direct proof | Opens the two existing complete payloads once, frames the shared inner target trace through the sequence cast, inserts the post-catch-up `β-seq`, and composes the continuation. Generic transport, arrow/`∀` coherence, store lineage, source-bullet transport, and final world invariants are all rebuilt directly; no further carrier layer is introduced. |
 | [`NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationDef.agda`](NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationDef.agda) | completed strict statement | Three reachable smaller-rank continuation families for narrowing, widening, and identity-only widening sequences. Each consumes hereditary subplans and returns the existing complete right-catchup result rooted at the nested casts; reveal and conceal have no sequence constructor. This is a recursion capability, not a result carrier. |
 | [`NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationProof.agda`](NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationProof.agda) | completed strict higher-order fit proof; canonical Lemma intentionally absent | From an assumed complete target-cast terminalization, starts with the canonical zero-step value result and terminalizes the two nested casts in order for all three sequence modes. The stronger premise subsumes the plans and rank equation. This validates every index, but tying it back to terminalization is non-structural; canonical assembly must instead use the private well-founded target-administration SCC. |
-| [`NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda`](NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda) | seven of nine roots proved; old narrow-untag statement refuted; invariant propagated; proof repair not yet started | Nine provenance-preserving active-root continuations: five `β-id` entries, narrowing untag, general instantiation, general unseal, and reveal-unseal. Every field consumes a completed inner catch-up and returns the same existing complete carrier. A later audit removed the redundant identity-only instantiation field: its widening evidence relaxes to `tag-or-idᵈ` and the terminalizer calls the general root directly. The general root remains genuine SCC work because its universal index also admits source-only `ν`. `AssumptionMembershipUnique` is now a flat premise throughout the engine and a final-context field of the inner result; `PrecisionIndexUnique` therefore provides the exact index equality needed to repair narrow-untag without another carrier. |
+| [`NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda`](NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda) | partial: seven of nine roots proved; generalized narrow-untag boundary now semantically obstructed | Nine provenance-preserving active-root continuations: five `β-id` entries, narrowing untag, general instantiation, general unseal, and reveal-unseal. Every field consumes a completed inner catch-up and returns the same existing complete carrier. A later audit removed the redundant identity-only instantiation field: its widening evidence relaxes to `tag-or-idᵈ` and the terminalizer calls the general root directly. The general instantiation root remains genuine SCC work because its universal index also admits source-only `ν`. `AssumptionMembershipUnique` is a flat premise throughout the engine and excludes the earlier duplicate-row counterexample, but it does not exclude a source `gen` value wrapped around a target-tagged function. The current narrowing-untag field must therefore be strengthened, specialized, or replaced only after the reachable-language audit determines the sound invariant or relation change. |
 | [`NuImprecisionWorldCoherentRightTargetActiveUnsealRootProof.agda`](NuImprecisionWorldCoherentRightTargetActiveUnsealRootProof.agda) | completed strict Ginger/GPT-5.5 proof | Proves the widening-unseal and reveal-unseal active roots. Both cancel the final target seal, append the target `seal-unseal` step, and rebuild transport, coherence, lineage, bullet transport, and world evidence in the existing complete catch-up result. No unseal-specific result carrier is introduced. |
 | [`NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample.agda`](NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample.agda) | completed strict regression for the old generalized boundary | A duplicated source-only assumption context satisfies `SourceNameExclusive` and all old local direct-untag operational/typing premises. The requested function-ground index crosses the two distinct membership proofs, and exhaustive QTI inversion proves that the post-untag identity lambdas cannot be related at that index. The file now also proves that the new `AssumptionMembershipUnique` premise rejects exactly this duplicate-row context, so it no longer manufactures the strengthened terminal catch-up premise. |
+| [`NuImprecisionTargetTagCancellationDef.agda`](NuImprecisionTargetTagCancellationDef.agda) | completed strict candidate statement; refuted | Flat proposed leaf for canceling one terminal target ground tag at a requested precision index. It returns the ground equality and QTI derivation inline, with no proof implementation or result carrier. The counterexample below proves that these hypotheses are insufficient. |
+| [`NuImprecisionGenUntagCounterexampleCore.agda`](NuImprecisionGenUntagCounterexampleCore.agda) | completed strict shared construction | Defines the concrete empty-world terms, coercion typings, QTI witnesses, runtimes, target trace, exclusivity/uniqueness proofs, and the generalized final-relation contradiction. It is a direct collection of counterexample facts, not a record or result carrier. |
+| [`NuImprecisionTargetTagCancellationCounterexample.agda`](NuImprecisionTargetTagCancellationCounterexample.agda) | completed strict refutation | Thin consumer of the shared core. Canceling the target tag at `G = ★⇒★` would relate `W⟨G!⟩⟨gen ★ c⟩` to `W`, force the impossible inner index `★ ⊑ ★⇒★`, and therefore prove `TargetTagCancellationᵀ → ⊥`. |
+| [`NuImprecisionWorldCoherentRightTargetNarrowUntagRootProof.agda`](NuImprecisionWorldCoherentRightTargetNarrowUntagRootProof.agda) | completed strict higher-order fit; canonical assembly blocked by refuted dependency | Proves that the flat `TargetTagCancellationᵀ` proposition would suffice for the complete narrow-untag active root: it frames the accumulated target changes, applies canonical `★` inversion, appends `tag-untag-ok`, and rebuilds the existing complete catch-up carrier. This validates the surrounding indices and pinpoints cancellation as the false leaf; it intentionally has no `Lemma` assembly. |
 | [`NuImprecisionWorldCoherentRightTargetActiveRootResumeProof.agda`](NuImprecisionWorldCoherentRightTargetActiveRootResumeProof.agda) | partial strict proof: all five identity roots completed | A shared direct `β-id` composition preserves the existing catch-up result's transport, coherence, lineage, bullet transport, world coherence, and source-name evidence. Narrowing, general widening, identity-only widening, reveal, and conceal identity roots each invert the three reachable identity type shapes and reuse that core. The file intentionally does not assemble the ten-field capability while untag, instantiation, and unseal roots remain open. |
 | [`NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda) | completed statement | Five-field terminalization boundary for target narrowing, widening, identity-only widening, reveal, and conceal. Each field returns the existing complete catch-up carrier directly. |
 | [`NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda) | completed strict higher-order proof | Synthesizes hereditary target plans, delegates inert and active roots to their exact capabilities, and handles narrowing/widening/id-only sequences by transporting and splitting the final cast, synthesizing subplans, invoking the smaller-rank pending continuation, and splicing it through the direct sequence-resume proof. Reveal/conceal structural conversions are inert. No target-administration result or view layer is introduced. |
@@ -398,9 +455,9 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightValueTerminalLemma.agda`](NuImprecisionWorldCoherentRightValueTerminalLemma.agda) | completed canonical assembly | Exposes the strict terminal proof through the canonical three-file boundary. |
 | [`NuDGGTerminalForwardDef.agda`](NuDGGTerminalForwardDef.agda) | completed statement | Arbitrary-world forward source-value terminal package with transported contexts, types, stores, and relation index written out. |
 | [`NuDGGTerminalForwardProof.agda`](NuDGGTerminalForwardProof.agda) | completed higher-order proof | Hole-free structural source-trace induction from the two new semantic contracts; preservation supplies every recursive runtime/store premise. |
-| [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda) | completed focused integration | Imports the active forward proof architecture, including source-allocation transport and flat uniqueness propagation, while avoiding the broad DGG and `All.agda` checks. After one dependency-invalidating check, the immediate warm strict check passes in about 8.0 seconds. |
+| [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda) | completed focused integration | Imports the active forward proof architecture, source-allocation transport, flat uniqueness propagation, and the local target-tag refutation while avoiding the broad DGG and `All.agda` checks. The closed-DGG counterexample remains outside this routine boundary because it imports the broad DGG spine. |
 | [`NuDGGTerminalForwardIntegrationProof.agda`](NuDGGTerminalForwardIntegrationProof.agda) | completed higher-order proof | Connects both fully partitioned forward case records and the independent backward terminal contracts all the way to public `GradualDGG`. |
-| [`NuDGGTerminalForwardMilestone.agda`](NuDGGTerminalForwardMilestone.agda) | completed high-cost milestone boundary | Imports the public compiler/DGG integration proof separately so routine forward checks remain small. |
+| [`NuDGGTerminalForwardMilestone.agda`](NuDGGTerminalForwardMilestone.agda) | completed high-cost milestone boundary | Imports the public compiler/DGG integration proof and the strict `ClosedNuDGG` counterexample separately so routine forward checks remain small. |
 | [`NuImprecisionWorldCoherentSourceOneStepCasesDef.agda`](NuImprecisionWorldCoherentSourceOneStepCasesDef.agda) | completed corrected statement | Record of nine source reduction families: pure, allocation, and `ν`-blame roots return exact continuing results, while the six congruence families return explicit related-or-source-blame outcomes. |
 | [`NuImprecisionWorldCoherentSourceOneStepCasesProof.agda`](NuImprecisionWorldCoherentSourceOneStepCasesProof.agda) | completed higher-order assembly | Builds the full source one-step case record from ten remaining named families while supplying primitive roots and `ν` blame canonically. |
 | [`NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda) | completed higher-order proof | Exhaustive split on all source store-step constructors, proving that the nine capabilities suffice for the prefix engine and hence public DGG. |
@@ -486,9 +543,10 @@ are delegated:
 | [`NuImprecisionRightStorePrefixFactorDef.agda`](NuImprecisionRightStorePrefixFactorDef.agda) | completed statement | Small factorization needed by source-only binder traversal in right catch-up. |
 | [`NuImprecisionRightStorePrefixFactorProof.agda`](NuImprecisionRightStorePrefixFactorProof.agda) | completed GPT-5.5 proof | Exhaustive strict structural proof developed in an isolated Ginger worktree. |
 | [`NuImprecisionRightStorePrefixFactorLemma.agda`](NuImprecisionRightStorePrefixFactorLemma.agda) | completed canonical assembly | Canonical three-file assembly consumed by the future source-all right-catch-up case. |
-| [`NuDGGTerminalBackwardValueDef.agda`](NuDGGTerminalBackwardValueDef.agda) | completed | Small statement module defining `BackwardTargetValueOrSourceBlameᵀ` |
-| [`NuDGGTerminalBackwardValueProof.agda`](NuDGGTerminalBackwardValueProof.agda) | completed | Hole-free higher-order fuel induction and source-trace composition from the two dependency contracts |
-| [`NuDGGTerminalBackwardValueLemma.agda`](NuDGGTerminalBackwardValueLemma.agda) | completed assembly; dependencies partial | Canonical application to the live dispatcher and value catch-up; excluded from the strict spine until both supplied lemmas are strict |
+| [`NuDGGTerminalBackwardValueDef.agda`](NuDGGTerminalBackwardValueDef.agda) | completed statement; refuted contract | Small statement module defining `BackwardTargetValueOrSourceBlameᵀ`; the current QTI conclusion is refuted by the closed counterexample below. |
+| [`NuDGGTerminalBackwardValueProof.agda`](NuDGGTerminalBackwardValueProof.agda) | completed conditional proof | Hole-free higher-order fuel induction and source-trace composition from two dependency contracts that cannot both be inhabited under current QTI. |
+| [`NuDGGTerminalBackwardValueLemma.agda`](NuDGGTerminalBackwardValueLemma.agda) | completed conditional assembly; dependencies inconsistent | Canonical application to the live dispatcher and value catch-up. The strict counterexample explains why their unfinished implementations cannot satisfy the present interfaces. |
+| [`NuImprecisionClosedNuDGGCounterexample.agda`](NuImprecisionClosedNuDGGCounterexample.agda) | completed strict refutation | Proves `closed-nu-dgg-counterexample : ClosedNuDGG → ⊥`. The initial relation, source and target runtimes, target untag trace, value irreducibility, and final QTI inversion are all explicit; the contradiction is generalized over every existential final world, store, and precision index. |
 | [`NuDGGTerminalBackwardBlame.agda`](NuDGGTerminalBackwardBlame.agda) | partial | Owns the exact `backward-target-blameᵀ` statement and its eventual proof |
 | [`NuDGGTerminalSkeleton.agda`](NuDGGTerminalSkeleton.agda) | completed interface check | Supplies the three named boundaries to the strict wrapper and therefore checks the path to `GradualDGG` |
 | [`NuDGGTraceMeasure.agda`](NuDGGTraceMeasure.agda) | completed | Supplies the decreasing measure for target-terminal induction |
@@ -8974,10 +9032,10 @@ coordination.  Use focused strict checks throughout and reserve
   induction; the mixed `∀ⁱ`/`ν` cases are excluded by the existing fresh-path
   transport results.  The invariant is a proposition about the world, not a
   simulation payload.  It is now carried as one flat fact through the existing
-  source-step and right-catch-up boundaries.  The remaining integration step
-  is to derive index equality locally in narrow-untag, without any
-  uniqueness-specific result, outcome, view, or path wrapper under the
-  issue-#78 constraint.
+  source-step and right-catch-up boundaries.  It closes the earlier
+  proof-relevant duplicate-membership obstruction, but the later empty-world
+  source-`gen` counterexample shows that membership uniqueness alone does not
+  make generic target-tag cancellation sound.
 
 - The propagation audit chose a flat field/premise beside
   `SourceNameExclusive`, not an expansion of `WorldCoherent` and not a new
@@ -8987,11 +9045,12 @@ coordination.  Use focused strict checks throughout and reserve
   The existing source-step and right-catch-up result records now carry one
   final-context `AssumptionMembershipUnique` field.  Ordinary frames preserve
   it directly, canonical allocation roots use the completed matched/source/
-  target/swap closure lemmas, and narrow-untag will derive final precision-index
-  equality from the inner result field.  The duplicate-row counterexample is
-  retained as a regression showing exactly why the new premise is necessary;
-  it now proves that premise impossible instead of constructing the
-  strengthened terminal catch-up.
+  target/swap closure lemmas.  The duplicate-row counterexample is retained as
+  a regression showing exactly why the new premise is necessary; it now proves
+  that premise impossible instead of constructing the strengthened terminal
+  catch-up.  Narrow-untag must additionally address the semantic source-`gen`
+  case; deriving final precision-index equality is no longer the only missing
+  step.
 
 - Flat uniqueness propagation now strictly checks through both semantic
   engines and the terminal-forward assembly.  Source one-step roots, frames,
@@ -9003,3 +9062,24 @@ coordination.  Use focused strict checks throughout and reserve
   focused forward spine took about 46 seconds once and then 8.0 seconds warm;
   the DGG-near terminal-forward integration check took about 7.8 seconds.  No
   `All.agda` or broad DGG spine check was run.
+
+- A second strict target-tag counterexample now survives every propagated
+  world invariant.  In the empty world, let
+  `A = ∀ (α ⇒ α)`, `G = ★ ⇒ ★`, and `W = λ x. x`.  QTI relates
+  `W⟨G!⟩⟨gen ★ c⟩` to `W⟨G!⟩` at `A ⊑ ★`, where `c`
+  is the well-typed inert body cast generated for `★ ⇒ A`.  Successful
+  target untagging at `G` would require relating the former source value to
+  `W` at `A ⊑ G`; exhaustive QTI inversion reaches the impossible index
+  `★ ⊑ G`.  The checked
+  [`TargetTagCancellation` counterexample](NuImprecisionTargetTagCancellationCounterexample.agda)
+  therefore proves `TargetTagCancellationᵀ → ⊥`, while the checked
+  [higher-order narrow-untag proof](NuImprecisionWorldCoherentRightTargetNarrowUntagRootProof.agda)
+  shows that this exact flat leaf would otherwise fit the surrounding active
+  root.  Under issue #78, the response is to audit reachability and the QTI
+  semantics, not to introduce an untag outcome/view carrier.  A source-level
+  compilation audit has found the shape reachable through nested gradual
+  applications.  The strict
+  [`ClosedNuDGG` counterexample](NuImprecisionClosedNuDGGCounterexample.agda)
+  now packages the same empty-world configuration and proves
+  `ClosedNuDGG → ⊥`; choosing a semantic repair is therefore required before
+  further canonical assembly.

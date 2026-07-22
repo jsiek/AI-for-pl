@@ -20,7 +20,7 @@ open import Coercions using (`∀; extᵈ; gen; genᵈ)
 open import Conversion using
   (ConcealConversion; RevealConversion)
 open import ImprecisionWf using
-  (GenSafeSource; _ˣ⊑★; ⇑ᴸᵢ; ν; ∀ⁱ_)
+  (NonVar; _ˣ⊑★; ⇑ᴸᵢ; ν; ∀ⁱ_)
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 open import NuTermImprecision using
@@ -78,7 +78,7 @@ open import proof.NuTermProperties using
 
 left-catchup-indexed-all-α-∀-revealᵀ :
   ∀ {Φ Δᴸ Δᴿ μ α X Aν A C C′ c V V′ occ r q}
-    {{safe : GenSafeSource A}}
+    {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -87,7 +87,7 @@ left-catchup-indexed-all-α-∀-revealᵀ :
   (liftρ : LiftLeftStoreⁱ
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
+    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X
     (`∀ c) (`∀ A) (`∀ (`∀ C)) →
   LeftCatchupIndexedAllResult
@@ -111,7 +111,7 @@ left-catchup-indexed-all-α-∀-revealᵀ
 
 left-catchup-indexed-all-α-∀-concealᵀ :
   ∀ {Φ Δᴸ Δᴿ μ α X Aν A C C′ c V V′ occ r q}
-    {{safe : GenSafeSource A}}
+    {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -120,7 +120,7 @@ left-catchup-indexed-all-α-∀-concealᵀ :
   (liftρ : LiftLeftStoreⁱ
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
+    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X
     (`∀ c) (`∀ A) (`∀ (`∀ C)) →
   LeftCatchupIndexedAllResult
@@ -144,7 +144,7 @@ left-catchup-indexed-all-α-∀-concealᵀ
 
 left-catchup-indexed-all-α-∀-narrowingᵀ :
   ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
-    {{safe : GenSafeSource A}}
+    {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -157,7 +157,7 @@ left-catchup-indexed-all-α-∀-narrowingᵀ :
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ
     ⊢ `∀ c ∶ `∀ A ⊒ `∀ (`∀ C) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
+    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   LeftCatchupIndexedAllResult
     {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
     {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
@@ -193,7 +193,7 @@ left-catchup-indexed-all-α-∀-narrowingᵀ
 
 left-catchup-indexed-all-α-∀-wideningᵀ :
   ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
-    {{safe : GenSafeSource A}}
+    {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -206,7 +206,7 @@ left-catchup-indexed-all-α-∀-wideningᵀ :
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ
     ⊢ `∀ c ∶ `∀ A ⊑ `∀ (`∀ C) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν occ r →
+    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   LeftCatchupIndexedAllResult
     {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
     {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →

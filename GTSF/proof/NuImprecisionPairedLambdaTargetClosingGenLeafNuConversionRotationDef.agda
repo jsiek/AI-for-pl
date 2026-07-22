@@ -102,7 +102,7 @@ PairedLambdaTargetClosingGenLeafNuConversionRotationᵀ =
   LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ∀ →
   PairedConversion Φ Δᴸ Δᴿ ρ (C.`∀ c) c′
     {`∀ B} {B′} {`∀ (`∀ E)} {`∀ C′}
-    (ν occ-r r) (∀ⁱ s) →
+    (ν _ occ-r r) (∀ⁱ s) →
   ∃[ u ]
     (((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ∣ Δᴿ ∣

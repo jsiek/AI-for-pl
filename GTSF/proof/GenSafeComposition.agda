@@ -1,7 +1,7 @@
 module proof.GenSafeComposition where
 
 -- File charter:
---   * Proves closure of `GenSafe` and `DualGenSafe` under typed composition.
+--   * Proves closure of `GenSafe` and `InstSafe` under typed composition.
 --   * Shows that composition leaves the function projection outside `gen`,
 --     with the dual statement for `inst` followed by a function tag.
 --   * Gives the canonical factorization of star-to-all narrowings and its
@@ -48,24 +48,24 @@ genSafe-composition {wfΣ = wfΣ} s⊢ sᵍ t⊢ tᵍ
     (genSafe-target-shape t⊢ tᵍ)
     u⊢ uⁿ
 
-dualGenSafe-composition :
+instSafe-composition :
   ∀ {μ Δ Σ A B C s t} →
   {wfΣ : StoreDetWf Δ Σ} →
   μ ∣ Δ ∣ Σ ⊢ s ∶ A =⇒ B →
-  DualGenSafe s →
+  InstSafe s →
   μ ∣ Δ ∣ Σ ⊢ t ∶ B =⇒ C →
-  DualGenSafe t →
-  ∃[ u ] (μ ∣ Δ ∣ Σ ⊢ u ∶ A =⇒ C) × DualGenSafe u
-dualGenSafe-composition {wfΣ = wfΣ} s⊢ sᵍ t⊢ tᵍ
+  InstSafe t →
+  ∃[ u ] (μ ∣ Δ ∣ Σ ⊢ u ∶ A =⇒ C) × InstSafe u
+instSafe-composition {wfΣ = wfΣ} s⊢ sᵍ t⊢ tᵍ
     with _⨟ʷ_ {wfΣ = wfΣ}
-           (s⊢ , dualGenSafe→widening sᵍ)
-           (t⊢ , dualGenSafe→widening tᵍ)
-dualGenSafe-composition {wfΣ = wfΣ} s⊢ sᵍ t⊢ tᵍ
+           (s⊢ , instSafe→widening sᵍ)
+           (t⊢ , instSafe→widening tᵍ)
+instSafe-composition {wfΣ = wfΣ} s⊢ sᵍ t⊢ tᵍ
     | u , u⊢ , uʷ =
   u , u⊢ ,
   widening-between-genSafe-shapes
-    (dualGenSafe-source-shape s⊢ sᵍ)
-    (dualGenSafe-target-shape t⊢ tᵍ)
+    (instSafe-source-shape s⊢ sᵍ)
+    (instSafe-target-shape t⊢ tᵍ)
     u⊢ uʷ
 
 fun-untag-gen-composition :
@@ -92,7 +92,7 @@ inst-fun-tag-composition :
   (occ : occurs zero A ≡ true) →
   (t⊢ : instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ
     ⊢ t ∶ A =⇒ ⇑ᵗ (★ ⇒ ★)) →
-  (safe : DualGenSafe t) →
+  (safe : InstSafe t) →
   proj₁
     (_⨟ʷ_ {wfΣ = wfΣ}
       (cast-inst hG occ t⊢ , inst safe)
@@ -193,7 +193,7 @@ narrowing-canonical-factorization (c⊢ , sⁿ ︔seal α) =
 widening-canonical-factorization :
   ∀ {μ Δ Σ A B c} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊑ B →
-  DualGenSafe c
+  InstSafe c
   ⊎ ((∃[ α ] c ≡ C.id (＇ α))
     ⊎ ((∃[ ι ] c ≡ C.id (‵ ι))
       ⊎ c ≡ C.id ★))
@@ -201,7 +201,7 @@ widening-canonical-factorization :
     ⊎ ((∃[ G ] ∃[ s ] Ground G ×
           StrictCrossWidening s × c ≡ (s ︔ (G !)))
       ⊎ (∃[ D ] ∃[ s ]
-          DualGenSafe s × c ≡ (inst D s ︔ ((★ ⇒ ★) !)))))
+          InstSafe s × c ≡ (inst D s ︔ ((★ ⇒ ★) !)))))
   ⊎ ((∃[ α ] ∃[ D ] c ≡ unseal α D)
     ⊎ (∃[ α ] ∃[ D ] ∃[ s ]
         StrictWidening s × c ≡ (unseal α D ︔ s)))
@@ -237,13 +237,13 @@ widening-all-star-canonical-factorization :
   ∀ {μ Δ Σ A c} →
   StoreDetWf Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ c ∶ `∀ A ⊑ ★ →
-  ∃[ s ] (c ≡ (inst (★ ⇒ ★) s ︔ ((★ ⇒ ★) !))) × DualGenSafe s
+  ∃[ s ] (c ≡ (inst (★ ⇒ ★) s ︔ ((★ ⇒ ★) !))) × InstSafe s
 widening-all-star-canonical-factorization wfΣ (c⊢ , cross cʷ) =
   ⊥-elim (widening-cross-all-star⊥ c⊢ cʷ)
 widening-all-star-canonical-factorization wfΣ (() , id★)
 widening-all-star-canonical-factorization wfΣ
     (cast-inst hB occ c⊢ , inst safe) =
-  ⊥-elim (dualGenSafe-star-target⊥ c⊢ safe)
+  ⊥-elim (instSafe-star-target⊥ c⊢ safe)
 widening-all-star-canonical-factorization wfΣ
     (cast-tag hG () ok , tag gG)
 widening-all-star-canonical-factorization wfΣ

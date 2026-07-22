@@ -96,7 +96,7 @@ atomic-target-value-reindexᵀ () vV
     (Λ⊑Λᵀ liftρ liftγ vW vW′ W⊑W′) q
 atomic-target-value-reindexᵀ atom vV
     (Λ⊑ᵀ {{safe}} occ liftρ liftγ vW W⊑V)
-    (ν {{safe′}} occ′ q) =
+    (ν safe′ occ′ q) =
   Λ⊑ᵀ {{safe = safe′}} occ′ liftρ liftγ vW
     (atomic-target-value-reindexᵀ atom vV W⊑V q)
 atomic-target-value-reindexᵀ atom ()
@@ -107,7 +107,7 @@ atomic-target-value-reindexᵀ atom vV
       L⊑V L•⊢ V⊢) q =
   α⊑ᵀ {{safe = safe}} vL noL hA liftρ liftγ
     (atomic-target-value-reindexᵀ atom vV L⊑V
-      (ν {{safe}} occ q))
+      (ν safe occ q))
     L•⊢ V⊢
 atomic-target-value-reindexᵀ atom ()
     (⊑αᵀ vL′ noL′ hA liftρ liftγ N⊑L′ r N⊢ L′•⊢) q

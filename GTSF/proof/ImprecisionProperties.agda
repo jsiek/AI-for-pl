@@ -272,12 +272,12 @@ occurs-zero? A with occurs zero A
 occurs-zero? A | false = no (λ ())
 occurs-zero? A | true = yes refl
 
-genSafeSource? : (A : Ty) → Dec (GenSafeSource A)
-genSafeSource? (＇ X) = no (λ ())
-genSafeSource? (‵ ι) = no (λ ())
-genSafeSource? ★ = no (λ ())
-genSafeSource? (A ⇒ B) = yes source-fun
-genSafeSource? (`∀ A) = yes source-all
+nonVar? : (A : Ty) → Dec (NonVar A)
+nonVar? (＇ X) = no (λ ())
+nonVar? (‵ ι) = yes nonvar-base
+nonVar? ★ = yes nonvar-star
+nonVar? (A ⇒ B) = yes nonvar-fun
+nonVar? (`∀ A) = yes nonvar-all
 
 infix 4 _≟ImpAssm_
 _≟ImpAssm_ : (a b : ImpAssm) → Dec (a ≡ b)
@@ -345,80 +345,80 @@ mutual
   ... | yes A₁⊑B₁ | no A₂⋢B₂ =
     no λ { (A₁⊑B₁ ↦ A₂⊑B₂) → A₂⋢B₂ A₂⊑B₂ }
   imp? Φ (A₁ ⇒ A₂) (`∀ B) = no (λ ())
-  imp? Φ (`∀ A) (＇ X) with genSafeSource? A
+  imp? Φ (`∀ A) (＇ X) with nonVar? A
   imp? Φ (`∀ A) (＇ X) | no ¬safe =
-    no λ { (ν {{safe}} occ A⊑X) → ¬safe safe }
+    no λ { (ν safe occ A⊑X) → ¬safe safe }
   imp? Φ (`∀ A) (＇ X) | yes safe with occurs-zero? A
   imp? Φ (`∀ A) (＇ X) | yes safe | no ¬occA =
-    no λ { (ν occ A⊑X) → ¬occA occ }
+    no λ { (ν nonvar occ A⊑X) → ¬occA occ }
   imp? Φ (`∀ A) (＇ X) | yes safe | yes occA
       with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (＇ X))
   imp? Φ (`∀ A) (＇ X) | yes safe | yes occA | yes A⊑X =
-    yes (ν {{safe}} occA A⊑X)
+    yes (ν safe occA A⊑X)
   imp? Φ (`∀ A) (＇ X) | yes safe | yes occA | no A⋢X =
-    no λ { (ν occ A⊑X) → A⋢X A⊑X }
-  imp? Φ (`∀ A) (‵ ι) with genSafeSource? A
+    no λ { (ν nonvar occ A⊑X) → A⋢X A⊑X }
+  imp? Φ (`∀ A) (‵ ι) with nonVar? A
   imp? Φ (`∀ A) (‵ ι) | no ¬safe =
-    no λ { (ν {{safe}} occ A⊑ι) → ¬safe safe }
+    no λ { (ν safe occ A⊑ι) → ¬safe safe }
   imp? Φ (`∀ A) (‵ ι) | yes safe with occurs-zero? A
   imp? Φ (`∀ A) (‵ ι) | yes safe | no ¬occA =
-    no λ { (ν occ A⊑ι) → ¬occA occ }
+    no λ { (ν nonvar occ A⊑ι) → ¬occA occ }
   imp? Φ (`∀ A) (‵ ι) | yes safe | yes occA
       with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (‵ ι))
   imp? Φ (`∀ A) (‵ ι) | yes safe | yes occA | yes A⊑ι =
-    yes (ν {{safe}} occA A⊑ι)
+    yes (ν safe occA A⊑ι)
   imp? Φ (`∀ A) (‵ ι) | yes safe | yes occA | no A⋢ι =
-    no λ { (ν occ A⊑ι) → A⋢ι A⊑ι }
-  imp? Φ (`∀ A) ★ with genSafeSource? A
+    no λ { (ν nonvar occ A⊑ι) → A⋢ι A⊑ι }
+  imp? Φ (`∀ A) ★ with nonVar? A
   imp? Φ (`∀ A) ★ | no ¬safe =
-    no λ { (ν {{safe}} occ A⊑★) → ¬safe safe }
+    no λ { (ν safe occ A⊑★) → ¬safe safe }
   imp? Φ (`∀ A) ★ | yes safe with occurs-zero? A
   imp? Φ (`∀ A) ★ | yes safe | no ¬occA =
-    no λ { (ν occ A⊑★) → ¬occA occ }
+    no λ { (ν nonvar occ A⊑★) → ¬occA occ }
   imp? Φ (`∀ A) ★ | yes safe | yes occA
       with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ ★)
   imp? Φ (`∀ A) ★ | yes safe | yes occA | yes A⊑★ =
-    yes (ν {{safe}} occA A⊑★)
+    yes (ν safe occA A⊑★)
   imp? Φ (`∀ A) ★ | yes safe | yes occA | no A⋢★ =
-    no λ { (ν occ A⊑★) → A⋢★ A⊑★ }
-  imp? Φ (`∀ A) (B₁ ⇒ B₂) with genSafeSource? A
+    no λ { (ν nonvar occ A⊑★) → A⋢★ A⊑★ }
+  imp? Φ (`∀ A) (B₁ ⇒ B₂) with nonVar? A
   imp? Φ (`∀ A) (B₁ ⇒ B₂) | no ¬safe =
-    no λ { (ν {{safe}} occ A⊑B) → ¬safe safe }
+    no λ { (ν safe occ A⊑B) → ¬safe safe }
   imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes safe with occurs-zero? A
   imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes safe | no ¬occA =
-    no λ { (ν occ A⊑B) → ¬occA occ }
+    no λ { (ν nonvar occ A⊑B) → ¬occA occ }
   imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes safe | yes occA
       with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (B₁ ⇒ B₂))
   imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes safe | yes occA | yes A⊑B =
-    yes (ν {{safe}} occA A⊑B)
+    yes (ν safe occA A⊑B)
   imp? Φ (`∀ A) (B₁ ⇒ B₂) | yes safe | yes occA | no A⋢B =
-    no λ { (ν occ A⊑B) → A⋢B A⊑B }
+    no λ { (ν nonvar occ A⊑B) → A⋢B A⊑B }
   imp? Φ (`∀ A) (`∀ B)
       with imp? ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) A B
   imp? Φ (`∀ A) (`∀ B) | yes A⊑B = yes (∀ⁱ A⊑B)
-  imp? Φ (`∀ A) (`∀ B) | no A⋢B with genSafeSource? A
+  imp? Φ (`∀ A) (`∀ B) | no A⋢B with nonVar? A
   imp? Φ (`∀ A) (`∀ B) | no A⋢B | no ¬safe =
     no λ
       { (∀ⁱ A⊑B) → A⋢B A⊑B
-      ; (ν {{safe}} occ A⊑∀B) → ¬safe safe
+      ; (ν safe occ A⊑∀B) → ¬safe safe
       }
   imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes safe
       with occurs-zero? A
   imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes safe | no ¬occA =
     no λ
       { (∀ⁱ A⊑B) → A⋢B A⊑B
-      ; (ν occ A⊑∀B) → ¬occA occ
+      ; (ν nonvar occ A⊑∀B) → ¬occA occ
       }
   imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes safe | yes occA
       with imp? ((zero ˣ⊑★) ∷ ⇑ᵢ Φ) A (⇑ᵗ (`∀ B))
   imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes safe | yes occA
       | yes A⊑∀B =
-    yes (ν {{safe}} occA A⊑∀B)
+    yes (ν safe occA A⊑∀B)
   imp? Φ (`∀ A) (`∀ B) | no A⋢B | yes safe | yes occA
       | no A⋢∀B =
     no λ
       { (∀ⁱ A⊑B) → A⋢B A⊑B
-      ; (ν occ A⊑∀B) → A⋢∀B A⊑∀B
+      ; (ν nonvar occ A⊑∀B) → A⋢∀B A⊑∀B
       }
 
 ------------------------------------------------------------------------
@@ -449,7 +449,7 @@ mutual
   ⊑-src-wf² hΦ (tag_⇛_ p q) =
     wf⇒ (⊑-src-wf² hΦ p) (⊑-src-wf² hΦ q)
   ⊑-src-wf² hΦ (tagˣ X⊑★∈) = wfVar (hΦ X⊑★∈)
-  ⊑-src-wf² hΦ (ν occA p) =
+  ⊑-src-wf² hΦ (ν nonvar occA p) =
     wf∀ (⊑-src-wf² (νᵢ-wf² hΦ) p)
 
   ⊑-tgt-wf² hΦ id★ = wf★
@@ -462,7 +462,7 @@ mutual
   ⊑-tgt-wf² hΦ (tag ι) = wf★
   ⊑-tgt-wf² hΦ (tag_⇛_ p q) = wf★
   ⊑-tgt-wf² hΦ (tagˣ X⊑★∈) = wf★
-  ⊑-tgt-wf² hΦ (ν occA p) =
+  ⊑-tgt-wf² hΦ (ν nonvar occA p) =
     WfTy-un⇑ᵗ (⊑-tgt-wf² (νᵢ-wf² hΦ) p)
 
 ⊑-src-wf :
@@ -503,7 +503,7 @@ true≢false ()
   Φ ⊢ C ⊑ ‵ ι →
   occurs X C ≡ false
 ⊑-to-base-occurs-false X idι = refl
-⊑-to-base-occurs-false X (ν occ p) =
+⊑-to-base-occurs-false X (ν nonvar occ p) =
   ⊑-to-base-occurs-false (suc X) p
 
 NoVarLeft : ImpCtx → TyVar → Set
@@ -553,7 +553,7 @@ no-⇑ᴸᵢ-zero-left {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
 ⊑-to-var-occurs-false Y noY (idˣ {X = .Y} x∈) | yes refl =
   ⊥-elim (noY x∈)
 ⊑-to-var-occurs-false Y noY (idˣ {X = z} x∈) | no Y≢z = refl
-⊑-to-var-occurs-false Y noY (ν occ p) =
+⊑-to-var-occurs-false Y noY (ν nonvar occ p) =
   ⊑-to-var-occurs-false (suc Y) (νctx-no-var-left-suc noY) p
 
 ⊑-base-inv-idᵢ :
@@ -561,7 +561,7 @@ no-⇑ᴸᵢ-zero-left {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
   idᵢ Δ ⊢ C ⊑ ‵ ι →
   C ≡ ‵ ι
 ⊑-base-inv-idᵢ idι = refl
-⊑-base-inv-idᵢ (ν occ p) =
+⊑-base-inv-idᵢ (ν nonvar occ p) =
   ⊥-elim (true≢false (trans (sym occ)
     (⊑-to-base-occurs-false zero p)))
 
@@ -570,7 +570,7 @@ no-⇑ᴸᵢ-zero-left {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
   idᵢ Δ ⊢ C ⊑ ＇ X →
   C ≡ ＇ X
 ⊑-var-inv-idᵢ (idˣ x∈) rewrite idᵢ-var-identity x∈ = refl
-⊑-var-inv-idᵢ (ν occ p) =
+⊑-var-inv-idᵢ (ν nonvar occ p) =
   ⊥-elim (true≢false (trans (sym occ)
     (⊑-to-var-occurs-false zero νctx-no-var-left-zero p)))
 
@@ -597,6 +597,7 @@ data ArrowTargetInv (Δ : TyCtx) : Ty → Ty → Ty → Set where
 
   arrow-target-ν :
     ∀ {A B C} →
+    NonVar C →
     (occ : occurs zero C ≡ true) →
     (zero ˣ⊑★) ∷ ⇑ᵢ (idᵢ Δ) ⊢ C ⊑ ⇑ᵗ (A ⇒ B) →
     ArrowTargetInv Δ (`∀ C) A B
@@ -606,7 +607,7 @@ data ArrowTargetInv (Δ : TyCtx) : Ty → Ty → Ty → Set where
   idᵢ Δ ⊢ C ⊑ A ⇒ B →
   ArrowTargetInv Δ C A B
 ⊑-arrow-inv-idᵢ (p ↦ q) = arrow-target-↦ p q
-⊑-arrow-inv-idᵢ (ν occ p) = arrow-target-ν occ p
+⊑-arrow-inv-idᵢ (ν nonvar occ p) = arrow-target-ν nonvar occ p
 
 data ForallTargetInv (Δ : TyCtx) : Ty → Ty → Set where
   forall-target-∀ⁱ :
@@ -616,6 +617,7 @@ data ForallTargetInv (Δ : TyCtx) : Ty → Ty → Set where
 
   forall-target-ν :
     ∀ {A C} →
+    NonVar C →
     (occ : occurs zero C ≡ true) →
     (zero ˣ⊑★) ∷ ⇑ᵢ (idᵢ Δ) ⊢ C ⊑ ⇑ᵗ (`∀ A) →
     ForallTargetInv Δ (`∀ C) A
@@ -625,7 +627,8 @@ data ForallTargetInv (Δ : TyCtx) : Ty → Ty → Set where
   idᵢ Δ ⊢ C ⊑ `∀ A →
   ForallTargetInv Δ C A
 ⊑-forall-inv-idᵢ (∀ⁱ p) = forall-target-∀ⁱ p
-⊑-forall-inv-idᵢ (ν occ p) = forall-target-ν occ p
+⊑-forall-inv-idᵢ (ν nonvar occ p) =
+  forall-target-ν nonvar occ p
 
 ⊑-base-var-⊥ :
   ∀ {Δ ι X} →

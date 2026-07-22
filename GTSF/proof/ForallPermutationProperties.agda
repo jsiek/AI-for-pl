@@ -321,18 +321,18 @@ data AllImprecisionView
 
   all-source :
     ∀ {B} →
-    {{safe : GenSafeSource A}} →
+    {{safe : NonVar A}} →
     (occ : occurs zero A ≡ true) →
     (p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ
       ⊢ A ⊑ B ⊣ Δᴿ) →
-    AllImprecisionView (ν {{safe}} occ p)
+    AllImprecisionView (ν safe occ p)
 
 all-imprecision-view :
   ∀ {Φ Δᴸ Δᴿ A B}
     (p : Φ ∣ Δᴸ ⊢ `∀ A ⊑ B ⊣ Δᴿ) →
   AllImprecisionView p
 all-imprecision-view (∀ⁱ p) = all-paired p
-all-imprecision-view (ν {{safe}} occ p) = all-source {{safe}} occ p
+all-imprecision-view (ν safe occ p) = all-source {{safe}} occ p
 
 ⊑ᵖ-source-all-view :
   ∀ {Φ Δᴸ Δᴿ A B} →

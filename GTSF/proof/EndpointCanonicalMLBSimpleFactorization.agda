@@ -23,7 +23,7 @@ open import Relation.Binary.PropositionalEquality using
 open import Types
 open import ForallPermutation using (_≈∀_; ≈∀-swap)
 open import Imprecision using
-  (GenSafeSource; ImpCtx; idᵢ; _ˣ⊑★; _ˣ⊑ˣ_)
+  (NonVar; ImpCtx; idᵢ; _ˣ⊑★; _ˣ⊑ˣ_)
 open import ImprecisionWf using
   ( _∣_⊢_⊑_⊣_; id★; idˣ; idι; _↦_; ∀ⁱ_; tag_; tag_⇛_; tagˣ
   ; ν; ⊑-src-wf
@@ -91,7 +91,7 @@ open import proof.EndpointCanonicalMLBSimpleCompleteness using
   ; sizeTy-subst-starᵢ
   )
 open import proof.MaximalLowerBoundsWf using
-  (genSafeSource-forward-if-occursᵢ)
+  (nonVar-forward-if-occursᵢ)
 open import proof.EndpointCanonicalMLBSimpleFactor using
   ( occurs-zero-factor-∀
   ; source-left-exposure-path; source-right-exposure-path
@@ -793,7 +793,7 @@ world-bubble-left-exposure :
       (world-common-depth (world-extend leftˢ target))
       (world-left-depth (world-extend leftˢ target))
       (world-right-depth (world-extend leftˢ target)) A B E ×
-     GenSafeSource E × occurs zero E ≡ true)
+     NonVar E × occurs zero E ≡ true)
 world-bubble-left-exposure {Δ = Δ}
     (target-schedule modes left-eq right-eq common-eq left-depth-eq
       right-depth-eq)
@@ -830,7 +830,7 @@ world-bubble-right-exposure :
       (world-common-depth (world-extend rightˢ target))
       (world-left-depth (world-extend rightˢ target))
       (world-right-depth (world-extend rightˢ target)) A B E ×
-     GenSafeSource E × occurs zero E ≡ true)
+     NonVar E × occurs zero E ≡ true)
 world-bubble-right-exposure {Δ = Δ}
     (target-schedule modes left-eq right-eq common-eq left-depth-eq
       right-depth-eq)
@@ -928,7 +928,7 @@ paired-left-compatible-route :
       (world-common-depth (world-extend leftˢ target))
       (world-left-depth (world-extend leftˢ target))
       (world-right-depth (world-extend leftˢ target)) A B E ×
-     GenSafeSource E × occurs zero E ≡ true)
+     NonVar E × occurs zero E ≡ true)
 paired-left-compatible-route history occ source route =
   world-bubble-left-exposure
     (indexed-target-schedule history)
@@ -958,7 +958,7 @@ paired-right-compatible-route :
       (world-common-depth (world-extend rightˢ target))
       (world-left-depth (world-extend rightˢ target))
       (world-right-depth (world-extend rightˢ target)) A B E ×
-     GenSafeSource E × occurs zero E ≡ true)
+     NonVar E × occurs zero E ≡ true)
 paired-right-compatible-route history occ source route =
   world-bubble-right-exposure
     (indexed-target-schedule history)
@@ -1655,7 +1655,7 @@ paired-both-route-factor-step history source route recurse
 
 paired-left-route-factor-step :
   ∀ {Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ fuel C A B D} →
-  {{safeC : GenSafeSource C}} →
+  {{safeC : NonVar C}} →
   IndexedFactorWorlds Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ →
   occurs zero C ≡ true →
   PairedLower
@@ -1703,11 +1703,11 @@ paired-left-route-factor-step {{safeC}} history occ source route recurse
   ∀ⁱ factor
   where
     factor-occ = occurs-zero-factor-∀ factor occ
-    safeF = genSafeSource-forward-if-occursᵢ factor safeC factor-occ
+    safeF = nonVar-forward-if-occursᵢ factor safeC factor-occ
 
 paired-right-route-factor-step :
   ∀ {Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ fuel C A B D} →
-  {{safeC : GenSafeSource C}} →
+  {{safeC : NonVar C}} →
   IndexedFactorWorlds Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ →
   occurs zero C ≡ true →
   PairedLower
@@ -1755,11 +1755,11 @@ paired-right-route-factor-step {{safeC}} history occ source route recurse
   ∀ⁱ factor
   where
     factor-occ = occurs-zero-factor-∀ factor occ
-    safeF = genSafeSource-forward-if-occursᵢ factor safeC factor-occ
+    safeF = nonVar-forward-if-occursᵢ factor safeC factor-occ
 
 paired-neither-route-factor-step :
   ∀ {Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ fuel C A B} →
-  {{safeC : GenSafeSource C}} →
+  {{safeC : NonVar C}} →
   IndexedFactorWorlds Φ Δᴸ Δᴿ source target Ψ Δˢ Δᵗ →
   occurs zero C ≡ true →
   PairedLower

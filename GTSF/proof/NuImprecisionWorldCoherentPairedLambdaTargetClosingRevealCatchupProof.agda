@@ -148,26 +148,26 @@ private
       liftν lift∀ vW noW vW′ noW′ W⊑W′
 
   dispatch-target-closing-reveal
-      all-reveal unseal-reveal {B = `∀ D} {p = ν occ p}
+      all-reveal unseal-reveal {B = `∀ D} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A
       (reveal-id-var hY ok) ()
   dispatch-target-closing-reveal
-      all-reveal unseal-reveal {B = `∀ D} {p = ν occ p}
+      all-reveal unseal-reveal {B = `∀ D} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A reveal-id-base ()
   dispatch-target-closing-reveal
-      all-reveal unseal-reveal {B = `∀ D} {p = ν occ p}
+      all-reveal unseal-reveal {B = `∀ D} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A reveal-id-★ ()
   dispatch-target-closing-reveal
-      all-reveal unseal-reveal {B = `∀ D} {p = ν occ p}
+      all-reveal unseal-reveal {B = `∀ D} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A (reveal-fun s↓ t↑) ()
   dispatch-target-closing-reveal
-      all-reveal unseal-reveal {B = `∀ D} {μ = μ} {p = ν occ p}
+      all-reveal unseal-reveal {B = `∀ D} {μ = μ} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A
       (reveal-unseal hX αX∈Σ ok) target-eq
       liftν lift∀ vW noW vW′ noW′ W⊑W′
       with renameᵗ-injective suc-injective target-eq
   dispatch-target-closing-reveal
-      all-reveal unseal-reveal {B = `∀ D} {μ = μ} {p = ν occ p}
+      all-reveal unseal-reveal {B = `∀ D} {μ = μ} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A
       (reveal-unseal hX αX∈Σ ok) target-eq
       liftν lift∀ vW noW vW′ noW′ W⊑W′ | refl =
@@ -175,13 +175,13 @@ private
       (reveal-unseal hX αX∈Σ ok)
       liftν lift∀ vW noW vW′ noW′ W⊑W′
   dispatch-target-closing-reveal
-      all-reveal unseal-reveal {B = `∀ D} {p = ν occ p}
+      all-reveal unseal-reveal {B = `∀ D} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A
       (reveal-all inner) target-eq
       liftν lift∀ vW noW vW′ noW′ W⊑W′
       with ∀-injective target-eq
   dispatch-target-closing-reveal
-      all-reveal unseal-reveal {B = `∀ D} {p = ν occ p}
+      all-reveal unseal-reveal {B = `∀ D} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A
       (reveal-all inner) target-eq
       liftν lift∀ vW noW vW′ noW′ W⊑W′ | refl =

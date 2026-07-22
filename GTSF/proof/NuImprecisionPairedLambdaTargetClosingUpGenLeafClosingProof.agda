@@ -102,13 +102,13 @@ paired-lambda-target-closing-up-gen-leaf-closing-proofᵀ
 paired-lambda-target-closing-up-gen-leaf-closing-proofᵀ
     rotate all-closing {X = X} {d = d} {d′ = d′} {u = u} {u′ = u′}
     vM noM vM′ noM′ inert-d′ inert-u′ d⊒ d′⊒ M⊑M′
-    qD widening (ν occ-r r)
+    qD widening (ν _ occ-r r)
     prefix h⇑A reveal liftν lift∀ conversion
     with rotate h⇑A liftν occ-r conversion
 paired-lambda-target-closing-up-gen-leaf-closing-proofᵀ
     rotate all-closing {X = X} {d = d} {d′ = d′} {u = u} {u′ = u′}
     vM noM vM′ noM′ inert-d′ inert-u′ d⊒ d′⊒ M⊑M′
-    qD widening (ν occ-r r)
+    qD widening (ν _ occ-r r)
     prefix h⇑A reveal liftν lift∀ conversion
     | s , rotated-conversion =
   conv↑⊑ᵀ (reveal-all reveal)
@@ -128,7 +128,7 @@ paired-lambda-target-closing-up-gen-leaf-closing-proofᵀ
     gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ qD
 
   endpoint-relation₀ =
-    up⊑upᵀ quotient-relation widening (ν occ-r r)
+    up⊑upᵀ quotient-relation widening (ν _ occ-r r)
 
   endpoint-relation =
     allocation-prefixᵀ prefix endpoint-relation₀

@@ -2,7 +2,7 @@ module proof.NuImprecisionWorldCoherentQuotientInstFunTagCatchupDef where
 
 -- File Charter:
 --   * Defines world-coherent catch-up for the eager quotient-inst/function-tag
---     residual introduced by DualGenSafe widening.
+--     residual introduced by InstSafe widening.
 --   * Keeps the leading instantiation and trailing ground tag visible in the
 --     contract so final quotient assembly cannot confuse it with plain inst.
 --   * Contains no implementation or recursive simulation dependency.

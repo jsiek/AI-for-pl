@@ -58,45 +58,58 @@ swapRight∀∀ᵢ Φ =
 -- Type Imprecision
 ------------------------------------------------------------------------
 
--- A source body generalized by `ν` must expose a value-preserving coercion
--- shape.  Functions do so directly; an outer universal gives an inert
--- all-coercion, while any nested source-only generalization checks its own
--- body.  In particular, a bare bound variable is excluded because
--- compiling it against `★` would put its active projection directly beneath
--- `gen`.
-data GenSafeSource : Ty → Set where
-  source-fun : ∀ {A B} → GenSafeSource (A ⇒ B)
-  source-all : ∀ {A} → GenSafeSource (`∀ A)
+-- A source body generalized by `ν` cannot be a bare type variable.  Together
+-- with the occurrence premise on `ν`, this leaves exactly function and
+-- universal bodies: base types and `★` cannot contain the fresh variable.
+-- The separation keeps the type-level side condition independent of the
+-- operational `GenSafe` coercion category.
+data NonVar : Ty → Set where
+  nonvar-base : ∀ {ι} → NonVar (‵ ι)
+  nonvar-star : NonVar ★
+  nonvar-fun : ∀ {A B} → NonVar (A ⇒ B)
+  nonvar-all : ∀ {A} → NonVar (`∀ A)
 
-genSafeSource-unique :
+nonVar-unique :
   ∀ {A} →
-  (p q : GenSafeSource A) →
+  (p q : NonVar A) →
   p ≡ q
-genSafeSource-unique source-fun source-fun = refl
-genSafeSource-unique source-all source-all = refl
+nonVar-unique nonvar-base nonvar-base = refl
+nonVar-unique nonvar-star nonvar-star = refl
+nonVar-unique nonvar-fun nonvar-fun = refl
+nonVar-unique nonvar-all nonvar-all = refl
 
 instance
-  genSafeSource-fun : ∀ {A B} → GenSafeSource (A ⇒ B)
-  genSafeSource-fun = source-fun
+  nonVar-base-instance : ∀ {ι} → NonVar (‵ ι)
+  nonVar-base-instance = nonvar-base
 
-  genSafeSource-all : ∀ {A} → GenSafeSource (`∀ A)
-  genSafeSource-all = source-all
+  nonVar-star-instance : NonVar ★
+  nonVar-star-instance = nonvar-star
 
-renameGenSafeSource :
+  nonVar-fun-instance : ∀ {A B} → NonVar (A ⇒ B)
+  nonVar-fun-instance = nonvar-fun
+
+  nonVar-all-instance : ∀ {A} → NonVar (`∀ A)
+  nonVar-all-instance = nonvar-all
+
+renameNonVar :
   ∀ {A} →
   (ρ : Renameᵗ) →
-  GenSafeSource A →
-  GenSafeSource (renameᵗ ρ A)
-renameGenSafeSource ρ source-fun = source-fun
-renameGenSafeSource ρ source-all = source-all
+  NonVar A →
+  NonVar (renameᵗ ρ A)
+renameNonVar ρ nonvar-base = nonvar-base
+renameNonVar ρ nonvar-star = nonvar-star
+renameNonVar ρ nonvar-fun = nonvar-fun
+renameNonVar ρ nonvar-all = nonvar-all
 
-substGenSafeSource :
+substNonVar :
   ∀ {A} →
   (cons : Substᵗ) →
-  GenSafeSource A →
-  GenSafeSource (substᵗ cons A)
-substGenSafeSource cons source-fun = source-fun
-substGenSafeSource cons source-all = source-all
+  NonVar A →
+  NonVar (substᵗ cons A)
+substNonVar cons nonvar-base = nonvar-base
+substNonVar cons nonvar-star = nonvar-star
+substNonVar cons nonvar-fun = nonvar-fun
+substNonVar cons nonvar-all = nonvar-all
 
 infix 4 _⊢_⊑_
 data _⊢_⊑_ (Φ : ImpCtx) : Ty → Ty → Set where
@@ -139,7 +152,7 @@ data _⊢_⊑_ (Φ : ImpCtx) : Ty → Ty → Set where
     → Φ ⊢ ＇ X ⊑ ★
 
   ν : ∀ {A B}
-    → {{GenSafeSource A}}
+    → NonVar A
     → occurs zero A ≡ true      -- Phil: keep this, need for unique derivations
     → (0 ˣ⊑★) ∷ ⇑ᵢ Φ ⊢ A ⊑ ⇑ᵗ B
     -------------------------

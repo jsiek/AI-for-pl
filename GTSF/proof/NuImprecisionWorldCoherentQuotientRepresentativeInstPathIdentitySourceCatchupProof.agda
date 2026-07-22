@@ -6,7 +6,7 @@ module
 --   * Splits non-vacuous source-only identity-representative quotient-inst
 --     catch-up into ordinary-down and generated-down semantic leaves.
 --   * Eliminates the quotiented term constructor exhaustively while retaining
---     the implicit `GenSafeSource` and occurrence witnesses.
+--     the explicit `NonVar` and occurrence witnesses.
 --   * Contains no leaf implementation, postulate, hole, or fallback case.
 
 open import QuotientedTermImprecision using

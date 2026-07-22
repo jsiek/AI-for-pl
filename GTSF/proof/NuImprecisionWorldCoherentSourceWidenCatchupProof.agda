@@ -1120,7 +1120,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
 
   source-cast =
     widen-weaken ≤-refl source-store-incl
-      (s⊢ , NW.dualGenSafe→widening sʷ)
+      (s⊢ , NW.instSafe→widening sʷ)
 
   ν-framed = weak-one-step-source-νcast-frameᵀ
     mode ν-seal★ source-cast q inner

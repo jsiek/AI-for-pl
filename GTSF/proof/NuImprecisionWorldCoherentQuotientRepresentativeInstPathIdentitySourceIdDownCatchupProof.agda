@@ -5,7 +5,7 @@ module
 -- File Charter:
 --   * Proves the identity-widening half of non-vacuous source-only,
 --     ordinary-down quotient-inst catch-up using sparse-store cast embedding.
---   * Passes `GenSafeSource` and the occurrence proof into the exact inner
+--   * Passes `NonVar` and the occurrence proof into the exact inner
 --     `ν` precision index; no vacuous source-only case is admitted.
 --   * Delegates only the genuinely harder general-cast widening half.
 
@@ -74,14 +74,14 @@ world-coherent-quotient-representative-inst-path-identity-source-id-down-catchup
       (QTI.cast⊒⊑ᵀ cast-tag-or-id seal★-tag-or-id
         (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ d⊒)
         V⊑V′ q-down)
-      (ν {{safe}} occ r)
+      (ν safe occ r)
 
   L⊑V′u′ = QTI.⊑cast⊑idᵀ (λ α ()) u′⊑ d-rel q
 
   s⊑ =
     NW.widen-mode-relax
       (ModeIncl-inst C.id-only≤tag-or-idᵈ)
-      (s⊢ , NW.dualGenSafe→widening sʷ)
+      (s⊢ , NW.instSafe→widening sʷ)
 world-coherent-quotient-representative-inst-path-identity-source-id-down-catchup-proofᵀ
     final cast-widen {{safe = safe}} occ r
     coherent exclusive wfL okN vVd noVd vV′ noV′

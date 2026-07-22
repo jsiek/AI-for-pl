@@ -5,7 +5,7 @@ module
 -- File Charter:
 --   * Defines identity-representative quotient-inst catch-up for the
 --     source-only non-vacuous case with ordinary identity-mode downcasts.
---   * Keeps `GenSafeSource` and the occurrence witness explicit.
+--   * Keeps `NonVar` and the occurrence witness explicit.
 --   * Contains no implementation, quotient elimination, or dispatcher.
 
 import Coercions as C
@@ -14,7 +14,7 @@ open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import ImprecisionWf using
-  ( GenSafeSource
+  ( NonVar
   ; _ˣ⊑★
   ; ⇑ᴸᵢ
   ; _∣_⊢_⊑_⊣_
@@ -42,7 +42,7 @@ WorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCatchupᵀ =
   ∀ {Φ Δᴸ Δᴿ} {V V′ : Term}
     {B C C′ E T A A′ : Ty} {d d′ s u′ : C.Coercion}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {{safe : GenSafeSource E}}
+    {{safe : NonVar E}}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
   (occ : occurs zero E ≡ true) →

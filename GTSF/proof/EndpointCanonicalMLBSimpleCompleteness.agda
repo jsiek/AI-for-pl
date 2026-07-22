@@ -42,13 +42,13 @@ open import proof.ImprecisionProperties using
   ; idᵢ-var-identity; idᵢ-wf; no-⇑ᵢ-zero-left; no-⇑ᵢ-zero-right
   ; no-⇑ᵢ-zero-star; ⇑ᵢ-ˣ∈; ⇑ᵢ-★∈
   ; no-⇑ᴸᵢ-zero-left; un⇑ᵢ-★∈; un⇑ᵢ-ˣ∈; un⇑ᴸᵢ-ˣ∈
-  ; ∀ᵢ-wf²; genSafeSource?
+  ; ∀ᵢ-wf²; nonVar?
   )
 open import proof.MaximalLowerBoundsWf using
   ( CommonLowerBoundᵢ; DropAtᵢ; drop-zeroᵢ; drop-∀ᵢ; drop-νᵢ
   ; no-occurs-base-lowerᵢ
   ; no-occurs-var-lower-νctxᵢ; no-⇑ᴸᵢ-zero-star
-  ; genSafeSource-forward-if-occursᵢ
+  ; nonVar-forward-if-occursᵢ
   ; occurs-var-true→≡ᵢ
   ; old⊑→wf-idᵢ; open-unused-atᵢ; removeAt-Wfᵢ; removeAtᵗ
   ; ⊑-forgetᵢ; un⇑ᴸᵢ-★∈; ⇑ᴸᵢ-ˣ∈; ⇑ᴸᵢ-★∈
@@ -382,13 +382,13 @@ wrapAll-complete {xs = E ∷ xs} (there E∈) =
 
 wrapAllIfOccurs-complete :
   ∀ {E : Ty} {xs : List Ty} →
-  GenSafeSource E →
+  NonVar E →
   occurs zero E ≡ true →
   E ∈ xs →
   `∀ E ∈ wrapAllIfOccurs xs
 wrapAllIfOccurs-complete {xs = []} safe occE ()
 wrapAllIfOccurs-complete {E = E} {xs = A ∷ As} safe occE
-    (here refl) with genSafeSource? E
+    (here refl) with nonVar? E
 wrapAllIfOccurs-complete {E = E} {xs = A ∷ As} safe occE
     (here refl) | yes safe′ rewrite occE =
   here refl
@@ -396,7 +396,7 @@ wrapAllIfOccurs-complete {E = E} {xs = A ∷ As} safe occE
     (here refl) | no ¬safe =
   ⊥-elim (¬safe safe)
 wrapAllIfOccurs-complete {E = E} {xs = A ∷ As} safe occE
-    (there E∈) with genSafeSource? A | occurs zero A
+    (there E∈) with nonVar? A | occurs zero A
 wrapAllIfOccurs-complete {E = E} {xs = A ∷ As} safe occE
     (there E∈) | yes safeA | true =
   there (wrapAllIfOccurs-complete safe occE E∈)
@@ -634,8 +634,8 @@ star-star-to-meetᵢ meet (tag p₁ ⇛ p₂) (tag q₁ ⇛ q₂) =
 star-star-to-meetᵢ meet (tagˣ x★∈ X<Δ) (tagˣ y★∈ _) =
   tagˣ (meet-starᵢ meet x★∈ y★∈) X<Δ
 star-star-to-meetᵢ meet
-    (ν {{safeD}} occD D⊑★) (ν {{safeD′}} occD′ D⊑★′) =
-  ν {{safeD}} occD
+    (ν safeD occD D⊑★) (ν safeD′ occD′ D⊑★′) =
+  ν safeD occD
     (star-star-to-meetᵢ (StarMeet-ννᵢ meet) D⊑★ D⊑★′)
 
 ∀ρᵢ : (TyVar → TyVar) → TyVar → TyVar
@@ -771,7 +771,7 @@ occurs-forwardᵢ {Z = z} fwd (tag_⇛_ {A₁ = A₁} {A₂ = A₂} p q) occ
   ⊥-elim (false≠true occ)
 occurs-forwardᵢ fwd (tagˣ x★∈ _) occ =
   ⊥-elim (forward-star-occursᵢ fwd x★∈ occ)
-occurs-forwardᵢ fwd (ν occA p) occ =
+occurs-forwardᵢ fwd (ν _ occA p) occ =
   occurs-forwardᵢ (ForwardCtx-νᵢ fwd) p occ
 
 occurs-forward-idᵢ :
@@ -866,8 +866,8 @@ inst-star-atᵢ {k = k} d k<Δ (tagˣ {X = X} x∈ X<Δ)
     (λ S → _ ∣ _ ⊢ S ⊑ ★ ⊣ _)
     (sym (subst-star-fresh-varᵢ k X occX))
     (open-unused-atᵢ d k<Δ occX (tagˣ x∈ X<Δ))
-inst-star-atᵢ {k = k} d k<Δ (ν {A = A} {{safe}} occA p) =
-  ν {{substGenSafeSource (extsᵗ (substVarFrom k ★)) safe}}
+inst-star-atᵢ {k = k} d k<Δ (ν {A = A} safe occA p) =
+  ν (substNonVar (extsᵗ (substVarFrom k ★)) safe)
     (trans (occurs-extsNᵗ-below 1 (substVarFrom k ★) zero A z<s) occA)
     (inst-star-atᵢ (drop-νᵢ d) (s<s k<Δ) p)
 
@@ -988,11 +988,12 @@ star-inst-lowerᵢ {Δ = Δ} = star-inst-lower-atᵢ (StarInst-zeroᵢ Δ)
 
 close-star-lowerᵢ :
   ∀ {Δ A} →
-  {{GenSafeSource A}} →
+  {{NonVar A}} →
   occurs zero A ≡ true →
   WfTy (suc Δ) A →
   idᵢ Δ ∣ Δ ⊢ `∀ A ⊑ A [ ★ ]ᵗ ⊣ Δ
-close-star-lowerᵢ occA hA = ν occA (star-inst-lowerᵢ hA)
+close-star-lowerᵢ {{safe}} occA hA =
+  ν safe occA (star-inst-lowerᵢ hA)
 
 inst-star-commonᵢ :
   ∀ {Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
@@ -1033,7 +1034,7 @@ nested-used-star-lower =
 no-nested-used-star-lower :
   ∀ᵢᶜ [] ∣ 1 ⊢ `∀ (★ ⇒ ＇ 1) ⊑ ★ ⊣ 1 →
   ⊥
-no-nested-used-star-lower (ν () p)
+no-nested-used-star-lower (ν nonvar-fun () p)
 
 no-nested-used-body-factor :
   ¬ (∃[ R ]
@@ -1058,7 +1059,7 @@ mutual
 
   enumMLB-νν-complete :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D} →
-    {{GenSafeSource D}} →
+    {{NonVar D}} →
     (sourceFuel : ℕ) →
     SourceFuel sourceFuel (`∀ D) →
     EnoughFuel fuel A B →
@@ -1127,7 +1128,7 @@ mutual
   enumMLB-complete {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
       {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (∀ⁱ D⊑A) (ν {{safeD}} occD D⊑B)
+      (∀ⁱ D⊑A) (ν safeD occD D⊑B)
       with enumMLB-complete-used (fuel-∀∀-left enough)
              (∀ᵢ-wf² hΦᴸ) (νᵢᶜ-wf² hΦᴿ)
              (λ meet′ D′⊑A D′⊑B →
@@ -1139,7 +1140,7 @@ mutual
   enumMLB-complete {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
       {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (∀ⁱ D⊑A) (ν {{safeD}} occD D⊑B)
+      (∀ⁱ D⊑A) (ν safeD occD D⊑B)
       | E , E∈ , occE , D⊑E =
     `∀ E ,
     dedupe-complete
@@ -1150,13 +1151,13 @@ mutual
               (suc Δᶜ) (suc Δᴸ) (suc Δᴿ) A B)}
         (∈-++-left
           (wrapAllIfOccurs-complete
-            (genSafeSource-forward-if-occursᵢ D⊑E safeD occE)
+            (nonVar-forward-if-occursᵢ D⊑E safeD occE)
             occE E∈))) ,
     ∀ⁱ D⊑E
   enumMLB-complete {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
       {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (∀ⁱ D⊑B)
+      (ν safeD occD D⊑A) (∀ⁱ D⊑B)
       with enumMLB-complete-used (fuel-∀∀-right enough)
              (νᵢᶜ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ)
              (λ meet′ D′⊑A D′⊑B →
@@ -1168,7 +1169,7 @@ mutual
   enumMLB-complete {fuel = suc fuel} {Φᴸ = Φᴸ} {Φᴿ = Φᴿ}
       {Δᶜ = Δᶜ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = `∀ A} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (∀ⁱ D⊑B)
+      (ν safeD occD D⊑A) (∀ⁱ D⊑B)
       | E , E∈ , occE , D⊑E =
     `∀ E ,
     dedupe-complete
@@ -1182,18 +1183,18 @@ mutual
             (enumMLB fuel (∀ᵢᶜ Φᴸ) (νᵢᶜ Φᴿ)
               (suc Δᶜ) (suc Δᴸ) Δᴿ A (`∀ B))}
           (wrapAllIfOccurs-complete
-            (genSafeSource-forward-if-occursᵢ D⊑E safeD occE)
+            (nonVar-forward-if-occursᵢ D⊑E safeD occE)
             occE E∈))) ,
     ∀ⁱ D⊑E
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (ν {{safeD′}} occD′ D⊑B) =
+      (ν safeD occD D⊑A) (ν safeD′ occD′ D⊑B) =
     enumMLB-νν-complete {{safeD}}
       sourceFuel source enough hΦᴸ hΦᴿ meet
       occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ★}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (∀ⁱ D⊑A) (ν {{safeD}} occD D⊑B)
+      (∀ⁱ D⊑A) (ν safeD occD D⊑B)
       with enumMLB-complete-used (fuel-∀L enough)
              (∀ᵢ-wf² hΦᴸ) (νᵢᶜ-wf² hΦᴿ)
              (λ meet′ D′⊑A D′⊑B →
@@ -1204,17 +1205,17 @@ mutual
              occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ★}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (∀ⁱ D⊑A) (ν {{safeD}} occD D⊑B)
+      (∀ⁱ D⊑A) (ν safeD occD D⊑B)
       | E , E∈ , occE , D⊑E =
     `∀ E ,
     dedupe-complete
       (wrapAllIfOccurs-complete
-        (genSafeSource-forward-if-occursᵢ D⊑E safeD occE)
+        (nonVar-forward-if-occursᵢ D⊑E safeD occE)
         occE E∈) ,
     ∀ⁱ D⊑E
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ‵ ι}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (∀ⁱ D⊑A) (ν {{safeD}} occD D⊑B)
+      (∀ⁱ D⊑A) (ν safeD occD D⊑B)
       with enumMLB-complete-used (fuel-∀L enough)
              (∀ᵢ-wf² hΦᴸ) (νᵢᶜ-wf² hΦᴿ)
              (λ meet′ D′⊑A D′⊑B →
@@ -1225,17 +1226,17 @@ mutual
              occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ‵ ι}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (∀ⁱ D⊑A) (ν {{safeD}} occD D⊑B)
+      (∀ⁱ D⊑A) (ν safeD occD D⊑B)
       | E , E∈ , occE , D⊑E =
     `∀ E ,
     dedupe-complete
       (wrapAllIfOccurs-complete
-        (genSafeSource-forward-if-occursᵢ D⊑E safeD occE)
+        (nonVar-forward-if-occursᵢ D⊑E safeD occE)
         occE E∈) ,
     ∀ⁱ D⊑E
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ＇ X}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (∀ⁱ D⊑A) (ν {{safeD}} occD D⊑B)
+      (∀ⁱ D⊑A) (ν safeD occD D⊑B)
       with enumMLB-complete-used (fuel-∀L enough)
              (∀ᵢ-wf² hΦᴸ) (νᵢᶜ-wf² hΦᴿ)
              (λ meet′ D′⊑A D′⊑B →
@@ -1246,17 +1247,17 @@ mutual
              occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ＇ X}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (∀ⁱ D⊑A) (ν {{safeD}} occD D⊑B)
+      (∀ⁱ D⊑A) (ν safeD occD D⊑B)
       | E , E∈ , occE , D⊑E =
     `∀ E ,
     dedupe-complete
       (wrapAllIfOccurs-complete
-        (genSafeSource-forward-if-occursᵢ D⊑E safeD occE)
+        (nonVar-forward-if-occursᵢ D⊑E safeD occE)
         occE E∈) ,
     ∀ⁱ D⊑E
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = B₁ ⇒ B₂}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (∀ⁱ D⊑A) (ν {{safeD}} occD D⊑B)
+      (∀ⁱ D⊑A) (ν safeD occD D⊑B)
       with enumMLB-complete-used (fuel-∀L enough)
              (∀ᵢ-wf² hΦᴸ) (νᵢᶜ-wf² hΦᴿ)
              (λ meet′ D′⊑A D′⊑B →
@@ -1267,17 +1268,17 @@ mutual
              occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = B₁ ⇒ B₂}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (∀ⁱ D⊑A) (ν {{safeD}} occD D⊑B)
+      (∀ⁱ D⊑A) (ν safeD occD D⊑B)
       | E , E∈ , occE , D⊑E =
     `∀ E ,
     dedupe-complete
       (wrapAllIfOccurs-complete
-        (genSafeSource-forward-if-occursᵢ D⊑E safeD occE)
+        (nonVar-forward-if-occursᵢ D⊑E safeD occE)
         occE E∈) ,
     ∀ⁱ D⊑E
   enumMLB-complete {fuel = suc fuel} {A = ★} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (∀ⁱ D⊑B)
+      (ν safeD occD D⊑A) (∀ⁱ D⊑B)
       with enumMLB-complete-used (fuel-∀R enough)
              (νᵢᶜ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ)
              (λ meet′ D′⊑A D′⊑B →
@@ -1288,17 +1289,17 @@ mutual
              occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = ★} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (∀ⁱ D⊑B)
+      (ν safeD occD D⊑A) (∀ⁱ D⊑B)
       | E , E∈ , occE , D⊑E =
     `∀ E ,
     dedupe-complete
       (wrapAllIfOccurs-complete
-        (genSafeSource-forward-if-occursᵢ D⊑E safeD occE)
+        (nonVar-forward-if-occursᵢ D⊑E safeD occE)
         occE E∈) ,
     ∀ⁱ D⊑E
   enumMLB-complete {fuel = suc fuel} {A = ‵ ι} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (∀ⁱ D⊑B)
+      (ν safeD occD D⊑A) (∀ⁱ D⊑B)
       with enumMLB-complete-used (fuel-∀R enough)
              (νᵢᶜ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ)
              (λ meet′ D′⊑A D′⊑B →
@@ -1309,17 +1310,17 @@ mutual
              occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = ‵ ι} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (∀ⁱ D⊑B)
+      (ν safeD occD D⊑A) (∀ⁱ D⊑B)
       | E , E∈ , occE , D⊑E =
     `∀ E ,
     dedupe-complete
       (wrapAllIfOccurs-complete
-        (genSafeSource-forward-if-occursᵢ D⊑E safeD occE)
+        (nonVar-forward-if-occursᵢ D⊑E safeD occE)
         occE E∈) ,
     ∀ⁱ D⊑E
   enumMLB-complete {fuel = suc fuel} {A = ＇ X} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (∀ⁱ D⊑B)
+      (ν safeD occD D⊑A) (∀ⁱ D⊑B)
       with enumMLB-complete-used (fuel-∀R enough)
              (νᵢᶜ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ)
              (λ meet′ D′⊑A D′⊑B →
@@ -1330,17 +1331,17 @@ mutual
              occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = ＇ X} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (∀ⁱ D⊑B)
+      (ν safeD occD D⊑A) (∀ⁱ D⊑B)
       | E , E∈ , occE , D⊑E =
     `∀ E ,
     dedupe-complete
       (wrapAllIfOccurs-complete
-        (genSafeSource-forward-if-occursᵢ D⊑E safeD occE)
+        (nonVar-forward-if-occursᵢ D⊑E safeD occE)
         occE E∈) ,
     ∀ⁱ D⊑E
   enumMLB-complete {fuel = suc fuel} {A = A₁ ⇒ A₂} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (∀ⁱ D⊑B)
+      (ν safeD occD D⊑A) (∀ⁱ D⊑B)
       with enumMLB-complete-used (fuel-∀R enough)
              (νᵢᶜ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ)
              (λ meet′ D′⊑A D′⊑B →
@@ -1351,12 +1352,12 @@ mutual
              occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = A₁ ⇒ A₂} {B = `∀ B}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (∀ⁱ D⊑B)
+      (ν safeD occD D⊑A) (∀ⁱ D⊑B)
       | E , E∈ , occE , D⊑E =
     `∀ E ,
     dedupe-complete
       (wrapAllIfOccurs-complete
-        (genSafeSource-forward-if-occursᵢ D⊑E safeD occE)
+        (nonVar-forward-if-occursᵢ D⊑E safeD occE)
         occE E∈) ,
     ∀ⁱ D⊑E
   enumMLB-complete {fuel = suc fuel} {A = ★} {B = ★}
@@ -1473,64 +1474,64 @@ mutual
       (tag D₁⊑★ ⇛ D₂⊑★) (tag D₁⊑★′ ⇛ D₂⊑★′)
   enumMLB-complete {fuel = suc fuel} {A = ＇ X} {D = `∀ D}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν occD D⊑A) (ν occD′ D⊑B) =
+      (ν _ occD D⊑A) (ν _ occD′ D⊑B) =
     ⊥-elim (no-occurs-var-lower-νctxᵢ occD D⊑A)
   enumMLB-complete {fuel = suc fuel} {A = ‵ ι}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν occD D⊑A) (ν occD′ D⊑B) =
+      (ν _ occD D⊑A) (ν _ occD′ D⊑B) =
     ⊥-elim (no-occurs-base-lowerᵢ occD D⊑A)
   enumMLB-complete {fuel = suc fuel} {Δᶜ = Δᶜ}
       {A = ★} {B = ★} {D = `∀ D}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (ν {{safeD′}} occD′ D⊑B) =
+      (ν safeD occD D⊑A) (ν safeD′ occD′ D⊑B) =
     ★ ,
     here refl ,
-    ν {{safeD}} occD
+    ν safeD occD
       (star-star-to-meetᵢ {Δᵒ = Δᶜ}
         (StarMeet-ννᵢ meet) D⊑A D⊑B)
   enumMLB-complete {fuel = suc fuel} {A = ★} {B = ＇ Y} {D = `∀ D}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν occD D⊑A) (ν occD′ D⊑B) =
+      (ν _ occD D⊑A) (ν _ occD′ D⊑B) =
     ⊥-elim (no-occurs-var-lower-νctxᵢ occD′ D⊑B)
   enumMLB-complete {fuel = suc fuel} {A = ★} {B = ‵ ι} {D = `∀ D}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν occD D⊑A) (ν occD′ D⊑B) =
+      (ν _ occD D⊑A) (ν _ occD′ D⊑B) =
     ⊥-elim (no-occurs-base-lowerᵢ occD′ D⊑B)
   enumMLB-complete {fuel = suc fuel} {A = ★} {B = `∀ B} {D = `∀ D}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (ν {{safeD′}} occD′ D⊑B) =
+      (ν safeD occD D⊑A) (ν safeD′ occD′ D⊑B) =
     enumMLB-νν-complete {{safeD}}
       sourceFuel source enough hΦᴸ hΦᴿ meet
       occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = ★} {B = B₁ ⇒ B₂} {D = `∀ D}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (ν {{safeD′}} occD′ D⊑B) =
+      (ν safeD occD D⊑A) (ν safeD′ occD′ D⊑B) =
     enumMLB-νν-complete {{safeD}}
       sourceFuel source enough hΦᴸ hΦᴿ meet
       occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = A₁ ⇒ A₂}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (ν {{safeD′}} occD′ D⊑B) =
+      (ν safeD occD D⊑A) (ν safeD′ occD′ D⊑B) =
     enumMLB-νν-complete {{safeD}}
       sourceFuel source enough hΦᴸ hΦᴿ meet
       occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ＇ Y}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν occD D⊑A) (ν occD′ D⊑B) =
+      (ν _ occD D⊑A) (ν _ occD′ D⊑B) =
     ⊥-elim (no-occurs-var-lower-νctxᵢ occD′ D⊑B)
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ‵ ι}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν occD D⊑A) (ν occD′ D⊑B) =
+      (ν _ occD D⊑A) (ν _ occD′ D⊑B) =
     ⊥-elim (no-occurs-base-lowerᵢ occD′ D⊑B)
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = ★}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (ν {{safeD′}} occD′ D⊑B) =
+      (ν safeD occD D⊑A) (ν safeD′ occD′ D⊑B) =
     enumMLB-νν-complete {{safeD}}
       sourceFuel source enough hΦᴸ hΦᴿ meet
       occD D⊑A D⊑B
   enumMLB-complete {fuel = suc fuel} {A = `∀ A} {B = B₁ ⇒ B₂}
       sourceFuel source enough hΦᴸ hΦᴿ meet
-      (ν {{safeD}} occD D⊑A) (ν {{safeD′}} occD′ D⊑B) =
+      (ν safeD occD D⊑A) (ν safeD′ occD′ D⊑B) =
     enumMLB-νν-complete {{safeD}}
       sourceFuel source enough hΦᴸ hΦᴿ meet
       occD D⊑A D⊑B

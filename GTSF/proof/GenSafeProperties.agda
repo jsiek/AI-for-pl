@@ -74,40 +74,40 @@ genSafe-target-shape (C.cast-fun s⊢ t⊢) (safe-fun sʷ tⁿ) = shape-fun
 genSafe-target-shape (C.cast-all c⊢) (safe-all sⁿ) = shape-all
 genSafe-target-shape (cast-gen hA occ c⊢) (safe-gen safe) = shape-all
 
-dualGenSafe-source-shape :
+instSafe-source-shape :
   ∀ {μ : ModeEnv} {Δ Σ A B c} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
-  DualGenSafe c →
+  InstSafe c →
   GenSafeShape A
-dualGenSafe-source-shape (C.cast-fun s⊢ t⊢) (safe-fun sⁿ tʷ) = shape-fun
-dualGenSafe-source-shape (C.cast-all c⊢) (safe-all sʷ) = shape-all
-dualGenSafe-source-shape (cast-inst hB occ c⊢) (safe-inst safe) = shape-all
+instSafe-source-shape (C.cast-fun s⊢ t⊢) (safe-fun sⁿ tʷ) = shape-fun
+instSafe-source-shape (C.cast-all c⊢) (safe-all sʷ) = shape-all
+instSafe-source-shape (cast-inst hB occ c⊢) (safe-inst safe) = shape-all
 
-dualGenSafe-target-shape :
+instSafe-target-shape :
   ∀ {μ : ModeEnv} {Δ Σ A B c} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
-  DualGenSafe c →
+  InstSafe c →
   GenSafeShape B
-dualGenSafe-target-shape (C.cast-fun s⊢ t⊢) (safe-fun sⁿ tʷ) = shape-fun
-dualGenSafe-target-shape (C.cast-all c⊢) (safe-all sʷ) = shape-all
-dualGenSafe-target-shape {B = ＇ α}
+instSafe-target-shape (C.cast-fun s⊢ t⊢) (safe-fun sⁿ tʷ) = shape-fun
+instSafe-target-shape (C.cast-all c⊢) (safe-all sʷ) = shape-all
+instSafe-target-shape {B = ＇ α}
     (cast-inst hB occ c⊢) (safe-inst safe)
-    with dualGenSafe-target-shape c⊢ safe
-dualGenSafe-target-shape {B = ＇ α}
+    with instSafe-target-shape c⊢ safe
+instSafe-target-shape {B = ＇ α}
     (cast-inst hB occ c⊢) (safe-inst safe) | ()
-dualGenSafe-target-shape {B = ‵ ι}
+instSafe-target-shape {B = ‵ ι}
     (cast-inst hB occ c⊢) (safe-inst safe)
-    with dualGenSafe-target-shape c⊢ safe
-dualGenSafe-target-shape {B = ‵ ι}
+    with instSafe-target-shape c⊢ safe
+instSafe-target-shape {B = ‵ ι}
     (cast-inst hB occ c⊢) (safe-inst safe) | ()
-dualGenSafe-target-shape {B = ★}
+instSafe-target-shape {B = ★}
     (cast-inst hB occ c⊢) (safe-inst safe)
-    with dualGenSafe-target-shape c⊢ safe
-dualGenSafe-target-shape {B = ★}
+    with instSafe-target-shape c⊢ safe
+instSafe-target-shape {B = ★}
     (cast-inst hB occ c⊢) (safe-inst safe) | ()
-dualGenSafe-target-shape {B = A ⇒ B}
+instSafe-target-shape {B = A ⇒ B}
     (cast-inst hB occ c⊢) (safe-inst safe) = shape-fun
-dualGenSafe-target-shape {B = `∀ B}
+instSafe-target-shape {B = `∀ B}
     (cast-inst hB occ c⊢) (safe-inst safe) = shape-all
 
 raise-genSafeShape :
@@ -150,10 +150,10 @@ eager-inst-ground-function :
   Ground G →
   C.instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ
     ⊢ c ∶ A =⇒ ⇑ᵗ G →
-  DualGenSafe c →
+  InstSafe c →
   G ≡ (★ ⇒ ★)
 eager-inst-ground-function gG c⊢ safe =
-  ground-genSafeShape→fun gG (dualGenSafe-target-shape c⊢ safe)
+  ground-genSafeShape→fun gG (instSafe-target-shape c⊢ safe)
 
 crossNarrowing-source-shape :
   ∀ {μ : ModeEnv} {Δ Σ A B c} →
@@ -216,15 +216,15 @@ genSafe-star-source⊥ () (safe-all sⁿ)
 genSafe-star-source⊥ (cast-gen hA occ c⊢) (safe-gen safe) =
   genSafe-star-source⊥ c⊢ safe
 
-dualGenSafe-star-target⊥ :
+instSafe-star-target⊥ :
   ∀ {μ : ModeEnv} {Δ Σ A c} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ ★ →
-  DualGenSafe c →
+  InstSafe c →
   ⊥
-dualGenSafe-star-target⊥ () (safe-fun sⁿ tʷ)
-dualGenSafe-star-target⊥ () (safe-all sʷ)
-dualGenSafe-star-target⊥ (cast-inst hB occ c⊢) (safe-inst safe) =
-  dualGenSafe-star-target⊥ c⊢ safe
+instSafe-star-target⊥ () (safe-fun sⁿ tʷ)
+instSafe-star-target⊥ () (safe-all sʷ)
+instSafe-star-target⊥ (cast-inst hB occ c⊢) (safe-inst safe) =
+  instSafe-star-target⊥ c⊢ safe
 
 narrowing-inert-view :
   ∀ {c} →
@@ -361,7 +361,7 @@ widening-between-genSafe-shapes :
   GenSafeShape B →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →
   Widening c →
-  DualGenSafe c
+  InstSafe c
 widening-between-genSafe-shapes shape-fun shape-fun
     (C.cast-fun s⊢ t⊢) (cross (sⁿ ↦ tʷ)) =
   safe-fun sⁿ tʷ

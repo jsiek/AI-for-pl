@@ -16,7 +16,7 @@ open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁)
 open import ImprecisionWf using
-  ( GenSafeSource
+  ( NonVar
   ; _∣_⊢_⊑_⊣_
   ; _ˣ⊑★
   ; ⇑ᴸᵢ
@@ -366,7 +366,7 @@ left-catchup-indexed-prefix-α-Λᵀ
 
 left-allocated-bulletᵀ :
   ∀ {Φ Δᴸ Δᴿ Aν A B′ V V′ occ r}
-    {{safe : GenSafeSource A}}
+    {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -375,7 +375,7 @@ left-allocated-bulletᵀ :
   (liftρ : LiftLeftStoreⁱ
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ B′ ∶ ν occ r →
+    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ B′ ∶ ν _ occ r →
   ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣
     store-left zero (⇑ᵗ Aν) hAν ∷ ρ′ ∣ []
     ⊢ᴺ (⇑ᵗᵐ V) • ⊑ V′ ⦂ A ⊑ B′ ∶ r

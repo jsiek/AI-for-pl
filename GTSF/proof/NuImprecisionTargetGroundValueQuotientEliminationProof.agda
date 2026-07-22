@@ -345,7 +345,7 @@ mutual
   source-star-≈∀-left (≈∀-⇒ A≈A′ B≈B′) (tag p ⇛ q) =
     tag source-star-≈∀-left A≈A′ p ⇛
       source-star-≈∀-left B≈B′ q
-  source-star-≈∀-left (≈∀-∀ A≈B) (ν occ p) =
+  source-star-≈∀-left (≈∀-∀ A≈B) (ν _ occ p) =
     ν (trans (≈∀-occurs A≈B zero) occ)
       (source-star-≈∀-left A≈B p)
   source-star-≈∀-left {A = T.`∀ (T.`∀ A)} ≈∀-swap
@@ -373,7 +373,7 @@ mutual
   source-star-≈∀-right (≈∀-⇒ A≈A′ B≈B′) (tag p ⇛ q) =
     tag source-star-≈∀-right A≈A′ p ⇛
       source-star-≈∀-right B≈B′ q
-  source-star-≈∀-right (≈∀-∀ A≈B) (ν occ p) =
+  source-star-≈∀-right (≈∀-∀ A≈B) (ν _ occ p) =
     ν (trans (sym (≈∀-occurs A≈B zero)) occ)
       (source-star-≈∀-right A≈B p)
   source-star-≈∀-right {A = T.`∀ (T.`∀ A)} ≈∀-swap
@@ -406,7 +406,7 @@ mutual
       (p ↦ q) =
     source-star-≈∀-left A≈A′ p ↦
       source-star-≈∀-left B≈B′ q
-  source-ground-≈∀-left gH (≈∀-∀ A≈B) (ν occ p) =
+  source-ground-≈∀-left gH (≈∀-∀ A≈B) (ν _ occ p) =
     ν (trans (≈∀-occurs A≈B zero) occ)
       (source-ground-≈∀-left gH A≈B p)
   source-ground-≈∀-left {A = T.`∀ (T.`∀ A)} gH ≈∀-swap
@@ -439,7 +439,7 @@ mutual
       (p ↦ q) =
     source-star-≈∀-right A≈A′ p ↦
       source-star-≈∀-right B≈B′ q
-  source-ground-≈∀-right gH (≈∀-∀ A≈B) (ν occ p) =
+  source-ground-≈∀-right gH (≈∀-∀ A≈B) (ν _ occ p) =
     ν (trans (sym (≈∀-occurs A≈B zero)) occ)
       (source-ground-≈∀-right gH A≈B p)
   source-ground-≈∀-right {A = T.`∀ (T.`∀ A)} gH ≈∀-swap

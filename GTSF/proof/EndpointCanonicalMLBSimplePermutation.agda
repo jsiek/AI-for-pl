@@ -97,8 +97,8 @@ data AlignedRoutes :
 
   aligned-left :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
-      {{safeC : GenSafeSource C}}
-      {{safeD : GenSafeSource D}}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route :
         EnumRoute fuel
           (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴸ)
@@ -116,8 +116,8 @@ data AlignedRoutes :
 
   aligned-right :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
-      {{safeC : GenSafeSource C}}
-      {{safeD : GenSafeSource D}}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route :
         EnumRoute fuel
           (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴸ)
@@ -245,8 +245,8 @@ data AlignedRoutes :
 
   aligned-left-right :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D}
-      {{safeC : GenSafeSource C}}
-      {{safeD : GenSafeSource D}}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {occC : occurs zero C ≡ true}
       {occ∀C : occurs zero (`∀ C) ≡ true}
       {occD : occurs zero D ≡ true}
@@ -272,8 +272,8 @@ data AlignedRoutes :
 
   aligned-right-left :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D}
-      {{safeC : GenSafeSource C}}
-      {{safeD : GenSafeSource D}}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {occC : occurs zero C ≡ true}
       {occ∀C : occurs zero (`∀ C) ≡ true}
       {occD : occurs zero D ≡ true}
@@ -2206,8 +2206,8 @@ data SameSchedule :
 
   same-left :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
-      {{safeC : GenSafeSource C}}
-      {{safeD : GenSafeSource D}}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route : EnumRoute fuel
         (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴸ)
         (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴿ)
@@ -2223,8 +2223,8 @@ data SameSchedule :
 
   same-right :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
-      {{safeC : GenSafeSource C}}
-      {{safeD : GenSafeSource D}}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route : EnumRoute fuel
         (proof.EndpointCanonicalMLBSimple.νᵢᶜ Φᴸ)
         (proof.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴿ)
@@ -2485,14 +2485,14 @@ transport-enum-route left-transport right-transport pres
       (TyRenameWf-ext pres) route)
 transport-enum-route {ρ = ρ} left-transport right-transport pres
     (route-left {C = C} {{safe}} occ route) =
-  route-left {{renameGenSafeSource (extᵗ ρ) safe}}
+  route-left {{renameNonVar (extᵗ ρ) safe}}
     (trans (occurs-zero-rename-ext ρ C) occ)
     (transport-enum-route
       (transport-∀ left-transport) (transport-ν right-transport)
       (TyRenameWf-ext pres) route)
 transport-enum-route {ρ = ρ} left-transport right-transport pres
     (route-right {C = C} {{safe}} occ route) =
-  route-right {{renameGenSafeSource (extᵗ ρ) safe}}
+  route-right {{renameNonVar (extᵗ ρ) safe}}
     (trans (occurs-zero-rename-ext ρ C) occ)
     (transport-enum-route
       (transport-ν left-transport) (transport-∀ right-transport)
@@ -2668,8 +2668,8 @@ data SwapAlignedRoutes (modes : List Exposure) :
 
   swap-aligned-left :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
-      {{safeC : GenSafeSource C}}
-      {{safeD : GenSafeSource D}}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route :
         EnumRoute fuel
           (lr-left-context (leftᵉ ∷ modes) Φᴸ)
@@ -2691,8 +2691,8 @@ data SwapAlignedRoutes (modes : List Exposure) :
 
   swap-aligned-right :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
-      {{safeC : GenSafeSource C}}
-      {{safeD : GenSafeSource D}}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       {route :
         EnumRoute fuel
           (lr-left-context (rightᵉ ∷ modes) Φᴸ)
@@ -2933,7 +2933,7 @@ swap-route {modes = modes} (route-left {C = C} {{safe}} occ route)
     route′ ,
   swap-aligned-left {{safeC = safe}} {{safeD = safe′}} aligned
   where
-    safe′ = renameGenSafeSource (extᵗ (swap-under modes)) safe
+    safe′ = renameNonVar (extᵗ (swap-under modes)) safe
 swap-route {modes = modes} (route-right {C = C} {{safe}} occ route)
     with swap-route {modes = rightᵉ ∷ modes} route
 swap-route {modes = modes} (route-right {C = C} {{safe}} occ route)
@@ -2943,7 +2943,7 @@ swap-route {modes = modes} (route-right {C = C} {{safe}} occ route)
     route′ ,
   swap-aligned-right {{safeC = safe}} {{safeD = safe′}} aligned
   where
-    safe′ = renameGenSafeSource (extᵗ (swap-under modes)) safe
+    safe′ = renameNonVar (extᵗ (swap-under modes)) safe
 swap-route {modes = modes} (route-arrow route₁ route₂)
     with swap-route {modes = modes} route₁
        | swap-route {modes = modes} route₂
@@ -2981,7 +2981,7 @@ swap-route {modes = modes} (route-star-var C∈) =
 
 left-right-adjacent-connectivity :
   ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C}
-    {{safeC : GenSafeSource C}}
+    {{safeC : NonVar C}}
     (occC : occurs zero C ≡ true)
     (occ∀C : occurs zero (`∀ C) ≡ true)
     (route :
@@ -3003,7 +3003,7 @@ left-right-adjacent-connectivity :
       (route-left occ∀C (route-right {{safeC}} occC route))
       (route-right
         (occurs-swap01-right {A = C} occC)
-        (route-left {{renameGenSafeSource ForallPermutation.swap01ᵗ safeC}}
+        (route-left {{renameNonVar ForallPermutation.swap01ᵗ safeC}}
           (occurs-swap01-left {A = C} occ∀C) route′))
 left-right-adjacent-connectivity {{safeC}} occC occ∀C route
     with swap-route {modes = []} route
@@ -3011,7 +3011,7 @@ left-right-adjacent-connectivity {{safeC}} occC occ∀C route
     | route′ , swap-aligned =
   route′ , aligned-left-right
     {{safeC = safeC}}
-    {{safeD = renameGenSafeSource ForallPermutation.swap01ᵗ safeC}}
+    {{safeD = renameNonVar ForallPermutation.swap01ᵗ safeC}}
     ≈∀-refl
 
 same-schedule-refl :
@@ -3055,7 +3055,7 @@ bubble-right-exposure :
       (apply-common-depth (rightᵉ ∷ modes) Δ)
       (apply-left-depth (rightᵉ ∷ modes) Δ)
       (apply-right-depth (rightᵉ ∷ modes) Δ) A B E ]
-    Σ[ safeE ∈ GenSafeSource E ]
+    Σ[ safeE ∈ NonVar E ]
       Σ[ occE ∈ (occurs zero E ≡ true) ]
         AlignedRoutes route (route-right {{safeE}} occE body)
 bubble-right-exposure {modes = modes} {Δ = Δ} path
@@ -3094,9 +3094,9 @@ bubble-right-exposure
     (route-left inner-occ route)
     | E , body , safeE , occE , aligned | body′ , adjacent =
   `∀ (renameᵗ ForallPermutation.swap01ᵗ E) ,
-  route-left {{renameGenSafeSource ForallPermutation.swap01ᵗ safeE}}
+  route-left {{renameNonVar ForallPermutation.swap01ᵗ safeE}}
     (occurs-swap01-left {A = E} inner-occ′) body′ ,
-  source-all ,
+  nonvar-all ,
   occurs-swap01-right {A = E} occE ,
   aligned-trans (aligned-left aligned) adjacent
   where
@@ -3130,7 +3130,7 @@ bubble-left-exposure :
       (apply-common-depth (leftᵉ ∷ modes) Δ)
       (apply-left-depth (leftᵉ ∷ modes) Δ)
       (apply-right-depth (leftᵉ ∷ modes) Δ) A B E ]
-    GenSafeSource E × occurs zero E ≡ true
+    NonVar E × occurs zero E ≡ true
 bubble-left-exposure {modes = modes} {Δ = Δ} path
     (route-both body) =
   ⊥-elim
@@ -3156,10 +3156,10 @@ bubble-left-exposure
     (route-right inner-occ route)
     | E , body , safeE , occE | body′ , aligned =
   `∀ (renameᵗ ForallPermutation.swap01ᵗ E) ,
-  route-right {{renameGenSafeSource ForallPermutation.swap01ᵗ safeE}}
+  route-right {{renameNonVar ForallPermutation.swap01ᵗ safeE}}
     (occurs-swap01-left {A = E} inner-occ′)
     (flip-enum-route body′) ,
-  source-all ,
+  nonvar-all ,
   occurs-swap01-right {A = E} occE
   where
     inner-path =
@@ -3276,8 +3276,8 @@ mutual
 
   left-right-routes-aligned :
     ∀ {modes Δ fuel A B C D}
-      {{safeC : GenSafeSource C}}
-      {{safeD : GenSafeSource D}}
+      {{safeC : NonVar C}}
+      {{safeD : NonVar D}}
       (occC : occurs zero C ≡ true)
       (route : EnumRoute fuel
         (apply-left (leftᵉ ∷ modes) (idᵢ Δ))
@@ -3337,7 +3337,7 @@ mutual
           (generated-routes-aligned
             {modes = rightᵉ ∷ modes} {Δ = Δ}
             (route-left
-              {{renameGenSafeSource ForallPermutation.swap01ᵗ safeE}}
+              {{renameNonVar ForallPermutation.swap01ᵗ safeE}}
               (occurs-swap01-left {A = E} occC′) body′)
             route′)))
     where

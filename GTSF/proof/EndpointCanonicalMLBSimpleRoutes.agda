@@ -19,7 +19,7 @@ open import Data.Sum using (inj₁; inj₂)
 open import Relation.Nullary using (yes; no)
 
 open import Types
-open import Imprecision using (GenSafeSource; ImpCtx; idᵢ)
+open import Imprecision using (NonVar; ImpCtx; idᵢ)
 open import proof.EndpointCanonicalMLBSimple using
   ( allEndpointMlbsAt; arrowProducts; dedupe; enumMLB; fuelFor
   ; rawEndpointMlbsAt; MLB
@@ -53,7 +53,7 @@ data EnumRoute :
 
   route-left :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
-    {{GenSafeSource C}} →
+    {{NonVar C}} →
     occurs zero C ≡ true →
     EnumRoute fuel (∀ᵢᶜ Φᴸ) (νᵢᶜ Φᴿ)
       (suc Δᶜ) (suc Δᴸ) Δᴿ A B C →
@@ -62,7 +62,7 @@ data EnumRoute :
 
   route-right :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
-    {{GenSafeSource C}} →
+    {{NonVar C}} →
     occurs zero C ≡ true →
     EnumRoute fuel (νᵢᶜ Φᴸ) (∀ᵢᶜ Φᴿ)
       (suc Δᶜ) Δᴸ (suc Δᴿ) A B C →

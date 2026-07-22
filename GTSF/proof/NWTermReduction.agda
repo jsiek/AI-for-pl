@@ -251,7 +251,7 @@ nw-inst-body :
   NWCoercion (inst A c) →
   NWCoercion c
 nw-inst-body (inj₁ (cross ()))
-nw-inst-body (inj₂ (inst safe)) = inj₂ (dualGenSafe→widening safe)
+nw-inst-body (inj₂ (inst safe)) = inj₂ (instSafe→widening safe)
 
 applyCoercion-preserves-NWCoercion :
   ∀ χ {c} →

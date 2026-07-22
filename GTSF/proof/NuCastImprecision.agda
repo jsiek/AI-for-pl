@@ -30,7 +30,7 @@ open import proof.CastImprecision using
   ; drop-target-castᵢ-gen
   ; drop-target-castᵢ-inst
   ; drop-targetᵢ
-  ; dualGenSafe-source-admissible
+  ; instSafe-source-admissible
   ; genSafe-target-admissible
   ; ground⊑★
   ; sealMode⇒starAllowed
@@ -70,7 +70,7 @@ mutual
     NW.GenSafe c →
     castᵢ μ Δ ∣ Δ ⊢ `∀ B ⊑ A ⊣ Δ
   nu-narrowing-gen⇒⊑ᵢ {μ = μ} {Δ = Δ} wfΣ seal★ hA occB c⊒ safe =
-    ν {{genSafe-target-admissible (proj₁ c⊒) safe}} occB
+    ν (genSafe-target-admissible (proj₁ c⊒) safe) occB
       (drop-targetᵢ hA (drop-target-castᵢ-gen {μ = μ} {Δ = Δ})
         (nu-narrowing⇒⊑ᵢ (StoreWf-⟰ᵗ wfΣ)
           (seal★-gen-shift seal★) c⊒))
@@ -83,11 +83,11 @@ mutual
     occurs zero A ≡ true →
     instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ
       ⊢ c ∶ A ⊑ ⇑ᵗ B →
-    NW.DualGenSafe c →
+    NW.InstSafe c →
     castᵢ μ Δ ∣ Δ ⊢ `∀ A ⊑ B ⊣ Δ
   nu-widening-inst⇒⊑ᵢ {μ = μ} {Δ = Δ}
       wfΣ seal★ hB occA c⊑ safe =
-    ν {{dualGenSafe-source-admissible (proj₁ c⊑) safe}} occA
+    ν (instSafe-source-admissible (proj₁ c⊑) safe) occA
       (drop-targetᵢ hB (drop-target-castᵢ-inst {μ = μ} {Δ = Δ})
         (nu-widening⇒⊑ᵢ (StoreWf-bind wfΣ wf★)
           (seal★-inst-shift seal★) c⊑))
@@ -172,7 +172,7 @@ mutual
   nu-widening⇒⊑ᵢ wfΣ seal★
       (C.cast-inst hB occA c⊢ , NW.inst cʷ) =
     nu-widening-inst⇒⊑ᵢ wfΣ seal★ hB occA
-      (c⊢ , NW.dualGenSafe→widening cʷ) cʷ
+      (c⊢ , NW.instSafe→widening cʷ) cʷ
   nu-widening⇒⊑ᵢ wfΣ seal★
       (C.cast-tag hG G ok , NW.tag _) =
     ground⊑★ hG G ok
@@ -187,7 +187,7 @@ mutual
        NW.inst-fun-tag safe) =
     ⊑-trans-castᵢ
       (nu-widening-inst⇒⊑ᵢ wfΣ seal★ hG occ
-        (s⊢ , NW.dualGenSafe→widening safe) safe)
+        (s⊢ , NW.instSafe→widening safe) safe)
       (nu-widening⇒⊑ᵢ wfΣ seal★ (t⊢ , NW.tag ★⇒★))
   nu-widening⇒⊑ᵢ wfΣ seal★
       (C.cast-unseal hA α∈Σ ok , NW.unsealʷ α A)

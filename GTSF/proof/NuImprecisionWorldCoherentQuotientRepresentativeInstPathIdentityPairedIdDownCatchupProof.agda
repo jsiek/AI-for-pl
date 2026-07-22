@@ -80,7 +80,7 @@ world-coherent-quotient-representative-inst-path-identity-paired-id-down-catchup
   s⊑ =
     NW.widen-mode-relax
       (ModeIncl-inst C.id-only≤tag-or-idᵈ)
-      (s⊢ , NW.dualGenSafe→widening sʷ)
+      (s⊢ , NW.instSafe→widening sʷ)
 world-coherent-quotient-representative-inst-path-identity-paired-id-down-catchup-proofᵀ
     final cast-widen r coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ d⊒ d′⊒ V⊑V′

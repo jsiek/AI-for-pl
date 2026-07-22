@@ -93,7 +93,7 @@ source-only-occurrence-cannot-target-var no-var
   no-var
     (subst (λ Z → (Z ˣ⊑ˣ _) ∈ _)
       (sym (occurs-var-true→≡ occ)) member)
-source-only-occurrence-cannot-target-var no-var (ν occ-A relation) occ =
+source-only-occurrence-cannot-target-var no-var (ν _ occ-A relation) occ =
   source-only-occurrence-cannot-target-var
     (lift-source-only-no-var no-var) relation occ
 

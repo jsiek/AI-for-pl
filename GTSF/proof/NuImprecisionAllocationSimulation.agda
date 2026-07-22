@@ -2406,7 +2406,7 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
 
 left-νcast-allocation :
   ∀ {Φ Δᴸ Δᴿ B B′ C N N′ s μ q occ}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value N →
@@ -2419,7 +2419,7 @@ left-νcast-allocation :
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν occ q →
+    ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν _ occ q →
   (ν ★ N s —→[ bind ★ ] ((⇑ᵗᵐ N) •) ⟨ s ⟩) ×
   (N′ —↠[ [] ] N′) ×
   (((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣
@@ -2468,7 +2468,7 @@ left-νcast-allocation {q = q} vN noN mode seal★ s⊑ pB liftρ
 
 left-ν↑-allocation :
   ∀ {Φ Δᴸ Δᴿ A B B′ C N N′ s μ q occ}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value N →
@@ -2480,7 +2480,7 @@ left-ν↑-allocation :
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν occ q →
+    ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν _ occ q →
   (ν A N s —→[ bind A ] ((⇑ᵗᵐ N) •) ⟨ s ⟩) ×
   (N′ —↠[ [] ] N′) ×
   (((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣
@@ -3021,7 +3021,7 @@ matched-β-inst-νcast-allocation vN noN vN′ noN′ mode seal★
 
 left-β-inst-νcast-allocation :
   ∀ {Φ Δᴸ Δᴿ B B′ C N N′ s μ q occ}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value N →
@@ -3034,7 +3034,7 @@ left-β-inst-νcast-allocation :
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν occ q →
+    ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν _ occ q →
   (N ⟨ inst B s ⟩
     —↠[ keep ∷ bind ★ ∷ [] ] ((⇑ᵗᵐ N) •) ⟨ s ⟩) ×
   (N′ —↠[ [] ] N′) ×

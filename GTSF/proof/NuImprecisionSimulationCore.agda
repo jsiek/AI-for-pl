@@ -1054,23 +1054,23 @@ transport-all-⊑ᵢ refl refl = refl
 
 transport-ν-⊑ᵢ :
   ∀ {Φ Δᴸ Δᴿ C₀ C₁ B}
-    {{safe₀ : GenSafeSource C₀}}
-    {{safe₁ : GenSafeSource C₁}}
+    {{safe₀ : NonVar C₀}}
+    {{safe₁ : NonVar C₁}}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C₀ ⊑ B ⊣ Δᴿ} →
   (eqC : C₀ ≡ C₁) →
   (occ : occurs zero C₀ ≡ true) →
   subst
     (λ S → Φ ∣ Δᴸ ⊢ S ⊑ B ⊣ Δᴿ)
-    (cong `∀ eqC) (ν {{safe₀}} occ p)
-  ≡ ν {{safe₁}}
+    (cong `∀ eqC) (ν safe₀ occ p)
+  ≡ ν safe₁
       (trans (sym (cong (occurs zero) eqC)) occ)
       (subst
         (λ S → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
           ∣ suc Δᴸ ⊢ S ⊑ B ⊣ Δᴿ)
         eqC p)
 transport-ν-⊑ᵢ {{safe₀}} {{safe₁}} refl occ
-    rewrite genSafeSource-unique safe₀ safe₁ =
+    rewrite nonVar-unique safe₀ safe₁ =
   refl
 
 equality-proof-unique :
@@ -3347,7 +3347,7 @@ rel-world-Λ⊑-embedᵀ :
     {V N′ A B}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-  {{safe : GenSafeSource A}} →
+  {{safe : NonVar A}} →
   (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
     {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
   (occ : occurs zero A ≡ true) →
@@ -3369,7 +3369,7 @@ rel-world-Λ⊑-embedᵀ :
      Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
        ⊢ᴺ renameᵗᵐ τ (Λ V) ⊑ renameᵗᵐ σ N′
        ⦂ renameᵗ τ (`∀ A) ⊑ renameᵗ σ B
-       ∶ ⊑-renameᵗ²ᵢ assm hτ hσ (ν occ p))
+       ∶ ⊑-renameᵗ²ᵢ assm hτ hσ (ν _ occ p))
 rel-world-Λ⊑-embedᵀ {{safe}} emb occ liftρ liftγ vV
     with rel-world-embedding-lift-leftⁱ emb liftρ liftγ
 rel-world-Λ⊑-embedᵀ {τ = τ} {A = A}
@@ -3377,7 +3377,7 @@ rel-world-Λ⊑-embedᵀ {τ = τ} {A = A}
     | ρ′ν , γ′ν , liftρ′ , liftγ′ , body-emb =
   ρ′ν , γ′ν , liftρ′ , liftγ′ , body-emb ,
   λ V⊑N′ →
-    Λ⊑ᵀ {{renameGenSafeSource (extᵗ τ) safe}}
+    Λ⊑ᵀ {{renameNonVar (extᵗ τ) safe}}
       (trans (occurs-zero-rename-ext τ A) occ)
       liftρ′ liftγ′
       (renameᵗᵐ-preserves-Value (extᵗ τ) vV)
@@ -3396,7 +3396,7 @@ rel-world-Λ⊑-permuteᵀ :
     {V N′ A B}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-  {{safe : GenSafeSource A}} →
+  {{safe : NonVar A}} →
   (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
     {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
   (occ : occurs zero A ≡ true) →
@@ -3424,7 +3424,7 @@ rel-world-Λ⊑-permuteᵀ :
        ⦂ renameᵗ (forward πᴸ) (`∀ A)
          ⊑ renameᵗ (forward πᴿ) B
        ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ)
-           (ν occ p))
+           (ν _ occ p))
 rel-world-Λ⊑-permuteᵀ {πᴸ = πᴸ} {πᴿ = πᴿ} {A = A}
     {{safe}} perm occ liftρ liftγ vV
     with rel-world-permutation-lift-leftⁱ perm liftρ liftγ
@@ -3434,7 +3434,7 @@ rel-world-Λ⊑-permuteᵀ {πᴸ = πᴸ} {πᴿ = πᴿ} {A = A}
   ρ′ν , γ′ν , liftρ′ , liftγ′ , body-perm ,
   λ V⊑N′ →
     Λ⊑ᵀ
-      {{renameGenSafeSource (extᵗ (forward πᴸ)) safe}}
+      {{renameNonVar (extᵗ (forward πᴸ)) safe}}
       (trans (occurs-zero-rename-ext (forward πᴸ) A) occ)
       liftρ′ liftγ′
       (renameᵗᵐ-preserves-Value (extᵗ (forward πᴸ)) vV)
@@ -4620,8 +4620,8 @@ rename-assm²-∀-leftᵢ {Ψ = Ψ} assm {a = a} a∈ =
 ⊑-rename-leftᵢ τ assm hτ (tagˣ a∈ X<Δ) =
   tagˣ (assm a∈) (hτ X<Δ)
 ⊑-rename-leftᵢ {Φ = Φ} τ assm hτ
-    (ν {A = A} {{safe}} occ p) =
-  ν {{renameGenSafeSource (extᵗ τ) safe}}
+    (ν {A = A} safe occ p) =
+  ν (renameNonVar (extᵗ τ) safe)
     (trans (occurs-zero-rename-ext τ A) occ)
     (⊑-rename-leftᵢ
       (extᵗ τ) (rename-assm²-⇑ᴸᵢ assm) (TyRenameWf-ext hτ) p)
@@ -4977,24 +4977,24 @@ right-under-left-ctx-eq Φ =
 
 ⊑-target-lift-right-ν-shapeᵢ :
   ∀ {Φ Δᴸ Δᴿ C B}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ B ⊣ Δᴿ}
     (occ : occurs zero C ≡ true) →
   ∃[ occ′ ]
-    ⊑-target-lift-rightᵢ (ν {{safe}} occ p) ≡
-      ν {A = C} {{safe}} occ′ (⊑-target-under-leftᵢ p)
+    ⊑-target-lift-rightᵢ (ν safe occ p) ≡
+      ν {A = C} safe occ′ (⊑-target-under-leftᵢ p)
 ⊑-target-lift-right-ν-shapeᵢ {C = C} {{safe}} occ
-    rewrite genSafeSource-unique
-      (subst GenSafeSource (renameᵗ-ext-id C)
-        (renameGenSafeSource (extᵗ (λ X → X)) safe)) safe
+    rewrite nonVar-unique
+      (subst NonVar (renameᵗ-ext-id C)
+        (renameNonVar (extᵗ (λ X → X)) safe)) safe
       | equality-proof-unique
       (renameᵗ-id (`∀ C)) (cong `∀ (renameᵗ-ext-id C)) =
   _ ,
   transport-ν-⊑ᵢ
     {C₀ = renameᵗ (extᵗ (λ X → X)) C}
     {C₁ = C}
-    {{safe₀ = renameGenSafeSource (extᵗ (λ X → X)) safe}}
+    {{safe₀ = renameNonVar (extᵗ (λ X → X)) safe}}
     {{safe₁ = safe}}
     (renameᵗ-ext-id C)
     (trans (occurs-zero-rename-ext (λ X → X) C) occ)
@@ -9512,7 +9512,7 @@ left-rename-Λ⊑ᵀ :
     {V N′ A B}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-  {{safe : GenSafeSource A}} →
+  {{safe : NonVar A}} →
   LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
   LeftCtxRenameⁱ τ assm hτ γ γ′ →
   (occ : occurs zero A ≡ true) →
@@ -9538,7 +9538,7 @@ left-rename-Λ⊑ᵀ :
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ (Λ V) ⊑ N′
     ⦂ renameᵗ τ (`∀ A) ⊑ B
-    ∶ ⊑-rename-leftᵢ τ assm hτ (ν {{safe}} occ p)
+    ∶ ⊑-rename-leftᵢ τ assm hτ (ν safe occ p)
 left-rename-Λ⊑ᵀ {{safe}} renameρ renameγ occ liftρ liftγ vV body-map
     with left-store-rename-ν renameρ liftρ
 left-rename-Λ⊑ᵀ {{safe}} renameρ renameγ occ liftρ liftγ vV body-map
@@ -9548,7 +9548,7 @@ left-rename-Λ⊑ᵀ {τ = τ} {A = A} {{safe}}
     renameρ renameγ occ liftρ liftγ vV body-map
     | ρ′ν , liftρ′ , renameρν
     | γ′ν , liftγ′ , renameγν =
-  Λ⊑ᵀ {{renameGenSafeSource (extᵗ τ) safe}}
+  Λ⊑ᵀ {{renameNonVar (extᵗ τ) safe}}
     (trans (occurs-zero-rename-ext τ A) occ)
     liftρ′ liftγ′ (renameᵗᵐ-preserves-Value (extᵗ τ) vV)
     (body-map liftρ′ liftγ′ renameρν renameγν)
@@ -10327,7 +10327,7 @@ right-target-square-α⊑ᵀ :
     {L N′ A B′ C}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     {occ : occurs zero C ≡ true} →
   Value L →
   No• L →
@@ -10338,7 +10338,7 @@ right-target-square-α⊑ᵀ :
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ (⇑ᴿᵢ Φ)) ρᴿ ρ× →
   ⇑ᴿᵢ Φ ∣ Δᴸ ∣ suc Δᴿ ∣ ρᴿ ∣ []
     ⊢ᴺ L ⊑ ⇑ᵗᵐ N′
-    ⦂ `∀ C ⊑ ⇑ᵗ B′ ∶ ν occ (⊑-target-under-leftᵢ p) →
+    ⦂ `∀ C ⊑ ⇑ᵗ B′ ∶ ν _ occ (⊑-target-under-leftᵢ p) →
   suc Δᴸ ∣
     leftStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρᴸ) ∣ []
     ⊢ (⇑ᵗᵐ L) • ⦂ C →
@@ -10374,7 +10374,7 @@ right-target-lift-α⊑ᵀ :
     {L N′ A B′ C}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     {occ : occurs zero C ≡ true} →
   Value L →
   No• L →
@@ -10385,7 +10385,7 @@ right-target-lift-α⊑ᵀ :
   LiftRightCtxⁱ (⇑ᴿᵢ Φ) γ γᴿ →
   ⇑ᴿᵢ Φ ∣ Δᴸ ∣ suc Δᴿ ∣ ρᴿ ∣ γᴿ
     ⊢ᴺ L ⊑ ⇑ᵗᵐ N′
-    ⦂ `∀ C ⊑ ⇑ᵗ B′ ∶ ν occ (⊑-target-under-leftᵢ p) →
+    ⦂ `∀ C ⊑ ⇑ᵗ B′ ∶ ν _ occ (⊑-target-under-leftᵢ p) →
   suc Δᴸ ∣
     leftStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρᴸ) ∣
     leftCtxⁱ γᴸ ⊢ (⇑ᵗᵐ L) • ⦂ C →

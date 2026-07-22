@@ -283,7 +283,7 @@ mutual
       (av-gen vR refl)
       (cast⊒⊑ᵀ mode seal★
         (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
-      | ν occ-p p
+      | ν _ occ-p p
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
         (canonical-∀ vM
@@ -295,7 +295,7 @@ mutual
       (av-gen vR refl)
       (cast⊒⊑ᵀ mode seal★
         (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
-      | ν occ-p p | closing-frame-view leaf frames =
+      | ν _ occ-p p | closing-frame-view leaf frames =
     closing-frame-view
       leaf
       (frame-gen-all frames mode seal★ hA occ c⊢ cⁿ q)
@@ -303,7 +303,7 @@ mutual
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
       (cast⊒⊑ᵀ mode seal★
-        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (ν occ-r r)) =
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (ν _ occ-r r)) =
     closing-frame-view
       (leaf-gen-ν vM noM vM′ noM′ mode seal★
         hA occ c⊢ cⁿ M⊑M′ occ-r r)

@@ -5,7 +5,7 @@ module
 -- File Charter:
 --   * Defines the remaining general-cast widening branch of source-only,
 --     ordinary-down identity-representative quotient-inst catch-up.
---   * Retains the non-vacuous `GenSafeSource` and occurrence premises.
+--   * Retains the non-vacuous `NonVar` and occurrence premises.
 --   * Contains no implementation, identity-mode branch, or dispatcher.
 
 import Coercions as C
@@ -14,7 +14,7 @@ open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import ImprecisionWf using
-  ( GenSafeSource
+  ( NonVar
   ; _ˣ⊑★
   ; ⇑ᴸᵢ
   ; _∣_⊢_⊑_⊣_
@@ -40,7 +40,7 @@ WorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCastWidenCatchup�
   ∀ {Φ Δᴸ Δᴿ} {V V′ : Term}
     {B C C′ E T A A′ : Ty} {d d′ s u′ : C.Coercion}
     {μ μ′ : C.ModeEnv} {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {{safe : GenSafeSource E}}
+    {{safe : NonVar E}}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
   (occ : occurs zero E ≡ true) →

@@ -29,12 +29,18 @@ open import Imprecision public using
   ; ⇑ᴸᵢ
   ; ⇑ᴿᵢ
   ; swapRight∀∀ᵢ
-  ; GenSafeSource
-  ; source-fun
-  ; source-all
-  ; genSafeSource-unique
-  ; renameGenSafeSource
-  ; substGenSafeSource
+  ; NonVar
+  ; nonvar-base
+  ; nonvar-star
+  ; nonvar-fun
+  ; nonvar-all
+  ; nonVar-base-instance
+  ; nonVar-star-instance
+  ; nonVar-fun-instance
+  ; nonVar-all-instance
+  ; nonVar-unique
+  ; renameNonVar
+  ; substNonVar
   )
 
 ------------------------------------------------------------------------
@@ -87,7 +93,7 @@ data _∣_⊢_⊑_⊣_ (Φ : ImpCtx) (Δᴸ : TyCtx) :
     → Φ ∣ Δᴸ ⊢ ＇ X ⊑ ★ ⊣ Δᴿ
 
   ν : ∀ {A B Δᴿ}
-    → {{GenSafeSource A}}
+    → NonVar A
     → occurs zero A ≡ true
     → (((0 ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
         ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ)
@@ -117,7 +123,7 @@ mutual
   ⊑-src-wf (tag ι) = wfBase
   ⊑-src-wf (tag_⇛_ p q) = wf⇒ (⊑-src-wf p) (⊑-src-wf q)
   ⊑-src-wf (tagˣ _ X<Δᴸ) = wfVar X<Δᴸ
-  ⊑-src-wf (ν occA p) = wf∀ (⊑-src-wf p)
+  ⊑-src-wf (ν nonvar occA p) = wf∀ (⊑-src-wf p)
 
   ⊑-tgt-wf id★ = wf★
   ⊑-tgt-wf (idˣ _ _ Y<Δᴿ) = wfVar Y<Δᴿ
@@ -127,7 +133,7 @@ mutual
   ⊑-tgt-wf (tag ι) = wf★
   ⊑-tgt-wf (tag_⇛_ p q) = wf★
   ⊑-tgt-wf (tagˣ _ _) = wf★
-  ⊑-tgt-wf (ν occA p) = ⊑-tgt-wf p
+  ⊑-tgt-wf (ν nonvar occA p) = ⊑-tgt-wf p
 
 ⊑-wf :
   ∀ {Δᴸ Δᴿ Φ A B} →

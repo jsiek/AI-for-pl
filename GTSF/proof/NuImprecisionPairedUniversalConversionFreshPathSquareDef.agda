@@ -46,5 +46,5 @@ PairedUniversalConversionFreshPathSquareᵀ =
   (occ-r : occurs zero B ≡ true) →
   PairedConversion Φ Δᴸ Δᴿ ρ (C.`∀ c) c′
     {`∀ B} {B′} {`∀ (`∀ E)} {`∀ C′}
-    (ν occ-r r) (∀ⁱ s) →
+    (ν _ occ-r r) (∀ⁱ s) →
   VarAtPath zero (body p) B

@@ -244,7 +244,7 @@ no-occurs-base-lowerᵢ :
   Φ ∣ Δᴸ ⊢ A ⊑ ‵ ι ⊣ Δᴿ →
   ⊥
 no-occurs-base-lowerᵢ () idι
-no-occurs-base-lowerᵢ occ (ν occA p) =
+no-occurs-base-lowerᵢ occ (ν _ occA p) =
   no-occurs-base-lowerᵢ occA p
 
 no-occurs-var-lower-νctxᵢ :
@@ -255,7 +255,7 @@ no-occurs-var-lower-νctxᵢ :
 no-occurs-var-lower-νctxᵢ {A = ＇ zero} occ (idˣ x∈ _ _) =
   no-νctx-zero-varᵢ x∈
 no-occurs-var-lower-νctxᵢ {A = ＇ suc X} () (idˣ x∈ _ _)
-no-occurs-var-lower-νctxᵢ occ (ν occA p) =
+no-occurs-var-lower-νctxᵢ occ (ν _ occA p) =
   no-occurs-var-lower-νctxᵢ occA p
 
 rename-assm²ᵢ : Renameᵗ → Renameᵗ → ImpAssm → ImpAssm
@@ -353,8 +353,8 @@ rename-assm²-★⇑ᵢ h {a = suc X ˣ⊑ˣ suc Y} (there a∈) =
 ⊑-renameᵗ²ᵢ h hρ hσ (tagˣ x∈ X<Δᴸ) =
   tagˣ (h x∈) (hρ X<Δᴸ)
 ⊑-renameᵗ²ᵢ {ρ = ρ} h hρ hσ
-    (ν {A = A} {{safe}} occA p) =
-  ν {{renameGenSafeSource (extᵗ ρ) safe}}
+    (ν {A = A} safe occA p) =
+  ν (renameNonVar (extᵗ ρ) safe)
     (trans (occurs-zero-rename-ext ρ A) occA)
     (⊑-renameᵗ²ᵢ
       (rename-assm²-⇑ᴸᵢ h)
@@ -725,36 +725,42 @@ occurs-backᵢ comp X (∀ⁱ p) occ =
 occurs-backᵢ comp X (tag ι) ()
 occurs-backᵢ comp X (tag_⇛_ p q) ()
 occurs-backᵢ comp X (tagˣ x∈ _) ()
-occurs-backᵢ comp X (ν occA p) occ =
+occurs-backᵢ comp X (ν nonvar occA p) occ =
   occurs-backᵢ (compose-νidᵢ comp) X p occ
 
-genSafeSource-backᵢ :
+nonVar-occurs-backᵢ :
   ∀ {Φ Δᴸ Δᴿ A B} →
   Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
-  GenSafeSource B →
-  GenSafeSource A
-genSafeSource-backᵢ (p ↦ q) source-fun = source-fun
-genSafeSource-backᵢ (∀ⁱ p) source-all = source-all
-genSafeSource-backᵢ (ν occ p) source-fun = source-all
-genSafeSource-backᵢ (ν occ p) source-all = source-all
-
-genSafeSource-forward-if-occursᵢ :
-  ∀ {Φ Δᴸ Δᴿ A B} →
-  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
-  GenSafeSource A →
+  NonVar B →
   occurs zero B ≡ true →
-  GenSafeSource B
-genSafeSource-forward-if-occursᵢ id★ () occ
-genSafeSource-forward-if-occursᵢ (idˣ x∈ X<Δ Y<Δ) () occ
-genSafeSource-forward-if-occursᵢ idι () occ
-genSafeSource-forward-if-occursᵢ (p ↦ q) source-fun occ = source-fun
-genSafeSource-forward-if-occursᵢ (∀ⁱ p) source-all occ = source-all
-genSafeSource-forward-if-occursᵢ (tag ι) () occ
-genSafeSource-forward-if-occursᵢ (tag p ⇛ q) source-fun ()
-genSafeSource-forward-if-occursᵢ (tagˣ x∈ X<Δ) () occ
-genSafeSource-forward-if-occursᵢ
-    (ν {{safe}} occA p) source-all occB =
-  genSafeSource-forward-if-occursᵢ p safe occB
+  NonVar A
+nonVar-occurs-backᵢ id★ nonvar-star ()
+nonVar-occurs-backᵢ (idˣ x∈ X<Δ Y<Δ) () occ
+nonVar-occurs-backᵢ idι nonvar-base ()
+nonVar-occurs-backᵢ (p ↦ q) nonvar-fun occ = nonvar-fun
+nonVar-occurs-backᵢ (∀ⁱ p) nonvar-all occ = nonvar-all
+nonVar-occurs-backᵢ (tag ι) nonvar-star ()
+nonVar-occurs-backᵢ (tag p ⇛ q) nonvar-star ()
+nonVar-occurs-backᵢ (tagˣ x∈ X<Δ) nonvar-star ()
+nonVar-occurs-backᵢ (ν nonvar occ p) safe occB = nonvar-all
+
+nonVar-forward-if-occursᵢ :
+  ∀ {Φ Δᴸ Δᴿ A B} →
+  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
+  NonVar A →
+  occurs zero B ≡ true →
+  NonVar B
+nonVar-forward-if-occursᵢ id★ nonvar-star ()
+nonVar-forward-if-occursᵢ (idˣ x∈ X<Δ Y<Δ) () occ
+nonVar-forward-if-occursᵢ idι nonvar-base ()
+nonVar-forward-if-occursᵢ (p ↦ q) nonvar-fun occ = nonvar-fun
+nonVar-forward-if-occursᵢ (∀ⁱ p) nonvar-all occ = nonvar-all
+nonVar-forward-if-occursᵢ (tag ι) nonvar-base ()
+nonVar-forward-if-occursᵢ (tag p ⇛ q) nonvar-fun ()
+nonVar-forward-if-occursᵢ (tagˣ x∈ X<Δ) () occ
+nonVar-forward-if-occursᵢ
+    (ν inner occA p) nonvar-all occB =
+  nonVar-forward-if-occursᵢ p inner occB
 
 ⊑-trans-composeᵢ :
   ∀ {ρ Δᴸ Δᴹ Δᴿ Φᴸ Φᴿ Φᴼ A B C} →
@@ -777,8 +783,8 @@ genSafeSource-forward-if-occursᵢ
     (⊑-trans-composeᵢ comp p₂ q₂)
 ⊑-trans-composeᵢ comp (∀ⁱ p) (∀ⁱ q) =
   ∀ⁱ (⊑-trans-composeᵢ (compose-∀∀ᵢ comp) p q)
-⊑-trans-composeᵢ comp (∀ⁱ p) (ν {{safe}} occ q) =
-  ν {{genSafeSource-backᵢ p safe}}
+⊑-trans-composeᵢ comp (∀ⁱ p) (ν safe occ q) =
+  ν (nonVar-occurs-backᵢ p safe occ)
     (occurs-backᵢ (compose-∀∀ᵢ comp) zero p occ)
     (⊑-trans-composeᵢ (compose-∀νᵢ comp) p q)
 ⊑-trans-composeᵢ comp (tag ι) id★ = tag ι
@@ -788,8 +794,8 @@ genSafeSource-forward-if-occursᵢ
     (⊑-trans-composeᵢ comp q id★)
 ⊑-trans-composeᵢ comp (tagˣ x★∈ X<Δ) id★ =
   tagˣ (compose-star-leftᵢ comp X<Δ x★∈) X<Δ
-⊑-trans-composeᵢ comp (ν {{safe}} occ p) q =
-  ν {{safe}} occ (⊑-trans-composeᵢ (compose-νidᵢ comp) p q)
+⊑-trans-composeᵢ comp (ν safe occ p) q =
+  ν safe occ (⊑-trans-composeᵢ (compose-νidᵢ comp) p q)
 
 ⊑-trans-idᵢ :
   ∀ {Δ A B C} →
@@ -824,8 +830,8 @@ genSafeSource-forward-if-occursᵢ
   Imp.tag (⊑-renameᵗ²-oldᵢ h p) ⇛ ⊑-renameᵗ²-oldᵢ h q
 ⊑-renameᵗ²-oldᵢ h (Imp.tagˣ x∈) = Imp.tagˣ (h x∈)
 ⊑-renameᵗ²-oldᵢ {ρ = ρ} {σ = σ} h
-    (Imp.ν {A = A} {B = B} {{safe}} occA p) =
-  Imp.ν {{Imp.renameGenSafeSource (extᵗ ρ) safe}}
+    (Imp.ν {A = A} {B = B} safe occA p) =
+  Imp.ν (Imp.renameNonVar (extᵗ ρ) safe)
     (trans (occurs-zero-rename-ext ρ A) occA)
     (subst
       (λ B′ →
@@ -1588,25 +1594,25 @@ rename-assm²-ν∀-to-∀νᵢ
       (λ Y<Δ → Y<Δ)
       p)
 
-genSafeSource-swap01-from-forallᵢ :
+nonVar-swap01-from-forallᵢ :
   ∀ {Δ C} →
   occurs zero (`∀ C) ≡ true →
   idᵢ (suc Δ) ∣ suc Δ ⊢
     `∀ C ⊑ `∀ (renameᵗ swap01ᵢ C) ⊣ suc Δ →
-  GenSafeSource (renameᵗ swap01ᵢ C)
-genSafeSource-swap01-from-forallᵢ {C = ＇ zero} () p
-genSafeSource-swap01-from-forallᵢ {C = ＇ (suc zero)} occ
+  NonVar (renameᵗ swap01ᵢ C)
+nonVar-swap01-from-forallᵢ {C = ＇ zero} () p
+nonVar-swap01-from-forallᵢ {C = ＇ (suc zero)} occ
     (∀ⁱ (idˣ x∈ X<Δᴸ Y<Δᴿ))
     with idᵢ-var-identity x∈
-genSafeSource-swap01-from-forallᵢ {C = ＇ (suc zero)} occ
+nonVar-swap01-from-forallᵢ {C = ＇ (suc zero)} occ
     (∀ⁱ (idˣ x∈ X<Δᴸ Y<Δᴿ)) | ()
-genSafeSource-swap01-from-forallᵢ {C = ＇ (suc zero)} occ
-    (ν {{()}} occC p)
-genSafeSource-swap01-from-forallᵢ {C = ＇ (suc (suc X))} () p
-genSafeSource-swap01-from-forallᵢ {C = ‵ ι} () p
-genSafeSource-swap01-from-forallᵢ {C = ★} () p
-genSafeSource-swap01-from-forallᵢ {C = A ⇒ B} occ p = source-fun
-genSafeSource-swap01-from-forallᵢ {C = `∀ A} occ p = source-all
+nonVar-swap01-from-forallᵢ {C = ＇ (suc zero)} occ
+    (ν () occC p)
+nonVar-swap01-from-forallᵢ {C = ＇ (suc (suc X))} () p
+nonVar-swap01-from-forallᵢ {C = ‵ ι} () p
+nonVar-swap01-from-forallᵢ {C = ★} () p
+nonVar-swap01-from-forallᵢ {C = A ⇒ B} occ p = nonvar-fun
+nonVar-swap01-from-forallᵢ {C = `∀ A} occ p = nonvar-all
 
 νlower-∀shape-body-lowerᵢ :
   ∀ {Φ Δᶜ C D} →
@@ -1616,7 +1622,7 @@ genSafeSource-swap01-from-forallᵢ {C = `∀ A} occ p = source-all
     `∀ C ⊑ `∀ (renameᵗ swap01ᵢ C) ⊣ suc Δᶜ →
   ∀ᵢᶜ Φ ∣ suc Δᶜ ⊢ `∀ (renameᵗ swap01ᵢ C) ⊑ D ⊣ suc Δᶜ
 νlower-∀shape-body-lowerᵢ {C = C} occC C⊑D body-coh =
-  ν {{genSafeSource-swap01-from-forallᵢ occC body-coh}}
+  ν (nonVar-swap01-from-forallᵢ occC body-coh)
     (occurs-swap01-leftᵢ C occC) (⊑-∀ν-to-ν∀ᵢ C⊑D)
 
 ⊑-forgetᵢ :
@@ -1631,8 +1637,8 @@ genSafeSource-swap01-from-forallᵢ {C = `∀ A} occ p = source-all
 ⊑-forgetᵢ (tag ι) = Imp.tag ι
 ⊑-forgetᵢ (tag p ⇛ q) = Imp.tag (⊑-forgetᵢ p) ⇛ ⊑-forgetᵢ q
 ⊑-forgetᵢ (tagˣ x∈ X<Δᴸ) = Imp.tagˣ x∈
-⊑-forgetᵢ (ν {{safe}} occA p) =
-  Imp.ν {{safe}} occA (old-target-liftᵢ (⊑-forgetᵢ p))
+⊑-forgetᵢ (ν safe occA p) =
+  Imp.ν safe occA (old-target-liftᵢ (⊑-forgetᵢ p))
 
 record DropTargetCtxᵢ (k : TyVar) (Φ Ψ : ImpCtx) : Set where
   field
@@ -1718,8 +1724,8 @@ mutual
     tag (drop-targetᵢ wf★ drop p) ⇛ drop-targetᵢ wf★ drop q
   drop-targetᵢ wf★ drop (tagˣ x∈ X<Δ) =
     tagˣ (drop-starᵗᵢ drop x∈) X<Δ
-  drop-targetᵢ hB drop (ν occ p) =
-    ν occ (drop-targetᵢ hB (drop-target-νᵢ drop) p)
+  drop-targetᵢ hB drop (ν safe occ p) =
+    ν safe occ (drop-targetᵢ hB (drop-target-νᵢ drop) p)
 
 old⊑→wfᵢ :
   ∀ {Δ Φ A B} →
@@ -1737,8 +1743,8 @@ old⊑→wfᵢ hΦ (Imp.tag ι) = tag ι
 old⊑→wfᵢ hΦ (Imp.tag p ⇛ q) =
   tag (old⊑→wfᵢ hΦ p) ⇛ old⊑→wfᵢ hΦ q
 old⊑→wfᵢ hΦ (Imp.tagˣ x∈) = tagˣ x∈ (hΦ x∈)
-old⊑→wfᵢ hΦ r@(Imp.ν occ p) =
-  ν occ
+old⊑→wfᵢ hΦ r@(Imp.ν safe occ p) =
+  ν safe occ
     (drop-targetᵢ
       (ImpProps.⊑-tgt-wf hΦ r)
       drop-target-zeroᵢ
@@ -1967,8 +1973,8 @@ open-unused-atᵢ {k = k} d k<Δ () (tag_⇛_ {A₁ = A} p q) | true
 open-unused-atᵢ d k<Δ occ (tagˣ x∈ X<Δ) =
   tagˣ (drop-star-memberᵢ d occ x∈) (removeAt-Wfᵢ _ k<Δ X<Δ occ)
 open-unused-atᵢ {k = k} d k<Δ occ
-    (ν {A = A} {{safe}} occA p) =
-  ν {{renameGenSafeSource (extᵗ (removeAtᵗ k)) safe}}
+    (ν {A = A} safe occA p) =
+  ν (renameNonVar (extᵗ (removeAtᵗ k)) safe)
     (trans (occurs-zero-rename-ext (removeAtᵗ k) A) occA)
     (open-unused-atᵢ (drop-νᵢ d) (s<s k<Δ) occ p)
 
@@ -2034,8 +2040,8 @@ open-unused-both-atᵢ d kᴸ<Δ kᴿ<Δ occA occB (tagˣ x∈ X<Δ) =
     (drop-both-star-memberᵢ d occA x∈)
     (removeAt-Wfᵢ _ kᴸ<Δ X<Δ occA)
 open-unused-both-atᵢ {kᴸ = kᴸ} d kᴸ<Δ kᴿ<Δ occA occB
-    (ν {A = A} {{safe}} occA′ p) =
-  ν {{renameGenSafeSource (extᵗ (removeAtᵗ kᴸ)) safe}}
+    (ν {A = A} safe occA′ p) =
+  ν (renameNonVar (extᵗ (removeAtᵗ kᴸ)) safe)
     (trans (occurs-zero-rename-ext (removeAtᵗ kᴸ) A) occA′)
     (open-unused-both-atᵢ
       (drop-both-νᵢ d)
@@ -3342,8 +3348,8 @@ leftChoice-id-proofAtᵢ {Δ = Δ} (tagˣ x∈ X<Δ) =
   tagˣ
     (subst (λ Φ → _ ∈ Φ) (sym (leftChoice-idᵢ Δ)) x∈)
     X<Δ
-leftChoice-id-proofAtᵢ {Δ = Δ} (ν {A = A} {B = B} occ p) =
-  ν occ
+leftChoice-id-proofAtᵢ {Δ = Δ} (ν {A = A} {B = B} safe occ p) =
+  ν safe occ
     (subst
       (λ Φ → Φ ∣ suc Δ ⊢ A ⊑ B ⊣ Δ)
       (cong (λ Φ → (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (sym (leftChoice-idᵢ Δ)))
@@ -3370,8 +3376,8 @@ rightChoice-id-proofAtᵢ {Δ = Δ} (tagˣ x∈ X<Δ) =
   tagˣ
     (subst (λ Φ → _ ∈ Φ) (sym (rightChoice-idᵢ Δ)) x∈)
     X<Δ
-rightChoice-id-proofAtᵢ {Δ = Δ} (ν {A = A} {B = B} occ p) =
-  ν occ
+rightChoice-id-proofAtᵢ {Δ = Δ} (ν {A = A} {B = B} safe occ p) =
+  ν safe occ
     (subst
       (λ Φ → Φ ∣ suc Δ ⊢ A ⊑ B ⊣ Δ)
       (cong (λ Φ → (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (sym (rightChoice-idᵢ Δ)))
@@ -4393,7 +4399,7 @@ mlb-typeᵢ {Γ = Γ} (p₁ ↦ p₂) (tag_⇛_ q₁ q₂) =
   mlb-typeᵢ p₁ q₁ ⇒ mlb-typeᵢ p₂ q₂
 mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (∀ⁱ q) =
   `∀ (mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q)
-mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν occ q) =
+mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν _ occ q) =
   `∀ (mlb-typeᵢ {Γ = leftOnlyᵢ ∷ Γ} p q)
 mlb-typeᵢ {Γ = Γ} (tag ι) idι = ‵ ι
 mlb-typeᵢ {Γ = Γ} (tag ι) (tag .ι) = ★
@@ -4403,106 +4409,108 @@ mlb-typeᵢ {Γ = Γ} (tag_⇛_ p₁ p₂) (tag_⇛_ q₁ q₂) = ★
 mlb-typeᵢ {Γ = Γ} (tagˣ w⊑★ _) (idˣ w⊑y _ _) =
   ＇ choice-star-varᵢ Γ w⊑★ w⊑y
 mlb-typeᵢ {Γ = Γ} (tagˣ w⊑★ _) (tagˣ w⊑★′ _) = ★
-mlb-typeᵢ {Γ = Γ} (ν occ p) (∀ⁱ q) =
+mlb-typeᵢ {Γ = Γ} (ν _ occ p) (∀ⁱ q) =
   `∀ (mlb-typeᵢ {Γ = rightOnlyᵢ ∷ Γ} p q)
-mlb-typeᵢ {Γ = Γ} (ν occ p) (ν occ′ q) =
+mlb-typeᵢ {Γ = Γ} (ν _ occ p) (ν _ occ′ q) =
   close-neitherᵢ (mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} p q)
 mlb-typeᵢ {Γ = Γ} (idˣ w⊑x _ _) (tagˣ w⊑★ _) =
   ＇ choice-var-starᵢ Γ w⊑x w⊑★
 
-close-neither-genSafeSourceᵢ :
+close-neither-nonVarᵢ :
   ∀ {A} →
-  GenSafeSource A →
-  GenSafeSource (close-neitherᵢ A)
-close-neither-genSafeSourceᵢ {A = A ⇒ B} source-fun
+  NonVar A →
+  NonVar (close-neitherᵢ A)
+close-neither-nonVarᵢ nonvar-base = nonvar-base
+close-neither-nonVarᵢ nonvar-star = nonvar-star
+close-neither-nonVarᵢ {A = A ⇒ B} nonvar-fun
     with occurs zero (A ⇒ B)
-close-neither-genSafeSourceᵢ {A = A ⇒ B} source-fun | true =
-  source-all
-close-neither-genSafeSourceᵢ {A = A ⇒ B} source-fun | false =
-  source-fun
-close-neither-genSafeSourceᵢ {A = `∀ A} source-all
+close-neither-nonVarᵢ {A = A ⇒ B} nonvar-fun | true =
+  nonvar-all
+close-neither-nonVarᵢ {A = A ⇒ B} nonvar-fun | false =
+  nonvar-fun
+close-neither-nonVarᵢ {A = `∀ A} nonvar-all
     with occurs zero (`∀ A)
-close-neither-genSafeSourceᵢ {A = `∀ A} source-all | true =
-  source-all
-close-neither-genSafeSourceᵢ {A = `∀ A} source-all | false =
-  source-all
+close-neither-nonVarᵢ {A = `∀ A} nonvar-all | true =
+  nonvar-all
+close-neither-nonVarᵢ {A = `∀ A} nonvar-all | false =
+  nonvar-all
 
-mlb-type-genSafeSource-or-starᵢ :
+mlb-type-nonVar-or-starᵢ :
   ∀ {Γ Δᶜ Δᴸ Δᴿ A B C}
     (p : leftChoiceᵢ Γ ∣ Δᶜ ⊢ C ⊑ A ⊣ Δᴸ)
     (q : rightChoiceᵢ Γ ∣ Δᶜ ⊢ C ⊑ B ⊣ Δᴿ) →
-  GenSafeSource C →
-  GenSafeSource (mlb-typeᵢ p q) ⊎ mlb-typeᵢ p q ≡ ★
-mlb-type-genSafeSource-or-starᵢ id★ id★ ()
-mlb-type-genSafeSource-or-starᵢ
+  NonVar C →
+  NonVar (mlb-typeᵢ p q) ⊎ mlb-typeᵢ p q ≡ ★
+mlb-type-nonVar-or-starᵢ id★ id★ nonvar-star = inj₂ refl
+mlb-type-nonVar-or-starᵢ
     (idˣ w⊑x W<Δ X<Δ) (idˣ w⊑y W<Δ′ Y<Δ) ()
-mlb-type-genSafeSource-or-starᵢ idι idι ()
-mlb-type-genSafeSource-or-starᵢ idι (tag ι) ()
-mlb-type-genSafeSource-or-starᵢ (p₁ ↦ p₂) (q₁ ↦ q₂) source-fun =
-  inj₁ source-fun
-mlb-type-genSafeSource-or-starᵢ
-    (p₁ ↦ p₂) (tag q₁ ⇛ q₂) source-fun =
-  inj₁ source-fun
-mlb-type-genSafeSource-or-starᵢ (∀ⁱ p) (∀ⁱ q) source-all =
-  inj₁ source-all
-mlb-type-genSafeSource-or-starᵢ
-    (∀ⁱ p) (ν occ q) source-all =
-  inj₁ source-all
-mlb-type-genSafeSource-or-starᵢ (tag ι) idι ()
-mlb-type-genSafeSource-or-starᵢ (tag ι) (tag .ι) ()
-mlb-type-genSafeSource-or-starᵢ
-    (tag p₁ ⇛ p₂) (q₁ ↦ q₂) source-fun =
-  inj₁ source-fun
-mlb-type-genSafeSource-or-starᵢ
-    (tag p₁ ⇛ p₂) (tag q₁ ⇛ q₂) source-fun =
+mlb-type-nonVar-or-starᵢ idι idι nonvar-base = inj₁ nonvar-base
+mlb-type-nonVar-or-starᵢ idι (tag ι) nonvar-base = inj₁ nonvar-base
+mlb-type-nonVar-or-starᵢ (p₁ ↦ p₂) (q₁ ↦ q₂) nonvar-fun =
+  inj₁ nonvar-fun
+mlb-type-nonVar-or-starᵢ
+    (p₁ ↦ p₂) (tag q₁ ⇛ q₂) nonvar-fun =
+  inj₁ nonvar-fun
+mlb-type-nonVar-or-starᵢ (∀ⁱ p) (∀ⁱ q) nonvar-all =
+  inj₁ nonvar-all
+mlb-type-nonVar-or-starᵢ
+    (∀ⁱ p) (ν _ occ q) nonvar-all =
+  inj₁ nonvar-all
+mlb-type-nonVar-or-starᵢ (tag ι) idι nonvar-base = inj₁ nonvar-base
+mlb-type-nonVar-or-starᵢ (tag ι) (tag .ι) nonvar-base = inj₂ refl
+mlb-type-nonVar-or-starᵢ
+    (tag p₁ ⇛ p₂) (q₁ ↦ q₂) nonvar-fun =
+  inj₁ nonvar-fun
+mlb-type-nonVar-or-starᵢ
+    (tag p₁ ⇛ p₂) (tag q₁ ⇛ q₂) nonvar-fun =
   inj₂ refl
-mlb-type-genSafeSource-or-starᵢ
+mlb-type-nonVar-or-starᵢ
     (tagˣ w⊑★ W<Δ) (idˣ w⊑y W<Δ′ Y<Δ) ()
-mlb-type-genSafeSource-or-starᵢ
+mlb-type-nonVar-or-starᵢ
     (tagˣ w⊑★ W<Δ) (tagˣ w⊑★′ W<Δ′) ()
-mlb-type-genSafeSource-or-starᵢ
-    (ν occ p) (∀ⁱ q) source-all =
-  inj₁ source-all
-mlb-type-genSafeSource-or-starᵢ
-    {Γ = Γ} (ν {{safe}} occ p) (ν occ′ q) source-all
-    with mlb-type-genSafeSource-or-starᵢ
+mlb-type-nonVar-or-starᵢ
+    (ν _ occ p) (∀ⁱ q) nonvar-all =
+  inj₁ nonvar-all
+mlb-type-nonVar-or-starᵢ
+    {Γ = Γ} (ν safe occ p) (ν _ occ′ q) nonvar-all
+    with mlb-type-nonVar-or-starᵢ
       {Γ = neitherᵢ ∷ Γ} p q safe
-mlb-type-genSafeSource-or-starᵢ
-    {Γ = Γ} (ν {{safe}} occ p) (ν occ′ q) source-all
+mlb-type-nonVar-or-starᵢ
+    {Γ = Γ} (ν safe occ p) (ν _ occ′ q) nonvar-all
     | inj₁ safe-lower =
-  inj₁ (close-neither-genSafeSourceᵢ safe-lower)
-mlb-type-genSafeSource-or-starᵢ
-    {Γ = Γ} (ν {{safe}} occ p) (ν occ′ q) source-all
+  inj₁ (close-neither-nonVarᵢ safe-lower)
+mlb-type-nonVar-or-starᵢ
+    {Γ = Γ} (ν safe occ p) (ν _ occ′ q) nonvar-all
     | inj₂ eq =
   inj₂ (cong close-neitherᵢ eq)
-mlb-type-genSafeSource-or-starᵢ
+mlb-type-nonVar-or-starᵢ
     (idˣ w⊑x W<Δ X<Δ) (tagˣ w⊑★ W<Δ′) ()
 
-mlb-type-genSafeSource-if-occursᵢ :
+mlb-type-nonVar-if-occursᵢ :
   ∀ {Γ Δᶜ Δᴸ Δᴿ A B C}
     (p : leftChoiceᵢ Γ ∣ Δᶜ ⊢ C ⊑ A ⊣ Δᴸ)
     (q : rightChoiceᵢ Γ ∣ Δᶜ ⊢ C ⊑ B ⊣ Δᴿ) →
-  GenSafeSource C →
+  NonVar C →
   occurs zero (mlb-typeᵢ p q) ≡ true →
-  GenSafeSource (mlb-typeᵢ p q)
-mlb-type-genSafeSource-if-occursᵢ p q safe occ
-    with mlb-type-genSafeSource-or-starᵢ p q safe
-mlb-type-genSafeSource-if-occursᵢ p q safe occ
+  NonVar (mlb-typeᵢ p q)
+mlb-type-nonVar-if-occursᵢ p q safe occ
+    with mlb-type-nonVar-or-starᵢ p q safe
+mlb-type-nonVar-if-occursᵢ p q safe occ
     | inj₁ safe-lower =
   safe-lower
-mlb-type-genSafeSource-if-occursᵢ p q safe occ | inj₂ eq =
+mlb-type-nonVar-if-occursᵢ p q safe occ | inj₂ eq =
   ⊥-elim
     (false≠trueᵢ
       (trans (sym (cong (occurs zero) eq)) occ))
 
-genSafeSource-or-star-backᵢ :
+nonVar-or-star-backᵢ :
   ∀ {A B} →
   A ≡ B →
-  GenSafeSource B ⊎ B ≡ ★ →
-  GenSafeSource A ⊎ A ≡ ★
-genSafeSource-or-star-backᵢ eq (inj₁ safeB) =
-  inj₁ (subst GenSafeSource (sym eq) safeB)
-genSafeSource-or-star-backᵢ eq (inj₂ B≡★) =
+  NonVar B ⊎ B ≡ ★ →
+  NonVar A ⊎ A ≡ ★
+nonVar-or-star-backᵢ eq (inj₁ safeB) =
+  inj₁ (subst NonVar (sym eq) safeB)
+nonVar-or-star-backᵢ eq (inj₂ B≡★) =
   inj₂ (trans eq B≡★)
 
 occurs-var-true→≡ᵢ :
@@ -4543,7 +4551,7 @@ no-occurs-star-leftOnlyAtᵢ mode occ (tagˣ x⊑★ X<Δ)
     with occurs-var-true→≡ᵢ occ
 no-occurs-star-leftOnlyAtᵢ mode occ (tagˣ x⊑★ X<Δ) | refl =
   leftChoice-no-star-at-leftOnlyᵢ mode x⊑★
-no-occurs-star-leftOnlyAtᵢ mode occ (ν occC p) =
+no-occurs-star-leftOnlyAtᵢ mode occ (ν _ occC p) =
   no-occurs-star-leftOnlyAtᵢ (thereᵐᵢ {n = rightOnlyᵢ} mode) occ p
 
 no-occurs-star-rightOnlyAtᵢ :
@@ -4567,7 +4575,7 @@ no-occurs-star-rightOnlyAtᵢ mode occ (tagˣ x⊑★ X<Δ)
     with occurs-var-true→≡ᵢ occ
 no-occurs-star-rightOnlyAtᵢ mode occ (tagˣ x⊑★ X<Δ) | refl =
   rightChoice-no-star-at-rightOnlyᵢ mode x⊑★
-no-occurs-star-rightOnlyAtᵢ mode occ (ν occC p) =
+no-occurs-star-rightOnlyAtᵢ mode occ (ν _ occC p) =
   no-occurs-star-rightOnlyAtᵢ (thereᵐᵢ {n = leftOnlyᵢ} mode) occ p
 
 mlb-type-occurs-leftOnlyAtᵢ :
@@ -4606,7 +4614,7 @@ mlb-type-occurs-leftOnlyAtᵢ {X = X} mode
   ∨-true-rightᵢ (mlb-type-occurs-leftOnlyAtᵢ mode p₂ q₂ occ)
 mlb-type-occurs-leftOnlyAtᵢ mode (∀ⁱ p) (∀ⁱ q) occ =
   mlb-type-occurs-leftOnlyAtᵢ (thereᵐᵢ {n = bothᵢ} mode) p q occ
-mlb-type-occurs-leftOnlyAtᵢ mode (∀ⁱ p) (ν occC q) occ =
+mlb-type-occurs-leftOnlyAtᵢ mode (∀ⁱ p) (ν _ occC q) occ =
   mlb-type-occurs-leftOnlyAtᵢ (thereᵐᵢ {n = leftOnlyᵢ} mode) p q occ
 mlb-type-occurs-leftOnlyAtᵢ mode (tag ι) idι ()
 mlb-type-occurs-leftOnlyAtᵢ mode (tag ι) (tag .ι) ()
@@ -4633,10 +4641,10 @@ mlb-type-occurs-leftOnlyAtᵢ mode (tagˣ w⊑★ W<Δ)
 mlb-type-occurs-leftOnlyAtᵢ mode (tagˣ w⊑★ W<Δ)
     (tagˣ w⊑★′ _) occ | refl =
   ⊥-elim (leftChoice-no-star-at-leftOnlyᵢ mode w⊑★)
-mlb-type-occurs-leftOnlyAtᵢ mode (ν occC p) (∀ⁱ q) occ =
+mlb-type-occurs-leftOnlyAtᵢ mode (ν _ occC p) (∀ⁱ q) occ =
   mlb-type-occurs-leftOnlyAtᵢ (thereᵐᵢ {n = rightOnlyᵢ} mode) p q occ
 mlb-type-occurs-leftOnlyAtᵢ {Γ = Γ} {X = X} mode
-    (ν occC p) (ν occC′ q) occ =
+    (ν _ occC p) (ν _ occC′ q) occ =
   close-neither-occursᵢ
     {X = X}
     {A = mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} p q}
@@ -4684,7 +4692,7 @@ mlb-type-occurs-rightOnlyAtᵢ {X = X} mode
   ∨-true-rightᵢ (mlb-type-occurs-rightOnlyAtᵢ mode p₂ q₂ occ)
 mlb-type-occurs-rightOnlyAtᵢ mode (∀ⁱ p) (∀ⁱ q) occ =
   mlb-type-occurs-rightOnlyAtᵢ (thereᵐᵢ {n = bothᵢ} mode) p q occ
-mlb-type-occurs-rightOnlyAtᵢ mode (∀ⁱ p) (ν occC q) occ =
+mlb-type-occurs-rightOnlyAtᵢ mode (∀ⁱ p) (ν _ occC q) occ =
   mlb-type-occurs-rightOnlyAtᵢ (thereᵐᵢ {n = leftOnlyᵢ} mode) p q occ
 mlb-type-occurs-rightOnlyAtᵢ mode (tag ι) idι ()
 mlb-type-occurs-rightOnlyAtᵢ mode (tag ι) (tag .ι) ()
@@ -4711,10 +4719,10 @@ mlb-type-occurs-rightOnlyAtᵢ mode (tagˣ w⊑★ W<Δ)
 mlb-type-occurs-rightOnlyAtᵢ mode (tagˣ w⊑★ W<Δ)
     (tagˣ w⊑★′ _) occ | refl =
   ⊥-elim (rightChoice-no-star-at-rightOnlyᵢ mode w⊑★′)
-mlb-type-occurs-rightOnlyAtᵢ mode (ν occC p) (∀ⁱ q) occ =
+mlb-type-occurs-rightOnlyAtᵢ mode (ν _ occC p) (∀ⁱ q) occ =
   mlb-type-occurs-rightOnlyAtᵢ (thereᵐᵢ {n = rightOnlyᵢ} mode) p q occ
 mlb-type-occurs-rightOnlyAtᵢ {Γ = Γ} {X = X} mode
-    (ν occC p) (ν occC′ q) occ =
+    (ν _ occC p) (ν _ occC′ q) occ =
   close-neither-occursᵢ
     {X = X}
     {A = mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} p q}
@@ -4855,7 +4863,7 @@ close-neither-false-coherenceᵢ
 
 close-neither-common-trueᵢ :
   ∀ Γ {Δᶜ Δᴸ Δᴿ A B D} →
-  GenSafeSource D →
+  NonVar D →
   occurs zero D ≡ true →
   CommonLowerBoundᶜᵢ
     (leftChoiceᵢ (neitherᵢ ∷ Γ)) (rightChoiceᵢ (neitherᵢ ∷ Γ))
@@ -4870,11 +4878,11 @@ close-neither-common-trueᵢ Γ {D = D} safeD occD (D⊑A , D⊑B) =
         (leftChoiceᵢ Γ) (rightChoiceᵢ Γ)
         _ _ _ _ _ E)
     (sym (close-neither-true-eqᵢ occD))
-    (ν {{safeD}} occD D⊑A , ν {{safeD}} occD D⊑B)
+    (ν safeD occD D⊑A , ν safeD occD D⊑B)
 
 close-neither-commonᶜᵢ :
   ∀ {Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B D} →
-  GenSafeSource D ⊎ D ≡ ★ →
+  NonVar D ⊎ D ≡ ★ →
   CommonLowerBoundᶜᵢ
     (νᵢᶜ Φᴸ) (νᵢᶜ Φᴿ) (suc Δᶜ) Δᴸ Δᴿ A B D →
   CommonLowerBoundᶜᵢ Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B (close-neitherᵢ D)
@@ -4882,7 +4890,7 @@ close-neither-commonᶜᵢ {D = D} (inj₁ safeD) common
     with occurs zero D in occD
 close-neither-commonᶜᵢ {D = D} (inj₁ safeD) (D⊑A , D⊑B)
     | true =
-  ν {{safeD}} occD D⊑A , ν {{safeD}} occD D⊑B
+  ν safeD occD D⊑A , ν safeD occD D⊑B
 close-neither-commonᶜᵢ {D = D} (inj₁ safeD) (D⊑A , D⊑B)
     | false =
   open-unusedᵢ occD D⊑A ,
@@ -4892,7 +4900,7 @@ close-neither-commonᶜᵢ {D = .★} (inj₂ refl) (D⊑A , D⊑B) =
 
 close-neither-commonᵢ :
   ∀ Γ {Δᶜ Δᴸ Δᴿ A B D} →
-  GenSafeSource D ⊎ D ≡ ★ →
+  NonVar D ⊎ D ≡ ★ →
   CommonLowerBoundᶜᵢ
     (leftChoiceᵢ (neitherᵢ ∷ Γ)) (rightChoiceᵢ (neitherᵢ ∷ Γ))
     (suc Δᶜ) Δᴸ Δᴿ A B D →
@@ -4903,7 +4911,7 @@ close-neither-commonᵢ Γ {D = D} (inj₁ safeD) common
     with occurs zero D in occD
 close-neither-commonᵢ Γ {D = D} (inj₁ safeD) (D⊑A , D⊑B)
     | true =
-  ν {{safeD}} occD D⊑A , ν {{safeD}} occD D⊑B
+  ν safeD occD D⊑A , ν safeD occD D⊑B
 close-neither-commonᵢ Γ {D = D} (inj₁ safeD) (D⊑A , D⊑B)
     | false =
   open-unusedᵢ occD D⊑A ,
@@ -4938,12 +4946,12 @@ mlb-type-commonᵢ {Γ = Γ} (∀ⁱ p) (∀ⁱ q) =
   ∀ⁱ (proj₁ c) , ∀ⁱ (proj₂ c)
   where
     c = mlb-type-commonᵢ {Γ = bothᵢ ∷ Γ} p q
-mlb-type-commonᵢ {Γ = Γ} (∀ⁱ p) (ν {{safe}} occ q) =
-  ∀ⁱ (proj₁ c) , ν {{safe-lower}} occ-lower (proj₂ c)
+mlb-type-commonᵢ {Γ = Γ} (∀ⁱ p) (ν safe occ q) =
+  ∀ⁱ (proj₁ c) , ν safe-lower occ-lower (proj₂ c)
   where
     c = mlb-type-commonᵢ {Γ = leftOnlyᵢ ∷ Γ} p q
     occ-lower = mlb-type-occurs-∀νᵢ p q occ
-    safe-lower = mlb-type-genSafeSource-if-occursᵢ
+    safe-lower = mlb-type-nonVar-if-occursᵢ
       {Γ = leftOnlyᵢ ∷ Γ} p q safe occ-lower
 mlb-type-commonᵢ (tag ι) idι = tag ι , idι
 mlb-type-commonᵢ (tag ι) (tag .ι) = id★ , id★
@@ -4959,16 +4967,16 @@ mlb-type-commonᵢ {Γ = Γ}
   choice-star-var-commonᵢ Γ w⊑★ w⊑y W<Δ Y<Δ
 mlb-type-commonᵢ (tagˣ w⊑★ W<Δ) (tagˣ w⊑★′ _) =
   id★ , id★
-mlb-type-commonᵢ {Γ = Γ} (ν {{safe}} occ p) (∀ⁱ q) =
-  ν {{safe-lower}} occ-lower (proj₁ c) , ∀ⁱ (proj₂ c)
+mlb-type-commonᵢ {Γ = Γ} (ν safe occ p) (∀ⁱ q) =
+  ν safe-lower occ-lower (proj₁ c) , ∀ⁱ (proj₂ c)
   where
     c = mlb-type-commonᵢ {Γ = rightOnlyᵢ ∷ Γ} p q
     occ-lower = mlb-type-occurs-ν∀ᵢ p q occ
-    safe-lower = mlb-type-genSafeSource-if-occursᵢ
+    safe-lower = mlb-type-nonVar-if-occursᵢ
       {Γ = rightOnlyᵢ ∷ Γ} p q safe occ-lower
-mlb-type-commonᵢ {Γ = Γ} (ν {{safe}} occ p) (ν occ′ q) =
+mlb-type-commonᵢ {Γ = Γ} (ν safe occ p) (ν _ occ′ q) =
   close-neither-commonᵢ Γ
-    (mlb-type-genSafeSource-or-starᵢ
+    (mlb-type-nonVar-or-starᵢ
       {Γ = neitherᵢ ∷ Γ} p q safe)
     (mlb-type-commonᵢ {Γ = neitherᵢ ∷ Γ} p q)
 mlb-type-commonᵢ {Γ = Γ}
@@ -6741,23 +6749,24 @@ canonical-lower-non∀ᵢ (can-arrow-arrow c₁ c₂) = non∀-⇒
 canonical-lower-non∀ᵢ (can-star-arrow c₁ c₂) = non∀-⇒
 canonical-lower-non∀ᵢ (can-arrow-star c₁ c₂) = non∀-⇒
 
-canonical-lower-genSafeSource-leftᵢ :
+canonical-lower-nonVar-leftᵢ :
   ∀ {Δ A B C} →
   CanonicalLowerᵢ Δ A B C →
-  GenSafeSource A →
-  GenSafeSource C
-canonical-lower-genSafeSource-leftᵢ can-star-star ()
-canonical-lower-genSafeSource-leftᵢ can-base-base ()
-canonical-lower-genSafeSource-leftᵢ can-base-star ()
-canonical-lower-genSafeSource-leftᵢ can-star-base ()
-canonical-lower-genSafeSource-leftᵢ (can-var-var X<Δ) ()
-canonical-lower-genSafeSource-leftᵢ
-    (can-arrow-arrow c₁ c₂) source-fun =
-  source-fun
-canonical-lower-genSafeSource-leftᵢ (can-star-arrow c₁ c₂) ()
-canonical-lower-genSafeSource-leftᵢ
-    (can-arrow-star c₁ c₂) source-fun =
-  source-fun
+  NonVar A →
+  NonVar C
+canonical-lower-nonVar-leftᵢ can-star-star nonvar-star = nonvar-star
+canonical-lower-nonVar-leftᵢ can-base-base nonvar-base = nonvar-base
+canonical-lower-nonVar-leftᵢ can-base-star nonvar-base = nonvar-base
+canonical-lower-nonVar-leftᵢ can-star-base nonvar-star = nonvar-base
+canonical-lower-nonVar-leftᵢ (can-var-var X<Δ) ()
+canonical-lower-nonVar-leftᵢ
+    (can-arrow-arrow c₁ c₂) nonvar-fun =
+  nonvar-fun
+canonical-lower-nonVar-leftᵢ (can-star-arrow c₁ c₂) nonvar-star =
+  nonvar-fun
+canonical-lower-nonVar-leftᵢ
+    (can-arrow-star c₁ c₂) nonvar-fun =
+  nonvar-fun
 
 non∀-targetᵢ :
   ∀ {Φ Δᴸ Δᴿ A B} →
@@ -7315,8 +7324,8 @@ mlb-type-∀ν-coherenceᵢ :
     {q′ : rightChoiceᵢ (leftOnlyᵢ ∷ Γ′)
       ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ′)
       ⊢ C′ ⊑ B′ ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ′)}
-    {{safe : GenSafeSource C}}
-    {{safe′ : GenSafeSource C′}}
+    {{safe : NonVar C}}
+    {{safe′ : NonVar C′}}
     {occ : occurs zero C ≡ true}
     {occ′ : occurs zero C′ ≡ true} →
   ∀ᵢᶜ Φ ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ) ⊢
@@ -7324,8 +7333,8 @@ mlb-type-∀ν-coherenceᵢ :
     ⊑ mlb-typeᵢ {Γ = leftOnlyᵢ ∷ Γ′} p′ q′
     ⊣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ′) →
   Φ ∣ choiceCommonCtxᵢ Γ ⊢
-    mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν occ q)
-    ⊑ mlb-typeᵢ {Γ = Γ′} (∀ⁱ p′) (ν occ′ q′)
+    mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν safe occ q)
+    ⊑ mlb-typeᵢ {Γ = Γ′} (∀ⁱ p′) (ν safe′ occ′ q′)
     ⊣ choiceCommonCtxᵢ Γ′
 mlb-type-∀ν-coherenceᵢ body-coh = ∀ⁱ body-coh
 
@@ -7343,8 +7352,8 @@ mlb-type-ν∀-coherenceᵢ :
     {q′ : rightChoiceᵢ (rightOnlyᵢ ∷ Γ′)
       ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ′)
       ⊢ C′ ⊑ B′ ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ′)}
-    {{safe : GenSafeSource C}}
-    {{safe′ : GenSafeSource C′}}
+    {{safe : NonVar C}}
+    {{safe′ : NonVar C′}}
     {occ : occurs zero C ≡ true}
     {occ′ : occurs zero C′ ≡ true} →
   ∀ᵢᶜ Φ ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ) ⊢
@@ -7352,8 +7361,8 @@ mlb-type-ν∀-coherenceᵢ :
     ⊑ mlb-typeᵢ {Γ = rightOnlyᵢ ∷ Γ′} p′ q′
     ⊣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ′) →
   Φ ∣ choiceCommonCtxᵢ Γ ⊢
-    mlb-typeᵢ {Γ = Γ} (ν occ p) (∀ⁱ q)
-    ⊑ mlb-typeᵢ {Γ = Γ′} (ν occ′ p′) (∀ⁱ q′)
+    mlb-typeᵢ {Γ = Γ} (ν safe occ p) (∀ⁱ q)
+    ⊑ mlb-typeᵢ {Γ = Γ′} (ν safe′ occ′ p′) (∀ⁱ q′)
     ⊣ choiceCommonCtxᵢ Γ′
 mlb-type-ν∀-coherenceᵢ body-coh = ∀ⁱ body-coh
 
@@ -7371,8 +7380,8 @@ mlb-type-νν-true-coherenceᵢ :
     {q′ : rightChoiceᵢ (neitherᵢ ∷ Γ′)
       ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ′)
       ⊢ C′ ⊑ B′ ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ′)}
-    {{safe : GenSafeSource C}}
-    {{safe′ : GenSafeSource C′}}
+    {{safe : NonVar C}}
+    {{safe′ : NonVar C′}}
     {occ : occurs zero C ≡ true}
     {occ′ : occurs zero C ≡ true}
     {occᴿ : occurs zero C′ ≡ true}
@@ -7384,8 +7393,8 @@ mlb-type-νν-true-coherenceᵢ :
     ⊑ mlb-typeᵢ {Γ = neitherᵢ ∷ Γ′} p′ q′
     ⊣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ′) →
   Φ ∣ choiceCommonCtxᵢ Γ ⊢
-    mlb-typeᵢ {Γ = Γ} (ν occ p) (ν occ′ q)
-    ⊑ mlb-typeᵢ {Γ = Γ′} (ν occᴿ p′) (ν occᴿ′ q′)
+    mlb-typeᵢ {Γ = Γ} (ν safe occ p) (ν safe occ′ q)
+    ⊑ mlb-typeᵢ {Γ = Γ′} (ν safe′ occᴿ p′) (ν safe′ occᴿ′ q′)
     ⊣ choiceCommonCtxᵢ Γ′
 mlb-type-νν-true-coherenceᵢ occ-lower occ-lower′ body-coh =
   close-neither-true-coherenceᵢ occ-lower occ-lower′ body-coh
@@ -7404,8 +7413,8 @@ mlb-type-νν-false-coherenceᵢ :
     {q′ : rightChoiceᵢ (neitherᵢ ∷ Γ′)
       ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ′)
       ⊢ C′ ⊑ B′ ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ′)}
-    {{safe : GenSafeSource C}}
-    {{safe′ : GenSafeSource C′}}
+    {{safe : NonVar C}}
+    {{safe′ : NonVar C′}}
     {occ : occurs zero C ≡ true}
     {occ′ : occurs zero C ≡ true}
     {occᴿ : occurs zero C′ ≡ true}
@@ -7417,8 +7426,8 @@ mlb-type-νν-false-coherenceᵢ :
     ⊑ mlb-typeᵢ {Γ = neitherᵢ ∷ Γ′} p′ q′
     ⊣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ′) →
   Φ ∣ choiceCommonCtxᵢ Γ ⊢
-    mlb-typeᵢ {Γ = Γ} (ν occ p) (ν occ′ q)
-    ⊑ mlb-typeᵢ {Γ = Γ′} (ν occᴿ p′) (ν occᴿ′ q′)
+    mlb-typeᵢ {Γ = Γ} (ν safe occ p) (ν safe occ′ q)
+    ⊑ mlb-typeᵢ {Γ = Γ′} (ν safe′ occᴿ p′) (ν safe′ occᴿ′ q′)
     ⊣ choiceCommonCtxᵢ Γ′
 mlb-type-νν-false-coherenceᵢ occ-lower occ-lower′ body-coh =
   close-neither-false-coherenceᵢ occ-lower occ-lower′ body-coh
@@ -7540,9 +7549,9 @@ mlb-type-from-lower-∀νᵢ :
   ∀ {Δ A B C}
     {p : idᵢ (suc Δ) ∣ suc Δ ⊢ C ⊑ A ⊣ suc Δ}
     {q : νᵢᶜ (idᵢ Δ) ∣ suc Δ ⊢ C ⊑ B ⊣ Δ}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     {occ : occurs zero C ≡ true} →
-  mlb-type-from-lowerᵢ (∀ⁱ p) (ν occ q) ≡
+  mlb-type-from-lowerᵢ (∀ⁱ p) (ν safe occ q) ≡
   `∀
     (mlb-typeᵢ {Γ = leftOnlyᵢ ∷ choice-idᵢ Δ}
       (leftChoice-id-proofAtᵢ p)
@@ -7553,9 +7562,9 @@ mlb-type-from-lower-ν∀ᵢ :
   ∀ {Δ A B C}
     {p : νᵢᶜ (idᵢ Δ) ∣ suc Δ ⊢ C ⊑ A ⊣ Δ}
     {q : idᵢ (suc Δ) ∣ suc Δ ⊢ C ⊑ B ⊣ suc Δ}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     {occ : occurs zero C ≡ true} →
-  mlb-type-from-lowerᵢ (ν occ p) (∀ⁱ q) ≡
+  mlb-type-from-lowerᵢ (ν safe occ p) (∀ⁱ q) ≡
   `∀
     (mlb-typeᵢ {Γ = rightOnlyᵢ ∷ choice-idᵢ Δ}
       (leftChoice-rightOnly-id-proofAtᵢ p)
@@ -7566,10 +7575,10 @@ mlb-type-from-lower-ννᵢ :
   ∀ {Δ A B C}
     {p : νᵢᶜ (idᵢ Δ) ∣ suc Δ ⊢ C ⊑ A ⊣ Δ}
     {q : νᵢᶜ (idᵢ Δ) ∣ suc Δ ⊢ C ⊑ B ⊣ Δ}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     {occ : occurs zero C ≡ true}
     {occ′ : occurs zero C ≡ true} →
-  mlb-type-from-lowerᵢ (ν occ p) (ν occ′ q) ≡
+  mlb-type-from-lowerᵢ (ν safe occ p) (ν safe occ′ q) ≡
   close-neitherᵢ
     (mlb-typeᵢ {Γ = neitherᵢ ∷ choice-idᵢ Δ}
       (leftChoice-neither-id-proofAtᵢ p)
@@ -7641,17 +7650,17 @@ canonical-forall-lower-coherence-occᵢ :
   ∀ {Φ Δᴸ Δᴿ A A′ B B′ C C′} →
   CanonicalLowerᵢ (suc Δᴸ) A B C →
   CanonicalLowerᵢ Δᴿ A′ B′ C′ →
-  GenSafeSource C →
+  NonVar C →
   occurs zero C ≡ true →
   νᵢᶜ Φ ∣ suc Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ →
   νᵢᶜ Φ ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ →
   Φ ∣ Δᴸ ⊢ `∀ C ⊑ C′ ⊣ Δᴿ
 canonical-forall-lower-coherence-occᵢ can can′ safeC occC pA pB =
-  ν {{safeC}} occC (canonical-first-order-coherenceᵢ can can′ pA pB)
+  ν safeC occC (canonical-first-order-coherenceᵢ can can′ pA pB)
 
 canonical-forall-lower-coherence-ννᵢ :
   ∀ {Φ Δᴸ Δᴿ A A′ B B′ C C′} →
-  {{safeA : GenSafeSource A}} →
+  {{safeA : NonVar A}} →
   CanonicalLowerᵢ (suc Δᴸ) A B C →
   CanonicalLowerᵢ Δᴿ A′ B′ C′ →
   occurs zero A ≡ true →
@@ -7662,7 +7671,7 @@ canonical-forall-lower-coherence-ννᵢ {{safeA}} can can′ occA pA pB =
   canonical-forall-lower-coherence-occᵢ
     can
     can′
-    (canonical-lower-genSafeSource-leftᵢ can safeA)
+    (canonical-lower-nonVar-leftᵢ can safeA)
     (canonical-lower-occurs-leftᵢ can occA)
     pA
     pB
@@ -7675,7 +7684,7 @@ mlb-type-from-lower-∀∀-first-order-target-coherenceᵢ :
     {q : idᵢ (suc Δᴸ) ∣ suc Δᴸ ⊢ C ⊑ B ⊣ suc Δᴸ}
     {p′ : idᵢ Δᴿ ∣ Δᴿ ⊢ C′ ⊑ A′ ⊣ Δᴿ}
     {q′ : idᵢ Δᴿ ∣ Δᴿ ⊢ C′ ⊑ B′ ⊣ Δᴿ}
-    {{safeA : GenSafeSource A}} →
+    {{safeA : NonVar A}} →
   occurs zero A ≡ true →
   FirstOrderSelectorAtᵢ
     {Γ = choice-idᵢ (suc Δᴸ)}
@@ -7728,7 +7737,7 @@ data LowerToForallᵢ (Φ : ImpCtx) (Δᶜ Δᴿ : TyCtx) :
 
   lower-to-νᵢ :
     ∀ {A C} →
-    {{safe : GenSafeSource C}} →
+    {{safe : NonVar C}} →
     occurs zero C ≡ true →
     νᵢᶜ Φ ∣ suc Δᶜ ⊢ C ⊑ `∀ A ⊣ Δᴿ →
     LowerToForallᵢ Φ Δᶜ Δᴿ (`∀ C) A
@@ -7738,7 +7747,7 @@ lower-to-forall-invᵢ :
   Φ ∣ Δᶜ ⊢ C ⊑ `∀ A ⊣ Δᴿ →
   LowerToForallᵢ Φ Δᶜ Δᴿ C A
 lower-to-forall-invᵢ (∀ⁱ p) = lower-to-∀ᵢ p
-lower-to-forall-invᵢ (ν {{safe}} occ p) =
+lower-to-forall-invᵢ (ν safe occ p) =
   lower-to-νᵢ {{safe}} occ p
 
 data ForallSourceLowerᵢ (Φ : ImpCtx) (Δᴸ Δᴿ : TyCtx)
@@ -7750,7 +7759,7 @@ data ForallSourceLowerᵢ (Φ : ImpCtx) (Δᴸ Δᴿ : TyCtx)
 
   source-∀lower-νᵢ :
     ∀ {B} →
-    {{GenSafeSource A}} →
+    {{NonVar A}} →
     occurs zero A ≡ true →
     νᵢᶜ Φ ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
     ForallSourceLowerᵢ Φ Δᴸ Δᴿ A B
@@ -7760,7 +7769,7 @@ forall-source-lower-invᵢ :
   Φ ∣ Δᴸ ⊢ `∀ A ⊑ B ⊣ Δᴿ →
   ForallSourceLowerᵢ Φ Δᴸ Δᴿ A B
 forall-source-lower-invᵢ (∀ⁱ p) = source-∀lower-∀ᵢ p
-forall-source-lower-invᵢ (ν {{safe}} occ p) =
+forall-source-lower-invᵢ (ν safe occ p) =
   source-∀lower-νᵢ {{safe}} occ p
 
 source-forall-lower-dispatchᵢ :
@@ -7768,7 +7777,7 @@ source-forall-lower-dispatchᵢ :
   (P : Ty → Set) →
   (∀ {C} → ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ A ⊑ C ⊣ suc Δᴿ → P (`∀ C)) →
   (∀ {C} →
-    {{GenSafeSource A}} →
+    {{NonVar A}} →
     occurs zero A ≡ true →
     νᵢᶜ Φ ∣ suc Δᴸ ⊢ A ⊑ C ⊣ Δᴿ →
     P C) →
@@ -7812,7 +7821,7 @@ data ForallForallLower²ᵢ
 
   ff-via-∀νᵢ :
     ∀ {A B C} →
-    {{safe : GenSafeSource C}} →
+    {{safe : NonVar C}} →
     ∀ᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ C ⊑ A ⊣ suc Δᴸ →
     occurs zero C ≡ true →
     νᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ C ⊑ `∀ B ⊣ Δᴿ →
@@ -7820,7 +7829,7 @@ data ForallForallLower²ᵢ
 
   ff-via-ν∀ᵢ :
     ∀ {A B C} →
-    {{safe : GenSafeSource C}} →
+    {{safe : NonVar C}} →
     occurs zero C ≡ true →
     νᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ C ⊑ `∀ A ⊣ Δᴸ →
     ∀ᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ C ⊑ B ⊣ suc Δᴿ →
@@ -7828,7 +7837,7 @@ data ForallForallLower²ᵢ
 
   ff-via-ννᵢ :
     ∀ {A B C} →
-    {{GenSafeSource C}} →
+    {{NonVar C}} →
     occurs zero C ≡ true →
     νᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ C ⊑ `∀ A ⊣ Δᴸ →
     νᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ C ⊑ `∀ B ⊣ Δᴿ →
@@ -7867,13 +7876,13 @@ forall-forall-common-from-lower²ᵢ (ff-via-∀∀ᵢ C⊑A C⊑B) =
   ∀ⁱ C⊑A , ∀ⁱ C⊑B
 forall-forall-common-from-lower²ᵢ
     (ff-via-∀νᵢ {{safe}} C⊑A occC C⊑∀B) =
-  ∀ⁱ C⊑A , ν {{safe}} occC C⊑∀B
+  ∀ⁱ C⊑A , ν safe occC C⊑∀B
 forall-forall-common-from-lower²ᵢ
     (ff-via-ν∀ᵢ {{safe}} occC C⊑∀A C⊑B) =
-  ν {{safe}} occC C⊑∀A , ∀ⁱ C⊑B
+  ν safe occC C⊑∀A , ∀ⁱ C⊑B
 forall-forall-common-from-lower²ᵢ
     (ff-via-ννᵢ {{safe}} occC C⊑∀A C⊑∀B) =
-  ν {{safe}} occC C⊑∀A , ν {{safe}} occC C⊑∀B
+  ν safe occC C⊑∀A , ν safe occC C⊑∀B
 
 data NuLowerToForallCommon²ᵢ
     (Φᴸ Φᴿ Φᴼ : ImpCtx) (Δᶜ Δᴸ Δᴿ : TyCtx)
@@ -7924,7 +7933,7 @@ data NuLowerForall²Shapeᵢ
 
   νlower-shape-νᵢ :
     ∀ {C D} →
-    {{GenSafeSource C}} →
+    {{NonVar C}} →
     ForallForallLower²ᵢ Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ (`∀ D) A B →
     occurs zero C ≡ true →
     νᵢᶜ (νᵢᶜ Φᴼ) ∣ suc (suc Δᶜ) ⊢ C ⊑ `∀ D ⊣ Δᶜ →
@@ -8024,7 +8033,7 @@ record LiftMlb∀∀Supportᵢ
   field
     k∀νᵢ :
       ∀ {D} →
-      {{GenSafeSource D}} →
+      {{NonVar D}} →
       ∀ᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ D ⊑ A ⊣ suc Δᴸ →
       occurs zero D ≡ true →
       νᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ D ⊑ `∀ B ⊣ Δᴿ →
@@ -8032,7 +8041,7 @@ record LiftMlb∀∀Supportᵢ
 
     kν∀ᵢ :
       ∀ {D} →
-      {{GenSafeSource D}} →
+      {{NonVar D}} →
       occurs zero D ≡ true →
       νᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ D ⊑ `∀ A ⊣ Δᴸ →
       ∀ᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ D ⊑ B ⊣ suc Δᴿ →
@@ -8040,7 +8049,7 @@ record LiftMlb∀∀Supportᵢ
 
     kννᵢ :
       ∀ {D} →
-      {{GenSafeSource D}} →
+      {{NonVar D}} →
       occurs zero D ≡ true →
       νᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ D ⊑ `∀ A ⊣ Δᴸ →
       νᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ D ⊑ `∀ B ⊣ Δᴿ →
@@ -8053,18 +8062,18 @@ left-∀∀-supportᵢ :
   LiftMlb∀∀Supportᵢ Φᴸ Φᴿ Φᴸ Δᶜ Δᴸ Δᴿ Δᴸ A B A
 left-∀∀-supportᵢ .k∀νᵢ {{safe}} D⊑A occD D⊑∀B = ∀ⁱ D⊑A
 left-∀∀-supportᵢ .kν∀ᵢ {{safe}} occD D⊑∀A D⊑B =
-  ν {{safe}} occD D⊑∀A
+  ν safe occD D⊑∀A
 left-∀∀-supportᵢ .kννᵢ {{safe}} occD D⊑∀A D⊑∀B =
-  ν {{safe}} occD D⊑∀A
+  ν safe occD D⊑∀A
 
 right-∀∀-supportᵢ :
   ∀ {Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B} →
   LiftMlb∀∀Supportᵢ Φᴸ Φᴿ Φᴿ Δᶜ Δᴸ Δᴿ Δᴿ A B B
 right-∀∀-supportᵢ .k∀νᵢ {{safe}} D⊑A occD D⊑∀B =
-  ν {{safe}} occD D⊑∀B
+  ν safe occD D⊑∀B
 right-∀∀-supportᵢ .kν∀ᵢ {{safe}} occD D⊑∀A D⊑B = ∀ⁱ D⊑B
 right-∀∀-supportᵢ .kννᵢ {{safe}} occD D⊑∀A D⊑∀B =
-  ν {{safe}} occD D⊑∀B
+  ν safe occD D⊑∀B
 
 forall-forall-support-dispatchᵢ :
   ∀ {Φᴸ Φᴿ Φᴼ Δᶜ Δᴸ Δᴿ Δᴼ A B C D} →
@@ -8109,7 +8118,7 @@ record ForallForallComparableSupportᵢ
   field
     ∀lower-∀ν-supportᵢ :
       ∀ {D} →
-      {{GenSafeSource D}} →
+      {{NonVar D}} →
       ∀ᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ D ⊑ A ⊣ suc Δᴸ →
       occurs zero D ≡ true →
       νᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ D ⊑ `∀ B ⊣ Δᴿ →
@@ -8118,7 +8127,7 @@ record ForallForallComparableSupportᵢ
 
     ∀lower-ν∀-supportᵢ :
       ∀ {D} →
-      {{GenSafeSource D}} →
+      {{NonVar D}} →
       occurs zero D ≡ true →
       νᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ D ⊑ `∀ A ⊣ Δᴸ →
       ∀ᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ D ⊑ B ⊣ suc Δᴿ →
@@ -8127,7 +8136,7 @@ record ForallForallComparableSupportᵢ
 
     ∀lower-νν-supportᵢ :
       ∀ {D} →
-      {{GenSafeSource D}} →
+      {{NonVar D}} →
       occurs zero D ≡ true →
       νᵢᶜ Φᴸ ∣ suc Δᶜ ⊢ D ⊑ `∀ A ⊣ Δᴸ →
       νᵢᶜ Φᴿ ∣ suc Δᶜ ⊢ D ⊑ `∀ B ⊣ Δᴿ →
@@ -8151,9 +8160,9 @@ left-endpoint-∀∀-supportᵢ =
     { ∀lower-∀ν-supportᵢ = λ {{safe}} D⊑A occD D⊑∀B A⊑D →
         ∀ⁱ D⊑A
     ; ∀lower-ν∀-supportᵢ = λ {{safe}} occD D⊑∀A D⊑B A⊑D →
-        ν {{safe}} occD D⊑∀A
+        ν safe occD D⊑∀A
     ; ∀lower-νν-supportᵢ = λ {{safe}} occD D⊑∀A D⊑∀B A⊑D →
-        ν {{safe}} occD D⊑∀A
+        ν safe occD D⊑∀A
     ; νlower-supportᵢ = λ common occA A⊑D → proj₁ common
     }
 
@@ -8163,11 +8172,11 @@ right-endpoint-∀∀-supportᵢ :
 right-endpoint-∀∀-supportᵢ =
   record
     { ∀lower-∀ν-supportᵢ = λ {{safe}} D⊑A occD D⊑∀B B⊑D →
-        ν {{safe}} occD D⊑∀B
+        ν safe occD D⊑∀B
     ; ∀lower-ν∀-supportᵢ = λ {{safe}} occD D⊑∀A D⊑B B⊑D →
         ∀ⁱ D⊑B
     ; ∀lower-νν-supportᵢ = λ {{safe}} occD D⊑∀A D⊑∀B B⊑D →
-        ν {{safe}} occD D⊑∀B
+        ν safe occD D⊑∀B
     ; νlower-supportᵢ = λ common occB B⊑D → proj₂ common
     }
 
@@ -9003,16 +9012,17 @@ forall-nu-∀lower-comparableᶜᵢ body support
     (∀ⁱ D⊑A , ∀ⁱ D⊑B) C⊑D =
   ∀ν-∀lower-supportᵢ support (∀ⁱ D⊑A , ∀ⁱ D⊑B) C⊑D
 forall-nu-∀lower-comparableᶜᵢ body support
-    (∀ⁱ D⊑A , ν occD D⊑B) C⊑D =
+    (∀ⁱ D⊑A , ν safeD occD D⊑B) C⊑D =
   ∀ν-∀lower-directᵢ body D⊑A D⊑B C⊑D
 forall-nu-∀lower-comparableᶜᵢ body support
-    (ν occD D⊑∀A , ∀ⁱ D⊑B) C⊑D =
-  ∀ν-∀lower-supportᵢ support (ν occD D⊑∀A , ∀ⁱ D⊑B) C⊑D
+    (ν safeD occD D⊑∀A , ∀ⁱ D⊑B) C⊑D =
+  ∀ν-∀lower-supportᵢ
+    support (ν safeD occD D⊑∀A , ∀ⁱ D⊑B) C⊑D
 forall-nu-∀lower-comparableᶜᵢ body support
-    (ν {{safeD}} occD D⊑∀A , ν {{safeD′}} occD′ D⊑B) C⊑D =
+    (ν safeD occD D⊑∀A , ν safeD′ occD′ D⊑B) C⊑D =
   ∀ν-∀lower-supportᵢ
     support
-    (ν {{safeD}} occD D⊑∀A , ν {{safeD′}} occD′ D⊑B)
+    (ν safeD occD D⊑∀A , ν safeD′ occD′ D⊑B)
     C⊑D
 
 non∀-∀ν-∀lower-supportᵢ :
@@ -9033,10 +9043,10 @@ non∀-∀ν-∀lower-supportᵢ body non∀C non∀B
 non∀-∀ν-∀lower-supportᵢ body non∀C non∀B
     (∀ⁱ D⊑A , ∀ⁱ D⊑B) C⊑D | ()
 non∀-∀ν-∀lower-supportᵢ body non∀C non∀B
-    (∀ⁱ D⊑A , ν occD D⊑B) C⊑D =
+    (∀ⁱ D⊑A , ν safeD occD D⊑B) C⊑D =
   ∀ν-∀lower-directᵢ body D⊑A D⊑B C⊑D
 non∀-∀ν-∀lower-supportᵢ body non∀C non∀B
-    (ν occD D⊑∀A , D⊑B) C⊑D =
+    (ν safeD occD D⊑∀A , D⊑B) C⊑D =
   ⊥-elim
     (non∀-⊑∀-impossibleᵢ
       (non∀-targetᵢ non∀C C⊑D)
@@ -9082,7 +9092,7 @@ comparable-forall-nu-from-supportᶜᵢ :
     ComparableMaximalLowerBoundᶜᵢ
       (∀ᵢᶜ Φᴸ) (νᵢᶜ Φᴿ) (∀ᵢᶜ Φᴼ)
       (suc Δᶜ) (suc Δᴸ) Δᴿ A B) →
-  GenSafeSource (cᶜ-lowerᵢ body) →
+  NonVar (cᶜ-lowerᵢ body) →
   occurs zero (cᶜ-lowerᵢ body) ≡ true →
   ForallNuComparableSupportᵢ
     Φᴸ Φᴿ Φᴼ Δᶜ Δᴸ Δᴿ A B (cᶜ-lowerᵢ body) →
@@ -9093,7 +9103,7 @@ comparable-forall-nu-from-supportᶜᵢ body safeC occC support =
     { cᶜ-lowerᵢ = `∀ (cᶜ-lowerᵢ body)
     ; cᶜ-lower-leftᵢ = ∀ⁱ (cᶜ-lower-leftᵢ body)
     ; cᶜ-lower-rightᵢ =
-        ν {{safeC}} occC (cᶜ-lower-rightᵢ body)
+        ν safeC occC (cᶜ-lower-rightᵢ body)
     ; cᶜ-comparableᵢ = comparable
     }
   where
@@ -9120,7 +9130,7 @@ maximal-forall-nu-from-supportᶜᵢ :
     ComparableMaximalLowerBoundᶜᵢ
       (∀ᵢᶜ Φᴸ) (νᵢᶜ Φᴿ) (∀ᵢᶜ Φᴼ)
       (suc Δᶜ) (suc Δᴸ) Δᴿ A B) →
-  GenSafeSource (cᶜ-lowerᵢ body) →
+  NonVar (cᶜ-lowerᵢ body) →
   occurs zero (cᶜ-lowerᵢ body) ≡ true →
   ForallNuComparableSupportᵢ
     Φᴸ Φᴿ Φᴼ Δᶜ Δᴸ Δᴿ A B (cᶜ-lowerᵢ body) →
@@ -9186,16 +9196,17 @@ nu-forall-∀lower-comparableᶜᵢ body support
     (∀ⁱ D⊑A , ∀ⁱ D⊑B) C⊑D =
   ν∀-∀lower-supportᵢ support (∀ⁱ D⊑A , ∀ⁱ D⊑B) C⊑D
 nu-forall-∀lower-comparableᶜᵢ body support
-    (∀ⁱ D⊑A , ν occD D⊑∀B) C⊑D =
-  ν∀-∀lower-supportᵢ support (∀ⁱ D⊑A , ν occD D⊑∀B) C⊑D
+    (∀ⁱ D⊑A , ν safeD occD D⊑∀B) C⊑D =
+  ν∀-∀lower-supportᵢ
+    support (∀ⁱ D⊑A , ν safeD occD D⊑∀B) C⊑D
 nu-forall-∀lower-comparableᶜᵢ body support
-    (ν occD D⊑A , ∀ⁱ D⊑B) C⊑D =
+    (ν safeD occD D⊑A , ∀ⁱ D⊑B) C⊑D =
   ν∀-∀lower-directᵢ body D⊑A D⊑B C⊑D
 nu-forall-∀lower-comparableᶜᵢ body support
-    (ν {{safeD}} occD D⊑A , ν {{safeD′}} occD′ D⊑∀B) C⊑D =
+    (ν safeD occD D⊑A , ν safeD′ occD′ D⊑∀B) C⊑D =
   ν∀-∀lower-supportᵢ
     support
-    (ν {{safeD}} occD D⊑A , ν {{safeD′}} occD′ D⊑∀B)
+    (ν safeD occD D⊑A , ν safeD′ occD′ D⊑∀B)
     C⊑D
 
 non∀-ν∀-∀lower-supportᵢ :
@@ -9216,10 +9227,10 @@ non∀-ν∀-∀lower-supportᵢ body non∀C non∀A
 non∀-ν∀-∀lower-supportᵢ body non∀C non∀A
     (∀ⁱ D⊑A , D⊑∀B) C⊑D | ()
 non∀-ν∀-∀lower-supportᵢ body non∀C non∀A
-    (ν occD D⊑A , ∀ⁱ D⊑B) C⊑D =
+    (ν safeD occD D⊑A , ∀ⁱ D⊑B) C⊑D =
   ν∀-∀lower-directᵢ body D⊑A D⊑B C⊑D
 non∀-ν∀-∀lower-supportᵢ body non∀C non∀A
-    (D⊑A , ν occD D⊑∀B) C⊑D =
+    (D⊑A , ν safeD occD D⊑∀B) C⊑D =
   ⊥-elim
     (non∀-⊑∀-impossibleᵢ
       (non∀-targetᵢ non∀C C⊑D)
@@ -9300,7 +9311,7 @@ mlb-type-first-order-∀ν-∀lower-supportᵢ route body eq
 mlb-type-first-order-∀ν-∀lower-supportᵢ route body eq
     (∀ⁱ D⊑A , ∀ⁱ D⊑B) lower⊑D | ()
 mlb-type-first-order-∀ν-∀lower-supportᵢ route body eq
-    (∀ⁱ D⊑A , ν occD D⊑B) lower⊑D =
+    (∀ⁱ D⊑A , ν safeD occD D⊑B) lower⊑D =
   ∀ⁱ
     (subst
       (λ T → _ ∣ _ ⊢ _ ⊑ T ⊣ _)
@@ -9312,7 +9323,7 @@ mlb-type-first-order-∀ν-∀lower-supportᵢ route body eq
           (sym eq)
           lower⊑D)))
 mlb-type-first-order-∀ν-∀lower-supportᵢ route body eq
-    (ν occD D⊑∀A , D⊑B) lower⊑D =
+    (ν safeD occD D⊑∀A , D⊑B) lower⊑D =
   ⊥-elim
     (non∀-⊑∀-impossibleᵢ
       (non∀-targetᵢ (mlb-type-first-order-non∀ᵢ route) lower⊑D)
@@ -9421,7 +9432,7 @@ mlb-type-first-order-ν∀-∀lower-supportᵢ route body eq
 mlb-type-first-order-ν∀-∀lower-supportᵢ route body eq
     (∀ⁱ D⊑A , D⊑∀B) lower⊑D | ()
 mlb-type-first-order-ν∀-∀lower-supportᵢ route body eq
-    (ν occD D⊑A , ∀ⁱ D⊑B) lower⊑D =
+    (ν safeD occD D⊑A , ∀ⁱ D⊑B) lower⊑D =
   ∀ⁱ
     (subst
       (λ T → _ ∣ _ ⊢ _ ⊑ T ⊣ _)
@@ -9433,7 +9444,7 @@ mlb-type-first-order-ν∀-∀lower-supportᵢ route body eq
           (sym eq)
           lower⊑D)))
 mlb-type-first-order-ν∀-∀lower-supportᵢ route body eq
-    (D⊑A , ν occD D⊑∀B) lower⊑D =
+    (D⊑A , ν safeD occD D⊑∀B) lower⊑D =
   ⊥-elim
     (non∀-⊑∀-impossibleᵢ
       (non∀-targetᵢ (mlb-type-first-order-non∀ᵢ route) lower⊑D)
@@ -9507,7 +9518,7 @@ comparable-nu-forall-from-supportᶜᵢ :
     ComparableMaximalLowerBoundᶜᵢ
       (νᵢᶜ Φᴸ) (∀ᵢᶜ Φᴿ) (∀ᵢᶜ Φᴼ)
       (suc Δᶜ) Δᴸ (suc Δᴿ) A B) →
-  GenSafeSource (cᶜ-lowerᵢ body) →
+  NonVar (cᶜ-lowerᵢ body) →
   occurs zero (cᶜ-lowerᵢ body) ≡ true →
   NuForallComparableSupportᵢ
     Φᴸ Φᴿ Φᴼ Δᶜ Δᴸ Δᴿ A B (cᶜ-lowerᵢ body) →
@@ -9517,7 +9528,7 @@ comparable-nu-forall-from-supportᶜᵢ body safeC occC support =
   record
     { cᶜ-lowerᵢ = `∀ (cᶜ-lowerᵢ body)
     ; cᶜ-lower-leftᵢ =
-        ν {{safeC}} occC (cᶜ-lower-leftᵢ body)
+        ν safeC occC (cᶜ-lower-leftᵢ body)
     ; cᶜ-lower-rightᵢ = ∀ⁱ (cᶜ-lower-rightᵢ body)
     ; cᶜ-comparableᵢ = comparable
     }
@@ -9545,7 +9556,7 @@ maximal-nu-forall-from-supportᶜᵢ :
     ComparableMaximalLowerBoundᶜᵢ
       (νᵢᶜ Φᴸ) (∀ᵢᶜ Φᴿ) (∀ᵢᶜ Φᴼ)
       (suc Δᶜ) Δᴸ (suc Δᴿ) A B) →
-  GenSafeSource (cᶜ-lowerᵢ body) →
+  NonVar (cᶜ-lowerᵢ body) →
   occurs zero (cᶜ-lowerᵢ body) ≡ true →
   NuForallComparableSupportᵢ
     Φᴸ Φᴿ Φᴼ Δᶜ Δᴸ Δᴿ A B (cᶜ-lowerᵢ body) →
@@ -9565,7 +9576,7 @@ mlb-type-comparable-∀ν-supportedᵢ :
       rightChoiceᵢ (leftOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (body :
     Σ[ cb ∈
@@ -9591,7 +9602,7 @@ mlb-type-comparable-∀ν-supportedᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       (`∀ A) B ]
-    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν occ q)
+    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν safe occ q)
 mlb-type-comparable-∀ν-supportedᵢ
     {Γ = Γ} {p = p} {q = q} {{safe}}
     occ (body , eq) support =
@@ -9600,8 +9611,8 @@ mlb-type-comparable-∀ν-supportedᵢ
   cong `∀ eq
   where
     safe-lower =
-      subst GenSafeSource (sym eq)
-        (mlb-type-genSafeSource-if-occursᵢ
+      subst NonVar (sym eq)
+        (mlb-type-nonVar-if-occursᵢ
           {Γ = leftOnlyᵢ ∷ Γ} p q safe
           (mlb-type-occurs-∀νᵢ p q occ))
 
@@ -9620,7 +9631,7 @@ mlb-type-comparable-∀ν-selected-supportᵢ :
       rightChoiceᵢ (leftOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (body :
     Σ[ cb ∈
@@ -9646,7 +9657,7 @@ mlb-type-comparable-∀ν-selected-supportᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       (`∀ A) B ]
-    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν occ q)
+    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν safe occ q)
 mlb-type-comparable-∀ν-selected-supportᵢ
     {Γ = Γ} {A = A} {B = B} {p = p} {q = q}
     occ (body , eq) support =
@@ -9678,7 +9689,7 @@ mlb-type-maximal-∀ν-supportedᵢ :
       rightChoiceᵢ (leftOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (body :
     Σ[ cb ∈
@@ -9704,7 +9715,7 @@ mlb-type-maximal-∀ν-supportedᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       (`∀ A) B ]
-    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν occ q)
+    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν safe occ q)
 mlb-type-maximal-∀ν-supportedᵢ {C = C} {p = p} {q = q}
     occ body support
     with mlb-type-comparable-∀ν-supportedᵢ {C = C} {p = p} {q = q}
@@ -9724,7 +9735,7 @@ mlb-type-maximal-∀ν-selected-supportᵢ :
       rightChoiceᵢ (leftOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (body :
     Σ[ cb ∈
@@ -9750,7 +9761,7 @@ mlb-type-maximal-∀ν-selected-supportᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       (`∀ A) B ]
-    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν occ q)
+    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (ν safe occ q)
 mlb-type-maximal-∀ν-selected-supportᵢ {C = C} {p = p} {q = q}
     occ body support
     with mlb-type-comparable-∀ν-selected-supportᵢ
@@ -9773,7 +9784,7 @@ mlb-type-comparable-ν∀-supportedᵢ :
       rightChoiceᵢ (rightOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (body :
     Σ[ cb ∈
@@ -9799,7 +9810,7 @@ mlb-type-comparable-ν∀-supportedᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       A (`∀ B) ]
-    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ} (ν occ p) (∀ⁱ q)
+    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ} (ν safe occ p) (∀ⁱ q)
 mlb-type-comparable-ν∀-supportedᵢ
     {Γ = Γ} {p = p} {q = q} {{safe}}
     occ (body , eq) support =
@@ -9808,8 +9819,8 @@ mlb-type-comparable-ν∀-supportedᵢ
   cong `∀ eq
   where
     safe-lower =
-      subst GenSafeSource (sym eq)
-        (mlb-type-genSafeSource-if-occursᵢ
+      subst NonVar (sym eq)
+        (mlb-type-nonVar-if-occursᵢ
           {Γ = rightOnlyᵢ ∷ Γ} p q safe
           (mlb-type-occurs-ν∀ᵢ p q occ))
 
@@ -9828,7 +9839,7 @@ mlb-type-comparable-ν∀-selected-supportᵢ :
       rightChoiceᵢ (rightOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (body :
     Σ[ cb ∈
@@ -9854,7 +9865,7 @@ mlb-type-comparable-ν∀-selected-supportᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       A (`∀ B) ]
-    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ} (ν occ p) (∀ⁱ q)
+    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ} (ν safe occ p) (∀ⁱ q)
 mlb-type-comparable-ν∀-selected-supportᵢ
     {Γ = Γ} {A = A} {B = B} {p = p} {q = q}
     occ (body , eq) support =
@@ -9886,7 +9897,7 @@ mlb-type-maximal-ν∀-supportedᵢ :
       rightChoiceᵢ (rightOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (body :
     Σ[ cb ∈
@@ -9912,7 +9923,7 @@ mlb-type-maximal-ν∀-supportedᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       A (`∀ B) ]
-    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ} (ν occ p) (∀ⁱ q)
+    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ} (ν safe occ p) (∀ⁱ q)
 mlb-type-maximal-ν∀-supportedᵢ {C = C} {p = p} {q = q}
     occ body support
     with mlb-type-comparable-ν∀-supportedᵢ {C = C} {p = p} {q = q}
@@ -9932,7 +9943,7 @@ mlb-type-maximal-ν∀-selected-supportᵢ :
       rightChoiceᵢ (rightOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (body :
     Σ[ cb ∈
@@ -9958,7 +9969,7 @@ mlb-type-maximal-ν∀-selected-supportᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       A (`∀ B) ]
-    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ} (ν occ p) (∀ⁱ q)
+    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ} (ν safe occ p) (∀ⁱ q)
 mlb-type-maximal-ν∀-selected-supportᵢ {C = C} {p = p} {q = q}
     occ body support
     with mlb-type-comparable-ν∀-selected-supportᵢ
@@ -10129,21 +10140,21 @@ no-occurs-νν-supportᵢ no-occ =
     (∀ⁱ D⊑A , ∀ⁱ D⊑B) C⊑D =
   νν-true-∀lower-supportᵢ support occC (∀ⁱ D⊑A , ∀ⁱ D⊑B) C⊑D
 νν-true-∀lower-comparableᶜᵢ body support occC
-    (∀ⁱ D⊑A , ν occD D⊑B) C⊑D =
+    (∀ⁱ D⊑A , ν safeD occD D⊑B) C⊑D =
   νν-true-∀lower-supportᵢ
     support
     occC
-    (∀ⁱ D⊑A , ν occD D⊑B)
+    (∀ⁱ D⊑A , ν safeD occD D⊑B)
     C⊑D
 νν-true-∀lower-comparableᶜᵢ body support occC
-    (ν occD D⊑A , ∀ⁱ D⊑B) C⊑D =
+    (ν safeD occD D⊑A , ∀ⁱ D⊑B) C⊑D =
   νν-true-∀lower-supportᵢ
     support
     occC
-    (ν occD D⊑A , ∀ⁱ D⊑B)
+    (ν safeD occD D⊑A , ∀ⁱ D⊑B)
     C⊑D
 νν-true-∀lower-comparableᶜᵢ body support occC
-    (ν occD D⊑A , ν occD′ D⊑B) C⊑D =
+    (ν safeD occD D⊑A , ν safeD′ occD′ D⊑B) C⊑D =
   νν-true-∀lower-directᵢ body D⊑A D⊑B C⊑D
 
 comparable-nu-nu-from-supportᶜᵢ :
@@ -10152,7 +10163,7 @@ comparable-nu-nu-from-supportᶜᵢ :
     ComparableMaximalLowerBoundᶜᵢ
       (νᵢᶜ Φᴸ) (νᵢᶜ Φᴿ) (∀ᵢᶜ Φᴼ)
       (suc Δᶜ) Δᴸ Δᴿ A B) →
-  GenSafeSource (cᶜ-lowerᵢ body) ⊎ cᶜ-lowerᵢ body ≡ ★ →
+  NonVar (cᶜ-lowerᵢ body) ⊎ cᶜ-lowerᵢ body ≡ ★ →
   NuNuComparableSupportᵢ
     Φᴸ Φᴿ Φᴼ Δᶜ Δᴸ Δᴿ A B (cᶜ-lowerᵢ body) →
   ComparableMaximalLowerBoundᶜᵢ
@@ -10207,7 +10218,7 @@ maximal-nu-nu-from-supportᶜᵢ :
     ComparableMaximalLowerBoundᶜᵢ
       (νᵢᶜ Φᴸ) (νᵢᶜ Φᴿ) (∀ᵢᶜ Φᴼ)
       (suc Δᶜ) Δᴸ Δᴿ A B) →
-  GenSafeSource (cᶜ-lowerᵢ body) ⊎ cᶜ-lowerᵢ body ≡ ★ →
+  NonVar (cᶜ-lowerᵢ body) ⊎ cᶜ-lowerᵢ body ≡ ★ →
   NuNuComparableSupportᵢ
     Φᴸ Φᴿ Φᴼ Δᶜ Δᴸ Δᴿ A B (cᶜ-lowerᵢ body) →
   MaximalLowerBoundᶜᵢ
@@ -10226,7 +10237,7 @@ mlb-type-comparable-νν-supportedᵢ :
       rightChoiceᵢ (neitherᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (occ′ : occurs zero C ≡ true) →
   (body :
@@ -10253,14 +10264,15 @@ mlb-type-comparable-νν-supportedᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       A B ]
-    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ} (ν occ p) (ν occ′ q)
+    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ}
+      (ν safe occ p) (ν safe occ′ q)
 mlb-type-comparable-νν-supportedᵢ
     {Γ = Γ} {p = p} {q = q} {{safe}}
     occ occ′ (body , eq) support =
   comparable-nu-nu-from-supportᶜᵢ
     body
-    (genSafeSource-or-star-backᵢ eq
-      (mlb-type-genSafeSource-or-starᵢ
+    (nonVar-or-star-backᵢ eq
+      (mlb-type-nonVar-or-starᵢ
         {Γ = neitherᵢ ∷ Γ} p q safe))
     support ,
   cong close-neitherᵢ eq
@@ -10275,7 +10287,7 @@ mlb-type-comparable-νν-selected-supportᵢ :
       rightChoiceᵢ (neitherᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (occ′ : occurs zero C ≡ true) →
   (body :
@@ -10302,7 +10314,8 @@ mlb-type-comparable-νν-selected-supportᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       A B ]
-    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ} (ν occ p) (ν occ′ q)
+    cᶜ-lowerᵢ cb ≡ mlb-typeᵢ {Γ = Γ}
+      (ν safe occ p) (ν safe occ′ q)
 mlb-type-comparable-νν-selected-supportᵢ
     {Γ = Γ} {A = A} {B = B} {p = p} {q = q}
     occ occ′ (body , eq) support =
@@ -10335,7 +10348,7 @@ mlb-type-maximal-νν-supportedᵢ :
       rightChoiceᵢ (neitherᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (occ′ : occurs zero C ≡ true) →
   (body :
@@ -10362,7 +10375,8 @@ mlb-type-maximal-νν-supportedᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       A B ]
-    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ} (ν occ p) (ν occ′ q)
+    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ}
+      (ν safe occ p) (ν safe occ′ q)
 mlb-type-maximal-νν-supportedᵢ {C = C} {p = p} {q = q}
     occ occ′ body support
     with mlb-type-comparable-νν-supportedᵢ
@@ -10386,7 +10400,7 @@ mlb-type-maximal-νν-selected-supportᵢ :
       rightChoiceᵢ (neitherᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (occ : occurs zero C ≡ true) →
   (occ′ : occurs zero C ≡ true) →
   (body :
@@ -10413,7 +10427,8 @@ mlb-type-maximal-νν-selected-supportᵢ :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       A B ]
-    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ} (ν occ p) (ν occ′ q)
+    lowerᶜᵢ mlb ≡ mlb-typeᵢ {Γ = Γ}
+      (ν safe occ p) (ν safe occ′ q)
 mlb-type-maximal-νν-selected-supportᵢ {C = C} {p = p} {q = q}
     occ occ′ body support
     with mlb-type-comparable-νν-selected-supportᵢ
@@ -10546,7 +10561,7 @@ data MlbTypeSelectorᵢ {Γ} :
         rightChoiceᵢ (leftOnlyᵢ ∷ Γ)
           ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ)
           ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ)} →
-    {{safe : GenSafeSource C}} →
+    {{safe : NonVar C}} →
       (occ : occurs zero C ≡ true) →
     MlbTypeSelectorᵢ {Γ = leftOnlyᵢ ∷ Γ} p q →
     ForallNuComparableSupportᵢ
@@ -10555,7 +10570,7 @@ data MlbTypeSelectorᵢ {Γ} :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       A B (mlb-typeᵢ {Γ = leftOnlyᵢ ∷ Γ} p q) →
-    MlbTypeSelectorᵢ (∀ⁱ p) (ν occ q)
+    MlbTypeSelectorᵢ (∀ⁱ p) (ν safe occ q)
 
   sel-ν∀ᵢ :
     ∀ {C A B}
@@ -10567,7 +10582,7 @@ data MlbTypeSelectorᵢ {Γ} :
         rightChoiceᵢ (rightOnlyᵢ ∷ Γ)
           ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ)
           ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ)} →
-    {{safe : GenSafeSource C}} →
+    {{safe : NonVar C}} →
       (occ : occurs zero C ≡ true) →
     MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} p q →
     NuForallComparableSupportᵢ
@@ -10576,7 +10591,7 @@ data MlbTypeSelectorᵢ {Γ} :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       A B (mlb-typeᵢ {Γ = rightOnlyᵢ ∷ Γ} p q) →
-    MlbTypeSelectorᵢ (ν occ p) (∀ⁱ q)
+    MlbTypeSelectorᵢ (ν safe occ p) (∀ⁱ q)
 
   sel-ννᵢ :
     ∀ {C A B}
@@ -10588,7 +10603,7 @@ data MlbTypeSelectorᵢ {Γ} :
         rightChoiceᵢ (neitherᵢ ∷ Γ)
           ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
           ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)} →
-    {{safe : GenSafeSource C}} →
+    {{safe : NonVar C}} →
       (occ : occurs zero C ≡ true)
       (occ′ : occurs zero C ≡ true) →
     MlbTypeSelectorᵢ {Γ = neitherᵢ ∷ Γ} p q →
@@ -10598,7 +10613,7 @@ data MlbTypeSelectorᵢ {Γ} :
       (idᵢ (choiceCommonCtxᵢ Γ))
       (choiceCommonCtxᵢ Γ) (choiceLeftCtxᵢ Γ) (choiceRightCtxᵢ Γ)
       A B (mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} p q) →
-    MlbTypeSelectorᵢ (ν occ p) (ν occ′ q)
+    MlbTypeSelectorᵢ (ν safe occ p) (ν safe occ′ q)
 
 MlbTypeSelectorCoherenceᵢ :
   ∀ (Φ : ImpCtx) {Γ Γ′ C C′ A A′ B B′}
@@ -12404,8 +12419,8 @@ mlb-type-selector-∀ν-coherenceᵢ :
         ⊢ C′ ⊑ B′ ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ′)}
     {occ : occurs zero C ≡ true}
     {occ′ : occurs zero C′ ≡ true}
-    {{safe : GenSafeSource C}}
-    {{safe′ : GenSafeSource C′}}
+    {{safe : NonVar C}}
+    {{safe′ : NonVar C′}}
     (route : MlbTypeSelectorᵢ {Γ = leftOnlyᵢ ∷ Γ} p q)
     (route′ : MlbTypeSelectorᵢ {Γ = leftOnlyᵢ ∷ Γ′} p′ q′)
     (support :
@@ -12430,7 +12445,8 @@ mlb-type-selector-∀ν-coherenceᵢ :
     {p = p} {q = q} {p′ = p′} {q′ = q′}
     route route′ →
   MlbTypeSelectorCoherenceᵢ Φ
-    {p = ∀ⁱ p} {q = ν occ q} {p′ = ∀ⁱ p′} {q′ = ν occ′ q′}
+    {p = ∀ⁱ p} {q = ν safe occ q}
+    {p′ = ∀ⁱ p′} {q′ = ν safe′ occ′ q′}
     (sel-∀νᵢ occ route support)
     (sel-∀νᵢ occ′ route′ support′)
 mlb-type-selector-∀ν-coherenceᵢ
@@ -12457,7 +12473,7 @@ mlb-type-selector-swap01-∀νᵢ :
         ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)}
     {occ : occurs zero C ≡ true} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (route :
     MlbTypeSelectorᵢ
       {Γ = leftOnlyᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ}
@@ -12496,7 +12512,7 @@ mlb-type-selector-swap01-∀νᵢ
   record
     { selector-swap01-routeᵢ =
         sel-∀νᵢ
-          {{renameGenSafeSource (extᵗ swap01ᵢ) safe}}
+          {{renameNonVar (extᵗ swap01ᵢ) safe}}
           (trans (occurs-zero-rename-ext swap01ᵢ C) occ)
           (selector-swap01-under∀ν-routeᵢ swap)
           supportˢ
@@ -12520,7 +12536,7 @@ mlb-type-selector-swap01-∀νᵢ
           {occ = occ}
           {occ′ = trans (occurs-zero-rename-ext swap01ᵢ C) occ}
           {{safe = safe}}
-          {{safe′ = renameGenSafeSource (extᵗ swap01ᵢ) safe}}
+          {{safe′ = renameNonVar (extᵗ swap01ᵢ) safe}}
           route
           (selector-swap01-under∀ν-routeᵢ swap)
           support
@@ -12548,8 +12564,8 @@ mlb-type-selector-ν∀-coherenceᵢ :
         ⊢ C′ ⊑ B′ ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ′)}
     {occ : occurs zero C ≡ true}
     {occ′ : occurs zero C′ ≡ true}
-    {{safe : GenSafeSource C}}
-    {{safe′ : GenSafeSource C′}}
+    {{safe : NonVar C}}
+    {{safe′ : NonVar C′}}
     (route : MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} p q)
     (route′ : MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ′} p′ q′)
     (support :
@@ -12574,7 +12590,8 @@ mlb-type-selector-ν∀-coherenceᵢ :
     {p = p} {q = q} {p′ = p′} {q′ = q′}
     route route′ →
   MlbTypeSelectorCoherenceᵢ Φ
-    {p = ν occ p} {q = ∀ⁱ q} {p′ = ν occ′ p′} {q′ = ∀ⁱ q′}
+    {p = ν safe occ p} {q = ∀ⁱ q}
+    {p′ = ν safe′ occ′ p′} {q′ = ∀ⁱ q′}
     (sel-ν∀ᵢ occ route support)
     (sel-ν∀ᵢ occ′ route′ support′)
 mlb-type-selector-ν∀-coherenceᵢ
@@ -12601,7 +12618,7 @@ mlb-type-selector-swap01-ν∀ᵢ :
         ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)}
     {occ : occurs zero C ≡ true} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (route :
     MlbTypeSelectorᵢ
       {Γ = rightOnlyᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ}
@@ -12640,7 +12657,7 @@ mlb-type-selector-swap01-ν∀ᵢ
   record
     { selector-swap01-routeᵢ =
         sel-ν∀ᵢ
-          {{renameGenSafeSource (extᵗ swap01ᵢ) safe}}
+          {{renameNonVar (extᵗ swap01ᵢ) safe}}
           (trans (occurs-zero-rename-ext swap01ᵢ C) occ)
           (selector-swap01-underν∀-routeᵢ swap)
           supportˢ
@@ -12664,7 +12681,7 @@ mlb-type-selector-swap01-ν∀ᵢ
           {occ = occ}
           {occ′ = trans (occurs-zero-rename-ext swap01ᵢ C) occ}
           {{safe = safe}}
-          {{safe′ = renameGenSafeSource (extᵗ swap01ᵢ) safe}}
+          {{safe′ = renameNonVar (extᵗ swap01ᵢ) safe}}
           route
           (selector-swap01-underν∀-routeᵢ swap)
           support
@@ -12694,8 +12711,8 @@ mlb-type-selector-νν-true-coherenceᵢ :
     {occ′ : occurs zero C ≡ true}
     {occᴿ : occurs zero C′ ≡ true}
     {occᴿ′ : occurs zero C′ ≡ true}
-    {{safe : GenSafeSource C}}
-    {{safe′ : GenSafeSource C′}}
+    {{safe : NonVar C}}
+    {{safe′ : NonVar C′}}
     (route : MlbTypeSelectorᵢ {Γ = neitherᵢ ∷ Γ} p q)
     (route′ : MlbTypeSelectorᵢ {Γ = neitherᵢ ∷ Γ′} p′ q′)
     (support :
@@ -12722,8 +12739,8 @@ mlb-type-selector-νν-true-coherenceᵢ :
     {p = p} {q = q} {p′ = p′} {q′ = q′}
     route route′ →
   MlbTypeSelectorCoherenceᵢ Φ
-    {p = ν occ p} {q = ν occ′ q}
-    {p′ = ν occᴿ p′} {q′ = ν occᴿ′ q′}
+    {p = ν safe occ p} {q = ν safe occ′ q}
+    {p′ = ν safe′ occᴿ p′} {q′ = ν safe′ occᴿ′ q′}
     (sel-ννᵢ occ occ′ route support)
     (sel-ννᵢ occᴿ occᴿ′ route′ support′)
 mlb-type-selector-νν-true-coherenceᵢ
@@ -12765,8 +12782,8 @@ mlb-type-selector-νν-false-coherenceᵢ :
     {occ′ : occurs zero C ≡ true}
     {occᴿ : occurs zero C′ ≡ true}
     {occᴿ′ : occurs zero C′ ≡ true}
-    {{safe : GenSafeSource C}}
-    {{safe′ : GenSafeSource C′}}
+    {{safe : NonVar C}}
+    {{safe′ : NonVar C′}}
     (route : MlbTypeSelectorᵢ {Γ = neitherᵢ ∷ Γ} p q)
     (route′ : MlbTypeSelectorᵢ {Γ = neitherᵢ ∷ Γ′} p′ q′)
     (support :
@@ -12793,8 +12810,8 @@ mlb-type-selector-νν-false-coherenceᵢ :
     {p = p} {q = q} {p′ = p′} {q′ = q′}
     route route′ →
   MlbTypeSelectorCoherenceᵢ Φ
-    {p = ν occ p} {q = ν occ′ q}
-    {p′ = ν occᴿ p′} {q′ = ν occᴿ′ q′}
+    {p = ν safe occ p} {q = ν safe occ′ q}
+    {p′ = ν safe′ occᴿ p′} {q′ = ν safe′ occᴿ′ q′}
     (sel-ννᵢ occ occ′ route support)
     (sel-ννᵢ occᴿ occᴿ′ route′ support′)
 mlb-type-selector-νν-false-coherenceᵢ
@@ -12825,7 +12842,7 @@ mlb-type-selector-swap01-ννᵢ :
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)}
     {occ occ′ : occurs zero C ≡ true} →
-  {{safe : GenSafeSource C}} →
+  {{safe : NonVar C}} →
   (route :
     MlbTypeSelectorᵢ
       {Γ = neitherᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ}
@@ -12870,7 +12887,7 @@ mlb-type-selector-swap01-ννᵢ
   record
     { selector-swap01-routeᵢ =
         sel-ννᵢ
-          {{renameGenSafeSource (extᵗ swap01ᵢ) safe}}
+          {{renameNonVar (extᵗ swap01ᵢ) safe}}
           (trans (occurs-zero-rename-ext swap01ᵢ C) occ)
           (trans (occurs-zero-rename-ext swap01ᵢ C) occ′)
           (selector-swap01-underνν-routeᵢ swap)
@@ -12902,7 +12919,7 @@ mlb-type-selector-swap01-ννᵢ
           {occᴿ = trans (occurs-zero-rename-ext swap01ᵢ C) occ}
           {occᴿ′ = trans (occurs-zero-rename-ext swap01ᵢ C) occ′}
           {{safe = safe}}
-          {{safe′ = renameGenSafeSource (extᵗ swap01ᵢ) safe}}
+          {{safe′ = renameNonVar (extᵗ swap01ᵢ) safe}}
           route
           (selector-swap01-underνν-routeᵢ swap)
           support
@@ -12926,7 +12943,7 @@ mlb-type-selector-swap01-ννᵢ
   record
     { selector-swap01-routeᵢ =
         sel-ννᵢ
-          {{renameGenSafeSource (extᵗ swap01ᵢ) safe}}
+          {{renameNonVar (extᵗ swap01ᵢ) safe}}
           (trans (occurs-zero-rename-ext swap01ᵢ C) occ)
           (trans (occurs-zero-rename-ext swap01ᵢ C) occ′)
           (selector-swap01-underνν-routeᵢ swap)
@@ -12958,7 +12975,7 @@ mlb-type-selector-swap01-ννᵢ
           {occᴿ = trans (occurs-zero-rename-ext swap01ᵢ C) occ}
           {occᴿ′ = trans (occurs-zero-rename-ext swap01ᵢ C) occ′}
           {{safe = safe}}
-          {{safe′ = renameGenSafeSource (extᵗ swap01ᵢ) safe}}
+          {{safe′ = renameNonVar (extᵗ swap01ᵢ) safe}}
           route
           (selector-swap01-underνν-routeᵢ swap)
           support
@@ -13135,10 +13152,10 @@ sel-∀ν-first-orderᵢ :
       rightChoiceᵢ (leftOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ)}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     (occ : occurs zero C ≡ true) →
   FirstOrderSelectorᵢ {Γ = leftOnlyᵢ ∷ Γ} p q →
-  MlbTypeSelectorᵢ (∀ⁱ p) (ν occ q)
+  MlbTypeSelectorᵢ (∀ⁱ p) (ν safe occ q)
 sel-∀ν-first-orderᵢ occ route =
   sel-∀νᵢ
     occ
@@ -13155,10 +13172,10 @@ sel-ν∀-first-orderᵢ :
       rightChoiceᵢ (rightOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ)}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     (occ : occurs zero C ≡ true) →
   FirstOrderSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} p q →
-  MlbTypeSelectorᵢ (ν occ p) (∀ⁱ q)
+  MlbTypeSelectorᵢ (ν safe occ p) (∀ⁱ q)
 sel-ν∀-first-orderᵢ occ route =
   sel-ν∀ᵢ
     occ
@@ -13175,11 +13192,11 @@ sel-νν-first-orderᵢ :
       rightChoiceᵢ (neitherᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     (occ : occurs zero C ≡ true)
     (occ′ : occurs zero C ≡ true) →
   FirstOrderSelectorᵢ {Γ = neitherᵢ ∷ Γ} p q →
-  MlbTypeSelectorᵢ (ν occ p) (ν occ′ q)
+  MlbTypeSelectorᵢ (ν safe occ p) (ν safe occ′ q)
 sel-νν-first-orderᵢ occ occ′ route =
   sel-ννᵢ
     occ
@@ -13197,12 +13214,12 @@ sel-νν-no-occursᵢ :
       rightChoiceᵢ (neitherᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     (occ : occurs zero C ≡ true)
     (occ′ : occurs zero C ≡ true) →
   (route : MlbTypeSelectorᵢ {Γ = neitherᵢ ∷ Γ} p q) →
   occurs zero (mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} p q) ≡ false →
-  MlbTypeSelectorᵢ (ν occ p) (ν occ′ q)
+  MlbTypeSelectorᵢ (ν safe occ p) (ν safe occ′ q)
 sel-νν-no-occursᵢ occ occ′ route no-occ =
   sel-ννᵢ
     occ
@@ -17842,7 +17859,7 @@ sel-∀ν-from-∀∀-supportᵢ :
         ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ)
         ⊢ C∀ν ⊑ `∀ B ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ)}
     {occ : occurs zero C∀ν ≡ true}
-    {{safe∀ν : GenSafeSource C∀ν}} →
+    {{safe∀ν : NonVar C∀ν}} →
   (route : MlbTypeSelectorᵢ {Γ = bothᵢ ∷ Γ} p q) →
   ForallForallComparableSupportᵢ
     (leftChoiceᵢ Γ)
@@ -17855,7 +17872,7 @@ sel-∀ν-from-∀∀-supportᵢ :
   (route∀ν : MlbTypeSelectorᵢ {Γ = leftOnlyᵢ ∷ Γ} p∀ν q∀ν) →
   mlb-typeᵢ {Γ = leftOnlyᵢ ∷ Γ} p∀ν q∀ν ≡
     mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q →
-  MlbTypeSelectorᵢ (∀ⁱ p∀ν) (ν occ q∀ν)
+  MlbTypeSelectorᵢ (∀ⁱ p∀ν) (ν safe∀ν occ q∀ν)
 sel-∀ν-from-∀∀-supportᵢ
     {Γ = Γ} {A = A} {B = B} {p = p} {q = q}
     {p∀ν = p∀ν} {q∀ν = q∀ν} {occ = occ}
@@ -17895,7 +17912,7 @@ sel-ν∀-from-∀∀-supportᵢ :
         ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ)
         ⊢ Cν∀ ⊑ B ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ)}
     {occ : occurs zero Cν∀ ≡ true}
-    {{safeν∀ : GenSafeSource Cν∀}} →
+    {{safeν∀ : NonVar Cν∀}} →
   (route : MlbTypeSelectorᵢ {Γ = bothᵢ ∷ Γ} p q) →
   ForallForallComparableSupportᵢ
     (leftChoiceᵢ Γ)
@@ -17908,7 +17925,7 @@ sel-ν∀-from-∀∀-supportᵢ :
   (routeν∀ : MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} pν∀ qν∀) →
   mlb-typeᵢ {Γ = rightOnlyᵢ ∷ Γ} pν∀ qν∀ ≡
     mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q →
-  MlbTypeSelectorᵢ (ν occ pν∀) (∀ⁱ qν∀)
+  MlbTypeSelectorᵢ (ν safeν∀ occ pν∀) (∀ⁱ qν∀)
 sel-ν∀-from-∀∀-supportᵢ
     {Γ = Γ} {A = A} {B = B} {p = p} {q = q}
     {pν∀ = pν∀} {qν∀ = qν∀} {occ = occ}
@@ -17948,7 +17965,7 @@ sel-νν-from-∀∀-supportᵢ :
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ Cνν ⊑ `∀ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)}
     {occ occ′ : occurs zero Cνν ≡ true}
-    {{safeνν : GenSafeSource Cνν}} →
+    {{safeνν : NonVar Cνν}} →
   (route : MlbTypeSelectorᵢ {Γ = bothᵢ ∷ Γ} p q) →
   ForallForallComparableSupportᵢ
     (leftChoiceᵢ Γ)
@@ -17961,7 +17978,7 @@ sel-νν-from-∀∀-supportᵢ :
   (routeνν : MlbTypeSelectorᵢ {Γ = neitherᵢ ∷ Γ} pνν qνν) →
   mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} pνν qνν ≡
     mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q →
-  MlbTypeSelectorᵢ (ν occ pνν) (ν occ′ qνν)
+  MlbTypeSelectorᵢ (ν safeνν occ pνν) (ν safeνν occ′ qνν)
 sel-νν-from-∀∀-supportᵢ
     {Γ = Γ} {A = A} {B = B} {p = p} {q = q}
     {pνν = pνν} {qνν = qνν} {occ = occ} {occ′ = occ′}
@@ -18002,10 +18019,10 @@ sel-∀ν-from-∀∀-support-lowerᵢ :
         ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ)
         ⊢ C∀ν ⊑ `∀ B ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ)}
     {occ : occurs zero C∀ν ≡ true}
-    {{safe∀ν : GenSafeSource C∀ν}} →
+    {{safe∀ν : NonVar C∀ν}} →
   mlb-typeᵢ {Γ = leftOnlyᵢ ∷ Γ} p∀ν q∀ν ≡
     mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q →
-  mlb-typeᵢ {Γ = Γ} (∀ⁱ p∀ν) (ν occ q∀ν) ≡
+  mlb-typeᵢ {Γ = Γ} (∀ⁱ p∀ν) (ν safe∀ν occ q∀ν) ≡
     mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (∀ⁱ q)
 sel-∀ν-from-∀∀-support-lowerᵢ eq∀ν = cong `∀ eq∀ν
 
@@ -18028,10 +18045,10 @@ sel-ν∀-from-∀∀-support-lowerᵢ :
         ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ)
         ⊢ Cν∀ ⊑ B ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ)}
     {occ : occurs zero Cν∀ ≡ true}
-    {{safeν∀ : GenSafeSource Cν∀}} →
+    {{safeν∀ : NonVar Cν∀}} →
   mlb-typeᵢ {Γ = rightOnlyᵢ ∷ Γ} pν∀ qν∀ ≡
     mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q →
-  mlb-typeᵢ {Γ = Γ} (ν occ pν∀) (∀ⁱ qν∀) ≡
+  mlb-typeᵢ {Γ = Γ} (ν safeν∀ occ pν∀) (∀ⁱ qν∀) ≡
     mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (∀ⁱ q)
 sel-ν∀-from-∀∀-support-lowerᵢ eqν∀ = cong `∀ eqν∀
 
@@ -18054,12 +18071,12 @@ sel-νν-from-∀∀-support-true-lowerᵢ :
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ Cνν ⊑ `∀ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)}
     {occ occ′ : occurs zero Cνν ≡ true}
-    {{safeνν : GenSafeSource Cνν}} →
+    {{safeνν : NonVar Cνν}} →
   (eqνν :
     mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} pνν qνν ≡
       mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q) →
   occurs zero (mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q) ≡ true →
-  mlb-typeᵢ {Γ = Γ} (ν occ pνν) (ν occ′ qνν) ≡
+  mlb-typeᵢ {Γ = Γ} (ν safeνν occ pνν) (ν safeνν occ′ qνν) ≡
     mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (∀ⁱ q)
 sel-νν-from-∀∀-support-true-lowerᵢ eqνν occ-body =
   trans
@@ -18086,12 +18103,12 @@ sel-νν-from-∀∀-support-false-lowerᵢ :
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ Cνν ⊑ `∀ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)}
     {occ occ′ : occurs zero Cνν ≡ true}
-    {{safeνν : GenSafeSource Cνν}} →
+    {{safeνν : NonVar Cνν}} →
   (eqνν :
     mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} pνν qνν ≡
       mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q) →
   occurs zero (mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q) ≡ false →
-  mlb-typeᵢ {Γ = Γ} (ν occ pνν) (ν occ′ qνν) ≡
+  mlb-typeᵢ {Γ = Γ} (ν safeνν occ pνν) (ν safeνν occ′ qνν) ≡
     mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q [ zero ]ᴿ
 sel-νν-from-∀∀-support-false-lowerᵢ eqνν occ-body =
   trans
@@ -18118,7 +18135,7 @@ sel-∀ν-from-∀∀-support-packageᵢ :
         ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ)
         ⊢ C∀ν ⊑ `∀ B ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ)}
     {occ : occurs zero C∀ν ≡ true}
-    {{safe∀ν : GenSafeSource C∀ν}} →
+    {{safe∀ν : NonVar C∀ν}} →
   (route : MlbTypeSelectorᵢ {Γ = bothᵢ ∷ Γ} p q) →
   ForallForallComparableSupportᵢ
     (leftChoiceᵢ Γ)
@@ -18131,8 +18148,8 @@ sel-∀ν-from-∀∀-support-packageᵢ :
   (route∀ν : MlbTypeSelectorᵢ {Γ = leftOnlyᵢ ∷ Γ} p∀ν q∀ν) →
   mlb-typeᵢ {Γ = leftOnlyᵢ ∷ Γ} p∀ν q∀ν ≡
     mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q →
-  Σ[ route′ ∈ MlbTypeSelectorᵢ (∀ⁱ p∀ν) (ν occ q∀ν) ]
-    mlb-typeᵢ {Γ = Γ} (∀ⁱ p∀ν) (ν occ q∀ν) ≡
+  Σ[ route′ ∈ MlbTypeSelectorᵢ (∀ⁱ p∀ν) (ν safe∀ν occ q∀ν) ]
+    mlb-typeᵢ {Γ = Γ} (∀ⁱ p∀ν) (ν safe∀ν occ q∀ν) ≡
       mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (∀ⁱ q)
 sel-∀ν-from-∀∀-support-packageᵢ
     {Γ = Γ} {p = p} {q = q} {p∀ν = p∀ν} {q∀ν = q∀ν}
@@ -18166,7 +18183,7 @@ sel-ν∀-from-∀∀-support-packageᵢ :
         ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ)
         ⊢ Cν∀ ⊑ B ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ)}
     {occ : occurs zero Cν∀ ≡ true}
-    {{safeν∀ : GenSafeSource Cν∀}} →
+    {{safeν∀ : NonVar Cν∀}} →
   (route : MlbTypeSelectorᵢ {Γ = bothᵢ ∷ Γ} p q) →
   ForallForallComparableSupportᵢ
     (leftChoiceᵢ Γ)
@@ -18179,8 +18196,8 @@ sel-ν∀-from-∀∀-support-packageᵢ :
   (routeν∀ : MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} pν∀ qν∀) →
   mlb-typeᵢ {Γ = rightOnlyᵢ ∷ Γ} pν∀ qν∀ ≡
     mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q →
-  Σ[ route′ ∈ MlbTypeSelectorᵢ (ν occ pν∀) (∀ⁱ qν∀) ]
-    mlb-typeᵢ {Γ = Γ} (ν occ pν∀) (∀ⁱ qν∀) ≡
+  Σ[ route′ ∈ MlbTypeSelectorᵢ (ν safeν∀ occ pν∀) (∀ⁱ qν∀) ]
+    mlb-typeᵢ {Γ = Γ} (ν safeν∀ occ pν∀) (∀ⁱ qν∀) ≡
       mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (∀ⁱ q)
 sel-ν∀-from-∀∀-support-packageᵢ
     {Γ = Γ} {p = p} {q = q} {pν∀ = pν∀} {qν∀ = qν∀}
@@ -18214,7 +18231,7 @@ sel-νν-from-∀∀-support-true-packageᵢ :
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ Cνν ⊑ `∀ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)}
     {occ occ′ : occurs zero Cνν ≡ true}
-    {{safeνν : GenSafeSource Cνν}} →
+    {{safeνν : NonVar Cνν}} →
   (route : MlbTypeSelectorᵢ {Γ = bothᵢ ∷ Γ} p q) →
   ForallForallComparableSupportᵢ
     (leftChoiceᵢ Γ)
@@ -18227,9 +18244,9 @@ sel-νν-from-∀∀-support-true-packageᵢ :
   (routeνν : MlbTypeSelectorᵢ {Γ = neitherᵢ ∷ Γ} pνν qνν) →
   mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} pνν qνν ≡
     mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q →
-  Σ[ route′ ∈ MlbTypeSelectorᵢ (ν occ pνν) (ν occ′ qνν) ]
+  Σ[ route′ ∈ MlbTypeSelectorᵢ (ν safeνν occ pνν) (ν safeνν occ′ qνν) ]
     (occurs zero (mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q) ≡ true →
-      mlb-typeᵢ {Γ = Γ} (ν occ pνν) (ν occ′ qνν) ≡
+      mlb-typeᵢ {Γ = Γ} (ν safeνν occ pνν) (ν safeνν occ′ qνν) ≡
         mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (∀ⁱ q))
 sel-νν-from-∀∀-support-true-packageᵢ
     {Γ = Γ} {p = p} {q = q} {pνν = pνν} {qνν = qνν}
@@ -18271,7 +18288,7 @@ sel-νν-from-∀∀-support-false-packageᵢ :
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ Cνν ⊑ `∀ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)}
     {occ occ′ : occurs zero Cνν ≡ true}
-    {{safeνν : GenSafeSource Cνν}} →
+    {{safeνν : NonVar Cνν}} →
   (route : MlbTypeSelectorᵢ {Γ = bothᵢ ∷ Γ} p q) →
   ForallForallComparableSupportᵢ
     (leftChoiceᵢ Γ)
@@ -18284,9 +18301,9 @@ sel-νν-from-∀∀-support-false-packageᵢ :
   (routeνν : MlbTypeSelectorᵢ {Γ = neitherᵢ ∷ Γ} pνν qνν) →
   mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} pνν qνν ≡
     mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q →
-  Σ[ route′ ∈ MlbTypeSelectorᵢ (ν occ pνν) (ν occ′ qνν) ]
+  Σ[ route′ ∈ MlbTypeSelectorᵢ (ν safeνν occ pνν) (ν safeνν occ′ qνν) ]
     (occurs zero (mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q) ≡ false →
-      mlb-typeᵢ {Γ = Γ} (ν occ pνν) (ν occ′ qνν) ≡
+      mlb-typeᵢ {Γ = Γ} (ν safeνν occ pνν) (ν safeνν occ′ qνν) ≡
         mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q [ zero ]ᴿ)
 sel-νν-from-∀∀-support-false-packageᵢ
     {Γ = Γ} {p = p} {q = q} {pνν = pνν} {qνν = qνν}
@@ -18328,7 +18345,7 @@ sel-νν-from-∀∀-support-packageᵢ :
         ∣ choiceCommonCtxᵢ (neitherᵢ ∷ Γ)
         ⊢ Cνν ⊑ `∀ B ⊣ choiceRightCtxᵢ (neitherᵢ ∷ Γ)}
     {occ occ′ : occurs zero Cνν ≡ true}
-    {{safeνν : GenSafeSource Cνν}} →
+    {{safeνν : NonVar Cνν}} →
   (route : MlbTypeSelectorᵢ {Γ = bothᵢ ∷ Γ} p q) →
   ForallForallComparableSupportᵢ
     (leftChoiceᵢ Γ)
@@ -18341,13 +18358,13 @@ sel-νν-from-∀∀-support-packageᵢ :
   (routeνν : MlbTypeSelectorᵢ {Γ = neitherᵢ ∷ Γ} pνν qνν) →
   mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} pνν qνν ≡
     mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q →
-  Σ[ route′ ∈ MlbTypeSelectorᵢ (ν occ pνν) (ν occ′ qνν) ]
+  Σ[ route′ ∈ MlbTypeSelectorᵢ (ν safeνν occ pνν) (ν safeνν occ′ qνν) ]
     (occurs zero (mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q) ≡ true →
-      mlb-typeᵢ {Γ = Γ} (ν occ pνν) (ν occ′ qνν) ≡
+      mlb-typeᵢ {Γ = Γ} (ν safeνν occ pνν) (ν safeνν occ′ qνν) ≡
         mlb-typeᵢ {Γ = Γ} (∀ⁱ p) (∀ⁱ q))
     ×
     (occurs zero (mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q) ≡ false →
-      mlb-typeᵢ {Γ = Γ} (ν occ pνν) (ν occ′ qνν) ≡
+      mlb-typeᵢ {Γ = Γ} (ν safeνν occ pνν) (ν safeνν occ′ qνν) ≡
         mlb-typeᵢ {Γ = bothᵢ ∷ Γ} p q [ zero ]ᴿ)
 sel-νν-from-∀∀-support-packageᵢ
     {Γ = Γ} {p = p} {q = q} {pνν = pνν} {qνν = qνν}
@@ -18541,7 +18558,7 @@ mlb-type-selector-swap01-∀ν-from-∀∀-supportᵢ :
         ⊢ C∀ν ⊑ `∀ B
         ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)}
     {occ : occurs zero C∀ν ≡ true}
-    {{safe∀ν : GenSafeSource C∀ν}} →
+    {{safe∀ν : NonVar C∀ν}} →
   (route :
     MlbTypeSelectorᵢ
       {Γ = bothᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ}
@@ -18659,7 +18676,7 @@ sel-∀ν-from-∀∀-support-with-swap01ᵢ :
         ⊢ C∀ν ⊑ `∀ B
         ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)}
     {occ : occurs zero C∀ν ≡ true}
-    {{safe∀ν : GenSafeSource C∀ν}} →
+    {{safe∀ν : NonVar C∀ν}} →
   (route :
     MlbTypeSelectorᵢ
       {Γ = bothᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ}
@@ -18708,11 +18725,11 @@ sel-∀ν-from-∀∀-support-with-swap01ᵢ :
   Σ[ route′ ∈
     MlbTypeSelectorᵢ
       (∀ⁱ p∀ν)
-      (ν occ q∀ν) ]
+      (ν safe∀ν occ q∀ν) ]
     (mlb-typeᵢ
       {Γ = bothᵢ ∷ bothᵢ ∷ Γ}
       (∀ⁱ p∀ν)
-      (ν occ q∀ν)
+      (ν safe∀ν occ q∀ν)
     ≡
     mlb-typeᵢ
       {Γ = bothᵢ ∷ bothᵢ ∷ Γ}
@@ -18763,7 +18780,7 @@ mlb-type-selector-swap01-ν∀-from-∀∀-supportᵢ :
         ⊢ Cν∀ ⊑ B
         ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)}
     {occ : occurs zero Cν∀ ≡ true}
-    {{safeν∀ : GenSafeSource Cν∀}} →
+    {{safeν∀ : NonVar Cν∀}} →
   (route :
     MlbTypeSelectorᵢ
       {Γ = bothᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ}
@@ -18881,7 +18898,7 @@ sel-ν∀-from-∀∀-support-with-swap01ᵢ :
         ⊢ Cν∀ ⊑ B
         ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)}
     {occ : occurs zero Cν∀ ≡ true}
-    {{safeν∀ : GenSafeSource Cν∀}} →
+    {{safeν∀ : NonVar Cν∀}} →
   (route :
     MlbTypeSelectorᵢ
       {Γ = bothᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ}
@@ -18929,11 +18946,11 @@ sel-ν∀-from-∀∀-support-with-swap01ᵢ :
   MlbTypeSelectorSwap01Underν∀ᵢ routeν∀ →
   Σ[ route′ ∈
     MlbTypeSelectorᵢ
-      (ν occ pν∀)
+      (ν safeν∀ occ pν∀)
       (∀ⁱ qν∀) ]
     (mlb-typeᵢ
       {Γ = bothᵢ ∷ bothᵢ ∷ Γ}
-      (ν occ pν∀)
+      (ν safeν∀ occ pν∀)
       (∀ⁱ qν∀)
     ≡
     mlb-typeᵢ
@@ -18985,7 +19002,7 @@ mlb-type-selector-swap01-νν-from-∀∀-supportᵢ :
         ⊢ Cνν ⊑ `∀ B
         ⊣ choiceRightCtxᵢ (neitherᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)}
     {occ occ′ : occurs zero Cνν ≡ true}
-    {{safeνν : GenSafeSource Cνν}} →
+    {{safeνν : NonVar Cνν}} →
   (route :
     MlbTypeSelectorᵢ
       {Γ = bothᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ}
@@ -19102,7 +19119,7 @@ sel-νν-from-∀∀-support-with-swap01ᵢ :
         ⊢ Cνν ⊑ `∀ B
         ⊣ choiceRightCtxᵢ (neitherᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ)}
     {occ occ′ : occurs zero Cνν ≡ true}
-    {{safeνν : GenSafeSource Cνν}} →
+    {{safeνν : NonVar Cνν}} →
   (route :
     MlbTypeSelectorᵢ
       {Γ = bothᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ}
@@ -19150,15 +19167,15 @@ sel-νν-from-∀∀-support-with-swap01ᵢ :
   MlbTypeSelectorSwap01Underννᵢ routeνν →
   Σ[ route′ ∈
     MlbTypeSelectorᵢ
-      (ν occ pνν)
-      (ν occ′ qνν) ]
+      (ν safeνν occ pνν)
+      (ν safeνν occ′ qνν) ]
     (occurs zero
       (mlb-typeᵢ {Γ = bothᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ} p q)
     ≡ true →
       mlb-typeᵢ
         {Γ = bothᵢ ∷ bothᵢ ∷ Γ}
-        (ν occ pνν)
-        (ν occ′ qνν)
+        (ν safeνν occ pνν)
+        (ν safeνν occ′ qνν)
       ≡
       mlb-typeᵢ
         {Γ = bothᵢ ∷ bothᵢ ∷ Γ}
@@ -19170,8 +19187,8 @@ sel-νν-from-∀∀-support-with-swap01ᵢ :
     ≡ false →
       mlb-typeᵢ
         {Γ = bothᵢ ∷ bothᵢ ∷ Γ}
-        (ν occ pνν)
-        (ν occ′ qνν)
+        (ν safeνν occ pνν)
+        (ν safeνν occ′ qνν)
       ≡
       mlb-typeᵢ
         {Γ = bothᵢ ∷ bothᵢ ∷ bothᵢ ∷ Γ}
@@ -19350,12 +19367,12 @@ sel-∀ν-non∀ᵢ :
       rightChoiceᵢ (leftOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (leftOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (leftOnlyᵢ ∷ Γ)}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     (occ : occurs zero C ≡ true) →
   MlbTypeSelectorᵢ {Γ = leftOnlyᵢ ∷ Γ} p q →
   Non∀ (mlb-typeᵢ {Γ = leftOnlyᵢ ∷ Γ} p q) →
   Non∀ B →
-  MlbTypeSelectorᵢ (∀ⁱ p) (ν occ q)
+  MlbTypeSelectorᵢ (∀ⁱ p) (ν safe occ q)
 sel-∀ν-non∀ᵢ occ route non∀C non∀B =
   sel-∀νᵢ
     occ
@@ -19413,12 +19430,12 @@ sel-ν∀-non∀ᵢ :
       rightChoiceᵢ (rightOnlyᵢ ∷ Γ)
         ∣ choiceCommonCtxᵢ (rightOnlyᵢ ∷ Γ)
         ⊢ C ⊑ B ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ)}
-    {{safe : GenSafeSource C}}
+    {{safe : NonVar C}}
     (occ : occurs zero C ≡ true) →
   MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} p q →
   Non∀ (mlb-typeᵢ {Γ = rightOnlyᵢ ∷ Γ} p q) →
   Non∀ A →
-  MlbTypeSelectorᵢ (ν occ p) (∀ⁱ q)
+  MlbTypeSelectorᵢ (ν safe occ p) (∀ⁱ q)
 sel-ν∀-non∀ᵢ occ route non∀C non∀A =
   sel-ν∀ᵢ
     occ
@@ -19448,7 +19465,7 @@ sel-∀ν-arrow-arrowᵢ :
   MlbTypeSelectorᵢ {Γ = leftOnlyᵢ ∷ Γ} p₂ q₂ →
   MlbTypeSelectorᵢ
     (∀ⁱ (p₁ ↦ p₂))
-    (ν occ (q₁ ↦ q₂))
+    (ν nonvar-fun occ (q₁ ↦ q₂))
 sel-∀ν-arrow-arrowᵢ occ route₁ route₂ =
   sel-∀ν-non∀ᵢ
     occ
@@ -19478,7 +19495,7 @@ sel-ν∀-arrow-arrowᵢ :
   MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} p₁ q₁ →
   MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} p₂ q₂ →
   MlbTypeSelectorᵢ
-    (ν occ (p₁ ↦ p₂))
+    (ν nonvar-fun occ (p₁ ↦ p₂))
     (∀ⁱ (q₁ ↦ q₂))
 sel-ν∀-arrow-arrowᵢ occ route₁ route₂ =
   sel-ν∀-non∀ᵢ
@@ -19510,7 +19527,7 @@ sel-∀ν-arrow-starᵢ :
   MlbTypeSelectorᵢ {Γ = leftOnlyᵢ ∷ Γ} p₂ q₂ →
   MlbTypeSelectorᵢ
     (∀ⁱ (p₁ ↦ p₂))
-    (ν occ (tag q₁ ⇛ q₂))
+    (ν nonvar-fun occ (tag q₁ ⇛ q₂))
 sel-∀ν-arrow-starᵢ occ route₁ route₂ =
   sel-∀ν-non∀ᵢ
     occ
@@ -19540,7 +19557,7 @@ sel-ν∀-arrow-starᵢ :
   MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} p₁ q₁ →
   MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} p₂ q₂ →
   MlbTypeSelectorᵢ
-    (ν occ (p₁ ↦ p₂))
+    (ν nonvar-fun occ (p₁ ↦ p₂))
     (∀ⁱ (tag q₁ ⇛ q₂))
 sel-ν∀-arrow-starᵢ occ route₁ route₂ =
   sel-ν∀-non∀ᵢ
@@ -19572,7 +19589,7 @@ sel-∀ν-star-arrowᵢ :
   MlbTypeSelectorᵢ {Γ = leftOnlyᵢ ∷ Γ} p₂ q₂ →
   MlbTypeSelectorᵢ
     (∀ⁱ (tag p₁ ⇛ p₂))
-    (ν occ (q₁ ↦ q₂))
+    (ν nonvar-fun occ (q₁ ↦ q₂))
 sel-∀ν-star-arrowᵢ occ route₁ route₂ =
   sel-∀ν-non∀ᵢ
     occ
@@ -19602,7 +19619,7 @@ sel-ν∀-star-arrowᵢ :
   MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} p₁ q₁ →
   MlbTypeSelectorᵢ {Γ = rightOnlyᵢ ∷ Γ} p₂ q₂ →
   MlbTypeSelectorᵢ
-    (ν occ (tag p₁ ⇛ p₂))
+    (ν nonvar-fun occ (tag p₁ ⇛ p₂))
     (∀ⁱ (q₁ ↦ q₂))
 sel-ν∀-star-arrowᵢ occ route₁ route₂ =
   sel-ν∀-non∀ᵢ
@@ -19632,7 +19649,7 @@ sel-∀ν-tag-arrow-tag-arrowᵢ :
     (occ : occurs zero (C₁ ⇒ C₂) ≡ true) →
   MlbTypeSelectorᵢ
     (∀ⁱ (tag p₁ ⇛ p₂))
-    (ν occ (tag q₁ ⇛ q₂))
+    (ν nonvar-fun occ (tag q₁ ⇛ q₂))
 sel-∀ν-tag-arrow-tag-arrowᵢ occ =
   sel-∀ν-non∀ᵢ
     occ
@@ -19660,7 +19677,7 @@ sel-ν∀-tag-arrow-tag-arrowᵢ :
         ⊢ C₂ ⊑ ★ ⊣ choiceRightCtxᵢ (rightOnlyᵢ ∷ Γ)}
     (occ : occurs zero (C₁ ⇒ C₂) ≡ true) →
   MlbTypeSelectorᵢ
-    (ν occ (tag p₁ ⇛ p₂))
+    (ν nonvar-fun occ (tag p₁ ⇛ p₂))
     (∀ⁱ (tag q₁ ⇛ q₂))
 sel-ν∀-tag-arrow-tag-arrowᵢ occ =
   sel-ν∀-non∀ᵢ
@@ -19694,8 +19711,8 @@ sel-νν-arrow-arrow-no-occᵢ :
   occurs zero (mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} p₁ q₁) ≡ false →
   occurs zero (mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} p₂ q₂) ≡ false →
   MlbTypeSelectorᵢ
-    (ν occ (p₁ ↦ p₂))
-    (ν occ′ (q₁ ↦ q₂))
+    (ν nonvar-fun occ (p₁ ↦ p₂))
+    (ν nonvar-fun occ′ (q₁ ↦ q₂))
 sel-νν-arrow-arrow-no-occᵢ occ occ′ route₁ route₂ no₁ no₂ =
   sel-νν-no-occursᵢ
     occ
@@ -19728,8 +19745,8 @@ sel-νν-arrow-star-no-occᵢ :
   occurs zero (mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} p₁ q₁) ≡ false →
   occurs zero (mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} p₂ q₂) ≡ false →
   MlbTypeSelectorᵢ
-    (ν occ (p₁ ↦ p₂))
-    (ν occ′ (tag q₁ ⇛ q₂))
+    (ν nonvar-fun occ (p₁ ↦ p₂))
+    (ν nonvar-fun occ′ (tag q₁ ⇛ q₂))
 sel-νν-arrow-star-no-occᵢ occ occ′ route₁ route₂ no₁ no₂ =
   sel-νν-no-occursᵢ
     occ
@@ -19762,8 +19779,8 @@ sel-νν-star-arrow-no-occᵢ :
   occurs zero (mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} p₁ q₁) ≡ false →
   occurs zero (mlb-typeᵢ {Γ = neitherᵢ ∷ Γ} p₂ q₂) ≡ false →
   MlbTypeSelectorᵢ
-    (ν occ (tag p₁ ⇛ p₂))
-    (ν occ′ (q₁ ↦ q₂))
+    (ν nonvar-fun occ (tag p₁ ⇛ p₂))
+    (ν nonvar-fun occ′ (q₁ ↦ q₂))
 sel-νν-star-arrow-no-occᵢ occ occ′ route₁ route₂ no₁ no₂ =
   sel-νν-no-occursᵢ
     occ
@@ -19792,8 +19809,8 @@ sel-νν-tag-arrow-tag-arrowᵢ :
     (occ : occurs zero (C₁ ⇒ C₂) ≡ true)
     (occ′ : occurs zero (C₁ ⇒ C₂) ≡ true) →
   MlbTypeSelectorᵢ
-    (ν occ (tag p₁ ⇛ p₂))
-    (ν occ′ (tag q₁ ⇛ q₂))
+    (ν nonvar-fun occ (tag p₁ ⇛ p₂))
+    (ν nonvar-fun occ′ (tag q₁ ⇛ q₂))
 sel-νν-tag-arrow-tag-arrowᵢ occ occ′ =
   sel-νν-no-occursᵢ
     occ
@@ -20217,8 +20234,8 @@ canonical-forall-forall-maximal-coherenceᵢ
 
 canonical-forall-forall-to-first-order-maximal-coherenceᵢ :
   ∀ {Φ Δᴸ Δᴿ A A′ B B′ C C′}
-    {{safeA : GenSafeSource A}}
-    {{safeB : GenSafeSource B}}
+    {{safeA : NonVar A}}
+    {{safeB : NonVar B}}
     {pA : νᵢᶜ Φ ∣ suc Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {pB : νᵢᶜ Φ ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
   (can : CanonicalLowerᵢ (suc Δᴸ) A B C) →
@@ -20228,12 +20245,12 @@ canonical-forall-forall-to-first-order-maximal-coherenceᵢ :
   MaximalLowerBoundCoherenceᵢ
     (canonical-forall-forall-maximalᵢ can)
     (canonical-lower-maximalᵢ can′)
-    (ν occA pA)
-    (ν occB pB)
+    (ν safeA occA pA)
+    (ν safeB occB pB)
 canonical-forall-forall-to-first-order-maximal-coherenceᵢ
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {A = A} {A′ = A′} {B = B} {B′ = B′} {C = C} {C′ = C′}
-    {pA = pA} {pB = pB} can can′ occA occB
+    {{safeA}} {{safeB}} {pA = pA} {pB = pB} can can′ occA occB
   =
   maximal-lower-coherence-transportᵢ
     {Φ = Φ}
@@ -20245,8 +20262,8 @@ canonical-forall-forall-to-first-order-maximal-coherenceᵢ
     {B′ = B′}
     {C = `∀ C}
     {C′ = C′}
-    {pA = ν occA pA}
-    {pB = ν occB pB}
+    {pA = ν safeA occA pA}
+    {pB = ν safeB occB pB}
     {G = canonical-forall-forall-maximalᵢ can}
     {G′ = canonical-lower-maximalᵢ can′}
     (canonical-forall-forall-maximal-lowerᵢ can)
@@ -20303,8 +20320,8 @@ mlb-type-from-lower-∀∀-first-order-maximal-coherenceᵢ
 
 mlb-type-from-lower-∀∀-first-order-target-maximal-coherenceᵢ :
   ∀ {Φ Δᴸ Δᴿ A A′ B B′ C C′}
-    {{safeA : GenSafeSource A}}
-    {{safeB : GenSafeSource B}}
+    {{safeA : NonVar A}}
+    {{safeB : NonVar B}}
     {pA : νᵢᶜ Φ ∣ suc Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {pB : νᵢᶜ Φ ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
     {p : idᵢ (suc Δᴸ) ∣ suc Δᴸ ⊢ C ⊑ A ⊣ suc Δᴸ}
@@ -20334,8 +20351,8 @@ mlb-type-from-lower-∀∀-first-order-target-maximal-coherenceᵢ :
       (mlb-type-from-lower-first-order-canonicalᵢ route))
     (canonical-lower-maximalᵢ
       (mlb-type-from-lower-first-order-canonicalᵢ route′))
-    (ν occA pA)
-    (ν occB pB)
+    (ν safeA occA pA)
+    (ν safeB occB pB)
 mlb-type-from-lower-∀∀-first-order-target-maximal-coherenceᵢ
     {pA = pA} {pB = pB} occA occB route route′ =
   canonical-forall-forall-to-first-order-maximal-coherenceᵢ

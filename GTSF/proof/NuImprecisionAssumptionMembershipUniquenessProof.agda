@@ -342,14 +342,14 @@ private
       (precision-index-unique transport
         (assumption-membership-unique-matched unique) p q)
   precision-index-unique transport unique
-      (∀ⁱ p) (ν occ q)
+      (∀ⁱ p) (ν _ occ q)
       with occurs-to-var-at-path occ
   precision-index-unique transport unique
-      (∀ⁱ p) (ν occ q) | path , x-at
+      (∀ⁱ p) (ν _ occ q) | path , x-at
       with matched-source-path-forward
         transport var-track-∀-zero p x-at
   precision-index-unique transport unique
-      (∀ⁱ p) (ν occ q) | path , x-at
+      (∀ⁱ p) (ν _ occ q) | path , x-at
       | target-path , route , y-at =
     ⊥-elim
       (source-only-to-universal-body-impossible
@@ -366,25 +366,25 @@ private
   precision-index-unique transport unique
       (tagˣ i X<Δ) (tagˣ j X<Δ′) | refl | refl = refl
   precision-index-unique transport unique
-      (ν occ p) (∀ⁱ q)
+      (ν _ occ p) (∀ⁱ q)
       with occurs-to-var-at-path occ
   precision-index-unique transport unique
-      (ν occ p) (∀ⁱ q) | path , x-at
+      (ν _ occ p) (∀ⁱ q) | path , x-at
       with matched-source-path-forward
         transport var-track-∀-zero q x-at
   precision-index-unique transport unique
-      (ν occ p) (∀ⁱ q) | path , x-at
+      (ν _ occ p) (∀ⁱ q) | path , x-at
       | target-path , route , y-at =
     ⊥-elim
       (source-only-to-universal-body-impossible
         transport star-track-ν-zero p x-at y-at route)
   precision-index-unique transport unique
-      (ν occ p) (ν occ′ q)
+      (ν _ occ p) (ν _ occ′ q)
       with equality-proof-unique occ occ′
          | precision-index-unique transport
              (assumption-membership-unique-source unique) p q
   precision-index-unique transport unique
-      (ν occ p) (ν occ′ q) | refl | refl = refl
+      (ν _ occ p) (ν _ occ′ q) | refl | refl = refl
 
 
 assumption-membership-uniqueness-proofᵀ :

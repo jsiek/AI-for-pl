@@ -61,4 +61,4 @@ WorldCoherentRightSourceAllClosingᵀ =
   ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ []
     ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
-    {V = Λ V} {M′ = N′} {ρ = ρ⁺} (IW.ν occ p)
+    {V = Λ V} {M′ = N′} {ρ = ρ⁺} (IW.ν _ occ p)

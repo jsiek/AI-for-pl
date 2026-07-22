@@ -213,31 +213,31 @@ private
 
   dispatch-post-beta-target-closing
       all-relation value-catchup unseal-catchup
-      {B = `∀ D} {μ = μ} {p = ν occ p}
+      {B = `∀ D} {μ = μ} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A
       (reveal-id-var hY ok) ()
   dispatch-post-beta-target-closing
       all-relation value-catchup unseal-catchup
-      {B = `∀ D} {μ = μ} {p = ν occ p}
+      {B = `∀ D} {μ = μ} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A reveal-id-base ()
   dispatch-post-beta-target-closing
       all-relation value-catchup unseal-catchup
-      {B = `∀ D} {p = ν occ p}
+      {B = `∀ D} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A reveal-id-★ ()
   dispatch-post-beta-target-closing
       all-relation value-catchup unseal-catchup
-      {B = `∀ D} {p = ν occ p}
+      {B = `∀ D} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A (reveal-fun s↓ t↑) ()
   dispatch-post-beta-target-closing
       all-relation value-catchup unseal-catchup
-      {B = `∀ D} {μ = μ} {p = ν occ p}
+      {B = `∀ D} {μ = μ} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A
       (reveal-unseal hX αX∈Σ ok) target-eq
       liftν lift∀ vV noV vV′ noV′ conversion V⊑V′
       with renameᵗ-injective suc-injective target-eq
   dispatch-post-beta-target-closing
       all-relation value-catchup unseal-catchup
-      {B = `∀ D} {μ = μ} {p = ν occ p}
+      {B = `∀ D} {μ = μ} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A
       (reveal-unseal hX αX∈Σ ok) target-eq
       liftν lift∀ vV noV vV′ noV′ conversion V⊑V′ | refl =
@@ -246,14 +246,14 @@ private
       liftν lift∀ vV noV vV′ noV′ conversion V⊑V′
   dispatch-post-beta-target-closing
       all-relation value-catchup unseal-catchup
-      {B = `∀ D} {p = ν occ p}
+      {B = `∀ D} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A
       (reveal-all inner) target-eq
       liftν lift∀ vV noV vV′ noV′ conversion V⊑V′
       with ∀-injective target-eq
   dispatch-post-beta-target-closing
       all-relation value-catchup unseal-catchup
-      {B = `∀ D} {p = ν occ p}
+      {B = `∀ D} {p = ν _ occ p}
       coherent exclusive wfL hA h⇑A
       (reveal-all inner) target-eq
       liftν lift∀ vV noV vV′ noV′ conversion V⊑V′ | refl =

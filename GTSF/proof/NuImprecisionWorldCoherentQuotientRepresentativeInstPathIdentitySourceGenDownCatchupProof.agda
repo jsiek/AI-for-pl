@@ -6,7 +6,7 @@ module
 --   * Implements source-only generated-down quotient-inst catch-up from the
 --     ambient value dispatcher and terminal quotient catch-up capability.
 --   * Reconstructs the non-vacuous source `nu` precision index using both
---     `GenSafeSource` and the explicit occurrence witness.
+--     `NonVar` and the explicit occurrence witness.
 --   * Makes the remaining mutual-recursion dependencies visible without
 --     importing their implementations or a permissive simulation module.
 
@@ -41,7 +41,7 @@ world-coherent-quotient-representative-inst-path-identity-source-gen-down-catchu
     quotient-final {qD = qD} prefix-reflⁱ okN
     vV′ noV′ inert-d′ inert-u′ d⊒ d′⊒ widening inner
   where
-  qD = quotientᵖ ≈∀-refl (ν {{safe}} occ r) ≈∀-refl
+  qD = quotientᵖ ≈∀-refl (ν safe occ r) ≈∀-refl
 
   inner = value-catchup prefix-reflⁱ coherent exclusive wfL
     (runtime-⟨⟩ (runtime-⟨⟩ okN)) vV′ noV′ V⊑V′

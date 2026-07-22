@@ -284,7 +284,7 @@ leaf was assembled.
 The structural bridge is
 `WorldCoherentQuotientClassificationᵀ`.  It classifies a terminal quotient
 node as a complete coherent catch-up, a plain outer-`inst` residual, or the
-eager `inst ; (★⇒★)!` residual required by `DualGenSafe`.  Both residuals
+eager `inst ; (★⇒★)!` residual required by `InstSafe`.  Both residuals
 package `Value (V ⟨ d ⟩)` and `No• (V ⟨ d ⟩)` evidence for the inner
 down-cast value.  The strict
 `NuImprecisionWorldCoherentQuotientFinalCatchupProof` therefore consumes the
@@ -353,16 +353,17 @@ constructor.  The checked `*IdentityPairedCatchupProof` and
 generated `gen-down⊑gen-downᵀ`, exposing the inner ordinary relation and
 both narrowing derivations.  The four identity work packages are therefore
 paired/source-only × ordinary/generated downcast.  In both
-source-only packages, `GenSafeSource E`, `occurs zero E ≡ true`, and the
-lifted one-sided body relation are explicit inputs.  Do not add a vacuous
-`GenSafeSource` base case or weaken away the occurrence premise when proving
-these leaves.
+source-only packages, `NonVar E`, `occurs zero E ≡ true`, and the
+lifted one-sided body relation are explicit inputs.  Although `NonVar`
+includes base and `★`, their occurrence premise is impossible; do not add a
+vacuous source-`ν` branch or weaken away that premise when proving these
+leaves.
 
 The ordinary-down packages now have checked partial proofs.  Their
 identity-only quotient-widening clauses use `NuCastImprecision` to embed
 narrowing and widening under sparse `NuStore.StoreWf`, reconstruct the exact
 ordinary relation needed by source `ν ★` allocation, and prepend `β-inst`.
-The source-only proof constructs `ν {{safe}} occ r` explicitly, so the
+The source-only proof constructs `ν safe occ r` explicitly, so the
 non-vacuity condition participates in the proof.  Each general-cast
 quotient-widening clause is frozen as a separate hard contract because its
 mode may require ambient variable-to-star compatibility not exposed by the
@@ -374,8 +375,8 @@ first invoke the ordinary value-prefix catch-up capability on the inner
 terminal quotient catch-up.  This exposes their genuine back-edge into the
 value-prefix/final-quotient mutual SCC instead of treating each generated leaf
 as an unrelated semantic axiom.  In the source-only proof, the reconstructed
-quotient index is exactly `quotientᵖ ≈∀-refl (ν {{safe}} occ r) ≈∀-refl`;
-both `GenSafeSource E` and `occurs zero E ≡ true` are therefore used, and the
+quotient index is exactly `quotientᵖ ≈∀-refl (ν safe occ r) ≈∀-refl`;
+both `NonVar E` and `occurs zero E ≡ true` are therefore used, and the
 non-vacuity restriction remains enforced.
 
 `NuImprecisionWorldCoherentQuotientInstCatchupLemma` now supplies the checked

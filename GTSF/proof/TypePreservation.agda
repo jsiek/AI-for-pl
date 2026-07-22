@@ -951,7 +951,7 @@ pure-preservation wfΣ (no•-⟨⟩ noV)
       (cast-inst {A = A} {B = B} {s = c} hB occ c⊢ , inst cʷ) V⊢)
     (β-inst vV) =
   ⊢ν⊑ mode (seal★-inst seal★) V⊢
-    (c⊢ , dualGenSafe→widening cʷ)
+    (c⊢ , instSafe→widening cʷ)
 pure-preservation wfΣ (no•-⟨⟩ noV)
     (⊢⟨⟩⊒ mode seal★ (cast-inst hB occ c⊢ , cross ()) V⊢)
     (β-inst vV)

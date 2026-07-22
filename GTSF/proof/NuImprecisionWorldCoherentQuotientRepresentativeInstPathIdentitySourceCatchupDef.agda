@@ -5,7 +5,7 @@ module
 -- File Charter:
 --   * Defines the source-only non-vacuous `ν` semantic branch of
 --     identity-path representative-inst catch-up.
---   * Retains `GenSafeSource`, occurrence, the lifted body relation, and both
+--   * Retains `NonVar`, occurrence, the lifted body relation, and both
 --     original self-permutation derivations explicitly.
 --   * Contains no implementation or recursive simulation dependency.
 
@@ -17,7 +17,7 @@ open import Data.Nat using (suc; zero)
 open import ForallPermutation using
   (_≈∀_; _∣_⊢_⊑ᵖ_⊣_; quotientᵖ)
 open import ImprecisionWf using
-  ( GenSafeSource
+  ( NonVar
   ; _ˣ⊑★
   ; ⇑ᴸᵢ
   ; _∣_⊢_⊑_⊣_
@@ -45,7 +45,7 @@ WorldCoherentQuotientRepresentativeInstPathIdentitySourceCatchupᵀ =
     {d d′ s u′ : C.Coercion}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {E≈E : `∀ E ≈∀ `∀ E}
-    {{safe : GenSafeSource E}}
+    {{safe : NonVar E}}
     {occ : occurs zero E ≡ true}
     {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ E ⊑ C′ ⊣ Δᴿ}
@@ -63,7 +63,7 @@ WorldCoherentQuotientRepresentativeInstPathIdentitySourceCatchupᵀ =
   C.Inert u′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺᵖ V ⟨ d ⟩ ⊑ V′ ⟨ d′ ⟩ ⦂ `∀ E ⊑ᵖ C′
-      ∶ quotientᵖ E≈E (ν {{safe}} occ r) C′≈C′ →
+      ∶ quotientᵖ E≈E (ν safe occ r) C′≈C′ →
   QuotientWideningPair Δᴸ Δᴿ ρ
     (C.inst B s) u′ (`∀ E) C′ A A′ →
   WorldCoherentLeftCatchupIndexedResult

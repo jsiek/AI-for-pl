@@ -25,7 +25,7 @@ open import Imprecision using
   ; ⇑ᵢ
   ; ⇑ᴸᵢ
   )
-open import proof.ImprecisionProperties using (genSafeSource?; imp?)
+open import proof.ImprecisionProperties using (nonVar?; imp?)
 
 ------------------------------------------------------------------------
 -- Small utilities
@@ -135,7 +135,7 @@ wrapAll = map `∀
 
 wrapAllIfOccurs : List Ty → List Ty
 wrapAllIfOccurs [] = []
-wrapAllIfOccurs (A ∷ As) with genSafeSource? A | occurs zero A
+wrapAllIfOccurs (A ∷ As) with nonVar? A | occurs zero A
 wrapAllIfOccurs (A ∷ As) | yes safe | true =
   `∀ A ∷ wrapAllIfOccurs As
 wrapAllIfOccurs (A ∷ As) | yes safe | false =

@@ -169,8 +169,8 @@ target-star-arrow-midpoint id★ ()
 target-star-arrow-midpoint (tag ι) ()
 target-star-arrow-midpoint (tag p ⇛ q) (r ↦ s) = p ↦ q
 target-star-arrow-midpoint (tagˣ X⊑★ X<Δᴸ) ()
-target-star-arrow-midpoint (ν occ p) (ν occ′ q) =
-  ν occ (target-star-arrow-midpoint p q)
+target-star-arrow-midpoint (ν _ occ p) (ν _ occ′ q) =
+  ν _ occ (target-star-arrow-midpoint p q)
 
 
 target-arrow-star-midpoint :
@@ -179,8 +179,8 @@ target-arrow-star-midpoint :
   Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ →
   Φ ∣ Δᴸ ⊢ A ⊑ ★ ⇒ ★ ⊣ Δᴿ
 target-arrow-star-midpoint (p ↦ q) (tag r ⇛ s) = r ↦ s
-target-arrow-star-midpoint (ν occ p) (ν occ′ q) =
-  ν occ (target-arrow-star-midpoint p q)
+target-arrow-star-midpoint (ν _ occ p) (ν _ occ′ q) =
+  ν _ occ (target-arrow-star-midpoint p q)
 
 
 target-strict-cross-narrowing-ground-midpoint :

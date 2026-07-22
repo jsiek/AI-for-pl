@@ -187,7 +187,7 @@ world-coherent-paired-lambda-target-closing-widen-catchup-proofᵀ
     coherent exclusive wfL mode seal★ s⊑ refl
     liftν lift∀ vW noW vW′ noW′ W⊑W′
 world-coherent-paired-lambda-target-closing-widen-catchup-proofᵀ
-    all-widen inst-widen unseal-spine {p = ν occ p}
+    all-widen inst-widen unseal-spine {p = ν _ occ p}
     coherent exclusive wfL mode seal★ s⊑
     liftν lift∀ vW noW vW′ noW′ W⊑W′ =
   dispatch-target-closing-widen all-widen inst-widen unseal-spine

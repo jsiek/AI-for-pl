@@ -14,7 +14,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
 open import Imprecision using
-  (GenSafeSource; ImpCtx; _ˣ⊑★; _ˣ⊑ˣ_)
+  (NonVar; ImpCtx; _ˣ⊑★; _ˣ⊑ˣ_)
 open import ImprecisionWf using
   ( _∣_⊢_⊑_⊣_; id★; idˣ; idι; _↦_; ∀ⁱ_; tag_; tag_⇛_
   ; tagˣ; ν
@@ -155,7 +155,7 @@ data PairedLower (Σ : SpanCtx) (Δᶜ : TyCtx) :
 
   paired-left :
     ∀ {Δᴸ Δᴿ C A B} →
-    {{GenSafeSource C}} →
+    {{NonVar C}} →
     occurs zero C ≡ true →
     PairedLower (extend-span leftˢ Σ) (suc Δᶜ)
       C A B (suc Δᴸ) Δᴿ →
@@ -163,7 +163,7 @@ data PairedLower (Σ : SpanCtx) (Δᶜ : TyCtx) :
 
   paired-right :
     ∀ {Δᴸ Δᴿ C A B} →
-    {{GenSafeSource C}} →
+    {{NonVar C}} →
     occurs zero C ≡ true →
     PairedLower (extend-span rightˢ Σ) (suc Δᶜ)
       C A B Δᴸ (suc Δᴿ) →
@@ -171,7 +171,7 @@ data PairedLower (Σ : SpanCtx) (Δᶜ : TyCtx) :
 
   paired-neither :
     ∀ {Δᴸ Δᴿ C A B} →
-    {{GenSafeSource C}} →
+    {{NonVar C}} →
     occurs zero C ≡ true →
     PairedLower (extend-span neitherˢ Σ) (suc Δᶜ)
       C A B Δᴸ Δᴿ →
@@ -255,9 +255,9 @@ paired-lower-left (paired-both lower) =
 paired-lower-left (paired-left occ lower) =
   ∀ⁱ paired-lower-left lower
 paired-lower-left (paired-right {{safe}} occ lower) =
-  ν {{safe}} occ (paired-lower-left lower)
+  ν safe occ (paired-lower-left lower)
 paired-lower-left (paired-neither {{safe}} occ lower) =
-  ν {{safe}} occ (paired-lower-left lower)
+  ν safe occ (paired-lower-left lower)
 
 paired-lower-right :
   ∀ {Σ Δᶜ Δᴸ Δᴿ C A B} →
@@ -287,11 +287,11 @@ paired-lower-right (paired-var-stars row Z<Δ) =
 paired-lower-right (paired-both lower) =
   ∀ⁱ paired-lower-right lower
 paired-lower-right (paired-left {{safe}} occ lower) =
-  ν {{safe}} occ (paired-lower-right lower)
+  ν safe occ (paired-lower-right lower)
 paired-lower-right (paired-right occ lower) =
   ∀ⁱ paired-lower-right lower
 paired-lower-right (paired-neither {{safe}} occ lower) =
-  ν {{safe}} occ (paired-lower-right lower)
+  ν safe occ (paired-lower-right lower)
 
 pair-lower :
   ∀ {Σ Δᶜ Δᴸ Δᴿ C A B} →
@@ -320,9 +320,9 @@ pair-lower (tagˣ Z⊑★ Z<Δ) (idˣ Z⊑Y _ Y<Δ) =
 pair-lower (tagˣ Z⊑★ Z<Δ) (tagˣ Z⊑★′ _) =
   paired-var-stars (row-star-star Z⊑★ Z⊑★′) Z<Δ
 pair-lower (∀ⁱ p) (∀ⁱ q) = paired-both (pair-lower p q)
-pair-lower (∀ⁱ p) (ν {{safe}} occ q) =
+pair-lower (∀ⁱ p) (ν safe occ q) =
   paired-left {{safe}} occ (pair-lower p q)
-pair-lower (ν {{safe}} occ p) (∀ⁱ q) =
+pair-lower (ν safe occ p) (∀ⁱ q) =
   paired-right {{safe}} occ (pair-lower p q)
-pair-lower (ν {{safe}} occ p) (ν {{safe′}} occ′ q) =
+pair-lower (ν safe occ p) (ν safe′ occ′ q) =
   paired-neither {{safe}} occ (pair-lower p q)

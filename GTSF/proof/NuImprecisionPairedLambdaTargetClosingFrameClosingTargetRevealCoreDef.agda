@@ -103,7 +103,7 @@ data PairedLambdaTargetClosingTargetRevealView
       (⟰ᵗ (rightStoreⁱ ρ)) (suc β) (⇑ᵗ X) d A B →
     PairedLambdaTargetClosingTargetRevealView
       Φ Δᴸ Δᴿ ρ η β X (C.`∀ d) F (`∀ A) (`∀ B)
-      (ν occ-q q-body) (∀ⁱ r-body)
+      (ν _ occ-q q-body) (∀ⁱ r-body)
 
 
 data PairedLambdaTargetClosingPairedAllConversionView

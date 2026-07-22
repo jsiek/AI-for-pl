@@ -103,7 +103,7 @@ PairedLambdaTargetClosingLambdaLeafClosingᵀ =
   LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ∀ →
   PairedConversion Φ Δᴸ Δᴿ ρ (C.`∀ c) c′
     {`∀ A} {B} {`∀ (`∀ E)} {`∀ C′}
-    (ν occ r) (∀ⁱ q) →
+    (ν _ occ r) (∀ⁱ q) →
   ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
     ∣ suc Δᴸ ∣ Δᴿ ∣
       store-left zero (⇑ᵗ Aν) h⇑Aν ∷ ρν ∣ []

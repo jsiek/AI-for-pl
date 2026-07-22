@@ -64,4 +64,4 @@ PairedLambdaTargetClosingContinuationLambdaLeafᵀ =
     ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B ∶ p →
   PairedLambdaTargetClosingFrameClosingMotiveᴷ ρ
-    (Λ V) N′ A B (ν occ p)
+    (Λ V) N′ A B (ν _ occ p)

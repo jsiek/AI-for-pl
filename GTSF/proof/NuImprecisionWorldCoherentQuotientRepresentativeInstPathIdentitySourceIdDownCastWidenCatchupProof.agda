@@ -6,7 +6,7 @@ module
 --   * Implements the source-only ordinary-down/general-widening quotient-inst
 --     residual from value-prefix and terminal quotient catch-up.
 --   * Reconstructs the exact non-vacuous source `nu` quotient index using the
---     explicit `GenSafeSource` and occurrence witnesses.
+--     explicit `NonVar` and occurrence witnesses.
 --   * Exposes the genuine mutual-SCC dependencies and imports no recursive
 --     implementation, permissive option, or broad simulation module.
 
@@ -43,7 +43,7 @@ world-coherent-quotient-representative-inst-path-identity-source-id-down-cast-wi
     quotient-final {qD = qD} prefix-reflⁱ okN
     vV′ noV′ inert-d′ inert-u′ d⊒ d′⊒ widening inner
   where
-  qD = quotientᵖ ≈∀-refl (ν {{safe}} occ r) ≈∀-refl
+  qD = quotientᵖ ≈∀-refl (ν safe occ r) ≈∀-refl
 
   widening = quotient-cast-widening
     mode seal★ u⊑ mode′ seal★′ u′⊑

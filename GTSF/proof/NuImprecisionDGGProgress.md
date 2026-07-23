@@ -10,10 +10,12 @@ Agda declaration yet. Historical log entries use **checked** as a synonym for
 
 ## Current objective
 
-Repair the source-`gen`/target-untag contradiction at the coercion grammar,
-following the Cambridge design: a projection that must run eagerly is kept
-outside `gen`, and the body admitted directly underneath `gen` belongs to the
-new operationally safe [`GenSafe`](../NarrowWiden.agda#L80) category.  The
+Complete the remaining forward and backward semantic leaves of the DGG proof
+over the repaired coercion grammar.  The source-`gen`/target-untag
+contradiction has been repaired following the Cambridge design: a projection
+that must run eagerly is kept outside `gen`, and the body admitted directly
+underneath `gen` belongs to the new operationally safe
+[`GenSafe`](../NarrowWiden.agda#L80) category.  The
 [`InstSafe`](../NarrowWiden.agda#L192) imposes the symmetric
 shape restriction under `inst`.  This decision supersedes the earlier proposal
 to weaken `GradualDGG` by admitting right-hand blame.  The old mismatch
@@ -47,6 +49,34 @@ live completion criterion is the transitive dependency cone rooted at
 with `--no-allow-unsolved-metas` in about 3.9 seconds from the warm cache.  The
 unfinished quotient-DGG path semantics are tracked separately by
 [`NuDGGStrictSpine.agda`](NuDGGStrictSpine.agda).
+
+## Current DGG proof increment (2026-07-23)
+
+The current increment advances two independent forward boundaries without a
+full `All.agda` check.
+
+| Step | Status | Checked boundary or remaining proof |
+|---|---|---|
+| Partition source application pure roots | **completed statements** | [`WorldCoherentSourceLambdaBetaRootᵀ`](NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef.agda#L46) and [`WorldCoherentSourceFunctionCastBetaRootᵀ`](NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef.agda#L70) state the two semantic beta leaves.  [`WorldCoherentSourceApplicationPureRootCases`](NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef.agda#L96) bundles only those genuine leaves. |
+| Prove the application pure-root dispatcher | **completed** | [`world-coherent-source-application-pure-root-proofᵀ`](NuImprecisionWorldCoherentSourceApplicationPureRootProof.agda#L30) exhaustively handles `β`, `β-↦`, and both application-blame roots.  The two blame roots use the canonical keep-to-blame proof; the beta roots delegate to the exact leaf capabilities. |
+| State and prove quotiented term substitution | **completed** | [`QuotientedParallelTermSubstitutionFramedᵀ`](NuImprecisionParallelTermSubstitutionDef.agda) is the prefix-aware recursive theorem over a genuine [`QuotientedSubstitutionFrame`](NuImprecisionSubstitutionFrame.agda), and [`QuotientedParallelTermSubstitutionᵀ`](NuImprecisionParallelTermSubstitutionDef.agda) is its same-world public boundary. [`quotiented-parallel-term-substitution-framed-proofᵀ`](NuImprecisionParallelTermSubstitutionProof.agda) is an exhaustive mutual QTI/QTIP proof. [`quotiented-parallel-term-substitution-lemmaᵀ`](NuImprecisionParallelTermSubstitutionLemma.agda) is now a closed canonical assembly, and [`quotiented-term-substitution-proofᵀ`](NuImprecisionTermSubstitutionProof.agda) strictly specializes it to one variable. No substitution theorem remains as a semantic assumption. |
+| Prove store-prefix weakening for no-bullet relations | **completed** | [`QuotientedStorePrefixNoBulletᵀ`](NuImprecisionStorePrefixNoBulletDef.agda) and [`quotiented-store-prefix-no-bullet-proofᵀ`](NuImprecisionStorePrefixNoBulletProof.agda) use the quotient relation's allocation-prefix constructor plus source/target typing weakening. This reusable leaf checks independently in about three seconds. |
+| Complete binder store-prefix factorization | **completed** | [`LeftStorePrefixFactorᵀ`](NuImprecisionLeftStorePrefixFactorDef.agda) and [`left-store-prefix-factor-proofᵀ`](NuImprecisionLeftStorePrefixFactorProof.agda) fill the missing left-only member of the existing paired/left/right family. The proof is exhaustive over `StoreImpPrefix` and `LiftLeftStoreⁱ` and checks independently in about three seconds. |
+| Complete ordinary-lambda binder support | **completed** | [`quotiented-term-context-shift-proofᵀ`](NuImprecisionTermContextShiftProof.agda) is an exhaustive, strict ordinary/quotient QTI traversal that inserts a term-context entry and renames both no-bullet terms by `suc`. [`quotiented-lambda-substitution-environment-proofᵀ`](NuImprecisionLambdaSubstitutionEnvironmentProof.agda) extends related substitution images, and [`quotiented-parallel-term-substitution-lambda-proofᵀ`](NuImprecisionParallelTermSubstitutionLambdaProof.agda) extends the frame and reconstructs `ƛ⊑ƛᵀ`. The focused context-shift check is about seven seconds warm. |
+| Complete type-binder substitution environments | **completed** | [`QuotientedSingleSubstitutionEnvironmentᵀ`](NuImprecisionSingleSubstitutionEnvironmentDef.agda) requires one environment family at every reachable binder frame. [`quotiented-substitution-environment-paired-type-lift-proofᵀ`](NuImprecisionSubstitutionEnvironmentTypeLiftProof.agda) and [`quotiented-substitution-environment-left-type-lift-proofᵀ`](NuImprecisionSubstitutionEnvironmentTypeLiftProof.agda) preserve the exact proof-relevant lifted indices using `AssumptionMembershipUnique`; no proof-irrelevance postulate is used. [`quotiented-single-substitution-environment-lemmaᵀ`](NuImprecisionSingleSubstitutionEnvironmentLemma.agda) is the closed assembly. |
+| Prove synchronized lambda beta assembly | **completed canonical lemma** | [`WorldCoherentSourceSynchronizedLambdaBetaᵀ`](NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaDef.agda) isolates the point after target scheduling has exposed no-bullet related bodies and values. [`world-coherent-source-synchronized-lambda-beta-proofᵀ`](NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaProof.agda) performs both `β` keep steps and constructs the exact world-coherent result. [`world-coherent-source-synchronized-lambda-beta-lemmaᵀ`](NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaLemma.agda) now imports the closed substitution assembly and has no theorem parameter. |
+| Prove ordinary lambda-beta target scheduling | **completed canonical assembly** | [`world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaSchedulingDispatcherProof.agda) exhaustively removes allocation prefixes and transports completed results through target casts and both target-`ν` forms. The plain lambda terminal and all five inert target function-cast cases are complete; [`world-coherent-source-lambda-beta-target-function-cast-value-scc-proofᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastSCCProof.agda) closes their scheduling cycle by strict recursion on the cast-spine rank. [`world-coherent-source-lambda-beta-target-bullet-proofᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaTargetBulletProof.agda) proves the remaining bullet leaf unreachable by exhaustive inner target-value inversion. [`world-coherent-source-lambda-beta-schedulingᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaSchedulingLemma.agda) now requires only the shared right-value catch-up engine. |
+| Factor source-silent world composition | **completed canonical lemma** | [`WorldCoherentSourceSilentCompositionᵀ`](NuImprecisionWorldCoherentSourceSilentCompositionDef.agda) composes a target-only weak catch-up with a following exact source step without adding a result carrier. [`world-coherent-source-silent-compositionᵀ`](NuImprecisionWorldCoherentSourceSilentCompositionLemma.agda) uses final-world precision-index uniqueness to recover the original index. |
+| Prove the two application beta leaves | **completed canonical assembly** | [`world-coherent-source-application-pure-root-cases-lemmaᵀ`](NuImprecisionWorldCoherentSourceApplicationPureRootCasesLemma.agda) supplies both ordinary lambda beta and function-cast beta. The function-cast branch combines proof-prefix normalization, paired ordinary/quotient casts, and target-only casts/conversions. [`world-coherent-source-function-cast-beta-target-value-lemmaᵀ`](NuImprecisionWorldCoherentSourceFunctionCastBetaTargetValueLemma.agda) closes the target-value scheduling cycle by a strict cast-spine rank, while [`world-coherent-source-function-cast-beta-direct-lemmaᵀ`](NuImprecisionWorldCoherentSourceFunctionCastBetaDirectLemma.agda) supplies the direct one-sided cases. [`lambda-beta-assembled-and-backward-terminals⇒gradual-dgg`](NuDGGTerminalForwardIntegrationProof.agda) therefore has no application-pure-root premise. |
+| Keep quotient introduction at the application boundary | **completed repaired design** | [`ordinary-down-applicationᵖᵀ`](../QuotientedTermImprecision.agda), [`quotient-id-down-applicationᵖᵀ`](../QuotientedTermImprecision.agda), and [`quotient-down-applicationᵖᵀ`](../QuotientedTermImprecision.agda) introduce the hidden paired-narrowing quotient only around the whole beta-redex application. The canonical builders are [`ordinary-function-paired-narrowing-applicationᵀ`](NuImprecisionOrdinaryFunctionPairedNarrowingApplicationLemma.agda) and [`quotient-function-paired-narrowing-applicationᵀ`](NuImprecisionQuotientFunctionPairedNarrowingApplicationLemma.agda). A broader standalone rule saying that arbitrary paired narrowing yields a quotient was tried and rejected: a target seal-to-variable instance made [`target-ground-value-quotient-elimination-proofᵀ`](NuImprecisionTargetGroundValueQuotientEliminationProof.agda) false. Keeping the quotient at the non-value application preserves that eliminator and avoids adding a new backward catch-up capability. |
+| Prove paired function-cast beta relation reconstruction | **completed** | [`source-function-cast-beta-paired-widening-source-inert-relationᵀ`](NuImprecisionSourceFunctionCastBetaPairedWideningSourceInertRelationLemma.agda) reconstructs the ordinary-function branch through the application-specific quotient constructor. [`source-function-cast-beta-paired-quotient-relationᵀ`](NuImprecisionSourceFunctionCastBetaPairedQuotientRelationLemma.agda) handles an already-quotiented function and obtains its codomain index from [`⊑ᵖ-arrow-components`](NuImprecisionQuotientArrowComponents.agda). Their world-coherent value assemblies are supplied by the paired-widening and paired-quotient value lemmas. |
+| Represent eager target administration without a false midpoint | **completed** | [`plan-fun-untag-gen`](NuImprecisionTargetAdministrationPlanDef.agda#L98) and [`plan-inst-fun-tag`](NuImprecisionTargetAdministrationPlanDef.agda#L115) are whole-cast plans.  Direct synthesis chooses them for the eager narrowing/widening forms instead of attempting to derive an unavailable relation at the internal `★ ⇒ ★` endpoint. |
+| State eager target semantic roots | **completed statements; proofs not yet started** | [`rightTargetNarrowFunUntagGenRoot`](NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda#L198) and [`rightTargetWidenInstFunTagRoot`](NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda#L252) consume a completed inner catch-up and return the existing complete carrier at the outer eager cast.  They add no result or view type. |
+| Refute uniform right-opening for target instantiation | **completed strict regression** | [`right-opened-instantiation-index-counterexample`](NuImprecisionRightOpenedInstantiationIndexCounterexample.agda) provides a matched source/target universal index, a compatible source-only final index, and a well-typed `InstSafe` widening, but proves that the matched target binder cannot be reopened as an independent right-only binder.  Thus `rightTargetNuCastFrame` is a valid leaf only when its right-opened index is already semantically available; it is not a generic implementation of target `inst`. |
+| Split target instantiation by both precision indices | **completed statements and dispatchers; source-only/source-only cell partial** | [`NuImprecisionWorldCoherentRightTargetWidenInstantiationRootDef.agda`](NuImprecisionWorldCoherentRightTargetWidenInstantiationRootDef.agda) exposes the full \(2\times2\) matrix obtained from incoming and final `∀ⁱ`/`ν` indices, plus the two row dispatchers and general root. [`NuImprecisionWorldCoherentRightTargetWidenInstantiationRootProof.agda`](NuImprecisionWorldCoherentRightTargetWidenInstantiationRootProof.agda) proves every outer dispatch by exhaustive index inversion. The strict [`source-only `Λ` leaf](NuImprecisionRightTargetWidenInstSourceOnlyLambdaRootProof.agda) is the first completed semantic case. No new view or result family is introduced. |
+| Preserve valid sequence midpoints after catch-up | **completed** | The strict terminalizer transports narrowing, widening, and identity-only widening components together in [`apply-narrow-sequence-components`](NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda#L199), [`apply-widen-sequence-components`](NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda#L292), and [`apply-fixed-widen-sequence-components`](NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda#L385).  Coercion-endpoint uniqueness aligns the transported component typing, after which plans are synthesized separately at the retained midpoint. |
+| Finish stale `NonVar`/`gen⊑groundᵀ` propagation in the live cone | **completed for the paths reached here** | Source-only universal closing now carries explicit `NonVar` evidence in [`WorldCoherentRightSourceAllClosingᵀ`](NuImprecisionWorldCoherentRightSourceAllClosingDef.agda#L42).  The right-value dispatcher treats [`gen⊑groundᵀ`](NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda#L221) as an immediate value/value terminal case.  The uniqueness, no-bullet renaming, and source-allocation runtime traversals also cover the repaired constructors. |
+| Focused strict validation | **completed for the current checkpoint** | Every new leaf and assembly passes with `--no-allow-unsolved-metas`. The focused checks include [`NuImprecisionWorldEmbeddingNoBullet.agda`](NuImprecisionWorldEmbeddingNoBullet.agda), [`NuImprecisionParallelTermSubstitutionProof.agda`](NuImprecisionParallelTermSubstitutionProof.agda), [`NuImprecisionLeftRenameNoBulletProof.agda`](NuImprecisionLeftRenameNoBulletProof.agda), [`NuImprecisionLeftSourceAllocationRuntimeTransportProof.agda`](NuImprecisionLeftSourceAllocationRuntimeTransportProof.agda), the restored [`NuImprecisionTargetGroundValueQuotientEliminationProof.agda`](NuImprecisionTargetGroundValueQuotientEliminationProof.agda), and the flat [`NuImprecisionWorldCoherentRightTargetStepResumeLemma.agda`](NuImprecisionWorldCoherentRightTargetStepResumeLemma.agda). Both [`NuDGGTerminalForwardIntegrationProof.agda`](NuDGGTerminalForwardIntegrationProof.agda) and [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda) pass strictly. The large recursive proofs are checked directly only when their implementations change, and `All.agda` was not run. |
 
 ## `GenSafe` grammar repair
 
@@ -372,12 +402,12 @@ common hypotheses, it states
 | Step | Status | Proof obligation and available evidence |
 |---|---|---|
 | F1. State a source-oriented one-step simulation | completed corrected statement and recursive boundary | [`WorldCoherentSourceOneStepSimulationᵀ`](NuImprecisionWorldCoherentSourceOneStepDef.agda) returns either a compact continuing relation or a source trace to blame. [`WorldCoherentSourceOneStepIndexedResult`](NuImprecisionWorldCoherentSourceOneStepResultDef.agda) retains generic index transport, type coherence, store lineage, the exact singleton source change, and final world invariants on the continuing branch. [`WorldCoherentSourceOneStepOutcome`](NuImprecisionWorldCoherentSourceOneStepOutcomeDef.agda) adds the necessary blame branch for congruence cases. The ambient-prefix boundary requires refined [`TermTyping`](../TermTyping.agda) derivations at the physical store, exactly as needed to rebuild `allocation-prefixᵀ`. |
-| F2. Prove the source-oriented one-step cases | partial: primitive roots and `ν` blame completed; ten named major families remain | [`WorldCoherentSourceOneStepCases`](NuImprecisionWorldCoherentSourceOneStepCasesDef.agda) freezes all nine source store-step families, while [`WorldCoherentSourcePureStepCases`](NuImprecisionWorldCoherentSourcePureStepCasesDef.agda) exposes the four pure-root families. [`world-coherent-source-one-step-cases-proofᵀ`](NuImprecisionWorldCoherentSourceOneStepCasesProof.agda) now assembles the DGG-facing record from individually named capabilities, supplying primitive roots and the source `ν`-blame case canonically. Direct primitive scheduling, target framing, source-silent composition, synchronized delta, and common blame are all strict. The unfinished parameters are application, runtime-bullet, and cast/conversion pure roots plus allocation, both application frames, cast and `ν` frames, and both primitive frames. |
+| F2. Prove the source-oriented one-step cases | partial: application and primitive pure roots plus `ν` blame completed; nine named major families remain | [`WorldCoherentSourceOneStepCases`](NuImprecisionWorldCoherentSourceOneStepCasesDef.agda) freezes all nine source store-step families, while [`WorldCoherentSourcePureStepCases`](NuImprecisionWorldCoherentSourcePureStepCasesDef.agda) exposes the four pure-root families. [`world-coherent-source-one-step-cases-proofᵀ`](NuImprecisionWorldCoherentSourceOneStepCasesProof.agda) assembles the DGG-facing record from individually named capabilities, supplying primitive roots and source `ν` blame canonically. [`world-coherent-source-application-pure-root-cases-lemmaᵀ`](NuImprecisionWorldCoherentSourceApplicationPureRootCasesLemma.agda) now supplies both beta families. The unfinished parameters are runtime-bullet and cast/conversion pure roots plus allocation, both application frames, cast and `ν` frames, and both primitive frames. |
 | F3. Prove target catch-up from a related source value | partial: complete recursive dispatcher, terminal and source-frame families; semantic audit required before the remaining assembly | [`WorldCoherentRightValueCatchupCases`](NuImprecisionWorldCoherentRightValueCatchupCasesDef.agda) is now a small assembly over eight canonical capability files. [`world-coherent-right-value-catchup-dispatcher-proofᵀ`](NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda) recursively covers every quotiented term-precision constructor and produces [`WorldCoherentRightValueCatchupPrefixᵀ`](NuImprecisionWorldCoherentRightValueCatchupPrefixDef.agda). Terminal values and all four source frames are completed. Paired casts, quotient down/up, source-`∀` closing, target-bullet closing, target allocation, and active target-cast terminalization remain. The target-cast measure and sequence skeleton are checked, but the generalized narrowing-untag root now has a reachable source-`gen` obstruction even under the uniqueness invariant. This must be resolved at the language/relation level before canonical target-cast assembly. |
 | F4. Rule out source blame along an observed trace to a value | completed | [`source-blame-excludes-value`](NuReductionDeterminism.agda) aligns a source trace to blame with the observed trace to a value. Determinism leaves a residual trace from `blame` to the value, contradicting either `Value blame` or blame irreducibility. |
 | F5. Lift source one-step simulation over a source trace | completed corrected higher-order proof | [`world-coherent-forward-source-value-proofᵀ`](NuDGGTerminalForwardProof.agda) recurses structurally on the observed source trace and invokes right-value catch-up in the reflexive base. A continuing one-step outcome recurses on the source tail; a source-blame outcome is eliminated by F4. |
 | F6. Normalize composed changes and final store projections | completed | The same proof reconstructs successor `StoreWf` and `RuntimeOK` by preservation, concatenates target traces, and normalizes contexts, endpoint types, and physical stores with the `apply*-++` laws. |
-| F7. Package the terminal theorem | completed higher-order path down to every unfinished major forward capability; canonical engines missing | [`remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg`](NuDGGTerminalForwardIntegrationProof.agda) checks the path from the six unfinished right-catch-up capabilities, the ten unfinished source capabilities, and the two backward terminal contracts to public `GradualDGG`. It canonically supplies completed right terminal/source frames and source primitive/`ν`-blame families before invoking both recursive dispatchers and `WorldCoherentForwardSourceValueᵀ`. A canonical `Lemma` still waits for strict implementations of those remaining F2/F3 families and the backward terminal engines. |
+| F7. Package the terminal theorem | completed higher-order path down to every unfinished major forward capability; canonical engines missing | [`lambda-beta-assembled-and-backward-terminals⇒gradual-dgg`](NuDGGTerminalForwardIntegrationProof.agda) checks the path from the unfinished right-catch-up case record, nine unfinished source capabilities, and the two backward terminal contracts to public `GradualDGG`. It canonically supplies both application beta roots, completed right terminal/source frames, and source primitive/`ν`-blame families before invoking both recursive dispatchers and `WorldCoherentForwardSourceValueᵀ`. A canonical `Lemma` still waits for strict implementations of the remaining F2/F3 families and the backward terminal engines. |
 
 The essential missing fact is not another use of the target-oriented dispatcher.
 That dispatcher allows target administrative work while the source takes zero
@@ -715,10 +745,10 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightValueCatchupCasesProof.agda`](NuImprecisionWorldCoherentRightValueCatchupCasesProof.agda) | completed higher-order assembly | Builds the eight-family right-value record from the six unfinished capabilities while supplying terminal values and source frames canonically. |
 | [`NuImprecisionWorldCoherentRightPairedCastFrameDef.agda`](NuImprecisionWorldCoherentRightPairedCastFrameDef.agda) | completed statement; mechanical proof rejected | A Ginger audit found that source inertness does not imply target inertness. This boundary must use the active target-cast terminalization SCC; adding an `Inert c′` premise would be false for valid paired casts. |
 | [`NuImprecisionWorldCoherentRightQuotientDownUpFrameDef.agda`](NuImprecisionWorldCoherentRightQuotientDownUpFrameDef.agda) | completed statement; proof not started | Canonical identity/generated quotient down/up frame boundary. |
-| [`NuImprecisionWorldCoherentRightSourceAllClosingDef.agda`](NuImprecisionWorldCoherentRightSourceAllClosingDef.agda) | completed statement; proof not started | Canonical source-only universal closing boundary. |
+| [`NuImprecisionWorldCoherentRightSourceAllClosingDef.agda`](NuImprecisionWorldCoherentRightSourceAllClosingDef.agda) | partial: terminal base, allocation-prefix descent, lifted recursive fit, and all five target-cast frames completed | Canonical source-only universal closing boundary, now retaining the explicit `NonVar` witness required by the source-only `ν` precision index. The value/value base, allocation-prefix case, lifted-world recursive call, and narrowing/widening/id-widen/reveal/conceal target-frame cases are strict. Source, paired, quotient, target-allocation, and target-bullet cases still need assembly. |
 | [`NuImprecisionWorldCoherentRightTargetBulletClosingDef.agda`](NuImprecisionWorldCoherentRightTargetBulletClosingDef.agda) | completed statement; proof not started | Canonical target-bullet closing boundary under right allocation. |
 | [`NuImprecisionWorldCoherentRightTargetAllocationFramesDef.agda`](NuImprecisionWorldCoherentRightTargetAllocationFramesDef.agda) | completed statement; proof not started | Canonical ordinary and casted target-allocation frame boundary. |
-| [`NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda`](NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda) | completed higher-order proof | Direct structural recursion over every quotiented term-precision constructor, including prefix transitivity, impossible value shapes, and explicit binder-closing boundaries. |
+| [`NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda`](NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda) | completed higher-order proof | Direct structural recursion over every quotiented term-precision constructor, including prefix transitivity, `gen⊑groundᵀ` as an immediate value/value case, impossible value shapes, and explicit binder-closing boundaries. |
 | [`NuImprecisionWorldCoherentRightSourceFramesDef.agda`](NuImprecisionWorldCoherentRightSourceFramesDef.agda) | completed statement | Canonical four-field source cast/conversion frame boundary. |
 | [`NuImprecisionWorldCoherentRightSourceFramesProof.agda`](NuImprecisionWorldCoherentRightSourceFramesProof.agda) | completed GPT-5.5 proof | Frames an inner terminal catch-up through source narrowing, widening, reveal, or conceal while retaining transport, source-bullet transport, coherence, lineage, and world invariants. |
 | [`NuImprecisionWorldCoherentRightSourceFramesLemma.agda`](NuImprecisionWorldCoherentRightSourceFramesLemma.agda) | completed canonical assembly | Exposes all four source-frame proofs through the canonical three-file boundary. |
@@ -726,16 +756,41 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightTargetInertFramingProof.agda`](NuImprecisionWorldCoherentRightTargetInertFramingProof.agda) | completed GPT-5.5 proof | Exhaustively frames reveal, conceal, narrowing, widening, and identity-only widening while preserving the existing complete catch-up payload, including source-bullet transport. No target-frame result layer is introduced. |
 | [`NuImprecisionTargetAdministrationMeasureDef.agda`](NuImprecisionTargetAdministrationMeasureDef.agda) | completed statement | Well-founded potential for the joint target-cast, target-allocation, and target-bullet normalization cycle; sequence structure is charged twice and pending frames once. |
 | [`NuImprecisionTargetAdministrationMeasureProof.agda`](NuImprecisionTargetAdministrationMeasureProof.agda) | completed strict proof | Arithmetic equations cover sequence splitting, inert absorption, instantiation, `ν` administration, coercion/value renaming, and the three `β-Λ•`/`β-∀•`/`β-gen•` bullet exposures. These equations let the private SCC pass predecessor `Acc` proofs without repeating arithmetic in semantic clauses. |
-| [`NuImprecisionTargetAdministrationPlanDef.agda`](NuImprecisionTargetAdministrationPlanDef.agda) | completed statement; canonical synthesis available | Cast-local hereditary proof evidence records every sequence midpoint and treats `inst` as a boundary where the retained post-allocation QTI index supplies a fresh plan. It contains no simulation result or outcome payload and avoids changing QTI unless synthesis fails. |
+| [`NuImprecisionTargetAdministrationPlanDef.agda`](NuImprecisionTargetAdministrationPlanDef.agda) | completed statement; canonical synthesis available | Cast-local hereditary proof evidence records ordinary sequence midpoints and treats `inst` as a boundary where the retained post-allocation QTI index supplies a fresh plan.  The eager `fun-untag-gen` and `inst-fun-tag` forms have dedicated whole-cast plans because their internal `★ ⇒ ★` endpoint need not be related to the source type.  It contains no simulation result or outcome payload. |
 | [`NuImprecisionTargetAdministrationPlanSynthesisDef.agda`](NuImprecisionTargetAdministrationPlanSynthesisDef.agda) | completed statement | Direct narrowing/widening synthesis uses only a target store prefix, final sparse-store well-formedness, seal-mode evidence, typed coercion structure, and the initial/final precision indices. This is the low-fanout experiment before any QTI change. |
-| [`NuImprecisionTargetAdministrationPlanSynthesisProof.agda`](NuImprecisionTargetAdministrationPlanSynthesisProof.agda) | completed GPT-5.5 proof | Exhaustive narrowing/widening recursion reconstructs inert and active plans, recovers ground sequence midpoints from the existing precision indices, and eliminates seal/unseal sequence conflicts by target-store prefix inclusion and uniqueness. No QTI constructor or simulation carrier changes were needed. |
+| [`NuImprecisionTargetAdministrationPlanSynthesisProof.agda`](NuImprecisionTargetAdministrationPlanSynthesisProof.agda) | completed strict proof | Exhaustive narrowing/widening recursion reconstructs inert and active plans, recovers ground sequence midpoints where they exist, selects whole-cast plans at the eager boundaries, and eliminates seal/unseal sequence conflicts by target-store prefix inclusion and uniqueness. No QTI constructor or simulation carrier changes were needed. |
 | [`NuImprecisionTargetAdministrationPlanSynthesisLemma.agda`](NuImprecisionTargetAdministrationPlanSynthesisLemma.agda) | completed canonical assembly | Exposes the hereditary target-plan synthesis record consumed by the future target-administration recursion. |
 | [`NuImprecisionWorldCoherentRightTargetAdministrationDef.agda`](NuImprecisionWorldCoherentRightTargetAdministrationDef.agda) | completed statement; structural fit audit found two gaps | The flat result is still correct in spirit, but the generic outer-QTI premise admits paired and source-cast constructors that do not expose target-frame provenance. Its `plan-seq` branch also cannot retarget two complete nested-cast results to the original sequence term without a post-catch-up resume lemma. The repair is five constructor-specific direct entry points plus the sequence-resume boundary below, not another result or view carrier. |
 | [`NuImprecisionWorldCoherentRightTargetSequenceResumeDef.agda`](NuImprecisionWorldCoherentRightTargetSequenceResumeDef.agda) | completed strict flat statement | Resumes sequence administration at the final world of one shared inner catch-up. It consumes a continuation rooted at the transformed nested casts and returns the existing complete result rooted at the original sequence cast, placing `β-seq` between them without stripping or wrapping either payload. |
 | [`NuImprecisionWorldCoherentRightTargetSequenceResumeProof.agda`](NuImprecisionWorldCoherentRightTargetSequenceResumeProof.agda) | completed direct proof | Opens the two existing complete payloads once, frames the shared inner target trace through the sequence cast, inserts the post-catch-up `β-seq`, and composes the continuation. Generic transport, arrow/`∀` coherence, store lineage, source-bullet transport, and final world invariants are all rebuilt directly; no further carrier layer is introduced. |
+| [`NuImprecisionWorldCoherentRightTargetStepResumeDef.agda`](NuImprecisionWorldCoherentRightTargetStepResumeDef.agda), [`Proof`](NuImprecisionWorldCoherentRightTargetStepResumeProof.agda), and [`Lemma`](NuImprecisionWorldCoherentRightTargetStepResumeLemma.agda) | completed canonical flat boundary | Composes a framed inner right-value catch-up, one active target `keep` step, and an already completed continuation. The proof preserves the existing complete catch-up carrier, generic transport, arrow/`∀` coherence, relational-store lineage, source-bullet transport, and final-world invariants. This factors the common operational spine of `β-id`, `β-seq`, and `β-inst` without adding a result or view hierarchy. |
 | [`NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationDef.agda`](NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationDef.agda) | completed strict statement | Three reachable smaller-rank continuation families for narrowing, widening, and identity-only widening sequences. Each consumes hereditary subplans and returns the existing complete right-catchup result rooted at the nested casts; reveal and conceal have no sequence constructor. This is a recursion capability, not a result carrier. |
 | [`NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationProof.agda`](NuImprecisionWorldCoherentRightTargetPendingSequenceContinuationProof.agda) | completed strict higher-order fit proof; canonical Lemma intentionally absent | From an assumed complete target-cast terminalization, starts with the canonical zero-step value result and terminalizes the two nested casts in order for all three sequence modes. The stronger premise subsumes the plans and rank equation. This validates every index, but tying it back to terminalization is non-structural; canonical assembly must instead use the private well-founded target-administration SCC. |
-| [`NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda`](NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda) | partial: seven of nine roots proved; generalized narrow-untag boundary now semantically obstructed | Nine provenance-preserving active-root continuations: five `β-id` entries, narrowing untag, general instantiation, general unseal, and reveal-unseal. Every field consumes a completed inner catch-up and returns the same existing complete carrier. A later audit removed the redundant identity-only instantiation field: its widening evidence relaxes to `tag-or-idᵈ` and the terminalizer calls the general root directly. The general instantiation root remains genuine SCC work because its universal index also admits source-only `ν`. `AssumptionMembershipUnique` is a flat premise throughout the engine and excludes the earlier duplicate-row counterexample, but it does not exclude a source `gen` value wrapped around a target-tagged function. The current narrowing-untag field must therefore be strengthened, specialized, or replaced only after the reachable-language audit determines the sound invariant or relation change. |
+| [`NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda`](NuImprecisionWorldCoherentRightTargetActiveRootResumeDef.agda) | partial: eleven fields; seven roots proved; four root fields remain | Provenance-preserving active-root continuations include five `β-id` entries, narrowing untag, general instantiation, general unseal, reveal-unseal, eager `fun-untag-gen`, and eager `inst-fun-tag`. Every field consumes a completed inner catch-up and returns the same existing complete carrier. General instantiation now names the corrected flat boundary below rather than repeating its telescope. The two eager roots, general untag, and general instantiation remain the four unassembled record fields. |
+| [`NuImprecisionRightOpenedInstantiationIndexCounterexample.agda`](NuImprecisionRightOpenedInstantiationIndexCounterexample.agda) | completed strict regression | The exact `∀(X → X)`/`∀(X → X)` initial index and `∀(X → X)`/`★ → ★` final index coexist with the `InstSafe` body `(seal ★ α) → (unseal α ★)`. Nevertheless exhaustive indexed-imprecision inversion refutes `∀(X → X) ⊑ X → X` after a right-only lift. This rules out the former one-frame target-instantiation plan. |
+| [`NuImprecisionWorldCoherentRightTargetWidenInstantiationRootDef.agda`](NuImprecisionWorldCoherentRightTargetWidenInstantiationRootDef.agda) | completed corrected statements; source-only/source-only cell partial | Incoming and final universal indices each have paired `∀ⁱ` and source-only `ν` forms. Four flat theorem types state the resulting matrix cells; two row types and the general root retain the caller-facing boundaries. The general root no longer assumes that every branch passes through `rightTargetNuCastFrame`. |
+| [`NuImprecisionWorldCoherentRightTargetWidenInstantiationRootProof.agda`](NuImprecisionWorldCoherentRightTargetWidenInstantiationRootProof.agda) | completed strict higher-order matrix dispatch; canonical Lemma pending four cells | Exhaustive inversion first dispatches each final-index row on the incoming `∀ⁱ`/`ν` derivation, then dispatches the general root on its final `ν`/`∀ⁱ` derivation. This is the complete outer proof shape and has no local view, result, outcome, hole, or permissive option. |
+| [`NuImprecisionRightTargetWidenInstSourceOnlyLambdaRootDef.agda`](NuImprecisionRightTargetWidenInstSourceOnlyLambdaRootDef.agda), [`Proof`](NuImprecisionRightTargetWidenInstSourceOnlyLambdaRootProof.agda) | completed strict leaf; canonical Lemma waits on source-all closing | The ordinary source-`Λ` case of the source-only/source-only cell transports the target instantiation cast through the source-only store lift, frames the body relation with `⊑cast⊑ᵀ`, and invokes `WorldCoherentRightSourceAllClosingᵀ`. This proves that the corrected matrix fits the existing binder-closing architecture. It ignores the already-caught outer result because it makes genuine structural progress under `Λ⊑ᵀ`. No result/view/outcome type was added. |
+| [`NuImprecisionRightTargetWidenInstPostBetaDef.agda`](NuImprecisionRightTargetWidenInstPostBetaDef.agda), [`Proof`](NuImprecisionRightTargetWidenInstPostBetaProof.agda) | completed strict operational factorization; semantic post-beta theorem not started | The flat `WorldCoherentRightTargetWidenInstPostBetaᵀ` boundary isolates only the index-sensitive continuation from `ν ★ V′ s`. The higher-order proof shows that this capability implies the complete active `inst` root: it transports the whole cast and body through the completed inner catch-up, constructs the framed QTI relation, takes `β-inst`, and invokes the canonical target-step resume theorem. All transport, type coherence, lineage, bullet transport, and final-world packaging stay outside the four semantic cells. |
+| [`NuImprecisionRightTargetWidenInstPostBetaMatrixDef.agda`](NuImprecisionRightTargetWidenInstPostBetaMatrixDef.agda), [`Proof`](NuImprecisionRightTargetWidenInstPostBetaMatrixProof.agda) | completed statements and strict dispatch; four semantic cells not started | Mirrors the incoming/final `∀ⁱ`/`ν` split after `β-inst`, where the target is exactly `ν ★ V′ s`. Four flat cell claims, two rows, and the generic post-beta boundary are connected by exhaustive index inversion. There is no matrix result, view, outcome, or record. |
+| [`NuImprecisionRightSourceAllClosingTerminalDef.agda`](NuImprecisionRightSourceAllClosingTerminalDef.agda), [`Proof`](NuImprecisionRightSourceAllClosingTerminalProof.agda), [`Lemma`](NuImprecisionRightSourceAllClosingTerminalLemma.agda) | completed canonical base | Reconstructs `Λ⊑ᵀ` from the lifted body relation and passes it to the existing zero-step world-coherent terminal theorem when the target is already a no-bullet value. This is the first canonical inhabitant toward `WorldCoherentRightSourceAllClosingᵀ`. |
+| [`NuImprecisionRightSourceAllBodyCatchupDef.agda`](NuImprecisionRightSourceAllBodyCatchupDef.agda), [`Proof`](NuImprecisionRightSourceAllBodyCatchupProof.agda), [`Lemma`](NuImprecisionRightSourceAllBodyCatchupLemma.agda) | completed strict higher-order fit | Lifts the ambient store prefix beneath the source-only binder, transports coherence, source-name exclusivity, assumption uniqueness, and target-store well-formedness, and invokes the existing right-value dispatcher on the body. The conclusion uses the existing catch-up carrier and returns the lifted ambient store inline. |
+| [`NuImprecisionWorldCoherentRightTargetKeepPrependDef.agda`](NuImprecisionWorldCoherentRightTargetKeepPrependDef.agda), [`Proof`](NuImprecisionWorldCoherentRightTargetKeepPrependProof.agda), [`Lemma`](NuImprecisionWorldCoherentRightTargetKeepPrependLemma.agda) | completed canonical theorem | Prepends one target `keep` step by extending only the target trace. The final relation, transport, type coherence, lineage, source-bullet transport, and world invariants are preserved in the existing carrier. |
+| [`NuImprecisionRightSourceAllTargetWidenFrameDef.agda`](NuImprecisionRightSourceAllTargetWidenFrameDef.agda), [`Proof`](NuImprecisionRightSourceAllTargetWidenFrameProof.agda) | completed strict structural case; canonical assembly waits on the recursive knot | For a lifted-body `⊑cast⊑ᵀ`, recursively closes the inner body relation, reconstructs its outer `Λ⊑ᵀ` relation, transports the target cast typing through `rightStoreⁱ-lift-left`, and invokes the existing target-widen terminalization frame. |
+| [`NuImprecisionRightSourceAllTargetNarrowFrameDef.agda`](NuImprecisionRightSourceAllTargetNarrowFrameDef.agda), [`Proof`](NuImprecisionRightSourceAllTargetNarrowFrameProof.agda); [`TargetIdWidenFrameDef`](NuImprecisionRightSourceAllTargetIdWidenFrameDef.agda), [`Proof`](NuImprecisionRightSourceAllTargetIdWidenFrameProof.agda); [`TargetRevealFrameDef`](NuImprecisionRightSourceAllTargetRevealFrameDef.agda), [`Proof`](NuImprecisionRightSourceAllTargetRevealFrameProof.agda); [`TargetConcealFrameDef`](NuImprecisionRightSourceAllTargetConcealFrameDef.agda), [`Proof`](NuImprecisionRightSourceAllTargetConcealFrameProof.agda) | completed strict structural cases; canonical assembly waits on the recursive knot | The other four target-cast constructors use the same recurse/rebuild/transport/terminalize pattern as target widening. Together the five target-cast cases now form a complete structural family without a new record or result type. |
+| [`NuImprecisionLeftLiftedStorePrefixFactorDef.agda`](NuImprecisionLeftLiftedStorePrefixFactorDef.agda), [`Proof`](NuImprecisionLeftLiftedStorePrefixFactorProof.agda), [`Lemma`](NuImprecisionLeftLiftedStorePrefixFactorLemma.agda) | completed canonical theorem | Inverts a prefix below an already-lifted source-only store, recovering the smaller base store, its prefix to the ambient base store, and the residual lift. This is the inverse orientation needed by an `allocation-prefixᵀ` body relation. |
+| [`NuImprecisionRightSourceAllAllocationPrefixDef.agda`](NuImprecisionRightSourceAllAllocationPrefixDef.agda), [`Proof`](NuImprecisionRightSourceAllAllocationPrefixProof.agda) | completed strict structural case; canonical assembly waits on the recursive knot | Factors the lifted relation prefix back to the base store, composes that prefix with the ambient prefix, and recursively closes the strictly smaller relation. |
+| Proposed generic caught-body closing | refuted and deleted | An arbitrary completed body catch-up does not expose a final imprecision context of the canonical form `(zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ′`, nor source-only `ν` coherence. The two existing flat world invariants are insufficient to recover that shape, so no unsound `Def`, proof, or assembly file is retained. |
+| [`NuImprecisionSourceOnlyContextFactorCounterexample.agda`](NuImprecisionSourceOnlyContextFactorCounterexample.agda) | completed strict regression | Gives a reordered two-row source-only context satisfying both `SourceNameExclusive` and `AssumptionMembershipUnique`, then proves that it cannot have the canonical source-only-head form. This blocks deriving binder factorization from the current catch-up carrier after the fact. |
+| [`NuImprecisionRightSourceAllSourceFramesDef.agda`](NuImprecisionRightSourceAllSourceFramesDef.agda) | completed strict statements; proofs not started | States all four narrowing, widening, reveal, and conceal source-cast branches without assuming `NonVar` or occurrence for the pre-cast type. These remain sound semantic cases, but their proofs must preserve the lifted source-only factorization in lockstep or recurse directly in the source-`∀` dispatcher; the rejected generic caught-body factorization cannot prove them. |
+| [`PairedCastDef`](NuImprecisionRightSourceAllPairedCastDef.agda), [`QuotientDef`](NuImprecisionRightSourceAllQuotientDef.agda), [`NestedSourceAllDef`](NuImprecisionRightSourceAllNestedSourceAllDef.agda), [`TargetBulletDef`](NuImprecisionRightSourceAllTargetBulletDef.agda), [`TargetAllocationDef`](NuImprecisionRightSourceAllTargetAllocationDef.agda), and [`ResidualCasesDef`](NuImprecisionRightSourceAllResidualCasesDef.agda) | completed strict statements; five semantic proofs not started | Each residual boundary has its own canonical file for independent proof/check/delegation. The aggregate is only a flat capability record; every case returns the existing catch-up carrier. |
+| [`NuImprecisionRightSourceAllConstantBodyDef.agda`](NuImprecisionRightSourceAllConstantBodyDef.agda), [`Proof`](NuImprecisionRightSourceAllConstantBodyProof.agda) | completed strict proof | Source typing forces a primitive constant to have base type, contradicting the non-vacuity premise `occurs zero A ≡ true`. No semantic capability is needed for this value form. |
+| [`NuImprecisionRightSourceAllLambdaBodyDef.agda`](NuImprecisionRightSourceAllLambdaBodyDef.agda), [`Proof`](NuImprecisionRightSourceAllLambdaBodyProof.agda) | completed strict higher-order dispatcher | Splits target runtime syntax before QTI and exhaustively routes terminal values, five target frames, allocation prefix, target allocation, and target bullet through the flat case record. |
+| [`NuImprecisionRightSourceAllUniversalBodyDef.agda`](NuImprecisionRightSourceAllUniversalBodyDef.agda), [`Proof`](NuImprecisionRightSourceAllUniversalBodyProof.agda) | completed strict higher-order dispatcher | Adds paired-`Λ` terminal handling and the explicit nested source-only-universal leaf while covering the same target structural frontier. |
+| [`NuImprecisionRightSourceAllCastBodyDef.agda`](NuImprecisionRightSourceAllCastBodyDef.agda), [`Proof`](NuImprecisionRightSourceAllCastBodyProof.agda) | completed strict higher-order dispatcher | Exhaustively routes the four source frames, five target frames, paired cast, quotient cast, eager `gen` terminal, prefix, target allocation, and target bullet. |
+| [`NuImprecisionRightSourceAllValueFormsDef.agda`](NuImprecisionRightSourceAllValueFormsDef.agda), [`Proof`](NuImprecisionRightSourceAllValueFormsProof.agda), [`ClosingDispatcherProof`](NuImprecisionRightSourceAllClosingDispatcherProof.agda), [`ClosingProof`](NuImprecisionRightSourceAllClosingProof.agda) | completed strict top-level skeleton; canonical closing inhabitant pending | The constructor-form split on `Value` is complete and composes to `WorldCoherentRightSourceAllClosingᵀ` from one flat case record. This avoids Agda unification on computed left/right context-lift indices. |
+| [`NuImprecisionRightSourceAllClosingCasesDef.agda`](NuImprecisionRightSourceAllClosingCasesDef.agda), [`Proof`](NuImprecisionRightSourceAllClosingCasesProof.agda) | completed strict higher-order assembly; recursive knot and nine semantic fields remain | Assembles terminal, prefix, four source-frame, five target-frame, and five residual capabilities. It makes the recursive closing hypothesis and target terminalization dependency explicit; no `Lemma` exists until the structural recursive knot and semantic leaves are inhabited. |
+| [`NuImprecisionRightSourceAllStrictSpine.agda`](NuImprecisionRightSourceAllStrictSpine.agda) | completed focused checking boundary | Imports only the source-`∀` counterexample, statements, dispatchers, and assemblies. The first check after adding five new `Def` modules took 22.6 seconds; the immediate routine incremental check took 4.0 seconds. Use this instead of the broader terminal-forward spine during local development. |
 | [`NuImprecisionWorldCoherentRightTargetActiveUnsealRootProof.agda`](NuImprecisionWorldCoherentRightTargetActiveUnsealRootProof.agda) | completed strict Ginger/GPT-5.5 proof | Proves the widening-unseal and reveal-unseal active roots. Both cancel the final target seal, append the target `seal-unseal` step, and rebuild transport, coherence, lineage, bullet transport, and world evidence in the existing complete catch-up result. No unseal-specific result carrier is introduced. |
 | [`NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample.agda`](NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample.agda) | completed strict regression for the old generalized boundary | A duplicated source-only assumption context satisfies `SourceNameExclusive` and all old local direct-untag operational/typing premises. The requested function-ground index crosses the two distinct membership proofs, and exhaustive QTI inversion proves that the post-untag identity lambdas cannot be related at that index. The file now also proves that the new `AssumptionMembershipUnique` premise rejects exactly this duplicate-row context, so it no longer manufactures the strengthened terminal catch-up premise. |
 | [`NuImprecisionTargetTagCancellationDef.agda`](NuImprecisionTargetTagCancellationDef.agda) | completed strict statement; refuted | Flat generalized leaf returning the ground equality and QTI derivation inline. [`NuImprecisionTargetTagCancellationMismatchCounterexample.agda`](NuImprecisionTargetTagCancellationMismatchCounterexample.agda) proves it false for current QTI without adding a result carrier. |
@@ -747,14 +802,14 @@ are delegated:
 | [`NuImprecisionWorldCoherentRightTargetNarrowUntagRootProof.agda`](NuImprecisionWorldCoherentRightTargetNarrowUntagRootProof.agda) | completed higher-order fit to a refuted premise | Proves that flat generalized cancellation would suffice for the complete narrow-untag root. The mismatch confirms that the surrounding indices fit but the cancellation premise is not semantically available. No cancellation carrier should be added. |
 | [`NuImprecisionWorldCoherentRightTargetActiveRootResumeProof.agda`](NuImprecisionWorldCoherentRightTargetActiveRootResumeProof.agda) | partial strict proof: all five identity roots completed | A shared direct `β-id` composition preserves the existing catch-up result's transport, coherence, lineage, bullet transport, world coherence, and source-name evidence. Narrowing, general widening, identity-only widening, reveal, and conceal identity roots each invert the three reachable identity type shapes and reuse that core. The file intentionally does not assemble the ten-field capability while untag, instantiation, and unseal roots remain open. |
 | [`NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationDef.agda) | completed statement | Five-field terminalization boundary for target narrowing, widening, identity-only widening, reveal, and conceal. Each field returns the existing complete catch-up carrier directly. |
-| [`NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda) | completed strict higher-order proof | Synthesizes hereditary target plans, delegates inert and active roots to their exact capabilities, and handles narrowing/widening/id-only sequences by transporting and splitting the final cast, synthesizing subplans, invoking the smaller-rank pending continuation, and splicing it through the direct sequence-resume proof. Reveal/conceal structural conversions are inert. No target-administration result or view layer is introduced. |
+| [`NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda`](NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda) | completed strict higher-order proof | Synthesizes hereditary target plans, delegates inert and active roots to their exact capabilities, and handles ordinary narrowing/widening/id-only sequences by transporting both components under one final mode, retaining the valid midpoint, synthesizing component plans, invoking the smaller-rank pending continuation, and splicing it through direct sequence resume. The eager forms dispatch to their whole-cast active roots. Reveal/conceal structural conversions are inert. No target-administration result or view layer is introduced. |
 | [`NuImprecisionWorldCoherentRightValueCatchupCasesAssemblyProof.agda`](NuImprecisionWorldCoherentRightValueCatchupCasesAssemblyProof.agda) | completed flat higher-order assembly | Connects target-cast terminalization directly to the existing right-value case record, while reusing the same target-allocation capability for active roots and recursive allocation cases. The theorem returns `WorldCoherentRightValueCatchupCases` itself and adds no result, outcome, view, or compatibility layer. |
 | [`NuImprecisionWorldCoherentRightValueTerminalDef.agda`](NuImprecisionWorldCoherentRightValueTerminalDef.agda) | completed statement | Zero-step value/value base returning the full recursive right-catch-up result in the ambient prefix world. |
 | [`NuImprecisionWorldCoherentRightValueTerminalProof.agda`](NuImprecisionWorldCoherentRightValueTerminalProof.agda) | completed GPT-5.5 proof | Lifts both terminal typings and their relation through the ambient prefix, then returns the zero-step result with identity transport, source-bullet transport, coherence, and lineage. |
 | [`NuImprecisionWorldCoherentRightValueTerminalLemma.agda`](NuImprecisionWorldCoherentRightValueTerminalLemma.agda) | completed canonical assembly | Exposes the strict terminal proof through the canonical three-file boundary. |
 | [`NuDGGTerminalForwardDef.agda`](NuDGGTerminalForwardDef.agda) | completed statement | Arbitrary-world forward source-value terminal package with transported contexts, types, stores, and relation index written out. |
 | [`NuDGGTerminalForwardProof.agda`](NuDGGTerminalForwardProof.agda) | completed higher-order proof | Hole-free structural source-trace induction from the two new semantic contracts; preservation supplies every recursive runtime/store premise. |
-| [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda) | focused integration temporarily partial under QTI propagation | Imports the active forward proof architecture while avoiding broad DGG and `All.agda` checks. `NuImprecisionWorldEmbeddingNoBullet` now covers `gen⊑groundᵀ` strictly; further constructor exhaustiveness should be checked leaf-first. |
+| [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda) | completed focused strict integration boundary | Imports the active forward proof architecture while avoiding broad DGG and `All.agda` checks. It excludes the rejected historical nested-`gen` runtime witness, while the live constructor propagation, including `gen⊑groundᵀ`, passes `--no-allow-unsolved-metas`; semantic capability parameters remain accurately explicit. |
 | [`NuDGGTerminalForwardIntegrationProof.agda`](NuDGGTerminalForwardIntegrationProof.agda) | completed higher-order proof | Connects both fully partitioned forward case records and the independent backward terminal contracts all the way to public `GradualDGG`. |
 | [`NuDGGTerminalForwardMilestone.agda`](NuDGGTerminalForwardMilestone.agda) | high-cost milestone boundary; intentionally deferred | Imports the public compiler/DGG integration proof. It remains outside the routine focused-check loop while the mismatch refutes the all-QTI closed premise. |
 | [`NuImprecisionWorldCoherentSourceOneStepCasesDef.agda`](NuImprecisionWorldCoherentSourceOneStepCasesDef.agda) | completed corrected statement | Record of nine source reduction families: pure, allocation, and `ν`-blame roots return exact continuing results, while the six congruence families return explicit related-or-source-blame outcomes. |
@@ -782,7 +837,87 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourcePureStepCasesDef.agda`](NuImprecisionWorldCoherentSourcePureStepCasesDef.agda) | completed statement | Replaces the opaque pure-step capability with four major source-shape families carrying the full ambient-prefix and exact-result contract. |
 | [`NuImprecisionWorldCoherentSourcePureStepCasesProof.agda`](NuImprecisionWorldCoherentSourcePureStepCasesProof.agda) | completed higher-order assembly | Builds the four-way pure-root record and supplies the completed primitive family from right-value catch-up. |
 | [`NuImprecisionWorldCoherentSourcePureStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourcePureStepDispatcherProof.agda) | completed higher-order proof | Exhaustively routes all 18 pure reductions through the application, runtime-bullet, cast/conversion, or primitive family. |
-| [`NuImprecisionWorldCoherentSourceApplicationPureRootDef.agda`](NuImprecisionWorldCoherentSourceApplicationPureRootDef.agda) | completed statement; proof not started | Canonical ambient-prefix statement for every source application pure root. |
+| [`NuImprecisionWorldCoherentSourceApplicationPureRootDef.agda`](NuImprecisionWorldCoherentSourceApplicationPureRootDef.agda) | completed statement; higher-order dispatcher completed; beta leaves partial | Canonical ambient-prefix statement for every source application pure root. [`NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef.agda`](NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef.agda) separates lambda beta and function-cast beta, and [`NuImprecisionWorldCoherentSourceApplicationPureRootProof.agda`](NuImprecisionWorldCoherentSourceApplicationPureRootProof.agda) supplies both blame cases canonically. |
+| [`NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef.agda`](NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef.agda) | completed exact leaf statements; lambda leaf completed; function-cast leaf partial | Two genuine application semantic leaves: lambda substitution beta and function-cast beta. Both return the existing exact continuing result directly. Function-cast target scheduling, exhaustive direct dispatch, and all four one-sided source leaves are complete; three hard direct families remain. |
+| [`NuImprecisionWorldCoherentSourceApplicationPureRootProof.agda`](NuImprecisionWorldCoherentSourceApplicationPureRootProof.agda) | completed strict higher-order proof | Exhaustively dispatches `β`, `β-↦`, `blame-·₁`, and `blame-·₂`; only the two beta capabilities remain parameters. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaDirectDef.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaDirectDef.agda) | completed exact statement; exhaustive higher-order proof completed | Isolates source `β-↦` after QTI exposes a direct target application. Unlike the rejected unchanged-target relation boundary, its existing complete result permits target steps. The exhaustive dispatcher reduces it to three explicit hard families. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaSourceFramesDef.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaSourceFramesDef.agda) | completed four exact statements | States one-sided source narrowing, widening, reveal, and conceal leaves. Each statement exposes the contravariant domain coercion and covariant codomain coercion and returns the existing complete source-step result directly. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaSourceFramesProof.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaSourceFramesProof.agda) | completed strict proof | Constructs the casted argument relation, applies `·⊑·ᵀ`, frames the result coercion, lifts across the ambient relational-store prefix, and packages exactly the source `β-↦` step. The target takes zero steps in all four cases. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaSourceFramesLemma.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaSourceFramesLemma.agda) | completed canonical assembly | Exposes all four one-sided source leaves as a flat record for the direct function-cast dispatcher. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaFunctionPrefixDef.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaFunctionPrefixDef.agda) | completed exact statement; proof not started | Isolates a proof-only `allocation-prefixᵀ` wrapped around the function premise while the argument relation already lives at the later relational store. This is a genuine normalization boundary rather than ordinary outer scheduling. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaPairedCasesDef.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaPairedCasesDef.agda) | completed two exact statements; proofs not started | Separates ordinary `PairedCast` from `up⊑upᵀ`/`QuotientWideningPair`. Intermediate source and target types remain generic because paired evidence can cross arrow/non-arrow boundaries before the final arrow cast. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaTargetFramesDef.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaTargetFramesDef.agda) | completed five exact statements; proofs not started | Covers target-only narrowing, widening, identity-only widening, reveal, and conceal around the target function. The inner target type is intentionally generic: exhaustive checking found reachable `★`, base, variable, and `∀` intermediates, not just arrow-to-arrow inert casts. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaDirectCasesDef.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaDirectCasesDef.agda) | completed flat case surface | Collects function-prefix normalization, canonical source frames, paired cases, and target-only frames without a nested relation view or new result carrier. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaDirectDispatcherProof.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaDirectDispatcherProof.agda) | completed strict exhaustive proof | Inverts every reachable QTI constructor on the related function premise. Agda's coverage checker forced the target and paired statements to retain non-arrow intermediate types, preventing an unsound arrow-only skeleton. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaDirectLemma.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaDirectLemma.agda) | partial canonical assembly | Supplies all four source-only leaves canonically and exposes only function-prefix, paired, and target-only families. |
+| [`NuImprecisionWorldCoherentSourceKeepRelationDef.agda`](NuImprecisionWorldCoherentSourceKeepRelationDef.agda), [`Proof`](NuImprecisionWorldCoherentSourceKeepRelationProof.agda), and [`Lemma`](NuImprecisionWorldCoherentSourceKeepRelationLemma.agda) | completed canonical utility | Packages one source `keep` step once its final QTI relation is known, using identity transport/coherence and reflexive store lineage. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaTargetBulletDef.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaTargetBulletDef.agda), [`Proof`](NuImprecisionWorldCoherentSourceFunctionCastBetaTargetBulletProof.agda), and [`Lemma`](NuImprecisionWorldCoherentSourceFunctionCastBetaTargetBulletLemma.agda) | completed canonical leaf | Eliminates the target-bullet case with the reusable source-application/target-bullet exclusion. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaSchedulingCasesDef.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaSchedulingCasesDef.agda) and [`CasesLemma`](NuImprecisionWorldCoherentSourceFunctionCastBetaSchedulingCasesLemma.agda) | completed flat cases | Records direct target application, target bullet, target cast frames, and target `ν` frames without introducing a nested result or view. Only the direct case remains explicit in the canonical assembly. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaSchedulingDispatcherProof.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaSchedulingDispatcherProof.agda) | completed strict structural proof | Exhaustively strips allocation prefixes, eliminates target bullets, and transports results through both target-`ν` forms and all five target cast/conversion constructors before reaching a direct target application. |
+| [`NuImprecisionWorldCoherentSourceFunctionCastBetaSchedulingLemma.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaSchedulingLemma.agda) | partial canonical assembly | Reduces the full [`WorldCoherentSourceFunctionCastBetaRootᵀ`](NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef.agda) to [`WorldCoherentSourceFunctionCastBetaDirectᵀ`](NuImprecisionWorldCoherentSourceFunctionCastBetaDirectDef.agda). |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaSchedulingDef.agda`](NuImprecisionWorldCoherentSourceLambdaBetaSchedulingDef.agda) | completed statement | Flat target-scheduling boundary from canonical synchronized beta to the existing arbitrary-target lambda-beta root. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaSchedulingCasesDef.agda`](NuImprecisionWorldCoherentSourceLambdaBetaSchedulingCasesDef.agda) | completed statement | Four genuine scheduling dependencies: direct application, target bullet, target casts, and target `ν` frames. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaSchedulingDispatcherProof.agda`](NuImprecisionWorldCoherentSourceLambdaBetaSchedulingDispatcherProof.agda) | completed strict structural proof | Exhaustively recurses through allocation prefixes, both target `ν` forms, and all five target cast/conversion forms; only direct application and target bullet are leaves. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaSchedulingProof.agda`](NuImprecisionWorldCoherentSourceLambdaBetaSchedulingProof.agda) | completed higher-order assembly | Instantiates direct scheduling with synchronized beta and assembles the flat structural cases. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaSchedulingLemma.agda`](NuImprecisionWorldCoherentSourceLambdaBetaSchedulingLemma.agda) | completed canonical assembly | Supplies direct scheduling, target cast frames, target `ν` frames, and target-bullet inversion canonically. Only the shared right-value catch-up engine remains explicit. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaDirectDef.agda`](NuImprecisionWorldCoherentSourceLambdaBetaDirectDef.agda) | completed statement | Unframed target-application scheduling after QTI inversion exposes related function and argument premises. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaDirectCasesDef.agda`](NuImprecisionWorldCoherentSourceLambdaBetaDirectCasesDef.agda) | completed statement | The two existing `FunView` terminals: a target lambda and an inert target function-cast value. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaDirectProof.agda`](NuImprecisionWorldCoherentSourceLambdaBetaDirectProof.agda) | completed strict structural proof | Catches up a non-value target function, transports the untouched argument, frames the silent trace, classifies the final arrow value, and dispatches to the two terminals. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaDirectLemma.agda`](NuImprecisionWorldCoherentSourceLambdaBetaDirectLemma.agda) | completed canonical assembly | Builds both `FunView` terminals from synchronized beta and the ranked function-cast SCC. Only the shared right-value catch-up engine remains explicit. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetLambdaDirectDef.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetLambdaDirectDef.agda) | completed statement | Plain target-lambda terminal with only target-argument catch-up left before synchronized beta. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetLambdaDirectProof.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetLambdaDirectProof.agda) | completed strict proof | Catches up the target argument, transports and inverts the related lambdas, fires synchronized beta, frames the argument trace, and composes both phases. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetLambdaDirectLemma.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetLambdaDirectLemma.agda) | completed higher-order assembly | Supplies canonical substitution, synchronized beta, and source-silent composition; only shared right-value catch-up remains explicit. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastDirectDef.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastDirectDef.agda) | completed statement | Direct target `β-↦` scheduling after `canonical-⇒` exposes an inert target function-cast value. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastDirectProof.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastDirectProof.agda) | completed strict proof | Catches up the target argument, frames and composes the silent trace, preserves the exact cast-spine rank through `applyTerms`, and invokes the value-argument scheduler at the same rank. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastDirectLemma.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastDirectLemma.agda) | completed canonical assembly | Exposes direct function-cast scheduling from the closed ranked SCC; the private rank does not appear in the public statement. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastValueDef.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastValueDef.agda) | completed statement | Value-argument form of target function-cast scheduling, isolating the strictly decreasing cast-spine step from target-argument catch-up. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastValueProof.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastValueProof.agda) | completed strict proof | Exhaustively proves narrowing, widening, identity-only widening, reveal, and conceal function casts. Each case casts the argument contravariantly, schedules the inner application, frames the result covariantly, and prepends target `β-↦`. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastValueLemma.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastValueLemma.agda) | completed canonical assembly | Exposes the value-argument theorem from the closed ranked SCC without a recursive theorem parameter. |
+| [`NuImprecisionTargetFunctionCastSpineMeasureDef.agda`](NuImprecisionTargetFunctionCastSpineMeasureDef.agda) and [`Proof`](NuImprecisionTargetFunctionCastSpineMeasureProof.agda) | completed strict measure | Counts inert casts in a target value, proves proof-evidence independence, preservation under renaming and `applyTerms`, and strict decrease when one function cast is peeled. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastRankedDef.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastRankedDef.agda) | completed exact-rank statements | Adds only proof-recursion indices to the existing direct and value scheduling claims; no runtime result carrier or public DGG premise is added. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastSCCProof.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastSCCProof.agda) | completed strict SCC proof | Structural recursion on `ℕ` builds the value scheduler at rank `n + 1` from the direct scheduler at rank `n`, then the direct scheduler at rank `n + 1` from that value scheduler. It uses no termination pragma, postulate, hole, or permissive option. |
+| [`NuImprecisionWorldCoherentSourceTargetKeepPrependDef.agda`](NuImprecisionWorldCoherentSourceTargetKeepPrependDef.agda), [`Proof`](NuImprecisionWorldCoherentSourceTargetKeepPrependProof.agda), and [`Lemma`](NuImprecisionWorldCoherentSourceTargetKeepPrependLemma.agda) | completed canonical utility | Prepends one target `keep` step to an exact source result while preserving all transport, coherence, lineage, and world invariants. The function-cast proof uses it for target `β-↦`. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetBulletDef.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetBulletDef.agda) | completed statement | Exact target-bullet lambda scheduling boundary. The outer bullet constructor is reachable generally, so the statement does not assume it away. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetBulletProof.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetBulletProof.agda) | completed strict proof | Exhaustively inverts the bullet relation through allocation prefixes. Its underlying target must be a value, while no QTI derivation can relate a source application to a target value; target cast wrappers are peeled recursively and all non-value target shapes are eliminated. |
+| [`NuImprecisionWorldCoherentSourceLambdaBetaTargetBulletLemma.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetBulletLemma.agda) | completed canonical assembly | Exposes the strict inversion proof with no theorem parameter. |
+| [`NuImprecisionTargetValueSourceApplicationExclusionDef.agda`](NuImprecisionTargetValueSourceApplicationExclusionDef.agda), [`Proof`](NuImprecisionTargetValueSourceApplicationExclusionProof.agda), and [`Lemma`](NuImprecisionTargetValueSourceApplicationExclusionLemma.agda) | completed reusable inversion | Exhaustively excludes a QTI derivation from any source application to a target value. It is shared by lambda target-bullet closure and the remaining function-cast beta planning. |
+| [`NuImprecisionWorldCoherentSourceSilentCompositionDef.agda`](NuImprecisionWorldCoherentSourceSilentCompositionDef.agda) | completed statement | Reusable composition from a source-silent weak result and a following exact world-coherent source step to the original exact result. |
+| [`NuImprecisionWorldCoherentSourceSilentCompositionProof.agda`](NuImprecisionWorldCoherentSourceSilentCompositionProof.agda) | completed strict proof | Composes traces, transport, type coherence, lineage, and world facts, then reindexes by final-world precision-index uniqueness. |
+| [`NuImprecisionWorldCoherentSourceSilentCompositionLemma.agda`](NuImprecisionWorldCoherentSourceSilentCompositionLemma.agda) | completed canonical assembly | Instantiates the lower-level source-silent composition record. |
+| [`NuImprecisionWorldCoherentSourceApplicationPureRootCasesLemma.agda`](NuImprecisionWorldCoherentSourceApplicationPureRootCasesLemma.agda) | partial canonical higher-order assembly | Supplies the lambda root from completed scheduling and constructs the function-cast root from the exhaustive direct dispatcher. Its only remaining parameters are function-prefix normalization, paired ordinary/quotient cases, and target-only cast/conversion cases. |
+| [`NuImprecisionSubstitutionFrame.agda`](NuImprecisionSubstitutionFrame.agda) | completed definition | Genuine binder history for substitution: identity, ordinary lambda, paired type lift, and source-only type lift. Its environment family supplies relations and no-bullet evidence at the exact proof-relevant context indices of every reachable frame. |
+| [`NuImprecisionParallelTermSubstitutionDef.agda`](NuImprecisionParallelTermSubstitutionDef.agda) | completed framed and public statements | [`QuotientedParallelTermSubstitutionFramedᵀ`](NuImprecisionParallelTermSubstitutionDef.agda) is the structurally recursive prefix-aware theorem. [`QuotientedParallelTermSubstitutionᵀ`](NuImprecisionParallelTermSubstitutionDef.agda) is its same-world identity-frame public boundary. The environment family avoids proof irrelevance for arbitrary indices stored under type binders. |
+| [`NuImprecisionParallelTermSubstitutionProof.agda`](NuImprecisionParallelTermSubstitutionProof.agda) | completed strict structural proof | Exhaustive mutual recursion over all ordinary QTI and quotient QTIP constructors. It composes allocation prefixes, extends frames under both binders, transports all store-indexed cast/conversion evidence, and eliminates runtime-bullet roots from `No•`. |
+| [`NuImprecisionParallelTermSubstitutionLemma.agda`](NuImprecisionParallelTermSubstitutionLemma.agda) | completed canonical assembly | Instantiates the checked framed proof at `substitution-frame-id` and `prefix-reflⁱ`; callers receive the public theorem without a proof parameter. |
+| [`NuImprecisionParallelTermSubstitutionEnvironmentProof.agda`](NuImprecisionParallelTermSubstitutionEnvironmentProof.agda) | completed focused helpers | Projects a related substitution environment to the source and target `SubstWf` obligations and converts pointwise no-bullet evidence to `SubstNo•`. |
+| [`NuImprecisionParallelTermSubstitutionBlameProof.agda`](NuImprecisionParallelTermSubstitutionBlameProof.agda) | completed root case | Proves the source-blame constructor by weakening target typing through the store prefix and applying refined typed parallel substitution. |
+| [`NuImprecisionTermContextShiftDef.agda`](NuImprecisionTermContextShiftDef.agda) | completed statement | Exact no-bullet term-context insertion needed for successor substitution images under an ordinary lambda. Both terms are renamed by `suc`; type and store worlds remain fixed. |
+| [`NuImprecisionTermContextShiftProof.agda`](NuImprecisionTermContextShiftProof.agda) | completed strict proof | Exhaustive mutual recursion over ordinary and quotient QTI, with an insertion-depth witness under lambdas. Runtime-bullet constructors are eliminated by `No•`; all cast, conversion, allocation, `ν`, and `Λ` forms are covered. |
+| [`NuImprecisionLambdaSubstitutionEnvironmentDef.agda`](NuImprecisionLambdaSubstitutionEnvironmentDef.agda) | completed statement | States extension of a related no-bullet substitution environment beneath an ordinary lambda from `QuotientedTermContextShiftᵀ`. |
+| [`NuImprecisionLambdaSubstitutionEnvironmentProof.agda`](NuImprecisionLambdaSubstitutionEnvironmentProof.agda) | completed strict higher-order proof | Maps the bound variable to itself and shifts every free-variable image with the context-shift capability; no-bullet evidence is reconstructed exhaustively. |
+| [`NuImprecisionParallelTermSubstitutionLambdaDef.agda`](NuImprecisionParallelTermSubstitutionLambdaDef.agda) | completed exact root statement | Ordinary-lambda constructor case of prefix-aware parallel substitution, stated without hiding its environment or body relation. |
+| [`NuImprecisionParallelTermSubstitutionLambdaProof.agda`](NuImprecisionParallelTermSubstitutionLambdaProof.agda) | completed higher-order root proof | Extends the genuine frame with `substitution-frame-ƛ`, invokes framed recursive parallel substitution on the body, and reconstructs `ƛ⊑ƛᵀ`. |
+| [`NuImprecisionParallelTermSubstitutionUniversalDef.agda`](NuImprecisionParallelTermSubstitutionUniversalDef.agda) | completed exact root statements | Freezes the paired and source-only `Λ` roots with their lifted store, context, value, no-bullet, and `NonVar`/occurrence evidence explicit. |
+| [`NuImprecisionParallelTermSubstitutionUniversalProof.agda`](NuImprecisionParallelTermSubstitutionUniversalProof.agda) | completed higher-order root proofs | Lifts the output store prefix under the binder, extends the genuine frame, invokes recursive substitution, and reconstructs `Λ⊑Λᵀ` or `Λ⊑ᵀ`. |
+| [`NuImprecisionSingleSubstitutionEnvironmentDef.agda`](NuImprecisionSingleSubstitutionEnvironmentDef.agda) | completed statement | Requires a complete related/no-bullet `singleEnv` family at every genuine binder frame. |
+| [`NuImprecisionSubstitutionEnvironmentTypeLiftDef.agda`](NuImprecisionSubstitutionEnvironmentTypeLiftDef.agda) | completed hard-leaf statements | Freezes the exact paired and source-only type-lift obligations, including arbitrary precision proofs stored by lifted contexts. |
+| [`NuImprecisionSubstitutionEnvironmentTypeLiftProof.agda`](NuImprecisionSubstitutionEnvironmentTypeLiftProof.agda) | completed strict proofs | Aligns exact lifted context indices using assumption-membership and precision-index uniqueness, then renames the canonical no-bullet environment under paired and source-only type binders. |
+| [`NuImprecisionSingleSubstitutionEnvironmentProof.agda`](NuImprecisionSingleSubstitutionEnvironmentProof.agda) | completed strict higher-order proof | Exhaustive recursion on the substitution frame handles identity and ordinary lambda directly and invokes the two completed type-lift leaves. |
+| [`NuImprecisionSingleSubstitutionEnvironmentLemma.agda`](NuImprecisionSingleSubstitutionEnvironmentLemma.agda) | completed canonical assembly | Supplies term-context shifting and both type-lift proofs to expose the complete single-substitution environment family. |
+| [`NuImprecisionTermSubstitutionDef.agda`](NuImprecisionTermSubstitutionDef.agda) | completed corrected statement | Reusable same-world single term-variable substitution theorem for quotiented Nu-term imprecision, with explicit no-bullet premises and `AssumptionMembershipUnique`. |
+| [`NuImprecisionTermSubstitutionProof.agda`](NuImprecisionTermSubstitutionProof.agda) | completed strict higher-order proof | Obtains the complete `singleEnv` binder-frame family from `QuotientedSingleSubstitutionEnvironmentᵀ`, then invokes public parallel substitution. |
+| [`NuImprecisionStorePrefixNoBulletDef.agda`](NuImprecisionStorePrefixNoBulletDef.agda) | completed statement | Reusable no-bullet weakening of an unchanged quotiented term relation through `StoreImpPrefix`. |
+| [`NuImprecisionStorePrefixNoBulletProof.agda`](NuImprecisionStorePrefixNoBulletProof.agda) | completed strict proof | Discharges `allocation-prefixᵀ`'s ambient typing premises using the quotient typing projections and source/target store inclusions. |
+| [`NuImprecisionStorePrefixEvidenceDef.agda`](NuImprecisionStorePrefixEvidenceDef.agda) | completed focused statements | Prefix preservation of `StoreCorresponds`, `PairedCast`, and `QuotientWideningPair`, separated from term recursion. |
+| [`NuImprecisionStorePrefixEvidenceProof.agda`](NuImprecisionStorePrefixEvidenceProof.agda) | completed strict proof | Weakens correspondence membership, conversions, narrowing/widening, and seal-mode evidence through projected store inclusions. |
+| [`NuImprecisionStorePrefixLiftDef.agda`](NuImprecisionStorePrefixLiftDef.agda) | completed paired/left/right statements | Forward store-lift transport through a relational-store prefix for paired, source-only, and target-only binder worlds. |
+| [`NuImprecisionStorePrefixLiftProof.agda`](NuImprecisionStorePrefixLiftProof.agda) | completed strict proof | Exhaustively lifts every matched, one-sided, and link prefix entry and returns the lifted prefix required by binder recursion. |
+| [`NuImprecisionRightBinderContextLiftProof.agda`](NuImprecisionRightBinderContextLiftProof.agda) | completed focused helper | Constructs the canonical target-only relational context lift used by right `ν` and `νcast` reconstruction. |
+| [`NuImprecisionLeftStorePrefixFactorDef.agda`](NuImprecisionLeftStorePrefixFactorDef.agda) | completed statement | Left-only counterpart of the existing paired and right store-prefix factorization boundaries needed beneath asymmetric type binders. |
+| [`NuImprecisionLeftStorePrefixFactorProof.agda`](NuImprecisionLeftStorePrefixFactorProof.agda) | completed strict proof | Exhaustively factors every left-store lift constructor through reflexive and extended relational-store prefixes. |
+| [`NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaDef.agda`](NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaDef.agda) | completed statement | Exact synchronized-beta boundary after target scheduling has produced a related target lambda and related target value. |
+| [`NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaProof.agda`](NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaProof.agda) | completed strict higher-order proof | From quotiented substitution, takes one source and one target `β` keep step and returns the existing exact source-step result with unchanged world, identity transport, and reflexive lineage. |
+| [`NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaLemma.agda`](NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaLemma.agda) | completed canonical assembly | Connects the closed parallel-substitution lemma through single substitution to synchronized beta. It has no remaining theorem parameter. |
 | [`NuImprecisionWorldCoherentSourceRuntimeBulletPureRootDef.agda`](NuImprecisionWorldCoherentSourceRuntimeBulletPureRootDef.agda) | completed statement; proof not started | Canonical ambient-prefix statement for every source runtime-bullet pure root. |
 | [`NuImprecisionWorldCoherentSourceCastPureRootDef.agda`](NuImprecisionWorldCoherentSourceCastPureRootDef.agda) | completed statement; proof not started | Canonical ambient-prefix statement for every source cast/conversion pure root. |
 | [`NuImprecisionWorldCoherentSourcePrimitivePureRootDef.agda`](NuImprecisionWorldCoherentSourcePrimitivePureRootDef.agda) | completed statement | Canonical full primitive-root capability consumed by the four-way pure-step record and targeted by the synchronized delta leaf. |
@@ -9528,3 +9663,996 @@ coordination.  Use focused strict checks throughout and reserve
   view `Proof` assembles them exhaustively.  Implementing the paired and
   source-only leaves is the next identity-path task; the source and target
   swap-step implementations remain not yet started.
+
+### 2026-07-22: canonical quotiented substitution and synchronized beta
+
+- Completed
+  [`quotiented-parallel-term-substitution-framed-proofᵀ`](NuImprecisionParallelTermSubstitutionProof.agda)
+  by mutual structural recursion over ordinary QTI and quotient QTIP.  Every
+  constructor is explicit: ordinary and type binders, allocation prefixes,
+  all `ν`/`νcast` orientations, primitives, casts, conversions, and both
+  quotient downcast forms.  Runtime-bullet constructors are eliminated from
+  the theorem's `No•` premises.
+
+- Isolated the store-indexed reconstruction machinery in focused modules.
+  [`NuImprecisionStorePrefixEvidenceProof.agda`](NuImprecisionStorePrefixEvidenceProof.agda)
+  transports correspondence, paired casts, and quotient widening pairs.
+  [`NuImprecisionStorePrefixLiftProof.agda`](NuImprecisionStorePrefixLiftProof.agda)
+  now covers paired, source-only, and target-only binder lifts, while
+  [`lift-right-ctx-result`](NuImprecisionRightBinderContextLiftProof.agda)
+  supplies the matching target-only context lift.
+
+- Completed both proof-relevant type-binder environment leaves in
+  [`NuImprecisionSubstitutionEnvironmentTypeLiftProof.agda`](NuImprecisionSubstitutionEnvironmentTypeLiftProof.agda).
+  `AssumptionMembershipUnique` aligns arbitrary stored precision indices, so
+  the canonical single-substitution environment needs neither proof
+  irrelevance nor `--allow-unsolved-metas`.
+
+- Closed the assembly chain.  The public
+  [`quotiented-parallel-term-substitution-lemmaᵀ`](NuImprecisionParallelTermSubstitutionLemma.agda)
+  and
+  [`world-coherent-source-synchronized-lambda-beta-lemmaᵀ`](NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaLemma.agda)
+  now have no theorem parameters.  Consequently the lambda-beta application
+  leaf no longer waits on substitution; its remaining work is entirely target
+  scheduling from an arbitrary related application to the synchronized
+  lambda/value shape.  Function-cast beta remains a separate semantic leaf.
+
+- Added the flat scheduling boundary
+  [`WorldCoherentSourceLambdaBetaSchedulingᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaSchedulingDef.agda)
+  and the checked application-case assembly
+  [`world-coherent-source-application-pure-root-cases-lemmaᵀ`](NuImprecisionWorldCoherentSourceApplicationPureRootCasesLemma.agda).
+  The DGG-near
+  [`scheduled-lambda-forward-builders-and-backward-terminals⇒gradual-dgg`](NuDGGTerminalForwardIntegrationProof.agda)
+  now checks, establishing that the scheduling proof and the separate
+  function-cast beta proof fit the complete top-level `GradualDGG` skeleton.
+
+- Focused strict checks pass with no full aggregate check: the canonical
+  substitution plus synchronized-beta assemblies took about 8.6 seconds, the
+  terminal forward strict spine about 9.1 seconds, and the DGG-near integration
+  proof about 5.5 seconds.  `All.agda` was not run.
+
+### 2026-07-22: ordinary lambda-beta scheduling spine
+
+- The arbitrary-target lambda-beta root is now structurally reduced to two
+  semantic leaves.  The strict
+  [`world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaSchedulingDispatcherProof.agda)
+  composes allocation prefixes, eliminates the direct application case, and
+  maps completed results through both target-`ν` forms and all five target
+  cast/conversion forms.  No application-specific result or outcome carrier
+  was introduced.
+
+- A target runtime bullet is not impossible from type indices alone.  The
+  `⊑αᵀ` constructor can introduce one under a target-only world extension,
+  so the dispatcher records the case as the flat exact leaf
+  [`WorldCoherentSourceLambdaBetaTargetBulletᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaTargetBulletDef.agda)
+  rather than hiding it behind an invalid outer empty pattern.  Its later
+  proof requires a separate structural inversion of the constructor's inner
+  relation.
+
+- The direct application proof catches up a non-value target function before
+  classifying it.  The strict
+  [`world-coherent-source-lambda-beta-direct-proofᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaDirectProof.agda)
+  catches up a non-value target function, transports the no-bullet argument
+  across the emitted target changes, frames the catch-up under application,
+  and uses the existing `FunView` from `NuProgress` to select a lambda or
+  inert function-cast terminal.  The latter is now supplied by the ranked SCC
+  below.  This reuses an existing view and does not worsen the nesting problem
+  from issue #78.
+
+- The target-lambda terminal is fully proved.  The reduction sequence has the
+  shape
+
+      (ƛ N) · V        ⊑        (ƛ N′) · R′
+           │                         │*
+           │ 0                       │ target-argument catch-up
+           │                         │
+      (ƛ N) · V        ⊑        (ƛ N′*) · V′
+           │                         │
+           │ synchronized beta      │ synchronized beta
+           │                         │
+         N [ V ]        ⊑          N′* [ V′]
+
+  The implementation is
+  [`world-coherent-source-lambda-beta-target-lambda-direct-proofᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaTargetLambdaDirectProof.agda).
+  It transports the related lambdas through the argument catch-up, extracts
+  the transported body relation, invokes the closed synchronized-beta lemma,
+  and composes the framed catch-up with that exact step.
+
+- The repeated final composition is now canonicalized by
+  [`WorldCoherentSourceSilentCompositionᵀ`](NuImprecisionWorldCoherentSourceSilentCompositionDef.agda).
+  Its proof preserves transport, arrow/`∀` coherence, store lineage, exact
+  source changes and result, world coherence, exclusivity, and assumption
+  uniqueness.  Precision-index uniqueness at the final world recovers the
+  original proof-relevant index.
+
+- The DGG-near theorem
+  [`lambda-beta-assembled-and-backward-terminals⇒gradual-dgg`](NuDGGTerminalForwardIntegrationProof.agda)
+  strictly checks.  It establishes that completed lambda scheduling fits the
+  full `GradualDGG` skeleton from the exposed right-value engine, the
+  independent source function-cast beta root, the other forward builders, and
+  the two backward terminal capabilities.
+
+- Focused strict checks passed for every new `Def`/`Proof`/`Lemma` file.  The
+  integration check took about 7.9 seconds.  `All.agda` was not run.
+
+### 2026-07-22: target function-cast scheduling SCC closed
+
+- Direct scheduling was split at the genuine phase boundary.  The strict
+  [`world-coherent-source-lambda-beta-target-function-cast-direct-at-proofᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastDirectProof.agda)
+  catches up an arbitrary target argument and invokes the value-argument
+  scheduler without changing the function-cast rank.  Rank preservation
+  through target store changes is proved by
+  [`target-function-cast-spine-rank-applyTerms`](NuImprecisionTargetFunctionCastSpineMeasureProof.agda).
+
+- The value-argument proof is exhaustive over the five QTI constructors that
+  can place an inert function cast on the target:
+
+  1. narrowing casts use target widening on the argument and target narrowing
+     on the result;
+  2. widening casts use target narrowing on the argument and target widening
+     on the result;
+  3. identity-only widening relaxes the argument narrowing mode and retains
+     the identity-only result frame;
+  4. reveal conversions use concealment on the argument and reveal on the
+     result;
+  5. conceal conversions use reveal on the argument and concealment on the
+     result.
+
+  In each case,
+  [`world-coherent-source-lambda-beta-target-function-cast-value-suc-at-proofᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastValueProof.agda)
+  casts the target argument contravariantly, schedules the inner application,
+  frames the result covariantly, and prepends the target `β-↦` step.
+
+- The apparent higher-order cycle is now a strict natural-number recursion in
+  [`NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastSCCProof.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastSCCProof.agda).
+  At rank `n + 1`, the value scheduler uses the already constructed direct
+  scheduler at rank `n`; the direct scheduler at rank `n + 1` then uses that
+  new value scheduler.  The exact-rank statements live in
+  [`NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastRankedDef.agda`](NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastRankedDef.agda).
+  The rank is private recursion control: the public direct and value theorem
+  statements are unchanged.  No `TERMINATING`/`NON_TERMINATING` pragma, new
+  runtime result carrier, postulate, hole, or permissive option is used.
+
+- The function-cast scheduling surface now requires only right-value catch-up
+  and synchronized beta.  It no longer appears as a premise of the DGG-near
+  theorem.  Focused strict checks pass for the SCC proof without any full
+  aggregate check.
+
+### 2026-07-22: lambda target-bullet leaf closed
+
+- The outer `⊑αᵀ` constructor is reachable generally, but its premise relates
+  the unchanged source term to a target value.  The strict
+  [`quotiented-target-value-excludes-source-applicationᵀ`](NuImprecisionTargetValueSourceApplicationExclusionLemma.agda)
+  inversion shows that no QTI derivation relates an application to a value.
+  It recursively peels allocation prefixes and the five possible target cast
+  wrappers; direct applications, target bullets, and target `ν` forms have
+  non-value target shapes.
+
+- Consequently
+  [`world-coherent-source-lambda-beta-target-bullet-proofᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaTargetBulletProof.agda)
+  eliminates the target-bullet scheduling leaf without invoking the general
+  source one-step engine.  The canonical
+  [`world-coherent-source-lambda-beta-target-bulletᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaTargetBulletLemma.agda)
+  has no theorem parameter.
+
+- [`world-coherent-source-lambda-beta-schedulingᵀ`](NuImprecisionWorldCoherentSourceLambdaBetaSchedulingLemma.agda)
+  is now a completed canonical assembly parameterized only by the shared
+  right-value catch-up engine.  The DGG-near
+  [`lambda-beta-assembled-and-backward-terminals⇒gradual-dgg`](NuDGGTerminalForwardIntegrationProof.agda)
+  has no lambda-scheduling leaf premise.  Focused strict checks pass for the
+  9.3-second forward spine and 7.1-second integration proof.  `All.agda` was
+  not run.
+
+### 2026-07-22: one-sided source function-cast beta leaves closed
+
+- The direct source `β-↦` boundary was split according to the outer QTI
+  function relation.  Four cases need no target reduction:
+
+  1. source narrowing casts the argument by widening and the result by
+     narrowing;
+  2. source widening casts the argument by narrowing and the result by
+     widening;
+  3. source reveal casts the argument by concealment and the result by
+     reveal;
+  4. source conceal casts the argument by reveal and the result by
+     concealment.
+
+- Their exact statements are
+  [`WorldCoherentSourceFunctionCastBetaSourceNarrowᵀ`](NuImprecisionWorldCoherentSourceFunctionCastBetaSourceFramesDef.agda),
+  [`WorldCoherentSourceFunctionCastBetaSourceWidenᵀ`](NuImprecisionWorldCoherentSourceFunctionCastBetaSourceFramesDef.agda),
+  [`WorldCoherentSourceFunctionCastBetaSourceRevealᵀ`](NuImprecisionWorldCoherentSourceFunctionCastBetaSourceFramesDef.agda),
+  and
+  [`WorldCoherentSourceFunctionCastBetaSourceConcealᵀ`](NuImprecisionWorldCoherentSourceFunctionCastBetaSourceFramesDef.agda).
+  They are genuine semantic leaves, collected in one flat record rather than
+  hidden behind a relation view or a new result carrier.
+
+- The canonical strict proof
+  [`world-coherent-source-function-cast-beta-source-frames-proofᵀ`](NuImprecisionWorldCoherentSourceFunctionCastBetaSourceFramesProof.agda)
+  explicitly constructs
+
+      W ⟨ c ⟩ ⊑ R′
+      V · (W ⟨ c ⟩) ⊑ L′ · R′
+      (V · (W ⟨ c ⟩)) ⟨ d ⟩ ⊑ L′ · R′
+
+  with the direction of `c` and `d` specialized to each case.  It then uses
+  [`world-coherent-source-keep-relationᵀ`](NuImprecisionWorldCoherentSourceKeepRelationLemma.agda)
+  to package exactly
+  `(V ⟨ c ↦ d ⟩) · W —→[ keep ]
+  (V · (W ⟨ c ⟩)) ⟨ d ⟩`.  The target trace is empty.
+
+- Focused checks pass with `--no-allow-unsolved-metas`.  The strict forward
+  spine remains the routine aggregate boundary; `All.agda` was not run.
+
+### 2026-07-22: exhaustive direct function-cast skeleton checked
+
+- The remaining direct theorem is now assembled from a flat case record in
+  [`NuImprecisionWorldCoherentSourceFunctionCastBetaDirectCasesDef.agda`](NuImprecisionWorldCoherentSourceFunctionCastBetaDirectCasesDef.agda).
+  Its noncanonical fields are exactly:
+
+  1. [`WorldCoherentSourceFunctionCastBetaFunctionPrefixᵀ`](NuImprecisionWorldCoherentSourceFunctionCastBetaFunctionPrefixDef.agda),
+     for a proof-only prefix around the function relation while the argument
+     already lives at the later relational store;
+  2. [`WorldCoherentSourceFunctionCastBetaPairedCases`](NuImprecisionWorldCoherentSourceFunctionCastBetaPairedCasesDef.agda),
+     separating ordinary paired casts from paired quotient widening;
+  3. [`WorldCoherentSourceFunctionCastBetaTargetFrames`](NuImprecisionWorldCoherentSourceFunctionCastBetaTargetFramesDef.agda),
+     separating target narrowing, widening, identity-only widening, reveal,
+     and conceal.
+
+- The strict
+  [`world-coherent-source-function-cast-beta-direct-dispatcher-proofᵀ`](NuImprecisionWorldCoherentSourceFunctionCastBetaDirectDispatcherProof.agda)
+  is exhaustive over the QTI derivation for the related functions.  During
+  coverage checking, an arrow-only draft of the paired and target-only
+  statements failed: reachable inner target types include `★`, base types,
+  variables, and `∀` types.  The final statements therefore retain generic
+  intermediate types and cover both active target normalization and inert
+  function casts.  This is precisely the kind of top-level fit error the
+  skeleton-first organization is meant to expose early.
+
+- [`world-coherent-source-function-cast-beta-directᵀ`](NuImprecisionWorldCoherentSourceFunctionCastBetaDirectLemma.agda)
+  supplies the four one-sided source leaves canonically.  The DGG-near
+  integration theorem now requests the three hard families directly instead
+  of one opaque `WorldCoherentSourceFunctionCastBetaDirectᵀ` premise.
+
+- Focused strict checks pass: the dispatcher and direct assembly take about
+  4.7--4.9 seconds, integration about 8.9 seconds, and the expanded strict
+  spine about 11.4 seconds on the first aggregate check.  This is still a
+  focused cone; `All.agda` was not run.
+
+### Next boundary
+
+Prove one of the three now-checked direct families.  Start with target-only
+casts/conversions because the existing right-value catch-up engine and target
+frame utilities already provide most of the operational structure.  Split
+active non-arrow intermediates from inert arrow-to-arrow function casts only
+inside the proof, not in the public statement.  The paired families must take
+the matching target `β-↦` step, while the function-prefix proof must transport
+function evidence forward without attempting to move the later argument
+relation backward across the prefix.
+
+### 2026-07-22: flat active target-step resumption
+
+- Added the canonical three-file boundary
+  [`WorldCoherentRightTargetStepResumeᵀ`](NuImprecisionWorldCoherentRightTargetStepResumeDef.agda).
+  It starts from a completed inner right-value catch-up, takes the final framed
+  QTI relation for an active target cast, accepts the single target `keep`
+  step, and splices an already completed continuation back to the original
+  outer cast.
+
+- The strict
+  [`world-coherent-right-target-step-resume-proofᵀ`](NuImprecisionWorldCoherentRightTargetStepResumeProof.agda)
+  composes the two weak results directly.  It rebuilds generic type transport,
+  arrow and universal coherence, relational-store lineage, source silence,
+  source-bullet transport, and final-world evidence without introducing an
+  instantiation-specific result, view, or outcome carrier.  The canonical
+  [`Lemma`](NuImprecisionWorldCoherentRightTargetStepResumeLemma.agda) checks
+  with `--no-allow-unsolved-metas`.
+
+- This discharges the common operational composition needed by the general
+  target `inst` active root:
+
+      M′ ⟨ inst B s ⟩
+          —↠ target value ⟨ transported inst B s ⟩
+          —→ ν ★ target value transported-s
+          —↠ final target value.
+
+  The remaining `inst` work is now semantic rather than administrative.  It
+  must invert the transported `InstSafe` widening together with the initial
+  and final type-imprecision derivations, construct the right-opened body
+  index required by `rightTargetNuCastFrame`, and use the canonical zero-step
+  terminal catch-up at the final related values.  This is exactly where nested
+  universal source/target shapes interact, so the proof must reuse the
+  existing flat allocation capability and avoid a new nested view hierarchy.
+
+- The new files are imported by
+  [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda).
+  Only the new definition, proof, and lemma were checked during this step;
+  neither `All.agda` nor another high-cost aggregate check was run.
+
+### Next boundary
+
+Prove the type/coercion inversion needed by
+`rightTargetWidenInstantiationRoot`.  Keep the result as the existing
+right-opened imprecision derivation consumed by `rightTargetNuCastFrame`.
+Then construct the final zero-step value catch-up, invoke the target allocation
+frame for the `ν ★` continuation, and close the outer root with
+`world-coherent-right-target-step-resumeᵀ`.  The eager
+`inst;((★ ⇒ ★) !)` root should reuse this completed plain-inst path and add
+only its final tag administration.
+
+### 2026-07-23: target-instantiation index split corrected
+
+- The previous next step was false.  A matched target binder is not in
+  general interchangeable with the independent right-only binder introduced
+  by runtime `ν ★` allocation.  The strict theorem
+  [`right-opened-instantiation-index-counterexample`](NuImprecisionRightOpenedInstantiationIndexCounterexample.agda)
+  fixes the smallest example:
+
+      ∀(X → X) ⊑ ∀(X → X)
+      ∀(X → X) ⊑ ★ → ★
+      inst (★ → ★) ((seal ★ α) → (unseal α ★))
+
+  satisfies both endpoint indices and the repaired `InstSafe` grammar, while
+
+      ∀(X → X) ⊑ α → α
+
+  is impossible in the right-only world containing `X ⊑ ★`.  The missing
+  matched assumption `X ⊑ α` cannot be manufactured by maximal-lower-bound
+  or binder-permutation lemmas.
+
+- The corrected statement boundary is
+  [`NuImprecisionWorldCoherentRightTargetWidenInstantiationRootDef.agda`](NuImprecisionWorldCoherentRightTargetWidenInstantiationRootDef.agda).
+  Its first split has two flat rows:
+
+  1. `WorldCoherentRightTargetWidenInstantiationSourceOnlyRootᵀ`, whose final
+     index is `ν safe occ q`;
+  2. `WorldCoherentRightTargetWidenInstantiationPairedRootᵀ`, whose final
+     index is `∀ⁱ q`.
+
+  Each row is then split on the incoming universal index, yielding the exact
+  four semantic cells:
+
+  1. paired incoming to source-only final;
+  2. source-only incoming to source-only final;
+  3. paired incoming to paired final;
+  4. source-only incoming to paired final.
+
+  The general active-root statement remains unchanged from its caller's
+  perspective. It is now named
+  `WorldCoherentRightTargetWidenInstantiationRootᵀ` and referenced directly
+  by the active-root record.
+
+- The strict higher-order theorem
+  [`world-coherent-right-target-widen-instantiation-root-proofᵀ`](NuImprecisionWorldCoherentRightTargetWidenInstantiationRootProof.agda)
+  proves that the two rows assemble the general root. The same file proves
+  [`world-coherent-right-target-widen-instantiation-source-only-root-proofᵀ`](NuImprecisionWorldCoherentRightTargetWidenInstantiationRootProof.agda)
+  and
+  [`world-coherent-right-target-widen-instantiation-paired-root-proofᵀ`](NuImprecisionWorldCoherentRightTargetWidenInstantiationRootProof.agda),
+  which assemble the two cells in each row. All six clauses are exhaustive
+  because any imprecision derivation whose source is a universal is headed by
+  either paired `∀ⁱ` or source-only `ν`.
+
+- The common operational suffix remains valid:
+
+      M′ ⟨ inst B s ⟩
+          —↠ target value ⟨ transported inst B s ⟩
+          —→ ν ★ target value transported-s
+          —↠ final target value.
+
+  [`WorldCoherentRightTargetStepResumeᵀ`](NuImprecisionWorldCoherentRightTargetStepResumeDef.agda)
+  still splices that suffix into the original catch-up.  What differs between
+  the two leaves is the semantic continuation after `β-inst`: paired closing
+  must preserve the matched binder, while source-only closing must cross the
+  source binder with the new target allocation before rebuilding `Λ⊑ᵀ`.
+
+- The counterexample, corrected statements, and exhaustive outer proof are
+  imported by
+  [`NuDGGTerminalForwardStrictSpine.agda`](NuDGGTerminalForwardStrictSpine.agda).
+  Focused strict checks were used; `All.agda` was not run.
+
+### Next boundary
+
+Prove the four named target-instantiation semantic cells independently. Start
+with source-only incoming to source-only final, where the source binder is
+already represented by the same `X ⊑ ★` world. Then prove paired incoming to
+source-only final by reusing
+[`WorldCoherentRightSourceAllClosingᵀ`](NuImprecisionWorldCoherentRightSourceAllClosingDef.agda)
+at the outer `Λ⊑ᵀ` boundary and the existing crossed-binder permutation
+machinery after target `ν ★` allocation. The two paired-final cells should
+retain the matched binder and reuse target-allocation/bullet closing without
+converting it to a right-only index. Only after all four cells are strict should
+`rightTargetWidenInstFunTagRoot` add the final eager function tag.
+
+### 2026-07-23: source-only target-instantiation `Λ` leaf
+
+- The first semantic case of the source-only/source-only matrix cell is now
+  strict.  Its statement is
+  [`WorldCoherentRightTargetWidenInstSourceOnlyLambdaRootᵀ`](NuImprecisionRightTargetWidenInstSourceOnlyLambdaRootDef.agda).
+  It exposes an ordinary source `Λ W`, the existing source-only lifted store
+  and empty term context, a body relation
+
+      W ⊑ M′ : D ⊑ ∀ C
+
+  and the target widening
+
+      inst B s : ∀ C ⊑ B.
+
+  The conclusion is the existing complete catch-up carrier at
+
+      Λ W ⊑ M′ ⟨ inst B s ⟩ : ∀ D ⊑ B.
+
+- The strict
+  [`world-coherent-right-target-widen-inst-source-only-lambda-root-proofᵀ`](NuImprecisionRightTargetWidenInstSourceOnlyLambdaRootProof.agda)
+  uses
+  [`rightStoreⁱ-lift-left`](../NuTermImprecision.agda) to transport the
+  target seal-mode and cast typing through the source-only store lift.  It
+  then constructs the body relation explicitly:
+
+      W ⊑ M′ ⟨ inst B s ⟩ : D ⊑ B
+
+  with `⊑cast⊑ᵀ`, and closes the source binder through
+  [`WorldCoherentRightSourceAllClosingᵀ`](NuImprecisionWorldCoherentRightSourceAllClosingDef.agda).
+  The already-completed outer catch-up is deliberately absent from this leaf:
+  the proof descends structurally under `Λ⊑ᵀ` instead of replaying target
+  administration at the same relation.
+
+- This boundary has `Def` and `Proof` files.  A canonical `Lemma` would need
+  the still-unproved source-all closing capability, so adding one now would
+  only disguise that dependency.  Both files are imported by the focused
+  strict spine, and the proof checks with `--no-allow-unsolved-metas` in about
+  four seconds.  `All.agda` was not run.
+
+### Next boundary
+
+Finish the source-only/source-only cell around this leaf.  The enclosing proof
+must distinguish genuine descent under `Λ⊑ᵀ` from source, paired, quotient,
+and target frames.  In particular, it must not assume that the final
+source-only index can be pushed backward through an arbitrary source cast, and
+it must not recreate the refuted right-opened target index.  Reuse the existing
+flat frame capabilities and complete catch-up carrier; if a post-catch-up
+composition boundary is required, state it directly rather than introducing a
+new nested result or relation view.
+
+### 2026-07-23: target-instantiation post-`β-inst` factorization
+
+- The flat semantic phase boundary
+  [`WorldCoherentRightTargetWidenInstPostBetaᵀ`](NuImprecisionRightTargetWidenInstPostBetaDef.agda)
+  starts with related no-bullet values
+
+      V ⊑ V′ : A ⊑ ∀ C
+
+  and the transported instantiation body
+
+      s : C ⊑ ↑B.
+
+  Its conclusion is the existing complete catch-up result
+
+      V ⊑ ν ★ V′ s : A ⊑ B.
+
+  The statement retains world coherence, source-name exclusivity, assumption
+  uniqueness, and target-store well-formedness directly.  It does not define
+  a post-beta result, relation view, or outcome carrier.
+
+- The strict higher-order
+  [`world-coherent-right-target-widen-inst-from-post-beta-proofᵀ`](NuImprecisionRightTargetWidenInstPostBetaProof.agda)
+  proves that this one semantic capability suffices for the complete
+  [`WorldCoherentRightTargetWidenInstantiationRootᵀ`](NuImprecisionWorldCoherentRightTargetWidenInstantiationRootDef.agda).
+  From the already-completed inner catch-up it:
+
+  1. transports the full `inst B s` widening and the body `s` through the
+     final target store changes;
+  2. reconstructs the final `⊑cast⊑ᵀ` relation at the transported index;
+  3. normalizes the target-universal endpoint with `weak-result-target-all`;
+  4. takes the one target `β-inst` step; and
+  5. invokes
+     [`WorldCoherentRightTargetStepResumeᵀ`](NuImprecisionWorldCoherentRightTargetStepResumeDef.agda)
+     with the semantic post-beta continuation.
+
+- This is the common operational spine for all four incoming/final
+  `∀ⁱ`/`ν` cells.  The proof checks strictly in about six seconds.  A
+  canonical `Lemma` is intentionally absent until the post-beta semantic
+  theorem is proved.  `All.agda` was not run.
+
+### Next boundary
+
+Split the post-`β-inst` semantics by the same incoming/final `∀ⁱ`/`ν` matrix,
+but keep the split as theorem capabilities rather than a new result hierarchy.
+For the source-only/source-only row, reuse the completed pre-beta source-`Λ`
+leaf when structural descent is available; use the post-beta route only for
+frames that must first consume the completed outer catch-up.  This avoids both
+duplicating the operational transport proof and forcing every constructor
+through the refuted right-opened-index strategy.
+
+### 2026-07-23: post-beta matrix and source-all terminal base
+
+- The post-`β-inst` theorem now has the same explicit \(2\times2\) semantic
+  matrix as the outer root.  The four claims, two rows, and generic boundary
+  are stated in
+  [`NuImprecisionRightTargetWidenInstPostBetaMatrixDef.agda`](NuImprecisionRightTargetWidenInstPostBetaMatrixDef.agda).
+  The strict
+  [`world-coherent-right-target-widen-inst-post-beta-matrix-proofᵀ`](NuImprecisionRightTargetWidenInstPostBetaMatrixProof.agda)
+  and its two row dispatchers perform only exhaustive `∀ⁱ`/`ν` inversion.
+  All four cell implementations remain open.
+
+- The source-only universal-closing dependency now has a canonical base:
+  [`world-coherent-right-source-all-closing-terminalᵀ`](NuImprecisionRightSourceAllClosingTerminalLemma.agda).
+  Given no-bullet values and the lifted body relation, it constructs
+
+      Λ V ⊑ V′ : ∀ A ⊑ B
+
+  with `Λ⊑ᵀ` and applies the existing zero-step
+  [`world-coherent-right-value-terminalᵀ`](NuImprecisionWorldCoherentRightValueTerminalLemma.agda).
+  The `Def`, `Proof`, and `Lemma` files all check strictly in about five
+  seconds.
+
+- These additions are imported by the focused forward spine.  They introduce
+  theorem capabilities only and retain the existing catch-up carrier; there
+  is no new frame view or nested result family.  `All.agda` was not run.
+
+### Next boundary
+
+For `WorldCoherentRightSourceAllClosingᵀ`, separate target-value termination
+from target-step administration while keeping the recursive relation
+structural.  For the post-beta matrix, begin with the exact source-`Λ`
+subcase of the source-only/source-only cell and compare the direct crossed
+target-allocation route with the already-completed pre-beta `Λ` descent.  Keep
+the pre-beta route whenever it avoids manufacturing a right-opened index.
+
+### 2026-07-23: source-all recursive fit and structural frames
+
+- The lifted recursive call now has a strict three-file boundary:
+  [`WorldCoherentRightSourceAllBodyCatchupᵀ`](NuImprecisionRightSourceAllBodyCatchupDef.agda).
+  It transports the ambient prefix beneath the source-only binder with
+  [`left-store-prefix-liftᵀ`](NuImprecisionStorePrefixLiftLemma.agda), derives
+  the lifted world coherence, source-name exclusivity, assumption uniqueness,
+  and target-store well-formedness, then invokes the existing right-value
+  dispatcher on the body.  Its conclusion is an inline existential containing
+  the lifted ambient store, its prefix, and the existing complete catch-up
+  carrier; no new result or view was introduced.
+
+- All five target-cast source-all structural cases are strict.  The
+  [`target-widen proof`](NuImprecisionRightSourceAllTargetWidenFrameProof.agda)
+  is representative; the
+  [`target-narrow`](NuImprecisionRightSourceAllTargetNarrowFrameProof.agda),
+  [`identity-widen`](NuImprecisionRightSourceAllTargetIdWidenFrameProof.agda),
+  [`target-reveal`](NuImprecisionRightSourceAllTargetRevealFrameProof.agda),
+  and
+  [`target-conceal`](NuImprecisionRightSourceAllTargetConcealFrameProof.agda)
+  proofs have the same shape.  From a lifted-body relation
+
+      V ⊑ M′ : A ⊑ C
+
+  it recursively obtains
+
+      Λ V ⊑ M′ : ∀ A ⊑ C,
+
+  reconstructs the outer target-widening relation
+
+      Λ V ⊑ M′ ⟨ c ⟩ : ∀ A ⊑ B,
+
+  transports the target cast or conversion evidence out of the source-only
+  store lift, and invokes the corresponding existing target terminalization
+  frame.  This avoids trying to collapse an arbitrary completed lifted-world
+  result, and adds no aggregate target-frame record.
+
+- The canonical
+  [`world-coherent-right-target-keep-prependᵀ`](NuImprecisionWorldCoherentRightTargetKeepPrependLemma.agda)
+  now prepends a pure target step to any completed right-value catch-up by
+  extending only its target trace.  All transport, coherence, lineage,
+  source-bullet, and final-world fields remain in the existing carrier.
+
+- Structural descent through `allocation-prefixᵀ` is also strict.  The new
+  inverse factorization
+  [`left-lifted-store-prefix-factorᵀ`](NuImprecisionLeftLiftedStorePrefixFactorLemma.agda)
+  starts from a source-only lift of the ambient base store and a prefix below
+  that lifted store, and recovers the smaller base store, its base prefix, and
+  the residual source-only lift.  The
+  [`source-all allocation-prefix proof`](NuImprecisionRightSourceAllAllocationPrefixProof.agda)
+  composes the recovered base prefix with the ambient prefix and recurses on
+  the strictly smaller QTI derivation.
+
+- A proposed generic no-bullet source-retargeting shortcut was rejected
+  during strict checking and no file was retained.  The existing
+  `WorldCoherentRightValueCatchupRuntimeNoBulletTransportᵀ` concludes with a
+  relation to `applyTerms χs M′`, the initial target renamed through store
+  changes, not to the evaluated `targetResult`.  Source frames beneath `Λ`
+  therefore require a genuine final-relation transformation or direct
+  framing construction; treating the existing transport theorem as a
+  terminal retargeting theorem would be unsound.
+
+- The four
+  [`source-cast statements`](NuImprecisionRightSourceAllSourceFramesDef.agda)
+  preserve the real asymmetry of the grammar repair: only the post-cast body
+  type is assumed `NonVar` and occurring.  `CastMode μ` does not imply that
+  the freshly bound variable has mode `id-only`, so neither fact can in
+  general be pushed backward across the cast.  The statements remain sound
+  direct semantic cases, but their proofs are not started.
+
+- The proposed generic caught-body closing interface was refuted during its
+  carrier-sufficiency audit and deleted.  The existing completed catch-up
+  carrier leaves its final imprecision context abstract.  Its
+  `SourceNameExclusive` and `AssumptionMembershipUnique` fields rule out
+  source/target overlap and duplicate assumptions, but do not determine row
+  order.  The strict regression
+  [`world-invariants-do-not-imply-source-only-head`](NuImprecisionSourceOnlyContextFactorCounterexample.agda)
+  exhibits the reordered context
+
+      (suc zero ˣ⊑★) ∷ (zero ˣ⊑★) ∷ []
+
+  satisfying both invariants while refuting every factorization as
+
+      (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ.
+
+  Therefore an arbitrary caught body cannot be closed after the fact.  The
+  source-only row factorization and corresponding `ν` index coherence must be
+  maintained in lockstep by a lift-aware source-`∀` catch-up capability, or
+  each source-`∀` case must be proved by direct structural recursion.  This
+  should remain a flat capability boundary, not another nested result/view
+  hierarchy.
+
+- The flat source-`∀` closing skeleton is now complete.  A direct first split
+  on QTI exposed Agda's inability to invert the computed `⇑ᴸᵢ`/`⇑ᴿᵢ`
+  constructor indices at the `α` branches.  This was a proof-engineering
+  obstruction, not a semantic exclusion of target bullet.  The strict
+  [`value-form boundary`](NuImprecisionRightSourceAllValueFormsDef.agda)
+  instead splits first on the four constructor forms of `Value`: term lambda,
+  inert cast, type abstraction, and constant.
+
+- The four value-form branches are fully dispatched.  Constants are excluded
+  by
+  [`world-coherent-right-source-all-constant-body-proofᵀ`](NuImprecisionRightSourceAllConstantBodyProof.agda):
+  source typing forces a base type, whose occurrence test cannot be `true`.
+  The strict
+  [`lambda-body`](NuImprecisionRightSourceAllLambdaBodyProof.agda),
+  [`universal-body`](NuImprecisionRightSourceAllUniversalBodyProof.agda), and
+  [`cast-body`](NuImprecisionRightSourceAllCastBodyProof.agda) proofs split
+  target runtime syntax before QTI and cover every reachable constructor.
+  Target bullet remains an explicit residual case; target allocation covers
+  both ordinary and casted `ν` syntax.
+
+- The
+  [`closing dispatcher`](NuImprecisionRightSourceAllClosingDispatcherProof.agda)
+  and
+  [`closing proof assembly`](NuImprecisionRightSourceAllClosingProof.agda)
+  now derive `WorldCoherentRightSourceAllClosingᵀ` from one flat
+  [`case record`](NuImprecisionRightSourceAllClosingCasesDef.agda).  Its
+  strict
+  [`case assembly`](NuImprecisionRightSourceAllClosingCasesProof.agda)
+  exposes the exact remaining dependencies: the recursive closing hypothesis,
+  four source-frame semantic fields, five residual semantic fields, and
+  target-cast terminalization.  The five target-frame and prefix cases are
+  already constructed from the recursive hypothesis.  There is no canonical
+  `Lemma` yet because the recursive knot and nine semantic leaves are still
+  open.
+
+- Each of the five residual semantic statements now has an independent
+  canonical `Def` file:
+  [`PairedCast`](NuImprecisionRightSourceAllPairedCastDef.agda),
+  [`Quotient`](NuImprecisionRightSourceAllQuotientDef.agda),
+  [`NestedSourceAll`](NuImprecisionRightSourceAllNestedSourceAllDef.agda),
+  [`TargetBullet`](NuImprecisionRightSourceAllTargetBulletDef.agda), and
+  [`TargetAllocation`](NuImprecisionRightSourceAllTargetAllocationDef.agda).
+  This makes them suitable independent Ginger slices without importing one
+  another's future proof files.
+
+- Routine checks for this slice now use
+  [`NuImprecisionRightSourceAllStrictSpine.agda`](NuImprecisionRightSourceAllStrictSpine.agda).
+  Its first check after introducing the five new modules took 22.6 seconds;
+  the immediate incremental check took 4.0 seconds.  The broader
+  `NuDGGTerminalForwardStrictSpine` remains an integration-milestone check,
+  and `All.agda` was not run.
+
+### Next boundary
+
+Implement the source-`∀` recursive knot directly on the body QTI derivation,
+keeping recursive calls visibly structural so Agda's termination checker does
+not have to see through higher-order helpers.  In parallelizable semantic
+slices, prove the four source-frame fields and the five residual fields:
+paired cast, quotient, nested source-only `∀`, target bullet, and target
+allocation.  Do not reintroduce generic caught-body closing.  Once the case
+record is canonically inhabited, expose the `ClosingLemma` and use it in the
+source-only/source-only target-instantiation cell.
+
+### 2026-07-23: right-only context action and source-only factor boundary
+
+- **Completed.**  Target-only store changes now have an explicit, small
+  imprecision-context action in
+  [`NuImprecisionRightContextAction.agda`](NuImprecisionRightContextAction.agda):
+
+      applyRightImpCtxChange keep Φ = Φ
+      applyRightImpCtxChange (bind A) Φ = ⇑ᴿᵢ Φ
+
+  The module proves composition over change-list append and the source-only
+  preservation equation
+
+      applyRightImpCtxChanges χs
+        ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+        ≡
+      (zero ˣ⊑★) ∷
+        ⇑ᴸᵢ (applyRightImpCtxChanges χs Φ).
+
+  The bind case is exactly the `⇑ᴸᵢ`/`⇑ᴿᵢ` commutation equation.  This
+  confirms that target allocation does not insert a row above the
+  source-only assumption; it only shifts target names.
+
+- **Partial: statement established, dispatcher not started.**
+  [`WorldCoherentRightValueCatchupContextᵀ`](NuImprecisionWorldCoherentRightValueCatchupContextDef.agda)
+  is the strengthened right-value catch-up boundary.  It returns the existing
+  complete catch-up carrier together with
+
+      resultCtx caught
+        ≡ applyRightImpCtxChanges
+            (targetTailChanges caught) Φ.
+
+  This property is intentionally returned inline with the existing carrier;
+  it is not a new result, view, or outcome hierarchy.  The contextual
+  dispatcher and the context laws for its nontrivial semantic cases remain
+  to be proved.
+
+- **Completed, conditional structural proof.**
+  [`world-coherent-right-source-all-body-catchup-context-proofᵀ`](NuImprecisionRightSourceAllBodyCatchupContextProof.agda)
+  proves
+  [`WorldCoherentRightSourceAllBodyCatchupContextᵀ`](NuImprecisionRightSourceAllBodyCatchupContextDef.agda)
+  from `WorldCoherentRightValueCatchupContextᵀ`.  It lifts the ambient
+  prefix and world invariants under the source-only binder, invokes the
+  contextual catch-up, and rewrites its final context to the canonical form
+
+      (zero ˣ⊑★) ∷
+        ⇑ᴸᵢ (applyRightImpCtxChanges χs Φ).
+
+  This closes the context-shape half of the source-frame problem without
+  claiming that world exclusivity and membership uniqueness determine row
+  order.
+
+- **Completed.**
+  [`world-coherent-right-target-keep-prepend-contextᵀ`](NuImprecisionWorldCoherentRightTargetKeepPrependContextLemma.agda)
+  has the canonical `Def`/`Proof`/`Lemma` split.  It shows that prepending a
+  target `keep` step preserves the contextual catch-up equation
+  definitionally.  This is the first completed contextual dispatcher case.
+
+- **Completed.**  The base generic type transport is recoverable from a
+  transport under a source-only binder.  The canonical
+  [`right-source-only-transport-dropᵀ`](NuImprecisionRightSourceOnlyTransportDropLemma.agda)
+  has a `Def`/`Proof`/`Lemma` split and performs:
+
+  1. `⊑-source-liftνᵢ` on an arbitrary base relation;
+  2. the supplied target-only transport under the binder;
+  3. `open-unusedᵢ`, justified by `occurs-raise-fresh`; and
+  4. `renameᵗ-single-suc-cancel`.
+
+  Thus the abstract body transport is not itself an obstruction to building
+  the outer catch-up carrier.
+
+- **Completed, conditional factor proof.**
+  [`WorldCoherentRightSourceAllBodyCatchupFactorᵀ`](NuImprecisionRightSourceAllBodyCatchupFactorDef.agda)
+  records the full factor invariant.  The corresponding
+  [`factor proof`](NuImprecisionRightSourceAllBodyCatchupFactorProof.agda)
+  is now inhabited from
+  `WorldCoherentRightSourceAllBodyCatchupContextᵀ`.  In addition to the
+  contextual caught result, it exposes:
+
+  - the final left context equality;
+  - a base final relational store and its lifted counterpart;
+  - one heterogeneous equality connecting the caught store to that lifted
+    store;
+  - relational-store embedding followed by allocation prefix;
+  - the final left-store lift; and
+  - base-world coherence, source-name exclusivity, assumption uniqueness,
+    and target-store well-formedness.
+
+  The heterogeneous equality is localized at the dependent store boundary,
+  following the repository's transport playbook.  The statement is stronger
+  than context preservation alone and is designed to provide exactly the
+  store lineage needed by all four source-frame cases.  The proof factors the
+  completed caught result with
+  [`right-source-only-caught-factorᵀ`](NuImprecisionRightSourceOnlyCaughtFactorLemma.agda).
+
+- **Completed.**  All three transport/drop boundaries needed by the four
+  source-frame cases are now strict:
+
+  - [`right-source-only-transport-dropᵀ`](NuImprecisionRightSourceOnlyTransportDropLemma.agda)
+    handles ordinary type transport;
+  - [`right-source-only-all-body-transport-dropᵀ`](NuImprecisionRightSourceOnlyAllBodyTransportDropLemma.agda)
+    commutes the source-only binder with a matched `∀` binder before dropping
+    it; and
+  - [`right-source-only-right-body-transport-dropᵀ`](NuImprecisionRightSourceOnlyRightBodyTransportDropLemma.agda)
+    does the same for a target-only binder.
+
+  The last two proofs use the existing `ν`/`∀` and left/right binder
+  commutation lemmas, `open-unusedᵢ`, and cancellation of the fresh-name
+  renaming.
+
+- **Completed.**  The store half of the factorization is split into small,
+  reusable theorems:
+
+  - [`left-lifted-right-rel-store-embedding-factorᵀ`](NuImprecisionLeftLiftedRightRelStoreEmbeddingFactorLemma.agda)
+    drops the fresh source name through a target-only relational embedding;
+  - [`store-correspondence-drop-leftᵀ`](NuImprecisionStoreCorrespondenceDropLeftLemma.agda)
+    recovers exact base correspondence, retaining explicit equalities until
+    injectivity can cancel the lifted indices; and
+  - [`world-coherence-drop-left-storeᵀ`](NuImprecisionWorldCoherenceDropLeftStoreLemma.agda)
+    drops coherence, source-name exclusivity, assumption uniqueness, and
+    target-store well-formedness to the base world.
+
+- **Completed: missing lineage invariant identified and formalized.**  A
+  generic `StoreImpPrefix` is insufficient for source-only factorization
+  because it permits new source and link entries.  Target catch-up needs the
+  stronger flat predicate
+  [`RightOnlyStoreImpPrefix`](NuImprecisionRightOnlyStorePrefix.agda), whose
+  only extension constructor adds `store-right`.  Its
+  [`left-lift factor`](NuImprecisionRightOnlyStorePrefixLeftLiftFactorLemma.agda)
+  copies each target entry into the base store and reconstructs the lifted
+  final store.  No nested result or view type was introduced.
+
+- **Partial: contextual boundary strengthened, canonical dispatcher open.**
+  [`WorldCoherentRightValueCatchupContextᵀ`](NuImprecisionWorldCoherentRightValueCatchupContextDef.agda)
+  now returns both the target-only context equation and a
+  `RightOnlyStoreImpPrefix` from the lineage store to the completed result
+  store.  The canonical
+  [`terminal context case`](NuImprecisionWorldCoherentRightValueTerminalContextLemma.agda)
+  produces reflexive context and prefix witnesses.  The
+  [`target-keep prepend case`](NuImprecisionWorldCoherentRightTargetKeepPrependContextLemma.agda)
+  preserves both witnesses.
+
+- **Completed.**  Target-only store prefixes now have the algebra needed for
+  multi-phase catch-up.  The strict
+  [`right-only prefix algebra`](NuImprecisionRightOnlyStorePrefixAlgebra.agda)
+  proves transitivity and inversion through `RelStoreEmbeddingⁱ`.  The
+  canonical
+  [`right-only lineage composition`](NuImprecisionRightOnlyStoreLineageCompositionLemma.agda)
+  combines two `WeakOneStepStoreLineage` witnesses and returns both the
+  ordinary composed lineage and its stronger target-only prefix.
+
+- **Completed.**  Active target pure-step resumption now preserves the new
+  contextual boundary.  The canonical
+  [`world-coherent-right-target-step-resume-contextᵀ`](NuImprecisionWorldCoherentRightTargetStepResumeContextLemma.agda)
+  composes the two context equations with
+  `applyRightImpCtxChanges-++`, composes their right-only lineages, and
+  reconstructs the existing complete catch-up carrier with that stronger
+  lineage.  The statement remains flat: its conclusion adds only an equality
+  and a prefix witness to the existing carrier.
+
+- **Not yet started.**  The remaining semantic cases still need to be threaded
+  through a contextual dispatcher.
+
+- **Completed: target-`bind` seed.**  The ordinary and casted allocation
+  simulations now connect directly to the contextual invariants in
+  [`NuImprecisionRightAllocationContextSeed.agda`](NuImprecisionRightAllocationContextSeed.agda).
+  Each seed constructs a `WeakOneStepStoreLineage` from
+  `lift-right-store-embeddingⁱ`, proves the `⇑ᴿᵢ` context action
+  definitionally, and supplies exactly one `right-only-prefix-right`
+  extension.  The remaining target-allocation work is to compose this seed
+  after the inner catch-up and before the post-allocation continuation.
+
+- **Completed: all four contextual source frames.**  Source narrowing,
+  widening, reveal, and conceal framing preserve the target context action
+  and right-only store prefix unchanged.  Their canonical files are:
+
+  - [`source narrow`](NuImprecisionWorldCoherentRightSourceNarrowFrameContextLemma.agda);
+  - [`source widen`](NuImprecisionWorldCoherentRightSourceWidenFrameContextLemma.agda);
+  - [`source reveal`](NuImprecisionWorldCoherentRightSourceRevealFrameContextLemma.agda);
+    and
+  - [`source conceal`](NuImprecisionWorldCoherentRightSourceConcealFrameContextLemma.agda).
+
+  Each proof exposes the inner catch-up's two source-silence equalities, calls
+  the already completed source-frame implementation, and reuses the context
+  equation and right-only prefix.  This checks that the strengthened
+  contextual boundary fits four existing semantic leaves without changing
+  their result carrier.
+
+- The focused
+  [`NuImprecisionRightSourceAllStrictSpine.agda`](NuImprecisionRightSourceAllStrictSpine.agda)
+  imports all of the modules above and checks strictly in 7.0 seconds in the
+  current worktree.  `All.agda` was not run.
+
+### Next boundary
+
+Thread the context equation and `RightOnlyStoreImpPrefix` through the existing
+right-value catch-up case matrix.  Terminal and target `keep` are complete.
+Prove target `bind` next, using `⇑ᴿᵢ` for the context action and
+`right-only-prefix-right` for the new store entry, then prove the structural
+frame cases that preserve the inner witnesses.  Once the canonical contextual
+catch-up is inhabited, the completed factor proof and the three transport/drop
+lemmas provide the data needed to prove all four fields of
+`WorldCoherentRightSourceAllSourceFrames`.
+
+### 2026-07-23: generic-close audit and target-frame context boundary
+
+- **Completed: factor statement strengthened without forgetting source
+  silence.**
+  [`WorldCoherentRightSourceAllBodyCatchupFactorᵀ`](NuImprecisionRightSourceAllBodyCatchupFactorDef.agda)
+  now returns a
+  [`RightOnlyStoreImpPrefix`](NuImprecisionRightOnlyStorePrefix.agda) for the
+  recovered base prefix, rather than immediately forgetting it to a generic
+  `StoreImpPrefix`.  The strict
+  [`factor proof`](NuImprecisionRightSourceAllBodyCatchupFactorProof.agda)
+  returns the stronger witness directly.
+
+- **Completed.**  The target-only lineage now supplies the exact source-store
+  equation needed by any ambient source frame:
+
+      right-only-lineage-left-storeⁱ :
+        RelStoreEmbeddingⁱ id σ ρ₀ ρlineage →
+        RightOnlyStoreImpPrefix ρlineage ρbase →
+        leftStoreⁱ ρbase ≡ leftStoreⁱ ρ₀.
+
+  The proof is in
+  [`NuImprecisionRightOnlyStorePrefixAlgebra.agda`](NuImprecisionRightOnlyStorePrefixAlgebra.agda).
+  It composes identity-left-store preservation for the embedding with
+  left-store preservation for the target-only prefix.
+
+- **Partial: generic caught-body closing is not yet a valid replacement for
+  the structural source-`∀` dispatcher.**  The store and type-index factors
+  are sufficient to describe the final base world, but the complete
+  `WorldCoherentRightValueCatchupIndexedResult` also carries:
+
+  1. no-bullet term transport;
+  2. source-bullet term transport; and
+  3. canonical transported-index coherence.
+
+  These invariants currently live only in the caught result beneath the fresh
+  source-only binder.  In particular, lifting a pre-existing source-bullet
+  relation beneath another source-only binder shifts the older allocation
+  away from index zero.  The present `α⊑ᵀ` constructor is tied to the fresh
+  zero allocation, so a proposed generic source-bullet lift/drop statement
+  could not be justified from the existing QTI interface.  No unproved
+  statement or new result wrapper was retained.
+
+  This audit changes the immediate plan: keep
+  [`WorldCoherentRightSourceAllClosingContextᵀ`](NuImprecisionWorldCoherentRightSourceAllClosingContextDef.agda)
+  as the desired contextual theorem statement, but do not claim that the
+  caught-body factor alone proves it.  Continue through the existing
+  structural source-`∀` case matrix, and strengthen transport invariants only
+  at semantic boundaries where their constructor provenance is available.
+
+- **Completed statement; proof not yet started.**
+  [`WorldCoherentRightTargetNarrowFrameContextᵀ`](NuImprecisionWorldCoherentRightTargetNarrowFrameContextDef.agda)
+  is the first target-cast contextual leaf.  It states that target narrowing
+  terminalization returns the existing complete catch-up carrier together
+  with the canonical target-context equation and target-only prefix.
+
+  A direct wrapper around the abstract
+  `WorldCoherentRightTargetCastTerminalization` capability is insufficient:
+  that older interface hides how the final target trace and lineage were
+  constructed.  Therefore the contextual law must be proved in the
+  terminalization implementation, using the completed contextual target-step
+  resume theorem, rather than inferred from the opaque result afterward.
+
+- **Completed: all inert target-cast administration branches.**  The
+  canonical
+  [`world-coherent-right-target-inert-framing-contextᵀ`](NuImprecisionWorldCoherentRightTargetInertFramingContextLemma.agda)
+  has the `Def`/`Proof`/`Lemma` split.  It preserves the context equation and
+  `RightOnlyStoreImpPrefix` across the existing inert target-frame proof for
+  each of its five evidence alternatives:
+
+  - reveal;
+  - conceal;
+  - narrowing;
+  - widening; and
+  - identity-mode widening.
+
+  The proof splits on the evidence alternative and exposes the same
+  conversion-transport computation used by the canonical inert-framing
+  implementation.  Once that computation is visible, the framed weak result
+  and lineage inherit the inner target trace, context, lineage store, and
+  allocation prefix definitionally.  This closes every `plan-inert` branch
+  in the future contextual target-administration dispatcher without adding a
+  result wrapper.
+
+- The focused
+  [`NuImprecisionRightSourceAllStrictSpine.agda`](NuImprecisionRightSourceAllStrictSpine.agda)
+  now includes the target-narrow contextual statement and the completed inert
+  contextual theorem.  It passes `--no-allow-unsolved-metas` in 7.53 seconds.
+  `All.agda` was not run.
+
+### Next boundary
+
+Strengthen the target-cast terminalization construction one semantic family at
+a time so it returns the context equation and right-only prefix at the point
+where target `keep` steps are appended.  Start with target narrowing and reuse
+[`world-coherent-right-target-step-resume-contextᵀ`](NuImprecisionWorldCoherentRightTargetStepResumeContextLemma.agda).
+The inert plan is complete; next prove the identity-root plan, then untag,
+instantiation, unseal, and sequence plans.  Add the parallel widening,
+identity-widening, reveal, and conceal statements as their shared roots become
+contextual.  In the source-`∀` matrix, retain the structural dispatcher until
+the no-bullet, source-bullet, and canonical-index transport obligations have an
+explicitly proved binder-safe interface.

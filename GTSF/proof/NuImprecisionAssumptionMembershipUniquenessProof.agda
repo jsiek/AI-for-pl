@@ -40,6 +40,7 @@ open import ImprecisionWf using
   ; tag_⇛_
   ; tagˣ
   ; ν
+  ; nonVar-unique
   )
 open import Imprecision using (idᵢ)
 open import proof.EndpointCanonicalMLBSimpleFactor using
@@ -379,12 +380,14 @@ private
       (source-only-to-universal-body-impossible
         transport star-track-ν-zero p x-at y-at route)
   precision-index-unique transport unique
-      (ν _ occ p) (ν _ occ′ q)
-      with equality-proof-unique occ occ′
+      (ν safe occ p) (ν safe′ occ′ q)
+      with nonVar-unique safe safe′
+         | equality-proof-unique occ occ′
          | precision-index-unique transport
              (assumption-membership-unique-source unique) p q
   precision-index-unique transport unique
-      (ν _ occ p) (ν _ occ′ q) | refl | refl = refl
+      (ν safe occ p) (ν safe′ occ′ q)
+      | refl | refl | refl = refl
 
 
 assumption-membership-uniqueness-proofᵀ :

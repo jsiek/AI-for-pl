@@ -12,11 +12,15 @@ open import Agda.Builtin.Equality using (_≡_)
 open import Coercions using
   ( Inert
   ; cast-id
+  ; cast-gen
   ; cast-inst
   ; cast-seq
+  ; cast-tag
   ; cast-unseal
   ; cast-untag
+  ; genᵈ
   ; instᵈ
+  ; tagTyAllowed
   ; _∣_∣_⊢_∶_=⇒_
   )
 open import Data.Bool using (true)
@@ -33,7 +37,9 @@ open import Types using
   ; WfTy
   ; occurs
   ; ★
+  ; Ground
   ; ＇_
+  ; _⇒_
   ; `∀
   ; ⇑ᵗ
   ; ⟰ᵗ
@@ -88,6 +94,41 @@ data TargetAdministrationPlan
       {q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
     TargetAdministrationPlan ρ A
       (cast-inst {μ = μ} {A = C} hB occ s⊢) p q
+
+  plan-fun-untag-gen :
+    ∀ {μ C s}
+      {hG : WfTy Δᴿ (★ ⇒ ★)}
+      {gG : Ground (★ ⇒ ★)}
+      {tag-ok : tagTyAllowed μ (★ ⇒ ★) ≡ true}
+      {hFun : WfTy Δᴿ (★ ⇒ ★)}
+      {occ : occurs zero C ≡ true}
+      {s⊢ : genᵈ μ ∣ suc Δᴿ ∣ ⟰ᵗ (rightStoreⁱ ρ)
+        ⊢ s ∶ ⇑ᵗ (★ ⇒ ★) =⇒ C}
+      {p : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ}
+      {q : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ} →
+    TargetAdministrationPlan ρ A
+      (cast-seq
+        (cast-untag hG gG tag-ok)
+        (cast-gen hFun occ s⊢))
+      p q
+
+  plan-inst-fun-tag :
+    ∀ {μ C s}
+      {hFun : WfTy Δᴿ (★ ⇒ ★)}
+      {occ : occurs zero C ≡ true}
+      {s⊢ : instᵈ μ ∣ suc Δᴿ
+        ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
+        ⊢ s ∶ C =⇒ ⇑ᵗ (★ ⇒ ★)}
+      {hG : WfTy Δᴿ (★ ⇒ ★)}
+      {gG : Ground (★ ⇒ ★)}
+      {tag-ok : tagTyAllowed μ (★ ⇒ ★) ≡ true}
+      {p : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ}
+      {q : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ} →
+    TargetAdministrationPlan ρ A
+      (cast-seq
+        (cast-inst hFun occ s⊢)
+        (cast-tag hG gG tag-ok))
+      p q
 
   plan-seq :
     ∀ {μ B C D s t}

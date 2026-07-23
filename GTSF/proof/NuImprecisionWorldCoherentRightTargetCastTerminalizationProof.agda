@@ -16,13 +16,13 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
 open import Data.Nat.Properties using (≤-refl)
-open import Data.Product using (_×_; _,_; proj₁; proj₂)
+open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
 open import Data.Sum using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 
 import Coercions as C
 open import Coercions using
-  (Coercion; ModeEnv; id-onlyᵈ; _︔_)
+  (Coercion; ModeEnv; id-onlyᵈ; _︔_; _∣_∣_⊢_∶_=⇒_)
 open import Conversion using
   ( ConcealConversion
   ; RevealConversion
@@ -81,7 +81,9 @@ open import Store using (StoreIncl)
 open import TermTyping using
   (CastMode; SealModeStore★; cast-tag-or-id)
 open import Types using (Ty; TyCtx)
-open import proof.CoercionProperties using (modeRename-id-only)
+import Types as T
+open import proof.CoercionProperties using
+  (ModeRename; coercion-endpoints-unique; modeRename-id-only)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
@@ -94,9 +96,11 @@ open import proof.NuImprecisionTargetAdministrationMeasureProof using
   (target-sequence-rank-decreases)
 open import proof.NuImprecisionTargetAdministrationPlanDef using
   ( TargetAdministrationPlan
+  ; plan-fun-untag-gen
   ; plan-id
   ; plan-inert
   ; plan-inst
+  ; plan-inst-fun-tag
   ; plan-seq
   ; plan-unseal
   ; plan-untag
@@ -168,6 +172,8 @@ private
     ∀ {s t} → Narrowing (s ︔ t) → Narrowing s × Narrowing t
   split-narrowing-sequence (gG NW.？︔ gⁿ) =
     NW.untag gG , strictⁿ→narrow (NW.strict-crossⁿ gⁿ)
+  split-narrowing-sequence (NW.fun-untag-gen safe) =
+    NW.untag T.★⇒★ , NW.gen safe
   split-narrowing-sequence (sⁿ NW.︔seal α) =
     strictⁿ→narrow sⁿ , NW.sealⁿ _ α
 
@@ -175,6 +181,8 @@ private
     ∀ {s t} → Widening (s ︔ t) → Widening s × Widening t
   split-widening-sequence (sʷ NW.︔ gG !) =
     strictʷ→widen (NW.strict-crossʷ sʷ) , NW.tag gG
+  split-widening-sequence (NW.inst-fun-tag safe) =
+    NW.inst safe , NW.tag T.★⇒★
   split-widening-sequence (NW.unseal︔_ α tʷ) =
     NW.unsealʷ α _ , strictʷ→widen tʷ
 
@@ -188,77 +196,213 @@ private
   apply-coercions-sequence (NuReduction.bind A ∷ χs) s t =
     apply-coercions-sequence χs (C.⇑ᶜ s) (C.⇑ᶜ t)
 
-  final-narrow-sequence :
-    ∀ {Φ Δᴸ Δᴿ V M′ A B}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      (result : WeakOneStepResult ρ V M′ A B keep)
-      {μ C D s t} →
-    μ ∣ applyTyCtxs (targetTailChanges result) Δᴿ
-      ∣ applyStores (targetTailChanges result) (rightStoreⁱ ρ)
-      ⊢ applyCoercions (targetTailChanges result) (s ︔ t)
-        ∶ applyTys (targetTailChanges result) C
-          ⊒ applyTys (targetTailChanges result) D →
-    μ ∣ resultRightCtx result ∣ rightStoreⁱ (resultStore result)
-      ⊢ applyCoercions (targetTailChanges result) s ︔
-          applyCoercions (targetTailChanges result) t
-        ∶ applyTys (targetTailChanges result) C
-          ⊒ applyTys (targetTailChanges result) D
-  final-narrow-sequence result {s = s} {t = t} seq⊒ =
-    subst
-      (λ c → _ ∣ resultRightCtx result
-        ∣ rightStoreⁱ (resultStore result)
-        ⊢ c ∶ applyTys (targetTailChanges result) _
-          ⊒ applyTys (targetTailChanges result) _)
-      (apply-coercions-sequence (targetTailChanges result) s t)
-      (subst
-        (λ Δ → _ ∣ Δ ∣ rightStoreⁱ (resultStore result)
-          ⊢ applyCoercions (targetTailChanges result) (s ︔ t)
-            ∶ applyTys (targetTailChanges result) _
-              ⊒ applyTys (targetTailChanges result) _)
-        (sym (targetCtxResult result))
-        (subst
-          (λ Σ → _
-            ∣ applyTyCtxs (targetTailChanges result) _ ∣ Σ
-            ⊢ applyCoercions (targetTailChanges result) (s ︔ t)
-              ∶ applyTys (targetTailChanges result) _
-                ⊒ applyTys (targetTailChanges result) _)
-          (sym (targetStoreResult result)) seq⊒))
+  apply-narrow-sequence-components :
+    ∀ {χs μ Δ Σ Σ′ s t A B C} →
+    StoreIncl Σ Σ′ →
+    CastMode μ →
+    SealModeStore★ μ Σ′ →
+    μ ∣ Δ ∣ Σ ⊢ s ∶ A =⇒ B →
+    μ ∣ Δ ∣ Σ ⊢ t ∶ B =⇒ C →
+    Narrowing (s ︔ t) →
+    ∃[ μ′ ]
+      CastMode μ′ ×
+      SealModeStore★ μ′ (applyStores χs Σ′) ×
+      (μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+        ⊢ applyCoercions χs s ∶ applyTys χs A ⊒ applyTys χs B) ×
+      (μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+        ⊢ applyCoercions χs t ∶ applyTys χs B ⊒ applyTys χs C)
+  apply-narrow-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-narrowing
+      with split-narrowing-sequence sequence-narrowing
+  apply-narrow-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-narrowing
+      | sⁿ , tⁿ
+      with apply-narrows-typing {χs = χs} mode seal★
+        (narrow-weaken ≤-refl incl
+          (C.cast-seq s⊢ t⊢ , sequence-narrowing))
+  apply-narrow-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-narrowing
+      | sⁿ , tⁿ
+      | μ′ , mode′ , seal★′ , sequence′
+      with subst
+        (λ c → μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+          ⊢ c ∶ applyTys χs A ⊒ applyTys χs C)
+        (apply-coercions-sequence χs s t) sequence′
+  apply-narrow-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-narrowing
+      | sⁿ , tⁿ
+      | μ′ , mode′ , seal★′ , sequence′
+      | C.cast-seq s′⊢ t′⊢ , sequence-narrowing′
+      with split-narrowing-sequence sequence-narrowing′
+  apply-narrow-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-narrowing
+      | sⁿ , tⁿ
+      | μ′ , mode′ , seal★′ , sequence′
+      | C.cast-seq s′⊢ t′⊢ , sequence-narrowing′
+      | s′ⁿ , t′ⁿ
+      with apply-narrows-typing {χs = χs} mode seal★
+        (narrow-weaken ≤-refl incl (s⊢ , sⁿ))
+         | apply-narrows-typing {χs = χs} mode seal★
+        (narrow-weaken ≤-refl incl (t⊢ , tⁿ))
+  apply-narrow-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-narrowing
+      | sⁿ , tⁿ
+      | μ′ , mode′ , seal★′ , sequence′
+      | C.cast-seq s′⊢ t′⊢ , sequence-narrowing′
+      | s′ⁿ , t′ⁿ
+      | μˢ , modeˢ , seal★ˢ , s-expected
+      | μᵗ , modeᵗ , seal★ᵗ , t-expected
+      with coercion-endpoints-unique (μ′ , s′⊢)
+        (μˢ , proj₁ s-expected)
+         | coercion-endpoints-unique (μ′ , t′⊢)
+        (μᵗ , proj₁ t-expected)
+  apply-narrow-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-narrowing
+      | sⁿ , tⁿ
+      | μ′ , mode′ , seal★′ , sequence′
+      | C.cast-seq s′⊢ t′⊢ , sequence-narrowing′
+      | s′ⁿ , t′ⁿ
+      | μˢ , modeˢ , seal★ˢ , s-expected
+      | μᵗ , modeᵗ , seal★ᵗ , t-expected
+      | s-src≡ , s-tgt≡ | t-src≡ , t-tgt≡ =
+    μ′ , mode′ , seal★′ ,
+    (subst
+      (λ X → μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+        ⊢ applyCoercions χs s ∶ applyTys χs A =⇒ X)
+      s-tgt≡ s′⊢ , s′ⁿ) ,
+    (subst
+      (λ X → μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+        ⊢ applyCoercions χs t ∶ X =⇒ applyTys χs C)
+      t-src≡ t′⊢ , t′ⁿ)
 
-  final-widen-sequence :
-    ∀ {Φ Δᴸ Δᴿ V M′ A B}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      (result : WeakOneStepResult ρ V M′ A B keep)
-      {μ C D s t} →
-    μ ∣ applyTyCtxs (targetTailChanges result) Δᴿ
-      ∣ applyStores (targetTailChanges result) (rightStoreⁱ ρ)
-      ⊢ applyCoercions (targetTailChanges result) (s ︔ t)
-        ∶ applyTys (targetTailChanges result) C
-          ⊑ applyTys (targetTailChanges result) D →
-    μ ∣ resultRightCtx result ∣ rightStoreⁱ (resultStore result)
-      ⊢ applyCoercions (targetTailChanges result) s ︔
-          applyCoercions (targetTailChanges result) t
-        ∶ applyTys (targetTailChanges result) C
-          ⊑ applyTys (targetTailChanges result) D
-  final-widen-sequence result {s = s} {t = t} seq⊑ =
-    subst
-      (λ c → _ ∣ resultRightCtx result
-        ∣ rightStoreⁱ (resultStore result)
-        ⊢ c ∶ applyTys (targetTailChanges result) _
-          ⊑ applyTys (targetTailChanges result) _)
-      (apply-coercions-sequence (targetTailChanges result) s t)
-      (subst
-        (λ Δ → _ ∣ Δ ∣ rightStoreⁱ (resultStore result)
-          ⊢ applyCoercions (targetTailChanges result) (s ︔ t)
-            ∶ applyTys (targetTailChanges result) _
-              ⊑ applyTys (targetTailChanges result) _)
-        (sym (targetCtxResult result))
-        (subst
-          (λ Σ → _
-            ∣ applyTyCtxs (targetTailChanges result) _ ∣ Σ
-            ⊢ applyCoercions (targetTailChanges result) (s ︔ t)
-              ∶ applyTys (targetTailChanges result) _
-                ⊑ applyTys (targetTailChanges result) _)
-          (sym (targetStoreResult result)) seq⊑))
+  apply-widen-sequence-components :
+    ∀ {χs μ Δ Σ Σ′ s t A B C} →
+    StoreIncl Σ Σ′ →
+    CastMode μ →
+    SealModeStore★ μ Σ′ →
+    μ ∣ Δ ∣ Σ ⊢ s ∶ A =⇒ B →
+    μ ∣ Δ ∣ Σ ⊢ t ∶ B =⇒ C →
+    Widening (s ︔ t) →
+    ∃[ μ′ ]
+      CastMode μ′ ×
+      SealModeStore★ μ′ (applyStores χs Σ′) ×
+      (μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+        ⊢ applyCoercions χs s ∶ applyTys χs A ⊑ applyTys χs B) ×
+      (μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+        ⊢ applyCoercions χs t ∶ applyTys χs B ⊑ applyTys χs C)
+  apply-widen-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-widening
+      with split-widening-sequence sequence-widening
+  apply-widen-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-widening
+      | sʷ , tʷ
+      with apply-widens-typing {χs = χs} mode seal★
+        (widen-weaken ≤-refl incl
+          (C.cast-seq s⊢ t⊢ , sequence-widening))
+  apply-widen-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-widening
+      | sʷ , tʷ
+      | μ′ , mode′ , seal★′ , sequence′
+      with subst
+        (λ c → μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+          ⊢ c ∶ applyTys χs A ⊑ applyTys χs C)
+        (apply-coercions-sequence χs s t) sequence′
+  apply-widen-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-widening
+      | sʷ , tʷ
+      | μ′ , mode′ , seal★′ , sequence′
+      | C.cast-seq s′⊢ t′⊢ , sequence-widening′
+      with split-widening-sequence sequence-widening′
+  apply-widen-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-widening
+      | sʷ , tʷ
+      | μ′ , mode′ , seal★′ , sequence′
+      | C.cast-seq s′⊢ t′⊢ , sequence-widening′
+      | s′ʷ , t′ʷ
+      with apply-widens-typing {χs = χs} mode seal★
+        (widen-weaken ≤-refl incl (s⊢ , sʷ))
+         | apply-widens-typing {χs = χs} mode seal★
+        (widen-weaken ≤-refl incl (t⊢ , tʷ))
+  apply-widen-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-widening
+      | sʷ , tʷ
+      | μ′ , mode′ , seal★′ , sequence′
+      | C.cast-seq s′⊢ t′⊢ , sequence-widening′
+      | s′ʷ , t′ʷ
+      | μˢ , modeˢ , seal★ˢ , s-expected
+      | μᵗ , modeᵗ , seal★ᵗ , t-expected
+      with coercion-endpoints-unique (μ′ , s′⊢)
+        (μˢ , proj₁ s-expected)
+         | coercion-endpoints-unique (μ′ , t′⊢)
+        (μᵗ , proj₁ t-expected)
+  apply-widen-sequence-components
+      {χs = χs} {Δ = Δ} {Σ′ = Σ′} {s = s} {t = t}
+      {A = A} {B = B} {C = C}
+      incl mode seal★ s⊢ t⊢ sequence-widening
+      | sʷ , tʷ
+      | μ′ , mode′ , seal★′ , sequence′
+      | C.cast-seq s′⊢ t′⊢ , sequence-widening′
+      | s′ʷ , t′ʷ
+      | μˢ , modeˢ , seal★ˢ , s-expected
+      | μᵗ , modeᵗ , seal★ᵗ , t-expected
+      | s-src≡ , s-tgt≡ | t-src≡ , t-tgt≡ =
+    μ′ , mode′ , seal★′ ,
+    (subst
+      (λ X → μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+        ⊢ applyCoercions χs s ∶ applyTys χs A =⇒ X)
+      s-tgt≡ s′⊢ , s′ʷ) ,
+    (subst
+      (λ X → μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+        ⊢ applyCoercions χs t ∶ X =⇒ applyTys χs C)
+      t-src≡ t′⊢ , t′ʷ)
+
+  apply-fixed-widen-sequence-components :
+    ∀ {χs μ Δ Σ Σ′ s t A B C} →
+    StoreIncl Σ Σ′ →
+    ModeRename suc μ μ →
+    μ ∣ Δ ∣ Σ ⊢ s ∶ A =⇒ B →
+    μ ∣ Δ ∣ Σ ⊢ t ∶ B =⇒ C →
+    Widening (s ︔ t) →
+    (μ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+      ⊢ applyCoercions χs s ∶ applyTys χs A ⊑ applyTys χs B) ×
+    (μ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ′
+      ⊢ applyCoercions χs t ∶ applyTys χs B ⊑ applyTys χs C)
+  apply-fixed-widen-sequence-components
+      {χs = χs} incl mode-rename s⊢ t⊢ sequence-widening
+      with split-widening-sequence sequence-widening
+  apply-fixed-widen-sequence-components
+      {χs = χs} incl mode-rename s⊢ t⊢ sequence-widening
+      | sʷ , tʷ =
+    apply-fixed-widens-typing {χs = χs} mode-rename
+      (widen-weaken ≤-refl incl (s⊢ , sʷ)) ,
+    apply-fixed-widens-typing {χs = χs} mode-rename
+      (widen-weaken ≤-refl incl (t⊢ , tʷ))
 
   final-seal-mode :
     ∀ {Φ Δᴸ Δᴿ V M′ A B}
@@ -272,78 +416,146 @@ private
     subst (SealModeStore★ _)
       (sym (targetStoreResult result)) seal★
 
+  final-narrow-component :
+    ∀ {Φ Δᴸ Δᴿ V M′ A B}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      (result : WeakOneStepResult ρ V M′ A B keep)
+      {μ C D c} →
+    μ ∣ applyTyCtxs (targetTailChanges result) Δᴿ
+      ∣ applyStores (targetTailChanges result) (rightStoreⁱ ρ)
+      ⊢ applyCoercions (targetTailChanges result) c
+        ∶ applyTys (targetTailChanges result) C
+          ⊒ applyTys (targetTailChanges result) D →
+    μ ∣ resultRightCtx result ∣ rightStoreⁱ (resultStore result)
+      ⊢ applyCoercions (targetTailChanges result) c
+        ∶ applyTys (targetTailChanges result) C
+          ⊒ applyTys (targetTailChanges result) D
+  final-narrow-component result c⊒ =
+    subst
+      (λ Δ → _ ∣ Δ ∣ rightStoreⁱ (resultStore result)
+        ⊢ applyCoercions (targetTailChanges result) _
+          ∶ applyTys (targetTailChanges result) _
+            ⊒ applyTys (targetTailChanges result) _)
+      (sym (targetCtxResult result))
+      (subst
+        (λ Σ → _ ∣ applyTyCtxs (targetTailChanges result) _ ∣ Σ
+          ⊢ applyCoercions (targetTailChanges result) _
+            ∶ applyTys (targetTailChanges result) _
+              ⊒ applyTys (targetTailChanges result) _)
+        (sym (targetStoreResult result)) c⊒)
+
+  final-widen-component :
+    ∀ {Φ Δᴸ Δᴿ V M′ A B}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      (result : WeakOneStepResult ρ V M′ A B keep)
+      {μ C D c} →
+    μ ∣ applyTyCtxs (targetTailChanges result) Δᴿ
+      ∣ applyStores (targetTailChanges result) (rightStoreⁱ ρ)
+      ⊢ applyCoercions (targetTailChanges result) c
+        ∶ applyTys (targetTailChanges result) C
+          ⊑ applyTys (targetTailChanges result) D →
+    μ ∣ resultRightCtx result ∣ rightStoreⁱ (resultStore result)
+      ⊢ applyCoercions (targetTailChanges result) c
+        ∶ applyTys (targetTailChanges result) C
+          ⊑ applyTys (targetTailChanges result) D
+  final-widen-component result c⊑ =
+    subst
+      (λ Δ → _ ∣ Δ ∣ rightStoreⁱ (resultStore result)
+        ⊢ applyCoercions (targetTailChanges result) _
+          ∶ applyTys (targetTailChanges result) _
+            ⊑ applyTys (targetTailChanges result) _)
+      (sym (targetCtxResult result))
+      (subst
+        (λ Σ → _ ∣ applyTyCtxs (targetTailChanges result) _ ∣ Σ
+          ⊢ applyCoercions (targetTailChanges result) _
+            ∶ applyTys (targetTailChanges result) _
+              ⊑ applyTys (targetTailChanges result) _)
+        (sym (targetStoreResult result)) c⊑)
+
   narrow-sequence-resume :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
       {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-      {V M′ : Term} {A B D : Ty} {s t : Coercion} {μ : ModeEnv}
+      {V M′ : Term} {A B C D : Ty} {s t : Coercion} {μ : ModeEnv}
       {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+      {r : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
       {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ} →
     WorldCoherentRightTargetPendingSequenceContinuation →
     StoreImpPrefix ρ₀ ρ⁺ →
     CastMode μ →
     SealModeStore★ μ (rightStoreⁱ ρ₀) →
-    μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ s ︔ t ∶ B ⊒ D →
+    μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ s ∶ B =⇒ C →
+    μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ t ∶ C =⇒ D →
+    Narrowing (s ︔ t) →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′} {ρ = ρ⁺} p →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′ ⟨ s ︔ t ⟩} {ρ = ρ⁺} q
-  narrow-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix mode seal★ seq⊒
+  narrow-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      with apply-narrows-typing
+      with apply-narrow-sequence-components
         { χs = keep ∷ targetTailChanges (weakIndexedResult indexed) }
+        (rightStoreⁱ-prefix-inclusion prefix)
         mode
         (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★)
-        (narrow-weaken ≤-refl
-          (rightStoreⁱ-prefix-inclusion prefix) seq⊒)
-  narrow-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix mode seal★ seq⊒
+        s₀⊢ t₀⊢ sequence-narrowing₀
+  narrow-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , seq⊒′
-      with final-narrow-sequence (weakIndexedResult indexed) seq⊒′
-  narrow-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix mode seal★ seq⊒
+      | μ′ , mode′ , seal★′ , s⊒′ , t⊒′
+      with final-narrow-component (weakIndexedResult indexed) s⊒′
+         | final-narrow-component (weakIndexedResult indexed) t⊒′
+  narrow-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , seq⊒′
-      | final-sequence@(C.cast-seq s⊢ t⊢ , sequence-narrowing)
-      with split-narrowing-sequence sequence-narrowing
-  narrow-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix mode seal★ seq⊒
-      caught@(world-coherent-right-value-indexed-catchup
-        (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
-        lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , seq⊒′
-      | final-sequence@(C.cast-seq s⊢ t⊢ , sequence-narrowing)
-      | sⁿ , tⁿ
+      | μ′ , mode′ , seal★′ , s⊒′ , t⊒′
+      | s⊒@(s⊢ , sⁿ) | t⊒@(t⊢ , tⁿ)
       with targetNarrowingAdministrationPlan
         target-administration-plan-synthesisᵀ
         { ρ₀ = resultStore (weakIndexedResult indexed) }
         { ρ⁺ = resultStore (weakIndexedResult indexed) }
         { A = A }
         { p = transportType (weakIndexedResult indexed) p }
-        { q = transportType (weakIndexedResult indexed) q }
+        { q = transportType (weakIndexedResult indexed) r }
         prefix-reflⁱ final-wfR
         (final-seal-mode (weakIndexedResult indexed) seal★′)
-        final-sequence
-  narrow-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix mode seal★ seq⊒
+        (s⊢ , sⁿ)
+  narrow-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , seq⊒′
-      | final-sequence@(C.cast-seq s⊢ t⊢ , sequence-narrowing)
-      | sⁿ , tⁿ | plan-seq s-plan t-plan =
+      | μ′ , mode′ , seal★′ , s⊒′ , t⊒′
+      | s⊒@(s⊢ , sⁿ) | t⊒@(t⊢ , tⁿ) | s-plan
+      with targetNarrowingAdministrationPlan
+        target-administration-plan-synthesisᵀ
+        { ρ₀ = resultStore (weakIndexedResult indexed) }
+        { ρ⁺ = resultStore (weakIndexedResult indexed) }
+        { A = A }
+        { p = transportType (weakIndexedResult indexed) r }
+        { q = transportType (weakIndexedResult indexed) q }
+        prefix-reflⁱ final-wfR
+        (final-seal-mode (weakIndexedResult indexed) seal★′)
+        (t⊢ , tⁿ)
+  narrow-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
+      caught@(world-coherent-right-value-indexed-catchup
+        (right-value-indexed-catchup indexed refl refl
+          vV noV vW noW transport coherence)
+        lineage bullet final-world final-exclusive final-unique final-wfR)
+      | μ′ , mode′ , seal★′ , s⊒′ , t⊒′
+      | s⊒@(s⊢ , sⁿ) | t⊒@(t⊢ , tⁿ)
+      | s-plan | t-plan =
     world-coherent-right-target-sequence-resume-proofᵀ
       caught continuation
     where
@@ -369,75 +581,87 @@ private
   widen-sequence-resume :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
       {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-      {V M′ : Term} {A B D : Ty} {s t : Coercion} {μ : ModeEnv}
+      {V M′ : Term} {A B C D : Ty} {s t : Coercion} {μ : ModeEnv}
       {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+      {r : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
       {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ} →
     WorldCoherentRightTargetPendingSequenceContinuation →
     StoreImpPrefix ρ₀ ρ⁺ →
     CastMode μ →
     SealModeStore★ μ (rightStoreⁱ ρ₀) →
-    μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ s ︔ t ∶ B ⊑ D →
+    μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ s ∶ B =⇒ C →
+    μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ t ∶ C =⇒ D →
+    Widening (s ︔ t) →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′} {ρ = ρ⁺} p →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′ ⟨ s ︔ t ⟩} {ρ = ρ⁺} q
-  widen-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix mode seal★ seq⊑
+  widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      with apply-widens-typing
+      with apply-widen-sequence-components
         { χs = keep ∷ targetTailChanges (weakIndexedResult indexed) }
+        (rightStoreⁱ-prefix-inclusion prefix)
         mode
         (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★)
-        (widen-weaken ≤-refl
-          (rightStoreⁱ-prefix-inclusion prefix) seq⊑)
-  widen-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix mode seal★ seq⊑
+        s₀⊢ t₀⊢ sequence-widening₀
+  widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , seq⊑′
-      with final-widen-sequence (weakIndexedResult indexed) seq⊑′
-  widen-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix mode seal★ seq⊑
+      | μ′ , mode′ , seal★′ , s⊑′ , t⊑′
+      with final-widen-component (weakIndexedResult indexed) s⊑′
+         | final-widen-component (weakIndexedResult indexed) t⊑′
+  widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , seq⊑′
-      | final-sequence@(C.cast-seq s⊢ t⊢ , sequence-widening)
-      with split-widening-sequence sequence-widening
-  widen-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix mode seal★ seq⊑
-      caught@(world-coherent-right-value-indexed-catchup
-        (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
-        lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , seq⊑′
-      | final-sequence@(C.cast-seq s⊢ t⊢ , sequence-widening)
-      | sʷ , tʷ
+      | μ′ , mode′ , seal★′ , s⊑′ , t⊑′
+      | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)
       with targetWideningAdministrationPlan
         target-administration-plan-synthesisᵀ
         { ρ₀ = resultStore (weakIndexedResult indexed) }
         { ρ⁺ = resultStore (weakIndexedResult indexed) }
         { A = A }
         { p = transportType (weakIndexedResult indexed) p }
-        { q = transportType (weakIndexedResult indexed) q }
+        { q = transportType (weakIndexedResult indexed) r }
         prefix-reflⁱ final-wfR
         (final-seal-mode (weakIndexedResult indexed) seal★′)
-        final-sequence
-  widen-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix mode seal★ seq⊑
+        (s⊢ , sʷ)
+  widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , seq⊑′
-      | final-sequence@(C.cast-seq s⊢ t⊢ , sequence-widening)
-      | sʷ , tʷ | plan-seq s-plan t-plan =
+      | μ′ , mode′ , seal★′ , s⊑′ , t⊑′
+      | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ) | s-plan
+      with targetWideningAdministrationPlan
+        target-administration-plan-synthesisᵀ
+        { ρ₀ = resultStore (weakIndexedResult indexed) }
+        { ρ⁺ = resultStore (weakIndexedResult indexed) }
+        { A = A }
+        { p = transportType (weakIndexedResult indexed) r }
+        { q = transportType (weakIndexedResult indexed) q }
+        prefix-reflⁱ final-wfR
+        (final-seal-mode (weakIndexedResult indexed) seal★′)
+        (t⊢ , tʷ)
+  widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
+      caught@(world-coherent-right-value-indexed-catchup
+        (right-value-indexed-catchup indexed refl refl
+          vV noV vW noW transport coherence)
+        lineage bullet final-world final-exclusive final-unique final-wfR)
+      | μ′ , mode′ , seal★′ , s⊑′ , t⊑′
+      | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)
+      | s-plan | t-plan =
     world-coherent-right-target-sequence-resume-proofᵀ
       caught continuation
     where
@@ -463,62 +687,82 @@ private
   id-widen-sequence-resume :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
       {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-      {V M′ : Term} {A B D : Ty} {s t : Coercion}
+      {V M′ : Term} {A B C D : Ty} {s t : Coercion}
       {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+      {r : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
       {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ} →
     WorldCoherentRightTargetPendingSequenceContinuation →
     StoreImpPrefix ρ₀ ρ⁺ →
     SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) →
-    id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ s ︔ t ∶ B ⊑ D →
+    id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ s ∶ B =⇒ C →
+    id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ t ∶ C =⇒ D →
+    Widening (s ︔ t) →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′} {ρ = ρ⁺} p →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′ ⟨ s ︔ t ⟩} {ρ = ρ⁺} q
-  id-widen-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix seal★ seq⊑
+  id-widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      with final-widen-sequence (weakIndexedResult indexed)
-        (apply-fixed-widens-typing
-          { χs = keep ∷
-            targetTailChanges (weakIndexedResult indexed) }
-          (modeRename-id-only suc)
-          (widen-weaken ≤-refl
-            (rightStoreⁱ-prefix-inclusion prefix) seq⊑))
-  id-widen-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix seal★ seq⊑
+      with apply-fixed-widen-sequence-components
+        { χs = keep ∷
+          targetTailChanges (weakIndexedResult indexed) }
+        (rightStoreⁱ-prefix-inclusion prefix)
+        (modeRename-id-only suc)
+        s₀⊢ t₀⊢ sequence-widening₀
+  id-widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      | final-sequence@(C.cast-seq s⊢ t⊢ , sequence-widening)
-      with split-widening-sequence sequence-widening
-  id-widen-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix seal★ seq⊑
+      | s⊑′ , t⊑′
+      with final-widen-component (weakIndexedResult indexed) s⊑′
+         | final-widen-component (weakIndexedResult indexed) t⊑′
+  id-widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      | final-sequence@(C.cast-seq s⊢ t⊢ , sequence-widening)
-      | sʷ , tʷ
+      | s⊑′ , t⊑′
+      | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)
       with targetWideningAdministrationPlan
         target-administration-plan-synthesisᵀ
         { ρ₀ = resultStore (weakIndexedResult indexed) }
         { ρ⁺ = resultStore (weakIndexedResult indexed) }
         { A = A }
         { p = transportType (weakIndexedResult indexed) p }
-        { q = transportType (weakIndexedResult indexed) q }
-        prefix-reflⁱ final-wfR seal★-id-only final-sequence
-  id-widen-sequence-resume {A = A} {p = p} {q = q}
-      pending prefix seal★ seq⊑
+        { q = transportType (weakIndexedResult indexed) r }
+        prefix-reflⁱ final-wfR seal★-id-only (s⊢ , sʷ)
+  id-widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW transport coherence)
         lineage bullet final-world final-exclusive final-unique final-wfR)
-      | final-sequence@(C.cast-seq s⊢ t⊢ , sequence-widening)
-      | sʷ , tʷ | plan-seq s-plan t-plan =
+      | s⊑′ , t⊑′
+      | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ) | s-plan
+      with targetWideningAdministrationPlan
+        target-administration-plan-synthesisᵀ
+        { ρ₀ = resultStore (weakIndexedResult indexed) }
+        { ρ⁺ = resultStore (weakIndexedResult indexed) }
+        { A = A }
+        { p = transportType (weakIndexedResult indexed) r }
+        { q = transportType (weakIndexedResult indexed) q }
+        prefix-reflⁱ final-wfR seal★-id-only (t⊢ , tʷ)
+  id-widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
+      pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
+      caught@(world-coherent-right-value-indexed-catchup
+        (right-value-indexed-catchup indexed refl refl
+          vV noV vW noW transport coherence)
+        lineage bullet final-world final-exclusive final-unique final-wfR)
+      | s⊑′ , t⊑′
+      | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)
+      | s-plan | t-plan =
     world-coherent-right-target-sequence-resume-proofᵀ
       caught continuation
     where
@@ -580,6 +824,16 @@ private
     rightTargetNarrowUntagRoot roots prefix coherent exclusive unique wfR
       runtime vV noV mode seal★ c⊒ relation caught
   narrow-administration inert pending roots prefix coherent exclusive unique wfR
+      runtime vV noV mode seal★ c⊒ relation caught
+      plan-fun-untag-gen =
+    rightTargetNarrowFunUntagGenRoot roots prefix coherent exclusive unique wfR
+      runtime vV noV mode seal★ c⊒ relation caught
+  narrow-administration inert pending roots prefix coherent exclusive unique wfR
+      runtime vV noV mode seal★
+      (C.cast-seq (C.cast-inst hFun occ s⊢)
+        (C.cast-tag hG gG tag-ok) , NW.cross ())
+      relation caught plan-inst-fun-tag
+  narrow-administration inert pending roots prefix coherent exclusive unique wfR
       runtime vV noV mode seal★
       (C.cast-unseal hB αB∈Σ ok , NW.cross ())
       relation caught plan-unseal
@@ -587,9 +841,11 @@ private
       runtime vV noV mode seal★
       (C.cast-inst hB occ s⊢ , NW.cross ()) relation caught plan-inst
   narrow-administration inert pending roots prefix coherent exclusive unique wfR
-      runtime vV noV mode seal★ c⊒ relation caught
-      (plan-seq s-plan t-plan) =
-    narrow-sequence-resume pending prefix mode seal★ c⊒ caught
+      runtime vV noV mode seal★
+      (C.cast-seq s⊢ t⊢ , sequence-narrowing) relation caught
+      (plan-seq {r = r} s-plan t-plan) =
+    narrow-sequence-resume {r = r} pending prefix mode seal★
+      s⊢ t⊢ sequence-narrowing caught
 
   widen-administration :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -645,8 +901,20 @@ private
       exclusive unique wfR runtime vV noV mode seal★ c⊑ relation caught
   widen-administration inert pending roots allocation prefix coherent
       exclusive unique wfR runtime vV noV mode seal★ c⊑ relation caught
-      (plan-seq s-plan t-plan) =
-    widen-sequence-resume pending prefix mode seal★ c⊑ caught
+      plan-inst-fun-tag =
+    rightTargetWidenInstFunTagRoot roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV mode seal★ c⊑ relation caught
+  widen-administration inert pending roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV mode seal★
+      (C.cast-seq (C.cast-untag hG gG tag-ok)
+        (C.cast-gen hFun occ s⊢) , NW.cross ())
+      relation caught plan-fun-untag-gen
+  widen-administration inert pending roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV mode seal★
+      (C.cast-seq s⊢ t⊢ , sequence-widening) relation caught
+      (plan-seq {r = r} s-plan t-plan) =
+    widen-sequence-resume {r = r} pending prefix mode seal★
+      s⊢ t⊢ sequence-widening caught
 
   id-widen-administration :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -700,8 +968,22 @@ private
       relation caught
   id-widen-administration inert pending roots allocation prefix coherent
       exclusive unique wfR runtime vV noV seal★ c⊑ relation caught
-      (plan-seq s-plan t-plan) =
-    id-widen-sequence-resume pending prefix seal★ c⊑ caught
+      plan-inst-fun-tag =
+    rightTargetWidenInstFunTagRoot roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV cast-tag-or-id seal★-tag-or-id
+      (NW.widen-mode-relax C.id-only≤tag-or-idᵈ c⊑)
+      relation caught
+  id-widen-administration inert pending roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV seal★
+      (C.cast-seq (C.cast-untag hG gG tag-ok)
+        (C.cast-gen hFun occ s⊢) , NW.cross ())
+      relation caught plan-fun-untag-gen
+  id-widen-administration inert pending roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV seal★
+      (C.cast-seq s⊢ t⊢ , sequence-widening) relation caught
+      (plan-seq {r = r} s-plan t-plan) =
+    id-widen-sequence-resume {r = r} pending prefix seal★
+      s⊢ t⊢ sequence-widening caught
 
   reveal-administration :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}

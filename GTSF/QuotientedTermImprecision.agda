@@ -648,6 +648,59 @@ mutual
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ M ⟨ d ⟩ ⊑ M′ ⟨ d′ ⟩ ⦂ D ⊑ᵖ D′ ∶ qD
 
+    ordinary-down-applicationᵖᵀ :
+        ∀ {L L′ M M′ A A′ C C′ B B′
+          pA pC pB qB d d′ μ μ′}
+      → CastMode μ
+      → SealModeStore★ μ (leftStoreⁱ ρ)
+      → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ A ⊒ C
+      → CastMode μ′
+      → SealModeStore★ μ′ (rightStoreⁱ ρ)
+      → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ C′
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺ L ⊑ L′
+          ⦂ C ⇒ B ⊑ C′ ⇒ B′ ∶ pC ↦ pB
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ pA
+        ------------------------------------------------------------
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺᵖ L · (M ⟨ d ⟩) ⊑ L′ · (M′ ⟨ d′ ⟩)
+          ⦂ B ⊑ᵖ B′ ∶ qB
+
+    quotient-id-down-applicationᵖᵀ :
+        ∀ {L L′ M M′ A A′ C C′ B B′
+          pA qF qB d d′}
+      → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ A ⊒ C
+      → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ C′
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺᵖ L ⊑ L′
+          ⦂ C ⇒ B ⊑ᵖ C′ ⇒ B′ ∶ qF
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ pA
+        ------------------------------------------------------------
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺᵖ L · (M ⟨ d ⟩) ⊑ L′ · (M′ ⟨ d′ ⟩)
+          ⦂ B ⊑ᵖ B′ ∶ qB
+
+    quotient-down-applicationᵖᵀ :
+        ∀ {L L′ M M′ A A′ C C′ B B′
+          pA qF qB d d′ μ μ′}
+      → CastMode μ
+      → SealModeStore★ μ (leftStoreⁱ ρ)
+      → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ A ⊒ C
+      → CastMode μ′
+      → SealModeStore★ μ′ (rightStoreⁱ ρ)
+      → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ C′
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺᵖ L ⊑ L′
+          ⦂ C ⇒ B ⊑ᵖ C′ ⇒ B′ ∶ qF
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ pA
+        ------------------------------------------------------------
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺᵖ L · (M ⟨ d ⟩) ⊑ L′ · (M′ ⟨ d′ ⟩)
+          ⦂ B ⊑ᵖ B′ ∶ qB
+
 seal★-gen-tag-or-id :
   ∀ {Σ} →
   SealModeStore★ (genᵈ tag-or-idᵈ) Σ
@@ -955,6 +1008,25 @@ mutual
       (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ q) =
     ⊢⟨⟩⊒ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id d⊒
       (nu-term-imprecision-source-typing M⊑M′)
+  quotiented-nu-term-imprecision-source-typing
+      (ordinary-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+    ⊢· (nu-term-imprecision-source-typing L⊑L′)
+      (⊢⟨⟩⊒ mode seal★ d⊒
+        (nu-term-imprecision-source-typing M⊑M′))
+  quotiented-nu-term-imprecision-source-typing
+      (quotient-id-down-applicationᵖᵀ
+        d⊒ d′⊒ L⊑L′ M⊑M′) =
+    ⊢· (quotiented-nu-term-imprecision-source-typing L⊑L′)
+      (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
+        (narrow-mode-relax id-only≤tag-or-idᵈ d⊒)
+        (nu-term-imprecision-source-typing M⊑M′))
+  quotiented-nu-term-imprecision-source-typing
+      (quotient-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+    ⊢· (quotiented-nu-term-imprecision-source-typing L⊑L′)
+      (⊢⟨⟩⊒ mode seal★ d⊒
+        (nu-term-imprecision-source-typing M⊑M′))
 
   quotiented-nu-term-imprecision-target-typing
       (down⊑downᵀ d⊒ d′⊒ M⊑M′ q) =
@@ -965,6 +1037,25 @@ mutual
       (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ q) =
     ⊢⟨⟩⊒ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id d′⊒
       (nu-term-imprecision-target-typing M⊑M′)
+  quotiented-nu-term-imprecision-target-typing
+      (ordinary-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+    ⊢· (nu-term-imprecision-target-typing L⊑L′)
+      (⊢⟨⟩⊒ mode′ seal★′ d′⊒
+        (nu-term-imprecision-target-typing M⊑M′))
+  quotiented-nu-term-imprecision-target-typing
+      (quotient-id-down-applicationᵖᵀ
+        d⊒ d′⊒ L⊑L′ M⊑M′) =
+    ⊢· (quotiented-nu-term-imprecision-target-typing L⊑L′)
+      (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
+        (narrow-mode-relax id-only≤tag-or-idᵈ d′⊒)
+        (nu-term-imprecision-target-typing M⊑M′))
+  quotiented-nu-term-imprecision-target-typing
+      (quotient-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+    ⊢· (quotiented-nu-term-imprecision-target-typing L⊑L′)
+      (⊢⟨⟩⊒ mode′ seal★′ d′⊒
+        (nu-term-imprecision-target-typing M⊑M′))
 
 nu-term-imprecision-typing :
   ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A B}

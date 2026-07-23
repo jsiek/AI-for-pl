@@ -31,6 +31,7 @@ open import QuotientedTermImprecision using
   ; conv↓⊑ᵀ
   ; conv⊑convᵀ
   ; down⊑downᵀ
+  ; gen⊑groundᵀ
   ; gen-down⊑gen-downᵀ
   ; up⊑upᵀ
   ; x⊑xᵀ
@@ -57,6 +58,7 @@ open import QuotientedTermImprecision using
   )
 open import proof.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)
+open import proof.NuProgress using (runtime-value-no•)
 open import
   proof.NuImprecisionWorldCoherentRightValueCatchupCasesDef
   using
@@ -72,7 +74,10 @@ open import
   )
 open import
   proof.NuImprecisionWorldCoherentRightQuotientDownUpFrameDef
-  using (rightQuotientGenDownUpFrame; rightQuotientIdDownUpFrame)
+  using
+  ( rightQuotientGenDownUpFrame
+  ; rightQuotientIdDownUpFrame
+  )
 open import proof.NuImprecisionWorldCoherentRightSourceFramesDef using
   ( rightSourceConcealFrame
   ; rightSourceNarrowFrame
@@ -213,6 +218,12 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
     (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+world-coherent-right-value-catchup-dispatcher-proofᵀ
+    cases prefix coherent exclusive unique wfR okW
+    vSource noSource
+    rel@(gen⊑groundᵀ mode seal★ c⊒ gH vV vW W⊢ V⊑Wtag q) =
+  rightValueTerminalCase cases prefix coherent exclusive unique wfR
+    vSource noSource vW (runtime-value-no• okW vW) rel
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)

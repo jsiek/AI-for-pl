@@ -22,14 +22,14 @@ open import Relation.Nullary using (Dec; yes; no)
 open import Types
 open import Store using (StoreIncl; StoreIncl-drop)
 open import Coercions
-open import proof.CoercionProperties
+open import proof.Core.Properties.CoercionProperties
   using
     ( ModeRename
     ; coercion-mode-relax
     ; coercion-renameᵗᵐ
     ; coercion-weakenᵐ
     )
-open import proof.TypeProperties
+open import proof.Core.Properties.TypeProperties
   using
     ( TyRenameWf
     ; TyRenameWf-suc

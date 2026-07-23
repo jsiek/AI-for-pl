@@ -32,7 +32,7 @@ open import Primitives
 open import NuTerms
 open import NarrowWiden
 open import NarrowWidenComposition
-open import proof.NarrowWidenProperties using (StoreDetWf)
+open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
 
 variable
   Δ : TyCtx

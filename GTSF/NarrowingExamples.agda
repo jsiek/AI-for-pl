@@ -28,8 +28,8 @@ open import NuTerms
 open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing
-open import proof.NarrowWidenProperties using (StoreDetWf)
-open import proof.TermNarrowingProperties using (cast+⊒cast+-derivedᵗ)
+open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
+open import proof.Core.Properties.TermNarrowingProperties using (cast+⊒cast+-derivedᵗ)
 
 ------------------------------------------------------------------------
 -- Shared syntax from cambridge23 Examples 1 and 6
@@ -170,6 +170,10 @@ var0-fun-grammar : Narrowing var0-fun
 var0-fun-grammar =
   cross (tag (＇ 0) ↦ untag (＇ 0))
 
+var0-fun-safe : GenSafe var0-fun
+var0-fun-safe =
+  safe-fun (tag (＇ 0)) (untag (＇ 0))
+
 var0-fun-typing :
   ∀ {μ Δ Σ} →
   WfTy Δ (＇ 0) →
@@ -246,7 +250,7 @@ poly-fun-narrowingᵐ : ∀ {Δ Σ} →
 poly-fun-narrowingᵐ =
   cast-gen (wf⇒ wf★ wf★) refl
     (var0-fun-typing {μ = genᵈ id-onlyᵈ} (wfVar z<s) refl refl) ,
-  gen var0-fun-grammar
+  gen var0-fun-safe
 
 poly-fun-narrowing : ∀ {Δ Σ} →
   Δ ∣ Σ ⊢ gen (★ ⇒ ★) var0-fun ∶
@@ -368,7 +372,7 @@ poly-fun-cast : ∀ {Δ Σ} →
 poly-fun-cast =
   cast-gen (wf⇒ wf★ wf★) refl
     (var0-fun-typing {μ = genᵈ tag-or-idᵈ} (wfVar z<s) refl refl) ,
-  gen var0-fun-grammar
+  gen var0-fun-safe
 
 base-fun-cast : ∀ {Δ Σ ι} →
   Δ ∣ Σ ⊢ base-fun ι ∶ᶜ (★ ⇒ ★) ⊒ (‵ ι ⇒ ‵ ι)

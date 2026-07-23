@@ -39,14 +39,14 @@ open import NarrowWiden using
   ; narrow-mode-relax
   ; widen-mode-relax
   )
-open import proof.CompileCoercions using
+open import proof.Compilation.CompileCoercions using
   ( coerce-upʷ
   ; coerce-downⁿ
   ; realizes-idᵢᴺᵂ-id-only
   )
-open import proof.CastImprecision
+open import proof.Core.Properties.CastImprecision
   using (castᵢ-id-only; narrowing⇒⊑ᵢ; widening⇒⊑ᵢ)
-open import proof.CoercionProperties
+open import proof.Core.Properties.CoercionProperties
   using
     ( RevealEnv
     ; reveal-typing-env
@@ -55,21 +55,21 @@ open import proof.CoercionProperties
     ; singleSealᵈ
     ; singleSealMode
     )
-open import proof.ImprecisionProperties
+open import proof.Core.Properties.ImprecisionProperties
   using (⊑-src-wf-idᵢ; ⊑-tgt-wf-idᵢ; ~-refl; ~-sym)
-open import proof.EndpointCanonicalMLBSimple using (MLB)
-open import proof.EndpointCanonicalMLBSimpleMaximality using
+open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple using (MLB)
+open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleMaximality using
   (MLB-complete)
-open import proof.EndpointCanonicalMLBSimpleSoundness using
+open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleSoundness using
   (MLB-sound)
-open import proof.MaximalLowerBoundsWf
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf
   using
     ( old⊑→wf-idᵢ
     ; ⊑-forgetᵢ
     )
-open import proof.NarrowWidenProperties using (StoreDetWf)
-open import proof.NuTermProperties using (CtxWf-⤊)
-open import proof.TypeProperties
+open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
+open import proof.Core.Properties.NuTermProperties using (CtxWf-⤊)
+open import proof.Core.Properties.TypeProperties
   using
     ( TySubstWf
     ; TyRenameWf-suc

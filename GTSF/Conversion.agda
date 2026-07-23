@@ -24,7 +24,7 @@ open import Relation.Nullary using (yes; no)
 open import Types
 open import Store using (StoreIncl)
 open import Coercions
-open import proof.CoercionProperties
+open import proof.Core.Properties.CoercionProperties
   using
     ( ModeRename
     ; ModeRename-ext
@@ -42,11 +42,11 @@ open import proof.CoercionProperties
     ; modeRename-sealModeAllowed
     ; single-mode-rename-lower
     )
-open import proof.StoreProperties using
+open import proof.Core.Properties.StoreProperties using
   ( ∈-renameStoreᵗ
   ; renameStoreᵗ-incl
   )
-open import proof.TypeProperties
+open import proof.Core.Properties.TypeProperties
   using
     ( TyRenameWf
     ; TyRenameWf-ext

@@ -70,7 +70,7 @@ open import NuTerms using
 open import PairedWideningCompatibility using
   (PairedWideningCompatible)
 open import Primitives
-open import proof.CastImprecision using
+open import proof.Core.Properties.CastImprecision using
   ( ∀ᵢᶜ
   ; widening⇒⊑ᵢ
   ; ⊑-transʳ-castᵢ

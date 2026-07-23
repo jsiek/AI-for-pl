@@ -20,10 +20,10 @@ open import NuStore using (StoreWf)
 open import NuTerms
 open import NuReduction
 
-import proof.CoercionProperties as CoercionProof
-import proof.NarrowWidenProperties as NarrowWidenProof
-import proof.NuProgress as ProgressProof
-import proof.NuPreservation as PreservationProof
+import proof.Core.Properties.CoercionProperties as CoercionProof
+import proof.Core.Properties.NarrowWidenProperties as NarrowWidenProof
+import proof.DGG.Core.NuProgress as ProgressProof
+import proof.DGG.Core.NuPreservation as PreservationProof
 
 progress :
   ∀ {Δ : TyCtx}{Σ : Store}{M : Term}{A : Ty} →

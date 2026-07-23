@@ -17,10 +17,12 @@ open import Conversion using
   ; reveal-conversion-typing
   )
 open import Data.Product using (_,_; _×_; ∃-syntax; proj₁)
+open import Data.Empty using (⊥-elim)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; subst; sym; trans)
+import NarrowWiden as NW
 open import NuReduction using (ξ-⟨⟩)
 open import NuTermImprecision using
   (StoreImp; lift-right-ctx-[])
@@ -44,6 +46,7 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
   ; conv⊑convᵀ
+  ; gen⊑groundᵀ
   ; paired-conceal
   ; paired-conversion
   ; paired-reveal
@@ -69,6 +72,7 @@ open import TermTyping using
   )
 open import Types using (Ty; TyCtx; `∀)
 open import proof.CoercionProperties using (coercion-src-tgtᵐ)
+open import proof.NuPreservation using (value-no-step)
 open import proof.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)
 open import
@@ -385,6 +389,14 @@ world-coherent-source-cast-frame-step-proofᵀ
     (up⊑upᵀ inner widening q) M→M₁ =
   quotient-step prefix prefixρ coherent exclusive wfL wfR
     ok-source ok-target source⊢ target⊢ inner widening M→M₁
+world-coherent-source-cast-frame-step-proofᵀ
+    prefix source-frames target-frames target-ν-frames paired-frame
+    quotient-step target-bullet-step prefixρ coherent exclusive unique wfL wfR
+    ok-source ok-target source⊢ target⊢
+    (gen⊑groundᵀ mode seal★ (c⊢ , NW.gen safe)
+      gH vV vW W⊢ V⊑Wtag q) M→M₁ =
+  ⊥-elim
+    (value-no-step vV M→M₁)
 world-coherent-source-cast-frame-step-proofᵀ
     prefix source-frames target-frames target-ν-frames paired-frame
     quotient-step target-bullet-step prefixρ coherent exclusive unique wfL wfR

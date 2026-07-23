@@ -60,8 +60,45 @@ open import
   proof.NuImprecisionWorldCoherentSourceApplicationLeftStepDef using
   (WorldCoherentSourceApplicationLeftStepᵀ)
 open import
-  proof.NuImprecisionWorldCoherentSourceApplicationPureRootDef
-  using (WorldCoherentSourceApplicationPureRootᵀ)
+  proof.NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef
+  using (WorldCoherentSourceApplicationPureRootCases)
+open import
+  proof.NuImprecisionWorldCoherentSourceApplicationPureRootCasesLemma
+  using (world-coherent-source-application-pure-root-cases-lemmaᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourceLambdaBetaSchedulingDef
+  using (WorldCoherentSourceLambdaBetaSchedulingᵀ)
+open import
+  proof.NuImprecisionOrdinaryFunctionPairedNarrowingApplicationLemma
+  using (ordinary-function-paired-narrowing-applicationᵀ)
+open import
+  proof.NuImprecisionQuotientFunctionPairedNarrowingApplicationLemma
+  using (quotient-function-paired-narrowing-applicationᵀ)
+open import
+  proof.NuImprecisionSourceFunctionCastBetaPairedQuotientRelationLemma
+  using (source-function-cast-beta-paired-quotient-relationᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedQuotientValuesLemma
+  using
+  (world-coherent-source-function-cast-beta-paired-quotient-valuesᵀ)
+open import
+  proof.NuImprecisionSourceFunctionCastBetaPairedWideningSourceInertRelationLemma
+  using
+  (source-function-cast-beta-paired-widening-source-inert-relationᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedWideningValuesLemma
+  using
+  (world-coherent-source-function-cast-beta-paired-widening-valuesᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedWideningSourceInertValuesLemma
+  using
+  (world-coherent-source-function-cast-beta-paired-widening-source-inert-valuesᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourceLambdaBetaSchedulingLemma
+  using (world-coherent-source-lambda-beta-schedulingᵀ)
+open import
+  proof.NuImprecisionWorldCoherentSourceApplicationPureRootProof
+  using (world-coherent-source-application-pure-root-proofᵀ)
 open import
   proof.NuImprecisionWorldCoherentSourceApplicationRightStepDef using
   (WorldCoherentSourceApplicationRightStepᵀ)
@@ -168,7 +205,7 @@ forward-cases-and-backward-terminals⇒gradual-dgg
 
 forward-case-builders-and-backward-terminals⇒gradual-dgg :
   WorldCoherentRightValueCatchupCases →
-  WorldCoherentSourceApplicationPureRootᵀ →
+  WorldCoherentSourceApplicationPureRootCases →
   WorldCoherentSourceRuntimeBulletPureRootᵀ →
   WorldCoherentSourceCastPureRootᵀ →
   WorldCoherentSourceAllocationStepᵀ →
@@ -182,14 +219,16 @@ forward-case-builders-and-backward-terminals⇒gradual-dgg :
   BackwardTargetBlameᵀ →
   GradualDGG
 forward-case-builders-and-backward-terminals⇒gradual-dgg
-    right-cases application-root bullet-root cast-root
+    right-cases application-root-cases bullet-root cast-root
     allocation-step application-left-step application-right-step
     cast-frame-step ν-frame-step primitive-left-step primitive-right-step
     backward-value backward-blame =
   forward-cases-and-backward-terminals⇒gradual-dgg
     (world-coherent-source-one-step-cases-proofᵀ
       (world-coherent-right-value-catchup-dispatcher-proofᵀ right-cases)
-      application-root bullet-root cast-root
+      (world-coherent-source-application-pure-root-proofᵀ
+        application-root-cases)
+      bullet-root cast-root
       allocation-step application-left-step application-right-step
       cast-frame-step ν-frame-step
       primitive-left-step primitive-right-step)
@@ -203,7 +242,7 @@ remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg :
   WorldCoherentRightSourceAllClosingᵀ →
   WorldCoherentRightTargetBulletClosingᵀ →
   WorldCoherentRightTargetAllocationFrames →
-  WorldCoherentSourceApplicationPureRootᵀ →
+  WorldCoherentSourceApplicationPureRootCases →
   WorldCoherentSourceRuntimeBulletPureRootᵀ →
   WorldCoherentSourceCastPureRootᵀ →
   WorldCoherentSourceAllocationStepᵀ →
@@ -218,7 +257,7 @@ remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg :
   GradualDGG
 remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg
     target-casts paired-cast quotient source-all target-bullet
-    target-allocation application-root bullet-root cast-root
+    target-allocation application-root-cases bullet-root cast-root
     allocation-step application-left-step application-right-step
     cast-frame-step ν-frame-step primitive-left-step primitive-right-step
     backward-value backward-blame =
@@ -226,6 +265,85 @@ remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg
     (world-coherent-right-value-catchup-cases-proofᵀ
       target-casts paired-cast quotient source-all target-bullet
       target-allocation)
-    application-root bullet-root cast-root allocation-step
+    application-root-cases bullet-root cast-root allocation-step
     application-left-step application-right-step cast-frame-step ν-frame-step
     primitive-left-step primitive-right-step backward-value backward-blame
+
+
+scheduled-lambda-forward-builders-and-backward-terminals⇒gradual-dgg :
+  WorldCoherentRightValueCatchupCases →
+  WorldCoherentSourceLambdaBetaSchedulingᵀ →
+  WorldCoherentSourceRuntimeBulletPureRootᵀ →
+  WorldCoherentSourceCastPureRootᵀ →
+  WorldCoherentSourceAllocationStepᵀ →
+  WorldCoherentSourceApplicationLeftStepᵀ →
+  WorldCoherentSourceApplicationRightStepᵀ →
+  WorldCoherentSourceCastFrameStepᵀ →
+  WorldCoherentSourceNuFrameStepᵀ →
+  WorldCoherentSourcePrimitiveLeftStepᵀ →
+  WorldCoherentSourcePrimitiveRightStepᵀ →
+  BackwardTargetValueOrSourceBlameᵀ →
+  BackwardTargetBlameᵀ →
+  GradualDGG
+scheduled-lambda-forward-builders-and-backward-terminals⇒gradual-dgg
+    right-cases schedule-lambda
+    bullet-root cast-root
+    allocation-step application-left-step application-right-step
+    cast-frame-step ν-frame-step primitive-left-step primitive-right-step
+    backward-value backward-blame =
+  forward-case-builders-and-backward-terminals⇒gradual-dgg
+    right-cases
+    (world-coherent-source-application-pure-root-cases-lemmaᵀ
+      schedule-lambda right-prefix paired-widening paired-quotient)
+    bullet-root cast-root allocation-step application-left-step
+    application-right-step cast-frame-step ν-frame-step
+    primitive-left-step primitive-right-step backward-value backward-blame
+  where
+  right-prefix =
+    world-coherent-right-value-catchup-dispatcher-proofᵀ right-cases
+  source-inert-relation =
+    source-function-cast-beta-paired-widening-source-inert-relationᵀ
+      ordinary-function-paired-narrowing-applicationᵀ
+  quotient-relation =
+    source-function-cast-beta-paired-quotient-relationᵀ
+      quotient-function-paired-narrowing-applicationᵀ
+  paired-source-inert =
+    world-coherent-source-function-cast-beta-paired-widening-source-inert-valuesᵀ
+      source-inert-relation
+  paired-widening =
+    world-coherent-source-function-cast-beta-paired-widening-valuesᵀ
+      paired-source-inert
+  paired-quotient =
+    world-coherent-source-function-cast-beta-paired-quotient-valuesᵀ
+      quotient-relation
+
+
+lambda-beta-assembled-and-backward-terminals⇒gradual-dgg :
+  WorldCoherentRightValueCatchupCases →
+  WorldCoherentSourceRuntimeBulletPureRootᵀ →
+  WorldCoherentSourceCastPureRootᵀ →
+  WorldCoherentSourceAllocationStepᵀ →
+  WorldCoherentSourceApplicationLeftStepᵀ →
+  WorldCoherentSourceApplicationRightStepᵀ →
+  WorldCoherentSourceCastFrameStepᵀ →
+  WorldCoherentSourceNuFrameStepᵀ →
+  WorldCoherentSourcePrimitiveLeftStepᵀ →
+  WorldCoherentSourcePrimitiveRightStepᵀ →
+  BackwardTargetValueOrSourceBlameᵀ →
+  BackwardTargetBlameᵀ →
+  GradualDGG
+lambda-beta-assembled-and-backward-terminals⇒gradual-dgg
+    right-cases
+    bullet-root cast-root allocation-step application-left-step
+    application-right-step cast-frame-step ν-frame-step
+    primitive-left-step primitive-right-step backward-value backward-blame =
+  scheduled-lambda-forward-builders-and-backward-terminals⇒gradual-dgg
+    right-cases
+    (world-coherent-source-lambda-beta-schedulingᵀ right-prefix)
+    bullet-root cast-root
+    allocation-step application-left-step
+    application-right-step cast-frame-step ν-frame-step
+    primitive-left-step primitive-right-step backward-value backward-blame
+  where
+  right-prefix =
+    world-coherent-right-value-catchup-dispatcher-proofᵀ right-cases

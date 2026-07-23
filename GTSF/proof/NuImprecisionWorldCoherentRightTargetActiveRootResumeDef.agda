@@ -5,8 +5,9 @@ module
 -- File Charter:
 --   * Defines the constructor-specific active right-target roots that resume
 --     from an already completed inner value catch-up.
---   * Covers exactly the reachable identity, untag, instantiation, and
---     unseal roots while retaining target-frame provenance at every entry.
+--   * Covers exactly the reachable identity, untag, eager untag-gen,
+--     instantiation, eager inst-tag, and unseal roots while retaining
+--     target-frame provenance at every entry.
 --   * Returns the existing complete right-value catch-up carrier rooted at
 --     the original outer cast; it introduces no result, view, or outcome.
 --   * Contains no implementation, compatibility wrapper, alias, postulate,
@@ -15,7 +16,17 @@ module
 open import Data.List using ([])
 
 open import Coercions using
-  (Coercion; ModeEnv; id; id-onlyᵈ; inst; unseal; _？)
+  ( Coercion
+  ; ModeEnv
+  ; gen
+  ; id
+  ; id-onlyᵈ
+  ; inst
+  ; unseal
+  ; _!
+  ; _？
+  ; _︔_
+  )
 open import Conversion using (ConcealConversion; RevealConversion)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
@@ -30,7 +41,7 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using (CastMode; SealModeStore★)
-open import Types using (Ty; TyCtx; TyVar; ★; ＇_; `∀)
+open import Types using (Ty; TyCtx; TyVar; ★; ＇_; _⇒_; `∀)
 open import proof.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
@@ -43,6 +54,9 @@ open import
 open import
   proof.NuImprecisionWorldCoherentRightTargetAllocationFramesDef
   using (WorldCoherentRightTargetAllocationFrames)
+open import
+  proof.NuImprecisionWorldCoherentRightTargetWidenInstantiationRootDef
+  using (WorldCoherentRightTargetWidenInstantiationRootᵀ)
 
 
 record WorldCoherentRightTargetActiveRootResume : Set₁ where
@@ -184,31 +198,65 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       WorldCoherentRightValueCatchupIndexedResult
         {V = V} {M′ = M′ ⟨ H ？ ⟩} {ρ = ρ⁺} q
 
-    rightTargetWidenInstantiationRoot :
+    rightTargetNarrowFunUntagGenRoot :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {V M′ : Term} {A B C : Ty} {s : Coercion} {μ : ModeEnv}
+        {V M′ : Term} {A C : Ty} {s : Coercion} {μ : ModeEnv}
+        {p : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ}
+        {q : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ} →
+      StoreImpPrefix ρ₀ ρ⁺ →
+      WorldCoherent ρ⁺ →
+      SourceNameExclusive Φ →
+      AssumptionMembershipUnique Φ →
+      StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
+      RuntimeOK
+        (M′ ⟨ ((★ ⇒ ★) ？) ︔ gen (★ ⇒ ★) s ⟩) →
+      Value V →
+      No• V →
+      CastMode μ →
+      SealModeStore★ μ (rightStoreⁱ ρ₀) →
+      μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
+        ⊢ ((★ ⇒ ★) ？) ︔ gen (★ ⇒ ★) s ∶ ★ ⊒ `∀ C →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
+        ⊢ᴺ V ⊑ M′ ⦂ A ⊑ ★ ∶ p →
+      WorldCoherentRightValueCatchupIndexedResult
+        {V = V} {M′ = M′} {ρ = ρ⁺} p →
+      WorldCoherentRightValueCatchupIndexedResult
+        {V = V}
+        {M′ = M′ ⟨ ((★ ⇒ ★) ？) ︔ gen (★ ⇒ ★) s ⟩}
+        {ρ = ρ⁺} q
+
+    rightTargetWidenInstantiationRoot :
+      WorldCoherentRightTargetWidenInstantiationRootᵀ
+
+    rightTargetWidenInstFunTagRoot :
+      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
+        {V M′ : Term} {A C : Ty} {s : Coercion} {μ : ModeEnv}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+        {q : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ} →
       WorldCoherentRightTargetAllocationFrames →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
       AssumptionMembershipUnique Φ →
       StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
-      RuntimeOK (M′ ⟨ inst B s ⟩) →
+      RuntimeOK
+        (M′ ⟨ inst (★ ⇒ ★) s ︔ ((★ ⇒ ★) !) ⟩) →
       Value V →
       No• V →
       CastMode μ →
       SealModeStore★ μ (rightStoreⁱ ρ₀) →
       μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
-        ⊢ inst B s ∶ `∀ C ⊑ B →
+        ⊢ inst (★ ⇒ ★) s ︔ ((★ ⇒ ★) !) ∶ `∀ C ⊑ ★ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ `∀ C ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
         {V = V} {M′ = M′} {ρ = ρ⁺} p →
       WorldCoherentRightValueCatchupIndexedResult
-        {V = V} {M′ = M′ ⟨ inst B s ⟩} {ρ = ρ⁺} q
+        {V = V}
+        {M′ = M′ ⟨ inst (★ ⇒ ★) s ︔ ((★ ⇒ ★) !) ⟩}
+        {ρ = ρ⁺} q
 
     rightTargetWidenUnsealRoot :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}

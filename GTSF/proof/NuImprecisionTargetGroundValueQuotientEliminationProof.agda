@@ -33,6 +33,10 @@ open import ForallPermutation using
   )
 open import Imprecision using
   ( ImpAssm
+  ; NonVar
+  ; nonvar-all
+  ; nonvar-fun
+  ; renameNonVar
   ; _ˣ⊑★
   ; _ˣ⊑ˣ_
   ; ImpCtx
@@ -284,6 +288,36 @@ swap01-injective {X} {Y} eq =
 
 
 mutual
+  ≈∀-nonVar-left :
+    ∀ {A B} →
+    A ≈∀ B →
+    NonVar B →
+    NonVar A
+  ≈∀-nonVar-left ≈∀-refl safe = safe
+  ≈∀-nonVar-left (≈∀-sym B≈A) safe =
+    ≈∀-nonVar-right B≈A safe
+  ≈∀-nonVar-left (≈∀-trans A≈B B≈C) safe =
+    ≈∀-nonVar-left A≈B (≈∀-nonVar-left B≈C safe)
+  ≈∀-nonVar-left (≈∀-⇒ A≈A′ B≈B′) nonvar-fun = nonvar-fun
+  ≈∀-nonVar-left (≈∀-∀ A≈B) nonvar-all = nonvar-all
+  ≈∀-nonVar-left ≈∀-swap nonvar-all = nonvar-all
+
+  ≈∀-nonVar-right :
+    ∀ {A B} →
+    A ≈∀ B →
+    NonVar A →
+    NonVar B
+  ≈∀-nonVar-right ≈∀-refl safe = safe
+  ≈∀-nonVar-right (≈∀-sym B≈A) safe =
+    ≈∀-nonVar-left B≈A safe
+  ≈∀-nonVar-right (≈∀-trans A≈B B≈C) safe =
+    ≈∀-nonVar-right B≈C (≈∀-nonVar-right A≈B safe)
+  ≈∀-nonVar-right (≈∀-⇒ A≈A′ B≈B′) nonvar-fun = nonvar-fun
+  ≈∀-nonVar-right (≈∀-∀ A≈B) nonvar-all = nonvar-all
+  ≈∀-nonVar-right ≈∀-swap nonvar-all = nonvar-all
+
+
+mutual
   source-star-rename :
     ∀ {Φ Ψ : ImpCtx} {Δᴸ Δᴸ′ Δᴿ} {ρ : T.Renameᵗ} {A} →
     (∀ {a} → a ∈ Φ → rename-left-assm ρ a ∈ Ψ) →
@@ -296,8 +330,9 @@ mutual
     tag (source-star-rename h hρ p) ⇛
       source-star-rename h hρ q
   source-star-rename h hρ (tagˣ x∈ X<Δᴸ) = tagˣ (h x∈) (hρ X<Δᴸ)
-  source-star-rename {ρ = ρ} h hρ (ν {A = A} occ p) =
-    ν (trans (occurs-zero-rename-ext ρ A) occ)
+  source-star-rename {ρ = ρ} h hρ (ν {A = A} safe occ p) =
+    ν (renameNonVar (T.extᵗ ρ) safe)
+      (trans (occurs-zero-rename-ext ρ A) occ)
       (source-star-rename
         (lift-left-assm-map h) (TyRenameWf-ext hρ) p)
 
@@ -312,21 +347,24 @@ mutual
       (idˣ x∈ X<Δᴸ Y<Δᴿ) =
     idˣ (h x∈) (hρ X<Δᴸ) Y<Δᴿ
   source-ground-rename {ρ = ρ} (T.＇ Y) h hρ
-      (ν {A = A} occ p) =
-    ν (trans (occurs-zero-rename-ext ρ A) occ)
+      (ν {A = A} safe occ p) =
+    ν (renameNonVar (T.extᵗ ρ) safe)
+      (trans (occurs-zero-rename-ext ρ A) occ)
       (source-ground-rename (T.＇ Y)
         (lift-left-assm-map h) (TyRenameWf-ext hρ) p)
   source-ground-rename (T.‵ ι) h hρ idι = idι
   source-ground-rename {ρ = ρ} (T.‵ ι) h hρ
-      (ν {A = A} occ p) =
-    ν (trans (occurs-zero-rename-ext ρ A) occ)
+      (ν {A = A} safe occ p) =
+    ν (renameNonVar (T.extᵗ ρ) safe)
+      (trans (occurs-zero-rename-ext ρ A) occ)
       (source-ground-rename (T.‵ ι)
         (lift-left-assm-map h) (TyRenameWf-ext hρ) p)
   source-ground-rename T.★⇒★ h hρ (p ↦ q) =
     source-star-rename h hρ p ↦ source-star-rename h hρ q
   source-ground-rename {ρ = ρ} T.★⇒★ h hρ
-      (ν {A = A} occ p) =
-    ν (trans (occurs-zero-rename-ext ρ A) occ)
+      (ν {A = A} safe occ p) =
+    ν (renameNonVar (T.extᵗ ρ) safe)
+      (trans (occurs-zero-rename-ext ρ A) occ)
       (source-ground-rename T.★⇒★
         (lift-left-assm-map h) (TyRenameWf-ext hρ) p)
 
@@ -345,18 +383,22 @@ mutual
   source-star-≈∀-left (≈∀-⇒ A≈A′ B≈B′) (tag p ⇛ q) =
     tag source-star-≈∀-left A≈A′ p ⇛
       source-star-≈∀-left B≈B′ q
-  source-star-≈∀-left (≈∀-∀ A≈B) (ν _ occ p) =
-    ν (trans (≈∀-occurs A≈B zero) occ)
+  source-star-≈∀-left (≈∀-∀ A≈B) (ν safe occ p) =
+    ν (≈∀-nonVar-left A≈B safe)
+      (trans (≈∀-occurs A≈B zero) occ)
       (source-star-≈∀-left A≈B p)
   source-star-≈∀-left {A = T.`∀ (T.`∀ A)} ≈∀-swap
-      (ν outer (ν inner p)) =
-    ν (trans (sym one-eq) inner)
-      (ν (trans (sym zero-eq) outer)
+      (ν outer-safe outer (ν inner-safe inner p)) =
+    ν nonvar-all (trans (sym one-eq) inner)
+      (ν safe-A (trans (sym zero-eq) outer)
         (subst (λ X → _ ∣ _ ⊢ X ⊑ T.★ ⊣ _)
           (renameᵗ-swap01-involutive A)
           (source-star-rename swap-double-left-assm-map
             swap01-pres-< p)))
     where
+    safe-A =
+      subst NonVar (renameᵗ-swap01-involutive A)
+        (renameNonVar swap01ᵗ inner-safe)
     zero-eq = occurs-rename-injective swap01-injective zero A
     one-eq = occurs-rename-injective swap01-injective (suc zero) A
 
@@ -373,13 +415,14 @@ mutual
   source-star-≈∀-right (≈∀-⇒ A≈A′ B≈B′) (tag p ⇛ q) =
     tag source-star-≈∀-right A≈A′ p ⇛
       source-star-≈∀-right B≈B′ q
-  source-star-≈∀-right (≈∀-∀ A≈B) (ν _ occ p) =
-    ν (trans (sym (≈∀-occurs A≈B zero)) occ)
+  source-star-≈∀-right (≈∀-∀ A≈B) (ν safe occ p) =
+    ν (≈∀-nonVar-right A≈B safe)
+      (trans (sym (≈∀-occurs A≈B zero)) occ)
       (source-star-≈∀-right A≈B p)
   source-star-≈∀-right {A = T.`∀ (T.`∀ A)} ≈∀-swap
-      (ν outer (ν inner p)) =
-    ν (trans zero-eq inner)
-      (ν (trans one-eq outer)
+      (ν outer-safe outer (ν inner-safe inner p)) =
+    ν nonvar-all (trans zero-eq inner)
+      (ν (renameNonVar swap01ᵗ inner-safe) (trans one-eq outer)
         (source-star-rename swap-double-left-assm-map
           swap01-pres-< p))
     where
@@ -406,18 +449,22 @@ mutual
       (p ↦ q) =
     source-star-≈∀-left A≈A′ p ↦
       source-star-≈∀-left B≈B′ q
-  source-ground-≈∀-left gH (≈∀-∀ A≈B) (ν _ occ p) =
-    ν (trans (≈∀-occurs A≈B zero) occ)
+  source-ground-≈∀-left gH (≈∀-∀ A≈B) (ν safe occ p) =
+    ν (≈∀-nonVar-left A≈B safe)
+      (trans (≈∀-occurs A≈B zero) occ)
       (source-ground-≈∀-left gH A≈B p)
   source-ground-≈∀-left {A = T.`∀ (T.`∀ A)} gH ≈∀-swap
-      (ν outer (ν inner p)) =
-    ν (trans (sym one-eq) inner)
-      (ν (trans (sym zero-eq) outer)
+      (ν outer-safe outer (ν inner-safe inner p)) =
+    ν nonvar-all (trans (sym one-eq) inner)
+      (ν safe-A (trans (sym zero-eq) outer)
         (subst (λ X → _ ∣ _ ⊢ X ⊑ _ ⊣ _)
           (renameᵗ-swap01-involutive A)
           (source-ground-rename gH swap-double-left-assm-map
             swap01-pres-< p)))
     where
+    safe-A =
+      subst NonVar (renameᵗ-swap01-involutive A)
+        (renameNonVar swap01ᵗ inner-safe)
     zero-eq = occurs-rename-injective swap01-injective zero A
     one-eq = occurs-rename-injective swap01-injective (suc zero) A
 
@@ -439,13 +486,14 @@ mutual
       (p ↦ q) =
     source-star-≈∀-right A≈A′ p ↦
       source-star-≈∀-right B≈B′ q
-  source-ground-≈∀-right gH (≈∀-∀ A≈B) (ν _ occ p) =
-    ν (trans (sym (≈∀-occurs A≈B zero)) occ)
+  source-ground-≈∀-right gH (≈∀-∀ A≈B) (ν safe occ p) =
+    ν (≈∀-nonVar-right A≈B safe)
+      (trans (sym (≈∀-occurs A≈B zero)) occ)
       (source-ground-≈∀-right gH A≈B p)
   source-ground-≈∀-right {A = T.`∀ (T.`∀ A)} gH ≈∀-swap
-      (ν outer (ν inner p)) =
-    ν (trans zero-eq inner)
-      (ν (trans one-eq outer)
+      (ν outer-safe outer (ν inner-safe inner p)) =
+    ν nonvar-all (trans zero-eq inner)
+      (ν (renameNonVar swap01ᵗ inner-safe) (trans one-eq outer)
         (source-ground-rename gH swap-double-left-assm-map
           swap01-pres-< p))
     where

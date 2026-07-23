@@ -51,7 +51,9 @@ open import proof.NuImprecisionTargetAdministrationPlanDef using
   ( TargetAdministrationPlan
   ; plan-id
   ; plan-inert
+  ; plan-fun-untag-gen
   ; plan-inst
+  ; plan-inst-fun-tag
   ; plan-seq
   ; plan-unseal
   ; plan-untag
@@ -169,8 +171,8 @@ target-star-arrow-midpoint id★ ()
 target-star-arrow-midpoint (tag ι) ()
 target-star-arrow-midpoint (tag p ⇛ q) (r ↦ s) = p ↦ q
 target-star-arrow-midpoint (tagˣ X⊑★ X<Δᴸ) ()
-target-star-arrow-midpoint (ν _ occ p) (ν _ occ′ q) =
-  ν _ occ (target-star-arrow-midpoint p q)
+target-star-arrow-midpoint (ν safe occ p) (ν safe′ occ′ q) =
+  ν safe occ (target-star-arrow-midpoint p q)
 
 
 target-arrow-star-midpoint :
@@ -179,8 +181,8 @@ target-arrow-star-midpoint :
   Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ →
   Φ ∣ Δᴸ ⊢ A ⊑ ★ ⇒ ★ ⊣ Δᴿ
 target-arrow-star-midpoint (p ↦ q) (tag r ⇛ s) = r ↦ s
-target-arrow-star-midpoint (ν _ occ p) (ν _ occ′ q) =
-  ν _ occ (target-arrow-star-midpoint p q)
+target-arrow-star-midpoint (ν safe occ p) (ν safe′ occ′ q) =
+  ν safe occ (target-arrow-star-midpoint p q)
 
 
 target-strict-cross-narrowing-ground-midpoint :
@@ -326,6 +328,11 @@ target-narrowing-administration-plan {p = p} {q = q}
   where
     r = target-strict-cross-narrowing-ground-midpoint gG t⊢ gⁿ p q
 target-narrowing-administration-plan prefix wfΣ seal★
+    (C.cast-seq (C.cast-untag hG gG ok)
+      (C.cast-gen {A = B₀} {s = s} hA occ s⊢) ,
+     NW.fun-untag-gen {A = B₁} safe) =
+  plan-fun-untag-gen
+target-narrowing-administration-plan prefix wfΣ seal★
     (C.cast-seal {α = α} {A = B₀} hB αB∈Σ ok ,
      NW.sealⁿ B₁ α′) =
   plan-inert (C.seal B₁ α′)
@@ -379,6 +386,11 @@ target-widening-administration-plan {p = p} {q = q}
     (plan-inert {p = r} (G C.!))
   where
     r = target-strict-cross-widening-ground-midpoint gG s⊢ gʷ p q
+target-widening-administration-plan prefix wfΣ seal★
+    (C.cast-seq (C.cast-inst {s = s} hB occ s⊢)
+      (C.cast-tag {G = G} hG gG ok) ,
+     NW.inst-fun-tag {B = B₀} safe) =
+  plan-inst-fun-tag
 target-widening-administration-plan prefix wfΣ seal★
     (C.cast-unseal {α = α} {A = B₀} hB αB∈Σ seal-ok ,
      NW.unsealʷ α′ B₁) =

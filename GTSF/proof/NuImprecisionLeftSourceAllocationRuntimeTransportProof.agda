@@ -97,6 +97,7 @@ open import QuotientedTermImprecision using
   ; ⊑νcastᵀ
   ; κ⊑κᵀ
   ; ⊕⊑⊕ᵀ
+  ; gen⊑groundᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; ⊑cast⊒ᵀ
@@ -109,6 +110,9 @@ open import QuotientedTermImprecision using
   ; ⊑conv↓ᵀ
   ; down⊑downᵀ
   ; gen-down⊑gen-downᵀ
+  ; ordinary-down-applicationᵖᵀ
+  ; quotient-down-applicationᵖᵀ
+  ; quotient-id-down-applicationᵖᵀ
   ; quotient-id-widening
   ; quotient-cast-widening
   ; nu-term-imprecision-source-typing
@@ -148,6 +152,8 @@ open import proof.NuImprecisionSimulationCore using
   ; left-insertion-ext
   ; left-insertion-suc
   ; left-insertion-cast-renamer
+  ; left-narrowing-renameⁱ
+  ; left-narrowing-rename-modeⁱ
   ; left-ctx-rename-[]
   ; left-ctx-rename-∷
   ; left-rename-allocation-prefixᵀ
@@ -184,6 +190,7 @@ open import proof.NuImprecisionSimulationCore using
   ; left-widening-rename-modeⁱ
   ; rename-assm²-∀-leftᵢ
   ; right-seal★-left-renameⁱ
+  ; right-narrowing-left-renameⁱ
   ; right-typing-left-renameⁱ
   ; right-under-left-ctx-eq
   ; right-widening-left-renameⁱ
@@ -194,6 +201,7 @@ open import proof.NuImprecisionSimulationCore using
   ; ⊑-rename-leftᵢ
   ; ⊑ᵖ-rename-leftᵢ
   )
+open import proof.NuProgress using (runtime-value-no•)
 open import proof.TypePreservation using (CastModeRenamer)
 open import proof.TypeProperties using
   ( RenameLeftInverse
@@ -820,6 +828,12 @@ mutual
       (left-source-runtimeᵀ-generic rename-no-bullet ins
         renameρ renameγ M⊑M′ noM runtimeM)
   left-source-runtimeᵀ-generic rename-no-bullet ins
+      renameρ renameγ
+      rel@(gen⊑groundᵀ mode seal★ c⊒ gH vV vW W⊢ V⊑Wtag q)
+      noGen runtime =
+    left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
+      noGen (runtime-value-no• runtime vW) rel
+  left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q)
       (no•-⟨⟩ noM) runtime =
     left-rename-cast⊒⊑ᵀ
@@ -941,6 +955,155 @@ mutual
     left-rename-gen-down⊑gen-downᵀ renameρ d⊒ d′⊒
       (left-source-runtimeᵀ-generic rename-no-bullet ins
         renameρ renameγ M⊑M′ noM runtimeM′)
+  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+      renameρ renameγ
+      rel@(ordinary-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+      noApp (ok-no noApp′) =
+    left-rename-no•ᵀᵖ rename-no-bullet ins
+      renameρ renameγ noApp noApp′ rel
+  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+      renameρ renameγ
+      rel@(ordinary-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+      noApp
+      (ok-·₂ vL′ noL′ (ok-no noM′)) =
+    left-rename-no•ᵀᵖ rename-no-bullet ins
+      renameρ renameγ noApp (no•-· noL′ noM′) rel
+  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+      renameρ renameγ
+      (ordinary-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+      (no•-· noL (no•-⟨⟩ noM))
+      (ok-·₁ runtimeL (no•-⟨⟩ noM′)) =
+    ordinary-down-applicationᵖᵀ
+      (CastModeRenamer.target-mode modeτ mode)
+      (left-seal★-renameⁱ modeτ renameρ mode seal★)
+      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
+      mode′
+      (right-seal★-left-renameⁱ renameρ seal★′)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      (left-source-runtimeᵀ-generic rename-no-bullet ins
+        renameρ renameγ L⊑L′ noL runtimeL)
+      (left-rename-no•ᵀ rename-no-bullet ins
+        renameρ renameγ noM noM′ M⊑M′)
+    where
+    modeτ = left-insertion-cast-renamer ins
+  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+      renameρ renameγ
+      (ordinary-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+      (no•-· noL (no•-⟨⟩ noM))
+      (ok-·₂ vL′ noL′ (ok-⟨⟩ runtimeM′)) =
+    ordinary-down-applicationᵖᵀ
+      (CastModeRenamer.target-mode modeτ mode)
+      (left-seal★-renameⁱ modeτ renameρ mode seal★)
+      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
+      mode′
+      (right-seal★-left-renameⁱ renameρ seal★′)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      (left-rename-no•ᵀ rename-no-bullet ins
+        renameρ renameγ noL noL′ L⊑L′)
+      (left-source-runtimeᵀ-generic rename-no-bullet ins
+        renameρ renameγ M⊑M′ noM runtimeM′)
+    where
+    modeτ = left-insertion-cast-renamer ins
+  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+      renameρ renameγ
+      rel@(quotient-id-down-applicationᵖᵀ
+        d⊒ d′⊒ L⊑L′ M⊑M′)
+      noApp (ok-no noApp′) =
+    left-rename-no•ᵀᵖ rename-no-bullet ins
+      renameρ renameγ noApp noApp′ rel
+  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+      renameρ renameγ
+      rel@(quotient-id-down-applicationᵖᵀ
+        d⊒ d′⊒ L⊑L′ M⊑M′)
+      noApp
+      (ok-·₂ vL′ noL′ (ok-no noM′)) =
+    left-rename-no•ᵀᵖ rename-no-bullet ins
+      renameρ renameγ noApp (no•-· noL′ noM′) rel
+  left-source-runtimeᵀᵖ-generic {τ = τ}
+      rename-no-bullet ins renameρ renameγ
+      (quotient-id-down-applicationᵖᵀ
+        d⊒ d′⊒ L⊑L′ M⊑M′)
+      (no•-· noL (no•-⟨⟩ noM))
+      (ok-·₁ runtimeL (no•-⟨⟩ noM′)) =
+    quotient-id-down-applicationᵖᵀ
+      (left-narrowing-rename-modeⁱ
+        (modeRename-id-only τ) renameρ d⊒)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      (left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+        renameρ renameγ L⊑L′ noL runtimeL)
+      (left-rename-no•ᵀ rename-no-bullet ins
+        renameρ renameγ noM noM′ M⊑M′)
+  left-source-runtimeᵀᵖ-generic {τ = τ}
+      rename-no-bullet ins renameρ renameγ
+      (quotient-id-down-applicationᵖᵀ
+        d⊒ d′⊒ L⊑L′ M⊑M′)
+      (no•-· noL (no•-⟨⟩ noM))
+      (ok-·₂ vL′ noL′ (ok-⟨⟩ runtimeM′)) =
+    quotient-id-down-applicationᵖᵀ
+      (left-narrowing-rename-modeⁱ
+        (modeRename-id-only τ) renameρ d⊒)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      (left-rename-no•ᵀᵖ rename-no-bullet ins
+        renameρ renameγ noL noL′ L⊑L′)
+      (left-source-runtimeᵀ-generic rename-no-bullet ins
+        renameρ renameγ M⊑M′ noM runtimeM′)
+  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+      renameρ renameγ
+      rel@(quotient-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+      noApp (ok-no noApp′) =
+    left-rename-no•ᵀᵖ rename-no-bullet ins
+      renameρ renameγ noApp noApp′ rel
+  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+      renameρ renameγ
+      rel@(quotient-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+      noApp
+      (ok-·₂ vL′ noL′ (ok-no noM′)) =
+    left-rename-no•ᵀᵖ rename-no-bullet ins
+      renameρ renameγ noApp (no•-· noL′ noM′) rel
+  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+      renameρ renameγ
+      (quotient-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+      (no•-· noL (no•-⟨⟩ noM))
+      (ok-·₁ runtimeL (no•-⟨⟩ noM′)) =
+    quotient-down-applicationᵖᵀ
+      (CastModeRenamer.target-mode modeτ mode)
+      (left-seal★-renameⁱ modeτ renameρ mode seal★)
+      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
+      mode′
+      (right-seal★-left-renameⁱ renameρ seal★′)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      (left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+        renameρ renameγ L⊑L′ noL runtimeL)
+      (left-rename-no•ᵀ rename-no-bullet ins
+        renameρ renameγ noM noM′ M⊑M′)
+    where
+    modeτ = left-insertion-cast-renamer ins
+  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
+      renameρ renameγ
+      (quotient-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+      (no•-· noL (no•-⟨⟩ noM))
+      (ok-·₂ vL′ noL′ (ok-⟨⟩ runtimeM′)) =
+    quotient-down-applicationᵖᵀ
+      (CastModeRenamer.target-mode modeτ mode)
+      (left-seal★-renameⁱ modeτ renameρ mode seal★)
+      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
+      mode′
+      (right-seal★-left-renameⁱ renameρ seal★′)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      (left-rename-no•ᵀᵖ rename-no-bullet ins
+        renameρ renameγ noL noL′ L⊑L′)
+      (left-source-runtimeᵀ-generic rename-no-bullet ins
+        renameρ renameγ M⊑M′ noM runtimeM′)
+    where
+    modeτ = left-insertion-cast-renamer ins
 
 
 private
@@ -1069,6 +1232,12 @@ private
       renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet
       renameρ renameγ rel@(⊕⊑⊕ᵀ L⊑L′ M⊑M′) noM runtime =
+    left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
+      renameρ renameγ rel noM runtime
+  left-source-allocation-runtime-rootᵀ rename-no-bullet
+      renameρ renameγ
+      rel@(gen⊑groundᵀ mode seal★ c⊒ gH vV vW W⊢ V⊑Wtag q)
+      noM runtime =
     left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
       renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet

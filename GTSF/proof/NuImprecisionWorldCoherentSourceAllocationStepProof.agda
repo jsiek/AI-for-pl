@@ -692,7 +692,7 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup paired-steps target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (ν⊑ᵀ {q = νⁱ occ q}
+    (ν⊑ᵀ {q = νⁱ safe occ q}
       hA h⇑A s↑ liftρ lift-left-ctx-[] inner)
     vV noV
     with lift-left-store-result _
@@ -700,11 +700,11 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup paired-steps target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (ν⊑ᵀ {q = νⁱ occ q}
+    (ν⊑ᵀ {q = νⁱ safe occ q}
       hA h⇑A s↑ liftρ lift-left-ctx-[] inner)
     vV noV
     | ρ↑ , liftρ⁺
-    with left-ν↑-allocation
+    with left-ν↑-allocation {{safe = safe}}
       vV noV h⇑A
       (weaken-reveal-conversion
         (StoreIncl-cons
@@ -723,7 +723,7 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup paired-steps target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (ν⊑ᵀ {q = νⁱ occ q}
+    (ν⊑ᵀ {q = νⁱ safe occ q}
       hA h⇑A s↑ liftρ lift-left-ctx-[] inner)
     vV noV
     | ρ↑ , liftρ⁺ | source-step , target-refl , related =
@@ -1010,7 +1010,7 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup paired-steps target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (νcast⊑ᵀ {q = νⁱ occ q}
+    (νcast⊑ᵀ {q = νⁱ safe occ q}
       mode seal★ s⊑ liftρ lift-left-ctx-[] inner)
     vV noV
     with lift-left-store-result _
@@ -1018,11 +1018,11 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup paired-steps target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (νcast⊑ᵀ {q = νⁱ occ q}
+    (νcast⊑ᵀ {q = νⁱ safe occ q}
       mode seal★ s⊑ liftρ lift-left-ctx-[] inner)
     vV noV
     | ρ↑ , liftρ⁺
-    with left-νcast-allocation
+    with left-νcast-allocation {{safe = safe}}
       vV noV mode
       (seal★-weaken
         (StoreIncl-cons
@@ -1043,7 +1043,7 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup paired-steps target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (νcast⊑ᵀ {q = νⁱ occ q}
+    (νcast⊑ᵀ {q = νⁱ safe occ q}
       mode seal★ s⊑ liftρ lift-left-ctx-[] inner)
     vV noV
     | ρ↑ , liftρ⁺ | source-step , target-refl , related =

@@ -48,6 +48,7 @@ open import QuotientedTermImprecision using
   ; ⊑νcastᵀ
   ; κ⊑κᵀ
   ; ⊕⊑⊕ᵀ
+  ; gen⊑groundᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; ⊑cast⊒ᵀ
@@ -60,6 +61,9 @@ open import QuotientedTermImprecision using
   ; ⊑conv↓ᵀ
   ; down⊑downᵀ
   ; gen-down⊑gen-downᵀ
+  ; ordinary-down-applicationᵖᵀ
+  ; quotient-down-applicationᵖᵀ
+  ; quotient-id-down-applicationᵖᵀ
   ; quotient-id-widening
   ; quotient-cast-widening
   )
@@ -75,6 +79,8 @@ open import proof.NuImprecisionSimulationCore using
   ; left-insertion-suc
   ; left-insertion-ext
   ; left-insertion-cast-renamer
+  ; left-narrowing-renameⁱ
+  ; left-narrowing-rename-modeⁱ
   ; left-ctx-rename-∷
   ; left-rename-blameᵀ
   ; left-rename-cast⊒⊑ᵀ
@@ -106,11 +112,14 @@ open import proof.NuImprecisionSimulationCore using
   ; left-widening-renameⁱ
   ; left-widening-rename-modeⁱ
   ; right-seal★-left-renameⁱ
+  ; right-narrowing-left-renameⁱ
   ; right-typing-left-renameⁱ
   ; right-widening-left-renameⁱ
   ; ⊑-rename-leftᵢ
   ; ⊑ᵖ-rename-leftᵢ
   )
+open import proof.NuTermProperties using
+  (renameᵗᵐ-preserves-Value)
 open import proof.TypePreservation using (CastModeRenamer)
 open import proof.TypeProperties using
   ( RenameLeftInverse
@@ -315,6 +324,22 @@ mutual
     ⊕⊑⊕ᵀ
       (left-rename-no•ᵀ-proof ins renameρ renameγ noL noL′ L⊑L′)
       (left-rename-no•ᵀ-proof ins renameρ renameγ noM noM′ M⊑M′)
+  left-rename-no•ᵀ-proof {assm = assm} {hτ = hτ}
+      ins renameρ renameγ (no•-⟨⟩ noV) noW
+      (gen⊑groundᵀ mode seal★ c⊒ gH vV vW W⊢ V⊑Wtag q) =
+    gen⊑groundᵀ
+      (CastModeRenamer.target-mode modeτ mode)
+      (left-seal★-renameⁱ modeτ renameρ mode seal★)
+      (left-narrowing-renameⁱ modeτ mode renameρ c⊒)
+      gH
+      (renameᵗᵐ-preserves-Value _ vV)
+      vW
+      (right-typing-left-renameⁱ renameρ renameγ W⊢)
+      (left-rename-no•ᵀ-proof ins renameρ renameγ
+        noV (no•-⟨⟩ noW) V⊑Wtag)
+      _
+    where
+    modeτ = left-insertion-cast-renamer ins
   left-rename-no•ᵀ-proof ins renameρ renameγ
       (no•-⟨⟩ noM) noM′
       (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q) =
@@ -374,7 +399,7 @@ mutual
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
 
-  left-rename-no•ᵀᵖ-proof ins renameρ renameγ
+  left-rename-no•ᵀᵖ-proof {τ = τ} ins renameρ renameγ
       (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
       (down⊑downᵀ d⊒ d′⊒ M⊑M′ q) =
     left-rename-down⊑downᵀ renameρ d⊒ d′⊒
@@ -386,6 +411,55 @@ mutual
     left-rename-gen-down⊑gen-downᵀ renameρ d⊒ d′⊒
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
+  left-rename-no•ᵀᵖ-proof ins renameρ renameγ
+      (no•-· noL (no•-⟨⟩ noM))
+      (no•-· noL′ (no•-⟨⟩ noM′))
+      (ordinary-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+    ordinary-down-applicationᵖᵀ
+      (CastModeRenamer.target-mode modeτ mode)
+      (left-seal★-renameⁱ modeτ renameρ mode seal★)
+      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
+      mode′
+      (right-seal★-left-renameⁱ renameρ seal★′)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      (left-rename-no•ᵀ-proof ins renameρ renameγ
+        noL noL′ L⊑L′)
+      (left-rename-no•ᵀ-proof ins renameρ renameγ
+        noM noM′ M⊑M′)
+    where
+    modeτ = left-insertion-cast-renamer ins
+  left-rename-no•ᵀᵖ-proof {τ = τ} ins renameρ renameγ
+      (no•-· noL (no•-⟨⟩ noM))
+      (no•-· noL′ (no•-⟨⟩ noM′))
+      (quotient-id-down-applicationᵖᵀ
+        d⊒ d′⊒ L⊑L′ M⊑M′) =
+    quotient-id-down-applicationᵖᵀ
+      (left-narrowing-rename-modeⁱ
+        (modeRename-id-only τ) renameρ d⊒)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      (left-rename-no•ᵀᵖ-proof ins renameρ renameγ
+        noL noL′ L⊑L′)
+      (left-rename-no•ᵀ-proof ins renameρ renameγ
+        noM noM′ M⊑M′)
+  left-rename-no•ᵀᵖ-proof ins renameρ renameγ
+      (no•-· noL (no•-⟨⟩ noM))
+      (no•-· noL′ (no•-⟨⟩ noM′))
+      (quotient-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+    quotient-down-applicationᵖᵀ
+      (CastModeRenamer.target-mode modeτ mode)
+      (left-seal★-renameⁱ modeτ renameρ mode seal★)
+      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
+      mode′
+      (right-seal★-left-renameⁱ renameρ seal★′)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      (left-rename-no•ᵀᵖ-proof ins renameρ renameγ
+        noL noL′ L⊑L′)
+      (left-rename-no•ᵀ-proof ins renameρ renameγ
+        noM noM′ M⊑M′)
+    where
+    modeτ = left-insertion-cast-renamer ins
 
 left-rename-no-bullet : LeftRenameNoBullet
 left-rename-no-bullet =

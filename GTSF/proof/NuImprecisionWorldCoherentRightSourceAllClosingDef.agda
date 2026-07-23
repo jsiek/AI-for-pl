@@ -15,6 +15,7 @@ open import Data.Nat using (suc; zero)
 open import ImprecisionWf using
   (ImpCtx; _ˣ⊑★; _∣_⊢_⊑_⊣_; ⇑ᴸᵢ)
 import ImprecisionWf as IW
+open import Imprecision using (NonVar)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
   ( LiftLeftCtxⁱ
@@ -44,6 +45,7 @@ WorldCoherentRightSourceAllClosingᵀ =
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {V N′ : Term} {A B : Ty}
+    {{safe : NonVar A}}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
     {occ : occurs zero A ≡ true} →
@@ -61,4 +63,4 @@ WorldCoherentRightSourceAllClosingᵀ =
   ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ []
     ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
-    {V = Λ V} {M′ = N′} {ρ = ρ⁺} (IW.ν _ occ p)
+    {V = Λ V} {M′ = N′} {ρ = ρ⁺} (IW.ν safe occ p)

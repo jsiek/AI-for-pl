@@ -37,6 +37,9 @@ open import QuotientedTermImprecision using
   ; down⊑downᵀ
   ; gen⊑groundᵀ
   ; gen-down⊑gen-downᵀ
+  ; ordinary-down-applicationᵖᵀ
+  ; quotient-down-applicationᵖᵀ
+  ; quotient-id-down-applicationᵖᵀ
   ; up⊑upᵀ
   ; x⊑xᵀ
   ; Λ⊑Λᵀ
@@ -63,6 +66,7 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
 open import Types using (renameᵗ)
+open import proof.CoercionProperties using (modeRename-id-only)
 open import proof.MaximalLowerBoundsWf using
   (rename-assm²ᵢ; ⊑-renameᵗ²ᵢ)
 open import proof.NuImprecisionSimulationCore using
@@ -76,6 +80,9 @@ open import proof.NuImprecisionSimulationCore using
   ; rel-world-conv⊑conv-embedᵀ
   ; rel-world-down-embedᵀ
   ; rel-world-embedding-ctx-∷ⁱ
+  ; left-embedding-cast-renamer
+  ; left-narrowing-rel-embed-mode
+  ; left-seal-rel-embed
   ; rel-world-gen-down-embedᵀ
   ; rel-world-gen⊑ground-embedᵀ
   ; rel-world-up⊑up-embedᵀ
@@ -94,9 +101,13 @@ open import proof.NuImprecisionSimulationCore using
   ; rel-world-⊑conv↑-embedᵀ
   ; rel-world-⊑νcast-embedᵀ
   ; rel-world-⊑ν-embedᵀ
+  ; right-embedding-cast-renamer
+  ; right-narrowing-rel-embed-mode
+  ; right-seal-rel-embed
   ; ⊑ᵖ-rename²ᵢ
   )
 open import proof.TypeProperties using (TyRenameWf)
+open import proof.TypePreservation using (CastModeRenamer)
 
 mutual
   rel-world-embed-no•ᵀ :
@@ -280,3 +291,54 @@ mutual
       (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
     rel-world-gen-down-embedᵀ emb d⊒ d′⊒
       (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′) q
+  rel-world-embed-no•ᵀᵖ {τ = τ} {σ = σ} emb
+      (ordinary-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+      (no•-· noL (no•-⟨⟩ noM))
+      (no•-· noL′ (no•-⟨⟩ noM′)) =
+    ordinary-down-applicationᵖᵀ
+      (CastModeRenamer.target-mode
+        (left-embedding-cast-renamer emb) mode)
+      (left-seal-rel-embed emb mode seal★)
+      (left-narrowing-rel-embed-mode emb
+        (CastModeRenamer.target-rename
+          (left-embedding-cast-renamer emb) mode) d⊒)
+      (CastModeRenamer.target-mode
+        (right-embedding-cast-renamer emb) mode′)
+      (right-seal-rel-embed emb mode′ seal★′)
+      (right-narrowing-rel-embed-mode emb
+        (CastModeRenamer.target-rename
+          (right-embedding-cast-renamer emb) mode′) d′⊒)
+      (rel-world-embed-no•ᵀ emb L⊑L′ noL noL′)
+      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
+  rel-world-embed-no•ᵀᵖ {τ = τ} {σ = σ} emb
+      (quotient-id-down-applicationᵖᵀ d⊒ d′⊒ L⊑L′ M⊑M′)
+      (no•-· noL (no•-⟨⟩ noM))
+      (no•-· noL′ (no•-⟨⟩ noM′)) =
+    quotient-id-down-applicationᵖᵀ
+      (left-narrowing-rel-embed-mode emb
+        (modeRename-id-only τ) d⊒)
+      (right-narrowing-rel-embed-mode emb
+        (modeRename-id-only σ) d′⊒)
+      (rel-world-embed-no•ᵀᵖ emb L⊑L′ noL noL′)
+      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
+  rel-world-embed-no•ᵀᵖ {τ = τ} {σ = σ} emb
+      (quotient-down-applicationᵖᵀ
+        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+      (no•-· noL (no•-⟨⟩ noM))
+      (no•-· noL′ (no•-⟨⟩ noM′)) =
+    quotient-down-applicationᵖᵀ
+      (CastModeRenamer.target-mode
+        (left-embedding-cast-renamer emb) mode)
+      (left-seal-rel-embed emb mode seal★)
+      (left-narrowing-rel-embed-mode emb
+        (CastModeRenamer.target-rename
+          (left-embedding-cast-renamer emb) mode) d⊒)
+      (CastModeRenamer.target-mode
+        (right-embedding-cast-renamer emb) mode′)
+      (right-seal-rel-embed emb mode′ seal★′)
+      (right-narrowing-rel-embed-mode emb
+        (CastModeRenamer.target-rename
+          (right-embedding-cast-renamer emb) mode′) d′⊒)
+      (rel-world-embed-no•ᵀᵖ emb L⊑L′ noL noL′)
+      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)

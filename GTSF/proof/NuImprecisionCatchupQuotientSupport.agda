@@ -259,17 +259,17 @@ left-silent-indexed-prefix-down-up-from-finalᵀ
     {pA = pA} prefix widening
     (left-indexed-catchup indexed
       invariant@(left-catchup-invariant
-        silent@(left-silent-invariant refl refl) final)
-      transport coherence)
+        silent@(left-silent-invariant refl refl) final))
     down =
   left-silent-indexed
-    (weak-indexed-result framed final-relation)
+    (weak-indexed-result framed final-relation
+      (weak-step-transport
+        (transportNo•Terms (weakIndexedTransport indexed)))
+      (weak-step-type-coherence
+        (transportArrowCoherent (weakIndexedTypeCoherence indexed))
+        (transportAllCoherent (weakIndexedTypeCoherence indexed))))
     (left-silent-invariant refl refl)
     (ok-⟨⟩ (ok-⟨⟩ (left-catchup-final-runtime invariant)))
-    (weak-step-transport (transportNo•Terms transport))
-    (weak-step-type-coherence
-      (transportArrowCoherent coherence)
-      (transportAllCoherent coherence))
   where
   inner = weakIndexedResult indexed
 

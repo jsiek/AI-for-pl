@@ -74,7 +74,7 @@ WorldCoherentSourceBulletCatchupᵀ =
     ([] {A = CtxImpEntry
       ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ L ⊑ V′ ⦂ `∀ C ⊑ B′ ∶ ν _ occ p →
+    ⊢ᴺ L ⊑ V′ ⦂ `∀ C ⊑ B′ ∶ ν safe occ p →
   suc Δᴸ
     ∣ leftStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
     ∣ leftCtxⁱ ([] {A = CtxImpEntry

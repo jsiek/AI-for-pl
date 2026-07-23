@@ -17,8 +17,6 @@ open import Types using (Ty; TyCtx)
 open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedResult
   ; WeakOneStepResult
-  ; WeakOneStepTransport
-  ; WeakOneStepTypeCoherence
   ; sourceChanges
   ; sourceResult
   ; targetResult
@@ -59,13 +57,5 @@ record RightValueCatchupIndexedResult
       No•
         (targetResult
           (weakIndexedResult rightCatchupIndexedResult))
-
-    rightCatchupTransport :
-      WeakOneStepTransport
-        (weakIndexedResult rightCatchupIndexedResult)
-
-    rightCatchupTypeCoherence :
-      WeakOneStepTypeCoherence
-        (weakIndexedResult rightCatchupIndexedResult)
 
 open RightValueCatchupIndexedResult public

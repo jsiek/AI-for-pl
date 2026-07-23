@@ -28,6 +28,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; targetTypeResult
   ; transportType
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionSourceSilentCompositionDef using
   ( SourceSilentComposition
@@ -50,8 +52,6 @@ open import
   ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
-  ; sourceStepTransport
-  ; sourceStepTypeCoherence
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -67,7 +67,7 @@ world-coherent-source-silent-composition-proofᵀ
     composition first source-empty source-same first-transport
     first-coherence first-lineage second =
   world-coherent-source-one-step-indexed
-    combined-indexed combined-transport combined-coherence
+    combined-indexed
     combined-lineage combined-changes combined-result combined-world
     combined-exclusive combined-unique
   where
@@ -99,16 +99,17 @@ world-coherent-source-silent-composition-proofᵀ
           (resultType combined)))
       (transportType combined _)
 
-  combined-indexed =
-    weak-one-step-index-resultᵀ combined combined-type-eq
-
   combined-transport =
     sourceSilentTransport composition first source-empty source-same
-      second-result first-transport (sourceStepTransport second)
+      second-result first-transport (weakIndexedTransport (sourceStepIndexedResult second))
 
   combined-coherence =
     sourceSilentTypeCoherence composition first source-empty source-same
-      second-result first-coherence (sourceStepTypeCoherence second)
+      second-result first-coherence (weakIndexedTypeCoherence (sourceStepIndexedResult second))
+
+  combined-indexed =
+    weak-one-step-index-resultᵀ combined combined-type-eq
+      combined-transport combined-coherence
 
   combined-lineage =
     sourceSilentStoreLineage composition first source-empty source-same

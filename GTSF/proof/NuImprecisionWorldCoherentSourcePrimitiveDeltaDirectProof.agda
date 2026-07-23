@@ -61,8 +61,6 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ; rightCatchupSourceUnchanged
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
-  ; rightCatchupTransport
-  ; rightCatchupTypeCoherence
   )
 open import proof.NuImprecisionSimulationCore using
   ( nu-term-imprecision-transport-typesᵀ
@@ -104,6 +102,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; weak-step-transport
   ; weak-step-type-coherence
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionSourceOneStepDeltaRootDef using
   (WorldCoherentSourceDeltaRootᵀ)
@@ -149,8 +149,6 @@ open import
   ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
-  ; sourceStepTransport
-  ; sourceStepTypeCoherence
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -513,8 +511,6 @@ finish-right-catchup-deltaᵀ
     | target-right≡ | refl | refl | refl =
   world-coherent-source-one-step-indexed
     combined-indexed
-    combined-transport
-    combined-coherence
     combined-lineage
     combined-changes
     combined-result
@@ -529,24 +525,24 @@ finish-right-catchup-deltaᵀ
   framed =
     delta-⊕₂-frameᵀ
       ($ (κℕ m)) no•-$ ($ (κℕ m)) no•-$ κ⊑κᵀ
-      right-indexed (rightCatchupTransport right-catchup)
+      right-indexed (weakIndexedTransport (rightCatchupIndexedResult right-catchup))
 
   framed-transport =
     weak-step-transport
-      (transportNo•Terms (rightCatchupTransport right-catchup))
+      (transportNo•Terms (weakIndexedTransport (rightCatchupIndexedResult right-catchup)))
 
   framed-coherence =
     weak-step-type-coherence
       (transportArrowCoherent
-        (rightCatchupTypeCoherence right-catchup))
+        (weakIndexedTypeCoherence (rightCatchupIndexedResult right-catchup)))
       (transportAllCoherent
-        (rightCatchupTypeCoherence right-catchup))
+        (weakIndexedTypeCoherence (rightCatchupIndexedResult right-catchup)))
 
   framed-lineage : WeakOneStepStoreLineage framed
   framed-lineage =
     delta-⊕₂-frame-lineageᵀ
       ($ (κℕ m)) no•-$ ($ (κℕ m)) no•-$ κ⊑κᵀ
-      right-indexed (rightCatchupTransport right-catchup)
+      right-indexed (weakIndexedTransport (rightCatchupIndexedResult right-catchup))
       (worldRightCatchupStoreLineage right-world)
 
   delta-world =
@@ -579,18 +575,19 @@ finish-right-catchup-deltaᵀ
 
   combined = sourceSilentResult composition framed refl refl delta-result
 
+  combined-transport =
+    sourceSilentTransport composition framed refl refl delta-result
+      framed-transport (weakIndexedTransport (sourceStepIndexedResult delta-world′))
+
+  combined-coherence =
+    sourceSilentTypeCoherence composition framed refl refl delta-result
+      framed-coherence (weakIndexedTypeCoherence (sourceStepIndexedResult delta-world′))
+
   combined-indexed : WeakOneStepIndexedResult idι
   combined-indexed =
     weak-one-step-index-resultᵀ combined
       (nat-result-type-unique combined)
-
-  combined-transport =
-    sourceSilentTransport composition framed refl refl delta-result
-      framed-transport (sourceStepTransport delta-world′)
-
-  combined-coherence =
-    sourceSilentTypeCoherence composition framed refl refl delta-result
-      framed-coherence (sourceStepTypeCoherence delta-world′)
+      combined-transport combined-coherence
 
   combined-lineage =
     sourceSilentStoreLineage composition framed refl refl delta-result
@@ -677,8 +674,6 @@ finish-left-then-right-deltaᵀ
     | left-world | target-left≡ | refl | refl | refl =
   world-coherent-source-one-step-indexed
     combined-indexed
-    combined-transport
-    combined-coherence
     combined-lineage
     combined-changes
     combined-result
@@ -689,7 +684,7 @@ finish-left-then-right-deltaᵀ
   left-catchup = worldRightCatchupResult left-world
   left-indexed = rightCatchupIndexedResult left-catchup
   left-result = weakIndexedResult left-indexed
-  left-transport = rightCatchupTransport left-catchup
+  left-transport = weakIndexedTransport (rightCatchupIndexedResult left-catchup)
 
   source-right-typing⁺ =
     term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
@@ -713,9 +708,9 @@ finish-left-then-right-deltaᵀ
   framed-left-coherence =
     weak-step-type-coherence
       (transportArrowCoherent
-        (rightCatchupTypeCoherence left-catchup))
+        (weakIndexedTypeCoherence (rightCatchupIndexedResult left-catchup)))
       (transportAllCoherent
-        (rightCatchupTypeCoherence left-catchup))
+        (weakIndexedTypeCoherence (rightCatchupIndexedResult left-catchup)))
 
   framed-left-lineage =
     delta-⊕₁-frame-lineageᵀ
@@ -751,20 +746,21 @@ finish-left-then-right-deltaᵀ
     sourceSilentResult
       composition framed-left refl refl phase-two-result
 
-  combined-indexed : WeakOneStepIndexedResult idι
-  combined-indexed =
-    weak-one-step-index-resultᵀ combined
-      (nat-result-type-unique combined)
-
   combined-transport =
     sourceSilentTransport
       composition framed-left refl refl phase-two-result
-      framed-left-transport (sourceStepTransport phase-two)
+      framed-left-transport (weakIndexedTransport (sourceStepIndexedResult phase-two))
 
   combined-coherence =
     sourceSilentTypeCoherence
       composition framed-left refl refl phase-two-result
-      framed-left-coherence (sourceStepTypeCoherence phase-two)
+      framed-left-coherence (weakIndexedTypeCoherence (sourceStepIndexedResult phase-two))
+
+  combined-indexed : WeakOneStepIndexedResult idι
+  combined-indexed =
+    weak-one-step-index-resultᵀ combined
+      (nat-result-type-unique combined)
+      combined-transport combined-coherence
 
   combined-lineage =
     sourceSilentStoreLineage

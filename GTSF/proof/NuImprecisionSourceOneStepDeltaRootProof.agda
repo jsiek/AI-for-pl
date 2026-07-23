@@ -48,8 +48,7 @@ world-coherent-source-delta-root-proofᵀ
     {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {m = m} {n = n}
     prefix coherent exclusive unique =
   world-coherent-source-one-step-indexed
-    indexed transport type-coherence lineage refl refl coherent exclusive
-    unique
+    indexed lineage refl refl coherent exclusive unique
   where
   result-typingᴸ =
     ⊢$ (κℕ (m + n))
@@ -78,14 +77,14 @@ world-coherent-source-delta-root-proofᵀ
       refl
       related⁺
 
-  indexed =
-    weak-indexed-result result related⁺
-
   transport =
     weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′)
 
   type-coherence =
     weak-step-type-coherence (λ pC pD → refl) (λ q → refl)
+
+  indexed =
+    weak-indexed-result result related⁺ transport type-coherence
 
   lineage =
     weak-step-store-lineage ρ⁺ rel-store-embedding-reflⁱ prefix-reflⁱ

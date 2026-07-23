@@ -70,6 +70,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; weak-step-transport
   ; weak-step-type-coherence
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.ReductionProperties using
   ( applyTerm-preserves-No•
@@ -163,16 +165,18 @@ private
     (inner : WeakOneStepIndexedResult
       {M = L} {N′ = L₁′} {χ = χ} {ρ = ρ} idι) →
     WeakOneStepTransport (weakIndexedResult inner) →
+    WeakOneStepTypeCoherence (weakIndexedResult inner) →
     WeakOneStepIndexedResult
       {M = L ⊕[ addℕ ] M}
       {N′ = L₁′ ⊕[ addℕ ] applyTerm χ M′}
       {χ = χ} {ρ = ρ} idι
   weak-one-step-⊕₁-indexed-frameᵀ
       {L = L} {L₁′ = L₁′} {M = M} {M′ = M′} {χ = χ}
-      {ρ = ρ} noM noM′ M⊑M′ inner transport =
+      {ρ = ρ} noM noM′ M⊑M′ inner transport coherence =
     weak-one-step-index-resultᵀ framed
       (transport-idι-from-ℕ
         source-ℕ target-ℕ (transportType base idι))
+      framed-transport framed-coherence
     where
     base = weakIndexedResult inner
 
@@ -186,6 +190,11 @@ private
     right-related =
       transport-term-to-ℕᵀ source-ℕ target-ℕ
         (transportNo•Terms transport noM noM′ M⊑M′)
+    framed-transport = weak-step-transport (transportNo•Terms transport)
+    framed-coherence =
+      weak-step-type-coherence
+        (transportArrowCoherent coherence)
+        (transportAllCoherent coherence)
 
     framed :
       WeakOneStepResult ρ
@@ -237,16 +246,18 @@ private
     (inner : WeakOneStepIndexedResult
       {M = M} {N′ = M₁′} {χ = χ} {ρ = ρ} idι) →
     WeakOneStepTransport (weakIndexedResult inner) →
+    WeakOneStepTypeCoherence (weakIndexedResult inner) →
     WeakOneStepIndexedResult
       {M = L ⊕[ addℕ ] M}
       {N′ = applyTerm χ L′ ⊕[ addℕ ] M₁′}
       {χ = χ} {ρ = ρ} idι
   weak-one-step-⊕₂-indexed-frameᵀ
       {L = L} {L′ = L′} {M = M} {M₁′ = M₁′} {χ = χ}
-      {ρ = ρ} vL noL vL′ noL′ L⊑L′ inner transport =
+      {ρ = ρ} vL noL vL′ noL′ L⊑L′ inner transport coherence =
     weak-one-step-index-resultᵀ framed
       (transport-idι-from-ℕ
         source-ℕ target-ℕ (transportType base idι))
+      framed-transport framed-coherence
     where
     base = weakIndexedResult inner
 
@@ -260,6 +271,11 @@ private
     right-related =
       transport-term-to-ℕᵀ
         source-ℕ target-ℕ (canonicalIndexedResults inner)
+    framed-transport = weak-step-transport (transportNo•Terms transport)
+    framed-coherence =
+      weak-step-type-coherence
+        (transportArrowCoherent coherence)
+        (transportAllCoherent coherence)
 
     framed :
       WeakOneStepResult ρ
@@ -317,14 +333,12 @@ weak-one-step-⊕₁-indexed-frame-outcomeᵀ :
     {χ = χ} {ρ = ρ} idι
 weak-one-step-⊕₁-indexed-frame-outcomeᵀ
     noM noM′ M⊑M′
-    (indexed-outcome-related inner transport coherence) =
+    (indexed-outcome-related inner) =
   indexed-outcome-related
     (weak-one-step-⊕₁-indexed-frameᵀ
-      noM noM′ M⊑M′ inner transport)
-    (weak-step-transport (transportNo•Terms transport))
-    (weak-step-type-coherence
-      (transportArrowCoherent coherence)
-      (transportAllCoherent coherence))
+      noM noM′ M⊑M′ inner
+      (weakIndexedTransport inner)
+      (weakIndexedTypeCoherence inner))
 weak-one-step-⊕₁-indexed-frame-outcomeᵀ
     noM noM′ M⊑M′
     (indexed-outcome-source-blame source↠) =
@@ -348,14 +362,12 @@ weak-one-step-⊕₂-indexed-frame-outcomeᵀ :
     {χ = χ} {ρ = ρ} idι
 weak-one-step-⊕₂-indexed-frame-outcomeᵀ
     vL noL vL′ noL′ L⊑L′
-    (indexed-outcome-related inner transport coherence) =
+    (indexed-outcome-related inner) =
   indexed-outcome-related
     (weak-one-step-⊕₂-indexed-frameᵀ
-      vL noL vL′ noL′ L⊑L′ inner transport)
-    (weak-step-transport (transportNo•Terms transport))
-    (weak-step-type-coherence
-      (transportArrowCoherent coherence)
-      (transportAllCoherent coherence))
+      vL noL vL′ noL′ L⊑L′ inner
+      (weakIndexedTransport inner)
+      (weakIndexedTypeCoherence inner))
 weak-one-step-⊕₂-indexed-frame-outcomeᵀ
     vL noL vL′ noL′ L⊑L′
     (indexed-outcome-source-blame source↠) =

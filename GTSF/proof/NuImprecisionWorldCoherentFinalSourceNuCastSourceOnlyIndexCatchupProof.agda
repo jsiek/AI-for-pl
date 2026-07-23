@@ -174,7 +174,7 @@ world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ = ρ} {L = L} {V′ = V′}
     {B = B} {B′ = B′} {C = C} {s = s}
-    {μ = μ} {p = p} {r = r} {occ = occ}
+    {μ = μ} {p = p} {r = r} {{safe = safe}} {occ = occ}
     coherent exclusive wfL mode seal★ s⊑
     vL noL vV′ noV′ L⊑V′
     with lift-left-store-result ρ
@@ -183,7 +183,7 @@ world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ = ρ} {L = L} {V′ = V′}
     {B = B} {B′ = B′} {C = C} {s = s}
-    {μ = μ} {p = p} {r = r} {occ = occ}
+    {μ = μ} {p = p} {r = r} {{safe = safe}} {occ = occ}
     coherent exclusive wfL mode seal★ s⊑
     vL noL vV′ noV′ L⊑V′
     | ρ′ , liftρ =
@@ -214,7 +214,7 @@ world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
       (sym allocated-store-eq) s⊑
 
   allocated-bullet =
-    left-allocated-bulletᵀ vL noL wf★ liftρ L⊑V′
+    left-allocated-bulletᵀ {{safe = safe}} vL noL wf★ liftρ L⊑V′
 
   bullet-result =
     bullet-catchup wf★ prefix-reflⁱ
@@ -266,16 +266,16 @@ world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
     weak-indexed-result allocation-result
       (cast⊑⊑ᵀ (cast-inst mode) allocated-seal
         allocated-cast allocated-bullet (⊑-source-liftνᵢ p))
+      (weak-step-transport
+        (left-lift-prefix-body liftρ
+          (prefix-∷ⁱ prefix-reflⁱ)))
+      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ)
 
   allocation-silent : LeftSilentIndexedResult p
   allocation-silent =
     left-silent-indexed allocation-indexed
       (left-silent-invariant refl refl)
       (ok-⟨⟩ (ok-• vL noL))
-      (weak-step-transport
-        (left-lift-prefix-body liftρ
-          (prefix-∷ⁱ prefix-reflⁱ)))
-      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ)
 
   allocation-lineage =
     weak-step-store-lineage ρ′

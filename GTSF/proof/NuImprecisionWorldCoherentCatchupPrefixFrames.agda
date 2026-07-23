@@ -41,8 +41,7 @@ world-coherent-left-catchup-prefix-target-narrow-castᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        transport type-coherence)
+          (left-silent-invariant refl refl) final))
       lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-narrow-castᵀ
@@ -70,8 +69,7 @@ world-coherent-left-catchup-prefix-target-reveal-castᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        transport type-coherence)
+          (left-silent-invariant refl refl) final))
       lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-reveal-castᵀ
@@ -99,8 +97,7 @@ world-coherent-left-catchup-prefix-target-conceal-castᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        transport type-coherence)
+          (left-silent-invariant refl refl) final))
       lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-conceal-castᵀ
@@ -129,8 +126,7 @@ world-coherent-left-catchup-prefix-target-widen-castᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        transport type-coherence)
+          (left-silent-invariant refl refl) final))
       lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-widen-castᵀ
@@ -158,8 +154,7 @@ world-coherent-left-catchup-prefix-target-widen-id-castᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        transport type-coherence)
+          (left-silent-invariant refl refl) final))
       lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-widen-id-castᵀ

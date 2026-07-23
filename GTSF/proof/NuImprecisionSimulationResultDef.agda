@@ -274,6 +274,10 @@ record WeakOneStepIndexedResult
           ⊑ applyTys (targetTailChanges weakIndexedResult)
               (applyTy χ B)
         ∶ transportType weakIndexedResult p
+    weakIndexedTransport :
+      WeakOneStepTransport weakIndexedResult
+    weakIndexedTypeCoherence :
+      WeakOneStepTypeCoherence weakIndexedResult
 
 open WeakOneStepIndexedResult public
 
@@ -284,8 +288,6 @@ data WeakOneStepIndexedOutcome
   indexed-outcome-related :
     (result : WeakOneStepIndexedResult
       {M = M} {N′ = N′} {χ = χ} {ρ = ρ} p) →
-    WeakOneStepTransport (weakIndexedResult result) →
-    WeakOneStepTypeCoherence (weakIndexedResult result) →
     WeakOneStepIndexedOutcome p
 
   indexed-outcome-source-blame : ∀ {χs} →
@@ -439,12 +441,6 @@ record LeftCatchupIndexedResult
     catchupIndexedInvariant :
       LeftCatchupInvariant
         (weakIndexedResult catchupIndexedResult)
-    catchupIndexedTransport :
-      WeakOneStepTransport
-        (weakIndexedResult catchupIndexedResult)
-    catchupIndexedCoherence :
-      WeakOneStepTypeCoherence
-        (weakIndexedResult catchupIndexedResult)
 
 open LeftCatchupIndexedResult public
 record LeftSilentIndexedResult
@@ -462,12 +458,6 @@ record LeftSilentIndexedResult
     silentIndexedRuntime :
       RuntimeOK
         (sourceResult (weakIndexedResult silentIndexedResult))
-    silentIndexedTransport :
-      WeakOneStepTransport
-        (weakIndexedResult silentIndexedResult)
-    silentIndexedCoherence :
-      WeakOneStepTypeCoherence
-        (weakIndexedResult silentIndexedResult)
 
 open LeftSilentIndexedResult public
 data LeftCatchupIndexedProgress
@@ -495,12 +485,6 @@ record LeftCatchupIndexedAllResult
         {M = N} {N′ = V′} {χ = keep} {ρ = ρ} (∀ⁱ q)
     catchupIndexedAllInvariant :
       LeftCatchupInvariant
-        (weakIndexedResult catchupIndexedAllResult)
-    catchupIndexedAllTransport :
-      WeakOneStepTransport
-        (weakIndexedResult catchupIndexedAllResult)
-    catchupIndexedAllCoherence :
-      WeakOneStepTypeCoherence
         (weakIndexedResult catchupIndexedAllResult)
 
 open LeftCatchupIndexedAllResult public

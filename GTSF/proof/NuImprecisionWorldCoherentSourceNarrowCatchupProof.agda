@@ -42,6 +42,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; weak-step-transport
   ; weak-step-type-coherence
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionSimulationCore using
   (weak-one-step-reindexᵀ)
@@ -76,8 +78,7 @@ world-coherent-source-narrow-catchup-framedᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
@@ -88,8 +89,7 @@ world-coherent-source-narrow-catchup-framedᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
@@ -98,8 +98,7 @@ world-coherent-source-narrow-catchup-framedᵀ
   world-coherent-left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed framed
       (left-silent-invariant refl refl)
-      (ok-⟨⟩ (ok-no noW))
-      first-transport first-coherence)
+      (ok-⟨⟩ (ok-no noW)))
     (weak-step-store-lineage
       lineage-store lineage-embedding lineage-prefix)
     (value-catchup
@@ -116,21 +115,12 @@ world-coherent-source-narrow-catchup-framedᵀ
   framed =
     weak-one-step-source-narrow-cast-indexed-frameᵀ
       mode seal★⁺ c⊒⁺ indexed
-
-  first-transport =
-    weak-step-transport (transportNo•Terms inner-transport)
-
-  first-coherence =
-    weak-step-type-coherence
-      (transportArrowCoherent inner-coherence)
-      (transportAllCoherent inner-coherence)
 world-coherent-source-narrow-catchup-framedᵀ
     value-catchup prefix mode seal★ c⊒ vV′ noV′
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
@@ -189,12 +179,12 @@ world-coherent-source-narrow-catchup-framedᵀ
       terminal-first-lineage terminal-second-lineage
 
   first-transport =
-    weak-step-transport (transportNo•Terms inner-transport)
+    weak-step-transport (transportNo•Terms (weakIndexedTransport indexed))
 
   first-coherence =
     weak-step-type-coherence
-      (transportArrowCoherent inner-coherence)
-      (transportAllCoherent inner-coherence)
+      (transportArrowCoherent (weakIndexedTypeCoherence indexed))
+      (transportAllCoherent (weakIndexedTypeCoherence indexed))
 
 
 world-coherent-source-narrow-catchup-proofᵀ :
@@ -236,6 +226,10 @@ world-coherent-source-narrow-catchup-proofᵀ
     value-catchup prefix mode seal★ (c⊢ , NW.untag gG) =
   world-coherent-source-narrow-catchup-framedᵀ
     value-catchup prefix mode seal★ (c⊢ , NW.untag gG)
+world-coherent-source-narrow-catchup-proofᵀ
+    value-catchup prefix mode seal★ (c⊢ , NW.fun-untag-gen safe) =
+  world-coherent-source-narrow-catchup-framedᵀ
+    value-catchup prefix mode seal★ (c⊢ , NW.fun-untag-gen safe)
 world-coherent-source-narrow-catchup-proofᵀ
     value-catchup prefix mode seal★ (c⊢ , gG NW.？︔ gˢ) =
   world-coherent-source-narrow-catchup-framedᵀ

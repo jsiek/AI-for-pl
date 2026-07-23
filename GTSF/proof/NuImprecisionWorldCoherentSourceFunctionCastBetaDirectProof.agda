@@ -51,8 +51,6 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ; rightCatchupSourceUnchanged
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
-  ; rightCatchupTransport
-  ; rightCatchupTypeCoherence
   )
 open import proof.NuImprecisionSimulationCore using
   ( weak-indexed-arrow-resultᵀ
@@ -65,6 +63,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportArrowCoherent
   ; transportNo•Terms
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   ; weak-step-transport
   ; weak-step-type-coherence
   )
@@ -147,7 +147,6 @@ finish-source-function-cast-function-catchupᵀ
   function-result = weakIndexedResult function-indexed
   function-arrow =
     weak-indexed-arrow-resultᵀ function-indexed
-      (rightCatchupTypeCoherence catchup)
   function-final = canonicalArrowResults function-arrow
   target-function-value = rightCatchupTargetValue catchup
   target-function-no = rightCatchupTargetNoBullet catchup
@@ -155,18 +154,18 @@ finish-source-function-cast-function-catchupᵀ
     applyTerms-preserves-No•
       (targetTailChanges function-result) noR
   argument-final =
-    transportNo•Terms (rightCatchupTransport catchup)
+    transportNo•Terms (weakIndexedTransport (rightCatchupIndexedResult catchup))
       noW noR argument-related
   framed =
     weak-one-step-·₁-frameᵀ noW noR function-result
       function-final argument-final
   framed-transport =
     weak-step-transport
-      (transportNo•Terms (rightCatchupTransport catchup))
+      (transportNo•Terms (weakIndexedTransport (rightCatchupIndexedResult catchup)))
   framed-coherence =
     weak-step-type-coherence
-      (transportArrowCoherent (rightCatchupTypeCoherence catchup))
-      (transportAllCoherent (rightCatchupTypeCoherence catchup))
+      (transportArrowCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
+      (transportAllCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
   framed-lineage : WeakOneStepStoreLineage framed
   framed-lineage =
     weak-step-store-lineage

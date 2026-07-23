@@ -24,10 +24,11 @@ world-coherent-final-source-νcast-catchup-proofᵀ :
   WorldCoherentFinalSourceNuCastPairedIndexCatchupᵀ →
   WorldCoherentFinalSourceNuCastCatchupᵀ
 world-coherent-final-source-νcast-catchup-proofᵀ
-    source-only paired {q = νⁱ occ r}
+    source-only paired {q = νⁱ safe occ r}
     coherent exclusive wfL mode seal★ s⊑
     vL noL vV′ noV′ L⊑V′ =
-  source-only coherent exclusive wfL mode seal★ s⊑
+  source-only {{safe = safe}}
+    coherent exclusive wfL mode seal★ s⊑
     vL noL vV′ noV′ L⊑V′
 world-coherent-final-source-νcast-catchup-proofᵀ
     source-only paired {q = ∀ⁱ r}

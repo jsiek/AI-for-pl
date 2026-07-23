@@ -169,12 +169,12 @@ backward-target-blame-general-from-componentsᵀ
       source-blame-changes , source-blame
   go (suc fuel) wfL wfR okM okM′ M⊑M′
       (χ ∷ ψs) (↠-step target-step target-rest) bound
-    | indexed-outcome-related indexed transport coherence
+    | indexed-outcome-related indexed
     with weak-result-target-prefix-blameᵀ
       (weakIndexedResult indexed) target-rest
   go (suc fuel) wfL wfR okM okM′ M⊑M′
       (χ ∷ ψs) (↠-step target-step target-rest) bound
-    | indexed-outcome-related indexed transport coherence
+    | indexed-outcome-related indexed
     | residual-changes , target-result↠blame , trace-eq
     with go fuel
       (weak-result-source-store-wf
@@ -203,7 +203,7 @@ backward-target-blame-general-from-componentsᵀ
           bound))
   go (suc fuel) wfL wfR okM okM′ M⊑M′
       (χ ∷ ψs) (↠-step target-step target-rest) bound
-    | indexed-outcome-related indexed transport coherence
+    | indexed-outcome-related indexed
     | residual-changes , target-result↠blame , trace-eq
     | result-blame-changes , source-result↠blame =
       sourceChanges (weakIndexedResult indexed) ++ result-blame-changes ,

@@ -95,8 +95,7 @@ world-coherent-left-catchup-prefix-down-upᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         invariant@(left-catchup-invariant
-          silent@(left-silent-invariant refl refl) final)
-        transport coherence)
+          silent@(left-silent-invariant refl refl) final))
       lineage coherent final-exclusive final-wfL) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed-prefix-down-up-from-finalᵀ
@@ -152,8 +151,7 @@ world-coherent-left-catchup-prefix-gen-down-upᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         invariant@(left-catchup-invariant
-          silent@(left-silent-invariant refl refl) final)
-        transport coherence)
+          silent@(left-silent-invariant refl refl) final))
       lineage coherent final-exclusive final-wfL) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed-prefix-down-up-from-finalᵀ

@@ -494,7 +494,7 @@ private
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       with apply-narrow-sequence-components
         { χs = keep ∷ targetTailChanges (weakIndexedResult indexed) }
@@ -506,7 +506,7 @@ private
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | μ′ , mode′ , seal★′ , s⊒′ , t⊒′
       with final-narrow-component (weakIndexedResult indexed) s⊒′
@@ -515,7 +515,7 @@ private
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | μ′ , mode′ , seal★′ , s⊒′ , t⊒′
       | s⊒@(s⊢ , sⁿ) | t⊒@(t⊢ , tⁿ)
@@ -533,7 +533,7 @@ private
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | μ′ , mode′ , seal★′ , s⊒′ , t⊒′
       | s⊒@(s⊢ , sⁿ) | t⊒@(t⊢ , tⁿ) | s-plan
@@ -551,7 +551,7 @@ private
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | μ′ , mode′ , seal★′ , s⊒′ , t⊒′
       | s⊒@(s⊢ , sⁿ) | t⊒@(t⊢ , tⁿ)
@@ -600,7 +600,7 @@ private
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       with apply-widen-sequence-components
         { χs = keep ∷ targetTailChanges (weakIndexedResult indexed) }
@@ -612,7 +612,7 @@ private
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | μ′ , mode′ , seal★′ , s⊑′ , t⊑′
       with final-widen-component (weakIndexedResult indexed) s⊑′
@@ -621,7 +621,7 @@ private
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | μ′ , mode′ , seal★′ , s⊑′ , t⊑′
       | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)
@@ -639,7 +639,7 @@ private
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | μ′ , mode′ , seal★′ , s⊑′ , t⊑′
       | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ) | s-plan
@@ -657,7 +657,7 @@ private
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | μ′ , mode′ , seal★′ , s⊑′ , t⊑′
       | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)
@@ -705,7 +705,7 @@ private
       pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       with apply-fixed-widen-sequence-components
         { χs = keep ∷
@@ -717,7 +717,7 @@ private
       pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | s⊑′ , t⊑′
       with final-widen-component (weakIndexedResult indexed) s⊑′
@@ -726,7 +726,7 @@ private
       pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | s⊑′ , t⊑′
       | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)
@@ -742,7 +742,7 @@ private
       pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | s⊑′ , t⊑′
       | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ) | s-plan
@@ -758,7 +758,7 @@ private
       pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW transport coherence)
+          vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | s⊑′ , t⊑′
       | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)

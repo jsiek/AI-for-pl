@@ -60,8 +60,6 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ; rightCatchupSourceUnchanged
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
-  ; rightCatchupTransport
-  ; rightCatchupTypeCoherence
   )
 open import proof.NuImprecisionSimulation using
   ( weak-one-step-source-cast-frame-coherenceᵀ
@@ -85,6 +83,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; weak-step-transport
   ; weak-step-type-coherence
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion)
@@ -149,8 +149,7 @@ right-source-narrow-frameᵀ
     (right-value-indexed-catchup framed refl refl
       (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
       (rightCatchupTargetValue catchup)
-      (rightCatchupTargetNoBullet catchup)
-      framed-transport framed-coherence)
+      (rightCatchupTargetNoBullet catchup))
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
@@ -167,15 +166,6 @@ right-source-narrow-frameᵀ
   framed =
     weak-one-step-source-narrow-cast-indexed-frameᵀ
       mode seal★⁺ c⊒⁺ (rightCatchupIndexedResult catchup)
-
-  framed-transport =
-    weak-step-transport
-      (transportNo•Terms (rightCatchupTransport catchup))
-
-  framed-coherence =
-    weak-step-type-coherence
-      (transportArrowCoherent (rightCatchupTypeCoherence catchup))
-      (transportAllCoherent (rightCatchupTypeCoherence catchup))
 
 
 right-source-widen-frameᵀ :
@@ -221,8 +211,7 @@ right-source-widen-frameᵀ
     (right-value-indexed-catchup framed refl refl
       (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
       (rightCatchupTargetValue catchup)
-      (rightCatchupTargetNoBullet catchup)
-      framed-transport framed-coherence)
+      (rightCatchupTargetNoBullet catchup))
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
@@ -239,15 +228,6 @@ right-source-widen-frameᵀ
   framed =
     weak-one-step-source-widen-cast-indexed-frameᵀ
       mode seal★⁺ c⊑⁺ (rightCatchupIndexedResult catchup)
-
-  framed-transport =
-    weak-step-transport
-      (transportNo•Terms (rightCatchupTransport catchup))
-
-  framed-coherence =
-    weak-step-type-coherence
-      (transportArrowCoherent (rightCatchupTypeCoherence catchup))
-      (transportAllCoherent (rightCatchupTypeCoherence catchup))
 
 
 right-source-reveal-frameᵀ :
@@ -291,8 +271,7 @@ right-source-reveal-frameᵀ
     (right-value-indexed-catchup framed refl refl
       (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
       (rightCatchupTargetValue catchup)
-      (rightCatchupTargetNoBullet catchup)
-      framed-transport framed-coherence)
+      (rightCatchupTargetNoBullet catchup))
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
@@ -324,14 +303,18 @@ right-source-reveal-frameᵀ
 
   framed =
     weak-indexed-result first (relatedResults first)
+      (weak-one-step-source-cast-frame-transportᵀ
+        inner final-relation (weakIndexedTransport (rightCatchupIndexedResult catchup)))
+      (weak-one-step-source-cast-frame-coherenceᵀ
+        inner final-relation (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
 
   framed-transport =
     weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (rightCatchupTransport catchup)
+      inner final-relation (weakIndexedTransport (rightCatchupIndexedResult catchup))
 
   framed-coherence =
     weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (rightCatchupTypeCoherence catchup)
+      inner final-relation (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
 
 
 right-source-conceal-frameᵀ :
@@ -375,8 +358,7 @@ right-source-conceal-frameᵀ
     (right-value-indexed-catchup framed refl refl
       (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
       (rightCatchupTargetValue catchup)
-      (rightCatchupTargetNoBullet catchup)
-      framed-transport framed-coherence)
+      (rightCatchupTargetNoBullet catchup))
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
@@ -408,14 +390,18 @@ right-source-conceal-frameᵀ
 
   framed =
     weak-indexed-result first (relatedResults first)
+      (weak-one-step-source-cast-frame-transportᵀ
+        inner final-relation (weakIndexedTransport (rightCatchupIndexedResult catchup)))
+      (weak-one-step-source-cast-frame-coherenceᵀ
+        inner final-relation (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
 
   framed-transport =
     weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (rightCatchupTransport catchup)
+      inner final-relation (weakIndexedTransport (rightCatchupIndexedResult catchup))
 
   framed-coherence =
     weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (rightCatchupTypeCoherence catchup)
+      inner final-relation (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
 
 
 world-coherent-right-source-frames-proof :

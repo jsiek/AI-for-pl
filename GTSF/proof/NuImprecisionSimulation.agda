@@ -3492,17 +3492,19 @@ weak-one-step-direct-quotient-indexed-outcomeᵀ
     liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD D′ˢ≈T
     pE pF ∀gen⊒ gen∀⊒ inst∀⊑ ∀inst⊑ s↑ s′↑ =
   indexed-outcome-related
-    (weak-one-step-index-resultᵀ result type-eq)
-    (weak-one-step-direct-quotient-transportᵀ
-      liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD D′ˢ≈T
-      pE pF ∀gen⊒ gen∀⊒ inst∀⊑ ∀inst⊑ s↑ s′↑)
-    (weak-one-step-direct-quotient-type-coherenceᵀ
-      liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD D′ˢ≈T
-      pE pF ∀gen⊒ gen∀⊒ inst∀⊑ ∀inst⊑ s↑ s′↑)
+    (weak-one-step-index-resultᵀ result type-eq transport coherence)
   where
   result = weak-one-step-direct-quotientᵀ
     liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD D′ˢ≈T
     pE pF ∀gen⊒ gen∀⊒ inst∀⊑ ∀inst⊑ s↑ s′↑
+  transport =
+    weak-one-step-direct-quotient-transportᵀ
+      liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD D′ˢ≈T
+      pE pF ∀gen⊒ gen∀⊒ inst∀⊑ ∀inst⊑ s↑ s′↑
+  coherence =
+    weak-one-step-direct-quotient-type-coherenceᵀ
+      liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD D′ˢ≈T
+      pE pF ∀gen⊒ gen∀⊒ inst∀⊑ ∀inst⊑ s↑ s′↑
   type-eq = subst-cancel-sym
     (λ S → resultCtx result ∣ resultLeftCtx result
       ⊢ S ⊑ resultTargetType result ⊣ resultRightCtx result)
@@ -3560,17 +3562,19 @@ weak-one-step-reverse-direct-quotient-indexed-outcomeᵀ
     liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD S≈Dˢ
     pE pF gen∀⊒ ∀gen⊒ ∀inst⊑ inst∀⊑ s↑ s′↑ =
   indexed-outcome-related
-    (weak-one-step-index-resultᵀ result type-eq)
-    (weak-one-step-reverse-direct-quotient-transportᵀ
-      liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD S≈Dˢ
-      pE pF gen∀⊒ ∀gen⊒ ∀inst⊑ inst∀⊑ s↑ s′↑)
-    (weak-one-step-reverse-direct-quotient-type-coherenceᵀ
-      liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD S≈Dˢ
-      pE pF gen∀⊒ ∀gen⊒ ∀inst⊑ inst∀⊑ s↑ s′↑)
+    (weak-one-step-index-resultᵀ result type-eq transport coherence)
   where
   result = weak-one-step-reverse-direct-quotientᵀ
     liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD S≈Dˢ
     pE pF gen∀⊒ ∀gen⊒ ∀inst⊑ inst∀⊑ s↑ s′↑
+  transport =
+    weak-one-step-reverse-direct-quotient-transportᵀ
+      liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD S≈Dˢ
+      pE pF gen∀⊒ ∀gen⊒ ∀inst⊑ inst∀⊑ s↑ s′↑
+  coherence =
+    weak-one-step-reverse-direct-quotient-type-coherenceᵀ
+      liftρ₁ vW okM vW′ noM′ W⊑W′ pObs pD qD S≈Dˢ
+      pE pF gen∀⊒ ∀gen⊒ ∀inst⊑ inst∀⊑ s↑ s′↑
   type-eq = subst-cancel-sym
     (λ T → resultCtx result ∣ resultLeftCtx result
       ⊢ resultSourceType result ⊑ T ⊣ resultRightCtx result)
@@ -4350,15 +4354,14 @@ left-catchup-indexed-all-keep-stepᵀ :
     {N = M} {V′ = V′} {ρ = ρ} q
 left-catchup-indexed-all-keep-stepᵀ source→ final N⊑V′ =
   left-indexed-all-catchup
-    (weak-one-step-index-resultᵀ result refl)
+    (weak-one-step-index-resultᵀ result refl transport coherence)
     (left-catchup-invariant
       (left-silent-invariant refl refl) final)
-    (weak-one-step-keep-source-catchup-transportᵀ
-      source→ N⊑V′)
-    (weak-one-step-keep-source-catchup-type-coherenceᵀ
-      source→ N⊑V′)
   where
   result = weak-one-step-keep-source-catchupᵀ source→ N⊑V′
+  transport = weak-one-step-keep-source-catchup-transportᵀ source→ N⊑V′
+  coherence =
+    weak-one-step-keep-source-catchup-type-coherenceᵀ source→ N⊑V′
 
 left-catchup-indexed-all-prefix-prepend-keepᵀ :
   ∀ {Φ Δᴸ Δᴿ M N V′ C C′ q}
@@ -4611,6 +4614,7 @@ weak-one-step-source-narrow-cast-indexed-frameᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} mode seal★ c⊒ indexed
     | μ′ , mode′ , seal★′ , c′⊒ =
   weak-indexed-result framed (relatedResults framed)
+    framed-transport framed-coherence
   where
   inner = weakIndexedResult indexed
 
@@ -4645,6 +4649,12 @@ weak-one-step-source-narrow-cast-indexed-frameᵀ
       (canonicalIndexedResults indexed) (transportType inner _)
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
+  framed-transport =
+    weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed)
+  framed-coherence =
+    weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed)
 
 weak-one-step-source-widen-cast-indexed-frameᵀ :
   ∀ {Φ Δᴸ Δᴿ M N′ A A′ B c μ χ}
@@ -4667,6 +4677,7 @@ weak-one-step-source-widen-cast-indexed-frameᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} mode seal★ c⊑ indexed
     | μ′ , mode′ , seal★′ , c′⊑ =
   weak-indexed-result framed (relatedResults framed)
+    framed-transport framed-coherence
   where
   inner = weakIndexedResult indexed
 
@@ -4701,6 +4712,12 @@ weak-one-step-source-widen-cast-indexed-frameᵀ
       (canonicalIndexedResults indexed) (transportType inner _)
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
+  framed-transport =
+    weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed)
+  framed-coherence =
+    weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed)
 
 narrow-all-to-all-inert :
   ∀ {μ Δ Σ c A B} →
@@ -4774,15 +4791,14 @@ left-catchup-indexed-all-source-cast-blame-frameᵀ
     {r = r}
     (left-indexed-catchup indexed
       (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+        (left-silent-invariant refl refl) final))
     framed refl (left-silent-invariant refl refl)
     first-transport first-coherence refl =
   left-indexed-all-catchup
-    (weak-one-step-index-resultᵀ combined type-eq)
+    (weak-one-step-index-resultᵀ combined type-eq
+      combined-transport combined-coherence)
     (left-catchup-invariant
       (left-silent-invariant refl refl) (inj₂ refl))
-    combined-transport combined-coherence
   where
   first-raw = weakIndexedResult framed
 
@@ -4872,36 +4888,31 @@ left-catchup-indexed-all-source-inert-frameᵀ :
 left-catchup-indexed-all-source-inert-frameᵀ
     inert
     (left-indexed-catchup indexed
-      (left-catchup-invariant inner-silent final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant inner-silent final))
     framed refl first-silent
     first-transport first-coherence
     with final
 left-catchup-indexed-all-source-inert-frameᵀ
     inert
     (left-indexed-catchup indexed
-      (left-catchup-invariant inner-silent final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant inner-silent final))
     framed refl first-silent
     first-transport first-coherence
     | inj₁ (vW , noW) =
   left-indexed-all-catchup framed
     (left-catchup-invariant first-silent
       (inj₁ (vW ⟨ inert ⟩ , no•-⟨⟩ noW)))
-    first-transport first-coherence
 left-catchup-indexed-all-source-inert-frameᵀ
     {r = r}
     inert
     (left-indexed-catchup indexed
-      (left-catchup-invariant inner-silent final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant inner-silent final))
     framed refl first-silent
     first-transport first-coherence
     | inj₂ refl =
   left-catchup-indexed-all-source-cast-blame-frameᵀ
     (left-indexed-catchup indexed
-      (left-catchup-invariant inner-silent final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant inner-silent final))
     framed refl first-silent
     first-transport first-coherence refl
 
@@ -4921,8 +4932,7 @@ left-catchup-indexed-all-source-narrow-castᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} mode seal★ c⊒
     (left-indexed-catchup indexed
       (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+        (left-silent-invariant refl refl) final))
     with apply-narrows-typing
       { χs = sourceChanges (weakIndexedResult indexed) }
       mode seal★ c⊒
@@ -4930,23 +4940,21 @@ left-catchup-indexed-all-source-narrow-castᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} mode seal★ c⊒
     (left-indexed-catchup indexed
       (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+        (left-silent-invariant refl refl) final))
     | μ′ , mode′ , seal★′ , c′⊒ =
   left-catchup-indexed-all-source-inert-frameᵀ
     (applyCoercions-preserves-Inert (sourceChanges inner)
       (narrow-all-to-all-inert c⊒))
     (left-indexed-catchup indexed
       (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+        (left-silent-invariant refl refl) final))
     framed refl
       (weak-one-step-source-cast-frame-silentᵀ
         inner final-relation (left-silent-invariant refl refl))
     (weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation inner-transport)
+      inner final-relation (weakIndexedTransport indexed))
     (weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence)
+      inner final-relation (weakIndexedTypeCoherence indexed))
   where
   inner = weakIndexedResult indexed
 
@@ -4983,6 +4991,10 @@ left-catchup-indexed-all-source-narrow-castᵀ
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
   framed = weak-indexed-result first (relatedResults first)
+    (weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed))
+    (weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed))
 
 left-catchup-indexed-all-prefix-source-narrow-castᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A A′ B μ c}
@@ -5020,27 +5032,24 @@ left-catchup-indexed-all-source-widen-cast-inertᵀ :
     {N = M ⟨ c ⟩} {V′ = V′} {ρ = ρ} r
 left-catchup-indexed-all-source-widen-cast-inertᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} mode seal★ c⊑ inert
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     with apply-widens-typing
       { χs = sourceChanges (weakIndexedResult indexed) }
       mode seal★ c⊑
 left-catchup-indexed-all-source-widen-cast-inertᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} mode seal★ c⊑ inert
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     | μ′ , mode′ , seal★′ , c′⊑ =
   left-catchup-indexed-all-source-inert-frameᵀ
     (applyCoercions-preserves-Inert (sourceChanges inner) inert)
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     framed refl
       (weak-one-step-source-cast-frame-silentᵀ
         inner final-relation (silentInvariant invariant))
     (weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation inner-transport)
+      inner final-relation (weakIndexedTransport indexed))
     (weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence)
+      inner final-relation (weakIndexedTypeCoherence indexed))
   where
   inner = weakIndexedResult indexed
 
@@ -5077,6 +5086,10 @@ left-catchup-indexed-all-source-widen-cast-inertᵀ
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
   framed = weak-indexed-result first (relatedResults first)
+    (weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed))
+    (weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed))
 
 left-catchup-indexed-all-source-widen-cast-blameᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A A′ B μ c}
@@ -5094,28 +5107,25 @@ left-catchup-indexed-all-source-widen-cast-blameᵀ :
     {N = M ⟨ c ⟩} {V′ = V′} {ρ = ρ} r
 left-catchup-indexed-all-source-widen-cast-blameᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} mode seal★ c⊑
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     eq-blame
     with apply-widens-typing
       { χs = sourceChanges (weakIndexedResult indexed) }
       mode seal★ c⊑
 left-catchup-indexed-all-source-widen-cast-blameᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} mode seal★ c⊑
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     eq-blame
     | μ′ , mode′ , seal★′ , c′⊑ =
   left-catchup-indexed-all-source-cast-blame-frameᵀ
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     framed refl
       (weak-one-step-source-cast-frame-silentᵀ
         inner final-relation (silentInvariant invariant))
     (weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation inner-transport)
+      inner final-relation (weakIndexedTransport indexed))
     (weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence)
+      inner final-relation (weakIndexedTypeCoherence indexed))
     eq-blame
   where
   inner = weakIndexedResult indexed
@@ -5153,6 +5163,10 @@ left-catchup-indexed-all-source-widen-cast-blameᵀ
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
   framed = weak-indexed-result first (relatedResults first)
+    (weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed))
+    (weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed))
 
 left-catchup-indexed-all-prefix-source-widen-cast-blameᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A A′ B μ c}
@@ -5253,8 +5267,7 @@ left-silent-indexed-all-source-widen-inst-valueᵀ
     (C.cast-inst hB occ s⊢ , NW.inst sʷ)
     (left-indexed-catchup indexed
       (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+        (left-silent-invariant refl refl) final))
     vW noW
     with apply-widens-typing
       { χs = sourceChanges (weakIndexedResult indexed) }
@@ -5264,15 +5277,14 @@ left-silent-indexed-all-source-widen-inst-valueᵀ
     (C.cast-inst hB occ s⊢ , NW.inst sʷ)
     (left-indexed-catchup indexed
       (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+        (left-silent-invariant refl refl) final))
     vW noW
     | μ′ , mode′ , seal★′ , c′⊑ =
   left-silent-indexed
-    (weak-one-step-index-resultᵀ combined type-eq)
+    (weak-one-step-index-resultᵀ combined type-eq
+      combined-transport combined-coherence)
     (left-silent-invariant refl refl)
     (ok-ν (ok-no noW))
-    combined-transport combined-coherence
   where
   inner = weakIndexedResult indexed
 
@@ -5354,10 +5366,10 @@ left-silent-indexed-all-source-widen-inst-valueᵀ
         first second (∀ⁱ _))))
 
   first-transport = weak-one-step-source-cast-frame-transportᵀ
-    inner final-relation inner-transport
+    inner final-relation (weakIndexedTransport indexed)
 
   first-coherence = weak-one-step-source-cast-frame-coherenceᵀ
-    inner final-relation inner-coherence
+    inner final-relation (weakIndexedTypeCoherence indexed)
 
   combined-transport =
     weak-one-step-prepend-left-silent-preserves-transportᵀ
@@ -5416,55 +5428,47 @@ left-catchup-indexed-all-source-widen-cast-progressᵀ :
 left-catchup-indexed-all-source-widen-cast-progressᵀ
     mode seal★ c⊑
     (left-indexed-catchup indexed
-      (left-catchup-invariant (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant (left-silent-invariant refl refl) final))
     with final
 left-catchup-indexed-all-source-widen-cast-progressᵀ
     mode seal★ c⊑
     (left-indexed-catchup indexed
-      (left-catchup-invariant (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant (left-silent-invariant refl refl) final))
     | inj₁ (vW , noW)
     with widen-all-to-all-shape c⊑
 left-catchup-indexed-all-source-widen-cast-progressᵀ
     mode seal★ c⊑
     (left-indexed-catchup indexed
-      (left-catchup-invariant (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant (left-silent-invariant refl refl) final))
     | inj₁ (vW , noW) | inj₁ inert =
   left-progress-done
     (generalize-left-indexed-all-catchup
       (left-catchup-indexed-all-source-widen-cast-inertᵀ
         mode seal★ c⊑ inert
         (left-indexed-catchup indexed
-          (left-catchup-invariant (left-silent-invariant refl refl) final)
-          inner-transport inner-coherence)))
+          (left-catchup-invariant (left-silent-invariant refl refl) final))))
 left-catchup-indexed-all-source-widen-cast-progressᵀ
     mode seal★ c⊑
     (left-indexed-catchup indexed
-      (left-catchup-invariant (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant (left-silent-invariant refl refl) final))
     | inj₁ (vW , noW) | inj₂ (s , refl) =
   left-progress-continue
     (left-silent-indexed-all-source-widen-inst-valueᵀ
       mode seal★ c⊑
       (left-indexed-catchup indexed
-        (left-catchup-invariant (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+        (left-catchup-invariant (left-silent-invariant refl refl) final))
       vW noW)
 left-catchup-indexed-all-source-widen-cast-progressᵀ
     mode seal★ c⊑
     (left-indexed-catchup indexed
-      (left-catchup-invariant (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant (left-silent-invariant refl refl) final))
     | inj₂ eq-blame =
   left-progress-done
     (generalize-left-indexed-all-catchup
       (left-catchup-indexed-all-source-widen-cast-blameᵀ
         mode seal★ c⊑
         (left-indexed-catchup indexed
-          (left-catchup-invariant (left-silent-invariant refl refl) final)
-          inner-transport inner-coherence)
+          (left-catchup-invariant (left-silent-invariant refl refl) final))
         eq-blame))
 
 left-catchup-indexed-all-prefix-source-widen-cast-progressᵀ :
@@ -5502,27 +5506,24 @@ left-catchup-indexed-all-source-reveal-castᵀ :
     {N = M ⟨ c ⟩} {V′ = V′} {ρ = ρ} r
 left-catchup-indexed-all-source-reveal-castᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} c↑
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     with apply-reveal-conversions
       { χs = sourceChanges (weakIndexedResult indexed) } c↑
 left-catchup-indexed-all-source-reveal-castᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} c↑
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     | μ′ , α′ , X′ , c′↑ =
   left-catchup-indexed-all-source-inert-frameᵀ
     (applyCoercions-preserves-Inert (sourceChanges inner)
       (reveal-all-to-all-inert c↑))
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     framed refl
       (weak-one-step-source-cast-frame-silentᵀ
         inner final-relation (silentInvariant invariant))
     (weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation inner-transport)
+      inner final-relation (weakIndexedTransport indexed))
     (weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence)
+      inner final-relation (weakIndexedTypeCoherence indexed))
   where
   inner = weakIndexedResult indexed
 
@@ -5555,6 +5556,10 @@ left-catchup-indexed-all-source-reveal-castᵀ
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
   framed = weak-indexed-result first (relatedResults first)
+    (weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed))
+    (weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed))
 
 left-catchup-indexed-all-prefix-source-reveal-castᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A A′ B μ α X c}
@@ -5588,27 +5593,24 @@ left-catchup-indexed-all-source-conceal-castᵀ :
     {N = M ⟨ c ⟩} {V′ = V′} {ρ = ρ} r
 left-catchup-indexed-all-source-conceal-castᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} c↓
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     with apply-conceal-conversions
       { χs = sourceChanges (weakIndexedResult indexed) } c↓
 left-catchup-indexed-all-source-conceal-castᵀ
     {Δᴸ = Δᴸ} {B = B} {c = c} c↓
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     | μ′ , α′ , X′ , c′↓ =
   left-catchup-indexed-all-source-inert-frameᵀ
     (applyCoercions-preserves-Inert (sourceChanges inner)
       (conceal-all-to-all-inert c↓))
-    (left-indexed-catchup indexed invariant
-      inner-transport inner-coherence)
+    (left-indexed-catchup indexed invariant)
     framed refl
       (weak-one-step-source-cast-frame-silentᵀ
         inner final-relation (silentInvariant invariant))
     (weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation inner-transport)
+      inner final-relation (weakIndexedTransport indexed))
     (weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence)
+      inner final-relation (weakIndexedTypeCoherence indexed))
   where
   inner = weakIndexedResult indexed
 
@@ -5641,6 +5643,10 @@ left-catchup-indexed-all-source-conceal-castᵀ
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
   framed = weak-indexed-result first (relatedResults first)
+    (weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed))
+    (weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed))
 
 left-catchup-indexed-all-prefix-source-conceal-castᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A A′ B μ α X c}
@@ -5803,15 +5809,17 @@ left-catchup-indexed-all-α-Λᵀ
     {C = C} {C′ = C′} {q = q} {ρ = ρ} {ρᵃ = ρᵃ} {ρᵇ = ρᵇ}
     vW noW noV′ h⇑A liftρᵃ liftρᵇ W⊑V′ =
   left-indexed-all-catchup
-    (weak-one-step-index-resultᵀ result refl)
+    (weak-one-step-index-resultᵀ result refl transport coherence)
     (left-catchup-invariant
       (left-silent-invariant refl refl) (inj₁ (vW , noW)))
-    (weak-step-transport
-      (paired-left-lift-prefix-bodyᵀ
-        liftρᵃ liftρᵃ))
-    (weak-step-type-coherence
-      ⊑-rename-id-arrowᵢ ⊑-rename-id-allᵢ)
   where
+  transport =
+    weak-step-transport
+      (paired-left-lift-prefix-bodyᵀ liftρᵃ liftρᵃ)
+  coherence =
+    weak-step-type-coherence
+      ⊑-rename-id-arrowᵢ ⊑-rename-id-allᵢ
+
   allocated-body =
     allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
       (term-weaken {Δ = suc Δᴸ} {Δ′ = suc Δᴸ}
@@ -5879,13 +5887,15 @@ left-catchup-indexed-prefix-α-Λᵀ
     {A = A} {B = B} {p = p} {ρᵃ = ρᵃ} {ρᵇ = ρᵇ} {ρ⁺ = ρ⁺}
     vW noW noV′ h⇑Aν liftρᵃ liftρᵇ prefix W⊑V′ =
   left-indexed-catchup
-    (weak-one-step-index-resultᵀ result refl)
+    (weak-one-step-index-resultᵀ result refl transport coherence)
     (left-catchup-invariant
       (left-silent-invariant refl refl) (inj₁ (vW , noW)))
-    (weak-step-transport identity-bodyᵀ)
-    (weak-step-type-coherence
-      ⊑-rename-id-arrowᵢ ⊑-rename-id-allᵢ)
   where
+  transport = weak-step-transport identity-bodyᵀ
+  coherence =
+    weak-step-type-coherence
+      ⊑-rename-id-arrowᵢ ⊑-rename-id-allᵢ
+
   allocated-body =
     allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
       (term-weaken {Δ = suc Δᴸ} {Δ′ = suc Δᴸ}
@@ -5960,13 +5970,15 @@ left-catchup-indexed-all-prefix-α-Λᵀ
     {q = q} {ρᵃ = ρᵃ} {ρᵇ = ρᵇ} {ρ⁺ = ρ⁺}
     vW noW noV′ h⇑A liftρᵃ liftρᵇ prefix W⊑V′ =
   left-indexed-all-catchup
-    (weak-one-step-index-resultᵀ result refl)
+    (weak-one-step-index-resultᵀ result refl transport coherence)
     (left-catchup-invariant
       (left-silent-invariant refl refl) (inj₁ (vW , noW)))
-    (weak-step-transport identity-bodyᵀ)
-    (weak-step-type-coherence
-      ⊑-rename-id-arrowᵢ ⊑-rename-id-allᵢ)
   where
+  transport = weak-step-transport identity-bodyᵀ
+  coherence =
+    weak-step-type-coherence
+      ⊑-rename-id-arrowᵢ ⊑-rename-id-allᵢ
+
   allocated-body =
     allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
       (term-weaken {Δ = suc Δᴸ} {Δ′ = suc Δᴸ}

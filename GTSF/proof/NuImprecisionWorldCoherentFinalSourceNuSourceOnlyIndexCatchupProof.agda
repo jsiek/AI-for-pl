@@ -171,7 +171,7 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ = ρ} {ρ′ = ρ′} {L = L} {V′ = V′}
     {A = A} {B = B} {B′ = B′} {C = C} {s = s}
-    {μ = μ} {p = p} {r = r} {occ = occ}
+    {μ = μ} {p = p} {r = r} {{safe = safe}} {occ = occ}
     coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
     vL noL vV′ noV′ L⊑V′ =
   world-coherent-left-catchup-indexed-resume-silentᵀ
@@ -199,7 +199,7 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
       (sym allocated-store-eq) s↑
 
   allocated-bullet =
-    left-allocated-bulletᵀ vL noL h⇑A liftρ L⊑V′
+    left-allocated-bulletᵀ {{safe = safe}} vL noL h⇑A liftρ L⊑V′
 
   bullet-result =
     bullet-catchup h⇑A prefix-reflⁱ
@@ -249,16 +249,16 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
     weak-indexed-result allocation-result
       (conv↑⊑ᵀ allocated-reveal allocated-bullet
         (⊑-source-liftνᵢ p))
+      (weak-step-transport
+        (left-lift-prefix-body liftρ
+          (prefix-∷ⁱ prefix-reflⁱ)))
+      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ)
 
   allocation-silent : LeftSilentIndexedResult p
   allocation-silent =
     left-silent-indexed allocation-indexed
       (left-silent-invariant refl refl)
       (ok-⟨⟩ (ok-• vL noL))
-      (weak-step-transport
-        (left-lift-prefix-body liftρ
-          (prefix-∷ⁱ prefix-reflⁱ)))
-      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ)
 
   allocation-lineage =
     weak-step-store-lineage ρ′

@@ -63,8 +63,6 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ; rightCatchupSourceValue
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
-  ; rightCatchupTransport
-  ; rightCatchupTypeCoherence
   )
 open import
   proof.NuImprecisionRightValueCatchupSourceBulletTransportDef
@@ -777,20 +775,23 @@ world-coherent-right-target-sequence-resume-proofᵀ
     {C = C} {q = q}
     (world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
-        (weak-indexed-result first first-canonical)
-        refl refl vV noV vW noW first-transport first-coherence)
+        (weak-indexed-result first first-canonical
+          first-transport first-coherence)
+        refl refl vV noV vW noW)
       first-lineage first-bullet first-world
       first-exclusive first-unique first-wfR)
     (world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
-        (weak-indexed-result second second-canonical)
-        refl refl vV₂ noV₂ vZ noZ second-transport second-coherence)
+        (weak-indexed-result second second-canonical
+          second-transport second-coherence)
+        refl refl vV₂ noV₂ vZ noZ)
       second-lineage second-bullet second-world
       second-exclusive second-unique second-wfR) =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup
-      (weak-indexed-result combined combined-canonical)
-      refl refl vV noV vZ noZ combined-transport combined-coherence)
+      (weak-indexed-result combined combined-canonical
+        combined-transport combined-coherence)
+      refl refl vV noV vZ noZ)
     combined-lineage combined-bullet second-world
     second-exclusive second-unique second-wfR
   where

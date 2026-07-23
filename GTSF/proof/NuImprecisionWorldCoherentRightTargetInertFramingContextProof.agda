@@ -56,7 +56,7 @@ world-coherent-right-target-inert-framing-context-proofᵀ
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet
-        target-value target-no-bullet transport type-coherence)
+        target-value target-no-bullet)
       lineage bullet final-world
       final-exclusive final-unique final-wfR)
     context-eq right-prefix
@@ -79,7 +79,7 @@ world-coherent-right-target-inert-framing-context-proofᵀ
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet
-        target-value target-no-bullet transport type-coherence)
+        target-value target-no-bullet)
       lineage bullet final-world
       final-exclusive final-unique final-wfR)
     context-eq right-prefix
@@ -102,7 +102,7 @@ world-coherent-right-target-inert-framing-context-proofᵀ
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet
-        target-value target-no-bullet transport type-coherence)
+        target-value target-no-bullet)
       lineage bullet final-world
       final-exclusive final-unique final-wfR)
     context-eq right-prefix
@@ -130,7 +130,7 @@ world-coherent-right-target-inert-framing-context-proofᵀ
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet
-        target-value target-no-bullet transport type-coherence)
+        target-value target-no-bullet)
       lineage bullet final-world
       final-exclusive final-unique final-wfR)
     context-eq right-prefix
@@ -159,7 +159,7 @@ world-coherent-right-target-inert-framing-context-proofᵀ
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet
-        target-value target-no-bullet transport type-coherence)
+        target-value target-no-bullet)
       lineage bullet final-world
       final-exclusive final-unique final-wfR)
     context-eq right-prefix =

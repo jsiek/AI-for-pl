@@ -25,11 +25,6 @@ open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedOutcome
   ; indexed-outcome-related
   ; indexed-outcome-source-blame
-  ; transportAllCoherent
-  ; transportArrowCoherent
-  ; transportNo•Terms
-  ; weak-step-transport
-  ; weak-step-type-coherence
   )
 open import proof.NuImprecisionTargetBlameCatchup using
   (cast-blame-tailᵀ)
@@ -49,14 +44,10 @@ weak-one-step-source-narrow-cast-indexed-frame-outcomeᵀ :
     {M = M ⟨ c ⟩} {N′ = N′} {χ = χ} {ρ = ρ} q
 weak-one-step-source-narrow-cast-indexed-frame-outcomeᵀ
     mode seal★ c⊒
-    (indexed-outcome-related indexed transport coherence) =
+    (indexed-outcome-related indexed) =
   indexed-outcome-related
     (weak-one-step-source-narrow-cast-indexed-frameᵀ
       mode seal★ c⊒ indexed)
-    (weak-step-transport (transportNo•Terms transport))
-    (weak-step-type-coherence
-      (transportArrowCoherent coherence)
-      (transportAllCoherent coherence))
 weak-one-step-source-narrow-cast-indexed-frame-outcomeᵀ
     mode seal★ c⊒
     (indexed-outcome-source-blame source↠) =
@@ -77,14 +68,10 @@ weak-one-step-source-widen-cast-indexed-frame-outcomeᵀ :
     {M = M ⟨ c ⟩} {N′ = N′} {χ = χ} {ρ = ρ} q
 weak-one-step-source-widen-cast-indexed-frame-outcomeᵀ
     mode seal★ c⊑
-    (indexed-outcome-related indexed transport coherence) =
+    (indexed-outcome-related indexed) =
   indexed-outcome-related
     (weak-one-step-source-widen-cast-indexed-frameᵀ
       mode seal★ c⊑ indexed)
-    (weak-step-transport (transportNo•Terms transport))
-    (weak-step-type-coherence
-      (transportArrowCoherent coherence)
-      (transportAllCoherent coherence))
 weak-one-step-source-widen-cast-indexed-frame-outcomeᵀ
     mode seal★ c⊑
     (indexed-outcome-source-blame source↠) =

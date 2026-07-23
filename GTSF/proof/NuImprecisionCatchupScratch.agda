@@ -190,8 +190,7 @@ left-catchup-indexed-prefix-down-upᵀ
     d⊒ d′⊒ widening
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
-        silent@(left-silent-invariant refl refl) final)
-      transport coherence)
+        silent@(left-silent-invariant refl refl) final))
     with left-catchup-indexed-final-quotientᵀ
       vM′ noM′ inert-d′ inert-u′
       (weak-one-step-transport-id-downᵀ
@@ -205,8 +204,7 @@ left-catchup-indexed-prefix-down-upᵀ
     d⊒ d′⊒ widening
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
-        silent@(left-silent-invariant refl refl) final)
-      transport coherence)
+        silent@(left-silent-invariant refl refl) final))
     | inj₁ second =
   left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed-prefix-down-up-from-finalᵀ
@@ -219,8 +217,7 @@ left-catchup-indexed-prefix-down-upᵀ
     d⊒ d′⊒ widening
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
-        silent@(left-silent-invariant refl refl) final)
-      transport coherence)
+        silent@(left-silent-invariant refl refl) final))
     | inj₂ (inj₁ (B , s , u≡inst , source↠)) =
   {!!}
 left-catchup-indexed-prefix-down-upᵀ
@@ -228,8 +225,7 @@ left-catchup-indexed-prefix-down-upᵀ
     d⊒ d′⊒ widening
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
-        silent@(left-silent-invariant refl refl) final)
-      transport coherence)
+        silent@(left-silent-invariant refl refl) final))
     | inj₂ (inj₂ (B , s , u≡inst-tag , source↠)) =
   {!!}
 
@@ -261,8 +257,7 @@ left-catchup-indexed-prefix-gen-down-upᵀ
     d⊒ d′⊒ widening
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
-        silent@(left-silent-invariant refl refl) final)
-      transport coherence)
+        silent@(left-silent-invariant refl refl) final))
     with left-catchup-indexed-final-quotientᵀ
       vM′ noM′ inert-d′ inert-u′
       (weak-one-step-transport-gen-downᵀ
@@ -276,8 +271,7 @@ left-catchup-indexed-prefix-gen-down-upᵀ
     d⊒ d′⊒ widening
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
-        silent@(left-silent-invariant refl refl) final)
-      transport coherence)
+        silent@(left-silent-invariant refl refl) final))
     | inj₁ second =
   left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed-prefix-down-up-from-finalᵀ
@@ -290,8 +284,7 @@ left-catchup-indexed-prefix-gen-down-upᵀ
     d⊒ d′⊒ widening
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
-        silent@(left-silent-invariant refl refl) final)
-      transport coherence)
+        silent@(left-silent-invariant refl refl) final))
     | inj₂ (inj₁ (B , s , u≡inst , source↠)) =
   {!!}
 left-catchup-indexed-prefix-gen-down-upᵀ
@@ -299,8 +292,7 @@ left-catchup-indexed-prefix-gen-down-upᵀ
     d⊒ d′⊒ widening
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
-        silent@(left-silent-invariant refl refl) final)
-      transport coherence)
+        silent@(left-silent-invariant refl refl) final))
     | inj₂ (inj₂ (B , s , u≡inst-tag , source↠)) =
   {!!}
 

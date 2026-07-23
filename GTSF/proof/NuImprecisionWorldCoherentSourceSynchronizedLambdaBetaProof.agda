@@ -41,7 +41,7 @@ world-coherent-source-synchronized-lambda-beta-proofᵀ
     substitute coherent exclusive unique vV noV vV′ noV′ noN noN′
     body argument =
   world-coherent-source-one-step-indexed
-    indexed transport type-coherence lineage refl refl coherent exclusive
+    indexed lineage refl refl coherent exclusive
     unique
   where
   post-beta =
@@ -60,12 +60,12 @@ world-coherent-source-synchronized-lambda-beta-proofᵀ
       refl
       post-beta
 
-  indexed = weak-indexed-result result post-beta
-
   transport = weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′)
 
   type-coherence =
     weak-step-type-coherence (λ pC pD → refl) (λ q → refl)
+
+  indexed = weak-indexed-result result post-beta transport type-coherence
 
   lineage =
     weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ

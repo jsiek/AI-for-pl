@@ -68,6 +68,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; weak-step-transport
   ; weak-step-type-coherence
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionWeakOneStepStoreLineageDef using
   ( lineageEmbedding
@@ -160,8 +162,7 @@ world-coherent-source-paired-cast-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       (left-indexed-catchup indexed
         (left-catchup-invariant
-          silent@(left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          silent@(left-silent-invariant refl refl) final))
       lineage coherent exclusive wfL) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     first-silent first-lineage second
@@ -182,17 +183,17 @@ world-coherent-source-paired-cast-catchup-proofᵀ
     (lineagePrefix lineage)
 
   first-indexed = weak-indexed-result first (relatedResults first)
+    (weak-step-transport
+      (transportNo•Terms (weakIndexedTransport indexed)))
+    (weak-step-type-coherence
+      (transportArrowCoherent (weakIndexedTypeCoherence indexed))
+      (transportAllCoherent (weakIndexedTypeCoherence indexed)))
 
   first-silent =
     left-silent-indexed
       first-indexed
       (left-silent-invariant refl refl)
       (ok-⟨⟩ (terminal-runtime final))
-      (weak-step-transport
-        (transportNo•Terms inner-transport))
-      (weak-step-type-coherence
-        (transportArrowCoherent inner-coherence)
-        (transportAllCoherent inner-coherence))
 
   second =
     final-catchup coherent exclusive wfL final

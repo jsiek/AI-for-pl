@@ -127,21 +127,19 @@ world-coherent-left-catchup-prepend-keep-step
     source→
     (world-coherent-left-indexed-catchup
       (left-indexed-catchup
-        (weak-indexed-result result canonical)
-        (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        (weak-step-transport transport)
-        (weak-step-type-coherence arrow all))
+        (weak-indexed-result result canonical
+          (weak-step-transport transport)
+          (weak-step-type-coherence arrow all))
+        (left-catchup-invariant (left-silent-invariant refl refl) final))
       (weak-step-store-lineage lineage-store lineage-embedding
         lineage-prefix)
       coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-indexed-catchup
-      (weak-indexed-result prefixed canonical)
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      (weak-step-transport transport)
-      (weak-step-type-coherence arrow all))
+      (weak-indexed-result prefixed canonical
+        (weak-step-transport transport)
+        (weak-step-type-coherence arrow all))
+      (left-catchup-invariant (left-silent-invariant refl refl) final))
     (weak-step-store-lineage lineage-store lineage-embedding
       lineage-prefix)
     coherent exclusive wfL

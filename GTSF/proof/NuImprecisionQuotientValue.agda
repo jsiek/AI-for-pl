@@ -431,12 +431,12 @@ left-catchup-indexed-one-keep-valueᵀ :
   LeftCatchupIndexedResult {N = M} {V′ = V′} {ρ = ρ} p
 left-catchup-indexed-one-keep-valueᵀ M→N vN noN N⊑V′ =
   left-indexed-catchup
-    (weak-indexed-result result N⊑V′)
+    (weak-indexed-result result N⊑V′
+      (weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′))
+      (weak-step-type-coherence
+        (λ pC pD → refl) (λ q → refl)))
     (left-catchup-invariant
       (left-silent-invariant refl refl) (inj₁ (vN , noN)))
-    (weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′))
-    (weak-step-type-coherence
-      (λ pC pD → refl) (λ q → refl))
   where
   result = record
     { sourceChanges = keep ∷ []
@@ -474,12 +474,12 @@ left-catchup-indexed-double-cast-blameᵀ :
     {V′ = V′} {A = A} {B = B} {ρ = ρ} p
 left-catchup-indexed-double-cast-blameᵀ V′⊢ =
   left-indexed-catchup
-    (weak-indexed-result result blame-relation)
+    (weak-indexed-result result blame-relation
+      (weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′))
+      (weak-step-type-coherence
+        (λ pC pD → refl) (λ q → refl)))
     (left-catchup-invariant
       (left-silent-invariant refl refl) (inj₂ refl))
-    (weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′))
-    (weak-step-type-coherence
-      (λ pC pD → refl) (λ q → refl))
   where
   blame-relation = blame⊑ᵀ V′⊢
 
@@ -521,12 +521,12 @@ left-catchup-indexed-two-keep-to-blameᵀ :
     {ρ = ρ} p
 left-catchup-indexed-two-keep-to-blameᵀ M↠blame V′⊢ =
   left-indexed-catchup
-    (weak-indexed-result result blame-relation)
+    (weak-indexed-result result blame-relation
+      (weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′))
+      (weak-step-type-coherence
+        (λ pC pD → refl) (λ q → refl)))
     (left-catchup-invariant
       (left-silent-invariant refl refl) (inj₂ refl))
-    (weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′))
-    (weak-step-type-coherence
-      (λ pC pD → refl) (λ q → refl))
   where
   blame-relation = blame⊑ᵀ V′⊢
 

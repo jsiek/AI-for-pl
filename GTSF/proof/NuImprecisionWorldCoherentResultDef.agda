@@ -15,8 +15,6 @@ open import NuTerms using (blame)
 open import proof.NuImprecisionSimulationResultDef using
   ( LeftCatchupIndexedResult
   ; WeakOneStepIndexedResult
-  ; WeakOneStepTransport
-  ; WeakOneStepTypeCoherence
   ; catchupIndexedResult
   ; resultCtx
   ; resultLeftCtx
@@ -38,8 +36,6 @@ data WorldCoherentWeakOneStepIndexedOutcome
   world-indexed-outcome-related :
     (result : WeakOneStepIndexedResult
       {M = M} {N′ = N′} {χ = χ} {ρ = ρ} p) →
-    WeakOneStepTransport (weakIndexedResult result) →
-    WeakOneStepTypeCoherence (weakIndexedResult result) →
     WorldCoherent (resultStore (weakIndexedResult result)) →
     SourceNameExclusive (resultCtx (weakIndexedResult result)) →
     WorldCoherentWeakOneStepIndexedOutcome p

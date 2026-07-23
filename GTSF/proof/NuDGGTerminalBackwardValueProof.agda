@@ -344,12 +344,12 @@ backward-target-value-or-source-blame-proofᵀ
       inj₂ (source-blame-changes , source-blame)
   go (suc fuel) wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
-    | indexed-outcome-related indexed transport coherence
+    | indexed-outcome-related indexed
     with weak-result-target-prefix-valueᵀ
       (weakIndexedResult indexed) target-rest vV′
   go (suc fuel) wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
-    | indexed-outcome-related indexed transport coherence
+    | indexed-outcome-related indexed
     | residual-changes , target-result↠V′ , trace-eq
     with go fuel
       (weak-result-source-store-wf
@@ -378,7 +378,7 @@ backward-target-value-or-source-blame-proofᵀ
           bound))
   go (suc fuel) wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
-    | indexed-outcome-related indexed transport coherence
+    | indexed-outcome-related indexed
     | residual-changes , target-result↠V′ , trace-eq
     | inj₂ (result-blame-changes , source-result↠blame) =
       inj₂
@@ -387,7 +387,7 @@ backward-target-value-or-source-blame-proofᵀ
                  source-result↠blame)
   go (suc fuel) wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
-    | indexed-outcome-related indexed transport coherence
+    | indexed-outcome-related indexed
     | residual-changes , target-result↠V′ , trace-eq
     | inj₁ (V , result-source-changes , Ψ , ρ′ , q ,
         source-result↠V , vV , left-store-eq , right-store-eq , V⊑V′) =

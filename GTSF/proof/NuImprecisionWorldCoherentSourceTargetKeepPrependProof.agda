@@ -46,6 +46,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportType
   ; weak-indexed-result
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   ; weak-step-transport
   ; weak-step-type-coherence
   ; transportNo•Terms
@@ -66,8 +68,6 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
-  ; sourceStepTransport
-  ; sourceStepTypeCoherence
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -115,7 +115,7 @@ world-coherent-source-target-keep-prepend-proofᵀ :
 world-coherent-source-target-keep-prepend-proofᵀ
     {p = p} target→ complete =
   world-coherent-source-one-step-indexed
-    indexed transport coherence lineage
+    indexed lineage
     (sourceStepChangesExact complete)
     (sourceStepResultExact complete)
     (sourceStepWorldCoherent complete)
@@ -126,21 +126,21 @@ world-coherent-source-target-keep-prepend-proofᵀ
   old-result = weakIndexedResult old-indexed
   new-result = prepend-target-keep-result old-result target→
 
-  indexed : WeakOneStepIndexedResult p
-  indexed =
-    weak-indexed-result new-result
-      (canonicalIndexedResults old-indexed)
-
   transport : WeakOneStepTransport new-result
   transport =
     weak-step-transport
-      (transportNo•Terms (sourceStepTransport complete))
+      (transportNo•Terms (weakIndexedTransport (sourceStepIndexedResult complete)))
 
   coherence : WeakOneStepTypeCoherence new-result
   coherence =
     weak-step-type-coherence
-      (transportArrowCoherent (sourceStepTypeCoherence complete))
-      (transportAllCoherent (sourceStepTypeCoherence complete))
+      (transportArrowCoherent (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
+      (transportAllCoherent (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
+
+  indexed : WeakOneStepIndexedResult p
+  indexed =
+    weak-indexed-result new-result
+      (canonicalIndexedResults old-indexed) transport coherence
 
   lineage : WeakOneStepStoreLineage new-result
   lineage =

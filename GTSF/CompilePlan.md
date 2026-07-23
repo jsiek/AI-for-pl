@@ -6,8 +6,8 @@ File Charter:
 - Scope: maximal-lower-bound selection for consistency, coercion synthesis from
   imprecision evidence, and final assembly of directed cast plans.
 - Dependencies: `Imprecision`, `Coercions`, `Compile`,
-  `proof/CompileCoercions`, `proof/ImprecisionProperties`, and
-  `proof/MaximalLowerBounds`.
+  `proof/Compilation/CompileCoercions`, `proof/Core/Properties/ImprecisionProperties`, and
+  `proof/EndpointMLB/Core/MaximalLowerBounds`.
 
 ## Current Goal
 
@@ -59,7 +59,7 @@ the store.
 
 ### Imprecision Properties
 
-`proof/ImprecisionProperties.agda` now provides:
+`proof/Core/Properties/ImprecisionProperties.agda` now provides:
 
 - well-formed imprecision assumptions and contexts:
   `WfImpAssm`, `WfImpCtx`;
@@ -77,7 +77,7 @@ the store.
 
 ### Coercion Synthesis
 
-`proof/CompileCoercions.agda` now provides:
+`proof/Compilation/CompileCoercions.agda` now provides:
 
 - a typed `Realizes` relation for imprecision assumptions;
 - lookup helpers for realized `X ˣ⊑ˣ Y` and `X ˣ⊑★` assumptions;
@@ -94,7 +94,7 @@ version because it carries exactly the coercion evidence needed by
 
 ### Maximal Lower Bounds
 
-`proof/MaximalLowerBounds.agda` now provides:
+`proof/EndpointMLB/Core/MaximalLowerBounds.agda` now provides:
 
 - `CommonLowerBound`, `StrictlyBelow`, and `MaximalLowerBound`;
 - `CommonLowerBoundᶜ`, `StrictlyBelowᶜ`, and `MaximalLowerBoundᶜ` for the
@@ -149,7 +149,7 @@ version because it carries exactly the coercion evidence needed by
 
 The old shape-directed selector, its component-consistency postulates, and its
 forall split postulates have been moved to
-`proof/MaximalLowerBoundsJunk.agda`. Keep that file as reference material only;
+`proof/EndpointMLB/Core/MaximalLowerBoundsJunk.agda`. Keep that file as reference material only;
 do not import it into the active compiler/metatheory path.
 
 ### Assembly
@@ -171,9 +171,9 @@ These passed after integration:
 
 ```sh
 agda -v0 Compile.agda
-agda -v0 proof/CompileCoercions.agda
-agda -v0 proof/MaximalLowerBounds.agda
-agda -v0 proof/ImprecisionProperties.agda
+agda -v0 proof/Compilation/CompileCoercions.agda
+agda -v0 proof/EndpointMLB/Core/MaximalLowerBounds.agda
+agda -v0 proof/Core/Properties/ImprecisionProperties.agda
 agda -v0 GradualTerms.agda
 agda -v0 Terms.agda
 agda -v0 MetaTheory.agda
@@ -243,7 +243,7 @@ Port the useful pieces from
 
 ### 4. Recover Useful Old Lemmas Selectively
 
-Only pull definitions back from `proof/MaximalLowerBoundsJunk.agda` when they
+Only pull definitions back from `proof/EndpointMLB/Core/MaximalLowerBoundsJunk.agda` when they
 fit the new lower-bound-driven proof. Good candidates:
 
 - base/star/variable comparability;
@@ -258,7 +258,7 @@ postulates.
 The final active milestone is:
 
 ```sh
-rg "postulate" GTSF/proof/MaximalLowerBounds.agda
+rg "postulate" GTSF/proof/EndpointMLB/Core/MaximalLowerBounds.agda
 agda -v0 Compile.agda
 ```
 
@@ -277,7 +277,7 @@ Goal: design the constructors/fields needed for recursive calls under `∀ⁱ` a
 ### Chunk B. Context Maps For Imprecision
 
 Owner area: reusable context-map lemmas, preferably in
-`proof/ImprecisionProperties.agda` if they are not MLB-specific.
+`proof/Core/Properties/ImprecisionProperties.agda` if they are not MLB-specific.
 
 Goal: port the `map-⊑`/`map-νᵢ`/`map-∀ᵢ` style infrastructure from
 PolyConvert.

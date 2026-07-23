@@ -141,10 +141,10 @@ widening casts and returns to ordinary imprecision between the function
 domains.  The quotient is therefore confined to the compiler-generated middle
 types; the compiled applications still have the ordinary result type `ℕ`.
 
-The common-lower witnesses are checked in `proof/MLBGlbExample.agda`.  Their
+The common-lower witnesses are checked in `proof/EndpointMLB/Core/MLBGlbExample.agda`.  Their
 ordinary incomparability and the failed selector-monotonicity theorem are
-checked in `proof/MLBGlbCounterexample.agda`.  The corresponding application
-case of compile monotonicity is in `proof/CompileTermImprecision.agda`.
+checked in `proof/EndpointMLB/Core/MLBGlbCounterexample.agda`.  The corresponding application
+case of compile monotonicity is in `proof/Compilation/CompileTermImprecision.agda`.
 
 # Why GLBs don't always exist
 

@@ -3,7 +3,7 @@
 # substantially.
 AGDA = agda +RTS -A128M -M18G -RTS -v0
 
-# Check a single file with: make agda FILE=proof/NuMetaTheory.agda
+# Check a single file with: make agda FILE=NuMetaTheory.agda
 FILE ?= All.agda
 
 check: agda
@@ -19,6 +19,6 @@ profile-modules:
 	$(AGDA) --profile=modules $(FILE)
 
 clean:
-	rm -f *~ proof/*~
+	find . -name '*~' -delete
 
 .PHONY: check agda profile profile-modules clean

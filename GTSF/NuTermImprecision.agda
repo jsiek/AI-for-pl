@@ -54,7 +54,7 @@ open import StoreCorrespondence using
   ; rightStore-⇑ᶜorr
   ; rightStore-⇑ʳᶜorr
   )
-open import proof.CastImprecision using
+open import proof.Core.Properties.CastImprecision using
   ( LeftCastCtxCompatible
   ; RightCastCtxCompatible
   ; narrowing⇒⊑ᵢ
@@ -62,7 +62,7 @@ open import proof.CastImprecision using
   ; ⊑-transˡ-castᵢ
   ; ⊑-transʳ-castᵢ
   )
-open import proof.NarrowWidenProperties using (StoreDetWf)
+open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
 open import TermTyping using
   ( CastMode
   ; SealModeStore★

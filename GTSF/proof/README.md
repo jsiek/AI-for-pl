@@ -1,5 +1,30 @@
 # GTSF proof-module organization
 
+The `proof/` tree is grouped by proof boundary rather than kept as one flat
+directory.  Keep direct directory entries below roughly 25 items; when a
+cluster grows past that size, add another semantic subdirectory instead of
+adding root-level shims.
+
+Top-level groups:
+
+- `Catchup/`: generic catch-up helpers and simulation result support.
+- `Compilation/`: compile correctness, coercion compilation, and gen-safe
+  helpers.
+- `Core/`: reusable type, coercion, reduction, permutation, and store
+  properties.
+- `DGG/`: dynamic gradual guarantee terminal, trace, and progress work.
+- `EndpointMLB/`: endpoint maximal-lower-bound proofs, plans, and Python
+  reference models.
+- `Left/`, `Right/`, `Source/`, and `Target/`: one-sided helper clusters.
+- `NuCore/`: small shared ν-imprecision relation helpers.
+- `OneStep/`: non-world-coherent one-step outcome helpers.
+- `PairedLambda/`: paired lambda target-closing proof clusters.
+- `Quotient/`: quotient-specific helpers outside the world-coherent assembly.
+- `Store/`: store prefix, correspondence, lineage, and embedding helpers.
+- `Substitution/`: term and parallel substitution helpers.
+- `WorldCoherent/`: world-coherent source, right, quotient, final, and value
+  catch-up assemblies.
+
 Use the following three-file convention for major proof boundaries.  The
 common stem should be the mathematical role of the result, so all three files
 sort together.
@@ -12,9 +37,9 @@ sort together.
 
 For example, the backward target-value boundary is organized as:
 
-- `NuDGGTerminalBackwardValueDef.agda`;
-- `NuDGGTerminalBackwardValueProof.agda`; and
-- `NuDGGTerminalBackwardValueLemma.agda`.
+- `DGG/TerminalBackward/NuDGGTerminalBackwardValueDef.agda`;
+- `DGG/TerminalBackward/NuDGGTerminalBackwardValueProof.agda`; and
+- `DGG/TerminalBackward/NuDGGTerminalBackwardValueLemma.agda`.
 
 The `Def` module should import only the language definitions and judgment or
 result types needed to state the theorem.  The `Proof` module should take

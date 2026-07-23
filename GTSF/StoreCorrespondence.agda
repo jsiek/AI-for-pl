@@ -27,8 +27,8 @@ open import NarrowWiden using
   ; srcStoreⁿ
   ; tgtStoreⁿ
   )
-import proof.NarrowWidenProperties as NWP
-open import proof.NarrowWidenProperties using (StoreDetWf)
+import proof.Core.Properties.NarrowWidenProperties as NWP
+open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
 
 ------------------------------------------------------------------------
 -- Explicit seal correspondence

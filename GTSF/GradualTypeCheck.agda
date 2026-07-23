@@ -22,8 +22,8 @@ open import Ctx using (CtxWf; ctxWf-∷; ⤊ᵗ)
 open import GradualTerms
 open import Imprecision using (_⊢_~_; idᵢ)
 open import Primitives using (Const; constTy; κℕ)
-open import proof.ImprecisionProperties using (imp?)
-open import proof.TypeProperties
+open import proof.Core.Properties.ImprecisionProperties using (imp?)
+open import proof.Core.Properties.TypeProperties
   using
     ( TyRenameWf-suc
     ; renameᵗ-preserves-WfTy

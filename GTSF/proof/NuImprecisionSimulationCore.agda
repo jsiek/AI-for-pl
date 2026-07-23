@@ -300,7 +300,6 @@ open import proof.MaximalLowerBoundsWf using
   ; swap01ᵢ
   ; swap01ᵢ-after-suc
   )
-open import proof.MediationProperties using (wfTy-applyTys)
 open import proof.ForallPermutationProperties using
   ( ≈∀-double-swap
   ; ≈∀-double-swap-sym
@@ -358,16 +357,16 @@ open import proof.ReductionProperties using
   ; applyTysUnderTyBinders-++
   ; applyTysUnderTyBinders-⇑ᵗ
   ; applyTys-++
+  ; applyTys-⇒
   ; applyTys-★
   ; applyTys-∀
   ; cast-↠
+  ; wfTy-applyTys
   ; ·₁-↠
   ; ·₂-↠
   ; ν-↠
   ; ↠-trans
   )
-open import proof.LeftChangeNarrowingSeparated using
-  (applyTys-⇒)
 open import proof.CoercionProperties using
   ( ModeIncl-ext
   ; ModeIncl-gen

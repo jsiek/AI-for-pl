@@ -376,7 +376,7 @@ mutual
 
 -- The dual raw does not depend on the witness — of any sort.  The
 -- widening instance is the statement the old two-store surface
--- postulates (`LeftChangeNarrowingSeparated.dualʷ-raw-determined`).
+-- postulates from the removed separated-store DGG prototype.
 
 dualⁿ-raw-determined :
   ∀ η {c} (w₁ w₂ : Narrowing c) →

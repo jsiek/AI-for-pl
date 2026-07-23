@@ -46,8 +46,6 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Ty; _⇒_; `∀)
-open import proof.LeftChangeNarrowingSeparated using
-  (applyTys-⇒)
 open import proof.MaximalLowerBoundsWf using (∀ᵢᶜ)
 open import proof.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ
@@ -97,6 +95,7 @@ open import proof.ReductionProperties using
   ; applyTyCtxs-++
   ; applyTy-∀
   ; applyTys-++
+  ; applyTys-⇒
   ; applyTys-∀
   ; applyTysUnderTyBinders
   ; applyTysUnderTyBinders-++

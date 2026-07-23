@@ -26,7 +26,6 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   (blame⊑ᵀ; nu-term-imprecision-target-typing; prefix-reflⁱ)
 open import Types using (WfTy; ⇑ᵗ)
-open import proof.MediationProperties using (wfTy-applyTys)
 open import proof.NuImprecisionCatchupComposition using
   ( weak-one-step-keep-source-catchup-type-coherenceᵀ
   ; weak-one-step-keep-source-catchup-transportᵀ
@@ -76,6 +75,7 @@ open import proof.NuImprecisionWorldCoherentResultDef using
   (world-coherent-left-indexed-catchup)
 open import proof.NuImprecisionWorldCoherentSourceNuCatchupDef using
   (WorldCoherentSourceNuCatchupᵀ)
+open import proof.ReductionProperties using (wfTy-applyTys)
 open import proof.StoreProperties using (renameStoreᵗ-incl)
 open import proof.TypeProperties using
   (TyRenameWf-suc; renameᵗ-preserves-WfTy)

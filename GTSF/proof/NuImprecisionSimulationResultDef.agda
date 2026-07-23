@@ -37,10 +37,9 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import Types using (Ty; TyCtx; _⇒_; `∀)
-open import proof.LeftChangeNarrowingSeparated using
-  (applyTys-⇒)
 open import proof.ReductionProperties using
-  ( applyTy-∀
+  ( applyTys-⇒
+  ; applyTy-∀
   ; applyTyUnderTyBinder
   ; applyTysUnderTyBinders
   ; applyTys-∀

@@ -2,8 +2,9 @@ module proof.ReductionProperties where
 
 -- File Charter:
 --   * Proof-only metatheory for Nu GTSF reduction.
---   * Multi-step composition, store-change action composition, and reduction
---     congruence lemmas for contexts that do not involve narrowing/widening.
+--   * Multi-step composition, store-change action composition, type-action
+--     well-formedness/shape lemmas, and reduction congruence lemmas for
+--     contexts that do not involve narrowing/widening.
 --   * Narrowing/widening-specific reduction arguments belong in their
 --     corresponding proof modules.
 
@@ -36,7 +37,11 @@ open import proof.NuTermProperties
     ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-preserves-No•
     )
-open import proof.TypeProperties using (renameᵗ-ext-suc-comm)
+open import proof.TypeProperties using
+  ( TyRenameWf-suc
+  ; renameᵗ-ext-suc-comm
+  ; renameᵗ-preserves-WfTy
+  )
 
 ------------------------------------------------------------------------
 -- Store-change list views
@@ -319,6 +324,27 @@ applyTys-++ :
 applyTys-++ [] χs′ A = refl
 applyTys-++ (χ ∷ χs) χs′ A =
   applyTys-++ χs χs′ (applyTy χ A)
+
+applyTys-⇒ :
+  ∀ χs A B →
+  applyTys χs (A ⇒ B) ≡ applyTys χs A ⇒ applyTys χs B
+applyTys-⇒ [] A B = refl
+applyTys-⇒ (keep ∷ χs) A B = applyTys-⇒ χs A B
+applyTys-⇒ (bind C ∷ χs) A B = applyTys-⇒ χs (⇑ᵗ A) (⇑ᵗ B)
+
+wfTy-⇑ :
+  ∀ {Δ A} →
+  WfTy Δ A →
+  WfTy (suc Δ) (⇑ᵗ A)
+wfTy-⇑ wf = renameᵗ-preserves-WfTy wf TyRenameWf-suc
+
+wfTy-applyTys :
+  ∀ χs {Δ A} →
+  WfTy Δ A →
+  WfTy (applyTyCtxs χs Δ) (applyTys χs A)
+wfTy-applyTys [] wf = wf
+wfTy-applyTys (keep ∷ χs) wf = wfTy-applyTys χs wf
+wfTy-applyTys (bind X ∷ χs) wf = wfTy-applyTys χs (wfTy-⇑ wf)
 
 allKeep-applyTys-id :
   ∀ {χs} →

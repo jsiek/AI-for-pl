@@ -122,7 +122,6 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
-open import proof.LeftChangeNarrowingSeparated using (applyTys-⇒)
 open import proof.CastImprecision using (∀ᵢᶜ)
 open import proof.CoercionProperties using
   (ModeRename; modeRename-id-only)
@@ -201,7 +200,6 @@ open import
 open import proof.NuWideningTransport using
   (apply-fixed-widens-typing; apply-widens-typing)
 open import proof.MaximalLowerBoundsWf using (⊑-lift∀ᵢ)
-open import proof.MediationProperties using (wfTy-applyTys)
 open import proof.ReductionProperties using
   ( applyCoercions
   ; applyCoercionUnderTyBinders-preserves-Inert
@@ -211,11 +209,13 @@ open import proof.ReductionProperties using
   ; applyTerms-ν
   ; applyTyUnderTyBinder
   ; applyTy-ℕ
+  ; applyTys-⇒
   ; applyTysUnderTyBinders
   ; applyTysUnderTyBinders-⇑ᵗ
   ; applyTys-★
   ; applyTys-∀
   ; applyTys-ℕ
+  ; wfTy-applyTys
   )
 open import proof.StoreProperties using (renameStoreᵗ-incl)
 open import proof.TypeProperties using

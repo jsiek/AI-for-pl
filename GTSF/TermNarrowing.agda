@@ -1,12 +1,12 @@
 -- OBSOLETE
--- Replaced by MediatedNarrowing
+-- Replaced by the quotiented Nu imprecision development.
 
 {-
   Term imprecision for the Nu syntax.
 
-  Legacy note: this shared-store relation is obsolete for new work.  New
-  proofs should target MediatedNarrowing; this module remains only because
-  older DGG files in the umbrella development still import it.
+  Legacy note: this shared-store relation is obsolete for new work.  It remains
+  only for older proof experiments that have not been part of the aggregate
+  checker.
 
   This file mechanizes the term-imprecision relation from the cambridge22/23
   notes.  The paper presentation uses a combined environment for term variables

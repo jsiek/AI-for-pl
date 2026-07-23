@@ -74,7 +74,6 @@ open import TermTyping using (CastMode; SealModeStore★)
 open import Types using
   (Atom; Ty; TyCtx; TyVar; WfTy; ＇_; ‵_; ★; _⇒_; `∀; ⇑ᵗ)
 open import proof.CoercionProperties using (modeRename-id-only)
-open import proof.LeftChangeNarrowingSeparated using (applyTys-⇒)
 open import proof.NuImprecisionAtomicTargetReindex using
   (atomic-target-value-reindexᵀ)
 open import proof.NuImprecisionContextExclusivityDef using
@@ -190,6 +189,7 @@ open import proof.ReductionProperties using
   ; applyTyCtxs-++
   ; applyTyVars-++
   ; applyTys-++
+  ; applyTys-⇒
   ; applyTysUnderTyBinders
   ; applyTysUnderTyBinders-++
   )

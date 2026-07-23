@@ -40,6 +40,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ( relatedResults
   ; weak-indexed-result
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionStorePrefix using
   (rightStoreⁱ-prefix-inclusion)
@@ -57,8 +59,6 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ; sourceStepSourceNameExclusive
   ; sourceStepAssumptionMembershipUnique
   ; sourceStepStoreLineage
-  ; sourceStepTransport
-  ; sourceStepTypeCoherence
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -95,8 +95,6 @@ source-step-target-ν-frameᵀ {p = p}
     prefix hA s↑ r complete =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -118,12 +116,16 @@ source-step-target-ν-frameᵀ {p = p}
 
   framed = weak-one-step-target-ν-frameᵀ hA s↑⁺ p r inner
   framed-indexed = weak-indexed-result framed (relatedResults framed)
+    (weak-one-step-target-ν-frame-preserves-transportᵀ
+      hA s↑⁺ p r inner (weakIndexedTransport (sourceStepIndexedResult complete)))
+    (weak-one-step-target-ν-frame-preserves-type-coherenceᵀ
+      hA s↑⁺ p r inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
   framed-transport =
     weak-one-step-target-ν-frame-preserves-transportᵀ
-      hA s↑⁺ p r inner (sourceStepTransport complete)
+      hA s↑⁺ p r inner (weakIndexedTransport (sourceStepIndexedResult complete))
   framed-coherence =
     weak-one-step-target-ν-frame-preserves-type-coherenceᵀ
-      hA s↑⁺ p r inner (sourceStepTypeCoherence complete)
+      hA s↑⁺ p r inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
 
 source-step-target-νcast-frameᵀ :
@@ -151,8 +153,6 @@ source-step-target-νcast-frameᵀ {p = p}
     prefix mode seal★ s⊑ r complete =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -178,12 +178,16 @@ source-step-target-νcast-frameᵀ {p = p}
     weak-one-step-target-νcast-frameᵀ
       mode seal★⁺ s⊑⁺ p r inner
   framed-indexed = weak-indexed-result framed (relatedResults framed)
+    (weak-one-step-target-νcast-frame-preserves-transportᵀ
+      mode seal★⁺ s⊑⁺ p r inner (weakIndexedTransport (sourceStepIndexedResult complete)))
+    (weak-one-step-target-νcast-frame-preserves-type-coherenceᵀ
+      mode seal★⁺ s⊑⁺ p r inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
   framed-transport =
     weak-one-step-target-νcast-frame-preserves-transportᵀ
-      mode seal★⁺ s⊑⁺ p r inner (sourceStepTransport complete)
+      mode seal★⁺ s⊑⁺ p r inner (weakIndexedTransport (sourceStepIndexedResult complete))
   framed-coherence =
     weak-one-step-target-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★⁺ s⊑⁺ p r inner (sourceStepTypeCoherence complete)
+      mode seal★⁺ s⊑⁺ p r inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
 
 world-coherent-source-one-step-target-nu-frames-proofᵀ :

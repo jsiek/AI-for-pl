@@ -34,8 +34,7 @@ world-coherent-source-keep-relation-proofᵀ
     {M = M} {M′ = M′} {L = L} {A = A} {B = B} {p = p}
     coherent exclusive unique final-relation M→L =
   world-coherent-source-one-step-indexed
-    indexed transport type-coherence lineage refl refl coherent exclusive
-    unique
+    indexed lineage refl refl coherent exclusive unique
   where
   result =
     weak-step-result
@@ -50,14 +49,14 @@ world-coherent-source-keep-relation-proofᵀ
       refl
       final-relation
 
-  indexed =
-    weak-indexed-result result final-relation
-
   transport =
     weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′)
 
   type-coherence =
     weak-step-type-coherence (λ pC pD → refl) (λ q → refl)
+
+  indexed =
+    weak-indexed-result result final-relation transport type-coherence
 
   lineage =
     weak-step-store-lineage ρ rel-store-embedding-reflⁱ prefix-reflⁱ

@@ -68,6 +68,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; sourceResult
   ; weak-indexed-result
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
@@ -85,8 +87,6 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ; sourceStepSourceNameExclusive
   ; sourceStepAssumptionMembershipUnique
   ; sourceStepStoreLineage
-  ; sourceStepTransport
-  ; sourceStepTypeCoherence
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -137,8 +137,6 @@ source-step-matched-ν-frameᵀ
     {pA = pA} {pB = pB} prefix s↑ s′↑ complete =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -157,7 +155,6 @@ source-step-matched-ν-frameᵀ
     {χ = keep} {ρ = ρ⁺} q
   all =
     weak-indexed-all-resultᵀ {q = q} indexed₀
-      (sourceStepTypeCoherence complete)
 
   source-store-incl =
     StoreIncl-cons
@@ -178,14 +175,20 @@ source-step-matched-ν-frameᵀ
     weak-one-step-matched-ν-frameᵀ {χ = keep} {q = q}
       s↑⁺ s′↑⁺ pA pB all
   framed-indexed = weak-indexed-result framed (relatedResults framed)
+    (weak-one-step-matched-ν-frame-preserves-transportᵀ
+      {χ = keep} {q = q}
+      s↑⁺ s′↑⁺ pA pB all (weakIndexedTransport (sourceStepIndexedResult complete)))
+    (weak-one-step-matched-ν-frame-preserves-type-coherenceᵀ
+      {χ = keep} {q = q}
+      s↑⁺ s′↑⁺ pA pB all (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
   framed-transport =
     weak-one-step-matched-ν-frame-preserves-transportᵀ
       {χ = keep} {q = q}
-      s↑⁺ s′↑⁺ pA pB all (sourceStepTransport complete)
+      s↑⁺ s′↑⁺ pA pB all (weakIndexedTransport (sourceStepIndexedResult complete))
   framed-coherence =
     weak-one-step-matched-ν-frame-preserves-type-coherenceᵀ
       {χ = keep} {q = q}
-      s↑⁺ s′↑⁺ pA pB all (sourceStepTypeCoherence complete)
+      s↑⁺ s′↑⁺ pA pB all (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
   type-exact :
     applyTys (sourceChanges inner) A ≡ applyTy χ A
@@ -244,8 +247,6 @@ source-step-matched-νcast-frameᵀ {s = s} {χ = χ} {q = q} {pB = pB}
     prefix mode seal★ s⊑ mode′ seal★′ s′⊑ compat complete =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -260,7 +261,6 @@ source-step-matched-νcast-frameᵀ {s = s} {χ = χ} {q = q} {pB = pB}
   inner = weakIndexedResult indexed₀
   all =
     weak-indexed-all-resultᵀ {q = q} indexed₀
-      (sourceStepTypeCoherence complete)
 
   source-store-incl =
     StoreIncl-cons
@@ -280,16 +280,24 @@ source-step-matched-νcast-frameᵀ {s = s} {χ = χ} {q = q} {pB = pB}
       {χ = keep} {q = q}
       mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
   framed-indexed = weak-indexed-result framed (relatedResults framed)
+    (weak-one-step-matched-νcast-frame-preserves-transportᵀ
+      {χ = keep} {q = q}
+      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
+      (weakIndexedTransport (sourceStepIndexedResult complete)))
+    (weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
+      {χ = keep} {q = q}
+      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
+      (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
   framed-transport =
     weak-one-step-matched-νcast-frame-preserves-transportᵀ
       {χ = keep} {q = q}
       mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
-      (sourceStepTransport complete)
+      (weakIndexedTransport (sourceStepIndexedResult complete))
   framed-coherence =
     weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
       {χ = keep} {q = q}
       mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
-      (sourceStepTypeCoherence complete)
+      (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
   star-exact : ★ ≡ applyTy χ ★
   star-exact = sym (applyTy-★ χ)
@@ -334,8 +342,6 @@ source-step-source-ν-frameᵀ {A = A} {s = s} {χ = χ} {pB = pB}
     prefix hA s↑ complete =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -357,12 +363,16 @@ source-step-source-ν-frameᵀ {A = A} {s = s} {χ = χ} {pB = pB}
 
   framed = weak-one-step-source-ν-frameᵀ hA s↑⁺ pB inner
   framed-indexed = weak-indexed-result framed (relatedResults framed)
+    (weak-one-step-source-ν-frame-preserves-transportᵀ
+      hA s↑⁺ pB inner (weakIndexedTransport (sourceStepIndexedResult complete)))
+    (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
+      hA s↑⁺ pB inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
   framed-transport =
     weak-one-step-source-ν-frame-preserves-transportᵀ
-      hA s↑⁺ pB inner (sourceStepTransport complete)
+      hA s↑⁺ pB inner (weakIndexedTransport (sourceStepIndexedResult complete))
   framed-coherence =
     weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-      hA s↑⁺ pB inner (sourceStepTypeCoherence complete)
+      hA s↑⁺ pB inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
   type-exact :
     applyTys (sourceChanges inner) A ≡ applyTy χ A
@@ -411,8 +421,6 @@ source-step-source-νcast-frameᵀ {s = s} {χ = χ} {pB = pB}
     prefix mode seal★ s⊑ complete =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -435,12 +443,16 @@ source-step-source-νcast-frameᵀ {s = s} {χ = χ} {pB = pB}
 
   framed = weak-one-step-source-νcast-frameᵀ mode seal★⁺ s⊑⁺ pB inner
   framed-indexed = weak-indexed-result framed (relatedResults framed)
+    (weak-one-step-source-νcast-frame-preserves-transportᵀ
+      mode seal★⁺ s⊑⁺ pB inner (weakIndexedTransport (sourceStepIndexedResult complete)))
+    (weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
+      mode seal★⁺ s⊑⁺ pB inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
   framed-transport =
     weak-one-step-source-νcast-frame-preserves-transportᵀ
-      mode seal★⁺ s⊑⁺ pB inner (sourceStepTransport complete)
+      mode seal★⁺ s⊑⁺ pB inner (weakIndexedTransport (sourceStepIndexedResult complete))
   framed-coherence =
     weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★⁺ s⊑⁺ pB inner (sourceStepTypeCoherence complete)
+      mode seal★⁺ s⊑⁺ pB inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
   star-exact : ★ ≡ applyTy χ ★
   star-exact = sym (applyTy-★ χ)

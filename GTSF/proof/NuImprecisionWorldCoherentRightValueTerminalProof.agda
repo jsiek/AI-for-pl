@@ -56,8 +56,7 @@ world-coherent-right-value-terminal-proofᵀ
     {ρ⁺ = ρ⁺} {p = p}
     prefix coherent exclusive unique wfR vV noV vV′ noV′ V⊑V′ =
   world-coherent-right-value-indexed-catchup
-    (right-value-indexed-catchup indexed refl refl vV noV vV′ noV′
-      transport type-coherence)
+    (right-value-indexed-catchup indexed refl refl vV noV vV′ noV′)
     lineage source-bullet-transport coherent exclusive unique wfR
   where
   source-typing⁺ =
@@ -84,14 +83,14 @@ world-coherent-right-value-terminal-proofᵀ
       refl
       related⁺
 
-  indexed =
-    weak-indexed-result result related⁺
-
   transport =
     weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′)
 
   type-coherence =
     weak-step-type-coherence (λ pC pD → refl) (λ q → refl)
+
+  indexed =
+    weak-indexed-result result related⁺ transport type-coherence
 
   lineage =
     weak-step-store-lineage ρ⁺ rel-store-embedding-reflⁱ prefix-reflⁱ

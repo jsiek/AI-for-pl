@@ -206,15 +206,13 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
   go (suc fuel) coherent exclusive wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
     | world-indexed-outcome-related
-        indexed transport type-coherence
-        successor-coherent successor-exclusive
+        indexed successor-coherent successor-exclusive
     with weak-result-target-prefix-valueᵀ
       (weakIndexedResult indexed) target-rest vV′
   go (suc fuel) coherent exclusive wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
     | world-indexed-outcome-related
-        indexed transport type-coherence
-        successor-coherent successor-exclusive
+        indexed successor-coherent successor-exclusive
     | residual-changes , target-result↠V′ , trace-eq
     with go fuel successor-coherent successor-exclusive
       (weak-result-source-store-wf
@@ -244,8 +242,7 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
   go (suc fuel) coherent exclusive wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
     | world-indexed-outcome-related
-        indexed transport type-coherence
-        successor-coherent successor-exclusive
+        indexed successor-coherent successor-exclusive
     | residual-changes , target-result↠V′ , trace-eq
     | inj₂ (result-blame-changes , source-result↠blame) =
       inj₂
@@ -257,8 +254,7 @@ world-coherent-backward-target-value-or-source-blame-proofᵀ
   go (suc fuel) coherent exclusive wfL wfR okM okM′ M⊑M′ V′
       (χ ∷ ψs) (↠-step target-step target-rest) vV′ bound
     | world-indexed-outcome-related
-        indexed transport type-coherence
-        successor-coherent successor-exclusive
+        indexed successor-coherent successor-exclusive
     | residual-changes , target-result↠V′ , trace-eq
     | inj₁ (V , result-source-changes , Ψ , ρ′ , q ,
         source-result↠V , vV , left-store-eq , right-store-eq , V⊑V′) =

@@ -55,8 +55,6 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ; rightCatchupSourceValue
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
-  ; rightCatchupTransport
-  ; rightCatchupTypeCoherence
   )
 open import
   proof.NuImprecisionRightValueCatchupSourceBulletTransportDef
@@ -307,13 +305,13 @@ world-coherent-right-target-step-resume-proofᵀ
       second-exclusive second-unique second-wfR) =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup
-      (weak-indexed-result combined combined-canonical)
+      (weak-indexed-result combined combined-canonical
+        combined-transport combined-coherence)
       source-empty source-unchanged
       (rightCatchupSourceValue first-catchup)
       (rightCatchupSourceNoBullet first-catchup)
       (rightCatchupTargetValue second-catchup)
-      (rightCatchupTargetNoBullet second-catchup)
-      combined-transport combined-coherence)
+      (rightCatchupTargetNoBullet second-catchup))
     combined-lineage combined-bullet second-world
     second-exclusive second-unique second-wfR
   where
@@ -356,21 +354,21 @@ world-coherent-right-target-step-resume-proofᵀ
 
   first-transport =
     weak-one-step-target-cast-frame-transportᵀ
-      first-result framed (rightCatchupTransport first-catchup)
+      first-result framed (weakIndexedTransport (rightCatchupIndexedResult first-catchup))
 
   first-coherence =
     weak-one-step-target-cast-frame-coherenceᵀ
-      first-result framed (rightCatchupTypeCoherence first-catchup)
+      first-result framed (weakIndexedTypeCoherence (rightCatchupIndexedResult first-catchup))
 
   combined-transport =
     weak-one-step-compose-preserves-transportᵀ
       first target-step second-result first-transport
-      (rightCatchupTransport second-catchup)
+      (weakIndexedTransport (rightCatchupIndexedResult second-catchup))
 
   combined-coherence =
     weak-one-step-compose-preserves-type-coherenceᵀ
       first target-step second-result first-coherence
-      (rightCatchupTypeCoherence second-catchup)
+      (weakIndexedTypeCoherence (rightCatchupIndexedResult second-catchup))
 
   framed-lineage : WeakOneStepStoreLineage first
   framed-lineage =
@@ -433,13 +431,13 @@ world-coherent-right-target-step-resume-context-proofᵀ
     | combined-lineage , combined-prefix =
   world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
-        (weak-indexed-result combined combined-canonical)
+        (weak-indexed-result combined combined-canonical
+          combined-transport combined-coherence)
         source-empty source-unchanged
         (rightCatchupSourceValue first-catchup)
         (rightCatchupSourceNoBullet first-catchup)
         (rightCatchupTargetValue second-catchup)
-        (rightCatchupTargetNoBullet second-catchup)
-        combined-transport combined-coherence)
+        (rightCatchupTargetNoBullet second-catchup))
       combined-lineage combined-bullet second-world
       second-exclusive second-unique second-wfR ,
   combined-context ,
@@ -486,21 +484,21 @@ world-coherent-right-target-step-resume-context-proofᵀ
 
   first-transport =
     weak-one-step-target-cast-frame-transportᵀ
-      first-result framed (rightCatchupTransport first-catchup)
+      first-result framed (weakIndexedTransport (rightCatchupIndexedResult first-catchup))
 
   first-coherence =
     weak-one-step-target-cast-frame-coherenceᵀ
-      first-result framed (rightCatchupTypeCoherence first-catchup)
+      first-result framed (weakIndexedTypeCoherence (rightCatchupIndexedResult first-catchup))
 
   combined-transport =
     weak-one-step-compose-preserves-transportᵀ
       first target-step second-result first-transport
-      (rightCatchupTransport second-catchup)
+      (weakIndexedTransport (rightCatchupIndexedResult second-catchup))
 
   combined-coherence =
     weak-one-step-compose-preserves-type-coherenceᵀ
       first target-step second-result first-coherence
-      (rightCatchupTypeCoherence second-catchup)
+      (weakIndexedTypeCoherence (rightCatchupIndexedResult second-catchup))
 
   framed-bullet : RightValueCatchupSourceBulletTransportᵀ first
   framed-bullet = first-bullet

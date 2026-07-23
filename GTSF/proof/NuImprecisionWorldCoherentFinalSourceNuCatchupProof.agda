@@ -24,10 +24,11 @@ world-coherent-final-source-ν-catchup-proofᵀ :
   WorldCoherentFinalSourceNuPairedIndexCatchupᵀ →
   WorldCoherentFinalSourceNuCatchupᵀ
 world-coherent-final-source-ν-catchup-proofᵀ
-    source-only paired {q = νⁱ occ r}
+    source-only paired {q = νⁱ safe occ r}
     coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
     vL noL vV′ noV′ L⊑V′ =
-  source-only coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
+  source-only {{safe = safe}}
+    coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
     vL noL vV′ noV′ L⊑V′
 world-coherent-final-source-ν-catchup-proofᵀ
     source-only paired {q = ∀ⁱ r}

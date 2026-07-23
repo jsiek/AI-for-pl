@@ -88,6 +88,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; weak-step-type-coherence
   ; weakArrowResult
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionWeakOneStepStoreLineageDef using
   ( lineageEmbedding
@@ -112,8 +114,6 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ; sourceStepSourceNameExclusive
   ; sourceStepAssumptionMembershipUnique
   ; sourceStepStoreLineage
-  ; sourceStepTransport
-  ; sourceStepTypeCoherence
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -185,16 +185,18 @@ private
     (inner : WeakOneStepIndexedResult
       {M = L} {N′ = L₁′} {χ = χ} {ρ = ρ} idι) →
     WeakOneStepTransport (weakIndexedResult inner) →
+    WeakOneStepTypeCoherence (weakIndexedResult inner) →
     WeakOneStepIndexedResult
       {M = L ⊕[ addℕ ] M}
       {N′ = L₁′ ⊕[ addℕ ] applyTerm χ M′}
       {χ = χ} {ρ = ρ} idι
   weak-one-step-⊕₁-indexed-frameᵀ
       {L = L} {L₁′ = L₁′} {M = M} {M′ = M′}
-      {χ = χ} {ρ = ρ} noM noM′ M⊑M′ inner transport =
+      {χ = χ} {ρ = ρ} noM noM′ M⊑M′ inner transport coherence =
     weak-one-step-index-resultᵀ framed
       (transport-idι-from-ℕ
         source-ℕ target-ℕ (transportType base idι))
+      framed-transport framed-coherence
     where
     base = weakIndexedResult inner
 
@@ -208,6 +210,11 @@ private
     right-related =
       transport-term-to-ℕᵀ source-ℕ target-ℕ
         (transportNo•Terms transport noM noM′ M⊑M′)
+    framed-transport = weak-step-transport (transportNo•Terms transport)
+    framed-coherence =
+      weak-step-type-coherence
+        (transportArrowCoherent coherence)
+        (transportAllCoherent coherence)
 
     framed :
       WeakOneStepResult ρ
@@ -259,16 +266,19 @@ private
     (inner : WeakOneStepIndexedResult
       {M = M} {N′ = M₁′} {χ = χ} {ρ = ρ} idι) →
     WeakOneStepTransport (weakIndexedResult inner) →
+    WeakOneStepTypeCoherence (weakIndexedResult inner) →
     WeakOneStepIndexedResult
       {M = L ⊕[ addℕ ] M}
       {N′ = applyTerm χ L′ ⊕[ addℕ ] M₁′}
       {χ = χ} {ρ = ρ} idι
   weak-one-step-⊕₂-indexed-frameᵀ
       {L = L} {L′ = L′} {M = M} {M₁′ = M₁′}
-      {χ = χ} {ρ = ρ} vL noL vL′ noL′ L⊑L′ inner transport =
+      {χ = χ} {ρ = ρ} vL noL vL′ noL′ L⊑L′ inner transport
+      coherence =
     weak-one-step-index-resultᵀ framed
       (transport-idι-from-ℕ
         source-ℕ target-ℕ (transportType base idι))
+      framed-transport framed-coherence
     where
     base = weakIndexedResult inner
 
@@ -282,6 +292,11 @@ private
     right-related =
       transport-term-to-ℕᵀ
         source-ℕ target-ℕ (canonicalIndexedResults inner)
+    framed-transport = weak-step-transport (transportNo•Terms transport)
+    framed-coherence =
+      weak-step-type-coherence
+        (transportArrowCoherent coherence)
+        (transportAllCoherent coherence)
 
     framed :
       WeakOneStepResult ρ
@@ -347,8 +362,6 @@ source-step-application-left-frameᵀ
     {M = M} {χ = χ} noM noM′ M⊑M′ complete =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -362,24 +375,24 @@ source-step-application-left-frameᵀ
   indexed₀ = sourceStepIndexedResult complete
   inner = weakIndexedResult indexed₀
   arrow =
-    weak-indexed-arrow-resultᵀ
-      indexed₀ (sourceStepTypeCoherence complete)
+    weak-indexed-arrow-resultᵀ indexed₀
   L⊑L′ = canonicalArrowResults arrow
   transported-M =
     transportNo•Terms
-      (sourceStepTransport complete) noM noM′ M⊑M′
+      (weakIndexedTransport (sourceStepIndexedResult complete)) noM noM′ M⊑M′
 
   framed =
     weak-one-step-·₁-frameᵀ noM noM′ inner L⊑L′ transported-M
-  framed-indexed = weak-indexed-result framed (relatedResults framed)
   framed-transport =
     weak-one-step-·₁-frame-preserves-transportᵀ
       noM noM′ inner L⊑L′ transported-M
-      (sourceStepTransport complete)
+      (weakIndexedTransport (sourceStepIndexedResult complete))
   framed-coherence =
     weak-one-step-·₁-frame-preserves-type-coherenceᵀ
       noM noM′ inner L⊑L′ transported-M
-      (sourceStepTypeCoherence complete)
+      (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
+  framed-indexed = weak-indexed-result framed (relatedResults framed)
+    framed-transport framed-coherence
 
   term-exact :
     applyTerms (sourceChanges inner) M ≡ applyTerm χ M
@@ -415,8 +428,6 @@ source-step-application-right-frameᵀ
     {V = V} {χ = χ} vV noV vV′ noV′ V⊑V′ complete =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -432,15 +443,8 @@ source-step-application-right-frameᵀ
   framed-indexed =
     weak-one-step-·₂-indexed-frameᵀ
       vV noV vV′ noV′ V⊑V′ indexed₀
-      (sourceStepTransport complete)
-      (sourceStepTypeCoherence complete)
-  framed-transport =
-    weak-step-transport
-      (transportNo•Terms (sourceStepTransport complete))
-  framed-coherence =
-    weak-step-type-coherence
-      (transportArrowCoherent (sourceStepTypeCoherence complete))
-      (transportAllCoherent (sourceStepTypeCoherence complete))
+      (weakIndexedTransport (sourceStepIndexedResult complete))
+      (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
   term-exact :
     applyTerms (sourceChanges inner) V ≡ applyTerm χ V
@@ -473,8 +477,6 @@ source-step-primitive-left-frameᵀ
     {M = M} {χ = χ} noM noM′ M⊑M′ complete =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -489,14 +491,9 @@ source-step-primitive-left-frameᵀ
   inner = weakIndexedResult indexed₀
   framed-indexed =
     weak-one-step-⊕₁-indexed-frameᵀ
-      noM noM′ M⊑M′ indexed₀ (sourceStepTransport complete)
-  framed-transport =
-    weak-step-transport
-      (transportNo•Terms (sourceStepTransport complete))
-  framed-coherence =
-    weak-step-type-coherence
-      (transportArrowCoherent (sourceStepTypeCoherence complete))
-      (transportAllCoherent (sourceStepTypeCoherence complete))
+      noM noM′ M⊑M′ indexed₀
+      (weakIndexedTransport (sourceStepIndexedResult complete))
+      (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
   term-exact :
     applyTerms (sourceChanges inner) M ≡ applyTerm χ M
@@ -534,8 +531,6 @@ source-step-primitive-right-frameᵀ
     {V = V} {χ = χ} vV noV vV′ noV′ V⊑V′ complete =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -551,14 +546,8 @@ source-step-primitive-right-frameᵀ
   framed-indexed =
     weak-one-step-⊕₂-indexed-frameᵀ
       vV noV vV′ noV′ V⊑V′ indexed₀
-      (sourceStepTransport complete)
-  framed-transport =
-    weak-step-transport
-      (transportNo•Terms (sourceStepTransport complete))
-  framed-coherence =
-    weak-step-type-coherence
-      (transportArrowCoherent (sourceStepTypeCoherence complete))
-      (transportAllCoherent (sourceStepTypeCoherence complete))
+      (weakIndexedTransport (sourceStepIndexedResult complete))
+      (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
   term-exact :
     applyTerms (sourceChanges inner) V ≡ applyTerm χ V

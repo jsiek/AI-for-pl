@@ -52,8 +52,6 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ; rightCatchupSourceUnchanged
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
-  ; rightCatchupTransport
-  ; rightCatchupTypeCoherence
   )
 open import proof.NuImprecisionSimulationCore using
   ( weak-one-step-index-resultᵀ
@@ -82,6 +80,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportNo•Terms
   ; transportType
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   ; weak-step-transport
   ; weak-step-type-coherence
   )
@@ -140,8 +140,6 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
-  ; sourceStepTransport
-  ; sourceStepTypeCoherence
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -218,7 +216,7 @@ world-coherent-source-lambda-beta-target-function-cast-direct-at-proofᵀ
     function-related argument-related vV vW target-rank
     | caught | refl | refl =
   world-coherent-source-one-step-indexed
-    combined-indexed combined-transport combined-coherence
+    combined-indexed
     combined-lineage combined-changes combined-result combined-world
     combined-exclusive combined-unique
   where
@@ -256,19 +254,19 @@ world-coherent-source-lambda-beta-target-function-cast-direct-at-proofᵀ
       (ƛ _) source-function-no
       target-function-value target-function-no
       function-related⁺ argument-indexed
-      (rightCatchupTransport catchup)
-      (rightCatchupTypeCoherence catchup)
+      (weakIndexedTransport (rightCatchupIndexedResult catchup))
+      (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
 
   framed = weakIndexedResult framed-indexed
 
   framed-transport =
     weak-step-transport
-      (transportNo•Terms (rightCatchupTransport catchup))
+      (transportNo•Terms (weakIndexedTransport (rightCatchupIndexedResult catchup)))
 
   framed-coherence =
     weak-step-type-coherence
-      (transportArrowCoherent (rightCatchupTypeCoherence catchup))
-      (transportAllCoherent (rightCatchupTypeCoherence catchup))
+      (transportArrowCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
+      (transportAllCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
 
   framed-lineage : WeakOneStepStoreLineage framed
   framed-lineage =
@@ -281,8 +279,8 @@ world-coherent-source-lambda-beta-target-function-cast-direct-at-proofᵀ
 
   function-final =
     weak-result-transport-arrow-termsᵀ
-      argument-result (rightCatchupTransport catchup)
-      (rightCatchupTypeCoherence catchup)
+      argument-result (weakIndexedTransport (rightCatchupIndexedResult catchup))
+      (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
       source-function-no target-function-no function-related⁺
 
   function-final′ =
@@ -396,18 +394,19 @@ world-coherent-source-lambda-beta-target-function-cast-direct-at-proofᵀ
           (resultType combined)))
       (transportType combined pB)
 
-  combined-indexed : WeakOneStepIndexedResult pB
-  combined-indexed =
-    weak-one-step-index-resultᵀ combined combined-type-eq
-
   combined-transport =
     sourceSilentTransport composition framed refl refl phase-two-result
-      framed-transport (sourceStepTransport phase-two′)
+      framed-transport (weakIndexedTransport (sourceStepIndexedResult phase-two′))
 
   combined-coherence =
     sourceSilentTypeCoherence composition framed refl refl
       phase-two-result framed-coherence
-      (sourceStepTypeCoherence phase-two′)
+      (weakIndexedTypeCoherence (sourceStepIndexedResult phase-two′))
+
+  combined-indexed : WeakOneStepIndexedResult pB
+  combined-indexed =
+    weak-one-step-index-resultᵀ combined combined-type-eq
+      combined-transport combined-coherence
 
   combined-lineage =
     sourceSilentStoreLineage composition framed refl refl

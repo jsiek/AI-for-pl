@@ -16,6 +16,7 @@ open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_)
 open import ImprecisionWf using
   ( ImpCtx
+  ; NonVar
   ; _ˣ⊑★
   ; ⇑ᴸᵢ
   ; _∣_⊢_⊑_⊣_
@@ -44,6 +45,7 @@ WorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupᵀ =
     {μ : ModeEnv} {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
     {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
+    {{safe : NonVar C}}
     {occ : occurs zero C ≡ true} →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
@@ -59,6 +61,6 @@ WorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupᵀ =
   Value V′ →
   No• V′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ L ⊑ V′ ⦂ `∀ C ⊑ B′ ∶ νⁱ occ r →
+    ⊢ᴺ L ⊑ V′ ⦂ `∀ C ⊑ B′ ∶ νⁱ safe occ r →
   WorldCoherentLeftCatchupIndexedResult
     {N = ν ★ L s} {V′ = V′} {ρ = ρ} p

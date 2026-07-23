@@ -77,15 +77,15 @@ world-coherent-right-target-keep-prepend-proofᵀ
     target→
     (world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
-        (weak-indexed-result result canonical)
-        source-empty source-unchanged vV noV vV′ noV′
-        transport coherence)
+        (weak-indexed-result result canonical
+          transport coherence)
+        source-empty source-unchanged vV noV vV′ noV′)
       lineage bullet coherent exclusive unique wfR) =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup
-      (weak-indexed-result prepended canonical)
-      source-empty source-unchanged vV noV vV′ noV′
-      prepended-transport prepended-coherence)
+      (weak-indexed-result prepended canonical
+        prepended-transport prepended-coherence)
+      source-empty source-unchanged vV noV vV′ noV′)
     prepended-lineage prepended-bullet
     coherent exclusive unique wfR
   where

@@ -78,7 +78,11 @@ weak-one-step-indexed-relatedᵀ :
     ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p) →
   WeakOneStepIndexedResult {χ = keep} p
 weak-one-step-indexed-relatedᵀ result =
-  weak-indexed-result (weak-one-step-relatedᵀ result) result
+  weak-indexed-result
+    (weak-one-step-relatedᵀ result)
+    result
+    (weak-one-step-related-transportᵀ result)
+    (weak-one-step-related-type-coherenceᵀ result)
 
 
 weak-one-step-indexed-outcome-relatedᵀ :
@@ -90,5 +94,3 @@ weak-one-step-indexed-outcome-relatedᵀ :
 weak-one-step-indexed-outcome-relatedᵀ result =
   indexed-outcome-related
     (weak-one-step-indexed-relatedᵀ result)
-    (weak-one-step-related-transportᵀ result)
-    (weak-one-step-related-type-coherenceᵀ result)

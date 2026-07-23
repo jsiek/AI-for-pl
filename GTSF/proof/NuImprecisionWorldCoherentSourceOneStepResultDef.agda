@@ -20,8 +20,6 @@ open import proof.NuImprecisionAssumptionMembershipUniquenessDef using
   (AssumptionMembershipUnique)
 open import proof.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedResult
-  ; WeakOneStepTransport
-  ; WeakOneStepTypeCoherence
   ; resultCtx
   ; resultStore
   ; sourceChanges
@@ -44,14 +42,6 @@ record WorldCoherentSourceOneStepIndexedResult
     sourceStepIndexedResult :
       WeakOneStepIndexedResult
         {M = M} {N′ = M′} {χ = keep} {ρ = ρ} p
-
-    sourceStepTransport :
-      WeakOneStepTransport
-        (weakIndexedResult sourceStepIndexedResult)
-
-    sourceStepTypeCoherence :
-      WeakOneStepTypeCoherence
-        (weakIndexedResult sourceStepIndexedResult)
 
     sourceStepStoreLineage :
       WeakOneStepStoreLineage

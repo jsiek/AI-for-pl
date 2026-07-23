@@ -55,6 +55,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; sourceCtxResult
   ; weak-indexed-result
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionStoreLift using
   (lift-left-store-result)
@@ -87,8 +89,7 @@ world-coherent-source-ν-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       inner-lineage coherent exclusive wfL)
     with final
 world-coherent-source-ν-catchup-proofᵀ
@@ -96,8 +97,7 @@ world-coherent-source-ν-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       inner-lineage coherent exclusive wfL)
     | inj₁ (vW , noW)
     with weak-result-source-reveal
@@ -112,8 +112,7 @@ world-coherent-source-ν-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       inner-lineage coherent exclusive wfL)
     | inj₁ (vW , noW)
     | μ′ , final-reveal
@@ -123,8 +122,7 @@ world-coherent-source-ν-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       inner-lineage coherent exclusive wfL)
     | inj₁ (vW , noW)
     | μ′ , final-reveal
@@ -135,8 +133,7 @@ world-coherent-source-ν-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       inner-lineage coherent exclusive wfL)
     | inj₁ (vW , noW)
     | μ′ , final-reveal
@@ -173,8 +170,7 @@ world-coherent-source-ν-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          silent@(left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          silent@(left-silent-invariant refl refl) final))
       inner-lineage coherent exclusive wfL)
     | inj₂ refl =
   world-coherent-left-catchup-indexed-resume-silentᵀ
@@ -198,13 +194,13 @@ world-coherent-source-ν-catchup-proofᵀ
 
   first-silent =
     left-silent-indexed
-      (weak-indexed-result framed (relatedResults framed))
+      (weak-indexed-result framed (relatedResults framed)
+        (weak-one-step-source-ν-frame-preserves-transportᵀ
+          hA c↑⁺ _ inner (weakIndexedTransport indexed))
+        (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
+          hA c↑⁺ _ inner (weakIndexedTypeCoherence indexed)))
       (left-silent-invariant refl refl)
       (ok-ν (ok-no no•-blame))
-      (weak-one-step-source-ν-frame-preserves-transportᵀ
-        hA c↑⁺ _ inner inner-transport)
-      (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-        hA c↑⁺ _ inner inner-coherence)
 
   target⊒ =
     nu-term-imprecision-target-typing (relatedResults framed)
@@ -217,13 +213,13 @@ world-coherent-source-ν-catchup-proofᵀ
   terminal =
     world-coherent-left-indexed-catchup
       (left-indexed-catchup
-        (weak-indexed-result second (relatedResults second))
+        (weak-indexed-result second (relatedResults second)
+          (weak-one-step-keep-source-catchup-transportᵀ
+            blame-ν second-relation)
+          (weak-one-step-keep-source-catchup-type-coherenceᵀ
+            blame-ν second-relation))
         (left-catchup-invariant
-          (left-silent-invariant refl refl) (inj₂ refl))
-        (weak-one-step-keep-source-catchup-transportᵀ
-          blame-ν second-relation)
-        (weak-one-step-keep-source-catchup-type-coherenceᵀ
-          blame-ν second-relation))
+          (left-silent-invariant refl refl) (inj₂ refl)))
       (weak-step-store-lineage
         (resultStore framed) rel-store-embedding-reflⁱ prefix-reflⁱ)
       coherent exclusive wfL

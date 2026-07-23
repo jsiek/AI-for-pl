@@ -105,6 +105,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportType
   ; weak-indexed-result
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionSourceSealCancellationDef using
   (SourceSealCancellationᵀ)
@@ -286,8 +288,7 @@ world-coherent-source-unseal-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
@@ -302,8 +303,7 @@ world-coherent-source-unseal-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
@@ -316,8 +316,7 @@ world-coherent-source-unseal-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
@@ -333,8 +332,7 @@ world-coherent-source-unseal-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
@@ -345,11 +343,11 @@ world-coherent-source-unseal-catchup-proofᵀ
     | sv-seal {W = W} {A = Y} vW refl =
   world-coherent-left-indexed-catchup
     (left-indexed-catchup
-      (weak-one-step-index-resultᵀ combined type-eq)
+      (weak-one-step-index-resultᵀ combined type-eq
+        combined-transport combined-coherence)
       (left-catchup-invariant
         (left-silent-invariant refl refl)
-        (inj₁ (vW , seal-no•⁻¹ noS)))
-      combined-transport combined-coherence)
+        (inj₁ (vW , seal-no•⁻¹ noS))))
     combined-lineage coherent exclusive wfL
   where
   inner = weakIndexedResult indexed
@@ -420,11 +418,11 @@ world-coherent-source-unseal-catchup-proofᵀ
 
   first-transport =
     weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation inner-transport
+      inner final-relation (weakIndexedTransport indexed)
 
   first-coherence =
     weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence
+      inner final-relation (weakIndexedTypeCoherence indexed)
 
   combined-transport =
     weak-one-step-prepend-left-silent-preserves-transportᵀ
@@ -444,8 +442,7 @@ world-coherent-source-unseal-catchup-proofᵀ
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        inner-transport inner-coherence)
+          (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
@@ -472,6 +469,10 @@ world-coherent-source-unseal-catchup-proofᵀ
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
   framed = weak-indexed-result first (relatedResults first)
+    (weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed))
+    (weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed))
 
   terminal-first =
     weak-one-step-reindexᵀ first refl refl
@@ -509,8 +510,8 @@ world-coherent-source-unseal-catchup-proofᵀ
 
   first-transport =
     weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation inner-transport
+      inner final-relation (weakIndexedTransport indexed)
 
   first-coherence =
     weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation inner-coherence
+      inner final-relation (weakIndexedTypeCoherence indexed)

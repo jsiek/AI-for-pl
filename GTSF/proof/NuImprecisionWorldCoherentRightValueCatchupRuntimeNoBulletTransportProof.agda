@@ -130,8 +130,6 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ( rightCatchupIndexedResult
   ; rightCatchupSourceChangesEmpty
   ; rightCatchupSourceUnchanged
-  ; rightCatchupTransport
-  ; rightCatchupTypeCoherence
   )
 open import proof.NuImprecisionRuntimeBulletStoreStability using
   ( one-bullet-prefix-left-store-stable
@@ -180,6 +178,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportNo•Terms
   ; transportType
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionStorePrefix using
   ( leftStoreⁱ-prefix-inclusion
@@ -408,7 +408,7 @@ no-bullet-prefix-transportᵀ :
         q
 no-bullet-prefix-transportᵀ prefix noM noM′ M⊑M′ caught =
   transportNo•Terms
-    (rightCatchupTransport (worldRightCatchupResult caught))
+    (weakIndexedTransport (rightCatchupIndexedResult (worldRightCatchupResult caught)))
     noM noM′ relation⁺
   where
   source-typing⁺ =
@@ -636,7 +636,7 @@ module _
               (applyTys-⇒ (keep ∷ []) _ _))
             (applyTys-⇒ (targetTailChanges result) _ _))
           (transportArrowCoherent
-            (rightCatchupTypeCoherence catchup) _ _)
+            (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)) _ _)
           L⊑L′-final-raw
     
       M⊑M′-final =
@@ -664,7 +664,7 @@ module _
               (applyTys-⇒ (keep ∷ []) _ _))
             (applyTys-⇒ (targetTailChanges result) _ _))
           (transportArrowCoherent
-            (rightCatchupTypeCoherence catchup) _ _)
+            (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)) _ _)
           L⊑L′-final-raw
     
       M⊑M′-final =
@@ -1299,7 +1299,7 @@ module _
               (applyTys-∀ (keep ∷ []) _))
             (applyTys-∀ (targetTailChanges result) _))
           (transportAllCoherent
-            (rightCatchupTypeCoherence catchup) _)
+            (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)) _)
           N⊑N′-final-raw
 
       source-reveal =
@@ -1615,7 +1615,7 @@ module _
             (cong (applyTys (targetTailChanges result))
               (applyTys-∀ (keep ∷ []) _))
             (applyTys-∀ (targetTailChanges result) _))
-          (transportAllCoherent (rightCatchupTypeCoherence catchup) _)
+          (transportAllCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)) _)
           N⊑N′-final-raw
 
       source-seal =

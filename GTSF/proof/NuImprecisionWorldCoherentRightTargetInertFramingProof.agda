@@ -55,8 +55,6 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ; rightCatchupSourceValue
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
-  ; rightCatchupTransport
-  ; rightCatchupTypeCoherence
   )
 open import proof.NuImprecisionSimulation using
   ( weak-one-step-target-cast-frame-coherenceᵀ
@@ -80,6 +78,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportType
   ; weak-indexed-result
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionStorePrefix using
   (rightStoreⁱ-prefix-inclusion)
@@ -131,8 +131,7 @@ world-coherent-right-target-inert-framing-proofᵀ
       (rightCatchupSourceValue catchup)
       (rightCatchupSourceNoBullet catchup)
       (rightCatchupTargetValue catchup ⟨ inert⁺ ⟩)
-      (no•-⟨⟩ (rightCatchupTargetNoBullet catchup))
-      framed-transport framed-coherence)
+      (no•-⟨⟩ (rightCatchupTargetNoBullet catchup)))
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
@@ -174,16 +173,17 @@ world-coherent-right-target-inert-framing-proofᵀ
   first =
     weak-one-step-target-cast-frameᵀ inner final-relation
 
-  framed =
-    weak-indexed-result first (relatedResults first)
-
   framed-transport =
     weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation (rightCatchupTransport catchup)
+      inner final-relation (weakIndexedTransport (rightCatchupIndexedResult catchup))
 
   framed-coherence =
     weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation (rightCatchupTypeCoherence catchup)
+      inner final-relation (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
+
+  framed =
+    weak-indexed-result first (relatedResults first)
+      framed-transport framed-coherence
 world-coherent-right-target-inert-framing-proofᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
     prefix inert (inj₂ (inj₁ (_ , _ , _ , c↓)))
@@ -207,8 +207,7 @@ world-coherent-right-target-inert-framing-proofᵀ
       (rightCatchupSourceValue catchup)
       (rightCatchupSourceNoBullet catchup)
       (rightCatchupTargetValue catchup ⟨ inert⁺ ⟩)
-      (no•-⟨⟩ (rightCatchupTargetNoBullet catchup))
-      framed-transport framed-coherence)
+      (no•-⟨⟩ (rightCatchupTargetNoBullet catchup)))
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
@@ -250,16 +249,17 @@ world-coherent-right-target-inert-framing-proofᵀ
   first =
     weak-one-step-target-cast-frameᵀ inner final-relation
 
-  framed =
-    weak-indexed-result first (relatedResults first)
-
   framed-transport =
     weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation (rightCatchupTransport catchup)
+      inner final-relation (weakIndexedTransport (rightCatchupIndexedResult catchup))
 
   framed-coherence =
     weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation (rightCatchupTypeCoherence catchup)
+      inner final-relation (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
+
+  framed =
+    weak-indexed-result first (relatedResults first)
+      framed-transport framed-coherence
 world-coherent-right-target-inert-framing-proofᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
     prefix inert (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊒))))
@@ -285,8 +285,7 @@ world-coherent-right-target-inert-framing-proofᵀ
       (rightCatchupSourceValue catchup)
       (rightCatchupSourceNoBullet catchup)
       (rightCatchupTargetValue catchup ⟨ inert⁺ ⟩)
-      (no•-⟨⟩ (rightCatchupTargetNoBullet catchup))
-      framed-transport framed-coherence)
+      (no•-⟨⟩ (rightCatchupTargetNoBullet catchup)))
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
@@ -331,16 +330,17 @@ world-coherent-right-target-inert-framing-proofᵀ
   first =
     weak-one-step-target-cast-frameᵀ inner final-relation
 
-  framed =
-    weak-indexed-result first (relatedResults first)
-
   framed-transport =
     weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation (rightCatchupTransport catchup)
+      inner final-relation (weakIndexedTransport (rightCatchupIndexedResult catchup))
 
   framed-coherence =
     weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation (rightCatchupTypeCoherence catchup)
+      inner final-relation (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
+
+  framed =
+    weak-indexed-result first (relatedResults first)
+      framed-transport framed-coherence
 world-coherent-right-target-inert-framing-proofᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
     prefix inert
@@ -368,8 +368,7 @@ world-coherent-right-target-inert-framing-proofᵀ
       (rightCatchupSourceValue catchup)
       (rightCatchupSourceNoBullet catchup)
       (rightCatchupTargetValue catchup ⟨ inert⁺ ⟩)
-      (no•-⟨⟩ (rightCatchupTargetNoBullet catchup))
-      framed-transport framed-coherence)
+      (no•-⟨⟩ (rightCatchupTargetNoBullet catchup)))
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
@@ -414,16 +413,17 @@ world-coherent-right-target-inert-framing-proofᵀ
   first =
     weak-one-step-target-cast-frameᵀ inner final-relation
 
-  framed =
-    weak-indexed-result first (relatedResults first)
-
   framed-transport =
     weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation (rightCatchupTransport catchup)
+      inner final-relation (weakIndexedTransport (rightCatchupIndexedResult catchup))
 
   framed-coherence =
     weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation (rightCatchupTypeCoherence catchup)
+      inner final-relation (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
+
+  framed =
+    weak-indexed-result first (relatedResults first)
+      framed-transport framed-coherence
 world-coherent-right-target-inert-framing-proofᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
     prefix inert (inj₂ (inj₂ (inj₂ (inj₂ (seal★ , c⊑)))))
@@ -436,8 +436,7 @@ world-coherent-right-target-inert-framing-proofᵀ
       (rightCatchupSourceValue catchup)
       (rightCatchupSourceNoBullet catchup)
       (rightCatchupTargetValue catchup ⟨ inert⁺ ⟩)
-      (no•-⟨⟩ (rightCatchupTargetNoBullet catchup))
-      framed-transport framed-coherence)
+      (no•-⟨⟩ (rightCatchupTargetNoBullet catchup)))
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
@@ -488,13 +487,14 @@ world-coherent-right-target-inert-framing-proofᵀ
   first =
     weak-one-step-target-cast-frameᵀ inner final-relation
 
-  framed =
-    weak-indexed-result first (relatedResults first)
-
   framed-transport =
     weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation (rightCatchupTransport catchup)
+      inner final-relation (weakIndexedTransport (rightCatchupIndexedResult catchup))
 
   framed-coherence =
     weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation (rightCatchupTypeCoherence catchup)
+      inner final-relation (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
+
+  framed =
+    weak-indexed-result first (relatedResults first)
+      framed-transport framed-coherence

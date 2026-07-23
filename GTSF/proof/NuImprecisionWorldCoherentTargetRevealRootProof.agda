@@ -30,10 +30,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; WeakOneStepTransport
   ; WeakOneStepTypeCoherence
   ; canonicalIndexedResults
-  ; catchupIndexedCoherence
   ; catchupIndexedInvariant
   ; catchupIndexedResult
-  ; catchupIndexedTransport
   ; resultCtx
   ; resultLeftCtx
   ; resultRightCtx
@@ -62,6 +60,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; weak-step-transport
   ; weak-step-type-coherence
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionTargetSealCancellationDef using
   (TargetSealCancellationᵀ)
@@ -103,9 +103,19 @@ target-reveal-retarget-resultᵀ :
 target-reveal-retarget-resultᵀ
     {M = M} {V = V} {A = A} {X′ = X′} {ρ = ρ}
     q catchup refl refl related =
-  weak-indexed-result result related
+  weak-indexed-result result related transport coherence
   where
   old = weakIndexedResult (catchupIndexedResult catchup)
+  transport =
+    weak-step-transport
+      (transportNo•Terms
+        (weakIndexedTransport (catchupIndexedResult catchup)))
+  coherence =
+    weak-step-type-coherence
+      (transportArrowCoherent
+        (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
+      (transportAllCoherent
+        (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
 
   result : WeakOneStepResult ρ M V A X′ keep
   result =
@@ -160,8 +170,8 @@ target-reveal-retarget-transportᵀ :
       (target-reveal-retarget-resultᵀ
         q catchup tail-empty target-same related))
 target-reveal-retarget-transportᵀ q catchup refl refl related =
-  weak-step-transport
-    (transportNo•Terms (catchupIndexedTransport catchup))
+  weakIndexedTransport
+    (target-reveal-retarget-resultᵀ q catchup refl refl related)
 
 
 target-reveal-retarget-coherenceᵀ :
@@ -189,9 +199,8 @@ target-reveal-retarget-coherenceᵀ :
       (target-reveal-retarget-resultᵀ
         q catchup tail-empty target-same related))
 target-reveal-retarget-coherenceᵀ q catchup refl refl related =
-  weak-step-type-coherence
-    (transportArrowCoherent (catchupIndexedCoherence catchup))
-    (transportAllCoherent (catchupIndexedCoherence catchup))
+  weakIndexedTypeCoherence
+    (target-reveal-retarget-resultᵀ q catchup refl refl related)
 
 
 world-coherent-target-reveal-root-proofᵀ :
@@ -235,8 +244,6 @@ world-coherent-target-reveal-root-proofᵀ
     | inj₁ (vW , noW) | refl | refl =
   world-indexed-outcome-related
     retargeted
-    (target-reveal-retarget-transportᵀ q caught refl refl canceled)
-    (target-reveal-retarget-coherenceᵀ q caught refl refl canceled)
     final-coherent
     final-exclusive
   where

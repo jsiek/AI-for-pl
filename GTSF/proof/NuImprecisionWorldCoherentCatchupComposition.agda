@@ -55,13 +55,12 @@ world-coherent-left-catchup-indexed-resume-silentᵀ :
 world-coherent-left-catchup-indexed-resume-silentᵀ
     silent@(left-silent-indexed first-indexed
       (left-silent-invariant refl refl)
-      first-runtime first-transport first-coherence)
+      first-runtime)
     first-lineage
     (world-coherent-left-indexed-catchup
       second@(left-indexed-catchup second-indexed
         (left-catchup-invariant
-          (left-silent-invariant refl refl) final)
-        second-transport second-coherence)
+          (left-silent-invariant refl refl) final))
       second-lineage coherent exclusive wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-resume-silentᵀ silent second)

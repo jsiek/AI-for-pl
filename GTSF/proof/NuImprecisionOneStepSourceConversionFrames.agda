@@ -41,6 +41,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportType
   ; weak-indexed-result
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionTargetBlameCatchup using
   (cast-blame-tailᵀ)
@@ -58,19 +60,16 @@ weak-one-step-source-reveal-conversion-indexed-frame-outcomeᵀ :
     {M = M ⟨ c ⟩} {N′ = M′} {χ = χ} {ρ = ρ} q
 weak-one-step-source-reveal-conversion-indexed-frame-outcomeᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} c↑
-    (indexed-outcome-related indexed transport coherence) q
+    (indexed-outcome-related indexed) q
     with apply-reveal-conversions
       {χs = sourceChanges (weakIndexedResult indexed)} c↑
 weak-one-step-source-reveal-conversion-indexed-frame-outcomeᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} c↑
-    (indexed-outcome-related indexed transport coherence) q
+    (indexed-outcome-related indexed) q
     | μ′ , α′ , X′ , c′↑ =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation transport)
-    (weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   inner = weakIndexedResult indexed
 
@@ -101,6 +100,12 @@ weak-one-step-source-reveal-conversion-indexed-frame-outcomeᵀ
       (canonicalIndexedResults indexed) (transportType inner q)
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
+  framed-transport =
+    weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed)
+  framed-coherence =
+    weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed)
 weak-one-step-source-reveal-conversion-indexed-frame-outcomeᵀ
     c↑ (indexed-outcome-source-blame source↠) q =
   indexed-outcome-source-blame (cast-blame-tailᵀ source↠)
@@ -118,19 +123,16 @@ weak-one-step-source-conceal-conversion-indexed-frame-outcomeᵀ :
     {M = M ⟨ c ⟩} {N′ = M′} {χ = χ} {ρ = ρ} q
 weak-one-step-source-conceal-conversion-indexed-frame-outcomeᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} c↓
-    (indexed-outcome-related indexed transport coherence) q
+    (indexed-outcome-related indexed) q
     with apply-conceal-conversions
       {χs = sourceChanges (weakIndexedResult indexed)} c↓
 weak-one-step-source-conceal-conversion-indexed-frame-outcomeᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} c↓
-    (indexed-outcome-related indexed transport coherence) q
+    (indexed-outcome-related indexed) q
     | μ′ , α′ , X′ , c′↓ =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation transport)
-    (weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   inner = weakIndexedResult indexed
 
@@ -161,6 +163,12 @@ weak-one-step-source-conceal-conversion-indexed-frame-outcomeᵀ
       (canonicalIndexedResults indexed) (transportType inner q)
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
+  framed-transport =
+    weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed)
+  framed-coherence =
+    weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed)
 weak-one-step-source-conceal-conversion-indexed-frame-outcomeᵀ
     c↓ (indexed-outcome-source-blame source↠) q =
   indexed-outcome-source-blame (cast-blame-tailᵀ source↠)

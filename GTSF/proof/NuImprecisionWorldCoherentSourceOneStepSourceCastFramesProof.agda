@@ -68,6 +68,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportType
   ; weak-indexed-result
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion)
@@ -85,8 +87,6 @@ open import proof.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ; sourceStepSourceNameExclusive
   ; sourceStepAssumptionMembershipUnique
   ; sourceStepStoreLineage
-  ; sourceStepTransport
-  ; sourceStepTypeCoherence
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -137,8 +137,6 @@ source-step-source-narrow-frameᵀ
     | μ′ , mode′ , seal★′ , c′⊒ =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -183,12 +181,16 @@ source-step-source-narrow-frameᵀ
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
+    (weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete)))
+    (weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
   framed-transport =
     weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (sourceStepTransport complete)
+      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete))
   framed-coherence =
     weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (sourceStepTypeCoherence complete)
+      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
   cast-exact :
     applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c
@@ -235,8 +237,6 @@ source-step-source-widen-frameᵀ
     | μ′ , mode′ , seal★′ , c′⊑ =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -281,12 +281,16 @@ source-step-source-widen-frameᵀ
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
+    (weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete)))
+    (weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
   framed-transport =
     weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (sourceStepTransport complete)
+      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete))
   framed-coherence =
     weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (sourceStepTypeCoherence complete)
+      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
   cast-exact :
     applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c
@@ -329,8 +333,6 @@ source-step-source-reveal-frameᵀ
     | μ′ , α′ , X′ , c′↑ =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -372,12 +374,16 @@ source-step-source-reveal-frameᵀ
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
+    (weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete)))
+    (weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
   framed-transport =
     weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (sourceStepTransport complete)
+      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete))
   framed-coherence =
     weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (sourceStepTypeCoherence complete)
+      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
   cast-exact :
     applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c
@@ -420,8 +426,6 @@ source-step-source-conceal-frameᵀ
     | μ′ , α′ , X′ , c′↓ =
   world-coherent-source-one-step-indexed
     framed-indexed
-    framed-transport
-    framed-coherence
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
@@ -463,12 +467,16 @@ source-step-source-conceal-frameᵀ
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
+    (weak-one-step-source-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete)))
+    (weak-one-step-source-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
   framed-transport =
     weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (sourceStepTransport complete)
+      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete))
   framed-coherence =
     weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (sourceStepTypeCoherence complete)
+      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
   cast-exact :
     applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c

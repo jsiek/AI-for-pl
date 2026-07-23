@@ -1252,14 +1252,17 @@ weak-one-step-index-resultᵀ :
       (sourceTypeResult result)
       (resultType result))
     ≡ transportType result p →
+  WeakOneStepTransport result →
+  WeakOneStepTypeCoherence result →
   WeakOneStepIndexedResult p
-weak-one-step-index-resultᵀ result type-eq =
+weak-one-step-index-resultᵀ result type-eq transport coherence =
   weak-indexed-result result
     (nu-term-imprecision-transport-typesᵀ
       (sourceTypeResult result)
       (targetTypeResult result)
       type-eq
       (relatedResults result))
+    transport coherence
 
 
 value-source-multistep-refl :
@@ -1279,18 +1282,16 @@ source-value-indexed-outcome-relatedᵀ :
   WeakOneStepIndexedOutcome
     {M = V} {N′ = N′} {χ = χ} {ρ = ρ} p →
   ∃[ result ]
-    WeakOneStepTransport (weakIndexedResult result) ×
-    WeakOneStepTypeCoherence (weakIndexedResult result) ×
     sourceChanges (weakIndexedResult result) ≡ [] ×
     sourceResult (weakIndexedResult result) ≡ V
 source-value-indexed-outcome-relatedᵀ vV
-    (indexed-outcome-related result transport coherence)
+    (indexed-outcome-related result)
     with value-source-multistep-refl vV
       (sourceCatchup (weakIndexedResult result))
 source-value-indexed-outcome-relatedᵀ vV
-    (indexed-outcome-related result transport coherence)
+    (indexed-outcome-related result)
     | refl , result-eq =
-  result , transport , coherence , refl , result-eq
+  result , refl , result-eq
 source-value-indexed-outcome-relatedᵀ vV
     (indexed-outcome-source-blame source↠)
     with value-source-multistep-refl vV source↠
@@ -1312,8 +1313,11 @@ forget-weak-indexed-outcome :
     {M = M} {N′ = N′} {χ = χ} {ρ = ρ} p →
   WeakOneStepOutcome ρ M N′ A B χ
 forget-weak-indexed-outcome
-    (indexed-outcome-related result transport coherence) =
-  outcome-related (weakIndexedResult result) transport coherence
+    (indexed-outcome-related result) =
+  outcome-related
+    (weakIndexedResult result)
+    (weakIndexedTransport result)
+    (weakIndexedTypeCoherence result)
 forget-weak-indexed-outcome
     (indexed-outcome-source-blame source↠) =
   outcome-source-blame source↠
@@ -1354,13 +1358,12 @@ weak-indexed-arrow-resultᵀ :
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   (indexed : WeakOneStepIndexedResult
     {M = L} {N′ = L₁′} {χ = χ} {ρ = ρ} (pA ↦ pB)) →
-  WeakOneStepTypeCoherence (weakIndexedResult indexed) →
   WeakOneStepArrowResult pA pB
-weak-indexed-arrow-resultᵀ
-    {A′ = A′} {B′ = B′} {χ = χ} indexed coherence =
+weak-indexed-arrow-resultᵀ {A′ = A′} {B′ = B′} {χ = χ} indexed =
   weak-arrow-result base canonical
   where
   base = weakIndexedResult indexed
+  coherence = weakIndexedTypeCoherence indexed
 
   target-eq =
     trans
@@ -1385,10 +1388,11 @@ weak-indexed-arrow-outcomeᵀ :
     {M = L} {N′ = L₁′} {χ = χ} {ρ = ρ} (pA ↦ pB) →
   WeakOneStepArrowOutcome pA pB
 weak-indexed-arrow-outcomeᵀ
-    (indexed-outcome-related indexed transport coherence) =
+    (indexed-outcome-related indexed) =
   arrow-outcome-related
-    (weak-indexed-arrow-resultᵀ indexed coherence)
-    transport coherence
+    (weak-indexed-arrow-resultᵀ indexed)
+    (weakIndexedTransport indexed)
+    (weakIndexedTypeCoherence indexed)
 weak-indexed-arrow-outcomeᵀ
     (indexed-outcome-source-blame source↠) =
   arrow-outcome-source-blame source↠
@@ -1399,12 +1403,12 @@ weak-indexed-all-resultᵀ :
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   (indexed : WeakOneStepIndexedResult
     {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (∀ⁱ q)) →
-  WeakOneStepTypeCoherence (weakIndexedResult indexed) →
   WeakOneStepAllResult q
-weak-indexed-all-resultᵀ {C′ = C′} {χ = χ} indexed coherence =
+weak-indexed-all-resultᵀ {C′ = C′} {χ = χ} indexed =
   weak-all-result base canonical
   where
   base = weakIndexedResult indexed
+  coherence = weakIndexedTypeCoherence indexed
 
   target-eq =
     trans
@@ -1428,10 +1432,11 @@ weak-indexed-all-outcomeᵀ :
     {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (∀ⁱ q) →
   WeakOneStepAllOutcome q
 weak-indexed-all-outcomeᵀ
-    (indexed-outcome-related indexed transport coherence) =
+    (indexed-outcome-related indexed) =
   all-outcome-related
-    (weak-indexed-all-resultᵀ indexed coherence)
-    transport coherence
+    (weak-indexed-all-resultᵀ indexed)
+    (weakIndexedTransport indexed)
+    (weakIndexedTypeCoherence indexed)
 weak-indexed-all-outcomeᵀ
     (indexed-outcome-source-blame source↠) =
   all-outcome-source-blame source↠
@@ -1480,9 +1485,8 @@ generalize-left-indexed-all-catchup :
   LeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ} (∀ⁱ q)
 generalize-left-indexed-all-catchup
-    (left-indexed-all-catchup indexed invariant
-      transport coherence) =
-  left-indexed-catchup indexed invariant transport coherence
+    (left-indexed-all-catchup indexed invariant) =
+  left-indexed-catchup indexed invariant
 
 specialize-left-indexed-all-catchup :
   ∀ {Φ Δᴸ Δᴿ N V′ C C′}
@@ -1493,8 +1497,8 @@ specialize-left-indexed-all-catchup :
   LeftCatchupIndexedAllResult
     {N = N} {V′ = V′} {ρ = ρ} q
 specialize-left-indexed-all-catchup
-    (left-indexed-catchup indexed invariant transport coherence) =
-  left-indexed-all-catchup indexed invariant transport coherence
+    (left-indexed-catchup indexed invariant) =
+  left-indexed-all-catchup indexed invariant
 
 forget-left-indexed-all-catchup :
   ∀ {Φ Δᴸ Δᴿ N V′ C C′}
@@ -1505,9 +1509,7 @@ forget-left-indexed-all-catchup :
   LeftCatchupAllResult {N = N} {V′ = V′} {ρ = ρ} q
 forget-left-indexed-all-catchup catchup =
   left-all-catchup
-    (weak-indexed-all-resultᵀ
-      (catchupIndexedAllResult catchup)
-      (catchupIndexedAllCoherence catchup))
+    (weak-indexed-all-resultᵀ (catchupIndexedAllResult catchup))
     (catchupIndexedAllInvariant catchup)
 
 forget-left-all-catchup :
@@ -12157,11 +12159,8 @@ weak-one-step-·₁-indexed-frame-outcomeᵀ
     noM noM′ M⊑M′ indexed
     | arrow-outcome-related arrow transport coherence =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-·₁-frame-preserves-transportᵀ
-      noM noM′ inner L⊑L′ transported-M transport)
-    (weak-one-step-·₁-frame-preserves-type-coherenceᵀ
-      noM noM′ inner L⊑L′ transported-M coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   inner = weakArrowResult arrow
   L⊑L′ = canonicalArrowResults arrow
@@ -12170,6 +12169,12 @@ weak-one-step-·₁-indexed-frame-outcomeᵀ
   framed =
     weak-one-step-·₁-frameᵀ
       noM noM′ inner L⊑L′ transported-M
+  framed-transport =
+    weak-one-step-·₁-frame-preserves-transportᵀ
+      noM noM′ inner L⊑L′ transported-M transport
+  framed-coherence =
+    weak-one-step-·₁-frame-preserves-type-coherenceᵀ
+      noM noM′ inner L⊑L′ transported-M coherence
 weak-one-step-·₁-indexed-frame-outcomeᵀ
     noM noM′ M⊑M′ indexed
     | arrow-outcome-source-blame source↠ =
@@ -12213,9 +12218,10 @@ weak-one-step-·₁-runtime-boundaryᵀ
 weak-one-step-·₁-runtime-boundaryᵀ
     okLM okL′M′ L′→ M⊑M′ recursive
     | inj₂ (vL , noL , okM , noM′)
-    | result , transport , coherence , changes-eq , result-eq =
+    | result , changes-eq , result-eq =
   inj₂
-    (result , transport , coherence , changes-eq , result-eq ,
+    (result , weakIndexedTransport result ,
+      weakIndexedTypeCoherence result , changes-eq , result-eq ,
       vL , noL , okM , noM′)
 
 ·₂-blame-tail :
@@ -12254,7 +12260,7 @@ weak-one-step-·₂-indexed-frameᵀ :
 weak-one-step-·₂-indexed-frameᵀ
     {L = L} {L′ = L′} {B = B} {B′ = B′} {χ = χ}
     vL noL vL′ noL′ L⊑L′ inner transport coherence =
-  weak-indexed-result framed related
+  weak-indexed-result framed related framed-transport framed-coherence
   where
   base = weakIndexedResult inner
 
@@ -12263,6 +12269,11 @@ weak-one-step-·₂-indexed-frameᵀ
       base transport coherence noL noL′ L⊑L′
 
   related = ·⊑·ᵀ function-related (canonicalIndexedResults inner)
+  framed-transport = weak-step-transport (transportNo•Terms transport)
+  framed-coherence =
+    weak-step-type-coherence
+      (transportArrowCoherent coherence)
+      (transportAllCoherent coherence)
 
   framed :
     WeakOneStepResult _ (L · _) (applyTerm χ L′ · _) B B′ χ
@@ -12320,14 +12331,12 @@ weak-one-step-·₂-indexed-frame-outcomeᵀ :
     {χ = χ} {ρ = ρ} pB
 weak-one-step-·₂-indexed-frame-outcomeᵀ
     vL noL vL′ noL′ L⊑L′
-    (indexed-outcome-related inner transport coherence) =
+    (indexed-outcome-related inner) =
   indexed-outcome-related
     (weak-one-step-·₂-indexed-frameᵀ
-      vL noL vL′ noL′ L⊑L′ inner transport coherence)
-    (weak-step-transport (transportNo•Terms transport))
-    (weak-step-type-coherence
-      (transportArrowCoherent coherence)
-      (transportAllCoherent coherence))
+      vL noL vL′ noL′ L⊑L′ inner
+      (weakIndexedTransport inner)
+      (weakIndexedTypeCoherence inner))
 weak-one-step-·₂-indexed-frame-outcomeᵀ
     vL noL vL′ noL′ L⊑L′
     (indexed-outcome-source-blame source↠) =
@@ -12483,8 +12492,6 @@ left-catchup-indexed-relatedᵀ final N⊑V′ =
     (weak-one-step-indexed-relatedᵀ N⊑V′)
     (left-catchup-invariant
       (left-silent-invariant refl refl) final)
-    (weak-one-step-related-transportᵀ N⊑V′)
-    (weak-one-step-related-type-coherenceᵀ N⊑V′)
 
 left-catchup-indexed-prefix-relatedᵀ :
   ∀ {Φ Δᴸ Δᴿ N V′ A B p}
@@ -12540,8 +12547,6 @@ left-catchup-indexed-all-relatedᵀ final N⊑V′ =
     (weak-one-step-indexed-relatedᵀ N⊑V′)
     (left-catchup-invariant
       (left-silent-invariant refl refl) final)
-    (weak-one-step-related-transportᵀ N⊑V′)
-    (weak-one-step-related-type-coherenceᵀ N⊑V′)
 
 left-catchup-indexed-all-prefix-relatedᵀ :
   ∀ {Φ Δᴸ Δᴿ N V′ C C′ q}
@@ -13920,13 +13925,16 @@ weak-one-step-matched-ν-indexed-frame-outcomeᵀ
     s↑ s′↑ pA pB indexed
     | all-outcome-related all transport coherence =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-matched-ν-frame-preserves-transportᵀ
-      s↑ s′↑ pA pB all transport)
-    (weak-one-step-matched-ν-frame-preserves-type-coherenceᵀ
-      s↑ s′↑ pA pB all coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   framed = weak-one-step-matched-ν-frameᵀ s↑ s′↑ pA pB all
+  framed-transport =
+    weak-one-step-matched-ν-frame-preserves-transportᵀ
+      s↑ s′↑ pA pB all transport
+  framed-coherence =
+    weak-one-step-matched-ν-frame-preserves-type-coherenceᵀ
+      s↑ s′↑ pA pB all coherence
 weak-one-step-matched-ν-indexed-frame-outcomeᵀ
     s↑ s′↑ pA pB indexed
     | all-outcome-source-blame source↠ =
@@ -13961,15 +13969,18 @@ weak-one-step-matched-νcast-indexed-frame-outcomeᵀ
     mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB indexed
     | all-outcome-related all transport coherence =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-matched-νcast-frame-preserves-transportᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all transport)
-    (weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   framed =
     weak-one-step-matched-νcast-frameᵀ
       mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all
+  framed-transport =
+    weak-one-step-matched-νcast-frame-preserves-transportᵀ
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all transport
+  framed-coherence =
+    weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
+      mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB all coherence
 weak-one-step-matched-νcast-indexed-frame-outcomeᵀ
     mode seal★ s⊑ mode′ seal★′ s′⊑ compat pB indexed
     | all-outcome-source-blame source↠ =
@@ -14073,16 +14084,19 @@ weak-one-step-source-ν-indexed-frame-outcomeᵀ :
     {M = ν A N s} {N′ = N₁′} {χ = χ} {ρ = ρ} pB
 weak-one-step-source-ν-indexed-frame-outcomeᵀ
     hA s↑ pB
-    (indexed-outcome-related indexed transport coherence) =
+    (indexed-outcome-related indexed) =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-source-ν-frame-preserves-transportᵀ
-      hA s↑ pB inner transport)
-    (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-      hA s↑ pB inner coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   inner = weakIndexedResult indexed
   framed = weak-one-step-source-ν-frameᵀ hA s↑ pB inner
+  framed-transport =
+    weak-one-step-source-ν-frame-preserves-transportᵀ
+      hA s↑ pB inner (weakIndexedTransport indexed)
+  framed-coherence =
+    weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
+      hA s↑ pB inner (weakIndexedTypeCoherence indexed)
 weak-one-step-source-ν-indexed-frame-outcomeᵀ
     hA s↑ pB (indexed-outcome-source-blame source↠) =
   indexed-outcome-source-blame (ν-blame-tail source↠)
@@ -14103,17 +14117,20 @@ weak-one-step-source-νcast-indexed-frame-outcomeᵀ :
     {M = ν ★ N s} {N′ = N₁′} {χ = χ} {ρ = ρ} pB
 weak-one-step-source-νcast-indexed-frame-outcomeᵀ
     mode seal★ s⊑ pB
-    (indexed-outcome-related indexed transport coherence) =
+    (indexed-outcome-related indexed) =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-source-νcast-frame-preserves-transportᵀ
-      mode seal★ s⊑ pB inner transport)
-    (weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★ s⊑ pB inner coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   inner = weakIndexedResult indexed
   framed =
     weak-one-step-source-νcast-frameᵀ mode seal★ s⊑ pB inner
+  framed-transport =
+    weak-one-step-source-νcast-frame-preserves-transportᵀ
+      mode seal★ s⊑ pB inner (weakIndexedTransport indexed)
+  framed-coherence =
+    weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
+      mode seal★ s⊑ pB inner (weakIndexedTypeCoherence indexed)
 weak-one-step-source-νcast-indexed-frame-outcomeᵀ
     mode seal★ s⊑ pB
     (indexed-outcome-source-blame source↠) =
@@ -14137,16 +14154,19 @@ weak-one-step-target-ν-indexed-frame-outcomeᵀ :
     {χ = χ} {ρ = ρ} pB
 weak-one-step-target-ν-indexed-frame-outcomeᵀ
     hA s↑ pB pC
-    (indexed-outcome-related indexed transport coherence) =
+    (indexed-outcome-related indexed) =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-target-ν-frame-preserves-transportᵀ
-      hA s↑ pB pC inner transport)
-    (weak-one-step-target-ν-frame-preserves-type-coherenceᵀ
-      hA s↑ pB pC inner coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   inner = weakIndexedResult indexed
   framed = weak-one-step-target-ν-frameᵀ hA s↑ pB pC inner
+  framed-transport =
+    weak-one-step-target-ν-frame-preserves-transportᵀ
+      hA s↑ pB pC inner (weakIndexedTransport indexed)
+  framed-coherence =
+    weak-one-step-target-ν-frame-preserves-type-coherenceᵀ
+      hA s↑ pB pC inner (weakIndexedTypeCoherence indexed)
 weak-one-step-target-ν-indexed-frame-outcomeᵀ
     hA s↑ pB pC (indexed-outcome-source-blame source↠) =
   indexed-outcome-source-blame source↠
@@ -14170,18 +14190,21 @@ weak-one-step-target-νcast-indexed-frame-outcomeᵀ :
     {χ = χ} {ρ = ρ} pB
 weak-one-step-target-νcast-indexed-frame-outcomeᵀ
     mode seal★ s⊑ pB pC
-    (indexed-outcome-related indexed transport coherence) =
+    (indexed-outcome-related indexed) =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-target-νcast-frame-preserves-transportᵀ
-      mode seal★ s⊑ pB pC inner transport)
-    (weak-one-step-target-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★ s⊑ pB pC inner coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   inner = weakIndexedResult indexed
   framed =
     weak-one-step-target-νcast-frameᵀ
       mode seal★ s⊑ pB pC inner
+  framed-transport =
+    weak-one-step-target-νcast-frame-preserves-transportᵀ
+      mode seal★ s⊑ pB pC inner (weakIndexedTransport indexed)
+  framed-coherence =
+    weak-one-step-target-νcast-frame-preserves-type-coherenceᵀ
+      mode seal★ s⊑ pB pC inner (weakIndexedTypeCoherence indexed)
 weak-one-step-target-νcast-indexed-frame-outcomeᵀ
     mode seal★ s⊑ pB pC
     (indexed-outcome-source-blame source↠) =

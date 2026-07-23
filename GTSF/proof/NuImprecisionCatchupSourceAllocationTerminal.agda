@@ -48,6 +48,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; sourceResult
   ; relatedResults
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   ; weak-indexed-result
   ; catchupIndexedResult
   )
@@ -75,17 +77,16 @@ left-silent-indexed-prefix-source-ν-terminal-valueᵀ
     {p = p} prefix hA c↑
     (left-indexed-catchup indexed
       (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+        (left-silent-invariant refl refl) final))
     vW noW =
   left-silent-indexed
-    (weak-indexed-result framed (relatedResults framed))
+    (weak-indexed-result framed (relatedResults framed)
+      (weak-one-step-source-ν-frame-preserves-transportᵀ
+        hA c↑⁺ p inner (weakIndexedTransport indexed))
+      (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
+        hA c↑⁺ p inner (weakIndexedTypeCoherence indexed)))
     (left-silent-invariant refl refl)
     (ok-ν (ok-no noW))
-    (weak-one-step-source-ν-frame-preserves-transportᵀ
-      hA c↑⁺ p inner inner-transport)
-    (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-      hA c↑⁺ p inner inner-coherence)
   where
   inner = weakIndexedResult indexed
 
@@ -120,17 +121,16 @@ left-silent-indexed-prefix-source-νcast-terminal-valueᵀ
     {p = p} prefix mode seal★ c⊑
     (left-indexed-catchup indexed
       (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+        (left-silent-invariant refl refl) final))
     vW noW =
   left-silent-indexed
-    (weak-indexed-result framed (relatedResults framed))
+    (weak-indexed-result framed (relatedResults framed)
+      (weak-one-step-source-νcast-frame-preserves-transportᵀ
+        mode seal★⁺ c⊑⁺ p inner (weakIndexedTransport indexed))
+      (weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
+        mode seal★⁺ c⊑⁺ p inner (weakIndexedTypeCoherence indexed)))
     (left-silent-invariant refl refl)
     (ok-ν (ok-no noW))
-    (weak-one-step-source-νcast-frame-preserves-transportᵀ
-      mode seal★⁺ c⊑⁺ p inner inner-transport)
-    (weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★⁺ c⊑⁺ p inner inner-coherence)
   where
   inner = weakIndexedResult indexed
 

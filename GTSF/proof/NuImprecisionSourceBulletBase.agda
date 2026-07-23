@@ -309,12 +309,12 @@ left-catchup-indexed-prefix-α-Λᵀ
     {A = A} {B = B} {p = p} {ρᵃ = ρᵃ} {ρᵇ = ρᵇ} {ρ⁺ = ρ⁺}
     vW noW noV′ h⇑Aν liftρᵃ liftρᵇ prefix W⊑V′ =
   left-indexed-catchup
-    (weak-one-step-index-resultᵀ result refl)
+    (weak-one-step-index-resultᵀ result refl
+      (weak-step-transport identity-bodyᵀ)
+      (weak-step-type-coherence
+        ⊑-rename-id-arrowᵢ ⊑-rename-id-allᵢ))
     (left-catchup-invariant
       (left-silent-invariant refl refl) (inj₁ (vW , noW)))
-    (weak-step-transport identity-bodyᵀ)
-    (weak-step-type-coherence
-      ⊑-rename-id-arrowᵢ ⊑-rename-id-allᵢ)
   where
   allocated-body =
     allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′

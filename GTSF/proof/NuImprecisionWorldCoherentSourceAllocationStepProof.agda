@@ -210,6 +210,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportAllType
   ; transportArrowType
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   ; weak-indexed-result
   ; weak-step-transport
   ; weak-step-type-coherence
@@ -243,8 +245,6 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ; rightCatchupSourceValue
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
-  ; rightCatchupTransport
-  ; rightCatchupTypeCoherence
   )
 open import proof.NuImprecisionWorldCoherentSourceAllocationStepDef using
   (WorldCoherentSourceAllocationStepᵀ)
@@ -593,8 +593,9 @@ private
       second-transport second-coherence second-lineage
       changes-exact result-exact final-world final-exclusive final-unique =
     world-coherent-source-one-step-indexed
-      (weak-one-step-index-resultᵀ combined type-eq)
-      combined-transport combined-coherence combined-lineage
+      (weak-one-step-index-resultᵀ combined type-eq
+        combined-transport combined-coherence)
+      combined-lineage
       changes-exact result-exact final-world final-exclusive final-unique
     where
     first-raw = weakIndexedResult first-indexed
@@ -728,11 +729,11 @@ world-coherent-source-allocation-step-proofᵀ
     vV noV
     | ρ↑ , liftρ⁺ | source-step , target-refl , related =
   world-coherent-source-one-step-indexed
-    (weak-indexed-result result related)
-    (weak-step-transport
-      (left-lift-prefix-body-proofᵀ
-        liftρ⁺ (prefix-∷ⁱ prefix-reflⁱ)))
-    (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ)
+    (weak-indexed-result result related
+      (weak-step-transport
+        (left-lift-prefix-body-proofᵀ
+          liftρ⁺ (prefix-∷ⁱ prefix-reflⁱ)))
+      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ))
     (weak-step-store-lineage ρ↑
       (lift-left-store-embeddingⁱ liftρ⁺)
       (prefix-∷ⁱ prefix-reflⁱ))
@@ -800,8 +801,7 @@ world-coherent-source-allocation-step-proofᵀ
     vV noV
     | world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          caught-vV caught-noV caught-vV′ caught-noV′
-          inner-transport inner-coherence)
+          caught-vV caught-noV caught-vV′ caught-noV′)
         (weak-step-store-lineage
           lineage-store lineage-embedding lineage-prefix)
         source-bullet-transport final-coherent final-exclusive final-unique
@@ -813,7 +813,7 @@ world-coherent-source-allocation-step-proofᵀ
     second-transport second-coherence second-lineage
     refl refl final-world final-exclusive⁺ final-unique⁺
   where
-  all = weak-indexed-all-resultᵀ indexed inner-coherence
+  all = weak-indexed-all-resultᵀ indexed
   inner-result = weakIndexedResult indexed
 
   source-store-incl =
@@ -831,9 +831,6 @@ world-coherent-source-allocation-step-proofᵀ
 
   framed = weak-one-step-matched-νcast-frameᵀ
     mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
-
-  first-indexed =
-    weak-indexed-result framed (relatedResults framed)
 
   target-step = ν-step caught-vV′ caught-noV′
 
@@ -863,17 +860,15 @@ world-coherent-source-allocation-step-proofᵀ
     source-s⊑⁺ target-s⊑⁺ compat⁺
     (transportType inner-result pB) liftρ⁺ final-inner
 
-  second-indexed = weak-one-step-index-resultᵀ second refl
-
   first-transport =
     weak-one-step-matched-νcast-frame-preserves-transportᵀ
       mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
-      inner-transport
+      (weakIndexedTransport indexed)
 
   first-coherence =
     weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
       mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
-      inner-coherence
+      (weakIndexedTypeCoherence indexed)
 
   first-lineage =
     weak-step-store-lineage
@@ -890,6 +885,13 @@ world-coherent-source-allocation-step-proofᵀ
     source-mode⁺ source-seal⁺ target-mode⁺ target-seal⁺
     source-s⊑⁺ target-s⊑⁺ compat⁺
     (transportType inner-result pB) liftρ⁺ final-inner
+
+  first-indexed =
+    weak-indexed-result framed (relatedResults framed)
+      first-transport first-coherence
+
+  second-indexed = weak-one-step-index-resultᵀ second refl
+    second-transport second-coherence
 
   second-lineage = weak-step-store-lineage _
     (lift-store-embeddingⁱ liftρ⁺) (prefix-∷ⁱ prefix-reflⁱ)
@@ -919,8 +921,7 @@ world-coherent-source-allocation-step-proofᵀ
     vV noV
     | world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
-          caught-vV caught-noV caught-vV′ caught-noV′
-          inner-transport inner-coherence)
+          caught-vV caught-noV caught-vV′ caught-noV′)
         (weak-step-store-lineage
           lineage-store lineage-embedding lineage-prefix)
         source-bullet-transport final-coherent final-exclusive final-unique
@@ -932,7 +933,7 @@ world-coherent-source-allocation-step-proofᵀ
     second-transport second-coherence second-lineage
     refl refl final-world final-exclusive⁺ final-unique⁺
   where
-  all = weak-indexed-all-resultᵀ indexed inner-coherence
+  all = weak-indexed-all-resultᵀ indexed
 
   source↑ = weaken-reveal-conversion
     (StoreIncl-cons
@@ -948,9 +949,6 @@ world-coherent-source-allocation-step-proofᵀ
 
   framed = weak-one-step-matched-ν-frameᵀ
     source↑ target↑ pA pB all
-
-  first-indexed =
-    weak-indexed-result framed (relatedResults framed)
 
   target-step = ν-step caught-vV′ caught-noV′
 
@@ -972,15 +970,13 @@ world-coherent-source-allocation-step-proofᵀ
     source↑⁺ target↑⁺ (transportType inner-result pB)
     A⇑⊑A′⇑⁺ liftρ⁺ final-inner
 
-  second-indexed = weak-one-step-index-resultᵀ second refl
-
   first-transport =
     weak-one-step-matched-ν-frame-preserves-transportᵀ
-      source↑ target↑ pA pB all inner-transport
+      source↑ target↑ pA pB all (weakIndexedTransport indexed)
 
   first-coherence =
     weak-one-step-matched-ν-frame-preserves-type-coherenceᵀ
-      source↑ target↑ pA pB all inner-coherence
+      source↑ target↑ pA pB all (weakIndexedTypeCoherence indexed)
 
   first-lineage =
     weak-step-store-lineage
@@ -995,6 +991,13 @@ world-coherent-source-allocation-step-proofᵀ
     caught-vV caught-noV caught-vV′ caught-noV′
     source↑⁺ target↑⁺ (transportType inner-result pB)
     A⇑⊑A′⇑⁺ liftρ⁺ final-inner
+
+  first-indexed =
+    weak-indexed-result framed (relatedResults framed)
+      first-transport first-coherence
+
+  second-indexed = weak-one-step-index-resultᵀ second refl
+    second-transport second-coherence
 
   second-lineage = weak-step-store-lineage _
     (lift-store-embeddingⁱ liftρ⁺) (prefix-∷ⁱ prefix-reflⁱ)
@@ -1048,11 +1051,11 @@ world-coherent-source-allocation-step-proofᵀ
     vV noV
     | ρ↑ , liftρ⁺ | source-step , target-refl , related =
   world-coherent-source-one-step-indexed
-    (weak-indexed-result result related)
-    (weak-step-transport
-      (left-lift-prefix-body-proofᵀ
-        liftρ⁺ (prefix-∷ⁱ prefix-reflⁱ)))
-    (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ)
+    (weak-indexed-result result related
+      (weak-step-transport
+        (left-lift-prefix-body-proofᵀ
+          liftρ⁺ (prefix-∷ⁱ prefix-reflⁱ)))
+      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ))
     (weak-step-store-lineage ρ↑
       (lift-left-store-embeddingⁱ liftρ⁺)
       (prefix-∷ⁱ prefix-reflⁱ))

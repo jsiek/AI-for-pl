@@ -50,15 +50,14 @@ left-catchup-indexed-source-cast-blame-frameᵀ
     {q = q}
     (left-indexed-catchup indexed
       (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      inner-transport inner-coherence)
+        (left-silent-invariant refl refl) final))
     framed refl (left-silent-invariant refl refl)
     first-transport first-coherence refl =
   left-indexed-catchup
-    (weak-one-step-index-resultᵀ combined type-eq)
+    (weak-one-step-index-resultᵀ combined type-eq
+      combined-transport combined-coherence)
     (left-catchup-invariant
       (left-silent-invariant refl refl) (inj₂ refl))
-    combined-transport combined-coherence
   where
   first-raw = weakIndexedResult framed
 
@@ -139,34 +138,29 @@ left-catchup-indexed-source-inert-frameᵀ :
 left-catchup-indexed-source-inert-frameᵀ
     inert
     (left-indexed-catchup indexed
-      (left-catchup-invariant inner-silent final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant inner-silent final))
     framed refl first-silent
     first-transport first-coherence
     with final
 left-catchup-indexed-source-inert-frameᵀ
     inert
     (left-indexed-catchup indexed
-      (left-catchup-invariant inner-silent final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant inner-silent final))
     framed refl first-silent
     first-transport first-coherence
     | inj₁ (vW , noW) =
   left-indexed-catchup framed
     (left-catchup-invariant first-silent
       (inj₁ (vW ⟨ inert ⟩ , no•-⟨⟩ noW)))
-    first-transport first-coherence
 left-catchup-indexed-source-inert-frameᵀ
     inert
     (left-indexed-catchup indexed
-      (left-catchup-invariant inner-silent final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant inner-silent final))
     framed refl first-silent
     first-transport first-coherence
     | inj₂ refl =
   left-catchup-indexed-source-cast-blame-frameᵀ
     (left-indexed-catchup indexed
-      (left-catchup-invariant inner-silent final)
-      inner-transport inner-coherence)
+      (left-catchup-invariant inner-silent final))
     framed refl first-silent
     first-transport first-coherence refl

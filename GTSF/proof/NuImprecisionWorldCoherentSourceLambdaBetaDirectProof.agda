@@ -51,8 +51,6 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ; rightCatchupSourceUnchanged
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
-  ; rightCatchupTransport
-  ; rightCatchupTypeCoherence
   )
 open import proof.NuImprecisionSimulationCore using
   ( weak-indexed-arrow-resultᵀ
@@ -70,6 +68,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportNo•Terms
   ; weakArrowResult
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   ; weak-step-transport
   ; weak-step-type-coherence
   )
@@ -162,7 +162,6 @@ finish-source-lambda-function-catchupᵀ
   function-result = weakIndexedResult function-indexed
   function-arrow =
     weak-indexed-arrow-resultᵀ function-indexed
-      (rightCatchupTypeCoherence catchup)
   function-final = canonicalArrowResults function-arrow
   target-function-value = rightCatchupTargetValue catchup
 finish-source-lambda-function-catchupᵀ
@@ -176,7 +175,6 @@ finish-source-lambda-function-catchupᵀ
   function-result = weakIndexedResult function-indexed
   function-arrow =
     weak-indexed-arrow-resultᵀ function-indexed
-      (rightCatchupTypeCoherence catchup)
   function-final = canonicalArrowResults function-arrow
   target-function-value = rightCatchupTargetValue catchup
   target-function-no = rightCatchupTargetNoBullet catchup
@@ -184,18 +182,18 @@ finish-source-lambda-function-catchupᵀ
     applyTerms-preserves-No•
       (targetTailChanges function-result) noR
   argument-final =
-    transportNo•Terms (rightCatchupTransport catchup)
+    transportNo•Terms (weakIndexedTransport (rightCatchupIndexedResult catchup))
       noV noR argument-related
   framed =
     weak-one-step-·₁-frameᵀ noV noR function-result
       function-final argument-final
   framed-transport =
     weak-step-transport
-      (transportNo•Terms (rightCatchupTransport catchup))
+      (transportNo•Terms (weakIndexedTransport (rightCatchupIndexedResult catchup)))
   framed-coherence =
     weak-step-type-coherence
-      (transportArrowCoherent (rightCatchupTypeCoherence catchup))
-      (transportAllCoherent (rightCatchupTypeCoherence catchup))
+      (transportArrowCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
+      (transportAllCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
   framed-lineage : WeakOneStepStoreLineage framed
   framed-lineage =
     weak-step-store-lineage
@@ -226,7 +224,6 @@ finish-source-lambda-function-catchupᵀ
   function-result = weakIndexedResult function-indexed
   function-arrow =
     weak-indexed-arrow-resultᵀ function-indexed
-      (rightCatchupTypeCoherence catchup)
   function-final = canonicalArrowResults function-arrow
   target-function-value = rightCatchupTargetValue catchup
   target-function-no = rightCatchupTargetNoBullet catchup
@@ -234,18 +231,18 @@ finish-source-lambda-function-catchupᵀ
     applyTerms-preserves-No•
       (targetTailChanges function-result) noR
   argument-final =
-    transportNo•Terms (rightCatchupTransport catchup)
+    transportNo•Terms (weakIndexedTransport (rightCatchupIndexedResult catchup))
       noV noR argument-related
   framed =
     weak-one-step-·₁-frameᵀ noV noR function-result
       function-final argument-final
   framed-transport =
     weak-step-transport
-      (transportNo•Terms (rightCatchupTransport catchup))
+      (transportNo•Terms (weakIndexedTransport (rightCatchupIndexedResult catchup)))
   framed-coherence =
     weak-step-type-coherence
-      (transportArrowCoherent (rightCatchupTypeCoherence catchup))
-      (transportAllCoherent (rightCatchupTypeCoherence catchup))
+      (transportArrowCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
+      (transportAllCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
   framed-lineage : WeakOneStepStoreLineage framed
   framed-lineage =
     weak-step-store-lineage

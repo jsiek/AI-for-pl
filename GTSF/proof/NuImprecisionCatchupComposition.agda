@@ -164,16 +164,15 @@ left-catchup-indexed-prepend-keepᵀ :
 left-catchup-indexed-prepend-keepᵀ source→
     (left-indexed-catchup indexed
       (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      second-transport second-coherence) =
+        (left-silent-invariant refl refl) final)) =
   left-indexed-catchup
-    (weak-indexed-result combined (canonicalIndexedResults indexed))
+    (weak-indexed-result combined (canonicalIndexedResults indexed)
+      (weak-one-step-prepend-source-keep-transportᵀ
+        source→ second (weakIndexedTransport indexed))
+      (weak-one-step-prepend-source-keep-type-coherenceᵀ
+        source→ second (weakIndexedTypeCoherence indexed)))
     (left-catchup-invariant
       (left-silent-invariant refl refl) final)
-    (weak-one-step-prepend-source-keep-transportᵀ
-      source→ second second-transport)
-    (weak-one-step-prepend-source-keep-type-coherenceᵀ
-      source→ second second-coherence)
   where
   second = weakIndexedResult indexed
   combined = weak-one-step-prepend-source-keepᵀ source→ second
@@ -191,16 +190,15 @@ left-catchup-indexed-all-prepend-keepᵀ :
 left-catchup-indexed-all-prepend-keepᵀ source→ N⊑V′
     (left-indexed-all-catchup indexed
       (left-catchup-invariant
-        (left-silent-invariant refl refl) final)
-      second-transport second-coherence) =
+        (left-silent-invariant refl refl) final)) =
   left-indexed-all-catchup
-    (weak-indexed-result combined (canonicalIndexedResults indexed))
+    (weak-indexed-result combined (canonicalIndexedResults indexed)
+      (weak-one-step-prepend-source-keep-transportᵀ
+        source→ second (weakIndexedTransport indexed))
+      (weak-one-step-prepend-source-keep-type-coherenceᵀ
+        source→ second (weakIndexedTypeCoherence indexed)))
     (left-catchup-invariant
       (left-silent-invariant refl refl) final)
-    (weak-one-step-prepend-source-keep-transportᵀ
-      source→ second second-transport)
-    (weak-one-step-prepend-source-keep-type-coherenceᵀ
-      source→ second second-coherence)
   where
   second = weakIndexedResult indexed
   combined = weak-one-step-prepend-source-keepᵀ source→ second

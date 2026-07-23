@@ -59,6 +59,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; transportType
   ; weak-indexed-result
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.ReductionProperties using (applyCoercions)
 open import proof.NuWideningTransport using
@@ -81,21 +83,18 @@ weak-one-step-target-narrow-cast-indexed-frame-outcomeᵀ :
 weak-one-step-target-narrow-cast-indexed-frame-outcomeᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {χ = χ}
     mode seal★ c′⊒
-    (indexed-outcome-related indexed transport coherence) q
+    (indexed-outcome-related indexed) q
     with apply-narrows-typing
       {χs = χ ∷ targetTailChanges (weakIndexedResult indexed)}
       mode seal★ c′⊒
 weak-one-step-target-narrow-cast-indexed-frame-outcomeᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {χ = χ}
     mode seal★ c′⊒
-    (indexed-outcome-related indexed transport coherence) q
+    (indexed-outcome-related indexed) q
     | μ″ , mode″ , seal★″ , c″⊒ =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation transport)
-    (weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   inner = weakIndexedResult indexed
 
@@ -132,6 +131,12 @@ weak-one-step-target-narrow-cast-indexed-frame-outcomeᵀ
       (canonicalIndexedResults indexed) (transportType inner q)
 
   framed = weak-one-step-target-cast-frameᵀ inner final-relation
+  framed-transport =
+    weak-one-step-target-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed)
+  framed-coherence =
+    weak-one-step-target-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed)
 weak-one-step-target-narrow-cast-indexed-frame-outcomeᵀ
     mode seal★ c′⊒
     (indexed-outcome-source-blame source↠) q =
@@ -154,21 +159,18 @@ weak-one-step-target-widen-cast-indexed-frame-outcomeᵀ :
 weak-one-step-target-widen-cast-indexed-frame-outcomeᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {χ = χ}
     mode seal★ c′⊑
-    (indexed-outcome-related indexed transport coherence) q
+    (indexed-outcome-related indexed) q
     with apply-widens-typing
       {χs = χ ∷ targetTailChanges (weakIndexedResult indexed)}
       mode seal★ c′⊑
 weak-one-step-target-widen-cast-indexed-frame-outcomeᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {χ = χ}
     mode seal★ c′⊑
-    (indexed-outcome-related indexed transport coherence) q
+    (indexed-outcome-related indexed) q
     | μ″ , mode″ , seal★″ , c″⊑ =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation transport)
-    (weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   inner = weakIndexedResult indexed
 
@@ -205,6 +207,12 @@ weak-one-step-target-widen-cast-indexed-frame-outcomeᵀ
       (canonicalIndexedResults indexed) (transportType inner q)
 
   framed = weak-one-step-target-cast-frameᵀ inner final-relation
+  framed-transport =
+    weak-one-step-target-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed)
+  framed-coherence =
+    weak-one-step-target-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed)
 weak-one-step-target-widen-cast-indexed-frame-outcomeᵀ
     mode seal★ c′⊑
     (indexed-outcome-source-blame source↠) q =
@@ -226,13 +234,10 @@ weak-one-step-target-widen-id-cast-indexed-frame-outcomeᵀ :
 weak-one-step-target-widen-id-cast-indexed-frame-outcomeᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {χ = χ}
     seal★ c′⊑
-    (indexed-outcome-related indexed transport coherence) q =
+    (indexed-outcome-related indexed) q =
   indexed-outcome-related
-    (weak-indexed-result framed (relatedResults framed))
-    (weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation transport)
-    (weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation coherence)
+    (weak-indexed-result framed (relatedResults framed)
+      framed-transport framed-coherence)
   where
   inner = weakIndexedResult indexed
 
@@ -268,6 +273,12 @@ weak-one-step-target-widen-id-cast-indexed-frame-outcomeᵀ
       (canonicalIndexedResults indexed) (transportType inner q)
 
   framed = weak-one-step-target-cast-frameᵀ inner final-relation
+  framed-transport =
+    weak-one-step-target-cast-frame-transportᵀ
+      inner final-relation (weakIndexedTransport indexed)
+  framed-coherence =
+    weak-one-step-target-cast-frame-coherenceᵀ
+      inner final-relation (weakIndexedTypeCoherence indexed)
 weak-one-step-target-widen-id-cast-indexed-frame-outcomeᵀ
     seal★ c′⊑
     (indexed-outcome-source-blame source↠) q =

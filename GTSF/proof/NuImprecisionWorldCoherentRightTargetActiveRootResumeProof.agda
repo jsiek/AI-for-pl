@@ -96,8 +96,6 @@ open import proof.NuImprecisionRightValueCatchupResultDef using
   ; rightCatchupSourceValue
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
-  ; rightCatchupTransport
-  ; rightCatchupTypeCoherence
   )
 open import
   proof.NuImprecisionRightValueCatchupSourceBulletTransportDef
@@ -160,6 +158,8 @@ open import proof.NuImprecisionSimulationResultDef using
   ; weak-step-transport
   ; weak-step-type-coherence
   ; weakIndexedResult
+  ; weakIndexedTransport
+  ; weakIndexedTypeCoherence
   )
 open import proof.NuImprecisionStorePrefix using
   (rightStoreⁱ-prefix-inclusion; store-imp-prefix-transⁱ)
@@ -399,15 +399,14 @@ private
       framed-relation =
     world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
-        (weak-one-step-index-resultᵀ combined type-eq)
+        (weak-one-step-index-resultᵀ combined type-eq
+          combined-transport combined-coherence)
         combined-source-empty
         combined-source-unchanged
         (rightCatchupSourceValue catchup)
         (rightCatchupSourceNoBullet catchup)
         (rightCatchupTargetValue catchup)
-        (rightCatchupTargetNoBullet catchup)
-        combined-transport
-        combined-coherence)
+        (rightCatchupTargetNoBullet catchup))
       combined-lineage
       combined-bullet
       final-world
@@ -466,11 +465,11 @@ private
 
     first-transport =
       weak-one-step-target-cast-frame-transportᵀ
-        inner framed-relation (rightCatchupTransport catchup)
+        inner framed-relation (weakIndexedTransport (rightCatchupIndexedResult catchup))
 
     first-coherence =
       weak-one-step-target-cast-frame-coherenceᵀ
-        inner framed-relation (rightCatchupTypeCoherence catchup)
+        inner framed-relation (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
 
     second-transport =
       weak-one-step-related-transportᵀ second-relation

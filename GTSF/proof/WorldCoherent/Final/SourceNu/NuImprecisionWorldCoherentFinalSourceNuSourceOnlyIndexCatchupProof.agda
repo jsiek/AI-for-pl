@@ -84,6 +84,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; renameᵗ-ext-id
   ; transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
+  ; ⊑-source-lift-source-nuᵢ
   ; ⊑-source-under-rightᵢ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
@@ -235,6 +236,7 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
       ; transportType = ⊑-source-liftνᵢ
       ; transportAllBody = source-lift-under-∀ᵢ
       ; transportRightBody = ⊑-source-under-rightᵢ
+      ; transportSourceNu = ⊑-source-lift-source-nuᵢ
       ; resultType = ⊑-source-liftνᵢ p
       ; sourceCatchup = ↠-step (ν-step vL noL) ↠-refl
       ; targetTail = ↠-refl

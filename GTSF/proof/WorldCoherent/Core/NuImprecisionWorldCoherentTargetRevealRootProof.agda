@@ -52,6 +52,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; transportAllBody
   ; transportNo•Terms
   ; transportRightBody
+  ; transportSourceNu
   ; transportType
   ; transportArrowCoherent
   ; transportAllCoherent
@@ -137,6 +138,7 @@ target-reveal-retarget-resultᵀ
       (transportType old)
       (transportAllBody old)
       (transportRightBody old)
+      (transportSourceNu old)
       (transportType old q)
       (sourceCatchup old)
       ↠-refl

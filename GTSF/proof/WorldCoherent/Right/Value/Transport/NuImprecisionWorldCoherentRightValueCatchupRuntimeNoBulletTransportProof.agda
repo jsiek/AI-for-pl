@@ -166,6 +166,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepResult
+  ; sourceNuOccurs
+  ; sourceNuSafe
+  ; sourceNuIndexEquality
   ; resultCtx
   ; resultLeftCtx
   ; resultRightCtx
@@ -180,6 +183,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; transportAllBody
   ; transportAllCoherent
   ; transportRightBody
+  ; transportSourceNu
   ; transportNo•Terms
   ; transportType
   ; weakIndexedResult
@@ -1838,11 +1842,13 @@ module _
             (sym (targetStoreResult result)) target↑)
 
     active-runtime-no-bullet-transportᵀ
-        prefix (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′)
+        prefix (ν⊑ᵀ {occ = occ} {{safe = safe}}
+          hA h⇑A s↑ liftρ liftγ N⊑N′)
         (ok-no noNu) activeNu noN′ store-eq caught =
       ⊥-elim (activeNu noNu)
     active-runtime-no-bullet-transportᵀ
-        prefix (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′)
+        prefix (ν⊑ᵀ {occ = occ} {{safe = safe}}
+          hA h⇑A s↑ liftρ liftγ N⊑N′)
         (ok-ν okN) activeNu noN′ store-eq caught
         with lift-left-store-result
           (resultStore
@@ -1850,7 +1856,8 @@ module _
               (rightCatchupIndexedResult
                 (worldRightCatchupResult caught))))
     active-runtime-no-bullet-transportᵀ
-        prefix (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′)
+        prefix (ν⊑ᵀ {occ = occ} {{safe = safe}}
+          hA h⇑A s↑ liftρ liftγ N⊑N′)
         (ok-ν okN) activeNu noN′ store-eq caught
         | ρ′ , liftρ′
         with apply-reveal-under-ty-binders
@@ -1863,13 +1870,16 @@ module _
               (renameStoreᵗ-incl suc
                 (leftStoreⁱ-prefix-inclusion prefix))) s↑)
     active-runtime-no-bullet-transportᵀ
-        prefix (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′)
+        prefix (ν⊑ᵀ {occ = occ} {{safe = safe}}
+          hA h⇑A s↑ liftρ liftγ N⊑N′)
         (ok-ν okN) activeNu noN′ store-eq caught
         | ρ′ , liftρ′ | mode′ , source↑ =
       nu-term-imprecision-transport-termsᵀ
         (sym (applyTerms-ν (sourceChanges result) _ _ _)) refl
-        (ν⊑ᵀ final-wf final-shift-wf source-reveal
-          liftρ′ lift-left-ctx-[] (proj₂ N⊑N′-final))
+        (ν⊑ᵀ {occ = sourceNuOccurs final-shape}
+          {{safe = sourceNuSafe final-shape}}
+          final-wf final-shift-wf source-reveal
+          liftρ′ lift-left-ctx-[] shaped-final)
       where
       catchup = worldRightCatchupResult caught
       result = weakIndexedResult (rightCatchupIndexedResult catchup)
@@ -1881,13 +1891,16 @@ module _
           noN′ store-eq caught
 
       N⊑N′-final =
-        subst
-          (λ S → Σ _ (λ q′ →
-            resultCtx result ∣ resultLeftCtx result
-              ∣ resultRightCtx result ∣ resultStore result ∣ []
-              ⊢ᴺ _ ⊑ _ ⦂ S ⊑ _ ∶ q′))
-          (applyTys-∀ (sourceChanges result) _)
-          (_ , N⊑N′-final-raw)
+        nu-term-imprecision-transport-typesᵀ
+          (applyTys-∀ (sourceChanges result) _) refl refl
+          N⊑N′-final-raw
+
+      final-shape = transportSourceNu result safe occ _
+
+      shaped-final =
+        nu-term-imprecision-transport-typesᵀ
+          refl refl (sourceNuIndexEquality final-shape)
+          N⊑N′-final
 
       final-wf =
         subst
@@ -2094,13 +2107,13 @@ module _
 
     active-runtime-no-bullet-transportᵀ
         prefix
-        (νcast⊑ᵀ {B = B} {s = s}
+        (νcast⊑ᵀ {B = B} {s = s} {occ = occ} {{safe = safe}}
           mode seal★ s⊑ liftρ liftγ N⊑N′)
         (ok-no noNu) activeNu noN′ store-eq caught =
       ⊥-elim (activeNu noNu)
     active-runtime-no-bullet-transportᵀ
         prefix
-        (νcast⊑ᵀ {B = B} {s = s}
+        (νcast⊑ᵀ {B = B} {s = s} {occ = occ} {{safe = safe}}
           mode seal★ s⊑ liftρ liftγ N⊑N′)
         (ok-ν okN) activeNu noN′ store-eq caught
         with lift-left-store-result
@@ -2110,7 +2123,7 @@ module _
                 (worldRightCatchupResult caught))))
     active-runtime-no-bullet-transportᵀ
         prefix
-        (νcast⊑ᵀ {B = B} {s = s}
+        (νcast⊑ᵀ {B = B} {s = s} {occ = occ} {{safe = safe}}
           mode seal★ s⊑ liftρ liftγ N⊑N′)
         (ok-ν okN) activeNu noN′ store-eq caught
         | ρ′ , liftρ′
@@ -2130,15 +2143,17 @@ module _
                 (leftStoreⁱ-prefix-inclusion prefix))) s⊑)
     active-runtime-no-bullet-transportᵀ
         prefix
-        (νcast⊑ᵀ {B = B} {s = s}
+        (νcast⊑ᵀ {B = B} {s = s} {occ = occ} {{safe = safe}}
           mode seal★ s⊑ liftρ liftγ N⊑N′)
         (ok-ν okN) activeNu noN′ store-eq caught
         | ρ′ , liftρ′
         | μˢ , modeˢ , sealˢ , source⊑ =
       nu-term-imprecision-transport-termsᵀ
         (sym (applyTerms-ν★ (sourceChanges result) _ _)) refl
-        (νcast⊑ᵀ modeˢ source-seal source-widen
-          liftρ′ lift-left-ctx-[] (proj₂ N⊑N′-final))
+        (νcast⊑ᵀ {occ = sourceNuOccurs final-shape}
+          {{safe = sourceNuSafe final-shape}}
+          modeˢ source-seal source-widen
+          liftρ′ lift-left-ctx-[] shaped-final)
       where
       catchup = worldRightCatchupResult caught
       result = weakIndexedResult (rightCatchupIndexedResult catchup)
@@ -2150,13 +2165,16 @@ module _
           noN′ store-eq caught
 
       N⊑N′-final =
-        subst
-          (λ S → Σ _ (λ q′ →
-            resultCtx result ∣ resultLeftCtx result
-              ∣ resultRightCtx result ∣ resultStore result ∣ []
-              ⊢ᴺ _ ⊑ _ ⦂ S ⊑ _ ∶ q′))
-          (applyTys-∀ (sourceChanges result) _)
-          (_ , N⊑N′-final-raw)
+        nu-term-imprecision-transport-typesᵀ
+          (applyTys-∀ (sourceChanges result) _) refl refl
+          N⊑N′-final-raw
+
+      final-shape = transportSourceNu result safe occ _
+
+      shaped-final =
+        nu-term-imprecision-transport-typesᵀ
+          refl refl (sourceNuIndexEquality final-shape)
+          N⊑N′-final
 
       source-seal =
         subst

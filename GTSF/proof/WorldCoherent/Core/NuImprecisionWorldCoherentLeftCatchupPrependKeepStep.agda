@@ -105,6 +105,7 @@ prepend-left-keep-step-result source→ result =
     ; transportType = transportType result
     ; transportAllBody = transportAllBody result
     ; transportRightBody = transportRightBody result
+    ; transportSourceNu = transportSourceNu result
     ; resultType = resultType result
     ; sourceCatchup = ↠-step source→ (sourceCatchup result)
     ; targetTail = targetTail result

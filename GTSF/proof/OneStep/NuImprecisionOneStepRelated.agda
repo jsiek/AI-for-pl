@@ -41,6 +41,8 @@ weak-one-step-relatedᵀ result =
     ; transportType = λ p → p
     ; transportAllBody = λ p → p
     ; transportRightBody = λ p → p
+    ; transportSourceNu = λ safe occ q →
+        source-nu-index safe occ q refl
     ; resultType = _
     ; sourceCatchup = ↠-refl
     ; targetTail = ↠-refl

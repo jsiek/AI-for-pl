@@ -21,6 +21,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; weak-step-result
   ; weak-step-transport
   ; weak-step-type-coherence
+  ; source-nu-index
   )
 open import proof.Source.OneStep.NuImprecisionSourceOneStepBlameRootDef using
   (WorldCoherentSourceKeepBlameRootᵀ)
@@ -51,6 +52,7 @@ world-coherent-source-keep-blame-root-proofᵀ
       (λ q → q)
       (λ q → q)
       (λ q → q)
+      (λ safe occ q → source-nu-index safe occ q refl)
       p
       (↠-step M→blame ↠-refl)
       ↠-refl

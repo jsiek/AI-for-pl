@@ -82,6 +82,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; transportArrowCoherent
   ; transportNo•Terms
   ; transportRightBody
+  ; transportSourceNu
   ; transportType
   ; weak-indexed-result
   ; weak-step-transport
@@ -244,6 +245,7 @@ private
         ; transportType = transportType base
         ; transportAllBody = transportAllBody base
         ; transportRightBody = transportRightBody base
+        ; transportSourceNu = transportSourceNu base
         ; resultType = idι
         ; sourceCatchup = ⊕₁-↠ noM (sourceCatchup base)
         ; targetTail =
@@ -326,6 +328,7 @@ private
         ; transportType = transportType base
         ; transportAllBody = transportAllBody base
         ; transportRightBody = transportRightBody base
+        ; transportSourceNu = transportSourceNu base
         ; resultType = idι
         ; sourceCatchup = ⊕₂-↠ vL noL (sourceCatchup base)
         ; targetTail =

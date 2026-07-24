@@ -204,15 +204,15 @@ world-coherent-source-νcast-catchup-proofᵀ
 
   framed =
     weak-one-step-source-νcast-frameᵀ
-      mode seal★⁺ c⊑⁺ _ inner
+      mode seal★⁺ c⊑⁺ _ indexed
 
   first-silent =
     left-silent-indexed
       (weak-indexed-result framed (relatedResults framed)
         (weak-one-step-source-νcast-frame-preserves-transportᵀ
-          mode seal★⁺ c⊑⁺ _ inner (weakIndexedTransport indexed))
+          mode seal★⁺ c⊑⁺ _ indexed (weakIndexedTransport indexed))
         (weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-          mode seal★⁺ c⊑⁺ _ inner (weakIndexedTypeCoherence indexed)))
+          mode seal★⁺ c⊑⁺ _ indexed (weakIndexedTypeCoherence indexed)))
       (left-silent-invariant refl refl)
       (ok-ν (ok-no no•-blame))
 

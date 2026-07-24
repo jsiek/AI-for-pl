@@ -1,23 +1,26 @@
-module proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupProof where
+module
+  proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupCasesProof
+  where
 
 -- File Charter:
---   * Proves coherent catch-up through one source widening cast.
---   * Factors active unseal through source-seal cancellation, sequence casts
---     through the strict midpoint contract, and inst through value-prefix
---     catch-up.
---   * Imports statement-level Def modules for the major proof boundaries and
---     uses only strict framing/composition helpers for local proof plumbing.
+--   * Proves the coherent identity, inert, sequence, and source-only
+--     instantiation cases for one source widening cast.
+--   * Requires the source-only `ν` index explicitly in the instantiation case.
+--   * Does not assemble the former arbitrary-index widening contract: that
+--     contract admitted the invalid paired-`∀ⁱ` source-instantiation path.
+--   * Uses only strict framing/composition helpers for local proof plumbing.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
 open import Coercions using (Coercion; Inert; ModeEnv; _︔_)
-open import Conversion using (reveal-unseal)
+open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (suc)
+open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_; _×_; proj₁; ∃-syntax)
 open import Data.Sum using (inj₁; inj₂)
-open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
+open import ImprecisionWf using
+  (NonVar; _ˣ⊑★; ⇑ᴸᵢ; _∣_⊢_⊑_⊣_; ν)
 import NarrowWiden as NW
 open import NarrowWiden using
   ( Widening
@@ -70,6 +73,7 @@ open import Types using
   ( Atom
   ; Ty
   ; TyCtx
+  ; occurs
   ; ★
   ; `∀
   )
@@ -138,8 +142,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   )
 open import proof.Source.CastSequence.NuImprecisionSourceCastSequenceMidpointDef using
   (SourceCastSequenceMidpointᵀ; widening-midpoint)
-open import proof.Source.SealTag.NuImprecisionSourceSealCancellationDef using
-  (SourceSealCancellationᵀ)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
@@ -163,10 +165,6 @@ open import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentS
   ; atomic-source-value-reindexᵀ
   ; post-catchup-β-id
   )
-open import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceUnsealCatchupProof using
-  (world-coherent-source-unseal-catchup-proofᵀ)
-open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupDef using
-  (WorldCoherentSourceWidenCatchupᵀ)
 open import proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupPrefixDef using
   (WorldCoherentLeftValueCatchupPrefixᵀ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using (WorldCoherent)
@@ -1046,7 +1044,10 @@ world-coherent-source-inst-widen-castᵀ :
   WorldCoherentLeftValueCatchupPrefixᵀ →
   ∀ {Φ Δᴸ Δᴿ N V′ A B B′ c μ}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ `∀ A ⊑ B′ ⊣ Δᴿ} →
+    {index-occ : occurs zero A ≡ true}
+    {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
+  {{safe : NonVar A}} →
   StoreImpPrefix ρ₀ ρ⁺ →
   CastMode μ →
   SealModeStore★ μ (leftStoreⁱ ρ₀) →
@@ -1054,7 +1055,8 @@ world-coherent-source-inst-widen-castᵀ :
   Value V′ →
   No• V′ →
   WorldCoherentLeftCatchupIndexedResult
-    {N = N} {V′ = V′} {ρ = ρ⁺} p →
+    {N = N} {V′ = V′} {ρ = ρ⁺}
+    (ν safe index-occ r) →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ C.inst B c ⟩} {V′ = V′} {ρ = ρ⁺} q
@@ -1125,7 +1127,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
       (s⊢ , NW.instSafe→widening sʷ)
 
   ν-framed = weak-one-step-source-νcast-frameᵀ
-    mode ν-seal★ source-cast q inner
+    mode ν-seal★ source-cast q indexed
 
   second-relation :
     resultCtx first
@@ -1273,111 +1275,3 @@ world-coherent-source-inst-widen-castᵀ value-prefix
         (left-silent-invariant refl refl))
       terminal-second
       terminal-first-lineage terminal-second-lineage
-
-
-world-coherent-source-widen-catchup-proofᵀ :
-  SourceCastSequenceMidpointᵀ →
-  SourceSealCancellationᵀ →
-  WorldCoherentLeftValueCatchupPrefixᵀ →
-  WorldCoherentSourceWidenCatchupᵀ
-world-coherent-source-widen-catchup-proofᵀ
-    midpoint cancel value-prefix
-    prefix mode seal★
-    (C.cast-id hA ok , NW.cross (NW.id-＇ α))
-    vV′ noV′ catchup q =
-  world-coherent-source-id-widen-castᵀ
-    (T.＇ α) prefix mode seal★
-    (C.cast-id hA ok , NW.cross (NW.id-＇ α))
-    catchup q
-world-coherent-source-widen-catchup-proofᵀ
-    midpoint cancel value-prefix
-    prefix mode seal★
-    (C.cast-id hA ok , NW.cross (NW.id-‵ ι))
-    vV′ noV′ catchup q =
-  world-coherent-source-id-widen-castᵀ
-    (T.‵ ι) prefix mode seal★
-    (C.cast-id hA ok , NW.cross (NW.id-‵ ι))
-    catchup q
-world-coherent-source-widen-catchup-proofᵀ
-    midpoint cancel value-prefix
-    prefix mode seal★
-    (C.cast-fun s⊢ t⊢ , NW.cross (sⁿ NW.↦ tʷ))
-    vV′ noV′ catchup q =
-  world-coherent-source-inert-widen-castᵀ
-    (_ C.↦ _) prefix mode seal★
-    (C.cast-fun s⊢ t⊢ , NW.cross (sⁿ NW.↦ tʷ))
-    catchup q
-world-coherent-source-widen-catchup-proofᵀ
-    midpoint cancel value-prefix
-    prefix mode seal★
-    (C.cast-all c⊢ , NW.cross (NW.`∀ cʷ))
-    vV′ noV′ catchup q =
-  world-coherent-source-inert-widen-castᵀ
-    (C.`∀ _) prefix mode seal★
-    (C.cast-all c⊢ , NW.cross (NW.`∀ cʷ))
-    catchup q
-world-coherent-source-widen-catchup-proofᵀ
-    midpoint cancel value-prefix
-    prefix mode seal★
-    (C.cast-id hA ok , NW.id★)
-    vV′ noV′ catchup q =
-  world-coherent-source-id-widen-castᵀ
-    T.★ prefix mode seal★ (C.cast-id hA ok , NW.id★)
-    catchup q
-world-coherent-source-widen-catchup-proofᵀ
-    midpoint cancel value-prefix
-    prefix mode seal★
-    c⊑@(C.cast-inst hB occ s⊢ , NW.inst sʷ)
-    vV′ noV′ catchup q =
-  world-coherent-source-inst-widen-castᵀ
-    value-prefix prefix mode seal★ c⊑ vV′ noV′ catchup q
-world-coherent-source-widen-catchup-proofᵀ
-    midpoint cancel value-prefix
-    prefix mode seal★
-    (C.cast-tag hG gG ok , NW.tag gG′)
-    vV′ noV′ catchup q =
-  world-coherent-source-inert-widen-castᵀ
-    (_ C.!) prefix mode seal★
-    (C.cast-tag hG gG ok , NW.tag gG′)
-    catchup q
-world-coherent-source-widen-catchup-proofᵀ
-    midpoint cancel value-prefix
-    prefix mode seal★
-    (C.cast-seq s⊢ t⊢ , gʷ NW.︔ gG !)
-    vV′ noV′ catchup q =
-  world-coherent-source-seq-widen-castᵀ
-    midpoint value-prefix prefix mode seal★
-    (s⊢ , NW.cross (NW.strictCrossʷ→cross gʷ))
-    (t⊢ , NW.tag gG)
-    (gʷ NW.︔ gG !) vV′ noV′ catchup q
-world-coherent-source-widen-catchup-proofᵀ
-    midpoint cancel value-prefix
-    prefix mode seal★
-    (C.cast-seq (C.cast-inst hB occ s⊢)
-                (C.cast-tag hG gG ok) ,
-     NW.inst-fun-tag safe)
-    vV′ noV′ catchup q =
-  world-coherent-source-seq-widen-castᵀ
-    midpoint value-prefix prefix mode seal★
-    (C.cast-inst hB occ s⊢ , NW.inst safe)
-    (C.cast-tag hG gG ok , NW.tag gG)
-    (NW.inst-fun-tag safe) vV′ noV′ catchup q
-world-coherent-source-widen-catchup-proofᵀ
-    midpoint cancel value-prefix
-    {μ = μ}
-    prefix mode seal★
-    c⊑@(C.cast-unseal hA α∈Σ ok , NW.unsealʷ α A)
-    vV′ noV′ catchup q =
-  world-coherent-source-unseal-catchup-proofᵀ cancel {μ = μ}
-    prefix (reveal-unseal hA α∈Σ ok)
-    vV′ noV′ catchup q
-world-coherent-source-widen-catchup-proofᵀ
-    midpoint cancel value-prefix
-    prefix mode seal★
-    (C.cast-seq s⊢ t⊢ , NW.unseal︔_ α tʷ)
-    vV′ noV′ catchup q =
-  world-coherent-source-seq-widen-castᵀ
-    midpoint value-prefix prefix mode seal★
-    (s⊢ , NW.unsealʷ α _)
-    (t⊢ , NW.strictʷ→widen tʷ)
-    (NW.unseal︔_ α tʷ) vV′ noV′ catchup q

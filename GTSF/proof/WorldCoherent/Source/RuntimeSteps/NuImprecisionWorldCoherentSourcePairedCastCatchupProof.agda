@@ -135,6 +135,7 @@ weak-one-step-paired-cast-frameᵀ
     ; transportType = transportType inner
     ; transportAllBody = transportAllBody inner
     ; transportRightBody = transportRightBody inner
+    ; transportSourceNu = transportSourceNu inner
     ; resultType = transportType inner _
     ; sourceCatchup = cast-↠ (sourceCatchup inner)
     ; targetTail = cast-↠ (targetTail inner)

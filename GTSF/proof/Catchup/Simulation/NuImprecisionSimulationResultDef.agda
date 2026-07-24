@@ -6,16 +6,18 @@ module proof.Catchup.Simulation.NuImprecisionSimulationResultDef where
 --   * Contains only reusable result structures and their type transports.
 --   * Imports no simulation implementation or recursive dispatcher.
 
-open import Agda.Builtin.Equality using (_≡_)
+open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_)
 open import Data.Sum using (_⊎_)
 open import Relation.Binary.PropositionalEquality using (cong; subst; trans)
 
-open import Imprecision using (ImpCtx; _ˣ⊑ˣ_; ⇑ᵢ; ⇑ᴿᵢ)
+open import Imprecision using
+  (ImpCtx; NonVar; _ˣ⊑★; _ˣ⊑ˣ_; ⇑ᵢ; ⇑ᴸᵢ; ⇑ᴿᵢ)
 open import ImprecisionWf using
-  (_∣_⊢_⊑_⊣_; _↦_; ∀ⁱ_)
+  (_∣_⊢_⊑_⊣_; _↦_; ∀ⁱ_; ν)
 open import NuReduction using
   ( StoreChange
   ; StoreChanges
@@ -36,7 +38,7 @@ open import NuTerms using
   (No•; RuntimeOK; Term; Value; blame)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
-open import Types using (Ty; TyCtx; _⇒_; `∀)
+open import Types using (Ty; TyCtx; occurs; _⇒_; `∀)
 open import proof.Core.Properties.ReductionProperties using
   ( applyTys-⇒
   ; applyTy-∀
@@ -45,6 +47,39 @@ open import proof.Core.Properties.ReductionProperties using
   ; applyTys-∀
   )
 
+record SourceNuIndex
+    {Φ Δᴸ Δᴿ C B}
+    (p : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B ⊣ Δᴿ) : Set where
+  constructor source-nu-index
+  field
+    sourceNuSafe : NonVar C
+    sourceNuOccurs : occurs zero C ≡ true
+    sourceNuBody : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B ⊣ Δᴿ
+    sourceNuIndexEquality :
+      p ≡ ν sourceNuSafe sourceNuOccurs sourceNuBody
+
+open SourceNuIndex public
+
+sourceNuIndex-reindex :
+  ∀ {Φ Δᴸ Δᴿ C B}
+    {p q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B ⊣ Δᴿ} →
+  p ≡ q →
+  SourceNuIndex p →
+  SourceNuIndex q
+sourceNuIndex-reindex refl shape = shape
+
+sourceNuIndex-transport :
+  ∀ {Φ Δᴸ Δᴿ C₀ C₁ B₀ B₁}
+    {p : Φ ∣ Δᴸ ⊢ `∀ C₀ ⊑ B₀ ⊣ Δᴿ} →
+  (eqC : C₀ ≡ C₁) →
+  (eqB : B₀ ≡ B₁) →
+  SourceNuIndex p →
+  SourceNuIndex
+    (subst (λ T → Φ ∣ Δᴸ ⊢ `∀ C₁ ⊑ T ⊣ Δᴿ) eqB
+      (subst (λ S → Φ ∣ Δᴸ ⊢ S ⊑ B₀ ⊣ Δᴿ)
+        (cong `∀ eqC) p))
+sourceNuIndex-transport refl refl shape = shape
 
 record WeakOneStepResult
     {Φ Δᴸ Δᴿ}
@@ -99,6 +134,19 @@ record WeakOneStepResult
           ⊑ applyTysUnderTyBinders targetTailChanges
               (applyTyUnderTyBinder χ D)
         ⊣ suc resultRightCtx
+    transportSourceNu :
+      ∀ {C D}
+        (safe : NonVar C)
+        (occ : occurs zero C ≡ true)
+        (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+          ∣ suc Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
+      SourceNuIndex
+        (subst
+          (λ S → resultCtx ∣ resultLeftCtx
+            ⊢ S ⊑ applyTys targetTailChanges (applyTy χ D)
+            ⊣ resultRightCtx)
+          (applyTys-∀ sourceChanges C)
+          (transportType (ν safe occ q)))
     resultType :
       resultCtx ∣ resultLeftCtx
         ⊢ resultSourceType ⊑ resultTargetType
@@ -218,6 +266,27 @@ transportAllType {χ = χ} result {C = C} {C′ = C′} q =
         (applyTy-∀ χ C′))
       (applyTys-∀ (targetTailChanges result)
         (applyTyUnderTyBinder χ C′))
+
+transportSourceNuType :
+  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (result : WeakOneStepResult ρ M N′ A B χ)
+    {C D} →
+  (safe : NonVar C) →
+  (occ : occurs zero C ≡ true) →
+  (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+    ∣ suc Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
+  resultCtx result ∣ resultLeftCtx result
+    ⊢ `∀ (applyTysUnderTyBinders (sourceChanges result) C)
+      ⊑ applyTys (targetTailChanges result) (applyTy χ D)
+    ⊣ resultRightCtx result
+transportSourceNuType {χ = χ} result {C = C} {D = D} safe occ q =
+  subst
+    (λ S → resultCtx result ∣ resultLeftCtx result
+      ⊢ S ⊑ applyTys (targetTailChanges result) (applyTy χ D)
+      ⊣ resultRightCtx result)
+    (applyTys-∀ (sourceChanges result) C)
+    (transportType result (ν safe occ q))
 
 record WeakOneStepTypeCoherence
     {Φ Δᴸ Δᴿ M N′ A B χ}

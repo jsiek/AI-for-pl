@@ -7,15 +7,16 @@ module proof.Source.Core.NuImprecisionSourceSilentCompositionProof where
 --   * Contains no recursive simulation dispatcher or syntax-specific case.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using ([]; _++_)
-open import Data.Nat using (suc)
+open import Data.Bool using (true)
+open import Data.List using ([]; _∷_; _++_)
+open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using
   (cong; cong₂; subst; sym; trans)
 import Relation.Binary.HeterogeneousEquality as HE
 
-open import Imprecision using (⇑ᴿᵢ)
-open import ImprecisionWf using (_∣_⊢_⊑_⊣_; _↦_; ∀ⁱ_)
+open import Imprecision using (NonVar; _ˣ⊑★; ⇑ᴸᵢ; ⇑ᴿᵢ)
+open import ImprecisionWf using (_∣_⊢_⊑_⊣_; _↦_; ∀ⁱ_; ν)
 open import NuReduction using
   ( applyStore
   ; applyStores
@@ -32,7 +33,7 @@ open import NuTermImprecision using
 open import NuTerms using (No•)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
-open import Types using (_⇒_; `∀)
+open import Types using (occurs; _⇒_; `∀)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (∀ᵢᶜ)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ
@@ -51,8 +52,11 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; transport-arrow-⊑ᵢ
   ; transportAllType-to-raw≅
   ; transportArrowType-to-raw≅
+  ; transportSourceNuType-to-raw≅
+  ; transportType-source-subst-to-raw≅
   ; weak-one-step-nested-all-coherent≅
   ; weak-one-step-nested-arrow-coherent≅
+  ; weak-one-step-nested-source-nu≅
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
 open import proof.Source.Core.NuImprecisionSourceSilentCompositionDef
@@ -67,6 +71,7 @@ open import proof.Core.Properties.ReductionProperties using
   ; applyTerms-preserves-No•
   ; applyTyCtxs-++
   ; applyTys-++
+  ; applyTys-∀
   ; applyTysUnderTyBinders
   ; applyTysUnderTyBinders-++
   ; applyTyVars-++
@@ -161,6 +166,103 @@ source-silent-compose-right-body
       (targetTailChanges first) (targetTailChanges second) D))
     (transportRightBody second (transportRightBody first p))
 
+source-silent-compose-type-to-nested≅ :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (first : WeakOneStepResult ρ M M′ A B keep)
+    (source-empty : sourceChanges first ≡ [])
+    (second : WeakOneStepResult
+      (resultStore first)
+      (sourceResult first)
+      (targetResult first)
+      (resultSourceType first)
+      (resultTargetType first)
+      keep)
+    {C D}
+    (p : Φ ∣ Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
+  HE._≅_
+    (source-silent-compose-type first source-empty second p)
+    (transportType second (transportType first p))
+source-silent-compose-type-to-nested≅
+    first refl second {D = D} p =
+  subst-to-≅
+    (sym (applyTys-++
+      (targetTailChanges first) (targetTailChanges second) D))
+    (transportType second (transportType first p))
+
+source-silent-compose-source-nu :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (first : WeakOneStepResult ρ M M′ A B keep)
+    (source-empty : sourceChanges first ≡ [])
+    (second : WeakOneStepResult
+      (resultStore first)
+      (sourceResult first)
+      (targetResult first)
+      (resultSourceType first)
+      (resultTargetType first)
+      keep)
+    {C D}
+    (safe : NonVar C)
+    (occ : occurs zero C ≡ true)
+    (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
+  SourceNuIndex
+    (subst
+      (λ S → resultCtx second ∣ resultLeftCtx second
+        ⊢ S ⊑ applyTys
+            (targetTailChanges first ++ targetTailChanges second) D
+          ⊣ resultRightCtx second)
+      (applyTys-∀ (sourceChanges second) C)
+      (source-silent-compose-type
+        first source-empty second (ν safe occ q)))
+source-silent-compose-source-nu
+    first refl second {C = C} {D = D} safe occ q =
+  sourceNuIndex-reindex (sym combined-eq) transported-shape
+  where
+  first-shape = transportSourceNu first safe occ q
+
+  second-shape = transportSourceNu second
+    (sourceNuSafe first-shape)
+    (sourceNuOccurs first-shape)
+    (sourceNuBody first-shape)
+
+  target-eq = applyTys-++
+    (targetTailChanges first) (targetTailChanges second) D
+
+  transported-shape =
+    sourceNuIndex-transport refl (sym target-eq) second-shape
+
+  combined-eq =
+    HE.≅-to-≡
+      (HE.trans
+        (subst-to-≅
+          {P = λ S → resultCtx second ∣ resultLeftCtx second
+            ⊢ S ⊑
+                applyTys
+                  (targetTailChanges first ++
+                    targetTailChanges second) D
+              ⊣ resultRightCtx second}
+          (applyTys-∀ (sourceChanges second) C)
+          (source-silent-compose-type
+            first refl second (ν safe occ q)))
+        (HE.trans
+          (source-silent-compose-type-to-nested≅
+            first refl second (ν safe occ q))
+          (HE.trans
+            (weak-one-step-nested-source-nu≅
+              first second safe occ q)
+            (HE.sym
+              (subst²-to-≅
+                {P = λ S T → resultCtx second
+                  ∣ resultLeftCtx second
+                  ⊢ S ⊑ T ⊣ resultRightCtx second}
+                refl (sym target-eq)
+                (transportSourceNuType second
+                  (sourceNuSafe first-shape)
+                  (sourceNuOccurs first-shape)
+                  (sourceNuBody first-shape)))))))
+
 
 source-silent-resultᵀ :
   ∀ {Φ Δᴸ Δᴿ M M′ A B}
@@ -220,6 +322,8 @@ source-silent-resultᵀ
         source-silent-compose-all-body first refl second
     ; transportRightBody =
         source-silent-compose-right-body first refl second
+    ; transportSourceNu =
+        source-silent-compose-source-nu first refl second
     ; resultType = resultType second
     ; sourceCatchup = sourceCatchup second
     ; targetTail = ↠-trans (targetTail first) (targetTail second)
@@ -307,30 +411,6 @@ source-silent-preserves-transportᵀ
     (source-silent-compose-transport-bodyᵀ
       first refl refl second
       first-transport second-transport)
-
-
-source-silent-compose-type-to-nested≅ :
-  ∀ {Φ Δᴸ Δᴿ M M′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (first : WeakOneStepResult ρ M M′ A B keep)
-    (source-empty : sourceChanges first ≡ [])
-    (second : WeakOneStepResult
-      (resultStore first)
-      (sourceResult first)
-      (targetResult first)
-      (resultSourceType first)
-      (resultTargetType first)
-      keep)
-    {C D}
-    (p : Φ ∣ Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
-  HE._≅_ (source-silent-compose-type first source-empty second p)
-    (transportType second (transportType first p))
-source-silent-compose-type-to-nested≅
-    first refl second {D = D} p =
-  subst-to-≅
-    (sym (applyTys-++
-      (targetTailChanges first) (targetTailChanges second) D))
-    (transportType second (transportType first p))
 
 
 source-silent-compose-arrow-componentsᵀ :

@@ -520,6 +520,7 @@ weak-one-step-matched-ν↑ᵀ
     ; transportType = ⊑-lift∀ᵢ
     ; transportAllBody = ⊑-lift-under-∀ᵢ
     ; transportRightBody = ⊑-lift-under-rightᵢ
+    ; transportSourceNu = ⊑-lift-source-nuᵢ
     ; resultType = ⊑-lift∀ᵢ pB
     ; sourceCatchup = ↠-step source→ ↠-refl
     ; targetTail = ↠-refl
@@ -1487,6 +1488,7 @@ weak-one-step-matched-νcastᵀ
     ; transportType = ⊑-lift∀ᵢ
     ; transportAllBody = ⊑-lift-under-∀ᵢ
     ; transportRightBody = ⊑-lift-under-rightᵢ
+    ; transportSourceNu = ⊑-lift-source-nuᵢ
     ; resultType = ⊑-lift∀ᵢ pB
     ; sourceCatchup = ↠-step source→ ↠-refl
     ; targetTail = ↠-refl
@@ -2604,6 +2606,7 @@ weak-one-step-right-ν↑ᵀ
     ; transportType = ⊑-target-lift-rightᵢ
     ; transportAllBody = ⊑-target-lift-right-under-∀ᵢ
     ; transportRightBody = ⊑-target-lift-under-rightᵢ
+    ; transportSourceNu = ⊑-target-lift-right-source-nuᵢ
     ; resultType = ⊑-target-lift-rightᵢ pB
     ; sourceCatchup = ↠-refl
     ; targetTail = ↠-refl
@@ -2787,6 +2790,7 @@ weak-one-step-right-νcastᵀ
     ; transportType = ⊑-target-lift-rightᵢ
     ; transportAllBody = ⊑-target-lift-right-under-∀ᵢ
     ; transportRightBody = ⊑-target-lift-under-rightᵢ
+    ; transportSourceNu = ⊑-target-lift-right-source-nuᵢ
     ; resultType = ⊑-target-lift-rightᵢ pB
     ; sourceCatchup = ↠-refl
     ; targetTail = ↠-refl

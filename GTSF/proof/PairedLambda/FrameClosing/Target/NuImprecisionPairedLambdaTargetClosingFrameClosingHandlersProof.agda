@@ -3,19 +3,87 @@ module
   where
 
 -- File Charter:
---   * Assembles all thirteen semantic frame-closing handlers from the exact
+--   * Assembles all fifteen semantic frame-closing handlers from the exact
 --     leaf and fused-frame theorem boundaries.
+--   * Requires the fused instantiation-beta leaf as an explicit higher-order
+--     capability, leaving its semantic proof to the next layer.
 --   * Composes the already checked index and paired-conversion dispatchers so
 --     the remaining semantic dependencies are visible in one signature.
 --   * Contains no semantic leaf implementation, postulate, hole, permissive
 --     option, broad simulation import, or canonical `Lemma` assembly.
 
+open import Agda.Builtin.Equality using (_≡_)
+open import Coercions using
+  ( Coercion
+  ; Inert
+  ; ModeEnv
+  ; inst
+  )
+open import Data.List using ([]; _∷_)
+open import Data.List.Membership.Propositional using (_∈_)
+open import Data.Nat using (suc; zero)
+open import Imprecision using (⇑ᴿᵢ)
+open import ImprecisionWf using
+  ( ImpCtx
+  ; _ˣ⊑ˣ_
+  ; ⇑ᵢ
+  ; _∣_⊢_⊑_⊣_
+  )
+open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
+open import NuTermImprecision using
+  ( LiftRightStoreⁱ
+  ; LiftStoreⁱ
+  ; StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  ; store-right
+  )
+open import NuTerms using
+  ( Closedᵐ
+  ; No•
+  ; Term
+  ; Value
+  ; Λ_
+  ; _⟨_⟩
+  ; renameᵗᵐ
+  )
+open import QuotientedTermImprecision using
+  ( StoreImpPrefix
+  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
+  )
+open import TermTyping using
+  ( CastMode
+  ; SealModeStore★
+  ; _∣_∣_⊢_⦂_
+  )
+open import Types using
+  ( Renameᵗ
+  ; Ty
+  ; TyCtx
+  ; renameᵗ
+  ; wf★
+  ; ★
+  ; `∀
+  ; ⇑ᵗ
+  )
+open import proof.Core.Properties.TypeProperties using (TyRenameWf)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (rename-assm²ᵢ)
 open import
   proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef
-  using (PairedLambdaTargetClosingFrameClosingHandlers)
+  using
+  ( PairedLambdaTargetClosingFrameClosingHandlers
+  ; PairedLambdaTargetClosingFrameClosingMotive
+  )
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
+  using (RelStoreEmbeddingⁱ)
 open import
   proof.PairedLambda.LambdaLeaves.NuLeaf.NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof
   using (paired-lambda-target-closing-gen-leaf-ν-closing-proofᵀ)
+open import
+  proof.PairedLambda.LambdaLeaves.NuLeaf.NuImprecisionPairedLambdaTargetClosingGenGroundLeafClosingDef
+  using (PairedLambdaTargetClosingGenGroundLeafClosingᵀ)
 open import
   proof.PairedLambda.Conversions.NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationProof
   using
@@ -155,7 +223,57 @@ open import
 
 
 paired-lambda-target-closing-frame-closing-handlers-proofᵀ :
+  (inst-beta :
+      ∀ {Φ Φ₀ : ImpCtx} {Δᴸ Δᴿ Θᴸ Θᴿ : TyCtx}
+        {ρ : StoreImp Φ Δᴸ Δᴿ}
+        {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
+        {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+          (suc Θᴸ) (suc Θᴿ)}
+        {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
+        {τ σ : Renameᵗ}
+        {W W′ M M′ : Term}
+        {A′ B C D F : Ty}
+        {s : Coercion} {μ : ModeEnv} {r} →
+    StoreImpPrefix ρ₀ ρ⁺ →
+    CastMode μ →
+    SealModeStore★ μ (rightStoreⁱ ρ₀) →
+    μ ∣ Θᴿ ∣ rightStoreⁱ ρ₀
+      ⊢ inst B s ∶ `∀ C ⊑ B →
+    LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀) ρ₀ ρ∀ →
+    LiftRightStoreⁱ (⇑ᴿᵢ Φ₀) ρ⁺ ρᴿ⁺ →
+    Value W →
+    No• W →
+    Value W′ →
+    No• W′ →
+    Inert s →
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+      ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
+      ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
+    (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ) →
+    (assm :
+      ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
+        rename-assm²ᵢ τ σ a ∈ Φ) →
+    (hτ : TyRenameWf Θᴸ Δᴸ τ) →
+    (hσ : TyRenameWf (suc Θᴿ) Δᴿ σ) →
+    RelStoreEmbeddingⁱ τ σ
+      (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ →
+    renameᵗᵐ τ (Λ W) ≡ M →
+    renameᵗᵐ σ (W′ ⟨ s ⟩) ≡ M′ →
+    renameᵗ τ (`∀ D) ≡ `∀ F →
+    renameᵗ σ (⇑ᵗ B) ≡ A′ →
+    (p : Φ ∣ Δᴸ ⊢ `∀ F ⊑ A′ ⊣ Δᴿ) →
+    Value M →
+    No• M →
+    Closedᵐ M →
+    Value M′ →
+    No• M′ →
+    Closedᵐ M′ →
+    Δᴸ ∣ leftStoreⁱ ρ ∣ [] ⊢ M ⦂ `∀ F →
+    Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ M′ ⦂ A′ →
+    PairedLambdaTargetClosingFrameClosingMotive ρ
+      M M′ F A′ p) →
   PairedLambdaTargetClosingNuPairedConversionRotationᵀ →
+  PairedLambdaTargetClosingGenGroundLeafClosingᵀ →
   PairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingᵀ →
   PairedLambdaTargetClosingLambdaLambdaLeafStructuralConcealClosingᵀ →
   PairedLambdaTargetClosingUpGenLeafAllIndexClosingᵀ →
@@ -172,7 +290,8 @@ paired-lambda-target-closing-frame-closing-handlers-proofᵀ :
   PairedLambdaTargetClosingUpGenAllFrameQuotientCastWideningClosingᵀ →
   PairedLambdaTargetClosingFrameClosingHandlers
 paired-lambda-target-closing-frame-closing-handlers-proofᵀ
-    rotate lambda-lambda-reveal lambda-lambda-conceal up-gen-all-index
+    inst-beta rotate gen-ground
+    lambda-lambda-reveal lambda-lambda-conceal up-gen-all-index
     source-gen-reveal source-gen-conceal source-all-all-index
     paired-conversion-reveal paired-conversion-conceal
     paired-widening-source-inert
@@ -188,10 +307,12 @@ paired-lambda-target-closing-frame-closing-handlers-proofᵀ
               lambda-lambda-conceal))
     ; handle-leaf-Λ =
         paired-lambda-target-closing-lambda-leaf-handler-proofᵀ rotate
+    ; handle-leaf-instβ = inst-beta
     ; handle-leaf-gen-ν =
         paired-lambda-target-closing-gen-leaf-ν-closing-proofᵀ
           (paired-lambda-target-closing-gen-leaf-ν-conversion-rotation-proofᵀ
             rotate)
+    ; handle-leaf-gen-ground = gen-ground
     ; handle-leaf-up-gen =
         paired-lambda-target-closing-up-gen-leaf-handler-proofᵀ
           (paired-lambda-target-closing-up-gen-leaf-closing-proofᵀ

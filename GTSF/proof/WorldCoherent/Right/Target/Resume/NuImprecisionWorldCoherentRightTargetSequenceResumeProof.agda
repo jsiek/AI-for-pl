@@ -9,13 +9,14 @@ module
 --     step, and the already completed continuation without another result
 --     or outcome layer.
 --   * Preserves generic transport, type coherence, relational-store lineage,
---     world invariants, and the source-bullet transport invariant.
+--     world invariants, the source-bullet transport invariant, and the
+--     contextual target-only lineage refinement.
 --   * Contains no postulate, hole, permissive option, or termination bypass.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (suc)
-open import Data.Product using (_,_)
+open import Data.Product using (_,_; Σ)
 open import Relation.Binary.PropositionalEquality using
   (cong; cong₂; subst; sym; trans)
 import Relation.Binary.HeterogeneousEquality as HE
@@ -47,6 +48,15 @@ open import QuotientedTermImprecision using
   )
 open import Types using (Ty; _⇒_; `∀)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (∀ᵢᶜ)
+open import proof.Right.Core.NuImprecisionRightContextAction using
+  (applyRightImpCtxChanges; applyRightImpCtxChanges-++)
+open import proof.Right.StorePrefix.NuImprecisionRightOnlyStorePrefix using
+  (RightOnlyStoreImpPrefix; right-only-store-prefix)
+open import proof.Right.StorePrefix.NuImprecisionRightOnlyStorePrefixAlgebra
+  using
+  ( rel-store-embedding-right-only-prefix-invⁱ
+  ; right-only-store-prefix-transⁱ
+  )
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ
   ; rel-store-embedding-congⁱ
@@ -87,6 +97,9 @@ open import
 open import
   proof.WorldCoherent.Right.Target.Resume.NuImprecisionWorldCoherentRightTargetSequenceResumeDef
   using (WorldCoherentRightTargetSequenceResumeᵀ)
+open import
+  proof.WorldCoherent.Right.Target.Resume.NuImprecisionWorldCoherentRightTargetSequenceResumeContextDef
+  using (WorldCoherentRightTargetSequenceResumeContextᵀ)
 open import proof.Core.Properties.ReductionProperties using
   ( applyCoercions
   ; applyStores-++
@@ -717,6 +730,63 @@ private
         (rel-store-embedding-composeⁱ embedding₁ embedding₁₂))
       (store-imp-prefix-transⁱ prefix₁₂ prefix₂)
 
+  sequence-resume-right-only-store-lineage :
+    ∀ {Φ Δᴸ Δᴿ V M′ A B}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      (first : WeakOneStepResult ρ V M′ A B keep)
+      {C s t}
+      (second : WeakOneStepResult
+        (resultStore first) (sourceResult first)
+        ((targetResult first
+          ⟨ applyCoercions (targetTailChanges first) s ⟩)
+          ⟨ applyCoercions (targetTailChanges first) t ⟩)
+        (applyTys (sourceChanges first) A)
+        (applyTys (targetTailChanges first) C) keep) →
+    (vW : Value (targetResult first)) →
+    (first-lineage : WeakOneStepStoreLineage first) →
+    (second-lineage : WeakOneStepStoreLineage second) →
+    RightOnlyStoreImpPrefix
+      (lineageStore first-lineage) (resultStore first) →
+    RightOnlyStoreImpPrefix
+      (lineageStore second-lineage) (resultStore second) →
+    Σ
+      (WeakOneStepStoreLineage
+        (sequence-resume-result first second vW))
+      (λ lineage →
+        RightOnlyStoreImpPrefix
+          (lineageStore lineage)
+          (resultStore
+            (sequence-resume-result first second vW)))
+  sequence-resume-right-only-store-lineage
+      first second vW
+      (weak-step-store-lineage store₁ embedding₁ prefix₁)
+      (weak-step-store-lineage store₂ embedding₂ prefix₂)
+      first-prefix second-prefix
+      with rel-store-embedding-right-only-prefix-invⁱ
+        first-prefix embedding₂
+  sequence-resume-right-only-store-lineage
+      first second vW
+      (weak-step-store-lineage store₁ embedding₁ prefix₁)
+      (weak-step-store-lineage store₂ embedding₂ prefix₂)
+      first-prefix second-prefix
+      | store₁₂ , embedding₁₂ , prefix₁₂ =
+    weak-step-store-lineage store₁₂
+        (rel-store-embedding-congⁱ
+          (λ α → sym
+            (applyTyVars-++
+              (sourceChanges first)
+              (sourceChanges second) α))
+          (λ β → sym
+            (applyTyVars-++
+              (targetTailChanges first)
+              (keep ∷ targetTailChanges second) β))
+          (rel-store-embedding-composeⁱ embedding₁ embedding₁₂))
+        (right-only-store-prefix combined-prefix) ,
+      combined-prefix
+    where
+    combined-prefix =
+      right-only-store-prefix-transⁱ prefix₁₂ second-prefix
+
   sequence-resume-source-bullet-transport :
     ∀ {Φ Δᴸ Δᴿ V M′ A B}
       {ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -821,3 +891,93 @@ world-coherent-right-target-sequence-resume-proofᵀ
   combined-bullet =
     sequence-resume-source-bullet-transport
       first second vW refl refl first-bullet second-bullet
+
+
+world-coherent-right-target-sequence-resume-context-proofᵀ :
+  WorldCoherentRightTargetSequenceResumeContextᵀ
+world-coherent-right-target-sequence-resume-context-proofᵀ
+    {Φ = Φ} {C = C} {q = q}
+    (world-coherent-right-value-indexed-catchup
+      (right-value-indexed-catchup
+        (weak-indexed-result first first-canonical
+          first-transport first-coherence)
+        refl refl vV noV vW noW)
+      first-lineage first-bullet first-world
+      first-exclusive first-unique first-wfR)
+    first-context first-prefix
+    (world-coherent-right-value-indexed-catchup
+      (right-value-indexed-catchup
+        (weak-indexed-result second second-canonical
+          second-transport second-coherence)
+        refl refl vV₂ noV₂ vZ noZ)
+      second-lineage second-bullet second-world
+      second-exclusive second-unique second-wfR)
+    second-context second-prefix
+    with sequence-resume-right-only-store-lineage
+      first second vW first-lineage second-lineage
+      first-prefix second-prefix
+world-coherent-right-target-sequence-resume-context-proofᵀ
+    {Φ = Φ} {C = C} {q = q}
+    (world-coherent-right-value-indexed-catchup
+      (right-value-indexed-catchup
+        (weak-indexed-result first first-canonical
+          first-transport first-coherence)
+        refl refl vV noV vW noW)
+      first-lineage first-bullet first-world
+      first-exclusive first-unique first-wfR)
+    first-context first-prefix
+    (world-coherent-right-value-indexed-catchup
+      (right-value-indexed-catchup
+        (weak-indexed-result second second-canonical
+          second-transport second-coherence)
+        refl refl vV₂ noV₂ vZ noZ)
+      second-lineage second-bullet second-world
+      second-exclusive second-unique second-wfR)
+    second-context second-prefix
+    | combined-lineage , combined-prefix =
+  world-coherent-right-value-indexed-catchup
+      (right-value-indexed-catchup
+        (weak-indexed-result combined combined-canonical
+          combined-transport combined-coherence)
+        refl refl vV noV vZ noZ)
+      combined-lineage combined-bullet second-world
+      second-exclusive second-unique second-wfR ,
+    combined-context ,
+    combined-prefix
+  where
+  combined = sequence-resume-result first second vW
+
+  combined-canonical =
+    nu-term-imprecision-transport-typesᵀ
+      (sym (applyTys-++ [] [] _))
+      (sym (applyTys-++
+        (targetTailChanges first)
+        (keep ∷ targetTailChanges second)
+        (applyTy keep C)))
+      refl
+      second-canonical
+
+  combined-transport =
+    sequence-resume-transport
+      first second vW first-transport second-transport
+
+  combined-coherence =
+    sequence-resume-coherence
+      first second vW first-coherence second-coherence
+
+  combined-bullet =
+    sequence-resume-source-bullet-transport
+      first second vW refl refl first-bullet second-bullet
+
+  combined-context =
+    trans second-context
+      (trans
+        (cong
+          (applyRightImpCtxChanges
+            (targetTailChanges second))
+          first-context)
+        (sym
+          (applyRightImpCtxChanges-++
+            (targetTailChanges first)
+            (keep ∷ targetTailChanges second)
+            Φ)))

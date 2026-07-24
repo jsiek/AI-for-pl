@@ -28,6 +28,7 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
+open import Imprecision using (NonVar)
 open import NuTermImprecision using
   ( CtxImp
   ; LiftCtxⁱ
@@ -73,6 +74,7 @@ PairedLambdaTargetClosingLambdaLeafClosingᵀ =
     {ρΛ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {γΛ : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {V N′ : Term} {A B : Ty}
+    {{safe : NonVar A}}
     {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   (occ : occurs zero A ≡ true) →
@@ -103,7 +105,7 @@ PairedLambdaTargetClosingLambdaLeafClosingᵀ =
   LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ∀ →
   PairedConversion Φ Δᴸ Δᴿ ρ (C.`∀ c) c′
     {`∀ A} {B} {`∀ (`∀ E)} {`∀ C′}
-    (ν _ occ r) (∀ⁱ q) →
+    (ν safe occ r) (∀ⁱ q) →
   ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
     ∣ suc Δᴸ ∣ Δᴿ ∣
       store-left zero (⇑ᵗ Aν) h⇑Aν ∷ ρν ∣ []

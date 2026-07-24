@@ -35,6 +35,7 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
+open import Imprecision using (NonVar)
 open import NuTermImprecision using
   ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
@@ -94,6 +95,7 @@ data PairedLambdaTargetClosingTargetRevealView
 
   target-reveal-all-ν∀ :
     ∀ {F A B : Ty} {d : Coercion}
+      {{safe : NonVar F}}
       {occ-q : occurs zero F ≡ true}
       {q-body : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
         ∣ suc Δᴸ ⊢ F ⊑ `∀ A ⊣ Δᴿ}
@@ -103,7 +105,7 @@ data PairedLambdaTargetClosingTargetRevealView
       (⟰ᵗ (rightStoreⁱ ρ)) (suc β) (⇑ᵗ X) d A B →
     PairedLambdaTargetClosingTargetRevealView
       Φ Δᴸ Δᴿ ρ η β X (C.`∀ d) F (`∀ A) (`∀ B)
-      (ν _ occ-q q-body) (∀ⁱ r-body)
+      (ν safe occ-q q-body) (∀ⁱ r-body)
 
 
 data PairedLambdaTargetClosingPairedAllConversionView

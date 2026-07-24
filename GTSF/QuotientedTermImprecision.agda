@@ -19,6 +19,8 @@ module QuotientedTermImprecision where
 --     crossed allocation states.
 --   * Records the intermediate index for right-only allocation and permits
 --     body relations to cross the exact fresh-store extension it creates.
+--   * Fuses target-only `inst` allocation and its terminal body cast while
+--     retaining the pre-allocation store and matched body relation.
 --   * Leaves adjacent-`∀` crossed-body transport admissible, avoiding
 --     syntax-specific swap constructors in the term relation.
 --   * Relates widening bodies exposed by crossed `inst∀` and `∀inst`
@@ -51,7 +53,8 @@ open import NarrowWiden using
   ; widen-mode-relax
   )
 open import NuTerms using
-  ( Term
+  ( Closedᵐ
+  ; Term
   ; Value
   ; No•
   ; renameᵗᵐ
@@ -70,11 +73,14 @@ open import NuTerms using
 open import PairedWideningCompatibility using
   (PairedWideningCompatible)
 open import Primitives
+open import proof.Core.Properties.TypeProperties using (TyRenameWf)
 open import proof.Core.Properties.CastImprecision using
   ( ∀ᵢᶜ
   ; widening⇒⊑ᵢ
   ; ⊑-transʳ-castᵢ
   )
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (rename-assm²ᵢ)
 open import TermTyping using
   ( CastMode
   ; SealModeStore★
@@ -134,6 +140,9 @@ open import NuTermImprecision using
   ; leftCtxⁱ-∋
   ; rightCtxⁱ-∋
   )
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
+  using (RelStoreEmbeddingⁱ)
 
 variable
   Φ : ImpCtx
@@ -298,6 +307,57 @@ mutual
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ Λ V ⊑ N′ ⦂ `∀ A ⊑ B
           ∶ ν safe occ p
+
+    Λ⊑instβᵀ :
+        ∀ {Φ₀ Θᴸ Θᴿ}
+          {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
+          {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+            (suc Θᴸ) (suc Θᴿ)}
+          {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
+          {τ σ : Renameᵗ}
+          {W W′ M M′ A A′ B C D s μ r}
+      → StoreImpPrefix ρ₀ ρ⁺
+      → CastMode μ
+      → SealModeStore★ μ (rightStoreⁱ ρ₀)
+      → μ ∣ Θᴿ ∣ rightStoreⁱ ρ₀
+          ⊢ inst B s ∶ `∀ C ⊑ B
+      → LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀) ρ₀ ρ∀
+      → LiftRightStoreⁱ (⇑ᴿᵢ Φ₀) ρ⁺ ρᴿ⁺
+      → Value W
+      → No• W
+      → Value W′
+      → No• W′
+      → Inert s
+      → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+          ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
+          ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r
+      → (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ)
+      → (assm :
+          ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
+            rename-assm²ᵢ τ σ a ∈ Φ)
+      → (hτ : TyRenameWf Θᴸ Δᴸ τ)
+      → (hσ : TyRenameWf (suc Θᴿ) Δᴿ σ)
+      → RelStoreEmbeddingⁱ τ σ
+          (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ
+      → renameᵗᵐ τ (Λ W) ≡ M
+      → renameᵗᵐ σ (W′ ⟨ s ⟩) ≡ M′
+      → renameᵗ τ (`∀ D) ≡ A
+      → renameᵗ σ (⇑ᵗ B) ≡ A′
+      → (p :
+          Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ)
+      → Value M
+      → No• M
+      → Closedᵐ M
+      → Value M′
+      → No• M′
+      → Closedᵐ M′
+      → Δᴸ
+          ∣ leftStoreⁱ ρ ∣ leftCtxⁱ γ ⊢ M ⦂ A
+      → Δᴿ
+          ∣ rightStoreⁱ ρ ∣ rightCtxⁱ γ ⊢ M′ ⦂ A′
+        ------------------------------------------------------------
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
 
     α⊑αᵀ : ∀ {ρ′ γ′ L L′ A B C D p}
       → Value L
@@ -780,6 +840,13 @@ mutual
           (leftStoreⁱ-lift-left liftρ)
           (nu-term-imprecision-source-typing V⊑N′)))
   nu-term-imprecision-source-typing
+      (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm hτ hσ
+        store-emb eqM eqM′ eqA eqA′ p
+        vM noM closedM vM′ noM′ closedM′
+        source-typing target-typing) =
+    source-typing
+  nu-term-imprecision-source-typing
       (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ L⊑L′
         L•⊢ L′•⊢) =
     L•⊢
@@ -907,6 +974,13 @@ mutual
         (λ Σ → _ ∣ Σ ∣ _ ⊢ _ ⦂ _)
         (rightStoreⁱ-lift-left liftρ)
         (nu-term-imprecision-target-typing V⊑N′))
+  nu-term-imprecision-target-typing
+      (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm hτ hσ
+        store-emb eqM eqM′ eqA eqA′ p
+        vM noM closedM vM′ noM′ closedM′
+        source-typing target-typing) =
+    target-typing
   nu-term-imprecision-target-typing
       (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ L⊑L′
         L•⊢ L′•⊢) =

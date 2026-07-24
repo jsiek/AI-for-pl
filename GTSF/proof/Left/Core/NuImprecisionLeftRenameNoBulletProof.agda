@@ -12,6 +12,8 @@ module proof.Left.Core.NuImprecisionLeftRenameNoBulletProof where
 
 open import Agda.Builtin.Equality using (refl)
 open import Data.List.Membership.Propositional using (_∈_)
+open import Relation.Binary.PropositionalEquality using
+  (cong; sym; trans)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuTermImprecision using (CtxImp; StoreImp)
@@ -25,6 +27,7 @@ open import NuTerms using
   ; no•-⊕
   ; no•-⟨⟩
   ; renameᵗᵐ
+  ; Λ_
   )
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
@@ -35,6 +38,7 @@ open import QuotientedTermImprecision using
   ; ·⊑·ᵀ
   ; up⊑upᵀ
   ; Λ⊑Λᵀ
+  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
@@ -67,7 +71,14 @@ open import QuotientedTermImprecision using
   ; quotient-id-widening
   ; quotient-cast-widening
   )
-open import Types using (Renameᵗ; Ty; TyCtx; extᵗ; renameᵗ)
+open import Types using
+  ( Renameᵗ
+  ; Ty
+  ; TyCtx
+  ; `∀
+  ; extᵗ
+  ; renameᵗ
+  )
 open import proof.Core.Properties.CoercionProperties using (modeRename-id-only)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (rename-assm²ᵢ)
 open import proof.Left.Core.NuImprecisionLeftRenameNoBulletDef using
@@ -81,6 +92,11 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-insertion-cast-renamer
   ; left-narrowing-renameⁱ
   ; left-narrowing-rename-modeⁱ
+  ; left-store-rename-[]
+  ; left-store-rename-left
+  ; left-store-rename-link
+  ; left-store-rename-matched
+  ; left-store-rename-right
   ; left-ctx-rename-∷
   ; left-rename-blameᵀ
   ; left-rename-cast⊒⊑ᵀ
@@ -119,7 +135,11 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; ⊑ᵖ-rename-leftᵢ
   )
 open import proof.Core.Properties.NuTermProperties using
-  (renameᵗᵐ-preserves-Value)
+  ( renameᵗᵐ-compose
+  ; renameᵗᵐ-preserves-Closedᵐ
+  ; renameᵗᵐ-preserves-No•
+  ; renameᵗᵐ-preserves-Value
+  )
 open import proof.Core.Properties.TypePreservation using (CastModeRenamer)
 open import proof.Core.Properties.TypeProperties using
   ( RenameLeftInverse
@@ -128,6 +148,24 @@ open import proof.Core.Properties.TypeProperties using
   ; TyRenameWf
   ; TyRenameWf-ext
   ; predᵗ
+  ; renameᵗ-compose
+  ; renameᵗ-id
+  )
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelCtxRenameAlgebra
+  using (compose-rel-assm²ᵢ)
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra
+  using (rel-store-embedding-composeⁱ)
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
+  using
+  ( RelStoreEmbeddingⁱ
+  ; rel-store-embedding-[]
+  ; rel-store-embedding-left
+  ; rel-store-embedding-link
+  ; rel-store-embedding-matched
+  ; rel-store-embedding-right
   )
 
 left-insertion-pred : ∀ {τ} → LeftInsertion τ → Renameᵗ
@@ -141,6 +179,40 @@ left-insertion-inverse :
 left-insertion-inverse left-insertion-suc = RenameLeftInverse-suc
 left-insertion-inverse (left-insertion-ext ins) =
   RenameLeftInverse-ext (left-insertion-inverse ins)
+
+
+private
+  left-store-rename-embeddingⁱ :
+    ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
+      {assm : ∀ {a} → a ∈ Φ →
+        rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
+      {hτ : TyRenameWf Δᴸ Δᴸ′ τ}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ} →
+    LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
+    RelStoreEmbeddingⁱ τ (λ X → X) ρ ρ′
+  left-store-rename-embeddingⁱ left-store-rename-[] =
+    rel-store-embedding-[]
+  left-store-rename-embeddingⁱ
+      (left-store-rename-matched {B = B} eqα eqA renameρ) =
+    rel-store-embedding-matched
+      eqα eqA refl (sym (renameᵗ-id B))
+      (left-store-rename-embeddingⁱ renameρ)
+  left-store-rename-embeddingⁱ
+      (left-store-rename-left eqα eqA renameρ) =
+    rel-store-embedding-left eqα eqA
+      (left-store-rename-embeddingⁱ renameρ)
+  left-store-rename-embeddingⁱ
+      (left-store-rename-right {B = B} renameρ) =
+    rel-store-embedding-right
+      refl (sym (renameᵗ-id B))
+      (left-store-rename-embeddingⁱ renameρ)
+  left-store-rename-embeddingⁱ
+      (left-store-rename-link {B = B} eqα eqA renameρ) =
+    rel-store-embedding-link
+      eqα eqA refl (sym (renameᵗ-id B))
+      (left-store-rename-embeddingⁱ renameρ)
+
 
 mutual
   left-rename-no•ᵀ-proof :
@@ -249,6 +321,46 @@ mutual
       (λ liftρ′ liftγ′ renameρν renameγν →
         left-rename-no•ᵀ-proof (left-insertion-ext ins)
           renameρν renameγν noV noN′ V⊑N′)
+  left-rename-no•ᵀ-proof
+      {τ = υ} {assm = assm₁} {hτ = hυ}
+      ins renameρ renameγ noM₀ noM′₀
+      (Λ⊑instβᵀ
+        {τ = τ} {σ = σ} {W = W} {W′ = W′}
+        {B = B} {D = D} {s = s}
+        prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm₀ hτ₀ hσ₀
+        store-emb₀ eqM eqM′ eqA eqA′ p
+        vM final-noM closedM vM′ final-noM′ closedM′ M⊢ M′⊢) =
+    Λ⊑instβᵀ
+      {τ = λ X → υ (τ X)} {σ = σ}
+      prefix mode seal★ inst⊑ liftρ liftρᴿ
+      vW noW vW′ noW′ inert body f
+      (compose-rel-assm²ᵢ assm₀ assm₁)
+      (λ X< → hυ (hτ₀ X<))
+      hσ₀
+      (rel-store-embedding-composeⁱ store-emb₀
+        (left-store-rename-embeddingⁱ renameρ))
+      eqM″ eqM′ eqA″ eqA′
+      (⊑-rename-leftᵢ υ assm₁ hυ p)
+      (renameᵗᵐ-preserves-Value υ vM)
+      (renameᵗᵐ-preserves-No• υ final-noM)
+      (renameᵗᵐ-preserves-Closedᵐ υ closedM)
+      vM′ final-noM′ closedM′
+      (left-typing-renameⁱ {ψ = left-insertion-pred ins}
+        (left-insertion-inverse ins)
+        (left-insertion-cast-renamer ins)
+        renameρ renameγ final-noM M⊢)
+      (right-typing-left-renameⁱ renameρ renameγ M′⊢)
+    where
+    eqM″ =
+      trans
+        (sym (renameᵗᵐ-compose τ υ (Λ W)))
+        (cong (renameᵗᵐ υ) eqM)
+
+    eqA″ =
+      trans
+        (sym (renameᵗ-compose τ υ (`∀ D)))
+        (cong (renameᵗ υ) eqA)
   left-rename-no•ᵀ-proof ins renameρ renameγ ()
       noM′ (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ
         L⊑L′ L•⊢ L′•⊢)

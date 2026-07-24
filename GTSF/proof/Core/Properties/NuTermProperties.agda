@@ -2,14 +2,15 @@ module proof.Core.Properties.NuTermProperties where
 
 -- File Charter:
 --   * Proof-only metatheory for Nu GTSF terms.
---   * Context lookup through mapped contexts, value preservation, type-context
---     weakening, type renaming of typing derivations, and term substitution.
---   * Reduction-specific preservation cases belong in `proof.DGG.Core.NuPreservation`.
+--   * Context lookup, type/term renaming algebra, value preservation,
+--     type-context weakening, typing renaming, and term substitution.
+--   * Reduction-specific preservation belongs in
+--     `proof.DGG.Core.NuPreservation`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Sigma as Sigma using (Σ; _,_)
-open import Data.List using (List; []; _∷_; map)
-open import Data.Nat using (zero; suc; _<_; _≤_; z<s; s<s; z≤n; s≤s)
+open import Data.List using (List; []; _∷_; map; length)
+open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; z<s; s<s; z≤n; s≤s)
 open import Data.Nat.Properties using (≤-refl; n≤1+n; <-≤-trans)
 open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality as Eq
@@ -24,6 +25,8 @@ open import NuTerms
 open import proof.Core.Properties.TypeProperties
 open import proof.Core.Properties.StoreProperties
 open import proof.Core.Properties.CoercionProperties
+
+import TermTyping as Refined
 
 ------------------------------------------------------------------------
 -- Context lookup under mapped contexts
@@ -286,6 +289,322 @@ renameᵗᵐ-open-commute ρ M α =
       ρ (singleRenameᵗ α X) ≡ singleRenameᵗ (ρ α) (extᵗ ρ X)
     env-eq zero = refl
     env-eq (suc X) = refl
+
+------------------------------------------------------------------------
+-- Term-variable renaming algebra
+------------------------------------------------------------------------
+
+renameˣᵐ-cong :
+  ∀ {ρ ρ′} →
+  (∀ x → ρ x ≡ ρ′ x) →
+  ∀ M → renameˣᵐ ρ M ≡ renameˣᵐ ρ′ M
+renameˣᵐ-cong eq (` x) = cong `_ (eq x)
+renameˣᵐ-cong eq (ƛ M) =
+  cong ƛ_ (renameˣᵐ-cong ext-eq M)
+  where
+  ext-eq : ∀ x → extʳ _ x ≡ extʳ _ x
+  ext-eq zero = refl
+  ext-eq (suc x) = cong suc (eq x)
+renameˣᵐ-cong eq (L · M) =
+  cong₂ _·_ (renameˣᵐ-cong eq L) (renameˣᵐ-cong eq M)
+renameˣᵐ-cong eq (Λ M) = cong Λ_ (renameˣᵐ-cong eq M)
+renameˣᵐ-cong eq (M •) = cong _• (renameˣᵐ-cong eq M)
+renameˣᵐ-cong eq (ν A L c) =
+  cong (λ L′ → ν A L′ c) (renameˣᵐ-cong eq L)
+renameˣᵐ-cong eq ($ κ) = refl
+renameˣᵐ-cong eq (L ⊕[ op ] M) =
+  cong₂ (λ L′ M′ → L′ ⊕[ op ] M′)
+    (renameˣᵐ-cong eq L)
+    (renameˣᵐ-cong eq M)
+renameˣᵐ-cong eq (M ⟨ c ⟩) =
+  cong (λ M′ → M′ ⟨ c ⟩) (renameˣᵐ-cong eq M)
+renameˣᵐ-cong eq blame = refl
+
+renameˣᵐ-id :
+  ∀ M →
+  renameˣᵐ (λ x → x) M ≡ M
+renameˣᵐ-id (` x) = refl
+renameˣᵐ-id (ƛ M) =
+  cong ƛ_
+    (trans
+      (renameˣᵐ-cong (λ { zero → refl ; (suc x) → refl }) M)
+      (renameˣᵐ-id M))
+renameˣᵐ-id (L · M) =
+  cong₂ _·_ (renameˣᵐ-id L) (renameˣᵐ-id M)
+renameˣᵐ-id (Λ M) = cong Λ_ (renameˣᵐ-id M)
+renameˣᵐ-id (M •) = cong _• (renameˣᵐ-id M)
+renameˣᵐ-id (ν A L c) =
+  cong (λ L′ → ν A L′ c) (renameˣᵐ-id L)
+renameˣᵐ-id ($ κ) = refl
+renameˣᵐ-id (L ⊕[ op ] M) =
+  cong₂ (λ L′ M′ → L′ ⊕[ op ] M′)
+    (renameˣᵐ-id L)
+    (renameˣᵐ-id M)
+renameˣᵐ-id (M ⟨ c ⟩) =
+  cong (λ M′ → M′ ⟨ c ⟩) (renameˣᵐ-id M)
+renameˣᵐ-id blame = refl
+
+renameˣᵐ-compose :
+  ∀ ρ τ M →
+  renameˣᵐ τ (renameˣᵐ ρ M) ≡
+    renameˣᵐ (λ x → τ (ρ x)) M
+renameˣᵐ-compose ρ τ (` x) = refl
+renameˣᵐ-compose ρ τ (ƛ M) =
+  cong ƛ_
+    (trans
+      (renameˣᵐ-compose (extʳ ρ) (extʳ τ) M)
+      (renameˣᵐ-cong (λ { zero → refl ; (suc x) → refl }) M))
+renameˣᵐ-compose ρ τ (L · M) =
+  cong₂ _·_
+    (renameˣᵐ-compose ρ τ L)
+    (renameˣᵐ-compose ρ τ M)
+renameˣᵐ-compose ρ τ (Λ M) =
+  cong Λ_ (renameˣᵐ-compose ρ τ M)
+renameˣᵐ-compose ρ τ (M •) =
+  cong _• (renameˣᵐ-compose ρ τ M)
+renameˣᵐ-compose ρ τ (ν A L c) =
+  cong (λ L′ → ν A L′ c) (renameˣᵐ-compose ρ τ L)
+renameˣᵐ-compose ρ τ ($ κ) = refl
+renameˣᵐ-compose ρ τ (L ⊕[ op ] M) =
+  cong₂ (λ L′ M′ → L′ ⊕[ op ] M′)
+    (renameˣᵐ-compose ρ τ L)
+    (renameˣᵐ-compose ρ τ M)
+renameˣᵐ-compose ρ τ (M ⟨ c ⟩) =
+  cong (λ M′ → M′ ⟨ c ⟩) (renameˣᵐ-compose ρ τ M)
+renameˣᵐ-compose ρ τ blame = refl
+
+------------------------------------------------------------------------
+-- Term-variable scope under renaming and substitution
+------------------------------------------------------------------------
+
+ScopedRenameˣ : ℕ → ℕ → Renameˣ → Set
+ScopedRenameˣ k l ρ = ∀ {x} → x < k → ρ x < l
+
+ScopedSubstˣ : ℕ → ℕ → Substˣ → Set
+ScopedSubstˣ k l σ = ∀ {x} → x < k → Scopedᵐ l (σ x)
+
+ScopedRenameˣ-ext :
+  ∀ {k l ρ} →
+  ScopedRenameˣ k l ρ →
+  ScopedRenameˣ (suc k) (suc l) (extʳ ρ)
+ScopedRenameˣ-ext hρ {zero} z<s = z<s
+ScopedRenameˣ-ext hρ {suc x} (s<s x<k) = s<s (hρ x<k)
+
+renameˣᵐ-preserves-Scopedᵐ :
+  ∀ {k l M ρ} →
+  ScopedRenameˣ k l ρ →
+  Scopedᵐ k M →
+  Scopedᵐ l (renameˣᵐ ρ M)
+renameˣᵐ-preserves-Scopedᵐ hρ (scoped-` x<k) =
+  scoped-` (hρ x<k)
+renameˣᵐ-preserves-Scopedᵐ hρ (scoped-ƛ hM) =
+  scoped-ƛ (renameˣᵐ-preserves-Scopedᵐ (ScopedRenameˣ-ext hρ) hM)
+renameˣᵐ-preserves-Scopedᵐ hρ (scoped-· hL hM) =
+  scoped-· (renameˣᵐ-preserves-Scopedᵐ hρ hL)
+           (renameˣᵐ-preserves-Scopedᵐ hρ hM)
+renameˣᵐ-preserves-Scopedᵐ hρ (scoped-Λ hM) =
+  scoped-Λ (renameˣᵐ-preserves-Scopedᵐ hρ hM)
+renameˣᵐ-preserves-Scopedᵐ hρ (scoped-• hM) =
+  scoped-• (renameˣᵐ-preserves-Scopedᵐ hρ hM)
+renameˣᵐ-preserves-Scopedᵐ hρ (scoped-ν hL) =
+  scoped-ν (renameˣᵐ-preserves-Scopedᵐ hρ hL)
+renameˣᵐ-preserves-Scopedᵐ hρ scoped-$ = scoped-$
+renameˣᵐ-preserves-Scopedᵐ hρ (scoped-⊕ hL hM) =
+  scoped-⊕ (renameˣᵐ-preserves-Scopedᵐ hρ hL)
+           (renameˣᵐ-preserves-Scopedᵐ hρ hM)
+renameˣᵐ-preserves-Scopedᵐ hρ (scoped-⟨⟩ hM) =
+  scoped-⟨⟩ (renameˣᵐ-preserves-Scopedᵐ hρ hM)
+renameˣᵐ-preserves-Scopedᵐ hρ scoped-blame = scoped-blame
+
+renameˣᵐ-preserves-Closedᵐ :
+  ∀ ρ {M} →
+  Closedᵐ M →
+  Closedᵐ (renameˣᵐ ρ M)
+renameˣᵐ-preserves-Closedᵐ ρ hM =
+  renameˣᵐ-preserves-Scopedᵐ (λ ()) hM
+
+renameᵗᵐ-preserves-Scopedᵐ :
+  ∀ ρ {k M} →
+  Scopedᵐ k M →
+  Scopedᵐ k (renameᵗᵐ ρ M)
+renameᵗᵐ-preserves-Scopedᵐ ρ (scoped-` x<k) = scoped-` x<k
+renameᵗᵐ-preserves-Scopedᵐ ρ (scoped-ƛ hM) =
+  scoped-ƛ (renameᵗᵐ-preserves-Scopedᵐ ρ hM)
+renameᵗᵐ-preserves-Scopedᵐ ρ (scoped-· hL hM) =
+  scoped-· (renameᵗᵐ-preserves-Scopedᵐ ρ hL)
+           (renameᵗᵐ-preserves-Scopedᵐ ρ hM)
+renameᵗᵐ-preserves-Scopedᵐ ρ (scoped-Λ hM) =
+  scoped-Λ (renameᵗᵐ-preserves-Scopedᵐ (extᵗ ρ) hM)
+renameᵗᵐ-preserves-Scopedᵐ ρ (scoped-• hM) =
+  scoped-• (renameᵗᵐ-preserves-Scopedᵐ ρ hM)
+renameᵗᵐ-preserves-Scopedᵐ ρ (scoped-ν hL) =
+  scoped-ν (renameᵗᵐ-preserves-Scopedᵐ ρ hL)
+renameᵗᵐ-preserves-Scopedᵐ ρ scoped-$ = scoped-$
+renameᵗᵐ-preserves-Scopedᵐ ρ (scoped-⊕ hL hM) =
+  scoped-⊕ (renameᵗᵐ-preserves-Scopedᵐ ρ hL)
+           (renameᵗᵐ-preserves-Scopedᵐ ρ hM)
+renameᵗᵐ-preserves-Scopedᵐ ρ (scoped-⟨⟩ hM) =
+  scoped-⟨⟩ (renameᵗᵐ-preserves-Scopedᵐ ρ hM)
+renameᵗᵐ-preserves-Scopedᵐ ρ scoped-blame = scoped-blame
+
+renameᵗᵐ-preserves-Closedᵐ :
+  ∀ ρ {M} →
+  Closedᵐ M →
+  Closedᵐ (renameᵗᵐ ρ M)
+renameᵗᵐ-preserves-Closedᵐ ρ hM =
+  renameᵗᵐ-preserves-Scopedᵐ ρ hM
+
+renameᵗᵐ-reflects-Scopedᵐ :
+  ∀ ρ {k} M →
+  Scopedᵐ k (renameᵗᵐ ρ M) →
+  Scopedᵐ k M
+renameᵗᵐ-reflects-Scopedᵐ ρ (` x) (scoped-` x<k) = scoped-` x<k
+renameᵗᵐ-reflects-Scopedᵐ ρ (ƛ M) (scoped-ƛ hM) =
+  scoped-ƛ (renameᵗᵐ-reflects-Scopedᵐ ρ M hM)
+renameᵗᵐ-reflects-Scopedᵐ ρ (L · M) (scoped-· hL hM) =
+  scoped-· (renameᵗᵐ-reflects-Scopedᵐ ρ L hL)
+           (renameᵗᵐ-reflects-Scopedᵐ ρ M hM)
+renameᵗᵐ-reflects-Scopedᵐ ρ (Λ M) (scoped-Λ hM) =
+  scoped-Λ (renameᵗᵐ-reflects-Scopedᵐ (extᵗ ρ) M hM)
+renameᵗᵐ-reflects-Scopedᵐ ρ (M •) (scoped-• hM) =
+  scoped-• (renameᵗᵐ-reflects-Scopedᵐ ρ M hM)
+renameᵗᵐ-reflects-Scopedᵐ ρ (ν A L c) (scoped-ν hL) =
+  scoped-ν (renameᵗᵐ-reflects-Scopedᵐ ρ L hL)
+renameᵗᵐ-reflects-Scopedᵐ ρ ($ κ) scoped-$ = scoped-$
+renameᵗᵐ-reflects-Scopedᵐ ρ (L ⊕[ op ] M) (scoped-⊕ hL hM) =
+  scoped-⊕ (renameᵗᵐ-reflects-Scopedᵐ ρ L hL)
+           (renameᵗᵐ-reflects-Scopedᵐ ρ M hM)
+renameᵗᵐ-reflects-Scopedᵐ ρ (M ⟨ c ⟩) (scoped-⟨⟩ hM) =
+  scoped-⟨⟩ (renameᵗᵐ-reflects-Scopedᵐ ρ M hM)
+renameᵗᵐ-reflects-Scopedᵐ ρ blame scoped-blame = scoped-blame
+
+ScopedSubstˣ-ext :
+  ∀ {k l σ} →
+  ScopedSubstˣ k l σ →
+  ScopedSubstˣ (suc k) (suc l) (extˢˣ σ)
+ScopedSubstˣ-ext hσ {zero} z<s = scoped-` z<s
+ScopedSubstˣ-ext hσ {suc x} (s<s x<k) =
+  renameˣᵐ-preserves-Scopedᵐ (λ y<l → s<s y<l) (hσ x<k)
+
+ScopedSubstˣ-↑ :
+  ∀ {k l σ} →
+  ScopedSubstˣ k l σ →
+  ScopedSubstˣ k l (↑ᵗᵐ σ)
+ScopedSubstˣ-↑ hσ x<k =
+  renameᵗᵐ-preserves-Scopedᵐ suc (hσ x<k)
+
+substˣᵐ-preserves-Scopedᵐ :
+  ∀ {k l M σ} →
+  ScopedSubstˣ k l σ →
+  Scopedᵐ k M →
+  Scopedᵐ l (substˣᵐ σ M)
+substˣᵐ-preserves-Scopedᵐ hσ (scoped-` x<k) = hσ x<k
+substˣᵐ-preserves-Scopedᵐ hσ (scoped-ƛ hM) =
+  scoped-ƛ (substˣᵐ-preserves-Scopedᵐ (ScopedSubstˣ-ext hσ) hM)
+substˣᵐ-preserves-Scopedᵐ hσ (scoped-· hL hM) =
+  scoped-· (substˣᵐ-preserves-Scopedᵐ hσ hL)
+           (substˣᵐ-preserves-Scopedᵐ hσ hM)
+substˣᵐ-preserves-Scopedᵐ hσ (scoped-Λ hM) =
+  scoped-Λ (substˣᵐ-preserves-Scopedᵐ (ScopedSubstˣ-↑ hσ) hM)
+substˣᵐ-preserves-Scopedᵐ hσ (scoped-• hM) =
+  scoped-• (substˣᵐ-preserves-Scopedᵐ hσ hM)
+substˣᵐ-preserves-Scopedᵐ hσ (scoped-ν hL) =
+  scoped-ν (substˣᵐ-preserves-Scopedᵐ hσ hL)
+substˣᵐ-preserves-Scopedᵐ hσ scoped-$ = scoped-$
+substˣᵐ-preserves-Scopedᵐ hσ (scoped-⊕ hL hM) =
+  scoped-⊕ (substˣᵐ-preserves-Scopedᵐ hσ hL)
+           (substˣᵐ-preserves-Scopedᵐ hσ hM)
+substˣᵐ-preserves-Scopedᵐ hσ (scoped-⟨⟩ hM) =
+  scoped-⟨⟩ (substˣᵐ-preserves-Scopedᵐ hσ hM)
+substˣᵐ-preserves-Scopedᵐ hσ scoped-blame = scoped-blame
+
+extʳ-identity-below :
+  ∀ {k ρ} →
+  (∀ {x} → x < k → ρ x ≡ x) →
+  ∀ {x} → x < suc k → extʳ ρ x ≡ x
+extʳ-identity-below eq {zero} z<s = refl
+extʳ-identity-below eq {suc x} (s<s x<k) = cong suc (eq x<k)
+
+renameˣᵐ-scoped-id :
+  ∀ {k M ρ} →
+  Scopedᵐ k M →
+  (∀ {x} → x < k → ρ x ≡ x) →
+  renameˣᵐ ρ M ≡ M
+renameˣᵐ-scoped-id (scoped-` x<k) eq = cong `_ (eq x<k)
+renameˣᵐ-scoped-id (scoped-ƛ hM) eq =
+  cong ƛ_ (renameˣᵐ-scoped-id hM (extʳ-identity-below eq))
+renameˣᵐ-scoped-id (scoped-· hL hM) eq =
+  cong₂ _·_ (renameˣᵐ-scoped-id hL eq)
+             (renameˣᵐ-scoped-id hM eq)
+renameˣᵐ-scoped-id (scoped-Λ hM) eq =
+  cong Λ_ (renameˣᵐ-scoped-id hM eq)
+renameˣᵐ-scoped-id (scoped-• hM) eq =
+  cong _• (renameˣᵐ-scoped-id hM eq)
+renameˣᵐ-scoped-id (scoped-ν hL) eq =
+  cong (λ L′ → ν _ L′ _) (renameˣᵐ-scoped-id hL eq)
+renameˣᵐ-scoped-id scoped-$ eq = refl
+renameˣᵐ-scoped-id (scoped-⊕ hL hM) eq =
+  cong₂ (λ L′ M′ → L′ ⊕[ _ ] M′)
+    (renameˣᵐ-scoped-id hL eq)
+    (renameˣᵐ-scoped-id hM eq)
+renameˣᵐ-scoped-id (scoped-⟨⟩ hM) eq =
+  cong (λ M′ → M′ ⟨ _ ⟩) (renameˣᵐ-scoped-id hM eq)
+renameˣᵐ-scoped-id scoped-blame eq = refl
+
+rename-closedᵐ :
+  ∀ {M} →
+  Closedᵐ M →
+  ∀ ρ → renameˣᵐ ρ M ≡ M
+rename-closedᵐ hM ρ =
+  renameˣᵐ-scoped-id hM (λ ())
+
+extˢˣ-identity-below :
+  ∀ {k σ} →
+  (∀ {x} → x < k → σ x ≡ ` x) →
+  ∀ {x} → x < suc k → extˢˣ σ x ≡ ` x
+extˢˣ-identity-below eq {zero} z<s = refl
+extˢˣ-identity-below eq {suc x} (s<s x<k) =
+  cong (renameˣᵐ suc) (eq x<k)
+
+↑ᵗᵐ-identity-below :
+  ∀ {k σ} →
+  (∀ {x} → x < k → σ x ≡ ` x) →
+  ∀ {x} → x < k → ↑ᵗᵐ σ x ≡ ` x
+↑ᵗᵐ-identity-below eq x<k =
+  cong (renameᵗᵐ suc) (eq x<k)
+
+substˣᵐ-scoped-id :
+  ∀ {k M σ} →
+  Scopedᵐ k M →
+  (∀ {x} → x < k → σ x ≡ ` x) →
+  substˣᵐ σ M ≡ M
+substˣᵐ-scoped-id (scoped-` x<k) eq = eq x<k
+substˣᵐ-scoped-id (scoped-ƛ hM) eq =
+  cong ƛ_ (substˣᵐ-scoped-id hM (extˢˣ-identity-below eq))
+substˣᵐ-scoped-id (scoped-· hL hM) eq =
+  cong₂ _·_ (substˣᵐ-scoped-id hL eq)
+             (substˣᵐ-scoped-id hM eq)
+substˣᵐ-scoped-id (scoped-Λ hM) eq =
+  cong Λ_ (substˣᵐ-scoped-id hM (↑ᵗᵐ-identity-below eq))
+substˣᵐ-scoped-id (scoped-• hM) eq =
+  cong _• (substˣᵐ-scoped-id hM eq)
+substˣᵐ-scoped-id (scoped-ν hL) eq =
+  cong (λ L′ → ν _ L′ _) (substˣᵐ-scoped-id hL eq)
+substˣᵐ-scoped-id scoped-$ eq = refl
+substˣᵐ-scoped-id (scoped-⊕ hL hM) eq =
+  cong₂ (λ L′ M′ → L′ ⊕[ _ ] M′)
+    (substˣᵐ-scoped-id hL eq)
+    (substˣᵐ-scoped-id hM eq)
+substˣᵐ-scoped-id (scoped-⟨⟩ hM) eq =
+  cong (λ M′ → M′ ⟨ _ ⟩) (substˣᵐ-scoped-id hM eq)
+substˣᵐ-scoped-id scoped-blame eq = refl
+
+subst-closedᵐ :
+  ∀ {M} →
+  Closedᵐ M →
+  ∀ σ → substˣᵐ σ M ≡ M
+subst-closedᵐ hM σ =
+  substˣᵐ-scoped-id hM (λ ())
 
 WfTy-raise-inv :
   ∀ k {Δ A} →
@@ -789,6 +1108,190 @@ typing-wf wfΣ hΓ (⊢⟨⟩ c⊢ hM) | hA , hB = hB
 typing-wf wfΣ hΓ (⊢blame hA) = hA
 
 ------------------------------------------------------------------------
+-- Typing derivations determine term-variable scope
+------------------------------------------------------------------------
+
+lookup-index-bound :
+  ∀ {Γ : Ctx} {x : Var} {A : Ty} →
+  Γ ∋ x ⦂ A →
+  x < length Γ
+lookup-index-bound Z = z<s
+lookup-index-bound (S h) = s<s (lookup-index-bound h)
+
+length-⤊ᵗ :
+  ∀ (Γ : Ctx) →
+  length (⤊ᵗ Γ) ≡ length Γ
+length-⤊ᵗ [] = refl
+length-⤊ᵗ (A ∷ Γ) = cong suc (length-⤊ᵗ Γ)
+
+typing-scopedᵐ :
+  ∀ {Δ Σ Γ M A} →
+  Δ ∣ Σ ∣ Γ ⊢ M ⦂ A →
+  Scopedᵐ (length Γ) M
+typing-scopedᵐ (⊢` h) = scoped-` (lookup-index-bound h)
+typing-scopedᵐ (⊢ƛ hA hM) = scoped-ƛ (typing-scopedᵐ hM)
+typing-scopedᵐ (⊢· hL hM) =
+  scoped-· (typing-scopedᵐ hL) (typing-scopedᵐ hM)
+typing-scopedᵐ {Γ = Γ} (⊢Λ {M = M} vM hM) =
+  scoped-Λ
+    (subst (λ k → Scopedᵐ k M) (length-⤊ᵗ Γ) (typing-scopedᵐ hM))
+typing-scopedᵐ (⊢• {V = V} eqΔ eqΣ hC vV noV hV) =
+  scoped-• (renameᵗᵐ-preserves-Scopedᵐ suc (typing-scopedᵐ hV))
+typing-scopedᵐ (⊢ν hA hL c⊢) = scoped-ν (typing-scopedᵐ hL)
+typing-scopedᵐ (⊢$ κ) = scoped-$
+typing-scopedᵐ (⊢⊕ hL op hM) =
+  scoped-⊕ (typing-scopedᵐ hL) (typing-scopedᵐ hM)
+typing-scopedᵐ (⊢⟨⟩ c⊢ hM) = scoped-⟨⟩ (typing-scopedᵐ hM)
+typing-scopedᵐ (⊢blame hA) = scoped-blame
+
+typing-closedᵐ :
+  ∀ {Δ Σ M A} →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  Closedᵐ M
+typing-closedᵐ = typing-scopedᵐ
+
+ScopedCtxEmbeddingˣ : ℕ → Ctx → Ctx → Set₁
+ScopedCtxEmbeddingˣ k Γ Γ′ =
+  ∀ {x A} → x < k → Γ ∋ x ⦂ A → Γ′ ∋ x ⦂ A
+
+ScopedCtxEmbeddingˣ-ext :
+  ∀ {k Γ Γ′ B} →
+  ScopedCtxEmbeddingˣ k Γ Γ′ →
+  ScopedCtxEmbeddingˣ (suc k) (B ∷ Γ) (B ∷ Γ′)
+ScopedCtxEmbeddingˣ-ext hΓ {zero} z<s Z = Z
+ScopedCtxEmbeddingˣ-ext hΓ {suc x} (s<s x<k) (S h) =
+  S (hΓ x<k h)
+
+ScopedCtxEmbeddingˣ-⤊ :
+  ∀ {k Γ Γ′} →
+  ScopedCtxEmbeddingˣ k Γ Γ′ →
+  ScopedCtxEmbeddingˣ k (⤊ᵗ Γ) (⤊ᵗ Γ′)
+ScopedCtxEmbeddingˣ-⤊ hΓ x<k h =
+  lookup-⤊-elim
+    (λ hA eq →
+      subst (λ T → _ ∋ _ ⦂ T)
+            (sym eq)
+            (lookup-map-renameᵗ (hΓ x<k hA)))
+    h
+
+typing-scoped-recontextualize :
+  ∀ {k Δ Σ Γ Γ′ M A} →
+  Scopedᵐ k M →
+  ScopedCtxEmbeddingˣ k Γ Γ′ →
+  Δ ∣ Σ ∣ Γ ⊢ M ⦂ A →
+  Δ ∣ Σ ∣ Γ′ ⊢ M ⦂ A
+typing-scoped-recontextualize (scoped-` x<k) hΓ (⊢` h) =
+  ⊢` (hΓ x<k h)
+typing-scoped-recontextualize (scoped-ƛ hM) hΓ (⊢ƛ hA M⊢) =
+  ⊢ƛ hA
+    (typing-scoped-recontextualize hM (ScopedCtxEmbeddingˣ-ext hΓ) M⊢)
+typing-scoped-recontextualize (scoped-· hL hM) hΓ (⊢· L⊢ M⊢) =
+  ⊢· (typing-scoped-recontextualize hL hΓ L⊢)
+     (typing-scoped-recontextualize hM hΓ M⊢)
+typing-scoped-recontextualize (scoped-Λ hM) hΓ (⊢Λ vM M⊢) =
+  ⊢Λ vM
+    (typing-scoped-recontextualize
+      hM (ScopedCtxEmbeddingˣ-⤊ hΓ) M⊢)
+typing-scoped-recontextualize (scoped-• hV) hΓ
+    (⊢• {V = V} eqΔ eqΣ hC vV noV V⊢) =
+  ⊢• eqΔ eqΣ hC vV noV
+    (typing-scoped-recontextualize
+      (renameᵗᵐ-reflects-Scopedᵐ suc V hV) hΓ V⊢)
+typing-scoped-recontextualize (scoped-ν hL) hΓ (⊢ν hA L⊢ c⊢) =
+  ⊢ν hA (typing-scoped-recontextualize hL hΓ L⊢) c⊢
+typing-scoped-recontextualize scoped-$ hΓ (⊢$ κ) = ⊢$ κ
+typing-scoped-recontextualize (scoped-⊕ hL hM) hΓ (⊢⊕ L⊢ op M⊢) =
+  ⊢⊕ (typing-scoped-recontextualize hL hΓ L⊢) op
+      (typing-scoped-recontextualize hM hΓ M⊢)
+typing-scoped-recontextualize (scoped-⟨⟩ hM) hΓ (⊢⟨⟩ c⊢ M⊢) =
+  ⊢⟨⟩ c⊢ (typing-scoped-recontextualize hM hΓ M⊢)
+typing-scoped-recontextualize scoped-blame hΓ (⊢blame hA) = ⊢blame hA
+
+closed-typing-recontextualize :
+  ∀ {Δ Σ Γ Γ′ M A} →
+  Closedᵐ M →
+  Δ ∣ Σ ∣ Γ ⊢ M ⦂ A →
+  Δ ∣ Σ ∣ Γ′ ⊢ M ⦂ A
+closed-typing-recontextualize hM M⊢ =
+  typing-scoped-recontextualize hM (λ ()) M⊢
+
+refined-typing-scoped-recontextualize :
+  ∀ {k Δ Σ Γ Γ′ M A} →
+  Scopedᵐ k M →
+  ScopedCtxEmbeddingˣ k Γ Γ′ →
+  Refined._∣_∣_⊢_⦂_ Δ Σ Γ M A →
+  Refined._∣_∣_⊢_⦂_ Δ Σ Γ′ M A
+refined-typing-scoped-recontextualize
+    (scoped-` x<k) hΓ (Refined.⊢` h) =
+  Refined.⊢` (hΓ x<k h)
+refined-typing-scoped-recontextualize
+    (scoped-ƛ hM) hΓ (Refined.⊢ƛ hA M⊢) =
+  Refined.⊢ƛ hA
+    (refined-typing-scoped-recontextualize
+      hM (ScopedCtxEmbeddingˣ-ext hΓ) M⊢)
+refined-typing-scoped-recontextualize
+    (scoped-· hL hM) hΓ (Refined.⊢· L⊢ M⊢) =
+  Refined.⊢·
+    (refined-typing-scoped-recontextualize hL hΓ L⊢)
+    (refined-typing-scoped-recontextualize hM hΓ M⊢)
+refined-typing-scoped-recontextualize
+    (scoped-Λ hM) hΓ (Refined.⊢Λ vM M⊢) =
+  Refined.⊢Λ vM
+    (refined-typing-scoped-recontextualize
+      hM (ScopedCtxEmbeddingˣ-⤊ hΓ) M⊢)
+refined-typing-scoped-recontextualize
+    (scoped-• hV) hΓ
+    (Refined.⊢• {V = V} eqΔ eqΣ hC vV noV V⊢) =
+  Refined.⊢• eqΔ eqΣ hC vV noV
+    (refined-typing-scoped-recontextualize
+      (renameᵗᵐ-reflects-Scopedᵐ suc V hV) hΓ V⊢)
+refined-typing-scoped-recontextualize
+    (scoped-ν hL) hΓ (Refined.⊢ν↑ hA L⊢ c⊢) =
+  Refined.⊢ν↑ hA
+    (refined-typing-scoped-recontextualize hL hΓ L⊢) c⊢
+refined-typing-scoped-recontextualize
+    (scoped-ν hL) hΓ (Refined.⊢ν⊑ mode seal★ L⊢ c⊢) =
+  Refined.⊢ν⊑ mode seal★
+    (refined-typing-scoped-recontextualize hL hΓ L⊢) c⊢
+refined-typing-scoped-recontextualize
+    scoped-$ hΓ (Refined.⊢$ κ) =
+  Refined.⊢$ κ
+refined-typing-scoped-recontextualize
+    (scoped-⊕ hL hM) hΓ (Refined.⊢⊕ L⊢ op M⊢) =
+  Refined.⊢⊕
+    (refined-typing-scoped-recontextualize hL hΓ L⊢) op
+    (refined-typing-scoped-recontextualize hM hΓ M⊢)
+refined-typing-scoped-recontextualize
+    (scoped-⟨⟩ hM) hΓ (Refined.⊢⟨⟩↑ c⊢ M⊢) =
+  Refined.⊢⟨⟩↑ c⊢
+    (refined-typing-scoped-recontextualize hM hΓ M⊢)
+refined-typing-scoped-recontextualize
+    (scoped-⟨⟩ hM) hΓ (Refined.⊢⟨⟩↓ c⊢ M⊢) =
+  Refined.⊢⟨⟩↓ c⊢
+    (refined-typing-scoped-recontextualize hM hΓ M⊢)
+refined-typing-scoped-recontextualize
+    (scoped-⟨⟩ hM) hΓ
+    (Refined.⊢⟨⟩⊒ mode seal★ c⊢ M⊢) =
+  Refined.⊢⟨⟩⊒ mode seal★ c⊢
+    (refined-typing-scoped-recontextualize hM hΓ M⊢)
+refined-typing-scoped-recontextualize
+    (scoped-⟨⟩ hM) hΓ
+    (Refined.⊢⟨⟩⊑ mode seal★ c⊢ M⊢) =
+  Refined.⊢⟨⟩⊑ mode seal★ c⊢
+    (refined-typing-scoped-recontextualize hM hΓ M⊢)
+refined-typing-scoped-recontextualize
+    scoped-blame hΓ (Refined.⊢blame hA) =
+  Refined.⊢blame hA
+
+closed-refined-typing-recontextualize :
+  ∀ {Δ Σ Γ Γ′ M A} →
+  Closedᵐ M →
+  Refined._∣_∣_⊢_⦂_ Δ Σ Γ M A →
+  Refined._∣_∣_⊢_⦂_ Δ Σ Γ′ M A
+closed-refined-typing-recontextualize hM M⊢ =
+  refined-typing-scoped-recontextualize hM (λ ()) M⊢
+
+------------------------------------------------------------------------
 -- Renaming and substituting term variables
 ------------------------------------------------------------------------
 
@@ -849,6 +1352,16 @@ typing-renameˣ hρ (⊢⊕ hL op hM) =
 typing-renameˣ hρ (⊢⟨⟩ c⊢ hM) =
   ⊢⟨⟩ c⊢ (typing-renameˣ hρ hM)
 typing-renameˣ hρ (⊢blame hA) = ⊢blame hA
+
+typing-empty-recontextualize :
+  ∀ {Δ Σ Γ M A} →
+  Δ ∣ Σ ∣ [] ⊢ M ⦂ A →
+  Δ ∣ Σ ∣ Γ ⊢ M ⦂ A
+typing-empty-recontextualize {Γ = Γ} {M = M} M⊢ =
+  subst
+    (λ N → _ ∣ _ ∣ Γ ⊢ N ⦂ _)
+    (renameˣᵐ-id M)
+    (typing-renameˣ (λ ()) M⊢)
 
 typing-renameˣ-shift :
   ∀ {Δ Σ Γ M A B} →

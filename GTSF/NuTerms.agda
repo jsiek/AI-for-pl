@@ -1,5 +1,13 @@
 module NuTerms where
 
+-- File Charter:
+--   * Canonical syntax, values, runtime invariants, variable actions, and
+--     typing for Nu GTSF terms.
+--   * `Scopedᵐ` records the term-variable scope of raw syntax; `Closedᵐ` is
+--     its closed-term specialization.
+--   * Algebraic and typing properties belong in
+--     `proof.Core.Properties.NuTermProperties`.
+
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
@@ -33,6 +41,27 @@ data Term : Set where
   _⊕[_]_  : Term → Prim → Term → Term
   _⟨_⟩    : Term → Coercion → Term
   blame   : Term
+
+------------------------------------------------------------------------
+-- Term-variable scope
+------------------------------------------------------------------------
+
+data Scopedᵐ : ℕ → Term → Set where
+  scoped-` : ∀ {k x} → x < k → Scopedᵐ k (` x)
+  scoped-ƛ : ∀ {k M} → Scopedᵐ (suc k) M → Scopedᵐ k (ƛ M)
+  scoped-· : ∀ {k L M} →
+    Scopedᵐ k L → Scopedᵐ k M → Scopedᵐ k (L · M)
+  scoped-Λ : ∀ {k M} → Scopedᵐ k M → Scopedᵐ k (Λ M)
+  scoped-• : ∀ {k M} → Scopedᵐ k M → Scopedᵐ k (M •)
+  scoped-ν : ∀ {k A L c} → Scopedᵐ k L → Scopedᵐ k (ν A L c)
+  scoped-$ : ∀ {k κ} → Scopedᵐ k ($ κ)
+  scoped-⊕ : ∀ {k L op M} →
+    Scopedᵐ k L → Scopedᵐ k M → Scopedᵐ k (L ⊕[ op ] M)
+  scoped-⟨⟩ : ∀ {k M c} → Scopedᵐ k M → Scopedᵐ k (M ⟨ c ⟩)
+  scoped-blame : ∀ {k} → Scopedᵐ k blame
+
+Closedᵐ : Term → Set
+Closedᵐ = Scopedᵐ zero
 
 ------------------------------------------------------------------------
 -- Values

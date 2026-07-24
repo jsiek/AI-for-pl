@@ -88,11 +88,12 @@ paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
 paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
     cycle core inner view () (CV.reveal-unseal hX αX∈Σ ok)
 paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
-    cycle core {q = ν _ occ-q q-body} {r = ν _ occ-r r-body}
+    cycle core
+    {q = ν safe-q occ-q q-body} {r = ν safe-r occ-r r-body}
     inner view (s C.↦ t) (CV.reveal-fun s↓ t↑)
     prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
     conversion =
-  ⊥-elim (cycle occ-r conversion)
+  ⊥-elim (cycle {{safe = safe-r}} occ-r conversion)
 paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
     cycle core {q = ∀ⁱ q-body} {r = ∀ⁱ r-body}
     inner view (C.`∀ d) (CV.reveal-all reveal)
@@ -103,23 +104,25 @@ paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
     (paired-lambda-target-closing-paired-all-conversion-viewᵀ
       conversion)
 paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
-    cycle core {q = ∀ⁱ q-body} {r = ν _ occ-r r-body}
+    cycle core {q = ∀ⁱ q-body} {r = ν safe-r occ-r r-body}
     inner view (C.`∀ d) (CV.reveal-all reveal)
     prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
     conversion =
-  ⊥-elim (cycle occ-r conversion)
+  ⊥-elim (cycle {{safe = safe-r}} occ-r conversion)
 paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
-    cycle core {q = ν _ occ-q q-body} {r = ∀ⁱ r-body}
+    cycle core {q = ν safe-q occ-q q-body} {r = ∀ⁱ r-body}
     inner view (C.`∀ d) (CV.reveal-all reveal)
     prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
     conversion =
-  core inner view (target-reveal-all-ν∀ reveal)
+  core inner view
+    (target-reveal-all-ν∀ {{safe = safe-q}} reveal)
     prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
     (paired-lambda-target-closing-paired-all-conversion-viewᵀ
       conversion)
 paired-lambda-target-closing-frame-closing-target-reveal-proofᵀ
-    cycle core {q = ν _ occ-q q-body} {r = ν _ occ-r r-body}
+    cycle core
+    {q = ν safe-q occ-q q-body} {r = ν safe-r occ-r r-body}
     inner view (C.`∀ d) (CV.reveal-all reveal)
     prefix coherent exclusive wfL h⇑A final-reveal liftν lift∀
     conversion =
-  ⊥-elim (cycle occ-r conversion)
+  ⊥-elim (cycle {{safe = safe-r}} occ-r conversion)

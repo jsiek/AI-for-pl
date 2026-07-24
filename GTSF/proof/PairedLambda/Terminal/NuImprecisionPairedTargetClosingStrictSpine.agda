@@ -49,6 +49,10 @@ import
 import
   proof.PairedLambda.Continuation.Core.NuImprecisionPairedLambdaTargetClosingContinuationGenNuLeafDef
 import
+  proof.PairedLambda.Continuation.Core.NuImprecisionPairedLambdaTargetClosingContinuationGenGroundLeafDef
+import
+  proof.PairedLambda.Continuation.Core.NuImprecisionPairedLambdaTargetClosingContinuationGenGroundLeafProof
+import
   proof.PairedLambda.Continuation.Frames.NuImprecisionPairedLambdaTargetClosingContinuationUpGenLeafDef
 import
   proof.PairedLambda.Continuation.Frames.NuImprecisionPairedLambdaTargetClosingContinuationSourceGenFrameDef
@@ -177,6 +181,10 @@ import
 import
   proof.PairedLambda.Conversions.NuImprecisionPairedLambdaTargetClosingGenLeafNuConversionRotationProof
 import proof.PairedLambda.LambdaLeaves.NuLeaf.NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof
+import
+  proof.PairedLambda.LambdaLeaves.NuLeaf.NuImprecisionPairedLambdaTargetClosingGenGroundLeafClosingDef
+import
+  proof.PairedLambda.LambdaLeaves.NuLeaf.NuImprecisionPairedLambdaTargetClosingGenGroundLeafClosingProof
 import
   proof.PairedLambda.SourceFrames.SourceGen.NuImprecisionPairedLambdaTargetClosingSourceGenFrameCommutationDef
 import

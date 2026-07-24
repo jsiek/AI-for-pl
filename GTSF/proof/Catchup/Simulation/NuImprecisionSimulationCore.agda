@@ -228,6 +228,7 @@ open import PairedWideningCompatibility using
   ; compatible-target-inert-bridge
   )
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
+open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ
   ; rel-store-embedding-prefix-invⁱ
@@ -286,6 +287,7 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ; rename-assm²-swapLeft∀∀ᵢ
   ; rename-assm²-swapRight∀∀ᵢ
   ; rename-assm²-target-rightᵢ
+  ; ⊑-rename-at²ᵢ
   ; ⊑-renameᵗ²ᵢ
   ; ⊑-crossed-body-lift∀∀ᵢ
   ; ⊑-crossed-left-body-lift∀∀ᵢ
@@ -2106,20 +2108,6 @@ right-store-prefix-factorⁱ
     | ρ₀ᴿ , lift₀ , prefixᴿ =
   ρ₀ᴿ , lift₀ , prefix-∷ⁱ prefixᴿ
 
-⊑-rename-at²ᵢ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ A A′ B B′} →
-  (assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ) →
-  (hτ : TyRenameWf Δᴸ Θᴸ τ) →
-  (hσ : TyRenameWf Δᴿ Θᴿ σ) →
-  A′ ≡ renameᵗ τ A →
-  B′ ≡ renameᵗ σ B →
-  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
-  Ψ ∣ Θᴸ ⊢ A′ ⊑ B′ ⊣ Θᴿ
-⊑-rename-at²ᵢ assm hτ hσ eqA eqB p =
-  subst (λ T → _ ∣ _ ⊢ _ ⊑ T ⊣ _) (sym eqB)
-    (subst (λ T → _ ∣ _ ⊢ T ⊑ renameᵗ _ _ ⊣ _)
-      (sym eqA) (⊑-renameᵗ²ᵢ assm hτ hσ p))
-
 data RelStoreRenameⁱ
     {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
     (τ σ : Renameᵗ)
@@ -2400,25 +2388,6 @@ rel-store-rename-correspondenceⁱ renameρ
         rel-store-rename-link∈ⁱ renameρ p∈ in
   α′ , eqα , A′ , eqA , β′ , eqβ , B′ , eqB ,
   correspondence-linked p∈′
-
-data RelCtxRenameⁱ
-    {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    (τ σ : Renameᵗ)
-    (assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ)
-    (hτ : TyRenameWf Δᴸ Θᴸ τ)
-    (hσ : TyRenameWf Δᴿ Θᴿ σ) :
-    CtxImp Φ Δᴸ Δᴿ → CtxImp Ψ Θᴸ Θᴿ → Set₁ where
-  rel-ctx-rename-[] : RelCtxRenameⁱ τ σ assm hτ hσ [] []
-
-  rel-ctx-rename-∷ :
-    ∀ {γ γ′ A A′ B B′ p} →
-    (eqA : A′ ≡ renameᵗ τ A) →
-    (eqB : B′ ≡ renameᵗ σ B) →
-    RelCtxRenameⁱ τ σ assm hτ hσ γ γ′ →
-    RelCtxRenameⁱ τ σ assm hτ hσ
-      (ctx-imp A B p ∷ γ)
-      (ctx-imp A′ B′
-        (⊑-rename-at²ᵢ assm hτ hσ eqA eqB p) ∷ γ′)
 
 record RelWorldPermutationⁱ
     {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}

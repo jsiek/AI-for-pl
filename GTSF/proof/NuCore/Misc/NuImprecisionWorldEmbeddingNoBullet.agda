@@ -10,6 +10,8 @@ module proof.NuCore.Misc.NuImprecisionWorldEmbeddingNoBullet where
 
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Product using (_,_)
+open import Relation.Binary.PropositionalEquality using
+  (cong; sym; trans)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuTermImprecision using (CtxImp; StoreImp)
@@ -25,6 +27,8 @@ open import NuTerms using
   ; no•-⟨⟩
   ; no•-blame
   ; renameᵗᵐ
+  ; Λ_
+  ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
@@ -43,6 +47,7 @@ open import QuotientedTermImprecision using
   ; up⊑upᵀ
   ; x⊑xᵀ
   ; Λ⊑Λᵀ
+  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
@@ -65,8 +70,14 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
-open import Types using (renameᵗ)
+open import Types using (`∀; renameᵗ; ⇑ᵗ)
 open import proof.Core.Properties.CoercionProperties using (modeRename-id-only)
+open import proof.Core.Properties.NuTermProperties using
+  ( renameᵗᵐ-compose
+  ; renameᵗᵐ-preserves-Closedᵐ
+  ; renameᵗᵐ-preserves-No•
+  ; renameᵗᵐ-preserves-Value
+  )
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   (rename-assm²ᵢ; ⊑-renameᵗ²ᵢ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
@@ -80,6 +91,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; rel-world-conv⊑conv-embedᵀ
   ; rel-world-down-embedᵀ
   ; rel-world-embedding-ctx-∷ⁱ
+  ; rel-world-source-typing-embed
+  ; rel-world-target-typing-embed
   ; left-embedding-cast-renamer
   ; left-narrowing-rel-embed-mode
   ; left-seal-rel-embed
@@ -104,10 +117,18 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; right-embedding-cast-renamer
   ; right-narrowing-rel-embed-mode
   ; right-seal-rel-embed
+  ; store-embedding
   ; ⊑ᵖ-rename²ᵢ
   )
-open import proof.Core.Properties.TypeProperties using (TyRenameWf)
+open import proof.Core.Properties.TypeProperties using
+  (TyRenameWf; renameᵗ-compose)
 open import proof.Core.Properties.TypePreservation using (CastModeRenamer)
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelCtxRenameAlgebra
+  using (compose-rel-assm²ᵢ)
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra
+  using (rel-store-embedding-composeⁱ)
 
 mutual
   rel-world-embed-no•ᵀ :
@@ -178,6 +199,56 @@ mutual
       (no•-Λ noV) noN′
       | ρ′ν , γ′ν , liftρ′ , liftγ′ , body-emb , finish =
     finish (rel-world-embed-no•ᵀ body-emb V⊑N′ noV noN′)
+  rel-world-embed-no•ᵀ
+      {τ = υ} {σ = ω} {assm = assm₁}
+      {hτ = hυ} {hσ = hω} emb
+      (Λ⊑instβᵀ
+        {τ = τ} {σ = σ} {W = W} {W′ = W′}
+        {B = B} {D = D} {s = s}
+        prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm₀ hτ₀ hσ₀
+        store-emb₀ eqM eqM′ eqA eqA′ p
+        vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+      noM₀ noM′₀ =
+    Λ⊑instβᵀ
+      {τ = λ X → υ (τ X)} {σ = λ X → ω (σ X)}
+      prefix mode seal★ inst⊑ liftρ liftρᴿ
+      vW noW vW′ noW′ inert body f
+      (compose-rel-assm²ᵢ assm₀ assm₁)
+      (λ X< → hυ (hτ₀ X<))
+      (λ X< → hω (hσ₀ X<))
+      (rel-store-embedding-composeⁱ store-emb₀
+        (store-embedding emb))
+      eqM″ eqM′″ eqA″ eqA′″
+      (⊑-renameᵗ²ᵢ assm₁ hυ hω p)
+      (renameᵗᵐ-preserves-Value υ vM)
+      (renameᵗᵐ-preserves-No• υ noM)
+      (renameᵗᵐ-preserves-Closedᵐ υ closedM)
+      (renameᵗᵐ-preserves-Value ω vM′)
+      (renameᵗᵐ-preserves-No• ω noM′)
+      (renameᵗᵐ-preserves-Closedᵐ ω closedM′)
+      (rel-world-source-typing-embed emb noM M⊢)
+      (rel-world-target-typing-embed emb noM′ M′⊢)
+    where
+    eqM″ =
+      trans
+        (sym (renameᵗᵐ-compose τ υ (Λ W)))
+        (cong (renameᵗᵐ υ) eqM)
+
+    eqM′″ =
+      trans
+        (sym (renameᵗᵐ-compose σ ω (W′ ⟨ s ⟩)))
+        (cong (renameᵗᵐ ω) eqM′)
+
+    eqA″ =
+      trans
+        (sym (renameᵗ-compose τ υ (`∀ D)))
+        (cong (renameᵗ υ) eqA)
+
+    eqA′″ =
+      trans
+        (sym (renameᵗ-compose σ ω (⇑ᵗ B)))
+        (cong (renameᵗ ω) eqA′)
   rel-world-embed-no•ᵀ emb
       (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ L⊑L′ L⊢ L′⊢)
       () noM′

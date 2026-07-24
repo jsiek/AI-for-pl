@@ -79,7 +79,7 @@ no-source-only-closing-index :
     ∣ suc zero ⊢ `∀ (‵ `ℕ) ⊑ `∀ (`∀ (‵ `ℕ)) ⊣ zero) →
   ⊥
 no-source-only-closing-index (∀ⁱ ())
-no-source-only-closing-index (ν () q)
+no-source-only-closing-index (ν safe () q)
 
 
 no-source-only-closing-conclusion :

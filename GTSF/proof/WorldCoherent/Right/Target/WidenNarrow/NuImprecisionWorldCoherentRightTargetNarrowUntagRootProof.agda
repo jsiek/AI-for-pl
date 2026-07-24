@@ -7,8 +7,8 @@ module
 --     untag-root resume theorem.
 --   * Cancels the final target tag at the exact transported precision index,
 --     then appends the target-side `tag-untag-ok` step.
---   * Its flat cancellation parameter is separately refuted; this module
---     therefore has no canonical `Lemma` assembly.
+--   * Takes the reopened target-tag cancellation contract explicitly; its
+--     canonical assembly waits for the cancellation implementation.
 --   * Reuses the existing complete world-coherent right-value catch-up
 --     carrier and introduces no result, outcome, view, path, or alias.
 --   * Contains only total proof definitions and explicit clauses.

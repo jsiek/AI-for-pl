@@ -43,6 +43,7 @@ open import QuotientedTermImprecision using
   ; conv⊑convᵀ
   ; down⊑downᵀ
   ; gen-down⊑gen-downᵀ
+  ; gen⊑groundᵀ
   ; nu-term-imprecision-source-typing
   ; quotient-cast-widening
   ; quotient-id-widening
@@ -52,6 +53,7 @@ open import QuotientedTermImprecision using
   ; paired-widening
   ; up⊑upᵀ
   ; x⊑xᵀ
+  ; Λ⊑instβᵀ
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
@@ -178,6 +180,18 @@ mutual
       (leaf-ΛΛ liftρ liftγ vV noV vV′ noV′ V⊑V′)
       frame-refl
   paired-lambda-target-closing-frame-viewᵀ
+      vM₀ noM₀ vM₀′ noM₀′ allM
+      (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm hτ hσ
+        store-emb eqM eqM′ eqA eqA′ p
+        vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢) =
+    closing-frame-view
+      (leaf-instβ prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm hτ hσ
+        store-emb eqM eqM′ eqA eqA′ p
+        vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+      frame-refl
+  paired-lambda-target-closing-frame-viewᵀ
       (Λ vV) (no•-Λ noV) vN′ noN′
       (av-Λ refl) (Λ⊑ᵀ occ liftρ liftγ vR V⊑N′) =
     closing-frame-view
@@ -254,6 +268,14 @@ mutual
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
+      (gen⊑groundᵀ mode seal★ c⊒ gH vV vW W⊢ V⊑Wtag q) =
+    closing-frame-view
+      (leaf-gen-ground mode seal★ c⊒ gH
+        vV noM vW noM′ W⊢ V⊑Wtag q)
+      frame-refl
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
       (cast⊒⊑ᵀ {p = p} mode seal★
         (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
       with p
@@ -303,9 +325,11 @@ mutual
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
       (cast⊒⊑ᵀ mode seal★
-        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (ν _ occ-r r)) =
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (ν safe occ-r r)) =
     closing-frame-view
-      (leaf-gen-ν vM noM vM′ noM′ mode seal★
+      (leaf-gen-ν {{safe = safe}}
+        vM noM vM′ noM′ mode seal★
         hA occ c⊢ cⁿ M⊑M′ occ-r r)
       frame-refl
   paired-lambda-target-closing-frame-viewᵀ

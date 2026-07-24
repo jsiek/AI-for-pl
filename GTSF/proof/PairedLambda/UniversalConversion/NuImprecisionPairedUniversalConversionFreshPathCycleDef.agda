@@ -27,6 +27,7 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
+open import Imprecision using (NonVar)
 open import NuTermImprecision using (StoreImp)
 open import QuotientedTermImprecision using (PairedConversion)
 open import Types using (Ty; TyCtx; `∀; occurs)
@@ -37,6 +38,7 @@ PairedUniversalConversionFreshPathCycleᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {B B′ E C′ : Ty} {c c′ : Coercion}
+    {{safe : NonVar B}}
     {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
     {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
@@ -44,5 +46,5 @@ PairedUniversalConversionFreshPathCycleᵀ =
   (occ-r : occurs zero B ≡ true) →
   PairedConversion Φ Δᴸ Δᴿ ρ (C.`∀ c) c′
     {`∀ B} {B′} {`∀ (`∀ E)} {`∀ C′}
-    (ν _ occ-r r) (∀ⁱ s) →
+    (ν safe occ-r r) (∀ⁱ s) →
   ⊥

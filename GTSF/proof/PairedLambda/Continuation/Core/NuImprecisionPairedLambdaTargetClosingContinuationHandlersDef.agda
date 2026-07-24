@@ -3,13 +3,15 @@ module
   where
 
 -- File Charter:
---   * Defines the thirteen semantic handlers for the continuation-indexed
+--   * Defines the fifteen semantic handlers for the continuation-indexed
 --     paired-lambda target-closing motive.
---   * Preserves the four terminal leaves, the recursive source-gen frame,
+--   * Preserves the six terminal leaves, the recursive source-gen frame,
 --     four source-all frames, paired conversion, paired widening, and the
 --     two quotient frames from the frame-closing handler boundary.
 --   * Gives every non-leaf handler both the recursive continuation motive
 --     and the exact inner proof-relevant frame view.
+--   * Exposes the fused instantiation-beta leaf as an exact semantic
+--     capability; it does not assume an implementation.
 --   * Contains no continuation interpreter, implementation, postulate, hole,
 --     permissive option, or broad simulation import.
 
@@ -19,14 +21,17 @@ open import Coercions using
   ( Coercion
   ; Inert
   ; ModeEnv
+  ; _!
   ; genᵈ
   ; id-onlyᵈ
+  ; inst
   ; tag-or-idᵈ
   ; _∣_∣_⊢_∶_=⇒_
   )
 open import Conversion using (ConcealConversion; RevealConversion)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
+open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (suc; zero)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using
@@ -39,6 +44,7 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
+open import Imprecision using (NonVar; ⇑ᴿᵢ)
 import NarrowWiden as NW
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
@@ -49,45 +55,62 @@ open import NuTermImprecision using
   ; LiftCtxⁱ
   ; LiftLeftCtxⁱ
   ; LiftLeftStoreⁱ
+  ; LiftRightStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
+  ; store-right
   )
 open import NuTerms using
-  ( No•
+  ( Closedᵐ
+  ; No•
   ; Term
   ; Value
   ; Λ_
   ; _⟨_⟩
+  ; renameᵗᵐ
   )
 open import PairedWideningCompatibility using
   (PairedWideningCompatible)
 open import QuotientedTermImprecision using
   ( PairedConversion
   ; QuotientWideningPair
+  ; StoreImpPrefix
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using
   ( CastMode
   ; SealModeStore★
+  ; _∣_∣_⊢_⦂_
   )
 open import Types using
-  ( Ty
+  ( Ground
+  ; Renameᵗ
+  ; Ty
   ; TyCtx
   ; TyVar
   ; WfTy
+  ; renameᵗ
+  ; wf★
+  ; ★
   ; `∀
   ; occurs
   ; ⇑ᵗ
   ; ⟰ᵗ
   )
+open import proof.Core.Properties.TypeProperties using (TyRenameWf)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (rename-assm²ᵢ)
 open import
   proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameViewDef
   using (PairedLambdaTargetClosingFrameView)
 open import
   proof.PairedLambda.Terminal.NuImprecisionPairedLambdaTargetClosingPendingTargetFramesDef
   using (PairedLambdaTargetClosingFrameClosingMotiveᴷ)
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
+  using (RelStoreEmbeddingⁱ)
 
 
 record PairedLambdaTargetClosingContinuationHandlers : Set₁ where
@@ -123,6 +146,7 @@ record PairedLambdaTargetClosingContinuationHandlers : Set₁ where
           {V N′ : Term} {A B : Ty}
           {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
             ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+      {{safe : NonVar A}} →
       (occ : occurs zero A ≡ true) →
       LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
       LiftLeftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
@@ -133,7 +157,57 @@ record PairedLambdaTargetClosingContinuationHandlers : Set₁ where
         ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ γ′
         ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B ∶ p →
       PairedLambdaTargetClosingFrameClosingMotiveᴷ ρ
-        (Λ V) N′ A B (ν _ occ p)
+        (Λ V) N′ A B (ν safe occ p)
+
+    handle-leaf-instβ :
+        ∀ {Φ Φ₀ : ImpCtx} {Δᴸ Δᴿ Θᴸ Θᴿ : TyCtx}
+          {ρ : StoreImp Φ Δᴸ Δᴿ}
+          {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
+          {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+            (suc Θᴸ) (suc Θᴿ)}
+          {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
+          {τ σ : Renameᵗ}
+          {W W′ M M′ : Term}
+          {A′ B C D F : Ty}
+          {s : Coercion} {μ : ModeEnv} {r} →
+      StoreImpPrefix ρ₀ ρ⁺ →
+      CastMode μ →
+      SealModeStore★ μ (rightStoreⁱ ρ₀) →
+      μ ∣ Θᴿ ∣ rightStoreⁱ ρ₀
+        ⊢ inst B s ∶ `∀ C ⊑ B →
+      LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀) ρ₀ ρ∀ →
+      LiftRightStoreⁱ (⇑ᴿᵢ Φ₀) ρ⁺ ρᴿ⁺ →
+      Value W →
+      No• W →
+      Value W′ →
+      No• W′ →
+      Inert s →
+      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+        ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
+        ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
+      (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ) →
+      (assm :
+        ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
+          rename-assm²ᵢ τ σ a ∈ Φ) →
+      (hτ : TyRenameWf Θᴸ Δᴸ τ) →
+      (hσ : TyRenameWf (suc Θᴿ) Δᴿ σ) →
+      RelStoreEmbeddingⁱ τ σ
+        (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ →
+      renameᵗᵐ τ (Λ W) ≡ M →
+      renameᵗᵐ σ (W′ ⟨ s ⟩) ≡ M′ →
+      renameᵗ τ (`∀ D) ≡ `∀ F →
+      renameᵗ σ (⇑ᵗ B) ≡ A′ →
+      (p : Φ ∣ Δᴸ ⊢ `∀ F ⊑ A′ ⊣ Δᴿ) →
+      Value M →
+      No• M →
+      Closedᵐ M →
+      Value M′ →
+      No• M′ →
+      Closedᵐ M′ →
+      Δᴸ ∣ leftStoreⁱ ρ ∣ [] ⊢ M ⦂ `∀ F →
+      Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ M′ ⦂ A′ →
+      PairedLambdaTargetClosingFrameClosingMotiveᴷ ρ
+        M M′ F A′ p
 
     handle-leaf-gen-ν :
         ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -143,6 +217,7 @@ record PairedLambdaTargetClosingContinuationHandlers : Set₁ where
           {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
             ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
           {c : Coercion} {μ : ModeEnv} →
+      {{safe : NonVar B}} →
       Value V → No• V →
       Value N′ → No• N′ →
       CastMode μ →
@@ -151,12 +226,32 @@ record PairedLambdaTargetClosingContinuationHandlers : Set₁ where
       (occ : occurs zero B ≡ true) →
       genᵈ μ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ)
         ⊢ c ∶ ⇑ᵗ A =⇒ B →
-      NW.Narrowing c →
+      NW.GenSafe c →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
         ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B′ ∶ q →
       (occ-r : occurs zero B ≡ true) →
       PairedLambdaTargetClosingFrameClosingMotiveᴷ ρ
-        (V ⟨ C.gen A c ⟩) N′ B B′ (ν _ occ-r r)
+        (V ⟨ C.gen A c ⟩) N′ B B′ (ν safe occ-r r)
+
+    handle-leaf-gen-ground :
+        ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+          {ρ : StoreImp Φ Δᴸ Δᴿ}
+          {V W : Term} {A B H : Ty}
+          {p : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ}
+          {c : Coercion} {μ : ModeEnv} →
+      CastMode μ →
+      SealModeStore★ μ (leftStoreⁱ ρ) →
+      μ ∣ Δᴸ ∣ leftStoreⁱ ρ
+        ⊢ C.gen A c ∶ A ⊒ `∀ B →
+      Ground H →
+      Value V → No• V →
+      Value W → No• W →
+      Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ W ⦂ H →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+        ⊢ᴺ V ⊑ W ⟨ H ! ⟩ ⦂ A ⊑ ★ ∶ p →
+      (q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ H ⊣ Δᴿ) →
+      PairedLambdaTargetClosingFrameClosingMotiveᴷ ρ
+        (V ⟨ C.gen A c ⟩) W B H q
 
     handle-leaf-up-gen :
         ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -199,7 +294,7 @@ record PairedLambdaTargetClosingContinuationHandlers : Set₁ where
       (occ : occurs zero B ≡ true) →
       genᵈ μ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ)
         ⊢ c ∶ ⇑ᵗ (`∀ F) =⇒ B →
-      NW.Narrowing c →
+      NW.GenSafe c →
       PairedLambdaTargetClosingFrameClosingMotiveᴷ ρ
         (V ⟨ C.gen (`∀ F) c ⟩) N′ B (`∀ B′) (∀ⁱ r)
 

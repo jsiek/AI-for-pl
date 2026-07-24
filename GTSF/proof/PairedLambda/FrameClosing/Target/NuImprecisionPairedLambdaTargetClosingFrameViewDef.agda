@@ -17,14 +17,17 @@ open import Coercions using
   ( Coercion
   ; Inert
   ; ModeEnv
+  ; _!
   ; genᵈ
   ; id-onlyᵈ
+  ; inst
   ; tag-or-idᵈ
   ; _∣_∣_⊢_∶_=⇒_
   )
 open import Conversion using (ConcealConversion; RevealConversion)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
+open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (suc; zero)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using
@@ -37,6 +40,7 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
+open import Imprecision using (NonVar; ⇑ᴿᵢ)
 import NarrowWiden as NW
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
@@ -47,17 +51,21 @@ open import NuTermImprecision using
   ; LiftCtxⁱ
   ; LiftLeftCtxⁱ
   ; LiftLeftStoreⁱ
+  ; LiftRightStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
+  ; store-right
   )
 open import NuTerms using
-  ( No•
+  ( Closedᵐ
+  ; No•
   ; Term
   ; Value
   ; Λ_
   ; _⟨_⟩
+  ; renameᵗᵐ
   )
 open import QuotientedTermImprecision using
   ( PairedCast
@@ -70,10 +78,21 @@ open import TermTyping using
   ; SealModeStore★
   ; _∣_∣_⊢_⦂_
   )
+open import proof.Core.Properties.TypeProperties using (TyRenameWf)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (rename-assm²ᵢ)
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
+  using (RelStoreEmbeddingⁱ)
 open import Types using
-  ( Ty
+  ( Ground
+  ; Renameᵗ
+  ; Ty
   ; TyCtx
   ; WfTy
+  ; renameᵗ
+  ; wf★
+  ; ★
   ; `∀
   ; occurs
   ; ⇑ᵗ
@@ -103,6 +122,7 @@ data PairedLambdaTargetClosingLeaf
 
   leaf-Λ :
       ∀ {ρ ρ′ γ′ V N′ A B p} →
+    {{safe : NonVar A}} →
     (occ : occurs zero A ≡ true) →
     LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
     LiftLeftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
@@ -113,10 +133,58 @@ data PairedLambdaTargetClosingLeaf
       ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ γ′
       ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B ∶ p →
     PairedLambdaTargetClosingLeaf ρ
-      (Λ V) N′ (`∀ A) B (ν _ occ p)
+      (Λ V) N′ (`∀ A) B (ν safe occ p)
+
+  leaf-instβ :
+      ∀ {Φ₀ Θᴸ Θᴿ}
+        {ρ : StoreImp Φ Δᴸ Δᴿ}
+        {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
+        {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+          (suc Θᴸ) (suc Θᴿ)}
+        {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
+        {τ σ : Renameᵗ}
+        {W W′ M M′ A A′ B C D s μ r} →
+    StoreImpPrefix ρ₀ ρ⁺ →
+    CastMode μ →
+    SealModeStore★ μ (rightStoreⁱ ρ₀) →
+    μ ∣ Θᴿ ∣ rightStoreⁱ ρ₀
+      ⊢ inst B s ∶ `∀ C ⊑ B →
+    LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀) ρ₀ ρ∀ →
+    LiftRightStoreⁱ (⇑ᴿᵢ Φ₀) ρ⁺ ρᴿ⁺ →
+    Value W →
+    No• W →
+    Value W′ →
+    No• W′ →
+    Inert s →
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+      ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
+      ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
+    (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ) →
+    (assm :
+      ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
+        rename-assm²ᵢ τ σ a ∈ Φ) →
+    (hτ : TyRenameWf Θᴸ Δᴸ τ) →
+    (hσ : TyRenameWf (suc Θᴿ) Δᴿ σ) →
+    RelStoreEmbeddingⁱ τ σ
+      (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ →
+    renameᵗᵐ τ (Λ W) ≡ M →
+    renameᵗᵐ σ (W′ ⟨ s ⟩) ≡ M′ →
+    renameᵗ τ (`∀ D) ≡ A →
+    renameᵗ σ (⇑ᵗ B) ≡ A′ →
+    (p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ) →
+    Value M →
+    No• M →
+    Closedᵐ M →
+    Value M′ →
+    No• M′ →
+    Closedᵐ M′ →
+    Δᴸ ∣ leftStoreⁱ ρ ∣ [] ⊢ M ⦂ A →
+    Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ M′ ⦂ A′ →
+    PairedLambdaTargetClosingLeaf ρ M M′ A A′ p
 
   leaf-gen-ν :
       ∀ {ρ V N′ A B B′ q c μ} →
+    {{safe : NonVar B}} →
     Value V → No• V →
     Value N′ → No• N′ →
     CastMode μ →
@@ -125,14 +193,29 @@ data PairedLambdaTargetClosingLeaf
     (occ : occurs zero B ≡ true) →
     genᵈ μ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ)
       ⊢ c ∶ ⇑ᵗ A =⇒ B →
-    (cⁿ : NW.Narrowing c) →
+    (cⁿ : NW.GenSafe c) →
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
       ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B′ ∶ q →
     (occ-r : occurs zero B ≡ true) →
     (r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
     PairedLambdaTargetClosingLeaf ρ
-      (V ⟨ C.gen A c ⟩) N′ (`∀ B) B′ (ν _ occ-r r)
+      (V ⟨ C.gen A c ⟩) N′ (`∀ B) B′ (ν safe occ-r r)
+
+  leaf-gen-ground :
+      ∀ {ρ V W A B H p c μ} →
+    CastMode μ →
+    SealModeStore★ μ (leftStoreⁱ ρ) →
+    μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ C.gen A c ∶ A ⊒ `∀ B →
+    Ground H →
+    Value V → No• V →
+    Value W → No• W →
+    Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ W ⦂ H →
+    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+      ⊢ᴺ V ⊑ W ⟨ H ! ⟩ ⦂ A ⊑ ★ ∶ p →
+    (q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ H ⊣ Δᴿ) →
+    PairedLambdaTargetClosingLeaf ρ
+      (V ⟨ C.gen A c ⟩) W (`∀ B) H q
 
   leaf-up-gen :
       ∀ {ρ M M′ X C′ D D′ B B′ pC
@@ -233,7 +316,7 @@ data PairedLambdaTargetClosingFrames
     (occ : occurs zero B ≡ true) →
     genᵈ μ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ)
       ⊢ c ∶ ⇑ᵗ (`∀ F) =⇒ B →
-    NW.Narrowing c →
+    NW.GenSafe c →
     (r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ suc Δᴿ) →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p

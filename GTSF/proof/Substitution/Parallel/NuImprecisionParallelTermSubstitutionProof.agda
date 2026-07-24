@@ -12,6 +12,7 @@ open import Data.List using (_∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
+open import Relation.Binary.PropositionalEquality using (subst; sym; trans)
 
 open import Coercions using (id-onlyᵈ)
 open import Conversion using
@@ -24,9 +25,11 @@ open import NuTermImprecision using
   ; rightStoreⁱ
   )
 open import NuTerms using
-  ( No•
+  ( Closedᵐ
+  ; No•
   ; Substˣ
   ; Term
+  ; Value
   ; no•-`
   ; no•-$
   ; no•-ƛ
@@ -57,6 +60,7 @@ open import QuotientedTermImprecision using
   ; x⊑xᵀ
   ; ƛ⊑ƛᵀ
   ; Λ⊑Λᵀ
+  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; ·⊑·ᵀ
   ; α⊑αᵀ
@@ -121,7 +125,10 @@ open import proof.Substitution.Term.NuImprecisionSubstitutionFrame using
   ; substitution-frame-Λ-left
   )
 open import proof.Core.Properties.NuTermProperties using
-  (substˣᵐ-preserves-Value)
+  ( closed-refined-typing-recontextualize
+  ; subst-closedᵐ
+  ; substˣᵐ-preserves-Value
+  )
 open import proof.Core.Properties.StoreProperties using (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypePreservation using
   (seal★-weaken; term-weaken; typing-substˣ)
@@ -209,6 +216,59 @@ mutual
         environment
         (substitution-frame-Λ-left frame liftρ⁺ liftγ liftδ)
         prefix↑ noV noN′ body)
+
+  quotiented-parallel-term-substitution-framed-proofᵀ
+      environment frame prefix noM noM′
+      (Λ⊑instβᵀ
+        inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm hτ hσ store-emb
+        eqM eqM′ eqA eqA′ p
+        vM noM₀ closedM vM′ noM′₀ closedM′ M⊢ M′⊢)
+      with subst-closedᵐ closedM _
+         | subst-closedᵐ closedM′ _
+  quotiented-parallel-term-substitution-framed-proofᵀ
+      environment frame prefix noM noM′
+      (Λ⊑instβᵀ
+        inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm hτ hσ store-emb
+        eqM eqM′ eqA eqA′ p
+        vM noM₀ closedM vM′ noM′₀ closedM′ M⊢ M′⊢)
+      | eqζM | eqζ′M′ =
+    allocation-prefixᵀ prefix
+      (Λ⊑instβᵀ
+        inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm hτ hσ store-emb
+        (trans eqM (sym eqζM))
+        (trans eqM′ (sym eqζ′M′))
+        eqA eqA′ p
+        (subst Value (sym eqζM) vM)
+        (subst No• (sym eqζM) noM₀)
+        (subst Closedᵐ (sym eqζM) closedM)
+        (subst Value (sym eqζ′M′) vM′)
+        (subst No• (sym eqζ′M′) noM′₀)
+        (subst Closedᵐ (sym eqζ′M′) closedM′)
+        (subst
+          (λ N → _ ∣ _ ∣ _ ⊢ N ⦂ _)
+          (sym eqζM)
+          (closed-refined-typing-recontextualize closedM M⊢))
+        (subst
+          (λ N → _ ∣ _ ∣ _ ⊢ N ⦂ _)
+          (sym eqζ′M′)
+          (closed-refined-typing-recontextualize closedM′ M′⊢)))
+      (term-weaken ≤-refl
+        (leftStoreⁱ-prefix-inclusion prefix)
+        (subst No• (sym eqζM) noM₀)
+        (subst
+          (λ N → _ ∣ _ ∣ _ ⊢ N ⦂ _)
+          (sym eqζM)
+          (closed-refined-typing-recontextualize closedM M⊢)))
+      (term-weaken ≤-refl
+        (rightStoreⁱ-prefix-inclusion prefix)
+        (subst No• (sym eqζ′M′) noM′₀)
+        (subst
+          (λ N → _ ∣ _ ∣ _ ⊢ N ⦂ _)
+          (sym eqζ′M′)
+          (closed-refined-typing-recontextualize closedM′ M′⊢)))
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix () noN′

@@ -74,7 +74,7 @@ paired-lambda-target-closing-source-gen-frame-closing-proofᵀ :
   (occ : occurs zero B ≡ true) →
   genᵈ μ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ)
     ⊢ c ∶ ⇑ᵗ (`∀ F) =⇒ B →
-  NW.Narrowing c →
+  NW.GenSafe c →
   PairedLambdaTargetClosingFrameClosingMotive ρ
     (V ⟨ C.gen (`∀ F) c ⟩) N′ B (`∀ B′) (∀ⁱ r)
 paired-lambda-target-closing-source-gen-frame-closing-proofᵀ

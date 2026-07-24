@@ -5,13 +5,20 @@ module proof.Target.Administration.NuImprecisionTargetAdministrationMeasureDef w
 --     allocation, and target-bullet normalization.
 --   * Charges sequence structure twice and pending frames once so every
 --     administrative root has a strict decrease.
+--   * States generic strict descent from a nonempty pending list to its tail.
+--   * States strict rank growth when an inert cast is absorbed into a value.
+--   * States the exact three-successor descent from a paired `Λ` allocation
+--     boundary to its inert residual continuation.
+--   * States rank invariance when a right allocation shifts every pending
+--     coercion under the new target-store binder.
 --   * Contains no semantic recursion, theorem proof, postulate, hole, or
 --     permissive option.
 
-open import Data.List using (List; []; _∷_; length)
-open import Data.Nat using (ℕ; _+_; _*_; suc; zero)
+open import Agda.Builtin.Equality using (_≡_)
+open import Data.List using (List; []; _∷_; length; map)
+open import Data.Nat using (ℕ; _+_; _*_; _<_; suc; zero)
 
-open import Coercions using (Coercion; sizeᶜ)
+open import Coercions using (Coercion; Inert; sizeᶜ; ⇑ᶜ)
 open import NuTerms using (Term; Value; ƛ_; Λ_; $; _⟨_⟩)
 
 
@@ -46,3 +53,41 @@ targetNuAdministrationRank :
 targetNuAdministrationRank vV c cs =
   2 * (valueAdministrationWeight vV + castAdministrationWeight c +
     pendingCastAdministrationWeight cs) + suc (length cs) + 1
+
+
+TargetPendingAdministrationTailDecreaseᵀ : Set
+TargetPendingAdministrationTailDecreaseᵀ =
+  ∀ {V} (vV : Value V) c cs →
+  targetPendingAdministrationRank vV cs <
+    targetPendingAdministrationRank vV (c ∷ cs)
+
+
+TargetInertValueAdministrationIncreaseᵀ : Set
+TargetInertValueAdministrationIncreaseᵀ =
+  ∀ {V c} (vV : Value V) (inert-c : Inert c) cs →
+  targetPendingAdministrationRank vV cs <
+    targetPendingAdministrationRank (vV ⟨ inert-c ⟩) cs
+
+
+TargetPairedLambdaAllocationContinuationRankDecreaseᵀ : Set
+TargetPairedLambdaAllocationContinuationRankDecreaseᵀ =
+  ∀ {V c} (vV : Value V) (inert-c : Inert c) cs →
+  targetPendingAdministrationRank (Λ vV) (c ∷ cs) ≡
+    suc (suc (suc
+      (targetPendingAdministrationRank (vV ⟨ inert-c ⟩) cs)))
+
+
+TargetPendingAdministrationShiftMapRankInvariantᵀ : Set
+TargetPendingAdministrationShiftMapRankInvariantᵀ =
+  ∀ {V} (vV : Value V) cs →
+  targetPendingAdministrationRank vV (map ⇑ᶜ cs) ≡
+    targetPendingAdministrationRank vV cs
+
+
+TargetPairedLambdaRightAllocationContinuationRankDecreaseᵀ : Set
+TargetPairedLambdaRightAllocationContinuationRankDecreaseᵀ =
+  ∀ {V c} (vV : Value V) (inert-c : Inert c) cs →
+  targetPendingAdministrationRank (Λ vV) (c ∷ cs) ≡
+    suc (suc (suc
+      (targetPendingAdministrationRank
+        (vV ⟨ inert-c ⟩) (map ⇑ᶜ cs))))

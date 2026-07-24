@@ -57,7 +57,12 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
 open import proof.Substitution.Term.NuImprecisionTermContextShiftDef using
   (QuotientedTermContextShiftᵀ)
 open import proof.Core.Properties.NuTermProperties using
-  (RenameWf; renameˣᵐ-preserves-No•; renameˣᵐ-preserves-Value)
+  ( closed-refined-typing-recontextualize
+  ; RenameWf
+  ; rename-closedᵐ
+  ; renameˣᵐ-preserves-No•
+  ; renameˣᵐ-preserves-Value
+  )
 open import proof.Core.Properties.TypePreservation using (typing-renameˣ)
 
 
@@ -234,6 +239,24 @@ private
       Λ⊑ᵀ occ liftρ liftδ
         (renameˣᵐ-preserves-Value _ vV)
         (term-ctx-insert-no•ᵀ insert↑ V⊑N′ noV noN′)
+    term-ctx-insert-no•ᵀ {η = ζ} insert
+        (Λ⊑instβᵀ
+          {τ = τ} {σ = σ}
+          prefix mode seal★ inst⊑ liftρ liftρᴿ
+          vW noW vW′ noW′ inert W⊑W′ f
+          assm hτ hσ store-emb M≡ M′≡ A≡ A′≡ p
+          vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+        noM₀ noM′₀
+        rewrite rename-closedᵐ closedM ζ
+              | rename-closedᵐ closedM′ ζ =
+      Λ⊑instβᵀ
+        prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert W⊑W′ f
+        assm hτ hσ store-emb M≡ M′≡
+        A≡ A′≡ p
+        vM noM closedM vM′ noM′ closedM′
+        (closed-refined-typing-recontextualize closedM M⊢)
+        (closed-refined-typing-recontextualize closedM′ M′⊢)
     term-ctx-insert-no•ᵀ insert
         (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ
           L⊑L′ L⊢ L′⊢)

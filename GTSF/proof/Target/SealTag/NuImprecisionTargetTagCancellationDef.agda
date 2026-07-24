@@ -4,8 +4,8 @@ module proof.Target.SealTag.NuImprecisionTargetTagCancellationDef where
 --   * Defines cancellation of one terminal target ground tag.
 --   * Returns equality of the discovered tag label with the requested ground
 --     type and the ordinary relation at the requested precision index.
---   * Retained as a refuted generalized boundary: a source `gen` can be
---     related to a target carrying a different ground tag.
+--   * Reopened after the repaired `GenSafe` grammar invalidated the former
+--     source-`gen` mismatch witness.
 --   * Contains no implementation, result carrier, or simulation dependency.
 
 open import Agda.Builtin.Equality using (_≡_)

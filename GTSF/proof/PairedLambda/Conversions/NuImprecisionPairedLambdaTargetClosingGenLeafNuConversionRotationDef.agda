@@ -34,6 +34,7 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
+open import Imprecision using (NonVar)
 import NarrowWiden as NW
 open import NuTermImprecision using
   ( LiftLeftStoreⁱ
@@ -78,6 +79,7 @@ PairedLambdaTargetClosingGenLeafNuConversionRotationᵀ =
     {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       (suc Δᴸ) (suc Δᴿ)}
     {V N′ : Term} {A B B′ Aν E C′ : Ty}
+    {{safe : NonVar B}}
     {q₀ : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
     {g c c′ : Coercion} {μ₀ : ModeEnv}
     {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
@@ -91,7 +93,7 @@ PairedLambdaTargetClosingGenLeafNuConversionRotationᵀ =
   (occ-g : occurs zero B ≡ true) →
   genᵈ μ₀ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ₀)
     ⊢ g ∶ ⇑ᵗ A =⇒ B →
-  NW.Narrowing g →
+  NW.GenSafe g →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B′ ∶ q₀ →
   (occ-r : occurs zero B ≡ true) →
@@ -102,7 +104,7 @@ PairedLambdaTargetClosingGenLeafNuConversionRotationᵀ =
   LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ∀ →
   PairedConversion Φ Δᴸ Δᴿ ρ (C.`∀ c) c′
     {`∀ B} {B′} {`∀ (`∀ E)} {`∀ C′}
-    (ν _ occ-r r) (∀ⁱ s) →
+    (ν safe occ-r r) (∀ⁱ s) →
   ∃[ u ]
     (((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ∣ Δᴿ ∣

@@ -21,6 +21,7 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ; ν
   )
+open import Imprecision using (NonVar)
 open import NuTermImprecision using (StoreImp)
 open import NuTerms using (No•; Term; Value)
 open import QuotientedTermImprecision using
@@ -36,12 +37,13 @@ PairedLambdaTargetClosingNuTerminalᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {W W′ : Term} {F B′ : Ty}
+    {{safe : NonVar F}}
     {occ : occurs zero F ≡ true}
     {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ F ⊑ B′ ⊣ Δᴿ} →
   Value W → No• W →
   Value W′ → No• W′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ W ⊑ W′ ⦂ `∀ F ⊑ B′ ∶ ν _ occ r →
+    ⊢ᴺ W ⊑ W′ ⦂ `∀ F ⊑ B′ ∶ ν safe occ r →
   PairedLambdaTargetClosingFrameClosingMotive
-    ρ W W′ F B′ (ν _ occ r)
+    ρ W W′ F B′ (ν safe occ r)

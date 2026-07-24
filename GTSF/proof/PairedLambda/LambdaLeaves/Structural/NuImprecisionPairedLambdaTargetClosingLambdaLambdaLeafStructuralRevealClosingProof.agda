@@ -61,7 +61,7 @@ paired-lambda-target-closing-lambda-lambda-leaf-structural-reveal-closing-proof�
 paired-lambda-target-closing-lambda-lambda-leaf-structural-reveal-closing-proofᵀ
     all-reveal matched-unseal {r = idˣ (there match∈) α< β<}
     liftΛ liftγ
-    vV noV vV′ noV′ V⊑V′ {X = `∀ F} {q = ν _ occ body}
+    vV noV vV′ noV′ V⊑V′ {X = `∀ F} {q = ν safe occ body}
     prefix coherent exclusive wfL h⇑Aν final-reveal liftν lift∀ corr
     (reveal-unseal hX αX∈Σ ok)
     (reveal-id-var hY ok′) =
@@ -70,12 +70,12 @@ paired-lambda-target-closing-lambda-lambda-leaf-structural-reveal-closing-proof�
     all-reveal matched-unseal {r = idˣ (there match∈) α< β<}
     liftΛ liftγ
     vV noV vV′ noV′ V⊑V′ {X = `∀ F} {p = p}
-    {q = ν _ occ body}
+    {q = ν safe occ body}
     prefix coherent exclusive wfL h⇑Aν final-reveal liftν lift∀ corr
     source-reveal@(reveal-unseal hX αX∈Σ ok)
     target-reveal@(reveal-unseal hX′ βX′∈Σ ok′) =
   matched-unseal liftΛ liftγ vV noV vV′ noV′ V⊑V′ {p = p}
-    {q = ν _ occ body}
+    {q = ν safe occ body}
     prefix coherent exclusive wfL h⇑Aν final-reveal liftν lift∀ corr
     source-reveal target-reveal
 paired-lambda-target-closing-lambda-lambda-leaf-structural-reveal-closing-proofᵀ

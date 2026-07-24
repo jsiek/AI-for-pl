@@ -42,12 +42,13 @@ open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   ; rel-store-embedding-matched
   ; rel-store-embedding-right
   )
+open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef using
+  (rel-ctx-rename-[])
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( RelWorldEmbeddingⁱ
   ; castModeRenamer-id
   ; nu-term-imprecision-transport-termsᵀ
   ; nu-term-imprecision-transport-typesᵀ
-  ; rel-ctx-rename-[]
   ; rel-world-embedding
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using

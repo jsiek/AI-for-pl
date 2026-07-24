@@ -68,10 +68,14 @@ open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   ; rel-store-embedding-matched
   ; rel-store-embedding-right
   )
+open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef using
+  ( RelCtxRenameⁱ
+  ; rel-ctx-rename-[]
+  ; rel-ctx-rename-∷
+  )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( LeftCtxRenameⁱ
   ; LeftStoreRenameⁱ
-  ; RelCtxRenameⁱ
   ; left-ctx-rename-[]
   ; left-ctx-rename-∷
   ; left-insertion-suc
@@ -80,13 +84,13 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-store-rename-link
   ; left-store-rename-matched
   ; left-store-rename-right
-  ; rel-ctx-rename-[]
-  ; rel-ctx-rename-∷
   ; rel-world-embedding
-  ; ⊑-rename-at²ᵢ
   ; ⊑-rename-left-atᵢ
   ; ⊑-rename-leftᵢ
   )
+open import
+  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  using (⊑-rename-at²ᵢ)
 open import proof.Substitution.Term.NuImprecisionSubstitutionEnvironmentTypeLiftDef using
   ( QuotientedSubstitutionEnvironmentLeftTypeLiftᵀ
   ; QuotientedSubstitutionEnvironmentPairedTypeLiftᵀ

@@ -102,7 +102,7 @@ PairedLambdaTargetClosingSourceGenFrameStructuralRevealClosingCoreᵀ =
   (occ-B : occurs zero B ≡ true) →
   genᵈ μ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ₀)
     ⊢ g ∶ ⇑ᵗ (`∀ F) =⇒ B →
-  NW.Narrowing g →
+  NW.GenSafe g →
   PairedLambdaTargetClosingFrameClosingMotive ρ₀
     V N′ F (`∀ B′) q →
   StoreImpPrefix ρ₀ ρ →

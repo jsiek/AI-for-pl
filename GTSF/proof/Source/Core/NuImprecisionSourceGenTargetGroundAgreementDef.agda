@@ -5,8 +5,9 @@ module proof.Source.Core.NuImprecisionSourceGenTargetGroundAgreementDef where
 --     terminal source `gen` value.
 --   * Connects the ground label stored by the target tag to the requested
 --     ground endpoint of the source universal.
---   * Retained as a refuted boundary: the mismatch counterexample shows that
---     the current unrestricted QTI does not imply this agreement.
+--   * Retained as a refuted boundary: the repaired strict counterexample shows
+--     that the current contract lacks the source-value premise needed to
+--     exclude an active source untag around the target tag.
 --   * Contains no implementation, simulation result, view, or outcome.
 
 open import Agda.Builtin.Equality using (_≡_)

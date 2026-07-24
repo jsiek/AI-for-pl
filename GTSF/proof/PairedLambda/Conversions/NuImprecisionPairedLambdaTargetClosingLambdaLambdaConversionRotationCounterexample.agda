@@ -143,7 +143,7 @@ no-lambda-lambda-rotation-index :
     ∣ suc (suc zero) ⊢ `∀ Nat ⊑ `∀ (`∀ Nat) ⊣ suc zero) →
   ⊥
 no-lambda-lambda-rotation-index (∀ⁱ ())
-no-lambda-lambda-rotation-index (ν () q)
+no-lambda-lambda-rotation-index (ν nonvar () q)
 
 
 paired-lambda-target-closing-lambda-lambda-rotation-counterexample :

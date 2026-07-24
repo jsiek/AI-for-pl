@@ -5,21 +5,34 @@ module proof.Target.Administration.NuImprecisionTargetAdministrationMeasureProof
 --     measure.
 --   * Exposes strictly oriented rank-decrease equations for pending sequence,
 --     inert absorption, instantiation, and target `ν` administration.
+--   * Combines the `Λ`-bullet and inert-head equations into the exact ranked
+--     continuation step used after direct paired-lambda target allocation.
+--   * Proves that shifting every pending coercion through a right allocation
+--     preserves the target-administration rank.
+--   * Proves that removing any pending-list head strictly decreases the rank.
+--   * Proves strict rank growth when an inert cast is absorbed into a value.
 --   * Depends only on coercion sizes, target measure definitions, and
 --     standard-library natural-number arithmetic.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using (_∷_; length)
-open import Data.Nat using (suc; zero; _+_)
+open import Data.List using ([]; _∷_; length; map)
+open import Data.Nat using (s≤s; suc; zero; _+_; _*_)
+open import Data.Nat.Properties using (m≤m+n)
 open import Data.Nat.Solver using (module +-*-Solver)
+open import Relation.Binary.PropositionalEquality using (cong; sym; trans)
 
 import Coercions as C
 open import Coercions using
   (Coercion; Inert; _︔_; `∀; gen; inst; renameᶜ; sizeᶜ;
-   sizeᶜ-renameᶜ)
+   sizeᶜ-renameᶜ; sizeᶜ-⇑ᶜ; ⇑ᶜ)
 open import NuTerms using (Value; ƛ_; Λ_; $; _⟨_⟩)
 open import proof.Target.Administration.NuImprecisionTargetAdministrationMeasureDef using
-  ( castAdministrationWeight; valueAdministrationWeight
+  ( TargetInertValueAdministrationIncreaseᵀ
+  ; TargetPairedLambdaAllocationContinuationRankDecreaseᵀ
+  ; TargetPairedLambdaRightAllocationContinuationRankDecreaseᵀ
+  ; TargetPendingAdministrationTailDecreaseᵀ
+  ; TargetPendingAdministrationShiftMapRankInvariantᵀ
+  ; castAdministrationWeight; valueAdministrationWeight
   ; pendingCastAdministrationWeight; targetPendingAdministrationRank
   ; targetNuAdministrationRank
   )
@@ -139,6 +152,74 @@ value-administration-weight-gen {A = A} vV c
     (valueAdministrationWeight vV)
     (castAdministrationWeight c)
 
+
+private
+  target-pending-administration-cons-rank :
+    ∀ {V} (vV : Value V) c cs →
+    targetPendingAdministrationRank vV (c ∷ cs) ≡
+      suc
+        (targetPendingAdministrationRank vV cs +
+          2 * castAdministrationWeight c)
+  target-pending-administration-cons-rank vV c cs =
+    solve 4
+      (λ w q p l →
+        (con 2 :* (w :+ (q :+ p))) :+ (con 1 :+ l)
+        :=ᵉ
+        con 1 :+
+          (((con 2 :* (w :+ p)) :+ l) :+
+            (con 2 :* q)))
+      refl
+      (valueAdministrationWeight vV)
+      (castAdministrationWeight c)
+      (pendingCastAdministrationWeight cs)
+      (length cs)
+
+
+target-pending-administration-tail-decrease-proofᵀ :
+  TargetPendingAdministrationTailDecreaseᵀ
+target-pending-administration-tail-decrease-proofᵀ vV c cs
+    rewrite target-pending-administration-cons-rank vV c cs =
+  s≤s
+    (m≤m+n
+      (targetPendingAdministrationRank vV cs)
+      (2 * castAdministrationWeight c))
+
+
+private
+  target-inert-value-administration-rank :
+    ∀ {V c} (vV : Value V) (inert-c : Inert c) cs →
+    targetPendingAdministrationRank (vV ⟨ inert-c ⟩) cs ≡
+      suc
+        (targetPendingAdministrationRank vV cs +
+          suc (4 * sizeᶜ c))
+  target-inert-value-administration-rank {c = c} vV inert-c cs =
+    solve 4
+      (λ w a p l →
+        (con 2 :*
+          ((w :+ (con 1 :+ (con 2 :* a))) :+ p)) :+ l
+        :=ᵉ
+        con 1 :+
+          (((con 2 :* (w :+ p)) :+ l) :+
+            (con 1 :+ (con 4 :* a))))
+      refl
+      (valueAdministrationWeight vV)
+      (sizeᶜ c)
+      (pendingCastAdministrationWeight cs)
+      (length cs)
+
+
+target-inert-value-administration-increase-proofᵀ :
+  TargetInertValueAdministrationIncreaseᵀ
+target-inert-value-administration-increase-proofᵀ
+    {c = c} vV inert-c cs
+    rewrite
+      target-inert-value-administration-rank vV inert-c cs =
+  s≤s
+    (m≤m+n
+      (targetPendingAdministrationRank vV cs)
+      (suc (4 * sizeᶜ c)))
+
+
 target-sequence-rank-decreases :
   ∀ {V} (vV : Value V) s t cs →
   targetPendingAdministrationRank vV ((s ︔ t) ∷ cs) ≡
@@ -232,6 +313,71 @@ target-Λ-bullet-rank-decreases vV cs
     (valueAdministrationWeight vV)
     (pendingCastAdministrationWeight cs)
     (length cs)
+
+
+private
+  target-pending-administration-rank-rename :
+    ∀ (ρ : Renameᵗ) {V} (vV : Value V) cs →
+    targetPendingAdministrationRank
+      (renameᵗᵐ-preserves-Value ρ vV) cs ≡
+      targetPendingAdministrationRank vV cs
+  target-pending-administration-rank-rename ρ vV cs
+      rewrite value-administration-weight-rename ρ vV =
+    refl
+
+
+target-paired-lambda-allocation-continuation-rank-decrease-proofᵀ :
+  TargetPairedLambdaAllocationContinuationRankDecreaseᵀ
+target-paired-lambda-allocation-continuation-rank-decrease-proofᵀ
+    {c = c} vV inert-c cs =
+  trans
+    (target-Λ-bullet-rank-decreases vV (c ∷ cs))
+    (cong suc
+      (cong suc
+        (trans
+          (target-pending-administration-rank-rename
+            (singleRenameᵗ zero) vV (c ∷ cs))
+          (target-inert-rank-decreases vV inert-c cs))))
+
+
+private
+  pending-cast-administration-weight-shift-map :
+    ∀ cs →
+    pendingCastAdministrationWeight (map ⇑ᶜ cs) ≡
+      pendingCastAdministrationWeight cs
+  pending-cast-administration-weight-shift-map [] = refl
+  pending-cast-administration-weight-shift-map (c ∷ cs)
+      rewrite sizeᶜ-⇑ᶜ c
+            | pending-cast-administration-weight-shift-map cs =
+    refl
+
+  length-shift-map :
+    ∀ cs → length (map ⇑ᶜ cs) ≡ length cs
+  length-shift-map [] = refl
+  length-shift-map (c ∷ cs) rewrite length-shift-map cs = refl
+
+
+target-pending-administration-shift-map-rank-invariant-proofᵀ :
+  TargetPendingAdministrationShiftMapRankInvariantᵀ
+target-pending-administration-shift-map-rank-invariant-proofᵀ vV cs
+    rewrite pending-cast-administration-weight-shift-map cs
+          | length-shift-map cs =
+  refl
+
+
+target-paired-lambda-right-allocation-continuation-rank-decrease-proofᵀ :
+  TargetPairedLambdaRightAllocationContinuationRankDecreaseᵀ
+target-paired-lambda-right-allocation-continuation-rank-decrease-proofᵀ
+    vV inert-c cs =
+  trans
+    (target-paired-lambda-allocation-continuation-rank-decrease-proofᵀ
+      vV inert-c cs)
+    (cong suc
+      (cong suc
+        (cong suc
+          (sym
+            (target-pending-administration-shift-map-rank-invariant-proofᵀ
+              (vV ⟨ inert-c ⟩) cs)))))
 
 
 target-all-bullet-rank-decreases :

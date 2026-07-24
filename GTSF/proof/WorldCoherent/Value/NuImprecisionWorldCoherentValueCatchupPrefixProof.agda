@@ -323,6 +323,20 @@ world-coherent-left-value-catchup-prefix-proofᵀ
     coherent exclusive wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
+    prefix coherent exclusive wfL okN vV′ noV′
+    rel@(Λ⊑instβᵀ prefix₀ mode seal★ inst⊑ liftρ liftρᴿ
+      vW noW vW′ noW′ inert body f assm hτ hσ embedding
+      source-eq target-eq source-type-eq target-type-eq p
+      final-v final-no final-closed final-v′ final-no′ final-closed′
+      source-typing target-typing) =
+  world-coherent-left-indexed-catchup
+    (left-catchup-indexed-prefix-valueᵀ
+      prefix okN final-v final-no′ rel)
+    (weak-step-store-lineage _
+      rel-store-embedding-reflⁱ prefix-reflⁱ)
+    coherent exclusive wfL
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
     prefix coherent exclusive wfL okN () noV′
     (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ
       L⊑L′ L•⊢ L′•⊢)

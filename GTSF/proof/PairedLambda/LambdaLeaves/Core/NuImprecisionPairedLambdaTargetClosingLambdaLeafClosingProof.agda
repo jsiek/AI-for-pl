@@ -29,6 +29,7 @@ open import ImprecisionWf using
   ; ν
   ; ⊑-src-wf
   )
+open import Imprecision using (NonVar)
 open import NuTermImprecision using
   ( CtxImp
   ; LiftLeftCtxⁱ
@@ -127,6 +128,7 @@ paired-lambda-target-closing-lambda-leaf-handler-proofᵀ :
     {γ′ : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       (suc Δᴸ) Δᴿ}
     {V N′ : Term} {A B : Ty}
+    {{safe : NonVar A}}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   (occ : occurs zero A ≡ true) →
@@ -139,7 +141,7 @@ paired-lambda-target-closing-lambda-leaf-handler-proofᵀ :
     ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B ∶ p →
   PairedLambdaTargetClosingFrameClosingMotive ρ
-    (Λ V) N′ A B (ν _ occ p)
+    (Λ V) N′ A B (ν safe occ p)
 paired-lambda-target-closing-lambda-leaf-handler-proofᵀ
     rotate occ liftΛ liftγ vV noV vN′ noN′ V⊑N′
     prefix coherent exclusive wfL h⇑Aν reveal liftν lift∀ conversion =

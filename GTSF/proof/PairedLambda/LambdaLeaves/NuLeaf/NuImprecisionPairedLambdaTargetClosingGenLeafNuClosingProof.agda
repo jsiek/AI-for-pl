@@ -29,6 +29,7 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ; ν
   )
+open import Imprecision using (NonVar)
 import NarrowWiden as NW
 open import NuTermImprecision using (StoreImp; leftStoreⁱ)
 open import NuTerms using (No•; Term; Value; _⟨_⟩)
@@ -60,6 +61,7 @@ paired-lambda-target-closing-gen-leaf-ν-closing-proofᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {V N′ : Term} {A B B′ : Ty}
+    {{safe : NonVar B}}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
     {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
@@ -72,12 +74,12 @@ paired-lambda-target-closing-gen-leaf-ν-closing-proofᵀ :
   (occ : occurs zero B ≡ true) →
   genᵈ μ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ)
     ⊢ c ∶ ⇑ᵗ A =⇒ B →
-  NW.Narrowing c →
+  NW.GenSafe c →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B′ ∶ q →
   (occ-r : occurs zero B ≡ true) →
   PairedLambdaTargetClosingFrameClosingMotive ρ
-    (V ⟨ C.gen A c ⟩) N′ B B′ (ν _ occ-r r)
+    (V ⟨ C.gen A c ⟩) N′ B B′ (ν safe occ-r r)
 paired-lambda-target-closing-gen-leaf-ν-closing-proofᵀ
     rotation {r = r} vV noV vN′ noN′ mode seal★ hA occ-g
     g⊢ gⁿ V⊑N′ occ-r

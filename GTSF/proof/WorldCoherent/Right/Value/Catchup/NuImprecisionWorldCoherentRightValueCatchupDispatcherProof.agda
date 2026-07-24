@@ -39,6 +39,7 @@ open import QuotientedTermImprecision using
   ; α⊑ᵀ
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
+  ; Λ⊑instβᵀ
   ; νcast⊑νcastᵀ
   ; νcast⊑ᵀ
   ; ν⊑νᵀ
@@ -157,6 +158,16 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
     (Λ⊑ᵀ occ liftρ lift-left-ctx-[] vV V⊑N′) =
   rightValueSourceAllClosingCase cases prefix coherent exclusive unique wfR
     okN′ vV noW liftρ lift-left-ctx-[] V⊑N′
+world-coherent-right-value-catchup-dispatcher-proofᵀ
+    cases prefix coherent exclusive unique wfR okW′
+    vV noV
+    rel@(Λ⊑instβᵀ prefix₀ mode seal★ inst⊑ liftρ liftρᴿ
+      vW noW vW′ noW′ inert body f assm hτ hσ embedding
+      source-eq target-eq source-type-eq target-type-eq p
+      final-v final-no final-closed final-v′ final-no′ final-closed′
+      source-typing target-typing) =
+  rightValueTerminalCase cases prefix coherent exclusive unique wfR
+    vV noV final-v′ final-no′ rel
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
     (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ

@@ -77,6 +77,6 @@ PairedLambdaTargetClosingContinuationSourceGenFrameᵀ =
   (occ : occurs zero B ≡ true) →
   genᵈ μ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ)
     ⊢ c ∶ ⇑ᵗ (`∀ F) =⇒ B →
-  NW.Narrowing c →
+  NW.GenSafe c →
   PairedLambdaTargetClosingFrameClosingMotiveᴷ ρ
     (V ⟨ C.gen (`∀ F) c ⟩) N′ B (`∀ B′) (∀ⁱ r)

@@ -362,6 +362,20 @@ rename-assm²-★⇑ᵢ h {a = suc X ˣ⊑ˣ suc Y} (there a∈) =
       hσ
       p)
 
+⊑-rename-at²ᵢ :
+  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ A A′ B B′} →
+  (assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ) →
+  (hτ : TyRenameWf Δᴸ Θᴸ τ) →
+  (hσ : TyRenameWf Δᴿ Θᴿ σ) →
+  A′ ≡ renameᵗ τ A →
+  B′ ≡ renameᵗ σ B →
+  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
+  Ψ ∣ Θᴸ ⊢ A′ ⊑ B′ ⊣ Θᴿ
+⊑-rename-at²ᵢ assm hτ hσ eqA eqB p =
+  subst (λ T → _ ∣ _ ⊢ _ ⊑ T ⊣ _) (sym eqB)
+    (subst (λ T → _ ∣ _ ⊢ T ⊑ renameᵗ _ _ ⊣ _)
+      (sym eqA) (⊑-renameᵗ²ᵢ assm hτ hσ p))
+
 rename-assm²-source-νᵢ :
   ∀ {Φ a} →
   a ∈ Φ →

@@ -27,6 +27,7 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
+open import Imprecision using (NonVar)
 open import NuTermImprecision using
   ( LiftLeftStoreⁱ
   ; StoreImp
@@ -42,6 +43,7 @@ PairedLambdaTargetClosingNuPairedConversionRotationᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {Aν B B′ E C′ : Ty} {c c′ : Coercion}
+    {{safe : NonVar B}}
     {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
     {s : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
@@ -51,7 +53,7 @@ PairedLambdaTargetClosingNuPairedConversionRotationᵀ =
   (occ-r : occurs zero B ≡ true) →
   PairedConversion Φ Δᴸ Δᴿ ρ (C.`∀ c) c′
     {`∀ B} {B′} {`∀ (`∀ E)} {`∀ C′}
-    (ν _ occ-r r) (∀ⁱ s) →
+    (ν safe occ-r r) (∀ⁱ s) →
   ∃[ u ]
     PairedConversion
       ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ

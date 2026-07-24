@@ -19,6 +19,7 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ; ν
   )
+open import Imprecision using (NonVar)
 open import NuTermImprecision using
   ( CtxImp
   ; LiftLeftCtxⁱ
@@ -52,6 +53,7 @@ PairedLambdaTargetClosingContinuationLambdaLeafᵀ =
     {γ′ : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       (suc Δᴸ) Δᴿ}
     {V N′ : Term} {A B : Ty}
+    {{safe : NonVar A}}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   (occ : occurs zero A ≡ true) →
@@ -64,4 +66,4 @@ PairedLambdaTargetClosingContinuationLambdaLeafᵀ =
     ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B ∶ p →
   PairedLambdaTargetClosingFrameClosingMotiveᴷ ρ
-    (Λ V) N′ A B (ν _ occ p)
+    (Λ V) N′ A B (ν safe occ p)

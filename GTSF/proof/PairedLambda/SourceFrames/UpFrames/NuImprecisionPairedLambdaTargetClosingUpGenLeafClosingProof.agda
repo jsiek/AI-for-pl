@@ -102,13 +102,13 @@ paired-lambda-target-closing-up-gen-leaf-closing-proofᵀ
 paired-lambda-target-closing-up-gen-leaf-closing-proofᵀ
     rotate all-closing {X = X} {d = d} {d′ = d′} {u = u} {u′ = u′}
     vM noM vM′ noM′ inert-d′ inert-u′ d⊒ d′⊒ M⊑M′
-    qD widening (ν _ occ-r r)
+    qD widening (ν safe occ-r r)
     prefix h⇑A reveal liftν lift∀ conversion
-    with rotate h⇑A liftν occ-r conversion
+    with rotate {{safe = safe}} h⇑A liftν occ-r conversion
 paired-lambda-target-closing-up-gen-leaf-closing-proofᵀ
     rotate all-closing {X = X} {d = d} {d′ = d′} {u = u} {u′ = u′}
     vM noM vM′ noM′ inert-d′ inert-u′ d⊒ d′⊒ M⊑M′
-    qD widening (ν _ occ-r r)
+    qD widening (ν safe occ-r r)
     prefix h⇑A reveal liftν lift∀ conversion
     | s , rotated-conversion =
   conv↑⊑ᵀ (reveal-all reveal)
@@ -128,7 +128,7 @@ paired-lambda-target-closing-up-gen-leaf-closing-proofᵀ
     gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ qD
 
   endpoint-relation₀ =
-    up⊑upᵀ quotient-relation widening (ν _ occ-r r)
+    up⊑upᵀ quotient-relation widening (ν safe occ-r r)
 
   endpoint-relation =
     allocation-prefixᵀ prefix endpoint-relation₀
@@ -153,7 +153,7 @@ paired-lambda-target-closing-up-gen-leaf-closing-proofᵀ
       (nu-term-imprecision-target-typing endpoint-relation)
 
   bullet-relation =
-    α⊑ᵀ source-value source-no-bullet h⇑A liftν
+    α⊑ᵀ {{safe = safe}} source-value source-no-bullet h⇑A liftν
       lift-left-ctx-[] endpoint-relation source-bullet-typing target-typing
 
 

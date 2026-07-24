@@ -4,13 +4,15 @@ module
 
 -- File Charter:
 --   * Interprets a proof-relevant paired-lambda target-closing frame view.
---   * Delegates the thirteen semantic cases to an explicit handler record and
+--   * Delegates the fifteen semantic cases to an explicit handler record and
 --     all five target-only cases to one shared target-frame capability.
 --   * Carries the original leaf through frame recursion and reconstructs the
 --     exact inner frame view at every non-leaf semantic boundary.
+--   * Refines the fused leaf's source equality before dispatching its handler.
 --   * Handles reflexivity and store-prefix composition structurally.
 --   * Contains no canonical assembly, postulate, hole, or permissive option.
 
+open import Agda.Builtin.Equality using (refl)
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
@@ -36,7 +38,9 @@ open import
   ; handle-frame-paired-widening
   ; handle-frame-up-gen-all
   ; handle-frame-up-id
+  ; handle-leaf-gen-ground
   ; handle-leaf-gen-ν
+  ; handle-leaf-instβ
   ; handle-leaf-up-gen
   ; handle-leaf-Λ
   ; handle-leaf-ΛΛ
@@ -64,7 +68,9 @@ open import proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTarg
   ; frame-⊑cast⊑id
   ; frame-⊑conv↑
   ; frame-⊑conv↓
+  ; leaf-gen-ground
   ; leaf-gen-ν
+  ; leaf-instβ
   ; leaf-up-gen
   ; leaf-Λ
   ; leaf-ΛΛ
@@ -234,6 +240,21 @@ interpret-paired-lambda-target-closing-view handlers target-frame
     frames
 interpret-paired-lambda-target-closing-view handlers target-frame
     (closing-frame-view
+      leaf@(leaf-instβ prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm hτ hσ
+        store-emb eqM eqM′ refl eqA′ p
+        vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+      frames) =
+  interpret-paired-lambda-target-closing-frames handlers target-frame
+    leaf
+    (handle-leaf-instβ handlers
+      prefix mode seal★ inst⊑ liftρ liftρᴿ
+      vW noW vW′ noW′ inert body f assm hτ hσ
+      store-emb eqM eqM′ refl eqA′ p
+      vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+    frames
+interpret-paired-lambda-target-closing-view handlers target-frame
+    (closing-frame-view
       leaf@(leaf-gen-ν vV noV vN′ noN′ mode seal★ hA occ-g c= cⁿ
         V⊑N′ occ-r r)
       frames) =
@@ -241,6 +262,16 @@ interpret-paired-lambda-target-closing-view handlers target-frame
     leaf
     (handle-leaf-gen-ν handlers
       vV noV vN′ noN′ mode seal★ hA occ-g c= cⁿ V⊑N′ occ-r)
+    frames
+interpret-paired-lambda-target-closing-view handlers target-frame
+    (closing-frame-view
+      leaf@(leaf-gen-ground mode seal★ c⊒ gH
+        vV noV vW noW W⊢ V⊑Wtag q)
+      frames) =
+  interpret-paired-lambda-target-closing-frames handlers target-frame
+    leaf
+    (handle-leaf-gen-ground handlers
+      mode seal★ c⊒ gH vV noV vW noW W⊢ V⊑Wtag q)
     frames
 interpret-paired-lambda-target-closing-view handlers target-frame
     (closing-frame-view

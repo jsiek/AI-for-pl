@@ -7,6 +7,7 @@ module proof.OneStep.NuImprecisionAtomicTargetReindex where
 --     it does not assume proof irrelevance.
 --   * Supplies the strict support theorem for target identity conversions.
 
+open import Data.Empty using (⊥-elim)
 open import ImprecisionWf using
   (_∣_⊢_⊑_⊣_; idι; ν)
 open import NuTermImprecision using
@@ -29,6 +30,7 @@ open import QuotientedTermImprecision using
   ; up⊑upᵀ
   ; x⊑xᵀ
   ; Λ⊑Λᵀ
+  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
@@ -51,6 +53,9 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Atom)
+open import
+  proof.OneStep.NuImprecisionLambdaInstBetaFinalTargetAtomicImpossibleLemma
+  using (lambda-inst-beta-final-target-atomic-impossibleᵀ)
 
 
 paired-cast-target-reindexᵀ :
@@ -99,6 +104,15 @@ atomic-target-value-reindexᵀ atom vV
     (ν safe′ occ′ q) =
   Λ⊑ᵀ {{safe = safe′}} occ′ liftρ liftγ vW
     (atomic-target-value-reindexᵀ atom vV W⊑V q)
+atomic-target-value-reindexᵀ atom vV
+    (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
+      vW noW vW′ noW′ inert W⊑W′ f
+      assm hτ hσ store-emb M≡ M′≡ A≡ A′≡ p
+      vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+    p′ =
+  ⊥-elim
+    (lambda-inst-beta-final-target-atomic-impossibleᵀ
+      inst⊑ A′≡ atom)
 atomic-target-value-reindexᵀ atom ()
     (α⊑αᵀ vL noL vL′ noL′ p↑ liftρ liftγ
       L⊑L′ L•⊢ L′•⊢) q

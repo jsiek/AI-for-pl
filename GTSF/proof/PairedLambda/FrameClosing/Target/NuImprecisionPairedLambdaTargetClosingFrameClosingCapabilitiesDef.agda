@@ -6,10 +6,72 @@ module
 --   * Bundles the exact semantic capabilities required by the paired-lambda
 --     target-closing frame-closing assembly.
 --   * Gives upper assemblies one explicit dependency boundary while retaining
---     the independently checkable statements of all twenty-one capabilities.
+--     the independently checkable statements of all twenty-two capabilities.
+--   * Keeps the fused instantiation-beta capability fully inline instead of
+--     naming an unproved semantic theorem boundary.
 --   * Contains no proofs, postulates, holes, permissive options, or imports of
 --     proof implementations.
 
+open import Agda.Builtin.Equality using (_≡_)
+open import Coercions using
+  ( Coercion
+  ; Inert
+  ; ModeEnv
+  ; inst
+  )
+open import Data.List using ([]; _∷_)
+open import Data.List.Membership.Propositional using (_∈_)
+open import Data.Nat using (suc; zero)
+open import Imprecision using (⇑ᴿᵢ)
+open import ImprecisionWf using
+  ( ImpCtx
+  ; _ˣ⊑ˣ_
+  ; ⇑ᵢ
+  ; _∣_⊢_⊑_⊣_
+  )
+open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
+open import NuTermImprecision using
+  ( LiftRightStoreⁱ
+  ; LiftStoreⁱ
+  ; StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  ; store-right
+  )
+open import NuTerms using
+  ( Closedᵐ
+  ; No•
+  ; Term
+  ; Value
+  ; Λ_
+  ; _⟨_⟩
+  ; renameᵗᵐ
+  )
+open import QuotientedTermImprecision using
+  ( StoreImpPrefix
+  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
+  )
+open import TermTyping using
+  ( CastMode
+  ; SealModeStore★
+  ; _∣_∣_⊢_⦂_
+  )
+open import Types using
+  ( Renameᵗ
+  ; Ty
+  ; TyCtx
+  ; renameᵗ
+  ; wf★
+  ; ★
+  ; `∀
+  ; ⇑ᵗ
+  )
+open import proof.Core.Properties.TypeProperties using (TyRenameWf)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (rename-assm²ᵢ)
+open import
+  proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef
+  using (PairedLambdaTargetClosingFrameClosingMotive)
 open import
   proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameCasesDef
   using
@@ -74,10 +136,63 @@ open import
   ( PairedUniversalConversionFreshPathTargetStructuralConcealHalfSquareᵀ
   ; PairedUniversalConversionFreshPathTargetStructuralRevealHalfSquareᵀ
   )
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
+  using (RelStoreEmbeddingⁱ)
 
 
 record PairedLambdaTargetClosingFrameClosingCapabilities : Set₁ where
   field
+    cap-inst-beta :
+        ∀ {Φ Φ₀ : ImpCtx} {Δᴸ Δᴿ Θᴸ Θᴿ : TyCtx}
+          {ρ : StoreImp Φ Δᴸ Δᴿ}
+          {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
+          {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+            (suc Θᴸ) (suc Θᴿ)}
+          {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
+          {τ σ : Renameᵗ}
+          {W W′ M M′ : Term}
+          {A′ B C D F : Ty}
+          {s : Coercion} {μ : ModeEnv} {r} →
+      StoreImpPrefix ρ₀ ρ⁺ →
+      CastMode μ →
+      SealModeStore★ μ (rightStoreⁱ ρ₀) →
+      μ ∣ Θᴿ ∣ rightStoreⁱ ρ₀
+        ⊢ inst B s ∶ `∀ C ⊑ B →
+      LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀) ρ₀ ρ∀ →
+      LiftRightStoreⁱ (⇑ᴿᵢ Φ₀) ρ⁺ ρᴿ⁺ →
+      Value W →
+      No• W →
+      Value W′ →
+      No• W′ →
+      Inert s →
+      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+        ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
+        ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
+      (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ) →
+      (assm :
+        ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
+          rename-assm²ᵢ τ σ a ∈ Φ) →
+      (hτ : TyRenameWf Θᴸ Δᴸ τ) →
+      (hσ : TyRenameWf (suc Θᴿ) Δᴿ σ) →
+      RelStoreEmbeddingⁱ τ σ
+        (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ →
+      renameᵗᵐ τ (Λ W) ≡ M →
+      renameᵗᵐ σ (W′ ⟨ s ⟩) ≡ M′ →
+      renameᵗ τ (`∀ D) ≡ `∀ F →
+      renameᵗ σ (⇑ᵗ B) ≡ A′ →
+      (p : Φ ∣ Δᴸ ⊢ `∀ F ⊑ A′ ⊣ Δᴿ) →
+      Value M →
+      No• M →
+      Closedᵐ M →
+      Value M′ →
+      No• M′ →
+      Closedᵐ M′ →
+      Δᴸ ∣ leftStoreⁱ ρ ∣ [] ⊢ M ⦂ `∀ F →
+      Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ M′ ⦂ A′ →
+      PairedLambdaTargetClosingFrameClosingMotive ρ
+        M M′ F A′ p
+
     cap-fresh-path-target-structural-reveal-half-square :
       PairedUniversalConversionFreshPathTargetStructuralRevealHalfSquareᵀ
     cap-fresh-path-target-structural-conceal-half-square :

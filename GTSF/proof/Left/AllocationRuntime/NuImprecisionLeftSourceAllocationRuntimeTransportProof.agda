@@ -84,6 +84,7 @@ open import QuotientedTermImprecision using
   ; ·⊑·ᵀ
   ; up⊑upᵀ
   ; Λ⊑Λᵀ
+  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
@@ -696,6 +697,16 @@ mutual
           V⊑N′ noV runtime)
   left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ
+      rel@(Λ⊑instβᵀ
+        prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm hτ hσ store-emb
+        eqM eqM′ eqA eqA′ p vM final-noM closedM
+        vM′ final-noM′ closedM′ M⊢ M′⊢)
+      noM runtime =
+    left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
+      noM final-noM′ rel
+  left-source-runtimeᵀ-generic rename-no-bullet ins
+      renameρ renameγ
       (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ
         L⊑L′ L•⊢ L′•⊢) () runtime
   left-source-runtimeᵀ-generic rename-no-bullet ins
@@ -1160,6 +1171,16 @@ private
       noM runtime =
     left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
       renameρ renameγ rel noM runtime
+  left-source-allocation-runtime-rootᵀ rename-no-bullet
+      renameρ renameγ
+      rel@(Λ⊑instβᵀ
+        prefix mode seal★ inst⊑ liftρ liftρᴿ
+        vW noW vW′ noW′ inert body f assm hτ hσ store-emb
+        eqM eqM′ eqA eqA′ p vM final-noM closedM
+        vM′ final-noM′ closedM′ M⊢ M′⊢)
+      noM runtime =
+    left-source-runtimeᵀ-generic rename-no-bullet
+      left-insertion-suc renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet
       renameρ renameγ
       rel@(α⊑αᵀ vL noL vL′ noL′ p↑ liftρ liftγ

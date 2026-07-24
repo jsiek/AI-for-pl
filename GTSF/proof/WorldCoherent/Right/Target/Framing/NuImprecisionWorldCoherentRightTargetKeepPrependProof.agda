@@ -62,6 +62,7 @@ private
       ; transportType = transportType result
       ; transportAllBody = transportAllBody result
       ; transportRightBody = transportRightBody result
+      ; transportSourceNu = transportSourceNu result
       ; resultType = resultType result
       ; sourceCatchup = sourceCatchup result
       ; targetTail = ↠-step target→ (targetTail result)

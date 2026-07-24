@@ -45,6 +45,8 @@ weak-one-step-keep-source-catchupᵀ source→ result =
     ; transportType = λ p → p
     ; transportAllBody = λ p → p
     ; transportRightBody = λ p → p
+    ; transportSourceNu = λ safe occ q →
+        source-nu-index safe occ q refl
     ; resultType = _
     ; sourceCatchup = ↠-step source→ ↠-refl
     ; targetTail = ↠-refl
@@ -106,6 +108,7 @@ weak-one-step-prepend-source-keepᵀ source→ second =
     ; transportType = transportType second
     ; transportAllBody = transportAllBody second
     ; transportRightBody = transportRightBody second
+    ; transportSourceNu = transportSourceNu second
     ; resultType = resultType second
     ; sourceCatchup = ↠-step source→ (sourceCatchup second)
     ; targetTail = targetTail second

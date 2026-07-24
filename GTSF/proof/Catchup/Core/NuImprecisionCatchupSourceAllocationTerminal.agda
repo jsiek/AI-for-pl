@@ -11,13 +11,15 @@ module proof.Catchup.Core.NuImprecisionCatchupSourceAllocationTerminal where
 --   * Depends only on the quotiented precision judgment and the stable weak
 --     simulation core.
 
-open import Agda.Builtin.Equality using (refl)
+open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 
-open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
+open import ImprecisionWf using
+  (NonVar; _ˣ⊑★; ⇑ᴸᵢ; _∣_⊢_⊑_⊣_; ν)
 open import Coercions using (instᵈ)
 open import Conversion using (RevealConversion; weaken-reveal-conversion)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
@@ -27,7 +29,7 @@ open import NuTerms using (No•; Value; ok-no; ok-ν; ν)
 open import NuTermImprecision using (StoreImp; leftStoreⁱ)
 open import QuotientedTermImprecision using (StoreImpPrefix)
 open import TermTyping using (CastMode; SealModeStore★)
-open import Types using (WfTy; ★; `∀; ⇑ᵗ; ⟰ᵗ)
+open import Types using (WfTy; occurs; ★; `∀; ⇑ᵗ; ⟰ᵗ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( weak-one-step-source-ν-frameᵀ
   ; weak-one-step-source-ν-frame-preserves-transportᵀ
@@ -59,15 +61,18 @@ open import proof.Core.Properties.TypePreservation using (seal★-weaken)
 left-silent-indexed-prefix-source-ν-terminal-valueᵀ :
   ∀ {Φ Δᴸ Δᴿ A B B′ C N V′ s μ}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ}
+    {occ : occurs zero C ≡ true}
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+  {{safe : NonVar C}} →
   (prefix : StoreImpPrefix ρ₀ ρ⁺) →
   WfTy Δᴸ A →
   RevealConversion μ (suc Δᴸ)
     ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ₀))
     zero (⇑ᵗ A) s C (⇑ᵗ B) →
   (catchup : LeftCatchupIndexedResult
-    {N = N} {V′ = V′} {ρ = ρ⁺} q) →
+    {N = N} {V′ = V′} {ρ = ρ⁺} (ν safe occ q)) →
   let inner = weakIndexedResult (catchupIndexedResult catchup) in
   Value (sourceResult inner) →
   No• (sourceResult inner) →
@@ -82,9 +87,9 @@ left-silent-indexed-prefix-source-ν-terminal-valueᵀ
   left-silent-indexed
     (weak-indexed-result framed (relatedResults framed)
       (weak-one-step-source-ν-frame-preserves-transportᵀ
-        hA c↑⁺ p inner (weakIndexedTransport indexed))
+        hA c↑⁺ p indexed (weakIndexedTransport indexed))
       (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-        hA c↑⁺ p inner (weakIndexedTypeCoherence indexed)))
+        hA c↑⁺ p indexed (weakIndexedTypeCoherence indexed)))
     (left-silent-invariant refl refl)
     (ok-ν (ok-no noW))
   where
@@ -96,13 +101,16 @@ left-silent-indexed-prefix-source-ν-terminal-valueᵀ
 
   c↑⁺ = weaken-reveal-conversion source-store-incl c↑
 
-  framed = weak-one-step-source-ν-frameᵀ hA c↑⁺ p inner
+  framed = weak-one-step-source-ν-frameᵀ hA c↑⁺ p indexed
 
 left-silent-indexed-prefix-source-νcast-terminal-valueᵀ :
   ∀ {Φ Δᴸ Δᴿ B B′ C N V′ s μ}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ}
+    {occ : occurs zero C ≡ true}
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+  {{safe : NonVar C}} →
   (prefix : StoreImpPrefix ρ₀ ρ⁺) →
   CastMode μ →
   SealModeStore★ (instᵈ μ)
@@ -111,7 +119,7 @@ left-silent-indexed-prefix-source-νcast-terminal-valueᵀ :
     ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   (catchup : LeftCatchupIndexedResult
-    {N = N} {V′ = V′} {ρ = ρ⁺} q) →
+    {N = N} {V′ = V′} {ρ = ρ⁺} (ν safe occ q)) →
   let inner = weakIndexedResult (catchupIndexedResult catchup) in
   Value (sourceResult inner) →
   No• (sourceResult inner) →
@@ -126,9 +134,9 @@ left-silent-indexed-prefix-source-νcast-terminal-valueᵀ
   left-silent-indexed
     (weak-indexed-result framed (relatedResults framed)
       (weak-one-step-source-νcast-frame-preserves-transportᵀ
-        mode seal★⁺ c⊑⁺ p inner (weakIndexedTransport indexed))
+        mode seal★⁺ c⊑⁺ p indexed (weakIndexedTransport indexed))
       (weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-        mode seal★⁺ c⊑⁺ p inner (weakIndexedTypeCoherence indexed)))
+        mode seal★⁺ c⊑⁺ p indexed (weakIndexedTypeCoherence indexed)))
     (left-silent-invariant refl refl)
     (ok-ν (ok-no noW))
   where
@@ -143,4 +151,4 @@ left-silent-indexed-prefix-source-νcast-terminal-valueᵀ
   c⊑⁺ = widen-weaken ≤-refl source-store-incl c⊑
 
   framed =
-    weak-one-step-source-νcast-frameᵀ mode seal★⁺ c⊑⁺ p inner
+    weak-one-step-source-νcast-frameᵀ mode seal★⁺ c⊑⁺ p indexed

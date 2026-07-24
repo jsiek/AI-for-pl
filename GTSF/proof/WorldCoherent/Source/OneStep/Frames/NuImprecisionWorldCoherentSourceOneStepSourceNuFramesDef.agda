@@ -12,15 +12,21 @@ module
 
 open import Coercions using (Coercion; instᵈ)
 open import Conversion using (RevealConversion)
+open import Agda.Builtin.Equality using (_≡_)
+open import Data.Bool using (true)
 open import Data.List using (_∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_)
 open import ImprecisionWf using
   ( ImpCtx
+  ; NonVar
+  ; _ˣ⊑★
   ; _ˣ⊑ˣ_
   ; _∣_⊢_⊑_⊣_
   ; ∀ⁱ_
+  ; ν
   ; ⇑ᵢ
+  ; ⇑ᴸᵢ
   )
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuReduction using
@@ -35,7 +41,7 @@ open import PairedWideningCompatibility using
   (PairedWideningCompatible)
 open import QuotientedTermImprecision using (StoreImpPrefix)
 open import TermTyping using (CastMode; SealModeStore★)
-open import Types using (Ty; TyCtx; WfTy; ★; `∀; ⇑ᵗ; ⟰ᵗ)
+open import Types using (Ty; TyCtx; WfTy; occurs; ★; `∀; ⇑ᵗ; ⟰ᵗ)
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)
 
@@ -103,8 +109,11 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {N N′ L : Term} {A B B′ C : Ty}
         {s : Coercion} {μ} {χ : StoreChange}
-        {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ}
+        {occ : occurs zero C ≡ true}
+        {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+          ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
         {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+      {{safe : NonVar C}} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WfTy Δᴸ A →
       RevealConversion μ (suc Δᴸ)
@@ -112,7 +121,8 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
         zero (⇑ᵗ A) s C (⇑ᵗ B) →
       WorldCoherentSourceOneStepIndexedResult
         {M = N} {M′ = N′} {L = L}
-        {A = `∀ C} {B = B′} {χ = χ} {ρ = ρ⁺} q →
+        {A = `∀ C} {B = B′} {χ = χ} {ρ = ρ⁺}
+        (ν safe occ q) →
       WorldCoherentSourceOneStepIndexedResult
         {M = ν A N s} {M′ = N′}
         {L = ν (applyTy χ A) L (applyCoercionUnderTyBinder χ s)}
@@ -123,8 +133,11 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {N N′ L : Term} {B B′ C : Ty}
         {s : Coercion} {μ} {χ : StoreChange}
-        {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ}
+        {occ : occurs zero C ≡ true}
+        {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+          ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
         {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+      {{safe : NonVar C}} →
       StoreImpPrefix ρ₀ ρ⁺ →
       CastMode μ →
       SealModeStore★ (instᵈ μ)
@@ -134,7 +147,8 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
         ⊢ s ∶ C ⊑ ⇑ᵗ B →
       WorldCoherentSourceOneStepIndexedResult
         {M = N} {M′ = N′} {L = L}
-        {A = `∀ C} {B = B′} {χ = χ} {ρ = ρ⁺} q →
+        {A = `∀ C} {B = B′} {χ = χ} {ρ = ρ⁺}
+        (ν safe occ q) →
       WorldCoherentSourceOneStepIndexedResult
         {M = ν ★ N s} {M′ = N′}
         {L = ν (applyTy χ ★) L (applyCoercionUnderTyBinder χ s)}

@@ -7,11 +7,13 @@ module proof.WorldCoherent.Source.NuCatchup.NuImprecisionWorldCoherentSourceNuCa
 --   * Contains no implementation or permissive proof dependency.
 
 open import Coercions using (Coercion; ModeEnv; instᵈ)
+open import Agda.Builtin.Equality using (_≡_)
+open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_,_)
 open import ImprecisionWf using
-  (ImpCtx; _ˣ⊑★; ⇑ᴸᵢ; _∣_⊢_⊑_⊣_)
+  (ImpCtx; NonVar; _ˣ⊑★; ⇑ᴸᵢ; _∣_⊢_⊑_⊣_; ν)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuTermImprecision using
   ( CtxImpEntry
@@ -23,7 +25,7 @@ open import NuTermImprecision using
 open import NuTerms using (No•; Term; Value; ν)
 open import QuotientedTermImprecision using (StoreImpPrefix)
 open import TermTyping using (CastMode; SealModeStore★)
-open import Types using (Ty; TyCtx; ★; `∀; ⇑ᵗ; ⟰ᵗ)
+open import Types using (Ty; TyCtx; occurs; ★; `∀; ⇑ᵗ; ⟰ᵗ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
 
@@ -35,7 +37,10 @@ WorldCoherentSourceNuCastCatchupᵀ =
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {N V′ : Term} {B B′ C : Ty} {s : Coercion}
     {μ : ModeEnv} {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
+    {occ : occurs zero C ≡ true}
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ} →
+  {{safe : NonVar C}} →
   StoreImpPrefix ρ₀ ρ⁺ →
   CastMode μ →
   SealModeStore★ (instᵈ μ)
@@ -51,6 +56,6 @@ WorldCoherentSourceNuCastCatchupᵀ =
   Value V′ →
   No• V′ →
   WorldCoherentLeftCatchupIndexedResult
-    {N = N} {V′ = V′} {ρ = ρ⁺} q →
+    {N = N} {V′ = V′} {ρ = ρ⁺} (ν safe occ q) →
   WorldCoherentLeftCatchupIndexedResult
     {N = ν ★ N s} {V′ = V′} {ρ = ρ⁺} p

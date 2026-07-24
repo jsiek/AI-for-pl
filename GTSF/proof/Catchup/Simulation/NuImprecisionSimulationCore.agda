@@ -820,6 +820,24 @@ transportAllType-to-raw≅ {χ = χ} result
     (applyTys-∀ (targetTailChanges result)
       (applyTyUnderTyBinder χ C′))
 
+transportSourceNuType-to-raw≅ :
+  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (result : WeakOneStepResult ρ M N′ A B χ)
+    {C D}
+    (safe : NonVar C)
+    (occ : occurs zero C ≡ true)
+    (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
+  HE._≅_ (transportSourceNuType result safe occ q)
+    (transportType result (ν safe occ q))
+transportSourceNuType-to-raw≅ result {C = C} safe occ q =
+  subst-to-≅
+    {P = λ S → resultCtx result ∣ resultLeftCtx result
+      ⊢ S ⊑ _ ⊣ resultRightCtx result}
+    (applyTys-∀ (sourceChanges result) C)
+    (transportType result (ν safe occ q))
+
 transportType-transportArrowType-to-raw≅ :
   ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -888,6 +906,30 @@ transportType-transportAllType-to-raw≅ {χ = χ} inner outer
       (applyTy-∀ χ C′))
     (applyTys-∀ (targetTailChanges inner)
       (applyTyUnderTyBinder χ C′))
+
+transportType-transportSourceNuType-to-raw≅ :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (inner : WeakOneStepResult ρ M M′ A B χ)
+    {χ′ N′}
+    (outer : WeakOneStepResult (resultStore inner)
+      (sourceResult inner) N′
+      (resultSourceType inner) (resultTargetType inner) χ′)
+    {C D}
+    (safe : NonVar C)
+    (occ : occurs zero C ≡ true)
+    (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
+  HE._≅_
+    (transportType outer
+      (transportSourceNuType inner safe occ q))
+    (transportType outer
+      (transportType inner (ν safe occ q)))
+transportType-transportSourceNuType-to-raw≅
+    inner outer {C = C} safe occ q =
+  transportType-source-subst-to-raw≅ outer
+    (applyTys-∀ (sourceChanges inner) C)
+    (transportType inner (ν safe occ q))
 
 
 nu-term-imprecision-transport-typesᵀ :
@@ -1103,6 +1145,49 @@ equality-proof-unique refl refl = refl
       (equality-proof-unique
         (renameᵗ-id (`∀ B)) (cong `∀ (renameᵗ-ext-id B)))
 
+⊑-rename-id-source-nuᵢ :
+  ∀ {Φ Δᴸ Δᴿ C B}
+    (safe : NonVar C)
+    (occ : occurs zero C ≡ true)
+    (p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B ⊣ Δᴿ) →
+  SourceNuIndex (⊑-rename-idᵢ (ν safe occ p))
+⊑-rename-id-source-nuᵢ
+    {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {C = C} {B = B}
+    safe occ p =
+  sourceNuIndex-reindex (sym outer-equalities) transported
+  where
+  renamed-body =
+    ⊑-renameᵗ²ᵢ
+      (rename-assm²-⇑ᴸᵢ rename-assm²-idᵢ)
+      (TyRenameWf-ext (λ X<Δ → X<Δ))
+      (λ X<Δ → X<Δ)
+      p
+
+  raw-shape =
+    source-nu-index
+      (renameNonVar (extᵗ (λ X → X)) safe)
+      (trans (occurs-zero-rename-ext (λ X → X) C) occ)
+      renamed-body refl
+
+  transported =
+    sourceNuIndex-transport
+      (renameᵗ-ext-id C) (renameᵗ-id B) raw-shape
+
+  outer-equalities =
+    cong₂
+      (λ eqC eqB →
+        subst (λ T → Φ ∣ Δᴸ ⊢ `∀ C ⊑ T ⊣ Δᴿ) eqB
+          (subst (λ S → Φ ∣ Δᴸ ⊢ S ⊑
+            renameᵗ (λ X → X) B ⊣ Δᴿ) eqC
+            (⊑-renameᵗ²ᵢ rename-assm²-idᵢ
+              (λ X<Δ → X<Δ) (λ X<Δ → X<Δ)
+              (ν safe occ p))))
+      (equality-proof-unique
+        (renameᵗ-id (`∀ C)) (cong `∀ (renameᵗ-ext-id C)))
+      (equality-proof-unique
+        (renameᵗ-id B) (renameᵗ-id B))
+
 weak-result-transport-arrow-termsᵀ :
   ∀ {Φ Δᴸ Δᴿ M N′ A A′ B B′ χ L L′}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
@@ -1178,6 +1263,7 @@ weak-one-step-reindexᵀ result source-eq target-eq related =
     ; transportType = transportType result
     ; transportAllBody = transportAllBody result
     ; transportRightBody = transportRightBody result
+    ; transportSourceNu = transportSourceNu result
     ; resultType = _
     ; sourceCatchup = sourceCatchup result
     ; targetTail = targetTail result
@@ -4969,6 +5055,19 @@ right-under-left-ctx-eq Φ =
     (renameᵗ-ext-id C)
     (trans (occurs-zero-rename-ext (λ X → X) C) occ)
 
+⊑-target-lift-right-source-nuᵢ :
+  ∀ {Φ Δᴸ Δᴿ C B}
+    (safe : NonVar C)
+    (occ : occurs zero C ≡ true)
+    (p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B ⊣ Δᴿ) →
+  SourceNuIndex (⊑-target-lift-rightᵢ (ν safe occ p))
+⊑-target-lift-right-source-nuᵢ safe occ p
+    with ⊑-target-lift-right-ν-shapeᵢ {{safe}} occ
+⊑-target-lift-right-source-nuᵢ safe occ p
+    | occ′ , shape =
+  source-nu-index safe occ′ (⊑-target-under-leftᵢ p) shape
+
 rel-store-rename-lift-rightⁱ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ}
     {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
@@ -7187,9 +7286,11 @@ rel-world-ν⊑-permuteᵀ :
     {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
     {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {γν : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-    {A B B′ C N N′ s μ}
+    {A B B′ C N N′ s μ occ}
     {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ} →
+  {{safe : NonVar C}} →
   (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
     {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
   WfTy Δᴸ A →
@@ -7204,7 +7305,8 @@ rel-world-ν⊑-permuteᵀ :
       ⊑ renameᵗᵐ (forward πᴿ) N′
     ⦂ renameᵗ (forward πᴸ) (`∀ C)
       ⊑ renameᵗ (forward πᴿ) B′
-    ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) q →
+    ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ)
+        (ν safe occ q) →
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ (forward πᴸ) (ν A N s)
       ⊑ renameᵗᵐ (forward πᴿ) N′
@@ -7212,14 +7314,14 @@ rel-world-ν⊑-permuteᵀ :
       ⊑ renameᵗ (forward πᴿ) B′
     ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) p
 rel-world-ν⊑-permuteᵀ
-    {Θᴸ = Θᴸ} {πᴸ = πᴸ} {A = A}
+    {Θᴸ = Θᴸ} {πᴸ = πᴸ} {A = A} {{safe = safe}}
     perm hA h⇑A s↑ liftρ liftγ N⊑N′
     with rel-world-permutation-lift-leftⁱ perm liftρ liftγ
 rel-world-ν⊑-permuteᵀ
-    {Θᴸ = Θᴸ} {πᴸ = πᴸ} {A = A}
+    {Θᴸ = Θᴸ} {πᴸ = πᴸ} {A = A} {{safe = safe}}
     perm hA h⇑A s↑ liftρ liftγ N⊑N′
     | ρ′ν , γ′ν , liftρ′ , liftγ′ , body-perm =
-  ν⊑ᵀ
+  ν⊑ᵀ {{renameNonVar (extᵗ (forward πᴸ)) safe}}
     (renameᵗ-preserves-WfTy hA (forward-wf πᴸ))
     h⇑A′
     (left-reveal-ν-rel-permute perm s↑)
@@ -7240,9 +7342,11 @@ rel-world-ν⊑-embedᵀ :
     {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
     {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {γν : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-    {A B B′ C N N′ s μ}
+    {A B B′ C N N′ s μ occ}
     {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ} →
+  {{safe : NonVar C}} →
   (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
     {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
   WfTy Δᴸ A →
@@ -7255,20 +7359,20 @@ rel-world-ν⊑-embedᵀ :
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ N ⊑ renameᵗᵐ σ N′
     ⦂ renameᵗ τ (`∀ C) ⊑ renameᵗ σ B′
-    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ q →
+    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ (ν safe occ q) →
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ (ν A N s) ⊑ renameᵗᵐ σ N′
     ⦂ renameᵗ τ B ⊑ renameᵗ σ B′
     ∶ ⊑-renameᵗ²ᵢ assm hτ hσ p
 rel-world-ν⊑-embedᵀ
-    {Θᴸ = Θᴸ} {τ = τ} {hτ = hτ} {A = A}
+    {Θᴸ = Θᴸ} {τ = τ} {hτ = hτ} {A = A} {{safe = safe}}
     emb hA h⇑A s↑ liftρ liftγ N⊑N′
     with rel-world-embedding-lift-leftⁱ emb liftρ liftγ
 rel-world-ν⊑-embedᵀ
-    {Θᴸ = Θᴸ} {τ = τ} {hτ = hτ} {A = A}
+    {Θᴸ = Θᴸ} {τ = τ} {hτ = hτ} {A = A} {{safe = safe}}
     emb hA h⇑A s↑ liftρ liftγ N⊑N′
     | ρ′ν , γ′ν , liftρ′ , liftγ′ , body-emb =
-  ν⊑ᵀ
+  ν⊑ᵀ {{renameNonVar (extᵗ τ) safe}}
     (renameᵗ-preserves-WfTy hA hτ)
     h⇑A′
     (left-reveal-ν-rel-embed emb s↑)
@@ -7899,9 +8003,11 @@ rel-world-νcast⊑-permuteᵀ :
     {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
     {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {γν : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-    {B B′ C N N′ s μ}
+    {B B′ C N N′ s μ occ}
     {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ} →
+  {{safe : NonVar C}} →
   (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
     {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
   (mode : CastMode μ) →
@@ -7916,7 +8022,8 @@ rel-world-νcast⊑-permuteᵀ :
       ⊑ renameᵗᵐ (forward πᴿ) N′
     ⦂ renameᵗ (forward πᴸ) (`∀ C)
       ⊑ renameᵗ (forward πᴿ) B′
-    ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) q →
+    ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ)
+        (ν safe occ q) →
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ (forward πᴸ) (ν ★ N s)
       ⊑ renameᵗᵐ (forward πᴿ) N′
@@ -7924,6 +8031,7 @@ rel-world-νcast⊑-permuteᵀ :
       ⊑ renameᵗ (forward πᴿ) B′
     ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) p
 rel-world-νcast⊑-permuteᵀ
+    {πᴸ = πᴸ} {{safe = safe}}
     perm mode seal★ s⊑ liftρ liftγ N⊑N′
     with left-ν★-widening-rel-permute perm mode seal★ s⊑
 rel-world-νcast⊑-permuteᵀ
@@ -7931,10 +8039,12 @@ rel-world-νcast⊑-permuteᵀ
     | target-mode , target-seal , target-s⊑
     with rel-world-permutation-lift-leftⁱ perm liftρ liftγ
 rel-world-νcast⊑-permuteᵀ
+    {πᴸ = πᴸ} {{safe = safe}}
     perm mode seal★ s⊑ liftρ liftγ N⊑N′
     | target-mode , target-seal , target-s⊑
     | ρ′ν , γ′ν , liftρ′ , liftγ′ , body-perm =
-  νcast⊑ᵀ target-mode target-seal target-s⊑
+  νcast⊑ᵀ {{renameNonVar (extᵗ (forward πᴸ)) safe}}
+    target-mode target-seal target-s⊑
     liftρ′ liftγ′ N⊑N′
 
 rel-world-νcast⊑-embedᵀ :
@@ -7945,9 +8055,11 @@ rel-world-νcast⊑-embedᵀ :
     {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
     {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {γν : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-    {B B′ C N N′ s μ}
+    {B B′ C N N′ s μ occ}
     {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ} →
+  {{safe : NonVar C}} →
   (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
     {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
   (mode : CastMode μ) →
@@ -7960,12 +8072,13 @@ rel-world-νcast⊑-embedᵀ :
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ N ⊑ renameᵗᵐ σ N′
     ⦂ renameᵗ τ (`∀ C) ⊑ renameᵗ σ B′
-    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ q →
+    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ (ν safe occ q) →
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ (ν ★ N s) ⊑ renameᵗᵐ σ N′
     ⦂ renameᵗ τ B ⊑ renameᵗ σ B′
     ∶ ⊑-renameᵗ²ᵢ assm hτ hσ p
 rel-world-νcast⊑-embedᵀ
+    {τ = τ} {{safe = safe}}
     emb mode seal★ s⊑ liftρ liftγ N⊑N′
     with left-ν★-widening-rel-embed emb mode seal★ s⊑
 rel-world-νcast⊑-embedᵀ
@@ -7973,10 +8086,12 @@ rel-world-νcast⊑-embedᵀ
     | target-mode , target-seal , target-s⊑
     with rel-world-embedding-lift-leftⁱ emb liftρ liftγ
 rel-world-νcast⊑-embedᵀ
+    {τ = τ} {{safe = safe}}
     emb mode seal★ s⊑ liftρ liftγ N⊑N′
     | target-mode , target-seal , target-s⊑
     | ρ′ν , γ′ν , liftρ′ , liftγ′ , body-emb =
-  νcast⊑ᵀ target-mode target-seal target-s⊑
+  νcast⊑ᵀ {{renameNonVar (extᵗ τ) safe}}
+    target-mode target-seal target-s⊑
     liftρ′ liftγ′ N⊑N′
 
 rel-world-⊑νcast-permuteᵀ :
@@ -9592,9 +9707,11 @@ left-rename-ν⊑ᵀ :
     {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Δᴸ′ Δᴿ}
     {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {γν : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-    {A B B′ C N N′ s μ}
+    {A B B′ C N N′ s μ occ}
     {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ} →
+  {{safe : NonVar C}} →
   (ins : LeftInsertion τ) →
   LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
   LeftCtxRenameⁱ τ assm hτ γ γ′ →
@@ -9608,7 +9725,7 @@ left-rename-ν⊑ᵀ :
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ N ⊑ N′
     ⦂ renameᵗ τ (`∀ C) ⊑ B′
-    ∶ ⊑-rename-leftᵢ τ assm hτ q →
+    ∶ ⊑-rename-leftᵢ τ assm hτ (ν safe occ q) →
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ (ν A N s) ⊑ N′
     ⦂ renameᵗ τ B ⊑ B′ ∶ ⊑-rename-leftᵢ τ assm hτ p
@@ -9619,11 +9736,13 @@ left-rename-ν⊑ᵀ
     ins renameρ renameγ hA h⇑A s↑ liftρ liftγ N⊑N′
     | ρ′ν , liftρ′ , renameρν
     with left-ctx-rename-ν renameγ liftγ
-left-rename-ν⊑ᵀ {Δᴸ′ = Δᴸ′} {τ = τ} {hτ = hτ} {A = A}
+left-rename-ν⊑ᵀ
+    {Δᴸ′ = Δᴸ′} {τ = τ} {hτ = hτ} {A = A} {{safe = safe}}
     ins renameρ renameγ hA h⇑A s↑ liftρ liftγ N⊑N′
     | ρ′ν , liftρ′ , renameρν
     | γ′ν , liftγ′ , renameγν =
-  ν⊑ᵀ (renameᵗ-preserves-WfTy hA hτ) h⇑A′
+  ν⊑ᵀ {{renameNonVar (extᵗ τ) safe}}
+    (renameᵗ-preserves-WfTy hA hτ) h⇑A′
     (left-reveal-ν-renameⁱ ins renameρ s↑)
     liftρ′ liftγ′ N⊑N′
   where
@@ -9750,9 +9869,11 @@ left-rename-νcast⊑ᵀ :
     {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Δᴸ′ Δᴿ}
     {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {γν : CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-    {B B′ C N N′ s μ}
+    {B B′ C N N′ s μ occ}
     {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ} →
+  {{safe : NonVar C}} →
   (ins : LeftInsertion τ) →
   LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
   LeftCtxRenameⁱ τ assm hτ γ γ′ →
@@ -9766,11 +9887,12 @@ left-rename-νcast⊑ᵀ :
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ N ⊑ N′
     ⦂ renameᵗ τ (`∀ C) ⊑ B′
-    ∶ ⊑-rename-leftᵢ τ assm hτ q →
+    ∶ ⊑-rename-leftᵢ τ assm hτ (ν safe occ q) →
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ (ν ★ N s) ⊑ N′
     ⦂ renameᵗ τ B ⊑ B′ ∶ ⊑-rename-leftᵢ τ assm hτ p
 left-rename-νcast⊑ᵀ
+    {τ = τ} {{safe = safe}}
     ins renameρ renameγ mode seal★ s⊑ liftρ liftγ N⊑N′
     with left-store-rename-ν renameρ liftρ
 left-rename-νcast⊑ᵀ
@@ -9778,10 +9900,11 @@ left-rename-νcast⊑ᵀ
     | ρ′ν , liftρ′ , renameρν
     with left-ctx-rename-ν renameγ liftγ
 left-rename-νcast⊑ᵀ
+    {τ = τ} {{safe = safe}}
     ins renameρ renameγ mode seal★ s⊑ liftρ liftγ N⊑N′
     | ρ′ν , liftρ′ , renameρν
     | γ′ν , liftγ′ , renameγν =
-  νcast⊑ᵀ
+  νcast⊑ᵀ {{renameNonVar (extᵗ τ) safe}}
     (CastModeRenamer.target-mode
       (left-insertion-cast-renamer ins) mode)
     (left-seal★-ν★-renameⁱ ins renameρ mode seal★)
@@ -10621,6 +10744,47 @@ left-rename-allocation-prefixᵀ prefix renameρ body-map M⊢ M′⊢
     (TyRenameWf-ext TyRenameWf-suc)
     (TyRenameWf-ext TyRenameWf-suc)
 
+⊑-lift-source-nuᵢ :
+  ∀ {Φ Δᴸ Δᴿ C B}
+    (safe : NonVar C)
+    (occ : occurs zero C ≡ true)
+    (p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B ⊣ Δᴿ) →
+  SourceNuIndex (⊑-lift∀ᵢ (ν safe occ p))
+⊑-lift-source-nuᵢ {C = C} safe occ p =
+  source-nu-index
+    (renameNonVar (extᵗ suc) safe)
+    (trans (occurs-zero-rename-ext suc C) occ)
+    (⊑-renameᵗ²ᵢ
+      (rename-assm²-⇑ᴸᵢ rename-assm²-∀ᵢ)
+      (TyRenameWf-ext TyRenameWf-suc)
+      TyRenameWf-suc
+      p)
+    refl
+
+⊑-source-lift-source-nuᵢ :
+  ∀ {Φ Δᴸ Δᴿ C B}
+    (safe : NonVar C)
+    (occ : occurs zero C ≡ true)
+    (p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B ⊣ Δᴿ) →
+  SourceNuIndex (⊑-source-liftνᵢ (ν safe occ p))
+⊑-source-lift-source-nuᵢ {C = C} {B = B} safe occ p =
+  sourceNuIndex-transport refl (renameᵗ-id B) raw-shape
+  where
+  raw-shape =
+    source-nu-index
+      (renameNonVar (extᵗ suc) safe)
+      (trans (occurs-zero-rename-ext suc C) occ)
+      (⊑-renameᵗ²ᵢ
+        {ρ = extᵗ suc}
+        {σ = λ X → X}
+        (rename-assm²-⇑ᴸᵢ rename-assm²-source-νᵢ)
+        (TyRenameWf-ext TyRenameWf-suc)
+        (λ X<Δ → X<Δ)
+        p)
+      refl
+
 ⊑-target-lift-right-under-∀ᵢ :
   ∀ {Φ Δᴸ Δᴿ A B} →
   ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ A ⊑ B ⊣ suc Δᴿ →
@@ -10794,6 +10958,66 @@ renameᵗ-double-under-∀ A =
         (TyRenameWf-ext (λ X<Δ → s<s (s<s X<Δ)))
         p))
 
+⊑-crossed-double-lift-source-nuᵢ :
+  ∀ {Φ Δᴸ Δᴿ C B}
+    (safe : NonVar C)
+    (occ : occurs zero C ≡ true)
+    (p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B ⊣ Δᴿ) →
+  SourceNuIndex (⊑-crossed-double-lift∀∀ᵢ (ν safe occ p))
+⊑-crossed-double-lift-source-nuᵢ
+    {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {C = C} {B = B}
+    safe occ p =
+  sourceNuIndex-reindex (sym outer-equalities) transported
+  where
+  double : TyVar → TyVar
+  double X = suc (suc X)
+
+  renamed-body =
+    ⊑-renameᵗ²ᵢ
+      (rename-assm²-⇑ᴸᵢ rename-assm²-crossed-double∀∀ᵢ)
+      (TyRenameWf-ext (λ X<Δ → s<s (s<s X<Δ)))
+      (λ X<Δ → s<s (s<s X<Δ))
+      p
+
+  raw-shape =
+    source-nu-index
+      (renameNonVar (extᵗ double) safe)
+      (trans (occurs-zero-rename-ext double C) occ)
+      renamed-body refl
+
+  transported =
+    sourceNuIndex-transport
+      (sym (renameᵗ-double-under-∀ C))
+      (sym (renameᵗ-double-lift B))
+      raw-shape
+
+  outer-equalities =
+    cong₂
+      (λ eqC eqB →
+        subst
+          (λ T → swapRight∀∀ᵢ Φ ∣ suc (suc Δᴸ)
+            ⊢ `∀
+                (renameᵗ (extᵗ suc) (renameᵗ (extᵗ suc) C))
+              ⊑ T
+            ⊣ suc (suc Δᴿ))
+          eqB
+          (subst
+            (λ S → swapRight∀∀ᵢ Φ ∣ suc (suc Δᴸ)
+              ⊢ S ⊑ renameᵗ double B ⊣ suc (suc Δᴿ))
+            eqC
+            (⊑-renameᵗ²ᵢ
+              rename-assm²-crossed-double∀∀ᵢ
+              (λ X<Δ → s<s (s<s X<Δ))
+              (λ X<Δ → s<s (s<s X<Δ))
+              (ν safe occ p))))
+      (equality-proof-unique
+        (sym (renameᵗ-compose suc suc (`∀ C)))
+        (cong `∀ (sym (renameᵗ-double-under-∀ C))))
+      (equality-proof-unique
+        (sym (renameᵗ-compose suc suc B))
+        (sym (renameᵗ-double-lift B)))
+
 ⊑-crossed-double-lift-arrowᵢ :
   ∀ {Φ Δᴸ Δᴿ A A′ B B′}
     (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ)
@@ -10869,6 +11093,7 @@ weak-one-step-source-blame-right-allocationᵀ
     ; transportType = ⊑-target-lift-rightᵢ
     ; transportAllBody = ⊑-target-lift-right-under-∀ᵢ
     ; transportRightBody = ⊑-target-lift-under-rightᵢ
+    ; transportSourceNu = ⊑-target-lift-right-source-nuᵢ
     ; resultType = ⊑-target-lift-rightᵢ pB
     ; sourceCatchup = ↠-step blame-ν ↠-refl
     ; targetTail = ↠-refl
@@ -11042,6 +11267,47 @@ weak-one-step-nested-all-coherent≅
           (transportAllCoherent second-coherence
             (transportAllBody first q)))))
 
+weak-one-step-nested-source-nu≅ :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (first : WeakOneStepResult ρ M M′ A B χ)
+    {χ′ N′}
+    (second : WeakOneStepResult (resultStore first)
+      (sourceResult first) N′
+      (resultSourceType first) (resultTargetType first) χ′)
+    {C D}
+    (safe : NonVar C)
+    (occ : occurs zero C ≡ true)
+    (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
+  let first-shape = transportSourceNu first safe occ q in
+  let second-shape = transportSourceNu second
+        (sourceNuSafe first-shape)
+        (sourceNuOccurs first-shape)
+        (sourceNuBody first-shape) in
+  HE._≅_
+    (transportType second (transportType first (ν safe occ q)))
+    (transportSourceNuType second
+      (sourceNuSafe first-shape)
+      (sourceNuOccurs first-shape)
+      (sourceNuBody first-shape))
+weak-one-step-nested-source-nu≅ first second safe occ q =
+  HE.trans
+    (HE.sym
+      (transportType-transportSourceNuType-to-raw≅
+        first second safe occ q))
+    (HE.trans
+      (≡-to-≅
+        (cong (transportType second)
+          (sourceNuIndexEquality first-shape)))
+      (HE.sym
+        (transportSourceNuType-to-raw≅ second
+          (sourceNuSafe first-shape)
+          (sourceNuOccurs first-shape)
+          (sourceNuBody first-shape))))
+  where
+  first-shape = transportSourceNu first safe occ q
+
 weak-one-step-compose-all-body :
   ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
@@ -11126,6 +11392,85 @@ weak-one-step-compose-right-body {χ = χ} first
         (sourceChanges first) (sourceChanges second) C))
       (transportRightBody second (transportRightBody first p)))
 
+weak-one-step-compose-source-nu :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (first : WeakOneStepResult ρ M M′ A B χ)
+    {χ′ N′}
+    (second : WeakOneStepResult (resultStore first)
+      (sourceResult first) N′
+      (resultSourceType first) (resultTargetType first) χ′)
+    {C D}
+    (safe : NonVar C)
+    (occ : occurs zero C ≡ true)
+    (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
+  SourceNuIndex
+    (subst
+      (λ S → resultCtx second ∣ resultLeftCtx second
+        ⊢ S ⊑
+          applyTys
+            (targetTailChanges first ++
+              χ′ ∷ targetTailChanges second)
+            (applyTy χ D)
+        ⊣ resultRightCtx second)
+      (applyTys-∀
+        (sourceChanges first ++ sourceChanges second) C)
+      (weak-one-step-compose-type first second (ν safe occ q)))
+weak-one-step-compose-source-nu
+    {χ = χ} first {χ′ = χ′} second {C = C} {D = D}
+    safe occ q =
+  sourceNuIndex-reindex (sym combined-eq) transported-shape
+  where
+  first-shape = transportSourceNu first safe occ q
+  second-shape = transportSourceNu second
+    (sourceNuSafe first-shape)
+    (sourceNuOccurs first-shape)
+    (sourceNuBody first-shape)
+
+  source-eq = applyTysUnderTyBinders-++
+    (sourceChanges first) (sourceChanges second) C
+
+  target-eq = applyTys-++
+    (targetTailChanges first)
+    (χ′ ∷ targetTailChanges second)
+    (applyTy χ D)
+
+  transported-shape =
+    sourceNuIndex-transport
+      (sym source-eq) (sym target-eq) second-shape
+
+  combined-eq =
+    HE.≅-to-≡
+      (HE.trans
+        (subst-to-≅
+          {P = λ S → resultCtx second ∣ resultLeftCtx second
+            ⊢ S ⊑
+              applyTys
+                (targetTailChanges first ++
+                  χ′ ∷ targetTailChanges second)
+                (applyTy χ D)
+            ⊣ resultRightCtx second}
+          (applyTys-∀
+            (sourceChanges first ++ sourceChanges second) C)
+          (weak-one-step-compose-type first second (ν safe occ q)))
+        (HE.trans
+          (weak-one-step-compose-type-to-nested≅
+            first second (ν safe occ q))
+          (HE.trans
+            (weak-one-step-nested-source-nu≅
+              first second safe occ q)
+            (HE.sym
+              (subst²-to-≅
+                {P = λ S T → resultCtx second
+                  ∣ resultLeftCtx second
+                  ⊢ S ⊑ T ⊣ resultRightCtx second}
+                (cong `∀ (sym source-eq)) (sym target-eq)
+                (transportSourceNuType second
+                  (sourceNuSafe first-shape)
+                  (sourceNuOccurs first-shape)
+                  (sourceNuBody first-shape)))))))
+
 weak-one-step-composeᵀ :
   ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
@@ -11190,6 +11535,8 @@ weak-one-step-composeᵀ {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {B = B}
     ; transportAllBody = weak-one-step-compose-all-body first second
     ; transportRightBody =
         weak-one-step-compose-right-body first second
+    ; transportSourceNu =
+        weak-one-step-compose-source-nu first second
     ; resultType = resultType second
     ; sourceCatchup =
         ↠-trans (sourceCatchup first) (sourceCatchup second)
@@ -11344,6 +11691,8 @@ weak-one-step-prepend-left-silentᵀ
     ; transportAllBody = weak-one-step-compose-all-body first second
     ; transportRightBody =
         weak-one-step-compose-right-body first second
+    ; transportSourceNu =
+        weak-one-step-compose-source-nu first second
     ; resultType = resultType second
     ; sourceCatchup =
         ↠-trans (sourceCatchup first) (sourceCatchup second)
@@ -11833,6 +12182,7 @@ weak-one-step-·₁-frameᵀ
     ; transportType = transportType inner
     ; transportAllBody = transportAllBody inner
     ; transportRightBody = transportRightBody inner
+    ; transportSourceNu = transportSourceNu inner
     ; resultType = transportType inner _
     ; sourceCatchup = ·₁-↠ noM (sourceCatchup inner)
     ; targetTail =
@@ -12268,6 +12618,7 @@ weak-one-step-·₂-indexed-frameᵀ
       ; transportType = transportType base
       ; transportAllBody = transportAllBody base
       ; transportRightBody = transportRightBody base
+      ; transportSourceNu = transportSourceNu base
       ; resultType = transportType base _
       ; sourceCatchup = ·₂-↠ vL noL (sourceCatchup base)
       ; targetTail =
@@ -12629,6 +12980,7 @@ weak-one-step-matched-ν-frameᵀ
     ; transportType = transportType inner
     ; transportAllBody = transportAllBody inner
     ; transportRightBody = transportRightBody inner
+    ; transportSourceNu = transportSourceNu inner
     ; resultType = transportType inner pB
     ; sourceCatchup = ν-↠ (sourceCatchup inner)
     ; targetTail = ν-↠ (targetTail inner)
@@ -12879,6 +13231,7 @@ weak-one-step-matched-νcast-frameᵀ
     ; transportType = transportType inner
     ; transportAllBody = transportAllBody inner
     ; transportRightBody = transportRightBody inner
+    ; transportSourceNu = transportSourceNu inner
     ; resultType = transportType inner pB
     ; sourceCatchup =
         subst
@@ -13138,34 +13491,40 @@ left-silent-matched-νcast-frameᵀ
     (left-silent-invariant refl refl)
 
 weak-one-step-source-ν-frameᵀ :
-  ∀ {Φ Δᴸ Δᴿ A B B′ C N N₁′ s μ χ}
+  ∀ {Φ Δᴸ Δᴿ A B B′ C N N₁′ s μ χ occ}
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  {{safe : NonVar C}} →
   WfTy Δᴸ A →
   RevealConversion μ (suc Δᴸ)
     ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ))
     zero (⇑ᵗ A) s C (⇑ᵗ B) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-  (inner : WeakOneStepResult ρ N N₁′ (`∀ C) B′ χ) →
+  (indexed : WeakOneStepIndexedResult
+    {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (ν safe occ q)) →
   WeakOneStepResult ρ (ν A N s) N₁′ B B′ χ
 weak-one-step-source-ν-frameᵀ
-    {A = A} {B = B} {B′ = B′} {C = C} {N = N} {s = s} {χ = χ}
-    hA s↑ pB inner
-    with weak-result-source-all inner
+    {A = A} {B = B} {B′ = B′} {C = C} {N = N} {s = s}
+    {χ = χ} {occ = occ} {q = q}
+    {{safe = safe}} hA s↑ pB indexed
+    with transportSourceNu (weakIndexedResult indexed) safe occ q
 weak-one-step-source-ν-frameᵀ
     {A = A} {B = B} {B′ = B′} {C = C} {N = N} {s = s} {χ = χ}
-    hA s↑ pB inner
-    | q′ , innerResult
-    with lift-left-store-result (resultStore inner)
+    hA s↑ pB indexed
+    | source-nu-index safe′ occ′ q′ shape
+    with lift-left-store-result (resultStore (weakIndexedResult indexed))
 weak-one-step-source-ν-frameᵀ
     {A = A} {B = B} {B′ = B′} {C = C} {N = N} {s = s} {χ = χ}
-    hA s↑ pB inner
-    | q′ , innerResult | ρ′ , liftρ
+    hA s↑ pB indexed
+    | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
     with apply-reveal-under-ty-binders
-      {χs = sourceChanges inner} s↑
+      {χs = sourceChanges (weakIndexedResult indexed)} s↑
 weak-one-step-source-ν-frameᵀ
     {A = A} {B = B} {B′ = B′} {C = C} {N = N} {s = s} {χ = χ}
-    hA s↑ pB inner
-    | q′ , innerResult | ρ′ , liftρ | μ′ , source↑ =
+    hA s↑ pB indexed
+    | source-nu-index safe′ occ′ q′ shape
+    | ρ′ , liftρ | μ′ , source↑ =
   record
     { sourceChanges = sourceChanges inner
     ; targetTailChanges = targetTailChanges inner
@@ -13188,16 +13547,28 @@ weak-one-step-source-ν-frameᵀ
     ; transportType = transportType inner
     ; transportAllBody = transportAllBody inner
     ; transportRightBody = transportRightBody inner
+    ; transportSourceNu = transportSourceNu inner
     ; resultType = transportType inner pB
     ; sourceCatchup = ν-↠ (sourceCatchup inner)
     ; targetTail = targetTail inner
     ; sourceStoreResult = sourceStoreResult inner
     ; targetStoreResult = targetStoreResult inner
     ; relatedResults =
-        ν⊑ᵀ final-wf final-shift-wf source-reveal
-          liftρ lift-left-ctx-[] innerResult
+        ν⊑ᵀ {{safe′}} final-wf final-shift-wf source-reveal
+          liftρ lift-left-ctx-[] shaped
     }
   where
+    inner = weakIndexedResult indexed
+
+    normalized =
+      nu-term-imprecision-transport-typesᵀ
+        (applyTys-∀ (sourceChanges inner) C) refl refl
+        (canonicalIndexedResults indexed)
+
+    shaped =
+      nu-term-imprecision-transport-typesᵀ
+        refl refl shape normalized
+
     final-wf =
       subst
         (λ Δ → WfTy Δ (applyTys (sourceChanges inner) A))
@@ -13229,68 +13600,83 @@ weak-one-step-source-ν-frameᵀ
           (sym (sourceStoreResult inner)) source↑)
 
 weak-one-step-source-ν-frame-preserves-transportᵀ :
-  ∀ {Φ Δᴸ Δᴿ A B B′ C N N₁′ s μ χ}
+  ∀ {Φ Δᴸ Δᴿ A B B′ C N N₁′ s μ χ occ}
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  {{safe : NonVar C}} →
   (hA : WfTy Δᴸ A) →
   (s↑ : RevealConversion μ (suc Δᴸ)
     ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ))
     zero (⇑ᵗ A) s C (⇑ᵗ B)) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-  (inner : WeakOneStepResult ρ N N₁′ (`∀ C) B′ χ) →
-  WeakOneStepTransport inner →
+  (indexed : WeakOneStepIndexedResult
+    {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (ν safe occ q)) →
+  WeakOneStepTransport (weakIndexedResult indexed) →
   WeakOneStepTransport
-    (weak-one-step-source-ν-frameᵀ hA s↑ pB inner)
+    (weak-one-step-source-ν-frameᵀ hA s↑ pB indexed)
 weak-one-step-source-ν-frame-preserves-transportᵀ
-    hA s↑ pB inner transport
-    with weak-result-source-all inner
+    {occ = occ} {q = q} {{safe = safe}}
+    hA s↑ pB indexed transport
+    with transportSourceNu (weakIndexedResult indexed) safe occ q
 weak-one-step-source-ν-frame-preserves-transportᵀ
-    hA s↑ pB inner transport
-    | q′ , innerResult
-    with lift-left-store-result (resultStore inner)
+    hA s↑ pB indexed transport
+    | source-nu-index safe′ occ′ q′ shape
+    with lift-left-store-result (resultStore (weakIndexedResult indexed))
 weak-one-step-source-ν-frame-preserves-transportᵀ
-    hA s↑ pB inner transport
-    | q′ , innerResult | ρ′ , liftρ
+    hA s↑ pB indexed transport
+    | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
     with apply-reveal-under-ty-binders
-      {χs = sourceChanges inner} s↑
+      {χs = sourceChanges (weakIndexedResult indexed)} s↑
 weak-one-step-source-ν-frame-preserves-transportᵀ
-    hA s↑ pB inner transport
-    | q′ , innerResult | ρ′ , liftρ | μ′ , source↑ =
+    hA s↑ pB indexed transport
+    | source-nu-index safe′ occ′ q′ shape
+    | ρ′ , liftρ | μ′ , source↑ =
   weak-step-transport (transportNo•Terms transport)
 
 weak-one-step-source-ν-frame-preserves-type-coherenceᵀ :
-  ∀ {Φ Δᴸ Δᴿ A B B′ C N N₁′ s μ χ}
+  ∀ {Φ Δᴸ Δᴿ A B B′ C N N₁′ s μ χ occ}
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  {{safe : NonVar C}} →
   (hA : WfTy Δᴸ A) →
   (s↑ : RevealConversion μ (suc Δᴸ)
     ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ))
     zero (⇑ᵗ A) s C (⇑ᵗ B)) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-  (inner : WeakOneStepResult ρ N N₁′ (`∀ C) B′ χ) →
-  WeakOneStepTypeCoherence inner →
+  (indexed : WeakOneStepIndexedResult
+    {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (ν safe occ q)) →
+  WeakOneStepTypeCoherence (weakIndexedResult indexed) →
   WeakOneStepTypeCoherence
-    (weak-one-step-source-ν-frameᵀ hA s↑ pB inner)
+    (weak-one-step-source-ν-frameᵀ hA s↑ pB indexed)
 weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-    hA s↑ pB inner coherence
-    with weak-result-source-all inner
+    {occ = occ} {q = q} {{safe = safe}}
+    hA s↑ pB indexed coherence
+    with transportSourceNu (weakIndexedResult indexed) safe occ q
 weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-    hA s↑ pB inner coherence
-    | q′ , innerResult
-    with lift-left-store-result (resultStore inner)
+    hA s↑ pB indexed coherence
+    | source-nu-index safe′ occ′ q′ shape
+    with lift-left-store-result (resultStore (weakIndexedResult indexed))
 weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-    hA s↑ pB inner coherence
-    | q′ , innerResult | ρ′ , liftρ
+    hA s↑ pB indexed coherence
+    | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
     with apply-reveal-under-ty-binders
-      {χs = sourceChanges inner} s↑
+      {χs = sourceChanges (weakIndexedResult indexed)} s↑
 weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-    hA s↑ pB inner coherence
-    | q′ , innerResult | ρ′ , liftρ | μ′ , source↑ =
+    hA s↑ pB indexed coherence
+    | source-nu-index safe′ occ′ q′ shape
+    | ρ′ , liftρ | μ′ , source↑ =
   weak-step-type-coherence
     (transportArrowCoherent coherence)
     (transportAllCoherent coherence)
 
 weak-one-step-source-νcast-frameᵀ :
-  ∀ {Φ Δᴸ Δᴿ B B′ C N N₁′ s μ χ}
+  ∀ {Φ Δᴸ Δᴿ B B′ C N N₁′ s μ χ occ}
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  {{safe : NonVar C}} →
   CastMode μ →
   SealModeStore★ (instᵈ μ)
     ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)) →
@@ -13298,27 +13684,30 @@ weak-one-step-source-νcast-frameᵀ :
     ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-  (inner : WeakOneStepResult ρ N N₁′ (`∀ C) B′ χ) →
+  (indexed : WeakOneStepIndexedResult
+    {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (ν safe occ q)) →
   WeakOneStepResult ρ (ν ★ N s) N₁′ B B′ χ
 weak-one-step-source-νcast-frameᵀ
     {B = B} {B′ = B′} {C = C} {N = N} {s = s} {χ = χ}
-    mode seal★ s⊑ pB inner
-    with weak-result-source-all inner
+    {occ = occ} {q = q} {{safe = safe}}
+    mode seal★ s⊑ pB indexed
+    with transportSourceNu (weakIndexedResult indexed) safe occ q
 weak-one-step-source-νcast-frameᵀ
     {B = B} {B′ = B′} {C = C} {N = N} {s = s} {χ = χ}
-    mode seal★ s⊑ pB inner
-    | q′ , innerResult
-    with lift-left-store-result (resultStore inner)
+    mode seal★ s⊑ pB indexed
+    | source-nu-index safe′ occ′ q′ shape
+    with lift-left-store-result (resultStore (weakIndexedResult indexed))
 weak-one-step-source-νcast-frameᵀ
     {B = B} {B′ = B′} {C = C} {N = N} {s = s} {χ = χ}
-    mode seal★ s⊑ pB inner
-    | q′ , innerResult | ρ′ , liftρ
+    mode seal★ s⊑ pB indexed
+    | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
     with apply-widen-inst-under-ty-binders
-      {χs = sourceChanges inner} mode seal★ s⊑
+      {χs = sourceChanges (weakIndexedResult indexed)}
+      mode seal★ s⊑
 weak-one-step-source-νcast-frameᵀ
     {B = B} {B′ = B′} {C = C} {N = N} {s = s} {χ = χ}
-    mode seal★ s⊑ pB inner
-    | q′ , innerResult | ρ′ , liftρ
+    mode seal★ s⊑ pB indexed
+    | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
     | μ′ , mode′ , seal★′ , source⊑ =
   record
     { sourceChanges = sourceChanges inner
@@ -13341,6 +13730,7 @@ weak-one-step-source-νcast-frameᵀ
     ; transportType = transportType inner
     ; transportAllBody = transportAllBody inner
     ; transportRightBody = transportRightBody inner
+    ; transportSourceNu = transportSourceNu inner
     ; resultType = transportType inner pB
     ; sourceCatchup =
         subst
@@ -13353,10 +13743,21 @@ weak-one-step-source-νcast-frameᵀ
     ; sourceStoreResult = sourceStoreResult inner
     ; targetStoreResult = targetStoreResult inner
     ; relatedResults =
-        νcast⊑ᵀ mode′ source-seal source-widen
-          liftρ lift-left-ctx-[] innerResult
+        νcast⊑ᵀ {{safe′}} mode′ source-seal source-widen
+          liftρ lift-left-ctx-[] shaped
     }
   where
+    inner = weakIndexedResult indexed
+
+    normalized =
+      nu-term-imprecision-transport-typesᵀ
+        (applyTys-∀ (sourceChanges inner) C) refl refl
+        (canonicalIndexedResults indexed)
+
+    shaped =
+      nu-term-imprecision-transport-typesᵀ
+        refl refl shape normalized
+
     source-seal =
       subst
         (λ Σ → SealModeStore★ (instᵈ μ′)
@@ -13381,8 +13782,11 @@ weak-one-step-source-νcast-frameᵀ
           (sym (sourceStoreResult inner)) source⊑)
 
 weak-one-step-source-νcast-frame-preserves-transportᵀ :
-  ∀ {Φ Δᴸ Δᴿ B B′ C N N₁′ s μ χ}
+  ∀ {Φ Δᴸ Δᴿ B B′ C N N₁′ s μ χ occ}
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  {{safe : NonVar C}} →
   (mode : CastMode μ) →
   (seal★ : SealModeStore★ (instᵈ μ)
     ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ))) →
@@ -13390,31 +13794,37 @@ weak-one-step-source-νcast-frame-preserves-transportᵀ :
     ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)
     ⊢ s ∶ C ⊑ ⇑ᵗ B) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-  (inner : WeakOneStepResult ρ N N₁′ (`∀ C) B′ χ) →
-  WeakOneStepTransport inner →
+  (indexed : WeakOneStepIndexedResult
+    {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (ν safe occ q)) →
+  WeakOneStepTransport (weakIndexedResult indexed) →
   WeakOneStepTransport
-    (weak-one-step-source-νcast-frameᵀ mode seal★ s⊑ pB inner)
+    (weak-one-step-source-νcast-frameᵀ mode seal★ s⊑ pB indexed)
 weak-one-step-source-νcast-frame-preserves-transportᵀ
-    mode seal★ s⊑ pB inner transport
-    with weak-result-source-all inner
+    {occ = occ} {q = q} {{safe = safe}}
+    mode seal★ s⊑ pB indexed transport
+    with transportSourceNu (weakIndexedResult indexed) safe occ q
 weak-one-step-source-νcast-frame-preserves-transportᵀ
-    mode seal★ s⊑ pB inner transport
-    | q′ , innerResult
-    with lift-left-store-result (resultStore inner)
+    mode seal★ s⊑ pB indexed transport
+    | source-nu-index safe′ occ′ q′ shape
+    with lift-left-store-result (resultStore (weakIndexedResult indexed))
 weak-one-step-source-νcast-frame-preserves-transportᵀ
-    mode seal★ s⊑ pB inner transport
-    | q′ , innerResult | ρ′ , liftρ
+    mode seal★ s⊑ pB indexed transport
+    | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
     with apply-widen-inst-under-ty-binders
-      {χs = sourceChanges inner} mode seal★ s⊑
+      {χs = sourceChanges (weakIndexedResult indexed)}
+      mode seal★ s⊑
 weak-one-step-source-νcast-frame-preserves-transportᵀ
-    mode seal★ s⊑ pB inner transport
-    | q′ , innerResult | ρ′ , liftρ
+    mode seal★ s⊑ pB indexed transport
+    | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
     | μ′ , mode′ , seal★′ , source⊑ =
   weak-step-transport (transportNo•Terms transport)
 
 weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ :
-  ∀ {Φ Δᴸ Δᴿ B B′ C N N₁′ s μ χ}
+  ∀ {Φ Δᴸ Δᴿ B B′ C N N₁′ s μ χ occ}
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  {{safe : NonVar C}} →
   (mode : CastMode μ) →
   (seal★ : SealModeStore★ (instᵈ μ)
     ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ))) →
@@ -13422,25 +13832,28 @@ weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ :
     ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)
     ⊢ s ∶ C ⊑ ⇑ᵗ B) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-  (inner : WeakOneStepResult ρ N N₁′ (`∀ C) B′ χ) →
-  WeakOneStepTypeCoherence inner →
+  (indexed : WeakOneStepIndexedResult
+    {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (ν safe occ q)) →
+  WeakOneStepTypeCoherence (weakIndexedResult indexed) →
   WeakOneStepTypeCoherence
-    (weak-one-step-source-νcast-frameᵀ mode seal★ s⊑ pB inner)
+    (weak-one-step-source-νcast-frameᵀ mode seal★ s⊑ pB indexed)
 weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-    mode seal★ s⊑ pB inner coherence
-    with weak-result-source-all inner
+    {occ = occ} {q = q} {{safe = safe}}
+    mode seal★ s⊑ pB indexed coherence
+    with transportSourceNu (weakIndexedResult indexed) safe occ q
 weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-    mode seal★ s⊑ pB inner coherence
-    | q′ , innerResult
-    with lift-left-store-result (resultStore inner)
+    mode seal★ s⊑ pB indexed coherence
+    | source-nu-index safe′ occ′ q′ shape
+    with lift-left-store-result (resultStore (weakIndexedResult indexed))
 weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-    mode seal★ s⊑ pB inner coherence
-    | q′ , innerResult | ρ′ , liftρ
+    mode seal★ s⊑ pB indexed coherence
+    | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
     with apply-widen-inst-under-ty-binders
-      {χs = sourceChanges inner} mode seal★ s⊑
+      {χs = sourceChanges (weakIndexedResult indexed)}
+      mode seal★ s⊑
 weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-    mode seal★ s⊑ pB inner coherence
-    | q′ , innerResult | ρ′ , liftρ
+    mode seal★ s⊑ pB indexed coherence
+    | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
     | μ′ , mode′ , seal★′ , source⊑ =
   weak-step-type-coherence
     (transportArrowCoherent coherence)
@@ -13505,6 +13918,7 @@ weak-one-step-target-ν-frameᵀ
     ; transportType = transportType inner
     ; transportAllBody = transportAllBody inner
     ; transportRightBody = transportRightBody inner
+    ; transportSourceNu = transportSourceNu inner
     ; resultType = transportType inner pB
     ; sourceCatchup = sourceCatchup inner
     ; targetTail = ν-↠ (targetTail inner)
@@ -13686,6 +14100,7 @@ weak-one-step-target-νcast-frameᵀ
     ; transportType = transportType inner
     ; transportAllBody = transportAllBody inner
     ; transportRightBody = transportRightBody inner
+    ; transportSourceNu = transportSourceNu inner
     ; resultType = transportType inner pB
     ; sourceCatchup = sourceCatchup inner
     ; targetTail =
@@ -13954,45 +14369,6 @@ weak-one-step-matched-νcast-indexed-frame-outcomeᵀ
     | all-outcome-source-blame source↠ =
   indexed-outcome-source-blame (ν-blame-tail source↠)
 
-weak-one-step-source-ν-frame-outcomeᵀ :
-  ∀ {Φ Δᴸ Δᴿ A B B′ C N N₁′ s μ χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  WfTy Δᴸ A →
-  RevealConversion μ (suc Δᴸ)
-    ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ))
-    zero (⇑ᵗ A) s C (⇑ᵗ B) →
-  (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-  WeakOneStepOutcome ρ N N₁′ (`∀ C) B′ χ →
-  WeakOneStepOutcome ρ (ν A N s) N₁′ B B′ χ
-weak-one-step-source-ν-frame-outcomeᵀ hA s↑ pB =
-  weak-outcome-map-source
-    (weak-one-step-source-ν-frameᵀ hA s↑ pB)
-    (weak-one-step-source-ν-frame-preserves-transportᵀ hA s↑ pB)
-    (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-      hA s↑ pB)
-    (λ N↠ → _ , ν-blame-tail N↠)
-
-weak-one-step-source-νcast-frame-outcomeᵀ :
-  ∀ {Φ Δᴸ Δᴿ B B′ C N N₁′ s μ χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  CastMode μ →
-  SealModeStore★ (instᵈ μ)
-    ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)) →
-  instᵈ μ ∣ suc Δᴸ
-    ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)
-    ⊢ s ∶ C ⊑ ⇑ᵗ B →
-  (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-  WeakOneStepOutcome ρ N N₁′ (`∀ C) B′ χ →
-  WeakOneStepOutcome ρ (ν ★ N s) N₁′ B B′ χ
-weak-one-step-source-νcast-frame-outcomeᵀ mode seal★ s⊑ pB =
-  weak-outcome-map-source
-    (weak-one-step-source-νcast-frameᵀ mode seal★ s⊑ pB)
-    (weak-one-step-source-νcast-frame-preserves-transportᵀ
-      mode seal★ s⊑ pB)
-    (weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★ s⊑ pB)
-    (λ N↠ → _ , ν-blame-tail N↠)
-
 weak-one-step-target-ν-frame-outcomeᵀ :
   ∀ {Φ Δᴸ Δᴿ A B B′ C′ N N₁′ s μ χ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
@@ -14039,15 +14415,18 @@ weak-one-step-target-νcast-frame-outcomeᵀ
       mode seal★ s⊑ pB pC)
 
 weak-one-step-source-ν-indexed-frame-outcomeᵀ :
-  ∀ {Φ Δᴸ Δᴿ A B B′ C N N₁′ s μ χ q}
+  ∀ {Φ Δᴸ Δᴿ A B B′ C N N₁′ s μ χ occ}
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  {{safe : NonVar C}} →
   WfTy Δᴸ A →
   RevealConversion μ (suc Δᴸ)
     ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ))
     zero (⇑ᵗ A) s C (⇑ᵗ B) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   WeakOneStepIndexedOutcome
-    {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} q →
+    {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (ν safe occ q) →
   WeakOneStepIndexedOutcome
     {M = ν A N s} {N′ = N₁′} {χ = χ} {ρ = ρ} pB
 weak-one-step-source-ν-indexed-frame-outcomeᵀ
@@ -14057,21 +14436,23 @@ weak-one-step-source-ν-indexed-frame-outcomeᵀ
     (weak-indexed-result framed (relatedResults framed)
       framed-transport framed-coherence)
   where
-  inner = weakIndexedResult indexed
-  framed = weak-one-step-source-ν-frameᵀ hA s↑ pB inner
+  framed = weak-one-step-source-ν-frameᵀ hA s↑ pB indexed
   framed-transport =
     weak-one-step-source-ν-frame-preserves-transportᵀ
-      hA s↑ pB inner (weakIndexedTransport indexed)
+      hA s↑ pB indexed (weakIndexedTransport indexed)
   framed-coherence =
     weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-      hA s↑ pB inner (weakIndexedTypeCoherence indexed)
+      hA s↑ pB indexed (weakIndexedTypeCoherence indexed)
 weak-one-step-source-ν-indexed-frame-outcomeᵀ
     hA s↑ pB (indexed-outcome-source-blame source↠) =
   indexed-outcome-source-blame (ν-blame-tail source↠)
 
 weak-one-step-source-νcast-indexed-frame-outcomeᵀ :
-  ∀ {Φ Δᴸ Δᴿ B B′ C N N₁′ s μ χ q}
+  ∀ {Φ Δᴸ Δᴿ B B′ C N N₁′ s μ χ occ}
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  {{safe : NonVar C}} →
   CastMode μ →
   SealModeStore★ (instᵈ μ)
     ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)) →
@@ -14080,7 +14461,7 @@ weak-one-step-source-νcast-indexed-frame-outcomeᵀ :
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   WeakOneStepIndexedOutcome
-    {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} q →
+    {M = N} {N′ = N₁′} {χ = χ} {ρ = ρ} (ν safe occ q) →
   WeakOneStepIndexedOutcome
     {M = ν ★ N s} {N′ = N₁′} {χ = χ} {ρ = ρ} pB
 weak-one-step-source-νcast-indexed-frame-outcomeᵀ
@@ -14090,15 +14471,14 @@ weak-one-step-source-νcast-indexed-frame-outcomeᵀ
     (weak-indexed-result framed (relatedResults framed)
       framed-transport framed-coherence)
   where
-  inner = weakIndexedResult indexed
   framed =
-    weak-one-step-source-νcast-frameᵀ mode seal★ s⊑ pB inner
+    weak-one-step-source-νcast-frameᵀ mode seal★ s⊑ pB indexed
   framed-transport =
     weak-one-step-source-νcast-frame-preserves-transportᵀ
-      mode seal★ s⊑ pB inner (weakIndexedTransport indexed)
+      mode seal★ s⊑ pB indexed (weakIndexedTransport indexed)
   framed-coherence =
     weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★ s⊑ pB inner (weakIndexedTypeCoherence indexed)
+      mode seal★ s⊑ pB indexed (weakIndexedTypeCoherence indexed)
 weak-one-step-source-νcast-indexed-frame-outcomeᵀ
     mode seal★ s⊑ pB
     (indexed-outcome-source-blame source↠) =

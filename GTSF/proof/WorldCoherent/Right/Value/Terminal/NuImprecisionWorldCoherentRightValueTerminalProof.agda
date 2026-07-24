@@ -28,6 +28,7 @@ open import
   using (RightValueCatchupSourceBulletTransportᵀ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( weak-indexed-result
+  ; source-nu-index
   ; weak-step-result
   ; weak-step-transport
   ; weak-step-type-coherence
@@ -76,6 +77,7 @@ world-coherent-right-value-terminal-proofᵀ
       (λ q → q)
       (λ q → q)
       (λ q → q)
+      (λ safe occ q → source-nu-index safe occ q refl)
       p
       ↠-refl
       ↠-refl

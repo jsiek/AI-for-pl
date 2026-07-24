@@ -80,6 +80,7 @@ open import
   ( ≡-to-≅
   ; transportAllType-to-raw≅
   ; transportArrowType-to-raw≅
+  ; ⊑-target-lift-right-source-nuᵢ
   ; ⊑-target-lift-right-under-∀ᵢ
   ; ⊑-target-lift-under-rightᵢ
   )
@@ -328,6 +329,7 @@ world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation
       ⊑-target-lift-rightᵢ
       ⊑-target-lift-right-under-∀ᵢ
       ⊑-target-lift-under-rightᵢ
+      ⊑-target-lift-right-source-nuᵢ
       (⊑-target-lift-rightᵢ t)
       ↠-refl target-tail
       (leftStoreⁱ-lift-right liftρᴿ)

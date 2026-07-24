@@ -14,17 +14,18 @@ module
 --   * Contains no postulate, hole, permissive option, or termination bypass.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (true)
 open import Data.List using ([]; _∷_; _++_)
-open import Data.Nat using (suc)
+open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_; Σ)
 open import Relation.Binary.PropositionalEquality using
   (cong; cong₂; subst; sym; trans)
 import Relation.Binary.HeterogeneousEquality as HE
 
 open import Coercions using (Coercion; _︔_)
-open import Imprecision using (⇑ᴿᵢ)
+open import Imprecision using (NonVar; ⇑ᴿᵢ)
 open import ImprecisionWf using
-  (_∣_⊢_⊑_⊣_; _↦_; ∀ⁱ_)
+  (_ˣ⊑★; ⇑ᴸᵢ; _∣_⊢_⊑_⊣_; _↦_; ∀ⁱ_; ν)
 open import NuReduction using
   ( applyStore
   ; applyStores
@@ -46,7 +47,7 @@ open import QuotientedTermImprecision using
   ; nu-term-imprecision-source-typing
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
-open import Types using (Ty; _⇒_; `∀)
+open import Types using (Ty; occurs; _⇒_; `∀)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (∀ᵢᶜ)
 open import proof.Right.Core.NuImprecisionRightContextAction using
   (applyRightImpCtxChanges; applyRightImpCtxChanges-++)
@@ -85,6 +86,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; transport-arrow-⊑ᵢ
   ; transportAllType-to-raw≅
   ; transportArrowType-to-raw≅
+  ; transportSourceNuType-to-raw≅
   ; transportType-source-subst-to-raw≅
   ; transportType-target-subst-to-raw≅
   )
@@ -175,6 +177,156 @@ private
         (sym (applyTys-++
           (sourceChanges first) (sourceChanges second) D))
         (transportType second (transportType first p)))
+
+  sequence-resume-type-to-nested≅ :
+    ∀ {Φ Δᴸ Δᴿ V M′ A B}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      (first : WeakOneStepResult ρ V M′ A B keep)
+      {N′ C}
+      (second : WeakOneStepResult
+        (resultStore first) (sourceResult first) N′
+        (applyTys (sourceChanges first) A)
+        (applyTys (targetTailChanges first) C) keep)
+      {D E}
+      (p : Φ ∣ Δᴸ ⊢ D ⊑ E ⊣ Δᴿ) →
+    HE._≅_ (sequence-resume-type first second p)
+      (transportType second (transportType first p))
+  sequence-resume-type-to-nested≅ first second
+      {D = D} {E = E} p =
+    HE.trans
+      (subst-to-≅ target-eq source-transport)
+      (subst-to-≅ source-eq raw)
+    where
+    raw = transportType second (transportType first p)
+    source-eq = sym (applyTys-++
+      (sourceChanges first) (sourceChanges second) D)
+    source-transport = subst
+      (λ S → resultCtx second ∣ resultLeftCtx second
+        ⊢ S ⊑ applyTys (targetTailChanges second)
+            (applyTys (targetTailChanges first) E)
+          ⊣ resultRightCtx second)
+      source-eq raw
+    target-eq = sym (applyTys-++
+      (targetTailChanges first)
+      (keep ∷ targetTailChanges second) E)
+
+  sequence-nested-source-nu≅ :
+    ∀ {Φ Δᴸ Δᴿ V M′ A B}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      (first : WeakOneStepResult ρ V M′ A B keep)
+      {N′ X Y}
+      (second : WeakOneStepResult
+        (resultStore first) (sourceResult first) N′ X Y keep)
+      {C D}
+      (safe : NonVar C)
+      (occ : occurs zero C ≡ true)
+      (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+        ∣ suc Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
+    let first-shape = transportSourceNu first safe occ q in
+    let second-shape = transportSourceNu second
+          (sourceNuSafe first-shape)
+          (sourceNuOccurs first-shape)
+          (sourceNuBody first-shape) in
+    HE._≅_
+      (transportType second (transportType first (ν safe occ q)))
+      (transportSourceNuType second
+        (sourceNuSafe first-shape)
+        (sourceNuOccurs first-shape)
+        (sourceNuBody first-shape))
+  sequence-nested-source-nu≅ first second safe occ q =
+    HE.trans
+      (HE.sym
+        (transportType-source-subst-to-raw≅ second
+          (applyTys-∀ (sourceChanges first) _)
+          (transportType first (ν safe occ q))))
+      (HE.trans
+        (≡-to-≅
+          (cong (transportType second)
+            (sourceNuIndexEquality first-shape)))
+        (HE.sym
+          (transportSourceNuType-to-raw≅ second
+            (sourceNuSafe first-shape)
+            (sourceNuOccurs first-shape)
+            (sourceNuBody first-shape))))
+    where
+    first-shape = transportSourceNu first safe occ q
+
+  sequence-resume-source-nu :
+    ∀ {Φ Δᴸ Δᴿ V M′ A B}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      (first : WeakOneStepResult ρ V M′ A B keep)
+      {N′ C}
+      (second : WeakOneStepResult
+        (resultStore first) (sourceResult first) N′
+        (applyTys (sourceChanges first) A)
+        (applyTys (targetTailChanges first) C) keep)
+      {D E}
+      (safe : NonVar D)
+      (occ : occurs zero D ≡ true)
+      (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+        ∣ suc Δᴸ ⊢ D ⊑ E ⊣ Δᴿ) →
+    SourceNuIndex
+      (subst
+        (λ S → resultCtx second ∣ resultLeftCtx second
+          ⊢ S ⊑ applyTys
+              (targetTailChanges first ++
+                keep ∷ targetTailChanges second) E
+            ⊣ resultRightCtx second)
+        (applyTys-∀
+          (sourceChanges first ++ sourceChanges second) D)
+        (sequence-resume-type first second (ν safe occ q)))
+  sequence-resume-source-nu first second {D = D} {E = E}
+      safe occ q =
+    sourceNuIndex-reindex (sym combined-eq) transported-shape
+    where
+    first-shape = transportSourceNu first safe occ q
+
+    second-shape = transportSourceNu second
+      (sourceNuSafe first-shape)
+      (sourceNuOccurs first-shape)
+      (sourceNuBody first-shape)
+
+    source-eq = applyTysUnderTyBinders-++
+      (sourceChanges first) (sourceChanges second) D
+
+    target-eq = applyTys-++
+      (targetTailChanges first)
+      (keep ∷ targetTailChanges second) E
+
+    transported-shape =
+      sourceNuIndex-transport
+        (sym source-eq) (sym target-eq) second-shape
+
+    combined-eq =
+      HE.≅-to-≡
+        (HE.trans
+          (subst-to-≅
+            {P = λ S → resultCtx second ∣ resultLeftCtx second
+              ⊢ S ⊑
+                  applyTys
+                    (targetTailChanges first ++
+                      keep ∷ targetTailChanges second) E
+                ⊣ resultRightCtx second}
+            (applyTys-∀
+              (sourceChanges first ++ sourceChanges second) D)
+            (sequence-resume-type
+              first second (ν safe occ q)))
+          (HE.trans
+            (sequence-resume-type-to-nested≅
+              first second (ν safe occ q))
+            (HE.trans
+              (sequence-nested-source-nu≅
+                first second safe occ q)
+              (HE.sym
+                (subst²-to-≅
+                  {P = λ S T → resultCtx second
+                    ∣ resultLeftCtx second
+                    ⊢ S ⊑ T ⊣ resultRightCtx second}
+                  (cong `∀ (sym source-eq)) (sym target-eq)
+                  (transportSourceNuType second
+                    (sourceNuSafe first-shape)
+                    (sourceNuOccurs first-shape)
+                    (sourceNuBody first-shape)))))))
 
   sequence-resume-all-body :
     ∀ {Φ Δᴸ Δᴿ V M′ A B}
@@ -310,6 +462,7 @@ private
       ; transportType = sequence-resume-type first second
       ; transportAllBody = sequence-resume-all-body first second
       ; transportRightBody = sequence-resume-right-body first second
+      ; transportSourceNu = sequence-resume-source-nu first second
       ; resultType = resultType second
       ; sourceCatchup =
           ↠-trans (sourceCatchup first) (sourceCatchup second)
@@ -420,38 +573,6 @@ private
     weak-step-transport
       (sequence-resume-transport-body
         first second first-transport second-transport)
-
-  sequence-resume-type-to-nested≅ :
-    ∀ {Φ Δᴸ Δᴿ V M′ A B}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      (first : WeakOneStepResult ρ V M′ A B keep)
-      {N′ C}
-      (second : WeakOneStepResult
-        (resultStore first) (sourceResult first) N′
-        (applyTys (sourceChanges first) A)
-        (applyTys (targetTailChanges first) C) keep)
-      {D E}
-      (p : Φ ∣ Δᴸ ⊢ D ⊑ E ⊣ Δᴿ) →
-    HE._≅_ (sequence-resume-type first second p)
-      (transportType second (transportType first p))
-  sequence-resume-type-to-nested≅ first second
-      {D = D} {E = E} p =
-    HE.trans
-      (subst-to-≅ target-eq source-transport)
-      (subst-to-≅ source-eq raw)
-    where
-    raw = transportType second (transportType first p)
-    source-eq = sym (applyTys-++
-      (sourceChanges first) (sourceChanges second) D)
-    source-transport = subst
-      (λ S → resultCtx second ∣ resultLeftCtx second
-        ⊢ S ⊑ applyTys (targetTailChanges second)
-            (applyTys (targetTailChanges first) E)
-          ⊣ resultRightCtx second)
-      source-eq raw
-    target-eq = sym (applyTys-++
-      (targetTailChanges first)
-      (keep ∷ targetTailChanges second) E)
 
   sequence-transport-arrow-to-raw≅ :
     ∀ {Φ Δᴸ Δᴿ V M′ A B}

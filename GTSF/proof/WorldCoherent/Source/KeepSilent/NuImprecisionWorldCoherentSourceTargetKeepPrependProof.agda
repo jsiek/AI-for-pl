@@ -43,6 +43,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetTypeResult
   ; transportAllBody
   ; transportRightBody
+  ; transportSourceNu
   ; transportType
   ; weak-indexed-result
   ; weakIndexedResult
@@ -101,6 +102,7 @@ prepend-target-keep-result result target→ = record
   ; transportType = transportType result
   ; transportAllBody = transportAllBody result
   ; transportRightBody = transportRightBody result
+  ; transportSourceNu = transportSourceNu result
   ; resultType = resultType result
   ; sourceCatchup = sourceCatchup result
   ; targetTail = ↠-step target→ (targetTail result)

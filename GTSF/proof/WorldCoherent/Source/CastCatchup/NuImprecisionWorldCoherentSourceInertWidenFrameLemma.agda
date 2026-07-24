@@ -9,7 +9,7 @@ module
 open import
   proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceInertWidenFrameDef
   using (WorldCoherentSourceInertWidenFrameᵀ)
-open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupProof using
+open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupCasesProof using
   (world-coherent-source-inert-widen-castᵀ)
 
 

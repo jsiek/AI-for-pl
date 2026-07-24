@@ -828,8 +828,8 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceOneStepCasesProof.agda`](NuImprecisionWorldCoherentSourceOneStepCasesProof.agda) | completed higher-order assembly | Builds the full source one-step case record from ten remaining named families while supplying primitive roots and `ν` blame canonically. |
 | [`NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda`](NuImprecisionWorldCoherentSourceOneStepDispatcherProof.agda) | completed higher-order proof | Exhaustive split on all source store-step constructors, proving that the nine capabilities suffice for the prefix engine and hence public DGG. |
 | [`NuImprecisionWorldCoherentSourceAllocationStepDef.agda`](NuImprecisionWorldCoherentSourceAllocationStepDef.agda) | completed statement | Canonical source allocation-step boundary with the exact `bind` change and post-allocation term. |
-| [`NuImprecisionWorldCoherentSourceAllocationStepProof.agda`](NuImprecisionWorldCoherentSourceAllocationStepProof.agda) | completed higher-order proof; leaf dependencies partial | Exhaustively proves matched allocation and direct source-only `νⁱ` allocation, delegates the two paired `∀ⁱ` leaves and the exact target-bullet crossing, and returns the existing complete source-step result directly. |
-| [`NuImprecisionWorldCoherentSourceAllocationPairedIndexStepsDef.agda`](NuImprecisionWorldCoherentSourceAllocationPairedIndexStepsDef.agda) | completed exact leaf statements; proofs not started | Ordinary and `ν ★` source allocation when the inner universal index is paired `∀ⁱ`. Both keep the distinguished allocation as the exact singleton source step and return the existing complete result directly; the source-only `ν` branches remain structural cases of the main allocation proof. |
+| [`NuImprecisionWorldCoherentSourceAllocationStepProof.agda`](NuImprecisionWorldCoherentSourceAllocationStepProof.agda) | completed higher-order proof | Exhaustively proves matched allocation and direct source-only `ν` allocation, delegates the exact target-bullet crossing, and returns the existing complete source-step result directly. The former paired-`∀ⁱ` source-only leaves were removed after the term-imprecision grammar made them impossible. |
+| `NuImprecisionWorldCoherentSourceAllocationPairedIndexStepsDef.agda` | retired 2026-07-24 | Its two fields described impossible paired-`∀ⁱ` source-only allocation leaves. The source-only term-imprecision constructors now require a source-only `ν` index, so the obsolete capability was deleted. |
 | [`NuImprecisionWorldCoherentSourceAllocationTargetBulletStepDef.agda`](NuImprecisionWorldCoherentSourceAllocationTargetBulletStepDef.agda) | completed exact leaf statement; proof not started | Hard source-allocation step below a target runtime-bullet relation. It returns the existing complete source-step result directly and is the remaining non-paired leaf of the allocation proof. |
 | [`NuImprecisionWorldCoherentSourceApplicationLeftStepDef.agda`](NuImprecisionWorldCoherentSourceApplicationLeftStepDef.agda) | completed statement | Canonical source application-left congruence boundary. |
 | [`NuImprecisionWorldCoherentSourceApplicationLeftStepProof.agda`](NuImprecisionWorldCoherentSourceApplicationLeftStepProof.agda) | partial: strict non-decreasing adapter; structural replacement in progress | Rebuilds `ξ-·₁` but invokes the prefix worker on the same outer configuration, so it cannot participate in the total recursive knot. It must be replaced by subderivation recursion plus flat exact frame maps. |
@@ -1219,8 +1219,8 @@ are delegated:
 | [`NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupDef.agda) | completed statement | Whole accumulated-world source-narrowing handler contract |
 | [`NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda`](NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda) | completed higher-order proof | GPT 5.5 Ginger proof transports and frames every narrowing grammar form, propagates source blame, and resumes terminal values through the whole value-prefix capability; canonical assembly remains cyclic |
 | [`NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceNarrowCatchupDef.agda) | completed statement | Exact-final terminal source-narrowing semantics, separated from accumulated-change framing |
-| [`NuImprecisionWorldCoherentSourceWidenCatchupDef.agda`](NuImprecisionWorldCoherentSourceWidenCatchupDef.agda) | completed statement | Whole accumulated-world source-widening handler contract and the precise dependency used by terminal paired widening |
-| [`NuImprecisionWorldCoherentSourceWidenCatchupProof.agda`](NuImprecisionWorldCoherentSourceWidenCatchupProof.agda) | completed higher-order proof | GPT 5.5 Ginger proof covers identity, inert, tag, sequence, active unseal, and active `inst`; local integration threads explicit lineage through every terminal, frame, and silent-composition path |
+| [`NuImprecisionWorldCoherentSourceWidenCatchupDef.agda`](NuImprecisionWorldCoherentSourceWidenCatchupDef.agda) | residual capability; cast/index repair pending | Whole accumulated-world source-widening handler contract. Its arbitrary-index source-`inst` case is too broad and has no current proof assembly. |
+| [`NuImprecisionWorldCoherentSourceWidenCatchupCasesProof.agda`](NuImprecisionWorldCoherentSourceWidenCatchupCasesProof.agda) | completed strict case proofs; total assembly retired | Preserves the valid identity, inert, tag, sequence, and source-only `inst` cases. The direct `inst` helper now requires an incoming `ν safe occ r` index. |
 | [`NuImprecisionWorldCoherentFinalSourceWidenCatchupDef.agda`](NuImprecisionWorldCoherentFinalSourceWidenCatchupDef.agda) | completed statement | Exact-final terminal source-widening semantics; active `inst` remains the explicit allocation-sensitive case |
 | [`NuImprecisionWorldCoherentSourceConcealCatchup.agda`](NuImprecisionWorldCoherentSourceConcealCatchup.agda) | completed leaf | GPT 5.5 proved all conceal-conversion cases on ginger; the adapted proof preserves final coherence and left `StoreWf` and passes a local focused strict check |
 | [`NuImprecisionContextExclusivityDef.agda`](NuImprecisionContextExclusivityDef.agda) | completed statement | Separate source-name role invariant: a source-only row and matched row cannot share the same source name; this remains distinct from store-world coherence |
@@ -9343,16 +9343,13 @@ coordination.  Use focused strict checks throughout and reserve
   mutually dependent on target allocation and target-bullet closing; this is
   the deliberate SCC boundary, not another carrier layer.
 
-- The source-allocation implementation exposed the two constructor-form
-  possibilities for its inner universal precision index.  The `ν` index uses
-  the existing direct left-allocation lemmas, while paired `∀ⁱ` cannot be sent
-  through those lemmas and cannot reuse an exact-final catch-up that may take
-  additional source steps.  The new
-  [`WorldCoherentSourceAllocationPairedIndexSteps`](NuImprecisionWorldCoherentSourceAllocationPairedIndexStepsDef.agda)
-  boundary therefore states the ordinary and `ν ★` paired leaves with the
-  distinguished `bind` step and immediate post-allocation source term still
-  exact.  These are direct result-producing capabilities, not a paired-index
-  carrier.
+- The source-allocation implementation initially appeared to expose both
+  source-only `ν` and paired `∀ⁱ` inner indices.  The paired leaves were later
+  identified as artifacts of an over-permissive term-imprecision constructor:
+  a source-only type application cannot consume a universal that is paired
+  with a universal on the target.  The temporary
+  `WorldCoherentSourceAllocationPairedIndexSteps` boundary was therefore
+  retired on 2026-07-24.
 
 - Ginger/GPT-5.5 completed the ordinary and casted exact target-`ν` frame maps
   in
@@ -9648,12 +9645,14 @@ coordination.  Use focused strict checks throughout and reserve
   that frame, and prepends `β-seq`.  The remaining hard quotient obligation is
   the pre-existing plain representative-`inst` permutation path semantics.
 
-- Focused strict checks pass for the new `Def`/`Proof`/`Lemma` modules,
+- At this historical checkpoint, focused strict checks passed for the new
+  `Def`/`Proof`/`Lemma` modules,
   `NuImprecisionAtomicTargetReindex.agda`,
   `NuImprecisionWorldCoherentSourceConcealCatchup.agda`,
-  `NuImprecisionWorldCoherentSourceWidenCatchupProof.agda`,
+  the then-current source-widening proof,
   `NuMetaTheory.agda`, and `NuDGGStrictSpine.agda`.  No `All.agda` check was
-  run.
+  run.  The arbitrary-index source-`inst` branch of that proof was retired on
+  2026-07-24 after the source-only index invariant exposed it.
 
 - The canonical eager and final quotient assemblies now make the dependency
   reduction explicit.  The eager lemma takes plain quotient-`inst` catch-up
@@ -11434,3 +11433,88 @@ nested `inst` and source-only-to-paired binder crossing remain the other
 semantic cells.  Then assemble the sole plain-instantiation input to the
 ranked pending-cast worker and reconnect the worker to the live right-value
 catch-up dispatcher.
+
+### 2026-07-24: source-only type application preserves a `ν` index
+
+- **The apparent paired-index source-allocation case was impossible.**
+  The old source-only term rule accepted an inner relation
+
+  `N ⊑ N′ : ∀ C ⊑ B′ ∶ q`
+
+  for arbitrary `q`.  This admitted the misleading case `q = ∀ⁱ r`, even
+  though the source-only type application removes one source universal and
+  leaves the target unchanged.  If that source universal is paired with a
+  target universal, removing it only on the source cannot produce related
+  residual terms.  The inner index must instead have the source-only form
+
+  `ν safe occ r : ∀ C ⊑ B′`.
+
+- **Both source-only term rules now state that invariant directly.**
+  [`NuTermImprecision.agda`](../../../NuTermImprecision.agda) and
+  [`QuotientedTermImprecision.agda`](../../../QuotientedTermImprecision.agda)
+  require
+
+  `N ⊑ N′ : ∀ C ⊑ B′ ∶ ν safe occ r`
+
+  before constructing either `ν A N s ⊑ N′` or
+  `ν ★ N s ⊑ N′`.  Synchronized source and target type applications remain
+  indexed by `∀ⁱ r`.  The compiler already makes exactly this distinction:
+  source-only gradual type imprecision compiles to `ν`, while synchronized
+  polymorphism compiles to `∀ⁱ`.
+
+- **Weak simulation now preserves the source-only head as evidence.**
+  [`NuImprecisionSimulationResultDef.agda`](../../Catchup/Simulation/NuImprecisionSimulationResultDef.agda)
+  adds `SourceNuIndex p`, containing the safe body, non-vacuity proof, body
+  imprecision, and the equation
+
+  `p ≡ ν safe occ r`.
+
+  Every `WeakOneStepResult` now transports this evidence along with ordinary
+  type imprecision.  Identity, renaming, source and target lifting, world
+  embedding, step composition, source-silent composition, and target-resume
+  composition all preserve the `ν` head.  The source-`ν` and source-`ν ★`
+  frames therefore rebuild their final relation from transported
+  source-only evidence instead of analyzing an arbitrary universal index.
+
+- **The junk proof branches and their capability boundary are gone.**
+  The source-allocation dispatcher no longer has paired-`∀ⁱ` branches for a
+  source-only `ν` term.  Its unused
+  `WorldCoherentSourceAllocationPairedIndexSteps` parameter and definition
+  were deleted.  The obsolete paired-all source-instantiation helper cluster
+  in
+  [`NuImprecisionSimulation.agda`](../../Catchup/Simulation/NuImprecisionSimulation.agda)
+  was also removed.  The genuine matched allocation case remains paired
+  `∀ⁱ`; the genuine source-only allocation case is now necessarily `ν`.
+
+- **The former total source-widening proof no longer hides the same bad
+  path.**
+  [`NuImprecisionWorldCoherentSourceWidenCatchupCasesProof.agda`](../../WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceWidenCatchupCasesProof.agda)
+  retains the strict identity, inert, sequence, and source-only
+  instantiation cases.  Its direct `inst` helper requires the incoming
+  catch-up index `ν safe occ r` and passes the indexed result to the
+  source-`ν ★` frame.  The old total assembler was removed because its
+  arbitrary-index `inst` clause recreated the impossible paired-`∀ⁱ`
+  obligation.  `WorldCoherentSourceWidenCatchupᵀ` remains an explicit
+  residual capability until `cast⊑⊑ᵀ` records source-cast/index
+  compatibility.
+
+- **Fresh strict validation succeeds.**  The repaired raw and quotiented
+  relations, simulation core, source allocation proof, source-silent
+  composition, source-`ν` terminal catch-ups, target resume composition,
+  runtime/no-bullet transport, terminal-forward strict spine,
+  [`DynamicGradualGuarantee.agda`](../../../DynamicGradualGuarantee.agda),
+  and `All.agda` pass `--no-allow-unsolved-metas`.  The only diagnostics are
+  the three pre-existing unreachable-clause warnings in
+  `GenSafeProperties.agda`.  This repair removes the false
+  `ClosedNuDGG` counterexample shape; it does not yet inhabit `GradualDGG`.
+
+### Next boundary
+
+The remaining broad source-instantiation transport,
+`cast⊑⊑ᵀ`, still accepts an arbitrary precision index while consuming a
+source cast sequence.  Introduce a source-cast/index compatibility invariant:
+a source-only universal consumption must preserve a `ν` head, whereas a
+synchronized source/target consumption must preserve `∀ⁱ`.  Audit paired
+widening under binders against the same distinction, then resume the ranked
+target-instantiation worker.  This is the next semantic boundary; the former
+paired-`∀ⁱ` source-only allocation leaves must not be reintroduced.

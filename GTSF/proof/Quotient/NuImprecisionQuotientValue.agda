@@ -456,6 +456,8 @@ left-catchup-indexed-one-keep-valueᵀ M→N vN noN N⊑V′ =
     ; transportType = λ q → q
     ; transportAllBody = λ q → q
     ; transportRightBody = λ q → q
+    ; transportSourceNu = λ safe occ q →
+        source-nu-index safe occ q refl
     ; resultType = _
     ; sourceCatchup = ↠-step M→N ↠-refl
     ; targetTail = ↠-refl
@@ -501,6 +503,8 @@ left-catchup-indexed-double-cast-blameᵀ V′⊢ =
     ; transportType = λ q → q
     ; transportAllBody = λ q → q
     ; transportRightBody = λ q → q
+    ; transportSourceNu = λ safe occ q →
+        source-nu-index safe occ q refl
     ; resultType = _
     ; sourceCatchup =
         ↠-step (ξ-⟨⟩ (pure-step blame-⟨⟩))
@@ -548,6 +552,8 @@ left-catchup-indexed-two-keep-to-blameᵀ M↠blame V′⊢ =
     ; transportType = λ q → q
     ; transportAllBody = λ q → q
     ; transportRightBody = λ q → q
+    ; transportSourceNu = λ safe occ q →
+        source-nu-index safe occ q refl
     ; resultType = _
     ; sourceCatchup = M↠blame
     ; targetTail = ↠-refl

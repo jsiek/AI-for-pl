@@ -190,15 +190,15 @@ world-coherent-source-ν-catchup-proofᵀ
 
   c↑⁺ = weaken-reveal-conversion source-store-incl c↑
 
-  framed = weak-one-step-source-ν-frameᵀ hA c↑⁺ _ inner
+  framed = weak-one-step-source-ν-frameᵀ hA c↑⁺ _ indexed
 
   first-silent =
     left-silent-indexed
       (weak-indexed-result framed (relatedResults framed)
         (weak-one-step-source-ν-frame-preserves-transportᵀ
-          hA c↑⁺ _ inner (weakIndexedTransport indexed))
+          hA c↑⁺ _ indexed (weakIndexedTransport indexed))
         (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-          hA c↑⁺ _ inner (weakIndexedTypeCoherence indexed)))
+          hA c↑⁺ _ indexed (weakIndexedTypeCoherence indexed)))
       (left-silent-invariant refl refl)
       (ok-ν (ok-no no•-blame))
 

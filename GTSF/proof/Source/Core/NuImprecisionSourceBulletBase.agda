@@ -99,6 +99,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; ⊑-rename-id-allᵢ
   ; ⊑-rename-id-arrowᵢ
   ; ⊑-rename-idᵢ
+  ; ⊑-rename-id-source-nuᵢ
   )
 open import proof.NuCore.Misc.NuImprecisionWorldEmbeddingNoBullet using
   (rel-world-embed-no•ᵀ)
@@ -356,6 +357,7 @@ left-catchup-indexed-prefix-α-Λᵀ
       ; transportType = ⊑-rename-idᵢ
       ; transportAllBody = ⊑-rename-id-all-bodyᵢ
       ; transportRightBody = ⊑-rename-idᵢ
+      ; transportSourceNu = ⊑-rename-id-source-nuᵢ
       ; resultType = ⊑-rename-idᵢ p
       ; sourceCatchup =
           ↠-step (post-allocation-β-Λ•-bare vW) ↠-refl

@@ -15,6 +15,7 @@ open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (rel-store-embedding-reflⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( weak-indexed-result
+  ; source-nu-index
   ; weak-step-result
   ; weak-step-transport
   ; weak-step-type-coherence
@@ -42,6 +43,7 @@ world-coherent-source-keep-relation-proofᵀ
       (λ q → q)
       (λ q → q)
       (λ q → q)
+      (λ safe occ q → source-nu-index safe occ q refl)
       p
       (↠-step M→L ↠-refl)
       ↠-refl

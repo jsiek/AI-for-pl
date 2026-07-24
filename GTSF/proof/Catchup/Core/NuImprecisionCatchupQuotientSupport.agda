@@ -84,6 +84,7 @@ weak-one-step-paired-double-cast-frameᵀ
     ; transportType = transportType inner
     ; transportAllBody = transportAllBody inner
     ; transportRightBody = transportRightBody inner
+    ; transportSourceNu = transportSourceNu inner
     ; resultType = transportType inner _
     ; sourceCatchup = cast-↠ (cast-↠ (sourceCatchup inner))
     ; targetTail = cast-↠ (cast-↠ (targetTail inner))

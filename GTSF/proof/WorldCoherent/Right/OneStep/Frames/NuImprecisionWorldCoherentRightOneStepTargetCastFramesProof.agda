@@ -51,6 +51,14 @@ open import proof.OneStep.NuImprecisionOneStepTargetCastFrames using
   ; weak-one-step-target-widen-id-cast-indexed-frame-relatedᵀ
   )
 open import
+  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
+  using
+  ( lineageEmbedding
+  ; lineagePrefix
+  ; lineageStore
+  ; weak-step-store-lineage
+  )
+open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
   using
   ( WorldCoherentWeakOneStepIndexedOutcome
@@ -90,10 +98,14 @@ world-coherent-right-one-step-target-cast-frames-proofᵀ =
       {A = A} {B = B′} {χ = χ} {ρ = ρ} q
   narrow-frame mode seal★ c′⊒ c-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique) =
+        inner lineage coherent exclusive unique) =
     world-indexed-outcome-related
       (weak-one-step-target-narrow-cast-indexed-frame-relatedᵀ
         mode seal★ c′⊒ inner _ c-shape comp)
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
   narrow-frame mode seal★ c′⊒ c-shape comp
       (world-indexed-outcome-source-blame source↠) =
@@ -119,10 +131,14 @@ world-coherent-right-one-step-target-cast-frames-proofᵀ =
       {A = A} {B = B′} {χ = χ} {ρ = ρ} q
   widen-frame mode seal★ c′⊑ c-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique) =
+        inner lineage coherent exclusive unique) =
     world-indexed-outcome-related
       (weak-one-step-target-widen-cast-indexed-frame-relatedᵀ
         mode seal★ c′⊑ inner _ c-shape comp)
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
   widen-frame mode seal★ c′⊑ c-shape comp
       (world-indexed-outcome-source-blame source↠) =
@@ -147,10 +163,14 @@ world-coherent-right-one-step-target-cast-frames-proofᵀ =
       {A = A} {B = B′} {χ = χ} {ρ = ρ} q
   id-widen-frame seal★ c′⊑ c-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique) =
+        inner lineage coherent exclusive unique) =
     world-indexed-outcome-related
       (weak-one-step-target-widen-id-cast-indexed-frame-relatedᵀ
         seal★ c′⊑ inner _ c-shape comp)
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
   id-widen-frame seal★ c′⊑ c-shape comp
       (world-indexed-outcome-source-blame source↠) =

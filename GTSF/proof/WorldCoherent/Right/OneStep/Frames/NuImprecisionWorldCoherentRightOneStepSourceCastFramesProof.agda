@@ -47,6 +47,14 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
 open import proof.Target.Core.NuImprecisionTargetBlameCatchup using
   (cast-blame-tailᵀ)
 open import
+  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
+  using
+  ( lineageEmbedding
+  ; lineagePrefix
+  ; lineageStore
+  ; weak-step-store-lineage
+  )
+open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
   using
   ( WorldCoherentWeakOneStepIndexedOutcome
@@ -85,10 +93,14 @@ world-coherent-right-one-step-source-cast-frames-proofᵀ =
       {χ = χ} {ρ = ρ} q
   narrow-frame mode seal★ c⊒ c-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique) =
+        inner lineage coherent exclusive unique) =
     world-indexed-outcome-related
       (weak-one-step-source-narrow-cast-indexed-frameᵀ
         mode seal★ c⊒ c-shape comp inner)
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
   narrow-frame mode seal★ c⊒ c-shape comp
       (world-indexed-outcome-source-blame source↠) =
@@ -114,10 +126,14 @@ world-coherent-right-one-step-source-cast-frames-proofᵀ =
       {χ = χ} {ρ = ρ} q
   widen-frame mode seal★ c⊑ c-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique) =
+        inner lineage coherent exclusive unique) =
     world-indexed-outcome-related
       (weak-one-step-source-widen-cast-indexed-frameᵀ
         mode seal★ c⊑ c-shape comp inner)
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
   widen-frame mode seal★ c⊑ c-shape comp
       (world-indexed-outcome-source-blame source↠) =

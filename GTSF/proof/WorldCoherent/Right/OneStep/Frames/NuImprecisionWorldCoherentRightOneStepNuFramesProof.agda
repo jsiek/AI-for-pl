@@ -113,6 +113,14 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
 open import proof.Target.Core.NuImprecisionTargetBlameCatchup using
   (ν-blame-tailᵀ)
 open import
+  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
+  using
+  ( lineageEmbedding
+  ; lineagePrefix
+  ; lineageStore
+  ; weak-step-store-lineage
+  )
+open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
   using
   ( WorldCoherentWeakOneStepIndexedOutcome
@@ -168,11 +176,11 @@ world-coherent-right-one-step-nu-frames-proofᵀ =
   matched-ν-frame {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
       s↑ s′↑ pA replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       with lift-store-result (resultStore (weakIndexedResult inner))
   matched-ν-frame {χ = χ} s↑ s′↑ pA replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | ρ′ , liftρ
       with apply-reveal-under-ty-binders
         {χs = sourceChanges (weakIndexedResult inner)} s↑
@@ -182,9 +190,13 @@ world-coherent-right-one-step-nu-frames-proofᵀ =
       {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
       s↑ s′↑ pA replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | ρ′ , liftρ | μᵣ , source↑ | μᵗ , target↑ =
     world-indexed-outcome-related framed-indexed
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
     where
     all = weak-indexed-all-resultᵀ inner
@@ -244,13 +256,13 @@ world-coherent-right-one-step-nu-frames-proofᵀ =
       mode seal★ s⊑ mode′ seal★′ s′⊑
       s-shape s′-shape source-comp target-comp compat
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       with lift-store-result (resultStore (weakIndexedResult inner))
   matched-νcast-frame {χ = χ}
       mode seal★ s⊑ mode′ seal★′ s′⊑
       s-shape s′-shape source-comp target-comp compat
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | ρ′ , liftρ
       with apply-widen-inst-under-ty-binders
         {χs = sourceChanges (weakIndexedResult inner)}
@@ -263,11 +275,15 @@ world-coherent-right-one-step-nu-frames-proofᵀ =
       mode seal★ s⊑ mode′ seal★′ s′⊑
       s-shape s′-shape source-comp target-comp compat
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | ρ′ , liftρ
       | μᵣ , modeᵣ , sealᵣ , source⊑
       | μᵗ , modeᵗ , sealᵗ , target⊑ =
     world-indexed-outcome-related framed-indexed
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
     where
     all = weak-indexed-all-resultᵀ inner
@@ -317,26 +333,30 @@ world-coherent-right-one-step-nu-frames-proofᵀ =
   source-ν-frame {occ = occ} {q = q} {pB = pB}
       {{safe = safe}} hA s↑ replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       with transportSourceNu (weakIndexedResult inner) safe occ q
   source-ν-frame hA s↑ replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | source-nu-index safe′ occ′ q′ shape
       with lift-left-store-result
         (resultStore (weakIndexedResult inner))
   source-ν-frame hA s↑ replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
       with apply-reveal-under-ty-binders
         {χs = sourceChanges (weakIndexedResult inner)} s↑
   source-ν-frame {pB = pB} hA s↑ replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
       | μ′ , source↑ =
     world-indexed-outcome-related framed-indexed
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
     where
     inner-result = weakIndexedResult inner
@@ -381,17 +401,17 @@ world-coherent-right-one-step-nu-frames-proofᵀ =
       {{safe = safe}}
       mode seal★ s⊑ s-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       with transportSourceNu (weakIndexedResult inner) safe occ q
   source-νcast-frame mode seal★ s⊑ s-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | source-nu-index safe′ occ′ q′ shape
       with lift-left-store-result
         (resultStore (weakIndexedResult inner))
   source-νcast-frame mode seal★ s⊑ s-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
       with apply-widen-inst-under-ty-binders
         {χs = sourceChanges (weakIndexedResult inner)}
@@ -399,10 +419,14 @@ world-coherent-right-one-step-nu-frames-proofᵀ =
   source-νcast-frame {pB = pB}
       mode seal★ s⊑ s-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | source-nu-index safe′ occ′ q′ shape | ρ′ , liftρ
       | μ′ , mode′ , seal★′ , source⊑ =
     world-indexed-outcome-related framed-indexed
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
     where
     framed =
@@ -443,25 +467,29 @@ world-coherent-right-one-step-nu-frames-proofᵀ =
       {A = B} {B = B′} {χ = χ} {ρ = ρ} pB
   target-ν-frame {χ = χ} {pB = pB} hA s↑ r replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       with lift-right-store-result
         (resultStore (weakIndexedResult inner))
   target-ν-frame {χ = χ} hA s↑ r replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | ρ′ , liftρ
       with apply-reveal-under-ty-binders
         {χs = χ ∷ targetTailChanges (weakIndexedResult inner)} s↑
   target-ν-frame hA s↑ r replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | ρ′ , liftρ | μ′ , target↑
       with weak-result-target-all (weakIndexedResult inner)
   target-ν-frame {pB = pB} hA s↑ r replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | ρ′ , liftρ | μ′ , target↑ | q′ , inner-result =
     world-indexed-outcome-related framed-indexed
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
     where
     base = weakIndexedResult inner
@@ -507,28 +535,32 @@ world-coherent-right-one-step-nu-frames-proofᵀ =
   target-νcast-frame {pB = pB}
       mode seal★ s⊑ r s-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       with lift-right-store-result
         (resultStore (weakIndexedResult inner))
   target-νcast-frame {χ = χ} mode seal★ s⊑ r s-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | ρ′ , liftρ
       with apply-widen-inst-under-ty-binders
         {χs = χ ∷ targetTailChanges (weakIndexedResult inner)}
         mode seal★ s⊑
   target-νcast-frame mode seal★ s⊑ r s-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | ρ′ , liftρ | μ′ , mode′ , seal★′ , target⊑
       with weak-result-target-all (weakIndexedResult inner)
   target-νcast-frame {pB = pB}
       mode seal★ s⊑ r s-shape comp
       (world-indexed-outcome-related
-        inner coherent exclusive unique)
+        inner lineage coherent exclusive unique)
       | ρ′ , liftρ | μ′ , mode′ , seal★′ , target⊑
       | q′ , inner-result =
     world-indexed-outcome-related framed-indexed
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
     where
     base = weakIndexedResult inner

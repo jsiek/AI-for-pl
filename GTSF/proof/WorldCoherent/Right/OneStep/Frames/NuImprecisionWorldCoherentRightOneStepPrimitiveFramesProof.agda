@@ -39,6 +39,14 @@ open import proof.OneStep.NuImprecisionOneStepPrimitiveFrames using
   ; weak-one-step-⊕₂-source-blame-frameᵀ
   )
 open import
+  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
+  using
+  ( lineageEmbedding
+  ; lineagePrefix
+  ; lineageStore
+  ; weak-step-store-lineage
+  )
+open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
   using
   ( WorldCoherentWeakOneStepIndexedOutcome
@@ -74,10 +82,14 @@ world-coherent-right-one-step-primitive-frames-proofᵀ =
       {A = ‵ `ℕ} {B = ‵ `ℕ} {χ = χ} {ρ = ρ} idι
   left-frame noM noM′ M⊑M′
       (world-indexed-outcome-related
-        inner coherent exclusive unique) =
+        inner lineage coherent exclusive unique) =
     world-indexed-outcome-related
       (weak-one-step-⊕₁-indexed-frame-relatedᵀ
         noM noM′ M⊑M′ inner)
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
   left-frame noM noM′ M⊑M′
       (world-indexed-outcome-source-blame source↠) =
@@ -103,10 +115,14 @@ world-coherent-right-one-step-primitive-frames-proofᵀ =
       {A = ‵ `ℕ} {B = ‵ `ℕ} {χ = χ} {ρ = ρ} idι
   right-frame vL noL vL′ noL′ L⊑L′
       (world-indexed-outcome-related
-        inner coherent exclusive unique) =
+        inner lineage coherent exclusive unique) =
     world-indexed-outcome-related
       (weak-one-step-⊕₂-indexed-frame-relatedᵀ
         vL noL vL′ noL′ L⊑L′ inner)
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
   right-frame vL noL vL′ noL′ L⊑L′
       (world-indexed-outcome-source-blame source↠) =

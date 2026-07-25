@@ -134,15 +134,13 @@ world-coherent-backward-target-blame-proofᵀ
   go (suc fuel) coherent exclusive unique wfL wfR okM okM′ M⊑M′
       (χ ∷ ψs) (↠-step target-step target-rest) bound
     | world-indexed-outcome-related
-        indexed successor-lineage successor-coherent successor-exclusive
-        successor-unique
+        indexed successor-lineage successor-coherent successor-exclusive successor-unique
     with weak-result-target-prefix-blameᵀ
       (weakIndexedResult indexed) target-rest
   go (suc fuel) coherent exclusive unique wfL wfR okM okM′ M⊑M′
       (χ ∷ ψs) (↠-step target-step target-rest) bound
     | world-indexed-outcome-related
-        indexed successor-lineage successor-coherent successor-exclusive
-        successor-unique
+        indexed successor-lineage successor-coherent successor-exclusive successor-unique
     | residual-changes , target-result↠blame , trace-eq
     with go fuel successor-coherent successor-exclusive successor-unique
       (weak-result-source-store-wf
@@ -172,8 +170,7 @@ world-coherent-backward-target-blame-proofᵀ
   go (suc fuel) coherent exclusive unique wfL wfR okM okM′ M⊑M′
       (χ ∷ ψs) (↠-step target-step target-rest) bound
     | world-indexed-outcome-related
-        indexed successor-lineage successor-coherent successor-exclusive
-        successor-unique
+        indexed successor-lineage successor-coherent successor-exclusive successor-unique
     | residual-changes , target-result↠blame , trace-eq
     | result-blame-changes , source-result↠blame =
       sourceChanges (weakIndexedResult indexed) ++ result-blame-changes ,

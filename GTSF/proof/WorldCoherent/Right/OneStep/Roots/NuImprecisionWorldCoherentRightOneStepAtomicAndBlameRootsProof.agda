@@ -23,7 +23,9 @@ open import NuTerms using
   ; blame
   )
 open import QuotientedTermImprecision using
-  (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
+  ( prefix-reflⁱ
+  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
+  )
 open import Types using
   ( Atom
   ; Ty
@@ -41,6 +43,12 @@ open import
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)
+open import
+  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
+  using (weak-step-store-lineage)
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra
+  using (rel-store-embedding-reflⁱ)
 open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef
   using (WorldCoherent)
@@ -82,6 +90,8 @@ world-coherent-right-one-step-atomic-and-blame-roots-proofᵀ =
     world-indexed-outcome-related
       (weak-one-step-indexed-relatedᵀ
         (atomic-target-value-reindexᵀ atom vV M⊑V q))
+      (weak-step-store-lineage
+        _ rel-store-embedding-reflⁱ prefix-reflⁱ)
       coherent exclusive unique
 
   target-blame :

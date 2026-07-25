@@ -13352,3 +13352,64 @@ paired-`∀ⁱ` source-only allocation leaves must not be reintroduced.
    use it in both terminal backward engines.
 4. Connect the already strict forward and backward terminal engines, construct
    the `GradualDGG` witness, and run the complete strict aggregate.
+
+### 2026-07-24: relational-store lineage and application-blame roots
+
+- **Continuing backward outcomes now retain relational-store lineage.**
+  This supersedes the temporary checkpoint decision above to omit lineage.
+  `WorldCoherent`, source-name exclusivity, and assumption-membership
+  uniqueness describe the final world but do not reconstruct the embedding and
+  prefix from the initial relational store.  That missing information is
+  needed when an outer paired cast asks for `StoreCorresponds`.  The continuing
+  outcome therefore carries `WeakOneStepStoreLineage` directly.  Atomic roots
+  construct reflexive lineage, catch-up composition composes it, and every
+  application, primitive, cast, conversion, and `ν` frame reconstructs the
+  same lineage at its framed result.  The backward strict spine passes
+  `--no-allow-unsolved-metas` with this stronger interface.
+
+- **Both target application-blame roots are complete.**  For left-operand
+  blame, source function catch-up produces a source trace to blame.  For
+  right-operand blame, a non-value source function is first caught up to a
+  value, the argument imprecision is transported through that silent prefix,
+  and the source argument is then reduced to blame.  Every branch is a
+  source-blame outcome, so these roots need no continuing lineage witness.
+  Their definition, proof, assembly lemma, and backward strict-spine imports
+  pass strict checking.
+
+- **All four target-allocation proof branches, their record assembly, and
+  assembly lemma are written, but not yet certified.**  Both matched branches
+  catch the source up under the surrounding `ν`, lift a caught source blame
+  through `ν` and `blame-ν`, and compose the final allocation lineage on a
+  continuing branch.  The two target-only branches use the direct
+  right-allocation transport.  The focused strict checker did not terminate
+  within two minutes, so this module remains outside the backward strict spine
+  until its checking cost or a latent elaboration loop is diagnosed.
+
+- **Both primitive-blame roots are complete.**  The left-operand case lifts a
+  caught source blame through the whole primitive context.  The right-operand
+  case first catches the source left operand up to a value and then lifts the
+  source right-operand blame through the full primitive application.  Their
+  definition, proof, and assembly lemma pass
+  `--no-allow-unsolved-metas`; importing them into the strict dispatcher is the
+  next integration step.
+
+- **Publication validation is green at the aggregate boundary.**
+  `NuDGGTerminalBackwardStrictSpine.agda`,
+  `NuDGGTerminalForwardStrictSpine.agda`, and
+  `DynamicGradualGuarantee.agda` all pass
+  `--no-allow-unsolved-metas` with relational-store lineage enabled.  The
+  public module still states the theorem surface and does not yet construct
+  `GradualDGG`.
+
+### Revised current plan
+
+1. Diagnose the nonterminating focused check for the assembled four
+   target-allocation roots, make it pass strictly, and import its existing
+   assembly lemma into the backward strict spine.
+2. Import the completed primitive-blame roots, then close runtime-bullet,
+   primitive-delta, application-β, and paired outer-cast roots while retaining
+   exact QTI and lineage evidence.
+3. Assemble the exhaustive strict backward one-step dispatcher and rerun both
+   terminal strict spines plus the public theorem cone.
+4. Assemble the strict terminal engines, construct `GradualDGG`, and run the
+   complete strict cone.

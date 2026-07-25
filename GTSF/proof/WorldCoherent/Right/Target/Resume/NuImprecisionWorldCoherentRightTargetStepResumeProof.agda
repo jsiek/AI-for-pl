@@ -95,6 +95,9 @@ open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)
 open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
 open import
+  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageProof
+  using (weak-one-step-compose-store-lineageᵀ)
+open import
   proof.WorldCoherent.Right.Value.Catchup.NuImprecisionWorldCoherentRightCatchupResultDef
 open import
   proof.WorldCoherent.Right.Target.Resume.NuImprecisionWorldCoherentRightTargetStepResumeDef
@@ -149,41 +152,6 @@ open import proof.Core.Properties.TypeProperties using
 
 
 private
-  weak-one-step-compose-store-lineageᵀ :
-    ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      (first : WeakOneStepResult ρ M M′ A B χ)
-      {χ′ N′}
-      (target→ : targetResult first —→[ χ′ ] N′)
-      (second : WeakOneStepResult
-        (resultStore first) (sourceResult first) N′
-        (resultSourceType first) (resultTargetType first) χ′) →
-    WeakOneStepStoreLineage first →
-    WeakOneStepStoreLineage second →
-    WeakOneStepStoreLineage
-      (weak-one-step-composeᵀ first target→ second)
-  weak-one-step-compose-store-lineageᵀ
-      first target→ second
-      (weak-step-store-lineage store₁ embedding₁ prefix₁)
-      (weak-step-store-lineage store₂ embedding₂ prefix₂)
-      with rel-store-embedding-prefix-invⁱ prefix₁ embedding₂
-  weak-one-step-compose-store-lineageᵀ
-      {χ = χ} first {χ′ = χ′} target→ second
-      (weak-step-store-lineage store₁ embedding₁ prefix₁)
-      (weak-step-store-lineage store₂ embedding₂ prefix₂)
-      | store₁₂ , embedding₁₂ , prefix₁₂ =
-    weak-step-store-lineage store₁₂
-      (rel-store-embedding-congⁱ
-        (λ α → sym
-          (applyTyVars-++
-            (sourceChanges first) (sourceChanges second) α))
-        (λ β → sym
-          (applyTyVars-++
-            (χ ∷ targetTailChanges first)
-            (χ′ ∷ targetTailChanges second) β))
-        (rel-store-embedding-composeⁱ embedding₁ embedding₁₂))
-      (store-imp-prefix-transⁱ prefix₁₂ prefix₂)
-
   compose-source-bullet-transport :
     ∀ {Φ Δᴸ Δᴿ M M′ A B}
       {ρ : StoreImp Φ Δᴸ Δᴿ}

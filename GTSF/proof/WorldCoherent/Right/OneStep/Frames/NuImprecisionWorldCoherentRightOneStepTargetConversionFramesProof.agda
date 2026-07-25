@@ -42,6 +42,14 @@ open import
   ; weak-one-step-target-reveal-conversion-indexed-frame-relatedᵀ
   )
 open import
+  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
+  using
+  ( lineageEmbedding
+  ; lineagePrefix
+  ; lineageStore
+  ; weak-step-store-lineage
+  )
+open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
   using
   ( WorldCoherentWeakOneStepIndexedOutcome
@@ -77,10 +85,14 @@ world-coherent-right-one-step-target-conversion-frames-proofᵀ =
       {A = A} {B = B′} {χ = χ} {ρ = ρ} q
   reveal-frame c′↑ replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique) =
+        inner lineage coherent exclusive unique) =
     world-indexed-outcome-related
       (weak-one-step-target-reveal-conversion-indexed-frame-relatedᵀ
         c′↑ inner _ replace)
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
   reveal-frame c′↑ replace
       (world-indexed-outcome-source-blame source↠) =
@@ -103,10 +115,14 @@ world-coherent-right-one-step-target-conversion-frames-proofᵀ =
       {A = A} {B = B′} {χ = χ} {ρ = ρ} q
   conceal-frame c′↓ replace
       (world-indexed-outcome-related
-        inner coherent exclusive unique) =
+        inner lineage coherent exclusive unique) =
     world-indexed-outcome-related
       (weak-one-step-target-conceal-conversion-indexed-frame-relatedᵀ
         c′↓ inner _ replace)
+      (weak-step-store-lineage
+        (lineageStore lineage)
+        (lineageEmbedding lineage)
+        (lineagePrefix lineage))
       coherent exclusive unique
   conceal-frame c′↓ replace
       (world-indexed-outcome-source-blame source↠) =

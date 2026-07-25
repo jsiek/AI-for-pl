@@ -179,6 +179,9 @@ open import
 open import
   proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupDef
   using (WorldCoherentLeftValueCatchupᵀ)
+open import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepTargetAllocationRootsDef
+  using (WorldCoherentRightOneStepTargetAllocationRoots)
 
 
 ν-runtime : ∀ {A N s} → RuntimeOK (ν A N s) → RuntimeOK N
@@ -285,6 +288,7 @@ matched-nu-allocation
     | indexed-outcome-related final-indexed =
   world-indexed-outcome-related
     final-indexed
+    combined-lineage
     (world-coherent-matched-allocation liftρ⁺ final-coherent)
     (source-name-exclusive-matched-head final-exclusive)
     (assumption-membership-unique-matched final-unique)
@@ -316,6 +320,169 @@ matched-nu-allocation
     catchup {pA = pA} {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
     coherent exclusive unique wfL wfR ok-source ok-target hA hA′
     s↑ s′↑ N⊑V′ replace (ν-step vV′ noV′)
+    | world-coherent-left-indexed-catchup
+        (left-indexed-catchup indexed
+          (left-catchup-invariant
+            (left-silent-invariant refl refl) final))
+        caught-lineage final-coherent final-exclusive final-unique
+        final-wfL
+    | inj₁ (vW , noW)
+    | indexed-outcome-source-blame source-blame =
+  world-indexed-outcome-source-blame source-blame
+
+
+matched-nu-cast-allocation :
+  WorldCoherentLeftValueCatchupᵀ →
+  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {B B′ C C′ : Ty} {N V′ N′ : Term}
+    {s s′} {μ μ′}
+    {s-shape s′-shape result-shape : ImprecisionShape}
+    {q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
+    {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+  WorldCoherent ρ →
+  SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
+  StoreWf Δᴿ (rightStoreⁱ ρ) →
+  RuntimeOK (ν ★ N s) →
+  RuntimeOK (ν ★ V′ s′) →
+  CastMode μ →
+  SealModeStore★ (instᵈ μ)
+    ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)) →
+  instᵈ μ ∣ suc Δᴸ
+    ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)
+    ⊢ s ∶ C ⊑ ⇑ᵗ B →
+  CastMode μ′ →
+  SealModeStore★ (instᵈ μ′)
+    ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
+  instᵈ μ′ ∣ suc Δᴿ
+    ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
+    ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
+  CastShape.widening CastShape.⊢ᶜ s′ ⦂ s′-shape →
+  s-shape ； ⌊ pB ⌋ ≋ result-shape →
+  ⌊ q ⌋ ； s′-shape ≋ result-shape →
+  PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′
+    q (⊑-lift∀ᵢ pB) s-shape s′-shape →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+    ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q →
+  ν ★ V′ s′ —→[ bind ★ ] N′ →
+  WorldCoherentWeakOneStepIndexedOutcome
+    {M = ν ★ N s} {N′ = N′}
+    {χ = bind ★} {ρ = ρ} pB
+matched-nu-cast-allocation
+    catchup {pB = pB}
+    coherent exclusive unique wfL wfR ok-source ok-target
+    mode seal★ s⊑ mode′ seal★′ s′⊑
+    s-shape-proof s′-shape-proof source-comp target-comp compat
+    N⊑V′ (ν-step vV′ noV′)
+    with catchup coherent exclusive unique wfL
+      (ν-runtime ok-source) vV′ noV′ N⊑V′
+matched-nu-cast-allocation
+    catchup {pB = pB}
+    coherent exclusive unique wfL wfR ok-source ok-target
+    mode seal★ s⊑ mode′ seal★′ s′⊑
+    s-shape-proof s′-shape-proof source-comp target-comp compat
+    N⊑V′ (ν-step vV′ noV′)
+    | world-coherent-left-indexed-catchup
+        (left-indexed-catchup indexed
+          (left-catchup-invariant
+            (left-silent-invariant refl refl) final))
+        caught-lineage final-coherent final-exclusive final-unique
+        final-wfL
+    with final
+matched-nu-cast-allocation
+    catchup {pB = pB}
+    coherent exclusive unique wfL wfR ok-source ok-target
+    mode seal★ s⊑ mode′ seal★′ s′⊑
+    s-shape-proof s′-shape-proof source-comp target-comp compat
+    N⊑V′ (ν-step vV′ noV′)
+    | world-coherent-left-indexed-catchup
+        (left-indexed-catchup indexed
+          (left-catchup-invariant
+            (left-silent-invariant refl refl) final))
+        caught-lineage final-coherent final-exclusive final-unique
+        final-wfL
+    | inj₂ refl =
+  world-indexed-outcome-source-blame
+    (↠-trans
+      (ν-↠ (sourceCatchup (weakIndexedResult indexed)))
+      (↠-step blame-ν ↠-refl))
+matched-nu-cast-allocation
+    catchup {pB = pB}
+    coherent exclusive unique wfL wfR ok-source ok-target
+    mode seal★ s⊑ mode′ seal★′ s′⊑
+    s-shape-proof s′-shape-proof source-comp target-comp compat
+    N⊑V′ (ν-step vV′ noV′)
+    | world-coherent-left-indexed-catchup
+        (left-indexed-catchup indexed
+          (left-catchup-invariant
+            (left-silent-invariant refl refl) final))
+        caught-lineage final-coherent final-exclusive final-unique
+        final-wfL
+    | inj₁ (vW , noW)
+    with weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
+      wfR mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      s-shape-proof s′-shape-proof source-comp target-comp compat
+      vV′ noV′
+      (left-indexed-all-catchup indexed
+        (left-catchup-invariant
+          (left-silent-invariant refl refl) (inj₁ (vW , noW))))
+matched-nu-cast-allocation
+    catchup {pB = pB}
+    coherent exclusive unique wfL wfR ok-source ok-target
+    mode seal★ s⊑ mode′ seal★′ s′⊑
+    s-shape-proof s′-shape-proof source-comp target-comp compat
+    N⊑V′ (ν-step vV′ noV′)
+    | world-coherent-left-indexed-catchup
+        (left-indexed-catchup indexed
+          (left-catchup-invariant
+            (left-silent-invariant refl refl) final))
+        caught-lineage final-coherent final-exclusive final-unique
+        final-wfL
+    | inj₁ (vW , noW)
+    | indexed-outcome-related final-indexed =
+  world-indexed-outcome-related
+    final-indexed
+    combined-lineage
+    (world-coherent-matched-allocation liftρ⁺ final-coherent)
+    (source-name-exclusive-matched-head final-exclusive)
+    (assumption-membership-unique-matched final-unique)
+  where
+  raw =
+    weak-one-step-matched-νcast-value-catchupᵀ
+      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
+      s-shape-proof s′-shape-proof source-comp target-comp compat
+      vV′ noV′
+      (left-all-catchup
+        (weak-indexed-all-resultᵀ indexed)
+        (left-catchup-invariant
+          (left-silent-invariant refl refl) (inj₁ (vW , noW))))
+      vW noW (weakIndexedTypeCoherence indexed)
+
+  liftρ⁺ = proj₂ (lift-store-result
+    (resultStore (weakIndexedResult indexed)))
+
+  combined-lineage : WeakOneStepStoreLineage raw
+  combined-lineage =
+    weak-one-step-prepend-left-silent-store-lineageᵀ
+      _ _
+      (weak-step-store-lineage
+        (lineageStore caught-lineage)
+        (lineageEmbedding caught-lineage)
+        (lineagePrefix caught-lineage))
+      (weak-step-store-lineage _
+        (lift-store-embeddingⁱ liftρ⁺)
+        (prefix-∷ⁱ prefix-reflⁱ))
+matched-nu-cast-allocation
+    catchup {pB = pB}
+    coherent exclusive unique wfL wfR ok-source ok-target
+    mode seal★ s⊑ mode′ seal★′ s′⊑
+    s-shape-proof s′-shape-proof source-comp target-comp compat
+    N⊑V′ (ν-step vV′ noV′)
     | world-coherent-left-indexed-catchup
         (left-indexed-catchup indexed
           (left-catchup-invariant
@@ -361,6 +528,9 @@ target-nu-allocation
     (ν-step vV′ noV′) =
   world-indexed-outcome-related
     indexed
+    (weak-step-store-lineage _
+      (lift-right-store-embeddingⁱ liftρ)
+      (prefix-∷ⁱ prefix-reflⁱ))
     (world-coherent-right-allocation liftρ coherent)
     (source-name-exclusive-⇑ᴿᵢ exclusive)
     (assumption-membership-unique-⇑ᴿᵢ unique)
@@ -413,6 +583,9 @@ target-nu-cast-allocation
     s-shape-proof comp (ν-step vV′ noV′) =
   world-indexed-outcome-related
     indexed
+    (weak-step-store-lineage _
+      (lift-right-store-embeddingⁱ liftρ)
+      (prefix-∷ⁱ prefix-reflⁱ))
     (world-coherent-right-allocation liftρ coherent)
     (source-name-exclusive-⇑ᴿᵢ exclusive)
     (assumption-membership-unique-⇑ᴿᵢ unique)
@@ -434,3 +607,19 @@ target-nu-cast-allocation
       (weak-one-step-right-νcast-type-coherenceᵀ
         vV′ noV′ mode seal★ s⊑ pB pC
         s-shape-proof comp′ liftρ N⊑V′)
+
+
+world-coherent-right-one-step-target-allocation-roots-proofᵀ :
+  WorldCoherentLeftValueCatchupᵀ →
+  WorldCoherentRightOneStepTargetAllocationRoots
+world-coherent-right-one-step-target-allocation-roots-proofᵀ catchup =
+  record
+    { rightStepMatchedNuAllocationRoot =
+        matched-nu-allocation catchup
+    ; rightStepMatchedNuCastAllocationRoot =
+        matched-nu-cast-allocation catchup
+    ; rightStepTargetNuAllocationRoot =
+        target-nu-allocation
+    ; rightStepTargetNuCastAllocationRoot =
+        target-nu-cast-allocation
+    }

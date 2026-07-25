@@ -14142,6 +14142,48 @@ exact underlying raw result before their composed lineage can be attached.
   confirms the current exhaustive `replace-right-ν∀` compatibility transports
   are present in its strict dependency cone.
 
+### 2026-07-25: audit of merged PRs #91--#95
+
+- **PR #91 is useful except for its terminal theorem facade.**  Retain the
+  source-inert paired-widening compatibility constructor, the conditional
+  exact bridge for an inert target, and their rename, allocation, and atomic
+  reindex transports.  These changes restore the invariant used by the
+  source-inert outer-cast path, and the focused compatibility and atomic
+  reindex modules pass strict checks.
+
+  Do not treat `backward-target-blame-generalᵀ` as complete yet.  The merged
+  implementation merely aliased
+  `backward-target-blame-general-integratedᵀ`, whose one-step component is
+  `weak-one-step-indexed-simulationᵀ` from
+  `NuImprecisionCatchupScratch`.  That scratch module explicitly permits
+  unsolved metas and incomplete matches and still contains the unfinished
+  dispatcher cases.  The alias therefore hid the remaining proof obligation
+  behind an apparently strict theorem module.  The theorem has been restored
+  to its explicit partial state.  Its genuine higher-order proof remains
+  `world-coherent-backward-target-blame-proofᵀ`, conditional on the strict
+  world-coherent one-step simulation.
+
+- **PRs #92--#94 are honest dispatcher progress.**  The paired active-value
+  dispatcher reduces seven target root families to four exact cells:
+  identity, sequence, instantiation, and unseal.  The quotient active-value
+  dispatcher makes the same four cells explicit.  The quotient target-down
+  dispatcher reduces the seven roots to identity, sequence, and untag.  Their
+  other cases close by widening or narrowing inversion and target-value
+  inversion.  All three dispatchers remain conditional on their root records,
+  so they do not claim that the remaining semantic cells are inhabited.
+  Their focused proof and lemma checks pass with
+  `--no-allow-unsolved-metas`.
+
+- **PR #95 is a sound exhaustiveness repair.**  Its two
+  `down·up⊑down·upᵀ` clauses close by value inversion: the relevant side would
+  require an application to be a value beneath the outer inert cast.  Both
+  changed Agda modules pass focused strict checks.
+
+The cold aggregate backward strict spine was stopped after several minutes
+without a diagnostic.  This is not evidence of failure; focused strict checks
+remain the validation unit until the remaining exact root inhabitants and
+allocation transport case make the aggregate cone practical.
+
 ### Revised current plan
 
 1. Finish quotient transport normalization and the crossed binary sibling
@@ -14153,6 +14195,8 @@ exact underlying raw result before their composed lineage can be attached.
    branch are complete.
 3. Assemble the exhaustive prefix-aware world-coherent backward one-step
    dispatcher and restore the green aggregate backward strict spine.
-4. Use the dispatcher in both terminal backward engines, connect the strict
+4. Use only that strict dispatcher in both terminal backward engines.  Remove
+   the explicit partial backward-blame theorem only after its implementation
+   no longer imports `NuImprecisionCatchupScratch`; then connect the strict
    forward and backward terminal engines, construct `GradualDGG`, and run the
    complete strict cone.

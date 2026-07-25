@@ -45,13 +45,14 @@ world-coherent-right-target-widen-instantiation-paired-lambda-post-beta-context-
     {W = W} {W′ = W′} {B = B} {D = D} {s = s}
     {f = f}
     prefix mode seal★ inst⊑ liftρ liftρᴿ
-    vW noW vW′ noW′ inert body source-typing target-typing =
+    vW noW vW′ noW′ inert body inst-shape creation-square
+    source-typing target-typing =
   Λ⊑instβᵀ
     {τ = λ X → X} {σ = λ X → X}
     {M = Λ W} {M′ = W′ ⟨ s ⟩}
     {A = `∀ D} {A′ = ⇑ᵗ B}
     prefix mode seal★ inst⊑ liftρ liftρᴿ
-    vW noW vW′ noW′ inert body f
+    vW noW vW′ noW′ inert body f inst-shape creation-square
     (λ { {a = X ˣ⊑★} a∈ → a∈
        ; {a = X ˣ⊑ˣ Y} a∈ → a∈ })
     (λ X<Δᴸ → X<Δᴸ)

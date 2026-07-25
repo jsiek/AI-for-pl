@@ -11,21 +11,27 @@ module
 --     introduces no result, view, outcome, postulate, hole, or bypass.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Bool using (true)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using
-  (cong; cong₂; sym; trans)
+  (cong; cong₂; subst; sym; trans)
 import Relation.Binary.HeterogeneousEquality as HE
 
-open import Imprecision using (_ˣ⊑ˣ_; ⇑ᵢ)
+open import Imprecision using
+  (NonVar; _ˣ⊑★; _ˣ⊑ˣ_; ⇑ᵢ; ⇑ᴸᵢ; ⇑ᴿᵢ)
+open import ImprecisionComposition using (⌊_⌋; ∀ˢ_; νˢ-injective)
 open import ImprecisionWf using
-  (_∣_⊢_⊑_⊣_; _↦_; ∀ⁱ_)
+  (_∣_⊢_⊑_⊣_; _↦_; ∀ⁱ_; ν)
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; _[_↦_]ᴿ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import NuReduction using
   ( applyTerm
   ; applyTerms
   ; applyTy
   ; applyTys
+  ; bind
   ; keep
   ; _—→[_]_
   )
@@ -35,7 +41,7 @@ open import QuotientedTermImprecision using
   ( prefix-reflⁱ
   ; nu-term-imprecision-source-typing
   )
-open import Types using (_⇒_; `∀)
+open import Types using (occurs; ⇑ᵗ; _⇒_; `∀)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ
   ; rel-store-embedding-congⁱ
@@ -73,6 +79,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; weak-one-step-compose-all-body
   ; weak-one-step-compose-all-componentsᵀ
   ; weak-one-step-compose-arrow-componentsᵀ
+  ; weak-one-step-compose-right-body
+  ; weak-one-step-compose-source-nu
+  ; weak-one-step-compose-preserves-type-coherenceᵀ
   ; weak-one-step-compose-preserves-transportᵀ
   ; weak-one-step-compose-type
   ; weak-one-step-compose-type-to-nested≅
@@ -98,10 +107,45 @@ open import proof.Core.Properties.ReductionProperties using
   ; applyTerms-++
   ; applyTerms-preserves-No•
   ; applyTyUnderTyBinder
+  ; applyTy-∀
+  ; applyTyVar
+  ; applyTyVars
   ; applyTyVars-++
   ; applyTys-++
+  ; applyTys-∀
+  ; applyTysUnderTyBinders
+  ; applyTysUnderTyBinders-⇑ᵗ
   ; applyTysUnderTyBinders-++
   )
+
+
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( shape-lift∀ᵢ
+  ; shape-source-liftνᵢ
+  ; shape-subst-source
+  ; shape-subst-target
+  ; shape-target-lift-rightᵢ
+  )
+open import
+  proof.Core.Properties.ConversionIndexCompatibilityProperties
+  using
+  ( replace-left-source-shape
+  ; replace-left-target-shape
+  ; replace-left-transport-endpoints
+  ; replace-paired-evidence-shape
+  ; replace-paired-source-shape
+  ; replace-paired-target-shape
+  ; replace-paired-transport-endpoints
+  ; replace-right-source-shape
+  ; replace-right-target-shape
+  ; replace-right-transport-endpoints
+  ; shape-transport-imprecision-endpoints
+  ; transport-imprecision-endpoints
+  )
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (⊑-lift∀ᵢ; ⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
+open import proof.Core.Properties.TypeProperties using
+  (renameᵗ-ext-suc-comm)
 
 
 private
@@ -139,110 +183,6 @@ private
             (χ′ ∷ targetTailChanges second) β))
         (rel-store-embedding-composeⁱ embedding₁ embedding₁₂))
       (store-imp-prefix-transⁱ prefix₁₂ prefix₂)
-
-  weak-one-step-compose-preserves-type-coherenceᵀ :
-    ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      (first : WeakOneStepResult ρ M M′ A B χ)
-      {χ′ N′}
-      (target→ : targetResult first —→[ χ′ ] N′)
-      (second : WeakOneStepResult
-        (resultStore first) (sourceResult first) N′
-        (resultSourceType first) (resultTargetType first) χ′) →
-    WeakOneStepTypeCoherence first →
-    WeakOneStepTypeCoherence second →
-    WeakOneStepTypeCoherence
-      (weak-one-step-composeᵀ first target→ second)
-  weak-one-step-compose-preserves-type-coherenceᵀ
-      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {χ = χ}
-      first {χ′ = χ′} target→ second
-      first-coherence second-coherence =
-    weak-step-type-coherence arrow-coherent all-coherent
-    where
-    combined = weak-one-step-composeᵀ first target→ second
-
-    arrow-coherent :
-      ∀ {C C′ D D′}
-        (pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ)
-        (pD : Φ ∣ Δᴸ ⊢ D ⊑ D′ ⊣ Δᴿ) →
-      transportArrowType combined pC pD ≡
-        weak-one-step-compose-type first second pC ↦
-        weak-one-step-compose-type first second pD
-    arrow-coherent {C = C} {C′ = C′}
-        {D = D} {D′ = D′} pC pD =
-      HE.≅-to-≡
-        (HE.trans
-          (transportArrowType-to-raw≅ combined pC pD)
-          (HE.trans
-            (weak-one-step-compose-type-to-nested≅
-              first second (pC ↦ pD))
-            (HE.trans
-              (weak-one-step-nested-arrow-coherent≅
-                first second first-coherence second-coherence pC pD)
-              (HE.trans
-                (HE.sym
-                  (subst²-to-≅
-                    {P = λ S T →
-                      resultCtx second ∣ resultLeftCtx second
-                        ⊢ S ⊑ T ⊣ resultRightCtx second}
-                    (cong₂ _⇒_
-                      (sym (applyTys-++
-                        (sourceChanges first)
-                        (sourceChanges second) C))
-                      (sym (applyTys-++
-                        (sourceChanges first)
-                        (sourceChanges second) D)))
-                    (cong₂ _⇒_
-                      (sym (applyTys-++
-                        (targetTailChanges first)
-                        (χ′ ∷ targetTailChanges second)
-                        (applyTy χ C′)))
-                      (sym (applyTys-++
-                        (targetTailChanges first)
-                        (χ′ ∷ targetTailChanges second)
-                        (applyTy χ D′))))
-                    (transportType second (transportType first pC) ↦
-                      transportType second (transportType first pD))))
-                (HE.≡-to-≅
-                  (weak-one-step-compose-arrow-componentsᵀ
-                    first second pC pD))))))
-
-    all-coherent :
-      ∀ {C C′}
-        (q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-          ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ) →
-      transportAllType combined q ≡
-        ∀ⁱ (weak-one-step-compose-all-body first second q)
-    all-coherent {C = C} {C′ = C′} q =
-      HE.≅-to-≡
-        (HE.trans
-          (transportAllType-to-raw≅ combined q)
-          (HE.trans
-            (weak-one-step-compose-type-to-nested≅
-              first second (∀ⁱ q))
-            (HE.trans
-              (weak-one-step-nested-all-coherent≅
-                first second first-coherence second-coherence q)
-              (HE.trans
-                (HE.sym
-                  (subst²-to-≅
-                    {P = λ S T →
-                      resultCtx second ∣ resultLeftCtx second
-                        ⊢ S ⊑ T ⊣ resultRightCtx second}
-                    (cong `∀
-                      (sym (applyTysUnderTyBinders-++
-                        (sourceChanges first)
-                        (sourceChanges second) C)))
-                    (cong `∀
-                      (sym (applyTysUnderTyBinders-++
-                        (targetTailChanges first)
-                        (χ′ ∷ targetTailChanges second)
-                        (applyTyUnderTyBinder χ C′))))
-                    (∀ⁱ (transportAllBody second
-                      (transportAllBody first q)))))
-                (HE.≡-to-≅
-                  (weak-one-step-compose-all-componentsᵀ
-                    first second q))))))
 
   compose-source-bullet-transport :
     ∀ {Φ Δᴸ Δᴿ M M′ A B}
@@ -354,11 +294,13 @@ world-coherent-right-target-step-resume-proofᵀ
 
   first-transport =
     weak-one-step-target-cast-frame-transportᵀ
-      first-result framed (weakIndexedTransport (rightCatchupIndexedResult first-catchup))
+      first-result framed
+      (weakIndexedTransport (rightCatchupIndexedResult first-catchup))
 
   first-coherence =
     weak-one-step-target-cast-frame-coherenceᵀ
-      first-result framed (weakIndexedTypeCoherence (rightCatchupIndexedResult first-catchup))
+      first-result framed
+      (weakIndexedTypeCoherence (rightCatchupIndexedResult first-catchup))
 
   combined-transport =
     weak-one-step-compose-preserves-transportᵀ
@@ -484,11 +426,13 @@ world-coherent-right-target-step-resume-context-proofᵀ
 
   first-transport =
     weak-one-step-target-cast-frame-transportᵀ
-      first-result framed (weakIndexedTransport (rightCatchupIndexedResult first-catchup))
+      first-result framed
+      (weakIndexedTransport (rightCatchupIndexedResult first-catchup))
 
   first-coherence =
     weak-one-step-target-cast-frame-coherenceᵀ
-      first-result framed (weakIndexedTypeCoherence (rightCatchupIndexedResult first-catchup))
+      first-result framed
+      (weakIndexedTypeCoherence (rightCatchupIndexedResult first-catchup))
 
   combined-transport =
     weak-one-step-compose-preserves-transportᵀ

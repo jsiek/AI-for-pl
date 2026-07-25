@@ -18,6 +18,9 @@ open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import Coercions using (genᵈ; id-onlyᵈ; tag-or-idᵈ)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; narrowing; widening)
+open import ImprecisionComposition using (_；⌊_⌋≋ᵖ_；_)
 open import NarrowWiden using
   ( narrow-weaken
   ; _∣_∣_⊢_∶_⊒_
@@ -39,6 +42,14 @@ open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions; cast-↠)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  (cast-shape-applyCoercions)
+open import
+  proof.OneStep.NuImprecisionWeakOneStepReplacementTransport
+  using
+  ( weak-one-step-transport-quotientᵀ
+  ; weak-one-step-transport-quotient-boundary-square
+  )
 
 weak-one-step-paired-double-cast-frameᵀ :
   ∀ {Φ Δᴸ Δᴿ M M′ C C′ A A′ d d′ u u′}
@@ -160,7 +171,7 @@ weak-one-step-transport-target-narrowing-silentᵀ
         (rightStoreⁱ-prefix-inclusion prefix) d′⊒))
 
 weak-one-step-transport-id-downᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ d d′}
+  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ d d′ s s′}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
@@ -170,7 +181,10 @@ weak-one-step-transport-id-downᵀ :
   let inner = weakIndexedResult indexed in
   LeftSilentInvariant inner →
   id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ d ∶ C ⊒ D →
+  narrowing ⊢ᶜ d ⦂ s →
   id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ d′ ∶ C′ ⊒ D′ →
+  narrowing ⊢ᶜ d′ ⦂ s′ →
+  s ；⌊ pC ⌋≋ᵖ qD ； s′ →
   resultCtx inner
     ∣ resultLeftCtx inner
     ∣ resultRightCtx inner
@@ -182,19 +196,25 @@ weak-one-step-transport-id-downᵀ :
       applyTys (targetTailChanges inner) (applyTy keep D′)
     ∶ weak-one-step-transport-quotientᵀ inner qD
 weak-one-step-transport-id-downᵀ
-    prefix indexed (left-silent-invariant refl refl) d⊒ d′⊒ =
+    prefix indexed (left-silent-invariant refl refl)
+    d⊒ d-shape d′⊒ d′-shape square =
   down⊑downᵀ
     (weak-one-step-transport-source-fixed-narrowingᵀ
       (modeRename-id-only suc) prefix inner d⊒)
+    (cast-shape-applyCoercions
+      (sourceChanges inner) d-shape)
     (weak-one-step-transport-target-narrowing-silentᵀ
       prefix inner (left-silent-invariant refl refl) d′⊒)
+    d′-shape
     (canonicalIndexedResults indexed)
     (weak-one-step-transport-quotientᵀ inner _)
+    (weak-one-step-transport-quotient-boundary-square
+      inner (weakIndexedTypeCoherence indexed) square)
   where
   inner = weakIndexedResult indexed
 
 weak-one-step-transport-gen-downᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ d d′}
+  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ d d′ s s′}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
@@ -205,8 +225,11 @@ weak-one-step-transport-gen-downᵀ :
   LeftSilentInvariant inner →
   genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ₀
     ⊢ d ∶ C ⊒ D →
+  narrowing ⊢ᶜ d ⦂ s →
   genᵈ tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ d′ ∶ C′ ⊒ D′ →
+  narrowing ⊢ᶜ d′ ⦂ s′ →
+  s ；⌊ pC ⌋≋ᵖ qD ； s′ →
   resultCtx inner
     ∣ resultLeftCtx inner
     ∣ resultRightCtx inner
@@ -218,25 +241,34 @@ weak-one-step-transport-gen-downᵀ :
       applyTys (targetTailChanges inner) (applyTy keep D′)
     ∶ weak-one-step-transport-quotientᵀ inner qD
 weak-one-step-transport-gen-downᵀ
-    prefix indexed (left-silent-invariant refl refl) d⊒ d′⊒ =
+    prefix indexed (left-silent-invariant refl refl)
+    d⊒ d-shape d′⊒ d′-shape square =
   gen-down⊑gen-downᵀ
     (weak-one-step-transport-source-fixed-narrowingᵀ
       (modeRename-gen-tag-or-id suc) prefix inner d⊒)
+    (cast-shape-applyCoercions
+      (sourceChanges inner) d-shape)
     (weak-one-step-transport-target-narrowing-silentᵀ
       prefix inner (left-silent-invariant refl refl) d′⊒)
+    d′-shape
     (canonicalIndexedResults indexed)
     (weak-one-step-transport-quotientᵀ inner _)
+    (weak-one-step-transport-quotient-boundary-square
+      inner (weakIndexedTypeCoherence indexed) square)
   where
   inner = weakIndexedResult indexed
 
 left-silent-indexed-prefix-down-up-from-finalᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′}
+  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′ s s′}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
   (prefix : StoreImpPrefix ρ₀ ρ⁺) →
   QuotientWideningPair Δᴸ Δᴿ ρ₀ u u′ D D′ A A′ →
+  widening ⊢ᶜ u ⦂ s →
+  widening ⊢ᶜ u′ ⦂ s′ →
+  s ；⌊ pA ⌋≋ᵖ qD ； s′ →
   (catchup : LeftCatchupIndexedResult
     {N = M} {V′ = M′} {ρ = ρ⁺} pC) →
   let indexed = catchupIndexedResult catchup
@@ -257,7 +289,7 @@ left-silent-indexed-prefix-down-up-from-finalᵀ :
     {V′ = (M′ ⟨ d′ ⟩) ⟨ u′ ⟩}
     {ρ = ρ⁺} pA
 left-silent-indexed-prefix-down-up-from-finalᵀ
-    {pA = pA} prefix widening
+    {pA = pA} prefix widening-pair u-shape u′-shape square
     (left-indexed-catchup indexed
       invariant@(left-catchup-invariant
         silent@(left-silent-invariant refl refl) final))
@@ -268,7 +300,22 @@ left-silent-indexed-prefix-down-up-from-finalᵀ
         (transportNo•Terms (weakIndexedTransport indexed)))
       (weak-step-type-coherence
         (transportArrowCoherent (weakIndexedTypeCoherence indexed))
-        (transportAllCoherent (weakIndexedTypeCoherence indexed))))
+        (transportAllCoherent (weakIndexedTypeCoherence indexed))
+        (transportShapeCoherent (weakIndexedTypeCoherence indexed))
+        (transportRightBodyShapeCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportLeftReplacementCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportRightReplacementCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportPairedReplacementCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportAllBodyPairedReplacementCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportSourceNuBodyLeftReplacementCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportRightBodyRightReplacementCoherent
+          (weakIndexedTypeCoherence indexed))))
     (left-silent-invariant refl refl)
     (ok-⟨⟩ (ok-⟨⟩ (left-catchup-final-runtime invariant)))
   where
@@ -276,10 +323,15 @@ left-silent-indexed-prefix-down-up-from-finalᵀ
 
   final-widening =
     weak-one-step-transport-quotient-widening-pairᵀ
-      prefix inner silent widening
+      prefix inner silent widening-pair
 
   final-relation =
     up⊑upᵀ down final-widening (transportType inner pA)
+      (cast-shape-applyCoercions
+        (sourceChanges inner) u-shape)
+      u′-shape
+      (weak-one-step-transport-quotient-boundary-square
+        inner (weakIndexedTypeCoherence indexed) square)
 
   framed = weak-one-step-paired-double-cast-frameᵀ
     inner silent final-relation

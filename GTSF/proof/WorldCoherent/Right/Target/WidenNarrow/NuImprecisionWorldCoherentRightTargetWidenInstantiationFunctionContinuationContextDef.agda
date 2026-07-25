@@ -9,17 +9,22 @@ module
 --     a false uniform right-only opening of a matched target binder.
 --   * Takes the original prefix and instantiation typing needed to transport
 --     the cast through the completed inner result.
+--   * Retains the instantiation shape and exact composition triangle needed
+--     to rebuild term imprecision after transport.
 --   * Exposes target-context action and right-only store lineage for the
 --     continuation in the inner result world.
 --   * Contains no implementation, result/view/outcome type, postulate, hole,
 --     permissive option, termination bypass, or broad DGG import.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (widening; _⊢ᶜ_⦂_)
 open import Coercions using (Coercion; ModeEnv; inst)
 open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuTermImprecision using
   (StoreImp; rightStoreⁱ)
@@ -69,6 +74,7 @@ WorldCoherentRightTargetWidenInstantiationFunctionContinuationContextᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {A C : Ty} {s : Coercion} {μ : ModeEnv}
+    {s-shape : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⇒ ★ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
@@ -76,6 +82,8 @@ WorldCoherentRightTargetWidenInstantiationFunctionContinuationContextᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ inst (★ ⇒ ★) s ∶ `∀ C ⊑ ★ ⇒ ★ →
+  widening ⊢ᶜ inst (★ ⇒ ★) s ⦂ s-shape →
+  ⌊ p ⌋ ； s-shape ≋ ⌊ q ⌋ →
   (inner : WorldCoherentRightValueCatchupIndexedResult
     {V = V} {M′ = M′} {ρ = ρ⁺} p) →
   let indexed = rightCatchupIndexedResult

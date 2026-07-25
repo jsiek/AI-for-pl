@@ -59,10 +59,10 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     (⊑αᵀ {q = ()} vL′ noL′ hA liftρ liftγ inner r N⊢ L′•⊢)
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
-    (⊑νᵀ {q = ()} hA h⇑A s↑ liftρ liftγ r inner)
+    (⊑νᵀ {q = ()} hA h⇑A s↑ liftρ liftγ r inner replacement)
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
-    (⊑νcastᵀ {q = ()} mode seal★ s⊑ liftρ liftγ r inner)
+    (⊑νcastᵀ {q = ()} mode seal★ s⊑ liftρ liftγ r inner shape comp)
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     (⊕⊑⊕ᵀ L⊑L′ R⊑R′) =
@@ -70,9 +70,9 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     prefix coherent exclusive unique wfR okM′ L⊑L′ R⊑R′
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
-    (⊑cast⊒ᵀ mode seal★ c⊒ inner q) =
+    (⊑cast⊒ᵀ mode seal★ c⊒ inner q shape comp) =
   sourceStepTargetNarrowFrame target-frames
-    prefix mode seal★ c⊒ recursive
+    prefix mode seal★ c⊒ shape comp recursive
   where
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =
@@ -80,9 +80,9 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
       cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′) inner
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
-    (⊑cast⊑ᵀ mode seal★ c⊑ inner q) =
+    (⊑cast⊑ᵀ mode seal★ c⊑ inner q shape comp) =
   sourceStepTargetWidenFrame target-frames
-    prefix mode seal★ c⊑ recursive
+    prefix mode seal★ c⊑ shape comp recursive
   where
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =
@@ -90,9 +90,9 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
       cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′) inner
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
-    (⊑cast⊑idᵀ seal★ c⊑ inner q) =
+    (⊑cast⊑idᵀ seal★ c⊑ inner q shape comp) =
   sourceStepTargetIdWidenFrame target-frames
-    prefix seal★ c⊑ recursive
+    prefix seal★ c⊑ shape comp recursive
   where
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =
@@ -100,8 +100,8 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
       cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′) inner
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
-    (⊑conv↑ᵀ c↑ inner q) =
-  sourceStepTargetRevealFrame target-frames prefix c↑ recursive
+    (⊑conv↑ᵀ c↑ inner q replacement) =
+  sourceStepTargetRevealFrame target-frames prefix c↑ replacement recursive
   where
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =
@@ -109,8 +109,8 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
       cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′) inner
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
-    (⊑conv↓ᵀ c↓ inner q) =
-  sourceStepTargetConcealFrame target-frames prefix c↓ recursive
+    (⊑conv↓ᵀ c↓ inner q replacement) =
+  sourceStepTargetConcealFrame target-frames prefix c↓ replacement recursive
   where
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =

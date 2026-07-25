@@ -42,6 +42,13 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   (∀ᵢᶜ; ⊑-lift∀ᵢ; ⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-suc; renameᵗ-preserves-WfTy)
+open import
+  proof.Core.Properties.NuCastImprecisionShapeProperties
+  using
+  ( shape-lift∀ᵢ
+  ; shape-source-liftνᵢ
+  ; shape-target-lift-rightᵢ
+  )
 
 
 lift-left-store-result :
@@ -55,7 +62,7 @@ lift-left-store-result (store-matched α A β B p ∷ ρ)
     | ρ′ , liftρ =
   store-matched (suc α) (⇑ᵗ A) β B
     (⊑-source-liftνᵢ p) ∷ ρ′ ,
-  lift-left-store-∷ liftρ
+  lift-left-store-∷ (shape-source-liftνᵢ p) liftρ
 lift-left-store-result (store-left α A hA ∷ ρ)
     with lift-left-store-result ρ
 lift-left-store-result (store-left α A hA ∷ ρ)
@@ -75,7 +82,7 @@ lift-left-store-result (store-link α A β B p ∷ ρ)
     | ρ′ , liftρ =
   store-link (suc α) (⇑ᵗ A) β B
     (⊑-source-liftνᵢ p) ∷ ρ′ ,
-  lift-left-store-link liftρ
+  lift-left-store-link (shape-source-liftνᵢ p) liftρ
 
 
 lift-right-store-result :
@@ -88,7 +95,7 @@ lift-right-store-result (store-matched α A β B p ∷ ρ)
     | ρ′ , liftρ =
   store-matched α A (suc β) (⇑ᵗ B)
     (⊑-target-lift-rightᵢ p) ∷ ρ′ ,
-  lift-right-store-∷ liftρ
+  lift-right-store-∷ (shape-target-lift-rightᵢ p) liftρ
 lift-right-store-result (store-left α A hA ∷ ρ)
     with lift-right-store-result ρ
 lift-right-store-result (store-left α A hA ∷ ρ)
@@ -108,7 +115,7 @@ lift-right-store-result (store-link α A β B p ∷ ρ)
     | ρ′ , liftρ =
   store-link α A (suc β) (⇑ᵗ B)
     (⊑-target-lift-rightᵢ p) ∷ ρ′ ,
-  lift-right-store-link liftρ
+  lift-right-store-link (shape-target-lift-rightᵢ p) liftρ
 
 
 lift-store-result :
@@ -121,7 +128,7 @@ lift-store-result (store-matched α A β B p ∷ ρ)
     | ρ′ , liftρ =
   store-matched (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B)
     (⊑-lift∀ᵢ p) ∷ ρ′ ,
-  lift-store-∷ liftρ
+  lift-store-∷ (shape-lift∀ᵢ p) liftρ
 lift-store-result (store-left α A hA ∷ ρ)
     with lift-store-result ρ
 lift-store-result (store-left α A hA ∷ ρ)
@@ -142,4 +149,4 @@ lift-store-result (store-link α A β B p ∷ ρ)
     | ρ′ , liftρ =
   store-link (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B)
     (⊑-lift∀ᵢ p) ∷ ρ′ ,
-  lift-store-link liftρ
+  lift-store-link (shape-lift∀ᵢ p) liftρ

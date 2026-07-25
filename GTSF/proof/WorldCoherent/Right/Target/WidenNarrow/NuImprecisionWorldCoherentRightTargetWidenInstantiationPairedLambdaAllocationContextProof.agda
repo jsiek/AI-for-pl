@@ -61,12 +61,20 @@ open import TermTyping using (_∣_∣_⊢_⦂_; ⊢⟨⟩⊑)
 open import Types using (`∀; wf★; ⇑ᵗ; ★)
 open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ( post-allocation-β-Λ•
+  ; replace-left-target-lift-right-source-nu-bodyᵢ
+  ; replace-paired-target-lift-right-under-∀ᵢ
+  ; replace-right-target-lift-under-rightᵢ
   ; right-lift-prefix-bodyᵀ
+  ; shape-target-lift-right-under-∀ᵢ
+  ; shape-target-lift-under-rightᵢ
   ; ⊑-target-lift-right-all-coherentᵢ
   ; ⊑-target-lift-right-arrow-coherentᵢ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( ≡-to-≅
+  ; replace-left-target-lift-rightᵢ
+  ; replace-paired-target-lift-rightᵢ
+  ; replace-right-target-lift-rightᵢ
   ; transportAllType-to-raw≅
   ; transportArrowType-to-raw≅
   ; ⊑-target-lift-right-source-nuᵢ
@@ -123,6 +131,9 @@ open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherenceLemma
   using (world-coherent-right-allocation)
 open import
+  proof.WorldCoherent.Core.NuImprecisionWorldCoherentTypeShapeProof
+  using (shape-target-lift-rightᵢ)
+open import
   proof.WorldCoherent.Right.Value.Catchup.NuImprecisionWorldCoherentRightCatchupResultDef
   using (world-coherent-right-value-indexed-catchup)
 open import
@@ -145,7 +156,8 @@ world-coherent-right-target-widen-instantiation-paired-lambda-allocation-context
     {W = W} {W′ = W′} {B = B} {C = C} {D = D} {s = s}
     {{safe = safe}} {q = q} {occ = occ}
     prefix coherent exclusive unique wfR runtime
-    vW noW vW′ noW′ mode seal★ cast inert liftρ liftγ body =
+    vW noW vW′ noW′ mode seal★ cast inert liftρ liftγ body
+    inst-shape creation-square =
   caught , refl , right-only-prefix-right right-only-prefix-refl
   where
   outer = Λ⊑Λᵀ liftρ liftγ vW vW′ body
@@ -213,7 +225,8 @@ world-coherent-right-target-widen-instantiation-paired-lambda-allocation-context
         ∶ ⊑-target-lift-rightᵢ (ν safe occ q)
   related =
     post-beta {f = ν safe occ q} prefix mode seal★ cast liftρ liftρᴿ
-      vW noW vW′ noW′ inert body source-typing target-typing
+      vW noW vW′ noW′ inert body inst-shape creation-square
+      source-typing target-typing
 
   target-tail :
     NuTerms.ν ★ (Λ W′) s
@@ -259,6 +272,14 @@ world-coherent-right-target-widen-instantiation-paired-lambda-allocation-context
           (transportAllType-to-raw≅ result r)
           (≡-to-≅
             (⊑-target-lift-right-all-coherentᵢ r))))
+      shape-target-lift-rightᵢ
+      shape-target-lift-under-rightᵢ
+      replace-left-target-lift-rightᵢ
+      replace-right-target-lift-rightᵢ
+      replace-paired-target-lift-rightᵢ
+      replace-paired-target-lift-right-under-∀ᵢ
+      replace-left-target-lift-right-source-nu-bodyᵢ
+      replace-right-target-lift-under-rightᵢ
 
   indexed =
     weak-indexed-result result related transport type-coherence

@@ -33,8 +33,14 @@ open import proof.Core.Properties.CastImprecision using
 open import proof.Core.Properties.ImprecisionProperties using
   (idᵢ-no-star; idᵢ-var-identity)
 open import proof.Core.Properties.TypeProperties using
-  ( TyPermutation; rename-cong; renameᵗ-compose; renameᵗ-id
+  ( TyPermutation; TyRenameWf; rename-cong; renameᵗ-compose; renameᵗ-id
   ; renameᵗ-preserves-WfTy
+  )
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  (⊑-rename-leftᵢ)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  ( rename-assm²ᵢ
+  ; ⊑-renameᵗ²ᵢ
   )
 
 ------------------------------------------------------------------------
@@ -65,6 +71,70 @@ renameᵗ-ext-swap01-involutive A =
   trans
     (renameᵗ-compose (extᵗ swap01ᵗ) (extᵗ swap01ᵗ) A)
     (trans (rename-cong ext-swap01-involutive A) (renameᵗ-id A))
+
+swap01-ext²-commute :
+  ∀ (τ : Renameᵗ) X →
+  swap01ᵗ (extᵗ (extᵗ τ) X) ≡
+    extᵗ (extᵗ τ) (swap01ᵗ X)
+swap01-ext²-commute τ zero = refl
+swap01-ext²-commute τ (suc zero) = refl
+swap01-ext²-commute τ (suc (suc X)) = refl
+
+renameᵗ-swap01-ext²-commute :
+  ∀ (τ : Renameᵗ) A →
+  renameᵗ swap01ᵗ (renameᵗ (extᵗ (extᵗ τ)) A) ≡
+    renameᵗ (extᵗ (extᵗ τ)) (renameᵗ swap01ᵗ A)
+renameᵗ-swap01-ext²-commute τ A =
+  trans
+    (renameᵗ-compose (extᵗ (extᵗ τ)) swap01ᵗ A)
+    (trans
+      (rename-cong (swap01-ext²-commute τ) A)
+      (sym (renameᵗ-compose swap01ᵗ (extᵗ (extᵗ τ)) A)))
+
+≈∀-renameᵗ :
+  ∀ {τ A B} →
+  A ≈∀ B →
+  renameᵗ τ A ≈∀ renameᵗ τ B
+≈∀-renameᵗ ≈∀-refl = ≈∀-refl
+≈∀-renameᵗ (≈∀-sym A≈B) =
+  ≈∀-sym (≈∀-renameᵗ A≈B)
+≈∀-renameᵗ (≈∀-trans A≈B B≈C) =
+  ≈∀-trans (≈∀-renameᵗ A≈B) (≈∀-renameᵗ B≈C)
+≈∀-renameᵗ (≈∀-⇒ A≈A′ B≈B′) =
+  ≈∀-⇒ (≈∀-renameᵗ A≈A′) (≈∀-renameᵗ B≈B′)
+≈∀-renameᵗ (≈∀-∀ A≈B) =
+  ≈∀-∀ (≈∀-renameᵗ A≈B)
+≈∀-renameᵗ {τ = τ} (≈∀-swap {A = A}) =
+  subst
+    (λ T → `∀ (`∀ (renameᵗ (extᵗ (extᵗ τ)) A)) ≈∀
+      `∀ (`∀ T))
+    (renameᵗ-swap01-ext²-commute τ A)
+    ≈∀-swap
+
+⊑ᵖ-rename-leftᵢ :
+  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ A B} (τ : Renameᵗ) →
+  (∀ {a} → a ∈ Φ →
+    rename-assm²ᵢ τ (λ X → X) a ∈ Ψ) →
+  TyRenameWf Δᴸ Δᴸ′ τ →
+  Φ ∣ Δᴸ ⊢ A ⊑ᵖ B ⊣ Δᴿ →
+  Ψ ∣ Δᴸ′ ⊢ renameᵗ τ A ⊑ᵖ B ⊣ Δᴿ
+⊑ᵖ-rename-leftᵢ τ assm hτ
+    (quotientᵖ A≈C C⊑D D≈B) =
+  quotientᵖ (≈∀-renameᵗ A≈C)
+    (⊑-rename-leftᵢ τ assm hτ C⊑D) D≈B
+
+⊑ᵖ-rename²ᵢ :
+  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ A B} →
+  (assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ) →
+  (hτ : TyRenameWf Δᴸ Θᴸ τ) →
+  (hσ : TyRenameWf Δᴿ Θᴿ σ) →
+  Φ ∣ Δᴸ ⊢ A ⊑ᵖ B ⊣ Δᴿ →
+  Ψ ∣ Θᴸ ⊢ renameᵗ τ A ⊑ᵖ renameᵗ σ B ⊣ Θᴿ
+⊑ᵖ-rename²ᵢ assm hτ hσ
+    (quotientᵖ A≈C C⊑D D≈B) =
+  quotientᵖ (≈∀-renameᵗ A≈C)
+    (⊑-renameᵗ²ᵢ assm hτ hσ C⊑D)
+    (≈∀-renameᵗ D≈B)
 
 ------------------------------------------------------------------------
 -- Outer-forall shape is invariant under permutation equivalence
@@ -118,39 +188,6 @@ mutual
   ∃[ C ] A ≡ `∀ C
 ≈∀-all-left {B = B} A≈B =
   ≈∀-reflects-all-shape A≈B (B , refl)
-
-mutual
-  ≈∀-arrow-right :
-    ∀ {A B C} →
-    A ⇒ B ≈∀ C →
-    ∃[ A′ ] ∃[ B′ ] C ≡ A′ ⇒ B′
-  ≈∀-arrow-right ≈∀-refl = _ , _ , refl
-  ≈∀-arrow-right (≈∀-sym C≈A⇒B) =
-    ≈∀-arrow-left C≈A⇒B
-  ≈∀-arrow-right (≈∀-trans A⇒B≈C C≈D)
-      with ≈∀-arrow-right A⇒B≈C
-  ≈∀-arrow-right (≈∀-trans A⇒B≈C C≈D)
-      | A′ , B′ , refl =
-    ≈∀-arrow-right C≈D
-  ≈∀-arrow-right
-      (≈∀-⇒ {A′ = A′} {B′ = B′} A≈A′ B≈B′) =
-    A′ , B′ , refl
-
-  ≈∀-arrow-left :
-    ∀ {A B C} →
-    C ≈∀ A ⇒ B →
-    ∃[ A′ ] ∃[ B′ ] C ≡ A′ ⇒ B′
-  ≈∀-arrow-left ≈∀-refl = _ , _ , refl
-  ≈∀-arrow-left (≈∀-sym A⇒B≈C) =
-    ≈∀-arrow-right A⇒B≈C
-  ≈∀-arrow-left (≈∀-trans C≈D D≈A⇒B)
-      with ≈∀-arrow-left D≈A⇒B
-  ≈∀-arrow-left (≈∀-trans C≈D D≈A⇒B)
-      | A′ , B′ , refl =
-    ≈∀-arrow-left C≈D
-  ≈∀-arrow-left
-      (≈∀-⇒ {A = A′} {B = B′} A≈A′ B≈B′) =
-    A′ , B′ , refl
 
 ------------------------------------------------------------------------
 -- Ground types are fixed points of forall permutation

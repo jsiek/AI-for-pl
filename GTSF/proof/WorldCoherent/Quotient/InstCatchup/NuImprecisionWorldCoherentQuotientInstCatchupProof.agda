@@ -20,6 +20,8 @@ world-coherent-quotient-inst-catchup-proofᵀ :
 world-coherent-quotient-inst-catchup-proofᵀ
     direct {qD = quotientᵖ D≈C C⊑C′ C′≈D′}
     coherent exclusive wfL okN vVd noVd vV′ noV′
-    inert-d′ inert-u′ down widening =
+    inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square =
   direct coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square

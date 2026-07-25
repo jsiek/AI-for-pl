@@ -1966,11 +1966,9 @@ open-unused-atᵢ d k<Δ occ id★ = id★
 open-unused-atᵢ d k<Δ occ (idˣ x∈ X<Δ Y<Δ) =
   idˣ (drop-var-memberᵢ d x∈) (removeAt-Wfᵢ _ k<Δ X<Δ occ) Y<Δ
 open-unused-atᵢ d k<Δ occ idι = idι
-open-unused-atᵢ {k = k} d k<Δ occ (_↦_ {A = A} p q)
-    with occurs k A in occA
-open-unused-atᵢ {k = k} d k<Δ occ (_↦_ {A = A} p q) | false =
-  open-unused-atᵢ d k<Δ occA p ↦ open-unused-atᵢ d k<Δ occ q
-open-unused-atᵢ {k = k} d k<Δ () (_↦_ {A = A} p q) | true
+open-unused-atᵢ d k<Δ occ (p ↦ q) =
+  open-unused-atᵢ d k<Δ (∨-false-leftᵢ occ) p ↦
+  open-unused-atᵢ d k<Δ (∨-false-rightᵢ occ) q
 open-unused-atᵢ {k = k} d k<Δ occ (∀ⁱ p) =
   ∀ⁱ (open-unused-atᵢ
         (drop-∀ᵢ d)
@@ -1978,12 +1976,9 @@ open-unused-atᵢ {k = k} d k<Δ occ (∀ⁱ p) =
         occ
         p)
 open-unused-atᵢ d k<Δ occ (tag ι) = tag ι
-open-unused-atᵢ {k = k} d k<Δ occ (tag_⇛_ {A₁ = A} p q)
-    with occurs k A in occA
-open-unused-atᵢ {k = k} d k<Δ occ (tag_⇛_ {A₁ = A} p q) | false =
-  tag_⇛_ (open-unused-atᵢ d k<Δ occA p)
-          (open-unused-atᵢ d k<Δ occ q)
-open-unused-atᵢ {k = k} d k<Δ () (tag_⇛_ {A₁ = A} p q) | true
+open-unused-atᵢ d k<Δ occ (tag p ⇛ q) =
+  tag (open-unused-atᵢ d k<Δ (∨-false-leftᵢ occ) p) ⇛
+  open-unused-atᵢ d k<Δ (∨-false-rightᵢ occ) q
 open-unused-atᵢ d k<Δ occ (tagˣ x∈ X<Δ) =
   tagˣ (drop-star-memberᵢ d occ x∈) (removeAt-Wfᵢ _ k<Δ X<Δ occ)
 open-unused-atᵢ {k = k} d k<Δ occ

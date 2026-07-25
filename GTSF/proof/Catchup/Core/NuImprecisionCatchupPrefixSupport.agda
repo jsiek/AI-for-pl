@@ -16,13 +16,17 @@ open import Relation.Binary.PropositionalEquality using
 import Relation.Binary.HeterogeneousEquality as HE
 
 open import Coercions using (id-onlyᵈ)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; narrowing; widening)
 open import Conversion using
   ( ConcealConversion
   ; RevealConversion
   ; weaken-conceal-conversion
   ; weaken-reveal-conversion
   )
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import NarrowWiden using
   ( narrow-weaken
   ; widen-weaken
@@ -54,6 +58,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   )
 open import proof.DGG.Core.NuProgress using (runtime-value-no•)
 open import proof.Core.Properties.ReductionProperties using (applyTys-++)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  (imprecision-composition-shape-transport)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken; term-weaken)
 
 left-catchup-indexed-resume-silentᵀ :
@@ -187,7 +193,7 @@ left-catchup-indexed-target-frameᵀ
     (left-catchup-invariant first-silent final)
 
 left-catchup-indexed-prefix-target-narrow-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ}
+  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ s}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
@@ -195,13 +201,16 @@ left-catchup-indexed-prefix-target-narrow-castᵀ :
   CastMode μ →
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊒ B′ →
+  narrowing ⊢ᶜ c ⦂ s →
+  ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
   (catchup : LeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ⁺} p) →
   LeftCatchupIndexedResult
     {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
 left-catchup-indexed-prefix-target-narrow-castᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
-    prefix mode seal★ c⊒
+    {p = p} {q = q}
+    prefix mode seal★ c⊒ c-shape comp
     catchup@(left-indexed-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) final)
@@ -237,6 +246,12 @@ left-catchup-indexed-prefix-target-narrow-castᵀ
   final-relation =
     ⊑cast⊒ᵀ mode final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner _)
+      c-shape
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent (weakIndexedTypeCoherence indexed) q)
+        refl
+        (transportShapeCoherent (weakIndexedTypeCoherence indexed) p)
+        comp)
 
   first = weak-one-step-target-cast-frameᵀ
     inner final-relation
@@ -255,13 +270,14 @@ left-catchup-indexed-prefix-target-reveal-castᵀ :
   (prefix : StoreImpPrefix ρ₀ ρ⁺) →
   RevealConversion μ Δᴿ (rightStoreⁱ ρ₀)
     β X′ c A′ B′ →
+  p [ β ↦ X′ ]ᴿ q →
   (catchup : LeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ⁺} p) →
   LeftCatchupIndexedResult
     {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
 left-catchup-indexed-prefix-target-reveal-castᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
-    prefix c↑
+    prefix c↑ replace
     catchup@(left-indexed-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) final)
@@ -290,6 +306,8 @@ left-catchup-indexed-prefix-target-reveal-castᵀ
   final-relation =
     ⊑conv↑ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner _)
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replace)
 
   first = weak-one-step-target-cast-frameᵀ
     inner final-relation
@@ -308,13 +326,14 @@ left-catchup-indexed-prefix-target-conceal-castᵀ :
   (prefix : StoreImpPrefix ρ₀ ρ⁺) →
   ConcealConversion μ Δᴿ (rightStoreⁱ ρ₀)
     β X′ c A′ B′ →
+  q [ β ↦ X′ ]ᴿ p →
   (catchup : LeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ⁺} p) →
   LeftCatchupIndexedResult
     {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
 left-catchup-indexed-prefix-target-conceal-castᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
-    prefix c↓
+    prefix c↓ replace
     catchup@(left-indexed-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) final)
@@ -343,6 +362,8 @@ left-catchup-indexed-prefix-target-conceal-castᵀ
   final-relation =
     ⊑conv↓ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner _)
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replace)
 
   first = weak-one-step-target-cast-frameᵀ
     inner final-relation
@@ -354,7 +375,7 @@ left-catchup-indexed-prefix-target-conceal-castᵀ
       inner final-relation (weakIndexedTypeCoherence indexed))
 
 left-catchup-indexed-prefix-target-widen-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ}
+  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ s}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
@@ -362,13 +383,16 @@ left-catchup-indexed-prefix-target-widen-castᵀ :
   CastMode μ →
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊑ B′ →
+  widening ⊢ᶜ c ⦂ s →
+  ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
   (catchup : LeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ⁺} p) →
   LeftCatchupIndexedResult
     {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
 left-catchup-indexed-prefix-target-widen-castᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
-    prefix mode seal★ c⊑
+    {p = p} {q = q}
+    prefix mode seal★ c⊑ c-shape comp
     catchup@(left-indexed-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) final)
@@ -404,6 +428,12 @@ left-catchup-indexed-prefix-target-widen-castᵀ
   final-relation =
     ⊑cast⊑ᵀ mode final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner _)
+      c-shape
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent (weakIndexedTypeCoherence indexed) p)
+        refl
+        (transportShapeCoherent (weakIndexedTypeCoherence indexed) q)
+        comp)
 
   first = weak-one-step-target-cast-frameᵀ
     inner final-relation
@@ -415,7 +445,7 @@ left-catchup-indexed-prefix-target-widen-castᵀ
       inner final-relation (weakIndexedTypeCoherence indexed))
 
 left-catchup-indexed-prefix-target-widen-id-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c}
+  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c s}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
@@ -423,13 +453,16 @@ left-catchup-indexed-prefix-target-widen-id-castᵀ :
   SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) →
   id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ c ∶ A′ ⊑ B′ →
+  widening ⊢ᶜ c ⦂ s →
+  ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
   (catchup : LeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ⁺} p) →
   LeftCatchupIndexedResult
     {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
 left-catchup-indexed-prefix-target-widen-id-castᵀ
     {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
-    prefix seal★ c⊑
+    {p = p} {q = q}
+    prefix seal★ c⊑ c-shape comp
     catchup@(left-indexed-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) final)
@@ -465,6 +498,12 @@ left-catchup-indexed-prefix-target-widen-id-castᵀ
   final-relation =
     ⊑cast⊑idᵀ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner _)
+      c-shape
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent (weakIndexedTypeCoherence indexed) p)
+        refl
+        (transportShapeCoherent (weakIndexedTypeCoherence indexed) q)
+        comp)
 
   first = weak-one-step-target-cast-frameᵀ
     inner final-relation

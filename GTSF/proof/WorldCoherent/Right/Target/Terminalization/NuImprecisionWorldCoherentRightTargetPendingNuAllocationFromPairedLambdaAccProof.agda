@@ -104,20 +104,22 @@ world-coherent-right-target-pending-nu-allocation-from-paired-lambda-acc-proof�
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ}
     {W = W} {W′ = W′} {D = D} {F = F}
     {s = s} {cs = cs} {f = f} {q = q}
-    vW′ (acc smaller) mode seal★ cast inert tail
+    vW′ (acc smaller) mode seal★ cast inst-shape creation-square
+    inert tail
     coherent exclusive unique wfR runtime
     vW noW noW′ liftρ liftγ body
     with prefix
       {f = f}
       prefix-reflⁱ coherent exclusive unique wfR runtime
       vW noW vW′ noW′ mode seal★ cast inert
-      liftρ liftγ body tail
+      liftρ liftγ body inst-shape creation-square tail
 world-coherent-right-target-pending-nu-allocation-from-paired-lambda-acc-proofᵀ
     prefix continuation pending-worker rank-decrease
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ}
     {W = W} {W′ = W′} {D = D} {F = F}
     {s = s} {cs = cs} {f = f} {q = q}
-    vW′ (acc smaller) mode seal★ cast inert tail
+    vW′ (acc smaller) mode seal★ cast inst-shape creation-square
+    inert tail
     coherent exclusive unique wfR runtime
     vW noW noW′ liftρ liftγ body
     | indexed ,
@@ -153,7 +155,8 @@ world-coherent-right-target-pending-nu-allocation-from-paired-lambda-acc-proof�
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ}
     {W = W} {W′ = W′} {D = D} {F = F}
     {s = s} {cs = cs} {f = f} {q = q}
-    vW′ (acc smaller) mode seal★ cast inert tail
+    vW′ (acc smaller) mode seal★ cast inst-shape creation-square
+    inert tail
     coherent exclusive unique wfR runtime
     vW noW noW′ liftρ liftγ body
     | indexed ,
@@ -177,7 +180,8 @@ world-coherent-right-target-pending-nu-allocation-from-paired-lambda-acc-proof�
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ}
     {W = W} {W′ = W′} {D = D} {F = F}
     {s = s} {cs = cs} {f = f} {q = q}
-    vW′ (acc smaller) mode seal★ cast inert tail
+    vW′ (acc smaller) mode seal★ cast inst-shape creation-square
+    inert tail
     coherent exclusive unique wfR runtime
     vW noW noW′ liftρ liftγ body
     | indexed ,

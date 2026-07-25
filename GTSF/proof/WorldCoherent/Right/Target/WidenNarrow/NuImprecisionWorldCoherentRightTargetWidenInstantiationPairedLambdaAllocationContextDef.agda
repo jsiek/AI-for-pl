@@ -13,6 +13,7 @@ module
 --     permissive option, termination bypass, or broad DGG import.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Coercions using (Coercion; Inert; ModeEnv; inst)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
@@ -26,7 +27,9 @@ open import Imprecision using
   ; ⇑ᵢ
   ; ⇑ᴸᵢ
   )
-open import ImprecisionWf using (_∣_⊢_⊑_⊣_; ν)
+open import ImprecisionWf using (_∣_⊢_⊑_⊣_; ∀ⁱ_; ν)
+open import ImprecisionComposition using
+  (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
@@ -85,7 +88,8 @@ WorldCoherentRightTargetWidenInstantiationPairedLambdaAllocationContextᵀ =
       ∣ suc Δᴸ ⊢ D ⊑ C ⊣ suc Δᴿ}
     {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ B ⊣ Δᴿ}
-    {occ : occurs zero D ≡ true} →
+    {occ : occurs zero D ≡ true}
+    {body-shape : ImprecisionShape} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
@@ -107,6 +111,8 @@ WorldCoherentRightTargetWidenInstantiationPairedLambdaAllocationContextᵀ =
   ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
     ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
     ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
+  widening ⊢ᶜ inst B s ⦂ νˢ body-shape →
+  ⌊ ∀ⁱ r ⌋ ； νˢ body-shape ≋ ⌊ ν safe occ q ⌋ →
   Σ[ caught ∈
     WorldCoherentRightValueCatchupIndexedResult
       {V = Λ W}

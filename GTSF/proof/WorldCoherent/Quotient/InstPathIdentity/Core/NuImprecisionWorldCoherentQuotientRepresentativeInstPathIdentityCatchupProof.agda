@@ -34,20 +34,28 @@ world-coherent-quotient-representative-inst-path-identity-catchup-proofᵀ :
   WorldCoherentQuotientRepresentativeInstPathIdentityCatchupᵀ
 world-coherent-quotient-representative-inst-path-identity-catchup-proofᵀ
     view {C⊑C′ = C⊑C′}
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down
     widening@(quotient-id-widening
-      (C.cast-inst hB occ s⊢ , NW.inst sʷ) u′⊑) =
+      (C.cast-inst hB occ s⊢ , NW.inst sʷ) u′⊑)
+    u-shape u′-shape up-square =
   view (all-imprecision-view C⊑C′)
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square
 world-coherent-quotient-representative-inst-path-identity-catchup-proofᵀ
     view {C⊑C′ = C⊑C′}
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down
     widening@(quotient-cast-widening mode seal★
       (C.cast-inst hB occ s⊢ , NW.inst sʷ)
-      mode′ seal★′ u′⊑) =
+      mode′ seal★′ u′⊑)
+    u-shape u′-shape up-square =
   view (all-imprecision-view C⊑C′)
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square

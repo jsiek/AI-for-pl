@@ -34,7 +34,8 @@ world-coherent-right-target-pending-narrow-sequence-context-proofᵀ
     terminal narrow
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ}
     {p = p} {r = r} {q = q}
-    vW mode seal★ s⊒ t⊒ _ _ _ V⊑W
+    vW mode seal★ s⊒ t⊒
+    s-shape s-comp t-shape t-comp _ V⊑W
     coherent exclusive unique wfR runtime vV noV noW
     with terminal
       {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
@@ -45,20 +46,23 @@ world-coherent-right-target-pending-narrow-sequence-context-proofᵀ
     terminal narrow
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ}
     {p = p} {r = r} {q = q}
-    vW mode seal★ s⊒ t⊒ _ _ _ V⊑W
+    vW mode seal★ s⊒ t⊒
+    s-shape s-comp t-shape t-comp _ V⊑W
     coherent exclusive unique wfR runtime vV noV noW
     | seed , seed-context , seed-prefix
     with narrow
       {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       {ρ₀ = ρ} {ρ⁺ = ρ} {p = p} {q = r}
       prefix-reflⁱ coherent exclusive unique wfR
-      (runtime-⟨⟩ runtime) vV noV mode seal★ s⊒ V⊑W
+      (runtime-⟨⟩ runtime) vV noV mode seal★ s⊒
+      s-shape s-comp V⊑W
       seed seed-context seed-prefix
 world-coherent-right-target-pending-narrow-sequence-context-proofᵀ
     terminal narrow
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ}
     {p = p} {r = r} {q = q}
-    vW mode seal★ s⊒ t⊒ _ _ _ V⊑W
+    vW mode seal★ s⊒ t⊒
+    s-shape s-comp t-shape t-comp _ V⊑W
     coherent exclusive unique wfR runtime vV noV noW
     | seed , seed-context , seed-prefix
     | first , first-context , first-prefix =
@@ -66,6 +70,6 @@ world-coherent-right-target-pending-narrow-sequence-context-proofᵀ
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ₀ = ρ} {ρ⁺ = ρ} {p = r} {q = q}
     prefix-reflⁱ coherent exclusive unique wfR runtime
-    vV noV mode seal★ t⊒
-    (⊑cast⊒ᵀ mode seal★ s⊒ V⊑W r)
+    vV noV mode seal★ t⊒ t-shape t-comp
+    (⊑cast⊒ᵀ mode seal★ s⊒ V⊑W r s-shape s-comp)
     first first-context first-prefix

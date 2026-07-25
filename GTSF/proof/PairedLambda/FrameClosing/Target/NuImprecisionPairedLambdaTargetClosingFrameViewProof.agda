@@ -7,9 +7,11 @@ module proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClo
 --   * Contains no semantic catch-up proof, postulate, or permissive option.
 
 import Coercions as C
+import CastImprecisionShape as CIS
 import Conversion as CV
 import NarrowWiden as NW
 open import Agda.Builtin.Equality using (refl)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_)
 open import Coercions using
   ( id-onlyᵈ
   ; ModeIncl
@@ -18,6 +20,7 @@ open import Coercions using
 open import Data.List using ([])
 open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_)
+open import ImprecisionComposition using (_；⌊_⌋≋ᵖ_；_)
 open import NuTerms using
   ( No•
   ; Term
@@ -120,7 +123,7 @@ mutual
       (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
       (no•-⟨⟩ (no•-⟨⟩ noM′))
       (av-Λ ())
-      (up⊑upᵀ down widening pA)
+      (up⊑upᵀ down widening pA u-shape u′-shape up-square)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-d ⟩ ⟨ inert-u ⟩)
       (no•-⟨⟩ (no•-⟨⟩ noM))
@@ -131,12 +134,12 @@ mutual
         widening@(quotient-id-widening {D′ = D′} {A′ = B′}
           (C.cast-all {A = D} {B = B} u⊢ ,
             NW.cross (NW.`∀ {s = u} uʷ)) u′⊑)
-        pA) =
+        pA u-shape u′-shape up-square) =
     paired-lambda-target-closing-frame-viewᵖ
       {D = D} {D′ = D′} {B = B} {B′ = B′}
       {u = u} {qD = qD}
       vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
-      down widening pA
+      down widening pA u-shape u′-shape up-square
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-d ⟩ ⟨ inert-u ⟩)
       (no•-⟨⟩ (no•-⟨⟩ noM))
@@ -149,12 +152,12 @@ mutual
           (C.cast-all {A = D} {B = B} u⊢ ,
             NW.cross (NW.`∀ {s = u} uʷ))
           mode′ seal★′ u′⊑)
-        pA) =
+        pA u-shape u′-shape up-square) =
     paired-lambda-target-closing-frame-viewᵖ
       {D = D} {D′ = D′} {B = B} {B′ = B′}
       {u = u} {qD = qD}
       vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
-      down widening pA
+      down widening pA u-shape u′-shape up-square
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-d ⟩ ⟨ inert-u ⟩)
       (no•-⟨⟩ (no•-⟨⟩ noM))
@@ -162,7 +165,8 @@ mutual
       (no•-⟨⟩ (no•-⟨⟩ noM′))
       (av-gen vMd refl)
       (up⊑upᵀ down
-        (quotient-id-widening (_ , NW.cross ()) u′⊑) pA)
+        (quotient-id-widening (_ , NW.cross ()) u′⊑)
+        pA u-shape u′-shape up-square)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-d ⟩ ⟨ inert-u ⟩)
       (no•-⟨⟩ (no•-⟨⟩ noM))
@@ -172,7 +176,7 @@ mutual
       (up⊑upᵀ down
         (quotient-cast-widening mode seal★ (_ , NW.cross ())
           mode′ seal★′ u′⊑)
-        pA)
+        pA u-shape u′-shape up-square)
   paired-lambda-target-closing-frame-viewᵀ
       (Λ vV) (no•-Λ noV) (Λ vV′) (no•-Λ noV′)
       (av-Λ refl) (Λ⊑Λᵀ liftρ liftγ vR vR′ V⊑V′) =
@@ -182,12 +186,14 @@ mutual
   paired-lambda-target-closing-frame-viewᵀ
       vM₀ noM₀ vM₀′ noM₀′ allM
       (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f assm hτ hσ
+        vW noW vW′ noW′ inert body f inst-shape creation-square
+        assm hτ hσ
         store-emb eqM eqM′ eqA eqA′ p
         vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢) =
     closing-frame-view
       (leaf-instβ prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f assm hτ hσ
+        vW noW vW′ noW′ inert body f inst-shape creation-square
+        assm hτ hσ
         store-emb eqM eqM′ eqA eqA′ p
         vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
       frame-refl
@@ -219,23 +225,26 @@ mutual
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A↑⊑A′↑
-        liftρ liftγ N⊑N′)
+        liftρ liftγ N⊑N′ replacement)
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW
-      (ν⊑ᵀ hA h↑A s↑ liftρ liftγ N⊑N′)
+      (ν⊑ᵀ hA h↑A s↑ liftρ liftγ N⊑N′ replacement)
   paired-lambda-target-closing-frame-viewᵀ
       vW noW () noW′ allW
-      (⊑νᵀ hA h↑A s↑ liftρ liftγ p N⊑N′)
+      (⊑νᵀ hA h↑A s↑ liftρ liftγ p N⊑N′ replacement)
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW
       (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑
-        compat liftρ liftγ N⊑N′)
+        compat liftρ liftγ N⊑N′ s-shape s′-shape
+        source-comp target-comp)
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW
-      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′)
+      (νcast⊑ᵀ
+        mode seal★ s⊑ liftρ liftγ N⊑N′ s-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       vW noW () noW′ allW
-      (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ p N⊑N′)
+      (⊑νcastᵀ
+        mode seal★ s⊑ liftρ liftγ p N⊑N′ s-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       ($ k) noW vW′ noW′ (av-Λ ()) κ⊑κᵀ
   paired-lambda-target-closing-frame-viewᵀ
@@ -246,12 +255,13 @@ mutual
       () noW vW′ noW′ allW (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
-      (av-Λ ()) (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q)
+      (av-Λ ()) (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q c-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-∀ vR refl)
       (cast⊒⊑ᵀ mode seal★
-        c⊒@(C.cast-all c⊢ , NW.cross (NW.`∀ cⁿ)) M⊑M′ q)
+        c⊒@(C.cast-all c⊢ , NW.cross (NW.`∀ cⁿ))
+        M⊑M′ q c-shape comp)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
         (canonical-∀ vM
@@ -262,9 +272,11 @@ mutual
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-∀ vR refl)
       (cast⊒⊑ᵀ mode seal★
-        c⊒@(C.cast-all c⊢ , NW.cross (NW.`∀ cⁿ)) M⊑M′ q)
+        c⊒@(C.cast-all c⊢ , NW.cross (NW.`∀ cⁿ))
+        M⊑M′ q c-shape comp)
       | closing-frame-view leaf frames =
-    closing-frame-view leaf (frame-cast⊒⊑ frames mode seal★ c⊒ q)
+    closing-frame-view leaf
+      (frame-cast⊒⊑ frames mode seal★ c⊒ q c-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
@@ -277,13 +289,15 @@ mutual
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
       (cast⊒⊑ᵀ {p = p} mode seal★
-        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (∀ⁱ q) c-shape comp)
       with p
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
       (cast⊒⊑ᵀ mode seal★
-        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (∀ⁱ q) c-shape comp)
       | ∀ⁱ p
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
@@ -295,16 +309,19 @@ mutual
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
       (cast⊒⊑ᵀ mode seal★
-        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (∀ⁱ q) c-shape comp)
       | ∀ⁱ p | closing-frame-view leaf frames =
     closing-frame-view
       leaf
-      (frame-gen-all frames mode seal★ hA occ c⊢ cⁿ q)
+      (frame-gen-all
+        frames mode seal★ hA occ c⊢ cⁿ q c-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
       (cast⊒⊑ᵀ mode seal★
-        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (∀ⁱ q) c-shape comp)
       | ν _ occ-p p
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
@@ -316,30 +333,33 @@ mutual
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
       (cast⊒⊑ᵀ mode seal★
-        (C.cast-gen hA occ c⊢ , NW.gen cⁿ) M⊑M′ (∀ⁱ q))
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (∀ⁱ q) c-shape comp)
       | ν _ occ-p p | closing-frame-view leaf frames =
     closing-frame-view
       leaf
-      (frame-gen-all frames mode seal★ hA occ c⊢ cⁿ q)
+      (frame-gen-all
+        frames mode seal★ hA occ c⊢ cⁿ q c-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
       (cast⊒⊑ᵀ mode seal★
         (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
-        M⊑M′ (ν safe occ-r r)) =
+        M⊑M′ (ν safe occ-r r) c-shape comp) =
     closing-frame-view
       (leaf-gen-ν {{safe = safe}}
         vM noM vM′ noM′ mode seal★
-        hA occ c⊢ cⁿ M⊑M′ occ-r r)
+        hA occ c⊢ cⁿ c-shape M⊑M′ occ-r r comp)
       frame-refl
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
-      (av-Λ ()) (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q)
+      (av-Λ ()) (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-∀ vR refl)
       (cast⊑⊑ᵀ mode seal★
-        c⊑@(C.cast-all c⊢ , NW.cross (NW.`∀ cʷ)) M⊑M′ q)
+        c⊑@(C.cast-all c⊢ , NW.cross (NW.`∀ cʷ))
+        M⊑M′ q c-shape comp)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
         (canonical-∀ vM
@@ -350,46 +370,52 @@ mutual
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-∀ vR refl)
       (cast⊑⊑ᵀ mode seal★
-        c⊑@(C.cast-all c⊢ , NW.cross (NW.`∀ cʷ)) M⊑M′ q)
+        c⊑@(C.cast-all c⊢ , NW.cross (NW.`∀ cʷ))
+        M⊑M′ q c-shape comp)
       | closing-frame-view leaf frames =
-    closing-frame-view leaf (frame-cast⊑⊑ frames mode seal★ c⊑ q)
+    closing-frame-view leaf
+      (frame-cast⊑⊑ frames mode seal★ c⊑ q c-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
       (av-gen vR refl)
-      (cast⊑⊑ᵀ mode seal★ (_ , NW.cross ()) M⊑M′ q)
+      (cast⊑⊑ᵀ mode seal★ (_ , NW.cross ())
+        M⊑M′ q c-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
-      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q)
+      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q c′-shape comp)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′ allM M⊑M′
   paired-lambda-target-closing-frame-viewᵀ
       vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
-      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q)
+      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q c′-shape comp)
       | closing-frame-view leaf frames =
     closing-frame-view leaf
-      (frame-⊑cast⊒ frames inert-c′ mode′ seal★′ c′⊒ q)
+      (frame-⊑cast⊒
+        frames inert-c′ mode′ seal★′ c′⊒ q c′-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
-      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q)
+      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q c′-shape comp)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′ allM M⊑M′
   paired-lambda-target-closing-frame-viewᵀ
       vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
-      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q)
+      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q c′-shape comp)
       | closing-frame-view leaf frames =
     closing-frame-view leaf
-      (frame-⊑cast⊑ frames inert-c′ mode′ seal★′ c′⊑ q)
+      (frame-⊑cast⊑
+        frames inert-c′ mode′ seal★′ c′⊑ q c′-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
-      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q)
+      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q c′-shape comp)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′ allM M⊑M′
   paired-lambda-target-closing-frame-viewᵀ
       vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
-      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q)
+      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q c′-shape comp)
       | closing-frame-view leaf frames =
     closing-frame-view leaf
-      (frame-⊑cast⊑id frames inert-c′ seal★′ c′⊑ q)
+      (frame-⊑cast⊑id
+        frames inert-c′ seal★′ c′⊑ q c′-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
       (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
@@ -400,7 +426,8 @@ mutual
       (av-∀ vR refl)
       (conv⊑convᵀ
         paired@(paired-conversion
-          (paired-reveal corr (CV.reveal-all c↑) c′↑))
+          (paired-reveal
+            corr (CV.reveal-all c↑) c′↑ replacement))
         M⊑M′)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
@@ -414,7 +441,8 @@ mutual
       (av-∀ vR refl)
       (conv⊑convᵀ
         paired@(paired-conversion
-          (paired-reveal corr (CV.reveal-all c↑) c′↑))
+          (paired-reveal
+            corr (CV.reveal-all c↑) c′↑ replacement))
         M⊑M′)
       | closing-frame-view leaf frames =
     closing-frame-view leaf (frame-conv⊑conv frames inert-c′ paired)
@@ -424,7 +452,8 @@ mutual
       (av-∀ vR refl)
       (conv⊑convᵀ
         paired@(paired-conversion
-          (paired-conceal corr (CV.conceal-all c↓) c′↓))
+          (paired-conceal
+            corr (CV.conceal-all c↓) c′↓ replacement))
         M⊑M′)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
@@ -438,7 +467,8 @@ mutual
       (av-∀ vR refl)
       (conv⊑convᵀ
         paired@(paired-conversion
-          (paired-conceal corr (CV.conceal-all c↓) c′↓))
+          (paired-conceal
+            corr (CV.conceal-all c↓) c′↓ replacement))
         M⊑M′)
       | closing-frame-view leaf frames =
     closing-frame-view leaf (frame-conv⊑conv frames inert-c′ paired)
@@ -449,7 +479,8 @@ mutual
       (conv⊑convᵀ
         paired@(paired-widening mode seal★
           (C.cast-all c⊢ , NW.cross (NW.`∀ cʷ))
-          mode′ seal★′ c′⊑ compat)
+          c-shape mode′ seal★′ c′⊑ c′-shape
+          source-comp target-comp compat)
         M⊑M′)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
@@ -464,7 +495,8 @@ mutual
       (conv⊑convᵀ
         paired@(paired-widening mode seal★
           (C.cast-all c⊢ , NW.cross (NW.`∀ cʷ))
-          mode′ seal★′ c′⊑ compat)
+          c-shape mode′ seal★′ c′⊑ c′-shape
+          source-comp target-comp compat)
         M⊑M′)
       | closing-frame-view leaf frames =
     closing-frame-view leaf (frame-conv⊑conv frames inert-c′ paired)
@@ -473,27 +505,33 @@ mutual
       (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
       (av-gen vR refl)
       (conv⊑convᵀ
-        (paired-conversion (paired-reveal corr () c′↑)) M⊑M′)
+        (paired-conversion
+          (paired-reveal corr () c′↑ replacement)) M⊑M′)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
       (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
       (av-gen vR refl)
       (conv⊑convᵀ
-        (paired-conversion (paired-conceal corr () c′↓)) M⊑M′)
+        (paired-conversion
+          (paired-conceal corr () c′↓ replacement)) M⊑M′)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
       (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
       (av-gen vR refl)
       (conv⊑convᵀ
-        (paired-widening mode seal★ (_ , NW.cross ())
-          mode′ seal★′ c′⊑ compat)
+        (paired-widening
+          mode seal★ (_ , NW.cross ()) c-shape
+          mode′ seal★′ c′⊑ c′-shape
+          source-comp target-comp compat)
         M⊑M′)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
-      (av-Λ ()) (conv↑⊑ᵀ c↑ M⊑M′ q)
+      (av-Λ ()) (conv↑⊑ᵀ c↑ M⊑M′ q replacement)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
-      (av-∀ vR refl) (conv↑⊑ᵀ c↑@(CV.reveal-all inner) M⊑M′ q)
+      (av-∀ vR refl)
+      (conv↑⊑ᵀ
+        c↑@(CV.reveal-all inner) M⊑M′ q replacement)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
         (canonical-∀ vM
@@ -502,18 +540,23 @@ mutual
         M⊑M′
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
-      (av-∀ vR refl) (conv↑⊑ᵀ c↑@(CV.reveal-all inner) M⊑M′ q)
+      (av-∀ vR refl)
+      (conv↑⊑ᵀ
+        c↑@(CV.reveal-all inner) M⊑M′ q replacement)
       | closing-frame-view leaf frames =
-    closing-frame-view leaf (frame-conv↑⊑ frames c↑ q)
+    closing-frame-view leaf
+      (frame-conv↑⊑ frames c↑ q replacement)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
-      (av-gen vR refl) (conv↑⊑ᵀ () M⊑M′ q)
+      (av-gen vR refl) (conv↑⊑ᵀ () M⊑M′ q replacement)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
-      (av-Λ ()) (conv↓⊑ᵀ c↓ M⊑M′ q)
+      (av-Λ ()) (conv↓⊑ᵀ c↓ M⊑M′ q replacement)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
-      (av-∀ vR refl) (conv↓⊑ᵀ c↓@(CV.conceal-all inner) M⊑M′ q)
+      (av-∀ vR refl)
+      (conv↓⊑ᵀ
+        c↓@(CV.conceal-all inner) M⊑M′ q replacement)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
         (canonical-∀ vM
@@ -522,38 +565,44 @@ mutual
         M⊑M′
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
-      (av-∀ vR refl) (conv↓⊑ᵀ c↓@(CV.conceal-all inner) M⊑M′ q)
+      (av-∀ vR refl)
+      (conv↓⊑ᵀ
+        c↓@(CV.conceal-all inner) M⊑M′ q replacement)
       | closing-frame-view leaf frames =
-    closing-frame-view leaf (frame-conv↓⊑ frames c↓ q)
+    closing-frame-view leaf
+      (frame-conv↓⊑ frames c↓ q replacement)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
-      (av-gen vR refl) (conv↓⊑ᵀ () M⊑M′ q)
+      (av-gen vR refl) (conv↓⊑ᵀ () M⊑M′ q replacement)
   paired-lambda-target-closing-frame-viewᵀ
       vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
-      (⊑conv↑ᵀ c′↑ M⊑M′ q)
+      (⊑conv↑ᵀ c′↑ M⊑M′ q replacement)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′ allM M⊑M′
   paired-lambda-target-closing-frame-viewᵀ
       vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
-      (⊑conv↑ᵀ c′↑ M⊑M′ q)
+      (⊑conv↑ᵀ c′↑ M⊑M′ q replacement)
       | closing-frame-view leaf frames =
-    closing-frame-view leaf (frame-⊑conv↑ frames inert-c′ c′↑ q)
+    closing-frame-view leaf
+      (frame-⊑conv↑ frames inert-c′ c′↑ q replacement)
   paired-lambda-target-closing-frame-viewᵀ
       vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
-      (⊑conv↓ᵀ c′↓ M⊑M′ q)
+      (⊑conv↓ᵀ c′↓ M⊑M′ q replacement)
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′ allM M⊑M′
   paired-lambda-target-closing-frame-viewᵀ
       vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
-      (⊑conv↓ᵀ c′↓ M⊑M′ q)
+      (⊑conv↓ᵀ c′↓ M⊑M′ q replacement)
       | closing-frame-view leaf frames =
-    closing-frame-view leaf (frame-⊑conv↓ frames inert-c′ c′↓ q)
+    closing-frame-view leaf
+      (frame-⊑conv↓ frames inert-c′ c′↓ q replacement)
 
   paired-lambda-target-closing-frame-viewᵖ :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ : StoreImp Φ Δᴸ Δᴿ}
         {M M′ : Term} {D D′ B B′ : Ty}
         {d d′ u u′ : C.Coercion}
+        {u-shape u′-shape}
         {qD : Φ ∣ Δᴸ ⊢ `∀ D ⊑ᵖ D′ ⊣ Δᴿ} →
     Value M → No• M →
     Value M′ → No• M′ →
@@ -564,6 +613,9 @@ mutual
     QuotientWideningPair Δᴸ Δᴿ ρ
       (C.`∀ u) u′ (`∀ D) D′ (`∀ B) B′ →
     (pB : Φ ∣ Δᴸ ⊢ `∀ B ⊑ B′ ⊣ Δᴿ) →
+    CIS.widening ⊢ᶜ C.`∀ u ⦂ u-shape →
+    CIS.widening ⊢ᶜ u′ ⦂ u′-shape →
+    u-shape ；⌊ pB ⌋≋ᵖ qD ； u′-shape →
     PairedLambdaTargetClosingFrameView ρ
       ((M ⟨ d ⟩) ⟨ C.`∀ u ⟩) ((M′ ⟨ d′ ⟩) ⟨ u′ ⟩)
       (`∀ B) B′ pB
@@ -572,8 +624,8 @@ mutual
       vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
       (down⊑downᵀ
         d⊒@(C.cast-all d⊢ , NW.cross (NW.`∀ dⁿ))
-        d′⊒ M⊑M′ qD)
-      widening pB
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
         (canonical-∀ vM
@@ -584,30 +636,34 @@ mutual
       vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
       (down⊑downᵀ
         d⊒@(C.cast-all d⊢ , NW.cross (NW.`∀ dⁿ))
-        d′⊒ M⊑M′ qD)
-      widening pB
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square
       | closing-frame-view leaf frames =
     closing-frame-view leaf
-      (frame-up-id frames inert-d′ inert-u′ d⊒ d′⊒ qD widening pB)
+      (frame-up-id frames inert-d′ inert-u′
+        d⊒ d-shape d′⊒ d′-shape qD down-square
+        widening pB u-shape u′-shape up-square)
   paired-lambda-target-closing-frame-viewᵖ
       vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
       (down⊑downᵀ
         (C.cast-gen hC occ d⊢ , NW.gen dⁿ)
-        d′⊒ M⊑M′ qD)
-      widening pB =
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square =
     closing-frame-view
       (leaf-up-gen vM noM vM′ noM′ inert-d′ inert-u′
         (NW.narrow-mode-relax id-only≤gen-tag-or-idᵈ
           (C.cast-gen hC occ d⊢ , NW.gen dⁿ))
-        (NW.narrow-mode-relax id-only≤gen-tag-or-idᵈ d′⊒)
-        M⊑M′ qD widening pB)
+        d-shape
+        (NW.narrow-mode-relax id-only≤gen-tag-or-idᵈ d′⊒) d′-shape
+        M⊑M′ qD down-square
+        widening pB u-shape u′-shape up-square)
       frame-refl
   paired-lambda-target-closing-frame-viewᵖ
       vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
       (gen-down⊑gen-downᵀ
         d⊒@(C.cast-all d⊢ , NW.cross (NW.`∀ dⁿ))
-        d′⊒ M⊑M′ qD)
-      widening pB
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square
       with paired-lambda-target-closing-frame-viewᵀ
         vM noM vM′ noM′
         (canonical-∀ vM
@@ -618,22 +674,24 @@ mutual
       vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
       (gen-down⊑gen-downᵀ
         d⊒@(C.cast-all d⊢ , NW.cross (NW.`∀ dⁿ))
-        d′⊒ M⊑M′ qD)
-      widening pB
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square
       | closing-frame-view leaf frames =
     closing-frame-view leaf
       (frame-up-gen-all frames inert-d′ inert-u′
-        d⊒ d′⊒ qD widening pB)
+        d⊒ d-shape d′⊒ d′-shape qD down-square
+        widening pB u-shape u′-shape up-square)
   paired-lambda-target-closing-frame-viewᵖ
       vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
       (gen-down⊑gen-downᵀ
         (C.cast-gen hC occ d⊢ , NW.gen dⁿ)
-        d′⊒ M⊑M′ qD)
-      widening pB =
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square =
     closing-frame-view
       (leaf-up-gen vM noM vM′ noM′ inert-d′ inert-u′
-        (C.cast-gen hC occ d⊢ , NW.gen dⁿ)
-        d′⊒ M⊑M′ qD widening pB)
+        (C.cast-gen hC occ d⊢ , NW.gen dⁿ) d-shape
+        d′⊒ d′-shape M⊑M′ qD down-square
+        widening pB u-shape u′-shape up-square)
       frame-refl
 
 

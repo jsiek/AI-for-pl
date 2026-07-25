@@ -35,15 +35,21 @@ world-coherent-quotient-representative-inst-path-identity-source-id-down-cast-wi
   WorldCoherentQuotientFinalCatchupᵀ →
   WorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCastWidenCatchupᵀ
 world-coherent-quotient-representative-inst-path-identity-source-id-down-cast-widen-catchup-proofᵀ
-    value-catchup quotient-final {{safe = safe}}
-    {pC = pC} occ r coherent exclusive wfL okN vVd noVd
-    vV′ noV′ inert-d′ inert-u′ d⊒ d′⊒ V⊑V′
-    mode seal★ u⊑ mode′ seal★′ u′⊑ =
+    value-catchup quotient-final
+    {E≈E = E≈E} {{safe = safe}}
+    {pC = pC} {T≈T = T≈T} {pA = pA}
+    occ r coherent exclusive wfL okN vVd noVd
+    vV′ noV′ inert-d′ inert-u′
+    d⊒ d-shape d′⊒ d′-shape down-square V⊑V′
+    mode seal★ u⊑ mode′ seal★′ u′⊑
+    u-shape u′-shape up-square =
   world-coherent-left-catchup-prefix-down-upᵀ
-    quotient-final {qD = qD} prefix-reflⁱ okN
-    vV′ noV′ inert-d′ inert-u′ d⊒ d′⊒ widening inner
+    quotient-final {pC = pC} {qD = qD} {pA = pA}
+    prefix-reflⁱ okN vV′ noV′ inert-d′ inert-u′
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening u-shape u′-shape up-square inner
   where
-  qD = quotientᵖ ≈∀-refl (ν safe occ r) ≈∀-refl
+  qD = quotientᵖ E≈E (ν safe occ r) T≈T
 
   widening = quotient-cast-widening
     mode seal★ u⊑ mode′ seal★′ u′⊑

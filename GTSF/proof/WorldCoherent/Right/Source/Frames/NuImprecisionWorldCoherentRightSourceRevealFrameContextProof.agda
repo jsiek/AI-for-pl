@@ -32,7 +32,7 @@ world-coherent-right-source-reveal-frame-context-proofᵀ :
   WorldCoherentRightSourceRevealFrameContextᵀ
 world-coherent-right-source-reveal-frame-context-proofᵀ
     prefix coherent exclusive unique wfR okM′ vM noM inert
-    c↑ M⊑M′
+    c↑ replacement M⊑M′
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet
@@ -42,6 +42,6 @@ world-coherent-right-source-reveal-frame-context-proofᵀ
     context-eq right-prefix =
   rightSourceRevealFrame world-coherent-right-source-frames
       prefix coherent exclusive unique wfR okM′ vM noM inert
-      c↑ M⊑M′ inner ,
+      c↑ replacement M⊑M′ inner ,
   context-eq ,
   right-prefix

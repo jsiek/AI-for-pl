@@ -70,7 +70,17 @@ weak-one-step-related-type-coherenceᵀ :
     ⊢ᴺ M ⊑ N ⦂ A ⊑ B ∶ p) →
   WeakOneStepTypeCoherence (weak-one-step-relatedᵀ result)
 weak-one-step-related-type-coherenceᵀ result =
-  weak-step-type-coherence (λ pC pD → refl) (λ q → refl)
+  weak-step-type-coherence
+    (λ pC pD → refl)
+    (λ q → refl)
+    (λ p → refl)
+    (λ p → refl)
+    (λ replacement → replacement)
+    (λ replacement → replacement)
+    (λ replacement → replacement)
+    (λ replacement → replacement)
+    (λ safe occ replacement → replacement)
+    (λ replacement → replacement)
 
 
 weak-one-step-indexed-relatedᵀ :

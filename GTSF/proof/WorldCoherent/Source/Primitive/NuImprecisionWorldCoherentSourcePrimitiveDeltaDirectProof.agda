@@ -93,11 +93,19 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetResult
   ; targetTypeResult
   ; transportAllBody
+  ; transportAllBodyPairedReplacementCoherent
   ; transportArrowCoherent
+  ; transportLeftReplacementCoherent
   ; transportNo•Terms
+  ; transportPairedReplacementCoherent
   ; transportRightBody
+  ; transportRightBodyRightReplacementCoherent
+  ; transportRightBodyShapeCoherent
+  ; transportRightReplacementCoherent
   ; transportSourceNu
+  ; transportSourceNuBodyLeftReplacementCoherent
   ; transportAllCoherent
+  ; transportShapeCoherent
   ; transportType
   ; weak-indexed-result
   ; weak-step-transport
@@ -540,6 +548,29 @@ finish-right-catchup-deltaᵀ
         (weakIndexedTypeCoherence (rightCatchupIndexedResult right-catchup)))
       (transportAllCoherent
         (weakIndexedTypeCoherence (rightCatchupIndexedResult right-catchup)))
+      (transportShapeCoherent
+        (weakIndexedTypeCoherence (rightCatchupIndexedResult right-catchup)))
+      (transportRightBodyShapeCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult right-catchup)))
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult right-catchup)))
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult right-catchup)))
+      (transportPairedReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult right-catchup)))
+      (transportAllBodyPairedReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult right-catchup)))
+      (transportSourceNuBodyLeftReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult right-catchup)))
+      (transportRightBodyRightReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult right-catchup)))
 
   framed-lineage : WeakOneStepStoreLineage framed
   framed-lineage =
@@ -714,6 +745,29 @@ finish-left-then-right-deltaᵀ
         (weakIndexedTypeCoherence (rightCatchupIndexedResult left-catchup)))
       (transportAllCoherent
         (weakIndexedTypeCoherence (rightCatchupIndexedResult left-catchup)))
+      (transportShapeCoherent
+        (weakIndexedTypeCoherence (rightCatchupIndexedResult left-catchup)))
+      (transportRightBodyShapeCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult left-catchup)))
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult left-catchup)))
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult left-catchup)))
+      (transportPairedReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult left-catchup)))
+      (transportAllBodyPairedReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult left-catchup)))
+      (transportSourceNuBodyLeftReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult left-catchup)))
+      (transportRightBodyRightReplacementCoherent
+        (weakIndexedTypeCoherence
+          (rightCatchupIndexedResult left-catchup)))
 
   framed-left-lineage =
     delta-⊕₁-frame-lineageᵀ

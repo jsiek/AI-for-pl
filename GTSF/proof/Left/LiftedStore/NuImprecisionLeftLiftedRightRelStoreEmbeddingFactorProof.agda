@@ -47,6 +47,9 @@ open import proof.Core.Properties.TypeProperties using
   ; renameᵗ-id
   ; renameᵗ-single-suc-cancel
   )
+open import
+  proof.Core.Properties.NuCastImprecisionShapeProperties
+  using (shape-open-unusedᵢ; shape-subst-source)
 
 
 left-lifted-right-rel-store-embedding-factor-proofᵀ :
@@ -55,37 +58,49 @@ left-lifted-right-rel-store-embedding-factor-proofᵀ
     lift-left-store-[] rel-store-embedding-[] =
   [] , lift-left-store-[] , rel-store-embedding-[]
 left-lifted-right-rel-store-embedding-factor-proofᵀ
-    (lift-left-store-∷ {A = A} {p′ = pᴸ} liftρ)
+    (lift-left-store-∷
+      {A = A} {p = p} {p′ = pᴸ} lift-shape liftρ)
     (rel-store-embedding-matched
       {α′ = α′} {A′ = A′} {β′ = β′} {B′ = B′}
       {p′ = p′ᴸ}
-      eqα eqA eqβ eqB emb)
+      eqα eqA eqβ eqB emb-shape emb)
     with eqα | trans eqA (renameᵗ-id (⇑ᵗ A))
 left-lifted-right-rel-store-embedding-factor-proofᵀ
-    (lift-left-store-∷ {A = A} {p′ = pᴸ} liftρ)
+    (lift-left-store-∷
+      {A = A} {p = p} {p′ = pᴸ} lift-shape liftρ)
     (rel-store-embedding-matched
       {β′ = β′} {B′ = B′} {p′ = p′ᴸ}
-      eqα eqA eqβ eqB emb)
+      eqα eqA eqβ eqB emb-shape emb)
     | refl | refl
     with left-lifted-right-rel-store-embedding-factor-proofᵀ
       liftρ emb
 left-lifted-right-rel-store-embedding-factor-proofᵀ
-    (lift-left-store-∷ {A = A} {p′ = pᴸ} liftρ)
+    (lift-left-store-∷
+      {A = A} {p = p} {p′ = pᴸ} lift-shape liftρ)
     (rel-store-embedding-matched
       {β′ = β′} {B′ = B′} {p′ = p′ᴸ}
-      eqα eqA eqβ eqB emb)
+      eqα eqA eqβ eqB emb-shape emb)
     | refl | refl
     | ρ′ , liftρ′ , emb′ =
   store-matched _ A β′ B′ base-p ∷ ρ′ ,
-  lift-left-store-∷ liftρ′ ,
+  lift-left-store-∷ (sym base-shape) liftρ′ ,
   rel-store-embedding-matched
-    refl (sym (renameᵗ-id A)) eqβ eqB emb′
+    refl (sym (renameᵗ-id A)) eqβ eqB
+    (trans base-shape (trans emb-shape lift-shape))
+    emb′
   where
   base-p =
     subst
       (λ S → _ ∣ _ ⊢ S ⊑ B′ ⊣ _)
       (renameᵗ-single-suc-cancel zero A)
       (open-unusedᵢ (occurs-raise-fresh zero A) p′ᴸ)
+  base-shape =
+    trans
+      (shape-subst-source
+        (renameᵗ-single-suc-cancel zero A)
+        (open-unusedᵢ (occurs-raise-fresh zero A) p′ᴸ))
+      (shape-open-unusedᵢ
+        (occurs-raise-fresh zero A) p′ᴸ)
 left-lifted-right-rel-store-embedding-factor-proofᵀ
     (lift-left-store-left {A = A} {hA = hA} liftρ)
     (rel-store-embedding-left
@@ -121,34 +136,46 @@ left-lifted-right-rel-store-embedding-factor-proofᵀ
   lift-left-store-right liftρ′ ,
   rel-store-embedding-right eqβ eqB emb′
 left-lifted-right-rel-store-embedding-factor-proofᵀ
-    (lift-left-store-link {A = A} {p′ = pᴸ} liftρ)
+    (lift-left-store-link
+      {A = A} {p = p} {p′ = pᴸ} lift-shape liftρ)
     (rel-store-embedding-link
       {α′ = α′} {A′ = A′} {β′ = β′} {B′ = B′}
       {p′ = p′ᴸ}
-      eqα eqA eqβ eqB emb)
+      eqα eqA eqβ eqB emb-shape emb)
     with eqα | trans eqA (renameᵗ-id (⇑ᵗ A))
 left-lifted-right-rel-store-embedding-factor-proofᵀ
-    (lift-left-store-link {A = A} {p′ = pᴸ} liftρ)
+    (lift-left-store-link
+      {A = A} {p = p} {p′ = pᴸ} lift-shape liftρ)
     (rel-store-embedding-link
       {β′ = β′} {B′ = B′} {p′ = p′ᴸ}
-      eqα eqA eqβ eqB emb)
+      eqα eqA eqβ eqB emb-shape emb)
     | refl | refl
     with left-lifted-right-rel-store-embedding-factor-proofᵀ
       liftρ emb
 left-lifted-right-rel-store-embedding-factor-proofᵀ
-    (lift-left-store-link {A = A} {p′ = pᴸ} liftρ)
+    (lift-left-store-link
+      {A = A} {p = p} {p′ = pᴸ} lift-shape liftρ)
     (rel-store-embedding-link
       {β′ = β′} {B′ = B′} {p′ = p′ᴸ}
-      eqα eqA eqβ eqB emb)
+      eqα eqA eqβ eqB emb-shape emb)
     | refl | refl
     | ρ′ , liftρ′ , emb′ =
   store-link _ A β′ B′ base-p ∷ ρ′ ,
-  lift-left-store-link liftρ′ ,
+  lift-left-store-link (sym base-shape) liftρ′ ,
   rel-store-embedding-link
-    refl (sym (renameᵗ-id A)) eqβ eqB emb′
+    refl (sym (renameᵗ-id A)) eqβ eqB
+    (trans base-shape (trans emb-shape lift-shape))
+    emb′
   where
   base-p =
     subst
       (λ S → _ ∣ _ ⊢ S ⊑ B′ ⊣ _)
       (renameᵗ-single-suc-cancel zero A)
       (open-unusedᵢ (occurs-raise-fresh zero A) p′ᴸ)
+  base-shape =
+    trans
+      (shape-subst-source
+        (renameᵗ-single-suc-cancel zero A)
+        (open-unusedᵢ (occurs-raise-fresh zero A) p′ᴸ))
+      (shape-open-unusedᵢ
+        (occurs-raise-fresh zero A) p′ᴸ)

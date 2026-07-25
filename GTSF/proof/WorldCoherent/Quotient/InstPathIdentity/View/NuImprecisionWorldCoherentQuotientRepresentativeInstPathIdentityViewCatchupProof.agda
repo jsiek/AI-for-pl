@@ -30,13 +30,21 @@ world-coherent-quotient-representative-inst-path-identity-view-catchup-proofᵀ 
   WorldCoherentQuotientRepresentativeInstPathIdentityViewCatchupᵀ
 world-coherent-quotient-representative-inst-path-identity-view-catchup-proofᵀ
     paired source (all-paired r)
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
-    inert-d′ inert-u′ down widening =
-  paired coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square =
+  paired source-normal target-normal
+    coherent exclusive wfL okN vVd noVd vV′ noV′
+    inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square
 world-coherent-quotient-representative-inst-path-identity-view-catchup-proofᵀ
     paired source (all-source occ r)
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
-    inert-d′ inert-u′ down widening =
-  source coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square =
+  source source-normal target-normal
+    coherent exclusive wfL okN vVd noVd vV′ noV′
+    inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square

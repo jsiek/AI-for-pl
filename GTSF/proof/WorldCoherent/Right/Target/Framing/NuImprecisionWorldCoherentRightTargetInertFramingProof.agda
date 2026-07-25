@@ -19,7 +19,7 @@ open import Data.Nat using (suc)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
-open import Relation.Binary.PropositionalEquality using (subst; sym)
+open import Relation.Binary.PropositionalEquality using (refl; subst; sym)
 
 open import Coercions using (id-onlyᵈ)
 open import Conversion using
@@ -62,10 +62,12 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-target-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-conceal-conversions
-  ; apply-narrows-typing
-  ; apply-reveal-conversions
-  ; seal★-id-only
+  (apply-narrows-typing; seal★-id-only)
+open import
+  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+  using
+  ( apply-conceal-conversions-exact
+  ; apply-reveal-conversions-exact
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( canonicalIndexedResults
@@ -75,6 +77,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetCtxResult
   ; targetStoreResult
   ; targetTailChanges
+  ; transportRightReplacementCoherent
+  ; transportShapeCoherent
   ; transportType
   ; weak-indexed-result
   ; weakIndexedResult
@@ -102,28 +106,34 @@ open import
 open import proof.Core.Properties.NuWideningTransport using
   (apply-fixed-widens-typing; apply-widens-typing)
 open import proof.Core.Properties.ReductionProperties using
-  (applyCoercions; applyCoercions-preserves-Inert)
+  (applyCoercions; applyCoercions-preserves-Inert; applyTyVars)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  )
 
 
 world-coherent-right-target-inert-framing-proofᵀ :
   WorldCoherentRightTargetInertFramingᵀ
 world-coherent-right-target-inert-framing-proofᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
-    prefix inert (inj₁ (_ , _ , _ , c↑))
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
+    {p = p} {q = q}
+    prefix inert (inj₁ (_ , β , X′ , c↑ , replace))
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent exclusive unique wfR)
-    with apply-reveal-conversions
+    with apply-reveal-conversions-exact
       {χs = keep ∷ targetTailChanges
         (weakIndexedResult (rightCatchupIndexedResult catchup))}
       (weaken-reveal-conversion
         (rightStoreⁱ-prefix-inclusion prefix) c↑)
 world-coherent-right-target-inert-framing-proofᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
-    prefix inert (inj₁ (_ , _ , _ , c↑))
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
+    {p = p} {q = q}
+    prefix inert (inj₁ (_ , β , X′ , c↑ , replace))
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent exclusive unique wfR)
-    | μ″ , β″ , X″ , c″↑ =
+    | μ″ , c″↑ =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup framed
       (rightCatchupSourceChangesEmpty catchup)
@@ -146,21 +156,27 @@ world-coherent-right-target-inert-framing-proofᵀ
 
   final-conversion :
     RevealConversion μ″ (resultRightCtx inner)
-      (rightStoreⁱ (resultStore inner)) β″ X″
+      (rightStoreⁱ (resultStore inner))
+      (applyTyVars (targetTailChanges inner) β)
+      (applyTys (targetTailChanges inner) X′)
       (applyCoercions (targetTailChanges inner) c)
       (applyTys (targetTailChanges inner) A′)
       (applyTys (targetTailChanges inner) B′)
   final-conversion =
     subst
       (λ Δ → RevealConversion μ″ Δ
-        (rightStoreⁱ (resultStore inner)) β″ X″
+        (rightStoreⁱ (resultStore inner))
+        (applyTyVars (targetTailChanges inner) β)
+        (applyTys (targetTailChanges inner) X′)
         (applyCoercions (targetTailChanges inner) c)
         (applyTys (targetTailChanges inner) A′)
         (applyTys (targetTailChanges inner) B′))
       (sym (targetCtxResult inner))
       (subst
         (λ Σ → RevealConversion μ″
-          (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ β″ X″
+          (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ
+          (applyTyVars (targetTailChanges inner) β)
+          (applyTys (targetTailChanges inner) X′)
           (applyCoercions (targetTailChanges inner) c)
           (applyTys (targetTailChanges inner) A′)
           (applyTys (targetTailChanges inner) B′))
@@ -169,6 +185,8 @@ world-coherent-right-target-inert-framing-proofᵀ
   final-relation =
     ⊑conv↑ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replace)
 
   first =
     weak-one-step-target-cast-frameᵀ inner final-relation
@@ -185,21 +203,23 @@ world-coherent-right-target-inert-framing-proofᵀ
     weak-indexed-result first (relatedResults first)
       framed-transport framed-coherence
 world-coherent-right-target-inert-framing-proofᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
-    prefix inert (inj₂ (inj₁ (_ , _ , _ , c↓)))
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
+    {p = p} {q = q}
+    prefix inert (inj₂ (inj₁ (_ , β , X′ , c↓ , replace)))
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent exclusive unique wfR)
-    with apply-conceal-conversions
+    with apply-conceal-conversions-exact
       {χs = keep ∷ targetTailChanges
         (weakIndexedResult (rightCatchupIndexedResult catchup))}
       (weaken-conceal-conversion
         (rightStoreⁱ-prefix-inclusion prefix) c↓)
 world-coherent-right-target-inert-framing-proofᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
-    prefix inert (inj₂ (inj₁ (_ , _ , _ , c↓)))
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
+    {p = p} {q = q}
+    prefix inert (inj₂ (inj₁ (_ , β , X′ , c↓ , replace)))
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent exclusive unique wfR)
-    | μ″ , β″ , X″ , c″↓ =
+    | μ″ , c″↓ =
   world-coherent-right-value-indexed-catchup
     (right-value-indexed-catchup framed
       (rightCatchupSourceChangesEmpty catchup)
@@ -222,21 +242,27 @@ world-coherent-right-target-inert-framing-proofᵀ
 
   final-conversion :
     ConcealConversion μ″ (resultRightCtx inner)
-      (rightStoreⁱ (resultStore inner)) β″ X″
+      (rightStoreⁱ (resultStore inner))
+      (applyTyVars (targetTailChanges inner) β)
+      (applyTys (targetTailChanges inner) X′)
       (applyCoercions (targetTailChanges inner) c)
       (applyTys (targetTailChanges inner) A′)
       (applyTys (targetTailChanges inner) B′)
   final-conversion =
     subst
       (λ Δ → ConcealConversion μ″ Δ
-        (rightStoreⁱ (resultStore inner)) β″ X″
+        (rightStoreⁱ (resultStore inner))
+        (applyTyVars (targetTailChanges inner) β)
+        (applyTys (targetTailChanges inner) X′)
         (applyCoercions (targetTailChanges inner) c)
         (applyTys (targetTailChanges inner) A′)
         (applyTys (targetTailChanges inner) B′))
       (sym (targetCtxResult inner))
       (subst
         (λ Σ → ConcealConversion μ″
-          (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ β″ X″
+          (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ
+          (applyTyVars (targetTailChanges inner) β)
+          (applyTys (targetTailChanges inner) X′)
           (applyCoercions (targetTailChanges inner) c)
           (applyTys (targetTailChanges inner) A′)
           (applyTys (targetTailChanges inner) B′))
@@ -245,6 +271,8 @@ world-coherent-right-target-inert-framing-proofᵀ
   final-relation =
     ⊑conv↓ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replace)
 
   first =
     weak-one-step-target-cast-frameᵀ inner final-relation
@@ -261,8 +289,11 @@ world-coherent-right-target-inert-framing-proofᵀ
     weak-indexed-result first (relatedResults first)
       framed-transport framed-coherence
 world-coherent-right-target-inert-framing-proofᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
-    prefix inert (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊒))))
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
+    {p = p} {q = q}
+    prefix inert
+    (inj₂ (inj₂ (inj₁
+      (_ , shape , mode , seal★ , c⊒ , shape-proof , comp))))
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent exclusive unique wfR)
     with apply-narrows-typing
@@ -273,8 +304,11 @@ world-coherent-right-target-inert-framing-proofᵀ
       (narrow-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) c⊒)
 world-coherent-right-target-inert-framing-proofᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
-    prefix inert (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊒))))
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
+    {p = p} {q = q}
+    prefix inert
+    (inj₂ (inj₂ (inj₁
+      (_ , shape , mode , seal★ , c⊒ , shape-proof , comp))))
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent exclusive unique wfR)
     | μ″ , mode″ , seal★″ , c″⊒ =
@@ -326,6 +360,15 @@ world-coherent-right-target-inert-framing-proofᵀ
   final-relation =
     ⊑cast⊒ᵀ mode″ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions
+        (targetTailChanges inner) shape-proof)
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed) q)
+        refl
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed) p)
+        comp)
 
   first =
     weak-one-step-target-cast-frameᵀ inner final-relation
@@ -342,9 +385,11 @@ world-coherent-right-target-inert-framing-proofᵀ
     weak-indexed-result first (relatedResults first)
       framed-transport framed-coherence
 world-coherent-right-target-inert-framing-proofᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
+    {p = p} {q = q}
     prefix inert
-    (inj₂ (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊑)))))
+    (inj₂ (inj₂ (inj₂ (inj₁
+      (_ , shape , mode , seal★ , c⊑ , shape-proof , comp)))))
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent exclusive unique wfR)
     with apply-widens-typing
@@ -355,9 +400,11 @@ world-coherent-right-target-inert-framing-proofᵀ
       (widen-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) c⊑)
 world-coherent-right-target-inert-framing-proofᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
+    {p = p} {q = q}
     prefix inert
-    (inj₂ (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊑)))))
+    (inj₂ (inj₂ (inj₂ (inj₁
+      (_ , shape , mode , seal★ , c⊑ , shape-proof , comp)))))
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent exclusive unique wfR)
     | μ″ , mode″ , seal★″ , c″⊑ =
@@ -409,6 +456,15 @@ world-coherent-right-target-inert-framing-proofᵀ
   final-relation =
     ⊑cast⊑ᵀ mode″ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions
+        (targetTailChanges inner) shape-proof)
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed) p)
+        refl
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed) q)
+        comp)
 
   first =
     weak-one-step-target-cast-frameᵀ inner final-relation
@@ -425,8 +481,11 @@ world-coherent-right-target-inert-framing-proofᵀ
     weak-indexed-result first (relatedResults first)
       framed-transport framed-coherence
 world-coherent-right-target-inert-framing-proofᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c} {q = q}
-    prefix inert (inj₂ (inj₂ (inj₂ (inj₂ (seal★ , c⊑)))))
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c = c}
+    {p = p} {q = q}
+    prefix inert
+    (inj₂ (inj₂ (inj₂ (inj₂
+      (seal★ , shape , c⊑ , shape-proof , comp)))))
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent exclusive unique wfR) =
   world-coherent-right-value-indexed-catchup
@@ -483,6 +542,15 @@ world-coherent-right-target-inert-framing-proofᵀ
   final-relation =
     ⊑cast⊑idᵀ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions
+        (targetTailChanges inner) shape-proof)
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed) p)
+        refl
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed) q)
+        comp)
 
   first =
     weak-one-step-target-cast-frameᵀ inner final-relation

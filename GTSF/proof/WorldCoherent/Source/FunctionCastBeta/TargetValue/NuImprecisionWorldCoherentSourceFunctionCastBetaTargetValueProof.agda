@@ -68,6 +68,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetTypeResult
   ; transportAllCoherent
   ; transportArrowCoherent
+  ; transportShapeCoherent
   ; transportNo•Terms
   ; transportType
   ; weakIndexedResult
@@ -225,9 +226,7 @@ world-coherent-source-function-cast-beta-target-value-at-proofᵀ
       (transportNo•Terms (weakIndexedTransport (rightCatchupIndexedResult catchup)))
 
   framed-coherence =
-    weak-step-type-coherence
-      (transportArrowCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
-      (transportAllCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
+    weakIndexedTypeCoherence framed-indexed
 
   framed-lineage : WeakOneStepStoreLineage framed
   framed-lineage =

@@ -40,6 +40,9 @@ open import Types using
   (Ty; TyCtx; WfTy; `∀; ⇑ᵗ; occurs)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
+  using (AssumptionMembershipUnique)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
@@ -62,6 +65,7 @@ WorldCoherentSourceBulletCatchupᵀ =
     (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′) ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) →
+  AssumptionMembershipUnique ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) →
   StoreWf (suc Δᴸ) (leftStoreⁱ ρ⁺) →
   RuntimeOK ((⇑ᵗᵐ L) •) →
   Value V′ →

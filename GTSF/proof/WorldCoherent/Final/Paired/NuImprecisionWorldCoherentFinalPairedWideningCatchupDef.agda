@@ -9,12 +9,14 @@ module
 --   * Contains no paired-conversion or recursive dispatcher dependency.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Coercions using (Coercion; Inert; ModeEnv)
 open import Data.List using ([])
 open import Data.Product using (_×_)
 open import Data.Sum using (_⊎_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
@@ -40,6 +42,7 @@ WorldCoherentFinalPairedWideningCatchupᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {W V′ : Term} {A A′ B B′ : Ty} {c c′ : Coercion}
+    {c-shape c′-shape result-shape}
     {μ μ′ : ModeEnv}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
@@ -53,10 +56,15 @@ WorldCoherentFinalPairedWideningCatchupᵀ =
   CastMode μ →
   SealModeStore★ μ (leftStoreⁱ ρ) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B →
+  widening ⊢ᶜ c ⦂ c-shape →
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′ →
-  PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
+  widening ⊢ᶜ c′ ⦂ c′-shape →
+  c-shape ； ⌊ q ⌋ ≋ result-shape →
+  ⌊ p ⌋ ； c′-shape ≋ result-shape →
+  PairedWideningCompatible
+    Φ Δᴸ Δᴿ c c′ p q c-shape c′-shape →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ W ⊑ V′ ⦂ A ⊑ A′ ∶ p →
   WorldCoherentLeftCatchupIndexedResult

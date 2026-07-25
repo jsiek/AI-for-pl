@@ -12,14 +12,41 @@ open import Data.List using ([])
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Product using (_,_; _×_)
 open import Data.Sum using (inj₁; inj₂)
+open import Relation.Binary.PropositionalEquality using
+  (cong; subst; sym; trans)
 
 import Coercions as C
 import Conversion as CV
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; widening; shape-tag-fun)
+open import ConversionIndexCompatibility using
+  ( _[_↦_]ᴸ_
+  ; replace-left-function
+  ; replace-left-function-tag
+  ; replace-left-ν
+  )
+open import ForallPermutation using
+  (quotientᵖ; _∣_⊢_⊑ᵖ_⊣_)
 open import Imprecision using (_ˣ⊑★; _ˣ⊑ˣ_)
+open import ImprecisionComposition using
+  ( ⌊_⌋
+  ; id★ˢ
+  ; tag_⇛ˢ_
+  ; _；_≋_
+  ; compose-right-id★
+  ; comp-↦-↦
+  ; comp-↦-tag
+  ; comp-∀-ν
+  ; comp-ν
+  ; quotient-boundary-square
+  ; _；⌊_⌋≋ᵖ_；_
+  )
 open import ImprecisionWf using
   ( id★
   ; tagˣ
   ; idˣ
+  ; _↦_
+  ; tag_⇛_
   ; ν
   ; _∣_⊢_⊑_⊣_
   )
@@ -74,6 +101,17 @@ open import proof.Compilation.GenSafeProperties using
   ; shape-all
   ; shape-fun
   )
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( imprecision-composition-shape-transport
+  ; shape-source-liftνᵢ
+  )
+open import proof.Core.Permutation.ForallPermutationProperties using
+  (≈∀-ground-right-eq)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (⊑-source-liftνᵢ)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using
+  (AssumptionMembershipUnique)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
   using (assumption-membership-unique-source)
@@ -86,6 +124,13 @@ open import
 open import
  proof.Target.GroundValue.NuImprecisionTargetGroundValueQuotientEliminationLemma
   using (target-ground-value-quotient-eliminationᵀ)
+open import
+  proof.Target.GroundValue.NuImprecisionTargetGroundValueQuotientEliminationProof
+  using
+    ( function-ground-self-permutation-shape-equal
+    ; source-ground-≈∀-left
+    ; source-ground-≈∀-left-composition
+    )
 open import
   proof.Target.SealTag.NuImprecisionTargetGroundUniqueness using
   ( gen-safe-shape-ground-function
@@ -301,6 +346,202 @@ source-inert-conceal-route exclusive
   gen-safe-shape-ground-function shape-all requested ground
 
 
+source-index-composition-target-untag-function :
+  ∀ {Φ Δᴸ Δᴿ A B s} →
+  AssumptionMembershipUnique Φ →
+  (p★ : Φ ∣ Δᴸ ⊢ A ⊑ T.★ ⊣ Δᴿ) →
+  (p⇒ : Φ ∣ Δᴸ ⊢ A ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  (q★ : Φ ∣ Δᴸ ⊢ B ⊑ T.★ ⊣ Δᴿ) →
+  (q⇒ : Φ ∣ Δᴸ ⊢ B ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  s ； ⌊ q★ ⌋ ≋ ⌊ p★ ⌋ →
+  s ； ⌊ q⇒ ⌋ ≋ ⌊ p⇒ ⌋
+source-index-composition-target-untag-function
+    unique (tag p₁ ⇛ p₂) (r₁ ↦ r₂)
+    (tag q₁ ⇛ q₂) (s₁ ↦ s₂)
+    (comp-↦-tag comp₁ comp₂)
+    with assumption-membership-unique→precision-index-unique unique p₁ r₁
+       | assumption-membership-unique→precision-index-unique unique p₂ r₂
+       | assumption-membership-unique→precision-index-unique unique q₁ s₁
+       | assumption-membership-unique→precision-index-unique unique q₂ s₂
+source-index-composition-target-untag-function
+    unique (tag p₁ ⇛ p₂) (r₁ ↦ r₂)
+    (tag q₁ ⇛ q₂) (s₁ ↦ s₂)
+    (comp-↦-tag comp₁ comp₂)
+    | refl | refl | refl | refl =
+  comp-↦-↦ comp₁ comp₂
+source-index-composition-target-untag-function
+    unique (ν safe-p★ occ-p★ p★) (ν safe-p⇒ occ-p⇒ p⇒)
+    q★ q⇒ (comp-ν comp) =
+  comp-ν
+    (imprecision-composition-shape-transport
+      refl (sym (shape-source-liftνᵢ q⇒)) refl
+      (source-index-composition-target-untag-function
+        (assumption-membership-unique-source unique)
+        p★ p⇒
+        (⊑-source-liftνᵢ q★) (⊑-source-liftνᵢ q⇒)
+        (imprecision-composition-shape-transport
+          refl (shape-source-liftνᵢ q★) refl comp)))
+source-index-composition-target-untag-function
+    unique (ν safe-p★ occ-p★ p★) (ν safe-p⇒ occ-p⇒ p⇒)
+    (ν safe-q★ occ-q★ q★) (ν safe-q⇒ occ-q⇒ q⇒)
+    (comp-∀-ν comp) =
+  comp-∀-ν
+    (source-index-composition-target-untag-function
+      (assumption-membership-unique-source unique)
+      p★ p⇒ q★ q⇒ comp)
+
+
+source-replacement-target-untag-function :
+  ∀ {Φ Δᴸ Δᴿ A B α X} →
+  AssumptionMembershipUnique Φ →
+  (p★ : Φ ∣ Δᴸ ⊢ A ⊑ T.★ ⊣ Δᴿ) →
+  (p⇒ : Φ ∣ Δᴸ ⊢ A ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  (q★ : Φ ∣ Δᴸ ⊢ B ⊑ T.★ ⊣ Δᴿ) →
+  (q⇒ : Φ ∣ Δᴸ ⊢ B ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  p★ [ α ↦ X ]ᴸ q★ →
+  p⇒ [ α ↦ X ]ᴸ q⇒
+source-replacement-target-untag-function
+    unique (tag p₁ ⇛ p₂) (r₁ ↦ r₂)
+    (tag q₁ ⇛ q₂) (s₁ ↦ s₂)
+    (replace-left-function-tag replace₁ replace₂)
+    with assumption-membership-unique→precision-index-unique unique p₁ r₁
+       | assumption-membership-unique→precision-index-unique unique p₂ r₂
+       | assumption-membership-unique→precision-index-unique unique q₁ s₁
+       | assumption-membership-unique→precision-index-unique unique q₂ s₂
+source-replacement-target-untag-function
+    unique (tag p₁ ⇛ p₂) (r₁ ↦ r₂)
+    (tag q₁ ⇛ q₂) (s₁ ↦ s₂)
+    (replace-left-function-tag replace₁ replace₂)
+    | refl | refl | refl | refl =
+  replace-left-function replace₁ replace₂
+source-replacement-target-untag-function
+    unique (ν safe-p★ occ-p★ p★) (ν safe-p⇒ occ-p⇒ p⇒)
+    (ν safe-q★ occ-q★ q★) (ν safe-q⇒ occ-q⇒ q⇒)
+    (replace-left-ν replace) =
+  replace-left-ν
+    (source-replacement-target-untag-function
+      (assumption-membership-unique-source unique)
+      p★ p⇒ q★ q⇒ replace)
+
+
+source-cast-index-compatible-target-untag-function :
+  ∀ {Φ Δᴸ Δᴿ A B c s} →
+  AssumptionMembershipUnique Φ →
+  (p★ : Φ ∣ Δᴸ ⊢ A ⊑ T.★ ⊣ Δᴿ) →
+  (p⇒ : Φ ∣ Δᴸ ⊢ A ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  (q★ : Φ ∣ Δᴸ ⊢ B ⊑ T.★ ⊣ Δᴿ) →
+  (q⇒ : Φ ∣ Δᴸ ⊢ B ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  widening ⊢ᶜ c ⦂ s →
+  s ； ⌊ q★ ⌋ ≋ ⌊ p★ ⌋ →
+  s ； ⌊ q⇒ ⌋ ≋ ⌊ p⇒ ⌋
+source-cast-index-compatible-target-untag-function
+    unique p★ p⇒ q★ q⇒ c-shape comp =
+  source-index-composition-target-untag-function
+    unique p★ p⇒ q★ q⇒ comp
+
+
+target-function-tag-index :
+  ∀ {Φ Δᴸ Δᴿ A} →
+  Φ ∣ Δᴸ ⊢ A ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ →
+  Φ ∣ Δᴸ ⊢ A ⊑ T.★ ⊣ Δᴿ
+target-function-tag-index (p₁ ↦ p₂) = tag p₁ ⇛ p₂
+target-function-tag-index (ν safe occ p) =
+  ν safe occ (target-function-tag-index p)
+
+
+target-function-tag-composition-result :
+  ∀ {Φ Δᴸ Δᴿ A r}
+    (p : Φ ∣ Δᴸ ⊢ A ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  ⌊ p ⌋ ； (tag id★ˢ ⇛ˢ id★ˢ) ≋ r →
+  ⌊ target-function-tag-index p ⌋ ≡ r
+target-function-tag-composition-result
+    (p₁ ↦ p₂) (comp-↦-tag comp₁ comp₂)
+    with compose-right-id★ comp₁
+       | compose-right-id★ comp₂
+target-function-tag-composition-result
+    (p₁ ↦ p₂) (comp-↦-tag comp₁ comp₂)
+    | refl | refl = refl
+target-function-tag-composition-result
+    (ν safe occ p) (comp-ν comp)
+    with target-function-tag-composition-result p comp
+target-function-tag-composition-result
+    (ν safe occ p) (comp-ν comp) | refl = refl
+
+
+paired-source-cast-index-compatible-target-untag-function :
+  ∀ {Φ Δᴸ Δᴿ A B c s r} →
+  AssumptionMembershipUnique Φ →
+  (p⇒ : Φ ∣ Δᴸ ⊢ A ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  (q★ : Φ ∣ Δᴸ ⊢ B ⊑ T.★ ⊣ Δᴿ) →
+  (q⇒ : Φ ∣ Δᴸ ⊢ B ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  widening ⊢ᶜ c ⦂ s →
+  s ； ⌊ q★ ⌋ ≋ r →
+  ⌊ p⇒ ⌋ ； (tag id★ˢ ⇛ˢ id★ˢ) ≋ r →
+  s ； ⌊ q⇒ ⌋ ≋ ⌊ p⇒ ⌋
+paired-source-cast-index-compatible-target-untag-function
+    unique p⇒ q★ q⇒ c-shape left-square right-square
+    with target-function-tag-composition-result p⇒ right-square
+paired-source-cast-index-compatible-target-untag-function
+    unique p⇒ q★ q⇒ c-shape left-square right-square
+    | refl =
+  source-cast-index-compatible-target-untag-function
+    unique (target-function-tag-index p⇒) p⇒ q★ q⇒
+    c-shape left-square
+
+
+quotient-function-tag-right-composition :
+  ∀ {Φ Δᴸ Δᴿ A D s}
+    (unique : AssumptionMembershipUnique Φ)
+    (p★ : Φ ∣ Δᴸ ⊢ A ⊑ T.★ ⊣ Δᴿ)
+    (p⇒ : Φ ∣ Δᴸ ⊢ A ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ)
+    (qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ T.★ T.⇒ T.★ ⊣ Δᴿ)
+    (q : Φ ∣ Δᴸ ⊢ D ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  s ；⌊ p★ ⌋≋ᵖ qD ； (tag id★ˢ ⇛ˢ id★ˢ) →
+  s ； ⌊ p⇒ ⌋ ≋ ⌊ q ⌋
+quotient-function-tag-right-composition
+    unique p★ p⇒
+    (quotientᵖ source middle target) q
+    (quotient-boundary-square
+      source-shape left-composition target-shape right-composition)
+    with ≈∀-ground-right-eq T.★⇒★ target
+quotient-function-tag-right-composition
+    unique p★ p⇒
+    (quotientᵖ source middle target) q
+    (quotient-boundary-square
+      source-shape left-composition target-shape right-composition)
+    | refl =
+  subst
+    (λ r → _ ； ⌊ p⇒ ⌋ ≋ ⌊ r ⌋)
+    canonical≡q canonical-composition
+  where
+  target-shape-equality =
+    function-ground-self-permutation-shape-equal target-shape
+
+  right-composition′ =
+    imprecision-composition-shape-transport
+      refl (sym target-shape-equality) refl right-composition
+
+  tagged-middle≡result =
+    target-function-tag-composition-result middle right-composition′
+
+  untagged-middle-composition =
+    source-index-composition-target-untag-function
+      unique (target-function-tag-index middle) middle p★ p⇒
+      (imprecision-composition-shape-transport
+        refl refl tagged-middle≡result left-composition)
+
+  canonical =
+    source-ground-≈∀-left T.★⇒★ source middle
+
+  canonical-composition =
+    source-ground-≈∀-left-composition
+      T.★⇒★ source source-shape middle untagged-middle-composition
+
+  canonical≡q =
+    assumption-membership-unique→precision-index-unique
+      unique canonical q
+
+
 cast-coercion-injective :
   ∀ {M M′ : Term} {c c′ : C.Coercion} →
   M ⟨ c ⟩ ≡ M′ ⟨ c′ ⟩ →
@@ -347,8 +588,9 @@ target-tag-cancellation-proofᵀ
 target-tag-cancellation-proofᵀ exclusive unique gH
     (Value.Λ vBody) (no•-Λ noBody) vW
     (Λ⊑instβᵀ
-      prefix mode seal★ (inst-typing , widening)
+      prefix mode seal★ (inst-typing , inst-widening)
       liftρ liftρᴿ vBody₀ noBody₀ vBody′ noBody′ inert body f
+      body-shape composition
       assm hτ hσ store-emb
       source-eq target-eq source-type-eq target-type-eq
       outer-index final-v final-no final-closed
@@ -356,145 +598,182 @@ target-tag-cancellation-proofᵀ exclusive unique gH
       source-typing target-typing)
     requested =
   ⊥-elim
-    (inst-inert-target-tag-impossible widening inert
+    (inst-inert-target-tag-impossible inst-widening inert
       (cast-coercion-injective target-eq))
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (cast⊒⊑ᵀ {p = inner-index} mode seal★ c⊒
-      inner outer-index)
+      inner outer-index c-shape comp)
     requested
     with source-inert-narrowing-route exclusive inert c⊒
       inner-index outer-index requested gH
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (cast⊒⊑ᵀ {p = inner-index} mode seal★ c⊒
-      inner outer-index)
+      inner outer-index c-shape comp)
     requested | function-index , refl
     with target-tag-cancellation-proofᵀ exclusive unique
       T.★⇒★ vM noM vW inner function-index
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (cast⊒⊑ᵀ {p = inner-index} mode seal★ c⊒
-      inner outer-index)
+      inner outer-index c-shape comp)
     requested | function-index , refl
     | observed-eq , canceled =
   observed-eq ,
-  cast⊒⊑ᵀ mode seal★ c⊒ canceled requested
+  cast⊒⊑ᵀ mode seal★ c⊒ canceled requested c-shape
+    (source-index-composition-target-untag-function
+      unique outer-index requested inner-index function-index comp)
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (cast⊑⊑ᵀ {p = inner-index} mode seal★ c⊑
-      inner outer-index)
+      inner outer-index c-shape comp)
     requested
     with source-inert-widening-route inert c⊑
       inner-index requested gH
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (cast⊑⊑ᵀ {p = inner-index} mode seal★ c⊑
-      inner outer-index)
+      inner outer-index c-shape comp)
     requested | function-index , refl
     with target-tag-cancellation-proofᵀ exclusive unique
       T.★⇒★ vM noM vW inner function-index
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (cast⊑⊑ᵀ {p = inner-index} mode seal★ c⊑
-      inner outer-index)
+      inner outer-index c-shape comp)
     requested | function-index , refl
     | observed-eq , canceled =
   observed-eq ,
-  cast⊑⊑ᵀ mode seal★ c⊑ canceled requested
+  cast⊑⊑ᵀ mode seal★ c⊑ canceled requested c-shape
+    (source-cast-index-compatible-target-untag-function
+      unique inner-index function-index outer-index requested
+      c-shape comp)
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
-    (conv↑⊑ᵀ {p = inner-index} reveal inner outer-index)
+    (conv↑⊑ᵀ {p = inner-index} reveal inner outer-index replacement)
     requested
     with source-inert-reveal-route inert reveal
       inner-index requested gH
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
-    (conv↑⊑ᵀ {p = inner-index} reveal inner outer-index)
+    (conv↑⊑ᵀ {p = inner-index} reveal inner outer-index replacement)
     requested | function-index , refl
     with target-tag-cancellation-proofᵀ exclusive unique
       T.★⇒★ vM noM vW inner function-index
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
-    (conv↑⊑ᵀ {p = inner-index} reveal inner outer-index)
+    (conv↑⊑ᵀ {p = inner-index} reveal inner outer-index replacement)
     requested | function-index , refl
     | observed-eq , canceled =
   observed-eq ,
   conv↑⊑ᵀ reveal canceled requested
+    (source-replacement-target-untag-function
+      unique inner-index function-index outer-index requested replacement)
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
-    (conv↓⊑ᵀ {p = inner-index} conceal inner outer-index)
+    (conv↓⊑ᵀ {p = inner-index} conceal inner outer-index replacement)
     requested
     with source-inert-conceal-route exclusive inert conceal
       inner-index outer-index requested gH
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
-    (conv↓⊑ᵀ {p = inner-index} conceal inner outer-index)
+    (conv↓⊑ᵀ {p = inner-index} conceal inner outer-index replacement)
     requested | function-index , refl
     with target-tag-cancellation-proofᵀ exclusive unique
       T.★⇒★ vM noM vW inner function-index
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
-    (conv↓⊑ᵀ {p = inner-index} conceal inner outer-index)
+    (conv↓⊑ᵀ {p = inner-index} conceal inner outer-index replacement)
     requested | function-index , refl
     | observed-eq , canceled =
   observed-eq ,
   conv↓⊑ᵀ conceal canceled requested
+    (source-replacement-target-untag-function
+      unique outer-index requested inner-index function-index replacement)
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
     (⊑cast⊒ᵀ mode seal★
-      (C.cast-tag hG gG ok , NW.cross ()) inner old-index)
+      (C.cast-tag hG gG ok , NW.cross ()) inner old-index
+      c-shape comp)
     requested
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
     (⊑cast⊑idᵀ {p = inner-index} seal★
-      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index)
+      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index
+      c-shape comp)
     requested
     with target-ground-unique exclusive old-index
       inner-index requested gG gH
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
     (⊑cast⊑idᵀ {p = inner-index} seal★
-      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index)
+      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index
+      c-shape comp)
     requested | refl
     with assumption-membership-unique→precision-index-unique unique
       inner-index requested
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
     (⊑cast⊑idᵀ {p = inner-index} seal★
-      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index)
+      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index
+      c-shape comp)
     requested | refl | refl =
   refl , inner
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (conv⊑convᵀ
-      (paired-conversion (paired-reveal corr reveal ())) inner)
+      (paired-conversion
+        (paired-reveal corr reveal () transport))
+      inner)
     requested
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (conv⊑convᵀ
-      (paired-conversion (paired-conceal corr conceal ())) inner)
+      (paired-conversion
+        (paired-conceal corr conceal () transport))
+      inner)
     requested
-target-tag-cancellation-proofᵀ exclusive unique gH
+target-tag-cancellation-proofᵀ {p = outer-index}
+    exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (conv⊑convᵀ {p = inner-index}
-      (paired-widening mode seal★ c⊑ mode′ seal★′
-        (C.cast-tag hG gG ok , NW.tag gG′) compat)
+      (paired-widening mode seal★ c⊑ c-shape
+        mode′ seal★′
+        (C.cast-tag hG gG ok , NW.tag gG′) c′-shape
+        left-square right-square compat)
       inner)
     requested
     with source-inert-widening-ground-route inert c⊑
       inner-index gG requested gH
-target-tag-cancellation-proofᵀ exclusive unique gH
+target-tag-cancellation-proofᵀ {p = outer-index}
+    exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (conv⊑convᵀ {p = inner-index}
-      (paired-widening mode seal★ c⊑ mode′ seal★′
-        (C.cast-tag hG gG ok , NW.tag gG′) compat)
+      (paired-widening mode seal★ c⊑ c-shape
+        mode′ seal★′
+        (C.cast-tag hG gG ok , NW.tag gG′) c′-shape
+        left-square right-square compat)
       inner)
-    requested | refl , refl =
+    requested | refl , refl
+    with c′-shape
+target-tag-cancellation-proofᵀ {p = outer-index}
+    exclusive unique gH
+    (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
+    (conv⊑convᵀ {p = inner-index}
+      (paired-widening mode seal★ c⊑ c-shape
+        mode′ seal★′
+        (C.cast-tag hG gG ok , NW.tag gG′) c′-shape
+        left-square right-square compat)
+      inner)
+    requested | refl , refl | shape-tag-fun =
   refl ,
-  cast⊑⊑ᵀ mode seal★ c⊑ inner requested
+  cast⊑⊑ᵀ mode seal★ c⊑ inner requested c-shape
+    (paired-source-cast-index-compatible-target-untag-function
+      unique inner-index outer-index requested c-shape
+      left-square right-square)
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
     (up⊑upᵀ quotient
       (quotient-id-widening u⊑
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index)
+      outer-index u-shape target-shape square)
     requested
     with target-ground-value-quotient-eliminationᵀ
       gG vN vW quotient
@@ -503,7 +782,7 @@ target-tag-cancellation-proofᵀ exclusive unique gH
     (up⊑upᵀ quotient
       (quotient-id-widening u⊑
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index)
+      outer-index u-shape target-shape square)
     requested | ordinary-index , ordinary
     with source-inert-widening-ground-route inert u⊑
       ordinary-index gG requested gH
@@ -512,19 +791,30 @@ target-tag-cancellation-proofᵀ exclusive unique gH
     (up⊑upᵀ quotient
       (quotient-id-widening u⊑
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index)
-    requested | ordinary-index , ordinary | refl , refl =
+      outer-index u-shape target-shape square)
+    requested | ordinary-index , ordinary | refl , refl
+    with target-shape
+target-tag-cancellation-proofᵀ exclusive unique gH
+    (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
+    (up⊑upᵀ quotient
+      (quotient-id-widening u⊑
+        (C.cast-tag hG gG ok , NW.tag gG′))
+      outer-index u-shape target-shape square)
+    requested | ordinary-index , ordinary | refl , refl
+    | shape-tag-fun =
   refl ,
   cast⊑⊑ᵀ cast-tag-or-id seal★-tag-or-id
     (NW.widen-mode-relax C.id-only≤tag-or-idᵈ u⊑)
-    ordinary requested
+    ordinary requested u-shape
+    (quotient-function-tag-right-composition
+      unique outer-index requested _ ordinary-index square)
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
     (up⊑upᵀ quotient
       (quotient-cast-widening
         mode seal★ u⊑ mode′ seal★′
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index)
+      outer-index u-shape target-shape square)
     requested
     with target-ground-value-quotient-eliminationᵀ
       gG vN vW quotient
@@ -534,7 +824,7 @@ target-tag-cancellation-proofᵀ exclusive unique gH
       (quotient-cast-widening
         mode seal★ u⊑ mode′ seal★′
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index)
+      outer-index u-shape target-shape square)
     requested | ordinary-index , ordinary
     with source-inert-widening-ground-route inert u⊑
       ordinary-index gG requested gH
@@ -544,10 +834,22 @@ target-tag-cancellation-proofᵀ exclusive unique gH
       (quotient-cast-widening
         mode seal★ u⊑ mode′ seal★′
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index)
-    requested | ordinary-index , ordinary | refl , refl =
+      outer-index u-shape target-shape square)
+    requested | ordinary-index , ordinary | refl , refl
+    with target-shape
+target-tag-cancellation-proofᵀ exclusive unique gH
+    (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
+    (up⊑upᵀ quotient
+      (quotient-cast-widening
+        mode seal★ u⊑ mode′ seal★′
+        (C.cast-tag hG gG ok , NW.tag gG′))
+      outer-index u-shape target-shape square)
+    requested | ordinary-index , ordinary | refl , refl
+    | shape-tag-fun =
   refl ,
-  cast⊑⊑ᵀ mode seal★ u⊑ ordinary requested
+  cast⊑⊑ᵀ mode seal★ u⊑ ordinary requested u-shape
+    (quotient-function-tag-right-composition
+      unique outer-index requested _ ordinary-index square)
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
     (allocation-prefixᵀ prefix inner V⊢ Wtag⊢) requested
     with target-tag-cancellation-proofᵀ exclusive unique
@@ -560,18 +862,21 @@ target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
     (target-tag-typing⁻¹ Wtag⊢)
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
     (⊑cast⊑ᵀ {p = inner-index} mode seal★
-      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index)
+      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index
+      c-shape comp)
     requested
     with target-ground-unique exclusive old-index
       inner-index requested gG gH
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
     (⊑cast⊑ᵀ {p = inner-index} mode seal★
-      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index)
+      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index
+      c-shape comp)
     requested | refl
     with assumption-membership-unique→precision-index-unique unique
       inner-index requested
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
     (⊑cast⊑ᵀ {p = inner-index} mode seal★
-      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index)
+      (C.cast-tag hG gG ok , NW.tag gG′) inner old-index
+      c-shape comp)
     requested | refl | refl =
   refl , inner

@@ -10,10 +10,15 @@ module
 --   * Contains no implementation or recursive simulation dependency.
 
 import Coercions as C
+open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; widening)
 open import Data.List using ([])
 open import ForallPermutation using
   (_≈∀_; _∣_⊢_⊑ᵖ_⊣_; quotientᵖ)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; _；⌊_⌋≋ᵖ_；_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using (StoreImp; leftStoreⁱ)
 open import NuTerms using (No•; RuntimeOK; Term; Value; _⟨_⟩)
@@ -28,7 +33,8 @@ open import proof.Quotient.NuImprecisionQuotientInstPathProperties using
   (SourceInstStepView)
 open import
   proof.WorldCoherent.Quotient.InstPath.NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef
-  using (_↝∀_; _≈∀ⁿ_)
+  using
+  (_↝∀_; _≈∀ⁿ_; normalize-forall-permutation; path-step)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
@@ -40,6 +46,7 @@ WorldCoherentQuotientRepresentativeInstPathSourceStepViewCatchupᵀ =
   ∀ {Φ Δᴸ Δᴿ} {V V′ : Term}
     {B D E D′ C C′ A A′ : Ty}
     {d d′ s u′ : C.Coercion}
+    {sU sU′ : ImprecisionShape}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {D≈C : D ≈∀ C}
     {C⊑C′ : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
@@ -49,6 +56,8 @@ WorldCoherentQuotientRepresentativeInstPathSourceStepViewCatchupᵀ =
     {rest : E ≈∀ⁿ C}
     {targetPath : C′ ≈∀ⁿ D′} →
   SourceInstStepView step →
+  normalize-forall-permutation D≈C ≡ path-step step rest →
+  normalize-forall-permutation C′≈D′ ≡ targetPath →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
@@ -64,6 +73,10 @@ WorldCoherentQuotientRepresentativeInstPathSourceStepViewCatchupᵀ =
       ∶ quotientᵖ D≈C C⊑C′ C′≈D′ →
   QuotientWideningPair Δᴸ Δᴿ ρ
     (C.inst B s) u′ D D′ A A′ →
+  widening ⊢ᶜ C.inst B s ⦂ sU →
+  widening ⊢ᶜ u′ ⦂ sU′ →
+  sU ；⌊ pA ⌋≋ᵖ
+    quotientᵖ D≈C C⊑C′ C′≈D′ ； sU′ →
   WorldCoherentLeftCatchupIndexedResult
     {N = (V ⟨ d ⟩) ⟨ C.inst B s ⟩}
     {V′ = (V′ ⟨ d′ ⟩) ⟨ u′ ⟩}

@@ -99,6 +99,14 @@ world-coherent-right-target-keep-prepend-proofᵀ
     weak-step-type-coherence
       (transportArrowCoherent coherence)
       (transportAllCoherent coherence)
+      (transportShapeCoherent coherence)
+      (transportRightBodyShapeCoherent coherence)
+      (transportLeftReplacementCoherent coherence)
+      (transportRightReplacementCoherent coherence)
+      (transportPairedReplacementCoherent coherence)
+      (transportAllBodyPairedReplacementCoherent coherence)
+      (transportSourceNuBodyLeftReplacementCoherent coherence)
+      (transportRightBodyRightReplacementCoherent coherence)
 
   prepended-lineage : WeakOneStepStoreLineage prepended
   prepended-lineage =

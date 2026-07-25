@@ -155,8 +155,10 @@ world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     M⊢ M′⊢ relation vV
 world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ (⊑νᵀ hA h⇑A s↑ liftρ liftγ r inner) vV =
-  sourceStepTargetNuFrame target-ν-frames prefix hA s↑ r recursive
+    M⊢ M′⊢
+    (⊑νᵀ hA h⇑A s↑ liftρ liftγ r inner replace) vV =
+  sourceStepTargetNuFrame target-ν-frames
+    prefix hA s↑ r replace recursive
   where
   target-ν-frames = sourceLambdaBetaTargetNuFrames cases
   recursive =
@@ -171,9 +173,10 @@ world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
 world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r inner) vV =
+    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r inner
+      s-shape comp) vV =
   sourceStepTargetNuCastFrame target-ν-frames
-    prefix mode seal★ s⊑ r recursive
+    prefix mode seal★ s⊑ r s-shape comp recursive
   where
   target-ν-frames = sourceLambdaBetaTargetNuFrames cases
   recursive =
@@ -191,9 +194,10 @@ world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     M⊢ M′⊢ L⊑L′ V⊑R′ vV
 world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ (⊑cast⊒ᵀ mode seal★ c⊒ inner q) vV =
+    M⊢ M′⊢
+    (⊑cast⊒ᵀ mode seal★ c⊒ inner q c-shape comp) vV =
   sourceStepTargetNarrowFrame target-frames
-    prefix mode seal★ c⊒ recursive
+    prefix mode seal★ c⊒ c-shape comp recursive
   where
   target-frames = sourceLambdaBetaTargetCastFrames cases
   recursive =
@@ -205,9 +209,10 @@ world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
       inner vV
 world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ (⊑cast⊑ᵀ mode seal★ c⊑ inner q) vV =
+    M⊢ M′⊢
+    (⊑cast⊑ᵀ mode seal★ c⊑ inner q c-shape comp) vV =
   sourceStepTargetWidenFrame target-frames
-    prefix mode seal★ c⊑ recursive
+    prefix mode seal★ c⊑ c-shape comp recursive
   where
   target-frames = sourceLambdaBetaTargetCastFrames cases
   recursive =
@@ -219,9 +224,10 @@ world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
       inner vV
 world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ (⊑cast⊑idᵀ seal★ c⊑ inner q) vV =
+    M⊢ M′⊢
+    (⊑cast⊑idᵀ seal★ c⊑ inner q c-shape comp) vV =
   sourceStepTargetIdWidenFrame target-frames
-    prefix seal★ c⊑ recursive
+    prefix seal★ c⊑ c-shape comp recursive
   where
   target-frames = sourceLambdaBetaTargetCastFrames cases
   recursive =
@@ -233,8 +239,9 @@ world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
       inner vV
 world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ (⊑conv↑ᵀ c↑ inner q) vV =
-  sourceStepTargetRevealFrame target-frames prefix c↑ recursive
+    M⊢ M′⊢ (⊑conv↑ᵀ c↑ inner q replace) vV =
+  sourceStepTargetRevealFrame target-frames
+    prefix c↑ replace recursive
   where
   target-frames = sourceLambdaBetaTargetCastFrames cases
   recursive =
@@ -248,8 +255,9 @@ world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
       inner vV
 world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ (⊑conv↓ᵀ c↓ inner q) vV =
-  sourceStepTargetConcealFrame target-frames prefix c↓ recursive
+    M⊢ M′⊢ (⊑conv↓ᵀ c↓ inner q replace) vV =
+  sourceStepTargetConcealFrame target-frames
+    prefix c↓ replace recursive
   where
   target-frames = sourceLambdaBetaTargetCastFrames cases
   recursive =

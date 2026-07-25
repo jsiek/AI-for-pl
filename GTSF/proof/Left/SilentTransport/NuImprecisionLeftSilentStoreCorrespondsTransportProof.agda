@@ -13,7 +13,8 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (there)
 open import Data.Nat using (suc)
-open import Data.Product using (_,_; ∃-syntax)
+open import Data.Product using (_×_; _,_; ∃-syntax)
+open import ImprecisionComposition using (⌊_⌋)
 open import Relation.Binary.PropositionalEquality using
   (sym; trans)
 
@@ -90,8 +91,11 @@ store-corresponds-reindexⁱ :
   β ≡ β′ →
   B ≡ B′ →
   StoreCorresponds ρ α A β B p →
-  ∃[ p′ ] StoreCorresponds ρ α′ A′ β′ B′ p′
-store-corresponds-reindexⁱ refl refl refl refl corr = _ , corr
+  ∃[ p′ ]
+    StoreCorresponds ρ α′ A′ β′ B′ p′
+    × (⌊ p′ ⌋ ≡ ⌊ p ⌋)
+store-corresponds-reindexⁱ refl refl refl refl corr =
+  _ , corr , refl
 
 
 left-silent-store-corresponds-transport-proofᵀ :
@@ -106,7 +110,7 @@ left-silent-store-corresponds-transport-proofᵀ
 left-silent-store-corresponds-transport-proofᵀ
     prefix inner silent lineage corr | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
-      eqα , eqX , eqβ , eqX′ , corr₁
+      eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
     with store-corresponds-reindexⁱ
       eqα
       (trans eqX
@@ -120,7 +124,8 @@ left-silent-store-corresponds-transport-proofᵀ
 left-silent-store-corresponds-transport-proofᵀ
     prefix inner silent lineage corr | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
-      eqα , eqX , eqβ , eqX′ , corr₁
-    | p₂ , corr₂ =
-  p₂ , store-corresponds-weakenⁱ
-    (lineagePrefix lineage) corr₂
+      eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
+    | p₂ , corr₂ , p₂-shape =
+  p₂ ,
+  store-corresponds-weakenⁱ (lineagePrefix lineage) corr₂ ,
+  trans p₂-shape p₁-shape

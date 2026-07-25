@@ -30,18 +30,32 @@ world-coherent-quotient-representative-inst-path-identity-source-catchup-proof�
   WorldCoherentQuotientRepresentativeInstPathIdentitySourceGenDownCatchupᵀ →
   WorldCoherentQuotientRepresentativeInstPathIdentitySourceCatchupᵀ
 world-coherent-quotient-representative-inst-path-identity-source-catchup-proofᵀ
-    id-down gen-down {{safe = safe}} {occ = occ} {r = r}
+    id-down gen-down {E≈E = E≈E} {{safe = safe}}
+    {occ = occ} {r = r} {C′≈C′ = C′≈C′}
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′
-    (down⊑downᵀ d⊒ d′⊒ V⊑V′ qD) widening =
+    (down⊑downᵀ d⊒ d-shape d′⊒ d′-shape
+      V⊑V′ qD down-square)
+    widening u-shape u′-shape up-square =
   id-down {{safe}} occ r
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
-    inert-d′ inert-u′ d⊒ d′⊒ V⊑V′ widening
+    inert-d′ inert-u′ d⊒ d-shape d′⊒ d′-shape
+    down-square V⊑V′
+    widening u-shape u′-shape up-square
 world-coherent-quotient-representative-inst-path-identity-source-catchup-proofᵀ
-    id-down gen-down {{safe = safe}} {occ = occ} {r = r}
+    id-down gen-down {E≈E = E≈E} {{safe = safe}}
+    {occ = occ} {r = r} {C′≈C′ = C′≈C′}
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′
-    (gen-down⊑gen-downᵀ d⊒ d′⊒ V⊑V′ qD) widening =
+    (gen-down⊑gen-downᵀ d⊒ d-shape d′⊒ d′-shape
+      V⊑V′ qD down-square)
+    widening u-shape u′-shape up-square =
   gen-down {{safe}} occ r
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
-    inert-d′ inert-u′ d⊒ d′⊒ V⊑V′ widening
+    inert-d′ inert-u′ d⊒ d-shape d′⊒ d′-shape
+    down-square V⊑V′
+    widening u-shape u′-shape up-square

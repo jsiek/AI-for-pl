@@ -3,10 +3,11 @@ module
   where
 
 -- File Charter:
---   * Defines the flat target-instantiation root and the four possible
---     incoming/final universal type-index cases.
---   * Keeps paired and source-only universal closing separate because a
---     matched target binder cannot generally be reopened as right-only.
+--   * Defines the flat target-instantiation root and the two reachable
+--     incoming/source-only-final universal type-index cases.
+--   * Retains the outer cast shape and composition triangle through both
+--     reachable cells, so a paired final index can be rejected by structural
+--     inversion and the source-only body square remains available.
 --   * Returns the existing complete right-value catch-up carrier and adds no
 --     result, view, outcome, postulate, hole, option, or bypass.
 
@@ -15,6 +16,7 @@ open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 
+open import CastImprecisionShape using (widening; _⊢ᶜ_⦂_)
 open import Coercions using (Coercion; ModeEnv; inst)
 open import Imprecision using
   ( ImpCtx
@@ -26,6 +28,8 @@ open import Imprecision using
   )
 open import ImprecisionWf using
   (_∣_⊢_⊑_⊣_; ∀ⁱ_; ν)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using (StoreImp; rightStoreⁱ)
@@ -58,6 +62,7 @@ WorldCoherentRightTargetWidenInstantiationSourceOnlyFromPairedRootᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {B C D : Ty} {s : Coercion} {μ : ModeEnv}
+    {shape : ImprecisionShape}
     {safe : NonVar D}
     {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ C ⊣ suc Δᴿ}
@@ -77,6 +82,8 @@ WorldCoherentRightTargetWidenInstantiationSourceOnlyFromPairedRootᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ inst B s ∶ `∀ C ⊑ B →
+  widening ⊢ᶜ inst B s ⦂ shape →
+  ⌊ ∀ⁱ r ⌋ ； shape ≋ ⌊ ν safe occ q ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ M′ ⦂ `∀ D ⊑ `∀ C ∶ ∀ⁱ r →
   WorldCoherentRightValueCatchupIndexedResult
@@ -92,6 +99,7 @@ WorldCoherentRightTargetWidenInstantiationSourceOnlyFromSourceOnlyRootᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {B C D : Ty} {s : Coercion} {μ : ModeEnv}
+    {shape : ImprecisionShape}
     {safeₚ safeq : NonVar D}
     {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ `∀ C ⊣ Δᴿ}
@@ -111,6 +119,8 @@ WorldCoherentRightTargetWidenInstantiationSourceOnlyFromSourceOnlyRootᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ inst B s ∶ `∀ C ⊑ B →
+  widening ⊢ᶜ inst B s ⦂ shape →
+  ⌊ ν safeₚ occₚ r ⌋ ； shape ≋ ⌊ ν safeq occq q ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ M′ ⦂ `∀ D ⊑ `∀ C ∶ ν safeₚ occₚ r →
   WorldCoherentRightValueCatchupIndexedResult
@@ -125,6 +135,7 @@ WorldCoherentRightTargetWidenInstantiationSourceOnlyRootᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {B C D : Ty} {s : Coercion} {μ : ModeEnv}
+    {shape : ImprecisionShape}
     {{safe : NonVar D}}
     {p : Φ ∣ Δᴸ ⊢ `∀ D ⊑ `∀ C ⊣ Δᴿ}
     {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
@@ -143,6 +154,8 @@ WorldCoherentRightTargetWidenInstantiationSourceOnlyRootᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ inst B s ∶ `∀ C ⊑ B →
+  widening ⊢ᶜ inst B s ⦂ shape →
+  ⌊ p ⌋ ； shape ≋ ⌊ ν safe occ q ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ M′ ⦂ `∀ D ⊑ `∀ C ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
@@ -152,106 +165,12 @@ WorldCoherentRightTargetWidenInstantiationSourceOnlyRootᵀ =
     (ν safe occ q)
 
 
-WorldCoherentRightTargetWidenInstantiationPairedFromPairedRootᵀ : Set₁
-WorldCoherentRightTargetWidenInstantiationPairedFromPairedRootᵀ =
-  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {V M′ : Term} {C D E : Ty} {s : Coercion} {μ : ModeEnv}
-    {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ D ⊑ C ⊣ suc Δᴿ}
-    {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ D ⊑ E ⊣ suc Δᴿ} →
-  WorldCoherentRightTargetAllocationFrames →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  WorldCoherent ρ⁺ →
-  SourceNameExclusive Φ →
-  AssumptionMembershipUnique Φ →
-  StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
-  RuntimeOK (M′ ⟨ inst (`∀ E) s ⟩) →
-  Value V →
-  No• V →
-  CastMode μ →
-  SealModeStore★ μ (rightStoreⁱ ρ₀) →
-  μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
-    ⊢ inst (`∀ E) s ∶ `∀ C ⊑ `∀ E →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ V ⊑ M′ ⦂ `∀ D ⊑ `∀ C ∶ ∀ⁱ r →
-  WorldCoherentRightValueCatchupIndexedResult
-    {V = V} {M′ = M′} {ρ = ρ⁺} (∀ⁱ r) →
-  WorldCoherentRightValueCatchupIndexedResult
-    {V = V} {M′ = M′ ⟨ inst (`∀ E) s ⟩} {ρ = ρ⁺}
-    (∀ⁱ q)
-
-
-WorldCoherentRightTargetWidenInstantiationPairedFromSourceOnlyRootᵀ :
-  Set₁
-WorldCoherentRightTargetWidenInstantiationPairedFromSourceOnlyRootᵀ =
-  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {V M′ : Term} {C D E : Ty} {s : Coercion} {μ : ModeEnv}
-    {safe : NonVar D}
-    {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      ∣ suc Δᴸ ⊢ D ⊑ `∀ C ⊣ Δᴿ}
-    {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ D ⊑ E ⊣ suc Δᴿ}
-    {occ : occurs zero D ≡ true} →
-  WorldCoherentRightTargetAllocationFrames →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  WorldCoherent ρ⁺ →
-  SourceNameExclusive Φ →
-  AssumptionMembershipUnique Φ →
-  StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
-  RuntimeOK (M′ ⟨ inst (`∀ E) s ⟩) →
-  Value V →
-  No• V →
-  CastMode μ →
-  SealModeStore★ μ (rightStoreⁱ ρ₀) →
-  μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
-    ⊢ inst (`∀ E) s ∶ `∀ C ⊑ `∀ E →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ V ⊑ M′ ⦂ `∀ D ⊑ `∀ C ∶ ν safe occ r →
-  WorldCoherentRightValueCatchupIndexedResult
-    {V = V} {M′ = M′} {ρ = ρ⁺} (ν safe occ r) →
-  WorldCoherentRightValueCatchupIndexedResult
-    {V = V} {M′ = M′ ⟨ inst (`∀ E) s ⟩} {ρ = ρ⁺}
-    (∀ⁱ q)
-
-
-WorldCoherentRightTargetWidenInstantiationPairedRootᵀ : Set₁
-WorldCoherentRightTargetWidenInstantiationPairedRootᵀ =
-  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {V M′ : Term} {C D E : Ty} {s : Coercion} {μ : ModeEnv}
-    {p : Φ ∣ Δᴸ ⊢ `∀ D ⊑ `∀ C ⊣ Δᴿ}
-    {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ D ⊑ E ⊣ suc Δᴿ} →
-  WorldCoherentRightTargetAllocationFrames →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  WorldCoherent ρ⁺ →
-  SourceNameExclusive Φ →
-  AssumptionMembershipUnique Φ →
-  StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
-  RuntimeOK (M′ ⟨ inst (`∀ E) s ⟩) →
-  Value V →
-  No• V →
-  CastMode μ →
-  SealModeStore★ μ (rightStoreⁱ ρ₀) →
-  μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
-    ⊢ inst (`∀ E) s ∶ `∀ C ⊑ `∀ E →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ V ⊑ M′ ⦂ `∀ D ⊑ `∀ C ∶ p →
-  WorldCoherentRightValueCatchupIndexedResult
-    {V = V} {M′ = M′} {ρ = ρ⁺} p →
-  WorldCoherentRightValueCatchupIndexedResult
-    {V = V} {M′ = M′ ⟨ inst (`∀ E) s ⟩} {ρ = ρ⁺}
-    (∀ⁱ q)
-
-
 WorldCoherentRightTargetWidenInstantiationRootᵀ : Set₁
 WorldCoherentRightTargetWidenInstantiationRootᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {A B C : Ty} {s : Coercion} {μ : ModeEnv}
+    {shape : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   WorldCoherentRightTargetAllocationFrames →
@@ -267,6 +186,8 @@ WorldCoherentRightTargetWidenInstantiationRootᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ inst B s ∶ `∀ C ⊑ B →
+  widening ⊢ᶜ inst B s ⦂ shape →
+  ⌊ p ⌋ ； shape ≋ ⌊ q ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ M′ ⦂ A ⊑ `∀ C ∶ p →
   WorldCoherentRightValueCatchupIndexedResult

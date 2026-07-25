@@ -54,6 +54,7 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( weak-indexed-arrow-resultᵀ
+  ; weak-one-step-·₁-frame-preserves-type-coherenceᵀ
   ; weak-one-step-·₁-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
@@ -61,6 +62,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetTailChanges
   ; transportAllCoherent
   ; transportArrowCoherent
+  ; transportShapeCoherent
   ; transportNo•Terms
   ; weakIndexedResult
   ; weakIndexedTransport
@@ -163,9 +165,9 @@ finish-source-function-cast-function-catchupᵀ
     weak-step-transport
       (transportNo•Terms (weakIndexedTransport (rightCatchupIndexedResult catchup)))
   framed-coherence =
-    weak-step-type-coherence
-      (transportArrowCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
-      (transportAllCoherent (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)))
+    weak-one-step-·₁-frame-preserves-type-coherenceᵀ
+      noW noR function-result function-final argument-final
+      (weakIndexedTypeCoherence function-indexed)
   framed-lineage : WeakOneStepStoreLineage framed
   framed-lineage =
     weak-step-store-lineage

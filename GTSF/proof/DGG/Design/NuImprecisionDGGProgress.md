@@ -11518,3 +11518,1837 @@ synchronized source/target consumption must preserve `∀ⁱ`.  Audit paired
 widening under binders against the same distinction, then resume the ranked
 target-instantiation worker.  This is the next semantic boundary; the former
 paired-`∀ⁱ` source-only allocation leaves must not be reintroduced.
+
+### 2026-07-24: endpoint-changing rules need triangles and squares
+
+- **The source-widening repair is structural, not a special `ν` test.**
+  [`ImprecisionComposition.agda`](../../../ImprecisionComposition.agda)
+  erases an imprecision derivation to its proof-insensitive skeleton
+  `⌊ p ⌋` and defines direct skeleton composition `s ； q ≋ p`.
+  [`CastImprecisionShape.agda`](../../../CastImprecisionShape.agda) assigns
+  hereditary skeletons to narrowing and widening coercions with the readable
+  judgment `widening ⊢ᶜ c ⦂ s` or `narrowing ⊢ᶜ c ⦂ s`.  These skeletons
+  retain `∀ⁱ` versus source-only `ν`, function, and tag structure, but do not
+  pretend to be operational coercions.
+
+- **One-sided casts now expose their complete triangles.**  The quotiented
+  term relation uses the following direct premises:
+
+  - source narrowing: `s ； ⌊ p ⌋ ≋ ⌊ q ⌋`;
+  - source widening: `s ； ⌊ q ⌋ ≋ ⌊ p ⌋`;
+  - target narrowing: `⌊ q ⌋ ； s ≋ ⌊ p ⌋`; and
+  - target widening: `⌊ p ⌋ ； s ≋ ⌊ q ⌋`.
+
+  The raw relation already computes the source-narrowing and
+  target-widening indices by one-sided imprecision transitivity; its two
+  arbitrary-index rules now expose the missing source-widening and
+  target-narrowing triangles.  No compatibility wrapper remains: rule
+  statements mention `_⊢ᶜ_⦂_` and `_；_≋_` directly.
+
+- **The first wrapper was too narrow.**  Adding compatibility only to
+  source widening repaired the motivating source-`ν` counterexample, but
+  left the symmetric target-narrowing hole and all arbitrary quotiented cast
+  endpoints unchecked.  The generic simulation and world-coherent source
+  frame boundaries now transport the cast skeleton and the composition proof
+  separately.  Their flat signatures type-check; the next constructor use
+  exposed by strict checking is the expected source-narrowing triangle in
+  the generic simulation core.
+
+- **Reveal and conceal are hereditary replacement, not ordinary cast
+  composition.**  A reveal may replace a sealed variable by an arbitrary
+  stored type, so `SealModeStore★` cannot assign it an ordinary widening
+  skeleton.  [`ConversionIndexCompatibility.agda`](../../../ConversionIndexCompatibility.agda)
+  therefore introduces direct source, target, and paired replacement
+  judgments:
+
+  `p [ α ↦ X ]ᴸ q`
+
+  `p [ β ↦ X′ ]ᴿ q`
+
+  `p [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ q`.
+
+  Their structural clauses shift both names and lift `pX` under `∀ⁱ`, but
+  shift only the source name and source-lift `pX` under `ν`.  At a matched
+  variable occurrence, paired replacement yields the stored imprecision
+  witness itself.  Every constructor now has a constructor-form index, and
+  the three judgments pass strict checking.
+
+- **Conversion rules now retain replacement evidence.**  Both raw and
+  quotiented one-sided reveal/conceal rules carry the corresponding direct
+  source or target replacement.  Raw conversion premises now use
+  `RevealConversion` and `ConcealConversion`, rather than generic conversion
+  typing that forgets the distinguished seal and stored type.  Paired reveal
+  carries
+
+  `p [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ q`,
+
+  while paired conceal carries the reverse replacement from `q` to `p`.
+  The raw and quotiented relation modules, including their typing
+  projections, pass strict checking with these premises.
+
+- **Replacement now transports canonically through weak steps.**
+  `proof/OneStep/NuImprecisionWeakOneStepReplacementTransport.agda`
+  derives paired replacement after a weak step from
+  `WeakOneStepTypeCoherence`, the stored-evidence skeleton equality, and the
+  source/target replacement reindex lemmas.  Both left- and right-silent
+  paired conversion transports use this helper directly; their temporary
+  higher-order replacement premises have been removed, and all three modules
+  pass strict checking.
+
+- **Paired `β`-`∀` opens replacement structurally.**
+  `replace-paired-open∀ᵢ` opens a paired replacement under a matched
+  universal by renaming its derivation and then reindexing the stored witness
+  only by hereditary-shape equality.  The paired reveal and conceal
+  commutation lemmas now retain the outer replacement premise and pass this
+  canonical opening to their result casts.  Both the core replacement
+  properties and `NuImprecisionPairedAllBetaCommutation.agda` pass strict
+  checking.
+
+- **Paired widening now records a square.**  If the source and target cast
+  skeletons are `s` and `s′`, the paired constructor retains a common
+  skeleton `r` and both paths
+
+  `s ； ⌊ q ⌋ ≋ r`
+
+  and
+
+  `⌊ p ⌋ ； s′ ≋ r`.
+
+  This prevents two independently typed widening casts from being combined
+  with arbitrary incoming and outgoing imprecision indices.  Downstream
+  transport of the four witnesses is in progress.
+
+- **The first quotient-erasure proposal was rejected.**  The temporary
+  operation `⌊ quotientᵖ src p tgt ⌋ᵖ = ⌊ p ⌋` discarded the representative
+  permutations.  The later endpoint audit found that adjacent binders can
+  exchange `∀ˢ` and `νˢ`, so this erasure cannot state the required square.
+  It has been deleted rather than retained as an obsolete public shim.
+
+- **Replacement is structural, not equality of derivation witnesses.**
+  The first downstream atomic reindex check exposed an overconstraint in the
+  matched-variable clause of paired replacement.  Requiring the final
+  derivation to be definitionally the stored `pX` also required equality of
+  assumption-membership proofs, which is not part of the semantic invariant.
+  The clause now accepts a same-endpoint final derivation `q` when
+
+  `⌊ q ⌋ ≡ ⌊ pX ⌋`.
+
+  This still rules out changing a stored `∀ⁱ` path into a source-only `ν`
+  path, while allowing proof-irrelevant reindexing.  Source- and
+  target-atomic endpoint lemmas now prove that any two imprecision
+  derivations at those endpoints have the same skeleton.  The corresponding
+  replacement reindex lemmas are in progress.
+
+- **Target-atomic reindexing preserves every new witness.**
+  The target-value reindex proof now transports all five ordinary cast
+  triangles, all four one-sided replacement derivations, both paired
+  reveal/conceal derivations, and the paired-widening square using
+  target-atomic skeleton uniqueness.  It passes strict checking.
+
+- **Atomic paired-cast reindexing now has one structural implementation.**
+  `proof/NuCore/Relations/NuImprecisionPairedCastResultShape.agda` reindexes
+  paired reveal, conceal, and widening from a direct equality
+
+  `⌊ q ⌋ ≡ ⌊ r ⌋`.
+
+  The target-atomic theorem supplies that equality from target atomicity.  The
+  source-atomic theorem now supplies it from source atomicity and transports
+  all five ordinary cast triangles and all four one-sided replacements in the
+  same way.  This avoids duplicating the paired-conversion case analysis or
+  treating proof-relevant imprecision derivations as equal.  The source module
+  awaits a downstream strict check after the concurrent simulation-core
+  migration is restored.
+
+- **Relational-store embeddings must preserve the stored skeleton.**
+  The first attempt to transport the strengthened `StoreCorresponds` witness
+  found that `RelStoreEmbeddingⁱ` related matched and linked entries with
+  completely independent imprecision derivations.  Endpoint/name equations
+  alone do not rule out replacing a stored `∀ⁱ` derivation by a `ν`
+  derivation.  Its matched and link constructors are therefore being
+  strengthened with the direct field
+
+  `⌊ p′ ⌋ ≡ ⌊ p ⌋`.
+
+  This lets lineage transport return both the final `StoreCorresponds`
+  witness and the fact that its stored relation has the original hereditary
+  skeleton.  Adding the field at the embedding boundary is necessary;
+  reconstructing it later from typed endpoints would repeat the original
+  unsound assumption.
+
+- **Store and context lifts have the same structural obligation.**
+  The matched/link constructors of `LiftStoreⁱ`, `LiftLeftStoreⁱ`, and
+  `LiftRightStoreⁱ`, and the entry constructors of `LiftCtxⁱ`,
+  `LiftLeftCtxⁱ`, and `LiftRightCtxⁱ`, previously accepted unrelated old and
+  lifted imprecision derivations.  They now retain the direct field
+
+  `⌊ p′ ⌋ ≡ ⌊ p ⌋`.
+
+  The source-level gradual context lifts carry the same field.  Thus crossing
+  a type binder may rename or source-lift an index, but cannot silently change
+  its hereditary `∀ⁱ`/`ν` choice.  `NuTermImprecision.agda` and
+  `GradualTermImprecision.agda` pass strict checking with the strengthened
+  schemas; consumer migration is in progress.
+
+- **Canonical type-imprecision composition realizes the shape relation.**
+  `proof/Core/Properties/ImprecisionCompositionProperties.agda` proves
+
+  `⌊ p ⌋ ； ⌊ q ⌋ ≋ ⌊ ⊑-trans-composeᵢ ctx p q ⌋`
+
+  by exhaustive structural recursion, with fixed-context and left-identity
+  corollaries.  This is the first reusable bridge needed to prove the quotient
+  cast squares from endpoint-MLB factorization rather than merely storing
+  those squares as unexplained constructor premises.  The new module passes
+  strict checking.
+
+- **Shape composition now has the algebra needed by factorization.**
+  The same core property module proves that a pair of input skeletons has a
+  unique composition result and that `_；_≋_` is associative in relational
+  form.  The associativity statement consumes the three witnessed sides of
+  the diagram and constructs the fourth; it does not introduce a partial
+  composition function or hide the relation behind an alias.  These lemmas
+  are needed when a factorization step first closes or instantiates a
+  universal and then composes the recursively factored route.  The module
+  remains strict.
+
+- **Compilation now retains the same evidence at the cast-plan boundary.**
+  `CastPlan` stores each selected lower-bound imprecision witness together with
+  the direct hereditary shape of its generated cast:
+
+  `narrowing ⊢ᶜ down ⦂ ⌊ lower⊑source ⌋`
+
+  and
+
+  `widening ⊢ᶜ up ⦂ ⌊ lower⊑target ⌋`.
+
+  Specialized indexed synthesis uses a shape-aware realization only inside
+  `CompileCoercions`.  The function-to-`★` cases build the arrow/tag
+  composition explicitly, while the `ν`-to-`★` cases add the
+  instantiation/generation layer and lift that composition through `νˢ`.
+  `consistency-cast-planᵢ` uses `MLB-result-route-sound`, so these witnesses
+  follow the proof-relevant route selected by the MLB enumerator rather than
+  being reconstructed by an unrelated soundness proof.  Both
+  `proof/Compilation/CompileCoercions.agda` and `Compile.agda` pass strict
+  checking.
+
+  The companion strengthening of endpoint-MLB monotonicity must return its
+  quotient lower-bound witness together with the two commuting endpoint
+  squares.  Those squares will supply both `down⊑downᵀ` and `up⊑upᵀ` in
+  `compiled-argument-cast-imprecision`; an arbitrary quotient witness is no
+  longer sufficient.
+
+- **MLB soundness must follow the selected proof-relevant route.**
+  The simple endpoint enumerator may reach the same candidate type along
+  different polymorphic routes before deduplication.  Consequently it is not
+  enough for the cast plan and the monotonicity proof to call two merely
+  extensionally equivalent soundness functions: they must retain the same
+  `∀ⁱ`/`ν` route.  `EndpointCanonicalMLBSimpleRoutes.agda` now exports
+  `enum-route-sound`, which constructs both lower witnesses directly by
+  recursion on a route certificate, and `MLB-result-route-sound`, which
+  applies it to the exact route selected by `MLB`.  No round trip through
+  deduplicated list membership remains.  The quotient monotonicity proof uses
+  this canonical route for its source lower witnesses, and the cast plan
+  migration will use it for the generated casts.  Both focused endpoint
+  modules pass strict checking.
+
+- **Factorization can now read the target route without losing its shape.**
+  `EndpointCanonicalMLBSimpleFactorizationShape.agda` reconstructs
+  well-formed left and right target contexts from an
+  `IndexedFactorWorlds` history and applies `enum-route-sound` to the exact
+  target route.  The resulting lower witnesses distinguish paired `∀ⁱ` from
+  one-sided `ν` definitionally.  The next proof in that module is the two-sided
+  coherence induction for `route-factor-worker`; it will show that the
+  returned factor followed by either target-route lower leg has the
+  corresponding source paired-lower skeleton.
+
+- **The compiler now uses the canonical binder lifts.**
+  `CompileTermImprecision.agda` previously contained a second implementation
+  of imprecision renaming solely to define its `∀ⁱ` and source-`ν` context
+  lifts.  That implementation produced extensionally correct witnesses with
+  different proof terms, so the new lift-skeleton fields did not line up with
+  the canonical shape lemmas.  The duplicate implementation and its local
+  membership machinery have been deleted; compilation now uses
+  `⊑-lift∀ᵢ` and `⊑-source-liftνᵢ` directly.  The focused compiler theorem
+  passes strict checking.
+
+- **The quotient application rules need result coherence as well as an
+  argument square.**  For ordinary function imprecision `pC ↦ pB`, paired
+  narrowing of an argument must retain
+
+  `s ； ⌊ pA ⌋ ≋ r`
+
+  and
+
+  `⌊ pC ⌋ ； s′ ≋ r`.
+
+  Its quotiented result must additionally satisfy
+
+  `⌊ pB ⌋ ≡ ⌊ qB ⌋ᵖ`.
+
+  When the function relation is itself quotiented, the rule must expose
+  skeletons `pC` and `pB` with
+
+  `⌊ qF ⌋ᵖ ≡ pC ↦ˢ pB`,
+
+  use `pC` in the argument square, and identify `pB` with `⌊ qB ⌋ᵖ`.
+  Otherwise an application can hide exactly the same arbitrary
+  `∀ⁱ`/`ν` switch at its result boundary.
+
+- **Replacement and stored evidence now commute with simulation renaming.**
+  `ConversionIndexCompatibilityProperties.agda` proves structural source,
+  target, and paired replacement transport through simultaneous and
+  source-only renaming.  Paired transport reindexes the stored imprecision
+  derivation only from its hereditary-shape equality; it never requires
+  equality of proof-relevant derivations.  The module and
+  `NuImprecisionSimulationCore.agda` pass strict checking.
+
+- **Binder lifts retain the stored hereditary shape through lookup.**
+  Simulation-side lookup through `LiftStoreⁱ` now returns both the lifted
+  `StoreCorresponds` witness and
+
+  `⌊ p′ ⌋ ≡ ⌊ p ⌋`.
+
+  The allocated paired universal reveal/conceal case uses that equality to
+  reindex the replacement premise under the binder.  The obsolete crossed
+  allocation/quotient helper chain had no callers outside its own definitions
+  and has been deleted instead of extending an unused API with another
+  premise.
+
+- **Left renaming and allocation transport now forward all cast evidence.**
+  The four `left-rename-*conv*ᵀ` helpers now require the source or target
+  replacement derivation and preserve it by structural source-only renaming.
+  Their callers in
+  `proof/Left/Core/NuImprecisionLeftRenameNoBulletProof.agda` and
+  `proof/Left/AllocationRuntime/NuImprecisionLeftSourceAllocationRuntimeTransportProof.agda`
+  extract and pass the corresponding premise from each reveal/conceal branch.
+  The five ordinary cast branches in each transport also preserve their
+  direct cast-shape and composition witnesses.  Both focused roots pass
+  strict checking.
+
+- **Source `β`-`∀` commutation now exposes its direct evidence.**
+  `NuImprecisionSourceInertBulletCommutation.agda` takes the opened-index
+  replacement witness in its reveal/conceal theorems and the cast-shape plus
+  composition witnesses in its narrowing theorems.  The four direct
+  `left/right-β-∀-{reveal,conceal}ᵀ` helpers in
+  `NuImprecisionSimulation.agda` likewise take and pass the appropriate
+  source or target replacement witness.  Both modules pass strict checking.
+  The simulation also uses the canonical `shape-lift∀ᵢ` and
+  `shape-target-lift-rightᵢ`; its duplicate local proofs have been removed.
+
+- **Weak-step coherence now transports replacement structurally.**
+  `WeakOneStepTypeCoherence` carries source, target, and paired replacement
+  transport fields.  They map the replacement variables and types through
+  the source changes, leading target change, and target tail, and the paired
+  field stores `transportType result pX` directly.  Consequently the
+  source-conceal catch-up can construct
+
+  `transportType inner q [ α′ ↦ X′ ]ᴸ transportType inner p`
+
+  from the original structural premise rather than trying to reconstruct
+  variable identity and membership from an `ImprecisionShape`.
+  `NuImprecisionWeakOneStepReplacementTransport.agda` now uses structural
+  paired transport for the replacement itself; shape coherence is used only
+  to reindex the transported stored evidence to the caller's canonical
+  `pX′`.  Identity renaming and target-right lifting have canonical
+  replacement-coherence lemmas, and the weak-step composition and framing
+  combinators preserve all three fields.
+
+- **Current validation boundary.**  `ImprecisionComposition.agda`,
+  `CastImprecisionShape.agda`,
+  `NuCastImprecisionShapeProperties.agda`, `NuTermImprecision.agda`, and
+  `ConversionIndexCompatibility.agda`, and
+  `QuotientedTermImprecision.agda` pass strict checking.  The flat
+  world-coherent frame migration also passes its focused checks.
+  `NuImprecisionSimulationResultDef.agda`,
+  `ConversionIndexCompatibilityProperties.agda`,
+  `NuImprecisionWeakOneStepReplacementTransport.agda`,
+  `NuImprecisionSimulationCore.agda`,
+  `NuImprecisionSourceInertBulletCommutation.agda`, and
+  `NuImprecisionWorldCoherentSourceConcealCatchup.agda` now pass strictly.
+  After the route-exposure extraction completed,
+  `NuImprecisionSimulation.agda`,
+  `NuImprecisionSourceBulletBase.agda`, and the public
+  `DynamicGradualGuarantee.agda` cone were rechecked strictly and pass.
+  `GradualDGG` is still uninhabited.
+
+### Current plan
+
+1. Prove ordinary composition triangles for the exact route returned by
+   endpoint-MLB factorization.
+2. Relate that route to the exact selected target route using
+   proof-relevant `≈∀`-indexed shape transport, then strengthen
+   endpoint-MLB monotonicity with both quotient-boundary squares.
+3. Add those direct squares and generated cast shapes to quotient
+   up/down/application rules, then migrate their consumers.
+4. Re-run the public DGG cone and resume the ranked target-instantiation
+   worker from the first remaining semantic case.
+
+### 2026-07-24: source-endpoint permutations now act on shapes
+
+- **Plain quotient erasure is not a valid quotient invariant.**  The rejected
+  definition `⌊ quotientᵖ src p tgt ⌋ᵖ = ⌊ p ⌋` forgets that an adjacent source
+  permutation can exchange which of two universal binders is paired and which
+  is source-only.  Thus the ordered shapes `∀ˢ (νˢ s)` and `νˢ (∀ˢ s)` need
+  not be equal even when their source endpoints differ by `≈∀-swap`.
+
+- **Source permutation is now proof-relevant and directly indexed.**
+  `ImprecisionComposition.agda` defines
+
+  `A≈B ⊢ s ≈∀ˢ s′`.
+
+  Its rules follow the actual `A ≈∀ B` derivation through reflexivity,
+  symmetry, transitivity, arrows, function tags, paired universals, and
+  source-only universals.  Exactly four primitive adjacent-swap cells cover
+  the `∀ˢ`/`νˢ` pairs `∀∀`, `∀ν`, `ν∀`, and `νν`; every cell is indexed by
+  `≈∀-swap`.  There is no unindexed rule equating arbitrarily permuted
+  shapes.
+
+- **Focused validation passes strictly.**
+
+  `agda --no-allow-unsolved-metas -v0 ImprecisionComposition.agda`
+
+  The next quotient-composition layer can use this relation to retain the
+  source representative permutation instead of asking for false equality of
+  ordered hereditary shapes.
+
+### 2026-07-24: the plain selected-route MLB square is false
+
+- **The obstruction is now a strict Agda theorem.**
+  `proof/DGG/Design/EndpointMLBSelectedRouteShapeSquareCounterexample.agda`
+  constructs the outer source witness with `paired-left` and the selected
+  target witness with `route-right`.  The right source lower leg therefore has
+  shape `νˢ _`, while the selected target lower leg has shape `∀ˢ _`.
+  The `paired-left` branch of `route-factor-worker` returns a factor with
+  shape `∀ˢ _`.  Consequently the proposed direct square would require
+
+  `∀ˢ s ； ∀ˢ q ≋ νˢ r`,
+
+  for which `_；_≋_` has no constructor.  The proof closes by exhaustive
+  composition inversion.
+
+  The superficially similar top-level `paired-left`/`route-both` branch is
+  not the counterexample: `paired-left-compatible-route` supplies a left-star
+  path, and `bubble-left-exposure` eliminates `route-both` with
+  `both-path-incompatible`.  The surviving `route-right` branch is precisely
+  the adjacent-binder schedule that the compatibility proof bubbles and
+  swaps.
+
+- **The factor-shape premise is essential.**  The false statement cannot
+  quantify over an arbitrary factor shape: a factor beginning with `νˢ`
+  could use `comp-ν` and retain a `νˢ` result even when the second leg begins
+  with `∀ˢ`.  The counterexample states the actual `∀ˢ` shape returned by the
+  `paired-left` worker, so it refutes precisely the planned worker theorem
+  without claiming a stronger false algebraic fact.
+
+- **The quotient square must be permutation-aware.**  Direct composition can
+  first relate the worker factor to the lower legs of the route returned by
+  the worker.  Relating those legs to the exact input route selected by the
+  cast plan must then retain the source-endpoint permutation, using
+  `_⊢_≈∀ˢ_` rather than equality of ordered shapes.  Restricting the selected
+  route or rebuilding an unrelated canonical route would discard the
+  proof-relevant cast-plan choice and is not a valid repair.
+
+- **Focused validation passes strictly.**
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/DGG/Design/EndpointMLBSelectedRouteShapeSquareCounterexample.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/EndpointMLB/Simple/EndpointCanonicalMLBSimpleFactorizationShape.agda`
+
+### Revised endpoint-MLB shape-coherence plan
+
+1. Define the quotient-composition square so its source side carries the
+   explicit source-endpoint permutation and `_⊢_≈∀ˢ_` witness.
+2. Prove the direct worker triangles against the route returned by
+   `route-factor-worker`, where the recursive binder shapes line up
+   definitionally.
+3. Use route alignment/permutation to bridge that returned route to the exact
+   selected input route, then expose the two permutation-aware endpoint
+   squares needed by cast-plan monotonicity.
+
+### 2026-07-24: quotient-boundary squares retain both representatives
+
+- **The first genuine quotient square is direct and proof-relevant.**
+  `ImprecisionComposition.agda` now defines the mixfix relation
+
+  `s ；⌊ p ⌋≋ᵖ q ； s′`.
+
+  The ordinary output derivation `p` and the complete quotient input
+  derivation `q` are indices of the relation.  In particular, the relation
+  does not replace `q` by a lossy shape erasure.
+
+- **The square is checked on the representatives stored by `q`.**  For
+  `q = quotientᵖ src middle tgt`, its constructor exposes shapes `t`, `t′`,
+  and `r`, and requires all four sides:
+
+  `src ⊢ s ≈∀ˢ t`
+
+  `t ； ⌊ p ⌋ ≋ r`
+
+  `tgt ⊢ t′ ≈∀ˢ s′`
+
+  `⌊ middle ⌋ ； t′ ≋ r`.
+
+  Thus adjacent binder exchanges are justified only by the actual `src` and
+  `tgt` permutation witnesses.  The ordinary compositions remain governed by
+  `_；_≋_`.
+
+- **Focused validation passes strictly.**
+
+  `agda --no-allow-unsolved-metas -v0 ImprecisionComposition.agda`
+
+  No quotient term rule or endpoint theorem uses this relation yet; the next
+  step is to derive it from returned-route triangles plus selected-route
+  alignment.
+
+### 2026-07-24: exact audit of the remaining quotient cast rules
+
+- **Every paired quotient cast needs its generated cast shapes and one
+  quotient-boundary square.**  The exact strengthened paired-widening schema
+  is:
+
+  ```agda
+  up⊑upᵀ :
+      ∀ {N N′ A A′ D D′ qD u u′ s s′}
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺᵖ N ⊑ N′ ⦂ D ⊑ᵖ D′ ∶ qD
+    → QuotientWideningPair Δᴸ Δᴿ ρ u u′ D D′ A A′
+    → widening ⊢ᶜ u ⦂ s
+    → widening ⊢ᶜ u′ ⦂ s′
+    → (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ)
+    → s ；⌊ pA ⌋≋ᵖ qD ； s′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺ N ⟨ u ⟩ ⊑ N′ ⟨ u′ ⟩ ⦂ A ⊑ A′ ∶ pA
+  ```
+
+  The ordinary result index `pA` is the bottom boundary and the quotient
+  input index `qD` is the top boundary.  This is the quotient analogue of the
+  existing paired-widening square, with the representative permutations
+  retained.
+
+- **Both standalone paired-narrowing rules use the square in the opposite
+  endpoint direction.**  Their exact flat schemas are:
+
+  ```agda
+  down⊑downᵀ :
+      ∀ {M M′ C C′ D D′ pC d d′ s s′}
+    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D
+    → narrowing ⊢ᶜ d ⦂ s
+    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ D′
+    → narrowing ⊢ᶜ d′ ⦂ s′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC
+    → (qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ)
+    → s ；⌊ pC ⌋≋ᵖ qD ； s′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺᵖ M ⟨ d ⟩ ⊑ M′ ⟨ d′ ⟩ ⦂ D ⊑ᵖ D′ ∶ qD
+
+  gen-down⊑gen-downᵀ :
+      ∀ {M M′ C C′ D D′ pC d d′ s s′}
+    → genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ
+        ⊢ d ∶ C ⊒ D
+    → narrowing ⊢ᶜ d ⦂ s
+    → genᵈ tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
+        ⊢ d′ ∶ C′ ⊒ D′
+    → narrowing ⊢ᶜ d′ ⦂ s′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC
+    → (qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ)
+    → s ；⌊ pC ⌋≋ᵖ qD ； s′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺᵖ M ⟨ d ⟩ ⊑ M′ ⟨ d′ ⟩ ⦂ D ⊑ᵖ D′ ∶ qD
+  ```
+
+  The cast mode changes which coercions are admitted, but it does not change
+  the hereditary narrowing shape or the square that must commute.
+
+- **An ordinary function determines canonical quotient boundaries.**  The
+  arbitrary `qB` in `ordinary-down-applicationᵖᵀ` must be removed.  Its
+  domain boundary is the canonical quotient of `pC`, and its result is the
+  canonical quotient of `pB`:
+
+  ```agda
+  ordinary-down-applicationᵖᵀ :
+      ∀ {L L′ M M′ A A′ C C′ B B′
+         pA pC pB d d′ μ μ′ s s′}
+    → CastMode μ
+    → SealModeStore★ μ (leftStoreⁱ ρ)
+    → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ A ⊒ C
+    → narrowing ⊢ᶜ d ⦂ s
+    → CastMode μ′
+    → SealModeStore★ μ′ (rightStoreⁱ ρ)
+    → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ C′
+    → narrowing ⊢ᶜ d′ ⦂ s′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺ L ⊑ L′
+          ⦂ C ⇒ B ⊑ C′ ⇒ B′ ∶ pC ↦ pB
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ pA
+    → s ；⌊ pA ⌋≋ᵖ
+        (quotientᵖ ≈∀-refl pC ≈∀-refl) ； s′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺᵖ L · (M ⟨ d ⟩) ⊑ L′ · (M′ ⟨ d′ ⟩)
+          ⦂ B ⊑ᵖ B′
+          ∶ quotientᵖ ≈∀-refl pB ≈∀-refl
+  ```
+
+  Allowing an unrelated result quotient would preserve the original hole
+  even after checking the argument casts.
+
+- **A quotient function must expose both quotient arrow components.**  The
+  existing `⊑ᵖ-arrow-components qF` computes the domain and codomain quotient
+  derivations.  The constructor should bind variables `qC` and `qB` and
+  retain the direct equality
+
+  ```agda
+  ⊑ᵖ-arrow-components qF ≡ (qC , qB)
+  ```
+
+  rather than put either projection function in a constructor index.  This
+  follows the constructor-form-index discipline: the result index remains
+  the variable `qB`, while the internal equality proves that it is not
+  arbitrary.  No new component record or named compatibility alias is
+  needed.  The two exact schemas are:
+
+  ```agda
+  quotient-id-down-applicationᵖᵀ :
+      ∀ {L L′ M M′ A A′ C C′ B B′
+         pA qF qC qB d d′ s s′}
+    → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ A ⊒ C
+    → narrowing ⊢ᶜ d ⦂ s
+    → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ C′
+    → narrowing ⊢ᶜ d′ ⦂ s′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺᵖ L ⊑ L′
+          ⦂ C ⇒ B ⊑ᵖ C′ ⇒ B′ ∶ qF
+    → ⊑ᵖ-arrow-components qF ≡ (qC , qB)
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ pA
+    → s ；⌊ pA ⌋≋ᵖ qC ； s′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺᵖ L · (M ⟨ d ⟩) ⊑ L′ · (M′ ⟨ d′ ⟩)
+          ⦂ B ⊑ᵖ B′ ∶ qB
+
+  quotient-down-applicationᵖᵀ :
+      ∀ {L L′ M M′ A A′ C C′ B B′
+         pA qF qC qB d d′ μ μ′ s s′}
+    → CastMode μ
+    → SealModeStore★ μ (leftStoreⁱ ρ)
+    → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ A ⊒ C
+    → narrowing ⊢ᶜ d ⦂ s
+    → CastMode μ′
+    → SealModeStore★ μ′ (rightStoreⁱ ρ)
+    → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ C′
+    → narrowing ⊢ᶜ d′ ⦂ s′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺᵖ L ⊑ L′
+          ⦂ C ⇒ B ⊑ᵖ C′ ⇒ B′ ∶ qF
+    → ⊑ᵖ-arrow-components qF ≡ (qC , qB)
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ pA
+    → s ；⌊ pA ⌋≋ᵖ qC ； s′
+    → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴺᵖ L · (M ⟨ d ⟩) ⊑ L′ · (M′ ⟨ d′ ⟩)
+          ⦂ B ⊑ᵖ B′ ∶ qB
+  ```
+
+- **The earlier quotient-application note is superseded.**  It proposed an
+  erased quotient shape `⌊ q ⌋ᵖ`; that operation was rejected because it
+  loses representative permutations.  The schemas above instead use the
+  proof-relevant quotient-boundary square and derive the result quotient from
+  the function relation itself.
+
+- **Compilation already retains the cast shapes, but endpoint monotonicity
+  must supply the squares.**  `CastPlan` stores
+  `narrowing ⊢ᶜ down ⦂ ⌊ lower⊑source ⌋` and
+  `widening ⊢ᶜ up ⦂ ⌊ lower⊑target ⌋`.
+  `compiled-argument-cast-imprecision` can therefore pass all four shape
+  witnesses directly.  Its call to `MLB-monotoneᵖ` must additionally return
+  the same quotient lower-bound derivation together with
+
+  `down-shape plan ；⌊ pC ⌋≋ᵖ q ； down-shape plan′`
+
+  and
+
+  `up-shape plan ；⌊ pA ⌋≋ᵖ q ； up-shape plan′`.
+
+  The specialized dynamic-application paths already define their down and up
+  shapes explicitly.
+
+- **Function-cast beta can synthesize the application evidence only from the
+  enclosing quotient-up square.**
+  `NuImprecisionSourceFunctionCastBetaPairedQuotientRelationProof.agda`
+  currently obtains only `proj₂ (⊑ᵖ-arrow-components qD)` and passes it as
+  an arbitrary `qB`.  After strengthening `up⊑upᵀ`, its caller has the
+  shapes of the whole function casts and
+
+  `sF ；⌊ pA ↦ pB ⌋≋ᵖ qD ； sF′`.
+
+  A structural arrow decomposition of this square must return the component
+  equality for `⊑ᵖ-arrow-components qD`, the domain narrowing shapes and
+  square used by the application, and the codomain widening shapes and square
+  used by the result `up⊑upᵀ`.  `QuotientWideningPair` alone does not contain
+  any of these shape witnesses, so the function-beta contract must accept the
+  enclosing shapes and square directly.  Choosing
+  `proj₁ (⊑ᵖ-arrow-components qD)` and
+  `proj₂ (⊑ᵖ-arrow-components qD)` then makes the component equality `refl`.
+
+- **The two application theorem aliases should not be strengthened as
+  wrappers.**
+  `NuImprecisionOrdinaryFunctionPairedNarrowingApplicationDef.agda` and
+  `NuImprecisionQuotientFunctionPairedNarrowingApplicationDef.agda` merely
+  repeat the complete constructor types, and their proof modules are direct
+  assignments of the constructors.  In this closed-world tree, consumers
+  should use the strengthened constructors with their direct premises and
+  these obsolete aliases should be deleted during migration.
+
+- **Pure structural consumers can forward the new evidence.**  Store-prefix,
+  parallel-substitution, term-context-shift, quotient-value/classification,
+  and the proof-internal typing projections do not alter the casts or
+  quotient indices.  Their constructor branches only need to bind and pass
+  the two shapes, square, and component equality unchanged.
+
+- **Endpoint-changing consumers need three structural transport lemmas.**
+  Left renaming, source allocation transport, world embedding, simulation
+  embedding/permutation, and right runtime transport change types, stores, or
+  coercions while rebuilding these constructors.  They need:
+
+  1. renaming/permutation transport for `_；⌊_⌋≋ᵖ_；_`;
+  2. coherence of `⊑ᵖ-arrow-components` with quotient
+     renaming/permutation; and
+  3. weak-step transport of a quotient-boundary square, using the existing
+     cast-shape transport and quotient-index transport.
+
+  `cast-shape-rename` and `cast-shape-applyCoercions` already provide the cast
+  halves.  `NuImprecisionAtomicTargetReindex.agda` additionally needs a
+  boundary-square reindex lemma from its existing target-atomic skeleton
+  equality.
+
+- **Direct producers requiring new evidence are now inventoried.**
+  `QuotientedTermImprecisionTest.agda` can use identity cast shapes and the
+  canonical reflexive quotient square.
+  `NuImprecisionAllocationSimulation.agda` must obtain the generated
+  narrowing shapes and square from its allocation-cast synthesis.
+  The source function-beta proof must use the arrow-square decomposition
+  above.  Catch-up quotient support and the world-coherent runtime transports
+  already reconstruct transformed casts, but must invoke the new weak-step
+  square transport instead of supplying a bare quotient index.
+
+- **No QTI constructor has been changed by this audit.**  The schema should
+  be edited only after the endpoint-MLB theorem produces the two direct
+  quotient-boundary squares, so compilation has an immediate non-postulated
+  producer for the strengthened down/up pair.
+
+### 2026-07-24: selected-route alignment preserves both exact leg shapes
+
+- **Adjacent exchange now retains the route witness that justifies it.**
+  The old `aligned-left-right` constructor remembered only an arbitrary body
+  permutation and discarded the `SwapAlignedRoutes [] route route′` evidence
+  produced by `swap-route`.  That was too weak to reconstruct the exact
+  `enum-route-sound` derivation shapes.  It now stores the route witness,
+  specializes the second body candidate to
+
+  `renameᵗ swap01ᵗ C`,
+
+  and uses `≈∀-refl` for the body of the resulting double swap.  The unused
+  inverse constructor was deleted; `aligned-sym` supplies that direction.
+
+- **Swap infrastructure has one canonical home.**
+  `EndpointCanonicalMLBSimpleSwapRoutes.agda` now owns `Exposure`, the
+  exposure-indexed contexts and depths, `swap-under`, and
+  `SwapAlignedRoutes`.  The permutation proof and its factorization clients
+  import that module directly; there is no compatibility re-export.
+
+- **Both route-soundness legs transport structurally.**
+  `swap-aligned-leg-shapes` recurses exhaustively over the retained route
+  witness and proves equality of both exact `enum-route-sound` shapes.
+  Variable leaves use renamed-source shape uniqueness at atomic targets.
+  `aligned-routes-left-leg-shape` and
+  `aligned-routes-right-leg-shape` then recurse over `AlignedRoutes`.
+  Their exchange branches use the exact cells
+
+  `∀ˢ (νˢ s) ≈∀ˢ νˢ (∀ˢ s)`
+
+  and
+
+  `νˢ (∀ˢ s) ≈∀ˢ ∀ˢ (νˢ s)`,
+
+  followed by the transported inner equality.  The inverse direction is
+  obtained through the ordinary symmetry case.
+
+- **Focused validation passes strictly.**
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/EndpointMLB/Simple/EndpointCanonicalMLBSimpleSwapRoutes.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/EndpointMLB/Simple/EndpointCanonicalMLBSimplePermutation.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/EndpointMLB/Simple/EndpointCanonicalMLBSimpleFactorization.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/EndpointMLB/Simple/EndpointCanonicalMLBSimpleFactor.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/EndpointMLB/Simple/EndpointCanonicalMLBSimpleFactorizationShape.agda`
+
+  The remaining endpoint task is to combine these alignment transports with
+  the direct worker triangles to construct the two quotient-boundary squares.
+
+### 2026-07-24: quotient cast rules now retain exact shape squares
+
+- **The core quotiented term relation has the audited constructor schemas.**
+  `up⊑upᵀ`, `down⊑downᵀ`, and `gen-down⊑gen-downᵀ` now retain both cast-shape
+  derivations and a direct proof-relevant boundary square
+
+  `s ；⌊ p ⌋≋ᵖ q ； s′`.
+
+  The ordinary down-application constructor concludes at the canonical
+  codomain quotient
+
+  `quotientᵖ ≈∀-refl pB ≈∀-refl`
+
+  and checks its argument casts against the canonical domain quotient.  The
+  two quotient-function application constructors bind `qC` and `qB`, require
+
+  `⊑ᵖ-arrow-components qF ≡ (qC , qB)`,
+
+  check the argument casts against `qC`, and conclude exactly at `qB`.  The
+  formerly arbitrary result quotient is gone.
+
+- **Arrow projection is part of the canonical quotient API.**
+  `≈∀-arrow-left`, `≈∀-arrow-right`, `≈∀-arrow-components`, and
+  `⊑ᵖ-arrow-components` now live in `ForallPermutation.agda`.  The duplicate
+  DGG-only definitions were deleted.  This lets a language-definition
+  constructor mention the component projection without importing a
+  proof-layer module.
+
+- **Arrow boundary squares decompose without erasing representatives.**
+  `quotient-boundary-arrow-components` returns inline domain and codomain
+  quotient witnesses, their equality with `⊑ᵖ-arrow-components qF`, and both
+  component boundary squares.  It recursively inverts proof-relevant source
+  permutations, so adjacent `∀` exchanges remain explicit.
+
+- **Focused strict checks pass at the new core boundary.**
+
+  `agda --no-allow-unsolved-metas -v0 ForallPermutation.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/Core/Permutation/ForallPermutationProperties.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/Quotient/NuImprecisionQuotientArrowComponents.agda`
+
+  `agda --no-allow-unsolved-metas -v0 QuotientedTermImprecision.agda`
+
+  Consumer migration is in progress.  Compilation now has the strengthened
+  direct helper boundary: a `CastPlan` pair must be supplied with both its
+  down and up boundary squares.  Endpoint MLB monotonicity must construct
+  those two squares before the compiler proof can close again.
+
+### 2026-07-24: arrow quotient squares decompose canonically
+
+- **The application migration now has a direct decomposition theorem.**
+  `NuImprecisionQuotientArrowComponents.agda` proves
+
+  ```agda
+  quotient-boundary-arrow-components :
+    (sC ↦ˢ sB) ；⌊ pC ↦ pB ⌋≋ᵖ qF ； (sC′ ↦ˢ sB′) →
+    ∃[ qC ] ∃[ qB ]
+      (⊑ᵖ-arrow-components qF ≡ (qC , qB)) ×
+      (sC ；⌊ pC ⌋≋ᵖ qC ； sC′) ×
+      (sB ；⌊ pB ⌋≋ᵖ qB ； sB′)
+  ```
+
+  Thus a function-cast beta consumer receives the exact quotient domain
+  required by paired argument narrowing and the exact quotient codomain
+  required by paired result widening.  The explicit component equality also
+  supplies the constructor-form-safe premise planned for the quotient
+  application rules; neither component is an arbitrary quotient witness.
+
+- **Representative permutations are decomposed structurally.**  The proof
+  recursively inverts arrow-shaped `_⊢_≈∀ˢ_` evidence through reflexivity,
+  symmetry, transitivity, and arrow congruence.  It then splits both ordinary
+  arrow compositions and builds the two component
+  `quotient-boundary-square` witnesses from the original representative
+  evidence.  No quotient erasure, wrapper record, postulate, or endpoint-MLB
+  change is involved.
+
+- **Focused validation passes strictly.**
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/Quotient/NuImprecisionQuotientArrowComponents.agda`
+
+### 2026-07-24: the route-factor worker returns both direct triangles
+
+- **The exact worker result now carries a proved shape contract.**
+  `EndpointCanonicalMLBSimpleFactorizationShape.agda` proves
+  `route-factor-worker-shapes`.  If
+
+  `result = route-factor-worker fuel sourceFuel source history lower route`,
+
+  `route′` and `factor` are the route and imprecision derivation stored in
+  `result`, and
+
+  `target-lower = indexed-target-route-sound history route′`,
+
+  then the theorem returns both ordinary triangles
+
+  `⌊ factor ⌋ ； ⌊ proj₁ target-lower ⌋ ≋
+   ⌊ paired-lower-left lower ⌋`
+
+  and
+
+  `⌊ factor ⌋ ； ⌊ proj₂ target-lower ⌋ ≋
+   ⌊ paired-lower-right lower ⌋`.
+
+  Thus the compositions use the exact route returned by factorization, not an
+  independently reconstructed soundness route.
+
+- **Star instantiation composes structurally through every type form.**
+  `star-inst-shape-triangle-atᵢ` proves that the canonical
+  `star-inst-lower-atᵢ` factor followed by `inst-star-atᵢ p` has shape
+  `⌊ p ⌋`.  Its variable case uses a constructor-form occurrence classifier
+  and separate hit/fresh proof-argument lemmas.  This avoids Agda's ill-typed
+  generated `with` abstraction for the two functions that internally inspect
+  the same occurrence decision.
+
+- **The paired-neither recursion uses associativity, not a special case.**
+  `star-factor-worker-shapes` first composes the closing factor with the
+  recursive factor using `shape-trans-left-idᵢ`, reindexes the paired
+  instantiated projections by `pair-lower-left-shape` and
+  `pair-lower-right-shape`, and closes the diagram with
+  `compose-assoc-left` and the lifted star-instantiation triangle.
+  `route-factor-worker-shapes` uses the same diagram for its general
+  paired-neither branch.
+
+- **Left and right exposure retain the exact compatibility result.**
+  Their compatibility helpers return dependent route packages.  The proof
+  transports each recursive pair of triangles along the exact package
+  equation before applying `comp-∀-∀`/`comp-∀-ν`.  This keeps the bubbled
+  route and its candidate index synchronized without proof-irrelevant route
+  reconstruction.
+
+- **Focused validation passes strictly.**
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/EndpointMLB/Simple/EndpointCanonicalMLBSimpleFactorizationShape.agda`
+
+### Current endpoint-MLB plan
+
+1. **Completed:** combine `route-factor-worker-shapes` with selected-route
+   alignment and the two exact aligned leg-shape transports.
+2. **Completed:** construct both proof-relevant quotient-boundary squares for
+   endpoint-MLB monotonicity.
+3. **Completed:** feed those squares to the strengthened compilation boundary.
+4. Finish quotient-square factorization and migrate the remaining semantic
+   QTI producers and eliminators.
+5. Recheck the terminal simulation assemblies, then resume the ranked
+   target-instantiation worker at the first remaining semantic case.
+
+### 2026-07-24: endpoint MLB monotonicity returns both boundary squares
+
+- **The selected endpoint theorem is now proof-relevant.**
+  `EndpointCanonicalMLBSimpleQuotient.agda` proves that if the selected source
+  and target MLB results exist, then `MLB-monotoneᵖ` returns the quotient
+  imprecision derivation together with both exact boundary squares:
+
+  `⌊ source-left ⌋ ；⌊ A⊑A′ ⌋≋ᵖ q ； ⌊ target-left ⌋`
+
+  and
+
+  `⌊ source-right ⌋ ；⌊ B⊑B′ ⌋≋ᵖ q ； ⌊ target-right ⌋`.
+
+  The proof factors the paired source lower bound through an actual generated
+  target route, aligns that route with the selected target route, transports
+  both returned triangles across the alignment, and constructs the two
+  `quotient-boundary-square` witnesses.  It does not reconstruct or erase the
+  returned route.
+
+- **Compilation consumes the evidence directly.**
+  `compiled-argument-cast-imprecision` receives the quotient index, the down
+  square, and the up square.  All five compiler call sites project those three
+  witnesses from `MLB-monotoneᵖ`; no shape-compatibility wrapper or
+  independently chosen quotient remains.
+
+- **World transport preserves the same evidence.**
+  The central permutation, embedding, and left-renaming helpers for
+  `up⊑upᵀ`, `down⊑downᵀ`, and `gen-down⊑gen-downᵀ` now accept both coercion
+  shapes and the quotient boundary square.  They transport the cast shapes
+  with `cast-shape-rename` and the square with the canonical left or two-sided
+  quotient-square renaming theorem.
+
+- **Focused strict validation passes.**
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/EndpointMLB/Simple/EndpointCanonicalMLBSimpleQuotient.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/Compilation/CompileTermImprecision.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/Catchup/Simulation/NuImprecisionSimulationCore.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/Catchup/Simulation/NuImprecisionSimulation.agda`
+
+  `agda --no-allow-unsolved-metas -v0 All.agda`
+
+  The public statement module also checks, but it still contains only the
+  statement of `GradualDGG`; there is not yet an inhabitant.
+
+- **Next exact algebraic obligation.**
+  Six quotient-value sequence/tag producers need one ordinary-to-quotient
+  factor law:
+
+  if `s₀ ； s₁ ≋ s₂`, `s₁ ； ⌊ pA ⌋ ≋ ⌊ pB ⌋`, and
+  `s₂ ；⌊ pA ⌋≋ᵖ q ； s′`, then
+  `s₀ ；⌊ pB ⌋≋ᵖ q ； s′`.
+
+  This must transport the proof-relevant source permutation through
+  reflexivity, symmetry, transitivity, congruence, and the four swap cells.
+
+### 2026-07-24: unrestricted quotient-square factorization is false
+
+- **The proposed general factor law has a swap counterexample.**  Write
+  `F = ∀ˢ_`, `N = νˢ_`, and `x = id★ˢ`.  Take
+
+  `s₀ = F (F x)`, `s₁ = s₂ = N (F x)`, `t = F (N x)`,
+  `pA = F x`, `pB = N (F x)`, and `r = F (N x)`.
+
+  Then `s₀ ； s₁ ≋ s₂`, `s₁ ； pA ≋ pB`,
+  `source-swap-ν∀` relates `s₂` to `t`, and `t ； pA ≋ r`.
+  However, the same swap relates `s₀` only to `s₀`, while
+  `s₀ ； pB` has outer `ν` and therefore cannot produce `r`, whose outer
+  constructor is `∀ˢ_`.  Thus an exact quotient-boundary square is not
+  hereditary under arbitrary left factorization.
+
+- **The six quotient-value obligations have a valid narrower shape.**  In
+  every call, the peeled right factor is exactly
+  `tag id★ˢ ⇛ˢ id★ˢ`, the old ordinary index shape is `id★ˢ`, and the
+  replacement is `tag id★ˢ ⇛ˢ id★ˢ`.  The first composition consequently
+  has the `comp-↦-tag` form: its residual source shape is an arrow and its
+  composite is a tagged arrow.  A source permutation of the composite is
+  correspondingly transported from `source-perm-tag-⇛` to
+  `source-perm-↦`.  Adjacent `∀` swaps cannot occur at that outer boundary.
+
+- **Revised next step.**  Delete the false unrestricted lemma and prove only
+  the tag-arrow residual needed by those six reductions.  Keep the full
+  boundary square in QTI: the negative result concerns arbitrary
+  factorization of that square, not its use at compilation or its transport
+  through renaming and store changes.
+
+### 2026-07-24: binder transport preserves replacement evidence
+
+- **Endpoint equality is not enough under a fresh binder.**  A weak step can
+  transport an outer imprecision derivation without determining how its body
+  treats the newly bound variable `zero`.  `WeakOneStepTypeCoherence` therefore
+  now preserves the three replacement judgments used by QTI:
+
+  `q [ zero ↦ ⇑ᵗ A
+       ⊑⟨ A⇑⊑A′⇑ ⟩
+       ⇑ᵗ A′ ↤ zero ]ᴾ
+     ⊑-lift∀ᵢ p`,
+
+  `q [ zero ↦ ⇑ᵗ A ]ᴸ ⊑-source-liftνᵢ p`, and
+
+  `q [ zero ↦ ⇑ᵗ A ]ᴿ ⊑-target-lift-rightᵢ p`.
+
+  These clauses transport the explicit body witness supplied by QTI.  They do
+  not replace it with `⊑-lift∀ᵢ p`: equal endpoints do not make imprecision
+  derivations proof-irrelevant, and the replacement judgment does not imply
+  that its inserted evidence has the canonical lifted shape.
+
+- **Right-binder shape is a separate invariant.**
+  `transportRightBodyShapeCoherent` states
+
+  `⌊ transportRightBody result p ⌋ ≡ ⌊ p ⌋`.
+
+  The replacement clause cannot imply this for an arbitrary right body,
+  because it requires a replacement witness as a premise.  The direct shape
+  clause is what transports the composition triangle of `⊑νcastᵀ`.
+  Source-only `ν` body shape needs no additional field: it follows from
+  `sourceNuIndexEquality`, whole-index shape coherence, and injectivity of
+  `νˢ_`.
+
+- **The semantic frame interfaces now expose the evidence they consume.**
+  Matched reveal frames carry `A⇑⊑A′⇑` and the paired replacement judgment.
+  Source-only and target-only reveal frames carry their corresponding
+  replacement judgments.  Paired, source-only, and target-only `ν` cast
+  frames carry the exact widening shapes and ordinary composition triangles;
+  paired casts additionally carry the directly indexed
+  `PairedWideningCompatible` proof.
+
+- **Propagation status.**  The new fields are implemented by the related-step
+  base case, primitive frames, the seven main simulation coherence producers,
+  and all `ν` frame families in `NuImprecisionSimulationCore.agda`.
+  `NuImprecisionSimulationResultDef.agda`,
+  `NuImprecisionOneStepRelated.agda`, and
+  `ImprecisionComposition.agda` pass strict checking.
+
+- **Current proof-engineering checkpoint.**  Sequential weak-step composition
+  must normalize
+
+  `applyTysUnderTyBinders χs (⇑ᵗ A)`
+
+  to
+
+  `⇑ᵗ (applyTys χs A)`
+
+  before applying the second replacement-coherence proof.  The analogous
+  all-body shape proof must also erase the endpoint substitutions performed by
+  `transportAllType`.  This is the current first strict-checking obligation in
+  `NuImprecisionSimulationCore.agda`; downstream strict validation resumes
+  immediately after it.
+
+### 2026-07-24: replacement evidence reaches source type application
+
+- **Sequential coherence now closes.**  Weak-step composition transports the
+  paired, source-only, and target-only replacement judgments through both
+  endpoint substitutions.  It also composes the right-body shape invariant.
+  The complete `NuImprecisionSimulationCore.agda` now passes strict checking.
+
+- **Early eliminators preserve the richer index.**
+  `NuImprecisionWorldEmbeddingNoBullet.agda` threads every replacement,
+  cast-shape, and composition witness through its structural embedding.
+  `NuImprecisionAtomicTargetReindex.agda` transports a source-only replacement
+  through the induced `νˢ_` body shape, and transports a source-only `ν`-cast
+  composition triangle when its atomic target index changes.  Both modules
+  pass strict checking.
+
+- **Identity transport has one canonical implementation.**  The body-shape
+  and replacement lemmas for identity renaming now live in
+  `NuImprecisionSimulationCore.agda`; the duplicate downstream definitions
+  were removed.  `NuImprecisionSourceBulletBase.agda` uses those lemmas to
+  populate all ten fields of `WeakOneStepTypeCoherence` and passes strict
+  checking.
+
+- **Source type-application imprecision records the same replacement fact.**
+  The synchronized source rule now carries
+
+  `p [ zero ↦ ⇑ᵗ T
+       ⊑⟨ ⊑-lift∀ᵢ q ⟩
+       ⇑ᵗ T′ ↤ zero ]ᴾ
+     ⊑-lift∀ᵢ r`,
+
+  and the source-only rule carries
+
+  `p [ zero ↦ ⇑ᵗ T ]ᴸ ⊑-source-liftνᵢ r`.
+
+  Compilation passes these witnesses directly to QTI.  Both
+  `GradualTermImprecision.agda` and
+  `proof/Compilation/CompileTermImprecision.agda` pass strict checking.
+
+- **Quotient-value validation is restored.**  The strict-cross sequence/tag
+  cases now eliminate all function and universal shapes against variable and
+  base tags, including the three previously missing outer `β-seq` cases.
+  `NuImprecisionQuotientValue.agda` passes strict checking.
+
+- **Current proof-engineering checkpoint.**  The remaining target-lift
+  all-body replacement helper must transport the replacement derivation
+  across the lifted imprecision context, not merely rewrite its endpoint
+  shapes.  Once `NuImprecisionSimulation.agda` closes again, strict validation
+  continues through `NuImprecisionAllocationSimulation.agda`.  `GradualDGG`
+  still has no inhabitant.
+
+- **Target-lift transport now closes.**  The paired-all, source-`ν`, and
+  right-body helpers first rename the replacement derivation into the lifted
+  imprecision context, transport its endpoints explicitly, and only then
+  reindex shapes within that common context.
+  `NuImprecisionSimulation.agda` again passes strict checking.  The active
+  checkpoint is strict validation of
+  `NuImprecisionAllocationSimulation.agda`.
+
+### 2026-07-24: the strict DGG spine reaches semantic migration
+
+- **Sequential source and target composition preserve the full invariant.**
+  `NuImprecisionSourceSilentCompositionProof.agda` and
+  `NuImprecisionWorldCoherentRightTargetStepResumeProof.agda` now compose all
+  ten `WeakOneStepTypeCoherence` fields.  In particular, the second step
+  receives the replacement derivation transported by the first step, and the
+  final witness is normalized to the concatenated source and target change
+  lists.  Both modules pass strict checking.
+
+- **Early world-coherent consumers have migrated.**
+  `NuImprecisionWorldCoherentSourceTargetKeepPrependProof.agda` threads all ten
+  fields through a target `keep` prefix, and
+  `NuImprecisionWorldCoherentValueCatchupPrefixProof.agda` retains the
+  replacement witnesses of the three `ν` rules, every exact shape and
+  composition witness of the `ν`-cast rules, and the source reveal/conceal
+  replacement witnesses.  Both modules pass strict checking.
+
+- **The theorem spine and the trace inductions remain intact.**
+  `NuDGGSpine.agda`, `NuDGGTerminalForwardProof.agda`,
+  `NuDGGTerminalBackwardValueWorldCoherentProof.agda`, and
+  `NuDGGTerminalBackwardBlameAssembly.agda` pass strict checking.  Thus the
+  strengthened QTI invariant has not introduced a theorem-level obstruction:
+  the current failures are stale semantic producers and eliminators.
+
+- **The first post-migration semantic boundary is known.**
+  The ranked plain-instantiation worker and its four-way allocation dispatcher
+  already pass strictly.  After the remaining interface migration, the first
+  unimplemented semantic cell is
+  `WorldCoherentRightTargetPendingNuAllocationPairedFromPairedAccᵀ`.
+  It should combine paired-final body inversion with the arbitrary-tail direct
+  paired-`Λ` proof for inert `all`, leaving the active nested-`inst` or fused
+  continuation explicit.
+
+### Current plan
+
+1. Finish strict migration of every QTI producer, eliminator, and weak-step
+   coherence composer.  The active files are allocation simulation, right
+   source framing, sequence resumption, and the quotient representative
+   instantiation path.
+2. Implement the four ranked target-`ν` allocation cells, beginning with
+   paired incoming and paired final provenance.
+3. Assemble the strict forward and backward terminal engines from the
+   completed trace inductions.
+4. Construct an inhabitant of `GradualDGG` and run the full strict cone.
+
+### 2026-07-24: exact target-frame evidence reaches terminalization
+
+- **Right-target sequence resumption is fully coherent.**
+  `NuImprecisionWorldCoherentRightTargetSequenceResumeProof.agda` now
+  constructs all ten `WeakOneStepTypeCoherence` fields and passes strict
+  checking.  Its framed `β`-sequence endpoint has an arbitrary transported
+  outer index, so it keeps a direct coherence proof; the ordinary sequential
+  composition theorem is centralized in
+  `NuImprecisionSimulationCore.agda` and reused by step resumption and the
+  active-root cases whose indices actually match it.
+
+- **The target-cast terminalization boundary no longer drops exact
+  evidence.**  Its narrowing, general widening, and identity-mode widening
+  fields now carry the hereditary cast shape and the corresponding
+  composition triangle.  Its reveal and conceal fields carry, respectively,
+  the forward and reverse right-endpoint replacement judgments.  The
+  right-value dispatcher passes these witnesses directly from the QTI
+  constructor.
+
+- **Identity active roots are strict again.**  The three target identity-cast
+  roots reconstruct the transported cast relation with exact cast shapes and
+  composition.  The reveal and conceal roots apply the exact conversion
+  transport and use `transportRightReplacementCoherent`; they no longer
+  assume that two imprecision derivations with the same endpoints may be
+  interchanged.  The active-root proof, terminalization proof, and
+  right-value dispatcher pass strict checking.
+
+- **Source-universal closing is being migrated at the same boundary.**
+  Target casts under the source-only binder lift their composition triangle
+  with `comp-ν`, while target reveal/conceal lift their replacement witness
+  with `replace-right-ν`.  The source-frame capability record likewise now
+  exposes the exact source cast composition or source replacement premise
+  consumed by its QTI constructor.  The three closing-body eliminators have
+  been updated to retain these constructor premises; their highest strict
+  cone is the next migration check.
+
+- **Quotient identity paths require proof-relevant normalization.**  An
+  explicit `path-refl` argument cannot justify erasing an arbitrary
+  self-permutation.  The quotient instantiation path interface must retain an
+  equality tying each explicit path to
+  `normalize-forall-permutation` of the original quotient witness.  Only from
+  that equality may the identity branch prove that the boundary-square source
+  and target shapes are unchanged and recover the ordinary cast composition
+  needed by QTI.
+
+- **The pending target-`ν` allocation trace is now exact.**  The new
+  target-administration trace lemma proves the raw and renamed
+  `leaf-instβ` reduction, under an arbitrary pending cast tail, through
+  `[ bind ★ , keep ]` to the shifted target-bullet residual.  This endpoint is
+  not a value because it contains `(⇑ᵗᵐ V) •`; consequently the remaining
+  `PairedFromPaired` obligation is a fusion-aware world-coherent target-bullet
+  catch-up, not a recursive call to the value-root pending-casts worker.
+
+### Revised current plan
+
+1. Finish the quotient path normalization equality and strict-check the
+   source-universal closing cone after its exact cast/conversion migration.
+2. Finish allocation-simulation propagation of the seven new replacement and
+   body-shape fields, then migrate its final-source-`ν` consumers.
+3. Implement the fusion-aware target-bullet continuation exposed by the exact
+   `leaf-instβ` trace and use it to close the four ranked target-`ν`
+   allocation cells.
+4. Assemble the strict forward and backward terminal engines, construct
+   `GradualDGG`, and run the full strict cone.
+
+### 2026-07-24: identity quotient paths recover exact downcast composition
+
+- **Path identity now follows from the original permutation evidence.**
+  `WorldCoherentQuotientRepresentativeInstPathCatchupᵀ` ties each explicit
+  normalized path to its original source or target permutation.  Those
+  equalities are retained through the identity, source-step, target-step, and
+  identity-view interfaces.
+
+- **A focused structural lemma replaces the unsound quotient extractor.**
+  If `normalize-forall-permutation permutation ≡ path-refl` and
+  `permutation ⊢ s ≈∀ˢ s′`, then `s ≡ s′`.  Its proof counts elementary
+  swaps in the normalized path and eliminates every positive-cost
+  permutation constructor.  The lemma does not claim that arbitrary quotient
+  representatives have equal shapes.
+
+- **The cast embedding realizes the hereditary cast shape.**
+  `NuCastImprecisionShapeProperties.agda` now proves that the canonical Nu
+  narrowing and widening embeddings erase to their supplied cast shapes.
+  It also proves that the local one-sided imprecision composition realizes
+  `_；_≋_`.  The module passes
+  `agda --no-allow-unsolved-metas -v0`.
+
+- **The source and paired identity-down branches use the exact boundary
+  square.**  After collapsing only the two zero-length permutation-shape
+  edges, each branch compares the boundary square's left composition with
+  the canonical shape of `⊑-transˡ-castᵢ`.  `compose-result-unique` identifies
+  their result shapes, yielding the exact target-down composition required by
+  `cast⊒⊑ᵀ` and `⊑cast⊒ᵀ`.
+
+- **The original strict failure is repaired; the next interface gap is
+  outer widening evidence.**  Both identity-down files now elaborate through
+  their downcast relation.  Their first remaining error is at
+  `WorldCoherentFinalSourceNuCastCatchupᵀ`: the quotient-inst catch-up
+  interface retains only `QuotientWideningPair`, while the strengthened final
+  source-`ν` contract also needs the source and target widening shapes and the
+  quotient boundary square.  These witnesses already exist at the enclosing
+  `up⊑upᵀ` constructor and must be threaded through quotient final
+  classification and representative-inst catch-up rather than reconstructed.
+
+### Current plan
+
+1. Thread the outer widening shapes and quotient boundary square from
+   `up⊑upᵀ` through quotient final classification and every representative
+   instantiation path case.
+2. Finish strict checking of the source and paired identity-down leaves, then
+   the complete normalized-path cone.
+3. Resume the ranked target-`ν` allocation cells at the pending target-bullet
+   continuation.
+4. Assemble the strict terminal engines, construct `GradualDGG`, and run the
+   full strict cone.
+
+### 2026-07-24: source-universal exact framing closes strictly
+
+- **Every source-universal target frame retains its QTI evidence.**
+  Narrowing, widening, and identity widening carry their hereditary cast
+  shape and composition triangle into target terminalization.  Reveal and
+  conceal carry the appropriately lifted right-endpoint replacement
+  judgment.
+
+- **The source frame cases retain the symmetric evidence.**
+  Source narrowing and widening carry their cast shape and composition
+  triangle.  Source reveal and conceal carry their left-endpoint replacement
+  judgment.  The cast-body, lambda-body, and universal-body eliminators pass
+  these premises directly from the analyzed QTI constructor.
+
+- **The source-universal quotient capability is exact as well.**
+  Its `up⊑upᵀ` branch now retains the source widening shape, target widening
+  shape, and quotient boundary square in addition to the widening pair.  The
+  future quotient implementation therefore receives the original
+  compatibility evidence instead of reconstructing it from cast typing.
+
+- **The local cone passes strict checking.**
+  All five target-frame proofs, the closing-cases proof, both body proofs, and
+  the universal-body proof pass `agda --no-allow-unsolved-metas -v0`.  The
+  target active-root proof also passes strictly using the supplied cast shape
+  and composition directly; identity casts no longer need a separate
+  atom-shape reconstruction.
+
+- **The strict spine now fails only at the quotient outer-widening
+  migration.**  `NuDGGStrictSpine.agda` reaches
+  `NuImprecisionWorldCoherentValueCatchupPrefixProof.agda`, where the quotient
+  final interface now demands the source widening shape, target widening
+  shape, and boundary square.  These witnesses are present in the enclosing
+  `up⊑upᵀ` case and are being threaded through the quotient final cone.
+
+### 2026-07-24: target-instantiation paired-final cells are impossible
+
+- **The four-cell split had erased the decisive QTI invariant.**  At the
+  outer target widening
+
+  `M′ ⟨ inst B s ⟩`,
+
+  QTI supplies both
+
+  `widening ⊢ᶜ inst B s ⦂ νˢ s₀`
+
+  and
+
+  `⌊ p ⌋ ； νˢ s₀ ≋ ⌊ q ⌋`.
+
+  The target-instantiation root formerly retained only `p` and `q`.  That
+  made a paired final index look possible and led to an unnecessary
+  post-allocation target-bullet fusion problem.
+
+- **Composition rules out the paired final endpoint before reduction.**
+  The strict structural lemma
+  `compose-right-ν-cannot-result-∀` proves
+
+  `p₀ ； νˢ s₀ ≋ ∀ˢ q₀ → ⊥`.
+
+  If the proposed final index is `∀ⁱ q₀`, then
+  `⌊ ∀ⁱ q₀ ⌋ = ∀ˢ ⌊ q₀ ⌋`, contradicting the retained composition
+  triangle.  This is independent of whether the incoming universal index is
+  paired or source-only.
+
+- **The corrected simulation square therefore stops at the top row.**
+  Before any leading `β-inst` step, the horizontal QTI derivation would have
+  to end in the impossible composition
+
+  `⌊ p ⌋ ； νˢ s₀ ≋ ∀ˢ ⌊ q₀ ⌋`.
+
+  Consequently there is no paired-final bottom row to construct and no
+  target-bullet fusion continuation to simulate.  The temporary exact
+  pending-all trace and fusion interpreter added for that route were removed.
+
+- **Only two ranked semantic cells remain.**  The old matrix was:
+
+  1. paired incoming to source-only final;
+  2. source-only incoming to source-only final;
+  3. paired incoming to paired final;
+  4. source-only incoming to paired final.
+
+  Cells 3 and 4 are now eliminated structurally.  The root contract retains
+  the outer cast shape and composition triangle, dispatches cells 1 and 2
+  through `WorldCoherentRightTargetWidenInstantiationSourceOnlyRootᵀ`, and
+  rejects a paired final index directly.
+
+- **Focused strict validation passes.**
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/Core/Properties/ImprecisionCompositionUniversalInversion.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/WorldCoherent/Right/Target/WidenNarrow/NuImprecisionWorldCoherentRightTargetWidenInstantiationRootDef.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/WorldCoherent/Right/Target/WidenNarrow/NuImprecisionWorldCoherentRightTargetWidenInstantiationRootProof.agda`
+
+  `agda --no-allow-unsolved-metas -v0
+  proof/WorldCoherent/Right/Target/Terminalization/NuImprecisionWorldCoherentRightTargetCastTerminalizationProof.agda`
+
+  The aggregate terminal-forward spine was also attempted.  It currently
+  stops earlier in
+  `NuImprecisionWorldCoherentSourceLambdaBetaTargetFunctionCastValueProof.agda`
+  at a stale `⊑cast⊒ᵀ` pattern that omits the newly required exact evidence;
+  it does not reach the changed target-instantiation root.
+
+### Revised current plan
+
+1. Finish the quotient outer-widening migration and strict-check its identity
+   paths.
+2. Implement the two reachable source-only-final target-instantiation cells,
+   starting with source-only incoming.
+3. Assemble the strict terminal engines, construct `GradualDGG`, and run the
+   full strict cone.
+
+### 2026-07-24: quotient outer widening closes the normalized identity cone
+
+- **Outer widening evidence is retained end to end.**  Quotient final
+  classification, representative instantiation, normalized paths, identity
+  views, and the source and paired identity leaves now carry both widening
+  shapes and the original quotient boundary square.  Prefix transport applies
+  the source store changes to the source cast shape and transports the square
+  with the same type-coherence witness used for the quotient index.
+
+- **Identity instantiation exposes the exact source-`ν` body.**  In both the
+  source-only and paired downcast leaves, the source widening shape inverts to
+  `shape-inst s-shape`.  The normalized identity path aligns the boundary
+  representative with `νˢ s-shape`; canonical
+  `nu-widening⇒⊑ᵢ` composition and `compose-result-unique` then recover
+  `s-shape ； ⌊ pA ⌋ ≋ body-shape`.  The focused structural inversion
+  `compose-source-ν-body` removes only the outer `νˢ` constructor.
+
+- **The target widening cast uses the same exact square.**  The target
+  normalized-path equality aligns the other boundary representative, and the
+  shared result equality yields
+  `⌊ middle ⌋ ； u′-shape ≋ ⌊ q ⌋`.  This is passed directly to
+  `⊑cast⊑idᵀ`; no cast-shape or quotient representative is reconstructed.
+
+- **General widening no longer falls back to reflexive representatives.**
+  The source and paired cast-widening residuals retain the original
+  permutations, both downcast shapes and square, and both widening shapes and
+  square.  Their quotient indices are therefore
+  `quotientᵖ E≈E middle T≈T`, not a separately rebuilt reflexive quotient.
+
+- **The complete quotient-instantiation cone passes strict checking.**
+  The following pass with `--no-allow-unsolved-metas`:
+
+  `proof/Core/Properties/NuCastImprecisionShapeProperties.agda`
+
+  `proof/WorldCoherent/Quotient/InstCatchup/NuImprecisionWorldCoherentQuotientInstCatchupLemma.agda`
+
+  `proof/WorldCoherent/Quotient/Final/NuImprecisionWorldCoherentQuotientFinalCatchupProof.agda`
+
+  The aggregate DGG strict spine now proceeds beyond this cone and next stops
+  at a stale `up⊑upᵀ` pattern in target seal cancellation.
+
+### Revised current plan
+
+1. Migrate the remaining stale target cast, seal, and conversion QTI patterns
+   to retain their exact shape and compatibility evidence.
+2. Implement the two reachable source-only-final target-instantiation cells,
+   starting with source-only incoming.
+3. Assemble the strict terminal engines, construct `GradualDGG`, and run the
+   full strict cone.
+
+### 2026-07-24: exact QTI evidence reaches allocation and target-tag cancellation
+
+- **World-coherent target frames now state their full index invariant.**
+  Source cast frames retain the cast shape and composition triangle, while
+  source reveal and conceal frames retain the corresponding right-endpoint
+  replacement.  A target `ν` frame retains either the exact right-binder
+  replacement or the widening shape and composition.  The frame definitions
+  and proofs pass strict checking.
+
+- **The exact evidence survives the source scheduling infrastructure.**
+  Function-cast and lambda-beta scheduling, left renaming, term-context
+  shifting, source cast-frame reduction, and the function-cast target value
+  leaves now preserve component cast shapes, compositions, and conversion
+  replacements.  Function witnesses are decomposed into their domain and
+  codomain evidence rather than reconstructed from cast typing.
+
+- **Source allocation is exact in every reachable QTI case.**  Source-only
+  and paired `ν` cases retain their binder replacements; source-only and
+  paired `ν`-cast cases retain both cast shapes and composition triangles.
+  Allocation transport uses the canonical shape, replacement, compatibility,
+  and ten-field type-coherence operations.  The obsolete local composition
+  wrapper has been removed, and the complete allocation-step proof passes
+  `--no-allow-unsolved-metas`.
+
+- **Terminal quotient classification has one proof-relevant result.**  The
+  canonical completed alternative carries its weak-step store lineage,
+  result-context endpoint equalities, and heterogeneous result-store equality.
+  The world-coherent classifier is now a thin exhaustive wrapper around this
+  result.  Target ground-value quotient elimination also preserves the full
+  quotient boundary square and passes strictly.
+
+- **Target tag cancellation no longer forgets compatibility evidence.**
+  Removing a function tag transports source indices through a source-only
+  binder, transforms a source conversion's left replacement from the
+  star-indexed pair to the function-indexed pair, and derives the source cast
+  composition from the quotient boundary square.  The quotient derivation
+  uses the source and target permutation-shape edges to recover the canonical
+  ordinary function index.  The whole cancellation proof passes strict
+  checking.
+
+- **One target-conversion root still exposes a genuine contract gap.**
+  The reveal/unseal root in
+  `NuImprecisionOneStepTargetConversionRoots.agda` cannot reconstruct its
+  required world-coherent cancellation from the current one-step root
+  premises: the contract does not contain source-value catch-up or equivalent
+  world evidence.  Its strict audit still reports exactly that pre-existing
+  hole; no permissive witness was added.
+
+- **The aggregate forward checker has advanced to paired narrowing
+  application.**  It now stops at
+  `NuImprecisionOrdinaryFunctionPairedNarrowingApplicationProof.agda`, whose
+  old direct alias omits the newly required narrowing cast shapes.  The
+  ordinary and quotient application capabilities are being migrated together.
+
+### Revised current plan
+
+1. Finish the paired narrowing application migration and continue the strict
+   aggregate through the remaining cast, conversion, and quotient consumers.
+2. Implement the two reachable source-only-final target-instantiation cells,
+   starting with source-only incoming.
+3. Resolve the target reveal/unseal root contract using explicit
+   world-coherent source-value evidence.
+4. Assemble the strict terminal engines, construct `GradualDGG`, and run the
+   complete strict cone.
+
+### 2026-07-24: exact evidence reaches target administration and matched allocation
+
+- **Target administration plans now own their QTI evidence.**  Reveal and
+  conceal plans store the exact right replacement.  Narrowing and widening
+  plans store the cast shape and composition triangle.  Pending spines carry
+  the evidence-bearing plan directly, and sequence expansion consumes the two
+  component plans instead of reconstructing a midpoint relation.  The pending
+  cast accumulator and plan synthesis pass strict checking with this
+  interface.
+
+- **Synthesis distinguishes ordinary and identity-only widening.**  The
+  synthesis contract has separate fields for ordinary widening and
+  identity-only widening, and both accept the exact shape and composition
+  evidence.  Fused plans retain the same evidence.  Strict sequence synthesis
+  inverts the sequence cast shape and composition to construct exact component
+  plans.
+
+- **Matched ordinary `ν` allocation preserves the constructor's lifted
+  index.**  The catch-up chain formerly replaced the stored
+  `A⇑⊑A′⇑` with `⊑-lift∀ᵢ pA`.  This was stronger than QTI: the `ν⊑νᵀ`
+  constructor permits any lifted index and stores a paired replacement for
+  that exact index.  Value catch-up, blame catch-up, transport, coherence, and
+  indexed outcome assembly now thread `A⇑⊑A′⇑` and its replacement unchanged.
+  `NuImprecisionAllocationSimulation.agda` passes strict checking.
+
+- **The weak backward dispatcher no longer drops exact QTI evidence.**
+  Quotient down/up cases retain both narrowing shapes, the quotient square,
+  both widening shapes, and the widening square.  Source and target cast,
+  conversion, and `ν` frame cases retain their shape, composition, and
+  replacement witnesses.  Its dependency cone type-checks, but
+  `NuImprecisionCatchupScratch.agda` remains explicitly permissive and still
+  contains its pre-existing semantic holes; this is not yet a strict backward
+  engine.
+
+- **Two remaining failures are now precise invariant gaps.**
+
+  1. A terminal `Λ⊑instβᵀ` relation remembers the paired incoming index and
+     source-only result index, but not the creation square
+     `⌊ ∀ⁱ r ⌋ ； νˢ t ≋ ⌊ f ⌋`.  The source-only-from-paired target-`ν`
+     allocation cell needs this square to rule out or simulate the internally
+     fused index.
+  2. A `plan-seq` remembers the combined sequence plan but not the two
+     direction-specific component shapes and composition triangles.  After
+     catch-up, sequence terminalization therefore cannot resume the child
+     plans without re-synthesizing evidence.
+
+  Both repairs follow the same invariant: retain the exact proof-relevant
+  square at the constructor that chooses the intermediate index.
+
+### Revised current plan
+
+1. Add the creation square to `Λ⊑instβᵀ`, and replace `plan-seq` with
+   direction-specific sequence plans carrying exact component evidence.
+2. Continue the strict terminal-forward aggregate through all consumers of
+   those strengthened constructors.
+3. Implement the two reachable source-only-final target-instantiation cells.
+4. Replace the permissive weak backward roots with world-coherent contracts,
+   then assemble the strict terminal engines and inhabit `GradualDGG`.
+
+### 2026-07-24: sequence plans and forward framing retain exact evidence
+
+- **Administration sequences now retain both component squares.**  The single
+  `plan-seq` constructor has been replaced by direction-specific narrowing,
+  ordinary-widening, and identity-widening constructors.  Each constructor
+  stores the whole cast shape and outer composition triangle, both component
+  cast shapes and component-local triangles, and both child plans.  Synthesis,
+  right-allocation transport, terminalization resume, fused unseal assembly,
+  and pending-cast accumulation consume those witnesses directly.
+
+- **Fused administration has a structural decomposition theorem.**  The
+  `fun-untag-gen` and `inst-fun-tag` cases decompose through the exact
+  `★ ⇒ ★` midpoint.  The theorem returns both component plans together with
+  their shapes and triangles; no intermediate precision derivation is
+  reconstructed from cast typing.  The complete administration and
+  terminalization slice passed strict checking, and no Agda source still uses
+  `plan-seq`.
+
+- **The strengthened source scheduling cone composes strictly.**  The forward
+  integration theorem now passes `--no-allow-unsolved-metas`.  Lambda-beta and
+  function-cast framing use the indexed framed result's complete
+  ten-operation type-coherence witness rather than rebuilding only its former
+  three shape fields.  The primitive-delta dispatcher now retains all target
+  cast shapes, composition triangles, and conversion replacements.
+
+- **Source `ν` one-step frames now match exact QTI.**  Matched ordinary frames
+  retain the arbitrary stored lifted index and paired replacement.  Matched
+  cast frames retain both cast shapes, both composition triangles, and paired
+  compatibility.  Source-only ordinary and cast frames retain their left
+  replacement or cast shape and triangle.  Their definitions and proofs pass
+  strict checking.
+
+- **Inert target framing is being migrated at its real boundary.**  Its flat
+  contract previously classified a cast only by typing and then attempted to
+  reconstruct the final QTI constructor.  The contract now carries the exact
+  reveal/conceal replacement or cast shape and composition triangle in each
+  alternative.  The base framing proof transports that evidence through the
+  completed catch-up and passes strictly; contextual and terminalization
+  callers are the current strict-spine frontier.
+
+### Revised current plan
+
+1. Finish the contextual and terminalization consumers of exact inert-target
+   framing, then rerun the strict forward spine and full strict aggregate.
+2. Finish propagating the `Λ⊑instβᵀ` creation square and implement the two
+   reachable source-only-final target-instantiation cells.
+3. Replace the permissive weak backward roots with world-coherent contracts.
+4. Assemble the strict terminal engines, construct `GradualDGG`, and run the
+   complete strict cone.
+
+### 2026-07-24: exact creation and the first strict backward spine
+
+- **The inert-target framing migration is complete.**  Contextual framing,
+  non-context framing, active-root resume, and cast terminalization now retain
+  the exact reveal/conceal replacement or cast shape and composition triangle.
+  Their direct caller cone passes strict checking.
+
+- **The paired creation square reaches its direct allocation cell.**
+  `Λ⊑instβᵀ`, term-context shifting, target reindexing, universal fusion, the
+  post-beta context, allocation context, and paired-lambda root context all
+  preserve the exact creation square.  The direct empty-tail transition from
+  a paired incoming index to a source-only final index passes strict checking.
+
+- **The arbitrary-tail administration invariant now passes strictly.**  Every
+  plan constructor retains a uniform exact per-node QTI witness, and right
+  allocation transports it.  The witness survives fused decomposition,
+  arbitrary pending-spine folds, duplicated unseal assembly, cast
+  terminalization, and paired-lambda pending allocation.  An untag plan's
+  witness mode remains independent of the operational cast mode; requiring
+  those modes to be equal was an unnecessary strengthening.
+
+- **Pending sequence continuation now consumes exact component evidence.**
+  Its three direction-specific fields take the component shapes and
+  composition triangles directly.  The unused component-plan premises and six
+  redundant plan-synthesis calls have been removed.  The continuation passes
+  strict checking; the forward spine next reaches the adjacent pending-narrow
+  sequence context, which still uses an old partial QTI constructor.
+
+- **A focused backward strict spine now passes.**  World-coherent
+  target-oriented frames cover primitive and application operands, source and
+  target casts, source and target reveal/conceal conversions, and all six
+  matched or one-sided `ν` context families.  The `ν` frames retain their
+  lifted replacements, cast shapes, both matched composition triangles, and
+  paired compatibility.  The completed active leaves cover atomic identity
+  reduction and target blame.  Direct related-result builders keep each
+  successor world definitionally visible, so coherence and source-name
+  exclusivity pass through without proof irrelevance.  The focused
+  `NuDGGTerminalBackwardStrictSpine.agda` checker excludes the permissive
+  scratch dispatcher and passes `--no-allow-unsolved-metas`.
+
+- **All source `ν` frame callers retain exact QTI evidence.**  They now pass
+  the lifted replacement, cast shapes, and composition triangles through the
+  frame boundary, and the focused source `ν` frame-step proof passes strict
+  checking.  Source-allocation runtime transport now does the same for all six
+  matched and one-sided `ν`/`ν`-cast relations; its focused proof also passes
+  strict checking.
+
+- **Active target casts expose seven semantic cells.**
+  A strict root dispatcher closes all three atomic identity cases, target
+  blame, and every impossible cast-direction/grammar combination.  It leaves
+  exactly narrowing sequence and untag, ordinary widening sequence,
+  instantiation, and unseal, and identity-only widening sequence and
+  instantiation.  Each cell retains its cast shape and composition triangle.
+  Their implementation is the next active backward frontier.
+
+- **Backward catch-up now retains assumption-membership uniqueness.**
+  `WorldCoherentWeakOneStepIndexedSimulationᵀ`,
+  `WorldCoherentLeftValueCatchupᵀ`, their continuing outcomes, and the
+  arbitrary-world backward target-value theorem all take and preserve
+  `AssumptionMembershipUnique`.  This invariant is independent of
+  `WorldCoherent` and `SourceNameExclusive`, as witnessed by the existing
+  duplicate-assumption counterexample, so it is carried explicitly rather
+  than reconstructed.  The updated
+  `NuDGGTerminalBackwardStrictSpine.agda` passes
+  `--no-allow-unsolved-metas`.
+
+- **The seven target-cast cells have a concrete composition route.**  First
+  catch the arbitrary source up to a value in a possibly extended source
+  world.  At that final world, transport both precision indices and the exact
+  cast-shape triangle, seed the zero-step right-value terminal result, and
+  invoke completed target-cast terminalization.  The result must then discard
+  the already-observed leading pure target step by reduction determinism and
+  compose the original left-silent source prefix with the residual
+  right-value result.  Working at the final source catch-up world is essential:
+  source allocation may have changed the left type context.
+
+- **Forward active-root resume retains exact cast and conversion evidence.**
+  Narrow identity, source-only-lambda instantiation, ordinary widening unseal,
+  and reveal-unseal contexts now transport their cast shapes, composition
+  triangles, or right replacement squares through value catch-up before
+  rebuilding QTI.  Active-root resume, unseal, cast terminalization, and the
+  right-value cases assembly pass strict checking.  The obsolete paired
+  post-beta negative example has also been migrated to the exact one-sided
+  `ν` constructors and still passes as a structural regression.
+
+- **Source one-step cast framing now retains the same exact evidence.**
+  Source narrowing and widening frames take their cast shape and composition
+  triangle, while source reveal and conceal frames take their left replacement
+  witness.  Each is transported through the completed inner source step before
+  rebuilding QTI.  The source cast-frame runtime dispatcher passes those
+  witnesses directly, and both the focused module and
+  `NuDGGTerminalForwardStrictSpine.agda` pass strict checking.
+
+- **Target blame now has a world-coherent terminal induction.**  The induction
+  repeatedly invokes the strict target-oriented one-step capability.  Every
+  continuing branch recurs in the successor world with its preserved
+  coherence, source-name exclusivity, and assumption-membership uniqueness;
+  a source-blame branch closes immediately.  Its closed empty-world
+  specialization and the backward strict spine pass
+  `--no-allow-unsolved-metas`.
+
+- **Active target conversions are complete.**  Reveal and conceal identity
+  roots use atomic reindexing, all target-blame roots use the existing blame
+  leaf, and reveal-unseal uses the exact-world target-seal cancellation
+  square.  The latter theorem now threads assumption-membership uniqueness
+  through source-value catch-up and retains the final uniqueness witness.
+  The root proof is exhaustive over all reveal and conceal conversion
+  constructors, and its definition, proof, assembly lemma, and strict-spine
+  import all pass strict checking.
+
+- **All seven active target-cast semantic cells are complete.**  A common
+  square first catches the arbitrary source up at its final source-only world,
+  transports the cast typing, precision indices, and exact composition
+  triangle to that world, and terminalizes the target cast.  A reusable
+  pure-step residual theorem removes the already-observed target root by
+  determinism.  The caught source result is then framed by the exact target
+  cast relation and composed with the residual right-value result by a
+  reusable world-coherent left-silent/right-value composition theorem.  The
+  seven record fields cover narrowing sequence and both untag outcomes,
+  ordinary widening sequence, instantiation, and unseal, and identity-only
+  widening sequence and instantiation; sequence and instantiation also close
+  their exhaustive target-blame cases.  The semantic proof and focused
+  backward strict spine pass `--no-allow-unsolved-metas`.
+
+- **The forward target-allocation and fused-instantiation boundaries retain
+  exact QTI evidence.**  Ordinary allocation now carries its right-index
+  replacement, while casted allocation carries its widening shape and
+  composition triangle.  The value dispatcher passes those witnesses rather
+  than discarding them.  The eager `inst (★ ⇒ ★)`/tag root now receives the
+  whole sequence square and both component squares, obtained from the exact
+  fused-plan decomposition in both ordinary and identity-only widening.
+  Focused dispatch, terminalization, source-all closing, and the complete
+  forward strict spine pass strict checking.
+
+- **Obsolete post-beta and specialized-continuation surfaces are retired.**
+  The four old post-beta/matrix modules described paired-final cases that the
+  repaired index rules make unreachable.  Two specialized function
+  continuation definitions were import-only duplicates of the generic exact
+  context.  They and their aggregate imports have been deleted rather than
+  kept as closed-world compatibility shims.
+
+### Revised current plan
+
+1. Close target allocation, runtime-bullet, application, primitive, and paired
+   outer-cast roots, retaining exact QTI evidence at each boundary.
+2. Assemble the exhaustive strict backward one-step dispatcher and rerun both
+   terminal strict spines plus the public theorem cone.
+3. Assemble the strict terminal engines, construct `GradualDGG`, and run the
+   complete strict cone.
+
+### 2026-07-24: pull-request checkpoint and target-allocation frontier
+
+- **The pull-request checkpoint keeps one-step outcomes at the last coherent
+  interface.**  Continuing target-oriented one-step outcomes retain the
+  indexed result, world coherence, source-name exclusivity, and
+  assumption-membership uniqueness.  An attempted additional store-lineage
+  field was removed before publication because only part of the caller cone
+  had been migrated.  Lineage remains explicit in the catch-up records and
+  composition lemmas that already require it.
+
+- **Target allocation now has an exact four-cell contract and a partial
+  implementation.**  The contract separates matched ordinary allocation,
+  matched casted allocation, target-only ordinary allocation, and target-only
+  casted allocation.  Each cell retains the relevant replacement square or
+  cast shapes and composition triangles.  The current proof implements both
+  target-only cells directly.  The matched ordinary draft reaches source value
+  catch-up and currently stops at lifting a source-blame catch-up through the
+  surrounding `ν`; its related-value continuation, the matched casted cell,
+  and the record assembly remain unfinished and are intentionally included in
+  this checkpoint.
+
+- **Current checked boundary.**  After removing the partial lineage-interface
+  migration, `NuDGGTerminalBackwardStrictSpine.agda` again passes
+  `--no-allow-unsolved-metas`.  The publication validation also checks the
+  forward strict spine and `DynamicGradualGuarantee.agda`; these aggregate
+  modules state the current strict proof surface but do not yet construct an
+  inhabitant of `GradualDGG`.
+
+### Next steps
+
+1. Finish the matched ordinary target-allocation blame and related-value
+   continuations, then implement the matched casted cell, assemble the
+   four-cell target-allocation record, add its assembly lemma, and import it
+   into the backward strict spine.
+2. Close the remaining runtime-bullet, application, primitive, and paired
+   outer-cast roots while retaining their exact QTI replacement, shape, and
+   composition evidence.
+3. Assemble the exhaustive world-coherent backward one-step dispatcher and
+   use it in both terminal backward engines.
+4. Connect the already strict forward and backward terminal engines, construct
+   the `GradualDGG` witness, and run the complete strict aggregate.

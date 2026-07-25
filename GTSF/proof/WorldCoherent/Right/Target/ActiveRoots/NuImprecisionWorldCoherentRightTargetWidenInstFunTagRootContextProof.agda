@@ -7,23 +7,22 @@ module
 --   * Delegates the transported instantiation to its exact-index
 --     continuation, inertly frames the transported function tag, and resumes
 --     the original sequence.
+--   * Transports the retained component shape and composition triangles
+--     through the inner result before each continuation.
 --   * Takes every major contextual capability as a theorem argument.
 --   * Contains no result/view/outcome type, postulate, hole, permissive
 --     option, termination bypass, or broad DGG import.
 
 import Coercions as C
+import CastImprecisionShape as CastShape
 open import Data.List using (_∷_)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using
-  (subst; sym)
+  (refl; subst; sym)
 open import ImprecisionWf using
-  ( ImpCtx
-  ; ∀ⁱ_
-  ; ν
-  ; _∣_⊢_⊑_⊣_
-  )
+  (ImpCtx; _∣_⊢_⊑_⊣_)
 import NarrowWiden as NW
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuReduction using
@@ -42,8 +41,6 @@ open import TermTyping using
   (CastMode; SealModeStore★)
 open import Types using
   (Ty; TyCtx; ★; ★⇒★; _⇒_; `∀)
-open import proof.Target.SealTag.NuImprecisionTargetGroundUniqueness using
-  (universal-star-to-function)
 open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef
   using (rightCatchupIndexedResult)
 open import
@@ -55,7 +52,9 @@ open import
   ; targetCtxResult
   ; targetStoreResult
   ; targetTailChanges
+  ; transportShapeCoherent
   ; weakIndexedResult
+  ; weakIndexedTypeCoherence
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (rightStoreⁱ-prefix-inclusion)
@@ -84,19 +83,13 @@ open import proof.Core.Properties.ReductionProperties using
   (applyCoercions; applyCoercions-preserves-Inert)
 open import proof.Core.Properties.TypePreservation using
   (seal★-weaken)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  )
 
 
 private
-  eager-intermediate :
-    ∀ {Φ Δᴸ Δᴿ A C} →
-    Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ →
-    (q : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ) →
-    Φ ∣ Δᴸ ⊢ A ⊑ ★ ⇒ ★ ⊣ Δᴿ
-  eager-intermediate (∀ⁱ p) q =
-    universal-star-to-function q
-  eager-intermediate (ν safe occ p) q =
-    universal-star-to-function q
-
   final-widen-component :
     ∀ {Φ Δᴸ Δᴿ V M′ A B}
       {ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -145,11 +138,13 @@ world-coherent-right-target-widen-inst-fun-tag-root-context-proofᵀ :
   WorldCoherentRightTargetWidenInstFunTagRootContextᵀ
 world-coherent-right-target-widen-inst-fun-tag-root-context-proofᵀ
     inst-context inert sequence
-    {p = p} {q = q} prefix mode seal★
+    {inst-shape = inst-shape} {tag-shape = tag-shape}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       inst⊢@(C.cast-inst hFun occ body⊢)
       tag⊢@(C.cast-tag hGround ★⇒★ tag-ok) ,
       NW.inst-fun-tag safe)
+    inst-shape-proof inst-comp tag-shape-proof tag-comp
     inner context-eq right-prefix framed
     with apply-widens-typing
       {χs = targetTailChanges result}
@@ -165,11 +160,13 @@ world-coherent-right-target-widen-inst-fun-tag-root-context-proofᵀ
   result = weakIndexedResult indexed
 world-coherent-right-target-widen-inst-fun-tag-root-context-proofᵀ
     inst-context inert sequence
-    {p = p} {q = q} prefix mode seal★
+    {inst-shape = inst-shape} {tag-shape = tag-shape}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       inst⊢@(C.cast-inst hFun occ body⊢)
       tag⊢@(C.cast-tag hGround ★⇒★ tag-ok) ,
       NW.inst-fun-tag safe)
+    inst-shape-proof inst-comp tag-shape-proof tag-comp
     inner context-eq right-prefix framed
     | modeT , castT , sealT , tag-applied
     with final-widen-component result tag-applied
@@ -179,18 +176,21 @@ world-coherent-right-target-widen-inst-fun-tag-root-context-proofᵀ
   result = weakIndexedResult indexed
 world-coherent-right-target-widen-inst-fun-tag-root-context-proofᵀ
     inst-context inert sequence
-    {p = p} {q = q} prefix mode seal★
+    {inst-shape = inst-shape} {tag-shape = tag-shape}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       inst⊢@(C.cast-inst hFun occ body⊢)
       tag⊢@(C.cast-tag hGround ★⇒★ tag-ok) ,
       NW.inst-fun-tag safe)
+    inst-shape-proof inst-comp tag-shape-proof tag-comp
     inner context-eq right-prefix framed
     | modeT , castT , sealT , tag-applied
     | tag-final
     with inst-context
-      {q = eager-intermediate p q}
+      {q = r}
       prefix mode seal★
       (inst⊢ , NW.inst safe)
+      inst-shape-proof inst-comp
       inner context-eq right-prefix
   where
   indexed = rightCatchupIndexedResult
@@ -198,11 +198,13 @@ world-coherent-right-target-widen-inst-fun-tag-root-context-proofᵀ
   result = weakIndexedResult indexed
 world-coherent-right-target-widen-inst-fun-tag-root-context-proofᵀ
     inst-context inert sequence
-    {p = p} {q = q} prefix mode seal★
+    {inst-shape = inst-shape} {tag-shape = tag-shape}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       inst⊢@(C.cast-inst hFun occ body⊢)
       tag⊢@(C.cast-tag hGround ★⇒★ tag-ok) ,
       NW.inst-fun-tag safe)
+    inst-shape-proof inst-comp tag-shape-proof tag-comp
     inner context-eq right-prefix framed
     | modeT , castT , sealT , tag-applied
     | tag-final
@@ -214,20 +216,36 @@ world-coherent-right-target-widen-inst-fun-tag-root-context-proofᵀ
       (applyCoercions-preserves-Inert
         (targetTailChanges result) ((★ ⇒ ★) C.!))
       (inj₂ (inj₂ (inj₂ (inj₁
-        (modeT , castT , final-seal-mode result sealT ,
-          tag-final)))))
+        (modeT , tag-shape , castT ,
+          final-seal-mode result sealT , tag-final ,
+          result-tag-shape , result-tag-comp)))))
       instantiated instantiated-context instantiated-prefix
   where
   indexed = rightCatchupIndexedResult
     (worldRightCatchupResult inner)
   result = weakIndexedResult indexed
+
+  result-tag-shape =
+    cast-shape-applyCoercions
+      (targetTailChanges result) tag-shape-proof
+
+  result-tag-comp =
+    imprecision-composition-shape-transport
+      (transportShapeCoherent
+        (weakIndexedTypeCoherence indexed) r)
+      refl
+      (transportShapeCoherent
+        (weakIndexedTypeCoherence indexed) q)
+      tag-comp
 world-coherent-right-target-widen-inst-fun-tag-root-context-proofᵀ
     inst-context inert sequence
-    {p = p} {q = q} prefix mode seal★
+    {inst-shape = inst-shape} {tag-shape = tag-shape}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       inst⊢@(C.cast-inst hFun occ body⊢)
       tag⊢@(C.cast-tag hGround ★⇒★ tag-ok) ,
       NW.inst-fun-tag safe)
+    inst-shape-proof inst-comp tag-shape-proof tag-comp
     inner context-eq right-prefix framed
     | modeT , castT , sealT , tag-applied
     | tag-final

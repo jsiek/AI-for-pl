@@ -6,22 +6,29 @@ module
 --   * Implements source cast/conversion framing for completed source steps.
 --   * Prefix-weakens source evidence to the completed relational store, then
 --     frames the source trace and final quotient relation.
+--   * Transports exact cast shapes, composition triangles, and conversion
+--     replacements through the completed inner step.
 --   * Preserves transport, type coherence, store lineage, exact source
 --     change/result, world coherence, and source-name exclusivity.
 --   * Contains no recursive source worker, hole, postulate, or permissive
 --     option.
 
 open import Coercions using (Coercion)
+open import CastImprecisionShape using
+  (narrowing; widening; _⊢ᶜ_⦂_)
 open import Conversion using
   ( ConcealConversion
   ; RevealConversion
   ; weaken-conceal-conversion
   ; weaken-reveal-conversion
   )
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using
   ( narrow-weaken
   ; widen-weaken
@@ -44,7 +51,7 @@ open import QuotientedTermImprecision using
   ; conv↓⊑ᵀ
   )
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; cong; cong₂; subst; sym)
+  (_≡_; cong; cong₂; refl; subst; sym)
 open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx)
 open import proof.Catchup.Simulation.NuImprecisionSimulation using
@@ -53,9 +60,13 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-source-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-conceal-conversions
-  ; apply-narrows-typing
-  ; apply-reveal-conversions
+  ( apply-narrows-typing
+  )
+open import
+  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+  using
+  ( apply-conceal-conversions-exact
+  ; apply-reveal-conversions-exact
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( canonicalIndexedResults
@@ -70,6 +81,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; weakIndexedResult
   ; weakIndexedTransport
   ; weakIndexedTypeCoherence
+  ; transportLeftReplacementCoherent
+  ; transportShapeCoherent
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion)
@@ -99,7 +112,12 @@ open import proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherent
   ; sourceStepSourceWidenFrame
   )
 open import proof.Core.Properties.NuWideningTransport using (apply-widens-typing)
-open import proof.Core.Properties.ReductionProperties using (applyCoercions)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  )
+open import proof.Core.Properties.ReductionProperties using
+  (applyCoercions; applyTyVars)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
 
 
@@ -108,12 +126,15 @@ source-step-source-narrow-frameᵀ :
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {M M′ L : Term} {A B B′ : Ty}
     {c : Coercion} {μ} {χ : StoreChange}
+    {s : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   CastMode μ →
   SealModeStore★ μ (leftStoreⁱ ρ₀) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊒ B →
+  narrowing ⊢ᶜ c ⦂ s →
+  s ； ⌊ p ⌋ ≋ ⌊ q ⌋ →
   WorldCoherentSourceOneStepIndexedResult
     {M = M} {M′ = M′} {L = L}
     {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} p →
@@ -123,7 +144,7 @@ source-step-source-narrow-frameᵀ :
     {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} q
 source-step-source-narrow-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} {χ = χ} {q = q}
-    prefix mode seal★ c⊒ complete
+    prefix mode seal★ c⊒ c-shape comp complete
     with apply-narrows-typing
       {χs = sourceChanges
         (weakIndexedResult (sourceStepIndexedResult complete))}
@@ -133,7 +154,7 @@ source-step-source-narrow-frameᵀ
         (leftStoreⁱ-prefix-inclusion prefix) c⊒)
 source-step-source-narrow-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} {χ = χ} {q = q}
-    prefix mode seal★ c⊒ complete
+    prefix mode seal★ c⊒ c-shape comp complete
     | μ′ , mode′ , seal★′ , c′⊒ =
   world-coherent-source-one-step-indexed
     framed-indexed
@@ -178,19 +199,21 @@ source-step-source-narrow-frameᵀ
   final-relation =
     cast⊒⊑ᵀ mode′ final-seal final-cast
       (canonicalIndexedResults indexed₀) (transportType inner q)
+      (cast-shape-applyCoercions (sourceChanges inner) c-shape)
+      (imprecision-composition-shape-transport
+        refl
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed₀) _)
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed₀) q)
+        comp)
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
     (weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete)))
+      inner final-relation (weakIndexedTransport indexed₀))
     (weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
-  framed-transport =
-    weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete))
-  framed-coherence =
-    weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
+      inner final-relation (weakIndexedTypeCoherence indexed₀))
 
   cast-exact :
     applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c
@@ -208,12 +231,15 @@ source-step-source-widen-frameᵀ :
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {M M′ L : Term} {A B B′ : Ty}
     {c : Coercion} {μ} {χ : StoreChange}
+    {s : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   CastMode μ →
   SealModeStore★ μ (leftStoreⁱ ρ₀) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
+  widening ⊢ᶜ c ⦂ s →
+  s ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
   WorldCoherentSourceOneStepIndexedResult
     {M = M} {M′ = M′} {L = L}
     {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} p →
@@ -223,7 +249,7 @@ source-step-source-widen-frameᵀ :
     {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} q
 source-step-source-widen-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} {χ = χ} {q = q}
-    prefix mode seal★ c⊑ complete
+    prefix mode seal★ c⊑ c-shape comp complete
     with apply-widens-typing
       {χs = sourceChanges
         (weakIndexedResult (sourceStepIndexedResult complete))}
@@ -233,7 +259,7 @@ source-step-source-widen-frameᵀ
         (leftStoreⁱ-prefix-inclusion prefix) c⊑)
 source-step-source-widen-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} {χ = χ} {q = q}
-    prefix mode seal★ c⊑ complete
+    prefix mode seal★ c⊑ c-shape comp complete
     | μ′ , mode′ , seal★′ , c′⊑ =
   world-coherent-source-one-step-indexed
     framed-indexed
@@ -278,19 +304,21 @@ source-step-source-widen-frameᵀ
   final-relation =
     cast⊑⊑ᵀ mode′ final-seal final-cast
       (canonicalIndexedResults indexed₀) (transportType inner q)
+      (cast-shape-applyCoercions (sourceChanges inner) c-shape)
+      (imprecision-composition-shape-transport
+        refl
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed₀) q)
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed₀) _)
+        comp)
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
     (weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete)))
+      inner final-relation (weakIndexedTransport indexed₀))
     (weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
-  framed-transport =
-    weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete))
-  framed-coherence =
-    weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
+      inner final-relation (weakIndexedTypeCoherence indexed₀))
 
   cast-exact :
     applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c
@@ -312,6 +340,7 @@ source-step-source-reveal-frameᵀ :
     {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   RevealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+  p [ α ↦ X ]ᴸ q →
   WorldCoherentSourceOneStepIndexedResult
     {M = M} {M′ = M′} {L = L}
     {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} p →
@@ -320,17 +349,19 @@ source-step-source-reveal-frameᵀ :
     {L = L ⟨ applyCoercion χ c ⟩}
     {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} q
 source-step-source-reveal-frameᵀ
-    {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} {χ = χ} {q = q}
-    prefix c↑ complete
-    with apply-reveal-conversions
+    {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
+    {α = α} {X = X} {χ = χ} {q = q}
+    prefix c↑ replace complete
+    with apply-reveal-conversions-exact
       {χs = sourceChanges
         (weakIndexedResult (sourceStepIndexedResult complete))}
       (weaken-reveal-conversion
         (leftStoreⁱ-prefix-inclusion prefix) c↑)
 source-step-source-reveal-frameᵀ
-    {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} {χ = χ} {q = q}
-    prefix c↑ complete
-    | μ′ , α′ , X′ , c′↑ =
+    {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
+    {α = α} {X = X} {χ = χ} {q = q}
+    prefix c↑ replace complete
+    | μ′ , c′↑ =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
@@ -348,21 +379,27 @@ source-step-source-reveal-frameᵀ
 
   final-conversion :
     RevealConversion μ′ (resultLeftCtx inner)
-      (leftStoreⁱ (resultStore inner)) α′ X′
+      (leftStoreⁱ (resultStore inner))
+      (applyTyVars (sourceChanges inner) α)
+      (applyTys (sourceChanges inner) X)
       (applyCoercions (sourceChanges inner) c)
       (applyTys (sourceChanges inner) A)
       (applyTys (sourceChanges inner) B)
   final-conversion =
     subst
       (λ Δ → RevealConversion μ′ Δ
-        (leftStoreⁱ (resultStore inner)) α′ X′
+        (leftStoreⁱ (resultStore inner))
+        (applyTyVars (sourceChanges inner) α)
+        (applyTys (sourceChanges inner) X)
         (applyCoercions (sourceChanges inner) c)
         (applyTys (sourceChanges inner) A)
         (applyTys (sourceChanges inner) B))
       (sym (sourceCtxResult inner))
       (subst
         (λ Σ → RevealConversion μ′
-          (applyTyCtxs (sourceChanges inner) Δᴸ) Σ α′ X′
+          (applyTyCtxs (sourceChanges inner) Δᴸ) Σ
+          (applyTyVars (sourceChanges inner) α)
+          (applyTys (sourceChanges inner) X)
           (applyCoercions (sourceChanges inner) c)
           (applyTys (sourceChanges inner) A)
           (applyTys (sourceChanges inner) B))
@@ -371,19 +408,15 @@ source-step-source-reveal-frameᵀ
   final-relation =
     conv↑⊑ᵀ final-conversion
       (canonicalIndexedResults indexed₀) (transportType inner q)
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed₀) replace)
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
     (weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete)))
+      inner final-relation (weakIndexedTransport indexed₀))
     (weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
-  framed-transport =
-    weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete))
-  framed-coherence =
-    weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
+      inner final-relation (weakIndexedTypeCoherence indexed₀))
 
   cast-exact :
     applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c
@@ -405,6 +438,7 @@ source-step-source-conceal-frameᵀ :
     {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   ConcealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+  q [ α ↦ X ]ᴸ p →
   WorldCoherentSourceOneStepIndexedResult
     {M = M} {M′ = M′} {L = L}
     {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} p →
@@ -413,17 +447,19 @@ source-step-source-conceal-frameᵀ :
     {L = L ⟨ applyCoercion χ c ⟩}
     {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} q
 source-step-source-conceal-frameᵀ
-    {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} {χ = χ} {q = q}
-    prefix c↓ complete
-    with apply-conceal-conversions
+    {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
+    {α = α} {X = X} {χ = χ} {q = q}
+    prefix c↓ replace complete
+    with apply-conceal-conversions-exact
       {χs = sourceChanges
         (weakIndexedResult (sourceStepIndexedResult complete))}
       (weaken-conceal-conversion
         (leftStoreⁱ-prefix-inclusion prefix) c↓)
 source-step-source-conceal-frameᵀ
-    {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} {χ = χ} {q = q}
-    prefix c↓ complete
-    | μ′ , α′ , X′ , c′↓ =
+    {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
+    {α = α} {X = X} {χ = χ} {q = q}
+    prefix c↓ replace complete
+    | μ′ , c′↓ =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
@@ -441,21 +477,27 @@ source-step-source-conceal-frameᵀ
 
   final-conversion :
     ConcealConversion μ′ (resultLeftCtx inner)
-      (leftStoreⁱ (resultStore inner)) α′ X′
+      (leftStoreⁱ (resultStore inner))
+      (applyTyVars (sourceChanges inner) α)
+      (applyTys (sourceChanges inner) X)
       (applyCoercions (sourceChanges inner) c)
       (applyTys (sourceChanges inner) A)
       (applyTys (sourceChanges inner) B)
   final-conversion =
     subst
       (λ Δ → ConcealConversion μ′ Δ
-        (leftStoreⁱ (resultStore inner)) α′ X′
+        (leftStoreⁱ (resultStore inner))
+        (applyTyVars (sourceChanges inner) α)
+        (applyTys (sourceChanges inner) X)
         (applyCoercions (sourceChanges inner) c)
         (applyTys (sourceChanges inner) A)
         (applyTys (sourceChanges inner) B))
       (sym (sourceCtxResult inner))
       (subst
         (λ Σ → ConcealConversion μ′
-          (applyTyCtxs (sourceChanges inner) Δᴸ) Σ α′ X′
+          (applyTyCtxs (sourceChanges inner) Δᴸ) Σ
+          (applyTyVars (sourceChanges inner) α)
+          (applyTys (sourceChanges inner) X)
           (applyCoercions (sourceChanges inner) c)
           (applyTys (sourceChanges inner) A)
           (applyTys (sourceChanges inner) B))
@@ -464,19 +506,15 @@ source-step-source-conceal-frameᵀ
   final-relation =
     conv↓⊑ᵀ final-conversion
       (canonicalIndexedResults indexed₀) (transportType inner q)
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed₀) replace)
 
   framed = weak-one-step-source-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
     (weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete)))
+      inner final-relation (weakIndexedTransport indexed₀))
     (weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
-  framed-transport =
-    weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport (sourceStepIndexedResult complete))
-  framed-coherence =
-    weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
+      inner final-relation (weakIndexedTypeCoherence indexed₀))
 
   cast-exact :
     applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c

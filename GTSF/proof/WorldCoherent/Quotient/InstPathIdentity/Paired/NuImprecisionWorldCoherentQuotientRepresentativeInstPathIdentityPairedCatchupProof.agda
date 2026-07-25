@@ -29,16 +29,28 @@ world-coherent-quotient-representative-inst-path-identity-paired-catchup-proof�
   WorldCoherentQuotientRepresentativeInstPathIdentityPairedGenDownCatchupᵀ →
   WorldCoherentQuotientRepresentativeInstPathIdentityPairedCatchupᵀ
 world-coherent-quotient-representative-inst-path-identity-paired-catchup-proofᵀ
-    id-down gen-down {r = r}
+    id-down gen-down {E≈E = E≈E} {r = r} {F≈F = F≈F}
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′
-    (down⊑downᵀ d⊒ d′⊒ V⊑V′ qD) widening =
-  id-down r coherent exclusive wfL okN vVd noVd vV′ noV′
-    inert-d′ inert-u′ d⊒ d′⊒ V⊑V′ widening
+    (down⊑downᵀ d⊒ d-shape d′⊒ d′-shape
+      V⊑V′ qD down-square)
+    widening u-shape u′-shape up-square =
+  id-down r source-normal target-normal
+    coherent exclusive wfL okN vVd noVd vV′ noV′
+    inert-d′ inert-u′ d⊒ d-shape d′⊒ d′-shape
+    down-square V⊑V′
+    widening u-shape u′-shape up-square
 world-coherent-quotient-representative-inst-path-identity-paired-catchup-proofᵀ
-    id-down gen-down {r = r}
+    id-down gen-down {E≈E = E≈E} {r = r} {F≈F = F≈F}
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′
-    (gen-down⊑gen-downᵀ d⊒ d′⊒ V⊑V′ qD) widening =
-  gen-down r coherent exclusive wfL okN vVd noVd vV′ noV′
-    inert-d′ inert-u′ d⊒ d′⊒ V⊑V′ widening
+    (gen-down⊑gen-downᵀ d⊒ d-shape d′⊒ d′-shape
+      V⊑V′ qD down-square)
+    widening u-shape u′-shape up-square =
+  gen-down r source-normal target-normal
+    coherent exclusive wfL okN vVd noVd vV′ noV′
+    inert-d′ inert-u′ d⊒ d-shape d′⊒ d′-shape
+    down-square V⊑V′
+    widening u-shape u′-shape up-square

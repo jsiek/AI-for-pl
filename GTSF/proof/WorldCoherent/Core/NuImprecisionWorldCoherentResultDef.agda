@@ -23,6 +23,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   )
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
+  using (AssumptionMembershipUnique)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
@@ -36,8 +39,11 @@ data WorldCoherentWeakOneStepIndexedOutcome
   world-indexed-outcome-related :
     (result : WeakOneStepIndexedResult
       {M = M} {N′ = N′} {χ = χ} {ρ = ρ} p) →
+    WeakOneStepStoreLineage (weakIndexedResult result) →
     WorldCoherent (resultStore (weakIndexedResult result)) →
     SourceNameExclusive (resultCtx (weakIndexedResult result)) →
+    AssumptionMembershipUnique
+      (resultCtx (weakIndexedResult result)) →
     WorldCoherentWeakOneStepIndexedOutcome p
 
   world-indexed-outcome-source-blame : ∀ {χs} →
@@ -65,6 +71,11 @@ record WorldCoherentLeftCatchupIndexedResult
             (catchupIndexedResult worldCatchupResult)))
     worldCatchupSourceNameExclusive :
       SourceNameExclusive
+        (resultCtx
+          (weakIndexedResult
+            (catchupIndexedResult worldCatchupResult)))
+    worldCatchupAssumptionMembershipUnique :
+      AssumptionMembershipUnique
         (resultCtx
           (weakIndexedResult
             (catchupIndexedResult worldCatchupResult)))

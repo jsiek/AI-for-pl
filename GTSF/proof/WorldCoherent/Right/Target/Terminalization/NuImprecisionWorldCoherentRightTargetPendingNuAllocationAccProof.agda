@@ -34,31 +34,34 @@ world-coherent-right-target-pending-nu-allocation-acc-proofᵀ
     paired-from-paired paired-from-source-only
     source-only-from-paired source-only-from-source-only
     {p = ∀ⁱ p} {r = ∀ⁱ r}
-    vW access mode seal★ widening tail coherent
+    vW access mode seal★ widening shape comp tail coherent
     exclusive unique wfR runtime vV noV noW relation =
-  paired-from-paired vW access mode seal★ widening tail coherent
+  paired-from-paired vW access mode seal★ widening shape comp tail coherent
     exclusive unique wfR runtime vV noV noW relation
 world-coherent-right-target-pending-nu-allocation-acc-proofᵀ
     paired-from-paired paired-from-source-only
     source-only-from-paired source-only-from-source-only
     {p = ν safeₚ occₚ p} {r = ∀ⁱ r}
-    vW access mode seal★ widening tail coherent
+    vW access mode seal★ widening shape comp tail coherent
     exclusive unique wfR runtime vV noV noW relation =
-  paired-from-source-only vW access mode seal★ widening tail coherent
+  paired-from-source-only vW access mode seal★ widening shape comp
+    tail coherent
     exclusive unique wfR runtime vV noV noW relation
 world-coherent-right-target-pending-nu-allocation-acc-proofᵀ
     paired-from-paired paired-from-source-only
     source-only-from-paired source-only-from-source-only
     {p = ∀ⁱ p} {r = ν safeᵣ occᵣ r}
-    vW access mode seal★ widening tail coherent
+    vW access mode seal★ widening shape comp tail coherent
     exclusive unique wfR runtime vV noV noW relation =
-  source-only-from-paired vW access mode seal★ widening tail coherent
+  source-only-from-paired vW access mode seal★ widening shape comp
+    tail coherent
     exclusive unique wfR runtime vV noV noW relation
 world-coherent-right-target-pending-nu-allocation-acc-proofᵀ
     paired-from-paired paired-from-source-only
     source-only-from-paired source-only-from-source-only
     {p = ν safeₚ occₚ p} {r = ν safeᵣ occᵣ r}
-    vW access mode seal★ widening tail coherent
+    vW access mode seal★ widening shape comp tail coherent
     exclusive unique wfR runtime vV noV noW relation =
-  source-only-from-source-only vW access mode seal★ widening tail coherent
+  source-only-from-source-only vW access mode seal★ widening shape comp
+    tail coherent
     exclusive unique wfR runtime vV noV noW relation

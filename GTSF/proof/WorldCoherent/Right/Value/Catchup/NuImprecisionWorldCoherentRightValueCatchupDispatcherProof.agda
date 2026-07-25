@@ -123,8 +123,9 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     ((vM ⟨ inert-d ⟩) ⟨ inert-u ⟩)
     (no•-⟨⟩ (no•-⟨⟩ noM))
-    (up⊑upᵀ (down⊑downᵀ d⊒ d′⊒ M⊑M′ qD)
-      widening pA) =
+    (up⊑upᵀ
+      (down⊑downᵀ d⊒ d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pA u-shape u′-shape up-square) =
   rightQuotientIdDownUpFrame quotient-cases
     prefix coherent exclusive unique wfR okM′ vM noM inert-d inert-u
     d⊒ d′⊒ qD M⊑M′ widening inner
@@ -137,8 +138,10 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     ((vM ⟨ inert-d ⟩) ⟨ inert-u ⟩)
     (no•-⟨⟩ (no•-⟨⟩ noM))
-    (up⊑upᵀ (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ qD)
-      widening pA) =
+    (up⊑upᵀ
+      (gen-down⊑gen-downᵀ
+        d⊒ d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pA u-shape u′-shape up-square) =
   rightQuotientGenDownUpFrame quotient-cases
     prefix coherent exclusive unique wfR okM′ vM noM inert-d inert-u
     d⊒ d′⊒ qD M⊑M′ widening inner
@@ -162,7 +165,8 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okW′
     vV noV
     rel@(Λ⊑instβᵀ prefix₀ mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f assm hτ hσ embedding
+      vW noW vW′ noW′ inert body f inst-shape creation-square
+      assm hτ hσ embedding
       source-eq target-eq source-type-eq target-type-eq p
       final-v final-no final-closed final-v′ final-no′ final-closed′
       source-typing target-typing) =
@@ -190,15 +194,18 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
     coherent exclusive unique wfR okM′ vV noV inner
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
-    (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑ liftρ liftγ N⊑N′)
+    (ν⊑νᵀ
+      hA hA′ s↑ s′↑ pA pA⇑ liftρ liftγ N⊑N′ replacement)
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
-    (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑M′)
+    (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑M′ replacement)
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okν vN noN
-    (⊑νᵀ hA h⇑A s↑ liftρ lift-right-ctx-[] r N⊑N′) =
+    (⊑νᵀ
+      hA h⇑A s↑ liftρ lift-right-ctx-[] r N⊑N′ replacement) =
   rightTargetNuFrame allocation-cases prefix coherent exclusive unique wfR
-    okν vN noN hA h⇑A s↑ liftρ lift-right-ctx-[] r N⊑N′ inner
+    okν vN noN hA h⇑A s↑ liftρ lift-right-ctx-[] r N⊑N′
+    replacement inner
   where
   allocation-cases = rightValueTargetAllocationFramesCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
@@ -207,15 +214,19 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ compat liftρ liftγ N⊑N′)
+      s⊑ s′⊑ compat liftρ liftγ N⊑N′
+      s-shape s′-shape left-comp right-comp)
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑M′)
+    (νcast⊑ᵀ
+      mode seal★ s⊑ liftρ liftγ N⊑M′ s-shape comp)
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okν vN noN
-    (⊑νcastᵀ mode seal★ s⊑ liftρ lift-right-ctx-[] r N⊑N′) =
+    (⊑νcastᵀ
+      mode seal★ s⊑ liftρ lift-right-ctx-[] r N⊑N′ s-shape comp) =
   rightTargetNuCastFrame allocation-cases prefix coherent exclusive unique wfR
-    okν vN noN mode seal★ s⊑ liftρ lift-right-ctx-[] r N⊑N′ inner
+    okν vN noN mode seal★ s⊑ liftρ lift-right-ctx-[] r N⊑N′
+    s-shape comp inner
   where
   allocation-cases = rightValueTargetAllocationFramesCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
@@ -238,9 +249,9 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q) =
+    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q c-shape comp) =
   rightSourceNarrowFrame source-cases prefix coherent exclusive unique wfR
-    okM′ vM noM inert mode seal★ c⊒ M⊑M′ inner
+    okM′ vM noM inert mode seal★ c⊒ c-shape comp M⊑M′ inner
   where
   source-cases = rightValueSourceFramesCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
@@ -248,18 +259,18 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q) =
+    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape comp) =
   rightSourceWidenFrame source-cases prefix coherent exclusive unique wfR
-    okM′ vM noM inert mode seal★ c⊑ M⊑M′ inner
+    okM′ vM noM inert mode seal★ c⊑ c-shape comp M⊑M′ inner
   where
   source-cases = rightValueSourceFramesCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ vM noM M⊑M′
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ vV noV
-    (⊑cast⊒ᵀ mode seal★ c⊒ V⊑M′ q) =
+    (⊑cast⊒ᵀ mode seal★ c⊒ V⊑M′ q c-shape comp) =
   rightTargetNarrowFrame target-cases prefix coherent exclusive unique wfR
-    okM′ vV noV mode seal★ c⊒ V⊑M′ inner
+    okM′ vV noV mode seal★ c⊒ c-shape comp V⊑M′ inner
   where
   target-cases = rightValueTargetCastTerminalizationCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
@@ -267,9 +278,9 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
     vV noV V⊑M′
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ vV noV
-    (⊑cast⊑ᵀ mode seal★ c⊑ V⊑M′ q) =
+    (⊑cast⊑ᵀ mode seal★ c⊑ V⊑M′ q c-shape comp) =
   rightTargetWidenFrame target-cases prefix coherent exclusive unique wfR
-    okM′ vV noV mode seal★ c⊑ V⊑M′ inner
+    okM′ vV noV mode seal★ c⊑ c-shape comp V⊑M′ inner
   where
   target-cases = rightValueTargetCastTerminalizationCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
@@ -277,9 +288,9 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
     vV noV V⊑M′
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ vV noV
-    (⊑cast⊑idᵀ seal★ c⊑ V⊑M′ q) =
+    (⊑cast⊑idᵀ seal★ c⊑ V⊑M′ q c-shape comp) =
   rightTargetIdWidenFrame target-cases prefix coherent exclusive unique wfR
-    okM′ vV noV seal★ c⊑ V⊑M′ inner
+    okM′ vV noV seal★ c⊑ c-shape comp V⊑M′ inner
   where
   target-cases = rightValueTargetCastTerminalizationCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
@@ -298,9 +309,9 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    (conv↑⊑ᵀ c↑ M⊑M′ q) =
+    (conv↑⊑ᵀ c↑ M⊑M′ q replacement) =
   rightSourceRevealFrame source-cases prefix coherent exclusive unique wfR
-    okM′ vM noM inert c↑ M⊑M′ inner
+    okM′ vM noM inert c↑ replacement M⊑M′ inner
   where
   source-cases = rightValueSourceFramesCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
@@ -308,18 +319,18 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    (conv↓⊑ᵀ c↓ M⊑M′ q) =
+    (conv↓⊑ᵀ c↓ M⊑M′ q replacement) =
   rightSourceConcealFrame source-cases prefix coherent exclusive unique wfR
-    okM′ vM noM inert c↓ M⊑M′ inner
+    okM′ vM noM inert c↓ replacement M⊑M′ inner
   where
   source-cases = rightValueSourceFramesCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ vM noM M⊑M′
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ vV noV
-    (⊑conv↑ᵀ c↑ V⊑M′ q) =
+    (⊑conv↑ᵀ c↑ V⊑M′ q replacement) =
   rightTargetRevealFrame target-cases prefix coherent exclusive unique wfR
-    okM′ vV noV c↑ V⊑M′ inner
+    okM′ vV noV c↑ replacement V⊑M′ inner
   where
   target-cases = rightValueTargetCastTerminalizationCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
@@ -327,9 +338,9 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
     vV noV V⊑M′
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ vV noV
-    (⊑conv↓ᵀ c↓ V⊑M′ q) =
+    (⊑conv↓ᵀ c↓ V⊑M′ q replacement) =
   rightTargetConcealFrame target-cases prefix coherent exclusive unique wfR
-    okM′ vV noV c↓ V⊑M′ inner
+    okM′ vV noV c↓ replacement V⊑M′ inner
   where
   target-cases = rightValueTargetCastTerminalizationCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ

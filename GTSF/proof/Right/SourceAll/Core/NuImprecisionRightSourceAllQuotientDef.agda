@@ -9,12 +9,16 @@ module
 --     postulate, hole, permissive option, or broad simulation import.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; widening)
 open import Coercions using (Coercion)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import Imprecision using (NonVar)
+open import ImprecisionComposition using
+  (ImprecisionShape; _；⌊_⌋≋ᵖ_；_)
 open import ImprecisionWf using
   (ImpCtx; _ˣ⊑★; _∣_⊢_⊑_⊣_; ⇑ᴸᵢ)
 import ImprecisionWf as IW
@@ -53,6 +57,7 @@ WorldCoherentRightSourceAllQuotientᵀ =
       ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {N N′ : Term} {D D′ A A′ : Ty}
     {u u′ : Coercion}
+    {sU sU′ : ImprecisionShape}
     {{safe : NonVar A}}
     {qD : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
@@ -76,6 +81,9 @@ WorldCoherentRightSourceAllQuotientᵀ =
     ⊢ᴺᵖ N ⊑ N′ ⦂ D ⊑ᵖ D′ ∶ qD →
   QuotientWideningPair
     (suc Δᴸ) Δᴿ ρᴸ u u′ D D′ A A′ →
+  widening ⊢ᶜ u ⦂ sU →
+  widening ⊢ᶜ u′ ⦂ sU′ →
+  sU ；⌊ pA ⌋≋ᵖ qD ； sU′ →
   WorldCoherentRightValueCatchupIndexedResult
     {V = Λ (N ⟨ u ⟩)} {M′ = N′ ⟨ u′ ⟩}
     {ρ = ρ⁺} (IW.ν safe occ pA)

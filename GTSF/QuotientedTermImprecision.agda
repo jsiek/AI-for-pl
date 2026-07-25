@@ -20,7 +20,8 @@ module QuotientedTermImprecision where
 --   * Records the intermediate index for right-only allocation and permits
 --     body relations to cross the exact fresh-store extension it creates.
 --   * Fuses target-only `inst` allocation and its terminal body cast while
---     retaining the pre-allocation store and matched body relation.
+--     retaining the pre-allocation store, matched body relation, and exact
+--     creation shape/composition square.
 --   * Leaves adjacent-`∀` crossed-body transport admissible, avoiding
 --     syntax-specific swap constructors in the term relation.
 --   * Relates widening bodies exposed by crossed `inst∀` and `∀inst`
@@ -31,7 +32,7 @@ open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (zero; suc)
-open import Data.Product using (_×_; _,_)
+open import Data.Product using (_×_; _,_; proj₂)
 open import Relation.Binary.PropositionalEquality using (subst)
 
 open import Types
@@ -45,7 +46,16 @@ open import Conversion using
   ; _∣_∣_⊢_∶_↓ˢ_
   )
 open import ImprecisionWf
-open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
+open import ForallPermutation using
+  ( _∣_⊢_⊑ᵖ_⊣_
+  ; quotientᵖ
+  ; ≈∀-refl
+  ; ⊑ᵖ-arrow-components
+  )
+open import ImprecisionComposition using
+  (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_; _；⌊_⌋≋ᵖ_；_)
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; _[_↦_]ᴿ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
@@ -73,6 +83,8 @@ open import NuTerms using
 open import PairedWideningCompatibility using
   (PairedWideningCompatible)
 open import Primitives
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; narrowing; widening)
 open import proof.Core.Properties.TypeProperties using (TyRenameWf)
 open import proof.Core.Properties.CastImprecision using
   ( ∀ᵢᶜ
@@ -80,7 +92,11 @@ open import proof.Core.Properties.CastImprecision using
   ; ⊑-transʳ-castᵢ
   )
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  (rename-assm²ᵢ)
+  ( rename-assm²ᵢ
+  ; ⊑-lift∀ᵢ
+  ; ⊑-source-liftνᵢ
+  ; ⊑-target-lift-rightᵢ
+  )
 open import TermTyping using
   ( CastMode
   ; SealModeStore★
@@ -177,6 +193,7 @@ data PairedConversion
     StoreCorresponds ρ α X β X′ pX →
     RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
     RevealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′ →
+    p [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ q →
     PairedConversion Φ Δᴸ Δᴿ ρ c c′ {A} {A′} {B} {B′} p q
 
   paired-conceal :
@@ -184,6 +201,7 @@ data PairedConversion
     StoreCorresponds ρ α X β X′ pX →
     ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
     ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′ →
+    q [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ p →
     PairedConversion Φ Δᴸ Δᴿ ρ c c′ {A} {A′} {B} {B′} p q
 
 data PairedCast
@@ -198,14 +216,19 @@ data PairedCast
     PairedCast Φ Δᴸ Δᴿ ρ c c′ {A} {A′} {B} {B′} p q
 
   paired-widening :
-    ∀ {μ μ′ c c′ A A′ B B′ p q} →
+    ∀ {μ μ′ c c′ A A′ B B′ p q s s′ r} →
     CastMode μ →
     SealModeStore★ μ (leftStoreⁱ ρ) →
     μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B →
+    widening ⊢ᶜ c ⦂ s →
     CastMode μ′ →
     SealModeStore★ μ′ (rightStoreⁱ ρ) →
     μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′ →
-    PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
+    widening ⊢ᶜ c′ ⦂ s′ →
+    s ； ⌊ q ⌋ ≋ r →
+    ⌊ p ⌋ ； s′ ≋ r →
+    PairedWideningCompatible
+      Φ Δᴸ Δᴿ c c′ p q s s′ →
     PairedCast Φ Δᴸ Δᴿ ρ c c′ {A} {A′} {B} {B′} p q
 
 data QuotientWideningPair
@@ -273,11 +296,14 @@ mutual
           ⊢ᴺ L · M ⊑ L′ · M′ ⦂ B ⊑ B′ ∶ pB
 
     up⊑upᵀ :
-        ∀ {N N′ A A′ D D′ qD u u′}
+        ∀ {N N′ A A′ D D′ qD u u′ s s′}
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ N ⊑ N′ ⦂ D ⊑ᵖ D′ ∶ qD
       → QuotientWideningPair Δᴸ Δᴿ ρ u u′ D D′ A A′
       → (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ)
+      → widening ⊢ᶜ u ⦂ s
+      → widening ⊢ᶜ u′ ⦂ s′
+      → s ；⌊ pA ⌋≋ᵖ qD ； s′
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ N ⟨ u ⟩ ⊑ N′ ⟨ u′ ⟩ ⦂ A ⊑ A′ ∶ pA
@@ -316,6 +342,7 @@ mutual
           {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
           {τ σ : Renameᵗ}
           {W W′ M M′ A A′ B C D s μ r}
+          {body-shape : ImprecisionShape}
       → StoreImpPrefix ρ₀ ρ⁺
       → CastMode μ
       → SealModeStore★ μ (rightStoreⁱ ρ₀)
@@ -332,6 +359,8 @@ mutual
           ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
           ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r
       → (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ)
+      → widening ⊢ᶜ inst B s ⦂ νˢ body-shape
+      → ⌊ ∀ⁱ r ⌋ ； νˢ body-shape ≋ ⌊ f ⌋
       → (assm :
           ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
             rename-assm²ᵢ τ σ a ∈ Φ)
@@ -458,6 +487,11 @@ mutual
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ N ⊑ N′
           ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q
+      → q
+          [ zero ↦ ⇑ᵗ A
+            ⊑⟨ A⇑⊑A′⇑ ⟩
+            ⇑ᵗ A′ ↤ zero ]ᴾ
+          ⊑-lift∀ᵢ p
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ ν A N s ⊑ ν A′ N′ s′ ⦂ B ⊑ B′ ∶ p
@@ -473,6 +507,7 @@ mutual
       → LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γ′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν safe occ q
+      → q [ zero ↦ ⇑ᵗ A ]ᴸ ⊑-source-liftνᵢ p
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ ν A N s ⊑ N′ ⦂ B ⊑ B′ ∶ p
@@ -485,15 +520,17 @@ mutual
           zero (⇑ᵗ A) s C′ (⇑ᵗ B′)
       → LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ ρ′
       → LiftRightCtxⁱ (⇑ᴿᵢ Φ) γ γ′
-      → ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ
+      → (B⊑C′ : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ)
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ N ⊑ N′ ⦂ B ⊑ `∀ C′ ∶ q
+      → B⊑C′ [ zero ↦ ⇑ᵗ A ]ᴿ ⊑-target-lift-rightᵢ p
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ N ⊑ ν A N′ s ⦂ B ⊑ B′ ∶ p
 
     νcast⊑νcastᵀ :
-        ∀ {ρ′ γ′ B B′ C C′ N N′ p q s s′ μ μ′}
+        ∀ {ρ′ γ′ B B′ C C′ N N′ p q s s′ μ μ′
+          s-shape s′-shape result-shape}
       → CastMode μ
       → SealModeStore★ (instᵈ μ)
           ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ))
@@ -508,16 +545,22 @@ mutual
           ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′
       → PairedWideningCompatible
           ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-          (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′
+          (suc Δᴸ) (suc Δᴿ) s s′
+          q (⊑-lift∀ᵢ p) s-shape s′-shape
       → LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ′
       → LiftCtxⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) γ γ′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q
+      → widening ⊢ᶜ s ⦂ s-shape
+      → widening ⊢ᶜ s′ ⦂ s′-shape
+      → s-shape ； ⌊ p ⌋ ≋ result-shape
+      → ⌊ q ⌋ ； s′-shape ≋ result-shape
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ ν ★ N s ⊑ ν ★ N′ s′ ⦂ B ⊑ B′ ∶ p
 
-    νcast⊑ᵀ : ∀ {ρ′ γ′ B B′ C N N′ p q s μ occ}
+    νcast⊑ᵀ :
+        ∀ {ρ′ γ′ B B′ C N N′ p q s μ occ s-shape}
       → {{safe : NonVar C}}
       → CastMode μ
       → SealModeStore★ (instᵈ μ)
@@ -529,11 +572,14 @@ mutual
       → LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γ′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν safe occ q
+      → widening ⊢ᶜ s ⦂ s-shape
+      → s-shape ； ⌊ p ⌋ ≋ ⌊ q ⌋
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ ν ★ N s ⊑ N′ ⦂ B ⊑ B′ ∶ p
 
-    ⊑νcastᵀ : ∀ {ρ′ γ′ B B′ C′ N N′ p q s μ}
+    ⊑νcastᵀ :
+        ∀ {ρ′ γ′ B B′ C′ N N′ p q s μ s-shape}
       → CastMode μ
       → SealModeStore★ (instᵈ μ)
           ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ))
@@ -542,9 +588,11 @@ mutual
           ⊢ s ∶ C′ ⊑ ⇑ᵗ B′
       → LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ ρ′
       → LiftRightCtxⁱ (⇑ᴿᵢ Φ) γ γ′
-      → ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ
+      → (B⊑C′ : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ)
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ N ⊑ N′ ⦂ B ⊑ `∀ C′ ∶ q
+      → widening ⊢ᶜ s ⦂ s-shape
+      → ⌊ B⊑C′ ⌋ ； s-shape ≋ ⌊ p ⌋
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ N ⊑ ν ★ N′ s ⦂ B ⊑ B′ ∶ p
@@ -579,40 +627,46 @@ mutual
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ V ⟨ gen A c ⟩ ⊑ W ⦂ `∀ B ⊑ H ∶ q
 
-    cast⊒⊑ᵀ : ∀ {M M′ A B B′ p c μ}
+    cast⊒⊑ᵀ : ∀ {M M′ A B B′ p c μ s}
       → CastMode μ
       → SealModeStore★ μ (leftStoreⁱ ρ)
       → (c⊒ : μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊒ B)
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p
       → (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ)
+      → narrowing ⊢ᶜ c ⦂ s
+      → s ； ⌊ p ⌋ ≋ ⌊ q ⌋
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⦂ B ⊑ B′ ∶ q
 
-    cast⊑⊑ᵀ : ∀ {M M′ A B B′ p c μ}
+    cast⊑⊑ᵀ : ∀ {M M′ A B B′ p c μ s}
       → CastMode μ
-      → SealModeStore★ μ (leftStoreⁱ ρ)
-      → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B
+      → (seal★ : SealModeStore★ μ (leftStoreⁱ ρ))
+      → (c⊑ : μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B)
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p
       → (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ)
+      → widening ⊢ᶜ c ⦂ s
+      → s ； ⌊ q ⌋ ≋ ⌊ p ⌋
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⦂ B ⊑ B′ ∶ q
 
-    ⊑cast⊒ᵀ : ∀ {M M′ A A′ B′ p c′ μ′}
+    ⊑cast⊒ᵀ : ∀ {M M′ A A′ B′ p c′ μ′ s}
       → CastMode μ′
       → SealModeStore★ μ′ (rightStoreⁱ ρ)
       → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊒ B′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
       → (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ)
+      → narrowing ⊢ᶜ c′ ⦂ s
+      → ⌊ q ⌋ ； s ≋ ⌊ p ⌋
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
 
-    ⊑cast⊑ᵀ : ∀ {M M′ A A′ B′ p c′ μ′}
+    ⊑cast⊑ᵀ : ∀ {M M′ A A′ B′ p c′ μ′ s}
       → CastMode μ′
       → (seal★′ : SealModeStore★ μ′ (rightStoreⁱ ρ))
       → (c′⊑ :
@@ -620,17 +674,21 @@ mutual
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
       → (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ)
+      → widening ⊢ᶜ c′ ⦂ s
+      → ⌊ p ⌋ ； s ≋ ⌊ q ⌋
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
 
-    ⊑cast⊑idᵀ : ∀ {M M′ A A′ B′ p c′}
+    ⊑cast⊑idᵀ : ∀ {M M′ A A′ B′ p c′ s}
       → (seal★′ : SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ))
       → (c′⊑ :
           id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′)
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
       → (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ)
+      → widening ⊢ᶜ c′ ⦂ s
+      → ⌊ p ⌋ ； s ≋ ⌊ q ⌋
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
@@ -648,6 +706,7 @@ mutual
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p
       → (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ)
+      → p [ α ↦ X ]ᴸ q
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⦂ B ⊑ B′ ∶ q
@@ -657,6 +716,7 @@ mutual
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p
       → (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ)
+      → q [ α ↦ X ]ᴸ p
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⦂ B ⊑ B′ ∶ q
@@ -666,6 +726,7 @@ mutual
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
       → (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ)
+      → p [ β ↦ X′ ]ᴿ q
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
@@ -676,6 +737,7 @@ mutual
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
       → (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ)
+      → q [ β ↦ X′ ]ᴿ p
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
@@ -687,58 +749,73 @@ mutual
       Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ → Set₁ where
 
     down⊑downᵀ :
-        ∀ {M M′ C C′ D D′ pC d d′}
+        ∀ {M M′ C C′ D D′ pC d d′ s s′}
       → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D
+      → narrowing ⊢ᶜ d ⦂ s
       → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ D′
+      → narrowing ⊢ᶜ d′ ⦂ s′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC
       → (qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ)
+      → s ；⌊ pC ⌋≋ᵖ qD ； s′
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ M ⟨ d ⟩ ⊑ M′ ⟨ d′ ⟩ ⦂ D ⊑ᵖ D′ ∶ qD
 
     gen-down⊑gen-downᵀ :
-        ∀ {M M′ C C′ D D′ pC d d′}
+        ∀ {M M′ C C′ D D′ pC d d′ s s′}
       → genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ
           ⊢ d ∶ C ⊒ D
+      → narrowing ⊢ᶜ d ⦂ s
       → genᵈ tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
           ⊢ d′ ∶ C′ ⊒ D′
+      → narrowing ⊢ᶜ d′ ⦂ s′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC
       → (qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ)
+      → s ；⌊ pC ⌋≋ᵖ qD ； s′
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ M ⟨ d ⟩ ⊑ M′ ⟨ d′ ⟩ ⦂ D ⊑ᵖ D′ ∶ qD
 
     ordinary-down-applicationᵖᵀ :
         ∀ {L L′ M M′ A A′ C C′ B B′
-          pA pC pB qB d d′ μ μ′}
+          pA pC pB d d′ μ μ′ s s′}
       → CastMode μ
       → SealModeStore★ μ (leftStoreⁱ ρ)
       → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ A ⊒ C
+      → narrowing ⊢ᶜ d ⦂ s
       → CastMode μ′
       → SealModeStore★ μ′ (rightStoreⁱ ρ)
       → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ C′
+      → narrowing ⊢ᶜ d′ ⦂ s′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ L ⊑ L′
           ⦂ C ⇒ B ⊑ C′ ⇒ B′ ∶ pC ↦ pB
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ pA
+      → s ；⌊ pA ⌋≋ᵖ
+          (quotientᵖ ≈∀-refl pC ≈∀-refl) ； s′
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ L · (M ⟨ d ⟩) ⊑ L′ · (M′ ⟨ d′ ⟩)
-          ⦂ B ⊑ᵖ B′ ∶ qB
+          ⦂ B ⊑ᵖ B′
+          ∶ quotientᵖ ≈∀-refl pB ≈∀-refl
 
     quotient-id-down-applicationᵖᵀ :
         ∀ {L L′ M M′ A A′ C C′ B B′
-          pA qF qB d d′}
+          pA qF qC qB d d′ s s′}
       → id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ A ⊒ C
+      → narrowing ⊢ᶜ d ⦂ s
       → id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ C′
+      → narrowing ⊢ᶜ d′ ⦂ s′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ L ⊑ L′
           ⦂ C ⇒ B ⊑ᵖ C′ ⇒ B′ ∶ qF
+      → ⊑ᵖ-arrow-components qF ≡ (qC , qB)
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ pA
+      → s ；⌊ pA ⌋≋ᵖ qC ； s′
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ L · (M ⟨ d ⟩) ⊑ L′ · (M′ ⟨ d′ ⟩)
@@ -746,18 +823,22 @@ mutual
 
     quotient-down-applicationᵖᵀ :
         ∀ {L L′ M M′ A A′ C C′ B B′
-          pA qF qB d d′ μ μ′}
+          pA qF qC qB d d′ μ μ′ s s′}
       → CastMode μ
       → SealModeStore★ μ (leftStoreⁱ ρ)
       → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ A ⊒ C
+      → narrowing ⊢ᶜ d ⦂ s
       → CastMode μ′
       → SealModeStore★ μ′ (rightStoreⁱ ρ)
       → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ C′
+      → narrowing ⊢ᶜ d′ ⦂ s′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ L ⊑ L′
           ⦂ C ⇒ B ⊑ᵖ C′ ⇒ B′ ∶ qF
+      → ⊑ᵖ-arrow-components qF ≡ (qC , qB)
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ pA
+      → s ；⌊ pA ⌋≋ᵖ qC ； s′
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ L · (M ⟨ d ⟩) ⊑ L′ · (M′ ⟨ d′ ⟩)
@@ -811,14 +892,16 @@ mutual
       (nu-term-imprecision-source-typing L⊑L′)
       (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
-      (up⊑upᵀ M⊑M′ (quotient-id-widening u⊑ u′⊑) p) =
+      (up⊑upᵀ M⊑M′ (quotient-id-widening u⊑ u′⊑)
+        p u-shape u′-shape square) =
     ⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
       (widen-mode-relax id-only≤tag-or-idᵈ u⊑)
       (quotiented-nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
       (up⊑upᵀ M⊑M′
         (quotient-cast-widening
-          mode seal★ u⊑ mode′ seal★′ u′⊑) p) =
+          mode seal★ u⊑ mode′ seal★′ u′⊑)
+        p u-shape u′-shape square) =
     ⊢⟨⟩⊑ mode seal★ u⊑
       (quotiented-nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
@@ -843,7 +926,7 @@ mutual
           (nu-term-imprecision-source-typing V⊑N′)))
   nu-term-imprecision-source-typing
       (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f assm hτ hσ
+        vW noW vW′ noW′ inert body f inst-shape creation-square assm hτ hσ
         store-emb eqM eqM′ eqA eqA′ p
         vM noM closedM vM′ noM′ closedM′
         source-typing target-typing) =
@@ -863,25 +946,27 @@ mutual
     M⊢
   nu-term-imprecision-source-typing
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
-        liftρ liftγ N⊑N′) =
+        liftρ liftγ N⊑N′ replace) =
     ⊢ν↑ hA (nu-term-imprecision-source-typing N⊑N′)
       (reveal-conversion-typing s↑)
   nu-term-imprecision-source-typing
-      (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′) =
+      (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′ replace) =
     ⊢ν↑ hA (nu-term-imprecision-source-typing N⊑N′)
       (reveal-conversion-typing s↑)
   nu-term-imprecision-source-typing
-      (⊑νᵀ hA h⇑A s↑ liftρ liftγ B⊑C′ N⊑N′) =
+      (⊑νᵀ hA h⇑A s↑ liftρ liftγ B⊑C′ N⊑N′ replace) =
     nu-term-imprecision-source-typing N⊑N′
   nu-term-imprecision-source-typing
       (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑ compat
-        liftρ liftγ N⊑N′) =
+        liftρ liftγ N⊑N′ s-shape s′-shape left-comp right-comp) =
     ⊢ν⊑ mode seal★ (nu-term-imprecision-source-typing N⊑N′) s⊑
   nu-term-imprecision-source-typing
-      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′) =
+      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′
+        s-shape comp) =
     ⊢ν⊑ mode seal★ (nu-term-imprecision-source-typing N⊑N′) s⊑
   nu-term-imprecision-source-typing
-      (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ B⊑C′ N⊑N′) =
+      (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ B⊑C′ N⊑N′
+        s-shape comp) =
     nu-term-imprecision-source-typing N⊑N′
   nu-term-imprecision-source-typing κ⊑κᵀ =
     ⊢$ (κℕ _)
@@ -895,45 +980,48 @@ mutual
     ⊢⟨⟩⊒ mode seal★ c⊒
       (nu-term-imprecision-source-typing V⊑Wtag)
   nu-term-imprecision-source-typing
-      (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q) =
+      (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q c-shape comp) =
     ⊢⟨⟩⊒ mode seal★ c⊒ (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
-      (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q) =
+      (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape comp) =
     ⊢⟨⟩⊑ mode seal★ c⊑ (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
-      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q) =
+      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q c-shape comp) =
     nu-term-imprecision-source-typing M⊑M′
   nu-term-imprecision-source-typing
-      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q) =
+      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q c-shape comp) =
     nu-term-imprecision-source-typing M⊑M′
   nu-term-imprecision-source-typing
-      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q) =
+      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q c-shape comp) =
     nu-term-imprecision-source-typing M⊑M′
   nu-term-imprecision-source-typing
       (conv⊑convᵀ
-        (paired-conversion (paired-reveal x∈ c↑ c′↑)) M⊑M′) =
+        (paired-conversion (paired-reveal x∈ c↑ c′↑ replace)) M⊑M′) =
     ⊢⟨⟩↑ (reveal-conversion-typing c↑)
       (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
       (conv⊑convᵀ
-        (paired-conversion (paired-conceal x∈ c↓ c′↓)) M⊑M′) =
+        (paired-conversion (paired-conceal x∈ c↓ c′↓ replace)) M⊑M′) =
     ⊢⟨⟩↓ (conceal-conversion-typing c↓)
       (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
       (conv⊑convᵀ
-        (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat)
+        (paired-widening mode seal★ c⊑ c-shape mode′ seal★′ c′⊑
+          c′-shape left right compat)
         M⊑M′) =
     ⊢⟨⟩⊑ mode seal★ c⊑
       (nu-term-imprecision-source-typing M⊑M′)
-  nu-term-imprecision-source-typing (conv↑⊑ᵀ c↑ M⊑M′ q) =
+  nu-term-imprecision-source-typing (conv↑⊑ᵀ c↑ M⊑M′ q replace) =
     ⊢⟨⟩↑ (reveal-conversion-typing c↑)
       (nu-term-imprecision-source-typing M⊑M′)
-  nu-term-imprecision-source-typing (conv↓⊑ᵀ c↓ M⊑M′ q) =
+  nu-term-imprecision-source-typing (conv↓⊑ᵀ c↓ M⊑M′ q replace) =
     ⊢⟨⟩↓ (conceal-conversion-typing c↓)
       (nu-term-imprecision-source-typing M⊑M′)
-  nu-term-imprecision-source-typing (⊑conv↑ᵀ c′↑ M⊑M′ q) =
+  nu-term-imprecision-source-typing
+      (⊑conv↑ᵀ c′↑ M⊑M′ q replace) =
     nu-term-imprecision-source-typing M⊑M′
-  nu-term-imprecision-source-typing (⊑conv↓ᵀ c′↓ M⊑M′ q) =
+  nu-term-imprecision-source-typing
+      (⊑conv↓ᵀ c′↓ M⊑M′ q replace) =
     nu-term-imprecision-source-typing M⊑M′
 
   nu-term-imprecision-target-typing (blame⊑ᵀ M′⊢) =
@@ -947,14 +1035,16 @@ mutual
       (nu-term-imprecision-target-typing L⊑L′)
       (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
-      (up⊑upᵀ M⊑M′ (quotient-id-widening u⊑ u′⊑) p) =
+      (up⊑upᵀ M⊑M′ (quotient-id-widening u⊑ u′⊑)
+        p u-shape u′-shape square) =
     ⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
       (widen-mode-relax id-only≤tag-or-idᵈ u′⊑)
       (quotiented-nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
       (up⊑upᵀ M⊑M′
         (quotient-cast-widening
-          mode seal★ u⊑ mode′ seal★′ u′⊑) p) =
+          mode seal★ u⊑ mode′ seal★′ u′⊑)
+        p u-shape u′-shape square) =
     ⊢⟨⟩⊑ mode′ seal★′ u′⊑
       (quotiented-nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
@@ -978,7 +1068,7 @@ mutual
         (nu-term-imprecision-target-typing V⊑N′))
   nu-term-imprecision-target-typing
       (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f assm hτ hσ
+        vW noW vW′ noW′ inert body f inst-shape creation-square assm hτ hσ
         store-emb eqM eqM′ eqA eqA′ p
         vM noM closedM vM′ noM′ closedM′
         source-typing target-typing) =
@@ -998,26 +1088,28 @@ mutual
     M′⊢
   nu-term-imprecision-target-typing
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
-        liftρ liftγ N⊑N′) =
+        liftρ liftγ N⊑N′ replace) =
     ⊢ν↑ hA′ (nu-term-imprecision-target-typing N⊑N′)
       (reveal-conversion-typing s′↑)
   nu-term-imprecision-target-typing
-      (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′) =
+      (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′ replace) =
     nu-term-imprecision-target-typing N⊑N′
   nu-term-imprecision-target-typing
-      (⊑νᵀ hA h⇑A s↑ liftρ liftγ B⊑C′ N⊑N′) =
+      (⊑νᵀ hA h⇑A s↑ liftρ liftγ B⊑C′ N⊑N′ replace) =
     ⊢ν↑ hA (nu-term-imprecision-target-typing N⊑N′)
       (reveal-conversion-typing s↑)
   nu-term-imprecision-target-typing
       (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑ compat
-        liftρ liftγ N⊑N′) =
+        liftρ liftγ N⊑N′ s-shape s′-shape left-comp right-comp) =
     ⊢ν⊑ mode′ seal★′
       (nu-term-imprecision-target-typing N⊑N′) s′⊑
   nu-term-imprecision-target-typing
-      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′) =
+      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′
+        s-shape comp) =
     nu-term-imprecision-target-typing N⊑N′
   nu-term-imprecision-target-typing
-      (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ B⊑C′ N⊑N′) =
+      (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ B⊑C′ N⊑N′
+        s-shape comp) =
     ⊢ν⊑ mode seal★ (nu-term-imprecision-target-typing N⊑N′) s⊑
   nu-term-imprecision-target-typing κ⊑κᵀ =
     ⊢$ (κℕ _)
@@ -1030,105 +1122,120 @@ mutual
       (gen⊑groundᵀ mode seal★ c⊒ gH vV vW W⊢ V⊑Wtag q) =
     W⊢
   nu-term-imprecision-target-typing
-      (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q) =
+      (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q c-shape comp) =
     nu-term-imprecision-target-typing M⊑M′
   nu-term-imprecision-target-typing
-      (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q) =
+      (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape comp) =
     nu-term-imprecision-target-typing M⊑M′
   nu-term-imprecision-target-typing
-      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q) =
+      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q c-shape comp) =
     ⊢⟨⟩⊒ mode′ seal★′ c′⊒
       (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
-      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q) =
+      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q c-shape comp) =
     ⊢⟨⟩⊑ mode′ seal★′ c′⊑
       (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
-      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q) =
+      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q c-shape comp) =
     ⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
       (widen-mode-relax id-only≤tag-or-idᵈ c′⊑)
       (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
       (conv⊑convᵀ
-        (paired-conversion (paired-reveal x∈ c↑ c′↑)) M⊑M′) =
+        (paired-conversion (paired-reveal x∈ c↑ c′↑ replace)) M⊑M′) =
     ⊢⟨⟩↑ (reveal-conversion-typing c′↑)
       (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
       (conv⊑convᵀ
-        (paired-conversion (paired-conceal x∈ c↓ c′↓)) M⊑M′) =
+        (paired-conversion (paired-conceal x∈ c↓ c′↓ replace)) M⊑M′) =
     ⊢⟨⟩↓ (conceal-conversion-typing c′↓)
       (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
       (conv⊑convᵀ
-        (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat)
+        (paired-widening mode seal★ c⊑ c-shape mode′ seal★′ c′⊑
+          c′-shape left right compat)
         M⊑M′) =
     ⊢⟨⟩⊑ mode′ seal★′ c′⊑
       (nu-term-imprecision-target-typing M⊑M′)
-  nu-term-imprecision-target-typing (conv↑⊑ᵀ c↑ M⊑M′ q) =
+  nu-term-imprecision-target-typing (conv↑⊑ᵀ c↑ M⊑M′ q replace) =
     nu-term-imprecision-target-typing M⊑M′
-  nu-term-imprecision-target-typing (conv↓⊑ᵀ c↓ M⊑M′ q) =
+  nu-term-imprecision-target-typing (conv↓⊑ᵀ c↓ M⊑M′ q replace) =
     nu-term-imprecision-target-typing M⊑M′
-  nu-term-imprecision-target-typing (⊑conv↑ᵀ c′↑ M⊑M′ q) =
+  nu-term-imprecision-target-typing
+      (⊑conv↑ᵀ c′↑ M⊑M′ q replace) =
     ⊢⟨⟩↑ (reveal-conversion-typing c′↑)
       (nu-term-imprecision-target-typing M⊑M′)
-  nu-term-imprecision-target-typing (⊑conv↓ᵀ c′↓ M⊑M′ q) =
+  nu-term-imprecision-target-typing
+      (⊑conv↓ᵀ c′↓ M⊑M′ q replace) =
     ⊢⟨⟩↓ (conceal-conversion-typing c′↓)
       (nu-term-imprecision-target-typing M⊑M′)
 
   quotiented-nu-term-imprecision-source-typing
-      (down⊑downᵀ d⊒ d′⊒ M⊑M′ q) =
+      (down⊑downᵀ d⊒ d-shape d′⊒ d′-shape
+        M⊑M′ q square) =
     ⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
       (narrow-mode-relax id-only≤tag-or-idᵈ d⊒)
       (nu-term-imprecision-source-typing M⊑M′)
   quotiented-nu-term-imprecision-source-typing
-      (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ q) =
+      (gen-down⊑gen-downᵀ d⊒ d-shape d′⊒ d′-shape
+        M⊑M′ q square) =
     ⊢⟨⟩⊒ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id d⊒
       (nu-term-imprecision-source-typing M⊑M′)
   quotiented-nu-term-imprecision-source-typing
       (ordinary-down-applicationᵖᵀ
-        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+        mode seal★ d⊒ d-shape
+        mode′ seal★′ d′⊒ d′-shape L⊑L′ M⊑M′ square) =
     ⊢· (nu-term-imprecision-source-typing L⊑L′)
       (⊢⟨⟩⊒ mode seal★ d⊒
         (nu-term-imprecision-source-typing M⊑M′))
   quotiented-nu-term-imprecision-source-typing
       (quotient-id-down-applicationᵖᵀ
-        d⊒ d′⊒ L⊑L′ M⊑M′) =
+        d⊒ d-shape d′⊒ d′-shape
+        L⊑L′ components M⊑M′ square) =
     ⊢· (quotiented-nu-term-imprecision-source-typing L⊑L′)
       (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
         (narrow-mode-relax id-only≤tag-or-idᵈ d⊒)
         (nu-term-imprecision-source-typing M⊑M′))
   quotiented-nu-term-imprecision-source-typing
       (quotient-down-applicationᵖᵀ
-        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+        mode seal★ d⊒ d-shape
+        mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ components M⊑M′ square) =
     ⊢· (quotiented-nu-term-imprecision-source-typing L⊑L′)
       (⊢⟨⟩⊒ mode seal★ d⊒
         (nu-term-imprecision-source-typing M⊑M′))
 
   quotiented-nu-term-imprecision-target-typing
-      (down⊑downᵀ d⊒ d′⊒ M⊑M′ q) =
+      (down⊑downᵀ d⊒ d-shape d′⊒ d′-shape
+        M⊑M′ q square) =
     ⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
       (narrow-mode-relax id-only≤tag-or-idᵈ d′⊒)
       (nu-term-imprecision-target-typing M⊑M′)
   quotiented-nu-term-imprecision-target-typing
-      (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ q) =
+      (gen-down⊑gen-downᵀ d⊒ d-shape d′⊒ d′-shape
+        M⊑M′ q square) =
     ⊢⟨⟩⊒ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id d′⊒
       (nu-term-imprecision-target-typing M⊑M′)
   quotiented-nu-term-imprecision-target-typing
       (ordinary-down-applicationᵖᵀ
-        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+        mode seal★ d⊒ d-shape
+        mode′ seal★′ d′⊒ d′-shape L⊑L′ M⊑M′ square) =
     ⊢· (nu-term-imprecision-target-typing L⊑L′)
       (⊢⟨⟩⊒ mode′ seal★′ d′⊒
         (nu-term-imprecision-target-typing M⊑M′))
   quotiented-nu-term-imprecision-target-typing
       (quotient-id-down-applicationᵖᵀ
-        d⊒ d′⊒ L⊑L′ M⊑M′) =
+        d⊒ d-shape d′⊒ d′-shape
+        L⊑L′ components M⊑M′ square) =
     ⊢· (quotiented-nu-term-imprecision-target-typing L⊑L′)
       (⊢⟨⟩⊒ cast-tag-or-id seal★-tag-or-id
         (narrow-mode-relax id-only≤tag-or-idᵈ d′⊒)
         (nu-term-imprecision-target-typing M⊑M′))
   quotiented-nu-term-imprecision-target-typing
       (quotient-down-applicationᵖᵀ
-        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+        mode seal★ d⊒ d-shape
+        mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ components M⊑M′ square) =
     ⊢· (quotiented-nu-term-imprecision-target-typing L⊑L′)
       (⊢⟨⟩⊒ mode′ seal★′ d′⊒
         (nu-term-imprecision-target-typing M⊑M′))

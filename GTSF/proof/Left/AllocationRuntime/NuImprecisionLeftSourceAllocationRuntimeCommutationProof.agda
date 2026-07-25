@@ -18,7 +18,7 @@ open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; refl; subst; sym)
+  (_≡_; refl; subst; sym; trans)
 
 open import ImprecisionWf using
   ( ImpCtx
@@ -93,6 +93,11 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; right-under-left-ctx-eq
   ; rightCtxⁱ-left-rename
   ; rightStoreⁱ-left-rename
+  )
+open import
+  proof.Core.Properties.NuCastImprecisionShapeProperties
+  using
+  ( shape-rename-left-atᵢ
   ; ⊑-rename-left-atᵢ
   ; ⊑-rename-leftᵢ
   )
@@ -129,22 +134,35 @@ private
       lift-right-store-[] left-store-rename-[] =
     [] , left-store-rename-[] , lift-right-store-[]
   left-source-after-right-store-factorⁱ
-      (lift-right-store-∷ {β = β} {B = B} {p = p} liftρ)
+      (lift-right-store-∷
+        {β = β} {B = B} {p = p} {p′ = pᴿ}
+        shape-eq liftρ)
       (left-store-rename-matched
-        {α′ = α′} {A′ = A′}
+        {α′ = α′} {A′ = A′} {p = pᴿ}
         eqα eqA renameρ)
       with left-source-after-right-store-factorⁱ liftρ renameρ
   left-source-after-right-store-factorⁱ
-      (lift-right-store-∷ {β = β} {B = B} {p = p} liftρ)
+      (lift-right-store-∷
+        {β = β} {B = B} {p = p} {p′ = pᴿ}
+        shape-eq liftρ)
       (left-store-rename-matched
-        {α′ = α′} {A′ = A′}
+        {α′ = α′} {A′ = A′} {p = pᴿ}
         eqα eqA renameρ)
       | ρᴸ , renameρᴸ , liftρᴸ =
     store-matched α′ A′ β B
       (⊑-rename-left-atᵢ suc rename-assm²-source-νᵢ
         TyRenameWf-suc eqA p) ∷ ρᴸ ,
     left-store-rename-matched eqα eqA renameρᴸ ,
-    lift-right-store-∷ liftρᴸ
+    lift-right-store-∷
+      (trans
+        (shape-rename-left-atᵢ suc rename-assm²-source-νᵢ
+          TyRenameWf-suc eqA pᴿ)
+        (trans shape-eq
+          (sym
+            (shape-rename-left-atᵢ suc
+              rename-assm²-source-νᵢ
+              TyRenameWf-suc eqA p))))
+      liftρᴸ
   left-source-after-right-store-factorⁱ
       (lift-right-store-left liftρ)
       (left-store-rename-left
@@ -172,22 +190,35 @@ private
     left-store-rename-right renameρᴸ ,
     lift-right-store-right liftρᴸ
   left-source-after-right-store-factorⁱ
-      (lift-right-store-link {β = β} {B = B} {p = p} liftρ)
+      (lift-right-store-link
+        {β = β} {B = B} {p = p} {p′ = pᴿ}
+        shape-eq liftρ)
       (left-store-rename-link
-        {α′ = α′} {A′ = A′}
+        {α′ = α′} {A′ = A′} {p = pᴿ}
         eqα eqA renameρ)
       with left-source-after-right-store-factorⁱ liftρ renameρ
   left-source-after-right-store-factorⁱ
-      (lift-right-store-link {β = β} {B = B} {p = p} liftρ)
+      (lift-right-store-link
+        {β = β} {B = B} {p = p} {p′ = pᴿ}
+        shape-eq liftρ)
       (left-store-rename-link
-        {α′ = α′} {A′ = A′}
+        {α′ = α′} {A′ = A′} {p = pᴿ}
         eqα eqA renameρ)
       | ρᴸ , renameρᴸ , liftρᴸ =
     store-link α′ A′ β B
       (⊑-rename-left-atᵢ suc rename-assm²-source-νᵢ
         TyRenameWf-suc eqA p) ∷ ρᴸ ,
     left-store-rename-link eqα eqA renameρᴸ ,
-    lift-right-store-link liftρᴸ
+    lift-right-store-link
+      (trans
+        (shape-rename-left-atᵢ suc rename-assm²-source-νᵢ
+          TyRenameWf-suc eqA pᴿ)
+        (trans shape-eq
+          (sym
+            (shape-rename-left-atᵢ suc
+              rename-assm²-source-νᵢ
+              TyRenameWf-suc eqA p))))
+      liftρᴸ
 
   left-source-after-right-ctx-factorⁱ :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -205,18 +236,31 @@ private
       lift-right-ctx-[] left-ctx-rename-[] =
     [] , left-ctx-rename-[] , lift-right-ctx-[]
   left-source-after-right-ctx-factorⁱ
-      (lift-right-ctx-∷ {B = B} {p = p} liftγ)
-      (left-ctx-rename-∷ {A′ = A′} eqA renameγ)
+      (lift-right-ctx-∷
+        {B = B} {p = p} {p′ = pᴿ} shape-eq liftγ)
+      (left-ctx-rename-∷ {A′ = A′} {p = pᴿ}
+        eqA renameγ)
       with left-source-after-right-ctx-factorⁱ liftγ renameγ
   left-source-after-right-ctx-factorⁱ
-      (lift-right-ctx-∷ {B = B} {p = p} liftγ)
-      (left-ctx-rename-∷ {A′ = A′} eqA renameγ)
+      (lift-right-ctx-∷
+        {B = B} {p = p} {p′ = pᴿ} shape-eq liftγ)
+      (left-ctx-rename-∷ {A′ = A′} {p = pᴿ}
+        eqA renameγ)
       | γᴸ , renameγᴸ , liftγᴸ =
     ctx-imp A′ B
       (⊑-rename-left-atᵢ suc rename-assm²-source-νᵢ
         TyRenameWf-suc eqA p) ∷ γᴸ ,
     left-ctx-rename-∷ eqA renameγᴸ ,
-    lift-right-ctx-∷ liftγᴸ
+    lift-right-ctx-∷
+      (trans
+        (shape-rename-left-atᵢ suc rename-assm²-source-νᵢ
+          TyRenameWf-suc eqA pᴿ)
+        (trans shape-eq
+          (sym
+            (shape-rename-left-atᵢ suc
+              rename-assm²-source-νᵢ
+              TyRenameWf-suc eqA p))))
+      liftγᴸ
 
   transport-lift-right-store-back :
     ∀ {Φ Ψ Ω : ImpCtx} {Δᴸ Δᴿ : TyCtx}

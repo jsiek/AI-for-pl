@@ -28,8 +28,8 @@ left-store-prefix-factor-proofᵀ {ρ⁺ᴸ = ρᴸ}
     prefix-reflⁱ lift-left-store-[] =
   ρᴸ , lift-left-store-[] , prefix-reflⁱ
 left-store-prefix-factor-proofᵀ {ρ⁺ᴸ = ρᴸ}
-    prefix-reflⁱ (lift-left-store-∷ liftρ) =
-  ρᴸ , lift-left-store-∷ liftρ , prefix-reflⁱ
+    prefix-reflⁱ (lift-left-store-∷ shape-eq liftρ) =
+  ρᴸ , lift-left-store-∷ shape-eq liftρ , prefix-reflⁱ
 left-store-prefix-factor-proofᵀ {ρ⁺ᴸ = ρᴸ}
     prefix-reflⁱ (lift-left-store-left liftρ) =
   ρᴸ , lift-left-store-left liftρ , prefix-reflⁱ
@@ -37,13 +37,13 @@ left-store-prefix-factor-proofᵀ {ρ⁺ᴸ = ρᴸ}
     prefix-reflⁱ (lift-left-store-right liftρ) =
   ρᴸ , lift-left-store-right liftρ , prefix-reflⁱ
 left-store-prefix-factor-proofᵀ {ρ⁺ᴸ = ρᴸ}
-    prefix-reflⁱ (lift-left-store-link liftρ) =
-  ρᴸ , lift-left-store-link liftρ , prefix-reflⁱ
+    prefix-reflⁱ (lift-left-store-link shape-eq liftρ) =
+  ρᴸ , lift-left-store-link shape-eq liftρ , prefix-reflⁱ
 left-store-prefix-factor-proofᵀ
-    (prefix-∷ⁱ prefix) (lift-left-store-∷ liftρ)
+    (prefix-∷ⁱ prefix) (lift-left-store-∷ shape-eq liftρ)
     with left-store-prefix-factor-proofᵀ prefix liftρ
 left-store-prefix-factor-proofᵀ
-    (prefix-∷ⁱ prefix) (lift-left-store-∷ liftρ)
+    (prefix-∷ⁱ prefix) (lift-left-store-∷ shape-eq liftρ)
     | ρ₀ᴸ , lift₀ , prefixᴸ =
   ρ₀ᴸ , lift₀ , prefix-∷ⁱ prefixᴸ
 left-store-prefix-factor-proofᵀ
@@ -61,9 +61,9 @@ left-store-prefix-factor-proofᵀ
     | ρ₀ᴸ , lift₀ , prefixᴸ =
   ρ₀ᴸ , lift₀ , prefix-∷ⁱ prefixᴸ
 left-store-prefix-factor-proofᵀ
-    (prefix-∷ⁱ prefix) (lift-left-store-link liftρ)
+    (prefix-∷ⁱ prefix) (lift-left-store-link shape-eq liftρ)
     with left-store-prefix-factor-proofᵀ prefix liftρ
 left-store-prefix-factor-proofᵀ
-    (prefix-∷ⁱ prefix) (lift-left-store-link liftρ)
+    (prefix-∷ⁱ prefix) (lift-left-store-link shape-eq liftρ)
     | ρ₀ᴸ , lift₀ , prefixᴸ =
   ρ₀ᴸ , lift₀ , prefix-∷ⁱ prefixᴸ

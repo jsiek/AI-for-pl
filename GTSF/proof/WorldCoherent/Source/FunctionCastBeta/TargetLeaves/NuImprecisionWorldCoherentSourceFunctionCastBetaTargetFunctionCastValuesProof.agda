@@ -14,11 +14,15 @@ import Coercions as C
 import Conversion as CV
 import NarrowWiden as NW
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (shape-fun)
+open import ConversionIndexCompatibility using
+  (replace-left-function; replace-right-function)
 open import Data.List using ([])
 open import Data.Nat using (suc)
 open import Data.Nat.Properties using (≤-refl; suc-injective)
 open import Data.Product using (_,_)
 
+open import ImprecisionComposition using (comp-↦-↦)
 open import ImprecisionWf using
   (ImpCtx; _↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using (β-↦; keep; pure-step)
@@ -166,7 +170,9 @@ target-function-cast-values-suc-at-prefixᵀ
     relation-prefix coherent exclusive unique wfR okM okM′
     (cast⊒⊑ᵀ {p = pA₀ ↦ pB₀} mode seal★
       (C.cast-fun c⊢ d⊢ , NW.cross (cʷ NW.↦ dⁿ))
-      inner .(pA ↦ pB))
+      inner .(pA ↦ pB)
+      (shape-fun c-shape d-shape)
+      (comp-↦-↦ c-comp d-comp))
     argument-related vV vW vL′ vR′ outer-rank =
   world-coherent-source-keep-relationᵀ
     coherent exclusive unique final-related
@@ -187,16 +193,20 @@ target-function-cast-values-suc-at-prefixᵀ
       relation-prefix source-V-no target-function-no inner
   argument-cast =
     cast⊑⊑ᵀ mode seal★⁺ c⊑⁺ argument-related pA₀
+      c-shape c-comp
   application-related = ·⊑·ᵀ inner⁺ argument-cast
   final-related =
     cast⊒⊑ᵀ mode seal★⁺ d⊒⁺ application-related pB
+      d-shape d-comp
 target-function-cast-values-suc-at-prefixᵀ
     lower paired target-frames prepend
     {pA = pA} {pB = pB}
     relation-prefix coherent exclusive unique wfR okM okM′
     (cast⊑⊑ᵀ {p = pA₀ ↦ pB₀} mode seal★
       (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
-      inner .(pA ↦ pB))
+      inner .(pA ↦ pB)
+      (shape-fun c-shape d-shape)
+      (comp-↦-↦ c-comp d-comp))
     argument-related vV vW vL′ vR′ outer-rank =
   world-coherent-source-keep-relationᵀ
     coherent exclusive unique final-related
@@ -217,15 +227,18 @@ target-function-cast-values-suc-at-prefixᵀ
       relation-prefix source-V-no target-function-no inner
   argument-cast =
     cast⊒⊑ᵀ mode seal★⁺ c⊒⁺ argument-related pA₀
+      c-shape c-comp
   application-related = ·⊑·ᵀ inner⁺ argument-cast
   final-related =
     cast⊑⊑ᵀ mode seal★⁺ d⊑⁺ application-related pB
+      d-shape d-comp
 target-function-cast-values-suc-at-prefixᵀ
     lower paired target-frames prepend
     {pA = pA} {pB = pB}
     relation-prefix coherent exclusive unique wfR okM okM′
     (conv↑⊑ᵀ {p = pA₀ ↦ pB₀}
-      (CV.reveal-fun c↓ d↑) inner .(pA ↦ pB))
+      (CV.reveal-fun c↓ d↑) inner .(pA ↦ pB)
+      (replace-left-function c-replace d-replace))
     argument-related vV vW vL′ vR′ outer-rank =
   world-coherent-source-keep-relationᵀ
     coherent exclusive unique final-related
@@ -243,15 +256,18 @@ target-function-cast-values-suc-at-prefixᵀ
   inner⁺ =
     quotiented-store-prefix-no-bullet-proofᵀ
       relation-prefix source-V-no target-function-no inner
-  argument-cast = conv↓⊑ᵀ c↓⁺ argument-related pA₀
+  argument-cast =
+    conv↓⊑ᵀ c↓⁺ argument-related pA₀ c-replace
   application-related = ·⊑·ᵀ inner⁺ argument-cast
-  final-related = conv↑⊑ᵀ d↑⁺ application-related pB
+  final-related =
+    conv↑⊑ᵀ d↑⁺ application-related pB d-replace
 target-function-cast-values-suc-at-prefixᵀ
     lower paired target-frames prepend
     {pA = pA} {pB = pB}
     relation-prefix coherent exclusive unique wfR okM okM′
     (conv↓⊑ᵀ {p = pA₀ ↦ pB₀}
-      (CV.conceal-fun c↑ d↓) inner .(pA ↦ pB))
+      (CV.conceal-fun c↑ d↓) inner .(pA ↦ pB)
+      (replace-left-function c-replace d-replace))
     argument-related vV vW vL′ vR′ outer-rank =
   world-coherent-source-keep-relationᵀ
     coherent exclusive unique final-related
@@ -269,17 +285,20 @@ target-function-cast-values-suc-at-prefixᵀ
   inner⁺ =
     quotiented-store-prefix-no-bullet-proofᵀ
       relation-prefix source-V-no target-function-no inner
-  argument-cast = conv↑⊑ᵀ c↑⁺ argument-related pA₀
+  argument-cast =
+    conv↑⊑ᵀ c↑⁺ argument-related pA₀ c-replace
   application-related = ·⊑·ᵀ inner⁺ argument-cast
-  final-related = conv↓⊑ᵀ d↓⁺ application-related pB
+  final-related =
+    conv↓⊑ᵀ d↓⁺ application-related pB d-replace
 target-function-cast-values-suc-at-prefixᵀ
     lower paired target-frames prepend
     relation-prefix coherent exclusive unique wfR okM okM′
-    (up⊑upᵀ inner widening p)
+    (up⊑upᵀ inner widening p source-shape target-shape square)
     argument-related vV vW vL′ vR′ outer-rank =
   sourceFunctionCastBetaPairedQuotientValuesCase paired
     relation-prefix coherent exclusive unique wfR okM okM′
-    inner widening argument-related vV vW vL′ vR′
+    inner widening source-shape target-shape square
+    argument-related vV vW vL′ vR′
 target-function-cast-values-suc-at-prefixᵀ
     lower paired target-frames prepend
     relation-prefix coherent exclusive unique wfR okM okM′
@@ -294,11 +313,14 @@ target-function-cast-values-suc-at-prefixᵀ
     relation-prefix coherent exclusive unique wfR okM okM′
     (⊑cast⊒ᵀ {p = pA₀ ↦ pB₀} mode seal★
       (C.cast-fun e⊢ f⊢ , NW.cross (eʷ NW.↦ fⁿ))
-      inner .(pA ↦ pB))
+      inner .(pA ↦ pB)
+      (shape-fun e-shape f-shape)
+      (comp-↦-↦ e-comp f-comp))
     argument-related vV vW vL′ vR′ outer-rank =
   prepend (pure-step (β-↦ vL′ vR′))
     (sourceStepTargetNarrowFrame target-frames
-      prefix-reflⁱ mode seal★⁺ f⊒⁺ inner-result)
+      prefix-reflⁱ mode seal★⁺ f⊒⁺
+      f-shape f-comp inner-result)
   where
   right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
   seal★⁺ = seal★-weaken right-incl seal★
@@ -314,6 +336,7 @@ target-function-cast-values-suc-at-prefixᵀ
     runtime-·₂ target-function-value okM′
   argument-cast =
     ⊑cast⊑ᵀ mode seal★⁺ e⊑⁺ argument-related pA₀
+      e-shape e-comp
   inner⁺ =
     quotiented-store-prefix-no-bullet-proofᵀ
       relation-prefix source-function-no target-L-no inner
@@ -328,11 +351,14 @@ target-function-cast-values-suc-at-prefixᵀ
     relation-prefix coherent exclusive unique wfR okM okM′
     (⊑cast⊑ᵀ {p = pA₀ ↦ pB₀} mode seal★
       (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
-      inner .(pA ↦ pB))
+      inner .(pA ↦ pB)
+      (shape-fun e-shape f-shape)
+      (comp-↦-↦ e-comp f-comp))
     argument-related vV vW vL′ vR′ outer-rank =
   prepend (pure-step (β-↦ vL′ vR′))
     (sourceStepTargetWidenFrame target-frames
-      prefix-reflⁱ mode seal★⁺ f⊑⁺ inner-result)
+      prefix-reflⁱ mode seal★⁺ f⊑⁺
+      f-shape f-comp inner-result)
   where
   right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
   seal★⁺ = seal★-weaken right-incl seal★
@@ -348,6 +374,7 @@ target-function-cast-values-suc-at-prefixᵀ
     runtime-·₂ target-function-value okM′
   argument-cast =
     ⊑cast⊒ᵀ mode seal★⁺ e⊒⁺ argument-related pA₀
+      e-shape e-comp
   inner⁺ =
     quotiented-store-prefix-no-bullet-proofᵀ
       relation-prefix source-function-no target-L-no inner
@@ -362,11 +389,14 @@ target-function-cast-values-suc-at-prefixᵀ
     relation-prefix coherent exclusive unique wfR okM okM′
     (⊑cast⊑idᵀ {p = pA₀ ↦ pB₀} seal★
       (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
-      inner .(pA ↦ pB))
+      inner .(pA ↦ pB)
+      (shape-fun e-shape f-shape)
+      (comp-↦-↦ e-comp f-comp))
     argument-related vV vW vL′ vR′ outer-rank =
   prepend (pure-step (β-↦ vL′ vR′))
     (sourceStepTargetIdWidenFrame target-frames
-      prefix-reflⁱ seal★⁺ f⊑⁺ inner-result)
+      prefix-reflⁱ seal★⁺ f⊑⁺
+      f-shape f-comp inner-result)
   where
   right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
   seal★⁺ : SealModeStore★ C.id-onlyᵈ (rightStoreⁱ ρ)
@@ -385,7 +415,7 @@ target-function-cast-values-suc-at-prefixᵀ
   argument-cast =
     ⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
       (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ e⊒⁺)
-      argument-related pA₀
+      argument-related pA₀ e-shape e-comp
   inner⁺ =
     quotiented-store-prefix-no-bullet-proofᵀ
       relation-prefix source-function-no target-L-no inner
@@ -399,11 +429,12 @@ target-function-cast-values-suc-at-prefixᵀ
     {pA = pA} {pB = pB}
     relation-prefix coherent exclusive unique wfR okM okM′
     (⊑conv↑ᵀ {p = pA₀ ↦ pB₀}
-      (CV.reveal-fun e↓ f↑) inner .(pA ↦ pB))
+      (CV.reveal-fun e↓ f↑) inner .(pA ↦ pB)
+      (replace-right-function e-replace f-replace))
     argument-related vV vW vL′ vR′ outer-rank =
   prepend (pure-step (β-↦ vL′ vR′))
     (sourceStepTargetRevealFrame target-frames
-      prefix-reflⁱ f↑⁺ inner-result)
+      prefix-reflⁱ f↑⁺ f-replace inner-result)
   where
   right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
   e↓⁺ = CV.weaken-conceal-conversion right-incl e↓
@@ -417,7 +448,7 @@ target-function-cast-values-suc-at-prefixᵀ
   target-argument-runtime =
     runtime-·₂ target-function-value okM′
   argument-cast =
-    ⊑conv↓ᵀ e↓⁺ argument-related pA₀
+    ⊑conv↓ᵀ e↓⁺ argument-related pA₀ e-replace
   inner⁺ =
     quotiented-store-prefix-no-bullet-proofᵀ
       relation-prefix source-function-no target-L-no inner
@@ -431,11 +462,12 @@ target-function-cast-values-suc-at-prefixᵀ
     {pA = pA} {pB = pB}
     relation-prefix coherent exclusive unique wfR okM okM′
     (⊑conv↓ᵀ {p = pA₀ ↦ pB₀}
-      (CV.conceal-fun e↑ f↓) inner .(pA ↦ pB))
+      (CV.conceal-fun e↑ f↓) inner .(pA ↦ pB)
+      (replace-right-function e-replace f-replace))
     argument-related vV vW vL′ vR′ outer-rank =
   prepend (pure-step (β-↦ vL′ vR′))
     (sourceStepTargetConcealFrame target-frames
-      prefix-reflⁱ f↓⁺ inner-result)
+      prefix-reflⁱ f↓⁺ f-replace inner-result)
   where
   right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
   e↑⁺ = CV.weaken-reveal-conversion right-incl e↑
@@ -449,7 +481,7 @@ target-function-cast-values-suc-at-prefixᵀ
   target-argument-runtime =
     runtime-·₂ target-function-value okM′
   argument-cast =
-    ⊑conv↑ᵀ e↑⁺ argument-related pA₀
+    ⊑conv↑ᵀ e↑⁺ argument-related pA₀ e-replace
   inner⁺ =
     quotiented-store-prefix-no-bullet-proofᵀ
       relation-prefix source-function-no target-L-no inner

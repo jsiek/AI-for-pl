@@ -216,11 +216,11 @@ private
     no-body-post-beta-relation inner
   no-body-post-beta-relation
       (⊑νcastᵀ mode seal★ cast-typing liftρ liftγ
-        opened inner)
+        opened inner shape comp)
       with body-cast-source cast-typing
   no-body-post-beta-relation
       (⊑νcastᵀ mode seal★ cast-typing liftρ liftγ
-        opened inner)
+        opened inner shape comp)
       | refl =
     no-independent-right-opening opened
 
@@ -239,19 +239,19 @@ no-paired-post-beta-immediate-relation
       lift-left-ctx-[] source-value body) =
   no-body-post-beta-relation body
 no-paired-post-beta-immediate-relation
-    (⊑νᵀ hA h⇑A reveal liftρ liftγ opened inner)
+    (⊑νᵀ hA h⇑A reveal liftρ liftγ opened inner replace)
     with body-cast-reveal-source reveal
 no-paired-post-beta-immediate-relation
-    (⊑νᵀ hA h⇑A reveal liftρ liftγ opened inner)
+    (⊑νᵀ hA h⇑A reveal liftρ liftγ opened inner replace)
     | refl =
   no-outer-independent-right-opening opened
 no-paired-post-beta-immediate-relation
     (⊑νcastᵀ mode seal★ cast-typing liftρ liftγ
-      opened inner)
+      opened inner shape comp)
     with body-cast-source cast-typing
 no-paired-post-beta-immediate-relation
     (⊑νcastᵀ mode seal★ cast-typing liftρ liftγ
-      opened inner)
+      opened inner shape comp)
     | refl =
   no-outer-independent-right-opening opened
 

@@ -19,6 +19,8 @@ open import Coercions using (Coercion; Inert; ModeEnv)
 open import Conversion using (RevealConversion)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
+open import Data.Product using (Σ; _×_)
+open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   ( ImpCtx
   ; _ˣ⊑★
@@ -153,7 +155,7 @@ PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ =
     {W W′ : Term} {B C B′ C′ : Ty}
     {q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ B′ ⊣ Δᴿ}
     {r : Φ ∣ Δᴸ ⊢ `∀ C ⊑ C′ ⊣ Δᴿ}
-    {d d′ : Coercion} {μ μ′ : ModeEnv} →
+    {d d′ : Coercion} {d-shape d′-shape} {μ μ′ : ModeEnv} →
   (∀ {ρ : StoreImp Φ Δᴸ Δᴿ}
       {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
       {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
@@ -192,7 +194,10 @@ PairedLambdaTargetClosingPairedWideningFrameCompatibleTargetInertBridgeᵀ =
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ₀) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ d′ ∶ B′ ⊑ C′ →
-  (Inert d′ → Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ) →
+  (Inert d′ →
+    Σ (Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ) λ bridge →
+      (d-shape ； ⌊ bridge ⌋ ≋ ⌊ q ⌋) ×
+      (⌊ bridge ⌋ ； d′-shape ≋ ⌊ r ⌋)) →
   ∀ {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)

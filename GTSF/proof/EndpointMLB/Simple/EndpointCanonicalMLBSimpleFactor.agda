@@ -24,10 +24,21 @@ open import ImprecisionWf using
   )
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple using
   (∀ᵢᶜ; νᵢᶜ)
+open import
+  proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleSwapRoutes
+  using
+  ( Exposure
+  ; bothᵉ
+  ; leftᵉ
+  ; rightᵉ
+  ; apply-left
+  ; apply-right
+  ; apply-common-depth
+  ; apply-left-depth
+  ; apply-right-depth
+  )
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimplePermutation using
-  ( Exposure; bothᵉ; leftᵉ; rightᵉ; apply-left; apply-right
-  ; apply-common-depth; apply-left-depth; apply-right-depth
-  ; LeftStarPath; path-left-∀; path-right-∀; path-arrow₁
+  ( LeftStarPath; path-left-∀; path-right-∀; path-arrow₁
   ; path-arrow₂; path-arrow-star₁; path-arrow-star₂; path-var-star
   ; no-left-star-path; occurs-var-true→≡
   ; occurs-var-refl; ∨-true-left; ∨-true-right

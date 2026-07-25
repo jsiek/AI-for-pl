@@ -13,6 +13,10 @@ open import Coercions using
   ; _︔_
   ; _∣_∣_⊢_∶_=⇒_
   )
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
+open import Data.Product using (_×_; Σ-syntax)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   ( ImpCtx
   ; _∣_⊢_⊑_⊣_
@@ -63,7 +67,8 @@ record SourceCastSequenceMidpointᵀ : Set₁ where
     widening-midpoint :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {A C B B′ : Ty} {s t : Coercion} {μ : ModeEnv} →
+        {A C B B′ : Ty} {s t : Coercion} {μ : ModeEnv}
+        {s-shape t-shape sequence-shape : ImprecisionShape} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
@@ -73,8 +78,14 @@ record SourceCastSequenceMidpointᵀ : Set₁ where
       μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ s ∶ A =⇒ C →
       μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ t ∶ C =⇒ B →
       Widening (s ︔ t) →
-      Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ →
-      Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ →
-      Φ ∣ Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ
+      (p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ) →
+      (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+      widening ⊢ᶜ s ⦂ s-shape →
+      widening ⊢ᶜ t ⦂ t-shape →
+      s-shape ； t-shape ≋ sequence-shape →
+      sequence-shape ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
+      Σ[ middle ∈ (Φ ∣ Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ) ]
+        (s-shape ； ⌊ middle ⌋ ≋ ⌊ p ⌋) ×
+        (t-shape ； ⌊ q ⌋ ≋ ⌊ middle ⌋)
 
 open SourceCastSequenceMidpointᵀ public

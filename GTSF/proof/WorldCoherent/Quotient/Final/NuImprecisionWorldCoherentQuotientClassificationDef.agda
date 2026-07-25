@@ -10,11 +10,15 @@ module proof.WorldCoherent.Quotient.Final.NuImprecisionWorldCoherentQuotientClas
 import Coercions as C
 open import Coercions using (_!; _︔_; ⇑ᶜ)
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; widening)
 open import Data.List using ([]; _∷_)
 open import Data.Product using (_×_; ∃-syntax)
 open import Data.Sum using (_⊎_)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; _；⌊_⌋≋ᵖ_；_)
 open import NuReduction using (_—↠[_]_; bind; keep)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using (StoreImp; leftStoreⁱ)
@@ -37,6 +41,7 @@ WorldCoherentQuotientClassificationᵀ : Set₁
 WorldCoherentQuotientClassificationᵀ =
   ∀ {Φ Δᴸ Δᴿ} {V V′ : Term}
     {D D′ A A′ : Ty} {d d′ u u′ : C.Coercion}
+    {sU sU′ : ImprecisionShape}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
@@ -51,6 +56,9 @@ WorldCoherentQuotientClassificationᵀ =
     ⊢ᴺᵖ V ⟨ d ⟩ ⊑ V′ ⟨ d′ ⟩
     ⦂ D ⊑ᵖ D′ ∶ qD →
   QuotientWideningPair Δᴸ Δᴿ ρ u u′ D D′ A A′ →
+  widening ⊢ᶜ u ⦂ sU →
+  widening ⊢ᶜ u′ ⦂ sU′ →
+  sU ；⌊ pA ⌋≋ᵖ qD ； sU′ →
   ((Value V × No• V) ⊎ V ≡ blame) →
   WorldCoherentLeftCatchupIndexedResult
       {N = (V ⟨ d ⟩) ⟨ u ⟩}

@@ -13,6 +13,7 @@ module
 --     permissive option, termination bypass, or broad DGG import.
 
 open import Agda.Builtin.Equality using (_≡_)
+import CastImprecisionShape as CastShape
 open import Coercions using
   ( Coercion
   ; id-onlyᵈ
@@ -22,6 +23,7 @@ open import Coercions using
   )
 open import Conversion using
   (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
 open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (_<_; suc; zero)
@@ -30,6 +32,8 @@ open import Data.Sum using (_⊎_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import Induction.WellFounded using (Acc)
+open import ImprecisionComposition using
+  (⌊_⌋; _；_≋_)
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
@@ -102,27 +106,41 @@ WorldCoherentRightTargetPendingCastsInstResidualAccᵀ =
     (targetPendingAdministrationRank vW (inst B s ∷ cs)) →
   ((∃[ μ′ ] ∃[ β ] ∃[ X′ ]
       RevealConversion μ′ Δᴿ (rightStoreⁱ ρ)
-        β X′ (inst B s) (`∀ C) B)
+        β X′ (inst B s) (`∀ C) B
+      × p [ β ↦ X′ ]ᴿ r)
    ⊎
    (∃[ μ′ ] ∃[ β ] ∃[ X′ ]
       ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ)
-        β X′ (inst B s) (`∀ C) B)
+        β X′ (inst B s) (`∀ C) B
+      × r [ β ↦ X′ ]ᴿ p)
    ⊎
-   (∃[ μ′ ]
-      CastMode μ′ ×
+   (∃[ μ′ ] ∃[ shape ]
+      CastMode μ′
+      ×
       SealModeStore★ μ′ (rightStoreⁱ ρ) ×
       (μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ
-        ⊢ inst B s ∶ `∀ C ⊒ B))
+        ⊢ inst B s ∶ `∀ C ⊒ B)
+      × (CastShape.narrowing CastShape.⊢ᶜ
+        inst B s ⦂ shape)
+      × (⌊ r ⌋ ； shape ≋ ⌊ p ⌋))
    ⊎
-   (∃[ μ′ ]
-      CastMode μ′ ×
+   (∃[ μ′ ] ∃[ shape ]
+      CastMode μ′
+      ×
       SealModeStore★ μ′ (rightStoreⁱ ρ) ×
       (μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ
-        ⊢ inst B s ∶ `∀ C ⊑ B))
+        ⊢ inst B s ∶ `∀ C ⊑ B)
+      × (CastShape.widening CastShape.⊢ᶜ
+        inst B s ⦂ shape)
+      × (⌊ p ⌋ ； shape ≋ ⌊ r ⌋))
    ⊎
-   (SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ) ×
-    (id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
-      ⊢ inst B s ∶ `∀ C ⊑ B))) →
+   (∃[ shape ]
+      SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ)
+      × (id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
+        ⊢ inst B s ∶ `∀ C ⊑ B)
+      × (CastShape.widening CastShape.⊢ᶜ
+        inst B s ⦂ shape)
+      × (⌊ p ⌋ ； shape ≋ ⌊ r ⌋))) →
   TargetAdministrationSpine ρ A r q cs →
   WorldCoherent ρ →
   SourceNameExclusive Φ →

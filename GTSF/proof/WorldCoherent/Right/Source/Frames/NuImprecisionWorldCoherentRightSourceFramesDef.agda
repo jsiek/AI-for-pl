@@ -11,7 +11,10 @@ module proof.WorldCoherent.Right.Source.Frames.NuImprecisionWorldCoherentRightSo
 open import Data.List using ([])
 
 open import Coercions using (Coercion; Inert)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; narrowing; widening)
 open import Conversion using (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
+open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using
@@ -52,7 +55,7 @@ record WorldCoherentRightSourceFrames : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {M M′ : Term} {A B B′ : Ty} {c : Coercion} {μ}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} {s} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
@@ -65,6 +68,8 @@ record WorldCoherentRightSourceFrames : Set₁ where
       CastMode μ →
       SealModeStore★ μ (leftStoreⁱ ρ₀) →
       μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊒ B →
+      narrowing ⊢ᶜ c ⦂ s →
+      s ； ⌊ p ⌋ ≋ ⌊ q ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -77,7 +82,7 @@ record WorldCoherentRightSourceFrames : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {M M′ : Term} {A B B′ : Ty} {c : Coercion} {μ}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} {s} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
@@ -90,6 +95,8 @@ record WorldCoherentRightSourceFrames : Set₁ where
       CastMode μ →
       SealModeStore★ μ (leftStoreⁱ ρ₀) →
       μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
+      widening ⊢ᶜ c ⦂ s →
+      s ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -113,6 +120,7 @@ record WorldCoherentRightSourceFrames : Set₁ where
       No• M →
       Inert c →
       RevealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      p [ α ↦ X ]ᴸ q →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -136,6 +144,7 @@ record WorldCoherentRightSourceFrames : Set₁ where
       No• M →
       Inert c →
       ConcealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      q [ α ↦ X ]ᴸ p →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
       WorldCoherentRightValueCatchupIndexedResult

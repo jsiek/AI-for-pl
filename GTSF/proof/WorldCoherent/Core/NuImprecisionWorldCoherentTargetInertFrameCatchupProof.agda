@@ -25,20 +25,28 @@ open import
 world-coherent-target-inert-frame-catchup-proofᵀ :
   WorldCoherentTargetInertFrameCatchupᵀ
 world-coherent-target-inert-frame-catchup-proofᵀ
-    prefix _ (inj₁ (_ , _ , _ , c↑)) catchup =
-  world-coherent-left-catchup-prefix-target-reveal-castᵀ prefix c↑ catchup
+    prefix _ (inj₁ (_ , _ , _ , c↑ , replace)) catchup =
+  world-coherent-left-catchup-prefix-target-reveal-castᵀ
+    prefix c↑ replace catchup
 world-coherent-target-inert-frame-catchup-proofᵀ
-    prefix _ (inj₂ (inj₁ (_ , _ , _ , c↓))) catchup =
-  world-coherent-left-catchup-prefix-target-conceal-castᵀ prefix c↓ catchup
+    prefix _ (inj₂ (inj₁ (_ , _ , _ , c↓ , replace))) catchup =
+  world-coherent-left-catchup-prefix-target-conceal-castᵀ
+    prefix c↓ replace catchup
 world-coherent-target-inert-frame-catchup-proofᵀ
-    prefix _ (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊒)))) catchup =
+    prefix _
+    (inj₂ (inj₂
+      (inj₁ (_ , _ , mode , seal★ , c⊒ , c-shape , comp)))) catchup =
   world-coherent-left-catchup-prefix-target-narrow-castᵀ
-    prefix mode seal★ c⊒ catchup
+    prefix mode seal★ c⊒ c-shape comp catchup
 world-coherent-target-inert-frame-catchup-proofᵀ
-    prefix _ (inj₂ (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊑))))) catchup =
+    prefix _
+    (inj₂ (inj₂ (inj₂
+      (inj₁ (_ , _ , mode , seal★ , c⊑ , c-shape , comp))))) catchup =
   world-coherent-left-catchup-prefix-target-widen-castᵀ
-    prefix mode seal★ c⊑ catchup
+    prefix mode seal★ c⊑ c-shape comp catchup
 world-coherent-target-inert-frame-catchup-proofᵀ
-    prefix _ (inj₂ (inj₂ (inj₂ (inj₂ (seal★ , c⊑))))) catchup =
+    prefix _
+    (inj₂ (inj₂ (inj₂
+      (inj₂ (_ , seal★ , c⊑ , c-shape , comp))))) catchup =
   world-coherent-left-catchup-prefix-target-widen-id-castᵀ
-    prefix seal★ c⊑ catchup
+    prefix seal★ c⊑ c-shape comp catchup

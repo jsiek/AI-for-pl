@@ -22,6 +22,8 @@ open import Conversion using
   ; open-reveal-conversion
   ; reveal-all
   )
+open import ConversionIndexCompatibility using
+  (_[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import ImprecisionWf
 open import NuReduction using
   ( keep
@@ -53,6 +55,9 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ( ∀ᵢᶜ
   ; ⊑-open∀ᵢ
   )
+open import
+  proof.Core.Properties.ConversionIndexCompatibilityProperties
+  using (replace-paired-open∀ᵢ)
 
 
 paired-β-∀-revealᵀ :
@@ -69,6 +74,7 @@ paired-β-∀-revealᵀ :
     (`∀ c′) (`∀ A′) (`∀ B′) →
   (p : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ A ⊑ A′ ⊣ suc (suc Δᴿ)) →
   (q : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ B ⊑ B′ ⊣ suc (suc Δᴿ)) →
+  (∀ⁱ p) [ zero ↦ X ⊑⟨ pX ⟩ X′ ↤ zero ]ᴾ (∀ⁱ q) →
   Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
     ⊢ᴺ V • ⊑ V′ •
     ⦂ A [ zero ]ᴿ ⊑ A′ [ zero ]ᴿ
@@ -84,14 +90,16 @@ paired-β-∀-revealᵀ :
       ∶ ⊑-open∀ᵢ {α = zero} {β = zero}
           zero⊑zero z<s z<s q))
 paired-β-∀-revealᵀ zero⊑zero zero-entry vV vV′
-    (reveal-all c↑) (reveal-all c′↑) p q V•⊑V′• =
+    (reveal-all c↑) (reveal-all c′↑) p q replacement V•⊑V′• =
   pure-step (β-∀• vV) ,
   pure-step (β-∀• vV′) ,
   conv⊑convᵀ
     (paired-conversion
       (paired-reveal (correspondence-stored zero-entry)
         (open-reveal-conversion z<s c↑)
-        (open-reveal-conversion z<s c′↑)))
+        (open-reveal-conversion z<s c′↑)
+        (replace-paired-open∀ᵢ
+          zero⊑zero z<s z<s replacement)))
     V•⊑V′•
 
 paired-β-∀-concealᵀ :
@@ -108,6 +116,7 @@ paired-β-∀-concealᵀ :
     (`∀ c′) (`∀ A′) (`∀ B′) →
   (p : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ A ⊑ A′ ⊣ suc (suc Δᴿ)) →
   (q : ∀ᵢᶜ Φ ∣ suc (suc Δᴸ) ⊢ B ⊑ B′ ⊣ suc (suc Δᴿ)) →
+  (∀ⁱ q) [ zero ↦ X ⊑⟨ pX ⟩ X′ ↤ zero ]ᴾ (∀ⁱ p) →
   Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
     ⊢ᴺ V • ⊑ V′ •
     ⦂ A [ zero ]ᴿ ⊑ A′ [ zero ]ᴿ
@@ -123,12 +132,15 @@ paired-β-∀-concealᵀ :
       ∶ ⊑-open∀ᵢ {α = zero} {β = zero}
           zero⊑zero z<s z<s q))
 paired-β-∀-concealᵀ zero⊑zero zero-entry vV vV′
-    (conceal-all c↓) (conceal-all c′↓) p q V•⊑V′• =
+    (conceal-all c↓) (conceal-all c′↓) p q
+    replacement V•⊑V′• =
   pure-step (β-∀• vV) ,
   pure-step (β-∀• vV′) ,
   conv⊑convᵀ
     (paired-conversion
       (paired-conceal (correspondence-stored zero-entry)
         (open-conceal-conversion z<s c↓)
-        (open-conceal-conversion z<s c′↓)))
+        (open-conceal-conversion z<s c′↓)
+        (replace-paired-open∀ᵢ
+          zero⊑zero z<s z<s replacement)))
     V•⊑V′•

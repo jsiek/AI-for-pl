@@ -19,6 +19,9 @@ open import NuTermImprecision using
   )
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   (⊑-target-lift-rightᵢ)
+open import
+  proof.Core.Properties.NuCastImprecisionShapeProperties
+  using (shape-target-lift-rightᵢ)
 open import Types using (⇑ᵗ)
 
 
@@ -30,4 +33,4 @@ lift-right-ctx-result (ctx-imp A B p ∷ γ)
     with lift-right-ctx-result γ
 lift-right-ctx-result (ctx-imp A B p ∷ γ) | γ′ , liftγ =
   ctx-imp A (⇑ᵗ B) (⊑-target-lift-rightᵢ p) ∷ γ′ ,
-  lift-right-ctx-∷ liftγ
+  lift-right-ctx-∷ (shape-target-lift-rightᵢ p) liftγ

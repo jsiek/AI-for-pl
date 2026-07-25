@@ -15,6 +15,7 @@ module
 --     permissive option, termination bypass, or broad DGG import.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Coercions using (Coercion; Inert; ModeEnv; inst)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
@@ -25,7 +26,9 @@ open import Imprecision using
   ; ⇑ᴿᵢ
   )
 open import ImprecisionWf using
-  (_∣_⊢_⊑_⊣_)
+  (_∣_⊢_⊑_⊣_; ∀ⁱ_)
+open import ImprecisionComposition using
+  (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuTermImprecision using
   ( LiftRightStoreⁱ
@@ -61,7 +64,8 @@ WorldCoherentRightTargetWidenInstantiationPairedLambdaPostBetaContextᵀ =
     {W W′ : Term} {B C D : Ty} {s : Coercion} {μ : ModeEnv}
     {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ C ⊣ suc Δᴿ}
-    {f : Φ ∣ Δᴸ ⊢ `∀ D ⊑ B ⊣ Δᴿ} →
+    {f : Φ ∣ Δᴸ ⊢ `∀ D ⊑ B ⊣ Δᴿ}
+    {body-shape : ImprecisionShape} →
   StoreImpPrefix ρ₀ ρ⁺ →
   CastMode μ →
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
@@ -77,6 +81,8 @@ WorldCoherentRightTargetWidenInstantiationPairedLambdaPostBetaContextᵀ =
   ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
     ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
     ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
+  widening ⊢ᶜ inst B s ⦂ νˢ body-shape →
+  ⌊ ∀ⁱ r ⌋ ； νˢ body-shape ≋ ⌊ f ⌋ →
   Δᴸ
     ∣ leftStoreⁱ (store-right zero ★ wf★ ∷ ρᴿ⁺)
     ∣ [] ⊢ Λ W ⦂ `∀ D →

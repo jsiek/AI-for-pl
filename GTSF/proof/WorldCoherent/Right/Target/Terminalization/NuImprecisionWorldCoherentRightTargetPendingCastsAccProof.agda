@@ -66,12 +66,14 @@ open import
   using
   ( plan-fun-untag-gen
   ; plan-id
+  ; plan-id-widen-seq
   ; plan-inert
   ; plan-inst
   ; plan-inst-fun-tag
-  ; plan-seq
+  ; plan-narrow-seq
   ; plan-unseal
   ; plan-untag
+  ; plan-widen-seq
   )
 open import
   proof.Target.Administration.NuImprecisionTargetPendingCasts
@@ -146,8 +148,10 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {r = r} (plan-inert inert-c)
-      (inj₁ (μ′ , β , X′ , reveal)) tail)
+    (pending-cons {r = r}
+      (plan-inert inert-c
+        (inj₁ (μ′ , β , X′ , reveal , replacement)))
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation =
   world-coherent-right-target-pending-casts-acc-proofᵀ residual
     (vW ⟨ inert-c ⟩)
@@ -156,12 +160,15 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
         (target-inert-rank-decreases vW inert-c cs)))
     tail coherent exclusive unique wfR runtime
     vV noV (no•-⟨⟩ noW)
-    (⊑conv↑ᵀ reveal relation r)
+    (⊑conv↑ᵀ reveal relation r replacement)
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {r = r} (plan-inert inert-c)
-      (inj₂ (inj₁ (μ′ , β , X′ , conceal))) tail)
+    (pending-cons {r = r}
+      (plan-inert inert-c
+        (inj₂ (inj₁
+          (μ′ , β , X′ , conceal , replacement))))
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation =
   world-coherent-right-target-pending-casts-acc-proofᵀ residual
     (vW ⟨ inert-c ⟩)
@@ -170,13 +177,16 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
         (target-inert-rank-decreases vW inert-c cs)))
     tail coherent exclusive unique wfR runtime
     vV noV (no•-⟨⟩ noW)
-    (⊑conv↓ᵀ conceal relation r)
+    (⊑conv↓ᵀ conceal relation r replacement)
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {r = r} (plan-inert inert-c)
-      (inj₂ (inj₂ (inj₁
-        (μ′ , mode , seal★ , narrowing)))) tail)
+    (pending-cons {r = r}
+      (plan-inert inert-c
+        (inj₂ (inj₂ (inj₁
+          (μ′ , shape , mode , seal★ , narrowing ,
+           c-shape , composition)))))
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation =
   world-coherent-right-target-pending-casts-acc-proofᵀ residual
     (vW ⟨ inert-c ⟩)
@@ -185,13 +195,17 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
         (target-inert-rank-decreases vW inert-c cs)))
     tail coherent exclusive unique wfR runtime
     vV noV (no•-⟨⟩ noW)
-    (⊑cast⊒ᵀ mode seal★ narrowing relation r)
+    (⊑cast⊒ᵀ mode seal★ narrowing relation r
+      c-shape composition)
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {r = r} (plan-inert inert-c)
-      (inj₂ (inj₂ (inj₂ (inj₁
-        (μ′ , mode , seal★ , widening))))) tail)
+    (pending-cons {r = r}
+      (plan-inert inert-c
+        (inj₂ (inj₂ (inj₂ (inj₁
+          (μ′ , shape , mode , seal★ , widening ,
+           c-shape , composition))))))
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation =
   world-coherent-right-target-pending-casts-acc-proofᵀ residual
     (vW ⟨ inert-c ⟩)
@@ -200,13 +214,17 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
         (target-inert-rank-decreases vW inert-c cs)))
     tail coherent exclusive unique wfR runtime
     vV noV (no•-⟨⟩ noW)
-    (⊑cast⊑ᵀ mode seal★ widening relation r)
+    (⊑cast⊑ᵀ mode seal★ widening relation r
+      c-shape composition)
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {r = r} (plan-inert inert-c)
-      (inj₂ (inj₂ (inj₂ (inj₂
-        (seal★ , widening))))) tail)
+    (pending-cons {r = r}
+      (plan-inert inert-c
+        (inj₂ (inj₂ (inj₂ (inj₂
+          (shape , seal★ , widening ,
+           c-shape , composition))))))
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation =
   world-coherent-right-target-pending-casts-acc-proofᵀ residual
     (vW ⟨ inert-c ⟩)
@@ -215,17 +233,18 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
         (target-inert-rank-decreases vW inert-c cs)))
     tail coherent exclusive unique wfR runtime
     vV noV (no•-⟨⟩ noW)
-    (⊑cast⊑idᵀ seal★ widening relation r)
+    (⊑cast⊑idᵀ seal★ widening relation r
+      c-shape composition)
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {p = p} {r = r} plan-id evidence tail)
+    (pending-cons {p = p} {r = r} (plan-id evidence) tail)
     coherent exclusive unique wfR runtime vV noV noW relation
     with assumption-membership-unique→precision-index-unique unique p r
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {p = p} {r = .p} plan-id evidence tail)
+    (pending-cons {p = p} {r = .p} (plan-id evidence) tail)
     coherent exclusive unique wfR runtime vV noV noW relation
     | refl
     with world-coherent-right-target-pending-casts-acc-proofᵀ residual
@@ -238,7 +257,7 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {p = p} {r = .p} plan-id evidence tail)
+    (pending-cons {p = p} {r = .p} (plan-id evidence) tail)
     coherent exclusive unique wfR runtime vV noV noW relation
     | refl
     | caught , context-eq , right-prefix =
@@ -249,24 +268,30 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {r = r} (plan-untag {gH = gH})
-      evidence tail)
+    (pending-cons {r = r}
+      (plan-untag {gH = gH}
+        mode seal★ narrowing c-shape composition)
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation
     with canonical-★ vW
       (forget (nu-term-imprecision-target-typing relation))
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {r = r} (plan-untag {gH = gH})
-      evidence tail)
+    (pending-cons {r = r}
+      (plan-untag {gH = gH}
+        mode seal★ narrowing c-shape composition)
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation
     | sv-tag {W = U} {G = G} canonical-vU refl
     with tag-value-evidence⁻¹ vW
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {r = r} (plan-untag {gH = gH})
-      evidence tail)
+    (pending-cons {r = r}
+      (plan-untag {gH = gH}
+        mode seal★ narrowing c-shape composition)
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation
     | sv-tag {W = U} {G = G} canonical-vU refl
     | vU , refl
@@ -275,8 +300,10 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {r = r} (plan-untag {gH = gH})
-      evidence tail)
+    (pending-cons {r = r}
+      (plan-untag {gH = gH}
+        mode seal★ narrowing c-shape composition)
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation
     | sv-tag {W = U} {G = G} canonical-vU refl
     | vU , refl
@@ -295,8 +322,10 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW (acc smaller)
-    (pending-cons {r = r} (plan-untag {gH = gH})
-      evidence tail)
+    (pending-cons {r = r}
+      (plan-untag {gH = gH}
+        mode seal★ narrowing c-shape composition)
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation
     | sv-tag {W = U} {G = G} canonical-vU refl
     | vU , refl
@@ -309,36 +338,40 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW access@(acc smaller)
-    (pending-cons plan@plan-unseal evidence tail)
+    (pending-cons plan@(plan-unseal evidence) tail)
     coherent exclusive unique wfR runtime vV noV noW relation =
-  residual vW access plan residual-unseal evidence tail
+  residual vW access plan residual-unseal tail
     coherent exclusive unique wfR runtime vV noV noW relation
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW access@(acc smaller)
-    (pending-cons plan@plan-inst evidence tail)
+    (pending-cons plan@(plan-inst evidence) tail)
     coherent exclusive unique wfR runtime vV noV noW relation =
-  residual vW access plan residual-inst evidence tail
+  residual vW access plan residual-inst tail
     coherent exclusive unique wfR runtime vV noV noW relation
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW access@(acc smaller)
-    (pending-cons plan@plan-fun-untag-gen evidence tail)
+    (pending-cons plan@(plan-fun-untag-gen evidence) tail)
     coherent exclusive unique wfR runtime vV noV noW relation =
-  residual vW access plan residual-fun-untag-gen evidence tail
+  residual vW access plan residual-fun-untag-gen tail
     coherent exclusive unique wfR runtime vV noV noW relation
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = c ∷ cs}
     vW access@(acc smaller)
-    (pending-cons plan@plan-inst-fun-tag evidence tail)
+    (pending-cons plan@(plan-inst-fun-tag evidence) tail)
     coherent exclusive unique wfR runtime vV noV noW relation =
-  residual vW access plan residual-inst-fun-tag evidence tail
+  residual vW access plan residual-inst-fun-tag tail
     coherent exclusive unique wfR runtime vV noV noW relation
 world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = (s ︔ t) ∷ cs}
     vW (acc smaller)
     (pending-cons
-      (plan-seq s-plan t-plan) evidence tail)
+      (plan-narrow-seq
+        mode seal★ whole narrowing sequence-shape outer-comp
+        s-shape s-comp t-shape t-comp
+        s-plan t-plan)
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation
     with world-coherent-right-target-pending-casts-acc-proofᵀ residual
       vW
@@ -346,7 +379,7 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
         (successor-rank-decrease
           (target-sequence-rank-decreases vW s t cs)))
       (target-administration-sequence-spine-expansionᵀ
-        s-plan t-plan evidence tail)
+        s-plan t-plan tail)
       coherent exclusive unique wfR
       (apply-pending-runtime (s ∷ t ∷ cs) (ok-no noW))
       vV noV noW relation
@@ -354,7 +387,81 @@ world-coherent-right-target-pending-casts-acc-proofᵀ residual
     {cs = (s ︔ t) ∷ cs}
     vW (acc smaller)
     (pending-cons
-      (plan-seq s-plan t-plan) evidence tail)
+      (plan-narrow-seq
+        mode seal★ whole narrowing sequence-shape outer-comp
+        s-shape s-comp t-shape t-comp
+        s-plan t-plan)
+      tail)
+    coherent exclusive unique wfR runtime vV noV noW relation
+    | caught , context-eq , right-prefix =
+  world-coherent-right-target-pending-cast-prepend-contextᵀ
+    {cs = cs}
+    (pure-step (β-seq vW))
+    caught context-eq right-prefix
+world-coherent-right-target-pending-casts-acc-proofᵀ residual
+    {cs = (s ︔ t) ∷ cs}
+    vW (acc smaller)
+    (pending-cons
+      (plan-widen-seq
+        mode seal★ whole widening sequence-shape outer-comp
+        s-shape s-comp t-shape t-comp
+        s-plan t-plan)
+      tail)
+    coherent exclusive unique wfR runtime vV noV noW relation
+    with world-coherent-right-target-pending-casts-acc-proofᵀ residual
+      vW
+      (smaller
+        (successor-rank-decrease
+          (target-sequence-rank-decreases vW s t cs)))
+      (target-administration-sequence-spine-expansionᵀ
+        s-plan t-plan tail)
+      coherent exclusive unique wfR
+      (apply-pending-runtime (s ∷ t ∷ cs) (ok-no noW))
+      vV noV noW relation
+world-coherent-right-target-pending-casts-acc-proofᵀ residual
+    {cs = (s ︔ t) ∷ cs}
+    vW (acc smaller)
+    (pending-cons
+      (plan-widen-seq
+        mode seal★ whole widening sequence-shape outer-comp
+        s-shape s-comp t-shape t-comp
+        s-plan t-plan)
+      tail)
+    coherent exclusive unique wfR runtime vV noV noW relation
+    | caught , context-eq , right-prefix =
+  world-coherent-right-target-pending-cast-prepend-contextᵀ
+    {cs = cs}
+    (pure-step (β-seq vW))
+    caught context-eq right-prefix
+world-coherent-right-target-pending-casts-acc-proofᵀ residual
+    {cs = (s ︔ t) ∷ cs}
+    vW (acc smaller)
+    (pending-cons
+      (plan-id-widen-seq
+        seal★ whole widening sequence-shape outer-comp
+        s-shape s-comp t-shape t-comp
+        s-plan t-plan)
+      tail)
+    coherent exclusive unique wfR runtime vV noV noW relation
+    with world-coherent-right-target-pending-casts-acc-proofᵀ residual
+      vW
+      (smaller
+        (successor-rank-decrease
+          (target-sequence-rank-decreases vW s t cs)))
+      (target-administration-sequence-spine-expansionᵀ
+        s-plan t-plan tail)
+      coherent exclusive unique wfR
+      (apply-pending-runtime (s ∷ t ∷ cs) (ok-no noW))
+      vV noV noW relation
+world-coherent-right-target-pending-casts-acc-proofᵀ residual
+    {cs = (s ︔ t) ∷ cs}
+    vW (acc smaller)
+    (pending-cons
+      (plan-id-widen-seq
+        seal★ whole widening sequence-shape outer-comp
+        s-shape s-comp t-shape t-comp
+        s-plan t-plan)
+      tail)
     coherent exclusive unique wfR runtime vV noV noW relation
     | caught , context-eq , right-prefix =
   world-coherent-right-target-pending-cast-prepend-contextᵀ

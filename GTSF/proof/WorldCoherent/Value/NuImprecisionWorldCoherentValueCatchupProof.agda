@@ -18,6 +18,6 @@ world-coherent-left-value-catchup-proofᵀ :
   WorldCoherentLeftValueCatchupPrefixᵀ →
   WorldCoherentLeftValueCatchupᵀ
 world-coherent-left-value-catchup-proofᵀ
-    prefix-catchup coherent exclusive wfL okM vV′ noV′ M⊑V′ =
+    prefix-catchup coherent exclusive unique wfL okM vV′ noV′ M⊑V′ =
   prefix-catchup
-    prefix-reflⁱ coherent exclusive wfL okM vV′ noV′ M⊑V′
+    prefix-reflⁱ coherent exclusive unique wfL okM vV′ noV′ M⊑V′

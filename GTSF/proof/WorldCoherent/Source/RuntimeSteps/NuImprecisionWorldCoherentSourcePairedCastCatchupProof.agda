@@ -59,10 +59,19 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetTail
   ; targetTailChanges
   ; transportAllBody
+  ; transportAllBodyPairedReplacementCoherent
   ; transportAllCoherent
   ; transportArrowCoherent
+  ; transportLeftReplacementCoherent
+  ; transportPairedReplacementCoherent
+  ; transportRightBodyRightReplacementCoherent
+  ; transportRightBodyShapeCoherent
+  ; transportRightReplacementCoherent
+  ; transportShapeCoherent
   ; transportNo•Terms
   ; transportRightBody
+  ; transportSourceNu
+  ; transportSourceNuBodyLeftReplacementCoherent
   ; transportType
   ; weak-indexed-result
   ; weak-step-transport
@@ -171,7 +180,8 @@ world-coherent-source-paired-cast-catchup-proofᵀ
   inner = weakIndexedResult indexed
 
   final-paired =
-    transport-paired prefix inner silent lineage coherent paired
+    transport-paired prefix inner silent
+      (weakIndexedTypeCoherence indexed) lineage coherent paired
 
   final-relation =
     conv⊑convᵀ final-paired (canonicalIndexedResults indexed)
@@ -188,7 +198,22 @@ world-coherent-source-paired-cast-catchup-proofᵀ
       (transportNo•Terms (weakIndexedTransport indexed)))
     (weak-step-type-coherence
       (transportArrowCoherent (weakIndexedTypeCoherence indexed))
-      (transportAllCoherent (weakIndexedTypeCoherence indexed)))
+      (transportAllCoherent (weakIndexedTypeCoherence indexed))
+      (transportShapeCoherent (weakIndexedTypeCoherence indexed))
+      (transportRightBodyShapeCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportPairedReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportAllBodyPairedReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportSourceNuBodyLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportRightBodyRightReplacementCoherent
+        (weakIndexedTypeCoherence indexed)))
 
   first-silent =
     left-silent-indexed

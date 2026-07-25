@@ -60,7 +60,8 @@ world-coherent-final-paired-widening-catchup-proofᵀ :
 world-coherent-final-paired-widening-catchup-proofᵀ
     source-widen {p = p} {q = q}
     coherent exclusive wfL (inj₂ refl) vV′ noV′ inert-c′
-    mode seal★ c⊑ mode′ seal★′ c′⊑ compat W⊑V′ =
+    mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+    source-comp target-comp compat W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prepend-keepᵀ
       (pure-step blame-⟨⟩)
@@ -74,11 +75,13 @@ world-coherent-final-paired-widening-catchup-proofᵀ
     (conv⊑convᵀ
       (paired-widening
         {p = p} {q = q}
-        mode seal★ c⊑ mode′ seal★′ c′⊑ compat)
+        mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+        source-comp target-comp compat)
       W⊑V′)
 world-coherent-final-paired-widening-catchup-proofᵀ
     source-widen coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′
-    inert-c′ mode seal★ c⊑ mode′ seal★′ c′⊑
+    inert-c′ mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+    source-comp target-comp
     (compatible-source-inert inert-c) W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
@@ -86,17 +89,27 @@ world-coherent-final-paired-widening-catchup-proofᵀ
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ
         (paired-widening
-          mode seal★ c⊑ mode′ seal★′ c′⊑
+          mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+          source-comp target-comp
           (compatible-source-inert inert-c))
         W⊑V′))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive wfL
 world-coherent-final-paired-widening-catchup-proofᵀ
     source-widen coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′
-    inert-c′ mode seal★ c⊑ mode′ seal★′ c′⊑
-    (compatible-target-inert-bridge bridge) W⊑V′ =
+    inert-c′ mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+    source-comp target-comp
+    (compatible-target-inert-bridge bridge-evidence) W⊑V′
+    with bridge-evidence inert-c′
+world-coherent-final-paired-widening-catchup-proofᵀ
+    source-widen coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′
+    inert-c′ mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+    source-comp target-comp
+    (compatible-target-inert-bridge bridge-evidence) W⊑V′
+    | bridge , source-triangle , target-triangle =
   world-coherent-left-catchup-prefix-target-widen-castᵀ
-    prefix-reflⁱ mode′ seal★′ c′⊑ source-catchup
+    prefix-reflⁱ mode′ seal★′ c′⊑ c′-shape target-triangle
+    source-catchup
   where
   initial =
     world-coherent-left-indexed-catchup
@@ -107,4 +120,4 @@ world-coherent-final-paired-widening-catchup-proofᵀ
 
   source-catchup =
     source-widen prefix-reflⁱ mode seal★ c⊑
-      vV′ noV′ initial (bridge inert-c′)
+      vV′ noV′ initial bridge c-shape source-triangle

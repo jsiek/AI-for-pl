@@ -6,6 +6,8 @@ module
 --   * Defines the contextual eager target `inst-fun-tag` widening root.
 --   * Keeps the original ambient prefix and whole-cast typing needed to
 --     transport the trailing function tag into the inner result world.
+--   * Retains the exact function midpoint and both component
+--     shape/composition triangles supplied by plan decomposition.
 --   * Exposes target-context action and right-only store lineage beside the
 --     complete catch-up carrier.
 --   * Contains no implementation, result/view/outcome type, postulate, hole,
@@ -13,10 +15,13 @@ module
 
 open import Agda.Builtin.Equality using (_≡_)
 import Coercions as C
+open import CastImprecisionShape using (widening; _⊢ᶜ_⦂_)
 open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuReduction using (applyTys)
 open import NuTermImprecision using
@@ -67,7 +72,9 @@ WorldCoherentRightTargetWidenInstFunTagRootContextᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {A C : Ty} {s : C.Coercion} {μ : C.ModeEnv}
+    {inst-shape tag-shape : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ}
+    {r : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⇒ ★ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   CastMode μ →
@@ -75,6 +82,10 @@ WorldCoherentRightTargetWidenInstFunTagRootContextᵀ =
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ C.inst (★ ⇒ ★) s C.︔ ((★ ⇒ ★) C.!)
       ∶ `∀ C ⊑ ★ →
+  widening ⊢ᶜ C.inst (★ ⇒ ★) s ⦂ inst-shape →
+  ⌊ p ⌋ ； inst-shape ≋ ⌊ r ⌋ →
+  widening ⊢ᶜ (★ ⇒ ★) C.! ⦂ tag-shape →
+  ⌊ r ⌋ ； tag-shape ≋ ⌊ q ⌋ →
   (inner : WorldCoherentRightValueCatchupIndexedResult
     {V = V} {M′ = M′} {ρ = ρ⁺} p) →
   let indexed = rightCatchupIndexedResult

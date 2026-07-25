@@ -103,6 +103,9 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   (weak-step-store-lineage)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceLemma using
   (world-coherent-left-allocation)
+open import
+  proof.WorldCoherent.Core.NuImprecisionWorldCoherentTypeShapeProof
+  using (shape-source-liftνᵢ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupComposition using
   (world-coherent-left-catchup-indexed-resume-silentᵀ)
 open import
@@ -254,7 +257,8 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
       (weak-step-transport
         (left-lift-prefix-body liftρ
           (prefix-∷ⁱ prefix-reflⁱ)))
-      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ)
+      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ
+        shape-source-liftνᵢ)
 
   allocation-silent : LeftSilentIndexedResult p
   allocation-silent =

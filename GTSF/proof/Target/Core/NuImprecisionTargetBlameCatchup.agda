@@ -59,16 +59,16 @@ value-not-target-blameᵀ vV
     (allocation-prefixᵀ prefix V⊑blame V⊢ blame⊢) =
   value-not-target-blameᵀ vV V⊑blame
 value-not-target-blameᵀ (vV ⟨ c ⟩)
-    (cast⊒⊑ᵀ mode seal★ c⊒ V⊑blame q) =
+    (cast⊒⊑ᵀ mode seal★ c⊒ V⊑blame q c-shape comp) =
   value-not-target-blameᵀ vV V⊑blame
 value-not-target-blameᵀ (vV ⟨ c ⟩)
-    (cast⊑⊑ᵀ mode seal★ c⊑ V⊑blame q) =
+    (cast⊑⊑ᵀ mode seal★ c⊑ V⊑blame q c-shape comp) =
   value-not-target-blameᵀ vV V⊑blame
 value-not-target-blameᵀ (vV ⟨ c ⟩)
-    (conv↑⊑ᵀ c↑ V⊑blame q) =
+    (conv↑⊑ᵀ c↑ V⊑blame q replace) =
   value-not-target-blameᵀ vV V⊑blame
 value-not-target-blameᵀ (vV ⟨ c ⟩)
-    (conv↓⊑ᵀ c↓ V⊑blame q) =
+    (conv↓⊑ᵀ c↓ V⊑blame q replace) =
   value-not-target-blameᵀ vV V⊑blame
 
 
@@ -110,7 +110,7 @@ left-catchup-target-blame-generalᵀ okM
     (allocation-prefixᵀ prefix M⊑blame M⊢ blame⊢) =
   left-catchup-target-blame-generalᵀ okM M⊑blame
 left-catchup-target-blame-generalᵀ okM
-    (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑blame) =
+    (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑blame replace) =
   χs ++ keep ∷ [] , ν-blame-tailᵀ N↠blame
   where
   χs,N↠blame =
@@ -118,7 +118,8 @@ left-catchup-target-blame-generalᵀ okM
   χs = proj₁ χs,N↠blame
   N↠blame = proj₂ χs,N↠blame
 left-catchup-target-blame-generalᵀ okM
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑blame) =
+    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑blame
+      s-shape comp) =
   χs ++ keep ∷ [] , ν-blame-tailᵀ N↠blame
   where
   χs,N↠blame =
@@ -126,7 +127,7 @@ left-catchup-target-blame-generalᵀ okM
   χs = proj₁ χs,N↠blame
   N↠blame = proj₂ χs,N↠blame
 left-catchup-target-blame-generalᵀ okM
-    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑blame q) =
+    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑blame q c-shape comp) =
   χs ++ keep ∷ [] , cast-blame-tailᵀ M↠blame
   where
   χs,M↠blame =
@@ -134,7 +135,7 @@ left-catchup-target-blame-generalᵀ okM
   χs = proj₁ χs,M↠blame
   M↠blame = proj₂ χs,M↠blame
 left-catchup-target-blame-generalᵀ okM
-    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑blame q) =
+    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑blame q c-shape comp) =
   χs ++ keep ∷ [] , cast-blame-tailᵀ M↠blame
   where
   χs,M↠blame =
@@ -142,7 +143,7 @@ left-catchup-target-blame-generalᵀ okM
   χs = proj₁ χs,M↠blame
   M↠blame = proj₂ χs,M↠blame
 left-catchup-target-blame-generalᵀ okM
-    (conv↑⊑ᵀ c↑ M⊑blame q) =
+    (conv↑⊑ᵀ c↑ M⊑blame q replace) =
   χs ++ keep ∷ [] , cast-blame-tailᵀ M↠blame
   where
   χs,M↠blame =
@@ -150,7 +151,7 @@ left-catchup-target-blame-generalᵀ okM
   χs = proj₁ χs,M↠blame
   M↠blame = proj₂ χs,M↠blame
 left-catchup-target-blame-generalᵀ okM
-    (conv↓⊑ᵀ c↓ M⊑blame q) =
+    (conv↓⊑ᵀ c↓ M⊑blame q replace) =
   χs ++ keep ∷ [] , cast-blame-tailᵀ M↠blame
   where
   χs,M↠blame =

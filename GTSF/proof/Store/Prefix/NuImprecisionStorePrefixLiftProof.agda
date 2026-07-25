@@ -38,6 +38,13 @@ open import proof.Store.Prefix.NuImprecisionStorePrefixLiftDef using
   (LeftStorePrefixLiftᵀ; PairedStorePrefixLiftᵀ; RightStorePrefixLiftᵀ)
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-suc; renameᵗ-preserves-WfTy)
+open import
+  proof.Core.Properties.NuCastImprecisionShapeProperties
+  using
+  ( shape-lift∀ᵢ
+  ; shape-source-liftνᵢ
+  ; shape-target-lift-rightᵢ
+  )
 open import Types using (⇑ᵗ)
 
 
@@ -52,7 +59,7 @@ paired-store-prefix-lift-proofᵀ
     | ρ⁺↑ , lift⁺ , prefix↑ =
   store-matched (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B)
     (⊑-lift∀ᵢ p) ∷ ρ⁺↑ ,
-  lift-store-∷ lift⁺ , prefix-∷ⁱ prefix↑
+  lift-store-∷ (shape-lift∀ᵢ p) lift⁺ , prefix-∷ⁱ prefix↑
 paired-store-prefix-lift-proofᵀ
     (prefix-∷ⁱ {entry = store-left α A hA} prefix) liftρ
     with paired-store-prefix-lift-proofᵀ prefix liftρ
@@ -79,7 +86,7 @@ paired-store-prefix-lift-proofᵀ
     | ρ⁺↑ , lift⁺ , prefix↑ =
   store-link (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B)
     (⊑-lift∀ᵢ p) ∷ ρ⁺↑ ,
-  lift-store-link lift⁺ , prefix-∷ⁱ prefix↑
+  lift-store-link (shape-lift∀ᵢ p) lift⁺ , prefix-∷ⁱ prefix↑
 
 
 left-store-prefix-lift-proofᵀ : LeftStorePrefixLiftᵀ
@@ -93,7 +100,8 @@ left-store-prefix-lift-proofᵀ
     | ρ⁺↑ , lift⁺ , prefix↑ =
   store-matched (suc α) (⇑ᵗ A) β B
     (⊑-source-liftνᵢ p) ∷ ρ⁺↑ ,
-  lift-left-store-∷ lift⁺ , prefix-∷ⁱ prefix↑
+  lift-left-store-∷ (shape-source-liftνᵢ p) lift⁺ ,
+  prefix-∷ⁱ prefix↑
 left-store-prefix-lift-proofᵀ
     (prefix-∷ⁱ {entry = store-left α A hA} prefix) liftρ
     with left-store-prefix-lift-proofᵀ prefix liftρ
@@ -119,7 +127,8 @@ left-store-prefix-lift-proofᵀ
     | ρ⁺↑ , lift⁺ , prefix↑ =
   store-link (suc α) (⇑ᵗ A) β B
     (⊑-source-liftνᵢ p) ∷ ρ⁺↑ ,
-  lift-left-store-link lift⁺ , prefix-∷ⁱ prefix↑
+  lift-left-store-link (shape-source-liftνᵢ p) lift⁺ ,
+  prefix-∷ⁱ prefix↑
 
 
 right-store-prefix-lift-proofᵀ : RightStorePrefixLiftᵀ
@@ -133,7 +142,8 @@ right-store-prefix-lift-proofᵀ
     | ρ⁺↑ , lift⁺ , prefix↑ =
   store-matched α A (suc β) (⇑ᵗ B)
     (⊑-target-lift-rightᵢ p) ∷ ρ⁺↑ ,
-  lift-right-store-∷ lift⁺ , prefix-∷ⁱ prefix↑
+  lift-right-store-∷ (shape-target-lift-rightᵢ p) lift⁺ ,
+  prefix-∷ⁱ prefix↑
 right-store-prefix-lift-proofᵀ
     (prefix-∷ⁱ {entry = store-left α A hA} prefix) liftρ
     with right-store-prefix-lift-proofᵀ prefix liftρ
@@ -159,4 +169,5 @@ right-store-prefix-lift-proofᵀ
     | ρ⁺↑ , lift⁺ , prefix↑ =
   store-link α A (suc β) (⇑ᵗ B)
     (⊑-target-lift-rightᵢ p) ∷ ρ⁺↑ ,
-  lift-right-store-link lift⁺ , prefix-∷ⁱ prefix↑
+  lift-right-store-link (shape-target-lift-rightᵢ p) lift⁺ ,
+  prefix-∷ⁱ prefix↑

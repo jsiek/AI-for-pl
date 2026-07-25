@@ -50,14 +50,25 @@ open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleRoutes using
   ; route-star-var; raw-endpoint-route→membership
   ; raw-endpoint-membership→route
   )
+open import
+  proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleSwapRoutes
+  using
+  ( Exposure
+  ; bothᵉ
+  ; leftᵉ
+  ; rightᵉ
+  ; apply-left
+  ; apply-right
+  ; apply-common-depth
+  ; apply-left-depth
+  ; apply-right-depth
+  )
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimplePermutation using
   ( CommonTransport; transport-∀; transport-ν
   ; transport-ν∀-to-∀ν; transport-∀ν-to-ν∀
   ; no-νctx-zero-var; unν-var; unν-star
   ; occurs-swap01-left; occurs-swap01-right
   ; var-candidate-member-shape
-  ; Exposure; bothᵉ; leftᵉ; rightᵉ; apply-left; apply-right
-  ; apply-common-depth; apply-left-depth; apply-right-depth
   ; LeftStarPath; StarRightPath
   ; path-left-∀; path-right-∀; path-arrow₁; path-arrow₂
   ; path-arrow-star₁; path-arrow-star₂; path-var-star

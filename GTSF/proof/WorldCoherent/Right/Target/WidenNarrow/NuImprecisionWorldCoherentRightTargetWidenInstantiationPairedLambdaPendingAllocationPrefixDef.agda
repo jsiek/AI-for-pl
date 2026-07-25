@@ -15,6 +15,7 @@ module
 --     alias, postulate, hole, permissive option, or broad DGG import.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Coercions using
   (Coercion; Inert; ModeEnv; inst; ⇑ᶜ)
 open import Data.List using (List; []; map; _∷_)
@@ -26,7 +27,9 @@ open import Imprecision using
   ; ⇑ᵢ
   )
 open import ImprecisionWf using
-  (_∣_⊢_⊑_⊣_)
+  (_∣_⊢_⊑_⊣_; ∀ⁱ_)
+open import ImprecisionComposition using
+  (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuReduction using
   (applyTy; applyTys; bind; keep)
@@ -101,7 +104,8 @@ WorldCoherentRightTargetWidenInstantiationPairedLambdaPendingAllocationPrefixᵀ
     {p : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ C ⊣ suc Δᴿ}
     {f : Φ ∣ Δᴸ ⊢ `∀ D ⊑ B ⊣ Δᴿ}
-    {t : Φ ∣ Δᴸ ⊢ `∀ D ⊑ F ⊣ Δᴿ} →
+    {t : Φ ∣ Δᴸ ⊢ `∀ D ⊑ F ⊣ Δᴿ}
+    {body-shape : ImprecisionShape} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
@@ -125,6 +129,8 @@ WorldCoherentRightTargetWidenInstantiationPairedLambdaPendingAllocationPrefixᵀ
   ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
     ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
     ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ p →
+  widening ⊢ᶜ inst B s ⦂ νˢ body-shape →
+  ⌊ ∀ⁱ p ⌋ ； νˢ body-shape ≋ ⌊ f ⌋ →
   TargetAdministrationSpine ρ⁺ (`∀ D) f t cs →
   Σ[ indexed ∈
     WeakOneStepIndexedResult

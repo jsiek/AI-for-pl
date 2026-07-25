@@ -80,6 +80,14 @@ weak-one-step-keep-source-catchup-type-coherenceᵀ source→ result =
       (transportArrowType-to-raw≅ oneStep pC pD))
     (λ q → HE.≅-to-≡
       (transportAllType-to-raw≅ oneStep q))
+    (λ p → refl)
+    (λ p → refl)
+    (λ replacement → replacement)
+    (λ replacement → replacement)
+    (λ replacement → replacement)
+    (λ replacement → replacement)
+    (λ _ _ replacement → replacement)
+    (λ replacement → replacement)
   where
   oneStep = weak-one-step-keep-source-catchupᵀ source→ result
 
@@ -152,6 +160,14 @@ weak-one-step-prepend-source-keep-type-coherenceᵀ
         (HE.trans
           (HE.sym (transportAllType-to-raw≅ second q))
           (≡-to-≅ (transportAllCoherent coherence q)))))
+    (transportShapeCoherent coherence)
+    (transportRightBodyShapeCoherent coherence)
+    (transportLeftReplacementCoherent coherence)
+    (transportRightReplacementCoherent coherence)
+    (transportPairedReplacementCoherent coherence)
+    (transportAllBodyPairedReplacementCoherent coherence)
+    (transportSourceNuBodyLeftReplacementCoherent coherence)
+    (transportRightBodyRightReplacementCoherent coherence)
   where
   combined = weak-one-step-prepend-source-keepᵀ source→ second
 

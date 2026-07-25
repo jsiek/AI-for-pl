@@ -14,7 +14,10 @@ open import Data.Nat using (suc; zero)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 
 open import Coercions using (instᵈ)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Conversion using (RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
+open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_; ⇑ᴿᵢ)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
@@ -39,6 +42,8 @@ open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
   ( weak-one-step-right-νcastᵀ
   ; weak-one-step-right-ν↑ᵀ
   )
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (⊑-target-lift-rightᵢ)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (lift-right-store-embeddingⁱ)
 open import proof.Right.Core.NuImprecisionRightContextAction using
@@ -70,11 +75,13 @@ weak-one-step-right-ν↑-context-seedᵀ :
     zero (⇑ᵗ A) s C′ (⇑ᵗ B′)) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (pC : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ) →
+  (replace :
+    pC [ zero ↦ ⇑ᵗ A ]ᴿ ⊑-target-lift-rightᵢ pB) →
   (liftρ : LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ ρ′) →
   (N⊑N′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ N ⊑ N′ ⦂ B ⊑ `∀ C′ ∶ q) →
   let result = weak-one-step-right-ν↑ᵀ
-        vN′ noN′ h⇑A s′↑ pB pC liftρ N⊑N′
+        vN′ noN′ h⇑A s′↑ pB pC replace liftρ N⊑N′
   in
   Σ[ lineage ∈ WeakOneStepStoreLineage result ]
     (resultCtx result ≡
@@ -83,7 +90,7 @@ weak-one-step-right-ν↑-context-seedᵀ :
     RightOnlyStoreImpPrefix
       (lineageStore lineage) (resultStore result)
 weak-one-step-right-ν↑-context-seedᵀ
-    vN′ noN′ h⇑A s′↑ pB pC liftρ N⊑N′ =
+    vN′ noN′ h⇑A s′↑ pB pC replace liftρ N⊑N′ =
   weak-step-store-lineage
       _
       (lift-right-store-embeddingⁱ liftρ)
@@ -107,11 +114,16 @@ weak-one-step-right-νcast-context-seedᵀ :
     ⊢ s ∶ C′ ⊑ ⇑ᵗ B′) →
   (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   (pC : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ) →
+  ∀ {s-shape} →
+  (s-shape-proof : widening ⊢ᶜ s ⦂ s-shape) →
+  (comp : ⌊ pC ⌋ ； s-shape ≋
+    ⌊ ⊑-target-lift-rightᵢ pB ⌋) →
   (liftρ : LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ ρ′) →
   (N⊑N′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ N ⊑ N′ ⦂ B ⊑ `∀ C′ ∶ q) →
   let result = weak-one-step-right-νcastᵀ
-        vN′ noN′ mode seal★ s⊑ pB pC liftρ N⊑N′
+        vN′ noN′ mode seal★ s⊑ pB pC
+        s-shape-proof comp liftρ N⊑N′
   in
   Σ[ lineage ∈ WeakOneStepStoreLineage result ]
     (resultCtx result ≡
@@ -120,7 +132,8 @@ weak-one-step-right-νcast-context-seedᵀ :
     RightOnlyStoreImpPrefix
       (lineageStore lineage) (resultStore result)
 weak-one-step-right-νcast-context-seedᵀ
-    vN′ noN′ mode seal★ s⊑ pB pC liftρ N⊑N′ =
+    vN′ noN′ mode seal★ s⊑ pB pC
+    s-shape-proof comp liftρ N⊑N′ =
   weak-step-store-lineage
       _
       (lift-right-store-embeddingⁱ liftρ)

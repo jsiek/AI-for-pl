@@ -73,7 +73,8 @@ PairedLambdaTargetClosingPairedWideningFrameClosingᵀ =
     {W W′ : Term} {B C B′ C′ : Ty}
     {q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ B′ ⊣ Δᴿ}
     {r : Φ ∣ Δᴸ ⊢ `∀ C ⊑ C′ ⊣ Δᴿ}
-    {d d′ : Coercion} {μ μ′ : ModeEnv} →
+    {d d′ : Coercion} {d-shape d′-shape}
+    {μ μ′ : ModeEnv} →
   (∀ {ρ : StoreImp Φ Δᴸ Δᴿ}
       {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
       {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
@@ -113,7 +114,7 @@ PairedLambdaTargetClosingPairedWideningFrameClosingᵀ =
   SealModeStore★ μ′ (rightStoreⁱ ρ₀) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ d′ ∶ B′ ⊑ C′ →
   PairedWideningCompatible Φ Δᴸ Δᴿ
-    (C.`∀ d) d′ (`∀ C) B′ →
+    (C.`∀ d) d′ q r d-shape d′-shape →
   ∀ {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρν : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)

@@ -18,6 +18,12 @@ open import Imprecision using
   (ImpCtx; NonVar; _ˣ⊑★; _ˣ⊑ˣ_; ⇑ᵢ; ⇑ᴸᵢ; ⇑ᴿᵢ)
 open import ImprecisionWf using
   (_∣_⊢_⊑_⊣_; _↦_; ∀ⁱ_; ν)
+open import ImprecisionComposition using (⌊_⌋)
+open import ConversionIndexCompatibility using
+  ( _[_↦_]ᴸ_
+  ; _[_↦_]ᴿ_
+  ; _[_↦_⊑⟨_⟩_↤_]ᴾ_
+  )
 open import NuReduction using
   ( StoreChange
   ; StoreChanges
@@ -38,13 +44,20 @@ open import NuTerms using
   (No•; RuntimeOK; Term; Value; blame)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
-open import Types using (Ty; TyCtx; occurs; _⇒_; `∀)
+open import Types using (Ty; TyCtx; occurs; ⇑ᵗ; _⇒_; `∀)
 open import proof.Core.Properties.ReductionProperties using
-  ( applyTys-⇒
+  ( applyTyVar
+  ; applyTyVars
+  ; applyTys-⇒
   ; applyTy-∀
   ; applyTyUnderTyBinder
   ; applyTysUnderTyBinders
   ; applyTys-∀
+  )
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  ( ⊑-lift∀ᵢ
+  ; ⊑-source-liftνᵢ
+  ; ⊑-target-lift-rightᵢ
   )
 
 record SourceNuIndex
@@ -306,6 +319,91 @@ record WeakOneStepTypeCoherence
           ⊢ C ⊑ C′ ⊣ suc Δᴿ) →
       transportAllType result q ≡
         ∀ⁱ (transportAllBody result q)
+    transportShapeCoherent :
+      ∀ {C D}
+        (p : Φ ∣ Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
+      ⌊ transportType result p ⌋ ≡ ⌊ p ⌋
+    transportRightBodyShapeCoherent :
+      ∀ {C D}
+        (p : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ C ⊑ D ⊣ suc Δᴿ) →
+      ⌊ transportRightBody result p ⌋ ≡ ⌊ p ⌋
+    transportLeftReplacementCoherent :
+      ∀ {C C′ D α X}
+        {p : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
+        {q : Φ ∣ Δᴸ ⊢ D ⊑ C′ ⊣ Δᴿ} →
+      p [ α ↦ X ]ᴸ q →
+      transportType result p
+        [ applyTyVars (sourceChanges result) α
+        ↦ applyTys (sourceChanges result) X ]ᴸ
+      transportType result q
+    transportRightReplacementCoherent :
+      ∀ {C C′ D′ β X′}
+        {p : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
+        {q : Φ ∣ Δᴸ ⊢ C ⊑ D′ ⊣ Δᴿ} →
+      p [ β ↦ X′ ]ᴿ q →
+      transportType result p
+        [ applyTyVars (targetTailChanges result)
+            (applyTyVar χ β)
+        ↦ applyTys (targetTailChanges result)
+            (applyTy χ X′) ]ᴿ
+      transportType result q
+    transportPairedReplacementCoherent :
+      ∀ {C C′ D D′ α β X X′}
+        {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
+        {p : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
+        {q : Φ ∣ Δᴸ ⊢ D ⊑ D′ ⊣ Δᴿ} →
+      p [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ q →
+      transportType result p
+        [ applyTyVars (sourceChanges result) α
+        ↦ applyTys (sourceChanges result) X
+        ⊑⟨ transportType result pX ⟩
+        applyTys (targetTailChanges result) (applyTy χ X′)
+        ↤ applyTyVars (targetTailChanges result)
+            (applyTyVar χ β) ]ᴾ
+      transportType result q
+    transportAllBodyPairedReplacementCoherent :
+      ∀ {A A′ B B′ C C′}
+        {A⇑⊑A′⇑ :
+          ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+            ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ A′ ⊣ suc Δᴿ}
+        {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+        {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+          ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ} →
+      q
+        [ zero ↦ ⇑ᵗ A
+        ⊑⟨ A⇑⊑A′⇑ ⟩
+        ⇑ᵗ A′ ↤ zero ]ᴾ
+      ⊑-lift∀ᵢ pB →
+      transportAllBody result q
+        [ zero ↦
+            applyTysUnderTyBinders (sourceChanges result) (⇑ᵗ A)
+        ⊑⟨ transportAllBody result A⇑⊑A′⇑ ⟩
+        applyTysUnderTyBinders (targetTailChanges result)
+          (applyTyUnderTyBinder χ (⇑ᵗ A′))
+        ↤ zero ]ᴾ
+      ⊑-lift∀ᵢ (transportType result pB)
+    transportSourceNuBodyLeftReplacementCoherent :
+      ∀ {A B B′ C}
+        {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+        {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+          ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
+        (safe : NonVar C)
+        (occ : occurs zero C ≡ true) →
+      q [ zero ↦ ⇑ᵗ A ]ᴸ ⊑-source-liftνᵢ pB →
+      sourceNuBody (transportSourceNu result safe occ q)
+        [ zero ↦
+            applyTysUnderTyBinders (sourceChanges result) (⇑ᵗ A) ]ᴸ
+      ⊑-source-liftνᵢ (transportType result pB)
+    transportRightBodyRightReplacementCoherent :
+      ∀ {A B B′ C′}
+        {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+        {pC : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ} →
+      pC [ zero ↦ ⇑ᵗ A ]ᴿ ⊑-target-lift-rightᵢ pB →
+      transportRightBody result pC
+        [ zero ↦
+            applyTysUnderTyBinders (targetTailChanges result)
+              (applyTyUnderTyBinder χ (⇑ᵗ A)) ]ᴿ
+      ⊑-target-lift-rightᵢ (transportType result pB)
 
 open WeakOneStepTypeCoherence public
 data WeakOneStepOutcome

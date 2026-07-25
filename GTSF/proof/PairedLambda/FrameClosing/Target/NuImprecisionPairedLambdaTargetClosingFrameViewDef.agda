@@ -12,6 +12,7 @@ module proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClo
 --   * Contains no classifier implementation, postulate, or permissive option.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; narrowing; widening)
 import Coercions as C
 open import Coercions using
   ( Coercion
@@ -25,6 +26,8 @@ open import Coercions using
   ; _∣_∣_⊢_∶_=⇒_
   )
 open import Conversion using (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; _[_↦_]ᴿ_)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
@@ -40,6 +43,8 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
+open import ImprecisionComposition using
+  (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_; _；⌊_⌋≋ᵖ_；_)
 open import Imprecision using (NonVar; ⇑ᴿᵢ)
 import NarrowWiden as NW
 open import NarrowWiden using
@@ -143,7 +148,8 @@ data PairedLambdaTargetClosingLeaf
           (suc Θᴸ) (suc Θᴿ)}
         {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
         {τ σ : Renameᵗ}
-        {W W′ M M′ A A′ B C D s μ r} →
+        {W W′ M M′ A A′ B C D s μ r}
+        {body-shape : ImprecisionShape} →
     StoreImpPrefix ρ₀ ρ⁺ →
     CastMode μ →
     SealModeStore★ μ (rightStoreⁱ ρ₀) →
@@ -160,6 +166,8 @@ data PairedLambdaTargetClosingLeaf
       ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
       ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
     (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ) →
+    widening ⊢ᶜ inst B s ⦂ νˢ body-shape →
+    ⌊ ∀ⁱ r ⌋ ； νˢ body-shape ≋ ⌊ f ⌋ →
     (assm :
       ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
         rename-assm²ᵢ τ σ a ∈ Φ) →
@@ -183,7 +191,7 @@ data PairedLambdaTargetClosingLeaf
     PairedLambdaTargetClosingLeaf ρ M M′ A A′ p
 
   leaf-gen-ν :
-      ∀ {ρ V N′ A B B′ q c μ} →
+      ∀ {ρ V N′ A B B′ q c μ c-shape} →
     {{safe : NonVar B}} →
     Value V → No• V →
     Value N′ → No• N′ →
@@ -194,11 +202,13 @@ data PairedLambdaTargetClosingLeaf
     genᵈ μ ∣ suc Δᴸ ∣ ⟰ᵗ (leftStoreⁱ ρ)
       ⊢ c ∶ ⇑ᵗ A =⇒ B →
     (cⁿ : NW.GenSafe c) →
+    narrowing ⊢ᶜ C.gen A c ⦂ c-shape →
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
       ⊢ᴺ V ⊑ N′ ⦂ A ⊑ B′ ∶ q →
     (occ-r : occurs zero B ≡ true) →
     (r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+    c-shape ； ⌊ q ⌋ ≋ ⌊ ν safe occ-r r ⌋ →
     PairedLambdaTargetClosingLeaf ρ
       (V ⟨ C.gen A c ⟩) N′ (`∀ B) B′ (ν safe occ-r r)
 
@@ -219,20 +229,26 @@ data PairedLambdaTargetClosingLeaf
 
   leaf-up-gen :
       ∀ {ρ M M′ X C′ D D′ B B′ pC
-        d d′ u u′} →
+        d d′ u u′ d-shape d′-shape u-shape u′-shape} →
     Value M → No• M →
     Value M′ → No• M′ →
     Inert d′ → Inert u′ →
     genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ
       ⊢ C.gen X d ∶ X ⊒ `∀ D →
+    narrowing ⊢ᶜ C.gen X d ⦂ d-shape →
     genᵈ tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
       ⊢ d′ ∶ C′ ⊒ D′ →
+    narrowing ⊢ᶜ d′ ⦂ d′-shape →
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
       ⊢ᴺ M ⊑ M′ ⦂ X ⊑ C′ ∶ pC →
     (qD : Φ ∣ Δᴸ ⊢ `∀ D ⊑ᵖ D′ ⊣ Δᴿ) →
+    d-shape ；⌊ pC ⌋≋ᵖ qD ； d′-shape →
     QuotientWideningPair Δᴸ Δᴿ ρ
       (C.`∀ u) u′ (`∀ D) D′ (`∀ B) B′ →
     (q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ B′ ⊣ Δᴿ) →
+    widening ⊢ᶜ C.`∀ u ⦂ u-shape →
+    widening ⊢ᶜ u′ ⦂ u′-shape →
+    u-shape ；⌊ q ⌋≋ᵖ qD ； u′-shape →
     PairedLambdaTargetClosingLeaf ρ
       ((M ⟨ C.gen X d ⟩) ⟨ C.`∀ u ⟩)
       ((M′ ⟨ d′ ⟩) ⟨ u′ ⟩)
@@ -263,7 +279,7 @@ data PairedLambdaTargetClosingFrames
       ρ₂ W W′ B B′ q
 
   frame-cast⊒⊑ :
-      ∀ {ρ W W′ B C B′ q c μ} →
+      ∀ {ρ W W′ B C B′ q c μ c-shape} →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ W W′ (`∀ B) B′ q →
     CastMode μ →
@@ -271,11 +287,13 @@ data PairedLambdaTargetClosingFrames
     μ ∣ Δᴸ ∣ leftStoreⁱ ρ
       ⊢ C.`∀ c ∶ `∀ B ⊒ `∀ C →
     (r : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ) →
+    narrowing ⊢ᶜ C.`∀ c ⦂ c-shape →
+    c-shape ； ⌊ q ⌋ ≋ ⌊ r ⌋ →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ (W ⟨ C.`∀ c ⟩) W′ (`∀ C) B′ r
 
   frame-cast⊑⊑ :
-      ∀ {ρ W W′ B C B′ q c μ} →
+      ∀ {ρ W W′ B C B′ q c μ c-shape} →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ W W′ (`∀ B) B′ q →
     CastMode μ →
@@ -283,6 +301,8 @@ data PairedLambdaTargetClosingFrames
     μ ∣ Δᴸ ∣ leftStoreⁱ ρ
       ⊢ C.`∀ c ∶ `∀ B ⊑ `∀ C →
     (r : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ) →
+    widening ⊢ᶜ C.`∀ c ⦂ c-shape →
+    c-shape ； ⌊ r ⌋ ≋ ⌊ q ⌋ →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ (W ⟨ C.`∀ c ⟩) W′ (`∀ C) B′ r
 
@@ -293,6 +313,7 @@ data PairedLambdaTargetClosingFrames
     RevealConversion μ Δᴸ (leftStoreⁱ ρ)
       α X (C.`∀ c) (`∀ B) (`∀ C) →
     (r : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ) →
+    q [ α ↦ X ]ᴸ r →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ (W ⟨ C.`∀ c ⟩) W′ (`∀ C) B′ r
 
@@ -303,11 +324,12 @@ data PairedLambdaTargetClosingFrames
     ConcealConversion μ Δᴸ (leftStoreⁱ ρ)
       α X (C.`∀ c) (`∀ B) (`∀ C) →
     (r : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ) →
+    r [ α ↦ X ]ᴸ q →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ (W ⟨ C.`∀ c ⟩) W′ (`∀ C) B′ r
 
   frame-gen-all :
-      ∀ {ρ V N′ F B B′ q c μ} →
+      ∀ {ρ V N′ F B B′ q c μ c-shape} →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ V N′ (`∀ F) (`∀ B′) q →
     CastMode μ →
@@ -319,12 +341,14 @@ data PairedLambdaTargetClosingFrames
     NW.GenSafe c →
     (r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ suc Δᴿ) →
+    narrowing ⊢ᶜ C.gen (`∀ F) c ⦂ c-shape →
+    c-shape ； ⌊ q ⌋ ≋ ⌊ ∀ⁱ r ⌋ →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ (V ⟨ C.gen (`∀ F) c ⟩) N′
       (`∀ B) (`∀ B′) (∀ⁱ r)
 
   frame-⊑cast⊒ :
-      ∀ {ρ W W′ B B′ C′ q c′ μ′} →
+      ∀ {ρ W W′ B B′ C′ q c′ μ′ c′-shape} →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ W W′ B B′ q →
     Inert c′ →
@@ -332,11 +356,13 @@ data PairedLambdaTargetClosingFrames
     SealModeStore★ μ′ (rightStoreⁱ ρ) →
     μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ B′ ⊒ C′ →
     (r : Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ Δᴿ) →
+    narrowing ⊢ᶜ c′ ⦂ c′-shape →
+    ⌊ r ⌋ ； c′-shape ≋ ⌊ q ⌋ →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ W (W′ ⟨ c′ ⟩) B C′ r
 
   frame-⊑cast⊑ :
-      ∀ {ρ W W′ B B′ C′ q c′ μ′} →
+      ∀ {ρ W W′ B B′ C′ q c′ μ′ c′-shape} →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ W W′ B B′ q →
     Inert c′ →
@@ -344,11 +370,13 @@ data PairedLambdaTargetClosingFrames
     SealModeStore★ μ′ (rightStoreⁱ ρ) →
     μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ B′ ⊑ C′ →
     (r : Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ Δᴿ) →
+    widening ⊢ᶜ c′ ⦂ c′-shape →
+    ⌊ q ⌋ ； c′-shape ≋ ⌊ r ⌋ →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ W (W′ ⟨ c′ ⟩) B C′ r
 
   frame-⊑cast⊑id :
-      ∀ {ρ W W′ B B′ C′ q c′} →
+      ∀ {ρ W W′ B B′ C′ q c′ c′-shape} →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ W W′ B B′ q →
     Inert c′ →
@@ -356,6 +384,8 @@ data PairedLambdaTargetClosingFrames
     id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
       ⊢ c′ ∶ B′ ⊑ C′ →
     (r : Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ Δᴿ) →
+    widening ⊢ᶜ c′ ⦂ c′-shape →
+    ⌊ q ⌋ ； c′-shape ≋ ⌊ r ⌋ →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ W (W′ ⟨ c′ ⟩) B C′ r
 
@@ -367,6 +397,7 @@ data PairedLambdaTargetClosingFrames
     RevealConversion μ′ Δᴿ (rightStoreⁱ ρ)
       β X′ c′ B′ C′ →
     (r : Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ Δᴿ) →
+    q [ β ↦ X′ ]ᴿ r →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ W (W′ ⟨ c′ ⟩) B C′ r
 
@@ -378,6 +409,7 @@ data PairedLambdaTargetClosingFrames
     ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ)
       β X′ c′ B′ C′ →
     (r : Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ Δᴿ) →
+    r [ β ↦ X′ ]ᴿ q →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ W (W′ ⟨ c′ ⟩) B C′ r
 
@@ -391,34 +423,48 @@ data PairedLambdaTargetClosingFrames
       ρ (W ⟨ C.`∀ c ⟩) (W′ ⟨ c′ ⟩) (`∀ C) C′ r
 
   frame-up-id :
-      ∀ {ρ M M′ C C′ D D′ B B′ pC d d′ u u′} →
+      ∀ {ρ M M′ C C′ D D′ B B′ pC d d′ u u′
+        d-shape d′-shape u-shape u′-shape} →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ M M′ (`∀ C) C′ pC →
     Inert d′ → Inert u′ →
     id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ
       ⊢ C.`∀ d ∶ `∀ C ⊒ `∀ D →
+    narrowing ⊢ᶜ C.`∀ d ⦂ d-shape →
     id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ D′ →
+    narrowing ⊢ᶜ d′ ⦂ d′-shape →
     (qD : Φ ∣ Δᴸ ⊢ `∀ D ⊑ᵖ D′ ⊣ Δᴿ) →
+    d-shape ；⌊ pC ⌋≋ᵖ qD ； d′-shape →
     QuotientWideningPair Δᴸ Δᴿ ρ
       (C.`∀ u) u′ (`∀ D) D′ (`∀ B) B′ →
     (q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ B′ ⊣ Δᴿ) →
+    widening ⊢ᶜ C.`∀ u ⦂ u-shape →
+    widening ⊢ᶜ u′ ⦂ u′-shape →
+    u-shape ；⌊ q ⌋≋ᵖ qD ； u′-shape →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p ρ
       ((M ⟨ C.`∀ d ⟩) ⟨ C.`∀ u ⟩)
       ((M′ ⟨ d′ ⟩) ⟨ u′ ⟩) (`∀ B) B′ q
 
   frame-up-gen-all :
-      ∀ {ρ M M′ C C′ D D′ B B′ pC d d′ u u′} →
+      ∀ {ρ M M′ C C′ D D′ B B′ pC d d′ u u′
+        d-shape d′-shape u-shape u′-shape} →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p
       ρ M M′ (`∀ C) C′ pC →
     Inert d′ → Inert u′ →
     genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ
       ⊢ C.`∀ d ∶ `∀ C ⊒ `∀ D →
+    narrowing ⊢ᶜ C.`∀ d ⦂ d-shape →
     genᵈ tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
       ⊢ d′ ∶ C′ ⊒ D′ →
+    narrowing ⊢ᶜ d′ ⦂ d′-shape →
     (qD : Φ ∣ Δᴸ ⊢ `∀ D ⊑ᵖ D′ ⊣ Δᴿ) →
+    d-shape ；⌊ pC ⌋≋ᵖ qD ； d′-shape →
     QuotientWideningPair Δᴸ Δᴿ ρ
       (C.`∀ u) u′ (`∀ D) D′ (`∀ B) B′ →
     (q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ B′ ⊣ Δᴿ) →
+    widening ⊢ᶜ C.`∀ u ⦂ u-shape →
+    widening ⊢ᶜ u′ ⦂ u′-shape →
+    u-shape ；⌊ q ⌋≋ᵖ qD ； u′-shape →
     PairedLambdaTargetClosingFrames ρ₀ L L′ A A′ p ρ
       ((M ⟨ C.`∀ d ⟩) ⟨ C.`∀ u ⟩)
       ((M′ ⟨ d′ ⟩) ⟨ u′ ⟩) (`∀ B) B′ q

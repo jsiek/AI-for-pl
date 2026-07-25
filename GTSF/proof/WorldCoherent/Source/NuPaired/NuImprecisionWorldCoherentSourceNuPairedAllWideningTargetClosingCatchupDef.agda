@@ -10,6 +10,7 @@ module
 --   * Contains no implementation, dispatcher, or permissive option.
 
 open import Coercions using (Coercion; ModeEnv; `∀)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Conversion using (RevealConversion)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
@@ -22,6 +23,7 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ; ∀ⁱ_
   )
+open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
@@ -64,6 +66,7 @@ WorldCoherentSourceNuPairedAllWideningTargetClosingCatchupᵀ =
       (suc Δᴸ) (suc Δᴿ)}
     {V V′ : Term} {A B C C′ D D′ : Ty}
     {c c′ s : Coercion} {μ η η′ : ModeEnv}
+    {c-shape c′-shape result-shape}
     {p : Φ ∣ Δᴸ ⊢ B ⊑ `∀ C′ ⊣ Δᴿ}
     {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ D′ ⊣ suc Δᴿ}
@@ -87,10 +90,14 @@ WorldCoherentSourceNuPairedAllWideningTargetClosingCatchupᵀ =
   SealModeStore★ η (leftStoreⁱ ρ) →
   η ∣ Δᴸ ∣ leftStoreⁱ ρ
     ⊢ `∀ c ∶ `∀ D ⊑ `∀ C →
+  widening ⊢ᶜ `∀ c ⦂ c-shape →
   CastMode η′ →
   SealModeStore★ η′ (rightStoreⁱ ρ) →
   η′ ∣ Δᴿ ∣ rightStoreⁱ ρ
     ⊢ `∀ c′ ∶ `∀ D′ ⊑ `∀ C′ →
+  widening ⊢ᶜ `∀ c′ ⦂ c′-shape →
+  c-shape ； ⌊ ∀ⁱ q ⌋ ≋ result-shape →
+  ⌊ ∀ⁱ r ⌋ ； c′-shape ≋ result-shape →
   PairedWideningCompatible Φ Δᴸ Δᴿ
     (`∀ c) (`∀ c′) (`∀ C) (`∀ D′) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []

@@ -13,6 +13,8 @@ module
 open import Agda.Builtin.Equality using (_≡_)
 open import Coercions using
   (Coercion; Inert; id-onlyᵈ)
+import CastImprecisionShape as CastShape
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
 open import Conversion using
   (ConcealConversion; RevealConversion)
 open import Data.Product using
@@ -20,6 +22,8 @@ open import Data.Product using
 open import Data.Sum using (_⊎_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 open import NuTermImprecision using
@@ -60,29 +64,38 @@ WorldCoherentRightTargetInertFramingContextᵀ =
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   Inert c →
-  ((∃[ μ ] ∃[ β ] ∃[ X′ ]
+   ((∃[ μ ] ∃[ β ] ∃[ X′ ]
       RevealConversion μ Δᴿ (rightStoreⁱ ρ₀)
-        β X′ c A′ B′)
+        β X′ c A′ B′ ×
+      p [ β ↦ X′ ]ᴿ q)
    ⊎
    (∃[ μ ] ∃[ β ] ∃[ X′ ]
       ConcealConversion μ Δᴿ (rightStoreⁱ ρ₀)
-        β X′ c A′ B′)
+        β X′ c A′ B′ ×
+      q [ β ↦ X′ ]ᴿ p)
    ⊎
-   (∃[ μ ]
+   (∃[ μ ] Σ[ shape ∈ ImprecisionShape ]
       CastMode μ ×
       SealModeStore★ μ (rightStoreⁱ ρ₀) ×
       (μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
-        ⊢ c ∶ A′ ⊒ B′))
+        ⊢ c ∶ A′ ⊒ B′) ×
+      CastShape.narrowing CastShape.⊢ᶜ c ⦂ shape ×
+      ⌊ q ⌋ ； shape ≋ ⌊ p ⌋)
    ⊎
-   (∃[ μ ]
+   (∃[ μ ] Σ[ shape ∈ ImprecisionShape ]
       CastMode μ ×
       SealModeStore★ μ (rightStoreⁱ ρ₀) ×
       (μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
-        ⊢ c ∶ A′ ⊑ B′))
+        ⊢ c ∶ A′ ⊑ B′) ×
+      CastShape.widening CastShape.⊢ᶜ c ⦂ shape ×
+      ⌊ p ⌋ ； shape ≋ ⌊ q ⌋)
    ⊎
    (SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) ×
-    (id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
-      ⊢ c ∶ A′ ⊑ B′))) →
+    Σ[ shape ∈ ImprecisionShape ]
+      (id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
+        ⊢ c ∶ A′ ⊑ B′) ×
+      CastShape.widening CastShape.⊢ᶜ c ⦂ shape ×
+      ⌊ p ⌋ ； shape ≋ ⌊ q ⌋)) →
   (inner : WorldCoherentRightValueCatchupIndexedResult
     {V = V} {M′ = M′} {ρ = ρ⁺} p) →
   resultCtx

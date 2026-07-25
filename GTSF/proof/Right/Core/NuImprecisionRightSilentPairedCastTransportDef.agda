@@ -21,6 +21,7 @@ open import QuotientedTermImprecision using
 open import Types using (Ty; TyCtx)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepResult
+  ; WeakOneStepTypeCoherence
   ; resultCtx
   ; resultLeftCtx
   ; resultRightCtx
@@ -50,6 +51,7 @@ RightSilentPairedCastTransportᵀ =
   (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
   sourceChanges inner ≡ [] →
   sourceResult inner ≡ M →
+  WeakOneStepTypeCoherence inner →
   WeakOneStepStoreLineage inner →
   WorldCoherent (resultStore inner) →
   PairedCast Φ Δᴸ Δᴿ ρ₀

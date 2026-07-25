@@ -12,6 +12,9 @@ module
 import Coercions as C
 import Conversion as CV
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import CastImprecisionShape using (shape-fun)
+open import ConversionIndexCompatibility using
+  (replace-right-function)
 open import Data.List using ([])
 open import Data.Nat using (suc)
 open import Data.Nat.Properties using (≤-refl; suc-injective)
@@ -20,6 +23,7 @@ open import Relation.Binary.PropositionalEquality using (trans)
 
 open import ImprecisionWf using
   (ImpCtx; _↦_; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using (comp-↦-↦)
 import NarrowWiden as NW
 open import NuReduction using (keep; pure-step)
 open import NuStore using (StoreWf)
@@ -205,11 +209,14 @@ target-function-cast-value-suc-at-prefixᵀ
     {pA = pA} {pB = pB}
     relation-prefix prefix coherent exclusive unique wfR okM okM′
     (⊑cast⊒ᵀ {p = pA₀ ↦ pB₀} mode seal★
-      (C.cast-fun c⊢ d⊢ , NW.cross (cʷ NW.↦ dⁿ)) inner .(pA ↦ pB))
+      (C.cast-fun c⊢ d⊢ , NW.cross (cʷ NW.↦ dⁿ))
+      inner .(pA ↦ pB)
+      (shape-fun c-shape d-shape)
+      (comp-↦-↦ c-comp d-comp))
     argument-related vV vW vV′ outer-rank =
   prepend (pure-step (NuReduction.β-↦ vW vV′))
     (sourceStepTargetNarrowFrame target-frames
-      prefix mode seal★⁺ d⊒⁺ inner-result)
+      prefix mode seal★⁺ d⊒⁺ d-shape d-comp inner-result)
   where
   right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
   seal★⁺ = seal★-weaken right-incl seal★
@@ -223,7 +230,7 @@ target-function-cast-value-suc-at-prefixᵀ
     runtime-·₂ target-function-value okM′
   argument-cast =
     ⊑cast⊑ᵀ mode seal★⁺ c⊑⁺
-      argument-related pA₀
+      argument-related pA₀ c-shape c-comp
   source-inner⊢⁺ =
     term-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion relation-prefix)
@@ -246,11 +253,14 @@ target-function-cast-value-suc-at-prefixᵀ
     {pA = pA} {pB = pB}
     relation-prefix prefix coherent exclusive unique wfR okM okM′
     (⊑cast⊑ᵀ {p = pA₀ ↦ pB₀} mode seal★
-      (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ)) inner .(pA ↦ pB))
+      (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
+      inner .(pA ↦ pB)
+      (shape-fun c-shape d-shape)
+      (comp-↦-↦ c-comp d-comp))
     argument-related vV vW vV′ outer-rank =
   prepend (pure-step (NuReduction.β-↦ vW vV′))
     (sourceStepTargetWidenFrame target-frames
-      prefix mode seal★⁺ d⊑⁺ inner-result)
+      prefix mode seal★⁺ d⊑⁺ d-shape d-comp inner-result)
   where
   right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
   seal★⁺ = seal★-weaken right-incl seal★
@@ -264,7 +274,7 @@ target-function-cast-value-suc-at-prefixᵀ
     runtime-·₂ target-function-value okM′
   argument-cast =
     ⊑cast⊒ᵀ mode seal★⁺ c⊒⁺
-      argument-related pA₀
+      argument-related pA₀ c-shape c-comp
   source-inner⊢⁺ =
     term-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion relation-prefix)
@@ -287,11 +297,14 @@ target-function-cast-value-suc-at-prefixᵀ
     {ρ₀ = ρ₀} {pA = pA} {pB = pB}
     relation-prefix prefix coherent exclusive unique wfR okM okM′
     (⊑cast⊑idᵀ {p = pA₀ ↦ pB₀} seal★
-      (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ)) inner .(pA ↦ pB))
+      (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
+      inner .(pA ↦ pB)
+      (shape-fun c-shape d-shape)
+      (comp-↦-↦ c-comp d-comp))
     argument-related vV vW vV′ outer-rank =
   prepend (pure-step (NuReduction.β-↦ vW vV′))
     (sourceStepTargetIdWidenFrame target-frames
-      prefix seal★⁺ d⊑⁺ inner-result)
+      prefix seal★⁺ d⊑⁺ d-shape d-comp inner-result)
   where
   right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
   seal★⁺ : SealModeStore★ C.id-onlyᵈ (rightStoreⁱ ρ₀)
@@ -308,7 +321,7 @@ target-function-cast-value-suc-at-prefixᵀ
   argument-cast =
     ⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
       (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ c⊒⁺)
-      argument-related pA₀
+      argument-related pA₀ c-shape c-comp
   source-inner⊢⁺ =
     term-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion relation-prefix)
@@ -331,11 +344,12 @@ target-function-cast-value-suc-at-prefixᵀ
     {pA = pA} {pB = pB}
     relation-prefix prefix coherent exclusive unique wfR okM okM′
     (⊑conv↑ᵀ {p = pA₀ ↦ pB₀}
-      (CV.reveal-fun c↓ d↑) inner .(pA ↦ pB))
+      (CV.reveal-fun c↓ d↑) inner .(pA ↦ pB)
+      (replace-right-function c-replace d-replace))
     argument-related vV vW vV′ outer-rank =
   prepend (pure-step (NuReduction.β-↦ vW vV′))
     (sourceStepTargetRevealFrame target-frames
-      prefix d↑⁺ inner-result)
+      prefix d↑⁺ d-replace inner-result)
   where
   right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
   c↓⁺ = CV.weaken-conceal-conversion right-incl c↓
@@ -347,7 +361,7 @@ target-function-cast-value-suc-at-prefixᵀ
   target-argument-runtime =
     runtime-·₂ target-function-value okM′
   argument-cast =
-    ⊑conv↓ᵀ c↓⁺ argument-related pA₀
+    ⊑conv↓ᵀ c↓⁺ argument-related pA₀ c-replace
   source-inner⊢⁺ =
     term-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion relation-prefix)
@@ -370,11 +384,12 @@ target-function-cast-value-suc-at-prefixᵀ
     {pA = pA} {pB = pB}
     relation-prefix prefix coherent exclusive unique wfR okM okM′
     (⊑conv↓ᵀ {p = pA₀ ↦ pB₀}
-      (CV.conceal-fun c↑ d↓) inner .(pA ↦ pB))
+      (CV.conceal-fun c↑ d↓) inner .(pA ↦ pB)
+      (replace-right-function c-replace d-replace))
     argument-related vV vW vV′ outer-rank =
   prepend (pure-step (NuReduction.β-↦ vW vV′))
     (sourceStepTargetConcealFrame target-frames
-      prefix d↓⁺ inner-result)
+      prefix d↓⁺ d-replace inner-result)
   where
   right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
   c↑⁺ = CV.weaken-reveal-conversion right-incl c↑
@@ -386,7 +401,7 @@ target-function-cast-value-suc-at-prefixᵀ
   target-argument-runtime =
     runtime-·₂ target-function-value okM′
   argument-cast =
-    ⊑conv↑ᵀ c↑⁺ argument-related pA₀
+    ⊑conv↑ᵀ c↑⁺ argument-related pA₀ c-replace
   source-inner⊢⁺ =
     term-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion relation-prefix)

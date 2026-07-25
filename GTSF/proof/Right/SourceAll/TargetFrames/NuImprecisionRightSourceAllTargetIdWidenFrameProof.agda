@@ -12,6 +12,7 @@ module
 
 open import Coercions using (id-onlyᵈ)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
+open import ImprecisionComposition using (comp-ν)
 open import NuTermImprecision using (rightStoreⁱ-lift-left)
 open import NuTerms using
   ( no•-Λ
@@ -55,13 +56,15 @@ world-coherent-right-source-all-target-id-widen-frame-proofᵀ :
 world-coherent-right-source-all-target-id-widen-frame-proofᵀ
     close target-frames {occ = occ}
     prefix coherent exclusive unique wfR
-    ok-cast vV noV seal★ c⊑ liftρ liftγ inner =
+    ok-cast vV noV seal★ c⊑ c-shape comp liftρ liftγ inner =
   rightTargetIdWidenFrame target-frames
     prefix coherent exclusive unique wfR ok-cast
     (Λ vV) (no•-Λ noV)
     (subst (SealModeStore★ id-onlyᵈ) store-eq seal★)
     (subst (λ Σ → id-onlyᵈ ∣ _ ∣ Σ ⊢ _ ∶ _ ⊑ _)
       store-eq c⊑)
+    c-shape
+    (comp-ν comp)
     (Λ⊑ᵀ occ liftρ liftγ vV inner)
     (close prefix coherent exclusive unique wfR
       (cast-runtime ok-cast) vV noV liftρ liftγ inner)

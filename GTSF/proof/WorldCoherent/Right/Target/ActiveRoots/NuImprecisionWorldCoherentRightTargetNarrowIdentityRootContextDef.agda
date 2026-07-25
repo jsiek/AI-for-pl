@@ -7,15 +7,20 @@ module
 --   * Covers the three active atomic identity forms and exposes the target
 --     context action and right-only store lineage beside the existing complete
 --     catch-up carrier.
+--   * Retains the exact cast shape and composition triangle across catch-up.
 --   * Contains no implementation, result/view/outcome type, postulate, hole,
 --     permissive option, termination bypass, or broad DGG import.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using
+  (narrowing; _⊢ᶜ_⦂_)
 open import Coercions using (ModeEnv; id)
 open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using (StoreImp; rightStoreⁱ)
@@ -57,6 +62,7 @@ WorldCoherentRightTargetNarrowIdentityRootContextᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {A B : Ty} {μ : ModeEnv}
+    {s : ImprecisionShape}
     {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
@@ -69,6 +75,8 @@ WorldCoherentRightTargetNarrowIdentityRootContextᵀ =
   CastMode μ →
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ id B ∶ B ⊒ B →
+  narrowing ⊢ᶜ id B ⦂ s →
+  ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
   (inner : WorldCoherentRightValueCatchupIndexedResult

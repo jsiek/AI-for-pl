@@ -29,26 +29,33 @@ world-coherent-quotient-final-catchup-proofᵀ :
 world-coherent-quotient-final-catchup-proofᵀ
     classify quotient-inst quotient-inst-tag
     coherent exclusive wfL okV
-    vV′ noV′ inert-d′ inert-u′ down widening final
+    vV′ noV′ inert-d′ inert-u′
+    down widening u-shape u′-shape up-square final
     with classify coherent exclusive wfL vV′ noV′
-      inert-d′ inert-u′ down widening final
+      inert-d′ inert-u′
+      down widening u-shape u′-shape up-square final
 world-coherent-quotient-final-catchup-proofᵀ
     classify quotient-inst quotient-inst-tag
     coherent exclusive wfL okV
-    vV′ noV′ inert-d′ inert-u′ down widening final
+    vV′ noV′ inert-d′ inert-u′
+    down widening u-shape u′-shape up-square final
     | inj₁ caught =
   caught
 world-coherent-quotient-final-catchup-proofᵀ
     classify quotient-inst quotient-inst-tag
     coherent exclusive wfL okV
-    vV′ noV′ inert-d′ inert-u′ down widening final
+    vV′ noV′ inert-d′ inert-u′
+    down widening u-shape u′-shape up-square final
     | inj₂ (inj₁ (B , s , refl , source↠ , vVd , noVd)) =
   quotient-inst coherent exclusive wfL okV vVd noVd
-    vV′ noV′ inert-d′ inert-u′ down widening
+    vV′ noV′ inert-d′ inert-u′
+    down widening u-shape u′-shape up-square
 world-coherent-quotient-final-catchup-proofᵀ
     classify quotient-inst quotient-inst-tag
     coherent exclusive wfL okV
-    vV′ noV′ inert-d′ inert-u′ down widening final
+    vV′ noV′ inert-d′ inert-u′
+    down widening u-shape u′-shape up-square final
     | inj₂ (inj₂ (B , s , refl , source↠ , vVd , noVd)) =
   quotient-inst-tag coherent exclusive wfL okV vVd noVd
     vV′ noV′ inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square

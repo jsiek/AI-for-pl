@@ -66,7 +66,7 @@ paired-lambda-target-closing-paired-widening-frame-handler-proofᵀ :
     {W W′ : Term} {B C B′ C′ : Ty}
     {q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ B′ ⊣ Δᴿ}
     {r : Φ ∣ Δᴸ ⊢ `∀ C ⊑ C′ ⊣ Δᴿ}
-    {c c′ : Coercion} {μ μ′ : ModeEnv} →
+    {c c′ : Coercion} {c-shape c′-shape} {μ μ′ : ModeEnv} →
   PairedLambdaTargetClosingFrameClosingMotive ρ
     W W′ B B′ q →
   PairedLambdaTargetClosingFrameView ρ
@@ -80,7 +80,7 @@ paired-lambda-target-closing-paired-widening-frame-handler-proofᵀ :
   SealModeStore★ μ′ (rightStoreⁱ ρ) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ B′ ⊑ C′ →
   PairedWideningCompatible Φ Δᴸ Δᴿ
-    (C.`∀ c) c′ (`∀ C) B′ →
+    (C.`∀ c) c′ q r c-shape c′-shape →
   PairedLambdaTargetClosingFrameClosingMotive ρ
     (W ⟨ C.`∀ c ⟩) (W′ ⟨ c′ ⟩) C C′ r
 paired-lambda-target-closing-paired-widening-frame-handler-proofᵀ

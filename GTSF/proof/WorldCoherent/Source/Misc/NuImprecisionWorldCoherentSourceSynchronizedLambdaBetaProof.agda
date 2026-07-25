@@ -65,7 +65,15 @@ world-coherent-source-synchronized-lambda-beta-proofᵀ
   transport = weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′)
 
   type-coherence =
-    weak-step-type-coherence (λ pC pD → refl) (λ q → refl)
+    weak-step-type-coherence
+      (λ pC pD → refl) (λ q → refl) (λ p → refl)
+      (λ p → refl)
+      (λ replace → replace)
+      (λ replace → replace)
+      (λ replace → replace)
+      (λ replace → replace)
+      (λ safe occ replace → replace)
+      (λ replace → replace)
 
   indexed = weak-indexed-result result post-beta transport type-coherence
 

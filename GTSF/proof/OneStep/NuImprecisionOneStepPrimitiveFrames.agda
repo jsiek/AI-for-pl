@@ -62,11 +62,19 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetTail
   ; targetTailChanges
   ; transportAllBody
+  ; transportAllBodyPairedReplacementCoherent
   ; transportAllCoherent
   ; transportArrowCoherent
+  ; transportLeftReplacementCoherent
   ; transportNo•Terms
+  ; transportPairedReplacementCoherent
   ; transportRightBody
+  ; transportRightBodyRightReplacementCoherent
+  ; transportRightBodyShapeCoherent
+  ; transportRightReplacementCoherent
+  ; transportShapeCoherent
   ; transportSourceNu
+  ; transportSourceNuBodyLeftReplacementCoherent
   ; transportType
   ; weak-step-transport
   ; weak-step-type-coherence
@@ -196,6 +204,14 @@ private
       weak-step-type-coherence
         (transportArrowCoherent coherence)
         (transportAllCoherent coherence)
+        (transportShapeCoherent coherence)
+        (transportRightBodyShapeCoherent coherence)
+        (transportLeftReplacementCoherent coherence)
+        (transportRightReplacementCoherent coherence)
+        (transportPairedReplacementCoherent coherence)
+        (transportAllBodyPairedReplacementCoherent coherence)
+        (transportSourceNuBodyLeftReplacementCoherent coherence)
+        (transportRightBodyRightReplacementCoherent coherence)
 
     framed :
       WeakOneStepResult ρ
@@ -278,6 +294,14 @@ private
       weak-step-type-coherence
         (transportArrowCoherent coherence)
         (transportAllCoherent coherence)
+        (transportShapeCoherent coherence)
+        (transportRightBodyShapeCoherent coherence)
+        (transportLeftReplacementCoherent coherence)
+        (transportRightReplacementCoherent coherence)
+        (transportPairedReplacementCoherent coherence)
+        (transportAllBodyPairedReplacementCoherent coherence)
+        (transportSourceNuBodyLeftReplacementCoherent coherence)
+        (transportRightBodyRightReplacementCoherent coherence)
 
     framed :
       WeakOneStepResult ρ
@@ -375,3 +399,64 @@ weak-one-step-⊕₂-indexed-frame-outcomeᵀ
     vL noL vL′ noL′ L⊑L′
     (indexed-outcome-source-blame source↠) =
   indexed-outcome-source-blame (⊕₂-blame-tail vL noL source↠)
+
+
+weak-one-step-⊕₁-indexed-frame-relatedᵀ :
+  ∀ {Φ Δᴸ Δᴿ L L₁′ M M′ χ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  No• M →
+  No• M′ →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+    ⊢ᴺ M ⊑ M′ ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ idι →
+  WeakOneStepIndexedResult
+    {M = L} {N′ = L₁′} {χ = χ} {ρ = ρ} idι →
+  WeakOneStepIndexedResult
+    {M = L ⊕[ addℕ ] M}
+    {N′ = L₁′ ⊕[ addℕ ] applyTerm χ M′}
+    {χ = χ} {ρ = ρ} idι
+weak-one-step-⊕₁-indexed-frame-relatedᵀ
+    noM noM′ M⊑M′ inner =
+  weak-one-step-⊕₁-indexed-frameᵀ
+    noM noM′ M⊑M′ inner
+    (weakIndexedTransport inner)
+    (weakIndexedTypeCoherence inner)
+
+
+weak-one-step-⊕₂-indexed-frame-relatedᵀ :
+  ∀ {Φ Δᴸ Δᴿ L L′ M M₁′ χ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  Value L →
+  No• L →
+  Value L′ →
+  No• L′ →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+    ⊢ᴺ L ⊑ L′ ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ idι →
+  WeakOneStepIndexedResult
+    {M = M} {N′ = M₁′} {χ = χ} {ρ = ρ} idι →
+  WeakOneStepIndexedResult
+    {M = L ⊕[ addℕ ] M}
+    {N′ = applyTerm χ L′ ⊕[ addℕ ] M₁′}
+    {χ = χ} {ρ = ρ} idι
+weak-one-step-⊕₂-indexed-frame-relatedᵀ
+    vL noL vL′ noL′ L⊑L′ inner =
+  weak-one-step-⊕₂-indexed-frameᵀ
+    vL noL vL′ noL′ L⊑L′ inner
+    (weakIndexedTransport inner)
+    (weakIndexedTypeCoherence inner)
+
+
+weak-one-step-⊕₁-source-blame-frameᵀ :
+  ∀ {L M χs} →
+  No• M →
+  L —↠[ χs ] blame →
+  L ⊕[ addℕ ] M —↠[ χs ++ keep ∷ [] ] blame
+weak-one-step-⊕₁-source-blame-frameᵀ = ⊕₁-blame-tail
+
+
+weak-one-step-⊕₂-source-blame-frameᵀ :
+  ∀ {L M χs} →
+  Value L →
+  No• L →
+  M —↠[ χs ] blame →
+  L ⊕[ addℕ ] M —↠[ χs ++ keep ∷ [] ] blame
+weak-one-step-⊕₂-source-blame-frameᵀ = ⊕₂-blame-tail

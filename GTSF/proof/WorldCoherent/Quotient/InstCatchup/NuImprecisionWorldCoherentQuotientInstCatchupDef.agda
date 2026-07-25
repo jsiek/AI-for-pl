@@ -6,9 +6,13 @@ module proof.WorldCoherent.Quotient.InstCatchup.NuImprecisionWorldCoherentQuotie
 --   * Contains no implementation or recursive simulation dependency.
 
 import Coercions as C
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; widening)
 open import Data.List using ([])
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; _；⌊_⌋≋ᵖ_；_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using (StoreImp; leftStoreⁱ)
 open import NuTerms using (No•; RuntimeOK; Term; Value; _⟨_⟩)
@@ -29,6 +33,7 @@ WorldCoherentQuotientInstCatchupᵀ : Set₁
 WorldCoherentQuotientInstCatchupᵀ =
   ∀ {Φ Δᴸ Δᴿ} {V V′ : Term} {B D D′ A A′ : Ty}
     {d d′ s u′ : C.Coercion}
+    {sU sU′ : ImprecisionShape}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
@@ -45,6 +50,9 @@ WorldCoherentQuotientInstCatchupᵀ =
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺᵖ V ⟨ d ⟩ ⊑ V′ ⟨ d′ ⟩ ⦂ D ⊑ᵖ D′ ∶ qD →
   QuotientWideningPair Δᴸ Δᴿ ρ (C.inst B s) u′ D D′ A A′ →
+  widening ⊢ᶜ C.inst B s ⦂ sU →
+  widening ⊢ᶜ u′ ⦂ sU′ →
+  sU ；⌊ pA ⌋≋ᵖ qD ； sU′ →
   WorldCoherentLeftCatchupIndexedResult
     {N = (V ⟨ d ⟩) ⟨ C.inst B s ⟩}
     {V′ = (V′ ⟨ d′ ⟩) ⟨ u′ ⟩}

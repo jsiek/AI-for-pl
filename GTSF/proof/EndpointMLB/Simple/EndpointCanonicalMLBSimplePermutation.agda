@@ -39,12 +39,14 @@ open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleCompleteness usin
   ; varCandidate-var-var-complete; varCandidatesUpTo-complete
   )
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleRoutes
+open import
+  proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleSwapRoutes
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleSoundness using
   ( andᵇ-true; dedupe-sound; hasStar-sound; hasVar-sound
   ; pruneStrictlyBelow-sound; ∈-++-split
   )
 open import proof.Core.Permutation.ForallPermutationProperties using
-  ( swap01-pres-<; ≈∀-double-swap; ≈∀-double-swap-sym)
+  (swap01-pres-<; ≈∀-double-swap)
 open import proof.Core.Properties.ImprecisionProperties using
   ( idᵢ-var-identity
   ; no-⇑ᵢ-zero-left; no-⇑ᵢ-zero-right; no-⇑ᵢ-zero-star
@@ -244,13 +246,16 @@ data AlignedRoutes :
         {Y = Y} {C = C} C∈′)
 
   aligned-left-right :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D}
+    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C}
       {{safeC : NonVar C}}
-      {{safeD : NonVar D}}
       {occC : occurs zero C ≡ true}
       {occ∀C : occurs zero (`∀ C) ≡ true}
-      {occD : occurs zero D ≡ true}
-      {occ∀D : occurs zero (`∀ D) ≡ true}
+      {occD :
+        occurs zero
+          (renameᵗ ForallPermutation.swap01ᵗ C) ≡ true}
+      {occ∀D :
+        occurs zero
+          (`∀ (renameᵗ ForallPermutation.swap01ᵗ C)) ≡ true}
       {route :
         EnumRoute fuel
           (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ
@@ -264,38 +269,15 @@ data AlignedRoutes :
             (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ Φᴸ))
           (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ
             (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴿ))
-          (suc (suc Δᶜ)) (suc Δᴸ) (suc Δᴿ) A B D} →
-    renameᵗ ForallPermutation.swap01ᵗ C ≈∀ D →
+          (suc (suc Δᶜ)) (suc Δᴸ) (suc Δᴿ)
+          A B (renameᵗ ForallPermutation.swap01ᵗ C)} →
+    SwapAlignedRoutes [] route route′ →
     AlignedRoutes
       (route-left occ∀C (route-right {{safeC}} occC route))
-      (route-right occ∀D (route-left {{safeD}} occD route′))
-
-  aligned-right-left :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D}
-      {{safeC : NonVar C}}
-      {{safeD : NonVar D}}
-      {occC : occurs zero C ≡ true}
-      {occ∀C : occurs zero (`∀ C) ≡ true}
-      {occD : occurs zero D ≡ true}
-      {occ∀D : occurs zero (`∀ D) ≡ true}
-      {route :
-        EnumRoute fuel
-          (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ
-            (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ Φᴸ))
-          (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ
-            (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴿ))
-          (suc (suc Δᶜ)) (suc Δᴸ) (suc Δᴿ) A B C}
-      {route′ :
-        EnumRoute fuel
-          (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ
-            (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ Φᴸ))
-          (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ
-            (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ Φᴿ))
-          (suc (suc Δᶜ)) (suc Δᴸ) (suc Δᴿ) A B D} →
-    C ≈∀ renameᵗ ForallPermutation.swap01ᵗ D →
-    AlignedRoutes
-      (route-right occ∀C (route-left {{safeC}} occC route))
-      (route-left occ∀D (route-right {{safeD}} occD route′))
+      (route-right occ∀D
+        (route-left
+          {{renameNonVar ForallPermutation.swap01ᵗ safeC}}
+          occD route′))
 
 aligned-routes-≈∀ :
   ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D}
@@ -330,20 +312,13 @@ aligned-routes-≈∀ aligned-star-base = ≈∀-refl
 aligned-routes-≈∀ aligned-vars = ≈∀-refl
 aligned-routes-≈∀ aligned-var-star = ≈∀-refl
 aligned-routes-≈∀ aligned-star-var = ≈∀-refl
-aligned-routes-≈∀ (aligned-left-right body≈) =
-  ≈∀-double-swap body≈
-aligned-routes-≈∀ (aligned-right-left body≈) =
-  ≈∀-double-swap-sym body≈
+aligned-routes-≈∀ (aligned-left-right swap-aligned) =
+  ≈∀-double-swap ≈∀-refl
 
 
 ------------------------------------------------------------------------
 -- Route alignment under an adjacent left/right exposure exchange
 ------------------------------------------------------------------------
-
-data Exposure : Set where
-  bothᵉ : Exposure
-  leftᵉ : Exposure
-  rightᵉ : Exposure
 
 data ModeAt : List Exposure → TyVar → Exposure → Set where
   hereᵉ : ∀ {mode modes} → ModeAt (mode ∷ modes) zero mode
@@ -390,24 +365,6 @@ data RightOrigin : List Exposure → TyVar → Exposure → TyVar → Set
     RightOrigin modes X mode Y →
     RightOrigin (rightᵉ ∷ modes) (suc X) mode (suc Y)
 
-lift-left : Exposure → ImpCtx → ImpCtx
-lift-left bothᵉ Φ = proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ Φ
-lift-left leftᵉ Φ = proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ Φ
-lift-left rightᵉ Φ = proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ Φ
-
-lift-right : Exposure → ImpCtx → ImpCtx
-lift-right bothᵉ Φ = proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ Φ
-lift-right leftᵉ Φ = proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ Φ
-lift-right rightᵉ Φ = proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ Φ
-
-apply-left : List Exposure → ImpCtx → ImpCtx
-apply-left [] Φ = Φ
-apply-left (mode ∷ modes) Φ = lift-left mode (apply-left modes Φ)
-
-apply-right : List Exposure → ImpCtx → ImpCtx
-apply-right [] Φ = Φ
-apply-right (mode ∷ modes) Φ = lift-right mode (apply-right modes Φ)
-
 left-origin-member :
   ∀ {modes Δ X mode Y} →
   LeftOrigin modes X mode Y →
@@ -433,33 +390,6 @@ right-origin-member (right-origin-under-left origin) =
   there (⇑ᴸᵢ-∈ (right-origin-member origin))
 right-origin-member (right-origin-under-right origin) =
   there (⇑ᵢ-ˣ∈ (right-origin-member origin))
-
-apply-common-depth : List Exposure → ℕ → ℕ
-apply-common-depth [] Δ = Δ
-apply-common-depth (mode ∷ modes) Δ =
-  suc (apply-common-depth modes Δ)
-
-apply-left-depth : List Exposure → ℕ → ℕ
-apply-left-depth [] Δ = Δ
-apply-left-depth (bothᵉ ∷ modes) Δ =
-  suc (apply-left-depth modes Δ)
-apply-left-depth (leftᵉ ∷ modes) Δ =
-  suc (apply-left-depth modes Δ)
-apply-left-depth (rightᵉ ∷ modes) Δ =
-  apply-left-depth modes Δ
-
-apply-right-depth : List Exposure → ℕ → ℕ
-apply-right-depth [] Δ = Δ
-apply-right-depth (bothᵉ ∷ modes) Δ =
-  suc (apply-right-depth modes Δ)
-apply-right-depth (leftᵉ ∷ modes) Δ =
-  apply-right-depth modes Δ
-apply-right-depth (rightᵉ ∷ modes) Δ =
-  suc (apply-right-depth modes Δ)
-
-swap-under : List Exposure → Renameᵗ
-swap-under [] = ForallPermutation.swap01ᵗ
-swap-under (mode ∷ modes) = extᵗ (swap-under modes)
 
 swap-at : TyVar → Renameᵗ
 swap-at zero = ForallPermutation.swap01ᵗ
@@ -762,30 +692,6 @@ transport-∀ν-to-ν∀ Φ .transport-star
       (there
         (⇑ᵢ-★∈
           (unν-star (un⇑ᵢ-★∈ x∈)))))
-
-lr-left-context : List Exposure → ImpCtx → ImpCtx
-lr-left-context modes Φ =
-  apply-left modes
-    (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ
-      (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ Φ))
-
-lr-right-context : List Exposure → ImpCtx → ImpCtx
-lr-right-context modes Φ =
-  apply-right modes
-    (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ
-      (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ Φ))
-
-rl-left-context : List Exposure → ImpCtx → ImpCtx
-rl-left-context modes Φ =
-  apply-left modes
-    (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ
-      (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ Φ))
-
-rl-right-context : List Exposure → ImpCtx → ImpCtx
-rl-right-context modes Φ =
-  apply-right modes
-    (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.νᵢᶜ
-      (proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple.∀ᵢᶜ Φ))
 
 left-context-transport :
   ∀ modes Φ →
@@ -2632,277 +2538,6 @@ transport-star-var-candidate
       (transport-var (right-context-transport modes Φᴿ)
         (hasVar-sound W⊑Y?)))
 
-data SwapAlignedRoutes (modes : List Exposure) :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D} →
-    EnumRoute fuel
-      (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-      (apply-common-depth modes (suc (suc Δᶜ)))
-      (apply-left-depth modes (suc Δᴸ))
-      (apply-right-depth modes (suc Δᴿ))
-      A B C →
-    EnumRoute fuel
-      (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-      (apply-common-depth modes (suc (suc Δᶜ)))
-      (apply-left-depth modes (suc Δᴸ))
-      (apply-right-depth modes (suc Δᴿ))
-      A B D →
-    Set where
-  swap-aligned-both :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D}
-      {route :
-        EnumRoute fuel
-          (lr-left-context (bothᵉ ∷ modes) Φᴸ)
-          (lr-right-context (bothᵉ ∷ modes) Φᴿ)
-          (apply-common-depth (bothᵉ ∷ modes) (suc (suc Δᶜ)))
-          (apply-left-depth (bothᵉ ∷ modes) (suc Δᴸ))
-          (apply-right-depth (bothᵉ ∷ modes) (suc Δᴿ)) A B C}
-      {route′ :
-        EnumRoute fuel
-          (rl-left-context (bothᵉ ∷ modes) Φᴸ)
-          (rl-right-context (bothᵉ ∷ modes) Φᴿ)
-          (apply-common-depth (bothᵉ ∷ modes) (suc (suc Δᶜ)))
-          (apply-left-depth (bothᵉ ∷ modes) (suc Δᴸ))
-          (apply-right-depth (bothᵉ ∷ modes) (suc Δᴿ)) A B D} →
-    SwapAlignedRoutes (bothᵉ ∷ modes) route route′ →
-    SwapAlignedRoutes modes (route-both route) (route-both route′)
-
-  swap-aligned-left :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
-      {{safeC : NonVar C}}
-      {{safeD : NonVar D}}
-      {route :
-        EnumRoute fuel
-          (lr-left-context (leftᵉ ∷ modes) Φᴸ)
-          (lr-right-context (leftᵉ ∷ modes) Φᴿ)
-          (apply-common-depth (leftᵉ ∷ modes) (suc (suc Δᶜ)))
-          (apply-left-depth (leftᵉ ∷ modes) (suc Δᴸ))
-          (apply-right-depth (leftᵉ ∷ modes) (suc Δᴿ)) A B C}
-      {route′ :
-        EnumRoute fuel
-          (rl-left-context (leftᵉ ∷ modes) Φᴸ)
-          (rl-right-context (leftᵉ ∷ modes) Φᴿ)
-          (apply-common-depth (leftᵉ ∷ modes) (suc (suc Δᶜ)))
-          (apply-left-depth (leftᵉ ∷ modes) (suc Δᴸ))
-          (apply-right-depth (leftᵉ ∷ modes) (suc Δᴿ)) A B D} →
-    SwapAlignedRoutes (leftᵉ ∷ modes) route route′ →
-    SwapAlignedRoutes modes
-      (route-left {{safeC}} occC route)
-      (route-left {{safeD}} occD route′)
-
-  swap-aligned-right :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C D occC occD}
-      {{safeC : NonVar C}}
-      {{safeD : NonVar D}}
-      {route :
-        EnumRoute fuel
-          (lr-left-context (rightᵉ ∷ modes) Φᴸ)
-          (lr-right-context (rightᵉ ∷ modes) Φᴿ)
-          (apply-common-depth (rightᵉ ∷ modes) (suc (suc Δᶜ)))
-          (apply-left-depth (rightᵉ ∷ modes) (suc Δᴸ))
-          (apply-right-depth (rightᵉ ∷ modes) (suc Δᴿ)) A B C}
-      {route′ :
-        EnumRoute fuel
-          (rl-left-context (rightᵉ ∷ modes) Φᴸ)
-          (rl-right-context (rightᵉ ∷ modes) Φᴿ)
-          (apply-common-depth (rightᵉ ∷ modes) (suc (suc Δᶜ)))
-          (apply-left-depth (rightᵉ ∷ modes) (suc Δᴸ))
-          (apply-right-depth (rightᵉ ∷ modes) (suc Δᴿ)) A B D} →
-    SwapAlignedRoutes (rightᵉ ∷ modes) route route′ →
-    SwapAlignedRoutes modes
-      (route-right {{safeC}} occC route)
-      (route-right {{safeD}} occD route′)
-
-  swap-aligned-arrow :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ
-        A₁ A₂ B₁ B₂ C₁ C₂ D₁ D₂}
-      {route₁ :
-        EnumRoute fuel
-          (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) A₁ B₁ C₁}
-      {route₂ :
-        EnumRoute fuel
-          (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) A₂ B₂ C₂}
-      {route₁′ :
-        EnumRoute fuel
-          (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) A₁ B₁ D₁}
-      {route₂′ :
-        EnumRoute fuel
-          (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) A₂ B₂ D₂} →
-    SwapAlignedRoutes modes route₁ route₁′ →
-    SwapAlignedRoutes modes route₂ route₂′ →
-    SwapAlignedRoutes modes
-      (route-arrow route₁ route₂) (route-arrow route₁′ route₂′)
-
-  swap-aligned-arrow-star :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A₁ A₂ C₁ C₂ D₁ D₂}
-      {route₁ :
-        EnumRoute fuel
-          (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) A₁ ★ C₁}
-      {route₂ :
-        EnumRoute fuel
-          (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) A₂ ★ C₂}
-      {route₁′ :
-        EnumRoute fuel
-          (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) A₁ ★ D₁}
-      {route₂′ :
-        EnumRoute fuel
-          (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) A₂ ★ D₂} →
-    SwapAlignedRoutes modes route₁ route₁′ →
-    SwapAlignedRoutes modes route₂ route₂′ →
-    SwapAlignedRoutes modes
-      (route-arrow-star route₁ route₂)
-      (route-arrow-star route₁′ route₂′)
-
-  swap-aligned-star-arrow :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ B₁ B₂ C₁ C₂ D₁ D₂}
-      {route₁ :
-        EnumRoute fuel
-          (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) ★ B₁ C₁}
-      {route₂ :
-        EnumRoute fuel
-          (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) ★ B₂ C₂}
-      {route₁′ :
-        EnumRoute fuel
-          (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) ★ B₁ D₁}
-      {route₂′ :
-        EnumRoute fuel
-          (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) ★ B₂ D₂} →
-    SwapAlignedRoutes modes route₁ route₁′ →
-    SwapAlignedRoutes modes route₂ route₂′ →
-    SwapAlignedRoutes modes
-      (route-star-arrow route₁ route₂)
-      (route-star-arrow route₁′ route₂′)
-
-  swap-aligned-star :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ} →
-    SwapAlignedRoutes modes
-      (route-star
-        {fuel}
-        {lr-left-context modes Φᴸ} {lr-right-context modes Φᴿ}
-        {apply-common-depth modes (suc (suc Δᶜ))}
-        {apply-left-depth modes (suc Δᴸ)}
-        {apply-right-depth modes (suc Δᴿ)})
-      route-star
-
-  swap-aligned-base :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ι} →
-    SwapAlignedRoutes modes
-      (route-base
-        {fuel}
-        {lr-left-context modes Φᴸ} {lr-right-context modes Φᴿ}
-        {apply-common-depth modes (suc (suc Δᶜ))}
-        {apply-left-depth modes (suc Δᴸ)}
-        {apply-right-depth modes (suc Δᴿ)} {ι})
-      route-base
-
-  swap-aligned-base-star :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ι} →
-    SwapAlignedRoutes modes
-      (route-base-star
-        {fuel}
-        {lr-left-context modes Φᴸ} {lr-right-context modes Φᴿ}
-        {apply-common-depth modes (suc (suc Δᶜ))}
-        {apply-left-depth modes (suc Δᴸ)}
-        {apply-right-depth modes (suc Δᴿ)} {ι})
-      route-base-star
-
-  swap-aligned-star-base :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ι} →
-    SwapAlignedRoutes modes
-      (route-star-base
-        {fuel}
-        {lr-left-context modes Φᴸ} {lr-right-context modes Φᴿ}
-        {apply-common-depth modes (suc (suc Δᶜ))}
-        {apply-left-depth modes (suc Δᴸ)}
-        {apply-right-depth modes (suc Δᴿ)} {ι})
-      route-star-base
-
-  swap-aligned-var :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ X Y C D}
-      {route :
-        EnumRoute (suc fuel)
-          (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) (＇ X) (＇ Y) C}
-      {route′ :
-        EnumRoute (suc fuel)
-          (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) (＇ X) (＇ Y) D} →
-    renameᵗ (swap-under modes) C ≡ D →
-    SwapAlignedRoutes modes route route′
-
-  swap-aligned-var-star :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ X C D}
-      {route :
-        EnumRoute (suc fuel)
-          (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) (＇ X) ★ C}
-      {route′ :
-        EnumRoute (suc fuel)
-          (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) (＇ X) ★ D} →
-    renameᵗ (swap-under modes) C ≡ D →
-    SwapAlignedRoutes modes route route′
-
-  swap-aligned-star-var :
-    ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ Y C D}
-      {route :
-        EnumRoute (suc fuel)
-          (lr-left-context modes Φᴸ) (lr-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) ★ (＇ Y) C}
-      {route′ :
-        EnumRoute (suc fuel)
-          (rl-left-context modes Φᴸ) (rl-right-context modes Φᴿ)
-          (apply-common-depth modes (suc (suc Δᶜ)))
-          (apply-left-depth modes (suc Δᴸ))
-          (apply-right-depth modes (suc Δᴿ)) ★ (＇ Y) D} →
-    renameᵗ (swap-under modes) C ≡ D →
-    SwapAlignedRoutes modes route route′
-
 swap-route :
   ∀ {modes fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C}
     (route :
@@ -3005,14 +2640,15 @@ left-right-adjacent-connectivity :
         (occurs-swap01-right {A = C} occC)
         (route-left {{renameNonVar ForallPermutation.swap01ᵗ safeC}}
           (occurs-swap01-left {A = C} occ∀C) route′))
-left-right-adjacent-connectivity {{safeC}} occC occ∀C route
+left-right-adjacent-connectivity {C = C} {{safeC}} occC occ∀C route
     with swap-route {modes = []} route
-left-right-adjacent-connectivity {{safeC}} occC occ∀C route
+left-right-adjacent-connectivity {C = C} {{safeC}} occC occ∀C route
     | route′ , swap-aligned =
   route′ , aligned-left-right
     {{safeC = safeC}}
-    {{safeD = renameNonVar ForallPermutation.swap01ᵗ safeC}}
-    ≈∀-refl
+    {occD = occurs-swap01-left {A = C} occ∀C}
+    {occ∀D = occurs-swap01-right {A = C} occC}
+    swap-aligned
 
 same-schedule-refl :
   ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C}

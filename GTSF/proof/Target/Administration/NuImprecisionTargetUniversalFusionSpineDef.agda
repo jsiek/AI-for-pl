@@ -12,6 +12,7 @@ module
 --     postulate, hole, permissive option, or broad DGG import.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 import Coercions as C
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
@@ -27,6 +28,8 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ; ∀ⁱ_
   )
+open import ImprecisionComposition using
+  (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuTermImprecision using
   ( LiftCtxⁱ
@@ -107,7 +110,8 @@ data TargetUniversalFusionSpine
         {τ σ : Renameᵗ}
         {W W′ M M′ : Term}
         {A D E F H : Ty}
-        {c : C.Coercion} {μ : C.ModeEnv} {r} →
+        {c : C.Coercion} {μ : C.ModeEnv} {r}
+        {body-shape : ImprecisionShape} →
     StoreImpPrefix ρ₀ ρ⁺ →
     CastMode μ →
     SealModeStore★ μ (rightStoreⁱ ρ₀) →
@@ -122,6 +126,8 @@ data TargetUniversalFusionSpine
     C.Inert (C.`∀ c) →
     TargetUniversalFusionSpine ρ∀ W W′ D F r →
     (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ `∀ E ⊣ Θᴿ) →
+    widening ⊢ᶜ C.inst (`∀ E) (C.`∀ c) ⦂ νˢ body-shape →
+    ⌊ ∀ⁱ r ⌋ ； νˢ body-shape ≋ ⌊ f ⌋ →
     (assm :
       ∀ {a : ImpAssm} → a ∈ ⇑ᴿᵢ Φ₀ →
         rename-assm²ᵢ τ σ a ∈ Φ) →

@@ -12,6 +12,9 @@ module
 
 open import Coercions using (Coercion; instᵈ)
 open import Conversion using (RevealConversion)
+import CastImprecisionShape as CastShape
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.Bool using (true)
 open import Data.List using (_∷_)
@@ -28,6 +31,8 @@ open import ImprecisionWf using
   ; ⇑ᵢ
   ; ⇑ᴸᵢ
   )
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuReduction using
   ( StoreChange
@@ -44,6 +49,8 @@ open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx; WfTy; occurs; ★; `∀; ⇑ᵗ; ⟰ᵗ)
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 
 
 record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
@@ -56,6 +63,8 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
         {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
           ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
         {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+        {A⇑⊑A′⇑ : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+          ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ A′ ⊣ suc Δᴿ}
         {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
       RevealConversion μ (suc Δᴸ)
@@ -64,6 +73,11 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
       RevealConversion μ′ (suc Δᴿ)
         ((zero , ⇑ᵗ A′) ∷ ⟰ᵗ (rightStoreⁱ ρ₀))
         zero (⇑ᵗ A′) s′ C′ (⇑ᵗ B′) →
+      q
+        [ zero ↦ ⇑ᵗ A
+        ⊑⟨ A⇑⊑A′⇑ ⟩
+        ⇑ᵗ A′ ↤ zero ]ᴾ
+        ⊑-lift∀ᵢ pB →
       WorldCoherentSourceOneStepIndexedResult
         {M = N} {M′ = N′} {L = L}
         {A = `∀ C} {B = `∀ C′} {χ = χ} {ρ = ρ⁺} (∀ⁱ q) →
@@ -77,6 +91,7 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {N N′ L : Term} {B B′ C C′ : Ty}
         {s s′ : Coercion} {μ μ′} {χ : StoreChange}
+        {s-shape s′-shape result-shape : ImprecisionShape}
         {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
           ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
         {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
@@ -93,9 +108,14 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
       instᵈ μ′ ∣ suc Δᴿ
         ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ₀)
         ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+      CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
+      CastShape.widening CastShape.⊢ᶜ s′ ⦂ s′-shape →
+      s-shape ； ⌊ pB ⌋ ≋ result-shape →
+      ⌊ q ⌋ ； s′-shape ≋ result-shape →
       PairedWideningCompatible
         ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-        (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′ →
+        (suc Δᴸ) (suc Δᴿ) s s′
+        q (⊑-lift∀ᵢ pB) s-shape s′-shape →
       WorldCoherentSourceOneStepIndexedResult
         {M = N} {M′ = N′} {L = L}
         {A = `∀ C} {B = `∀ C′} {χ = χ} {ρ = ρ⁺} (∀ⁱ q) →
@@ -119,6 +139,7 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
       RevealConversion μ (suc Δᴸ)
         ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ₀))
         zero (⇑ᵗ A) s C (⇑ᵗ B) →
+      q [ zero ↦ ⇑ᵗ A ]ᴸ ⊑-source-liftνᵢ pB →
       WorldCoherentSourceOneStepIndexedResult
         {M = N} {M′ = N′} {L = L}
         {A = `∀ C} {B = B′} {χ = χ} {ρ = ρ⁺}
@@ -133,6 +154,7 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {N N′ L : Term} {B B′ C : Ty}
         {s : Coercion} {μ} {χ : StoreChange}
+        {s-shape : ImprecisionShape}
         {occ : occurs zero C ≡ true}
         {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
           ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
@@ -145,6 +167,8 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
       instᵈ μ ∣ suc Δᴸ
         ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)
         ⊢ s ∶ C ⊑ ⇑ᵗ B →
+      CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
+      s-shape ； ⌊ pB ⌋ ≋ ⌊ q ⌋ →
       WorldCoherentSourceOneStepIndexedResult
         {M = N} {M′ = N′} {L = L}
         {A = `∀ C} {B = B′} {χ = χ} {ρ = ρ⁺}

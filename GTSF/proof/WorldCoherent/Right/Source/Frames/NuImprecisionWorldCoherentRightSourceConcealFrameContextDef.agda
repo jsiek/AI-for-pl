@@ -16,6 +16,7 @@ open import Data.Product using (_×_; Σ-syntax)
 
 open import Coercions using (Coercion; Inert)
 open import Conversion using (ConcealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
@@ -67,6 +68,7 @@ WorldCoherentRightSourceConcealFrameContextᵀ =
   No• M →
   Inert c →
   ConcealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+  q [ α ↦ X ]ᴸ p →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
   (inner : WorldCoherentRightValueCatchupIndexedResult

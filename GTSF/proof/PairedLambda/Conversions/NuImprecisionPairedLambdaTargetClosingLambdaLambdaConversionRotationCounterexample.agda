@@ -111,7 +111,7 @@ private
       ⦂ `∀ Nat ⊑ `∀ Nat ∶ ∀ⁱ idι
   paired-value-relation =
     Λ⊑Λᵀ {ρ′ = double-matched-store} {γ′ = []}
-      (lift-store-∷ lift-store-[]) lift-ctx-[]
+      (lift-store-∷ refl lift-store-[]) lift-ctx-[]
       ($ (κℕ zero)) ($ (κℕ zero)) κ⊑κᵀ
 
   structural-all : C.Coercion
@@ -177,13 +177,13 @@ paired-lambda-target-closing-lambda-lambda-rotation-counterexample :
     ⊥)
 paired-lambda-target-closing-lambda-lambda-rotation-counterexample =
   prefix-reflⁱ ,
-  lift-store-∷ lift-store-[] ,
+  lift-store-∷ refl lift-store-[] ,
   lift-ctx-[] ,
   paired-value-value , paired-value-no-bullet ,
   paired-value-value , paired-value-no-bullet ,
   paired-value-relation ,
   wfBase ,
-  lift-left-store-∷ lift-left-store-[] ,
-  lift-store-∷ lift-store-[] ,
+  lift-left-store-∷ refl lift-left-store-[] ,
+  lift-store-∷ refl lift-store-[] ,
   structural-paired-conversion ,
   λ { (s , relation) → no-lambda-lambda-rotation-index s }

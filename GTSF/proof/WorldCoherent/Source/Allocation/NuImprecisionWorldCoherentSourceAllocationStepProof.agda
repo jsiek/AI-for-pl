@@ -13,6 +13,7 @@ open import Data.List using ([]; _++_; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_; proj₁; proj₂)
+open import ImprecisionComposition using (⌊_⌋; ∀ˢ_)
 open import Relation.Binary.PropositionalEquality using
   (cong; cong₂; subst; sym; trans)
 import Relation.Binary.HeterogeneousEquality as HE
@@ -119,6 +120,13 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
 open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
   ( left-ν↑-allocation
   ; left-νcast-allocation
+  ; replace-left-source-liftν-source-nu-bodyᵢ
+  ; replace-left-source-liftνᵢ
+  ; replace-paired-source-liftν-under-∀ᵢ
+  ; replace-paired-source-liftνᵢ
+  ; replace-right-source-liftν-under-rightᵢ
+  ; replace-right-source-liftνᵢ
+  ; source-liftν-right-body-shapeᵢ
   ; weak-one-step-matched-ν↑-type-coherenceᵀ
   ; weak-one-step-matched-ν↑-transportᵀ
   ; weak-one-step-matched-ν↑ᵀ
@@ -153,17 +161,12 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; nu-term-imprecision-transport-typesᵀ
   ; renameᵗ-ext-id
   ; subst²-to-≅
-  ; transportAllType-to-raw≅
-  ; transportArrowType-to-raw≅
   ; transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
   ; weak-indexed-all-resultᵀ
   ; weak-one-step-index-resultᵀ
-  ; weak-one-step-compose-all-body
-  ; weak-one-step-compose-all-componentsᵀ
-  ; weak-one-step-compose-arrow-componentsᵀ
+  ; weak-one-step-compose-preserves-type-coherenceᵀ
   ; weak-one-step-compose-preserves-transportᵀ
-  ; weak-one-step-compose-type
   ; weak-one-step-compose-type-to-nested≅
   ; weak-one-step-composeᵀ
   ; weak-one-step-matched-ν-frame-preserves-transportᵀ
@@ -172,8 +175,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; weak-one-step-matched-νcast-frame-preserves-transportᵀ
   ; weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
   ; weak-one-step-matched-νcast-frameᵀ
-  ; weak-one-step-nested-all-coherent≅
-  ; weak-one-step-nested-arrow-coherent≅
   ; weak-one-step-reindex-preserves-transportᵀ
   ; weak-one-step-reindex-preserves-type-coherenceᵀ
   ; weak-one-step-reindexᵀ
@@ -206,10 +207,11 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetTailChanges
   ; targetResult
   ; targetTypeResult
-  ; transportType
   ; transportAllBody
-  ; transportAllType
-  ; transportArrowType
+  ; transportAllBodyPairedReplacementCoherent
+  ; transportAllCoherent
+  ; transportShapeCoherent
+  ; transportType
   ; weakIndexedResult
   ; weakIndexedTransport
   ; weakIndexedTypeCoherence
@@ -225,6 +227,11 @@ open import proof.Store.Core.NuImprecisionStoreLift using
   (lift-left-store-result; lift-store-result)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceLemma using
   (world-coherent-left-allocation; world-coherent-matched-allocation)
+open import
+  proof.WorldCoherent.Core.NuImprecisionWorldCoherentTypeShapeProof
+  using
+  ( shape-source-liftνᵢ
+  )
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using (WorldCoherent)
 open import proof.WorldCoherent.Right.Value.Catchup.NuImprecisionWorldCoherentRightCatchupResultDef using
   ( WorldCoherentRightValueCatchupIndexedResult
@@ -281,11 +288,23 @@ open import proof.Store.Prefix.NuImprecisionStorePrefix using
   )
 open import proof.Core.Properties.StoreProperties using (renameStoreᵗ-incl)
 open import proof.Core.Properties.ReductionProperties using
-  ( applyTyUnderTyBinder
+  ( applyTy-∀
+  ; applyTyUnderTyBinder
   ; applyTyVars-++
-  ; applyTys-★
-  ; applyTys-++
-  ; applyTysUnderTyBinders-++
+  ; applyTys-∀
+  ; applyTysUnderTyBinders-⇑ᵗ
+  )
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercionUnderTyBinders
+  ; imprecision-composition-shape-transport
+  ; shape-subst-source
+  ; shape-subst-target
+  )
+open import
+  proof.Core.Properties.ConversionIndexCompatibilityProperties
+  using
+  ( replace-paired-transport-endpoints
+  ; transport-imprecision-endpoints
   )
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
 open import proof.Core.Properties.TypeProperties using
@@ -381,6 +400,52 @@ private
           (cong `∀ (renameᵗ-ext-id B)) =
     transport-all-⊑ᵢ refl (renameᵗ-ext-id B)
 
+  ∀ˢ-injective :
+    ∀ {s t} →
+    ∀ˢ s ≡ ∀ˢ t →
+    s ≡ t
+  ∀ˢ-injective refl = refl
+
+  transport-all-body-shape-coherent :
+    ∀ {Φ Δᴸ Δᴿ M N′ A B C C′ χ}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      {result : WeakOneStepResult ρ M N′ A B χ} →
+    WeakOneStepTypeCoherence result →
+    (q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ) →
+    ⌊ transportAllBody result q ⌋ ≡ ⌊ q ⌋
+  transport-all-body-shape-coherent
+      {C = C} {C′ = C′} {χ = χ} {result = result} coherent q =
+    ∀ˢ-injective
+      (trans
+        (sym (cong ⌊_⌋ (transportAllCoherent coherent q)))
+        (trans endpoint-shape
+          (transportShapeCoherent coherent (∀ⁱ q))))
+    where
+    raw = transportType result (∀ⁱ q)
+
+    source-eq = applyTys-∀ (sourceChanges result) C
+
+    source-transport =
+      subst
+        (λ S → resultCtx result ∣ resultLeftCtx result
+          ⊢ S ⊑ applyTys (targetTailChanges result)
+              (applyTy χ (`∀ C′))
+          ⊣ resultRightCtx result)
+        source-eq raw
+
+    target-eq =
+      trans
+        (cong (applyTys (targetTailChanges result))
+          (applyTy-∀ χ C′))
+        (applyTys-∀ (targetTailChanges result)
+          (applyTyUnderTyBinder χ C′))
+
+    endpoint-shape =
+      trans
+        (shape-subst-target target-eq source-transport)
+        (shape-subst-source source-eq raw)
+
 
   weak-one-step-compose-store-lineageᵀ :
     ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
@@ -442,109 +507,6 @@ private
       result source-eq target-eq related
       (weak-step-store-lineage store embedding prefix) =
     weak-step-store-lineage store embedding prefix
-
-
-  weak-one-step-compose-preserves-type-coherence-localᵀ :
-    ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      (first : WeakOneStepResult ρ M M′ A B χ)
-      {χ′ N′}
-      (target→ : targetResult first —→[ χ′ ] N′)
-      (second : WeakOneStepResult
-        (resultStore first) (sourceResult first) N′
-        (resultSourceType first) (resultTargetType first) χ′) →
-    WeakOneStepTypeCoherence first →
-    WeakOneStepTypeCoherence second →
-    WeakOneStepTypeCoherence
-      (weak-one-step-composeᵀ first target→ second)
-  weak-one-step-compose-preserves-type-coherence-localᵀ
-      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {χ = χ}
-      first {χ′ = χ′} target→ second
-      first-coherence second-coherence =
-    weak-step-type-coherence arrow-coherent all-coherent
-    where
-    combined = weak-one-step-composeᵀ first target→ second
-
-    arrow-coherent :
-      ∀ {C C′ D D′}
-        (pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ)
-        (pD : Φ ∣ Δᴸ ⊢ D ⊑ D′ ⊣ Δᴿ) →
-      transportArrowType combined pC pD ≡
-        weak-one-step-compose-type first second pC ↦
-        weak-one-step-compose-type first second pD
-    arrow-coherent {C = C} {C′ = C′} {D = D} {D′ = D′} pC pD =
-      HE.≅-to-≡
-        (HE.trans
-          (transportArrowType-to-raw≅ combined pC pD)
-          (HE.trans
-            (weak-one-step-compose-type-to-nested≅
-              first second (pC ↦ pD))
-            (HE.trans
-              (weak-one-step-nested-arrow-coherent≅
-                first second first-coherence second-coherence pC pD)
-              (HE.trans
-                (HE.sym
-                  (subst²-to-≅
-                    {P = λ S T →
-                      resultCtx second ∣ resultLeftCtx second
-                        ⊢ S ⊑ T ⊣ resultRightCtx second}
-                    (cong₂ _⇒_
-                      (sym (applyTys-++
-                        (sourceChanges first)
-                        (sourceChanges second) C))
-                      (sym (applyTys-++
-                        (sourceChanges first)
-                        (sourceChanges second) D)))
-                    (cong₂ _⇒_
-                      (sym (applyTys-++
-                        (targetTailChanges first)
-                        (χ′ ∷ targetTailChanges second)
-                        (applyTy χ C′)))
-                      (sym (applyTys-++
-                        (targetTailChanges first)
-                        (χ′ ∷ targetTailChanges second)
-                        (applyTy χ D′))))
-                    (transportType second (transportType first pC) ↦
-                      transportType second (transportType first pD))))
-                (HE.≡-to-≅
-                  (weak-one-step-compose-arrow-componentsᵀ
-                    first second pC pD))))))
-
-    all-coherent :
-      ∀ {C C′}
-        (q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ) →
-      transportAllType combined q ≡
-        ∀ⁱ (weak-one-step-compose-all-body first second q)
-    all-coherent {C = C} {C′ = C′} q =
-      HE.≅-to-≡
-        (HE.trans
-          (transportAllType-to-raw≅ combined q)
-          (HE.trans
-            (weak-one-step-compose-type-to-nested≅
-              first second (∀ⁱ q))
-            (HE.trans
-              (weak-one-step-nested-all-coherent≅
-                first second first-coherence second-coherence q)
-              (HE.trans
-                (HE.sym
-                  (subst²-to-≅
-                    {P = λ S T →
-                      resultCtx second ∣ resultLeftCtx second
-                        ⊢ S ⊑ T ⊣ resultRightCtx second}
-                    (cong `∀
-                      (sym (applyTysUnderTyBinders-++
-                        (sourceChanges first)
-                        (sourceChanges second) C)))
-                    (cong `∀
-                      (sym (applyTysUnderTyBinders-++
-                        (targetTailChanges first)
-                        (χ′ ∷ targetTailChanges second)
-                        (applyTyUnderTyBinder χ C′))))
-                    (∀ⁱ (transportAllBody second
-                      (transportAllBody first q)))))
-                (HE.≡-to-≅
-                  (weak-one-step-compose-all-componentsᵀ
-                    first second q))))))
 
 
   compose-exact-source-stepᵀ :
@@ -647,7 +609,7 @@ private
     combined-transport = raw-transport
 
     raw-coherence =
-      weak-one-step-compose-preserves-type-coherence-localᵀ
+      weak-one-step-compose-preserves-type-coherenceᵀ
         first target→ second first-coherence′ second-coherence′
     combined-coherence = raw-coherence
 
@@ -676,7 +638,7 @@ world-coherent-source-allocation-step-proofᵀ
       wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑ᵀ {occ = occ} {{safe = safe}}
-      hA h⇑A s↑ liftρ lift-left-ctx-[] inner)
+      hA h⇑A s↑ liftρ lift-left-ctx-[] inner replace)
     vV noV
     with lift-left-store-result _
 world-coherent-source-allocation-step-proofᵀ
@@ -684,7 +646,7 @@ world-coherent-source-allocation-step-proofᵀ
       wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑ᵀ {occ = occ} {{safe = safe}}
-      hA h⇑A s↑ liftρ lift-left-ctx-[] inner)
+      hA h⇑A s↑ liftρ lift-left-ctx-[] inner replace)
     vV noV
     | ρ↑ , liftρ⁺
     with left-ν↑-allocation {{safe = safe}}
@@ -694,7 +656,7 @@ world-coherent-source-allocation-step-proofᵀ
           (renameStoreᵗ-incl suc
             (leftStoreⁱ-prefix-inclusion prefix)))
         s↑)
-      _ liftρ⁺
+      _ replace liftρ⁺
       (allocation-prefixᵀ prefix inner
         (ν-body-typing-at
           (proj₁ (coercion-src-tgtᵐ
@@ -707,7 +669,7 @@ world-coherent-source-allocation-step-proofᵀ
       wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑ᵀ {occ = occ} {{safe = safe}}
-      hA h⇑A s↑ liftρ lift-left-ctx-[] inner)
+      hA h⇑A s↑ liftρ lift-left-ctx-[] inner replace)
     vV noV
     | ρ↑ , liftρ⁺ | source-step , target-refl , related =
   world-coherent-source-one-step-indexed
@@ -715,7 +677,17 @@ world-coherent-source-allocation-step-proofᵀ
       (weak-step-transport
         (left-lift-prefix-body-proofᵀ
           liftρ⁺ (prefix-∷ⁱ prefix-reflⁱ)))
-      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ))
+      (weak-step-type-coherence
+        source-lift-arrowᵢ
+        source-lift-allᵢ
+        shape-source-liftνᵢ
+        source-liftν-right-body-shapeᵢ
+        replace-left-source-liftνᵢ
+        replace-right-source-liftνᵢ
+        replace-paired-source-liftνᵢ
+        replace-paired-source-liftν-under-∀ᵢ
+        replace-left-source-liftν-source-nu-bodyᵢ
+        replace-right-source-liftν-under-rightᵢ))
     (weak-step-store-lineage ρ↑
       (lift-left-store-embeddingⁱ liftρ⁺)
       (prefix-∷ⁱ prefix-reflⁱ))
@@ -757,9 +729,10 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (νcast⊑νcastᵀ {p = pB}
+    (νcast⊑νcastᵀ {p = pB} {q = q}
       mode seal★ mode′ seal★′ s⊑ s′⊑ compat
-      liftρ lift-ctx inner)
+      liftρ lift-ctx inner
+      s-shape s′-shape source-comp target-comp)
     vV noV
     with right-catchup prefix coherent exclusive unique wfR
       (ν-runtime ok-target) vV noV inner
@@ -767,9 +740,10 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (νcast⊑νcastᵀ {p = pB}
+    (νcast⊑νcastᵀ {p = pB} {q = q}
       mode seal★ mode′ seal★′ s⊑ s′⊑ compat
-      liftρ lift-ctx inner)
+      liftρ lift-ctx inner
+      s-shape s′-shape source-comp target-comp)
     vV noV
     | world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
@@ -787,6 +761,7 @@ world-coherent-source-allocation-step-proofᵀ
   where
   all = weak-indexed-all-resultᵀ indexed
   inner-result = weakIndexedResult indexed
+  inner-coherence = weakIndexedTypeCoherence indexed
 
   source-store-incl =
     StoreIncl-cons
@@ -802,7 +777,9 @@ world-coherent-source-allocation-step-proofᵀ
   s′⊑⁺ = widen-weaken ≤-refl target-store-incl s′⊑
 
   framed = weak-one-step-matched-νcast-frameᵀ
-    mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
+    mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
+    pB s-shape s′-shape source-comp target-comp compat
+    all inner-coherence
 
   target-step = ν-step caught-vV′ caught-noV′
 
@@ -822,25 +799,46 @@ world-coherent-source-allocation-step-proofᵀ
 
   compat⁺ =
     weak-result-transport-paired-widening-compatible-under-binderᵀ
-      inner-result compat
+      inner-result inner-coherence compat
+
+  source-shape⁺ =
+    cast-shape-applyCoercionUnderTyBinders
+      (sourceChanges inner-result) s-shape
+
+  target-shape⁺ =
+    cast-shape-applyCoercionUnderTyBinders
+      (keep ∷ targetTailChanges inner-result) s′-shape
+
+  source-comp⁺ =
+    imprecision-composition-shape-transport
+      refl (transportShapeCoherent inner-coherence pB)
+      refl source-comp
+
+  target-comp⁺ =
+    imprecision-composition-shape-transport
+      (transport-all-body-shape-coherent inner-coherence q)
+      refl refl target-comp
 
   final-inner = canonicalAllResults all
 
   second = weak-one-step-matched-νcastᵀ
     caught-vV caught-noV caught-vV′ caught-noV′
     source-mode⁺ source-seal⁺ target-mode⁺ target-seal⁺
-    source-s⊑⁺ target-s⊑⁺ compat⁺
-    (transportType inner-result pB) liftρ⁺ final-inner
+    source-s⊑⁺ target-s⊑⁺ (transportType inner-result pB)
+    source-shape⁺ target-shape⁺ source-comp⁺ target-comp⁺
+    compat⁺ liftρ⁺ final-inner
 
   first-transport =
     weak-one-step-matched-νcast-frame-preserves-transportᵀ
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
-      (weakIndexedTransport indexed)
+      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
+      pB s-shape s′-shape source-comp target-comp compat
+      all inner-coherence (weakIndexedTransport indexed)
 
   first-coherence =
     weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
-      (weakIndexedTypeCoherence indexed)
+      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
+      pB s-shape s′-shape source-comp target-comp compat
+      all inner-coherence
 
   first-lineage =
     weak-step-store-lineage
@@ -849,14 +847,16 @@ world-coherent-source-allocation-step-proofᵀ
   second-transport = weak-one-step-matched-νcast-transportᵀ
     caught-vV caught-noV caught-vV′ caught-noV′
     source-mode⁺ source-seal⁺ target-mode⁺ target-seal⁺
-    source-s⊑⁺ target-s⊑⁺ compat⁺
-    (transportType inner-result pB) liftρ⁺ final-inner
+    source-s⊑⁺ target-s⊑⁺ (transportType inner-result pB)
+    source-shape⁺ target-shape⁺ source-comp⁺ target-comp⁺
+    compat⁺ liftρ⁺ final-inner
 
   second-coherence = weak-one-step-matched-νcast-type-coherenceᵀ
     caught-vV caught-noV caught-vV′ caught-noV′
     source-mode⁺ source-seal⁺ target-mode⁺ target-seal⁺
-    source-s⊑⁺ target-s⊑⁺ compat⁺
-    (transportType inner-result pB) liftρ⁺ final-inner
+    source-s⊑⁺ target-s⊑⁺ (transportType inner-result pB)
+    source-shape⁺ target-shape⁺ source-comp⁺ target-comp⁺
+    compat⁺ liftρ⁺ final-inner
 
   first-indexed =
     weak-indexed-result framed (relatedResults framed)
@@ -879,8 +879,8 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (ν⊑νᵀ {p = pB}
-      hA hA′ s↑ s′↑ pA A⇑⊑A′⇑ liftρ lift-ctx inner)
+    (ν⊑νᵀ {p = pB} {q = q}
+      hA hA′ s↑ s′↑ pA A⇑⊑A′⇑ liftρ lift-ctx inner replace)
     vV noV
     with right-catchup prefix coherent exclusive unique wfR
       (ν-runtime ok-target) vV noV inner
@@ -888,8 +888,8 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (ν⊑νᵀ {p = pB}
-      hA hA′ s↑ s′↑ pA A⇑⊑A′⇑ liftρ lift-ctx inner)
+    (ν⊑νᵀ {p = pB} {q = q}
+      hA hA′ s↑ s′↑ pA A⇑⊑A′⇑ liftρ lift-ctx inner replace)
     vV noV
     | world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
@@ -906,6 +906,7 @@ world-coherent-source-allocation-step-proofᵀ
     refl refl final-world final-exclusive⁺ final-unique⁺
   where
   all = weak-indexed-all-resultᵀ indexed
+  inner-coherence = weakIndexedTypeCoherence indexed
 
   source↑ = weaken-reveal-conversion
     (StoreIncl-cons
@@ -920,7 +921,7 @@ world-coherent-source-allocation-step-proofᵀ
     s′↑
 
   framed = weak-one-step-matched-ν-frameᵀ
-    source↑ target↑ pA pB all
+    source↑ target↑ pA A⇑⊑A′⇑ pB replace all inner-coherence
 
   target-step = ν-step caught-vV′ caught-noV′
 
@@ -935,20 +936,37 @@ world-coherent-source-allocation-step-proofᵀ
 
   final-inner = canonicalAllResults all
 
-  A⇑⊑A′⇑⁺ = ⊑-lift∀ᵢ (transportType inner-result pA)
+  source-A-eq =
+    applyTysUnderTyBinders-⇑ᵗ (sourceChanges inner-result) _
+
+  target-A′-eq =
+    applyTysUnderTyBinders-⇑ᵗ
+      (keep ∷ targetTailChanges inner-result) _
+
+  A⇑⊑A′⇑⁺ =
+    transport-imprecision-endpoints source-A-eq target-A′-eq
+      (transportAllBody inner-result A⇑⊑A′⇑)
+
+  replace⁺ =
+    replace-paired-transport-endpoints
+      refl refl refl refl source-A-eq target-A′-eq
+      (transportAllBodyPairedReplacementCoherent
+        inner-coherence replace)
 
   second = weak-one-step-matched-ν↑ᵀ
     caught-vV caught-noV caught-vV′ caught-noV′
     source↑⁺ target↑⁺ (transportType inner-result pB)
-    A⇑⊑A′⇑⁺ liftρ⁺ final-inner
+    A⇑⊑A′⇑⁺ replace⁺ liftρ⁺ final-inner
 
   first-transport =
     weak-one-step-matched-ν-frame-preserves-transportᵀ
-      source↑ target↑ pA pB all (weakIndexedTransport indexed)
+      source↑ target↑ pA A⇑⊑A′⇑ pB replace
+      all inner-coherence (weakIndexedTransport indexed)
 
   first-coherence =
     weak-one-step-matched-ν-frame-preserves-type-coherenceᵀ
-      source↑ target↑ pA pB all (weakIndexedTypeCoherence indexed)
+      source↑ target↑ pA A⇑⊑A′⇑ pB replace
+      all inner-coherence
 
   first-lineage =
     weak-step-store-lineage
@@ -957,12 +975,12 @@ world-coherent-source-allocation-step-proofᵀ
   second-transport = weak-one-step-matched-ν↑-transportᵀ
     caught-vV caught-noV caught-vV′ caught-noV′
     source↑⁺ target↑⁺ (transportType inner-result pB)
-    A⇑⊑A′⇑⁺ liftρ⁺ final-inner
+    A⇑⊑A′⇑⁺ replace⁺ liftρ⁺ final-inner
 
   second-coherence = weak-one-step-matched-ν↑-type-coherenceᵀ
     caught-vV caught-noV caught-vV′ caught-noV′
     source↑⁺ target↑⁺ (transportType inner-result pB)
-    A⇑⊑A′⇑⁺ liftρ⁺ final-inner
+    A⇑⊑A′⇑⁺ replace⁺ liftρ⁺ final-inner
 
   first-indexed =
     weak-indexed-result framed (relatedResults framed)
@@ -985,16 +1003,16 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (νcast⊑ᵀ {occ = occ} {{safe = safe}}
-      mode seal★ s⊑ liftρ lift-left-ctx-[] inner)
+    (νcast⊑ᵀ {p = pB} {occ = occ} {{safe = safe}}
+      mode seal★ s⊑ liftρ lift-left-ctx-[] inner s-shape comp)
     vV noV
     with lift-left-store-result _
 world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (νcast⊑ᵀ {occ = occ} {{safe = safe}}
-      mode seal★ s⊑ liftρ lift-left-ctx-[] inner)
+    (νcast⊑ᵀ {p = pB} {occ = occ} {{safe = safe}}
+      mode seal★ s⊑ liftρ lift-left-ctx-[] inner s-shape comp)
     vV noV
     | ρ↑ , liftρ⁺
     with left-νcast-allocation {{safe = safe}}
@@ -1009,7 +1027,10 @@ world-coherent-source-allocation-step-proofᵀ
           (renameStoreᵗ-incl suc
             (leftStoreⁱ-prefix-inclusion prefix)))
         s⊑)
-      _ liftρ⁺
+      pB s-shape
+      (imprecision-composition-shape-transport
+        refl (shape-source-liftνᵢ pB) refl comp)
+      liftρ⁺
       (allocation-prefixᵀ prefix inner
         (ν-body-typing-at
           (proj₁ (coercion-src-tgtᵐ (proj₁ s⊑))) source⊢)
@@ -1018,8 +1039,8 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (νcast⊑ᵀ {occ = occ} {{safe = safe}}
-      mode seal★ s⊑ liftρ lift-left-ctx-[] inner)
+    (νcast⊑ᵀ {p = pB} {occ = occ} {{safe = safe}}
+      mode seal★ s⊑ liftρ lift-left-ctx-[] inner s-shape comp)
     vV noV
     | ρ↑ , liftρ⁺ | source-step , target-refl , related =
   world-coherent-source-one-step-indexed
@@ -1027,7 +1048,17 @@ world-coherent-source-allocation-step-proofᵀ
       (weak-step-transport
         (left-lift-prefix-body-proofᵀ
           liftρ⁺ (prefix-∷ⁱ prefix-reflⁱ)))
-      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ))
+      (weak-step-type-coherence
+        source-lift-arrowᵢ
+        source-lift-allᵢ
+        shape-source-liftνᵢ
+        source-liftν-right-body-shapeᵢ
+        replace-left-source-liftνᵢ
+        replace-right-source-liftνᵢ
+        replace-paired-source-liftνᵢ
+        replace-paired-source-liftν-under-∀ᵢ
+        replace-left-source-liftν-source-nu-bodyᵢ
+        replace-right-source-liftν-under-rightᵢ))
     (weak-step-store-lineage ρ↑
       (lift-left-store-embeddingⁱ liftρ⁺)
       (prefix-∷ⁱ prefix-reflⁱ))
@@ -1069,10 +1100,11 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ inner q) vV noV =
+    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ inner q c′-shape comp)
+    vV noV =
   sourceStepTargetNarrowFrame
     world-coherent-source-one-step-target-cast-frames
-    prefix mode′ seal★′ c′⊒
+    prefix mode′ seal★′ c′⊒ c′-shape comp
     (world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
@@ -1084,10 +1116,11 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ inner q) vV noV =
+    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ inner q c′-shape comp)
+    vV noV =
   sourceStepTargetWidenFrame
     world-coherent-source-one-step-target-cast-frames
-    prefix mode′ seal★′ c′⊑
+    prefix mode′ seal★′ c′⊑ c′-shape comp
     (world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
@@ -1099,10 +1132,11 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑cast⊑idᵀ seal★′ c′⊑ inner q) vV noV =
+    (⊑cast⊑idᵀ seal★′ c′⊑ inner q c′-shape comp)
+    vV noV =
   sourceStepTargetIdWidenFrame
     world-coherent-source-one-step-target-cast-frames
-    prefix seal★′ c′⊑
+    prefix seal★′ c′⊑ c′-shape comp
     (world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
@@ -1114,9 +1148,10 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑conv↑ᵀ c′↑ inner q) vV noV =
+    (⊑conv↑ᵀ c′↑ inner q replace) vV noV =
   sourceStepTargetRevealFrame
-    world-coherent-source-one-step-target-cast-frames prefix c′↑
+    world-coherent-source-one-step-target-cast-frames
+    prefix c′↑ replace
     (world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
@@ -1130,9 +1165,10 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑conv↓ᵀ c′↓ inner q) vV noV =
+    (⊑conv↓ᵀ c′↓ inner q replace) vV noV =
   sourceStepTargetConcealFrame
-    world-coherent-source-one-step-target-cast-frames prefix c′↓
+    world-coherent-source-one-step-target-cast-frames
+    prefix c′↓ replace
     (world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
@@ -1146,10 +1182,11 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑νᵀ hA h⇑A s↑ liftρ lift-right-ctx-[] r inner) vV noV =
+    (⊑νᵀ hA h⇑A s↑ liftρ lift-right-ctx-[] r inner
+      replace) vV noV =
   sourceStepTargetNuFrame
     world-coherent-source-one-step-target-nu-framesᵀ
-    prefix hA s↑ r
+    prefix hA s↑ r replace
     (world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
@@ -1163,11 +1200,12 @@ world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑νcastᵀ mode seal★ s⊑ liftρ lift-right-ctx-[] r inner)
+    (⊑νcastᵀ mode seal★ s⊑ liftρ lift-right-ctx-[] r inner
+      s-shape comp)
     vV noV =
   sourceStepTargetNuCastFrame
     world-coherent-source-one-step-target-nu-framesᵀ
-    prefix mode seal★ s⊑ r
+    prefix mode seal★ s⊑ r s-shape comp
     (world-coherent-source-allocation-step-proofᵀ
     right-catchup target-bullet prefix coherent exclusive unique
       wfL wfR

@@ -241,7 +241,8 @@ interpret-paired-lambda-target-closing-view handlers target-frame
 interpret-paired-lambda-target-closing-view handlers target-frame
     (closing-frame-view
       leaf@(leaf-instβ prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f assm hτ hσ
+        vW noW vW′ noW′ inert body f inst-shape creation-square
+        assm hτ hσ
         store-emb eqM eqM′ refl eqA′ p
         vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
       frames) =
@@ -249,7 +250,8 @@ interpret-paired-lambda-target-closing-view handlers target-frame
     leaf
     (handle-leaf-instβ handlers
       prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f assm hτ hσ
+      vW noW vW′ noW′ inert body f inst-shape creation-square
+      assm hτ hσ
       store-emb eqM eqM′ refl eqA′ p
       vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
     frames

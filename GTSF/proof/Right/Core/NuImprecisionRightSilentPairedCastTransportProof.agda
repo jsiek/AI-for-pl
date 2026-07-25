@@ -6,7 +6,7 @@ module proof.Right.Core.NuImprecisionRightSilentPairedCastTransportProof where
 --     lineage, prefix, and result-world coherence fields.
 --   * Adds no right-silent invariant record or constructor-family interface.
 
-open import Agda.Builtin.Equality using (refl)
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
 open import Data.Nat.Properties using (≤-refl)
@@ -75,6 +75,7 @@ open import proof.Right.Core.NuImprecisionRightSilentPairedCastTransportDef usin
   (RightSilentPairedCastTransportᵀ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepResult
+  ; WeakOneStepTypeCoherence
   ; resultCtx
   ; resultLeftCtx
   ; resultRightCtx
@@ -85,6 +86,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetCtxResult
   ; targetStoreResult
   ; targetTailChanges
+  ; transportShapeCoherent
   ; transportType
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
@@ -96,12 +98,19 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   )
 open import proof.Core.Properties.NuWideningTransport using
   (apply-widens-typing)
+open import
+  proof.OneStep.NuImprecisionWeakOneStepReplacementTransport
+  using (transport-paired-replacement)
 open import proof.Core.Properties.ReductionProperties using
   ( applyCoercions
   ; applyCoercions-preserves-Inert
   ; applyTyVars
   )
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  )
 
 
 result-target-reveal :
@@ -244,49 +253,62 @@ applyCoercions-reflects-Inert (χ ∷ χs) c inert =
 right-silent-paired-widening-compatible-transportᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {M M′ : Term} {C C′ B A′ : Ty}
-    {c c′ : Coercion} →
+    {M M′ : Term} {C C′ A A′ B B′ : Ty}
+    {c c′ : Coercion} {p q s s′} →
   (inner : WeakOneStepResult ρ M M′ C C′ keep) →
-  PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
+  (coherent : WeakOneStepTypeCoherence inner) →
+  PairedWideningCompatible
+    Φ Δᴸ Δᴿ c c′ {A} {A′} {B} {B′} p q s s′ →
   PairedWideningCompatible
     (resultCtx inner)
     (resultLeftCtx inner)
     (resultRightCtx inner)
     (applyCoercions (sourceChanges inner) c)
     (applyCoercions (targetTailChanges inner) (applyCoercion keep c′))
-    (applyTys (sourceChanges inner) B)
-    (applyTys (targetTailChanges inner) (applyTy keep A′))
+    (transportType inner p)
+    (transportType inner q)
+    s s′
 right-silent-paired-widening-compatible-transportᵀ
-    inner (compatible-source-inert inert) =
+    inner coherent (compatible-source-inert inert) =
   compatible-source-inert
     (applyCoercions-preserves-Inert (sourceChanges inner) inert)
 right-silent-paired-widening-compatible-transportᵀ
-    {c′ = c′} inner (compatible-target-inert-bridge bridge) =
-  compatible-target-inert-bridge
-    (λ target-inert → transportType inner
-      (bridge
-        (applyCoercions-reflects-Inert
-          (targetTailChanges inner) c′ target-inert)))
+    {c′ = c′} inner coherent
+    (compatible-target-inert-bridge bridge-evidence) =
+  compatible-target-inert-bridge λ target-inert →
+    let
+      bridge , source-triangle , target-triangle =
+        bridge-evidence
+          (applyCoercions-reflects-Inert
+            (targetTailChanges inner) c′ target-inert)
+    in
+      transportType inner bridge ,
+      imprecision-composition-shape-transport
+        refl (transportShapeCoherent coherent bridge)
+        (transportShapeCoherent coherent _) source-triangle ,
+      imprecision-composition-shape-transport
+        (transportShapeCoherent coherent bridge) refl
+        (transportShapeCoherent coherent _) target-triangle
 
 
 right-silent-paired-cast-transport-proofᵀ :
   RightSilentPairedCastTransportᵀ
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-reveal corr c↑ c′↑))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     with store-corresponds-weakenⁱ prefix corr
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-reveal corr c↑ c′↑))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     | corr⁺
     with rel-store-embedding-correspondenceⁱ
       (lineageEmbedding lineage) corr⁺
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-reveal corr c↑ c′↑))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
-      eqα , eqX , eqβ , eqX′ , corr₁
+      eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
     with store-corresponds-reindexⁱ
       eqα
       (trans eqX
@@ -298,52 +320,55 @@ right-silent-paired-cast-transport-proofᵀ
           (targetTailChanges inner) _)))
       corr₁
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-reveal corr c↑ c′↑))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
-      eqα , eqX , eqβ , eqX′ , corr₁
-    | p₂ , corr₂
+      eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
+    | p₂ , corr₂ , p₂-shape
     with result-source-reveal prefix inner c↑
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-reveal corr c↑ c′↑))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
-      eqα , eqX , eqβ , eqX′ , corr₁
-    | p₂ , corr₂
+      eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
+    | p₂ , corr₂ , p₂-shape
     | μˢ , cˢ↑
     with result-target-reveal prefix inner c′↑
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-reveal corr c↑ c′↑))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
-      eqα , eqX , eqβ , eqX′ , corr₁
-    | p₂ , corr₂
+      eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
+    | p₂ , corr₂ , p₂-shape
     | μˢ , cˢ↑
     | μᵗ , cᵗ↑ =
   paired-conversion
     (paired-reveal
       (store-corresponds-weakenⁱ (lineagePrefix lineage) corr₂)
       cˢ↑
-      cᵗ↑)
+      cᵗ↑
+      (transport-paired-replacement
+        inner type-coherence replacement p₂
+        (trans p₂-shape p₁-shape)))
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-conceal corr c↓ c′↓))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     with store-corresponds-weakenⁱ prefix corr
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-conceal corr c↓ c′↓))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     | corr⁺
     with rel-store-embedding-correspondenceⁱ
       (lineageEmbedding lineage) corr⁺
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-conceal corr c↓ c′↓))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
-      eqα , eqX , eqβ , eqX′ , corr₁
+      eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
     with store-corresponds-reindexⁱ
       eqα
       (trans eqX
@@ -355,41 +380,47 @@ right-silent-paired-cast-transport-proofᵀ
           (targetTailChanges inner) _)))
       corr₁
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-conceal corr c↓ c′↓))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
-      eqα , eqX , eqβ , eqX′ , corr₁
-    | p₂ , corr₂
+      eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
+    | p₂ , corr₂ , p₂-shape
     with result-source-conceal prefix inner c↓
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-conceal corr c↓ c′↓))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
-      eqα , eqX , eqβ , eqX′ , corr₁
-    | p₂ , corr₂
+      eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
+    | p₂ , corr₂ , p₂-shape
     | μˢ , cˢ↓
     with result-target-conceal prefix inner c′↓
 right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same lineage coherent
-    (paired-conversion (paired-conceal corr c↓ c′↓))
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
-      eqα , eqX , eqβ , eqX′ , corr₁
-    | p₂ , corr₂
+      eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
+    | p₂ , corr₂ , p₂-shape
     | μˢ , cˢ↓
     | μᵗ , cᵗ↓ =
   paired-conversion
     (paired-conceal
       (store-corresponds-weakenⁱ (lineagePrefix lineage) corr₂)
       cˢ↓
-      cᵗ↓)
+      cᵗ↓
+      (transport-paired-replacement
+        inner type-coherence replacement p₂
+        (trans p₂-shape p₁-shape)))
 right-silent-paired-cast-transport-proofᵀ
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {A′ = A′}
     {B = B} {B′ = B′} {c = c} {c′ = c′}
-    prefix inner source-empty source-same lineage coherent
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat)
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-widening
+      mode seal★ c⊑ c-shape
+      mode′ seal★′ c′⊑ c′-shape
+      left-square right-square compat)
     with apply-widens-typing
       {χs = sourceChanges inner}
       mode
@@ -399,8 +430,11 @@ right-silent-paired-cast-transport-proofᵀ
 right-silent-paired-cast-transport-proofᵀ
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {A′ = A′}
     {B = B} {B′ = B′} {c = c} {c′ = c′}
-    prefix inner source-empty source-same lineage coherent
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat)
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-widening
+      mode seal★ c⊑ c-shape
+      mode′ seal★′ c′⊑ c′-shape
+      left-square right-square compat)
     | μˢ , modeˢ , seal★ˢ , cˢ⊑
     with apply-widens-typing
       {χs = targetTailChanges inner}
@@ -411,18 +445,30 @@ right-silent-paired-cast-transport-proofᵀ
 right-silent-paired-cast-transport-proofᵀ
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {A′ = A′}
     {B = B} {B′ = B′} {c = c} {c′ = c′}
-    prefix inner source-empty source-same lineage coherent
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat)
+    prefix inner source-empty source-same type-coherence lineage coherent
+    (paired-widening
+      mode seal★ c⊑ c-shape
+      mode′ seal★′ c′⊑ c′-shape
+      left-square right-square compat)
     | μˢ , modeˢ , seal★ˢ , cˢ⊑
     | μᵗ , modeᵗ , seal★ᵗ , cᵗ⊑ =
   paired-widening
     modeˢ
     source-seal★
     source-cast
+    (cast-shape-applyCoercions
+      (sourceChanges inner) c-shape)
     modeᵗ
     target-seal★
     target-cast
-    (right-silent-paired-widening-compatible-transportᵀ inner compat)
+    (cast-shape-applyCoercions
+      (targetTailChanges inner) c′-shape)
+    (imprecision-composition-shape-transport
+      refl (transportShapeCoherent type-coherence _) refl left-square)
+    (imprecision-composition-shape-transport
+      (transportShapeCoherent type-coherence _) refl refl right-square)
+    (right-silent-paired-widening-compatible-transportᵀ
+      inner type-coherence compat)
   where
   source-seal★ :
     SealModeStore★ μˢ (leftStoreⁱ (resultStore inner))

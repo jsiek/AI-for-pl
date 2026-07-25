@@ -85,9 +85,10 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-store-rename-matched
   ; left-store-rename-right
   ; rel-world-embedding
-  ; ⊑-rename-left-atᵢ
-  ; ⊑-rename-leftᵢ
   )
+open import
+  proof.Core.Properties.NuCastImprecisionShapeProperties
+  using (⊑-rename-left-atᵢ; ⊑-rename-leftᵢ)
 open import
   proof.EndpointMLB.Core.MaximalLowerBoundsWf
   using (⊑-rename-at²ᵢ)
@@ -113,18 +114,18 @@ private
     RelStoreEmbeddingⁱ suc suc ρ ρ↑
   paired-store-embedding lift-store-[] =
     rel-store-embedding-[]
-  paired-store-embedding (lift-store-∷ liftρ) =
+  paired-store-embedding (lift-store-∷ shape-eq liftρ) =
     rel-store-embedding-matched refl refl refl refl
-      (paired-store-embedding liftρ)
+      shape-eq (paired-store-embedding liftρ)
   paired-store-embedding (lift-store-left liftρ) =
     rel-store-embedding-left refl refl
       (paired-store-embedding liftρ)
   paired-store-embedding (lift-store-right liftρ) =
     rel-store-embedding-right refl refl
       (paired-store-embedding liftρ)
-  paired-store-embedding (lift-store-link liftρ) =
+  paired-store-embedding (lift-store-link shape-eq liftρ) =
     rel-store-embedding-link refl refl refl refl
-      (paired-store-embedding liftρ)
+      shape-eq (paired-store-embedding liftρ)
 
 
   paired-context-rename :
@@ -142,13 +143,14 @@ private
       TyRenameWf-suc TyRenameWf-suc γ γ↑
   paired-context-rename unique lift-ctx-[] = rel-ctx-rename-[]
   paired-context-rename unique
-      (lift-ctx-∷ {p = p} {p′ = p↑} liftγ)
+      (lift-ctx-∷ {p = p} {p′ = p↑} shape-eq liftγ)
       with assumption-membership-unique→precision-index-unique unique
         p↑
         (⊑-rename-at²ᵢ rename-assm²-∀ᵢ
           TyRenameWf-suc TyRenameWf-suc refl refl p)
   paired-context-rename unique
-      (lift-ctx-∷ {p = p} {p′ = p↑} liftγ) | refl =
+      (lift-ctx-∷ {p = p} {p′ = p↑} shape-eq liftγ)
+      | refl =
     rel-ctx-rename-∷ refl refl
       (paired-context-rename unique liftγ)
 
@@ -168,13 +170,14 @@ private
   left-store-rename unique lift-left-store-[] =
     left-store-rename-[]
   left-store-rename unique
-      (lift-left-store-∷ {p = p} {p′ = p↑} liftρ)
+      (lift-left-store-∷ {p = p} {p′ = p↑} shape-eq liftρ)
       with assumption-membership-unique→precision-index-unique unique
         p↑
         (⊑-rename-left-atᵢ suc rename-assm²-source-νᵢ
           TyRenameWf-suc refl p)
   left-store-rename unique
-      (lift-left-store-∷ {p = p} {p′ = p↑} liftρ) | refl =
+      (lift-left-store-∷ {p = p} {p′ = p↑} shape-eq liftρ)
+      | refl =
     left-store-rename-matched refl refl
       (left-store-rename unique liftρ)
   left-store-rename unique (lift-left-store-left liftρ) =
@@ -183,13 +186,14 @@ private
   left-store-rename unique (lift-left-store-right liftρ) =
     left-store-rename-right (left-store-rename unique liftρ)
   left-store-rename unique
-      (lift-left-store-link {p = p} {p′ = p↑} liftρ)
+      (lift-left-store-link {p = p} {p′ = p↑} shape-eq liftρ)
       with assumption-membership-unique→precision-index-unique unique
         p↑
         (⊑-rename-left-atᵢ suc rename-assm²-source-νᵢ
           TyRenameWf-suc refl p)
   left-store-rename unique
-      (lift-left-store-link {p = p} {p′ = p↑} liftρ) | refl =
+      (lift-left-store-link {p = p} {p′ = p↑} shape-eq liftρ)
+      | refl =
     left-store-rename-link refl refl
       (left-store-rename unique liftρ)
 
@@ -208,13 +212,14 @@ private
       TyRenameWf-suc γ γ↑
   left-context-rename unique lift-left-ctx-[] = left-ctx-rename-[]
   left-context-rename unique
-      (lift-left-ctx-∷ {p = p} {p′ = p↑} liftγ)
+      (lift-left-ctx-∷ {p = p} {p′ = p↑} shape-eq liftγ)
       with assumption-membership-unique→precision-index-unique unique
         p↑
         (⊑-rename-left-atᵢ suc rename-assm²-source-νᵢ
           TyRenameWf-suc refl p)
   left-context-rename unique
-      (lift-left-ctx-∷ {p = p} {p′ = p↑} liftγ) | refl =
+      (lift-left-ctx-∷ {p = p} {p′ = p↑} shape-eq liftγ)
+      | refl =
     left-ctx-rename-∷ refl (left-context-rename unique liftγ)
 
 
@@ -230,11 +235,11 @@ private
       A ≡ renameᵗ suc A₀ × B ≡ renameᵗ suc B₀
   paired-unlift-lookup lift-ctx-[] ()
   paired-unlift-lookup
-      (lift-ctx-∷ {A = A} {B = B} {p = p} liftγ) Z =
+      (lift-ctx-∷ {A = A} {B = B} {p = p} shape-eq liftγ) Z =
     A , B , p , Z , refl , refl
-  paired-unlift-lookup (lift-ctx-∷ liftγ) (S x∈)
+  paired-unlift-lookup (lift-ctx-∷ shape-eq liftγ) (S x∈)
       with paired-unlift-lookup liftγ x∈
-  paired-unlift-lookup (lift-ctx-∷ liftγ) (S x∈)
+  paired-unlift-lookup (lift-ctx-∷ shape-eq liftγ) (S x∈)
       | A , B , p , x∈₀ , refl , refl =
     A , B , p , S x∈₀ , refl , refl
 
@@ -251,11 +256,14 @@ private
       A ≡ renameᵗ suc A₀ × B ≡ B₀
   left-unlift-lookup lift-left-ctx-[] ()
   left-unlift-lookup
-      (lift-left-ctx-∷ {A = A} {B = B} {p = p} liftγ) Z =
+      (lift-left-ctx-∷ {A = A} {B = B} {p = p}
+        shape-eq liftγ) Z =
     A , B , p , Z , refl , refl
-  left-unlift-lookup (lift-left-ctx-∷ liftγ) (S x∈)
+  left-unlift-lookup
+      (lift-left-ctx-∷ shape-eq liftγ) (S x∈)
       with left-unlift-lookup liftγ x∈
-  left-unlift-lookup (lift-left-ctx-∷ liftγ) (S x∈)
+  left-unlift-lookup
+      (lift-left-ctx-∷ shape-eq liftγ) (S x∈)
       | A , B , p , x∈₀ , refl , refl =
     A , B , p , S x∈₀ , refl , refl
 

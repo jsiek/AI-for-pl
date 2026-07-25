@@ -10,10 +10,14 @@ module
 --   * Contains no implementation or recursive simulation dependency.
 
 import Coercions as C
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; widening)
 open import Data.List using ([])
 open import ForallPermutation using
   (_≈∀_; _∣_⊢_⊑ᵖ_⊣_; quotientᵖ)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; _；⌊_⌋≋ᵖ_；_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using (StoreImp; leftStoreⁱ)
 open import NuTerms using (No•; RuntimeOK; Term; Value; _⟨_⟩)
@@ -35,6 +39,7 @@ WorldCoherentQuotientRepresentativeInstCatchupᵀ =
   ∀ {Φ Δᴸ Δᴿ} {V V′ : Term}
     {B D D′ C C′ A A′ : Ty}
     {d d′ s u′ : C.Coercion}
+    {sU sU′ : ImprecisionShape}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {D≈C : D ≈∀ C}
     {C⊑C′ : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
@@ -55,6 +60,10 @@ WorldCoherentQuotientRepresentativeInstCatchupᵀ =
       ∶ quotientᵖ D≈C C⊑C′ C′≈D′ →
   QuotientWideningPair Δᴸ Δᴿ ρ
     (C.inst B s) u′ D D′ A A′ →
+  widening ⊢ᶜ C.inst B s ⦂ sU →
+  widening ⊢ᶜ u′ ⦂ sU′ →
+  sU ；⌊ pA ⌋≋ᵖ
+    quotientᵖ D≈C C⊑C′ C′≈D′ ； sU′ →
   WorldCoherentLeftCatchupIndexedResult
     {N = (V ⟨ d ⟩) ⟨ C.inst B s ⟩}
     {V′ = (V′ ⟨ d′ ⟩) ⟨ u′ ⟩}

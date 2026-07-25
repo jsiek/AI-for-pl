@@ -38,6 +38,10 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; resultType
   ; transportAllCoherent
   ; transportArrowCoherent
+  ; transportLeftReplacementCoherent
+  ; transportPairedReplacementCoherent
+  ; transportRightReplacementCoherent
+  ; transportShapeCoherent
   ; transportNo•Terms
   ; weak-step-transport
   ; weak-step-type-coherence
@@ -82,7 +86,7 @@ world-coherent-source-narrow-catchup-framedᵀ
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     with final
 world-coherent-source-narrow-catchup-framedᵀ
     value-catchup prefix mode seal★ c⊒ vV′ noV′
@@ -93,7 +97,7 @@ world-coherent-source-narrow-catchup-framedᵀ
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     | inj₁ (vW , noW) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed framed
@@ -114,7 +118,7 @@ world-coherent-source-narrow-catchup-framedᵀ
 
   framed =
     weak-one-step-source-narrow-cast-indexed-frameᵀ
-      mode seal★⁺ c⊒⁺ indexed
+      mode seal★⁺ c⊒⁺ c-shape comp indexed
 world-coherent-source-narrow-catchup-framedᵀ
     value-catchup prefix mode seal★ c⊒ vV′ noV′
     (world-coherent-left-indexed-catchup
@@ -124,7 +128,7 @@ world-coherent-source-narrow-catchup-framedᵀ
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     | inj₂ refl =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-source-cast-blame-frameᵀ
@@ -144,7 +148,7 @@ world-coherent-source-narrow-catchup-framedᵀ
 
   framed =
     weak-one-step-source-narrow-cast-indexed-frameᵀ
-      mode seal★⁺ c⊒⁺ indexed
+      mode seal★⁺ c⊒⁺ c-shape comp indexed
 
   terminal-first-raw = weakIndexedResult framed
 
@@ -185,6 +189,13 @@ world-coherent-source-narrow-catchup-framedᵀ
     weak-step-type-coherence
       (transportArrowCoherent (weakIndexedTypeCoherence indexed))
       (transportAllCoherent (weakIndexedTypeCoherence indexed))
+      (transportShapeCoherent (weakIndexedTypeCoherence indexed))
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportPairedReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
 
 
 world-coherent-source-narrow-catchup-proofᵀ :

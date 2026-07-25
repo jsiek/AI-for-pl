@@ -176,11 +176,12 @@ mutual
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-⟨⟩ noN) (no•-⟨⟩ noN′)
-      (up⊑upᵀ body widening p) =
+      (up⊑upᵀ body widening p u-shape u′-shape square) =
     up⊑upᵀ
       (quotiented-parallel-term-substitution-quotient-proofᵀ
         environment frame prefix noN noN′ body)
-      (quotient-widening-pair-prefix-proofᵀ prefix widening) p
+      (quotient-widening-pair-prefix-proofᵀ prefix widening)
+      p u-shape u′-shape square
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-Λ noV) (no•-Λ noV′)
@@ -221,7 +222,8 @@ mutual
       environment frame prefix noM noM′
       (Λ⊑instβᵀ
         inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f assm hτ hσ store-emb
+        vW noW vW′ noW′ inert body f inst-shape creation-square
+        assm hτ hσ store-emb
         eqM eqM′ eqA eqA′ p
         vM noM₀ closedM vM′ noM′₀ closedM′ M⊢ M′⊢)
       with subst-closedᵐ closedM _
@@ -230,14 +232,16 @@ mutual
       environment frame prefix noM noM′
       (Λ⊑instβᵀ
         inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f assm hτ hσ store-emb
+        vW noW vW′ noW′ inert body f inst-shape creation-square
+        assm hτ hσ store-emb
         eqM eqM′ eqA eqA′ p
         vM noM₀ closedM vM′ noM′₀ closedM′ M⊢ M′⊢)
       | eqζM | eqζ′M′ =
     allocation-prefixᵀ prefix
       (Λ⊑instβᵀ
         inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f assm hτ hσ store-emb
+        vW noW vW′ noW′ inert body f inst-shape creation-square
+        assm hτ hσ store-emb
         (trans eqM (sym eqζM))
         (trans eqM′ (sym eqζ′M′))
         eqA eqA′ p
@@ -291,13 +295,13 @@ mutual
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-ν noN) (no•-ν noN′)
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A↑⊑A′↑
-        liftρ liftγ body)
+        liftρ liftγ body replace)
       with paired-store-prefix-lift-proofᵀ prefix liftρ
          | lift-ctx-result _
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-ν noN) (no•-ν noN′)
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A↑⊑A′↑
-        liftρ liftγ body)
+        liftρ liftγ body replace)
       | ρ⁺↑ , liftρ⁺ , prefix↑
       | δ↑ , liftδ =
     ν⊑νᵀ hA hA′
@@ -312,15 +316,16 @@ mutual
       A⊑A′ A↑⊑A′↑ liftρ⁺ liftδ
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noN noN′ body)
+      replace
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-ν noN) noN′
-      (ν⊑ᵀ hA hA↑ s↑ liftρ liftγ body)
+      (ν⊑ᵀ hA hA↑ s↑ liftρ liftγ body replace)
       with left-store-prefix-lift-proofᵀ prefix liftρ
          | lift-left-ctx-result _
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-ν noN) noN′
-      (ν⊑ᵀ hA hA↑ s↑ liftρ liftγ body)
+      (ν⊑ᵀ hA hA↑ s↑ liftρ liftγ body replace)
       | ρ⁺↑ , liftρ⁺ , prefix↑
       | δ↑ , liftδ =
     ν⊑ᵀ hA hA↑
@@ -331,15 +336,16 @@ mutual
       liftρ⁺ liftδ
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noN noN′ body)
+      replace
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix noN (no•-ν noN′)
-      (⊑νᵀ hA hA↑ s↑ liftρ liftγ p body)
+      (⊑νᵀ hA hA↑ s↑ liftρ liftγ B⊑C′ body replace)
       with right-store-prefix-lift-proofᵀ prefix liftρ
          | lift-right-ctx-result _
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix noN (no•-ν noN′)
-      (⊑νᵀ hA hA↑ s↑ liftρ liftγ p body)
+      (⊑νᵀ hA hA↑ s↑ liftρ liftγ B⊑C′ body replace)
       | ρ⁺↑ , liftρ⁺ , prefix↑
       | δ↑ , liftδ =
     ⊑νᵀ hA hA↑
@@ -347,22 +353,23 @@ mutual
         (StoreIncl-cons
           (renameStoreᵗ-incl suc (rightStoreⁱ-prefix-inclusion prefix)))
         s↑)
-      liftρ⁺ liftδ p
+      liftρ⁺ liftδ B⊑C′
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noN noN′ body)
+      replace
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-ν noN) (no•-ν noN′)
       (νcast⊑νcastᵀ
         mode seal★ mode′ seal★′ s⊑ s′⊑ compatible
-        liftρ liftγ body)
+        liftρ liftγ body s-shape s′-shape source-comp target-comp)
       with paired-store-prefix-lift-proofᵀ prefix liftρ
          | lift-ctx-result _
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-ν noN) (no•-ν noN′)
       (νcast⊑νcastᵀ
         mode seal★ mode′ seal★′ s⊑ s′⊑ compatible
-        liftρ liftγ body)
+        liftρ liftγ body s-shape s′-shape source-comp target-comp)
       | ρ⁺↑ , liftρ⁺ , prefix↑
       | δ↑ , liftδ =
     νcast⊑νcastᵀ mode
@@ -386,15 +393,16 @@ mutual
       compatible liftρ⁺ liftδ
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noN noN′ body)
+      s-shape s′-shape source-comp target-comp
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-ν noN) noN′
-      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ body)
+      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ body s-shape comp)
       with left-store-prefix-lift-proofᵀ prefix liftρ
          | lift-left-ctx-result _
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-ν noN) noN′
-      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ body)
+      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ body s-shape comp)
       | ρ⁺↑ , liftρ⁺ , prefix↑
       | δ↑ , liftδ =
     νcast⊑ᵀ mode
@@ -409,15 +417,18 @@ mutual
       liftρ⁺ liftδ
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noN noN′ body)
+      s-shape comp
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix noN (no•-ν noN′)
-      (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ p body)
+      (⊑νcastᵀ
+        mode seal★ s⊑ liftρ liftγ B⊑C′ body s-shape comp)
       with right-store-prefix-lift-proofᵀ prefix liftρ
          | lift-right-ctx-result _
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix noN (no•-ν noN′)
-      (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ p body)
+      (⊑νcastᵀ
+        mode seal★ s⊑ liftρ liftγ B⊑C′ body s-shape comp)
       | ρ⁺↑ , liftρ⁺ , prefix↑
       | δ↑ , liftδ =
     ⊑νcastᵀ mode
@@ -429,9 +440,10 @@ mutual
         (StoreIncl-cons
           (renameStoreᵗ-incl suc (rightStoreⁱ-prefix-inclusion prefix)))
         s⊑)
-      liftρ⁺ liftδ p
+      liftρ⁺ liftδ B⊑C′
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noN noN′ body)
+      s-shape comp
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix no•-$ no•-$ κ⊑κᵀ =
@@ -472,51 +484,51 @@ mutual
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-⟨⟩ noM) noM′
-      (cast⊒⊑ᵀ mode seal★ c⊒ body q) =
+      (cast⊒⊑ᵀ mode seal★ c⊒ body q c-shape comp) =
     cast⊒⊑ᵀ mode
       (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
       (narrow-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion prefix) c⊒)
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
-      q
+      q c-shape comp
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-⟨⟩ noM) noM′
-      (cast⊑⊑ᵀ mode seal★ c⊑ body q) =
+      (cast⊑⊑ᵀ mode seal★ c⊑ body q c-shape comp) =
     cast⊑⊑ᵀ mode
       (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
       (widen-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion prefix) c⊑)
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
-      q
+      q c-shape comp
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix noM (no•-⟨⟩ noM′)
-      (⊑cast⊒ᵀ mode seal★ c⊒ body q) =
+      (⊑cast⊒ᵀ mode seal★ c⊒ body q c-shape comp) =
     ⊑cast⊒ᵀ mode
       (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★)
       (narrow-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) c⊒)
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
-      q
+      q c-shape comp
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix noM (no•-⟨⟩ noM′)
-      (⊑cast⊑ᵀ mode seal★ c⊑ body q) =
+      (⊑cast⊑ᵀ mode seal★ c⊑ body q c-shape comp) =
     ⊑cast⊑ᵀ mode
       (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★)
       (widen-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) c⊑)
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
-      q
+      q c-shape comp
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix noM (no•-⟨⟩ noM′)
-      (⊑cast⊑idᵀ seal★ c⊑ body q) =
+      (⊑cast⊑idᵀ seal★ c⊑ body q c-shape comp) =
     ⊑cast⊑idᵀ
       (seal★-weaken {μ = id-onlyᵈ}
         (rightStoreⁱ-prefix-inclusion prefix) seal★)
@@ -524,7 +536,7 @@ mutual
         (rightStoreⁱ-prefix-inclusion prefix) c⊑)
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
-      q
+      q c-shape comp
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
@@ -536,43 +548,43 @@ mutual
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-⟨⟩ noM) noM′
-      (conv↑⊑ᵀ conversion body q) =
+      (conv↑⊑ᵀ conversion body q replace) =
     conv↑⊑ᵀ
       (weaken-reveal-conversion
         (leftStoreⁱ-prefix-inclusion prefix) conversion)
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
-      q
+      q replace
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-⟨⟩ noM) noM′
-      (conv↓⊑ᵀ conversion body q) =
+      (conv↓⊑ᵀ conversion body q replace) =
     conv↓⊑ᵀ
       (weaken-conceal-conversion
         (leftStoreⁱ-prefix-inclusion prefix) conversion)
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
-      q
+      q replace
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix noM (no•-⟨⟩ noM′)
-      (⊑conv↑ᵀ conversion body q) =
+      (⊑conv↑ᵀ conversion body q replace) =
     ⊑conv↑ᵀ
       (weaken-reveal-conversion
         (rightStoreⁱ-prefix-inclusion prefix) conversion)
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
-      q
+      q replace
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix noM (no•-⟨⟩ noM′)
-      (⊑conv↓ᵀ conversion body q) =
+      (⊑conv↓ᵀ conversion body q replace) =
     ⊑conv↓ᵀ
       (weaken-conceal-conversion
         (rightStoreⁱ-prefix-inclusion prefix) conversion)
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
-      q
+      q replace
 
 
   quotiented-parallel-term-substitution-quotient-proofᵀ :
@@ -592,78 +604,100 @@ mutual
 
   quotiented-parallel-term-substitution-quotient-proofᵀ
       environment frame prefix (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
-      (down⊑downᵀ source target body q) =
+      (down⊑downᵀ
+        source source-shape target target-shape body q square) =
     down⊑downᵀ
       (narrow-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion prefix) source)
+      source-shape
       (narrow-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) target)
+      target-shape
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
-      q
+      q square
 
   quotiented-parallel-term-substitution-quotient-proofᵀ
       environment frame prefix (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
-      (gen-down⊑gen-downᵀ source target body q) =
+      (gen-down⊑gen-downᵀ
+        source source-shape target target-shape body q square) =
     gen-down⊑gen-downᵀ
       (narrow-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion prefix) source)
+      source-shape
       (narrow-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) target)
+      target-shape
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
-      q
+      q square
 
   quotiented-parallel-term-substitution-quotient-proofᵀ
       environment frame prefix
       (no•-· noL (no•-⟨⟩ noM))
       (no•-· noL′ (no•-⟨⟩ noM′))
       (ordinary-down-applicationᵖᵀ
-        mode seal★ source mode′ seal★′ target function argument) =
+        mode seal★ source source-shape
+        mode′ seal★′ target target-shape
+        function argument square) =
     ordinary-down-applicationᵖᵀ
       mode
       (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
       (narrow-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion prefix) source)
+      source-shape
       mode′
       (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★′)
       (narrow-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) target)
+      target-shape
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noL noL′ function)
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ argument)
+      square
   quotiented-parallel-term-substitution-quotient-proofᵀ
       environment frame prefix
       (no•-· noL (no•-⟨⟩ noM))
       (no•-· noL′ (no•-⟨⟩ noM′))
       (quotient-id-down-applicationᵖᵀ
-        source target function argument) =
+        source source-shape target target-shape
+        function components argument square) =
     quotient-id-down-applicationᵖᵀ
       (narrow-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion prefix) source)
+      source-shape
       (narrow-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) target)
+      target-shape
       (quotiented-parallel-term-substitution-quotient-proofᵀ
         environment frame prefix noL noL′ function)
+      components
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ argument)
+      square
   quotiented-parallel-term-substitution-quotient-proofᵀ
       environment frame prefix
       (no•-· noL (no•-⟨⟩ noM))
       (no•-· noL′ (no•-⟨⟩ noM′))
       (quotient-down-applicationᵖᵀ
-        mode seal★ source mode′ seal★′ target function argument) =
+        mode seal★ source source-shape
+        mode′ seal★′ target target-shape
+        function components argument square) =
     quotient-down-applicationᵖᵀ
       mode
       (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
       (narrow-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion prefix) source)
+      source-shape
       mode′
       (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★′)
       (narrow-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) target)
+      target-shape
       (quotiented-parallel-term-substitution-quotient-proofᵀ
         environment frame prefix noL noL′ function)
+      components
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ argument)
+      square

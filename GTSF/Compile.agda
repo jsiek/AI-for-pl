@@ -32,6 +32,9 @@ open import Coercions
 open import Conversion using (_∣_∣_⊢_∶_↑ˢ_; reveal-conversion-env)
 open import Imprecision using (_⊢_~_; idᵢ; id★; _↦_; tag_⇛_)
 import ImprecisionWf as IWF
+import CastImprecisionShape as CastShape
+open CastShape using (_⊢ᶜ_⦂_)
+open import ImprecisionComposition using (⌊_⌋)
 open import Primitives using (Const; Prim; constTy)
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
@@ -40,9 +43,8 @@ open import NarrowWiden using
   ; widen-mode-relax
   )
 open import proof.Compilation.CompileCoercions using
-  ( coerce-upʷ
-  ; coerce-downⁿ
-  ; realizes-idᵢᴺᵂ-id-only
+  ( coerce-upʷ-shape-idᵢ
+  ; coerce-downⁿ-shape-idᵢ
   )
 open import proof.Core.Properties.CastImprecision
   using (castᵢ-id-only; narrowing⇒⊑ᵢ; widening⇒⊑ᵢ)
@@ -60,13 +62,10 @@ open import proof.Core.Properties.ImprecisionProperties
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple using (MLB)
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleMaximality using
   (MLB-complete)
-open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleSoundness using
-  (MLB-sound)
+open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleRoutes using
+  (MLB-result-route-sound)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf
-  using
-    ( old⊑→wf-idᵢ
-    ; ⊑-forgetᵢ
-    )
+  using (old⊑→wf-idᵢ)
 open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
 open import proof.Core.Properties.NuTermProperties using (CtxWf-⤊)
 open import proof.Core.Properties.TypeProperties
@@ -271,12 +270,16 @@ record CastPlan (Δ : TyCtx) (Σ : Store) (A B : Ty) : Set₁ where
     down⊒ : id-onlyᵈ ∣ Δ ∣ Σ ⊢ down ∶ A ⊒ lower
     lower⊑source :
       IWF._∣_⊢_⊑_⊣_ (idᵢ Δ) Δ lower A Δ
+    down-shape :
+      CastShape.narrowing ⊢ᶜ down ⦂ ⌊ lower⊑source ⌋
 
     up : Coercion
     up⊢ : Δ ∣ Σ ⊢ up ∶ lower =⇒ B
     up⊑ : id-onlyᵈ ∣ Δ ∣ Σ ⊢ up ∶ lower ⊑ B
     lower⊑target :
       IWF._∣_⊢_⊑_⊣_ (idᵢ Δ) Δ lower B Δ
+    up-shape :
+      CastShape.widening ⊢ᶜ up ⦂ ⌊ lower⊑target ⌋
 
 open CastPlan public
 
@@ -292,22 +295,14 @@ consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
       (IWF.⊑-tgt-wf C⊑A) (IWF.⊑-tgt-wf C⊑B) (C⊑A , C⊑B)
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
     | lower , lower-selected
-    with MLB-sound lower-selected
+    with MLB-result-route-sound lower-selected
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
     | lower , lower-selected | lower⊑source , lower⊑target
-    with coerce-downⁿ ℓ
-           (IWF.⊑-src-wf lower⊑source)
-           (IWF.⊑-tgt-wf lower⊑source)
-           (realizes-idᵢᴺᵂ-id-only Δ)
-           (⊑-forgetᵢ lower⊑source)
-       | coerce-upʷ ℓ
-           (IWF.⊑-src-wf lower⊑target)
-           (IWF.⊑-tgt-wf lower⊑target)
-           (realizes-idᵢᴺᵂ-id-only Δ)
-           (⊑-forgetᵢ lower⊑target)
+    with coerce-downⁿ-shape-idᵢ ℓ lower⊑source
+       | coerce-upʷ-shape-idᵢ ℓ lower⊑target
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
     | lower , lower-selected | lower⊑source , lower⊑target
-    | down , down⊒ | up , up⊑ =
+    | down , down⊒ , down-shape | up , up⊑ , up-shape =
   record
     { lower = lower
     ; lower-selected = lower-selected
@@ -315,10 +310,12 @@ consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
     ; down⊢ = id-onlyᵈ , proj₁ down⊒
     ; down⊒ = down⊒
     ; lower⊑source = lower⊑source
+    ; down-shape = down-shape
     ; up = up
     ; up⊢ = id-onlyᵈ , proj₁ up⊑
     ; up⊑ = up⊑
     ; lower⊑target = lower⊑target
+    ; up-shape = up-shape
     }
 
 consistency-cast-plan :

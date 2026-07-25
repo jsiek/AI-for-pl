@@ -24,7 +24,14 @@ import Relation.Binary.HeterogeneousEquality as HE
 
 import Coercions as C
 import Conversion as Conv
+import CastImprecisionShape as CastShape
 open import Coercions using (ModeEnv; id; id-onlyᵈ)
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
+open import ImprecisionComposition using
+  ( ImprecisionShape
+  ; ⌊_⌋
+  ; _；_≋_
+  )
 open import Conversion using
   ( ConcealConversion
   ; RevealConversion
@@ -74,6 +81,10 @@ open import TermTyping using (CastMode; SealModeStore★)
 open import Types using
   (Atom; Ty; TyCtx; TyVar; WfTy; ＇_; ‵_; ★; _⇒_; `∀; ⇑ᵗ)
 open import proof.Core.Properties.CoercionProperties using (modeRename-id-only)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  )
 open import proof.OneStep.NuImprecisionAtomicTargetReindex using
   (atomic-target-value-reindexᵀ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
@@ -105,9 +116,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-target-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-conceal-conversions
-  ; apply-narrows-typing
-  ; apply-reveal-conversions
+  ( apply-narrows-typing
   ; nu-term-imprecision-transport-termsᵀ
   ; nu-term-imprecision-transport-typesᵀ
   ; seal★-id-only
@@ -119,6 +128,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; weak-one-step-compose-all-body
   ; weak-one-step-compose-all-componentsᵀ
   ; weak-one-step-compose-arrow-componentsᵀ
+  ; weak-one-step-compose-preserves-type-coherenceᵀ
   ; weak-one-step-compose-preserves-transportᵀ
   ; weak-one-step-compose-type
   ; weak-one-step-compose-type-to-nested≅
@@ -152,6 +162,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; transportArrowCoherent
   ; transportArrowType
   ; transportNo•Terms
+  ; transportRightReplacementCoherent
+  ; transportShapeCoherent
   ; transportType
   ; transportAllType
   ; weak-step-transport
@@ -185,6 +197,7 @@ open import proof.Core.Properties.ReductionProperties using
   ; applyStores-++
   ; applyTerms-++
   ; applyTerms-preserves-No•
+  ; applyTyVars
   ; applyTyUnderTyBinder
   ; applyTyCtxs-++
   ; applyTyVars-++
@@ -199,6 +212,12 @@ open import proof.OneStep.NuImprecisionOneStepRelated using
   ( weak-one-step-related-transportᵀ
   ; weak-one-step-related-type-coherenceᵀ
   ; weak-one-step-relatedᵀ
+  )
+open import
+  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+  using
+  ( apply-conceal-conversions-exact
+  ; apply-reveal-conversions-exact
   )
 
 
@@ -264,109 +283,6 @@ private
             (χ′ ∷ targetTailChanges second) β))
         (rel-store-embedding-composeⁱ embedding₁ embedding₁₂))
       (store-imp-prefix-transⁱ prefix₁₂ prefix₂)
-
-  weak-one-step-compose-preserves-type-coherenceᵀ :
-    ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      (first : WeakOneStepResult ρ M M′ A B χ)
-      {χ′ N′}
-      (target→ : targetResult first —→[ χ′ ] N′)
-      (second : WeakOneStepResult
-        (resultStore first) (sourceResult first) N′
-        (resultSourceType first) (resultTargetType first) χ′) →
-    WeakOneStepTypeCoherence first →
-    WeakOneStepTypeCoherence second →
-    WeakOneStepTypeCoherence
-      (weak-one-step-composeᵀ first target→ second)
-  weak-one-step-compose-preserves-type-coherenceᵀ
-      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {χ = χ}
-      first {χ′ = χ′} target→ second
-      first-coherence second-coherence =
-    weak-step-type-coherence arrow-coherent all-coherent
-    where
-    combined = weak-one-step-composeᵀ first target→ second
-
-    arrow-coherent :
-      ∀ {C C′ D D′}
-        (pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ)
-        (pD : Φ ∣ Δᴸ ⊢ D ⊑ D′ ⊣ Δᴿ) →
-      transportArrowType combined pC pD ≡
-        weak-one-step-compose-type first second pC ↦
-        weak-one-step-compose-type first second pD
-    arrow-coherent {C = C} {C′ = C′} {D = D} {D′ = D′} pC pD =
-      HE.≅-to-≡
-        (HE.trans
-          (transportArrowType-to-raw≅ combined pC pD)
-          (HE.trans
-            (weak-one-step-compose-type-to-nested≅
-              first second (pC ↦ pD))
-            (HE.trans
-              (weak-one-step-nested-arrow-coherent≅
-                first second first-coherence second-coherence pC pD)
-              (HE.trans
-                (HE.sym
-                  (subst²-to-≅
-                    {P = λ S T →
-                      resultCtx second ∣ resultLeftCtx second
-                        ⊢ S ⊑ T ⊣ resultRightCtx second}
-                    (cong₂ _⇒_
-                      (sym (applyTys-++
-                        (sourceChanges first)
-                        (sourceChanges second) C))
-                      (sym (applyTys-++
-                        (sourceChanges first)
-                        (sourceChanges second) D)))
-                    (cong₂ _⇒_
-                      (sym (applyTys-++
-                        (targetTailChanges first)
-                        (χ′ ∷ targetTailChanges second)
-                        (applyTy χ C′)))
-                      (sym (applyTys-++
-                        (targetTailChanges first)
-                        (χ′ ∷ targetTailChanges second)
-                        (applyTy χ D′))))
-                    (transportType second (transportType first pC) ↦
-                      transportType second (transportType first pD))))
-                (HE.≡-to-≅
-                  (weak-one-step-compose-arrow-componentsᵀ
-                    first second pC pD))))))
-
-    all-coherent :
-      ∀ {C C′}
-        (q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-          ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ) →
-      transportAllType combined q ≡
-        ∀ⁱ (weak-one-step-compose-all-body first second q)
-    all-coherent {C = C} {C′ = C′} q =
-      HE.≅-to-≡
-        (HE.trans
-          (transportAllType-to-raw≅ combined q)
-          (HE.trans
-            (weak-one-step-compose-type-to-nested≅
-              first second (∀ⁱ q))
-            (HE.trans
-              (weak-one-step-nested-all-coherent≅
-                first second first-coherence second-coherence q)
-              (HE.trans
-                (HE.sym
-                  (subst²-to-≅
-                    {P = λ S T →
-                      resultCtx second ∣ resultLeftCtx second
-                        ⊢ S ⊑ T ⊣ resultRightCtx second}
-                    (cong `∀
-                      (sym (applyTysUnderTyBinders-++
-                        (sourceChanges first)
-                        (sourceChanges second) C)))
-                    (cong `∀
-                      (sym (applyTysUnderTyBinders-++
-                        (targetTailChanges first)
-                        (χ′ ∷ targetTailChanges second)
-                        (applyTyUnderTyBinder χ C′))))
-                    (∀ⁱ (transportAllBody second
-                      (transportAllBody first q)))))
-                (HE.≡-to-≅
-                  (weak-one-step-compose-all-componentsᵀ
-                    first second q))))))
 
   target-identity-resume-core :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -534,11 +450,14 @@ private
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
       {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
       {V M′ : Term} {A B : Ty} {μ : ModeEnv}
-      {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+      {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+      {s : ImprecisionShape} →
     StoreImpPrefix ρ₀ ρ⁺ →
     CastMode μ →
     SealModeStore★ μ (rightStoreⁱ ρ₀) →
     μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ C.id B ∶ B ⊒ B →
+    CastShape.narrowing CastShape.⊢ᶜ C.id B ⦂ s →
+    ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
     (inner-world :
       WorldCoherentRightValueCatchupIndexedResult
         {V = V} {M′ = M′} {ρ = ρ⁺} p) →
@@ -555,8 +474,8 @@ private
        ⦂ applyTys (sourceChanges inner) A
          ⊑ applyTys (targetTailChanges inner) B
        ∶ transportType inner q)
-  narrow-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
-      prefix mode seal★ c⊒
+  narrow-framed-relation {Δᴿ = Δᴿ} {B = B} {p = p} {q = q}
+      prefix mode seal★ c⊒ c-shape comp
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR)
@@ -567,17 +486,25 @@ private
         (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★)
         (narrow-weaken ≤-refl
           (rightStoreⁱ-prefix-inclusion prefix) c⊒)
-  narrow-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
-      prefix mode seal★ c⊒
+  narrow-framed-relation {Δᴿ = Δᴿ} {B = B} {p = p} {q = q}
+      prefix mode seal★ c⊒ c-shape comp
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR)
       | μ″ , mode″ , seal★″ , c″⊒ =
     ⊑cast⊒ᵀ mode″ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions (targetTailChanges inner)
+        c-shape)
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent type-coherence q)
+        refl
+        (transportShapeCoherent type-coherence p)
+        comp)
     where
     indexed = rightCatchupIndexedResult catchup
     inner = weakIndexedResult indexed
+    type-coherence = weakIndexedTypeCoherence indexed
 
     final-seal :
       SealModeStore★ μ″ (rightStoreⁱ (resultStore inner))
@@ -608,11 +535,14 @@ private
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
       {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
       {V M′ : Term} {A B : Ty} {μ : ModeEnv}
-      {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+      {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+      {s : ImprecisionShape} →
     StoreImpPrefix ρ₀ ρ⁺ →
     CastMode μ →
     SealModeStore★ μ (rightStoreⁱ ρ₀) →
     μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ C.id B ∶ B ⊑ B →
+    CastShape.widening CastShape.⊢ᶜ C.id B ⦂ s →
+    ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
     (inner-world :
       WorldCoherentRightValueCatchupIndexedResult
         {V = V} {M′ = M′} {ρ = ρ⁺} p) →
@@ -629,8 +559,8 @@ private
        ⦂ applyTys (sourceChanges inner) A
          ⊑ applyTys (targetTailChanges inner) B
        ∶ transportType inner q)
-  widen-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
-      prefix mode seal★ c⊑
+  widen-framed-relation {Δᴿ = Δᴿ} {B = B} {p = p} {q = q}
+      prefix mode seal★ c⊑ c-shape comp
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR)
@@ -641,17 +571,25 @@ private
         (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★)
         (widen-weaken ≤-refl
           (rightStoreⁱ-prefix-inclusion prefix) c⊑)
-  widen-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
-      prefix mode seal★ c⊑
+  widen-framed-relation {Δᴿ = Δᴿ} {B = B} {p = p} {q = q}
+      prefix mode seal★ c⊑ c-shape comp
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR)
       | μ″ , mode″ , seal★″ , c″⊑ =
     ⊑cast⊑ᵀ mode″ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions (targetTailChanges inner)
+        c-shape)
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent type-coherence p)
+        refl
+        (transportShapeCoherent type-coherence q)
+        comp)
     where
     indexed = rightCatchupIndexedResult catchup
     inner = weakIndexedResult indexed
+    type-coherence = weakIndexedTypeCoherence indexed
 
     final-seal :
       SealModeStore★ μ″ (rightStoreⁱ (resultStore inner))
@@ -682,9 +620,12 @@ private
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
       {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
       {V M′ : Term} {A B : Ty}
-      {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+      {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+      {s : ImprecisionShape} →
     StoreImpPrefix ρ₀ ρ⁺ →
     id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ C.id B ∶ B ⊑ B →
+    CastShape.widening CastShape.⊢ᶜ C.id B ⦂ s →
+    ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
     (inner-world :
       WorldCoherentRightValueCatchupIndexedResult
         {V = V} {M′ = M′} {ρ = ρ⁺} p) →
@@ -701,16 +642,24 @@ private
        ⦂ applyTys (sourceChanges inner) A
          ⊑ applyTys (targetTailChanges inner) B
        ∶ transportType inner q)
-  id-widen-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
-      prefix c⊑
+  id-widen-framed-relation {Δᴿ = Δᴿ} {B = B} {p = p} {q = q}
+      prefix c⊑ c-shape comp
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR) =
     ⊑cast⊑idᵀ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions (targetTailChanges inner)
+        c-shape)
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent type-coherence p)
+        refl
+        (transportShapeCoherent type-coherence q)
+        comp)
     where
     indexed = rightCatchupIndexedResult catchup
     inner = weakIndexedResult indexed
+    type-coherence = weakIndexedTypeCoherence indexed
 
     c″⊑ =
       apply-fixed-widens-typing
@@ -751,6 +700,7 @@ private
       {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
     StoreImpPrefix ρ₀ ρ⁺ →
     RevealConversion μ Δᴿ (rightStoreⁱ ρ₀) β X (C.id B) B B →
+    p [ β ↦ X ]ᴿ q →
     (inner-world :
       WorldCoherentRightValueCatchupIndexedResult
         {V = V} {M′ = M′} {ρ = ρ⁺} p) →
@@ -767,45 +717,53 @@ private
        ⦂ applyTys (sourceChanges inner) A
          ⊑ applyTys (targetTailChanges inner) B
        ∶ transportType inner q)
-  reveal-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
-      prefix c↑
+  reveal-framed-relation {Δᴿ = Δᴿ} {B = B} {X = X} {β = β} {q = q}
+      prefix c↑ replacement
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR)
-      with apply-reveal-conversions
+      with apply-reveal-conversions-exact
         {χs = keep ∷ targetTailChanges
           (weakIndexedResult (rightCatchupIndexedResult catchup))}
         (weaken-reveal-conversion
           (rightStoreⁱ-prefix-inclusion prefix) c↑)
-  reveal-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
-      prefix c↑
+  reveal-framed-relation {Δᴿ = Δᴿ} {B = B} {X = X} {β = β} {q = q}
+      prefix c↑ replacement
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR)
-      | μ″ , β″ , X″ , c″↑ =
+      | μ″ , c″↑ =
     ⊑conv↑ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replacement)
     where
     indexed = rightCatchupIndexedResult catchup
     inner = weakIndexedResult indexed
 
     final-conversion :
       RevealConversion μ″ (resultRightCtx inner)
-        (rightStoreⁱ (resultStore inner)) β″ X″
+        (rightStoreⁱ (resultStore inner))
+        (applyTyVars (targetTailChanges inner) β)
+        (applyTys (targetTailChanges inner) X)
         (applyCoercions (targetTailChanges inner) (C.id B))
         (applyTys (targetTailChanges inner) B)
         (applyTys (targetTailChanges inner) B)
     final-conversion =
       subst
         (λ Δ → RevealConversion μ″ Δ
-          (rightStoreⁱ (resultStore inner)) β″ X″
+          (rightStoreⁱ (resultStore inner))
+          (applyTyVars (targetTailChanges inner) β)
+          (applyTys (targetTailChanges inner) X)
           (applyCoercions (targetTailChanges inner) (C.id B))
           (applyTys (targetTailChanges inner) B)
           (applyTys (targetTailChanges inner) B))
         (sym (targetCtxResult inner))
         (subst
           (λ Σ → RevealConversion μ″
-            (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ β″ X″
+            (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ
+            (applyTyVars (targetTailChanges inner) β)
+            (applyTys (targetTailChanges inner) X)
             (applyCoercions (targetTailChanges inner) (C.id B))
             (applyTys (targetTailChanges inner) B)
             (applyTys (targetTailChanges inner) B))
@@ -819,6 +777,7 @@ private
     StoreImpPrefix ρ₀ ρ⁺ →
     ConcealConversion μ Δᴿ (rightStoreⁱ ρ₀) β X
       (C.id B) B B →
+    q [ β ↦ X ]ᴿ p →
     (inner-world :
       WorldCoherentRightValueCatchupIndexedResult
         {V = V} {M′ = M′} {ρ = ρ⁺} p) →
@@ -835,45 +794,53 @@ private
        ⦂ applyTys (sourceChanges inner) A
          ⊑ applyTys (targetTailChanges inner) B
        ∶ transportType inner q)
-  conceal-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
-      prefix c↓
+  conceal-framed-relation {Δᴿ = Δᴿ} {B = B} {X = X} {β = β} {q = q}
+      prefix c↓ replacement
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR)
-      with apply-conceal-conversions
+      with apply-conceal-conversions-exact
         {χs = keep ∷ targetTailChanges
           (weakIndexedResult (rightCatchupIndexedResult catchup))}
         (weaken-conceal-conversion
           (rightStoreⁱ-prefix-inclusion prefix) c↓)
-  conceal-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
-      prefix c↓
+  conceal-framed-relation {Δᴿ = Δᴿ} {B = B} {X = X} {β = β} {q = q}
+      prefix c↓ replacement
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR)
-      | μ″ , β″ , X″ , c″↓ =
+      | μ″ , c″↓ =
     ⊑conv↓ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replacement)
     where
     indexed = rightCatchupIndexedResult catchup
     inner = weakIndexedResult indexed
 
     final-conversion :
       ConcealConversion μ″ (resultRightCtx inner)
-        (rightStoreⁱ (resultStore inner)) β″ X″
+        (rightStoreⁱ (resultStore inner))
+        (applyTyVars (targetTailChanges inner) β)
+        (applyTys (targetTailChanges inner) X)
         (applyCoercions (targetTailChanges inner) (C.id B))
         (applyTys (targetTailChanges inner) B)
         (applyTys (targetTailChanges inner) B)
     final-conversion =
       subst
         (λ Δ → ConcealConversion μ″ Δ
-          (rightStoreⁱ (resultStore inner)) β″ X″
+          (rightStoreⁱ (resultStore inner))
+          (applyTyVars (targetTailChanges inner) β)
+          (applyTys (targetTailChanges inner) X)
           (applyCoercions (targetTailChanges inner) (C.id B))
           (applyTys (targetTailChanges inner) B)
           (applyTys (targetTailChanges inner) B))
         (sym (targetCtxResult inner))
         (subst
           (λ Σ → ConcealConversion μ″
-            (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ β″ X″
+            (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ
+            (applyTyVars (targetTailChanges inner) β)
+            (applyTys (targetTailChanges inner) X)
             (applyCoercions (targetTailChanges inner) (C.id B))
             (applyTys (targetTailChanges inner) B)
             (applyTys (targetTailChanges inner) B))
@@ -884,7 +851,8 @@ rightTargetNarrowIdentityRoot :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {A B : Ty} {μ : ModeEnv}
-    {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+    {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+    {s : ImprecisionShape} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
@@ -896,6 +864,8 @@ rightTargetNarrowIdentityRoot :
   CastMode μ →
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ id B ∶ B ⊒ B →
+  CastShape.narrowing CastShape.⊢ᶜ id B ⦂ s →
+  ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
@@ -904,29 +874,30 @@ rightTargetNarrowIdentityRoot :
     {V = V} {M′ = M′ ⟨ id B ⟩} {ρ = ρ⁺} q
 rightTargetNarrowIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV mode seal★
-    c⊒@(C.cast-id _ _ , NW.cross (NW.id-＇ α))
+    c⊒@(C.cast-id _ _ , NW.cross (NW.id-＇ α)) c-shape comp
     V⊑M′ inner-world =
   target-identity-resume-core (＇ α) inner-world
-    (narrow-framed-relation prefix mode seal★ c⊒ inner-world)
+    (narrow-framed-relation prefix mode seal★ c⊒ c-shape comp inner-world)
 rightTargetNarrowIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV mode seal★
-    c⊒@(C.cast-id _ _ , NW.cross (NW.id-‵ ι))
+    c⊒@(C.cast-id _ _ , NW.cross (NW.id-‵ ι)) c-shape comp
     V⊑M′ inner-world =
   target-identity-resume-core (‵ ι) inner-world
-    (narrow-framed-relation prefix mode seal★ c⊒ inner-world)
+    (narrow-framed-relation prefix mode seal★ c⊒ c-shape comp inner-world)
 rightTargetNarrowIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV mode seal★
-    c⊒@(C.cast-id _ _ , NW.id★)
+    c⊒@(C.cast-id _ _ , NW.id★) c-shape comp
     V⊑M′ inner-world =
   target-identity-resume-core ★ inner-world
-    (narrow-framed-relation prefix mode seal★ c⊒ inner-world)
+    (narrow-framed-relation prefix mode seal★ c⊒ c-shape comp inner-world)
 
 
 rightTargetWidenIdentityRoot :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {A B : Ty} {μ : ModeEnv}
-    {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+    {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+    {s : ImprecisionShape} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
@@ -938,6 +909,8 @@ rightTargetWidenIdentityRoot :
   CastMode μ →
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ id B ∶ B ⊑ B →
+  CastShape.widening CastShape.⊢ᶜ id B ⦂ s →
+  ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
@@ -946,29 +919,30 @@ rightTargetWidenIdentityRoot :
     {V = V} {M′ = M′ ⟨ id B ⟩} {ρ = ρ⁺} q
 rightTargetWidenIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV mode seal★
-    c⊑@(C.cast-id _ _ , NW.cross (NW.id-＇ α))
+    c⊑@(C.cast-id _ _ , NW.cross (NW.id-＇ α)) c-shape comp
     V⊑M′ inner-world =
   target-identity-resume-core (＇ α) inner-world
-    (widen-framed-relation prefix mode seal★ c⊑ inner-world)
+    (widen-framed-relation prefix mode seal★ c⊑ c-shape comp inner-world)
 rightTargetWidenIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV mode seal★
-    c⊑@(C.cast-id _ _ , NW.cross (NW.id-‵ ι))
+    c⊑@(C.cast-id _ _ , NW.cross (NW.id-‵ ι)) c-shape comp
     V⊑M′ inner-world =
   target-identity-resume-core (‵ ι) inner-world
-    (widen-framed-relation prefix mode seal★ c⊑ inner-world)
+    (widen-framed-relation prefix mode seal★ c⊑ c-shape comp inner-world)
 rightTargetWidenIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV mode seal★
-    c⊑@(C.cast-id _ _ , NW.id★)
+    c⊑@(C.cast-id _ _ , NW.id★) c-shape comp
     V⊑M′ inner-world =
   target-identity-resume-core ★ inner-world
-    (widen-framed-relation prefix mode seal★ c⊑ inner-world)
+    (widen-framed-relation prefix mode seal★ c⊑ c-shape comp inner-world)
 
 
 rightTargetIdWidenIdentityRoot :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {A B : Ty}
-    {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+    {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+    {s : ImprecisionShape} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
@@ -980,6 +954,8 @@ rightTargetIdWidenIdentityRoot :
   SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) →
   id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ id B ∶ B ⊑ B →
+  CastShape.widening CastShape.⊢ᶜ id B ⦂ s →
+  ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
@@ -988,22 +964,22 @@ rightTargetIdWidenIdentityRoot :
     {V = V} {M′ = M′ ⟨ id B ⟩} {ρ = ρ⁺} q
 rightTargetIdWidenIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV seal★
-    c⊑@(C.cast-id _ _ , NW.cross (NW.id-＇ α))
+    c⊑@(C.cast-id _ _ , NW.cross (NW.id-＇ α)) c-shape comp
     V⊑M′ inner-world =
   target-identity-resume-core (＇ α) inner-world
-    (id-widen-framed-relation prefix c⊑ inner-world)
+    (id-widen-framed-relation prefix c⊑ c-shape comp inner-world)
 rightTargetIdWidenIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV seal★
-    c⊑@(C.cast-id _ _ , NW.cross (NW.id-‵ ι))
+    c⊑@(C.cast-id _ _ , NW.cross (NW.id-‵ ι)) c-shape comp
     V⊑M′ inner-world =
   target-identity-resume-core (‵ ι) inner-world
-    (id-widen-framed-relation prefix c⊑ inner-world)
+    (id-widen-framed-relation prefix c⊑ c-shape comp inner-world)
 rightTargetIdWidenIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV seal★
-    c⊑@(C.cast-id _ _ , NW.id★)
+    c⊑@(C.cast-id _ _ , NW.id★) c-shape comp
     V⊑M′ inner-world =
   target-identity-resume-core ★ inner-world
-    (id-widen-framed-relation prefix c⊑ inner-world)
+    (id-widen-framed-relation prefix c⊑ c-shape comp inner-world)
 
 
 rightTargetRevealIdentityRoot :
@@ -1021,6 +997,7 @@ rightTargetRevealIdentityRoot :
   No• V →
   RevealConversion μ Δᴿ (rightStoreⁱ ρ₀)
     β X (id B) B B →
+  p [ β ↦ X ]ᴿ q →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
@@ -1029,22 +1006,22 @@ rightTargetRevealIdentityRoot :
     {V = V} {M′ = M′ ⟨ id B ⟩} {ρ = ρ⁺} q
 rightTargetRevealIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV
-    c↑@(Conv.reveal-id-var {Y = Y} hY ok)
+    c↑@(Conv.reveal-id-var {Y = Y} hY ok) replacement
     V⊑M′ inner-world =
   target-identity-resume-core (＇ Y) inner-world
-    (reveal-framed-relation prefix c↑ inner-world)
+    (reveal-framed-relation prefix c↑ replacement inner-world)
 rightTargetRevealIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV
-    c↑@(Conv.reveal-id-base {ι = ι})
+    c↑@(Conv.reveal-id-base {ι = ι}) replacement
     V⊑M′ inner-world =
   target-identity-resume-core (‵ ι) inner-world
-    (reveal-framed-relation prefix c↑ inner-world)
+    (reveal-framed-relation prefix c↑ replacement inner-world)
 rightTargetRevealIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV
-    c↑@Conv.reveal-id-★
+    c↑@Conv.reveal-id-★ replacement
     V⊑M′ inner-world =
   target-identity-resume-core ★ inner-world
-    (reveal-framed-relation prefix c↑ inner-world)
+    (reveal-framed-relation prefix c↑ replacement inner-world)
 
 
 rightTargetConcealIdentityRoot :
@@ -1062,6 +1039,7 @@ rightTargetConcealIdentityRoot :
   No• V →
   ConcealConversion μ Δᴿ (rightStoreⁱ ρ₀)
     β X (id B) B B →
+  q [ β ↦ X ]ᴿ p →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
@@ -1070,19 +1048,19 @@ rightTargetConcealIdentityRoot :
     {V = V} {M′ = M′ ⟨ id B ⟩} {ρ = ρ⁺} q
 rightTargetConcealIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV
-    c↓@(Conv.conceal-id-var {Y = Y} hY ok)
+    c↓@(Conv.conceal-id-var {Y = Y} hY ok) replacement
     V⊑M′ inner-world =
   target-identity-resume-core (＇ Y) inner-world
-    (conceal-framed-relation prefix c↓ inner-world)
+    (conceal-framed-relation prefix c↓ replacement inner-world)
 rightTargetConcealIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV
-    c↓@(Conv.conceal-id-base {ι = ι})
+    c↓@(Conv.conceal-id-base {ι = ι}) replacement
     V⊑M′ inner-world =
   target-identity-resume-core (‵ ι) inner-world
-    (conceal-framed-relation prefix c↓ inner-world)
+    (conceal-framed-relation prefix c↓ replacement inner-world)
 rightTargetConcealIdentityRoot
     prefix coherent exclusive unique wfR okId vV noV
-    c↓@Conv.conceal-id-★
+    c↓@Conv.conceal-id-★ replacement
     V⊑M′ inner-world =
   target-identity-resume-core ★ inner-world
-    (conceal-framed-relation prefix c↓ inner-world)
+    (conceal-framed-relation prefix c↓ replacement inner-world)

@@ -7,6 +7,7 @@ module
 --     accessibility-indexed target pending-cast worker.
 --   * Covers only unseal, instantiation, and the two fused eager plans; the
 --     worker itself owns empty, inert, identity, untag, and sequence plans.
+--   * Reads exact QTI framing evidence from the residual plan itself.
 --   * Keeps the typed hereditary tail, recursion accessibility, and existing
 --     contextual catch-up conclusion explicit.
 --   * Contains no implementation, result/view/outcome type, postulate, hole,
@@ -14,18 +15,13 @@ module
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Coercions using
-  (Coercion; id-onlyᵈ; _∣_∣_⊢_∶_=⇒_)
-open import Conversion using
-  (ConcealConversion; RevealConversion)
+  (Coercion; _∣_∣_⊢_∶_=⇒_)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (_<_)
-open import Data.Product using (_×_; ∃-syntax; Σ-syntax)
-open import Data.Sum using (_⊎_)
+open import Data.Product using (_×_; Σ-syntax)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import Induction.WellFounded using (Acc)
-open import NarrowWiden using
-  (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
   (StoreImp; rightStoreⁱ)
@@ -33,7 +29,6 @@ open import NuTerms using
   (No•; RuntimeOK; Term; Value)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
-open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
@@ -93,27 +88,6 @@ WorldCoherentRightTargetPendingCastsResidualAccᵀ =
   Acc _<_ (targetPendingAdministrationRank vW (c ∷ cs)) →
   (plan : TargetAdministrationPlan ρ A c⊢ p r) →
   ResidualTargetAdministrationPlan plan →
-  ((∃[ μ′ ] ∃[ β ] ∃[ X′ ]
-      RevealConversion μ′ Δᴿ (rightStoreⁱ ρ)
-        β X′ c B C)
-   ⊎
-   (∃[ μ′ ] ∃[ β ] ∃[ X′ ]
-      ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ)
-        β X′ c B C)
-   ⊎
-   (∃[ μ′ ]
-      CastMode μ′ ×
-      SealModeStore★ μ′ (rightStoreⁱ ρ) ×
-      (μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c ∶ B ⊒ C))
-   ⊎
-   (∃[ μ′ ]
-      CastMode μ′ ×
-      SealModeStore★ μ′ (rightStoreⁱ ρ) ×
-      (μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c ∶ B ⊑ C))
-   ⊎
-   (SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ) ×
-    (id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
-      ⊢ c ∶ B ⊑ C))) →
   TargetAdministrationSpine ρ A r q cs →
   WorldCoherent ρ →
   SourceNameExclusive Φ →

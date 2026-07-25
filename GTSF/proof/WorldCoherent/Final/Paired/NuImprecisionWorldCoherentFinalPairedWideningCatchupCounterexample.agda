@@ -12,10 +12,12 @@ module
 open import Data.Empty using (⊥)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
+open import Data.Product using (_,_)
 
 import Coercions as C
 open import Coercions using (Inert; _!)
 open import Imprecision using (_ˣ⊑ˣ_)
+open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import PairedWideningCompatibility using
   ( PairedWideningCompatible
   ; compatible-source-inert
@@ -30,11 +32,18 @@ private
 
 
 active-unseal-inert-tag-incompatible :
+  ∀ {p :
+      ((zero ˣ⊑ˣ zero) ∷ [])
+        ∣ suc zero ⊢ ＇ zero ⊑ ＇ zero ⊣ suc zero}
+    {q :
+      ((zero ˣ⊑ˣ zero) ∷ [])
+        ∣ suc zero ⊢ ★ ⊑ ★ ⊣ suc zero}
+    {c-shape c′-shape} →
   PairedWideningCompatible
     ((zero ˣ⊑ˣ zero) ∷ [])
     (suc zero) (suc zero)
     (C.unseal zero ★) ((＇ zero) !)
-    ★ (＇ zero) →
+    p q c-shape c′-shape →
   ⊥
 active-unseal-inert-tag-incompatible
     (compatible-source-inert ())
@@ -42,4 +51,5 @@ active-unseal-inert-tag-incompatible
     (compatible-target-inert-bridge bridge)
     with bridge target-inert
 active-unseal-inert-tag-incompatible
-    (compatible-target-inert-bridge bridge) | ()
+    (compatible-target-inert-bridge bridge)
+    | () , source-triangle , target-triangle

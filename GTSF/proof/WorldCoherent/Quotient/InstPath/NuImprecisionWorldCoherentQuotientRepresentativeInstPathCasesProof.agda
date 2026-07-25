@@ -34,23 +34,35 @@ world-coherent-quotient-representative-inst-path-cases-proofᵀ :
 world-coherent-quotient-representative-inst-path-cases-proofᵀ
     identity source-step target-step
     path-refl path-refl
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
-    inert-d′ inert-u′ down widening =
-  identity coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square =
+  identity source-normal target-normal
+    coherent exclusive wfL okN vVd noVd vV′ noV′
+    inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square
 world-coherent-quotient-representative-inst-path-cases-proofᵀ
     identity source-step target-step
     path-refl (path-step step rest)
-    coherent exclusive wfL okN vVd noVd vV′ noV′
-    inert-d′ inert-u′ down widening =
-  target-step {step = step} {rest = rest}
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square =
+  target-step {step = step} {rest = rest}
+    source-normal target-normal
+    coherent exclusive wfL okN vVd noVd vV′ noV′
+    inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square
 world-coherent-quotient-representative-inst-path-cases-proofᵀ
     identity source-step target-step
     (path-step step rest) targetPath
-    coherent exclusive wfL okN vVd noVd vV′ noV′
-    inert-d′ inert-u′ down widening =
-  source-step {step = step} {rest = rest} {targetPath = targetPath}
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square =
+  source-step {step = step} {rest = rest} {targetPath = targetPath}
+    source-normal target-normal
+    coherent exclusive wfL okN vVd noVd vV′ noV′
+    inert-d′ inert-u′ down widening
+    u-shape u′-shape up-square

@@ -27,8 +27,10 @@ world-coherent-right-target-pending-nu-allocation-source-only-from-paired-lambda
   WorldCoherentRightTargetWidenInstantiationPairedLambdaAllocationContextᵀ →
   WorldCoherentRightTargetPendingNuAllocationSourceOnlyFromPairedLambdaEmptyAccᵀ
 world-coherent-right-target-pending-nu-allocation-source-only-from-paired-lambda-empty-acc-proofᵀ
-    allocation vW′ access mode seal★ cast inert
+    allocation vW′ access mode seal★ cast inst-shape creation-square
+    inert
     coherent exclusive unique wfR runtime
     vW noW noW′ liftρ liftγ body =
   allocation prefix-reflⁱ coherent exclusive unique wfR runtime
     vW noW vW′ noW′ mode seal★ cast inert liftρ liftγ body
+    inst-shape creation-square

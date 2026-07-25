@@ -78,11 +78,19 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetTail
   ; targetTailChanges
   ; transportAllBody
+  ; transportAllBodyPairedReplacementCoherent
   ; transportAllCoherent
   ; transportArrowCoherent
+  ; transportLeftReplacementCoherent
+  ; transportPairedReplacementCoherent
+  ; transportRightBodyRightReplacementCoherent
+  ; transportRightBodyShapeCoherent
+  ; transportRightReplacementCoherent
+  ; transportShapeCoherent
   ; transportNo•Terms
   ; transportRightBody
   ; transportSourceNu
+  ; transportSourceNuBodyLeftReplacementCoherent
   ; transportType
   ; weak-indexed-result
   ; weak-step-transport
@@ -216,6 +224,14 @@ private
       weak-step-type-coherence
         (transportArrowCoherent coherence)
         (transportAllCoherent coherence)
+        (transportShapeCoherent coherence)
+        (transportRightBodyShapeCoherent coherence)
+        (transportLeftReplacementCoherent coherence)
+        (transportRightReplacementCoherent coherence)
+        (transportPairedReplacementCoherent coherence)
+        (transportAllBodyPairedReplacementCoherent coherence)
+        (transportSourceNuBodyLeftReplacementCoherent coherence)
+        (transportRightBodyRightReplacementCoherent coherence)
 
     framed :
       WeakOneStepResult ρ
@@ -299,6 +315,14 @@ private
       weak-step-type-coherence
         (transportArrowCoherent coherence)
         (transportAllCoherent coherence)
+        (transportShapeCoherent coherence)
+        (transportRightBodyShapeCoherent coherence)
+        (transportLeftReplacementCoherent coherence)
+        (transportRightReplacementCoherent coherence)
+        (transportPairedReplacementCoherent coherence)
+        (transportAllBodyPairedReplacementCoherent coherence)
+        (transportSourceNuBodyLeftReplacementCoherent coherence)
+        (transportRightBodyRightReplacementCoherent coherence)
 
     framed :
       WeakOneStepResult ρ

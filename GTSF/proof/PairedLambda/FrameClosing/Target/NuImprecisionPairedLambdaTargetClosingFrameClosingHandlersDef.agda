@@ -19,6 +19,7 @@ module
 --   * Contains no interpreter, implementation, postulate, or permissive option.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 import Coercions as C
 open import Coercions using
   ( Coercion
@@ -48,6 +49,8 @@ open import ImprecisionWf using
   ; ν
   )
 open import Imprecision using (NonVar; ⇑ᴿᵢ)
+open import ImprecisionComposition using
+  (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_)
 import NarrowWiden as NW
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
@@ -216,7 +219,8 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
           {τ σ : Renameᵗ}
           {W W′ M M′ : Term}
           {A′ B C D F : Ty}
-          {s : Coercion} {μ : ModeEnv} {r} →
+          {s : Coercion} {μ : ModeEnv} {r}
+          {body-shape : ImprecisionShape} →
       StoreImpPrefix ρ₀ ρ⁺ →
       CastMode μ →
       SealModeStore★ μ (rightStoreⁱ ρ₀) →
@@ -231,8 +235,10 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
       Inert s →
       ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
         ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
-        ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
+      ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
       (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ) →
+      widening ⊢ᶜ inst B s ⦂ νˢ body-shape →
+      ⌊ ∀ⁱ r ⌋ ； νˢ body-shape ≋ ⌊ f ⌋ →
       (assm :
         ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
           rename-assm²ᵢ τ σ a ∈ Φ) →
@@ -435,7 +441,8 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
           {W W′ : Term} {B C B′ C′ : Ty}
           {q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ B′ ⊣ Δᴿ}
           {r : Φ ∣ Δᴸ ⊢ `∀ C ⊑ C′ ⊣ Δᴿ}
-          {c c′ : Coercion} {μ μ′ : ModeEnv} →
+          {c c′ : Coercion} {c-shape c′-shape}
+          {μ μ′ : ModeEnv} →
       PairedLambdaTargetClosingFrameClosingMotive ρ
         W W′ B B′ q →
       PairedLambdaTargetClosingFrameView ρ
@@ -449,7 +456,7 @@ record PairedLambdaTargetClosingFrameClosingHandlers : Set₁ where
       SealModeStore★ μ′ (rightStoreⁱ ρ) →
       μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ B′ ⊑ C′ →
       PairedWideningCompatible Φ Δᴸ Δᴿ
-        (C.`∀ c) c′ (`∀ C) B′ →
+        (C.`∀ c) c′ q r c-shape c′-shape →
       PairedLambdaTargetClosingFrameClosingMotive ρ
         (W ⟨ C.`∀ c ⟩) (W′ ⟨ c′ ⟩) C C′ r
 

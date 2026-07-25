@@ -14,6 +14,8 @@ module proof.Catchup.Core.NuImprecisionCatchupScratch where
 --     permanent module once its statement and proof are stable.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; narrowing; widening)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
@@ -23,7 +25,12 @@ open import Relation.Binary.PropositionalEquality using
   (cong; subst; sym; trans)
 import Relation.Binary.HeterogeneousEquality as HE
 
-open import ImprecisionWf using (_∣_⊢_⊑_⊣_; ∀ⁱ_)
+open import ImprecisionWf using
+  (_∣_⊢_⊑_⊣_; _ˣ⊑ˣ_; ∀ⁱ_; ⇑ᵢ)
+open import ImprecisionComposition using
+  (⌊_⌋; _；_≋_; _；⌊_⌋≋ᵖ_；_)
+open import ConversionIndexCompatibility using
+  (_[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import Coercions using
   ( Inert
@@ -100,7 +107,8 @@ open import TermTyping using
   (CastMode; SealModeStore★; _∣_∣_⊢_⦂_)
 open import Types using (★; `∀; ⇑ᵗ; ⟰ᵗ)
 open import NuStore using (StoreWf)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (∀ᵢᶜ)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (∀ᵢᶜ; ⊑-lift∀ᵢ)
 open import proof.Core.Properties.CoercionProperties using (ModeRename)
 open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
   ( weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
@@ -163,9 +171,18 @@ open import proof.DGG.Core.NuPreservation using (runtime-ν; runtime-⟨⟩)
 open import proof.DGG.Core.NuProgress using (runtime-value-no•)
 open import proof.Core.Properties.TypePreservation using
   (seal★-weaken; term-weaken)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  ; shape-target-lift-rightᵢ
+  )
+open import
+  proof.OneStep.NuImprecisionWeakOneStepReplacementTransport using
+  (weak-one-step-transport-quotient-boundary-square)
 
 left-catchup-indexed-prefix-down-upᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′}
+  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′
+      sD sD′ sU sU′}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
@@ -177,8 +194,14 @@ left-catchup-indexed-prefix-down-upᵀ :
   Inert d′ →
   Inert u′ →
   id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ d ∶ C ⊒ D →
+  narrowing ⊢ᶜ d ⦂ sD →
   id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ d′ ∶ C′ ⊒ D′ →
+  narrowing ⊢ᶜ d′ ⦂ sD′ →
+  sD ；⌊ pC ⌋≋ᵖ qD ； sD′ →
   QuotientWideningPair Δᴸ Δᴿ ρ₀ u u′ D D′ A A′ →
+  widening ⊢ᶜ u ⦂ sU →
+  widening ⊢ᶜ u′ ⦂ sU′ →
+  sU ；⌊ pA ⌋≋ᵖ qD ； sU′ →
   (catchup : LeftCatchupIndexedResult
     {N = M} {V′ = M′} {ρ = ρ⁺} pC) →
   LeftCatchupIndexedResult
@@ -187,34 +210,45 @@ left-catchup-indexed-prefix-down-upᵀ :
     {ρ = ρ⁺} pA
 left-catchup-indexed-prefix-down-upᵀ
     prefix okM vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
         silent@(left-silent-invariant refl refl) final))
     with left-catchup-indexed-final-quotientᵀ
       vM′ noM′ inert-d′ inert-u′
       (weak-one-step-transport-id-downᵀ
-        prefix indexed silent d⊒ d′⊒)
+        prefix indexed silent
+        d⊒ d-shape d′⊒ d′-shape down-square)
       (weak-one-step-transport-quotient-widening-pairᵀ
-        prefix (weakIndexedResult indexed) silent widening)
+        prefix (weakIndexedResult indexed) silent widening-pair)
       (transportType (weakIndexedResult indexed) _)
+      (cast-shape-applyCoercions
+        (sourceChanges (weakIndexedResult indexed)) u-shape)
+      u′-shape
+      (weak-one-step-transport-quotient-boundary-square
+        (weakIndexedResult indexed)
+        (weakIndexedTypeCoherence indexed) up-square)
       (sourceIsValueOrBlame invariant)
 left-catchup-indexed-prefix-down-upᵀ
     prefix okM vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
         silent@(left-silent-invariant refl refl) final))
-    | inj₁ second =
+    | inj₁ (second , lineage , refl , refl , refl , HE.refl) =
   left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed-prefix-down-up-from-finalᵀ
-      prefix widening catchup
+      prefix widening-pair u-shape u′-shape up-square catchup
       (weak-one-step-transport-id-downᵀ
-        prefix indexed silent d⊒ d′⊒))
+        prefix indexed silent
+        d⊒ d-shape d′⊒ d′-shape down-square))
     second
 left-catchup-indexed-prefix-down-upᵀ
     prefix okM vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
         silent@(left-silent-invariant refl refl) final))
@@ -222,7 +256,8 @@ left-catchup-indexed-prefix-down-upᵀ
   {!!}
 left-catchup-indexed-prefix-down-upᵀ
     prefix okM vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
         silent@(left-silent-invariant refl refl) final))
@@ -230,7 +265,8 @@ left-catchup-indexed-prefix-down-upᵀ
   {!!}
 
 left-catchup-indexed-prefix-gen-down-upᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′}
+  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′
+      sD sD′ sU sU′}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
@@ -243,9 +279,15 @@ left-catchup-indexed-prefix-gen-down-upᵀ :
   Inert u′ →
   genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ₀
     ⊢ d ∶ C ⊒ D →
+  narrowing ⊢ᶜ d ⦂ sD →
   genᵈ tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ d′ ∶ C′ ⊒ D′ →
+  narrowing ⊢ᶜ d′ ⦂ sD′ →
+  sD ；⌊ pC ⌋≋ᵖ qD ； sD′ →
   QuotientWideningPair Δᴸ Δᴿ ρ₀ u u′ D D′ A A′ →
+  widening ⊢ᶜ u ⦂ sU →
+  widening ⊢ᶜ u′ ⦂ sU′ →
+  sU ；⌊ pA ⌋≋ᵖ qD ； sU′ →
   (catchup : LeftCatchupIndexedResult
     {N = M} {V′ = M′} {ρ = ρ⁺} pC) →
   LeftCatchupIndexedResult
@@ -254,34 +296,45 @@ left-catchup-indexed-prefix-gen-down-upᵀ :
     {ρ = ρ⁺} pA
 left-catchup-indexed-prefix-gen-down-upᵀ
     prefix okM vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
         silent@(left-silent-invariant refl refl) final))
     with left-catchup-indexed-final-quotientᵀ
       vM′ noM′ inert-d′ inert-u′
       (weak-one-step-transport-gen-downᵀ
-        prefix indexed silent d⊒ d′⊒)
+        prefix indexed silent
+        d⊒ d-shape d′⊒ d′-shape down-square)
       (weak-one-step-transport-quotient-widening-pairᵀ
-        prefix (weakIndexedResult indexed) silent widening)
+        prefix (weakIndexedResult indexed) silent widening-pair)
       (transportType (weakIndexedResult indexed) _)
+      (cast-shape-applyCoercions
+        (sourceChanges (weakIndexedResult indexed)) u-shape)
+      u′-shape
+      (weak-one-step-transport-quotient-boundary-square
+        (weakIndexedResult indexed)
+        (weakIndexedTypeCoherence indexed) up-square)
       (sourceIsValueOrBlame invariant)
 left-catchup-indexed-prefix-gen-down-upᵀ
     prefix okM vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
         silent@(left-silent-invariant refl refl) final))
-    | inj₁ second =
+    | inj₁ (second , lineage , refl , refl , refl , HE.refl) =
   left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed-prefix-down-up-from-finalᵀ
-      prefix widening catchup
+      prefix widening-pair u-shape u′-shape up-square catchup
       (weak-one-step-transport-gen-downᵀ
-        prefix indexed silent d⊒ d′⊒))
+        prefix indexed silent
+        d⊒ d-shape d′⊒ d′-shape down-square))
     second
 left-catchup-indexed-prefix-gen-down-upᵀ
     prefix okM vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
         silent@(left-silent-invariant refl refl) final))
@@ -289,7 +342,8 @@ left-catchup-indexed-prefix-gen-down-upᵀ
   {!!}
 left-catchup-indexed-prefix-gen-down-upᵀ
     prefix okM vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square
     catchup@(left-indexed-catchup indexed
       invariant@(left-catchup-invariant
         silent@(left-silent-invariant refl refl) final))
@@ -315,10 +369,13 @@ left-catchup-indexed-prefixᵀ
     prefix okN (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
     (no•-⟨⟩ (no•-⟨⟩ noM′))
     (up⊑upᵀ
-      (down⊑downᵀ d⊒ d′⊒ M⊑M′ qD) widening pA) =
+      (down⊑downᵀ d⊒ d-shape d′⊒ d′-shape M⊑M′ qD
+        down-square)
+      widening-pair pA u-shape u′-shape up-square) =
   left-catchup-indexed-prefix-down-upᵀ
     prefix okN vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening inner
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square inner
   where
   inner = left-catchup-indexed-prefixᵀ prefix
     (runtime-⟨⟩ (runtime-⟨⟩ okN)) vM′ noM′ M⊑M′
@@ -326,11 +383,13 @@ left-catchup-indexed-prefixᵀ
     prefix okN (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
     (no•-⟨⟩ (no•-⟨⟩ noM′))
     (up⊑upᵀ
-      (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ qD)
-      widening pA) =
+      (gen-down⊑gen-downᵀ
+        d⊒ d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening-pair pA u-shape u′-shape up-square) =
   left-catchup-indexed-prefix-gen-down-upᵀ
     prefix okN vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening inner
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square inner
   where
   inner = left-catchup-indexed-prefixᵀ prefix
     (runtime-⟨⟩ (runtime-⟨⟩ okN)) vM′ noM′ M⊑M′
@@ -342,37 +401,37 @@ left-catchup-indexed-prefixᵀ
     okN vV′ noV′ inner
 left-catchup-indexed-prefixᵀ
     prefix okN (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
-    (⊑cast⊒ᵀ mode seal★ c⊒ rel q) =
+    (⊑cast⊒ᵀ mode seal★ c⊒ rel q c-shape comp) =
   left-catchup-indexed-prefix-target-narrow-castᵀ
-    prefix mode seal★ c⊒
+    prefix mode seal★ c⊒ c-shape comp
     (left-catchup-indexed-prefixᵀ
       prefix okN vV′ noV′ rel)
 left-catchup-indexed-prefixᵀ
     prefix okN (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
-    (⊑cast⊑ᵀ mode seal★ c⊑ rel q) =
+    (⊑cast⊑ᵀ mode seal★ c⊑ rel q c-shape comp) =
   left-catchup-indexed-prefix-target-widen-castᵀ
-    prefix mode seal★ c⊑
+    prefix mode seal★ c⊑ c-shape comp
     (left-catchup-indexed-prefixᵀ
       prefix okN vV′ noV′ rel)
 left-catchup-indexed-prefixᵀ
     prefix okN (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
-    (⊑cast⊑idᵀ seal★ c⊑ rel q) =
+    (⊑cast⊑idᵀ seal★ c⊑ rel q c-shape comp) =
   left-catchup-indexed-prefix-target-widen-id-castᵀ
-    prefix seal★ c⊑
+    prefix seal★ c⊑ c-shape comp
     (left-catchup-indexed-prefixᵀ
       prefix okN vV′ noV′ rel)
 left-catchup-indexed-prefixᵀ
     prefix okN (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
-    (⊑conv↑ᵀ c↑ rel q) =
+    (⊑conv↑ᵀ c↑ rel q replace) =
   left-catchup-indexed-prefix-target-reveal-castᵀ
-    prefix c↑
+    prefix c↑ replace
     (left-catchup-indexed-prefixᵀ
       prefix okN vV′ noV′ rel)
 left-catchup-indexed-prefixᵀ
     prefix okN (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
-    (⊑conv↓ᵀ c↓ rel q) =
+    (⊑conv↓ᵀ c↓ rel q replace) =
   left-catchup-indexed-prefix-target-conceal-castᵀ
-    prefix c↓
+    prefix c↓ replace
     (left-catchup-indexed-prefixᵀ
       prefix okN vV′ noV′ rel)
 left-catchup-indexed-prefixᵀ
@@ -412,25 +471,29 @@ left-catchup-indexed-prefixᵀ
     (⊑αᵀ vL′ noL′ h⇑A liftρ liftγ N⊑L′ r N⊢ L′•⊢)
 left-catchup-indexed-prefixᵀ
     prefix okN () noV′
-    (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑ liftρ liftγ N⊑N′)
+    (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑ liftρ liftγ
+      N⊑N′ paired-replace)
 left-catchup-indexed-prefixᵀ
     prefix okN vV′ noV′
-    rel@(ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑V′) =
+    rel@(ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑V′ replace) =
   {!!}
 left-catchup-indexed-prefixᵀ
     prefix okN () noV′
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC N⊑N′)
+    (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC N⊑N′ replace)
 left-catchup-indexed-prefixᵀ
     prefix okN () noV′
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ compat liftρ liftγ N⊑N′)
+      s⊑ s′⊑ compat liftρ liftγ N⊑N′
+      s-shape s′-shape source-comp target-comp)
 left-catchup-indexed-prefixᵀ
     prefix okN vV′ noV′
-    rel@(νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V′) =
+    rel@(νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V′
+      s-shape comp) =
   {!!}
 left-catchup-indexed-prefixᵀ
     prefix okN () noV′
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC N⊑N′)
+    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC N⊑N′
+      s-shape comp)
 left-catchup-indexed-prefixᵀ
     prefix okN vV′ noV′ rel@κ⊑κᵀ =
   left-catchup-indexed-prefix-valueᵀ
@@ -439,11 +502,11 @@ left-catchup-indexed-prefixᵀ
     prefix okN () noV′ (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
 left-catchup-indexed-prefixᵀ
     prefix okN vV′ noV′
-    rel@(cast⊒⊑ᵀ mode seal★ c⊒ N⊑V′ q) =
+    rel@(cast⊒⊑ᵀ mode seal★ c⊒ N⊑V′ q c-shape comp) =
   {!!}
 left-catchup-indexed-prefixᵀ
     prefix okN vV′ noV′
-    rel@(cast⊑⊑ᵀ mode seal★ c⊑ N⊑V′ q) =
+    rel@(cast⊑⊑ᵀ mode seal★ c⊑ N⊑V′ q c-shape comp) =
   {!!}
 left-catchup-indexed-prefixᵀ
     prefix okN vV′ noV′
@@ -451,11 +514,11 @@ left-catchup-indexed-prefixᵀ
   {!!}
 left-catchup-indexed-prefixᵀ
     prefix okN vV′ noV′
-    rel@(conv↑⊑ᵀ c↑ N⊑V′ q) =
+    rel@(conv↑⊑ᵀ c↑ N⊑V′ q replace) =
   {!!}
 left-catchup-indexed-prefixᵀ
     prefix okN vV′ noV′
-    rel@(conv↓⊑ᵀ c↓ N⊑V′ q) =
+    rel@(conv↓⊑ᵀ c↓ N⊑V′ q replace) =
   {!!}
 
 left-catchup-indexed-source-all-prefixᵀ :
@@ -531,6 +594,8 @@ weak-one-step-matched-ν↑-source-allᵀ :
   ∀ {Φ Δᴸ Δᴿ A A′ B B′ C C′ N V′ s s′ μ μ′}
     {q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+    {pA⇑ : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ A′ ⊣ suc Δᴿ}
     {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   StoreWf Δᴿ (rightStoreⁱ ρ) →
@@ -543,20 +608,27 @@ weak-one-step-matched-ν↑-source-allᵀ :
     zero (⇑ᵗ A′) s′ C′ (⇑ᵗ B′) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q →
+  q
+    [ zero ↦ ⇑ᵗ A
+    ⊑⟨ pA⇑ ⟩
+    ⇑ᵗ A′ ↤ zero ]ᴾ
+    ⊑-lift∀ᵢ pB →
   ν A′ V′ s′ —→[ bind A′ ] ((⇑ᵗᵐ V′) •) ⟨ s′ ⟩ →
   WeakOneStepIndexedOutcome
     {M = ν A N s}
     {N′ = ((⇑ᵗᵐ V′) •) ⟨ s′ ⟩}
     {A = B} {B = B′} {χ = bind A′} {ρ = ρ} pB
 weak-one-step-matched-ν↑-source-allᵀ
-    wfΣ′ okν s↑ s′↑ N⊑V′ (ν-step vV′ noV′) =
+    {pA = pA} {pA⇑ = pA⇑} {pB = pB}
+    wfΣ′ okν s↑ s′↑ N⊑V′ replace (ν-step vV′ noV′) =
   weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
-    wfΣ′ s↑ s′↑ _ _ vV′ noV′
+    wfΣ′ s↑ s′↑ pA pA⇑ pB replace vV′ noV′
     (left-catchup-indexed-allᵀ
       (runtime-ν okν) vV′ noV′ N⊑V′)
 
 weak-one-step-matched-νcast-source-allᵀ :
-  ∀ {Φ Δᴸ Δᴿ B B′ C C′ N V′ s s′ μ μ′}
+  ∀ {Φ Δᴸ Δᴿ B B′ C C′ N V′ s s′ μ μ′
+      s-shape s′-shape result-shape}
     {q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
     {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
@@ -574,8 +646,12 @@ weak-one-step-matched-νcast-source-allᵀ :
   instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  widening ⊢ᶜ s ⦂ s-shape →
+  widening ⊢ᶜ s′ ⦂ s′-shape →
+  s-shape ； ⌊ pB ⌋ ≋ result-shape →
+  ⌊ q ⌋ ； s′-shape ≋ result-shape →
   PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
-    s s′ (⇑ᵗ B) C′ →
+    s s′ q (⊑-lift∀ᵢ pB) s-shape s′-shape →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q →
   ν ★ V′ s′ —→[ bind ★ ] ((⇑ᵗᵐ V′) •) ⟨ s′ ⟩ →
@@ -584,10 +660,13 @@ weak-one-step-matched-νcast-source-allᵀ :
     {N′ = ((⇑ᵗᵐ V′) •) ⟨ s′ ⟩}
     {A = B} {B = B′} {χ = bind ★} {ρ = ρ} pB
 weak-one-step-matched-νcast-source-allᵀ
+    {pB = pB}
     wfΣ′ okν mode seal★ s⊑ mode′ seal★′ s′⊑
+    s-shape-proof s′-shape-proof source-comp target-comp
     compat N⊑V′ (ν-step vV′ noV′) =
   weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
-    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑ compat _
+    wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑
+    pB s-shape-proof s′-shape-proof source-comp target-comp compat
     vV′ noV′
     (left-catchup-indexed-allᵀ
       (runtime-ν okν) vV′ noV′ N⊑V′)
@@ -701,221 +780,233 @@ weak-one-step-indexed-simulationᵀ
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑
-      liftρ liftγ N⊑V′)
+      liftρ liftγ N⊑V′ replace)
     red@(ν-step vV′ noV′) =
   weak-one-step-matched-ν↑-source-allᵀ
-    {pA = pA} wfΣ′ okM s↑ s′↑ N⊑V′ red
+    {pA = pA} {pA⇑ = pA⇑}
+    wfΣ′ okM s↑ s′↑ N⊑V′ replace red
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑
-      liftρ liftγ N⊑N′)
+      liftρ liftγ N⊑N′ replace)
     (ξ-ν N′→N₁′) =
   weak-one-step-matched-ν-indexed-frame-outcomeᵀ
-    s↑ s′↑ pA _ inner
+    s↑ s′↑ pA pA⇑ _ replace inner
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ (runtime-ν okM) (runtime-ν okM′) N⊑N′ N′→N₁′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑
-      liftρ liftγ (blame⊑ᵀ blame⊢))
+      liftρ liftγ (blame⊑ᵀ blame⊢) replace)
     blame-ν =
   indexed-outcome-source-blame
     (↠-step blame-ν ↠-refl)
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ compat liftρ liftγ N⊑V′)
+      s⊑ s′⊑ compat liftρ liftγ N⊑V′
+      s-shape s′-shape source-comp target-comp)
     red@(ν-step vV′ noV′) =
   weak-one-step-matched-νcast-source-allᵀ
-    wfΣ′ okM mode seal★ s⊑ mode′ seal★′ s′⊑ compat N⊑V′ red
+    wfΣ′ okM mode seal★ s⊑ mode′ seal★′ s′⊑
+    s-shape s′-shape source-comp target-comp compat N⊑V′ red
 weak-one-step-indexed-simulationᵀ {χ = χ}
     wfΣ′ okM okM′
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ compat liftρ liftγ N⊑N′)
+      s⊑ s′⊑ compat liftρ liftγ N⊑N′
+      s-shape s′-shape source-comp target-comp)
     (ξ-ν N′→N₁′)
     rewrite applyTy-★ χ =
   weak-one-step-matched-νcast-indexed-frame-outcomeᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑ compat _ inner
+    mode seal★ s⊑ mode′ seal★′ s′⊑
+    _ s-shape s′-shape source-comp target-comp compat inner
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ (runtime-ν okM) (runtime-ν okM′) N⊑N′ N′→N₁′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ compat liftρ liftγ (blame⊑ᵀ blame⊢))
+      s⊑ s′⊑ compat liftρ liftγ (blame⊑ᵀ blame⊢)
+      s-shape s′-shape source-comp target-comp)
     blame-ν =
   indexed-outcome-source-blame
     (↠-step blame-ν ↠-refl)
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′)
+    (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′ replace)
     N′→N₁′ =
   weak-one-step-source-ν-indexed-frame-outcomeᵀ
-    hA s↑ _ inner
+    hA s↑ _ replace inner
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ (runtime-ν okM) okM′ N⊑N′ N′→N₁′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′)
+    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′
+      s-shape comp)
     N′→N₁′ =
   weak-one-step-source-νcast-indexed-frame-outcomeᵀ
-    mode seal★ s⊑ _ inner
+    mode seal★ s⊑ _ s-shape comp inner
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ (runtime-ν okM) okM′ N⊑N′ N′→N₁′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC N⊑V′)
+    (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC N⊑V′ replace)
     (ν-step vV′ noV′) =
   weak-one-step-right-ν↑-indexed-outcomeᵀ
-    vV′ noV′ h⇑A s↑ _ pC liftρ N⊑V′
+    vV′ noV′ h⇑A s↑ _ pC replace liftρ N⊑V′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC N⊑N′)
+    (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC N⊑N′ replace)
     (ξ-ν N′→N₁′) =
   weak-one-step-target-ν-indexed-frame-outcomeᵀ
-    hA s↑ _ pC inner
+    hA s↑ _ pC replace inner
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ okM (runtime-ν okM′) N⊑N′ N′→N₁′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC
-      (blame⊑ᵀ blame⊢))
+      (blame⊑ᵀ blame⊢) replace)
     blame-ν =
   indexed-outcome-source-blame ↠-refl
-weak-one-step-indexed-simulationᵀ
+weak-one-step-indexed-simulationᵀ {p = pB}
     wfΣ′ okM okM′
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC N⊑V′)
+    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC N⊑V′
+      s-shape comp)
     (ν-step vV′ noV′) =
   weak-one-step-right-νcast-indexed-outcomeᵀ
-    vV′ noV′ mode seal★ s⊑ _ pC liftρ N⊑V′
+    vV′ noV′ mode seal★ s⊑ pB pC s-shape
+    (imprecision-composition-shape-transport
+      refl refl (shape-target-lift-rightᵢ pB) comp)
+    liftρ N⊑V′
 weak-one-step-indexed-simulationᵀ {χ = χ}
     wfΣ′ okM okM′
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC N⊑N′)
+    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC N⊑N′
+      s-shape comp)
     (ξ-ν N′→N₁′)
     rewrite applyTy-★ χ =
   weak-one-step-target-νcast-indexed-frame-outcomeᵀ
-    mode seal★ s⊑ _ pC inner
+    mode seal★ s⊑ _ pC s-shape comp inner
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ okM (runtime-ν okM′) N⊑N′ N′→N₁′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC
-      (blame⊑ᵀ blame⊢))
+      (blame⊑ᵀ blame⊢) s-shape comp)
     blame-ν =
   indexed-outcome-source-blame ↠-refl
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q)
+    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q c-shape comp)
     M′→N′ =
   weak-one-step-source-narrow-cast-indexed-frame-outcomeᵀ
-    mode seal★ c⊒ inner
+    mode seal★ c⊒ c-shape comp inner
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q)
+    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape comp)
     M′→N′ =
   weak-one-step-source-widen-cast-indexed-frame-outcomeᵀ
-    mode seal★ c⊑ inner
+    mode seal★ c⊑ c-shape comp inner
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (conv↑⊑ᵀ c↑ M⊑M′ q)
+    (conv↑⊑ᵀ c↑ M⊑M′ q replace)
     M′→N′ =
   weak-one-step-source-reveal-conversion-indexed-frame-outcomeᵀ
-    c↑ inner q
+    c↑ inner q replace
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (conv↓⊑ᵀ c↓ M⊑M′ q)
+    (conv↓⊑ᵀ c↓ M⊑M′ q replace)
     M′→N′ =
   weak-one-step-source-conceal-conversion-indexed-frame-outcomeᵀ
-    c↓ inner q
+    c↓ inner q replace
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ (runtime-⟨⟩ okM) okM′ M⊑M′ M′→N′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑conv↑ᵀ c′↑ M⊑M′ q)
+    (⊑conv↑ᵀ c′↑ M⊑M′ q replace)
     (ξ-⟨⟩ M′→N′) =
   weak-one-step-target-reveal-conversion-indexed-frame-outcomeᵀ
-    c′↑ inner q
+    c′↑ inner q replace
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑conv↑ᵀ c′↑ M⊑M′ q)
+    (⊑conv↑ᵀ c′↑ M⊑M′ q replace)
     (pure-step root) =
   weak-one-step-target-reveal-conversion-root-outcomeᵀ
-    wfΣ′ okM okM′ c′↑ M⊑M′ q root
+    wfΣ′ okM okM′ c′↑ M⊑M′ q replace root
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑conv↓ᵀ c′↓ M⊑M′ q)
+    (⊑conv↓ᵀ c′↓ M⊑M′ q replace)
     (ξ-⟨⟩ M′→N′) =
   weak-one-step-target-conceal-conversion-indexed-frame-outcomeᵀ
-    c′↓ inner q
+    c′↓ inner q replace
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑conv↓ᵀ c′↓ M⊑M′ q)
+    (⊑conv↓ᵀ c′↓ M⊑M′ q replace)
     (pure-step root) =
   weak-one-step-target-conceal-conversion-root-outcomeᵀ
-    wfΣ′ okM okM′ c′↓ M⊑M′ q root
+    wfΣ′ okM okM′ c′↓ M⊑M′ q replace root
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q)
+    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q c-shape comp)
     (ξ-⟨⟩ M′→N′) =
   weak-one-step-target-narrow-cast-indexed-frame-outcomeᵀ
-    mode′ seal★′ c′⊒ inner q
+    mode′ seal★′ c′⊒ inner q c-shape comp
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q)
+    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q c-shape comp)
     (pure-step root) =
   weak-one-step-target-narrow-cast-root-outcomeᵀ
     wfΣ′ okM okM′ mode′ seal★′ c′⊒ M⊑M′ q root
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q)
+    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q c-shape comp)
     (ξ-⟨⟩ M′→N′) =
   weak-one-step-target-widen-cast-indexed-frame-outcomeᵀ
-    mode′ seal★′ c′⊑ inner q
+    mode′ seal★′ c′⊑ inner q c-shape comp
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q)
+    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q c-shape comp)
     (pure-step root) =
   weak-one-step-target-widen-cast-root-outcomeᵀ
     wfΣ′ okM okM′ mode′ seal★′ c′⊑ M⊑M′ q root
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q)
+    (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q c-shape comp)
     (ξ-⟨⟩ M′→N′) =
   weak-one-step-target-widen-id-cast-indexed-frame-outcomeᵀ
-    seal★′ c′⊑ inner q
+    seal★′ c′⊑ inner q c-shape comp
   where
   inner = weak-one-step-indexed-simulationᵀ
     wfΣ′ okM (runtime-⟨⟩ okM′) M⊑M′ M′→N′
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q)
+    (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q c-shape comp)
     (pure-step root) =
   weak-one-step-target-widen-id-cast-root-outcomeᵀ
     wfΣ′ okM okM′ seal★′ c′⊑ M⊑M′ q root

@@ -10,11 +10,14 @@ module
 --     permissive option.
 
 import Coercions as C
+import CastImprecisionShape as CastShape
 open import Data.List using ([])
 
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; _；⌊_⌋≋ᵖ_；_)
 open import ImprecisionWf using
-  (ImpCtx; _∣_⊢_⊑_⊣_)
+  (ImpCtx; _∣_⊢_⊑_⊣_; _↦_)
 open import NuTermImprecision using (StoreImp)
 open import NuTerms using
   (Term; _·_; _⟨_⟩)
@@ -34,12 +37,16 @@ SourceFunctionCastBetaPairedQuotientRelationᵀ =
     {D D′ A A′ B B′ : Ty}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+    {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+    {s s′ : ImprecisionShape} →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺᵖ V ⊑ L′ ⦂ D ⊑ᵖ D′ ∶ qD →
   QuotientWideningPair Δᴸ Δᴿ ρ
     (c C.↦ d) (e C.↦ f)
     D D′ (A ⇒ B) (A′ ⇒ B′) →
+  CastShape.widening CastShape.⊢ᶜ (c C.↦ d) ⦂ s →
+  CastShape.widening CastShape.⊢ᶜ (e C.↦ f) ⦂ s′ →
+  s ；⌊ pA ↦ pB ⌋≋ᵖ qD ； s′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ W ⊑ R′ ⦂ A ⊑ A′ ∶ pA →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []

@@ -10,11 +10,13 @@ module
 --   * Contains no catch-all, postulate, hole, or permissive option.
 
 import Coercions as C
+import CastImprecisionShape as CastShape
 import NarrowWiden as NW
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 
 open import Coercions using (_↦_)
+open import ImprecisionComposition using (comp-↦-↦)
 open import ImprecisionWf using (_↦_)
 open import NuReduction using (β-↦; pure-step)
 open import NuTerms using
@@ -64,11 +66,15 @@ world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ :
   WorldCoherentSourceFunctionCastBetaPairedWideningValuesᵀ
 world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
     source-inert relation-prefix coherent exclusive unique wfR okM okM′
-    mode seal★ source-widening mode′ seal★′ target-widening
+    mode seal★ source-widening source-shape
+    mode′ seal★′ target-widening target-shape
+    source-comp target-comp
     (compatible-source-inert inert)
     inner argument-related vV vW vL′ vR′ =
   source-inert relation-prefix coherent exclusive unique wfR okM okM′
-    mode seal★ source-widening mode′ seal★′ target-widening inert
+    mode seal★ source-widening source-shape
+    mode′ seal★′ target-widening target-shape
+    source-comp target-comp inert
     inner argument-related vV vW vL′ vR′
 world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
     source-inert {pA₀ = pA₀} {pB₀ = pB₀}
@@ -76,8 +82,11 @@ world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
     relation-prefix coherent exclusive unique wfR okM okM′
     mode seal★
     (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
+    (CastShape.shape-fun c-shape d-shape)
     mode′ seal★′
     (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
+    (CastShape.shape-fun e-shape f-shape)
+    source-comp target-comp
     (compatible-target-inert-bridge bridge)
     inner argument-related vV vW vL′ vR′
     with bridge (_ C.↦ _)
@@ -87,11 +96,16 @@ world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
     relation-prefix coherent exclusive unique wfR okM okM′
     mode seal★
     (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
+    (CastShape.shape-fun c-shape d-shape)
     mode′ seal★′
     (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
+    (CastShape.shape-fun e-shape f-shape)
+    source-comp target-comp
     (compatible-target-inert-bridge bridge)
     inner argument-related vV vW vL′ vR′
-    | pA-bridge ↦ pB-bridge =
+    | (pA-bridge ↦ pB-bridge)
+        , (comp-↦-↦ c-comp d-comp)
+        , (comp-↦-↦ e-comp f-comp) =
   world-coherent-source-target-keep-prependᵀ
     (pure-step (β-↦ vL′ vR′))
     (world-coherent-source-keep-relationᵀ
@@ -117,10 +131,14 @@ world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
       relation-prefix source-V-no target-L-no inner
   target-argument-cast =
     ⊑cast⊒ᵀ mode′ seal★′⁺ e⊒⁺ argument-related pA-bridge
+      e-shape e-comp
   argument-casts =
     cast⊒⊑ᵀ mode seal★⁺ c⊒⁺ target-argument-cast pA₀
+      c-shape c-comp
   application-related = ·⊑·ᵀ inner⁺ argument-casts
   source-result-cast =
     cast⊑⊑ᵀ mode seal★⁺ d⊑⁺ application-related pB-bridge
+      d-shape d-comp
   final-related =
     ⊑cast⊑ᵀ mode′ seal★′⁺ f⊑⁺ source-result-cast pB
+      f-shape f-comp

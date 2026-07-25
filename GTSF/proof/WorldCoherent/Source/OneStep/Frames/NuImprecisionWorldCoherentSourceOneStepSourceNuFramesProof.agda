@@ -15,6 +15,9 @@ module
 open import Agda.Builtin.Equality using (_≡_)
 open import Coercions using (Coercion; instᵈ)
 open import Conversion using (RevealConversion; weaken-reveal-conversion)
+import CastImprecisionShape as CastShape
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Data.Bool using (true)
 open import Data.List using (_∷_)
 open import Data.Nat using (suc; zero)
@@ -31,6 +34,8 @@ open import ImprecisionWf using
   ; ⇑ᵢ
   ; ⇑ᴸᵢ
   )
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (widen-weaken; _∣_∣_⊢_∶_⊑_)
 open import NuReduction using
   ( StoreChange
@@ -110,6 +115,8 @@ open import proof.Core.Properties.ReductionProperties using
   )
 open import proof.Core.Properties.StoreProperties using (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 
 
 source-step-matched-ν-frameᵀ :
@@ -120,6 +127,8 @@ source-step-matched-ν-frameᵀ :
     {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+    {A⇑⊑A′⇑ : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ A′ ⊣ suc Δᴿ}
     {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   RevealConversion μ (suc Δᴸ)
@@ -128,6 +137,11 @@ source-step-matched-ν-frameᵀ :
   RevealConversion μ′ (suc Δᴿ)
     ((zero , ⇑ᵗ A′) ∷ ⟰ᵗ (rightStoreⁱ ρ₀))
     zero (⇑ᵗ A′) s′ C′ (⇑ᵗ B′) →
+  q
+    [ zero ↦ ⇑ᵗ A
+    ⊑⟨ A⇑⊑A′⇑ ⟩
+    ⇑ᵗ A′ ↤ zero ]ᴾ
+    ⊑-lift∀ᵢ pB →
   WorldCoherentSourceOneStepIndexedResult
     {M = N} {M′ = N′} {L = L}
     {A = `∀ C} {B = `∀ C′} {χ = χ} {ρ = ρ⁺} (∀ⁱ q) →
@@ -139,7 +153,8 @@ source-step-matched-ν-frameᵀ
     {ρ⁺ = ρ⁺} {N = N} {N′ = N′} {A = A} {A′ = A′}
     {B = B} {B′ = B′} {C = C} {C′ = C′} {s = s}
     {s′ = s′} {χ = χ} {q = q}
-    {pA = pA} {pB = pB} prefix s↑ s′↑ complete =
+    {pA = pA} {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
+    prefix s↑ s′↑ replacement complete =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
@@ -171,6 +186,7 @@ source-step-matched-ν-frameᵀ
 
   s↑⁺ = weaken-reveal-conversion source-store-incl s↑
   s′↑⁺ = weaken-reveal-conversion target-store-incl s′↑
+  coherence₀ = weakIndexedTypeCoherence indexed₀
 
   framed : WeakOneStepResult ρ⁺
     (ν A N s)
@@ -178,22 +194,24 @@ source-step-matched-ν-frameᵀ
     B B′ keep
   framed =
     weak-one-step-matched-ν-frameᵀ {χ = keep} {q = q}
-      s↑⁺ s′↑⁺ pA pB all
+      s↑⁺ s′↑⁺ pA A⇑⊑A′⇑ pB replacement all coherence₀
   framed-indexed = weak-indexed-result framed (relatedResults framed)
     (weak-one-step-matched-ν-frame-preserves-transportᵀ
       {χ = keep} {q = q}
-      s↑⁺ s′↑⁺ pA pB all (weakIndexedTransport (sourceStepIndexedResult complete)))
+      s↑⁺ s′↑⁺ pA A⇑⊑A′⇑ pB replacement all coherence₀
+      (weakIndexedTransport indexed₀))
     (weak-one-step-matched-ν-frame-preserves-type-coherenceᵀ
       {χ = keep} {q = q}
-      s↑⁺ s′↑⁺ pA pB all (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
+      s↑⁺ s′↑⁺ pA A⇑⊑A′⇑ pB replacement all coherence₀)
   framed-transport =
     weak-one-step-matched-ν-frame-preserves-transportᵀ
       {χ = keep} {q = q}
-      s↑⁺ s′↑⁺ pA pB all (weakIndexedTransport (sourceStepIndexedResult complete))
+      s↑⁺ s′↑⁺ pA A⇑⊑A′⇑ pB replacement all coherence₀
+      (weakIndexedTransport indexed₀)
   framed-coherence =
     weak-one-step-matched-ν-frame-preserves-type-coherenceᵀ
       {χ = keep} {q = q}
-      s↑⁺ s′↑⁺ pA pB all (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
+      s↑⁺ s′↑⁺ pA A⇑⊑A′⇑ pB replacement all coherence₀
 
   type-exact :
     applyTys (sourceChanges inner) A ≡ applyTy χ A
@@ -222,6 +240,7 @@ source-step-matched-νcast-frameᵀ :
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {N N′ L : Term} {B B′ C C′ : Ty}
     {s s′ : Coercion} {μ μ′} {χ : StoreChange}
+    {s-shape s′-shape result-shape : ImprecisionShape}
     {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
     {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
@@ -238,9 +257,14 @@ source-step-matched-νcast-frameᵀ :
   instᵈ μ′ ∣ suc Δᴿ
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ₀)
     ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
+  CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
+  CastShape.widening CastShape.⊢ᶜ s′ ⦂ s′-shape →
+  s-shape ； ⌊ pB ⌋ ≋ result-shape →
+  ⌊ q ⌋ ； s′-shape ≋ result-shape →
   PairedWideningCompatible
     ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-    (suc Δᴸ) (suc Δᴿ) s s′ (⇑ᵗ B) C′ →
+    (suc Δᴸ) (suc Δᴿ) s s′
+    q (⊑-lift∀ᵢ pB) s-shape s′-shape →
   WorldCoherentSourceOneStepIndexedResult
     {M = N} {M′ = N′} {L = L}
     {A = `∀ C} {B = `∀ C′} {χ = χ} {ρ = ρ⁺} (∀ⁱ q) →
@@ -249,7 +273,9 @@ source-step-matched-νcast-frameᵀ :
     {L = ν (applyTy χ ★) L (applyCoercionUnderTyBinder χ s)}
     {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} pB
 source-step-matched-νcast-frameᵀ {s = s} {χ = χ} {q = q} {pB = pB}
-    prefix mode seal★ s⊑ mode′ seal★′ s′⊑ compat complete =
+    prefix mode seal★ s⊑ mode′ seal★′ s′⊑
+    s-shape-proof s′-shape-proof source-comp target-comp
+    compat complete =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
@@ -279,30 +305,37 @@ source-step-matched-νcast-frameᵀ {s = s} {χ = χ} {q = q} {pB = pB}
   seal★′⁺ = seal★-weaken target-store-incl seal★′
   s⊑⁺ = widen-weaken ≤-refl source-store-incl s⊑
   s′⊑⁺ = widen-weaken ≤-refl target-store-incl s′⊑
+  coherence₀ = weakIndexedTypeCoherence indexed₀
 
   framed =
     weak-one-step-matched-νcast-frameᵀ
       {χ = keep} {q = q}
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
+      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
+      pB s-shape-proof s′-shape-proof source-comp target-comp
+      compat all coherence₀
   framed-indexed = weak-indexed-result framed (relatedResults framed)
     (weak-one-step-matched-νcast-frame-preserves-transportᵀ
       {χ = keep} {q = q}
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
-      (weakIndexedTransport (sourceStepIndexedResult complete)))
+      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
+      pB s-shape-proof s′-shape-proof source-comp target-comp
+      compat all coherence₀ (weakIndexedTransport indexed₀))
     (weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
       {χ = keep} {q = q}
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
-      (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
+      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
+      pB s-shape-proof s′-shape-proof source-comp target-comp
+      compat all coherence₀)
   framed-transport =
     weak-one-step-matched-νcast-frame-preserves-transportᵀ
       {χ = keep} {q = q}
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
-      (weakIndexedTransport (sourceStepIndexedResult complete))
+      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
+      pB s-shape-proof s′-shape-proof source-comp target-comp
+      compat all coherence₀ (weakIndexedTransport indexed₀)
   framed-coherence =
     weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
       {χ = keep} {q = q}
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺ compat pB all
-      (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
+      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
+      pB s-shape-proof s′-shape-proof source-comp target-comp
+      compat all coherence₀
 
   star-exact : ★ ≡ applyTy χ ★
   star-exact = sym (applyTy-★ χ)
@@ -339,6 +372,7 @@ source-step-source-ν-frameᵀ :
   RevealConversion μ (suc Δᴸ)
     ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ₀))
     zero (⇑ᵗ A) s C (⇑ᵗ B) →
+  q [ zero ↦ ⇑ᵗ A ]ᴸ ⊑-source-liftνᵢ pB →
   WorldCoherentSourceOneStepIndexedResult
     {M = N} {M′ = N′} {L = L}
     {A = `∀ C} {B = B′} {χ = χ} {ρ = ρ⁺}
@@ -348,7 +382,7 @@ source-step-source-ν-frameᵀ :
     {L = ν (applyTy χ A) L (applyCoercionUnderTyBinder χ s)}
     {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} pB
 source-step-source-ν-frameᵀ {A = A} {s = s} {χ = χ} {pB = pB}
-    prefix hA s↑ complete =
+    prefix hA s↑ replacement complete =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
@@ -370,22 +404,23 @@ source-step-source-ν-frameᵀ {A = A} {s = s} {χ = χ} {pB = pB}
 
   s↑⁺ = weaken-reveal-conversion source-store-incl s↑
 
-  framed = weak-one-step-source-ν-frameᵀ hA s↑⁺ pB indexed₀
+  framed =
+    weak-one-step-source-ν-frameᵀ hA s↑⁺ pB replacement indexed₀
   framed-indexed = weak-indexed-result framed (relatedResults framed)
     (weak-one-step-source-ν-frame-preserves-transportᵀ
-      hA s↑⁺ pB indexed₀
-      (weakIndexedTransport (sourceStepIndexedResult complete)))
+      hA s↑⁺ pB replacement indexed₀
+      (weakIndexedTransport indexed₀))
     (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-      hA s↑⁺ pB indexed₀
-      (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
+      hA s↑⁺ pB replacement indexed₀
+      (weakIndexedTypeCoherence indexed₀))
   framed-transport =
     weak-one-step-source-ν-frame-preserves-transportᵀ
-      hA s↑⁺ pB indexed₀
-      (weakIndexedTransport (sourceStepIndexedResult complete))
+      hA s↑⁺ pB replacement indexed₀
+      (weakIndexedTransport indexed₀)
   framed-coherence =
     weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-      hA s↑⁺ pB indexed₀
-      (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
+      hA s↑⁺ pB replacement indexed₀
+      (weakIndexedTypeCoherence indexed₀)
 
   type-exact :
     applyTys (sourceChanges inner) A ≡ applyTy χ A
@@ -414,6 +449,7 @@ source-step-source-νcast-frameᵀ :
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {N N′ L : Term} {B B′ C : Ty}
     {s : Coercion} {μ} {χ : StoreChange}
+    {s-shape : ImprecisionShape}
     {occ : occurs zero C ≡ true}
     {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
@@ -426,6 +462,8 @@ source-step-source-νcast-frameᵀ :
   instᵈ μ ∣ suc Δᴸ
     ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
+  CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
+  s-shape ； ⌊ pB ⌋ ≋ ⌊ q ⌋ →
   WorldCoherentSourceOneStepIndexedResult
     {M = N} {M′ = N′} {L = L}
     {A = `∀ C} {B = B′} {χ = χ} {ρ = ρ⁺}
@@ -435,7 +473,7 @@ source-step-source-νcast-frameᵀ :
     {L = ν (applyTy χ ★) L (applyCoercionUnderTyBinder χ s)}
     {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} pB
 source-step-source-νcast-frameᵀ {s = s} {χ = χ} {pB = pB}
-    prefix mode seal★ s⊑ complete =
+    prefix mode seal★ s⊑ s-shape-proof comp complete =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
@@ -460,22 +498,22 @@ source-step-source-νcast-frameᵀ {s = s} {χ = χ} {pB = pB}
 
   framed =
     weak-one-step-source-νcast-frameᵀ
-      mode seal★⁺ s⊑⁺ pB indexed₀
+      mode seal★⁺ s⊑⁺ pB s-shape-proof comp indexed₀
   framed-indexed = weak-indexed-result framed (relatedResults framed)
     (weak-one-step-source-νcast-frame-preserves-transportᵀ
-      mode seal★⁺ s⊑⁺ pB indexed₀
-      (weakIndexedTransport (sourceStepIndexedResult complete)))
+      mode seal★⁺ s⊑⁺ pB s-shape-proof comp indexed₀
+      (weakIndexedTransport indexed₀))
     (weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★⁺ s⊑⁺ pB indexed₀
-      (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
+      mode seal★⁺ s⊑⁺ pB s-shape-proof comp indexed₀
+      (weakIndexedTypeCoherence indexed₀))
   framed-transport =
     weak-one-step-source-νcast-frame-preserves-transportᵀ
-      mode seal★⁺ s⊑⁺ pB indexed₀
-      (weakIndexedTransport (sourceStepIndexedResult complete))
+      mode seal★⁺ s⊑⁺ pB s-shape-proof comp indexed₀
+      (weakIndexedTransport indexed₀)
   framed-coherence =
     weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★⁺ s⊑⁺ pB indexed₀
-      (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
+      mode seal★⁺ s⊑⁺ pB s-shape-proof comp indexed₀
+      (weakIndexedTypeCoherence indexed₀)
 
   star-exact : ★ ≡ applyTy χ ★
   star-exact = sym (applyTy-★ χ)
@@ -503,8 +541,8 @@ world-coherent-source-one-step-source-nu-frames-proofᵀ = record
   { sourceStepMatchedNuFrame =
       λ {Φ} {Δᴸ} {Δᴿ} {ρ₀} {ρ⁺}
         {N} {N′} {L} {A} {A′} {B} {B′} {C} {C′}
-        {s} {s′} {μ} {μ′} {χ} {q} {pA} {pB}
-        prefix s↑ s′↑ complete →
+        {s} {s′} {μ} {μ′} {χ} {q} {pA} {A⇑⊑A′⇑} {pB}
+        prefix s↑ s′↑ replacement complete →
         source-step-matched-ν-frameᵀ
           {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
           {ρ₀ = ρ₀} {ρ⁺ = ρ⁺}
@@ -512,8 +550,9 @@ world-coherent-source-one-step-source-nu-frames-proofᵀ = record
           {A = A} {A′ = A′} {B = B} {B′ = B′}
           {C = C} {C′ = C′}
           {s = s} {s′ = s′} {μ = μ} {μ′ = μ′}
-          {χ = χ} {q = q} {pA = pA} {pB = pB}
-          prefix s↑ s′↑ complete
+          {χ = χ} {q = q} {pA = pA}
+          {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
+          prefix s↑ s′↑ replacement complete
   ; sourceStepMatchedNuCastFrame = source-step-matched-νcast-frameᵀ
   ; sourceStepSourceNuFrame = source-step-source-ν-frameᵀ
   ; sourceStepSourceNuCastFrame = source-step-source-νcast-frameᵀ

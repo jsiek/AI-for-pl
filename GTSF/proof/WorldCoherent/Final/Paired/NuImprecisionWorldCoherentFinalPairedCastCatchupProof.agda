@@ -27,19 +27,19 @@ world-coherent-final-paired-cast-catchup-proofᵀ :
   WorldCoherentFinalPairedCastCatchupᵀ
 world-coherent-final-paired-cast-catchup-proofᵀ
     conversion-catchup widening-catchup
-    coherent exclusive wfL final vV′ noV′ inert-c′
+    coherent exclusive unique wfL final vV′ noV′ inert-c′
     (paired-conversion conversion) W⊑V′ =
-  conversion-catchup coherent exclusive wfL final
+  conversion-catchup coherent exclusive unique wfL final
     vV′ noV′ inert-c′ conversion W⊑V′
 world-coherent-final-paired-cast-catchup-proofᵀ
     conversion-catchup widening-catchup
-    coherent exclusive wfL final vV′ noV′ inert-c′
+    coherent exclusive unique wfL final vV′ noV′ inert-c′
     (paired-widening
       mode seal★ c⊑ c-shape
       mode′ seal★′ c′⊑ c′-shape
       source-comp target-comp compat)
     W⊑V′ =
-  widening-catchup coherent exclusive wfL final
+  widening-catchup coherent exclusive unique wfL final
     vV′ noV′ inert-c′
     mode seal★ c⊑ c-shape
     mode′ seal★′ c′⊑ c′-shape

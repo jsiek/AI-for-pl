@@ -104,7 +104,7 @@ world-coherent-source-νcast-catchup-proofᵀ
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      inner-lineage coherent exclusive wfL)
+      inner-lineage coherent exclusive unique wfL)
     with final
 world-coherent-source-νcast-catchup-proofᵀ
     final-catchup {p = p} {occ = occ} {q = q} {{safe = safe}}
@@ -113,7 +113,7 @@ world-coherent-source-νcast-catchup-proofᵀ
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      inner-lineage coherent exclusive wfL)
+      inner-lineage coherent exclusive unique wfL)
     | inj₁ (vW , noW)
     with apply-widen-inst-under-ty-binders
       {χs = sourceChanges (weakIndexedResult indexed)}
@@ -135,7 +135,7 @@ world-coherent-source-νcast-catchup-proofᵀ
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      inner-lineage coherent exclusive wfL)
+      inner-lineage coherent exclusive unique wfL)
     | inj₁ (vW , noW)
     | μ′ , mode′ , final-seal₀ , final-cast₀ =
   world-coherent-left-catchup-indexed-resume-silentᵀ
@@ -202,7 +202,7 @@ world-coherent-source-νcast-catchup-proofᵀ
 
   first-silent =
     left-silent-indexed-prefix-source-νcast-terminal-valueᵀ
-      prefix mode seal★ c⊑ catchup vW noW
+      prefix mode seal★ c⊑ s-shape comp catchup vW noW
 world-coherent-source-νcast-catchup-proofᵀ
     final-catchup {p = p} {occ = occ} {q = q} {{safe = safe}}
     prefix mode seal★ c⊑ s-shape comp liftρ liftγ vV′ noV′
@@ -210,7 +210,7 @@ world-coherent-source-νcast-catchup-proofᵀ
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final))
-      inner-lineage coherent exclusive wfL)
+      inner-lineage coherent exclusive unique wfL)
     | inj₂ refl =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     first-silent first-lineage terminal
@@ -233,15 +233,17 @@ world-coherent-source-νcast-catchup-proofᵀ
 
   framed =
     weak-one-step-source-νcast-frameᵀ
-      mode seal★⁺ c⊑⁺ _ indexed
+      mode seal★⁺ c⊑⁺ _ s-shape comp indexed
 
   first-silent =
     left-silent-indexed
       (weak-indexed-result framed (relatedResults framed)
         (weak-one-step-source-νcast-frame-preserves-transportᵀ
-          mode seal★⁺ c⊑⁺ _ indexed (weakIndexedTransport indexed))
+          mode seal★⁺ c⊑⁺ _ s-shape comp indexed
+          (weakIndexedTransport indexed))
         (weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-          mode seal★⁺ c⊑⁺ _ indexed (weakIndexedTypeCoherence indexed)))
+          mode seal★⁺ c⊑⁺ _ s-shape comp indexed
+          (weakIndexedTypeCoherence indexed)))
       (left-silent-invariant refl refl)
       (ok-ν (ok-no no•-blame))
 
@@ -265,4 +267,4 @@ world-coherent-source-νcast-catchup-proofᵀ
           (left-silent-invariant refl refl) (inj₂ refl)))
       (weak-step-store-lineage
         (resultStore framed) rel-store-embedding-reflⁱ prefix-reflⁱ)
-      coherent exclusive wfL
+      coherent exclusive unique wfL

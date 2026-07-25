@@ -15,8 +15,14 @@ import Coercions as C
 open import Coercions using (_!)
 import Conversion
 open import Conversion using (conceal-seal)
+open import ConversionIndexCompatibility using
+  ( _[_↦_]ᴿ_
+  ; replace-right-variable
+  ; replace-right-ν
+  ; replace-right-ν∀
+  )
 open import ImprecisionWf using
-  (_∣_⊢_⊑_⊣_; idˣ; tagˣ)
+  (_∣_⊢_⊑_⊣_; idˣ; tagˣ; ν; ∀ⁱ_)
 import NarrowWiden
 open import NuStore using (StoreWf; unique)
 open import NuTermImprecision using
@@ -66,6 +72,23 @@ open import proof.Source.SealTag.NuImprecisionSourceSealCancellationDef using
   (SourceSealCancellationᵀ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent; idˣ-corresponds)
+
+
+source-seal-cancellation-target-replacement :
+  ∀ {Φ Δᴸ Δᴿ X Z β}
+    (pX : Φ ∣ Δᴸ ⊢ X ⊑ Z ⊣ Δᴿ)
+    (q : Φ ∣ Δᴸ ⊢ X ⊑ ＇ β ⊣ Δᴿ) →
+  q [ β ↦ Z ]ᴿ pX
+source-seal-cancellation-target-replacement
+    pX (idˣ q∈ X< β<) =
+  replace-right-variable pX
+source-seal-cancellation-target-replacement
+    (ν safe′ occ′ pX) (ν safe occ q) =
+  replace-right-ν
+    (source-seal-cancellation-target-replacement pX q)
+source-seal-cancellation-target-replacement
+    (∀ⁱ pX) (ν safe occ q) =
+  replace-right-ν∀
 
 
 left-prefix-inclusionᵀ :
@@ -196,7 +219,7 @@ source-seal-cancellation-prefixᵀ
     (up⊑upᵀ inner
       (quotient-id-widening
         (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ()) u′⊑)
-      oldq)
+      oldq source-shape target-shape square)
     q
 source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
@@ -205,20 +228,22 @@ source-seal-cancellation-prefixᵀ
       (quotient-cast-widening mode seal★
         (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
         mode′ seal★′ u′⊑)
-      oldq)
+      oldq source-shape target-shape square)
     q
 source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
     prefix coh exclusive wfΣ vV vW noW αX∈Σ
     (cast⊑⊑ᵀ mode seal★
       (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
-      inner oldq)
+      inner oldq source-shape square)
     q
 source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
     prefix coh exclusive wfΣ vV vW noW αX∈Σ
     (conv⊑convᵀ
-      (paired-conversion (paired-reveal corr () c′↑)) inner)
+      (paired-conversion
+        (paired-reveal corr () c′↑ replacement))
+      inner)
     q
 source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
@@ -226,7 +251,8 @@ source-seal-cancellation-prefixᵀ
     (conv⊑convᵀ
       (paired-widening mode seal★
         (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
-        mode′ seal★′ c′⊑ _)
+        source-shape mode′ seal★′ c′⊑ target-shape
+        source-square target-square compatibility)
       inner)
     q
 source-seal-cancellation-prefixᵀ
@@ -235,7 +261,7 @@ source-seal-cancellation-prefixᵀ
     (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
     (⊑cast⊑ᵀ mode seal★
       (C.cast-seal hZ βZ∈Σ ok , NarrowWiden.cross ())
-      Vα⊑M oldq)
+      Vα⊑M oldq target-shape square)
     q
 source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
@@ -243,13 +269,13 @@ source-seal-cancellation-prefixᵀ
     (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
     (⊑cast⊑idᵀ seal★
       (C.cast-seal hZ βZ∈Σ ok , NarrowWiden.cross ())
-      Vα⊑M oldq)
+      Vα⊑M oldq target-shape square)
     q
 source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
     prefix coh exclusive wfΣ vV
     (vM ⟨ inert ⟩) noW αX∈Σ
-    (⊑conv↑ᵀ c′↑ Vα⊑M oldq) q =
+    (⊑conv↑ᵀ c′↑ Vα⊑M oldq replacement) q =
   ⊥-elim
     (inert-reveal-target-atom-impossibleᵀ
       c′↑ (target-atomᵀ oldq) inert)
@@ -257,9 +283,9 @@ source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
     prefix coh exclusive wfΣ vV
     (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
-    (⊑cast⊒ᵀ mode seal★
+    (⊑cast⊒ᵀ {μ′ = μ′} mode seal★
       (C.cast-seal hZ βZ∈Σ ok , NarrowWiden.sealⁿ .Z .β)
-      Vα⊑M oldq)
+      Vα⊑M oldq target-shape square)
     q
     with idˣ-corresponds coh a∈Φ αX∈Σ
       (right-prefix-inclusionᵀ prefix βZ∈Σ)
@@ -267,21 +293,21 @@ source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
     prefix coh exclusive wfΣ vV
     (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
-    (⊑cast⊒ᵀ mode seal★
+    (⊑cast⊒ᵀ {μ′ = μ′} mode seal★
       (C.cast-seal hZ βZ∈Σ ok , NarrowWiden.sealⁿ .Z .β)
-      Vα⊑M oldq)
+      Vα⊑M oldq target-shape square)
     q | pX , corr =
-  ⊑cast⊒ᵀ mode seal★
-    (C.cast-seal hZ βZ∈Σ ok , NarrowWiden.sealⁿ Z β)
+  ⊑conv↓ᵀ {μ′ = μ′} (conceal-seal hZ βZ∈Σ ok)
     (source-seal-cancellation-prefixᵀ
       prefix coh exclusive wfΣ vV vM noM αX∈Σ Vα⊑M pX)
-    q
+    q (source-seal-cancellation-target-replacement pX q)
 source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
     prefix coh exclusive wfΣ vV
     (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
     (⊑conv↓ᵀ { μ′ = μ′ }
-      (conceal-seal hZ βZ∈Σ ok) Vα⊑M oldq)
+      (conceal-seal hZ βZ∈Σ ok)
+      Vα⊑M oldq replacement)
     q
     with idˣ-corresponds coh a∈Φ αX∈Σ
       (right-prefix-inclusionᵀ prefix βZ∈Σ)
@@ -290,18 +316,19 @@ source-seal-cancellation-prefixᵀ
     prefix coh exclusive wfΣ vV
     (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
     (⊑conv↓ᵀ { μ′ = μ′ }
-      (conceal-seal hZ βZ∈Σ ok) Vα⊑M oldq)
+      (conceal-seal hZ βZ∈Σ ok)
+      Vα⊑M oldq replacement)
     q | pX , corr =
   ⊑conv↓ᵀ { μ′ = μ′ } (conceal-seal hZ βZ∈Σ ok)
     (source-seal-cancellation-prefixᵀ
       prefix coh exclusive wfΣ vV vM noM αX∈Σ Vα⊑M pX)
-    q
+    q (source-seal-cancellation-target-replacement pX q)
 source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
     prefix coh exclusive wfΣ vV vW noW αX∈Σ
     (cast⊒⊑ᵀ mode seal★
       (C.cast-seal hY αY∈Σ ok , NarrowWiden.sealⁿ Y α)
-      V⊑W oldq)
+      V⊑W oldq source-shape square)
     q
     rewrite unique wfΣ
       (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
@@ -310,7 +337,9 @@ source-seal-cancellation-prefixᵀ
 source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
     prefix coh exclusive wfΣ vV vW noW αX∈Σ
-    (conv↓⊑ᵀ (conceal-seal hY αY∈Σ ok) V⊑W oldq)
+    (conv↓⊑ᵀ
+      (conceal-seal hY αY∈Σ ok)
+      V⊑W oldq replacement)
     q
     rewrite unique wfΣ
       (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
@@ -320,16 +349,21 @@ source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
     prefix coh exclusive wfΣ vV
     (vM ⟨ C.seal Z β ⟩) (no•-⟨⟩ noM) αX∈Σ
-    (conv⊑convᵀ
+    (conv⊑convᵀ {p = inner-index}
       (paired-conversion
-        (paired-conceal { μ = μ } { μ′ = μ′ } corr
+        (paired-conceal
+          {μ = μ} {μ′ = μ′} corr
           (conceal-seal hY αY∈Σ ok)
-          (conceal-seal hZ βZ∈Σ ok′)))
+          (conceal-seal hZ βZ∈Σ ok′)
+          replacement))
       V⊑M)
     q
     rewrite unique wfΣ
       (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
-  ⊑conv↓ᵀ { μ′ = μ′ } (conceal-seal hZ βZ∈Σ ok′) V⊑M q
+  ⊑conv↓ᵀ { μ′ = μ′ } (conceal-seal hZ βZ∈Σ ok′)
+    V⊑M q
+    (source-seal-cancellation-target-replacement
+      inner-index q)
 source-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<}
     prefix coh exclusive wfΣ vV vW noW αX∈Σ
@@ -353,7 +387,7 @@ source-seal-cancellation-prefixᵀ
     (up⊑upᵀ inner
       (quotient-id-widening
         (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ()) u′⊑)
-      oldq)
+      oldq source-shape target-shape square)
     q
 source-seal-cancellation-prefixᵀ
     {p = tagˣ star∈ α<}
@@ -362,20 +396,22 @@ source-seal-cancellation-prefixᵀ
       (quotient-cast-widening mode seal★
         (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
         mode′ seal★′ u′⊑)
-      oldq)
+      oldq source-shape target-shape square)
     q
 source-seal-cancellation-prefixᵀ
     {p = tagˣ star∈ α<}
     prefix coh exclusive wfΣ vV vW noW αX∈Σ
     (cast⊑⊑ᵀ mode seal★
       (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
-      inner oldq)
+      inner oldq source-shape square)
     q
 source-seal-cancellation-prefixᵀ
     {p = tagˣ star∈ α<}
     prefix coh exclusive wfΣ vV vW noW αX∈Σ
     (conv⊑convᵀ
-      (paired-conversion (paired-reveal corr () c′↑)) inner)
+      (paired-conversion
+        (paired-reveal corr () c′↑ replacement))
+      inner)
     q
 source-seal-cancellation-prefixᵀ
     {p = tagˣ star∈ α<}
@@ -383,7 +419,8 @@ source-seal-cancellation-prefixᵀ
     (conv⊑convᵀ
       (paired-widening mode seal★
         (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
-        mode′ seal★′ c′⊑ _)
+        source-shape mode′ seal★′ c′⊑ target-shape
+        source-square target-square compatibility)
       inner)
     q
 source-seal-cancellation-prefixᵀ
@@ -393,7 +430,8 @@ source-seal-cancellation-prefixᵀ
     (conv⊑convᵀ
       (paired-conversion
         (paired-conceal corr
-          (conceal-seal hY αY∈Σ ok) c′↓))
+          (conceal-seal hY αY∈Σ ok) c′↓
+          replacement))
       V⊑M)
     q =
   ⊥-elim (inert-conceal-target-star-impossibleᵀ c′↓ inert′)
@@ -402,7 +440,7 @@ source-seal-cancellation-prefixᵀ
     prefix coh exclusive wfΣ vV vW noW αX∈Σ
     (cast⊒⊑ᵀ mode seal★
       (C.cast-seal hY αY∈Σ ok , NarrowWiden.sealⁿ Y α)
-      V⊑W oldq)
+      V⊑W oldq source-shape square)
     q
     rewrite unique wfΣ
       (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
@@ -413,7 +451,8 @@ source-seal-cancellation-prefixᵀ
     prefix coh exclusive wfΣ vV
     (vM ⟨ G ! ⟩) noW αX∈Σ
     (⊑cast⊒ᵀ mode seal★
-      (C.cast-tag hG gG ok , NarrowWiden.cross ()) Vα⊑M oldq)
+      (C.cast-tag hG gG ok , NarrowWiden.cross ())
+      Vα⊑M oldq target-shape square)
     q
 source-seal-cancellation-prefixᵀ
     {p = tagˣ star∈ α<}
@@ -422,7 +461,7 @@ source-seal-cancellation-prefixᵀ
     (⊑cast⊑ᵀ {p = idˣ match∈ α<′ β<}
       mode seal★
       (C.cast-tag hβ (T.＇ β) ok , NarrowWiden.tag (T.＇ β))
-      Vα⊑M oldq)
+      Vα⊑M oldq target-shape square)
     q =
   ⊥-elim (exclusive star∈ match∈)
 source-seal-cancellation-prefixᵀ
@@ -432,13 +471,15 @@ source-seal-cancellation-prefixᵀ
     (⊑cast⊑idᵀ {p = idˣ match∈ α<′ β<}
       seal★
       (C.cast-tag hβ (T.＇ β) ok , NarrowWiden.tag (T.＇ β))
-      Vα⊑M oldq)
+      Vα⊑M oldq target-shape square)
     q =
   ⊥-elim (exclusive star∈ match∈)
 source-seal-cancellation-prefixᵀ
     {p = tagˣ star∈ α<}
     prefix coh exclusive wfΣ vV vW noW αX∈Σ
-    (conv↓⊑ᵀ (conceal-seal hY αY∈Σ ok) V⊑W oldq)
+    (conv↓⊑ᵀ
+      (conceal-seal hY αY∈Σ ok)
+      V⊑W oldq replacement)
     q
     rewrite unique wfΣ
       (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
@@ -448,14 +489,14 @@ source-seal-cancellation-prefixᵀ
     {p = tagˣ star∈ α<}
     prefix coh exclusive wfΣ vV
     (vM ⟨ inert ⟩) noW αX∈Σ
-    (⊑conv↑ᵀ c′↑ Vα⊑M oldq) q =
+    (⊑conv↑ᵀ c′↑ Vα⊑M oldq replacement) q =
   ⊥-elim
     (inert-reveal-target-atom-impossibleᵀ c′↑ T.★ inert)
 source-seal-cancellation-prefixᵀ
     {p = tagˣ star∈ α<}
     prefix coh exclusive wfΣ vV
     (vM ⟨ inert ⟩) noW αX∈Σ
-    (⊑conv↓ᵀ c′↓ Vα⊑M oldq) q =
+    (⊑conv↓ᵀ c′↓ Vα⊑M oldq replacement) q =
   ⊥-elim (inert-conceal-target-star-impossibleᵀ c′↓ inert)
 source-seal-cancellation-prefixᵀ
     {p = tagˣ star∈ α<}

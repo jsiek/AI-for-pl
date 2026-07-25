@@ -4,8 +4,8 @@ module
 
 -- File Charter:
 --   * Proves exact-world terminal catch-up for compatible paired widenings.
---   * Uses source inertness for the zero-step terminal case and the explicit
---     cross bridge for the source-widen/target-frame case.
+--   * Reconstructs source inertness from each hereditary terminal or wrapper
+--     compatibility form and uses the explicit cross bridge otherwise.
 --   * Takes only the source-widen handler contract and imports no source
 --     runtime record or implementation.
 
@@ -13,6 +13,7 @@ open import Agda.Builtin.Equality using (refl)
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 
+import Coercions as C
 open import NuReduction using
   ( blame-⟨⟩
   ; pure-step
@@ -23,8 +24,12 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import PairedWideningCompatibility using
-  ( compatible-source-inert
+  ( compatible-all
+  ; compatible-function
+  ; compatible-gen
+  ; compatible-source-leaf
   ; compatible-target-inert-bridge
+  ; inert-leaf
   )
 open import QuotientedTermImprecision using
   ( blame⊑ᵀ
@@ -59,7 +64,7 @@ world-coherent-final-paired-widening-catchup-proofᵀ :
   WorldCoherentFinalPairedWideningCatchupᵀ
 world-coherent-final-paired-widening-catchup-proofᵀ
     source-widen {p = p} {q = q}
-    coherent exclusive wfL (inj₂ refl) vV′ noV′ inert-c′
+    coherent exclusive unique wfL (inj₂ refl) vV′ noV′ inert-c′
     mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
     source-comp target-comp compat W⊑V′ =
   world-coherent-left-indexed-catchup
@@ -69,7 +74,7 @@ world-coherent-final-paired-widening-catchup-proofᵀ
         prefix-reflⁱ (no•-⟨⟩ noV′)
         (blame⊑ᵀ target⊢)))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
   where
   target⊢ = nu-term-imprecision-target-typing
     (conv⊑convᵀ
@@ -79,30 +84,88 @@ world-coherent-final-paired-widening-catchup-proofᵀ
         source-comp target-comp compat)
       W⊑V′)
 world-coherent-final-paired-widening-catchup-proofᵀ
-    source-widen coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′
+    source-widen coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′
     inert-c′ mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
     source-comp target-comp
-    (compatible-source-inert inert-c) W⊑V′ =
+    compat@(compatible-source-leaf leaf) W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
-      prefix-reflⁱ (ok-no (no•-⟨⟩ noW)) (vW ⟨ inert-c ⟩)
+      prefix-reflⁱ (ok-no (no•-⟨⟩ noW))
+      (vW ⟨ inert-leaf leaf ⟩)
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ
         (paired-widening
           mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
-          source-comp target-comp
-          (compatible-source-inert inert-c))
+          source-comp target-comp compat)
         W⊑V′))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-final-paired-widening-catchup-proofᵀ
-    source-widen coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′
+    source-widen coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′
+    inert-c′ mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+    source-comp target-comp
+    compat@(compatible-function {c₁ = c₁} {c₂ = c₂} residual)
+    W⊑V′ =
+  world-coherent-left-indexed-catchup
+    (left-catchup-indexed-prefix-valueᵀ
+      prefix-reflⁱ (ok-no (no•-⟨⟩ noW))
+      (vW ⟨ c₁ C.↦ c₂ ⟩)
+      (no•-⟨⟩ noV′)
+      (conv⊑convᵀ
+        (paired-widening
+          mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+          source-comp target-comp compat)
+        W⊑V′))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
+    coherent exclusive unique wfL
+world-coherent-final-paired-widening-catchup-proofᵀ
+    source-widen coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′
+    inert-c′ mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+    source-comp target-comp
+    compat@(compatible-all {c = c} residual) W⊑V′ =
+  world-coherent-left-indexed-catchup
+    (left-catchup-indexed-prefix-valueᵀ
+      prefix-reflⁱ (ok-no (no•-⟨⟩ noW))
+      (vW ⟨ C.`∀ c ⟩)
+      (no•-⟨⟩ noV′)
+      (conv⊑convᵀ
+        (paired-widening
+          mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+          source-comp target-comp compat)
+        W⊑V′))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
+    coherent exclusive unique wfL
+world-coherent-final-paired-widening-catchup-proofᵀ
+    source-widen coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′
+    inert-c′ mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+    source-comp target-comp
+    compat@(compatible-gen {A = A} {c = c} residual) W⊑V′ =
+  world-coherent-left-indexed-catchup
+    (left-catchup-indexed-prefix-valueᵀ
+      prefix-reflⁱ (ok-no (no•-⟨⟩ noW))
+      (vW ⟨ C.gen A c ⟩)
+      (no•-⟨⟩ noV′)
+      (conv⊑convᵀ
+        (paired-widening
+          mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+          source-comp target-comp compat)
+        W⊑V′))
+    (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
+    coherent exclusive unique wfL
+world-coherent-final-paired-widening-catchup-proofᵀ
+    source-widen coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′
     inert-c′ mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
     source-comp target-comp
     (compatible-target-inert-bridge bridge-evidence) W⊑V′
     with bridge-evidence inert-c′
 world-coherent-final-paired-widening-catchup-proofᵀ
-    source-widen coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′
+    source-widen coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′
     inert-c′ mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
     source-comp target-comp
     (compatible-target-inert-bridge bridge-evidence) W⊑V′
@@ -116,7 +179,7 @@ world-coherent-final-paired-widening-catchup-proofᵀ
       (left-catchup-indexed-prefix-valueᵀ
         prefix-reflⁱ (ok-no noW) vW noV′ W⊑V′)
       (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-      coherent exclusive wfL
+      coherent exclusive unique wfL
 
   source-catchup =
     source-widen prefix-reflⁱ mode seal★ c⊑

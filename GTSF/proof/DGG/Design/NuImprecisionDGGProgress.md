@@ -219,6 +219,7 @@ duality condition rather than a value-form predicate.
 | Quotient value classification | **completed** | [`outer-inst-fun-tag-allocation-trace`](NuImprecisionQuotientValue.agda#L398) exposes the exact `keep, keep, bind ★` trace, and the quotient-value classifier propagates the eager residual explicitly; the module checks focused. |
 | World-coherent quotient classification | **completed** | [`WorldCoherentQuotientClassificationᵀ`](NuImprecisionWorldCoherentQuotientClassificationDef.agda#L36) and [`world-coherent-quotient-classification-proofᵀ`](NuImprecisionWorldCoherentQuotientClassificationProof.agda#L687) retain both the plain and eager `inst` residuals with value/no-bullet evidence; both modules check focused. |
 | Final quotient assembly | **completed modulo the pre-existing plain-`inst` capability** | [`world-coherent-quotient-final-catchup-proofᵀ`](NuImprecisionWorldCoherentQuotientFinalCatchupProof.agda#L24) dispatches strictly to the plain `inst` capability or [`WorldCoherentQuotientInstFunTagCatchupᵀ`](NuImprecisionWorldCoherentQuotientInstFunTagCatchupDef.agda#L31). The checked [`world-coherent-quotient-inst-fun-tag-catchupᵀ`](NuImprecisionWorldCoherentQuotientInstFunTagCatchupLemma.agda#L25) reduces the eager capability to plain `inst` and the completed [`world-coherent-source-inert-widen-frameᵀ`](NuImprecisionWorldCoherentSourceInertWidenFrameLemma.agda#L16). [`world-coherent-quotient-final-catchupᵀ`](NuImprecisionWorldCoherentQuotientFinalCatchupLemma.agda#L28) supplies the classifier and eager adapter internally, leaving only the already-open plain quotient-`inst` path semantics as a parameter. |
+| Carry an independent runtime sibling through final quotient catch-up | **higher-order construction complete off-compiler; one exact allocation leaf remains** | [`world-coherent-quotient-final-terminal-runtime-sibling-catchup-proofᵀ`](../../WorldCoherent/Quotient/Final/NuImprecisionWorldCoherentQuotientFinalTerminalRuntimeSiblingCatchupProof.agda) uses the raw quotient classifier. Fixed final contexts force both hidden change lists to be all-`keep` in completed branches. The eager `inst ; (★⇒★)!` residual is derived by [`world-coherent-quotient-inst-fun-tag-runtime-sibling-catchup-proofᵀ`](../../WorldCoherent/Quotient/InstFunTag/NuImprecisionWorldCoherentQuotientInstFunTagRuntimeSiblingCatchupProof.agda), so the canonical [`world-coherent-quotient-final-runtime-sibling-catchupᵀ`](../../WorldCoherent/Quotient/Final/NuImprecisionWorldCoherentQuotientFinalRuntimeSiblingCatchupLemma.agda) depends directly only on [`WorldCoherentQuotientInstRuntimeSiblingCatchupᵀ`](../../WorldCoherent/Quotient/InstCatchup/NuImprecisionWorldCoherentQuotientInstRuntimeSiblingCatchupDef.agda). Static diff and hole checks pass; focused Agda checking is pending. |
 | Former contradiction | **completed** | [`public-mismatch-relation`](GenSafeMismatchBlameRegression.agda#L164), [`source-program-typing`](GenSafeMismatchBlameRegression.agda#L171), and [`target-program-typing`](GenSafeMismatchBlameRegression.agda#L175) prove that the gradual programs remain related and well typed. [`source-down-compiler-agreement`](GenSafeMismatchBlameRegression.agda#L214) and [`target-down-compiler-agreement`](GenSafeMismatchBlameRegression.agda#L224) identify the synthesized coercions. [`source-blame-trace`](GenSafeMismatchBlameRegression.agda#L264) and [`target-blame-trace`](GenSafeMismatchBlameRegression.agda#L273) prove blame/blame. |
 | Compiler synthesis | **completed** | The `ν`-to-star cases of [`coerce-upʷᵐ`](CompileCoercions.agda#L668) and [`coerce-downⁿᵐ`](CompileCoercions.agda#L750) synthesize the eager dual forms. `CompileCoercions.agda` and its direct term-imprecision client check focused without holes. |
 | Repaired value/reindex dispatchers | **completed** | [`world-coherent-left-value-catchup-prefix-proofᵀ`](NuImprecisionWorldCoherentValueCatchupPrefixProof.agda#L181) treats `gen⊑groundᵀ` as an immediate value case using `GenSafe`, and [`atomic-target-value-reindexᵀ`](NuImprecisionAtomicTargetReindex.agda#L75) reconstructs that constructor at the requested proof-relevant index. |
@@ -13052,6 +13053,173 @@ paired-`∀ⁱ` source-only allocation leaves must not be reintroduced.
 4. Assemble the strict terminal engines, construct `GradualDGG`, and run the
    complete strict cone.
 
+### Current status after primitive completion
+
+The latest status is the
+**primitive completion and allocation-index blocker** section above.  In
+particular, application blame, primitive blame, primitive delta, and canonical
+lineage composition are strictly checked.  The backward strict spine now
+imports those modules, but its target-allocation import is not yet certified:
+the two matched related branches still need the low-level indexed allocation
+helper to expose its exact underlying raw result.
+
+### Current plan
+
+1. Expose the exact matched-allocation result, certify all four allocation
+   roots, and restore the green backward strict spine.
+2. Close runtime-bullet, application-β, and paired outer-cast roots.
+3. Assemble the exhaustive backward dispatcher and both terminal engines.
+4. Construct `GradualDGG` and run the complete strict cone.
+
+### 2026-07-24: target-bullet/source-universal ranked boundary
+
+- **The shared target-runtime rank is strict.**  The target-bullet phase uses
+  one successor over the existing hereditary pending-administration rank.
+  Source-universal closing computes the same rank from its supplied
+  `RuntimeOK` derivation, accumulating applications, primitives, allocations,
+  and pending target casts.  The three post-`β-Λ•` residuals strictly
+  decrease: the plain `Λ` residual has rank zero, while the universal-cast and
+  generic-cast residuals reuse the existing three-successor administration
+  equations.  The latter statements use the bare operational residual
+  coercion `c`; the temporary renamed coercion introduced before type
+  substitution has already been cancelled by the target beta step.
+
+- **The recursive rank is private to the closing SCC.**  Exact-rank
+  target-bullet and source-universal contracts add only an equality identifying
+  the rank already determined by the target value or target runtime evidence.
+  Their combined public result contains the existing
+  `WorldCoherentRightTargetBulletClosingᵀ` and
+  `WorldCoherentRightSourceAllClosingᵀ` statements directly.  A checked
+  projection instantiates the exact workers at their computed ranks, so no
+  rank, accessibility proof, or ambient catch-up mode leaks into the public
+  surface.
+
+- **Focused validation is green for the rank/projection layer.**
+  `NuImprecisionWorldCoherentRightTargetBulletSourceAllRankProof.agda`,
+  `NuImprecisionWorldCoherentRightTargetBulletSourceAllRankZeroProof.agda`,
+  the combined closing `Def`, and its projection `Proof` all pass
+  `--no-allow-unsolved-metas`.  The semantic SCC implementation is not yet
+  claimed.
+
+- **The matched-`Λ` target-bullet residual has a checked exact fit.**
+  Inverting an index from `∀ C ⊑ ∀ C′` leaves only the matched `∀ⁱ` and
+  source-only `ν` roots; there is no target-only root in type imprecision.
+  In the matched leaf, the stored body derivation reconstructs `Λ⊑Λᵀ`, and
+  `⊑αᵀ` constructs the pre-beta relation at the independently supplied final
+  index `r`.  There is in general no direct QTI derivation relating `Λ V` to
+  the beta reduct `W`.  The checked
+  `NuImprecisionWorldCoherentRightTargetLambdaBulletMatchedResidualProof.agda`
+  therefore completes ambient catch-up from the exact pre-beta relation,
+  consumes the observed `β-Λ•` step with
+  `WorldCoherentRightTargetIndexedStepResidualᵀ`, and repackages the retained
+  result as catch-up from `W`.  The attempted post-beta relation boundary was
+  deleted rather than retained as an uninhabited semantic premise.
+
+- **All three higher-order target-bullet residuals are checked.**
+  `NuImprecisionWorldCoherentRightTargetBulletResidualCasesProof.agda`
+  implements the plain-lambda, universal-cast, and generic-cast fields of the
+  existing residual-case record through one fully stated factorization:
+  complete ambient catch-up at the exact pre-beta index, consume the observed
+  target beta step, and repackage the retained indexed residual.  This whole
+  file passes `--no-allow-unsolved-metas`.
+
+- **The factorization does not itself decrease the SCC rank.**
+  Its ambient catch-up call is on the pre-beta target and therefore has the
+  current target-bullet rank.  The strict decrease lemmas apply only to the
+  target term after beta, which becomes available after that catch-up has
+  completed.  Consequently these green residuals are semantic fit theorems,
+  not yet terminating recursive callbacks.  The SCC must still construct a
+  post-beta call directly by the `∀ⁱ`/`ν` index cases, or use an exact
+  backward one-step theorem that exposes such a call.
+
+### Next boundary
+
+Implement the private three-mode worker by mutual recursion on structural QTI
+descent and target-runtime accessibility.  Start with the direct matched-`Λ`
+case below a right allocation using the checked pre-beta catch-up/residual
+factorization.  Keep its ambient catch-up dependency explicit inside the
+private SCC: this higher-order leaf validates the semantic factorization but
+does not by itself justify the recursive knot.  Handle the source-only `ν`
+index separately through crossed allocation and the strict post-beta
+runtime-rank decrease.  All same-runtime frame calls must remain visibly
+structural.
+
+### 2026-07-24: primitive completion and allocation-index blocker
+
+- **The target primitive family is complete.**  The two blame roots catch the
+  corresponding source operand to blame.  The `δ-⊕` root catches both source
+  operands to the target natural-number constants, frames the two silent
+  prefixes through the primitive contexts, and prepends them to a source-only
+  delta leaf.  A reusable world-coherent left-silent/outcome composition
+  theorem composes lineage and final-world invariants at both stages.  The
+  application-blame, primitive-blame, and primitive-delta assemblies all pass
+  strict checking and are imported by the backward strict spine.
+
+- **Weak-result lineage composition has one canonical implementation.**
+  `weak-one-step-compose-store-lineageᵀ` now lives beside the left-silent
+  composition theorem in the store-lineage proof module.  Five private copies
+  in allocation, target resume, unseal, and untag proofs were removed, and
+  their focused strict checks pass.
+
+- **The target-allocation implementation has one remaining certification
+  blocker.**  All four semantic branches are written.  The target-only
+  branches and both matched source-blame branches are direct.  In each matched
+  related branch, the low-level allocation helper returns an indexed wrapper
+  whose underlying result is the composed raw result, but the helper's
+  `WeakOneStepIndexedOutcome` pattern hides that definitional identity.
+  Consequently the composed `WeakOneStepStoreLineage raw` cannot yet be used
+  at `weakIndexedResult final-indexed`.  The repair should expose an exact
+  indexed value-catchup result or view at the low-level helper boundary, not
+  duplicate its large indexing proof.
+
+### Revised current plan
+
+1. Expose the exact underlying result of matched target-allocation indexing,
+   certify the four allocation roots, and restore the green backward strict
+   spine.
+2. Close runtime-bullet, application-β, and paired outer-cast roots while
+   retaining exact QTI and lineage evidence.
+3. Assemble the exhaustive strict backward one-step dispatcher and rerun both
+   terminal strict spines plus the public theorem cone.
+4. Assemble the strict terminal engines, construct `GradualDGG`, and run the
+   complete strict cone.
+
+### Current status after primitive completion
+
+Application blame, primitive blame, primitive delta, and canonical lineage
+composition are strictly checked and imported by the backward strict spine.
+The spine's target-allocation import is not yet certified: the two matched
+related branches need the low-level indexed allocation helper to expose its
+exact underlying raw result before their composed lineage can be attached.
+
+### Current plan
+
+1. Expose the exact matched-allocation result, certify all four allocation
+   roots, and restore the green backward strict spine.
+2. Close runtime-bullet, application-β, and paired outer-cast roots.
+3. Assemble the exhaustive backward dispatcher and both terminal engines.
+4. Construct `GradualDGG` and run the complete strict cone.
+
+- **The four target-allocation roots are complete.**  Matched ordinary and
+  casted allocation first catch the source body up to a value.  A source-blame
+  result closes before allocation; a related-value result composes the caught
+  lineage with the fresh matched allocation.  Target-only ordinary and casted
+  allocation use the exact right-lift embedding and retain the replacement
+  square or cast shapes and composition triangles.  All four continuing
+  branches carry lineage, coherence, exclusivity, and uniqueness.
+
+- **Both target primitive-blame roots are complete.**  The left-operand case
+  catches the source left operand to blame.  The right-operand case catches a
+  non-value left operand to a value, transports the right-operand imprecision,
+  and catches that operand to blame.  Every branch is a source-blame outcome;
+  the continuing primitive frontier is now only the `δ-⊕` square.
+
+- **Weak-result lineage composition has one canonical implementation.**
+  `weak-one-step-compose-store-lineageᵀ` now lives beside the existing
+  left-silent composition theorem in the store-lineage proof module.  Five
+  private copies in allocation, target resume, unseal, and untag proofs were
+  removed.  Their focused strict checks pass against the shared theorem.
+
 ### 2026-07-24: exact evidence reaches target administration and matched allocation
 
 - **Target administration plans now own their QTI evidence.**  Reveal and
@@ -13376,40 +13544,606 @@ paired-`∀ⁱ` source-only allocation leaves must not be reintroduced.
   Their definition, proof, assembly lemma, and backward strict-spine imports
   pass strict checking.
 
-- **All four target-allocation proof branches, their record assembly, and
-  assembly lemma are written, but not yet certified.**  Both matched branches
-  catch the source up under the surrounding `ν`, lift a caught source blame
-  through `ν` and `blame-ν`, and compose the final allocation lineage on a
-  continuing branch.  The two target-only branches use the direct
-  right-allocation transport.  The focused strict checker did not terminate
-  within two minutes, so this module remains outside the backward strict spine
-  until its checking cost or a latent elaboration loop is diagnosed.
+- **All four target-allocation roots are complete and pass focused strict
+  checking.**  The low-level allocation simulation now exposes exact indexed
+  value-catch-up builders for matched ordinary and matched casted allocation.
+  The older outcome helpers delegate to those builders, so the world-coherent
+  roots use the very same raw result for both the indexed outcome and its
+  relational-store lineage.  This removes the former hidden-result equality
+  blocker without transport.  The two matched roots catch the source under
+  `ν` and compose the final allocation lineage; the two target-only roots use
+  direct right-allocation transport.
 
 - **Both primitive-blame roots are complete.**  The left-operand case lifts a
   caught source blame through the whole primitive context.  The right-operand
   case first catches the source left operand up to a value and then lifts the
   source right-operand blame through the full primitive application.  Their
   definition, proof, and assembly lemma pass
-  `--no-allow-unsolved-metas`; importing them into the strict dispatcher is the
-  next integration step.
+  `--no-allow-unsolved-metas` and are imported by the backward strict spine.
 
-- **Publication validation is green at the aggregate boundary.**
-  `NuDGGTerminalBackwardStrictSpine.agda`,
-  `NuDGGTerminalForwardStrictSpine.agda`, and
-  `DynamicGradualGuarantee.agda` all pass
-  `--no-allow-unsolved-metas` with relational-store lineage enabled.  The
-  public module still states the theorem surface and does not yet construct
-  `GradualDGG`.
+- **The primitive `δ-⊕` root is complete.**  It catches both source operands
+  to target natural constants and composes their two silent prefixes with the
+  source delta leaf.  The focused strict assembly passes.
+
+- **The complete target ordinary-lambda `β` family passes focused strict
+  checking.**  Direct related lambdas use quotiented term substitution.  Once
+  the source function is already a value, the scheduler catches an arbitrary
+  source argument, frames its silent prefix under application, propagates
+  source blame, and transports the arrow relation.  The value/value terminal
+  classifies the source value as an ordinary lambda or an inert function cast.
+  The latter case uses strict recursion on the inner source function's
+  cast-spine rank.  Each recursive step distributes the domain coercion,
+  simulates target `β` at the inner function, frames the codomain cast or
+  conversion, and prepends source `β-↦`.  The canonical assembly requires only
+  the existing world-coherent source-value catch-up theorem.  An
+  arbitrary-source wrapper now first catches the source function to a value,
+  lifts that silent prefix through the whole application, and invokes the
+  strict source-function-value scheduler.  This closes the exact `·⊑·ᵀ`
+  target-β premise needed by the dispatcher.
+
+- **The earlier target-runtime-bullet closing construction is superseded.**
+  That route treated the stored pre-allocation index `q` and supplied
+  post-allocation index `r` as independently usable evidence, classified the
+  target polymorphic value, and introduced a ranked TargetBullet/SourceAll
+  semantic SCC.  The later type-index analysis below proves that `q` and `r`
+  are inconsistent.  Consequently none of the operational classification,
+  residual callbacks, or SCC wiring is needed; the obsolete modules have been
+  deleted rather than retained as compatibility shims.
+
+- **Any indexed target step against an already-valued source now has one
+  canonical root.**  The root invokes ambient-prefix right-value catch-up,
+  removes the observed `M′ —→[ χ ] N′` step by determinism, and retains a
+  χ-indexed residual with the exact relational-store lineage, final-world
+  invariants, and generalized source-bullet transport.  Its canonical lemma
+  passes strict checking and leaves only the existing right-value catch-up
+  worker explicit.  This one boundary handles pure target administration,
+  source-`∀` target allocation, and binary left-frame cases whose untouched
+  source operand contains the runtime bullet.  The older pure-only
+  specialization has been removed from the closed-world API; its sole paired
+  caller now uses the indexed root at `χ = keep`.  The application and
+  primitive residual left-frame consumers pass strictly: they use the
+  retained empty source trace and arbitrary-runtime/no-bullet-target transport
+  to frame the untouched operand without imposing a false source `No•`
+  premise.
+
+- **The two generic blame shortcuts needed by the dispatcher are strict.**
+  A source already equal to `blame` immediately yields the source-blame
+  outcome for any observed target step.  For target `blame-ν` under a matched
+  outer `ν`, the new root catches the related source body up to blame, lifts
+  that trace through the source `ν`, and takes `blame-ν`.  Both avoid
+  duplicating these arguments across ordinary and casted `ν` constructors.
+
+- **Paired outer-cast transport now retains the observed leading store
+  change.**  The common paired-cast transport accepts an arbitrary leading
+  `χ`, so its target coercion, residual tail, and lineage remain in the same
+  normal form instead of folding `χ` into a propositional-equality boundary.
+  That transport and the paired `conv⊑convᵀ` `ξ-⟨⟩` frame pass focused strict
+  checks.  The source-inert active value root also passes strictly by composing
+  left value catch-up with the generic indexed target-step root at `keep`.  A
+  quotient frame
+  now retains `StoreImpPrefix ρᵇ ρ` explicitly because its QTIP relation has no
+  allocation-prefix constructor.  The remaining source-active value cell is
+  exposed as one exact synchronized capability rather than deriving source
+  inertness from target compatibility.  The complete four-field outer-cast
+  assembly now passes strict checking.  It exposes three genuinely different
+  premises directly: ordinary paired active-value synchronization, quotient
+  active-value synchronization, and prefix-aware quotient-frame recursion.
+  The latter two remain the exact QTIP frontier; they are not folded into the
+  ordinary paired-cast concept.  The first quotient-frame helper now passes
+  strictly: it transports both widening-pair constructors through an arbitrary
+  leading store change and residual target tail while retaining the base-store
+  prefix.  A second strict helper reconstructs both QTIP downcast constructors
+  after an arbitrary leading change, with the exact transported quotient index
+  and composition square.  The complete QTIP downcast `ξ-⟨⟩` clause group now
+  also passes strictly: it inverts current whole-endpoint typings, recurses on
+  the embedded ordinary QTI premise, transports both downcasts and the outer
+  widening through `χ`, and frames the exact double-cast result.
+
+- **The target function-cast `β-↦` family is complete and strict.**  Its
+  exhaustive
+  function-relation analysis covers allocation prefixes, the four recursive
+  source-only cast/conversion clauses, ordinary paired casts, quotient
+  widening pairs, and the five target-only cast/conversion clauses.  The
+  recursive clauses decrease the source function's cast-spine rank.  The two
+  paired terminals are isolated as exact higher-order capabilities; their
+  proof reconstructs the post-beta domain and codomain relations from the
+  retained paired evidence.  Canonical assembly inlines the existing ordinary
+  and quotient paired-narrowing application lemmas at those exact contracts;
+  the complete lemma passes `--no-allow-unsolved-metas` and is imported by the
+  backward strict spine.
+
+- **Aggregate validation is no longer blocked by target allocation.**
+  Focused strict checks pass for the low-level exact allocation builders and
+  the four-cell world-coherent allocation assembly.  The backward strict spine
+  imports the completed primitive and allocation families; its aggregate
+  rerun now includes both application-β families and remains pending because
+  the cold aggregate dependency cone did not terminate promptly.  Every
+  newly imported family passes its focused strict check.  The public module
+  still states the theorem surface and does not yet construct `GradualDGG`.
+
+- **The legacy permissive one-step dispatcher has been audited as a case
+  skeleton, not as proof evidence.**  Its clauses can be reused for primitive,
+  `ν`, source-only cast/conversion, and target-only cast/conversion recursion,
+  but the module type-checks only because incomplete matching is permitted.
+  In particular, it omits the application roots, paired `conv⊑convᵀ` roots,
+  quotient `up⊑upᵀ` roots, and the runtime-bullet closing cases now being
+  proved separately.  The strict world-coherent dispatcher must enumerate
+  those families explicitly and use the new lineage-carrying outcomes.
+
+- **The strict binary left-step cases are complete.**  Application and
+  primitive left frames split the source runtime shape exactly.  The
+  no-bullet branch uses ordinary recursive framing.  When the source left
+  operand is already a value and the untouched source right operand contains
+  the runtime bullet, the proof completes right-value catch-up, consumes the
+  observed indexed target step, transports the active source operand with the
+  retained residual capability, and rebuilds the whole frame.  The focused
+  case module passes `--no-allow-unsolved-metas`.
+
+- **The already-source-value binary right-step cases are strict.**  For both
+  application and primitive operation, the direct package recurses on the
+  right operand and invokes the ordinary value/value right frame.  The
+  remaining crossed branch first has to catch a non-value source left operand;
+  this exposed a sharper invariant than final relational-store embedding.
+  A source-only allocation may change the source sibling while leaving its
+  runtime target sibling fixed, and the ordering of the resulting context rows
+  cannot be reconstructed from an opaque final `RelStoreEmbedding`.  The sound
+  boundary is therefore a lockstep left-value catch-up theorem.  It takes the
+  sibling QTI relation, source `No•`, target `RuntimeOK`, and endpoint typings,
+  then returns the ordinary caught result together with the sibling relation at
+  that exact final world.  Keep steps preserve the sibling relation, while
+  every source allocation uses
+  `LeftSourceAllocationRuntimeTransport`.  This theorem is being added as one
+  genuine augmented catch-up capability rather than adding a sibling-specific
+  field to `WorldCoherentLeftCatchupIndexedResult`: the latter has more than
+  two hundred constructor or pattern occurrences and would force an unrelated
+  global migration.  The crossed application-right consumer now passes
+  `--no-allow-unsolved-metas`: it frames the caught function prefix, recursively
+  simulates the target argument step at the exact caught world, and composes
+  the two indexed outcomes.  The crossed primitive-right consumer is strict as
+  well.  Its natural-number endpoint normalization now lives in the reusable
+  low-level primitive frame module, and a general world-coherent outcome
+  transport moves the framed result back across explicit endpoint/index
+  equalities.  Thus both crossed binary consumers are complete; the remaining
+  obligation is to inhabit their shared lockstep sibling-catch-up contract.
+  The exhaustive structural implementation of that contract is now strict.
+  It lifts the sibling relation once to the ambient prefix, carries it
+  definitionally through terminal and target-frame clauses, and preserves it
+  through source allocation only at construction time.  Two honest semantic
+  joins remain explicit: sibling-aware source-runtime catchup and
+  sibling-aware terminal quotient catchup.  Both return the caught result and
+  the transported sibling together as one dependent pair; no theorem attempts
+  to recover allocation order from an opaque final embedding.
+
+- **Canonical right-value runtime transport is being normalized at the
+  quotient boundary.**  Generalizing the value root from pure target steps to
+  arbitrary indexed target steps exposed a previously hidden proof regression
+  in `WorldCoherentRightValueCatchupRuntimeNoBulletTransportProof`.  Direct
+  arrow endpoint transport and a canonical quotient-arrow transport now pass
+  the ordinary down-application cases.  The complete module now passes
+  `--no-allow-unsolved-metas`.  Its quotient-function application cases use
+  typed component-pair congruence, quotient-middle congruence, and explicit
+  `applyTys-⇒` reindexing.  All unary cast/conversion and six `ν`/`νcast`
+  transports carry their shape, composition, or hereditary-replacement
+  evidence explicitly.  The three ordinary quotient down-application
+  rebuilds normalize reflexive quotient boundaries through the transported
+  index; the apparent remaining constraints were only underconstrained hidden
+  endpoints and shapes, not new operational obligations.
+
+- **The apparent target-bullet/source-`∀` SCC is actually vacuous.**  A target
+  runtime bullet stores
+  `q : Φ ∣ Δᴸ ⊢ B ⊑ `∀ C′ ⊣ Δᴿ` and also supplies its post-allocation index
+  `r : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ`.  Target-lifting `q` gives
+  `B ⊑ `∀ (renameᵗ (extᵗ suc) C′)` in the same post-allocation world.
+  Pairing that derivation with `r` constructs exactly the
+  `CommonTargetExtensionCycleᵀ` obstruction, so the two indices are
+  inconsistent before inspecting the term relation.  The new type-only
+  `TargetBulletIndexCycleᵀ` theorem packages this one-line reduction and passes
+  strict checking.  A second strict structural theorem peels
+  `Λ⊑ᵀ`, source inert cast/conversion frames, and allocation prefixes to prove
+  that no source value can be related to a target runtime bullet.  It closes
+  the source-`∀` target-bullet branch directly.  Canonical target-bullet closing
+  itself now eliminates `q` and `r` without inspecting the target
+  polymorphic-value form.  These three canonical lemmas all pass focused
+  strict checks.  The direct `∀ⁱ`/`ν` recursion, ranked
+  target-bullet/source-all SCC, combined projection record, and three
+  post-beta residual callbacks were consequently deleted: ten obsolete
+  modules and their strict-spine imports are gone, with no compatibility
+  shims or remaining references.  The complete forward aggregate strict spine
+  passes `--no-allow-unsolved-metas` after a cold three-minute rebuild.
+
+- **The strict backward dispatcher now has an exhaustive constructor audit.**
+  The ordinary QTI relation has 31 constructors.  All variable, lambda,
+  constant, matched-universal, instantiation-β, general-to-ground, and target
+  runtime-bullet heads are impossible against the corresponding target step.
+  Source blame, both application β families, primitive δ, the ordinary
+  application and primitive frames, all three `ν` families, source-only and
+  target-only cast/conversion frames and roots, and allocation-prefix
+  reassociation already have strict consumers.  The target-bullet contradiction
+  means the broad `WorldCoherentRightOneStepTargetRuntimeBulletᵀ` contract
+  should not become a semantic leaf: after QTI inversion its cases are source
+  blame, matched runtime bullet, source runtime bullet, the impossible target
+  runtime bullet, or structural prefix/frame recursion.  The obsolete broad
+  target-only capability has now been deleted from the runtime-bullet
+  statement module; its remaining matched and source-only contracts pass a
+  focused strict check.
+
+- **The remaining dispatcher frontier is now explicit.**  Six semantic
+  capabilities remain: lockstep sibling transport for crossed binary
+  right-steps, matched runtime-bullet simulation, source runtime-bullet
+  simulation, paired active-value synchronization, quotient active-value
+  synchronization, and exact active target-down synchronization inside QTIP.
+  The remaining structural work is a five-constructor QTIP dispatcher, the
+  three quotient application forms inside it, and the final prefix-aware
+  31-constructor assembly.  Direct inner-blame reconstruction under both
+  `down⊑downᵀ` and `gen-down⊑gen-downᵀ` is now strict: each exact constructor
+  clause catches the inner source to blame and lifts that trace through both
+  complete source casts.  Those first two QTIP branches now also have one
+  exhaustive strict case theorem.  Target body steps use the existing
+  quotient down frames, target blame uses the direct roots, and all active
+  target downcast roots delegate to one exact two-mode synchronization
+  contract.  The three quotient application constructors remain separate.
+  The ordinary-function quotient application constructor now has its own
+  exhaustive strict scheduler: it separates function framing, argument
+  framing/crossing, β or function-cast β, and direct left blame.  Its three
+  quotient-aware frame/root contracts stay explicit because the QTIP argument
+  cannot soundly be converted to ordinary QTI; the repository's quotient
+  counterexample rules out that shortcut.  The function-frame contract now
+  has a strict inhabitant.  It transports the untouched paired-narrowing
+  argument, both narrowing casts, the outer widening, and both quotient
+  boundary squares through recursive function simulation.  Its crossed
+  runtime-bullet branch consumes the indexed right-value residual and rebuilds
+  the whole quotient-aware application without changing the QTIP sibling into
+  QTI.  The value root of this constructor and the two quotient-function
+  application constructors remain unassembled.
+  Auditing the argument frame separates structural target steps under the
+  narrowing cast from active target-down roots.  The latter are not instances
+  of the id/gen-only quotient-down synchronization theorem: ordinary
+  application permits arbitrary `CastMode` and must retain the surrounding
+  function/application context.  A separate exact active-argument
+  synchronization contract now states that leaf with both quotient squares
+  and the outer widening intact, and its `Def` passes strict checking.  The
+  structural argument-frame proof now passes strictly as well.  It covers
+  direct and crossed argument framing, direct and crossed target blame, and
+  exhaustive delegation of active pure roots to that exact leaf.  Both
+  crossed branches normalize the `applyTerms`/cast boundary before composing
+  whole-term traces.  The paired-narrowing argument remains QTIP throughout;
+  no QTIP-to-QTI conversion or quotient erasure is used.
+  The active-argument contract now has a strict exhaustive root dispatcher.
+  Narrowing inversion rules out target instantiation and unseal roots, while
+  the target operand's `Value` evidence rules out cast blame.  Exactly three
+  arbitrary-mode full-context semantic cells remain: identity, sequence, and
+  successful/failing untag.  Each cell retains both quotient squares and the
+  enclosing application/widening context; no ordinary intermediate
+  imprecision index is invented from the quotient square.
+  The paired-cast target-`blame-⟨⟩` branch is now strict: after the dispatcher
+  exposes the exact `PairedCast` and inner `M ⊑ blame` premises, it catches the
+  source inner term to blame, lifts that trace through the whole source cast,
+  and returns source blame directly.  It adds no semantic capability or record
+  field.  None of the remaining gaps is hidden by the old permissive scratch
+  dispatcher.
+
+- **Source-runtime catch-up now carries every QTI compatibility witness
+  explicitly.**  The source-`ν`, reveal, and conceal interfaces had retained
+  their outer and inner imprecision indices but omitted the hereditary
+  replacement evidence that justifies rebuilding the corresponding QTI
+  constructor.  Their strengthened contracts now take that evidence directly.
+  Ordinary value catch-up passes the witness obtained by QTI inversion, while
+  source-`ν` and source-reveal catch-up transport it through the completed
+  inner indexed result using its replacement-coherence fields.  Focused strict
+  checks pass for the final source-only `ν` allocation proof, its final
+  assembler, accumulated source-`ν` catch-up, active source-unseal catch-up,
+  source-reveal catch-up, and the complete ordinary value-catch-up recursion.
+  The corresponding source-runtime-sibling contract has been strengthened in
+  the same three fields.  Exhaustive reveal and conceal sibling leaves pass
+  focused strict checks.  In the reveal proof, inert/value clauses preserve
+  the sibling definitionally, while identity, unseal, and blame completions
+  pass their second caught result and the sibling through the exact
+  silent-resumption join.  The complete structural
+  value-catch-up-with-sibling recursion also passes strictly with the repaired
+  source-`ν`, reveal, and conceal interfaces.  Narrowing and
+  widening are not definitionally neutral: after their first silent cast
+  frame, recursive value catch-up may allocate.  A new focused
+  composition theorem takes that first silent result and lineage together
+  with the recursively constructed caught-result/sibling pair, and returns the
+  composed caught result with the sibling at its exact final world.  It
+  normalizes `applyTerms-++`, `applyTys-++`, and the nested transported
+  imprecision index rather than trying to recover allocation order from an
+  opaque embedding.  Its first fresh consumer check exposed that the composed
+  caught result and sibling must be built from the same transparent composed
+  weak result; delegating caught-result construction to the older opaque
+  world-coherent wrapper loses definitional alignment of the final
+  projections.  The join is being revised to inline that exact shared
+  construction.  The revised join now passes its focused strict check: it
+  builds one transparent composed weak result and packages both the
+  world-coherent caught result and normalized sibling from that same object.
+  The source-narrow sibling proof now passes strictly as well.  Its value
+  branch frames the narrowing cast, recursively catches the framed value with
+  the sibling, and composes through the join.  Its blame branch packages the
+  terminal blame step as the second world-coherent caught result and uses the
+  same join, replacing the former opaque specialized blame wrapper.
+  The source-widen sibling proof now passes strictly.  Its inert, identity,
+  sequence, source-only instantiation, standalone unseal, and blame clauses
+  retain the exact cast shape and composition triangle throughout.  The
+  non-neutral reveal/unseal completions use the sibling-aware
+  silent-resumption join rather than returning a sibling attached to an
+  opaque independently constructed result.
+  The two established terminal quotient runtime-sibling forms now have
+  constructive accumulated-world adapters.  Both the identity-only
+  `down-up` form and the generalized `down-up` form transport the narrowing
+  relation, quotient widening pair, widening shapes, and canonical boundary
+  square through the completed inner catch-up, then compose with the existing
+  exact sibling-aware silent-resumption join.  They share one genuine
+  exact-final terminal quotient sibling contract.  Its higher-order proof now
+  calls the raw canonical quotient classifier directly.  In a completed
+  no-allocation branch, the classifier fixes both final type-context lengths.
+  Monotonicity of `applyTyCtxs` then shows that neither hidden change list can
+  contain `bind`; both are all-`keep`.  The independent sibling is therefore
+  definitionally unchanged up to endpoint and index transport, with the final
+  proof-relevant index identified by assumption-membership uniqueness.
+  A plain quotient-`inst` residual delegates to one exact-final sibling-aware
+  semantic leaf.  The eager `inst ; (★⇒★)!` residual is no second leaf: it is
+  derived from the plain one by adding the inert function-tag frame and
+  prepending the administrative sequence step through the exact
+  sibling-aware silent-resumption join.  Consequently the canonical
+  two-field terminal quotient runtime-sibling record has exactly one direct
+  semantic dependency,
+  `WorldCoherentQuotientInstRuntimeSiblingCatchupᵀ`; it takes neither the
+  broad source-runtime-sibling record nor a left-value sibling capability.
+  The plain-instantiation leaf interface, eager adapter, terminal proof,
+  accumulated-world adapters, and canonical assembler now all pass focused
+  `--no-allow-unsolved-metas` checks.  The eager adapter reconstructs the
+  relation immediately after the leading `β-seq` step from the plain quotient
+  instantiation relation and the source function-tag cast.  It does not reuse
+  the canonical relation at the end of the later catch-up, whose source
+  endpoint is already the final caught result.
+  Using the ordinary final quotient result alone would still be unsound for
+  assembly because it loses sibling alignment whenever classification exposes
+  an allocation residual.  The rejected generic ordinary-up QTIP form has
+  been replaced by a source-down-application-only constructor, so it cannot
+  reach terminal value catch-up and introduces no third terminal sibling
+  field.
+  The narrow replacement is
+  `source-down-applicationᵖᵀ`: its target is syntactically an application of
+  two stored values, while its source retains only the argument downcast
+  justified by the exact composition triangle.  The target therefore cannot
+  enter terminal value catch-up; its next inner root is exactly `β` or `β-↦`.
+  The constructor, typing projections, exact embedding, structural
+  shift/substitution/prefix/allocation transports, runtime/no-bullet
+  transports, identity-elimination root, and exhaustive frame dispatcher all
+  pass focused strict checks.  The remaining obligation introduced by this
+  constructor is its single full-context `β`/`β-↦` semantic value-root
+  boundary.
+  Attempting that value root exposed a stricter closure failure.  The exact
+  downcast triangle first reconstructs the ordinary argument relation, so the
+  existing lambda-`β` and function-cast-`β` roots return an ordinary
+  post-beta relation at `pB`.  Rebuilding the unchanged outer quotient
+  widenings then requires `PairedWideningCompatible` for `u`, `u′`, `pB`, and
+  `pE`; the reflexive quotient boundary square already supplies both of the
+  required composition triangles.  The focused
+  `source-down-application-compatible-outerᵀ` diagnostic proves this route for
+  both quotient-widening constructors and passes a strict isolated ginger
+  check.  In the identity-elimination input, however,
+  `up⊑upᵀ (ordinary-down-applicationᵖᵀ ...)` carries no such compatibility,
+  and the lower QTIP constructor cannot mention the enclosing `u`, `u′`, or
+  `pE`.  Thus the premise cannot be added only to
+  `source-down-applicationᵖᵀ`.  It must be introduced at the full outer
+  application relation before the identity step, so identity elimination can
+  retain it and ordinary paired widening can reconstruct the post-beta
+  relation.  The narrow residual is therefore not yet a completed repair.
+  The source runtime-bullet sibling adapter now passes strictly.  Its primary
+  `α⊑ᵀ` relation starts at the just-allocated base store, while the independent
+  sibling has already been lifted to the ambient prefix.  The genuine
+  `WorldCoherentLeftValueCatchupRuntimeSiblingAmbientᵀ` contract now exposes
+  exactly that asymmetry.  The public prefix contract remains the distinct
+  entry point where both relations start in the base store and the sibling is
+  lifted using its supplied ambient typings.  This avoids fabricating a
+  RuntimeOK store-weakening theorem for the source bullet.
+  The source-`ν` sibling proof now passes strictly too.  Its value branch
+  transports the independent runtime sibling through the source-only binder,
+  prefixes that relation across the fresh source-only store head, and invokes
+  recursive value catch-up in the exact allocated world.  Only the no-bullet
+  source typing is weakened; the target may contain the runtime bullet and its
+  store is definitionally unchanged by the source-only allocation.  The
+  resulting caught value and sibling are composed through the same exact
+  silent-resumption join.  Its blame branch remains store-neutral after the
+  framed `ν` step.
+  Source-`ν ★` cast sibling catch-up is now split at the transported body view
+  only in the generic exact-final interface.  At the accumulated source
+  handler, the incoming index is source-only `ν`, and
+  `transportSourceNu` returns a `SourceNuIndex` whose stored equality identifies
+  the final index as source-only `ν` again.  The formerly assumed paired body
+  branch is therefore unreachable here; trying to pattern-match the generic
+  two-way view at the transported index exposed exactly this constructor-index
+  mismatch.  The runtime-sibling proof now consumes the stronger
+  `SourceNuIndex` directly and transports the completed inner relation along
+  its explicit equality.  Its sole value branch transports the widening cast
+  and composition triangle to the terminal inner world, allocates the fresh
+  source-only head, prefixes the renamed sibling across that asymmetric
+  allocation, and recursively catches the resulting bullet-plus-cast value.
+  Both the inner frame and allocation are composed with the exact
+  sibling-aware silent-resumption join.  The blame branch retains the sibling
+  definitionally.  The extracted `transport-source-nu-body-shape` theorem and
+  the complete source-`ν ★` cast runtime-sibling proof pass focused strict
+  checks.  The unused exact-final paired-index sibling contract has been
+  deleted rather than retained as a compatibility surface.
+  The ordinary source-paired-cast runtime-sibling field now has the same exact
+  structural factorization.  It transports the paired cast to the inner
+  caught result's final world, frames both casts as one transparent silent
+  result, and composes the exact-final caught-result/sibling pair through the
+  sibling-aware silent-resumption join.  The genuine exact-final
+  caught-result/sibling contract now has its own `Final/Paired` definition,
+  with the full dependent conclusion still stated inline.  Its proof
+  exhaustively handles paired reveal, conceal, and compatible widening.
+  Conversion, source blame, and source-inert widening are store-neutral and
+  retain the sibling definitionally.  The only allocation-sensitive branch
+  delegates to the existing source-widen sibling field before adding the
+  inert target frame, so it never recovers allocation order from an opaque
+  result.  The first focused check exposed the new hereditary-replacement
+  premise on `paired-reveal`; after all reveal and conceal patterns were
+  updated, checking the combined constructor family did not terminate in a
+  reasonable time.  The proof is now split through the genuine
+  `WorldCoherentFinalPairedConversionValueRuntimeSiblingCatchupᵀ` boundary.
+  Reveal and conceal elaborate independently of paired widening, the reduced
+  paired-cast proof delegates one conversion case, and a canonical lemma
+  assembles the two proofs.  The identity conversion clauses also now project
+  the paired hereditary replacement to the exact right-replacement witness
+  required by `⊑conv↑ᵀ` and `⊑conv↓ᵀ`; no replacement premise is left
+  implicit.  The same explicit projection repairs the pre-existing ordinary
+  exact-world paired-conversion proof.  Static diff and hole checks pass;
+  the paired-replacement projection, conversion-sibling definition and proof,
+  reduced paired-cast proof, and canonical paired-cast assembly all pass
+  focused `--no-allow-unsolved-metas` checks in an isolated ginger probe.
+  The allocation-sensitive paired-widening clause initially failed only
+  because projecting the dependent source-widen result hid the equality
+  between the caught result's final world and the sibling's final world.
+  Constructor-form elimination of that dependent pair, down through the
+  canonical silent invariant, lets the existing target-widen frame preserve
+  the sibling definitionally; no additional semantic invariant or frame
+  theorem was needed.  A focused check of the older non-sibling
+  paired-conversion proof next exposed a separate stale interface migration:
+  its final paired contracts predated the `AssumptionMembershipUnique` field
+  of world-coherent results.  The ordinary paired-conversion,
+  paired-widening, and paired-cast contracts now thread the already-available
+  uniqueness witness directly, with no compatibility wrapper.  Their three
+  proofs and the sole ordinary source-paired-cast consumer all pass focused
+  strict checks, so the explicit replacement projection is verified in both
+  the sibling and non-sibling final paired paths.
+
+  A dependency audit also confirms that there is no existing non-sibling
+  canonical assembly or rank that can justify tying this knot recursively.
+  The ordinary value dispatcher recurses structurally on its QTI derivation
+  but takes `WorldCoherentSourceRuntimeCatchupᵀ` as an external parameter; the
+  repository contains only that record definition, not an inhabitant.  The
+  sibling dispatcher likewise takes both
+  `WorldCoherentSourceRuntimeSiblingCatchupᵀ` and
+  `WorldCoherentQuotientFinalRuntimeSiblingCatchupᵀ`.  In the reverse
+  direction, source bullet needs the ambient value dispatcher, while source
+  `ν`, `νcast`, narrowing, and widening need the prefix dispatcher.  The
+  paired source field needs exact-final paired-cast catch-up, whose active
+  compatible-widening case currently calls the source-widen sibling field.
+  Hence the cyclic component is source-runtime/value/final-paired catch-up.
+  The quotient side is only an incoming chain: the plain quotient-inst
+  sibling leaf builds terminal quotient catch-up, which builds the two-field
+  final quotient record consumed by the value dispatcher; none of those
+  assemblers takes the broad source-runtime or value capability.
+
+  Consequently no unguarded record knot was added.  The administration-rank
+  audit has now made the next boundary precise.  The old target administration
+  arithmetic was already side-neutral: it depends only on a source-or-target
+  value and a list of coercions.  It now lives canonically in
+  `proof/Core/Administration/NuImprecisionAdministrationMeasure*`; every
+  target consumer imports that core API directly, and the obsolete
+  target-named modules have been deleted.  Write its two ranks as
+  `P(v, cs)` for pending casts and `N(v, c, cs)` for pending `ν`.
+
+  The smallest constructor-form source control state has only
+  `casts cs`, `bullet cs`, and `ν c cs`, ranked by `P(v, cs)`,
+  `P(v, cs)`, and `N(v, c, cs)`, respectively.  Narrowing and widening
+  share `casts`; ordinary source `ν` and source-only `νcast` share `ν`.
+  The strict proof covers removal of an identity head, inert absorption,
+  tag/untag and seal/unseal cancellation, sequence expansion,
+  instantiation into `ν`, all three runtime-bullet value forms, and the exact
+  source allocation step
+
+  `N(v, c, cs) = 1 + P(⇑v, c ∷ map ⇑ᶜ cs)`.
+
+  The last equation deliberately shifts the value and only the outer pending
+  tail; the binder-local coercion `c` is already under the new binder.  It
+  applies unchanged to ordinary source `ν` and source-only `νcast`.
+  `NuImprecisionSourceAdministrationState` and
+  `NuImprecisionSourceAdministrationMeasureProof` pass focused strict checks.
+  The consolidated core proof and representative target pending-cast,
+  inst/`ν`, and paired-`Λ` allocation consumers also pass focused strict
+  checks on Ginger.  The complete target cast-terminalization proof, the
+  terminal-forward DGG strict spine, and the right source-`∀` closing strict
+  spine pass there as well.
+
+  Two formerly listed “decreases” are instead negative architectural results.
+  The current source-bullet adapter reconstructs exactly the same
+  `((⇑ᵗᵐ V) •) ⊑ V′` relation and calls the broad value dispatcher again.
+  The source-narrow adapter can likewise return to exactly the same
+  `V ⟨ c ⟩ ⊑ V′` configuration when the inner catch-up is zero-step.
+  Irreflexivity of the new rank records that neither identity edge can be
+  oriented; both adapters must be replaced by direct source-administration
+  processing.  The active paired-widening branch needs no fourth state or
+  recursive decrease: it can enter `casts (c ∷ [])` once and add the inert
+  target frame nonrecursively.  Thus the future accessibility worker is
+  smaller than the earlier six-edge estimate and need not rank QTI height or
+  the paired final proof.
+
+  Transporting the sibling also required runtime-shape preservation through
+  accumulated store changes.  This is deliberately not stated for arbitrary
+  type-variable renamings: a general renaming need not preserve the shifted
+  operand shape of the runtime bullet.  The exact
+  `⇑ᵗᵐ-preserves-RuntimeOK` theorem now lives in `NuTermProperties`, and
+  canonical `applyTerm[s]-preserves-RuntimeOK` lemmas live beside the existing
+  Value/`No•` store-change lemmas in `ReductionProperties`.  The older
+  compilation-local duplicates and catch-up-local shift theorem were deleted.
+  All four affected focused modules pass strict checks.
+
+- **Ordinary source-`ν` terminalization has only the source-only index
+  branch.**  Transporting a `ν` QTI index produces a `SourceNuIndex` view and
+  preserves the body replacement witness.  The exact-final source-`ν`
+  contract now exposes both facts, so its assembler pattern-matches the view
+  equality and invokes only the source-only allocation proof.  The former
+  paired-`∀` branch was an artifact of the older, weaker QTI invariant and is
+  unreachable after the repair.  Its three closed-world ordinary source-`ν`
+  modules and strict-spine imports have therefore been deleted; the distinct
+  paired source-`νcast` path remains.
+
+- **Right replacement has one genuine `ν`/`∀ⁱ` boundary.**  Source-seal
+  cancellation exposed the case where the target seal variable is replaced by
+  a stored universal.  Before replacement, a source universal related to that
+  target variable necessarily has a source-only `ν` index; after replacement,
+  the existing paired conceal may expose a matched `∀ⁱ` index.  The focused
+  `replace-right-ν∀` constructor records exactly this transition:
+
+  ``ν safe occ p [ β ↦ `∀ B ]ᴿ ∀ⁱ q``.
+
+  Its two body derivations remain under their distinct source-only and matched
+  binder schedules; no equality between those schedules is asserted.  The
+  four canonical right-replacement transports reconstruct this constructor
+  directly.  Source-seal cancellation now handles `ν`/`ν` recursively and
+  uses the new constructor at the first `ν`/`∀ⁱ` boundary.  The complete
+  cancellation proof passes `--no-allow-unsolved-metas`.  This does not loosen
+  arbitrary QTI reindexing: it permits only the binder-schedule change caused
+  by replacing a target variable with an explicit universal.
+
+- **The combined down/application/up QTI invariant is closed under the basic
+  structural transports.**  The strengthened `down·up⊑down·upᵀ` case is now
+  handled by term-context shift, prefix-aware parallel substitution, left
+  renaming, and relational-world embedding.  Store-prefix weakening already
+  transports ordinary QTI generically through `allocation-prefixᵀ`; its
+  quotiented worker now contains only the four surviving quotient cases.  The
+  deleted `ordinary-down-applicationᵖᵀ` and
+  `source-down-applicationᵖᵀ` cases and imports have been removed from all five
+  consumers.  The left and two-sided rename cases use
+  `paired-widening-compatible-rename-leftᵢ` and
+  `paired-widening-compatible-rename²ᵢ` directly, while store-prefix
+  substitution preserves the compatibility witness unchanged and transports
+  the store-indexed `QuotientWideningPair`.  No compatibility alias or layered
+  definition was introduced.
+
+  The following focused checks all pass with
+  `--no-allow-unsolved-metas -v0` in the isolated Ginger worktree:
+  `NuImprecisionTermContextShiftProof.agda`,
+  `NuImprecisionParallelTermSubstitutionProof.agda`,
+  `NuImprecisionStorePrefixNoBulletProof.agda`,
+  `NuImprecisionLeftRenameNoBulletProof.agda`, and
+  `NuImprecisionWorldEmbeddingNoBullet.agda`.  The world-embedding check also
+  confirms the current exhaustive `replace-right-ν∀` compatibility transports
+  are present in its strict dependency cone.
 
 ### Revised current plan
 
-1. Diagnose the nonterminating focused check for the assembled four
-   target-allocation roots, make it pass strictly, and import its existing
-   assembly lemma into the backward strict spine.
-2. Import the completed primitive-blame roots, then close runtime-bullet,
-   primitive-delta, application-β, and paired outer-cast roots while retaining
-   exact QTI and lineage evidence.
-3. Assemble the exhaustive strict backward one-step dispatcher and rerun both
-   terminal strict spines plus the public theorem cone.
-4. Assemble the strict terminal engines, construct `GradualDGG`, and run the
+1. Finish quotient transport normalization and the crossed binary sibling
+   catch-up invariant; target-bullet recursion has already been replaced by
+   the strict type-index contradiction.
+2. Prove the source-down-application `β`/`β-↦` value root and the remaining
+   exact active synchronization leaves; all current QTIP transport clauses and
+   the paired target-blame branch are complete.
+3. Assemble the exhaustive prefix-aware world-coherent backward one-step
+   dispatcher and restore the green aggregate backward strict spine.
+4. Use the dispatcher in both terminal backward engines, connect the strict
+   forward and backward terminal engines, construct `GradualDGG`, and run the
    complete strict cone.

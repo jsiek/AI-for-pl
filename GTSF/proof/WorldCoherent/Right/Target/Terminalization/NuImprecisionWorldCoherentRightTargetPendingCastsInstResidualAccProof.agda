@@ -39,9 +39,9 @@ open import Relation.Binary.PropositionalEquality using
 open import TermTyping using
   (cast-tag-or-id)
 open import
-  proof.Target.Administration.NuImprecisionTargetAdministrationMeasureProof
+  proof.Core.Administration.NuImprecisionAdministrationMeasureProof
   using
-  (target-inst-rank-decreases; target-nu-rank-decreases)
+  (inst-rank-decreases; nu-rank-decreases)
 open import
   proof.Target.Administration.NuImprecisionTargetPendingCasts
   using (applyTargetPendingCasts)
@@ -117,7 +117,7 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     vV noV noW relation
     with smaller
       (triple-successor-rank-decrease
-        (target-inst-rank-decreases vW B s cs))
+        (inst-rank-decreases vW B s cs))
 world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     allocation prepend
     {B = B} {s = s} {cs = cs}
@@ -131,7 +131,7 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     with allocation vW
       (smaller-nu
         (successor-rank-decrease
-          (target-nu-rank-decreases vW s cs)))
+          (nu-rank-decreases vW s cs)))
       mode seal★ widening c-shape composition
       tail coherent exclusive unique wfR
       (apply-pending-runtime cs (ok-ν (ok-no noW)))
@@ -162,7 +162,7 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     vV noV noW relation
     with smaller
       (triple-successor-rank-decrease
-        (target-inst-rank-decreases vW B s cs))
+        (inst-rank-decreases vW B s cs))
 world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     allocation prepend
     {B = B} {s = s} {cs = cs}
@@ -176,7 +176,7 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     with allocation vW
       (smaller-nu
         (successor-rank-decrease
-          (target-nu-rank-decreases vW s cs)))
+          (nu-rank-decreases vW s cs)))
       cast-tag-or-id seal★-tag-or-id
       (widen-mode-relax C.id-only≤tag-or-idᵈ widening)
       c-shape composition tail coherent exclusive unique wfR

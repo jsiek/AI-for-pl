@@ -211,6 +211,16 @@ data _[_↦_]ᴿ_ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx} :
     p [ β ↦ X′ ]ᴿ q →
     ν safe occ p [ β ↦ X′ ]ᴿ ν safe′ occ′ q
 
+  replace-right-ν∀ :
+    ∀ {β : TyVar} {A B : Ty}
+      {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+        ∣ suc Δᴸ ⊢ A ⊑ Types.＇ β ⊣ Δᴿ}
+      {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+        ∣ suc Δᴸ ⊢ A ⊑ B ⊣ suc Δᴿ}
+      {safe : NonVar A}
+      {occ : occurs zero A ≡ true} →
+    ν safe occ p [ β ↦ Types.`∀ B ]ᴿ ∀ⁱ q
+
 
 infix 4 _[_↦_⊑⟨_⟩_↤_]ᴾ_
 

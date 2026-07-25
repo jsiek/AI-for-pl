@@ -14,6 +14,9 @@ open import Data.Nat using (zero)
 open import Data.Product using (_,_)
 
 import Coercions as C
+open import CastImprecisionShape using (shape-tag-base)
+open import ImprecisionComposition using
+  (comp-idι-tag; comp-tag-id★)
 open import ImprecisionWf using (id★; idι)
 import NarrowWiden as NW
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
@@ -38,7 +41,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import PairedWideningCompatibility using
-  (compatible-source-inert)
+  (compatible-source-leaf; leaf-tag)
 import Primitives as P
 open import QuotientedTermImprecision using
   ( cast⊒⊑ᵀ
@@ -101,9 +104,10 @@ nat-tagged-relation :
 nat-tagged-relation =
   conv⊑convᵀ
     (paired-widening
-      cast-tag-or-id seal★-tag-or-id nat-tag-typing
-      cast-tag-or-id seal★-tag-or-id nat-tag-typing
-      (compatible-source-inert (HNat C.!)))
+      cast-tag-or-id seal★-tag-or-id nat-tag-typing shape-tag-base
+      cast-tag-or-id seal★-tag-or-id nat-tag-typing shape-tag-base
+      comp-tag-id★ comp-idι-tag
+      (compatible-source-leaf (leaf-tag HNat)))
     (κ⊑κᵀ {n = zero})
 
 source-value-tagged-relation :

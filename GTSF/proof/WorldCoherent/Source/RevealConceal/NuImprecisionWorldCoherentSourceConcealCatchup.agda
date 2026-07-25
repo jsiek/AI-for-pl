@@ -514,7 +514,7 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q replacement
     with result-conceal-conversionᵀ indexed c↓
 world-coherent-source-inert-conceal-castᵀ inert c↓
@@ -524,7 +524,7 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q replacement
     | μ′ , final-conversion
     with final
@@ -535,7 +535,7 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q replacement
     | μ′ , final-conversion
     | inj₁ (vW , noW) =
@@ -545,7 +545,7 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
         (inj₁ (vW ⟨ inert′ ⟩ , no•-⟨⟩ noW))))
     (weak-step-store-lineage
       lineage-store lineage-embedding lineage-prefix)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 
@@ -584,7 +584,7 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q replacement
     | μ′ , final-conversion
     | inj₂ refl =
@@ -594,7 +594,7 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
         combined-transport combined-coherence)
       (left-catchup-invariant
         (left-silent-invariant refl refl) (inj₂ refl)))
-    combined-lineage coherent exclusive wfL
+    combined-lineage coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 
@@ -699,7 +699,7 @@ world-coherent-source-id-conceal-castᵀ atom c↓
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q replacement
     with result-conceal-conversionᵀ indexed c↓
 world-coherent-source-id-conceal-castᵀ atom c↓
@@ -709,7 +709,7 @@ world-coherent-source-id-conceal-castᵀ atom c↓
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q replacement
     | μ′ , final-conversion
     with final
@@ -720,7 +720,7 @@ world-coherent-source-id-conceal-castᵀ atom c↓
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q replacement
     | μ′ , final-conversion
     | inj₁ (vW , noW) =
@@ -730,7 +730,7 @@ world-coherent-source-id-conceal-castᵀ atom c↓
         combined-transport combined-coherence)
       (left-catchup-invariant
         (left-silent-invariant refl refl) (inj₁ (vW , noW))))
-    combined-lineage coherent exclusive wfL
+    combined-lineage coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 
@@ -827,7 +827,7 @@ world-coherent-source-id-conceal-castᵀ atom c↓
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q replacement
     | μ′ , final-conversion
     | inj₂ refl =
@@ -837,7 +837,7 @@ world-coherent-source-id-conceal-castᵀ atom c↓
         combined-transport combined-coherence)
       (left-catchup-invariant
         (left-silent-invariant refl refl) (inj₂ refl)))
-    combined-lineage coherent exclusive wfL
+    combined-lineage coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 

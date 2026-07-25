@@ -46,6 +46,14 @@ open import
 
 record WorldCoherentRightOneStepAtomicAndBlameRoots : Set₁ where
   field
+    rightStepSourceBlameRoot :
+      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+        {ρ : StoreImp Φ Δᴸ Δᴿ}
+        {N′ : Term} {A B : Ty} {χ}
+        {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+      WorldCoherentWeakOneStepIndexedOutcome
+        {M = blame} {N′ = N′} {χ = χ} {ρ = ρ} p
+
     rightStepTargetAtomicIdentityRoot :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ : StoreImp Φ Δᴸ Δᴿ}

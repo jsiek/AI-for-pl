@@ -5,6 +5,7 @@ module proof.Core.Properties.ReductionProperties where
 --   * Multi-step composition, store-change action composition, type-action
 --     well-formedness/shape lemmas, and reduction congruence lemmas for
 --     contexts that do not involve narrowing/widening.
+--   * Store-change actions preserve values, no-bullet terms, and runtime shape.
 --   * Narrowing/widening-specific reduction arguments belong in their
 --     corresponding proof modules.
 
@@ -34,8 +35,9 @@ open import proof.Core.Properties.NuTermProperties
   using
     ( renameᵗᵐ-ext-suc-comm
     ; renameᵗᵐ-open-commute
-    ; renameᵗᵐ-preserves-Value
     ; renameᵗᵐ-preserves-No•
+    ; renameᵗᵐ-preserves-Value
+    ; ⇑ᵗᵐ-preserves-RuntimeOK
     )
 open import proof.Core.Properties.TypeProperties using
   ( TyRenameWf-suc
@@ -489,6 +491,23 @@ applyTerms-preserves-No• :
 applyTerms-preserves-No• [] noM = noM
 applyTerms-preserves-No• (χ ∷ χs) noM =
   applyTerms-preserves-No• χs (applyTerm-preserves-No• χ noM)
+
+applyTerm-preserves-RuntimeOK :
+  ∀ χ {M} →
+  RuntimeOK M →
+  RuntimeOK (applyTerm χ M)
+applyTerm-preserves-RuntimeOK keep okM = okM
+applyTerm-preserves-RuntimeOK (bind A) okM =
+  ⇑ᵗᵐ-preserves-RuntimeOK okM
+
+applyTerms-preserves-RuntimeOK :
+  ∀ χs {M} →
+  RuntimeOK M →
+  RuntimeOK (applyTerms χs M)
+applyTerms-preserves-RuntimeOK [] okM = okM
+applyTerms-preserves-RuntimeOK (χ ∷ χs) okM =
+  applyTerms-preserves-RuntimeOK χs
+    (applyTerm-preserves-RuntimeOK χ okM)
 
 applyTerms-const :
   ∀ χs κ →

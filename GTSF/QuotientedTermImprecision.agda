@@ -7,8 +7,11 @@ module QuotientedTermImprecision where
 --     form.
 --   * Omits the three asymmetric application/double-cast rules from
 --     `NuTermImprecision`.
---   * Uses quotiented imprecision only after paired narrowing casts, underneath
---     paired widening casts.
+--   * Uses quotiented imprecision after paired narrowing casts underneath
+--     paired widening casts, except at an application boundary where the
+--     complete compatible down-application-up form is retained in QTI.
+--   * Carries outer paired-widening compatibility before a target identity
+--     argument cast disappears, so the residual rebuilds ordinary QTI.
 --   * Keeps paired `gen` bodies in that quotient after `β-gen•` exposes
 --     their tag-enabled narrowing modes.
 --   * Paired reveal/conceal evidence uses store correspondence links, so
@@ -294,6 +297,38 @@ mutual
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ L · M ⊑ L′ · M′ ⦂ B ⊑ B′ ∶ pB
+
+    down·up⊑down·upᵀ :
+        ∀ {L L′ M M′ A A′ C C′ B B′ E E′
+          pA pC pB pE d d′ u u′ μ μ′
+          d-shape d′-shape u-shape u′-shape}
+      → CastMode μ
+      → SealModeStore★ μ (leftStoreⁱ ρ)
+      → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ A ⊒ C
+      → narrowing ⊢ᶜ d ⦂ d-shape
+      → CastMode μ′
+      → SealModeStore★ μ′ (rightStoreⁱ ρ)
+      → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ C′
+      → narrowing ⊢ᶜ d′ ⦂ d′-shape
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺ L ⊑ L′
+          ⦂ C ⇒ B ⊑ C′ ⇒ B′ ∶ pC ↦ pB
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ pA
+      → d-shape ；⌊ pA ⌋≋ᵖ
+          (quotientᵖ ≈∀-refl pC ≈∀-refl) ； d′-shape
+      → QuotientWideningPair Δᴸ Δᴿ ρ u u′ B B′ E E′
+      → widening ⊢ᶜ u ⦂ u-shape
+      → widening ⊢ᶜ u′ ⦂ u′-shape
+      → u-shape ；⌊ pE ⌋≋ᵖ
+          (quotientᵖ ≈∀-refl pB ≈∀-refl) ； u′-shape
+      → PairedWideningCompatible
+          Φ Δᴸ Δᴿ u u′ pB pE u-shape u′-shape
+        ------------------------------------------------------------
+      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+          ⊢ᴺ (L · (M ⟨ d ⟩)) ⟨ u ⟩
+            ⊑ (L′ · (M′ ⟨ d′ ⟩)) ⟨ u′ ⟩
+          ⦂ E ⊑ E′ ∶ pE
 
     up⊑upᵀ :
         ∀ {N N′ A A′ D D′ qD u u′ s s′}
@@ -778,30 +813,6 @@ mutual
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ M ⟨ d ⟩ ⊑ M′ ⟨ d′ ⟩ ⦂ D ⊑ᵖ D′ ∶ qD
 
-    ordinary-down-applicationᵖᵀ :
-        ∀ {L L′ M M′ A A′ C C′ B B′
-          pA pC pB d d′ μ μ′ s s′}
-      → CastMode μ
-      → SealModeStore★ μ (leftStoreⁱ ρ)
-      → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ A ⊒ C
-      → narrowing ⊢ᶜ d ⦂ s
-      → CastMode μ′
-      → SealModeStore★ μ′ (rightStoreⁱ ρ)
-      → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ C′
-      → narrowing ⊢ᶜ d′ ⦂ s′
-      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-          ⊢ᴺ L ⊑ L′
-          ⦂ C ⇒ B ⊑ C′ ⇒ B′ ∶ pC ↦ pB
-      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-          ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ pA
-      → s ；⌊ pA ⌋≋ᵖ
-          (quotientᵖ ≈∀-refl pC ≈∀-refl) ； s′
-        ------------------------------------------------------------
-      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-          ⊢ᴺᵖ L · (M ⟨ d ⟩) ⊑ L′ · (M′ ⟨ d′ ⟩)
-          ⦂ B ⊑ᵖ B′
-          ∶ quotientᵖ ≈∀-refl pB ≈∀-refl
-
     quotient-id-down-applicationᵖᵀ :
         ∀ {L L′ M M′ A A′ C C′ B B′
           pA qF qC qB d d′ s s′}
@@ -891,6 +902,28 @@ mutual
     ⊢·
       (nu-term-imprecision-source-typing L⊑L′)
       (nu-term-imprecision-source-typing M⊑M′)
+  nu-term-imprecision-source-typing
+      (down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ down-square
+        (quotient-id-widening u⊑ u′⊑)
+        u-shape u′-shape up-square compatible) =
+    ⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
+      (widen-mode-relax id-only≤tag-or-idᵈ u⊑)
+      (⊢· (nu-term-imprecision-source-typing L⊑L′)
+        (⊢⟨⟩⊒ mode seal★ d⊒
+          (nu-term-imprecision-source-typing M⊑M′)))
+  nu-term-imprecision-source-typing
+      (down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ down-square
+        (quotient-cast-widening
+          mode-u seal★-u u⊑ mode-u′ seal★-u′ u′⊑)
+        u-shape u′-shape up-square compatible) =
+    ⊢⟨⟩⊑ mode-u seal★-u u⊑
+      (⊢· (nu-term-imprecision-source-typing L⊑L′)
+        (⊢⟨⟩⊒ mode seal★ d⊒
+          (nu-term-imprecision-source-typing M⊑M′)))
   nu-term-imprecision-source-typing
       (up⊑upᵀ M⊑M′ (quotient-id-widening u⊑ u′⊑)
         p u-shape u′-shape square) =
@@ -1034,6 +1067,28 @@ mutual
     ⊢·
       (nu-term-imprecision-target-typing L⊑L′)
       (nu-term-imprecision-target-typing M⊑M′)
+  nu-term-imprecision-target-typing
+      (down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ down-square
+        (quotient-id-widening u⊑ u′⊑)
+        u-shape u′-shape up-square compatible) =
+    ⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
+      (widen-mode-relax id-only≤tag-or-idᵈ u′⊑)
+      (⊢· (nu-term-imprecision-target-typing L⊑L′)
+        (⊢⟨⟩⊒ mode′ seal★′ d′⊒
+          (nu-term-imprecision-target-typing M⊑M′)))
+  nu-term-imprecision-target-typing
+      (down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ down-square
+        (quotient-cast-widening
+          mode-u seal★-u u⊑ mode-u′ seal★-u′ u′⊑)
+        u-shape u′-shape up-square compatible) =
+    ⊢⟨⟩⊑ mode-u′ seal★-u′ u′⊑
+      (⊢· (nu-term-imprecision-target-typing L⊑L′)
+        (⊢⟨⟩⊒ mode′ seal★′ d′⊒
+          (nu-term-imprecision-target-typing M⊑M′)))
   nu-term-imprecision-target-typing
       (up⊑upᵀ M⊑M′ (quotient-id-widening u⊑ u′⊑)
         p u-shape u′-shape square) =
@@ -1182,13 +1237,6 @@ mutual
     ⊢⟨⟩⊒ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id d⊒
       (nu-term-imprecision-source-typing M⊑M′)
   quotiented-nu-term-imprecision-source-typing
-      (ordinary-down-applicationᵖᵀ
-        mode seal★ d⊒ d-shape
-        mode′ seal★′ d′⊒ d′-shape L⊑L′ M⊑M′ square) =
-    ⊢· (nu-term-imprecision-source-typing L⊑L′)
-      (⊢⟨⟩⊒ mode seal★ d⊒
-        (nu-term-imprecision-source-typing M⊑M′))
-  quotiented-nu-term-imprecision-source-typing
       (quotient-id-down-applicationᵖᵀ
         d⊒ d-shape d′⊒ d′-shape
         L⊑L′ components M⊑M′ square) =
@@ -1216,13 +1264,6 @@ mutual
         M⊑M′ q square) =
     ⊢⟨⟩⊒ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id d′⊒
       (nu-term-imprecision-target-typing M⊑M′)
-  quotiented-nu-term-imprecision-target-typing
-      (ordinary-down-applicationᵖᵀ
-        mode seal★ d⊒ d-shape
-        mode′ seal★′ d′⊒ d′-shape L⊑L′ M⊑M′ square) =
-    ⊢· (nu-term-imprecision-target-typing L⊑L′)
-      (⊢⟨⟩⊒ mode′ seal★′ d′⊒
-        (nu-term-imprecision-target-typing M⊑M′))
   quotiented-nu-term-imprecision-target-typing
       (quotient-id-down-applicationᵖᵀ
         d⊒ d-shape d′⊒ d′-shape

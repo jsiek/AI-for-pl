@@ -57,21 +57,21 @@ open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessLemma
   using (assumption-membership-unique→precision-index-unique)
 open import
-  proof.Target.Administration.NuImprecisionTargetAdministrationMeasureDef
+  proof.Core.Administration.NuImprecisionAdministrationMeasureDef
   using
-  ( targetPendingAdministrationRank
+  ( pendingAdministrationRank
   ; valueAdministrationWeight
   )
 open import
-  proof.Target.Administration.NuImprecisionTargetAdministrationMeasureLemma
+  proof.Core.Administration.NuImprecisionAdministrationMeasureLemma
   using
-  ( target-inert-value-administration-increaseᵀ
-  ; target-pending-administration-tail-decreaseᵀ
+  ( inert-value-administration-increaseᵀ
+  ; pending-administration-tail-decreaseᵀ
   )
 open import
-  proof.Target.Administration.NuImprecisionTargetAdministrationMeasureProof
+  proof.Core.Administration.NuImprecisionAdministrationMeasureProof
   using
-  (target-inert-rank-decreases; target-sequence-rank-decreases)
+  (inert-rank-decreases; sequence-rank-decreases)
 open import
   proof.Target.Administration.NuImprecisionTargetAdministrationPlanDef
   using
@@ -150,8 +150,8 @@ private
 
   target-pending-rank-value-proof-irrelevant :
     ∀ {V : Term} (vV vV′ : Value V) cs →
-    targetPendingAdministrationRank vV cs ≡
-      targetPendingAdministrationRank vV′ cs
+    pendingAdministrationRank vV cs ≡
+      pendingAdministrationRank vV′ cs
   target-pending-rank-value-proof-irrelevant vV vV′ cs
       rewrite
         value-administration-weight-proof-irrelevant vV vV′ =
@@ -221,7 +221,7 @@ private
         (vW ⟨ inert-c ⟩)
         (smaller
           (successor-rank-decrease
-            (target-inert-rank-decreases vW inert-c cs)))
+            (inert-rank-decreases vW inert-c cs)))
         tail coherent exclusive unique wfR runtime
         vV noV (no•-⟨⟩ noW)
         (⊑conv↑ᵀ reveal relation r replacement)
@@ -238,7 +238,7 @@ private
         (vW ⟨ inert-c ⟩)
         (smaller
           (successor-rank-decrease
-            (target-inert-rank-decreases vW inert-c cs)))
+            (inert-rank-decreases vW inert-c cs)))
         tail coherent exclusive unique wfR runtime
         vV noV (no•-⟨⟩ noW)
         (⊑conv↓ᵀ conceal relation r replacement)
@@ -256,7 +256,7 @@ private
         (vW ⟨ inert-c ⟩)
         (smaller
           (successor-rank-decrease
-            (target-inert-rank-decreases vW inert-c cs)))
+            (inert-rank-decreases vW inert-c cs)))
         tail coherent exclusive unique wfR runtime
         vV noV (no•-⟨⟩ noW)
         (⊑cast⊒ᵀ mode seal★ narrowing relation r
@@ -275,7 +275,7 @@ private
         (vW ⟨ inert-c ⟩)
         (smaller
           (successor-rank-decrease
-            (target-inert-rank-decreases vW inert-c cs)))
+            (inert-rank-decreases vW inert-c cs)))
         tail coherent exclusive unique wfR runtime
         vV noV (no•-⟨⟩ noW)
         (⊑cast⊑ᵀ mode seal★ widening relation r
@@ -294,7 +294,7 @@ private
         (vW ⟨ inert-c ⟩)
         (smaller
           (successor-rank-decrease
-            (target-inert-rank-decreases vW inert-c cs)))
+            (inert-rank-decreases vW inert-c cs)))
         tail coherent exclusive unique wfR runtime
         vV noV (no•-⟨⟩ noW)
         (⊑cast⊑idᵀ seal★ widening relation r
@@ -314,7 +314,7 @@ private
         with pending-worker
           vW
           (smaller
-            (target-pending-administration-tail-decreaseᵀ vW c cs))
+            (pending-administration-tail-decreaseᵀ vW c cs))
           tail coherent exclusive unique wfR
           (pending-casts-runtime cs (ok-no noW))
           vV noV noW relation
@@ -376,9 +376,9 @@ private
           vU
           (smaller
             (<-trans
-              (target-inert-value-administration-increaseᵀ
+              (inert-value-administration-increaseᵀ
                 vU (G C.!) cs)
-              (target-pending-administration-tail-decreaseᵀ vW c cs)))
+              (pending-administration-tail-decreaseᵀ vW c cs)))
           tail coherent exclusive unique wfR
           (pending-casts-runtime cs
             (ok-no (tag-no-bullet noW)))
@@ -431,17 +431,17 @@ private
 
       smaller =
         <-trans
-          (target-inert-value-administration-increaseᵀ
+          (inert-value-administration-increaseᵀ
             vU (C.seal Y α) cs)
           (subst
             (λ n →
               n <
-              targetPendingAdministrationRank
+              pendingAdministrationRank
                 vW (unseal α B ∷ cs))
             (sym
               (target-pending-rank-value-proof-irrelevant
                 (vU ⟨ C.seal Y α ⟩) vW cs))
-            (target-pending-administration-tail-decreaseᵀ
+            (pending-administration-tail-decreaseᵀ
               vW (unseal α B) cs))
 
       ok-root =
@@ -510,7 +510,7 @@ private
           vW
           (smaller
             (successor-rank-decrease
-              (target-sequence-rank-decreases
+              (sequence-rank-decreases
                 vW ((★ ⇒ ★) C.？) (C.gen (★ ⇒ ★) s) cs)))
           (target-administration-sequence-spine-expansionᵀ
             {s⊢ = C.cast-untag hG gG tag-ok}
@@ -576,7 +576,7 @@ private
           vW
           (smaller
             (successor-rank-decrease
-              (target-sequence-rank-decreases
+              (sequence-rank-decreases
                 vW (C.inst (★ ⇒ ★) s) ((★ ⇒ ★) C.!) cs)))
           (target-administration-sequence-spine-expansionᵀ
             {s⊢ = C.cast-inst hFun occ s⊢}
@@ -622,7 +622,7 @@ private
           vW
           (smaller
             (successor-rank-decrease
-              (target-sequence-rank-decreases vW s t cs)))
+              (sequence-rank-decreases vW s t cs)))
           (target-administration-sequence-spine-expansionᵀ
             s-plan t-plan tail)
           coherent exclusive unique wfR
@@ -657,7 +657,7 @@ private
           vW
           (smaller
             (successor-rank-decrease
-              (target-sequence-rank-decreases vW s t cs)))
+              (sequence-rank-decreases vW s t cs)))
           (target-administration-sequence-spine-expansionᵀ
             s-plan t-plan tail)
           coherent exclusive unique wfR
@@ -692,7 +692,7 @@ private
           vW
           (smaller
             (successor-rank-decrease
-              (target-sequence-rank-decreases vW s t cs)))
+              (sequence-rank-decreases vW s t cs)))
           (target-administration-sequence-spine-expansionᵀ
             s-plan t-plan tail)
           coherent exclusive unique wfR

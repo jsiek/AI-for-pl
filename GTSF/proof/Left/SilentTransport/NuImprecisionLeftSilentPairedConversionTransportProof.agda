@@ -21,7 +21,8 @@ open import Data.Product using (_,_; proj₁; proj₂; ∃-syntax)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using
-  ( StoreChanges
+  ( StoreChange
+  ; StoreChanges
   ; applyStores
   ; applyTyCtxs
   ; applyTys
@@ -130,9 +131,10 @@ apply-conceal-conversions-exact
 
 result-source-reveal :
   ∀ {Φ Δᴸ Δᴿ M M′ C C′ μ α X c A B}
+    {χ : StoreChange}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
-  (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
+  (inner : WeakOneStepResult ρ⁺ M M′ C C′ χ) →
   RevealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
   ∃[ μ′ ]
     RevealConversion μ′
@@ -189,9 +191,10 @@ result-source-reveal
 
 result-source-conceal :
   ∀ {Φ Δᴸ Δᴿ M M′ C C′ μ α X c A B}
+    {χ : StoreChange}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
-  (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
+  (inner : WeakOneStepResult ρ⁺ M M′ C C′ χ) →
   ConcealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
   ∃[ μ′ ]
     ConcealConversion μ′

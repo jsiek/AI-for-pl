@@ -8,6 +8,7 @@ module proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSource
 
 open import Coercions using (ModeEnv; unseal)
 open import Conversion using (RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuTermImprecision using
   (StoreImp; leftStoreⁱ)
@@ -34,6 +35,7 @@ WorldCoherentSourceUnsealCatchupᵀ =
   WorldCoherentLeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ⁺} p →
   (q : Φ ∣ Δᴸ ⊢ X ⊑ B′ ⊣ Δᴿ) →
+  p [ α ↦ X ]ᴸ q →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ unseal α X ⟩}
     {V′ = V′} {ρ = ρ⁺} q

@@ -12,6 +12,7 @@ module proof.Catchup.Core.NuImprecisionCatchupSourceAllocationTerminal where
 --     simulation core.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
@@ -20,8 +21,11 @@ open import Data.Product using (_,_)
 
 open import ImprecisionWf using
   (NonVar; _ˣ⊑★; ⇑ᴸᵢ; _∣_⊢_⊑_⊣_; ν)
+open import ImprecisionComposition using
+  (ImprecisionShape; _；_≋_; ⌊_⌋)
 open import Coercions using (instᵈ)
 open import Conversion using (RevealConversion; weaken-reveal-conversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NarrowWiden using (widen-weaken)
 open import NuStore using (StoreIncl-cons)
@@ -57,6 +61,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   )
 open import proof.Core.Properties.StoreProperties using (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (⊑-source-liftνᵢ)
 
 left-silent-indexed-prefix-source-ν-terminal-valueᵀ :
   ∀ {Φ Δᴸ Δᴿ A B B′ C N V′ s μ}
@@ -71,6 +77,7 @@ left-silent-indexed-prefix-source-ν-terminal-valueᵀ :
   RevealConversion μ (suc Δᴸ)
     ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ₀))
     zero (⇑ᵗ A) s C (⇑ᵗ B) →
+  q [ zero ↦ ⇑ᵗ A ]ᴸ ⊑-source-liftνᵢ p →
   (catchup : LeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ⁺} (ν safe occ q)) →
   let inner = weakIndexedResult (catchupIndexedResult catchup) in
@@ -79,7 +86,7 @@ left-silent-indexed-prefix-source-ν-terminal-valueᵀ :
   LeftSilentIndexedResult
     {N = ν A N s} {V′ = V′} {ρ = ρ⁺} p
 left-silent-indexed-prefix-source-ν-terminal-valueᵀ
-    {p = p} prefix hA c↑
+    {p = p} prefix hA c↑ replace
     (left-indexed-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) final))
@@ -87,9 +94,9 @@ left-silent-indexed-prefix-source-ν-terminal-valueᵀ
   left-silent-indexed
     (weak-indexed-result framed (relatedResults framed)
       (weak-one-step-source-ν-frame-preserves-transportᵀ
-        hA c↑⁺ p indexed (weakIndexedTransport indexed))
+        hA c↑⁺ p replace indexed (weakIndexedTransport indexed))
       (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-        hA c↑⁺ p indexed (weakIndexedTypeCoherence indexed)))
+        hA c↑⁺ p replace indexed (weakIndexedTypeCoherence indexed)))
     (left-silent-invariant refl refl)
     (ok-ν (ok-no noW))
   where
@@ -101,11 +108,12 @@ left-silent-indexed-prefix-source-ν-terminal-valueᵀ
 
   c↑⁺ = weaken-reveal-conversion source-store-incl c↑
 
-  framed = weak-one-step-source-ν-frameᵀ hA c↑⁺ p indexed
+  framed = weak-one-step-source-ν-frameᵀ hA c↑⁺ p replace indexed
 
 left-silent-indexed-prefix-source-νcast-terminal-valueᵀ :
   ∀ {Φ Δᴸ Δᴿ B B′ C N V′ s μ}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
+    {s-shape : ImprecisionShape}
     {occ : occurs zero C ≡ true}
     {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
@@ -118,6 +126,8 @@ left-silent-indexed-prefix-source-νcast-terminal-valueᵀ :
   instᵈ μ ∣ suc Δᴸ
     ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
+  widening ⊢ᶜ s ⦂ s-shape →
+  s-shape ； ⌊ p ⌋ ≋ ⌊ q ⌋ →
   (catchup : LeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ⁺} (ν safe occ q)) →
   let inner = weakIndexedResult (catchupIndexedResult catchup) in
@@ -126,7 +136,7 @@ left-silent-indexed-prefix-source-νcast-terminal-valueᵀ :
   LeftSilentIndexedResult
     {N = ν ★ N s} {V′ = V′} {ρ = ρ⁺} p
 left-silent-indexed-prefix-source-νcast-terminal-valueᵀ
-    {p = p} prefix mode seal★ c⊑
+    {p = p} prefix mode seal★ c⊑ s-shape-proof comp
     (left-indexed-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) final))
@@ -134,9 +144,11 @@ left-silent-indexed-prefix-source-νcast-terminal-valueᵀ
   left-silent-indexed
     (weak-indexed-result framed (relatedResults framed)
       (weak-one-step-source-νcast-frame-preserves-transportᵀ
-        mode seal★⁺ c⊑⁺ p indexed (weakIndexedTransport indexed))
+        mode seal★⁺ c⊑⁺ p s-shape-proof comp indexed
+        (weakIndexedTransport indexed))
       (weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-        mode seal★⁺ c⊑⁺ p indexed (weakIndexedTypeCoherence indexed)))
+        mode seal★⁺ c⊑⁺ p s-shape-proof comp indexed
+        (weakIndexedTypeCoherence indexed)))
     (left-silent-invariant refl refl)
     (ok-ν (ok-no noW))
   where
@@ -151,4 +163,5 @@ left-silent-indexed-prefix-source-νcast-terminal-valueᵀ
   c⊑⁺ = widen-weaken ≤-refl source-store-incl c⊑
 
   framed =
-    weak-one-step-source-νcast-frameᵀ mode seal★⁺ c⊑⁺ p indexed
+    weak-one-step-source-νcast-frameᵀ
+      mode seal★⁺ c⊑⁺ p s-shape-proof comp indexed

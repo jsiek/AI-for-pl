@@ -36,6 +36,7 @@ open import QuotientedTermImprecision using
   ; x⊑xᵀ
   ; ƛ⊑ƛᵀ
   ; ·⊑·ᵀ
+  ; down·up⊑down·upᵀ
   ; up⊑upᵀ
   ; Λ⊑Λᵀ
   ; Λ⊑instβᵀ
@@ -65,7 +66,6 @@ open import QuotientedTermImprecision using
   ; ⊑conv↓ᵀ
   ; down⊑downᵀ
   ; gen-down⊑gen-downᵀ
-  ; ordinary-down-applicationᵖᵀ
   ; quotient-down-applicationᵖᵀ
   ; quotient-id-down-applicationᵖᵀ
   ; quotient-id-widening
@@ -92,6 +92,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-insertion-cast-renamer
   ; left-narrowing-renameⁱ
   ; left-narrowing-rename-modeⁱ
+  ; paired-widening-compatible-rename-leftᵢ
   ; left-store-rename-[]
   ; left-store-rename-left
   ; left-store-rename-link
@@ -139,6 +140,7 @@ open import
   proof.Core.Properties.NuCastImprecisionShapeProperties
   using
   ( cast-shape-rename
+  ; imprecision-composition-shape-transport
   ; shape-rename-left
   ; shape-subst-source
   ; ⊑-rename-leftᵢ
@@ -303,6 +305,78 @@ mutual
     left-rename-·ᵀ
       (left-rename-no•ᵀ-proof ins renameρ renameγ noL noL′ L⊑L′)
       (left-rename-no•ᵀ-proof ins renameρ renameγ noM noM′ M⊑M′)
+  left-rename-no•ᵀ-proof
+      {τ = τ} {assm = assm} {hτ = hτ}
+      ins renameρ renameγ
+      (no•-⟨⟩ (no•-· noL (no•-⟨⟩ noM)))
+      (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′)))
+      (down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ down-square
+        (quotient-id-widening u⊑ u′⊑)
+        u-shape u′-shape up-square compatible) =
+    down·up⊑down·upᵀ
+      (CastModeRenamer.target-mode modeτ mode)
+      (left-seal★-renameⁱ modeτ renameρ mode seal★)
+      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
+      (cast-shape-rename τ d-shape)
+      mode′
+      (right-seal★-left-renameⁱ renameρ seal★′)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      d′-shape
+      (left-rename-no•ᵀ-proof ins renameρ renameγ
+        noL noL′ L⊑L′)
+      (left-rename-no•ᵀ-proof ins renameρ renameγ
+        noM noM′ M⊑M′)
+      (quotient-boundary-square-rename-left down-square)
+      (quotient-id-widening
+        (left-widening-rename-modeⁱ
+          (modeRename-id-only τ) renameρ u⊑)
+        (right-widening-left-renameⁱ renameρ u′⊑))
+      (cast-shape-rename τ u-shape)
+      u′-shape
+      (quotient-boundary-square-rename-left up-square)
+      (paired-widening-compatible-rename-leftᵢ hτ compatible)
+    where
+    modeτ = left-insertion-cast-renamer ins
+  left-rename-no•ᵀ-proof
+      {τ = τ} {assm = assm} {hτ = hτ}
+      ins renameρ renameγ
+      (no•-⟨⟩ (no•-· noL (no•-⟨⟩ noM)))
+      (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′)))
+      (down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ down-square
+        (quotient-cast-widening
+          mode-u seal★-u u⊑ mode-u′ seal★-u′ u′⊑)
+        u-shape u′-shape up-square compatible) =
+    down·up⊑down·upᵀ
+      (CastModeRenamer.target-mode modeτ mode)
+      (left-seal★-renameⁱ modeτ renameρ mode seal★)
+      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
+      (cast-shape-rename τ d-shape)
+      mode′
+      (right-seal★-left-renameⁱ renameρ seal★′)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      d′-shape
+      (left-rename-no•ᵀ-proof ins renameρ renameγ
+        noL noL′ L⊑L′)
+      (left-rename-no•ᵀ-proof ins renameρ renameγ
+        noM noM′ M⊑M′)
+      (quotient-boundary-square-rename-left down-square)
+      (quotient-cast-widening
+        (CastModeRenamer.target-mode modeτ mode-u)
+        (left-seal★-renameⁱ modeτ renameρ mode-u seal★-u)
+        (left-widening-renameⁱ modeτ mode-u renameρ u⊑)
+        mode-u′
+        (right-seal★-left-renameⁱ renameρ seal★-u′)
+        (right-widening-left-renameⁱ renameρ u′⊑))
+      (cast-shape-rename τ u-shape)
+      u′-shape
+      (quotient-boundary-square-rename-left up-square)
+      (paired-widening-compatible-rename-leftᵢ hτ compatible)
+    where
+    modeτ = left-insertion-cast-renamer ins
   left-rename-no•ᵀ-proof {τ = τ} {assm = assm} {hτ = hτ}
       ins renameρ renameγ (no•-⟨⟩ noN) (no•-⟨⟩ noN′)
       (up⊑upᵀ N⊑N′ (quotient-id-widening u⊑ u′⊑) pA
@@ -595,31 +669,6 @@ mutual
         noM noM′ M⊑M′)
       (⊑ᵖ-rename-leftᵢ τ assm hτ q)
       (quotient-boundary-square-rename-left square)
-  left-rename-no•ᵀᵖ-proof
-      {τ = τ} {assm = assm} {hτ = hτ}
-      ins renameρ renameγ
-      (no•-· noL (no•-⟨⟩ noM))
-      (no•-· noL′ (no•-⟨⟩ noM′))
-      (ordinary-down-applicationᵖᵀ
-        mode seal★ d⊒ d-shape
-        mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ M⊑M′ square) =
-    ordinary-down-applicationᵖᵀ
-      (CastModeRenamer.target-mode modeτ mode)
-      (left-seal★-renameⁱ modeτ renameρ mode seal★)
-      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
-      (cast-shape-rename τ d-shape)
-      mode′
-      (right-seal★-left-renameⁱ renameρ seal★′)
-      (right-narrowing-left-renameⁱ renameρ d′⊒)
-      d′-shape
-      (left-rename-no•ᵀ-proof ins renameρ renameγ
-        noL noL′ L⊑L′)
-      (left-rename-no•ᵀ-proof ins renameρ renameγ
-        noM noM′ M⊑M′)
-      (quotient-boundary-square-rename-left square)
-    where
-    modeτ = left-insertion-cast-renamer ins
   left-rename-no•ᵀᵖ-proof {τ = τ} ins renameρ renameγ
       (no•-· noL (no•-⟨⟩ noM))
       (no•-· noL′ (no•-⟨⟩ noM′))

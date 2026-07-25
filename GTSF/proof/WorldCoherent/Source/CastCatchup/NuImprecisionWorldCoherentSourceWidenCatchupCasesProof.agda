@@ -180,6 +180,9 @@ open import proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupPref
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using (WorldCoherent)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
+  using (AssumptionMembershipUnique)
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions; applyCoercions-preserves-Inert)
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
@@ -468,7 +471,7 @@ world-coherent-source-inert-widen-castᵀ
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     with result-widening-typingᵀ prefix mode seal★ c⊑ indexed
 world-coherent-source-inert-widen-castᵀ
@@ -480,7 +483,7 @@ world-coherent-source-inert-widen-castᵀ
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     with final
@@ -493,7 +496,7 @@ world-coherent-source-inert-widen-castᵀ
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     | inj₁ (vW , noW) =
@@ -503,7 +506,7 @@ world-coherent-source-inert-widen-castᵀ
           (inj₁ (vW ⟨ inert′ ⟩ , no•-⟨⟩ noW))))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL
+      coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 
@@ -545,7 +548,7 @@ world-coherent-source-inert-widen-castᵀ
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     | inj₂ refl =
@@ -554,7 +557,7 @@ world-coherent-source-inert-widen-castᵀ
         catchup framed refl first-silent
         first-transport first-coherence refl)
       terminal-combined-lineage
-      coherent exclusive wfL
+      coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 
@@ -638,7 +641,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     with result-widening-typingᵀ prefix mode seal★ c⊑ indexed
 world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
@@ -648,7 +651,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     with final
@@ -659,7 +662,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     | inj₁ (vW , noW) =
@@ -670,7 +673,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
       (left-catchup-invariant
         (left-silent-invariant refl refl) (inj₁ (vW , noW))))
     combined-lineage
-    coherent exclusive wfL
+    coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 
@@ -753,7 +756,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     | inj₂ refl =
@@ -762,7 +765,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
       catchup framed refl first-silent
       first-transport first-coherence refl)
     terminal-combined-lineage
-    coherent exclusive wfL
+    coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 
@@ -830,6 +833,7 @@ terminal-world-catchupᵀ :
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   Value W →
   No• W →
@@ -837,12 +841,12 @@ terminal-world-catchupᵀ :
     ⊢ᴺ W ⊑ V′ ⦂ A ⊑ B ∶ p →
   WorldCoherentLeftCatchupIndexedResult
     {N = W} {V′ = V′} {ρ = ρ} p
-terminal-world-catchupᵀ coherent exclusive wfL vW noW relation =
+terminal-world-catchupᵀ coherent exclusive unique wfL vW noW relation =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-relatedᵀ (inj₁ (vW , noW)) relation)
     (weak-step-store-lineage
       _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 
 
 world-coherent-source-seq-widen-castᵀ :
@@ -875,7 +879,7 @@ world-coherent-source-seq-widen-castᵀ
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q
     sequence-shape-proof@(
       shape-sequence-widening s-shape t-shape sequence-comp)
@@ -893,7 +897,7 @@ world-coherent-source-seq-widen-castᵀ
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q
     sequence-shape-proof@(
       shape-sequence-widening s-shape t-shape sequence-comp)
@@ -910,7 +914,7 @@ world-coherent-source-seq-widen-castᵀ
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q
     sequence-shape-proof@(
       shape-sequence-widening s-shape t-shape sequence-comp)
@@ -921,7 +925,7 @@ world-coherent-source-seq-widen-castᵀ
   world-coherent-left-catchup-indexed-resume-silentᵀ
     first-silent-result
     combined-lineage
-    (value-prefix prefix-reflⁱ coherent exclusive wfL runtime
+    (value-prefix prefix-reflⁱ coherent exclusive unique wfL runtime
       vV′ noV′ (canonicalIndexedResults first-indexed))
   where
   inner = weakIndexedResult indexed
@@ -1049,7 +1053,7 @@ world-coherent-source-seq-widen-castᵀ
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q
     sequence-shape-proof@(
       shape-sequence-widening s-shape t-shape sequence-comp)
@@ -1062,7 +1066,7 @@ world-coherent-source-seq-widen-castᵀ
       catchup framed refl first-silent
       first-transport first-coherence refl)
     terminal-combined-lineage
-    coherent exclusive wfL
+    coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 
@@ -1155,7 +1159,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     with result-widening-typingᵀ prefix mode seal★ c⊑ indexed
 world-coherent-source-inst-widen-castᵀ value-prefix
@@ -1166,7 +1170,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     with final
@@ -1179,7 +1183,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape@(shape-inst inner-shape)
       comp@(comp-ν inner-comp)
     | μ′ , mode′ , final-seal , final-cast
@@ -1187,7 +1191,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
   world-coherent-left-catchup-indexed-resume-silentᵀ
     first-silent-result
     combined-lineage
-    (value-prefix prefix-reflⁱ coherent exclusive wfL runtime
+    (value-prefix prefix-reflⁱ coherent exclusive unique wfL runtime
       vV′ noV′ (canonicalIndexedResults first-indexed))
   where
   inner = weakIndexedResult indexed
@@ -1300,7 +1304,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
           silent@(left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     | inj₂ refl =
@@ -1309,7 +1313,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
       catchup framed refl first-silent
       first-transport first-coherence refl)
     terminal-combined-lineage
-    coherent exclusive wfL
+    coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 

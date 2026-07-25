@@ -36,14 +36,15 @@ open import proof.Catchup.Core.NuImprecisionCatchupSourceAllocationTerminal usin
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (rel-store-embedding-reflⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( weak-one-step-source-ν-frame-preserves-transportᵀ
+  ( nu-term-imprecision-transport-typesᵀ
+  ; weak-one-step-source-ν-frame-preserves-transportᵀ
   ; weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
   ; weak-one-step-source-ν-frameᵀ
-  ; weak-result-source-all
   ; weak-result-source-reveal
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
-  ( catchupIndexedResult
+  ( canonicalIndexedResults
+  ; catchupIndexedResult
   ; left-catchup-invariant
   ; left-indexed-catchup
   ; left-silent-indexed
@@ -52,6 +53,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; resultStore
   ; sourceChanges
   ; sourceCtxResult
+  ; transportSourceNu
+  ; transportSourceNuBodyLeftReplacementCoherent
+  ; transportSourceNuType
   ; weak-indexed-result
   ; weakIndexedResult
   ; weakIndexedTransport
@@ -75,7 +79,13 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   (world-coherent-left-indexed-catchup)
 open import proof.WorldCoherent.Source.NuCatchup.NuImprecisionWorldCoherentSourceNuCatchupDef using
   (WorldCoherentSourceNuCatchupᵀ)
-open import proof.Core.Properties.ReductionProperties using (wfTy-applyTys)
+open import proof.Core.Properties.ConversionIndexCompatibilityProperties using
+  (replace-left-transport-endpoints)
+open import proof.Core.Properties.ReductionProperties using
+  ( applyTys-∀
+  ; applyTysUnderTyBinders-⇑ᵗ
+  ; wfTy-applyTys
+  )
 open import proof.Core.Properties.StoreProperties using (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-suc; renameᵗ-preserves-WfTy)
@@ -85,20 +95,24 @@ world-coherent-source-ν-catchup-proofᵀ :
   WorldCoherentFinalSourceNuCatchupᵀ →
   WorldCoherentSourceNuCatchupᵀ
 world-coherent-source-ν-catchup-proofᵀ
-    final-catchup prefix hA h⇑A c↑ liftρ liftγ vV′ noV′
+    final-catchup {A = A} {C = C} {occ = occ} {q = q}
+    {{safe = safe}}
+    prefix hA h⇑A c↑ liftρ liftγ vV′ noV′
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      inner-lineage coherent exclusive wfL)
+      inner-lineage coherent exclusive unique wfL) replacement
     with final
 world-coherent-source-ν-catchup-proofᵀ
-    final-catchup prefix hA h⇑A c↑ liftρ liftγ vV′ noV′
+    final-catchup {A = A} {C = C} {occ = occ} {q = q}
+    {{safe = safe}}
+    prefix hA h⇑A c↑ liftρ liftγ vV′ noV′
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      inner-lineage coherent exclusive wfL)
+      inner-lineage coherent exclusive unique wfL) replacement
     | inj₁ (vW , noW)
     with weak-result-source-reveal
       (weakIndexedResult indexed)
@@ -108,44 +122,50 @@ world-coherent-source-ν-catchup-proofᵀ
             (leftStoreⁱ-prefix-inclusion prefix)))
         c↑)
 world-coherent-source-ν-catchup-proofᵀ
-    final-catchup prefix hA h⇑A c↑ liftρ liftγ vV′ noV′
+    final-catchup {A = A} {C = C} {occ = occ} {q = q}
+    {{safe = safe}}
+    prefix hA h⇑A c↑ liftρ liftγ vV′ noV′
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      inner-lineage coherent exclusive wfL)
+      inner-lineage coherent exclusive unique wfL) replacement
     | inj₁ (vW , noW)
     | μ′ , final-reveal
-    with weak-result-source-all (weakIndexedResult indexed)
-world-coherent-source-ν-catchup-proofᵀ
-    final-catchup prefix hA h⇑A c↑ liftρ liftγ vV′ noV′
-    (world-coherent-left-indexed-catchup
-      catchup@(left-indexed-catchup indexed
-        (left-catchup-invariant
-          (left-silent-invariant refl refl) final))
-      inner-lineage coherent exclusive wfL)
-    | inj₁ (vW , noW)
-    | μ′ , final-reveal
-    | q′ , W⊑V′
     with lift-left-store-result (resultStore (weakIndexedResult indexed))
 world-coherent-source-ν-catchup-proofᵀ
-    final-catchup prefix hA h⇑A c↑ liftρ liftγ vV′ noV′
+    final-catchup {A = A} {C = C} {occ = occ} {q = q}
+    {{safe = safe}}
+    prefix hA h⇑A c↑ liftρ liftγ vV′ noV′
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      inner-lineage coherent exclusive wfL)
+      inner-lineage coherent exclusive unique wfL) replacement
     | inj₁ (vW , noW)
     | μ′ , final-reveal
-    | q′ , W⊑V′
     | final-store , final-lift =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     first-silent first-lineage
-    (final-catchup coherent exclusive wfL final-wf final-shift-wf
+    (final-catchup final-view final-replacement
+      coherent exclusive wfL final-wf final-shift-wf
       final-reveal final-lift lift-left-ctx-[]
-      vW noW vV′ noV′ W⊑V′)
+      vW noW vV′ noV′ final-relation)
   where
   inner = weakIndexedResult indexed
+
+  final-view = transportSourceNu inner safe occ q
+
+  final-replacement =
+    replace-left-transport-endpoints refl refl refl
+      (applyTysUnderTyBinders-⇑ᵗ (sourceChanges inner) A)
+      (transportSourceNuBodyLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed) safe occ replacement)
+
+  final-relation =
+    nu-term-imprecision-transport-typesᵀ
+      (applyTys-∀ (sourceChanges inner) C)
+      refl refl (canonicalIndexedResults indexed)
 
   first-lineage =
     weak-step-store-lineage
@@ -155,7 +175,7 @@ world-coherent-source-ν-catchup-proofᵀ
 
   final-wf =
     subst
-      (λ Δ → WfTy Δ (applyTys (sourceChanges inner) _))
+      (λ Δ → WfTy Δ (applyTys (sourceChanges inner) A))
       (sym (sourceCtxResult inner))
       (wfTy-applyTys (sourceChanges inner) hA)
 
@@ -164,14 +184,16 @@ world-coherent-source-ν-catchup-proofᵀ
 
   first-silent =
     left-silent-indexed-prefix-source-ν-terminal-valueᵀ
-      prefix hA c↑ catchup vW noW
+      prefix hA c↑ replacement catchup vW noW
 world-coherent-source-ν-catchup-proofᵀ
-    final-catchup prefix hA h⇑A c↑ liftρ liftγ vV′ noV′
+    final-catchup {A = A} {C = C} {occ = occ} {q = q}
+    {{safe = safe}}
+    prefix hA h⇑A c↑ liftρ liftγ vV′ noV′
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final))
-      inner-lineage coherent exclusive wfL)
+      inner-lineage coherent exclusive unique wfL) replacement
     | inj₂ refl =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     first-silent first-lineage terminal
@@ -190,15 +212,16 @@ world-coherent-source-ν-catchup-proofᵀ
 
   c↑⁺ = weaken-reveal-conversion source-store-incl c↑
 
-  framed = weak-one-step-source-ν-frameᵀ hA c↑⁺ _ indexed
+  framed = weak-one-step-source-ν-frameᵀ hA c↑⁺ _ replacement indexed
 
   first-silent =
     left-silent-indexed
       (weak-indexed-result framed (relatedResults framed)
         (weak-one-step-source-ν-frame-preserves-transportᵀ
-          hA c↑⁺ _ indexed (weakIndexedTransport indexed))
+          hA c↑⁺ _ replacement indexed (weakIndexedTransport indexed))
         (weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-          hA c↑⁺ _ indexed (weakIndexedTypeCoherence indexed)))
+          hA c↑⁺ _ replacement indexed
+          (weakIndexedTypeCoherence indexed)))
       (left-silent-invariant refl refl)
       (ok-ν (ok-no no•-blame))
 
@@ -222,4 +245,4 @@ world-coherent-source-ν-catchup-proofᵀ
           (left-silent-invariant refl refl) (inj₂ refl)))
       (weak-step-store-lineage
         (resultStore framed) rel-store-embedding-reflⁱ prefix-reflⁱ)
-      coherent exclusive wfL
+      coherent exclusive unique wfL

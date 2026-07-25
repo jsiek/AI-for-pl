@@ -14,7 +14,10 @@ open import ImprecisionWf using
   ( ImpCtx
   ; _∣_⊢_⊑_⊣_
   )
-open import NuReduction using (keep)
+open import NuReduction using
+  ( keep
+  ; ↠-refl
+  )
 open import NuTermImprecision using (StoreImp)
 open import NuTerms using
   ( RuntimeOK
@@ -68,7 +71,9 @@ world-coherent-right-one-step-atomic-and-blame-roots-proofᵀ :
   WorldCoherentRightOneStepAtomicAndBlameRoots
 world-coherent-right-one-step-atomic-and-blame-roots-proofᵀ =
   record
-    { rightStepTargetAtomicIdentityRoot = atomic-identity
+    { rightStepSourceBlameRoot =
+        world-indexed-outcome-source-blame ↠-refl
+    ; rightStepTargetAtomicIdentityRoot = atomic-identity
     ; rightStepTargetBlameRoot = target-blame
     }
   where

@@ -32,6 +32,7 @@ open import NuReduction using
   ; applyCoercion
   ; applyStores
   ; applyTy
+  ; applyTyCtx
   ; applyTyCtxs
   ; applyTys
   ; bind
@@ -73,6 +74,8 @@ open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingProof using
   (rel-store-embedding-correspondenceⁱ)
 open import proof.Right.Core.NuImprecisionRightSilentPairedCastTransportDef using
   (RightSilentPairedCastTransportᵀ)
+open import proof.Right.Core.NuImprecisionPairedCastTransportDef using
+  (PairedCastTransportᵀ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepResult
   ; WeakOneStepTypeCoherence
@@ -104,6 +107,7 @@ open import
 open import proof.Core.Properties.ReductionProperties using
   ( applyCoercions
   ; applyCoercions-preserves-Inert
+  ; applyTyVar
   ; applyTyVars
   )
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
@@ -113,29 +117,39 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   )
 
 
+result-leading-change :
+  ∀ {Φ Δᴸ Δᴿ M M′ C C′ χ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  WeakOneStepResult ρ M M′ C C′ χ →
+  StoreChange
+result-leading-change {χ = χ} _ = χ
+
+
 result-target-reveal :
   ∀ {Φ Δᴸ Δᴿ M M′ C C′ μ β X c A B}
+    {χ : StoreChange}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
-  (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
+  (inner : WeakOneStepResult ρ⁺ M M′ C C′ χ) →
   RevealConversion μ Δᴿ (rightStoreⁱ ρ₀) β X c A B →
   ∃[ μ′ ]
     RevealConversion μ′
       (resultRightCtx inner)
       (rightStoreⁱ (resultStore inner))
-      (applyTyVars (targetTailChanges inner) β)
-      (applyTys (targetTailChanges inner) X)
-      (applyCoercions (targetTailChanges inner) c)
-      (applyTys (targetTailChanges inner) A)
-      (applyTys (targetTailChanges inner) B)
+      (applyTyVars (targetTailChanges inner) (applyTyVar χ β))
+      (applyTys (targetTailChanges inner) (applyTy χ X))
+      (applyCoercions (targetTailChanges inner) (applyCoercion χ c))
+      (applyTys (targetTailChanges inner) (applyTy χ A))
+      (applyTys (targetTailChanges inner) (applyTy χ B))
 result-target-reveal
     {Δᴿ = Δᴿ} {β = β} {X = X} {c = c} {A = A} {B = B}
+    {χ = χ}
     prefix inner c↑ =
   final-mode , final
   where
   applied =
     apply-reveal-conversions-exact
-      {χs = targetTailChanges inner}
+      {χs = χ ∷ targetTailChanges inner}
       (weaken-reveal-conversion
         (rightStoreⁱ-prefix-inclusion prefix) c↑)
 
@@ -145,56 +159,59 @@ result-target-reveal
     RevealConversion final-mode
       (resultRightCtx inner)
       (rightStoreⁱ (resultStore inner))
-      (applyTyVars (targetTailChanges inner) β)
-      (applyTys (targetTailChanges inner) X)
-      (applyCoercions (targetTailChanges inner) c)
-      (applyTys (targetTailChanges inner) A)
-      (applyTys (targetTailChanges inner) B)
+      (applyTyVars (targetTailChanges inner) (applyTyVar χ β))
+      (applyTys (targetTailChanges inner) (applyTy χ X))
+      (applyCoercions (targetTailChanges inner) (applyCoercion χ c))
+      (applyTys (targetTailChanges inner) (applyTy χ A))
+      (applyTys (targetTailChanges inner) (applyTy χ B))
   final =
     subst
       (λ Δ → RevealConversion final-mode Δ
         (rightStoreⁱ (resultStore inner))
-        (applyTyVars (targetTailChanges inner) β)
-        (applyTys (targetTailChanges inner) X)
-        (applyCoercions (targetTailChanges inner) c)
-        (applyTys (targetTailChanges inner) A)
-        (applyTys (targetTailChanges inner) B))
+        (applyTyVars (targetTailChanges inner) (applyTyVar χ β))
+        (applyTys (targetTailChanges inner) (applyTy χ X))
+        (applyCoercions (targetTailChanges inner) (applyCoercion χ c))
+        (applyTys (targetTailChanges inner) (applyTy χ A))
+        (applyTys (targetTailChanges inner) (applyTy χ B)))
       (sym (targetCtxResult inner))
       (subst
         (λ Σ → RevealConversion final-mode
-          (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ
-          (applyTyVars (targetTailChanges inner) β)
-          (applyTys (targetTailChanges inner) X)
-          (applyCoercions (targetTailChanges inner) c)
-          (applyTys (targetTailChanges inner) A)
-          (applyTys (targetTailChanges inner) B))
+          (applyTyCtxs (targetTailChanges inner)
+            (applyTyCtx χ Δᴿ)) Σ
+          (applyTyVars (targetTailChanges inner) (applyTyVar χ β))
+          (applyTys (targetTailChanges inner) (applyTy χ X))
+          (applyCoercions (targetTailChanges inner) (applyCoercion χ c))
+          (applyTys (targetTailChanges inner) (applyTy χ A))
+          (applyTys (targetTailChanges inner) (applyTy χ B)))
         (sym (targetStoreResult inner))
         (proj₂ applied))
 
 
 result-target-conceal :
   ∀ {Φ Δᴸ Δᴿ M M′ C C′ μ β X c A B}
+    {χ : StoreChange}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
-  (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
+  (inner : WeakOneStepResult ρ⁺ M M′ C C′ χ) →
   ConcealConversion μ Δᴿ (rightStoreⁱ ρ₀) β X c A B →
   ∃[ μ′ ]
     ConcealConversion μ′
       (resultRightCtx inner)
       (rightStoreⁱ (resultStore inner))
-      (applyTyVars (targetTailChanges inner) β)
-      (applyTys (targetTailChanges inner) X)
-      (applyCoercions (targetTailChanges inner) c)
-      (applyTys (targetTailChanges inner) A)
-      (applyTys (targetTailChanges inner) B)
+      (applyTyVars (targetTailChanges inner) (applyTyVar χ β))
+      (applyTys (targetTailChanges inner) (applyTy χ X))
+      (applyCoercions (targetTailChanges inner) (applyCoercion χ c))
+      (applyTys (targetTailChanges inner) (applyTy χ A))
+      (applyTys (targetTailChanges inner) (applyTy χ B))
 result-target-conceal
     {Δᴿ = Δᴿ} {β = β} {X = X} {c = c} {A = A} {B = B}
+    {χ = χ}
     prefix inner c↓ =
   final-mode , final
   where
   applied =
     apply-conceal-conversions-exact
-      {χs = targetTailChanges inner}
+      {χs = χ ∷ targetTailChanges inner}
       (weaken-conceal-conversion
         (rightStoreⁱ-prefix-inclusion prefix) c↓)
 
@@ -204,29 +221,30 @@ result-target-conceal
     ConcealConversion final-mode
       (resultRightCtx inner)
       (rightStoreⁱ (resultStore inner))
-      (applyTyVars (targetTailChanges inner) β)
-      (applyTys (targetTailChanges inner) X)
-      (applyCoercions (targetTailChanges inner) c)
-      (applyTys (targetTailChanges inner) A)
-      (applyTys (targetTailChanges inner) B)
+      (applyTyVars (targetTailChanges inner) (applyTyVar χ β))
+      (applyTys (targetTailChanges inner) (applyTy χ X))
+      (applyCoercions (targetTailChanges inner) (applyCoercion χ c))
+      (applyTys (targetTailChanges inner) (applyTy χ A))
+      (applyTys (targetTailChanges inner) (applyTy χ B))
   final =
     subst
       (λ Δ → ConcealConversion final-mode Δ
         (rightStoreⁱ (resultStore inner))
-        (applyTyVars (targetTailChanges inner) β)
-        (applyTys (targetTailChanges inner) X)
-        (applyCoercions (targetTailChanges inner) c)
-        (applyTys (targetTailChanges inner) A)
-        (applyTys (targetTailChanges inner) B))
+        (applyTyVars (targetTailChanges inner) (applyTyVar χ β))
+        (applyTys (targetTailChanges inner) (applyTy χ X))
+        (applyCoercions (targetTailChanges inner) (applyCoercion χ c))
+        (applyTys (targetTailChanges inner) (applyTy χ A))
+        (applyTys (targetTailChanges inner) (applyTy χ B)))
       (sym (targetCtxResult inner))
       (subst
         (λ Σ → ConcealConversion final-mode
-          (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ
-          (applyTyVars (targetTailChanges inner) β)
-          (applyTys (targetTailChanges inner) X)
-          (applyCoercions (targetTailChanges inner) c)
-          (applyTys (targetTailChanges inner) A)
-          (applyTys (targetTailChanges inner) B))
+          (applyTyCtxs (targetTailChanges inner)
+            (applyTyCtx χ Δᴿ)) Σ
+          (applyTyVars (targetTailChanges inner) (applyTyVar χ β))
+          (applyTys (targetTailChanges inner) (applyTy χ X))
+          (applyCoercions (targetTailChanges inner) (applyCoercion χ c))
+          (applyTys (targetTailChanges inner) (applyTy χ A))
+          (applyTys (targetTailChanges inner) (applyTy χ B)))
         (sym (targetStoreResult inner))
         (proj₂ applied))
 
@@ -250,12 +268,12 @@ applyCoercions-reflects-Inert (χ ∷ χs) c inert =
     (applyCoercions-reflects-Inert χs (applyCoercion χ c) inert)
 
 
-right-silent-paired-widening-compatible-transportᵀ :
+paired-widening-compatible-transportᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {M M′ : Term} {C C′ A A′ B B′ : Ty}
-    {c c′ : Coercion} {p q s s′} →
-  (inner : WeakOneStepResult ρ M M′ C C′ keep) →
+    {c c′ : Coercion} {p q s s′} {χ : StoreChange} →
+  (inner : WeakOneStepResult ρ M M′ C C′ χ) →
   (coherent : WeakOneStepTypeCoherence inner) →
   PairedWideningCompatible
     Φ Δᴸ Δᴿ c c′ {A} {A′} {B} {B′} p q s s′ →
@@ -264,23 +282,23 @@ right-silent-paired-widening-compatible-transportᵀ :
     (resultLeftCtx inner)
     (resultRightCtx inner)
     (applyCoercions (sourceChanges inner) c)
-    (applyCoercions (targetTailChanges inner) (applyCoercion keep c′))
+    (applyCoercions (targetTailChanges inner) (applyCoercion χ c′))
     (transportType inner p)
     (transportType inner q)
     s s′
-right-silent-paired-widening-compatible-transportᵀ
+paired-widening-compatible-transportᵀ
     inner coherent (compatible-source-inert inert) =
   compatible-source-inert
     (applyCoercions-preserves-Inert (sourceChanges inner) inert)
-right-silent-paired-widening-compatible-transportᵀ
-    {c′ = c′} inner coherent
+paired-widening-compatible-transportᵀ
+    {c′ = c′} {χ = χ} inner coherent
     (compatible-target-inert-bridge bridge-evidence) =
   compatible-target-inert-bridge λ target-inert →
     let
       bridge , source-triangle , target-triangle =
         bridge-evidence
           (applyCoercions-reflects-Inert
-            (targetTailChanges inner) c′ target-inert)
+            (χ ∷ targetTailChanges inner) c′ target-inert)
     in
       transportType inner bridge ,
       imprecision-composition-shape-transport
@@ -291,20 +309,20 @@ right-silent-paired-widening-compatible-transportᵀ
         (transportShapeCoherent coherent _) target-triangle
 
 
-right-silent-paired-cast-transport-proofᵀ :
-  RightSilentPairedCastTransportᵀ
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ :
+  PairedCastTransportᵀ
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     with store-corresponds-weakenⁱ prefix corr
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     | corr⁺
     with rel-store-embedding-correspondenceⁱ
       (lineageEmbedding lineage) corr⁺
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
@@ -317,18 +335,18 @@ right-silent-paired-cast-transport-proofᵀ
       eqβ
       (trans eqX′
         (sym (applyTys-rename-applyTyVars
-          (targetTailChanges inner) _)))
+          (_ ∷ targetTailChanges inner) _)))
       corr₁
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
       eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
     | p₂ , corr₂ , p₂-shape
     with result-source-reveal prefix inner c↑
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
@@ -336,8 +354,8 @@ right-silent-paired-cast-transport-proofᵀ
     | p₂ , corr₂ , p₂-shape
     | μˢ , cˢ↑
     with result-target-reveal prefix inner c′↑
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-reveal corr c↑ c′↑ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
@@ -353,18 +371,18 @@ right-silent-paired-cast-transport-proofᵀ
       (transport-paired-replacement
         inner type-coherence replacement p₂
         (trans p₂-shape p₁-shape)))
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     with store-corresponds-weakenⁱ prefix corr
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     | corr⁺
     with rel-store-embedding-correspondenceⁱ
       (lineageEmbedding lineage) corr⁺
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
@@ -377,18 +395,18 @@ right-silent-paired-cast-transport-proofᵀ
       eqβ
       (trans eqX′
         (sym (applyTys-rename-applyTyVars
-          (targetTailChanges inner) _)))
+          (_ ∷ targetTailChanges inner) _)))
       corr₁
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
       eqα , eqX , eqβ , eqX′ , p₁-shape , corr₁
     | p₂ , corr₂ , p₂-shape
     with result-source-conceal prefix inner c↓
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
@@ -396,8 +414,8 @@ right-silent-paired-cast-transport-proofᵀ
     | p₂ , corr₂ , p₂-shape
     | μˢ , cˢ↓
     with result-target-conceal prefix inner c′↓
-right-silent-paired-cast-transport-proofᵀ
-    prefix inner source-empty source-same type-coherence lineage coherent
+paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent
     (paired-conversion (paired-conceal corr c↓ c′↓ replacement))
     | corr⁺
     | α′ , X₁ , β′ , X₁′ , p₁ ,
@@ -413,10 +431,10 @@ right-silent-paired-cast-transport-proofᵀ
       (transport-paired-replacement
         inner type-coherence replacement p₂
         (trans p₂-shape p₁-shape)))
-right-silent-paired-cast-transport-proofᵀ
+paired-cast-transport-proofᵀ
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {A′ = A′}
     {B = B} {B′ = B′} {c = c} {c′ = c′}
-    prefix inner source-empty source-same type-coherence lineage coherent
+    prefix inner type-coherence lineage coherent
     (paired-widening
       mode seal★ c⊑ c-shape
       mode′ seal★′ c′⊑ c′-shape
@@ -427,25 +445,25 @@ right-silent-paired-cast-transport-proofᵀ
       (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
       (widen-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion prefix) c⊑)
-right-silent-paired-cast-transport-proofᵀ
+paired-cast-transport-proofᵀ
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {A′ = A′}
     {B = B} {B′ = B′} {c = c} {c′ = c′}
-    prefix inner source-empty source-same type-coherence lineage coherent
+    prefix inner type-coherence lineage coherent
     (paired-widening
       mode seal★ c⊑ c-shape
       mode′ seal★′ c′⊑ c′-shape
       left-square right-square compat)
     | μˢ , modeˢ , seal★ˢ , cˢ⊑
     with apply-widens-typing
-      {χs = targetTailChanges inner}
+      {χs = result-leading-change inner ∷ targetTailChanges inner}
       mode′
       (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★′)
       (widen-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) c′⊑)
-right-silent-paired-cast-transport-proofᵀ
+paired-cast-transport-proofᵀ
     {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {A′ = A′}
     {B = B} {B′ = B′} {c = c} {c′ = c′}
-    prefix inner source-empty source-same type-coherence lineage coherent
+    prefix inner type-coherence lineage coherent
     (paired-widening
       mode seal★ c⊑ c-shape
       mode′ seal★′ c′⊑ c′-shape
@@ -462,12 +480,13 @@ right-silent-paired-cast-transport-proofᵀ
     target-seal★
     target-cast
     (cast-shape-applyCoercions
-      (targetTailChanges inner) c′-shape)
+      (result-leading-change inner ∷ targetTailChanges inner)
+      c′-shape)
     (imprecision-composition-shape-transport
       refl (transportShapeCoherent type-coherence _) refl left-square)
     (imprecision-composition-shape-transport
       (transportShapeCoherent type-coherence _) refl refl right-square)
-    (right-silent-paired-widening-compatible-transportᵀ
+    (paired-widening-compatible-transportᵀ
       inner type-coherence compat)
   where
   source-seal★ :
@@ -504,21 +523,37 @@ right-silent-paired-cast-transport-proofᵀ
   target-cast :
     μᵗ ∣ resultRightCtx inner ∣ rightStoreⁱ (resultStore inner)
       ⊢ applyCoercions (targetTailChanges inner)
-          (applyCoercion keep c′)
-        ∶ applyTys (targetTailChanges inner) (applyTy keep A′)
-          ⊑ applyTys (targetTailChanges inner) (applyTy keep B′)
+          (applyCoercion (result-leading-change inner) c′)
+        ∶ applyTys (targetTailChanges inner)
+            (applyTy (result-leading-change inner) A′)
+          ⊑ applyTys (targetTailChanges inner)
+            (applyTy (result-leading-change inner) B′)
   target-cast =
     subst
       (λ Δ → μᵗ ∣ Δ ∣ rightStoreⁱ (resultStore inner)
         ⊢ applyCoercions (targetTailChanges inner)
-            (applyCoercion keep c′)
-          ∶ applyTys (targetTailChanges inner) (applyTy keep A′)
-            ⊑ applyTys (targetTailChanges inner) (applyTy keep B′))
+            (applyCoercion (result-leading-change inner) c′)
+          ∶ applyTys (targetTailChanges inner)
+              (applyTy (result-leading-change inner) A′)
+            ⊑ applyTys (targetTailChanges inner)
+              (applyTy (result-leading-change inner) B′))
       (sym (targetCtxResult inner))
       (subst
-        (λ Σ → μᵗ ∣ applyTyCtxs (targetTailChanges inner) Δᴿ ∣ Σ
+        (λ Σ → μᵗ ∣ applyTyCtxs (targetTailChanges inner)
+              (applyTyCtx (result-leading-change inner) Δᴿ) ∣ Σ
           ⊢ applyCoercions (targetTailChanges inner)
-              (applyCoercion keep c′)
-            ∶ applyTys (targetTailChanges inner) (applyTy keep A′)
-              ⊑ applyTys (targetTailChanges inner) (applyTy keep B′))
+              (applyCoercion (result-leading-change inner) c′)
+            ∶ applyTys (targetTailChanges inner)
+                (applyTy (result-leading-change inner) A′)
+              ⊑ applyTys (targetTailChanges inner)
+                (applyTy (result-leading-change inner) B′))
         (sym (targetStoreResult inner)) cᵗ⊑)
+
+
+right-silent-paired-cast-transport-proofᵀ :
+  RightSilentPairedCastTransportᵀ
+right-silent-paired-cast-transport-proofᵀ
+    prefix inner source-empty source-same type-coherence lineage coherent
+    paired =
+  paired-cast-transport-proofᵀ
+    prefix inner type-coherence lineage coherent paired

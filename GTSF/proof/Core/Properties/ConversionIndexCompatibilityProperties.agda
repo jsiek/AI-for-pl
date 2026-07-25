@@ -408,6 +408,8 @@ replace-right-rename²ᵢ assm hτ hσ
       (TyRenameWf-ext hτ)
       hσ
       replace)
+replace-right-rename²ᵢ assm hτ hσ replace-right-ν∀ =
+  replace-right-ν∀
 
 
 replace-paired-rename²ᵢ :
@@ -718,6 +720,8 @@ replace-right-rename-leftᵢ assm hτ
       (rename-assm²-⇑ᴸᵢ assm)
       (TyRenameWf-ext hτ)
       replace)
+replace-right-rename-leftᵢ assm hτ replace-right-ν∀ =
+  replace-right-ν∀
 
 
 replace-paired-rename-leftᵢ :
@@ -987,6 +991,9 @@ replace-right-source-shape {p′ = ν safe occ p′} eq
     (replace-right-ν replace) =
   replace-right-ν
     (replace-right-source-shape (νˢ-injective eq) replace)
+replace-right-source-shape {p′ = ν safe occ p′} eq
+    replace-right-ν∀ =
+  replace-right-ν∀
 
 
 replace-right-target-shape :
@@ -1033,6 +1040,9 @@ replace-right-target-shape {q′ = ν safe occ q′} eq
     (replace-right-ν replace) =
   replace-right-ν
     (replace-right-target-shape (νˢ-injective eq) replace)
+replace-right-target-shape {q′ = ∀ⁱ q′} eq
+    replace-right-ν∀ =
+  replace-right-ν∀
 
 
 replace-paired-source-shape :
